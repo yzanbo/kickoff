@@ -24,11 +24,11 @@ export const PROJECT_SETTINGS_SECTIONS: DialogSection<ProjectSettingsSection>[] 
  * プロジェクトの設定の、選んでいる項目の内容（プロジェクト名の横の「編集」から開くダイアログの右側）。
  * 基本情報・参照資料・AI・メモ・定型文・削除
  */
-export function ProjectSettings({ project, section }: { project: Project; section: ProjectSettingsSection }) {
+export function ProjectSettings({ project, section, onSelect }: { project: Project; section: ProjectSettingsSection; onSelect: (section: ProjectSettingsSection) => void }) {
   const settings = useAppSettings();
   return (
     <>
-      {section === "basic" && <BasicInfo project={project} />}
+      {section === "basic" && <BasicInfo project={project} onOpenMemos={() => onSelect("memos")} />}
       {section === "refs" && (
         <section className="section">
           <h2>参照資料</h2>

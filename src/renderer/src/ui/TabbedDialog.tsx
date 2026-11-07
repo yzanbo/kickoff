@@ -28,8 +28,8 @@ export function TabbedDialog<K extends string>({
   /** 最初に開く項目（省略時は先頭） */
   initial?: K;
   onClose: () => void;
-  /** 選んでいる項目の内容 */
-  children: (section: K) => ReactNode;
+  /** 選んでいる項目の内容（select で中からほかの項目へ移れる） */
+  children: (section: K, select: (section: K) => void) => ReactNode;
 }) {
   // 開いた直後に ✕ ボタンへピントが当たって枠が出ないよう、ダイアログ自体にピントを置く
   const dialog = useModalDialog({ focusSelf: true });
@@ -54,7 +54,7 @@ export function TabbedDialog<K extends string>({
             </button>
           ))}
         </nav>
-        <div className="tabbed-dialog-content">{children(section)}</div>
+        <div className="tabbed-dialog-content">{children(section, setSection)}</div>
       </div>
     </dialog>
   );
