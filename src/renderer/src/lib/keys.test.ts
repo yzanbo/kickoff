@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hasModifiers, heldMetaOf, isCancelKey, isComposing, isKey, isSubmitKey, type KeyInput } from "./keys";
+import { hasAppModifier, hasModifiers, heldMetaOf, isCancelKey, isComposing, isKey, isSubmitKey, type KeyInput } from "./keys";
 
 const key = (k: string, mods: Partial<KeyInput> = {}): KeyInput => ({ key: k, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...mods });
 
@@ -39,4 +39,12 @@ test("heldMetaOf: ⌘ だけ・⌘⇧ を見分け、⌘ を押していない�
   assert.equal(heldMetaOf(key("Shift", { metaKey: true, shiftKey: true })), "meta-shift");
   assert.equal(heldMetaOf(key("Shift", { shiftKey: true })), null);
   assert.equal(heldMetaOf(key("Meta", { metaKey: true, altKey: true })), null);
+});
+
+test("hasAppModifier: Mac は ⌘ だけ（⌃K などの Control は入力欄の編集に残す）、ほかは Ctrl だけ", () => {
+  assert.equal(hasAppModifier(key("k", { metaKey: true }), true), true);
+  assert.equal(hasAppModifier(key("k", { ctrlKey: true }), true), false);
+  assert.equal(hasAppModifier(key("k", { metaKey: true, ctrlKey: true }), true), false);
+  assert.equal(hasAppModifier(key("k", { ctrlKey: true }), false), true);
+  assert.equal(hasAppModifier(key("k", { metaKey: true }), false), false);
 });
