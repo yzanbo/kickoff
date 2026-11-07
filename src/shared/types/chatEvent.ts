@@ -81,6 +81,10 @@ export type ChatEventData =
 /** 子チャットから親チャットへの渡し方: 親の入力欄に入れる（送るのは自分で）/ 今すぐ送る（作業中ならいまの作業に伝える）/ 親の送信待ちの最後に足す */
 export const HANDOFF_VIAS = ["composer", "send", "queue"] as const;
 export type HandoffVia = (typeof HANDOFF_VIAS)[number];
+/** 渡し方の名前（「親チャットに追加 ▾」のメニュー） */
+export const HANDOFF_VIA_LABELS: Record<HandoffVia, string> = { composer: "親の入力欄に入れる", send: "今すぐ送る", queue: "送信待ちに入れる" };
+/** 渡し方の短い名前（設定の切り替え・渡したことの印） */
+export const HANDOFF_VIA_SHORT: Record<HandoffVia, string> = { composer: "入力欄", send: "今すぐ送る", queue: "送信待ち" };
 
 /**
  * 発言に付ける印（送る・伝える・送信待ち・圧縮が終わるまでの預かりのどの道でも同じ形で通し、発言の記録 user に残す）:

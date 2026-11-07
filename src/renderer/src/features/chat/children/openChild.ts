@@ -8,6 +8,7 @@ import { CHILD_CHAT_OPEN_IN, CHILD_CHAT_OPEN_ON_CREATE, chatDraft } from "@/lib/
 import { readSetting, writeSetting } from "@/lib/storage";
 import { addChat, knownChat } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
+import { appendBlock } from "@/features/chat/messages/quoteComment";
 import { chatPaneOf, isChatPaneShown } from "@/features/chat/pane/windowMessages";
 import { panelActions } from "@/features/panel/state/panelActions";
 import { panelKey } from "@/features/panel/surfaces";
@@ -82,7 +83,7 @@ export function revealInParent(child: Pick<Chat, "id" | "parent_chat_id" | "pare
   requestAnimationFrame(() => chatPaneOf(parent.id)?.revealInConversation(eventId, null));
 }
 
-/** 子チャットの答え（handBackText で作った文）を、親の入力欄の後ろに足す（送るのは自分で。別ウィンドウからはメインに頼む） */
+/** 子チャットの答え（handBackText で作った引用・依頼文）を、親の入力欄の後ろに空行を挟んで足す（送るのは自分で。別ウィンドウからはメインに頼む） */
 export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, text: string) {
   if (child.parent_chat_id === null) return;
   if (inPopout()) return postToMainWindow({ type: "childToParent", childId: child.id, action: "handBack", text });
@@ -91,6 +92,6 @@ export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, tex
   const pane = chatPaneOf(parent.id);
   if (pane) pane.fillComposer(text, { append: true });
   // 親の画面がまだなければ、書きかけの文に足しておく（開いたときに入力欄に入る）
-  else writeSetting(chatDraft(parent.id), `${readSetting(chatDraft(parent.id))}${text}`);
+  else writeSetting(chatDraft(parent.id), appendBlock(readSetting(chatDraft(parent.id)), text));
   showChatView(parent);
 }

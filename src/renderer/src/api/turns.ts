@@ -1,4 +1,4 @@
-import type { Attachment, Chat, ChatOptionsPatch, ChildChatBody, FileRewindResult, MessageMarks, QueuedMessage, SendMessageBody, SubagentChildBody, TellResult } from "@shared/types";
+import type { Attachment, Chat, ChatOptionsPatch, ChildChatBody, FileRewindResult, HandoffBody, HandoffResult, HandoffVia, MessageMarks, QueuedMessage, SendMessageBody, SubagentChildBody, TellResult } from "@shared/types";
 import { request } from "./http";
 
 /** チャットの実行（続きを送る・止めずに伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し。コアの routes/turns.ts） */
@@ -31,6 +31,12 @@ export const turnsApi = {
   forkChat: (chatId: number, eventId: number) => request<Chat>("POST", `/api/chats/${chatId}/fork`, { event_id: eventId }),
   /** 子チャットで聞く（親の作業中でも始められる。inherit なら親の会話を引き継ぐ） */
   createChildChat: (chatId: number, body: ChildChatBody) => request<Chat>("POST", `/api/chats/${chatId}/children`, body),
+  /**
+   * 子チャットの作業（作業の終わりの記録 turnEventId）の最後の返答を、直接の親チャットに渡す（via: composer = 入れる文を返して記録するだけ。入れるのは画面 /
+   * send = 今すぐ送る（親が作業中なら伝える）/ queue = 親の送信待ちの最後に足す）。子には渡したことの記録が残る
+   */
+  handOff: (chatId: number, via: HandoffVia, turnEventId: number) =>
+    request<HandoffResult>("POST", `/api/chats/${chatId}/handoff`, { via, turn_event_id: turnEventId } satisfies HandoffBody),
   /** サブエージェントに子チャットで聞く（サブエージェントの会話の記録を添付にして、このチャットの子チャットを作って送る） */
   askSubagentInChild: (chatId: number, agentId: string, body: SubagentChildBody) =>
     request<Chat>("POST", `/api/chats/${chatId}/subagents/${encodeURIComponent(agentId)}/children`, body),

@@ -9,7 +9,7 @@ import { reportFailure } from "@/ui/dialogs";
 import { CopyButton } from "@/ui/CopyButton";
 import { IconButton } from "@/ui/IconButton";
 import { useKnownChat } from "@/stores/chats";
-import type { TimelineItem } from "./timelineItems";
+import type { TimelineItem, TurnHandoff } from "./timelineItems";
 import { TurnChanges } from "@/features/chat/tools/TurnChanges";
 import type { FileChange } from "@/features/chat/tools/turnFileChanges";
 import { ToolGroup } from "@/features/chat/tools/ToolGroup";
@@ -23,6 +23,7 @@ import type { RenderItems } from "@/features/chat/subagents/subagentParts";
 import { SubagentEndNote } from "@/features/chat/subagents/SubagentEndNote";
 import { CompactedRow } from "@/features/chat/status/CompactingRow";
 import { requestHandoff } from "@/features/chat/children/handoff";
+import { AddToParentButton } from "@/features/chat/children/AddToParentButton";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -44,7 +45,17 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
       case "subagentEnd":
         return <SubagentEndNote key={item.key} event={item.event} agentKey={item.agentKey} />;
       default:
-        return <MemoEventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} turnChanges={item.turnChanges} busy={active} />;
+        return (
+          <MemoEventItem
+            key={item.key}
+            event={item.event}
+            turnStart={item.turnStart}
+            turnText={item.turnText}
+            turnChanges={item.turnChanges}
+            turnHandoff={item.turnHandoff}
+            busy={active}
+          />
+        );
     }
   });
 }
@@ -102,14 +113,15 @@ function TurnEnd(props: TurnFooterProps & { turnChanges?: FileChange[] }) {
   );
 }
 
-type TurnFooterProps = { event: ChatEventOf<"result">; turnStart?: string; turnText?: string; busy: boolean };
+type TurnFooterProps = { event: ChatEventOf<"result">; turnStart?: string; turnText?: string; turnHandoff?: TurnHandoff; busy: boolean };
 
 /**
  * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー、ここから分岐。
  * 時刻に乗せると、終わった時刻を出す。分岐は、その時点の会話の位置が分かるときだけ（作業中は出さない）。
- * 子チャットでは「親への依頼文を作ってもらう」（作業中なら、いまの作業に伝える）
+ * 子チャットでは「親チャットに追加 ▾」（最後まで終わった作業の最後の返答を、そのまま親に渡す。依頼文の頼みに答えた作業では文字のボタンで目立たせる）と
+ * 「親への依頼文を作ってもらう」（作業中なら、いまの作業に伝える）
  */
-function TurnFooter({ event, turnStart, turnText, busy }: TurnFooterProps) {
+function TurnFooter({ event, turnStart, turnText, turnHandoff, busy }: TurnFooterProps) {
   const data = event.data;
   const chat = useKnownChat(event.chat_id);
   const child = chat && chat.parent_chat_id !== null && !chat.archived_at ? chat : undefined;
@@ -120,6 +132,7 @@ function TurnFooter({ event, turnStart, turnText, busy }: TurnFooterProps) {
     <div className={cx("turn-footer event-note", data.status === "failed" && "error")} id={`ev-${event.id}`}>
       {status && <span>{status}</span>}
       {worked && <span title={`${formatClock(event.created_at)} に終了`}>作業時間 {worked}</span>}
+      {child && turnHandoff && data.status === "completed" && <AddToParentButton chat={child} turnEventId={event.id} prominent={turnHandoff.requested} />}
       {/* 書式付き（見出し・表がほかのアプリでも崩れない）と Markdown の文の両方でコピーする */}
       {turnText && <CopyButton copy={() => copyRich(turnText)} label="返答をコピー" className="turn-action" />}
       {/* 止めた・失敗した作業の終わりからは分岐できない（以前の記録には message_id が付いている） */}
@@ -173,12 +186,14 @@ function EventItem({
   turnStart,
   turnText,
   turnChanges,
+  turnHandoff,
   busy,
 }: {
   event: ChatEvent;
   turnStart?: string;
   turnText?: string;
   turnChanges?: FileChange[];
+  turnHandoff?: TurnHandoff;
   busy: boolean;
 }) {
   switch (event.type) {
@@ -196,7 +211,7 @@ function EventItem({
       return <div className="event-note">{RESOLVED_LABELS[data.action] ?? "回答済み"}</div>;
     }
     case "result":
-      return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} busy={busy} />;
+      return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} turnHandoff={turnHandoff} busy={busy} />;
     case "error":
       return (
         <div className="event-note error" id={`ev-${event.id}`}>

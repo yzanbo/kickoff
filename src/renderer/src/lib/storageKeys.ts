@@ -7,6 +7,7 @@
  *   ID が 1 から振り直され、別のものを指すため）。ID ごとのものは defineSettingFamily（キーは頭 ＋ ID）
  */
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
+import { HANDOFF_VIAS } from "@shared/types";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
 
 const isString = (value: unknown): value is string => typeof value === "string";
@@ -143,6 +144,11 @@ export const CHILD_CHAT_OPEN_IN = defineSetting("kickoff:child-chat-open-in", ch
  * チャット欄の「新規の子チャットに送る」・「子チャットで聞く」の画面・送信待ちの「子チャットで開く / 移す」で共通（別ウィンドウを開けないブラウザでは右の欄）
  */
 export const CHILD_CHAT_OPEN_ON_CREATE = defineSetting("kickoff:child-chat-open-on-create", choice(["side", "window", "none"], "side"));
+/**
+ * 子チャットの「親チャットに追加」を押したときの渡し方（composer = 親の入力欄に入れる / send = 今すぐ送る / queue = 親の送信待ちに入れる。初めは入力欄。設定の「表示」）。
+ * ▾ のメニューで、今回だけ別の渡し方を選べる
+ */
+export const HANDOFF_VIA = defineSetting("kickoff:handoff-via", choice(HANDOFF_VIAS, "composer"));
 /**
  * チャットからメモを開く場所（side = チャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」）。
  * 「メモに追加」のあとの「開く」・入力欄の上のメモの札で共通（メモのタブから開くのは、メモのタブの中）

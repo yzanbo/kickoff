@@ -34,3 +34,37 @@
 .handoff-request-toggle[aria-expanded="true"] .handoff-request-chevron {
   transform: rotate(90deg);
 }
+
+/*
+ * 子チャットの作業の終わりの行の「親チャットに追加 ▾」（AddToParentButton）: 押す所と ▾ を 1 つに見せる。
+ * 依頼文の頼みに答えた作業（.prominent）は文字の主ボタン、ほかはアイコンだけ（隣の「返答をコピー」などと同じ薄い色）
+ */
+.handoff-split {
+  display: inline-flex;
+  align-items: center;
+}
+
+.turn-footer .handoff-split:not(.prominent) .handoff-more {
+  width: 14px;
+}
+
+.handoff-split.prominent .handoff-main {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+/* ▾ は主ボタンと同じ地で、細い区切り線をはさんでつなげる（.icon-button の色・大きさを打ち消す） */
+.handoff-split.prominent .handoff-more {
+  align-self: stretch;
+  width: 20px;
+  height: auto;
+  border-left: 1px solid color-mix(in srgb, var(--accent-text) 30%, transparent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+.handoff-split.prominent .handoff-more:hover,
+.handoff-split.prominent .handoff-more[aria-expanded="true"] {
+  color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 88%, black);
+}

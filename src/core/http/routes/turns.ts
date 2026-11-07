@@ -3,9 +3,10 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups, requireProject } from "../lookups.js";
-import { chatOptionsSchema, childChatSchema, messageInputSchema, messageText, subagentChildSchema } from "./schemas.js";
+import { chatOptionsSchema, childChatSchema, handoffSchema, messageInputSchema, messageText, subagentChildSchema } from "./schemas.js";
 import { forkChat } from "../../chat/fork.js";
 import { startChildChat } from "../../chat/children.js";
+import { handOffToParent } from "../../chat/handoff.js";
 import { startSubagentChildChat } from "../../chat/subagentChild.js";
 import { rewindFiles, rewindChat } from "../../chat/rewind.js";
 import { workdirOf } from "../../chat/workdir.js";
@@ -72,6 +73,13 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads }: Ser
     const body = childChatSchema.parse(await jsonBody(c));
     const child = await startChildChat(deps, c.var.chat, { text: body.text, quote: body.quote, inherit: body.inherit, eventId: body.event_id, options: body.options, attachments: body.attachments });
     return c.json(child, 201);
+  });
+
+  // 子チャットの作業の最後の返答を、直接の親チャットに渡す（via: composer = 入れる文を返して記録だけ / send = 今すぐ送る（作業中なら伝える）/
+  // queue = 親の送信待ちの最後に足す）。親のない・終わっていない作業・返答のない作業は 400、親がアーカイブ済みなら 409
+  app.post("/api/chats/:id/handoff", withChat, async (c) => {
+    const body = handoffSchema.parse(await jsonBody(c));
+    return c.json(await handOffToParent(deps, c.var.chat, body));
   });
 
   // サブエージェントに子チャットで聞く（サブエージェントの会話の記録を添付にして、このチャットの子チャットを作る。201 で子を返す）
