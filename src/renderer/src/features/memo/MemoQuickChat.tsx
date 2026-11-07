@@ -1,3 +1,4 @@
+import { OctagonPause } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/types";
 import { api } from "@/api";
@@ -125,7 +126,7 @@ function MemoQuickComposer({ projectId, path, chat, beforeSend }: { projectId: n
         suggestTarget={{ projectId, worktree: chat?.worktree_path ?? undefined }}
         handleRef={composer}
         draft={chat ? chatDraft(chat.id) : undefined}
-        sendTo={chat ? [{ label: "質問として送る（答えのあとで一時停止）", onSend: send.onAsk }] : undefined}
+        sendTo={chat ? [{ label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, onSend: send.onAsk }] : undefined}
       />
     </div>
   );

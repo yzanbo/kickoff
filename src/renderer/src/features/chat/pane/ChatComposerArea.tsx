@@ -1,4 +1,4 @@
-import { TriangleAlert } from "lucide-react";
+import { MessageSquarePlus, MessagesSquare, OctagonPause, TriangleAlert } from "lucide-react";
 import type { MutableRefObject } from "react";
 import type { Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
@@ -122,14 +122,16 @@ export function ChatComposerArea({
         history={prompts.recalls}
         draft={chatDraft(chat.id)}
         sendTo={[
-          { label: "質問として送る（答えのあとで一時停止）", title: ASK_SEND_TITLE, onSend: send.onAsk },
+          { label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, title: ASK_SEND_TITLE, onSend: send.onAsk },
           ...(memoOrArchived
             ? []
             : [true, false].map((inherit) => ({
-                label: `新規の子チャットに送る（${inherit ? INHERIT_LABELS.inherit : INHERIT_LABELS.fresh}）`,
+                // 子チャットの 2 つは「新規の子チャットに送る」の見出しの下に 1 組で並べる
+                group: "新規の子チャットに送る",
+                label: inherit ? INHERIT_LABELS.inherit : INHERIT_LABELS.fresh,
+                hint: inherit ? "このチャットの会話の続きとして始める" : "会話は渡さず、書いた文だけで始める",
+                icon: inherit ? MessagesSquare : MessageSquarePlus,
                 title: childSendTitle(inherit),
-                // 子チャットの 2 つを、質問として送ると区切って 1 組に見せる
-                separated: inherit,
                 onSend: sendToChild(inherit),
               }))),
         ]}

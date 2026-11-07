@@ -1,4 +1,4 @@
-import { ChevronDown, SendHorizontal, Square } from "lucide-react";
+import { ChevronDown, SendHorizontal, Square, type LucideIcon } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
@@ -7,11 +7,14 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import type { QueueSendMode } from "./composerKeys";
 
 /** 送信ボタンの右クリックで選べる、ほかの送り方・送り先（質問として送る・子チャットに送るなど） */
-interface SendTarget {
+export interface SendTarget {
   label: string;
+  /** 名前の下に小さく添える、何が起きるかの一言 */
+  hint?: string;
+  icon?: LucideIcon;
+  /** 組の見出し（同じ見出しの項目を続けて並べ、組の前に区切り線と見出しを置く。「新規の子チャットに送る」など） */
+  group?: string;
   title?: string;
-  /** 前に区切り線を置く（送り先の組の初め） */
-  separated?: boolean;
   disabled?: boolean;
   onSelect: () => void;
 }
@@ -123,14 +126,25 @@ export function ComposerActions({
       </span>
       {menu.menu && sendTargets && (
         <PopupMenu at={menu.menu.at} label="送り方" ignore=".send-more" onClose={menu.close}>
-          {sendTargets.map((target, i) => (
-            <Fragment key={target.label}>
-              {target.separated && i > 0 && <div className="menu-separator" role="separator" />}
-              <MenuItem title={target.title} disabled={target.disabled} onSelect={target.onSelect}>
-                {target.label}
-              </MenuItem>
-            </Fragment>
-          ))}
+          {sendTargets.map((target, i) => {
+            const prev = sendTargets[i - 1];
+            const startsGroup = target.group !== undefined && target.group !== prev?.group;
+            const Icon = target.icon;
+            return (
+              <Fragment key={`${target.group ?? ""}/${target.label}`}>
+                {/* 組の前後に区切り線、組の初めに見出し（同じ言葉を項目ごとにくり返さない） */}
+                {i > 0 && (startsGroup || (prev?.group !== undefined && target.group !== prev.group)) && <div className="menu-separator" role="separator" />}
+                {startsGroup && <div className="menu-label">{target.group}</div>}
+                <MenuItem className="send-target" title={target.title} disabled={target.disabled} onSelect={target.onSelect}>
+                  {Icon && <Icon size={15} aria-hidden className="send-target-icon" />}
+                  <span className="send-target-text">
+                    <span>{target.label}</span>
+                    {target.hint && <span className="send-target-hint">{target.hint}</span>}
+                  </span>
+                </MenuItem>
+              </Fragment>
+            );
+          })}
         </PopupMenu>
       )}
     </div>
