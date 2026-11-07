@@ -40,7 +40,7 @@
 | チャットタブ（チャットをボードと分けて横幅いっぱいに開くプロジェクトのタブ。設定でボードの右のパネルにも戻せる） | タブ `chats`（`#/projects/:id/chats`）・`ChatsTab`・置き方の設定 `CHAT_PLACEMENT`（`separate` / `together`）。中身はボードの右のパネルと同じ `kanban:<プロジェクト>` のパネル | ボードの右のパネルだけ |
 | メモ（プロジェクトの「メモ」タブ。プロジェクトの外のフォルダの Markdown か HTML（HTML のメモ = HTML と CSS で書くページ。描いた見た目で見る）） | メモのフォルダ（設定 `memos_dir` の下の、プロジェクトの `memo_folder`。別の場所なら `memo_path`）・`MemoService`（`core/memos/`）・`MemoTab`（`features/memo/`） | なし |
 | メモのチャット（メモの右の欄で話す、メモごとに 1 つのふつうのチャット。一覧には並べず、そのメモの右の欄から開く。AI はメモのファイルを直接読み書きする） | `Chat` の `memo_path`・`POST /api/projects/:id/memo/chat`・`MemoChat`（`features/memo/`） | なし |
-| 子チャット（チャットの発言から「子チャットで聞く」・右の欄の「＋」の「新しい子チャット」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`。作ったときは `CHILD_CHAT_OPEN_ON_CREATE` で、開かないも選べる）。孫・ひ孫も作れる。サブエージェントの「伝える」で「子チャットで聞く」を選ぶと、そのサブエージェントの会話の記録を添えた子チャットになる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`startSubagentChildChat`（`core/chat/subagentChild.ts`）・`features/chat/children/` | なし |
+| 子チャット（チャットの発言から「新しい子チャットで聞く」・右の欄の「＋」の「新しい子チャット」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`。作ったときは `CHILD_CHAT_OPEN_ON_CREATE` で、開かないも選べる）。孫・ひ孫も作れる。サブエージェントの「伝える」で「新しい子チャットで聞く」を選ぶと、そのサブエージェントの会話の記録を添えた子チャットになる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`startSubagentChildChat`（`core/chat/subagentChild.ts`）・`features/chat/children/` | なし |
 | 親への依頼文（子チャットの AI に、親チャットの AI へ渡す依頼文だけを書いてもらう頼み。発言の印 = 依頼文の頼み）・親チャットに追加（子チャットの作業の最後の返答を、そのまま直接の親に渡す。渡し方 = 入力欄 / 今すぐ送る / 送信待ち、渡したあと = そのまま / アーカイブ / 削除）・渡したことの印 / 出どころの札 | 頼み方の文 `handoffRequestPrompt`・最後の返答 `lastReplyOfTurn`（`@shared/chat/handoff`）・発言の印 `MessageMarks`（`handoff_request` / `handoff_from`）・渡し方 `HandoffVia`・渡したあと `HandoffAfter`・`POST /api/chats/:id/handoff`（`core/chat/handoff.ts`）・記録 `handoff`・`features/chat/children/handoff.ts` | なし（「最新の答えを引用して渡す」は前からの `handBackText`） |
 | 会話 / 動き（チャットの画面の見え方。動き = メインエージェントとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
 
@@ -59,7 +59,7 @@
 | 動詞 | 向き | 例 |
 |---|---|---|
 | 伝える | 下へ。動いている作業に届き、作業を変える | 「メインエージェント経由で伝える」（サブエージェントへ直接は送れず、メインエージェントが SendMessage で渡す）・作業中のチャットに伝える |
-| 聞く | 横へ。だれの作業にも影響しない子チャットで聞く | 「子チャットで聞く」・サブエージェント「…」について聞く |
+| 聞く | 横へ。だれの作業にも影響しない子チャットで聞く | 「新しい子チャットで聞く」・サブエージェント「…」について聞く |
 | 渡す | 上へ。答え・報告を返す | 「親チャットに渡す」・サブエージェントの「報告をいま渡す」 |
 
 ## 2. 名前の決まり

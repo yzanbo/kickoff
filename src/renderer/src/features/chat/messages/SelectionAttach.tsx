@@ -93,7 +93,7 @@ const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追�
 /**
  * チャットの画面の会話の中の文（発言・質問のカード・ツールの行・サブエージェントのカードなど。`data-quotable` の中）を選ぶと、その上にボタンを並べる:
  * 「チャットに追加」（すぐこのチャットの入力欄の文の後ろに引用を足す。何件か足してから、まとめて送れる。送るのは自分で）・
- * 「子チャットで聞く」（引用を入れた子チャットを作り、このチャットの作業を止めずに横で聞く。発言の右クリックと同じ）・
+ * 「新しい子チャットで聞く」（引用を入れた子チャットを作り、このチャットの作業を止めずに横で聞く。発言の右クリックと同じ）・
  * 「新しいチャットで聞く」（チャットのタブが入っているパネルの中だけ。引用を入力欄に入れた新しいチャット）・「メモ ▾」（SelectionMemoButton。押すとメモへの入れ方のメニュー）。
  * 右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach が足す先のチャットと両方に足せるボタンを出す）
  */
@@ -104,7 +104,7 @@ export function SelectionAttach() {
   const targets = (): AddTarget[] => [
     { ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }) },
     {
-      label: "子チャットで聞く",
+      label: "新しい子チャットで聞く",
       title: "選択部分を引用した子チャットを作り、このチャットの作業を止めずに横で聞きます（送るのは自分で）",
       icon: MessagesSquare,
       onAdd: (_text, picked) => openAskChild({ parentId: chatId, eventId: null, quote: (picked.markdown ?? picked.quote).slice(0, MAX_ASK_CHILD_QUOTE) }),

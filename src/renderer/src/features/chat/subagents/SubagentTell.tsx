@@ -21,7 +21,7 @@ import type { SubagentsView } from "./subagentsContext";
 type AskMode = "relay" | "child";
 
 /** 送り先の名前（切り替え・案内で同じ言葉にする。伝えるはサブエージェントに直接届かず、メインエージェントが渡すので、経由することを名前に出す） */
-const ASK_MODE_LABELS: Record<AskMode, string> = { relay: "メインエージェント経由で伝える", child: "子チャットで聞く" };
+const ASK_MODE_LABELS: Record<AskMode, string> = { relay: "メインエージェント経由で伝える", child: "新しい子チャットで聞く" };
 
 /** 送り先の説明（切り替えに乗せたときだけ出す。いつも出すと右の欄で 2〜3 行を取るため） */
 const ASK_MODE_HELP: Record<AskMode, string> = {
@@ -91,7 +91,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
         busy={child ? false : view.busy}
         autoFocus={autoFocus}
         placeholder={placeholder}
-        sendLabel={child ? "子チャットで聞く" : later ? "送信待ちに入れる" : "メインエージェント経由で伝える"}
+        sendLabel={child ? "新しい子チャットで聞く" : later ? "送信待ちに入れる" : "メインエージェント経由で伝える"}
         onSend={(text, attachments) => send(text, attachments)}
         onQueue={send}
         // 伝えるときだけ、メインエージェントの作業中に いま / あとで を選ぶ（チャット欄と同じ設定）

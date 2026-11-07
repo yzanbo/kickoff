@@ -36,7 +36,7 @@ interface Selected {
  * 「全部のやり取りをコピー」（チャットの画面の中。このチャットの自分の発言と AI の返答を初めからすべて。コアの記録 `GET /api/chats/:id/transcript`）。
  * 書式付き（ほかのアプリに貼っても見出し・表が崩れない。書式を受け取れない所には Markdown の文）でコピーするのは、AI の返答とその選択部分
  * （描いた表示を Markdown に戻してから `selectionToMarkdown`）と、全部のやり取り。
- * いちばん上に「チャットに追加」（AddToChatItems。右の欄・別ウィンドウでは「メインのチャット」の組）、チャットの画面の中なら「子チャットで聞く」「メモ」も
+ * いちばん上に「チャットに追加」（AddToChatItems。右の欄・別ウィンドウでは「メインのチャット」の組）、チャットの画面の中なら「新しい子チャットで聞く」「メモ」も
  * 並べる（どれも選んでいる部分、なければ項目の全体を使う）。リンク・コードブロックの上などでも、Electron の既定のメニューに任せず、この 1 つにそろえる。
  * - openFor(e, source): 発言など、項目が自分で開く（その項目の中で選んでいれば選択部分、なければ項目の全体）
  * - openInRegion(e): 流れ全体（`data-quotable` の入れ物）で受ける。項目が自分のメニューを開いていなければ、選んでいる部分か、
@@ -84,7 +84,7 @@ export function useQuoteMenu(extra?: ReactNode) {
             <div className="menu-separator" role="separator" />
             {/* 選んだ文（なければ項目の全体）を引用して、このチャットの作業を止めずに横で聞く */}
             <MenuItem onSelect={() => openAskChild({ parentId: pane.chatId, eventId: source.eventId, quote: quoted.slice(0, MAX_ASK_CHILD_QUOTE) })}>
-              <MessageSquarePlus size={14} /> 子チャットで聞く
+              <MessageSquarePlus size={14} /> 新しい子チャットで聞く
             </MenuItem>
           </>
         )}
