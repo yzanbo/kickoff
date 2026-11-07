@@ -88,7 +88,7 @@ export function MemoView({
   const targets = memoChatTargets({ file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
   const editMenu = useMemoEditMenu(editor, targets, file);
   // チャットの欄の幅（境目のつまみで変える。本文を 280px は残す。ドラッグ中は本文と会話を並べる要素の --memo-chat-w を書き換える）。
-  // 欄は閉じても描いたまま置き（書きかけの文も残る）、開け閉めは幅（狭いときは高さ）をスライドさせる
+  // 欄は閉じても描いたまま置き（書きかけの文も残る）、開け閉めは幅（下に置くときは高さ）をスライドさせる
   const body = useRef<HTMLDivElement>(null);
   const chatPane = useRef<HTMLDivElement>(null);
   const chatWidth = useDragSize({ setting: MEMO_CHAT_WIDTH, edge: "start", min: 280, keep: 280, write: "--memo-chat-w", pane: chatPane, target: () => body.current });
