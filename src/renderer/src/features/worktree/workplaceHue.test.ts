@@ -7,6 +7,7 @@ import { workplaceHue } from "./workplaceHue";
 
 const wt = (path: string, branch: string, extra: Partial<GitWorktree> = {}): GitWorktree => ({
   path,
+  root: path,
   branch,
   head: "a1b2c3d4e5f6",
   main: false,

@@ -30,14 +30,14 @@ test("指示はセクション・タスク・成果物に触れず、プロジ�
   }
 });
 
-test("ワークツリーのチャット: 指示の「リポジトリ」は作業場所にし、本体は場所だけ添える", () => {
+test("ワークツリーのチャット: 指示の「作業フォルダ」は作業場所にし、本体は場所だけ添える", () => {
   const p = project();
   const prompt = buildSystemPrompt(p, "/tmp/a-worktrees/x");
-  assert.ok(prompt.includes("- リポジトリ: /tmp/a-worktrees/x"));
+  assert.ok(prompt.includes("- 作業フォルダ: /tmp/a-worktrees/x"));
   assert.ok(prompt.includes("- 本体のフォルダ: /tmp/a"));
   // 本体で作業するチャットは、いままでどおり
   const main = buildSystemPrompt(p);
-  assert.ok(main.includes("- リポジトリ: /tmp/a"));
+  assert.ok(main.includes("- 作業フォルダ: /tmp/a"));
   assert.ok(!main.includes("本体のフォルダ"));
 });
 

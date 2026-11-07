@@ -6,7 +6,7 @@ import { baseName } from "@/lib/format";
 import { useWorktrees, worktreesStore } from "@/stores/worktrees";
 
 /** ワークツリーの短い名前（ブランチ名。なければフォルダ名） */
-export const worktreeLabel = (w: Pick<GitWorktree, "branch" | "path">) => w.branch ?? baseName(w.path);
+export const worktreeLabel = (w: Pick<GitWorktree, "branch" | "root">) => w.branch ?? baseName(w.root);
 
 /**
  * ファイルタブで見る作業場所（本体・ワークツリー）を選ぶ。ワークツリーが本体だけなら出さない。

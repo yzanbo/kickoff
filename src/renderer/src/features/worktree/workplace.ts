@@ -50,7 +50,7 @@ export function workplaceOf(chat: Pick<Chat, "worktree_path" | "branch">, list: 
     if (wt && !wt.prunable) return { key: path, kind: "worktree", name: branchName(wt), title: `ブランチ: ${branchName(wt)}\n作業場所: ワークツリー（${path}）` };
     // 一覧を読み込み終わって見つからない・フォルダが消えている
     if (wt || list) {
-      const name = wt?.branch ?? (chat.branch || baseName(path));
+      const name = wt?.branch ?? (chat.branch || baseName(wt?.root ?? path));
       return { key: path, kind: "missing", name, title: `ブランチ: ${name}\n作業場所: ワークツリー（${path}）のフォルダが見つかりません。アプリの外で消された可能性があります` };
     }
     const name = chat.branch || baseName(path);

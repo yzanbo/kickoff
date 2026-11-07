@@ -2,10 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
-import { expandHome } from "../../system/paths.js";
+import { expandHome, realPathOrSelf } from "../../system/paths.js";
 import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProjectRepoPathBody, type ProviderId } from "@shared/types";
 import { createWorkspace, initGitRepo, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
+import { worktreeMoves } from "../../git/index.js";
 import { Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
@@ -99,7 +100,7 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.get("/api/workspace/inspect", async (c) => {
     const { path } = z.object({ path: z.string().trim().min(1).max(1000) }).parse({ path: c.req.query("path") });
     const info = await inspectWorkspace(path);
-    const registered = projectAt(info.git_root ?? info.path);
+    const registered = projectAt(info.path);
     return c.json({ ...info, registered_project_id: registered?.id ?? null });
   });
 
@@ -129,20 +130,25 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
   /**
    * プロジェクトのフォルダ（本体）を変える（フォルダを移した・別の場所に置き直したとき）。取り込みと同じ決まりで確かめ、
    * ほかのプロジェクトのフォルダなら 409、作業中のチャットがあれば 409。チャット・設定はそのまま引き継ぎ、本体で作業するチャットは次から新しいフォルダで動く
-   * （Claude Code の会話は作業フォルダが変わっても続く）。ワークツリーのチャットの作業場所は変えない
+   * （Claude Code の会話は作業フォルダが変わっても続く）。選んだフォルダをそのまま本体にする（git のリポジトリの中のフォルダでもよい）。
+   * ワークツリーで作業していたチャットは、同じリポジトリの中で変えたなら同じワークツリーの中の新しいフォルダへ、そうでなければ本体へ付け替える（worktreeMoves）
    */
   app.put("/api/projects/:id/repo-path", withProject, async (c) => {
     const { project } = c.var;
     const input = repoPathSchema.parse(await jsonBody(c));
     // git の初期化（フォルダを書き換える）より前に、重なり・作業中を確かめる
     const info = await inspectWorkspace(input.path);
-    const target = info.git_root ?? info.path;
-    if (target === realPathOrSelf(project.repo_path)) return c.json(project);
-    const existing = projectAt(target, project.id);
+    if (info.path === realPathOrSelf(project.repo_path)) return c.json(project);
+    const existing = projectAt(info.path, project.id);
     if (existing) throw new Conflict(`このフォルダは「${existing.name}」として登録済みです`);
     requireNoBusyChat(project.id, "フォルダを変えられません");
     const repoPath = await prepareImportedWorkspace(input.path, input.init_git);
-    return c.json(store.projects.update(project.id, { repo_path: repoPath }));
+    // ワークツリーで作業していたチャットの付け替え（同じリポジトリなら同じワークツリーの中の新しいフォルダ、そうでなければ本体）
+    const moves = await worktreeMoves(project.repo_path, repoPath);
+    const updated = store.projects.update(project.id, { repo_path: repoPath });
+    const used = new Set(store.chats.list({ projectId: project.id, includeArchived: true }).flatMap((chat) => (chat.worktree_path ? [chat.worktree_path] : [])));
+    for (const from of used) store.chats.replaceWorktree(project.id, from, moves.get(from) ?? null);
+    return c.json(updated);
   });
 
   /**
@@ -169,14 +175,6 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
   });
 }
 
-/** パスの実体（シンボリックリンクを解いたもの）。見つからなければそのまま */
-function realPathOrSelf(p: string): string {
-  try {
-    return fs.realpathSync(p);
-  } catch {
-    return p;
-  }
-}
 
 /** 参照資料のパスを絶対パスにそろえ（~ はホームフォルダ）、フォルダかファイルかを調べる。見つからなければ 400 */
 function resolveReferences(input: { path: string }[]): Project["reference_paths"] {

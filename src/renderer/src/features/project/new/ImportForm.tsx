@@ -45,14 +45,10 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
     if (inspection && !nameEdited) setName(inspection.suggested_name);
   }, [inspection, nameEdited]);
 
+  // git のリポジトリの中のフォルダも、そのまま取り込む（Git の操作はその中だけ。git の管理は親のリポジトリのまま）
   const isSubfolder = Boolean(inspection?.is_git && inspection.git_root && inspection.git_root !== inspection.path);
   const needsInit = Boolean(inspection?.is_directory && !isSubfolder && (!inspection.is_git || !inspection.has_commits));
-  const blocked =
-    !inspection ||
-    !inspection.exists ||
-    !inspection.is_directory ||
-    isSubfolder ||
-    Boolean(inspection.registered_project_id);
+  const blocked = !inspection || !inspection.exists || !inspection.is_directory || Boolean(inspection.registered_project_id);
 
   const importProject = (e: FormEvent) => {
     e.preventDefault();
@@ -66,11 +62,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
 
       {inspecting && <p className="muted small">フォルダを確認しています…</p>}
       {inspection && (
-        <InspectionPanel
-          info={inspection}
-          isSubfolder={isSubfolder}
-          onUseRoot={() => inspection.git_root && setFolder(inspection.git_root)}
-        />
+        <InspectionPanel info={inspection} isSubfolder={isSubfolder} />
       )}
 
       {needsInit && (

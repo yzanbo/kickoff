@@ -55,6 +55,8 @@ export interface FolderInspection {
   branch: string | null;
   remote_url: string | null;
   dirty: boolean;
+  /** フォルダの中が空か（.DS_Store だけも空とみなす。フォルダを変えるとき、中身を移すつもりで空のフォルダを選んでいないか確かめる） */
+  empty: boolean;
   suggested_name: string;
   registered_project_id?: number | null;
 }

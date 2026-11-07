@@ -3,4 +3,4 @@ export { currentBranch, gitStatus, isGitWorkTree, parseGitStatus } from "./statu
 export { assertInside, listProjectFiles, readProjectFile, searchProject, writeProjectFile } from "./files.js";
 export { commitStaged, discardPaths, fetchRemote, gitDiff, pullBranch, pushBranch, stagePaths, toGitDiff, unstagePaths } from "./changes.js";
 export { gitCommitDetail, gitCommitDiff, gitLog, gitRefs, parseCommit, parseNameStatus } from "./history.js";
-export { addWorktree, findWorktree, listWorktrees, parseWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "./worktrees.js";
+export { addWorktree, findWorktree, listWorktrees, parseWorktrees, removeWorktree, worktreePathFor, worktreeMoves, worktreeRemovalInfo } from "./worktrees.js";

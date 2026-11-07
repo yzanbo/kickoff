@@ -1,6 +1,6 @@
 # 作業場所と並行開発（`features/worktree`）
 
-チャットごとに作業場所（`chats.worktree_path`。`null` なら本体）を持ち、エージェントはその中で動く。並行して進めるときはチャットごとにワークツリーを使う。ファイル・検索・変更・履歴の画面は `features/editor/CLAUDE.md`。
+チャットごとに作業場所（`chats.worktree_path`。`null` なら本体）を持ち、エージェントはその中で動く。`GitWorktree` の `path` は作業するフォルダ（プロジェクトのフォルダがリポジトリの中のフォルダなら、ワークツリーの中の同じ位置）、`root` は git が取り出している一番上。チャットの作業場所・`?worktree=`・パスのつなぎ方は `path` を使い、フォルダの名前を出すとき（ブランチがない・置き場所の「<名前>-worktrees」）は `root` を使う（`worktreeLabel`）。並行して進めるときはチャットごとにワークツリーを使う。ファイル・検索・変更・履歴の画面は `features/editor/CLAUDE.md`。
 
 - ワークツリーの一覧はプロジェクトごとの店 `stores/worktrees.ts`（`useWorktrees` / `useWorktreesOf`。30 秒たってから使ったとき・ウィンドウに戻ったときに取り直す）の 1 系統だけで、部品ごとに fetch しない。作った・片付けた・消した API はそのあとの一覧を返すので `worktreesStore.set` で入れ、`invalidate` ですぐ取り直す。
 - チャットの作業場所とブランチの出し方は `workplace.ts` の `workplaceOf` に集める（ブランチの印・作業場所でまとめた見出し・ボードの段で共通。種類は 本体 `main` / ワークツリー `worktree` / フォルダなし `missing`（アプリの外で消された）/ 以前のブランチ `past`（片付けて本体に戻った）。名前は `WORKPLACE_KIND_LABELS`）。ブランチ名はいまの一覧 → チャットが最後に作業したブランチ `chats.branch`（送るたびに覚え、片付けても消さない）の順。画面からは `useChatWorkplace(chat)`（作業場所と、その色 `hue`）、本体のいまのブランチは `useMainBranch`。並びは `compareWorkplaces`（本体 → ワークツリー（名前順）→ フォルダなし → 以前のブランチ）。

@@ -18,6 +18,15 @@ export function isInside(dir: string, target: string): boolean {
   return rel === "" || (rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
 }
 
+/** パスの実体（シンボリックリンクを解いたもの）。見つからなければそのまま */
+export function realPathOrSelf(p: string): string {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
 /** シンボリックリンクを解決した実体のパス（まだ存在しないファイルは、存在する親から組み立てる） */
 export function realPathLoose(p: string): string {
   let current = path.resolve(p);

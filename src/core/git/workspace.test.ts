@@ -49,7 +49,7 @@ test("git 未管理のフォルダは、同意がなければそのまま（git 
   assert.equal(after.dirty, false);
 });
 
-test("コミット済みのリポジトリはそのまま取り込み、サブフォルダは拒否する", async () => {
+test("コミット済みのリポジトリはそのまま取り込む。リポジトリの中のフォルダも、初期化せずにそのまま取り込む", async () => {
   // 以前はここで Git の名前を渡さずにコミットしていて、名前を設定していない環境では落ちた（gitRepo が渡す）
   const { dir } = gitRepo({ dir: tempDir({ real: true }), files: { "src/a.ts": "export {}" } });
   fs.writeFileSync(path.join(dir, "wip.txt"), "作業中");
@@ -65,7 +65,23 @@ test("コミット済みのリポジトリはそのまま取り込み、サブ�
   assert.equal(fs.existsSync(path.join(dir, "wip.txt")), true);
   assert.equal((await inspectWorkspace(dir)).dirty, true);
 
-  await assert.rejects(prepareImportedWorkspace(path.join(dir, "src"), true), /ルート/);
+  // 中のフォルダは選んだまま（initGit でも、中にリポジトリを作らない）。未コミットの判定はそのフォルダの中だけ
+  assert.equal(await prepareImportedWorkspace(path.join(dir, "src"), true), path.join(dir, "src"));
+  assert.equal(fs.existsSync(path.join(dir, "src", ".git")), false);
+  const inner = await inspectWorkspace(path.join(dir, "src"));
+  assert.equal(inner.git_root, dir);
+  assert.equal(inner.dirty, false);
+  assert.equal(inner.empty, false);
+});
+
+test("保存先がリポジトリの中なら、新しいプロジェクトに git の管理を始めず、親のリポジトリの中のフォルダにする", async () => {
+  const { dir } = gitRepo({ dir: tempDir({ real: true }), files: { "a.txt": "a" } });
+  const repo = await createWorkspace({ parentDir: dir, folderName: "child", name: "Child", description: "" });
+  assert.equal(fs.existsSync(path.join(repo, ".git")), false);
+  assert.equal((await inspectWorkspace(repo)).git_root, dir);
+  const empty = tempDir({ real: true });
+  fs.writeFileSync(path.join(empty, ".DS_Store"), "");
+  assert.equal((await inspectWorkspace(empty)).empty, true);
 });
 
 test("新しいプロジェクトは git で管理しないこともできる（README だけ）。あとから initGitRepo で始め、二度目は断る", async () => {

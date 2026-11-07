@@ -59,11 +59,46 @@ export function isGitWorkTree(repo: string): Promise<boolean> {
   );
 }
 
-/** プロジェクトのフォルダの Git の状態（Git で管理されていなければ repo: false） */
+/**
+ * フォルダがリポジトリの一番上から見てどこにあるか（「app/web」の形。一番上なら空。Git でなければ null）。
+ * プロジェクトのフォルダはリポジトリの中のフォルダでもよく、そのときは Git の操作をこの中だけに絞る
+ */
+export async function gitPrefix(dir: string): Promise<string | null> {
+  try {
+    return (await gitOutput(dir, ["rev-parse", "--show-prefix"])).trim().replace(/\/$/, "");
+  } catch {
+    return null;
+  }
+}
+
+/** git status の変更を、リポジトリの中のフォルダ（prefix）の中だけにし、パスをそのフォルダから見た形にする（外から名前を変えたものは、足したものにする） */
+export function scopeChanges(changes: GitFileChange[], prefix: string): GitFileChange[] {
+  if (!prefix) return changes;
+  const head = `${prefix}/`;
+  const out: GitFileChange[] = [];
+  for (const change of changes) {
+    if (!change.path.startsWith(head)) continue;
+    const path = change.path.slice(head.length);
+    if (change.old_path === undefined) out.push({ ...change, path });
+    else if (change.old_path.startsWith(head)) out.push({ ...change, path, old_path: change.old_path.slice(head.length) });
+    else out.push({ path, kind: change.kind === "!" ? "!" : "A" });
+  }
+  return out;
+}
+
+/** プロジェクトのフォルダの Git の状態（Git で管理されていなければ repo: false）。リポジトリの中のフォルダなら、その中の変更だけ */
 export async function gitStatus(repo: string): Promise<GitStatus> {
-  if (!(await isGitWorkTree(repo))) return { repo: false };
-  const [raw, remotes] = await Promise.all([gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"]), listRemotes(repo)]);
-  return { ...parseGitStatus(raw), has_origin: remotes.includes("origin") };
+  const prefix = await gitPrefix(repo);
+  if (prefix === null) return { repo: false };
+  const [raw, remotes] = await Promise.all([gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all", ...(prefix ? ["--", "."] : [])]), listRemotes(repo)]);
+  const status = parseGitStatus(raw);
+  return {
+    ...status,
+    staged: scopeChanges(status.staged, prefix),
+    unstaged: scopeChanges(status.unstaged, prefix),
+    conflicts: scopeChanges(status.conflicts, prefix),
+    has_origin: remotes.includes("origin"),
+  };
 }
 
 /** リモートの名前の一覧（origin など。なければ空） */

@@ -100,7 +100,8 @@ const MAX_LINE_CHARS = 400;
 export async function searchProject(repo: string, { query, case_sensitive: caseSensitive, whole_word: wholeWord, regex }: ProjectSearchQuery): Promise<ProjectSearchResult> {
   const result: ProjectSearchResult = { files: [], total: 0, truncated: false };
   if (!query) return result;
-  const args = ["grep", "-n", "--column", "-I", "--untracked", "-z", `--max-count=${MAX_MATCHES_PER_FILE}`];
+  // --no-full-name: リポジトリの中のフォルダでは、そのフォルダから見たパスで返す（設定の grep.fullName に左右されない）
+  const args = ["grep", "-n", "--column", "-I", "--untracked", "--no-full-name", "-z", `--max-count=${MAX_MATCHES_PER_FILE}`];
   if (!caseSensitive) args.push("-i");
   if (wholeWord) args.push("-w");
   args.push(regex ? "-E" : "-F", "-e", query);

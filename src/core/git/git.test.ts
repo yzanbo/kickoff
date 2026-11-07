@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseCommit, parseGitStatus, parseNameStatus, parseWorktrees, toGitDiff } from "./index.js";
-import { parseAheadBehind } from "./status.js";
+import { parseAheadBehind, scopeChanges } from "./status.js";
 
 test("git status（porcelain v1 -z）を、ステージ済み・未ステージ・競合に分けて読む", () => {
   const raw = [
@@ -59,10 +59,10 @@ test("git worktree list --porcelain を読む（最初が本体。ブランチ�
     "",
   ].join("\n\n");
   assert.deepEqual(parseWorktrees(out), [
-    { path: "/repo", branch: "main", head: "aaaa", main: true, locked: false, prunable: false },
-    { path: "/repo-worktrees/feature-x", branch: "feature/x", head: "bbbb", main: false, locked: true, prunable: false },
-    { path: "/repo-worktrees/detached", branch: null, head: "cccc", main: false, locked: false, prunable: false },
-    { path: "/repo-worktrees/gone", branch: "gone", head: "dddd", main: false, locked: false, prunable: true },
+    { path: "/repo", root: "/repo", branch: "main", head: "aaaa", main: true, locked: false, prunable: false },
+    { path: "/repo-worktrees/feature-x", root: "/repo-worktrees/feature-x", branch: "feature/x", head: "bbbb", main: false, locked: true, prunable: false },
+    { path: "/repo-worktrees/detached", root: "/repo-worktrees/detached", branch: null, head: "cccc", main: false, locked: false, prunable: false },
+    { path: "/repo-worktrees/gone", root: "/repo-worktrees/gone", branch: "gone", head: "dddd", main: false, locked: false, prunable: true },
   ]);
   assert.deepEqual(parseWorktrees(""), []);
 });
@@ -106,4 +106,20 @@ test("差分の返し方: バイナリの印と、大きすぎれば途中で切
   assert.equal(cut.truncated, true);
   assert.equal(cut.diff.length, 400_000);
   assert.equal(toGitDiff("+".repeat(400_000)).truncated, false);
+});
+
+test("リポジトリの中のフォルダの変更だけを、そのフォルダから見たパスにする（外から名前を変えたものは足したもの）", () => {
+  const changes = [
+    { path: "app/a.ts", kind: "M" as const },
+    { path: "other/b.ts", kind: "M" as const },
+    { path: "app/new.ts", old_path: "app/old.ts", kind: "R" as const },
+    { path: "app/moved.ts", old_path: "lib/moved.ts", kind: "R" as const },
+    { path: "application.ts", kind: "A" as const },
+  ];
+  assert.deepEqual(scopeChanges(changes, "app"), [
+    { path: "a.ts", kind: "M" },
+    { path: "new.ts", old_path: "old.ts", kind: "R" },
+    { path: "moved.ts", kind: "A" },
+  ]);
+  assert.equal(scopeChanges(changes, ""), changes);
 });

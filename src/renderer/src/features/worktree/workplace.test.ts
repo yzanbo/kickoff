@@ -5,6 +5,7 @@ import { compareWorkplaces, countBusyAt, workplaceOf } from "./workplace";
 
 const wt = (path: string, branch: string | null, extra: Partial<GitWorktree> = {}): GitWorktree => ({
   path,
+  root: path,
   branch,
   head: "a1b2c3d4e5f6",
   main: false,

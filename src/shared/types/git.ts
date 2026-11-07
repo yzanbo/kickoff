@@ -134,7 +134,10 @@ export interface GitRefs {
 
 /** git のワークツリー（同じリポジトリの別のブランチを、別のフォルダに取り出したもの） */
 export interface GitWorktree {
+  /** 作業するフォルダ（プロジェクトのフォルダがリポジトリの中のフォルダなら、ワークツリーの中の同じ位置のフォルダ。チャットの worktree_path・?worktree= はこれ） */
   path: string;
+  /** ワークツリーの一番上のフォルダ（git が取り出している場所。プロジェクトのフォルダがリポジトリの一番上なら path と同じ） */
+  root: string;
   /** 取り出しているブランチ（ブランチから外れていれば null） */
   branch: string | null;
   head: string;
