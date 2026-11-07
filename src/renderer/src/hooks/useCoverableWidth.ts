@@ -26,6 +26,11 @@ interface CoverableWidthOptions extends CoverRules {
   width: Setting<number>;
   /** 横幅いっぱい（もう一方を覆う）にしているかを覚える設定（ない = 横幅いっぱいの切り替えを置かない欄。狭いときに覆うだけ） */
   maximized?: Setting<boolean>;
+  /**
+   * 横幅いっぱいを効かせるか（既定 true）。false の間は覚えた値を残したまま、横幅いっぱいにしない（切り替えのボタンを出せない間。
+   * ボタンなしで横幅いっぱいのままだと、もう一方を覆ったまま戻せない）
+   */
+  maximizable?: boolean;
   /** 欄のいちばん狭い幅 */
   min: number;
   /** 欄の幅を書き込む CSS 変数（並べる要素に付ける） */
@@ -40,9 +45,10 @@ interface CoverableWidthOptions extends CoverRules {
  * ボードの右のパネル（usePanelWidth）と、チャットの画面の右の欄（サブエージェントの欄）で共通。
  * bodyRef と style は 2 つを並べる要素に、paneRef は欄に、resizeHandle は欄の左端のつまみに渡す
  */
-export function useCoverableWidth({ width: widthSetting, maximized: maximizedSetting, min, gap, minRest, widthVar, shownVar }: CoverableWidthOptions) {
+export function useCoverableWidth({ width: widthSetting, maximized: maximizedSetting, maximizable = true, min, gap, minRest, widthVar, shownVar }: CoverableWidthOptions) {
   // 横幅いっぱい（もう一方を覆う）。戻すと、元の幅に戻る
-  const [maximized, setMaximized] = useOptionalSetting(maximizedSetting, false);
+  const [maximizedSaved, setMaximized] = useOptionalSetting(maximizedSetting, false);
+  const maximized = maximizable && maximizedSaved;
   const [body, setBody] = useState<HTMLDivElement | null>(null);
   /**
    * 欄の左端をドラッグして幅を変える（もう一方を覆うところまで広げられる）。いま見えている幅から始め（横幅いっぱい・覆っているときは
