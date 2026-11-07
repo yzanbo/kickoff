@@ -106,4 +106,4 @@
 @import "./panel/project-chat.css";
 @import "./panel/agent-panel.css";
 @import "./ui/color-swatch.css";
-@import "./ui/drag-snapshot.css";
+@import "./ui/drag-ghost.css";

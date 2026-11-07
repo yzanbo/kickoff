@@ -10,7 +10,7 @@
 /* グループの並べ替え: 動かしているグループは薄く、入る位置に線を出す */
 .custom-group.group-dragging,
 .board-column.group-dragging {
-  opacity: 0.35;
+  opacity: var(--drag-source-opacity);
 }
 
 .custom-group.drop-before::before,

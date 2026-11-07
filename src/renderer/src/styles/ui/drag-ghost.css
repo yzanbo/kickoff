@@ -1,0 +1,49 @@
+/*
+ * ドラッグの絵（ui/dragGhost.ts の startDragGhost）: つかんだ物の半透明の写しを画面のいちばん上に重ね、カーソルに付いて動かす
+ * （位置は transform で与える。押せない・下の「入る位置の線」・落とし先の枠が透けて見える）。見た目は送信待ちで作ったものにそろえる:
+ * 地のない行・タブは枠の地（線・角・余白）に載せ、カード（自分の地がある物 .bare）はそのまま。どちらも影を付け、全体を 60% の濃さにする
+ */
+.drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.drag-ghost-frame {
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+
+.drag-ghost-frame.bare {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+/* まとめて動かすときの件数（写しの右上） */
+.drag-ghost-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+/* 動かしている物（startDragGhost がドラッグの間だけ付ける）。まとまりごと薄くしている中（グループの並べ替え）では重ねて薄くしない */
+[data-drag-source] {
+  opacity: var(--drag-source-opacity);
+}
+
+.group-dragging [data-drag-source] {
+  opacity: 1;
+}

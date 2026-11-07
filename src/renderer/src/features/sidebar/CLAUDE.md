@@ -53,7 +53,7 @@
 
 - 見出しは `FoldHead` の `look="group"`（フォルダのアイコン付きの `GroupToggle` で開閉、見出しのほかの部分でそのグループのボードを開く）。名前のダブルクリックで名前を変える・ドラッグで並べ替える・チャットをドロップしてグループへ移す・右クリックと「…」でメニュー（名前を変更・削除。`useGroupMenu`。「…」はいつも出す）。見出しに渡す束（メニュー・名前の変更・ドロップ・ドラッグ）は `useGroupSections` の `sectionProps(group)`。
 - 「No Group」の見出し（`UngroupedHead`）はグループがあるときだけ出す（チャットを落とすとグループから外す）。グループに下書きがあるときも出す（戻すドロップ先）。
-- 共通の部分は `features/group/groups.ts`: 並べ替えのドラッグ `useReorder`（グループ・プロジェクト・タブのまとまりの札で共通。動かしているものを薄くし、入る位置に線）・ドロップ先 `useGroupDrop`（サイドバーとグループのボードで共通。チャットはそのグループへ、グループの見出しはその位置へ、`onMoveDraft` があれば下書きの作成先も変える。`ungroupedAt` を渡すと「No Group」も並べ替えの並びに入れる（グループのボード。ID は `UNGROUPED_SORT_ID`）。サイドバーでは渡さない）・ドラッグの開始 `startChatDrag` / `startDraftDrag`（独自の MIME 型。どちらも、`useReorder` の `handle` も、ドラッグの絵を半透明にする `markDragSnapshot` を通し、動かしている物を薄くする state はその `after` で変える）・グループ以外のチャットの落とし先 `useChatDropTarget`（アーカイブ済み）とドラッグ中か `useChatDragging`・削除の確かめ `confirmDeleteGroup`（中のチャットは消えず、グループなしに戻る）・グループを選ぶメニュー `GroupPickMenu`（新しいチャットの作成先・まとめて選んだチャットの移動先）。
+- 共通の部分は `features/group/groups.ts`: 並べ替えのドラッグ `useReorder`（グループ・プロジェクト・タブのまとまりの札で共通。動かしているものを薄くし、入る位置に線）・ドロップ先 `useGroupDrop`（サイドバーとグループのボードで共通。チャットはそのグループへ、グループの見出しはその位置へ、`onMoveDraft` があれば下書きの作成先も変える。`ungroupedAt` を渡すと「No Group」も並べ替えの並びに入れる（グループのボード。ID は `UNGROUPED_SORT_ID`）。サイドバーでは渡さない）・ドラッグの開始 `startChatDrag` / `startDraftDrag`（独自の MIME 型。どちらも、`useReorder` の `handle` も、ドラッグの絵の共通の写し `startDragGhost` を通し、動かしている物を薄くする state はその `after` で変える）・グループ以外のチャットの落とし先 `useChatDropTarget`（アーカイブ済み）とドラッグ中か `useChatDragging`・削除の確かめ `confirmDeleteGroup`（中のチャットは消えず、グループなしに戻る）・グループを選ぶメニュー `GroupPickMenu`（新しいチャットの作成先・まとめて選んだチャットの移動先）。
 
 ## 下書き（`DraftRows`）
 

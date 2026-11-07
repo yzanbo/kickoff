@@ -98,7 +98,7 @@
 }
 
 .panel-tab.split-dragging {
-  opacity: 0.5;
+  opacity: var(--drag-source-opacity);
 }
 
 /* ドラッグ中だけ中身の上に置く透明の覆い（分けていなければ中身いっぱい） */

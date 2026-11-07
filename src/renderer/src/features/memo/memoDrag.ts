@@ -1,7 +1,7 @@
 import { useEffect, useRef, type DragEvent, type HTMLAttributes } from "react";
 import type { TreeNode } from "@/features/editor/treeModel";
 import { parentOf } from "./memoPaths";
-import { markDragSnapshot } from "@/ui/dragSnapshot";
+import { startDragGhost } from "@/ui/dragGhost";
 
 /** ドラッグで運ぶメモのパスの種類（ほかのドラッグと見分ける） */
 export const MEMO_DRAG_TYPE = "application/x-kickoff-memo";
@@ -62,8 +62,8 @@ export function useMemoRowDrag({ isOpen, onExpand, onDropInto, onDropTarget }: D
       e.dataTransfer.setData(MEMO_DRAG_TYPE, node.path);
       e.dataTransfer.effectAllowed = "move";
       draggingPath = node.path;
-      // ドラッグの絵の背景を半透明に（下の落とし先のフォルダの印が透ける）
-      markDragSnapshot(e);
+      // 半透明の写しがカーソルに付いて動く（下の落とし先のフォルダの枠が透ける）
+      startDragGhost(e);
     },
     onDragEnd: () => {
       draggingPath = null;

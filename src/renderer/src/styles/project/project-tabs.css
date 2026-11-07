@@ -141,5 +141,5 @@
 }
 
 .tabs .tab-dragging {
-  opacity: 0.45;
+  opacity: var(--drag-source-opacity);
 }
