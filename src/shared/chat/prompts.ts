@@ -157,6 +157,15 @@ export function manualPreCompactMessage(text: string): string {
   return [`${PRE_COMPACT_HEAD}このあと会話を圧縮します${PRE_COMPACT_LOSS}。圧縮の前に、次のことをしてください。`, "---", text].join("\n");
 }
 
+/** 作業中に手で圧縮を頼んだときに、いまの作業へそのまま足す文（いまの作業が終わったら圧縮する。済んだら元の作業に戻ってもらう） */
+export function busyPreCompactMessage(text: string): string {
+  return [
+    `${PRE_COMPACT_HEAD}いまの作業が終わったら、会話を圧縮します${PRE_COMPACT_LOSS}。圧縮の前に、次のことをしてください。済んだら、途中の作業があればそのまま続けてください。`,
+    "---",
+    text,
+  ].join("\n");
+}
+
 /** 上限に近づいて自動で圧縮する前に、作業の途中で足す文（済んだら合図の一文を書いてから、元の作業に戻ってもらう） */
 export function autoPreCompactMessage(text: string): string {
   return [
