@@ -1,4 +1,4 @@
-import { SquareKanban, SquarePen } from "lucide-react";
+import { LayoutGrid, SquareKanban, SquarePen } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Chat } from "@shared/types";
 import { useChatRename } from "@/features/chat/useChatRename";
@@ -13,7 +13,8 @@ import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/panel/
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { panelKey } from "@/features/panel/surfaces";
-import { BoardColumnsToggle } from "./BoardColumnsToggle";
+import { AllProjectsColumnsToggle, BoardColumnsToggle, useAllProjectsColumns } from "./BoardColumnsToggle";
+import { FlatTasks } from "./FlatTasks";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
 import { BoardLanes, LaneSelect } from "./BoardLanes";
@@ -126,6 +127,9 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   const filters = useKanbanFilters();
   // 表示（ボード / リスト）と、段に分けるか（段の分け方はボードとリストで共通）
   const { view, split, setView, setSplit } = useBoardView();
+  // 全プロジェクトのボードだけ、状態で分けない並びにできる（下書きもチャットも 1 つの並び。プロジェクトのボードはいつも状態の列）
+  const [allColumns] = useAllProjectsColumns();
+  const flat = allProjects && allColumns === "none";
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
   const { chats, loaded, error: loadError } = useChats({ projectId, archived: filters.archive !== "active" });
   useTicker(30_000); // 経過時間の表示を進める
@@ -151,9 +155,10 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
     openTitle: allProjects ? (chat) => `プロジェクト「${projectName(chat.project_id)}」で開く（そのプロジェクトの画面へ移ります）` : undefined,
     projectName: (chat) => (allProjects ? projectName(chat.project_id) : undefined),
   });
-  // 状態の列（段に分けるときは、段（グループ・作業場所・プロジェクト）ごとに状態の列。段には、その段に入る作成先の下書きも入る）
+  // 状態の列（段に分けるときは、段（グループ・作業場所・プロジェクト）ごとに状態の列。段には、その段に入る作成先の下書きも入る）。
+  // 状態で分けないときは、段だけで分ける（段に分けなければ見出しのないまとまり 1 つ。中のチャットは最後に動いた順）
   const buckets = useChatBuckets(shown, {
-    by: split ? [lanes, "status"] : "status",
+    by: flat ? (split ? [lanes] : []) : split ? [lanes, "status"] : "status",
     project: projectId,
     projects: allProjects ? projects : undefined,
     drafts,
@@ -167,7 +172,14 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
 
   const header = (
     <BoardHeader
-      heading={title ? { icon: <SquareKanban size={16} className="muted" />, title, count: total } : undefined}
+      // 状態で分けないときは、カンバン（状態の列）ではなくタスクの並びと呼ぶ
+      heading={
+        title
+          ? flat
+            ? { icon: <LayoutGrid size={16} className="muted" />, title: "タスク", count: total }
+            : { icon: <SquareKanban size={16} className="muted" />, title, count: total }
+          : undefined
+      }
       query={filters.query}
       onQuery={filters.setQuery}
       filters={
@@ -186,7 +198,7 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
       }
       view={view}
       onView={setView}
-      columns={projectId !== undefined && <BoardColumnsToggle projectId={projectId} value="state" />}
+      columns={projectId !== undefined ? <BoardColumnsToggle projectId={projectId} value="state" /> : <AllProjectsColumnsToggle />}
       viewOptions={
         <LaneSelect
           value={split ? lanes : "none"}
@@ -210,7 +222,17 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
         // 作業場所の段にプロジェクト名を添えるのは、いくつかのプロジェクトが並ぶ全プロジェクトのボードだけ
         <BoardLanes lanes={buckets} list={view === "list"} foldPlace={foldPlace} showProject={allProjects && projects.length > 1}>
           {(lane) =>
-            view === "board" ? (
+            flat ? (
+              <FlatTasks
+                chats={lane.chats}
+                drafts={lane.drafts}
+                list={view === "list"}
+                showDraftProject={allProjects}
+                foldPlace={foldPlace}
+                archivedKey={`${lane.key}/archived`}
+                render={view === "list" ? cards.row : cards.card}
+              />
+            ) : view === "board" ? (
               <StateColumns columns={lane.children ?? []} drafts={lane.drafts} showDraftProject={allProjects} foldPlace={foldPlace} render={cards.card} />
             ) : (
               <ListSections
@@ -224,6 +246,19 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
             )
           }
         </BoardLanes>
+      ) : flat ? (
+        // 状態で分けない: 下書き → チャット（最近動いた順）を 1 つの並びに（ボードはカードを幅に合わせて折り返し、リストは 1 列）
+        <div className={view === "list" ? "board-list" : "board-flat"}>
+          <FlatTasks
+            chats={buckets[0]?.chats ?? []}
+            drafts={drafts}
+            list={view === "list"}
+            showDraftProject={allProjects}
+            foldPlace={foldPlace}
+            archivedKey="flat/archived"
+            render={view === "list" ? cards.row : cards.card}
+          />
+        </div>
       ) : view === "board" ? (
         <div className="board-columns">
           <StateColumns columns={buckets} drafts={drafts} showDraftProject={allProjects} foldPlace={foldPlace} render={cards.card} />
