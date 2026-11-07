@@ -8,6 +8,7 @@ import { api } from "@/api";
 import { useSave } from "@/hooks/useSave";
 import { Field } from "@/ui/Field";
 import { SaveActions } from "@/ui/SaveActions";
+import { changeProjectFolder } from "@/features/project/changeProjectFolder";
 import { TagEditor } from "./TagEditor";
 
 export function BasicInfo({ project }: { project: Project }) {
@@ -22,6 +23,7 @@ export function BasicInfo({ project }: { project: Project }) {
     <section className="section">
       <h2>基本情報</h2>
       <div className="form">
+        <FolderRow project={project} />
         <ColorField project={project} />
         <TagEditor project={project} />
         <Field label="プロジェクト名">
@@ -54,6 +56,22 @@ function ColorField({ project }: { project: Project }) {
             onClick={() => choose(hue)}
           />
         ))}
+      </div>
+    </Field>
+  );
+}
+
+/** プロジェクトのフォルダ（本体）。「変更…」で選び直す（見出しのフォルダの場所のメニューと同じ。確かめてから変える） */
+function FolderRow({ project }: { project: Project }) {
+  return (
+    <Field as="div" label="フォルダ" help="フォルダを移した・別の場所に置き直したときに選び直します。チャット・設定はそのまま引き継ぎます。">
+      <div className="input-row">
+        <input type="text" aria-label="フォルダ" value={project.repo_path} readOnly />
+        {window.kickoff && (
+          <button type="button" className="btn" onClick={() => void changeProjectFolder(project)}>
+            変更…
+          </button>
+        )}
       </div>
     </Field>
   );

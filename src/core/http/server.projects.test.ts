@@ -1,9 +1,10 @@
-// API のテスト: 設定・プロジェクト（作成・変更・並べ替え・管理から外す）、プロジェクトの固定・アーカイブ・タグ・色（共通の準備は testing/testServer.ts）
+// API のテスト: 設定・プロジェクト（作成・変更・フォルダの変更・並べ替え・管理から外す）、プロジェクトの固定・アーカイブ・タグ・色（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import { AUTH, setup } from "../testing/testServer.js";
+import { gitRepo } from "../testing/gitRepo.js";
+import { AUTH, setup, until } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 
 test("設定・プロジェクトの API", async () => {
@@ -127,4 +128,43 @@ test("プロジェクトの色: 一覧の色だけに変えられる", async () 
   assert.ok(typeof project.hue === "number");
   assert.equal((await call("PATCH", `/api/projects/${project.id}`, { hue: 222 })).body.hue, 222);
   assert.equal((await call("PATCH", `/api/projects/${project.id}`, { hue: 100 })).status, 400);
+});
+
+test("プロジェクトのフォルダを変える: 取り込みと同じ決まりで確かめ、ほかのプロジェクトのフォルダ・作業中のチャットがあれば 409", async () => {
+  const { call, project, store, runner, provider } = setup();
+  const url = `/api/projects/${project.id}/repo-path`;
+  const { dir: moved } = gitRepo({ files: { "a.txt": "a" } });
+  const real = fs.realpathSync(moved);
+  // 見つからない・git のルートでない・git でない（初期化に同意していない）は 400
+  assert.equal((await call("PUT", url, { path: "/no/such/kickoff/folder" })).status, 400);
+  fs.mkdirSync(path.join(moved, "sub"));
+  assert.equal((await call("PUT", url, { path: path.join(moved, "sub") })).status, 400);
+  const plain = tempDir();
+  assert.equal((await call("PUT", url, { path: plain })).status, 400);
+  // ほかのプロジェクトのフォルダは 409（登録したパスがシンボリックリンクを含んでいても、実体で比べる。macOS の一時フォルダは /var → /private/var）
+  const other = store.projects.create({ name: "o", repo_path: moved, provider: "claude" });
+  assert.equal((await call("PUT", url, { path: moved })).status, 409);
+  store.projects.delete(other.id);
+  // 作業中のチャットがあれば 409（フォルダは変えない）
+  const release = provider.hold();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  assert.equal((await call("PUT", url, { path: moved })).status, 409);
+  assert.equal(store.projects.get(project.id)?.repo_path, project.repo_path);
+  release();
+  await until(() => !runner.isBusy(chatId));
+  // 変えると、チャットはそのまま引き継ぐ（実体のパスにそろえる）
+  const changed = await call("PUT", url, { path: moved });
+  assert.equal(changed.status, 200);
+  assert.equal(changed.body.repo_path, real);
+  assert.equal(store.chats.get(chatId)?.project_id, project.id);
+  // git でないフォルダは、初期化に同意すれば最初のコミットを作って変える
+  const initialized = await call("PUT", url, { path: plain, init_git: true });
+  assert.equal(initialized.body.repo_path, fs.realpathSync(plain));
+  assert.ok(fs.existsSync(path.join(plain, ".git")));
+  // いまと同じフォルダ（シンボリックリンクを含むパスで指しても）はそのまま返す
+  assert.equal((await call("PUT", url, { path: plain })).body.repo_path, fs.realpathSync(plain));
+  // 取り込み・点検も実体で比べる
+  assert.equal((await call("GET", `/api/workspace/inspect?path=${encodeURIComponent(plain)}`)).body.registered_project_id, project.id);
+  assert.equal((await call("POST", "/api/projects/import", { path: plain, name: "dup" })).status, 409);
 });
