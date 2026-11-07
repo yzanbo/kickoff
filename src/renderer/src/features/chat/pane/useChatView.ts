@@ -24,6 +24,7 @@ import { waitingSubagentKeys } from "@shared/chat/subagentState";
 import { pathOf, subagentTree } from "@/features/chat/subagents/subagentTree";
 import { agentHues } from "@/features/chat/subagents/agentHues";
 import { jumpToEvent } from "@/features/chat/timeline/jumpToEvent";
+import { useChipsPortal } from "./chipsPortal";
 import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems";
 import { useTimelineScrollHandle } from "@/features/chat/timeline/timelineScroll";
 import { useTimelineWindow } from "@/features/chat/timeline/useTimelineWindow";
@@ -133,7 +134,9 @@ export function useChatView(
   // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
   const promptKeys = usePromptKeys({ root: rootRef, timeline: scroll.ref, promptIds: prompts.ids, onJump: (id) => pane.jumpTo(id) });
   // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
-  const fresh = { chat, options, tree, timeline, onOpenNew, stepPrompt: promptKeys.go, send };
+  // ピルの列を画面の外に描いているとき（メモのチャットの欄を閉じている）は、会話へ移る前に画面を見せる
+  const chipsPortal = useChipsPortal();
+  const fresh = { chat, options, tree, timeline, onOpenNew, stepPrompt: promptKeys.go, send, reveal: chipsPortal?.reveal };
   const latest = useRef(fresh);
   latest.current = fresh;
 
@@ -167,6 +170,7 @@ export function useChatView(
       projectId: () => now().chat.project_id,
       root: rootRef,
       revealSubagent: (key, inside) => {
+        now().reveal?.();
         const path = pathOf(now().tree, key);
         const target = path.at(-1);
         if (!target) return;
@@ -215,12 +219,14 @@ export function useChatView(
         patch({ openSubagents: next });
       },
       show: (showing, filter) => {
+        now().reveal?.();
         // 右の欄がメインの会話を覆っていれば、並べる形に戻す（右の欄から、メインの動きを開くとき）
         side.current?.uncover();
         // 絞り込みを選び直したら、強調はやめる
         patch({ showing, ...(filter ? { activityFilter: filter, activityFocus: null } : {}) });
       },
       focusActivity: (key) => {
+        now().reveal?.();
         side.current?.uncover();
         const nonce = (state.get().activityFocus?.nonce ?? 0) + 1;
         patch({ showing: "activity", activityFilter: { kind: "all" }, activityFocus: { key, nonce } });
@@ -228,6 +234,7 @@ export function useChatView(
       clearActivityFocus: () => patch({ activityFocus: null }),
       revealInConversation: (eventId, agent) => {
         if (agent !== null) return actions.openSubagent(agent, eventId);
+        now().reveal?.();
         patch({ showing: "conversation" });
         if (eventId === undefined) return;
         scroll.release();
@@ -270,6 +277,7 @@ export function useChatView(
       restoreFiles: (eventId) => restoreFilesBefore(chatId, eventId),
       retry: (change) => retryTurn(chatId, now().options, change),
       jumpTo: (eventId) => {
+        now().reveal?.();
         scroll.release();
         const el = scroll.ref.current;
         // 移ったら流れにピントを置く（続けて ⌘⌥↑ / ↓・↑↓ のスクロールが効くように。一覧を閉じてピントが外れたままにしない）

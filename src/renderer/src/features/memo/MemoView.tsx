@@ -1,6 +1,6 @@
 import { CodeXml, Eye, FolderSearch, MessageSquare, Paperclip, Save } from "lucide-react";
 import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
 import { MEMO_CHAT_HEIGHT, MEMO_CHAT_OPEN, MEMO_CHAT_PLACE, MEMO_CHAT_WIDTH, MEMO_VIEW } from "@/lib/storageKeys";
@@ -84,6 +84,9 @@ export function MemoView({
   const chat = useRef<MemoChatHandle | null>(null);
   const pageHandle = useRef<HtmlMemoPageHandle | null>(null);
   const [chatOpen, setChatOpen] = useSetting(MEMO_CHAT_OPEN);
+  // 欄を閉じている間は、メモのチャットの上のピルの列（指示の履歴・ToDo・サブエージェントなど）を下の入力欄の上に描く
+  const [chipsHost, setChipsHost] = useState<HTMLDivElement | null>(null);
+  const chipsPortal = useMemo(() => (chatOpen ? null : { target: chipsHost, reveal: () => setChatOpen(true) }), [chatOpen, chipsHost, setChatOpen]);
   // 足す先のチャット（開いたチャット・メモのチャット）。本文の右クリック・本文で選んだときの上のボタン・見出しの添付のボタンから
   const file = `${dir}/${path}`;
   const targets = memoChatTargets({ file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
@@ -282,6 +285,7 @@ export function MemoView({
                 place={chatPlace}
                 onPlaceChange={setChatPlace}
                 onClose={() => setChatOpen(false)}
+                chipsPortal={chipsPortal}
               />
             </div>
           </>
@@ -296,7 +300,7 @@ export function MemoView({
         <div className={cx("memo-quick-slot", chatOpen && "folded", chatPlace === "bottom" && "chat-bottom", motion.moved && "chat-moved")} aria-hidden={chatOpen} inert={chatOpen}>
           <div className="memo-quick-clip">
             <div ref={motion.quickRef}>
-              <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} />
+              <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} chipsRef={setChipsHost} />
             </div>
           </div>
         </div>
