@@ -130,6 +130,8 @@
 
 作業中に送った次の指示の待ちの列（`QueuedMessages`）。いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。状態は `ChatLive.queue`（`QueueState`: `messages` / `paused` / `stops` / `waiting_edit`）で、変える API の応答も同じ形。操作の失敗は `queueFailed`（お知らせ）。
 
+- 起動したときの送信待ちの確かめ（`QueueResumeDialog` の `QueueResumeHost`。App がメインウィンドウにだけ置き、開いたときに 1 回 `api.queueResumes` を読む）: 前回の終了で、自動で送るまま送信待ちが残ったチャットがあれば、ダイアログ「送信待ちが残っています」でチャットごとに並べ（プロジェクトの印・名前・件数・次に送る指示・作業の途中で止まったか）、送る / 続けてから送る（作業の途中で止まったチャットだけ）/ 止めておく を選んでもらう（`Segmented`。初めは、途中で止まったチャットは続けてから送る、ほかは送る。名前は `QUEUE_RESUME_ACTION_LABELS`）。「この内容で決める」で `api.resolveQueueResumes`、「すべて止めておく」・Esc で閉じたときはすべて止めておく（答えずに閉じても勝手に送らない）。止めていた・線で待っていた送信待ちは、終えたときのまま戻るので聞かない（コアが一覧に入れない）。
+
 - 置き場所と見た目: ピルの列の下・入力欄のすぐ上。入力欄とは区切り線だけでつなげて 1 枚の枠に見せる（`queued.css` の `.queued-messages + .composer`。区切り線は 1px のまま、濃い色 `--divider-strong`。分割したペインのピントの色も両方に付ける）。
 - 初めは畳んで 1 行にする（`QUEUE_COLLAPSED`。どのチャットでも同じ）。1 行には件数・止める位置などの短い案内・「次: 次に送る指示の初めの行」を出し、狭ければ「次:」から省く（`queuedHint.ts` の `queuedHint` / `nextQueuedText`）。止める予定（「1 件目のあとで一時停止」）は一時停止の線と同じ注意の色 `--warn` と同じアイコン（`OctagonPause`）で出す（`.queued-hint.stop`）。
 - 見出し: 左に件数の側（`.queued-head-main`。件数・案内・次: と、そのすぐ後ろの「すべて表示」（`QUEUE_EXPANDED`。一覧の見え方の操作なので、送る・消すと分ける））、右に操作のまとまり（`QueuedHeadActions.tsx` の `QueuedHeadTools`。`.queued-head-tools` の中に、何に効くかで 3 つの `.queued-head-group` を間を空けて並べる）:

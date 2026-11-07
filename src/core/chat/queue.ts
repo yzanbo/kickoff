@@ -33,8 +33,8 @@ export function splitLegacyPostCompact(saved: SavedQueue): { queue: SavedQueue; 
  * いまの作業が終わったら、Runner が先頭から 1 件ずつ送る（止めておくなら送らず、行の「すぐ送る」で 1 件ずつ送る）。
  * 「ここまで送ったら止めます」の印（指示とは別に、列の中の位置で持つ。いくつでも・1 件目の上にも置ける）まで自動で送ったら、
  * その印の所で待つ（途中まで自動で送る。止めておく paused には切り替えない）。印を消すと、そのまま次の印まで送る（RunnerQueue）。
- * 変わるたびに DB に丸ごと書き（persistence）、起動したら読み戻す（restore）。前回の作業はアプリの終了で中断しているので、
- * 読み戻した列は止めておく（勝手に送らない。見出しの「自動で送る」・行の「すぐ送る」で送る）
+ * 変わるたびに DB に丸ごと書き（persistence）、起動したら読み戻す（restore）。止めておくか・一時停止の印は終えたときのまま戻す
+ * （自動で送る列を起動してから送り始めるかは、Runner の起動したときの確かめで利用者に聞く。答えるまで送らない）
  */
 export class ChatQueue {
   private messages: QueuedMessage[] = [];
@@ -51,12 +51,13 @@ export class ChatQueue {
   ) {}
 
   /**
-   * 保存した列を読み戻す（起動したとき。知らせない）。指示があれば止めておく（止めたことも保存する）。
+   * 保存した列を読み戻す（起動したとき。知らせない）。止めておくか・印は保存したまま。
    * すべて送ったあとの印だけが残った空の列は、印も読み戻さない（その印が待っていた作業は、アプリの終了で終わっている）
    */
   restore(saved: SavedQueue) {
     this.messages = saved.messages;
-    this.paused = saved.messages.length > 0;
+    // 止めておくか（自動で送る / 止めています）は、終えたときのまま戻す（自動で送る列を起動してから送るかは、Runner が利用者に聞く）
+    this.paused = saved.messages.length > 0 && saved.paused;
     this.stops = saved.messages.length > 0 ? normalizeStops(saved.stops, saved.messages.length) : [];
     this.save();
   }

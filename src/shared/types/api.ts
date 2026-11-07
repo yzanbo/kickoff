@@ -3,7 +3,7 @@
 import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent } from "./chatEvent";
-import type { ChatLive, QueueState } from "./chatLive";
+import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
 
@@ -201,3 +201,8 @@ export interface NewSnippetBody {
 
 /** 定型文を変える（PATCH /api/snippets/:id。書いた項目だけ変える。project_id を null にすると共通に、番号にするとそのプロジェクトだけに） */
 export type SnippetPatch = Partial<NewSnippetBody>;
+
+/** 起動したときの送信待ちの確かめに答える（POST /api/queue-resumes。チャットごと） */
+export interface QueueResumeBody {
+  decisions: { chat_id: number; action: QueueResumeAction }[];
+}

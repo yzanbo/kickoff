@@ -23,7 +23,7 @@ test("中断された実行は起動時に失敗扱いになる", () => {
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
 
   const before = store.chats.get(chat.id)!.active_at;
-  assert.equal(store.chats.recoverInterrupted("中断しました"), 1);
+  assert.deepEqual(store.chats.recoverInterrupted("中断しました"), [chat.id]);
   const recovered = store.chats.get(chat.id)!;
   assert.deepEqual([recovered.status, recovered.error, recovered.unread], ["failed", "中断しました", true]);
   // 起動時の復旧は「動いた」ではないので、並び順の時刻は変えない
@@ -231,7 +231,7 @@ test("索引: チャットの一覧（プロジェクトごと）・作業場所
   };
   assert.match(plansOf(() => store.chats.list({ projectId: project.id }))[0], /^SEARCH chats USING INDEX idx_chats_project \(project_id=\? AND archived_at=\?\)$/);
   assert.match(plansOf(() => store.chats.inWorktree(project.id, "/tmp/demo-worktrees/a"))[0], /^SEARCH chats USING INDEX idx_chats_worktree \(project_id=\? AND worktree_path=\?\)$/);
-  assert.match(plansOf(() => store.chats.recoverInterrupted("x"))[0], /SEARCH chats USING INDEX idx_chats_running \(status=\?\)/);
+  assert.match(plansOf(() => store.chats.recoverInterrupted("x"))[0], /SEARCH chats USING (COVERING )?INDEX idx_chats_running \(status=\?\)/);
 });
 
 

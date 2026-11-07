@@ -297,3 +297,67 @@
     display: none;
   }
 }
+
+/* 起動したときの送信待ちの確かめ（QueueResumeDialog）: チャットごとの行に、名前・件数・次に送る指示・選ぶ切り替え */
+.dialog.app-dialog.queue-resume-dialog {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.queue-resume-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(52vh, 420px);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.queue-resume-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.queue-resume-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.queue-resume-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-resume-count {
+  flex: none;
+  margin-left: auto;
+}
+
+.queue-resume-next {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-resume-note {
+  color: var(--warn);
+}
+
+.queue-resume-choice {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.segmented.queue-resume-choice button {
+  padding: 3px 12px;
+  font-size: 12px;
+}

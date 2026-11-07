@@ -4,7 +4,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## フォルダの役割
 
-- `index.ts`: `startCore` で組み立てて起動し、`close` で止める（実行中のエージェント → 音声のダウンロード → 使用枠 → 自動のアーカイブ → メモの見張り → HTTP → DB）。起動のときに、リリース前の保存データを消し（`discardPrereleaseData`）、前回の終了で作業中のまま残ったチャットを未読の失敗にする（`store.chats.recoverInterrupted`）。
+- `index.ts`: `startCore` で組み立てて起動し、`close` で止める（実行中のエージェント → 音声のダウンロード → 使用枠 → 自動のアーカイブ → メモの見張り → HTTP → DB）。起動のときに、リリース前の保存データを消し（`discardPrereleaseData`）、前回の終了で作業中のまま残ったチャットを未読の失敗にする（`store.chats.recoverInterrupted`。そのチャットの ID は、起動したときの送信待ちの確かめで「続けてから送る」を選べるよう `Runner` に渡す）。
 - `bus.ts`: 変更の知らせ `Bus`（`@shared/types` の `BusEvent`。SSE で配る）。
 - `db/`: SQLite（`node:sqlite`）。→「DB」
 - `http/`: Hono の API・認証・SSE・画面の配信。→「HTTP」
@@ -37,7 +37,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## HTTP（http/）
 
-- ルートは `http/routes/<領域>.ts` に `xxxRoutes(app, deps)`（`deps` は `ServerDeps`）として書き、`http/server.ts` の `createApp` で登録する。登録は認証のミドルウェア（`/api/*`）と `onError` より後、SSE・知らない API の JSON の 404・画面の配信より前で、いまの順を崩さない。チャットの資源（一覧・作成・詳細・変更・既読・別のプロジェクトへの移動・削除・検索）は `chats.ts`、実行（送る・伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し）は `turns.ts`、送信待ちは `queue.ts`、回答待ちは `approvals.ts`、添付とほかのチャットの記録・ツールの結果の画像は `uploads.ts`、Git は `git.ts`（状態・差分・操作・履歴・PR）/ `files.ts`（ファイルの一覧・中身・検索・保存）/ `worktrees.ts`、メモは `memos.ts`、定型文は `snippets.ts`（一覧・作る・並べ替え・変更・削除）。
+- ルートは `http/routes/<領域>.ts` に `xxxRoutes(app, deps)`（`deps` は `ServerDeps`）として書き、`http/server.ts` の `createApp` で登録する。登録は認証のミドルウェア（`/api/*`）と `onError` より後、SSE・知らない API の JSON の 404・画面の配信より前で、いまの順を崩さない。チャットの資源（一覧・作成・詳細・変更・既読・別のプロジェクトへの移動・削除・検索）は `chats.ts`、実行（送る・伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し）は `turns.ts`、送信待ち（起動したときの送信待ちの確かめ `GET|POST /api/queue-resumes` も）は `queue.ts`、回答待ちは `approvals.ts`、添付とほかのチャットの記録・ツールの結果の画像は `uploads.ts`、Git は `git.ts`（状態・差分・操作・履歴・PR）/ `files.ts`（ファイルの一覧・中身・検索・保存）/ `worktrees.ts`、メモは `memos.ts`、定型文は `snippets.ts`（一覧・作る・並べ替え・変更・削除）。
 - URL の `:id` は `http/lookups.ts` の `lookups(store)` が返すミドルウェアで引き当て、ハンドラーは `c.var` で受ける（`withProject` / `withChat` / `withGroup` / `withSnippet`。Git・ファイル・検索・/ のコマンドは、操作するフォルダも `c.var.workdir` に入れる `withWorkdir`）。番号でなければ 400（`idParam`）、なければ 404。ルートごとに引き当てと検証を書かない。ID で引くのは `requireProject`、ほかのプロジェクトのグループを断るのは `requireGroupOf`（400）。
 - 作業場所の指定（`?worktree=`・新しいチャットの `worktree_path`）は `http/workdir.ts` の `requireWorktree(repo, worktree)` で解決する（null = 本体 / このプロジェクトのワークツリーでなければ 400 / フォルダが消えていれば 404）。チャットの作業場所のフォルダは `chat/workdir.ts` の `workdirOf`。
 - 失敗は例外で伝える。ドメインのコード（`chat/`・`git/`・`voice/` なども）は `http/errors.ts` の `Invalid`（400）/ `NotFound`（404）/ `Conflict`（409）を投げ、`onError` が `errorResponse` で `{ error }` にする。zod の失敗は 400（`issues` 付き）、外部コマンドの `CommandError` はその文のまま 400、知らない失敗は 500（記録する）。外の SDK の失敗は `.catch(asInvalid)` で 400 にする。ルートで boolean を受けて 404 にしたり、例外を包み直したりしない。作業中にできない操作は `runner.requireIdle(chatId, "削除")` のように 409 にする。
