@@ -1,9 +1,9 @@
-import { MessageSquare, PanelBottom, PanelRight } from "lucide-react";
+import { MessageSquare, Minimize2, PanelBottom, PanelRight } from "lucide-react";
 import { useRef, useState, type MutableRefObject } from "react";
 import type { Attachment, ChatOptions } from "@shared/types";
 import { api } from "@/api";
 import { useMemoChatOf } from "@/stores/chats";
-import { CloseButton } from "@/ui/IconButton";
+import { CloseButton, IconButton } from "@/ui/IconButton";
 import { Segmented } from "@/ui/Segmented";
 import { Composer } from "@/features/chat/composer/Composer";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
@@ -41,6 +41,7 @@ export function MemoChat({
   place,
   onPlaceChange,
   onClose,
+  onQuickOnly,
   chipsPortal,
 }: {
   projectId: number;
@@ -52,6 +53,8 @@ export function MemoChat({
   place: MemoChatPlace;
   onPlaceChange: (place: MemoChatPlace) => void;
   onClose: () => void;
+  /** 欄を閉じて、メモの下の入力欄だけを出す（隠していても入力欄を出す） */
+  onQuickOnly: () => void;
   /** 欄を閉じている間に、上のピルの列を描く先（メモの下の入力欄の上。開いている間は null） */
   chipsPortal: ChipsPortal | null;
 }) {
@@ -82,6 +85,8 @@ export function MemoChat({
             { value: "right", label: "右に表示（本文の右に置く）", icon: PanelRight, iconOnly: true },
           ]}
         />
+        {/* 会話を畳んで、メモの下の入力欄だけにする（× は選んでいる閉じ方 = 入力欄だけ / 隠す に戻る） */}
+        <IconButton icon={Minimize2} size={14} label="入力欄だけにする" title="会話の欄を閉じて、メモの下に入力欄だけを出す（続けて頼める）" onClick={onQuickOnly} />
         <CloseButton size={15} label="チャットの欄を閉じる" onClick={onClose} />
       </header>
       <div className="memo-chat-body">

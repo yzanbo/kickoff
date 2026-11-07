@@ -283,6 +283,10 @@ export function MemoView({
                 place={chatPlace}
                 onPlaceChange={setChatPlace}
                 onClose={() => setChatOpen(false)}
+                onQuickOnly={() => {
+                  setQuickHidden(false);
+                  setChatOpen(false);
+                }}
                 chipsPortal={chipsPortal}
               />
             </div>
