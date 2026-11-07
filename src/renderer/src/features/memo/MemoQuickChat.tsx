@@ -126,7 +126,7 @@ function MemoQuickComposer({ projectId, path, chat, beforeSend }: { projectId: n
         busyControls={<QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
         stopping={stopping}
         onStop={chat ? send.onStop : undefined}
-        trailing={chat && <ContextMeter chat={chat} compacting={null} reserved={null} afterTurn={false} />}
+        trailing={<ContextMeter chat={chat ?? null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}
         header={<SnippetBar projectId={projectId} composer={composer} onSend={(text) => (busy ? send.onQueue(text, []) : onSend(text, []))} />}
         // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
         menuItems={<SnippetBarToggleItem />}

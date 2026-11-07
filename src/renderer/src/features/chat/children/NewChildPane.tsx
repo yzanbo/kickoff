@@ -10,6 +10,9 @@ import { ProjectChip } from "@/features/project/ProjectChip";
 import { useProjects } from "@/stores/projects";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
+import { ContextMeter } from "@/features/chat/composer/ContextMeter";
+import { MemoChip } from "@/features/memo/MemoChip";
+import { memoAttachment } from "@/features/memo/memoAttachment";
 import { DraftChatPage } from "@/features/chat/pane/DraftChatPage";
 import { useChatHeaderItems } from "@/features/chat/pane/ChatDisplayMenu";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
@@ -74,6 +77,10 @@ function NewChildForm({ parent, onCreated }: { parent: Chat; onCreated: (child: 
         >
           {/* 会話を引き継ぐか（初めは引き継ぐ。書きながら目に入るよう、入力欄のすぐ上に置く。「新しい子チャットで聞く」の画面と同じ形） */}
           <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" />
+          {/* 会話が始まったあとのチャット欄と同じピルの列（いまはメモだけ。中身のないピルは出さない） */}
+          <div className="composer-chips">
+            <MemoChip projectId={parent.project_id} chatId={null} onAttach={(path) => composer.current?.fill("", { append: true, attachments: [memoAttachment(path)] })} />
+          </div>
           <Composer
             chatContext={{ projectId: parent.project_id }}
             options={options}
@@ -84,6 +91,8 @@ function NewChildForm({ parent, onCreated }: { parent: Chat; onCreated: (child: 
             // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
             header={<SnippetBar projectId={parent.project_id} composer={composer} onSend={(text) => start(text, [])} />}
             menuItems={<SnippetBarToggleItem />}
+            // 会話が始まったあとのチャット欄と同じく右下にコンテキストのメーター（まだ 0%）
+            trailing={<ContextMeter chat={null} projectId={parent.project_id} compacting={null} reserved={null} afterTurn={false} />}
             onSend={start}
           />
         </DraftChatPage>

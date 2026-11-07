@@ -20,6 +20,9 @@ import { GroupPicker } from "@/features/group/GroupPicker";
 import { DraftChatPage } from "@/features/chat/pane/DraftChatPage";
 import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/chat/pane/ChatDisplayMenu";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
+import { ContextMeter } from "@/features/chat/composer/ContextMeter";
+import { MemoChip } from "@/features/memo/MemoChip";
+import { memoAttachment } from "@/features/memo/memoAttachment";
 
 interface Props {
   projectId: number;
@@ -159,6 +162,10 @@ export function NewChatPane({
         </div>
       }
     >
+      {/* 会話が始まったあとのチャット欄と同じピルの列（いまはメモだけ。指示の履歴・ToDo・サブエージェント・子チャットは中身がないので出さない） */}
+      <div className="composer-chips">
+        <MemoChip projectId={projectId} chatId={null} onAttach={(path) => composer.current?.fill("", { append: true, attachments: [memoAttachment(path)] })} />
+      </div>
       {ready && (
         <Composer
           key={projectId}
@@ -173,6 +180,8 @@ export function NewChatPane({
           // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
           header={<SnippetBar projectId={projectId} composer={composer} onSend={(text) => start(text, [])} />}
           menuItems={<SnippetBarToggleItem />}
+          // 会話が始まったあとのチャット欄と同じく右下にコンテキストのメーター（まだ 0%。圧縮の設定・圧縮前指示・圧縮後指示はここでも開ける）
+          trailing={<ContextMeter chat={null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}
           onSend={start}
         />
       )}
