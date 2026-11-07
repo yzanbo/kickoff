@@ -1,4 +1,4 @@
-import { CornerDownLeft, History } from "lucide-react";
+import { CornerDownLeft, History, MessageCircleQuestion } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { isKey } from "@/lib/keys";
@@ -19,6 +19,7 @@ import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
  * 呼び方は、入力欄の「続けて指示する」・「送信待ちの指示」にそろえる。
  * 行を押すとその指示へ移って強調し、行の右のボタンで同じ文を入力欄に入れる（もう一度送る・少し直して送る）。
  * 一覧は会話の順（下ほど新しい）で、開いたらいちばん下（入力欄に近い新しい指示）を見せる。圧縮の前後に送った圧縮前指示・圧縮後指示は、文の前に「圧縮前指示」「圧縮後指示」の札を付ける。
+ * AI からの質問への回答も同じ並びに入れ（上に貼り付ける指示の帯と同じく）、番号の代わりに「質問への回答」の札と答えを出す（入力欄には入れない。絞り込みは問いの文でも当たる）。
  * 上の欄で絞り込め、↑↓ で選んで Enter で入力欄に入れる・⌘Enter でその指示へ移る。
  * チャットにピントがあるときの ⌃R でも開く（シェルの履歴の検索と同じ。開いている間の ⌃R は 1 つ前の一致へ）
  */
@@ -28,11 +29,13 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
   const { open, setOpen } = popover;
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
-  // 行に出す番号（会話の中で何番目の指示か。絞り込んでも変えない）
-  const numbers = useMemo(() => new Map(prompts.map((p, i) => [p.id, i + 1])), [prompts]);
+  // 行に出す番号（会話の中で何番目の指示か。質問への回答は数えない。絞り込んでも変えない）
+  const numbers = useMemo(() => new Map(prompts.filter((p) => !p.answers).map((p, i) => [p.id, i + 1])), [prompts]);
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? prompts.filter((p) => p.label.toLowerCase().includes(q)) : prompts;
+    // 質問への回答は、答えだけでなく問いの文でも当てる
+    const searchText = (p: PromptEntry) => (p.answers ? [p.label, ...p.answers.map((a) => a.question)].join("\n") : p.label).toLowerCase();
+    return q ? prompts.filter((p) => searchText(p).includes(q)) : prompts;
   }, [prompts, query]);
   const close = () => {
     // 絞り込みの欄にピントがあれば、チャット欄に戻す（欄が消えてピントが外れると、次の Esc でパネルが閉じる）
@@ -40,8 +43,9 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
     setOpen(false);
     setQuery("");
   };
-  // 行の右のボタン・Enter: 同じ文を入力欄に入れる（もう一度送る・少し直して送る）
+  // 行の右のボタン・Enter: 同じ文を入力欄に入れる（もう一度送る・少し直して送る）。質問への回答は入れずに、その回答へ移る
   const reuse = (p: PromptEntry | undefined) => {
+    if (p?.answers) return jump(p);
     if (!p?.text) return;
     close();
     pane.fillComposer(p.text);
@@ -112,12 +116,20 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
       {items.map((p, index) => {
         return (
           <div key={p.id} className={cx("prompt-row", index === nav.index && "active")} onMouseEnter={() => nav.setIndex(index)}>
-            <button type="button" className="prompt-jump" title={p.compactKind ? `${COMPACT_PROMPT_KINDS[p.compactKind].label}: ${p.label}` : p.label} onClick={() => jump(p)}>
+            <button type="button" className="prompt-jump" title={rowTitle(p)} onClick={() => jump(p)}>
               <span className="prompt-index">{numbers.get(p.id)}</span>
               {p.compactKind && <CompactPromptMark kind={p.compactKind} className="compact-prompt-tag" size={11} />}
+              {p.answers && (
+                <span className="question-answer-tag">
+                  <MessageCircleQuestion size={11} aria-hidden />
+                  質問への回答
+                </span>
+              )}
               <span className="prompt-text">{p.label}</span>
               <time className="prompt-time">{formatMessageTime(p.at)}</time>
             </button>
+            {/* 入力欄に入れられない行（質問への回答・添付だけの指示）も、時刻の位置をそろえるためにボタンの場所を空ける */}
+            {!p.text && <span className="prompt-reuse-space" aria-hidden />}
             {p.text && (
               <IconButton
                 icon={CornerDownLeft}
@@ -132,4 +144,10 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
       })}
     </ComposerChip>
   );
+}
+
+/** 行に乗せたときの説明（質問への回答は問いと答えを 1 問ずつ。圧縮前指示・圧縮後指示は札の名前を頭に） */
+function rowTitle(p: PromptEntry): string {
+  if (p.answers) return `質問への回答\n${p.answers.map((a) => `${a.question}\n→ ${a.answer}`).join("\n\n")}`;
+  return p.compactKind ? `${COMPACT_PROMPT_KINDS[p.compactKind].label}: ${p.label}` : p.label;
 }

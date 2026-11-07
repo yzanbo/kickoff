@@ -41,6 +41,34 @@ test("指示の一覧: 圧縮の前に送った圧縮前指示には印を付け
   assert.deepEqual(promptListOf(events).entries.map((p) => p.compactKind), [null, "pre", "post"]);
 });
 
+test("指示の履歴: AI からの質問への回答も会話の順に並べ、答えを「 / 」でつなぐ（指示の一覧・↑↓ の呼び出しには入れない）", () => {
+  const events = [
+    event("user", { text: "調べて" }),
+    event("approval_resolved", {
+      approval_id: "q1",
+      kind: "question",
+      action: "answer",
+      answers: { "どの形にしますか？": "表", "どこに置きますか？": ["上", "下"] },
+      attachments: { "どの形にしますか？": [{ id: "a", name: "a.png", mime: "image/png", size: 1 }] },
+    }),
+    event("approval_resolved", { approval_id: "t1", kind: "permission", action: "allow" }),
+    event("user", { text: "続けて" }),
+  ];
+  const list = promptListOf(events);
+  assert.deepEqual(list.entries.map((p) => p.id), [events[0].id, events[3].id]);
+  assert.deepEqual(list.history.map((p) => p.id), [events[0].id, events[1].id, events[3].id]);
+  const answer = list.history[1];
+  assert.equal(answer.text, "");
+  assert.equal(answer.label, "表 / 上、下");
+  assert.deepEqual(answer.answers, [
+    { question: "どの形にしますか？", answer: "表" },
+    { question: "どこに置きますか？", answer: "上、下" },
+  ]);
+  assert.equal(answer.attachments.length, 1);
+  assert.equal(list.history[0].answers, null);
+  assert.deepEqual(list.recalls, ["続けて", "調べて"]);
+});
+
 const prompts = ["新しい", "1行目\n2行目", "古い"];
 const move = (input: Partial<HistoryInput> & Pick<HistoryInput, "key">) => {
   const text = input.text ?? "";

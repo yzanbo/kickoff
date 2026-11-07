@@ -115,6 +115,23 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
+/* 指示の履歴の行の「質問への回答」の札（圧縮前指示の札と同じ形。色は吹き出しの「質問への回答」の札と同じ控えめな灰色） */
+.question-answer-tag {
+  display: inline-flex;
+  flex: none;
+  align-self: center;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: calc(10px * var(--chat-scale, 1));
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
 /* 吹き出しの中の書き直しの欄 */
 .user-message.editing {
   width: 80%;
@@ -191,6 +208,12 @@
   flex: none;
   font-size: calc(11px * var(--chat-scale, 1));
   color: var(--muted);
+}
+
+/* 入力欄に入れるボタンのない行で、ボタンの場所を空ける（.icon-button と同じ幅） */
+.prompt-reuse-space {
+  flex: none;
+  width: 26px;
 }
 
 /* チャットの流れは押すとピントが入る（↑↓ でスクロールするため）が、枠は出さない */

@@ -84,7 +84,7 @@ export function ChatComposerArea({
   const portal = useChipsPortal();
   const chips = (
     <div className="composer-chips">
-      <PromptsChip prompts={prompts.entries} />
+      <PromptsChip prompts={prompts.history} />
       <TodoChip chatId={chat.id} events={events} />
       <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} />
       <ChildChatsChip chatId={chat.id} />
