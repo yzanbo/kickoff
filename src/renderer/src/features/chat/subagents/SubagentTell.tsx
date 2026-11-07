@@ -20,18 +20,18 @@ import type { SubagentsView } from "./subagentsContext";
 
 type AskMode = "relay" | "child";
 
-/** 送り先の名前（切り替え・案内で同じ言葉にする） */
-const ASK_MODE_LABELS: Record<AskMode, string> = { relay: "サブエージェントに伝える", child: "子チャットで聞く" };
+/** 送り先の名前（切り替え・案内で同じ言葉にする。伝えるはサブエージェントに直接届かず、メインエージェントが渡すので、経由することを名前に出す） */
+const ASK_MODE_LABELS: Record<AskMode, string> = { relay: "メインエージェント経由で伝える", child: "子チャットで聞く" };
 
 /** 選んだ送り先の説明 1 行（子チャットの「会話を引き継ぐ / 新しく始める」と同じく、切り替えのすぐ横に短く） */
 const ASK_MODE_HELP: Record<AskMode, string> = {
-  relay: "メインエージェント経由でサブエージェントに届き、作業に反映されます",
+  relay: "Kickoff からサブエージェントへ直接は送れないので、メインエージェントが SendMessage で渡します（作業に反映されます）",
   child: "会話の記録を読んだ別の AI が答えます（サブエージェントとメインエージェントには届きません）",
 };
 
 /**
  * そのサブエージェントへの入力欄（右の欄の画面のいちばん下・流れの中のカードの「伝える」で共通）。上の切り替えで送り先を選ぶ（最後に選んだ方を覚える SUBAGENT_ASK_MODE）:
- * - サブエージェントに伝える: Kickoff から直接は送れないので、メインエージェントに  SendMessage でそのまま渡してもらう（メインエージェントが作業中なら止めずに伝え、
+ * - メインエージェント経由で伝える: Kickoff から直接は送れないので、メインエージェントに  SendMessage でそのまま渡してもらう（メインエージェントが作業中なら止めずに伝え、
  *   作業中でなければすぐ送る。どちらも tell の API が決める）。送った文は、そのサブエージェントの流れに自分の発言として出る。
  *   終わったサブエージェントに伝えると、終わったところから再開する（案内に出す）。
  * - 子チャットで聞く: サブエージェントの会話の記録（コアが Claude Code の記録から読む）を添付にした子チャットを作って聞く（`api.askSubagentInChild`）。
@@ -92,7 +92,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
         busy={child ? false : view.busy}
         autoFocus={autoFocus}
         placeholder={placeholder}
-        sendLabel={child ? "子チャットで聞く" : later ? "送信待ちに入れる" : "伝える"}
+        sendLabel={child ? "子チャットで聞く" : later ? "送信待ちに入れる" : "メインエージェント経由で伝える"}
         onSend={(text, attachments) => send(text, attachments)}
         onQueue={send}
         // 伝えるときだけ、メインエージェントの作業中に いま / あとで を選ぶ（チャット欄と同じ設定）

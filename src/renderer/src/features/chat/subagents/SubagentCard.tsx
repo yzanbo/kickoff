@@ -145,7 +145,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
             <button
               type="button"
               className="link-button subagent-tell"
-              title="このサブエージェントに追加の指示を伝える（カードの下に入力欄を開きます。メインエージェントから SendMessage で渡します）"
+              title="メインエージェント経由で、このサブエージェントに追加の指示を伝える（直接は送れないので、メインエージェントが SendMessage で渡します。カードの下に入力欄を開きます）"
               aria-expanded={telling}
               onClick={() => (telling ? pane.closeTell(key) : pane.tellSubagent(key))}
             >
