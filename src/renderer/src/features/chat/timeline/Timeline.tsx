@@ -1,4 +1,4 @@
-import { ChevronRight, Eraser, GitBranch } from "lucide-react";
+import { ChevronRight, ClipboardPenLine, Eraser, GitBranch } from "lucide-react";
 import { memo } from "react";
 import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -8,6 +8,7 @@ import { openChat } from "@/app/router";
 import { reportFailure } from "@/ui/dialogs";
 import { CopyButton } from "@/ui/CopyButton";
 import { IconButton } from "@/ui/IconButton";
+import { useKnownChat } from "@/stores/chats";
 import type { TimelineItem } from "./timelineItems";
 import { TurnChanges } from "@/features/chat/tools/TurnChanges";
 import type { FileChange } from "@/features/chat/tools/turnFileChanges";
@@ -21,6 +22,7 @@ import { SubagentCard } from "@/features/chat/subagents/SubagentCard";
 import type { RenderItems } from "@/features/chat/subagents/subagentParts";
 import { SubagentEndNote } from "@/features/chat/subagents/SubagentEndNote";
 import { CompactedRow } from "@/features/chat/status/CompactingRow";
+import { requestHandoff } from "@/features/chat/children/handoff";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -104,10 +106,13 @@ type TurnFooterProps = { event: ChatEventOf<"result">; turnStart?: string; turnT
 
 /**
  * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー、ここから分岐。
- * 時刻に乗せると、終わった時刻を出す。分岐は、その時点の会話の位置が分かるときだけ（作業中は出さない）
+ * 時刻に乗せると、終わった時刻を出す。分岐は、その時点の会話の位置が分かるときだけ（作業中は出さない）。
+ * 子チャットでは「親への依頼文を作ってもらう」（作業中なら、いまの作業に伝える）
  */
 function TurnFooter({ event, turnStart, turnText, busy }: TurnFooterProps) {
   const data = event.data;
+  const chat = useKnownChat(event.chat_id);
+  const child = chat && chat.parent_chat_id !== null && !chat.archived_at ? chat : undefined;
   const status = data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${data.text ?? ""}` : null;
   const worked = turnStart && formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
   if (!status && !worked && !turnText) return null;
@@ -132,6 +137,21 @@ function TurnFooter({ event, turnStart, turnText, busy }: TurnFooterProps) {
               .then((chat) => openChat(chat.project_id, chat.id))
               .catch(reportFailure("分岐できませんでした"))
           }
+        />
+      )}
+      {child && (
+        <IconButton
+          icon={ClipboardPenLine}
+          label="親への依頼文を作ってもらう"
+          title={
+            busy
+              ? "親への依頼文を作ってもらう（作業中なので、いまの作業に伝えます。返答は「親チャットに追加」でそのまま親に渡せます）"
+              : "親への依頼文を作ってもらう（この子チャットの AI に、親チャットの AI へ渡す依頼文だけを書くよう頼みます。返答は「親チャットに追加」でそのまま親に渡せます）"
+          }
+          size={13}
+          type="button"
+          className="turn-action"
+          onClick={() => requestHandoff(child)}
         />
       )}
     </div>

@@ -2,6 +2,7 @@
 import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { isBackgroundLaunch } from "@shared/chat/backgroundTasks";
 import { isSubagentTool } from "@shared/chat/subagents";
+import { lastReplyBefore } from "@shared/chat/handoff";
 import { changesOf, type EditCall, type FileChange } from "@/features/chat/tools/turnFileChanges";
 
 export interface ToolCall {
@@ -11,10 +12,11 @@ export interface ToolCall {
 
 /**
  * 作業の終わり（result）に付けるもの。turnStart: その作業を始めた時刻（直前の自分の発言の時刻。作業時間を出すため）、
- * turnText: その作業での AI の返答をつないだ文（コピーのボタンに使う）、turnChanges: その作業で変えたファイル（ターンの変更カード）
+ * turnText: その作業での AI の返答をつないだ文（コピーのボタンに使う）、turnChanges: その作業で変えたファイル（ターンの変更カード）、
+ * turnHandoff: 親チャットに渡すもの（子チャットの「親チャットに追加」）
  */
 export type TimelineItem =
-  | { kind: "event"; key: string; event: ChatEvent; turnStart?: string; turnText?: string; turnChanges?: FileChange[] }
+  | { kind: "event"; key: string; event: ChatEvent; turnStart?: string; turnText?: string; turnChanges?: FileChange[]; turnHandoff?: TurnHandoff }
   | { kind: "tools"; key: string; tools: ToolCall[] }
   /** サブエージェントの起動（Agent / Task の呼び出し。ツールのまとまりに入れず、流れの中のカードにする） */
   | { kind: "subagent"; key: string; call: ToolCall }
@@ -26,6 +28,18 @@ export type TimelineItem =
  * 返答が届くたびの組み立て直しで新しい配列を作らない（作業の終わりの行の memo が効くように）
  */
 const turnChangesCache = new WeakMap<ChatEvent, FileChange[]>();
+
+/**
+ * 作業の終わりの、親チャットに渡すもの。reply: その作業の最後の返答（途中の「確認します」・サブエージェントの文は入れない。lastReplyBefore）、
+ * requested: 親への依頼文を頼んだ作業か（頼みの発言 handoff_request に答えた作業。渡すボタンを目立たせる）
+ */
+export interface TurnHandoff {
+  reply: string;
+  requested: boolean;
+}
+
+/** 作業の終わりごとの渡すもの（終わった作業はもう変わらないので覚え、memo した終わりの行に同じものを渡す。返答がなければ null） */
+const turnHandoffCache = new WeakMap<ChatEvent, TurnHandoff | null>();
 
 /** サブエージェントの中の記録なら、そのサブエージェントを起動した呼び出し ID（メインの記録・parent のない種類は undefined） */
 const parentOf = (e: ChatEvent): string | undefined => ("parent" in e.data ? e.data.parent : undefined);
@@ -48,9 +62,11 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
   const agentOfTask = new Map<string, string>();
   let turnStart: string | undefined;
   let turnTexts: string[] = [];
+  // その作業に、親への依頼文の頼みの発言があったか
+  let turnRequested = false;
   // その作業の編集のツール（サブエージェントのものも含める。親の流れのときだけ数える）
   let turnEdits = new Map<string, EditCall>();
-  for (const e of events) {
+  for (const [index, e] of events.entries()) {
     if (scope === undefined) {
       if (e.type === "tool_use" && EDIT_TOOLS.has(e.data.name)) turnEdits.set(e.data.id, { use: e });
       else if (e.type === "tool_result" && turnEdits.has(e.data.tool_use_id)) turnEdits.get(e.data.tool_use_id)!.result = e;
@@ -87,7 +103,7 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
       // 中身があるか、しばらく考えたものだけ出す（短い思考でツールのまとまりを細切れにしない）
       const { text, duration_ms } = e.data;
       if (text.trim() || (duration_ms ?? 0) >= THINKING_MIN_MS) items.push({ kind: "event", key: `e${e.id}`, event: e });
-    } else if (e.type === "init" || e.type === "approval") {
+    } else if (e.type === "init" || e.type === "approval" || e.type === "handoff") {
       // 表示しない
     } else if (e.type === "result") {
       const turnText = turnTexts.join("\n\n");
@@ -96,6 +112,12 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
         turnChanges = changesOf([...turnEdits.values()]);
         turnChangesCache.set(e, turnChanges);
       }
+      let turnHandoff = turnHandoffCache.get(e);
+      if (turnHandoff === undefined) {
+        const reply = lastReplyBefore(events, index);
+        turnHandoff = reply === null ? null : { reply, requested: turnRequested };
+        turnHandoffCache.set(e, turnHandoff);
+      }
       items.push({
         kind: "event",
         key: `e${e.id}`,
@@ -103,12 +125,17 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
         ...(turnStart ? { turnStart } : {}),
         ...(turnText ? { turnText } : {}),
         ...(turnChanges.length ? { turnChanges } : {}),
+        ...(turnHandoff ? { turnHandoff } : {}),
       });
       turnStart = undefined;
       turnTexts = [];
+      turnRequested = false;
       turnEdits = new Map();
     } else {
-      if (e.type === "user") turnStart ??= e.created_at;
+      if (e.type === "user") {
+        turnStart ??= e.created_at;
+        if (e.data.handoff_request) turnRequested = true;
+      }
       if (e.type === "text") turnTexts.push(e.data.text);
       items.push({ kind: "event", key: `e${e.id}`, event: e });
     }

@@ -38,6 +38,7 @@
 @import "./chat/jump-flash.css";
 @import "./chat/sticky-prompt.css";
 @import "./chat/child-chats.css";
+@import "./chat/handoff.css";
 @import "./chat/chat-find.css";
 @import "./chat/selection-attach.css";
 @import "./chat/scroll-bottom.css";

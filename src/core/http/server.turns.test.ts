@@ -615,3 +615,29 @@ test("止めずに伝える API: 作業中なら止めずに足して自分の�
   await until(() => provider.prompts.length === 2);
   assert.equal(provider.prompts[1], "ふつう");
 });
+
+test("発言の印（依頼文の頼み・子チャットから渡した依頼）は、送る・送信待ちに入れる・送信待ちから送るのどの道でも発言の記録に残る", async () => {
+  const { call, project, runner, provider, store } = setup();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  const users = () => store.events.list(chatId).filter((e) => e.type === "user").map((e) => (e.type === "user" ? [e.data.text, e.data.handoff_request ?? null, e.data.handoff_from?.chat_id ?? null] : []));
+  // 送る
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "依頼文を", handoff_request: true });
+  await until(() => !runner.isBusy(chatId));
+  // 作業中に送信待ちへ入れ、終わったら送る（印は送信待ちの行に残り、送ったときの記録にも残る）
+  const release = provider.hold();
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await until(() => runner.isBusy(chatId));
+  const queued = (await call("POST", `/api/chats/${chatId}/queue`, { text: "渡した依頼", handoff_from: { chat_id: 99, title: "子" } })).body;
+  assert.deepEqual(queued.messages[0].handoff_from, { chat_id: 99, title: "子" });
+  release();
+  await until(() => provider.prompts.length === 4 && !runner.isBusy(chatId));
+  assert.deepEqual(users(), [
+    ["1", null, null],
+    ["依頼文を", true, null],
+    ["2", null, null],
+    ["渡した依頼", null, 99],
+  ]);
+  // 形の違う出どころは 400
+  assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "x", handoff_from: { chat_id: "a" } })).status, 400);
+});

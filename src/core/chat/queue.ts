@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { moveToSlot, normalizeStops, remapStops, removeStopOnce, type QueueSlot } from "@shared/chat/queueStops";
 import { isQueueAction, queueActionOf } from "@shared/chat/queueActions";
 import type { SavedQueue } from "../db/queues.js";
-import type { Attachment, QueueAction, QueuedMessage, ChatOptionsPatch, QueueState } from "@shared/types";
+import type { Attachment, QueueAction, QueuedMessage, ChatOptionsPatch, QueueState, MessageMarks } from "@shared/types";
 
 /** 送信待ちの保存先（Store の queues。省けば保存しない） */
 export interface QueuePersistence {
@@ -142,8 +142,8 @@ export class ChatQueue {
     return next;
   }
 
-  add(text: string, options: ChatOptionsPatch, attachments: Attachment[]): QueuedMessage {
-    const message: QueuedMessage = { id: randomUUID(), text, options, attachments, created_at: new Date().toISOString() };
+  add(text: string, options: ChatOptionsPatch, attachments: Attachment[], marks: MessageMarks = {}): QueuedMessage {
+    const message: QueuedMessage = { id: randomUUID(), text, options, attachments, created_at: new Date().toISOString(), ...marks };
     this.set([...this.messages, message]);
     return message;
   }

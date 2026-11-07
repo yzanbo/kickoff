@@ -104,6 +104,28 @@ test("groupEvents: 作業の終わり（result）に、その作業を始めた�
   assert.deepEqual(texts, ["答え 1\n\n答え 2", undefined, undefined]);
 });
 
+test("groupEvents: 作業の終わりに、親チャットに渡す最後の返答と、依頼文を頼んだ作業かを付ける（返答がなければ付けない・同じ記録には同じものを渡す）", () => {
+  const events = [
+    makeEvent(1, "user", { text: "依頼文を", handoff_request: true }),
+    makeEvent(2, "text", { text: "確認します" }),
+    makeEvent(3, "tool_use", { id: "r1", name: "Read", input: {} }),
+    makeEvent(4, "tool_result", { tool_use_id: "r1", content: "…" }),
+    makeEvent(5, "text", { text: "依頼文の本文" }),
+    makeEvent(6, "result", { status: "completed" }),
+    makeEvent(7, "user", { text: "ふつうの質問" }),
+    makeEvent(8, "text", { text: "答え" }),
+    makeEvent(9, "result", { status: "completed" }),
+    makeEvent(10, "user", { text: "返答なし" }),
+    makeEvent(11, "result", { status: "cancelled" }),
+  ];
+  const handoffs = (items: ReturnType<typeof groupEvents>) =>
+    items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnHandoff] : []));
+  const first = handoffs(groupEvents(events));
+  assert.deepEqual(first, [{ reply: "依頼文の本文", requested: true }, { reply: "答え", requested: false }, undefined]);
+  // 組み立て直しても同じもの（memo した終わりの行を描き直させない）
+  assert.equal(handoffs(groupEvents(events))[0], first[0]);
+});
+
 test("groupEvents: 思考は、中身があるか 2 秒以上考えたものだけ出す（短い思考ではツールのまとまりを分けない）", () => {
   const items = groupEvents([
     makeEvent(1, "tool_use", { id: "a", name: "Read", input: {} }),

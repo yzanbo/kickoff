@@ -1,4 +1,4 @@
-import { History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
+import { ChevronRight, ClipboardPenLine, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatEventOf } from "@shared/types";
 import { subagentAskOf } from "@shared/chat/prompts";
@@ -25,7 +25,8 @@ const COLLAPSE_PX = 240;
  * 「もう一度送る」は、同じ文と添付を新しい指示として送る（前のやり取りは消さない。途中で圧縮が入って依頼が薄れたときに、すぐ頼み直せるように）。作業中でも送れる。
  * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。busy（作業中）の間はできない。
  * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact）は、上に「圧縮前指示」「圧縮後指示」と添えて、自分で書いた指示と見分けられるようにする。
- * サブエージェントについて子チャットで聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』について聞く」と添える（コピー・書き直しは書いた文で）
+ * サブエージェントについて子チャットで聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』について聞く」と添える（コピー・書き直しは書いた文で）。
+ * 子チャットに親への依頼文を頼んだ発言（記録の handoff_request。頼み方の文は決まった長い文なので）は、1 行「親への依頼文を頼みました」にたたみ、押すと全文を出す
  */
 export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy: boolean }) {
   const data = event.data;
@@ -34,6 +35,9 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
   // 送り直す・書き直すときは前置きを付け直す（添付の記録の読み方を AI に渡したままにする）
   const withHead = (t: string) => (subagentAsk ? data.text.slice(0, data.text.length - subagentAsk.text.length) + t : t);
   const compactKind = compactKindOf(data);
+  const handoffRequest = data.handoff_request === true;
+  // 依頼文の頼みの全文を開いているか
+  const [requestOpen, setRequestOpen] = useState(false);
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
   const handover = data.handover?.length ?? 0;
   const attachments = data.attachments ?? [];
@@ -44,7 +48,8 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
   useLayoutEffect(() => {
     const el = bodyRef.current;
     if (el) setLong(el.scrollHeight > COLLAPSE_PX + 40);
-  }, [text]);
+    // 依頼文の頼みは、開いてから測る
+  }, [text, requestOpen]);
   const pane = useOptionalChatPane();
   // 書き直している文（undefined なら書き直していない）
   const [draft, setDraft] = useState<string>();
@@ -63,7 +68,16 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
     { eventId: event.id },
   );
   return (
-    <div className={cx("user-message", draft !== undefined && "editing", compactKind && "compact-prompt", compactKind && COMPACT_PROMPT_KINDS[compactKind].className)}>
+    <div
+      className={cx(
+        "user-message",
+        draft !== undefined && "editing",
+        compactKind && "compact-prompt",
+        compactKind && COMPACT_PROMPT_KINDS[compactKind].className,
+        handoffRequest && "handoff-request",
+        handoffRequest && !requestOpen && "folded",
+      )}
+    >
       <div className="bubble user" id={`ev-${event.id}`} onContextMenu={menu.open}>
         {compactKind && <CompactPromptMark kind={compactKind} className="message-kind-label" title={COMPACT_PROMPT_KINDS[compactKind].sentTitle} />}
         {subagentAsk && (
@@ -71,6 +85,19 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
             <MessageSquarePlus size={12} aria-hidden />
             サブエージェント「{subagentAsk.name}」について聞く
           </div>
+        )}
+        {handoffRequest && (
+          <button
+            type="button"
+            className="handoff-request-toggle"
+            aria-expanded={requestOpen}
+            title={requestOpen ? "頼み方の文をたたむ" : "頼み方の文（この子チャットの AI に送った全文）を見る"}
+            onClick={() => setRequestOpen(!requestOpen)}
+          >
+            <ClipboardPenLine size={13} aria-hidden />
+            <span>親への依頼文を頼みました</span>
+            <ChevronRight size={13} aria-hidden className="handoff-request-chevron" />
+          </button>
         )}
         {attachments.length > 0 && (
           <div className="bubble-attachments">
@@ -85,11 +112,13 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
             onSend={() => pane.rewind(event.id, withHead(draft))}
           />
         ) : (
-          <div ref={bodyRef} className={cx("bubble-text", long && !expanded && "clamped")}>
-            {text}
-          </div>
+          (!handoffRequest || requestOpen) && (
+            <div ref={bodyRef} className={cx("bubble-text", long && !expanded && "clamped")}>
+              {text}
+            </div>
+          )
         )}
-        {long && draft === undefined && (
+        {long && draft === undefined && (!handoffRequest || requestOpen) && (
           <button type="button" className="bubble-more" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
             {expanded ? "たたむ" : "もっと見る"}
           </button>

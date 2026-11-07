@@ -82,6 +82,15 @@ export type ChatEventData =
 export const HANDOFF_VIAS = ["composer", "send", "queue"] as const;
 export type HandoffVia = (typeof HANDOFF_VIAS)[number];
 
+/**
+ * 発言に付ける印（送る・伝える・送信待ち・圧縮が終わるまでの預かりのどの道でも同じ形で通し、発言の記録 user に残す）:
+ * handoff_request = 子チャットに親への依頼文を頼んだ発言 / handoff_from = 子チャットから親チャットに渡した依頼
+ */
+export interface MessageMarks {
+  handoff_request?: true;
+  handoff_from?: HandoffFrom;
+}
+
 /** 親チャットでの出どころ（どの子チャットから渡した依頼か。名前は渡したときのもの） */
 export interface HandoffFrom {
   chat_id: number;

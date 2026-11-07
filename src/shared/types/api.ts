@@ -2,7 +2,7 @@
 // 資源そのもの（Project・Chat・ChatGroup など）は各ファイルにあり、ここには API にだけ出てくる形を置く
 import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
-import type { ChatEvent } from "./chatEvent";
+import type { ChatEvent, HandoffFrom } from "./chatEvent";
 import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
@@ -67,6 +67,10 @@ export interface NewChatBody extends MessageBody {
  */
 export interface SendMessageBody extends MessageBody {
   pause_after?: boolean;
+  /** 子チャットに親への依頼文を頼む発言（記録に印を付ける） */
+  handoff_request?: boolean;
+  /** 子チャットから渡した依頼（親チャットの発言。どの子チャットからか） */
+  handoff_from?: HandoffFrom;
 }
 
 /** 送信待ちに送る指示（POST /api/chats/:id/queue）。hold なら、作業していなくても送らずに列の最後に足す。pause_after は SendMessageBody と同じ（列に入れたら、その指示のすぐあとに一時停止の印を付ける） */

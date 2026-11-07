@@ -1,5 +1,6 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 import type { EffortLevel, PermissionMode, ProviderId } from "./settings";
+import type { MessageMarks } from "./chatEvent";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
 /** チャット欄で選べるモデル */
@@ -160,7 +161,7 @@ export const QUEUE_ACTION_LABELS: Record<QueueAction, string> = { compact: "会�
  * compact なら、指示の代わりに会話を圧縮する行（そこまで送ったら会話を要約してコンテキストを空け、終わったら続きを送る）。
  * clear なら、コンテキストを消去する行（そこまで送ったら、次の指示から新しい会話で始める。記録は残る）。どちらも文・添付・選択は空
  */
-export interface QueuedMessage {
+export interface QueuedMessage extends MessageMarks {
   id: string;
   text: string;
   attachments: Attachment[];

@@ -1,6 +1,6 @@
 // 子チャットから親チャットへの依頼文の受け渡し（子チャットの AI に依頼文を書かせ、その返答を親に渡す）。
 // 頼み方の文・渡し方と渡したあとの選び方・作業の最後の返答の取り出し（コア・画面で同じものを使う。Node 依存なし）
-import type { ChatEvent, HandoffVia } from "@shared/types";
+import type { ChatEvent, HandoffFrom, HandoffVia, MessageMarks } from "@shared/types";
 import { UNTITLED_CHAT_TITLE } from "@shared/types";
 
 /** 渡したあとの子チャット: そのまま / アーカイブ / 削除（削除は今すぐ送る・送信待ちで渡したときだけ。入力欄ならアーカイブにする） */
@@ -44,7 +44,11 @@ export const HANDOFF_CONTEXT_RULE = "親に渡す依頼文を頼まれたら（�
  */
 export function lastReplyOfTurn(events: readonly ChatEvent[], resultEventId: number): string | null {
   const end = events.findIndex((e) => e.id === resultEventId);
-  if (end < 0) return null;
+  return end < 0 ? null : lastReplyBefore(events, end);
+}
+
+/** 記録の end 番目（作業の終わり）の直前の、最後の返答（lastReplyOfTurn の位置で引く版。流れの組み立てで、作業の終わりごとに探し直さない） */
+export function lastReplyBefore(events: readonly ChatEvent[], end: number): string | null {
   const parts: string[] = [];
   for (let i = end - 1; i >= 0; i--) {
     const e = events[i];
@@ -59,4 +63,9 @@ export function lastReplyOfTurn(events: readonly ChatEvent[], resultEventId: num
   }
   const text = parts.join("\n\n").trim();
   return text || null;
+}
+
+/** 発言の印だけを取り出す（付いていないものは入れない。送信待ちの行・API の本文から、送る・伝えるへ渡すとき） */
+export function marksOf(src: { handoff_request?: boolean; handoff_from?: HandoffFrom }): MessageMarks {
+  return { ...(src.handoff_request ? { handoff_request: true as const } : {}), ...(src.handoff_from ? { handoff_from: src.handoff_from } : {}) };
 }
