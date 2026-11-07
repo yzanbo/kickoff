@@ -7,7 +7,8 @@ import { WorktreeChip } from "@/features/worktree/WorktreeChip";
 import { ChatFind } from "@/features/chat/find/ChatFind";
 import { AgentPanelToggle } from "@/features/panel/agents/AgentPanelToggle";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
-import { ChatDisplayItems, useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
+import { cx } from "@/lib/cx";
+import { ChatDisplayItems, useChatHeaderBadgeColors, useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
 import { ChatHeaderTools } from "./ChatHeaderTools";
 import { useChatPane, useChatPaneState } from "./chatPaneContext";
 
@@ -35,6 +36,7 @@ export function ChatHeader({
   const shows = useChatHeaderItems();
   const { canOpenSide } = useChatPane();
   const rowHidden = useChatHeaderRowHidden();
+  const badgeColors = useChatHeaderBadgeColors();
   const showing = useChatPaneState((s) => s.showing) ?? "conversation";
   const menu = useContextMenu();
   const collapsed = rowHidden && showing === "conversation" && !chat.archived_at;
@@ -56,7 +58,7 @@ export function ChatHeader({
     >
       <div className="chat-title-row">
         {/* どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン） */}
-        <span className="chat-sub muted small">
+        <span className={cx("chat-sub muted small", !badgeColors && "plain-badges")}>
           {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
           {shows("group") && <GroupChip chat={chat} />}
           {shows("worktree") && <WorktreeChip chat={chat} />}

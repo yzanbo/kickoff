@@ -2,7 +2,7 @@ import { useRef, type MouseEvent, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { ChatDisplayItems, useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
+import { ChatDisplayItems, useChatHeaderBadgeColors, useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
 import { ChatFontSizeButton } from "./ChatFontSizeButton";
 import { TextWidthToggle, useWideText } from "./TextWidthToggle";
 
@@ -17,6 +17,7 @@ export function DraftChatPage({ className, badges, hero, children }: { className
   const [wide] = useWideText();
   const shows = useChatHeaderItems();
   const rowHidden = useChatHeaderRowHidden();
+  const badgeColors = useChatHeaderBadgeColors();
   const menu = useContextMenu();
   // ボタン・リンク・入力欄の上では、そのものの右クリックを残す（チャットの見出しと同じ）
   const onBlankContextMenu = (e: MouseEvent) => {
@@ -31,7 +32,7 @@ export function DraftChatPage({ className, badges, hero, children }: { className
         <header className="chat-header" onContextMenu={onBlankContextMenu}>
           {/* 名前と閉じるはタブに出すので、見出しには出さない（チャットの見出しと同じ） */}
           <div className="chat-title-row">
-            <span className="chat-sub muted small">{badges}</span>
+            <span className={cx("chat-sub muted small", !badgeColors && "plain-badges")}>{badges}</span>
             <span className="spacer" />
             <span className="chat-tools">
               {shows("textWidth") && <TextWidthToggle panel={page} />}

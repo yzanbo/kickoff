@@ -1,6 +1,6 @@
 import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
+import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
@@ -89,6 +89,7 @@ function DisplaySettings() {
   const [fontSize, setFontSize] = useChatFontSize();
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [headerHidden, setHeaderHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
+  const [badgeColors, setBadgeColors] = useSetting(CHAT_HEADER_BADGE_COLORS);
   const [tabRowHidden, setTabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [childChatOpenIn, setChildChatOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
@@ -173,6 +174,18 @@ function DisplaySettings() {
             options={[
               { value: "show", label: "表示する" },
               { value: "hide", label: "隠す" },
+            ]}
+          />
+        </Field>
+        <Field label="見出しのバッジ" help="チャットの見出しのグループ・作業場所のバッジを、それぞれの色（タブの列のまとまりと同じ色）で表示するかです。色なしにすると、灰色の枠と文字だけになります。見出し・会話の何もないところの右クリックでも切り替えられます。">
+          <Segmented<"color" | "plain">
+            className="segmented theme-switch"
+            label="見出しのバッジ"
+            value={badgeColors ? "color" : "plain"}
+            onChange={(v) => setBadgeColors(v === "color")}
+            options={[
+              { value: "color", label: "色付きで表示する" },
+              { value: "plain", label: "色付きで表示しない" },
             ]}
           />
         </Field>
