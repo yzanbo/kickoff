@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups, requireProject } from "../lookups.js";
-import { chatOptionsSchema, childChatSchema, handoffSchema, messageInputSchema, messageText, subagentChildSchema } from "./schemas.js";
+import { attachmentsSchema, chatOptionsSchema, childChatSchema, editingIdsSchema, handoffSchema, messageInputSchema, messageText, subagentChildSchema } from "./schemas.js";
 import { forkChat } from "../../chat/fork.js";
 import { startChildChat } from "../../chat/children.js";
 import { handOffToParent } from "../../chat/handoff.js";
@@ -38,6 +38,20 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads }: Ser
 
   // 圧縮が終わるまで預かった指示を、送らずに外す（圧縮中に誤って送ったとき。もう伝えたなら 404、伝えている途中なら 409）。外した指示を返す
   app.delete("/api/chats/:id/after-compact/:messageId", withChat, (c) => c.json(runner.removeAfterCompact(c.var.chat.id, c.req.param("messageId"))));
+
+  // 画面でいま書き直している預かった指示（丸ごと置き換え、空なら外す）。書き直している間は、送る順が来てもその指示から後ろを送らない。
+  // 開いている間は持ち時間より短い間隔で知らせ直す（途絶えたら外れて送る）。変わった様子は SSE の chat_live で届く
+  app.put("/api/chats/:id/after-compact/editing", withChat, async (c) => {
+    const { ids } = editingIdsSchema.parse(await jsonBody(c));
+    runner.setAfterCompactEditing(c.var.chat.id, ids);
+    return c.body(null, 204);
+  });
+
+  // 預かった指示をその場で書き直す（送る順はそのまま。書き直し中の印も外す）。もう伝えたなら 404。書き直した指示を返す
+  app.patch("/api/chats/:id/after-compact/:messageId", withChat, async (c) => {
+    const { text, attachments } = z.object({ text: messageText, attachments: attachmentsSchema }).parse(await jsonBody(c));
+    return c.json(runner.updateAfterCompact(c.var.chat.id, c.req.param("messageId"), text, attachments));
+  });
 
   app.post("/api/chats/:id/cancel", withChat, (c) => {
     runner.cancel(c.var.chat.id);

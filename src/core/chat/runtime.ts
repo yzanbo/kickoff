@@ -56,6 +56,8 @@ export class ChatRuntime {
   readonly queue: ChatQueue;
   /** 画面で書き直している送信待ちの指示（自動で送る次の指示なら、書き直しが終わるまで送らない） */
   readonly edits: QueueEdits;
+  /** 画面で書き直している預かった指示（after_compact。送る順が来ても、書き直しが終わるまで送らない。決まりは送信待ちの edits と同じ） */
+  readonly afterCompactEdits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
   private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, resume: null };
@@ -65,11 +67,12 @@ export class ChatRuntime {
   constructor(
     readonly chatId: number,
     private readonly onChange: () => void,
-    opts: { persistence?: QueuePersistence; editTtlMs?: number; onEditsChanged: () => void; onCompactEnded?: () => void },
+    opts: { persistence?: QueuePersistence; editTtlMs?: number; onEditsChanged: () => void; onAfterCompactEditsChanged?: () => void; onCompactEnded?: () => void },
   ) {
     this.onCompactEnded = opts.onCompactEnded ?? (() => {});
     this.queue = new ChatQueue(chatId, onChange, opts.persistence);
     this.edits = new QueueEdits(opts.onEditsChanged, opts.editTtlMs);
+    this.afterCompactEdits = new QueueEdits(opts.onAfterCompactEditsChanged ?? (() => {}), opts.editTtlMs);
   }
 
   /** 作業中か（動かしている・送る準備をしている） */
@@ -86,10 +89,16 @@ export class ChatRuntime {
    * 「いま」を預かるか: 圧縮中か、圧縮前指示を送ってから圧縮が終わるまで（awaitingCompact）か、圧縮したやり取りの途中（compactedTurn。
    * 圧縮後指示のやり取りが終わるまで）か、圧縮のあとに預かった指示を送っている途中。
    * 圧縮の前に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため。
-   * 圧縮のあとに足すと、圧縮後指示のやり取りに混ざるため。送っている途中に足すと、圧縮後指示・前に預かった指示より先に入りうるため
+   * 圧縮のあとに足すと、圧縮後指示のやり取りに混ざるため。送っている途中に足すと、圧縮後指示・前に預かった指示より先に入りうるため。
+   * 預かった指示を書き直している間も（その指示より先に入らないように）預かる
    */
   get holdsTells(): boolean {
-    return this.compactPhase || this.fields.compactedTurn || this.fields.deliveringAfterCompact;
+    return this.compactPhase || this.fields.compactedTurn || this.fields.deliveringAfterCompact || this.editingAfterCompact;
+  }
+
+  /** 預かった指示のどれかを、画面で書き直しているか（書き直しが終わるまで、その指示から後ろは送らない） */
+  get editingAfterCompact(): boolean {
+    return this.fields.afterCompact.some((m) => this.afterCompactEdits.has(m.id));
   }
 
   /** 圧縮中か、圧縮前指示を送ってから圧縮が終わるまでか（外れたら、圧縮後指示を伝える） */
@@ -173,6 +182,7 @@ export class ChatRuntime {
   /** チャットを消したとき（書き直しの持ち時間の待ちを止める） */
   dispose() {
     this.edits.dispose();
+    this.afterCompactEdits.dispose();
   }
 }
 
@@ -191,6 +201,8 @@ export class ChatRuntimes {
       editTtlMs?: number;
       /** 書き直している送信待ちの指示が変わった・外れた */
       onEditsChanged: (chatId: number) => void;
+      /** 書き直している預かった指示が変わった・外れた */
+      onAfterCompactEditsChanged?: (chatId: number) => void;
       /** 圧縮が終わった（圧縮中・圧縮前指示から圧縮が終わるまでの「いま」を預かる間が終わった） */
       onCompactEnded?: (chatId: number) => void;
     },
@@ -212,6 +224,7 @@ export class ChatRuntimes {
         persistence: this.deps.store.queues,
         editTtlMs: this.deps.editTtlMs,
         onEditsChanged: () => this.deps.onEditsChanged(chatId),
+        onAfterCompactEditsChanged: () => this.deps.onAfterCompactEditsChanged?.(chatId),
         onCompactEnded: () => this.deps.onCompactEnded?.(chatId),
       });
       this.runtimes.set(chatId, runtime);

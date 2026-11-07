@@ -51,6 +51,7 @@
 @import "./chat/queued.css";
 @import "./chat/queued-head.css";
 @import "./chat/queued-attachments.css";
+@import "./chat/held-edit.css";
 @import "./chat/composer-select.css";
 @import "./chat/subagents.css";
 @import "./chat/todo.css";
