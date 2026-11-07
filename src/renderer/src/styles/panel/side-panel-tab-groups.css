@@ -48,6 +48,14 @@
   pointer-events: none;
 }
 
+/* グループ別で、チャットのタブを重ねているほかのグループの枠（落とすとそのグループへ移す。サイドバーのグループへのドロップと同じ見た目） */
+.panel-tab-group.drop-target {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
 /* 枠の内側の端に引く（いちばん左のまとまりでも、タブの並びの横スクロールで切り取られないように） */
 .panel-tab-group.drop-before::before {
   left: 0;

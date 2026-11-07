@@ -11,6 +11,7 @@ import { paneIndexOf } from "@/features/panel/clusters/tabClusters";
 import { TabClusterHead } from "@/features/panel/clusters/TabClusterHead";
 import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
 import { useTabStrip } from "@/features/panel/clusters/useTabStrip";
+import { joinDropHandlers, useClusterTabDrop } from "@/features/panel/clusters/useClusterTabDrop";
 import type { OpenWithKind } from "@/features/openWith/useOpenWithMenu";
 import { PaneTab } from "./PaneTab";
 import { PanelTabAdds } from "./PanelTabAdds";
@@ -83,6 +84,8 @@ export function PaneTabBar({
   const active = panel.shownTabOf(pane);
   const strip = useTabStrip(panel, pane, home, active);
   const { clusters, display } = strip;
+  // グループ別のとき、チャットのタブをほかのグループのまとまり（No Group も）に落とすと、そのグループへ移す
+  const tabDrop = useClusterTabDrop(panel, drag.dragging, strip.grouping === "group");
   // 表示中のタブが並びの外（横にスクロールした先）にあれば、見えるところまで動かす（新しく開いたタブなど）
   const stripRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -153,10 +156,10 @@ export function PaneTabBar({
             return (
               <div
                 key={c.key}
-                className={cx("panel-tab-group", hue === null && "plain", collapsed && "collapsed", strip.reorder.classFor(c))}
+                className={cx("panel-tab-group", hue === null && "plain", collapsed && "collapsed", strip.reorder.classFor(c), tabDrop.classFor(c))}
                 // --cluster-tabs: 見せているタブの数（まとまりをどこまで細くできるかを CSS で決める）
                 style={{ ...(hue === null ? {} : { "--group-hue": hue }), "--cluster-tabs": shown.length } as CSSProperties}
-                {...strip.reorder.dropProps(c)}
+                {...joinDropHandlers(strip.reorder.dropProps(c), tabDrop.dropProps(c))}
               >
                 <TabClusterHead
                   cluster={c}
