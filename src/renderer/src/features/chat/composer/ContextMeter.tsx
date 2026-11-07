@@ -26,16 +26,21 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
  * 使用率は詳細の「自動圧縮」でも選べる（AutoCompactSelect。設定の「チャット」と同じ値）。その下の「圧縮前指示」「圧縮後指示」で、圧縮の前・後に送る指示も書ける（CompactPromptEditor）。
  * 作業中の「会話を圧縮」は「このやり取りのあとで圧縮」（予約。送信待ちのいちばん上に「会話を圧縮」の行を入れ、終わったら送信待ちより先にすぐ圧縮する）になり、
  * 予約中は「取り消す」（その行を送信待ちから消す）を出す。
+ * 圧縮前指示があれば、予約せずにいまの作業へ伝え、その作業が終わったら圧縮する（ChatLive の compact_after_turn）。その間は「このやり取りが終わったら圧縮します」だけを出し、
+ * もう一度頼めるようには見せない（指示はもう伝えたので取り消せない。前はボタンが元のまま残り、頼めたか分からず、押し直すと圧縮の行も入って 2 回圧縮した）
  */
 export function ContextMeter({
   chat,
   compacting,
   reserved,
+  afterTurn,
 }: {
   chat: Chat;
   compacting: CompactingState | null;
   /** 作業中に予約した圧縮（送信待ちのいちばん上の「会話を圧縮」の行。queuedHint の reservedCompact。なければ null） */
   reserved: QueuedMessage | null;
+  /** 作業中に手で頼んだ圧縮の圧縮前指示を、いまの作業に伝えた（その作業が終わったら圧縮する） */
+  afterTurn: boolean;
 }) {
   const compactingText = compacting ? compactingLabel(compacting.trigger) : null;
   // 押すとメーターの上に開く詳細（もう一度押す・外を押す・Esc で閉じる。右端をメーターにそろえる）
@@ -74,7 +79,7 @@ export function ContextMeter({
       <button
         type="button"
         className="context-ring-button"
-        aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用${markText ? `・${markText}` : ""}${reserved ? "・このやり取りのあとで圧縮します" : ""}`}
+        aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用${markText ? `・${markText}` : ""}${reserved || afterTurn ? "・このやり取りのあとで圧縮します" : ""}`}
         aria-busy={compacting ? true : undefined}
         aria-expanded={open}
         title={open ? "閉じる" : compactingText ? `${compactingText}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストの詳細を表示"}
@@ -122,7 +127,12 @@ export function ContextMeter({
 
           {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
           <section className="context-section context-compact">
-            {reserved && running && !compacting ? (
+            {afterTurn && running && !compacting ? (
+              // 圧縮前指示をいまの作業に伝えた: この作業が終わったら圧縮する（指示はもう伝えたので取り消せない）
+              <span className="context-compact-note" title="圧縮前指示をいまの作業に伝えました。この作業が最後まで終わったら、送信待ちの指示より先に会話を圧縮します">
+                <Shrink size={13} aria-hidden /> このやり取りが終わったら圧縮します
+              </span>
+            ) : reserved && running && !compacting ? (
               // 予約している: このやり取りが終わったら圧縮が始まる。取り消せる（送信待ちの圧縮の行を消す）
               <>
                 <span className="context-compact-note">

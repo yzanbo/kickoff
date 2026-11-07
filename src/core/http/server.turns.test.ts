@@ -266,7 +266,7 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
   );
   assert.deepEqual(
     { ...last, queue: { ...last.queue, messages: [] } },
-    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, after_compact: [], awaiting_compact: false },
+    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, after_compact: [], awaiting_compact: false, compact_after_turn: false },
   );
   await call("DELETE", `/api/chats/${chatId}/queue`);
   release();
@@ -482,6 +482,8 @@ test("圧縮前指示・圧縮後指示は送信待ちに入れない: 作業中
   assert.deepEqual(provider.told, [busyPreCompactMessage("メモを書いて")]);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => (m.compact ? "圧縮" : m.text)), ["次"]);
   assert.equal(runner.live(chatId).awaiting_compact, true);
+  // 画面が「このやり取りが終わったら圧縮します」を出せるよう、作業のあとで圧縮することを配る
+  assert.equal(runner.live(chatId).compact_after_turn, true);
   const user = store.events.list(chatId).findLast((e) => e.type === "user")!;
   assert.ok(user.type === "user" && user.data.pre_compact && user.data.text === "メモを書いて");
   // もう伝えたので、もう一度押しても足さない（予約になる）
@@ -491,6 +493,7 @@ test("圧縮前指示・圧縮後指示は送信待ちに入れない: 作業中
   release();
   await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(chatId));
   assert.deepEqual(provider.prompts.slice(2), ["/compact", postCompactMessage("メモを読んで"), "次"]);
+  assert.equal(runner.live(chatId).compact_after_turn, false);
   const compacted = store.events.list(chatId).find((e) => e.type === "compact");
   assert.ok(compacted?.type === "compact" && compacted.data.trigger === "manual");
 });

@@ -112,7 +112,7 @@ export function ChatComposerArea({
         busyControls={live.awaiting_compact ? undefined : <QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
         stopping={live.stopping}
         onStop={send.onStop}
-        trailing={<ContextMeter chat={chat} compacting={live.compacting} reserved={reservedCompact(live.queue)} />}
+        trailing={<ContextMeter chat={chat} compacting={live.compacting} reserved={reservedCompact(live.queue)} afterTurn={live.compact_after_turn} />}
         // よく送る指示（このプロジェクトで使う定型文）。入力欄の枠の中の上（送信待ちとの区切り線の下）に置き、押すと入力欄に入れる
         header={<SnippetBar projectId={chat.project_id} composer={composer} onSend={sendSnippet} />}
         // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
