@@ -488,6 +488,41 @@ test("圧縮中に預かった指示は、送る前なら送らずに消せる�
   assert.deepEqual(runner.live(chatId).after_compact, []);
 });
 
+test("預かった指示を書き直している間は、送る順が来てもそこで止め、書き直すと同じ順のまま送る（もう送ったものは 404）", async () => {
+  const { call, project, runner, provider, store } = setup();
+  const release = provider.hold();
+  provider.compacting = true;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => runner.live(chatId).compacting !== null);
+  for (const text of ["あ", "い", "う"]) await call("POST", `/api/chats/${chatId}/tell`, { text });
+  const second = runner.live(chatId).after_compact[1]!;
+  const editing = () => call("PUT", `/api/chats/${chatId}/after-compact/editing`, { ids: [second.id] });
+  assert.equal((await editing()).status, 204);
+  // 書き直している間は、画面と同じく持ち時間より短い間隔で知らせ直す
+  const keep = setInterval(() => void editing(), 80);
+  try {
+    provider.finishCompacting();
+    provider.compacting = false;
+    release();
+    // 「あ」は送り、書き直している「い」から後ろは送らずに待つ
+    await until(() => provider.prompts.at(-1) === "あ" && !runner.isBusy(chatId));
+    assert.deepEqual(runner.live(chatId).after_compact.map((m) => m.text), ["い", "う"]);
+  } finally {
+    clearInterval(keep);
+  }
+  const edited = await call("PATCH", `/api/chats/${chatId}/after-compact/${second.id}`, { text: " い（直した） ", attachments: [] });
+  assert.equal(edited.status, 200);
+  assert.equal(edited.body.text, "い（直した）");
+  // 書き直すと書き直し中の印も外れ、同じ順のまま送る
+  await until(() => runner.live(chatId).after_compact.length === 0 && !runner.isBusy(chatId));
+  const users = store.events
+    .list(chatId)
+    .filter((e) => e.type === "user")
+    .map((e) => (e.data as { text: string }).text);
+  assert.deepEqual(users, ["1", "あ", "い（直した）", "う"]);
+  assert.equal((await call("PATCH", `/api/chats/${chatId}/after-compact/${second.id}`, { text: "x", attachments: [] })).status, 404);
+});
+
 test("圧縮後指示: 圧縮が終わったら札付きで伝え、預かった「いま」は圧縮後指示のやり取りが終わってから送る（手で圧縮したときは圧縮の実行のあとに圧縮後指示を新しい作業として送る）", async () => {
   const { call, project, runner, provider, store } = setup();
   await call("PUT", "/api/settings", { post_compact_prompt: " 共通のあと " });

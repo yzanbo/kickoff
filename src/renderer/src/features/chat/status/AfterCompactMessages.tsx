@@ -1,4 +1,4 @@
-import { Clock, CornerUpLeft, Trash2 } from "lucide-react";
+import { Clock, Pencil, Trash2 } from "lucide-react";
 import type { QueuedMessage } from "@shared/types";
 import { api } from "@/api";
 import { IconButton } from "@/ui/IconButton";
@@ -7,6 +7,7 @@ import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 import { cx } from "@/lib/cx";
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
+import { startHeldEdit, useHeldEdit } from "./heldEdit";
 
 /** コアが預かりに入れる前に、圧縮後指示を先に見せる吹き出しの ID（まだ消せない） */
 const PENDING_POST_ID = "post-compact-pending";
@@ -34,25 +35,25 @@ function untilText(until: AfterCompactUntil, post: boolean, hasPost: boolean): s
  * 送る（1 つ目を新しい作業として送り、残りはその作業に伝える）。それまでは作業中の行の下（圧縮後指示の発言・圧縮の行より後ろ）に出し続ける。
  * 圧縮を待っていないのに残っている圧縮後指示（通信の切断などで作業ごと終わった・前の版で送信待ちに入っていたもの）は、
  * 作業中ならいまの作業に、作業していなければ次に送った指示の作業にそのまま伝わるので、そう添える（until）。
- * 伝える前なら、吹き出しの下のボタンで送らずに消せる（圧縮中に誤って送ったとき）。「入力欄に戻す」は消して、文と添付を入力欄の後ろに足す（直して送り直せる）
+ * 伝える前なら、吹き出しの下のボタンで送らずに消せる（圧縮中に誤って送ったとき）。鉛筆（ふつうの発言の書き直しと同じアイコン）で、チャット欄を書き直しの欄に
+ * 入れ替えて直せる（HeldEditComposer。保存しても送る順は変えない。前は「入力欄に戻す」で消してから入力欄に入れていたので、送り直すと最後に回り、順番が入れ替わった）
  */
 export function AfterCompactMessages({ messages, pendingPost, until }: { messages: QueuedMessage[]; pendingPost: string | null; until: AfterCompactUntil }) {
   const pending: QueuedMessage[] = pendingPost === null ? [] : [{ id: PENDING_POST_ID, text: pendingPost, options: {}, attachments: [], created_at: "", post_compact: true }];
   const items = [...pending, ...messages];
   const hasPost = items.some((m) => m.post_compact);
   const pane = useOptionalChatPane();
-  /** 送らずに外す（入力欄に戻すなら、外した文と添付を入力欄の後ろに足す） */
-  const remove = (m: QueuedMessage, back: boolean) => {
+  // 入力欄で書き直している指示（あれば、その吹き出しに印を付け、ほかの鉛筆は押せなくする）
+  const editing = useHeldEdit(pane?.chatId ?? -1);
+  /** 送らずに外す */
+  const remove = (m: QueuedMessage) => {
     if (!pane) return;
-    void api
-      .removeAfterCompact(pane.chatId, m.id)
-      .then((removed) => back && pane.fillComposer(removed.text, { append: true, attachments: removed.attachments }))
-      .catch(reportFailure("指示を取り消せませんでした"));
+    void api.removeAfterCompact(pane.chatId, m.id).catch(reportFailure("指示を取り消せませんでした"));
   };
   return (
     <>
-      {items.map((m) => (
-        <div key={m.id} className={cx("user-message", "after-compact", m.post_compact && "compact-prompt post-compact")}>
+      {items.map((m, i) => (
+        <div key={m.id} className={cx("user-message", "after-compact", m.post_compact && "compact-prompt post-compact", editing?.id === m.id && "held-editing")}>
           <div className="bubble user">
             {m.post_compact && <CompactPromptMark kind="post" className="message-kind-label" />}
             {m.attachments.length > 0 && (
@@ -63,19 +64,20 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
             {m.text && <div className="bubble-text">{m.text}</div>}
           </div>
           <div className="message-meta">
-            <Clock size={12} aria-hidden />
-            {untilText(until, m.post_compact === true, hasPost)}
+            {editing?.id === m.id ? <Pencil size={12} aria-hidden /> : <Clock size={12} aria-hidden />}
+            {editing?.id === m.id ? "チャット欄で書き直しています（保存しても、この順番のまま送ります）" : untilText(until, m.post_compact === true, hasPost)}
             {/* 伝える前なら送らずに消せる（コアが預かりに入れる前に先に見せている圧縮後指示は、まだ消せない） */}
             {pane && m.id !== PENDING_POST_ID && (
               <>
-                {!m.post_compact && (
+                {!m.post_compact && editing?.id !== m.id && (
                   <IconButton
-                    icon={CornerUpLeft}
+                    icon={Pencil}
                     size={13}
-                    label="入力欄に戻す"
-                    title="送らずに取り消して、文と添付を入力欄に戻す（直して送り直せます）"
+                    label="書き直す"
+                    title={editing ? "ほかの指示を書き直しています（保存するか、やめてから）" : "チャット欄で書き直す（画像の添付・定型文も使えます。保存しても送る順はそのまま。書き直している間は送らずに待ちます）"}
                     className="message-action"
-                    onClick={() => remove(m, true)}
+                    disabled={editing !== null}
+                    onClick={() => startHeldEdit(pane.chatId, { id: m.id, position: i + 1, text: m.text, attachments: m.attachments })}
                   />
                 )}
                 <IconButton
@@ -84,7 +86,7 @@ export function AfterCompactMessages({ messages, pendingPost, until }: { message
                   label="送らずに消す"
                   title={m.post_compact ? "今回の圧縮では、圧縮後指示を送らない（設定の圧縮後指示はそのまま）" : "この指示を送らずに消す（圧縮中に誤って送ったとき）"}
                   className="message-action"
-                  onClick={() => remove(m, false)}
+                  onClick={() => remove(m)}
                 />
               </>
             )}

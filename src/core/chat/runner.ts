@@ -7,7 +7,7 @@ import { createChat, followupPrompt, type StartChatInput } from "./input.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type QueueResume, type QueueResumeAction, type TellResult, type MessageMarks } from "@shared/types";
 import { resumeMomentsOf } from "./queueResume.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
-import { Conflict, NotFound } from "../http/errors.js";
+import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { errorMessage } from "@shared/errors";
 import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, RESTART_RESUME_PROMPT } from "@shared/chat/prompts";
 import { postCompactItem, preCompactPromptOf } from "./preCompact.js";
@@ -55,6 +55,7 @@ export class Runner extends RunnerQueue {
       bus: deps.bus,
       editTtlMs: deps.editHoldTtlMs,
       onEditsChanged: (chatId) => this.editsChanged(chatId),
+      onAfterCompactEditsChanged: (chatId) => this.afterCompactEditsChanged(chatId),
       onCompactEnded: (chatId) => this.deliverAfterCompact(chatId),
     });
     // 自動で送るまま送信待ちが残ったチャットは、起動しただけでは送らず、利用者に聞く（queueResumes / resolveQueueResumes）
@@ -266,6 +267,46 @@ export class Runner extends RunnerQueue {
   }
 
   /**
+   * 預かった指示をその場で書き直す（送る順はそのまま）。書き直し中の印も外し、送る順が来ていれば送る（afterCompactEditsChanged）。
+   * 預かりにない（もう伝えた）なら 404、書き直し中の印がないまま順に伝えている途中なら 409、圧縮後指示・文も添付もなくなるなら 400
+   */
+  updateAfterCompact(chatId: number, messageId: string, text: string, attachments: Attachment[]): QueuedMessage {
+    const runtime = this.runtimes.get(chatId);
+    const message = runtime.afterCompact.find((m) => m.id === messageId);
+    if (!message) throw new NotFound("その指示は、もう伝えたか見つかりません");
+    if (message.post_compact) throw new Invalid("圧縮後指示は書き直せません（設定の圧縮後指示を直してください）");
+    if (!text.trim() && attachments.length === 0) throw new Invalid("メッセージか添付ファイルが必要です");
+    if (runtime.deliveringAfterCompact && !runtime.afterCompactEdits.has(messageId)) throw new Conflict("圧縮のあとで順に伝えている途中です。少し待ってからやり直してください");
+    const next: QueuedMessage = { ...message, text: text.trim(), attachments };
+    runtime.update({ afterCompact: runtime.afterCompact.map((m) => (m.id === messageId ? next : m)) });
+    runtime.afterCompactEdits.set([]);
+    return next;
+  }
+
+  /**
+   * 画面で書き直している預かった指示を丸ごと置き換える（空なら外す）。書き直している間は、送る順が来てもその指示から後ろを送らずに待つ。
+   * 開いている間、画面は持ち時間（EDIT_HOLD_TTL_MS）より短い間隔で知らせ直す（途絶えたら外れて送る。預かりにない指示は数えない）
+   */
+  setAfterCompactEditing(chatId: number, ids: string[]) {
+    const runtime = this.runtimes.get(chatId);
+    runtime.afterCompactEdits.set(ids.filter((id) => runtime.afterCompact.some((m) => m.id === id && !m.post_compact)));
+  }
+
+  /**
+   * 書き直している預かった指示が変わった・外れた: 書き直しを待って止めていた分を送る。作業していなければ 1 件目から新しい作業として
+   * （作業の終わりの deliverHeld と同じ）、作業中で預かる間でなければ、いまの作業に伝える。圧縮中などは、そのやり取りの終わりに送る
+   */
+  private afterCompactEditsChanged(chatId: number) {
+    const runtime = this.runtimes.get(chatId);
+    const head = runtime.afterCompact[0];
+    if (!head || runtime.deliveringAfterCompact || runtime.editingAfterCompact) return;
+    if (!this.isBusy(chatId)) {
+      // 作業していないのに残っている圧縮後指示（次に送る指示と一緒に伝えるもの）は、ここでは送らない
+      if (!head.post_compact) this.deliverHeld(chatId, true);
+    } else if (!runtime.holdsTells) this.drainAfterCompact(chatId, false);
+  }
+
+  /**
    * 圧縮前指示から圧縮後指示のやり取りが終わるまでの「いま」を預かる（ChatLive の after_compact。流れの終わりに「このやり取りが終わったら送ります」と出す）。
    * この間に足すと、圧縮前指示の作業・圧縮後指示のやり取りに混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため、そのやり取りが終わってから送る
    */
@@ -329,6 +370,8 @@ export class Runner extends RunnerQueue {
         for (let i = 0; ; i++) {
           const m = runtime.afterCompact[0];
           if (!m || runtime.parkAfterCompact) break;
+          // 画面で書き直している指示に来たら、そこで止める（書き直しが終わったら afterCompactEditsChanged で続きを送る。順番を入れ替えない）
+          if (runtime.afterCompactEdits.has(m.id)) break;
           const sendNow = i === 0 && sendFirst;
           // 圧縮したやり取り（圧縮後指示のやり取り）の途中は、自分の指示を足さない（そのやり取りが終わったら deliverHeld で送る）
           if (!sendNow && !m.post_compact && runtime.compactedTurn) break;

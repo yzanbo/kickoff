@@ -25,6 +25,8 @@ import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import type { useChatSend } from "./useChatSend";
 import { useChipsPortal } from "./chipsPortal";
+import { useHeldEdit } from "@/features/chat/status/heldEdit";
+import { HeldEditComposer } from "@/features/chat/status/HeldEditComposer";
 
 /** 「質問として送る」の説明 */
 const ASK_SEND_TITLE =
@@ -64,6 +66,8 @@ export function ChatComposerArea({
   onDock: (dock: HTMLSpanElement | null) => void;
 }) {
   const busyNeighbors = useBusyNeighbors(chat.project_id, chat.worktree_path, chat.id);
+  // 預かった指示を書き直している間は、チャット欄を書き直しの欄に入れ替える（ふつうの欄は隠して残す）
+  const heldEdit = useHeldEdit(chat.id);
   const queued = live.queue.messages.length > 0;
   // 送信ボタンの右クリック:
   // 「質問として送る」: いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する（答えを見て次を決める）
@@ -105,6 +109,8 @@ export function ChatComposerArea({
       {portal?.target ? createPortal(chips, portal.target) : chips}
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
       <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={live.queue_resume} />
+      {heldEdit && <HeldEditComposer chat={chat} edit={heldEdit} gone={!live.after_compact.some((m) => m.id === heldEdit.id)} composer={composer} />}
+      {/* 預かった指示を書き直している間は、ふつうのチャット欄を隠して残す（書きかけの文・添付はそのまま。chat.css の .chat-composer:has(> .held-edit)） */}
       <Composer
         chatContext={{ projectId: chat.project_id, exclude: chat.id }}
         options={options}

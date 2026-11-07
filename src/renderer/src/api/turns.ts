@@ -5,6 +5,11 @@ import { request } from "./http";
 export const turnsApi = {
   /** 圧縮のあとのやり取りが終わるまで預かった指示を、送らずに外す（圧縮中に誤って送ったとき。外した指示を返す） */
   removeAfterCompact: (chatId: number, messageId: string) => request<QueuedMessage>("DELETE", `/api/chats/${chatId}/after-compact/${encodeURIComponent(messageId)}`),
+  /** 預かった指示をその場で書き直す（送る順はそのまま。書き直し中の印も外れる。書き直した指示を返す。もう伝えたなら 404） */
+  updateAfterCompact: (chatId: number, messageId: string, text: string, attachments: Attachment[]) =>
+    request<QueuedMessage>("PATCH", `/api/chats/${chatId}/after-compact/${encodeURIComponent(messageId)}`, { text, attachments }),
+  /** 入力欄で書き直している預かった指示を知らせる（丸ごと置き換え、空なら外す。書き直している間は、その指示から後ろを送らない。開いている間は知らせ直す） */
+  setAfterCompactEditing: (chatId: number, ids: string[]) => request<void>("PUT", `/api/chats/${chatId}/after-compact/editing`, { ids }),
   /**
    * pauseAfter: 質問として送る（この作業が終わったら、送信待ちを自動で送らずに一時停止する）。
    * marks: 発言の印（親への依頼文の頼み・子チャットから渡した依頼。記録の発言に残る）
