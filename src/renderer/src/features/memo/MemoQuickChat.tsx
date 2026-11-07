@@ -1,4 +1,4 @@
-import { OctagonPause } from "lucide-react";
+import { MessageSquare, OctagonPause } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/types";
 import { api } from "@/api";
@@ -33,7 +33,8 @@ const NO_SCROLL: TimelineScroll = { ref: { current: null }, following: () => fal
  * メモのページの下の、そのメモを AI に直してもらう入力欄（メモのチャットの欄を閉じている間だけ出す）。
  * 入力欄はチャット欄と同じ Composer（定型文の帯・添付・ほかのチャットの参照・音声入力・モデルなどの選択・メーター・送信と ▾）で、
  * 送る先はメモのチャット（まだなければ作る）。AI がファイルを書き換えると、ページ・本文はメモの変更の知らせで読み直す。
- * 会話は出さず、上に作業中・回答待ちなどの様子と「会話を開く」（メモのチャットの欄を開く）の 1 行だけ。
+ * 会話は出さず、上に名前「メモのチャット」（欄の見出しと同じアイコンと色。本文の右クリックの「メモのチャット」の組・
+ * 選んだときの「メモのチャットに追加」の行き先がこの欄だと分かるように）・作業中・回答待ちなどの様子・「会話を開く」（メモのチャットの欄を開く）の 1 行だけ。
  * 書きかけの文はメモのチャットの入力欄と共有する（chatDraft）。送る前に書きかけの本文を保存する（beforeSend。保存できなければ送らない）
  */
 export function MemoQuickChat({
@@ -52,13 +53,19 @@ export function MemoQuickChat({
   const state = chat ? stateOf(chat) : "read";
   return (
     <div className="memo-quick-chat">
-      <div className="memo-quick-status" role="status">
-        {state !== "read" && (
+      <div className="memo-quick-status">
+        <span className="memo-quick-name">
+          <MessageSquare size={13} aria-hidden />
+          メモのチャット
+        </span>
+        <span className="memo-quick-state" role="status">
+          {state !== "read" && (
           <>
-            <StatusSlot state={state} />
-            <span className="memo-quick-status-text">{STATUS_TEXTS[state]}</span>
-          </>
-        )}
+              <StatusSlot state={state} />
+              <span className="memo-quick-status-text">{STATUS_TEXTS[state]}</span>
+            </>
+          )}
+        </span>
         <button type="button" className="link-button" title="メモのチャットの欄を開く（これまでのやり取りを見る）" onClick={onOpenChat}>
           会話を開く
         </button>
