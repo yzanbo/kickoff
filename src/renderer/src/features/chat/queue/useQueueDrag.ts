@@ -1,17 +1,18 @@
 import { useState, type DragEvent } from "react";
 import type { QueuedMessage } from "@shared/types";
-import { moveToSlot } from "@shared/chat/queueStops";
+import { moveStopOnce, moveToSlot } from "@shared/chat/queueStops";
 import { api } from "@/api";
 
 /**
  * 送信待ちのドラッグ: 指示の並べ替え（id。選んだ行をつかんだら ids でまとめて）と、
- * 一時停止の印の移動（stop: 動かしている印の位置）。
+ * 一時停止の印の移動（stop: 動かしている印の位置。同じ位置に何本もあれば stopNth で何本目か）。
  * at は落とす位置（0〜件数。その位置の行の前）、below はその位置に印の線があるとき線の下か（指示を落とすとき）
  */
 interface QueueDrag {
   id?: string;
   ids?: string[];
   stop?: number;
+  stopNth?: number;
   at?: number;
   below?: boolean;
 }
@@ -58,8 +59,8 @@ export function useQueueDrag(chatId: number, queue: QueuedMessage[], stops: numb
     setDrag(undefined);
     if (!d || d.at === undefined || !changes(d)) return;
     if (d.stop !== undefined) {
-      // 印を動かす（1 件目の上にも置ける）
-      void api.setQueueStops(chatId, [...stops.filter((k) => k !== d.stop), d.at]).catch(failed);
+      // 印を 1 本動かす（1 件目の上にも置ける。同じ位置のほかの線は残る）
+      void api.setQueueStops(chatId, moveStopOnce(stops, d.stop, d.at)).catch(failed);
       return;
     }
     // 指示を動かす（1 件でも、選んだものをまとめてでも）: 落とした位置の行の前へ。印の線があれば、その上か下か
@@ -68,7 +69,7 @@ export function useQueueDrag(chatId: number, queue: QueuedMessage[], stops: numb
   return {
     drag,
     startMessage: (id: string, ids?: string[]) => setDrag({ id, ids }),
-    startStop: (stop: number) => setDrag({ stop }),
+    startStop: (stop: number, stopNth = 0) => setDrag({ stop, stopNth }),
     end: () => setDrag(undefined),
     /** 行の上: 上半分ならその行の前（上に印の線があれば線の下）、下半分なら後ろ（下に印の線があれば線の上） */
     overRow: (e: DragEvent<HTMLElement>, i: number) => {

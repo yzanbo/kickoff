@@ -222,7 +222,7 @@ function QueueResumeDetails({ resume: r }: { resume: QueueResume }) {
         <ol className="queue-resume-queue">
           {r.messages.map((m, i) => (
             <Fragment key={m.id}>
-              {r.stops.includes(i) && stopLine(`stop-${i}`)}
+              {r.stops.filter((k) => k === i).map((_, n) => stopLine(`stop-${i}-${n}`))}
               <li className="queue-resume-item">
                 <span className="queue-resume-index muted small">{i + 1}</span>
                 <span className={cx("queue-resume-item-text", queueActionOf(m) && "action")}>{queueActionOf(m) ? nextQueuedText(m) : m.text.trim() || nextQueuedText(m)}</span>
@@ -230,7 +230,7 @@ function QueueResumeDetails({ resume: r }: { resume: QueueResume }) {
               </li>
             </Fragment>
           ))}
-          {r.stops.includes(r.messages.length) && stopLine("stop-end")}
+          {r.stops.filter((k) => k === r.messages.length).map((_, n) => stopLine(`stop-end-${n}`))}
         </ol>
       </section>
     </div>
