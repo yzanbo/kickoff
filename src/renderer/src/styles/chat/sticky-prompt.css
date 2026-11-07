@@ -13,7 +13,8 @@
   /* 中身は発言の流れ（.timeline-inner）と同じ幅にそろえる。縦は詰めて、流れに場所を回す */
   padding: 3px max(var(--gutter), calc((100% - 820px) / 2 + var(--gutter)));
   border-bottom: 1px solid var(--border);
-  background: var(--bg-elev);
+  /* 地は画面と同じ（色を付けず、下の線だけで流れと分ける） */
+  background: var(--bg);
 }
 
 /* 指示の文（押しても何もしない）。たたんでいる間は 1 行に並べて省く */
