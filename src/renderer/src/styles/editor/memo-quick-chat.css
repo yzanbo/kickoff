@@ -114,19 +114,14 @@
   color: var(--accent-fg);
 }
 
-/*
- * ピルの列（チャットの画面が .composer-chips ごと描く）。名前の右に並べ、入りきらない幅では、様子の文を先に縮めてから、
- * この中でピルごと折り返す（ピルの文は折らない。一覧が上に開くので切り取らない）。ふだんの下の余白はなくす（入力欄との間は行の外で取る）。
- * 列は縮めず（縮めると、様子の文に縮める余地があっても端数でピルが折り返した）、幅の上限を「行 − 名前・様子の点・右端のボタン・間」にして、
- * 様子の文が点だけになってから折り返す
- */
+/* ピルの列（チャットの画面が .composer-chips ごと描く）。名前の右に 1 行で並べる（折り返さない）。ふだんの下の余白はなくす（入力欄との間は行の外で取る） */
 .memo-quick-chips {
   display: flex;
   flex: none;
-  max-width: calc(100% - 190px);
 }
 
 .memo-quick-chips .composer-chips {
+  flex-wrap: nowrap;
   padding: 0;
 }
 
@@ -134,7 +129,7 @@
   white-space: nowrap;
 }
 
-/* 様子は右端のボタンの手前に寄せる（ピルの数で位置が変わらないように）。狭いときはピルより先に縮める */
+/* 様子は右端のボタンの手前に寄せる（ピルの数で位置が変わらないように） */
 .memo-quick-state {
   display: inline-flex;
   flex: 0 1 auto;
@@ -148,6 +143,42 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/*
+ * 1 行に入らないときの詰め方（MemoQuickChat が useOverflowLevel で実際に入るかを測って、段ごとに足す。決め打ちの幅では切り替えない）:
+ * 1. fit-state: 様子の文を消して印（点・リング）だけに
+ * 2. short-chips: ピルをアイコンと数だけに（「指示の履歴」「件」などの言葉と「· 1 件作業中」などの細かい様子は読み上げにだけ残す。
+ *    サブエージェント・子チャットは .chip-short-icon の印を出す。何のピルかはマウスを乗せた説明で分かる）
+ * 3. fit-name: 名前「メモのチャット」を吹き出しのアイコンだけに
+ * 4. fit-no-chips: ピルの列を隠す（欄を開けば見える）
+ */
+.memo-quick-status.fit-state .memo-quick-status-text {
+  display: none;
+}
+
+.memo-quick-status.short-chips .chip-word,
+.memo-quick-status.short-chips .chip-detail,
+.memo-quick-status.fit-name .memo-quick-name-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.memo-quick-status.short-chips .chip-short-icon {
+  display: inline-block;
+}
+
+.memo-quick-status.short-chips .composer-chip {
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.memo-quick-status.fit-no-chips .memo-quick-chips {
+  display: none;
 }
 
 /* 右端の「会話を開く」（アクセントの色）と「非表示にする」（×） */

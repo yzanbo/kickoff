@@ -11,7 +11,7 @@ import { Chevron } from "@/ui/Chevron";
 import { Collapse } from "@/ui/Collapse";
 import { IconButton } from "@/ui/IconButton";
 import { usePopover } from "@/ui/Popover";
-import { ComposerChip } from "@/features/chat/composer/ComposerChip";
+import { ChipWord, ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { promptListOf } from "@/features/chat/prompts/promptHistory";
 import { collectTodoList, todoSignature, todoVisibility, type TodoGroup, type TodoItem, type TodoStatus } from "./todoList";
@@ -56,8 +56,11 @@ export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent
       chip={
         <span className={cx("todo-chip", finished && "finished")}>
           {finished ? <CheckCircle2 size={14} className="chip-icon" aria-hidden /> : <ListTodo size={14} className="chip-icon" aria-hidden />}
-          ToDo {done}/{todos.length}
-          {current && <span className="chip-running todo-current"> · {current.activeForm ?? current.content}</span>}
+          <span>
+            <ChipWord>ToDo </ChipWord>
+            {done}/{todos.length}
+          </span>
+          {current && <span className="chip-running chip-detail todo-current"> · {current.activeForm ?? current.content}</span>}
         </span>
       }
       title={finished ? "ToDo の一覧（いまの作業はすべて完了）" : "ToDo の一覧"}

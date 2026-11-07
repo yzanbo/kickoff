@@ -1,5 +1,5 @@
 import { Maximize2, MessageSquare, OctagonPause } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/types";
 import { api } from "@/api";
 import { useChatStates } from "@/app/chatStatesContext";
@@ -16,6 +16,7 @@ import { StatusSlot } from "@/features/chat/StatusSlot";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import { useWideText } from "@/features/chat/pane/TextWidthToggle";
 import { cx } from "@/lib/cx";
+import { useOverflowLevel } from "@/hooks/useOverflowCompact";
 import { CloseButton, IconButton } from "@/ui/IconButton";
 
 /** メモのチャットの様子の文（既読は出さない） */
@@ -64,12 +65,13 @@ export function MemoQuickChat({
   const state = chat ? stateOf(chat) : "read";
   // 幅はメモのチャットの欄（チャットの画面）と同じ「会話の横幅」に従う（標準なら上限 820px で真ん中、広げるなら幅いっぱい。開け閉めで幅が変わらないように）
   const [wide] = useWideText();
+  const fit = useQuickStatusFit();
   return (
     <div className={cx("memo-quick-chat", wide && "wide")}>
-      <div className="memo-quick-status">
-        <span className="memo-quick-name">
+      <div ref={fit.ref} className={cx("memo-quick-status", fit.className)}>
+        <span className="memo-quick-name" title="メモのチャット">
           <MessageSquare size={13} aria-hidden />
-          メモのチャット
+          <span className="memo-quick-name-text">メモのチャット</span>
         </span>
         {/* メモのチャットのピルの列（指示の履歴・ToDo・サブエージェント・子チャット・メモ。閉じている欄の中のチャットの画面がここに描く）。
             名前と同じ行に並べる（別の行にすると、入力欄の上が 2 行になって高くなる） */}
@@ -92,6 +94,32 @@ export function MemoQuickChat({
       <MemoQuickComposer key={chat?.id ?? "new"} projectId={projectId} path={path} chat={chat} beforeSend={beforeSend} />
     </div>
   );
+}
+
+/** 入力欄の上の 1 行に入らないときの詰め方（段の順。CSS の .memo-quick-status の fit-… と同じ順） */
+const FIT_STEPS = ["fit-state", "short-chips", "fit-name", "fit-no-chips"] as const;
+
+/**
+ * 入力欄の上の 1 行（名前・ピル・様子・ボタン）を、幅に合わせて段ごとに詰める（useOverflowLevel。実際に入るかを測り、決め打ちの幅では切り替えない）:
+ * 様子の文を消す → ピルをアイコンと数だけに → 名前をアイコンだけに → ピルを隠す。段は重ねて付ける（2 段目なら 1 段目も）。
+ * ピルはメモのチャットの画面が描くので、行の中身（ピルの増減・数・様子の文）が変わったら測り直す
+ * （ピルを押して開いた一覧の中の変わり目は数えない。一覧は行の幅に関わらず、作業中は中身が何度も変わるため）
+ */
+function useQuickStatusFit() {
+  const [contentKey, setContentKey] = useState(0);
+  const fit = useOverflowLevel<HTMLDivElement>(FIT_STEPS.length, contentKey);
+  const { ref } = fit;
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const inPopover = (node: Node) => Boolean((node instanceof Element ? node : node.parentElement)?.closest(".chip-popover"));
+    const observer = new MutationObserver((records) => {
+      if (records.some((r) => !inPopover(r.target))) setContentKey((k) => k + 1);
+    });
+    observer.observe(el, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [ref]);
+  return { ref, className: cx(...FIT_STEPS.map((step, i) => fit.level > i && step)) };
 }
 
 /**

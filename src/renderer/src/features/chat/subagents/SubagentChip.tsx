@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore } from "lucide-react";
+import { Archive, ArchiveRestore, Bot } from "lucide-react";
 import { useMemo, type CSSProperties } from "react";
 import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Chat } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
@@ -19,7 +19,7 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { ArchivedFold } from "@/ui/ArchivedFold";
 import { IconButton } from "@/ui/IconButton";
 import { usePopover } from "@/ui/Popover";
-import { ComposerChip } from "@/features/chat/composer/ComposerChip";
+import { ChipWord, ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { flattenTree, subagentTree } from "./subagentTree";
 import { agentHues } from "./agentHues";
@@ -172,14 +172,20 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
         <>
           {/* 左の印: 作業中のものがあれば回るリング、手を打つもの（失敗・通信で中断・届かず）があれば赤の点、ほかは薄い点（すべてアーカイブ済みなら出さない） */}
           {visible.length > 0 && <StatusSlot {...summaryState(states.map((st) => st.state))} />}
-          {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
-          {needsInput > 0 && <span className="chip-needs-input"> · {needsInput} 件回答待ち</span>}
-          {running > 0 && <span className="chip-running"> · {running} 件作業中</span>}
-          {stalled > 0 && <span className="chip-network"> · {stalled} 件動きなし</span>}
-          {failed > 0 && <span className="chip-failed"> · {failed} 件失敗</span>}
-          {network > 0 && <span className="chip-network"> · {network} 件通信で中断</span>}
-          {awaiting > 0 && <span className="chip-awaiting"> · {awaiting} 件受け取り待ち</span>}
-          {undelivered > 0 && <span className="chip-network"> · {undelivered} 件届かず</span>}
+          {/* 狭い所でアイコンと数だけにするときの、サブエージェントの印（ふだんは出さない） */}
+          <Bot size={14} className="chip-icon chip-short-icon" aria-hidden />
+          <span>
+            <ChipWord>{visible.length > 0 ? "サブエージェント " : "アーカイブ済みのサブエージェント "}</ChipWord>
+            {visible.length > 0 ? visible.length : hidden.length}
+            <ChipWord> 件</ChipWord>
+          </span>
+          {needsInput > 0 && <span className="chip-needs-input chip-detail"> · {needsInput} 件回答待ち</span>}
+          {running > 0 && <span className="chip-running chip-detail"> · {running} 件作業中</span>}
+          {stalled > 0 && <span className="chip-network chip-detail"> · {stalled} 件動きなし</span>}
+          {failed > 0 && <span className="chip-failed chip-detail"> · {failed} 件失敗</span>}
+          {network > 0 && <span className="chip-network chip-detail"> · {network} 件通信で中断</span>}
+          {awaiting > 0 && <span className="chip-awaiting chip-detail"> · {awaiting} 件受け取り待ち</span>}
+          {undelivered > 0 && <span className="chip-network chip-detail"> · {undelivered} 件届かず</span>}
         </>
       }
       label="サブエージェント"

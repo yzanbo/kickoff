@@ -7,6 +7,15 @@ import { Popover, type usePopover } from "@/ui/Popover";
  * チャット欄の上のピル（指示の履歴・ToDo・サブエージェントで共通）。押すと上に一覧を開き（もう一度押す・外を押す・Esc で閉じる）、
  * 開いている間は ⌃ の向きのアイコンを回す（composer-chip.open）。children が一覧の中身
  */
+/**
+ * ピルの文のうち、狭い所でアイコンと数だけにするときに隠す言葉（「指示の履歴」「件」など）。ふだんは見た目を変えない
+ * （メモの下の入力欄の 1 行が狭いとき .short-chips で、幅を取らずに読み上げにだけ残す）。
+ * 数のまわりは <span> でくるんで、言葉と数の間をふだんどおりの空白にする（ピルは inline-flex なので、くるまないと間が gap になる）
+ */
+export function ChipWord({ children }: { children: ReactNode }) {
+  return <span className="chip-word">{children}</span>;
+}
+
 export function ComposerChip({
   popover,
   chip,

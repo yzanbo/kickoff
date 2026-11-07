@@ -8,7 +8,7 @@ import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
 import { formatMessageTime } from "@/lib/time";
 import { IconButton } from "@/ui/IconButton";
 import { usePopover } from "@/ui/Popover";
-import { ComposerChip } from "@/features/chat/composer/ComposerChip";
+import { ChipWord, ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { SearchField } from "@/ui/SearchField";
 import type { PromptEntry } from "./promptHistory";
 import { COMPACT_PROMPT_KINDS } from "@/features/snippet/compactPromptKinds";
@@ -86,7 +86,10 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
       chip={
         <>
           <History size={14} className="chip-icon" aria-hidden />
-          指示の履歴 {prompts.length}
+          <span>
+            <ChipWord>指示の履歴 </ChipWord>
+            {prompts.length}
+          </span>
         </>
       }
       title="このチャットで送った指示の履歴（⌃R。行を押すとその指示へ移り、↵ で入力欄に入れる）"
