@@ -10,7 +10,7 @@ function mk() {
   return { store, chat };
 }
 
-test("エージェントの状態は 回答待ち → エラー → 作業中 → 未読 → 既読 の優先順で決まる（失敗も見たら既読）", () => {
+test("エージェントの状態は 回答待ち → 失敗 → 作業中 → 未読 → 既読 の優先順で決まる（失敗も見たら既読）", () => {
   const { store, chat } = mk();
   assert.equal(agentStateOf(chat, true), "needs_input");
   assert.equal(agentStateOf(chat, false), "running");

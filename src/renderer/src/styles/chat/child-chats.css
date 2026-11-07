@@ -1,6 +1,6 @@
 /* ==== 子チャット（発言・返答の下の札・入力欄の上の一覧・別ウィンドウと右の欄の上の帯・聞く画面の引用・引き継ぐかの切り替え） ==== */
 
-/* 発言・返答から聞いた子チャットの札（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。様子: 作業中・回答待ち・答えあり（未読）・失敗・既読） */
+/* 発言・返答から聞いた子チャットの札（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。様子: 作業中・回答待ち・未読・失敗・既読） */
 .child-chat-marks {
   display: flex;
   flex-wrap: wrap;
@@ -53,19 +53,19 @@
 }
 
 .child-chat-chip.child-unread {
-  border-color: color-mix(in srgb, var(--ok) 60%, var(--border));
+  border-color: color-mix(in srgb, var(--state-unread) 60%, var(--border));
 }
 
 .child-chat-chip.child-unread .child-chat-chip-state {
-  color: var(--ok);
+  color: var(--state-unread);
 }
 
 .child-chat-chip.child-needs_input .child-chat-chip-state {
-  color: var(--warn);
+  color: var(--state-needs-input);
 }
 
 .child-chat-chip.child-failed .child-chat-chip-state {
-  color: var(--ng);
+  color: var(--state-failed);
 }
 
 /* 入力欄の上の「子チャット」の一覧（札を縦に並べる） */
@@ -77,28 +77,28 @@
 }
 
 .child-chat-row-state.child-unread {
-  color: var(--ok);
+  color: var(--state-unread);
 }
 
 .child-chat-row-state.child-needs_input {
-  color: var(--warn);
+  color: var(--state-needs-input);
 }
 
 .child-chat-row-state.child-failed {
-  color: var(--ng);
+  color: var(--state-failed);
 }
 
-/* ピルに添える様子ごとの数（答えあり = 緑・回答待ち = 黄・失敗 = 赤。左の印と同じ色） */
+/* ピルに添える様子ごとの数（未読 = 緑・回答待ち = 黄・失敗 = 赤。左の印と同じ色合いの、状態の文字の色） */
 .child-chats-waiting {
-  color: var(--ok);
+  color: var(--state-unread);
 }
 
 .child-chats-waiting.child-needs_input {
-  color: var(--warn);
+  color: var(--state-needs-input);
 }
 
 .child-chats-waiting.child-failed {
-  color: var(--ng);
+  color: var(--state-failed);
 }
 
 /*

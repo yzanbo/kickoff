@@ -2,10 +2,12 @@
 import type { ChatEvent } from "@shared/types";
 import { relayedText } from "@shared/chat/prompts";
 import type { SubagentEntry } from "@shared/chat/subagents";
+import { subagentState } from "@shared/chat/subagentState";
 import { groupEvents, summarizeTools, type TimelineItem, type ToolCall } from "@/features/chat/timeline/timelineItems";
 import { describeTool } from "@/features/chat/tools/toolDescribe";
 import { toolSpan } from "@/features/chat/tools/toolTimes";
 import { childrenOf, scopeOf, type SubagentTree } from "@/features/chat/subagents/subagentTree";
+import { subagentStatusLabel } from "@/features/chat/subagents/subagentList";
 
 /** 行の種類（指示・返答・ツールのまとまり・サブエージェントの起動・その終わり・お知らせ・作業の終わり・中の手順が届かないもののいまの動き） */
 export type ActivityKind = "prompt" | "reply" | "tools" | "launch" | "end" | "note" | "turn" | "now";
@@ -83,15 +85,17 @@ export function activityRows(events: ChatEvent[], tree: SubagentTree, busy: bool
         rows.push({ key: `now-${entry.key}`, kind: "now", agent: entry.key, at: entry.lastActivityAt, text: `いま: ${entry.lastTool}`, running: true });
       }
       if (entry.status !== "running" && entry.endedAt) {
-        const failed = entry.status === "failed";
+        // 終わりの文: 親が受け取った完了は報告先、受け取り待ちはそれを添え、ほか（失敗・通信で中断・中断・届いていない・やり直し済み）はカード・一覧と同じ状態の文
+        const { state, detail } = subagentState(entry);
+        const reported = entry.status === "completed" && (detail === null || detail === "awaiting");
         rows.push({
           key: `end-${entry.key}`,
           kind: "end",
           agent: entry.key,
           at: entry.endedAt,
           durationMs: entry.durationMs ?? elapsed(entry.startedAt, entry.endedAt),
-          text: entry.status === "completed" ? `報告 → ${name(entry.parentKey)}` : failed ? `失敗${entry.network ? "（通信の切断）" : ""}` : "中断",
-          failed,
+          text: reported ? `報告 → ${name(entry.parentKey)}${detail === "awaiting" ? "（受け取り待ち）" : ""}` : subagentStatusLabel(entry),
+          failed: state === "failed",
           ...(entry.endEventId !== undefined ? { eventId: entry.endEventId } : {}),
         });
       }

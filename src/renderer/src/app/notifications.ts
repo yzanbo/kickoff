@@ -26,6 +26,12 @@ export function useChatNotifications({ enabled, projectName, route }: { enabled:
     if (children.current.has(chatId)) return openChildChat({ id: chatId, project_id: projectId, title: titles.current.get(chatId) ?? "" });
     openChat(projectId, chatId);
   };
+  /** 知らせに出す名前（子チャットは名前の前に「子チャット: 」、メモのチャットは「メモ: 」。完了・失敗・回答待ちで同じ） */
+  const nameOf = (chatId: number) => {
+    const title = titles.current.get(chatId);
+    const kind = children.current.has(chatId) ? "子チャット: " : memos.current.has(chatId) ? "メモ: " : "";
+    return `${kind}${title === undefined ? "チャット" : chatTitle(title)}`;
+  };
   const state = useRef({ enabled, projectName, route });
   state.current = { enabled, projectName, route };
 
@@ -57,14 +63,13 @@ export function useChatNotifications({ enabled, projectName, route }: { enabled:
       last.current.set(chat.id, chat.status);
       if (!prev || prev !== "running" || chat.status === "running") return;
       const project = state.current.projectName(chat.project_id);
-      // 子チャットは名前の前に「子チャット」、メモのチャットは「メモ」と添える
-      const name = `${chat.parent_chat_id !== null ? "子チャット: " : chat.memo_path !== null ? "メモ: " : ""}${chatTitle(chat.title)}`;
+      const name = nameOf(chat.id);
       if (chat.status === "completed") notify(chat, `✓ 完了: ${name}`, `${project} ・ AI の作業が終わりました`);
       else if (chat.status === "failed") notify(chat, `✕ 失敗: ${name}`, `${project} ・ ${chat.error?.slice(0, 120) ?? "エラーで止まりました"}`);
     } else if (e.type === "approval") {
       const a = e.approval;
       const project = state.current.projectName(a.project_id);
-      const name = titles.current.get(a.chat_id) || "チャット";
+      const name = nameOf(a.chat_id);
       const body =
         a.kind === "reconnect"
           ? "通信が切れて止まりました。再開するか選んでください"

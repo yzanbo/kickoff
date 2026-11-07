@@ -291,7 +291,7 @@
 }
 
 .activity-row.failed .activity-text {
-  color: var(--ng);
+  color: var(--state-failed);
 }
 
 .activity-meta {

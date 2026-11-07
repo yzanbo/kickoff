@@ -1,5 +1,5 @@
 import { Archive, ArchiveRestore, MessagesSquare, Trash2 } from "lucide-react";
-import type { AgentState, Chat } from "@shared/types";
+import { AGENT_STATE_LABELS, type Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { relativeTime } from "@/lib/time";
@@ -24,14 +24,6 @@ import { useNewChildFlash } from "./useNewChildFlash";
 /** ピルに数を添える様子（見てほしい順） */
 const NOTICE_STATES = ["needs_input", "failed", "unread"] as const;
 
-/** 子チャットの様子の文（札に添える。作業中・回答待ち・答えあり（未読）・失敗・見た） */
-const CHILD_STATE_LABELS: Record<AgentState, string> = {
-  running: "作業中…",
-  needs_input: "回答待ち",
-  failed: "失敗",
-  unread: "答えあり",
-  read: "既読",
-};
 
 /** 子チャットの札 1 つ（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く） */
 function ChildChip({ chat }: { chat: Chat }) {
@@ -43,7 +35,7 @@ function ChildChip({ chat }: { chat: Chat }) {
       <span className="child-chat-chip-title">{chatTitle(chat.title)}</span>
       <span className="child-chat-chip-state">
         {state === "running" && <span className="spinner" aria-hidden />}
-        {CHILD_STATE_LABELS[state]}
+        {AGENT_STATE_LABELS[state]}
       </span>
     </button>
   );
@@ -63,7 +55,7 @@ export function ChildChatMarks({ chatId, eventId }: { chatId: number; eventId: n
 }
 
 /**
- * 入力欄の上の「子チャット 2 件 · 1 件答えあり」（指示の履歴・サブエージェントと同じピルの列）。押すと子チャットの一覧（サブエージェントの一覧と同じ形の行:
+ * 入力欄の上の「子チャット 2 件 · 1 件未読」（指示の履歴・サブエージェントと同じピルの列）。押すと子チャットの一覧（サブエージェントの一覧と同じ形の行:
  * 状態の印・名前・様子 · モデル · 最後に動いた時刻、右に「右で開く」「新規ウィンドウで開く」とアーカイブ・削除）を開く。行を押すと設定の開き方で開き、
  * 一覧の上で行を押したときの開き方（設定）を変えられる。会話を遡らなくても、答えが来たこととどこにあるかが分かる。
  * アーカイブした子チャットは一覧と件数から外し、いちばん下の閉じたまとまり「アーカイブ済み n」（ArchivedFold。サイドバー・サブエージェントの一覧と同じ）を開いて戻せる（すべてアーカイブしていれば
@@ -81,7 +73,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   if (!children?.length) return null;
   const visible = children.filter((c) => !c.archived_at);
   const hidden = children.filter((c) => c.archived_at);
-  // 見てほしい子チャットの数を、様子ごとに分けて添える（回答待ち → 失敗 → 答えあり。前は 3 つをまとめて「答えあり」と数え、回答待ちも「答えあり」に見えた）
+  // 見てほしい子チャットの数を、様子ごとに分けて添える（回答待ち → 失敗 → 未読。前は 3 つをまとめて「答えあり」と数え、回答待ちも「答えあり」に見えた）
   const notices = NOTICE_STATES.map((state) => ({ state, count: visible.filter((c) => stateOf(c) === state).length })).filter((n) => n.count > 0);
   // 別ウィンドウは Mac のアプリだけ
   const places = canPopout() ? (["side", "window"] as const) : (["side"] as const);
@@ -111,7 +103,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
             {chatTitle(c.title)}
           </span>
           <span className="subagent-meta">
-            <span className={cx("child-chat-row-state", `child-${state}`)}>{CHILD_STATE_LABELS[state]}</span>
+            <span className={cx("child-chat-row-state", `child-${state}`)}>{AGENT_STATE_LABELS[state]}</span>
             {meta.map((m) => ` · ${m}`).join("")}
           </span>
         </span>
@@ -157,13 +149,13 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
       chip={
         visible.length > 0 ? (
           <>
-            {/* 左の印: 回答待ち > 作業中（ほかに答えありがあれば緑の点を重ねる）> 失敗 > 答えあり（未読）> 既読 */}
+            {/* 左の印: 回答待ち > 作業中（ほかに未読があれば緑の点を重ねる）> 失敗 > 未読 > 既読 */}
             <StatusSlot {...summaryState(visible.map(stateOf))} />
             子チャット {visible.length} 件
             {notices.map(({ state, count }) => (
               <span key={state} className={cx("child-chats-waiting", `child-${state}`)}>
                 {" "}
-                · {count} 件{CHILD_STATE_LABELS[state]}
+                · {count} 件{AGENT_STATE_LABELS[state]}
               </span>
             ))}
           </>

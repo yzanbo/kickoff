@@ -139,7 +139,7 @@ export function SubagentTime({ entry }: { entry: SubagentEntry }) {
   const running = entry.status === "running";
   const end = running ? (entry.lastActivityAt ?? start) : (entry.endedAt ?? entry.lastActivityAt ?? start);
   const title = running
-    ? `開始 ${formatFullStamp(start)}\n最後の動き ${formatFullStamp(end)}（実行中）`
+    ? `開始 ${formatFullStamp(start)}\n最後の動き ${formatFullStamp(end)}（作業中）`
     : `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(end)}（実行時間 ${formatStampRunTime(start, end)}）`;
   return (
     <span className={cx("tool-time", running && "running")} title={title}>
