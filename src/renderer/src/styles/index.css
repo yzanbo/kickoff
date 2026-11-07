@@ -94,6 +94,7 @@
 @import "./editor/editor-chips.css";
 @import "./editor/editor-side.css";
 @import "./editor/memo.css";
+@import "./editor/memo-panel.css";
 @import "./editor/memo-editor.css";
 @import "./editor/memo-ai.css";
 @import "./editor/memo-chat.css";

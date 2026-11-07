@@ -1,6 +1,6 @@
 # タブの入れ物（`features/panel`）
 
-チャット・新しいチャット・ブラウザ・ターミナル・サブエージェント・変更・ファイルのタブを並べる欄。4 つの欄（ボードの右のパネル・画面の右端のチャット欄・下のパネル（フッター）・チャットの画面の右の欄（サブエージェントの画面・変更・ファイル））は同じ `Panel` / `usePanel` で、違いは `surfaces.ts` の `SURFACES` と、欄の殻が渡す `frame` だけ。サブエージェントのタブは右の欄（チャットのタブの中に入れ子にしたパネル）だけに開く（ボード・チャット欄・フッターのタブにはしない。メインエージェントとのつながりのまま見るため。サブエージェントの見せ方は `features/chat/CLAUDE.md`）。タブの中身のうちチャットは `features/chat/CLAUDE.md`、ターミナル・ブラウザ・▾ のメニューは `features/terminal/CLAUDE.md`。
+チャット・新しいチャット・ブラウザ・ターミナル・サブエージェント・変更・ファイル・メモのタブを並べる欄。5 つの欄（ボードの右のパネル・画面の右端のチャット欄・下のパネル（フッター）・チャットの画面の右の欄（サブエージェントの画面・変更・ファイル）・プロジェクトの「メモ」タブの右（開いたメモ。`features/memo/CLAUDE.md` の「右のタブ」））は同じ `Panel` / `usePanel` で、違いは `surfaces.ts` の `SURFACES` と、欄の殻が渡す `frame` だけ。サブエージェントのタブは右の欄（チャットのタブの中に入れ子にしたパネル）だけに開く（ボード・チャット欄・フッターのタブにはしない。メインエージェントとのつながりのまま見るため。サブエージェントの見せ方は `features/chat/CLAUDE.md`）。タブの中身のうちチャットは `features/chat/CLAUDE.md`、ターミナル・ブラウザ・▾ のメニューは `features/terminal/CLAUDE.md`。
 
 | フォルダ | 中身 |
 |---|---|
@@ -14,7 +14,7 @@
 
 ## 欄の決まり（`SURFACES`）
 
-欄ごとの違いは作る側・描く側で分岐させず `SURFACES` に集める（覚える名前の頭 `memoryPrefix`・初めに見せるタブの種類 `defaultKinds`・Esc で閉じるか・最後のタブを閉じたら欄も閉じるか・タブがないまま開いたときに始めるもの・開閉を覚える設定・閉じるボタン（タブの列の左の道具の先頭か最後か、右上のペインのタブの列の右端 `right`）・分けるボタンを置かないか `noSplitButtons`・大きくする切り替えとその名前 `maximizeLabels`・タブがないときの案内・出す種類が決まっているか `fixedKinds`・新しい子チャットを開けるか `newChild`・クラス・根のクラス `rootClass`）。
+欄ごとの違いは作る側・描く側で分岐させず `SURFACES` に集める（覚える名前の頭 `memoryPrefix`・初めに見せるタブの種類 `defaultKinds`・Esc で閉じるか・最後のタブを閉じたら欄も閉じるか・タブがないまま開いたときに始めるもの・開閉を覚える設定・閉じるボタン（タブの列の左の道具の先頭か最後か、右上のペインのタブの列の右端 `right`）・分けるボタンを置かないか `noSplitButtons`・大きくする切り替えとその名前 `maximizeLabels`・タブがないときの案内・出す種類が決まっているか `fixedKinds`・新しい子チャットを開けるか `newChild`・タブの種類の札を付けないか `noKindBadges`・クラス・根のクラス `rootClass`）。メモのタブの右（`memos`）は、メモのタブ（種類は「ファイル」に入る）だけを並べ（`fixedKinds`）、Esc でも最後のタブを閉じても閉じず、種類の札「メモ」を付けない。根は `.board-panel.memo-panel`（`styles/editor/memo-panel.css` で、チャットタブと同じく開閉の動きを使わず右いっぱいに）。
 
 | | ボードの右のパネル `board` | チャット欄 `side` | 下のパネル `bottom` | 右の欄 `agents` |
 |---|---|---|---|---|
@@ -25,7 +25,7 @@
 | 大きくする | 横幅いっぱい | — | 最大化 | —（狭くて左の会話が読めないときだけ覆う） |
 | タブの列の地 | — | — | — | 欄の色で薄く染める（チャットのタブの中に入れ子にした欄だと見分けられるように。名前の札は置かない） |
 
-- 状態は欄・画面ごとに `panelKey(surface, scope)`（`kanban:<プロジェクト>`・`side:<プロジェクト>`・`bottom:<プロジェクト | all>`・`agents:<チャット>`）で覚える（全プロジェクトのボードはパネルを持たない。`features/board/CLAUDE.md`）。右の欄はチャットごとで、移る先の画面はない（`panelScreen` は undefined。チャットの ID をプロジェクトの ID と取り違えない）。ボードはカンバンとグループのボードで同じパネル（列の分け方を切り替えても開閉・タブ・分割はそのまま）。`memoryPrefix` は下書きの保存のキーにも使うので変えない。
+- 状態は欄・画面ごとに `panelKey(surface, scope)`（`kanban:<プロジェクト>`・`side:<プロジェクト>`・`bottom:<プロジェクト | all>`・`agents:<チャット>`・`memos:<プロジェクト>`）で覚える（全プロジェクトのボードはパネルを持たない。`features/board/CLAUDE.md`）。右の欄はチャットごとで、移る先の画面はない（`panelScreen` は undefined。チャットの ID をプロジェクトの ID と取り違えない）。ボードはカンバンとグループのボードで同じパネル（列の分け方を切り替えても開閉・タブ・分割はそのまま）。`memoryPrefix` は下書きの保存のキーにも使うので変えない。
 
 ## 状態（`state/`）
 
@@ -36,7 +36,7 @@
 
 ## タブの種類（`tabs/tabKinds.ts`）
 
-種類（`chat` / `new` / `browser` / `terminal` / `subagent` / `changes` / `file` / `memo` / `child` / `newChild`。変更（作業場所ごとに 1 つ。`changesTab`）・ファイル（作業場所のファイルごとに 1 つ。`fileTab`）・メモ（メモごとに 1 つ。`memoTab`）・子チャット（子チャットごとに 1 つ。`childTab`。孫・ひ孫もいちばん上の親の欄に）・新しい子チャット（押すたびに新しいキー。`newChildTab`）はサブエージェントと同じく右の欄だけで、開くのは `panelActions(key).openChanges` / `openFile` / `openMemo` / `openChild` / `openNewChild`（開いていれば、移るファイル・目立たせる行だけを変える）。メモと子チャットの開き方は `features/memo/CLAUDE.md`・`features/chat/CLAUDE.md`。この 5 つは別ウィンドウへ移せる（種類の表の `popout`。タブの右クリックの「別ウィンドウで開く」と、中身のいちばん上の見出しの行の右端のボタン（`PopOutTabButton`。サブエージェント・子チャット・メモ・変更・ファイルのどれでも同じ位置。`PanelTabPage` が `TabPageContext` で、そのタブを移す操作を中身に渡す。パネルの外・別ウィンドウの中では出さない。以前はタブの列の左の道具にあった）。`tabs/popOutTab.ts`。`features/popout/CLAUDE.md`）。型は `panelTypes.ts` の `PanelTab`）ごとの違い（キーの決め方・「表示するタブ」のどれに入るか `shows`・アイコンと名前・どのプロジェクトのものか・どのチャットのものか（そのチャットを消したら閉じる）・中身を作る時・閉じたときの後始末（ターミナルはシェルも止める）・どのまとまりに入るか）は、種類で分岐させずに `TAB_KINDS` から引く。チャットのタブのキーは `chatKey(id)`（同じチャットは 1 つのタブ）、サブエージェントのタブは `agentTabKey(行のキー)`（その欄に 1 つ）、ほかは押すたびに新しいキー（`newTabKey`。ターミナルのキーは裏のシェルのキーにも使うので乱数を添える）。
+種類（`chat` / `new` / `browser` / `terminal` / `subagent` / `changes` / `file` / `memo` / `child` / `newChild`。変更（作業場所ごとに 1 つ。`changesTab`）・ファイル（作業場所のファイルごとに 1 つ。`fileTab`）・メモ（メモごとに 1 つ。`memoTab`。右の欄では開いたチャット `chatId`、メモのタブの右ではチャットなし（null））・子チャット（子チャットごとに 1 つ。`childTab`。孫・ひ孫もいちばん上の親の欄に）・新しい子チャット（押すたびに新しいキー。`newChildTab`）はサブエージェントと同じく右の欄だけで、開くのは `panelActions(key).openChanges` / `openFile` / `openMemo` / `openChild` / `openNewChild`（開いていれば、移るファイル・目立たせる行だけを変える）。メモと子チャットの開き方は `features/memo/CLAUDE.md`・`features/chat/CLAUDE.md`。この 5 つは別ウィンドウへ移せる（種類の表の `popout`。タブの右クリックの「別ウィンドウで開く」と、中身のいちばん上の見出しの行の右端のボタン（`PopOutTabButton`。サブエージェント・子チャット・メモ・変更・ファイルのどれでも同じ位置。`PanelTabPage` が `TabPageContext` で、そのタブを移す操作を中身に渡す。パネルの外・別ウィンドウの中では出さない。以前はタブの列の左の道具にあった）。`tabs/popOutTab.ts`。`features/popout/CLAUDE.md`）。型は `panelTypes.ts` の `PanelTab`）ごとの違い（キーの決め方・「表示するタブ」のどれに入るか `shows`・アイコンと名前・どのプロジェクトのものか・どのチャットのものか（そのチャットを消したら閉じる）・中身を作る時・閉じたときの後始末（ターミナルはシェルも止める）・どのまとまりに入るか）は、種類で分岐させずに `TAB_KINDS` から引く。チャットのタブのキーは `chatKey(id)`（同じチャットは 1 つのタブ）、サブエージェントのタブは `agentTabKey(行のキー)`（その欄に 1 つ）、ほかは押すたびに新しいキー（`newTabKey`。ターミナルのキーは裏のシェルのキーにも使うので乱数を添える）。
 
 - 右の欄の新しい子チャット（`SURFACES.agents.newChild`）: タブの列の新しいタブのボタンの位置に「新しい子チャット」のボタン（空の欄のボタンと同じアイコン。項目が 1 つなので、メニューを挟まずに開く）、空の欄には案内の下に「新しい子チャット」のボタン（`PanelEmpty` の `onNewChild`）。どちらも `agents/useNewChild.ts` が欄のチャット（覚える名前の `scope`）を引き、メモのチャット・アーカイブ済み・分からないチャットでは出さない（チャット欄の「新規の子チャットに送る」と同じ）。空の欄の案内の「「＋」で新しい子チャットを始められます。」も、出すときだけ足す（`SURFACES` の `newChildHint` と `emptyHintOf`。ボタンがないのに案内だけが「＋」を指していた）。押すと入力欄だけのタブ `newChild` を開き、中身は `features/chat/children/NewChildPane`（最初の文を送ると子チャットを作り、そのタブを `childTab` に置き換える。新しいチャットのタブと同じ流れ。`features/chat/CLAUDE.md` の「子チャット」）。札は「子」で、色も子チャットと同じ。
 - 種類の札（`TabKindSpec.badge`）: チャットの画面の右の欄に並ぶメモ・サブエージェント・子チャットのタブは、名前の前に「メモ」「サブ」「子」の札を付け、表示中のハイライトも同じ形にして、色だけ種類ごとに変える（メモ = 琥珀・サブ = 紫・子 = 青。`PanelTab` の `badge` → `.panel-tab-typed.tab-kind-<種類>`、`styles/panel/side-panel-tab-kinds.css`）。札の文をタブごとに変えるときは `TabKindSpec.BadgeText` の部品（子チャットは深さで「子 / 孫 / ひ孫」と、深さの色 `--child-depth-<n>`。`features/chat/CLAUDE.md` の「子チャット」）。タブを見ただけで種類が分かるように。子チャットの名前の頭の「↳」は札に置き換えた（サブエージェントの入れ子の「↳」と見分けにくかったため）。

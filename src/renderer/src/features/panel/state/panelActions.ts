@@ -69,7 +69,7 @@ export function panelActions(key: string) {
     openFile: (target: { chatId: number; projectId: number; worktree?: string; path: string; line?: number }) =>
       openTab(fileTab(target), { kind: "file", fields: { line: target.line } }),
     /** プロジェクトのメモをタブで開く（チャットの画面の右の欄。同じメモのタブがあればそのペインで表示する） */
-    openMemo: (target: { chatId: number; projectId: number; path: string }) => openTab(memoTab(target)),
+    openMemo: (target: { chatId: number | null; projectId: number; path: string }) => openTab(memoTab(target)),
     /** 子チャットをタブで開く（いちばん上の親のチャットの画面の右の欄。同じ子チャットのタブがあればそのペインで表示する） */
     openChild: (target: { chatId: number; childId: number; projectId: number; title: string }) => openTab(childTab(target)),
     /** 新しい子チャットのタブを開く（チャットの画面の右の欄の「＋」。押すたびに新しいタブ。最初の文を送ると、できた子チャットのタブになる） */

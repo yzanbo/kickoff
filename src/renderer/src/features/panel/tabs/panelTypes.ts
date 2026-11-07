@@ -36,7 +36,7 @@ export type PanelTab =
    */
   | { key: string; kind: "file"; chatId: number; projectId: number; worktree?: string; path: string; line?: number }
   /** チャットの画面の右の欄に開いた、プロジェクトのメモ（自動で保存）。chatId: どのチャットの右の欄か。path: メモのフォルダからの相対パス */
-  | { key: string; kind: "memo"; chatId: number; projectId: number; path: string }
+  | { key: string; kind: "memo"; chatId: number | null; projectId: number; path: string }
   /**
    * チャットの画面の右の欄に開いた子チャット（孫・ひ孫も、いちばん上の親の右の欄に開く）。chatId: どのチャットの右の欄か（いちばん上の親）。
    * childId: 子チャット。title: タブに出す名前（開いたときの名前。中身が読み込んだら最新にする）

@@ -23,7 +23,8 @@ interface Props {
   /** 閉じたフォルダを開く（ドラッグを重ねて待ったとき） */
   onExpand: (path: string) => void;
   selected?: string;
-  onSelect: (path: string) => void;
+  /** メモの行を押した（newTab = ⌘クリック。新しいタブで開く） */
+  onSelect: (path: string, newTab: boolean) => void;
   /** 行の右クリック（行のメニュー） */
   onMenu: (e: MouseEvent, node: TreeNode) => void;
   /** メモ・フォルダを、フォルダ（"" は直下）へ落とした */
@@ -88,7 +89,7 @@ export function MemoTree(props: Props) {
                 style={style}
                 title={node.path}
                 {...rowProps(node)}
-                onClick={() => (node.dir ? onToggle(node.path) : onSelect(node.path))}
+                onClick={(e) => (node.dir ? onToggle(node.path) : onSelect(node.path, e.metaKey || e.ctrlKey))}
                 onDoubleClick={() => onStartRename(node)}
                 onContextMenu={(e) => {
                   e.stopPropagation();
