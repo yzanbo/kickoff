@@ -77,11 +77,13 @@
 
 /*
  * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact。.compact-prompt）: 圧縮の行（.compacted）と同じアクセントの色で、自分で書いた指示と見分ける。
- * どちらかは札の名前とアイコン（CompactPromptMark）で見分ける。吹き出しは枠をその色に、上の札（.message-kind-label）・上に貼り付ける帯の札（.sticky-prompt-kind）の文字もその色にする
+ * どちらかは札の名前とアイコン（CompactPromptMark）で見分ける。吹き出しは圧縮の行（context-meter.css の .compacted）と同じ枠（アクセント 45%）と薄い地（アクセント 10%）にし、
+ * 上の札（.message-kind-label）・上に貼り付ける帯の札（.sticky-prompt-kind）の文字は圧縮の行の見出し（.compacting-title）と同じ --accent-fg にする
  */
 .user-message.compact-prompt .bubble.user {
-  outline: 1px solid color-mix(in srgb, var(--accent-fg) 55%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   outline-offset: -1px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 /* 圧縮が終わるのを待っている圧縮後指示（AfterCompactMessages）は、色の枠のまま点線にして送る前と分かるように */
@@ -96,7 +98,7 @@
   color: var(--accent-fg);
 }
 
-/* 指示の履歴の行の「圧縮前指示」「圧縮後指示」の札（薄い地に色の文字の丸い札） */
+/* 指示の履歴の行の「圧縮前指示」「圧縮後指示」の札（圧縮の行と同じ枠・薄い地・文字の色の丸い札） */
 .compact-prompt-tag {
   display: inline-flex;
   flex: none;
@@ -109,7 +111,8 @@
   font-weight: 600;
   line-height: 16px;
   color: var(--accent-fg);
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 /* 吹き出しの中の書き直しの欄 */
