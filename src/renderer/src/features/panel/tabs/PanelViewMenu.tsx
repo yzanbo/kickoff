@@ -12,6 +12,7 @@ import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
 import { PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
+import { usePanelViewReset } from "./usePanelViewReset";
 
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
@@ -28,6 +29,8 @@ export function usePanelViewMenu(panel: PanelController) {
   const [grouping, setGrouping] = useTabGrouping(panel.surface);
   const [archived, setArchived] = useShowArchivedChats();
   const menu = useContextMenu();
+  // いちばん下の「既定に戻す」（メニューに出ている選び方を初めの値に戻す。初めのままなら押せない）
+  const defaults = usePanelViewReset(panel.surface, kinds.has("chat"));
   const showKinds = !rules.fixedKinds;
   const showChat = kinds.has("chat");
   const has = showKinds || showChat;
@@ -91,6 +94,17 @@ export function usePanelViewMenu(panel: PanelController) {
     );
     sections.push(<ChatDisplayItems />);
   }
+  if (has)
+    sections.push(
+      <MenuItem
+        disabled={!defaults.changed}
+        title={defaults.changed ? "このメニューの選び方を初めの値に戻します" : "初めの選び方のままです"}
+        keepOpen
+        onSelect={defaults.reset}
+      >
+        <span className="project-switch-item">既定に戻す</span>
+      </MenuItem>,
+    );
   return {
     has,
     isOpen: menu.isOpen,
