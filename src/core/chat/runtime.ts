@@ -21,6 +21,8 @@ interface LiveFields {
   afterCompact: QueuedMessage[];
   /** 圧縮前指示を送ってから、圧縮が終わるまで（手で頼んだ圧縮の実行の間も。ChatLive の awaiting_compact） */
   awaitingCompact: boolean;
+  /** 作業中に手で頼んだ圧縮の圧縮前指示を、いまの作業に足した（その作業が最後まで終わったら、手で頼んだ圧縮として圧縮する。ChatLive の compact_after_turn） */
+  compactAfterTurn: boolean;
   /** 圧縮が終わって、預かった「いま」を順に送っている途中（送り終えるまで、新しい「いま」も預かって後ろに足す。画面には配らない） */
   deliveringAfterCompact: boolean;
 }
@@ -41,8 +43,6 @@ export class ChatRuntime {
   control: TurnControl | null = null;
   /** 前の圧縮（またはコンテキストの消去）のあとで、もう圧縮前指示を送った（次の圧縮まで、自動の圧縮の前にもう足さない。保存しない） */
   preCompactSent = false;
-  /** 作業中に手で頼んだ圧縮の圧縮前指示を、いまの作業に足した（その作業が最後まで終わったら、手で頼んだ圧縮として圧縮する） */
-  compactAfterTurn = false;
   /** 預かった指示を送っている途中で、作業が送れない終わり方（通信の切断・使用枠の上限・アプリの終了）をした（送るのをやめて、残りを置く） */
   parkAfterCompact = false;
   /** 作業中に送った次の指示の待ちの列（送信待ち） */
@@ -51,7 +51,7 @@ export class ChatRuntime {
   readonly edits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, deliveringAfterCompact: false };
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false };
   /** 圧縮が終わった（預かった「いま」を伝える。holdsTells が外れたとき） */
   private readonly onCompactEnded: () => void;
 
@@ -87,6 +87,11 @@ export class ChatRuntime {
   /** 圧縮前指示を送ってから、圧縮が終わるまでか */
   get awaitingCompact(): boolean {
     return this.fields.awaitingCompact;
+  }
+
+  /** 作業中に手で頼んだ圧縮の圧縮前指示を、いまの作業に足したか（その作業が最後まで終わったら圧縮する） */
+  get compactAfterTurn(): boolean {
+    return this.fields.compactAfterTurn;
   }
 
   /** 圧縮のあとに、預かった「いま」を順に送っている途中か */
@@ -126,7 +131,7 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping, afterCompact, awaitingCompact } = this.fields;
+    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn } = this.fields;
     return {
       queue: this.queueState(),
       background,
@@ -136,6 +141,7 @@ export class ChatRuntime {
       stopping,
       after_compact: afterCompact,
       awaiting_compact: awaitingCompact,
+      compact_after_turn: compactAfterTurn,
     };
   }
 

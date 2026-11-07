@@ -350,8 +350,7 @@ export class Runner extends RunnerQueue {
     if (!text || !runtime.control?.tell(busyPreCompactMessage(text), messageUuid)) return false;
     store.events.add(chat.id, { type: "user", text, pre_compact: true, message_uuid: messageUuid });
     runtime.preCompactSent = true;
-    runtime.compactAfterTurn = true;
-    runtime.update({ awaitingCompact: true });
+    runtime.update({ awaitingCompact: true, compactAfterTurn: true });
     return true;
   }
 
@@ -377,8 +376,7 @@ export class Runner extends RunnerQueue {
     // 新しい会話: 次に上限に近づいたら、また圧縮前指示を送る
     const runtime = this.runtimes.get(chatId);
     runtime.preCompactSent = false;
-    runtime.compactAfterTurn = false;
-    runtime.update({ awaitingCompact: false });
+    runtime.update({ awaitingCompact: false, compactAfterTurn: false });
     store.events.add(chat.id, { type: "context_cleared" });
     return cleared;
   }
@@ -444,11 +442,10 @@ export class Runner extends RunnerQueue {
       // 自動の圧縮の前の指示で、作業の区切りまで圧縮が来なかったもの = awaitingCompact。次の指示を送ると、その初めに圧縮されて、指示が圧縮より上に出るため）。
       // 止めた・失敗したときは圧縮しない
       const compactNext = finished && outcome.status === "completed" && !item.compact && (Boolean(item.thenCompact) || runtime.awaitingCompact);
-      // 止めるよう頼んでいたら、終わったので停止中を消す。続けて圧縮しないなら、「いま」を預かる間も終わる
-      runtime.update({ stopping: false, ...(compactNext ? {} : { awaitingCompact: false }) });
-      void this.deps.usage.refresh();
       const manual = Boolean(item.thenCompact) || runtime.compactAfterTurn;
-      runtime.compactAfterTurn = false;
+      // 止めるよう頼んでいたら、終わったので停止中を消す。続けて圧縮しないなら、「いま」を預かる間も終わる
+      runtime.update({ stopping: false, compactAfterTurn: false, ...(compactNext ? {} : { awaitingCompact: false }) });
+      void this.deps.usage.refresh();
       if (compactNext) {
         this.compactNow(item.chatId, manual ? "manual" : "auto");
       } else if (runtime.afterCompact.length > 0) {
