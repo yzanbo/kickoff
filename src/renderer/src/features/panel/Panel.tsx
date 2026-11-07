@@ -16,7 +16,7 @@ import { useChatRename } from "@/features/chat/useChatRename";
 import { useTabDrag } from "@/features/panel/layout/useTabDrag";
 import type { PanelController } from "./usePanel";
 import { useOpenWithMenu } from "@/features/openWith/useOpenWithMenu";
-import { SURFACES } from "./surfaces";
+import { emptyHintOf, SURFACES } from "./surfaces";
 import { focusedPanelKey, PanelHostContext } from "./panelHost";
 import { specOf } from "@/features/panel/tabs/tabKinds";
 import { usePanelViewMenu } from "@/features/panel/tabs/PanelViewMenu";
@@ -114,7 +114,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   const empty = (pane: PaneLeaf) => (
     <PanelEmpty
       // 分けたペインには、案内の代わりに新しいチャットも出す（チャットを出さない欄（サブエージェントの欄）は、分けたペインにも案内を出す）
-      hint={split && panel.kinds.has("chat") ? undefined : rules.emptyHint}
+      hint={split && panel.kinds.has("chat") ? undefined : emptyHintOf(rules, Boolean(newChild))}
       kinds={panel.kinds}
       hasTerminals={terminals.length > 0}
       manyTerminals={terminals.length > 1}
