@@ -140,3 +140,30 @@
     scroll-snap-align: start;
   }
 }
+
+/*
+ * 状態で分けない並び（全プロジェクトのボードの「列: 分けない」。FlatTasks）: 下書き → チャット（最近動いた順）のカードを、
+ * 列に分けずに幅に合わせて何列にも折り返す（カードの幅は状態の列と同じくらい）。段に分けたときは段の中で同じ並び
+ */
+.board-flat {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.flat-tasks {
+  flex: 1;
+  min-width: 0;
+}
+
+.flat-tasks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-items: start;
+  gap: 8px;
+}
+
+/* アーカイブ済みのまとまりは、カードの並びの下に横幅いっぱいで */
+.flat-tasks > .flat-tasks-items + * {
+  margin-top: 8px;
+}
