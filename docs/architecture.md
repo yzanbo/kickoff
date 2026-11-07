@@ -50,7 +50,7 @@
 
 | 軸 | 画面の言葉 | コード |
 |---|---|---|
-| チャット（利用者が作る会話。木） | 親チャット / 子チャット / 孫チャット / ひ孫チャット（関係で呼ぶ。`@shared/chat/childDepth` の `childDepthLabel`）。右の欄・別ウィンドウで文を足す先のチャット（右の欄を持つチャット・別ウィンドウを開いたチャット）は「メイン」と呼ばず、名前で出す（「「機能開発」に追加」。`features/chat/chatTitle` の `chatTargetName`） | `Chat.parent_chat_id`・足す先 `MainChatContext`（コードの名前は残す） |
+| チャット（利用者が作る会話。木） | 親チャット / 子チャット / 孫チャット / ひ孫チャット（関係で呼ぶ。`@shared/chat/childDepth` の `childDepthLabel`）。右の欄・別ウィンドウで文を足す先のチャット（右の欄を持つチャット・別ウィンドウを開いたチャット）は「メイン」と呼ばず、名前で出す（「「機能開発」に追加」。`features/chat/chatTitle` の `chatTargetName`。子チャットの中から直接の親へ足すときは関係も添えて「親チャット（機能開発）に追加」 `parentTargetName`） | `Chat.parent_chat_id`・足す先 `MainChatContext`（コードの名前は残す） |
 | エージェント（1 つのチャットの中で動く AI。木） | メインエージェント / サブエージェント。サブエージェントから見た上は「起動したエージェント」（入れ子なら外のサブエージェント）で、「親」と呼ばない | `SubagentEntry.parentKey`・`subagentTree` |
 | ウィンドウ | メインウィンドウ / 別ウィンドウ | `features/popout/` |
 
