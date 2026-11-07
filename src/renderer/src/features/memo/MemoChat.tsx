@@ -40,7 +40,7 @@ export function MemoChat({
   handleRef,
   place,
   onPlaceChange,
-  onClose,
+  onHide,
   onQuickOnly,
   chipsPortal,
 }: {
@@ -52,8 +52,9 @@ export function MemoChat({
   handleRef: MutableRefObject<MemoChatHandle | null>;
   place: MemoChatPlace;
   onPlaceChange: (place: MemoChatPlace) => void;
-  onClose: () => void;
-  /** 欄を閉じて、メモの下の入力欄だけを出す（隠していても入力欄を出す） */
+  /** 非表示にする（欄を閉じ、メモの下の入力欄も出さない） */
+  onHide: () => void;
+  /** 欄を閉じて、メモの下の入力欄だけを出す（チャット表示のみ） */
   onQuickOnly: () => void;
   /** 欄を閉じている間に、上のピルの列を描く先（メモの下の入力欄の上。開いている間は null） */
   chipsPortal: ChipsPortal | null;
@@ -85,9 +86,9 @@ export function MemoChat({
             { value: "right", label: "右に表示（本文の右に置く）", icon: PanelRight, iconOnly: true },
           ]}
         />
-        {/* 会話を畳んで、メモの下の入力欄だけにする（× は選んでいる閉じ方 = 入力欄だけ / 隠す に戻る） */}
-        <IconButton icon={Minimize2} size={14} label="入力欄だけにする" title="会話の欄を閉じて、メモの下に入力欄だけを出す（続けて頼める）" onClick={onQuickOnly} />
-        <CloseButton size={15} label="チャットの欄を閉じる" onClick={onClose} />
+        {/* チャット表示のみ（会話を畳んで、メモの下の入力欄だけにする）・非表示にする（欄も入力欄も出さない） */}
+        <IconButton icon={Minimize2} size={14} label="チャット表示のみ" title="会話の欄を閉じて、メモの下にチャットの入力欄だけを出す（続けて頼める）" onClick={onQuickOnly} />
+        <CloseButton size={15} label="非表示にする" title="メモのチャットを非表示にし、メモだけを広く見る（見出しの吹き出しのボタンで開く・▾ で戻せる）" onClick={onHide} />
       </header>
       <div className="memo-chat-body">
         {chatId === undefined ? (
