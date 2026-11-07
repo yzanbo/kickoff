@@ -22,9 +22,10 @@ import { followMovedMemo, useMemoActions } from "./useMemoActions";
  * メモの入っていないフォルダは出さない）を出し、メモの行を押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。
  * 行の右のボタンで、メモを開かずにこのチャットの入力欄に添付する・設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられる。
  * 行をドラッグしてフォルダ（一覧の空いている所なら直下）へ落とすと動かす（メモのタブの木と同じ）。
- * プロジェクトにメモがなければ出さない
+ * プロジェクトにメモがなければ出さない。
+ * 送る前のチャット（新しいチャット・新しい子チャット）では chatId が null で、「このチャットに添付」は onAttach でその入力欄に足し、開く場所はチャットのないときの決まり（openMemoFromChat）
  */
-export function MemoChip({ projectId, chatId }: { projectId: number; chatId: number }) {
+export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; chatId: number | null; onAttach?: (path: string) => void }) {
   const list = useMemoList(projectId);
   const popover = usePopover();
   const [openIn, setOpenIn] = useSetting(MEMO_OPEN_IN);
@@ -75,7 +76,8 @@ export function MemoChip({ projectId, chatId }: { projectId: number; chatId: num
         onOpen={open}
         onAttach={(path) => {
           popover.close();
-          attachMemoToChat(chatId, path);
+          if (chatId !== null) attachMemoToChat(chatId, path);
+          else onAttach?.(path);
         }}
         places={places}
       />

@@ -8,10 +8,12 @@ import { Segmented } from "@/ui/Segmented";
 import { Composer } from "@/features/chat/composer/Composer";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
+import { ContextMeter } from "@/features/chat/composer/ContextMeter";
 import { ChatView } from "@/features/chat/pane/ChatPane";
 import { useChatDetail } from "@/features/chat/pane/useChatDetail";
 import { chatPaneOf } from "@/features/chat/pane/windowMessages";
 import { PanelHostContext } from "@/features/panel/panelHost";
+import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 
 /** 外からメモのチャットの欄を動かす口（本文の右クリックの「メモのチャット」の組） */
 export interface MemoChatHandle {
@@ -136,6 +138,10 @@ function MemoChatStart({
           suggestTarget={projectId}
           placeholder="メモについて話す（例: 機能案を一緒に考えて / 優先度順に並べて反映して）。Enter で送る、Shift+Enter で改行"
           onSend={(text, attachments) => onStart(text, attachments, options.options)}
+          // 会話が始まったあとのチャット欄と同じく、定型文の帯（右クリックで出す・隠す）とコンテキストのメーター（まだ 0%）
+          header={<SnippetBar projectId={projectId} composer={composerRef} onSend={(text) => onStart(text, [], options.options)} />}
+          menuItems={<SnippetBarToggleItem />}
+          trailing={<ContextMeter chat={null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}
         />
       </div>
     </div>

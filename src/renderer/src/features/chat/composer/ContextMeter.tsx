@@ -22,15 +22,20 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
  * 会話を圧縮している間（手で圧縮した・上限に近づいて自動で）は、弧を回して知らせる（終わるとコンテキストの大きさが届き、弧が縮む）。
  * 設定で自動圧縮を始める使用率を決めていれば、円の外にそこを指す矢印を、詳細の棒に縦線を出す（Claude Code の既定のままなら出さない）。
  * 使用率は詳細の「自動圧縮」でも選べる（AutoCompactSelect。設定の「チャット」と同じ値）。その下の「圧縮前指示」「圧縮後指示」で、圧縮の前・後に送る指示も書ける（CompactPromptEditor）。
- * いちばん下の「コンテキストを空ける」で、会話を圧縮 / コンテキストを消去を選ぶ（FreeContextActions。作業中は予約になり、予約中は取り消せる）
+ * いちばん下の「コンテキストを空ける」で、会話を圧縮 / コンテキストを消去を選ぶ（FreeContextActions。作業中は予約になり、予約中は取り消せる）。
+ * 送る前のチャット（新しいチャット・新しい子チャット。chat が null）でも、会話が始まったあとのチャット欄と同じ形で出す（0%・ターン 0。空けるものがないので「コンテキストを空ける」は出さない）
  */
 export function ContextMeter({
   chat,
+  projectId,
   compacting,
   reserved,
   afterTurn,
 }: {
-  chat: Chat;
+  /** メーターのチャット（送る前のチャットでは null） */
+  chat: Chat | null;
+  /** 圧縮前指示・圧縮後指示を書くプロジェクト */
+  projectId: number;
   compacting: CompactingState | null;
   /** 作業中に予約した圧縮・コンテキストの消去（送信待ちのいちばん上の行。queuedHint の reservedAction。なければ null） */
   reserved: QueuedMessage | null;
@@ -45,8 +50,8 @@ export function ContextMeter({
   const freeAction: FreeContextAction = useAction<QueueAction | "cancel">();
 
   // まだ数値が届いていないとき（新しいチャット・要約の直後など）は 0% として出す
-  const tokens = chat.context_tokens ?? 0;
-  const windowSize = chat.context_window;
+  const tokens = chat?.context_tokens ?? 0;
+  const windowSize = chat?.context_window ?? null;
   const pct = windowSize ? Math.min(100, Math.round((tokens / windowSize) * 100)) : 0;
   // 自動圧縮が始まるところ（設定で決めたときだけ。トークン数と、窓に対する %）
   const compactPct = useAppSettings().data?.auto_compact_pct ?? null;
@@ -59,7 +64,7 @@ export function ContextMeter({
       <button
         type="button"
         className="context-ring-button"
-        aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用${markText ? `・${markText}` : ""}${afterTurn || (reserved?.compact && chat.status === "running") ? "・いまの作業が終わったら圧縮します" : reserved?.clear && chat.status === "running" ? "・いまの作業が終わったらコンテキストを消去します" : ""}`}
+        aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用${markText ? `・${markText}` : ""}${afterTurn || (reserved?.compact && chat?.status === "running") ? "・いまの作業が終わったら圧縮します" : reserved?.clear && chat?.status === "running" ? "・いまの作業が終わったらコンテキストを消去します" : ""}`}
         aria-busy={compacting ? true : undefined}
         aria-expanded={open}
         title={open ? "閉じる" : compactingText ? `${compactingText}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストの詳細を表示"}
@@ -89,11 +94,11 @@ export function ContextMeter({
             <dl className="context-stats">
               <div>
                 <dt>ターン</dt>
-                <dd>{chat.num_turns.toLocaleString()}</dd>
+                <dd>{(chat?.num_turns ?? 0).toLocaleString()}</dd>
               </div>
               <div>
                 <dt>セッションコスト（API 換算）</dt>
-                <dd>${chat.cost_usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+                <dd>${(chat?.cost_usd ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
               </div>
             </dl>
           </section>
@@ -101,12 +106,14 @@ export function ContextMeter({
           {/* 圧縮の設定: 自動圧縮を始める量（設定の「チャット」と同じ値）と、圧縮の前に AI に送る指示（設定の「定型文」と同じ値） */}
           <section className="context-section">
             <AutoCompactSelect windowSize={windowSize} />
-            <CompactPromptEditor kind="pre" projectId={chat.project_id} />
-            <CompactPromptEditor kind="post" projectId={chat.project_id} />
+            <CompactPromptEditor kind="pre" projectId={projectId} />
+            <CompactPromptEditor kind="post" projectId={projectId} />
           </section>
 
           {/* コンテキストを空ける: 会話を圧縮（Claude Code の /compact）/ コンテキストを消去（新しい会話で始める）。押したら閉じ、できなかったら開き直して失敗の文を見せる */}
-          <FreeContextActions action={freeAction} chat={chat} compacting={compacting} reserved={reserved} afterTurn={afterTurn} onStart={popover.close} onFailed={() => popover.setOpen(true)} />
+          {chat && (
+            <FreeContextActions action={freeAction} chat={chat} compacting={compacting} reserved={reserved} afterTurn={afterTurn} onStart={popover.close} onFailed={() => popover.setOpen(true)} />
+          )}
         </Popover>
       )}
     </div>
