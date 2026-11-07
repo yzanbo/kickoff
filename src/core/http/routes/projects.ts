@@ -4,7 +4,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
 import type { ServerDeps } from "../server.js";
-import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProviderId } from "@shared/types";
+import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProjectRepoPathBody, type ProviderId } from "@shared/types";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
 import { Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
@@ -29,6 +29,11 @@ const importProjectSchema = z.object({
   init_git: z.boolean().default(false),
   provider: z.enum(PROVIDER_IDS).optional(),
 }) satisfies z.ZodType<ImportProjectBody>;
+
+const repoPathSchema = z.object({
+  path: z.string().trim().min(1).max(1000),
+  init_git: z.boolean().default(false),
+}) satisfies z.ZodType<ProjectRepoPathBody>;
 
 const projectPatchSchema = z
   .object({
@@ -62,10 +67,16 @@ const projectPatchSchema = z
   .partial() satisfies z.ZodType<ProjectPatch>;
 
 /** プロジェクト（作成・取り込み・設定の変更・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
-export function projectRoutes(app: Hono, { store }: ServerDeps) {
+export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;
+  /**
+   * そのフォルダ（実体のパス。inspectWorkspace の path・git_root）を本体にしているプロジェクト（except は除く）。
+   * 登録したパスがシンボリックリンクを含む（/tmp → /private/tmp など）こともあるので、登録したパスの実体とも比べる
+   */
+  const projectAt = (realPath: string, except?: number) =>
+    store.projects.list().find((p) => p.id !== except && (p.repo_path === realPath || realPathOrSelf(p.repo_path) === realPath));
 
   app.get("/api/projects", (c) => c.json(store.projects.list()));
 
@@ -81,14 +92,14 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
   app.get("/api/workspace/inspect", async (c) => {
     const { path } = z.object({ path: z.string().trim().min(1).max(1000) }).parse({ path: c.req.query("path") });
     const info = await inspectWorkspace(path);
-    const registered = info.git_root ? store.projects.findByPath(info.git_root) : store.projects.findByPath(info.path);
+    const registered = projectAt(info.git_root ?? info.path);
     return c.json({ ...info, registered_project_id: registered?.id ?? null });
   });
 
   app.post("/api/projects/import", async (c) => {
     const input = importProjectSchema.parse(await jsonBody(c));
     const repoPath = await prepareImportedWorkspace(input.path, input.init_git);
-    const existing = store.projects.findByPath(repoPath);
+    const existing = projectAt(repoPath);
     if (existing) throw new Conflict(`このフォルダは「${existing.name}」として登録済みです`);
     const project = store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) });
     return c.json(project, 201);
@@ -108,6 +119,27 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
     );
   });
 
+  /**
+   * プロジェクトのフォルダ（本体）を変える（フォルダを移した・別の場所に置き直したとき）。取り込みと同じ決まりで確かめ、
+   * ほかのプロジェクトのフォルダなら 409、作業中のチャットがあれば 409。チャット・設定はそのまま引き継ぎ、本体で作業するチャットは次から新しいフォルダで動く
+   * （Claude Code の会話は作業フォルダが変わっても続く）。ワークツリーのチャットの作業場所は変えない
+   */
+  app.put("/api/projects/:id/repo-path", withProject, async (c) => {
+    const { project } = c.var;
+    const input = repoPathSchema.parse(await jsonBody(c));
+    // git の初期化（フォルダを書き換える）より前に、重なり・作業中を確かめる
+    const info = await inspectWorkspace(input.path);
+    const target = info.git_root ?? info.path;
+    if (target === realPathOrSelf(project.repo_path)) return c.json(project);
+    const existing = projectAt(target, project.id);
+    if (existing) throw new Conflict(`このフォルダは「${existing.name}」として登録済みです`);
+    if (store.chats.list({ projectId: project.id, includeArchived: true }).some((chat) => runner.isBusy(chat.id))) {
+      throw new Conflict("作業中のチャットがあるので、フォルダを変えられません。終わってから（または中断してから）行ってください");
+    }
+    const repoPath = await prepareImportedWorkspace(input.path, input.init_git);
+    return c.json(store.projects.update(project.id, { repo_path: repoPath }));
+  });
+
   // サイドバーでのプロジェクトの並び順（並べたあとの一覧を返す。グループの並べ替えと同じ）
   app.put("/api/projects/order", async (c) => {
     const { ids } = z.object({ ids: z.array(z.number().int()).max(500) }).parse(await jsonBody(c));
@@ -119,6 +151,15 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
     store.projects.delete(c.var.project.id);
     return c.body(null, 204);
   });
+}
+
+/** パスの実体（シンボリックリンクを解いたもの）。見つからなければそのまま */
+function realPathOrSelf(p: string): string {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return p;
+  }
 }
 
 /** 参照資料のパスを絶対パスにそろえ（~ はホームフォルダ）、フォルダかファイルかを調べる。見つからなければ 400 */

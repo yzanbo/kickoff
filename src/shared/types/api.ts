@@ -36,6 +36,15 @@ export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provi
   reference_paths?: Pick<ProjectReference, "path">[];
 };
 
+/**
+ * プロジェクトのフォルダ（本体）を変える（PUT /api/projects/:id/repo-path）。取り込みと同じ決まりで、git のルートのフォルダを指す。
+ * git でない・コミットがないフォルダは init_git で初期化に同意したときだけ
+ */
+export interface ProjectRepoPathBody {
+  path: string;
+  init_git?: boolean;
+}
+
 /** チャットの変更（PATCH /api/chats/:id。書いた項目だけ変える。group_id が null ならグループなし。作業中はアーカイブできない） */
 export interface ChatPatch {
   title?: string;
