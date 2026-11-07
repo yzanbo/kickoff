@@ -10,6 +10,7 @@ import { startSubagentChildChat } from "../../chat/subagentChild.js";
 import { rewindFiles, rewindChat } from "../../chat/rewind.js";
 import { workdirOf } from "../../chat/workdir.js";
 import type { TellResult } from "@shared/types";
+import { marksOf } from "@shared/chat/handoff";
 
 /**
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
@@ -22,15 +23,15 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads }: Ser
 
   // 続きを送る（pause_after なら、この作業が終わったら送信待ちを一時停止する = 質問として送る）
   app.post("/api/chats/:id/messages", withChat, async (c) => {
-    const { text, options, attachments, pause_after } = messageInputSchema.parse(await jsonBody(c));
+    const body = messageInputSchema.parse(await jsonBody(c));
     // 作業中のチャットには送れない（409）
-    return c.json(await runner.send(c.var.chat.id, text, options, attachments, { pauseAfter: pause_after }));
+    return c.json(await runner.send(c.var.chat.id, body.text, body.options, body.attachments, { pauseAfter: body.pause_after, marks: marksOf(body) }));
   });
 
   // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る。pause_after は続きを送ると同じ）
   app.post("/api/chats/:id/tell", withChat, async (c) => {
-    const { text, options, attachments, pause_after } = messageInputSchema.parse(await jsonBody(c));
-    const told: TellResult = { result: await runner.tell(c.var.chat.id, text, options, attachments, { pauseAfter: pause_after }) };
+    const body = messageInputSchema.parse(await jsonBody(c));
+    const told: TellResult = { result: await runner.tell(c.var.chat.id, body.text, body.options, body.attachments, { pauseAfter: body.pause_after, marks: marksOf(body) }) };
     return c.json(told);
   });
 

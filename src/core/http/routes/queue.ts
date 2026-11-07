@@ -5,6 +5,7 @@ import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
 import { attachmentsSchema, editingIdsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "./schemas.js";
 import { QUEUE_ACTIONS, QUEUE_RESUME_ACTIONS, type QueueAddResult, type QueueMergeResult, type QueueResumeBody } from "@shared/types";
+import { marksOf } from "@shared/chat/handoff";
 
 /**
  * 作業中のチャットに送った次の指示の待ちの列（送信待ち）: ためる・消す・書き換える・並べ替える・まとめて送る・すぐ送る・
@@ -30,8 +31,8 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // pause_after なら、列に入れたその指示のすぐあとに一時停止の印を付ける（すぐ送ったら、その作業が終わったら一時停止する））
   app.post("/api/chats/:id/queue", withChat, async (c) => {
     const { chat } = c.var;
-    const { text, options, attachments, hold, pause_after } = queueMessageSchema.parse(await jsonBody(c));
-    const added = await runner.queueMessage(chat.id, text, options, attachments, { hold, pauseAfter: pause_after });
+    const body = queueMessageSchema.parse(await jsonBody(c));
+    const added = await runner.queueMessage(chat.id, body.text, body.options, body.attachments, { hold: body.hold, pauseAfter: body.pause_after, marks: marksOf(body) });
     const result: QueueAddResult = { ...runner.queueState(chat.id), ...added };
     return c.json(result);
   });

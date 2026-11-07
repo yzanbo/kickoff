@@ -1,4 +1,4 @@
-import { ArrowUpLeft, ChevronRight, Inbox } from "lucide-react";
+import { ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPenLine, Inbox, Quote } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { childDepthLabel } from "@shared/chat/childDepth";
 import type { Chat, ChatEvent } from "@shared/types";
@@ -7,8 +7,11 @@ import { StatusSlot } from "@/features/chat/StatusSlot";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { useChatStates } from "@/app/chatStatesContext";
 import { knownChat, useChatsValue, useKnownChat } from "@/stores/chats";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { ancestorsOf, handBackText } from "./childChats";
 import { handBackToParent, revealInParent } from "./openChild";
+import { requestHandoff } from "./handoff";
 
 /** 系譜を出す数（これより深ければ、根と親の間を「…」にまとめる） */
 const MAX_CRUMBS = 2;
@@ -18,7 +21,8 @@ type Below = Pick<Chat, "id" | "parent_chat_id" | "parent_event_id">;
 
 /**
  * 子チャットの上の帯（別ウィンドウ・右の欄で共通）: 左に親チャットまでの系譜（根 › … › 親 › この子チャット。親は状態の印と名前の札で、
- * 押すとその親の、聞いた発言へ）と、深さの呼び名（子・孫・ひ孫チャット）・右に親チャットに渡す（いちばん新しい答えを引用にして親の入力欄へ。送るのは自分で）。
+ * 押すとその親の、聞いた発言へ）と、深さの呼び名（子・孫・ひ孫チャット）・右に「親チャットに渡す ▾」（依頼文を作ってもらう = この子チャットの AI に親への依頼文を
+ * 書いてもらう / 最新の答えを引用して渡す = いちばん新しい答えを引用にして親の入力欄へ。送るのは自分で）。
  * 閉じるのは、右の欄はタブの ×、別ウィンドウは ✕・最小化（子チャットは残り、親の会話の札から開き直せる）
  */
 export function ChildChatBar({
@@ -40,7 +44,10 @@ export function ChildChatBar({
       parentId={chat.parent_chat_id}
       self={chat}
       title={chatTitle(chat.title)}
-      handBack={{ disabled: !answerText, run: () => handBackToParent(chat, handBackText(chat, answerText)) }}
+      handBack={{
+        request: chat.archived_at ? undefined : () => requestHandoff(chat),
+        quote: answerText ? () => handBackToParent(chat, handBackText(chat, answerText)) : undefined,
+      }}
       extra={extra}
     />
   );
@@ -48,10 +55,10 @@ export function ChildChatBar({
 
 /**
  * 送る前の新しい子チャット（右の欄の「新しい子チャット」のタブ）の上の帯。作ったあとの子チャットと同じ形で、親までの系譜・深さの呼び名を出す
- * （親とのつながりは作る前から決まっているので、送る前から見せる）。親チャットに渡すは、答えがまだないので押せない
+ * （親とのつながりは作る前から決まっているので、送る前から見せる）。親チャットに渡すは、会話がまだないので押せない
  */
 export function NewChildBar({ parentId }: { parentId: number }) {
-  return <ChildBarFrame parentId={parentId} self={null} title="新しい子チャット" handBack={{ disabled: true, run: () => {} }} />;
+  return <ChildBarFrame parentId={parentId} self={null} title="新しい子チャット" handBack={{}} />;
 }
 
 function ChildBarFrame({
@@ -66,7 +73,8 @@ function ChildBarFrame({
   /** この子チャット（送る前は null） */
   self: Below | null;
   title: string;
-  handBack?: { disabled: boolean; run: () => void };
+  /** 親チャットに渡す ▾ の項目（できないものは undefined。どちらもなければボタンを押せない） */
+  handBack?: HandBack;
   extra?: ReactNode;
 }) {
   // この子の祖先の ID（根 → 親。親の名前・状態は札ごとに引くので、ここでは ID の並びが変わったときだけ描き直す）
@@ -124,18 +132,7 @@ function ChildBarFrame({
       <span className={`child-chat-bar-label child-depth-${Math.min(depth, 3)}`}>{childDepthLabel(depth)}</span>
       <span className="child-chat-bar-title">{title}</span>
       <span className="spacer" />
-      {handBack && (
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          disabled={handBack.disabled}
-          title="いちばん新しい答えを、引用として親のチャットの入力欄に入れる（送るのは自分で）"
-          onClick={handBack.run}
-        >
-          <Inbox size={13} aria-hidden />
-          <span className="child-chat-hand-back-text">親チャットに渡す</span>
-        </button>
-      )}
+      {handBack && <HandBackMenu handBack={handBack} />}
       {extra}
       {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
       <PopOutTabButton />
@@ -154,5 +151,51 @@ function ParentCrumb({ id, onReveal }: { id: number; onReveal: () => void }) {
       <StatusSlot state={stateOf(parent)} />
       <span className="child-chat-crumb-name">{name}</span>
     </button>
+  );
+}
+
+/** 親チャットに渡す ▾ の項目: request = 依頼文を作ってもらう / quote = 最新の答えを引用して渡す */
+interface HandBack {
+  request?: () => void;
+  quote?: () => void;
+}
+
+/** 「親チャットに渡す ▾」: 押すと、渡し方を 2 つから選ぶ（依頼文を作ってもらう / 最新の答えを引用して渡す） */
+function HandBackMenu({ handBack }: { handBack: HandBack }) {
+  const menu = useContextMenu({ align: "end" });
+  return (
+    <>
+      <button
+        type="button"
+        className="btn btn-sm btn-primary child-chat-hand-back"
+        disabled={!handBack.request && !handBack.quote}
+        aria-haspopup="menu"
+        aria-expanded={menu.isOpen}
+        title="親チャットに渡す（依頼文を作ってもらうか、最新の答えを引用して渡すかを選ぶ）"
+        onClick={menu.toggle}
+      >
+        <Inbox size={13} aria-hidden />
+        <span className="child-chat-hand-back-text">親チャットに渡す</span>
+        <ChevronDown size={12} aria-hidden />
+      </button>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="親チャットへの渡し方" ignore=".child-chat-hand-back" onClose={menu.close}>
+          <MenuItem className="send-target" disabled={!handBack.request} onSelect={() => handBack.request?.()}>
+            <ClipboardPenLine size={15} aria-hidden className="send-target-icon" />
+            <span className="send-target-text">
+              <span>依頼文を作ってもらう</span>
+              <span className="send-target-hint">この子チャットの AI に、親チャットの AI へ渡す依頼文を書いてもらう</span>
+            </span>
+          </MenuItem>
+          <MenuItem className="send-target" disabled={!handBack.quote} onSelect={() => handBack.quote?.()}>
+            <Quote size={15} aria-hidden className="send-target-icon" />
+            <span className="send-target-text">
+              <span>最新の答えを引用して渡す</span>
+              <span className="send-target-hint">いちばん新しい答えを引用にして、親チャットの入力欄に入れる（送るのは自分で）</span>
+            </span>
+          </MenuItem>
+        </PopupMenu>
+      )}
+    </>
   );
 }

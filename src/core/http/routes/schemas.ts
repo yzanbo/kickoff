@@ -91,11 +91,16 @@ export const messageText = z.string().trim().max(MAX_MESSAGE_CHARS);
 
 // 送る指示（文・選択・添付）。新しいチャット・続き・止めずに伝える・送信待ちで同じ形にし、ルートごとの項目だけを足す。本文が空でも、添付があれば送れる
 const messageShape = { text: messageText.default(""), options: chatOptionsSchema, attachments: attachmentsSchema.default([]) };
+/** 発言の印（子チャットに親への依頼文を頼む・子チャットから渡した依頼）。送る・伝える・送信待ちで同じ */
+const marksShape = {
+  handoff_request: z.boolean().optional(),
+  handoff_from: z.object({ chat_id: z.number().int().positive(), title: z.string().max(500) }).optional(),
+};
 const hasContent = (v: { text: string; attachments: unknown[] }) => Boolean(v.text) || v.attachments.length > 0;
 const CONTENT_REQUIRED = { message: "メッセージか添付ファイルが必要です" };
 
 /** 続けて送る・止めずに伝える指示（pause_after なら、この指示の作業が終わったら送信待ちを一時停止する） */
-export const messageInputSchema = z.object({ ...messageShape, pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SendMessageBody>;
+export const messageInputSchema = z.object({ ...messageShape, ...marksShape, pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SendMessageBody>;
 
 /** 新しいチャットの最初の指示。作業場所は、いまあるワークツリーのフォルダか、新しく作るワークツリーのブランチ名（どちらもなければ本体） */
 export const newChatSchema = z
@@ -124,4 +129,4 @@ export const childChatSchema = z
 export const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SubagentChildBody, unknown>;
 
 /** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す。pause_after なら、その指示のあとで一時停止する） */
-export const queueMessageSchema = z.object({ ...messageShape, hold: z.boolean().optional(), pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;
+export const queueMessageSchema = z.object({ ...messageShape, ...marksShape, hold: z.boolean().optional(), pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;

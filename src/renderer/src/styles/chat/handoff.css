@@ -1,0 +1,36 @@
+/* 子チャットから親チャットへの依頼文の受け渡し（features/chat/children/handoff.ts）: 依頼文の頼みの発言・親チャットに追加・渡したことの印 */
+
+/* 依頼文の頼みの発言（handoff_request）: 頼み方の文は決まった長い文なので、1 行「親への依頼文を頼みました」にたたむ（押すと全文） */
+.user-message.handoff-request.folded .bubble.user {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.handoff-request-toggle {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: calc(12px * var(--chat-scale, 1));
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.handoff-request-toggle:hover {
+  color: var(--text);
+}
+
+.user-message.handoff-request:not(.folded) .handoff-request-toggle {
+  margin-bottom: 6px;
+}
+
+.handoff-request-chevron {
+  transition: transform 0.15s;
+}
+
+.handoff-request-toggle[aria-expanded="true"] .handoff-request-chevron {
+  transform: rotate(90deg);
+}

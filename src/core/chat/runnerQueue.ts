@@ -2,7 +2,8 @@ import { errorMessage } from "@shared/errors";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { ChatRuntimes } from "./runtime.js";
 import { isClearCommand, queueActionOf } from "@shared/chat/queueActions";
-import { QUEUE_ACTION_LABELS, type Attachment, type QueueAction, type QueuedMessage, type Chat, type ChatOptionsPatch, type QueueState, type TellResult } from "@shared/types";
+import { QUEUE_ACTION_LABELS, type Attachment, type QueueAction, type QueuedMessage, type Chat, type ChatOptionsPatch, type QueueState, type TellResult, type MessageMarks } from "@shared/types";
+import { marksOf } from "@shared/chat/handoff";
 
 /**
  * 送る・伝えるときの指定。pauseAfter: 質問として送る（この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する）。
@@ -11,6 +12,8 @@ import { QUEUE_ACTION_LABELS, type Attachment, type QueueAction, type QueuedMess
 export interface SendOpts {
   pauseAfter?: boolean;
   postCompact?: boolean;
+  /** 発言の印（依頼文の頼み・子チャットから渡した依頼）。発言の記録・送信待ちの行・預かりに同じ形で残す */
+  marks?: MessageMarks;
 }
 
 /** まだ会話がないので行えないとき（作業していないときの「すぐ送る」） */
@@ -63,18 +66,18 @@ export abstract class RunnerQueue {
     text: string,
     options: ChatOptionsPatch = {},
     attachments: Attachment[] = [],
-    { hold = false, pauseAfter = false }: { hold?: boolean } & SendOpts = {},
+    { hold = false, pauseAfter = false, marks = {} }: { hold?: boolean } & SendOpts = {},
   ): Promise<{ queued: boolean; id: string | null }> {
     this.requireChat(chatId);
     // hold: 作業していなくても送らずに、待ちの列の最後に足す（止めている送信待ちがあるときの「ためておく」）
     if (!hold && !this.isBusy(chatId)) {
-      await this.send(chatId, text, options, attachments, { pauseAfter });
+      await this.send(chatId, text, options, attachments, { pauseAfter, marks });
       return { queued: false, id: null };
     }
     const queue = this.queueOf(chatId);
     // 送信待ちに入れる /clear は、文の指示ではなくコンテキスト消去の行にする（「＋追加 → コンテキスト消去」と同じ。順が来たら消去する）
     if (isClearCommand(text, attachments)) return { queued: true, id: queue.addAction("clear")!.id };
-    const { id } = queue.add(text, options, attachments);
+    const { id } = queue.add(text, options, attachments, marks);
     if (pauseAfter) queue.setStopAfter(id);
     return { queued: true, id };
   }
@@ -165,7 +168,7 @@ export abstract class RunnerQueue {
       await this.sendNextQueued(chatId);
       return;
     }
-    await this.tell(chatId, message.text, message.options, message.attachments, { at: 0, postCompact: message.post_compact });
+    await this.tell(chatId, message.text, message.options, message.attachments, { at: 0, postCompact: message.post_compact, marks: marksOf(message) });
   }
 
   /**
@@ -290,7 +293,7 @@ export abstract class RunnerQueue {
       return;
     }
     try {
-      await this.send(chatId, next.text, next.options, next.attachments, { postCompact: next.post_compact });
+      await this.send(chatId, next.text, next.options, next.attachments, { postCompact: next.post_compact, marks: marksOf(next) });
     } catch (e) {
       this.reportError(chatId, `待ちの指示を送れませんでした: ${errorMessage(e)}`);
     }

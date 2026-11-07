@@ -1,4 +1,4 @@
-import type { Attachment, ChatOptionsPatch, QueueAddResult, QueueMergeResult, QueueAction, QueueMessageBody, QueueResume, QueueResumeBody, QueueState } from "@shared/types";
+import type { Attachment, ChatOptionsPatch, MessageMarks, QueueAddResult, QueueMergeResult, QueueAction, QueueMessageBody, QueueResume, QueueResumeBody, QueueState } from "@shared/types";
 import { request } from "./http";
 
 const queuePath = (chatId: number, path = "") => `/api/chats/${chatId}/queue${path}`;
@@ -14,10 +14,16 @@ export const queueApi = {
   resolveQueueResumes: (decisions: QueueResumeBody["decisions"]) => request<QueueResume[]>("POST", "/api/queue-resumes", { decisions } satisfies QueueResumeBody),
   /**
    * 作業中なら送信待ちに入れる（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す。
-   * pauseAfter なら、入れたその指示のすぐあとに一時停止の印を付ける = 質問として送る）
+   * pauseAfter なら、入れたその指示のすぐあとに一時停止の印を付ける = 質問として送る。marks は発言の印（送るときに記録の発言に残る））
    */
-  queueMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], { hold = false, pauseAfter = false }: { hold?: boolean; pauseAfter?: boolean } = {}) =>
-    request<QueueAddResult>("POST", queuePath(chatId), { text, options, attachments, ...(hold ? { hold } : {}), ...(pauseAfter ? { pause_after: true } : {}) } satisfies QueueMessageBody),
+  queueMessage: (
+    chatId: number,
+    text: string,
+    options: ChatOptionsPatch,
+    attachments: Attachment[] = [],
+    { hold = false, pauseAfter = false, marks = {} }: { hold?: boolean; pauseAfter?: boolean; marks?: MessageMarks } = {},
+  ) =>
+    request<QueueAddResult>("POST", queuePath(chatId), { text, options, attachments, ...(hold ? { hold } : {}), ...(pauseAfter ? { pause_after: true } : {}), ...marks } satisfies QueueMessageBody),
   /** attachments: 添付を置き換える（省けば今のまま） */
   editQueued: (chatId: number, id: string, text: string, attachments?: Attachment[]) =>
     request<QueueState>("PATCH", queuePath(chatId, `/${id}`), attachments ? { text, attachments } : { text }),
