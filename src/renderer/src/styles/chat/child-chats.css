@@ -12,6 +12,11 @@
   justify-content: flex-end;
 }
 
+/* サブエージェントのカードの下（SubagentCard）: カードの枠・左の帯にかぶせず、2 行目（まとめ・いまの動き。.subagent-card-now）の文の頭にそろえる */
+.subagent-card > .child-chat-marks {
+  margin: 0 10px 8px 56px;
+}
+
 .child-chat-chip {
   display: inline-flex;
   align-items: center;
