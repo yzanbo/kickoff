@@ -1,5 +1,5 @@
-import { CheckCircle2, Circle, CircleDashed, CircleDot, EyeOff, ListChecks, ListTodo } from "lucide-react";
-import { useMemo } from "react";
+import { CheckCircle2, Circle, CircleDashed, CircleDot, EyeOff, ListChecks, ListTodo, MessageSquare } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { ChatEvent } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { formatMessageTime } from "@/lib/time";
@@ -7,6 +7,9 @@ import { useFold } from "@/hooks/useFold";
 import { useSetting } from "@/hooks/useSetting";
 import { todoHidden } from "@/lib/storageKeys";
 import { FoldSection } from "@/ui/FoldHead";
+import { Chevron } from "@/ui/Chevron";
+import { Collapse } from "@/ui/Collapse";
+import { IconButton } from "@/ui/IconButton";
 import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
@@ -30,8 +33,8 @@ function TodoRow({ todo }: { todo: TodoItem }) {
  * チャット欄の上の「ToDo 2/5」。エージェントが付けた作業の一覧の進み具合を出し、押すと一覧が開く。
  * 数えるのはいまの作業の ToDo だけ（長く使うチャットで、前の作業の分が溜まって数が膨らまないように。分け方は collectTodoList）。
  * 作業中のものがあれば、その作業中の言い方を添える。いまの作業がすべて完了したら「✓ ToDo 5/5」と控えめにし、次の指示を送ると
- * これまでの ToDo に移って隠れる（todoVisibility）。一覧の下に、閉じたまとまりで「前の作業から残っているもの」と「これまでの ToDo」（指示ごと。
- * 見出しを押すとその指示へ移る）。「この一覧を隠す」で手でも隠せる（チャットごとに覚え、いまの作業が書き換わったらまた出す）
+ * これまでの ToDo に移って隠れる（todoVisibility）。一覧の下に、閉じたまとまりで「前の作業から残っているもの」と「これまでの ToDo」（指示ごとに
+ * 開閉できるまとまり。TodoHistory）。「この一覧を隠す」で手でも隠せる（チャットごとに覚え、いまの作業が書き換わったらまた出す）
  */
 export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent[] }) {
   const list = useMemo(() => collectTodoList(events), [events]);
@@ -86,7 +89,8 @@ export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent
           look="row"
           icon={ListChecks}
           label="これまでの ToDo"
-          count={historyCount}
+          count={list.history.length}
+          title={`これまでに完了した ToDo ${historyCount} 件を、付けたときの指示ごとにまとめています（件数は指示の数）`}
           open={historyFold.open}
           onToggle={historyFold.toggle}
           indent={false}
@@ -113,39 +117,62 @@ export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent
   );
 }
 
-/** これまでの ToDo: 付けたときの指示ごとに、指示の 1 行目と時刻を見出しにして並べる（新しい指示が先。見出しを押すとその指示へ移る） */
+/**
+ * これまでの ToDo: 付けたときの指示ごとのまとまり（新しい指示が先）を、開閉できる見出しで並べる（前は見出しの細い 1 行と中身をすべて開いたまま並べていて、
+ * 長く使うチャットでは 1 本の長い一覧に見えた）。初めはいちばん新しいまとまりだけを開き、ほかは見出し（指示の 1 行目・件数・時刻）だけの履歴にする。
+ * 開閉は一覧を開いている間だけ覚える（保存しない）。見出しの右の吹き出しでその指示へ移る
+ */
 function TodoHistory({ groups, events, onJump }: { groups: TodoGroup[]; events: ChatEvent[]; onJump: () => void }) {
   const pane = useOptionalChatPane();
   const prompts = promptListOf(events).byId;
+  const [open, setOpen] = useState<ReadonlySet<number | null>>(() => new Set(groups.slice(0, 1).map((g) => g.promptId)));
+  const toggle = (id: number | null) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   return (
     <>
       {groups.map((g) => {
         const prompt = g.promptId === null ? undefined : prompts.get(g.promptId);
         const label = prompt?.label.split("\n")[0] ?? "最初の指示より前";
+        const isOpen = open.has(g.promptId);
         return (
-          <div key={g.promptId ?? "none"} className="todo-group">
-            {prompt && pane ? (
+          <div key={g.promptId ?? "none"} className={cx("todo-group", isOpen && "open")}>
+            <div className="todo-group-head">
               <button
                 type="button"
-                className="todo-group-head"
-                title={`この指示へ移る: ${prompt.label}`}
-                onClick={() => {
-                  onJump();
-                  pane.jumpTo(prompt.id);
-                }}
+                className="todo-group-toggle"
+                aria-expanded={isOpen}
+                title={prompt ? `${isOpen ? "たたむ" : "開く"}: ${prompt.label}` : undefined}
+                onClick={() => toggle(g.promptId)}
               >
+                <Chevron open={isOpen} />
                 <span className="todo-group-text">{label}</span>
-                <time className="todo-group-time">{formatMessageTime(prompt.at)}</time>
-              </button>
-            ) : (
-              <div className="todo-group-head">
-                <span className="todo-group-text">{label}</span>
+                <span className="todo-group-count">{g.items.length}</span>
                 {prompt && <time className="todo-group-time">{formatMessageTime(prompt.at)}</time>}
+              </button>
+              {prompt && pane && (
+                <IconButton
+                  icon={MessageSquare}
+                  size={13}
+                  className="todo-group-jump"
+                  label="この指示へ移る"
+                  onClick={() => {
+                    onJump();
+                    pane.jumpTo(prompt.id);
+                  }}
+                />
+              )}
+            </div>
+            <Collapse open={isOpen}>
+              <div className="todo-group-items">
+                {g.items.map((t) => (
+                  <TodoRow key={t.key} todo={t} />
+                ))}
               </div>
-            )}
-            {g.items.map((t) => (
-              <TodoRow key={t.key} todo={t} />
-            ))}
+            </Collapse>
           </div>
         );
       })}

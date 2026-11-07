@@ -47,33 +47,49 @@
   opacity: 0.75;
 }
 
-/* これまでの ToDo の指示ごとのまとまり: 見出しは指示の 1 行目と時刻（押すとその指示へ移る） */
+/*
+ * これまでの ToDo の指示ごとのまとまり: 見出し（開閉の矢印・指示の 1 行目・件数・時刻）を押すと開閉し、右の吹き出しでその指示へ移る。
+ * 閉じた見出しが並ぶと指示ごとの履歴に見えるよう、まとまりの間は細い線で区切り、開いた中身は少し字下げする
+ */
 .todo-group + .todo-group {
-  margin-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }
 
 .todo-group-head {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 10px 2px;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px 0 4px;
+}
+
+.todo-group-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 6px;
   border: none;
   border-radius: var(--radius);
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   text-align: left;
   color: var(--muted);
   background: transparent;
-}
-
-button.todo-group-head {
   cursor: pointer;
 }
 
-button.todo-group-head:hover {
+.todo-group-toggle:hover,
+.todo-group.open .todo-group-toggle {
   color: var(--text);
+}
+
+.todo-group-toggle:hover {
   background: var(--bg-hover);
+}
+
+.todo-group-toggle svg {
+  flex: none;
 }
 
 .todo-group-text {
@@ -84,9 +100,28 @@ button.todo-group-head:hover {
   white-space: nowrap;
 }
 
+.todo-group-count {
+  flex: none;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
 .todo-group-time {
   flex: none;
   font-size: 11px;
+  color: var(--muted);
+}
+
+.icon-button.todo-group-jump {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: var(--muted);
+}
+
+.todo-group-items {
+  padding: 0 0 4px 14px;
 }
 
 /* すべて完了した一覧のピルは控えめに（✓ と薄い文字。次の指示を送ると隠れる） */
