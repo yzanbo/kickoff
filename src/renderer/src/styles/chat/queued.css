@@ -257,6 +257,18 @@
 }
 
 /* 挟む行（QueuedRow の会話の圧縮・コンテキストの消去）: 文ではなく列に挟む物なので、色（queued-head.css の --queued-tone）とアイコンで見分ける */
+/* サブエージェントに「あとで」伝える指示の宛先の札（QueuedRow。AI への前置きは隠し、宛先をここで示す） */
+.queued-relay-tag {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .queued-text.queued-action {
   display: flex;
   align-items: center;

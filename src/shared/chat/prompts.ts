@@ -76,6 +76,14 @@ export function subagentAskOf(message: string): { name: string; text: string } |
   return at < 0 || name === undefined ? undefined : { name, text: message.slice(at + 5) };
 }
 
+/** 文がサブエージェントへの追加の指示なら、宛先の名前と本文（違えば undefined。送信待ちの行で、AI への前置きを隠して見せる） */
+export function relayOf(message: string): { name: string; text: string } | undefined {
+  if (!message.startsWith(RELAY_HEAD)) return undefined;
+  const at = message.indexOf("\n---\n");
+  const name = /「(.*)」（ID: /.exec(message.split("\n")[0])?.[1];
+  return at < 0 || name === undefined ? undefined : { name, text: message.slice(at + 5) };
+}
+
 /** チャットの自分の発言が、このサブエージェントへの追加の指示なら、その本文（違えば undefined） */
 export function relayedText(message: string, agentId: string): string | undefined {
   if (!message.startsWith(RELAY_HEAD) || !message.split("\n")[0].includes(`（ID: ${agentId}）`)) return undefined;

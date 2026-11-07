@@ -1,5 +1,6 @@
 import { QUEUE_ACTION_LABELS, type QueuedMessage, type QueueState } from "@shared/types";
 import { queueActionOf } from "@shared/chat/queueActions";
+import { relayOf } from "@shared/chat/prompts";
 
 /**
  * 送信待ちの見出しの短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）。
@@ -39,7 +40,10 @@ export function nextQueuedText(message: QueuedMessage | undefined): string {
   if (!message) return "";
   const action = queueActionOf(message);
   if (action) return QUEUE_ACTION_LABELS[action];
-  const line = message.text.trim().split("\n")[0]?.trim() ?? "";
+  // サブエージェントに「あとで」伝える指示は、前置きを隠して宛先と本文の初めの行
+  const relay = relayOf(message.text);
+  const line = (relay ? relay.text : message.text).trim().split("\n")[0]?.trim() ?? "";
+  if (relay) return `伝える → ${relay.name}: ${line}`;
   if (line) return line;
   return message.attachments.length > 0 ? `添付 ${message.attachments.length} 件` : "";
 }

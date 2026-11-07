@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { relayMessage } from "@shared/chat/prompts";
 import { nextQueuedText, queuedHint, reservedAction } from "./queuedHint";
 import type { QueuedMessage } from "@shared/types";
 
@@ -36,6 +37,11 @@ test("reservedAction: いちばん上がコンテキストの消去の行なら�
   const clear: QueuedMessage = { id: "c", text: "", options: {}, attachments: [], created_at: "", clear: true };
   assert.equal(reservedAction({ messages: [clear], paused: false, stops: [], waiting_edit: false }), clear);
   assert.equal(nextQueuedText(clear), "コンテキストを消去");
+});
+
+test("nextQueuedText: サブエージェントに「あとで」伝える指示は、前置きを隠して宛先と本文の初めの行", () => {
+  const relay: QueuedMessage = { id: "r", text: relayMessage("a1", "調べもの", "README も見て\n2 行目"), options: {}, attachments: [], created_at: "" };
+  assert.equal(nextQueuedText(relay), "伝える → 調べもの: README も見て");
 });
 
 test("送信待ちの案内: 起動したときの確かめを待っている間は、決めるまで送らないことをほかより先に、短く伝える（詳しくは上の帯）", () => {
