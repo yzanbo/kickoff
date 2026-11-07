@@ -129,7 +129,7 @@ export async function confirmMoveChatToProject(
   const ok = await confirmDialog({
     title: `チャット「${chatTitle(chat.title)}」を「${project.name}」へ移しますか？`,
     message: [
-      "これからの作業は、移した先のプロジェクトのフォルダ（本体）で行います。会話はそのまま続けられます。",
+      "これからの作業は、移した先のプロジェクトフォルダ（本体）で行います。会話はそのまま続けられます。",
       lost && !group ? `いまの${lost}は外れます。` : "",
       lost && group ? `いまの${lost}は外れ、グループ「${group.name}」に入れます。` : "",
       !lost && group ? `グループ「${group.name}」に入れます。` : "",

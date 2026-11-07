@@ -42,17 +42,17 @@ export function BasicInfo({ project, onOpenMemos }: { project: Project; onOpenMe
   );
 }
 
-/** メモの保存先（見るだけ。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。変えるのは「メモ」の項目） */
+/** メモフォルダ（見るだけ。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。変えるのは「メモ」の項目） */
 function MemoDirRow({ project, onChange }: { project: Project; onChange: () => void }) {
   const dir = useMemoList(project.id).data?.dir ?? "";
   return (
     <Field
       as="div"
-      label="メモの保存先"
-      help="「メモ」タブのメモは、プロジェクトのフォルダとは別の場所に保存しています。プロジェクトのフォルダを変えても、メモの保存先は変わりません。"
+      label="メモフォルダ"
+      help="「メモ」タブのメモを置くフォルダです。プロジェクトフォルダとは別の場所で、プロジェクトフォルダを変えても変わりません。チャットで「メモ」「メモフォルダ」と言えば、AI はここのことだと分かります。"
     >
       <div className="input-row">
-        <input type="text" aria-label="メモの保存先" value={dir} placeholder="読み込み中…" readOnly />
+        <input type="text" aria-label="メモフォルダ" value={dir} placeholder="読み込み中…" readOnly />
         <button type="button" className="btn" onClick={onChange}>
           変更…
         </button>
@@ -84,7 +84,7 @@ function ColorField({ project }: { project: Project }) {
   );
 }
 
-/** プロジェクトのフォルダ（本体）。「変更…」で選び直す（見出しのフォルダの場所のメニューと同じ。確かめてから変える） */
+/** プロジェクトフォルダ（本体）。「変更…」で選び直す（見出しのフォルダの場所のメニューと同じ。確かめてから変える） */
 function FolderRow({ project }: { project: Project }) {
   // git で管理していなければ、ここからも始められるようにする（ファイル・変更・履歴のタブと同じ）
   const git = useGitStatus(project.id, false);
@@ -92,16 +92,16 @@ function FolderRow({ project }: { project: Project }) {
   return (
     <Field
       as="div"
-      label="フォルダ"
+      label="プロジェクトフォルダ"
       help={
         <>
-          フォルダを移した・別の場所に置き直したときに選び直します。チャット・設定はそのまま引き継ぎます。
+          AI が作業するフォルダです（チャットで「プロジェクトフォルダ」と言えば、AI はここのことだと分かります）。フォルダを移した・別の場所に置き直したときに選び直します。チャット・設定はそのまま引き継ぎ、次の指示から新しいフォルダで動きます。
           {plain && <>このフォルダは git で管理していません（{GIT_FEATURES}は使えません）。</>}
         </>
       }
     >
       <div className="input-row">
-        <input type="text" aria-label="フォルダ" value={project.repo_path} readOnly />
+        <input type="text" aria-label="プロジェクトフォルダ" value={project.repo_path} readOnly />
         {window.kickoff && (
           <button type="button" className="btn" onClick={() => void changeProjectFolder(project)}>
             変更…

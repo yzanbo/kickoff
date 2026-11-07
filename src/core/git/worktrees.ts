@@ -80,7 +80,7 @@ export async function addWorktree(repo: string, branch: string): Promise<GitWork
       () => false,
     );
     if (!present) {
-      throw new Invalid(`プロジェクトのフォルダ（${prefix}）が ${exists ? `ブランチ ${branch}` : "いまのコミット"} にまだないため、ワークツリーに出てきません。先にフォルダをコミットしてください`);
+      throw new Invalid(`プロジェクトフォルダ（${prefix}）が ${exists ? `ブランチ ${branch}` : "いまのコミット"} にまだないため、ワークツリーに出てきません。先にフォルダをコミットしてください`);
     }
   }
   await gitOutput(repo, exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target]);

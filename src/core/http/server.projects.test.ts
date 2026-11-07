@@ -155,6 +155,11 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
   assert.equal(changed.status, 200);
   assert.equal(changed.body.repo_path, real);
   assert.equal(store.chats.get(chatId)?.project_id, project.id);
+  // 次の指示から新しいフォルダで動き、AI への説明のプロジェクトフォルダも新しい場所になる（指示を送るたびに作り直す）
+  assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "2" })).status < 300, true);
+  await until(() => provider.prompts.length === 2 && !runner.isBusy(chatId));
+  assert.equal(provider.lastCwd, real);
+  assert.ok(provider.lastSystemPrompt.includes(`- プロジェクトフォルダ: ${real}`));
   // git でないフォルダは、初期化に同意すれば最初のコミットを作って変え、同意しなければ git で管理しないまま変える
   const plain2 = tempDir();
   assert.equal((await call("PUT", url, { path: plain2 })).body.repo_path, fs.realpathSync(plain2));

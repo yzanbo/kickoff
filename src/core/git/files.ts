@@ -27,7 +27,7 @@ export async function assertInside(repo: string, file: string): Promise<string> 
  * フォルダなら中を開かずにまとめて返す（node_modules などを全部たどらないように）
  */
 export async function listProjectFiles(repo: string): Promise<ProjectFiles> {
-  if ((await gitStatus(repo)).repo === false) throw new Invalid("このプロジェクトのフォルダは、Git で管理されていません");
+  if ((await gitStatus(repo)).repo === false) throw new Invalid("このプロジェクトフォルダは、Git で管理されていません");
   const [all, deleted, ignored] = await Promise.all([
     gitOutput(repo, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"]),
     gitOutput(repo, ["ls-files", "--deleted", "-z"]),
