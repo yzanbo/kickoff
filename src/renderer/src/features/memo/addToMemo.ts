@@ -3,8 +3,6 @@
 // 終わったら「開く」で、設定の開き方（右の欄 / 別ウィンドウ）でそのメモを開ける（openMemoFromChat）
 import { useSyncExternalStore } from "react";
 import { api } from "@/api";
-import type { SettingValue } from "@/lib/storage";
-import { MEMO_ADD_DEFAULT } from "@/lib/storageKeys";
 import { memosStore } from "@/stores/memos";
 import { reportFailure } from "@/ui/dialogs";
 import { baseName } from "./memoPaths";
@@ -41,19 +39,18 @@ export function useMemoProgress(): MemoProgressState | null {
 export const dismissMemoProgress = () => setProgress(null);
 
 /**
- * メモへの入れ方: new = 新しいメモを作る / summarize = AI で要約して新しいメモを作る /
- * append = 既存のメモの最後に足す / merge = 既存のメモに AI で組み込んで書き直す（メモ全体を書き換える）。
- * 一覧は、文を選んだときの「メモ」の既定の設定（MEMO_ADD_DEFAULT）の選択肢
+ * メモへの入れ方: new = 選択部分をそのまま新しいメモにする / summarize = AI で要約して新しいメモにする /
+ * append = 既存のメモの最後に足す / merge = 既存のメモに AI で組み込んで書き直す（メモ全体を書き換える）
  */
-export type MemoAddMode = SettingValue<typeof MEMO_ADD_DEFAULT>;
-export const MEMO_ADD_MODES: readonly MemoAddMode[] = MEMO_ADD_DEFAULT.choices;
+const MEMO_ADD_MODES = ["new", "summarize", "append", "merge"] as const;
+export type MemoAddMode = (typeof MEMO_ADD_MODES)[number];
 
-/** 入れ方の名前（メニューの項目） */
+/** 入れ方の名前（メニューの項目。新しいメモ / 既存のメモ の見出しの下に並べるので、どちらのメモかは見出しで伝える） */
 export const MEMO_ADD_MODE_LABELS: Record<MemoAddMode, string> = {
-  new: "新しいメモを作成",
-  summarize: "AI で要約して新しいメモを作成",
-  append: "既存のメモに追記",
-  merge: "既存のメモに AI で組み込んで書き直す",
+  new: "そのままメモにする",
+  summarize: "AI で要約してメモにする",
+  append: "追記する",
+  merge: "AI で組み込んで書き直す",
 };
 
 /** 既存のメモを選んでから足す入れ方か */
