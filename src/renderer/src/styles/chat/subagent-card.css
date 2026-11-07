@@ -63,17 +63,20 @@
 
 /* 上の 2 行（見出し・いまの動き / まとめ）はどこを押しても開く（SubagentCard の onTopClick）。乗せると 2 行まとめて地の色で示す（下線は使わない） */
 .subagent-card-top {
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  /* カードの枠の内側の角に合わせる（枠の 1px 分小さく） */
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
   cursor: pointer;
 }
 
+/* 地の色がカードの左の端の帯（subagent-window.css の inset の影）を覆うので、同じ帯を上にも引く */
 .subagent-card-top:hover {
   background: var(--bg-hover);
+  box-shadow: inset 3px 0 0 var(--agent-color);
 }
 
 /* 閉じたカードは下の角も丸める（中で起動したサブエージェントの行・入力欄がなければ、上の 2 行がカードの全体） */
 .subagent-card-top:last-child {
-  border-radius: var(--radius-lg);
+  border-radius: calc(var(--radius-lg) - 1px);
 }
 
 /* 左の ＞（流れの中での開閉。見出しの何もないところとは別に押せる） */
