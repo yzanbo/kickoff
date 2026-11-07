@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { applyTabOrder, flatTabOrder, moveGroup, moveTabInGroup } from "./tabOrder";
+import { applyTabOrder, flatTabOrder, isNoopDrop, moveGroup, moveTabInGroup, orderAfterDrop } from "./tabOrder";
 
 const t = (tab: string) => ({ tab });
 const GROUPS = [
@@ -28,4 +28,19 @@ test("moveGroup: まとまりごと前・後ろへ動かす（中の並びはそ
   assert.deepEqual(moveGroup(GROUPS, "code", "work", "before"), ["files", "search", "changes", "board", "chats", "history", "memos"]);
   assert.deepEqual(moveGroup(GROUPS, "work", "memos", "after"), ["files", "search", "changes", "history", "memos", "board", "chats"]);
   assert.deepEqual(moveGroup(GROUPS, "history", "history", "after"), flatTabOrder(GROUPS));
+});
+
+test("isNoopDrop: すぐ前の後ろ・すぐ後ろの前に落としても並びは変わらない（線を出さない）", () => {
+  // まとまりの外: 3 番目（history）を 2 番目（code）の後ろ・4 番目（memos）の前へ
+  assert.equal(isNoopDrop(GROUPS, { tab: "history", group: "history" }, { kind: "group", key: "code", side: "after" }), true);
+  assert.equal(isNoopDrop(GROUPS, { tab: "history", group: "history" }, { kind: "group", key: "memos", side: "before" }), true);
+  assert.equal(isNoopDrop(GROUPS, { tab: "history", group: "history" }, { kind: "group", key: "code", side: "before" }), false);
+  assert.deepEqual(orderAfterDrop(GROUPS, { tab: "history", group: "history" }, { kind: "group", key: "code", side: "before" }), ["board", "chats", "history", "files", "search", "changes", "memos"]);
+  // つまみでつかんだまとまり
+  assert.equal(isNoopDrop(GROUPS, { tab: null, group: "code" }, { kind: "group", key: "work", side: "after" }), true);
+  assert.equal(isNoopDrop(GROUPS, { tab: null, group: "code" }, { kind: "group", key: "memos", side: "after" }), false);
+  // まとまりの中: search を files の後ろ・changes の前へ
+  assert.equal(isNoopDrop(GROUPS, { tab: "search", group: "code" }, { kind: "tab", key: "files", side: "after" }), true);
+  assert.equal(isNoopDrop(GROUPS, { tab: "search", group: "code" }, { kind: "tab", key: "changes", side: "before" }), true);
+  assert.equal(isNoopDrop(GROUPS, { tab: "search", group: "code" }, { kind: "tab", key: "changes", side: "after" }), false);
 });

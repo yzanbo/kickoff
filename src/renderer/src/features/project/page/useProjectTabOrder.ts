@@ -1,27 +1,26 @@
 import { useMemo, useState, type DragEvent } from "react";
 import { useSetting } from "@/hooks/useSetting";
 import { PROJECT_TAB_ORDER } from "@/lib/storageKeys";
-import { applyTabOrder, moveGroup, moveTabInGroup, type DropSide, type TabGroup } from "./tabOrder";
+import { applyTabOrder, isNoopDrop, orderAfterDrop, type DropSide, type TabDragging, type TabDropTarget, type TabGroup } from "./tabOrder";
 import { startDragGhost } from "@/ui/dragGhost";
 
 /** ドラッグで運ぶタブの種類（ほかのドラッグと見分ける） */
 const TAB_DRAG_TYPE = "application/x-kickoff-project-tab";
 
-/** いま落とす先（同じまとまりのタブの前後 / ほかのまとまりの前後） */
-type DropTarget = { kind: "tab" | "group"; key: string; side: DropSide };
 
 /**
  * プロジェクトのタブの並べ替え（ドラッグ）。まとまりの外（ほかのまとまりの上）へ動かすと、まとまりごと動かす（ボード・チャット /
  * ファイル・検索・変更はいつも一緒）。同じまとまりの中では 1 つずつ並べ替える。まとまりの端のつまみ（groupHandleProps）をつかむと、
  * はじめからまとまりごと動かす（写しもまとまり全体）。並びは PROJECT_TAB_ORDER に覚える。
- * vertical なら上下の半分、横並びなら左右の半分で、前に入るか後ろに入るかを決める
+ * vertical なら上下の半分、横並びなら左右の半分で、前に入るか後ろに入るかを決める。落としても並びが変わらない所（すぐ前のタブの後ろ半分・
+ * すぐ後ろのタブの前半分・動かしているものの上）は落とす先にしない（線を出さない）
  */
 export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup<T>>(defs: readonly G[], vertical: boolean) {
   const [saved, setSaved] = useSetting(PROJECT_TAB_ORDER);
   const groups = useMemo(() => applyTabOrder(defs, saved), [defs, saved]);
   // 動かしているもの（tab が null なら、つまみでつかんだまとまり全体）
-  const [dragging, setDragging] = useState<{ tab: string | null; group: string } | null>(null);
-  const [drop, setDrop] = useState<DropTarget | null>(null);
+  const [dragging, setDragging] = useState<TabDragging | null>(null);
+  const [drop, setDrop] = useState<TabDropTarget | null>(null);
   const end = () => {
     setDragging(null);
     setDrop(null);
@@ -31,14 +30,19 @@ export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup
     const r = el.getBoundingClientRect();
     return vertical ? (e.clientY < r.top + r.height / 2 ? "before" : "after") : e.clientX < r.left + r.width / 2 ? "before" : "after";
   };
-  /** いまの位置で落とせる先（なければ null） */
-  const targetOf = (e: DragEvent<HTMLElement>, group: G): DropTarget | null => {
+  /** 動かす先の候補（並びが変わるかは見ない） */
+  const candidateOf = (e: DragEvent<HTMLElement>, group: G): TabDropTarget | null => {
     if (!dragging) return null;
     if (dragging.group !== group.key) return { kind: "group", key: group.key, side: sideOf(e, e.currentTarget) };
     if (dragging.tab === null) return null;
     const el = (e.target as Element).closest<HTMLElement>("[data-tab]");
     const tab = el?.dataset.tab;
     return el && tab && tab !== dragging.tab ? { kind: "tab", key: tab, side: sideOf(e, el) } : null;
+  };
+  /** いまの位置で落とせる先（なければ null。落としても並びが変わらないなら null） */
+  const targetOf = (e: DragEvent<HTMLElement>, group: G): TabDropTarget | null => {
+    const target = candidateOf(e, group);
+    return target && dragging && !isNoopDrop(groups, dragging, target) ? target : null;
   };
 
   return {
@@ -85,7 +89,7 @@ export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup
         const target = targetOf(e, group);
         if (target && dragging) {
           e.preventDefault();
-          setSaved(target.kind === "tab" && dragging.tab ? moveTabInGroup(groups, dragging.tab, target.key, target.side) : moveGroup(groups, dragging.group, target.key, target.side));
+          setSaved(orderAfterDrop(groups, dragging, target));
         }
         end();
       },

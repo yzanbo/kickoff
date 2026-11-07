@@ -152,23 +152,78 @@
 }
 
 /*
- * タブの並べ替え（ドラッグ）: 落とす先のタブ・まとまりの前か後ろに線（横並びは左右、縦並びは上下）、動かしているものは薄く。
- * ほかのまとまりの上では、まとまりごと動かすので、まとまりに線を出す
+ * タブの並べ替え（ドラッグ）: 落とす先のタブ・まとまりの前か後ろの隙間に、まっすぐな線（横並びは縦の線、縦並びは横の線）。動かしているものは薄く。
+ * ほかのまとまりの上では、まとまりごと動かすので、まとまりの外の隙間に線を出す。
+ * 線は ::after で隙間の真ん中に引く（前は内側の影で、角の丸いまとまり（.boxed）では線が角に沿って曲がっていた）。
+ * 落としても並びが変わらない所には線を出さない（useProjectTabOrder が落とす先にしない）
  */
-.tabs .tab-drop-before {
-  box-shadow: inset 2px 0 0 var(--accent-bright);
-}
-
+.tabs .tab-drop-before,
 .tabs .tab-drop-after {
-  box-shadow: inset -2px 0 0 var(--accent-bright);
+  position: relative;
 }
 
-.project-side-tabs .tab-drop-before {
-  box-shadow: inset 0 2px 0 var(--accent-bright);
+.tabs .tab-drop-before::after,
+.tabs .tab-drop-after::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent-bright);
+  content: "";
+  pointer-events: none;
 }
 
-.project-side-tabs .tab-drop-after {
-  box-shadow: inset 0 -2px 0 var(--accent-bright);
+/* 横並び: タブの間は 2px、まとまりの間は 10px の隙間の真ん中。端のまとまりは、横のスクロールで切れないよう内側の端に */
+.tabs:not(.project-side-tabs) .tab.tab-drop-before::after {
+  left: -2px;
+}
+
+.tabs:not(.project-side-tabs) .tab.tab-drop-after::after {
+  right: -2px;
+}
+
+.tabs:not(.project-side-tabs) .project-tab-group.tab-drop-before::after {
+  left: -6px;
+}
+
+.tabs:not(.project-side-tabs) .project-tab-group.tab-drop-after::after {
+  right: -6px;
+}
+
+.tabs:not(.project-side-tabs) .project-tab-group.tab-drop-before:first-child::after {
+  left: 0;
+}
+
+.tabs:not(.project-side-tabs) .project-tab-group.tab-drop-after:last-child::after {
+  right: 0;
+}
+
+/* 縦並び: タブの間は 4px、まとまりの間は 8px の隙間の真ん中に横の線 */
+.project-side-tabs .tab-drop-before::after,
+.project-side-tabs .tab-drop-after::after {
+  top: auto;
+  bottom: auto;
+  right: 0;
+  left: 0;
+  width: auto;
+  height: 2px;
+}
+
+.project-side-tabs .tab.tab-drop-before::after {
+  top: -3px;
+}
+
+.project-side-tabs .tab.tab-drop-after::after {
+  bottom: -3px;
+}
+
+.project-side-tabs .project-tab-group.tab-drop-before::after {
+  top: -5px;
+}
+
+.project-side-tabs .project-tab-group.tab-drop-after::after {
+  bottom: -5px;
 }
 
 .tabs .tab-dragging {
