@@ -447,6 +447,37 @@ test("送信待ちのコンテキスト消去の行（POST /queue/clear）: 足�
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/${again}/send`)).status, 409);
 });
 
+test("チャット欄の /clear: Claude Code に送らず、作業していなければその場で消去（区切りを残す）、作業中なら終わったらすぐ消去する予約、あとで送るなら消去の行", async () => {
+  const { call, project, runner, provider } = setup();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  const labels = (body: { messages: { text: string; clear?: boolean }[] }) => body.messages.map((m) => (m.clear ? "消去" : m.text));
+  const types = async () => ((await call("GET", `/api/chats/${chatId}`)).body.events as { type: string }[]).map((e) => e.type);
+  // 作業していない: 送ると、その場で消去する（発言も実行も残さず、記録には区切り）
+  const sent = await call("POST", `/api/chats/${chatId}/messages`, { text: " /clear " });
+  assert.equal(sent.status, 200);
+  assert.equal(sent.body.session_id, null);
+  assert.equal((await types()).at(-1), "context_cleared");
+  assert.deepEqual(provider.prompts, ["1"]);
+  // もう会話がないので、もう一度は 409
+  assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "/clear" })).status, 409);
+  // 作業中の「いま」: 終わったらすぐ消去する予約（送信待ちのいちばん上に消去の行）
+  const release = provider.hold();
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await until(() => provider.prompts.length === 2);
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "3" });
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "/clear" })).body, { result: "queued" });
+  // 作業中の「あとで」: いちばん下に消去の行
+  const queued = (await call("POST", `/api/chats/${chatId}/queue`, { text: "/clear" })).body;
+  assert.deepEqual(labels(queued), ["消去", "3", "消去"]);
+  // 作業が終わったら消去してから 3 を送る（3 は新しい会話で始まる）
+  release();
+  await until(() => provider.prompts.length === 3);
+  assert.equal(provider.prompts[2], "3");
+  assert.ok((await types()).filter((t) => t === "context_cleared").length >= 2);
+  assert.deepEqual(provider.prompts.includes("/clear"), false);
+});
+
 test("起動したときの送信待ちの確かめの API: 一覧と答え（チャットごと。答えたあとの残りを返す）", async () => {
   const { call } = setup();
   assert.deepEqual((await call("GET", "/api/queue-resumes")).body, []);

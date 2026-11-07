@@ -11,6 +11,7 @@ import { Conflict, NotFound } from "../http/errors.js";
 import { errorMessage } from "@shared/errors";
 import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, RESTART_RESUME_PROMPT } from "@shared/chat/prompts";
 import { postCompactItem, preCompactPromptOf } from "./preCompact.js";
+import { isClearCommand } from "@shared/chat/queueActions";
 
 /**
  * エージェントの実行を管理する。
@@ -152,6 +153,8 @@ export class Runner extends RunnerQueue {
   async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { pauseAfter = false, postCompact = false }: SendOpts = {}): Promise<Chat> {
     const chat = this.requireChat(chatId);
     this.requireIdle(chatId, "送信");
+    // チャット欄の /clear: Claude Code に送らず、送信待ちのコンテキスト消去と同じく Kickoff がセッションを外して区切りを残す
+    if (!postCompact && isClearCommand(text, attachments)) return this.clearByCommand(chatId);
     const { store } = this.deps;
     const runtime = this.runtimes.get(chatId);
     // 動かし始めるまで作業中として数える（組み立ての間に届いた送信は、作業中のチャットへの送信として扱われる）
@@ -208,6 +211,12 @@ export class Runner extends RunnerQueue {
       return "sent";
     }
     const runtime = this.runtimes.get(chatId);
+    // 作業中の /clear: いまのやり取りには足せない（足すと作業の途中で会話が空になる）ので、終わったらすぐ消去する予約にする
+    // （送信待ちのいちばん上に消去の行。作業中の行の「すぐ送る」と同じ）
+    if (!postCompact && isClearCommand(text, attachments)) {
+      runtime.queue.reserve("clear");
+      return "queued";
+    }
     const hold = (): "held" => {
       if (pauseAfter) this.pauseAfterTurn(chatId);
       return this.holdUntilCompacted(runtime, text, options, attachments, postCompact);
@@ -446,6 +455,13 @@ export class Runner extends RunnerQueue {
    * コンテキストを消去する（送信待ちのコンテキスト消去の行）: チャットのセッションを外し、次の指示から新しい会話で始める。
    * 会話の記録は残し、消去したこと（context_cleared イベント）を残す。作業中なら 409、まだ会話がなければ 409
    */
+  /** チャット欄の /clear（作業していないとき）: コンテキストを消去し、送信待ちがあれば次を送る（消去の行と同じく、次の指示は新しい会話で始まる） */
+  private clearByCommand(chatId: number): Chat {
+    const cleared = this.clearContext(chatId);
+    void this.sendNextQueued(chatId);
+    return cleared;
+  }
+
   clearContext(chatId: number): Chat {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);

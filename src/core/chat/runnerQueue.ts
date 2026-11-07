@@ -1,7 +1,7 @@
 import { errorMessage } from "@shared/errors";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { ChatRuntimes } from "./runtime.js";
-import { queueActionOf } from "@shared/chat/queueActions";
+import { isClearCommand, queueActionOf } from "@shared/chat/queueActions";
 import { QUEUE_ACTION_LABELS, type Attachment, type QueueAction, type QueuedMessage, type Chat, type ChatOptionsPatch, type QueueState, type TellResult } from "@shared/types";
 
 /**
@@ -72,6 +72,8 @@ export abstract class RunnerQueue {
       return { queued: false, id: null };
     }
     const queue = this.queueOf(chatId);
+    // 送信待ちに入れる /clear は、文の指示ではなくコンテキスト消去の行にする（「＋追加 → コンテキスト消去」と同じ。順が来たら消去する）
+    if (isClearCommand(text, attachments)) return { queued: true, id: queue.addAction("clear")!.id };
     const { id } = queue.add(text, options, attachments);
     if (pauseAfter) queue.setStopAfter(id);
     return { queued: true, id };
