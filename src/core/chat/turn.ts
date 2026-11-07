@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { ApprovalCenter } from "./approvals.js";
@@ -128,17 +128,26 @@ async function resolveWorkdir(chat: Chat, project: Project): Promise<string> {
   return cwd;
 }
 
+/** フォルダがなければ作って返す（作れなければ null。メモのフォルダ） */
+function ensureDir(dir: string): string | null {
+  try {
+    mkdirSync(dir, { recursive: true });
+    return dir;
+  } catch {
+    return null;
+  }
+}
+
 /** プロバイダーに渡すもの（作業場所・指示・権限） */
 function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd: string, prompt: string, promptId?: string): ProviderTurnParams {
-  // メモのフォルダも読み書きできる場所に足す（入力欄にメモを添付して、続きを頼めるように。フォルダがまだなければ足さない）。
-  // メモのチャットは、どのメモについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
-  const projectMemoDir = deps.memoDirOf ? deps.memoDirOf(project) : null;
-  const memoDir = projectMemoDir && (chat.memo_path || existsSync(projectMemoDir)) ? projectMemoDir : null;
+  // メモのフォルダも読み書きできる場所に足し、どのチャットでも「メモ」が「メモ」タブのメモのことだと伝える（入力欄にメモを添付して続きを頼む・「メモに書いて」と頼めるように。
+  // フォルダがまだなければ作る: メモのタブで最初のメモを作るのと同じ場所）。メモのチャットは、どのメモについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
+  const memoDir = deps.memoDirOf ? ensureDir(deps.memoDirOf(project)) : null;
   return {
     cwd,
     prompt,
     ...(promptId ? { promptId } : {}),
-    systemPrompt: buildSystemPrompt(project, cwd, memoDir && chat.memo_path ? { dir: memoDir, file: path.join(memoDir, chat.memo_path) } : undefined),
+    systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined),
     turnContext: chatContextNote(chatContextOf(deps.store, chat)),
     policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,

@@ -54,3 +54,16 @@ test("指示: 出力の上限（max_output_tokens）で止まったサブエー�
   assert.match(prompt, /報告は短くまとめる/);
   assert.match(prompt, /大きなファイルは何回かに分けて書く/);
 });
+
+test("メモ: どのチャットでも「メモ」が「メモ」タブのメモ（フォルダ）のことだと伝え、メモのチャットはどのメモの横かを伝える", () => {
+  const p = project();
+  const plain = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/memos/a", file: null });
+  assert.ok(plain.includes("利用者が「メモ」と言ったら、Kickoff の「メモ」タブのメモのことです"));
+  assert.ok(plain.includes("`/tmp/memos/a`"));
+  assert.ok(!plain.includes("の横で話しています"));
+  const memoChat = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/memos/a", file: "/tmp/memos/a/x.md" });
+  assert.ok(memoChat.includes("`/tmp/memos/a/x.md` の横で話しています"));
+  assert.ok(!memoChat.includes("利用者が「メモ」と言ったら"));
+  // メモのフォルダが分からなければ、メモのことは書かない
+  assert.ok(!buildSystemPrompt(p).includes("## メモ"));
+});
