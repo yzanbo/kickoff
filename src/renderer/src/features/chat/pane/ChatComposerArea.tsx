@@ -103,14 +103,14 @@ export function ChatComposerArea({
         options={options}
         busy={busy}
         queueWhileIdle={!busy && queued}
-        // 会話の圧縮中は、右下をふだんの見た目にする（送った文は圧縮が終わってから伝わる）
+        // 会話の圧縮中は、右下をふだんの見た目にする（中断のボタンを出さない）
         plainActions={live.compacting !== null}
         placeholder={send.placeholder}
         sendLabel={send.sendLabel}
         onSend={send.onSend}
         onQueue={send.onQueue}
-        // 圧縮前指示から圧縮が終わるまでは「いま」を預かるので、いま / あとでの切り替えは出さない（停止のボタンは出す）
-        busyControls={live.awaiting_compact ? undefined : <QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
+        // 圧縮前指示から圧縮のあとのやり取りが終わるまでも切り替えを出す（いま = チャット欄に預かり、やり取りが終わってから送る / あとで = 送信待ち）
+        busyControls={<QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
         stopping={live.stopping}
         onStop={send.onStop}
         trailing={<ContextMeter chat={chat} projectId={chat.project_id} compacting={live.compacting} reserved={reservedAction(live.queue)} afterTurn={live.compact_after_turn} />}

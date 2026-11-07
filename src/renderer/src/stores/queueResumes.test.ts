@@ -26,6 +26,7 @@ const live = (over: Partial<ChatLive>): ChatLive => ({
   after_compact: [],
   awaiting_compact: false,
   compact_after_turn: false,
+  compacted_turn: false,
   queue_resume: { interrupted: false },
   ...over,
 });

@@ -15,8 +15,8 @@ export function postCompactPromptOf(store: Store, project: Project): string | nu
 }
 
 /**
- * 圧縮後指示を、圧縮が終わったら伝える「いま」（ChatLive の after_compact）の先頭に置く形にする。
- * 預かった指示と同じ口（Runner の deliverAfterCompact / deliverHeld）で、それらより先に送る
+ * 圧縮後指示を、預かった「いま」（ChatLive の after_compact）の先頭に置く形にする。
+ * 預かった指示と同じ口（Runner の deliverAfterCompact / deliverHeld）で、それらより先に送る（預かった指示は、圧縮後指示のやり取りが終わってから）
  */
 export function postCompactItem(text: string): QueuedMessage {
   return { id: randomUUID(), text, options: {}, attachments: [], created_at: new Date().toISOString(), post_compact: true };

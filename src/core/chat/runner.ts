@@ -193,7 +193,8 @@ export class Runner extends RunnerQueue {
 
   /**
    * 止めずに伝える: 作業中なら、いまのやり取りに発言を足す（メインエージェントが、いまの手順の切れ目で読む。
-   * 裏のサブエージェント・コマンドは動き続ける）。圧縮中・圧縮前指示から圧縮が終わるまでなら預かり、圧縮が終わったら伝える（deliverAfterCompact）。
+   * 裏のサブエージェント・コマンドは動き続ける）。圧縮前指示から圧縮後指示のやり取りが終わるまで（どちらもなければ、圧縮からそのあとのやり取りが終わるまで。
+   * holdsTells）なら預かり、そのやり取りが終わってから送る（deliverHeld。圧縮後指示だけは、圧縮が終わったらいまのやり取りに伝える = deliverAfterCompact）。
    * 足せないとき（始まる前など）は待ちの列に入れ（at があればその位置）、作業中でなければすぐ送る。
    * pauseAfter（質問として送る）なら、伝えた・預かったときはいまの作業が終わったら、列に入れたときはその指示のあとで一時停止する。
    * モデルなどの選択は、作業の途中では変えられないので次に送るときから効く
@@ -265,8 +266,8 @@ export class Runner extends RunnerQueue {
   }
 
   /**
-   * 圧縮中・圧縮前指示から圧縮が終わるまでの「いま」を預かる（ChatLive の after_compact。流れの終わりに「圧縮が終わったら伝えます」と出す）。
-   * この間に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため、圧縮が終わってから伝える
+   * 圧縮前指示から圧縮後指示のやり取りが終わるまでの「いま」を預かる（ChatLive の after_compact。流れの終わりに「このやり取りが終わったら送ります」と出す）。
+   * この間に足すと、圧縮前指示の作業・圧縮後指示のやり取りに混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため、そのやり取りが終わってから送る
    */
   private holdUntilCompacted(runtime: ChatRuntime, text: string, options: ChatOptionsPatch, attachments: Attachment[], postCompact: boolean, marks: MessageMarks = {}): "held" {
     const message: QueuedMessage = { id: randomUUID(), text, options, attachments, created_at: new Date().toISOString(), ...(postCompact ? { post_compact: true } : {}), ...marks };
@@ -275,7 +276,7 @@ export class Runner extends RunnerQueue {
   }
 
   /**
-   * 圧縮が終わったら、預かった「いま」を送った順にいまのやり取りへ伝える（圧縮後指示があれば、先頭に置いてあるので最初に伝える）。
+   * 圧縮が終わったら、圧縮後指示をいまのやり取りへ伝える（先頭に置いてある。自分の「いま」は、このやり取りが終わってから deliverHeld で送る）。
    * いまのやり取りに足せない（手で圧縮する実行・作業ごと終わった）ときは、実行の終わり（execute）で送る（deliverHeld）
    */
   private deliverAfterCompact(chatId: number) {
@@ -285,8 +286,9 @@ export class Runner extends RunnerQueue {
   }
 
   /**
-   * 実行が終わったときに残っている預かった「いま」を送る: 1 件目（圧縮後指示があればそれ）をすぐ送り、残りはその作業に伝える（送信待ちを止めていても送る。
-   * 作業していないときの「いま」と同じ）。送れない終わり方（通信の切断・使用枠の上限・アプリの終了）なら、送信待ちの先頭に入れる
+   * 実行が終わったときに残っている預かった「いま」を送る: 1 件目をすぐ送り、残りはその作業に伝える（送信待ちを止めていても、送信待ちより先に送る。
+   * 作業していないときの「いま」と同じ）。1 件目が圧縮後指示なら、それだけを送り、自分の指示はその作業が終わってから送る（圧縮後指示のやり取りに混ぜない）。
+   * 送れない終わり方（通信の切断・使用枠の上限・アプリの終了）なら、送信待ちの先頭に入れる
    */
   private deliverHeld(chatId: number, sendNow: boolean) {
     const runtime = this.runtimes.get(chatId);
@@ -315,7 +317,8 @@ export class Runner extends RunnerQueue {
   /**
    * 預かった「いま」を先頭から 1 件ずつ送る（sendFirst なら 1 件目は新しい作業として送り、残りはその作業に伝える）。
    * 送り終えるまでは「いま」を預かったままにし（deliveringAfterCompact）、その間に来た指示も列の後ろに足して続けて送る
-   * （圧縮後指示・前に預かった指示より先に、あとから送った指示が入らないように）
+   * （圧縮後指示・前に預かった指示より先に、あとから送った指示が入らないように）。
+   * 圧縮したやり取りの途中（compactedTurn。圧縮後指示を伝えた・新しい作業として送った作業も）は、自分の指示を伝えずに止め、そのやり取りが終わってから送る
    */
   private drainAfterCompact(chatId: number, sendFirst: boolean) {
     const runtime = this.runtimes.get(chatId);
@@ -327,13 +330,20 @@ export class Runner extends RunnerQueue {
           const m = runtime.afterCompact[0];
           if (!m || runtime.parkAfterCompact) break;
           const sendNow = i === 0 && sendFirst;
+          // 圧縮したやり取り（圧縮後指示のやり取り）の途中は、自分の指示を足さない（そのやり取りが終わったら deliverHeld で送る）
+          if (!sendNow && !m.post_compact && runtime.compactedTurn) break;
           try {
             if (m.post_compact && !sendNow) {
               await this.tellPostCompact(chatId, m);
             } else {
               runtime.update({ afterCompact: runtime.afterCompact.slice(1) });
               if (sendNow) {
-                await this.send(chatId, m.text, m.options, m.attachments, { postCompact: m.post_compact, marks: marksOf(m) });
+                // 圧縮後指示の作業は、終わるまで「いま」を預かる（作業の終わりで外れる。送れなければ外す）
+                if (m.post_compact) runtime.update({ compactedTurn: true });
+                await this.send(chatId, m.text, m.options, m.attachments, { postCompact: m.post_compact, marks: marksOf(m) }).catch((e: unknown) => {
+                  if (!this.isBusy(chatId)) runtime.update({ compactedTurn: false });
+                  throw e;
+                });
                 // 残りはその作業に伝えるので、足し先（作業中の操作）ができるまで待つ（先に伝えると、足せずに送信待ちへ回る）
                 await untilTellable(runtime);
               } else await this.tell(chatId, m.text, m.options, m.attachments, { at: sendFirst ? i - 1 : i, draining: true, marks: marksOf(m) });
@@ -366,14 +376,19 @@ export class Runner extends RunnerQueue {
     for (;;) {
       if (runtime.parkAfterCompact) return;
       if (!this.isBusy(chatId)) {
-        runtime.update({ afterCompact: runtime.afterCompact.slice(1) });
-        await this.send(chatId, m.text, m.options, m.attachments, { postCompact: true });
+        // 圧縮後指示の作業は、終わるまで「いま」を預かる（作業の終わりで外れる）
+        runtime.update({ afterCompact: runtime.afterCompact.slice(1), compactedTurn: true });
+        await this.send(chatId, m.text, m.options, m.attachments, { postCompact: true }).catch((e: unknown) => {
+          if (!this.isBusy(chatId)) runtime.update({ compactedTurn: false });
+          throw e;
+        });
         await untilTellable(runtime);
         return;
       }
       const messageUuid = randomUUID();
       if (runtime.control?.tell(prompt, messageUuid)) {
-        runtime.update({ afterCompact: runtime.afterCompact.slice(1) });
+        // 伝えた作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない）
+        runtime.update({ afterCompact: runtime.afterCompact.slice(1), compactedTurn: true });
         store.events.add(chatId, { type: "user", text: m.text, ...(m.attachments.length ? { attachments: m.attachments } : {}), ...handover, post_compact: true, message_uuid: messageUuid });
         return;
       }
@@ -555,7 +570,8 @@ export class Runner extends RunnerQueue {
       const compactNext = finished && outcome.status === "completed" && !item.compact && (Boolean(item.thenCompact) || runtime.awaitingCompact);
       const manual = Boolean(item.thenCompact) || runtime.compactAfterTurn;
       // 止めるよう頼んでいたら、終わったので停止中を消す。続けて圧縮しないなら、「いま」を預かる間も終わる
-      runtime.update({ stopping: false, compactAfterTurn: false, ...(compactNext ? {} : { awaitingCompact: false }) });
+      // 圧縮したやり取りも終わったので、預かった「いま」を送れるようにする（このあとの deliverHeld で送る）
+      runtime.update({ stopping: false, compactAfterTurn: false, compactedTurn: false, ...(compactNext ? {} : { awaitingCompact: false }) });
       void this.deps.usage.refresh();
       if (compactNext) {
         this.compactNow(item.chatId, manual ? "manual" : "auto");

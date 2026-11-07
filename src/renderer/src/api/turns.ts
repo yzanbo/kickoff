@@ -3,7 +3,7 @@ import { request } from "./http";
 
 /** チャットの実行（続きを送る・止めずに伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し。コアの routes/turns.ts） */
 export const turnsApi = {
-  /** 圧縮が終わるまで預かった指示を、送らずに外す（圧縮中に誤って送ったとき。外した指示を返す） */
+  /** 圧縮のあとのやり取りが終わるまで預かった指示を、送らずに外す（圧縮中に誤って送ったとき。外した指示を返す） */
   removeAfterCompact: (chatId: number, messageId: string) => request<QueuedMessage>("DELETE", `/api/chats/${chatId}/after-compact/${encodeURIComponent(messageId)}`),
   /**
    * pauseAfter: 質問として送る（この作業が終わったら、送信待ちを自動で送らずに一時停止する）。

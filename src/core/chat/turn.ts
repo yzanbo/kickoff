@@ -185,8 +185,12 @@ function callbacksFor(
     },
     background: (background) => runtime.update({ background }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
+    // 圧縮が始まったら、この作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない。作業の終わりで Runner が外す）
     compacting: (active) =>
-      runtime.update({ compacting: active ? (runtime.compacting ?? { since: new Date().toISOString(), trigger: compactTrigger }) : null }),
+      runtime.update({
+        compacting: active ? (runtime.compacting ?? { since: new Date().toISOString(), trigger: compactTrigger }) : null,
+        ...(active ? { compactedTurn: true } : {}),
+      }),
     // 失敗は、手で圧縮したときだけお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない too_few_groups なども含み、
     // Claude Code も知らせない。本当にあふれたら、作業そのものが失敗として残る）
     // 圧縮の直後のコンテキストの大きさは、作業の終わりを待たずにチャットへ書く（入力欄のメーターがすぐ縮む。作業の終わりには最後の応答の大きさで書き直す）
@@ -219,7 +223,7 @@ function callbacksFor(
       if (event.type === "compact") {
         runtime.preCompactSent = false;
         const post = postCompactText ? [postCompactItem(postCompactText)] : [];
-        runtime.update({ afterCompact: [...post, ...runtime.afterCompact], ...(compact ? {} : { awaitingCompact: false }) });
+        runtime.update({ afterCompact: [...post, ...runtime.afterCompact], compactedTurn: true, ...(compact ? {} : { awaitingCompact: false }) });
         // 圧縮中をもう外していた（知らせの順が前後した）ときは、ここで伝える
         runtime.flushAfterCompact();
       }
