@@ -16,6 +16,7 @@ import { BoardShell } from "./BoardShell";
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import { GroupCreateForm } from "./GroupCreateForm";
 import { GroupSections } from "./GroupSections";
+import { orderGroupBuckets } from "./groupOrder";
 import { StateColumns } from "./StateColumn";
 import { useBoardCards } from "./useBoardCards";
 import { useGroupBoard } from "./useGroupBoard";
@@ -125,7 +126,7 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
       {view === "board" && split ? (
         // 段（グループ）へカードをドラッグすると、そのグループへ移す
         <BoardLanes
-          lanes={buckets}
+          lanes={orderGroupBuckets(buckets, board.ungroupedAt)}
           foldPlace={foldPlace}
           laneProps={(lane) => {
             const groupId = lane.group?.id ?? null;
@@ -136,10 +137,20 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
         </BoardLanes>
       ) : view === "board" ? (
         <div className="board-columns">
-          <GroupSections projectId={projectId} buckets={buckets} board={board} onNewChat={chats.openNew} render={cards.card} foldPlace={foldPlace} highlight={highlight} />
-          <section className="board-column group-add-column">
-            <GroupCreateForm board={board} />
-          </section>
+          <GroupSections
+            projectId={projectId}
+            buckets={buckets}
+            board={board}
+            onNewChat={chats.openNew}
+            render={cards.card}
+            foldPlace={foldPlace}
+            highlight={highlight}
+            afterGroups={
+              <section className="board-column group-add-column">
+                <GroupCreateForm board={board} />
+              </section>
+            }
+          />
         </div>
       ) : (
         <div className="board-list">
@@ -152,7 +163,7 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
             foldPlace={foldPlace}
             highlight={highlight}
             list
-            beforeUngrouped={
+            afterGroups={
               <section className="list-group group-add-row">
                 <GroupCreateForm board={board} />
               </section>
