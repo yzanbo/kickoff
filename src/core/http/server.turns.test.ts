@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setup, until } from "../testing/testServer.js";
 import type { ChatLive, CompactingState } from "@shared/types";
-import { autoPreCompactMessage, manualPreCompactMessage, postCompactMessage } from "@shared/chat/prompts";
+import { autoPreCompactMessage, busyPreCompactMessage, manualPreCompactMessage, postCompactMessage } from "@shared/chat/prompts";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {
   const { call, project, store, runner, provider } = setup();
@@ -465,6 +465,92 @@ test("圧縮後指示: 圧縮が終わったら、預かった「いま」より
   await until(() => !runner.isBusy(chatId));
   assert.equal(provider.prompts.length, before + 1);
   assert.ok(!users().slice(-1)[0].startsWith("後:"));
+});
+
+test("圧縮前指示・圧縮後指示は送信待ちに入れない: 作業中に手で圧縮すると、圧縮前指示をいまの作業に伝え、終わったら送信待ちより先に圧縮して圧縮後指示を送る", async () => {
+  const { call, project, store, runner, provider } = setup();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  await call("PUT", "/api/settings", { pre_compact_prompt: "メモを書いて", post_compact_prompt: "メモを読んで" });
+  provider.emitCompactOnCompact = true;
+  const release = provider.hold();
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "作業" });
+  await until(() => provider.prompts.length === 2);
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
+  assert.equal((await call("POST", `/api/chats/${chatId}/compact`)).status, 200);
+  // 圧縮の行で予約せず、いまの作業にそのまま伝える（札付きの自分の発言）。圧縮が終わるまで「いま」は預かる
+  assert.deepEqual(provider.told, [busyPreCompactMessage("メモを書いて")]);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => (m.compact ? "圧縮" : m.text)), ["次"]);
+  assert.equal(runner.live(chatId).awaiting_compact, true);
+  const user = store.events.list(chatId).findLast((e) => e.type === "user")!;
+  assert.ok(user.type === "user" && user.data.pre_compact && user.data.text === "メモを書いて");
+  // もう伝えたので、もう一度押しても足さない（予約になる）
+  await call("POST", `/api/chats/${chatId}/compact`);
+  assert.equal(provider.told.length, 1);
+  await call("DELETE", `/api/chats/${chatId}/queue/${runner.live(chatId).queue.messages.find((m) => m.compact)!.id}`);
+  release();
+  await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(chatId));
+  assert.deepEqual(provider.prompts.slice(2), ["/compact", postCompactMessage("メモを読んで"), "次"]);
+  const compacted = store.events.list(chatId).find((e) => e.type === "compact");
+  assert.ok(compacted?.type === "compact" && compacted.data.trigger === "manual");
+});
+
+test("圧縮後指示は送信待ちに入れない: いまの作業に足せなければ足せるまで待ち、作業が終わっていれば送信待ち（止めていても）より先に送る。送れない終わり方なら次に送った作業に伝える", async () => {
+  const { call, project, runner, provider, network } = setup();
+  await call("PUT", "/api/settings", { post_compact_prompt: "読み直す" });
+  const post = postCompactMessage("読み直す");
+  const queueTexts = () => runner.live(chatId).queue.messages.map((m) => m.text);
+
+  // 足せるようになったら、いまの作業に伝える
+  const release = provider.hold();
+  provider.compacting = true;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => runner.live(chatId).compacting !== null);
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
+  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
+  provider.acceptTell = false;
+  provider.compactBoundary();
+  await until(() => runner.live(chatId).after_compact.length === 1);
+  assert.deepEqual(queueTexts(), ["次"]);
+  provider.acceptTell = true;
+  await until(() => provider.told.includes(post));
+  assert.deepEqual(runner.live(chatId).after_compact, []);
+
+  // 足せないまま作業が終わったら、送信待ちより先に新しい作業として送る（止めている送信待ちは送らない）
+  provider.acceptTell = false;
+  provider.compactBoundary();
+  await until(() => runner.live(chatId).after_compact.length === 1);
+  provider.compacting = false;
+  release();
+  await until(() => provider.prompts.at(-1) === post && !runner.isBusy(chatId));
+  assert.deepEqual(queueTexts(), ["次"]);
+
+  // 通信の切断で終わったら、送信待ちに入れずに残し、次に送った作業にそのまま伝える
+  const release2 = provider.hold();
+  provider.compacting = true;
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await until(() => runner.live(chatId).compacting !== null);
+  provider.compactBoundary();
+  await until(() => runner.live(chatId).after_compact.length === 1);
+  network.online = false;
+  provider.networkFailures = 1;
+  provider.compacting = false;
+  release2();
+  await until(() => !runner.isBusy(chatId));
+  assert.deepEqual(queueTexts(), ["次"]);
+  assert.deepEqual(runner.live(chatId).after_compact.map((m) => m.post_compact), [true]);
+  // 送信待ちを止めているので自動では再開しない。次に自分で送った作業に、そのまま伝える
+  network.online = true;
+  provider.acceptTell = true;
+  const told = provider.told.length;
+  const release3 = provider.hold();
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "3" });
+  await until(() => provider.told.length === told + 1);
+  release3();
+  await until(() => !runner.isBusy(chatId));
+  assert.deepEqual([provider.prompts.at(-1), provider.told.at(-1)], ["3", post]);
+  assert.deepEqual(runner.live(chatId).after_compact, []);
+  assert.deepEqual(queueTexts(), ["次"]);
 });
 
 test("止めずに伝える API: 作業中なら止めずに足して自分の発言に残し、足せなければ待ちの列へ。作業中でなければすぐ送る", async () => {
