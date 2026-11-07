@@ -410,6 +410,28 @@ test("圧縮中に止めずに伝える: 預かって作業中の様子に出し
   await until(() => !runner.isBusy(chatId));
 });
 
+test("圧縮中に預かった「いま」は、送れない終わり方（通信の切断）で作業ごと終わったら、送信待ちの先頭に入れる（前からの送信待ちより先・送った順・出どころの印も残す）", async () => {
+  const { call, project, runner, provider, network } = setup();
+  const release = provider.hold();
+  provider.compacting = true;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => runner.live(chatId).compacting !== null);
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "前からの送信待ち" });
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "う" })).body, { result: "held" });
+  const from = { chat_id: 99, title: "子" };
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "え", handoff_from: from })).body, { result: "held" });
+  network.online = false;
+  provider.networkFailures = 1;
+  provider.compacting = false;
+  release();
+  await until(() => !runner.isBusy(chatId) && runner.live(chatId).after_compact.length === 0);
+  const queued = runner.live(chatId).queue.messages;
+  assert.deepEqual(queued.map((m) => m.text), ["う", "え", "前からの送信待ち"]);
+  assert.deepEqual(queued[1].handoff_from, from);
+  // 預かった指示は、まだ伝えていないので自分の発言には残さない
+  assert.deepEqual(provider.told, []);
+});
+
 test("圧縮中に預かった指示は、伝える前なら送らずに消せる（消した指示を返し、もう伝えた・ない指示は 404）", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
