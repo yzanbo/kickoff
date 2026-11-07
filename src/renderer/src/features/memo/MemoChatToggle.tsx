@@ -4,18 +4,18 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { cx } from "@/lib/cx";
 
-/** メモのチャットの見え方: 欄を開く / 閉じて下の入力欄だけ出す / 入力欄も隠す */
+/** メモのチャットの見え方: 欄を開く / チャット表示のみ（閉じて下の入力欄だけ出す）/ 非表示（入力欄も出さない） */
 type MemoChatShow = "open" | "quick" | "hidden";
 
 const SHOW_ITEMS: { value: MemoChatShow; label: string; title: string }[] = [
   { value: "open", label: "会話を開く", title: "本文の横（か下）にメモのチャットの欄を開き、これまでのやり取りを見ながら話す" },
-  { value: "quick", label: "入力欄だけを下に出す", title: "欄は閉じ、メモの下に AI に直してもらう入力欄だけを出す" },
-  { value: "hidden", label: "隠す", title: "欄もメモの下の入力欄も出さず、メモだけを広く見る（吹き出しのボタンでいつでも開ける）" },
+  { value: "quick", label: "チャット表示のみ", title: "欄は閉じ、メモの下に AI に直してもらうチャットの入力欄だけを出す" },
+  { value: "hidden", label: "非表示", title: "欄もメモの下の入力欄も出さず、メモだけを広く見る（吹き出しのボタンでいつでも開ける）" },
 ];
 
 /**
  * メモの見出しの、メモのチャットの切り替え（吹き出しと ▾ を 1 つのボタンに見せる .panel-split-button）。
- * 吹き出しは欄の開け閉め（閉じると、選んでいる閉じ方 = 下の入力欄だけ / 隠す に戻る）、▾ は 3 つの見え方から選ぶメニュー
+ * 吹き出しは欄の開け閉め（閉じると、選んでいる閉じ方 = チャット表示のみ / 非表示 に戻る）、▾ は 3 つの見え方から選ぶメニュー
  */
 export function MemoChatToggle({
   open,
@@ -48,7 +48,7 @@ export function MemoChatToggle({
       <IconButton
         icon={ChevronDown}
         label="メモのチャットの見え方"
-        title="会話を開く・入力欄だけを下に出す・隠すから選ぶ"
+        title="会話を開く・チャット表示のみ・非表示から選ぶ"
         size={12}
         className="panel-open-with memo-chat-show"
         aria-haspopup="menu"

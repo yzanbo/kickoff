@@ -85,7 +85,7 @@
   max-width: none;
 }
 
-/* 名前「メモのチャット」・作業中・回答待ちなどの様子・「会話を開く」と「入力欄を隠す」（右端）の 1 行 */
+/* 名前「メモのチャット」・作業中・回答待ちなどの様子・「会話を開く」と「非表示にする」（右端）の 1 行 */
 .memo-quick-status {
   display: flex;
   align-items: center;
@@ -123,16 +123,20 @@
   white-space: nowrap;
 }
 
-.memo-quick-status .link-button {
+/* 右端の「会話を開く」（アクセントの色）と「非表示にする」（×） */
+.memo-quick-actions {
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  gap: 2px;
   margin-left: auto;
-  font-size: 12px;
-  color: var(--accent-fg);
 }
 
-/* 「会話を開く」の右の「入力欄を隠す」（メモだけを広く見る。戻すのは見出しの吹き出しの ▾） */
-.memo-quick-status .memo-quick-hide {
-  flex: none;
+.memo-quick-actions .icon-button {
   width: 22px;
   height: 22px;
+}
+
+.memo-quick-actions .icon-button:first-child {
+  color: var(--accent-fg);
 }

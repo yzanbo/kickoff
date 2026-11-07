@@ -282,7 +282,10 @@ export function MemoView({
                 handleRef={chat}
                 place={chatPlace}
                 onPlaceChange={setChatPlace}
-                onClose={() => setChatOpen(false)}
+                onHide={() => {
+                  setQuickHidden(true);
+                  setChatOpen(false);
+                }}
                 onQuickOnly={() => {
                   setQuickHidden(false);
                   setChatOpen(false);
