@@ -6,7 +6,7 @@ import { TabbedDialog } from "@/ui/TabbedDialog";
 export function ProjectEditDialog({ project, initial, onClose }: { project: Project; initial?: ProjectSettingsSection; onClose: () => void }) {
   return (
     <TabbedDialog title="プロジェクトを編集" sections={PROJECT_SETTINGS_SECTIONS} initial={initial} onClose={onClose}>
-      {(section) => <ProjectSettings project={project} section={section} />}
+      {(section, select) => <ProjectSettings project={project} section={section} onSelect={select} />}
     </TabbedDialog>
   );
 }

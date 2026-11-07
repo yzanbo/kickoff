@@ -11,9 +11,10 @@ import { SaveActions } from "@/ui/SaveActions";
 import { changeProjectFolder } from "@/features/project/changeProjectFolder";
 import { GIT_FEATURES, startProjectGit } from "@/features/project/GitInitNotice";
 import { useGitStatus } from "@/features/editor/useGitStatus";
+import { useMemoList } from "@/stores/memos";
 import { TagEditor } from "./TagEditor";
 
-export function BasicInfo({ project }: { project: Project }) {
+export function BasicInfo({ project, onOpenMemos }: { project: Project; onOpenMemos: () => void }) {
   const pick = (p: Project) => ({ name: p.name, description: p.description });
   const [draft, setDraft] = useState(() => pick(project));
   const save = useSave();
@@ -26,6 +27,7 @@ export function BasicInfo({ project }: { project: Project }) {
       <h2>基本情報</h2>
       <div className="form">
         <FolderRow project={project} />
+        <MemoDirRow project={project} onChange={onOpenMemos} />
         <ColorField project={project} />
         <TagEditor project={project} />
         <Field label="プロジェクト名">
@@ -37,6 +39,25 @@ export function BasicInfo({ project }: { project: Project }) {
         <SaveActions save={save} disabled={!dirty || !draft.name.trim()} onSave={() => api.updateProject(project.id, { ...draft, name: draft.name.trim() })} />
       </div>
     </section>
+  );
+}
+
+/** メモの保存先（見るだけ。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。変えるのは「メモ」の項目） */
+function MemoDirRow({ project, onChange }: { project: Project; onChange: () => void }) {
+  const dir = useMemoList(project.id).data?.dir ?? "";
+  return (
+    <Field
+      as="div"
+      label="メモの保存先"
+      help="「メモ」タブのメモは、プロジェクトのフォルダとは別の場所に保存しています。プロジェクトのフォルダを変えても、メモの保存先は変わりません。"
+    >
+      <div className="input-row">
+        <input type="text" aria-label="メモの保存先" value={dir} placeholder="読み込み中…" readOnly />
+        <button type="button" className="btn" onClick={onChange}>
+          変更…
+        </button>
+      </div>
+    </Field>
   );
 }
 
