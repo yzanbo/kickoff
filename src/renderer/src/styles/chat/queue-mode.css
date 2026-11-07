@@ -66,13 +66,11 @@
   font-size: 11px;
 }
 
-/* チャット欄がとても狭いとき（composer.css の @container と同じ入れ物）は文字を隠し、アイコンだけにする（説明はマウスを乗せたときに出る） */
-@container (max-width: 420px) {
-  .view-toggle.queue-mode .btn-label {
-    display: none;
-  }
+/* 推論の深さ・権限モードをアイコンだけにしても下の行が 1 行に入らないとき（useComposerBarFit の 2 段目）は文字を隠し、アイコンだけにする（説明はマウスを乗せたときに出る） */
+.composer-bar.fit-tight .view-toggle.queue-mode .btn-label {
+  display: none;
+}
 
-  .view-toggle.queue-mode button {
-    padding: 0 8px;
-  }
+.composer-bar.fit-tight .view-toggle.queue-mode button {
+  padding: 0 8px;
 }

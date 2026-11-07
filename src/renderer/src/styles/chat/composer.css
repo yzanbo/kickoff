@@ -118,8 +118,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 2px 10px 8px;
-  /* 狭いときは、下の @container で詰めて 1 行に収める */
-  container-type: inline-size;
+  /* 1 行に入らないときは、下の .fit-narrow で詰めて 1 行に収める（useComposerBarFit。中身の幅を測るので container-type は付けない） */
 }
 
 .composer-tools,
@@ -131,29 +130,26 @@
 }
 
 /*
- * チャット欄が狭いとき（右のパネル・チャット欄）: 折り返さずに詰め、▾ を消し、推論の深さ・権限モードはアイコンだけにする
- * （いまの値は、乗せると説明に出る）。
- * 上の基底（flex-wrap: wrap）と同じ詳細度なので、必ず基底より後ろに置く（前にあると nowrap が負ける）
+ * 下の行が 1 行に入らないとき（useComposerBarFit の 1 段目。欄の幅ではなく、実際に入るかで決める）: 折り返さずに詰め、▾ を消し、
+ * 推論の深さ・権限モードはアイコンだけにする（いまの値は、乗せると説明に出る）。2 段目 .fit-tight は queue-mode.css
  */
-@container (max-width: 560px) {
-  .composer-tools,
-  .chat-options {
-    flex-wrap: nowrap;
-    min-width: 0;
-  }
+.composer-bar.fit-narrow .composer-tools,
+.composer-bar.fit-narrow .chat-options {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
 
-  .composer-bar .option-chevron {
-    display: none;
-  }
+.composer-bar.fit-narrow .option-chevron {
+  display: none;
+}
 
-  .composer-bar .option-button {
-    gap: 4px;
-    padding: 0 6px;
-  }
+.composer-bar.fit-narrow .option-button {
+  gap: 4px;
+  padding: 0 6px;
+}
 
-  .chat-options .option-menu:not(.model-menu) .option-label {
-    display: none;
-  }
+.composer-bar.fit-narrow .chat-options .option-menu:not(.model-menu) .option-label {
+  display: none;
 }
 
 .composer-error {
