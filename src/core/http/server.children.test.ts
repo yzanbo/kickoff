@@ -188,3 +188,71 @@ test("サブエージェントに子チャットで聞く: Claude Code から記
   assert.equal((await ctx.call("POST", `/api/chats/${parentId}/subagents/zz/children`, { text: "?" })).status, 400);
   assert.equal((await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "" })).status, 400);
 });
+
+/** 依頼文を返して終わった子チャットを作る（最後の返答は「依頼文の本文」。途中の「確認します」は最後の返答ではない） */
+async function childWithReply(ctx: ReturnType<typeof setup>, parentId: number) {
+  ctx.provider.emits = [
+    { type: "text", text: "確認します" },
+    { type: "tool_use", id: "r1", name: "Read", input: { file_path: "a.ts" } },
+    { type: "tool_result", tool_use_id: "r1", content: "…", is_error: false },
+    { type: "text", text: "子チャット「依頼」で検討した結果、次をお願いします。" },
+  ];
+  const child = (await ctx.call("POST", `/api/chats/${parentId}/children`, { text: "依頼", inherit: false })).body;
+  await until(() => ctx.store.chats.get(child.id)?.status === "completed");
+  ctx.provider.emits = [];
+  const end = ctx.store.events.list(child.id).find((e) => e.type === "result")!;
+  return { child, end };
+}
+
+test("親チャットに渡す: 作業の最後の返答を、引用・見出しなしで親に送る・送信待ちに足す・入力欄用に返し、親の発言には出どころ、子には渡した記録を残す", async () => {
+  const ctx = setup();
+  const { call, store, runner } = ctx;
+  const parentId = await finishedChat(ctx);
+  const { child, end } = await childWithReply(ctx, parentId);
+  const reply = "子チャット「依頼」で検討した結果、次をお願いします。";
+  const from = { chat_id: child.id, title: child.title };
+
+  // 入力欄: 親には何も送らず、渡す文を返す
+  const composer = await call("POST", `/api/chats/${child.id}/handoff`, { via: "composer", turn_event_id: end.id });
+  assert.equal(composer.status, 200);
+  assert.deepEqual(composer.body, { text: reply, parent_chat_id: parentId, sent: null });
+
+  // 今すぐ送る: 親が作業していなければそのまま送り、発言に出どころ
+  const sent = await call("POST", `/api/chats/${child.id}/handoff`, { via: "send", turn_event_id: end.id });
+  assert.equal(sent.body.sent, "sent");
+  const user = store.events.list(parentId).findLast((e) => e.type === "user");
+  assert.ok(user?.type === "user");
+  assert.equal(user.data.text, reply);
+  assert.deepEqual(user.data.handoff_from, from);
+  await until(() => !runner.isBusy(parentId));
+
+  // 送信待ち: 作業していなくても送らずに列の最後へ（出どころ付き）
+  const queued = await call("POST", `/api/chats/${child.id}/handoff`, { via: "queue", turn_event_id: end.id });
+  assert.equal(queued.body.sent, "queued");
+  const message = runner.queueState(parentId).messages.at(-1);
+  assert.equal(message?.text, reply);
+  assert.deepEqual(message?.handoff_from, from);
+  assert.equal(runner.isBusy(parentId), false);
+
+  // 子には、渡すたびに渡し方の記録
+  const handoffs = store.events.list(child.id).flatMap((e) => (e.type === "handoff" ? [e.data.via] : []));
+  assert.deepEqual(handoffs, ["composer", "send", "queue"]);
+});
+
+test("親チャットに渡す: 親のないチャット・作業の終わりでない記録・止めた作業は 400、親がアーカイブ済みなら 409", async () => {
+  const ctx = setup();
+  const { call, store } = ctx;
+  const parentId = await finishedChat(ctx);
+  const { child, end } = await childWithReply(ctx, parentId);
+  const parentEnd = store.events.list(parentId).find((e) => e.type === "result")!;
+  assert.equal((await call("POST", `/api/chats/${parentId}/handoff`, { via: "send", turn_event_id: parentEnd.id })).status, 400);
+  const user = store.events.list(child.id).find((e) => e.type === "user")!;
+  assert.equal((await call("POST", `/api/chats/${child.id}/handoff`, { via: "send", turn_event_id: user.id })).status, 400);
+  const cancelled = store.events.add(child.id, { type: "result", status: "cancelled" });
+  assert.equal((await call("POST", `/api/chats/${child.id}/handoff`, { via: "send", turn_event_id: cancelled.id })).status, 400);
+  assert.equal((await call("POST", `/api/chats/${child.id}/handoff`, { via: "elsewhere", turn_event_id: end.id })).status, 400);
+  store.chats.archive(parentId, true);
+  assert.equal((await call("POST", `/api/chats/${child.id}/handoff`, { via: "send", turn_event_id: end.id })).status, 409);
+  // 渡せなかったものは記録しない
+  assert.equal(store.events.list(child.id).filter((e) => e.type === "handoff").length, 0);
+});

@@ -2,7 +2,7 @@
 // 資源そのもの（Project・Chat・ChatGroup など）は各ファイルにあり、ここには API にだけ出てくる形を置く
 import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
-import type { ChatEvent, HandoffFrom } from "./chatEvent";
+import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
 import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
@@ -160,6 +160,22 @@ export interface ChatDetail {
  */
 export interface TellResult {
   result: "told" | "queued" | "sent" | "held";
+}
+
+/** 子チャットの作業の最後の返答を、親チャットに渡す（POST /api/chats/:id/handoff。turn_event_id は作業の終わりの記録） */
+export interface HandoffBody {
+  via: HandoffVia;
+  turn_event_id: number;
+}
+
+/**
+ * 親チャットに渡した結果: text = 渡した文（作業の最後の返答。入力欄に入れるときは画面がこれを入れる）・parent_chat_id = 渡した先（直接の親）・
+ * sent = 今すぐ送るなら伝えた結果（told / queued / sent / held）、送信待ちなら queued、入力欄なら null
+ */
+export interface HandoffResult {
+  text: string;
+  parent_chat_id: number;
+  sent: TellResult["result"] | null;
 }
 
 /**
