@@ -79,7 +79,7 @@ test("待ちの列は再起動しても残る: 自動で送るのまま読み戻
   assert.deepEqual(restarted.live(chatId).queue.messages.map((m) => m.text), ["2", "3"]);
   assert.equal(restarted.live(chatId).queue.paused, false);
   assert.deepEqual(
-    restarted.queueResumes().map((r) => [r.chat_id, r.count, r.next]),
+    restarted.queueResumes().map((r) => [r.chat_id, r.messages.length, r.messages[0].text]),
     [[chatId, 2, "2"]],
   );
   release();

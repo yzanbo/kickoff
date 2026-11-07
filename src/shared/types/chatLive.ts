@@ -88,6 +88,11 @@ export interface ChatLive {
    * 圧縮が終わってから伝える（圧縮前指示の作業に混ざる・圧縮より前の会話に入るのを防ぐため）
    */
   awaiting_compact: boolean;
+  /**
+   * 起動したときの送信待ちの確かめを待っている（前回の終了で、自動で送るまま送信待ちが残った。答えるまで送らない。なければ null）。
+   * interrupted: 前回の終了で、作業の途中で止まったか（「続けてから送る」を選べる）
+   */
+  queue_resume: { interrupted: boolean } | null;
 }
 
 /**
@@ -102,16 +107,30 @@ export const QUEUE_RESUME_ACTION_LABELS: Record<QueueResumeAction, string> = {
   pause: "止めておく",
 };
 
-/** 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない） */
+/** 起動したときの送信待ちの確かめの、止まったところの 1 つ（文と、その時刻） */
+export interface QueueResumeMoment {
+  text: string;
+  at: string;
+}
+
+/**
+ * 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）。
+ * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところ（最後の指示・AI の最後の返答・最後のツール）を添える
+ */
 export interface QueueResume {
   chat_id: number;
   project_id: number;
   /** チャットの名前（なければ null） */
   title: string | null;
-  /** 送信待ちの件数 */
-  count: number;
-  /** 次に送る指示の書き出し（挟む行なら、その名前） */
-  next: string;
-  /** 前回の終了で、作業の途中で止まったか（「中断した作業を続けてから送る」を選べる） */
+  /** 前回の終了で、作業の途中で止まったか（「続けてから送る」を選べる） */
   interrupted: boolean;
+  /** 送信待ち（並び・一時停止の印は送信待ちの見た目と同じ） */
+  messages: QueuedMessage[];
+  stops: number[];
+  /** 止まったところ: 最後の自分の指示・メインエージェントの最後の返答（長ければ頭だけ）・最後に動かしたツール（なければ null） */
+  last_prompt: QueueResumeMoment | null;
+  last_reply: QueueResumeMoment | null;
+  last_tool: QueueResumeMoment | null;
+  /** 最後の記録の時刻（止まった時刻の目安。記録がなければ null） */
+  stopped_at: string | null;
 }

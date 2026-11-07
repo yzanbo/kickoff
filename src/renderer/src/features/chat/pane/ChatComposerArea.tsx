@@ -96,7 +96,7 @@ export function ChatComposerArea({
         <span ref={onDock} className="composer-chips-dock" />
       </div>
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-      <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} />
+      <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={live.queue_resume} />
       <Composer
         chatContext={{ projectId: chat.project_id, exclude: chat.id }}
         options={options}

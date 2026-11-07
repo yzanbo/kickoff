@@ -25,6 +25,8 @@ interface LiveFields {
   compactAfterTurn: boolean;
   /** 圧縮が終わって、預かった「いま」を順に送っている途中（送り終えるまで、新しい「いま」も預かって後ろに足す。画面には配らない） */
   deliveringAfterCompact: boolean;
+  /** 起動したときの送信待ちの確かめを待っている（答えるまで送信待ちを送らない。ChatLive の queue_resume） */
+  resume: { interrupted: boolean } | null;
 }
 
 /**
@@ -51,7 +53,7 @@ export class ChatRuntime {
   readonly edits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false };
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, resume: null };
   /** 圧縮が終わった（預かった「いま」を伝える。holdsTells が外れたとき） */
   private readonly onCompactEnded: () => void;
 
@@ -87,6 +89,11 @@ export class ChatRuntime {
   /** 圧縮前指示を送ってから、圧縮が終わるまでか */
   get awaitingCompact(): boolean {
     return this.fields.awaitingCompact;
+  }
+
+  /** 起動したときの送信待ちの確かめを待っているか（待っていれば、前回の終了で作業の途中で止まったか） */
+  get resume(): { interrupted: boolean } | null {
+    return this.fields.resume;
   }
 
   /** 作業中に手で頼んだ圧縮の圧縮前指示を、いまの作業に足したか（その作業が最後まで終わったら圧縮する） */
@@ -131,7 +138,7 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn } = this.fields;
+    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn, resume } = this.fields;
     return {
       queue: this.queueState(),
       background,
@@ -142,6 +149,7 @@ export class ChatRuntime {
       after_compact: afterCompact,
       awaiting_compact: awaitingCompact,
       compact_after_turn: compactAfterTurn,
+      queue_resume: resume,
     };
   }
 
