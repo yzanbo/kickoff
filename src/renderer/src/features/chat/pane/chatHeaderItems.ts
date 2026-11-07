@@ -38,6 +38,13 @@ export function hiddenHeaderItems(saved: readonly string[]): ReadonlySet<ChatHea
   return new Set(CHAT_HEADER_ITEMS.filter((i) => saved.includes(i)));
 }
 
+/** 隠している項目が同じか（保存した値の順・知らない名前は見ない。「既定に戻す」を押せるかに使う） */
+export function sameHiddenItems(a: readonly string[], b: readonly string[]): boolean {
+  const left = hiddenHeaderItems(a);
+  const right = hiddenHeaderItems(b);
+  return left.size === right.size && [...left].every((i) => right.has(i));
+}
+
 /** item の表示・非表示を入れ替えた、保存する値（項目の順にそろえる） */
 export function toggleHeaderItem(saved: readonly string[], item: ChatHeaderItem): string[] {
   const hidden = hiddenHeaderItems(saved);

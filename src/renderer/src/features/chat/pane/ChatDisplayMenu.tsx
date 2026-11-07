@@ -9,6 +9,7 @@ import {
   CHAT_HEADER_ITEM_NOTES,
   CHAT_HEADER_SECTIONS,
   hiddenHeaderItems,
+  sameHiddenItems,
   toggleHeaderItem,
   type ChatHeaderItem,
 } from "./chatHeaderItems";
@@ -98,14 +99,16 @@ export function ChatDisplayItems() {
               })}
             </Fragment>
           ))}
-          {hidden.size > 0 && (
-            <>
-              <div className="menu-separator" role="separator" />
-              <MenuItem keepOpen onSelect={() => setSaved([])}>
-                <span className="project-switch-item">すべて表示する</span>
-              </MenuItem>
-            </>
-          )}
+          {/* 初めの選び方に戻す（前は「すべて表示する」だったが、戻したいのは初めの形なので。初めのままなら押せない） */}
+          <div className="menu-separator" role="separator" />
+          <MenuItem
+            keepOpen
+            disabled={sameHiddenItems(saved, CHAT_HEADER_HIDDEN.initial)}
+            title="見出しの項目を初めの選び方に戻します"
+            onSelect={() => setSaved([...CHAT_HEADER_HIDDEN.initial])}
+          >
+            <span className="project-switch-item">既定に戻す</span>
+          </MenuItem>
         </MenuFlyout>
       )}
       <CheckItem
