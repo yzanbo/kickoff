@@ -41,6 +41,7 @@
 | メモ（プロジェクトの「メモ」タブ。プロジェクトの外のフォルダの Markdown か HTML（HTML のメモ = HTML と CSS で書くページ。描いた見た目で見る）） | メモのフォルダ（設定 `memos_dir` の下の、プロジェクトの `memo_folder`。別の場所なら `memo_path`）・`MemoService`（`core/memos/`）・`MemoTab`（`features/memo/`） | なし |
 | メモのチャット（メモの右の欄で話す、メモごとに 1 つのふつうのチャット。一覧には並べず、そのメモの右の欄から開く。AI はメモのファイルを直接読み書きする） | `Chat` の `memo_path`・`POST /api/projects/:id/memo/chat`・`MemoChat`（`features/memo/`） | なし |
 | 子チャット（チャットの発言から「子チャットで聞く」・右の欄の「＋」の「新しい子チャット」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`。作ったときは `CHILD_CHAT_OPEN_ON_CREATE` で、開かないも選べる）。孫・ひ孫も作れる。サブエージェントの「伝える」で「子チャットで聞く」を選ぶと、そのサブエージェントの会話の記録を添えた子チャットになる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`startSubagentChildChat`（`core/chat/subagentChild.ts`）・`features/chat/children/` | なし |
+| 親への依頼文（子チャットの AI に、親チャットの AI へ渡す依頼文だけを書いてもらう頼み。発言の印 = 依頼文の頼み）・親チャットに追加（子チャットの作業の最後の返答を、そのまま直接の親に渡す。渡し方 = 入力欄 / 今すぐ送る / 送信待ち、渡したあと = そのまま / アーカイブ / 削除）・渡したことの印 / 出どころの札 | 頼み方の文 `handoffRequestPrompt`・最後の返答 `lastReplyOfTurn`（`@shared/chat/handoff`）・発言の印 `MessageMarks`（`handoff_request` / `handoff_from`）・渡し方 `HandoffVia`・渡したあと `HandoffAfter`・`POST /api/chats/:id/handoff`（`core/chat/handoff.ts`）・記録 `handoff`・`features/chat/children/handoff.ts` | なし（「最新の答えを引用して渡す」は前からの `handBackText`） |
 | 会話 / 動き（チャットの画面の見え方。動き = メインエージェントとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
 
 ### チャットの軸とエージェントの軸
@@ -188,7 +189,7 @@ CREATE TABLE snippets (
 
 | type | data | 以前からの変更 |
 |---|---|---|
-| `user` | `text` `attachments` `message_uuid` `handover?` `pre_compact?`（圧縮前指示。text は指示の文だけで、AI には前置きを付けて渡す）`post_compact?`（圧縮後指示。同じく前置き `postCompactMessage` を付けて渡す） | `message_uuid` を必須に |
+| `user` | `text` `attachments` `message_uuid` `handover?` `pre_compact?`（圧縮前指示。text は指示の文だけで、AI には前置きを付けて渡す）`post_compact?`（圧縮後指示。同じく前置き `postCompactMessage` を付けて渡す）`handoff_request?`（子チャットに親への依頼文を頼んだ発言）`handoff_from?`（子チャットから渡した依頼の出どころ `{ chat_id, title }`） | `message_uuid` を必須に |
 | `init` | `session_id` `model?` `permission_mode?` `effort?` | |
 | `text` / `thinking` / `tool_use` / `tool_result` | 以前どおり＋`parent?`（サブエージェントのもの） | `sub` をなくす（`parent` があればサブエージェント） |
 | `approval` | `approval_id` `kind` `tool_name` `title?` | |
@@ -197,6 +198,7 @@ CREATE TABLE snippets (
 | `error` / `notice` | `message` | |
 | `compact` | `trigger` `pre_tokens` `post_tokens?` | |
 | `subagent` | `SubagentInfo` | |
+| `handoff` | `via`（composer / send / queue）`parent_chat_id` `turn_event_id`（子チャットの作業の返答を親に渡した。渡すたびに 1 件。流れには出さず、渡した作業の終わりの行の印にする） | 新しく足した |
 
 ### 設定（AppSettings）
 
