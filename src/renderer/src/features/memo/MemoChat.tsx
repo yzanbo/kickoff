@@ -23,7 +23,7 @@ export interface MemoChatHandle {
 export type MemoChatPlace = "right" | "bottom";
 
 /**
- * メモのチャットの欄（本文の右か下を見出しで選ぶ。右でも狭いときは下）: メモごとに 1 つの、ふつうのチャット（Claude Code。モデルの選択・音声入力・返事を書きながら見せる・
+ * メモのチャットの欄（本文の右か下を見出しで選ぶ。幅で勝手に入れ替えない）: メモごとに 1 つの、ふつうのチャット（Claude Code。モデルの選択・音声入力・返事を書きながら見せる・
  * 送信待ち・添付などはメインのチャットと同じ）。AI はメモのファイルを直接読み書きし、書き換えると開いているメモが読み直す（コアがメモの変更を知らせる）。
  * まだチャットがなければ、最初の指示の入力欄だけを出し、送るとチャットを作る。送る前に、書きかけのメモを保存する（beforeSend）
  */
@@ -71,7 +71,7 @@ export function MemoChat({
           onChange={onPlaceChange}
           options={[
             { value: "bottom", label: "下に表示（本文の下に置く）", icon: PanelBottom, iconOnly: true },
-            { value: "right", label: "右に表示（本文の右に置く。狭いときは下）", icon: PanelRight, iconOnly: true },
+            { value: "right", label: "右に表示（本文の右に置く）", icon: PanelRight, iconOnly: true },
           ]}
         />
         <CloseButton size={15} label="チャットの欄を閉じる" onClick={onClose} />

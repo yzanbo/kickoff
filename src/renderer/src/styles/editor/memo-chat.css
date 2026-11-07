@@ -1,6 +1,6 @@
-/* ==== メモの会話の欄（本文の右か下を見出しで選ぶ。右でも狭いときは本文の下。MemoChat） ==== */
+/* ==== メモの会話の欄（本文の右か下を見出しで選ぶ。幅で勝手に入れ替えない。MemoChat） ==== */
 
-/* 本文と会話を左右に並べる（メモの見出しの幅で、狭ければ上下） */
+/* 本文と会話を左右に並べる（狭くても下へ回さない。下は見出しの切り替えで利用者が選ぶ） */
 .memo-view {
   container: memo-view / inline-size;
 }
@@ -65,30 +65,8 @@
   user-select: none;
 }
 
-@container memo-view (max-width: 720px) {
-  .memo-body.with-chat {
-    flex-direction: column;
-  }
-
-  /* 上下に並べるときは、高さ（本文の下の 55%）をスライドさせる */
-  .memo-body.chat-open .memo-chat-slot {
-    flex-basis: 55%;
-  }
-
-  .memo-chat {
-    width: 100%;
-    border-top: 1px solid var(--border);
-    border-left: none;
-  }
-
-  .memo-chat-resizer {
-    display: none;
-  }
-}
-
 /*
  * 本文の下に置く（欄の見出しで選ぶ。MEMO_CHAT_PLACE）。高さは --memo-chat-h（本文と欄を合わせた高さの %。上下のつまみで変える）。
- * 狭いときの右の置き方（上の @container）より詳細度を上げて、選んだ高さのままにする
  */
 .memo-body.with-chat.chat-bottom {
   flex-direction: column;
