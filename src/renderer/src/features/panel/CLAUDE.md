@@ -8,7 +8,7 @@
 | `state/` | 状態（`panelState.ts` の `panelReducer`・店 `panelStore.ts`・操作 `panelActions.ts`）・サイドバーとの連動（`linkedTabs.ts`・`useLinkedChats.ts`）・表示するタブの種類（`panelKinds.ts`）・下書き（`panelDrafts.ts`・`draftPersistence.ts`） |
 | `layout/` | ペインの分割（形 `paneTree.ts`・変え方 `paneLayout.ts`・割合 `paneSizes.ts`・位置 `paneGeometry.ts`・境目 `PaneSash`・タブのドラッグ `useTabDrag`） |
 | `tabs/` | タブの種類の表（`tabKinds.ts`）・型（`panelTypes.ts`）・タブの列（`PaneTabBar` / `PaneTab` / `PanelTab` / `PanelTabAdds`）・中身（`PanelTabPage`・`NewChatPane`）・メニューと道具（`TabMenu`・「表示」のメニュー `PanelViewMenu`（`usePanelViewMenu` ＋ `PanelViewButton`）） |
-| `clusters/` | タブのまとまり（`useTabClusters`・`tabClusters.ts`・`useTabStrip`・札 `TabClusterHead`・並べ替え `useClusterReorder`） |
+| `clusters/` | タブのまとまり（`useTabClusters`・`tabClusters.ts`・`useTabStrip`・札 `TabClusterHead`・並べ替え `useClusterReorder`・タブを落としてグループへ移す `useClusterTabDrop` / `clusterTabDrop.ts`） |
 | `board/` `projectChat/` `bottom/` `agents/` | 欄の殻（大きさ・開閉・ショートカット）: `useBoardPanel` ＋ `usePanelWidth` ＋ `PanelToggle` / `useProjectChat` ＋ `ProjectChat` / `useBottomPanel` ＋ `BottomPanel` / `AgentSplit`（右の欄。カードの印は `agentTabs.ts` の `useShownInAgentPanel`、⌘F は `AgentPanelFind`） |
 | 直下（入れ子） | `panelHost.ts`（パネルの中身からパネルを入れ子にする口 `PanelHostContext`・ピントのある欄 `focusedPanelKey` / `focusInNestedPanel`） |
 
@@ -90,6 +90,7 @@
 - 畳んだまとまりは、そのペインで表示中のタブだけを残す（`visibleClusterTabs`。隠したチャットを一覧から開けば表示中になって出る。見た目の並び `display` にも入れない）。隠れたタブだけになったまとまりは札だけになる。開閉は `useFolds("panel", …)`（すべてのパネル・ペインで共通）。札の右クリックの「タブを畳む / 表示する」も同じ。
 - 札の右クリック（プロジェクトの分かるまとまりだけ）: 「新しいグループを作成…」（`promptDialog` → `api.createGroup`。グループ別のときだけ `canCreateGroup`。作業場所別の本体・ブランチの札はグループと関係がないので出さない）・自分で作ったグループの札では「「グループ名」をタブの列から隠す / 表示する」、グループ別のときは区切り線の下に「表示」のメニューと同じ「表示するグループ ▸」「チャットのないグループを隠す」（`HiddenGroupItems`。札の `menuExtra`）、自分で作ったグループの札では区切り線の下に「「グループ名」を削除…」。そのまとまりで始める新しいチャットは右クリックに置かず、札を押した一覧のいちばん下だけ（サイドバーと同じ `confirmDeleteGroup` で確かめてから。中のチャットはグループなしに戻る）。
 - 自分で作ったグループの札はつかんでドラッグし、同じプロジェクトのほかのグループの枠に落とすと並びを入れ替える（`useClusterReorder`。サイドバーと同じ `useReorder` で、入る位置に縦の線・動かしているまとまりは薄く。`api.reorderGroups` で DB の並びを変えるので、サイドバー・グループのボード・ほかのパネルの札も同じ並びになる。グループなし・作業場所・その他・ほかのプロジェクトのグループには落とせない）。
+- グループ別のとき、チャットのタブをつかんで同じプロジェクトのほかのグループ・「No Group」の枠に落とすと、そのチャットをそのグループへ移す・グループから外す（`useClusterTabDrop`。サイドバー・グループのボードへのドラッグと同じ `api.setChatGroup`）。送る前の新しいチャットのタブは作成先のグループを変える（`setDraftGroup`）。移せるかは純粋関数の `clusterTabDrop`（いまと同じグループ・子チャット（グループに入らない）・ほかのプロジェクト・固定・アーカイブ済み・作業場所・その他の枠は移さない）。移せる枠に重ねている間は、サイドバーと同じ点線の枠と薄い地（`.panel-tab-group.drop-target`）。落とす位置の印とペインの中の並べ替えはふだんのタブのドラッグ（`useTabDrag`）のまま。グループの札の並べ替えと同じ枠に付けるので、受け口は `joinDropHandlers` でつなぐ。
 - まとめないときも、タブの列の左端（横にスクロールしても動かない位置）に同じ札「チャット」（`TabClusterHead` の `all`。控えめな地 `.panel-tab-cluster.all`、タブの数は出さない）を置き、パネルのチャット全体の状態ごとの数と一覧を出す。チャットが 1 つもなければ出さない。
 - ドラッグで落とす位置は見た目の並びで印を付け、`paneIndexOf` でペインの並びの位置に直して移す（`useTabDrag` の `toPaneIndex`）。
 
