@@ -1,8 +1,7 @@
-import { MessageSquarePlus, SquarePen } from "lucide-react";
+import { MessagesSquare, SquarePen, type LucideIcon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { useDismiss } from "@/hooks/useDismiss";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { MenuItem } from "@/ui/PopupMenu";
 import { MAX_ASK_CHILD_QUOTE, openAskChild } from "@/features/chat/children/childChats";
 import { addToChat } from "@/features/chat/pane/addToChat";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
@@ -21,6 +20,8 @@ export interface Picked {
   markdown?: string;
   /** コードの行を選んだとき: 選んだ行のコード（行番号・+- を除いたもの）と行（パスを含めてコピー） */
   code?: { text: string; lines: { from: number; to: number } };
+  /** 右の欄・別ウィンドウで「メモ ▾」を出すときの、メモの出どころのチャット（子チャットならその子、サブエージェントなら足す先のチャット。出さないなら undefined） */
+  memoChatId?: number;
 }
 
 /** 足す先のボタンの横に置くもの（「メモ ▾」）に渡す操作: hold = メニューを開いている間は消さない / done = 済んだので選択ごと消す */
@@ -29,12 +30,12 @@ export interface ExtraControls {
   done: () => void;
 }
 
-/** 選んだ範囲の上のボタン 1 つ（押すと onAdd に引用を渡す。more があれば横の ▾ で、そのチャットに関わるほかの操作のメニューの項目を出す。done = 済んだので選択ごと消す） */
+/** 選んだ範囲の上のボタン 1 つ（押すと onAdd に引用と選んだ範囲を渡す。icon がなければ「チャットに追加」のアイコン） */
 export interface AddTarget {
   label: string;
   title: string;
-  onAdd: (text: string) => void;
-  more?: (picked: Picked, done: () => void) => ReactNode;
+  icon?: LucideIcon;
+  onAdd: (text: string, picked: Picked) => void;
 }
 
 /** ボタンを画面の端からはみ出さないように寄せるときの、ボタン 1 つの幅 */
@@ -86,47 +87,43 @@ export function pickedInCode(root: Element | null): Picked | undefined {
   return { rect: at.range.getBoundingClientRect(), quote: quoteCode({ ...range, code, comment: "" }), code: { text: code, lines: { from: range.from, to: range.to } } };
 }
 
-/** メインの会話の中で選んだときのボタン */
+/** チャットの画面（右の欄・別ウィンドウの外）の会話で選んだときの、このチャットに足すボタン */
 const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追加", title: "選択部分を引用して、チャットの入力欄に足します（送るのは自分で）" };
 
 /**
- * メインの会話の中の文（発言・質問のカード・ツールの行・サブエージェントのカードなど。`data-quotable` の中）を選ぶと、その上に「チャットに追加 ▾」のボタンを出し、押すと選んだ文の引用を、すぐこのチャットの入力欄の文の後ろに足す
- * （何件か足してから、まとめて送れる。送るのは自分で）。▾ はチャットの操作だけ（子チャットで聞く・新しいチャットで聞く）。横に「メモ ▾」（SelectionMemoButton。メモの操作だけ）。
- * 右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach がメインのチャットと両方に足せるボタンを出す）
+ * チャットの画面の会話の中の文（発言・質問のカード・ツールの行・サブエージェントのカードなど。`data-quotable` の中）を選ぶと、その上にボタンを並べる:
+ * 「チャットに追加」（すぐこのチャットの入力欄の文の後ろに引用を足す。何件か足してから、まとめて送れる。送るのは自分で）・
+ * 「子チャットで聞く」（引用を入れた子チャットを作り、このチャットの作業を止めずに横で聞く。発言の右クリックと同じ）・
+ * 「新しいチャットで聞く」（チャットのタブが入っているパネルの中だけ。引用を入力欄に入れた新しいチャット）・「メモ ▾」（SelectionMemoButton。押すとメモへの入れ方のメニュー）。
+ * 右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach が足す先のチャットと両方に足せるボタンを出す）
  */
 export function SelectionAttach() {
   const { root, fillComposer, chatId, projectId, askInNewChat } = useChatPane();
   const inSide = useMainChat() !== null;
   if (inSide) return null;
-  const more = (picked: Picked, done: () => void) => (
-    <>
-      {/* 選んだ文を引用して、このチャットの作業を止めずに横で聞く（発言の右クリックの「子チャットで聞く」と同じ） */}
-      <MenuItem
-        onSelect={() => {
-          openAskChild({ parentId: chatId, eventId: null, quote: (picked.markdown ?? picked.quote).slice(0, MAX_ASK_CHILD_QUOTE) });
-          done();
-        }}
-      >
-        <MessageSquarePlus size={14} aria-hidden /> 子チャットで聞く
-      </MenuItem>
-      {/* チャットのタブが入っているパネルの中だけ（送信待ちの「新しいチャットで聞く」と同じ口） */}
-      {askInNewChat && (
-        <MenuItem
-          title="選択部分の引用を入力欄に入れた新しいチャットを開きます（送るのは自分で）"
-          onSelect={() => {
-            askInNewChat({ text: picked.quote, attachments: [] });
-            done();
-          }}
-        >
-          <SquarePen size={14} aria-hidden /> 新しいチャットで聞く
-        </MenuItem>
-      )}
-    </>
-  );
+  const targets = (): AddTarget[] => [
+    { ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }) },
+    {
+      label: "子チャットで聞く",
+      title: "選択部分を引用した子チャットを作り、このチャットの作業を止めずに横で聞きます（送るのは自分で）",
+      icon: MessagesSquare,
+      onAdd: (_text, picked) => openAskChild({ parentId: chatId, eventId: null, quote: (picked.markdown ?? picked.quote).slice(0, MAX_ASK_CHILD_QUOTE) }),
+    },
+    ...(askInNewChat
+      ? [
+          {
+            label: "新しいチャットで聞く",
+            title: "選択部分の引用を入力欄に入れた新しいチャットを開きます（送るのは自分で）",
+            icon: SquarePen,
+            onAdd: (text: string) => askInNewChat({ text, attachments: [] }),
+          },
+        ]
+      : []),
+  ];
   return (
     <SelectionAttachBox
       pick={() => pickedInQuotable(root.current)}
-      targets={() => [{ ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }), more }]}
+      targets={targets}
       extra={(picked, controls) => (
         <SelectionMemoButton projectId={projectId()} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />
       )}
@@ -139,7 +136,9 @@ const INNER_LABELS: Record<string, string> = { child: "子チャットに追加"
 
 /**
  * 右の欄・別ウィンドウ（container の中）で、会話の文（子チャットの流れ・サブエージェントの画面の手順）・差分・ファイルの中身の行を選ぶと、その上に「チャットに追加」を出し、押すとメインのチャット（mainChatId）の入力欄に足す。
- * ボタンの名前は足す先のチャットの名前（「「機能開発」に追加」）。子チャット・メモのチャットの中で選んだときは、それと、そのチャットに足すボタン（「子チャットに追加」「メモのチャットに追加」）の 2 つ。
+ * ボタンの名前は足す先のチャットの名前（「「機能開発」に追加」。右の欄のどのタブでも同じ呼び方）。
+ * 子チャット・メモのチャットの中で選んだときは、それと、そのチャットに足すボタン（「子チャットに追加」「メモのチャットに追加」）の 2 つ。
+ * 子チャット・サブエージェントの会話の文なら、横に「メモ ▾」も出す（出どころは子チャットならその子、サブエージェントなら足す先のチャット。メモのチャット・コードの行では出さない）。
  * メモの本文は MemoSelectionAttach が出す
  */
 export function SideSelectionAttach({ mainChatId, container }: { mainChatId: number; container: () => Element | null }) {
@@ -149,11 +148,20 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
     const page = currentRange()?.element?.closest<HTMLElement>(".chat-page[data-chat-id]");
     const chatId = Number(page?.dataset.chatId);
     if (!page || !root?.contains(page) || chatId === mainChatId) return undefined;
-    return { chatId, label: INNER_LABELS[page.dataset.chatRole ?? ""] ?? "このチャットに追加" };
+    return { chatId, role: page.dataset.chatRole ?? "" };
+  };
+  // 会話の文なら、メモの出どころのチャットも覚える（メモのチャットの中は除く）
+  const pick = (): Picked | undefined => {
+    const code = pickedInCode(container());
+    if (code) return code;
+    const picked = pickedInQuotable(container());
+    if (!picked) return undefined;
+    const inner = innerChat();
+    return inner?.role === "memo" ? picked : { ...picked, memoChatId: inner?.chatId ?? mainChatId };
   };
   return (
     <SelectionAttachBox
-      pick={() => pickedInCode(container()) ?? pickedInQuotable(container())}
+      pick={pick}
       targets={() => {
         const inner = innerChat();
         const name = chatTargetName(knownChat(mainChatId));
@@ -163,7 +171,16 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
           onAdd: (text) => addToChat(mainChatId, text),
         };
         if (!inner) return [main];
-        return [main, { label: inner.label, title: "選択部分を引用して、このチャットの入力欄に足します（送るのは自分で）", onAdd: (text) => addToChat(inner.chatId, text) }];
+        return [
+          main,
+          { label: INNER_LABELS[inner.role] ?? "このチャットに追加", title: "選択部分を引用して、このチャットの入力欄に足します（送るのは自分で）", onAdd: (text) => addToChat(inner.chatId, text) },
+        ];
+      }}
+      extra={(picked, controls) => {
+        const from = picked.memoChatId;
+        const projectId = from === undefined ? undefined : (knownChat(from) ?? knownChat(mainChatId))?.project_id;
+        if (from === undefined || projectId === undefined) return null;
+        return <SelectionMemoButton projectId={projectId} chatId={from} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />;
       }}
     />
   );
@@ -209,13 +226,14 @@ export function SelectionAttachBox({
   useDismiss(boxRef, close, { enabled: Boolean(shown) && !held });
 
   if (!shown) return null;
-  const at = placeAbove(shown.picked.rect, BUTTON_WIDTH * (shown.targets.length + (extra ? 1 : 0)));
+  const extraNode = extra?.(shown.picked, { hold: setHeld, done: finish });
+  const at = placeAbove(shown.picked.rect, BUTTON_WIDTH * (shown.targets.length + (extraNode ? 1 : 0)));
   return (
     <div ref={boxRef} className="selection-attach" style={{ left: at.x, top: at.y }}>
       {shown.targets.map((target) => (
         <SelectionTargetButton key={target.label} target={target} picked={shown.picked} controls={{ hold: setHeld, done: finish }} />
       ))}
-      {extra?.(shown.picked, { hold: setHeld, done: finish })}
+      {extraNode}
     </div>
   );
 }

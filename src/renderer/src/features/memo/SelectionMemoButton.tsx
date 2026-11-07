@@ -1,23 +1,17 @@
-import { Check, ChevronDown } from "lucide-react";
+import { ChevronDown, StickyNote } from "lucide-react";
 import { useEffect } from "react";
-import { useSetting } from "@/hooks/useSetting";
-import { MEMO_ADD_DEFAULT } from "@/lib/storageKeys";
-import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { addToMemo, MEMO_ADD_MODE_LABELS, MEMO_ADD_MODES, needsTargetMemo, type MemoAddMode } from "./addToMemo";
-import { MEMO_ADD_MODE_ICONS, MemoModeItems, PICK_MEMO_LABELS, RecentMemoItems } from "./MemoMenuItems";
+import { addToMemo, type MemoAddMode } from "./addToMemo";
+import { MemoModeItems } from "./MemoMenuItems";
 
-/** ボタンから開くメニュー（modes = ▾ の入れ方と既定 / pick = 既定が既存のメモに足す入れ方のときの、メモを選ぶ一覧） */
-type OpenKind = "modes" | "pick";
-
-/** ▾ を押したときに、外側のクリックとして閉じないためのセレクタ（押すたびに開閉する） */
-const MORE_SELECTOR = ".selection-memo-more";
-const MAIN_SELECTOR = ".selection-memo-main";
+/** ボタンを押したときに、外側のクリックとして閉じないためのセレクタ（押すたびに開閉する） */
+const BUTTON_SELECTOR = ".selection-memo";
 
 /**
- * 文を選んだときの上のボタンの「メモ ▾」（「チャットに追加」の横）。text は選択部分（返答は Markdown に戻したもの）。
- * - 「メモ」: 既定の入れ方（MEMO_ADD_DEFAULT。初めは新しいメモを作成）ですぐメモにする。既定が既存のメモに追記・AI で組み込む なら、足すメモを選ぶ一覧を出す
- * - ▾: ほかの入れ方（発言の右クリックと同じ 4 項目 MemoModeItems）と、その下に「メモ」で行う入れ方（既定）の選択
+ * 文を選んだときの上のボタンの「メモ ▾」（足す先のボタンの横）。text は選択部分（返答は Markdown に戻したもの）、chatId はメモの出どころのチャット
+ * （新しいメモの名前「<チャット名> チャットメモ<n>」）。押してもすぐにはメモにせず、下にメモへの入れ方のメニューを開く
+ * （発言の右クリックと同じ MemoModeItems: 新しいメモ = そのままメモにする・AI で要約してメモにする / 既存のメモ = 追記する ▸・AI で組み込んで書き直す ▸）。
  * メニューを開いている間は onHold(true)（選んだ範囲の上のボタンを、外側のクリック・選び直しで消さない）。メモにしたら onDone
  */
 export function SelectionMemoButton({
@@ -33,69 +27,33 @@ export function SelectionMemoButton({
   onHold: (hold: boolean) => void;
   onDone: () => void;
 }) {
-  const [defaultMode, setDefaultMode] = useSetting(MEMO_ADD_DEFAULT);
-  const menu = useContextMenu<OpenKind>({ gap: 6 });
-  const open = menu.menu;
+  const menu = useContextMenu<true>({ gap: 6 });
   useEffect(() => onHold(menu.isOpen), [menu.isOpen, onHold]);
-
   const add = (mode: MemoAddMode, target: string | null) => {
     void addToMemo({ projectId, chatId, text, mode, target });
     onDone();
   };
-  const Icon = MEMO_ADD_MODE_ICONS[defaultMode];
-  const pickMode = needsTargetMemo(defaultMode) ? (defaultMode as "append" | "merge") : null;
-
   return (
-    <span className="selection-split">
+    <>
       <button
         type="button"
-        className="btn selection-attach-button selection-split-main selection-memo-main"
-        title={`${MEMO_ADD_MODE_LABELS[defaultMode]}（▾ でほかの追加のしかた・「メモ」で行う追加の変更）`}
-        aria-haspopup={pickMode ? "menu" : undefined}
-        aria-expanded={pickMode ? open?.value === "pick" : undefined}
+        className="btn selection-attach-button selection-memo"
+        title="選択部分をメモにする（新しいメモにするか、既存のメモに足すかを選ぶ）"
+        aria-haspopup="menu"
+        aria-expanded={menu.isOpen}
         // 押してもピントが移って選択が消えないように
         onMouseDown={(e) => e.preventDefault()}
-        onClick={(e) => (pickMode ? menu.toggle(e, "pick") : add(defaultMode, null))}
+        onClick={(e) => menu.toggle(e, true)}
       >
-        <Icon size={13} aria-hidden />
+        <StickyNote size={13} aria-hidden />
         メモ
+        <ChevronDown size={13} aria-hidden className="selection-memo-chevron" />
       </button>
-      <button
-        type="button"
-        className="btn selection-attach-button selection-split-more selection-memo-more"
-        aria-label="メモへの追加のしかたを選ぶ"
-        title="メモへの追加のしかたを選ぶ（「メモ」で行う追加も変えられます）"
-        aria-haspopup="menu"
-        aria-expanded={open?.value === "modes"}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={(e) => menu.toggle(e, "modes")}
-      >
-        <ChevronDown size={13} aria-hidden />
-      </button>
-      {open?.value === "modes" && (
-        <PopupMenu at={open.at} label="メモへの追加" ignore={MORE_SELECTOR} onClose={menu.close}>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="メモへの追加" ignore={BUTTON_SELECTOR} onClose={menu.close}>
           <MemoModeItems projectId={projectId} onAdd={add} />
-          <div className="menu-separator" role="separator" />
-          <div className="menu-label">「メモ」を押したときの追加</div>
-          {MEMO_ADD_MODES.map((mode) => {
-            const ModeIcon = MEMO_ADD_MODE_ICONS[mode];
-            // 選んだものに ✓（ChoiceMenu と同じ形）
-            return (
-              <MenuItem key={mode} role="menuitemradio" checked={mode === defaultMode} keepOpen onSelect={() => setDefaultMode(mode)}>
-                <ModeIcon size={14} aria-hidden />
-                <span className="project-switch-item">{MEMO_ADD_MODE_LABELS[mode]}</span>
-                {mode === defaultMode && <Check size={14} aria-hidden />}
-              </MenuItem>
-            );
-          })}
         </PopupMenu>
       )}
-      {open?.value === "pick" && pickMode && (
-        <PopupMenu at={open.at} label={PICK_MEMO_LABELS[pickMode]} ignore={MAIN_SELECTOR} onClose={menu.close}>
-          <div className="menu-label">{PICK_MEMO_LABELS[pickMode]}</div>
-          <RecentMemoItems projectId={projectId} onPick={(path) => add(pickMode, path)} />
-        </PopupMenu>
-      )}
-    </span>
+    </>
   );
 }

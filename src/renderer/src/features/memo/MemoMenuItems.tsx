@@ -10,18 +10,18 @@ import { baseName, parentOf, recentMemos } from "./memoPaths";
 export const RECENT_MEMOS = 12;
 
 /** 入れ方ごとのアイコン */
-export const MEMO_ADD_MODE_ICONS: Record<MemoAddMode, LucideIcon> = { new: FilePlus, summarize: Sparkles, append: NotebookPen, merge: WandSparkles };
+const MEMO_ADD_MODE_ICONS: Record<MemoAddMode, LucideIcon> = { new: FilePlus, summarize: Sparkles, append: NotebookPen, merge: WandSparkles };
 
 /** 入れ方ごとの説明（項目に乗せたとき） */
 const MODE_TITLES: Record<MemoAddMode, string> = {
-  new: "この文で、新しいメモ「<チャット名> チャットメモ<番号>」を作ります",
+  new: "この文をそのまま、新しいメモ「<チャット名> チャットメモ<番号>」にします",
   summarize: "AI で要約した文で、新しいメモを作ります",
   append: "選んだメモの最後に、区切り線を挟んでこの文を足します",
   merge: "選んだメモにこの文を AI が組み込み、重なりを整理しながらメモ全体を書き直します（すぐ書き換えます）",
 };
 
 /** 既存のメモを選ぶ一覧の見出し */
-export const PICK_MEMO_LABELS: Record<"append" | "merge", string> = { append: "追記するメモ", merge: "組み込むメモ" };
+const PICK_MEMO_LABELS: Record<"append" | "merge", string> = { append: "追記するメモ", merge: "組み込むメモ" };
 
 /**
  * 発言の右クリックのメニューのメモの項目（区切り線のあとに MemoModeItems）。
@@ -37,16 +37,22 @@ export function MemoMenuItems({ projectId, chatId, text }: { projectId: number; 
 }
 
 /**
- * メモへの入れ方の 4 項目。新しく作るのか・既存のメモに足すのかを名前で分ける:
- * 新しいメモを作成・AI で要約して新しいメモを作成・既存のメモに追記 ▸・既存のメモに AI で組み込んで書き直す ▸（AI がこの文をメモに組み込み、メモ全体を書き直す）。
+ * メモへの入れ方の 4 項目。新しく作るのか・既存のメモに足すのかを見出しで分ける:
+ * 「新しいメモ」= そのままメモにする・AI で要約してメモにする / 「既存のメモ」= 追記する ▸・AI で組み込んで書き直す ▸（AI がこの文をメモに組み込み、メモ全体を書き直す）。
  * ▸ は最近変えた Markdown のメモの一覧（RecentMemoItems）。選んだら onAdd（新しく作るときの target は null）。
- * 発言の右クリック（MemoMenuItems）と、文を選んだときの「メモ」の ▾（SelectionMemoButton）で共通
+ * 発言の右クリック（MemoMenuItems）と、文を選んだときの「メモ ▾」（SelectionMemoButton）で共通
  */
 export function MemoModeItems({ projectId, onAdd }: { projectId: number; onAdd: (mode: MemoAddMode, target: string | null) => void }) {
   const append = useSubmenu();
   const merge = useSubmenu();
-  const NewIcon = MEMO_ADD_MODE_ICONS.new;
-  const SummarizeIcon = MEMO_ADD_MODE_ICONS.summarize;
+  const newItem = (mode: "new" | "summarize") => {
+    const Icon = MEMO_ADD_MODE_ICONS[mode];
+    return (
+      <MenuItem title={MODE_TITLES[mode]} onSelect={() => onAdd(mode, null)}>
+        <Icon size={14} /> {MEMO_ADD_MODE_LABELS[mode]}
+      </MenuItem>
+    );
+  };
   const pickItem = (submenu: ReturnType<typeof useSubmenu>, mode: "append" | "merge") => {
     const Icon = MEMO_ADD_MODE_ICONS[mode];
     return (
@@ -65,12 +71,10 @@ export function MemoModeItems({ projectId, onAdd }: { projectId: number; onAdd: 
   };
   return (
     <>
-      <MenuItem title={MODE_TITLES.new} onSelect={() => onAdd("new", null)}>
-        <NewIcon size={14} /> {MEMO_ADD_MODE_LABELS.new}
-      </MenuItem>
-      <MenuItem title={MODE_TITLES.summarize} onSelect={() => onAdd("summarize", null)}>
-        <SummarizeIcon size={14} /> {MEMO_ADD_MODE_LABELS.summarize}
-      </MenuItem>
+      <div className="menu-label">新しいメモ</div>
+      {newItem("new")}
+      {newItem("summarize")}
+      <div className="menu-label">既存のメモ</div>
       {pickItem(append, "append")}
       {pickItem(merge, "merge")}
     </>
@@ -78,7 +82,7 @@ export function MemoModeItems({ projectId, onAdd }: { projectId: number; onAdd: 
 }
 
 /** 足す・組み込む先に選べるメモ（最近変えた Markdown のメモ。出したときに一覧を読む） */
-export function RecentMemoItems({ projectId, onPick }: { projectId: number; onPick: (path: string) => void }) {
+function RecentMemoItems({ projectId, onPick }: { projectId: number; onPick: (path: string) => void }) {
   const list = useMemoList(projectId, true);
   const recent = useMemo(() => recentMemos(list.data?.entries ?? [], RECENT_MEMOS, "markdown"), [list.data]);
   if (!list.data) return <p className="muted small memo-menu-note">{list.error ?? "読み込み中…"}</p>;

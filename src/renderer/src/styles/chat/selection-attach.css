@@ -1,4 +1,4 @@
-/* ==== 選択部分をチャットに追加（SelectionAttach）: 返答・差分・ファイル・メモの一部を選ぶと上に出るボタン（足す先が 2 つなら区切り線で並べる。メインの会話では「チャットに追加 ▾」と「メモ ▾」） ==== */
+/* ==== 選択部分をチャットに追加（SelectionAttach）: 返答・差分・ファイル・メモの一部を選ぶと上に出るボタン（区切り線で並べる。チャットの画面の会話では「チャットに追加」「子チャットで聞く」「新しいチャットで聞く」「メモ ▾」） ==== */
 
 .selection-attach {
   position: fixed;
@@ -24,48 +24,17 @@
   border-left: 1px solid var(--border);
 }
 
-/* 「チャットに追加 ▾」（SelectionTargetButton）・「メモ ▾」（SelectionMemoButton）: 押す所と ▾ を 1 つのボタンに見せる（乗せたときの地は入れ物に付け、中の 2 つは透明。.panel-split-button と同じ） */
-.selection-split {
-  display: inline-flex;
-}
-
-.selection-split:first-child {
-  border-radius: var(--radius) 0 0 var(--radius);
-}
-
-.selection-split:last-child {
-  border-radius: 0 var(--radius) var(--radius) 0;
-}
-
-.selection-split + .selection-split,
-.selection-attach-button + .selection-split,
-.selection-split + .selection-attach-button {
-  border-left: 1px solid var(--border);
-}
-
-.selection-split:hover,
-.selection-split:has([aria-expanded="true"]) {
-  background: var(--bg-hover);
-}
-
-.selection-split .selection-attach-button,
-.selection-split .selection-attach-button:hover:not(:disabled) {
-  background: transparent;
-}
-
-.selection-split .selection-attach-button.selection-split-main {
-  padding-right: 4px;
-}
-
-.selection-split .selection-attach-button.selection-split-more {
-  justify-content: center;
-  width: 22px;
-  padding: 0;
-  border-left: 0;
+/* 「メモ ▾」（SelectionMemoButton）: 押すと下にメモへの入れ方のメニューを開く。▾ は控えめに、乗せた・開いたときだけ濃く */
+.selection-memo-chevron {
+  margin-left: -2px;
   color: var(--muted);
 }
 
-.selection-split:hover .selection-split-more,
-.selection-split .selection-split-more[aria-expanded="true"] {
+.selection-memo:hover .selection-memo-chevron,
+.selection-memo[aria-expanded="true"] .selection-memo-chevron {
   color: var(--text);
+}
+
+.selection-memo[aria-expanded="true"] {
+  background: var(--bg-hover);
 }

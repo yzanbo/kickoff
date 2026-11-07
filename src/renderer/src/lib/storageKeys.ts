@@ -243,11 +243,6 @@ export const MEMO_CHAT_WIDTH = defineSetting("kickoff:memo-chat-width", number(3
 export const MEMO_CHAT_PLACE = defineSetting("kickoff:memo-chat-place", choice(["right", "bottom"], "right"));
 /** メモのチャットの欄の高さ（本文の下に置いたとき。本文と欄を合わせた高さに対する %。境目のつまみで変える） */
 export const MEMO_CHAT_HEIGHT = defineSetting("kickoff:memo-chat-height", number(45));
-/**
- * 文を選んだときの「メモ」（▾ の左）で行う追加（new = 新しいメモを作成 / summarize = AI で要約して新しいメモを作成 /
- * append = 既存のメモに追記 / merge = 既存のメモに AI で組み込んで書き直す。append / merge は足すメモを選ぶ一覧を出す。features/memo/addToMemo.ts の MemoAddMode）
- */
-export const MEMO_ADD_DEFAULT = defineSetting("kickoff:memo-add-default", choice(["new", "summarize", "append", "merge"], "new"));
 /** チャットの画面の右の欄の「変更」で確認済みにしたファイル（キーは「プロジェクト:ワークツリーのフォルダ（本体は空）」。値はパス → 確認したときの差分の指紋） */
 export const sideViewedFiles = defineSettingFamily("kickoff:side-viewed:", record(isString), { ids: true });
 
