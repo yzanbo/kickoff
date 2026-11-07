@@ -179,7 +179,8 @@
   gap: 8px;
   padding: 6px var(--gutter);
   border-bottom: 1px solid var(--border);
-  background: var(--bg-sidebar);
+  /* 地は画面と同じ（右の欄の中のほかのタブとそろえる。前はサイドバーの色で染めていた） */
+  background: var(--bg);
 }
 
 .child-chat-bar-label {

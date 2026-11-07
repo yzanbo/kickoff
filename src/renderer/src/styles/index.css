@@ -77,6 +77,7 @@
 @import "./board/board-cards.css";
 @import "./panel/side-panel.css";
 @import "./panel/side-panel-tabs.css";
+@import "./panel/side-panel-tab-sheet.css";
 @import "./panel/side-panel-tab-groups.css";
 @import "./panel/side-panel-tab-kinds.css";
 @import "./panel/side-panel-split.css";
