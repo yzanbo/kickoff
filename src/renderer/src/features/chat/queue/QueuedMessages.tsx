@@ -11,6 +11,9 @@ import { QueuedRow } from "./QueuedRow";
 import { QueuedStopLine } from "./QueuedStopLine";
 import { QueuedPauseNotice } from "./QueuedPauseNotice";
 import { useQueueDrag } from "./useQueueDrag";
+import { useQueuePrediction } from "./useQueuePrediction";
+import { useSendingQueued } from "./useSendingQueued";
+import { QueuedSendingRow } from "./QueuedSendingRow";
 import { useQueuedEdits } from "./useQueuedEdits";
 import { useQueueSelection } from "./useQueueSelection";
 import { useAskInNewChat } from "./askInNewChat";
@@ -49,6 +52,7 @@ export function QueuedMessages({
   busy,
   childChats,
   resume,
+  lastUserEventId,
 }: {
   /**
    * 送信待ちの様子（作業中の様子の queue）。stops は一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも）、
@@ -60,9 +64,16 @@ export function QueuedMessages({
   childChats: boolean;
   /** 起動したときの送信待ちの確かめを待っている（前回の終了で残った。決めるまでコアは送らない。上に帯を出す） */
   resume: ChatLive["queue_resume"];
+  /** 流れに出ている、いちばん新しい自分の発言の記録の ID（なければ 0）。送った指示を、チャット欄に出るまで「送信中」で残すのに使う */
+  lastUserEventId: number;
 }) {
   const { chatId } = useChatPane();
-  const { messages, paused, stops, waiting_edit: waitingEdit } = queue;
+  const { paused, waiting_edit: waitingEdit } = queue;
+  // 並べ替えは、落とした形をサーバーの応答より先に出す（出す並びは先回りのものになることがある）
+  const view = useQueuePrediction(queue.messages, queue.stops);
+  const { messages, stops } = view;
+  // 送った指示は、チャット欄にその発言が出るまで、いちばん上に「送信中」で残す（どこにもない間を作らない）
+  const sending = useSendingQueued(chatId, queue.messages, lastUserEventId);
   const [collapsed, setCollapsed] = useSetting(QUEUE_COLLAPSED);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
   const [expanded, setExpanded] = useSetting(QUEUE_EXPANDED);
@@ -87,7 +98,7 @@ export function QueuedMessages({
   // ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を選ぶ（選んだものだけ、まとめて送る・消す・移す。Esc でやめる）
   const { selected, selectRow, clearSelection } = useQueueSelection(messages);
   // ドラッグ: 指示の並べ替えと、一時停止の印の移動
-  const dnd = useQueueDrag(chatId, messages, stops, failed);
+  const dnd = useQueueDrag(chatId, messages, stops, failed, view.predict);
   // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
   const ask = useAskInNewChat(messages);
   // 右クリックの「子チャットで開く / 移す」（会話を引き継ぐ / 新しく始めるを選んで子チャットを作って送り、設定の開き方で開く）
@@ -104,7 +115,7 @@ export function QueuedMessages({
     setOverflowing(Boolean(el && !expanded && el.scrollHeight > el.clientHeight + 1));
   }, [messages, edit.edits, collapsed, expanded, height]);
   // 空のときは出さない。いまの作業が終わったら止める印だけがあれば（質問として送った）、その予定の 1 行だけ出す
-  if (messages.length === 0) return busy && stops.includes(0) ? <QueuedPauseNotice chatId={chatId} /> : null;
+  if (messages.length === 0 && sending.length === 0) return busy && stops.includes(0) ? <QueuedPauseNotice chatId={chatId} /> : null;
   // 新しいチャット・子チャットで聞く指示（選んでいる行なら選んだものすべて）。挟む行（会話の圧縮・コンテキストの消去）は持っていかない（送信待ちに残す）
   const askWith = (run: (ids: string[], remove: boolean) => void, id: string, remove: boolean) => {
     const ids = selected.includes(id) && selected.length > 1 ? selected : [id];
@@ -146,13 +157,13 @@ export function QueuedMessages({
   };
   // 次に送る指示（1 件目）を書き直していて、作業は終わり、コアが書き直しが終わる（保存・やめる・一覧をたたむ）のを待っている = 送信の準備ができている。
   // 案内は見出しに 1 か所だけ出す（送れなかったなど、ほかの理由で止まっているとき・作業中は出さない）
-  const readyForEdit = !collapsed && Boolean(edit.edits[messages[0].id]) && waitingEdit && !busy && !paused;
+  const readyForEdit = !collapsed && messages.length > 0 && Boolean(edit.edits[messages[0].id]) && waitingEdit && !busy && !paused;
   const hint = queuedHint({ paused, busy, collapsed, stopIndex, readyForEdit, held: resume !== null });
   // 一時停止の印があって、案内がその止める位置（作業中）か、線で待っていること（作業が終わって 1 件目の上の線）を伝えているとき
   // （queuedHint の印の分かれ道と同じ条件）。止める印と同じ色・同じアイコンで、畳んでいてもひと目で分かるようにする
   const stopHint = !paused && (busy ? stopIndex >= 0 : stopIndex === 0) && !readyForEdit && resume === null;
   // 畳んだ 1 行には、次に送る指示の初めの行も出す（中を開かなくても、次に何が送られるか分かる）
-  const next = collapsed ? nextQueuedText(messages[0]) : "";
+  const next = collapsed && messages.length > 0 ? nextQueuedText(messages[0]) : "";
 
   return (
     <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
@@ -177,6 +188,8 @@ export function QueuedMessages({
         >
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
           <span className="queued-count">送信待ち {messages.length} 件</span>
+          {/* 畳んでいる間も、送った指示がチャット欄に出るまでは送信中と分かるようにする */}
+          {collapsed && sending.length > 0 && <span className="queued-sending-label">送信中…</span>}
           {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && (
               <span className={cx("queued-hint", stopHint && "stop", readyForEdit && "ready")}>
                 {stopHint && <OctagonPause size={12} aria-hidden />}
@@ -212,6 +225,10 @@ export function QueuedMessages({
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
       {!collapsed && (
         <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : Math.max(height, edit.editHeight) }}>
+          {/* 送った指示（チャット欄に出たら消える。操作はない） */}
+          {sending.map((m) => (
+            <QueuedSendingRow key={`sending-${m.id}`} message={m} />
+          ))}
           {messages.map((m, i) => (
             <Fragment key={m.id}>
             {/* 一時停止: この行の前で止める印（1 件目の上にも置ける） */}

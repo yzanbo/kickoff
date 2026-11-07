@@ -1,5 +1,6 @@
 import type { Attachment, ChatOptionsPatch, MessageMarks, QueueAddResult, QueueMergeResult, QueueAction, QueueMessageBody, QueueResume, QueueResumeBody, QueueState } from "@shared/types";
 import { request } from "./http";
+import { noteQueuedRemoved } from "./queueRemovals";
 
 const queuePath = (chatId: number, path = "") => `/api/chats/${chatId}/queue${path}`;
 
@@ -27,7 +28,11 @@ export const queueApi = {
   /** attachments: 添付を置き換える（省けば今のまま） */
   editQueued: (chatId: number, id: string, text: string, attachments?: Attachment[]) =>
     request<QueueState>("PATCH", queuePath(chatId, `/${id}`), attachments ? { text, attachments } : { text }),
-  removeQueued: (chatId: number, id: string) => request<QueueState>("DELETE", queuePath(chatId, `/${id}`)),
+  /** 消したことを先に覚える（送信待ちから消えた指示を、送ったものと見分ける。queueRemovals.ts）。まとめて消す・すべて消す・まとめるも同じ */
+  removeQueued: (chatId: number, id: string) => {
+    noteQueuedRemoved(chatId, [id]);
+    return request<QueueState>("DELETE", queuePath(chatId, `/${id}`));
+  },
   /** index は移したあとの位置 */
   moveQueued: (chatId: number, id: string, index: number) => request<QueueState>("POST", queuePath(chatId, `/${id}/move`), { index }),
   /** 待ちの列を、終わっても自動で送らずに止めておくか（戻すと、作業中でなければ先頭をすぐ送る） */
@@ -44,15 +49,24 @@ export const queueApi = {
    */
   queueAction: (chatId: number, action: QueueAction, after: string | null = null) => request<QueueState>("POST", queuePath(chatId, `/${action}`), { after }),
   /** 待ちの指示をすべて消す */
-  clearQueued: (chatId: number) => request<QueueState>("DELETE", queuePath(chatId)),
+  clearQueued: (chatId: number) => {
+    noteQueuedRemoved(chatId, "all");
+    return request<QueueState>("DELETE", queuePath(chatId));
+  },
   /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える） */
   sendAllQueued: (chatId: number, ids?: string[]) => request<QueueState>("POST", queuePath(chatId, "/send-all"), ids ? { ids } : {}),
   /** 選んだ待ちの指示を、送らずに 1 件にまとめる（2 件以上） */
-  mergeQueued: (chatId: number, ids: string[]) => request<QueueMergeResult>("POST", queuePath(chatId, "/merge"), { ids }),
+  mergeQueued: (chatId: number, ids: string[]) => {
+    noteQueuedRemoved(chatId, ids);
+    return request<QueueMergeResult>("POST", queuePath(chatId, "/merge"), { ids });
+  },
   /** 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めておくのをやめ、印を外す） */
   sendQueuedInOrder: (chatId: number) => request<QueueState>("POST", queuePath(chatId, "/send-in-order")),
   /** 選んだ待ちの指示をまとめて消す */
-  removeQueuedMany: (chatId: number, ids: string[]) => request<QueueState>("POST", queuePath(chatId, "/remove-many"), { ids }),
+  removeQueuedMany: (chatId: number, ids: string[]) => {
+    noteQueuedRemoved(chatId, ids);
+    return request<QueueState>("POST", queuePath(chatId, "/remove-many"), { ids });
+  },
   /**
    * 選んだ待ちの指示を、並びを保ったまままとめて移す（いちばん上・いちばん下、または { before: その指示の前（null ならいちばん下）,
    * belowStop: その位置に止める線があれば線の下に入れるか }）

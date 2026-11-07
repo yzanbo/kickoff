@@ -21,7 +21,14 @@ interface QueueDrag {
 type DropMark = { kind: "row" | "stop"; index: number; side: "before" | "after" };
 
 /** 送信待ちの行・印の線のドラッグ（並べ替え・印の移動）と、落とす位置の線を出すか */
-export function useQueueDrag(chatId: number, queue: QueuedMessage[], stops: number[], failed: (e: unknown) => void) {
+export function useQueueDrag(
+  chatId: number,
+  queue: QueuedMessage[],
+  stops: number[],
+  failed: (e: unknown) => void,
+  /** 落としたあとの並びを、サーバーの応答を待たずに出す（null でやめる。useQueuePrediction） */
+  predict: (next: { list: QueuedMessage[]; stops: number[] } | null) => void,
+) {
   const [drag, setDrag] = useState<QueueDrag>();
   /** 落とす位置を at（印の線があればその上か下）にする */
   const overAt = (e: DragEvent<HTMLElement>, at: number, below: boolean) => {
@@ -58,13 +65,21 @@ export function useQueueDrag(chatId: number, queue: QueuedMessage[], stops: numb
     const d = drag;
     setDrag(undefined);
     if (!d || d.at === undefined || !changes(d)) return;
+    // 落とした形をその場で出す（応答を待つと、並べ替える前に 1 件目が送られて消えたように見える）。送れなければ元に戻す
+    const undo = (e: unknown) => {
+      predict(null);
+      failed(e);
+    };
     if (d.stop !== undefined) {
       // 印を 1 本動かす（1 件目の上にも置ける。同じ位置のほかの線は残る）
-      void api.setQueueStops(chatId, moveStopOnce(stops, d.stop, d.at)).catch(failed);
+      const next = moveStopOnce(stops, d.stop, d.at);
+      predict({ list: queue, stops: next });
+      void api.setQueueStops(chatId, next).catch(undo);
       return;
     }
     // 指示を動かす（1 件でも、選んだものをまとめてでも）: 落とした位置の行の前へ。印の線があれば、その上か下か
-    void api.moveQueuedMany(chatId, moving(d), { before: queue[d.at]?.id ?? null, belowStop: d.below ?? true }).catch(failed);
+    predict(moveToSlot(queue, stops, moving(d), { at: d.at, belowStop: d.below ?? true }));
+    void api.moveQueuedMany(chatId, moving(d), { before: queue[d.at]?.id ?? null, belowStop: d.below ?? true }).catch(undo);
   };
   return {
     drag,
