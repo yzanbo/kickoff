@@ -217,7 +217,7 @@ function SubagentCardBody({ entry, view, renderItems, windowed }: { entry: Subag
       ) : (
         steps
       )}
-      <SubagentReport entry={entry} view={view} />
+      <SubagentReport entry={entry} view={view} limited />
     </div>
   );
 }

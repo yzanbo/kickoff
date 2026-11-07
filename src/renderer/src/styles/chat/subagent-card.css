@@ -276,6 +276,32 @@
   background: var(--bg-elev);
 }
 
+/* 報告の見出しの行: 左に「起動したエージェントへの報告」、右に全文の切り替え（長いときだけ） */
+.subagent-result-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subagent-result-head .subagent-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.subagent-result-toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  font-size: calc(12px * var(--chat-scale, 1));
+}
+
+/* 流れの中のカードの長い報告: 高さを抑えて中でスクロールさせる（高さは画面が style で与える。下の端はぼかさない: いちばん下までスクロールしても最後の行が薄いままになるため） */
+.subagent-result-body.limited {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* 裏で動かしたサブエージェントが終わった 1 行（押すとカードへ） */
 .subagent-end {
   display: flex;

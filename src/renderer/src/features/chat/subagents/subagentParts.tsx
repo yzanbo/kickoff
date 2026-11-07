@@ -1,5 +1,5 @@
-import { ChevronRight, CornerDownRight } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, CornerDownRight } from "lucide-react";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ChatEvent } from "@shared/types";
 import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat/subagents";
 import { relayedText } from "@shared/chat/prompts";
@@ -220,17 +220,54 @@ export function SubagentSteps({ entry, view, items, renderItems }: { entry: Suba
   );
 }
 
-/** 起動したエージェントへの報告（まだなければ出さない） */
-export function SubagentReport({ entry, view }: { entry: SubagentEntry; view: SubagentsView }) {
+/**
+ * 起動したエージェントへの報告（まだなければ出さない）。limited（流れの中のカード）なら、長い報告は高さを抑えて中でスクロールさせ
+ * （.subagent-result-body.limited。チャットの流れを報告の全文で埋めない）、見出しの右の「全文を表示」「高さを抑える」で切り替える。
+ * 右の欄のサブエージェントの画面は、報告を読むための場所なので全文のまま
+ */
+export function SubagentReport({ entry, view, limited = false }: { entry: SubagentEntry; view: SubagentsView; limited?: boolean }) {
   const report = subagentReport(entry, view.events);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  // 高さの上限を超えるほど長いか（描いてから測る。コードの色付け・図などで後から伸びるので、大きさが変わるたびに測り直す）と、全文を出しているか
+  const [long, setLong] = useState(false);
+  const [full, setFull] = useState(false);
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el || !limited) return;
+    const measure = () => setLong(el.scrollHeight > REPORT_LIMIT_PX + 40);
+    measure();
+    const observer = new ResizeObserver(measure);
+    for (const child of el.children) observer.observe(child);
+    return () => observer.disconnect();
+  }, [report, limited]);
   if (!report) return null;
+  const clamped = limited && long && !full;
   return (
     <div className="subagent-result">
-      <div className="subagent-label">起動したエージェントへの報告</div>
-      <Markdown>{report}</Markdown>
+      <div className="subagent-result-head">
+        <div className="subagent-label">起動したエージェントへの報告</div>
+        {limited && long && (
+          <button
+            type="button"
+            className="link-button subagent-result-toggle"
+            aria-expanded={full}
+            title={full ? "報告の高さを抑えて、中でスクロールさせます" : "報告の全文を、高さを抑えずに表示します"}
+            onClick={() => setFull(!full)}
+          >
+            {full ? <ChevronsDownUp size={12} aria-hidden /> : <ChevronsUpDown size={12} aria-hidden />}
+            {full ? "高さを抑える" : "全文を表示"}
+          </button>
+        )}
+      </div>
+      <div ref={bodyRef} className={cx("subagent-result-body", clamped && "limited")} style={clamped ? { maxHeight: REPORT_LIMIT_PX } : undefined}>
+        <Markdown>{report}</Markdown>
+      </div>
     </div>
   );
 }
+
+/** 流れの中のカードで、報告をここまでの高さに抑える（これより 40px 以上長いときだけ抑える。少しだけはみ出すものは抑えない） */
+const REPORT_LIMIT_PX = 320;
 
 /**
  * 中身の記録がないときの文。サブエージェントの中で起動したサブエージェント（孫より深いもの）の中の手順は Claude Code が送ってこないので、
