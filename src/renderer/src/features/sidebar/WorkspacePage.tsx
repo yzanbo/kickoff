@@ -2,10 +2,9 @@ import { Archive, Folder, Inbox, Pin, SquarePen } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { BOARD_COLUMN_LABELS, type Project, type Chat, type ChatGroup } from "@shared/types";
 import { api } from "@/api";
-import { alertDialog, reportFailure } from "@/ui/dialogs";
+import { alertDialog } from "@/ui/dialogs";
 import { cx } from "@/lib/cx";
-import { toggleArchiveChat } from "@/features/chat/chatActions";
-import { useChatDragging, useChatDropTarget } from "@/features/group/groups";
+import { useChatDragging } from "@/features/group/groups";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useFold, useFolds } from "@/hooks/useFold";
 import { projectHue } from "@/features/project/projectColor";
@@ -28,6 +27,7 @@ import { DraftRows } from "./DraftRows";
 import { FoldSection } from "@/ui/FoldHead";
 import { stateCounts } from "@/features/chat/chatState";
 import { UngroupedHead } from "./UngroupedHead";
+import { ArchivedBucketFold, useSidebarArchiveDrops } from "./ArchivedBucketFold";
 import { splitAtUngrouped } from "@/features/group/groupOrder";
 import { useWorkspaceRows } from "./useWorkspaceRows";
 import { WorkspaceHead } from "./WorkspaceHead";
@@ -72,7 +72,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   const isActive = routeProjectId(route) === project.id;
   // 行の絞り込み（検索・自分待ち・状態）と、固定・グループ・グループなし・アーカイブ済みへの分け方（bucketChats）
   const list = useWorkspaceRows({ projectId: project.id, chats, groupCount: groups.length, searchAll, collapsed });
-  const { showGroups, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, chatCount, visibleCount, pinned, ungrouped, mainRows, mainSections, archived } = list;
+  const { showGroups, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, chatCount, visibleCount, pinned, ungrouped, mainRows, mainSections, archived, mainArchived } = list;
   const { stateOf, approvals } = useChatStates();
   // 子チャット（親ごと。サイドバーの一覧には並べず、親の行の中に開閉で出す。アーカイブ済みはサイドバーの表示の切り替えに従う）
   const [showArchivedChats] = useShowArchivedChats();
@@ -100,10 +100,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   const rowMenu = useContextMenu<Chat>();
   // 「アーカイブ済み」へチャットの行をドラッグしてアーカイブする（どこからでも同じく、確かめてから。作業中のチャットはサーバーが断るので、その理由を出す）
   const chatDragging = useChatDragging();
-  const archiveDrop = useChatDropTarget((chatId) => {
-    const chat = chats.find((c) => c.id === chatId);
-    if (chat && !chat.archived_at) void toggleArchiveChat(chat).catch(reportFailure("アーカイブできませんでした"));
-  });
+  // アーカイブ済みのチャットを一覧（グループの見出しを出していないときの、見出しの下の一覧）へ落とすと、確かめてから戻す
+  // （グループの見出しを出しているときは、グループ・No Group の落とし先が戻す。useGroupSections）
+  const { archiveDrop, restoreDrop } = useSidebarArchiveDrops(chats);
 
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
@@ -159,6 +158,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         renderRow={renderRow}
         section={sections.sectionProps(group)}
         hue={colors.hueOf(bucket)}
+        allChats={chats}
       />
     );
   };
@@ -169,7 +169,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 「No Group」の見出しと中身（グループなしの下書き・チャット。グループの見出しがなければ、ふつうの一覧）
   const ungroupedBlock = (
     <>
-      {showGroups && ungrouped && (ungrouped.chats.length > 0 || ungroupedDrafts.length > 0 || groupedDrafts) && (
+      {showGroups && ungrouped && (ungrouped.chats.length > 0 || ungroupedDrafts.length > 0 || groupedDrafts || ungrouped.archived) && (
         <UngroupedHead
           projectId={project.id}
           count={ungrouped.chats.length}
@@ -180,22 +180,32 @@ export const WorkspacePage = memo(function WorkspacePage({
           onContextMenu={colors.onContextMenu}
         />
       )}
-      {(filtering && restCount === 0 && ungroupedDrafts.length === 0) ||
+      {(filtering && restCount === 0 && ungroupedDrafts.length === 0 && !mainArchived) ||
       (visibleCount === 0 && ungroupedDrafts.length === 0 && ungroupedHidden) ? null : visibleCount === 0 &&
-        ungroupedDrafts.length === 0 ? (
+        ungroupedDrafts.length === 0 &&
+        !mainArchived ? (
         <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
           <SquarePen size={13} /> 最初のチャットを始める
         </button>
-      ) : mainRows.length === 0 && ungroupedDrafts.length === 0 ? null : (
+      ) : mainRows.length === 0 && ungroupedDrafts.length === 0 && !mainArchived ? null : (
         // グループの見出しがあるときは「No Group」の見出しで開閉し、中身（グループなしの下書き・チャット）を段下げする
         <Collapse open={!ungroupedHidden} indent={showGroups}>
           {/* グループなしの下書き（グループから戻すドロップ先は、包む要素の「No Group」のまとまり） */}
           <DraftRows drafts={ungroupedDrafts} />
-          {mainRows.length === 0 ? null : mainSections ? (
-            <GroupedChatRows buckets={mainSections} renderRow={renderRow} forceOpen={filtering} hueOf={colors.hueOf} onContextMenu={colors.onContextMenu} />
-          ) : (
+          {mainRows.length === 0 && !mainArchived ? null : mainSections ? (
+            <GroupedChatRows
+              buckets={mainSections}
+              renderRow={renderRow}
+              forceOpen={filtering}
+              hueOf={colors.hueOf}
+              onContextMenu={colors.onContextMenu}
+              renderArchived={(bucket) => <ArchivedBucketFold bucket={bucket} chats={chats} renderRow={renderRow} forceOpen={filtering} />}
+            />
+          ) : mainRows.length === 0 ? null : (
             <ul className="chat-rows">{mainRows.map(renderRow)}</ul>
           )}
+          {/* グループなしのアーカイブ済み（グループ別のとき。落としたチャットはグループから外す） */}
+          {ungrouped?.archived && <ArchivedBucketFold bucket={ungrouped.archived} chats={chats} groupId={null} renderRow={renderRow} forceOpen={filtering} />}
         </Collapse>
       )}
     </>
@@ -275,7 +285,9 @@ export const WorkspacePage = memo(function WorkspacePage({
             {ungroupedBlock}
           </div>
         ) : (
-          ungroupedBlock
+          <div className={cx("restore-drop", restoreDrop.over && "drop-target")} {...restoreDrop.props}>
+            {ungroupedBlock}
+          </div>
         )}
         {groupsAfterUngrouped.map(renderGroup)}
         {archived && (

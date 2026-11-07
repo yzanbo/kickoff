@@ -22,7 +22,7 @@ function BucketMark({ bucket }: { bucket: ChatBucket }) {
  * 見出しつきのまとまり 1 つ（見出しは 開閉・印・名前・件数。ボードの列の見出しと同じ形）。見出しを押すと開閉する。
  * 中の段があれば（作業場所の中を状態順に分けるとき）、その見出しのまとまりを並べる。開閉はまとまりのキーで覚え、forceOpen（検索中）は開いて見せる
  */
-function Section({ bucket, renderRow, forceOpen, hue, onContextMenu }: SectionProps & { bucket: ChatBucket; hue: number | null }) {
+function Section({ bucket, renderRow, forceOpen, hue, onContextMenu, renderArchived }: SectionProps & { bucket: ChatBucket; hue: number | null }) {
   // 開閉はまとまりのキーで覚える（見出しの行の「すべて閉じる / 開く」にも従う）
   const fold = useFold("sidebar", bucket.key, { forceOpen });
   const label = (
@@ -47,9 +47,10 @@ function Section({ bucket, renderRow, forceOpen, hue, onContextMenu }: SectionPr
         <div className="custom-group-grouped">
           <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={forceOpen} />
         </div>
-      ) : (
+      ) : bucket.chats.length === 0 ? null : (
         <ul className="chat-rows">{bucket.chats.map(renderRow)}</ul>
       )}
+      {bucket.archived && renderArchived?.(bucket.archived)}
     </FoldSection>
   );
 }
@@ -58,7 +59,7 @@ function Section({ bucket, renderRow, forceOpen, hue, onContextMenu }: SectionPr
  * サイドバーのチャットを、見出しのまとまり（bucketChats の作業場所・状態のまとまり）に分けて出す（まとめない × 最近動いた順は分けないので使わない）。
  * 作業場所の中を状態順に分けるときは、その中も見出しのまとまりにする。まとまりはそれぞれ開閉でき、まとまりのキー（プロジェクト・グループ・
  * アーカイブ済みの中のどこかが入る）で覚える。forceOpen（検索中）のときはすべて開く。グループなしだけでなく、自分で作ったグループの中・
- * アーカイブ済みの中でも同じように使う
+ * アーカイブ済みの中でも同じように使う。作業場所別では、まとまりのいちばん下にそのまとまりのアーカイブ済み（renderArchived）
  */
 export function GroupedChatRows({
   buckets,
@@ -66,6 +67,7 @@ export function GroupedChatRows({
   forceOpen = false,
   hueOf,
   onContextMenu,
+  renderArchived,
 }: Omit<SectionProps, "forceOpen"> & {
   buckets: readonly ChatBucket[];
   forceOpen?: boolean;
@@ -73,7 +75,15 @@ export function GroupedChatRows({
   hueOf?: (bucket: ChatBucket) => number | null;
 }) {
   return buckets.map((bucket) => (
-    <Section key={bucket.key} bucket={bucket} renderRow={renderRow} forceOpen={forceOpen} hue={hueOf?.(bucket) ?? null} onContextMenu={onContextMenu} />
+    <Section
+      key={bucket.key}
+      bucket={bucket}
+      renderRow={renderRow}
+      forceOpen={forceOpen}
+      hue={hueOf?.(bucket) ?? null}
+      onContextMenu={onContextMenu}
+      renderArchived={renderArchived}
+    />
   ));
 }
 
@@ -82,4 +92,6 @@ interface SectionProps {
   forceOpen: boolean;
   /** 見出しの右クリック（「まとまりを色付きで表示」のメニュー。まとめないときは undefined） */
   onContextMenu?: (e: MouseEvent) => void;
+  /** まとまりのアーカイブ済み（bucket.archived。作業場所別）を、中身のいちばん下に描く */
+  renderArchived?: (archived: ChatBucket) => ReactNode;
 }

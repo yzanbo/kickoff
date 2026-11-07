@@ -30,6 +30,7 @@ const NO_DRAFTS: PanelDraft[] = [];
  * サイドバーの 1 プロジェクトのチャットの行の絞り込みと分け方（分けるのは bucketChats）。
  * 検索（プロジェクトの検索欄か、すべてのプロジェクトをまたぐ検索欄 searchAll）・自分待ち・見出しの状態の数で絞り、
  * 上に固定したもの・グループごと・グループなし（まとめ方が作業場所・状態なら、その見出しのまとまり）・アーカイブ済みに分ける
+ * （アーカイブ済みは、グループ別・作業場所別ならまとまりごとの archived、まとめないときはいちばん下の archived）
  */
 export function useWorkspaceRows({
   projectId,
@@ -84,7 +85,8 @@ export function useWorkspaceRows({
     by: levelsOf(grouping, order),
     project: projectId,
     pinned: true,
-    archived: "bucket",
+    // グループ別・作業場所別は、まとまりごとのいちばん下にそのまとまりのアーカイブ済み（bucket.archived）、まとめないときはいちばん下にまとめる
+    archived: grouping === "none" ? "bucket" : "nested",
     drafts: showGroups && showDrafts ? drafts : NO_DRAFTS,
     keepEmpty: filtering ? KEEP_UNGROUPED : KEEP_GROUPS,
     idle: collapsed,
@@ -116,8 +118,10 @@ export function useWorkspaceRows({
     mainRows: main.flatMap((b) => b.chats),
     /** その見出しのまとまり（作業場所・状態。グループなしの中も状態順なら状態ごと）。見出しなしで並べるときは undefined */
     mainSections: ungrouped ? ungrouped.children : main[0]?.kind === "all" ? undefined : main,
-    /** 検索に一致するアーカイブ済み（中は、ほかのチャットと同じまとめ方。グループには分けない） */
+    /** 検索に一致するアーカイブ済み（まとめないときだけ。いちばん下にまとめる。中は、ほかのチャットと同じまとめ方） */
     archived: buckets.find((b) => b.kind === "archived"),
+    /** 見出しの下のまとまり（グループなし・作業場所）に、アーカイブ済みがあるか（グループ別・作業場所別。アーカイブ済みだけでも中身を出す） */
+    mainArchived: main.some((b) => b.archived),
     /** グループの見出しを出していないときに、いちばん上に並べる下書き（グループに入れたものも含めて、すべて） */
     topDrafts: showDrafts && !showGroups ? drafts : NO_DRAFTS,
   };

@@ -16,11 +16,13 @@ import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { DraftRows } from "./DraftRows";
 import type { GroupSectionProps } from "./useGroupSections";
 import { huedHeadProps } from "./bucketColor";
+import { ArchivedBucketFold } from "./ArchivedBucketFold";
 
 /**
  * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身。bucket は bucketChats のグループのまとまりで、中の段があれば状態ごとに分ける）。
  * 左の矢印を押すと開閉する。見出しのほかの部分を押すと、選んでいて開いていれば閉じ、それ以外は選び直して開く（そのグループのボードを開いてハイライトする。サイドバー全体で同じ）。
- * 名前のダブルクリックで名前を変える・ドラッグで並べ替える・チャットをドロップしてグループへ移す・右クリックでメニュー
+ * 名前のダブルクリックで名前を変える・ドラッグで並べ替える・チャットをドロップしてグループへ移す・右クリックでメニュー。
+ * アーカイブ済みを出しているときは、中身のいちばん下にこのグループのアーカイブ済み（ArchivedBucketFold）
  */
 export function CustomGroupSection({
   projectId,
@@ -31,6 +33,7 @@ export function CustomGroupSection({
   filtering,
   renderRow,
   hue = null,
+  allChats,
   section: { menu, renaming, onRenameStart, onRenameEnd, dropClass, dropProps, dragProps },
 }: {
   projectId: number;
@@ -46,6 +49,8 @@ export function CustomGroupSection({
   hue?: number | null;
   /** 見出しの操作の束（useGroupSections の sectionProps） */
   section: GroupSectionProps;
+  /** プロジェクトのチャット（アーカイブ済みも。中のアーカイブ済みへ落としたチャットを引く） */
+  allChats: readonly Chat[];
 }) {
   const { chats: members, drafts } = bucket;
   // 選んでいる = いまそのグループのボードを見ている
@@ -129,7 +134,7 @@ export function CustomGroupSection({
       <Collapse open={!closed} indent>
         <DraftRows drafts={drafts} />
         {members.length === 0 ? (
-          drafts.length > 0 ? null : (
+          drafts.length > 0 || bucket.archived ? null : (
           <p className="custom-group-empty">チャットをここへドラッグ</p>
           )
         ) : bucket.children ? (
@@ -140,6 +145,8 @@ export function CustomGroupSection({
         ) : (
           <ul className="chat-rows custom-group-rows">{members.map(renderRow)}</ul>
         )}
+        {/* このグループのアーカイブ済み（アーカイブ済みを出しているとき。落とすとアーカイブ、中の行をグループへ落とすと戻す） */}
+        {bucket.archived && <ArchivedBucketFold bucket={bucket.archived} chats={allChats} groupId={group.id} renderRow={renderRow} forceOpen={filtering} />}
       </Collapse>
     </div>
   );
