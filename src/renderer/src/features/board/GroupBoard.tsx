@@ -145,12 +145,11 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
             render={cards.card}
             foldPlace={foldPlace}
             highlight={highlight}
-            afterGroups={
-              <section className="board-column group-add-column">
-                <GroupCreateForm board={board} />
-              </section>
-            }
           />
+          {/* 「グループを作成」は、No Group の位置によらずいつも右端 */}
+          <section className="board-column group-add-column">
+            <GroupCreateForm board={board} />
+          </section>
         </div>
       ) : (
         <div className="board-list">
@@ -163,12 +162,11 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
             foldPlace={foldPlace}
             highlight={highlight}
             list
-            afterGroups={
-              <section className="list-group group-add-row">
-                <GroupCreateForm board={board} />
-              </section>
-            }
           />
+          {/* 「グループを作成」は、No Group の位置によらずいつもいちばん下 */}
+          <section className="list-group group-add-row">
+            <GroupCreateForm board={board} />
+          </section>
         </div>
       )}
     </BoardShell>
