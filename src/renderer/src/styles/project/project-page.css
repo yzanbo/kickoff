@@ -13,25 +13,6 @@
   gap: 10px;
 }
 
-.stat {
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.stat-archived {
-  color: var(--muted);
-  background: var(--bg-active);
-}
-
-/* 状態ごとのチャット数（StateStats。色はカンバンの列と同じで、--tone で受け取る） */
-.stat-state {
-  color: var(--tone);
-  background: color-mix(in srgb, var(--tone) 16%, transparent);
-}
-
 /* 状態ごとの数のボタン（一覧は左端に合わせて右へ開く。見出しはドラッグ領域なので no-drag。狭くても縮めない） */
 .state-stats {
   position: relative;
@@ -50,9 +31,10 @@
   cursor: pointer;
 }
 
-.state-stats-button:hover .stat-state,
-.state-stats-button[aria-expanded="true"] .stat-state {
-  background: color-mix(in srgb, var(--tone) 28%, transparent);
+/* 札（ToneChip）は、乗せた・開いている間だけ地を少し濃くして押せると分かるようにする */
+.state-stats-button:hover .tone-chip,
+.state-stats-button[aria-expanded="true"] .tone-chip {
+  background: color-mix(in srgb, var(--head-color) 24%, transparent);
 }
 
 .project-header {

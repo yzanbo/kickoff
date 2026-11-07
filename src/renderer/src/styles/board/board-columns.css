@@ -38,62 +38,16 @@
   padding-bottom: 8px;
 }
 
-.column-head .status-dot {
-  width: 8px;
-  height: 8px;
+/*
+ * 列・まとまりの見出しの札は共通の ToneChip（styles/ui/tone-chip.css）。ボードの見出しだけ、名前を少し大きく太く、札を少し高くする
+ */
+.column-head .tone-chip {
+  padding: 2px 9px;
 }
 
-.column-title {
+.column-head .tone-chip-label {
   font-size: 13px;
   font-weight: 700;
-}
-
-.column-count {
-  flex: 1;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/*
- * 列・まとまりの見出しの札: 色の点・名前・件数を、その列の色（--head-color。状態の列は COLUMN_TONE・下書きと「No Group」は灰、
- * グループの列はグループの色 .group-hued）の文字・枠・薄い地にする（利用者の依頼）。文字は状態の文と同じく、色に本文の色を混ぜて読める濃さにする
- */
-.column-chip {
-  --head-color: var(--extra-muted);
-
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 2px 9px;
-  border: 1px solid color-mix(in srgb, var(--head-color) 45%, transparent);
-  border-radius: 999px;
-  color: color-mix(in srgb, var(--head-color) 78%, var(--text));
-  background: color-mix(in srgb, var(--head-color) 12%, transparent);
-}
-
-.column-chip.group-hued {
-  --head-color: hsl(var(--group-hue) 60% 68%);
-}
-
-:root[data-theme="light"] .column-chip.group-hued {
-  --head-color: hsl(var(--group-hue) 55% 42%);
-}
-
-.column-chip .column-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.column-chip .column-count {
-  flex: none;
-  color: inherit;
-  opacity: 0.75;
-}
-
-.column-chip > svg {
-  flex: none;
 }
 
 /* ボードの段（スイムレーン）: 段ごとに状態の列を並べ、全体を縦にスクロールする。段の見出しはスクロールしても上に残す */

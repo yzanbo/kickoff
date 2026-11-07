@@ -3,6 +3,7 @@ import { Folder, SquarePen } from "lucide-react";
 import type { ChatGroup } from "@shared/types";
 import { IconButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
+import { ToneChip } from "@/ui/ToneChip";
 import type { GroupBoardState } from "./useGroupBoard";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 import { UNGROUPED_SORT_ID } from "@/features/group/groups";
@@ -10,17 +11,14 @@ import { UNGROUPED_SORT_ID } from "@/features/group/groups";
 /**
  * グループのボードの列・リストのまとまりの見出し。group が null なら「No Group」。
  * 見出しをドラッグしてグループ・「No Group」を並べ替え、名前のダブルクリックで名前を変え、右クリック・「…」でメニュー（「No Group」は並べ替えだけ）。
- * 名前と件数は列の色の札（.column-chip）に入れる: グループはその色（ChatGroup.hue。サイドバー・タブのまとまりと同じ）、「No Group」は灰。
+ * 名前と件数は列の色の札（ToneChip）に入れる: グループはその色（ChatGroup.hue。サイドバー・タブのまとまりと同じ）、「No Group」は灰。
  * onNewChat: ＋でそのグループに新しいチャットを始める
  */
 export function GroupColumnHead({ group, count, board, onNewChat }: { group: ChatGroup | null; count: number; board: GroupBoardState; onNewChat: () => void }) {
   if (!group) {
     return (
       <header className="column-head group-column-head" draggable title="ドラッグで並べ替える" {...board.reorder.handle(UNGROUPED_SORT_ID)}>
-        <span className="column-chip">
-          <span className="column-title">{NO_GROUP_LABEL}</span>
-          <span className="column-count">{count}</span>
-        </span>
+        <ToneChip label={NO_GROUP_LABEL} count={count} />
         <span className="spacer" />
         <IconButton icon={SquarePen} label={`${NO_GROUP_LABEL} で新しいチャット`} title="新しいチャット" onClick={onNewChat} />
       </header>
@@ -41,13 +39,14 @@ export function GroupColumnHead({ group, count, board, onNewChat }: { group: Cha
           <InlineName initial={group.name} onSubmit={(name) => board.renameGroup(group, name)} onCancel={() => board.setRenaming(undefined)} />
         </>
       ) : (
-        <span className="column-chip group-hued" style={{ "--group-hue": group.hue } as CSSProperties}>
-          <Folder size={13} aria-hidden />
-          <span className="column-title" onDoubleClick={() => board.setRenaming(group.id)}>
-            {group.name}
-          </span>
-          <span className="column-count">{count}</span>
-        </span>
+        <ToneChip
+          className="group-hued"
+          style={{ "--group-hue": group.hue } as CSSProperties}
+          icon={<Folder size={13} aria-hidden />}
+          label={group.name}
+          count={count}
+          onLabelDoubleClick={() => board.setRenaming(group.id)}
+        />
       )}
       {/* 名前の編集中は、ほかの操作を隠す */}
       {!renaming && (

@@ -1,5 +1,6 @@
 import { ArchiveRestore, Settings } from "lucide-react";
 import { IconButton } from "@/ui/IconButton";
+import { ToneChip } from "@/ui/ToneChip";
 import { confirmRestoreProject } from "@/features/project/projectOrder";
 import type { ProjectTab } from "@/app/router";
 import { ProjectFolderButton } from "./ProjectFolderButton";
@@ -48,7 +49,7 @@ export function ProjectHeader({
       {/* フォルダの場所（名前の横に並べ、見出しを 1 行に収める）。押すとフォルダを変更 */}
       <ProjectFolderButton project={project} />
       <div className="project-stats">
-        {project.archived_at && <span className="stat stat-archived">アーカイブ済み</span>}
+        {project.archived_at && <ToneChip label="アーカイブ済み" />}
         <StateStats chats={chats} />
       </div>
     </div>
