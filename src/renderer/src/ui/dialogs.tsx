@@ -19,6 +19,15 @@ interface ConfirmOptions {
   danger?: boolean;
   /** キャンセルを出さない（お知らせ） */
   hideCancel?: boolean;
+  /** 実行のときに一緒に選んでもらうチェック（あれば出す。confirmWithCheck） */
+  check?: DialogCheck;
+}
+
+/** 確認のダイアログに添えるチェック（initial は初めの状態。help はチェックの状態ごとの説明） */
+interface DialogCheck {
+  label: string;
+  initial?: boolean;
+  help?: (checked: boolean) => string;
 }
 
 interface PromptOptions {
@@ -40,7 +49,7 @@ interface ChoiceOptions {
 }
 
 type Request =
-  | ({ kind: "confirm"; resolve: (ok: boolean) => void } & ConfirmOptions)
+  | ({ kind: "confirm"; resolve: (ok: boolean, checked: boolean) => void } & ConfirmOptions)
   | ({ kind: "prompt"; resolve: (value: string | null) => void } & PromptOptions)
   | ({ kind: "choice"; resolve: (value: string | null, remember: boolean) => void } & ChoiceOptions);
 
@@ -51,6 +60,14 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => {
     if (!show) return resolve(window.confirm([options.title, options.message].filter(Boolean).join("\n\n")));
     show({ kind: "confirm", resolve, ...options });
+  });
+}
+
+/** チェックを 1 つ添えた確認のダイアログ（「git の管理を始める」など）。実行を選べばチェックの状態、キャンセルなら null */
+export function confirmWithCheck(options: Omit<ConfirmOptions, "check" | "hideCancel"> & { check: DialogCheck }): Promise<{ checked: boolean } | null> {
+  return new Promise((resolve) => {
+    if (!show) return resolve(null);
+    show({ kind: "confirm", resolve: (ok, checked) => resolve(ok ? { checked } : null), ...options });
   });
 }
 
@@ -92,7 +109,7 @@ export function choiceDialogWithRemember<T extends string>(
 export function DialogHost() {
   const [req, setReq] = useState<Request | null>(null);
   const [value, setValue] = useState("");
-  // 「次からはこれにする」のチェック
+  // 「次からはこれにする」のチェック（確認に添えるチェックも、これで持つ）
   const [remember, setRemember] = useState(false);
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -101,7 +118,8 @@ export function DialogHost() {
   useEffect(() => {
     show = (next) => {
       setValue(next.kind === "prompt" ? (next.initial ?? "") : "");
-      setRemember(false);
+      // 「次からはこれにする」と、確認に添えるチェックの初めの状態
+      setRemember(next.kind === "confirm" ? Boolean(next.check?.initial) : false);
       setReq(next);
     };
     return () => {
@@ -125,7 +143,7 @@ export function DialogHost() {
 
   const finish = (ok: boolean, choice?: string) => {
     if (!req) return;
-    if (req.kind === "confirm") req.resolve(ok);
+    if (req.kind === "confirm") req.resolve(ok, remember);
     else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null, remember);
     else req.resolve(ok && value.trim() ? value.trim() : null);
     setReq(null);
@@ -170,6 +188,9 @@ export function DialogHost() {
           </label>
         )}
         {req.kind === "choice" && req.remember && <CheckField className="app-dialog-remember" label={req.remember} checked={remember} onChange={setRemember} />}
+        {req.kind === "confirm" && req.check && (
+          <CheckField className="app-dialog-remember" label={req.check.label} help={req.check.help?.(remember)} checked={remember} onChange={setRemember} />
+        )}
         <DialogActions className="app-dialog-actions" cancelRef={cancelRef} onCancel={req.kind === "confirm" && req.hideCancel ? undefined : () => finish(false)}>
           {req.kind === "choice" ? (
             req.choices.map((c) => (

@@ -129,3 +129,19 @@ test("リポジトリの中のフォルダ: 取り込み・フォルダの変更
   assert.equal(store.chats.get(chat.id)?.worktree_path, null);
   assert.equal(fs.existsSync(wt), true);
 });
+
+test("リポジトリの中のフォルダ: フォルダの変更で git の管理を始めると、そのフォルダを親とは別のリポジトリにし、ワークツリーのチャットは本体で続ける", async () => {
+  const { call, store, top, url } = subfolderSetup();
+  const chat = (await call("POST", url("/chats"), { text: "wt", new_worktree_branch: "feat/d" })).body;
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  fs.mkdirSync(path.join(top, "fresh"));
+  fs.writeFileSync(path.join(top, "fresh", "f.txt"), "f\n");
+  // 親が管理しているフォルダは、別のリポジトリにできない（409。フォルダは変えない）
+  assert.equal((await call("PUT", url("/repo-path"), { path: path.join(top, "other"), init_git: true })).status, 409);
+  const changed = await call("PUT", url("/repo-path"), { path: path.join(top, "fresh"), init_git: true });
+  assert.equal(changed.status, 200);
+  assert.equal(changed.body.repo_path, path.join(top, "fresh"));
+  assert.equal(fs.existsSync(path.join(top, "fresh", ".git")), true);
+  assert.equal(store.chats.get(chat.id)?.worktree_path, null);
+  assert.deepEqual((await call("GET", url("/git/status"))).body.unstaged, []);
+});

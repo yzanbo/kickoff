@@ -45,7 +45,7 @@ export function ProjectHeader({
           <ArchiveRestore size={13} /> 戻す
         </button>
       )}
-      {/* フォルダの場所（名前の横に並べ、見出しを 1 行に収める）。押すと Finder で開く・フォルダを変更のメニュー */}
+      {/* フォルダの場所（名前の横に並べ、見出しを 1 行に収める）。押すとフォルダを変更 */}
       <ProjectFolderButton project={project} />
       <div className="project-stats">
         {project.archived_at && <span className="stat stat-archived">アーカイブ済み</span>}
