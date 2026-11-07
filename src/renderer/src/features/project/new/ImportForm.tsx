@@ -8,7 +8,7 @@ import { DialogActions } from "@/ui/DialogActions";
 import { CheckField, Field } from "@/ui/Field";
 import { FolderField } from "./FolderField";
 import { InspectionPanel } from "./InspectionPanel";
-import { GIT_FEATURES } from "@/features/project/GitInitNotice";
+import { gitInitChoice } from "@/features/project/gitInitChoice";
 import type { FormProps } from "./NewProjectDialog";
 
 export function ImportForm({ onCancel, onCreated }: FormProps) {
@@ -45,9 +45,10 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
     if (inspection && !nameEdited) setName(inspection.suggested_name);
   }, [inspection, nameEdited]);
 
-  // git のリポジトリの中のフォルダも、そのまま取り込む（Git の操作はその中だけ。git の管理は親のリポジトリのまま）
+  // git のリポジトリの中のフォルダも、そのまま取り込む（Git の操作はその中だけ。チェックすれば、このフォルダで別のリポジトリとして始める）
   const isSubfolder = Boolean(inspection?.is_git && inspection.git_root && inspection.git_root !== inspection.path);
-  const needsInit = Boolean(inspection?.is_directory && !isSubfolder && (!inspection.is_git || !inspection.has_commits));
+  // git の管理を始めるかのチェック（git でない・コミットがない・リポジトリの中のフォルダ。初めはオフ）
+  const gitChoice = inspection ? gitInitChoice(inspection) : null;
   const blocked = !inspection || !inspection.exists || !inspection.is_directory || Boolean(inspection.registered_project_id);
 
   const importProject = (e: FormEvent) => {
@@ -65,18 +66,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
         <InspectionPanel info={inspection} isSubfolder={isSubfolder} />
       )}
 
-      {needsInit && (
-        <CheckField
-          label={inspection?.is_git ? "git の管理を始める（既存のファイルで最初のコミットを作成する）" : "git の管理を始める（リポジトリとして初期化し、既存のファイルで最初のコミットを作成する）"}
-          help={
-            initGit
-              ? "フォルダ内のファイルがすべてコミットされます。秘密情報などがあれば、先に .gitignore に追加してください。"
-              : `始めないと、${GIT_FEATURES}は使えません（あとから「git の管理を始める」で始められます）。チャットは使えます。`
-          }
-          checked={initGit}
-          onChange={setInitGit}
-        />
-      )}
+      {gitChoice && <CheckField label={gitChoice.label} help={gitChoice.help(initGit)} checked={initGit} onChange={setInitGit} />}
 
       <Field label="プロジェクト名">
         <input

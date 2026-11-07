@@ -31,7 +31,8 @@ interface NewWorkspace {
 }
 
 /**
- * 新規プロジェクトのフォルダを作り、README を置く。initGit なら git リポジトリとして初期化する（保存先がほかのリポジトリの中なら初期化せず、親のリポジトリの中のフォルダにする）
+ * 新規プロジェクトのフォルダを作り、README を置く。initGit なら git リポジトリとして初期化する（保存先がほかのリポジトリの中なら、親とは別のリポジトリになる。
+ * 画面は保存先を点検し、リポジトリの中なら初めはオフにする）。しなければ、親のリポジトリの中のフォルダ・git で管理しないフォルダになる
  * （worktree を作るには main にコミットが 1 つ以上必要なので、README で最初のコミットまで行う）。
  * git で管理しないプロジェクトでは、ワークツリー・変更・履歴は使えない（あとから initGitRepo で始められる）
  */
@@ -46,12 +47,10 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
   const existing = await fs.readdir(repo).catch(() => null);
   if (existing && existing.length > 0) throw new Conflict(`同じ名前のフォルダがすでにあり、空ではありません: ${repo}`);
 
-  // 保存先が git のリポジトリの中なら、リポジトリの中にリポジトリを作らない（親のリポジトリの中のフォルダとして使う）
-  const insideRepo = Boolean(await git(parent, ["rev-parse", "--show-toplevel"]).catch(() => ""));
   await fs.mkdir(repo, { recursive: true });
   const idea = input.description.trim();
   const readme = `# ${input.name.trim()}\n\n${idea ? `## アイデア\n\n${idea}\n` : ""}`;
-  if (input.initGit === false || insideRepo) {
+  if (input.initGit === false) {
     await fs.writeFile(path.join(repo, "README.md"), readme, "utf8");
     return fs.realpath(repo);
   }
@@ -83,6 +82,7 @@ export async function inspectWorkspace(rawPath: string): Promise<FolderInspectio
     remote_url: null,
     dirty: false,
     empty: false,
+    parent_tracked: false,
     suggested_name: path.basename(target),
   };
   const stat = await fs.stat(target).catch(() => null);
@@ -103,12 +103,14 @@ export async function inspectWorkspace(rawPath: string): Promise<FolderInspectio
   result.remote_url = (await git(target, ["remote", "get-url", "origin"]).catch(() => "")) || null;
   // リポジトリの中のフォルダなら、その中だけを見る
   result.dirty = Boolean(await git(target, ["status", "--porcelain", "--", "."]).catch(() => ""));
+  if (result.git_root !== result.path) result.parent_tracked = Boolean(await git(target, ["ls-files", "--", "."]).catch(() => ""));
   return result;
 }
 
 /**
  * 既存のフォルダを取り込めるようにする（プロジェクトのフォルダを変えるときも同じ）。選んだフォルダをそのまま本体にする
- * （git のリポジトリの中のフォルダでもよい。そのときは Git の操作をそのフォルダの中だけに絞り、git の管理は親のリポジトリのまま）。
+ * （git のリポジトリの中のフォルダでもよい。initGit がなければ Git の操作をそのフォルダの中だけに絞り、git の管理は親のリポジトリのまま。
+ * initGit なら、親とは別のリポジトリとしてこのフォルダで初期化する（親がこの中のファイルを管理していれば 409））。
  * git 未管理・コミットなしのフォルダ（リポジトリの一番上）は、initGit（ユーザーの同意）があれば初期化して最初のコミットを作り、なければそのまま使う
  * （git で管理しないプロジェクト。ワークツリー・変更・履歴は使えず、あとから initGitRepo で始められる）
  */
@@ -117,21 +119,24 @@ export async function prepareImportedWorkspace(rawPath: string, initGit: boolean
   if (!info.exists || !info.is_directory) throw new Invalid(`フォルダが見つかりません: ${info.path}`);
   const real = info.path;
   const inner = info.is_git && info.git_root !== real;
-  if (initGit && !inner && !(info.is_git && info.has_commits)) await initGitRepo(real, "chore: Kickoff に取り込み");
+  if (initGit && (inner || !info.has_commits)) await initGitRepo(real, "chore: Kickoff に取り込み", { nested: inner });
   return real;
 }
 
 /**
  * フォルダで git の管理を始める（git でなければ main で初期化し、いまあるファイルで最初のコミットを作る。コミットがなければコミットだけ）。
- * もうコミットのあるリポジトリ・ほかのリポジトリの中のフォルダは断る（409）
+ * もうコミットのあるリポジトリは断る（409）。ほかのリポジトリの中のフォルダも断る（409）が、nested なら親とは別のリポジトリとして初期化する
+ * （親がこの中のファイルを管理していれば、二重に管理することになるので 409）
  */
-export async function initGitRepo(dir: string, message = "chore: Kickoff で git の管理を開始"): Promise<void> {
+export async function initGitRepo(dir: string, message = "chore: Kickoff で git の管理を開始", { nested = false } = {}): Promise<void> {
   const info = await inspectWorkspace(dir);
   if (!info.exists || !info.is_directory) throw new Invalid(`フォルダが見つかりません: ${info.path}`);
-  if (info.is_git && info.git_root !== info.path) throw new Conflict(`このフォルダは git リポジトリ（${info.git_root}）の中にあります`);
-  if (info.is_git && info.has_commits) throw new Conflict("このフォルダは、もう git で管理しています");
+  const inner = info.is_git && info.git_root !== info.path;
+  if (inner && !nested) throw new Conflict(`このフォルダは git リポジトリ（${info.git_root}）の中にあります`);
+  if (inner && info.parent_tracked) throw new Conflict(`親のリポジトリ（${info.git_root}）がこのフォルダのファイルを管理しているので、このフォルダで別に git の管理を始められません`);
+  if (!inner && info.is_git && info.has_commits) throw new Conflict("このフォルダは、もう git で管理しています");
   try {
-    if (!info.is_git) await git(info.path, ["init", "-b", "main"]);
+    if (!info.is_git || inner) await git(info.path, ["init", "-b", "main"]);
     await git(info.path, ["add", "-A"]);
     await git(info.path, ["commit", "--allow-empty", "-m", message]);
   } catch (e) {

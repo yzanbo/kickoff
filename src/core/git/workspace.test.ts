@@ -65,8 +65,8 @@ test("コミット済みのリポジトリはそのまま取り込む。リポ�
   assert.equal(fs.existsSync(path.join(dir, "wip.txt")), true);
   assert.equal((await inspectWorkspace(dir)).dirty, true);
 
-  // 中のフォルダは選んだまま（initGit でも、中にリポジトリを作らない）。未コミットの判定はそのフォルダの中だけ
-  assert.equal(await prepareImportedWorkspace(path.join(dir, "src"), true), path.join(dir, "src"));
+  // 中のフォルダは選んだまま（git の管理を始めなければ、親のリポジトリの中のフォルダ）。未コミットの判定はそのフォルダの中だけ
+  assert.equal(await prepareImportedWorkspace(path.join(dir, "src"), false), path.join(dir, "src"));
   assert.equal(fs.existsSync(path.join(dir, "src", ".git")), false);
   const inner = await inspectWorkspace(path.join(dir, "src"));
   assert.equal(inner.git_root, dir);
@@ -74,14 +74,36 @@ test("コミット済みのリポジトリはそのまま取り込む。リポ�
   assert.equal(inner.empty, false);
 });
 
-test("保存先がリポジトリの中なら、新しいプロジェクトに git の管理を始めず、親のリポジトリの中のフォルダにする", async () => {
+test("保存先がリポジトリの中なら、git の管理を始めるかで、親とは別のリポジトリにするか・親のリポジトリの中のフォルダにするかが決まる", async () => {
   const { dir } = gitRepo({ dir: tempDir({ real: true }), files: { "a.txt": "a" } });
-  const repo = await createWorkspace({ parentDir: dir, folderName: "child", name: "Child", description: "" });
-  assert.equal(fs.existsSync(path.join(repo, ".git")), false);
-  assert.equal((await inspectWorkspace(repo)).git_root, dir);
+  const inner = await createWorkspace({ parentDir: dir, folderName: "child", name: "Child", description: "", initGit: false });
+  assert.equal(fs.existsSync(path.join(inner, ".git")), false);
+  assert.equal((await inspectWorkspace(inner)).git_root, dir);
+  const own = await createWorkspace({ parentDir: dir, folderName: "own", name: "Own", description: "", initGit: true });
+  assert.equal((await inspectWorkspace(own)).git_root, own);
+  assert.equal((await inspectWorkspace(own)).has_commits, true);
   const empty = tempDir({ real: true });
   fs.writeFileSync(path.join(empty, ".DS_Store"), "");
   assert.equal((await inspectWorkspace(empty)).empty, true);
+});
+
+test("リポジトリの中のフォルダで git の管理を始めると、親とは別のリポジトリになる（親がこの中のファイルを管理していれば断る）", async () => {
+  const { dir } = gitRepo({ dir: tempDir({ real: true }), files: { "tracked/a.txt": "a" } });
+  fs.mkdirSync(path.join(dir, "fresh"));
+  fs.writeFileSync(path.join(dir, "fresh", "f.txt"), "f");
+  const fresh = await inspectWorkspace(path.join(dir, "fresh"));
+  assert.equal(fresh.parent_tracked, false);
+  assert.equal(await prepareImportedWorkspace(path.join(dir, "fresh"), true), path.join(dir, "fresh"));
+  const after = await inspectWorkspace(path.join(dir, "fresh"));
+  assert.equal(after.git_root, path.join(dir, "fresh"));
+  assert.equal(after.has_commits, true);
+  assert.equal(after.dirty, false);
+  // 親が管理しているフォルダは、二重に管理しないよう断る
+  assert.equal((await inspectWorkspace(path.join(dir, "tracked"))).parent_tracked, true);
+  await assert.rejects(prepareImportedWorkspace(path.join(dir, "tracked"), true), /親のリポジトリ/);
+  assert.equal(fs.existsSync(path.join(dir, "tracked", ".git")), false);
+  // 始めなければ、親のリポジトリの中のフォルダのまま
+  assert.equal(await prepareImportedWorkspace(path.join(dir, "tracked"), false), path.join(dir, "tracked"));
 });
 
 test("新しいプロジェクトは git で管理しないこともできる（README だけ）。あとから initGitRepo で始め、二度目は断る", async () => {

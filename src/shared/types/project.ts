@@ -57,6 +57,8 @@ export interface FolderInspection {
   dirty: boolean;
   /** フォルダの中が空か（.DS_Store だけも空とみなす。フォルダを変えるとき、中身を移すつもりで空のフォルダを選んでいないか確かめる） */
   empty: boolean;
+  /** git のリポジトリの中のフォルダで、親のリポジトリがこの中のファイルを管理しているか（していれば、このフォルダで別のリポジトリとして git の管理を始められない） */
+  parent_tracked: boolean;
   suggested_name: string;
   registered_project_id?: number | null;
 }

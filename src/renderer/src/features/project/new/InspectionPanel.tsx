@@ -22,7 +22,12 @@ export function InspectionPanel({ info, isSubfolder }: { info: FolderInspection;
     items.push({ kind: "warn", text: "git で管理されていません（下で、git の管理を始めるかを選べます）" });
   } else {
     if (isSubfolder) {
-      items.push({ kind: "info", text: `git リポジトリ（${info.git_root}）の中のフォルダです。変更・履歴・ワークツリーは、このフォルダの中だけを扱います` });
+      items.push({
+        kind: "info",
+        text: info.parent_tracked
+          ? `git リポジトリ（${info.git_root}）の中のフォルダです。変更・履歴・ワークツリーは、このフォルダの中だけを扱います（親のリポジトリがこの中のファイルを管理しているので、別のリポジトリにはできません）`
+          : `git リポジトリ（${info.git_root}）の中のフォルダです（下で、このフォルダで別に git の管理を始めるかを選べます）`,
+      });
     }
     items.push(
       info.has_commits
