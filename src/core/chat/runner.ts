@@ -254,7 +254,11 @@ export class Runner extends RunnerQueue {
       } finally {
         runtime.update({ deliveringAfterCompact: false });
         // 送っている途中で、作業が送れない終わり方をした: 残りを置いておく
-        if (runtime.parkAfterCompact) this.parkAfterCompact(runtime);
+        if (runtime.parkAfterCompact) {
+          this.parkAfterCompact(runtime);
+          // 置くまでの間に次の作業を送っていれば（send は送っている途中なので、こちらに任せて伝えなかった）、残した圧縮後指示をその作業に伝える
+          if (runtime.busy && runtime.afterCompact.length > 0) this.drainAfterCompact(chatId, false);
+        }
       }
     })();
   }
