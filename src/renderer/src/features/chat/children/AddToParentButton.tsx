@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Inbox } from "lucide-react";
+import { Check, ChevronDown, Inbox } from "lucide-react";
 import { HANDOFF_VIA_LABELS, HANDOFF_VIAS, type Chat, type HandoffVia } from "@shared/types";
 import { HANDOFF_AFTER_LABELS, HANDOFF_AFTERS, handoffAfterFor, type HandoffAfter } from "@shared/chat/handoff";
 import { cx } from "@/lib/cx";
@@ -80,7 +80,8 @@ export function AddToParentButton({ chat, turnEventId, prominent }: { chat: Chat
               title={value === "delete" ? "削除は今すぐ送る・送信待ちのときだけ（入力欄に入れるときはアーカイブ）。孫チャットも一緒に消えます" : undefined}
               onSelect={() => setAfter(value)}
             >
-              {HANDOFF_AFTER_LABELS[value]}
+              <span className="project-switch-item">{HANDOFF_AFTER_LABELS[value]}</span>
+              {after === value && <Check size={14} aria-hidden />}
             </MenuItem>
           ))}
         </PopupMenu>

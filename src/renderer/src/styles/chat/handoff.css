@@ -55,8 +55,11 @@
 /* ▾ は主ボタンと同じ地で、細い区切り線をはさんでつなげる（.icon-button の色・大きさを打ち消す） */
 .handoff-split.prominent .handoff-more {
   align-self: stretch;
+  justify-content: center;
   width: 20px;
   height: auto;
+  /* .btn の左右の余白で、アイコンの幅が 0 に潰れないように */
+  padding: 0;
   border-left: 1px solid color-mix(in srgb, var(--accent-text) 30%, transparent);
   border-radius: 0 var(--radius) var(--radius) 0;
   color: var(--accent-text);
