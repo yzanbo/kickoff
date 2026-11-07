@@ -111,6 +111,33 @@ test("圧縮の予約: 作業中の POST /compact は送信待ちのいちばん
   assert.equal(provider.prompts.length, 1);
 });
 
+test("手でコンテキストを消去（POST /clear）: 作業していなければその場で消去して区切りを残し、作業中なら終わったらすぐ消去する予約（行を消せばやめられる）。会話がなければ 409", async () => {
+  const { call, project, runner, provider } = setup();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  const cleared = await call("POST", `/api/chats/${chatId}/clear`);
+  assert.equal(cleared.status, 200);
+  assert.equal(cleared.body.session_id, null);
+  const detail = (await call("GET", `/api/chats/${chatId}`)).body;
+  assert.equal(detail.events.at(-1).type, "context_cleared");
+  assert.equal((await call("POST", `/api/chats/${chatId}/clear`)).status, 409);
+  // 作業中: 送信待ちのいちばん上に消去の行を入れる
+  const release = provider.hold();
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await until(() => runner.isBusy(chatId));
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "3" });
+  assert.equal((await call("POST", `/api/chats/${chatId}/clear`)).status, 200);
+  const queued = (await call("GET", `/api/chats/${chatId}`)).body.live.queue.messages as { id: string; text: string; clear?: boolean }[];
+  assert.deepEqual(queued.map((m) => (m.clear ? "消去" : m.text)), ["消去", "3"]);
+  // 終わったら消去してから 3 を送る
+  release();
+  await until(() => provider.prompts.length === 3);
+  assert.equal(provider.prompts[2], "3");
+  const types = ((await call("GET", `/api/chats/${chatId}`)).body.events as { type: string }[]).map((e) => e.type);
+  assert.equal(types.filter((t) => t === "context_cleared").length, 2);
+  await until(() => !runner.isBusy(chatId));
+});
+
 test("圧縮前指示: 手で圧縮すると、先に共通 → プロジェクトの指示を札付きの発言として送り、その作業が終わってから /compact を送る", async () => {
   const { call, project, store, runner, provider } = setup();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
@@ -528,7 +555,7 @@ test("圧縮前指示・圧縮後指示は送信待ちに入れない: 作業中
   assert.deepEqual(provider.told, [busyPreCompactMessage("メモを書いて")]);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => (m.compact ? "圧縮" : m.text)), ["次"]);
   assert.equal(runner.live(chatId).awaiting_compact, true);
-  // 画面が「このやり取りが終わったら圧縮します」を出せるよう、作業のあとで圧縮することを配る
+  // 画面が「いまの作業が終わったら圧縮します」を出せるよう、作業のあとで圧縮することを配る
   assert.equal(runner.live(chatId).compact_after_turn, true);
   const user = store.events.list(chatId).findLast((e) => e.type === "user")!;
   assert.ok(user.type === "user" && user.data.pre_compact && user.data.text === "メモを書いて");

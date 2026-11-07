@@ -45,10 +45,10 @@ export function nextQueuedText(message: QueuedMessage | undefined): string {
 }
 
 /**
- * 作業中に予約した圧縮（いまのやり取りが終わったら、送信待ちより先にすぐ圧縮する）: 送信待ちのいちばん上の圧縮の行で、
- * その上で止めていないもの。なければ null（止めているときは、上の圧縮の行も送らないので予約ではない）
+ * 作業中に予約した圧縮・コンテキストの消去（いまのやり取りが終わったら、送信待ちより先にすぐ行う）: 送信待ちのいちばん上の圧縮・消去の行で、
+ * その上で止めていないもの。なければ null（止めているときは、上の行も送らないので予約ではない）
  */
-export function reservedCompact(queue: QueueState): QueuedMessage | null {
+export function reservedAction(queue: QueueState): QueuedMessage | null {
   const head = queue.messages[0];
-  return head?.compact && !queue.paused && queue.stops[0] !== 0 ? head : null;
+  return head && queueActionOf(head) && !queue.paused && queue.stops[0] !== 0 ? head : null;
 }

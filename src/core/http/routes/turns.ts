@@ -46,6 +46,8 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads }: Ser
 
   // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中なら、送信待ちのいちばん上に圧縮の行を入れて予約する。まだ会話がなければ 409）
   app.post("/api/chats/:id/compact", withChat, async (c) => c.json(await runner.compact(c.var.chat.id)));
+  // コンテキストの消去（作業中なら、いまのやり取りが終わったらすぐ消去する予約）
+  app.post("/api/chats/:id/clear", withChat, (c) => c.json(runner.clear(c.var.chat.id)));
 
   // 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる（待っていなければ 409）
   app.delete("/api/chats/:id/reconnect", withChat, (c) => {

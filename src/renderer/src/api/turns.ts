@@ -23,6 +23,11 @@ export const turnsApi = {
    * いまのやり取りが終わったらすぐ圧縮する。予約をやめるのは、その行を送信待ちから消す）
    */
   compactChat: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/compact`),
+  /**
+   * コンテキストを消去する（次の指示から新しい会話で始める。記録は残る。作業中なら予約: 送信待ちのいちばん上に「コンテキストを消去」の行を入れ、
+   * いまのやり取りが終わったらすぐ消去する。予約をやめるのは、その行を送信待ちから消す）
+   */
+  clearContext: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/clear`),
   /** 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる */
   stopReconnect: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}/reconnect`),
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
