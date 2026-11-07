@@ -63,7 +63,7 @@
 
 /* 運んでいる行は薄くする（どれを動かしているか分かるように） */
 :is(.tree-row, .memo-chip-row).dragging {
-  opacity: 0.45;
+  opacity: var(--drag-source-opacity);
 }
 
 /* 一覧の行で名前を変えている間（行は押せる見た目にせず、入力欄を行の高さに収める） */

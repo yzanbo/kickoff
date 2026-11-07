@@ -54,7 +54,7 @@
 
 /* グループのリスト表示: 並べ替えの線（上下）と、作成ボタンの行 */
 .list-group.group-dragging {
-  opacity: 0.35;
+  opacity: var(--drag-source-opacity);
 }
 
 .list-group.drop-before::before,

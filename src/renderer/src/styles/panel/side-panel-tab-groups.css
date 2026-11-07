@@ -33,7 +33,7 @@
 
 /* 自分で作ったグループの札をつかんで並べ替えているとき: 動かしているまとまりは薄く、入る位置（前・後ろ）に縦の線 */
 .panel-tab-group.group-dragging {
-  opacity: 0.45;
+  opacity: var(--drag-source-opacity);
 }
 
 .panel-tab-group.drop-before::before,

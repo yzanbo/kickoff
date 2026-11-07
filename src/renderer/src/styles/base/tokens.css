@@ -61,6 +61,8 @@
   --panel-motion-duration: 0.24s;
   --panel-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --row-tight: 28px;
+  /* ドラッグで動かしている物の濃さ（ui/drag-ghost.css の写し元・各所の動かしているまとまり。アプリ全体でそろえる） */
+  --drag-source-opacity: 0.4;
   /* 選択欄の ▾（buttons-forms.css の select。色は --muted と同じ。CSS の変数は画像の中で使えないので色を書く） */
   --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a1a5a4' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   /* 真ん中の画面（ボード・エディタ）に残す最小の幅。右のチャット欄を広げても、ここまでは残す */

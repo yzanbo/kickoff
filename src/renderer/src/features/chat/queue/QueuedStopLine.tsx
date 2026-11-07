@@ -2,7 +2,7 @@ import { ArrowDown, ArrowUp, GripVertical, OctagonPause, X } from "lucide-react"
 import type { DragEvent } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
-import { startQueueDragGhost } from "./queueDragImage";
+import { startDragGhost } from "@/ui/dragGhost";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 
@@ -55,7 +55,7 @@ export function QueuedStopLine({
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("text/plain", "ここで一時停止");
-            startQueueDragGhost(e);
+            startDragGhost(e, { source: e.currentTarget.closest(".queued-stop-line") });
             onDragStart();
           }}
           onDragEnd={onDragEnd}

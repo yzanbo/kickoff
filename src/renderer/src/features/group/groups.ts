@@ -4,7 +4,7 @@ import type { Chat, ChatGroup } from "@shared/types";
 import { confirmDialog } from "@/ui/dialogs";
 import type { DraftRef } from "@/features/panel/state/panelDrafts";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
-import { markDragSnapshot } from "@/ui/dragSnapshot";
+import { startDragGhost } from "@/ui/dragGhost";
 
 /** チャットをグループへドラッグするときのデータの種類（ほかのドラッグと区別する） */
 /** サイドバーでグループ名を押したときの知らせ（すでに表示しているグループでも、もう一度ハイライトするため） */
@@ -19,8 +19,8 @@ const CHAT_DRAG_TYPE = "application/x-kickoff-run";
 export function startChatDrag(e: DragEvent, chatId: number, after?: () => void) {
   e.dataTransfer.setData(CHAT_DRAG_TYPE, String(chatId));
   e.dataTransfer.effectAllowed = "move";
-  // ドラッグの絵の背景を半透明に（下の入る位置の線・落とし先の枠が透ける）。ドラッグ中の見た目の state は写したあと（after）
-  markDragSnapshot(e, after);
+  // 半透明の写しがカーソルに付いて動く（下の入る位置の線・落とし先の枠が透ける）。ドラッグ中の見た目の state は次の回（after）
+  startDragGhost(e, { after });
 }
 
 /** ドラッグ中のものがチャットか */
@@ -35,7 +35,7 @@ const DRAFT_DRAG_TYPE = "application/x-kickoff-draft";
 export function startDraftDrag(e: DragEvent, draft: DraftRef) {
   e.dataTransfer.setData(DRAFT_DRAG_TYPE, JSON.stringify({ panel: draft.panel, key: draft.key }));
   e.dataTransfer.effectAllowed = "move";
-  markDragSnapshot(e);
+  startDragGhost(e);
 }
 
 /** ドロップされた下書き（下書きでなければ undefined） */
@@ -129,8 +129,8 @@ export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dr
       onDragStart: (e: DragEvent) => {
         e.dataTransfer.setData(dragType, String(id));
         e.dataTransfer.effectAllowed = "move";
-        // 動かしているものを薄くする（group-dragging）のは、ドラッグの絵を写したあと（先に描き直すと、薄い絵になる）
-        markDragSnapshot(e, () => setDragging(id));
+        // 動かしているまとまりを薄くする（group-dragging）のは次の回（dragstart の中で描き直すと、ドラッグが取り消されることがある）
+        startDragGhost(e, { after: () => setDragging(id) });
       },
       onDragEnd: end,
     }),

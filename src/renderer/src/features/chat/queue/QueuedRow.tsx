@@ -6,7 +6,7 @@ import { relayOf } from "@shared/chat/prompts";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { startQueueDragGhost } from "./queueDragImage";
+import { startDragGhost } from "@/ui/dragGhost";
 import { QUEUE_ACTION_LOOKS } from "./queueActionLooks";
 import { cx } from "@/lib/cx";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
@@ -133,7 +133,7 @@ export function QueuedRow({
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("text/plain", m.text);
             // 動かしている間は、この行の半透明の写しがカーソルに付いて動く（まとめて動かすときは「n 件」を添える）
-            startQueueDragGhost(e, dragCount);
+            startDragGhost(e, { source: e.currentTarget.closest(".queued-row"), count: dragCount });
             onDragStart();
           }}
           onDragEnd={onDragEnd}
