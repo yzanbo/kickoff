@@ -1,10 +1,25 @@
-// 送信待ちの「ここまで送ったら止めます」の印の位置（指示とは別に、列の中の位置で持つ。0 = 1 件目の上、n = n 件目のあと）
+// 送信待ちの「ここまで送ったら止めます」の印の位置（指示とは別に、列の中の位置で持つ。0 = 1 件目の上、n = n 件目のあと）。
+// 同じ位置に何本でも置ける（1 本が 1 回分の一時停止。いちばん上に足してから、1 本ずつドラッグ・↑↓ で止めたい位置へ動かせるように）
 import type { QueuedMessage } from "@shared/types";
 
-/** 印の位置を整える（整数で 0〜列の長さに収め、重なりを除いて小さい順に） */
+/** 印の位置を整える（整数で 0〜列の長さに収め、小さい順に。同じ位置の印はその本数のまま残す） */
 export function normalizeStops(stops: number[], length: number): number[] {
-  const inRange = stops.filter((k) => Number.isInteger(k)).map((k) => Math.max(0, Math.min(length, k)));
-  return [...new Set(inRange)].sort((a, b) => a - b);
+  return stops
+    .filter((k) => Number.isInteger(k))
+    .map((k) => Math.max(0, Math.min(length, k)))
+    .sort((a, b) => a - b);
+}
+
+/** 位置 k の印を 1 本だけ外す（同じ位置にほかの印があれば残す。なければそのまま） */
+export function removeStopOnce(stops: number[], k: number): number[] {
+  const i = stops.indexOf(k);
+  return i < 0 ? stops : [...stops.slice(0, i), ...stops.slice(i + 1)];
+}
+
+/** 位置 from の印を 1 本だけ位置 to へ動かす（同じ位置のほかの印は残す） */
+export function moveStopOnce(stops: number[], from: number, to: number): number[] {
+  if (!stops.includes(from)) return stops;
+  return [...removeStopOnce(stops, from), to].sort((a, b) => a - b);
 }
 
 /**
@@ -44,7 +59,8 @@ export function moveToSlot<T extends { id: string }>(list: T[], stops: number[],
   type Token = { item: T } | { stop: true };
   const tokens: Token[] = [];
   for (let i = 0; i <= list.length; i++) {
-    if (marks.includes(i)) tokens.push({ stop: true });
+    // 同じ位置の印は本数ぶん並べる（指示はその全部の上か下に入る）
+    for (const k of marks) if (k === i) tokens.push({ stop: true });
     if (i < list.length) tokens.push({ item: list[i] });
   }
   // すき間の位置（その前にある行の数）から、動かす指示を抜いた分を引く

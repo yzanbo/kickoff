@@ -77,22 +77,16 @@ function QueuedModeButton({ paused, busy }: { paused: boolean; busy: boolean }) 
 /**
  * 「一時停止」（自動で送るのを一度止める位置。以前の一時停止の印）を、いちばん上（1 件目の上 = 位置 0）に挟む。
  * 名前は、押した結果（「今の分で止める」など）ではなく、列に挟む物の名前で呼ぶ。置いたあとは、線のつまみのドラッグ・↑↓ で止める位置へ動かす。
- * もう 1 件目の上に印があれば押せない
+ * 1 件目の上にもう印があっても押せ、押すたびにいちばん上に 1 本ずつ重なる（何本か足してから、1 本ずつ止めたい位置へ動かせるように）
  */
 function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded: () => void }) {
   const { chatId } = useChatPane();
-  const atTop = stops.includes(0);
   return (
     <button
       type="button"
       className="btn btn-sm queued-head-btn queued-add-stop"
-      disabled={atTop}
       aria-label="一時停止をいちばん上に挟む"
-      title={
-        atTop
-          ? "1 件目の上にもう一時停止があります（線をドラッグ・↑↓ で動かせます）"
-          : "自動で送るのを一度止める位置（一時停止）を、列のいちばん上に挟みます。線をドラッグ・↑↓ で、止めたい位置へ動かせます"
-      }
+      title="自動で送るのを一度止める位置（一時停止）を、列のいちばん上に挟みます（押すたびに 1 本ずつ重なります）。線をドラッグ・↑↓ で、止めたい位置へ動かせます"
       onClick={() => void api.setQueueStops(chatId, [0, ...stops]).then(onAdded, failed)}
     >
       <OctagonPause size={12} aria-hidden />

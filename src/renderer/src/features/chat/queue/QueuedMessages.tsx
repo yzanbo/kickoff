@@ -22,6 +22,7 @@ import { cx } from "@/lib/cx";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { QUEUE_COLLAPSED, QUEUE_EXPANDED, QUEUE_HEIGHT } from "@/lib/storageKeys";
+import { moveStopOnce, removeStopOnce } from "@shared/chat/queueStops";
 
 /** 一覧の高さの上限の初め（5 件ほど）と、つまみで縮められる下限（1 件ほど） */
 const MIN_LIST_HEIGHT = 36;
@@ -120,22 +121,29 @@ export function QueuedMessages({
   // 指示のすぐ前（位置 i）の印を付け外しする（1 件目の上にも置ける）
   const toggleStopBefore = (i: number) =>
     void api.setQueueStops(chatId, stops.includes(i) ? stops.filter((x) => x !== i) : [...stops, i].sort((a, b) => a - b)).catch(failed);
-  /** 印の線（指示とは別の行。ドラッグでほかの位置へ移し、× で外す） */
-  const stopLine = (k: number) =>
-    stops.includes(k) && (
+  /**
+   * 印の線（指示とは別の行。ドラッグでほかの位置へ移し、× で外す）。同じ位置に何本もあれば本数ぶん重ねて出し、1 本ずつ動かす・外す
+   * （見出しの「一時停止」を続けて押すと、いちばん上に重なる）。落とす位置の線は、重なりのいちばん上の線の上・いちばん下の線の下に出す
+   */
+  const stopLine = (k: number) => {
+    const here = stops.filter((x) => x === k).length;
+    const mark = dnd.stopMark(k);
+    return Array.from({ length: here }, (_, n) => (
       <QueuedStopLine
+        key={`stop-${k}-${n}`}
         at={k}
         count={messages.length}
-        dragging={dnd.drag?.stop === k}
-        onDragStart={() => dnd.startStop(k)}
+        dragging={dnd.drag?.stop === k && dnd.drag.stopNth === n}
+        onDragStart={() => dnd.startStop(k, n)}
         onDragEnd={dnd.end}
-        dropMark={dnd.stopMark(k)}
+        dropMark={(mark === "before" && n === 0) || (mark === "after" && n === here - 1) ? mark : undefined}
         onDragOver={(e) => dnd.overStop(e, k)}
         onDrop={dnd.drop}
-        onMove={(to) => void api.setQueueStops(chatId, [...stops.filter((x) => x !== k), to]).catch(failed)}
-        onRemove={() => void api.setQueueStops(chatId, stops.filter((x) => x !== k)).catch(failed)}
+        onMove={(to) => void api.setQueueStops(chatId, moveStopOnce(stops, k, to)).catch(failed)}
+        onRemove={() => void api.setQueueStops(chatId, removeStopOnce(stops, k)).catch(failed)}
       />
-    );
+    ));
+  };
   // 次に送る指示（1 件目）を書き直していて、作業は終わり、コアが書き直しが終わる（保存・やめる・一覧をたたむ）のを待っている = 送信の準備ができている。
   // 案内は見出しに 1 か所だけ出す（送れなかったなど、ほかの理由で止まっているとき・作業中は出さない）
   const readyForEdit = !collapsed && Boolean(edit.edits[messages[0].id]) && waitingEdit && !busy && !paused;

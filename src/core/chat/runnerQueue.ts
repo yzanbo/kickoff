@@ -82,7 +82,9 @@ export abstract class RunnerQueue {
    * 1 件目の上の印にする: 作業のあいだに来た指示の前で止まり、来なければ作業の終わりに外れる（ChatQueue.takeNext）
    */
   protected pauseAfterTurn(chatId: number) {
-    this.queueOf(chatId).addStop(0);
+    // 1 件目の上にもう線があれば、その線で止まるので足さない（線は何本でも置けるので、重ねると止まるのが 2 回になる）
+    const queue = this.queueOf(chatId);
+    if (!queue.stopsAtHead()) queue.addStop(0);
   }
 
   /**

@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { moveToSlot, normalizeStops, remapStops } from "./queueStops";
+import { moveStopOnce, moveToSlot, normalizeStops, remapStops, removeStopOnce } from "./queueStops";
 import type { QueuedMessage } from "@shared/types";
 
 const m = (id: string) => ({ id }) as QueuedMessage;
 const [a, b, c, d] = ["a", "b", "c", "d"].map(m);
 
-test("印の位置: 列の長さに収め、重なりを除いて小さい順に", () => {
-  assert.deepEqual(normalizeStops([3, 0, 9, 3, 1.5, -1], 4), [0, 3, 4]);
+test("印の位置: 列の長さに収め、小さい順に。同じ位置の印は本数のまま残す（1 本ずつ外す・動かす）", () => {
+  assert.deepEqual(normalizeStops([3, 0, 9, 3, 1.5, -1], 4), [0, 0, 3, 3, 4]);
+  assert.deepEqual(removeStopOnce([0, 0, 2], 0), [0, 2]);
+  assert.deepEqual(removeStopOnce([0, 2], 1), [0, 2]);
+  assert.deepEqual(moveStopOnce([0, 0, 2], 0, 3), [0, 2, 3]);
+  assert.deepEqual(moveStopOnce([0, 2], 1, 3), [0, 2]);
 });
 
 test("印の位置: 並べ替えでは動かず、前の指示を送った・消した・まとめた分だけ上に寄る", () => {

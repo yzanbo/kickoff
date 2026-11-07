@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { moveToSlot, normalizeStops, remapStops, type QueueSlot } from "@shared/chat/queueStops";
+import { moveToSlot, normalizeStops, remapStops, removeStopOnce, type QueueSlot } from "@shared/chat/queueStops";
 import { isQueueAction, queueActionOf } from "@shared/chat/queueActions";
 import type { SavedQueue } from "../db/queues.js";
 import type { Attachment, QueueAction, QueuedMessage, ChatOptionsPatch, QueueState } from "@shared/types";
@@ -96,7 +96,7 @@ export class ChatQueue {
     this.notify();
   }
 
-  /** 印を 1 つ足す（0 = 1 件目の上。いまの作業が終わったら止める = 質問として送る） */
+  /** 印を 1 つ足す（0 = 1 件目の上。いまの作業が終わったら止める = 質問として送る。同じ位置にもう印があっても、もう 1 本足す） */
   addStop(position: number) {
     this.setStops([...this.stops, position]);
   }
@@ -109,8 +109,10 @@ export class ChatQueue {
     }
     const index = this.messages.findIndex((m) => m.id === id);
     if (index < 0) return false;
-    const current = this.stops.filter((k) => k !== index + 1);
-    this.setStops(stop ? [...current, index + 1] : current);
+    // 付ける: もう印があれば増やさない / 外す: その位置の印をすべて外す
+    if (stop) {
+      if (!this.stops.includes(index + 1)) this.setStops([...this.stops, index + 1]);
+    } else this.setStops(this.stops.filter((k) => k !== index + 1));
     return true;
   }
 
@@ -134,8 +136,8 @@ export class ChatQueue {
     const next = paused && this.messages.length > 0;
     if (next === this.paused) return next;
     this.paused = next;
-    // 自動で送るに戻した: 先頭の上の印（そこで止まっていた）を越えて、次の印まで送る
-    if (!next) this.stops = this.stops.filter((k) => k !== 0);
+    // 自動で送るに戻した: 先頭の上の印（そこで止まっていた）を 1 本越えて、次の印まで送る（いちばん上に何本も重ねていれば、残りの線でまた待つ）
+    if (!next) this.stops = removeStopOnce(this.stops, 0);
     this.notify();
     return next;
   }
@@ -172,7 +174,8 @@ export class ChatQueue {
     if (same && !this.paused && this.stops[0] !== 0) return head;
     if (this.paused) {
       this.paused = false;
-      this.stops = normalizeStops([0, ...this.stops], this.messages.length);
+      // 1 件目の上にもう線があれば、その線で止まるので足さない
+      if (this.stops[0] !== 0) this.stops = normalizeStops([0, ...this.stops], this.messages.length);
     }
     // いちばん上がもう同じ行なら、足さずにその行を線の上へ出す
     if (same) {

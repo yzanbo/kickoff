@@ -99,7 +99,7 @@ test("送信待ち: 印は指示とは別の位置で持ち、線をまたがな
   const queue = new ChatQueue(chat.id, () => {}, store.queues);
   const [a, b, c] = ["a", "b", "c"].map((t) => queue.add(t, {}, []));
   // 1 件目の上と 2 件目のあと
-  queue.setStops([2, 0, 2]);
+  queue.setStops([2, 0]);
   assert.deepEqual(queue.stopPositions(), [0, 2]);
   assert.deepEqual(restarted(store, chat.id).stopPositions(), [0, 2]);
   // 線をまたがない並べ替え（| a b | c の b をいちばん上へ）では動かない
@@ -268,4 +268,34 @@ test("送信待ち: 前の版で送信待ちに入った圧縮後指示の行は
     store.queues.list().find((q) => q.chatId === chat.id)?.messages.map((m) => m.id),
     ["a", "b"],
   );
+});
+
+test("送信待ち: 一時停止の線は同じ位置に何本でも重ねられ、1 本ずつ越える（いちばん上に足してから、1 本ずつ止めたい位置へ動かせる）", () => {
+  const { store, chat } = setup();
+  const queue = new ChatQueue(chat.id, () => {}, store.queues);
+  const [a, b] = ["a", "b"].map((t) => queue.add(t, {}, []));
+  // 見出しの「一時停止」を 2 回押した = いちばん上に 2 本
+  queue.addStop(0);
+  queue.addStop(0);
+  assert.deepEqual(queue.stopPositions(), [0, 0]);
+  assert.deepEqual(restarted(store, chat.id).stopPositions(), [0, 0]);
+  // 指示をいちばん上へ移すと、2 本とも線の下に残る（動かした指示だけが線を越える）
+  queue.moveMany([b.id], { before: a.id, belowStop: false });
+  assert.deepEqual([queue.list().map((m) => m.text), queue.stopPositions()], [["b", "a"], [1, 1]]);
+  queue.moveMany([b.id], "bottom");
+  assert.deepEqual([queue.list().map((m) => m.text), queue.stopPositions()], [["a", "b"], [0, 0]]);
+  // 先頭の上の線で待ち、自動で送るに戻すと 1 本だけ越える（残りの 1 本でまた待つ）
+  assert.equal(queue.takeNext(), undefined);
+  queue.setPaused(true);
+  queue.setPaused(false);
+  assert.deepEqual(queue.stopPositions(), [0]);
+  assert.equal(queue.takeNext(), undefined);
+  // 「この指示のあとで止める」は、もう線があれば増やさない
+  queue.setStopAfter(a.id);
+  queue.setStopAfter(a.id);
+  assert.deepEqual(queue.stopPositions(), [0, 1]);
+  // 指示を送ると、重なった線も本数のまま上に寄る
+  queue.setStops([1, 1]);
+  assert.equal(queue.takeNext()?.text, "a");
+  assert.deepEqual(queue.stopPositions(), [0, 0]);
 });
