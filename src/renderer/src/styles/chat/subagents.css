@@ -273,3 +273,8 @@
 .chip-icon {
   color: var(--muted);
 }
+
+/* 狭い所でアイコンと数だけにするときの、サブエージェント・子チャットの印（ふだんは出さない。メモの下の入力欄の .short-chips で出す） */
+.chip-short-icon {
+  display: none;
+}

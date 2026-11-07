@@ -18,7 +18,7 @@ import { DefaultOpenPlace, OpenPlaceButtons } from "@/features/chat/composer/Ope
 import { useChildChats } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { usePopover } from "@/ui/Popover";
-import { ComposerChip } from "@/features/chat/composer/ComposerChip";
+import { ChipWord, ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { openChildChat } from "./openChild";
 import { useNewChildFlash } from "./useNewChildFlash";
 
@@ -148,21 +148,23 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
     <ComposerChip
       popover={popover}
       chip={
-        visible.length > 0 ? (
-          <>
-            {/* 左の印: 回答待ち > 作業中（ほかに未読があれば緑の点を重ねる）> 失敗 > 未読 > 既読 */}
-            <StatusSlot {...summaryState(visible.map(stateOf))} />
-            子チャット {visible.length} 件
-            {notices.map(({ state, count }) => (
-              <span key={state} className={cx("child-chats-waiting", `child-${state}`)}>
-                {" "}
-                · {count} 件{AGENT_STATE_LABELS[state]}
-              </span>
-            ))}
-          </>
-        ) : (
-          `アーカイブ済みの子チャット ${hidden.length} 件`
-        )
+        <>
+          {/* 左の印: 回答待ち > 作業中（ほかに未読があれば緑の点を重ねる）> 失敗 > 未読 > 既読（すべてアーカイブ済みなら出さない） */}
+          {visible.length > 0 && <StatusSlot {...summaryState(visible.map(stateOf))} />}
+          {/* 狭い所でアイコンと数だけにするときの、子チャットの印（ふだんは出さない） */}
+          <MessagesSquare size={14} className="chip-icon chip-short-icon" aria-hidden />
+          <span>
+            <ChipWord>{visible.length > 0 ? "子チャット " : "アーカイブ済みの子チャット "}</ChipWord>
+            {visible.length > 0 ? visible.length : hidden.length}
+            <ChipWord> 件</ChipWord>
+          </span>
+          {notices.map(({ state, count }) => (
+            <span key={state} className={cx("child-chats-waiting", "chip-detail", `child-${state}`)}>
+              {" "}
+              · {count} 件{AGENT_STATE_LABELS[state]}
+            </span>
+          ))}
+        </>
       }
       label="子チャット"
       chipClassName={flashing ? "child-chats-new" : undefined}

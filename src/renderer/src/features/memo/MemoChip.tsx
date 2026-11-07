@@ -7,7 +7,7 @@ import { useSetting } from "@/hooks/useSetting";
 import { MEMO_OPEN_IN, memoOpenFolders } from "@/lib/storageKeys";
 import { useMemoList } from "@/stores/memos";
 import { usePopover } from "@/ui/Popover";
-import { ComposerChip } from "@/features/chat/composer/ComposerChip";
+import { ChipWord, ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { DefaultOpenPlace } from "@/features/chat/composer/OpenPlaceControls";
 import { useMainChat } from "@/features/chat/pane/mainChatContext";
 import { attachMemoToChat } from "./attachMemo";
@@ -59,7 +59,7 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
       chip={
         <>
           <StickyNote size={14} className="chip-icon" aria-hidden />
-          メモ
+          <ChipWord>メモ</ChipWord>
         </>
       }
       title="このプロジェクトのメモ（メモのタブと同じフォルダの木。行をドラッグしてフォルダへ動かせる）"

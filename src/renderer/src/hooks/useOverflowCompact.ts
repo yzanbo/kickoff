@@ -66,3 +66,52 @@ export function useOverflowCompact<T extends HTMLElement>(resetKey: unknown, sla
 
   return { ref, compact };
 }
+
+/**
+ * useOverflowCompact の段が何段もあるもの。中身が横に入らなければ 1 段ずつ詰め（level を 1 つ上げて、詰めた中身でまた測る）、
+ * 要素が「その段で入らなかった幅」まで広がったら 1 段戻す（詰めた表示のままでは、戻して入るかを測れないため。行ったり来たりしない）。
+ * 0 がふつうの表示、maxLevel がいちばん詰めた表示（それでも入らなければそのまま）。
+ * resetKey が変わったら（中身が増えた・減ったなど）、ふつうの表示に戻して測り直す（描く前に済むので、ちらつかない）
+ */
+export function useOverflowLevel<T extends HTMLElement>(maxLevel: number, resetKey: unknown, slack = DEFAULT_SLACK) {
+  const ref = useRef<T>(null);
+  const [level, setLevel] = useState(0);
+  // needed[n] = 段 n で入らなかったときの、その段の中身の幅 ＋ ゆとり（ここまで広がれば段 n に戻せる）
+  const needed = useRef<number[]>([]);
+  const measuredKey = useRef(resetKey);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // 中身が変わったら、覚えた幅を捨ててふつうの表示から測り直す（同じ描き直しの中で、古い段のまま測って段を上げないように、ここで先に戻す）
+    if (measuredKey.current !== resetKey) {
+      measuredKey.current = resetKey;
+      needed.current = [];
+      if (level > 0) {
+        setLevel(0);
+        return;
+      }
+    }
+    const check = () => {
+      // 隠れている間（display: none で幅 0）は測らない（すべて入らないと見て、いちばん詰めた段まで進んでしまう）
+      if (el.clientWidth === 0) return;
+      if (level > 0 && el.clientWidth >= needed.current[level - 1]) {
+        setLevel(level - 1);
+        return;
+      }
+      if (level < maxLevel) {
+        const width = maxContentWidth(el) + slack;
+        if (width > el.clientWidth) {
+          needed.current[level] = width;
+          setLevel(level + 1);
+        }
+      }
+    };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [level, maxLevel, resetKey, slack]);
+
+  return { ref, level };
+}
