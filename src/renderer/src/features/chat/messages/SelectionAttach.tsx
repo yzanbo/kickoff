@@ -8,7 +8,7 @@ import { addToChat } from "@/features/chat/pane/addToChat";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { useMainChat } from "@/features/chat/pane/mainChatContext";
 import { knownChat } from "@/stores/chats";
-import { parentTargetName } from "@/features/chat/chatTitle";
+import { chatTargetName } from "@/features/chat/chatTitle";
 import { SelectionMemoButton } from "@/features/memo/SelectionMemoButton";
 import { selectionWithin } from "./quotable";
 import { quoteCode, quoteComment } from "./quoteComment";
@@ -139,8 +139,7 @@ const INNER_LABELS: Record<string, string> = { child: "子チャットに追加"
 
 /**
  * 右の欄・別ウィンドウ（container の中）で、会話の文（子チャットの流れ・サブエージェントの画面の手順）・差分・ファイルの中身の行を選ぶと、その上に「チャットに追加」を出し、押すとメインのチャット（mainChatId）の入力欄に足す。
- * ボタンの名前は足す先のチャットの名前（「「機能開発」に追加」。子チャットの中で選び、足す先がその直接の親なら「親チャット（機能開発）に追加」）。
- * 子チャット・メモのチャットの中で選んだときは、それと、そのチャットに足すボタン（「子チャットに追加」「メモのチャットに追加」）の 2 つ。
+ * ボタンの名前は足す先のチャットの名前（「「機能開発」に追加」）。子チャット・メモのチャットの中で選んだときは、それと、そのチャットに足すボタン（「子チャットに追加」「メモのチャットに追加」）の 2 つ。
  * メモの本文は MemoSelectionAttach が出す
  */
 export function SideSelectionAttach({ mainChatId, container }: { mainChatId: number; container: () => Element | null }) {
@@ -157,7 +156,7 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
       pick={() => pickedInCode(container()) ?? pickedInQuotable(container())}
       targets={() => {
         const inner = innerChat();
-        const name = parentTargetName(knownChat(mainChatId), inner && knownChat(inner.chatId));
+        const name = chatTargetName(knownChat(mainChatId));
         const main: AddTarget = {
           label: `${name}に追加`,
           title: `選択部分を引用して、${name}の入力欄に足します（送るのは自分で）`,
