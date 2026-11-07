@@ -410,6 +410,30 @@ test("圧縮中に止めずに伝える: 預かって作業中の様子に出し
   await until(() => !runner.isBusy(chatId));
 });
 
+test("圧縮中に預かった指示は、伝える前なら送らずに消せる（消した指示を返し、もう伝えた・ない指示は 404）", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  provider.compacting = true;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => runner.live(chatId).compacting !== null);
+  await call("POST", `/api/chats/${chatId}/tell`, { text: "あ" });
+  await call("POST", `/api/chats/${chatId}/tell`, { text: "い" });
+  const [first] = runner.live(chatId).after_compact;
+  const removed = await call("DELETE", `/api/chats/${chatId}/after-compact/${first!.id}`);
+  assert.equal(removed.status, 200);
+  assert.equal(removed.body.text, "あ");
+  assert.deepEqual(runner.live(chatId).after_compact.map((m) => m.text), ["い"]);
+  assert.equal((await call("DELETE", `/api/chats/${chatId}/after-compact/${first!.id}`)).status, 404);
+  // 圧縮が終わったら、残した指示だけを伝える
+  provider.finishCompacting();
+  await until(() => provider.told.length === 1);
+  assert.deepEqual(provider.told, ["い"]);
+  assert.deepEqual(runner.live(chatId).after_compact, []);
+  provider.compacting = false;
+  release();
+  await until(() => !runner.isBusy(chatId));
+});
+
 test("圧縮後指示: 圧縮が終わったら、預かった「いま」より先に札付きで伝え、手で圧縮したときは圧縮の実行のあとに新しい作業として送る", async () => {
   const { call, project, runner, provider, store } = setup();
   await call("PUT", "/api/settings", { post_compact_prompt: " 共通のあと " });

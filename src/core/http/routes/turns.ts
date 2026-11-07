@@ -34,6 +34,9 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads }: Ser
     return c.json(told);
   });
 
+  // 圧縮が終わるまで預かった指示を、送らずに外す（圧縮中に誤って送ったとき。もう伝えたなら 404、伝えている途中なら 409）。外した指示を返す
+  app.delete("/api/chats/:id/after-compact/:messageId", withChat, (c) => c.json(runner.removeAfterCompact(c.var.chat.id, c.req.param("messageId"))));
+
   app.post("/api/chats/:id/cancel", withChat, (c) => {
     runner.cancel(c.var.chat.id);
     return c.body(null, 204);

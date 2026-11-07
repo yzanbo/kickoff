@@ -242,6 +242,19 @@ export class Runner extends RunnerQueue {
   }
 
   /**
+   * 圧縮が終わるまで預かった指示（「いま」と圧縮後指示）を、送らずに外す（圧縮中に誤って送ったとき）。外した指示を返す。
+   * 預かりにない（もう伝えた）なら 404、圧縮のあとで順に伝えている途中なら 409（先頭から取り出しているので、外すと別の指示を飛ばしうる）
+   */
+  removeAfterCompact(chatId: number, messageId: string): QueuedMessage {
+    const runtime = this.runtimes.get(chatId);
+    const message = runtime.afterCompact.find((m) => m.id === messageId);
+    if (!message) throw new NotFound("その指示は、もう伝えたか見つかりません");
+    if (runtime.deliveringAfterCompact) throw new Conflict("圧縮のあとで順に伝えている途中です。少し待ってからやり直してください");
+    runtime.update({ afterCompact: runtime.afterCompact.filter((m) => m.id !== messageId) });
+    return message;
+  }
+
+  /**
    * 圧縮中・圧縮前指示から圧縮が終わるまでの「いま」を預かる（ChatLive の after_compact。流れの終わりに「圧縮が終わったら伝えます」と出す）。
    * この間に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため、圧縮が終わってから伝える
    */
