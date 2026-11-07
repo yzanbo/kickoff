@@ -25,6 +25,7 @@ import { ComposerActions, type SendTarget } from "./ComposerActions";
 import { useComposerSend } from "./useComposerSend";
 import { ChatContextButton } from "./ChatContextButton";
 import { useComposerTextMenu } from "./useComposerTextMenu";
+import { useComposerBarFit } from "./useComposerBarFit";
 
 interface Props {
   /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
@@ -189,6 +190,10 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
 
   // 停止中の Esc は何もしない（パネルを閉じる Esc にも渡さない）
   const keys = useComposerKeys({ busy, onStop: stopping ? ignoreStop : onStop, options });
+  // 下の行を 1 行に収める段階（入らなくなったらアイコンだけにする。中身の幅が変わるものが変わったら測り直す）
+  const barFit = useComposerBarFit(
+    [busy, stopping, keys.stopArmed, sender.queueing, queueWhileIdle, plainActions, compact, sendLabel, options?.model, options?.effort, options?.permission, options?.fastMode].join("|"),
+  );
 
   /** チャット欄の中のキー: ⌘⇧Space で録音の開始・停止、録音中の Esc でやめる。ほかは Esc 2 回で中断・Shift+Tab で権限モード（composerKeys.ts） */
   function onComposerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -233,7 +238,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
         onContextMenu={textMenu.onContextMenu}
       />
       {textMenu.element}
-      <div className="composer-bar" onContextMenu={textMenu.onBarContextMenu}>
+      <div ref={barFit.ref} className={cx("composer-bar", barFit.className)} onContextMenu={textMenu.onBarContextMenu}>
         <div className="composer-tools">
           <AttachButton size={16} className="attach-button" onFiles={attach.addFiles} />
           {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
