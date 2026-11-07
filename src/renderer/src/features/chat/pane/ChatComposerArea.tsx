@@ -1,5 +1,6 @@
 import { MessageSquarePlus, MessagesSquare, OctagonPause, TriangleAlert } from "lucide-react";
 import type { MutableRefObject } from "react";
+import { createPortal } from "react-dom";
 import type { Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { api } from "@/api";
@@ -23,6 +24,7 @@ import { MemoChip } from "@/features/memo/MemoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import type { useChatSend } from "./useChatSend";
+import { useChipsPortal } from "./chipsPortal";
 
 /** 「質問として送る」の説明 */
 const ASK_SEND_TITLE =
@@ -74,6 +76,19 @@ export function ChatComposerArea({
   };
   // 定型文の帯の「すぐ送る」: 入力欄の文はそのままにして、定型文だけを送る（作業中・送信待ちがあれば、入力欄から送るのと同じく送信待ちの送り方に従う）
   const sendSnippet = (text: string) => send.onSendOther(text, []);
+  // メモのチャットの欄を閉じている間は、ピルの列をメモの下の入力欄の上に描く（chipsPortal）
+  const portal = useChipsPortal();
+  const chips = (
+    <div className="composer-chips">
+      <PromptsChip prompts={prompts.entries} />
+      <TodoChip chatId={chat.id} events={events} />
+      <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} />
+      <ChildChatsChip chatId={chat.id} />
+      <MemoChip projectId={chat.project_id} chatId={chat.id} />
+      {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
+      {!portal?.target && <span ref={onDock} className="composer-chips-dock" />}
+    </div>
+  );
   return (
     <div className="chat-composer">
       {/*
@@ -86,16 +101,8 @@ export function ChatComposerArea({
           <span>この作業場所では、ほかのチャット {busyNeighbors} 件も作業中です。同じファイルを触ると作業がぶつかることがあります。</span>
         </p>
       )}
-      {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
-      <div className="composer-chips">
-        <PromptsChip prompts={prompts.entries} />
-        <TodoChip chatId={chat.id} events={events} />
-        <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} />
-        <ChildChatsChip chatId={chat.id} />
-        <MemoChip projectId={chat.project_id} chatId={chat.id} />
-        {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
-        <span ref={onDock} className="composer-chips-dock" />
-      </div>
+      {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる（外に描く先があればそこへ。一番下へ戻るボタンは流れの側に残す） */}
+      {portal?.target ? createPortal(chips, portal.target) : chips}
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
       <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={live.queue_resume} />
       <Composer

@@ -15,6 +15,7 @@ import { ChatView } from "@/features/chat/pane/ChatPane";
 import { useChatDetail } from "@/features/chat/pane/useChatDetail";
 import { chatPaneOf } from "@/features/chat/pane/windowMessages";
 import { PanelHostContext } from "@/features/panel/panelHost";
+import { ChipsPortalContext, type ChipsPortal } from "@/features/chat/pane/chipsPortal";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 
 /** 外からメモのチャットの欄を動かす口（本文の右クリックの「メモのチャット」の組） */
@@ -40,6 +41,7 @@ export function MemoChat({
   place,
   onPlaceChange,
   onClose,
+  chipsPortal,
 }: {
   projectId: number;
   path: string;
@@ -50,6 +52,8 @@ export function MemoChat({
   place: MemoChatPlace;
   onPlaceChange: (place: MemoChatPlace) => void;
   onClose: () => void;
+  /** 欄を閉じている間に、上のピルの列を描く先（メモの下の入力欄の上。開いている間は null） */
+  chipsPortal: ChipsPortal | null;
 }) {
   const stored = useMemoChatOf(projectId, path);
   // 作ったばかりのチャット（一覧の知らせが届くまでの間も、そのチャットを出す）
@@ -93,7 +97,9 @@ export function MemoChat({
             }}
           />
         ) : (
-          <MemoChatView key={chatId} chatId={chatId} visible={visible} beforeSend={beforeSend} />
+          <ChipsPortalContext.Provider value={chipsPortal}>
+            <MemoChatView key={chatId} chatId={chatId} visible={visible} beforeSend={beforeSend} />
+          </ChipsPortalContext.Provider>
         )}
       </div>
     </aside>
