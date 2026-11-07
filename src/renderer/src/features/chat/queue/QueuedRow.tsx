@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, GripVertical, Pencil, SendHorizontal, Trash2 } from
 import type { DragEvent, MouseEvent } from "react";
 import { QUEUE_ACTIONS, QUEUE_ACTION_LABELS, type QueueAction, type QueuedMessage } from "@shared/types";
 import { queueActionOf } from "@shared/chat/queueActions";
+import { relayOf } from "@shared/chat/prompts";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -92,6 +93,7 @@ export function QueuedRow({
   const menu = useContextMenu();
   const action = queueActionOf(m);
   const look = action && QUEUE_ACTION_LOOKS[action];
+  const relay = relayOf(m.text);
   // 作業中は止めずに、いまのやり取りに伝える（作業していなければ、すぐ送る）。挟む行は、作業中ならいちばん上へ移して、いまのやり取りが終わったらすぐ圧縮・消去する
   const sendLabel = look ? (busy ? look.sendBusy : look.sendIdle) : busy ? "いま送る（作業は止めない）" : "いますぐ送る";
   return (
@@ -155,8 +157,10 @@ export function QueuedRow({
           {m.post_compact && <CompactPromptMark kind="post" className="compact-prompt-tag" size={11} />}
           {/* 子チャットから渡した依頼（「親チャットに追加」の送信待ち）の出どころ */}
           {m.handoff_from && <HandoffFromChip from={m.handoff_from} />}
-          <span className="queued-text" title={m.text}>
-            {m.text || m.attachments.map((a) => a.name).join("、")}
+          {/* サブエージェントに「あとで」伝える指示は、AI への前置きを隠して宛先の札と本文だけ */}
+          {relay && <span className="queued-relay-tag">伝える → {relay.name}</span>}
+          <span className="queued-text" title={relay ? relay.text : m.text}>
+            {(relay ? relay.text : m.text) || m.attachments.map((a) => a.name).join("、")}
           </span>
         </>
       )}

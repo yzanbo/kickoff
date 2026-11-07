@@ -1,5 +1,5 @@
 import { Reply } from "lucide-react";
-import type { KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent } from "react";
 import type { Attachment } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
@@ -10,6 +10,11 @@ import { useSetting } from "@/hooks/useSetting";
 import { Segmented } from "@/ui/Segmented";
 import { CloseButton } from "@/ui/IconButton";
 import { Composer } from "@/features/chat/composer/Composer";
+import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
+import type { QueueSendMode } from "@/features/chat/composer/composerKeys";
+import { QueueModeToggle, useQueueMode } from "@/features/chat/composer/QueueModeToggle";
+import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
+import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import { openCreatedChild } from "@/features/chat/children/openChild";
 import type { SubagentsView } from "./subagentsContext";
 
@@ -31,27 +36,42 @@ const ASK_MODE_HELP: Record<AskMode, string> = {
  *   終わったサブエージェントに伝えると、終わったところから再開する（案内に出す）。
  * - 子チャットで聞く: サブエージェントの会話の記録（コアが Claude Code の記録から読む）を添付にした子チャットを作って聞く（`api.askSubagentInChild`）。
  *   メインエージェントにもサブエージェント本人にも伝わらず、メインエージェントが作業中でもすぐ送る。作った子チャットは設定の「子チャットを作ったとき」で開く。
- * 書きかけの文はサブエージェントごとに残す（subagentTellDraft。送り先によらず共通）。Claude Code がサブエージェントの ID を知らせていなければどちらも送れないので、その旨を出す
+ * 書きかけの文はサブエージェントごとに残す（subagentTellDraft。送り先によらず共通）。Claude Code がサブエージェントの ID を知らせていなければどちらも送れないので、その旨を出す。
+ * 入力欄はチャット欄と同じ形にそろえ、効くものだけを出す: 定型文の帯・ほかのチャットの参照はどちらでも。伝えるときは、メインエージェントの作業中に いま / あとで
+ * （チャット欄と同じ QUEUE_MODE。あとで = メインのチャットの送信待ちに伝える文を入れる）。子チャットで聞くときは、モデル・深さ・権限・ファスト（作る子チャットに効かせる。
+ * 初めは設定どおりの既定）。伝えるときのモデルなど（サブエージェントのモデルはメインエージェントが起動したときに決まり、変えられない）とコンテキストのメーター
+ * （サブエージェントごとの使用率は Claude Code が知らせない）は出さない
  */
 export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry: SubagentEntry; view: SubagentsView; autoFocus?: boolean; onSent?: () => void }) {
   const { agentId, description } = entry;
   const [mode, setMode] = useSetting(SUBAGENT_ASK_MODE);
+  const [queueMode, setQueueMode] = useQueueMode();
+  // 子チャットで聞くときの選択（新しいチャットと同じく、プロジェクトの既定 → 設定の既定から）
+  const options = useChatOptions(undefined, view.projectId, view.worktree ?? undefined);
+  const composer = useRef<ComposerHandle | null>(null);
   if (!agentId) return <p className="muted small">このサブエージェントには伝えられません（Claude Code がサブエージェントの ID を知らせていないため）。</p>;
-  const relay = async (text: string, attachments: Attachment[]) => {
-    await api.tellChat(view.chatId, relayMessage(agentId, description, text), {}, attachments);
+  // 伝える: メインエージェントの作業中に「あとで」なら、メインのチャットの送信待ちに入れる（それ以外は止めずに伝える / すぐ送る）
+  const relay = async (text: string, attachments: Attachment[], sendMode?: QueueSendMode) => {
+    const message = relayMessage(agentId, description, text);
+    if (view.busy && (sendMode ?? queueMode) === "queue") await api.queueMessage(view.chatId, message, {}, attachments);
+    else await api.tellChat(view.chatId, message, {}, attachments);
     onSent?.();
   };
   const ask = async (text: string, attachments: Attachment[]) => {
-    const child = await api.askSubagentInChild(view.chatId, agentId, { text, attachments });
+    const child = await api.askSubagentInChild(view.chatId, agentId, { text, attachments, options: options.options });
     onSent?.();
     openCreatedChild(child);
   };
   const child = mode === "child";
+  const send = (text: string, attachments: Attachment[], sendMode?: QueueSendMode) => (child ? ask(text, attachments) : relay(text, attachments, sendMode));
+  const later = !child && view.busy && queueMode === "queue";
   const placeholder = child
     ? `サブエージェント「${description}」について聞きたいこと（会話の記録を添えた子チャットを作ります。Enter で送信）`
-    : entry.status === "running"
-      ? `サブエージェント「${description}」への追加の指示（メインエージェントが SendMessage で渡します。Enter で送信）`
-      : `サブエージェント「${description}」への指示（伝えると、終わったところから再開します。メインエージェントが SendMessage で渡します）`;
+    : later
+      ? `サブエージェント「${description}」への指示（メインのチャットの送信待ちに入れ、いまの作業が終わったら伝えます。Enter で送信）`
+      : entry.status === "running"
+        ? `サブエージェント「${description}」への追加の指示（メインエージェントが SendMessage で渡します。Enter で送信）`
+        : `サブエージェント「${description}」への指示（伝えると、終わったところから再開します。メインエージェントが SendMessage で渡します）`;
   return (
     <>
       <div className="inherit-choice subagent-ask-choice">
@@ -72,9 +92,18 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
         busy={child ? false : view.busy}
         autoFocus={autoFocus}
         placeholder={placeholder}
-        sendLabel={child ? "子チャットで聞く" : "伝える"}
-        onSend={child ? ask : relay}
-        onQueue={(text, attachments) => (child ? ask : relay)(text, attachments)}
+        sendLabel={child ? "子チャットで聞く" : later ? "送信待ちに入れる" : "伝える"}
+        onSend={(text, attachments) => send(text, attachments)}
+        onQueue={send}
+        // 伝えるときだけ、メインエージェントの作業中に いま / あとで を選ぶ（チャット欄と同じ設定）
+        busyControls={child ? undefined : <QueueModeToggle busy value={queueMode} onChange={setQueueMode} />}
+        // 子チャットで聞くときだけ、作る子チャットのモデルなどを選ぶ
+        options={child ? options : undefined}
+        // よく送る指示（このプロジェクトの定型文）。「すぐ送る」は、いまの送り先にそのまま送る
+        header={<SnippetBar projectId={view.projectId} composer={composer} onSend={(text) => send(text, [])} />}
+        menuItems={<SnippetBarToggleItem />}
+        chatContext={{ projectId: view.projectId, exclude: view.chatId }}
+        handleRef={composer}
         suggestTarget={{ projectId: view.projectId, worktree: view.worktree ?? undefined }}
         draft={subagentTellDraft(`${view.chatId}:${entry.key}`)}
       />

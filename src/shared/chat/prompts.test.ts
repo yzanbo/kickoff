@@ -8,6 +8,7 @@ import {
   compactPromptFor,
   postCompactMessage,
   relayedText,
+  relayOf,
   subagentAskMessage,
   subagentAskOf,
   relayMessage,
@@ -22,6 +23,11 @@ test("サブエージェントへの追加の指示: 宛先の ID が合うと�
   assert.equal(relayedText(message, "a1b2"), "ついでに README も見て\n2 行目");
   assert.equal(relayedText(message, "zzz"), undefined);
   assert.equal(relayedText("ふつうの指示", "a1b2"), undefined);
+});
+
+test("サブエージェントへの追加の指示の宛先と本文: 送信待ちの行で前置きを隠して見せる", () => {
+  assert.deepEqual(relayOf(relayMessage("a1b2", "調べもの", "README も見て\n2 行目")), { name: "調べもの", text: "README も見て\n2 行目" });
+  assert.equal(relayOf("ふつうの指示"), undefined);
 });
 
 test("止まったサブエージェントの再開・やり直し: 宛先と依頼を添え、追加の指示とは見分ける", () => {
