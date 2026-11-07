@@ -64,6 +64,12 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
   const inWorktree = (projectId: number, worktreePath: string): Chat[] =>
     db.prepare("SELECT * FROM chats WHERE project_id = ? AND worktree_path = ? ORDER BY id").all(projectId, worktreePath).map(toChat);
 
+  const replaceWorktree = (projectId: number, from: string, to: string | null): void => {
+    const chats = inWorktree(projectId, from);
+    db.prepare("UPDATE chats SET worktree_path = ? WHERE project_id = ? AND worktree_path = ?").run(to, projectId, from);
+    for (const chat of chats) onChange({ type: "chat", chat: get(chat.id)! });
+  };
+
   const descendants = (id: number): Chat[] =>
     db
       .prepare(
@@ -222,10 +228,10 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     inWorktree,
     /** ワークツリーを片付けたあと、そこで作業していたチャットの作業場所を本体に戻す（並び順は変えない） */
     clearWorktree(projectId: number, worktreePath: string): void {
-      const chats = inWorktree(projectId, worktreePath);
-      db.prepare("UPDATE chats SET worktree_path = NULL WHERE project_id = ? AND worktree_path = ?").run(projectId, worktreePath);
-      for (const chat of chats) onChange({ type: "chat", chat: get(chat.id)! });
+      replaceWorktree(projectId, worktreePath, null);
     },
+    /** その作業場所のチャットを、別の作業場所（null なら本体）に付け替える（プロジェクトのフォルダを変えたとき。並び順は変えない） */
+    replaceWorktree,
     /** 起動時の復旧: 前回終了時に作業中だったチャットを、未読の失敗にする（最後に動いた時刻は変えない）。直した数を返す */
     /** 前回の終了で作業中のまま残ったチャットを未読の失敗にする（そのチャットの ID を返す） */
     recoverInterrupted(error: string): number[] {

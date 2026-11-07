@@ -11,7 +11,7 @@ import { bucketChats, sortBuckets, type BucketHead, type ChatBucket } from "./bu
 const chat = (id: number, patch: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-11-${String(id).padStart(2, "0")}T00:00:00Z`, ...patch });
 const group = (id: number, position: number, projectId = 1) => makeGroup(id, { position, project_id: projectId });
 const project = (id: number) => makeProject(id, { name: `P${id}` });
-const worktree = (path: string, branch: string, main = false): GitWorktree => ({ path, branch, head: "abc1234", main, locked: false, prunable: false });
+const worktree = (path: string, branch: string, main = false): GitWorktree => ({ path, root: path, branch, head: "abc1234", main, locked: false, prunable: false });
 
 const pending = approvalIndex([]);
 const groups: Record<number, ChatGroup[]> = { 1: [group(5, 2), group(4, 1)], 2: [group(9, 1, 2)] };

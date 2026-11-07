@@ -3,7 +3,7 @@ import type { GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRef
 import { toGitDiff } from "./changes.js";
 import { gitOutput } from "./exec.js";
 import { assertInside } from "./files.js";
-import { hasRef, kindOf, parseAheadBehind } from "./status.js";
+import { gitPrefix, hasRef, kindOf, parseAheadBehind } from "./status.js";
 import { Invalid } from "../http/errors.js";
 
 /** 履歴の区切り（コミットの間は RS、項目の間は NUL） */
@@ -24,11 +24,15 @@ export function parseCommit(record: string): GitCommit {
   };
 }
 
-/** 履歴（すべてのブランチ。新しい順で、親より子が先。skip 件目から limit 件） */
+/**
+ * 履歴（すべてのブランチ。新しい順で、親より子が先。skip 件目から limit 件）。リポジトリの中のフォルダなら、その中を変えたコミットだけ
+ * （親は git がそのフォルダを変えたコミットへつなぎ直すので、線はつながったまま）
+ */
 export async function gitLog(repo: string, skip = 0, limit = 200): Promise<GitLog> {
   // コミットがまだなければ空
   if (!(await hasRef(repo, "HEAD"))) return { commits: [], more: false };
-  const out = await gitOutput(repo, ["log", "--all", "--topo-order", `--format=${LOG_FORMAT}`, `--skip=${skip}`, `-n`, String(limit + 1)]);
+  const scope = (await gitPrefix(repo)) ? ["--", "."] : [];
+  const out = await gitOutput(repo, ["log", "--all", "--topo-order", `--format=${LOG_FORMAT}`, `--skip=${skip}`, `-n`, String(limit + 1), ...scope]);
   const commits = out.split("\x1e").filter((r) => r.trim()).map(parseCommit);
   return { commits: commits.slice(0, limit), more: commits.length > limit };
 }
@@ -51,7 +55,7 @@ export function parseNameStatus(out: string): GitFileChange[] {
   return files;
 }
 
-/** コミットの詳細（マージは 1 つ目の親との差、最初のコミットは空との差） */
+/** コミットの詳細（マージは 1 つ目の親との差、最初のコミットは空との差）。ファイルはプロジェクトのフォルダの中だけを、そのフォルダから見たパスで（--relative） */
 export async function gitCommitDetail(repo: string, hash: string): Promise<GitCommitDetail> {
   if (!HASH_RE.test(hash)) throw new Invalid("コミットの指定が正しくありません");
   const head = await gitOutput(repo, ["show", "-s", `--format=${LOG_FORMAT.replace("%x1e", "")}%x00%cn%x00%cI%x00%B`, hash]);
@@ -59,8 +63,8 @@ export async function gitCommitDetail(repo: string, hash: string): Promise<GitCo
   const commit = parseCommit([hashFull, parents, author, email, date, refs, subject].join("\0"));
   const parent = commit.parents[0];
   const changes = parent
-    ? await gitOutput(repo, ["diff", "--name-status", "-M", "-z", parent, commit.hash])
-    : await gitOutput(repo, ["diff-tree", "--root", "--no-commit-id", "-r", "-M", "--name-status", "-z", commit.hash]);
+    ? await gitOutput(repo, ["diff", "--name-status", "--relative", "-M", "-z", parent, commit.hash])
+    : await gitOutput(repo, ["diff-tree", "--root", "--no-commit-id", "-r", "--relative", "-M", "--name-status", "-z", commit.hash]);
   return { ...commit, body: body.join("\0").trim(), committer, committed_at: committedAt, files: parseNameStatus(changes) };
 }
 
@@ -73,8 +77,8 @@ export async function gitCommitDiff(repo: string, hash: string, file: string, ol
   const parents = (await gitOutput(repo, ["show", "-s", "--format=%P", hash])).trim();
   const parent = parents.split(" ")[0];
   const diff = parent
-    ? await gitOutput(repo, ["diff", "--no-color", "--no-ext-diff", "-M", parent, hash, ...paths])
-    : await gitOutput(repo, ["show", "--no-color", "--no-ext-diff", "--format=", hash, ...paths]);
+    ? await gitOutput(repo, ["diff", "--no-color", "--no-ext-diff", "--relative", "-M", parent, hash, ...paths])
+    : await gitOutput(repo, ["show", "--no-color", "--no-ext-diff", "--relative", "--format=", hash, ...paths]);
   return toGitDiff(diff);
 }
 

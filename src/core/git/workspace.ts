@@ -31,7 +31,7 @@ interface NewWorkspace {
 }
 
 /**
- * 新規プロジェクトのフォルダを作り、README を置く。initGit なら git リポジトリとして初期化する
+ * 新規プロジェクトのフォルダを作り、README を置く。initGit なら git リポジトリとして初期化する（保存先がほかのリポジトリの中なら初期化せず、親のリポジトリの中のフォルダにする）
  * （worktree を作るには main にコミットが 1 つ以上必要なので、README で最初のコミットまで行う）。
  * git で管理しないプロジェクトでは、ワークツリー・変更・履歴は使えない（あとから initGitRepo で始められる）
  */
@@ -46,10 +46,12 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
   const existing = await fs.readdir(repo).catch(() => null);
   if (existing && existing.length > 0) throw new Conflict(`同じ名前のフォルダがすでにあり、空ではありません: ${repo}`);
 
+  // 保存先が git のリポジトリの中なら、リポジトリの中にリポジトリを作らない（親のリポジトリの中のフォルダとして使う）
+  const insideRepo = Boolean(await git(parent, ["rev-parse", "--show-toplevel"]).catch(() => ""));
   await fs.mkdir(repo, { recursive: true });
   const idea = input.description.trim();
   const readme = `# ${input.name.trim()}\n\n${idea ? `## アイデア\n\n${idea}\n` : ""}`;
-  if (input.initGit === false) {
+  if (input.initGit === false || insideRepo) {
     await fs.writeFile(path.join(repo, "README.md"), readme, "utf8");
     return fs.realpath(repo);
   }
@@ -80,6 +82,7 @@ export async function inspectWorkspace(rawPath: string): Promise<FolderInspectio
     branch: null,
     remote_url: null,
     dirty: false,
+    empty: false,
     suggested_name: path.basename(target),
   };
   const stat = await fs.stat(target).catch(() => null);
@@ -89,6 +92,7 @@ export async function inspectWorkspace(rawPath: string): Promise<FolderInspectio
   if (!result.is_directory) return result;
   // macOS の /tmp → /private/tmp などのシンボリックリンクを解決し、git のルートと比較できるようにする
   result.path = await fs.realpath(target);
+  result.empty = ((await fs.readdir(target).catch(() => [])) as string[]).every((name) => name === ".DS_Store");
 
   const root = await git(target, ["rev-parse", "--show-toplevel"]).catch(() => null);
   if (!root) return result;
@@ -97,23 +101,23 @@ export async function inspectWorkspace(rawPath: string): Promise<FolderInspectio
   result.has_commits = await hasRef(target, "HEAD");
   result.branch = (await git(target, ["branch", "--show-current"]).catch(() => "")) || null;
   result.remote_url = (await git(target, ["remote", "get-url", "origin"]).catch(() => "")) || null;
-  result.dirty = Boolean(await git(target, ["status", "--porcelain"]).catch(() => ""));
+  // リポジトリの中のフォルダなら、その中だけを見る
+  result.dirty = Boolean(await git(target, ["status", "--porcelain", "--", "."]).catch(() => ""));
   return result;
 }
 
 /**
- * 既存のフォルダを取り込めるようにする（プロジェクトのフォルダを変えるときも同じ）。git のリポジトリの一部（サブフォルダ）は断る。
- * git 未管理・コミットなしのフォルダは、initGit（ユーザーの同意）があれば初期化して最初のコミットを作り、なければそのまま使う
+ * 既存のフォルダを取り込めるようにする（プロジェクトのフォルダを変えるときも同じ）。選んだフォルダをそのまま本体にする
+ * （git のリポジトリの中のフォルダでもよい。そのときは Git の操作をそのフォルダの中だけに絞り、git の管理は親のリポジトリのまま）。
+ * git 未管理・コミットなしのフォルダ（リポジトリの一番上）は、initGit（ユーザーの同意）があれば初期化して最初のコミットを作り、なければそのまま使う
  * （git で管理しないプロジェクト。ワークツリー・変更・履歴は使えず、あとから initGitRepo で始められる）
  */
 export async function prepareImportedWorkspace(rawPath: string, initGit: boolean): Promise<string> {
   const info = await inspectWorkspace(rawPath);
   if (!info.exists || !info.is_directory) throw new Invalid(`フォルダが見つかりません: ${info.path}`);
   const real = info.path;
-  if (info.is_git && info.git_root !== real) {
-    throw new Invalid(`このフォルダは git リポジトリの一部です。ルートのフォルダを指定してください: ${info.git_root}`);
-  }
-  if (initGit && !(info.is_git && info.has_commits)) await initGitRepo(real, "chore: Kickoff に取り込み");
+  const inner = info.is_git && info.git_root !== real;
+  if (initGit && !inner && !(info.is_git && info.has_commits)) await initGitRepo(real, "chore: Kickoff に取り込み");
   return real;
 }
 

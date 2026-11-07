@@ -2,15 +2,7 @@ import type { ReactNode } from "react";
 import type { FolderInspection } from "@shared/types";
 import { href } from "@/app/router";
 
-export function InspectionPanel({
-  info,
-  isSubfolder,
-  onUseRoot,
-}: {
-  info: FolderInspection;
-  isSubfolder: boolean;
-  onUseRoot: () => void;
-}) {
+export function InspectionPanel({ info, isSubfolder }: { info: FolderInspection; isSubfolder: boolean }) {
   const items: { kind: "ok" | "warn" | "ng" | "info"; text: ReactNode }[] = [];
 
   if (!info.exists) {
@@ -26,21 +18,12 @@ export function InspectionPanel({
         </>
       ),
     });
-  } else if (isSubfolder) {
-    items.push({
-      kind: "ng",
-      text: (
-        <>
-          git リポジトリの一部です。ルート（{info.git_root}）を指定してください{" "}
-          <button type="button" className="link-button accent" onClick={onUseRoot}>
-            ルートを使う
-          </button>
-        </>
-      ),
-    });
   } else if (!info.is_git) {
     items.push({ kind: "warn", text: "git で管理されていません（下で、git の管理を始めるかを選べます）" });
   } else {
+    if (isSubfolder) {
+      items.push({ kind: "info", text: `git リポジトリ（${info.git_root}）の中のフォルダです。変更・履歴・ワークツリーは、このフォルダの中だけを扱います` });
+    }
     items.push(
       info.has_commits
         ? { kind: "ok", text: `git リポジトリ（ブランチ: ${info.branch ?? "不明"}）` }

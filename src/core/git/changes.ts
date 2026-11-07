@@ -2,8 +2,8 @@
 import type { GitDiff } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
 import { assertInside } from "./files.js";
-import { gitStatus, hasRef, listRemotes } from "./status.js";
-import { Invalid } from "../http/errors.js";
+import { gitPrefix, gitStatus, hasRef, listRemotes } from "./status.js";
+import { Conflict, Invalid } from "../http/errors.js";
 
 /** 差分を返す上限（これより大きければ途中で切る） */
 const MAX_DIFF_CHARS = 400_000;
@@ -16,7 +16,7 @@ export async function gitDiff(repo: string, file: string, staged: boolean, oldPa
   await assertInside(repo, file);
   if (oldPath) await assertInside(repo, oldPath);
   const paths = oldPath ? ["--", oldPath, file] : ["--", file];
-  const base = ["diff", "--no-color", "--no-ext-diff", "-M"];
+  const base = ["diff", "--no-color", "--no-ext-diff", "--relative", "-M"];
   let diff = await gitOutput(repo, staged ? [...base, "--cached", ...paths] : [...base, ...paths]);
   if (!staged && !diff) {
     const untracked = await gitOutput(repo, ["ls-files", "--others", "--exclude-standard", "--", file]);
@@ -63,9 +63,21 @@ export async function discardPaths(repo: string, paths: string[]): Promise<void>
   if (tracked.length > 0) await gitOutput(repo, ["restore", "--worktree", "--", ...tracked]);
 }
 
-/** ステージした変更をコミットする（メッセージは必須。ステージしたものがなければ失敗する） */
+/**
+ * ステージした変更をコミットする（メッセージは必須。ステージしたものがなければ失敗する）。
+ * プロジェクトのフォルダがリポジトリの中のフォルダで、その外にもステージしたファイルがあれば、一緒にコミットしないよう断る（409。外のファイルは画面に出ないため）
+ */
 export async function commitStaged(repo: string, message: string): Promise<void> {
   if (!message.trim()) throw new Invalid("コミットのメッセージを入れてください");
+  if (await gitPrefix(repo)) {
+    const all = nulList(await gitOutput(repo, ["diff", "--cached", "--name-only", "-z"]));
+    const inside = new Set(nulList(await gitOutput(repo, ["diff", "--cached", "--name-only", "-z", "--", "."])));
+    const outside = all.filter((f) => !inside.has(f));
+    if (outside.length > 0) {
+      const shown = outside.slice(0, 3).join("、") + (outside.length > 3 ? ` ほか ${outside.length - 3} 件` : "");
+      throw new Conflict(`プロジェクトのフォルダの外にも、ステージしたファイルがあります（${shown}）。一緒にコミットしないよう、ターミナルで git restore --staged で外してからコミットしてください`);
+    }
+  }
   await gitOutput(repo, ["commit", "-q", "-m", message]);
 }
 

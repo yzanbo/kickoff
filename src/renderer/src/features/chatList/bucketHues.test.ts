@@ -8,7 +8,7 @@ import { bucketHueOf, bucketHuesOf, projectBucketHues, spreadHues } from "./buck
 import { workplaceHue } from "@/features/worktree/workplaceHue";
 
 const head = (key: string, kind: BucketHead["kind"], extra: Partial<BucketHead> = {}): BucketHead => ({ key, kind, label: key, projectId: 1, ...extra });
-const worktree = (path: string, patch: Partial<GitWorktree> = {}): GitWorktree => ({ path, branch: path, head: "abc", main: false, locked: false, prunable: false, ...patch });
+const worktree = (path: string, patch: Partial<GitWorktree> = {}): GitWorktree => ({ path, root: path, branch: path, head: "abc", main: false, locked: false, prunable: false, ...patch });
 
 test("まとまりの色: グループ別は自分で作ったグループの覚えた色を、グループの並びで先に取る（被ったものは空いている色へ）", () => {
   const [a, b] = PROJECT_HUES;

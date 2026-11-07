@@ -135,10 +135,8 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
   const url = `/api/projects/${project.id}/repo-path`;
   const { dir: moved } = gitRepo({ files: { "a.txt": "a" } });
   const real = fs.realpathSync(moved);
-  // 見つからない・git のルートでないは 400
+  // 見つからないは 400
   assert.equal((await call("PUT", url, { path: "/no/such/kickoff/folder" })).status, 400);
-  fs.mkdirSync(path.join(moved, "sub"));
-  assert.equal((await call("PUT", url, { path: path.join(moved, "sub") })).status, 400);
   const plain = tempDir();
   // ほかのプロジェクトのフォルダは 409（登録したパスがシンボリックリンクを含んでいても、実体で比べる。macOS の一時フォルダは /var → /private/var）
   const other = store.projects.create({ name: "o", repo_path: moved, provider: "claude" });

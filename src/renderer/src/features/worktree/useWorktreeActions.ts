@@ -11,7 +11,8 @@ import type { GitLogController } from "@/features/history/useGitLog";
 /** 履歴の左の一覧のワークツリーの操作（作る・消す）。失敗の文は error に出す */
 export function useWorktreeActions(projectId: number, log: GitLogController) {
   const worktreeError = useAction();
-  const repoName = log.worktrees?.[0] ? baseName(log.worktrees[0].path) : "";
+  // リポジトリの一番上の名前（プロジェクトのフォルダがリポジトリの中のフォルダでも、ワークツリーは一番上の隣に置く）
+  const repoName = log.worktrees?.[0] ? baseName(log.worktrees[0].root) : "";
 
   // ワークツリーを作る（ブランチの名前を聞く。なければいまのコミットから作る）
   const createWorktree = async () => {

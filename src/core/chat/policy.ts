@@ -38,7 +38,8 @@ export const CHAT_POLICY: ChatPolicy = { allowedCommands: [...GIT_READ, ...CHECK
 
 /**
  * プロバイダーのシステムプロンプトに追記するプロジェクト文脈。
- * workdir: チャットの作業場所（ワークツリーで作業するチャットはそのフォルダ。「リポジトリ」として伝え、本体の場所は添えるだけにする）
+ * workdir: チャットの作業場所（ワークツリーで作業するチャットはそのフォルダ。「作業フォルダ」として伝え、本体の場所は添えるだけにする。
+ * git で管理していないフォルダ・git のリポジトリの中のフォルダもあるので「リポジトリ」とは呼ばない）
  */
 export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string }): string {
   const lines = [
@@ -47,9 +48,9 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     ``,
     `## プロジェクト`,
     `- 名前: ${project.name}`,
-    `- リポジトリ: ${workdir}`,
+    `- 作業フォルダ: ${workdir}`,
     ...(workdir !== project.repo_path
-      ? [`- 本体のフォルダ: ${project.repo_path}（このチャットはワークツリーで作業しています。ファイルの読み書き・コマンドは上のリポジトリで行い、本体は変えないでください）`]
+      ? [`- 本体のフォルダ: ${project.repo_path}（このチャットはワークツリーで作業しています。ファイルの読み書き・コマンドは上の作業フォルダで行い、本体は変えないでください）`]
       : []),
   ];
   if (project.description.trim()) lines.push(`- 概要:\n${indent(project.description.trim())}`);
