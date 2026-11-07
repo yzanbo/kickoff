@@ -30,15 +30,17 @@ test("指示はセクション・タスク・成果物に触れず、プロジ�
   }
 });
 
-test("ワークツリーのチャット: 指示の「作業フォルダ」は作業場所にし、本体は場所だけ添える", () => {
+test("フォルダ: プロジェクトフォルダと作業フォルダを呼び名つきで伝え、ワークツリーのチャットは作業フォルダで作業してプロジェクトフォルダは変えないよう伝える", () => {
   const p = project();
   const prompt = buildSystemPrompt(p, "/tmp/a-worktrees/x");
-  assert.ok(prompt.includes("- 作業フォルダ: /tmp/a-worktrees/x"));
-  assert.ok(prompt.includes("- 本体のフォルダ: /tmp/a"));
-  // 本体で作業するチャットは、いままでどおり
+  assert.ok(prompt.includes("- プロジェクトフォルダ: /tmp/a（利用者が「プロジェクトフォルダ」と言ったら、このフォルダのこと）"));
+  assert.ok(prompt.includes("- 作業フォルダ: /tmp/a-worktrees/x（このチャットはワークツリーで作業しています"));
+  // 本体で作業するチャットは、作業フォルダ = プロジェクトフォルダ
   const main = buildSystemPrompt(p);
-  assert.ok(main.includes("- 作業フォルダ: /tmp/a"));
-  assert.ok(!main.includes("本体のフォルダ"));
+  assert.ok(main.includes("- 作業フォルダ: プロジェクトフォルダと同じ"));
+  // 途中で変わることがあるので、ここに書いた場所を使うよう伝える（送るたびに作り直す）
+  assert.ok(main.includes("ここに書いた場所がいまの場所です"));
+  assert.ok(buildSystemPrompt({ ...p, repo_path: "/tmp/b" }).includes("- プロジェクトフォルダ: /tmp/b"));
 });
 
 test("指示: 通信のエラーで止まったサブエージェントは 1 回だけ続きから再開し、ほかの失敗・利用者が止めたものは再開しない", () => {
@@ -59,7 +61,7 @@ test("メモ: どのチャットでも「メモ」が「メモ」タブのメモ
   const p = project();
   const plain = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/memos/a", file: null });
   assert.ok(plain.includes("利用者が「メモ」と言ったら、Kickoff の「メモ」タブのメモのことです"));
-  assert.ok(plain.includes("`/tmp/memos/a`"));
+  assert.ok(plain.includes("メモフォルダ `/tmp/memos/a`"));
   assert.ok(!plain.includes("の横で話しています"));
   const memoChat = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/memos/a", file: "/tmp/memos/a/x.md" });
   assert.ok(memoChat.includes("`/tmp/memos/a/x.md` の横で話しています"));

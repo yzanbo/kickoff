@@ -11,11 +11,11 @@ export function MemoLocation({ project }: { project: Project }) {
     <section className="section">
       <h2>メモ</h2>
       <p className="muted small">
-        このプロジェクトの「メモ」タブのメモの保存先です。ふだんは、アプリの設定の「メモ」で決めた親フォルダの下の、このプロジェクトのフォルダに保存します。
+        このプロジェクトの「メモ」タブのメモを置くフォルダ（メモフォルダ）です。ふだんは、アプリの設定の「メモ」で決めた親フォルダの下の、このプロジェクトの名前のフォルダです。
       </p>
       {dir && (
         <p className="small memo-dir" title={dir}>
-          いまの保存先: {dir}
+          いまのメモフォルダ: {dir}
         </p>
       )}
       <div className="form">

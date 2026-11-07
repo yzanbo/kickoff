@@ -14,7 +14,7 @@ import { gitInitChoice } from "./gitInitChoice";
  * チャット・設定はそのまま引き継ぐ。ワークツリーのチャットは、同じリポジトリの中なら同じワークツリーの中の新しいフォルダ、そうでなければ本体で続く（コアが付け替える）
  */
 export async function changeProjectFolder(project: Project): Promise<void> {
-  const picked = await window.kickoff?.dialog.pickFolder("プロジェクトのフォルダを選ぶ");
+  const picked = await window.kickoff?.dialog.pickFolder("プロジェクトフォルダを選ぶ");
   if (!picked) return;
   try {
     const info = await api.inspectWorkspace(picked);
@@ -34,10 +34,10 @@ export async function changeProjectFolder(project: Project): Promise<void> {
       `新しい: ${target}`,
       ...(inner ? [`（git のリポジトリ ${info.git_root} の中のフォルダです）`] : []),
       "",
-      "チャット・設定はそのまま引き継ぎます。本体で作業するチャットは、次の指示から新しいフォルダで動きます（会話は続きます）。",
+      "チャット・設定はそのまま引き継ぎます。本体で作業するチャットは、次の指示から新しいフォルダで動きます（会話は続き、AI にも新しいプロジェクトフォルダを伝えます）。",
       ...(worktrees.count > 0 ? [worktrees.sameRepo ? WORKTREE_SAME(worktrees.count) : WORKTREE_MAIN(worktrees.count)] : []),
     ];
-    const title = "プロジェクトのフォルダを変えますか？";
+    const title = "プロジェクトフォルダを変えますか？";
     const message = notes.join("\n");
     // git の管理を始めるかは、取り込みと同じチェックで選ぶ（初めはオフ。もうコミットのあるリポジトリの一番上なら出さない）
     const choice = gitInitChoice(info);

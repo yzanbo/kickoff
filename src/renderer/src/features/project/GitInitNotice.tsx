@@ -14,7 +14,7 @@ export const GIT_FEATURES = "ワークツリー（チャットごとの作業場
 export async function startProjectGit(projectId: number): Promise<boolean> {
   const ok = await confirmDialog({
     title: "git の管理を始めますか？",
-    message: `プロジェクトのフォルダを git のリポジトリとして初期化し、いまあるファイルをすべて最初のコミットにします。\n秘密の情報（.env など）があれば、先に .gitignore に書いてください。\n始めると、${GIT_FEATURES}が使えます。`,
+    message: `プロジェクトフォルダを git のリポジトリとして初期化し、いまあるファイルをすべて最初のコミットにします。\n秘密の情報（.env など）があれば、先に .gitignore に書いてください。\n始めると、${GIT_FEATURES}が使えます。`,
     confirmLabel: "git の管理を始める",
   });
   if (!ok) return false;

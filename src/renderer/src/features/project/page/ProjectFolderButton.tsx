@@ -12,7 +12,7 @@ export function ProjectFolderButton({ project }: { project: Project }) {
     <button
       className="path-button"
       disabled={!desktop}
-      title={desktop ? `プロジェクトのフォルダ（${project.repo_path}）: 押すとフォルダを変更` : project.repo_path}
+      title={desktop ? `プロジェクトフォルダ（${project.repo_path}）: 押すと変更` : project.repo_path}
       onClick={() => void changeProjectFolder(project)}
     >
       <FolderOpen size={13} aria-hidden />

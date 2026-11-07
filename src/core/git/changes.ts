@@ -75,7 +75,7 @@ export async function commitStaged(repo: string, message: string): Promise<void>
     const outside = all.filter((f) => !inside.has(f));
     if (outside.length > 0) {
       const shown = outside.slice(0, 3).join("、") + (outside.length > 3 ? ` ほか ${outside.length - 3} 件` : "");
-      throw new Conflict(`プロジェクトのフォルダの外にも、ステージしたファイルがあります（${shown}）。一緒にコミットしないよう、ターミナルで git restore --staged で外してからコミットしてください`);
+      throw new Conflict(`プロジェクトフォルダの外にも、ステージしたファイルがあります（${shown}）。一緒にコミットしないよう、ターミナルで git restore --staged で外してからコミットしてください`);
     }
   }
   await gitOutput(repo, ["commit", "-q", "-m", message]);

@@ -15,7 +15,7 @@ export async function requireWorktree(repo: string, worktree: string | undefined
   if (!found) throw new Invalid("このプロジェクトのワークツリーではありません");
   if (found.prunable) throw new NotFound("作業場所のフォルダが見つかりません（ワークツリーが消された可能性があります）");
   if (found.path !== found.root && !fs.existsSync(found.path)) {
-    throw new NotFound(`ワークツリー（${found.branch ?? found.root}）に、プロジェクトのフォルダがありません（そのブランチにフォルダがまだコミットされていない可能性があります）`);
+    throw new NotFound(`ワークツリー（${found.branch ?? found.root}）に、プロジェクトフォルダがありません（そのブランチにフォルダがまだコミットされていない可能性があります）`);
   }
   return found;
 }
