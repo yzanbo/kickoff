@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ChatQueue } from "./queue.js";
+import { ChatRuntimes } from "./runtime.js";
 import { Store } from "../db/store.js";
 
 function setup() {
@@ -239,4 +240,31 @@ test("送信待ち: 保存先を渡さなければ保存しない", () => {
   const { store, chat } = setup();
   new ChatQueue(chat.id, () => {}).add("1 つ目", {}, []);
   assert.equal(store.queues.list().length, 0);
+});
+
+test("送信待ち: 前の版で送信待ちに入った圧縮後指示の行は、起動して読み戻すときに外して預かりに移す（同じ文は 1 つにまとめ、印は残った行に付け替える）", () => {
+  const { store, chat } = setup();
+  const row = (id: string, text: string, post = false) => ({ id, text, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z", ...(post ? { post_compact: true } : {}) });
+  store.queues.save({
+    chatId: chat.id,
+    messages: [row("p1", "続きを進めて", true), row("p2", "続きを進めて", true), row("a", "1 つ目"), row("b", "2 つ目")],
+    paused: false,
+    // 3 件目（1 つ目）のあとに一時停止の印
+    stops: [3],
+  });
+  const runtime = new ChatRuntimes({ store, onEditsChanged: () => {} }).get(chat.id);
+  assert.deepEqual(
+    runtime.queue.list().map((m) => m.id),
+    ["a", "b"],
+  );
+  assert.deepEqual(runtime.queue.stopPositions(), [1]);
+  assert.deepEqual(
+    runtime.afterCompact.map((m) => [m.id, m.text, m.post_compact]),
+    [["p1", "続きを進めて", true]],
+  );
+  // 保存し直した列にも、圧縮後指示の行は残らない
+  assert.deepEqual(
+    store.queues.list().find((q) => q.chatId === chat.id)?.messages.map((m) => m.id),
+    ["a", "b"],
+  );
 });

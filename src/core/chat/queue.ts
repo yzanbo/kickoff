@@ -10,6 +10,25 @@ export interface QueuePersistence {
 }
 
 /**
+ * 保存した列から、前の版で送信待ちに入った圧縮後指示の行（post_compact）を外す（起動して読み戻すとき）。
+ * 圧縮後指示は送信待ちに入れない決まりなので、外した行は預かり（ChatLive の after_compact）に移し、次に送った作業にそのまま伝える。
+ * 同じ文の行は 1 つにまとめる（圧縮のたびに同じ指示が積まれていた）。一時停止の印は、残った行の並びに付け替える
+ */
+export function splitLegacyPostCompact(saved: SavedQueue): { queue: SavedQueue; held: QueuedMessage[] } {
+  const kept = saved.messages.filter((m) => !m.post_compact);
+  if (kept.length === saved.messages.length) return { queue: saved, held: [] };
+  const seen = new Set<string>();
+  const held = saved.messages.filter((m) => {
+    if (!m.post_compact) return false;
+    if (m.attachments.length > 0) return true;
+    if (seen.has(m.text)) return false;
+    seen.add(m.text);
+    return true;
+  });
+  return { queue: { ...saved, messages: kept, stops: remapStops(saved.messages, kept, saved.stops) }, held };
+}
+
+/**
  * 1 つのチャットの、作業中に送った次の指示の待ちの列（送信待ち。ChatRuntime が持つ）。
  * いまの作業が終わったら、Runner が先頭から 1 件ずつ送る（止めておくなら送らず、行の「すぐ送る」で 1 件ずつ送る）。
  * 「ここまで送ったら止めます」の印（指示とは別に、列の中の位置で持つ。いくつでも・1 件目の上にも置ける）まで自動で送ったら、
