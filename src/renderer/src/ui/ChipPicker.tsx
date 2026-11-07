@@ -7,13 +7,15 @@ import { useContextMenu } from "./useContextMenu";
 /**
  * 選べる札: 見た目は札（className で札の形と色。hue は札の色 --group-hue）のまま、名前の右に ▾ を付け、押すと下に 1 つ選ぶメニュー（ChoiceMenu）を開く。
  * 新しいチャットの見出しの作成先のグループ・作業場所（チャットの見出しのグループの札・ブランチの印と同じ形で、選べることだけを ▾ で示す）。
- * empty は「選んでいない」（グループなしなど）で、色を付けず控えめに出す
+ * empty は「選んでいない」（グループなしなど）で、色を付けず控えめに出す。
+ * kind は名前の前に出す種類（作業場所の「本体」「WT」など。あれば印の代わりに出し、名前は区切りの後ろの補足になる）
  */
 export function ChipPicker<T extends string>({
   className,
   hue,
   empty,
   icon: Icon,
+  kind,
   name,
   tip,
   menuTitle,
@@ -25,7 +27,8 @@ export function ChipPicker<T extends string>({
   className: string;
   hue?: number;
   empty?: boolean;
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  kind?: string;
   /** 札に出す名前 */
   name: string;
   /** 乗せたときの説明 */
@@ -51,7 +54,8 @@ export function ChipPicker<T extends string>({
         aria-expanded={menu.isOpen}
         onClick={(e) => menu.toggle(e)}
       >
-        <Icon size={11} aria-hidden />
+        {Icon && <Icon size={11} aria-hidden />}
+        {kind && <span className="chip-kind">{kind}</span>}
         <span className="chip-name">{name}</span>
         <ChevronDown size={11} aria-hidden className="chip-picker-caret" />
       </button>
