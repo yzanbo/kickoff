@@ -53,7 +53,7 @@ export function TimelineEnd({
         approvals.length === 0 &&
         (live.compacting ? <CompactingRow compacting={live.compacting} /> : <Working since={chat.turn_started_at}>{working}</Working>)}
       {/* 圧縮後指示と、圧縮中に「いま」で送った指示は、圧縮の行の下に送る順で（圧縮が終わったら伝える） */}
-      {(live.after_compact.length > 0 || pendingPost !== null) && <AfterCompactMessages messages={live.after_compact} pendingPost={pendingPost} />}
+      {(live.after_compact.length > 0 || pendingPost !== null) && <AfterCompactMessages messages={live.after_compact} pendingPost={pendingPost} until={waitingCompact ? "compact" : busy ? "turn" : "next"} />}
       {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} events={events} />}
       {!busy && live.reconnect && <ReconnectRow chatId={chat.id} reconnect={live.reconnect} />}
     </>

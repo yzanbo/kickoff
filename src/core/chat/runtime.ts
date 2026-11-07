@@ -1,7 +1,7 @@
 import type { Bus } from "../bus.js";
 import type { Store } from "../db/store.js";
 import type { TurnControl } from "../providers/types.js";
-import { ChatQueue, type QueuePersistence } from "./queue.js";
+import { ChatQueue, splitLegacyPostCompact, type QueuePersistence } from "./queue.js";
 import { QueueEdits } from "./queueEdits.js";
 import { createRecoveryState, reconnectStateOf, type RecoveryState } from "./recovery/state.js";
 import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueuedMessage, QueueState } from "@shared/types";
@@ -170,7 +170,13 @@ export class ChatRuntimes {
       onCompactEnded?: (chatId: number) => void;
     },
   ) {
-    for (const saved of deps.store.queues.list()) this.get(saved.chatId).queue.restore(saved);
+    for (const saved of deps.store.queues.list()) {
+      // 前の版で送信待ちに入った圧縮後指示は、送信待ちから外して預かりに移す（起動しただけでは送らず、次に送った作業に伝える）
+      const { queue, held } = splitLegacyPostCompact(saved);
+      const runtime = this.get(saved.chatId);
+      runtime.queue.restore(queue);
+      if (held.length > 0) runtime.update({ afterCompact: held });
+    }
   }
 
   /** チャットの作業中の状態（まだなければ作る） */
