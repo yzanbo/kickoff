@@ -186,20 +186,20 @@ export const QUEUE_EXPANDED = defineSetting("kickoff:queue-expanded", flag());
 export const QUEUE_HEIGHT = defineSetting("kickoff:queue-height", number(150));
 /** 上に貼り付ける自分の指示を、1 行にたたまず全文で出すか（どのチャットでも同じ） */
 export const STICKY_PROMPT_EXPANDED = defineSetting("kickoff:sticky-prompt-expanded", flag());
-/** 上に貼り付ける自分の指示の帯を出さないか（設定の「表示」。どのチャットでも同じ。初めは隠す） */
-export const STICKY_PROMPT_HIDDEN = defineSetting("kickoff:sticky-prompt-hidden", flag(true));
-/** 入力欄の上の定型文の帯を出さないか（設定の「表示」・タブの列の「表示」・帯の右クリック。どのチャットでも同じ） */
-export const SNIPPET_BAR_HIDDEN = defineSetting("kickoff:snippet-bar-hidden", flag());
+/** 上に貼り付ける自分の指示の帯を出さないか（設定の「表示」。どのチャットでも同じ。初めは出す） */
+export const STICKY_PROMPT_HIDDEN = defineSetting("kickoff:sticky-prompt-hidden", flag(false));
+/** 入力欄の上の定型文の帯を出さないか（設定の「表示」・タブの列の「表示」・帯の右クリック。どのチャットでも同じ。初めは隠す） */
+export const SNIPPET_BAR_HIDDEN = defineSetting("kickoff:snippet-bar-hidden", flag(true));
 /** チャットのパネルのタブの列を隠すか（タブの列の「表示」・見出しと会話の何もないところの右クリック・設定の「表示」。どのプロジェクトでも同じ） */
 export const CHAT_TAB_ROW_HIDDEN = defineSetting("kickoff:chat-tab-row-hidden", flag());
 /** チャットの見出しの行を隠すか（タブの列の「表示」・設定の「表示」・⌥⌘T。どのチャットでも同じ） */
 export const CHAT_HEADER_ROW_HIDDEN = defineSetting("kickoff:chat-header-row-hidden", flag());
 /** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。タブの列の「表示」→「見出しの項目」。初めはプロジェクト・会話 / 動きの切り替え・文字の大きさ・ターン数・API 換算を隠す（メニューの「既定に戻す」でこの値に戻す）。どのチャットでも同じ） */
 export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list(["project", "showing", "fontSize", "turns", "cost"]));
-/** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く。初めはコンパクト） */
-export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag(true));
-/** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・タブの列の「表示」・設定の「表示」。どのチャットでも同じ。初めは小） */
-export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["xs", "sm", "md", "lg", "xl"], "sm"));
+/** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く。初めはコンパクトにしない） */
+export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag(false));
+/** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・タブの列の「表示」・設定の「表示」。どのチャットでも同じ。初めは標準） */
+export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["xs", "sm", "md", "lg", "xl"], "md"));
 /** チャットの文の幅を広げるか（どのチャットでも同じ。初めは広げる） */
 export const CHAT_WIDE = defineSetting("kickoff:chat-wide", flag(true));
 /** チャットの中の検索で、大文字・小文字を区別するか（どのチャットでも同じ） */
