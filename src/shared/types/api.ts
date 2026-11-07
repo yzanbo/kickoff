@@ -16,6 +16,8 @@ export interface NewProjectBody {
   parent_dir: string;
   folder_name: string;
   provider?: ProviderId;
+  /** git リポジトリとして初期化するか（省くと初期化する） */
+  init_git?: boolean;
 }
 
 /** 既存のフォルダを取り込む（POST /api/projects/import）。init_git なら Git のリポジトリにしてから取り込む */

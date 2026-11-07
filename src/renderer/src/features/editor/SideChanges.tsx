@@ -19,6 +19,7 @@ import { changedFiles, diffFingerprint, pruneViewed, viewedStateOf } from "./sid
 import { useCodeQuoteMenu } from "./useCodeQuoteMenu";
 import { useGitStatus } from "./useGitStatus";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
+import { GitInitNotice } from "@/features/project/GitInitNotice";
 
 /** これより多いときは、初めはファイルを畳んでおく（差分を一度に読み込みすぎない。移る先のファイルだけ開く） */
 const OPEN_ALL_MAX = 20;
@@ -116,7 +117,7 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
   }, [focus, focusAt, files]);
 
   if (git.status && !git.status.repo) {
-    return <EmptyState icon={FileCheck2} title="Git で管理されていないフォルダです" className="side-changes-empty">変更を差分で見るには、Git で管理されている必要があります。</EmptyState>;
+    return <GitInitNotice projectId={projectId} onStarted={git.refresh} className="side-changes-empty" />;
   }
   return (
     <div className="side-changes">

@@ -135,12 +135,11 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
   const url = `/api/projects/${project.id}/repo-path`;
   const { dir: moved } = gitRepo({ files: { "a.txt": "a" } });
   const real = fs.realpathSync(moved);
-  // 見つからない・git のルートでない・git でない（初期化に同意していない）は 400
+  // 見つからない・git のルートでないは 400
   assert.equal((await call("PUT", url, { path: "/no/such/kickoff/folder" })).status, 400);
   fs.mkdirSync(path.join(moved, "sub"));
   assert.equal((await call("PUT", url, { path: path.join(moved, "sub") })).status, 400);
   const plain = tempDir();
-  assert.equal((await call("PUT", url, { path: plain })).status, 400);
   // ほかのプロジェクトのフォルダは 409（登録したパスがシンボリックリンクを含んでいても、実体で比べる。macOS の一時フォルダは /var → /private/var）
   const other = store.projects.create({ name: "o", repo_path: moved, provider: "claude" });
   assert.equal((await call("PUT", url, { path: moved })).status, 409);
@@ -158,7 +157,10 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
   assert.equal(changed.status, 200);
   assert.equal(changed.body.repo_path, real);
   assert.equal(store.chats.get(chatId)?.project_id, project.id);
-  // git でないフォルダは、初期化に同意すれば最初のコミットを作って変える
+  // git でないフォルダは、初期化に同意すれば最初のコミットを作って変え、同意しなければ git で管理しないまま変える
+  const plain2 = tempDir();
+  assert.equal((await call("PUT", url, { path: plain2 })).body.repo_path, fs.realpathSync(plain2));
+  assert.equal(fs.existsSync(path.join(plain2, ".git")), false);
   const initialized = await call("PUT", url, { path: plain, init_git: true });
   assert.equal(initialized.body.repo_path, fs.realpathSync(plain));
   assert.ok(fs.existsSync(path.join(plain, ".git")));
@@ -167,4 +169,27 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
   // 取り込み・点検も実体で比べる
   assert.equal((await call("GET", `/api/workspace/inspect?path=${encodeURIComponent(plain)}`)).body.registered_project_id, project.id);
   assert.equal((await call("POST", "/api/projects/import", { path: plain, name: "dup" })).status, 409);
+});
+
+test("git で管理しない新しいプロジェクト・取り込み、あとから git の管理を始める（もう管理していれば 409）", async () => {
+  const { call } = setup();
+  const parent = tempDir();
+  const created = await call("POST", "/api/projects", { name: "Plain", parent_dir: parent, folder_name: "plain", init_git: false });
+  assert.equal(created.status, 201);
+  assert.equal(fs.existsSync(path.join(created.body.repo_path, ".git")), false);
+  assert.deepEqual((await call("GET", `/api/projects/${created.body.id}/git/status`)).body, { repo: false });
+  // 取り込みも、同意しなければ git で管理しないまま
+  const folder = tempDir();
+  fs.writeFileSync(path.join(folder, "a.txt"), "a");
+  const imported = await call("POST", "/api/projects/import", { path: folder, name: "Imported" });
+  assert.equal(imported.status, 201);
+  assert.equal(fs.existsSync(path.join(folder, ".git")), false);
+  // git の管理を始める
+  assert.equal((await call("POST", `/api/projects/${imported.body.id}/git/init`)).status, 204);
+  const status = (await call("GET", `/api/projects/${imported.body.id}/git/status`)).body;
+  assert.deepEqual([status.repo, status.branch, status.unstaged.length], [true, "main", 0]);
+  assert.equal((await call("POST", `/api/projects/${imported.body.id}/git/init`)).status, 409);
+  // 省くと初期化する（今までどおり）
+  const withGit = await call("POST", "/api/projects", { name: "Git", parent_dir: parent, folder_name: "with-git" });
+  assert.equal(fs.existsSync(path.join(withGit.body.repo_path, ".git")), true);
 });

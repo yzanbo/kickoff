@@ -26,11 +26,14 @@ interface NewWorkspace {
   name: string;
   /** プロジェクトの説明（README の「アイデア」に書く） */
   description: string;
+  /** git リポジトリとして初期化するか（省くと初期化する。しなければ README だけを置く） */
+  initGit?: boolean;
 }
 
 /**
- * 新規プロジェクトのフォルダを作り、git リポジトリとして初期化する。
- * worktree を作るには main にコミットが 1 つ以上必要なので、README を置いて最初のコミットまで行う。
+ * 新規プロジェクトのフォルダを作り、README を置く。initGit なら git リポジトリとして初期化する
+ * （worktree を作るには main にコミットが 1 つ以上必要なので、README で最初のコミットまで行う）。
+ * git で管理しないプロジェクトでは、ワークツリー・変更・履歴は使えない（あとから initGitRepo で始められる）
  */
 export async function createWorkspace(input: NewWorkspace): Promise<string> {
   const folder = toFolderName(input.folderName);
@@ -44,10 +47,14 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
   if (existing && existing.length > 0) throw new Conflict(`同じ名前のフォルダがすでにあり、空ではありません: ${repo}`);
 
   await fs.mkdir(repo, { recursive: true });
+  const idea = input.description.trim();
+  const readme = `# ${input.name.trim()}\n\n${idea ? `## アイデア\n\n${idea}\n` : ""}`;
+  if (input.initGit === false) {
+    await fs.writeFile(path.join(repo, "README.md"), readme, "utf8");
+    return fs.realpath(repo);
+  }
   try {
     await git(repo, ["init", "-b", "main"]);
-    const idea = input.description.trim();
-    const readme = `# ${input.name.trim()}\n\n${idea ? `## アイデア\n\n${idea}\n` : ""}`;
     await fs.writeFile(path.join(repo, "README.md"), readme, "utf8");
     await git(repo, ["add", "README.md"]);
     await git(repo, ["commit", "-m", "chore: Kickoff でプロジェクトを作成"]);
@@ -95,9 +102,9 @@ export async function inspectWorkspace(rawPath: string): Promise<FolderInspectio
 }
 
 /**
- * 既存のフォルダを取り込めるようにする。
- * worktree を作るにはコミットが必要なため、git 未管理・コミットなしの場合は
- * initGit（ユーザーの同意）があるときだけ初期化して最初のコミットを作る。
+ * 既存のフォルダを取り込めるようにする（プロジェクトのフォルダを変えるときも同じ）。git のリポジトリの一部（サブフォルダ）は断る。
+ * git 未管理・コミットなしのフォルダは、initGit（ユーザーの同意）があれば初期化して最初のコミットを作り、なければそのまま使う
+ * （git で管理しないプロジェクト。ワークツリー・変更・履歴は使えず、あとから initGitRepo で始められる）
  */
 export async function prepareImportedWorkspace(rawPath: string, initGit: boolean): Promise<string> {
   const info = await inspectWorkspace(rawPath);
@@ -106,21 +113,24 @@ export async function prepareImportedWorkspace(rawPath: string, initGit: boolean
   if (info.is_git && info.git_root !== real) {
     throw new Invalid(`このフォルダは git リポジトリの一部です。ルートのフォルダを指定してください: ${info.git_root}`);
   }
-  if (info.is_git && info.has_commits) return real;
+  if (initGit && !(info.is_git && info.has_commits)) await initGitRepo(real, "chore: Kickoff に取り込み");
+  return real;
+}
 
-  if (!initGit) {
-    throw new Invalid(
-      info.is_git
-        ? "コミットがまだありません。最初のコミットを作成することに同意してください"
-        : "git で管理されていません。git リポジトリとして初期化することに同意してください",
-    );
-  }
+/**
+ * フォルダで git の管理を始める（git でなければ main で初期化し、いまあるファイルで最初のコミットを作る。コミットがなければコミットだけ）。
+ * もうコミットのあるリポジトリ・ほかのリポジトリの中のフォルダは断る（409）
+ */
+export async function initGitRepo(dir: string, message = "chore: Kickoff で git の管理を開始"): Promise<void> {
+  const info = await inspectWorkspace(dir);
+  if (!info.exists || !info.is_directory) throw new Invalid(`フォルダが見つかりません: ${info.path}`);
+  if (info.is_git && info.git_root !== info.path) throw new Conflict(`このフォルダは git リポジトリ（${info.git_root}）の中にあります`);
+  if (info.is_git && info.has_commits) throw new Conflict("このフォルダは、もう git で管理しています");
   try {
-    if (!info.is_git) await git(real, ["init", "-b", "main"]);
-    await git(real, ["add", "-A"]);
-    await git(real, ["commit", "--allow-empty", "-m", "chore: Kickoff に取り込み"]);
+    if (!info.is_git) await git(info.path, ["init", "-b", "main"]);
+    await git(info.path, ["add", "-A"]);
+    await git(info.path, ["commit", "--allow-empty", "-m", message]);
   } catch (e) {
     throw new Invalid(`git の初期化に失敗しました: ${errorMessage(e)}`);
   }
-  return real;
 }

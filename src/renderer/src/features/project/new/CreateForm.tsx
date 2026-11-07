@@ -3,7 +3,8 @@ import { api } from "@/api";
 import { useSubmit } from "@/hooks/useSubmit";
 import { ErrorText } from "@/ui/ErrorText";
 import { DialogActions } from "@/ui/DialogActions";
-import { Field } from "@/ui/Field";
+import { CheckField, Field } from "@/ui/Field";
+import { GIT_FEATURES } from "@/features/project/GitInitNotice";
 import { FolderField } from "./FolderField";
 import type { FormProps } from "./NewProjectDialog";
 
@@ -24,6 +25,8 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
   const [parentDir, setParentDir] = useState(defaultParentDir);
   const [folderName, setFolderName] = useState("");
   const [folderEdited, setFolderEdited] = useState(false);
+  // git で管理するか（初めは管理する。しなければ README だけを置き、あとからファイル・変更・履歴のタブで始められる）
+  const [initGit, setInitGit] = useState(true);
   const { submitting, error, submit } = useSubmit();
 
   // フォルダ名を手で変えるまでは、名前から自動で提案する
@@ -33,7 +36,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
 
   const create = (e: FormEvent) => {
     e.preventDefault();
-    void submit(async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName })));
+    void submit(async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName, init_git: initGit })));
   };
 
   const fullPath = `${parentDir.replace(/\/+$/, "")}/${folderName || "…"}`;
@@ -55,7 +58,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
 
       <FolderField label="保存先" value={parentDir} onChange={setParentDir} pickerTitle="保存先のフォルダを選択" />
 
-      <Field label="フォルダ名" help={`${fullPath} に作成し、git リポジトリとして初期化します（英数字・ハイフン・アンダースコア）。`}>
+      <Field label="フォルダ名" help={`${fullPath} に作成します（英数字・ハイフン・アンダースコア）。`}>
         <input
           type="text"
           value={folderName}
@@ -68,6 +71,13 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
           }}
         />
       </Field>
+
+      <CheckField
+        label="git で管理する（リポジトリとして初期化し、README で最初のコミットを作る）"
+        help={initGit ? `${GIT_FEATURES}が使えます。` : `git で管理しないと、${GIT_FEATURES}は使えません（あとから「git の管理を始める」で始められます）。`}
+        checked={initGit}
+        onChange={setInitGit}
+      />
 
       <ErrorText message={error} />
 

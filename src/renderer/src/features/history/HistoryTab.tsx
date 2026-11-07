@@ -9,6 +9,7 @@ import { HistoryMain } from "./HistoryMain";
 import { HistorySidebar } from "./HistoryView";
 import { useGitLog } from "./useGitLog";
 import type { GitStatusController } from "@/features/editor/useGitStatus";
+import { GitInitNotice } from "@/features/project/GitInitNotice";
 
 /**
  * プロジェクトの「履歴」タブ（Fork と同じ形: 左にブランチ・リモート・ワークツリーなどの一覧、右上にコミットの表、右下に詳細）。
@@ -38,7 +39,7 @@ export function HistoryTab({
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
   }
-  if (!status.repo) return <p className="muted small">このプロジェクトのフォルダは、Git で管理されていません。</p>;
+  if (!status.repo) return <GitInitNotice projectId={projectId} onStarted={git.refresh} />;
 
   return (
     <>
