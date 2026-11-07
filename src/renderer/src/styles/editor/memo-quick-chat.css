@@ -26,10 +26,34 @@
   overflow: hidden;
 }
 
+/*
+ * メモのチャットを下に置いたときの開け閉め（memo-chat.css の .chat-moved）: すぐ入れ替える。開くときはすぐ畳み、
+ * 閉じるときは欄がこの入力欄の高さまで縮み終えるまで畳んだまま待ってから出す（入力欄が同じ所に止まって見える）
+ */
+.memo-quick-slot.chat-bottom.chat-moved {
+  transition: none;
+}
+
+.memo-quick-slot.chat-bottom.chat-moved:not(.folded) {
+  animation: memo-quick-wait var(--panel-motion-duration) step-end;
+}
+
+@keyframes memo-quick-wait {
+  from,
+  to {
+    grid-template-rows: 0fr;
+    visibility: hidden;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .memo-quick-slot,
   .memo-quick-slot.folded {
     transition: none;
+  }
+
+  .memo-quick-slot.chat-bottom.chat-moved:not(.folded) {
+    animation: none;
   }
 }
 

@@ -20,6 +20,7 @@ import { memoChatTargets } from "./memoChatTargets";
 import { MemoSelectionAttach } from "./MemoSelectionAttach";
 import { memoTitle, parentOf } from "./memoPaths";
 import { useMemoDocument, type MemoSaveState } from "./useMemoDocument";
+import { useBottomChatMotion } from "./useBottomChatMotion";
 import { useMemoEditMenu } from "./useMemoEditMenu";
 
 // 編集の部品（CodeMirror）は大きいので、メモを開いたときに初めて読み込む
@@ -96,6 +97,8 @@ export function MemoView({
   const [chatPlace, setChatPlace] = useSetting(MEMO_CHAT_PLACE);
   const chatHeight = useDragSize({ setting: MEMO_CHAT_HEIGHT, axis: "y", edge: "start", unit: "%", min: 20, max: 85, write: "--memo-chat-h", pane: chatPane, target: () => body.current });
   const chatSize = chatPlace === "bottom" ? chatHeight : chatWidth;
+  // 下に置いたときの開け閉めは、入力欄を下に止めたまま会話の部分だけを伸び縮みさせる（メモの下の入力欄の高さを測る）
+  const motion = useBottomChatMotion(chatOpen, chatPlace === "bottom");
   const savedTitle = memoTitle(path);
   // 書いている題名（別のメモへ移った・名前を変えたら、そのメモの題名に入れ直す）
   const [title, setTitle] = useState(savedTitle);
@@ -233,9 +236,10 @@ export function MemoView({
           !unreadable && doc.initial !== null && "with-chat",
           chatOpen && "chat-open",
           chatPlace === "bottom" && "chat-bottom",
+          motion.moved && "chat-moved",
           chatSize.resizing && "resizing",
         )}
-        style={{ "--memo-chat-w": `${chatWidth.size}px`, "--memo-chat-h": `${chatHeight.size}%` } as CSSProperties}
+        style={{ "--memo-chat-w": `${chatWidth.size}px`, "--memo-chat-h": `${chatHeight.size}%`, "--memo-chat-h-num": chatHeight.size, "--memo-quick-h": `${motion.quickHeight}px` } as CSSProperties}
       >
         {doc.loadError ? (
           <ErrorText message={doc.loadError} className="memo-message" />
@@ -285,12 +289,15 @@ export function MemoView({
       </div>
       {/*
         メモのチャットの欄を閉じている間は、ページの下にこのメモを AI に直してもらう入力欄（会話は出さず、様子の 1 行だけ）。
-        欄を開いても描いたまま置き、欄が開くのと同じ動きで高さを畳む（すぐ消すと、欄が開ききるまでの間、入力欄のあった所が空いて見えた）
+        欄を開いても描いたまま置き、欄が開くのと同じ動きで高さを畳む（すぐ消すと、欄が開ききるまでの間、入力欄のあった所が空いて見えた）。
+        欄を下に置くときは、すぐ入れ替えて、欄をこの入力欄の高さから伸ばす（useBottomChatMotion）
       */}
       {doc.initial !== null && !unreadable && (
-        <div className={cx("memo-quick-slot", chatOpen && "folded")} aria-hidden={chatOpen} inert={chatOpen}>
+        <div className={cx("memo-quick-slot", chatOpen && "folded", chatPlace === "bottom" && "chat-bottom", motion.moved && "chat-moved")} aria-hidden={chatOpen} inert={chatOpen}>
           <div className="memo-quick-clip">
-            <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} />
+            <div ref={motion.quickRef}>
+              <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} />
+            </div>
           </div>
         </div>
       )}
