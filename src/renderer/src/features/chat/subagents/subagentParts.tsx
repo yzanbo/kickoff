@@ -106,7 +106,7 @@ export function SubagentChildRows({ entry, view, onOpen, onMore }: { entry: Suba
               <ClaudeMark size={12} />
             </span>
             <span className="subagent-child-name">{child.description}</span>
-            <span className="subagent-child-state">{childStateText(child, childrenOf(view.tree, child.key).length)}</span>
+            <span className="subagent-child-state">{childStateText(child, childrenOf(view.tree, child.key).length, view.waiting.has(child.key))}</span>
           </button>
         </li>
       ))}
@@ -122,13 +122,13 @@ export function SubagentChildRows({ entry, view, onOpen, onMore }: { entry: Suba
 }
 
 /** 中の子の行の状態の文（実行中は最後のツール、終わったものは状態とかかった時間。孫がいれば「中に n 件」） */
-function childStateText(child: SubagentEntry, grandchildren: number): string {
+function childStateText(child: SubagentEntry, grandchildren: number, waiting: boolean): string {
   const end = child.endedAt ?? child.lastActivityAt;
   const duration = child.durationMs ?? (child.startedAt && end ? Date.parse(end) - Date.parse(child.startedAt) : undefined);
   const parts =
     child.status === "running"
-      ? [subagentStatusLabel(child), child.lastTool ? `いま: ${child.lastTool}` : null]
-      : [subagentStatusLabel(child), duration !== undefined ? formatElapsed(duration) : null];
+      ? [subagentStatusLabel(child, waiting), child.lastTool ? `いま: ${child.lastTool}` : null]
+      : [subagentStatusLabel(child, waiting), duration !== undefined ? formatElapsed(duration) : null];
   return [...parts, grandchildren > 0 ? `中に ${grandchildren} 件` : null].filter(Boolean).join(" · ");
 }
 

@@ -70,7 +70,7 @@
 
 ## 承認と質問
 
-- `approvals.ts` の `ApprovalCenter` が回答待ち（ツールの承認・AI からの質問・再開するかの確かめ）を持ち、回答まで実行は待つ。実行が止められたら拒否として返す（あとからの回答は 409）。SSE の `approval` / `approval_resolved`、一覧は `GET /api/approvals`。
+- `approvals.ts` の `ApprovalCenter` が回答待ち（ツールの承認・AI からの質問・再開するかの確かめ）を持ち、回答まで実行は待つ。実行が止められたら拒否として返す（あとからの回答は 409）。SSE の `approval` / `approval_resolved`、一覧は `GET /api/approvals`。依頼には呼び出し ID `tool_use_id` と、サブエージェントの中の依頼ならそのサブエージェントの ID `agent_id` を載せる（画面の `waitingSubagentKeys` が、記録の parent・サブエージェントの ID でどのサブエージェントが待っているかを引く）。
 - 記録には依頼（`approval`）と回答（`approval_resolved`。`kind` 付き）を残す。AI からの質問への回答（`action: "answer"`）は、選んだままの回答（`ApprovalDecision.plain`）と「その他」の添付も残す。AI には、`POST /api/approvals/:id` で `uploads.ts` の `answersWithAttachments` が添付のパスを回答の文に書き添えてから渡す（AskUserQuestion の回答は文字だけなので、AI が Read で読む）。
 
 ## 分岐・巻き戻し・ファイルを戻す

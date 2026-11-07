@@ -35,5 +35,7 @@ export function useTabAgentState(panel: PanelController, tab: PanelTab): TabAgen
   if (tab.kind !== "subagent") return undefined;
   const entry = view?.tree.byKey.get(tab.agentKey);
   if (!entry) return undefined;
-  return { state: subagentState(entry).state, unread: false, label: subagentStatusLabel(entry) };
+  // 回答待ちの依頼を出していれば回答待ち（チャットのタブと同じ ！ の印）
+  const waiting = view?.waiting.has(entry.key) ?? false;
+  return { state: subagentState(entry, waiting).state, unread: false, label: subagentStatusLabel(entry, waiting) };
 }

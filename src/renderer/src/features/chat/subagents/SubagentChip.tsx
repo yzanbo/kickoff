@@ -23,6 +23,7 @@ import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { flattenTree, subagentTree } from "./subagentTree";
 import { agentHues } from "./agentHues";
+import { useSubagentsView } from "./subagentsContext";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { summaryState } from "@/features/chat/chatState";
 
@@ -64,9 +65,12 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   const rows = flattenTree(subagentTree(entries.filter((s) => !archived.has(s.key))));
   const hidden = entries.filter((s) => archived.has(s.key)).reverse();
   // 状態（チャットと同じ 5 つと細かい様子。印・数はすべてこれから決める）
-  const states = visible.map((s) => subagentState(s));
+  const waiting = useSubagentsView()?.waiting;
+  const states = visible.map((s) => subagentState(s, waiting?.has(s.key)));
   const count = (match: (st: SubagentState) => boolean) => states.filter(match).length;
   const running = count((st) => st.state === "running");
+  // 回答待ちの依頼（承認・質問）を出しているもの（いちばん先に見てほしい）
+  const needsInput = count((st) => st.state === "needs_input");
   // 実行中なのに長く動きがないもの（ピルにも出して、開かなくても気づけるようにする）
   const stalled = stalledAgents(visible).length;
   // 通信の切断で止まったものは、作業の失敗と分けて数える（「再開」で続きから戻せる）。親がもうやり直したものは既読なので数えない
@@ -169,6 +173,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
           {/* 左の印: 作業中のものがあれば回るリング、手を打つもの（失敗・通信で中断・届かず）があれば赤の点、ほかは薄い点（すべてアーカイブ済みなら出さない） */}
           {visible.length > 0 && <StatusSlot {...summaryState(states.map((st) => st.state))} />}
           {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
+          {needsInput > 0 && <span className="chip-needs-input"> · {needsInput} 件回答待ち</span>}
           {running > 0 && <span className="chip-running"> · {running} 件作業中</span>}
           {stalled > 0 && <span className="chip-network"> · {stalled} 件動きなし</span>}
           {failed > 0 && <span className="chip-failed"> · {failed} 件失敗</span>}

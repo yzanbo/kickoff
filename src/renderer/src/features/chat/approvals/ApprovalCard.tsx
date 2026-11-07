@@ -5,12 +5,44 @@ import { QuestionCard } from "./QuestionCard";
 import { useResolve } from "./useResolveApproval";
 import { ErrorText } from "@/ui/ErrorText";
 import { HighlightedCode } from "@/ui/HighlightedCode";
+import { waitingSubagentKeys } from "@shared/chat/subagentState";
+import { useSubagentsView } from "@/features/chat/subagents/subagentsContext";
+import { agentHueStyle } from "@/features/chat/subagents/agentHues";
+import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 
 /** ツール実行の承認依頼、AI からの質問（AskUserQuestion）、または通信の切断で何度再開しても続かなかったときの再開の確認 */
 export function ApprovalCard({ approval }: { approval: Approval }) {
-  if (approval.kind === "question") return <QuestionCard approval={approval} />;
   if (approval.kind === "reconnect" || approval.kind === "usage_limit") return <ReconnectCard approval={approval} />;
-  return <PermissionCard approval={approval} />;
+  return (
+    <>
+      <ApprovalFrom approval={approval} />
+      {approval.kind === "question" ? <QuestionCard approval={approval} /> : <PermissionCard approval={approval} />}
+    </>
+  );
+}
+
+/**
+ * サブエージェントからの依頼なら、カードの上に「サブエージェント「調査」からの依頼」と添え、「開く」でそのサブエージェントを開く
+ * （設定の開き方。どのサブエージェントが待っているかは waitingSubagentKeys。メインエージェントの依頼・チャットの画面の外では出さない）
+ */
+function ApprovalFrom({ approval }: { approval: Approval }) {
+  const view = useSubagentsView();
+  const pane = useOptionalChatPane();
+  if (!view) return null;
+  const [key] = waitingSubagentKeys([approval], view.events, [...view.tree.byKey.values()]);
+  const entry = key === undefined ? undefined : view.tree.byKey.get(key);
+  if (!entry) return null;
+  return (
+    <div className="approval-from small" style={agentHueStyle(view.hues.get(entry.key))}>
+      <span className="agent-dot" aria-hidden />
+      サブエージェント「{entry.description}」からの依頼
+      {pane && (
+        <button type="button" className="link-button" title="このサブエージェントを開く（設定の開き方で、流れの中のカードか右の欄）" onClick={() => pane.openSubagent(entry.key)}>
+          開く
+        </button>
+      )}
+    </div>
+  );
 }
 
 /** 自動の再開を何度試しても続かなかった: 再開するか（もう一度「続けて」を送る）、やめるか（失敗のまま） */

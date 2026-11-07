@@ -39,6 +39,8 @@ export class ApprovalCenter {
       title: req.title,
       description: req.description,
       can_remember: req.canRemember,
+      ...(req.toolUseId ? { tool_use_id: req.toolUseId } : {}),
+      ...(req.agentId ? { agent_id: req.agentId } : {}),
       created_at: new Date().toISOString(),
     };
     const decision = new Promise<ApprovalDecision>((resolve) => {

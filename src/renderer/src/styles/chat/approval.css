@@ -13,6 +13,19 @@
   margin: 0;
 }
 
+/* サブエージェントからの依頼のとき、カードの上に添える「サブエージェント「調査」からの依頼 開く」（ApprovalFrom） */
+.approval-from {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 -4px 2px;
+  color: var(--muted);
+}
+
+.approval-from .agent-dot {
+  margin-right: 0;
+}
+
 .approval-head {
   display: flex;
   align-items: center;

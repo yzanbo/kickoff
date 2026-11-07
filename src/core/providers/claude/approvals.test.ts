@@ -8,7 +8,7 @@ import type { ApprovalRequest } from "../types.js";
 const suggestions: PermissionUpdate[] = [{ type: "addRules", rules: [{ toolName: "Bash", ruleContent: "ls:*" }], behavior: "allow", destination: "localSettings" }];
 const signal = new AbortController().signal;
 /** canUseTool に渡す指定のうち、テストで変えるもの */
-type Extra = Partial<Pick<Parameters<CanUseTool>[2], "suggestions" | "title" | "description" | "decisionReason" | "suppressAlwaysAllowRule">>;
+type Extra = Partial<Pick<Parameters<CanUseTool>[2], "suggestions" | "title" | "description" | "decisionReason" | "suppressAlwaysAllowRule" | "agentID">>;
 
 /** 決まった回答を返す偽の承認で canUseTool を呼び、届いた依頼と判定を返す */
 async function ask(decision: ApprovalDecision, toolName: string, input: Record<string, unknown>, opts: Extra = {}) {
@@ -43,6 +43,15 @@ test("許可の依頼: 許可・いつも許可（提案のルールを適用）
   assert.equal((await ask({ action: "allow" }, "Bash", input)).request.canRemember, false);
   assert.equal((await ask({ action: "allow" }, "Bash", input, { suggestions, suppressAlwaysAllowRule: true })).request.canRemember, false);
   assert.equal((await ask({ action: "allow" }, "Bash", input, { description: "説明", decisionReason: "理由" })).request.description, "説明");
+});
+
+test("承認依頼には、どの呼び出し・どのサブエージェントのものかを添える（メインエージェントなら agentId なし）", async () => {
+  const main = await ask({ action: "allow" }, "Bash", { command: "ls" });
+  assert.equal(main.request.toolUseId, "t1");
+  assert.equal(main.request.agentId, undefined);
+  const sub = await ask({ action: "answer", answers: {} }, "AskUserQuestion", { questions: [] }, { agentID: "a1b2" });
+  assert.equal(sub.request.toolUseId, "t1");
+  assert.equal(sub.request.agentId, "a1b2");
 });
 
 test("質問（AskUserQuestion）: 回答は入力に足して通し、答えなければスキップとして断る", async () => {

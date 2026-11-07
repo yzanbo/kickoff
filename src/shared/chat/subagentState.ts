@@ -1,4 +1,4 @@
-import type { AgentState } from "@shared/types";
+import type { AgentState, Approval, ChatEvent } from "@shared/types";
 import type { SubagentEntry } from "./subagents";
 
 /**
@@ -29,4 +29,30 @@ export function subagentState(entry: SubagentEntry, waiting = false): SubagentSt
   if (entry.delivery === "pending") return { state: "read", detail: "awaiting" };
   if (entry.delivery === "lost") return { state: "failed", detail: "undelivered" };
   return { state: "read", detail: null };
+}
+
+/**
+ * 回答待ちの依頼（承認・質問）を出しているサブエージェント（一覧の行のキー）。依頼の呼び出し ID（tool_use_id）の記録の parent から引き、
+ * 中の手順が届かない深い入れ子などで記録にないときは、サブエージェントの ID（agent_id）で引く。メインエージェントの依頼・再開の確かめは数えない
+ */
+export function waitingSubagentKeys(
+  approvals: readonly Pick<Approval, "kind" | "tool_use_id" | "agent_id">[],
+  events: readonly ChatEvent[],
+  entries: readonly SubagentEntry[],
+): Set<string> {
+  const keys = new Set<string>();
+  const asking = approvals.filter((a) => (a.kind === "permission" || a.kind === "question") && (a.tool_use_id || a.agent_id));
+  if (asking.length === 0 || entries.length === 0) return keys;
+  // 記録の parent（起動した呼び出し ID。SendMessage で再開した回はその ID）→ 一覧の行のキー
+  const entryOfScope = new Map<string, string>();
+  for (const e of entries) for (const scope of [e.key, ...(e.aliases ?? [])]) entryOfScope.set(scope, e.key);
+  const wanted = new Set(asking.map((a) => a.tool_use_id).filter(Boolean));
+  const parentOf = new Map<string, string>();
+  for (const ev of events) if (ev.type === "tool_use" && ev.data.parent && wanted.has(ev.data.id)) parentOf.set(ev.data.id, ev.data.parent);
+  for (const a of asking) {
+    const parent = a.tool_use_id ? parentOf.get(a.tool_use_id) : undefined;
+    const key = (parent && entryOfScope.get(parent)) || (a.agent_id ? entries.find((e) => e.agentId === a.agent_id)?.key : undefined);
+    if (key) keys.add(key);
+  }
+  return keys;
 }
