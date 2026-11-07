@@ -1,0 +1,70 @@
+import { Check, ChevronDown, MessageSquare } from "lucide-react";
+import { IconButton } from "@/ui/IconButton";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
+import { cx } from "@/lib/cx";
+
+/** メモのチャットの見え方: 欄を開く / 閉じて下の入力欄だけ出す / 入力欄も隠す */
+type MemoChatShow = "open" | "quick" | "hidden";
+
+const SHOW_ITEMS: { value: MemoChatShow; label: string; title: string }[] = [
+  { value: "open", label: "会話を開く", title: "本文の横（か下）にメモのチャットの欄を開き、これまでのやり取りを見ながら話す" },
+  { value: "quick", label: "入力欄だけを下に出す", title: "欄は閉じ、メモの下に AI に直してもらう入力欄だけを出す" },
+  { value: "hidden", label: "隠す", title: "欄もメモの下の入力欄も出さず、メモだけを広く見る（吹き出しのボタンでいつでも開ける）" },
+];
+
+/**
+ * メモの見出しの、メモのチャットの切り替え（吹き出しと ▾ を 1 つのボタンに見せる .panel-split-button）。
+ * 吹き出しは欄の開け閉め（閉じると、選んでいる閉じ方 = 下の入力欄だけ / 隠す に戻る）、▾ は 3 つの見え方から選ぶメニュー
+ */
+export function MemoChatToggle({
+  open,
+  quickHidden,
+  onOpenChange,
+  onQuickHiddenChange,
+}: {
+  open: boolean;
+  /** 閉じている間、メモの下の入力欄も隠すか */
+  quickHidden: boolean;
+  onOpenChange: (open: boolean) => void;
+  onQuickHiddenChange: (hidden: boolean) => void;
+}) {
+  const menu = useContextMenu({ align: "end" });
+  const current: MemoChatShow = open ? "open" : quickHidden ? "hidden" : "quick";
+  const choose = (value: MemoChatShow) => {
+    onOpenChange(value === "open");
+    // 開くときは閉じ方の選択を変えない（閉じたら、前と同じ閉じ方に戻す）
+    if (value !== "open") onQuickHiddenChange(value === "hidden");
+  };
+  return (
+    <span className="panel-split-button memo-chat-split">
+      <IconButton
+        icon={MessageSquare}
+        label={open ? "メモのチャットを閉じる" : "メモのチャットを開く（AI と話しながらメモを作る）"}
+        aria-pressed={open}
+        className={cx("memo-chat-toggle", open && "on")}
+        onClick={() => onOpenChange(!open)}
+      />
+      <IconButton
+        icon={ChevronDown}
+        label="メモのチャットの見え方"
+        title="会話を開く・入力欄だけを下に出す・隠すから選ぶ"
+        size={12}
+        className="panel-open-with memo-chat-show"
+        aria-haspopup="menu"
+        aria-expanded={Boolean(menu.menu)}
+        onClick={(e) => menu.toggle(e)}
+      />
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="メモのチャットの見え方" ignore=".memo-chat-show" onClose={menu.close}>
+          {SHOW_ITEMS.map((item) => (
+            <MenuItem key={item.value} role="menuitemradio" checked={current === item.value} title={item.title} onSelect={() => choose(item.value)}>
+              <span className="project-switch-item">{item.label}</span>
+              {current === item.value && <Check size={14} aria-hidden />}
+            </MenuItem>
+          ))}
+        </PopupMenu>
+      )}
+    </span>
+  );
+}
