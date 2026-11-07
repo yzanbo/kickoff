@@ -217,7 +217,7 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   return (
     <section
-      className={cx("workspace-page", projectDrop.over === project.id && "chat-drop-over")}
+      className={cx("workspace-page", projectDrop.over === project.id && (projectDrop.blockedAt(project.id) ? "chat-drop-blocked" : "chat-drop-over"))}
       data-project-id={project.id}
       {...projectDrop.propsFor(project.id)}
       aria-hidden={hidden}
@@ -297,7 +297,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         {groupsAfterUngrouped.map(renderGroup)}
         {archived && (
           // チャットの行をここへドラッグすると、確かめてからアーカイブする（右クリックの「アーカイブ」と同じ確認のダイアログ）
-          <div className={cx("archive-drop", archiveDrop.over && "drop-target")} {...archiveDrop.props}>
+          <div className={cx("archive-drop", archiveDrop.over && (archiveDrop.blocked ? "drop-blocked" : "drop-target"))} {...archiveDrop.props}>
           <FoldSection
             look="row"
             icon={Archive}
@@ -321,7 +321,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         )}
         {/* アーカイブ済みのまとまりがない（まだない・隠している）ときも、チャットをドラッグしている間だけ同じ場所に落とし先を出す */}
         {!archived && chatDragging && (
-          <div className={cx("chat-row ghost archive-drop", archiveDrop.over && "drop-target")} {...archiveDrop.props}>
+          <div className={cx("chat-row ghost archive-drop", archiveDrop.over && (archiveDrop.blocked ? "drop-blocked" : "drop-target"))} {...archiveDrop.props}>
             <Archive size={13} aria-hidden /> アーカイブ済みへ（落とすとアーカイブ）
           </div>
         )}

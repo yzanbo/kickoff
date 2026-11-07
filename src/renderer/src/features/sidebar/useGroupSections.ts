@@ -1,6 +1,7 @@
 import { useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
 import type { Chat, ChatGroup, Project } from "@shared/types";
 import { moveDroppedChatToProject } from "@/features/chat/chatActions";
+import { busyBlockReason } from "@/features/chat/chatBusy";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { confirmDeleteGroup, UNGROUPED_SORT_ID, useGroupDrop } from "@/features/group/groups";
@@ -41,7 +42,7 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
   const [savedUngroupedAt, setUngroupedAt] = useSetting(groupBoardUngroupedAt(projectId));
   const ungroupedAt = ungroupedPosition(savedUngroupedAt, groups.length, true);
   // グループの並びは DB、「No Group」の位置は画面に覚える（変わった方だけ書く）
-  const { reorder, over, dropProps } = useGroupDrop({
+  const { reorder, over, blocked, dropProps } = useGroupDrop({
     projectId,
     groups,
     chats,
@@ -59,6 +60,8 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
       const group = groups.find((g) => g.id === groupId);
       moveDroppedChatToProject(chat, project, group && { id: group.id, name: group.name });
     },
+    // 作業中のチャット（子孫も）は別のプロジェクトへ移せないので、落とせないことを見せる
+    foreignBlockedBy: (chat) => busyBlockReason(chat.id, "移動"),
     onMoveDraft: (draft, groupId) => setDraftGroup(draft, groupId ?? undefined, groups.find((g) => g.id === groupId)?.name),
   });
   return {
@@ -67,7 +70,7 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
       renaming: renaming === group.id,
       onRenameStart: () => setRenaming(group.id),
       onRenameEnd: () => setRenaming(undefined),
-      dropClass: cx(over === group.id && "drop-target", reorder.classFor(group.id)),
+      dropClass: cx(over === group.id && (blocked ? "drop-blocked" : "drop-target"), reorder.classFor(group.id)),
       dropProps: dropProps(group.id),
       dragProps: reorder.handle(group.id),
     }),
@@ -75,7 +78,7 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
     ungroupedAt,
     /** 「No Group」のまとまり（見出しと中身を包む要素）: ドロップ先（チャットをグループから外す・並べ替えの位置）と、見出しのドラッグ */
     ungrouped: {
-      className: cx("custom-group", over === "none" && "drop-target", reorder.classFor(UNGROUPED_SORT_ID)),
+      className: cx("custom-group", over === "none" && (blocked ? "drop-blocked" : "drop-target"), reorder.classFor(UNGROUPED_SORT_ID)),
       dropProps: dropProps(null),
       dragProps: reorder.handle(UNGROUPED_SORT_ID),
     },
