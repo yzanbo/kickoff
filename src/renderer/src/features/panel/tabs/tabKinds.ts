@@ -6,8 +6,7 @@ import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { baseName } from "@/lib/format";
 import { normalizeUrl } from "@/lib/url";
-import { SubagentTabLead } from "@/features/chat/subagents/SubagentTabLead";
-import { ChildTabBadge, ChildTabLead } from "@/features/chat/children/ChildTabLead";
+import { ChildTabBadge } from "@/features/chat/children/ChildTabBadge";
 import { FileTabLead } from "@/features/editor/FileTabLead";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
@@ -223,7 +222,6 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   subagent: {
     shows: "subagent",
     icon: Bot,
-    Lead: SubagentTabLead,
     badge: "サブ",
     // サブエージェントの中で起動したもの（入れ子）は「↳」を付け、乗せると外側からの道筋（「調査 › 洗い出し」）
     label: (t) => (t.path ? `↳ ${t.title}` : t.title),
@@ -279,7 +277,6 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   child: {
     shows: "subagent",
     icon: MessagesSquare,
-    Lead: ChildTabLead,
     // 子チャットであることは札で見せる（前は名前の頭の「↳」だけで、サブエージェントの入れ子と見分けにくかった）
     badge: "子",
     // 孫より深いものは「孫」「ひ孫」にし、札と下線を深さの色にする（孫・ひ孫も同じ欄に子と並ぶので見分ける）

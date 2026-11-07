@@ -1,17 +1,6 @@
-import { MessagesSquare } from "lucide-react";
 import { childDepthLabel, childDepthShort } from "@shared/chat/childDepth";
-import { useChatStates } from "@/app/chatStatesContext";
 import { knownChat, useChatsValue, useKnownChat } from "@/stores/chats";
-import { StatusSlot } from "@/features/chat/StatusSlot";
 import { ancestorsOf } from "./childChats";
-
-/** 右の欄の子チャットのタブの名前の前に置く、子チャットの状態の印（サイドバーの行・チャットのタブと同じ。分からなければふつうのアイコン） */
-export function ChildTabLead({ tab }: { tab: { childId: number } }) {
-  const chat = useKnownChat(tab.childId);
-  const { stateOf } = useChatStates();
-  if (!chat) return <MessagesSquare size={12} className="muted" aria-hidden />;
-  return <StatusSlot state={stateOf(chat)} />;
-}
 
 /**
  * 子チャットのタブの種類の札の文: 深さで「子 / 孫 / ひ孫」（`childDepthShort`）。孫・ひ孫も同じ欄に子と並ぶので見分ける。

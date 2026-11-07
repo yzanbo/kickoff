@@ -31,13 +31,6 @@
   background: color-mix(in srgb, var(--agent-color) 9%, var(--bg));
 }
 
-/* 右の欄のサブエージェントのタブの名前の前の、状態のアイコン（タブの種類の色の線・札は panel/side-panel-tab-kinds.css） */
-.subagent-tab-lead {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-}
-
 /* 見出しの 1 行目: 階層と、右の欄のタブのときだけ右端の「別ウィンドウで開く」 */
 .subagent-screen-top {
   display: flex;

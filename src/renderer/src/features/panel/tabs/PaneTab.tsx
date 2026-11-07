@@ -1,8 +1,6 @@
 import type { HTMLAttributes } from "react";
 import type { Chat } from "@shared/types";
-import { busyWithUnread } from "@shared/chat/state";
 import { cx } from "@/lib/cx";
-import { useChatStates } from "@/app/chatStatesContext";
 import { CHAT_TITLE_MAX } from "@/features/chat/chatTitle";
 import { knownChat } from "@/stores/chats";
 import { confirmLeaveMemo } from "@/features/memo/memoGuards";
@@ -14,10 +12,11 @@ import { PanelTab } from "./PanelTab";
 import type { PanelTab as Tab } from "./panelTypes";
 import { specOf, type TabGroupLookup } from "./tabKinds";
 import { useChatTabHint } from "./useChatTabHint";
+import { useTabAgentState } from "./useTabAgentState";
 
 /**
- * ペインのタブの列のタブ 1 つ。アイコン・名前・説明・グループ名は種類の表（tabKinds）から引き、チャットのタブはサイドバーの行と同じ状態の印を出す
- * （未読・失敗のタブは名前も太字。ピン留めしたチャットはいちばん左にピン）。チャットのタブは名前のダブルクリックでその場で名前を変え（見出しには名前を出さない）、
+ * ペインのタブの列のタブ 1 つ。アイコン・名前・説明・グループ名は種類の表（tabKinds）から引き、チャット・子チャット・サブエージェントのタブは
+ * サイドバーの行と同じ状態の印を出す（useTabAgentState。未読・失敗のタブは名前も太字。ピン留めしたチャットはいちばん左にピン）。チャットのタブは名前のダブルクリックでその場で名前を変え（見出しには名前を出さない）、
  * × は表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）。分けたペイン（home でない）のサイドバーと連動したチャットは、
  * × で聞かずに一覧のペインへ戻す（ペインを閉じたときと同じ。アーカイブ・削除は右クリックから）
  */
@@ -48,12 +47,10 @@ export function PaneTab({
   /** チャットのタブの名前をその場で変える（パネル全体で 1 つ） */
   rename: ReturnType<typeof useChatRename>;
 }) {
-  const { stateOf } = useChatStates();
   const spec = specOf(t);
-  // チャットのタブのチャット（ボードの一覧になければ、タブの中のチャットから届いたもの）と状態
+  // チャットのタブのチャット（ボードの一覧になければ、タブの中のチャットから届いたもの）と、エージェントの状態（チャット・子チャット・サブエージェント）
   const chat = panel.chatOf(t);
-  const state = chat && stateOf(chat);
-  const busyUnread = Boolean(chat && state && busyWithUnread(chat, state));
+  const agent = useTabAgentState(panel, t);
   const label = spec.label(t, chat);
   const group = spec.group?.(t, chat, groupOf);
   const chatHint = useChatTabHint(t.kind === "chat" ? chat : undefined, label, group?.name);
@@ -77,11 +74,11 @@ export function PaneTab({
       label={label}
       group={showGroup ? group : undefined}
       title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group.name}）` : label)}
-      className={cx(className, (state === "unread" || state === "failed" || busyUnread) && "unread")}
+      className={cx(className, agent && (agent.state === "unread" || agent.state === "failed" || agent.unread) && "unread")}
       extra={extra}
       onSelect={() => panel.showTab(t.key)}
       pinnedIn={chat?.pinned ? chat.project_id : null}
-      lead={spec.Lead ? <spec.Lead tab={t} /> : state && <StatusSlot state={state} unread={busyUnread} />}
+      lead={spec.Lead ? <spec.Lead tab={t} /> : agent && <StatusSlot state={agent.state} unread={agent.unread} label={agent.label} />}
       onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Chat) : undefined}
       // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値はタブの名前）
       editor={editor && t.kind === "chat" ? { ...editor, initial: t.title ?? "", maxLength: CHAT_TITLE_MAX } : undefined}
