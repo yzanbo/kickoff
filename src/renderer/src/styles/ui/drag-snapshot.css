@@ -1,0 +1,13 @@
+/*
+ * ドラッグの絵を写す瞬間だけの見た目（ui/dragSnapshot.ts の markDragSnapshot が dragstart の間だけ付ける）。
+ * 背景をなくさず半透明にして（乗せたときの背景も上書き）、下の「入る位置の線」・落とし先の枠が透けて見えるようにし、形が分かるよう薄い枠を付ける。
+ * 濃さは 35%（開発版で 25% / 35% / 50% を写して見比べた。どれも乗せたときの地が消えて枠で形が分かり、ダークでは差は小さかったので中間にした）。
+ * 影は写らないので付けない。サイドバーの行・ボードのカード・タブなど、場所ごとに乗せたときの規則の詳細度が違うので、どれにも勝つよう !important にする
+ */
+.drag-snapshot {
+  background: color-mix(in srgb, var(--bg-elev) 35%, transparent) !important;
+  /* 枠は文字の色を薄めた色（ライトの --border-strong は白地でほとんど見えないため） */
+  outline: 1px solid color-mix(in srgb, var(--text) 22%, transparent) !important;
+  outline-offset: -1px;
+  box-shadow: none !important;
+}

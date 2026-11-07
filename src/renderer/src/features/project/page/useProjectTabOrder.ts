@@ -2,6 +2,7 @@ import { useMemo, useState, type DragEvent } from "react";
 import { useSetting } from "@/hooks/useSetting";
 import { PROJECT_TAB_ORDER } from "@/lib/storageKeys";
 import { applyTabOrder, moveGroup, moveTabInGroup, type DropSide, type TabGroup } from "./tabOrder";
+import { markDragSnapshot } from "@/ui/dragSnapshot";
 
 /** ドラッグで運ぶタブの種類（ほかのドラッグと見分ける） */
 const TAB_DRAG_TYPE = "application/x-kickoff-project-tab";
@@ -49,7 +50,8 @@ export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup
       onDragStart: (e: DragEvent) => {
         e.dataTransfer.setData(TAB_DRAG_TYPE, tab);
         e.dataTransfer.effectAllowed = "move";
-        setDragging({ tab, group: group.key });
+        // ドラッグの絵の背景を半透明に。動かしている印の state は写したあと
+        markDragSnapshot(e, () => setDragging({ tab, group: group.key }));
       },
       onDragEnd: end,
     }),

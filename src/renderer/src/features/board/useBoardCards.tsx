@@ -50,8 +50,8 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
       onMenu: (at) => menu.openAt(at, chat),
       onDragStart: drag
         ? (e: DragEvent) => {
-            startChatDrag(e, chat.id);
-            setDragChat(chat.id);
+            // 薄く出す（dragging）のは、ドラッグの絵を写したあと
+            startChatDrag(e, chat.id, () => setDragChat(chat.id));
           }
         : undefined,
       onDragEnd: drag ? () => setDragChat(undefined) : undefined,
