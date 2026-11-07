@@ -16,11 +16,15 @@ interface MemoMenuSource {
   copyAll?: string;
 }
 
-/** メモを足す先のチャット（開いたチャット・メモのチャット）。選んでいれば、その部分の引用を足し、なければメモ全体を添付する。path なら、メモのパスを足す */
+/**
+ * メモを足す先のチャット（開いたチャット・メモのチャット）。add: 選んでいれば、その部分の引用を足し、なければメモ全体を添付する /
+ * addQuote: 作った引用（ファイルのフルパスと行番号付き）をそのまま足す（本文で選んだときの上のボタン）/ addPath: メモのパスを足す
+ */
 export interface MemoChatTarget {
   /** 見出し・ボタンに出す呼び名（開いたチャットは名前。「機能開発」など） */
   name: string;
   add: (selection: string, lines: MemoLines | null) => void;
+  addQuote: (quote: string) => void;
   addPath: () => void;
 }
 

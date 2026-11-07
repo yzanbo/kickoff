@@ -1,4 +1,4 @@
-// メモの本文の右クリック・見出しのボタンから、メモを足す先のチャット（開いたチャット・メモのチャット）
+// メモの本文の右クリック・本文で選んだときの上のボタン・見出しのボタンから、メモを足す先のチャット（開いたチャット・メモのチャット）
 import type { MutableRefObject } from "react";
 import { lineLocation } from "@/lib/pathCopy";
 import { alertDialog } from "@/ui/dialogs";
@@ -47,6 +47,7 @@ export function memoChatTargets({
       if (selection.trim()) toMemoChat(quoteOf(selection, lines));
       else if (await savedForAttach()) toMemoChat("", [memoAttachment(path)]);
     },
+    addQuote: (quote) => toMemoChat(quote),
     addPath: () => toMemoChat(file),
   };
   if (attachTo === null) return { memo };
@@ -56,6 +57,7 @@ export function memoChatTargets({
       if (selection.trim()) attachMemoToChat(attachTo, path, quoteOf(selection, lines));
       else if (await savedForAttach()) attachMemoToChat(attachTo, path);
     },
+    addQuote: (quote) => attachMemoToChat(attachTo, path, quote),
     addPath: () => attachMemoToChat(attachTo, path, file),
   };
   return { main, memo };
