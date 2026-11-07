@@ -8,6 +8,7 @@ import { groupBoardUngroupedAt } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { useGroupMenu } from "@/features/group/GroupMenu";
 import { setDraftGroup } from "@/features/panel/state/panelDrafts";
+import { restoreDroppedChat } from "./ArchivedBucketFold";
 
 /** サイドバーのグループ 1 つに渡す、見出しの操作の束（メニュー・名前の変更・ドロップ先・並べ替え） */
 export interface GroupSectionProps {
@@ -23,7 +24,7 @@ export interface GroupSectionProps {
 
 /**
  * サイドバーの自分で作ったグループの操作（プロジェクトごとに 1 つ）: 「…」メニュー（名前を変更・削除）・名前の変更中のグループ・
- * ドロップ先（チャットはそのグループへ、グループの見出しはその位置へ並べ替える）。グループごとの束は sectionProps(group) で取る。
+ * ドロップ先（チャットはそのグループへ、アーカイブ済みのチャットは確かめて戻してそのグループへ、グループの見出しはその位置へ並べ替える）。グループごとの束は sectionProps(group) で取る。
  * 「No Group」もグループと同じく見出しのドラッグでグループの間へ並べ替え、位置（ungroupedAt。前にあるグループの数）を
  * グループのボードと同じ設定（groupBoardUngroupedAt。プロジェクトごと）に覚える（覚えていなければいちばん下）。
  * menuExtra はメニューの下に足す項目（「まとまりを色付きで表示」）
@@ -47,6 +48,8 @@ export function useGroupSections({ projectId, groups, chats, menuExtra }: { proj
       if (ids.some((id, i) => id !== groups[i]?.id)) void api.reorderGroups(projectId, ids);
     },
     onMoveChat: (chat, groupId) => void api.setChatGroup(chat.id, groupId),
+    // アーカイブ済みのチャット（まとまりのいちばん下の「アーカイブ済み」の行）を落としたら、確かめて戻し、そのグループへ移す
+    onRestoreChat: (chat, groupId) => void restoreDroppedChat(chat, groupId),
     // 送る前の新しいチャット（下書き）は、作成先のグループを変える（送ったときにそのグループに入る）
     onMoveDraft: (draft, groupId) => setDraftGroup(draft, groupId ?? undefined, groups.find((g) => g.id === groupId)?.name),
   });

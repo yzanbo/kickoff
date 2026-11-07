@@ -15,8 +15,20 @@ export const flashGroup = (groupId: number) => window.dispatchEvent(new CustomEv
 
 const CHAT_DRAG_TYPE = "application/x-kickoff-run";
 
+/**
+ * いまドラッグしているチャットの ID（ドラッグの間だけ。dragover ではデータを読めないので、落とす前に受けるかを決めるのに使う:
+ * アーカイブ済みの落とし先はアーカイブしていないチャットだけ、戻す落とし先はアーカイブ済みだけを受ける）
+ */
+let draggingChatId: number | undefined;
+if (typeof window !== "undefined") {
+  const clear = () => (draggingChatId = undefined);
+  window.addEventListener("dragend", clear, true);
+  window.addEventListener("drop", () => setTimeout(clear), true);
+}
+
 /** チャットのドラッグを始める（ドロップ先でチャットの ID を受け取れるようにする） */
 export function startChatDrag(e: DragEvent, chatId: number, after?: () => void) {
+  draggingChatId = chatId;
   e.dataTransfer.setData(CHAT_DRAG_TYPE, String(chatId));
   e.dataTransfer.effectAllowed = "move";
   // 半透明の写しがカーソルに付いて動く（下の入る位置の線・落とし先の枠が透ける）。ドラッグ中の見た目の state は次の回（after）
@@ -82,15 +94,20 @@ export function useChatDragging(): boolean {
 
 /**
  * チャットを落とせる所（サイドバーの「アーカイブ済み」など、グループ以外のドロップ先）。チャットを重ねている間は over が true になり、
- * 落とすと onDrop にチャットの ID を渡す（下書き・グループ・プロジェクトのドラッグは受けない）。props をドロップ先の要素に渡す
+ * 落とすと onDrop にチャットの ID を渡す（下書き・グループ・プロジェクトのドラッグは受けない）。props をドロップ先の要素に渡す。
+ * accepts を渡すと、ドラッグしているチャットのうち受けるものだけで over にし、落とせるようにする。受けないチャットも、
+ * 外側の落とし先（グループのまとまりなど）へは渡さない（グループの中の「アーカイブ済み」に、そのアーカイブ済みのチャットを落としても戻さない）
  */
-export function useChatDropTarget(onDrop: (chatId: number) => void) {
+export function useChatDropTarget(onDrop: (chatId: number) => void, accepts?: (chatId: number) => boolean) {
   const [over, setOver] = useState(false);
+  const ok = () => accepts === undefined || (draggingChatId !== undefined && accepts(draggingChatId));
   return {
     over,
     props: {
       onDragOver: (e: DragEvent) => {
         if (!isChatDrag(e)) return;
+        e.stopPropagation();
+        if (!ok()) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
         setOver(true);
@@ -102,8 +119,9 @@ export function useChatDropTarget(onDrop: (chatId: number) => void) {
         setOver(false);
         const id = droppedChatId(e);
         if (id === undefined) return;
+        e.stopPropagation();
         e.preventDefault();
-        onDrop(id);
+        if (accepts === undefined || accepts(id)) onDrop(id);
       },
     },
   };
@@ -195,7 +213,8 @@ export function confirmDeleteGroup(group: Pick<ChatGroup, "name">): Promise<bool
  * チャットはそのグループへ移し（groupId が null ならグループから外す）、グループの見出しはその位置へ並べ替える。
  * onMoveDraft があれば、送る前の新しいチャット（下書き）も受け取り、作成先のグループを変える（サイドバー）。
  * ungroupedAt（グループの並びの中の「No Group」の位置）を渡すと、「No Group」も並べ替えの並びに入れ（ID は UNGROUPED_SORT_ID）、
- * onReorder にグループの並びと動かしたあとの「No Group」の位置を渡す（グループのボード）
+ * onReorder にグループの並びと動かしたあとの「No Group」の位置を渡す（グループのボード・サイドバー）。
+ * onRestoreChat があれば、アーカイブ済みのチャットを落としたときは、移す代わりにそれを呼ぶ（サイドバー: 確かめて戻し、そのグループへ移す）
  */
 export function useGroupDrop({
   groups,
@@ -204,12 +223,14 @@ export function useGroupDrop({
   onReorder,
   onMoveChat,
   onMoveDraft,
+  onRestoreChat,
 }: {
   groups: ChatGroup[];
   chats: Chat[];
   ungroupedAt?: number;
   onReorder: (ids: number[], ungroupedAt?: number) => void;
   onMoveChat: (chat: Chat, groupId: number | null) => void;
+  onRestoreChat?: (chat: Chat, groupId: number | null) => void;
   onMoveDraft?: (draft: DraftRef, groupId: number | null) => void;
 }) {
   const sortable = ungroupedAt !== undefined;
@@ -243,6 +264,7 @@ export function useGroupDrop({
       const draft = onMoveDraft && droppedDraft(e);
       if (draft) return onMoveDraft(draft, groupId);
       const chat = chats.find((r) => r.id === droppedChatId(e));
+      if (chat?.archived_at && onRestoreChat) return onRestoreChat(chat, groupId);
       if (chat && chat.group_id !== groupId) onMoveChat(chat, groupId);
     },
   });

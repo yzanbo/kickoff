@@ -15,6 +15,8 @@
  * - 並び: プロジェクトの順（渡した並び → ほかは出てきた順）、その中は 固定 → グループ（サイドバーと同じ並び）・作業場所（本体 → ワークツリー
  *   （名前順）→ フォルダなし → 以前のブランチ）・状態（作業中 → 回答待ち → 未読 → 既読）→ グループなし、いちばん後ろにアーカイブ済み → その他。
  *   まとまりの中のチャットは最後に動いた順
+ * - アーカイブ済みを各まとまりの中に入れる（archived: "nested"）ときは、いちばん外の段のまとまりの archived に、そのまとまりのアーカイブ済み
+ *   （キーは "p3/g5/archived"）を入れる。アーカイブ済みだけのまとまり（消えたワークツリーなど）も、そのために作る
  */
 import { BOARD_COLUMNS, type BoardColumn, type Chat, type ChatGroup, type GitWorktree, type Project } from "@shared/types";
 import { stateCounts, type ApprovalIndex, type StateCounts } from "@/features/chat/chatState";
@@ -73,6 +75,8 @@ export interface ChatBucket<D extends DraftTarget = DraftTarget> extends BucketH
   counts: StateCounts;
   /** 中の段のまとまり（2 段以上で分けたとき） */
   children?: ChatBucket<D>[];
+  /** このまとまりのアーカイブ済み（archived: "nested" のとき、いちばん外の段だけ。なければ undefined。中は分けない） */
+  archived?: ChatBucket<D>;
 }
 
 /** 分けるのに使う、いまの状態（画面では useChatBuckets が店から渡す） */
@@ -98,9 +102,10 @@ export interface BucketOptions<D extends DraftTarget = DraftTarget> extends Buck
   pinned?: boolean;
   /**
    * アーカイブ済みのチャット: keep = ほかと同じく分ける（既定）/ bucket = 「アーカイブ済み」に抜き出す（いちばん後ろ。中はグループを除いた段で分ける）/
+   * nested = いちばん外の段のまとまりごとに、その中の archived に入れる（サイドバーのグループ別・作業場所別。段がなければ bucket と同じ）/
    * drop = 入れない
    */
-  archived?: "keep" | "bucket" | "drop";
+  archived?: "keep" | "bucket" | "nested" | "drop";
   /** 下書き。作成先のまとまりに入れる（いちばん外の段だけ） */
   drafts?: readonly D[];
   /** チャットも下書きもないまとまりも出すか（グループ = そのプロジェクトのグループすべてとグループなし、状態 = すべての列、プロジェクト = projects のすべて） */
@@ -149,13 +154,40 @@ const levelsOf = (by: BucketBy | readonly BucketBy[]): readonly BucketBy[] => (t
 export function bucketChats<D extends DraftTarget = DraftTarget>(chats: readonly Chat[], options: BucketOptions<D>): ChatBucket<D>[] {
   const own = (projectId: number) => options.project === undefined || projectId === options.project;
   const levels = levelsOf(options.by);
-  return bucketLevel(
-    chats.filter((c) => own(c.project_id)),
-    (options.drafts ?? []).filter((d) => own(d.projectId)),
+  const mine = chats.filter((c) => own(c.project_id));
+  const drafts = (options.drafts ?? []).filter((d) => own(d.projectId));
+  const top = { top: true, scope: options.project };
+  if (options.archived !== "nested") return bucketLevel(mine, drafts, levels, options, top);
+  // 段がなければ（まとめない）、今までどおり「アーカイブ済み」に抜き出す
+  if (levels.length === 0) return bucketLevel(mine, drafts, levels, { ...options, archived: "bucket" }, top);
+  const list = bucketLevel(
+    mine.filter((c) => !c.archived_at),
+    drafts,
     levels,
-    options,
-    { top: true, scope: options.project },
+    { ...options, archived: "drop" },
+    top,
   );
+  // アーカイブ済みは、いちばん外の段だけで分けて（固定も抜き出さない）、同じキーのまとまりに入れる
+  const archived = bucketLevel(
+    mine.filter((c) => c.archived_at),
+    [],
+    levels.slice(0, 1),
+    { ...options, pinned: false, archived: "keep", keepEmpty: false },
+    top,
+  );
+  if (archived.length === 0) return list;
+  const byKey = new Map(list.map((b) => [b.key, b]));
+  for (const bucket of archived) {
+    let owner = byKey.get(bucket.key);
+    if (!owner) {
+      // アーカイブ済みだけのまとまり（中身は空のまま。中の段も作らない）
+      owner = { ...bucket, chats: [], drafts: [], counts: ZERO_COUNTS, children: undefined };
+      byKey.set(bucket.key, owner);
+      list.push(owner);
+    }
+    owner.archived = { ...bucket, key: `${bucket.key}/archived`, kind: "archived", label: "アーカイブ済み", title: "アーカイブ済みのチャット", counts: ZERO_COUNTS };
+  }
+  return sortBuckets(list, options.projects?.map((p) => p.id));
 }
 
 function bucketLevel<D extends DraftTarget>(

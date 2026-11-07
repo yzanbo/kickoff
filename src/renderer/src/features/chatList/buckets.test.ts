@@ -153,6 +153,36 @@ test("bucketChats: 中の段のキーは親につなぐ。固定は中を分け�
   assert.deepEqual(shape(bucketChats([chat(1), chat(2, { project_id: 2 })], { pending, by: "status", project: 1 })), [["p1/status:read", [1]]]);
 });
 
+test("bucketChats: archived が nested なら、いちばん外の段のまとまりごとにアーカイブ済みを入れる（アーカイブ済みだけのまとまりも作る）", () => {
+  const chats = [
+    chat(1, { group_id: 4, status: "running" }),
+    chat(2, { group_id: 4, archived_at: "x" }),
+    chat(3, { archived_at: "x" }),
+    chat(4, { group_id: 5, archived_at: "x", pinned: true }),
+    chat(5, { pinned: true }),
+    chat(6, { group_id: 4, archived_at: "x" }),
+  ];
+  const list = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: true, archived: "nested" });
+  assert.deepEqual(
+    list.map((b) => [b.key, b.chats.map((c) => c.id), b.archived?.key ?? null, b.archived?.chats.map((c) => c.id) ?? null]),
+    [
+      ["p1/pinned", [5], null, null],
+      ["p1/g4", [1], "p1/g4/archived", [6, 2]],
+      // 固定したアーカイブ済みは、固定ではなくグループのアーカイブ済みへ。チャットのないグループも、アーカイブ済みのために作る
+      ["p1/g5", [], "p1/g5/archived", [4]],
+      ["p1/ungrouped", [], "p1/ungrouped/archived", [3]],
+    ],
+  );
+  // 中の段（状態）は、アーカイブしていないものだけで分ける
+  assert.deepEqual(list[1].children?.map((c) => c.key), ["p1/g4/status:running"]);
+  assert.equal(list[1].archived?.kind, "archived");
+  // まとめないときは、今までどおり「アーカイブ済み」に抜き出す
+  assert.deepEqual(shape(bucketChats([chat(1), chat(2, { archived_at: "x" })], { pending, by: [], project: 1, archived: "nested" })), [
+    ["p1/all", [1]],
+    ["p1/archived", [2]],
+  ]);
+});
+
 test("bucketChats: まとめない（by が空）なら見出しのないまとまり 1 つ", () => {
   assert.deepEqual(shape(bucketChats([chat(1), chat(2, { pinned: true })], { pending, by: [], project: 1, pinned: true })), [
     ["p1/pinned", [2]],

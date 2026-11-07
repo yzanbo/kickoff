@@ -67,7 +67,8 @@
 .custom-group.drop-target,
 .custom-group-head.drop-target,
 .chat-rows.drop-target,
-.archive-drop.drop-target {
+.archive-drop.drop-target,
+.restore-drop.drop-target {
   outline: 1px dashed var(--accent);
   outline-offset: -1px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -207,7 +208,11 @@
   color: var(--muted);
 }
 
-/* サイドバーの「アーカイブ済み」へチャットをドラッグしているとき（落とすと、確かめてからアーカイブする。色は上のドロップ先と同じ） */
-.archive-drop.drop-target {
+/*
+ * サイドバーの「アーカイブ済み」へチャットをドラッグしているとき（落とすと、確かめてからアーカイブする。色は上のドロップ先と同じ）と、
+ * アーカイブ済みのチャットを一覧へドラッグしているとき（落とすと、確かめてから戻す .restore-drop）
+ */
+.archive-drop.drop-target,
+.restore-drop.drop-target {
   border-radius: var(--radius);
 }
