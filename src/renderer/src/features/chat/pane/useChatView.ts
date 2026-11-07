@@ -28,7 +28,8 @@ import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems"
 import { useTimelineScrollHandle } from "@/features/chat/timeline/timelineScroll";
 import { useTimelineWindow } from "@/features/chat/timeline/useTimelineWindow";
 import type { ChatPaneActions, ChatPaneState } from "./chatPaneContext";
-import { compactHoldOf, useChatSend } from "./useChatSend";
+import { compactHoldOf } from "./compactHold";
+import { useChatSend } from "./useChatSend";
 
 export interface ChatViewInput {
   chat: Chat;
@@ -86,6 +87,7 @@ export function useChatView(
       compacting: busy ? coreLive.compacting : null,
       awaiting_compact: busy && coreLive.awaiting_compact,
       compact_after_turn: busy && coreLive.compact_after_turn,
+      compacted_turn: busy && coreLive.compacted_turn,
     }),
     [coreLive, busy, stopClicked],
   );

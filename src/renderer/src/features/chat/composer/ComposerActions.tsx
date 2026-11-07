@@ -26,8 +26,9 @@ export interface SendTarget {
  * ほかの送り方・送り先を選べるとき（sendTargets。質問として送る・子チャットに送るなど）は、送信ボタンの右クリックでそれらを選ぶメニューを開く
  * （ふだんの送り方（「あとで送る」など）は送信ボタンそのものなので、メニューには並べない）。
  * 同じメニューは丸いボタンの右の ▾ でも開く（右クリックに気づかなくても選べるように。作業中で中断のボタンだけのときも出す）。
- * plain のとき（会話の圧縮中）は、作業中でもふだんの見た目（送信ボタンの左のもの・送信・▾）にし、送り方の切り替えと中断のボタンを出さない
- * （圧縮の間は返答もツールも動かず、送った文は圧縮が終わってから伝わるので、選ぶものがない。Esc を 2 回押す中断は効く）
+ * plain のとき（会話の圧縮中）は、作業中でもふだんの見た目（送信ボタンの左のもの・送信・▾）にし、中断のボタンを出さない
+ * （圧縮の間は返答もツールも動かない。Esc を 2 回押す中断は効く）。送り方の切り替え（いま = 圧縮のあとのやり取りが終わってから送る /
+ * あとで = 送信待ち）は出す
  */
 export function ComposerActions({
   busy,
@@ -72,7 +73,7 @@ export function ComposerActions({
   return (
     <div className="composer-actions">
       {trailing}
-      {queueing && busyControls && !plain && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
+      {queueing && busyControls && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
       {/* 作業中は中断。書いていれば（録音中も）、その横に待ちの列に入れるボタン */}
       {busy && onStop && !stopping && stopArmed && <span className="composer-stop-hint">もう一度 Esc で中断</span>}
       {busy && onStop && stopping && <span className="composer-stop-hint stopping">停止中…</span>}

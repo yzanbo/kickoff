@@ -15,8 +15,8 @@ interface LiveFields {
   /** 次の指示を書き直していたので、送らずに書き直しが終わるのを待っている（QueueState の waiting_edit） */
   waitingEdit: boolean;
   /**
-   * 圧縮中・圧縮前指示から圧縮が終わるまでに「いま」で送った指示（圧縮が終わったら伝える。ChatLive の after_compact）。
-   * 圧縮したら、先頭に圧縮後指示（post_compact）を置き、それから順に伝える
+   * 圧縮後指示（post_compact。圧縮したら先頭に置き、圧縮が終わったらいまのやり取りに伝える）と、預かる間（holdsTells）に「いま」で送った指示
+   * （圧縮したやり取りが終わってから送る。ChatLive の after_compact）
    */
   afterCompact: QueuedMessage[];
   /** 圧縮前指示を送ってから、圧縮が終わるまで（手で頼んだ圧縮の実行の間も。ChatLive の awaiting_compact） */
@@ -25,6 +25,11 @@ interface LiveFields {
   compactAfterTurn: boolean;
   /** 圧縮が終わって、預かった「いま」を順に送っている途中（送り終えるまで、新しい「いま」も預かって後ろに足す。画面には配らない） */
   deliveringAfterCompact: boolean;
+  /**
+   * 会話を圧縮したやり取りの途中（自動の圧縮が始まった作業・手で圧縮する実行・圧縮後指示を伝えた作業。作業の終わりで外す。ChatLive の compacted_turn）。
+   * この間の「いま」は預かり、このやり取りが終わってから送る（圧縮後指示のやり取りに混ぜない）
+   */
+  compactedTurn: boolean;
   /** 起動したときの送信待ちの確かめを待っている（答えるまで送信待ちを送らない。ChatLive の queue_resume） */
   resume: { interrupted: boolean } | null;
 }
@@ -53,8 +58,8 @@ export class ChatRuntime {
   readonly edits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, resume: null };
-  /** 圧縮が終わった（預かった「いま」を伝える。holdsTells が外れたとき） */
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, resume: null };
+  /** 圧縮が終わった（圧縮後指示を伝える。圧縮中・圧縮前指示から圧縮が終わるまで（compactPhase）が外れたとき） */
   private readonly onCompactEnded: () => void;
 
   constructor(
@@ -78,12 +83,23 @@ export class ChatRuntime {
   }
 
   /**
-   * 「いま」を預かるか: 圧縮中か、圧縮前指示を送ってから圧縮が終わるまで（awaitingCompact）か、圧縮のあとに預かった指示を送っている途中。
+   * 「いま」を預かるか: 圧縮中か、圧縮前指示を送ってから圧縮が終わるまで（awaitingCompact）か、圧縮したやり取りの途中（compactedTurn。
+   * 圧縮後指示のやり取りが終わるまで）か、圧縮のあとに預かった指示を送っている途中。
    * 圧縮の前に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため。
-   * 送っている途中に足すと、圧縮後指示・前に預かった指示より先に入りうるため
+   * 圧縮のあとに足すと、圧縮後指示のやり取りに混ざるため。送っている途中に足すと、圧縮後指示・前に預かった指示より先に入りうるため
    */
   get holdsTells(): boolean {
-    return this.fields.compacting !== null || this.fields.awaitingCompact || this.fields.deliveringAfterCompact;
+    return this.compactPhase || this.fields.compactedTurn || this.fields.deliveringAfterCompact;
+  }
+
+  /** 圧縮中か、圧縮前指示を送ってから圧縮が終わるまでか（外れたら、圧縮後指示を伝える） */
+  get compactPhase(): boolean {
+    return this.fields.compacting !== null || this.fields.awaitingCompact;
+  }
+
+  /** 圧縮したやり取りの途中か（終わるまで「いま」を預かる） */
+  get compactedTurn(): boolean {
+    return this.fields.compactedTurn;
   }
 
   /** 圧縮前指示を送ってから、圧縮が終わるまでか */
@@ -116,19 +132,19 @@ export class ChatRuntime {
     return this.fields.waitingEdit;
   }
 
-  /** もう預かる間でないのに、伝えていない預かった指示があれば伝える（圧縮中を外したあとで、圧縮後指示を先頭に置いたときなど） */
+  /** もう圧縮が終わっているのに、伝えていない預かった指示があれば伝える（圧縮中を外したあとで、圧縮後指示を先頭に置いたときなど） */
   flushAfterCompact() {
-    if (!this.holdsTells && this.fields.afterCompact.length > 0) this.onCompactEnded();
+    if (!this.compactPhase && !this.fields.deliveringAfterCompact && this.fields.afterCompact.length > 0) this.onCompactEnded();
   }
 
   /** 画面に配る様子を変える（変わったものがあれば、まとめて 1 回だけ知らせる） */
   update(patch: Partial<LiveFields>) {
     const changed = (Object.keys(patch) as (keyof LiveFields)[]).some((key) => patch[key] !== this.fields[key]);
     if (!changed) return;
-    const held = this.holdsTells;
+    const phase = this.compactPhase;
     this.fields = { ...this.fields, ...patch };
     this.onChange();
-    if (held && !this.holdsTells) this.onCompactEnded();
+    if (phase && !this.compactPhase && !this.fields.deliveringAfterCompact) this.onCompactEnded();
   }
 
   /** 送信待ちの様子（チャットの詳細・SSE・送信待ちを変える API の応答で同じ形） */
@@ -138,7 +154,7 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn, resume } = this.fields;
+    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn, compactedTurn, resume } = this.fields;
     return {
       queue: this.queueState(),
       background,
@@ -149,6 +165,7 @@ export class ChatRuntime {
       after_compact: afterCompact,
       awaiting_compact: awaitingCompact,
       compact_after_turn: compactAfterTurn,
+      compacted_turn: compactedTurn,
       queue_resume: resume,
     };
   }

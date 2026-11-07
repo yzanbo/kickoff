@@ -46,7 +46,7 @@ interface Props {
   onQueue?: (text: string, attachments: Attachment[], mode?: QueueSendMode) => Promise<void>;
   /** 作業していなくても、送るときに onQueue と busyControls（すぐ送る / ためておく）を使う（止めている送信待ちがあるとき） */
   queueWhileIdle?: boolean;
-  /** 作業中でも、右下をふだんの見た目（送信ボタンの左のもの・送信・▾）にする（会話の圧縮中。送り方の切り替えと中断のボタンを出さない） */
+  /** 作業中でも、右下をふだんの見た目（送信ボタンの左のもの・送信・▾）にする（会話の圧縮中。中断のボタンを出さない。送り方の切り替えは出す） */
   plainActions?: boolean;
   /** 送信ボタンの名前（送り方で変わるとき。省けば既定の文） */
   sendLabel?: string;
