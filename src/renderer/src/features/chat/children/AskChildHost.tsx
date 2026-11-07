@@ -10,7 +10,7 @@ import { closeAskChild, useAskChildRequest, type AskChildRequest } from "./child
 import { openCreatedChild } from "./openChild";
 import { InheritChoice } from "./InheritChoice";
 
-/** 「子チャットで聞く」の画面（App と別ウィンドウに 1 つずつ置く。openAskChild で開く） */
+/** 「新しい子チャットで聞く」の画面（App と別ウィンドウに 1 つずつ置く。openAskChild で開く） */
 export function AskChildHost() {
   const request = useAskChildRequest();
   // 開くたびに作り直す（前の質問・失敗の文を残さない）
@@ -63,7 +63,7 @@ function AskChildDialog({ request }: { request: AskChildRequest }) {
           void submit();
         }}
       >
-        <h2 className="app-dialog-title">子チャットで聞く</h2>
+        <h2 className="app-dialog-title">新しい子チャットで聞く</h2>
         <p className="app-dialog-message">
           このチャットの作業を止めずに、横で聞きます。答えが来たら、聞いた位置と入力欄の上の札に印が付きます。
           {request.quote.trim() && "選択部分は引用として入れてあります。書き換えたり、消したりできます。"}

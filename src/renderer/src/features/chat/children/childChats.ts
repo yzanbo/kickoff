@@ -20,11 +20,11 @@ const set = (next: AskChildRequest | null) => {
 /** 子チャットに引用として渡す文の上限（文字。発言の全体を渡すときに長すぎないように） */
 export const MAX_ASK_CHILD_QUOTE = 4000;
 
-/** 「子チャットで聞く」の画面を開く（AskChildHost が出す） */
+/** 「新しい子チャットで聞く」の画面を開く（AskChildHost が出す） */
 export const openAskChild = (next: AskChildRequest) => set(next);
 export const closeAskChild = () => set(null);
 
-/** 開いている「子チャットで聞く」の画面（なければ null） */
+/** 開いている「新しい子チャットで聞く」の画面（なければ null） */
 export function useAskChildRequest(): AskChildRequest | null {
   return useSyncExternalStore(
     (listener) => {

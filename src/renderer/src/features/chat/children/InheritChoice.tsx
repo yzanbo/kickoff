@@ -12,7 +12,7 @@ export function inheritHelp(inherit: boolean, parentLabel: string): string {
 
 /**
  * 子チャットを作るときの「会話を引き継ぐ / 新しく始める」の切り替えと、選んだ方の説明 1 行（どちらを選んでも長さが近く、切り替えても行の数が変わりにくいように短くし、詳しくはボタンに乗せたときの説明に）。
- * 新しい子チャットのタブ（入力欄のすぐ上）と「子チャットで聞く」の画面で同じ形にする（チェックだと外したときの意味が分からないため、両方に名前を付ける）
+ * 新しい子チャットのタブ（入力欄のすぐ上）と「新しい子チャットで聞く」の画面で同じ形にする（チェックだと外したときの意味が分からないため、両方に名前を付ける）
  */
 export function InheritChoice({ inherit, onChange, parentLabel }: {
   inherit: boolean;

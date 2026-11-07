@@ -72,7 +72,7 @@ function NewChildForm({ parent, onCreated }: { parent: Chat; onCreated: (child: 
             </div>
           }
         >
-          {/* 会話を引き継ぐか（初めは引き継ぐ。書きながら目に入るよう、入力欄のすぐ上に置く。「子チャットで聞く」の画面と同じ形） */}
+          {/* 会話を引き継ぐか（初めは引き継ぐ。書きながら目に入るよう、入力欄のすぐ上に置く。「新しい子チャットで聞く」の画面と同じ形） */}
           <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" />
           <Composer
             chatContext={{ projectId: parent.project_id }}
