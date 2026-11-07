@@ -60,7 +60,7 @@
 .memo-quick-chat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
   padding-top: 6px;
   border-top: 1px solid var(--border);
   background: var(--bg-elev);
@@ -85,12 +85,16 @@
   max-width: none;
 }
 
-/* 名前「メモのチャット」・作業中・回答待ちなどの様子・「会話を開く」と「非表示にする」（右端）の 1 行 */
+/*
+ * 名前「メモのチャット」・ピルの列・作業中・回答待ちなどの様子・「会話を開く」と「非表示にする」（右端）の 1 行。
+ * 高さはピル（26px）に合わせ、ピルがなくても変えない（ピルが出たり消えたりしても入力欄が動かないように）
+ */
 .memo-quick-status {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
+  min-height: 26px;
   padding: 0 var(--gutter);
   font-size: 12px;
   color: var(--muted);
@@ -110,11 +114,34 @@
   color: var(--accent-fg);
 }
 
+/*
+ * ピルの列（チャットの画面が .composer-chips ごと描く）。名前の右に並べ、入りきらない幅では、様子の文を先に縮めてから、
+ * この中でピルごと折り返す（ピルの文は折らない。一覧が上に開くので切り取らない）。ふだんの下の余白はなくす（入力欄との間は行の外で取る）。
+ * 列は縮めず（縮めると、様子の文に縮める余地があっても端数でピルが折り返した）、幅の上限を「行 − 名前・様子の点・右端のボタン・間」にして、
+ * 様子の文が点だけになってから折り返す
+ */
+.memo-quick-chips {
+  display: flex;
+  flex: none;
+  max-width: calc(100% - 190px);
+}
+
+.memo-quick-chips .composer-chips {
+  padding: 0;
+}
+
+.memo-quick-chips .composer-chip {
+  white-space: nowrap;
+}
+
+/* 様子は右端のボタンの手前に寄せる（ピルの数で位置が変わらないように）。狭いときはピルより先に縮める */
 .memo-quick-state {
   display: inline-flex;
+  flex: 0 1 auto;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  margin-left: auto;
 }
 
 .memo-quick-status-text {
@@ -129,7 +156,6 @@
   flex: none;
   align-items: center;
   gap: 2px;
-  margin-left: auto;
 }
 
 .memo-quick-actions .icon-button {
