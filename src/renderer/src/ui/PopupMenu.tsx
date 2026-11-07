@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, type ReactNode } from "react";
+import { createContext, useContext, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/lib/cx";
 import type { Placement } from "@/lib/floating";
@@ -58,6 +58,7 @@ export function MenuItem({
   keepOpen,
   disabled,
   onSelect,
+  buttonProps,
   children,
 }: {
   role?: "menuitem" | "menuitemradio" | "menuitemcheckbox";
@@ -68,11 +69,14 @@ export function MenuItem({
   keepOpen?: boolean;
   disabled?: boolean;
   onSelect: () => void;
+  /** ボタンに足す属性（ドラッグで並べ替える項目の draggable・ドラッグの知らせ・data- など） */
+  buttonProps?: ButtonHTMLAttributes<HTMLButtonElement> & Record<`data-${string}`, string>;
   children: ReactNode;
 }) {
   const close = useContext(MenuCloseContext);
   return (
     <button
+      {...buttonProps}
       role={role}
       aria-checked={checked}
       className={cx(className, danger && "danger") || undefined}

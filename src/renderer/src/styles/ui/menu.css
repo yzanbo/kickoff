@@ -240,3 +240,51 @@
   color: var(--muted);
   white-space: pre-line;
 }
+
+/*
+ * ドラッグで並べ替えられる項目（「見出しに出す項目」）: 左のつまみの印は乗せたときだけ濃く、動かしている項目は薄く、
+ * 落とす先の前・後ろの隙間にまっすぐな線（落としても並びが変わらない所には出さない。useHeaderItemDrag）
+ */
+.menu button[draggable="true"] {
+  position: relative;
+}
+
+.menu-grip {
+  flex: none;
+  margin: 0 -4px 0 -6px;
+  color: var(--extra-muted);
+  cursor: grab;
+}
+
+.menu button:hover > .menu-grip {
+  color: var(--muted);
+}
+
+/* 並べ替えない項目（まとまりに 1 つだけ）は、印を出さずに幅だけ空けて、ほかの項目と文字の位置をそろえる */
+.menu-grip.space {
+  visibility: hidden;
+}
+
+.menu button.menu-dragging {
+  opacity: var(--drag-source-opacity);
+}
+
+.menu button.menu-drop-before::after,
+.menu button.menu-drop-after::after {
+  position: absolute;
+  right: 6px;
+  left: 6px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent-bright);
+  content: "";
+  pointer-events: none;
+}
+
+.menu button.menu-drop-before::after {
+  top: -1px;
+}
+
+.menu button.menu-drop-after::after {
+  bottom: -1px;
+}
