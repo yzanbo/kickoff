@@ -9,6 +9,8 @@ import { useSave } from "@/hooks/useSave";
 import { Field } from "@/ui/Field";
 import { SaveActions } from "@/ui/SaveActions";
 import { changeProjectFolder } from "@/features/project/changeProjectFolder";
+import { GIT_FEATURES, startProjectGit } from "@/features/project/GitInitNotice";
+import { useGitStatus } from "@/features/editor/useGitStatus";
 import { TagEditor } from "./TagEditor";
 
 export function BasicInfo({ project }: { project: Project }) {
@@ -63,13 +65,32 @@ function ColorField({ project }: { project: Project }) {
 
 /** プロジェクトのフォルダ（本体）。「変更…」で選び直す（見出しのフォルダの場所のメニューと同じ。確かめてから変える） */
 function FolderRow({ project }: { project: Project }) {
+  // git で管理していなければ、ここからも始められるようにする（ファイル・変更・履歴のタブと同じ）
+  const git = useGitStatus(project.id, false);
+  const plain = git.status?.repo === false;
   return (
-    <Field as="div" label="フォルダ" help="フォルダを移した・別の場所に置き直したときに選び直します。チャット・設定はそのまま引き継ぎます。">
+    <Field
+      as="div"
+      label="フォルダ"
+      help={
+        <>
+          フォルダを移した・別の場所に置き直したときに選び直します。チャット・設定はそのまま引き継ぎます。
+          {plain && <>このフォルダは git で管理していません（{GIT_FEATURES}は使えません）。</>}
+        </>
+      }
+    >
       <div className="input-row">
         <input type="text" aria-label="フォルダ" value={project.repo_path} readOnly />
         {window.kickoff && (
           <button type="button" className="btn" onClick={() => void changeProjectFolder(project)}>
             変更…
+          </button>
+        )}
+        {plain && (
+          <button type="button" className="btn" onClick={async () => {
+              if (await startProjectGit(project.id)) void git.refresh();
+            }}>
+            git の管理を始める…
           </button>
         )}
       </div>

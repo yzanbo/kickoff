@@ -8,6 +8,7 @@ import { DialogActions } from "@/ui/DialogActions";
 import { CheckField, Field } from "@/ui/Field";
 import { FolderField } from "./FolderField";
 import { InspectionPanel } from "./InspectionPanel";
+import { GIT_FEATURES } from "@/features/project/GitInitNotice";
 import type { FormProps } from "./NewProjectDialog";
 
 export function ImportForm({ onCancel, onCreated }: FormProps) {
@@ -51,8 +52,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
     !inspection.exists ||
     !inspection.is_directory ||
     isSubfolder ||
-    Boolean(inspection.registered_project_id) ||
-    (needsInit && !initGit);
+    Boolean(inspection.registered_project_id);
 
   const importProject = (e: FormEvent) => {
     e.preventDefault();
@@ -75,8 +75,12 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
 
       {needsInit && (
         <CheckField
-          label={inspection?.is_git ? "既存のファイルで最初のコミットを作成する" : "git リポジトリとして初期化し、既存のファイルで最初のコミットを作成する"}
-          help="フォルダ内のファイルがすべてコミットされます。秘密情報などがあれば、先に .gitignore に追加してください。"
+          label={inspection?.is_git ? "git の管理を始める（既存のファイルで最初のコミットを作成する）" : "git の管理を始める（リポジトリとして初期化し、既存のファイルで最初のコミットを作成する）"}
+          help={
+            initGit
+              ? "フォルダ内のファイルがすべてコミットされます。秘密情報などがあれば、先に .gitignore に追加してください。"
+              : `始めないと、${GIT_FEATURES}は使えません（あとから「git の管理を始める」で始められます）。チャットは使えます。`
+          }
           checked={initGit}
           onChange={setInitGit}
         />

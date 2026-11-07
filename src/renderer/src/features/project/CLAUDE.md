@@ -37,6 +37,6 @@
 
 ## 新しいプロジェクト（`new/`）
 
-`NewProjectDialog`（新規作成 `CreateForm` / 既存フォルダの取り込み `ImportForm`（点検の結果 `InspectionPanel`）。フォルダは `FolderField`（アプリでは「選択…」で Finder から選べる））。部品からは `openNewProject(request)` で開く（App が受け取る）。作ったら知らせを待たずに店へ入れ（`addProject`）、そのプロジェクトで新しいチャットを開く（`onCreated` があればそれに任せる）。
+`NewProjectDialog`（新規作成 `CreateForm` / 既存フォルダの取り込み `ImportForm`（点検の結果 `InspectionPanel`）。git で管理するかを選べる: 新規作成は「git で管理する」のチェック（初めはオン）、取り込みは git でない・コミットがないフォルダのときだけ「git の管理を始める」のチェック（初めはオフ。オフでも取り込める）。オフのときは、使えなくなるもの（`GitInitNotice.tsx` の `GIT_FEATURES`）を説明に出す。git で管理していないプロジェクトは、ファイル・変更・履歴のタブと右の欄の「変更」に `GitInitNotice`（「git の管理を始める…」。確かめてから `startProjectGit` → `api.initProjectGit`、始めたら Git の状態を取り直す）を出し、設定の「基本情報」のフォルダの欄にも同じボタンを出す。フォルダの変更で git でないフォルダを選んだら、「git の管理を始めて変更」/「git なしで変更」を選ぶ。フォルダは `FolderField`（アプリでは「選択…」で Finder から選べる））。部品からは `openNewProject(request)` で開く（App が受け取る）。作ったら知らせを待たずに店へ入れ（`addProject`）、そのプロジェクトで新しいチャットを開く（`onCreated` があればそれに任せる）。
 
 プロジェクトがないのに新しいチャットを始めようとしたとき（サイドバー・⌘N / ⌘T・パネル・ボードの「新しいチャット」）は、いきなりこのダイアログを開かず、案内のダイアログ `NoProjectsGuide` を出す（`openNoProjectsGuide()`。App が受け取る。パネルは作成先がないときの `usePanel` の `startNewChat`）。中身は全プロジェクトの画面の空のときと同じ `NoProjectsWelcome` を `forNewChat` にしたもので、すべてのチャットはプロジェクト（AI が作業するフォルダ）の中で行うこと・作るとそこで新しいチャットが開くことを先に伝え、始め方の 3 段・新しいプロジェクト / 既存のフォルダを取り込むを並べる（押すと案内を閉じて、このダイアログをその作り方で開く）。

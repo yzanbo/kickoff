@@ -15,6 +15,7 @@ import { SearchView } from "./SearchView";
 import { changeKinds, parentFolders } from "./treeModel";
 import { selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
+import { GitInitNotice } from "@/features/project/GitInitNotice";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectSearch } from "./useProjectSearch";
 import { WorktreeBar } from "@/features/worktree/WorktreeBar";
@@ -74,7 +75,7 @@ export function EditorTab({
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
   }
-  if (!status.repo) return <p className="muted small">このプロジェクトのフォルダは、Git で管理されていません。</p>;
+  if (!status.repo) return <GitInitNotice projectId={projectId} onStarted={git.refresh} />;
 
   const groups = { staged: status.staged, unstaged: [...status.conflicts, ...status.unstaged] };
   const empty = groups.staged.length === 0 && groups.unstaged.length === 0;

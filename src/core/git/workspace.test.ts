@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { createWorkspace, inspectWorkspace, prepareImportedWorkspace, toFolderName } from "./workspace.js";
+import { createWorkspace, initGitRepo, inspectWorkspace, prepareImportedWorkspace, toFolderName } from "./workspace.js";
 import { gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
 
@@ -33,13 +33,14 @@ test("空でない既存フォルダには作らない", async () => {
   await assert.rejects(createWorkspace({ parentDir: parent, folderName: "taken", name: "x", description: "" }), /空ではありません/);
 });
 
-test("git 未管理のフォルダは同意がなければ取り込まず、同意すれば初期化して既存ファイルをコミットする", async () => {
+test("git 未管理のフォルダは、同意がなければそのまま（git で管理しないプロジェクト）、同意すれば初期化して既存ファイルをコミットする", async () => {
   const dir = tempDir({ real: true });
   fs.writeFileSync(path.join(dir, "index.html"), "<h1>hi</h1>");
 
   const before = await inspectWorkspace(dir);
   assert.equal(before.is_git, false);
-  await assert.rejects(prepareImportedWorkspace(dir, false), /同意/);
+  assert.equal(await prepareImportedWorkspace(dir, false), dir);
+  assert.equal((await inspectWorkspace(dir)).is_git, false);
 
   assert.equal(await prepareImportedWorkspace(dir, true), dir);
   const after = await inspectWorkspace(dir);
@@ -65,4 +66,18 @@ test("コミット済みのリポジトリはそのまま取り込み、サブ�
   assert.equal((await inspectWorkspace(dir)).dirty, true);
 
   await assert.rejects(prepareImportedWorkspace(path.join(dir, "src"), true), /ルート/);
+});
+
+test("新しいプロジェクトは git で管理しないこともできる（README だけ）。あとから initGitRepo で始め、二度目は断る", async () => {
+  const parent = tempDir({ real: true });
+  const repo = await createWorkspace({ parentDir: parent, folderName: "plain", name: "Plain", description: "", initGit: false });
+  assert.equal(fs.existsSync(path.join(repo, "README.md")), true);
+  assert.equal((await inspectWorkspace(repo)).is_git, false);
+  await initGitRepo(repo);
+  const info = await inspectWorkspace(repo);
+  assert.deepEqual([info.is_git, info.has_commits, info.dirty], [true, true, false]);
+  await assert.rejects(initGitRepo(repo), /もう git/);
+  // ほかのリポジトリの中のフォルダは始めない
+  fs.mkdirSync(path.join(repo, "sub"));
+  await assert.rejects(initGitRepo(path.join(repo, "sub")), /中にあります/);
 });

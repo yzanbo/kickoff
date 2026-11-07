@@ -5,7 +5,7 @@ import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
 import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProjectRepoPathBody, type ProviderId } from "@shared/types";
-import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
+import { createWorkspace, initGitRepo, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
 import { Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
@@ -20,6 +20,7 @@ const newProjectSchema = z.object({
   parent_dir: z.string().trim().min(1),
   folder_name: z.string().trim().min(1).max(100),
   provider: z.enum(PROVIDER_IDS).optional(),
+  init_git: z.boolean().default(true),
 }) satisfies z.ZodType<NewProjectBody>;
 
 const importProjectSchema = z.object({
@@ -66,7 +67,7 @@ const projectPatchSchema = z
   })
   .partial() satisfies z.ZodType<ProjectPatch>;
 
-/** プロジェクト（作成・取り込み・設定の変更・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
+/** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
 export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
@@ -75,6 +76,12 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
    * そのフォルダ（実体のパス。inspectWorkspace の path・git_root）を本体にしているプロジェクト（except は除く）。
    * 登録したパスがシンボリックリンクを含む（/tmp → /private/tmp など）こともあるので、登録したパスの実体とも比べる
    */
+  /** プロジェクトに作業中のチャットがあれば 409（フォルダを変える・git の管理を始めるなど、フォルダごと変わる操作の前に） */
+  const requireNoBusyChat = (projectId: number, refusal: string) => {
+    if (store.chats.list({ projectId, includeArchived: true }).some((chat) => runner.isBusy(chat.id))) {
+      throw new Conflict(`作業中のチャットがあるので、${refusal}。終わってから（または中断してから）行ってください`);
+    }
+  };
   const projectAt = (realPath: string, except?: number) =>
     store.projects.list().find((p) => p.id !== except && (p.repo_path === realPath || realPathOrSelf(p.repo_path) === realPath));
 
@@ -82,7 +89,7 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
 
   app.post("/api/projects", async (c) => {
     const input = newProjectSchema.parse(await jsonBody(c));
-    const repoPath = await createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, description: input.description });
+    const repoPath = await createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, description: input.description, initGit: input.init_git });
     const project = store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) });
     store.settings.update({ projects_dir: input.parent_dir });
     return c.json(project, 201);
@@ -133,11 +140,20 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
     if (target === realPathOrSelf(project.repo_path)) return c.json(project);
     const existing = projectAt(target, project.id);
     if (existing) throw new Conflict(`このフォルダは「${existing.name}」として登録済みです`);
-    if (store.chats.list({ projectId: project.id, includeArchived: true }).some((chat) => runner.isBusy(chat.id))) {
-      throw new Conflict("作業中のチャットがあるので、フォルダを変えられません。終わってから（または中断してから）行ってください");
-    }
+    requireNoBusyChat(project.id, "フォルダを変えられません");
     const repoPath = await prepareImportedWorkspace(input.path, input.init_git);
     return c.json(store.projects.update(project.id, { repo_path: repoPath }));
+  });
+
+  /**
+   * git で管理していないプロジェクトで、git の管理を始める（main で初期化し、いまあるファイルで最初のコミットを作る。コミットがなければコミットだけ）。
+   * もう管理している・ほかのリポジトリの中なら 409、作業中のチャットがあれば 409（書きかけのファイルをコミットしないため）。返すものはない（204。画面は Git の状態を取り直す）
+   */
+  app.post("/api/projects/:id/git/init", withProject, async (c) => {
+    const { project } = c.var;
+    requireNoBusyChat(project.id, "git の管理を始められません");
+    await initGitRepo(project.repo_path);
+    return c.body(null, 204);
   });
 
   // サイドバーでのプロジェクトの並び順（並べたあとの一覧を返す。グループの並べ替えと同じ）

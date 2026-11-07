@@ -39,12 +39,12 @@ export function InspectionPanel({
       ),
     });
   } else if (!info.is_git) {
-    items.push({ kind: "warn", text: "git で管理されていません" });
+    items.push({ kind: "warn", text: "git で管理されていません（下で、git の管理を始めるかを選べます）" });
   } else {
     items.push(
       info.has_commits
         ? { kind: "ok", text: `git リポジトリ（ブランチ: ${info.branch ?? "不明"}）` }
-        : { kind: "warn", text: "git リポジトリですが、コミットがまだありません" },
+        : { kind: "warn", text: "git リポジトリですが、コミットがまだありません（下で、最初のコミットを作るかを選べます）" },
     );
     if (info.dirty) items.push({ kind: "info", text: "未コミットの変更があります（そのまま残ります）" });
     items.push(
