@@ -187,12 +187,13 @@ export function QueuedMessages({
           </button>
         )}
         </div>
-        {/* ここから右が操作（選んでいるときは、選んだものへの操作に入れ替える） */}
-        {selected.length > 0 ? (
-          <QueuedSelectionActions selected={selected} busy={busy} onClearSelection={clearSelection} onEditSelected={editSelected} />
-        ) : (
-          <QueuedHeadTools count={messages.length} busy={busy} paused={paused} stops={stops} onAdded={() => setCollapsed(false)} />
-        )}
+        {/* ここから右が操作（選んでいるときは、選んだものへの操作に入れ替える）。畳んでいる間は一覧と一緒にしまい、1 行だけにする */}
+        {!collapsed &&
+          (selected.length > 0 ? (
+            <QueuedSelectionActions selected={selected} busy={busy} onClearSelection={clearSelection} onEditSelected={editSelected} />
+          ) : (
+            <QueuedHeadTools count={messages.length} busy={busy} paused={paused} stops={stops} onAdded={() => setCollapsed(false)} />
+          ))}
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
       {!collapsed && (
