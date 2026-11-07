@@ -14,7 +14,7 @@ const FETCH_MS = 3 * 60_000;
 const CHAT_ACTIVITY_DELAY_MS = 1500;
 
 /**
- * プロジェクトのフォルダの Git の状態。開いたとき・ウィンドウに戻ってきたとき・このプロジェクトのチャットが動いたときに取り直す。
+ * プロジェクトのフォルダの Git の状態。開いたとき・ウィンドウに戻ってきたとき・このプロジェクトのチャットが動いたとき（作業中のツールの結果も）に取り直す。
  * active（変更のタブを開いている）の間は、一定の間隔でも取り直す。count はタブのバッジに出す変更のあるファイルの数。
  * worktree は作業場所（ワークツリーのフォルダ。省略なら本体）
  */
@@ -65,11 +65,18 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
 
   const chatActivityTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useServerEvent((e) => {
-    if (e.type !== "chat" || e.chat.project_id !== projectId) return;
-    clearTimeout(chatActivityTimer.current);
+    // チャットが動いた（送った・終わった）か、作業中にツールの結果が届いた（ファイルを変えたかもしれない）。
+    // 作業中はチャットの行が変わらないので、ツールの結果も見ないと、差分が作業の終わりまで追いつかなかった
+    const moved = e.type === "chat" ? e.chat.project_id === projectId : e.type === "chat_event" && e.project_id === projectId && e.event.type === "tool_result";
+    if (!moved) return;
     // 待っている間も更新中の印を出す（チャットが動いた = ファイルが変わったかもしれない）
     setRefreshing(true);
-    chatActivityTimer.current = setTimeout(() => void refresh(), CHAT_ACTIVITY_DELAY_MS);
+    // 続けて届く知らせは、最初の知らせから待つ 1 回にまとめる（届くたびに待ち直すと、ツールが続く間はいつまでも取り直さない）
+    if (chatActivityTimer.current !== undefined) return;
+    chatActivityTimer.current = setTimeout(() => {
+      chatActivityTimer.current = undefined;
+      void refresh();
+    }, CHAT_ACTIVITY_DELAY_MS);
   });
   useEffect(() => () => clearTimeout(chatActivityTimer.current), []);
 
