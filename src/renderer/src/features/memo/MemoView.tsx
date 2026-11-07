@@ -58,7 +58,7 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
  * 本文を保存してからファイルの名前を変える（onRenamed に変えたあとのパス。開いている側がパスを付け替える）。Esc で元の題名に戻す。
  * HTML のメモのページのリンクがメモのフォルダの中を指すとき、メモなら onOpenMemo（開いている側が同じ場所で開く）、フォルダ・メモでないファイルは Finder で表示する。
  * attachTo（チャットの右の欄・別ウィンドウで開いたとき、開いたチャット）があれば、見出しのボタン・本文の右クリックで、
- * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に添付する。本文で文を選ぶと、上の「チャットに追加」ですぐ引用を足せる。
+ * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に添付する。本文で文を選ぶと、上のボタン（開いたチャット・メモのチャット。メモのタブではメモのチャットだけ）ですぐ引用を足せる。
  * メモのチャットの欄を閉じている間は、下にこのメモを AI に直してもらう入力欄（MemoQuickChat）を出す
  */
 export function MemoView({
@@ -83,7 +83,7 @@ export function MemoView({
   const chat = useRef<MemoChatHandle | null>(null);
   const pageHandle = useRef<HtmlMemoPageHandle | null>(null);
   const [chatOpen, setChatOpen] = useSetting(MEMO_CHAT_OPEN);
-  // 足す先のチャット（開いたチャット・メモのチャット）。本文の右クリック・見出しの添付のボタンから
+  // 足す先のチャット（開いたチャット・メモのチャット）。本文の右クリック・本文で選んだときの上のボタン・見出しの添付のボタンから
   const file = `${dir}/${path}`;
   const targets = memoChatTargets({ file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
   const editMenu = useMemoEditMenu(editor, targets, file);
@@ -260,7 +260,7 @@ export function MemoView({
               />
             </Suspense>
             {editMenu.element}
-            {attachTo !== null && <MemoSelectionAttach chatId={attachTo} file={file} path={path} editor={editor} page={page ? pageHandle : null} />}
+            <MemoSelectionAttach targets={targets} file={file} editor={editor} page={page ? pageHandle : null} />
             {chatOpen && (
               <div
                 className={chatPlace === "bottom" ? "memo-chat-resizer-y" : "pane-resizer memo-chat-resizer"}
