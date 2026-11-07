@@ -126,6 +126,28 @@ test("groupEvents: 作業の終わりに、親チャットに渡す最後の返�
   assert.equal(handoffs(groupEvents(events))[0], first[0]);
 });
 
+test("groupEvents: 親チャットに渡した記録は流れに出さず、渡した作業の終わりに渡した順で付ける（増えるまでは同じ配列）", () => {
+  const events = [
+    makeEvent(1, "user", { text: "依頼文を" }),
+    makeEvent(2, "text", { text: "本文" }),
+    makeEvent(3, "result", { status: "completed" }),
+    makeEvent(4, "user", { text: "次" }),
+    makeEvent(5, "text", { text: "答え" }),
+    makeEvent(6, "result", { status: "completed" }),
+    makeEvent(7, "handoff", { via: "composer", parent_chat_id: 9, turn_event_id: 3 }),
+    makeEvent(8, "handoff", { via: "send", parent_chat_id: 9, turn_event_id: 3 }),
+  ];
+  const marks = (items: ReturnType<typeof groupEvents>) => items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnHandoffs] : []));
+  const items = groupEvents(events);
+  assert.ok(items.every((i) => i.kind !== "event" || i.event.type !== "handoff"));
+  const [first, second] = marks(items);
+  assert.deepEqual(first?.map((e) => e.data.via), ["composer", "send"]);
+  assert.equal(second, undefined);
+  assert.equal(marks(groupEvents(events))[0], first);
+  const more = [...events, makeEvent(9, "handoff", { via: "queue", parent_chat_id: 9, turn_event_id: 3 })];
+  assert.deepEqual(marks(groupEvents(more))[0]?.map((e) => e.data.via), ["composer", "send", "queue"]);
+});
+
 test("groupEvents: 思考は、中身があるか 2 秒以上考えたものだけ出す（短い思考ではツールのまとまりを分けない）", () => {
   const items = groupEvents([
     makeEvent(1, "tool_use", { id: "a", name: "Read", input: {} }),

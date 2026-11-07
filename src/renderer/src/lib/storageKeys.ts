@@ -7,9 +7,16 @@
  *   ID が 1 から振り直され、別のものを指すため）。ID ごとのものは defineSettingFamily（キーは頭 ＋ ID）
  */
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
-import { HANDOFF_VIAS } from "@shared/types";
+import { HANDOFF_VIAS, type HandoffFrom } from "@shared/types";
 import { HANDOFF_AFTERS } from "@shared/chat/handoff";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
+
+/** 保存した子チャットからの依頼の出どころを読む（形が合わなければ null） */
+function parseHandoffFrom(value: unknown): HandoffFrom | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { chat_id, title } = value as Record<string, unknown>;
+  return typeof chat_id === "number" && typeof title === "string" ? { chat_id, title } : null;
+}
 
 const isString = (value: unknown): value is string => typeof value === "string";
 
@@ -122,6 +129,11 @@ export const NEW_CHAT_DRAFTS = defineSetting("kickoff:new-chat-drafts", record()
 // チャット
 /** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
 export const chatDraft = defineSettingFamily("kickoff:chat-draft:", text(), { ids: true });
+/**
+ * チャットごとの、入力欄に入れた子チャットからの依頼の出どころ（「親チャットに追加」の入力欄。入力欄の上の札「子チャット『…』から」。
+ * 送ると発言の handoff_from にして消す。× でも消す。null = なし）
+ */
+export const composerHandoff = defineSettingFamily("kickoff:composer-handoff:", json(parseHandoffFrom, null, (v) => v === null), { ids: true });
 /** サブエージェントに伝える入力欄の書きかけの文（キーは「チャット:サブエージェントの行のキー」。カードの「伝える」と右の欄の画面で共通。送った・空にしたら消す） */
 export const subagentTellDraft = defineSettingFamily("kickoff:subagent-tell-draft:", text(), { ids: true });
 /**
