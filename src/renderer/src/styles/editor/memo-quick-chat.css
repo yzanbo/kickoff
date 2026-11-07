@@ -66,10 +66,23 @@
   background: var(--bg-elev);
 }
 
-/* 入力欄はチャット欄と同じ Composer（.chat-composer）。メモの幅いっぱいに置き、上の様子の行との間を詰める */
+/*
+ * 入力欄はチャット欄と同じ Composer（.chat-composer）。幅はメモのチャットの欄と同じく「文の幅」に従う（標準ならチャット欄と同じ上限で真ん中、
+ * 広げるなら幅いっぱい .wide）。上の様子の行も同じ幅にそろえ、入力欄との間を詰める
+ */
 .memo-quick-chat .chat-composer {
-  max-width: none;
   padding-top: 0;
+}
+
+.memo-quick-chat .memo-quick-status {
+  width: 100%;
+  max-width: 852px;
+  margin: 0 auto;
+}
+
+.memo-quick-chat.wide .chat-composer,
+.memo-quick-chat.wide .memo-quick-status {
+  max-width: none;
 }
 
 /* 名前「メモのチャット」・作業中・回答待ちなどの様子・「会話を開く」（右端）の 1 行 */
@@ -83,13 +96,17 @@
   color: var(--muted);
 }
 
-/* 名前（メモのチャットの欄の見出しと同じアイコン・色・太さ。どのチャットに送る欄か分かるように） */
+/* 名前（メモのチャットの欄の見出しと同じ: アイコンはアクセントの色、文字は本文の色で太く。どのチャットに送る欄か分かるように） */
 .memo-quick-name {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 5px;
   font-weight: 600;
+  color: var(--text);
+}
+
+.memo-quick-name svg {
   color: var(--accent-fg);
 }
 
