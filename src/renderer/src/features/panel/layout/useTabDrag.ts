@@ -1,6 +1,7 @@
 import { useState, type DragEvent } from "react";
 import { dropZoneAt, insertIndexAt, splitOfZone, type DropZone } from "./paneGeometry";
 import type { PanelController } from "@/features/panel/usePanel";
+import { markDragSnapshot } from "@/ui/dragSnapshot";
 
 /** 右のパネルのタブをドラッグするときの dataTransfer の型（ファイルのドロップ（チャット欄への添付）と取り違えないよう独自の型にする） */
 const TAB_MIME = "application/x-kickoff-panel-tab";
@@ -38,8 +39,8 @@ export function useTabDrag(panel: PanelController) {
       onDragStart: (e: DragEvent<HTMLElement>) => {
         e.dataTransfer.setData(TAB_MIME, key);
         e.dataTransfer.effectAllowed = "move";
-        // dragstart の中で覆いを足すとドラッグが取り消されることがあるので、次の回に出す
-        setTimeout(() => setDragging(key), 0);
+        // ドラッグの絵の背景を半透明に。dragstart の中で覆いを足すとドラッグが取り消されることがあるので、覆いは写したあと（次の回）に出す
+        markDragSnapshot(e, () => setDragging(key));
       },
       // dragstart の次の回に出す覆いより後に片付ける
       onDragEnd: () => setTimeout(reset, 0),
