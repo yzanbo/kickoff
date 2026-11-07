@@ -134,10 +134,10 @@ function DisplaySettings() {
             options={CHAT_FONT_SIZES.map((s) => ({ value: s, label: CHAT_FONT_SIZE_LABELS[s] }))}
           />
         </Field>
-        <Field label="チャットの文の幅" help="広げると、パネルの大きさはそのままで、発言の流れとチャット欄の幅の上限を外し、パネルいっぱいまで広げます（パネルが狭いときは変わりません）。チャットの見出しの行のボタンでも切り替えられます。">
+        <Field label="会話の横幅" help="広げると、パネルの大きさはそのままで、発言の流れとチャット欄の幅の上限を外し、パネルいっぱいまで広げます（パネルが狭いときは変わりません）。チャットの見出しの行のボタンでも切り替えられます。">
           <Segmented<"normal" | "wide">
             className="segmented theme-switch"
-            label="チャットの文の幅"
+            label="会話の横幅"
             value={wideChat ? "wide" : "normal"}
             onChange={(v) => setWideChat(v === "wide")}
             options={[
@@ -163,7 +163,7 @@ function DisplaySettings() {
         </Field>
         <Field
           label="チャットの見出し"
-          help="チャットの上の、プロジェクト・ブランチのバッジ、会話 / 動きの切り替え、検索欄、ターン数などが並ぶ行です。隠すと、その分チャットの縦の幅が広がります（動きを見ている間とアーカイブ済みのチャットでは出し、検索は ⌘F でチャットの右上に出ます）。⌥⌘T でも切り替えられ、出す項目はタブの列の「表示」→「見出しの項目」で 1 つずつ選べます。"
+          help="チャットの上の、プロジェクト・ブランチのバッジ、会話 / 動きの切り替え、検索欄、ターン数などが並ぶ行です。隠すと、その分チャットの縦の幅が広がります（動きを見ている間とアーカイブ済みのチャットでは出し、検索は ⌘F でチャットの右上に出ます）。⌥⌘T でも切り替えられ、出す項目はタブの列の「表示」→「見出しに出す項目」で 1 つずつ選べます。"
         >
           <Segmented<"show" | "hide">
             className="segmented theme-switch"

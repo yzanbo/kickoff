@@ -54,7 +54,7 @@ export interface ChatPaneActions {
   readonly chatId: number;
   /** いまのプロジェクト（チャットをほかのプロジェクトへ移すと変わる。メモに追加する先） */
   projectId: () => number;
-  /** チャットの画面の要素（ピントがこのチャットにあるかを見る・文の幅を測る・検索の印を付ける範囲） */
+  /** チャットの画面の要素（ピントがこのチャットにあるかを見る・会話の横幅を測る・検索の印を付ける範囲） */
   readonly root: RefObject<HTMLDivElement | null>;
   /**
    * サブエージェントのカードへ移って開く（入れ子なら外側のカードも開く。key = 一覧の行のキー = 起動した呼び出し ID）。

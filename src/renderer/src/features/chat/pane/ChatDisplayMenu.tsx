@@ -17,7 +17,7 @@ import { useWideText } from "./TextWidthToggle";
 import { CHAT_FONT_SIZE_LABELS, useChatFontSize } from "./chatFontSize";
 import { ChatFontSizeItems } from "./ChatFontSizeButton";
 
-/** 見出しの行のどの項目を出すか（どのチャットでも同じ。タブの列の「表示」→「見出しの項目」で選ぶ） */
+/** 見出しの行のどの項目を出すか（どのチャットでも同じ。タブの列の「表示」→「見出しに出す項目」で選ぶ） */
 export function useChatHeaderItems() {
   const [saved] = useSetting(CHAT_HEADER_HIDDEN);
   const hidden = hiddenHeaderItems(saved);
@@ -40,8 +40,9 @@ function CheckItem({ on, title, keepOpen, onToggle, children }: { on: boolean; t
 }
 
 /**
- * 「チャットの画面」のメニューの項目（どのチャットでも共通の表示の設定）: タブの列・見出しの行・見出しの項目（横に開く子のメニューで 1 つずつ）・
- * 指示の帯・会話の文字の大きさ（横に開く子のメニューで 5 段階）・文の幅・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄）と、
+ * 「チャット画面表示」のメニューの項目（どのチャットでも共通の表示の設定）。画面の上から順に、効く場所ごとの組を区切り線で分ける:
+ * タブの列 ｜ 見出しの行・見出しに出す項目（横に開く子のメニューで 1 つずつ）｜ 指示の帯 ｜ 会話の横幅・会話の文字の大きさ（横に開く子のメニューで 5 段階）｜
+ * 定型文の帯・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄）と、
  * 見出し・会話の何もないところの右クリックで同じものを出す。見出し・タブの列のどちらを隠しても、もう一方と会話の右クリックから戻せる。設定の「表示」と同じ値
  */
 export function ChatDisplayItems() {
@@ -56,9 +57,12 @@ export function ChatDisplayItems() {
   const fontSizes = useSubmenu();
   const [fontSize] = useChatFontSize();
   const hidden = hiddenHeaderItems(saved);
+  const separator = <div className="menu-separator" role="separator" />;
   return (
     <div className="menu-items">
-      <div className="menu-label">チャットの画面（どのチャットでも共通）</div>
+      <div className="menu-label" title="どのチャットでも共通の表示です（設定の「表示」と同じ値）">
+        チャット画面表示
+      </div>
       <CheckItem
         on={!tabRowHidden}
         title={
@@ -70,6 +74,7 @@ export function ChatDisplayItems() {
       >
         タブの列
       </CheckItem>
+      {separator}
       <CheckItem
         on={!rowHidden}
         title={rowHidden ? "見出しの行を表示する（⌥⌘T）" : "見出しの行を隠す（⌥⌘T）。隠しても、動きを見ている間とアーカイブ済みのチャットでは出し、⌘F でチャットの右上に検索欄が出ます"}
@@ -78,12 +83,12 @@ export function ChatDisplayItems() {
         見出しの行
       </CheckItem>
       {/* 乗せる・押す・→ で横に項目の一覧を開く（メニューは閉じない） */}
-      <button {...items.trigger} title="見出しの行に出す項目を、1 つずつ選びます">
-        <span className="project-switch-item">見出しの項目</span>
+      <button {...items.trigger} title="見出しの行に出すバッジ・ボタン・数を、1 つずつ選びます">
+        <span className="project-switch-item">見出しに出す項目</span>
         <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
       </button>
       {items.anchor && (
-        <MenuFlyout anchor={items.anchor} label="見出しの項目" className="chat-header-items" onBack={items.back}>
+        <MenuFlyout anchor={items.anchor} label="見出しに出す項目" className="chat-header-items" onBack={items.back}>
           {CHAT_HEADER_SECTIONS.map(({ title, items: section }, i) => (
             <Fragment key={title}>
               {i > 0 && <div className="menu-separator" role="separator" />}
@@ -104,13 +109,14 @@ export function ChatDisplayItems() {
           <MenuItem
             keepOpen
             disabled={sameHiddenItems(saved, CHAT_HEADER_HIDDEN.initial)}
-            title="見出しの項目を初めの選び方に戻します"
+            title="見出しに出す項目を初めの選び方に戻します"
             onSelect={() => setSaved([...CHAT_HEADER_HIDDEN.initial])}
           >
             <span className="project-switch-item">既定に戻す</span>
           </MenuItem>
         </MenuFlyout>
       )}
+      {separator}
       <CheckItem
         on={!stickyHidden}
         title="読んでいる返答の元の自分の指示を、チャットの上の帯に出します（帯の右クリックでも隠せます）"
@@ -118,12 +124,9 @@ export function ChatDisplayItems() {
       >
         指示の帯
       </CheckItem>
-      <CheckItem
-        on={!snippetBarHidden}
-        title="チャット欄の枠の中のいちばん上に、このプロジェクトで使う定型文を横に並べます（帯の右クリック・設定の「定型文」でも切り替えられます）"
-        onToggle={() => setSnippetBarHidden(!snippetBarHidden)}
-      >
-        定型文の帯
+      {separator}
+      <CheckItem on={wide} title="発言の流れとチャット欄の幅の上限を外し、パネルいっぱいまで広げます（パネルの大きさはそのまま）" onToggle={() => setWide(!wide)}>
+        会話の横幅を広げる
       </CheckItem>
       {/* 乗せる・押す・→ で横に 5 段階を開く */}
       <button {...fontSizes.trigger} title="会話の文字だけを大きく・小さくします（見出し・入力欄はそのまま）">
@@ -136,8 +139,13 @@ export function ChatDisplayItems() {
           <ChatFontSizeItems />
         </MenuFlyout>
       )}
-      <CheckItem on={wide} title="発言の流れとチャット欄の幅の上限を外し、パネルいっぱいまで広げます" onToggle={() => setWide(!wide)}>
-        文の幅を広げる
+      {separator}
+      <CheckItem
+        on={!snippetBarHidden}
+        title="チャット欄の枠の中のいちばん上に、このプロジェクトで使う定型文を横に並べます（帯の右クリック・設定の「定型文」でも切り替えられます）"
+        onToggle={() => setSnippetBarHidden(!snippetBarHidden)}
+      >
+        定型文の帯
       </CheckItem>
       <CheckItem on={compact} title="チャット欄の文字・余白・下のボタンを小さくして、縦の幅を抑えます" onToggle={() => setCompact(!compact)}>
         チャット欄をコンパクトに

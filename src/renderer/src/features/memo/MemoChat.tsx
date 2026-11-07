@@ -129,7 +129,7 @@ function MemoChatStart({
   onStart: (text: string, attachments: Attachment[], options: ChatOptions) => Promise<void>;
 }) {
   const options = useChatOptions(undefined, projectId);
-  // 文の幅はチャットの画面と同じ（標準なら上限で真ん中、広げるなら幅いっぱい。メモの下の入力欄とも同じ）
+  // 会話の横幅はチャットの画面と同じ（標準なら上限で真ん中、広げるなら幅いっぱい。メモの下の入力欄とも同じ）
   const [wide] = useWideText();
   return (
     <div className={cx("chat-page chat-panel memo-chat-start", wide && "wide")}>

@@ -9,7 +9,7 @@ import { IconButton } from "@/ui/IconButton";
 const TEXT_MAX_WIDTH = 820;
 
 /**
- * 文の幅を標準に戻すアイコン: 真ん中へ向かう左右の矢印（広げるときの MoveHorizontal ↔ を内向きにした形。
+ * 会話の横幅を標準に戻すアイコン: 真ん中へ向かう左右の矢印（広げるときの MoveHorizontal ↔ を内向きにした形。
  * パネルの「横幅いっぱい」の FoldHorizontal（真ん中の点線付き）と形を分ける）
  */
 const MoveHorizontalIn = createLucideIcon("move-horizontal-in", [
@@ -19,13 +19,13 @@ const MoveHorizontalIn = createLucideIcon("move-horizontal-in", [
   ["path", { d: "m18 8-4 4 4 4", key: "ar" }],
 ]);
 
-/** 文の幅を広げるか（設定の「表示」→「チャットの文の幅」と同じ値。どのチャットでも同じ） */
+/** 会話の横幅を広げるか（設定の「表示」→「会話の横幅」と同じ値。どのチャットでも同じ） */
 export function useWideText() {
   return useSetting(CHAT_WIDE);
 }
 
 /**
- * 文の幅の切り替え（チャットの見出しの行。パネルの大きさは変えず、発言の流れ・チャット欄の幅の上限（820px）を外してパネルいっぱいに広げる）。
+ * 会話の横幅の切り替え（チャットの見出しの行。パネルの大きさは変えず、発言の流れ・チャット欄の幅の上限（820px）を外してパネルいっぱいに広げる）。
  * パネルが上限より狭いときは押しても変わらないので、押せなくしてその理由を出す（幅は panel の大きさの変化で測り直す）
  */
 export function TextWidthToggle({ panel }: { panel: RefObject<HTMLElement | null> }) {
@@ -41,7 +41,7 @@ export function TextWidthToggle({ panel }: { panel: RefObject<HTMLElement | null
     observer.observe(el);
     return () => observer.disconnect();
   }, [panel]);
-  const label = wide ? "文の幅を標準に戻す" : "文の幅を広げる";
+  const label = wide ? "会話の横幅を標準に戻す" : "会話の横幅を広げる";
   return (
     <IconButton
       icon={wide ? MoveHorizontalIn : MoveHorizontal}
