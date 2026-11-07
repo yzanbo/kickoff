@@ -4,13 +4,33 @@
  * 外側のパネル（チャットのパネル・ボードの右・下のパネル）では、表示中のタブとその下の画面（見出し・会話・チャット欄・右の欄）を 1 枚の面に見せる:
  * タブの列（表示中のタブ以外）を画面より一段暗くし、表示中のタブの地を画面と同じ --bg にして、その下だけ境目の線を切る（Chrome と同じ形）。
  * 画面の中の色は変えない（白を重ねると、入力欄・カード・吹き出しの明るさとの差が縮むため、外側を暗くする）。暗い地に明るい面を載せる形は
- * サイドバーの選んでいる行・タブのまとまりと同じ。地がつながるので、ここでは表示中のタブの下線は引かない。
+ * サイドバーの選んでいる行・タブのまとまりと同じ。地がつながるので、下線の代わりに上の端に 1px の線（タブの色。なければアクセントの緑）を引く。
  * 右の欄（.agent-panel）の中のタブの列は画面の一部なので画面と同じ地のまま、表示中のタブは下線（種類の色）で示す
  */
 .panel-tabs:not(:where(.agent-panel *)) {
-  border-bottom-color: transparent;
+  /*
+   * 境目の線は枠（border）ではなく内側の影で引く（枠の行はタブより下にあり、overflow で子が描けないので、表示中のタブの下だけ線を消せない）。
+   * 前の枠の 1px は下の余白で持つ（高さは前と同じ）
+   */
+  padding-bottom: 1px;
+  border-bottom: 0;
   background: color-mix(in srgb, #000 35%, var(--bg-sidebar));
   box-shadow: inset 0 -1px 0 var(--border);
+}
+
+/*
+ * タブの並びを下の余白（境目の線の行）まで伸ばし、表示中のタブの下の影（画面の地）がそこに描けるようにする
+ * （並びは overflow で外を描けないため。余白と負の margin で、列の高さは変えない）
+ */
+.panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
+  padding-bottom: 1px;
+  margin-bottom: -1px;
+}
+
+/* 2 段のタブの列（サイドバー型のパネル。上の段がタブ・下の段が道具）では、タブが境目に届かないので並びは伸ばさない（下の余白は project-chat.css） */
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
+  padding-bottom: 0;
+  margin-bottom: 0;
 }
 
 :root[data-theme="light"] .panel-tabs:not(:where(.agent-panel *)) {
@@ -22,6 +42,8 @@
   box-shadow: 0 1px 0 var(--bg);
 }
 
+/* 表示中の印は上の端の 1px の線（side-panel-tabs.css の下線を上へ移す） */
 .panel-tabs:not(:where(.agent-panel *)) .panel-tab.active::before {
-  display: none;
+  top: 0;
+  bottom: auto;
 }

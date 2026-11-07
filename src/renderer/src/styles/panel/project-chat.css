@@ -120,7 +120,8 @@
   align-content: flex-start;
   row-gap: 4px;
   padding-right: var(--gutter);
-  padding-bottom: 4px;
+  /* 4px ＋ 境目の線の 1px（外側のパネルのタブの列は枠を使わず、線は内側の影。side-panel-tab-sheet.css） */
+  padding-bottom: 5px;
 }
 
 .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *))::before {
