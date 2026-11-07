@@ -36,10 +36,10 @@ const NO_SCROLL: TimelineScroll = { ref: { current: null }, following: () => fal
  * メモのページの下の、そのメモを AI に直してもらう入力欄（メモのチャットの欄を閉じている間だけ出す）。
  * 入力欄はチャット欄と同じ Composer（定型文の帯・添付・ほかのチャットの参照・音声入力・モデルなどの選択・メーター・送信と ▾）で、
  * 送る先はメモのチャット（まだなければ作る）。AI がファイルを書き換えると、ページ・本文はメモの変更の知らせで読み直す。
- * 入力欄のすぐ上には、メモのチャットを開いたときと同じピルの列（指示の履歴・ToDo・サブエージェント・子チャット・メモ）を出す
- * （閉じている欄の中のチャットの画面が chipsPortal でここに描く。指示へ移る・サブエージェントを開くなどは、欄を開いてから）。
- * 会話は出さず、上に名前「メモのチャット」（欄の見出しと同じアイコンと色。本文の右クリックの「メモのチャット」の組・
- * 選んだときの「メモのチャットに追加」の行き先がこの欄だと分かるように）・作業中・回答待ちなどの様子・「会話を開く」（メモのチャットの欄を開く）・「非表示にする」（×）の 1 行だけ。
+ * 会話は出さず、入力欄の上は 1 行だけ: 左から名前「メモのチャット」（欄の見出しと同じアイコンと色。本文の右クリックの「メモのチャット」の組・
+ * 選んだときの「メモのチャットに追加」の行き先がこの欄だと分かるように）・メモのチャットを開いたときと同じピルの列（指示の履歴・ToDo・
+ * サブエージェント・子チャット・メモ。閉じている欄の中のチャットの画面が chipsPortal でここに描く。指示へ移る・サブエージェントを開くなどは、欄を開いてから）・
+ * 作業中・回答待ちなどの様子・右端に「会話を開く」（メモのチャットの欄を開く）・「非表示にする」（×）。
  * 書きかけの文はメモのチャットの入力欄と共有する（chatDraft）。送る前に書きかけの本文を保存する（beforeSend。保存できなければ送らない）
  */
 export function MemoQuickChat({
@@ -56,7 +56,7 @@ export function MemoQuickChat({
   onOpenChat: () => void;
   /** 非表示にする（この入力欄も隠し、メモだけを広く見る。見出しの吹き出しでいつでも開ける） */
   onHide: () => void;
-  /** 入力欄の上の、メモのチャットのピルの列を描いてもらう場所（メモのチャットの画面が chipsPortal で描く） */
+  /** 名前の横の、メモのチャットのピルの列を描いてもらう場所（メモのチャットの画面が chipsPortal で描く） */
   chipsRef: (el: HTMLDivElement | null) => void;
 }) {
   const chat = useMemoChatOf(projectId, path);
@@ -71,6 +71,9 @@ export function MemoQuickChat({
           <MessageSquare size={13} aria-hidden />
           メモのチャット
         </span>
+        {/* メモのチャットのピルの列（指示の履歴・ToDo・サブエージェント・子チャット・メモ。閉じている欄の中のチャットの画面がここに描く）。
+            名前と同じ行に並べる（別の行にすると、入力欄の上が 2 行になって高くなる） */}
+        <div ref={chipsRef} className="memo-quick-chips" />
         <span className="memo-quick-state" role="status">
           {state !== "read" && (
           <>
@@ -86,7 +89,7 @@ export function MemoQuickChat({
         </span>
       </div>
       {/* チャットができたら選択（モデルなど）をそのチャットのものから始め直す */}
-      <MemoQuickComposer key={chat?.id ?? "new"} projectId={projectId} path={path} chat={chat} beforeSend={beforeSend} chipsRef={chipsRef} />
+      <MemoQuickComposer key={chat?.id ?? "new"} projectId={projectId} path={path} chat={chat} beforeSend={beforeSend} />
     </div>
   );
 }
@@ -100,13 +103,11 @@ function MemoQuickComposer({
   path,
   chat,
   beforeSend,
-  chipsRef,
 }: {
   projectId: number;
   path: string;
   chat: Chat | undefined;
   beforeSend: () => Promise<void>;
-  chipsRef: (el: HTMLDivElement | null) => void;
 }) {
   const options = useChatOptions(
     chat ? { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode } : undefined,
@@ -142,8 +143,6 @@ function MemoQuickComposer({
       };
   return (
     <div className="chat-composer">
-      {/* メモのチャットの上のピルの列（指示の履歴・ToDo・サブエージェント・子チャット・メモ。閉じている欄の中のチャットの画面がここに描く） */}
-      <div ref={chipsRef} className="memo-quick-chips" />
       <Composer
         chatContext={{ projectId, exclude: chat?.id }}
         options={options}
