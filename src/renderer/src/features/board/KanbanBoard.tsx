@@ -234,13 +234,13 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
         <p className="muted small board-loading">読み込み中…</p>
       ) : byGroup ? (
         // グループの列: プロジェクトの段ごとに、そのプロジェクトのグループの列（カードをドラッグしてグループを移す）
-        // リストでは「グループを作成」を段の見出しのプロジェクト名の右に置く（ボードは列の右端）
+        // 「グループを作成」は段の見出しのプロジェクト名の右に置く（ボード・リストとも）
         <BoardLanes
           lanes={buckets}
           list={view === "list"}
           foldPlace={foldPlace}
           {...laneReorder}
-          actions={view === "list" ? (lane) => lane.projectId !== undefined && <LaneGroupCreate projectId={lane.projectId} /> : undefined}
+          actions={(lane) => lane.projectId !== undefined && <LaneGroupCreate projectId={lane.projectId} />}
         >
           {(lane) =>
             lane.projectId === undefined ? null : (

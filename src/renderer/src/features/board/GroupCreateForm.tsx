@@ -24,8 +24,8 @@ export function GroupCreateForm({ board }: { board: GroupBoardState }) {
 }
 
 /**
- * 全プロジェクトのボードのリスト（列: グループ）の、プロジェクトの段の見出しの「グループを作成」（プロジェクト名の右）。
- * 押すとその場で名前の入力欄になり、決めるとそのプロジェクトにグループを作る（段の中のいちばん下に並べると、グループの多いプロジェクトで探しにくいため）
+ * 全プロジェクトのボード（列: グループ。ボード・リストとも）の、プロジェクトの段の見出しの「グループを作成」（プロジェクト名の右）。
+ * 押すとその場で名前の入力欄になり、決めるとそのプロジェクトにグループを作る（段の中のいちばん下・いちばん右に置くと、グループの多いプロジェクトで探しにくいため）
  */
 export function LaneGroupCreate({ projectId }: { projectId: number }) {
   const [creating, setCreating] = useState(false);
