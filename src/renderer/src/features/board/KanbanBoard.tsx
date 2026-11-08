@@ -5,9 +5,7 @@ import { useChatRename } from "@/features/chat/useChatRename";
 import { useTicker } from "@/hooks/useTicker";
 import { useProjects } from "@/stores/projects";
 import { useVisibleProjects } from "@/features/project/useVisibleProjects";
-import { openNoProjectsGuide } from "@/features/project/new/openNewProject";
-import { useFallbackProject } from "@/features/sidebar/currentProject";
-import { openChat, openNewChat, type ReopenRoute } from "@/app/router";
+import { openChat, type ReopenRoute } from "@/app/router";
 import { useBoardPanel } from "@/features/panel/board/useBoardPanel";
 import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/panel/board/boardChats";
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
@@ -74,24 +72,17 @@ function ProjectKanban({ projectId, menu, chats }: { projectId: number; menu: Re
 
 /**
  * 全プロジェクトのカンバン（全プロジェクトの画面）。右のパネルを持たず、カードを押すとそのプロジェクトへ移って開く（サイドバー・⌘⇧A・検索と同じ。
- * 同じチャットが全プロジェクトとプロジェクトの 2 つのパネルで別々に開かないように）。「新規」は ⌘N と同じく、サイドバーで選んでいるプロジェクトへ移って始める。
+ * 同じチャットが全プロジェクトとプロジェクトの 2 つのパネルで別々に開かないように）。ツールバーに「新規」は置かない（利用者の依頼。新しいチャットは ⌘N・サイドバー・プロジェクトのボードから始める）。
  * 下書きの列には、すべてのプロジェクトの下書きを並べる（押すとその欄の画面へ移って開く）
  */
 export function AllProjectsKanban({ title }: { title: string }) {
   const menu = useCardMenu();
-  const { projectName } = useProjects();
-  const target = useFallbackProject();
   const drafts = useAllDrafts();
   return (
     <KanbanView
       title={title}
       menu={menu}
       onOpen={(chat) => openChat(chat.project_id, chat.id)}
-      newChat={{
-        // プロジェクトがなければ、チャットはプロジェクトの中で始めることを案内する（押せなくはしない）
-        onClick: () => (target === undefined ? openNoProjectsGuide() : openNewChat(target)),
-        title: target === undefined ? undefined : `「${projectName(target)}」で新しいチャットを始めます（サイドバーで選んでいるプロジェクト。⌘N と同じ）`,
-      }}
       drafts={drafts}
     />
   );
@@ -107,8 +98,8 @@ interface ViewProps {
   rightPanel?: ReturnType<typeof useBoardPanel>;
   /** カード・行・右クリックの「開く」 */
   onOpen: (chat: Chat) => void;
-  /** ツールバーの「新規」（押したとき・乗せたときの説明） */
-  newChat: { onClick: () => void; title?: string };
+  /** ツールバーの「新規」（押したとき・乗せたときの説明。プロジェクトのボードだけ。全プロジェクトのボードには置かない） */
+  newChat?: { onClick: () => void; title?: string };
   /** いちばん左の「下書き」の列に出す下書き（全プロジェクトのボードでは、出しているプロジェクトのものだけに絞る） */
   drafts: readonly PanelDraft[];
 }
@@ -204,9 +195,11 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
         />
       }
       primary={
-        <button className="btn btn-sm" onClick={newChat.onClick} title={newChat.title}>
-          <SquarePen size={13} /> <span className="btn-label">新規</span>
-        </button>
+        newChat && (
+          <button className="btn btn-sm" onClick={newChat.onClick} title={newChat.title}>
+            <SquarePen size={13} /> <span className="btn-label">新規</span>
+          </button>
+        )
       }
       view={view}
       onView={setView}
