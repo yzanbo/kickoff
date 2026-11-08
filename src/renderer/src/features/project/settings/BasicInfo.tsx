@@ -88,7 +88,7 @@ function ColorField({ project }: { project: Project }) {
   );
 }
 
-/** プロジェクトフォルダ（本体）。「変更…」で選び直す（見出しのフォルダの場所のメニューと同じ。確かめてから変える） */
+/** プロジェクトフォルダ（本体）。「変更…」で選び直す（確かめてから変える） */
 function FolderRow({ project }: { project: Project }) {
   // git で管理していなければ、ここからも始められるようにする（ファイル・変更・履歴のタブと同じ）
   const git = useGitStatus(project.id, false);

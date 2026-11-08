@@ -3,14 +3,13 @@ import { IconButton } from "@/ui/IconButton";
 import { ToneChip } from "@/ui/ToneChip";
 import { confirmRestoreProject } from "@/features/project/projectOrder";
 import type { ProjectTab } from "@/app/router";
-import { ProjectFolderButton } from "./ProjectFolderButton";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { ProjectTabs, useProjectTabsLayout, type TabRefreshing } from "./ProjectTabs";
 import { StateStats } from "./StateStats";
 import type { ProjectData } from "./useProjectData";
 
 /**
- * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・フォルダの場所・状態ごとのチャット数と、
+ * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・状態ごとのチャット数と、
  * タブの列（チャットの件数、変更は変更のあるファイルの数 changeCount。左に縦並びにする設定のときは、見出しには出さない）
  */
 export function ProjectHeader({
@@ -46,8 +45,6 @@ export function ProjectHeader({
           <ArchiveRestore size={13} /> 戻す
         </button>
       )}
-      {/* フォルダの場所（名前の横に並べ、見出しを 1 行に収める）。押すとフォルダを変更 */}
-      <ProjectFolderButton project={project} />
       <div className="project-stats">
         {project.archived_at && <ToneChip label="アーカイブ済み" />}
         <StateStats chats={chats} />
