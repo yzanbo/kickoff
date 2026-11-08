@@ -97,6 +97,43 @@
   cursor: pointer;
 }
 
+/* 名前の右に操作を置く段（全プロジェクトのリストの「グループを作成」）は、名前の幅を中身に合わせ、操作を名前のすぐ右に置く */
+.board-lane-head-actions .board-lane-name {
+  flex: 0 1 auto;
+}
+
+.lane-group-create {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-left: 8px;
+}
+
+.lane-group-create .inline-name {
+  width: 240px;
+}
+
+.lane-group-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.lane-group-add:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
 .board-lane-label {
   overflow: hidden;
   white-space: nowrap;
