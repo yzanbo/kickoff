@@ -62,10 +62,42 @@
 }
 
 .board-lane {
+  position: relative;
   display: flex;
   flex: none;
   flex-direction: column;
   gap: 6px;
+}
+
+/* 全プロジェクトのボードのプロジェクトの段の並べ替え: 動かしている段は薄く、入る位置に線を出す（サイドバーのプロジェクトと同じ） */
+.board-lane-head[draggable="true"] {
+  cursor: grab;
+}
+
+.board-lane.group-dragging {
+  opacity: var(--drag-source-opacity);
+}
+
+.board-lane.drop-before::before,
+.board-lane.drop-after::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  pointer-events: none;
+}
+
+.board-lane.drop-before::before {
+  top: -4px;
+}
+
+.board-lane.drop-after::after {
+  bottom: -4px;
 }
 
 .board-lane-head {
