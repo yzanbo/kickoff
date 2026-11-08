@@ -88,7 +88,7 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
           label="並び順"
           value={order === "recent" ? "最近順" : "手動"}
           values={["手動", "最近順"]}
-          title="プロジェクトの並び順（手動 = ドラッグで並べ替え / 最近動いた順。固定したものは上）"
+          title="プロジェクトの並び順（手動 = ドラッグで並べ替えた順 / 最近動いた順。最近動いた順でもドラッグすると手動になる。固定したものは上）"
           onToggle={() => onOrder(order === "recent" ? "manual" : "recent")}
         />
         <HeadToggle

@@ -35,8 +35,6 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   // 合わないプロジェクトは、固定・しまったものも含めて出さない）。sorted は絞り込む前のしまっていないもの
   const [projectOrder, setProjectOrder] = useSetting(SIDEBAR_PROJECT_ORDER);
   const { active: sorted, visible, archived, tagFilter } = useVisibleProjects();
-  // 手動の並びのときだけ、ドラッグで並べ替えられる（しまったものは並べ替えない）
-  const canReorder = projectOrder === "manual";
   // 自分待ちだけを出すときは、自分待ちのチャットか、送る前の新しいチャット（下書き）があるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
   // オンのときの表示（プロジェクトで絞る / 上にまとめる / 1 列にまとめる）。プロジェクトとチャットを絞るのは「絞る」のときだけ
@@ -54,9 +52,14 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const base = filterByWaiting ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const ordered = allSearch.keyword ? base.filter(hasMatch) : base;
   const isArchived = (id: number) => archived.some((p) => p.id === id);
-  // ドラッグでの並べ替え（縦並びのカード・横スライドの丸で共通。しまったものは除く）。
-  // タグで絞り込んでいても、隠れたものを含む並び全体の中で動かす（隠れたものの位置を崩さない）
-  const reorder = useProjectReorder({ ids: sorted.map((p) => p.id), canReorder, isArchived });
+  // ドラッグでの並べ替え（縦並びのカード・横スライドとアイコンの列の丸で共通。しまったものは除く）。
+  // タグで絞り込んでいても、隠れたものを含む並び全体の中で動かす（隠れたものの位置を崩さない）。
+  // 最近動いた順でも並べ替えられ、落とすと手動の並びに切り替える（見えている並びのまま、動かしたものだけが動く）
+  const reorder = useProjectReorder({
+    ids: sorted.map((p) => p.id),
+    isArchived,
+    onManual: projectOrder === "manual" ? undefined : () => setProjectOrder("manual"),
+  });
   const [currentId, setCurrentId] = useState(loadCurrentProject);
   // 下の丸の右クリックメニュー（プロジェクトに対する操作）
   const projectMenu = useProjectMenu(projects);
