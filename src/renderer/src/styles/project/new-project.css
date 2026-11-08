@@ -57,3 +57,19 @@
   top: 12px;
   right: 12px;
 }
+
+/* git の管理の欄: 始める / 始めないのボタンの組は中身の幅、もう管理されているときはその旨の 1 行 */
+.segmented.git-init-choice {
+  justify-self: start;
+}
+
+.git-init-managed {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.git-init-managed-icon {
+  color: var(--ok);
+}

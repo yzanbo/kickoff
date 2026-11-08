@@ -5,10 +5,11 @@ import { errorMessage } from "@shared/errors";
 import { useSubmit } from "@/hooks/useSubmit";
 import { ErrorText } from "@/ui/ErrorText";
 import { DialogActions } from "@/ui/DialogActions";
-import { CheckField, Field } from "@/ui/Field";
+import { Field } from "@/ui/Field";
 import { FolderField } from "./FolderField";
 import { InspectionPanel } from "./InspectionPanel";
-import { gitInitChoice } from "@/features/project/gitInitChoice";
+import { gitInitChoice, gitManagedNote } from "@/features/project/gitInitChoice";
+import { GitInitField } from "@/features/project/GitInitField";
 import type { FormProps } from "./NewProjectDialog";
 
 export function ImportForm({ onCancel, onCreated }: FormProps) {
@@ -47,7 +48,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
 
   // git のリポジトリの中のフォルダも、そのまま取り込む（Git の操作はその中だけ。チェックすれば、このフォルダで別のリポジトリとして始める）
   const isSubfolder = Boolean(inspection?.is_git && inspection.git_root && inspection.git_root !== inspection.path);
-  // git の管理を始めるかのチェック（git でない・コミットがない・リポジトリの中のフォルダ。初めはオフ）
+  // git の管理を始めるかのボタン（git でない・コミットがない・リポジトリの中のフォルダ。初めは始めない）
   const gitChoice = inspection ? gitInitChoice(inspection) : null;
   const blocked = !inspection || !inspection.exists || !inspection.is_directory || Boolean(inspection.registered_project_id);
 
@@ -66,7 +67,12 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
         <InspectionPanel info={inspection} isSubfolder={isSubfolder} />
       )}
 
-      {gitChoice && <CheckField label={gitChoice.label} help={gitChoice.help(initGit)} checked={initGit} onChange={setInitGit} />}
+      {/* git の管理: 始める / 始めない（初めは始めない）。もう git で管理されていれば、その旨だけ */}
+      {inspection && !blocked && (gitChoice ? (
+        <GitInitField on={gitChoice.on} off={gitChoice.off} value={initGit} onChange={setInitGit} help={gitChoice.help(initGit)} />
+      ) : (
+        <GitInitField on="" off="" value={false} onChange={setInitGit} managed={gitManagedNote(inspection)} />
+      ))}
 
       <Field label="プロジェクト名">
         <input
