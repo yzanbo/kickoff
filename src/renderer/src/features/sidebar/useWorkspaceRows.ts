@@ -12,7 +12,7 @@ import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
 import { useWaitingView } from "./waitingView";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { useChatLayout } from "./chatGroupings";
-import { sidebarLevels } from "./sidebarChatOrder";
+import { sidebarLevels, sidebarSort } from "./sidebarChatOrder";
 import { useProjectDrafts } from "./DraftRows";
 
 /** チャットのないグループも出す（グループなしは出すかを見出しの決まりで決めるので、いつも作っておく）。絞り込み中は一致するものだけ */
@@ -40,7 +40,7 @@ export function useWorkspaceRows({
   /** チャット一覧を閉じているか（閉じている間は、作業場所で分けるためのワークツリーの一覧を読みに行かない） */
   collapsed: boolean;
 }) {
-  // まとめ方（まとめない / グループ / 作業場所）と並び順（最近動いた順 / 状態順）。グループの見出しは「グループ」のときだけ出す
+  // まとめ方（まとめない / グループ / 作業場所）と並び順（最近動いた順 / 状態順 / 手動）。グループの見出しは「グループ」のときだけ出す
   const { grouping, order } = useChatLayout();
   // 自分待ち（回答待ち・未読）だけを出すか（上の行の「自分待ち」で切り替え、表示が「プロジェクトで絞る」のときだけ絞る。
   // 「上にまとめる」では一覧はすべてを出し、待っているものは上のまとまりに出す）
@@ -80,6 +80,8 @@ export function useWorkspaceRows({
   const buckets = useChatBuckets(shown, {
     by: sidebarLevels(grouping, order),
     project: projectId,
+    // 手動のときは、まとまりの中をドラッグで並べた順（Chat.position）
+    sort: sidebarSort(order),
     pinned: true,
     // グループ別・作業場所別は、まとまりごとのいちばん下にそのまとまりのアーカイブ済み（bucket.archived）、まとめないときはいちばん下にまとめる
     archived: grouping === "none" ? "bucket" : "nested",

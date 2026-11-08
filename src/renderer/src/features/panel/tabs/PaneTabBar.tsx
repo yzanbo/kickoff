@@ -132,7 +132,12 @@ export function PaneTabBar({
       inert={inert}
       onPointerDown={() => panel.focusPane(pane.id)}
       onContextMenu={onBarMenu}
-      {...drag.barProps(pane.id, (i) => paneIndexOf(i, display, pane.tabs))}
+      {...drag.barProps(
+        pane.id,
+        (i) => paneIndexOf(i, display, pane.tabs),
+        // 一覧のペインの中でのチャットのタブの並べ替えは、サイドバーの手動の並びを変える
+        (key, i) => pane.tabs.includes(key) && strip.reorderChatTab(key, i),
+      )}
     >
       {controls}
       {/* まとめないときは、タブの列の左端（横にスクロールしても動かない位置）に「チャット」の札 */}

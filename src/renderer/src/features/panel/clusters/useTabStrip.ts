@@ -2,7 +2,7 @@ import type { Chat } from "@shared/types";
 import { useFolds } from "@/hooks/useFold";
 import type { PaneLeaf } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
-import { useSidebarChatOrder } from "@/features/sidebar/sidebarChatOrder";
+import { useManualChatReorder, useSidebarChatOrder } from "@/features/sidebar/sidebarChatOrder";
 import { parsePanelKey } from "@/features/panel/surfaces";
 import { OTHER_CLUSTER, clusterTabs, orderLikeSidebar, shownClusters, visibleClusterTabs, type TabCluster } from "./tabClusters";
 import { useHiddenTabGroups } from "./useHiddenTabGroups";
@@ -29,7 +29,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   };
   // 欄で隠している種類のタブは並べない（閉じずに残す）。チャットを隠しているときは、タブのないグループの札も出さない
   const paneKnown = pane.tabs.filter(panel.isKindShown);
-  const known = showChat && home ? orderLikeSidebar(paneKnown, chatIdOf, sidebarOrder) : paneKnown;
+  const known = showChat && home ? orderLikeSidebar(paneKnown, chatIdOf, sidebarOrder.index) : paneKnown;
   // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない
   const shownSeeds = showChat && home ? seeds : [];
   // チャットを隠している欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
@@ -56,6 +56,31 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const shownTabs = (c: TabCluster) => visibleClusterTabs(c, isCollapsed(c), active);
   /** タブのチャット（チャットのタブのものだけ） */
   const chatsOf = (keys: readonly string[]) => keys.flatMap((key) => panel.chatOf(panel.tabs.find((x) => x.key === key)) ?? []);
+  const display = clusters ? clusters.flatMap(shownTabs) : known;
+  // 一覧のペインのチャットのタブのドラッグでの並べ替えは、サイドバーと同じ手動の並びとして保存する（利用者の依頼）
+  const manual = useManualChatReorder(sidebarOrder);
+  /**
+   * 一覧のペインで、key のチャットのタブを見た目の並びの index 番目の前に落としたとき、手動の並びを変える（変えたら true）。
+   * 落とした位置の右のタブ（なければ左のタブ）が同じまとまり（グループ・作業場所・固定・アーカイブ済み）のチャットなら、その前（後ろ）へ動かす
+   */
+  const reorderChatTab = (key: string, index: number): boolean => {
+    if (!(showChat && home)) return false;
+    const moved = chatIdOf(key);
+    const chat = moved === null ? undefined : panel.chats.find((c) => c.id === moved);
+    if (moved === null || !chat) return false;
+    const neighbor = (k: string | undefined) => (k === undefined ? null : chatIdOf(k));
+    const right = neighbor(display[index]);
+    if (right !== null && right !== moved && manual.canMove(moved, right)) {
+      manual.move(chat.project_id, moved, right, "before");
+      return true;
+    }
+    const left = neighbor(display[index - 1]);
+    if (left !== null && left !== moved && manual.canMove(moved, left)) {
+      manual.move(chat.project_id, moved, left, "after");
+      return true;
+    }
+    return false;
+  };
   return {
     grouping,
     showChat,
@@ -64,7 +89,8 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
     /** まとまり（まとめないなら null） */
     clusters,
     /** 見た目の並び（ドラッグで落とす位置の印もこの並びで付ける） */
-    display: clusters ? clusters.flatMap(shownTabs) : known,
+    display,
+    reorderChatTab,
     isCollapsed,
     isHidden,
     // 隠したグループ（表示中のタブだけを残している）を開くときは、隠すのをやめる

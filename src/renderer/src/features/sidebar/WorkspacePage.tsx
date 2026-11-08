@@ -30,6 +30,7 @@ import { UngroupedHead } from "./UngroupedHead";
 import { ArchivedBucketFold, useSidebarArchiveDrops } from "./ArchivedBucketFold";
 import { splitAtUngrouped } from "@/features/group/groupOrder";
 import { useWorkspaceRows } from "./useWorkspaceRows";
+import { useChatRowReorder } from "./useChatRowReorder";
 import { WorkspaceHead } from "./WorkspaceHead";
 import { useProjectChatDrops } from "./projectChatDrop";
 import { Collapse } from "@/ui/Collapse";
@@ -129,6 +130,9 @@ export const WorkspacePage = memo(function WorkspacePage({
     setCreating(true);
   };
 
+  // 同じまとまりの中のチャットの行をドラッグで並べ替える（手動の並び。最近順・状態順なら手動に切り替わる）
+  const rowReorder = useChatRowReorder(project.id, chats, !collapsed);
+
   // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
   const rename = useChatRename((m) => void alertDialog("名前を変更できませんでした", m));
   const renderRow = (chat: Chat) => (
@@ -145,6 +149,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       // 子チャットは親の行の中にだけ置く（開閉と数。孫・ひ孫も同じ形で）。子チャットは別ウィンドウで開く
       after={<ChildChatRows parentId={chat.id} parentArchived={chat.archived_at !== null} childrenOf={childChats} renderRow={renderRow} />}
       onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
+      reorder={rowReorder(chat)}
     />
   );
 
