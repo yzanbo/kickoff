@@ -1,13 +1,16 @@
 import { Folder, FolderGit2, GitBranch, Square, type LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { useFolds } from "@/hooks/useFold";
 import type { SettingValue } from "@/lib/storage";
 import { ProjectMark } from "@/features/project/ProjectMark";
+import { projectHueStyle } from "@/features/project/projectColor";
 import { useProjects } from "@/stores/projects";
 import type { PROJECT_BOARD_LANES } from "@/lib/storageKeys";
 import { WORKPLACE_KIND_LABELS } from "@/features/worktree/workplace";
 import type { ChatBucket } from "@/features/chatList/buckets";
+import type { ChatGrouping } from "@/features/chatList/chatGrouping";
+import { useBucketHueOf } from "@/features/chatList/useChatBuckets";
 import { FoldHead } from "@/ui/FoldHead";
 import { Segmented } from "@/ui/Segmented";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
@@ -86,6 +89,26 @@ function LaneTitle({ lane, showProject }: { lane: ChatBucket<PanelDraft>; showPr
   );
 }
 
+/** 段のまとめ方（色を決めるため。グループ・グループなしの段があればグループ別、作業場所の段があれば作業場所別、プロジェクトの段だけなら色はプロジェクトから） */
+function laneGrouping(lanes: readonly ChatBucket<PanelDraft>[]): ChatGrouping {
+  if (lanes.some((l) => l.kind === "group" || l.kind === "ungrouped")) return "group";
+  return lanes.some((l) => l.place) ? "worktree" : "none";
+}
+
+/**
+ * 段の見出しの地の色（サイドバーのプロジェクトのカードと同じく、薄い色の地を横幅いっぱいに敷く）。プロジェクトの段はプロジェクトの色（--ws-hue。
+ * 地は project-mark.css の札と共通）、グループ・作業場所の段はサイドバー・タブの列のまとまりと同じ色（--group-hue。bucketHues.ts）。色のない段は灰色の地
+ */
+function useLaneTint(lanes: readonly ChatBucket<PanelDraft>[]): (lane: ChatBucket<PanelDraft>) => { className: string; style?: CSSProperties } {
+  const projectIds = [...new Set(lanes.flatMap((l) => (l.projectId === undefined ? [] : [l.projectId])))];
+  const hueOf = useBucketHueOf(laneGrouping(lanes), projectIds, true);
+  return (lane) => {
+    if (lane.kind === "project" && lane.projectId !== undefined) return { className: "lane-project", style: projectHueStyle(lane.projectId) };
+    const hue = hueOf(lane);
+    return hue === null ? { className: "lane-plain" } : { className: "lane-hued", style: { "--group-hue": hue } as CSSProperties };
+  };
+}
+
 /**
  * ボードを段（スイムレーン）に分けて出す。段は bucketChats のまとまり（グループ・作業場所・プロジェクト。中の段が状態の列）で、
  * 段の中身（children: 下書きと状態の列・リストのまとまり）は呼ぶ側が描く。
@@ -117,6 +140,7 @@ export function BoardLanes({
   /** 段の中身 */
   children: (lane: ChatBucket<PanelDraft>) => ReactNode;
 }) {
+  const tint = useLaneTint(lanes);
   const folds = useFolds(
     foldPlace,
     lanes.map((l) => l.key),
@@ -127,9 +151,20 @@ export function BoardLanes({
       {lanes.map((lane) => {
         const open = folds.isOpen(lane.key);
         const extra = laneProps?.(lane) ?? {};
+        const head = tint(lane);
         return (
           <section key={lane.key} {...extra} className={cx("board-lane", extra.className)}>
-            <FoldHead {...headProps?.(lane)} look="lane" open={open} onToggle={() => folds.set(lane.key, !open)} label={<LaneTitle lane={lane} showProject={showProject} />} count={lane.chats.length} actions={actions?.(lane)} className={actions && "board-lane-head-actions"} />
+            <FoldHead
+              {...headProps?.(lane)}
+              look="lane"
+              open={open}
+              onToggle={() => folds.set(lane.key, !open)}
+              label={<LaneTitle lane={lane} showProject={showProject} />}
+              count={lane.chats.length}
+              actions={actions?.(lane)}
+              className={cx(head.className, actions && "board-lane-head-actions")}
+              style={head.style}
+            />
             {open && <div className={list ? "lane-list" : "board-columns lane-columns"}>{children(lane)}</div>}
           </section>
         );

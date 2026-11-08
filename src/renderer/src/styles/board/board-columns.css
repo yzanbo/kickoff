@@ -100,6 +100,11 @@
   bottom: -4px;
 }
 
+/*
+ * 段の見出し: サイドバーのプロジェクトのカードと同じく、薄い色の地を横幅いっぱいに敷いた角丸の帯（利用者の依頼）。
+ * プロジェクトの段（.lane-project）の地は project-mark.css の札と共通（--ws-hue）。グループ・作業場所の段（.lane-hued）は、まとまりの色（--group-hue）の
+ * 同じ濃さの地と、名前の前のアイコンをその色に。色のない段（.lane-plain）は灰色の地。上に残るとき、角の外に下の中身が透けないよう、外側を画面の地で塗る
+ */
 .board-lane-head {
   position: sticky;
   top: 0;
@@ -107,8 +112,34 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  height: var(--row-tight);
-  background: var(--bg);
+  height: 34px;
+  padding: 0 6px 0 4px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--bg-elev);
+  box-shadow: 0 0 0 4px var(--bg);
+}
+
+.board-lane-head.lane-hued {
+  --group-color: hsl(var(--group-hue) 60% 68%);
+  background: hsl(var(--group-hue) 25% 13%);
+}
+
+.board-lane-head.lane-hued:hover {
+  background: hsl(var(--group-hue) 28% 16%);
+}
+
+:root[data-theme="light"] .board-lane-head.lane-hued {
+  --group-color: hsl(var(--group-hue) 55% 38%);
+  background: hsl(var(--group-hue) 50% 96%);
+}
+
+:root[data-theme="light"] .board-lane-head.lane-hued:hover {
+  background: hsl(var(--group-hue) 55% 93%);
+}
+
+.board-lane-head.lane-hued .board-lane-name > svg {
+  color: var(--group-color);
 }
 
 .board-lane-name {
