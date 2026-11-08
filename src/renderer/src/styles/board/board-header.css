@@ -184,6 +184,12 @@
   background: var(--bg-hover);
 }
 
+/* いまは選べないが、並びの位置を変えないよう消さずに残すボタン（グループのボードの段の「作業場所」など。理由はマウスを乗せたときの説明） */
+.view-toggle button[aria-disabled="true"] {
+  color: var(--extra-muted);
+  cursor: default;
+}
+
 /* それぞれをオン・オフする組（ToggleButtons。role="group"）は、両方オンでも 1 つのボタンに見えないよう、間を画面の地の色で区切る（--border はオンの地と見分けられない） */
 .view-toggle[role="group"] button + button {
   border-left: 2px solid var(--bg);

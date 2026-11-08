@@ -1,4 +1,4 @@
-import { FolderPlus, SquarePen } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { useEffect } from "react";
 import type { ChatGroup } from "@shared/types";
 import { GROUP_FLASH_EVENT } from "@/features/group/groups";
@@ -13,7 +13,7 @@ import { BoardHeader } from "./BoardHeader";
 import { BoardLanes, LaneSelect, type BoardLane } from "./BoardLanes";
 import { BoardShell } from "./BoardShell";
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
-import { GroupCreateForm } from "./GroupCreateForm";
+import { GroupCreateForm, GroupCreateToolButton } from "./GroupCreateForm";
 import { GroupSections } from "./GroupSections";
 import { orderGroupBuckets } from "@/features/group/groupOrder";
 import { StateColumns } from "./StateColumn";
@@ -25,7 +25,10 @@ import { SavedViewTabs } from "./SavedViewTabs";
 import { useChatSort } from "./useChatSort";
 
 /** グループのボードの段の分け方（グループだけ） */
-const GROUP_LANES: readonly BoardLane[] = ["group"];
+/** 段の分け方のボタン（プロジェクトのカンバンと同じ並び。作業場所は押せない形で残し、列の分け方を切り替えてもボタンの位置がずれないようにする） */
+const GROUP_LANES: readonly BoardLane[] = ["group", "worktree"];
+const WORKTREE_LANE_REASON = "作業場所の段は、列の分け方が「状態」のときに使えます（いまはグループの列で分けているため）";
+const LIST_LANE_REASON = "リスト・表は、もともとグループごとのまとまりで並びます";
 
 interface Props {
   projectId: number;
@@ -100,11 +103,7 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
       query={board.query}
       onQuery={board.setQuery}
       filters={<ArchiveFilterSelect value={board.archive} onChange={board.setArchive} />}
-      organize={
-        <button className="btn btn-sm" onClick={() => board.setCreating(true)}>
-          <FolderPlus size={13} /> <span className="btn-label">グループを作成</span>
-        </button>
-      }
+      organize={<GroupCreateToolButton projectId={projectId} onClick={() => board.setCreating(true)} />}
       primary={
         <button className="btn btn-sm" onClick={chats.startNewChat} title={chats.newChatTitle}>
           <SquarePen size={13} /> <span className="btn-label">新規</span>
@@ -113,8 +112,16 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
       view={view}
       // フィードは全プロジェクトのボードだけ（ここでは選択肢に出さない）
       onView={(next) => next !== "feed" && board.setView(next)}
-      // 段の分け方はグループだけ（段に分けると、列は下書き＋状態）。リストはもともとグループごとのまとまりなので出さない
-      viewOptions={view === "board" && <LaneSelect value={split ? "group" : "none"} options={GROUP_LANES} onChange={(next) => board.setSplit(next !== "none")} />}
+      // 段の分け方はグループだけ（段に分けると、列は下書き＋状態）。リスト・表はもともとグループごとのまとまりなので段に分けない。
+      // カンバンと同じボタンの並びに保つため、選べないもの（作業場所・リストと表のグループ）も消さずに押せない形で出す
+      viewOptions={
+        <LaneSelect
+          value={view === "board" && split ? "group" : "none"}
+          options={GROUP_LANES}
+          disabled={view === "board" ? { worktree: WORKTREE_LANE_REASON } : { group: LIST_LANE_REASON, worktree: WORKTREE_LANE_REASON }}
+          onChange={(next) => board.setSplit(next !== "none")}
+        />
+      }
       columns={<BoardColumnsToggle projectId={projectId} value="groups" />}
       sortTools={
         <>
