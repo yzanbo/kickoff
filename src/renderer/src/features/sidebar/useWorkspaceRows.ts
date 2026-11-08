@@ -14,11 +14,14 @@ import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { useChatLayout } from "./chatGroupings";
 import { sidebarLevels, sidebarSort } from "./sidebarChatOrder";
 import { useProjectDrafts } from "./DraftRows";
+import { unplacedDrafts, useDraftPlacement, type DraftSlot } from "./useDraftPlacement";
 
 /** チャットのないグループも出す（グループなしは出すかを見出しの決まりで決めるので、いつも作っておく）。絞り込み中は一致するものだけ */
 const KEEP_GROUPS = (head: BucketHead) => head.kind === "group" || head.kind === "ungrouped";
 const KEEP_UNGROUPED = (head: BucketHead) => head.kind === "ungrouped";
 const NO_DRAFTS: PanelDraft[] = [];
+/** 見出しの下に並べるまとまり（固定・アーカイブ済み・自分で作ったグループ以外） */
+const isMainBucket = (b: BucketHead) => b.kind !== "pinned" && b.kind !== "archived" && b.kind !== "group";
 
 /**
  * サイドバーの 1 プロジェクトのチャットの行の絞り込みと分け方（分けるのは bucketChats）。
@@ -89,8 +92,26 @@ export function useWorkspaceRows({
     keepEmpty: filtering ? KEEP_UNGROUPED : KEEP_GROUPS,
     idle: collapsed,
   });
-  const main = buckets.filter((b) => b.kind !== "pinned" && b.kind !== "archived" && b.kind !== "group");
-  const ungrouped = main.find((b) => b.kind === "ungrouped");
+  const main = buckets.filter(isMainBucket);
+  const mainRows = useMemo(() => buckets.filter(isMainBucket).flatMap((b) => b.chats), [buckets]);
+
+  // 手動の並びのときは、下書きの行をタブの列での位置に合わせてチャットの行の間に置く（利用者の依頼。置かないものは、いままでどおりまとまりのいちばん上）。
+  // グループの見出しを出しているときは同じグループのチャットの間、出していないときは見出しの下の一覧（作業場所別なら同じ作業場所）のチャットの間
+  const topDraftList = showDrafts && !showGroups ? drafts : NO_DRAFTS;
+  const slots = useMemo<DraftSlot[]>(
+    () =>
+      showGroups
+        ? buckets.filter((b) => b.drafts.length > 0).map((b) => ({ drafts: b.drafts, chats: b.chats }))
+        : [{ drafts: topDraftList, chats: mainRows, match: grouping === "worktree" ? sameWorkplace : undefined }],
+    [showGroups, buckets, topDraftList, mainRows, grouping],
+  );
+  const draftsAfter = useDraftPlacement(slots, chats, projectId, order === "manual" && !collapsed);
+  const withUnplaced = <B extends { drafts: PanelDraft[] }>(b: B): B => {
+    const rest = unplacedDrafts(b.drafts, draftsAfter);
+    return rest === b.drafts ? b : { ...b, drafts: rest };
+  };
+  const ungroupedBucket = main.find((b) => b.kind === "ungrouped");
+  const ungrouped = ungroupedBucket && withUnplaced(ungroupedBucket);
 
   return {
     grouping,
@@ -109,23 +130,28 @@ export function useWorkspaceRows({
     /** 上に固定したもの（絞り込みを通したもの） */
     pinned: buckets.find((b) => b.kind === "pinned"),
     /** 自分で作ったグループ（グループでまとめているとき。チャットのないものも。絞り込み中は一致するもの・下書きのあるものだけ） */
-    groups: buckets.filter((b) => b.kind === "group"),
+    groups: buckets.filter((b) => b.kind === "group").map(withUnplaced),
     /** グループなし（グループでまとめているとき。もうないグループのものも含む） */
     ungrouped,
     /** 見出しの下に並べるチャット（グループでまとめているときはグループなしのもの、ほかは固定・アーカイブ済み以外のすべて） */
-    mainRows: main.flatMap((b) => b.chats),
+    mainRows,
     /** その見出しのまとまり（作業場所・状態。グループなしの中も状態順なら状態ごと）。見出しなしで並べるときは undefined */
     mainSections: ungrouped ? ungrouped.children : main[0]?.kind === "all" ? undefined : main,
     /** 検索に一致するアーカイブ済み（まとめないときだけ。いちばん下にまとめる。中は、ほかのチャットと同じまとめ方） */
     archived: buckets.find((b) => b.kind === "archived"),
     /** 見出しの下のまとまり（グループなし・作業場所）に、アーカイブ済みがあるか（グループ別・作業場所別。アーカイブ済みだけでも中身を出す） */
     mainArchived: main.some((b) => b.archived),
-    /** グループの見出しを出していないときに、いちばん上に並べる下書き（グループに入れたものも含めて、すべて） */
-    topDrafts: showDrafts && !showGroups ? drafts : NO_DRAFTS,
+    /** グループの見出しを出していないときに、いちばん上に並べる下書き（グループに入れたものも含めて、すべて。手動の並びでチャットの行の後ろに置くものを除く） */
+    topDrafts: unplacedDrafts(topDraftList, draftsAfter),
+    /** 手動の並びで、チャットの行のすぐ後ろに置く下書き（チャットの ID → 下書き。タブの列での位置に合わせる） */
+    draftsAfter,
     /** ピン留めした下書き（「固定」のチャットの上に並べる。検索・状態での絞り込み中は出さない） */
     pinnedDrafts: showDrafts ? pinnedDrafts : NO_DRAFTS,
   };
 }
+
+/** 作業場所別のとき、下書きと同じ作業場所のチャットか（下書きはワークツリーを選んでいなければ本体） */
+const sameWorkplace = (chat: Chat, draft: PanelDraft) => (chat.worktree_path ?? null) === (draft.worktree ?? null);
 
 /** 下書きを、ピン留めしていないもの・したものに分ける（どちらもなければ同じ空の配列） */
 function splitPinnedDrafts(all: PanelDraft[]): { drafts: PanelDraft[]; pinnedDrafts: PanelDraft[] } {

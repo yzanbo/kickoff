@@ -35,3 +35,23 @@ export function moveChatInOrder(order: readonly number[], moved: number, target:
   const next = [...rest.slice(0, at), moved, ...rest.slice(at)];
   return next.every((id, i) => id === order[i]) ? null : next;
 }
+
+/** 下書きのタブの、一覧のペインでの位置（チャットのタブのチャットの ID をペインの並びで・下書きのタブより前にあるチャットのタブの数） */
+export interface DraftTabSpot {
+  chatIds: readonly number[];
+  before: number;
+}
+
+/**
+ * 手動の並びで、下書きの行を置くチャット（その行のすぐ後ろに置く。利用者の依頼で、タブの位置に合わせる）。一覧のペインのチャットのタブは
+ * サイドバーの並び（orderOf）でチャットのタブの位置どうしを入れ替え、下書きのタブの位置は変えない（tabClusters.ts の orderLikeSidebar）ので、
+ * 下書きのタブより前に見えるのは、並べ替えたチャットのタブの先頭から before 個。その中で、下書きと同じまとまりに出すチャット（eligible）の
+ * いちばん後ろのもの。なければ null（まとまりのいちばん上に置く）
+ */
+export function draftAnchor(spot: DraftTabSpot, orderOf: ReadonlyMap<number, number>, eligible: (chatId: number) => boolean): number | null {
+  const rank = (id: number) => orderOf.get(id) ?? Number.MAX_SAFE_INTEGER;
+  // 同じ順位（並びにないもの）どうしはペインの順のまま（sort は安定。orderLikeSidebar と同じ）
+  const shown = [...spot.chatIds].sort((a, b) => rank(a) - rank(b)).slice(0, spot.before);
+  for (let i = shown.length - 1; i >= 0; i--) if (eligible(shown[i])) return shown[i];
+  return null;
+}

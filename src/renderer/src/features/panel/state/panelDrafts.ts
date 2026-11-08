@@ -1,7 +1,8 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { navigate } from "@/app/router";
 import type { DraftTarget } from "@/features/chatList/buckets";
-import { isTabVisible } from "@/features/panel/layout/paneTree";
+import type { DraftTabSpot } from "@/features/chatList/manualOrder";
+import { homePane, isTabVisible } from "@/features/panel/layout/paneTree";
 import { panelScreen } from "@/features/panel/surfaces";
 import { panelActions } from "./panelActions";
 import { allPanels, dispatchPanel, isPanelMounted, panelsVersion, subscribePanels } from "./panelStore";
@@ -58,6 +59,24 @@ export function usePanelDrafts(panels: readonly string[]): PanelDraft[] {
   const sig = panels.join("\n");
   // eslint-disable-next-line react-hooks/exhaustive-deps -- panels は中身（sig）が変わったときだけ
   return useMemo(() => all.filter((d) => panels.includes(d.panel)), [all, sig]);
+}
+
+/**
+ * 下書きのタブの、その欄の一覧のペイン（サイドバーと連動したチャットのタブが入るペイン）での位置（サイドバーの手動の並びで、下書きの行を
+ * タブの位置に合わせる。利用者の依頼）。一覧のペインにない（分けたペインへ移した）なら null
+ */
+export function draftTabSpot(draft: DraftRef): DraftTabSpot | null {
+  const state = allPanels().get(draft.panel);
+  if (!state) return null;
+  const keys = homePane(state.layout).tabs;
+  const at = keys.indexOf(draft.key);
+  if (at < 0) return null;
+  const ids = keys.map((key) => {
+    const tab = state.tabs.find((t) => t.key === key);
+    return tab?.kind === "chat" ? tab.id : null;
+  });
+  const chatIds = (list: (number | null)[]) => list.filter((id): id is number => id !== null);
+  return { chatIds: chatIds(ids), before: chatIds(ids.slice(0, at)).length };
 }
 
 /** 下書きを開く。その欄が画面になければ、その画面（ボード・チャット欄ならそのプロジェクト）へ移ってから開く */
