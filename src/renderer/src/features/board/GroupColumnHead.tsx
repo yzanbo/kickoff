@@ -9,7 +9,7 @@ import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 import { UNGROUPED_SORT_ID } from "@/features/group/groups";
 
 /**
- * グループのボードの列・リストのまとまりの見出し。group が null なら「No Group」。
+ * グループの列・リストのまとまりの見出し（全プロジェクトのボードの「列: グループ」）。group が null なら「No Group」。
  * 見出しをドラッグしてグループ・「No Group」を並べ替え、名前のダブルクリックで名前を変え、右クリック・「…」でメニュー（「No Group」は並べ替えだけ）。
  * 名前と件数は列の色の札（ToneChip）に入れる: グループはその色（ChatGroup.hue。サイドバー・タブのまとまりと同じ）、「No Group」は灰。
  * onNewChat: ＋でそのグループに新しいチャットを始める

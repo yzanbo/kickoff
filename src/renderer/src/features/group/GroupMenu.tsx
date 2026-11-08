@@ -7,7 +7,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 
 /**
  * グループの「…」メニュー（名前を変更・削除）。ホバーで表示が変わらないよう、「…」ボタンはいつも出しておき、
- * 見出しの右クリックでも同じメニューを開く。1 つの画面（サイドバーのプロジェクト・グループのボード）で 1 つ使う。
+ * 見出しの右クリックでも同じメニューを開く。1 つの画面（サイドバーのプロジェクト・全プロジェクトのボードのグループの列）で 1 つ使う。
  * extra は区切り線の下に足す項目（サイドバーの「まとまりを色付きで表示」）
  */
 export function useGroupMenu({ onRename, onDelete, extra }: { onRename: (group: ChatGroup) => void; onDelete: (group: ChatGroup) => void; extra?: ReactNode }) {
@@ -30,7 +30,7 @@ export function useGroupMenu({ onRename, onDelete, extra }: { onRename: (group: 
       aria-haspopup="menu"
       aria-expanded={open?.value.id === group.id}
       onClick={(e) => {
-        // 見出しを押したとき（グループのボードを開く・開閉）に伝えない
+        // 見出しを押したとき（開閉）に伝えない
         e.stopPropagation();
         if (open?.value.id === group.id) menuState.close();
         else menuState.openBelow(e, group);

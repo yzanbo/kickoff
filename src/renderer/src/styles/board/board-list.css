@@ -79,15 +79,6 @@
   bottom: -7px;
 }
 
-.list-group.group-add-row {
-  padding: 0;
-  border: 1px dashed var(--border-strong);
-}
-
-.list-group.group-add-row:has(> .column-head) {
-  padding: 6px 8px 0;
-}
-
 /*
  * 送る前の新しいチャット（パネルで入力中）を、その列・グループに下書きとして出す。
  * ほかのチャットのカード（.board-card）と同じ色・枠にする（以前は緑の点線と緑の地で、ほかのカードより目立ちすぎていた）

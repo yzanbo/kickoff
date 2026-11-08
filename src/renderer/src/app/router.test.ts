@@ -14,9 +14,8 @@ test("parse: ハッシュを画面に読む（タブなしはボード、知ら�
   for (const tab of ["requirements", "schedule", "tasks", "reports"]) {
     assert.deepEqual(parse(`#/projects/3/${tab}`), { name: "project", id: 3, tab: "board" }, tab);
   }
-  // グループは「グループ」のタブでだけ読む（0 や数でないものは無視）
-  assert.deepEqual(parse("#/projects/3/groups?group=7"), { name: "project", id: 3, tab: "groups", group: 7 });
-  assert.deepEqual(parse("#/projects/3/groups?group=0"), { name: "project", id: 3, tab: "groups" });
+  // 以前のグループのボードの URL はボードに戻る（?group= は読まない）
+  assert.deepEqual(parse("#/projects/3/groups?group=7"), { name: "project", id: 3, tab: "board" });
   assert.deepEqual(parse("#/projects/3/changes?group=7"), { name: "project", id: 3, tab: "changes" });
 });
 
@@ -30,7 +29,7 @@ test("parse: ファイルタブで開くファイル（ファイルタブでだ�
   assert.deepEqual(parse("#/projects/3/changes?file=a.ts&line=0"), { name: "project", id: 3, tab: "files", file: { path: "a.ts" } });
   assert.deepEqual(parse("#/projects/3/files?line=4"), { name: "project", id: 3, tab: "files" });
   assert.deepEqual(parse("#/projects/3/search"), { name: "project", id: 3, tab: "search" });
-  assert.deepEqual(parse("#/projects/3/groups?file=a.ts"), { name: "project", id: 3, tab: "groups" });
+  assert.deepEqual(parse("#/projects/3/history?file=a.ts"), { name: "project", id: 3, tab: "history" });
   // 開くメモはメモのタブでだけ読む
   assert.deepEqual(parse("#/projects/3/changes?memo=a.md"), { name: "project", id: 3, tab: "changes" });
 });
@@ -49,7 +48,6 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "board" },
     { name: "project", id: 1, tab: "changes" },
     { name: "project", id: 1, tab: "history" },
-    { name: "project", id: 1, tab: "groups", group: 5 },
     { name: "project", id: 1, tab: "files", file: { path: "src/a b.ts", line: 3, worktree: "/x/app-worktrees/w" } },
     { name: "project", id: 1, tab: "files", file: { path: "README.md" } },
     { name: "project", id: 1, tab: "files" },
@@ -75,14 +73,7 @@ test("routeProjectId: プロジェクトの画面・新しいチャット・チ�
   assert.equal(routeProjectId({ name: "allProjects" }), undefined);
 });
 
-test("boardTabOf: チャット・新しいチャットの URL では、最後に見たボードの列の分け方で開く（グループの＋から来た新しいチャットはグループのボード）", () => {
-  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "state", "together"), "board");
-  // グループのボードで開いたチャットの URL でも、カンバンに切り替えない
-  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "groups", "together"), "groups");
-  assert.equal(boardTabOf({ name: "newChat", projectId: 1 }, "groups", "together"), "groups");
-  assert.equal(boardTabOf({ name: "newChat", projectId: 1, group: 3 }, "state", "together"), "groups");
-  assert.equal(boardTabOf({ name: "newChat", projectId: 1 }, "state", "together"), "board");
-  // チャットをボードと分けているときは、どれも「チャット」タブ
-  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "groups", "separate"), "chats");
-  assert.equal(boardTabOf({ name: "newChat", projectId: 1, group: 3 }, "state", "separate"), "chats");
+test("boardTabOf: チャット・新しいチャットの URL では、チャットをボードと分けていれば「チャット」タブ、ほかはボード", () => {
+  assert.equal(boardTabOf("together"), "board");
+  assert.equal(boardTabOf("separate"), "chats");
 });

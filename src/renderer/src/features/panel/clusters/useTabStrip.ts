@@ -100,7 +100,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
     shownTabs,
     /** まとまりの色（null は色なし）。サイドバーのまとまりと同じ色（プロジェクトごとに被らないよう決める。bucketHues.ts）。色を付けない設定なら、どれも null */
     hueOf,
-    /** 自分で作ったグループの札のドラッグで、グループの並びを入れ替える（サイドバー・グループのボードも同じ並びになる） */
+    /** 自分で作ったグループの札のドラッグで、グループの並びを入れ替える（サイドバー・全プロジェクトのボードのグループの列も同じ並びになる） */
     reorder: useClusterReorder(clusters),
     /**
      * まとまり（グループ・作業場所）のチャット: タブで開いているチャットと、ボードの一覧のうち同じまとまりに入るもの（タブで開いていないものも）。

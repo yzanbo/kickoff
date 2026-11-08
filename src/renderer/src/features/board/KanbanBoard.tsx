@@ -11,7 +11,7 @@ import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/panel/
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { panelKey } from "@/features/panel/surfaces";
-import { AllProjectsColumnsToggle, BoardColumnsToggle, useAllProjectsColumns, useGroupsByState } from "./BoardColumnsToggle";
+import { AllProjectsColumnsToggle, useAllProjectsColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useProjectLaneReorder } from "./useProjectLaneReorder";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
@@ -199,7 +199,6 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allD
           onWorktree={filters.setWorktree}
         />
       }
-      // プロジェクトのボードは、グループのボードと同じく「グループを作成」を置く（列の分け方を切り替えてもツールバーの形が変わらないように）
       organize={projectId !== undefined && <GroupCreateToolButton projectId={projectId} />}
       primary={
         newChat && (
@@ -214,8 +213,9 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allD
         if (next !== "feed") setView(next);
       }}
       feed={allProjects}
+      // 列の分け方は全プロジェクトのボードだけ（プロジェクトのボードの列はいつも状態。利用者の依頼で、列の分け方とグループのボードの画面をなくした）。
       // フィードは返答の新しい順の 1 列なので、段・列の分け方・並び順を出さない
-      columns={feed ? undefined : projectId !== undefined ? <BoardColumnsToggle projectId={projectId} value="state" /> : <AllProjectsColumnsToggle groups={projectLanes} />}
+      columns={feed || projectId !== undefined ? undefined : <AllProjectsColumnsToggle groups={projectLanes} />}
       viewOptions={
         !feed && (
         <LaneSelect

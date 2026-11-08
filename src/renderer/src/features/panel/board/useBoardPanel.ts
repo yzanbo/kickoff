@@ -22,7 +22,7 @@ const showInUrl = (chat: Pick<Chat, "id" | "project_id">) => openChat(chat.proje
  * 新しいチャットを送ったチャットを URL にし、サイドバー・検索などから開いたチャット・新しいチャット（focus）をパネルで開く。
  * tab は新しいチャットを開いたあとに URL を戻すタブ
  */
-export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { projectId: number; holdEsc: boolean; focus?: ReopenRoute; tab: "board" | "groups" | "chats" }) {
+export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { projectId: number; holdEsc: boolean; focus?: ReopenRoute; tab: "board" | "chats" }) {
   const { projects: all } = useProjects();
   const panel = usePanel({
     surface: "board",
@@ -52,7 +52,7 @@ export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { proje
  * （新しいチャット・ブラウザ・ターミナル）にしたらプロジェクトの画面（tab）に戻して、サイドバーの強調を外す。
  * はじめて描いたときは URL を変えない（URL で開いたチャット（useBoardFocus）より先に、前に表示していたタブで上書きしないため）
  */
-function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number, tab: "board" | "groups" | "chats") {
+function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number, tab: "board" | "chats") {
   const shown = panel.panelOpen ? panel.shownTabOf(focusedPane(panel.layout)) : null;
   const shownTab = shown === null ? undefined : panel.tabs.find((t) => t.key === shown);
   // タブが覚えているチャットの ID とプロジェクト（一覧にまだ届いていないチャットでも引ける）
@@ -71,27 +71,23 @@ function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number
 }
 
 /**
- * プロジェクトのボード（カンバン・グループのボード）の右のパネルの殻（チャットをボードの右で開く置き方のとき）。列の分け方（状態 / グループ）を切り替えても、
- * 開閉・タブ・分割はそのまま（同じ panelKey）。全プロジェクトのボードはパネルを持たない（チャットはそのプロジェクトへ移って開く。features/board/KanbanBoard の AllProjectsKanban）。
+ * プロジェクトのボード（カンバン）の右のパネルの殻（チャットをボードの右で開く置き方のとき）。全プロジェクトのボードはパネルを持たない（チャットはそのプロジェクトへ移って開く。features/board/KanbanBoard の AllProjectsKanban）。
  * 幅（左端のつまみ）・横幅いっぱい・狭いときにボードを覆うのは usePanelWidth で、frame を Panel に、body をボードとパネルを並べる要素に渡す。
  * drafts はボードに出す下書き（このボードのパネルと、同じプロジェクトのチャット欄で書いている途中のもの。いちばん左の「下書き」の列・グループに出す）。
- * カードから開いたチャットも URL にする（どちらのボードでも、チャットの URL は最後に見たボードで開く: router の boardTabOf）
+ * カードから開いたチャットも URL にする（router の boardTabOf）
  */
 export function useBoardPanel({
   projectId,
   holdEsc,
   focus,
-  tab = "board",
 }: {
   projectId: number;
   /** true の間は Esc でパネルを閉じない（カードのメニューが開いているとき） */
   holdEsc: boolean;
   /** URL で開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
-  /** どちらのボードか（新しいチャットを開いたあと、URL をこのボードに戻す） */
-  tab?: "board" | "groups";
 }) {
-  const panel = useProjectChatsPanel({ projectId, holdEsc, focus, tab });
+  const panel = useProjectChatsPanel({ projectId, holdEsc, focus, tab: "board" });
   const drafts = usePanelDrafts([panel.key, panelKey("side", projectId)]);
   // タブの列を隠している間は、その左の道具の「横幅いっぱい ⇔ 元の幅」も出ないので、横幅いっぱいにしない（ボードを覆ったまま戻せなくなるため）
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);

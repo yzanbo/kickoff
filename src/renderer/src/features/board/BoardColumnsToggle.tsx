@@ -1,50 +1,11 @@
-import { CircleDot, Folder, FolderKanban } from "lucide-react";
+import { CircleDot, Folder } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import { navigate } from "@/app/router";
-import type { SettingValue } from "@/lib/storage";
-import { ALL_PROJECTS_BOARD_COLUMNS, BOARD_GROUPS_BY_STATE, PROJECT_BOARD_COLUMNS } from "@/lib/storageKeys";
-import { Segmented } from "@/ui/Segmented";
+import { ALL_PROJECTS_BOARD_COLUMNS, BOARD_GROUPS_BY_STATE } from "@/lib/storageKeys";
 import { ToggleButtons } from "@/ui/ToggleButtons";
 
-export type BoardColumns = SettingValue<typeof PROJECT_BOARD_COLUMNS>;
-
-/** プロジェクトのボードの列の分け方（最後に見た方。ボードのタブのリンク先に使う） */
-export function useBoardColumns() {
-  return useSetting(PROJECT_BOARD_COLUMNS);
-}
-
-/** グループの列の中を状態で小分けにするか（列の分け方の「グループ×状態」。グループのボード・全プロジェクトの列: グループで共通） */
+/** グループの列の中を状態で小分けにするか（全プロジェクトのボードの列の「状態」と「グループ」の両方オン = グループ×状態） */
 export function useGroupsByState() {
   return useSetting(BOARD_GROUPS_BY_STATE);
-}
-
-/** 列の分け方のボタンの「グループ×状態」（グループの列の中を状態の小見出しで区切る） */
-const GROUPS_STATE_OPTION = {
-  value: "groupsState" as const,
-  label: "グループ×状態",
-  icon: FolderKanban,
-  tip: "グループの列の中を、状態（作業中・回答待ち・未読・既読）で小分けにする",
-};
-
-/**
- * プロジェクトのボードの列の切り替え（状態 = カンバン / グループ = 自分で作ったグループの列 / グループ×状態 = グループの列の中を状態で小分け）。
- * 選んだ方の画面へ移る（グループの列は以前の「グループ」タブの画面。最後に見た方は ProjectPage が覚える）
- */
-export function BoardColumnsToggle({ projectId, value }: { projectId: number; value: BoardColumns }) {
-  const [byState, setByState] = useGroupsByState();
-  // 選んだ方は、移った先の画面（ProjectPage）が覚える。グループ×状態はグループのボードで、中の小分けだけを覚える
-  return (
-    <Segmented<BoardColumns | "groupsState">
-      className="view-toggle"
-      label="列の分け方"
-      value={value === "groups" && byState ? "groupsState" : value}
-      onChange={(next) => {
-        if (next !== "state") setByState(next === "groupsState");
-        navigate({ name: "project", id: projectId, tab: next === "state" ? "board" : "groups" });
-      }}
-      options={[{ value: "state", label: "状態", icon: CircleDot }, { value: "groups", label: "グループ", icon: Folder }, GROUPS_STATE_OPTION]}
-    />
-  );
 }
 
 /** 全プロジェクトのボードの列の分け方（状態ごと / 分けない。覚えておく） */

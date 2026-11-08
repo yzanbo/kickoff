@@ -12,7 +12,7 @@ import { useGroupsByState } from "./BoardColumnsToggle";
 
 /**
  * 全プロジェクトのボードの「列: グループ」の、1 つのプロジェクトの段の中身: そのプロジェクトのグループの列（自分で作ったグループ → No Group。
- * チャットのないグループも出す）。部品と操作はプロジェクトのグループのボードと同じ（GroupSections・useGroupBoard）で、
+ * チャットのないグループも出す）。部品は GroupSections、状態と操作は useGroupBoard で、
  * カードを列へドラッグするとそのグループへ移し、ほかのプロジェクトのチャットを落とすと確かめてからこのプロジェクトへ移してそのグループに入れる
  * （作業中なら落とせない）。「グループを作成」は段の見出しのプロジェクト名の右にある（KanbanView の LaneGroupCreate。ボード・リストとも）。列の見出しのドラッグで並べ替え、名前のダブルクリックで名前を変え、「…」で削除。
  * chats・drafts は全プロジェクトのボードで絞り込んだ（名前の検索・アーカイブ・作業場所）このプロジェクトの分。
@@ -36,7 +36,7 @@ export function ProjectGroupColumns({
   render: (chat: Chat) => ReactNode;
 }) {
   const groups = useGroups(projectId);
-  // グループの作成・名前の変更・削除・並べ替え・ドロップは、プロジェクトのグループのボードと同じ状態と操作（絞り込みは全プロジェクトのボードのものを使う）
+  // グループの名前の変更・削除・並べ替え・ドロップの状態と操作（絞り込みは全プロジェクトのボードのものを使う）
   const board = useGroupBoard({ projectId, groups });
   // 列の中は、ボードの並び順で
   const { compare } = useChatSort([projectId]);

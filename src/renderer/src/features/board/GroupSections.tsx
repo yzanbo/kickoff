@@ -14,7 +14,7 @@ import { orderGroupBuckets } from "@/features/group/groupOrder";
 import type { GroupBoardState } from "./useGroupBoard";
 
 /**
- * グループのボードの、グループごとの列（ボード）・まとまり（リスト）。buckets は bucketChats のグループのまとまり（自分で作ったグループ → グループなし。
+ * 全プロジェクトのボードの「列: グループ」の、グループごとの列（ボード）・まとまり（リスト）。buckets は bucketChats のグループのまとまり（自分で作ったグループ → グループなし。
  * もうないグループのチャット・下書きはグループなしに入る）。「No Group」はグループの並びの board.ungroupedAt の位置
  * （覚えていなければ、ボードは先頭・リストはスイムレーンと同じくいちばん下。見出しのドラッグで並べ替える）。
  * 列はドロップ先（チャットを移す・グループ・「No Group」を並べ替える）で、サイドバーから来たグループはハイライトする。
@@ -28,7 +28,6 @@ export function GroupSections({
   onNewChat,
   render,
   foldPlace,
-  highlight,
   list = false,
   byState = false,
 }: {
@@ -41,8 +40,6 @@ export function GroupSections({
   render: (chat: Chat) => ReactNode;
   /** アーカイブ済みのまとまりの開閉を覚える場所（ボード） */
   foldPlace: string;
-  /** 目立たせるグループ（サイドバーのグループ名から来たとき） */
-  highlight?: number;
   list?: boolean;
   /** グループの中を状態（作業中・回答待ち・未読・既読）の小見出しで区切る（列の分け方の「グループ×状態」。buckets は by: ["group", "status"] で分けたもの） */
   byState?: boolean;
@@ -71,7 +68,6 @@ export function GroupSections({
           dropClass(g?.id ?? null),
           reorder.classFor(g?.id ?? UNGROUPED_SORT_ID),
           g === null && "ungrouped",
-          g !== null && g.id === highlight && "highlighted",
         )}
         data-group-id={g?.id}
         {...dropProps(g?.id ?? null)}

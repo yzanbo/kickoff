@@ -4,7 +4,8 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 // プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く。文書はファイルタブ（files）でファイルとして見る
 // （以前の要件定義書・スケジュール・タスク・レポートのタブの URL は、知らないタブとしてボードに戻る）
 // ファイル（files）・検索（search）・変更（changes = ソース管理）は、以前の「エディタ」タブの中の切り替えをタブにしたもの（開いたファイルは 3 つで共有）
-const PROJECT_TABS = ["board", "groups", "chats", "files", "search", "changes", "history", "memos"] as const;
+// 以前のグループのボード（groups）の URL は、知らないタブとしてボードに戻る（列の分け方のボタンとグループのボードの画面はなくした）
+const PROJECT_TABS = ["board", "chats", "files", "search", "changes", "history", "memos"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** ファイルタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */
@@ -17,11 +18,8 @@ export interface FileTarget {
 export type Route =
   /** 全プロジェクト（全プロジェクトのチャットのカンバン。URL は #/） */
   | { name: "allProjects" }
-  /**
-   * group: グループのタブで、表示して目立たせるグループ（サイドバーのグループ名から来たとき）。
-   * file: ファイルタブで開くファイル（開いたら URL から外す）。memo: メモのタブで開くメモ（メモのフォルダからの相対パス。開いたら URL から外す）
-   */
-  | { name: "project"; id: number; tab: ProjectTab; group?: number; file?: FileTarget; memo?: string }
+  /** file: ファイルタブで開くファイル（開いたら URL から外す）。memo: メモのタブで開くメモ（メモのフォルダからの相対パス。開いたら URL から外す） */
+  | { name: "project"; id: number; tab: ProjectTab; file?: FileTarget; memo?: string }
   | { name: "newChat"; projectId: number; group?: number }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "chat"; projectId: number; chatId: number; focus?: number };
@@ -47,7 +45,6 @@ export function parse(hash: string): Route {
   const project = path.match(/^\/projects\/(\d+)(?:\/([a-z]+))?$/);
   if (project) {
     const named = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "board";
-    const group = Number(params.get("group"));
     // 開くファイルはファイルタブでだけ読む（以前のファイルタブ changes?file= の URL も、ファイルタブで開く）
     const file = named === "files" || named === "changes" ? parseFileTarget(params) : undefined;
     const tab: ProjectTab = file ? "files" : named;
@@ -56,7 +53,6 @@ export function parse(hash: string): Route {
       name: "project",
       id: Number(project[1]),
       tab,
-      ...(tab === "groups" && Number.isInteger(group) && group > 0 ? { group } : {}),
       ...(file ? { file } : {}),
       ...(memo ? { memo } : {}),
     };
@@ -98,7 +94,7 @@ export function href(route: Route): string {
       if (route.tab === "board") return `#/projects/${route.id}`;
       if (route.tab === "files") return `#/projects/${route.id}/files${route.file ? fileQuery(route.file) : ""}`;
       if (route.tab === "memos") return `#/projects/${route.id}/memos${route.memo ? `?${new URLSearchParams({ memo: route.memo })}` : ""}`;
-      return `#/projects/${route.id}/${route.tab}${route.group ? `?group=${route.group}` : ""}`;
+      return `#/projects/${route.id}/${route.tab}`;
     case "newChat": {
       return `#/projects/${route.projectId}/new${route.group ? `?group=${route.group}` : ""}`;
     }
@@ -130,15 +126,9 @@ export function navigate(route: Route, options: { replace?: boolean } = {}) {
 export const REOPEN_EVENT = "kickoff:reopen";
 export type ReopenRoute = Extract<Route, { name: "chat" } | { name: "newChat" }>;
 
-/**
- * チャット・新しいチャットの URL で出すプロジェクトのタブ。チャットをボードと分けている（placement が separate）ときは「チャット」タブ。
- * ボードの右のパネルで開くときは、サイドバーのグループの＋から来た新しいチャットはグループのボード、ほかは最後に見たボードの列の分け方
- * （columns。グループのボードで開いたチャットの URL でも、グループのボードのまま）
- */
-export function boardTabOf(route: ReopenRoute, columns: "state" | "groups", placement: "separate" | "together"): ProjectTab {
-  if (placement === "separate") return "chats";
-  if (route.name === "newChat" && route.group) return "groups";
-  return columns === "groups" ? "groups" : "board";
+/** チャット・新しいチャットの URL で出すプロジェクトのタブ。チャットをボードと分けている（placement が separate）ときは「チャット」タブ、ほかはボード */
+export function boardTabOf(placement: "separate" | "together"): ProjectTab {
+  return placement === "separate" ? "chats" : "board";
 }
 
 /** チャットを開く（プロジェクトのボードへ移り、右側のパネルで開く） */

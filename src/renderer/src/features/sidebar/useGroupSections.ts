@@ -28,7 +28,7 @@ export interface GroupSectionProps {
  * サイドバーの自分で作ったグループの操作（プロジェクトごとに 1 つ）: 「…」メニュー（名前を変更・削除）・名前の変更中のグループ・
  * ドロップ先（チャットはそのグループへ、アーカイブ済みのチャットは確かめて戻してそのグループへ、ほかのプロジェクトのチャットは確かめてこのプロジェクトへ移してそのグループへ、グループの見出しはその位置へ並べ替える）。グループごとの束は sectionProps(group) で取る。
  * 「No Group」もグループと同じく見出しのドラッグでグループの間へ並べ替え、位置（ungroupedAt。前にあるグループの数）を
- * グループのボードと同じ設定（groupBoardUngroupedAt。プロジェクトごと）に覚える（覚えていなければいちばん下）。
+ * 全プロジェクトのボードのグループの列と同じ設定（groupBoardUngroupedAt。プロジェクトごと）に覚える（覚えていなければいちばん下）。
  * menuExtra はメニューの下に足す項目（「まとまりを色付きで表示」）
  */
 export function useGroupSections({ project, groups, chats, menuExtra }: { project: Project; groups: ChatGroup[]; chats: Chat[]; menuExtra?: ReactNode }) {

@@ -8,7 +8,6 @@ import { useSetting } from "@/hooks/useSetting";
 import type { SettingValue } from "@/lib/storage";
 import { href, type ProjectTab } from "@/app/router";
 import { PROJECT_TABS_LAYOUT } from "@/lib/storageKeys";
-import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { MenuItem } from "@/ui/PopupMenu";
@@ -88,7 +87,6 @@ export function ProjectTabs({
   refreshing: TabRefreshing;
   vertical?: boolean;
 }) {
-  const [columns] = useBoardColumns();
   const [layout, setLayout] = useProjectTabsLayout();
   const [placement] = useChatPlacement();
   const menu = useContextMenu();
@@ -123,9 +121,8 @@ export function ProjectTabs({
               </span>
             )}
             {shown.map(({ tab: t, label, icon: Icon }) => {
-              // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
-              const selected = tab === t || (t === "board" && tab === "groups");
-              const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;
+              const selected = tab === t;
+              const target: ProjectTab = t;
               // 数はチャットのタブ（状態ごとのチャット）と変更（変更のあるファイル）だけ。ほかには出さない
               const count = t === chatsTab ? (countsText ? 1 : 0) : t === "changes" ? changeCount : 0;
               const countLabel = t === chatsTab ? countsText : `変更のあるファイル ${count} 件`;
