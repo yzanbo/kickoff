@@ -16,6 +16,13 @@
   gap: 2px;
   /* まとまりの色（札の文字・地、中のタブの線と枠）。ライトは地に負けない濃さ */
   --group-color: hsl(var(--group-hue) 60% 68%);
+  /* 札と中のタブの地（同じ色にして、どこまでが 1 つのまとまりか見せる） */
+  --group-tint: color-mix(in srgb, var(--group-color) 18%, transparent);
+}
+
+/* 「その他」（色なし）は、札と同じ控えめな地 */
+.panel-tab-group.plain {
+  --group-tint: var(--bg-elev);
 }
 
 :root[data-theme="light"] .panel-tab-group {
@@ -25,6 +32,22 @@
 /* まとまりの中のタブは、まとまりの色を自分の色にする（「その他」は付けない） */
 .panel-tab-group:not(.plain) .panel-tab {
   --tab-color: var(--group-color);
+}
+
+/*
+ * まとまりの中のタブの地は、頭の札と同じ色（利用者の依頼。札とタブを 1 つの帯に見せる）。乗せたときは少し濃く。
+ * 表示中のタブは、下の画面と 1 枚の面に見せるため画面の地のまま（side-panel-tab-sheet.css）
+ */
+.panel-tab-group .panel-tab:not(.active) {
+  background: var(--group-tint);
+}
+
+.panel-tab-group:not(.plain) .panel-tab:not(.active):hover {
+  background: color-mix(in srgb, var(--group-color) 28%, transparent);
+}
+
+.panel-tab-group.plain .panel-tab:not(.active):hover {
+  background: var(--bg-hover);
 }
 
 .panel-tab-group + .panel-tab-group {
@@ -107,7 +130,7 @@
   align-items: stretch;
   font-weight: 600;
   color: var(--group-color);
-  background: color-mix(in srgb, var(--group-color) 18%, transparent);
+  background: var(--group-tint);
   /* 角の数は札の内側に置く（札がタブと同じ高さなので、外へはみ出すとタブの列に切り取られる） */
   --corner-offset: 1px;
 }
@@ -186,7 +209,6 @@ button.panel-tab-cluster-name[aria-expanded="true"],
 
 .panel-tab-group.plain .panel-tab-cluster-pill {
   color: var(--muted);
-  background: var(--bg-elev);
 }
 
 .panel-tab-group.plain .panel-tab-cluster-fold {
