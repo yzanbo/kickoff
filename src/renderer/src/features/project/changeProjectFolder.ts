@@ -14,7 +14,12 @@ import { gitInitChoice } from "./gitInitChoice";
  * チャット・設定はそのまま引き継ぐ。ワークツリーのチャットは、同じリポジトリの中なら同じワークツリーの中の新しいフォルダ、そうでなければ本体で続く（コアが付け替える）
  */
 export async function changeProjectFolder(project: Project): Promise<void> {
-  const picked = await window.kickoff?.dialog.pickFolder("プロジェクトフォルダを選ぶ");
+  // 何のために選ぶのかを窓の上の文とボタンで伝える（見出しのフォルダの場所を押しただけでは、フォルダを変えることが分かりにくいため）
+  const picked = await window.kickoff?.dialog.pickFolder("プロジェクトフォルダを変更", {
+    message: `「${project.name}」のプロジェクトフォルダを変更します。新しいフォルダを選んでください（いま: ${project.repo_path}）。ファイルは移しません。`,
+    buttonLabel: "このフォルダに変更",
+    defaultPath: project.repo_path,
+  });
   if (!picked) return;
   try {
     const info = await api.inspectWorkspace(picked);

@@ -33,7 +33,7 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 
 - `app/window.ts`: メインのウィンドウ（`contextIsolation`・`sandbox`・`nodeIntegration: false`・`webviewTag`）。Mac ではウィンドウを閉じてもアプリは残り、Dock を押すと作り直す。新しいウィンドウを開こうとしたら、http(s) のページだけ既定のブラウザで開く（`app/externalLinks.ts` の `openLinksExternally`。埋め込みブラウザの中のリンクも同じ）。
 - 外のアプリで開く（`app/externalApps.ts`）: 命令の組み立ては `app/openCommands.ts`（外部のターミナル・ブラウザの `open` の引数 `externalTerminalArgs` / `externalBrowserArgs`（ページは http(s) だけ）・入っているアプリ `installedTerminals` / `installedBrowsers`・VS Code の URL `vscodeFileUrl`（パスは区切りごとに符号化する。`#` `?` を含むパスも開けるように））。アプリの一覧は `@shared/ipc` の `EXTERNAL_TERMINALS` / `EXTERNAL_BROWSERS`。
-- フォルダ・ファイルの選択は `app/dialogs.ts` の `pickPaths`。
+- フォルダ・ファイルの選択は `app/dialogs.ts` の `pickPaths`。macOS の窓は題（`title`）を出さないので、フォルダを選ぶ `pickFolder` は何のために選ぶかを窓の上の文（`message`。省けば題と同じ）と決めるボタンの名前（`buttonLabel`）で伝え、初めに開くフォルダ（`defaultPath`）も渡せる（`PickFolderOptions`）。
 
 ## 埋め込みブラウザ（browser/）
 
