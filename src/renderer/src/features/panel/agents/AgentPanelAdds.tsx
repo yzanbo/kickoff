@@ -7,6 +7,8 @@ import { useSubagentsView } from "@/features/chat/subagents/subagentsContext";
 import { flattenTree } from "@/features/chat/subagents/subagentTree";
 import { RecentMemoItems } from "@/features/memo/MemoMenuItems";
 import { parsePanelKey } from "@/features/panel/surfaces";
+import { PROJECT_VIEW_LABELS, type ProjectView } from "@/features/panel/tabs/panelTypes";
+import { PROJECT_VIEW_ICONS } from "@/features/panel/tabs/ProjectViewTabLead";
 import type { PanelController } from "@/features/panel/usePanel";
 import { useSetting } from "@/hooks/useSetting";
 import { subagentsArchived } from "@/lib/storageKeys";
@@ -18,7 +20,8 @@ import { useContextMenu } from "@/ui/useContextMenu";
 
 /**
  * 右の欄のタブの列の新しいタブのボタン: 「新しい子チャット」と、横の ▾ で、ほかに右の欄に開けるもののメニュー（2 つを 1 つのボタンに見せる .panel-split-button）。
- * メニューは 新しい子チャット ｜ 子チャット ▸（このチャットの子）・サブエージェント ▸（アーカイブしたものは除く）・変更（このチャットの作業場所）・メモ ▸（最近変えた 12 件）。
+ * メニューは 新しい子チャット ｜ 子チャット ▸（このチャットの子）・サブエージェント ▸（アーカイブしたものは除く）｜ ファイル・検索・変更・履歴（プロジェクトの左の列のタブと同じ画面。
+ * 作業場所はこのチャットの作業場所から）｜ メモ ▸（最近変えた 12 件）。
  * どれも設定の開き方によらず、この右の欄に開く（▸ の一覧が空なら押せない）
  */
 export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; onNewChild: () => void }) {
@@ -30,7 +33,7 @@ export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; 
         <IconButton
           icon={ChevronDown}
           label="右の欄に開く"
-          title="新しい子チャット・子チャット・サブエージェント・変更・メモから選んで、右の欄に開く"
+          title="新しい子チャット・子チャット・サブエージェント・ファイル・検索・変更・履歴・メモから選んで、右の欄に開く"
           size={12}
           className="panel-open-with agent-panel-adds-more"
           aria-haspopup="menu"
@@ -63,6 +66,18 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const memoMenu = useSubmenu();
   if (!chat) return null;
   const worktree = chat.worktree_path ?? undefined;
+  /** プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面を、この右の欄に開く項目 */
+  const projectView = (view: ProjectView) => {
+    const Icon = PROJECT_VIEW_ICONS[view];
+    return (
+      <MenuItem
+        title={`プロジェクトの「${PROJECT_VIEW_LABELS[view]}」タブと同じ画面を開く（このチャットの作業場所から）`}
+        onSelect={() => panel.openProjectView({ chatId: chat.id, projectId: chat.project_id, view, ...(worktree ? { worktree } : {}) })}
+      >
+        <Icon size={14} /> {PROJECT_VIEW_LABELS[view]}
+      </MenuItem>
+    );
+  };
   return (
     <>
       <MenuItem title="入力欄だけの新しい子チャットのタブを開く（最初の文を送ると子チャットができます）" onSelect={onNewChild}>
@@ -91,12 +106,18 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
           ))}
         </SubmenuItem>
       )}
+      {/* プロジェクトの左の列のコードのタブと同じ並び（ファイル・検索・変更・履歴）。作業場所はこのチャットの作業場所から */}
+      <div className="menu-separator" role="separator" />
+      {projectView("files")}
+      {projectView("search")}
       <MenuItem
         title="このチャットの作業場所の、コミットしていない変更を開く"
         onSelect={() => panel.openChanges({ chatId: chat.id, projectId: chat.project_id, ...(worktree ? { worktree } : {}) })}
       >
         <FileDiff size={14} /> 変更
       </MenuItem>
+      {projectView("history")}
+      <div className="menu-separator" role="separator" />
       <SubmenuItem submenu={memoMenu} icon={StickyNote} label="メモ" empty={null}>
         <RecentMemoItems projectId={chat.project_id} onPick={(path) => panel.openMemo({ chatId: chat.id, projectId: chat.project_id, path })} />
       </SubmenuItem>

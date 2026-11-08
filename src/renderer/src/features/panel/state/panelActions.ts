@@ -4,8 +4,8 @@ import type { PaneLayout, SplitDir, SplitSide } from "@/features/panel/layout/pa
 import { focusPane, moveTab, returnToHome, splitPane } from "@/features/panel/layout/paneLayout";
 import { equalizeSplit, setSplitSizes } from "@/features/panel/layout/paneSizes";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
-import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
-import { browserTab, changesTab, chatTab, childTab, fileTab, kindOfTab, memoTab, newChatTab, newChildTab, newTabKey, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
+import type { NewChatTarget, PanelTab, ProjectView, TerminalTarget } from "@/features/panel/tabs/panelTypes";
+import { browserTab, changesTab, chatTab, childTab, fileTab, kindOfTab, memoTab, newChatTab, newChildTab, newTabKey, projectViewTab, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
 import { readKinds, showKind } from "./panelKinds";
 import type { PanelAction, TabPatch } from "./panelState";
 import { dispatchPanel, panelStateOf } from "./panelStore";
@@ -68,6 +68,8 @@ export function panelActions(key: string) {
      */
     openFile: (target: { chatId: number; projectId: number; worktree?: string; path: string; line?: number }) =>
       openTab(fileTab(target), { kind: "file", fields: { line: target.line } }),
+    /** プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面をタブで開く（チャットの画面の右の欄。種類ごとに 1 つのタブで、あればそのペインで表示する） */
+    openProjectView: (target: { chatId: number; projectId: number; worktree?: string; view: ProjectView }) => openTab(projectViewTab(target)),
     /** プロジェクトのメモをタブで開く（チャットの画面の右の欄。同じメモのタブがあればそのペインで表示する） */
     openMemo: (target: { chatId: number | null; projectId: number; path: string }) => openTab(memoTab(target)),
     /** 子チャットをタブで開く（いちばん上の親のチャットの画面の右の欄。同じ子チャットのタブがあればそのペインで表示する） */
