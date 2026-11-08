@@ -21,6 +21,18 @@ function parseAttachments(value: unknown): readonly Attachment[] | undefined {
   );
 }
 
+/** 並び順（列の名前と向き。列の名前が使えるかは読む側で確かめる） */
+interface SortPair {
+  key: string;
+  dir: "asc" | "desc";
+}
+
+function parseSortPair(value: unknown): SortPair | null | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const { key, dir } = value as Record<string, unknown>;
+  return typeof key === "string" && (dir === "asc" || dir === "desc") ? { key, dir } : undefined;
+}
+
 /** 保存した子チャットからの依頼の出どころを読む（形が合わなければ null） */
 function parseHandoffFrom(value: unknown): HandoffFrom | null {
   if (typeof value !== "object" || value === null) return null;
@@ -96,10 +108,17 @@ export const PROJECT_BOARD_COLUMNS = defineSetting("kickoff:board-columns", choi
  * none = 分けない。下書きもチャットも 1 つの並び（最近動いた順）にする）
  */
 export const ALL_PROJECTS_BOARD_COLUMNS = defineSetting("kickoff:board-columns-all", choice(["state", "groups", "none"], "state"));
-/** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる。カンバン・グループのボードで共通） */
-export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list"], "board"));
+/** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる / table = 表。カンバン・グループのボードで共通） */
+export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list", "table"], "board"));
 /** ボードを段（スイムレーン）に分けるか（ボード・リストで共通。分け方は PROJECT_BOARD_LANES・ALL_PROJECTS_BOARD_LANES） */
 export const BOARD_SPLIT = defineSetting("kickoff:board-split", flag());
+/**
+ * ボードのチャットの並び順（表の見出しで選び、ボード・リストの列・まとまりの中も同じ順。すべてのボードで共通）。
+ * 列の名前は features/board/chatSort.ts の CHAT_SORT_KEYS（知らない名前は、読む側で初めの並び = 最後に動いた順にする）
+ */
+export const BOARD_SORT = defineSetting("kickoff:board-sort", json(parseSortPair, null, (v) => v === null));
+/** ボードの表で隠す列（features/board/chatSort.ts の CHAT_SORT_KEYS の名前。すべてのボードで共通。初めは作成日を隠す） */
+export const BOARD_TABLE_HIDDEN = defineSetting("kickoff:board-table-hidden", list(["created"]));
 /** ボードのリスト表示の行を 1 行にまとめるか（すべてのボードで共通。初めは 2 行） */
 export const BOARD_LIST_COMPACT = defineSetting("kickoff:board-list-compact", flag());
 /** プロジェクトのボードの段の分け方（group = グループ / worktree = 作業場所 / project = プロジェクト） */

@@ -1,4 +1,4 @@
-import { List, Rows2, Rows4, SquareKanban, TextSearch } from "lucide-react";
+import { List, Rows2, Rows4, SquareKanban, Table2, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "@/features/chat/chatSearch";
 import { useSetting } from "@/hooks/useSetting";
@@ -10,7 +10,7 @@ import { PanelToggle } from "@/features/panel/board/PanelToggle";
 import type { PanelController } from "@/features/panel/usePanel";
 import { IconButton } from "@/ui/IconButton";
 
-/** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる） */
+/** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる）・表（チャット 1 つが 1 行。見出しで並べ替える） */
 export type BoardView = SettingValue<typeof BOARD_VIEW>;
 
 /**
@@ -48,6 +48,8 @@ interface Props {
   viewOptions?: ReactNode;
   /** 表示のまとまりで、段の分け方の後ろに置く、列の分け方の切り替え（プロジェクトのボード: 状態 / グループ、全プロジェクトのボード: 状態 / グループ / 分けない） */
   columns?: ReactNode;
+  /** 表示のまとまりのいちばん後ろに置く、並び順（と表の列）のボタン */
+  sortTools?: ReactNode;
   /** 右のパネル（右端に開閉のボタンを置く。プロジェクトのボードだけ。全プロジェクトのボードはチャットをそのプロジェクトで開くので持たない） */
   panel?: PanelController;
 }
@@ -57,7 +59,7 @@ interface Props {
  * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（右のパネルのあるプロジェクトのボードだけ。ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
-export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, viewOptions, columns, panel }: Props) {
+export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, viewOptions, columns, sortTools, panel }: Props) {
   return (
     <div className="board-header">
       {heading && (
@@ -70,7 +72,7 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
         {primary && <div className="board-tool-group">{primary}</div>}
-        {/* 表示: 新規のすぐ右に ボード / リスト（とリストの行）、続けて段の分け方・列の分け方 */}
+        {/* 表示: 新規のすぐ右に ボード / リスト / 表（とリストの行）、続けて段の分け方・列の分け方・並び順（と表の列） */}
         <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
             className="view-toggle"
@@ -80,11 +82,13 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
             options={[
               { value: "board", label: "ボード", icon: SquareKanban },
               { value: "list", label: "リスト", icon: List },
+              { value: "table", label: "表", icon: Table2 },
             ]}
           />
           {view === "list" && <ListRowsToggle />}
           {viewOptions}
           {columns}
+          {sortTools}
         </div>
         {organize && (
           <div className="board-tool-group" role="group" aria-label="整える">

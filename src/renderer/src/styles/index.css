@@ -87,6 +87,7 @@
 @import "./panel/chats-tab.css";
 @import "./browser/browser.css";
 @import "./board/board-list.css";
+@import "./board/board-table.css";
 @import "./ui/menu.css";
 @import "./base/scrollbar.css";
 @import "./base/focus.css";

@@ -108,6 +108,8 @@ export interface BucketOptions<D extends DraftTarget = DraftTarget> extends Buck
   archived?: "keep" | "bucket" | "nested" | "drop";
   /** 下書き。作成先のまとまりに入れる（いちばん外の段だけ） */
   drafts?: readonly D[];
+  /** まとまりの中のチャットの並び（既定は最後に動いた順 byActive。ボードの並び順 chatComparator） */
+  sort?: (a: Chat, b: Chat) => number;
   /** チャットも下書きもないまとまりも出すか（グループ = そのプロジェクトのグループすべてとグループなし、状態 = すべての列、プロジェクト = projects のすべて） */
   keepEmpty?: boolean | ((head: BucketHead) => boolean);
 }
@@ -218,7 +220,7 @@ function bucketLevel<D extends DraftTarget>(
   }
   const list = sortBuckets([...buckets.values()], options.projects?.map((p) => p.id));
   for (const bucket of list) {
-    bucket.chats.sort(byActive);
+    bucket.chats.sort(options.sort ?? byActive);
     bucket.counts = stateCounts(bucket.chats, options.pending);
     // 固定はまとめずに並べ、アーカイブ済みの中はグループを除いた段で分ける（グループに関係なく並べる）
     const next = bucket.kind === "pinned" ? [] : bucket.kind === "archived" ? levels.filter((l) => l !== "group") : inner;

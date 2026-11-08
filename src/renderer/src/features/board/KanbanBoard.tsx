@@ -12,19 +12,18 @@ import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { panelKey } from "@/features/panel/surfaces";
 import { AllProjectsColumnsToggle, BoardColumnsToggle, useAllProjectsColumns } from "./BoardColumnsToggle";
-import { FlatTasks } from "./FlatTasks";
-import { ProjectGroupColumns } from "./ProjectGroupColumns";
-import { LaneGroupCreate } from "./GroupCreateForm";
 import { useProjectLaneReorder } from "./useProjectLaneReorder";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
-import { BoardLanes, LaneSelect } from "./BoardLanes";
+import { LaneSelect } from "./BoardLanes";
+import { KanbanBody } from "./KanbanBody";
+import { SortMenuButton, TableColumnsButton, useTableColumns } from "./BoardSortTools";
+import { useChatSort } from "./useChatSort";
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { useKanbanChats } from "./useKanbanChats";
 import { useKanbanFilters, useKanbanLanes, useWorktreeChoices } from "./useKanbanFilters";
 import { BoardShell } from "./BoardShell";
-import { ListSections, StateColumns } from "./StateColumn";
 import { useBoardCards, useCardMenu } from "./useBoardCards";
 import { useChats } from "@/stores/chats";
 
@@ -141,6 +140,9 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   const total = shown.length;
   // 全プロジェクトのボードのプロジェクトの段は、見出しのドラッグで並べ替える（サイドバーと同じ並び）
   const laneReorder = useProjectLaneReorder(allProjects);
+  // 並び順（表の見出し・ツールバーの「並び順」。列・まとまりの中もこの順）と、表に出す列
+  const { sort, setSort, compare } = useChatSort(projectIds ? [...projectIds] : projectId !== undefined ? [projectId] : []);
+  const { columns: tableColumns } = useTableColumns(allProjects);
 
   /**
    * カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える）。全プロジェクトのボードではプロジェクトのバッジ（印と名前）を付け、
@@ -160,12 +162,14 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   // 状態で分けないときは、段だけで分ける（段に分けなければ見出しのないまとまり 1 つ。中のチャットは最後に動いた順）
   const buckets = useChatBuckets(shown, {
     // グループの列は、プロジェクトの段の中でそのプロジェクトのグループに分ける（ProjectGroupColumns。グループはプロジェクトごとのもの）
-    by: byGroup ? "project" : flat ? (split ? [lanes] : []) : split ? [lanes, "status"] : "status",
+    // 表では、プロジェクトの段の中をグループのまとまりに分けておく（表の中の見出しの行）
+    by: byGroup ? (view === "table" ? ["project", "group"] : "project") : flat ? (split ? [lanes] : []) : split ? [lanes, "status"] : "status",
     project: projectId,
     projects: allProjects ? projects : undefined,
     drafts,
     // グループの列では、チャットのないプロジェクトの段も出す（ほかのプロジェクトのチャットを落としてそのグループへ移せるように）
     keepEmpty: byGroup ? true : keepColumns,
+    sort: compare,
   });
   /**
    * 段・アーカイブ済みのまとまりの開閉を覚える場所（ボードごと。列・段はまとまりのキーで分ける。チャットの置き方を変えても、
@@ -216,6 +220,12 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
           }}
         />
       }
+      sortTools={
+        <>
+          <SortMenuButton sort={sort} onSort={setSort} allProjects={allProjects} />
+          {view === "table" && <TableColumnsButton allProjects={allProjects} />}
+        </>
+      }
       panel={rightPanel?.panel}
     />
   );
@@ -224,79 +234,21 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
     <BoardShell header={header} error={error ?? loadError} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
-      ) : byGroup ? (
-        // グループの列: プロジェクトの段ごとに、そのプロジェクトのグループの列（カードをドラッグしてグループを移す）
-        // 「グループを作成」は段の見出しのプロジェクト名の右に置く（ボード・リストとも）
-        <BoardLanes
-          lanes={buckets}
-          list={view === "list"}
-          foldPlace={foldPlace}
-          {...laneReorder}
-          actions={(lane) => lane.projectId !== undefined && <LaneGroupCreate projectId={lane.projectId} />}
-        >
-          {(lane) =>
-            lane.projectId === undefined ? null : (
-              <ProjectGroupColumns
-                projectId={lane.projectId}
-                chats={lane.chats}
-                drafts={lane.drafts}
-                list={view === "list"}
-                foldPlace={foldPlace}
-                render={view === "list" ? cards.row : cards.card}
-              />
-            )
-          }
-        </BoardLanes>
-      ) : split ? (
-        // 段に分ける: 段ごとに、ボードと同じく下書き（その段に入る作成先のもの）→ 状態の列を並べる（リストなら 下書き → 状態のまとまり → アーカイブ済み を縦に）
-        // 作業場所の段にプロジェクト名を添えるのは、いくつかのプロジェクトが並ぶ全プロジェクトのボードだけ
-        <BoardLanes lanes={buckets} list={view === "list"} foldPlace={foldPlace} showProject={allProjects && projects.length > 1} {...laneReorder}>
-          {(lane) =>
-            flat ? (
-              <FlatTasks
-                chats={lane.chats}
-                drafts={lane.drafts}
-                list={view === "list"}
-                showDraftProject={allProjects}
-                foldPlace={foldPlace}
-                archivedKey={`${lane.key}/archived`}
-                render={view === "list" ? cards.row : cards.card}
-              />
-            ) : view === "board" ? (
-              <StateColumns columns={lane.children ?? []} drafts={lane.drafts} showDraftProject={allProjects} foldPlace={foldPlace} render={cards.card} />
-            ) : (
-              <ListSections
-                columns={lane.children ?? []}
-                drafts={lane.drafts}
-                showDraftProject={allProjects}
-                foldPlace={foldPlace}
-                archivedKey={`${lane.key}/archived`}
-                render={cards.row}
-              />
-            )
-          }
-        </BoardLanes>
-      ) : flat ? (
-        // 状態で分けない: 下書き → チャット（最近動いた順）を 1 つの並びに（ボードはカードを幅に合わせて折り返し、リストは 1 列）
-        <div className={view === "list" ? "board-list" : "board-flat"}>
-          <FlatTasks
-            chats={buckets[0]?.chats ?? []}
-            drafts={drafts}
-            list={view === "list"}
-            showDraftProject={allProjects}
-            foldPlace={foldPlace}
-            archivedKey="flat/archived"
-            render={view === "list" ? cards.row : cards.card}
-          />
-        </div>
-      ) : view === "board" ? (
-        <div className="board-columns">
-          <StateColumns columns={buckets} drafts={drafts} showDraftProject={allProjects} foldPlace={foldPlace} render={cards.card} />
-        </div>
       ) : (
-        <div className="board-list">
-          <ListSections columns={buckets} drafts={drafts} showDraftProject={allProjects} foldPlace={foldPlace} archivedKey="archived" render={cards.row} />
-        </div>
+        <KanbanBody
+          view={view}
+          split={split}
+          flat={flat}
+          byGroup={byGroup}
+          buckets={buckets}
+          drafts={drafts}
+          allProjects={allProjects}
+          showLaneProject={allProjects && projects.length > 1}
+          foldPlace={foldPlace}
+          cards={cards}
+          laneReorder={laneReorder}
+          table={{ columns: tableColumns, sort, onSort: setSort }}
+        />
       )}
     </BoardShell>
   );
