@@ -8,7 +8,7 @@ import { useBoardPanel } from "@/features/panel/board/useBoardPanel";
 import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/panel/board/boardChats";
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { ArchiveFilterSelect } from "./ArchiveFilterSelect";
-import { BoardColumnsToggle } from "./BoardColumnsToggle";
+import { BoardColumnsToggle, useGroupsByState } from "./BoardColumnsToggle";
 import { BoardHeader } from "./BoardHeader";
 import { BoardLanes, LaneSelect, type BoardLane } from "./BoardLanes";
 import { BoardShell } from "./BoardShell";
@@ -88,6 +88,8 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
   // 並び順（列・まとまりの中もこの順。すべてのボードで共通）と、表に出す列
   const { sort, setSort, compare } = useChatSort([projectId]);
   const { columns: tableColumns } = useTableColumns(false);
+  // 列の分け方の「グループ×状態」: グループの列の中を状態の小見出しで区切る（グループの段に分けたボードは、もともと段の中が状態の列）
+  const [byState] = useGroupsByState();
   const buckets = useChatBuckets(board.shown, { by: ["group", "status"], project: projectId, drafts, keepEmpty: true, sort: compare });
   /** アーカイブ済み・段の開閉を覚える場所（ボードごと） */
   const foldPlace = `board:groups:${projectId}`;
@@ -147,6 +149,7 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
             row={(chat) => cards.tableRow(chat, tableColumns)}
             foldPlace={foldPlace}
             archivedKey="archived"
+            nested={byState}
           />
         </div>
       ) : view === "board" && split ? (
@@ -171,6 +174,7 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
             render={cards.card}
             foldPlace={foldPlace}
             highlight={highlight}
+            byState={byState}
           />
           {/* 「グループを作成」は、No Group の位置によらずいつも右端 */}
           <section className="board-column group-add-column">
@@ -187,6 +191,7 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
             render={cards.row}
             foldPlace={foldPlace}
             highlight={highlight}
+            byState={byState}
             list
           />
           {/* 「グループを作成」は、No Group の位置によらずいつもいちばん下 */}

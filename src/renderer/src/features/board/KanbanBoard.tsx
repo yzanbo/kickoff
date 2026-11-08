@@ -11,7 +11,7 @@ import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/panel/
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { panelKey } from "@/features/panel/surfaces";
-import { AllProjectsColumnsToggle, BoardColumnsToggle, useAllProjectsColumns } from "./BoardColumnsToggle";
+import { AllProjectsColumnsToggle, BoardColumnsToggle, useAllProjectsColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useProjectLaneReorder } from "./useProjectLaneReorder";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
@@ -134,6 +134,9 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allD
   const projectLanes = allProjects && split && lanes === "project";
   const flat = allProjects && allColumns === "none";
   const byGroup = projectLanes && allColumns === "groups";
+  // 列の分け方の「グループ×状態」: グループの列の中を状態で小分けにする（表では、プロジェクトの段 → グループ → 状態の見出しの行）
+  const [groupsByState] = useGroupsByState();
+  const byState = byGroup && groupsByState;
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
   const { chats, loaded, error: loadError } = useChats({ projectId, archived: filters.archive !== "active" });
   useTicker(30_000); // 経過時間の表示を進める
@@ -168,7 +171,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allD
   const buckets = useChatBuckets(shown, {
     // グループの列は、プロジェクトの段の中でそのプロジェクトのグループに分ける（ProjectGroupColumns。グループはプロジェクトごとのもの）
     // 表では、プロジェクトの段の中をグループのまとまりに分けておく（表の中の見出しの行）
-    by: byGroup ? (view === "table" ? ["project", "group"] : "project") : flat ? (split ? [lanes] : []) : split ? [lanes, "status"] : "status",
+    by: byGroup ? (view === "table" ? (byState ? ["project", "group", "status"] : ["project", "group"]) : "project") : flat ? (split ? [lanes] : []) : split ? [lanes, "status"] : "status",
     project: projectId,
     projects: allProjects ? projects : undefined,
     drafts,
@@ -246,6 +249,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allD
           split={split}
           flat={flat}
           byGroup={byGroup}
+          byState={byState}
           buckets={buckets}
           drafts={drafts}
           allProjects={allProjects}

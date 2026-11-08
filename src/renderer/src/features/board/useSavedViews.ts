@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useSetting } from "@/hooks/useSetting";
 import { ALL_PROJECTS_FEED, ALL_PROJECTS_SAVED_VIEWS, BOARD_ARCHIVE_FILTER, BOARD_SORT, BOARD_TABLE_HIDDEN, PROJECT_SAVED_VIEWS } from "@/lib/storageKeys";
 import { useArchiveFilter } from "./archiveFilter";
-import { useAllProjectsColumns } from "./BoardColumnsToggle";
+import { useAllProjectsColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useBoardListCompact, useBoardView } from "./BoardHeader";
 import { DEFAULT_CHAT_SORT, parseChatSort, sameChatSort } from "./chatSort";
 import { activeView, addView, parseSavedViews, removeView, renameView, replaceViewState, type BoardViewState } from "./savedViews";
@@ -24,11 +24,12 @@ export function useSavedViews(allProjects: boolean) {
   const [compact, setCompact] = useBoardListCompact();
   const [archive, setArchive] = useArchiveFilter(BOARD_ARCHIVE_FILTER);
   const [feed, setFeed] = useSetting(ALL_PROJECTS_FEED);
+  const [byState, setByState] = useGroupsByState();
 
   const current: BoardViewState = {
     view: allProjects && feed ? "feed" : view,
     lanes: split ? lanes : "none",
-    ...(allProjects ? { columns } : {}),
+    ...(allProjects ? { columns: columns === "groups" && byState ? "groupsState" : columns } : {}),
     sort: parseChatSort(rawSort) ?? DEFAULT_CHAT_SORT,
     hidden,
     compact,
@@ -48,7 +49,10 @@ export function useSavedViews(allProjects: boolean) {
       setLanes(state.lanes);
       setSplit(true);
     }
-    if (allProjects && state.columns) setColumns(state.columns);
+    if (allProjects && state.columns) {
+      setColumns(state.columns === "groupsState" ? "groups" : state.columns);
+      if (state.columns === "groups" || state.columns === "groupsState") setByState(state.columns === "groupsState");
+    }
     setSort(sameChatSort(state.sort, DEFAULT_CHAT_SORT) ? null : state.sort);
     setHidden(state.hidden);
     setCompact(state.compact);
