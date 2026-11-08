@@ -1,4 +1,4 @@
-/* ==== 新規プロジェクトのフォルダの検査の一覧 ==== */
+/* ==== 新規プロジェクトのフォルダの検査の一覧（被りの知らせも同じ見た目） ==== */
 
 .inspection {
   display: grid;
@@ -9,6 +9,13 @@
   font-size: 13px;
   list-style: none;
   background: var(--bg-hover);
+}
+
+/* フォルダの被りの知らせ（新しいプロジェクトのダイアログ・基本情報・プロジェクトの設定のメモ。欄の入力の下に置く） */
+.inspection.overlap-notice {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  font-size: 12px;
 }
 
 .inspection li {

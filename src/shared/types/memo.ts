@@ -28,6 +28,14 @@ export interface MemoDefaults {
   default_dir: string;
 }
 
+/**
+ * そのフォルダをメモのフォルダにしているプロジェクト（GET /api/memos/users。新しいプロジェクトのダイアログ・プロジェクトの設定で、
+ * ほかのプロジェクトとメモのフォルダが被っていると知らせる。まだメモのフォルダを決めていないプロジェクトは数えない）
+ */
+export interface MemoDirUsers {
+  project_ids: number[];
+}
+
 /** 作った・動かしたメモ（メモのフォルダからの相対パス） */
 export interface MemoRef {
   path: string;

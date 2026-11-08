@@ -72,6 +72,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
         <InspectionPanel info={inspection} isSubfolder={isSubfolder} />
       )}
 
+
       {/* git の管理: 始める / 始めない（初めは始めない）。もう git で管理されていれば、その旨だけ */}
       {inspection && !blocked && (gitChoice ? (
         <GitInitField on={gitChoice.on} off={gitChoice.off} value={initGit} onChange={setInitGit} help={gitChoice.help(initGit)} />

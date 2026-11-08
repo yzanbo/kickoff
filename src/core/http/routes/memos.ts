@@ -1,13 +1,13 @@
 import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { MemoAiPlanBody, MemoCreateBody, MemoDefaults, MemoFromChatBody, MemoMoveBody, MemoWriteBody } from "@shared/types";
+import type { MemoAiPlanBody, MemoCreateBody, MemoDefaults, MemoDirUsers, MemoFromChatBody, MemoMoveBody, MemoWriteBody } from "@shared/types";
 import { MAX_MEMO_SOURCE_CHARS } from "../../memos/memos.js";
 import type { ServerDeps } from "../server.js";
 import { Conflict, Invalid, NotFound } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
-import { memoChatSchema, repoPath } from "./schemas.js";
+import { folderPath, memoChatSchema, optionalId, repoPath } from "./schemas.js";
 
 /** HTML のメモが読むファイルの種類（拡張子 → Content-Type。ほかは application/octet-stream） */
 const ASSET_TYPES: Record<string, string> = {
@@ -71,6 +71,12 @@ export function memoRoutes(app: Hono, { store, memos, runner }: ServerDeps) {
 
   // 設定の画面で、親フォルダをまだ選んでいないときに出す既定の場所
   app.get("/api/memos/defaults", (c) => c.json({ default_dir: memos.defaultDir } satisfies MemoDefaults));
+
+  // そのフォルダをメモのフォルダにしているプロジェクト（except は自分。ほかのプロジェクトと被っていると画面で知らせる）
+  app.get("/api/memos/users", (c) => {
+    const q = z.object({ path: folderPath, except: optionalId }).parse({ path: c.req.query("path"), except: c.req.query("except") });
+    return c.json({ project_ids: memos.usersOf(q.path, q.except).map((p) => p.id) } satisfies MemoDirUsers);
+  });
 
   app.get("/api/projects/:id/memos", withProject, async (c) => c.json(await memos.list(c.var.project)));
 

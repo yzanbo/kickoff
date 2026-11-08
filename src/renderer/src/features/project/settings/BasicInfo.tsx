@@ -12,6 +12,8 @@ import { changeProjectFolder } from "@/features/project/changeProjectFolder";
 import { GIT_FEATURES, startProjectGit } from "@/features/project/GitInitNotice";
 import { useGitStatus } from "@/features/editor/useGitStatus";
 import { useMemoList } from "@/stores/memos";
+import { FolderOverlapNotice } from "@/features/project/OverlapNotice";
+import { MemoOverlapNotice } from "@/features/memo/MemoOverlapNotice";
 import { TagEditor } from "./TagEditor";
 
 export function BasicInfo({ project, onOpenMemos }: { project: Project; onOpenMemos: () => void }) {
@@ -57,6 +59,8 @@ function MemoDirRow({ project, onChange }: { project: Project; onChange: () => v
           変更…
         </button>
       </div>
+      {/* ほかのプロジェクトとメモフォルダが同じなら、いつも知らせる */}
+      <MemoOverlapNotice dir={dir} except={project.id} />
     </Field>
   );
 }
@@ -115,6 +119,8 @@ function FolderRow({ project }: { project: Project }) {
           </button>
         )}
       </div>
+      {/* ほかのプロジェクトとフォルダが被っていれば（同じ・その中・中にある）、いつも知らせる */}
+      <FolderOverlapNotice path={project.repo_path} except={project.id} same="warn" />
     </Field>
   );
 }

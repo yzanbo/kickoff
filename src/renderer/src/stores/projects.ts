@@ -19,6 +19,9 @@ export function reduceProjects(list: Project[], event: BusEvent): Project[] {
 
 const projectsStore = createStore<Project[]>({ load: () => api.projects(), reduce: reduceProjects });
 
+/** いまのプロジェクトの一覧（部品の外から読む。まだ届いていなければ空） */
+export const currentProjects = (): Project[] => projectsStore.get().data ?? [];
+
 /** 作ったプロジェクトを、知らせを待たずに一覧へ入れる（作ったらすぐ、そのプロジェクトの画面を開くため） */
 export const addProject = (project: Project) => projectsStore.update((list) => upsertProject(list, project));
 

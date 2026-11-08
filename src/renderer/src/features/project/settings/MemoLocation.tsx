@@ -25,6 +25,7 @@ export function MemoLocation({ project }: { project: Project }) {
           value={project.memo_path}
           fallback={project.memo_path ? "" : (dir ?? "")}
           onSave={(next) => api.updateProject(project.id, { memo_path: next })}
+          overlapExcept={project.id}
         />
       </div>
     </section>
