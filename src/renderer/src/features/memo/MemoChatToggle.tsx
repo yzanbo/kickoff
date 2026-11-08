@@ -1,4 +1,4 @@
-import { Check, ChevronDown, MessageSquare } from "lucide-react";
+import { Check, ChevronDown, MessageSquare, MessageSquareOff } from "lucide-react";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -13,9 +13,15 @@ const SHOW_ITEMS: { value: MemoChatShow; label: string; title: string }[] = [
   { value: "hidden", label: "非表示", title: "欄もメモの下の入力欄も出さず、メモだけを広く見る（吹き出しのボタンでいつでも開ける）" },
 ];
 
+/** 吹き出しを押したときの次の見え方（非表示 → チャット表示のみ → 会話を開く → 非表示 … と回る。利用者の依頼） */
+const NEXT_SHOW: Record<MemoChatShow, MemoChatShow> = { hidden: "quick", quick: "open", open: "hidden" };
+
+const labelOf = (value: MemoChatShow) => SHOW_ITEMS.find((item) => item.value === value)?.label ?? "";
+
 /**
  * メモの見出しの、メモのチャットの切り替え（吹き出しと ▾ を 1 つのボタンに見せる .panel-split-button）。
- * 吹き出しは欄の開け閉め（閉じると、選んでいる閉じ方 = チャット表示のみ / 非表示 に戻る）、▾ は 3 つの見え方から選ぶメニュー
+ * 吹き出しは押すたびに 3 つの見え方を 非表示 → チャット表示のみ → 会話を開く の順に回し（アイコンでいまの見え方を出す: 会話を開く = アクセントの色の吹き出し /
+ * チャット表示のみ = 吹き出し / 非表示 = 斜線の吹き出し）、▾ は 3 つから直に選ぶメニュー
  */
 export function MemoChatToggle({
   open,
@@ -36,14 +42,15 @@ export function MemoChatToggle({
     // 開くときは閉じ方の選択を変えない（閉じたら、前と同じ閉じ方に戻す）
     if (value !== "open") onQuickHiddenChange(value === "hidden");
   };
+  const next = NEXT_SHOW[current];
   return (
     <span className="panel-split-button memo-chat-split">
       <IconButton
-        icon={MessageSquare}
-        label={open ? "メモのチャットを閉じる" : "メモのチャットを開く（AI と話しながらメモを作る）"}
+        icon={current === "hidden" ? MessageSquareOff : MessageSquare}
+        label={`メモのチャット: ${labelOf(current)}（押すと「${labelOf(next)}」）`}
         aria-pressed={open}
         className={cx("memo-chat-toggle", open && "on")}
-        onClick={() => onOpenChange(!open)}
+        onClick={() => choose(next)}
       />
       <IconButton
         icon={ChevronDown}
