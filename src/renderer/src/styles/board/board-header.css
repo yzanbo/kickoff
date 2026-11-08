@@ -232,6 +232,36 @@
   font-weight: 600;
 }
 
+/* ビューのタブの並べ替え（ドラッグ。useSavedViewDrag）: 落とす先のタブの前か後ろの 2px の隙間に縦の線、動かしているタブは薄く */
+.board-view-tab.board-view-drop-before,
+.board-view-tab.board-view-drop-after {
+  position: relative;
+}
+
+.board-view-tab.board-view-drop-before::after,
+.board-view-tab.board-view-drop-after::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent-bright);
+  content: "";
+  pointer-events: none;
+}
+
+.board-view-tab.board-view-drop-before::after {
+  left: -3px;
+}
+
+.board-view-tab.board-view-drop-after::after {
+  right: -3px;
+}
+
+.board-view-tab.board-view-dragging {
+  opacity: var(--drag-source-opacity);
+}
+
 .board-view-add {
   padding: 0 8px;
   color: var(--extra-muted);

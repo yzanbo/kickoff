@@ -6,17 +6,19 @@ import { InlineName } from "@/ui/InlineName";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { sameViewState, viewNameTaken, type SavedView } from "./savedViews";
+import { useSavedViewDrag } from "./useSavedViewDrag";
 import { useSavedViews } from "./useSavedViews";
 
 /**
  * ツールバーの上の、保存したビューのタブ（Notion のビューを参考に）。押すとそのビューの見え方（表示・段・列の分け方・並び順・表の列・
  * アーカイブ）を当て、いまの見え方に合うビューを選択中に見せる。「＋ ビューを保存」でいまの見え方に名前を付けて足し、
- * タブの右クリックで名前の変更・いまの見え方で上書き・削除。全プロジェクトのボード（projectId なし）とプロジェクトのボード（
+ * タブのドラッグで並べ替え、右クリックで名前の変更・いまの見え方で上書き・削除。全プロジェクトのボード（projectId なし）とプロジェクトのボード（
  * すべてのプロジェクトで共通）で別の一覧で、同じ一覧に同じ名前は付けられない
  */
 export function SavedViewTabs({ projectId }: { projectId?: number }) {
   const saved = useSavedViews(projectId);
   const menu = useContextMenu<SavedView>();
+  const drag = useSavedViewDrag(saved.views, saved.move);
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string>();
   /** 同じ一覧の同じ名前は付けられない（利用者の依頼。名前を変えるときはそのビュー自身を除く） */
@@ -45,8 +47,9 @@ export function SavedViewTabs({ projectId }: { projectId?: number }) {
             type="button"
             role="tab"
             aria-selected={saved.active?.id === view.id}
-            className={cx("board-view-tab", saved.active?.id === view.id && "active")}
-            title="押すとこのビューの表示にする（右クリックで名前の変更・上書き・削除）"
+            {...drag.tabProps(view.id)}
+            className={cx("board-view-tab", saved.active?.id === view.id && "active", drag.tabClass(view.id))}
+            title="押すとこのビューの表示にする（ドラッグで並べ替え・右クリックで名前の変更・上書き・削除）"
             onClick={() => saved.apply(view.state)}
             onContextMenu={(e) => menu.open(e, view)}
             onDoubleClick={() => setRenaming(view.id)}

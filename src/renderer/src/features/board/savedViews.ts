@@ -97,3 +97,16 @@ export const replaceViewState = (views: readonly SavedView[], id: string, state:
   views.map((v) => (v.id === id ? { ...v, state } : v));
 
 export const removeView = (views: readonly SavedView[], id: string): SavedView[] => views.filter((v) => v.id !== id);
+
+/** ビュー moved を target の前（before）・後ろ（after）へ動かした一覧（どちらかがなければそのまま） */
+export function moveView(views: readonly SavedView[], moved: string, target: string, side: "before" | "after"): SavedView[] {
+  const item = views.find((v) => v.id === moved);
+  if (!item || moved === target || !views.some((v) => v.id === target)) return [...views];
+  const rest = views.filter((v) => v.id !== moved);
+  rest.splice(rest.findIndex((v) => v.id === target) + (side === "after" ? 1 : 0), 0, item);
+  return rest;
+}
+
+/** 動かしても並びが変わらないか（自分の上・すぐ前の後ろ・すぐ後ろの前。落とす先にせず線を出さない） */
+export const isNoopViewMove = (views: readonly SavedView[], moved: string, target: string, side: "before" | "after"): boolean =>
+  moveView(views, moved, target, side).every((v, i) => v.id === views[i]?.id);

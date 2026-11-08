@@ -11,7 +11,7 @@ import { useArchiveFilter } from "./archiveFilter";
 import { useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useBoardView } from "./BoardHeader";
 import { DEFAULT_CHAT_SORT, parseChatSort, sameChatSort } from "./chatSort";
-import { activeView, addView, parseSavedViews, projectViewState, removeView, renameView, replaceViewState, type BoardViewState } from "./savedViews";
+import { activeView, addView, moveView, parseSavedViews, projectViewState, removeView, renameView, replaceViewState, type BoardViewState } from "./savedViews";
 import { useKanbanLanes } from "./useKanbanFilters";
 
 /**
@@ -77,5 +77,7 @@ export function useSavedViews(projectId?: number) {
     /** いまの見え方で上書きする */
     overwrite: (id: string) => setStored(replaceViewState(views, id, current)),
     remove: (id: string) => setStored(removeView(views, id)),
+    /** ビュー id を target の前・後ろへ動かす（ドラッグの並べ替え） */
+    move: (id: string, target: string, side: "before" | "after") => setStored(moveView(views, id, target, side)),
   };
 }
