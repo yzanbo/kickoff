@@ -49,7 +49,8 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const groupMenu = useGroupMenu({ onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g) });
   // グループの並びの中の「No Group」の位置（覚えていなければ、ボードは先頭・リストはいちばん下）
   const [savedUngroupedAt, setUngroupedAt] = useSetting(groupBoardUngroupedAt(projectId));
-  const ungroupedAt = ungroupedPosition(savedUngroupedAt, groups.length, view === "list");
+  // 覚えていなければ、ボードは先頭・リストと表はいちばん下
+  const ungroupedAt = ungroupedPosition(savedUngroupedAt, groups.length, view !== "board");
   // 列をドロップ先にする。チャットはその列のグループへ、グループ・「No Group」の列はその位置へ並べ替える
   // （グループの並びは DB、「No Group」の位置は画面に覚える。変わった方だけ書く）
   const { reorder, over, blocked, dropProps } = useGroupDrop({

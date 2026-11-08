@@ -32,17 +32,17 @@ export function useChatBuckets<D extends DraftTarget = DraftTarget>(
   chats: readonly Chat[],
   options: Omit<BucketOptions<D>, keyof BucketContext> & Pick<BucketContext, "projects"> & { idle?: boolean },
 ): ChatBucket<D>[] {
-  const { by, project, projects, columns, pinned, archived, drafts, keepEmpty, idle = false } = options;
+  const { by, project, projects, columns, pinned, archived, drafts, keepEmpty, sort, idle = false } = options;
   // 読むのは、チャット・下書きのあるプロジェクトの分（グループは、チャットがなくても出すグループのために並びのプロジェクトの分も）
   const used = project !== undefined ? [project] : [...new Set([...chats.map((c) => c.project_id), ...(drafts ?? []).map((d) => d.projectId)])];
   const groupIds = project !== undefined ? used : [...new Set([...used, ...(projects ?? []).map((p) => p.id)])];
   const ctx = useBucketContext(by, idle ? NO_IDS : groupIds, idle ? NO_IDS : used);
   const levels = typeof by === "string" ? by : by.join(",");
   return useMemo(
-    () => bucketChats(chats, { ...ctx, projects, by, project, columns, pinned, archived, drafts, keepEmpty }),
+    () => bucketChats(chats, { ...ctx, projects, by, project, columns, pinned, archived, drafts, keepEmpty, sort }),
     // by は段の並び（levels）が変わったときだけ分け直す（配列を毎回作って渡しても、分け直さない）
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chats, ctx, projects, levels, project, columns, pinned, archived, drafts, keepEmpty],
+    [chats, ctx, projects, levels, project, columns, pinned, archived, drafts, keepEmpty, sort],
   );
 }
 

@@ -7,6 +7,7 @@ import { useGroups } from "@/stores/groups";
 import { ErrorText } from "@/ui/ErrorText";
 import { GroupSections } from "./GroupSections";
 import { useGroupBoard } from "./useGroupBoard";
+import { useChatSort } from "./useChatSort";
 
 /**
  * 全プロジェクトのボードの「列: グループ」の、1 つのプロジェクトの段の中身: そのプロジェクトのグループの列（自分で作ったグループ → No Group。
@@ -36,7 +37,9 @@ export function ProjectGroupColumns({
   const groups = useGroups(projectId);
   // グループの作成・名前の変更・削除・並べ替え・ドロップは、プロジェクトのグループのボードと同じ状態と操作（絞り込みは全プロジェクトのボードのものを使う）
   const board = useGroupBoard({ projectId, groups });
-  const buckets = useChatBuckets(chats, { by: "group", project: projectId, drafts, keepEmpty: true });
+  // 列の中は、ボードの並び順で
+  const { compare } = useChatSort([projectId]);
+  const buckets = useChatBuckets(chats, { by: "group", project: projectId, drafts, keepEmpty: true, sort: compare });
   return (
     <>
       <GroupSections

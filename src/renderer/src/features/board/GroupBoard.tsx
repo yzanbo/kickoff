@@ -19,6 +19,9 @@ import { orderGroupBuckets } from "@/features/group/groupOrder";
 import { StateColumns } from "./StateColumn";
 import { useBoardCards } from "./useBoardCards";
 import { useGroupBoard } from "./useGroupBoard";
+import { ChatTable } from "./ChatTable";
+import { SortMenuButton, TableColumnsButton, useTableColumns } from "./BoardSortTools";
+import { useChatSort } from "./useChatSort";
 
 /** グループのボードの段の分け方（グループだけ） */
 const GROUP_LANES: readonly BoardLane[] = ["group"];
@@ -82,7 +85,10 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
   const cards = useBoardCards({ panel, rename, menu, onOpen: open, drag: { hint: "ドラッグでグループを移す" } });
   // グループごとのまとまり（自分で作ったグループ → グループなし。チャットのないグループも出す）。段に分けるときは、その中を状態の列に分ける
   // （列・段には、そのグループで始める下書きも入る）
-  const buckets = useChatBuckets(board.shown, { by: ["group", "status"], project: projectId, drafts, keepEmpty: true });
+  // 並び順（列・まとまりの中もこの順。すべてのボードで共通）と、表に出す列
+  const { sort, setSort, compare } = useChatSort([projectId]);
+  const { columns: tableColumns } = useTableColumns(false);
+  const buckets = useChatBuckets(board.shown, { by: ["group", "status"], project: projectId, drafts, keepEmpty: true, sort: compare });
   /** アーカイブ済み・段の開閉を覚える場所（ボードごと） */
   const foldPlace = `board:groups:${projectId}`;
 
@@ -106,6 +112,12 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
       // 段の分け方はグループだけ（段に分けると、列は下書き＋状態）。リストはもともとグループごとのまとまりなので出さない
       viewOptions={view === "board" && <LaneSelect value={split ? "group" : "none"} options={GROUP_LANES} onChange={(next) => board.setSplit(next !== "none")} />}
       columns={<BoardColumnsToggle projectId={projectId} value="groups" />}
+      sortTools={
+        <>
+          <SortMenuButton sort={sort} onSort={setSort} allProjects={false} />
+          {view === "table" && <TableColumnsButton allProjects={false} />}
+        </>
+      }
       panel={panel}
     />
   );
@@ -122,7 +134,21 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
       onError={board.setError}
       after={board.groupMenu.menu}
     >
-      {view === "board" && split ? (
+      {view === "table" ? (
+        // 表: グループごとのまとまりの見出しの行（No Group の位置はリストと同じ。チャットのないグループは出さない）
+        <div className="board-table">
+          <ChatTable
+            sections={orderGroupBuckets(buckets, board.ungroupedAt)}
+            drafts={drafts}
+            columns={tableColumns}
+            sort={sort}
+            onSort={setSort}
+            row={(chat) => cards.tableRow(chat, tableColumns)}
+            foldPlace={foldPlace}
+            archivedKey="archived"
+          />
+        </div>
+      ) : view === "board" && split ? (
         // 段（グループ）へカードをドラッグすると、そのグループへ移す
         <BoardLanes
           lanes={orderGroupBuckets(buckets, board.ungroupedAt)}
