@@ -31,7 +31,6 @@ export function DraftRows({ drafts }: { drafts: PanelDraft[] }) {
 
 function DraftRow({ draft }: { draft: PanelDraft }) {
   const menu = useContextMenu();
-  const first = draft.text.trim().split("\n")[0] ?? "";
   return (
     <li className="chat-row-item">
       <button
@@ -48,7 +47,8 @@ function DraftRow({ draft }: { draft: PanelDraft }) {
         </span>
         <span className="chat-row-body">
           <span className="chat-row-line">
-            <span className="chat-row-title">{first || NEW_CHAT_TITLE}</span>
+            {/* 名前は最初のチャットを送るまで「New Chat」のまま（タブと同じ。利用者の依頼で、前は書きかけの文の 1 行目を出していた） */}
+            <span className="chat-row-title">{NEW_CHAT_TITLE}</span>
             <span className="chat-row-time">下書き</span>
           </span>
         </span>
