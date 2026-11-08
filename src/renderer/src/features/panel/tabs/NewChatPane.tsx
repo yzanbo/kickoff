@@ -13,6 +13,7 @@ import { countBusyAt } from "@/features/worktree/workplace";
 import { chooseBusyWorkplaceAction } from "@/features/worktree/busyWorkplace";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
+import type { AttachmentDraft } from "@/features/chat/attachments/useComposerFiles";
 import { currentChats, useChats } from "@/stores/chats";
 import { groupNameIn, useGroups } from "@/stores/groups";
 import { worktreesStore } from "@/stores/worktrees";
@@ -34,6 +35,10 @@ interface Props {
   seed?: NewChatSeed;
   /** 書きかけていた文（ボードを開き直した・アプリを再起動したときに入力欄へ戻す） */
   draftText?: string;
+  /** 残していた送る前の添付（一度も残していなければ undefined。そのときだけ seed の添付を入れる） */
+  draftAttachments?: readonly Attachment[];
+  /** 送る前の添付を残す先（タブ） */
+  savedAttachments?: AttachmentDraft;
   /** いま見えているか（見えていないタブに文を戻すときは、入力欄にピントを移さない） */
   visible?: boolean;
   /** 作業場所を選び直したとき（いまあるワークツリーならそのフォルダ、本体・新しいワークツリーなら undefined。タブのまとまりに使う） */
@@ -53,6 +58,8 @@ export function NewChatPane({
   worktree,
   seed,
   draftText,
+  draftAttachments,
+  savedAttachments,
   visible = true,
   onGroupChange,
   onWorktreeChange,
@@ -97,6 +104,8 @@ export function NewChatPane({
   // 書きかけの文は打つたびに変わるので、最初の値だけを使う。隠れているタブ（閉じたパネル・ほかのタブの裏）ではピントを移さない
   const composer = useRef<ComposerHandle | null>(null);
   const initialText = useRef(draftText);
+  // seed の添付は、タブに添付をまだ残していないときだけ入れる（残していれば入力欄がそれを戻す。外した添付を戻さない）
+  const seedAttachments = useRef(draftAttachments === undefined ? seed?.attachments : undefined);
   const seeded = useRef(false);
   const visibleRef = useRef(visible);
   visibleRef.current = visible;
@@ -105,7 +114,7 @@ export function NewChatPane({
     const text = initialText.current ?? seed?.text;
     if (!text && !seed) return;
     seeded.current = true;
-    composer.current?.fill(text ?? "", { attachments: seed?.attachments, focus: visibleRef.current });
+    composer.current?.fill(text ?? "", { attachments: seedAttachments.current, focus: visibleRef.current });
   }, [ready, seed]);
 
   // 最初の指示を送ってチャットを作る（チャット欄の送信と、定型文の帯の ⌘クリック・「すぐ送る」で共通）
@@ -173,6 +182,7 @@ export function NewChatPane({
           options={options}
           autoFocus
           onTextChange={onDraftChange}
+          savedAttachments={savedAttachments}
           handleRef={composer}
           // 新しいワークツリーはまだないので、本体から探す
           suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}

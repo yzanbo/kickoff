@@ -3,7 +3,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/types";
 import { api } from "@/api";
 import { useChatStates } from "@/app/chatStatesContext";
-import { chatDraft } from "@/lib/storageKeys";
+import { chatAttachmentsDraft, chatDraft } from "@/lib/storageKeys";
+import { settingAttachmentDraft } from "@/features/chat/attachments/useComposerFiles";
 import { addChat, useMemoChatOf } from "@/stores/chats";
 import { Composer } from "@/features/chat/composer/Composer";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
@@ -189,6 +190,7 @@ function MemoQuickComposer({
         suggestTarget={{ projectId, worktree: chat?.worktree_path ?? undefined }}
         handleRef={composer}
         draft={chat ? chatDraft(chat.id) : undefined}
+        savedAttachments={chat ? settingAttachmentDraft(chatAttachmentsDraft(chat.id)) : undefined}
         sendTo={chat ? [{ label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, onSend: send.onAsk }] : undefined}
       />
     </div>

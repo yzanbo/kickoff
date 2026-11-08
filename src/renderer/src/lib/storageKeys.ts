@@ -7,9 +7,19 @@
  *   ID が 1 から振り直され、別のものを指すため）。ID ごとのものは defineSettingFamily（キーは頭 ＋ ID）
  */
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
-import { HANDOFF_VIAS, type HandoffFrom } from "@shared/types";
+import { HANDOFF_VIAS, type Attachment, type HandoffFrom } from "@shared/types";
 import { HANDOFF_AFTERS } from "@shared/chat/handoff";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
+
+const NO_ATTACHMENTS: readonly Attachment[] = [];
+
+/** 残しておいた添付の列（形の合わない要素は捨てる） */
+function parseAttachments(value: unknown): readonly Attachment[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter((a: Partial<Attachment> | null): a is Attachment =>
+    !!a && typeof a.id === "string" && typeof a.name === "string" && typeof a.mime === "string" && typeof a.size === "number" && (a.memo === undefined || typeof a.memo === "string"),
+  );
+}
 
 /** 保存した子チャットからの依頼の出どころを読む（形が合わなければ null） */
 function parseHandoffFrom(value: unknown): HandoffFrom | null {
@@ -147,6 +157,8 @@ export const NEW_CHAT_DRAFTS = defineSetting("kickoff:new-chat-drafts", record()
 // チャット
 /** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
 export const chatDraft = defineSettingFamily("kickoff:chat-draft:", text(), { ids: true });
+/** チャットごとの、入力欄に添付して送る前のもの（アップロード済みの添付。外した・送った・チャットを削除したら消す。形の合わないものは捨てる） */
+export const chatAttachmentsDraft = defineSettingFamily("kickoff:chat-attachments:", json(parseAttachments, NO_ATTACHMENTS, (v) => v.length === 0), { ids: true });
 /**
  * チャットごとの、入力欄に入れた子チャットからの依頼の出どころ（「親チャットに追加」の入力欄。入力欄の上の札「子チャット『…』から」。
  * 送ると発言の handoff_from にして消す。× でも消す。null = なし）

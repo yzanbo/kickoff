@@ -16,7 +16,7 @@ import { useDictation } from "@/features/dictation/useDictation";
 import { ChatOptionsBar, type ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 import { SuggestList } from "@/features/chat/composer/suggest/SuggestList";
 import { useSuggest } from "@/features/chat/composer/suggest/useSuggest";
-import { useComposerFiles } from "@/features/chat/attachments/useComposerFiles";
+import { useComposerFiles, type AttachmentDraft } from "@/features/chat/attachments/useComposerFiles";
 import { appendBlock } from "@/features/chat/messages/quoteComment";
 import { usePromptHistory } from "./usePromptHistory";
 import { isSendEnter, sendModeOf, useComposerKeys, type QueueSendMode } from "./composerKeys";
@@ -59,6 +59,8 @@ interface Props {
   history?: string[];
   /** 書きかけの文を残す設定（既存のチャットの chatDraft。新しいチャットはタブの draftText で残すので渡さない） */
   draft?: Setting<string>;
+  /** 添付して送る前のものを残す先（既存のチャットは chatAttachmentsDraft、新しいチャットはタブ。渡さなければ入力欄を作り直すと消える） */
+  savedAttachments?: AttachmentDraft;
   /** 外からチャット欄を動かす口（文を入れる・ピントを移す。発言の一覧の「入力欄に入れる」など） */
   handleRef?: MutableRefObject<ComposerHandle | null>;
   /** ほかの送り方・送り先（送信ボタンの右クリックで選ぶ。質問として送る・子チャットに送るなど）。作業中でも送れる（作業中にどう送るかは onSend が決める） */
@@ -80,12 +82,12 @@ const ignoreStop = () => {};
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
  * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext, sendTo, menuItems }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, savedAttachments, handleRef, chatContext, sendTo, menuItems }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const attach = useComposerFiles();
+  const attach = useComposerFiles(savedAttachments);
   /** 文を入れて、キャレットを caret に置く（描き直して高さが合ってから） */
   const fill = (value: string, caret = value.length, focus = true) => {
     setText(value);
