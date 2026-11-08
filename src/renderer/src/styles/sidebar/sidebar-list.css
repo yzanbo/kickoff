@@ -59,6 +59,25 @@
   right: -5px;
 }
 
+/* 縦スライド（丸を縦に並べる）では、入る位置の線を丸の上・下の横線にする */
+.workspaces.rail .workspace-dot.drop-before::before,
+.workspaces.rail .workspace-dot.drop-after::after {
+  top: auto;
+  bottom: auto;
+  right: 2px;
+  left: 2px;
+  width: auto;
+  height: 2px;
+}
+
+.workspaces.rail .workspace-dot.drop-before::before {
+  top: -5px;
+}
+
+.workspaces.rail .workspace-dot.drop-after::after {
+  bottom: -5px;
+}
+
 .stack-item.drop-before::before,
 .stack-item.drop-after::after {
   right: 10px;
