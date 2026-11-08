@@ -9,13 +9,14 @@ import type { useBoardPanel } from "@/features/panel/board/useBoardPanel";
 import type { useCardMenu } from "./useBoardCards";
 
 /**
- * ボード（カンバン・グループ）の共通の外枠: 見出し → 失敗の文 → ボードの中身と右側のパネル → カードの右クリックメニュー。
+ * ボード（カンバン・グループ）の共通の外枠: 保存したビューのタブ（カンバンだけ）→ 見出し → 失敗の文 → ボードの中身と右側のパネル → カードの右クリックメニュー。
  * children はボードの中身（board-main の中）。after はほかのメニューなど、いちばん後ろに描くもの。
  * 右のパネル（rightPanel）はプロジェクトのボードだけ（全プロジェクトのボードは、チャットをそのプロジェクトへ移って開くので持たない）。
  * 見出しはいつも横幅いっぱいの上に置き、右のパネルはその下から始まる（パネルがボードを覆っても見出しは見える）
  */
 export function BoardShell({
   className,
+  views,
   header,
   error,
   rightPanel,
@@ -27,6 +28,8 @@ export function BoardShell({
   children,
 }: {
   className?: string;
+  /** ツールバーの上に置く、保存したビューのタブ（SavedViewTabs。カンバンだけ） */
+  views?: ReactNode;
   /** BoardHeader */
   header: ReactNode;
   error?: string;
@@ -43,6 +46,7 @@ export function BoardShell({
   const main = <div className="board-main">{children}</div>;
   return (
     <div className={cx("board", className)}>
+      {views}
       {header}
       <ErrorText message={error} className="board-error" />
       {rightPanel ? (
