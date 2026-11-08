@@ -69,6 +69,12 @@
   gap: 6px;
 }
 
+/* プロジェクトのボードの段: グループで、カードを重ねている段（落とすとそのグループへ移す）。段の中の列・リストを、列の .drop-target と同じ色にする */
+.board-lane.drop-target :is(.board-column, .lane-list) {
+  border-color: var(--accent);
+  background: var(--bg-elev);
+}
+
 /* 全プロジェクトのボードのプロジェクトの段の並べ替え: 動かしている段は薄く、入る位置に線を出す（サイドバーのプロジェクトと同じ） */
 .board-lane-head[draggable="true"] {
   cursor: grab;

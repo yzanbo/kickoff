@@ -124,8 +124,11 @@ export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:active
 export const ALL_PROJECTS_BOARD_COLUMNS = defineSetting("kickoff:board-columns-all", choice(["state", "groups", "none"], "state"));
 /** グループの列の中を、状態（作業中・回答待ち・未読・既読）で小分けにするか（全プロジェクトのボードの列の「状態」と「グループ」の両方オン = グループ×状態） */
 export const BOARD_GROUPS_BY_STATE = defineSetting("kickoff:board-groups-by-state", flag());
-/** プロジェクトのボードのリスト表示を、状態（作業中・回答待ち・未読・既読）で分けずに 1 つの並びにするか（初めは状態で分ける。ボードはいつも状態で分ける） */
-export const PROJECT_LIST_FLAT = defineSetting("kickoff:board-list-flat", flag());
+/**
+ * プロジェクトのボードの列の分け方（state = 状態ごと / groups = グループの列（カードをドラッグしてグループを移す。BOARD_GROUPS_BY_STATE なら中を状態で小分け）/
+ * none = 分けない。ボードとリストで共通。全プロジェクトのボードの ALL_PROJECTS_BOARD_COLUMNS とは別に覚える）
+ */
+export const PROJECT_BOARD_COLUMNS = defineSetting("kickoff:board-columns-project", choice(["state", "groups", "none"], "state"));
 /** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる。すべてのボードで共通。前の版の table（表）はなくしたので、覚えていれば初めの board に戻る） */
 export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list"], "board"));
 /** ボードを段（スイムレーン）に分けるか（ボード・リストで共通。分け方は PROJECT_BOARD_LANES・ALL_PROJECTS_BOARD_LANES） */

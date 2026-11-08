@@ -63,11 +63,9 @@ test("parseViewState: 前の版のリストの行（compact）が入ったビュ
   assert.deepEqual(parseViewState({ ...base, compact: undefined }), base);
 });
 
-test("projectViewState: プロジェクトのボードの列の分け方はリストのときだけ（none 以外は state）", () => {
-  assert.deepEqual(projectViewState({ ...base, view: "list", columns: "none" }), { ...base, view: "list", columns: "none" });
-  assert.deepEqual(projectViewState({ ...base, view: "list", columns: "groups" }), { ...base, view: "list", columns: "state" });
+test("projectViewState: 列の分け方のない前の版のビューは状態として読み、ほかはそのまま", () => {
   const { columns: _, ...noColumns } = base;
-  assert.deepEqual(projectViewState({ ...noColumns, view: "list" }), { ...base, view: "list", columns: "state" });
-  assert.deepEqual(projectViewState({ ...base, view: "board", columns: "none" }), noColumns);
-  assert.deepEqual(projectViewState({ ...base, view: "feed", columns: "groupsState" }), { ...noColumns, view: "feed" });
+  assert.deepEqual(projectViewState(noColumns), { ...base, columns: "state" });
+  assert.deepEqual(projectViewState({ ...base, columns: "groups" }), { ...base, columns: "groups" });
+  assert.deepEqual(projectViewState({ ...base, view: "list", columns: "none" }), { ...base, view: "list", columns: "none" });
 });

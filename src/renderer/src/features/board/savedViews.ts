@@ -15,8 +15,7 @@ export type BoardViewState = {
   /** 段の分け方（分けないなら none） */
   lanes: (typeof VIEW_LANES)[number];
   /**
-   * 列の分け方（全プロジェクトのボードは state / groups / groupsState / none。プロジェクトのボードはリストの分け方だけで、リストのとき state / none、
-   * ほかの表示ではない。前の版のプロジェクトのボードのビューの値は projectViewState で読み替える）
+   * 列の分け方（state / groups / groupsState / none。どちらのボードも同じ。前の版のプロジェクトのボードのビューにはないことがあり、projectViewState で state として読む）
    */
   columns?: (typeof VIEW_COLUMNS)[number];
   sort: ChatSort;
@@ -51,12 +50,10 @@ export function parseViewState(value: unknown): BoardViewState | undefined {
 }
 
 /**
- * プロジェクトのボードの見え方に読み替える: 列の分け方はリストのときだけ（状態で分けない none か、それ以外は state）、ほかの表示では持たない
- * （前の版で保存したグループ・グループ×状態・列の分け方なしのビューも、リストなら状態で分ける形として当てて比べる）
+ * プロジェクトのボードの見え方に読み替える: 列の分け方のない前の版のビュー（プロジェクトのボードの列がいつも状態だったころのもの）は state として読む
  */
 export function projectViewState(state: BoardViewState): BoardViewState {
-  const { columns, ...rest } = state;
-  return state.view === "list" ? { ...rest, columns: columns === "none" ? "none" : "state" } : rest;
+  return state.columns === undefined ? { ...state, columns: "state" } : state;
 }
 
 /** 保存したビューの一覧を読む（見え方の合わないものは捨てる） */
