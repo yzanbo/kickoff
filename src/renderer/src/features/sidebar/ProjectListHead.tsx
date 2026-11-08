@@ -3,7 +3,7 @@ import type { ProjectOrder } from "@/features/project/projectOrder";
 import type { SettingValue } from "@/lib/storage";
 import { SIDEBAR_BUCKET_COLORS, type SIDEBAR_LAYOUT } from "@/lib/storageKeys";
 import { CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
-import { GROUPING_META, ORDER_META, useChatLayout } from "./chatGroupings";
+import { CHAT_ORDERS, GROUPING_META, ORDER_META, useChatLayout } from "./chatGroupings";
 import { cx } from "@/lib/cx";
 import { useOverflowCompact } from "@/hooks/useOverflowCompact";
 import { HeadMenu, HeadToggle } from "./HeadMenu";
@@ -44,7 +44,7 @@ interface Props {
  * プロジェクト一覧の上の見出し。何に効くかで 2 行に分け、どちらも設定の種類（ジャンル）ごとのボタンを並べる（1 つのボタンには 1 種類だけ。
  * 2 択のものは押すたびに切り替え（HeadToggle）、3 つ以上あるもの（並べ方・まとめ方）はメニューから選ぶ（HeadMenu））:
  * プロジェクト = 並べ方（縦並び / 横スライド / 縦スライド）・並び順（手動 / 最近動いた順）・表示（カードを 1 行 / 2 行）・アーカイブ（出すか）/
- * チャット = まとめ方（まとめない / グループ別 / 作業場所別。右のパネルのタブのまとめ方と同じ文言）・並び順（最近動いた順 / 状態順）・表示（行を 1 行 / 2 行）・アーカイブ（出すか。プロジェクトの行と同じく右端）。
+ * チャット = まとめ方（まとめない / グループ別 / 作業場所別。右のパネルのタブのまとめ方と同じ文言）・並び順（最近動いた順 / 状態順 / 手動）・表示（行を 1 行 / 2 行）・アーカイブ（出すか。プロジェクトの行と同じく右端）。
  * チャットの設定はすべてのプロジェクトに効く。まとめ方（外側の見出し）と並び順（その中の並び）は別の種類の設定なので、別のボタンにする。
  * 「表示」はプロジェクトのカードとチャットの行で別々に切り替える。
  * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行の名前のすぐ右に、小さなアイコンのボタンで置く
@@ -126,14 +126,15 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
           // グループ別・作業場所別の見出しの色（色付き / 色なし。見出しの右クリックにも同じ項目）。選んでもメニューは閉じない
           extra={<BucketColorItem setting={SIDEBAR_BUCKET_COLORS} keepOpen />}
         />
-        <HeadToggle
+        {/* 3 つ（最近順・状態順・手動）なのでメニューから選ぶ。最近順・状態順でも、チャットの行をドラッグで並べ替えると手動になる */}
+        <HeadMenu
           id="chat-order"
           icon={ORDER_META[chatOrder].icon}
           label="並び順"
           value={ORDER_META[chatOrder].short}
-          values={[ORDER_META.recent.short, ORDER_META.status.short]}
-          title="チャットの並び順（最近動いた順 / 状態順 = 作業中・回答待ち・未読・既読の見出しに分けて並べる。まとめ方の見出しの中で並べる）"
-          onToggle={() => setChatOrder(chatOrder === "recent" ? "status" : "recent")}
+          values={CHAT_ORDERS.map((o) => ORDER_META[o].short)}
+          title={`チャットの並び順（まとめ方の見出しの中で並べる。状態順 = 作業中・回答待ち・未読・既読の見出しに分ける / 手動 = ドラッグで並べた順。いまは「${ORDER_META[chatOrder].label}」）`}
+          menu={{ title: "チャットの並び順", choices: CHAT_ORDERS, meta: ORDER_META, current: chatOrder, onPick: setChatOrder }}
         />
         <HeadToggle
           id="rows"

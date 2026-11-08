@@ -47,9 +47,10 @@ export function useTabDrag(panel: PanelController) {
     }),
     /**
      * タブの列に付ける（落とすとそのペインの、その位置へ移す）。toPaneIndex: 見た目の並びの位置をペインの並びの位置に直す
-     * （タブをまとめて並べ替えて見せているとき。印の位置 insertAt は見た目の並びのまま）
+     * （タブをまとめて並べ替えて見せているとき。印の位置 insertAt は見た目の並びのまま）。reorderInPlace: 同じペインの中で
+     * 並びを別に決めているタブを落としたとき、その並びを変える（変えたら true で、ペインの並びは変えない）
      */
-    barProps: (paneId: string, toPaneIndex: (index: number) => number = (i) => i) => ({
+    barProps: (paneId: string, toPaneIndex: (index: number) => number = (i) => i, reorderInPlace?: (key: string, index: number) => boolean) => ({
       onDragOver: (e: DragEvent<HTMLElement>) => {
         if (!accepts(e)) return;
         e.preventDefault();
@@ -67,7 +68,9 @@ export function useTabDrag(panel: PanelController) {
       onDrop: (e: DragEvent<HTMLElement>) => {
         if (!accepts(e) || !dragging) return;
         e.preventDefault();
-        panel.moveTab(dragging, paneId, insert?.paneId === paneId ? toPaneIndex(insert.index) : undefined);
+        // 並びを別に決めているタブ（一覧のペインのチャットのタブ = サイドバーの手動の並び）は、その並びを変える
+        const index = insert?.paneId === paneId ? insert.index : undefined;
+        if (index === undefined || !reorderInPlace?.(dragging, index)) panel.moveTab(dragging, paneId, index === undefined ? undefined : toPaneIndex(index));
         reset();
       },
     }),

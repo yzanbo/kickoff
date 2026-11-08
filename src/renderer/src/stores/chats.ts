@@ -133,6 +133,13 @@ export const currentChats = ({ projectId, archived = false }: Omit<ChatQuery, "e
 /** 操作の応答で届いたチャットを一覧に入れる（知らせを待たずに knownChat で引けるように。作った子チャットを、親の右の欄で開くときなど） */
 export const addChat = (chat: Chat) => (chat.archived_at ? archivedChats : activeChats).update((list) => upsertChat(list, chat));
 
+/** 操作の応答で届いたいくつものチャットを、まとめて一覧に入れる（手動の並びを変えたときなど。一覧ごとに 1 回だけ変える） */
+export function addChats(chats: readonly Chat[]): void {
+  const into = (list: readonly Chat[], archived: boolean) => chats.filter((c) => Boolean(c.archived_at) === archived).reduce(upsertChat, list as Chat[]);
+  if (chats.some((c) => !c.archived_at)) activeChats.update((list) => into(list, false));
+  if (chats.some((c) => c.archived_at)) archivedChats.update((list) => into(list, true));
+}
+
 /** ID のチャット（読み込んでいる一覧から。子チャット・アーカイブ済みも。部品の外で引くとき。なければ undefined） */
 export const knownChat = (id: number): Chat | undefined => activeChats.get().data?.find((c) => c.id === id) ?? archivedChats.get().data?.find((c) => c.id === id);
 

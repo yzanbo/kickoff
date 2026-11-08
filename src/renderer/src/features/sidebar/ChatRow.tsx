@@ -19,6 +19,7 @@ import { StatusSlot } from "@/features/chat/StatusSlot";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
 import { GroupChip } from "@/features/group/GroupChip";
 import { ProjectMark } from "@/features/project/ProjectMark";
+import type { RowReorderProps } from "./useChatRowReorder";
 
 /**
  * サイドバーのチャットの行（押すと右のパネルで開く・⌘ / Shift を押しながらで複数選ぶ・ダブルクリックで名前を変える・ドラッグでグループへ移す・
@@ -36,6 +37,7 @@ export function ChatRow({
   project,
   after,
   onOpen,
+  reorder,
 }: {
   chat: Chat;
   state: AgentState;
@@ -54,6 +56,8 @@ export function ChatRow({
   after?: ReactNode;
   /** 押したときの開き方（省けばプロジェクトのチャットのパネルで開く。子チャットは別ウィンドウ） */
   onOpen?: () => void;
+  /** ドラッグでの手動の並べ替えの落とし先（入る位置の線のクラスと、行に付ける dragover / drop。useChatRowReorder） */
+  reorder?: RowReorderProps;
 }) {
   // hooks は、下の早い return（名前の変更中）より前に呼ぶ
   const selection = useChatSelection();
@@ -79,7 +83,7 @@ export function ChatRow({
     else onMenu(at);
   };
   return (
-    <li className="chat-row-item">
+    <li className={cx("chat-row-item", reorder?.className)} {...reorder?.handlers}>
       <a
         className={cx(
           "chat-row",

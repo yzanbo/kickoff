@@ -28,6 +28,9 @@ if (typeof window !== "undefined") {
   window.addEventListener("drop", () => setTimeout(clear), true);
 }
 
+/** いまドラッグしているチャットの ID（ドラッグの間だけ。dragover で受けるかを決める。チャットの手動の並べ替えなど） */
+export const draggingChat = (): number | undefined => draggingChatId;
+
 /** チャットのドラッグを始める（ドロップ先でチャットの ID を受け取れるようにする） */
 export function startChatDrag(e: DragEvent, chatId: number, after?: () => void) {
   draggingChatId = chatId;
