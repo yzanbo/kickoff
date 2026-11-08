@@ -10,7 +10,8 @@ import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/panel/
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { panelKey } from "@/features/panel/surfaces";
-import { AllProjectsColumnsToggle, ProjectListStateToggle, useAllProjectsColumns, useGroupsByState, useProjectListFlat } from "./BoardColumnsToggle";
+import { BoardColumnsToggle, useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
+import { useGroupLaneDrop } from "./useGroupLaneDrop";
 import { useProjectLaneReorder } from "./useProjectLaneReorder";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
@@ -34,6 +35,8 @@ import { useChats } from "@/stores/chats";
 
 /** 状態の列は、チャットがなくてもすべて出す（段・グループはチャットか下書きのあるものだけ） */
 const keepColumns = (head: BucketHead) => head.kind === "status";
+/** 段: グループ（プロジェクトのボード）では、チャットのないグループの段も出す（カードを落としてそのグループへ移せるように） */
+const keepColumnsAndGroups = (head: BucketHead) => head.kind === "status" || head.kind === "group";
 
 /**
  * プロジェクトのカンバン。チャットを開く先は設定の「チャットの置き方」で決まる: ボードと分ける（初め）なら、カードを押すと「チャット」タブへ移って開く。
@@ -123,15 +126,23 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   const [feedOn, setFeed] = useSetting(ALL_PROJECTS_FEED);
   const feed = allProjects && feedOn;
   const feedData = useFeed(feed);
-  // 全プロジェクトのボードは、グループの列（プロジェクトの段ごと）・状態で分けない並びにできる。プロジェクトのボードは、リストだけ状態で分けない並びにできる（ボードはいつも状態の列）
-  const [allColumns] = useAllProjectsColumns();
-  const [listFlat] = useProjectListFlat();
+  // 列の分け方（状態 / グループの列 / 分けない。全プロジェクトとプロジェクトのボードで別に覚える）
+  const [columns] = useBoardColumns(allProjects);
   // スイムレーンの段の分け方
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
-  // グループの列は、段がプロジェクトのときだけ選べる（グループはプロジェクトごとのもの）。ほかの段では、覚えた「グループ」は状態の列で出す（段をプロジェクトに戻すとグループに戻る）
+  // 全プロジェクトのボードのグループの列は、段がプロジェクトのときだけ選べる（グループはプロジェクトごとのもの）。ほかの段では、覚えた「グループ」は状態の列で出す（段をプロジェクトに戻すとグループに戻る）。
+  // プロジェクトのボードはいつも選べる（グループを列にして縦に並べ、カードのドラッグでグループを移す。利用者の依頼）
   const projectLanes = allProjects && split && lanes === "project";
-  const flat = allProjects ? allColumns === "none" : view === "list" && listFlat;
-  const byGroup = projectLanes && allColumns === "groups";
+  const groupsAvailable = allProjects ? projectLanes : true;
+  const byGroup = groupsAvailable && columns === "groups";
+  const flat = columns === "none";
+  // プロジェクトのボードでグループの列にしているときは、段の「グループ」は選べない（列と同じ分け方になるため）。覚えた段はそのままで、分けない形で出す
+  const laneSplit = split && !(byGroup && !allProjects && lanes === "group");
+  const laneChoices = byGroup && !allProjects ? laneOptions.filter((o) => o !== "group") : laneOptions;
+  // プロジェクトのボードの段: グループでは、カードを別のグループの段へドラッグしてグループを移す（利用者の依頼。グループの列にしているときは段がグループにならない）。
+  // 落とし先になるよう、チャットのないグループの段も出す
+  const groupLanes = !allProjects && laneSplit && lanes === "group";
+  const groupLaneDrop = useGroupLaneDrop(projectId, groupLanes);
   // 列の分け方の「グループ×状態」: グループの列の中を状態で小分けにする
   const [groupsByState] = useGroupsByState();
   const byState = byGroup && groupsByState;
@@ -160,19 +171,24 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
     onOpen,
     openTitle: allProjects ? (chat) => `プロジェクト「${projectName(chat.project_id)}」で開く（そのプロジェクトの画面へ移ります）` : undefined,
     projectName: (chat) => (allProjects ? projectName(chat.project_id) : undefined),
-    // グループの列では、カードをドラッグしてグループを移す（ほかのプロジェクトのグループへ落とすと、確かめてからプロジェクトも移す）
-    drag: byGroup ? { hint: "ドラッグでグループを移す（ほかのプロジェクトのグループへ落とすと、確かめてからそのプロジェクトへ移します）" } : undefined,
+    // グループの列・グループの段では、カードをドラッグしてグループを移す（全プロジェクトのボードで、ほかのプロジェクトのグループへ落とすと、確かめてからプロジェクトも移す）
+    drag: byGroup
+      ? { hint: allProjects ? "ドラッグでグループを移す（ほかのプロジェクトのグループへ落とすと、確かめてからそのプロジェクトへ移します）" : "ドラッグでグループを移す" }
+      : groupLaneDrop.laneProps
+        ? { hint: "ドラッグでほかのグループの段へ移す" }
+        : undefined,
   });
   // 状態の列（段に分けるときは、段（グループ・作業場所・プロジェクト）ごとに状態の列。段には、その段に入る作成先の下書きも入る）。
   // 状態で分けないときは、段だけで分ける（段に分けなければ見出しのないまとまり 1 つ。中のチャットは最後に動いた順）
   const buckets = useChatBuckets(shown, {
-    // グループの列は、プロジェクトの段の中でそのプロジェクトのグループに分ける（ProjectGroupColumns。グループはプロジェクトごとのもの）
-    by: byGroup ? "project" : flat ? (split ? [lanes] : []) : split ? [lanes, "status"] : "status",
+    // グループの列は、全プロジェクトのボードではプロジェクトの段の中でそのプロジェクトのグループに分ける（ProjectGroupColumns。グループはプロジェクトごとのもの）。
+    // プロジェクトのボードでは、段に分けるなら段ごと、分けなければまとめて 1 つにして、中を ProjectGroupColumns がグループの列に分ける
+    by: byGroup ? (allProjects ? "project" : laneSplit ? [lanes] : []) : flat ? (laneSplit ? [lanes] : []) : laneSplit ? [lanes, "status"] : "status",
     project: projectId,
     projects: allProjects ? projects : undefined,
     drafts,
     // グループの列では、チャットのないプロジェクトの段も出す（ほかのプロジェクトのチャットを落としてそのグループへ移せるように）
-    keepEmpty: byGroup ? true : keepColumns,
+    keepEmpty: byGroup ? true : groupLanes ? keepColumnsAndGroups : keepColumns,
     sort: compare,
   });
   /**
@@ -201,15 +217,13 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
         if (next !== "feed") setView(next);
       }}
       feed={allProjects}
-      // 列の分け方は全プロジェクトのボードだけ（プロジェクトのボードの列はいつも状態。利用者の依頼で、列の分け方とグループのボードの画面をなくした）。
-      // プロジェクトのボードは、リストのときだけ「状態」で分けるかを選べる（利用者の依頼）。
-      // フィードは返答の新しい順の 1 列なので、段・列の分け方・並び順を出さない
-      columns={feed ? undefined : allProjects ? <AllProjectsColumnsToggle groups={projectLanes} /> : view === "list" ? <ProjectListStateToggle /> : undefined}
+      // 列の分け方（「状態」「グループ」のオン・オフ。どちらのボードも同じ形）。フィードは返答の新しい順の 1 列なので、段・列の分け方・並び順を出さない
+      columns={feed ? undefined : <BoardColumnsToggle allProjects={allProjects} groups={groupsAvailable} />}
       viewOptions={
         !feed && (
         <LaneSelect
-          value={split ? lanes : "none"}
-          options={laneOptions}
+          value={laneSplit ? lanes : "none"}
+          options={laneChoices}
           onChange={(next) => {
             if (next !== "none") setLanes(next);
             setSplit(next !== "none");
@@ -235,7 +249,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
       ) : (
         <KanbanBody
           view={view}
-          split={split}
+          split={laneSplit}
           flat={flat}
           byGroup={byGroup}
           byState={byState}
@@ -246,6 +260,8 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
           foldPlace={foldPlace}
           cards={cards}
           laneReorder={laneReorder}
+          laneDrop={groupLaneDrop.laneProps}
+          projectId={projectId}
         />
       )}
     </BoardShell>
