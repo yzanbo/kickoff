@@ -3,8 +3,9 @@ import { api } from "@/api";
 import { useSubmit } from "@/hooks/useSubmit";
 import { ErrorText } from "@/ui/ErrorText";
 import { DialogActions } from "@/ui/DialogActions";
-import { CheckField, Field } from "@/ui/Field";
+import { Field } from "@/ui/Field";
 import { GIT_FEATURES } from "@/features/project/GitInitNotice";
+import { GitInitField } from "@/features/project/GitInitField";
 import { FolderField } from "./FolderField";
 import type { FormProps } from "./NewProjectDialog";
 
@@ -93,18 +94,19 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
         />
       </Field>
 
-      <CheckField
-        label={parentRepo ? "このフォルダで新しく git の管理を始める（親のリポジトリとは別のリポジトリにする）" : "git で管理する（リポジトリとして初期化し、README で最初のコミットを作る）"}
+      <GitInitField
+        on={parentRepo ? "このフォルダで新しく始める" : "git で管理する"}
+        off={parentRepo ? "親のリポジトリの中で使う" : "管理しない"}
         help={
           parentRepo
             ? initGit
               ? `保存先は git のリポジトリ（${parentRepo}）の中です。新しいフォルダを別のリポジトリとして初期化します（親のリポジトリからは、別のリポジトリに見えます）。`
               : `保存先は git のリポジトリ（${parentRepo}）の中です。親のリポジトリの中のフォルダとして使います（変更・履歴・ワークツリーは、このフォルダの中だけ。コミットするまでワークツリーは作れません）。`
             : initGit
-              ? `${GIT_FEATURES}が使えます。`
+              ? `リポジトリとして初期化し、README で最初のコミットを作ります。${GIT_FEATURES}が使えます。`
               : `git で管理しないと、${GIT_FEATURES}は使えません（あとから「git の管理を始める」で始められます）。`
         }
-        checked={initGit}
+        value={initGit}
         onChange={(checked) => {
           setInitGit(checked);
           setGitTouched(true);

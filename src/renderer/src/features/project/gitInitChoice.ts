@@ -1,9 +1,11 @@
 import type { FolderInspection } from "@shared/types";
 import { GIT_FEATURES } from "./GitInitNotice";
 
-/** git の管理を始めるかのチェックの文（label）と、チェックの状態ごとの説明（help） */
+/** git の管理を始めるかのチェックの文（label）、ボタンの組の短い名前（on = 始める / off = 始めない）と、選んだ方ごとの説明（help） */
 export interface GitInitChoice {
   label: string;
+  on: string;
+  off: string;
   help: (checked: boolean) => string;
 }
 
@@ -23,6 +25,8 @@ export function gitInitChoice(info: FolderInspection): GitInitChoice | null {
     if (info.parent_tracked) return null;
     return {
       label: "このフォルダで新しく git の管理を始める（親のリポジトリとは別のリポジトリにする）",
+      on: "このフォルダで新しく始める",
+      off: "親のリポジトリの中で使う",
       help: (checked) =>
         checked
           ? `このフォルダをリポジトリとして初期化し、最初のコミットを作ります。親のリポジトリ（${info.git_root}）からは、このフォルダが別のリポジトリに見えます。${COMMIT_ALL}`
@@ -32,6 +36,22 @@ export function gitInitChoice(info: FolderInspection): GitInitChoice | null {
   if (info.is_git && info.has_commits) return null;
   return {
     label: info.is_git ? "git の管理を始める（既存のファイルで最初のコミットを作成する）" : "git の管理を始める（リポジトリとして初期化し、既存のファイルで最初のコミットを作成する）",
+    on: "git の管理を始める",
+    off: "始めない",
     help: (checked) => (checked ? COMMIT_ALL : `始めないと、${GIT_FEATURES}は使えません（あとから「git の管理を始める」で始められます）。チャットは使えます。`),
   };
+}
+
+/**
+ * もう git で管理されていて、始めるかを選ばないフォルダの案内（gitInitChoice が null のときの、git の欄に出す文。どちらでもなければ null）。
+ * コミットのあるリポジトリの一番上・親のリポジトリがこの中のファイルを管理しているフォルダ
+ */
+export function gitManagedNote(info: FolderInspection): string | null {
+  if (!info.exists || !info.is_directory || !info.is_git) return null;
+  if (info.git_root !== info.path) {
+    return info.parent_tracked
+      ? `親のリポジトリ（${info.git_root}）で git の管理をしています。そのまま、このフォルダの中だけを扱います（別のリポジトリにはできません）。`
+      : null;
+  }
+  return info.has_commits ? `すでに git で管理されています（ブランチ: ${info.branch ?? "不明"}）。そのまま使います。` : null;
 }
