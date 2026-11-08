@@ -124,6 +124,8 @@ export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:active
 export const ALL_PROJECTS_BOARD_COLUMNS = defineSetting("kickoff:board-columns-all", choice(["state", "groups", "none"], "state"));
 /** グループの列の中を、状態（作業中・回答待ち・未読・既読）で小分けにするか（全プロジェクトのボードの列の「状態」と「グループ」の両方オン = グループ×状態） */
 export const BOARD_GROUPS_BY_STATE = defineSetting("kickoff:board-groups-by-state", flag());
+/** プロジェクトのボードのリスト表示を、状態（作業中・回答待ち・未読・既読）で分けずに 1 つの並びにするか（初めは状態で分ける。ボード・表はいつも状態で分ける） */
+export const PROJECT_LIST_FLAT = defineSetting("kickoff:board-list-flat", flag());
 /** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる / table = 表。すべてのボードで共通） */
 export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list", "table"], "board"));
 /** ボードを段（スイムレーン）に分けるか（ボード・リストで共通。分け方は PROJECT_BOARD_LANES・ALL_PROJECTS_BOARD_LANES） */
