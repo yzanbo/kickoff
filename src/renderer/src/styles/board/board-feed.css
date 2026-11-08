@@ -30,6 +30,7 @@
   min-width: 0;
 }
 
+/* 状態の札（ToneChip。列の見出しと同じ色）と「未読あり」。右端に寄せる */
 .feed-card-state {
   display: inline-flex;
   flex: none;
@@ -37,8 +38,11 @@
   gap: 5px;
   margin-left: auto;
   font-size: 11px;
-  color: var(--muted);
   white-space: nowrap;
+}
+
+.feed-card-state .tone-chip {
+  font-size: 11px;
 }
 
 .feed-card-head .card-time {

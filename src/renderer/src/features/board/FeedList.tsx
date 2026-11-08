@@ -12,7 +12,7 @@ import { WorktreeChip } from "@/features/worktree/WorktreeChip";
 import { formatFullDateTime, relativeTime } from "@/lib/time";
 import { ArchivedFold, splitArchived } from "@/ui/ArchivedFold";
 import { EmptyState } from "@/ui/EmptyState";
-import { StatusDot } from "@/ui/StatusDot";
+import { ToneChip } from "@/ui/ToneChip";
 import { feedPlainText } from "./feed";
 
 /**
@@ -70,9 +70,9 @@ export function FeedCardContent({ chat, item, state, projectName, rename }: { ch
         <GroupChip chat={chat} />
         <WorktreeChip chat={chat} />
         {chat.archived_at && <span className="archived-chip">アーカイブ済み</span>}
+        {/* 状態はボードの列の見出しと同じ色の札（利用者の依頼。前は点と文だけ） */}
         <span className="feed-card-state">
-          <StatusDot color={STATE_TONE[state]} />
-          {AGENT_STATE_LABELS[state]}
+          <ToneChip tone={STATE_TONE[state]} dot label={AGENT_STATE_LABELS[state]} />
           {busyWithUnread(chat, state) && <span className="card-unread">未読あり</span>}
         </span>
         <span className="card-time" title={formatFullDateTime(item.created_at)}>
