@@ -1,4 +1,4 @@
-import { Folder, GitBranch } from "lucide-react";
+import { Folder, FolderGit2, GitBranch, Square, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { useFolds } from "@/hooks/useFold";
@@ -9,6 +9,7 @@ import type { PROJECT_BOARD_LANES } from "@/lib/storageKeys";
 import { WORKPLACE_KIND_LABELS } from "@/features/worktree/workplace";
 import type { ChatBucket } from "@/features/chatList/buckets";
 import { FoldHead } from "@/ui/FoldHead";
+import { Segmented } from "@/ui/Segmented";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 
 /**
@@ -23,20 +24,39 @@ export const BOARD_LANE_LABELS: Record<BoardLane, string> = {
   project: "プロジェクト",
 };
 
+/** ボタンに出す短い名前 */
+const BOARD_LANE_SHORT_LABELS: Record<BoardLane, string> = {
+  group: "グループ",
+  worktree: "作業場所",
+  project: "プロジェクト",
+};
+
+/** 段の分け方のボタンのアイコン（グループ = フォルダ・作業場所 = ブランチ・プロジェクト = プロジェクトの印。分けない = 1 つのまとまり） */
+const LANE_ICONS: Record<BoardLane | "none", LucideIcon> = {
+  none: Square,
+  group: Folder,
+  worktree: GitBranch,
+  project: FolderGit2,
+};
+
 /**
- * ボードの見出しの段の分け方の選択（「段: 分けない / グループ / 作業場所 / プロジェクト」。ボード・リストで共通）。
- * value は段に分けていなければ "none"
+ * ボードのツールバーの段の分け方の切り替え（「分けない / グループ / 作業場所 / プロジェクト」のボタンの組。ボード・リストで共通）。
+ * value は段に分けていなければ "none"。前は「段: …」の選択欄だったが、利用者の依頼で列の分け方と同じボタンの組にした
  */
 export function LaneSelect({ value, options, onChange }: { value: BoardLane | "none"; options: readonly BoardLane[]; onChange: (value: BoardLane | "none") => void }) {
   return (
-    <select className="board-filter" aria-label="段の分け方" title="段（スイムレーン）の分け方" value={value} onChange={(e) => onChange(e.target.value as BoardLane | "none")}>
-      <option value="none">段: 分けない</option>
-      {options.map((l) => (
-        <option key={l} value={l}>
-          段: {BOARD_LANE_LABELS[l]}
-        </option>
-      ))}
-    </select>
+    <Segmented<BoardLane | "none">
+      className="view-toggle"
+      label="段（スイムレーン）の分け方"
+      value={value}
+      onChange={onChange}
+      options={(["none", ...options] as const).map((l) => ({
+        value: l,
+        label: l === "none" ? "分けない" : BOARD_LANE_SHORT_LABELS[l],
+        icon: LANE_ICONS[l],
+        tip: l === "none" ? "段（スイムレーン）に分けない" : `${BOARD_LANE_LABELS[l]}ごとの段（スイムレーン）に分ける`,
+      }))}
+    />
   );
 }
 

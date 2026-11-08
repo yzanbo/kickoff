@@ -30,8 +30,8 @@ export function useWorktreeChoices(chats: Chat[]) {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-/** カンバン（列 = 状態）で選べる段の分け方 */
-const KANBAN_LANES: BoardLane[] = ["group", "worktree", "project"];
+/** カンバン（列 = 状態）で選べる段の分け方（ボタンの並び順。全プロジェクトは プロジェクト → 作業場所、プロジェクトのボードは グループ → 作業場所） */
+const KANBAN_LANES: BoardLane[] = ["group", "project", "worktree"];
 
 /**
  * スイムレーンの段の分け方。プロジェクトで分けるのは全プロジェクトのボード、グループで分けるのはプロジェクトのボードだけ。
