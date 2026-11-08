@@ -22,8 +22,6 @@ export type BoardViewState = {
   sort: ChatSort;
   /** 表で隠す列 */
   hidden: readonly string[];
-  /** リストの行を 1 行にまとめるか */
-  compact: boolean;
   archive: (typeof VIEW_ARCHIVES)[number];
 };
 
@@ -42,14 +40,14 @@ export function parseViewState(value: unknown): BoardViewState | undefined {
   const sort = parseChatSort(v.sort);
   if (!oneOf(VIEW_KINDS, v.view) || !oneOf(VIEW_LANES, v.lanes) || !oneOf(VIEW_ARCHIVES, v.archive) || !sort) return undefined;
   if (v.columns !== undefined && !oneOf(VIEW_COLUMNS, v.columns)) return undefined;
-  if (!Array.isArray(v.hidden) || typeof v.compact !== "boolean") return undefined;
+  // 前の版のビューのリストの行（compact）は読まない（リストの行はいつも 1 行になった）
+  if (!Array.isArray(v.hidden)) return undefined;
   return {
     view: v.view,
     lanes: v.lanes,
     ...(v.columns === undefined ? {} : { columns: v.columns }),
     sort,
     hidden: v.hidden.filter((h): h is string => typeof h === "string"),
-    compact: v.compact,
     archive: v.archive,
   };
 }
@@ -65,7 +63,7 @@ export function parseSavedViews(list: readonly { id: string; name: string; state
 const sameSet = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
 /**
- * いまの見え方が保存したビューと同じか（選んでいるビューの印）。表の列は表のとき、リストの行はリストのときだけ比べる
+ * いまの見え方が保存したビューと同じか（選んでいるビューの印）。表の列は表のときだけ比べる
  * （ほかの表示では見えないので、違っていても同じビューとみなす）。列の分け方を持たないビュー（前の版のプロジェクトのボードのもの）は列の分け方を比べない
  */
 export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
@@ -75,8 +73,7 @@ export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
     (a.columns === undefined || b.columns === undefined || a.columns === b.columns) &&
     a.archive === b.archive &&
     sameChatSort(a.sort, b.sort) &&
-    (a.view !== "table" || sameSet(a.hidden, b.hidden)) &&
-    (a.view !== "list" || a.compact === b.compact)
+    (a.view !== "table" || sameSet(a.hidden, b.hidden))
   );
 }
 

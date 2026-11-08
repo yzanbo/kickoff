@@ -143,8 +143,6 @@ export const ALL_PROJECTS_SAVED_VIEWS = defineSetting("kickoff:board-views-all",
 export const PROJECT_SAVED_VIEWS = defineSetting("kickoff:board-views", json(parseStoredViews, NO_VIEWS, (v) => v.length === 0));
 /** 全プロジェクトのボードをフィード（チャットごとの最新の返答を新しい順に並べる）で見るか（ボード・リスト・表の BOARD_VIEW とは別に覚える） */
 export const ALL_PROJECTS_FEED = defineSetting("kickoff:board-feed-all", flag());
-/** ボードのリスト表示の行を 1 行にまとめるか（すべてのボードで共通。初めは 2 行） */
-export const BOARD_LIST_COMPACT = defineSetting("kickoff:board-list-compact", flag());
 /** プロジェクトのボードの段の分け方（group = グループ / worktree = 作業場所 / project = プロジェクト） */
 export const PROJECT_BOARD_LANES = defineSetting("kickoff:board-lanes", choice(["group", "worktree", "project"], "worktree"));
 /** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える。初めはプロジェクト別） */

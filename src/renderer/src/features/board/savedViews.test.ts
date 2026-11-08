@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { activeView, addView, parseSavedViews, parseViewState, removeView, renameView, replaceViewState, sameViewState, viewNameTaken, type BoardViewState, type SavedView } from "./savedViews";
 
-const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, hidden: ["created"], compact: false, archive: "all" };
+const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, hidden: ["created"], archive: "all" };
 const view = (id: string, state: Partial<BoardViewState> = {}): SavedView => ({ id, name: `v${id}`, state: { ...base, ...state } });
 
 test("parseViewState: 合う形だけ読み、合わない項目があれば捨てる", () => {
@@ -21,11 +21,10 @@ test("parseViewState: 合う形だけ読み、合わない項目があれば捨�
   );
 });
 
-test("sameViewState: 表の列は表のとき、リストの行はリストのときだけ比べる", () => {
-  assert.equal(sameViewState(base, { ...base, hidden: [], compact: true }), true);
+test("sameViewState: 表の列は表のときだけ比べる", () => {
+  assert.equal(sameViewState(base, { ...base, hidden: [] }), true);
   assert.equal(sameViewState({ ...base, view: "table" }, { ...base, view: "table", hidden: [] }), false);
   assert.equal(sameViewState({ ...base, view: "table", hidden: ["a", "b"] }, { ...base, view: "table", hidden: ["b", "a"] }), true);
-  assert.equal(sameViewState({ ...base, view: "list" }, { ...base, view: "list", compact: true }), false);
   assert.equal(sameViewState(base, { ...base, sort: { key: "title", dir: "asc" } }), false);
   assert.equal(sameViewState(base, { ...base, lanes: "none" }), false);
 });
@@ -55,4 +54,9 @@ test("sameViewState: 列の分け方を持たないビュー（前の版のプ�
   const { columns: _, ...old } = base;
   assert.equal(sameViewState(old, { ...base, columns: "groups" }), true);
   assert.equal(sameViewState({ ...base, columns: "state" }, { ...base, columns: "groupsState" }), false);
+});
+
+test("parseViewState: 前の版のリストの行（compact）が入ったビューも読み、その値は捨てる", () => {
+  assert.deepEqual(parseViewState({ ...base, compact: true }), base);
+  assert.deepEqual(parseViewState({ ...base, compact: undefined }), base);
 });
