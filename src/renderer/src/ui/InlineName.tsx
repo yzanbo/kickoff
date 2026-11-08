@@ -1,5 +1,5 @@
 import { Check, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { isCancelKey, isComposing } from "@/lib/keys";
 import { IconButton } from "./IconButton";
 
@@ -11,18 +11,25 @@ interface Props {
   maxLength?: number;
   /** 入力欄のすぐ右に添える文（メモの拡張子など。名前には含めない） */
   suffix?: string;
+  /** 書いた名前を使えないときの理由（使えるなら null）。理由があれば欄の下に出し、Enter・✓ では決めない（フォーカスを外すと取り消し） */
+  validate?: (name: string) => string | null;
   onSubmit: (name: string) => void;
   onCancel: () => void;
 }
 
 /**
  * その場で名前を入力・変更する欄（Enter・フォーカスを外すと決定、Esc で取り消し）。
- * 横の ✓ / ✕ でも決定・取り消しできる（押しても入力欄からフォーカスが外れないようにして、二重に動かない）
+ * 横の ✓ / ✕ でも決定・取り消しできる（押しても入力欄からフォーカスが外れないようにして、二重に動かない）。
+ * validate があれば書くたびに確かめ、使えない名前なら理由を欄の下に出して決めさせない（同じ名前のビューなど）
  */
-export function InlineName({ initial = "", placeholder, className, maxLength = 60, suffix, onSubmit, onCancel }: Props) {
+export function InlineName({ initial = "", placeholder, className, maxLength = 60, suffix, validate, onSubmit, onCancel }: Props) {
   const [value, setValue] = useState(initial);
+  // 元の名前のまま・空は決めても何も変えない（取り消しと同じ）ので確かめない
+  const trimmed = value.trim();
+  const error = validate && trimmed && trimmed !== initial ? validate(trimmed) : null;
   const ref = useRef<HTMLInputElement>(null);
   const done = useRef(false);
+  const errorId = useId();
 
   useEffect(() => {
     ref.current?.focus();
@@ -31,9 +38,11 @@ export function InlineName({ initial = "", placeholder, className, maxLength = 6
 
   const finish = (submit: boolean) => {
     if (done.current) return;
+    // 使えない名前は、Enter・✓ では決めずに書き直してもらう（フォーカスを外したときは取り消しにする onBlur）
+    if (submit && error) return;
     done.current = true;
     const name = value.trim();
-    if (submit && name && name !== initial) onSubmit(name);
+    if (submit && name && name !== initial && !error) onSubmit(name);
     else onCancel();
   };
 
@@ -60,8 +69,15 @@ export function InlineName({ initial = "", placeholder, className, maxLength = 6
           finish(false);
         }
       }}
-      onBlur={() => finish(true)}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={error ? errorId : undefined}
+      onBlur={() => (error ? finish(false) : finish(true))}
     />
+    {error && (
+      <span id={errorId} className="inline-name-error" role="alert">
+        {error}
+      </span>
+    )}
     {suffix && <span className="inline-name-suffix">{suffix}</span>}
     <IconButton
       icon={Check}
@@ -70,6 +86,7 @@ export function InlineName({ initial = "", placeholder, className, maxLength = 6
       size={13}
       className="inline-name-ok"
       type="button"
+      disabled={Boolean(error)}
       onMouseDown={keepFocus}
       onClick={() => finish(true)}
     />

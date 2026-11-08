@@ -5,19 +5,21 @@ import { confirmDialog } from "@/ui/dialogs";
 import { InlineName } from "@/ui/InlineName";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { sameViewState, type SavedView } from "./savedViews";
+import { sameViewState, viewNameTaken, type SavedView } from "./savedViews";
 import { useSavedViews } from "./useSavedViews";
 
 /**
  * ツールバーの上の、保存したビューのタブ（Notion のビューを参考に）。押すとそのビューの見え方（表示・段・列の分け方・並び順・表の列・
  * リストの行・アーカイブ）を当て、いまの見え方に合うビューを選択中に見せる。「＋ ビューを保存」でいまの見え方に名前を付けて足し、
- * タブの右クリックで名前の変更・いまの見え方で上書き・削除。全プロジェクトのボードとプロジェクトのボードで別の一覧
+ * タブの右クリックで名前の変更・いまの見え方で上書き・削除。全プロジェクトのボードとプロジェクトのボードで別の一覧で、同じ一覧に同じ名前は付けられない
  */
 export function SavedViewTabs({ allProjects }: { allProjects: boolean }) {
   const saved = useSavedViews(allProjects);
   const menu = useContextMenu<SavedView>();
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string>();
+  /** 同じ一覧の同じ名前は付けられない（利用者の依頼。名前を変えるときはそのビュー自身を除く） */
+  const nameError = (exceptId?: string) => (name: string) => (viewNameTaken(saved.views, name, exceptId) ? `「${name}」というビューはもうあります` : null);
   const remove = async (view: SavedView) => {
     if (await confirmDialog({ title: `ビュー「${view.name}」を削除しますか？`, message: "表示の設定はいまのまま残ります。", confirmLabel: "削除", danger: true })) saved.remove(view.id);
   };
@@ -29,6 +31,7 @@ export function SavedViewTabs({ allProjects }: { allProjects: boolean }) {
             key={view.id}
             className="board-view-name"
             initial={view.name}
+            validate={nameError(view.id)}
             onSubmit={(name) => {
               saved.rename(view.id, name);
               setRenaming(undefined);
@@ -55,6 +58,7 @@ export function SavedViewTabs({ allProjects }: { allProjects: boolean }) {
         <InlineName
           className="board-view-name"
           placeholder="ビューの名前"
+          validate={nameError()}
           onSubmit={(name) => {
             saved.save(name);
             setAdding(false);

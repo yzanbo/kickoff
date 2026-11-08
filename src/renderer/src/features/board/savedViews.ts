@@ -80,6 +80,15 @@ export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
 /** いまの見え方に合う、いちばん前のビュー */
 export const activeView = (views: readonly SavedView[], current: BoardViewState) => views.find((v) => sameViewState(v.state, current));
 
+/** 名前を比べる形（前後の空白・全角半角・大文字小文字の違いは同じ名前とみなす） */
+const nameKey = (name: string) => name.trim().normalize("NFKC").toLowerCase();
+
+/**
+ * 同じ一覧にもう同じ名前のビューがあるか（利用者の依頼で同じ名前は付けられない）。名前を変えるときは、そのビュー自身は除く（exceptId）
+ */
+export const viewNameTaken = (views: readonly SavedView[], name: string, exceptId?: string): boolean =>
+  views.some((v) => v.id !== exceptId && nameKey(v.name) === nameKey(name));
+
 export const addView = (views: readonly SavedView[], view: SavedView): SavedView[] => [...views, view];
 
 export const renameView = (views: readonly SavedView[], id: string, name: string): SavedView[] => views.map((v) => (v.id === id ? { ...v, name } : v));

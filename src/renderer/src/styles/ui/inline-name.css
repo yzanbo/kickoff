@@ -2,6 +2,7 @@
 
 /* 名前をその場で変える（InlineName）。OK のボタンの色は .icon-button.inline-name-ok で .icon-button に勝たせ、乗せたときの色はあとの .icon-button:hover に任せる（このファイルを buttons-forms.css より前に読む。この順を変えない） */
 .inline-name-wrap {
+  position: relative;
   display: flex;
   flex: 1;
   align-items: center;
@@ -33,4 +34,29 @@ input[type="text"].inline-name {
   margin-right: 2px;
   font-size: 13px;
   color: var(--muted);
+}
+
+/* 使えない名前（InlineName の validate）: 入力欄の枠を赤くし、理由を欄のすぐ下に重ねて出す（並びの高さを変えない） */
+input[type="text"].inline-name[aria-invalid="true"] {
+  border-color: var(--ng);
+}
+
+/* ピントの枠（buttons-forms.css の input:focus のアクセントの色）も赤に。詳細度が高いので、あとの input:focus に負けない */
+input[type="text"].inline-name[aria-invalid="true"]:focus {
+  outline-color: color-mix(in srgb, var(--ng) 55%, transparent);
+}
+
+.inline-name-error {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  padding: 3px 8px;
+  border: 1px solid var(--ng);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--ng);
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }
