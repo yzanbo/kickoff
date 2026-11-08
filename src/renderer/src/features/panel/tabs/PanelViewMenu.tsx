@@ -15,10 +15,11 @@ import type { PanelController } from "@/features/panel/usePanel";
 import { usePanelViewReset } from "./usePanelViewReset";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { PANEL_TAB_GROUP_COLORS } from "@/lib/storageKeys";
+import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/sidebar/chatGroupings";
 
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
- * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・グループ別のときに出すグループ（HiddenGroupItems）・アーカイブ済みのチャットを出すか・チャット画面表示
+ * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・チャットの並び順（サイドバーと共通）・グループ別のときに出すグループ（HiddenGroupItems）・アーカイブ済みのチャットを出すか・チャット画面表示
  * （タブの列・見出し・指示の帯・会話の横幅と文字の大きさ・チャット欄。ChatDisplayItems。どのチャットでも共通）
  * を 1 つにまとめる（以前はそれぞれのアイコンが並び、タブの列の道具が多かった）。
  * チャットの画面の切り替えは、見出しを隠しても戻せるよう、見出しの外のここに置く。
@@ -30,6 +31,8 @@ export function usePanelViewMenu(panel: PanelController) {
   const { kinds } = panel;
   const [grouping, setGrouping] = useTabGrouping(panel.surface);
   const [archived, setArchived] = useShowArchivedChats();
+  // チャットの並び順はサイドバーと共通の 1 つの設定（利用者の依頼。一覧のペインのチャットのタブはサイドバーと同じ並びなので、どちらで選んでもそろう）
+  const { order, setOrder } = useChatLayout();
   const menu = useContextMenu();
   // いちばん下の「既定に戻す」（メニューに出ている選び方を初めの値に戻す。初めのままなら押せない）
   const defaults = usePanelViewReset(panel.surface, kinds.has("chat"));
@@ -83,6 +86,17 @@ export function usePanelViewMenu(panel: PanelController) {
           {/* まとめたまとまりの色（色付き / 色なし。まとまりの札の右クリックにも同じ項目）。まとめないときは効かないので出さない */}
           {grouping !== "none" && <BucketColorItem setting={PANEL_TAB_GROUP_COLORS} keepOpen />}
         </>,
+      ),
+    );
+    sections.push(
+      section(
+        "チャットの並び順",
+        CHAT_ORDERS.map((o) => (
+          <MenuItem key={o} role="menuitemradio" checked={o === order} title="サイドバーの「並び順」と共通の設定です" onSelect={() => setOrder(o)}>
+            <span className="project-switch-item">{ORDER_META[o].label}</span>
+            {o === order && <Check size={14} aria-hidden />}
+          </MenuItem>
+        )),
       ),
     );
     // グループ別のときだけ: タブの列に出すグループ（自分で作ったグループを隠す・チャットのないグループを隠す）
@@ -148,7 +162,7 @@ export function PanelViewButton({ view }: { view: PanelViewMenu }) {
       size={15}
       className={cx("panel-control", view.buttonClass)}
       label={label}
-      title={`${label}: 表示するタブ・チャットのまとめ方・アーカイブ済み・チャットの見出しや指示の帯など（タブの列の何もないところの右クリックでも開きます）`}
+      title={`${label}: 表示するタブ・チャットのまとめ方と並び順・アーカイブ済み・チャットの見出しや指示の帯など（タブの列の何もないところの右クリックでも開きます）`}
       aria-haspopup="menu"
       aria-expanded={view.isOpen}
       onClick={view.toggle}
