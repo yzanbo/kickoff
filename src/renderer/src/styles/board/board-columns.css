@@ -118,6 +118,8 @@
   border-radius: 10px;
   background: var(--bg-elev);
   box-shadow: 0 0 0 4px var(--bg);
+  /* 空いているところを押しても開閉する（BoardLanes） */
+  cursor: pointer;
 }
 
 .board-lane-head.lane-hued {

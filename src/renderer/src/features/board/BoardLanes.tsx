@@ -112,7 +112,7 @@ function useLaneTint(lanes: readonly ChatBucket<PanelDraft>[]): (lane: ChatBucke
 /**
  * ボードを段（スイムレーン）に分けて出す。段は bucketChats のまとまり（グループ・作業場所・プロジェクト。中の段が状態の列）で、
  * 段の中身（children: 下書きと状態の列・リストのまとまり）は呼ぶ側が描く。
- * 段は見出しで開閉でき、ボード（foldPlace）と段のまとまりのキーで覚える
+ * 段は見出しで開閉でき（名前だけでなく、見出しの空いているところを押しても）、ボード（foldPlace）と段のまとまりのキーで覚える
  */
 export function BoardLanes({
   lanes,
@@ -159,6 +159,11 @@ export function BoardLanes({
               look="lane"
               open={open}
               onToggle={() => folds.set(lane.key, !open)}
+              onClick={(e) => {
+                // 見出しの空いているところ（名前の右・「グループを作成」の右など）を押しても開閉する。中のボタン・入力欄（作成の欄）はそちらの動き
+                if ((e.target as HTMLElement).closest("button, a, input, select, textarea, .lane-group-create")) return;
+                folds.set(lane.key, !open);
+              }}
               label={<LaneTitle lane={lane} showProject={showProject} />}
               count={lane.chats.length}
               actions={actions?.(lane)}
