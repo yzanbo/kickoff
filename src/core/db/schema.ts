@@ -193,8 +193,16 @@ ALTER TABLE projects ADD COLUMN pre_compact_enabled INTEGER NOT NULL DEFAULT 1 C
 ALTER TABLE projects ADD COLUMN post_compact_enabled INTEGER NOT NULL DEFAULT 1 CHECK (post_compact_enabled IN (0, 1));
 `;
 
+/**
+ * v10: チャットの手動の並び（サイドバーの並び順「手動順」。プロジェクトの中の 1 つの並びで、まとまりの中はこの順に並べる）。
+ * null = まだ並べていない（新しいチャット。手動順ではまとまりのいちばん上）
+ */
+const SCHEMA_V10 = `
+ALTER TABLE chats ADD COLUMN position INTEGER;
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

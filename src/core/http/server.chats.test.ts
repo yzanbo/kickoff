@@ -129,6 +129,28 @@ test("チャット・グループの API", async () => {
   assert.equal(store.chats.get(chatId), undefined);
 });
 
+test("チャットの手動の並び: ids の順に position を振り、ほかのプロジェクトのチャットは無視する。最後に動いた時刻は進めない", async () => {
+  const { call, project, store } = setup();
+  const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
+  const a = store.chats.create({ project_id: project.id, provider: "claude", title: "a", status: "completed" });
+  const b = store.chats.create({ project_id: project.id, provider: "claude", title: "b", status: "completed" });
+  const c = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const x = store.chats.create({ project_id: other.id, provider: "claude", title: "x", status: "completed" });
+  // 新しいチャットはまだ並べていない
+  assert.equal(a.position, null);
+  const res = await call("PUT", `/api/projects/${project.id}/chats/order`, { ids: [c.id, x.id, a.id] });
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.map((r: { id: number }) => r.id), [c.id, a.id]);
+  assert.equal(store.chats.get(c.id)?.position, 0);
+  // ほかのプロジェクトのチャットは変えず、ids にないチャットもそのまま（番号は ids の中の位置）
+  assert.equal(store.chats.get(x.id)?.position, null);
+  assert.equal(store.chats.get(a.id)?.position, 2);
+  assert.equal(store.chats.get(b.id)?.position, null);
+  assert.equal(store.chats.get(a.id)?.active_at, a.active_at);
+  assert.equal((await call("PUT", `/api/projects/${project.id}/chats/order`, { ids: ["x"] })).status, 400);
+  assert.equal((await call("PUT", "/api/projects/999/chats/order", { ids: [] })).status, 404);
+});
+
 test("作業中のチャットはアーカイブ・削除できない（409）。断るときはほかの項目も変えない", async () => {
   const { call, project, runner, provider, store } = setup();
   const release = provider.hold();

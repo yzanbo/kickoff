@@ -96,6 +96,8 @@ export interface Chat {
   archived_at: string | null;
   /** サイドバーのプロジェクトの上に固定したか */
   pinned: boolean;
+  /** 手動の並び（サイドバーの並び順「手動順」。プロジェクトの中で小さいほど上。null = まだ並べていない新しいチャットで、手動順ではいちばん上） */
+  position: number | null;
   /** 自分で作ったグループ（null ならグループなし） */
   group_id: number | null;
   /** 作業場所（git のワークツリーのフォルダ。null ならプロジェクトのフォルダ＝本体） */

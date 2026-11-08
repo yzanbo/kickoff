@@ -24,6 +24,7 @@ export function makeChat(id: number, patch: Partial<Chat> = {}): Chat {
     unread: false,
     archived_at: null,
     pinned: false,
+    position: null,
     group_id: null,
     worktree_path: null,
     branch: null,
