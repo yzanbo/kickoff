@@ -57,6 +57,12 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
   });
 
   // チャットのやり取りのキーワード検索（⌘F）
+  // 手動の並び（サイドバーの並び順「手動順」）を ids の順にする。並べたチャットを並びの順に返す
+  app.put("/api/projects/:id/chats/order", withProject, async (c) => {
+    const { ids } = z.object({ ids: z.array(z.number().int()) }).parse(await jsonBody(c));
+    return c.json(store.chats.reorder(c.var.project.id, ids));
+  });
+
   app.get("/api/search", (c) => {
     const { q, project_id, chat_id, limit } = z
       .object({ q: z.string().max(1000).default(""), project_id: optionalId, chat_id: optionalId, limit: optionalId })

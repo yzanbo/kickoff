@@ -150,7 +150,9 @@ CREATE TABLE chats (
   -- v4: メモのチャット（memo_path = どのメモについてのチャットか。メモのフォルダからの相対パス。NULL = ふつうのチャット）
   memo_path TEXT CHECK (memo_path <> ''),
   -- v7: 親と一緒にアーカイブした子チャットの印（親を戻すとき、この印のある子孫だけを戻す。店の中だけで使い、Chat には出さない）
-  archived_with_parent INTEGER NOT NULL DEFAULT 0 CHECK (archived_with_parent IN (0, 1))
+  archived_with_parent INTEGER NOT NULL DEFAULT 0 CHECK (archived_with_parent IN (0, 1)),
+  -- v10: 手動の並び（サイドバーの並び順「手動」。プロジェクトの中の 1 本の並びで小さいほど上。NULL = まだ並べていない新しいチャットで、手動ではまとまりのいちばん上）
+  position INTEGER
 ) STRICT;
 -- v3: CREATE INDEX idx_chats_parent ON chats(parent_chat_id) WHERE parent_chat_id IS NOT NULL;
 -- v4: CREATE INDEX idx_chats_memo ON chats(project_id, memo_path) WHERE memo_path IS NOT NULL;

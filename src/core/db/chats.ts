@@ -193,6 +193,16 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     setUnread: (id: number, unread: boolean) => setColumn(id, "unread", bit(unread)),
     /** サイドバーの上に固定する・やめる */
     setPinned: (id: number, pinned: boolean) => setColumn(id, "pinned", bit(pinned)),
+    /**
+     * 手動の並び（サイドバーの並び順「手動順」）を ids の順にする（position = 何番目か。ほかのプロジェクトのチャットは無視し、
+     * ids にないチャットはそのまま）。最後に動いた時刻は進めない。変わったチャットだけ知らせ、ids のうちこのプロジェクトのチャットを並びの順に返す
+     */
+    reorder(projectId: number, ids: number[]): Chat[] {
+      const stmt = db.prepare("UPDATE chats SET position = ? WHERE id = ? AND project_id = ? AND position IS NOT ?");
+      const changed = ids.filter((id, i) => Number(stmt.run(i, id, projectId, i).changes) > 0);
+      for (const id of changed) onChange({ type: "chat", chat: get(id)! });
+      return ids.map(get).filter((c): c is Chat => c?.project_id === projectId);
+    },
     /** チャットをグループへ移す（null でグループから外す。同じプロジェクトのグループだけ: トリガーで守る） */
     setGroup: (id: number, groupId: number | null) => setColumn(id, "group_id", groupId),
     /**
