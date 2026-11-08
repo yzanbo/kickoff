@@ -41,6 +41,15 @@ export function uniqueMemoName(base: string, taken: Iterable<string>): string {
 }
 
 /**
+ * プロジェクトのメモのフォルダ名（設定の親フォルダの下）。base を使える名前にし、ほかのプロジェクト（except 以外で、別の場所 memo_path を指していないもの）の
+ * フォルダ名と重なれば「名前-2」。コアが初めてメモを使ったとき・新しいプロジェクトで決める名前と、画面の新しいプロジェクトのダイアログの見込みで同じ結果にする
+ */
+export function projectMemoFolder(base: string, projects: readonly { id: number; memo_folder: string | null; memo_path: string | null }[], except?: number): string {
+  const taken = projects.filter((p) => p.id !== except && !p.memo_path).flatMap((p) => (p.memo_folder ? [p.memo_folder] : []));
+  return uniqueMemoName(safeMemoName(base), taken);
+}
+
+/**
  * チャットから作るメモの名前（「<チャット名> チャットメモ<n>」。n は同じフォルダにある同じチャット名のメモの番号の、いちばん大きいものの次。
  * 1 から）。names は同じフォルダのファイル名（拡張子なし）
  */

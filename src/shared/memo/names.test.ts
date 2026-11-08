@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { chatMemoName, defaultMemosFolderName, safeMemoName, uniqueMemoName } from "./names";
+import { chatMemoName, defaultMemosFolderName, projectMemoFolder, safeMemoName, uniqueMemoName } from "./names";
 
 test("safeMemoName: ファイル名に使えない文字を置き換え、隠しファイルにしない", () => {
   assert.equal(safeMemoName("a/b:c\\d"), "a-b-c-d");
@@ -29,4 +29,15 @@ test("chatMemoName: 同じチャットのメモの次の番号", () => {
   // 名前に使えない文字はそろえてから比べる。空白はそのまま
   assert.equal(chatMemoName("a/b", ["a-b チャットメモ2"]), "a-b チャットメモ3");
   assert.equal(chatMemoName("機能  開発", []), "機能 開発 チャットメモ1");
+});
+
+test("projectMemoFolder: 使える名前にし、ほかのプロジェクト（別の場所を指すもの・自分を除く）のフォルダ名と重なれば「名前-2」", () => {
+  const projects = [
+    { id: 1, memo_folder: "app", memo_path: null },
+    { id: 2, memo_folder: "App-2", memo_path: "/elsewhere" },
+    { id: 3, memo_folder: null, memo_path: null },
+  ];
+  assert.equal(projectMemoFolder("a/b", projects), "a-b");
+  assert.equal(projectMemoFolder("app", projects), "app-2");
+  assert.equal(projectMemoFolder("app", projects, 1), "app");
 });

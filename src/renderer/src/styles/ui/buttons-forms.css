@@ -195,6 +195,13 @@ select:focus {
   gap: 8px;
 }
 
+/* 自動で決まる値を見せるだけの欄（新しいプロジェクトのメモの保存先。「変更…」で書ける欄に替わる） */
+.input-row input.memo-dir-auto {
+  color: var(--muted);
+  background: transparent;
+  text-overflow: ellipsis;
+}
+
 .check {
   display: flex;
   align-items: flex-start;
