@@ -37,8 +37,21 @@ const CHECK_COMMANDS = [
 export const CHAT_POLICY: ChatPolicy = { allowedCommands: [...GIT_READ, ...CHECK_COMMANDS], web: true };
 
 /**
+ * 利用者がプロジェクトフォルダのことを指して言う呼び名（利用者の依頼。「ホーム」「ルート」もこのプロジェクトのプロジェクトフォルダのことで、
+ * macOS のホーム（~）・ディスクのいちばん上（/）ではない。メモ・メモフォルダと同じく、ファイルの場所を言われたときの起点にしてもらう）
+ */
+const PROJECT_FOLDER_WORDS = [
+  "プロジェクトフォルダ",
+  "プロジェクトディレクトリ",
+  "ルートフォルダ",
+  "ルートディレクトリ",
+  "ホームフォルダ",
+  "ホームディレクトリ",
+] as const;
+
+/**
  * プロバイダーのシステムプロンプトに追記するプロジェクト文脈。
- * 言葉は画面とそろえる: プロジェクトフォルダ（プロジェクトの repo_path）・作業フォルダ（workdir。ワークツリーで作業するチャットはそのフォルダ）・メモフォルダ（memo.dir）。
+ * 言葉は画面とそろえる: プロジェクトフォルダ（プロジェクトの repo_path。呼び名は PROJECT_FOLDER_WORDS）・作業フォルダ（workdir。ワークツリーで作業するチャットはそのフォルダ）・メモフォルダ（memo.dir）。
  * git で管理していないフォルダ・git のリポジトリの中のフォルダもあるので「リポジトリ」とは呼ばない。送るたびに作り直すので、フォルダを変えたら次の指示から新しい場所が伝わる
  */
 export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string | null }): string {
@@ -48,7 +61,7 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     ``,
     `## プロジェクト`,
     `- 名前: ${project.name}`,
-    `- プロジェクトフォルダ: ${project.repo_path}（利用者が「プロジェクトフォルダ」と言ったら、このフォルダのこと）`,
+    `- プロジェクトフォルダ: ${project.repo_path}（利用者が${PROJECT_FOLDER_WORDS.map((w) => `「${w}」`).join("")}と言ったら、このフォルダのこと。「ルートの README」「ホームディレクトリの src」のようにファイルの場所を言われたら、このフォルダからの場所として探してください${workdir !== project.repo_path ? "（読み書きは作業フォルダの中の同じ場所で）" : ""}）`,
     workdir !== project.repo_path
       ? `- 作業フォルダ: ${workdir}（このチャットはワークツリーで作業しています。ファイルの読み書き・コマンドはこの作業フォルダで行い、プロジェクトフォルダ（本体）は変えないでください）`
       : `- 作業フォルダ: プロジェクトフォルダと同じ`,

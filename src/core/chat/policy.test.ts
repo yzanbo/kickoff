@@ -33,11 +33,14 @@ test("指示はセクション・タスク・成果物に触れず、プロジ�
 test("フォルダ: プロジェクトフォルダと作業フォルダを呼び名つきで伝え、ワークツリーのチャットは作業フォルダで作業してプロジェクトフォルダは変えないよう伝える", () => {
   const p = project();
   const prompt = buildSystemPrompt(p, "/tmp/a-worktrees/x");
-  assert.ok(prompt.includes("- プロジェクトフォルダ: /tmp/a（利用者が「プロジェクトフォルダ」と言ったら、このフォルダのこと）"));
+  assert.ok(prompt.includes("- プロジェクトフォルダ: /tmp/a（利用者が「プロジェクトフォルダ」「プロジェクトディレクトリ」「ルートフォルダ」「ルートディレクトリ」「ホームフォルダ」「ホームディレクトリ」と言ったら、このフォルダのこと。"));
+  // ファイルの場所の起点にしてもらう。ワークツリーのチャットは、読み書きを作業フォルダの同じ場所で
+  assert.ok(prompt.includes("このフォルダからの場所として探してください（読み書きは作業フォルダの中の同じ場所で）"));
   assert.ok(prompt.includes("- 作業フォルダ: /tmp/a-worktrees/x（このチャットはワークツリーで作業しています"));
   // 本体で作業するチャットは、作業フォルダ = プロジェクトフォルダ
   const main = buildSystemPrompt(p);
   assert.ok(main.includes("- 作業フォルダ: プロジェクトフォルダと同じ"));
+  assert.ok(main.includes("このフォルダからの場所として探してください）"));
   // 途中で変わることがあるので、ここに書いた場所を使うよう伝える（送るたびに作り直す）
   assert.ok(main.includes("ここに書いた場所がいまの場所です"));
   assert.ok(buildSystemPrompt({ ...p, repo_path: "/tmp/b" }).includes("- プロジェクトフォルダ: /tmp/b"));
