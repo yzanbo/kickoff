@@ -33,6 +33,22 @@ function parseSortPair(value: unknown): SortPair | null | undefined {
   return typeof key === "string" && (dir === "asc" || dir === "desc") ? { key, dir } : undefined;
 }
 
+/** 保存したボードのビュー（中身の state が使えるかは読む側で確かめる） */
+interface StoredView {
+  id: string;
+  name: string;
+  state: Readonly<Record<string, unknown>>;
+}
+
+const NO_VIEWS: readonly StoredView[] = [];
+
+function parseStoredViews(value: unknown): readonly StoredView[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter(
+    (v: Partial<StoredView> | null): v is StoredView => !!v && typeof v.id === "string" && typeof v.name === "string" && typeof v.state === "object" && v.state !== null,
+  );
+}
+
 /** 保存した子チャットからの依頼の出どころを読む（形が合わなければ null） */
 function parseHandoffFrom(value: unknown): HandoffFrom | null {
   if (typeof value !== "object" || value === null) return null;
@@ -119,6 +135,12 @@ export const BOARD_SPLIT = defineSetting("kickoff:board-split", flag());
 export const BOARD_SORT = defineSetting("kickoff:board-sort", json(parseSortPair, null, (v) => v === null));
 /** ボードの表で隠す列（features/board/chatSort.ts の CHAT_SORT_KEYS の名前。すべてのボードで共通。初めは作成日を隠す） */
 export const BOARD_TABLE_HIDDEN = defineSetting("kickoff:board-table-hidden", list(["created"]));
+/**
+ * 保存したボードのビュー（表示・段・列の分け方・並び順・表の列・リストの行・アーカイブの絞り込みの組に名前を付けたもの。features/board/savedViews.ts）。
+ * 全プロジェクトのボードとプロジェクトのボード（すべてのプロジェクトで共通）で別に覚える
+ */
+export const ALL_PROJECTS_SAVED_VIEWS = defineSetting("kickoff:board-views-all", json(parseStoredViews, NO_VIEWS, (v) => v.length === 0));
+export const PROJECT_SAVED_VIEWS = defineSetting("kickoff:board-views", json(parseStoredViews, NO_VIEWS, (v) => v.length === 0));
 /** ボードのリスト表示の行を 1 行にまとめるか（すべてのボードで共通。初めは 2 行） */
 export const BOARD_LIST_COMPACT = defineSetting("kickoff:board-list-compact", flag());
 /** プロジェクトのボードの段の分け方（group = グループ / worktree = 作業場所 / project = プロジェクト） */

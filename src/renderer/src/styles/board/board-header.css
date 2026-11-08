@@ -200,3 +200,54 @@
 .board-loading {
   margin: 0 0 8px;
 }
+
+/* ツールバーの上の、保存したビューのタブ（SavedViewTabs）。選択中は地の色、「＋ ビューを保存」は控えめな文字のボタン */
+.board-views {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 0 0 6px;
+}
+
+.board-view-tab,
+.board-view-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.board-view-tab:hover,
+.board-view-add:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.board-view-tab.active {
+  border-color: var(--border-strong);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.board-view-add {
+  padding: 0 8px;
+  color: var(--extra-muted);
+}
+
+.board-views .inline-name-wrap {
+  flex: none;
+}
+
+.board-views .board-view-name {
+  width: 160px;
+}

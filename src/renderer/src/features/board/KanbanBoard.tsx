@@ -19,6 +19,7 @@ import { LaneSelect } from "./BoardLanes";
 import { KanbanBody } from "./KanbanBody";
 import { SortMenuButton, TableColumnsButton, useTableColumns } from "./BoardSortTools";
 import { useChatSort } from "./useChatSort";
+import { SavedViewTabs } from "./SavedViewTabs";
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { useKanbanChats } from "./useKanbanChats";
@@ -231,7 +232,7 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   );
 
   return (
-    <BoardShell header={header} error={error ?? loadError} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError}>
+    <BoardShell views={<SavedViewTabs allProjects={allProjects} />} header={header} error={error ?? loadError} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : (
