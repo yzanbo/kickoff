@@ -14,7 +14,10 @@ export type BoardViewState = {
   view: (typeof VIEW_KINDS)[number];
   /** 段の分け方（分けないなら none） */
   lanes: (typeof VIEW_LANES)[number];
-  /** 列の分け方（全プロジェクトのボードだけ。プロジェクトのボードは undefined） */
+  /**
+   * 列の分け方（全プロジェクトのボードは state / groups / groupsState / none、プロジェクトのボードは state / groups / groupsState。
+   * 前の版で保存したプロジェクトのボードのビューにはない（undefined。比べず、当てても変えない））
+   */
   columns?: (typeof VIEW_COLUMNS)[number];
   sort: ChatSort;
   /** 表で隠す列 */
@@ -63,13 +66,13 @@ const sameSet = (a: readonly string[], b: readonly string[]) => a.length === b.l
 
 /**
  * いまの見え方が保存したビューと同じか（選んでいるビューの印）。表の列は表のとき、リストの行はリストのときだけ比べる
- * （ほかの表示では見えないので、違っていても同じビューとみなす）
+ * （ほかの表示では見えないので、違っていても同じビューとみなす）。列の分け方を持たないビュー（前の版のプロジェクトのボードのもの）は列の分け方を比べない
  */
 export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
   return (
     a.view === b.view &&
     a.lanes === b.lanes &&
-    a.columns === b.columns &&
+    (a.columns === undefined || b.columns === undefined || a.columns === b.columns) &&
     a.archive === b.archive &&
     sameChatSort(a.sort, b.sort) &&
     (a.view !== "table" || sameSet(a.hidden, b.hidden)) &&

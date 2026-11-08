@@ -238,7 +238,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allD
   );
 
   return (
-    <BoardShell views={<SavedViewTabs allProjects={allProjects} />} header={header} error={error ?? loadError ?? (feed ? feedData.error : undefined)} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError}>
+    <BoardShell views={<SavedViewTabs projectId={projectId} />} header={header} error={error ?? loadError ?? (feed ? feedData.error : undefined)} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : feed ? (

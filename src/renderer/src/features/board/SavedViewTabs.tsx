@@ -11,10 +11,11 @@ import { useSavedViews } from "./useSavedViews";
 /**
  * ツールバーの上の、保存したビューのタブ（Notion のビューを参考に）。押すとそのビューの見え方（表示・段・列の分け方・並び順・表の列・
  * リストの行・アーカイブ）を当て、いまの見え方に合うビューを選択中に見せる。「＋ ビューを保存」でいまの見え方に名前を付けて足し、
- * タブの右クリックで名前の変更・いまの見え方で上書き・削除。全プロジェクトのボードとプロジェクトのボードで別の一覧で、同じ一覧に同じ名前は付けられない
+ * タブの右クリックで名前の変更・いまの見え方で上書き・削除。全プロジェクトのボード（projectId なし）とプロジェクトのボード（カンバン・グループのボード。
+ * すべてのプロジェクトで共通）で別の一覧で、同じ一覧に同じ名前は付けられない
  */
-export function SavedViewTabs({ allProjects }: { allProjects: boolean }) {
-  const saved = useSavedViews(allProjects);
+export function SavedViewTabs({ projectId }: { projectId?: number }) {
+  const saved = useSavedViews(projectId);
   const menu = useContextMenu<SavedView>();
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string>();

@@ -1,18 +1,30 @@
 import { useMemo } from "react";
+import { navigate } from "@/app/router";
 import { useSetting } from "@/hooks/useSetting";
-import { ALL_PROJECTS_FEED, ALL_PROJECTS_SAVED_VIEWS, BOARD_ARCHIVE_FILTER, BOARD_SORT, BOARD_TABLE_HIDDEN, PROJECT_SAVED_VIEWS } from "@/lib/storageKeys";
+import {
+  ALL_PROJECTS_FEED,
+  ALL_PROJECTS_SAVED_VIEWS,
+  BOARD_ARCHIVE_FILTER,
+  BOARD_SORT,
+  BOARD_TABLE_HIDDEN,
+  GROUP_BOARD_ARCHIVE_FILTER,
+  PROJECT_SAVED_VIEWS,
+} from "@/lib/storageKeys";
 import { useArchiveFilter } from "./archiveFilter";
-import { useAllProjectsColumns, useGroupsByState } from "./BoardColumnsToggle";
+import { useAllProjectsColumns, useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useBoardListCompact, useBoardView } from "./BoardHeader";
 import { DEFAULT_CHAT_SORT, parseChatSort, sameChatSort } from "./chatSort";
 import { activeView, addView, parseSavedViews, removeView, renameView, replaceViewState, type BoardViewState } from "./savedViews";
 import { useKanbanLanes } from "./useKanbanFilters";
 
 /**
- * 保存したビュー（全プロジェクトのボードとプロジェクトのボードで別の一覧）と、いまの見え方・当てる操作。
- * 見え方の設定（表示・段・列の分け方・並び順・表の列・リストの行・アーカイブ）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ
+ * 保存したビュー（全プロジェクトのボードとプロジェクトのボードで別の一覧。プロジェクトのボードの一覧はすべてのプロジェクトで共通）と、いまの見え方・当てる操作。
+ * 見え方の設定（表示・段・列の分け方・並び順・表の列・リストの行・アーカイブ）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ。
+ * projectId がなければ全プロジェクトのボード。プロジェクトのボードの列の分け方（状態 = カンバン / グループ・グループ×状態 = グループのボード）は
+ * 画面が分かれているので、当てるときはその画面へ移る。グループのボードは段がグループだけで、アーカイブの絞り込みも別の設定（GROUP_BOARD_ARCHIVE_FILTER）
  */
-export function useSavedViews(allProjects: boolean) {
+export function useSavedViews(projectId?: number) {
+  const allProjects = projectId === undefined;
   const [stored, setStored] = useSetting(allProjects ? ALL_PROJECTS_SAVED_VIEWS : PROJECT_SAVED_VIEWS);
   const views = useMemo(() => parseSavedViews(stored), [stored]);
 
@@ -22,14 +34,21 @@ export function useSavedViews(allProjects: boolean) {
   const [rawSort, setSort] = useSetting(BOARD_SORT);
   const [hidden, setHidden] = useSetting(BOARD_TABLE_HIDDEN);
   const [compact, setCompact] = useBoardListCompact();
-  const [archive, setArchive] = useArchiveFilter(BOARD_ARCHIVE_FILTER);
+  const [boardArchive, setBoardArchive] = useArchiveFilter(BOARD_ARCHIVE_FILTER);
+  const [groupArchive, setGroupArchive] = useArchiveFilter(GROUP_BOARD_ARCHIVE_FILTER);
   const [feed, setFeed] = useSetting(ALL_PROJECTS_FEED);
   const [byState, setByState] = useGroupsByState();
+  const [projectColumns] = useBoardColumns();
+  // プロジェクトのグループのボードを見ているか（列の分け方はいまの画面を ProjectPage が覚えたもの）
+  const onGroupBoard = !allProjects && projectColumns === "groups";
+  const archive = onGroupBoard ? groupArchive : boardArchive;
+  const columnsNow = allProjects ? columns : projectColumns;
 
   const current: BoardViewState = {
     view: allProjects && feed ? "feed" : view,
-    lanes: split ? lanes : "none",
-    ...(allProjects ? { columns: columns === "groups" && byState ? "groupsState" : columns } : {}),
+    // グループのボードの段はグループだけ（段の分け方の設定は使わない）
+    lanes: split ? (onGroupBoard ? "group" : lanes) : "none",
+    columns: columnsNow === "groups" && byState ? "groupsState" : columnsNow,
     sort: parseChatSort(rawSort) ?? DEFAULT_CHAT_SORT,
     hidden,
     compact,
@@ -44,19 +63,25 @@ export function useSavedViews(allProjects: boolean) {
       if (allProjects) setFeed(false);
       setView(state.view);
     }
+    const toGroups = state.columns === "groups" || state.columns === "groupsState";
+    if (toGroups) setByState(state.columns === "groupsState");
+    // プロジェクトのボードの列の分け方は画面を移る（前の版で列の分け方なしに保存したビューは、いまの画面のまま）
+    const toGroupBoard = !allProjects && (state.columns === undefined ? onGroupBoard : toGroups);
     if (state.lanes === "none") setSplit(false);
-    else if (laneOptions.includes(state.lanes)) {
+    else if (toGroupBoard) {
+      // グループのボードの段はグループだけ。ほかの段のビューは段の分け方を覚え直し、段に分ける
+      if (state.lanes !== "group" && laneOptions.includes(state.lanes)) setLanes(state.lanes);
+      setSplit(true);
+    } else if (laneOptions.includes(state.lanes)) {
       setLanes(state.lanes);
       setSplit(true);
     }
-    if (allProjects && state.columns) {
-      setColumns(state.columns === "groupsState" ? "groups" : state.columns);
-      if (state.columns === "groups" || state.columns === "groupsState") setByState(state.columns === "groupsState");
-    }
+    if (allProjects && state.columns) setColumns(state.columns === "groupsState" ? "groups" : state.columns);
     setSort(sameChatSort(state.sort, DEFAULT_CHAT_SORT) ? null : state.sort);
     setHidden(state.hidden);
     setCompact(state.compact);
-    setArchive(state.archive);
+    (toGroupBoard ? setGroupArchive : setBoardArchive)(state.archive);
+    if (!allProjects && state.columns !== undefined && toGroupBoard !== onGroupBoard) navigate({ name: "project", id: projectId, tab: toGroupBoard ? "groups" : "board" });
   };
 
   return {
