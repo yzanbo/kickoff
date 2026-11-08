@@ -50,3 +50,9 @@ test("viewNameTaken: 同じ一覧の同じ名前（前後の空白・全角半�
   assert.equal(viewNameTaken(views, "v1", "1"), false);
   assert.equal(viewNameTaken(views, "review", "1"), true);
 });
+
+test("sameViewState: 列の分け方を持たないビュー（前の版のプロジェクトのボードのもの）は列の分け方を比べない", () => {
+  const { columns: _, ...old } = base;
+  assert.equal(sameViewState(old, { ...base, columns: "groups" }), true);
+  assert.equal(sameViewState({ ...base, columns: "state" }, { ...base, columns: "groupsState" }), false);
+});

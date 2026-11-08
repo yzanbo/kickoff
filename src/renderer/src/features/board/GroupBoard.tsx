@@ -21,6 +21,7 @@ import { useBoardCards } from "./useBoardCards";
 import { useGroupBoard } from "./useGroupBoard";
 import { ChatTable } from "./ChatTable";
 import { SortMenuButton, TableColumnsButton, useTableColumns } from "./BoardSortTools";
+import { SavedViewTabs } from "./SavedViewTabs";
 import { useChatSort } from "./useChatSort";
 
 /** グループのボードの段の分け方（グループだけ） */
@@ -128,6 +129,7 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
   return (
     <BoardShell
       className="group-board"
+      views={<SavedViewTabs projectId={projectId} />}
       header={header}
       error={board.error}
       rightPanel={chats.rightPanel}
