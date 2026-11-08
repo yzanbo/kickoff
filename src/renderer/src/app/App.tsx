@@ -37,7 +37,6 @@ import { ProjectPage } from "@/features/project/page/ProjectPage";
 import { boardTabOf, openNewChat, RouteContext, routeProjectId, useHashRoute } from "./router";
 import { handleMainWindowMessage } from "./mainWindowMessages";
 import { subscribeWindowMessages } from "./windowBus";
-import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useChatHistory } from "./useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
@@ -92,8 +91,7 @@ export function App() {
   // 全プロジェクトの画面ではチャットを出さない（ターミナルとブラウザだけ。チャットはそのプロジェクトへ移って開く）
   const chat = useProjectChat(projectId ?? fallbackProject, { noChat: projectId === undefined });
   const bottomPanel = useBottomPanel(projectId ?? "all", terminalTargets(projects, projectId));
-  // チャット・新しいチャットの URL では、最後に見たボード（カンバン / グループのボード）のパネルで開く
-  const [boardColumns] = useBoardColumns();
+  // チャット・新しいチャットの URL では、プロジェクトのボードのパネルで開く
   // チャットを開く場所（ボードと分けた「チャット」タブ / ボードの右のパネル）
   const [chatPlacement] = useChatPlacement();
 
@@ -141,10 +139,8 @@ export function App() {
             // チャット・新しいチャットはプロジェクトのボードの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
             <ProjectPage
               id={route.name === "project" ? route.id : route.projectId}
-              // 最後に見たボードで開く（サイドバーのグループの＋から来たときは、グループのボードで始める）
-              tab={route.name === "project" ? route.tab : boardTabOf(route, boardColumns, chatPlacement)}
+              tab={route.name === "project" ? route.tab : boardTabOf(chatPlacement)}
               focus={route.name === "project" ? undefined : route}
-              highlightGroup={route.name === "project" ? route.group : undefined}
               openFile={route.name === "project" ? route.file : undefined}
               openMemo={route.name === "project" ? route.memo : undefined}
             />

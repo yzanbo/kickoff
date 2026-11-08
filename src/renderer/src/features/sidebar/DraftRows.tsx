@@ -21,7 +21,7 @@ function useDraftSelected(draft: PanelDraft): boolean {
   const [placement] = useChatPlacement();
   if (!draft.showing || draft.panel !== panelKey("board", draft.projectId)) return false;
   if (route.name !== "project" || route.id !== draft.projectId) return false;
-  return placement === "separate" ? route.tab === "chats" : route.tab === "board" || route.tab === "groups";
+  return placement === "separate" ? route.tab === "chats" : route.tab === "board";
 }
 
 /** プロジェクトの下書き（すべてのボード・チャット欄の分。どのグループに置くかは bucketChats で分ける。下書きが変わるまでは同じ配列） */

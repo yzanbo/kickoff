@@ -4,7 +4,7 @@ import type { Setting, SettingValue } from "@/lib/storage";
 import type { BOARD_ARCHIVE_FILTER } from "@/lib/storageKeys";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 
-/** アーカイブでの絞り込み（all: すべて / active: 未アーカイブ / archived: アーカイブ済み）。カンバンとグループのボードで共通 */
+/** アーカイブでの絞り込み（all: すべて / active: 未アーカイブ / archived: アーカイブ済み）。すべてのボードで共通 */
 export type ArchiveFilter = SettingValue<typeof BOARD_ARCHIVE_FILTER>;
 
 /**
@@ -16,7 +16,7 @@ export const linkedArchiveFilter = (shown: boolean, stored: ArchiveFilter): Arch
 /**
  * アーカイブでの絞り込み。サイドバー・右のパネルのタブと連動する（kickoff:sidebar-show-archived）: 「すべて」「アーカイブ済み」を選ぶと
  * どこでもアーカイブ済みを出し、「未アーカイブ」を選ぶとどこでも隠す（サイドバー・タブで切り替えても、ボードも同じになる）。
- * 「アーカイブ済みだけ」はボードの中だけの絞り込みとして、ボードごとに setting で覚える（カンバン・グループのボード）
+ * 「アーカイブ済みだけ」はボードの中だけの絞り込みとして、setting で覚える（BOARD_ARCHIVE_FILTER）
  */
 export function useArchiveFilter(setting: Setting<ArchiveFilter>): [ArchiveFilter, (value: ArchiveFilter) => void] {
   const [shown, setShown] = useShowArchivedChats();

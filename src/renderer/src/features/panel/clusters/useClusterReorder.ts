@@ -10,7 +10,7 @@ const isCustomGroup = (c: TabCluster): c is TabCluster & { projectId: number; gr
 
 /**
  * タブのまとまり（自分で作ったグループ）の札をドラッグして、グループの並びを入れ替える（同じプロジェクトの中だけ）。
- * 並びは DB のグループの並び（position）をそのまま変えるので、サイドバー・グループのボード・ほかのパネルの札もサーバーの知らせで同じ並びになる。
+ * 並びは DB のグループの並び（position）をそのまま変えるので、サイドバー・全プロジェクトのボードのグループの列・ほかのパネルの札もサーバーの知らせで同じ並びになる。
  * 並べ替えの線・薄くする見た目は、サイドバーのグループの並べ替えと同じ useReorder
  */
 export function useClusterReorder(clusters: TabCluster[] | null) {

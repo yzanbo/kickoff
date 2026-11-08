@@ -7,7 +7,7 @@ import { navigate, REOPEN_EVENT, type ReopenRoute } from "@/app/router";
  * URL が変わらない開き直し（閉じたパネルで同じチャットを押したときなど）も、イベントで受け取って開く。
  * 新しいチャットは開いたら URL からボード（tab。開いたボード・チャットタブ）に戻す（新しいチャットは押すたびに増えるので、ボードを開き直したときにもう 1 つ開かないように）
  */
-export function useBoardFocus(focus: ReopenRoute | undefined, open: (target: ReopenRoute) => void, tab: "board" | "groups" | "chats") {
+export function useBoardFocus(focus: ReopenRoute | undefined, open: (target: ReopenRoute) => void, tab: "board" | "chats") {
   const openRef = useRef(open);
   openRef.current = open;
   const focusKey = focus ? JSON.stringify(focus) : "";

@@ -116,17 +116,15 @@ export const COMMAND_PALETTE_TARGETS = defineSetting("kickoff:command-palette-ta
 /** ⌘⇧A（作業中・待ちのチャットの一覧）に、アーカイブ済みのプロジェクトのチャットも出すか */
 export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:active-chats-show-archived-projects", flag());
 
-// ボード（カンバン・グループ）
-/** プロジェクトのボードの列（state = 状態ごと / groups = 自分で作ったグループごと。ボードのタブを押したときに、最後に見た方を開く） */
-export const PROJECT_BOARD_COLUMNS = defineSetting("kickoff:board-columns", choice(["state", "groups"], "state"));
+// ボード（カンバン）
 /**
  * 全プロジェクトのボードの列（state = 状態ごと / groups = プロジェクトの段ごとにグループの列（ドラッグでグループを移す）/
  * none = 分けない。下書きもチャットも 1 つの並び（最近動いた順）にする）
  */
 export const ALL_PROJECTS_BOARD_COLUMNS = defineSetting("kickoff:board-columns-all", choice(["state", "groups", "none"], "state"));
-/** グループの列の中を、状態（作業中・回答待ち・未読・既読）で小分けにするか（列の分け方の「グループ×状態」。グループのボードと全プロジェクトの列: グループで共通） */
+/** グループの列の中を、状態（作業中・回答待ち・未読・既読）で小分けにするか（全プロジェクトのボードの列の「状態」と「グループ」の両方オン = グループ×状態） */
 export const BOARD_GROUPS_BY_STATE = defineSetting("kickoff:board-groups-by-state", flag());
-/** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる / table = 表。カンバン・グループのボードで共通） */
+/** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる / table = 表。すべてのボードで共通） */
 export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list", "table"], "board"));
 /** ボードを段（スイムレーン）に分けるか（ボード・リストで共通。分け方は PROJECT_BOARD_LANES・ALL_PROJECTS_BOARD_LANES） */
 export const BOARD_SPLIT = defineSetting("kickoff:board-split", flag());
@@ -153,10 +151,8 @@ export const PROJECT_BOARD_LANES = defineSetting("kickoff:board-lanes", choice([
 export const ALL_PROJECTS_BOARD_LANES = defineSetting("kickoff:board-lanes-all", choice(PROJECT_BOARD_LANES.choices, "project"));
 /** カンバンのアーカイブでの絞り込み（all = すべて / active = 未アーカイブ / archived = アーカイブ済みだけ） */
 export const BOARD_ARCHIVE_FILTER = defineSetting("kickoff:show-archived", choice(["all", "active", "archived"], "all"));
-/** グループのボードのアーカイブでの絞り込み（カンバンとは別に覚える） */
-export const GROUP_BOARD_ARCHIVE_FILTER = defineSetting("kickoff:group-show-archived", choice(BOARD_ARCHIVE_FILTER.choices, "all"));
 /**
- * プロジェクトごとの、グループのボードの「No Group」の位置（グループの並びの中で、前にあるグループの数。ボードとリストで共通）。
+ * プロジェクトごとの、グループの列（全プロジェクトのボード）・サイドバーの「No Group」の位置（グループの並びの中で、前にあるグループの数。ボードとリストで共通）。
  * -1（覚えていない）なら、ボードは先頭・リストはいちばん下
  */
 export const groupBoardUngroupedAt = defineSettingFamily(

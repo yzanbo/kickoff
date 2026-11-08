@@ -46,18 +46,7 @@ const LANE_ICONS: Record<BoardLane | "none", LucideIcon> = {
  * ボードのツールバーの段の分け方の切り替え（「分けない / グループ / 作業場所 / プロジェクト」のボタンの組。ボード・リストで共通）。
  * value は段に分けていなければ "none"。前は「段: …」の選択欄だったが、利用者の依頼で列の分け方と同じボタンの組にした
  */
-export function LaneSelect({
-  value,
-  options,
-  onChange,
-  disabled,
-}: {
-  value: BoardLane | "none";
-  options: readonly BoardLane[];
-  onChange: (value: BoardLane | "none") => void;
-  /** 押せない分け方と、その理由（マウスを乗せたときに出す）。グループのボードでも、カンバンと同じボタンの並びに保つため */
-  disabled?: Partial<Record<BoardLane, string>>;
-}) {
+export function LaneSelect({ value, options, onChange }: { value: BoardLane | "none"; options: readonly BoardLane[]; onChange: (value: BoardLane | "none") => void }) {
   return (
     <Segmented<BoardLane | "none">
       className="view-toggle"
@@ -68,8 +57,7 @@ export function LaneSelect({
         value: l,
         label: l === "none" ? "分けない" : BOARD_LANE_SHORT_LABELS[l],
         icon: LANE_ICONS[l],
-        tip: l === "none" ? "段（スイムレーン）に分けない" : (disabled?.[l] ?? `${BOARD_LANE_LABELS[l]}ごとの段（スイムレーン）に分ける`),
-        disabled: l !== "none" && disabled?.[l] !== undefined,
+        tip: l === "none" ? "段（スイムレーン）に分けない" : `${BOARD_LANE_LABELS[l]}ごとの段（スイムレーン）に分ける`,
       }))}
     />
   );

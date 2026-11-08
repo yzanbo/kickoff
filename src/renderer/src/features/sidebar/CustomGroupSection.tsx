@@ -3,14 +3,12 @@ import type { ReactNode } from "react";
 import type { Chat, ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
-import { flashGroup } from "@/features/group/groups";
-import { navigate, openNewChat, useRoute } from "@/app/router";
+import { openNewChat } from "@/app/router";
 import type { ChatBucket } from "@/features/chatList/buckets";
 import { Collapse } from "@/ui/Collapse";
 import { IconButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
 import { GroupedChatRows } from "./GroupedChatRows";
-import { pressedLeftOfName } from "@/ui/GroupToggle";
 import { FoldHead } from "@/ui/FoldHead";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { DraftRows } from "./DraftRows";
@@ -20,7 +18,7 @@ import { ArchivedBucketFold } from "./ArchivedBucketFold";
 
 /**
  * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身。bucket は bucketChats のグループのまとまりで、中の段があれば状態ごとに分ける）。
- * 左の矢印を押すと開閉する。見出しのほかの部分を押すと、選んでいて開いていれば閉じ、それ以外は選び直して開く（そのグループのボードを開いてハイライトする。サイドバー全体で同じ）。
+ * 左の矢印を押すと開閉する。見出しのほかの部分を押しても開閉する。
  * 名前のダブルクリックで名前を変える・ドラッグで並べ替える・チャットをドロップしてグループへ移す・右クリックでメニュー。
  * アーカイブ済みを出しているときは、中身のいちばん下にこのグループのアーカイブ済み（ArchivedBucketFold）
  */
@@ -53,35 +51,22 @@ export function CustomGroupSection({
   allChats: readonly Chat[];
 }) {
   const { chats: members, drafts } = bucket;
-  // 選んでいる = いまそのグループのボードを見ている
-  const route = useRoute();
-  const selected = route.name === "project" && route.id === projectId && route.tab === "groups" && route.group === group.id;
-  /**
-   * 見出しの矢印以外を押したとき（サイドバー全体で同じ）: 選んでいて開いていれば閉じる。
-   * それ以外（選んでいない・選んでいて閉じている）は、選び直して開く（そのグループのボードを開いてハイライトし、中も開く）
-   */
-  const press = () => {
-    if (selected && !closed) return onSetClosed(true);
-    navigate({ name: "project", id: projectId, tab: "groups", group: group.id });
-    flashGroup(group.id);
-    if (closed) onSetClosed(false);
-  };
-  const pressLabel = selected && !closed ? "閉じる" : `「${group.name}」のボードを開く`;
+  // 見出しを押すと開閉する（前はそのグループのボードを開いていたが、プロジェクトのボードの列の分け方をなくし、グループのボードの画面もなくした）
+  const press = () => onSetClosed(!closed);
+  const pressLabel = closed ? "開く" : "閉じる";
   return (
     <div className={cx("custom-group", dropClass)} {...dropProps}>
       {/* 開閉の矢印（ほかのまとまりと同じ）とフォルダのアイコン。押すと開閉する。名前の編集中は、ほかの操作を隠す（押し直して編集が始まり直さないように） */}
       <FoldHead
         look="group"
-        className={cx(selected && "active", huedHeadProps(hue).className)}
+        className={huedHeadProps(hue).className}
         style={huedHeadProps(hue).style}
         draggable={!renaming}
         title="ドラッグでグループを並べ替える（右クリックでメニュー・名前をダブルクリックで名前を変更）"
         onContextMenu={(e) => menu.openFor(group, e)}
         onClick={(e) => {
-          // 矢印以外のところを押すと、選んで開く / 開閉する（矢印・＋・…・名前の入力欄は除く）
+          // 矢印以外のところを押しても開閉する（矢印・＋・…・名前の入力欄は除く）
           if ((e.target as HTMLElement).closest("button, input")) return;
-          // 名前より左（矢印のまわり・フォルダのアイコン）は、矢印を押したのと同じく開閉だけ
-          if (pressedLeftOfName(e, e.currentTarget.querySelector(".custom-group-name, input"))) return onSetClosed(!closed);
           press();
         }}
         {...dragProps}

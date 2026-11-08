@@ -162,23 +162,6 @@
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
-/*
- * サイドバーのグループ名から来たときに、そのグループを少しのあいだハイライトする（背景と枠の色だけ。広がる光の動きは付けない）。
- * 1 秒ほど色を付けたまま見せ、そのあと 0.6 秒で元の色に戻す（終わったあとは、ふだんの見た目。押し直すとやり直す）
- */
-.board-column.highlighted,
-.list-group.highlighted {
-  animation: group-lit 1.6s ease-out;
-}
-
-@keyframes group-lit {
-  0%,
-  62.5% {
-    border-color: color-mix(in srgb, var(--accent-bright) 55%, transparent);
-    background: color-mix(in srgb, var(--accent) 10%, var(--bg));
-  }
-}
-
 .custom-group-count {
   flex: none;
   font-size: 11px;

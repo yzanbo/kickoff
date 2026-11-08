@@ -3,7 +3,7 @@ import type { Placement } from "@/lib/floating";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { ChatMenuItems } from "./ChatMenuItems";
 
-/** チャットの右クリックメニュー（カンバンのカード・グループのボード・サイドバー）。項目はパネルのタブと共通の ChatMenuItems */
+/** チャットの右クリックメニュー（ボードのカード・サイドバー）。項目はパネルのタブと共通の ChatMenuItems */
 export function ChatMenu({
   at,
   chat,

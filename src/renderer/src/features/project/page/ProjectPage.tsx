@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
-import { GroupBoard } from "@/features/board/GroupBoard";
 import { KanbanBoard } from "@/features/board/KanbanBoard";
 import { EditorTab } from "@/features/editor/EditorTab";
 import { HistoryTab } from "@/features/history/HistoryTab";
@@ -25,8 +23,6 @@ interface ProjectPageProps {
   tab: ProjectTab;
   /** カンバンの右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
-  /** グループのタブで目立たせるグループ（サイドバーのグループ名から来たとき） */
-  highlightGroup?: number;
   /** ファイルタブで開くファイル（チャットの返答のファイルのチップから） */
   openFile?: FileTarget;
   /** メモのタブで開くメモ（チャットの「メモに追加」から） */
@@ -34,7 +30,7 @@ interface ProjectPageProps {
 }
 
 /**
- * プロジェクト画面: ボード（カンバン）・グループ・チャット（ボードと分ける置き方のとき）・ファイル・検索・変更（Git の変更とファイル。文書もここでファイルとして見る）・
+ * プロジェクト画面: ボード（カンバン）・チャット（ボードと分ける置き方のとき）・ファイル・検索・変更（Git の変更とファイル。文書もここでファイルとして見る）・
  * 履歴（コミット）・メモをタブで
  */
 export function ProjectPage(props: ProjectPageProps) {
@@ -46,18 +42,12 @@ export function ProjectPage(props: ProjectPageProps) {
   return <ProjectPageBody {...props} />;
 }
 
-function ProjectPageBody({ id, tab: routeTab, focus, highlightGroup, openFile, openMemo }: ProjectPageProps) {
+function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo }: ProjectPageProps) {
   // チャットをボードの右で開く置き方では「チャット」タブはないので、そのタブの URL はボードで出す
   const [placement] = useChatPlacement();
   const tab: ProjectTab = routeTab === "chats" && placement === "together" ? "board" : routeTab;
   const { data: shown, error, loading: chatsLoading } = useProjectData(id);
   const [editing, setEditing] = useState(false);
-  // ボードの列の分け方は、最後に見た方を覚える（サイドバーのグループから来たときも、次にボードのタブを押すとグループの列で開く）
-  const [, setColumns] = useBoardColumns();
-  useEffect(() => {
-    if (tab === "board") setColumns("state");
-    else if (tab === "groups") setColumns("groups");
-  }, [tab, setColumns]);
   // ファイル・検索・変更・履歴タブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
   const [storedWorktree, storeWorktree] = useSetting(editorWorktree(id));
   const worktree = storedWorktree || undefined;
@@ -78,7 +68,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, highlightGroup, openFile, o
 
   if (error && !shown) return <div className="page error">{error}</div>;
   if (!shown) return <div className="page muted">読み込み中…</div>;
-  const { project, groups } = shown;
+  const { project } = shown;
   // 別のプロジェクトを読み込んでいる途中（前の画面を薄くして出しておく）
   const stale = project.id !== id;
 
@@ -93,7 +83,6 @@ function ProjectPageBody({ id, tab: routeTab, focus, highlightGroup, openFile, o
       {tab === "board" && <KanbanBoard projectId={project.id} focus={focus} />}
       {/* ボードと分けたチャット（ボードの右のパネルと同じパネルを横幅いっぱいに） */}
       {tab === "chats" && <ChatsTab key={project.id} projectId={project.id} focus={stale ? undefined : focus} />}
-      {tab === "groups" && <GroupBoard projectId={project.id} groups={groups} focus={focus} highlight={highlightGroup} />}
       {editorView && (
         <WorktreeContext.Provider value={worktree}>
           {/* 作業場所を変えたら、選んでいたファイル・検索などは初めからにする（ファイル・検索・変更のタブの間では同じ部品のまま） */}
