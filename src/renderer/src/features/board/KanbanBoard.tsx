@@ -242,7 +242,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allD
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : feed ? (
-        <FeedList items={feedData.items} chats={shown} loaded={feedData.loaded} render={cards.feedCard} />
+        <FeedList items={feedData.items} chats={shown} loaded={feedData.loaded} foldPlace={foldPlace} render={cards.feedCard} />
       ) : (
         <KanbanBody
           view={view}
