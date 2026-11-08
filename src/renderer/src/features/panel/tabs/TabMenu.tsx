@@ -1,4 +1,4 @@
-import { AppWindow, ArrowRightLeft, Columns2, GitBranch, MessageSquare, Rows2, Undo2, X } from "lucide-react";
+import { AppWindow, ArrowRightLeft, Columns2, GitBranch, MessageSquare, Rows2, SquarePen, Undo2, X } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { alertDialog } from "@/ui/dialogs";
 import { ChatMenuItems } from "@/features/chat/ChatMenuItems";
@@ -7,10 +7,12 @@ import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
+import type { NewChatTarget } from "./panelTypes";
 import { canPopOut, popOutTab } from "./popOutTab";
 
 /**
- * 右のパネルのタブの右クリックのメニュー: 右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
+ * 右のパネルのタブの右クリックのメニュー: いちばん上に「新しいチャット」（チャットを出す欄だけ。利用者の依頼。右クリックしたタブのペインに、
+ * チャット・新しいチャットのタブなら同じグループ・作業場所で、ほかのタブなら欄の作成先で始める）、右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
  * 一覧のペインに「（一覧）」と添える）、分けたペインのサイドバーと連動したチャットは一覧のペインに戻す、閉じる。
  * チャットのタブには、会話 / 動きの切り替え（見出しの行を隠していても切り替えられるように）と、サイドバーの行と同じチャットの項目
  * （名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる
@@ -43,6 +45,28 @@ export function TabMenu({
   // そのタブで描いているチャットの画面（会話 / 動きを切り替える。描いていなければ出さない）
   const chatPane = chat ? chatPaneAt(chatPaneSlot(panel.key, tabKey)) : undefined;
   const activity = chatPane?.state.get().showing === "activity";
+  // 右クリックしたタブと同じグループ・作業場所で始める（チャット・新しいチャットのタブ。ほかは欄の作成先）
+  const sameTarget: NewChatTarget | undefined = chat
+    ? { projectId: chat.project_id, group: chat.group_id ?? undefined, worktree: chat.worktree_path ?? undefined }
+    : tab?.kind === "new"
+      ? { projectId: tab.projectId, group: tab.group, worktree: tab.worktree }
+      : undefined;
+  const newChatItem = panel.kinds.has("chat") && (
+    <>
+      <MenuItem
+        title={sameTarget ? "このタブのチャットと同じグループ・作業場所で、新しいチャットを始める" : "このペインで新しいチャットを始める"}
+        onSelect={() => {
+          // 右クリックしたタブのペインに開く
+          panel.focusPane(pane.id);
+          if (sameTarget) panel.openNew(sameTarget);
+          else panel.startNewChat();
+        }}
+      >
+        <SquarePen size={14} /> 新しいチャット
+      </MenuItem>
+      <div className="menu-separator" role="separator" />
+    </>
+  );
   const showItem = chatPane && (
     <MenuItem
       onSelect={() => {
@@ -100,6 +124,7 @@ export function TabMenu({
           onError={(m) => void alertDialog("操作できませんでした", m)}
           before={
             <>
+              {newChatItem}
               {showItem}
               {showItem && <div className="menu-separator" role="separator" />}
               {paneItems}
@@ -115,6 +140,7 @@ export function TabMenu({
         />
       ) : (
         <>
+          {newChatItem}
           {paneItems}
           {closeItem}
         </>
