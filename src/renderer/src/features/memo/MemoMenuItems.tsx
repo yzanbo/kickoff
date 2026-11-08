@@ -1,5 +1,6 @@
 import { ChevronRight, FilePlus, NotebookPen, Sparkles, WandSparkles, type LucideIcon } from "lucide-react";
 import { useMemo } from "react";
+import type { MemoKind } from "@shared/memo/kinds";
 import { useMemoList } from "@/stores/memos";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem } from "@/ui/PopupMenu";
@@ -63,7 +64,7 @@ export function MemoModeItems({ projectId, onAdd }: { projectId: number; onAdd: 
         </button>
         {submenu.anchor && (
           <MenuFlyout anchor={submenu.anchor} label={PICK_MEMO_LABELS[mode]} onBack={submenu.back}>
-            <RecentMemoItems projectId={projectId} onPick={(path) => onAdd(mode, path)} />
+            <RecentMemoItems projectId={projectId} kind="markdown" onPick={(path) => onAdd(mode, path)} />
           </MenuFlyout>
         )}
       </>
@@ -81,10 +82,13 @@ export function MemoModeItems({ projectId, onAdd }: { projectId: number; onAdd: 
   );
 }
 
-/** 足す・組み込む先に選べるメモ（最近変えた Markdown のメモ。出したときに一覧を読む） */
-function RecentMemoItems({ projectId, onPick }: { projectId: number; onPick: (path: string) => void }) {
+/**
+ * 最近変えたメモの一覧の項目（出したときに一覧を読む）。kind を渡せばその種類だけ
+ * （足す・組み込む先は Markdown だけ。右の欄の「開く ▾」の「メモ ▸」はどちらも）
+ */
+export function RecentMemoItems({ projectId, kind, onPick }: { projectId: number; kind?: MemoKind; onPick: (path: string) => void }) {
   const list = useMemoList(projectId, true);
-  const recent = useMemo(() => recentMemos(list.data?.entries ?? [], RECENT_MEMOS, "markdown"), [list.data]);
+  const recent = useMemo(() => recentMemos(list.data?.entries ?? [], RECENT_MEMOS, kind), [list.data, kind]);
   if (!list.data) return <p className="muted small memo-menu-note">{list.error ?? "読み込み中…"}</p>;
   if (recent.length === 0) return <p className="muted small memo-menu-note">まだメモはありません</p>;
   return recent.map((e) => (

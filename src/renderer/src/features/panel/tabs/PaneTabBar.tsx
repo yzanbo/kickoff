@@ -1,4 +1,4 @@
-import { Columns2, MessageSquarePlus, Rows2, X } from "lucide-react";
+import { Columns2, Rows2, X } from "lucide-react";
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
@@ -19,6 +19,7 @@ import { specOf, type TabGroupLookup } from "./tabKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { PANEL_TAB_GROUP_COLORS } from "@/lib/storageKeys";
+import { AgentPanelAdds } from "@/features/panel/agents/AgentPanelAdds";
 
 /**
  * パネルの 1 つのペインのタブの列。左にタブの列の道具（controls。左上のペインだけ）、タブ、
@@ -203,12 +204,8 @@ export function PaneTabBar({
         openWithShown={openWithShown}
       />
       )}
-      {/* 新しい子チャット: 出す種類が決まっている欄（サブエージェントの欄）の新しいタブのボタン（項目は 1 つなので、メニューを挟まずに開く） */}
-      {onNewChild && (
-        <span className="panel-bar-buttons panel-tab-adds">
-          <IconButton icon={MessageSquarePlus} label="新しい子チャット" size={14} onClick={onNewChild} />
-        </span>
-      )}
+      {/* 新しい子チャット: 出す種類が決まっている欄（右の欄）の新しいタブのボタン。横の ▾ で、ほかに右の欄に開けるもの（子チャット・サブエージェント・変更・メモ）を選ぶ */}
+      {onNewChild && <AgentPanelAdds panel={panel} onNewChild={onNewChild} />}
       {/* ペインを分ける・閉じる（右端。右の欄は分けるボタンを置かない noSplitButtons） */}
       <span className="panel-bar-buttons panel-pane-tools">
         {!SURFACES[panel.surface].noSplitButtons && (
