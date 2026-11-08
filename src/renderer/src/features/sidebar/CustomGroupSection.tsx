@@ -140,7 +140,7 @@ export function CustomGroupSection({
             <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={filtering} />
           </div>
         ) : (
-          <ul className="chat-rows custom-group-rows">{members.map(renderRow)}</ul>
+          <ul className="chat-rows">{members.map(renderRow)}</ul>
         )}
         {/* このグループのアーカイブ済み（アーカイブ済みを出しているとき。落とすとアーカイブ、中の行をグループへ落とすと戻す） */}
         {bucket.archived && <ArchivedBucketFold projectId={projectId} bucket={bucket.archived} chats={allChats} groupId={group.id} renderRow={renderRow} forceOpen={filtering} />}
