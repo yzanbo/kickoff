@@ -4,22 +4,16 @@ import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { useChatSearch } from "@/features/chat/chatSearch";
 import type { CountedColumn } from "@/features/chat/chatState";
-import type { BucketBy, BucketHead } from "@/features/chatList/buckets";
+import type { BucketHead } from "@/features/chatList/buckets";
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import { isWaitingState, useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useSetting } from "@/hooks/useSetting";
 import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
 import { useWaitingView } from "./waitingView";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
-import { useChatLayout, type ChatOrder } from "./chatGroupings";
+import { useChatLayout } from "./chatGroupings";
+import { sidebarLevels } from "./sidebarChatOrder";
 import { useProjectDrafts } from "./DraftRows";
-import type { ChatGrouping } from "@/features/chatList/chatGrouping";
-
-/** サイドバーの段: まとめ方（グループ・作業場所）の中を、状態順なら状態ごとに分ける（まとめない × 最近動いた順は分けない） */
-const levelsOf = (grouping: ChatGrouping, order: ChatOrder): BucketBy[] => [
-  ...(grouping === "none" ? [] : [grouping]),
-  ...(order === "status" ? (["status"] as const) : []),
-];
 
 /** チャットのないグループも出す（グループなしは出すかを見出しの決まりで決めるので、いつも作っておく）。絞り込み中は一致するものだけ */
 const KEEP_GROUPS = (head: BucketHead) => head.kind === "group" || head.kind === "ungrouped";
@@ -84,7 +78,7 @@ export function useWorkspaceRows({
     [chats, showArchived, waitingOnly, matches, stateOf, stateFilter],
   );
   const buckets = useChatBuckets(shown, {
-    by: levelsOf(grouping, order),
+    by: sidebarLevels(grouping, order),
     project: projectId,
     pinned: true,
     // グループ別・作業場所別は、まとまりごとのいちばん下にそのまとまりのアーカイブ済み（bucket.archived）、まとめないときはいちばん下にまとめる
