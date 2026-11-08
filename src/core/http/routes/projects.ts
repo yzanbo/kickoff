@@ -2,10 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
-import { expandHome, realPathOrSelf } from "../../system/paths.js";
+import { expandHome, realPathLoose, realPathOrSelf } from "../../system/paths.js";
 import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProjectRepoPathBody, type ProviderId } from "@shared/types";
-import { createWorkspace, initGitRepo, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
+import { createWorkspace, initGitRepo, inspectWorkspace, prepareImportedWorkspace, toFolderName } from "../../git/workspace.js";
 import { worktreeMoves } from "../../git/index.js";
 import { Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
@@ -108,6 +108,10 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
 
   app.post("/api/projects", async (c) => {
     const input = newProjectSchema.parse(await jsonBody(c));
+    // 作る場所がほかのプロジェクトのフォルダなら断る（空のフォルダだと createWorkspace は通り、同じフォルダに 2 つ目のプロジェクトができていた）
+    const folder = toFolderName(input.folder_name);
+    const registered = folder ? projectAt(realPathLoose(path.join(path.resolve(expandHome(input.parent_dir)), folder))) : undefined;
+    if (registered) throw new Conflict(`このフォルダは「${registered.name}」として登録済みです`);
     const repoPath = await createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, description: input.description, initGit: input.init_git });
     const project = withMemoDir(store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) }), input);
     store.settings.update({ projects_dir: input.parent_dir });
