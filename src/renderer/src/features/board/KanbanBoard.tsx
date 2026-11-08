@@ -1,4 +1,3 @@
-import { SquarePen } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Chat } from "@shared/types";
 import { useChatRename } from "@/features/chat/useChatRename";
@@ -69,7 +68,6 @@ function ProjectKanban({ projectId, menu, chats }: { projectId: number; menu: Re
       menu={menu}
       rightPanel={chats.rightPanel}
       onOpen={chats.open}
-      newChat={{ onClick: chats.startNewChat, title: chats.newChatTitle }}
       drafts={chats.drafts}
     />
   );
@@ -77,7 +75,7 @@ function ProjectKanban({ projectId, menu, chats }: { projectId: number; menu: Re
 
 /**
  * 全プロジェクトのカンバン（全プロジェクトの画面）。右のパネルを持たず、カードを押すとそのプロジェクトへ移って開く（サイドバー・⌘⇧A・検索と同じ。
- * 同じチャットが全プロジェクトとプロジェクトの 2 つのパネルで別々に開かないように）。ツールバーに「新規」は置かない（利用者の依頼。新しいチャットは ⌘N・サイドバー・プロジェクトのボードから始める）。
+ * 同じチャットが全プロジェクトとプロジェクトの 2 つのパネルで別々に開かないように）。ツールバーに「新規」は置かない（プロジェクトのボードにもない。利用者の依頼。新しいチャットは ⌘N・サイドバー・タブの列の＋から始める）。
  * 下書きの列には、すべてのプロジェクトの下書きを並べる（押すとその欄の画面へ移って開く）
  */
 export function AllProjectsKanban() {
@@ -100,8 +98,6 @@ interface ViewProps {
   rightPanel?: ReturnType<typeof useBoardPanel>;
   /** カード・行・右クリックの「開く」 */
   onOpen: (chat: Chat) => void;
-  /** ツールバーの「新規」（押したとき・乗せたときの説明。プロジェクトのボードだけ。全プロジェクトのボードには置かない） */
-  newChat?: { onClick: () => void; title?: string };
   /** いちばん左の「下書き」の列に出す下書き（全プロジェクトのボードでは、出しているプロジェクトのものだけに絞る） */
   drafts: readonly PanelDraft[];
 }
@@ -110,7 +106,7 @@ interface ViewProps {
  * チャットのカンバン（プロジェクト・全プロジェクトで共通の中身）。列（作業中・回答待ち・未読・既読）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。
  * カードの点はより細かい状態（順番待ち・エラーなど）
  */
-function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allDrafts }: ViewProps) {
+function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: ViewProps) {
   const allProjects = projectId === undefined;
   // 全プロジェクトのボードに出すプロジェクト: しまった（アーカイブした）ものを除いたサイドバーの並び。サイドバーの「タグ」で絞り込んでいれば、合うものだけ
   // （使うのは全プロジェクトのボードだけ。名前の引き当てはどのボードでも全プロジェクトから）
@@ -200,13 +196,6 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allD
         />
       }
       organize={projectId !== undefined && <GroupCreateToolButton projectId={projectId} />}
-      primary={
-        newChat && (
-          <button className="btn btn-sm" onClick={newChat.onClick} title={newChat.title}>
-            <SquarePen size={13} /> <span className="btn-label">新規</span>
-          </button>
-        )
-      }
       view={feed ? "feed" : view}
       onView={(next) => {
         setFeed(next === "feed");
