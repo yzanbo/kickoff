@@ -32,15 +32,13 @@ export function useBoardListCompact() {
 }
 
 interface Props {
-  /** 見出し（アイコン・名前・件数）。プロジェクトのタブでは、タブの名前と重なるので出さない（全プロジェクトの画面だけ渡す） */
-  heading?: { icon: ReactNode; title: string; count: number };
   query: string;
   onQuery: (query: string) => void;
   /** 探す・絞り込むのまとまりで、検索欄の後ろに置くもの（アーカイブ・作業場所の表示） */
   filters?: ReactNode;
   /** 整えるのまとまり（表示と検索の間）。ボードの形を変えるもの（グループを作成） */
   organize?: ReactNode;
-  /** いちばん左に置く主な操作（新規）。見出しがあれば、その後ろ */
+  /** いちばん左に置く主な操作（新規） */
   primary?: ReactNode;
   /** 表示（feed は全プロジェクトのボードだけ。feed を渡したときだけ選択肢に出す） */
   view: BoardView | "feed";
@@ -62,16 +60,9 @@ interface Props {
  * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（右のパネルのあるプロジェクトのボードだけ。ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
-export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
+export function BoardHeader({ query, onQuery, filters, organize, primary, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
   return (
     <div className="board-header">
-      {heading && (
-        <>
-          {heading.icon}
-          <span className="board-title">{heading.title}</span>
-          <span className="muted small">{heading.count} 件</span>
-        </>
-      )}
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
         {primary && <div className="board-tool-group">{primary}</div>}

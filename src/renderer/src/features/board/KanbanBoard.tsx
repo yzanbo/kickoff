@@ -1,4 +1,4 @@
-import { Folder, LayoutGrid, MessagesSquare, SquareKanban, SquarePen } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Chat } from "@shared/types";
 import { useChatRename } from "@/features/chat/useChatRename";
@@ -79,12 +79,11 @@ function ProjectKanban({ projectId, menu, chats }: { projectId: number; menu: Re
  * 同じチャットが全プロジェクトとプロジェクトの 2 つのパネルで別々に開かないように）。ツールバーに「新規」は置かない（利用者の依頼。新しいチャットは ⌘N・サイドバー・プロジェクトのボードから始める）。
  * 下書きの列には、すべてのプロジェクトの下書きを並べる（押すとその欄の画面へ移って開く）
  */
-export function AllProjectsKanban({ title }: { title: string }) {
+export function AllProjectsKanban() {
   const menu = useCardMenu();
   const drafts = useAllDrafts();
   return (
     <KanbanView
-      title={title}
       menu={menu}
       onOpen={(chat) => openChat(chat.project_id, chat.id)}
       drafts={drafts}
@@ -95,8 +94,6 @@ export function AllProjectsKanban({ title }: { title: string }) {
 interface ViewProps {
   /** プロジェクトのボード（なければ全プロジェクトのボード。カード・下書きにプロジェクトのバッジを付ける） */
   projectId?: number;
-  /** 見出しの名前（全プロジェクトの画面だけ。プロジェクトのボードはタブの名前があるので出さない） */
-  title?: string;
   menu: ReturnType<typeof useCardMenu>;
   /** 右のパネル（プロジェクトのボードだけ） */
   rightPanel?: ReturnType<typeof useBoardPanel>;
@@ -112,7 +109,7 @@ interface ViewProps {
  * チャットのカンバン（プロジェクト・全プロジェクトで共通の中身）。列（作業中・回答待ち・未読・既読）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。
  * カードの点はより細かい状態（順番待ち・エラーなど）
  */
-function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, drafts: allDrafts }: ViewProps) {
+function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allDrafts }: ViewProps) {
   const allProjects = projectId === undefined;
   // 全プロジェクトのボードに出すプロジェクト: しまった（アーカイブした）ものを除いたサイドバーの並び。サイドバーの「タグ」で絞り込んでいれば、合うものだけ
   // （使うのは全プロジェクトのボードだけ。名前の引き当てはどのボードでも全プロジェクトから）
@@ -146,8 +143,6 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   const projectIds = useMemo(() => (allProjects ? new Set(projects.map((p) => p.id)) : undefined), [allProjects, projects]);
   const shown = useKanbanChats({ chats, filters: { ...filters, matches: filters.search.matches }, projectIds });
   const drafts = useMemo(() => (projectIds ? allDrafts.filter((d) => projectIds.has(d.projectId)) : allDrafts), [allDrafts, projectIds]);
-  // フィードの件数は、出しているチャットのうち返答のあるもの
-  const total = feed ? feedData.items.filter((i) => shown.some((c) => c.id === i.chat_id)).length : shown.length;
   // 全プロジェクトのボードのプロジェクトの段は、見出しのドラッグで並べ替える（サイドバーと同じ並び）
   const laneReorder = useProjectLaneReorder(allProjects);
   // 並び順（表の見出し・ツールバーの「並び順」。列・まとまりの中もこの順）と、表に出す列
@@ -189,18 +184,6 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
 
   const header = (
     <BoardHeader
-      // 状態で分けないときは、カンバン（状態の列）ではなくタスクの並びと呼ぶ
-      heading={
-        title
-          ? feed
-            ? { icon: <MessagesSquare size={16} className="muted" />, title: "フィード", count: total }
-            : byGroup
-            ? { icon: <Folder size={16} className="muted" />, title: "グループ", count: total }
-            : flat
-            ? { icon: <LayoutGrid size={16} className="muted" />, title: "タスク", count: total }
-            : { icon: <SquareKanban size={16} className="muted" />, title, count: total }
-          : undefined
-      }
       query={filters.query}
       onQuery={filters.setQuery}
       filters={
