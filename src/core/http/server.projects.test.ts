@@ -90,6 +90,13 @@ test("新しいプロジェクト: フォルダを Git のリポジトリとし�
   assert.equal(store.settings.get().projects_dir, parent);
   // 同じ名前の空でないフォルダには作らない（409）
   assert.equal((await call("POST", "/api/projects", { name: "Todo", parent_dir: parent, folder_name: "todo" })).status, 409);
+  // ほかのプロジェクトとして取り込んだ空のフォルダにも作らない（同じフォルダに 2 つ目のプロジェクトを作らない）
+  const empty = path.join(parent, "empty");
+  fs.mkdirSync(empty);
+  assert.equal((await call("POST", "/api/projects/import", { path: empty, name: "Empty" })).status, 201);
+  const dup = await call("POST", "/api/projects", { name: "Dup", parent_dir: parent, folder_name: "empty" });
+  assert.deepEqual([dup.status, dup.body.error], [409, "このフォルダは「Empty」として登録済みです"]);
+  assert.equal(fs.existsSync(path.join(empty, "README.md")), false);
 });
 
 test("新しいプロジェクト・取り込みのメモの保存先: memo_folder は使える名前にして重なれば「名前-2」、memo_path は別の場所、省けば決めない", async () => {
