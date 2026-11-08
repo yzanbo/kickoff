@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import type { Chat } from "@shared/types";
-import { openChat, type ReopenRoute } from "@/app/router";
+import { navigate, openChat, type ReopenRoute } from "@/app/router";
+import { focusedPane } from "@/features/panel/layout/paneTree";
 import { useBoardFocus } from "@/features/board/useBoardFocus";
 import { cx } from "@/lib/cx";
 import { useSetting } from "@/hooks/useSetting";
@@ -40,7 +42,32 @@ export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { proje
     },
     tab,
   );
+  useShownChatInUrl(panel, projectId, tab);
   return panel;
+}
+
+/**
+ * タブで選んだチャットを URL にする（利用者の依頼。サイドバーの行も選択中として強調される。カードから開いたチャットと同じ）。
+ * 見るのは、ピントのあるペインで表示中のタブ。変わったときだけ URL を差し替え（戻る・進むの履歴は増やさない）、チャットでないタブ
+ * （新しいチャット・ブラウザ・ターミナル）にしたらプロジェクトの画面（tab）に戻して、サイドバーの強調を外す。
+ * はじめて描いたときは URL を変えない（URL で開いたチャット（useBoardFocus）より先に、前に表示していたタブで上書きしないため）
+ */
+function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number, tab: "board" | "groups" | "chats") {
+  const shown = panel.panelOpen ? panel.shownTabOf(focusedPane(panel.layout)) : null;
+  const shownTab = shown === null ? undefined : panel.tabs.find((t) => t.key === shown);
+  // タブが覚えているチャットの ID とプロジェクト（一覧にまだ届いていないチャットでも引ける）
+  const chat = shownTab?.kind === "chat" ? { id: shownTab.id, project_id: shownTab.projectId } : undefined;
+  const prev = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const first = prev.current === undefined;
+    if (prev.current === shown) return;
+    prev.current = shown;
+    if (first || shown === null) return;
+    if (chat) showInUrl(chat);
+    else navigate({ name: "project", id: projectId, tab }, { replace: true });
+    // 表示中のタブが変わったときだけ（チャットの中身が変わっても URL は変えない）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown]);
 }
 
 /**
