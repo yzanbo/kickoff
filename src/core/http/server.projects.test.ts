@@ -92,6 +92,24 @@ test("新しいプロジェクト: フォルダを Git のリポジトリとし�
   assert.equal((await call("POST", "/api/projects", { name: "Todo", parent_dir: parent, folder_name: "todo" })).status, 409);
 });
 
+test("新しいプロジェクト・取り込みのメモの保存先: memo_folder は使える名前にして重なれば「名前-2」、memo_path は別の場所、省けば決めない", async () => {
+  const { call, store } = setup();
+  const parent = tempDir();
+  const first = (await call("POST", "/api/projects", { name: "A", parent_dir: parent, folder_name: "a", memo_folder: "メモ/a" })).body;
+  assert.deepEqual([first.memo_folder, first.memo_path], ["メモ-a", null]);
+  const folder = tempDir();
+  const imported = (await call("POST", "/api/projects/import", { path: folder, name: "B", memo_folder: "メモ-a" })).body;
+  assert.equal(imported.memo_folder, "メモ-a-2");
+  const memoDir = tempDir();
+  const elsewhere = (await call("POST", "/api/projects", { name: "C", parent_dir: parent, folder_name: "c", memo_folder: "x", memo_path: memoDir })).body;
+  assert.deepEqual([elsewhere.memo_folder, elsewhere.memo_path], [null, memoDir]);
+  const plain = (await call("POST", "/api/projects", { name: "D", parent_dir: parent, folder_name: "d" })).body;
+  assert.deepEqual([plain.memo_folder, plain.memo_path], [null, null]);
+  // 別の場所は絶対パスだけ
+  assert.equal((await call("POST", "/api/projects", { name: "E", parent_dir: parent, folder_name: "e", memo_path: "rel/dir" })).status, 400);
+  assert.equal(store.projects.list().length, 5);
+});
+
 test("プロジェクトを上に固定する・しまう（アーカイブ）・戻す", async () => {
   const { call, project } = setup();
   const pinned = (await call("PATCH", `/api/projects/${project.id}`, { pinned: true })).body;

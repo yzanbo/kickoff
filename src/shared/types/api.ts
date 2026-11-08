@@ -10,7 +10,7 @@ import type { ProviderId } from "./settings";
 // ---- 本文（画面が送る形。コアは zod の形をこの型に合わせる） ----
 
 /** 新しいプロジェクト（POST /api/projects）。description は README の「アイデア」にも書く。provider を省けば設定の既定 */
-export interface NewProjectBody {
+export type NewProjectBody = {
   name: string;
   description?: string;
   parent_dir: string;
@@ -18,16 +18,25 @@ export interface NewProjectBody {
   provider?: ProviderId;
   /** git リポジトリとして初期化するか（省くと初期化する） */
   init_git?: boolean;
+} & NewProjectMemoDir;
+
+/**
+ * 新しいプロジェクト・取り込むプロジェクトのメモのフォルダ（省けば初めてメモを使ったときにプロジェクト名から決める）。
+ * memo_folder: 設定のメモの親フォルダの下のフォルダ名（ほかのプロジェクトと重なれば「名前-2」）/ memo_path: このプロジェクトだけ別の場所（絶対パス。memo_folder より優先）
+ */
+export interface NewProjectMemoDir {
+  memo_folder?: string;
+  memo_path?: string;
 }
 
 /** 既存のフォルダを取り込む（POST /api/projects/import）。init_git なら Git のリポジトリにしてから取り込む */
-export interface ImportProjectBody {
+export type ImportProjectBody = {
   path: string;
   name: string;
   description?: string;
   init_git?: boolean;
   provider?: ProviderId;
-}
+} & NewProjectMemoDir;
 
 /**
  * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・chat_defaults・reference_paths は送った内容で置き換える。

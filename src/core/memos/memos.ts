@@ -3,7 +3,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { memoKindOf } from "@shared/memo/kinds";
-import { chatMemoName, safeMemoName, uniqueMemoName } from "@shared/memo/names";
+import { chatMemoName, projectMemoFolder } from "@shared/memo/names";
 import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoPlan, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { assertInside, readProjectFile, writeProjectFile } from "../git/index.js";
@@ -74,11 +74,7 @@ export class MemoService {
     if (project.memo_path) return expandHome(project.memo_path);
     let folder = project.memo_folder;
     if (!folder) {
-      const taken = this.opts.store.projects
-        .list()
-        .filter((p) => p.id !== project.id && !p.memo_path)
-        .flatMap((p) => (p.memo_folder ? [p.memo_folder] : []));
-      folder = uniqueMemoName(safeMemoName(project.name), taken);
+      folder = projectMemoFolder(project.name, this.opts.store.projects.list(), project.id);
       this.opts.store.projects.update(project.id, { memo_folder: folder });
     }
     return path.join(this.rootDir(), folder);

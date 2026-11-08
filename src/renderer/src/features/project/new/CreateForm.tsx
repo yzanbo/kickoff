@@ -7,6 +7,7 @@ import { Field } from "@/ui/Field";
 import { GIT_FEATURES } from "@/features/project/GitInitNotice";
 import { GitInitField } from "@/features/project/GitInitField";
 import { FolderField } from "./FolderField";
+import { memoDirBody, MemoDirField } from "./MemoDirField";
 import type { FormProps } from "./NewProjectDialog";
 
 /** 英数字だけのフォルダ名を名前から作る（日本語だけの名前なら空になるので手入力してもらう） */
@@ -31,6 +32,8 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
   const [gitTouched, setGitTouched] = useState(false);
   // 保存先が git のリポジトリの中ならその一番上（中に作ると、初めは親のリポジトリの中のフォルダにする）
   const [parentRepo, setParentRepo] = useState<string | null>(null);
+  // メモの保存先を手で決めた場所（null なら保存先・フォルダ名から自動）
+  const [memoDir, setMemoDir] = useState<string | null>(null);
   const { submitting, error, submit } = useSubmit();
 
   // フォルダ名を手で変えるまでは、名前から自動で提案する
@@ -58,7 +61,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
 
   const create = (e: FormEvent) => {
     e.preventDefault();
-    void submit(async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName, init_git: initGit })));
+    void submit(async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName, init_git: initGit, ...memoDirBody(folderName, memoDir) })));
   };
 
   const fullPath = `${parentDir.replace(/\/+$/, "")}/${folderName || "…"}`;
@@ -93,6 +96,8 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
           }}
         />
       </Field>
+
+      <MemoDirField base={folderName} custom={memoDir} onCustom={setMemoDir} />
 
       <GitInitField
         on={parentRepo ? "このフォルダで新しく始める" : "git で管理する"}

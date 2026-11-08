@@ -13,9 +13,17 @@ import { lookups } from "../lookups.js";
 import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, projectDescription, projectName } from "./schemas.js";
 import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
+import { projectMemoFolder } from "@shared/memo/names";
+
+// 新しいプロジェクト・取り込むプロジェクトのメモのフォルダ（省けば初めてメモを使ったときにプロジェクト名から決める）
+const memoDirFields = {
+  memo_folder: z.string().trim().min(1).max(200).optional(),
+  memo_path: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).optional(),
+};
 
 // 新しいプロジェクト（description は README の「アイデア」にも書く）
 const newProjectSchema = z.object({
+  ...memoDirFields,
   name: projectName,
   description: projectDescription.default(""),
   parent_dir: z.string().trim().min(1),
@@ -25,6 +33,7 @@ const newProjectSchema = z.object({
 }) satisfies z.ZodType<NewProjectBody>;
 
 const importProjectSchema = z.object({
+  ...memoDirFields,
   path: z.string().trim().min(1),
   name: projectName,
   description: projectDescription.default(""),
@@ -85,13 +94,22 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
   };
   const projectAt = (realPath: string, except?: number) =>
     store.projects.list().find((p) => p.id !== except && (p.repo_path === realPath || realPathOrSelf(p.repo_path) === realPath));
+  /**
+   * 作ったプロジェクトにメモのフォルダを決める（画面の新しいプロジェクトのダイアログの「メモの保存先」）。memo_path（別の場所）が先、
+   * なければ memo_folder（設定の親フォルダの下の名前。使える名前にし、ほかのプロジェクトのフォルダ名と重なれば「名前-2」）。どちらもなければ今までどおり、初めてメモを使ったときに決める
+   */
+  const withMemoDir = (project: Project, input: { memo_folder?: string; memo_path?: string }): Project => {
+    if (input.memo_path) return store.projects.update(project.id, { memo_path: input.memo_path });
+    if (!input.memo_folder) return project;
+    return store.projects.update(project.id, { memo_folder: projectMemoFolder(input.memo_folder, store.projects.list(), project.id) });
+  };
 
   app.get("/api/projects", (c) => c.json(store.projects.list()));
 
   app.post("/api/projects", async (c) => {
     const input = newProjectSchema.parse(await jsonBody(c));
     const repoPath = await createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, description: input.description, initGit: input.init_git });
-    const project = store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) });
+    const project = withMemoDir(store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) }), input);
     store.settings.update({ projects_dir: input.parent_dir });
     return c.json(project, 201);
   });
@@ -109,7 +127,7 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
     const repoPath = await prepareImportedWorkspace(input.path, input.init_git);
     const existing = projectAt(repoPath);
     if (existing) throw new Conflict(`このフォルダは「${existing.name}」として登録済みです`);
-    const project = store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) });
+    const project = withMemoDir(store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) }), input);
     return c.json(project, 201);
   });
 
