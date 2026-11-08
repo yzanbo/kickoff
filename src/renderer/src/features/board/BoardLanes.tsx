@@ -77,6 +77,7 @@ export function BoardLanes({
   list = false,
   showProject = false,
   laneProps,
+  headProps,
   actions,
   children,
 }: {
@@ -89,6 +90,8 @@ export function BoardLanes({
   showProject?: boolean;
   /** 段の要素に付けるもの（ドロップ先にするなど） */
   laneProps?: (lane: ChatBucket<PanelDraft>) => { className?: string } & Record<string, unknown>;
+  /** 段の見出しに付けるもの（ドラッグで段を並べ替えるつかむところなど） */
+  headProps?: (lane: ChatBucket<PanelDraft>) => Record<string, unknown>;
   /** 段の見出しの名前の右に置く操作（全プロジェクトのリストの「グループを作成」） */
   actions?: (lane: ChatBucket<PanelDraft>) => ReactNode;
   /** 段の中身 */
@@ -106,7 +109,7 @@ export function BoardLanes({
         const extra = laneProps?.(lane) ?? {};
         return (
           <section key={lane.key} {...extra} className={cx("board-lane", extra.className)}>
-            <FoldHead look="lane" open={open} onToggle={() => folds.set(lane.key, !open)} label={<LaneTitle lane={lane} showProject={showProject} />} count={lane.chats.length} actions={actions?.(lane)} className={actions && "board-lane-head-actions"} />
+            <FoldHead {...headProps?.(lane)} look="lane" open={open} onToggle={() => folds.set(lane.key, !open)} label={<LaneTitle lane={lane} showProject={showProject} />} count={lane.chats.length} actions={actions?.(lane)} className={actions && "board-lane-head-actions"} />
             {open && <div className={list ? "lane-list" : "board-columns lane-columns"}>{children(lane)}</div>}
           </section>
         );

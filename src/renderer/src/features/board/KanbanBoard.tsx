@@ -17,6 +17,7 @@ import { AllProjectsColumnsToggle, BoardColumnsToggle, useAllProjectsColumns } f
 import { FlatTasks } from "./FlatTasks";
 import { ProjectGroupColumns } from "./ProjectGroupColumns";
 import { LaneGroupCreate } from "./GroupCreateForm";
+import { useProjectLaneReorder } from "./useProjectLaneReorder";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
 import { BoardLanes, LaneSelect } from "./BoardLanes";
@@ -145,6 +146,8 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   const total = shown.length;
   // スイムレーンの段の分け方
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
+  // 全プロジェクトのボードのプロジェクトの段は、見出しのドラッグで並べ替える（サイドバーと同じ並び）
+  const laneReorder = useProjectLaneReorder(allProjects);
 
   /**
    * カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える）。全プロジェクトのボードではプロジェクトのバッジ（印と名前）を付け、
@@ -236,6 +239,7 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
           lanes={buckets}
           list={view === "list"}
           foldPlace={foldPlace}
+          {...laneReorder}
           actions={view === "list" ? (lane) => lane.projectId !== undefined && <LaneGroupCreate projectId={lane.projectId} /> : undefined}
         >
           {(lane) =>
@@ -254,7 +258,7 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
       ) : split ? (
         // 段に分ける: 段ごとに、ボードと同じく下書き（その段に入る作成先のもの）→ 状態の列を並べる（リストなら 下書き → 状態のまとまり → アーカイブ済み を縦に）
         // 作業場所の段にプロジェクト名を添えるのは、いくつかのプロジェクトが並ぶ全プロジェクトのボードだけ
-        <BoardLanes lanes={buckets} list={view === "list"} foldPlace={foldPlace} showProject={allProjects && projects.length > 1}>
+        <BoardLanes lanes={buckets} list={view === "list"} foldPlace={foldPlace} showProject={allProjects && projects.length > 1} {...laneReorder}>
           {(lane) =>
             flat ? (
               <FlatTasks
