@@ -14,6 +14,8 @@ export interface SegmentOption<T extends string> {
   keys?: string;
   /** 右上に出す数（0 なら出さない。変更のあるファイルの数など） */
   badge?: number;
+  /** 押せない（いまは選べないが、並びの位置を変えないよう消さずに残すもの。理由は tip に書く） */
+  disabled?: boolean;
 }
 
 /**
@@ -38,7 +40,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div className={className} role="radiogroup" aria-label={label}>
-      {options.map(({ value: v, label: text, icon: Icon, iconOnly, tip, keys, badge }) => (
+      {options.map(({ value: v, label: text, icon: Icon, iconOnly, tip, keys, badge, disabled }) => (
         <button
           key={v}
           type="button"
@@ -49,7 +51,9 @@ export function Segmented<T extends string>({
           {...(iconOnly ? tipProps(text) : tip ? tipProps(tip) : {})}
           data-tip-keys={keys}
           aria-label={iconOnly ? text : undefined}
-          onClick={() => onChange(v)}
+          // disabled にすると乗せたときの説明（理由）が出ないので、aria-disabled にして押しても何もしない
+          aria-disabled={disabled || undefined}
+          onClick={() => !disabled && onChange(v)}
         >
           {Icon && <Icon size={iconSize} />}
           {!iconOnly && (Icon ? <> <span className="btn-label">{text}</span></> : text)}

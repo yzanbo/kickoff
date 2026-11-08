@@ -17,6 +17,7 @@ import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
 import { LaneSelect } from "./BoardLanes";
 import { KanbanBody } from "./KanbanBody";
+import { GroupCreateToolButton } from "./GroupCreateForm";
 import { SortMenuButton, TableColumnsButton, useTableColumns } from "./BoardSortTools";
 import { useChatSort } from "./useChatSort";
 import { SavedViewTabs } from "./SavedViewTabs";
@@ -198,6 +199,8 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, newChat, drafts: allD
           onWorktree={filters.setWorktree}
         />
       }
+      // プロジェクトのボードは、グループのボードと同じく「グループを作成」を置く（列の分け方を切り替えてもツールバーの形が変わらないように）
+      organize={projectId !== undefined && <GroupCreateToolButton projectId={projectId} />}
       primary={
         newChat && (
           <button className="btn btn-sm" onClick={newChat.onClick} title={newChat.title}>
