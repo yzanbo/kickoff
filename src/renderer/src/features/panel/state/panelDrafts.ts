@@ -19,6 +19,8 @@ export interface PanelDraft extends DraftTarget {
   text: string;
   /** その欄で表示しているか（欄が開いていて、どれかのペインで表示中。ボードのカードを選択中に見せる） */
   showing: boolean;
+  /** サイドバーの「固定」に出すか（送ったら、できたチャットも固定する） */
+  pinned: boolean;
 }
 
 /** 下書きを指す値（ドラッグで渡す。どの欄のパネルの、どのタブか） */
@@ -28,7 +30,7 @@ const NO_DRAFTS: PanelDraft[] = [];
 let snapshot: { version: number; list: PanelDraft[] } | undefined;
 
 const sameDraft = (a: PanelDraft, b: PanelDraft) =>
-  a.panel === b.panel && a.key === b.key && a.projectId === b.projectId && a.group === b.group && a.text === b.text && a.showing === b.showing;
+  a.panel === b.panel && a.key === b.key && a.projectId === b.projectId && a.group === b.group && a.text === b.text && a.showing === b.showing && a.pinned === b.pinned;
 
 /** いまの下書き（中身が変わるまでは同じ配列を返す。下書きを使う部品を、ほかのパネルの操作のたびに描き直さない） */
 export function currentDrafts(): PanelDraft[] {
@@ -36,7 +38,7 @@ export function currentDrafts(): PanelDraft[] {
   if (snapshot?.version === version) return snapshot.list;
   const list = [...allPanels()].flatMap(([panel, s]) =>
     s.tabs.flatMap((t) =>
-      t.kind === "new" ? [{ panel, key: t.key, projectId: t.projectId, group: t.group, text: t.draftText ?? "", showing: s.open && isTabVisible(s.layout, t.key) }] : [],
+      t.kind === "new" ? [{ panel, key: t.key, projectId: t.projectId, group: t.group, text: t.draftText ?? "", showing: s.open && isTabVisible(s.layout, t.key), pinned: t.pinned === true }] : [],
     ),
   );
   const prev = snapshot?.list;
@@ -68,6 +70,11 @@ export function openDraft(draft: DraftRef) {
 /** 下書きの作成先のグループを変える（サイドバーでグループへドラッグしたとき。undefined ならグループなし） */
 export function setDraftGroup(draft: DraftRef, group: number | undefined, groupName: string | undefined) {
   dispatchPanel(draft.panel, { type: "patch", key: draft.key, kind: "new", fields: { group, groupName } });
+}
+
+/** 下書きの固定を付け外しする（サイドバーの「固定」に出す。外したら pinned を残さない） */
+export function togglePinDraft(draft: DraftRef & Pick<PanelDraft, "pinned">) {
+  dispatchPanel(draft.panel, { type: "patch", key: draft.key, kind: "new", fields: { pinned: draft.pinned ? undefined : true } });
 }
 
 /** 下書きを消す */

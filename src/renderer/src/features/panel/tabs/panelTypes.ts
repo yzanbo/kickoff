@@ -22,8 +22,8 @@ export type PanelTab =
    * chat: タブの中のチャットから届いた最新のチャット（サイドバーの一覧にないチャットでも、状態の印・右クリックのメニューの固定・アーカイブなどに使う）
    */
   | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; chat?: Chat }
-  /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す）。draftAttachments: 送る前の添付（アップロード済み。外すまで残す。一度も残していなければ undefined）。seed: 初めに入力欄に入れるもの（送信待ちの指示から始めたとき） */
-  | ({ key: string; kind: "new"; groupName?: string; draftText?: string; draftAttachments?: Attachment[]; seed?: NewChatSeed } & NewChatTarget)
+  /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す）。draftAttachments: 送る前の添付（アップロード済み。外すまで残す。一度も残していなければ undefined）。seed: 初めに入力欄に入れるもの（送信待ちの指示から始めたとき）。pinned: サイドバーの「固定」に出すか（送ったら、できたチャットも固定する） */
+  | ({ key: string; kind: "new"; groupName?: string; draftText?: string; draftAttachments?: Attachment[]; seed?: NewChatSeed; pinned?: boolean } & NewChatTarget)
   /**
    * チャットの画面の右の欄（サブエージェントの欄）に開いた、サブエージェントの画面。chatId: どのチャットのものか。
    * agentKey: サブエージェントの一覧の行のキー（起動した Task / Agent の呼び出し ID）。title: タブに出す名前（開いたときの名前）。

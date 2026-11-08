@@ -67,8 +67,10 @@ export function useWorkspaceRows({
   const showGroups = grouping === "group" && groupCount > 0;
   // 送る前の新しいチャット（下書き）。グループの見出しを出しているときは作成先のグループの中（グループなし・もうないグループのものはグループなしの中）、
   // 出していないときはいちばん上に並べる。自分が続きを書くものなので「自分待ち」でも出す（検索・状態での絞り込み中は出さない）
-  const drafts = useProjectDrafts(projectId);
+  // ピン留めした下書きは、チャットと同じくいちばん上の「固定」に抜き出す（グループの中・いちばん上には出さない）
+  const allDrafts = useProjectDrafts(projectId);
   const showDrafts = !keyword && stateFilter === null;
+  const { drafts, pinnedDrafts } = useMemo(() => splitPinnedDrafts(allDrafts), [allDrafts]);
 
   // 出すチャット: アーカイブしていないものは検索・自分待ち・状態で絞り、アーカイブ済みは（出すときだけ）検索で絞る（自分待ちのときは出さない）。
   // 行の分け方は、チャット・絞り込み・回答待ちの一覧が変わったときだけ計算し直す（matches は検索語が変わるまで同じ関数）
@@ -124,5 +126,14 @@ export function useWorkspaceRows({
     mainArchived: main.some((b) => b.archived),
     /** グループの見出しを出していないときに、いちばん上に並べる下書き（グループに入れたものも含めて、すべて） */
     topDrafts: showDrafts && !showGroups ? drafts : NO_DRAFTS,
+    /** ピン留めした下書き（「固定」のチャットの上に並べる。検索・状態での絞り込み中は出さない） */
+    pinnedDrafts: showDrafts ? pinnedDrafts : NO_DRAFTS,
   };
+}
+
+/** 下書きを、ピン留めしていないもの・したものに分ける（どちらもなければ同じ空の配列） */
+function splitPinnedDrafts(all: PanelDraft[]): { drafts: PanelDraft[]; pinnedDrafts: PanelDraft[] } {
+  if (!all.some((d) => d.pinned)) return { drafts: all, pinnedDrafts: NO_DRAFTS };
+  const drafts = all.filter((d) => !d.pinned);
+  return { drafts: drafts.length === 0 ? NO_DRAFTS : drafts, pinnedDrafts: all.filter((d) => d.pinned) };
 }

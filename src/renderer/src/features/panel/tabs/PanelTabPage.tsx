@@ -15,6 +15,8 @@ import { canPopOut, popOutTab } from "./popOutTab";
 import { TabPageContext } from "./tabPageContext";
 import { NewChatPane } from "./NewChatPane";
 import { panelStateOf } from "@/features/panel/state/panelStore";
+import { api } from "@/api";
+import { reportFailure } from "@/ui/dialogs";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
 // xterm.js は、ターミナルのタブを開いたときだけ読み込む
@@ -69,7 +71,12 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       // 作業場所を選び直したら、タブのまとまり（作業場所別）も合わせる
       onWorktreeChange={(worktree) => panel.patchTab(t.key, { kind: "new", fields: { worktree } })}
       onGroupChange={(group, groupName) => panel.patchTab(t.key, { kind: "new", fields: { group, groupName } })}
-      onCreated={(chat) => panel.replaceWithChat(t.key, chat)}
+      onCreated={(chat) => {
+        // 固定していた下書きは、できたチャットも固定する（送るまでの間に固定を付け外ししていても、いまの値で）
+        const now = panelStateOf(panel.key).tabs.find((x) => x.key === t.key);
+        if (now?.kind === "new" && now.pinned) void api.pinChat(chat.id, true).catch(reportFailure("ピン留めできませんでした"));
+        panel.replaceWithChat(t.key, chat);
+      }}
       // 空の文は覚えない（書き始める前と同じ形のまま）
       onDraftChange={(text) => panel.patchTab(t.key, { kind: "new", fields: { draftText: text || undefined } })}
     />
