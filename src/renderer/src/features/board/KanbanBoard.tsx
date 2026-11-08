@@ -123,8 +123,12 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   const { view, split, setView, setSplit } = useBoardView();
   // 全プロジェクトのボードだけ、グループの列（プロジェクトの段ごと）・状態で分けない並びにできる（プロジェクトのボードはいつも状態の列。グループの列は別の画面）
   const [allColumns] = useAllProjectsColumns();
+  // スイムレーンの段の分け方
+  const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
+  // グループの列は、段がプロジェクトのときだけ選べる（グループはプロジェクトごとのもの）。ほかの段では、覚えた「グループ」は状態の列で出す（段をプロジェクトに戻すとグループに戻る）
+  const projectLanes = allProjects && split && lanes === "project";
   const flat = allProjects && allColumns === "none";
-  const byGroup = allProjects && allColumns === "groups";
+  const byGroup = projectLanes && allColumns === "groups";
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
   const { chats, loaded, error: loadError } = useChats({ projectId, archived: filters.archive !== "active" });
   useTicker(30_000); // 経過時間の表示を進める
@@ -135,8 +139,6 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   const shown = useKanbanChats({ chats, filters: { ...filters, matches: filters.search.matches }, projectIds });
   const drafts = useMemo(() => (projectIds ? allDrafts.filter((d) => projectIds.has(d.projectId)) : allDrafts), [allDrafts, projectIds]);
   const total = shown.length;
-  // スイムレーンの段の分け方
-  const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
   // 全プロジェクトのボードのプロジェクトの段は、見出しのドラッグで並べ替える（サイドバーと同じ並び）
   const laneReorder = useProjectLaneReorder(allProjects);
 
@@ -157,7 +159,7 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   // 状態の列（段に分けるときは、段（グループ・作業場所・プロジェクト）ごとに状態の列。段には、その段に入る作成先の下書きも入る）。
   // 状態で分けないときは、段だけで分ける（段に分けなければ見出しのないまとまり 1 つ。中のチャットは最後に動いた順）
   const buckets = useChatBuckets(shown, {
-    // グループの列は、いつもプロジェクトの段に分け、段の中でそのプロジェクトのグループに分ける（ProjectGroupColumns。グループはプロジェクトごとのもの）
+    // グループの列は、プロジェクトの段の中でそのプロジェクトのグループに分ける（ProjectGroupColumns。グループはプロジェクトごとのもの）
     by: byGroup ? "project" : flat ? (split ? [lanes] : []) : split ? [lanes, "status"] : "status",
     project: projectId,
     projects: allProjects ? projects : undefined,
@@ -203,19 +205,16 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
       }
       view={view}
       onView={setView}
-      columns={projectId !== undefined ? <BoardColumnsToggle projectId={projectId} value="state" /> : <AllProjectsColumnsToggle />}
-      // グループの列はいつもプロジェクトの段に分けるので、段の分け方は出さない
+      columns={projectId !== undefined ? <BoardColumnsToggle projectId={projectId} value="state" /> : <AllProjectsColumnsToggle groups={projectLanes} />}
       viewOptions={
-        !byGroup && (
-          <LaneSelect
-            value={split ? lanes : "none"}
-            options={laneOptions}
-            onChange={(next) => {
-              if (next !== "none") setLanes(next);
-              setSplit(next !== "none");
-            }}
-          />
-        )
+        <LaneSelect
+          value={split ? lanes : "none"}
+          options={laneOptions}
+          onChange={(next) => {
+            if (next !== "none") setLanes(next);
+            setSplit(next !== "none");
+          }}
+        />
       }
       panel={rightPanel?.panel}
     />

@@ -41,10 +41,12 @@ export function useAllProjectsColumns() {
 
 /**
  * 全プロジェクトのボードの列の切り替え（状態 = 作業中・回答待ち・未読・既読と下書きの列 / グループ = プロジェクトの段ごとにグループの列 /
- * 分けない = 下書きもチャットも状態で分けずに 1 つの並び）。プロジェクトのボードの「状態 / グループ」と同じ位置に置く
+ * 分けない = 下書きもチャットも状態で分けずに 1 つの並び）。プロジェクトのボードの「状態 / グループ」と同じ位置に置く。
+ * グループは、段がプロジェクトのとき（groups）だけ出す（グループはプロジェクトごとのもの）。ほかの段で「グループ」を覚えていれば、状態を選んでいる形で出す
  */
-export function AllProjectsColumnsToggle() {
-  const [value, setValue] = useAllProjectsColumns();
+export function AllProjectsColumnsToggle({ groups }: { groups: boolean }) {
+  const [saved, setValue] = useAllProjectsColumns();
+  const value = !groups && saved === "groups" ? "state" : saved;
   return (
     <Segmented<AllProjectsColumns>
       className="view-toggle"
@@ -53,7 +55,7 @@ export function AllProjectsColumnsToggle() {
       onChange={setValue}
       options={[
         { value: "state", label: "状態", icon: CircleDot, tip: "下書き・作業中・回答待ち・未読・既読の列に分ける" },
-        { value: "groups", label: "グループ", icon: Folder, tip: "プロジェクトごとにグループの列に分ける（カードをドラッグしてグループを移す）" },
+        ...(groups ? [{ value: "groups" as const, label: "グループ", icon: Folder, tip: "プロジェクトごとにグループの列に分ける（カードをドラッグしてグループを移す）" }] : []),
         { value: "none", label: "分けない", icon: LayoutGrid, tip: "状態で分けずに、下書き → 最近動いた順に並べる" },
       ]}
     />
