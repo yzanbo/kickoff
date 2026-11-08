@@ -16,6 +16,7 @@ import { panelKey } from "@/features/panel/surfaces";
 import { AllProjectsColumnsToggle, BoardColumnsToggle, useAllProjectsColumns } from "./BoardColumnsToggle";
 import { FlatTasks } from "./FlatTasks";
 import { ProjectGroupColumns } from "./ProjectGroupColumns";
+import { LaneGroupCreate } from "./GroupCreateForm";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
 import { BoardLanes, LaneSelect } from "./BoardLanes";
@@ -230,7 +231,13 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
         <p className="muted small board-loading">読み込み中…</p>
       ) : byGroup ? (
         // グループの列: プロジェクトの段ごとに、そのプロジェクトのグループの列（カードをドラッグしてグループを移す）
-        <BoardLanes lanes={buckets} list={view === "list"} foldPlace={foldPlace}>
+        // リストでは「グループを作成」を段の見出しのプロジェクト名の右に置く（ボードは列の右端）
+        <BoardLanes
+          lanes={buckets}
+          list={view === "list"}
+          foldPlace={foldPlace}
+          actions={view === "list" ? (lane) => lane.projectId !== undefined && <LaneGroupCreate projectId={lane.projectId} /> : undefined}
+        >
           {(lane) =>
             lane.projectId === undefined ? null : (
               <ProjectGroupColumns
