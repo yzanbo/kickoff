@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type DragEvent } from "react";
-import type { Chat } from "@shared/types";
+import type { Chat, FeedItem } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { startChatDrag } from "@/features/group/groups";
@@ -9,6 +9,7 @@ import { useBoardListCompact } from "./BoardHeader";
 import { ChatCardContent, ChatRowContent } from "./ChatCard";
 import type { ChatSortKey } from "./chatSort";
 import { ChatTableRow } from "./ChatTableRow";
+import { FeedCardContent } from "./FeedList";
 import { chatCardProps } from "./chatCardProps";
 import { useContextMenu } from "@/ui/useContextMenu";
 
@@ -34,7 +35,7 @@ interface Options {
 }
 
 /**
- * ボードのカード（ボードの表示）と行（リストの表示）・表の行（表の表示）の描き方。カンバンとグループのボードで共通:
+ * ボードのカード（ボードの表示）と行（リストの表示）・表の行（表の表示）・フィードのカードの描き方。カンバンとグループのボードで共通:
  * クリック・Enter で開く / 右クリックでメニュー / ドラッグで移す（グループのボードだけ）/ 名前をその場で変える。
  * どのボードでも、アーカイブ済みのカードは archived（ArchivedFold の中で薄く出す）、ボードのカードには回答待ちの依頼の数（「回答 n件」）を付ける。
  * パネルで表示中なら selected（チャットはどれもサイドバーと連動してタブにあるので、タブで開いているかの印は付けない）
@@ -77,6 +78,12 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
       <div key={chat.id} className={cx("list-row", compactRows && "compact", cardClass(chat))} {...cardProps(chat)}>
         <ChatRowContent chat={chat} state={stateOf(chat)} projectName={projectName?.(chat)} rename={rename.editorFor(chat)} />
       </div>
+    ),
+    /** フィードのカード（チャットの最新の返答。全プロジェクトのボードだけ） */
+    feedCard: (chat: Chat, item: FeedItem) => (
+      <article key={chat.id} className={cx("board-card feed-card", cardClass(chat))} {...cardProps(chat)}>
+        <FeedCardContent chat={chat} item={item} state={stateOf(chat)} projectName={projectName?.(chat) ?? ""} rename={rename.editorFor(chat)} />
+      </article>
     ),
     /** 表の行（columns: 出す列） */
     tableRow: (chat: Chat, columns: readonly ChatSortKey[]) => (

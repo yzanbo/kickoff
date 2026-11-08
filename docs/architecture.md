@@ -35,6 +35,7 @@
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `Runner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `core/chat/sessionPoints.ts`） | なし |
 | 作業中の様子（保存しない） | `ChatLive` | 詳細と SSE で別々の形 |
+| フィード（全プロジェクトの画面の、チャットごとのメインエージェントの最新の返答 1 件を新しい順に並べたもの） | `FeedItem`（`GET /api/feed`・`store.events.feed`・画面の `FeedList` / `useFeed`） | なし |
 | チャットの選択（モデル・深さ・権限・ファスト） | `ChatOptions`（`model` / `effort` / `permission_mode` / `fast_mode`） | `RunOptions`・`ProjectDefaults`（`permission` / `fastMode`）・設定（`claudeModel` / `defaultPermission`）・`ProviderRunParams`（`permissionMode`）の 4 通り |
 | 権限モード | `PermissionMode` | `PermissionChoice` |
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |

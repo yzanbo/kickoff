@@ -1,4 +1,4 @@
-import { List, Rows2, Rows4, SquareKanban, Table2, TextSearch } from "lucide-react";
+import { List, MessagesSquare, Rows2, Rows4, SquareKanban, Table2, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "@/features/chat/chatSearch";
 import { useSetting } from "@/hooks/useSetting";
@@ -42,8 +42,11 @@ interface Props {
   organize?: ReactNode;
   /** いちばん左に置く主な操作（新規）。見出しがあれば、その後ろ */
   primary?: ReactNode;
-  view: BoardView;
-  onView: (view: BoardView) => void;
+  /** 表示（feed は全プロジェクトのボードだけ。feed を渡したときだけ選択肢に出す） */
+  view: BoardView | "feed";
+  onView: (view: BoardView | "feed") => void;
+  /** 表示の選択肢に「フィード」を出す（全プロジェクトのボード） */
+  feed?: boolean;
   /** 表示のまとまりで、表示の切り替え（とリストの行）の後ろ・列の分け方の前に置くもの（段の分け方 LaneSelect） */
   viewOptions?: ReactNode;
   /** 表示のまとまりで、段の分け方の後ろに置く、列の分け方の切り替え（プロジェクトのボード: 状態 / グループ、全プロジェクトのボード: 状態 / グループ / 分けない） */
@@ -59,7 +62,7 @@ interface Props {
  * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（右のパネルのあるプロジェクトのボードだけ。ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
-export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, viewOptions, columns, sortTools, panel }: Props) {
+export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
   return (
     <div className="board-header">
       {heading && (
@@ -83,6 +86,7 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
               { value: "board", label: "ボード", icon: SquareKanban },
               { value: "list", label: "リスト", icon: List },
               { value: "table", label: "表", icon: Table2 },
+              ...(feed ? [{ value: "feed" as const, label: "フィード", icon: MessagesSquare, tip: "フィード（チャットごとの最新の返答を新しい順に）" }] : []),
             ]}
           />
           {view === "list" && <ListRowsToggle />}

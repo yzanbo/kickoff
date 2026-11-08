@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useSetting } from "@/hooks/useSetting";
-import { ALL_PROJECTS_SAVED_VIEWS, BOARD_ARCHIVE_FILTER, BOARD_SORT, BOARD_TABLE_HIDDEN, PROJECT_SAVED_VIEWS } from "@/lib/storageKeys";
+import { ALL_PROJECTS_FEED, ALL_PROJECTS_SAVED_VIEWS, BOARD_ARCHIVE_FILTER, BOARD_SORT, BOARD_TABLE_HIDDEN, PROJECT_SAVED_VIEWS } from "@/lib/storageKeys";
 import { useArchiveFilter } from "./archiveFilter";
 import { useAllProjectsColumns } from "./BoardColumnsToggle";
 import { useBoardListCompact, useBoardView } from "./BoardHeader";
@@ -23,9 +23,10 @@ export function useSavedViews(allProjects: boolean) {
   const [hidden, setHidden] = useSetting(BOARD_TABLE_HIDDEN);
   const [compact, setCompact] = useBoardListCompact();
   const [archive, setArchive] = useArchiveFilter(BOARD_ARCHIVE_FILTER);
+  const [feed, setFeed] = useSetting(ALL_PROJECTS_FEED);
 
   const current: BoardViewState = {
-    view,
+    view: allProjects && feed ? "feed" : view,
     lanes: split ? lanes : "none",
     ...(allProjects ? { columns } : {}),
     sort: parseChatSort(rawSort) ?? DEFAULT_CHAT_SORT,
@@ -36,7 +37,12 @@ export function useSavedViews(allProjects: boolean) {
 
   /** ビューの見え方を当てる（そのボードで選べない段の分け方は、段の分け方だけそのまま） */
   const apply = (state: BoardViewState) => {
-    setView(state.view);
+    if (state.view === "feed") {
+      if (allProjects) setFeed(true);
+    } else {
+      if (allProjects) setFeed(false);
+      setView(state.view);
+    }
     if (state.lanes === "none") setSplit(false);
     else if (laneOptions.includes(state.lanes)) {
       setLanes(state.lanes);

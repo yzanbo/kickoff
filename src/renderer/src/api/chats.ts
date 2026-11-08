@@ -1,4 +1,4 @@
-import type { Chat, ChatDetail, ChatPatch, ChatTranscript, NewChatBody, SearchHit } from "@shared/types";
+import type { Chat, ChatDetail, ChatPatch, ChatTranscript, FeedItem, NewChatBody, SearchHit } from "@shared/types";
 import { request, withQuery } from "./http";
 
 const patchChat = (chatId: number, patch: ChatPatch) => request<Chat>("PATCH", `/api/chats/${chatId}`, patch);
@@ -13,6 +13,8 @@ export const chatsApi = {
   /** チャットのやり取り（自分の発言と AI の返答）の全文検索。scope で、そのプロジェクト・チャットだけに絞る */
   search: (q: string, scope: { projectId?: number; chatId?: number } = {}) =>
     request<SearchHit[]>("GET", withQuery("/api/search", { q, project_id: scope.projectId, chat_id: scope.chatId })),
+  /** フィード（全プロジェクトの画面）: チャットごとのメインエージェントの最新の返答 1 件の初めの部分。返答の新しい順 */
+  feed: (limit?: number) => request<FeedItem[]>("GET", withQuery("/api/feed", { limit })),
   startChat: (projectId: number, body: NewChatBody) => request<Chat>("POST", `/api/projects/${projectId}/chats`, body),
   /** チャットの詳細（記録・回答待ち・作業中の様子。作業中の様子は SSE の chat_live で追いかける） */
   chatDetail: (id: number) => request<ChatDetail>("GET", `/api/chats/${id}`),

@@ -88,6 +88,7 @@
 @import "./browser/browser.css";
 @import "./board/board-list.css";
 @import "./board/board-table.css";
+@import "./board/board-feed.css";
 @import "./ui/menu.css";
 @import "./base/scrollbar.css";
 @import "./base/focus.css";
