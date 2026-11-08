@@ -6,8 +6,6 @@ import { startChatDrag } from "@/features/group/groups";
 import type { useChatRename } from "@/features/chat/useChatRename";
 import type { PanelController } from "@/features/panel/usePanel";
 import { ChatCardContent, ChatRowContent } from "./ChatCard";
-import type { ChatSortKey } from "./chatSort";
-import { ChatTableRow } from "./ChatTableRow";
 import { FeedCardContent } from "./FeedList";
 import { chatCardProps } from "./chatCardProps";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -81,20 +79,6 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
       <article key={chat.id} className={cx("board-card feed-card", cardClass(chat))} {...cardProps(chat)}>
         <FeedCardContent chat={chat} item={item} state={stateOf(chat)} projectName={projectName?.(chat) ?? ""} rename={rename.editorFor(chat)} />
       </article>
-    ),
-    /** 表の行（columns: 出す列） */
-    tableRow: (chat: Chat, columns: readonly ChatSortKey[]) => (
-      <ChatTableRow
-        key={chat.id}
-        chat={chat}
-        state={stateOf(chat)}
-        columns={columns}
-        projectName={projectName?.(chat)}
-        pending={pendingCount(chat.id)}
-        rename={rename.editorFor(chat)}
-        className={cardClass(chat)}
-        rowProps={cardProps(chat)}
-      />
     ),
   };
 }

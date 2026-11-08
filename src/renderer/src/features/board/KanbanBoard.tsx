@@ -17,7 +17,7 @@ import { KanbanFilters } from "./KanbanFilters";
 import { LaneSelect } from "./BoardLanes";
 import { KanbanBody } from "./KanbanBody";
 import { GroupCreateToolButton } from "./GroupCreateForm";
-import { SortMenuButton, TableColumnsButton, useTableColumns } from "./BoardSortTools";
+import { SortMenuButton } from "./BoardSortTools";
 import { useChatSort } from "./useChatSort";
 import { SavedViewTabs } from "./SavedViewTabs";
 import { FeedList } from "./FeedList";
@@ -119,11 +119,11 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   const filters = useKanbanFilters();
   // 表示（ボード / リスト）と、段に分けるか（段の分け方はボードとリストで共通）
   const { view, split, setView, setSplit } = useBoardView();
-  // 全プロジェクトのボードだけ、フィード（チャットごとの最新の返答を新しい順に）で見られる（ボード・リスト・表とは別に覚える）
+  // 全プロジェクトのボードだけ、フィード（チャットごとの最新の返答を新しい順に）で見られる（ボード・リストとは別に覚える）
   const [feedOn, setFeed] = useSetting(ALL_PROJECTS_FEED);
   const feed = allProjects && feedOn;
   const feedData = useFeed(feed);
-  // 全プロジェクトのボードは、グループの列（プロジェクトの段ごと）・状態で分けない並びにできる。プロジェクトのボードは、リストだけ状態で分けない並びにできる（ボード・表はいつも状態の列）
+  // 全プロジェクトのボードは、グループの列（プロジェクトの段ごと）・状態で分けない並びにできる。プロジェクトのボードは、リストだけ状態で分けない並びにできる（ボードはいつも状態の列）
   const [allColumns] = useAllProjectsColumns();
   const [listFlat] = useProjectListFlat();
   // スイムレーンの段の分け方
@@ -132,7 +132,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   const projectLanes = allProjects && split && lanes === "project";
   const flat = allProjects ? allColumns === "none" : view === "list" && listFlat;
   const byGroup = projectLanes && allColumns === "groups";
-  // 列の分け方の「グループ×状態」: グループの列の中を状態で小分けにする（表では、プロジェクトの段 → グループ → 状態の見出しの行）
+  // 列の分け方の「グループ×状態」: グループの列の中を状態で小分けにする
   const [groupsByState] = useGroupsByState();
   const byState = byGroup && groupsByState;
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
@@ -146,9 +146,8 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   const drafts = useMemo(() => (projectIds ? allDrafts.filter((d) => projectIds.has(d.projectId)) : allDrafts), [allDrafts, projectIds]);
   // 全プロジェクトのボードのプロジェクトの段は、見出しのドラッグで並べ替える（サイドバーと同じ並び）
   const laneReorder = useProjectLaneReorder(allProjects);
-  // 並び順（表の見出し・ツールバーの「並び順」。列・まとまりの中もこの順）と、表に出す列
+  // 並び順（ツールバーの「並び順」。列・まとまりの中もこの順）
   const { sort, setSort, compare } = useChatSort(projectIds ? [...projectIds] : projectId !== undefined ? [projectId] : []);
-  const { columns: tableColumns } = useTableColumns(allProjects);
 
   /**
    * カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える）。全プロジェクトのボードではプロジェクトのバッジ（印と名前）を付け、
@@ -168,8 +167,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   // 状態で分けないときは、段だけで分ける（段に分けなければ見出しのないまとまり 1 つ。中のチャットは最後に動いた順）
   const buckets = useChatBuckets(shown, {
     // グループの列は、プロジェクトの段の中でそのプロジェクトのグループに分ける（ProjectGroupColumns。グループはプロジェクトごとのもの）
-    // 表では、プロジェクトの段の中をグループのまとまりに分けておく（表の中の見出しの行）
-    by: byGroup ? (view === "table" ? (byState ? ["project", "group", "status"] : ["project", "group"]) : "project") : flat ? (split ? [lanes] : []) : split ? [lanes, "status"] : "status",
+    by: byGroup ? "project" : flat ? (split ? [lanes] : []) : split ? [lanes, "status"] : "status",
     project: projectId,
     projects: allProjects ? projects : undefined,
     drafts,
@@ -221,10 +219,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
       }
       sortTools={
         !feed && (
-        <>
-          <SortMenuButton sort={sort} onSort={setSort} allProjects={allProjects} />
-          {view === "table" && <TableColumnsButton allProjects={allProjects} />}
-        </>
+        <SortMenuButton sort={sort} onSort={setSort} allProjects={allProjects} />
         )
       }
       panel={rightPanel?.panel}
@@ -251,7 +246,6 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
           foldPlace={foldPlace}
           cards={cards}
           laneReorder={laneReorder}
-          table={{ columns: tableColumns, sort, onSort: setSort }}
         />
       )}
     </BoardShell>

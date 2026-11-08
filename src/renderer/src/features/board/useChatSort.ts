@@ -10,7 +10,7 @@ import { chatComparator, DEFAULT_CHAT_SORT, parseChatSort, sameChatSort, type Ch
 const NO_IDS: readonly number[] = Object.freeze([]);
 
 /**
- * ボードの並び順（すべてのボードで共通に覚える。表の見出し・ツールバーの「並び順」で変える）と、その比べ方 compare
+ * ボードの並び順（すべてのボードで共通に覚える。ツールバーの「並び順」で変える）と、その比べ方 compare
  * （useChatBuckets の sort に渡す。列・まとまりの中がこの順になる）。projectIds はグループ名で並べるときにグループを読むプロジェクト
  */
 export function useChatSort(projectIds: readonly number[]) {

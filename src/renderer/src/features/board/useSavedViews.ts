@@ -5,7 +5,6 @@ import {
   ALL_PROJECTS_SAVED_VIEWS,
   BOARD_ARCHIVE_FILTER,
   BOARD_SORT,
-  BOARD_TABLE_HIDDEN,
   PROJECT_SAVED_VIEWS,
 } from "@/lib/storageKeys";
 import { useArchiveFilter } from "./archiveFilter";
@@ -17,7 +16,7 @@ import { useKanbanLanes } from "./useKanbanFilters";
 
 /**
  * 保存したビュー（全プロジェクトのボードとプロジェクトのボードで別の一覧。プロジェクトのボードの一覧はすべてのプロジェクトで共通）と、いまの見え方・当てる操作。
- * 見え方の設定（表示・段・列の分け方・並び順・表の列・アーカイブ）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ。
+ * 見え方の設定（表示・段・列の分け方・並び順・アーカイブ）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ。
  * projectId がなければ全プロジェクトのボード。プロジェクトのボードの列はいつも状態で、列の分け方はリストを状態で分けるか（state / none）だけを覚える
  * （以前のグループのボードで保存したビューも、projectViewState で読み替えてそのまま当てる）
  */
@@ -34,7 +33,6 @@ export function useSavedViews(projectId?: number) {
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
   const [columns, setColumns] = useAllProjectsColumns();
   const [rawSort, setSort] = useSetting(BOARD_SORT);
-  const [hidden, setHidden] = useSetting(BOARD_TABLE_HIDDEN);
   const [archive, setArchive] = useArchiveFilter(BOARD_ARCHIVE_FILTER);
   const [feed, setFeed] = useSetting(ALL_PROJECTS_FEED);
   const [byState, setByState] = useGroupsByState();
@@ -49,7 +47,6 @@ export function useSavedViews(projectId?: number) {
         ? { columns: listFlat ? ("none" as const) : ("state" as const) }
         : {}),
     sort: parseChatSort(rawSort) ?? DEFAULT_CHAT_SORT,
-    hidden,
     archive,
   };
 
@@ -73,7 +70,6 @@ export function useSavedViews(projectId?: number) {
     // プロジェクトのボードのリストの分け方（ビューは projectViewState で読み替えてあるので、リストなら state / none のどちらか）
     if (!allProjects && state.view === "list") setListFlat(state.columns === "none");
     setSort(sameChatSort(state.sort, DEFAULT_CHAT_SORT) ? null : state.sort);
-    setHidden(state.hidden);
     setArchive(state.archive);
   };
 

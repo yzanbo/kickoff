@@ -1,26 +1,13 @@
-import { ArrowDown, ArrowDownUp, ArrowUp, Check, Columns3 } from "lucide-react";
-import { useSetting } from "@/hooks/useSetting";
-import { BOARD_TABLE_HIDDEN } from "@/lib/storageKeys";
+import { ArrowDown, ArrowDownUp, ArrowUp, Check } from "lucide-react";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { CHAT_SORT_KEYS, CHAT_SORT_LABELS, nextChatSort, type ChatSort, type ChatSortKey } from "./chatSort";
+import { CHAT_SORT_KEYS, CHAT_SORT_LABELS, nextChatSort, type ChatSort } from "./chatSort";
 
-/** そのボードで使う列（プロジェクトの列は全プロジェクトのボードだけ） */
+/** そのボードで選べる並べ方（プロジェクトは全プロジェクトのボードだけ） */
 const keysFor = (allProjects: boolean) => CHAT_SORT_KEYS.filter((k) => allProjects || k !== "project");
 
 /**
- * 表に出す列（名前はいつも出す。隠した列はすべてのボードで共通に覚える）と、出し入れ toggle。
- * 並びは CHAT_SORT_KEYS の順
- */
-export function useTableColumns(allProjects: boolean) {
-  const [hidden, setHidden] = useSetting(BOARD_TABLE_HIDDEN);
-  const columns = keysFor(allProjects).filter((k) => k === "title" || !hidden.includes(k));
-  const toggle = (key: ChatSortKey) => setHidden(hidden.includes(key) ? hidden.filter((k) => k !== key) : [...hidden, key]);
-  return { columns, hidden, toggle };
-}
-
-/**
- * ツールバーの「並び順」（すべての表示で。表では見出しを押しても変えられる）。並べる列と向きを選ぶ。
+ * ツールバーの「並び順」（すべての表示で）。並べる項目と向きを選ぶ。
  * 並び順はボード・リストの列・まとまりの中にも効く
  */
 export function SortMenuButton({ sort, onSort, allProjects }: { sort: ChatSort; onSort: (sort: ChatSort) => void; allProjects: boolean }) {
@@ -57,43 +44,6 @@ export function SortMenuButton({ sort, onSort, allProjects }: { sort: ChatSort; 
               {sort.dir === dir && <Check size={14} aria-hidden />}
             </MenuItem>
           ))}
-        </PopupMenu>
-      )}
-    </>
-  );
-}
-
-/** ツールバーの「列」（表のときだけ）。表に出す列をチェックで出し入れする（メニューは閉じずに続けて選べる） */
-export function TableColumnsButton({ allProjects }: { allProjects: boolean }) {
-  const menu = useContextMenu();
-  const { hidden, toggle } = useTableColumns(allProjects);
-  return (
-    <>
-      <button
-        type="button"
-        className="btn btn-sm board-columns-button"
-        aria-haspopup="menu"
-        aria-expanded={menu.isOpen}
-        aria-label="表に出す列"
-        onClick={(e) => menu.toggle(e)}
-      >
-        <Columns3 size={13} aria-hidden />
-        <span className="btn-label">列</span>
-      </button>
-      {menu.menu && (
-        <PopupMenu at={menu.menu.at} label="表に出す列" ignore=".board-columns-button" onClose={menu.close}>
-          <div className="menu-label">表に出す列</div>
-          {keysFor(allProjects)
-            .filter((k) => k !== "title")
-            .map((key) => {
-              const shown = !hidden.includes(key);
-              return (
-                <MenuItem key={key} role="menuitemcheckbox" checked={shown} keepOpen onSelect={() => toggle(key)}>
-                  <span className="project-switch-item">{CHAT_SORT_LABELS[key]}</span>
-                  {shown && <Check size={14} aria-hidden />}
-                </MenuItem>
-              );
-            })}
         </PopupMenu>
       )}
     </>

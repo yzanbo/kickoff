@@ -124,26 +124,24 @@ export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:active
 export const ALL_PROJECTS_BOARD_COLUMNS = defineSetting("kickoff:board-columns-all", choice(["state", "groups", "none"], "state"));
 /** グループの列の中を、状態（作業中・回答待ち・未読・既読）で小分けにするか（全プロジェクトのボードの列の「状態」と「グループ」の両方オン = グループ×状態） */
 export const BOARD_GROUPS_BY_STATE = defineSetting("kickoff:board-groups-by-state", flag());
-/** プロジェクトのボードのリスト表示を、状態（作業中・回答待ち・未読・既読）で分けずに 1 つの並びにするか（初めは状態で分ける。ボード・表はいつも状態で分ける） */
+/** プロジェクトのボードのリスト表示を、状態（作業中・回答待ち・未読・既読）で分けずに 1 つの並びにするか（初めは状態で分ける。ボードはいつも状態で分ける） */
 export const PROJECT_LIST_FLAT = defineSetting("kickoff:board-list-flat", flag());
-/** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる / table = 表。すべてのボードで共通） */
-export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list", "table"], "board"));
+/** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる。すべてのボードで共通。前の版の table（表）はなくしたので、覚えていれば初めの board に戻る） */
+export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list"], "board"));
 /** ボードを段（スイムレーン）に分けるか（ボード・リストで共通。分け方は PROJECT_BOARD_LANES・ALL_PROJECTS_BOARD_LANES） */
 export const BOARD_SPLIT = defineSetting("kickoff:board-split", flag());
 /**
- * ボードのチャットの並び順（表の見出しで選び、ボード・リストの列・まとまりの中も同じ順。すべてのボードで共通）。
+ * ボードのチャットの並び順（ツールバーの「並び順」で選び、ボード・リストの列・まとまりの中に効く。すべてのボードで共通）。
  * 列の名前は features/board/chatSort.ts の CHAT_SORT_KEYS（知らない名前は、読む側で初めの並び = 最後に動いた順にする）
  */
 export const BOARD_SORT = defineSetting("kickoff:board-sort", json(parseSortPair, null, (v) => v === null));
-/** ボードの表で隠す列（features/board/chatSort.ts の CHAT_SORT_KEYS の名前。すべてのボードで共通。初めは作成日を隠す） */
-export const BOARD_TABLE_HIDDEN = defineSetting("kickoff:board-table-hidden", list(["created"]));
 /**
- * 保存したボードのビュー（表示・段・列の分け方・並び順・表の列・リストの行・アーカイブの絞り込みの組に名前を付けたもの。features/board/savedViews.ts）。
+ * 保存したボードのビュー（表示・段・列の分け方・並び順・アーカイブの絞り込みの組に名前を付けたもの。features/board/savedViews.ts）。
  * 全プロジェクトのボードとプロジェクトのボード（すべてのプロジェクトで共通）で別に覚える
  */
 export const ALL_PROJECTS_SAVED_VIEWS = defineSetting("kickoff:board-views-all", json(parseStoredViews, NO_VIEWS, (v) => v.length === 0));
 export const PROJECT_SAVED_VIEWS = defineSetting("kickoff:board-views", json(parseStoredViews, NO_VIEWS, (v) => v.length === 0));
-/** 全プロジェクトのボードをフィード（チャットごとの最新の返答を新しい順に並べる）で見るか（ボード・リスト・表の BOARD_VIEW とは別に覚える） */
+/** 全プロジェクトのボードをフィード（チャットごとの最新の返答を新しい順に並べる）で見るか（ボード・リストの BOARD_VIEW とは別に覚える） */
 export const ALL_PROJECTS_FEED = defineSetting("kickoff:board-feed-all", flag());
 /** プロジェクトのボードの段の分け方（group = グループ / worktree = 作業場所 / project = プロジェクト） */
 export const PROJECT_BOARD_LANES = defineSetting("kickoff:board-lanes", choice(["group", "worktree", "project"], "worktree"));
