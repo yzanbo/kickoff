@@ -22,7 +22,10 @@ const extensionKey = z.enum(Object.keys(KNOWN_EXTENSIONS) as KnownExtensionKey[]
 
 export const IPC_ARGS = defineArgSchemas({
   dialog: {
-    pickFolder: z.tuple([z.string().optional()]),
+    pickFolder: z.tuple([
+      z.string().max(200).optional(),
+      z.object({ message: z.string().max(1000).optional(), buttonLabel: z.string().max(60).optional(), defaultPath: z.string().max(4000).optional() }).optional(),
+    ]),
     pickReferences: none,
   },
   windows: {

@@ -95,17 +95,23 @@ test("IPC の引数: 取り決めの形のものだけを処理に渡す（invok
   await assert.rejects(async () => handled.get("invoke:externalApps.openTerminal")!(fromScreen, "/w", "nope"), IpcRejected);
   await assert.rejects(async () => handled.get("invoke:externalApps.openPath")!(fromScreen, "relative/dir"), IpcRejected);
   await assert.rejects(async () => handled.get("invoke:browserExtensions.install")!(fromScreen, "toString"), IpcRejected);
+  await assert.rejects(async () => handled.get("invoke:dialog.pickFolder")!(fromScreen, "t", { buttonLabel: 1 }), IpcRejected);
   // 省ける引数は省いてよい
   assert.equal(await handled.get("invoke:externalApps.openTerminal")!(fromScreen, "/w"), "ok");
   assert.deepEqual(calls.pop(), { name: "externalApps.openTerminal", args: ["/w"] });
+  // フォルダを選ぶ窓の文（何のために選ぶか）は渡しても省いてもよい
+  assert.equal(await handled.get("invoke:dialog.pickFolder")!(fromScreen, "t", { message: "m", buttonLabel: "b" }), "ok");
+  assert.deepEqual(calls.pop(), { name: "dialog.pickFolder", args: ["t", { message: "m", buttonLabel: "b" }] });
+  assert.equal(await handled.get("invoke:dialog.pickFolder")!(fromScreen), "ok");
+  assert.deepEqual(calls.pop(), { name: "dialog.pickFolder", args: [] });
   assert.equal(calls.length, 0);
-  assert.equal(warnings.length, 6);
+  assert.equal(warnings.length, 7);
 
   const write = listened.get("send:terminal.write")!;
   write(fromScreen, "", "ls\r");
   write(fromScreen, "t1", 42);
   assert.equal(calls.length, 0);
-  assert.equal(warnings.length, 8);
+  assert.equal(warnings.length, 9);
   write(fromScreen, "t1", "ls\r");
   assert.deepEqual(calls.pop(), { name: "terminal.write", args: ["t1", "ls\r"] });
 });

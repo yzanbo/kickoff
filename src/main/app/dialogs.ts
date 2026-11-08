@@ -9,8 +9,15 @@ export async function pickPaths(options: OpenDialogOptions): Promise<string[]> {
 
 /** ネイティブのダイアログ（IPC の dialog） */
 export const dialogHandlers: IpcHandlers["dialog"] = {
-  pickFolder: async (_e, title = "フォルダを選択") => {
-    const [folder] = await pickPaths({ properties: ["openDirectory", "createDirectory"], title });
+  // macOS の窓は title を出さないので、説明（message。省けば title）を窓の上に出す
+  pickFolder: async (_e, title = "フォルダを選択", options = {}) => {
+    const [folder] = await pickPaths({
+      properties: ["openDirectory", "createDirectory"],
+      title,
+      message: options.message ?? title,
+      ...(options.buttonLabel ? { buttonLabel: options.buttonLabel } : {}),
+      ...(options.defaultPath ? { defaultPath: options.defaultPath } : {}),
+    });
     return folder ?? null;
   },
   // 参照資料を選ぶ（フォルダもファイルも、複数まとめて選べる）

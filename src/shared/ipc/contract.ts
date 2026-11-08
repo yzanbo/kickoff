@@ -39,12 +39,19 @@ const invoke = <A extends unknown[], R = void>(): InvokeSpec<A, R> => ({ kind: "
 const send = <A extends unknown[]>(): SendSpec<A> => ({ kind: "send" });
 const event = <A extends unknown[]>(): EventSpec<A> => ({ kind: "event" });
 
+/** フォルダを選ぶ窓の文（message: 窓の上に出す説明。省けば title / buttonLabel: 決めるボタンの名前 / defaultPath: 初めに開くフォルダ） */
+export interface PickFolderOptions {
+  message?: string;
+  buttonLabel?: string;
+  defaultPath?: string;
+}
+
 /** 画面に出すネイティブ機能の一覧（まとまり → 名前）。デスクトップアプリでだけある（スマホのブラウザでは window.kickoff がない） */
 export const NATIVE_API = {
   /** ネイティブのダイアログ */
   dialog: {
-    /** フォルダを 1 つ選ぶ（やめたら null） */
-    pickFolder: invoke<[title?: string], string | null>(),
+    /** フォルダを 1 つ選ぶ（やめたら null）。macOS の窓は title を出さないので、何のために選ぶかは options.message（窓の上の文）と buttonLabel で伝える */
+    pickFolder: invoke<[title?: string, options?: PickFolderOptions], string | null>(),
     /** 参照資料にするフォルダ・ファイルを選ぶ（複数可。やめたら空） */
     pickReferences: invoke<[], string[]>(),
   },
