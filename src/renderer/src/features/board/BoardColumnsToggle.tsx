@@ -1,9 +1,10 @@
-import { CircleDot, Folder, FolderKanban, LayoutGrid } from "lucide-react";
+import { CircleDot, Folder, FolderKanban } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
 import { navigate } from "@/app/router";
 import type { SettingValue } from "@/lib/storage";
 import { ALL_PROJECTS_BOARD_COLUMNS, BOARD_GROUPS_BY_STATE, PROJECT_BOARD_COLUMNS } from "@/lib/storageKeys";
 import { Segmented } from "@/ui/Segmented";
+import { ToggleButtons } from "@/ui/ToggleButtons";
 
 export type BoardColumns = SettingValue<typeof PROJECT_BOARD_COLUMNS>;
 
@@ -46,37 +47,50 @@ export function BoardColumnsToggle({ projectId, value }: { projectId: number; va
   );
 }
 
-export type AllProjectsColumns = SettingValue<typeof ALL_PROJECTS_BOARD_COLUMNS>;
-
 /** 全プロジェクトのボードの列の分け方（状態ごと / 分けない。覚えておく） */
 export function useAllProjectsColumns() {
   return useSetting(ALL_PROJECTS_BOARD_COLUMNS);
 }
 
 /**
- * 全プロジェクトのボードの列の切り替え（状態 = 作業中・回答待ち・未読・既読と下書きの列 / グループ = プロジェクトの段ごとにグループの列（グループ×状態なら列の中を状態で小分け） /
- * 分けない = 下書きもチャットも状態で分けずに 1 つの並び）。プロジェクトのボードの「状態 / グループ」と同じ位置に置く。
- * グループは、段がプロジェクトのとき（groups）だけ出す（グループはプロジェクトごとのもの）。ほかの段で「グループ」を覚えていれば、状態を選んでいる形で出す
+ * 全プロジェクトのボードの列の分け方。「状態」と「グループ」をそれぞれオン・オフする（利用者の依頼。前は 状態 / グループ / グループ×状態 / 分けない から 1 つを選んでいた）:
+ * 状態だけ = 作業中・回答待ち・未読・既読と下書きの列 / グループだけ = プロジェクトの段ごとにグループの列 / 両方 = グループの列の中を状態で小分け（グループ×状態）/
+ * どちらもオフ = 下書きもチャットも状態で分けずに 1 つの並び。覚える値は今までどおり（ALL_PROJECTS_BOARD_COLUMNS の state / groups / none と BOARD_GROUPS_BY_STATE）。
+ * グループは、段がプロジェクトのとき（groups）だけ出す（グループはプロジェクトごとのもの）。ほかの段で「グループ」を覚えていれば、状態をオンにした形で出す
  */
 export function AllProjectsColumnsToggle({ groups }: { groups: boolean }) {
   const [saved, setValue] = useAllProjectsColumns();
   const [byState, setByState] = useGroupsByState();
-  const value = !groups && saved === "groups" ? "state" : saved === "groups" && byState ? "groupsState" : saved;
+  const groupOn = groups && saved === "groups";
+  const stateOn = groupOn ? byState : saved !== "none";
+  const toggle = (key: "state" | "groups") => {
+    if (key === "groups") {
+      if (groupOn) setValue(byState ? "state" : "none");
+      else {
+        setByState(stateOn);
+        setValue("groups");
+      }
+    } else if (groupOn) setByState(!byState);
+    else setValue(stateOn ? "none" : "state");
+  };
   return (
-    <Segmented<AllProjectsColumns | "groupsState">
+    <ToggleButtons<"state" | "groups">
       className="view-toggle"
       label="列の分け方"
-      value={value}
-      onChange={(next) => {
-        if (next === "groups" || next === "groupsState") setByState(next === "groupsState");
-        setValue(next === "groupsState" ? "groups" : next);
-      }}
+      onToggle={toggle}
       options={[
-        { value: "state", label: "状態", icon: CircleDot, tip: "下書き・作業中・回答待ち・未読・既読の列に分ける" },
+        { key: "state", label: "状態", icon: CircleDot, on: stateOn, tip: "状態（作業中・回答待ち・未読・既読）で分ける（押すたびにオン・オフ。グループと両方オンなら、グループの列の中を状態で分ける）" },
         ...(groups
-          ? [{ value: "groups" as const, label: "グループ", icon: Folder, tip: "プロジェクトごとにグループの列に分ける（カードをドラッグしてグループを移す）" }, GROUPS_STATE_OPTION]
+          ? [
+              {
+                key: "groups" as const,
+                label: "グループ",
+                icon: Folder,
+                on: groupOn,
+                tip: "プロジェクトごとにグループの列に分ける（押すたびにオン・オフ。カードをドラッグしてグループを移す）",
+              },
+            ]
           : []),
-        { value: "none", label: "分けない", icon: LayoutGrid, tip: "状態で分けずに、下書き → 最近動いた順に並べる" },
       ]}
     />
   );

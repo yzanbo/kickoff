@@ -184,6 +184,11 @@
   background: var(--bg-hover);
 }
 
+/* それぞれをオン・オフする組（ToggleButtons。role="group"）は、両方オンでも 1 つのボタンに見えないよう、間を画面の地の色で区切る（--border はオンの地と見分けられない） */
+.view-toggle[role="group"] button + button {
+  border-left: 2px solid var(--bg);
+}
+
 .board-error,
 .board-loading {
   margin: 0 0 8px;
