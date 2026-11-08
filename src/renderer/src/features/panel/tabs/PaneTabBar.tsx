@@ -113,7 +113,7 @@ export function PaneTabBar({
         tab={t}
         active={active === t.key}
         home={home}
-        showGroup={strip.grouping !== "group"}
+        badgeOf={strip.grouping === "group" ? "workplace" : "group"}
         groupOf={groupOf}
         className={cx(
           insertAt === i && "split-insert-before",

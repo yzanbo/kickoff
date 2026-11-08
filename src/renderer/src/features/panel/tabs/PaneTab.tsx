@@ -10,6 +10,7 @@ import type { useChatRename } from "@/features/chat/useChatRename";
 import type { PanelController } from "@/features/panel/usePanel";
 import { SURFACES } from "@/features/panel/surfaces";
 import { PanelTab } from "./PanelTab";
+import { TabWorkplaceBadge } from "./TabWorkplaceBadge";
 import type { PanelTab as Tab } from "./panelTypes";
 import { specOf, type TabGroupLookup } from "./tabKinds";
 import { useChatTabHint } from "./useChatTabHint";
@@ -26,7 +27,7 @@ export function PaneTab({
   tab: t,
   active,
   home,
-  showGroup,
+  badgeOf,
   groupOf,
   className,
   extra,
@@ -37,8 +38,11 @@ export function PaneTab({
   active: boolean;
   /** 一覧のペインのタブか */
   home: boolean;
-  /** 名前の後ろにグループ名を添えるか（グループ別にまとめているときは、まとまりの頭に出るので添えない） */
-  showGroup: boolean;
+  /**
+   * 名前の後ろに添える札: グループ（まとめない・作業場所別）/ 作業場所（グループ別。グループはまとまりの頭に出るので、代わりにどの作業場所かを添える。
+   * チャット・新しいチャットのタブだけ）
+   */
+  badgeOf: "group" | "workplace";
   /** プロジェクトのグループ（名前と色）を引く */
   groupOf: TabGroupLookup;
   /** ドラッグで落とす位置の印など */
@@ -66,6 +70,10 @@ export function PaneTab({
     void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: chat?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }));
   };
   const editor = t.kind === "chat" ? rename.editorFor({ id: t.id } as Chat) : undefined;
+  // 作業場所の札（チャットはそのチャットの作業場所、新しいチャットは始める作業場所。ほかの種類は添えない）
+  const place =
+    t.kind === "chat" ? chat : t.kind === "new" ? { project_id: t.projectId, worktree_path: t.worktree ?? null, branch: null } : undefined;
+  const workplaceTag = badgeOf === "workplace" && place ? <TabWorkplaceBadge chat={place} /> : undefined;
   return (
     <PanelTab
       active={active}
@@ -73,7 +81,8 @@ export function PaneTab({
       iconClass={spec.iconClass}
       badge={spec.badge && !SURFACES[panel.surface].noKindBadges ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
       label={label}
-      group={showGroup ? group : undefined}
+      group={badgeOf === "group" ? group : undefined}
+      tag={badgeOf === "workplace" ? workplaceTag : undefined}
       title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group.name}）` : label)}
       className={cx(className, agent && (agent.state === "unread" || agent.state === "failed" || agent.unread) && "unread")}
       extra={extra}
