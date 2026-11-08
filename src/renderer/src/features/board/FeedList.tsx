@@ -5,6 +5,7 @@ import { AGENT_STATE_LABELS, type AgentState, type Chat, type FeedItem } from "@
 import { chatTitle } from "@/features/chat/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import type { ChatTitleEditor } from "@/features/chat/useChatRename";
+import { GroupChip } from "@/features/group/GroupChip";
 import { STATE_TONE } from "@/features/chat/tones";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
@@ -59,13 +60,14 @@ export function FeedList({
   );
 }
 
-/** フィードのカードの中身（プロジェクト・名前・作業場所・状態・返答の時刻、その下に返答の初めの部分） */
+/** フィードのカードの中身（プロジェクト・名前・グループ・作業場所・状態・返答の時刻、その下に返答の初めの部分） */
 export function FeedCardContent({ chat, item, state, projectName, rename }: { chat: Chat; item: FeedItem; state: AgentState; projectName: string; rename?: ChatTitleEditor }) {
   return (
     <>
       <div className="feed-card-head">
         <ProjectChip id={chat.project_id} name={projectName} />
         {rename ? <ChatTitleInput chat={chat} editor={rename} /> : <span className="card-title one-line">{chatTitle(chat.title)}</span>}
+        <GroupChip chat={chat} />
         <WorktreeChip chat={chat} />
         {chat.archived_at && <span className="archived-chip">アーカイブ済み</span>}
         <span className="feed-card-state">
