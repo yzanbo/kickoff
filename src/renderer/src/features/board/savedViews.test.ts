@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { activeView, addView, parseSavedViews, parseViewState, removeView, renameView, replaceViewState, sameViewState, type BoardViewState, type SavedView } from "./savedViews";
+import { activeView, addView, parseSavedViews, parseViewState, removeView, renameView, replaceViewState, sameViewState, viewNameTaken, type BoardViewState, type SavedView } from "./savedViews";
 
 const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, hidden: ["created"], compact: false, archive: "all" };
 const view = (id: string, state: Partial<BoardViewState> = {}): SavedView => ({ id, name: `v${id}`, state: { ...base, ...state } });
@@ -39,4 +39,14 @@ test("activeView・追加・名前の変更・上書き・削除", () => {
   assert.equal(renameView(added, "3", "表")[2].name, "表");
   assert.equal(replaceViewState(added, "1", base)[0].state.view, "board");
   assert.deepEqual(removeView(added, "2").map((v) => v.id), ["1", "3"]);
+});
+
+test("viewNameTaken: 同じ一覧の同じ名前（前後の空白・全角半角・大文字小文字は区別しない）。名前を変えるビュー自身は除く", () => {
+  const views = [view("1"), { ...view("2"), name: "Review" }];
+  assert.equal(viewNameTaken(views, "v1"), true);
+  assert.equal(viewNameTaken(views, " V1 "), true);
+  assert.equal(viewNameTaken(views, "ｒｅｖｉｅｗ"), true);
+  assert.equal(viewNameTaken(views, "v3"), false);
+  assert.equal(viewNameTaken(views, "v1", "1"), false);
+  assert.equal(viewNameTaken(views, "review", "1"), true);
 });
