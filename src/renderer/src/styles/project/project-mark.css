@@ -39,10 +39,11 @@
 }
 
 /*
- * プロジェクトの名前を出す札の地（サイドバーの見出し・画面の見出しの名前・バッジ）。どれも「印 ＋ 名前 ＋ プロジェクトの色の薄い地」にそろえる。
+ * プロジェクトの名前を出す札の地（サイドバーの見出し・画面の見出しの名前・バッジ・ボードのプロジェクトの段の見出し）。どれも「印 ＋ 名前 ＋ プロジェクトの色の薄い地」にそろえる。
  * 色は要素（か親）の --ws-hue。ここより後ろのファイルの各部品の規則では、地と枠の色を書かない（ここが負けるため）
  */
 .workspace-head,
+.board-lane-head.lane-project,
 .project-switch,
 .project-chip {
   border-color: hsl(var(--ws-hue, 150) 30% 24%);
@@ -51,6 +52,7 @@
 
 .workspace-head:hover,
 .workspace-head.active,
+.board-lane-head.lane-project:hover,
 button.project-switch:hover,
 .project-switch[aria-expanded="true"],
 .project-chip-link:hover .project-chip {
@@ -59,6 +61,7 @@ button.project-switch:hover,
 }
 
 :root[data-theme="light"] .workspace-head,
+:root[data-theme="light"] .board-lane-head.lane-project,
 :root[data-theme="light"] .project-switch,
 :root[data-theme="light"] .project-chip {
   border-color: hsl(var(--ws-hue, 150) 40% 82%);
@@ -67,6 +70,7 @@ button.project-switch:hover,
 
 :root[data-theme="light"] .workspace-head:hover,
 :root[data-theme="light"] .workspace-head.active,
+:root[data-theme="light"] .board-lane-head.lane-project:hover,
 :root[data-theme="light"] button.project-switch:hover,
 :root[data-theme="light"] .project-switch[aria-expanded="true"],
 :root[data-theme="light"] .project-chip-link:hover .project-chip {
@@ -74,13 +78,15 @@ button.project-switch:hover,
   background: hsl(var(--ws-hue, 150) 55% 93%);
 }
 
-/* サイドバーの見出しは枠の線を出さない（地の色だけで見せる） */
+/* サイドバーの見出し・ボードのプロジェクトの段の見出しは枠の線を出さない（地の色だけで見せる） */
 .workspace-head,
 .workspace-head:hover,
 .workspace-head.active,
+.board-lane-head.lane-project,
 :root[data-theme="light"] .workspace-head,
 :root[data-theme="light"] .workspace-head:hover,
-:root[data-theme="light"] .workspace-head.active {
+:root[data-theme="light"] .workspace-head.active,
+:root[data-theme="light"] .board-lane-head.lane-project {
   border-color: transparent;
 }
 
