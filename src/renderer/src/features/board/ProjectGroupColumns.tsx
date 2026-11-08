@@ -8,6 +8,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { GroupSections } from "./GroupSections";
 import { useGroupBoard } from "./useGroupBoard";
 import { useChatSort } from "./useChatSort";
+import { useGroupsByState } from "./BoardColumnsToggle";
 
 /**
  * 全プロジェクトのボードの「列: グループ」の、1 つのプロジェクトの段の中身: そのプロジェクトのグループの列（自分で作ったグループ → No Group。
@@ -39,7 +40,9 @@ export function ProjectGroupColumns({
   const board = useGroupBoard({ projectId, groups });
   // 列の中は、ボードの並び順で
   const { compare } = useChatSort([projectId]);
-  const buckets = useChatBuckets(chats, { by: "group", project: projectId, drafts, keepEmpty: true, sort: compare });
+  // 列の分け方の「グループ×状態」なら、グループの中を状態でも分けて小見出しで区切る
+  const [byState] = useGroupsByState();
+  const buckets = useChatBuckets(chats, { by: byState ? ["group", "status"] : "group", project: projectId, drafts, keepEmpty: true, sort: compare });
   return (
     <>
       <GroupSections
@@ -50,6 +53,7 @@ export function ProjectGroupColumns({
         render={render}
         foldPlace={foldPlace}
         list={list}
+        byState={byState}
       />
       {/* 操作の失敗とグループの「…」メニュー */}
       <ErrorText message={board.error} />

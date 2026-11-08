@@ -5,7 +5,8 @@ import { parseChatSort, sameChatSort, type ChatSort } from "./chatSort";
 /** 表示（feed は全プロジェクトのボードだけ） */
 const VIEW_KINDS = ["board", "list", "table", "feed"] as const;
 const VIEW_LANES = ["none", "group", "worktree", "project"] as const;
-const VIEW_COLUMNS = ["state", "groups", "none"] as const;
+/** 列の分け方（groupsState = グループ×状態。グループの列の中を状態で小分け） */
+const VIEW_COLUMNS = ["state", "groups", "groupsState", "none"] as const;
 const VIEW_ARCHIVES = ["all", "active", "archived"] as const;
 
 /** ボードの見え方（保存するもの。保存の形 Record<string, unknown> に入れられるよう type で書く） */

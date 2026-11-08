@@ -124,6 +124,8 @@ export const PROJECT_BOARD_COLUMNS = defineSetting("kickoff:board-columns", choi
  * none = 分けない。下書きもチャットも 1 つの並び（最近動いた順）にする）
  */
 export const ALL_PROJECTS_BOARD_COLUMNS = defineSetting("kickoff:board-columns-all", choice(["state", "groups", "none"], "state"));
+/** グループの列の中を、状態（作業中・回答待ち・未読・既読）で小分けにするか（列の分け方の「グループ×状態」。グループのボードと全プロジェクトの列: グループで共通） */
+export const BOARD_GROUPS_BY_STATE = defineSetting("kickoff:board-groups-by-state", flag());
 /** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる / table = 表。カンバン・グループのボードで共通） */
 export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list", "table"], "board"));
 /** ボードを段（スイムレーン）に分けるか（ボード・リストで共通。分け方は PROJECT_BOARD_LANES・ALL_PROJECTS_BOARD_LANES） */

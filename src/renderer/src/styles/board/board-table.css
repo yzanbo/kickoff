@@ -181,3 +181,9 @@
   color: var(--muted);
   text-align: center;
 }
+
+/* グループ×状態の表: グループの見出しの行の下の、状態の小見出しの行（少し下げる） */
+.chat-table-subsection th {
+  padding: 6px 4px 3px 20px;
+  border-bottom: 0;
+}

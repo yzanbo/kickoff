@@ -1,5 +1,5 @@
 import { Archive, ArrowDown, ArrowUp, Folder } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import type { ChatBucket } from "@/features/chatList/buckets";
 import { bucketTone } from "@/features/chatList/StateChatsPopover";
@@ -20,6 +20,8 @@ interface Props {
    */
   sections: readonly ChatBucket<PanelDraft>[];
   headless?: boolean;
+  /** まとまりの中をもう一段（children。グループ×状態の状態）の小見出しの行で区切る */
+  nested?: boolean;
   /** いちばん上の「下書き」の行に出す下書き */
   drafts: readonly PanelDraft[];
   showDraftProject?: boolean;
@@ -38,7 +40,7 @@ interface Props {
  * ボードの表（チャット 1 つが 1 行）。見出しを押すとその列で並べ替え（もう一度押すと向きを逆に）、並び順はボード・リストにも効く。
  * 列の分け方（状態・グループ）は、表の中のまとまりの見出しの行になる（チャットのないまとまりは出さない）。下書きはいちばん上の行に並べ、アーカイブ済みはいちばん下の閉じたまとまりにまとめる
  */
-export function ChatTable({ sections, headless = false, drafts, showDraftProject, columns, sort, onSort, row, foldPlace, archivedKey }: Props) {
+export function ChatTable({ sections, headless = false, nested = false, drafts, showDraftProject, columns, sort, onSort, row, foldPlace, archivedKey }: Props) {
   // 表では、チャットのないまとまり（作業中 0 など）の見出しの行は出さない（行がなく見出しだけが並ぶと読みにくい）
   const parts = sections.map((s) => ({ section: s, split: splitArchived(s.chats) }));
   const shown = parts.filter((p) => headless || p.split[0].length > 0);
@@ -73,7 +75,7 @@ export function ChatTable({ sections, headless = false, drafts, showDraftProject
           headless ? (
             active.map(row)
           ) : (
-            <SectionBody key={section.key} section={section} active={active} span={span} row={row} />
+            <SectionBody key={section.key} section={section} active={active} span={span} row={row} nested={nested} />
           ),
         )}
         {empty && (
@@ -101,9 +103,9 @@ function SortHead({ column, sort, onSort }: { column: ChatSortKey; sort: ChatSor
   );
 }
 
-function SectionRow({ span, children }: { span: number; children: ReactNode }) {
+function SectionRow({ span, sub = false, children }: { span: number; sub?: boolean; children: ReactNode }) {
   return (
-    <tr className="chat-table-section">
+    <tr className={sub ? "chat-table-section chat-table-subsection" : "chat-table-section"}>
       <th colSpan={span} scope="colgroup">
         {children}
       </th>
@@ -111,14 +113,43 @@ function SectionRow({ span, children }: { span: number; children: ReactNode }) {
   );
 }
 
-/** まとまり 1 つ（見出しの行 ＋ 行。件数はアーカイブしていないものだけ） */
-function SectionBody({ section, active, span, row }: { section: ChatBucket<PanelDraft>; active: Chat[]; span: number; row: (chat: Chat) => ReactNode }) {
+/**
+ * まとまり 1 つ（見出しの行 ＋ 行。件数はアーカイブしていないものだけ）。nested なら、中をもう一段のまとまり（children）の小見出しの行で区切る
+ * （チャットのない小分けは出さない）
+ */
+function SectionBody({
+  section,
+  active,
+  span,
+  row,
+  nested,
+}: {
+  section: ChatBucket<PanelDraft>;
+  active: Chat[];
+  span: number;
+  row: (chat: Chat) => ReactNode;
+  nested: boolean;
+}) {
   return (
     <>
       <SectionRow span={span}>
         <BucketChip bucket={section} count={active.length} />
       </SectionRow>
-      {active.map(row)}
+      {nested && section.children
+        ? section.children.map((part) => {
+            const [rows] = splitArchived(part.chats);
+            return (
+              rows.length > 0 && (
+                <Fragment key={part.key}>
+                  <SectionRow span={span} sub>
+                    <BucketChip bucket={part} count={rows.length} />
+                  </SectionRow>
+                  {rows.map(row)}
+                </Fragment>
+              )
+            );
+          })
+        : active.map(row)}
     </>
   );
 }
