@@ -6,6 +6,9 @@ import { DialogActions } from "@/ui/DialogActions";
 import { Field } from "@/ui/Field";
 import { GIT_FEATURES } from "@/features/project/GitInitNotice";
 import { GitInitField } from "@/features/project/GitInitField";
+import { folderOverlaps } from "@/features/project/folderOverlaps";
+import { FolderOverlapNotice } from "@/features/project/OverlapNotice";
+import { useProjects } from "@/stores/projects";
 import { FolderField } from "./FolderField";
 import { memoDirBody, MemoDirField } from "./MemoDirField";
 import type { FormProps } from "./NewProjectDialog";
@@ -32,6 +35,8 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
   const [gitTouched, setGitTouched] = useState(false);
   // 保存先が git のリポジトリの中ならその一番上（中に作ると、初めは親のリポジトリの中のフォルダにする）
   const [parentRepo, setParentRepo] = useState<string | null>(null);
+  // 保存先の実体のパス（リンクを解いたもの。ほかのプロジェクトのフォルダとの被りを比べる）
+  const [parentReal, setParentReal] = useState<string>();
   // メモの保存先を手で決めた場所（null なら保存先・フォルダ名から自動）
   const [memoDir, setMemoDir] = useState<string | null>(null);
   const { submitting, error, submit } = useSubmit();
@@ -47,8 +52,16 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
     const timer = setTimeout(() => {
       api
         .inspectWorkspace(parentDir)
-        .then((info) => alive && setParentRepo(info.is_git ? info.git_root : null))
-        .catch(() => alive && setParentRepo(null));
+        .then((info) => {
+          if (!alive) return;
+          setParentRepo(info.is_git ? info.git_root : null);
+          setParentReal(info.exists ? info.path : undefined);
+        })
+        .catch(() => {
+          if (!alive) return;
+          setParentRepo(null);
+          setParentReal(undefined);
+        });
     }, 300);
     return () => {
       alive = false;
@@ -65,6 +78,10 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
   };
 
   const fullPath = `${parentDir.replace(/\/+$/, "")}/${folderName || "…"}`;
+  // 作る場所がほかのプロジェクトのフォルダなら作れない（中・中にあるは知らせるだけ）
+  const { projects } = useProjects();
+  const realTarget = parentReal && folderName ? `${parentReal.replace(/\/+$/, "")}/${folderName}` : undefined;
+  const taken = realTarget ? folderOverlaps(realTarget, projects).same.length > 0 : false;
 
   return (
     <form className="dialog-form" onSubmit={create}>
@@ -95,6 +112,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
             setFolderEdited(true);
           }}
         />
+        <FolderOverlapNotice path={realTarget} same="ng" />
       </Field>
 
       <MemoDirField base={folderName} custom={memoDir} onCustom={setMemoDir} />
@@ -120,7 +138,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
 
       <ErrorText message={error} />
 
-      <DialogActions onCancel={onCancel} submit={{ label: "作成", busyLabel: "作成中…", busy: submitting, disabled: !name.trim() || !folderName }} />
+      <DialogActions onCancel={onCancel} submit={{ label: "作成", busyLabel: "作成中…", busy: submitting, disabled: !name.trim() || !folderName || taken }} />
     </form>
   );
 }

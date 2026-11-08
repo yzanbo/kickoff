@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSave } from "@/hooks/useSave";
 import { ErrorText } from "@/ui/ErrorText";
 import { Field } from "@/ui/Field";
+import { MemoOverlapNotice } from "./MemoOverlapNotice";
 
 /**
  * メモのフォルダの指定（設定の親フォルダ・プロジェクトごとの別の場所で共通）。空なら fallback（既定）を使う。
@@ -13,6 +14,7 @@ export function MemoFolderField({
   value,
   fallback,
   onSave,
+  overlapExcept,
 }: {
   label: string;
   help: string;
@@ -21,6 +23,8 @@ export function MemoFolderField({
   /** 指定していないときに使う場所（入力欄の薄い文字） */
   fallback: string;
   onSave: (next: string | null) => Promise<unknown>;
+  /** ほかのプロジェクトとメモフォルダが同じなら知らせる（このプロジェクトの ID。プロジェクトごとの別の場所だけ。設定の親フォルダは渡さない） */
+  overlapExcept?: number;
 }) {
   const [typed, setTyped] = useState(value ?? "");
   const save = useSave();
@@ -45,6 +49,7 @@ export function MemoFolderField({
           </button>
         )}
       </div>
+      {overlapExcept !== undefined && <MemoOverlapNotice dir={typed.trim() || fallback} except={overlapExcept} />}
       <div className="memo-folder-actions">
         <button className="btn btn-primary btn-sm" disabled={next === value || save.saving} onClick={() => void save.run(() => onSave(next))}>
           {save.saving ? "保存中…" : "保存"}

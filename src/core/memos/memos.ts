@@ -10,7 +10,7 @@ import { assertInside, readProjectFile, writeProjectFile } from "../git/index.js
 import { asInvalid, Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { AgentProvider } from "../providers/types.js";
 import { runCommand } from "../system/exec.js";
-import { expandHome } from "../system/paths.js";
+import { expandHome, realPathLoose } from "../system/paths.js";
 import { memoMergePrompt, memoPlanPrompt, parseMergedMemo, parseMemoPlan, type PlanFile } from "./memoAi.js";
 import { MemoWatcher } from "./memoWatcher.js";
 
@@ -59,6 +59,20 @@ export class MemoService {
   /** 見張りをすべてやめる（コアを止めるとき） */
   close(): void {
     this.watcher.close();
+  }
+
+  /**
+   * dir をメモのフォルダにしているプロジェクト（except を除く。まだメモのフォルダを決めていないプロジェクトは数えない。
+   * ~ とリンクを解いた実体で比べる）。画面がほかのプロジェクトと被っていると知らせるのに使う（被っていても使える）
+   */
+  usersOf(dir: string, except?: number): Project[] {
+    const target = realPathLoose(path.resolve(expandHome(dir)));
+    const root = this.rootDir();
+    return this.opts.store.projects.list().filter((p) => {
+      if (p.id === except) return false;
+      const own = p.memo_path ? expandHome(p.memo_path) : p.memo_folder ? path.join(root, p.memo_folder) : null;
+      return own !== null && realPathLoose(path.resolve(own)) === target;
+    });
   }
 
   /** メモの親フォルダ（設定。なければ既定） */

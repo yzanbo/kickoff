@@ -5,6 +5,7 @@ import { useAsync } from "@/hooks/useAsync";
 import { useProjects } from "@/stores/projects";
 import { useAppSettings } from "@/stores/settings";
 import { Field } from "@/ui/Field";
+import { MemoOverlapNotice } from "@/features/memo/MemoOverlapNotice";
 
 /**
  * 新しいプロジェクト・取り込むプロジェクトのメモの保存先を送る形。手で決めた場所（custom）があれば別の場所（memo_path）、
@@ -31,6 +32,7 @@ export function MemoDirField({ base, custom, onCustom }: { base: string; custom:
             変更…
           </button>
         </div>
+        <MemoOverlapNotice dir={auto} />
       </Field>
     );
   }
@@ -54,6 +56,7 @@ export function MemoDirField({ base, custom, onCustom }: { base: string; custom:
           自動に戻す
         </button>
       </div>
+      <MemoOverlapNotice dir={custom} />
     </Field>
   );
 }

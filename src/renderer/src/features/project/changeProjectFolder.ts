@@ -1,14 +1,16 @@
 import type { Project } from "@shared/types";
 import { api } from "@/api";
 import { currentChats } from "@/stores/chats";
+import { currentProjects } from "@/stores/projects";
 import { worktreesStore } from "@/stores/worktrees";
 import { alertDialog, confirmDialog, confirmWithCheck, reportFailure } from "@/ui/dialogs";
+import { folderOverlapLines, folderOverlaps } from "./folderOverlaps";
 import { gitInitChoice } from "./gitInitChoice";
 
 /**
  * プロジェクトのフォルダ（本体）を選び直す（見出しのフォルダの場所・プロジェクトの設定の「フォルダ」から）。
  * フォルダを選ぶ → 点検（取り込みと同じ。選んだフォルダをそのまま本体にする: git のリポジトリの中のフォルダなら、Git の操作をその中だけに絞る。
- * ほかのプロジェクトのフォルダは断る）→ 確かめてから変える。ファイルは移さない（空のフォルダを選んだら、そう伝える）。
+ * ほかのプロジェクトと同じフォルダは断り（プロジェクトフォルダは DB で重ねられない）、その中・中にあるフォルダは確かめの頭で知らせて変えられる（利用者の依頼）→ 確かめてから変える。ファイルは移さない（空のフォルダを選んだら、そう伝える）。
  * git の管理を始めるかは、取り込みと同じチェック（gitInitChoice。初めはオフ）で選ぶ: git でない・コミットがないフォルダは初期化して最初のコミットを作るか、
  * リポジトリの中のフォルダは親のリポジトリの中のフォルダとして使うか、このフォルダで別のリポジトリとして始めるか。
  * チャット・設定はそのまま引き継ぐ。ワークツリーのチャットは、同じリポジトリの中なら同じワークツリーの中の新しいフォルダ、そうでなければ本体で続く（コアが付け替える）
@@ -29,11 +31,15 @@ export async function changeProjectFolder(project: Project): Promise<void> {
     const owner = info.registered_project_id ?? null;
     if (owner === project.id) return void (await alertDialog("いまと同じフォルダです", target));
     if (owner !== null) {
-      return void (await alertDialog("ほかのプロジェクトのフォルダです", `${target}\n\nこのフォルダは別のプロジェクトとして登録されています。`));
+      const name = currentProjects().find((p) => p.id === owner)?.name ?? "ほか";
+      return void (await alertDialog("ほかのプロジェクトのフォルダです", `${target}\n\nこのフォルダは「${name}」のプロジェクトフォルダです。同じフォルダを 2 つのプロジェクトで使うことはできません。`));
     }
+    // ほかのプロジェクトのフォルダの中・中にある（変えられるので、確かめの頭で知らせる）
+    const overlaps = folderOverlapLines(folderOverlaps(target, currentProjects(), project.id), "warn").map((line) => `⚠ ${line.text}`);
     const inner = Boolean(info.git_root && info.git_root !== info.path);
     const worktrees = await worktreeChats(project, info.git_root);
     const notes = [
+      ...(overlaps.length > 0 ? [...overlaps, ""] : []),
       ...(info.empty ? ["⚠ 選んだフォルダは空です。ファイルは移しません。いまのフォルダの中身を使うなら、Finder で移してから選び直してください。", ""] : []),
       `いま: ${project.repo_path}`,
       `新しい: ${target}`,

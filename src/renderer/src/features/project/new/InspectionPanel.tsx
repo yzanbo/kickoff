@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import type { FolderInspection } from "@shared/types";
 import { href } from "@/app/router";
+import { useProjects } from "@/stores/projects";
+import { folderOverlapLines, folderOverlaps } from "@/features/project/folderOverlaps";
 
 export function InspectionPanel({ info, isSubfolder }: { info: FolderInspection; isSubfolder: boolean }) {
+  const { projects, projectName } = useProjects();
   const items: { kind: "ok" | "warn" | "ng" | "info"; text: ReactNode }[] = [];
 
   if (!info.exists) {
@@ -14,7 +17,7 @@ export function InspectionPanel({ info, isSubfolder }: { info: FolderInspection;
       kind: "ng",
       text: (
         <>
-          このフォルダはすでに登録されています（<a href={href({ name: "project", id: info.registered_project_id, tab: "board" })}>開く</a>）
+          このフォルダは「{projectName(info.registered_project_id)}」としてすでに登録されています（<a href={href({ name: "project", id: info.registered_project_id, tab: "board" })}>開く</a>）
         </>
       ),
     });
@@ -40,6 +43,11 @@ export function InspectionPanel({ info, isSubfolder }: { info: FolderInspection;
         ? { kind: "ok", text: `remote: ${info.remote_url}` }
         : { kind: "info", text: "GitHub の remote（origin）が未設定です。PR を作るまでに設定してください" },
     );
+  }
+
+  // ほかのプロジェクトのフォルダの中・中にある（取り込める。同じフォルダは上の「登録されています」で止める）
+  if (info.exists && info.is_directory && !info.registered_project_id) {
+    items.push(...folderOverlapLines({ ...folderOverlaps(info.path, projects), same: [] }, "warn"));
   }
 
   return (

@@ -1,9 +1,11 @@
-import type { Chat, FileContent, MemoChatBody, MemoDefaults, MemoFromChatBody, MemoList, MemoPlan, MemoRef, SavedFile } from "@shared/types";
+import type { Chat, FileContent, MemoChatBody, MemoDefaults, MemoDirUsers, MemoFromChatBody, MemoList, MemoPlan, MemoRef, SavedFile } from "@shared/types";
 import { request, withQuery } from "./http";
 
 /** プロジェクトのメモ（保存先はプロジェクトの外。パスはメモのフォルダからの相対。コアの routes/memos.ts） */
 export const memosApi = {
   memoDefaults: () => request<MemoDefaults>("GET", "/api/memos/defaults"),
+  /** そのフォルダをメモのフォルダにしているプロジェクト（except は自分） */
+  memoDirUsers: (path: string, except?: number) => request<MemoDirUsers>("GET", withQuery("/api/memos/users", { path, except })),
   memos: (projectId: number) => request<MemoList>("GET", `/api/projects/${projectId}/memos`),
   memo: (projectId: number, path: string) => request<FileContent>("GET", withQuery(`/api/projects/${projectId}/memo`, { path })),
   /** メモを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */

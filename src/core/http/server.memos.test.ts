@@ -34,6 +34,17 @@ test("メモの保存先: 既定は親フォルダの下のプロジェクト名
   const own = tempDir();
   assert.equal((await call("PATCH", `/api/projects/${project.id}`, { memo_path: own })).body.memo_path, own);
   assert.equal(((await call("GET", `/api/projects/${project.id}/memos`)).body as MemoList).dir, own);
+
+  // そのフォルダをメモのフォルダにしているプロジェクト（自分を除く・決めていないプロジェクトは数えない・~ も解く）
+  const users = async (dir: string, except?: number) =>
+    (await call("GET", `/api/memos/users?path=${encodeURIComponent(dir)}${except ? `&except=${except}` : ""}`)).body.project_ids;
+  assert.deepEqual(await users(own), [project.id]);
+  assert.deepEqual(await users(own, project.id), []);
+  assert.deepEqual(await users(path.join(root, `${project.name}-2`)), [other.id]);
+  assert.deepEqual(await users(path.join(root, "まだない")), []);
+  await call("PATCH", `/api/projects/${spaced.id}`, { memo_path: own });
+  assert.deepEqual(await users(own, project.id), [spaced.id]);
+  assert.equal((await call("GET", "/api/memos/users")).status, 400);
 });
 
 test("メモ: 作る・一覧・読む・保存（ほかで変わっていれば 409）・動かす・ゴミ箱。変えるたびに知らせる", async () => {
