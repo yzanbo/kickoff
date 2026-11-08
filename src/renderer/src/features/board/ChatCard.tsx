@@ -6,8 +6,9 @@ import { relativeTime } from "@/lib/time";
 import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
-import { StatusDot } from "@/ui/StatusDot";
 import { STATE_TONE } from "@/features/chat/tones";
+import { StatusDot } from "@/ui/StatusDot";
+import { StatusSlot } from "@/features/chat/StatusSlot";
 
 interface Props {
   chat: Chat;
@@ -21,20 +22,23 @@ interface Props {
 }
 
 
-/** ボードのカードの中身（名前・ラベル・状態・時刻） */
+/**
+ * ボードのカードの中身（状態の印と名前・ラベル・回答待ち・時刻）。状態は名前の左に、サイドバーの行と同じ印（StatusSlot。作業中は回るリング・
+ * 回答待ちは！・未読は緑の点、作業中のまま未読なら緑の点を重ねる）で出す（利用者の依頼。前は下の行に点と「既読」などの文）
+ */
 export function ChatCardContent({ chat, state, projectName, pending = 0, rename }: Props) {
   return (
     <>
-      {rename ? <ChatTitleInput chat={chat} editor={rename} /> : <span className="card-title">{chatTitle(chat.title)}</span>}
+      <div className="card-title-row">
+        <StatusSlot state={state} unread={busyWithUnread(chat, state)} />
+        {rename ? <ChatTitleInput chat={chat} editor={rename} /> : <span className="card-title">{chatTitle(chat.title)}</span>}
+      </div>
       <div className="card-labels">
         {projectName !== undefined && <ProjectChip id={chat.project_id} name={projectName} />}
         <WorktreeChip chat={chat} />
         {chat.archived_at && <span className="archived-chip">アーカイブ済み</span>}
       </div>
       <div className="card-foot">
-        <StatusDot color={STATE_TONE[state]} />
-        <span className="card-state">{AGENT_STATE_LABELS[state]}</span>
-        {busyWithUnread(chat, state) && <UnreadMark />}
         {pending > 0 && <span className="card-pending">回答 {pending}件</span>}
         <span className="card-time">{relativeTime(chat.active_at)}</span>
       </div>
