@@ -20,10 +20,6 @@ export interface BoardChats {
   open: (chat: Chat) => void;
   /** グループの列の＋など、作成先を決めた新しいチャット */
   openNew: (target: NewChatTarget) => void;
-  /** ツールバーの「新規」 */
-  startNewChat: () => void;
-  /** 「新規」に乗せたときの説明 */
-  newChatTitle: string;
 }
 
 /** ボードの右のパネルで開く */
@@ -34,8 +30,6 @@ export function panelChats(rightPanel: ReturnType<typeof useBoardPanel>): BoardC
     drafts: rightPanel.drafts,
     open: rightPanel.open,
     openNew: (target) => rightPanel.panel.openNew(target),
-    startNewChat: rightPanel.panel.startNewChat,
-    newChatTitle: "右側で新しいチャットを始める",
   };
 }
 
@@ -46,7 +40,5 @@ export function useChatsTabLinks(projectId: number): BoardChats {
     drafts,
     open: (chat) => openChat(chat.project_id, chat.id),
     openNew: (target) => openNewChat(target.projectId, { group: target.group }),
-    startNewChat: () => openNewChat(projectId),
-    newChatTitle: "チャットタブで新しいチャットを始める",
   };
 }

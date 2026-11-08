@@ -30,8 +30,6 @@ interface Props {
   filters?: ReactNode;
   /** 整えるのまとまり（表示と検索の間）。ボードの形を変えるもの（グループを作成） */
   organize?: ReactNode;
-  /** いちばん左に置く主な操作（新規） */
-  primary?: ReactNode;
   /** 表示（feed は全プロジェクトのボードだけ。feed を渡したときだけ選択肢に出す） */
   view: BoardView | "feed";
   onView: (view: BoardView | "feed") => void;
@@ -39,7 +37,7 @@ interface Props {
   feed?: boolean;
   /** 表示のまとまりで、表示の切り替えの後ろ・列の分け方の前に置くもの（段の分け方 LaneSelect） */
   viewOptions?: ReactNode;
-  /** 表示のまとまりで、段の分け方の後ろに置く、列の分け方の切り替え（プロジェクトのボード: 状態 / グループ、全プロジェクトのボード: 状態 / グループ / 分けない） */
+  /** 表示のまとまりで、段の分け方の後ろに置く、列の分け方の切り替え（全プロジェクトのボードだけ: 状態 / グループ） */
   columns?: ReactNode;
   /** 表示のまとまりのいちばん後ろに置く、並び順（と表の列）のボタン */
   sortTools?: ReactNode;
@@ -48,17 +46,16 @@ interface Props {
 }
 
 /**
- * ボード（全プロジェクトのカンバン・プロジェクトのカンバン・グループ）の見出し。道具を概念ごとにまとめて並べる:
- * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
+ * ボード（全プロジェクトのカンバン・プロジェクトのカンバン）の見出し。道具を概念ごとにまとめて並べる:
+ * 左に 表示（ボード・リスト・表） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（右のパネルのあるプロジェクトのボードだけ。ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
-export function BoardHeader({ query, onQuery, filters, organize, primary, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
+export function BoardHeader({ query, onQuery, filters, organize, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
   return (
     <div className="board-header">
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
-        {primary && <div className="board-tool-group">{primary}</div>}
-        {/* 表示: 新規のすぐ右に ボード / リスト / 表、続けて段の分け方・列の分け方・並び順（と表の列） */}
+        {/* 表示: いちばん左に ボード / リスト / 表、続けて段の分け方・列の分け方・並び順（と表の列） */}
         <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
             className="view-toggle"
