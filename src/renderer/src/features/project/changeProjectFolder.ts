@@ -8,7 +8,7 @@ import { folderOverlapLines, folderOverlaps } from "./folderOverlaps";
 import { gitInitChoice } from "./gitInitChoice";
 
 /**
- * プロジェクトのフォルダ（本体）を選び直す（見出しのフォルダの場所・プロジェクトの設定の「フォルダ」から）。
+ * プロジェクトのフォルダ（本体）を選び直す（プロジェクトの設定の「基本情報」の「変更…」から）。
  * フォルダを選ぶ → 点検（取り込みと同じ。選んだフォルダをそのまま本体にする: git のリポジトリの中のフォルダなら、Git の操作をその中だけに絞る。
  * ほかのプロジェクトと同じフォルダは断り（プロジェクトフォルダは DB で重ねられない）、その中・中にあるフォルダは確かめの頭で知らせて変えられる（利用者の依頼）→ 確かめてから変える。ファイルは移さない（空のフォルダを選んだら、そう伝える）。
  * git の管理を始めるかは、取り込みと同じチェック（gitInitChoice。初めはオフ）で選ぶ: git でない・コミットがないフォルダは初期化して最初のコミットを作るか、
@@ -16,7 +16,7 @@ import { gitInitChoice } from "./gitInitChoice";
  * チャット・設定はそのまま引き継ぐ。ワークツリーのチャットは、同じリポジトリの中なら同じワークツリーの中の新しいフォルダ、そうでなければ本体で続く（コアが付け替える）
  */
 export async function changeProjectFolder(project: Project): Promise<void> {
-  // 何のために選ぶのかを窓の上の文とボタンで伝える（見出しのフォルダの場所を押しただけでは、フォルダを変えることが分かりにくいため）
+  // 何のために選ぶのかを窓の上の文とボタンで伝える（macOS の窓は題を出さないため）
   const picked = await window.kickoff?.dialog.pickFolder("プロジェクトフォルダを変更", {
     message: `「${project.name}」のプロジェクトフォルダを変更します。新しいフォルダを選んでください（いま: ${project.repo_path}）。ファイルは移しません。`,
     buttonLabel: "このフォルダに変更",
