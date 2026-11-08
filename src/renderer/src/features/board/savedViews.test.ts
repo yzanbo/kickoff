@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { activeView, addView, parseSavedViews, parseViewState, projectViewState, removeView, renameView, replaceViewState, sameViewState, viewNameTaken, type BoardViewState, type SavedView } from "./savedViews";
+import { activeView, addView, isNoopViewMove, moveView, parseSavedViews, parseViewState, projectViewState, removeView, renameView, replaceViewState, sameViewState, viewNameTaken, type BoardViewState, type SavedView } from "./savedViews";
 
 const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, archive: "all" };
 const view = (id: string, state: Partial<BoardViewState> = {}): SavedView => ({ id, name: `v${id}`, state: { ...base, ...state } });
@@ -68,4 +68,23 @@ test("projectViewState: 列の分け方のない前の版のビューは状態�
   assert.deepEqual(projectViewState(noColumns), { ...base, columns: "state" });
   assert.deepEqual(projectViewState({ ...base, columns: "groups" }), { ...base, columns: "groups" });
   assert.deepEqual(projectViewState({ ...base, view: "list", columns: "none" }), { ...base, view: "list", columns: "none" });
+});
+
+test("moveView: target の前・後ろへ動かし、ないビューならそのまま", () => {
+  const views = ["a", "b", "c", "d"].map((id) => view(id));
+  const ids = (list: SavedView[]) => list.map((v) => v.id);
+  assert.deepEqual(ids(moveView(views, "a", "c", "after")), ["b", "c", "a", "d"]);
+  assert.deepEqual(ids(moveView(views, "d", "a", "before")), ["d", "a", "b", "c"]);
+  assert.deepEqual(ids(moveView(views, "b", "d", "before")), ["a", "c", "b", "d"]);
+  assert.deepEqual(ids(moveView(views, "x", "a", "before")), ["a", "b", "c", "d"]);
+  assert.deepEqual(ids(moveView(views, "a", "x", "after")), ["a", "b", "c", "d"]);
+});
+
+test("isNoopViewMove: 自分の上・すぐ前の後ろ・すぐ後ろの前は並びが変わらない", () => {
+  const views = ["a", "b", "c"].map((id) => view(id));
+  assert.equal(isNoopViewMove(views, "b", "b", "before"), true);
+  assert.equal(isNoopViewMove(views, "b", "a", "after"), true);
+  assert.equal(isNoopViewMove(views, "b", "c", "before"), true);
+  assert.equal(isNoopViewMove(views, "b", "a", "before"), false);
+  assert.equal(isNoopViewMove(views, "b", "c", "after"), false);
 });
