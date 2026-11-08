@@ -46,7 +46,7 @@ interface Props {
   onView: (view: BoardView) => void;
   /** 表示のまとまりで、表示の切り替えの後ろに置くもの（段の分け方 LaneSelect） */
   viewOptions?: ReactNode;
-  /** 表示のまとまりの先頭に置く、列の分け方の切り替え（プロジェクトのボードだけ。状態 / グループ） */
+  /** 表示のまとまりで、ボード / リスト（とリストの行）の後ろに置く、列の分け方の切り替え（プロジェクトのボード: 状態 / グループ、全プロジェクトのボード: 状態 / グループ / 分けない） */
   columns?: ReactNode;
   /** 右のパネル（右端に開閉のボタンを置く。プロジェクトのボードだけ。全プロジェクトのボードはチャットをそのプロジェクトで開くので持たない） */
   panel?: PanelController;
@@ -70,8 +70,8 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
         {primary && <div className="board-tool-group">{primary}</div>}
+        {/* 表示: 新規のすぐ右に ボード / リスト（とリストの行）、続けて列の分け方・段の分け方 */}
         <div className="board-tool-group" role="group" aria-label="表示">
-          {columns}
           <Segmented
             className="view-toggle"
             label="表示の切り替え"
@@ -83,6 +83,7 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
             ]}
           />
           {view === "list" && <ListRowsToggle />}
+          {columns}
           {viewOptions}
         </div>
         {organize && (
