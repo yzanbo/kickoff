@@ -35,7 +35,7 @@ export function useProjectDrafts(projectId: number): PanelDraft[] {
  * ボードの「下書き」の列と同じもの。押すとそのパネルで開き（別の画面のものは、その画面へ移ってから）、右クリックで開く・ピン留め・削除（ピン留めしたものは「固定」に出す）。
  * ドラッグしてグループ（・グループなし）へ落とすと、作成先のグループを変える（送ったときにそのグループに入る。落とし先はまとまりを包む要素）
  */
-export function DraftRows({ drafts }: { drafts: PanelDraft[] }) {
+export function DraftRows({ drafts }: { drafts: readonly PanelDraft[] }) {
   if (drafts.length === 0) return null;
   return (
     <ul className="chat-rows draft-rows">
@@ -46,7 +46,8 @@ export function DraftRows({ drafts }: { drafts: PanelDraft[] }) {
   );
 }
 
-function DraftRow({ draft }: { draft: PanelDraft }) {
+/** 下書きの 1 行（チャットの行の並びの中にも置ける。手動の並びでタブの位置に合わせるとき） */
+export function DraftRow({ draft }: { draft: PanelDraft }) {
   const menu = useContextMenu();
   const selected = useDraftSelected(draft);
   return (

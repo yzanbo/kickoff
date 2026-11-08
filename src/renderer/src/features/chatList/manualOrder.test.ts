@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { makeChat, makeGroup } from "@shared/testing/factories";
 import { approvalIndex } from "@/features/chat/chatState";
 import { bucketChats } from "./buckets";
-import { bucketScopes, byManual, moveChatInOrder } from "./manualOrder";
+import { bucketScopes, byManual, draftAnchor, moveChatInOrder } from "./manualOrder";
 
 test("byManual: まだ並べていない新しいチャットがいちばん上（新しい順）、そのあと position の順", () => {
   const chats = [makeChat(1, { position: 1 }), makeChat(2, { position: 0 }), makeChat(3), makeChat(4), makeChat(5, { position: 2 })];
@@ -28,4 +28,22 @@ test("moveChatInOrder: target の前・後ろへ動かす。動かせない・�
   assert.equal(moveChatInOrder([1, 2, 3], 1, 2, "before"), null);
   assert.equal(moveChatInOrder([1, 2, 3], 2, 2, "after"), null);
   assert.equal(moveChatInOrder([1, 2, 3], 9, 2, "after"), null);
+});
+
+test("draftAnchor: タブの列で下書きより前に見える、同じまとまりのチャットのいちばん後ろ。なければ null", () => {
+  // サイドバーの並び 3 → 1 → 2。ペインは [c1, c2, 新, c3] → 並べ替えると [c3, c1, 新, c2]
+  const order = new Map([
+    [3, 0],
+    [1, 1],
+    [2, 2],
+  ]);
+  const spot = { chatIds: [1, 2, 3], before: 2 };
+  assert.equal(draftAnchor(spot, order, () => true), 1);
+  // 同じまとまりのチャットだけを見る
+  assert.equal(draftAnchor(spot, order, (id) => id !== 1), 3);
+  assert.equal(draftAnchor(spot, order, (id) => id === 2), null);
+  // いちばん前のタブなら null
+  assert.equal(draftAnchor({ chatIds: [1, 2], before: 0 }, order, () => true), null);
+  // サイドバーの並びにないチャットは後ろ
+  assert.equal(draftAnchor({ chatIds: [9, 2], before: 1 }, order, () => true), 2);
 });

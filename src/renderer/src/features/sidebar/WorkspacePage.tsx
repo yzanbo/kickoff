@@ -1,5 +1,5 @@
 import { Archive, Folder, Inbox, Pin, SquarePen } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { Fragment, memo, useMemo, useState } from "react";
 import { BOARD_COLUMN_LABELS, type Project, type Chat, type ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { alertDialog } from "@/ui/dialogs";
@@ -23,7 +23,7 @@ import { useChatLayout } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { CustomGroupSection } from "./CustomGroupSection";
 import { useGroupSections } from "./useGroupSections";
-import { DraftRows } from "./DraftRows";
+import { DraftRow, DraftRows } from "./DraftRows";
 import { FoldSection } from "@/ui/FoldHead";
 import { stateCounts } from "@/features/chat/chatState";
 import { UngroupedHead } from "./UngroupedHead";
@@ -135,23 +135,28 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
   const rename = useChatRename((m) => void alertDialog("名前を変更できませんでした", m));
-  const renderRow = (chat: Chat) => (
-    <ChatRow
-      key={chat.id}
-      chat={chat}
-      state={stateOf(chat)}
-      active={route.name === "chat" && route.chatId === chat.id}
-      menuOpen={rowMenu.menu?.value.id === chat.id}
-      onMenu={(at) => rowMenu.openAt(at, chat)}
-      onCloseMenu={rowMenu.close}
-      onRename={() => rename.start(chat)}
-      rename={rename.editorFor(chat)}
-      // 子チャットは親の行の中にだけ置く（開閉と数。孫・ひ孫も同じ形で）。子チャットは別ウィンドウで開く
-      after={<ChildChatRows parentId={chat.id} parentArchived={chat.archived_at !== null} childrenOf={childChats} renderRow={renderRow} />}
-      onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
-      reorder={rowReorder(chat)}
-    />
+  // drafts: 手動の並びで、タブの列でこのチャットのすぐ後ろにある下書きも並べるか（同じチャットをもう一度出す「自分待ち」のまとまりでは出さない）
+  const renderChatRow = (chat: Chat, drafts: boolean) => (
+    <Fragment key={chat.id}>
+      <ChatRow
+        chat={chat}
+        state={stateOf(chat)}
+        active={route.name === "chat" && route.chatId === chat.id}
+        menuOpen={rowMenu.menu?.value.id === chat.id}
+        onMenu={(at) => rowMenu.openAt(at, chat)}
+        onCloseMenu={rowMenu.close}
+        onRename={() => rename.start(chat)}
+        rename={rename.editorFor(chat)}
+        // 子チャットは親の行の中にだけ置く（開閉と数。孫・ひ孫も同じ形で）。子チャットは別ウィンドウで開く
+        after={<ChildChatRows parentId={chat.id} parentArchived={chat.archived_at !== null} childrenOf={childChats} renderRow={renderRow} />}
+        onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
+        reorder={rowReorder(chat)}
+      />
+      {/* 手動の並びで、タブの列でこのチャットのすぐ後ろにある下書き（タブの位置に合わせる。useDraftPlacement） */}
+      {drafts && list.draftsAfter.get(chat.id)?.map((d) => <DraftRow key={`${d.panel}:${d.key}`} draft={d} />)}
+    </Fragment>
   );
+  const renderRow = (chat: Chat) => renderChatRow(chat, true);
 
   const renderGroup = (bucket: (typeof list.groups)[number]) => {
     const group = bucket.group!;
@@ -267,7 +272,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         {/* 自分待ちの「プロジェクト内の上に」: プロジェクトの中のいちばん上（下書き・固定より上） */}
         {waitingTop.length > 0 && (
           <FoldSection look="row" icon={Inbox} label="自分待ち" count={waitingTop.length} open={waitingFold.open} onToggle={waitingFold.toggle}>
-            <ul className="chat-rows">{waitingTop.map(renderRow)}</ul>
+            <ul className="chat-rows">{waitingTop.map((chat) => renderChatRow(chat, false))}</ul>
           </FoldSection>
         )}
         {/* グループの見出しを出していないときの下書き（グループでまとめていないときは、グループに入れたものも含めていちばん上に） */}
