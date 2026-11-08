@@ -10,7 +10,7 @@ import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/panel/
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { panelKey } from "@/features/panel/surfaces";
-import { AllProjectsColumnsToggle, useAllProjectsColumns, useGroupsByState } from "./BoardColumnsToggle";
+import { AllProjectsColumnsToggle, ProjectListStateToggle, useAllProjectsColumns, useGroupsByState, useProjectListFlat } from "./BoardColumnsToggle";
 import { useProjectLaneReorder } from "./useProjectLaneReorder";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
@@ -123,13 +123,14 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   const [feedOn, setFeed] = useSetting(ALL_PROJECTS_FEED);
   const feed = allProjects && feedOn;
   const feedData = useFeed(feed);
-  // 全プロジェクトのボードだけ、グループの列（プロジェクトの段ごと）・状態で分けない並びにできる（プロジェクトのボードはいつも状態の列。グループの列は別の画面）
+  // 全プロジェクトのボードは、グループの列（プロジェクトの段ごと）・状態で分けない並びにできる。プロジェクトのボードは、リストだけ状態で分けない並びにできる（ボード・表はいつも状態の列）
   const [allColumns] = useAllProjectsColumns();
+  const [listFlat] = useProjectListFlat();
   // スイムレーンの段の分け方
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
   // グループの列は、段がプロジェクトのときだけ選べる（グループはプロジェクトごとのもの）。ほかの段では、覚えた「グループ」は状態の列で出す（段をプロジェクトに戻すとグループに戻る）
   const projectLanes = allProjects && split && lanes === "project";
-  const flat = allProjects && allColumns === "none";
+  const flat = allProjects ? allColumns === "none" : view === "list" && listFlat;
   const byGroup = projectLanes && allColumns === "groups";
   // 列の分け方の「グループ×状態」: グループの列の中を状態で小分けにする（表では、プロジェクトの段 → グループ → 状態の見出しの行）
   const [groupsByState] = useGroupsByState();
@@ -203,8 +204,9 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
       }}
       feed={allProjects}
       // 列の分け方は全プロジェクトのボードだけ（プロジェクトのボードの列はいつも状態。利用者の依頼で、列の分け方とグループのボードの画面をなくした）。
+      // プロジェクトのボードは、リストのときだけ「状態」で分けるかを選べる（利用者の依頼）。
       // フィードは返答の新しい順の 1 列なので、段・列の分け方・並び順を出さない
-      columns={feed || projectId !== undefined ? undefined : <AllProjectsColumnsToggle groups={projectLanes} />}
+      columns={feed ? undefined : allProjects ? <AllProjectsColumnsToggle groups={projectLanes} /> : view === "list" ? <ProjectListStateToggle /> : undefined}
       viewOptions={
         !feed && (
         <LaneSelect

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { activeView, addView, parseSavedViews, parseViewState, removeView, renameView, replaceViewState, sameViewState, viewNameTaken, type BoardViewState, type SavedView } from "./savedViews";
+import { activeView, addView, parseSavedViews, parseViewState, projectViewState, removeView, renameView, replaceViewState, sameViewState, viewNameTaken, type BoardViewState, type SavedView } from "./savedViews";
 
 const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, hidden: ["created"], archive: "all" };
 const view = (id: string, state: Partial<BoardViewState> = {}): SavedView => ({ id, name: `v${id}`, state: { ...base, ...state } });
@@ -59,4 +59,13 @@ test("sameViewState: 列の分け方を持たないビュー（前の版のプ�
 test("parseViewState: 前の版のリストの行（compact）が入ったビューも読み、その値は捨てる", () => {
   assert.deepEqual(parseViewState({ ...base, compact: true }), base);
   assert.deepEqual(parseViewState({ ...base, compact: undefined }), base);
+});
+
+test("projectViewState: プロジェクトのボードの列の分け方はリストのときだけ（none 以外は state）", () => {
+  assert.deepEqual(projectViewState({ ...base, view: "list", columns: "none" }), { ...base, view: "list", columns: "none" });
+  assert.deepEqual(projectViewState({ ...base, view: "list", columns: "groups" }), { ...base, view: "list", columns: "state" });
+  const { columns: _, ...noColumns } = base;
+  assert.deepEqual(projectViewState({ ...noColumns, view: "list" }), { ...base, view: "list", columns: "state" });
+  assert.deepEqual(projectViewState({ ...base, view: "board", columns: "none" }), noColumns);
+  assert.deepEqual(projectViewState({ ...base, view: "table", columns: "groupsState" }), { ...noColumns, view: "table" });
 });
