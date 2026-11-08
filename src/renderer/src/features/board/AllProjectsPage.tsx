@@ -63,7 +63,7 @@ export function AllProjectsPage() {
       ) : shown.length === 0 ? (
         <NoProjectsWelcome archived={archived.length} />
       ) : (
-        <AllProjectsKanban title="カンバン" />
+        <AllProjectsKanban />
       )}
     </div>
   );
