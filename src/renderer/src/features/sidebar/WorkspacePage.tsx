@@ -267,19 +267,21 @@ export const WorkspacePage = memo(function WorkspacePage({
         )}
         {/* グループの見出しを出していないときの下書き（グループでまとめていないときは、グループに入れたものも含めていちばん上に） */}
         <DraftRows drafts={list.topDrafts} />
-        {pinned && (
+        {/* 固定したチャットと、ピン留めした下書き（下書きはチャットの上。数には下書きも入れる） */}
+        {(pinned || list.pinnedDrafts.length > 0) && (
           <FoldSection
             look="row"
             wrapClassName="pinned"
             icon={Pin}
             label="固定"
-            count={pinned.chats.length}
+            count={(pinned?.chats.length ?? 0) + list.pinnedDrafts.length}
             open={pinnedFold.open}
             onToggle={pinnedFold.toggle}
-            {...huedHeadProps(colors.hueOf(pinned))}
+            {...huedHeadProps(colors.hueOf(pinned ?? { key: pinnedKey(project.id), kind: "pinned" }))}
             onContextMenu={colors.onContextMenu}
           >
-            <ul className="chat-rows">{pinned.chats.map(renderRow)}</ul>
+            <DraftRows drafts={list.pinnedDrafts} />
+            {pinned && <ul className="chat-rows">{pinned.chats.map(renderRow)}</ul>}
           </FoldSection>
         )}
         {/* 自分で作ったグループ（検索・自分待ちなどで絞り込んでいる間は、一致するチャットか下書きのあるものだけ）と、

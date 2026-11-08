@@ -96,7 +96,7 @@
 
 ## 下書き（送る前の新しいチャット）
 
-- 下書き（`panelDrafts.ts` の `PanelDraft`）は、どの欄のどのタブか・作成先・書きかけの文・表示しているか。すべての欄の分はサイドバーの各プロジェクト（`DraftRows`）・⌘⇧A のいちばん上・全プロジェクトのボードの「下書き」の列（`useAllDrafts`）、プロジェクトのボードの分（そのボードのパネルと同じプロジェクトのチャット欄）はボードの「下書き」の列（`usePanelDrafts`）に出す。押すとその欄で開き、画面に出ていない欄のものは、その画面へ移ってから開く（`openDraft`。`panelScreen`）。消すのは `discardDraft`、作成先のグループを変えるのは `setDraftGroup`（サイドバーでグループへドラッグしたとき。欄が画面にあればそのタブを、なければ覚えている内容を書き換える）。
+- 下書き（`panelDrafts.ts` の `PanelDraft`）は、どの欄のどのタブか・作成先・書きかけの文・表示しているか。すべての欄の分はサイドバーの各プロジェクト（`DraftRows`）・⌘⇧A のいちばん上・全プロジェクトのボードの「下書き」の列（`useAllDrafts`）、プロジェクトのボードの分（そのボードのパネルと同じプロジェクトのチャット欄）はボードの「下書き」の列（`usePanelDrafts`）に出す。押すとその欄で開き、画面に出ていない欄のものは、その画面へ移ってから開く（`openDraft`。`panelScreen`）。消すのは `discardDraft`、固定を付け外しするのは `togglePinDraft`（タブの `pinned`）、作成先のグループを変えるのは `setDraftGroup`（サイドバーでグループへドラッグしたとき。欄が画面にあればそのタブを、なければ覚えている内容を書き換える）。
 - 書いている途中の文は `Composer` の `onTextChange` からタブの `draftText` に入れ、カードに初めの 3 行を出す。
 - 下書きのタブだけは再起動しても消えないよう、`draftPersistence.ts` で localStorage（`NEW_CHAT_DRAFTS`。パネルごとのタブの JSON）にも残し、起動したら閉じた欄のタブとして戻す（以前の全プロジェクトのボードのパネル `kanban:all` と、全プロジェクトの画面のフッター `bottom:all` に残っていたものは、チャットを出す欄がないので、作成先のプロジェクトのボードのパネルへ移して残し直す `moveAllProjectsDrafts`）。書きかけの文は `NewChatPane` が入力欄に 1 回だけ戻し、隠れているタブではピントを移さない（`fill` の `focus: false`）。送った・閉じたら消え、消したプロジェクトの分は App が `forgetDraftsOfMissingProjects` で片付ける。送る前の添付（アップロード済み）はタブの `draftAttachments` に残し、入力欄が戻す（`PanelTabPage` の `savedAttachments`。外すまで消さない）。送信待ちの指示から始めたタブの添付（`seed.attachments`）は、タブにまだ添付を残していないときだけ入れる（外した添付を戻さない）。
 
