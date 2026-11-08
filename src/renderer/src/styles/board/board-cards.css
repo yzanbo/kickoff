@@ -54,6 +54,32 @@
   opacity: var(--drag-source-opacity);
 }
 
+/* カードの名前の行: 左に状態の印（サイドバーの行と同じ StatusSlot）、右に名前（2 行まで） */
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.card-title-row > .card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 印の高さを名前の 1 行目（13px × 1.4）にそろえる。未読の点の縁はカードの地の色 */
+.card-title-row > .status-slot {
+  height: 18px;
+}
+
+.board-card .status-unread-badge {
+  border-color: var(--bg-elev);
+}
+
+.board-card:hover .status-unread-badge {
+  border-color: var(--bg-hover);
+}
+
 .card-title {
   display: -webkit-box;
   overflow: hidden;
@@ -130,10 +156,6 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
-}
-
-.card-state {
-  color: var(--text);
 }
 
 .card-pending {

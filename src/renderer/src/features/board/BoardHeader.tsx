@@ -28,7 +28,7 @@ interface Props {
   onQuery: (query: string) => void;
   /** 探す・絞り込むのまとまりで、検索欄の後ろに置くもの（アーカイブ・作業場所の表示） */
   filters?: ReactNode;
-  /** 整えるのまとまり（表示と検索の間）。ボードの形を変えるもの（グループを作成） */
+  /** 整えるのまとまり（いちばん左）。ボードの形を変えるもの（グループを作成） */
   organize?: ReactNode;
   /** 表示（feed は全プロジェクトのボードだけ。feed を渡したときだけ選択肢に出す） */
   view: BoardView | "feed";
@@ -47,7 +47,7 @@ interface Props {
 
 /**
  * ボード（全プロジェクトのカンバン・プロジェクトのカンバン）の見出し。道具を概念ごとにまとめて並べる:
- * 左に 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
+ * 左に 整える（グループを作成。利用者の依頼でいちばん左） / 表示（ボード・リスト） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（右のパネルのあるプロジェクトのボードだけ。ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
 export function BoardHeader({ query, onQuery, filters, organize, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
@@ -55,7 +55,12 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
     <div className="board-header">
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
-        {/* 表示: いちばん左に ボード / リスト、続けて列の分け方・段の分け方・並び順 */}
+        {organize && (
+          <div className="board-tool-group" role="group" aria-label="整える">
+            {organize}
+          </div>
+        )}
+        {/* 表示: 左に ボード / リスト、続けて列の分け方・段の分け方・並び順 */}
         <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
             className="view-toggle"
@@ -72,11 +77,6 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
           {viewOptions}
           {sortTools}
         </div>
-        {organize && (
-          <div className="board-tool-group" role="group" aria-label="整える">
-            {organize}
-          </div>
-        )}
         <div className="board-tool-group" role="group" aria-label="探す・絞り込む">
           <BoardSearch query={query} onChange={onQuery} />
           {filters}
