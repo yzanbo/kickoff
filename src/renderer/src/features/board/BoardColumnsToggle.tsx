@@ -41,8 +41,8 @@ export function BoardColumnsToggle({ allProjects, groups }: { allProjects: boole
       className="view-toggle"
       label="列の分け方"
       onToggle={toggle}
+      // 並びは グループ | 状態（利用者の依頼。グループを出さないボードでは状態だけ）
       options={[
-        { key: "state", label: "状態", icon: CircleDot, on: stateOn, tip: "状態（作業中・回答待ち・未読・既読）で分ける（押すたびにオン・オフ。グループと両方オンなら、グループの列の中を状態で分ける）" },
         ...(groups
           ? [
               {
@@ -56,6 +56,7 @@ export function BoardColumnsToggle({ allProjects, groups }: { allProjects: boole
               },
             ]
           : []),
+        { key: "state", label: "状態", icon: CircleDot, on: stateOn, tip: "状態（作業中・回答待ち・未読・既読）で分ける（押すたびにオン・オフ。グループと両方オンなら、グループの列の中を状態で分ける）" },
       ]}
     />
   );
