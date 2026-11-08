@@ -13,6 +13,7 @@ import { childTab, memoTab } from "./tabKinds";
 import { canPopOut, popOutTab } from "./popOutTab";
 import { TabPageContext } from "./tabPageContext";
 import { NewChatPane } from "./NewChatPane";
+import { panelStateOf } from "@/features/panel/state/panelStore";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
 // xterm.js は、ターミナルのタブを開いたときだけ読み込む
@@ -53,6 +54,16 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       worktree={t.worktree}
       seed={t.seed}
       draftText={t.draftText}
+      draftAttachments={t.draftAttachments}
+      // 送る前の添付はタブに残す（プロジェクトを移って戻っても・再起動しても、外すまで残る。入力欄がなくなってから終わったアップロードも足す）
+      savedAttachments={{
+        id: t.key,
+        read: () => {
+          const now = panelStateOf(panel.key).tabs.find((x) => x.key === t.key);
+          return now?.kind === "new" ? (now.draftAttachments ?? []) : [];
+        },
+        write: (list) => panel.patchTab(t.key, { kind: "new", fields: { draftAttachments: list } }),
+      }}
       visible={visible}
       // 作業場所を選び直したら、タブのまとまり（作業場所別）も合わせる
       onWorktreeChange={(worktree) => panel.patchTab(t.key, { kind: "new", fields: { worktree } })}

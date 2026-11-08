@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { DATABASE_ID, chatDraft, FOLDS, NEW_CHAT_DRAFTS, THEME } from "./storageKeys";
+import { DATABASE_ID, chatAttachmentsDraft, chatDraft, FOLDS, NEW_CHAT_DRAFTS, THEME } from "./storageKeys";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -36,8 +36,19 @@ test("localStorage・sessionStorage は lib/storage.ts の外で直接読み書�
 
 test("宣言: ID を含むもの（チャット・グループ・下書き）には印があり、含まないもの（テーマ・DB の ID）にはない", () => {
   assert.equal(chatDraft(1).ids, true);
+  assert.equal(chatAttachmentsDraft(1).ids, true);
   assert.equal(FOLDS.ids, true);
   assert.equal(NEW_CHAT_DRAFTS.ids, true);
   assert.equal(THEME.ids, false);
   assert.equal(DATABASE_ID.ids, false);
+});
+
+test("送る前の添付: 形の合う添付だけを読み、空なら保存しない", () => {
+  const setting = chatAttachmentsDraft(1);
+  const ok = { id: "a", name: "x.png", mime: "image/png", size: 3 };
+  const memo = { id: "b", name: "m.md", mime: "text/markdown", size: 0, memo: "m.md" };
+  assert.deepEqual(setting.decode(JSON.stringify([ok, { id: 1 }, null, memo])), [ok, memo]);
+  assert.equal(setting.decode("{}"), undefined);
+  assert.equal(setting.encode([]), null);
+  assert.equal(setting.encode([ok]), JSON.stringify([ok]));
 });

@@ -4,7 +4,7 @@ import { chatTitle } from "./chatTitle";
 import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { errorMessage } from "@shared/errors";
 import { writeSetting } from "@/lib/storage";
-import { chatDraft } from "@/lib/storageKeys";
+import { chatAttachmentsDraft, chatDraft } from "@/lib/storageKeys";
 import { knownDescendantCount } from "@/stores/chats";
 import { openChat, parse } from "@/app/router";
 
@@ -43,10 +43,11 @@ export async function toggleArchiveChat(chat: Pick<Chat, "id" | "title" | "archi
 /** チャットをサイドバーのプロジェクトの上に固定する（固定していればやめる） */
 export const togglePinChat = (chat: Pick<Chat, "id" | "pinned">) => api.pinChat(chat.id, !chat.pinned);
 
-/** チャットを削除する（消したチャットの入力欄の書きかけの文も残さない） */
+/** チャットを削除する（消したチャットの入力欄の書きかけの文・添付も残さない） */
 export async function deleteChat(chatId: number) {
   await api.deleteChat(chatId);
   writeSetting(chatDraft(chatId), "");
+  writeSetting(chatAttachmentsDraft(chatId), []);
 }
 
 /** 確かめてから、チャットを削除する（やめたら false） */

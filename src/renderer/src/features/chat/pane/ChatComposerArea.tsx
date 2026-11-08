@@ -4,7 +4,8 @@ import { createPortal } from "react-dom";
 import type { Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { api } from "@/api";
-import { chatDraft } from "@/lib/storageKeys";
+import { chatAttachmentsDraft, chatDraft } from "@/lib/storageKeys";
+import { settingAttachmentDraft } from "@/features/chat/attachments/useComposerFiles";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { Composer } from "@/features/chat/composer/Composer";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
@@ -148,6 +149,7 @@ export function ChatComposerArea({
         handleRef={composer}
         history={prompts.recalls}
         draft={chatDraft(chat.id)}
+        savedAttachments={settingAttachmentDraft(chatAttachmentsDraft(chat.id))}
         sendTo={[
           { label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, title: ASK_SEND_TITLE, onSend: send.onAsk },
           ...(memoOrArchived
