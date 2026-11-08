@@ -167,3 +167,10 @@
   flex: none;
   color: var(--accent-fg);
 }
+
+/* 右の欄の、プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面（SideProjectView。中身はプロジェクトのタブの部品のまま。欄の高さいっぱいに、プロジェクトの画面と同じく少し余白を取る） */
+.side-project-view {
+  height: 100%;
+  padding: 8px;
+  gap: 8px;
+}

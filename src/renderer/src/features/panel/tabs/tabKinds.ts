@@ -8,13 +8,14 @@ import { baseName } from "@/lib/format";
 import { normalizeUrl } from "@/lib/url";
 import { ChildTabBadge } from "@/features/chat/children/ChildTabBadge";
 import { FileTabLead } from "@/features/editor/FileTabLead";
+import { ProjectViewTabLead } from "./ProjectViewTabLead";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
 import type { PopoutRoute } from "@/app/popout";
-import type { NewChatTarget, PanelTab, TerminalTarget } from "./panelTypes";
+import { PROJECT_VIEW_LABELS, type NewChatTarget, type PanelTab, type ProjectView, type TerminalTarget } from "./panelTypes";
 
 /**
- * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・変更・ファイル・メモ・子チャット・新しい子チャット・ブラウザ・ターミナル）ごとの違いを集めた表。
+ * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・変更・プロジェクトの画面（ファイル・検索・履歴）・ファイル・メモ・子チャット・新しい子チャット・ブラウザ・ターミナル）ごとの違いを集めた表。
  * タブを作る（キーの決め方）・欄の「表示するタブ」のどれに入るか・アイコンと名前・どのプロジェクトのものか・中身を作る時・閉じたときの後始末・
  * どのまとまりに入るかを、種類で分岐させずにここから引く。中身（どの部品を描き、中身からの知らせでタブをどう変えるか）は PanelTabPage の PAGES
  */
@@ -70,6 +71,19 @@ export const changesTab = ({ chatId, projectId, worktree, focus }: { chatId: num
   projectId,
   ...(worktree ? { worktree } : {}),
   ...(focus ? { focus, focusAt: Date.now() } : {}),
+});
+
+/** プロジェクトの画面（ファイル・検索・履歴）のタブのキー（種類ごとに、その欄に 1 つのタブ） */
+export const projectViewTabKey = (view: ProjectView) => `project-view:${view}`;
+
+/** 右の欄に開く、プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面のタブ */
+export const projectViewTab = ({ chatId, projectId, worktree, view }: Omit<TabOf<"projectView">, "key" | "kind">): TabOf<"projectView"> => ({
+  key: projectViewTabKey(view),
+  kind: "projectView",
+  chatId,
+  projectId,
+  view,
+  ...(worktree ? { worktree } : {}),
 });
 
 /** ファイルのタブのキー（同じ作業場所の同じファイルは、その欄に 1 つのタブ） */
@@ -245,6 +259,18 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
       route: { kind: "changes", chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) },
       title: `変更 — ${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}`,
     }),
+  },
+  projectView: {
+    shows: "file",
+    icon: FileText,
+    // アイコンはプロジェクトの左の列のタブと同じ
+    Lead: ProjectViewTabLead,
+    label: (t) => PROJECT_VIEW_LABELS[t.view],
+    hint: (t) => `プロジェクトの「${PROJECT_VIEW_LABELS[t.view]}」（${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}から）`,
+    projectOf: (t) => t.projectId,
+    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+    chatIdOf: (t) => t.chatId,
+    cluster: () => OTHER_CLUSTER,
   },
   file: {
     shows: "file",

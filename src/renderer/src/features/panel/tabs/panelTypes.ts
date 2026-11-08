@@ -2,6 +2,11 @@ import type { Attachment, Project, Chat } from "@shared/types";
 import { sidebarOrder } from "@/features/project/projectOrder";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 
+/** 右の欄に開ける、プロジェクトのタブと同じ画面（ファイル・検索・履歴。変更は右の欄向けの「変更」のタブ） */
+export const PROJECT_VIEWS = ["files", "search", "history"] as const;
+export type ProjectView = (typeof PROJECT_VIEWS)[number];
+export const PROJECT_VIEW_LABELS: Record<ProjectView, string> = { files: "ファイル", search: "検索", history: "履歴" };
+
 /** 新しいチャットを始めるときの指定（どのプロジェクト・グループで始めるか） */
 export interface NewChatTarget {
   projectId: number;
@@ -35,6 +40,11 @@ export type PanelTab =
    * path: 作業場所からの相対パス。line: 目立たせる行
    */
   | { key: string; kind: "file"; chatId: number; projectId: number; worktree?: string; path: string; line?: number }
+  /**
+   * チャットの画面の右の欄に開いた、プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面（view。作業場所はチャットの作業場所から始め、中で切り替えられる）。
+   * chatId: どのチャットの右の欄か。worktree: 初めに見る作業場所のワークツリーのフォルダ（本体ならない）
+   */
+  | { key: string; kind: "projectView"; chatId: number; projectId: number; worktree?: string; view: ProjectView }
   /** チャットの画面の右の欄に開いた、プロジェクトのメモ（自動で保存）。chatId: どのチャットの右の欄か。path: メモのフォルダからの相対パス */
   | { key: string; kind: "memo"; chatId: number | null; projectId: number; path: string }
   /**

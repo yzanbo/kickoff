@@ -204,7 +204,7 @@ export function PaneTabBar({
         openWithShown={openWithShown}
       />
       )}
-      {/* 新しい子チャット: 出す種類が決まっている欄（右の欄）の新しいタブのボタン。横の ▾ で、ほかに右の欄に開けるもの（子チャット・サブエージェント・変更・メモ）を選ぶ */}
+      {/* 新しい子チャット: 出す種類が決まっている欄（右の欄）の新しいタブのボタン。横の ▾ で、ほかに右の欄に開けるもの（子チャット・サブエージェント・ファイル・検索・変更・履歴・メモ）を選ぶ */}
       {onNewChild && <AgentPanelAdds panel={panel} onNewChild={onNewChild} />}
       {/* ペインを分ける・閉じる（右端。右の欄は分けるボタンを置かない noSplitButtons） */}
       <span className="panel-bar-buttons panel-pane-tools">
