@@ -66,18 +66,25 @@
 }
 
 /*
- * まとまりの頭: まとまりの色の丸い札（薄い地に色の文字。右の欄のタブの種類の札と同じ作り）（左 = 名前・右 = 畳む / 開く）。札は狭いときだけ名前を省く（中のタブの方を先に細くする。比を 1 未満にすると、札だけのまとまりで札が縮みきらずにはみ出す）。
+ * まとまりの頭: まとまりの色の四角い札（薄い地に色の文字）（左 = 名前・右 = 畳む / 開く）。タブと同じ高さの四角にして、すぐ右のタブとの間を空けない
+ * （利用者の依頼。前は低い丸い札で、タブとの間も空いていたので、どこからどこまでが 1 つのまとまりか分かりにくかった）。
+ * 札は狭いときだけ名前を省く（中のタブの方を先に細くする。比を 1 未満にすると、札だけのまとまりで札が縮みきらずにはみ出す）。
  * 札の中身（2〜3 文字まで残す名前 ＋ 畳む / 開く）より細くはしない（以前は min-width: 0 で中身より細く縮み、右の「‹」が札の外にはみ出して隣のタブに隠れていた）
  */
 .panel-tab-cluster {
   display: flex;
   flex: 0 1 auto;
   min-width: min-content;
-  align-items: center;
+  align-items: stretch;
+  align-self: stretch;
   max-width: 160px;
-  padding: 0 4px;
   font-size: 11px;
   color: var(--muted);
+}
+
+/* 札とすぐ右のタブの間は空けない（まとまりの中のタブどうしの間 2px を、札の後ろだけ打ち消す） */
+.panel-tab-group > .panel-tab-cluster:not(:last-child) {
+  margin-right: -2px;
 }
 
 .panel-tab-group .panel-tab {
@@ -98,23 +105,19 @@
   grid-template-columns: minmax(calc(2.5em + 14px), auto) auto;
   min-width: min-content;
   align-items: stretch;
-  border-radius: 999px;
   font-weight: 600;
   color: var(--group-color);
   background: color-mix(in srgb, var(--group-color) 18%, transparent);
-  --corner-offset: -7px;
+  /* 角の数は札の内側に置く（札がタブと同じ高さなので、外へはみ出すとタブの列に切り取られる） */
+  --corner-offset: 1px;
 }
 
 /* 名前は 2〜3 文字までは残す（狭いときは中のタブを先に細くする。1 文字まで縮むと何のまとまりか分からなかった） */
 .panel-tab-cluster-name {
+  display: flex;
+  align-items: center;
   min-width: calc(2.5em + 14px);
-  padding: 1px 7px;
-  border-radius: 999px 0 0 999px;
-}
-
-/* 区切らない札（畳むボタンのないまとまり）は名前だけで丸く */
-.panel-tab-cluster-pill:not(:has(.panel-tab-cluster-fold)) .panel-tab-cluster-name {
-  border-radius: 999px;
+  padding: 0 9px;
 }
 
 /* 右側: 開いているときは「‹」、畳んでいるときは「+3」（隠れているタブの数）。名前とは細い縦線で区切る */
@@ -127,7 +130,6 @@
   padding: 0 6px 0 5px;
   border: none;
   border-left: 1px solid color-mix(in srgb, currentColor 30%, transparent);
-  border-radius: 0 999px 999px 0;
   font: inherit;
   font-variant-numeric: tabular-nums;
   color: inherit;
@@ -135,7 +137,7 @@
   cursor: pointer;
 }
 
-/* 札は低いので、数の丸を少し小さくし、下へのはみ出しを抑える（列の下端で切れないように） */
+/* 札の内側の角に置くので、数の丸を少し小さくする */
 .panel-tab-cluster-pill .corner-count {
   min-width: 14px;
   height: 14px;
@@ -144,20 +146,12 @@
 
 /* 角に数がある側は、文字に重ならないよう札の余白を広げる（左上・左下 = 名前の左、右上 = いちばん右の区切り） */
 .panel-tab-cluster-pill:has(.corner-count.running, .corner-count.needs-input) .panel-tab-cluster-name {
-  padding-left: 11px;
+  padding-left: 15px;
 }
 
 .panel-tab-cluster-pill:has(.corner-count.unread) .panel-tab-cluster-fold,
 .panel-tab-cluster-pill:has(.corner-count.unread):not(:has(.panel-tab-cluster-fold)) .panel-tab-cluster-name {
-  padding-right: 11px;
-}
-
-.panel-tab-cluster-pill .corner-count:is(.running, .unread) {
-  top: -5px;
-}
-
-.panel-tab-cluster-pill .corner-count.needs-input {
-  bottom: -3px;
+  padding-right: 15px;
 }
 
 /* 押せる名前（グループ・作業場所。状態ごとのチャットの一覧を開く）と畳む / 開く: 乗せた方・開いている方だけ明るく */
@@ -201,9 +195,8 @@ button.panel-tab-cluster-name[aria-expanded="true"],
 
 /* まとめないときの「チャット」の札（まとまりの色はないので、その他と同じ控えめな地。押すと状態ごとのチャットの一覧） */
 .panel-tab-cluster.all {
-  /* タブの並びの外に置く札なので、タブと一緒には縮めない */
+  /* タブの並びの外に置く札なので、タブと一緒には縮めない。すぐ右のタブの並びとの間は空けない */
   flex: none;
-  padding: 0 6px 0 6px;
 }
 
 .panel-tab-cluster.all .panel-tab-cluster-pill {
