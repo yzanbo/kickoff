@@ -2,14 +2,16 @@ import type { Chat } from "@shared/types";
 import { useFolds } from "@/hooks/useFold";
 import type { PaneLeaf } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
-import { OTHER_CLUSTER, clusterTabs, shownClusters, visibleClusterTabs, type TabCluster } from "./tabClusters";
+import { useSidebarChatOrder } from "@/features/sidebar/sidebarChatOrder";
+import { parsePanelKey } from "@/features/panel/surfaces";
+import { OTHER_CLUSTER, clusterTabs, orderLikeSidebar, shownClusters, visibleClusterTabs, type TabCluster } from "./tabClusters";
 import { useHiddenTabGroups } from "./useHiddenTabGroups";
 import { useClusterReorder } from "./useClusterReorder";
 import { useTabClusters, useTabGrouping } from "./useTabClusters";
 
 /**
  * 1 つのペインのタブの並べ方: まとめ方（useTabGrouping。グループ別・作業場所別）を選んでいれば、まとまりごとに並べ替えて見せる
- * （ブラウザのタブのグループと同じ。まとまりの中はペインの並びのまま）。display は見た目の並び（畳んだまとまりは表示中のタブだけ）。
+ * （ブラウザのタブのグループと同じ。まとまりの中はペインの並びのまま。ただし一覧のペインのチャットのタブはサイドバーと同じ並び = orderLikeSidebar）。display は見た目の並び（畳んだまとまりは表示中のタブだけ）。
  * home: 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）だけ、タブのないグループの札・「チャット」の札を出し、札の数をサイドバーの数にする。
  * 分けたほかのペインは自分で置いたタブだけの列なので、札はタブのあるまとまりだけ・数はそのペインのタブの数。active はペインで見せている表示中のタブ
  */
@@ -17,8 +19,17 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const showChat = panel.kinds.has("chat");
   const [grouping] = useTabGrouping(panel.surface);
   const { clusterOf, clusterOfChat, seeds, projectOrder, hueOf } = useTabClusters(panel, grouping);
+  // 一覧のペインのチャットのタブは、サイドバーと同じ並び（まとめ方・並び順・固定・アーカイブ済み）にする（利用者の依頼）。
+  // 自分で置いたタブだけの分けたペインは、ペインの並びのまま
+  const scope = parsePanelKey(panel.key)?.scope;
+  const sidebarOrder = useSidebarChatOrder(panel.chats, scope === "all" ? undefined : scope, showChat && home);
+  const chatIdOf = (key: string) => {
+    const t = panel.tabs.find((x) => x.key === key);
+    return t?.kind === "chat" ? t.id : null;
+  };
   // 欄で隠している種類のタブは並べない（閉じずに残す）。チャットを隠しているときは、タブのないグループの札も出さない
-  const known = pane.tabs.filter(panel.isKindShown);
+  const paneKnown = pane.tabs.filter(panel.isKindShown);
+  const known = showChat && home ? orderLikeSidebar(paneKnown, chatIdOf, sidebarOrder) : paneKnown;
   // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない
   const shownSeeds = showChat && home ? seeds : [];
   // チャットを隠している欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）

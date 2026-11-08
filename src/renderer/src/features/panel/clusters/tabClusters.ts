@@ -65,3 +65,18 @@ export function paneIndexOf(displayIndex: number, display: readonly string[], pa
   const key = display[displayIndex];
   return key === undefined ? paneTabs.length : paneTabs.indexOf(key);
 }
+
+/**
+ * 一覧のペインのタブを、チャットのタブだけサイドバーの並び（orderOf。チャットの ID → 何番目か）に並べ替える（利用者の依頼で、サイドバーとタブの並びをそろえる）。
+ * チャットのタブは、いまチャットのタブがある位置どうしで入れ替え、ほかのタブ（新しいチャット・ブラウザなど）は位置を変えない。
+ * サイドバーの並びにないチャット（自分で開いたアーカイブ済みなど）は、並びにあるものの後ろに今の順のまま。変わらなければ同じ配列を返す
+ */
+export function orderLikeSidebar(keys: string[], chatIdOf: (key: string) => number | null, orderOf: ReadonlyMap<number, number>): string[] {
+  const chatKeys = keys.filter((k) => chatIdOf(k) !== null);
+  const rank = (k: string) => orderOf.get(chatIdOf(k) as number) ?? Number.MAX_SAFE_INTEGER;
+  // 同じ順位（並びにないもの）どうしは今の順のまま（sort は安定）
+  const sorted = [...chatKeys].sort((a, b) => rank(a) - rank(b));
+  if (sorted.every((k, i) => k === chatKeys[i])) return keys;
+  let next = 0;
+  return keys.map((k) => (chatIdOf(k) === null ? k : sorted[next++]));
+}

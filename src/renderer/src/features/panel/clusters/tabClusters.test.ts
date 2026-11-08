@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { makeGroup } from "@shared/testing/factories";
 import type { BucketHead } from "@/features/chatList/buckets";
-import { OTHER_CLUSTER, clusterTabs, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";
+import { OTHER_CLUSTER, clusterTabs, orderLikeSidebar, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";
 
 const group = (id: number, position: number, hue = 0) => makeGroup(id, { position, hue });
 const head = (key: string, kind: BucketHead["kind"], extra: Partial<BucketHead> = {}): BucketHead => ({ key, kind, label: key, projectId: 1, ...extra });
@@ -92,4 +92,18 @@ test("タブのまとめ方: 隠したグループと、チャットもタブも
   const forced = shownClusters(all, { hiddenGroups: new Set([1]), hideEmpty: false, countOf, active: "a" });
   assert.deepEqual(forced.clusters.map((c) => c.key), ["p1/g1", "p1/g2", "p1/g3", "p1/g4", "p1/ungrouped"]);
   assert.deepEqual([...forced.forced], ["p1/g1"]);
+});
+
+test("orderLikeSidebar: チャットのタブだけサイドバーの並びにし、ほかのタブの位置は変えない。並びにないチャットは後ろに今の順のまま", () => {
+  const ids: Record<string, number> = { c1: 1, c2: 2, c3: 3, c9: 9, c8: 8 };
+  const chatIdOf = (k: string) => ids[k] ?? null;
+  const order = new Map([
+    [3, 0],
+    [1, 1],
+    [2, 2],
+  ]);
+  assert.deepEqual(orderLikeSidebar(["c1", "new", "c2", "c9", "c3", "c8", "web"], chatIdOf, order), ["c3", "new", "c1", "c2", "c9", "c8", "web"]);
+  // 変わらなければ同じ配列
+  const same = ["c3", "new", "c1"];
+  assert.equal(orderLikeSidebar(same, chatIdOf, order), same);
 });

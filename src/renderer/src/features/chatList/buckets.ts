@@ -230,3 +230,11 @@ function bucketLevel<D extends DraftTarget>(
   }
   return list;
 }
+
+/**
+ * まとまりに分けたチャットを、画面に並ぶ順の 1 列にする（中の段があればその順、なければまとまりのチャット。まとまりのアーカイブ済みはその後ろ）。
+ * パネルのチャットのタブをサイドバーと同じ順に並べるのに使う
+ */
+export function flattenBucketChats(buckets: readonly ChatBucket[]): Chat[] {
+  return buckets.flatMap((b) => [...(b.children ? flattenBucketChats(b.children) : b.chats), ...(b.archived ? flattenBucketChats([b.archived]) : [])]);
+}

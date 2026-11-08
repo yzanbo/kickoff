@@ -5,7 +5,7 @@ import { makeChat, makeGroup, makeProject } from "@shared/testing/factories";
 import { approvalIndex } from "@/features/chat/chatState";
 import { COUNTED_COLUMNS } from "@/features/chat/chatState";
 import { chatHead, draftHead } from "./bucketHeads";
-import { bucketChats, sortBuckets, type BucketHead, type ChatBucket } from "./buckets";
+import { bucketChats, flattenBucketChats, sortBuckets, type BucketHead, type ChatBucket } from "./buckets";
 
 // 並び順は id の順（新しいほど大きい）
 const chat = (id: number, patch: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-11-${String(id).padStart(2, "0")}T00:00:00Z`, ...patch });
@@ -232,4 +232,20 @@ test("sortBuckets: アーカイブ済み・その他はいちばん後ろ。プ�
     list.map((b) => b.key),
     ["p2/w:main", "p1/pinned", "p1/g4", "p1/ungrouped", "p1/archived", "other"],
   );
+});
+
+test("flattenBucketChats: 画面に並ぶ順の 1 列にする（固定 → まとまりの中の段の順 → まとまりのアーカイブ済み）", () => {
+  const chats = [
+    chat(1, { group_id: 4, status: "running" }),
+    chat(2, { group_id: 4 }),
+    chat(3, { group_id: 4, archived_at: "x" }),
+    chat(4, { pinned: true }),
+    chat(5, { group_id: 5 }),
+    chat(6),
+  ];
+  const nested = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: true, archived: "nested" });
+  assert.deepEqual(flattenBucketChats(nested).map((c) => c.id), [4, 1, 2, 3, 5, 6]);
+  // まとめないときは、最後に動いた順のあとにアーカイブ済み
+  const flat = bucketChats(chats, { ...ctx, by: [], project: 1, pinned: true, archived: "bucket" });
+  assert.deepEqual(flattenBucketChats(flat).map((c) => c.id), [4, 6, 5, 2, 1, 3]);
 });
