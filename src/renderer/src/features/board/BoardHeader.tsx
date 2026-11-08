@@ -35,9 +35,9 @@ interface Props {
   onView: (view: BoardView | "feed") => void;
   /** 表示の選択肢に「フィード」を出す（全プロジェクトのボード） */
   feed?: boolean;
-  /** 表示のまとまりで、表示の切り替えの後ろ・列の分け方の前に置くもの（段の分け方 LaneSelect） */
+  /** 表示のまとまりで、列の分け方の後ろに置くもの（段の分け方 LaneSelect） */
   viewOptions?: ReactNode;
-  /** 表示のまとまりで、段の分け方の後ろに置く、列の分け方の切り替え（全プロジェクトのボードだけ: 状態 / グループ） */
+  /** 表示のまとまりで、ボード / リストのすぐ右に置く、列の分け方の切り替え（グループ | 状態。利用者の依頼で、前は段の分け方の後ろだった） */
   columns?: ReactNode;
   /** 表示のまとまりのいちばん後ろに置く、並び順（と表の列）のボタン */
   sortTools?: ReactNode;
@@ -55,7 +55,7 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
     <div className="board-header">
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
-        {/* 表示: いちばん左に ボード / リスト、続けて段の分け方・列の分け方・並び順 */}
+        {/* 表示: いちばん左に ボード / リスト、続けて列の分け方・段の分け方・並び順 */}
         <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
             className="view-toggle"
@@ -68,8 +68,8 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
               ...(feed ? [{ value: "feed" as const, label: "フィード", icon: MessagesSquare, tip: "フィード（チャットごとの最新の返答を新しい順に）" }] : []),
             ]}
           />
-          {viewOptions}
           {columns}
+          {viewOptions}
           {sortTools}
         </div>
         {organize && (
