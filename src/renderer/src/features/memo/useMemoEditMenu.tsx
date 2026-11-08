@@ -29,8 +29,9 @@ export interface MemoChatTarget {
 }
 
 /**
- * メモの本文の右クリックのメニュー。足す先ごとに見出しを付けて組に分ける: 開いたチャット（main を渡したとき。見出しはチャットの名前。チャットの右の欄・別ウィンドウのメモ）・メモのチャット。
- * それぞれ「選択部分を追加」（選んでいなければ「メモを添付」）と「パスを追加」。送るのは自分で。
+ * メモの本文の右クリックのメニュー。足すもので組に分け（利用者の依頼。前は足す先のチャットごとの組だった）、それぞれの組に足す先を並べる:
+ * 「選択部分をチャットに追加」（選んでいるときだけ）/「メモすべてをチャットに追加」（メモ全体を添付）/「パスをチャットに追加」（メモのファイルのフルパス）。
+ * 足す先は、開いたチャット（main を渡したとき。「「機能開発」に追加」。チャットの右の欄・別ウィンドウのメモ）とメモのチャット（「メモのチャットに追加」）。送るのは自分で。
  * その下に「クリップボード」の組（ClipboardItems: 切り取り・コピー・パスを含めてコピー・パスをコピー・貼り付け。file = メモのファイルのフルパス）。
  * 文を選んだだけではチャットに足さない（右クリックで選んだときだけ）。
  * HTML のメモのページの表示からは、選んだ文を渡して開く（チャットに足す項目と、切り取り・貼り付けのないクリップボードの組）。
@@ -50,6 +51,27 @@ export function useMemoEditMenu(
   const selected = shown?.value.text ?? "";
   const insert = shown?.value.insert ?? null;
   const copyText = selected || shown?.value.copyAll || "";
+  const chatTargets = [targets.main, targets.memo].filter((t): t is MemoChatTarget => t !== undefined);
+  // 足すものの組（選択部分は選んでいるときだけ）
+  const groups: { key: string; label: string; title: (name: string) => string; run: (target: MemoChatTarget) => void }[] = [
+    ...(selected.trim()
+      ? [
+          {
+            key: "selection",
+            label: "選択部分をチャットに追加",
+            title: (name: string) => `選択部分を、ファイルのパスと行番号付きの引用にして、${name}の入力欄に足します`,
+            run: (target: MemoChatTarget) => target.add(selected, shown?.value.lines ?? null),
+          },
+        ]
+      : []),
+    {
+      key: "all",
+      label: "メモすべてをチャットに追加",
+      title: (name) => `このメモ全体を、${name}の入力欄に添付します`,
+      run: (target) => target.add("", null),
+    },
+    { key: "path", label: "パスをチャットに追加", title: (name) => `このメモのファイルのフルパスを、${name}の入力欄に足します`, run: (target) => target.addPath() },
+  ];
   return {
     // 開いたときに選んでいた文を覚える（メニューを押すまでに選択が変わっても、開いたときの文を使う）
     open: (at, pageSelection) =>
@@ -62,26 +84,17 @@ export function useMemoEditMenu(
     openFor: (at, source) => menu.openAt(at, source),
     element: shown && (
       <PopupMenu at={shown.at} label="メモの本文の操作" onClose={menu.close}>
-        {(["main", "memo"] as const).map((key) => {
-          const target = targets[key];
-          if (!target) return null;
-          const name = target.name;
-          return (
-            <Fragment key={key}>
-              <div className="menu-label">{name}</div>
-              <MenuItem
-                title={selected.trim() ? `選択部分を、ファイルのパスと行番号付きの引用にして、${name}の入力欄に足します` : `このメモを、${name}の入力欄に添付します`}
-                onSelect={() => target.add(selected, shown.value.lines ?? null)}
-              >
-                {selected.trim() ? "選択部分を追加" : "メモを添付"}
+        {groups.map((group) => (
+          <Fragment key={group.key}>
+            <div className="menu-label">{group.label}</div>
+            {chatTargets.map((target) => (
+              <MenuItem key={target.name} title={group.title(target.name)} onSelect={() => group.run(target)}>
+                {target.name}に追加
               </MenuItem>
-              <MenuItem title={`このメモのファイルのフルパスを、${name}の入力欄に足します`} onSelect={target.addPath}>
-                パスを追加
-              </MenuItem>
-              <div className="menu-separator" role="separator" />
-            </Fragment>
-          );
-        })}
+            ))}
+            <div className="menu-separator" role="separator" />
+          </Fragment>
+        ))}
         <ClipboardItems
           text={copyText}
           selection={selected}
