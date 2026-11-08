@@ -5,7 +5,6 @@ import { cx } from "@/lib/cx";
 import { startChatDrag } from "@/features/group/groups";
 import type { useChatRename } from "@/features/chat/useChatRename";
 import type { PanelController } from "@/features/panel/usePanel";
-import { useBoardListCompact } from "./BoardHeader";
 import { ChatCardContent, ChatRowContent } from "./ChatCard";
 import type { ChatSortKey } from "./chatSort";
 import { ChatTableRow } from "./ChatTableRow";
@@ -42,8 +41,6 @@ interface Options {
  */
 export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, classFor, style, projectName }: Options) {
   const { pendingCount, stateOf } = useChatStates();
-  // リストの行を 1 行にまとめるか（見出しの切り替えとそろう）
-  const [compactRows] = useBoardListCompact();
   // ドラッグしている途中のチャット（薄く出す）
   const [dragChat, setDragChat] = useState<number>();
   const cardProps = (chat: Chat) => ({
@@ -75,7 +72,7 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
     ),
     /** リストの行 */
     row: (chat: Chat) => (
-      <div key={chat.id} className={cx("list-row", compactRows && "compact", cardClass(chat))} {...cardProps(chat)}>
+      <div key={chat.id} className={cx("list-row", cardClass(chat))} {...cardProps(chat)}>
         <ChatRowContent chat={chat} state={stateOf(chat)} projectName={projectName?.(chat)} rename={rename.editorFor(chat)} />
       </div>
     ),

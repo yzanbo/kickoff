@@ -1,9 +1,9 @@
-import { List, MessagesSquare, Rows2, Rows4, SquareKanban, Table2, TextSearch } from "lucide-react";
+import { List, MessagesSquare, SquareKanban, Table2, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "@/features/chat/chatSearch";
 import { useSetting } from "@/hooks/useSetting";
 import type { SettingValue } from "@/lib/storage";
-import { BOARD_LIST_COMPACT, BOARD_SPLIT, BOARD_VIEW } from "@/lib/storageKeys";
+import { BOARD_SPLIT, BOARD_VIEW } from "@/lib/storageKeys";
 import { SearchField } from "@/ui/SearchField";
 import { Segmented } from "@/ui/Segmented";
 import { PanelToggle } from "@/features/panel/board/PanelToggle";
@@ -23,14 +23,6 @@ export function useBoardView() {
   return { view, split, setView, setSplit };
 }
 
-/**
- * リスト表示の行を 1 行にまとめるか（1 行 = 名前の後ろに作業場所・状態を並べる / 2 行 = 名前の下に並べる。初めは 2 行）。
- * すべてのボード（カンバン・グループ・全プロジェクト）で共通で、見出しの切り替えと行の描き方（useBoardCards）でそろう
- */
-export function useBoardListCompact() {
-  return useSetting(BOARD_LIST_COMPACT);
-}
-
 interface Props {
   query: string;
   onQuery: (query: string) => void;
@@ -45,7 +37,7 @@ interface Props {
   onView: (view: BoardView | "feed") => void;
   /** 表示の選択肢に「フィード」を出す（全プロジェクトのボード） */
   feed?: boolean;
-  /** 表示のまとまりで、表示の切り替え（とリストの行）の後ろ・列の分け方の前に置くもの（段の分け方 LaneSelect） */
+  /** 表示のまとまりで、表示の切り替えの後ろ・列の分け方の前に置くもの（段の分け方 LaneSelect） */
   viewOptions?: ReactNode;
   /** 表示のまとまりで、段の分け方の後ろに置く、列の分け方の切り替え（プロジェクトのボード: 状態 / グループ、全プロジェクトのボード: 状態 / グループ / 分けない） */
   columns?: ReactNode;
@@ -66,7 +58,7 @@ export function BoardHeader({ query, onQuery, filters, organize, primary, view, 
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
         {primary && <div className="board-tool-group">{primary}</div>}
-        {/* 表示: 新規のすぐ右に ボード / リスト / 表（とリストの行）、続けて段の分け方・列の分け方・並び順（と表の列） */}
+        {/* 表示: 新規のすぐ右に ボード / リスト / 表、続けて段の分け方・列の分け方・並び順（と表の列） */}
         <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
             className="view-toggle"
@@ -80,7 +72,6 @@ export function BoardHeader({ query, onQuery, filters, organize, primary, view, 
               ...(feed ? [{ value: "feed" as const, label: "フィード", icon: MessagesSquare, tip: "フィード（チャットごとの最新の返答を新しい順に）" }] : []),
             ]}
           />
-          {view === "list" && <ListRowsToggle />}
           {viewOptions}
           {columns}
           {sortTools}
@@ -103,23 +94,6 @@ export function BoardHeader({ query, onQuery, filters, organize, primary, view, 
         </div>
       )}
     </div>
-  );
-}
-
-/** リスト表示の行の高さ（1 行 / 2 行）の切り替え。リストのときだけ、表示の切り替えのすぐ後ろに置く */
-function ListRowsToggle() {
-  const [compact, setCompact] = useBoardListCompact();
-  return (
-    <Segmented
-      className="view-toggle"
-      label="リストの行"
-      value={compact ? "1" : "2"}
-      onChange={(v) => setCompact(v === "1")}
-      options={[
-        { value: "2", label: "2 行（名前の下に作業場所・状態）", icon: Rows2, iconOnly: true },
-        { value: "1", label: "1 行（名前の後ろに作業場所・状態）", icon: Rows4, iconOnly: true },
-      ]}
-    />
   );
 }
 
