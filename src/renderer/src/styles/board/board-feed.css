@@ -6,11 +6,10 @@
   overflow-y: auto;
 }
 
-/* 読みやすい幅の 1 列 */
+/* 画面の横幅いっぱいの 1 列（利用者の依頼。前は読みやすい幅 880px までにしていた）。アーカイブ済みのまとまりの中も同じ並び */
 .board-feed-list {
   display: grid;
   gap: 8px;
-  max-width: 880px;
   padding-bottom: 12px;
 }
 
