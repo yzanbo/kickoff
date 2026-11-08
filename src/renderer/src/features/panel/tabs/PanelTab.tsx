@@ -18,6 +18,7 @@ export function PanelTab({
   badge,
   label,
   group,
+  tag,
   title,
   className,
   extra,
@@ -37,6 +38,8 @@ export function PanelTab({
   label: string;
   /** チャットのグループ（名前の後ろに、グループの色の札で添える。グループなしなら出さない） */
   group?: TabGroupBadge;
+  /** グループの札の代わりに名前の後ろに添えるもの（グループ別にまとめたときの作業場所の札 TabWorkplaceBadge）。あれば group より先 */
+  tag?: ReactNode;
   /** 名前にマウスを乗せたときの説明（なければ名前） */
   title?: string;
   className?: string;
@@ -69,11 +72,12 @@ export function PanelTab({
           {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
           {badge && <span className="panel-tab-kind">{badge.text}</span>}
           <span>{label}</span>
-          {group && (
-            <span className="panel-tab-group-name" style={group.hue === null ? undefined : ({ "--group-hue": group.hue } as CSSProperties)}>
-              {group.name}
-            </span>
-          )}
+          {tag ??
+            (group && (
+              <span className="panel-tab-group-name" style={group.hue === null ? undefined : ({ "--group-hue": group.hue } as CSSProperties)}>
+                {group.name}
+              </span>
+            ))}
         </button>
       )}
       {/* 名前を変えている間は、入力欄の ✓ / ✕ と並ばないよう閉じるを隠す */}
