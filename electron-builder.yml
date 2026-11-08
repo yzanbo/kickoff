@@ -2,6 +2,9 @@ appId: dev.zanbo.kickoff
 productName: Kickoff
 directories:
   output: dist
+# Electron は npm で入れた node_modules/electron/dist（package.json の版と同じ）をそのまま使う。
+# 指定しないと electron-builder がビルドのたびに GitHub から取り直し（確かめの SHASUMS も）、GitHub が 504 などを返すと入れ替えが止まる
+electronDist: node_modules/electron/dist
 files:
   - out/**
   - package.json
