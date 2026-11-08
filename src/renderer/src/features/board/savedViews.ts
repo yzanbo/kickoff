@@ -2,7 +2,8 @@ import { parseChatSort, sameChatSort, type ChatSort } from "./chatSort";
 
 // 保存したビュー（ボードの見え方の組に名前を付けたもの。Notion のビューを参考に）。読み書きは useSavedViews、ここは形と比べ方・並びの操作（純粋な関数）
 
-const VIEW_KINDS = ["board", "list", "table"] as const;
+/** 表示（feed は全プロジェクトのボードだけ） */
+const VIEW_KINDS = ["board", "list", "table", "feed"] as const;
 const VIEW_LANES = ["none", "group", "worktree", "project"] as const;
 const VIEW_COLUMNS = ["state", "groups", "none"] as const;
 const VIEW_ARCHIVES = ["all", "active", "archived"] as const;

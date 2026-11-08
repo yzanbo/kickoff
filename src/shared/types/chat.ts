@@ -134,6 +134,18 @@ export interface ChatGroup {
 }
 
 /** チャットのやり取りの検索結果（1 件 = 1 つの発言） */
+/** フィード（全プロジェクトの画面）の 1 件: チャットごとの、メインエージェントの最新の返答の初めの部分 */
+export interface FeedItem {
+  chat_id: number;
+  event_id: number;
+  /** 返答の初めの部分（FEED_TEXT_LIMIT 文字まで。長ければ末尾に …） */
+  text: string;
+  created_at: string;
+}
+
+/** フィードに載せる返答の文字数 */
+export const FEED_TEXT_LIMIT = 400;
+
 export interface SearchHit {
   event_id: number;
   chat_id: number;

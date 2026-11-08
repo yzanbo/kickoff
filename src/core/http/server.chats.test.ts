@@ -329,3 +329,34 @@ test("ツールの結果の画像: 作業場所などの中の画像だけを、
   assert.equal((await get(file, 9999)).status, 404);
   assert.equal((await app.request(`/api/chats/${chat.id}/tool-image?path=${encodeURIComponent(file)}`)).status, 401);
 });
+
+test("フィード: チャットごとにメインエージェントの最新の返答 1 件（子チャット・メモのチャット・サブエージェントの返答は除く）を、返答の新しい順に返す", async () => {
+  const { call, project, store } = setup();
+  const a = store.chats.create({ project_id: project.id, provider: "claude", title: "a", status: "completed" });
+  const b = store.chats.create({ project_id: project.id, provider: "claude", title: "b", status: "completed" });
+  const quiet = store.chats.create({ project_id: project.id, provider: "claude", title: "まだ返答なし", status: "completed" });
+  const child = store.chats.create({ project_id: project.id, provider: "claude", title: "子", status: "completed", parent_chat_id: a.id });
+  const memo = store.chats.create({ project_id: project.id, provider: "claude", title: "メモ", status: "completed", memo_path: "m.md" });
+  store.events.add(a.id, { type: "user", text: "質問", message_uuid: randomUUID() });
+  store.events.add(a.id, { type: "text", text: "古い返答" });
+  store.events.add(b.id, { type: "text", text: "b の返答" });
+  const latest = store.events.add(a.id, { type: "text", text: `  新しい返答${"あ".repeat(500)}  ` });
+  // サブエージェントの返答・結果は載せない
+  store.events.add(a.id, { type: "text", text: "サブエージェントの返答", parent: "tool-1" });
+  store.events.add(child.id, { type: "text", text: "子の返答" });
+  store.events.add(memo.id, { type: "text", text: "メモの返答" });
+  store.events.add(quiet.id, { type: "user", text: "送っただけ", message_uuid: randomUUID() });
+
+  const items = (await call("GET", "/api/feed")).body as { chat_id: number; event_id: number; text: string }[];
+  assert.deepEqual(
+    items.map((i) => i.chat_id),
+    [a.id, b.id],
+  );
+  assert.equal(items[0].event_id, latest.id);
+  // 前後の空白を除き、FEED_TEXT_LIMIT（400）文字で切って … を付ける
+  assert.ok(items[0].text.startsWith("新しい返答"));
+  assert.equal(items[0].text.length, 401);
+  assert.ok(items[0].text.endsWith("…"));
+  assert.equal(items[1].text, "b の返答");
+  assert.equal((await call("GET", "/api/feed?limit=1")).body.length, 1);
+});

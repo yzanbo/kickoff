@@ -108,7 +108,8 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
         </button>
       }
       view={view}
-      onView={board.setView}
+      // フィードは全プロジェクトのボードだけ（ここでは選択肢に出さない）
+      onView={(next) => next !== "feed" && board.setView(next)}
       // 段の分け方はグループだけ（段に分けると、列は下書き＋状態）。リストはもともとグループごとのまとまりなので出さない
       viewOptions={view === "board" && <LaneSelect value={split ? "group" : "none"} options={GROUP_LANES} onChange={(next) => board.setSplit(next !== "none")} />}
       columns={<BoardColumnsToggle projectId={projectId} value="groups" />}

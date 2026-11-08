@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { Chat, ChatEvent, ChatEventData, SearchHit } from "@shared/types";
+import { FEED_TEXT_LIMIT, type Chat, type ChatEvent, type ChatEventData, type FeedItem, type SearchHit } from "@shared/types";
 import type { Notify, Row } from "./common.js";
 
 interface EventRow {
@@ -87,6 +87,29 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       db.prepare("DELETE FROM chat_events WHERE chat_id = ? AND id >= ?").run(chatId, fromEventId);
       const chat = getChat(chatId);
       if (chat) onChange({ type: "chat_events_deleted", project_id: chat.project_id, chat_id: chatId, from_event_id: fromEventId });
+    },
+    /**
+     * フィード: チャット（子チャット・メモのチャットを除く）ごとに、メインエージェントの最新の返答 1 件の初めの部分。返答の新しい順。
+     * チャットごとに記録の索引（chat_id, id）を新しい方からたどって最初の返答を引く（返答はたいてい終わりの近くにあるので、記録の多いチャットでも速い）
+     */
+    feed(limit = 100): FeedItem[] {
+      const rows = db
+        .prepare(
+          `SELECT c.id AS chat_id, e.id AS event_id, e.text, e.created_at
+           FROM chats c
+           JOIN chat_events e ON e.id = (
+             SELECT x.id FROM chat_events x
+             WHERE x.chat_id = c.id AND x.type = 'text' AND json_extract(x.data, '$.parent') IS NULL
+             ORDER BY x.id DESC LIMIT 1
+           )
+           WHERE c.parent_chat_id IS NULL AND c.memo_path IS NULL
+           ORDER BY e.id DESC LIMIT ?`,
+        )
+        .all(Math.min(limit, 500)) as unknown as (FeedItem & { text: string | null })[];
+      return rows.map((row) => {
+        const text = (row.text ?? "").trim();
+        return { ...row, text: text.length > FEED_TEXT_LIMIT ? `${text.slice(0, FEED_TEXT_LIMIT)}…` : text };
+      });
     },
     /** やり取り（自分の発言とメインの AI の返答）をキーワードで探す（部分一致・大文字と小文字を区別しない）。新しい順 */
     search(query: string, filter: { projectId?: number; chatId?: number; limit?: number } = {}): SearchHit[] {

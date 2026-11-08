@@ -64,6 +64,12 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     return c.json(store.events.search(q, { projectId: project_id, chatId: chat_id, limit }));
   });
 
+  // フィード（全プロジェクトの画面）: チャットごとのメインエージェントの最新の返答 1 件。返答の新しい順
+  app.get("/api/feed", (c) => {
+    const { limit } = z.object({ limit: optionalId }).parse({ limit: queryOf(c, "limit") });
+    return c.json(store.events.feed(limit));
+  });
+
   // 全プロジェクトのチャット（画面はこれを 1 回読み、あとは知らせで直す）
   app.get("/api/chats", (c) => c.json(store.chats.list(chatListFilter(c))));
 

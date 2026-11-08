@@ -1,4 +1,4 @@
-import { Folder, LayoutGrid, SquareKanban, SquarePen } from "lucide-react";
+import { Folder, LayoutGrid, MessagesSquare, SquareKanban, SquarePen } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Chat } from "@shared/types";
 import { useChatRename } from "@/features/chat/useChatRename";
@@ -20,6 +20,10 @@ import { KanbanBody } from "./KanbanBody";
 import { SortMenuButton, TableColumnsButton, useTableColumns } from "./BoardSortTools";
 import { useChatSort } from "./useChatSort";
 import { SavedViewTabs } from "./SavedViewTabs";
+import { FeedList } from "./FeedList";
+import { useFeed } from "./useFeed";
+import { useSetting } from "@/hooks/useSetting";
+import { ALL_PROJECTS_FEED } from "@/lib/storageKeys";
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { useKanbanChats } from "./useKanbanChats";
@@ -121,6 +125,10 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   const filters = useKanbanFilters();
   // 表示（ボード / リスト）と、段に分けるか（段の分け方はボードとリストで共通）
   const { view, split, setView, setSplit } = useBoardView();
+  // 全プロジェクトのボードだけ、フィード（チャットごとの最新の返答を新しい順に）で見られる（ボード・リスト・表とは別に覚える）
+  const [feedOn, setFeed] = useSetting(ALL_PROJECTS_FEED);
+  const feed = allProjects && feedOn;
+  const feedData = useFeed(feed);
   // 全プロジェクトのボードだけ、グループの列（プロジェクトの段ごと）・状態で分けない並びにできる（プロジェクトのボードはいつも状態の列。グループの列は別の画面）
   const [allColumns] = useAllProjectsColumns();
   // スイムレーンの段の分け方
@@ -138,7 +146,8 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
   const projectIds = useMemo(() => (allProjects ? new Set(projects.map((p) => p.id)) : undefined), [allProjects, projects]);
   const shown = useKanbanChats({ chats, filters: { ...filters, matches: filters.search.matches }, projectIds });
   const drafts = useMemo(() => (projectIds ? allDrafts.filter((d) => projectIds.has(d.projectId)) : allDrafts), [allDrafts, projectIds]);
-  const total = shown.length;
+  // フィードの件数は、出しているチャットのうち返答のあるもの
+  const total = feed ? feedData.items.filter((i) => shown.some((c) => c.id === i.chat_id)).length : shown.length;
   // 全プロジェクトのボードのプロジェクトの段は、見出しのドラッグで並べ替える（サイドバーと同じ並び）
   const laneReorder = useProjectLaneReorder(allProjects);
   // 並び順（表の見出し・ツールバーの「並び順」。列・まとまりの中もこの順）と、表に出す列
@@ -183,7 +192,9 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
       // 状態で分けないときは、カンバン（状態の列）ではなくタスクの並びと呼ぶ
       heading={
         title
-          ? byGroup
+          ? feed
+            ? { icon: <MessagesSquare size={16} className="muted" />, title: "フィード", count: total }
+            : byGroup
             ? { icon: <Folder size={16} className="muted" />, title: "グループ", count: total }
             : flat
             ? { icon: <LayoutGrid size={16} className="muted" />, title: "タスク", count: total }
@@ -208,10 +219,16 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
           </button>
         )
       }
-      view={view}
-      onView={setView}
-      columns={projectId !== undefined ? <BoardColumnsToggle projectId={projectId} value="state" /> : <AllProjectsColumnsToggle groups={projectLanes} />}
+      view={feed ? "feed" : view}
+      onView={(next) => {
+        setFeed(next === "feed");
+        if (next !== "feed") setView(next);
+      }}
+      feed={allProjects}
+      // フィードは返答の新しい順の 1 列なので、段・列の分け方・並び順を出さない
+      columns={feed ? undefined : projectId !== undefined ? <BoardColumnsToggle projectId={projectId} value="state" /> : <AllProjectsColumnsToggle groups={projectLanes} />}
       viewOptions={
+        !feed && (
         <LaneSelect
           value={split ? lanes : "none"}
           options={laneOptions}
@@ -220,21 +237,26 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
             setSplit(next !== "none");
           }}
         />
+        )
       }
       sortTools={
+        !feed && (
         <>
           <SortMenuButton sort={sort} onSort={setSort} allProjects={allProjects} />
           {view === "table" && <TableColumnsButton allProjects={allProjects} />}
         </>
+        )
       }
       panel={rightPanel?.panel}
     />
   );
 
   return (
-    <BoardShell views={<SavedViewTabs allProjects={allProjects} />} header={header} error={error ?? loadError} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError}>
+    <BoardShell views={<SavedViewTabs allProjects={allProjects} />} header={header} error={error ?? loadError ?? (feed ? feedData.error : undefined)} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
+      ) : feed ? (
+        <FeedList items={feedData.items} chats={shown} loaded={feedData.loaded} render={cards.feedCard} />
       ) : (
         <KanbanBody
           view={view}
