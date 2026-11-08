@@ -1,4 +1,4 @@
-import { List, MessagesSquare, SquareKanban, Table2, TextSearch } from "lucide-react";
+import { List, MessagesSquare, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "@/features/chat/chatSearch";
 import { useSetting } from "@/hooks/useSetting";
@@ -47,7 +47,7 @@ interface Props {
 
 /**
  * ボード（全プロジェクトのカンバン・プロジェクトのカンバン）の見出し。道具を概念ごとにまとめて並べる:
- * 左に 表示（ボード・リスト・表） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
+ * 左に 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（右のパネルのあるプロジェクトのボードだけ。ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
 export function BoardHeader({ query, onQuery, filters, organize, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
@@ -55,7 +55,7 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
     <div className="board-header">
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
-        {/* 表示: いちばん左に ボード / リスト / 表、続けて段の分け方・列の分け方・並び順（と表の列） */}
+        {/* 表示: いちばん左に ボード / リスト、続けて段の分け方・列の分け方・並び順 */}
         <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
             className="view-toggle"
@@ -65,7 +65,6 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
             options={[
               { value: "board", label: "ボード", icon: SquareKanban },
               { value: "list", label: "リスト", icon: List },
-              { value: "table", label: "表", icon: Table2 },
               ...(feed ? [{ value: "feed" as const, label: "フィード", icon: MessagesSquare, tip: "フィード（チャットごとの最新の返答を新しい順に）" }] : []),
             ]}
           />

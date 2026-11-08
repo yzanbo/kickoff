@@ -2,8 +2,6 @@ import type { ChatBucket } from "@/features/chatList/buckets";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import type { BoardView } from "./BoardHeader";
 import { BoardLanes } from "./BoardLanes";
-import type { ChatSort, ChatSortKey } from "./chatSort";
-import { ChatTable } from "./ChatTable";
 import { FlatTasks } from "./FlatTasks";
 import { LaneGroupCreate } from "./GroupCreateForm";
 import { ProjectGroupColumns } from "./ProjectGroupColumns";
@@ -29,38 +27,17 @@ interface Props {
   foldPlace: string;
   cards: ReturnType<typeof useBoardCards>;
   laneReorder: ReturnType<typeof useProjectLaneReorder>;
-  /** 表の列と並び順 */
-  table: { columns: readonly ChatSortKey[]; sort: ChatSort; onSort: (sort: ChatSort) => void };
 }
 
 /**
- * カンバン（プロジェクト・全プロジェクトで共通）の中身。表示（ボード / リスト / 表）× 段に分けるか × 列の分け方（状態・グループ・分けない）で描き分ける。
- * 表では、段は表を分け、列の分け方は表の中のまとまりの見出しの行になる
+ * カンバン（プロジェクト・全プロジェクトで共通）の中身。表示（ボード / リスト）× 段に分けるか × 列の分け方（状態・グループ・分けない）で描き分ける
  */
-export function KanbanBody({ view, split, flat, byGroup, byState, buckets, drafts, allProjects, showLaneProject, foldPlace, cards, laneReorder, table }: Props) {
-  const list = view !== "board";
-  const render = view === "list" ? cards.row : cards.card;
-  const tableRow = (chat: Parameters<typeof cards.row>[0]) => cards.tableRow(chat, table.columns);
-  const tableOf = (sections: readonly ChatBucket<PanelDraft>[], laneDrafts: readonly PanelDraft[], archivedKey: string, headless = false, nested = false) => (
-    <div className="board-table">
-      <ChatTable
-        sections={sections}
-        headless={headless}
-        nested={nested}
-        drafts={laneDrafts}
-        showDraftProject={allProjects}
-        columns={table.columns}
-        sort={table.sort}
-        onSort={table.onSort}
-        row={tableRow}
-        foldPlace={foldPlace}
-        archivedKey={archivedKey}
-      />
-    </div>
-  );
+export function KanbanBody({ view, split, flat, byGroup, byState, buckets, drafts, allProjects, showLaneProject, foldPlace, cards, laneReorder }: Props) {
+  const list = view === "list";
+  const render = list ? cards.row : cards.card;
 
   if (byGroup) {
-    // グループの列: プロジェクトの段ごとに、そのプロジェクトのグループの列（カードをドラッグしてグループを移す）。表なら、段ごとの表の中をグループのまとまりに
+    // グループの列: プロジェクトの段ごとに、そのプロジェクトのグループの列（カードをドラッグしてグループを移す）
     // 「グループを作成」は段の見出しのプロジェクト名の右に置く（どの表示でも）
     return (
       <BoardLanes
@@ -71,9 +48,7 @@ export function KanbanBody({ view, split, flat, byGroup, byState, buckets, draft
         actions={(lane) => lane.projectId !== undefined && <LaneGroupCreate projectId={lane.projectId} />}
       >
         {(lane) =>
-          lane.projectId === undefined ? null : view === "table" ? (
-            tableOf(lane.children ?? [], lane.drafts, `${lane.key}/archived`, false, byState)
-          ) : (
+          lane.projectId === undefined ? null : (
             <ProjectGroupColumns projectId={lane.projectId} chats={lane.chats} drafts={lane.drafts} list={list} foldPlace={foldPlace} render={render} />
           )
         }
@@ -85,9 +60,7 @@ export function KanbanBody({ view, split, flat, byGroup, byState, buckets, draft
     return (
       <BoardLanes lanes={buckets} list={list} foldPlace={foldPlace} showProject={showLaneProject} {...laneReorder}>
         {(lane) =>
-          view === "table" ? (
-            flat ? tableOf([lane], lane.drafts, `${lane.key}/archived`, true) : tableOf(lane.children ?? [], lane.drafts, `${lane.key}/archived`)
-          ) : flat ? (
+          flat ? (
             <FlatTasks
               chats={lane.chats}
               drafts={lane.drafts}
@@ -113,7 +86,6 @@ export function KanbanBody({ view, split, flat, byGroup, byState, buckets, draft
       </BoardLanes>
     );
   }
-  if (view === "table") return flat ? tableOf(buckets.slice(0, 1), drafts, "flat/archived", true) : tableOf(buckets, drafts, "archived");
   if (flat) {
     // 状態で分けない: 下書き → チャット（並び順）を 1 つの並びに（ボードはカードを幅に合わせて折り返し、リストは 1 列）
     return (

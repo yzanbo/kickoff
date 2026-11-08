@@ -3,7 +3,7 @@ import { parseChatSort, sameChatSort, type ChatSort } from "./chatSort";
 // 保存したビュー（ボードの見え方の組に名前を付けたもの。Notion のビューを参考に）。読み書きは useSavedViews、ここは形と比べ方・並びの操作（純粋な関数）
 
 /** 表示（feed は全プロジェクトのボードだけ） */
-const VIEW_KINDS = ["board", "list", "table", "feed"] as const;
+const VIEW_KINDS = ["board", "list", "feed"] as const;
 const VIEW_LANES = ["none", "group", "worktree", "project"] as const;
 /** 列の分け方（groupsState = グループ×状態。グループの列の中を状態で小分け） */
 const VIEW_COLUMNS = ["state", "groups", "groupsState", "none"] as const;
@@ -20,8 +20,6 @@ export type BoardViewState = {
    */
   columns?: (typeof VIEW_COLUMNS)[number];
   sort: ChatSort;
-  /** 表で隠す列 */
-  hidden: readonly string[];
   archive: (typeof VIEW_ARCHIVES)[number];
 };
 
@@ -38,16 +36,16 @@ export function parseViewState(value: unknown): BoardViewState | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const v = value as Record<string, unknown>;
   const sort = parseChatSort(v.sort);
-  if (!oneOf(VIEW_KINDS, v.view) || !oneOf(VIEW_LANES, v.lanes) || !oneOf(VIEW_ARCHIVES, v.archive) || !sort) return undefined;
+  // 前の版の表（table）のビューはリストとして読む（表はなくした）
+  const kind = v.view === "table" ? "list" : v.view;
+  if (!oneOf(VIEW_KINDS, kind) || !oneOf(VIEW_LANES, v.lanes) || !oneOf(VIEW_ARCHIVES, v.archive) || !sort) return undefined;
   if (v.columns !== undefined && !oneOf(VIEW_COLUMNS, v.columns)) return undefined;
-  // 前の版のビューのリストの行（compact）は読まない（リストの行はいつも 1 行になった）
-  if (!Array.isArray(v.hidden)) return undefined;
+  // 前の版のビューのリストの行（compact）・表で隠す列（hidden）は読まない（リストの行はいつも 1 行に、表はなくした）
   return {
-    view: v.view,
+    view: kind,
     lanes: v.lanes,
     ...(v.columns === undefined ? {} : { columns: v.columns }),
     sort,
-    hidden: v.hidden.filter((h): h is string => typeof h === "string"),
     archive: v.archive,
   };
 }
@@ -69,11 +67,8 @@ export function parseSavedViews(list: readonly { id: string; name: string; state
   });
 }
 
-const sameSet = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
-
 /**
- * いまの見え方が保存したビューと同じか（選んでいるビューの印）。表の列は表のときだけ比べる
- * （ほかの表示では見えないので、違っていても同じビューとみなす）。列の分け方を持たないビュー（前の版のプロジェクトのボードのもの）は列の分け方を比べない
+ * いまの見え方が保存したビューと同じか（選んでいるビューの印）。列の分け方を持たないビュー（前の版のプロジェクトのボードのもの）は列の分け方を比べない
  */
 export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
   return (
@@ -81,8 +76,7 @@ export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
     a.lanes === b.lanes &&
     (a.columns === undefined || b.columns === undefined || a.columns === b.columns) &&
     a.archive === b.archive &&
-    sameChatSort(a.sort, b.sort) &&
-    (a.view !== "table" || sameSet(a.hidden, b.hidden))
+    sameChatSort(a.sort, b.sort)
   );
 }
 

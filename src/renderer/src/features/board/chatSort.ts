@@ -1,13 +1,13 @@
 import type { AgentState, Chat } from "@shared/types";
 import { byActive } from "@/stores/chats";
 
-// ボードのチャットの並び順（表の見出しで選び、ボード・リストの列・まとまりの中でも同じ順に並べる）。
+// ボードのチャットの並び順（ツールバーの「並び順」で選び、ボード・リストの列・まとまりの中を同じ順に並べる）。
 // 決まり: 同じ値どうしは最後に動いた順（byActive）。値のないもの（グループなし・モデル不明・コンテキスト不明）は、向きによらずいちばん後ろ
 
 export const CHAT_SORT_KEYS = ["title", "project", "group", "state", "worktree", "model", "turns", "cost", "context", "active", "created"] as const;
 export type ChatSortKey = (typeof CHAT_SORT_KEYS)[number];
 
-/** 表の列の名前（並び順のメニューでも使う） */
+/** 並べ方の名前（並び順のメニュー） */
 export const CHAT_SORT_LABELS: Record<ChatSortKey, string> = {
   title: "名前",
   project: "プロジェクト",
