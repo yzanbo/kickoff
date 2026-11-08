@@ -6,6 +6,23 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { startDraftDrag } from "@/features/group/groups";
 import { discardDraft, openDraft, togglePinDraft, useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
+import { useRoute } from "@/app/router";
+import { cx } from "@/lib/cx";
+import { panelKey } from "@/features/panel/surfaces";
+import { useChatPlacement } from "@/features/project/page/chatPlacement";
+
+/**
+ * 下書きのタブを、いまの画面のプロジェクトのチャットのパネルで表示しているか（サイドバーの行を選択中に見せる。チャットの行が URL で
+ * 選択中になるのと同じく、タブで選んでいるものがサイドバーで分かるように。利用者の依頼）。チャットのパネルが出ているのは、
+ * チャットタブに分ける置き方ならチャットタブ、ボードの右に置くならボード（パネルが開いているときだけ = draft.showing）
+ */
+function useDraftSelected(draft: PanelDraft): boolean {
+  const route = useRoute();
+  const [placement] = useChatPlacement();
+  if (!draft.showing || draft.panel !== panelKey("board", draft.projectId)) return false;
+  if (route.name !== "project" || route.id !== draft.projectId) return false;
+  return placement === "separate" ? route.tab === "chats" : route.tab === "board" || route.tab === "groups";
+}
 
 /** プロジェクトの下書き（すべてのボード・チャット欄の分。どのグループに置くかは bucketChats で分ける。下書きが変わるまでは同じ配列） */
 export function useProjectDrafts(projectId: number): PanelDraft[] {
@@ -31,11 +48,13 @@ export function DraftRows({ drafts }: { drafts: PanelDraft[] }) {
 
 function DraftRow({ draft }: { draft: PanelDraft }) {
   const menu = useContextMenu();
+  const selected = useDraftSelected(draft);
   return (
     <li className="chat-row-item">
       <button
         type="button"
-        className="chat-row draft-row"
+        className={cx("chat-row draft-row", selected && "active")}
+        aria-current={selected || undefined}
         title="下書き（ドラッグでグループへ移す・右クリックでピン留め・削除）"
         draggable
         onDragStart={(e) => startDraftDrag(e, draft)}
