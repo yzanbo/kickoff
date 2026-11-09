@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { listProjectFiles, readProjectFile, renameProjectFile, replaceInProject, searchProject, writeProjectFile } from "../../git/index.js";
+import { createProjectFile, listProjectFiles, readProjectFile, renameProjectFile, replaceInProject, searchProject, trashProjectFile, writeProjectFile } from "../../git/index.js";
+import { moveToTrash } from "../../system/trash.js";
 import type { ServerDeps } from "../server.js";
 import type { ProjectReplaceBody } from "@shared/types";
 import { jsonBody, queryOf } from "../input.js";
@@ -23,8 +24,8 @@ const replaceBodySchema = z.object({
   files: z.array(z.object({ path: repoPath, lines: z.array(z.object({ line: z.number().int().min(1), text: z.string().max(1000) })).min(1).max(1000) })).min(1).max(5000),
 }) satisfies z.ZodType<ProjectReplaceBody>;
 
-/** 作業場所のファイル（エクスプローラーの一覧・中身・検索・置換・保存）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir */
-export function filesRoutes(app: Hono, { store }: ServerDeps) {
+/** 作業場所のファイル（エクスプローラーの一覧・中身・検索・置換・保存・作る・名前の変更・ゴミ箱）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir */
+export function filesRoutes(app: Hono, { store, trash = moveToTrash }: ServerDeps) {
   const { withWorkdir } = lookups(store);
 
   // Git で管理されていなければ 400
@@ -72,5 +73,18 @@ export function filesRoutes(app: Hono, { store }: ServerDeps) {
   app.post("/api/projects/:id/file/rename", withWorkdir, async (c) => {
     const body = z.object({ path: repoPath, name: z.string().min(1).max(255) }).parse(await jsonBody(c));
     return c.json(await renameProjectFile(c.var.workdir, body.path, body.name));
+  });
+
+  // 新しいファイル・フォルダを作る（途中のフォルダも作る。使えない名前・外は 400、同じ名前がある 409）
+  app.post("/api/projects/:id/files", withWorkdir, async (c) => {
+    const body = z.object({ path: repoPath, dir: z.boolean().default(false) }).parse(await jsonBody(c));
+    return c.json(await createProjectFile(c.var.workdir, body.path, body.dir), 201);
+  });
+
+  // ファイル・フォルダをゴミ箱へ移す（Finder から戻せる。外は 400、ない 404）
+  app.delete("/api/projects/:id/file", withWorkdir, async (c) => {
+    const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
+    await trashProjectFile(c.var.workdir, path, trash);
+    return c.body(null, 204);
   });
 }

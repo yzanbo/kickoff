@@ -13,7 +13,7 @@ import { CHANGE_LABELS } from "./DiffView";
 import { FileIcon } from "./FileIcon";
 import { FileTree, siblingNameError } from "./FileTree";
 import { buildTree, folderPaths, kindMaps, type TreeNode } from "./treeModel";
-import type { FileRename } from "./useFileRename";
+import type { FileRename } from "./useFileActions";
 
 export type GitAction = "stage" | "unstage" | "discard";
 

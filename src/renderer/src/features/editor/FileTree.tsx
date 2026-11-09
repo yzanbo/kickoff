@@ -6,8 +6,8 @@ import { Chevron } from "@/ui/Chevron";
 import { InlineName } from "@/ui/InlineName";
 import { CHANGE_LABELS } from "./DiffView";
 import { FileIcon } from "./FileIcon";
-import type { TreeNode } from "./treeModel";
-import type { FileRename } from "./useFileRename";
+import { newEntryNameError, type TreeNode } from "./treeModel";
+import type { FileCreate, FileRename } from "./useFileActions";
 
 interface Props {
   nodes: TreeNode[];
@@ -23,6 +23,10 @@ interface Props {
   /** 名前の変更（行にピントがあるときの Enter・右クリック。canRename が false の行は変えない） */
   rename?: FileRename;
   canRename?: (node: TreeNode) => boolean;
+  /** 新しいファイル・フォルダの名前の欄（その中のいちばん上に出す。ファイルタブだけ） */
+  create?: FileCreate;
+  /** この段のフォルダのパス（いちばん外側は空） */
+  parent?: string;
   depth?: number;
 }
 
@@ -31,9 +35,27 @@ export const siblingNameError = (siblings: readonly { name: string; path: string
   /[/\\]/.test(name) ? "「/」は名前に使えません" : siblings.some((n) => n.path !== self && n.name === name) ? `「${name}」はもうあります` : null;
 
 /** エクスプローラーのフォルダの木（開いているフォルダの中だけ描く） */
-export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, actions, rename, canRename, depth = 0 }: Props) {
+export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, actions, rename, canRename, create, parent = "", depth = 0 }: Props) {
+  const creating = create?.creating;
   return (
     <ul className="file-tree" role={depth === 0 ? "tree" : "group"}>
+      {creating && creating.parent === parent && (
+        // 新しいファイル・フォルダの名前の欄（Enter・ピントを外すと作り、Esc でやめる。空なら作らない）
+        <li role="treeitem" className="tree-item">
+          <div className="tree-row renaming" style={{ "--depth": depth } as CSSProperties}>
+            <span className="tree-chevron" />
+            <FileIcon name="" dir={creating.dir} open={false} />
+            <InlineName
+              className="tree-rename"
+              maxLength={255}
+              placeholder={creating.dir ? "フォルダー名" : "ファイル名"}
+              validate={(name) => newEntryNameError(nodes, name)}
+              onSubmit={create.submit}
+              onCancel={create.cancel}
+            />
+          </div>
+        </li>
+      )}
       {nodes.map((node) => {
         const isOpen = node.dir && open.has(node.path);
         const kind = node.dir ? kinds.folders.get(node.path) : kinds.files.get(node.path);
@@ -73,7 +95,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
                   renamable
                     ? (e) => {
                         e.preventDefault();
-                        rename.openMenu(e, node.path, node.dir);
+                        rename.openMenu(e, node.path, node);
                       }
                     : undefined
                 }
@@ -86,7 +108,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
               </button>
             )}
             {actions && <span className="row-actions">{actions(node)}</span>}
-            {isOpen && node.children.length > 0 && (
+            {isOpen && (node.children.length > 0 || creating?.parent === node.path) && (
               <FileTree
                 nodes={node.children}
                 open={open}
@@ -97,6 +119,8 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
                 actions={actions}
                 rename={rename}
                 canRename={canRename}
+                create={create}
+                parent={node.path}
                 depth={depth + 1}
               />
             )}

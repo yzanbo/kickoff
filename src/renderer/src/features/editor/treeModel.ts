@@ -16,8 +16,8 @@ function sortNodes(nodes: TreeNode[]) {
   for (const node of nodes) sortNodes(node.children);
 }
 
-/** ファイルのパスの一覧から、フォルダの木を作る（いちばん上の段を返す） */
-export function buildTree({ files, ignored }: Pick<ProjectFiles, "files" | "ignored">): TreeNode[] {
+/** ファイルのパスの一覧から、フォルダの木を作る（いちばん上の段を返す。空のフォルダ empty_dirs も中のないフォルダとして出す） */
+export function buildTree({ files, ignored, empty_dirs = [] }: Pick<ProjectFiles, "files" | "ignored"> & Partial<Pick<ProjectFiles, "empty_dirs">>): TreeNode[] {
   const root: TreeNode = { name: "", path: "", dir: true, ignored: false, children: [] };
   const folders = new Map<string, TreeNode>([["", root]]);
   const folderOf = (dirPath: string): TreeNode => {
@@ -38,6 +38,7 @@ export function buildTree({ files, ignored }: Pick<ProjectFiles, "files" | "igno
   };
   for (const file of files) add(file, false, false);
   for (const entry of ignored) if (!folders.has(entry.path)) add(entry.path, entry.dir, true);
+  for (const dir of empty_dirs) folderOf(dir);
   sortNodes(root.children);
   return root.children;
 }
@@ -82,4 +83,23 @@ export function folderPaths(nodes: TreeNode[], out: string[] = []): string[] {
     folderPaths(node.children, out);
   }
   return out;
+}
+
+/** 入ったフォルダのパス（いちばん外側なら空。"a/b/c.ts" → "a/b"） */
+export const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
+
+/** フォルダのパスと名前をつなぐ（いちばん外側（空）ならそのまま名前） */
+export const joinTreePath = (folder: string, name: string) => (folder ? `${folder}/${name}` : name);
+
+/**
+ * 新しいファイル・フォルダの名前を使えないときの理由（使えるなら null）。「a/b.ts」のように「/」で途中のフォルダも書ける（VS Code と同じ）。
+ * 空の段・「.」「..」・「\」は使えず、同じフォルダ（siblings）に同じ名前（最初の段が同じファイル、または「/」のない名前が同じもの）があれば断る
+ */
+export function newEntryNameError(siblings: readonly { name: string; dir: boolean }[], name: string): string | null {
+  const parts = name.split("/");
+  if (parts.some((p) => !p.trim() || p === "." || p === "..")) return "その名前は使えません";
+  if (name.includes("\\")) return "「\\」は名前に使えません";
+  const head = parts[0];
+  const clash = siblings.find((n) => n.name === head && (parts.length === 1 || !n.dir));
+  return clash ? `「${head}」はもうあります` : null;
 }

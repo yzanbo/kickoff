@@ -1,4 +1,4 @@
-// リポジトリの中のファイル（一覧・読む・保存・名前の変更）。パスはリポジトリの外を指さないか必ず確かめる
+// リポジトリの中のファイル（一覧・読む・保存・作る・名前の変更・ゴミ箱）。パスはリポジトリの外を指さないか必ず確かめる
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -10,6 +10,8 @@ import { gitStatus } from "./status.js";
 
 /** ファイルの一覧の上限（大きなリポジトリでも重くならないように） */
 const MAX_FILES = 20_000;
+/** 空のフォルダを探すときに読むフォルダの数の上限 */
+const MAX_DIR_READS = 5000;
 /** ファイルの中身を返す上限（バイト） */
 export const MAX_FILE_BYTES = 1_000_000;
 
@@ -35,11 +37,70 @@ export async function listProjectFiles(repo: string): Promise<ProjectFiles> {
   ]);
   const gone = new Set(nulList(deleted));
   const files = [...new Set(nulList(all))].filter((f) => !gone.has(f)).sort();
+  const ignoredEntries = nulList(ignored).map((p) => (p.endsWith("/") ? { path: p.slice(0, -1), dir: true } : { path: p, dir: false }));
   return {
     files: files.slice(0, MAX_FILES),
-    ignored: nulList(ignored).map((p) => (p.endsWith("/") ? { path: p.slice(0, -1), dir: true } : { path: p, dir: false })),
+    ignored: ignoredEntries,
+    empty_dirs: files.length > MAX_FILES ? [] : await emptyDirs(repo, files, ignoredEntries.map((e) => e.path)),
     truncated: files.length > MAX_FILES,
   };
+}
+
+/**
+ * ファイルの一覧に出てこないフォルダ（空のフォルダ。Git はフォルダを覚えないので ls-files には出ない）。
+ * ファイルのあるフォルダを読み、その中の、ファイルも無視しているものもないフォルダを空とみなす（その中も同じように読む）。
+ * ファイルタブの「新しいフォルダー」で作ったばかりのフォルダを木に出すため
+ */
+async function emptyDirs(repo: string, files: string[], ignored: string[]): Promise<string[]> {
+  const known = new Set<string>([""]);
+  for (const file of files) {
+    for (let slash = file.lastIndexOf("/"); slash > 0; slash = file.lastIndexOf("/", slash - 1)) known.add(file.slice(0, slash));
+  }
+  const skip = new Set([...files, ...ignored]);
+  const found: string[] = [];
+  const queue = [...known];
+  for (let reads = 0; queue.length > 0 && reads < MAX_DIR_READS; reads++) {
+    const dir = queue.shift() ?? "";
+    const entries = await fs.readdir(path.join(repo, dir), { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      const child = dir ? `${dir}/${entry.name}` : entry.name;
+      if (!entry.isDirectory() || entry.name === ".git" || known.has(child) || skip.has(child)) continue;
+      found.push(child);
+      queue.push(child);
+    }
+  }
+  return found.sort();
+}
+
+/**
+ * 新しいファイル・フォルダを作る（ファイルタブの右クリックの「新しいファイル」「新しいフォルダー」）。
+ * 途中のフォルダもなければ作る（"a/b.ts" と書けば a の中に作る）。「.」「..」の段・リポジトリの外は 400、同じ名前のものがあれば 409
+ */
+export async function createProjectFile(repo: string, file: string, dir: boolean): Promise<RenamedFile> {
+  const parts = file.split("/");
+  if (parts.some((p) => !p.trim() || p === "." || p === ".." || /[\\\0]/.test(p))) throw new Invalid("その名前は使えません");
+  const target = await assertInside(repo, file);
+  if (await fs.lstat(target).catch(() => null)) throw new Conflict(`「${parts.at(-1)}」はもうあります`);
+  // いまある途中のフォルダが、リンクで外を指していないか（作ったものがリポジトリの外に出ないように）
+  const root = await fs.realpath(repo);
+  let existing = path.dirname(target);
+  while (!(await fs.lstat(existing).catch(() => null))) existing = path.dirname(existing);
+  const real = await fs.realpath(existing);
+  if (!isInside(root, real)) throw new Invalid("リポジトリの外のファイルです");
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  if (dir) await fs.mkdir(target);
+  else await fs.writeFile(target, "", { flag: "wx" });
+  return { path: file };
+}
+
+/** ファイル・フォルダをゴミ箱へ移す（ファイルタブの右クリックの「ゴミ箱に入れる」。Finder から戻せる。ないものは 404） */
+export async function trashProjectFile(repo: string, file: string, trash: (target: string) => Promise<void>): Promise<void> {
+  const target = await assertInside(repo, file);
+  await fs.lstat(target).catch((e: unknown) => {
+    if ((e as { code?: unknown }).code === "ENOENT") throw new NotFound(`ファイルが見つかりません: ${file}`);
+    throw e;
+  });
+  await trash(target);
 }
 
 /** 中身の指紋（保存の前に、開いたあとでほかで変わっていないか比べる） */

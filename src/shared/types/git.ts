@@ -59,6 +59,8 @@ export interface ProjectFiles {
   files: string[];
   /** .gitignore で無視しているもの（フォルダは中を開かず、まとめて 1 つ） */
   ignored: { path: string; dir: boolean }[];
+  /** ファイルのない（空の）フォルダ（Git はフォルダを覚えないので files には出ない。多すぎて途中で切ったときは空） */
+  empty_dirs: string[];
   /** 多すぎて途中で切った */
   truncated: boolean;
 }

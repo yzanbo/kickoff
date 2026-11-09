@@ -9,8 +9,8 @@ import type { Store } from "../db/store.js";
 import { assertInside, readProjectFile, writeProjectFile } from "../git/index.js";
 import { asInvalid, Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { AgentProvider } from "../providers/types.js";
-import { runCommand } from "../system/exec.js";
 import { expandHome, realPathLoose } from "../system/paths.js";
+import { moveToTrash } from "../system/trash.js";
 import { memoMergePrompt, memoPlanPrompt, parseMergedMemo, parseMemoPlan, type PlanFile } from "./memoAi.js";
 import { searchMemoTexts } from "./memoSearch.js";
 import { MemoWatcher } from "./memoWatcher.js";
@@ -32,11 +32,6 @@ interface MemoServiceOptions {
   publish: (e: BusEvent) => void;
   /** ゴミ箱へ移す（テストでは差し替えて、本物のゴミ箱に入れない） */
   trash?: (file: string) => Promise<void>;
-}
-
-/** macOS のゴミ箱へ移す（/usr/bin/trash。Finder の「ゴミ箱に入れる」と同じで、元に戻せる） */
-async function moveToTrash(file: string): Promise<void> {
-  await runCommand("/usr/bin/trash", [file]);
 }
 
 /** チャットから作る・足すときに、文の前に置く出どころの行（どのチャットの、いつの文か） */

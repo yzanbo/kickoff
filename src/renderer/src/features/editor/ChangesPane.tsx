@@ -8,7 +8,7 @@ import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { ChangeGroup, type GitAction } from "./ChangeGroup";
 import { CommitBox, type CommitBusy } from "./CommitBox";
 import type { ChangeGroups, Selection } from "./useChangesSelection";
-import type { FileRename } from "./useFileRename";
+import type { FileRename } from "./useFileActions";
 import type { GitStatusController } from "./useGitStatus";
 
 /**

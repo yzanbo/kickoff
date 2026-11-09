@@ -7,7 +7,7 @@ import { confirmDialog } from "@/ui/dialogs";
  * エクスプローラーから選んだときは staged を持たない（変更があっても中身を出し、変更は行の横の色の帯で見せる）。
  * 検索の結果から選んだときは line を持つ（変更があってもいまの中身を出し、その行を目立たせる）。
  * edit は、差分を見ながら編集するとき（変更の一覧から選んだとき（changeSelection）と、差分の「編集」から来たとき。staged はどちらの差分から来たか。
- * 編集しながらその差分を出す）。focus は「編集」のボタンから来たとき（編集の部品にピントを置く。一覧から選んだときは一覧に残し、↑↓ で移れるように）
+ * 編集しながらその差分を出す）。focus は「編集」のボタン・右クリックの「新しいファイル」から来たとき（編集の部品にピントを置く。一覧から選んだときは一覧に残し、↑↓ で移れるように）
  */
 export interface Selection {
   path: string;
@@ -42,6 +42,13 @@ export function useChangesSelection() {
     /** 名前を変えたファイル・フォルダ（from）を選んでいれば、新しいパス（to）に付け替える（確かめない） */
     relocate: (from: string, to: string) =>
       setSelectedState((prev) => (prev && (prev.path === from || prev.path.startsWith(`${from}/`)) ? { ...prev, path: to + prev.path.slice(from.length) } : prev)),
+    /** ゴミ箱に入れたファイル・フォルダ（path）を選んでいれば、閉じる（確かめない。保存していない変更も捨てる） */
+    forget: (path: string) =>
+      setSelectedState((prev) => {
+        if (!prev || (prev.path !== path && !prev.path.startsWith(`${path}/`))) return prev;
+        dirty.current = false;
+        return undefined;
+      }),
   };
 }
 

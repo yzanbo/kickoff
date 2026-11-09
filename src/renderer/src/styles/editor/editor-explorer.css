@@ -21,8 +21,16 @@
   list-style: none;
 }
 
-.changes-list > .file-tree {
+.changes-list > .file-tree,
+.files-pane > .file-tree {
   padding: 4px 0 8px;
+}
+
+/* ファイルタブの木と、その下の空いている所（右クリックで新しいファイル・フォルダー） */
+.files-pane {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
 }
 
 .tree-row {
