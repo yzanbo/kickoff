@@ -4,7 +4,7 @@
 
 ## 印・札・色
 
-- プロジェクトの色を出すのは印 `ProjectMark` だけ（プロジェクトの色の角丸の四角に頭文字 `initialOf`。`size` は `sm` = 16px（バッジ・メニュー・段・⌘⇧F / ⌘⇧A の絞り込み）/ `md` = 20px（サイドバーの見出し・画面の見出しの名前）。`project` がなければ全プロジェクトの灰色の印）。CSS は `styles/project/project-mark.css`、色は横スライドの丸 `.workspace-dot` と同じ。
+- プロジェクトの色を出すのは印 `ProjectMark` だけ（プロジェクトの色の角丸の四角に頭文字 `initialOf`。`size` は `sm` = 16px（バッジ・メニュー・段・文言の全文検索 / ⌘⇧A の絞り込み）/ `md` = 20px（サイドバーの見出し・画面の見出しの名前）。`project` がなければ全プロジェクトの灰色の印）。CSS は `styles/project/project-mark.css`、色は横スライドの丸 `.workspace-dot` と同じ。
 - 名前を出す札は、どこでも「印 ＋ 名前 ＋ プロジェクトの色の薄い地」の形にそろえる（地と枠の色は `project-mark.css` の `.workspace-head` / `.project-switch` / `.project-chip` に 1 か所で持つ。色は要素か親の `--ws-hue`（`projectHueStyle`）。後ろのファイルの各部品の規則では地と枠の色を書かない（`border` の一括指定も枠の色を消すので `border-width` / `border-style` で書く）。全プロジェクトの見出しは灰色）。名前は普通の文字色、開閉の矢印は灰色、カンバンのカードに色の線は付けない。
 - バッジは `ProjectChip`（押してカンバンを開くなら `linked`、名前の代わりに選択欄などを置くなら children）。
 - プロジェクトの色はプロジェクトの `hue`（`@shared/project/colors.ts` の `PROJECT_HUES` の 10 色から、作ったときにほかと被らない色を `pickProjectHue` で選んで覚える。編集の「基本情報」で変えられる）。画面は `projectHue(id)` で読む（App がプロジェクトの一覧を読むたびに `setProjectHues` で入れる）。

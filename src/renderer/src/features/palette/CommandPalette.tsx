@@ -15,7 +15,7 @@ import { memoTextItem, messageItem, useDebouncedSearch } from "./textSearchItems
 import { usePaletteMemos } from "./usePaletteMemos";
 
 /**
- * 探す対象。チャットの中の文言は全文検索（⌘⇧F と同じ API）で、入力したときだけ探す。メモはすべてのプロジェクトのメモを名前（とフォルダ）で。
+ * 探す対象。チャットの中の文言は全文検索（文言の全文検索のパネルと同じ API）で、入力したときだけ探す。メモはすべてのプロジェクトのメモを名前（とフォルダ）で。
  * メモの中の文言は、すべてのプロジェクトのメモの中の行を、入力したときだけ探す
  */
 type Target = "project" | "chat" | "memo" | "message" | "memoText";

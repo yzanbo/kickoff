@@ -26,6 +26,7 @@ import { QueueResumeHost } from "@/features/chat/queue/QueueResumeDialog";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/openSettings";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/Sidebar";
 import { useFallbackProject } from "@/features/sidebar/currentProject";
+import { requestCodeSearchFocus } from "@/features/editor/codeSearchFocus";
 import { useSidebar } from "@/features/sidebar/useSidebar";
 import { terminalTargets } from "@/features/panel/usePanel";
 import { DialogHost } from "@/ui/dialogs";
@@ -34,7 +35,7 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useChatNotifications } from "./notifications";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
-import { boardTabOf, openNewChat, RouteContext, routeProjectId, useHashRoute } from "./router";
+import { boardTabOf, openNewChat, openProjectSearch, RouteContext, routeProjectId, useHashRoute } from "./router";
 import { handleMainWindowMessage } from "./mainWindowMessages";
 import { subscribeWindowMessages } from "./windowBus";
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
@@ -103,12 +104,20 @@ export function App() {
     else setNoProjectsGuide(true);
   };
 
+  /** ⌘⇧F: 開いている（なければサイドバーで選んでいる）プロジェクトの検索タブへ移り、検索の欄にピントを置く */
+  const openCodeSearch = () => {
+    const target = projectId ?? fallbackProject;
+    if (target === undefined) return setNoProjectsGuide(true);
+    openProjectSearch(target);
+    requestCodeSearchFocus();
+  };
+
   // 会話の文字の大きさ（<html> の CSS 変数）
   useApplyChatFontSize();
   useAppShortcuts({
     toggleSidebar: sidebar.toggle,
     openPalette: () => setPalette(true),
-    openContentSearch: () => setSearching(true),
+    openCodeSearch,
     newChat: startNewChat,
     openSettings: () => setSettings("usage"),
     openActiveChats: () => setActiveChats(true),

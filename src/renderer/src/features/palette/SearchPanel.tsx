@@ -22,7 +22,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** ⌘⇧F: チャットのやり取りをキーワードで全文検索し、該当する発言へ移動する */
+/** チャットのやり取りをキーワードで全文検索し、該当する発言へ移動する（ボードの検索欄の横のボタンから開く） */
 export function SearchPanel({ chatId, projectId, onClose }: Props) {
   // 範囲の選択肢: このチャット → いまのプロジェクト（名前で出し、「このプロジェクト」は小さく添える）→ すべて → ほかのプロジェクト（サイドバーの並び。しまったものは出さない）
   const { projects, projectName } = useProjects();
@@ -83,7 +83,7 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
         <input
           autoFocus
           value={query}
-          placeholder="チャットの中の文言を検索（⌘⇧F）"
+          placeholder="チャットの中の文言を検索"
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => cycleScope(e) || nav.onKeyDown(e)}
         />

@@ -1,9 +1,10 @@
 import { CaseSensitive, CaseUpper, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Ellipsis, EyeOff, ListX, Regex, ReplaceAll, WholeWord } from "lucide-react";
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { cx } from "@/lib/cx";
 import { hasModifiers, isComposing, isKey } from "@/lib/keys";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
+import { subscribeCodeSearchFocus, takeCodeSearchFocus } from "./codeSearchFocus";
 import { SearchResults } from "./SearchResults";
 import { resultCounts } from "./searchHits";
 import type { ProjectSearchController } from "./useProjectSearch";
@@ -25,7 +26,8 @@ function Toggle({ icon, label, on, onClick }: { icon: typeof CaseSensitive; labe
 /**
  * 「検索」タブ（VS Code と同じ）。検索の欄（大文字と小文字の区別・単語単位・正規表現。↑↓ で履歴）、▸ で開く置換の欄
  * （大文字と小文字を保持・すべて置換。⌘Enter でもすべて置換）、… で開く詳細（含める・除外するファイル。除外設定と .gitignore を使うかの切り替え）。
- * 見出しに、探し直す・すべて閉じる / 開く・結果を消す。結果（SearchResults）の行を選ぶと、そのファイルのその行を右に出す
+ * 見出しに、探し直す・すべて閉じる / 開く・結果を消す。結果（SearchResults）の行を選ぶと、そのファイルのその行を右に出す。
+ * ⌘⇧F（VS Code と同じ）で、このタブへ移って検索の欄にピントを置き、書いてある文を選ぶ（codeSearchFocus.ts）
  */
 export function SearchView({ search, replacer, selected, onSelect }: Props) {
   const { result } = search;
@@ -35,6 +37,17 @@ export function SearchView({ search, replacer, selected, onSelect }: Props) {
   useEffect(() => setCollapsed(new Set()), [result]);
   const allCollapsed = search.files.length > 0 && search.files.every((f) => collapsed.has(f.path));
   const canReplace = !!result && counts.lines > 0 && !replacer.busy;
+  // ⌘⇧F: 検索の欄にピントを置いて、書いてある文を選ぶ（開いていれば知らせで、タブを移った直後は描いたときに）
+  const queryRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const focusQuery = () => {
+      if (!takeCodeSearchFocus()) return;
+      queryRef.current?.focus();
+      queryRef.current?.select();
+    };
+    focusQuery();
+    return subscribeCodeSearchFocus(focusQuery);
+  }, []);
 
   const onSearchKey = (e: KeyboardEvent<HTMLInputElement>) => {
     // 修飾キーなしの Enter・↑↓ だけ（変換中は除く）
@@ -70,6 +83,7 @@ export function SearchView({ search, replacer, selected, onSelect }: Props) {
         <div className="code-search-fields">
           <div className="code-search-box">
             <input
+              ref={queryRef}
               type="text"
               className="code-search-input"
               placeholder="検索"
