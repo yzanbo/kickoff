@@ -79,6 +79,20 @@
   gap: 8px;
 }
 
+/*
+ * ダイアログの下の行の、色の地のないボタン（キャンセル・「このまま送る」などの選択肢）。ふつうの .btn の地（--bg-elev）はダイアログの地と同じで、
+ * 枠もほぼ見えず、ピントの枠が付いたキャンセルの隣で沈んで見えたので、一段明るい地と見える枠にする（利用者の指摘）
+ */
+.dialog .dialog-actions .btn:not(.btn-primary, .btn-danger) {
+  border-color: color-mix(in srgb, var(--text) 16%, transparent);
+  background: var(--bg-hover);
+}
+
+.dialog .dialog-actions .btn:not(.btn-primary, .btn-danger):hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--text) 26%, transparent);
+  background: color-mix(in srgb, var(--bg-hover) 50%, var(--bg-active));
+}
+
 /* 左に寄せる行（設定の保存のボタンと結果の文。SaveActions） */
 .dialog-actions.start {
   flex-wrap: nowrap;
