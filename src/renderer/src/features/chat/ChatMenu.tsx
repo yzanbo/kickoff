@@ -1,9 +1,14 @@
+import { Columns2, Rows2 } from "lucide-react";
 import type { Chat } from "@shared/types";
 import type { Placement } from "@/lib/floating";
-import { PopupMenu } from "@/ui/PopupMenu";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { openChatSplit } from "@/features/panel/board/openChatSplit";
 import { ChatMenuItems } from "./ChatMenuItems";
 
-/** チャットの右クリックメニュー（ボードのカード・サイドバー）。項目はパネルのタブと共通の ChatMenuItems */
+/**
+ * チャットの右クリックメニュー（ボードのカード・サイドバー）。項目はパネルのタブと共通の ChatMenuItems で、タブの右クリックと同じく
+ * 「右に分けて開く」「下に分けて開く」も置く（そのプロジェクトのチャットのパネルで分ける。子チャット・メモのチャットはパネルのタブにしないので出さない）
+ */
 export function ChatMenu({
   at,
   chat,
@@ -26,7 +31,26 @@ export function ChatMenu({
 }) {
   return (
     <PopupMenu at={at} escape="pass" ignore={ignore} onClose={onClose}>
-      <ChatMenuItems chat={chat} onOpen={onOpenPanel} onRename={onRename} onClose={onClose} onError={onError} />
+      <ChatMenuItems
+        chat={chat}
+        onOpen={onOpenPanel}
+        onRename={onRename}
+        onClose={onClose}
+        onError={onError}
+        before={
+          chat.parent_chat_id === null &&
+          chat.memo_path === null && (
+            <>
+              <MenuItem onSelect={() => openChatSplit(chat, "row")}>
+                <Columns2 size={14} /> 右に分けて開く
+              </MenuItem>
+              <MenuItem onSelect={() => openChatSplit(chat, "column")}>
+                <Rows2 size={14} /> 下に分けて開く
+              </MenuItem>
+            </>
+          )
+        }
+      />
     </PopupMenu>
   );
 }

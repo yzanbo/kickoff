@@ -11,15 +11,19 @@ import { ProjectPickFlyout } from "@/features/project/ProjectPickFlyout";
 import { GroupPickFlyout } from "@/features/group/GroupPickFlyout";
 import { askNewGroupName } from "@/features/group/groups";
 import { openAskChild } from "./children/childChats";
+import { openNewChat } from "@/app/router";
+import { NewChatItem, type NewChatPlace } from "./NewChatItem";
 
 /**
- * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通）:
- * 開く・子チャットを作成・名前を変更・既読 / 未読・固定・セッション ID をコピー・グループを変更・プロジェクトを変更・アーカイブ・削除。
- * before / after: その場所だけの項目（タブの分割・閉じるなど）。「グループを変更」「プロジェクトを変更」に乗せる・押すと、横にグループ・プロジェクトの一覧（GroupPickFlyout / ProjectPickFlyout）を開く
+ * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通。どこで右クリックしても同じ並びにする）:
+ * 新しいチャット（同じグループ・作業場所。NewChatItem）・子チャットを作成 ｜ 開く・その場所だけの項目（before。分けて開く・動きを見るなど）｜
+ * 名前を変更・既読 / 未読・固定・セッション ID をコピー・グループを変更・プロジェクトを変更 ｜ アーカイブ・削除 ｜ after（タブを閉じるなど）。
+ * 「グループを変更」「プロジェクトを変更」に乗せる・押すと、横にグループ・プロジェクトの一覧（GroupPickFlyout / ProjectPickFlyout）を開く
  */
 export function ChatMenuItems({
   chat,
   onOpen,
+  onNewChat = (place) => openNewChat(place.projectId, { group: place.group, worktree: place.worktree }),
   onRename,
   onClose,
   onError,
@@ -29,6 +33,8 @@ export function ChatMenuItems({
   chat: Chat;
   /** 開く（サイドバー・ボードだけ。タブはもう開いているので渡さない） */
   onOpen?: (chat: Chat) => void;
+  /** 同じグループ・作業場所で新しいチャットを始める（既定はそのプロジェクトのチャットのパネルで。タブは右クリックしたタブのペインで） */
+  onNewChat?: (place: NewChatPlace) => void;
   /** 名前をその場で変え始める */
   onRename: (chat: Chat) => void;
   onClose: () => void;
@@ -51,16 +57,15 @@ export function ChatMenuItems({
     onClose();
     void fn().catch((e: unknown) => onError(errorMessage(e)));
   };
+  // 新しいチャットは、このチャットと同じグループ・作業場所で始める（メモのチャットは一覧に出ないので出さない）
+  const place: NewChatPlace = { projectId: chat.project_id, group: chat.group_id ?? undefined, worktree: chat.worktree_path ?? undefined };
+  const canNew = chat.memo_path === null;
+  const canChild = !chat.archived_at;
   return (
     <div className="menu-items">
-      {before}
-      {onOpen && (
-        <MenuItem onSelect={() => onOpen(chat)}>
-          <PanelRight size={14} /> 開く
-        </MenuItem>
-      )}
+      {canNew && <NewChatItem place={place} branch={chat.branch} onSelect={() => onNewChat(place)} />}
       {/* このチャットの子チャットを始める（発言の右クリックと同じ聞く画面。引用はなし。アーカイブしたチャットからは始めない） */}
-      {!chat.archived_at && (
+      {canChild && (
         <MenuItem
           onSelect={() => {
             onClose();
@@ -70,6 +75,14 @@ export function ChatMenuItems({
           <MessageSquarePlus size={14} /> 子チャットを作成…
         </MenuItem>
       )}
+      {(canNew || canChild) && <div className="menu-separator" role="separator" />}
+      {onOpen && (
+        <MenuItem onSelect={() => onOpen(chat)}>
+          <PanelRight size={14} /> 開く
+        </MenuItem>
+      )}
+      {before}
+      {(onOpen || before) && <div className="menu-separator" role="separator" />}
       <MenuItem onSelect={() => onRename(chat)}>
         <Pencil size={14} /> 名前を変更
       </MenuItem>

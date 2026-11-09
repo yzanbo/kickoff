@@ -38,7 +38,7 @@ export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { proje
     focus,
     (target) => {
       if (target.name === "chat") panel.open({ id: target.chatId, project_id: target.projectId }, target.focus);
-      else panel.openNew({ projectId: target.projectId, group: target.group });
+      else panel.openNew({ projectId: target.projectId, group: target.group, worktree: target.worktree });
     },
     tab,
   );

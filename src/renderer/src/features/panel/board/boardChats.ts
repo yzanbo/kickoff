@@ -39,6 +39,6 @@ export function useChatsTabLinks(projectId: number): BoardChats {
   return {
     drafts,
     open: (chat) => openChat(chat.project_id, chat.id),
-    openNew: (target) => openNewChat(target.projectId, { group: target.group }),
+    openNew: (target) => openNewChat(target.projectId, { group: target.group, worktree: target.worktree }),
   };
 }

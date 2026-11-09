@@ -25,7 +25,8 @@ export type Route =
    * memoLine: そのメモで移る行（⌘K の「メモ内の文言」から。URL は ?line=）
    */
   | { name: "project"; id: number; tab: ProjectTab; file?: FileTarget; memo?: string; memoLine?: number }
-  | { name: "newChat"; projectId: number; group?: number }
+  /** group・worktree: 始めるグループ・作業場所のワークツリーのフォルダ（チャットの右クリックの「新しいチャット」。同じグループ・作業場所で始める） */
+  | { name: "newChat"; projectId: number; group?: number; worktree?: string }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "chat"; projectId: number; chatId: number; focus?: number };
 
@@ -44,7 +45,13 @@ export function parse(hash: string): Route {
   if (newChat) {
     // 以前の ?section= は読まない
     const group = Number(params.get("group"));
-    return { name: "newChat", projectId: Number(newChat[1]), ...(Number.isInteger(group) && group > 0 ? { group } : {}) };
+    const worktree = params.get("worktree");
+    return {
+      name: "newChat",
+      projectId: Number(newChat[1]),
+      ...(Number.isInteger(group) && group > 0 ? { group } : {}),
+      ...(worktree ? { worktree } : {}),
+    };
   }
 
   const project = path.match(/^\/projects\/(\d+)(?:\/([a-z]+))?$/);
@@ -123,7 +130,8 @@ export function href(route: Route): string {
         return `#/projects/${route.id}/memos${route.memo ? `?${new URLSearchParams({ memo: route.memo, ...(route.memoLine ? { line: String(route.memoLine) } : {}) })}` : ""}`;
       return `#/projects/${route.id}/${route.tab}`;
     case "newChat": {
-      return `#/projects/${route.projectId}/new${route.group ? `?group=${route.group}` : ""}`;
+      const query = new URLSearchParams({ ...(route.group ? { group: String(route.group) } : {}), ...(route.worktree ? { worktree: route.worktree } : {}) }).toString();
+      return `#/projects/${route.projectId}/new${query ? `?${query}` : ""}`;
     }
     case "chat":
       return `#/projects/${route.projectId}/chats/${route.chatId}${route.focus ? `?event=${route.focus}` : ""}`;
@@ -163,8 +171,8 @@ export function openChat(projectId: number, chatId: number, focus?: number, opti
   navigate({ name: "chat", projectId, chatId, ...(focus ? { focus } : {}) }, options);
 }
 
-/** 新しいチャットを始める（プロジェクトのボードへ移り、右側のパネルで始める） */
-export function openNewChat(projectId: number, target: { group?: number } = {}) {
+/** 新しいチャットを始める（プロジェクトのボードへ移り、右側のパネルで始める。group・worktree: 始めるグループ・作業場所） */
+export function openNewChat(projectId: number, target: { group?: number; worktree?: string } = {}) {
   navigate({ name: "newChat", projectId, ...target });
 }
 
