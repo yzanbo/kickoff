@@ -9,6 +9,7 @@ import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneTree"
 import type { PanelController } from "@/features/panel/usePanel";
 import type { NewChatTarget } from "./panelTypes";
 import { canPopOut, popOutTab } from "./popOutTab";
+import { NewChatItem } from "@/features/chat/NewChatItem";
 
 /**
  * 右のパネルのタブの右クリックのメニュー: いちばん上に「新しいチャット」（チャットを出す欄だけ。利用者の依頼。右クリックしたタブのペインに、
@@ -51,19 +52,22 @@ export function TabMenu({
     : tab?.kind === "new"
       ? { projectId: tab.projectId, group: tab.group, worktree: tab.worktree }
       : undefined;
+  // 右クリックしたタブのペインに開く（チャットのタブは ChatMenuItems のいちばん上の「新しいチャット」から）
+  const startNew = (target: NewChatTarget | undefined) => {
+    panel.focusPane(pane.id);
+    if (target) panel.openNew(target);
+    else panel.startNewChat();
+  };
+  // チャットでないタブの「新しいチャット」（新しいチャットのタブは、チャットのタブと同じくグループ・作業場所の札を添える）
   const newChatItem = panel.kinds.has("chat") && (
     <>
-      <MenuItem
-        title={sameTarget ? "このタブのチャットと同じグループ・作業場所で、新しいチャットを始める" : "このペインで新しいチャットを始める"}
-        onSelect={() => {
-          // 右クリックしたタブのペインに開く
-          panel.focusPane(pane.id);
-          if (sameTarget) panel.openNew(sameTarget);
-          else panel.startNewChat();
-        }}
-      >
-        <SquarePen size={14} /> 新しいチャット
-      </MenuItem>
+      {sameTarget ? (
+        <NewChatItem place={sameTarget} onSelect={() => startNew(sameTarget)} />
+      ) : (
+        <MenuItem title="このペインで新しいチャットを始める" onSelect={() => startNew(undefined)}>
+          <SquarePen size={14} /> 新しいチャット
+        </MenuItem>
+      )}
       <div className="menu-separator" role="separator" />
     </>
   );
@@ -122,13 +126,12 @@ export function TabMenu({
           onRename={onRename}
           onClose={onClose}
           onError={(m) => void alertDialog("操作できませんでした", m)}
+          onNewChat={panel.kinds.has("chat") ? (place) => startNew(place) : undefined}
           before={
             <>
-              {newChatItem}
               {showItem}
               {showItem && <div className="menu-separator" role="separator" />}
               {paneItems}
-              <div className="menu-separator" role="separator" />
             </>
           }
           after={

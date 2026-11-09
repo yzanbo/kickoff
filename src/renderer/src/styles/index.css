@@ -90,6 +90,7 @@
 @import "./board/board-list.css";
 @import "./board/board-feed.css";
 @import "./ui/menu.css";
+@import "./ui/menu-badges.css";
 @import "./base/scrollbar.css";
 @import "./base/focus.css";
 @import "./editor/editor.css";

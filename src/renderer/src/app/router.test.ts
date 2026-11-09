@@ -61,6 +61,8 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "memos", memo: "設計/DB の方針.md" },
     { name: "project", id: 1, tab: "memos", memo: "設計/DB の方針.md", memoLine: 12 },
     { name: "newChat", projectId: 2, group: 4 },
+    { name: "newChat", projectId: 2, worktree: "/x/app-worktrees/feature-a b" },
+    { name: "newChat", projectId: 2, group: 4, worktree: "/x/app-worktrees/w" },
     { name: "chat", projectId: 2, chatId: 30 },
     { name: "chat", projectId: 2, chatId: 30, focus: 8 },
   ];

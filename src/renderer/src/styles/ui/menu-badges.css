@@ -1,0 +1,37 @@
+/* ==== メニューの項目の右に添える札 ==== */
+
+/*
+ * 「新しいチャット」の項目の右に添える、始めるグループ・作業場所の札（NewChatItem。パネルのタブの名前の後ろの札と同じ「薄い地に色の文字」の丸い札。
+ * 色が分からない（グループなし）ときは灰色）
+ */
+.menu-place-badges {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+.menu-place-badge {
+  --group-color: var(--muted);
+
+  max-width: 120px;
+  overflow: hidden;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--group-color);
+  background: color-mix(in srgb, var(--group-color) 18%, transparent);
+}
+
+.menu-place-badge[style] {
+  --group-color: hsl(var(--group-hue) 60% 68%);
+}
+
+:root[data-theme="light"] .menu-place-badge[style] {
+  --group-color: hsl(var(--group-hue) 55% 38%);
+}
