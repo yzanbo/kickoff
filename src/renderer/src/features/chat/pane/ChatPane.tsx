@@ -86,7 +86,7 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
       <ChatPaneContext.Provider value={pane}>
         <SubagentsContext.Provider value={view.subagentsView}>
         <BackgroundCallsContext.Provider value={backgroundCalls}>
-        <AgentSplit chatId={chat.id} handleRef={view.side}>
+        <AgentSplit scope={chat.id} handleRef={view.side}>
         {/* data-chat-id・data-chat-role: 右の欄・別ウィンドウで、選んだ所・右クリックした所のチャット（子チャット・メモのチャット）を見分ける */}
         <div
           ref={pane.root}

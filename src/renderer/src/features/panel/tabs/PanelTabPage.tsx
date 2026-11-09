@@ -14,6 +14,7 @@ import { childTab, memoTab } from "./tabKinds";
 import { canPopOut, popOutTab } from "./popOutTab";
 import { TabPageContext } from "./tabPageContext";
 import { NewChatPane } from "./NewChatPane";
+import { moveDraftSidePanel } from "@/features/panel/agents/draftSide";
 import { panelStateOf } from "@/features/panel/state/panelStore";
 import { api } from "@/api";
 import { reportFailure } from "@/ui/dialogs";
@@ -52,6 +53,7 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   ),
   new: ({ tab: t, panel, visible }) => (
     <NewChatPane
+      tabKey={t.key}
       projectId={t.projectId}
       group={t.group}
       worktree={t.worktree}
@@ -75,6 +77,8 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
         // 固定していた下書きは、できたチャットも固定する（送るまでの間に固定を付け外ししていても、いまの値で）
         const now = panelStateOf(panel.key).tabs.find((x) => x.key === t.key);
         if (now?.kind === "new" && now.pinned) void api.pinChat(chat.id, true).catch(reportFailure("ピン留めできませんでした"));
+        // 下書きの右の欄（開いたメモなど）は、できたチャットの右の欄へ移す
+        moveDraftSidePanel(t.key, chat.id);
         panel.replaceWithChat(t.key, chat);
       }}
       // 空の文は覚えない（書き始める前と同じ形のまま）

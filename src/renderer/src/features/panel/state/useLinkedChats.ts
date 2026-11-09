@@ -17,7 +17,7 @@ export function useLinkedChats(scope: PanelScope, enabled = true): { chats: Chat
   const [showArchived] = useShowArchivedChats();
   // 全プロジェクトのときに出すプロジェクト（サイドバーと同じ: しまったものを除き、タグの絞り込みに合うもの）
   const { visible } = useVisibleProjects();
-  const list = useChats({ projectId: scope === "all" ? undefined : scope, archived: showArchived, enabled });
+  const list = useChats({ projectId: typeof scope === "number" ? scope : undefined, archived: showArchived, enabled: enabled && (typeof scope === "number" || scope === "all") });
   const chats = useMemo(() => {
     if (scope !== "all") return list.chats;
     const shown = new Set(visible.map((p) => p.id));

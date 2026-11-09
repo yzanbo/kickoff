@@ -110,7 +110,7 @@ export function panelActions(key: string) {
       const kinds = readKinds(at.surface, noChat);
       const empty = !state.tabs.some((t) => kinds.includes(kindOfTab(t)));
       const start = SURFACES[at.surface].openWhenEmpty;
-      if (empty && start === "newChat" && kinds.includes("chat") && at.scope !== "all") return openNew({ projectId: at.scope });
+      if (empty && start === "newChat" && kinds.includes("chat") && typeof at.scope === "number") return openNew({ projectId: at.scope });
       if (empty && start === "terminal" && kinds.includes("terminal") && terminal) return openTerminal(terminal);
       setOpen(true);
     },

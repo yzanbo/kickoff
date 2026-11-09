@@ -53,7 +53,7 @@ export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; 
 /** メニューの中身（開いている間だけ描くので、一覧はこのときだけ読む） */
 function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onNewChild: () => void }) {
   const at = parsePanelKey(panel.key);
-  const chatId = at && at.scope !== "all" ? at.scope : 0;
+  const chatId = at && typeof at.scope === "number" ? at.scope : 0;
   const chat = useKnownChat(chatId);
   const pane = useOptionalChatPane();
   const view = useSubagentsView();

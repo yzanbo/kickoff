@@ -22,7 +22,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   // 一覧のペインのチャットのタブは、サイドバーと同じ並び（まとめ方・並び順・固定・アーカイブ済み）にする（利用者の依頼）。
   // 自分で置いたタブだけの分けたペインは、ペインの並びのまま
   const scope = parsePanelKey(panel.key)?.scope;
-  const sidebarOrder = useSidebarChatOrder(panel.chats, scope === "all" ? undefined : scope, showChat && home);
+  const sidebarOrder = useSidebarChatOrder(panel.chats, typeof scope === "number" ? scope : undefined, showChat && home);
   const chatIdOf = (key: string) => {
     const t = panel.tabs.find((x) => x.key === key);
     return t?.kind === "chat" ? t.id : null;
