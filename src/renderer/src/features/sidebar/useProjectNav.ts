@@ -43,6 +43,8 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const [compact] = useCompactRows();
   const [compactProjects] = useCompactProjects();
   const drafts = useAllDrafts();
+  // 自分待ちの数（タグで絞り込んでいれば、出しているプロジェクトの分だけ。しまったプロジェクトは数えない）
+  const waitingCount = visible.reduce((n, p) => n + waitingChats(chats[p.id] ?? [], pending).length, 0);
   const hasWaiting = (p: Project) => waitingChats(chats[p.id] ?? [], pending).length > 0 || drafts.some((d) => d.projectId === p.id);
   // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
   const [searchAll, setSearchAll] = useState("");
@@ -149,8 +151,8 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     showArchived,
     onShowArchived: setShowArchived,
     fold: { allCollapsed, set: setAllCollapsed },
-    // 自分待ちがオンのときだけ、その表示を選ぶ行を出す
-    waiting: waitingOnly ? { view: waitingView, onView: setWaitingView } : undefined,
+    // 自分待ちの行（オン / オフ・数・オンのときの表示。オフでも行は出し、表示の 2 つは薄くする）
+    waiting: { on: waitingOnly, onToggle: () => setWaitingOnly(!waitingOnly), count: waitingCount, view: waitingView, onView: setWaitingView },
   };
 
   return {

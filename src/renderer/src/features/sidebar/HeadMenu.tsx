@@ -19,6 +19,7 @@ export function HeadMenu<T extends string>({
   title,
   menu,
   extra,
+  disabled,
 }: {
   id: string;
   /** いまの値を表すアイコン（狭いときに出す） */
@@ -34,6 +35,8 @@ export function HeadMenu<T extends string>({
   menu: { title: string; choices: readonly T[]; meta: Record<T, { icon: LucideIcon; label: string }>; current: T; onPick: (choice: T) => void };
   /** 選択肢の下に区切り線を挟んで足す項目（まとめ方の「まとまりを色付きで表示」） */
   extra?: ReactNode;
+  /** 押せない（ほかの設定で選べないとき。理由は title に書く） */
+  disabled?: boolean;
 }) {
   const buttonClass = `head-menu-${id}`;
   const open = useContextMenu();
@@ -47,6 +50,7 @@ export function HeadMenu<T extends string>({
         aria-label={`${label}: ${value}`}
         aria-haspopup="menu"
         aria-expanded={open.isOpen}
+        disabled={disabled}
         onClick={open.toggle}
       >
         <ChipFace icon={Icon} label={label} value={value} values={values} />
@@ -82,6 +86,7 @@ export function HeadToggle({
   values,
   title,
   disabled,
+  pressed,
   onToggle,
 }: {
   id: string;
@@ -94,15 +99,18 @@ export function HeadToggle({
   title: string;
   /** 押せない（ほかの設定で値が決まっているとき。理由は title に書く） */
   disabled?: boolean;
+  /** オン / オフの切り替えのとき、オンか（aria-pressed。オンは値をアクセントの色にする） */
+  pressed?: boolean;
   onToggle: () => void;
 }) {
   const next = values[0] === value ? values[1] : values[0];
   return (
     <button
-      className={`head-chip head-toggle-${id}`}
+      className={cx("head-chip", `head-toggle-${id}`, pressed && "on")}
       title={disabled ? title : `${title}: ${value}（押すと「${next}」に切り替え）`}
       aria-label={disabled ? `${label}: ${value}` : `${label}: ${value}（押すと「${next}」）`}
       disabled={disabled}
+      aria-pressed={pressed}
       onClick={onToggle}
     >
       <ChipFace icon={icon} label={label} value={value} values={values} />
