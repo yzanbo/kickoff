@@ -43,10 +43,10 @@ test("newSidebarViewName: 同じ名前のない番号", () => {
   assert.equal(newSidebarViewName([{ ...view("1"), name: "ビュー 1" }, { ...view("2"), name: "ビュー 3" }]), "ビュー 2");
 });
 
-test("初めのビュー: コンパクト・標準・要対応の順で、どれも読め、利用者が示した形", () => {
+test("初めのビュー: 標準・コンパクト・要対応の順で、どれも読め、利用者が示した形", () => {
   const views = parseSidebarViews(SIDEBAR_SAVED_VIEWS.initial);
-  assert.deepEqual(views.map((v) => v.name), ["コンパクト", "標準", "要対応"]);
-  const [compact, standard, waiting] = views;
+  assert.deepEqual(views.map((v) => v.name), ["標準", "コンパクト", "要対応"]);
+  const [standard, compact, waiting] = views;
   assert.deepEqual(standard.state, { ...base, layout: "rail", showArchivedChats: true, waitingOn: true });
   assert.deepEqual(compact.state, { ...base, layout: "rail", projectCompact: true, chatCompact: true, waitingOn: true });
   assert.deepEqual(waiting.state, { ...base, waitingOn: true, waitingView: "filter" });

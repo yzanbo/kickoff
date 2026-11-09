@@ -58,7 +58,7 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
   // 一覧の上・プロジェクト内にまとめているときは、そのまとまりの見出しに数があるので、見出しの行には出さない
   const listShowsCount = tuner.waiting.on && waitingAxes(tuner.waiting.view).scope !== "only";
 
-  // まだ一度もビューを選んでいなければ、最初のビュー（初めはコンパクト）を当てて選んだ状態にする（利用者の依頼。前はいまの見え方に合うビューを選んでいて、初めの見え方の標準になった）
+  // まだ一度もビューを選んでいなければ、最初のビュー（初めは標準）を当てて選んだ状態にする（利用者の依頼。前はいまの見え方に合うビューを選んでいて、初めの見え方の標準になった）
   useEffect(() => {
     if (!views.neverSelected) return;
     const first = views.views[0];
