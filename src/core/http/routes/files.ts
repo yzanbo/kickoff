@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { createProjectFile, listProjectFiles, readProjectFile, renameProjectFile, replaceInProject, searchProject, trashProjectFile, writeProjectFile } from "../../git/index.js";
+import { createProjectFile, listProjectFiles, readProjectFile, readProjectImage, renameProjectFile, replaceInProject, searchProject, trashProjectFile, writeProjectFile } from "../../git/index.js";
 import { moveToTrash } from "../../system/trash.js";
 import type { ServerDeps } from "../server.js";
 import type { ProjectReplaceBody } from "@shared/types";
@@ -35,6 +35,18 @@ export function filesRoutes(app: Hono, { store, trash = moveToTrash }: ServerDep
   app.get("/api/projects/:id/file", withWorkdir, async (c) => {
     const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
     return c.json(await readProjectFile(c.var.workdir, path));
+  });
+
+  // 画像のファイルの中身（ファイルタブのプレビュー。icns は中の PNG）。ページとして開かれても何も動かないよう sandbox の CSP を付ける
+  app.get("/api/projects/:id/file/image", withWorkdir, async (c) => {
+    const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
+    const image = await readProjectImage(c.var.workdir, path);
+    return c.body(new Uint8Array(image.data), 200, {
+      "Content-Type": image.type,
+      "Content-Security-Policy": "sandbox",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-cache",
+    });
   });
 
   // ファイルの中を探す（正規表現・含める / 除外するファイルの書き方が正しくなければ 400）。ignore=0 なら .gitignore で無視しているものも探す

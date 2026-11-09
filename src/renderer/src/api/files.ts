@@ -1,11 +1,13 @@
 import type { FileContent, ProjectFiles, ProjectReplaceBody, ProjectReplaceResult, ProjectSearchQuery, ProjectSearchResult, RenamedFile, SavedFile } from "@shared/types";
-import { request } from "./http";
+import { request, requestBlob } from "./http";
 import { workdirPath, type GitTarget } from "./workdir";
 
 /** 作業場所のファイル（エクスプローラーの一覧・中身・検索・保存・作る・名前の変更・ゴミ箱。コアの routes/files.ts） */
 export const filesApi = {
   projectFiles: (target: GitTarget) => request<ProjectFiles>("GET", workdirPath(target, "/files")),
   projectFile: (target: GitTarget, path: string) => request<FileContent>("GET", workdirPath(target, "/file", { path })),
+  /** 画像のファイルの中身（プレビュー。icns は中の PNG） */
+  projectImage: async (target: GitTarget, path: string): Promise<Blob> => (await requestBlob(workdirPath(target, "/file/image", { path }))).blob,
   /** ファイルを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
   saveProjectFile: (target: GitTarget, path: string, content: string, baseHash: string | null) =>
     request<SavedFile>("PUT", workdirPath(target, "/file"), { path, content, base_hash: baseHash }),

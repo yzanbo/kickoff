@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import { setup, until } from "../testing/testServer.js";
+import { AUTH, setup, until } from "../testing/testServer.js";
 import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
 
@@ -74,6 +74,30 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal((await call("GET", `/api/projects/${project.id}/file?path=../outside.txt`)).status, 400);
   fs.symlinkSync("/etc/hosts", path.join(repo, "link.txt"));
   assert.equal((await call("GET", `/api/projects/${project.id}/file?path=link.txt`)).status, 400);
+
+  // 画像のプレビュー: 中身をそのまま、その種類で返す。icns は中のいちばん大きい PNG。画像でない・外を指すリンク・外は 400
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+  fs.writeFileSync(path.join(repo, "pic.png"), png);
+  const icnsEntry = Buffer.alloc(8);
+  icnsEntry.write("ic10", 0, "latin1");
+  icnsEntry.writeUInt32BE(png.length + 8, 4);
+  const icnsHead = Buffer.alloc(8);
+  icnsHead.write("icns", 0, "latin1");
+  icnsHead.writeUInt32BE(png.length + 16, 4);
+  fs.writeFileSync(path.join(repo, "icon.icns"), Buffer.concat([icnsHead, icnsEntry, png]));
+  const image = (file: string) => ctx.app.request(`/api/projects/${project.id}/file/image?path=${encodeURIComponent(file)}`, { headers: AUTH });
+  const picture = await image("pic.png");
+  assert.equal(picture.status, 200);
+  assert.equal(picture.headers.get("content-type"), "image/png");
+  assert.equal(picture.headers.get("content-security-policy"), "sandbox");
+  assert.deepEqual(Buffer.from(await picture.arrayBuffer()), png);
+  const icon = await image("icon.icns");
+  assert.equal(icon.headers.get("content-type"), "image/png");
+  assert.deepEqual(Buffer.from(await icon.arrayBuffer()), png);
+  assert.equal((await image("a.txt")).status, 400);
+  fs.symlinkSync("/etc/hosts", path.join(repo, "outside.png"));
+  assert.equal((await image("outside.png")).status, 400);
+  assert.equal((await image("../x.png")).status, 400);
 
   // 名前の変更: 同じフォルダの中で変え、変えたあとのパスを返す。同じ名前があれば 409、ないものは 404、使えない名前・外は 400
   fs.mkdirSync(path.join(repo, "dir"));
