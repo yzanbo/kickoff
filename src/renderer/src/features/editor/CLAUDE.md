@@ -35,4 +35,4 @@
 
 ## 履歴（`features/history/HistoryTab`）
 
-Fork と同じ形: 左にブランチ・リモート・タグ・stash・ワークツリーなどの一覧 `HistorySidebar`（名前で絞り込め、押すとそのコミットを表で選ぶ。まとまりは `RefSection` / `RefItem`。ワークツリーの作成・削除は `useWorktreeActions`）、右上にコミットの表 `CommitTable`（線つきの件名・作者・番号・日時 `formatDayTime`）、右下に選んだコミットの詳細 `CommitView`（「コミット」「変更」のタブ。変わったファイルは木・一覧 `COMMIT_FILES_LIST`、差分は `DiffView` の `commit`）。上下の境目はドラッグで動かせる（`HistoryMain`・`HISTORY_SPLIT`）。読み込みは `useGitLog`（表示している間だけ読み、「さらに読み込む」で続きを足す）、ブランチの線は `commitGraph.ts` の `layoutGraph`。
+Fork と同じ形: 左にブランチ・リモート・タグ・stash・ワークツリーなどの一覧 `HistorySidebar`（名前で絞り込め、押すとそのコミットを表で選ぶ。まとまりは `RefSection` / `RefItem`。ワークツリーの作成・削除は `useWorktreeActions`）、右上にコミットの表 `CommitTable`（線つきの件名・作者・番号・日時 `formatDayTime`。線は `commitGraph.ts` の `layoutGraph`（テストあり）で、列ごとに次に来るコミットを待つ線を引く。右の列のブランチが左の列の待っている親へ合流する行でも、左の列の線は点の高さで切らずに下へ続ける（利用者の指摘。前は合流の行で左の列の線が途切れ、曲がった線だけが下でつながった））、右下に選んだコミットの詳細 `CommitView`（「コミット」「変更」のタブ。変わったファイルは木・一覧 `COMMIT_FILES_LIST`、差分は `DiffView` の `commit`）。上下の境目はドラッグで動かせる（`HistoryMain`・`HISTORY_SPLIT`）。読み込みは `useGitLog`（表示している間だけ読み、「さらに読み込む」で続きを足す）、ブランチの線は `commitGraph.ts` の `layoutGraph`。

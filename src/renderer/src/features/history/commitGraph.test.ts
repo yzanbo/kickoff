@@ -32,3 +32,19 @@ test("枝分かれとマージ: マージの点から 2 本に分かれ、分か
   assert.deepEqual(rows[2].bottom.map((e) => [e.from, e.to]), [[0, 0], [1, 0]]);
   assert.deepEqual(rows[3].top.map((e) => [e.from, e.to]), [[0, 0]]);
 });
+
+test("右の列のブランチが、左の列の待っている親へ合流する行でも、左の列の線は途切れない", () => {
+  // h（1 列目）の親は a。f2 → f1 は h より前に分かれていない別のブランチで、f1 の親も a
+  const { rows } = layoutGraph([
+    { hash: "h", parents: ["a"] },
+    { hash: "f2", parents: ["f1"] },
+    { hash: "f1", parents: ["a"] },
+    { hash: "a", parents: [] },
+  ]);
+  assert.deepEqual(rows.map((r) => r.col), [0, 1, 1, 0]);
+  // f1 の行の下半分: 1 列目の線はそのまま下へ、2 列目から 1 列目へ曲がって合流する
+  assert.deepEqual(
+    rows[2].bottom.map((e) => [e.from, e.to]).sort(),
+    [[0, 0], [1, 0]],
+  );
+});
