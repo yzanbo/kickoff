@@ -2,12 +2,16 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { prepareStorage } from "@/app/prepareStorage";
 import { startInputModality } from "@/app/inputModality";
+import { startDragAutoScroll } from "@/app/dragAutoScroll";
 import { startTheme } from "@/app/theme";
 import "@/styles/index.css";
 
 // 入力欄以外にファイルを落としたとき、ウィンドウがそのファイルを開いてしまわないようにする
 window.addEventListener("dragover", (e) => e.preventDefault());
 window.addEventListener("drop", (e) => e.preventDefault());
+
+// ドラッグ中に、スクロールできる欄の端へ寄せたらスクロールする（見えている範囲の外へも落とせるように。app/dragAutoScroll.ts）
+startDragAutoScroll();
 
 // マウスで操作したあとは、修飾キーだけではピントの枠を出さない（app/inputModality.ts）
 startInputModality();
