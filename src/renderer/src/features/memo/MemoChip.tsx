@@ -8,7 +8,7 @@ import { MEMO_OPEN_IN, memoOpenFolders } from "@/lib/storageKeys";
 import { useMemoList } from "@/stores/memos";
 import { usePopover } from "@/ui/Popover";
 import { IconButton } from "@/ui/IconButton";
-import type { TreeNode } from "@/features/editor/treeModel";
+import { folderPaths } from "@/features/editor/treeModel";
 import { ChipWord, ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { DefaultOpenPlace } from "@/features/chat/composer/OpenPlaceControls";
 import { useMainChat } from "@/features/chat/pane/mainChatContext";
@@ -124,9 +124,4 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
       </button>
     </ComposerChip>
   );
-}
-
-/** 木のフォルダのパス（深いものも） */
-function folderPaths(nodes: readonly TreeNode[]): string[] {
-  return nodes.flatMap((n) => (n.dir ? [n.path, ...folderPaths(n.children)] : []));
 }
