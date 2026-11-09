@@ -1,6 +1,7 @@
 import { Pin, type LucideIcon } from "lucide-react";
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { cx } from "@/lib/cx";
+import { isRenameKey } from "@/lib/keys";
 import { CloseButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
 import { projectHueStyle } from "@/features/project/projectColor";
@@ -8,7 +9,7 @@ import type { TabGroupBadge } from "./tabKinds";
 
 /**
  * パネルのタブ 1 つ（右のパネル・下のパネルで共通）。タブのどこを押しても表示し（名前のボタンの押せる範囲を CSS でタブ全体に広げる）、× で閉じる。
- * onRename があれば名前のダブルクリックで名前を変え始め、editor がある間は名前の代わりに入力欄を出す（チャットのタブ）。
+ * onRename があれば名前のダブルクリック・ピントがあるときの Enter で名前を変え始め、editor がある間は名前の代わりに入力欄を出す（チャットのタブ）。
  * pinnedIn があればいちばん左にピンを出す（ピン留めしたチャット。サイドバーの「固定」と同じく、まっすぐのピンをそのプロジェクトの色で塗る）。extra は右のパネルで足す属性（ドラッグ・右クリックのメニュー）、className はドラッグで落とす位置の印など
  */
 export function PanelTab({
@@ -67,7 +68,22 @@ export function PanelTab({
           <InlineName initial={editor.initial} maxLength={editor.maxLength} className="panel-tab-input" onSubmit={editor.onSubmit} onCancel={editor.onCancel} />
         </span>
       ) : (
-        <button className="panel-tab-label" onClick={onSelect} onDoubleClick={onRename} title={onRename ? `${title ?? label}（ダブルクリックで名前を変更）` : (title ?? label)}>
+        <button
+          className="panel-tab-label"
+          onClick={onSelect}
+          onDoubleClick={onRename}
+          // タブにピントがあるときの Enter は名前の変更（名前を変えられるタブだけ。開くのは押す・Space）
+          onKeyDown={
+            onRename
+              ? (e) => {
+                  if (!isRenameKey(e)) return;
+                  e.preventDefault();
+                  onRename();
+                }
+              : undefined
+          }
+          title={onRename ? `${title ?? label}（ダブルクリック・Enter で名前を変更）` : (title ?? label)}
+        >
           {pin}
           {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
           {badge && <span className="panel-tab-kind">{badge.text}</span>}
