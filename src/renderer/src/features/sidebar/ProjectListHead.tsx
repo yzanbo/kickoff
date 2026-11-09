@@ -1,11 +1,11 @@
 import { ChevronDown, ChevronsDownUp, ChevronsUpDown, Pencil, Save, SlidersHorizontal, Trash2 } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cx } from "@/lib/cx";
 import { viewNameTaken } from "@/lib/namedViews";
 import { confirmDialog } from "@/ui/dialogs";
 import { IconButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
-import { Popover, usePopover } from "@/ui/Popover";
+import { Popover } from "@/ui/Popover";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useViewTabDrag } from "@/ui/useViewTabDrag";
@@ -13,6 +13,27 @@ import { sameSidebarViewState, type SidebarView } from "./sidebarViews";
 import { SidebarViewTuner, type TunerProps } from "./SidebarViewTuner";
 import { TagFilterRow } from "./TagFilterRow";
 import { useSidebarViews, type SidebarViews } from "./useSidebarViews";
+
+/**
+ * ⚙ の窓（サイドバーの見え方）を開いているか。見出しは並べ方（縦並び・スライド）ごとに別の部品の中に描くので、
+ * 窓の中で並べ方を変えて見出しが作り直されても、開いたままにする（利用者の依頼。窓の中でいろいろ変えて、終わったら × で閉じる）
+ */
+let tunerOpen = false;
+const tunerListeners = new Set<() => void>();
+function setTunerOpen(open: boolean) {
+  if (tunerOpen === open) return;
+  tunerOpen = open;
+  for (const listener of tunerListeners) listener();
+}
+function useTunerOpen(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      tunerListeners.add(listener);
+      return () => void tunerListeners.delete(listener);
+    },
+    () => tunerOpen,
+  );
+}
 
 interface Props extends TunerProps {
   /** すべてのプロジェクトのチャット一覧（と中のまとまり）をまとめて閉じる・開く（縦並び・横スライドのどちらでも） */
@@ -27,7 +48,9 @@ interface Props extends TunerProps {
  */
 export function ProjectListHead({ fold, ...tuner }: Props) {
   const views = useSidebarViews();
-  const tunerPopover = usePopover();
+  const tunerOpen = useTunerOpen();
+  const tunerAnchor = useRef<HTMLButtonElement>(null);
+  const closeTuner = () => setTunerOpen(false);
   const count = tuner.waiting.count;
   const anyWaitingView = views.views.some((v) => v.state.waitingOn);
 
@@ -58,18 +81,18 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
           </span>
         )}
         <IconButton
-          ref={tunerPopover.anchor}
+          ref={tunerAnchor}
           icon={SlidersHorizontal}
           label="見え方を調整"
           title="プロジェクト・チャット・要対応の見え方を細かく変える（変えたものはビューに上書き・新しいビューとして保存できる）"
           size={14}
-          className={cx("sidebar-view-icon", tunerPopover.open && "active")}
-          aria-expanded={tunerPopover.open}
-          onClick={tunerPopover.toggle}
+          className={cx("sidebar-view-icon", tunerOpen && "active")}
+          aria-expanded={tunerOpen}
+          onClick={() => setTunerOpen(!tunerOpen)}
         />
       </div>
-      {tunerPopover.open && (
-        <Popover anchor={tunerPopover.anchor} align="end" label="サイドバーの見え方" title="サイドバーの見え方" className="sidebar-view-popover" onClose={tunerPopover.close}>
+      {tunerOpen && (
+        <Popover anchor={tunerAnchor} align="end" label="サイドバーの見え方" title="サイドバーの見え方" className="sidebar-view-popover" onClose={closeTuner}>
           <SidebarViewTuner {...tuner} views={views} />
         </Popover>
       )}
