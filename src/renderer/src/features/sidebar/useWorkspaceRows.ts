@@ -110,6 +110,7 @@ export function useWorkspaceRows({
     const rest = unplacedDrafts(b.drafts, draftsAfter);
     return rest === b.drafts ? b : { ...b, drafts: rest };
   };
+  const draftCounts = useMemo(() => new Map(buckets.filter((b) => b.drafts.length > 0).map((b) => [b.key, b.drafts.length])), [buckets]);
   const ungroupedBucket = main.find((b) => b.kind === "ungrouped");
   const ungrouped = ungroupedBucket && withUnplaced(ungroupedBucket);
 
@@ -124,11 +125,14 @@ export function useWorkspaceRows({
     setStateFilter,
     filtering,
     pending,
-    /** アーカイブしていないチャットの数（絞り込む前 / 絞り込んだあと。固定したものも数える） */
-    chatCount: chats.filter((c) => !c.archived_at).length,
+    /** アーカイブしていないチャットの数（絞り込む前。固定したもの・送る前の新しいチャット（下書き）も数える。利用者の依頼で、下書きもやり取りのあるチャットと同じに数える） */
+    chatCount: chats.filter((c) => !c.archived_at).length + allDrafts.length,
+    /** 絞り込んだあとのアーカイブしていないチャットの数（下書きは含めない。空のときの案内を出すかに使う） */
     visibleCount: shown.filter((c) => !c.archived_at).length,
     /** 上に固定したもの（絞り込みを通したもの） */
     pinned: buckets.find((b) => b.kind === "pinned"),
+    /** まとまり（グループ・グループなし）の中の下書きの数（まとまりのキー → 数。手動の並びでチャットの行の後ろに置いたものも数える。見出しの数に足す） */
+    draftCounts,
     /** 自分で作ったグループ（グループでまとめているとき。チャットのないものも。絞り込み中は一致するもの・下書きのあるものだけ） */
     groups: buckets.filter((b) => b.kind === "group").map(withUnplaced),
     /** グループなし（グループでまとめているとき。もうないグループのものも含む） */
