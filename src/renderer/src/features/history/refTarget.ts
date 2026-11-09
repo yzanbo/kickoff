@@ -1,7 +1,10 @@
 import type { GitRefs } from "@shared/types";
 
-/** 右クリックしたブランチ・タグ（branch = 手元のブランチ / remote = リモートのブランチ "origin/main" / tag = タグ） */
-export type RefTarget = { kind: "branch" | "remote" | "tag"; name: string };
+/**
+ * 右クリックしたブランチ・タグ（branch = 手元のブランチ / remote = リモートのブランチ "origin/main" / tag = タグ）。
+ * worktree は左の一覧のワークツリーの行から開いたとき、そのワークツリーのフォルダ（メニューにワークツリーの項目も出す）
+ */
+export type RefTarget = { kind: "branch" | "remote" | "tag"; name: string; worktree?: string };
 
 /** 札の文（"HEAD -> main"・"tag: v1"・"origin/main"・"feature/x"）が、手元のブランチ・リモートのブランチ・タグのどれか（一覧で引き当てる） */
 export function refTargetOf(ref: string, refs: GitRefs | undefined): RefTarget | null {
