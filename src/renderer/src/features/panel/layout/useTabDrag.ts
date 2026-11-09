@@ -1,5 +1,5 @@
 import { useState, type DragEvent } from "react";
-import { dropZoneAt, insertIndexAt, splitOfZone, type DropZone } from "./paneGeometry";
+import { dropZoneAt, insertSlotAt, splitOfZone, type DropZone, type InsertSlot } from "./paneGeometry";
 import type { PanelController } from "@/features/panel/usePanel";
 import { startDragGhost } from "@/ui/dragGhost";
 
@@ -14,8 +14,8 @@ const TAB_MIME = "application/x-kickoff-panel-tab";
 export function useTabDrag(panel: PanelController) {
   // ドラッグ中のタブ（このパネルのタブだけを受け付ける）
   const [dragging, setDragging] = useState<string | null>(null);
-  // タブの列に落とす位置（何番目の前か）と、中身の上の落とす場所
-  const [insert, setInsert] = useState<{ paneId: string; index: number } | null>(null);
+  // タブの列に落とす位置（何番目の前か。まとまりの境目では、印を前のまとまりの最後に付けるか）と、中身の上の落とす場所
+  const [insert, setInsert] = useState<({ paneId: string } & InsertSlot) | null>(null);
   const [zone, setZone] = useState<{ paneId: string; zone: DropZone } | null>(null);
 
   const reset = () => {
@@ -29,8 +29,8 @@ export function useTabDrag(panel: PanelController) {
 
   return {
     dragging,
-    /** タブの列に落とす位置の印（index 番目のタブの前。最後なら最後のタブの後ろ） */
-    insertAt: (paneId: string) => (insert?.paneId === paneId ? insert.index : null),
+    /** タブの列に落とす位置の印（index 番目のタブの前。最後なら最後のタブの後ろ。after なら前のタブの後ろ） */
+    insertAt: (paneId: string): InsertSlot | null => (insert?.paneId === paneId ? { index: insert.index, after: insert.after } : null),
     /** 中身の上の落とす場所の印 */
     zoneOf: (paneId: string) => (zone?.paneId === paneId ? zone.zone : null),
     /** タブ（PanelTab の root）に付ける */
@@ -48,19 +48,23 @@ export function useTabDrag(panel: PanelController) {
     /**
      * タブの列に付ける（落とすとそのペインの、その位置へ移す）。toPaneIndex: 見た目の並びの位置をペインの並びの位置に直す
      * （タブをまとめて並べ替えて見せているとき。印の位置 insertAt は見た目の並びのまま）。reorderInPlace: 同じペインの中で
-     * 並びを別に決めているタブを落としたとき、その並びを変える（変えたら true で、ペインの並びは変えない）
+     * 並びを別に決めているタブを落としたとき、その並びを変える（変えたら true で、ペインの並びは変えない。after: 前のタブの後ろに落とした）
      */
-    barProps: (paneId: string, toPaneIndex: (index: number) => number = (i) => i, reorderInPlace?: (key: string, index: number) => boolean) => ({
+    barProps: (paneId: string, toPaneIndex: (index: number) => number = (i) => i, reorderInPlace?: (key: string, index: number, after: boolean) => boolean) => ({
       onDragOver: (e: DragEvent<HTMLElement>) => {
         if (!accepts(e)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
+        // まとまりに分けて並べているときは、タブの入った枠（.panel-tab-group）も渡し、境目で前のまとまりの最後に入れられるようにする
+        const groups: Element[] = [];
         const tabs = [...e.currentTarget.querySelectorAll<HTMLElement>(".panel-tab")].map((el) => {
           const r = el.getBoundingClientRect();
-          return { left: r.left, width: r.width };
+          const frame = el.closest(".panel-tab-group");
+          if (frame && !groups.includes(frame)) groups.push(frame);
+          return { left: r.left, width: r.width, group: frame ? groups.indexOf(frame) : -1, groupLeft: frame ? frame.getBoundingClientRect().left : r.left };
         });
-        const index = insertIndexAt(e.clientX, tabs);
-        if (insert?.paneId !== paneId || insert.index !== index) setInsert({ paneId, index });
+        const { index, after } = insertSlotAt(e.clientX, tabs);
+        if (insert?.paneId !== paneId || insert.index !== index || insert.after !== after) setInsert({ paneId, index, after });
       },
       onDragLeave: (e: DragEvent<HTMLElement>) => {
         if (leaving(e) && insert?.paneId === paneId) setInsert(null);
@@ -69,8 +73,8 @@ export function useTabDrag(panel: PanelController) {
         if (!accepts(e) || !dragging) return;
         e.preventDefault();
         // 並びを別に決めているタブ（一覧のペインのチャットのタブ = サイドバーの手動の並び）は、その並びを変える
-        const index = insert?.paneId === paneId ? insert.index : undefined;
-        if (index === undefined || !reorderInPlace?.(dragging, index)) panel.moveTab(dragging, paneId, index === undefined ? undefined : toPaneIndex(index));
+        const slot = insert?.paneId === paneId ? insert : undefined;
+        if (!slot || !reorderInPlace?.(dragging, slot.index, slot.after)) panel.moveTab(dragging, paneId, slot ? toPaneIndex(slot.index) : undefined);
         reset();
       },
     }),

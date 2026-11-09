@@ -68,7 +68,7 @@
 
 - VS Code のエディターと同じく、いくつでも上下・左右のペインに分けられる。配置は木（葉 = ペイン `{ id, tabs, active }`、枝 = 分割 `{ dir: "row"（左右）| "column"（上下）, children, sizes（割合） }`）とピントのあるペイン `focused`・一覧のペイン `home`（`paneTree.ts`）。木はタブのキーだけを指し、1 つのタブは 1 つのペインにだけある。
 - 変え方は純粋関数（`paneLayout.ts` の `placeTab` / `moveTab` / `returnToHome` / `splitPane` / `closeLayoutTabs` / `closePane` / `renameTab` / `reconcileLayout`、割合は `paneSizes.ts` の `setSplitSizes` / `equalizeSplit`）。移した結果空になったペインは消し、同じ向きの入れ子は `normalize` で 1 段にまとめる。分けた元・空のペインとして作ったペインは残し、最後の 1 つは消さない。ペインを閉じたときは、中のサイドバーと連動したチャットは一覧のペインへ戻し（`closePane` の `keep`）、ほかのタブは閉じる。
-- 位置・落とす場所・境目の割合は `paneGeometry.ts`（`layoutRects` / `dropZoneAt` / `resizeAt` / `insertIndexAt`）。
+- 位置・落とす場所・境目の割合は `paneGeometry.ts`（`layoutRects` / `dropZoneAt` / `resizeAt` / `insertIndexAt` / まとまりの境目を見分ける `insertSlotAt`）。
 - 表示: 分けていなければタブの列 → 中身。分けているときは中身（`.split-view`）の中に、ペイン（`PaneTabBar` ＋ タブがないときの `PanelEmpty`）・境目のつまみ `PaneSash`（ドラッグで割合、ダブルクリックで等分）を割合の位置で重ねる。タブの中身はいつも中身の直下に置いて style でペインの位置に重ね、分けても作り直さない（webview・ターミナル・入力中の文を保つ）。
 - 分ける操作: 各ペインのタブの列の右端の「右に分ける」「下に分ける」（表示中のタブを新しいペインへ。タブが 1 つ以下なら空のペイン。右の欄は分けるボタンを置かない `noSplitButtons`。タブのドラッグ・右クリック・⌘\ で分ける）・「ペインを閉じる」（分けているときだけ。`.panel-pane-tools`）、タブの右クリック、⌘\（パネルにピントがあるとき右に分ける）、タブのドラッグ（`useTabDrag`。独自の MIME 型 `application/x-kickoff-panel-tab`。タブの列に落とすと移す・並べ替え、中身の端（1/4）に落とすとその側に分け、真ん中ならそのペインへ。ドラッグ中だけ中身の上に透明の覆い `.split-drop-cover` を置き、webview の上でも落とす場所を出す。ドラッグの絵は共通の写し `startDragGhost`（`src/renderer/src/CLAUDE.md` の「ドラッグの絵」）で、覆いはその `after` = 次の回に出す）。
 - ピントのあるペインは、分けているときだけ、そのペインのチャット欄の枠の色で示す（`PanelTabPage` の `split` と `.pane-focused`）。新しく開くタブ・新しいチャットはピントのあるペインに入る。
@@ -96,7 +96,7 @@
 - 自分で作ったグループの札はつかんでドラッグし、同じプロジェクトのほかのグループの枠に落とすと並びを入れ替える（`useClusterReorder`。サイドバーと同じ `useReorder` で、入る位置に縦の線・動かしているまとまりは薄く。`api.reorderGroups` で DB の並びを変えるので、サイドバー・全プロジェクトのボードのグループの列・ほかのパネルの札も同じ並びになる。グループなし・作業場所・その他・ほかのプロジェクトのグループには落とせない）。
 - グループ別のとき、チャットのタブをつかんで同じプロジェクトのほかのグループ・「No Group」の枠に落とすと、そのチャットをそのグループへ移す・グループから外す（`useClusterTabDrop`。サイドバー・全プロジェクトのボードのグループの列へのドラッグと同じ `api.setChatGroup`）。送る前の新しいチャットのタブは作成先のグループを変える（`setDraftGroup`）。移せるかは純粋関数の `clusterTabDrop`（いまと同じグループ・子チャット（グループに入らない）・ほかのプロジェクト・固定・アーカイブ済み・作業場所・その他の枠は移さない）。移せる枠に重ねている間は、サイドバーと同じ点線の枠と薄い地（`.panel-tab-group.drop-target`）。落とす位置の印とペインの中の並べ替えはふだんのタブのドラッグ（`useTabDrag`）のまま。グループの札の並べ替えと同じ枠に付けるので、受け口は `joinDropHandlers` でつなぐ。
 - まとめないときも、タブの列の左端（横にスクロールしても動かない位置）に同じ札「チャット」（`TabClusterHead` の `all`。控えめな地 `.panel-tab-cluster.all`、タブの数は出さない）を置き、パネルのチャット全体の状態ごとの数と一覧を出す。チャットが 1 つもなければ出さない。
-- ドラッグで落とす位置は見た目の並びで印を付け、`paneIndexOf` でペインの並びの位置に直して移す（`useTabDrag` の `toPaneIndex`）。
+- ドラッグで落とす位置は見た目の並びで印を付け、`paneIndexOf` でペインの並びの位置に直して移す（`useTabDrag` の `toPaneIndex`）。まとまりの境目では、次のまとまりの枠に入る前（前のまとまりの最後のタブの右半分・枠の間）なら前のまとまりの最後の後ろに、枠（頭の札から）に入れば次のまとまりの最初の前に印を付ける（`paneGeometry.ts` の `insertSlotAt` の `after`。利用者の指摘。前はどちらも「次のタブの前」で、前のまとまりの最後に入れたくても印が次のまとまりの先頭に出た）。`after` で落としたときの一覧のペインの並べ替え（`reorderChatTab`）は左のタブを先に見る。
 
 ## 下書き（送る前の新しいチャット）
 

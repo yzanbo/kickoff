@@ -61,25 +61,23 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const manual = useManualChatReorder(sidebarOrder);
   /**
    * 一覧のペインで、key のチャットのタブを見た目の並びの index 番目の前に落としたとき、手動の並びを変える（変えたら true）。
-   * 落とした位置の右のタブ（なければ左のタブ）が同じまとまり（グループ・作業場所・固定・アーカイブ済み）のチャットなら、その前（後ろ）へ動かす
+   * 落とした位置の右のタブ（なければ左のタブ）が同じまとまり（グループ・作業場所・固定・アーカイブ済み）のチャットなら、その前（後ろ）へ動かす。
+   * after（まとまりの境目で、前のまとまりの最後の後ろに落とした）なら、左のタブを先に見る
    */
-  const reorderChatTab = (key: string, index: number): boolean => {
+  const reorderChatTab = (key: string, index: number, after = false): boolean => {
     if (!(showChat && home)) return false;
     const moved = chatIdOf(key);
     const chat = moved === null ? undefined : panel.chats.find((c) => c.id === moved);
     if (moved === null || !chat) return false;
     const neighbor = (k: string | undefined) => (k === undefined ? null : chatIdOf(k));
-    const right = neighbor(display[index]);
-    if (right !== null && right !== moved && manual.canMove(moved, right)) {
-      manual.move(chat.project_id, moved, right, "before");
+    const tryMove = (target: number | null, side: "before" | "after") => {
+      if (target === null || target === moved || !manual.canMove(moved, target)) return false;
+      manual.move(chat.project_id, moved, target, side);
       return true;
-    }
-    const left = neighbor(display[index - 1]);
-    if (left !== null && left !== moved && manual.canMove(moved, left)) {
-      manual.move(chat.project_id, moved, left, "after");
-      return true;
-    }
-    return false;
+    };
+    const right = () => tryMove(neighbor(display[index]), "before");
+    const left = () => tryMove(neighbor(display[index - 1]), "after");
+    return after ? left() || right() : right() || left();
   };
   return {
     grouping,

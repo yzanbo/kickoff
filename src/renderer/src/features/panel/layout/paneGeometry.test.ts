@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dropZoneAt, insertIndexAt, layoutRects, resizeAt, splitOfZone } from "./paneGeometry";
+import { dropZoneAt, insertIndexAt, insertSlotAt, layoutRects, resizeAt, splitOfZone } from "./paneGeometry";
 import type { PaneNode } from "./paneTree";
 
 const leaf = (id: string): PaneNode => ({ type: "pane", id, tabs: [], active: null });
@@ -64,4 +64,23 @@ test("insertIndexAt: タブの真ん中より左なら、そのタブの前", ()
   assert.equal(insertIndexAt(60, tabs), 1);
   assert.equal(insertIndexAt(160, tabs), 2);
   assert.equal(insertIndexAt(10, []), 0);
+});
+
+test("insertSlotAt: まとまりの境目では、次の枠に入る前なら前のまとまりの最後の後ろ・枠に入れば次のまとまりの最初の前", () => {
+  // まとまり 0（枠 0〜200）にタブ 2 つ、まとまり 1（枠 210〜。頭の札 210〜250）にタブ 1 つ
+  const tabs = [
+    { left: 0, width: 100, group: 0, groupLeft: 0 },
+    { left: 100, width: 100, group: 0, groupLeft: 0 },
+    { left: 250, width: 100, group: 1, groupLeft: 210 },
+  ];
+  // 同じまとまりの中はいままでどおり
+  assert.deepEqual(insertSlotAt(120, tabs), { index: 1, after: false });
+  // 前のまとまりの最後のタブの右半分・枠の間 → 前のまとまりの最後の後ろ
+  assert.deepEqual(insertSlotAt(160, tabs), { index: 2, after: true });
+  assert.deepEqual(insertSlotAt(205, tabs), { index: 2, after: true });
+  // 次の枠（頭の札）に入った → 次のまとまりの最初の前
+  assert.deepEqual(insertSlotAt(230, tabs), { index: 2, after: false });
+  // いちばん後ろ・いちばん前は印の付け方が決まっているので after にしない
+  assert.deepEqual(insertSlotAt(330, tabs), { index: 3, after: false });
+  assert.deepEqual(insertSlotAt(10, tabs), { index: 0, after: false });
 });

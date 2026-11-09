@@ -86,3 +86,22 @@ export function insertIndexAt(clientX: number, tabs: readonly { left: number; wi
   const index = tabs.findIndex((t) => clientX < t.left + t.width / 2);
   return index < 0 ? tabs.length : index;
 }
+
+/** タブの列に落とす位置。index 番目の前で、after なら印を前のタブ（index - 1 番目）の後ろに付ける（まとまりの境目で、前のまとまりの最後に入れるとき） */
+export interface InsertSlot {
+  index: number;
+  after: boolean;
+}
+
+/**
+ * まとまり（グループ・作業場所の枠）に分けて並べたタブの列で、落とす位置を決める。各タブに入っているまとまりの番号 group と、その枠の左端 groupLeft を渡す。
+ * まとまりの境目（前のタブと次のタブのまとまりが違う）では、次のまとまりの枠に入る前（枠の左端より左）なら前のまとまりの最後の後ろ（after）、
+ * 枠に入っていれば次のまとまりの最初の前にする（前は境目がどちらも「次のタブの前」で、前のまとまりの最後に入れたくても、印が次のまとまりの先頭に出た）
+ */
+export function insertSlotAt(clientX: number, tabs: readonly { left: number; width: number; group: number; groupLeft: number }[]): InsertSlot {
+  const index = insertIndexAt(clientX, tabs);
+  const prev = tabs[index - 1];
+  const next = tabs[index];
+  const after = prev !== undefined && next !== undefined && prev.group !== next.group && clientX < next.groupLeft;
+  return { index, after };
+}
