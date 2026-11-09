@@ -67,6 +67,24 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   fs.symlinkSync("/etc/hosts", path.join(repo, "link.txt"));
   assert.equal((await call("GET", `/api/projects/${project.id}/file?path=link.txt`)).status, 400);
 
+  // 名前の変更: 同じフォルダの中で変え、変えたあとのパスを返す。同じ名前があれば 409、ないものは 404、使えない名前・外は 400
+  fs.mkdirSync(path.join(repo, "dir"));
+  fs.writeFileSync(path.join(repo, "dir", "old.txt"), "x\n");
+  const renamed = await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/old.txt", name: "new name.txt" });
+  assert.deepEqual([renamed.status, renamed.body], [200, { path: "dir/new name.txt" }]);
+  assert.equal(fs.existsSync(path.join(repo, "dir", "new name.txt")), true);
+  assert.equal(fs.existsSync(path.join(repo, "dir", "old.txt")), false);
+  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/new name.txt", name: "../up.txt" })).status, 400);
+  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/new name.txt", name: ".." })).status, 400);
+  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/missing.txt", name: "x.txt" })).status, 404);
+  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/new name.txt", name: "NEW NAME.txt" })).status, 200);
+  fs.writeFileSync(path.join(repo, "dir", "other.txt"), "y\n");
+  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir/other.txt", name: "NEW NAME.txt" })).status, 409);
+  // フォルダの名前も変えられる
+  const dir = await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir", name: "dir2" });
+  assert.deepEqual(dir.body, { path: "dir2" });
+  assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "../outside.txt", name: "x.txt" })).status, 400);
+
   // ファイルの中を探す（大文字・小文字・単語単位・正規表現。無視しているフォルダは探さない）
   fs.writeFileSync(path.join(repo, "c.txt"), "Hello world\nhello-there\nshell\n");
   fs.writeFileSync(path.join(repo, "node_modules", "pkg", "hello.js"), "hello\n");

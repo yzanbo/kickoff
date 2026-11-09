@@ -16,6 +16,7 @@ import { changeKinds, parentFolders } from "./treeModel";
 import { selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 import { GitInitNotice } from "@/features/project/GitInitNotice";
+import { useFileRename } from "./useFileRename";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectSearch } from "./useProjectSearch";
 import { WorktreeBar } from "@/features/worktree/WorktreeBar";
@@ -57,6 +58,13 @@ export function EditorTab({
   const files = useProjectFiles(projectId, view === "files" && Boolean(status?.repo), git.version);
   const kinds = useMemo(() => changeKinds(status), [status]);
   const search = useProjectSearch(projectId);
+  // ファイル・フォルダの名前の変更（ファイルタブ・変更タブの Enter・右クリック）。フォルダの名前を変えたら、開いていたフォルダも付け替える
+  const { rename, menuElement: renameMenu } = useFileRename(projectId, {
+    selection,
+    git,
+    onMoved: (from, to) =>
+      setOpenFolders((prev) => new Set([...prev].map((p) => (p === from || p.startsWith(`${from}/`) ? to + p.slice(from.length) : p)))),
+  });
   // 変更の一覧の操作（ステージ・コミット・プッシュなど）の実行中と失敗（表示を切り替えても残す）
   const gitAction = useAction<CommitBusy>();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
@@ -109,9 +117,27 @@ export function EditorTab({
         {view === "search" ? (
           <SearchView search={search} selected={selected} onSelect={(path, line) => void setSelected({ path, line })} />
         ) : view === "files" ? (
-          <FilesPane rootName={rootName} git={git} files={files} kinds={kinds} folders={folders} selected={selected?.path} onSelect={(path) => void setSelected({ path })} />
+          <FilesPane
+            rootName={rootName}
+            git={git}
+            files={files}
+            kinds={kinds}
+            folders={folders}
+            selected={selected?.path}
+            onSelect={(path) => void setSelected({ path })}
+            rename={rename}
+          />
         ) : (
-          <ChangesPane status={status} git={git} groups={groups} empty={empty} action={gitAction} selected={selected} onSelect={(next) => void setSelected(next)} />
+          <ChangesPane
+            status={status}
+            git={git}
+            groups={groups}
+            empty={empty}
+            action={gitAction}
+            selected={selected}
+            onSelect={(next) => void setSelected(next)}
+            rename={rename}
+          />
         )}
       </aside>
       <div className="pane-resizer" aria-label="一覧の幅を変える" {...list.handle} />
@@ -126,6 +152,7 @@ export function EditorTab({
         empty={empty}
       />
     </div>
+    {renameMenu}
     </>
   );
 }

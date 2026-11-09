@@ -3,6 +3,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { FileTree } from "./FileTree";
 import type { ChangeKinds } from "./treeModel";
+import type { FileRename } from "./useFileRename";
 import type { GitStatusController } from "./useGitStatus";
 import type { useProjectFiles } from "./useProjectFiles";
 
@@ -18,6 +19,7 @@ export function FilesPane({
   folders,
   selected,
   onSelect,
+  rename,
 }: {
   rootName: string;
   git: GitStatusController;
@@ -27,6 +29,8 @@ export function FilesPane({
   /** 選んでいるファイルのパス */
   selected?: string;
   onSelect: (path: string) => void;
+  /** ファイル・フォルダの名前の変更（行にピントがあるときの Enter・右クリック） */
+  rename: FileRename;
 }) {
   return (
     <>
@@ -40,7 +44,7 @@ export function FilesPane({
       </header>
       <ErrorText message={files.error} />
       {files.tree ? (
-        <FileTree nodes={files.tree} open={folders.open} onToggle={folders.toggle} selected={selected} onSelect={onSelect} kinds={kinds} />
+        <FileTree nodes={files.tree} open={folders.open} onToggle={folders.toggle} selected={selected} onSelect={onSelect} kinds={kinds} rename={rename} />
       ) : (
         !files.error && <p className="muted small changes-empty">読み込み中…</p>
       )}

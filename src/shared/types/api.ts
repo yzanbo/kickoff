@@ -217,6 +217,11 @@ export interface SavedFile {
   hash: string;
 }
 
+/** ファイル・フォルダの名前を変えた結果（POST /api/projects/:id/file/rename）。path は変えたあとのパス（作業場所から） */
+export interface RenamedFile {
+  path: string;
+}
+
 /** チャットのやり取りの記録（GET /api/chats/:id/transcript。自分の発言と AI の返答を古い順に並べた Markdown。右クリックの「全部のやり取りをコピー」） */
 export interface ChatTranscript {
   markdown: string;

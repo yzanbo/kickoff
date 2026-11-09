@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { isInside } from "../system/paths.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
-import type { FileContent, ProjectFiles, ProjectSearchQuery, ProjectSearchResult, SavedFile } from "@shared/types";
+import type { FileContent, ProjectFiles, ProjectSearchQuery, ProjectSearchResult, RenamedFile, SavedFile } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
 import { gitStatus } from "./status.js";
 
@@ -68,6 +68,29 @@ export async function writeProjectFile(repo: string, file: string, content: stri
   const data = Buffer.from(content, "utf8");
   await fs.writeFile(real, data);
   return { hash: hashOf(data) };
+}
+
+/**
+ * ファイル・フォルダの名前を変える（同じフォルダの中で。ファイルタブ・変更タブの Enter・右クリックの「名前を変更」）。
+ * 名前に区切り（/ \）・「.」「..」は使えない（400）。もうない（404）・同じ名前のものがある（409）なら変えない。
+ * リポジトリの外を指すシンボリックリンクの先は動かさない（リンクそのものの名前を変える）
+ */
+export async function renameProjectFile(repo: string, file: string, name: string): Promise<RenamedFile> {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === "." || trimmed === ".." || /[/\\\0]/.test(trimmed)) throw new Invalid("その名前は使えません");
+  const from = await assertInside(repo, file);
+  await fs.lstat(from).catch((e: unknown) => {
+    if ((e as { code?: unknown }).code === "ENOENT") throw new NotFound(`ファイルが見つかりません: ${file}`);
+    throw e;
+  });
+  const to = path.join(path.dirname(from), trimmed);
+  if (to === from) return { path: file };
+  // 大文字・小文字だけを変えるとき（macOS では同じファイルとみなされる）は、同じものがあるとは言わない
+  const existing = await fs.lstat(to).catch(() => null);
+  if (existing && to.toLowerCase() !== from.toLowerCase()) throw new Conflict(`「${trimmed}」はもうあります`);
+  await fs.rename(from, to);
+  const root = await fs.realpath(repo);
+  return { path: path.relative(root, to).split(path.sep).join("/") };
 }
 
 /** ファイルの中身（リポジトリの外を指すシンボリックリンクは読まない） */

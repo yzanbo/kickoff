@@ -3,14 +3,17 @@ import { useMemo, useState } from "react";
 import type { GitFileChange } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
+import { isRenameKey } from "@/lib/keys";
+import { InlineName } from "@/ui/InlineName";
 import { confirmDialog } from "@/ui/dialogs";
 import { Chevron } from "@/ui/Chevron";
 import { IconButton } from "@/ui/IconButton";
 import { PathParts } from "@/ui/PathParts";
 import { CHANGE_LABELS } from "./DiffView";
 import { FileIcon } from "./FileIcon";
-import { FileTree } from "./FileTree";
+import { FileTree, siblingNameError } from "./FileTree";
 import { buildTree, folderPaths, kindMaps, type TreeNode } from "./treeModel";
+import type { FileRename } from "./useFileRename";
 
 export type GitAction = "stage" | "unstage" | "discard";
 
@@ -25,6 +28,8 @@ interface Props {
   onSelect: (selection: { path: string; staged: boolean }) => void;
   /** ステージ・ステージの取り消し・元に戻す */
   onAction: (action: GitAction, paths: string[]) => void;
+  /** ファイルの名前の変更（行にピントがあるときの Enter・右クリック。消したファイルは変えない） */
+  rename?: FileRename;
 }
 
 /** 元に戻す前に確かめる（取り消せないので） */
@@ -42,7 +47,7 @@ async function confirmDiscard(paths: string[]): Promise<boolean> {
  * 「ステージされている変更」「変更」のまとまり（見出しで開閉。数をバッジで出す）。
  * VS Code と同じく、マウスを乗せると操作のボタンを出す（変更: 元に戻す・ステージ / ステージ済み: ステージを取り消す）
  */
-export function ChangeGroup({ title, files, staged, tree, selected, onSelect, onAction }: Props) {
+export function ChangeGroup({ title, files, staged, tree, selected, onSelect, onAction, rename }: Props) {
   const [open, setOpen] = useState(true);
   // 木の表示で閉じたフォルダ（初めは全部開いておく）
   const [closed, setClosed] = useState<Set<string>>(() => new Set());
@@ -95,12 +100,27 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
             onSelect={(path) => onSelect({ path, staged })}
             kinds={kinds}
             actions={(node) => buttons(pathsUnder(node), node.dir ? `「${node.name}」の中` : `「${node.name}」`)}
+            rename={rename}
+            // 変更の一覧ではファイルだけ（フォルダには変更のないファイルも入っているので）。消したファイルは変えられない
+            canRename={(node) => !node.dir && kinds.files.get(node.path) !== "D"}
           />
         ) : (
           <ul className="change-files">
             {files.map((file) => {
               const name = baseName(file.path);
               const isSelected = selected?.staged === staged && selected.path === file.path;
+              const renamable = rename && file.kind !== "D";
+              if (rename?.renaming === file.path) {
+                // 名前を変えている行（同じ名前のほかのファイルの確かめは、変更の一覧にないものもあるのでコアに任せる）
+                return (
+                  <li key={file.path} className="change-item">
+                    <div className="change-file renaming">
+                      <FileIcon name={name} />
+                      <InlineName className="tree-rename" maxLength={255} initial={name} validate={siblingNameError([], file.path)} onSubmit={(next) => rename.submit(file.path, next)} onCancel={rename.cancel} />
+                    </div>
+                  </li>
+                );
+              }
               return (
                 <li key={file.path} className="change-item">
                   <button
@@ -108,6 +128,20 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
                     aria-current={isSelected || undefined}
                     title={`${file.path}（${CHANGE_LABELS[file.kind]}）`}
                     onClick={() => onSelect({ path: file.path, staged })}
+                    // 行にピントがあるときの Enter で名前を変える（ファイルタブの木と同じ）
+                    onKeyDown={(e) => {
+                      if (!renamable || !isRenameKey(e)) return;
+                      e.preventDefault();
+                      rename.start(file.path);
+                    }}
+                    onContextMenu={
+                      renamable
+                        ? (e) => {
+                            e.preventDefault();
+                            rename.openMenu(e, file.path);
+                          }
+                        : undefined
+                    }
                   >
                     <FileIcon name={name} />
                     <PathParts path={file.path} nameClass={cx("change-name", file.kind === "D" && "deleted")} dirClass="change-dir" />
