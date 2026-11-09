@@ -325,6 +325,27 @@
 }
 
 /* 入力欄の上の「メモ」の木の入れ物（空いている所へ落とすと直下へ。落とす先のときは一覧ごと囲む） */
+/* 一覧の上の行: 左に「行を押したとき」の切り替え、右端にフォルダをすべて開く・すべて閉じる */
+.memo-chip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.memo-chip-head > .open-place-default {
+  padding: 0;
+  border-bottom: none;
+}
+
+.memo-chip-folds {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  margin-left: auto;
+}
+
 .memo-chip-list {
   border-radius: 6px;
 }

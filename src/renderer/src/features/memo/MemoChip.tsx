@@ -1,4 +1,4 @@
-import { StickyNote } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, StickyNote } from "lucide-react";
 import { useMemo, useState } from "react";
 import { canPopout } from "@/app/popout";
 import { openMemo } from "@/app/router";
@@ -7,6 +7,8 @@ import { useSetting } from "@/hooks/useSetting";
 import { MEMO_OPEN_IN, memoOpenFolders } from "@/lib/storageKeys";
 import { useMemoList } from "@/stores/memos";
 import { usePopover } from "@/ui/Popover";
+import { IconButton } from "@/ui/IconButton";
+import type { TreeNode } from "@/features/editor/treeModel";
 import { ChipWord, ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { DefaultOpenPlace } from "@/features/chat/composer/OpenPlaceControls";
 import { useMainChat } from "@/features/chat/pane/mainChatContext";
@@ -21,7 +23,9 @@ import { followMovedMemo, useMemoActions } from "./useMemoActions";
 /**
  * 入力欄の上の「メモ」（指示の履歴・子チャットと同じピルの列）。押すとメモのフォルダの木（メモのタブと同じ並び・同じ開いているフォルダ。
  * メモの入っていないフォルダは出さない）を出し、メモの行を押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。
- * 行の右のボタンで、メモを開かずにこのチャットの入力欄に添付する・設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられる。
+ * 行の右のボタンで、メモを開かずにこのチャットの入力欄に添付する・設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられ、
+ * 右端の「フォルダをすべて開く / すべて閉じる」で木のフォルダをまとめて開閉する（利用者の依頼）。開閉はプロジェクトごとに 1 つ（memoOpenFolders）なので、
+ * 同じプロジェクトのどのチャットのピルでも、メモのタブの木でも同じになる
  * 行をドラッグしてフォルダ（一覧の空いている所なら直下）へ落とすと動かす（メモのタブの木と同じ）。
  * プロジェクトにメモがなければ出さない。
  * 送る前のチャット（新しいチャット・新しい子チャット）では chatId が null で、「このチャットに添付」は onAttach でその入力欄に足し、開く場所はチャットのないときの決まり（openMemoFromChat）
@@ -43,7 +47,11 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
     onMoved: (from, to) => followMovedMemo(projectId, from, to),
   });
   const dropInto = (path: string, folder: string) => void actions.moveInto(path, folder);
+  // 木のフォルダ（メモの入ったものだけ）。すべて開く・すべて閉じるに使う
+  const dirs = useMemo(() => folderPaths(tree), [tree]);
   if (tree.length === 0) return null;
+  const allOpen = dirs.every((d) => openFolders.has(d));
+  const anyOpen = dirs.some((d) => openFolders.has(d));
   const toggleFolder = (path: string) => setOpenList(openFolders.has(path) ? openList.filter((p) => p !== path) : [...openList, path]);
   // 別ウィンドウは Mac のアプリだけ
   const places = canPopout() ? (["side", "window"] as const) : (["side"] as const);
@@ -66,7 +74,25 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
       label="メモ"
       className="memo-chip-popover"
     >
-      {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
+      {(places.length > 1 || dirs.length > 0) && (
+        <div className="memo-chip-head">
+          {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
+          {dirs.length > 0 && (
+            <span className="memo-chip-folds">
+              <IconButton
+                type="button"
+                icon={ChevronsUpDown}
+                size={14}
+                label="フォルダをすべて開く"
+                disabled={allOpen}
+                onClick={() => setOpenList([...new Set([...openList, ...dirs])])}
+              />
+              {/* メモのタブの「フォルダをすべて閉じる」と同じく、メモのタブの木だけにあるフォルダ（メモの入っていないもの）も閉じる */}
+              <IconButton type="button" icon={ChevronsDownUp} size={14} label="フォルダをすべて閉じる" disabled={!anyOpen} onClick={() => setOpenList([])} />
+            </span>
+          )}
+        </div>
+      )}
       {/* 一覧の空いている所へ落とすと、いちばん上（直下）へ動かす */}
       <div className={cx("memo-chip-list", dropTarget === "" && "drop-target")} {...memoListDropProps({ onDropInto: dropInto, onDropTarget: setDropTarget })}>
       <MemoChipTree
@@ -98,4 +124,9 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
       </button>
     </ComposerChip>
   );
+}
+
+/** 木のフォルダのパス（深いものも） */
+function folderPaths(nodes: readonly TreeNode[]): string[] {
+  return nodes.flatMap((n) => (n.dir ? [n.path, ...folderPaths(n.children)] : []));
 }
