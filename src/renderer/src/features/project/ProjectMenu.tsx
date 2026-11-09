@@ -109,7 +109,7 @@ function ProjectMenu({
   );
   const archived = Boolean(project.archived_at);
   return (
-    <PopupMenu at={at} className="project-menu" label={`${project.name} のメニュー`} onClose={onClose}>
+    <PopupMenu at={at} label={`${project.name} のメニュー`} onClose={onClose}>
       <div className="menu-label">このプロジェクト</div>
       {item("new", <SquarePen size={14} />, "新しいチャット", () => openNewChat(project.id))}
       {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}
