@@ -9,6 +9,7 @@ import { AppFooter } from "@/features/footer/AppFooter";
 import { BottomPanel } from "@/features/panel/bottom/BottomPanel";
 import { useBottomPanel } from "@/features/panel/bottom/useBottomPanel";
 import { ActiveChatsPalette } from "@/features/palette/ActiveChatsPalette";
+import { OPEN_ACTIVE_CHATS_EVENT, type ActiveChatsRequest } from "@/features/palette/openActiveChats";
 import { CommandPalette } from "@/features/palette/CommandPalette";
 import { LayoutToggles } from "./LayoutToggles";
 import { SearchPanel } from "@/features/palette/SearchPanel";
@@ -75,8 +76,8 @@ export function App() {
   // プロジェクトがないのに新しいチャットを始めようとしたときの案内（チャットはプロジェクトの中で始めることを説明して、作るよう誘う）
   const [noProjectsGuide, setNoProjectsGuide] = useState(false);
   const [palette, setPalette] = useState(false);
-  // ⌘⇧A: 作業中・回答待ち・未読のチャットの一覧
-  const [activeChats, setActiveChats] = useState(false);
+  // ⌘⇧A: 作業中・回答待ち・未読のチャットの一覧（null = 閉じている。プロジェクトのボタンから開いたときは、そのプロジェクトで絞り込む）
+  const [activeChats, setActiveChats] = useState<ActiveChatsRequest | null>(null);
   const [searching, setSearching] = useState(false);
   // 設定のダイアログ（開いている項目。null なら閉じている）
   const [settings, setSettings] = useState<SettingsSection | null>(null);
@@ -120,13 +121,15 @@ export function App() {
     openCodeSearch,
     newChat: startNewChat,
     openSettings: () => setSettings("usage"),
-    openActiveChats: () => setActiveChats(true),
+    openActiveChats: () => setActiveChats({}),
   });
   // ボードの検索欄の横のボタンから、チャットの中の文言の全文検索を開く
   useWindowEvent(OPEN_CONTENT_SEARCH_EVENT, () => setSearching(true));
   // 部品から設定をその項目で開く（チャット欄のマイクから「音声入力」など。開いていれば、その項目に切り替える）
   useWindowEvent(OPEN_NEW_PROJECT_EVENT, (e) => setCreating((e as CustomEvent<NewProjectRequest>).detail));
   useWindowEvent(OPEN_NO_PROJECTS_GUIDE_EVENT, () => setNoProjectsGuide(true));
+  // プロジェクトのボタン・右クリックから、そのプロジェクトで絞り込んだ ⌘⇧A の一覧を開く
+  useWindowEvent(OPEN_ACTIVE_CHATS_EVENT, (e) => setActiveChats((e as CustomEvent<ActiveChatsRequest>).detail));
   useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
   // 別ウィンドウからの「ファイルタブで開く」・メモ・子チャットを開く・子チャットから親へは、このウィンドウで
   useEffect(() => subscribeWindowMessages(handleMainWindowMessage), []);
@@ -198,7 +201,7 @@ export function App() {
         {/* ドラッグ中に、落とせない理由をカーソルの横に出す（作業中のチャットは移せない、など） */}
         <DropHintHost />
         {palette && <CommandPalette onClose={() => setPalette(false)} />}
-        {activeChats && <ActiveChatsPalette onClose={() => setActiveChats(false)} />}
+        {activeChats && <ActiveChatsPalette initialProject={activeChats.projectId} onClose={() => setActiveChats(null)} />}
         {searching && (
           <SearchPanel
             chatId={route.name === "chat" ? route.chatId : undefined}

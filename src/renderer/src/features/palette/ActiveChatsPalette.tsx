@@ -29,10 +29,11 @@ const draftTitle = (draft: PanelDraft) => draft.text.trim().split("\n")[0] || NE
  * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形）。
  * 送る前の新しいチャット（下書き。サイドバー・ボードの「下書き」と同じもの）も、いちばん上に並べる。
  * 名前・プロジェクト名で絞り込め、↑↓・Enter で開く。開いている間もチャットの状態の変化に追いつく。
- * 入力欄の下の行で、プロジェクトでも絞り込める（すべて / プロジェクトごと。Tab / Shift+Tab でも切り替え。開くたびに「すべて」から）。
+ * 入力欄の下の行で、プロジェクトでも絞り込める（すべて / プロジェクトごと。Tab / Shift+Tab でも切り替え。⌘⇧A で開くたびに「すべて」から。
+ * プロジェクトのボタン・右クリックから開いたときは initialProject で絞り込んだところから）。
  * アーカイブ済みのプロジェクトのチャットは、行の右端の切り替えで出す（初めは隠す。覚えておく）
  */
-export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
+export function ActiveChatsPalette({ initialProject, onClose }: { initialProject?: number; onClose: () => void }) {
   const { projectName } = useProjects();
   // 出すプロジェクト: サイドバーと同じく、しまったものを除いた並び（サイドバーの「タグ」で絞り込んでいれば、合うものだけ）。
   // アーカイブ済みのプロジェクトは、行の右端の切り替えで出したときだけ後ろに足す
@@ -43,7 +44,7 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
   const { chats } = useChats();
   const dialog = useModalDialog();
   const drafts = useAllDrafts();
-  const [project, setProject] = useState<ProjectFilterValue>("all");
+  const [project, setProject] = useState<ProjectFilterValue>(initialProject ?? "all");
   const [showArchived, setShowArchived] = useSetting(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS);
 
   // 状態ごとのまとまり（下書き → 作業中・回答待ち・未読。アーカイブしたもの・既読は除く。最近動いた順）と、↑↓ で移る平らな並び。
