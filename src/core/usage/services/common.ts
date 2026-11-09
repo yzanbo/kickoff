@@ -40,9 +40,14 @@ class HttpStatusError extends Error {
   }
 }
 
-/** JSON を取ってくる（失敗は HttpStatusError） */
+/** 各サービスへの名乗り（User-Agent）。サービスが決まった名乗りを求めないときに使う */
+export const USER_AGENT = "Kickoff";
+
+/** JSON を取ってくる（Accept は JSON を既定にする。失敗は HttpStatusError） */
 export async function fetchJson<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  const headers = new Headers(init.headers);
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  const res = await fetch(url, { ...init, headers, signal: AbortSignal.timeout(TIMEOUT_MS) });
   const text = await res.text();
   if (!res.ok) throw new HttpStatusError(res.status, text.slice(0, 500));
   return JSON.parse(text) as T;

@@ -1,9 +1,8 @@
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { ServiceUsage, UsageWindow } from "@shared/types";
-import { findExecutable } from "../../system/exec.js";
 import { defineFetcher, emailOf, fetchJson, fetchJsonOr, isExpired, isoFromDate, jwtClaims, readJsonFile, usageResult, usageWindow } from "./common.js";
+import { geminiOAuthClient } from "./geminiClient.js";
 
 const result = usageResult({ id: "gemini", label: "Gemini" });
 const CODE_ASSIST = "https://cloudcode-pa.googleapis.com/v1internal";
@@ -62,53 +61,14 @@ export function parseGeminiQuota(quota: QuotaResponse, plan: string | null, acco
   return result.ok({ plan, account, windows });
 }
 
-/** インストールされている Gemini CLI の、Google ログイン用の ID（ログインを更新するのに使う）。見つからなければ null */
-function geminiClient(): { id: string; secret: string } | null {
-  if (process.env.GEMINI_OAUTH_CLIENT_ID && process.env.GEMINI_OAUTH_CLIENT_SECRET) {
-    return { id: process.env.GEMINI_OAUTH_CLIENT_ID, secret: process.env.GEMINI_OAUTH_CLIENT_SECRET };
-  }
-  const bin = findExecutable(["gemini"]);
-  if (!bin) return null;
-  // gemini の実体（node_modules/@google/gemini-cli/...）から、パッケージのフォルダをたどる
-  let dir = path.dirname(realpathSync(bin));
-  while (dir !== path.dirname(dir) && path.basename(dir) !== "gemini-cli") dir = path.dirname(dir);
-  if (path.basename(dir) !== "gemini-cli") return null;
-  const candidates = [
-    path.join(dir, "node_modules", "@google", "gemini-cli-core", "dist", "src", "code_assist", "oauth2.js"),
-    path.join(dir, "..", "gemini-cli-core", "dist", "src", "code_assist", "oauth2.js"),
-    ...jsFiles(path.join(dir, "bundle")),
-    ...jsFiles(path.join(dir, "dist")),
-  ];
-  for (const file of candidates) {
-    if (!existsSync(file)) continue;
-    const text = readFileSync(file, "utf8");
-    const id = /\d+-[a-z0-9]+\.apps\.googleusercontent\.com/.exec(text)?.[0];
-    const secret = /GOCSPX-[A-Za-z0-9_-]+/.exec(text)?.[0];
-    if (id && secret) return { id, secret };
-  }
-  return null;
-}
-
-/** フォルダの直下の .js（大きすぎるものは除く） */
-function jsFiles(dir: string): string[] {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir)
-    .filter((f) => f.endsWith(".js"))
-    .map((f) => path.join(dir, f))
-    .filter((f) => statSync(f).size < 30_000_000);
-}
-
 /** 期限が切れていれば、手元だけで更新する（Google の更新用トークンは使い回せるので、ファイルは書き換えない） */
 async function accessToken(creds: OAuthCreds): Promise<string | null> {
   if (creds.access_token && !isExpired(creds.expiry_date ?? null)) return creds.access_token;
-  const client = creds.refresh_token ? geminiClient() : null;
+  const client = creds.refresh_token ? await geminiOAuthClient() : null;
   if (!client || !creds.refresh_token) return null;
   const body = new URLSearchParams({ client_id: client.id, client_secret: client.secret, refresh_token: creds.refresh_token, grant_type: "refresh_token" });
-  const res = await fetchJson<{ access_token?: string }>(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
+  // URLSearchParams の本文は、fetch がフォームの形（application/x-www-form-urlencoded）で送る
+  const res = await fetchJson<{ access_token?: string }>(TOKEN_URL, { method: "POST", body });
   return res.access_token ?? null;
 }
 

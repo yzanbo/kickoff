@@ -79,7 +79,6 @@ async function fetchCodexUsage(): Promise<ServiceUsage> {
 
   const headers = {
     Authorization: `Bearer ${tokens.access_token}`,
-    Accept: "application/json",
     "User-Agent": "codex-cli",
     ...(tokens.account_id ? { "ChatGPT-Account-Id": tokens.account_id } : {}),
   };

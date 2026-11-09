@@ -1,6 +1,6 @@
 import type { ServiceUsage, UsageWindow } from "@shared/types";
 import { nonInteractiveEnv, runCommand } from "../../system/exec.js";
-import { defineFetcher, fetchJsonOr, isoFromDate, usageResult, usageWindow } from "./common.js";
+import { defineFetcher, fetchJsonOr, isoFromDate, USER_AGENT, usageResult, usageWindow } from "./common.js";
 
 const result = usageResult({ id: "copilot", label: "GitHub Copilot" });
 const USAGE_URL = "https://api.github.com/copilot_internal/user";
@@ -66,14 +66,8 @@ async function ghToken(): Promise<string | null> {
 async function fetchCopilotUsage(): Promise<ServiceUsage> {
   const token = await ghToken();
   if (!token) return result.unavailable("GitHub CLI（gh）でログインすると表示できます（ターミナルで `gh auth login`）");
-  const headers = {
-    Authorization: `token ${token}`,
-    Accept: "application/json",
-    "Editor-Version": "vscode/1.96.2",
-    "Editor-Plugin-Version": "copilot-chat/0.26.7",
-    "User-Agent": "GitHubCopilotChat/0.26.7",
-    "X-Github-Api-Version": "2025-04-01",
-  };
+  // gh のログイン（Bearer）だけで答える。エディタの拡張機能のふりはしない
+  const headers = { Authorization: `Bearer ${token}`, "User-Agent": USER_AGENT };
   // 401・404 は、このログインでは見られない（Copilot を契約していないアカウントなど）
   const notVisible = () => result.unavailable("gh のログインでは Copilot の使用状況を見られませんでした（Copilot を契約しているアカウントでログインしてください）");
   return fetchJsonOr<CopilotUserResponse, ServiceUsage>(USAGE_URL, { headers }, parseCopilotUsage, { 401: notVisible, 404: notVisible });
