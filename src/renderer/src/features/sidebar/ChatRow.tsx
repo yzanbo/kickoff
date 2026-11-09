@@ -4,6 +4,7 @@ import { busyWithUnread } from "@shared/chat/state";
 import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { cx } from "@/lib/cx";
+import { isOpenKey, isRenameKey } from "@/lib/keys";
 import { anchorPlacement, type Placement } from "@/lib/floating";
 import { startChatDrag } from "@/features/group/groups";
 import type { ChatTitleEditor } from "@/features/chat/useChatRename";
@@ -77,6 +78,8 @@ export function ChatRow({
       </li>
     );
   }
+  // 開く（開いているチャットをもう一度押したときも、閉じたパネルを開き直す）
+  const open = () => (onOpen ? onOpen() : openChat(chat.project_id, chat.id));
   // 選んでいるチャットのメニューなら、まとめて操作するメニュー
   const openMenuAt = (at: Placement) => {
     if (selection && selected && selection.ids.size > 1) selection.openMenu(at);
@@ -110,9 +113,17 @@ export function ChatRow({
           e.preventDefault();
           // ⌘ を押しながら: 選ぶ・外す / Shift: 前に選んだものからの範囲を足す（どちらも開かない）。ふつうのクリックは選ぶのをやめて開く
           if (selection?.click(e, chat.id)) return;
-          // 開いているチャットをもう一度押したときも、閉じたパネルを開き直す
-          if (onOpen) onOpen();
-          else openChat(chat.project_id, chat.id);
+          open();
+        }}
+        // 行にピントがあるときの Enter は名前の変更（Finder と同じ。利用者の依頼で、前は Enter で開いていた）、Space で開く
+        onKeyDown={(e) => {
+          if (isRenameKey(e)) {
+            e.preventDefault();
+            onRename();
+          } else if (isOpenKey(e)) {
+            e.preventDefault();
+            open();
+          }
         }}
       >
         <StatusSlot state={state} unread={busyUnread} />

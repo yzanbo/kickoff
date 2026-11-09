@@ -1,6 +1,7 @@
 import type { CSSProperties, MouseEvent } from "react";
 import { memoExtensionOf } from "@shared/memo/kinds";
 import { cx } from "@/lib/cx";
+import { isRenameKey } from "@/lib/keys";
 import { Chevron } from "@/ui/Chevron";
 import { Collapse } from "@/ui/Collapse";
 import { InlineName } from "@/ui/InlineName";
@@ -46,7 +47,7 @@ interface Props {
 /**
  * メモのフォルダの木（エディタの木と同じ見た目。開いているフォルダの中だけ描き、開閉は高さをなめらかに変える `Collapse`）。行をドラッグしてフォルダへ落とすと動かす
  * （ファイルの行に落とすと、そのファイルのあるフォルダへ。閉じたフォルダに重ねて待つと開く）。右クリックで行のメニュー。
- * ダブルクリック（と右クリックの「名前を変更」・新しく作ったとき）で、行の名前の所がそのまま入力欄になる（メモは拡張子を除いた部分を書く）
+ * ダブルクリック・行にピントがあるときの Enter（と右クリックの「名前を変更」・新しく作ったとき）で、行の名前の所がそのまま入力欄になる（メモは拡張子を除いた部分を書く）
  */
 export function MemoTree(props: Props) {
   const { nodes, open, onToggle, onExpand, selected, onSelect, onMenu, onDropInto, dropTarget, onDropTarget, renaming, onStartRename, onRename, onRenameEnd, depth = 0 } = props;
@@ -91,6 +92,12 @@ export function MemoTree(props: Props) {
                 {...rowProps(node)}
                 onClick={(e) => (node.dir ? onToggle(node.path) : onSelect(node.path, e.metaKey || e.ctrlKey))}
                 onDoubleClick={() => onStartRename(node)}
+                // 行にピントがあるときの Enter は名前の変更（Finder と同じ。開く・開閉は押す・Space）
+                onKeyDown={(e) => {
+                  if (!isRenameKey(e)) return;
+                  e.preventDefault();
+                  onStartRename(node);
+                }}
                 onContextMenu={(e) => {
                   e.stopPropagation();
                   onMenu(e, node);

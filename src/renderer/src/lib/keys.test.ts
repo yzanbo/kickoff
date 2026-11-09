@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hasAppModifier, hasModifiers, heldMetaOf, isCancelKey, isComposing, isKey, isSubmitKey, type KeyInput } from "./keys";
+import { hasAppModifier, hasModifiers, heldMetaOf, isCancelKey, isComposing, isKey, isOpenKey, isRenameKey, isSubmitKey, type KeyInput } from "./keys";
 
 const key = (k: string, mods: Partial<KeyInput> = {}): KeyInput => ({ key: k, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...mods });
 
@@ -24,6 +24,16 @@ test("isCancelKey: 修飾キーのない Esc だけ（変換をやめる Esc は
   assert.equal(isCancelKey(key("Escape")), true);
   assert.equal(isCancelKey(key("Escape", { shiftKey: true })), false);
   assert.equal(isCancelKey(key("Escape", { isComposing: true })), false);
+});
+
+test("isRenameKey / isOpenKey: 名前の変更は修飾キーのない Enter（変換を確定する Enter は除く）、開くのは修飾キーのない Space", () => {
+  assert.equal(isRenameKey(key("Enter")), true);
+  assert.equal(isRenameKey(key("Enter", { metaKey: true })), false);
+  assert.equal(isRenameKey(key("Enter", { shiftKey: true })), false);
+  assert.equal(isRenameKey(key("Enter", { keyCode: 229 })), false);
+  assert.equal(isOpenKey(key(" ")), true);
+  assert.equal(isOpenKey(key(" ", { shiftKey: true })), false);
+  assert.equal(isOpenKey(key("Enter")), false);
 });
 
 test("isKey: 修飾キーはちょうど合うものだけ。1 文字のキーは大文字・小文字を区別しない", () => {

@@ -34,7 +34,7 @@ interface Options {
 
 /**
  * ボードのカード（ボードの表示）と行（リストの表示）・フィードのカードの描き方（出す項目はツールバーの「表示項目」 useCardFields）。すべてのボードで共通:
- * クリック・Enter で開く / 右クリックでメニュー / ドラッグで移す（全プロジェクトのボードのグループの列だけ）/ 名前をその場で変える。
+ * クリック・Space で開く / Enter で名前を変える / 右クリックでメニュー / ドラッグで移す（全プロジェクトのボードのグループの列だけ）/ 名前をその場で変える。
  * どのボードでも、アーカイブ済みのカードは archived（ArchivedFold の中で薄く出す）、カード・行には回答待ちの依頼の数（「回答 n件」）を付ける。
  * パネルで表示中なら selected（チャットはどれもサイドバーと連動してタブにあるので、タブで開いているかの印は付けない）
  */
@@ -48,6 +48,7 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
     ...chatCardProps(chat, {
       dragHint: drag?.hint,
       onOpen: () => onOpen(chat),
+      onRename: () => rename.start(chat),
       onMenu: (at) => menu.openAt(at, chat),
       onDragStart: drag
         ? (e: DragEvent) => {

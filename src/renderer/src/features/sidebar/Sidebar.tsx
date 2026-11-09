@@ -31,7 +31,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   const groups = Object.fromEntries(projects.map((p) => [p.id, groupsOf(p.id)]));
   // チャットの複数選択（⌘ / Shift を押しながらクリック）。サイドバー全体で 1 つ
   const selection = useChatSelectionState(Object.values(chats).flatMap((list) => list.map((r) => r.id)));
-  // ↑↓ でチャットを移る（サイドバーにピントがあるとき。Enter で開く。Shift を押しながらで選ぶものに足す）
+  // ↑↓ でチャットを移る（サイドバーにピントがあるとき。Space で開き、Enter で名前を変える（ChatRow）。Shift を押しながらで選ぶものに足す）
   useWindowEvent("keydown", (e) => {
     if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.metaKey || e.altKey || e.ctrlKey) return;
     const target = e.target as HTMLElement | null;

@@ -47,6 +47,19 @@ export function isSubmitKey(e: KeyInput): boolean {
   return e.key === "Enter" && !e.shiftKey && !isComposing(e);
 }
 
+/**
+ * 選んでいる行・カード・タブの名前を変え始める Enter か（修飾キーなし。変換を確定する Enter は除く）。
+ * Finder と同じく、一覧の物にピントがあるときの Enter は名前の変更にし、開くのは押す・Space にする（利用者の依頼）
+ */
+export function isRenameKey(e: KeyInput): boolean {
+  return isKey(e, "Enter");
+}
+
+/** 選んでいる行・カードを開く Space か（修飾キーなし） */
+export function isOpenKey(e: KeyInput): boolean {
+  return isKey(e, " ");
+}
+
 /** やめる Esc か（修飾キーなし。変換をやめる Esc は除く） */
 export function isCancelKey(e: KeyInput): boolean {
   return isKey(e, "Escape");
