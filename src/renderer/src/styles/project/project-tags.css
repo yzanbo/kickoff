@@ -186,3 +186,39 @@
 .tag-filter-row .project-list-row-label {
   padding-top: 4px;
 }
+
+/* タグのドラッグでの並べ替え（ビューのタブと同じく、入る位置に縦の線・動かしているタグは薄く） */
+.tag-filter-pill.tag-filter-pill-drop-before,
+.tag-filter-pill.tag-filter-pill-drop-after {
+  position: relative;
+  overflow: visible;
+}
+
+.tag-filter-pill.tag-filter-pill-drop-before::after,
+.tag-filter-pill.tag-filter-pill-drop-after::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent-bright);
+  content: "";
+}
+
+.tag-filter-pill.tag-filter-pill-drop-before::after {
+  left: -4px;
+}
+
+.tag-filter-pill.tag-filter-pill-drop-after::after {
+  right: -4px;
+}
+
+.tag-filter-pill.tag-filter-pill-dragging {
+  opacity: var(--drag-source-opacity);
+}
+
+/* その場で名前を変える欄（タグの代わりに置く） */
+.tag-filter-name {
+  width: 120px;
+  font-size: 11px;
+}

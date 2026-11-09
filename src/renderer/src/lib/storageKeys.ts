@@ -114,6 +114,8 @@ export const LAST_ROUTE = defineSetting("kickoff:last-route", text(), { ids: tru
 export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project", record(isString), { ids: true, session: true });
 /** プロジェクトのタグでの絞り込み（選んだタグ。"" はタグのないプロジェクト。空なら絞り込まない。サイドバー・全プロジェクトの画面・⌘⇧A で共通） */
 export const PROJECT_TAG_FILTER = defineSetting("kickoff:project-tag-filter", list());
+// サイドバーのタグの行の並び（ドラッグで並べた順のタグの名前。並べていないタグは後ろに名前順。メニューのタグも同じ順）
+export const PROJECT_TAG_ORDER = defineSetting("kickoff:project-tag-order", list());
 
 // サイドバーのチャットの並べ方（どのプロジェクトでも同じ）
 /** チャットのまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別。初めはまとめない） */

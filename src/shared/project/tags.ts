@@ -33,3 +33,16 @@ export function matchesTags(tags: readonly string[], selected: readonly string[]
   if (tags.length === 0) return selected.includes(UNTAGGED);
   return tags.some((t) => selected.includes(t));
 }
+
+/** 並べた順（order。サイドバーのタグの行をドラッグで並べた順）でタグを並べる。order にないタグは後ろに名前順のまま */
+export function orderTags(tags: readonly string[], order: readonly string[]): string[] {
+  const rank = new Map(order.map((t, i) => [t, i]));
+  const placed = tags.filter((t) => rank.has(t)).sort((a, b) => (rank.get(a) ?? 0) - (rank.get(b) ?? 0));
+  return [...placed, ...tags.filter((t) => !rank.has(t))];
+}
+
+/** タグ from の名前を to に変えた一覧（その位置のまま。to がもう付いていれば 1 つにまとめる） */
+export const renameTagIn = (tags: readonly string[], from: string, to: string): string[] => normalizeTags(tags.map((t) => (t === from ? to : t)));
+
+/** タグ name を外した一覧 */
+export const removeTagFrom = (tags: readonly string[], name: string): string[] => tags.filter((t) => t !== name);
