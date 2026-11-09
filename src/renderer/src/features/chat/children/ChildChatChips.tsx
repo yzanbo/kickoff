@@ -1,5 +1,5 @@
 import { Archive, ArchiveRestore, MessagesSquare, Trash2 } from "lucide-react";
-import { AGENT_STATE_LABELS, type Chat } from "@shared/types";
+import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/types";
 import { busyWithUnread } from "@shared/chat/state";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
@@ -12,7 +12,7 @@ import { ArchivedFold } from "@/ui/ArchivedFold";
 import { IconButton } from "@/ui/IconButton";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { summaryState } from "@/features/chat/chatState";
-import { confirmDeleteChat, toggleArchiveChat } from "@/features/chat/chatActions";
+import { confirmArchiveChats, confirmDeleteChat, toggleArchiveChat } from "@/features/chat/chatActions";
 import { modelDisplayName } from "@/features/chat/options/models";
 import { DefaultOpenPlace, OpenPlaceButtons } from "@/features/chat/composer/OpenPlaceControls";
 import { useChildChats } from "@/stores/chats";
@@ -21,6 +21,9 @@ import { usePopover } from "@/ui/Popover";
 import { ChipWord, ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { openChildChat } from "./openChild";
 import { useNewChildFlash } from "./useNewChildFlash";
+
+/** まだ終わっていない様子（まとめてアーカイブしない。作業中はコアが断り、回答待ちは答える必要がある） */
+const UNFINISHED_STATES: ReadonlySet<AgentState> = new Set(["running", "needs_input"]);
 
 /** ピルに数を添える様子（見てほしい順） */
 const NOTICE_STATES = ["needs_input", "failed", "unread"] as const;
@@ -58,7 +61,7 @@ export function ChildChatMarks({ chatId, eventId }: { chatId: number; eventId: n
 /**
  * 入力欄の上の「子チャット 2 件 · 1 件未読」（指示の履歴・サブエージェントと同じピルの列）。押すと子チャットの一覧（サブエージェントの一覧と同じ形の行:
  * 状態の印・名前・様子 · モデル · 最後に動いた時刻、右に「右で開く」「新規ウィンドウで開く」とアーカイブ・削除）を開く。行を押すと設定の開き方で開き、
- * 一覧の上で行を押したときの開き方（設定）を変えられる。会話を遡らなくても、答えが来たこととどこにあるかが分かる。
+ * 一覧の上で行を押したときの開き方（設定）を変えられ、その下の「完了した子チャットをアーカイブ」で作業中・回答待ちでないものをまとめてアーカイブする。会話を遡らなくても、答えが来たこととどこにあるかが分かる。
  * アーカイブした子チャットは一覧と件数から外し、いちばん下の閉じたまとまり「アーカイブ済み n」（ArchivedFold。サイドバー・サブエージェントの一覧と同じ）を開いて戻せる（すべてアーカイブしていれば
  * ピルは「アーカイブ済みの子チャット n 件」）。子チャットが新しくできたら、少しの間ピルを光らせる（useNewChildFlash）
  */
@@ -75,6 +78,8 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   const visible = children.filter((c) => !c.archived_at);
   const hidden = children.filter((c) => c.archived_at);
   // 見てほしい子チャットの数を、様子ごとに分けて添える（回答待ち → 失敗 → 未読。前は 3 つをまとめて「答えあり」と数え、回答待ちも「答えあり」に見えた）
+  // 完了した子チャット（作業中・回答待ちでないもの）。一覧の上のボタンでまとめてアーカイブする（サブエージェントの一覧と同じ。利用者の依頼）
+  const finished = visible.filter((c) => !UNFINISHED_STATES.has(stateOf(c)));
   const notices = NOTICE_STATES.map((state) => ({ state, count: visible.filter((c) => stateOf(c) === state).length })).filter((n) => n.count > 0);
   // 別ウィンドウは Mac のアプリだけ
   const places = canPopout() ? (["side", "window"] as const) : (["side"] as const);
@@ -172,6 +177,12 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
       ignore="dialog"
     >
       {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
+      {/* 確かめてから、まとめてアーカイブする（その子チャットの子も一緒に。チャットのまとめてアーカイブと同じ） */}
+      <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void confirmArchiveChats(finished)}>
+        <Archive size={15} aria-hidden />
+        完了した子チャットをアーカイブ
+        {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
+      </button>
       {visible.length === 0 && <p className="muted small subagent-empty">表示中の子チャットはありません</p>}
       {visible.map(renderRow)}
       <ArchivedFold place="composer" foldKey="children" count={hidden.length} className="composer-archived">
