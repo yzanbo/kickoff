@@ -79,3 +79,10 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 | `KICKOFF_PORT` | API サーバーのポート（既定は本番 4317・開発 4318） |
 | `KICKOFF_DATA_DIR` | `npm run daemon` のデータ保存先（既定は開発の `Kickoff Dev`） |
 | `KICKOFF_ALLOW_API_KEY` | `1` のときだけ `ANTHROPIC_API_KEY` をエージェントに渡す（既定はプランのログインを使用） |
+
+## ライセンス
+
+[PolyForm Noncommercial License 1.0.0](LICENSE)。オープンソースのライセンスではありません。
+
+- 非商用の目的なら、使う・直す・配ることができます（個人の学習・研究・実験・趣味、慈善団体・教育機関・公的な研究機関・行政機関での利用など）。配るときは、ライセンスの条文（または URL）と `LICENSE` の先頭の `Required Notice:` の行を一緒に渡してください。
+- 商用の目的には使えません。改変したものを含めて売ること、有料のサービスにすること、会社の業務で使うことなどが当たります。商用で使いたいときは、作者に相談してください。
