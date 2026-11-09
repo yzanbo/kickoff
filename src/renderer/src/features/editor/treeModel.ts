@@ -85,6 +85,16 @@ export function folderPaths(nodes: TreeNode[], out: string[] = []): string[] {
   return out;
 }
 
+/** 「すべて開く」で開くフォルダのパス（無視しているフォルダとその中は開かない。中を読んでいないので、開いても空のため） */
+export function openableFolders(nodes: TreeNode[], out: string[] = []): string[] {
+  for (const node of nodes) {
+    if (!node.dir || node.ignored) continue;
+    out.push(node.path);
+    openableFolders(node.children, out);
+  }
+  return out;
+}
+
 /** 入ったフォルダのパス（いちばん外側なら空。"a/b/c.ts" → "a/b"） */
 export const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 

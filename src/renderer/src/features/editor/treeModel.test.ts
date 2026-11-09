@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildTree, changeKinds, joinTreePath, newEntryNameError, parentFolders, parentPath, type TreeNode } from "./treeModel";
+import { buildTree, changeKinds, folderPaths, joinTreePath, newEntryNameError, openableFolders, parentFolders, parentPath, type TreeNode } from "./treeModel";
 
 const names = (nodes: TreeNode[]): unknown => nodes.map((n) => (n.dir ? { [n.name + (n.ignored ? "（無視）" : "")]: names(n.children) } : n.name + (n.ignored ? "（無視）" : "")));
 
@@ -25,6 +25,12 @@ test("パスの一覧から、フォルダを先に名前の順で並べた木�
 test("空のフォルダも、中のないフォルダとして木に出す（中の空のフォルダも）", () => {
   const tree = buildTree({ files: ["src/a.ts"], ignored: [], empty_dirs: ["empty", "empty/inner", "src/new"] });
   assert.deepEqual(names(tree), [{ empty: [{ inner: [] }] }, { src: [{ new: [] }, "a.ts"] }]);
+});
+
+test("すべて開く: 無視しているフォルダとその中は開かない（ほかのフォルダは中のフォルダまで）", () => {
+  const tree = buildTree({ files: ["src/lib/x.ts", "docs/a.md"], ignored: [{ path: "node_modules", dir: true }], empty_dirs: ["src/empty"] });
+  assert.deepEqual(openableFolders(tree), ["docs", "src", "src/empty", "src/lib"]);
+  assert.deepEqual(folderPaths(tree), ["docs", "node_modules", "src", "src/empty", "src/lib"]);
 });
 
 test("ファイルは未ステージ・競合を優先し、フォルダには中でいちばん目立つ記号を付ける", () => {

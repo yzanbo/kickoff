@@ -12,7 +12,7 @@ import { ChangesDetail } from "./ChangesDetail";
 import { ChangesPane } from "./ChangesPane";
 import { FilesPane } from "./FilesPane";
 import { SearchView } from "./SearchView";
-import { changeKinds, parentFolders } from "./treeModel";
+import { changeKinds, openableFolders, parentFolders } from "./treeModel";
 import { changeSelection, editedChange, selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 import { GitInitNotice } from "@/features/project/GitInitNotice";
@@ -109,6 +109,8 @@ export function EditorTab({
         if (!next.delete(path)) next.add(path);
         return next;
       }),
+    // すべて開く（無視しているフォルダは開かない）
+    openAll: () => setOpenFolders(new Set(openableFolders(files.tree ?? []))),
     closeAll: () => setOpenFolders(new Set()),
   };
 
