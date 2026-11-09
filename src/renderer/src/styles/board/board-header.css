@@ -70,23 +70,25 @@
   white-space: nowrap;
 }
 
-/* 幅が狭いときは、ボタンの文字を隠してアイコンだけにし、検索欄も狭くする */
-@container (max-width: 1120px) {
-  .board-header .btn-label {
-    display: none;
-  }
+/*
+ * 道具のまとまりが 2 段に入らないとき（BoardHeader が useWrapCompact で実際の段の数を測って .icon-only を付ける。決め打ちの幅では切り替えない）は、
+ * ボタンの文字を隠してアイコンだけにし、検索欄も狭くする。2 段までは文字のまま折り返す（利用者の依頼。前は見出しの幅 1120px 以下ですぐアイコンにしていた）
+ */
+.board-tools.icon-only .btn-label {
+  display: none;
+}
 
-  .board-header .btn-sm {
-    padding: 3px 7px;
-  }
+.board-tools.icon-only .btn-sm {
+  padding: 3px 7px;
+}
 
-  .chat-search.board-search {
-    width: 160px;
-  }
+.board-tools.icon-only .chat-search.board-search {
+  width: 160px;
 }
 
 @container (max-width: 680px) {
-  .chat-search.board-search {
+  /* アイコンだけのときの幅（.board-tools.icon-only）にも勝つよう、同じ強さで後ろに書く */
+  .board-header .board-tools .chat-search.board-search {
     width: 120px;
   }
 
@@ -104,6 +106,15 @@
   .board-header {
     flex-wrap: wrap;
     gap: 6px;
+  }
+
+  /* この幅では道具の箱をなくすので段の数を測れない（useWrapCompact は測らない）。いつもアイコンだけにする */
+  .board-header .btn-label {
+    display: none;
+  }
+
+  .board-header .btn-sm {
+    padding: 3px 7px;
   }
 
   .board-header .board-tools,
@@ -131,7 +142,7 @@
   }
 
   /* 検索欄は絞り込みの後ろで、残りの幅いっぱい（入らなければ 1 段を占める） */
-  .board-header .chat-search.board-search {
+  .board-header .board-tools .chat-search.board-search {
     order: 4;
     flex: 1 1 160px;
     width: auto;
