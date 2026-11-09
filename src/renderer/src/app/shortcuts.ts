@@ -7,7 +7,7 @@ import { CHAT_HEADER_ROW_HIDDEN } from "@/lib/storageKeys";
 interface Actions {
   toggleSidebar: () => void;
   openPalette: () => void;
-  openContentSearch: () => void;
+  openCodeSearch: () => void;
   newChat: () => void;
   openSettings: () => void;
   openActiveChats: () => void;
@@ -15,7 +15,7 @@ interface Actions {
 
 /**
  * アプリ全体のショートカット: ⌘B サイドバーの開閉 / ⌘K 検索・移動 / ⌘F チャットを名前で探す /
- * ⌘⇧F チャットの中の文言を全文検索 / ⌘N / ⌘T 今のプロジェクトで新しいチャット（プロジェクトが 1 つもなければ、チャットはプロジェクトの中で始めることを案内して新しいプロジェクトへ誘う。⌘T はブラウザの「新しいタブ」と同じ手の動き。チャットは右のパネルのタブで開く） /
+ * ⌘⇧F いまのプロジェクトの検索タブで、ファイルの中を探す欄にピントを置く（VS Code と同じ。利用者の依頼で、前はチャットの中の文言の全文検索。そちらはボードの検索欄の横のボタンと ⌘K の「チャット内の文言」から開く） / ⌘N / ⌘T 今のプロジェクトで新しいチャット（プロジェクトが 1 つもなければ、チャットはプロジェクトの中で始めることを案内して新しいプロジェクトへ誘う。⌘T はブラウザの「新しいタブ」と同じ手の動き。チャットは右のパネルのタブで開く） /
  * ⌘, 設定（Mac の環境設定と同じ）/ ⌘⇧A 作業中・回答待ち・未読のチャットの一覧（Chrome の「タブを検索」と同じキー）/
  * ⌘L チャット欄にピントを移す（ピントのあるパネルのチャット欄を優先）/
  * ⌥⌘T チャットの見出しの行の表示・非表示（Finder・Safari の「ツールバーを隠す」と同じキー。どのチャットでも共通）。
@@ -47,9 +47,9 @@ export function useAppShortcuts(actions: Actions) {
       e.preventDefault();
       actions.openPalette();
     } else if (e.key.toLowerCase() === "f" && e.shiftKey) {
-      // ⌘⇧F: チャットの中の文言を全文検索（開いているチャット・プロジェクトに絞り込める）
+      // ⌘⇧F: いまのプロジェクトの検索タブで、ファイルの中を探す欄にピントを置く
       e.preventDefault();
-      actions.openContentSearch();
+      actions.openCodeSearch();
     } else if (e.key === "f") {
       e.preventDefault();
       // ⌘F: チャットを名前で探す。ボードがあればその検索欄へ、なければ ⌘K の移動パネル（チャット名で探せる）。

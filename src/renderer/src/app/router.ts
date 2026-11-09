@@ -173,6 +173,11 @@ export function openProjectFile(projectId: number, file: FileTarget) {
   navigate({ name: "project", id: projectId, tab: "files", file });
 }
 
+/** プロジェクトの検索タブを開く（⌘⇧F） */
+export function openProjectSearch(projectId: number) {
+  navigate({ name: "project", id: projectId, tab: "search" });
+}
+
 /** メモのタブでそのメモを開く（path を省くとメモのタブへ移るだけ。開いているチャットは右のパネルに残る） */
 export function openMemo(projectId: number, path?: string) {
   navigate({ name: "project", id: projectId, tab: "memos", ...(path ? { memo: path } : {}) });

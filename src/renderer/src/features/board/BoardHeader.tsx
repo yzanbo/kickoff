@@ -98,12 +98,12 @@ export function BoardHeader({ query, onQuery, filters, organize, view, onView, f
   );
 }
 
-/** チャットを名前で絞り込む検索欄（⌘F でここへ。Esc で消す）。横のボタンで文言の全文検索（⌘⇧F）を開く */
+/** チャットを名前で絞り込む検索欄（⌘F でここへ。Esc で消す）。横のボタンで文言の全文検索を開く */
 function BoardSearch({ query, onChange }: { query: string; onChange: (query: string) => void }) {
   return (
     <SearchField className="board-search" value={query} onChange={onChange} placeholder="チャット名で検索（⌘F）" label="このボードのチャットを名前で検索">
       {/* チャットの中の文言を探すときは、全文検索のパネルへ */}
-      <IconButton icon={TextSearch} size={13} className="chat-search-content" label="チャットの中の文言を検索" keys="⌘⇧F" onClick={openContentSearch} />
+      <IconButton icon={TextSearch} size={13} className="chat-search-content" label="チャットの中の文言を検索" onClick={openContentSearch} />
     </SearchField>
   );
 }
