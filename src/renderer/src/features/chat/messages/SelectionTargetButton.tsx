@@ -1,9 +1,9 @@
-import { MessageSquarePlus } from "lucide-react";
+import { AddToChat } from "@/ui/icons";
 import type { AddTarget, ExtraControls, Picked } from "./SelectionAttach";
 
 /** 選んだ範囲の上の、足す先のボタン 1 つ（押すと onAdd に引用と選んだ範囲を渡して閉じる。アイコンは target.icon、なければ「チャットに追加」のもの） */
 export function SelectionTargetButton({ target, picked, controls }: { target: AddTarget; picked: Picked; controls: ExtraControls }) {
-  const Icon = target.icon ?? MessageSquarePlus;
+  const Icon = target.icon ?? AddToChat;
   return (
     <button
       type="button"

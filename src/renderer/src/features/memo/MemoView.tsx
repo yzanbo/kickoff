@@ -1,4 +1,4 @@
-import { CodeXml, Eye, FolderSearch, Paperclip, Save } from "lucide-react";
+import { CodeXml, Eye, FolderSearch, Save } from "lucide-react";
 import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
@@ -9,6 +9,7 @@ import { useSetting } from "@/hooks/useSetting";
 import { useMemoList } from "@/stores/memos";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
+import { AddToChat } from "@/ui/icons";
 import { alertDialog, reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
@@ -209,7 +210,7 @@ export function MemoView({
           ]}
         />
         {targets.main && doc.initial !== null && !unreadable && (
-          <IconButton icon={Paperclip} label={`${targets.main.name}に添付`} title="このメモを、開いたチャットの入力欄に添付します（送ると AI がメモを読み、頼めば続きも書けます）" onClick={() => targets.main?.add("", null)} />
+          <IconButton icon={AddToChat} label={`${targets.main.name}に添付`} title="このメモを、開いたチャットの入力欄に添付します（送ると AI がメモを読み、頼めば続きも書けます）" onClick={() => targets.main?.add("", null)} />
         )}
         {doc.initial !== null && !unreadable && (
           <MemoChatToggle open={chatOpen} quickHidden={quickHidden} onOpenChange={setChatOpen} onQuickHiddenChange={setQuickHidden} />
