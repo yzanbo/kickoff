@@ -9,7 +9,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { PathParts } from "@/ui/PathParts";
 import { FileIcon } from "./FileIcon";
-import { searchPattern, splitMatches } from "./searchMatch";
+import { searchPattern, splitMatches } from "@shared/search/searchMatch";
 import type { ProjectSearchController } from "./useProjectSearch";
 
 interface Props {
