@@ -5,7 +5,7 @@ import { SIDEBAR_BUCKET_COLORS, type SIDEBAR_LAYOUT } from "@/lib/storageKeys";
 import { CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
 import { CHAT_ORDERS, GROUPING_META, ORDER_META, useChatLayout } from "./chatGroupings";
 import { cx } from "@/lib/cx";
-import { useOverflowLevel } from "@/hooks/useOverflowCompact";
+import { useOverflowCompact } from "@/hooks/useOverflowCompact";
 import { HeadMenu, HeadToggle } from "./HeadMenu";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { IconButton } from "@/ui/IconButton";
@@ -55,10 +55,8 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
   const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
   const [compact, setCompact] = useCompactRows();
   const [compactProjects, setCompactProjects] = useCompactProjects();
-  // 横幅に入らないときの詰め方（入るかは実際の幅で決める。1 段ずつ）: 1 = 各行のボタンを 2 列に折り返して 2 段にする（文字のまま。行の名前は左）/
-  // 2 = 行の名前もボタンの上に置き、ボタンに横幅をすべて使わせる / 3 = それでも入らないときだけ、文字を隠していまの値のアイコンだけにする（1 行に戻す）。
-  // 利用者の依頼で、前は 1 行に入らなければすぐアイコンにしていた（既定の幅でもアイコンだった）
-  const fit = useOverflowLevel<HTMLDivElement>(3, null);
+  // ボタンの文字が横幅に入らないときだけ、文字を隠していまの値のアイコンだけにする（入るかは実際の幅で決める。タグの行が出入りしたら測り直す）
+  const fit = useOverflowCompact<HTMLDivElement>(null);
   /** アーカイブを出すかのボタン（プロジェクト・チャットで共通。押すたびに 表示 ⇄ 隠す） */
   const archiveToggle = (id: string, target: string, shown: boolean, set: (show: boolean) => void, note = "") => (
     <HeadToggle
@@ -72,7 +70,7 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
     />
   );
   return (
-    <div ref={fit.ref} className={cx("project-list-head", (fit.level === 1 || fit.level === 2) && "wrap-rows", fit.level === 2 && "label-top", fit.level === 3 && "icon-only")}>
+    <div ref={fit.ref} className={cx("project-list-head", fit.compact && "icon-only")}>
       <div className="project-list-row">
         <span className="project-list-row-label">プロジェクト</span>
         <HeadMenu

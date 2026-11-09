@@ -127,54 +127,7 @@
 }
 
 /*
- * 1 行では文字が横幅に入らないとき（useOverflowLevel の段 1。wrap-rows）は、各行のボタンを 2 列に折り返して 2 段にする（文字のまま。行の名前は 2 段の左に置く）。
- * ボタン 1 つの幅が倍近くになるので、「プロジェクト別」など長い値も入る。行と行の間は少し空けて、どのボタンがどの行のものかを分ける
- */
-.project-list-head.wrap-rows {
-  grid-template-columns: max-content repeat(2, minmax(max-content, 1fr));
-}
-
-.project-list-head.wrap-rows .project-list-row {
-  row-gap: 3px;
-}
-
-.project-list-head.wrap-rows .project-list-row + .project-list-row {
-  margin-top: 4px;
-}
-
-.project-list-head.wrap-rows .project-list-row:not(.tag-filter-row) > .project-list-row-label {
-  grid-row: span 2;
-  align-self: start;
-  min-height: 32px;
-}
-
-/* 1 行のときの列の置き場所（要対応の行の出し方を 2 列分など）を外し、2 列に順に並べる */
-.project-list-head.wrap-rows .project-list-row > .head-chip {
-  grid-column: auto;
-}
-
-/*
- * 行の名前を左に置いても 2 段に入らないとき（段 2。label-top）は、行の名前をボタンの上の 1 行にし、ボタンに横幅をすべて使わせる（タグの行も同じ）
- */
-.project-list-head.label-top {
-  grid-template-columns: repeat(2, minmax(max-content, 1fr));
-}
-
-.project-list-head.label-top .project-list-row > .project-list-row-label,
-.project-list-head.label-top .project-list-row:not(.tag-filter-row) > .project-list-row-label {
-  grid-row: auto;
-  grid-column: 1 / -1;
-  width: auto;
-  min-height: 0;
-  padding-top: 0;
-}
-
-.project-list-head.label-top .tag-filter-pills {
-  grid-column: 1 / -1;
-}
-
-/*
- * 2 段でも横幅に入らないとき（useOverflowLevel の段 3。icon-only）は、文字を隠してアイコン（いまの値）だけにし、
+ * 文字では横幅に入らないとき（useOverflowCompact が実際にあふれるかで決めて icon-only を付ける）は、文字を隠してアイコン（いまの値）だけにし、
  * アイコンをボタンの真ん中に置く。以前は見出しの幅 259px 以下で切り替えていて、ボタンの名前や数が変わると、切り替わる前に右端が見切れた
  */
 .project-list-head.icon-only .head-chip {
