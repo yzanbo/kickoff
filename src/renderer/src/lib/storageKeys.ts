@@ -40,7 +40,12 @@ interface StoredView {
   state: Readonly<Record<string, unknown>>;
 }
 
-const NO_VIEWS: readonly StoredView[] = [];
+/** 初めからあるビュー 1 つ（並び順は初めの最後に動いた順、アーカイブは初めの未アーカイブ） */
+const defaultView = (id: string, name: string, view: "board" | "list", columns: string, lanes: string): StoredView => ({
+  id,
+  name,
+  state: { view, lanes, columns, sort: { key: "active", dir: "desc" }, archive: "active" },
+});
 
 /**
  * プロジェクトのボードに初めからある保存したビュー（利用者の依頼。並びは グループボード・状態ボード・グループリスト）。
@@ -48,9 +53,15 @@ const NO_VIEWS: readonly StoredView[] = [];
  * 表示項目は入れない（当てても表示項目を変えない）。名前を変えた・消したビューは覚えた一覧のほうを使う（すべて消しても [] で残し、ここに戻さない）
  */
 const DEFAULT_PROJECT_VIEWS: readonly StoredView[] = [
-  { id: "default-group-board", name: "グループボード", state: { view: "board", lanes: "none", columns: "groups", sort: { key: "active", dir: "desc" }, archive: "active" } },
-  { id: "default-state-board", name: "状態ボード", state: { view: "board", lanes: "none", columns: "state", sort: { key: "active", dir: "desc" }, archive: "active" } },
-  { id: "default-group-list", name: "グループリスト", state: { view: "list", lanes: "group", columns: "state", sort: { key: "active", dir: "desc" }, archive: "active" } },
+  defaultView("default-group-board", "グループボード", "board", "groups", "none"),
+  defaultView("default-state-board", "状態ボード", "board", "state", "none"),
+  defaultView("default-group-list", "グループリスト", "list", "state", "group"),
+];
+
+/** 全プロジェクトのボードに初めからある保存したビュー（利用者の依頼。並びは プロジェクト別グループボード・プロジェクト別リスト。決まりはプロジェクトのボードと同じ） */
+const DEFAULT_ALL_PROJECTS_VIEWS: readonly StoredView[] = [
+  defaultView("default-project-group-board", "プロジェクト別グループボード", "board", "groups", "project"),
+  defaultView("default-project-list", "プロジェクト別リスト", "list", "none", "project"),
 ];
 
 function parseStoredViews(value: unknown): readonly StoredView[] | undefined {
@@ -158,8 +169,8 @@ export const BOARD_CARD_HIDDEN = defineSetting("kickoff:board-card-hidden", list
  * 保存したボードのビュー（表示・段・列の分け方・並び順・アーカイブの絞り込みの組に名前を付けたもの。features/board/savedViews.ts）。
  * 全プロジェクトのボードとプロジェクトのボード（すべてのプロジェクトで共通）で別に覚える
  */
-export const ALL_PROJECTS_SAVED_VIEWS = defineSetting("kickoff:board-views-all", json(parseStoredViews, NO_VIEWS, (v) => v.length === 0));
-// プロジェクトのボードは、覚えていなければ初めの 3 つ（DEFAULT_PROJECT_VIEWS）。すべて消したら [] を覚え、初めの 3 つには戻さない
+// 覚えていなければ初めのビュー（DEFAULT_ALL_PROJECTS_VIEWS・DEFAULT_PROJECT_VIEWS）。すべて消したら [] を覚え、初めのビューには戻さない
+export const ALL_PROJECTS_SAVED_VIEWS = defineSetting("kickoff:board-views-all", json(parseStoredViews, DEFAULT_ALL_PROJECTS_VIEWS));
 export const PROJECT_SAVED_VIEWS = defineSetting("kickoff:board-views", json(parseStoredViews, DEFAULT_PROJECT_VIEWS));
 /** 全プロジェクトのボードをフィード（チャットごとの最新の返答を新しい順に並べる）で見るか（ボード・リストの BOARD_VIEW とは別に覚える） */
 export const ALL_PROJECTS_FEED = defineSetting("kickoff:board-feed-all", flag());

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PROJECT_SAVED_VIEWS } from "@/lib/storageKeys";
+import { ALL_PROJECTS_SAVED_VIEWS, PROJECT_SAVED_VIEWS } from "@/lib/storageKeys";
 import { activeView, addView, isNoopViewMove, moveView, parseSavedViews, parseViewState, projectViewState, removeView, renameView, replaceViewState, sameViewState, viewNameTaken, type BoardViewState, type SavedView } from "./savedViews";
 
 const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, archive: "all" };
@@ -118,4 +118,16 @@ test("プロジェクトのボードの初めのビュー: グループボード
   );
   // すべて消したら [] を覚え、初めのビューに戻さない
   assert.equal(PROJECT_SAVED_VIEWS.encode([]), "[]");
+});
+
+test("全プロジェクトのボードの初めのビュー: プロジェクト別グループボード・プロジェクト別リストの順で、どれも読める", () => {
+  const views = parseSavedViews(ALL_PROJECTS_SAVED_VIEWS.initial);
+  assert.deepEqual(
+    views.map((v) => [v.name, v.state.view, v.state.columns, v.state.lanes]),
+    [
+      ["プロジェクト別グループボード", "board", "groups", "project"],
+      ["プロジェクト別リスト", "list", "none", "project"],
+    ],
+  );
+  assert.equal(ALL_PROJECTS_SAVED_VIEWS.encode([]), "[]");
 });
