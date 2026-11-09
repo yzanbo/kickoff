@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from "react";
-import { startDragGhost } from "@/ui/dragGhost";
-import { isNoopViewMove, type SavedView } from "./savedViews";
+import { isNoopViewMove } from "@/lib/namedViews";
+import { startDragGhost } from "./dragGhost";
 
 /** ドラッグで運ぶビューの種類（ほかのドラッグと見分ける） */
 const VIEW_DRAG_TYPE = "application/x-kickoff-saved-view";
@@ -8,10 +8,11 @@ const VIEW_DRAG_TYPE = "application/x-kickoff-saved-view";
 type Side = "before" | "after";
 
 /**
- * 保存したビューのタブの並べ替え（ドラッグ）。タブの左右の半分で前に入るか後ろに入るかを決め、落としても並びが変わらない所（自分の上・
- * すぐ前のタブの後ろ半分・すぐ後ろのタブの前半分）には線を出さず落とせない。並びは onMove で覚える（useSavedViews の move）
+ * ビューのタブの並べ替え（ドラッグ。ボードの保存したビュー・サイドバーのビュー）。タブの左右の半分で前に入るか後ろに入るかを決め、落としても並びが変わらない所（自分の上・
+ * すぐ前のタブの後ろ半分・すぐ後ろのタブの前半分）には線を出さず落とせない。並びは onMove で覚える。
+ * 線と薄さのクラスは `${classPrefix}-drop-before` / `-drop-after`・`${classPrefix}-dragging`
  */
-export function useSavedViewDrag(views: readonly SavedView[], onMove: (id: string, target: string, side: Side) => void) {
+export function useViewTabDrag(views: readonly { id: string; name: string; state: unknown }[], onMove: (id: string, target: string, side: Side) => void, classPrefix: string) {
   const [dragging, setDragging] = useState<string | null>(null);
   const [drop, setDrop] = useState<{ id: string; side: Side } | null>(null);
   const end = () => {
@@ -56,7 +57,7 @@ export function useSavedViewDrag(views: readonly SavedView[], onMove: (id: strin
       },
       onDragEnd: end,
     }),
-    /** 落とす先のタブには前・後ろの線、動かしているタブは薄く（CSS の board-view-drop-before / -after・board-view-dragging） */
-    tabClass: (id: string) => (drop?.id === id ? `board-view-drop-${drop.side}` : dragging === id ? "board-view-dragging" : undefined),
+    /** 落とす先のタブには前・後ろの線、動かしているタブは薄く（CSS の <classPrefix>-drop-before / -after・<classPrefix>-dragging） */
+    tabClass: (id: string) => (drop?.id === id ? `${classPrefix}-drop-${drop.side}` : dragging === id ? `${classPrefix}-dragging` : undefined),
   };
 }

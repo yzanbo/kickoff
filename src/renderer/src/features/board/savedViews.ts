@@ -1,3 +1,4 @@
+import type { NamedView } from "@/lib/namedViews";
 import { hiddenCardFields, sameHiddenCardFields, type CardField } from "./cardFields";
 import { parseChatSort, sameChatSort, type ChatSort } from "./chatSort";
 
@@ -25,11 +26,8 @@ export type BoardViewState = {
   cardHidden?: CardField[];
 };
 
-export interface SavedView {
-  id: string;
-  name: string;
-  state: BoardViewState;
-}
+/** 保存したビュー 1 つ（名前を付けた見え方。一覧の操作は lib/namedViews.ts） */
+export type SavedView = NamedView<BoardViewState>;
 
 const oneOf = <T extends string>(list: readonly T[], value: unknown): value is T => list.includes(value as T);
 
@@ -86,34 +84,3 @@ export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
 
 /** いまの見え方に合う、いちばん前のビュー */
 export const activeView = (views: readonly SavedView[], current: BoardViewState) => views.find((v) => sameViewState(v.state, current));
-
-/** 名前を比べる形（前後の空白・全角半角・大文字小文字の違いは同じ名前とみなす） */
-const nameKey = (name: string) => name.trim().normalize("NFKC").toLowerCase();
-
-/**
- * 同じ一覧にもう同じ名前のビューがあるか（利用者の依頼で同じ名前は付けられない）。名前を変えるときは、そのビュー自身は除く（exceptId）
- */
-export const viewNameTaken = (views: readonly SavedView[], name: string, exceptId?: string): boolean =>
-  views.some((v) => v.id !== exceptId && nameKey(v.name) === nameKey(name));
-
-export const addView = (views: readonly SavedView[], view: SavedView): SavedView[] => [...views, view];
-
-export const renameView = (views: readonly SavedView[], id: string, name: string): SavedView[] => views.map((v) => (v.id === id ? { ...v, name } : v));
-
-export const replaceViewState = (views: readonly SavedView[], id: string, state: BoardViewState): SavedView[] =>
-  views.map((v) => (v.id === id ? { ...v, state } : v));
-
-export const removeView = (views: readonly SavedView[], id: string): SavedView[] => views.filter((v) => v.id !== id);
-
-/** ビュー moved を target の前（before）・後ろ（after）へ動かした一覧（どちらかがなければそのまま） */
-export function moveView(views: readonly SavedView[], moved: string, target: string, side: "before" | "after"): SavedView[] {
-  const item = views.find((v) => v.id === moved);
-  if (!item || moved === target || !views.some((v) => v.id === target)) return [...views];
-  const rest = views.filter((v) => v.id !== moved);
-  rest.splice(rest.findIndex((v) => v.id === target) + (side === "after" ? 1 : 0), 0, item);
-  return rest;
-}
-
-/** 動かしても並びが変わらないか（自分の上・すぐ前の後ろ・すぐ後ろの前。落とす先にせず線を出さない） */
-export const isNoopViewMove = (views: readonly SavedView[], moved: string, target: string, side: "before" | "after"): boolean =>
-  moveView(views, moved, target, side).every((v, i) => v.id === views[i]?.id);

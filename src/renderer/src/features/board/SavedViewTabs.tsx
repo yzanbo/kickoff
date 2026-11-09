@@ -5,8 +5,9 @@ import { confirmDialog } from "@/ui/dialogs";
 import { InlineName } from "@/ui/InlineName";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { sameViewState, viewNameTaken, type SavedView } from "./savedViews";
-import { useSavedViewDrag } from "./useSavedViewDrag";
+import { viewNameTaken } from "@/lib/namedViews";
+import { useViewTabDrag } from "@/ui/useViewTabDrag";
+import { sameViewState, type SavedView } from "./savedViews";
 import { useRememberedView } from "./useRememberedView";
 import { useSavedViews } from "./useSavedViews";
 
@@ -21,7 +22,7 @@ export function SavedViewTabs({ projectId }: { projectId?: number }) {
   // ボードを開いたときに、そのボードで最後に見ていた見え方（初めは最初のビュー）に戻す
   useRememberedView(saved, projectId === undefined);
   const menu = useContextMenu<SavedView>();
-  const drag = useSavedViewDrag(saved.views, saved.move);
+  const drag = useViewTabDrag(saved.views, saved.move, "board-view");
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string>();
   /** 同じ一覧の同じ名前は付けられない（利用者の依頼。名前を変えるときはそのビュー自身を除く） */
