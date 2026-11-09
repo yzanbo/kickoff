@@ -1,9 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { publishServerEvent } from "@/api/events";
 import { useServerConnection } from "@/api/useServerConnection";
 import { useApprovals } from "@/stores/approvals";
 import { useProjects } from "@/stores/projects";
 import { HoverTip } from "@/ui/HoverTip";
+import { runPageFind } from "@/ui/pageFind";
+import { usePageFind } from "@/ui/usePageFind";
+import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { isKey } from "@/lib/keys";
+import { openEditorFind } from "@/features/editor/editorFind";
 import { MemoProgress } from "@/features/memo/MemoProgress";
 import { DialogHost } from "@/ui/dialogs";
 import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
@@ -25,7 +30,8 @@ const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", 
 /**
  * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ）の画面。メインのウィンドウの App は使わない
  * （サイドバー・通知・ショートカット・下の帯などを 2 つ動かさないため）。サーバーとのつながり・回答待ち・プロジェクトの色・会話の文字の大きさだけを持つ。
- * 表示の設定は localStorage をメインのウィンドウと共有し、書き換えは storage の知らせでそろう（lib/storage）
+ * 表示の設定は localStorage をメインのウィンドウと共有し、書き換えは storage の知らせでそろう（lib/storage）。
+ * ⌘F は、ウィンドウの中を探す（ファイル・メモはエディタの検索、ほかは右上の検索の欄。子チャットはチャットの中の検索が先に受け取る）
  */
 export function PopoutApp({ route }: { route: PopoutRoute }) {
   const hashRoute = useHashRoute();
@@ -35,10 +41,17 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   const approvals = useApprovals();
   const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
   useApplyChatFontSize();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const find = usePageFind(rootRef, { native: openEditorFind, placeholder: "このウィンドウを検索", className: "page-find" });
+  useWindowEvent("keydown", (e) => {
+    if (e.defaultPrevented || !(isKey(e, "f", { meta: true }) || isKey(e, "f", { ctrl: true }))) return;
+    if (runPageFind()) e.preventDefault();
+  });
   return (
     <RouteContext.Provider value={hashRoute}>
       <ChatStatesContext.Provider value={chatStates}>
-        <div className="popout">
+        <div ref={rootRef} className="popout">
+          {find}
           {route.kind !== "chat" && (
             // 上の細い帯（子チャットは自分の帯に同じボタンを置く）
             <div className="popout-bar">

@@ -1,12 +1,16 @@
+import { useRef } from "react";
 import type { GitFileChange } from "@shared/types";
+import { usePageFind } from "@/ui/usePageFind";
 import { DiffView } from "./DiffView";
+import { openEditorFind } from "./editorFind";
 import { FileView } from "./FileView";
 import type { ChangesSelection, ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 
 /**
  * ファイルタブの右側: エクスプローラー・検索の行から開いたファイルは中身（FileView。開いたらすぐ書け、変更は行の横の色の帯で見せる）、
- * 変更の一覧から選んだファイルは差分（DiffView）、差分の「編集」から開いたファイルは差分を見ながら編集する中身、それ以外は案内
+ * 変更の一覧から選んだファイルは差分（DiffView）、差分の「編集」から開いたファイルは差分を見ながら編集する中身、それ以外は案内。
+ * ⌘F は、開いているファイルの中を探す（編集の部品は Monaco の検索、差分・読むだけの表は右上の検索の欄。usePageFind）
  */
 export function ChangesDetail({
   view,
@@ -31,6 +35,9 @@ export function ChangesDetail({
   empty: boolean;
 }) {
   const { selected, setSelected } = selection;
+  const ref = useRef<HTMLDivElement>(null);
+  // ファイルを開いていない（案内だけの）ときは置かない（⌘F はボードの検索欄などへ）
+  const find = usePageFind(ref, { native: openEditorFind, placeholder: "このファイルを検索", className: "page-find", enabled: Boolean(selected || change) });
   // ファイルの中身の表示・編集に渡すもの
   const fileViewProps = (path: string) => ({
     projectId,
@@ -42,7 +49,8 @@ export function ChangesDetail({
     onDirtyChange: selection.setDirty,
   });
   return (
-    <div className="changes-diff">
+    <div ref={ref} className="changes-diff">
+      {find}
       {selected && (selected.line !== undefined || selected.edit) ? (
         <FileView
           key={`${selected.path}:${selected.line ?? ""}:${selected.edit ? "edit" : ""}`}

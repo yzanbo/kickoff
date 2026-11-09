@@ -12,6 +12,8 @@ import { IconButton } from "@/ui/IconButton";
 import { AddToChat } from "@/ui/icons";
 import { alertDialog, reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
+import { usePageFind } from "@/ui/usePageFind";
+import { openEditorFind } from "@/features/editor/editorFind";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { HtmlMemoPage, type HtmlMemoPageHandle } from "./HtmlMemoPage";
 import type { MemoEditorHandle } from "./MemoEditor";
@@ -109,6 +111,9 @@ export function MemoView({
   // チャットの欄の幅（境目のつまみで変える。本文を 280px は残す。ドラッグ中は本文と会話を並べる要素の --memo-chat-w を書き換える）。
   // 欄は閉じても描いたまま置き（書きかけの文も残る）、開け閉めは幅（下に置くときは高さ）をスライドさせる
   const body = useRef<HTMLDivElement>(null);
+  // ⌘F（ピントが本文の外にあるとき）: 本文のエディタの検索の欄を開く（HTML のページで見ているときは、ページの外の文字を探す欄）
+  const viewRef = useRef<HTMLDivElement>(null);
+  const find = usePageFind(viewRef, { native: openEditorFind, placeholder: "このメモを検索", className: "page-find" });
   const chatPane = useRef<HTMLDivElement>(null);
   const chatWidth = useDragSize({ setting: MEMO_CHAT_WIDTH, edge: "start", min: 280, keep: 280, write: "--memo-chat-w", pane: chatPane, target: () => body.current });
   // 本文の下に置くとき（見出しで選ぶ）は、高さを本文と欄を合わせた高さの % で覚える（つまみは上下）
@@ -156,7 +161,8 @@ export function MemoView({
   const unsaved = doc.state === "dirty" || doc.state === "conflict" || doc.state === "error" || titleChanged;
 
   return (
-    <div className="memo-view">
+    <div ref={viewRef} className="memo-view">
+      {find}
       <header className="memo-head">
         <div className="memo-head-title">
           <input

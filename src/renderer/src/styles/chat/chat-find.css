@@ -140,3 +140,20 @@
   background-color: var(--warn);
 }
 
+
+/* ページの ⌘F（usePageFind）: ファイル・検索・変更の右側・履歴の詳細・メモ・別ウィンドウの右上（見出しの行のすぐ下）に浮かせる。見た目は右の欄の検索の欄と同じ */
+.changes-diff,
+.history-detail,
+.memo-view,
+.popout {
+  position: relative;
+}
+
+.pane-find.page-find {
+  top: 40px;
+}
+
+/* 別ウィンドウでは、上の細い帯と中の画面の帯（件数・表示のしかた・取り直しなど）の下に出す（帯のボタンを隠さない） */
+.popout > .pane-find.page-find {
+  top: 82px;
+}

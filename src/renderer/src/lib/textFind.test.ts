@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { findInTexts, stepMatch } from "./paneFind";
+import { findInTexts, stepMatch } from "./textFind";
 
 test("findInTexts: ノードごとに、大文字・小文字を区別せず前から順に合う位置を返す（重ならない）", () => {
   assert.deepEqual(findInTexts(["Abc abc", "x", "ABCabc"], "abc"), [
