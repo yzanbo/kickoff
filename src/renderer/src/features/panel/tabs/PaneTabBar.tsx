@@ -121,8 +121,9 @@ export function PaneTabBar({
         show={showField}
         groupOf={groupOf}
         className={cx(
-          insertAt === i && "split-insert-before",
-          insertAt === display.length && i === display.length - 1 && "split-insert-after",
+          // 印: index 番目の前。まとまりの境目で前のまとまりの最後に入れるとき（after）・いちばん後ろは、前のタブの後ろに付ける
+          insertAt && !insertAt.after && insertAt.index === i && "split-insert-before",
+          insertAt && (insertAt.after || insertAt.index === display.length) && i === insertAt.index - 1 && "split-insert-after",
           drag.dragging === t.key && "split-dragging",
         )}
         extra={{ ...drag.tabProps(t.key), onContextMenu: (e) => onMenu(t.key, e) }}
@@ -141,7 +142,7 @@ export function PaneTabBar({
         pane.id,
         (i) => paneIndexOf(i, display, pane.tabs),
         // 一覧のペインの中でのチャットのタブの並べ替えは、サイドバーの手動の並びを変える
-        (key, i) => pane.tabs.includes(key) && strip.reorderChatTab(key, i),
+        (key, i, after) => pane.tabs.includes(key) && strip.reorderChatTab(key, i, after),
       )}
     >
       {controls}
