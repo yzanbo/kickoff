@@ -1,12 +1,22 @@
 import type { DragEvent } from "react";
 
-/** ブラウザの既定のドラッグの絵を消すための、透明な 1 px の画像（初めて使うときに作る。読み込むだけのテストの Node には Image がないため） */
-let blank: HTMLImageElement | null = null;
+/** 透明な 1 px の GIF */
+const BLANK_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
+
+function loadBlank(): HTMLImageElement {
+  const image = new Image();
+  image.src = BLANK_SRC;
+  return image;
+}
+
+/**
+ * ブラウザの既定のドラッグの絵を消すための、透明な 1 px の画像。読み込んだ時点で作っておく（data: の画像でも読み込みは後から済むので、
+ * dragstart の中で初めて作ると読み込みが間に合わず、既定の絵（つかんだ物の濃い写し。OS が窓の上に描く）が出て、写しの下の線・枠を隠した）。
+ * 読み込むだけのテストの Node には Image がないので、そのときは初めて使うときに作る
+ */
+let blank: HTMLImageElement | null = typeof Image === "undefined" ? null : loadBlank();
 function blankImage(): HTMLImageElement {
-  if (!blank) {
-    blank = new Image();
-    blank.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
-  }
+  blank ??= loadBlank();
   return blank;
 }
 
