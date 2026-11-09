@@ -1,7 +1,10 @@
 import type { DragEvent } from "react";
 
-/** 透明な 1 px の GIF */
-const BLANK_SRC = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
+/**
+ * 透明な 4 × 4 px の PNG。1 px だと Retina（2 倍）の画面では 0.5 pt になり、OS に渡すときに 0 × 0 に切り捨てられて「絵なし」とみなされ、
+ * 既定の濃い絵（つかんだ物の写し）が出ていた（利用者の指摘。OS が窓の上に描くので画面の写真には写らない）。3 倍の画面でも 1 pt 以上になる大きさにする
+ */
+const BLANK_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAADElEQVR42mNgoBwAAABEAAHpHptRAAAAAElFTkSuQmCC";
 
 function loadBlank(): HTMLImageElement {
   const image = new Image();
