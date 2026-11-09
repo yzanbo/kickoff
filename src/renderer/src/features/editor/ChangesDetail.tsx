@@ -1,13 +1,12 @@
 import type { GitFileChange } from "@shared/types";
 import { DiffView } from "./DiffView";
 import { FileView } from "./FileView";
-import type { ChangeKinds } from "./treeModel";
 import type { ChangesSelection, ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 
 /**
- * ファイルタブの右側: 検索の行や「編集」から開いたファイルは中身（FileView）、
- * 変更のあるファイルは差分（DiffView）、エクスプローラーから選んだ変更のないファイルは中身、それ以外は案内
+ * ファイルタブの右側: エクスプローラー・検索の行から開いたファイルは中身（FileView。開いたらすぐ書け、変更は行の横の色の帯で見せる）、
+ * 変更の一覧から選んだファイルは差分（DiffView）、差分の「編集」から開いたファイルは差分を見ながら編集する中身、それ以外は案内
  */
 export function ChangesDetail({
   view,
@@ -17,7 +16,6 @@ export function ChangesDetail({
   selection,
   change,
   edited,
-  kinds,
   empty,
 }: {
   view: ChangesView;
@@ -29,7 +27,6 @@ export function ChangesDetail({
   change?: { file: GitFileChange; staged: boolean };
   /** 差分の「編集」から開いたファイルの差分（editedChange。編集しながら元の中身を左に並べる） */
   edited?: { file: GitFileChange; staged: boolean };
-  kinds: ChangeKinds;
   /** コミットしていない変更がないか（「変更」の案内の文に使う） */
   empty: boolean;
 }) {
@@ -39,6 +36,7 @@ export function ChangesDetail({
     projectId,
     repoPath,
     path,
+    gitStatus: git.status,
     version: git.version,
     onSaved: () => void git.refresh(),
     onDirtyChange: selection.setDirty,
@@ -50,8 +48,6 @@ export function ChangesDetail({
           key={`${selected.path}:${selected.line ?? ""}:${selected.edit ? "edit" : ""}`}
           {...fileViewProps(selected.path)}
           line={selected.line}
-          changed={kinds.files.has(selected.path)}
-          initialEditing={selected.edit}
           diffBase={edited}
         />
       ) : change ? (
@@ -66,7 +62,7 @@ export function ChangesDetail({
         <FileView key={selected.path} {...fileViewProps(selected.path)} />
       ) : (
         <p className="muted small changes-hint">
-          {view === "changes" && empty ? "コミットしていない変更はありません。" : "ファイルを選ぶと、変更があれば差分、なければ中身を表示します。"}
+          {view === "changes" && empty ? "コミットしていない変更はありません。" : "ファイルを選ぶと中身を表示します（変更の一覧から選ぶと差分）。"}
         </p>
       )}
     </div>

@@ -9,6 +9,7 @@ import { useMainChat } from "@/features/chat/pane/mainChatContext";
 import { knownChat } from "@/stores/chats";
 import { chatTargetName } from "@/features/chat/chatTitle";
 import { SelectionMemoButton } from "@/features/memo/SelectionMemoButton";
+import { focusedCodeSelection } from "@/features/editor/codeSelection";
 import { selectionWithin } from "./quotable";
 import { quoteCode, quoteComment } from "./quoteComment";
 import { SelectionTargetButton } from "./SelectionTargetButton";
@@ -68,10 +69,16 @@ function pickedInQuotable(root: Element | null): Picked | undefined {
 
 /**
  * 選んでいる範囲が、root の中の 1 つのファイルのコードの行（右の欄・別ウィンドウの「変更」の差分・「ファイル」の中身。`[data-quote-path]` の中の
- * `.diff-code[data-no]`）にあれば、その行と位置（パスと行番号付きでコードを引用する）。差分は、変更後の行を選んでいれば変更後の行だけ、なければ変更前の行を使う
+ * `.diff-code[data-no]`。ファイルの中身を編集の部品で開いていれば、その部品で選んだ行）にあれば、その行と位置（パスと行番号付きでコードを引用する）。差分は、変更後の行を選んでいれば変更後の行だけ、なければ変更前の行を使う
  * （左右に並べた表では、行ごと選ばれて両側が入るため）。ファイルの中身の行には側がない
  */
 export function pickedInCode(root: Element | null): Picked | undefined {
+  // 編集の部品（Monaco）で選んでいれば、その行（ページの選択にならないので、部品が置いた読み方で読む）
+  const editing = root ? focusedCodeSelection(root) : undefined;
+  if (editing) {
+    const { from, to, code, rect } = editing.selection;
+    return { rect, quote: quoteCode({ path: editing.section.dataset.quotePath ?? "", from, to, side: null, code, comment: "" }), code: { text: code, lines: { from, to } } };
+  }
   const at = currentRange();
   const section = at?.element?.closest<HTMLElement>("[data-quote-path]");
   if (!at || !root || !section || !root.contains(section)) return undefined;

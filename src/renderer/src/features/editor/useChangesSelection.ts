@@ -4,7 +4,7 @@ import { confirmDialog } from "@/ui/dialogs";
 
 /**
  * 選んでいるファイル。変更の一覧から選んだときは、ステージ済み・未ステージのどちらか（同じファイルが両方にあることもある）。
- * エクスプローラーから選んだときは staged を持たない（変更があれば差分、なければ中身を出す）。
+ * エクスプローラーから選んだときは staged を持たない（変更があっても中身を出し、変更は行の横の色の帯で見せる）。
  * 検索の結果から選んだときは line を持つ（変更があってもいまの中身を出し、その行を目立たせる）。
  * edit は、差分の「編集」から来たとき（いまの中身を開いてすぐ編集する。staged はどちらの差分から来たか。編集しながらその差分を出す）
  */
@@ -51,23 +51,28 @@ export interface ChangeGroups {
   unstaged: GitFileChange[];
 }
 
+/** そのファイルの差分（staged がなければ、未ステージ → ステージ済みの順に探す） */
+function findChange(path: string, staged: boolean | undefined, groups: ChangeGroups): { file: GitFileChange; staged: boolean } | undefined {
+  const find = (list: GitFileChange[]) => list.find((f) => f.path === path);
+  const unstaged = staged !== true ? find(groups.unstaged) : undefined;
+  if (unstaged) return { file: unstaged, staged: false };
+  const found = staged !== false ? find(groups.staged) : undefined;
+  return found && { file: found, staged: true };
+}
+
 /**
- * 選んだファイルの差分（エクスプローラーから選んだときは、未ステージ → ステージ済みの順に探す）。
- * 検索の行や「編集」から開いたときは、差分ではなく中身を出すので undefined
+ * 選んだファイルの差分（変更の一覧から選んだときだけ）。エクスプローラー・検索の行・「編集」から開いたときは、差分ではなく中身を出すので undefined
+ * （VS Code と同じく、エクスプローラーからは開いたらすぐ書ける中身を開き、変更は行の横の色の帯で見せる）
  */
 export function selectedChange(selected: Selection | undefined, groups: ChangeGroups): { file: GitFileChange; staged: boolean } | undefined {
-  if (!selected || selected.line !== undefined || selected.edit) return undefined;
-  const find = (list: GitFileChange[], path: string) => list.find((f) => f.path === path);
-  const unstaged = selected.staged !== true ? find(groups.unstaged, selected.path) : undefined;
-  if (unstaged) return { file: unstaged, staged: false };
-  const staged = selected.staged !== false ? find(groups.staged, selected.path) : undefined;
-  return staged && { file: staged, staged: true };
+  if (!selected || selected.staged === undefined || selected.line !== undefined || selected.edit) return undefined;
+  return findChange(selected.path, selected.staged, groups);
 }
 
 /** 差分の「編集」から開いたファイルの差分（編集しながら、元の中身を左に並べる。来た方の差分がもうなければ、もう一方を探す） */
 export function editedChange(selected: Selection | undefined, groups: ChangeGroups): { file: GitFileChange; staged: boolean } | undefined {
   if (!selected?.edit) return undefined;
-  return selectedChange({ path: selected.path, staged: selected.staged }, groups) ?? selectedChange({ path: selected.path }, groups);
+  return findChange(selected.path, selected.staged, groups) ?? findChange(selected.path, undefined, groups);
 }
 
 /** 左の一覧の表示（ファイル・検索・変更。プロジェクトのタブの files / search / changes） */
