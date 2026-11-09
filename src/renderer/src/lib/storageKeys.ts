@@ -64,6 +64,12 @@ const DEFAULT_ALL_PROJECTS_VIEWS: readonly StoredView[] = [
   defaultView("default-project-list", "プロジェクト別リスト", "list", "none", "project"),
 ];
 
+/** 形を確かめずにオブジェクトとして読む（中身は読む側で確かめる） */
+function parseLooseObject(value: unknown): Readonly<Record<string, unknown>> | null | undefined {
+  if (value === null) return null;
+  return typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
+}
+
 function parseStoredViews(value: unknown): readonly StoredView[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return value.filter(
@@ -103,6 +109,8 @@ export const SIDEBAR_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:sidebar-sho
 /** プロジェクトのカードを 1 行で出すか（名前だけにして、チャット数の行を隠す） */
 export const SIDEBAR_PROJECT_COMPACT = defineSetting("kickoff:sidebar-project-compact", flag());
 /** プロジェクトごとに最後に見ていた画面（URL のハッシュ。横スライドで戻ってきたときに開く。アプリを閉じるまで） */
+/** 最後に見ていた画面（URL のハッシュ）。起動したとき・ウィンドウを作り直したときに開く（app/router.ts の restoreLastRoute。利用者の依頼） */
+export const LAST_ROUTE = defineSetting("kickoff:last-route", text(), { ids: true });
 export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project", record(isString), { ids: true, session: true });
 /** プロジェクトのタグでの絞り込み（選んだタグ。"" はタグのないプロジェクト。空なら絞り込まない。サイドバー・全プロジェクトの画面・⌘⇧A で共通） */
 export const PROJECT_TAG_FILTER = defineSetting("kickoff:project-tag-filter", list());
@@ -172,6 +180,13 @@ export const BOARD_CARD_HIDDEN = defineSetting("kickoff:board-card-hidden", list
 // 覚えていなければ初めのビュー（DEFAULT_ALL_PROJECTS_VIEWS・DEFAULT_PROJECT_VIEWS）。すべて消したら [] を覚え、初めのビューには戻さない
 export const ALL_PROJECTS_SAVED_VIEWS = defineSetting("kickoff:board-views-all", json(parseStoredViews, DEFAULT_ALL_PROJECTS_VIEWS));
 export const PROJECT_SAVED_VIEWS = defineSetting("kickoff:board-views", json(parseStoredViews, DEFAULT_PROJECT_VIEWS));
+/**
+ * ボードごとの最後の見え方（features/board/savedViews.ts の BoardViewState。読む側で確かめる）。表示・並び順などの設定はすべてのボードで共通なので、
+ * ボードを移る（全プロジェクト ⇄ プロジェクト）たびに、そのボードで最後に見ていた見え方に戻す（覚えていなければ最初のビュー。利用者の依頼）。
+ * プロジェクトのボードはすべてのプロジェクトで共通
+ */
+export const ALL_PROJECTS_LAST_VIEW = defineSetting("kickoff:board-last-view-all", json(parseLooseObject, null, (v) => v === null));
+export const PROJECT_LAST_VIEW = defineSetting("kickoff:board-last-view", json(parseLooseObject, null, (v) => v === null));
 /** 全プロジェクトのボードをフィード（チャットごとの最新の返答を新しい順に並べる）で見るか（ボード・リストの BOARD_VIEW とは別に覚える） */
 export const ALL_PROJECTS_FEED = defineSetting("kickoff:board-feed-all", flag());
 /** プロジェクトのボードの段の分け方（group = グループ / worktree = 作業場所 / project = プロジェクト） */

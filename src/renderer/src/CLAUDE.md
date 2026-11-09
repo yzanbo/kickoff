@@ -29,7 +29,7 @@
 - 店: チャットの一覧 `stores/chats.ts`（`useChats({ projectId?, archived?, enabled? })`。全プロジェクトで 1 つで、アーカイブ済みは頼まれたときだけ読む。`useChatsValue`・`useChatsByProject`・部品の外では `currentChats`）、`useProjects()`（`projects` / `projectsById` / `projectName(id)` / `loaded` / もうないとわかったか `missing(id)`。`projects.find((p) => p.id === …)?.name` を書かない）、`useGroups` / `useGroupsOf` / `useGroup`（1 つのグループ。名前と色）、`useWorktrees` / `useWorktreesOf`、`useApprovals`、`useAppSettings`（`settingsStore`）、`usageStore`、`useProviders` / `useGitHubStatus` / `useModels`、`useVoiceStatus`、プロジェクトのメモの一覧 `useMemoList`（`stores/memos.ts`）、定型文 `useAllSnippets` / `useProjectSnippets`（`stores/snippets.ts`）、起動したときの送信待ちの確かめ `useQueueResumes`（`stores/queueResumes.ts`）。領域だけのデータは、その領域で店を作ってよい（`/` `@` の候補・外で開くアプリの一覧など）。
 - 操作の応答で届いた値は `set` / `update` で入れ、知らせを待たずに画面をそろえる（作ったプロジェクトは `addProject`、作ったチャットは `addChat`、ワークツリーの一覧は `worktreesStore.set`）。
 - チャットの状態（作業中・回答待ちなど）は `features/chat/chatState.ts` の `chatStateOf(chat, pending)` で決める。回答待ちの引き当ては App が `indexApprovals` で 1 回作り、`useChatStates()`（`approvals` / `pending` / `stateOf(chat)` / `pendingCount(chatId)`）で配る（部品で `api.approvals()` を呼ばない）。
-- いまのルートは `useRoute()`（App が `useHashRoute()` で 1 回購読して `RouteContext` で配る）。
+- いまのルートは `useRoute()`（App が `useHashRoute()` で 1 回購読して `RouteContext` で配る）。`useHashRoute` は見ている画面を `LAST_ROUTE` に覚え（開くファイル・メモ・強調する発言のような一度きりの指定は外す `lastingRoute`）、起動したとき・ウィンドウを作り直したときは `main.tsx` が App を描く前に `restoreLastRoute` で、URL に画面の指定がなければ前回の画面を開く（利用者の依頼。前は起動するといつも全プロジェクトだった）。
 
 ## 表示の設定の保存（`lib/storage.ts`・`lib/storageKeys.ts`）
 

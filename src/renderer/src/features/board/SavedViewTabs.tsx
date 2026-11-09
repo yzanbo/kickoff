@@ -7,6 +7,7 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { sameViewState, viewNameTaken, type SavedView } from "./savedViews";
 import { useSavedViewDrag } from "./useSavedViewDrag";
+import { useRememberedView } from "./useRememberedView";
 import { useSavedViews } from "./useSavedViews";
 
 /**
@@ -17,6 +18,8 @@ import { useSavedViews } from "./useSavedViews";
  */
 export function SavedViewTabs({ projectId }: { projectId?: number }) {
   const saved = useSavedViews(projectId);
+  // ボードを開いたときに、そのボードで最後に見ていた見え方（初めは最初のビュー）に戻す
+  useRememberedView(saved, projectId === undefined);
   const menu = useContextMenu<SavedView>();
   const drag = useSavedViewDrag(saved.views, saved.move);
   const [adding, setAdding] = useState(false);
