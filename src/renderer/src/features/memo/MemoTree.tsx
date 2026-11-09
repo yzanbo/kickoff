@@ -1,5 +1,6 @@
 import type { CSSProperties, MouseEvent } from "react";
 import { memoExtensionOf } from "@shared/memo/kinds";
+import { memoDatePrefixLength } from "@shared/memo/names";
 import { cx } from "@/lib/cx";
 import { isRenameKey } from "@/lib/keys";
 import { Chevron } from "@/ui/Chevron";
@@ -62,6 +63,7 @@ export function MemoTree(props: Props) {
         // 落とす先のフォルダは、行と中身をまとめて囲む（どのフォルダに入るかを、中のメモに重ねているときも分かるように）
         const isDropTarget = node.dir && dropTarget === node.path;
         const editing = renaming?.path === node.path;
+        const renamingName = editing ? (renaming.initial ?? (node.dir ? node.name : memoTitle(node.path))) : "";
         const style = { "--depth": depth } as CSSProperties;
         const head = (
           <>
@@ -85,7 +87,9 @@ export function MemoTree(props: Props) {
                 {head}
                 <InlineName
                   key={renaming.round}
-                  initial={renaming.initial ?? (node.dir ? node.name : memoTitle(node.path))}
+                  initial={renamingName}
+                  // 頭の日付（「2026-11-09 」）は残し、後ろだけを選ぶ（すぐ書けば日付付きの名前になる）
+                  selectFrom={node.dir ? 0 : memoDatePrefixLength(renamingName)}
                   suffix={node.dir ? undefined : (memoExtensionOf(node.path) ?? undefined)}
                   maxLength={200}
                   className="memo-rename"

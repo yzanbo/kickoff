@@ -63,3 +63,17 @@ export function chatMemoName(chatTitle: string, names: Iterable<string>): string
   }
   return `${prefix}${max + 1}`;
 }
+
+/** 日付の頭（「2026-11-09 」）の形 */
+const DATE_PREFIX = /^\d{4}-\d{2}-\d{2} /;
+
+/** その日の日付を頭に付けた名前（「2026-11-09 無題のメモ」。日付は手元の時計の日。新しいメモの仮の名前） */
+export function datedMemoName(base: string, date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${base}`;
+}
+
+/** 名前の頭の日付（「2026-11-09 」）の長さ（なければ 0）。名前を変える欄で、日付を残して後ろだけを選ぶため */
+export function memoDatePrefixLength(name: string): number {
+  return DATE_PREFIX.exec(name)?.[0].length ?? 0;
+}

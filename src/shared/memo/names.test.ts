@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { chatMemoName, defaultMemosFolderName, projectMemoFolder, safeMemoName, uniqueMemoName } from "./names";
+import { chatMemoName, datedMemoName, defaultMemosFolderName, memoDatePrefixLength, projectMemoFolder, safeMemoName, uniqueMemoName } from "./names";
 
 test("safeMemoName: ファイル名に使えない文字を置き換え、隠しファイルにしない", () => {
   assert.equal(safeMemoName("a/b:c\\d"), "a-b-c-d");
@@ -40,4 +40,17 @@ test("projectMemoFolder: 使える名前にし、ほかのプロジェクト（�
   assert.equal(projectMemoFolder("a/b", projects), "a-b");
   assert.equal(projectMemoFolder("app", projects), "app-2");
   assert.equal(projectMemoFolder("app", projects, 1), "app");
+});
+
+test("datedMemoName: 手元の日付を頭に付ける（月・日は 2 桁）", () => {
+  assert.equal(datedMemoName("無題のメモ", new Date(2026, 0, 5, 23, 59)), "2026-01-05 無題のメモ");
+  assert.equal(datedMemoName("無題のメモ", new Date(2026, 10, 9)), "2026-11-09 無題のメモ");
+});
+
+test("memoDatePrefixLength: 頭の日付と空白の長さ（なければ 0）", () => {
+  assert.equal(memoDatePrefixLength("2026-11-09 無題のメモ"), 11);
+  assert.equal(memoDatePrefixLength("2026-11-09 無題のメモ-2"), 11);
+  assert.equal(memoDatePrefixLength("無題のメモ"), 0);
+  assert.equal(memoDatePrefixLength("2026-11-09"), 0);
+  assert.equal(memoDatePrefixLength("2026-1-9 メモ"), 0);
 });
