@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { Chevron } from "@/ui/Chevron";
 
@@ -20,7 +20,7 @@ export function RefSection({ title, count, action, always = false, children }: {
   );
 }
 
-/** 左の一覧の 1 行（押すとそのコミットを表で選ぶ。actions はマウスを乗せたときに出すボタン） */
+/** 左の一覧の 1 行（押すとそのコミットを表で選ぶ。actions はマウスを乗せたときに出すボタン、onContextMenu は右クリックのメニュー） */
 export function RefItem({
   icon,
   name,
@@ -30,6 +30,7 @@ export function RefItem({
   onClick,
   actions,
   depth = 0,
+  onContextMenu,
 }: {
   icon: ReactNode;
   name: string;
@@ -39,10 +40,11 @@ export function RefItem({
   onClick: () => void;
   actions?: ReactNode;
   depth?: number;
+  onContextMenu?: (e: MouseEvent) => void;
 }) {
   return (
     <li className={actions ? "change-item" : undefined}>
-      <button className={cx("ref-item", active && "current")} style={{ paddingLeft: 22 + depth * 14 }} title={title ?? name} onClick={onClick}>
+      <button className={cx("ref-item", active && "current")} style={{ paddingLeft: 22 + depth * 14 }} title={title ?? name} onClick={onClick} onContextMenu={onContextMenu}>
         {icon}
         <span className="ref-name">{name}</span>
         {note && <span className="ref-note">{note}</span>}

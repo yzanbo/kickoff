@@ -1,12 +1,14 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
 import { commitStaged, discardPaths, fetchRemote, gitCommitDetail, gitCommitDiff, gitDiff, gitLog, gitOriginal, gitRefs, gitStatus, pullBranch, pushBranch, stagePaths, unstagePaths } from "../../git/index.js";
+import { mergePreview, resolveConflict, runBranchAction, runOperationAction } from "../../git/branches.js";
 import { createPullRequest, pullRequestFor } from "../../git/github.js";
+import type { GitBranchAction, GitBranchActionResult } from "@shared/types";
 import type { ServerDeps } from "../server.js";
 import { Invalid } from "../errors.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
-import { flag, repoPath } from "./schemas.js";
+import { branchName, flag, repoPath } from "./schemas.js";
 
 const diffQuerySchema = z.object({ path: repoPath, old: repoPath.optional(), staged: flag.default("0") });
 
@@ -15,6 +17,30 @@ async function gitAction(c: Context, dir: string, action: () => Promise<void>) {
   await action();
   return c.json(await gitStatus(dir));
 }
+
+/** ブランチ・タグの名前（手元・リモート・タグ・コミットの番号）。「-」で始まる名前はコアが断る */
+const refName = z.string().trim().min(1).max(255);
+
+/** ブランチ・タグの操作の本文（履歴の左の一覧・コミットの札の右クリック） */
+const branchActionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("checkout"), branch: refName }),
+  z.object({ action: z.literal("checkout_remote"), remote_branch: refName, name: branchName }),
+  z.object({ action: z.literal("checkout_detached"), ref: refName }),
+  z.object({ action: z.literal("fast_forward"), branch: refName }),
+  z.object({ action: z.literal("pull"), branch: refName }),
+  z.object({ action: z.literal("push"), branch: refName }),
+  z.object({ action: z.literal("push_pr"), branch: refName }),
+  z.object({ action: z.literal("merge"), branch: refName }),
+  z.object({ action: z.literal("rebase"), branch: refName }),
+  z.object({ action: z.literal("create_branch"), name: branchName, from: refName, checkout: z.boolean() }),
+  z.object({ action: z.literal("create_tag"), name: refName, at: refName, message: z.string().max(10_000).nullable(), push: z.boolean() }),
+  z.object({ action: z.literal("set_upstream"), branch: refName, upstream: refName.nullable() }),
+  z.object({ action: z.literal("rename_branch"), branch: refName, name: branchName }),
+  z.object({ action: z.literal("delete_branch"), branch: refName, force: z.boolean(), remote: z.boolean() }),
+  z.object({ action: z.literal("delete_remote_branch"), remote_branch: refName }),
+  z.object({ action: z.literal("push_tag"), name: refName }),
+  z.object({ action: z.literal("delete_tag"), name: refName, remote: z.boolean() }),
+]) satisfies z.ZodType<GitBranchAction>;
 
 /**
  * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・PR）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir。
@@ -78,6 +104,38 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
 
   // プル（早送りで最新にする）
   app.post("/api/projects/:id/git/pull", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => pullBranch(c.var.workdir)));
+
+  // ブランチ・タグの操作（チェックアウト・プッシュ・マージなど）。終わったら状態と、衝突して止まったら衝突したファイルを返す
+  app.post("/api/projects/:id/git/branch-action", withWorkdir, async (c) => {
+    const body = branchActionSchema.parse(await jsonBody(c));
+    const dir = c.var.workdir;
+    const { conflicts } = await runBranchAction(dir, body);
+    const result: GitBranchActionResult = { status: await gitStatus(dir), conflicts };
+    // プッシュして PR を作る（gh で、タイトルと本文はコミットから）
+    if (body.action === "push_pr") result.pr = await createPullRequest(dir, body.branch);
+    return c.json(result);
+  });
+
+  // マージ・リベースの前の見込み（取り込むものがあるか・早送りで済むか・衝突しそうなファイル）
+  app.get("/api/projects/:id/git/merge-preview", withWorkdir, async (c) => {
+    const branch = refName.parse(c.req.query("branch"));
+    return c.json(await mergePreview(c.var.workdir, branch));
+  });
+
+  // 途中で止まっているマージ・リベースなどを、取りやめる・続ける・飛ばす
+  app.post("/api/projects/:id/git/operation", withWorkdir, async (c) => {
+    const { action } = z.object({ action: z.enum(["abort", "continue", "skip"]) }).parse(await jsonBody(c));
+    const dir = c.var.workdir;
+    const { conflicts } = await runOperationAction(dir, action);
+    return c.json({ status: await gitStatus(dir), conflicts } satisfies GitBranchActionResult);
+  });
+
+  // 衝突したファイルを解く（こちらの版・取り込む側の版を使う・いまの中身で解決済みにする）
+  app.post("/api/projects/:id/git/resolve", withWorkdir, async (c) => {
+    const { path, how } = z.object({ path: repoPath, how: z.enum(["ours", "theirs", "mark"]) }).parse(await jsonBody(c));
+    const dir = c.var.workdir;
+    return gitAction(c, dir, () => resolveConflict(dir, path, how));
+  });
 
   // 作業場所のブランチの PR（GitHub。gh を使う）。なければ null
   app.get("/api/projects/:id/git/pr", withWorkdir, async (c) => {

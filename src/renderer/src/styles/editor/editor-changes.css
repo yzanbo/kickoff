@@ -63,6 +63,63 @@
   background: color-mix(in srgb, var(--warn) 10%, transparent);
 }
 
+/* マージ・リベースの途中の帯（変更タブのコミットの欄の上。衝突したファイルごとの解き方と、取りやめる・スキップ・続ける） */
+.operation-banner {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 6px 8px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  border-radius: var(--radius);
+  font-size: 12px;
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
+
+.operation-banner-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.operation-banner-note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.operation-conflicts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 狭い一覧でもはみ出さないよう、パスを 1 行目、解き方のボタンを次の行に折り返す */
+.operation-conflicts li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.operation-conflict-path {
+  flex: 1 0 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 /* 「ステージされている変更」「変更」の見出しの行（開閉・操作のボタン・数） */
 .change-group-row {
   display: flex;

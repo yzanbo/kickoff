@@ -8,6 +8,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { ChangeGroup, OPEN_FOLD, type ChangeFold, type GitAction } from "./ChangeGroup";
 import { CommitBox, type CommitBusy } from "./CommitBox";
+import { OperationBanner } from "./OperationBanner";
 import { buildTree, folderPaths } from "./treeModel";
 import type { ChangeGroups, Selection } from "./useChangesSelection";
 import type { FileRename } from "./useFileActions";
@@ -16,7 +17,7 @@ import type { GitStatusController } from "./useGitStatus";
 /**
  * ファイルタブの左の「変更」（ソース管理）: 見出しにブランチと進み・遅れ、一覧 / ツリーの切り替え、取り直し、すべて開く / すべて閉じる
  * （まとまりとフォルダをまとめて開閉する。開いているまとまりが 1 つでもあれば「すべて閉じる」）。
- * 下にコミットの欄と「ステージされている変更」「変更」。操作の実行中と失敗は action（親が持ち、表示を切り替えても残る）
+ * マージ・リベースの途中なら、コミットの欄の上に取りやめる・続けるの帯（OperationBanner）。下にコミットの欄と「ステージされている変更」「変更」。操作の実行中と失敗は action（親が持ち、表示を切り替えても残る）
  */
 export function ChangesPane({
   status,
@@ -80,6 +81,7 @@ export function ChangesPane({
         <IconButton icon={anyOpen ? ChevronsDownUp : ChevronsUpDown} label={anyOpen ? "すべて閉じる" : "すべて開く"} disabled={empty} onClick={toggleAll} />
       </header>
       <ErrorText message={git.error ?? action.error} />
+      <OperationBanner status={status} git={git} action={action} />
       <CommitBox status={status} git={git} action={action} />
       {empty ? (
         <p className="muted small changes-empty">変更はありません。</p>

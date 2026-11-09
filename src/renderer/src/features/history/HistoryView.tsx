@@ -1,17 +1,30 @@
 import { Archive, ArrowDown, ArrowUp, Check, Cloud, ExternalLink, FolderOpen, GitBranch, History, Plus, Tag, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { SearchField } from "@/ui/SearchField";
 import { RefItem, RefSection } from "./RefList";
 import type { GitLogController } from "./useGitLog";
+import type { RefTarget } from "./refTarget";
 import { useWorktreeActions } from "@/features/worktree/useWorktreeActions";
 
 /**
  * 履歴の左の一覧（Fork と同じ: すべてのコミット・ブランチ・リモート・タグ・stash）。名前で絞り込め、
- * 押すとそのコミットを表で選ぶ
+ * 押すとそのコミットを表で選ぶ。ブランチ・リモートのブランチ・タグの右クリックで、そのメニュー（onRefMenu）。busy は実行中のブランチの操作
  */
-export function HistorySidebar({ projectId, log, onPick }: { projectId: number; log: GitLogController; onPick: (hash: string) => void }) {
+export function HistorySidebar({
+  projectId,
+  log,
+  busy,
+  onPick,
+  onRefMenu,
+}: {
+  projectId: number;
+  log: GitLogController;
+  busy: string | null;
+  onPick: (hash: string) => void;
+  onRefMenu: (e: MouseEvent, target: RefTarget) => void;
+}) {
   const [filter, setFilter] = useState("");
   const worktreeActions = useWorktreeActions(projectId, log);
   const refs = log.refs;
@@ -27,6 +40,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
     <>
       <header className="changes-head">
         <span className="changes-branch">履歴</span>
+        {busy && <span className="muted small">{busy}中…</span>}
         <span className="spacer" />
         <RefreshButton label="履歴を取り直す" busy={false} onClick={log.refresh} />
       </header>
@@ -61,6 +75,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
               )
             }
             onClick={() => onPick(b.hash)}
+            onContextMenu={(e) => onRefMenu(e, { kind: "branch", name: b.name })}
           />
         ))}
       </RefSection>
@@ -78,6 +93,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
                   name={b.name.slice(r.name.length + 1)}
                   depth={1}
                   onClick={() => onPick(b.hash)}
+                  onContextMenu={(e) => onRefMenu(e, { kind: "remote", name: b.name })}
                 />
               ))}
             </ul>
@@ -111,7 +127,13 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
       <ErrorText message={worktreeActions.error} className="code-search-message" />
       <RefSection title="タグ" count={tags.length}>
         {tags.map((t) => (
-          <RefItem key={t.name} icon={<Tag size={14} aria-hidden />} name={t.name} onClick={() => onPick(t.hash)} />
+          <RefItem
+            key={t.name}
+            icon={<Tag size={14} aria-hidden />}
+            name={t.name}
+            onClick={() => onPick(t.hash)}
+            onContextMenu={(e) => onRefMenu(e, { kind: "tag", name: t.name })}
+          />
         ))}
       </RefSection>
       <RefSection title="stash" count={stashes.length}>

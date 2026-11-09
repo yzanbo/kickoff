@@ -47,6 +47,7 @@ test("ファイルは未ステージ・競合を優先し、フォルダには�
       { path: "src/lib/new.ts", kind: "U" },
     ],
     conflicts: [{ path: "docs/x.md", kind: "!" }],
+    operation: null,
   });
   assert.equal(files.get("src/a.ts"), "M");
   assert.equal(files.get("src/lib/new.ts"), "U");
