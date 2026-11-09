@@ -1,5 +1,5 @@
 import { Minus, Plus, Undo2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { GitFileChange } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
@@ -17,6 +17,14 @@ import type { FileRename } from "./useFileActions";
 
 export type GitAction = "stage" | "unstage" | "discard";
 
+/** まとまりの開閉（open）と、木の表示で閉じたフォルダ（closed。初めは全部開いておく）。見出しの「すべて開く / すべて閉じる」のため、親（ChangesPane）が持つ */
+export interface ChangeFold {
+  open: boolean;
+  closed: ReadonlySet<string>;
+}
+
+export const OPEN_FOLD: ChangeFold = { open: true, closed: new Set() };
+
 interface Props {
   title: string;
   files: GitFileChange[];
@@ -30,6 +38,8 @@ interface Props {
   onAction: (action: GitAction, paths: string[]) => void;
   /** ファイルの名前の変更（行にピントがあるときの Enter・右クリック。消したファイルは変えない） */
   rename?: FileRename;
+  fold: ChangeFold;
+  onFoldChange: (next: ChangeFold) => void;
 }
 
 /** 元に戻す前に確かめる（取り消せないので） */
@@ -47,10 +57,8 @@ async function confirmDiscard(paths: string[]): Promise<boolean> {
  * 「ステージされている変更」「変更」のまとまり（見出しで開閉。数をバッジで出す）。
  * VS Code と同じく、マウスを乗せると操作のボタンを出す（変更: 元に戻す・ステージ / ステージ済み: ステージを取り消す）
  */
-export function ChangeGroup({ title, files, staged, tree, selected, onSelect, onAction, rename }: Props) {
-  const [open, setOpen] = useState(true);
-  // 木の表示で閉じたフォルダ（初めは全部開いておく）
-  const [closed, setClosed] = useState<Set<string>>(() => new Set());
+export function ChangeGroup({ title, files, staged, tree, selected, onSelect, onAction, rename, fold, onFoldChange }: Props) {
+  const { open, closed } = fold;
   const nodes = useMemo(() => (tree ? buildTree({ files: files.map((f) => f.path), ignored: [] }) : []), [tree, files]);
   const kinds = useMemo(() => kindMaps(files), [files]);
   const openFolders = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
@@ -75,7 +83,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
   return (
     <section className="change-group">
       <div className="change-group-row">
-        <button className="change-group-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <button className="change-group-head" aria-expanded={open} onClick={() => onFoldChange({ ...fold, open: !open })}>
           <Chevron open={open} />
           <span className="change-group-title">{title}</span>
         </button>
@@ -89,13 +97,11 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
           <FileTree
             nodes={nodes}
             open={openFolders}
-            onToggle={(path) =>
-              setClosed((prev) => {
-                const next = new Set(prev);
-                if (!next.delete(path)) next.add(path);
-                return next;
-              })
-            }
+            onToggle={(path) => {
+              const next = new Set(closed);
+              if (!next.delete(path)) next.add(path);
+              onFoldChange({ ...fold, closed: next });
+            }}
             selected={selected?.staged === staged ? selected.path : undefined}
             onSelect={(path) => onSelect({ path, staged })}
             kinds={kinds}

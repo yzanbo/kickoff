@@ -1,14 +1,15 @@
-import { ChevronsDownUp } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, FilePlus, FolderPlus } from "lucide-react";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { FileTree } from "./FileTree";
-import type { ChangeKinds } from "./treeModel";
+import { parentPath, type ChangeKinds } from "./treeModel";
 import type { FileCreate, FileRename } from "./useFileActions";
 import type { GitStatusController } from "./useGitStatus";
 import type { useProjectFiles } from "./useProjectFiles";
 
 /**
- * ファイルタブの左の「すべてのファイル」（エクスプローラー）: 見出しにフォルダ名・取り直し・フォルダをすべて閉じる、
+ * ファイルタブの左の「すべてのファイル」（エクスプローラー）: 見出しにフォルダ名と、VS Code と同じ並びで新しいファイル・新しいフォルダー・取り直し・すべて開く / すべて閉じる
+ * （新しいファイル・フォルダーは、開いているファイルの入ったフォルダーに作る。開いていなければいちばん外側。開いているフォルダが 1 つでもあれば「すべて閉じる」）、
  * 下にフォルダの木（変更のあるファイルとフォルダだけ色を変える）。フォルダの開閉は親が持つ（表示を切り替えても残る）。
  * 木の下の空いている所の右クリックでも、新しいファイル・フォルダー（いちばん外側に作る）などのメニューを出す（行の右クリックは行のメニュー）
  */
@@ -27,7 +28,7 @@ export function FilesPane({
   git: GitStatusController;
   files: ReturnType<typeof useProjectFiles>;
   kinds: ChangeKinds;
-  folders: { open: Set<string>; toggle: (path: string) => void; closeAll: () => void };
+  folders: { open: Set<string>; toggle: (path: string) => void; openAll: () => void; closeAll: () => void };
   /** 選んでいるファイルのパス */
   selected?: string;
   onSelect: (path: string) => void;
@@ -36,6 +37,9 @@ export function FilesPane({
   /** 新しいファイル・フォルダの名前の欄 */
   create: FileCreate;
 }) {
+  // 見出しのボタンで作る場所（開いているファイルの入ったフォルダー。VS Code は選んでいる行のフォルダーに作る）
+  const createIn = selected ? parentPath(selected) : "";
+  const anyOpen = folders.open.size > 0;
   return (
     <>
       <header className="changes-head">
@@ -43,8 +47,15 @@ export function FilesPane({
           {rootName}
         </span>
         <span className="spacer" />
+        <IconButton icon={FilePlus} label="新しいファイル…" disabled={!files.tree} onClick={() => create.start(createIn, false)} />
+        <IconButton icon={FolderPlus} label="新しいフォルダー…" disabled={!files.tree} onClick={() => create.start(createIn, true)} />
         <RefreshButton label="ファイルの一覧を取り直す" busy={git.loading} onClick={() => void git.refresh()} />
-        <IconButton icon={ChevronsDownUp} label="フォルダをすべて閉じる" disabled={folders.open.size === 0} onClick={folders.closeAll} />
+        <IconButton
+          icon={anyOpen ? ChevronsDownUp : ChevronsUpDown}
+          label={anyOpen ? "フォルダをすべて閉じる" : "フォルダをすべて開く"}
+          disabled={!files.tree?.some((n) => n.dir && !n.ignored)}
+          onClick={anyOpen ? folders.closeAll : folders.openAll}
+        />
       </header>
       <div
         className="files-pane"

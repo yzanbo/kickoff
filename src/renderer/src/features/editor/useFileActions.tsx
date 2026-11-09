@@ -27,6 +27,8 @@ export interface FileRename {
 /** 新しいファイル・フォルダの名前の欄（FileTree が parent の中のいちばん上に出す） */
 export interface FileCreate {
   creating: { parent: string; dir: boolean } | null;
+  /** parent の中に名前の欄を出す（右クリックのメニュー・見出しのボタン） */
+  start: (parent: string, dir: boolean) => void;
   submit: (name: string) => void;
   cancel: () => void;
 }
@@ -142,7 +144,7 @@ export function useFileActions(
     cancel: () => setRenaming(null),
     openMenu: (e, path, row) => menu.open(e, path === null ? null : { path, dir: row?.dir ?? false, ignored: row?.ignored ?? false }),
   };
-  const create: FileCreate = { creating, submit: submitCreate, cancel: () => setCreating(null) };
+  const create: FileCreate = { creating, start: startCreate, submit: submitCreate, cancel: () => setCreating(null) };
 
   const value = menu.menu?.value ?? null;
   // 新しく作る場所（フォルダーの行ならその中、ファイルの行ならその入ったフォルダー、空いている所ならいちばん外側）。無視しているフォルダーの中には作らない（開けないため）
