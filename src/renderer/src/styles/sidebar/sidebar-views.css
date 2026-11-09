@@ -74,10 +74,6 @@
   visibility: hidden;
 }
 
-.sidebar-view-tab .sidebar-view-count {
-  margin-left: 0;
-}
-
 /* タブの並べ替え（ドラッグ。useViewTabDrag）: 落とす先のタブの前か後ろに縦の線、動かしているタブは薄く */
 .sidebar-view-tab.sidebar-view-drop-before,
 .sidebar-view-tab.sidebar-view-drop-after {
@@ -134,7 +130,7 @@
   color: var(--accent-fg);
 }
 
-/* 要対応の数（要対応の入ったビューのタブの中、なければ ⚙ の左） */
+/* 要対応の数（一覧に数が出ていないときだけ、⚙ の左） */
 .sidebar-view-count {
   flex: none;
 }
