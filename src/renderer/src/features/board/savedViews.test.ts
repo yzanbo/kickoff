@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { PROJECT_SAVED_VIEWS } from "@/lib/storageKeys";
 import { activeView, addView, isNoopViewMove, moveView, parseSavedViews, parseViewState, projectViewState, removeView, renameView, replaceViewState, sameViewState, viewNameTaken, type BoardViewState, type SavedView } from "./savedViews";
 
 const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, archive: "all" };
@@ -99,4 +100,22 @@ test("sameViewState: 表示項目は順によらず比べ、持たないビュ�
   assert.equal(sameViewState({ ...base, cardHidden: ["cost", "model"] }, { ...base, cardHidden: ["model", "cost"] }), true);
   assert.equal(sameViewState({ ...base, cardHidden: ["model"] }, { ...base, cardHidden: [] }), false);
   assert.equal(sameViewState(base, { ...base, cardHidden: ["model"] }), true);
+});
+
+test("プロジェクトのボードの初めのビュー: グループボード・状態ボード・グループリストの順で、どれも読める", () => {
+  const views = parseSavedViews(PROJECT_SAVED_VIEWS.initial);
+  assert.deepEqual(
+    views.map((v) => v.name),
+    ["グループボード", "状態ボード", "グループリスト"],
+  );
+  assert.deepEqual(
+    views.map((v) => [v.state.view, v.state.columns, v.state.lanes]),
+    [
+      ["board", "groups", "none"],
+      ["board", "state", "none"],
+      ["list", "state", "group"],
+    ],
+  );
+  // すべて消したら [] を覚え、初めのビューに戻さない
+  assert.equal(PROJECT_SAVED_VIEWS.encode([]), "[]");
 });
