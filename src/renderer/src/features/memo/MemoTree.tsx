@@ -55,7 +55,8 @@ export function MemoTree(props: Props) {
   const { rowProps } = useMemoRowDrag({ isOpen: (path) => open.has(path), onExpand, onDropInto, onDropTarget });
 
   return (
-    <ul className="file-tree" role={depth === 0 ? "tree" : "group"}>
+    // 入れ子の段は、親のフォルダの開閉の矢印の下に縦の線（エディタの木と同じ。--guide-depth は親のフォルダの段）
+    <ul className="file-tree" role={depth === 0 ? "tree" : "group"} style={depth > 0 ? ({ "--guide-depth": depth - 1 } as CSSProperties) : undefined}>
       {nodes.map((node) => {
         const isOpen = node.dir && open.has(node.path);
         // 落とす先のフォルダは、行と中身をまとめて囲む（どのフォルダに入るかを、中のメモに重ねているときも分かるように）
@@ -69,7 +70,15 @@ export function MemoTree(props: Props) {
           </>
         );
         return (
-          <li key={node.path} role="treeitem" aria-expanded={node.dir ? isOpen : undefined} aria-selected={selected === node.path} className={cx("tree-item", isDropTarget && "drop-target")}>
+          <li
+            key={node.path}
+            role="treeitem"
+            aria-expanded={node.dir ? isOpen : undefined}
+            aria-selected={selected === node.path}
+            className={cx("tree-item", isDropTarget && "drop-target")}
+            // 中身のある開いたフォルダ（縦の線を濃くするのはこの中身の段。エディタの木と同じ）
+            data-open-group={(isOpen && node.children.length > 0) || undefined}
+          >
             {editing ? (
               // 名前の所を入力欄に（Enter・ピントを外すと決め、Esc でやめる。メモの拡張子は欄の右に添えて、書き換えさせない）
               <div className={cx("tree-row", "renaming", selected === node.path && "selected")} style={style}>

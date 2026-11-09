@@ -38,7 +38,8 @@ export const siblingNameError = (siblings: readonly { name: string; path: string
 export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, actions, rename, canRename, create, parent = "", depth = 0 }: Props) {
   const creating = create?.creating;
   return (
-    <ul className="file-tree" role={depth === 0 ? "tree" : "group"}>
+    // 入れ子の段は、親のフォルダの開閉の矢印の下に縦の線（.file-tree[role="group"]::before。--guide-depth は親のフォルダの段）
+    <ul className="file-tree" role={depth === 0 ? "tree" : "group"} style={depth > 0 ? ({ "--guide-depth": depth - 1 } as CSSProperties) : undefined}>
       {creating && creating.parent === parent && (
         // 新しいファイル・フォルダの名前の欄（Enter・ピントを外すと作り、Esc でやめる。空なら作らない）
         <li role="treeitem" className="tree-item">
@@ -63,7 +64,15 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
         const expandable = node.dir && !node.ignored;
         const renamable = rename && (canRename?.(node) ?? true);
         return (
-          <li key={node.path} role="treeitem" aria-expanded={expandable ? isOpen : undefined} aria-selected={selected === node.path} className="tree-item">
+          <li
+            key={node.path}
+            role="treeitem"
+            aria-expanded={expandable ? isOpen : undefined}
+            aria-selected={selected === node.path}
+            className="tree-item"
+            // 中身のある開いたフォルダ（選んだ・ピントがあるとき、縦の線を濃くするのは親の段ではなくこの中身の段。VS Code と同じ）
+            data-open-group={(isOpen && node.children.length > 0) || undefined}
+          >
             {rename?.renaming === node.path ? (
               // 名前を変えている行（Enter・ピントを外すと決め、Esc でやめる）
               <div className="tree-row renaming" style={{ "--depth": depth } as CSSProperties}>

@@ -65,7 +65,7 @@ export function SearchResults({ search, replacer, collapsed, onToggleFile, selec
               <span className="change-count">{file.matches.length}</span>
             </div>
             {open && (
-              <ul className="change-files">
+              <ul className="change-files code-search-lines">
                 {file.matches.map((match) => {
                   const isSelected = selected?.path === file.path && selected.line === match.line;
                   // 行の頭の空白は省く（VS Code と同じ）

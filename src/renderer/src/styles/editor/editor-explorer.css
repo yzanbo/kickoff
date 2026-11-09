@@ -33,6 +33,59 @@
   flex-direction: column;
 }
 
+/*
+ * 木の縦の線（インデントガイド。利用者の依頼で VS Code の既定 renderIndentGuides: onHover と同じ）: 開いたフォルダの中身の段に、
+ * 親のフォルダの開閉の矢印の下から縦の線を引く。一覧にマウスを乗せている間だけ全部を薄く出し、選んでいる行・ピントのある行の親の段
+ * （その行が開いたフォルダなら、その中身の段）の線は、乗せていなくても濃く出す（VS Code の tree.indentGuidesStroke と、その 40% の
+ * tree.inactiveIndentGuidesStroke）。ファイル・変更（木）・履歴の詳細・メモの木（.file-tree）と、検索の結果のファイルの中の行（.code-search-lines）
+ */
+.file-tree[role="group"],
+.code-search-lines {
+  position: relative;
+}
+
+.file-tree[role="group"]::before,
+.code-search-lines::before {
+  --tree-guide: color-mix(in srgb, var(--extra-muted) 40%, transparent);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* 行の左の余白 6px ＋ 段ごとの 12px ＋ 開閉の矢印（幅 14px）の真ん中 */
+  left: calc(13px + var(--guide-depth, 0) * 12px);
+  /* 中の段の行（選んでいる行の地など）より上に重ね、外側の段の線も途切れさせない */
+  z-index: 1;
+  border-left: 1px solid var(--tree-guide);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s linear;
+}
+
+/* 検索の結果: ファイルの行の開閉の矢印（左の余白 8px ＋ 幅 12px）の真ん中 */
+.code-search-lines::before {
+  left: 14px;
+}
+
+:is(.changes-list, .file-tree[role="tree"]):hover :is(.file-tree[role="group"], .code-search-lines)::before {
+  opacity: 1;
+}
+
+/* 濃くするのは、選んでいる・ピントのある行の親の段。その行が中身のある開いたフォルダ（data-open-group）なら、その中身の段（メモの木は Collapse の中） */
+.file-tree[role="group"]:has(> .tree-item:not([data-open-group]) > .tree-row:is(.selected, :focus))::before,
+.tree-item[data-open-group]:has(> .tree-row:is(.selected, :focus)) > .file-tree::before,
+.tree-item[data-open-group]:has(> .tree-row:is(.selected, :focus)) > .collapse > .collapse-inner > .file-tree::before,
+.code-search-lines:has(> .code-search-row.selected)::before {
+  --tree-guide: var(--extra-muted);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .file-tree[role="group"]::before,
+  .code-search-lines::before {
+    transition: none;
+  }
+}
+
 .tree-row {
   display: flex;
   align-items: center;
