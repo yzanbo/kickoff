@@ -50,7 +50,8 @@
   pointer-events: none;
 }
 
-.panel-tab.active .panel-tab-label span:not(.status-slot, .panel-tab-group-name) {
+/* 札（グループ・作業場所）の中の文字は札の色のまま（札の中の span まで太字・文字の色にすると「| main」だけ白くなった） */
+.panel-tab.active .panel-tab-label span:not(.status-slot, .panel-tab-group-name, .panel-tab-group-name *) {
   font-weight: 600;
 }
 
@@ -193,7 +194,7 @@
 }
 
 /* 未読（終わった・失敗したのに見ていない）のチャットのタブは、名前を太字にする（サイドバーの行と同じ） */
-.panel-tab.unread .panel-tab-label span:not(.panel-tab-group-name) {
+.panel-tab.unread .panel-tab-label span:not(.panel-tab-group-name, .panel-tab-group-name *) {
   font-weight: 600;
   color: var(--text);
 }
