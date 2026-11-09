@@ -23,7 +23,9 @@
 
 /*
  * 右クリックメニュー（PopupMenu）。popover で top layer に出すので、ブラウザの既定（真ん中に置く・はみ出しのスクロール・文字の色）を消す。
- * 位置は画面が自分の大きさを測ってから left / top で与える（useFloating。測るまでは左上に置いて、幅を狭めずに測る）
+ * 位置は画面が自分の大きさを測ってから left / top で与える（useFloating。測るまでは左上に置いて、幅を狭めずに測る）。
+ * 項目が多くて画面の高さに入らないメニューは、画面の高さに収めて中でスクロールする
+ * （横に開く子のメニューは position: fixed なので、親のスクロールで切れない）
  */
 .menu {
   position: fixed;
@@ -33,18 +35,13 @@
   min-width: 200px;
   margin: 0;
   padding: 4px;
-  overflow: visible;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   color: inherit;
   background: var(--bg-elev);
   box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
-}
-
-/* プロジェクトの右クリックメニュー（項目が多いので、画面が低いときは中でスクロール） */
-.project-menu {
-  max-height: calc(100vh - 16px);
-  overflow-y: auto;
 }
 
 .menu button {
