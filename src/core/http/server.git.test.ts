@@ -359,3 +359,22 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal(store.chats.get(gone.id)?.worktree_path, null);
   assert.equal(store.chats.get(gone.id)?.branch, "feat/c");
 });
+
+test("ブランチ名の案: やりたいことの概要から AI に 1 回だけ聞き、使える形にそろえ、いまあるブランチと同じものを除く（概要がない・案がなければ 400）", async () => {
+  const { call, project, provider } = setup();
+  const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
+  gitIn(repo)("branch", "feature/login");
+  const url = `/api/projects/${project.id}/git/branch-suggestions`;
+  provider.askReply = "1. feature/login\n2. `Feature/Login Page`\n- fix/session-timeout";
+  const res = await call("POST", url, { summary: "ログイン画面を作る" });
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, { branches: ["feature/login-page", "fix/session-timeout"] });
+  // 軽いモデルに、概要といまあるブランチを見せて聞く
+  const asked = provider.asked.at(-1);
+  assert.equal(asked?.model, "haiku");
+  assert.match(asked?.prompt ?? "", /feature\/login/);
+  assert.match(asked?.prompt ?? "", /<やりたいこと>\nログイン画面を作る\n<\/やりたいこと>/);
+  assert.equal((await call("POST", url, { summary: "  " })).status, 400);
+  provider.askReply = "ログイン画面";
+  assert.equal((await call("POST", url, { summary: "ログイン画面を作る" })).status, 400);
+});

@@ -172,6 +172,16 @@ export interface GitRefs {
   stashes: { ref: string; hash: string; message: string }[];
 }
 
+/** 新しいワークツリーのブランチ名の案を頼む（やりたいことの概要） */
+export interface BranchSuggestBody {
+  summary: string;
+}
+
+/** ブランチ名の案（Git のブランチ名に使える形にそろえ、いまあるブランチと同じものは除いたもの） */
+export interface BranchSuggestions {
+  branches: string[];
+}
+
 /** git のワークツリー（同じリポジトリの別のブランチを、別のフォルダに取り出したもの） */
 export interface GitWorktree {
   /** 作業するフォルダ（プロジェクトのフォルダがリポジトリの中のフォルダなら、ワークツリーの中の同じ位置のフォルダ。チャットの worktree_path・?worktree= はこれ） */
