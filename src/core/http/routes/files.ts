@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { listProjectFiles, readProjectFile, searchProject, writeProjectFile } from "../../git/index.js";
+import { listProjectFiles, readProjectFile, renameProjectFile, searchProject, writeProjectFile } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
@@ -32,5 +32,11 @@ export function filesRoutes(app: Hono, { store }: ServerDeps) {
   app.put("/api/projects/:id/file", withWorkdir, async (c) => {
     const body = z.object({ path: repoPath, content: z.string().max(5_000_000), base_hash: z.string().max(100).nullable() }).parse(await jsonBody(c));
     return c.json(await writeProjectFile(c.var.workdir, body.path, body.content, body.base_hash));
+  });
+
+  // ファイル・フォルダの名前を変える（同じフォルダの中で。使えない名前・外は 400、ない 404、同じ名前がある 409）
+  app.post("/api/projects/:id/file/rename", withWorkdir, async (c) => {
+    const body = z.object({ path: repoPath, name: z.string().min(1).max(255) }).parse(await jsonBody(c));
+    return c.json(await renameProjectFile(c.var.workdir, body.path, body.name));
   });
 }

@@ -73,6 +73,28 @@
   white-space: nowrap;
 }
 
+/* 名前を変えている行（ファイルタブの木・変更の一覧。行の Enter・右クリックの「名前を変更」）。名前の欄を残りの幅いっぱいに */
+.tree-row.renaming,
+.change-file.renaming {
+  align-items: center;
+  cursor: default;
+}
+
+.tree-row.renaming:hover,
+.change-file.renaming:hover {
+  background: transparent;
+}
+
+.tree-row.renaming .inline-name-wrap,
+.change-file.renaming .inline-name-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.tree-rename {
+  width: 100%;
+}
+
 /* 「エディタ」タブの検索（VS Code と同じく、入力欄の右に大文字と小文字・単語単位・正規表現の切り替え） */
 .code-search-box {
   display: flex;

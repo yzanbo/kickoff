@@ -35,6 +35,11 @@ export function useChangesSelection() {
     setSelected,
     /** 編集中のファイルの保存していない変更の有無（FileView の onDirtyChange から） */
     setDirty: (next: boolean) => void (dirty.current = next),
+    /** 編集中のファイルに保存していない変更があるか（名前を変える前に確かめる） */
+    isDirty: () => dirty.current,
+    /** 名前を変えたファイル・フォルダ（from）を選んでいれば、新しいパス（to）に付け替える（確かめない） */
+    relocate: (from: string, to: string) =>
+      setSelectedState((prev) => (prev && (prev.path === from || prev.path.startsWith(`${from}/`)) ? { ...prev, path: to + prev.path.slice(from.length) } : prev)),
   };
 }
 

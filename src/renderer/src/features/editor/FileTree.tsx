@@ -1,10 +1,13 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { GitChangeKind } from "@shared/types";
 import { cx } from "@/lib/cx";
+import { isRenameKey } from "@/lib/keys";
 import { Chevron } from "@/ui/Chevron";
+import { InlineName } from "@/ui/InlineName";
 import { CHANGE_LABELS } from "./DiffView";
 import { FileIcon } from "./FileIcon";
 import type { TreeNode } from "./treeModel";
+import type { FileRename } from "./useFileRename";
 
 interface Props {
   nodes: TreeNode[];
@@ -17,11 +20,18 @@ interface Props {
   kinds: { files: Map<string, GitChangeKind>; folders: Map<string, GitChangeKind> };
   /** 行の右に出す操作（ステージ・元に戻すなど。マウスを乗せたときに出す） */
   actions?: (node: TreeNode) => ReactNode;
+  /** 名前の変更（行にピントがあるときの Enter・右クリック。canRename が false の行は変えない） */
+  rename?: FileRename;
+  canRename?: (node: TreeNode) => boolean;
   depth?: number;
 }
 
+/** 同じフォルダに同じ名前があるか（名前の欄で書くたびに確かめる） */
+export const siblingNameError = (siblings: readonly { name: string; path: string }[], self: string) => (name: string) =>
+  /[/\\]/.test(name) ? "「/」は名前に使えません" : siblings.some((n) => n.path !== self && n.name === name) ? `「${name}」はもうあります` : null;
+
 /** エクスプローラーのフォルダの木（開いているフォルダの中だけ描く） */
-export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, actions, depth = 0 }: Props) {
+export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, actions, rename, canRename, depth = 0 }: Props) {
   return (
     <ul className="file-tree" role={depth === 0 ? "tree" : "group"}>
       {nodes.map((node) => {
@@ -29,24 +39,66 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
         const kind = node.dir ? kinds.folders.get(node.path) : kinds.files.get(node.path);
         // 無視しているフォルダは中を開かない（node_modules などを全部たどらないように）
         const expandable = node.dir && !node.ignored;
+        const renamable = rename && (canRename?.(node) ?? true);
         return (
           <li key={node.path} role="treeitem" aria-expanded={expandable ? isOpen : undefined} aria-selected={selected === node.path} className="tree-item">
-            <button
-              className={cx("tree-row", node.ignored && "ignored", selected === node.path && "selected")}
-              style={{ "--depth": depth } as CSSProperties}
-              data-kind={kind}
-              title={kind ? `${node.path}（${CHANGE_LABELS[kind]}）` : node.path}
-              onClick={() => (node.dir ? expandable && onToggle(node.path) : onSelect(node.path))}
-            >
-              <span className="tree-chevron">{expandable && <Chevron open={isOpen} />}</span>
-              <FileIcon name={node.name} dir={node.dir} open={isOpen} />
-              <span className="tree-name">{node.name}</span>
-              {/* ファイルは記号、フォルダは点（中に変更がある） */}
-              {kind && <span className="tree-kind">{node.dir ? "•" : kind}</span>}
-            </button>
+            {rename?.renaming === node.path ? (
+              // 名前を変えている行（Enter・ピントを外すと決め、Esc でやめる）
+              <div className="tree-row renaming" style={{ "--depth": depth } as CSSProperties}>
+                <span className="tree-chevron">{expandable && <Chevron open={isOpen} />}</span>
+                <FileIcon name={node.name} dir={node.dir} open={isOpen} />
+                <InlineName
+                  className="tree-rename"
+                  maxLength={255}
+                  initial={node.name}
+                  validate={siblingNameError(nodes, node.path)}
+                  onSubmit={(name) => rename.submit(node.path, name)}
+                  onCancel={rename.cancel}
+                />
+              </div>
+            ) : (
+              <button
+                className={cx("tree-row", node.ignored && "ignored", selected === node.path && "selected")}
+                style={{ "--depth": depth } as CSSProperties}
+                data-kind={kind}
+                title={kind ? `${node.path}（${CHANGE_LABELS[kind]}）` : node.path}
+                onClick={() => (node.dir ? expandable && onToggle(node.path) : onSelect(node.path))}
+                // 行にピントがあるときの Enter で名前を変える（Finder・メモの木と同じ。開くのは押す・Space）
+                onKeyDown={(e) => {
+                  if (!renamable || !isRenameKey(e)) return;
+                  e.preventDefault();
+                  rename.start(node.path);
+                }}
+                onContextMenu={
+                  renamable
+                    ? (e) => {
+                        e.preventDefault();
+                        rename.openMenu(e, node.path);
+                      }
+                    : undefined
+                }
+              >
+                <span className="tree-chevron">{expandable && <Chevron open={isOpen} />}</span>
+                <FileIcon name={node.name} dir={node.dir} open={isOpen} />
+                <span className="tree-name">{node.name}</span>
+                {/* ファイルは記号、フォルダは点（中に変更がある） */}
+                {kind && <span className="tree-kind">{node.dir ? "•" : kind}</span>}
+              </button>
+            )}
             {actions && <span className="row-actions">{actions(node)}</span>}
             {isOpen && node.children.length > 0 && (
-              <FileTree nodes={node.children} open={open} onToggle={onToggle} selected={selected} onSelect={onSelect} kinds={kinds} actions={actions} depth={depth + 1} />
+              <FileTree
+                nodes={node.children}
+                open={open}
+                onToggle={onToggle}
+                selected={selected}
+                onSelect={onSelect}
+                kinds={kinds}
+                actions={actions}
+                rename={rename}
+                canRename={canRename}
+                depth={depth + 1}
+              />
             )}
           </li>
         );

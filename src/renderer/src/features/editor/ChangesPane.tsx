@@ -8,6 +8,7 @@ import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { ChangeGroup, type GitAction } from "./ChangeGroup";
 import { CommitBox, type CommitBusy } from "./CommitBox";
 import type { ChangeGroups, Selection } from "./useChangesSelection";
+import type { FileRename } from "./useFileRename";
 import type { GitStatusController } from "./useGitStatus";
 
 /**
@@ -22,6 +23,7 @@ export function ChangesPane({
   action,
   selected,
   onSelect,
+  rename,
 }: {
   status: Extract<GitStatus, { repo: true }>;
   git: GitStatusController;
@@ -30,6 +32,7 @@ export function ChangesPane({
   action: ActionState<CommitBusy>;
   selected?: Selection;
   onSelect: (next: Selection) => void;
+  rename: FileRename;
 }) {
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）
   const [changesTree, setChangesTree] = useSetting(CHANGES_TREE);
@@ -38,6 +41,7 @@ export function ChangesPane({
     tree: changesTree,
     selected,
     onSelect,
+    rename,
     onAction: (gitAction: GitAction, paths: string[]) => void action.guard(() => git.act(gitAction, paths)),
   };
   return (
