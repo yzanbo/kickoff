@@ -50,6 +50,11 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   // 一覧の選んでいる行 = ピントのあるペインで表示中のメモ
   const focusedTab = panel.tabs.find((t) => t.key === focusedPane(panel.layout).active);
   const selected = focusedTab?.kind === "memo" ? focusedTab.path : "";
+  // 一覧で選んでいる行（背景の色。利用者の依頼で、フォルダも選べ、一覧の空いている所を押すと外れる。VS Code のエクスプローラーと同じ）。
+  // null = 表示中のメモに合わせる、"" = 何も選んでいない、パス = 押したフォルダ。表示中のメモが変わったら、それに合わせ直す
+  const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => setPicked(null), [selected]);
+  const highlighted = picked ?? selected;
   const [remembered, setRemembered] = useSetting(memoSelected(projectId));
   const [openList, setOpenList] = useSetting(memoOpenFolders(projectId));
   const open = useMemo(() => new Set(openList), [openList]);
@@ -109,8 +114,10 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
     onCreated: (path, isDir) => {
       setQuery("");
       setListHidden(false);
-      if (isDir) openFolders(ancestorsOf(path));
-      else void select(path, true);
+      if (isDir) {
+        openFolders(ancestorsOf(path));
+        setPicked(path);
+      } else void select(path, true);
       startRename(path);
     },
     // 開いているメモ（とその入ったフォルダ）の名前を変える・動かす・ゴミ箱に入れる前も聞く（右の欄・別ウィンドウで開いているものも）
@@ -133,7 +140,13 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   const hasMemos = Boolean(entries?.some((e) => !e.dir));
 
   const toggle = (path: string) => setOpenList(open.has(path) ? openList.filter((p) => p !== path) : [...openList, path]);
-  const folderForNew = (node: TreeNode | null) => (node ? (node.dir ? node.path : parentOf(node.path)) : selected ? parentOf(selected) : "");
+  // 新しいメモ・フォルダを作る場所: 右クリックした行（フォルダならその中、メモならその入ったフォルダ）、なければ一覧で選んでいる行
+  // （フォルダならその中、メモならその入ったフォルダ。何も選んでいなければ、いちばん外側）
+  const folderForNew = (node: TreeNode | null) => {
+    if (node) return node.dir ? node.path : parentOf(node.path);
+    if (!highlighted) return "";
+    return entries?.find((e) => e.path === highlighted)?.dir ? highlighted : parentOf(highlighted);
+  };
   const reveal = (path: string) => window.kickoff?.externalApps.revealPath(path ? `${dir}/${path}` : dir);
 
   return (
@@ -150,7 +163,15 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
           className={cx("changes-list", "memo-list", dropTarget === "" && "drop-target")}
           style={{ width: width.size }}
           aria-label="メモ"
-          onContextMenu={(e) => menu.open(e, null)}
+          // 空いている所の右クリックも、選んでいる行を外す（メニューの「新しいメモ」などは、いちばん外側に作る）
+          onContextMenu={(e) => {
+            setPicked("");
+            menu.open(e, null);
+          }}
+          // 行・見出し・探す欄の外（一覧の下の空いている所など）を押したら、選んでいる行を外す（そのまま作ると、いちばん外側に作る）
+          onClick={(e) => {
+            if (!(e.target instanceof Element) || !e.target.closest(".tree-row, .memo-list-head, .memo-search, button, input")) setPicked("");
+          }}
           // 一覧の空いている所へ落とすと、いちばん上（直下）へ動かす
           {...memoListDropProps({ onDropInto: (path, folder) => void actions.moveInto(path, folder), onDropTarget: setDropTarget })}
         >
@@ -183,9 +204,12 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
                   <li key={e.path}>
                     <button
                       role="option"
-                      aria-selected={selected === e.path}
-                      className={cx("tree-row", selected === e.path && "selected")}
-                      onClick={(ev) => void select(e.path, ev.metaKey || ev.ctrlKey)}
+                      aria-selected={highlighted === e.path}
+                      className={cx("tree-row", highlighted === e.path && "selected")}
+                      onClick={(ev) => {
+                        setPicked(null);
+                        void select(e.path, ev.metaKey || ev.ctrlKey);
+                      }}
                     >
                       <FileIcon name={baseName(e.path)} dir={false} />
                       <span className="tree-name">{baseName(e.path)}</span>
@@ -201,9 +225,16 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
             <MemoTree
               nodes={tree}
               open={open}
-              onToggle={toggle}
-              selected={selected || undefined}
-              onSelect={(path, newTab) => void select(path, newTab)}
+              onToggle={(path) => {
+                // フォルダを押したら開閉して、そのフォルダを選ぶ
+                setPicked(path);
+                toggle(path);
+              }}
+              selected={highlighted || undefined}
+              onSelect={(path, newTab) => {
+                setPicked(null);
+                void select(path, newTab);
+              }}
               onMenu={(e, node) => menu.open(e, node)}
               onExpand={(path) => openFolders([path])}
               onDropInto={(path, folder) => void actions.moveInto(path, folder)}
