@@ -11,7 +11,7 @@ import { NO_GROUPS } from "@/stores/groups";
 
 /**
  * 縦並び: 見出しの行・すべてのプロジェクトをまたぐ検索欄・プロジェクトのカードの列・下の「新しいプロジェクト」。
- * archivedHead（しまったプロジェクトの見出し）・waitingEmpty（自分待ちがないとき）・selectionBar は ProjectNav が作る
+ * archivedHead（しまったプロジェクトの見出し）・waitingEmpty（要対応がないとき）・selectionBar は ProjectNav が作る
  */
 export function ProjectStack({
   nav,
@@ -29,7 +29,7 @@ export function ProjectStack({
   onNewProject: () => void;
   archivedHead: ReactNode;
   waitingEmpty: ReactNode;
-  /** 自分待ちを上にまとめる表示のとき、プロジェクトの一覧の上に置くまとまり */
+  /** 要対応を上にまとめる表示のとき、プロジェクトの一覧の上に置くまとまり */
   topInbox: ReactNode;
   selectionBar: ReactNode;
 }) {

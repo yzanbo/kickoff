@@ -72,14 +72,14 @@ export const WorkspacePage = memo(function WorkspacePage({
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
   // 選んでいる = いまの画面がこのプロジェクト（カンバン・チャットなど）
   const isActive = routeProjectId(route) === project.id;
-  // 行の絞り込み（検索・自分待ち・状態）と、固定・グループ・グループなし・アーカイブ済みへの分け方（bucketChats）
+  // 行の絞り込み（検索・要対応・状態）と、固定・グループ・グループなし・アーカイブ済みへの分け方（bucketChats）
   const list = useWorkspaceRows({ projectId: project.id, chats, groupCount: groups.length, searchAll, collapsed });
   const { showGroups, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, chatCount, visibleCount, pinned, ungrouped, mainRows, mainSections, archived, mainArchived } = list;
   const { stateOf, approvals } = useChatStates();
   // 子チャット（親ごと。サイドバーの一覧には並べず、親の行の中に開閉で出す。アーカイブ済みはサイドバーの表示の切り替えに従う）
   const [showArchivedChats] = useShowArchivedChats();
   const childChats = useChildChats({ archived: showArchivedChats });
-  // 自分待ちの「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す）。
+  // 要対応の「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す）。
   // 検索・状態で絞っている間は出さない
   const [waitingOn] = useSetting(SIDEBAR_WAITING_ONLY);
   const [waitingView] = useWaitingView();
@@ -135,7 +135,7 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
   const rename = useChatRename((m) => void alertDialog("名前を変更できませんでした", m));
-  // drafts: 手動の並びで、タブの列でこのチャットのすぐ後ろにある下書きも並べるか（同じチャットをもう一度出す「自分待ち」のまとまりでは出さない）
+  // drafts: 手動の並びで、タブの列でこのチャットのすぐ後ろにある下書きも並べるか（同じチャットをもう一度出す「要対応」のまとまりでは出さない）
   const renderChatRow = (chat: Chat, drafts: boolean) => (
     <Fragment key={chat.id}>
       <ChatRow
@@ -269,9 +269,9 @@ export const WorkspacePage = memo(function WorkspacePage({
             />
           </div>
         )}
-        {/* 自分待ちの「プロジェクト内の上に」: プロジェクトの中のいちばん上（下書き・固定より上） */}
+        {/* 要対応の「プロジェクト内の上に」: プロジェクトの中のいちばん上（下書き・固定より上） */}
         {waitingTop.length > 0 && (
-          <FoldSection look="row" icon={Inbox} label="自分待ち" count={waitingTop.length} open={waitingFold.open} onToggle={waitingFold.toggle}>
+          <FoldSection look="row" icon={Inbox} label="要対応" count={waitingTop.length} open={waitingFold.open} onToggle={waitingFold.toggle}>
             <ul className="chat-rows">{waitingTop.map((chat) => renderChatRow(chat, false))}</ul>
           </FoldSection>
         )}
@@ -294,7 +294,7 @@ export const WorkspacePage = memo(function WorkspacePage({
             {pinned && <ul className="chat-rows">{pinned.chats.map(renderRow)}</ul>}
           </FoldSection>
         )}
-        {/* 自分で作ったグループ（検索・自分待ちなどで絞り込んでいる間は、一致するチャットか下書きのあるものだけ）と、
+        {/* 自分で作ったグループ（検索・要対応などで絞り込んでいる間は、一致するチャットか下書きのあるものだけ）と、
             その間の覚えた位置（ungroupedAt）に「No Group」（見出しのドラッグで並べ替える） */}
         {groupsBeforeUngrouped.map(renderGroup)}
         {showGroups ? (

@@ -7,7 +7,7 @@ import type { WaitingOrder, WaitingScope, WaitingView } from "./waitingAxes";
 const _views: readonly WaitingView[] = SIDEBAR_WAITING_VIEW.choices;
 void _views;
 
-/** 名前とアイコン（見出しの「自分待ち」の行の 2 つの切り替え・上の行の「自分待ち」の右クリックで共通） */
+/** 名前とアイコン（見出しの「要対応」の行の出し方・並べ方） */
 interface AxisMeta {
   icon: LucideIcon;
   /** 切り替えに出す短い名前 */
@@ -16,9 +16,9 @@ interface AxisMeta {
   label: string;
 }
 
-/** 出し方（自分待ちだけ / 一覧の上に / プロジェクト内の上に） */
+/** 出し方（要対応だけ / 一覧の上に / プロジェクト内の上に） */
 export const WAITING_SCOPE_META: Record<WaitingScope, AxisMeta> = {
-  only: { icon: ListFilter, short: "自分待ちだけ", label: "自分待ちだけ（待っているチャットだけを並べる）" },
+  only: { icon: ListFilter, short: "要対応だけ", label: "要対応だけ（待っているチャットだけを並べる）" },
   top: { icon: ArrowUpToLine, short: "一覧の上に", label: "一覧の上にまとめる（待っているチャットを一覧全体のいちばん上に。その下はすべて）" },
   project: { icon: FolderUp, short: "プロジェクト内", label: "プロジェクト内の上にまとめる（待っているチャットを各プロジェクトの中のいちばん上に。その下はすべて）" },
 };
@@ -32,5 +32,5 @@ export const WAITING_ORDER_META: Record<WaitingOrder, AxisMeta> = {
   status: { icon: ListTree, short: "状態順", label: "状態順（プロジェクトをまたいで、回答待ち → エラー → 未読の見出しに分ける）" },
 };
 
-/** 自分待ちがオンのときの表示（どの部品から読んでもそろう） */
+/** 要対応がオンのときの表示（どの部品から読んでもそろう） */
 export const useWaitingView = () => useSetting(SIDEBAR_WAITING_VIEW);

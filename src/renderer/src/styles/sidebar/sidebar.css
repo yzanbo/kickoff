@@ -63,7 +63,7 @@
   margin-left: auto;
 }
 
-/* 自分待ちだけを出していて、ひとつもないとき */
+/* 要対応だけを出していて、ひとつもないとき */
 .waiting-empty {
   padding: 4px var(--gutter);
 }

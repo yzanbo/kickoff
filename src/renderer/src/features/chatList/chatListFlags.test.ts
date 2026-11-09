@@ -11,7 +11,7 @@ const chats = [
   makeChat(3, { status: "running" }),
   makeChat(4, { status: "completed", unread: true }),
   makeChat(5, { status: "failed", unread: true }),
-  // 見た失敗は既読なので、自分待ちに入らない
+  // 見た失敗は既読なので、要対応に入らない
   makeChat(9, { status: "failed" }),
   makeChat(6, { status: "completed" }),
   // 回答待ちの依頼がある（approvals から引く）
@@ -29,7 +29,7 @@ test("isWaitingState: 自分が見る番は回答待ちと未読（失敗した�
   assert.equal(isWaitingState("read"), false);
 });
 
-test("waitingRuns: 自分待ちのチャットだけ（元の順のまま。アーカイブ済みは除く）", () => {
+test("waitingRuns: 要対応のチャットだけ（元の順のまま。アーカイブ済みは除く）", () => {
   assert.deepEqual(
     waitingChats(chats, pending).map((r) => r.id),
     [3, 4, 5, 7],

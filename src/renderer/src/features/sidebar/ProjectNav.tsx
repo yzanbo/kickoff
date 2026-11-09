@@ -23,7 +23,7 @@ interface Props {
  * Zen Browser のワークスペースのような、プロジェクトごとのサイドバー。
  * 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下部のアイコン・ショートカットで切り替える（ProjectSlides）か、
  * 縦に並べる（ProjectStack）。状態と操作は useProjectNav。
- * タグで絞り込んで合うプロジェクトがないとき・自分待ちがないときは、その旨と戻すボタンを出す（waitingEmpty）
+ * タグで絞り込んで合うプロジェクトがないとき・要対応がないときは、その旨と戻すボタンを出す（waitingEmpty）
  */
 export function ProjectNav({ chats, groups, onNewProject }: Props) {
   const nav = useProjectNav(chats);
@@ -34,7 +34,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   if (projects.length === 0) {
     return (
       <div className="workspace-empty">
-        <p className="workspace-empty-text">プロジェクトがまだありません。作ると、ここにプロジェクトとチャットが並び、答えを待っているものは「自分待ち」に集まります。</p>
+        <p className="workspace-empty-text">プロジェクトがまだありません。作ると、ここにプロジェクトとチャットが並び、答えを待っているものは「要対応」に集まります。</p>
         <button className="sidebar-new" onClick={onNewProject}>
           <Plus size={14} /> 新しいプロジェクト
         </button>
@@ -48,7 +48,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
     <FoldHead look="row" className="archived-projects-head" icon={Archive} open={showArchived} onToggle={toggleArchived} label="アーカイブしたプロジェクト" count={archived.length} />
   );
 
-  /** タグで絞り込んで、合うプロジェクトがひとつもないとき（自分待ちより先に知らせる） */
+  /** タグで絞り込んで、合うプロジェクトがひとつもないとき（要対応より先に知らせる） */
   const tagEmpty = tagFilter.active && visible.length === 0 && ordered.length === 0;
   const tagEmptyNotice = tagEmpty && (
     <div className="waiting-empty">
@@ -59,10 +59,10 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
     </div>
   );
 
-  /** 自分待ちでプロジェクトを絞っていて、ひとつもないとき */
+  /** 要対応でプロジェクトを絞っていて、ひとつもないとき */
   const waitingEmpty = tagEmptyNotice || (filterByWaiting && ordered.length === 0 && (
     <div className="waiting-empty">
-      <p className="chat-search-empty">自分待ちのチャットはありません</p>
+      <p className="chat-search-empty">要対応のチャットはありません</p>
       <button className="chat-row ghost" onClick={() => setWaitingOnly(false)}>
         すべてのチャットを表示
       </button>
@@ -71,9 +71,9 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
 
   const selectionBar = selection && <SelectionBar selection={selection} chats={chats} groups={groups} />;
 
-  // 自分待ちの表示の出し方と並べ方（自分待ちだけ × プロジェクト別は、プロジェクトの一覧そのものを絞る filterByWaiting）
+  // 要対応の表示の出し方と並べ方（要対応だけ × プロジェクト別は、プロジェクトの一覧そのものを絞る filterByWaiting）
   const { scope: waitingScope, order: waitingOrder } = waitingAxes(waitingView);
-  // 自分待ちだけ × 状態順: プロジェクトの一覧の代わりに、待っているチャットだけをプロジェクトをまたいで状態順に並べる
+  // 要対応だけ × 状態順: プロジェクトの一覧の代わりに、待っているチャットだけをプロジェクトをまたいで状態順に並べる
   if (waitingOnly && waitingScope === "only" && waitingOrder === "status") {
     return (
       <div className={cx("workspaces", nav.compact && "compact")}>

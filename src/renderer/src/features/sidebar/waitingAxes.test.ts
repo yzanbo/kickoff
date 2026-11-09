@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { canChooseOrder, WAITING_ORDERS, WAITING_SCOPES, waitingAxes, waitingViewOf } from "./waitingAxes";
 
-test("waitingAxes: 今までの値はそのままの意味（絞る = 自分待ちだけ × プロジェクト別、1 列 = 自分待ちだけ × 状態順、上にまとめる = 上 × 状態順）", () => {
+test("waitingAxes: 今までの値はそのままの意味（絞る = 要対応だけ × プロジェクト別、1 列 = 要対応だけ × 状態順、上にまとめる = 上 × 状態順）", () => {
   assert.deepEqual(waitingAxes("filter"), { scope: "only", order: "project" });
   assert.deepEqual(waitingAxes("list"), { scope: "only", order: "status" });
   assert.deepEqual(waitingAxes("inbox"), { scope: "top", order: "status" });
