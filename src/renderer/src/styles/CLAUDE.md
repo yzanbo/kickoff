@@ -26,6 +26,7 @@
 - アクセントの色の文字（オンになっている切り替えなど）は `--accent-fg`（ダークは `--accent-bright`、ライトは地に負けない `--accent`）。
 - 下線は使わない（押せることを下線で示さない。文の中の押せる名前に乗せたときは背景のハイライト `.link-button.hover-bg`（`ui/buttons-forms.css`）、行・カードの見出しは地の色 `--bg-hover`。リンクは色だけ）。打ち消し線（完了した ToDo・消したファイル）は下線ではないので使ってよい。コードの色付けのテーマが付ける下線（`CodeLine`）はそのまま。
 - 回る印（`.spinner`・`.status-ring`・サブエージェントの印・圧縮中のメーターの弧）と作業中の跳ねる点（`.dots`）は、どこでも作業中の色 `--dot-running` にする（場所ごとに色を変えない）。押せるボタンの中の印（止めている途中の送信ボタン・更新のアイコン）だけは、ボタンの文字の色に合わせる。
+- キーボードで移ったときの枠（`:focus-visible`）の規則には、いつも頭に `:where(:root:not([data-modality="pointer"]))` を付ける（`app/inputModality.ts` が `<html data-modality>` にマウスかキーボードかを入れる。ブラウザはマウスで押したボタンにピントがあるまま Shift・⌘ を押しただけで `:focus-visible` にして枠を出すので、マウスで操作している間は出さない。利用者の指摘。`:where` なので詳細度は変わらない。`base/focus.css`）。
 - 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾の一覧に書き、使う側は必要なら `var(--x, 既定値)` で受ける。`getComputedStyle` で読まれている変数（Mermaid の配色・ターミナル・エディタ）は、名前を変えるときに読む側も直す。
 - プロジェクトの名前の札の地と枠の色は `project/project-mark.css` に 1 か所で持つ（`features/project/CLAUDE.md`）。
 

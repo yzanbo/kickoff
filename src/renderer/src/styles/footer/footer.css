@@ -30,7 +30,7 @@
 }
 
 .app-footer.auto-hide:hover,
-.app-footer.auto-hide:has(:focus-visible),
+:where(:root:not([data-modality="pointer"])) .app-footer.auto-hide:has(:focus-visible),
 .app-footer.auto-hide:has([aria-expanded="true"]) {
   opacity: 1;
   transform: none;

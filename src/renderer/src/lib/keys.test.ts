@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hasAppModifier, hasModifiers, heldMetaOf, isCancelKey, isComposing, isKey, isOpenKey, isRenameKey, isSubmitKey, type KeyInput } from "./keys";
+import { hasAppModifier, hasModifiers, heldMetaOf, isCancelKey, isComposing, isFocusRingKey, isKey, isOpenKey, isRenameKey, isSubmitKey, type KeyInput } from "./keys";
 
 const key = (k: string, mods: Partial<KeyInput> = {}): KeyInput => ({ key: k, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...mods });
 
@@ -57,4 +57,15 @@ test("hasAppModifier: Mac は ⌘ だけ（⌃K などの Control は入力欄�
   assert.equal(hasAppModifier(key("k", { metaKey: true, ctrlKey: true }), true), false);
   assert.equal(hasAppModifier(key("k", { ctrlKey: true }), false), true);
   assert.equal(hasAppModifier(key("k", { metaKey: true }), false), false);
+});
+
+test("isFocusRingKey: 修飾キーだけ・⌘ / ⌃ / ⌥ のショートカットではピントの枠を出さず、Tab・矢印・文字（Shift 付きも）では出す", () => {
+  for (const k of ["Shift", "Meta", "Control", "Alt", "CapsLock"]) assert.equal(isFocusRingKey(key(k, { shiftKey: k === "Shift", metaKey: k === "Meta", ctrlKey: k === "Control", altKey: k === "Alt" })), false, k);
+  assert.equal(isFocusRingKey(key("k", { metaKey: true })), false);
+  assert.equal(isFocusRingKey(key("Tab", { ctrlKey: true })), false);
+  assert.equal(isFocusRingKey(key("ArrowDown", { altKey: true })), false);
+  assert.equal(isFocusRingKey(key("Tab")), true);
+  assert.equal(isFocusRingKey(key("Tab", { shiftKey: true })), true);
+  assert.equal(isFocusRingKey(key("ArrowDown")), true);
+  assert.equal(isFocusRingKey(key("A", { shiftKey: true })), true);
 });

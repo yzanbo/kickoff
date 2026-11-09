@@ -33,7 +33,7 @@
 }
 
 .scroll-bottom.guide:hover,
-.scroll-bottom.guide:focus-visible,
+:where(:root:not([data-modality="pointer"])) .scroll-bottom.guide:focus-visible,
 .scroll-bottom.guide.attention {
   opacity: 1;
 }

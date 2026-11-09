@@ -38,8 +38,8 @@
   cursor: grabbing;
 }
 
-.board-card:focus-visible,
-.list-row:focus-visible {
+:where(:root:not([data-modality="pointer"])) .board-card:focus-visible,
+:where(:root:not([data-modality="pointer"])) .list-row:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
