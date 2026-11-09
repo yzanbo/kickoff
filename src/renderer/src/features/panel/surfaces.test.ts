@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { panelKey, panelScreen, parsePanelKey } from "./surfaces";
+import { draftScope, panelKey, panelScreen, parsePanelKey } from "./surfaces";
 
 test("欄の覚える名前: 欄と画面から作り、読み戻せる（下書きの保存のキーと同じ形）", () => {
   assert.equal(panelKey("board", 3), "kanban:3");
@@ -28,4 +28,12 @@ test("サブエージェントの欄: チャットごとの名前（agents:<チ�
   assert.deepEqual(parsePanelKey("agents:33"), { surface: "agents", scope: 33 });
   // チャットの ID をプロジェクトの ID と取り違えて、別のプロジェクトのボードへ移らない
   assert.equal(panelScreen("agents:33"), undefined);
+});
+
+test("送る前の新しいチャットの右の欄: 下書きのタブの key ごとの名前（agents:draft-<key>）で覚え、読み戻せ、移る先はない", () => {
+  const key = panelKey("agents", draftScope("new-abc"));
+  assert.equal(key, "agents:draft-new-abc");
+  assert.deepEqual(parsePanelKey(key), { surface: "agents", scope: "draft-new-abc" });
+  assert.equal(panelScreen(key), undefined);
+  assert.equal(parsePanelKey("agents:draft-"), undefined);
 });

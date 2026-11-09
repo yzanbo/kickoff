@@ -11,7 +11,7 @@ import { openEditorFind } from "@/features/editor/editorFind";
  * 子チャットはその画面のチャットの検索に任せ、ほか（サブエージェント・変更・読むだけのファイル）は欄の右上に検索の欄（FindBar）を出して、画面の文字に印を付ける。
  * エディタの中にピントがあれば、そのエディタが自分で受け取る
  */
-export function AgentPanelFind({ chatId }: { chatId: number }) {
+export function AgentPanelFind({ panelKey }: { panelKey: string }) {
   // 検索の欄を出している欄と、探しているタブの中身（閉じていれば null）・⌘F を押した回
   const [found, setFound] = useState<{ panel: HTMLElement; target: HTMLElement } | null>(null);
   const [signal, setSignal] = useState(0);
@@ -22,7 +22,7 @@ export function AgentPanelFind({ chatId }: { chatId: number }) {
       if (!(isKey(e, "f", { meta: true }) || isKey(e, "f", { ctrl: true }))) return;
       const active = document.activeElement;
       const idle = !active || active === document.body;
-      const panel = [...document.querySelectorAll<HTMLElement>(`[data-panel-key="agents:${chatId}"]`)].find(
+      const panel = [...document.querySelectorAll<HTMLElement>(`[data-panel-key="${panelKey}"]`)].find(
         (p) => p.offsetParent && (p.contains(active) || (idle && p.contains(lastPressedElement()))),
       );
       if (!panel) return;

@@ -18,6 +18,7 @@ import { confirmLeaveMemosUnder } from "./memoGuards";
 import { MemoChipTree } from "./MemoChipTree";
 import { buildMemoFileTree } from "./memoPaths";
 import { openMemoFromChat } from "./openMemoFrom";
+import { useDraftSide } from "@/features/panel/agents/draftSide";
 import { followMovedMemo, useMemoActions } from "./useMemoActions";
 
 /**
@@ -28,12 +29,15 @@ import { followMovedMemo, useMemoActions } from "./useMemoActions";
  * 同じプロジェクトのどのチャットのピルでも、メモのタブの木でも同じになる
  * 行をドラッグしてフォルダ（一覧の空いている所なら直下）へ落とすと動かす（メモのタブの木と同じ）。
  * プロジェクトにメモがなければ出さない。
- * 送る前のチャット（新しいチャット・新しい子チャット）では chatId が null で、「このチャットに添付」は onAttach でその入力欄に足し、開く場所はチャットのないときの決まり（openMemoFromChat）
+ * 送る前のチャット（新しいチャット・新しい子チャット）では chatId が null で、「このチャットに添付」は onAttach でその入力欄に足す。
+ * 開く場所は、新しいチャットならそのタブの右の欄（useDraftSide）、新しい子チャットなら親の右の欄（useMainChat）
  */
 export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; chatId: number | null; onAttach?: (path: string) => void }) {
   const list = useMemoList(projectId);
   const popover = usePopover();
   const mainChat = useMainChat();
+  // 送る前の新しいチャットなら、そのタブの右の欄
+  const draftSide = useDraftSide();
   const [openIn, setOpenIn] = useSetting(MEMO_OPEN_IN);
   const tree = useMemo(() => buildMemoFileTree(list.data?.entries ?? []), [list.data]);
   // 開いているフォルダは、メモのタブの木と同じものを覚える（どちらで開け閉めしても、もう一方も同じになる）
@@ -59,7 +63,7 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
     popover.close();
     // 右の欄・別ウィンドウの中（メモのタブの中のメモのチャットなど）では、その右の欄を持つチャットの右の欄に新しいタブで開く
     // （前はメモのチャット自身の右の欄を探し、メモのチャットをチャットのパネルに開いていた）
-    openMemoFromChat({ projectId, path, chatId: mainChat ?? chatId, place });
+    openMemoFromChat({ projectId, path, chatId: mainChat ?? chatId, place, draftSide });
   };
   return (
     <ComposerChip

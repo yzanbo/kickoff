@@ -8,7 +8,7 @@ import type { PanelController } from "@/features/panel/usePanel";
  */
 export function useNewChild(panel: PanelController): (() => void) | null {
   const at = parsePanelKey(panel.key);
-  const chatId = at && SURFACES[at.surface].newChild && at.scope !== "all" ? at.scope : 0;
+  const chatId = at && SURFACES[at.surface].newChild && typeof at.scope === "number" ? at.scope : 0;
   const chat = useKnownChat(chatId);
   if (!chat || chat.memo_path || chat.archived_at !== null) return null;
   return () => panel.openNewChild({ chatId: chat.id, projectId: chat.project_id });

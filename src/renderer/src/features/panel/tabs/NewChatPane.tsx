@@ -1,5 +1,5 @@
 import { SquarePen } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { Attachment, Chat } from "@shared/types";
 import { api } from "@/api";
 import { useProjects } from "@/stores/projects";
@@ -24,8 +24,13 @@ import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar"
 import { ContextMeter } from "@/features/chat/composer/ContextMeter";
 import { MemoChip } from "@/features/memo/MemoChip";
 import { memoAttachment } from "@/features/memo/memoAttachment";
+import { AgentSplit } from "@/features/panel/agents/AgentSplit";
+import { draftScope } from "@/features/panel/surfaces";
+import type { SidePanelHandle } from "@/features/chat/pane/useChatView";
 
 interface Props {
+  /** このタブの key（右の欄の範囲 draft-<key>。送ったら、できたチャットの右の欄へ中身を移す） */
+  tabKey: string;
   projectId: number;
   /** グループの＋から始めたときのグループ */
   group?: number;
@@ -51,8 +56,12 @@ interface Props {
   onDraftChange?: (text: string) => void;
 }
 
-/** 右側のパネルで始める新しいチャット（最初のメッセージを送ると、そのチャットのタブになる） */
+/**
+ * 右側のパネルで始める新しいチャット（最初のメッセージを送ると、そのチャットのタブになる）。
+ * チャットの画面と同じく右の欄を持ち（AgentSplit。範囲は下書きのタブの draft-<key>）、メモのピルから開いたメモはここに開く。送ったら中身はできたチャットの右の欄へ移る
+ */
 export function NewChatPane({
+  tabKey,
   projectId,
   group,
   worktree,
@@ -67,6 +76,8 @@ export function NewChatPane({
   onDraftChange,
 }: Props) {
   const { projectsById, loaded: projectsLoaded } = useProjects();
+  // 右の欄の操作（流れの中のカードへ移ることがないので、受け取るだけ）
+  const side: MutableRefObject<SidePanelHandle | null> = useRef(null);
   const options = useChatOptions(undefined, projectId);
   const project = projectsById.get(projectId);
   const chats = useChats({ projectId });
@@ -148,6 +159,7 @@ export function NewChatPane({
 
   const groupBadge = groups.length > 0 && onGroupChange && shows("group");
   return (
+    <AgentSplit scope={draftScope(tabKey)} handleRef={side}>
     <DraftChatPage
       badges={
         <>
@@ -196,5 +208,6 @@ export function NewChatPane({
         />
       )}
     </DraftChatPage>
+    </AgentSplit>
   );
 }

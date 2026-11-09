@@ -15,7 +15,15 @@ export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos";
  * どの画面の欄か（プロジェクトの ID・全プロジェクトの画面 "all"。サブエージェントの欄はチャットの ID）。
  * 覚えておく状態と、サイドバーと連動する範囲がこれで決まる
  */
-export type PanelScope = number | "all";
+export type PanelScope = number | "all" | DraftScope;
+
+/**
+ * 送る前の新しいチャット（下書きのタブ）の右の欄の範囲（draft-<タブの key>）。送ってチャットができたら、そのチャットの右の欄へ中身を移す（moveDraftSidePanel）
+ */
+export type DraftScope = `draft-${string}`;
+
+/** 下書きのタブの右の欄の範囲 */
+export const draftScope = (tabKey: string): DraftScope => `draft-${tabKey}`;
 
 /** 欄ごとの決まり（作る側・描く側・中で別々に分岐させず、ここに集める） */
 export interface SurfaceRules {
@@ -155,6 +163,7 @@ export function parsePanelKey(key: string): { surface: PanelSurface; scope: Pane
   const id = Number(rest);
   if (at < 0 || !surface) return undefined;
   if (rest === "all") return { surface, scope: "all" };
+  if (rest.startsWith("draft-") && rest.length > 6) return { surface, scope: rest as DraftScope };
   return Number.isInteger(id) && id > 0 ? { surface, scope: id } : undefined;
 }
 
@@ -168,6 +177,7 @@ export function panelScreen(key: string): Route | undefined {
   // サブエージェントの欄はチャットの中にあり、下書きを持たないので移る先はない
   if (!at || at.surface === "agents") return undefined;
   if (at.scope === "all") return { name: "allProjects" };
+  if (typeof at.scope !== "number") return undefined;
   if (at.surface === "memos") return { name: "project", id: at.scope, tab: "memos" };
   const chats = at.surface === "board" && readSetting(CHAT_PLACEMENT) === "separate";
   return { name: "project", id: at.scope, tab: chats ? "chats" : "board" };

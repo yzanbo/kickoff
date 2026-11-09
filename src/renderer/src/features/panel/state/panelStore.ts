@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { subscribeServerEvent } from "@/api/events";
 import { readSetting, writeSetting } from "@/lib/storage";
-import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
+import { draftScope, panelKey, parsePanelKey, SURFACES } from "@/features/panel/surfaces";
 import { kindOfTab, specOf } from "@/features/panel/tabs/tabKinds";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { moveAllProjectsDrafts, readSavedDrafts, writeDrafts } from "./draftPersistence";
@@ -58,8 +58,19 @@ function rulesOf(key: string): PanelRules {
   return { shows: (t) => kinds.includes(kindOfTab(t)), closeWhenEmpty: SURFACES[at.surface].closeWhenEmpty };
 }
 
-/** 閉じたタブの後始末（種類の表の dispose。ターミナルはシェルも止める） */
-const dispose = (tab: PanelTab) => specOf(tab).dispose?.(tab);
+/**
+ * 閉じたタブの後始末（種類の表の dispose。ターミナルはシェルも止める）。送らずに閉じた新しいチャットのタブは、その右の欄（draft-<key>）も捨てる
+ * （送ったときは、先にできたチャットの右の欄へ移してある）
+ */
+function dispose(tab: PanelTab): void {
+  specOf(tab).dispose?.(tab);
+  if (tab.kind !== "new") return;
+  const side = panelKey("agents", draftScope(tab.key));
+  const state = states.get(side);
+  if (!state) return;
+  states.delete(side);
+  state.tabs.forEach(dispose);
+}
 
 /**
  * 欄の状態を変える（panelReducer）。閉じたタブの後始末をし、下書きのタブ・開いているか（覚える欄だけ）を保存して、読んでいる部品に知らせる。
@@ -77,6 +88,20 @@ export function dispatchPanel(key: string, action: PanelAction): void {
   }
   const setting = next.open !== prev.open ? openSettingOf(key) : undefined;
   if (setting) writeSetting(setting, next.open);
+  version++;
+  for (const listener of [...listeners]) listener();
+}
+
+/**
+ * 欄の状態を別の名前へ移す（送る前の新しいチャットの右の欄を、送ってできたチャットの右の欄へ。features/panel/agents/draftSide.ts）。
+ * mapTab でタブを書き換える。移す先にもうタブがあれば、移す元のタブは閉じて捨てる（重ねない）
+ */
+export function movePanel(from: string, to: string, mapTab: (tab: PanelTab) => PanelTab = (tab) => tab): void {
+  const prev = states.get(from);
+  if (!prev) return;
+  states.delete(from);
+  if (panelStateOf(to).tabs.length > 0) prev.tabs.forEach(dispose);
+  else states.set(to, { ...prev, tabs: prev.tabs.map(mapTab) });
   version++;
   for (const listener of [...listeners]) listener();
 }

@@ -7,7 +7,8 @@ import { usePanelHost } from "@/features/panel/panelHost";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
 import { SideSelectionAttach } from "@/features/chat/messages/SelectionAttach";
 import { MainChatContext } from "@/features/chat/pane/mainChatContext";
-import { panelKey } from "@/features/panel/surfaces";
+import { panelKey, type DraftScope } from "@/features/panel/surfaces";
+import { DraftSideContext } from "./draftSide";
 import { AgentPanelFind } from "./AgentPanelFind";
 
 /** 右の欄のいちばん狭い幅 */
@@ -23,11 +24,14 @@ const NO_TERMINALS: readonly TerminalTarget[] = [];
  * （覆っている間、メインは隠すが描いたまま残す）。「メインを覆う」の切り替えのボタンは置かない。
  * 一度サブエージェントを開いたら、閉じても右の欄の中身は残す（入力中の文・読んでいた位置を保つ。閉じ終えたら隠す）。
  * パネルの外（PanelHostContext がない）では右の欄を置かない。
- * 右の欄の中（どのタブでも）は、このチャットを「メインのチャット」とする（MainChatContext。右クリックの「メインのチャット」の組と、選んだときの「チャットに追加」）
+ * 右の欄の中（どのタブでも）は、このチャットを「メインのチャット」とする（MainChatContext。右クリックの「メインのチャット」の組と、選んだときの「チャットに追加」）。
+ * scope はチャットの ID か、送る前の新しいチャットの下書きの範囲（DraftScope。足す先のチャットはまだないので MainChatContext は null、
+ * 左の中身には DraftSideContext で開く先を知らせる。送ったら moveDraftSidePanel でチャットの右の欄へ移す）
  */
-export function AgentSplit({ chatId, handleRef, children }: { chatId: number; handleRef: MutableRefObject<SidePanelHandle | null>; children: ReactNode }) {
+export function AgentSplit({ scope, handleRef, children }: { scope: number | DraftScope; handleRef: MutableRefObject<SidePanelHandle | null>; children: ReactNode }) {
   const Host = usePanelHost();
-  const panel = usePanel({ surface: "agents", scope: chatId, newChat: undefined, terminals: NO_TERMINALS });
+  const chatId = typeof scope === "number" ? scope : null;
+  const panel = usePanel({ surface: "agents", scope, newChat: undefined, terminals: NO_TERMINALS });
   const width = useCoverableWidth({
     width: SUBAGENT_PANEL_WIDTH,
     min: MIN_AGENT_PANEL_WIDTH,
@@ -54,7 +58,7 @@ export function AgentSplit({ chatId, handleRef, children }: { chatId: number; ha
       style={width.style}
     >
       <div className="chat-split-main" inert={covering} aria-hidden={covering || undefined}>
-        {children}
+        {chatId === null ? <DraftSideContext.Provider value={scope as DraftScope}>{children}</DraftSideContext.Provider> : children}
       </div>
       {Host && (panel.panelOpen || panel.tabs.length > 0) && (
         <MainChatContext.Provider value={chatId}>
@@ -65,11 +69,11 @@ export function AgentSplit({ chatId, handleRef, children }: { chatId: number; ha
               resizeHandle: width.resizeHandle,
             }}
           />
-          <SideSelectionAttach mainChatId={chatId} container={() => document.querySelector(`[data-panel-key="${panelKey("agents", chatId)}"]`)} />
+          {chatId !== null && <SideSelectionAttach mainChatId={chatId} container={() => document.querySelector(`[data-panel-key="${panelKey("agents", chatId)}"]`)} />}
         </MainChatContext.Provider>
       )}
       {/* ⌘F でタブの中の文字を探す（右の欄の中にピントがあるとき） */}
-      {Host && panel.tabs.length > 0 && <AgentPanelFind chatId={chatId} />}
+      {Host && panel.tabs.length > 0 && <AgentPanelFind panelKey={panelKey("agents", scope)} />}
     </div>
   );
 }
