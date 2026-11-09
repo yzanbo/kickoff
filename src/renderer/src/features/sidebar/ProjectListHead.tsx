@@ -12,6 +12,7 @@ import { useViewTabDrag } from "@/ui/useViewTabDrag";
 import { sameSidebarViewState, type SidebarView } from "./sidebarViews";
 import { SidebarViewTuner, type TunerProps } from "./SidebarViewTuner";
 import { TagFilterRow } from "./TagFilterRow";
+import { waitingAxes } from "./waitingAxes";
 import { useSidebarViews, type SidebarViews } from "./useSidebarViews";
 
 /**
@@ -43,7 +44,7 @@ interface Props extends TunerProps {
 /**
  * プロジェクト一覧の上の見出し（利用者の依頼で、縦の幅を取っていた 3 行（プロジェクト・チャット・要対応のボタン）を、ビューのタブ 1 行にした）。
  * 左からビューのタブ（押すとその見え方を当てる。入らない分は ▾ のメニューに。右クリックで名前の変更・上書き・削除、ドラッグで並べ替え）、
- * すべて閉じる / 開く、要対応の数（要対応の入ったビューがないとき。あればそのタブに出す）、⚙（いまの 3 行を窓で出して細かく変える・ビューに残す）。
+ * すべて閉じる / 開く、要対応の数（一覧に要対応の数が出ていないときだけ）、⚙（いまの 3 行を窓で出して細かく変える・ビューに残す）。
  * その下に、タグがあるときだけタグの絞り込みの行（その場の絞り込みなのでビューに入れない）
  */
 export function ProjectListHead({ fold, ...tuner }: Props) {
@@ -52,7 +53,9 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
   const tunerAnchor = useRef<HTMLButtonElement>(null);
   const closeTuner = () => setTunerOpen(false);
   const count = tuner.waiting.count;
-  const anyWaitingView = views.views.some((v) => v.state.waitingOn);
+  // 要対応の数は 1 か所だけに出す（利用者の依頼。前は要対応の入ったビューのタブごとに同じ数を出し、一覧の「要対応 n」とも重なっていた）。
+  // 一覧の上・プロジェクト内にまとめているときは、そのまとまりの見出しに数があるので、見出しの行には出さない
+  const listShowsCount = tuner.waiting.on && waitingAxes(tuner.waiting.view).scope !== "only";
 
   // まだ一度もビューを選んでいなければ、いまの見え方に合うビュー（なければ最初のビュー）を選んだ状態にする（ボードの保存したビューと同じ）
   useEffect(() => {
@@ -65,7 +68,7 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
   return (
     <div className="sidebar-head">
       <div className="sidebar-view-bar">
-        <SidebarViewTabs views={views} waitingCount={count} />
+        <SidebarViewTabs views={views} />
         {/* 開いているものがあれば閉じる、すべて閉じていれば開く（すべてのプロジェクトと中のまとまり） */}
         <IconButton
           icon={fold.allCollapsed ? ChevronsUpDown : ChevronsDownUp}
@@ -75,7 +78,7 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
           className="sidebar-view-icon"
           onClick={() => fold.set(!fold.allCollapsed)}
         />
-        {!anyWaitingView && count > 0 && (
+        {!listShowsCount && count > 0 && (
           <span className="count-badge sidebar-view-count" title={`要対応のチャット ${count} 件`}>
             {count}
           </span>
@@ -106,7 +109,7 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
  * ビューのタブ。1 行に並べ、入らないタブは折り返した先を隠して ▾ のメニューに出す（実際に折り返したかで決める）。
  * いまの見え方に合うタブを選択中に、合うものがなければ最後に選んだタブを「変えている」印（点線の枠）で見せる
  */
-function SidebarViewTabs({ views, waitingCount }: { views: SidebarViews; waitingCount: number }) {
+function SidebarViewTabs({ views }: { views: SidebarViews }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState<readonly string[]>([]);
   const [renaming, setRenaming] = useState<string>();
@@ -128,17 +131,11 @@ function SidebarViewTabs({ views, waitingCount }: { views: SidebarViews; waiting
     const ro = new ResizeObserver(measure);
     ro.observe(list);
     return () => ro.disconnect();
-  }, [views.views, renaming, waitingCount]);
+  }, [views.views, renaming]);
 
   const remove = async (view: SidebarView) => {
     if (await confirmDialog({ title: `ビュー「${view.name}」を削除しますか？`, message: "サイドバーの見え方はいまのまま残ります。", confirmLabel: "削除", danger: true })) views.remove(view.id);
   };
-  const badge = (view: SidebarView) =>
-    view.state.waitingOn && waitingCount > 0 ? (
-      <span className="count-badge sidebar-view-count" aria-label={`要対応 ${waitingCount} 件`}>
-        {waitingCount}
-      </span>
-    ) : null;
 
   return (
     <>
@@ -183,7 +180,6 @@ function SidebarViewTabs({ views, waitingCount }: { views: SidebarViews; waiting
               onDoubleClick={() => setRenaming(view.id)}
             >
               {view.name}
-              {badge(view)}
             </button>
           ),
         )}
@@ -205,7 +201,6 @@ function SidebarViewTabs({ views, waitingCount }: { views: SidebarViews; waiting
             .map((view) => (
               <MenuItem key={view.id} role="menuitemradio" checked={views.active?.id === view.id} onSelect={() => views.apply(view)}>
                 {view.name}
-                {badge(view)}
               </MenuItem>
             ))}
         </PopupMenu>
