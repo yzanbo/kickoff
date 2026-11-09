@@ -158,6 +158,19 @@
   flex: none;
 }
 
+/* 名前の左の状態の印（カードと同じ StatusSlot）。未読の点の縁は行の地の色 */
+.list-row .status-unread-badge {
+  border-color: var(--bg);
+}
+
+.list-row:hover .status-unread-badge {
+  border-color: var(--bg-elev);
+}
+
+.list-row.selected .status-unread-badge {
+  border-color: var(--bg-hover);
+}
+
 /* 行の右端の日時（作成日・最終更新。表示項目で出すものだけ） */
 .list-times {
   display: inline-flex;
