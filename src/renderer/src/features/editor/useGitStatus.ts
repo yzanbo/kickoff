@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GitStatus } from "@shared/types";
+import type { GitConflictResolution, GitOperationAction, GitStatus } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useServerEvent } from "@/api/events";
@@ -106,7 +106,17 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   // 別のプロジェクトに切り替えた直後は、前のプロジェクトの状態を出さない
   const value = status?.key === key ? status.value : undefined;
   const count = value?.repo ? value.staged.length + value.unstaged.length + value.conflicts.length : 0;
-  return { status: value, error, loading, refreshing, version, refresh: () => refresh(), act, commit, push, pull, fetchRemote, count };
+  /** ほかの操作（ブランチの操作・途中のマージ）の応答で届いた状態を、取り直しを待たずに出す */
+  const applyStatus = (next: GitStatus) => apply(Promise.resolve(next));
+  /** 途中で止まっているマージ・リベースを、取りやめる・続ける・飛ばす（続けた先でまた衝突したら、衝突したファイルを返す） */
+  const operate = async (action: GitOperationAction): Promise<string[]> => {
+    const result = await api.gitOperation(target, action);
+    await applyStatus(result.status);
+    return result.conflicts;
+  };
+  /** 衝突したファイルを解く（こちらの版・取り込む側の版・いまの中身で解決済み） */
+  const resolve = (path: string, how: GitConflictResolution) => apply(api.gitResolve(target, path, how));
+  return { status: value, error, loading, refreshing, version, refresh: () => refresh(), act, commit, push, pull, fetchRemote, applyStatus, operate, resolve, count };
 }
 
 export type GitStatusController = ReturnType<typeof useGitStatus>;

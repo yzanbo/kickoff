@@ -33,7 +33,19 @@ export type GitStatus =
       unstaged: GitFileChange[];
       /** 競合しているファイル */
       conflicts: GitFileChange[];
+      /** 途中で止まっている操作（マージ・リベースなどで衝突したとき。なければ null） */
+      operation: GitOperation | null;
     };
+
+/** 途中で止まることのある Git の操作（衝突したときに、取りやめる・続けるを選んでもらう） */
+export const GIT_OPERATIONS = ["merge", "rebase", "cherry-pick", "revert"] as const;
+export type GitOperation = (typeof GIT_OPERATIONS)[number];
+export const GIT_OPERATION_LABELS: Record<GitOperation, string> = {
+  merge: "マージ",
+  rebase: "リベース",
+  "cherry-pick": "チェリーピック",
+  revert: "リバート",
+};
 
 /** 1 つのファイルの差分（unified 形式） */
 export interface GitDiff {
@@ -164,7 +176,16 @@ export interface GitCommitDetail extends GitCommit {
 /** ブランチ・リモート・タグ・stash（履歴の左の一覧。Fork と同じ） */
 export interface GitRefs {
   /** 手元のブランチ（current: いまのブランチ。ahead・behind は追いかけているリモートとの差） */
-  branches: { name: string; hash: string; current: boolean; upstream: string | null; ahead: number; behind: number }[];
+  branches: {
+    name: string;
+    hash: string;
+    current: boolean;
+    upstream: string | null;
+    ahead: number;
+    behind: number;
+    /** このブランチを取り出している作業場所（本体・ワークツリーのフォルダ。どこにも取り出していなければ null） */
+    worktree: string | null;
+  }[];
   /** リモートごとのブランチ（name は "origin/main" の形） */
   remotes: { name: string; branches: { name: string; hash: string }[] }[];
   tags: { name: string; hash: string }[];
@@ -221,3 +242,46 @@ export interface PullRequestInfo {
   state: "OPEN" | "MERGED" | "CLOSED";
   is_draft: boolean;
 }
+
+/**
+ * 履歴の左の一覧・コミットの札の右クリックから行うブランチ・タグの操作（POST /git/branch-action の本文）。
+ * ブランチは手元のブランチの名前、remote_branch は "origin/main" の形
+ */
+export type GitBranchAction =
+  | { action: "checkout"; branch: string }
+  | { action: "checkout_remote"; remote_branch: string; name: string }
+  | { action: "checkout_detached"; ref: string }
+  | { action: "fast_forward"; branch: string }
+  | { action: "pull"; branch: string }
+  | { action: "push"; branch: string }
+  | { action: "push_pr"; branch: string }
+  | { action: "merge"; branch: string }
+  | { action: "rebase"; branch: string }
+  | { action: "create_branch"; name: string; from: string; checkout: boolean }
+  | { action: "create_tag"; name: string; at: string; message: string | null; push: boolean }
+  | { action: "set_upstream"; branch: string; upstream: string | null }
+  | { action: "rename_branch"; branch: string; name: string }
+  | { action: "delete_branch"; branch: string; force: boolean; remote: boolean }
+  | { action: "delete_remote_branch"; remote_branch: string }
+  | { action: "push_tag"; name: string }
+  | { action: "delete_tag"; name: string; remote: boolean };
+
+/** ブランチ・タグの操作の結果（操作のあとの状態。衝突したら conflicts に衝突したファイル、PR を作ったら pr） */
+export interface GitBranchActionResult {
+  status: GitStatus;
+  conflicts: string[];
+  pr?: PullRequestInfo;
+}
+
+/** マージ・リベースの前の見込み（up_to_date: 取り込むものがない / fast_forward: 早送りで済む / conflicts: 衝突しそうなファイル） */
+export interface GitMergePreview {
+  up_to_date: boolean;
+  fast_forward: boolean;
+  conflicts: string[];
+}
+
+/** 途中で止まっている操作をどうするか（abort: 取りやめて元に戻す / continue: 続ける / skip: このコミットを飛ばす（リベースなど）） */
+export type GitOperationAction = "abort" | "continue" | "skip";
+
+/** 衝突したファイルの解き方（ours: こちらの版 / theirs: 取り込む側の版 / mark: いまの中身で解決済みにする） */
+export type GitConflictResolution = "ours" | "theirs" | "mark";

@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
-import type { GitCommit } from "@shared/types";
+import { useEffect, useRef, type MouseEvent } from "react";
+import type { GitCommit, GitRefs } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { formatDayTime } from "@/lib/time";
 import type { GraphRow } from "./commitGraph";
+import { refTargetOf, type RefTarget } from "./refTarget";
 import type { GitLogController } from "./useGitLog";
 
 /** グラフの 1 列の幅と、1 行の高さ（px） */
@@ -38,19 +39,29 @@ function GraphCell({ row, lanes, merge }: { row: GraphRow; lanes: number; merge:
   );
 }
 
-/** ブランチ・タグの印（"HEAD -> main" はいまのブランチ、"tag: v1" はタグ、"origin/…" はリモート） */
-function RefBadges({ refs }: { refs: string[] }) {
+/** ブランチ・タグの印（"HEAD -> main" はいまのブランチ、"tag: v1" はタグ、"origin/…" はリモート）。右クリックでそのブランチ・タグのメニュー */
+function RefBadges({ refs, known, onMenu }: { refs: string[]; known: GitRefs | undefined; onMenu?: (e: MouseEvent, target: RefTarget) => void }) {
   return (
     <>
       {refs.map((ref) => {
+        const target = refTargetOf(ref, known);
+        if (!target) return null;
         const head = ref.startsWith("HEAD -> ");
-        const tag = ref.startsWith("tag: ");
-        const name = head ? ref.slice(8) : tag ? ref.slice(5) : ref;
-        if (name === "HEAD" || name.endsWith("/HEAD")) return null;
         return (
-          <span key={ref} className={cx("ref-badge", head && "head", tag && "tag", !head && !tag && name.includes("/") && "remote")} title={ref}>
+          <span
+            key={ref}
+            className={cx("ref-badge", head && "head", target.kind === "tag" && "tag", target.kind === "remote" && "remote")}
+            title={`${ref}（右クリックでメニュー）`}
+            onContextMenu={
+              onMenu &&
+              ((e) => {
+                e.stopPropagation();
+                onMenu(e, target);
+              })
+            }
+          >
             {head && "✓ "}
-            {name}
+            {target.name}
           </span>
         );
       })}
@@ -59,7 +70,18 @@ function RefBadges({ refs }: { refs: string[] }) {
 }
 
 /** コミットの表（Fork と同じ列: 線つきの件名・作者・コミットの番号・日時）。選んだ行が見えるようにスクロールする */
-export function CommitTable({ log, selected, onSelect }: { log: GitLogController; selected?: string; onSelect: (commit: GitCommit) => void }) {
+export function CommitTable({
+  log,
+  selected,
+  onSelect,
+  onRefMenu,
+}: {
+  log: GitLogController;
+  selected?: string;
+  onSelect: (commit: GitCommit) => void;
+  /** 札の右クリック（ブランチ・タグのメニュー） */
+  onRefMenu?: (e: MouseEvent, target: RefTarget) => void;
+}) {
   const selectedRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     selectedRef.current?.scrollIntoView({ block: "nearest" });
@@ -82,7 +104,7 @@ export function CommitTable({ log, selected, onSelect }: { log: GitLogController
             >
               <GraphCell row={log.graph.rows[i]} lanes={log.graph.lanes} merge={commit.parents.length > 1} />
               <span className="history-subject">
-                <RefBadges refs={commit.refs} />
+                <RefBadges refs={commit.refs} known={log.refs} onMenu={onRefMenu} />
                 {commit.subject}
               </span>
               <span className="history-author" title={commit.email}>

@@ -40,6 +40,8 @@ interface PromptOptions {
   confirmLabel?: string;
   /** 入力欄の上に、文から入力の案を作ってもらう欄を添える（あればその文の欄にピントを置く） */
   assist?: PromptAssistOptions;
+  /** 入力と一緒に選んでもらうチェック（あれば入力欄の下に出す。promptWithCheck） */
+  check?: DialogCheck;
 }
 
 interface ChoiceOptions {
@@ -53,7 +55,7 @@ interface ChoiceOptions {
 
 type Request =
   | ({ kind: "confirm"; resolve: (ok: boolean, checked: boolean) => void } & ConfirmOptions)
-  | ({ kind: "prompt"; resolve: (value: string | null) => void } & PromptOptions)
+  | ({ kind: "prompt"; resolve: (value: string | null, checked: boolean) => void } & PromptOptions)
   | ({ kind: "choice"; resolve: (value: string | null, remember: boolean) => void } & ChoiceOptions);
 
 let show: ((req: Request) => void) | undefined;
@@ -90,6 +92,14 @@ export function promptDialog(options: PromptOptions): Promise<string | null> {
   });
 }
 
+/** チェックを 1 つ添えた入力のダイアログ（「新しいブランチ」と「作ったらチェックアウトする」など）。決定すれば入力とチェックの状態、キャンセルなら null */
+export function promptWithCheck(options: Omit<PromptOptions, "check"> & { check: DialogCheck }): Promise<{ value: string; checked: boolean } | null> {
+  return new Promise((resolve) => {
+    if (!show) return resolve(null);
+    show({ kind: "prompt", resolve: (value, checked) => resolve(value === null ? null : { value, checked }), ...options });
+  });
+}
+
 /** いくつかの選択肢から選ぶダイアログ（「このまま送る / 新しいワークツリーで始める」など）。選んだものの value、キャンセルなら null */
 export function choiceDialog<T extends string>(options: Omit<ChoiceOptions, "choices"> & { choices: { value: T; label: string; primary?: boolean }[] }): Promise<T | null> {
   return new Promise((resolve) => {
@@ -123,7 +133,7 @@ export function DialogHost() {
     show = (next) => {
       setValue(next.kind === "prompt" ? (next.initial ?? "") : "");
       // 「次からはこれにする」と、確認に添えるチェックの初めの状態
-      setRemember(next.kind === "confirm" ? Boolean(next.check?.initial) : false);
+      setRemember(next.kind === "confirm" || next.kind === "prompt" ? Boolean(next.check?.initial) : false);
       setReq(next);
     };
     return () => {
@@ -151,7 +161,7 @@ export function DialogHost() {
     if (!req) return;
     if (req.kind === "confirm") req.resolve(ok, remember);
     else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null, remember);
-    else req.resolve(ok && value.trim() ? value.trim() : null);
+    else req.resolve(ok && value.trim() ? value.trim() : null, remember);
     setReq(null);
     ref.current?.close();
   };
@@ -195,7 +205,7 @@ export function DialogHost() {
           </label>
         )}
         {req.kind === "choice" && req.remember && <CheckField className="app-dialog-remember" label={req.remember} checked={remember} onChange={setRemember} />}
-        {req.kind === "confirm" && req.check && (
+        {(req.kind === "confirm" || req.kind === "prompt") && req.check && (
           <CheckField className="app-dialog-remember" label={req.check.label} help={req.check.help?.(remember)} checked={remember} onChange={setRemember} />
         )}
         <DialogActions className="app-dialog-actions" cancelRef={cancelRef} onCancel={req.kind === "confirm" && req.hideCancel ? undefined : () => finish(false)}>

@@ -13,6 +13,7 @@ const status = (parts: Partial<Extract<GitStatus, { repo: true }>>): GitStatus =
   staged: [],
   unstaged: [],
   conflicts: [],
+  operation: null,
   ...parts,
 });
 

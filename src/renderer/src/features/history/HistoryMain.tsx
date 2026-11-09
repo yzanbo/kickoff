@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, type MouseEvent } from "react";
 import type { GitCommit } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -7,6 +7,7 @@ import { usePageFind } from "@/ui/usePageFind";
 import { CommitTable } from "./CommitTable";
 import { CommitView } from "./CommitView";
 import type { GitLogController } from "./useGitLog";
+import type { RefTarget } from "./refTarget";
 
 /** 履歴の右側（Fork と同じ: 上にコミットの表、下に選んだコミットの詳細。境目はドラッグで動かせる）。⌘F は、下の詳細（変わったファイル・差分）の中を探す */
 export function HistoryMain({
@@ -14,11 +15,13 @@ export function HistoryMain({
   log,
   commit,
   onSelect,
+  onRefMenu,
 }: {
   projectId: number;
   log: GitLogController;
   commit?: GitCommit;
   onSelect: (commit: GitCommit) => void;
+  onRefMenu: (e: MouseEvent, target: RefTarget) => void;
 }) {
   // 上のコミットの表の高さ（全体の高さに対する割合 %。下はコミットの詳細）。ドラッグ中は描き直さず、高さだけを書き換えて指に追従させる
   const split = useDragSize<HTMLDivElement>({ setting: HISTORY_SPLIT, axis: "y", unit: "%", min: 15, max: 85, write: "flexBasis" });
@@ -29,7 +32,7 @@ export function HistoryMain({
   return (
     <div className={cx("history-main", split.resizing && "resizing")}>
       <div ref={split.paneRef} className="history-table" style={{ flexBasis: `${split.size}%` }}>
-        <CommitTable log={log} selected={commit?.hash} onSelect={onSelect} />
+        <CommitTable log={log} selected={commit?.hash} onSelect={onSelect} onRefMenu={onRefMenu} />
       </div>
       <div className="history-resizer" aria-label="コミットの表の高さを変える" {...split.handle} />
       <div ref={detailRef} className="history-detail">

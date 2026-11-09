@@ -87,13 +87,13 @@ export async function gitRefs(repo: string): Promise<GitRefs> {
   const refs: GitRefs = { branches: [], remotes: [], tags: [], stashes: [] };
   const out = await gitOutput(repo, [
     "for-each-ref",
-    "--format=%(refname)%00%(objectname)%00%(*objectname)%00%(upstream:short)%00%(upstream:track)%00%(HEAD)",
+    "--format=%(refname)%00%(objectname)%00%(*objectname)%00%(upstream:short)%00%(upstream:track)%00%(HEAD)%00%(worktreepath)",
     "refs/heads",
     "refs/remotes",
     "refs/tags",
   ]);
   for (const line of out.split("\n").filter(Boolean)) {
-    const [ref, object, peeled, upstream, track, head] = line.split("\0");
+    const [ref, object, peeled, upstream, track, head, worktree] = line.split("\0");
     // 注釈つきのタグは、指しているコミットを使う
     const hash = peeled || object;
     if (ref.startsWith("refs/heads/")) {
@@ -103,6 +103,7 @@ export async function gitRefs(repo: string): Promise<GitRefs> {
         current: head === "*",
         upstream: upstream || null,
         ...parseAheadBehind(track),
+        worktree: worktree || null,
       });
     } else if (ref.startsWith("refs/remotes/")) {
       const name = ref.slice(13);

@@ -1,5 +1,7 @@
 // 作業ツリーの状態（git status）・いまのブランチ・リモートの一覧・参照（HEAD・ブランチ）があるか
-import type { GitChangeKind, GitFileChange, GitStatus } from "@shared/types";
+import fs from "node:fs";
+import path from "node:path";
+import type { GitChangeKind, GitFileChange, GitOperation, GitStatus } from "@shared/types";
 import { gitOutput } from "./exec.js";
 
 const KINDS = new Set<GitChangeKind>(["M", "A", "D", "R", "C", "T"]);
@@ -27,7 +29,7 @@ function parseBranch(line: string): { branch: string | null; upstream: string | 
 /** `git status --porcelain=v1 -z --branch` の出力を読む */
 export function parseGitStatus(raw: string): Extract<GitStatus, { repo: true }> {
   const records = raw.split("\0");
-  const status: Extract<GitStatus, { repo: true }> = { repo: true, branch: null, upstream: null, has_origin: false, ahead: 0, behind: 0, staged: [], unstaged: [], conflicts: [] };
+  const status: Extract<GitStatus, { repo: true }> = { repo: true, branch: null, upstream: null, has_origin: false, ahead: 0, behind: 0, staged: [], unstaged: [], conflicts: [], operation: null };
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
     if (!record) continue;
@@ -86,11 +88,35 @@ export function scopeChanges(changes: GitFileChange[], prefix: string): GitFileC
   return out;
 }
 
+/** 途中の操作と、それがあるときにできる印のファイル（.git の中。ワークツリーなら、そのワークツリーの分） */
+const OPERATION_MARKS: [GitOperation, string][] = [
+  ["rebase", "rebase-merge"],
+  ["rebase", "rebase-apply"],
+  ["merge", "MERGE_HEAD"],
+  ["cherry-pick", "CHERRY_PICK_HEAD"],
+  ["revert", "REVERT_HEAD"],
+];
+
+/** 途中で止まっている操作（マージ・リベースなどで衝突して止まっているもの。なければ null） */
+export async function gitOperation(repo: string): Promise<GitOperation | null> {
+  const out = await gitOutput(repo, ["rev-parse", ...OPERATION_MARKS.flatMap(([, mark]) => ["--git-path", mark])]);
+  const paths = out.split("\n").filter(Boolean);
+  for (const [i, [operation]] of OPERATION_MARKS.entries()) {
+    const mark = paths[i];
+    if (mark && fs.existsSync(path.resolve(repo, mark))) return operation;
+  }
+  return null;
+}
+
 /** プロジェクトのフォルダの Git の状態（Git で管理されていなければ repo: false）。リポジトリの中のフォルダなら、その中の変更だけ */
 export async function gitStatus(repo: string): Promise<GitStatus> {
   const prefix = await gitPrefix(repo);
   if (prefix === null) return { repo: false };
-  const [raw, remotes] = await Promise.all([gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all", ...(prefix ? ["--", "."] : [])]), listRemotes(repo)]);
+  const [raw, remotes, operation] = await Promise.all([
+    gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all", ...(prefix ? ["--", "."] : [])]),
+    listRemotes(repo),
+    gitOperation(repo),
+  ]);
   const status = parseGitStatus(raw);
   return {
     ...status,
@@ -98,6 +124,7 @@ export async function gitStatus(repo: string): Promise<GitStatus> {
     unstaged: scopeChanges(status.unstaged, prefix),
     conflicts: scopeChanges(status.conflicts, prefix),
     has_origin: remotes.includes("origin"),
+    operation,
   };
 }
 

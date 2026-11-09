@@ -240,7 +240,8 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   // ブランチ・リモート・タグ
   git("tag", "v1", log.commits[1].hash);
   const refs = (await call("GET", `/api/projects/${project.id}/git/refs`)).body;
-  assert.deepEqual(refs.branches, [{ name: "main", hash: log.commits[0].hash, current: true, upstream: "origin/main", ahead: 0, behind: 0 }]);
+  // worktree は取り出している作業場所（本体のフォルダ。リンクを解いたパス）
+  assert.deepEqual(refs.branches, [{ name: "main", hash: log.commits[0].hash, current: true, upstream: "origin/main", ahead: 0, behind: 0, worktree: fs.realpathSync(repo) }]);
   assert.deepEqual(refs.remotes, [{ name: "origin", branches: [{ name: "origin/main", hash: log.commits[0].hash }] }]);
   assert.deepEqual(refs.tags, [{ name: "v1", hash: log.commits[1].hash }]);
   assert.deepEqual(refs.stashes, []);
