@@ -94,6 +94,7 @@
 @import "./base/focus.css";
 @import "./editor/editor.css";
 @import "./editor/editor-explorer.css";
+@import "./editor/editor-search.css";
 @import "./editor/editor-changes.css";
 @import "./editor/editor-history.css";
 @import "./editor/editor-history-sidebar.css";

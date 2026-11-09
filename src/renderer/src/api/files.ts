@@ -1,4 +1,4 @@
-import type { FileContent, ProjectFiles, ProjectSearchQuery, ProjectSearchResult, RenamedFile, SavedFile } from "@shared/types";
+import type { FileContent, ProjectFiles, ProjectReplaceBody, ProjectReplaceResult, ProjectSearchQuery, ProjectSearchResult, RenamedFile, SavedFile } from "@shared/types";
 import { request } from "./http";
 import { workdirPath, type GitTarget } from "./workdir";
 
@@ -11,6 +11,8 @@ export const filesApi = {
     request<SavedFile>("PUT", workdirPath(target, "/file"), { path, content, base_hash: baseHash }),
   /** ファイル・フォルダの名前を変える（同じフォルダの中で。同じ名前があれば 409）。変えたあとのパスを返す */
   renameProjectFile: (target: GitTarget, path: string, name: string) => request<RenamedFile>("POST", workdirPath(target, "/file/rename"), { path, name }),
-  searchProject: (target: GitTarget, { query, case_sensitive, whole_word, regex }: ProjectSearchQuery) =>
-    request<ProjectSearchResult>("GET", workdirPath(target, "/search", { q: query, case: case_sensitive, word: whole_word, regex })),
+  searchProject: (target: GitTarget, { query, case_sensitive, whole_word, regex, include, exclude, use_ignore }: ProjectSearchQuery) =>
+    request<ProjectSearchResult>("GET", workdirPath(target, "/search", { q: query, case: case_sensitive, word: whole_word, regex, include, exclude, ignore: use_ignore })),
+  /** 探した結果の行を置換する（いまの行が結果の行と違えば置換しない。置換する前の中身が返るので、元に戻せる） */
+  replaceInProject: (target: GitTarget, body: ProjectReplaceBody) => request<ProjectReplaceResult>("POST", workdirPath(target, "/search/replace"), body),
 };

@@ -43,10 +43,10 @@ export async function listProjectFiles(repo: string): Promise<ProjectFiles> {
 }
 
 /** 中身の指紋（保存の前に、開いたあとでほかで変わっていないか比べる） */
-const hashOf = (data: Buffer) => createHash("sha1").update(data).digest("hex");
+export const hashOf = (data: Buffer) => createHash("sha1").update(data).digest("hex");
 
 /** リポジトリの中の、実体のパス（リポジトリの外を指すシンボリックリンクは使わせない。なければ 404） */
-async function resolveInside(repo: string, file: string): Promise<string> {
+export async function resolveInside(repo: string, file: string): Promise<string> {
   const real = await fs.realpath(await assertInside(repo, file)).catch((e: unknown) => {
     if ((e as { code?: unknown }).code === "ENOENT") throw new NotFound(`ファイルが見つかりません: ${file}`);
     throw e;
