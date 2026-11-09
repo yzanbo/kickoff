@@ -13,10 +13,10 @@ import { GIT_FEATURES, startProjectGit } from "@/features/project/GitInitNotice"
 import { useGitStatus } from "@/features/editor/useGitStatus";
 import { useMemoList } from "@/stores/memos";
 import { FolderOverlapNotice } from "@/features/project/OverlapNotice";
-import { MemoOverlapNotice } from "@/features/memo/MemoOverlapNotice";
+import { MemoFolderField } from "@/features/memo/MemoFolderField";
 import { TagEditor } from "./TagEditor";
 
-export function BasicInfo({ project, onOpenMemos }: { project: Project; onOpenMemos: () => void }) {
+export function BasicInfo({ project }: { project: Project }) {
   const pick = (p: Project) => ({ name: p.name, description: p.description });
   const [draft, setDraft] = useState(() => pick(project));
   const save = useSave();
@@ -29,7 +29,7 @@ export function BasicInfo({ project, onOpenMemos }: { project: Project; onOpenMe
       <h2>基本情報</h2>
       <div className="form">
         <FolderRow project={project} />
-        <MemoDirRow project={project} onChange={onOpenMemos} />
+        <MemoDirRow project={project} />
         <ColorField project={project} />
         <TagEditor project={project} />
         <Field label="プロジェクト名">
@@ -44,24 +44,22 @@ export function BasicInfo({ project, onOpenMemos }: { project: Project; onOpenMe
   );
 }
 
-/** メモフォルダ（見るだけ。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。変えるのは「メモ」の項目） */
-function MemoDirRow({ project, onChange }: { project: Project; onChange: () => void }) {
-  const dir = useMemoList(project.id).data?.dir ?? "";
+/**
+ * メモフォルダ（利用者の依頼で、前は別の項目「メモ」で変えていたものを、ここでそのまま変える）。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。
+ * ふだんは空欄（薄い文字でいまの場所 = アプリの設定の「メモ」の親フォルダの下の、このプロジェクトの名前のフォルダ）で、書く・選ぶとこのプロジェクトだけ別の場所にする。
+ * ほかのプロジェクトとメモフォルダが同じなら、いつも知らせる（MemoFolderField）
+ */
+function MemoDirRow({ project }: { project: Project }) {
+  const dir = useMemoList(project.id).data?.dir;
   return (
-    <Field
-      as="div"
+    <MemoFolderField
       label="メモフォルダ"
-      help="「メモ」タブのメモを置くフォルダです。プロジェクトフォルダとは別の場所で、プロジェクトフォルダを変えても変わりません。チャットで「メモ」「メモフォルダ」と言えば、AI はここのことだと分かります。"
-    >
-      <div className="input-row">
-        <input type="text" aria-label="メモフォルダ" value={dir} placeholder="読み込み中…" readOnly />
-        <button type="button" className="btn" onClick={onChange}>
-          変更…
-        </button>
-      </div>
-      {/* ほかのプロジェクトとメモフォルダが同じなら、いつも知らせる */}
-      <MemoOverlapNotice dir={dir} except={project.id} />
-    </Field>
+      help="「メモ」タブのメモを置くフォルダです。ふだんはアプリの設定の「メモ」で決めた親フォルダの下の、このプロジェクトの名前のフォルダで、書く・選ぶとこのプロジェクトだけ別の場所（チームで共有しているフォルダなど）にできます。変えても、いまあるメモは動かしません。プロジェクトフォルダを変えても変わりません。チャットで「メモ」「メモフォルダ」と言えば、AI はここのことだと分かります。"
+      value={project.memo_path}
+      fallback={project.memo_path ? "" : (dir ?? "")}
+      onSave={(next) => api.updateProject(project.id, { memo_path: next })}
+      overlapExcept={project.id}
+    />
   );
 }
 

@@ -8,7 +8,7 @@ import { savedCompactPrompt } from "./compactPromptKinds";
 
 /**
  * 圧縮前指示・圧縮後指示の書きかけと保存（projectId なしならアプリの設定の共通の指示、番号ならそのプロジェクトの指示）。
- * 設定の「定型文」の欄（CompactPromptForm）とチャット欄のメーターの詳細（CompactPromptEditor）で共通。
+ * 設定の「圧縮前・圧縮後指示」の欄（CompactPromptForm）とチャット欄のメーターの詳細（CompactPromptEditor）で共通。
  * 保存した・ほかで変わったときは書きかけを保存した値に合わせる。空にすると null で保存する（送らない）。submit は save.run に渡す保存の中身。
  * オン / オフ（enabled）は文と別に、切り替えたらすぐ保存する（setEnabled。オフでも文は残し、送らないだけ）
  */

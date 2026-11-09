@@ -1,4 +1,4 @@
-import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, PanelLeft, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
+import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, PanelLeft, Palette, PlugZap, Puzzle, Shrink, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
@@ -12,6 +12,7 @@ import { CHAT_PLACEMENT_LABELS, useChatPlacement, type ChatPlacement } from "@/f
 import { TabbedDialog, type DialogSection } from "@/ui/TabbedDialog";
 import { UsagePanel } from "@/features/usage/UsagePanel";
 import { SnippetBarField } from "@/features/snippet/SnippetBarField";
+import { CompactPromptSettings } from "@/features/snippet/CompactPromptSettings";
 import { SnippetSettings } from "@/features/snippet/SnippetSettings";
 import { SidebarViewSettings } from "@/features/sidebar/SidebarViewSettings";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
@@ -25,7 +26,7 @@ import { NotificationSettings } from "./NotificationSettings";
 import { TerminalSettings } from "./TerminalSettings";
 import { VoiceSettings } from "./VoiceSettings";
 
-export type SettingsSection = "usage" | "display" | "sidebar" | "connection" | "ai" | "chats" | "snippets" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
+export type SettingsSection = "usage" | "display" | "sidebar" | "connection" | "ai" | "chats" | "snippets" | "compact" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
@@ -35,6 +36,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "ai", label: "AI の既定", icon: Bot },
   { key: "chats", label: "チャット", icon: MessageSquare },
   { key: "snippets", label: "定型文", icon: MessageSquareQuote },
+  { key: "compact", label: "圧縮前・圧縮後指示", icon: Shrink },
   { key: "memos", label: "メモ", icon: StickyNote },
   { key: "voice", label: "音声入力", icon: Mic },
   { key: "notifications", label: "通知", icon: Bell },
@@ -57,6 +59,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
           {section === "ai" && <AiDefaultsSettings />}
           {section === "chats" && <ChatSettings />}
           {section === "snippets" && <SnippetSettings />}
+          {section === "compact" && <CompactPromptSettings />}
           {section === "memos" && <MemoSettings />}
           {section === "voice" && <VoiceSettings />}
           {section === "notifications" && <NotificationSettings />}
