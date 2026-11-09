@@ -153,16 +153,16 @@ const sidebarView = (id: string, name: string, state: Readonly<Record<string, un
   },
 });
 const DEFAULT_SIDEBAR_VIEWS: readonly StoredView[] = [
+  // コンパクト（先頭。初めはこれを選ぶ）: 標準をプロジェクトもチャットも 1 行にし、チャットのアーカイブは隠す
+  sidebarView("default-sidebar-compact", "コンパクト", { layout: "rail", projectCompact: true, chatCompact: true, waitingOn: true }),
   // 標準: 縦スライド・2 行・チャットのアーカイブも出す・要対応を一覧の上に（プロジェクト別）
   sidebarView("default-sidebar-standard", "標準", { layout: "rail", showArchivedChats: true, waitingOn: true }),
-  // コンパクト: 標準をプロジェクトもチャットも 1 行にし、チャットのアーカイブは隠す
-  sidebarView("default-sidebar-compact", "コンパクト", { layout: "rail", projectCompact: true, chatCompact: true, waitingOn: true }),
   // 要対応: 縦並び・要対応のチャットだけ（プロジェクト別）
   sidebarView("default-sidebar-waiting", "要対応", { waitingOn: true, waitingView: "filter" }),
 ];
 export const SIDEBAR_SAVED_VIEWS = defineSetting("kickoff:sidebar-views", json(parseStoredViews, DEFAULT_SIDEBAR_VIEWS));
 /**
- * 最後に選んだサイドバーのビュー（ID。⚙ の窓の「上書き」の先。まだ一度も選んでいなければ ""。そのときは最初のビューを当てる）
+ * 最後に選んだサイドバーのビュー（ID。⚙ の窓の「上書き」の先。まだ一度も選んでいなければ ""。そのときは最初のビュー（初めはコンパクト）を当てる）
  */
 export const SIDEBAR_VIEW_SELECTED = defineSetting("kickoff:sidebar-view-selected", text());
 
