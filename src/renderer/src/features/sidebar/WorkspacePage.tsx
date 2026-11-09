@@ -135,8 +135,11 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
   const rename = useChatRename((m) => void alertDialog("名前を変更できませんでした", m));
+  // まとまり（グループ別のグループ・No Group、作業場所別の作業場所）の中の行で隠す札（見出しと同じことを言うため。利用者の依頼）
+  const bucketChip = showGroups ? "group" : list.grouping === "worktree" ? "worktree" : undefined;
   // drafts: 手動の並びで、タブの列でこのチャットのすぐ後ろにある下書きも並べるか（同じチャットをもう一度出す「要対応」のまとまりでは出さない）
-  const renderChatRow = (chat: Chat, drafts: boolean) => (
+  // inBucket: まとまりの中の行か（まとまりの外の「要対応」「固定」の行は、どのグループ・作業場所かがわかるよう札を残す）
+  const renderChatRow = (chat: Chat, drafts: boolean, inBucket: boolean) => (
     <Fragment key={chat.id}>
       <ChatRow
         chat={chat}
@@ -151,12 +154,13 @@ export const WorkspacePage = memo(function WorkspacePage({
         after={<ChildChatRows parentId={chat.id} parentArchived={chat.archived_at !== null} childrenOf={childChats} renderRow={renderRow} />}
         onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
         reorder={rowReorder(chat)}
+        hideChip={inBucket ? bucketChip : undefined}
       />
       {/* 手動の並びで、タブの列でこのチャットのすぐ後ろにある下書き（タブの位置に合わせる。useDraftPlacement） */}
       {drafts && list.draftsAfter.get(chat.id)?.map((d) => <DraftRow key={`${d.panel}:${d.key}`} draft={d} />)}
     </Fragment>
   );
-  const renderRow = (chat: Chat) => renderChatRow(chat, true);
+  const renderRow = (chat: Chat) => renderChatRow(chat, true, true);
 
   const renderGroup = (bucket: (typeof list.groups)[number]) => {
     const group = bucket.group!;
@@ -273,7 +277,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         {/* 要対応の「プロジェクト内の上に」: プロジェクトの中のいちばん上（下書き・固定より上） */}
         {waitingTop.length > 0 && (
           <FoldSection look="row" icon={Inbox} label="要対応" count={waitingTop.length} open={waitingFold.open} onToggle={waitingFold.toggle}>
-            <ul className="chat-rows">{waitingTop.map((chat) => renderChatRow(chat, false))}</ul>
+            <ul className="chat-rows">{waitingTop.map((chat) => renderChatRow(chat, false, false))}</ul>
           </FoldSection>
         )}
         {/* グループの見出しを出していないときの下書き（グループでまとめていないときは、グループに入れたものも含めていちばん上に） */}
@@ -292,7 +296,7 @@ export const WorkspacePage = memo(function WorkspacePage({
             onContextMenu={colors.onContextMenu}
           >
             <DraftRows drafts={list.pinnedDrafts} />
-            {pinned && <ul className="chat-rows">{pinned.chats.map(renderRow)}</ul>}
+            {pinned && <ul className="chat-rows">{pinned.chats.map((chat) => renderChatRow(chat, true, false))}</ul>}
           </FoldSection>
         )}
         {/* 自分で作ったグループ（検索・要対応などで絞り込んでいる間は、一致するチャットか下書きのあるものだけ）と、

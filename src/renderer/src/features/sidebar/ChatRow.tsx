@@ -39,6 +39,7 @@ export function ChatRow({
   after,
   onOpen,
   reorder,
+  hideChip,
 }: {
   chat: Chat;
   state: AgentState;
@@ -59,6 +60,8 @@ export function ChatRow({
   onOpen?: () => void;
   /** ドラッグでの手動の並べ替えの落とし先（入る位置の線のクラスと、行に付ける dragover / drop。useChatRowReorder） */
   reorder?: RowReorderProps;
+  /** 2 行目で隠す札（グループ別・作業場所別のまとまりの中では、見出しと同じことを言う札を出さない。利用者の依頼） */
+  hideChip?: "group" | "worktree";
 }) {
   // hooks は、下の早い return（名前の変更中）より前に呼ぶ
   const selection = useChatSelection();
@@ -139,10 +142,10 @@ export function ChatRow({
               </span>
             )}
           </span>
-          {/* 2 行目: グループと作業場所（ブランチ）（1 行で出すときは隠す） */}
+          {/* 2 行目: グループと作業場所（ブランチ）（1 行で出すときは隠す。まとまりの見出しと重なる札は hideChip で隠し、札がなければ行ごと出さない） */}
           <span className="chat-row-meta">
-            <GroupChip chat={chat} />
-            <WorktreeChip chat={chat} />
+            {hideChip !== "group" && <GroupChip chat={chat} />}
+            {hideChip !== "worktree" && <WorktreeChip chat={chat} />}
           </span>
         </span>
       </a>
