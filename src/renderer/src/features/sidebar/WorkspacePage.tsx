@@ -17,7 +17,7 @@ import { SearchField } from "@/ui/SearchField";
 import { ChatRow } from "./ChatRow";
 import { ChildChatRows } from "./ChildChatRows";
 import { openChildChat } from "@/features/chat/children/openChild";
-import { useChildChats } from "@/stores/chats";
+import { NO_CHATS, useChatsWithChildrenByProject, useChildChats } from "@/stores/chats";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useChatLayout } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
@@ -73,7 +73,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 選んでいる = いまの画面がこのプロジェクト（カンバン・チャットなど）
   const isActive = routeProjectId(route) === project.id;
   // 行の絞り込み（検索・要対応・状態）と、固定・グループ・グループなし・アーカイブ済みへの分け方（bucketChats）
-  const list = useWorkspaceRows({ projectId: project.id, chats, groupCount: groups.length, searchAll, collapsed });
+  // 要対応・状態ごとの数で数えるチャット（アーカイブしていないもの。子チャットも入れる。利用者の依頼）
+  const counted = useChatsWithChildrenByProject()[project.id] ?? NO_CHATS;
+  const list = useWorkspaceRows({ projectId: project.id, chats, counted, groupCount: groups.length, searchAll, collapsed });
   const { showGroups, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, chatCount, visibleCount, pinned, ungrouped, mainRows, mainSections, archived, mainArchived } = list;
   const { stateOf, approvals } = useChatStates();
   // 子チャット（親ごと。サイドバーの一覧には並べず、親の行の中に開閉で出す。アーカイブ済みはサイドバーの表示の切り替えに従う）
@@ -85,8 +87,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   const [waitingView] = useWaitingView();
   const showWaitingTop = waitingOn && waitingAxes(waitingView).scope === "project" && !keyword && !stateFilter;
   const waitingTop = useMemo(
-    () => (showWaitingTop ? inboxSections(chats, stateOf, (chat, state) => waitingSince(chat, state, approvals)).flatMap((s) => s.chats) : []),
-    [showWaitingTop, chats, stateOf, approvals],
+    () => (showWaitingTop ? inboxSections(counted, stateOf, (chat, state) => waitingSince(chat, state, approvals)).flatMap((s) => s.chats) : []),
+    [showWaitingTop, counted, stateOf, approvals],
   );
   const waitingFold = useFold("sidebar", `waiting:in:${project.id}`);
   // 開閉の記憶（まとまりのキーで覚え、見出しの行の「すべて閉じる / 開く」にも従う）: 固定・グループなし・自分で作ったグループ（絞り込み中は開いて見せる）、
@@ -246,7 +248,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
         chatCount={chatCount}
-        counts={stateCounts(chats, pending)}
+        counts={stateCounts(counted, pending)}
         stateFilter={stateFilter}
         onStateFilter={(next) => {
           setStateFilter(next);

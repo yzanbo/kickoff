@@ -15,6 +15,7 @@ import { loadCurrentProject, saveCurrentProject } from "./currentProject";
 import { useProjectMenu } from "@/features/project/ProjectMenu";
 import { useAllDrafts } from "@/features/panel/state/panelDrafts";
 import { useCompactProjects, useCompactRows, useShowArchivedChats, waitingChats } from "@/features/chatList/chatListFlags";
+import { useChatsWithChildrenByProject } from "@/stores/chats";
 import { useProjectReorder } from "./useProjectReorder";
 import { useWaitingView } from "./waitingView";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
@@ -43,9 +44,10 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const [compact] = useCompactRows();
   const [compactProjects] = useCompactProjects();
   const drafts = useAllDrafts();
-  // 要対応の数（タグで絞り込んでいれば、出しているプロジェクトの分だけ。しまったプロジェクトは数えない）
-  const waitingCount = visible.reduce((n, p) => n + waitingChats(chats[p.id] ?? [], pending).length, 0);
-  const hasWaiting = (p: Project) => waitingChats(chats[p.id] ?? [], pending).length > 0 || drafts.some((d) => d.projectId === p.id);
+  // 要対応の数（タグで絞り込んでいれば、出しているプロジェクトの分だけ。しまったプロジェクトは数えない。子チャットも数える）
+  const counted = useChatsWithChildrenByProject();
+  const waitingCount = visible.reduce((n, p) => n + waitingChats(counted[p.id] ?? [], pending).length, 0);
+  const hasWaiting = (p: Project) => waitingChats(counted[p.id] ?? [], pending).length > 0 || drafts.some((d) => d.projectId === p.id);
   // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
   const [searchAll, setSearchAll] = useState("");
   const allSearch = useChatSearch(layout === "stack" ? searchAll : "");

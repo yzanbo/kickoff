@@ -1,10 +1,10 @@
 import { FileDiff, Files, GripHorizontal, GripVertical, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote } from "lucide-react";
-import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { stateCounts } from "@/features/chat/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/StateCornerCounts";
 import { useSetting } from "@/hooks/useSetting";
+import { NO_CHATS, useChatsWithChildrenByProject } from "@/stores/chats";
 import type { SettingValue } from "@/lib/storage";
 import { href, type ProjectTab } from "@/app/router";
 import { PROJECT_TABS_LAYOUT } from "@/lib/storageKeys";
@@ -75,14 +75,12 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
 export function ProjectTabs({
   projectId,
   tab,
-  chats,
   changeCount,
   refreshing,
   vertical = false,
 }: {
   projectId: number;
   tab: ProjectTab;
-  chats: Chat[];
   changeCount: number;
   refreshing: TabRefreshing;
   vertical?: boolean;
@@ -92,9 +90,9 @@ export function ProjectTabs({
   const menu = useContextMenu();
   // ドラッグでの並べ替え（並べた順のまとまりとタブ）
   const order = useProjectTabOrder(TAB_GROUPS, vertical);
-  // 状態ごとのチャット数（カンバンの列と同じ数え方。アーカイブ済みは数えない）
+  // 状態ごとのチャット数（カンバンの列と同じ数え方。アーカイブ済みは数えない。子チャットも数える = 見出し・サイドバーの数と同じ）
   const { pending } = useChatStates();
-  const counts = stateCounts(chats, pending);
+  const counts = stateCounts(useChatsWithChildrenByProject()[projectId] ?? NO_CHATS, pending);
   const countsText = stateCountsSummary(counts);
   // チャットの数を添えるタブ（チャットをボードと分けるならチャットのタブ、分けないならボード。チャットを開く所に付ける）
   const chatsTab: ProjectTab = placement === "separate" ? "chats" : "board";

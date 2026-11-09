@@ -12,6 +12,8 @@ import { STATE_TONE } from "@/features/chat/tones";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { ProjectMark } from "@/features/project/ProjectMark";
 import { useVisibleProjects } from "@/features/project/useVisibleProjects";
+import { openChildChat } from "@/features/chat/children/openChild";
+import { useChatsWithChildrenByProject } from "@/stores/chats";
 import { ChatRow } from "./ChatRow";
 import { inboxByProject, inboxSections, waitingSince, type InboxSection } from "./inboxOrder";
 import type { WaitingOrder } from "./waitingAxes";
@@ -20,9 +22,11 @@ import type { WaitingOrder } from "./waitingAxes";
  * 要対応のチャットのまとまり。並べ方（order）は、状態順 = プロジェクトをまたいで回答待ち → エラー → 未読の見出しに分ける（見出しの中は待っている時間の長い順。
  * 行にどのプロジェクトかの印を添える）/ プロジェクト別 = サイドバーのプロジェクトの並びで見出しに分ける（見出しの中は状態順）。
  * variant: top = 一覧の上にまとめる（「要対応 n 件」の見出しで開閉し、その下にプロジェクトの一覧が続く）/ list = 要対応だけを並べる（これだけを並べる）。
- * 行はプロジェクトの一覧と同じ ChatRow（右クリック・名前の変更・複数選択）。出すのはサイドバーと同じく、しまっていない・タグの絞り込みに合うプロジェクトのチャット
+ * 行はプロジェクトの一覧と同じ ChatRow（右クリック・名前の変更・複数選択）。出すのはサイドバーと同じく、しまっていない・タグの絞り込みに合うプロジェクトのチャット。
+ * 子チャット（孫も）も並べ、押すと設定の開き方（右の欄 / 別ウィンドウ）で開く（利用者の依頼。前は親のないチャットだけで、未読の子チャットが数に入らなかった）
  */
-export function WaitingInbox({ chats, variant, order }: { chats: Record<number, Chat[]>; variant: "top" | "list"; order: WaitingOrder }) {
+export function WaitingInbox({ variant, order }: { variant: "top" | "list"; order: WaitingOrder }) {
+  const chats = useChatsWithChildrenByProject();
   const route = useRoute();
   const { stateOf, approvals } = useChatStates();
   const { visible } = useVisibleProjects();
@@ -53,6 +57,7 @@ export function WaitingInbox({ chats, variant, order }: { chats: Record<number, 
       rename={rename.editorFor(chat)}
       // 状態順はプロジェクトをまたぐので、どのプロジェクトかの印を添える（プロジェクト別は見出しで分かる）
       project={order === "status" ? projectOf.get(chat.project_id) : undefined}
+      onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
     />
   );
   const body =

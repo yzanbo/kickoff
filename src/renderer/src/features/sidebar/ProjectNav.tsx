@@ -79,14 +79,14 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
       <div className={cx("workspaces", nav.compact && "compact")}>
         <ProjectListHead {...nav.head} />
         <div className="workspace-stack">
-          {tagEmptyNotice || <WaitingInbox chats={chats} variant="list" order="status" />}
+          {tagEmptyNotice || <WaitingInbox variant="list" order="status" />}
         </div>
         {selectionBar}
       </div>
     );
   }
   // 一覧の上に: 一覧の上に待っているチャットのまとまり（並べ方は状態順 / プロジェクト別）を置き、その下はすべてのプロジェクト（プロジェクト内の上には WorkspacePage が置く）
-  const topInbox = waitingOnly && waitingScope === "top" && !tagEmpty ? <WaitingInbox chats={chats} variant="top" order={waitingOrder} /> : null;
+  const topInbox = waitingOnly && waitingScope === "top" && !tagEmpty ? <WaitingInbox variant="top" order={waitingOrder} /> : null;
   if (nav.layout === "stack") {
     return <ProjectStack nav={nav} chats={chats} groups={groups} onNewProject={onNewProject} archivedHead={archivedHead} waitingEmpty={waitingEmpty} topInbox={topInbox} selectionBar={selectionBar} />;
   }

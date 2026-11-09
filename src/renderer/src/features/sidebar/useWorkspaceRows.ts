@@ -32,12 +32,15 @@ const isMainBucket = (b: BucketHead) => b.kind !== "pinned" && b.kind !== "archi
 export function useWorkspaceRows({
   projectId,
   chats,
+  counted,
   groupCount,
   searchAll,
   collapsed,
 }: {
   projectId: number;
   chats: Chat[];
+  /** 要対応・状態ごとの数で数えるチャット（アーカイブしていないもの。子チャットも入れる）。要対応・状態で絞るときは、合う子チャットも行に出す */
+  counted: Chat[];
   groupCount: number;
   searchAll: string;
   /** チャット一覧を閉じているか（閉じている間は、作業場所で分けるためのワークツリーの一覧を読みに行かない） */
@@ -71,15 +74,17 @@ export function useWorkspaceRows({
 
   // 出すチャット: アーカイブしていないものは検索・要対応・状態で絞り、アーカイブ済みは（出すときだけ）検索で絞る（要対応のときは出さない）。
   // 行の分け方は、チャット・絞り込み・回答待ちの一覧が変わったときだけ計算し直す（matches は検索語が変わるまで同じ関数）
-  const shown = useMemo(
-    () =>
-      chats.filter((chat) => {
-        if (chat.archived_at) return showArchived && !waitingOnly && matches(chat);
-        const state = stateOf(chat);
-        return matches(chat) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter);
-      }),
-    [chats, showArchived, waitingOnly, matches, stateOf, stateFilter],
-  );
+  // 要対応・状態で絞るときは、合う子チャットも行に並べる（親の中に閉じたままだと見えないため。数にも入れている。利用者の依頼）
+  const shown = useMemo(() => {
+    const fits = (chat: Chat) => {
+      const state = stateOf(chat);
+      return matches(chat) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter);
+    };
+    const top = chats.filter((chat) => (chat.archived_at ? showArchived && !waitingOnly && matches(chat) : fits(chat)));
+    if (!waitingOnly && stateFilter === null) return top;
+    const children = counted.filter((chat) => chat.parent_chat_id !== null && fits(chat));
+    return children.length > 0 ? [...top, ...children] : top;
+  }, [chats, counted, showArchived, waitingOnly, matches, stateOf, stateFilter]);
   const buckets = useChatBuckets(shown, {
     by: sidebarLevels(grouping, order),
     project: projectId,
