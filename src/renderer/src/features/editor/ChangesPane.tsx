@@ -31,7 +31,7 @@ export function ChangesPane({
   empty: boolean;
   action: ActionState<CommitBusy>;
   selected?: Selection;
-  onSelect: (next: Selection) => void;
+  onSelect: (next: { path: string; staged: boolean }) => void;
   rename: FileRename;
 }) {
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）

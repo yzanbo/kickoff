@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { editedChange, selectedChange, type ChangeGroups } from "./useChangesSelection";
+import { changeSelection, editedChange, selectedChange, type ChangeGroups } from "./useChangesSelection";
 
 const groups: ChangeGroups = {
   staged: [{ path: "a.ts", kind: "M" }, { path: "b.ts", kind: "R", old_path: "old.ts" }],
@@ -22,4 +22,18 @@ test("editedChange: 来た方の差分。なくなっていればもう一方、
   assert.deepEqual(editedChange({ path: "b.ts", edit: true }, groups)?.file.old_path, "old.ts");
   assert.equal(editedChange({ path: "z.ts", edit: true }, groups), undefined);
   assert.equal(editedChange({ path: "a.ts" }, groups), undefined);
+});
+
+test("changeSelection: 一覧で選んだら書ける差分で開く。消したファイルと、まだステージしていない変更もあるステージ済みの差分は読むだけ", () => {
+  const g: ChangeGroups = {
+    staged: [{ path: "a.ts", kind: "M" }, { path: "s.ts", kind: "A" }, { path: "gone.ts", kind: "D" }],
+    unstaged: [{ path: "a.ts", kind: "M" }, { path: "c.ts", kind: "U" }, { path: "d.ts", kind: "D" }],
+  };
+  assert.deepEqual(changeSelection({ path: "a.ts", staged: false }, g), { path: "a.ts", staged: false, edit: true });
+  assert.deepEqual(changeSelection({ path: "c.ts", staged: false }, g), { path: "c.ts", staged: false, edit: true });
+  assert.deepEqual(changeSelection({ path: "s.ts", staged: true }, g), { path: "s.ts", staged: true, edit: true });
+  assert.deepEqual(changeSelection({ path: "a.ts", staged: true }, g), { path: "a.ts", staged: true });
+  assert.deepEqual(changeSelection({ path: "d.ts", staged: false }, g), { path: "d.ts", staged: false });
+  assert.deepEqual(changeSelection({ path: "gone.ts", staged: true }, g), { path: "gone.ts", staged: true });
+  assert.deepEqual(changeSelection({ path: "z.ts", staged: false }, g), { path: "z.ts", staged: false });
 });

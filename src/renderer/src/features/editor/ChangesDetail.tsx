@@ -9,7 +9,8 @@ import type { GitStatusController } from "./useGitStatus";
 
 /**
  * ファイルタブの右側: エクスプローラー・検索の行から開いたファイルは中身（FileView。開いたらすぐ書け、変更は行の横の色の帯で見せる）、
- * 変更の一覧から選んだファイルは差分（DiffView）、差分の「編集」から開いたファイルは差分を見ながら編集する中身、それ以外は案内。
+ * 変更の一覧から選んだファイル・差分の「編集」から開いたファイルは差分を見ながら編集する中身（VS Code と同じ。changeSelection）、
+ * 読むだけの差分にするもの（消したファイル・まだステージしていない変更もあるステージ済みの差分）は差分（DiffView）、それ以外は案内。
  * ⌘F は、開いているファイルの中を探す（編集の部品は Monaco の検索、差分・読むだけの表は右上の検索の欄。usePageFind）
  */
 export function ChangesDetail({
@@ -53,10 +54,11 @@ export function ChangesDetail({
       {find}
       {selected && (selected.line !== undefined || selected.edit) ? (
         <FileView
-          key={`${selected.path}:${selected.line ?? ""}:${selected.edit ? "edit" : ""}`}
+          key={`${selected.path}:${selected.line ?? ""}:${selected.edit ? `edit:${selected.staged ?? ""}` : ""}`}
           {...fileViewProps(selected.path)}
           line={selected.line}
           diffBase={edited}
+          autoFocus={selected.focus}
         />
       ) : change ? (
         <DiffView
@@ -64,7 +66,7 @@ export function ChangesDetail({
           file={change.file}
           staged={change.staged}
           version={git.version}
-          onEdit={change.file.kind === "D" ? undefined : () => void setSelected({ path: change.file.path, staged: change.staged, edit: true })}
+          onEdit={change.file.kind === "D" ? undefined : () => void setSelected({ path: change.file.path, staged: change.staged, edit: true, focus: true })}
         />
       ) : selected && selected.staged === undefined ? (
         <FileView key={selected.path} {...fileViewProps(selected.path)} />

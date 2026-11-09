@@ -13,7 +13,7 @@ import { ChangesPane } from "./ChangesPane";
 import { FilesPane } from "./FilesPane";
 import { SearchView } from "./SearchView";
 import { changeKinds, parentFolders } from "./treeModel";
-import { editedChange, selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
+import { changeSelection, editedChange, selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 import { GitInitNotice } from "@/features/project/GitInitNotice";
 import { useFileRename } from "./useFileRename";
@@ -144,7 +144,7 @@ export function EditorTab({
             empty={empty}
             action={gitAction}
             selected={selected}
-            onSelect={(next) => void setSelected(next)}
+            onSelect={(next) => void setSelected(changeSelection(next, groups))}
             rename={rename}
           />
         )}
