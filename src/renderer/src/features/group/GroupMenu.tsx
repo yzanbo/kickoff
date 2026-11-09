@@ -1,4 +1,4 @@
-import { Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { Ellipsis, Pencil, SquarePen, Trash2 } from "lucide-react";
 import type { MouseEvent, ReactNode } from "react";
 import type { ChatGroup } from "@shared/types";
 import { IconButton } from "@/ui/IconButton";
@@ -6,11 +6,22 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 
 /**
- * グループの「…」メニュー（名前を変更・削除）。ホバーで表示が変わらないよう、「…」ボタンはいつも出しておき、
+ * グループの「…」メニュー（新しいチャット・名前を変更・削除）。ホバーで表示が変わらないよう、「…」ボタンはいつも出しておき、
  * 見出しの右クリックでも同じメニューを開く。1 つの画面（サイドバーのプロジェクト・全プロジェクトのボードのグループの列）で 1 つ使う。
+ * onNewChat があれば、いちばん上に「新しいチャット」（そのグループに作る。見出しの鉛筆と同じ）を区切り線で分けて置く。
  * extra は区切り線の下に足す項目（サイドバーの「まとまりを色付きで表示」）
  */
-export function useGroupMenu({ onRename, onDelete, extra }: { onRename: (group: ChatGroup) => void; onDelete: (group: ChatGroup) => void; extra?: ReactNode }) {
+export function useGroupMenu({
+  onNewChat,
+  onRename,
+  onDelete,
+  extra,
+}: {
+  onNewChat?: (group: ChatGroup) => void;
+  onRename: (group: ChatGroup) => void;
+  onDelete: (group: ChatGroup) => void;
+  extra?: ReactNode;
+}) {
   // 「…」はボタンの右端にそろえて下に、右クリックは押した位置に開く
   const menuState = useContextMenu<ChatGroup>({ align: "end" });
   const open = menuState.menu;
@@ -25,7 +36,7 @@ export function useGroupMenu({ onRename, onDelete, extra }: { onRename: (group: 
     <IconButton
       icon={Ellipsis}
       label={`${group.name} のメニュー`}
-      title="メニュー（名前を変更・削除）"
+      title={onNewChat ? "メニュー（新しいチャット・名前を変更・削除）" : "メニュー（名前を変更・削除）"}
       className="group-menu-button"
       aria-haspopup="menu"
       aria-expanded={open?.value.id === group.id}
@@ -40,6 +51,14 @@ export function useGroupMenu({ onRename, onDelete, extra }: { onRename: (group: 
 
   const menu = open && (
     <PopupMenu at={open.at} ignore=".group-menu-button" onClose={menuState.close}>
+      {onNewChat && (
+        <>
+          <MenuItem title={`「${open.value.name}」に新しいチャットを作ります`} onSelect={() => onNewChat(open.value)}>
+            <SquarePen size={14} /> 新しいチャット
+          </MenuItem>
+          <div className="menu-separator" role="separator" />
+        </>
+      )}
       <MenuItem onSelect={() => onRename(open.value)}>
         <Pencil size={14} /> 名前を変更
       </MenuItem>
