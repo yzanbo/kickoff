@@ -24,10 +24,22 @@ test("指示はセクション・タスク・成果物に触れず、プロジ�
   assert.ok(prompt.includes("日本語"));
   assert.ok(prompt.includes("- 名前: a"));
   assert.ok(prompt.includes("メモアプリ"));
-  assert.ok(prompt.includes("- /tmp/spec/（フォルダ）"));
+  assert.ok(prompt.includes("- 「spec」: `/tmp/spec/`（フォルダ）"));
   for (const word of ["セクション", "タスク", "成果物", "mcp__kickoff__", "テストコマンド", "デプロイ", "コミット"]) {
     assert.ok(!prompt.includes(word), word);
   }
+});
+
+test("参照資料: 名前（パスの最後）を添え、「参照資料」・似た名前で言われたらその参照資料のことで、中の場所はそのフォルダから探すよう伝える", () => {
+  const prompt = buildSystemPrompt(project([{ path: "/Users/a/Documents/Design Spec", kind: "folder" }, { path: "/Users/a/notes/api.md", kind: "file" }]));
+  assert.ok(prompt.includes("- 「Design Spec」: `/Users/a/Documents/Design Spec/`（フォルダ）"));
+  assert.ok(prompt.includes("- 「api.md」: `/Users/a/notes/api.md`（ファイル）"));
+  assert.match(prompt, /「参照資料」と言ったら、この一覧のフォルダ・ファイルのこと/);
+  assert.match(prompt, /完全に同じでなくても/);
+  assert.match(prompt, /その参照資料のフォルダからの場所として探して/);
+  assert.match(prompt, /候補を挙げて利用者に聞いて/);
+  // 参照資料がなければ節ごと出さない
+  assert.ok(!buildSystemPrompt(project([])).includes("## 参照資料"));
 });
 
 test("フォルダ: プロジェクトフォルダと作業フォルダを呼び名つきで伝え、ワークツリーのチャットは作業フォルダで作業してプロジェクトフォルダは変えないよう伝える", () => {

@@ -109,10 +109,20 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
       ``,
       `## 参照資料`,
       `このプロジェクトでは、次のフォルダ・ファイルを参照資料として読めます。必要に応じて Read / Glob / Grep で読んでください（書き込みはできません）。`,
-      ...project.reference_paths.map((r) => `- ${r.path}${r.kind === "folder" ? "/（フォルダ）" : "（ファイル）"}`),
+      ...project.reference_paths.map((r) => `- 「${referenceName(r.path)}」: \`${r.path}${r.kind === "folder" ? "/" : ""}\`（${r.kind === "folder" ? "フォルダ" : "ファイル"}）`),
+      // 利用者の依頼: プロジェクトフォルダ・メモと同じく、名前で言われたら参照資料のことだと分かるようにする（似た名前でも）
+      `- 利用者が「参照資料」と言ったら、この一覧のフォルダ・ファイルのことです。`,
+      `- 利用者がフォルダ名・ファイル名を言ったら（「spec を見て」「design の画像」など）、まずこの一覧の名前と照らし合わせてください。完全に同じでなくても、大文字・小文字、区切り（- _ 空白）、単数・複数、略し方、日本語と英語の言い換えの違いだけなら、その参照資料のことです。「spec の api.md」のように中の場所を言われたら、その参照資料のフォルダからの場所として探してください。`,
+      `- プロジェクトフォルダ・作業フォルダに同じ名前があるときは、そちらを先に見て、なければ参照資料を見てください。どれのことか分からないときは、候補を挙げて利用者に聞いてください。`,
+      `- 参照資料のパス（\` \` の中）には空白が入ることがあります。シェルのコマンドで使うときは引用符で囲んでください。`,
     );
   }
   return lines.join("\n");
+}
+
+/** 参照資料の呼び名（パスの最後の名前。末尾の / は除く） */
+function referenceName(path: string): string {
+  return path.replace(/\/+$/, "").split("/").pop() || path;
 }
 
 function indent(text: string): string {
