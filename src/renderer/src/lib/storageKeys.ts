@@ -135,7 +135,7 @@ export const SIDEBAR_BUCKET_COLORS = defineSetting("kickoff:sidebar-bucket-color
 
 /**
  * サイドバーのビュー（プロジェクト・チャット・要対応の見え方の組に名前を付けたもの。features/sidebar/sidebarViews.ts の SidebarViewState）。
- * 初めは「標準」「コンパクト」「要対応」の順（利用者が示した形）。すべて消したら [] を覚え、初めのビューには戻さない（ボードの保存したビューと同じ）
+ * 初めは「標準」「コンパクト」「要対応」の順（利用者が示した形。いちど先頭をコンパクトにしたが、利用者の依頼で標準を先頭に戻した）。すべて消したら [] を覚え、初めのビューには戻さない（ボードの保存したビューと同じ）
  */
 const sidebarView = (id: string, name: string, state: Readonly<Record<string, unknown>>): StoredView => ({
   id,
@@ -155,10 +155,10 @@ const sidebarView = (id: string, name: string, state: Readonly<Record<string, un
   },
 });
 const DEFAULT_SIDEBAR_VIEWS: readonly StoredView[] = [
-  // コンパクト（先頭。初めはこれを選ぶ）: 標準をプロジェクトもチャットも 1 行にし、チャットのアーカイブは隠す
-  sidebarView("default-sidebar-compact", "コンパクト", { layout: "rail", projectCompact: true, chatCompact: true, waitingOn: true }),
-  // 標準: 縦スライド・2 行・チャットのアーカイブも出す・要対応を一覧の上に（プロジェクト別）
+  // 標準（先頭。初めはこれを選ぶ）: 縦スライド・2 行・チャットのアーカイブも出す・要対応を一覧の上に（プロジェクト別）
   sidebarView("default-sidebar-standard", "標準", { layout: "rail", showArchivedChats: true, waitingOn: true }),
+  // コンパクト: 標準をプロジェクトもチャットも 1 行にし、チャットのアーカイブは隠す
+  sidebarView("default-sidebar-compact", "コンパクト", { layout: "rail", projectCompact: true, chatCompact: true, waitingOn: true }),
   // 要対応: 縦並び・要対応のチャットだけ（プロジェクト別）
   sidebarView("default-sidebar-waiting", "要対応", { waitingOn: true, waitingView: "filter" }),
 ];
