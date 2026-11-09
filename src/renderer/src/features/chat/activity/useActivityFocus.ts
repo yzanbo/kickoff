@@ -21,9 +21,10 @@ export interface ActivityFocus {
 }
 
 /**
- * 動きの強調（カードの「動きで見る」）: 絞り込まない行のうち、そのサブエージェントと配下の行（その起動の行も）を強調し、初めの行へ移る。
- * ↑↓ で順に移る。移るときは一番下への付いていきをやめる（新しい行が来ても、見ている場所を動かさない）。
- * 一番下への付いていきの layout effect より後ろで呼ぶ（同じ描き直しで、下へ送ったあとに強調の行へ移すため）
+ * 動きの強調（カードの「動きで見る」）: 絞り込まない行のうち、そのサブエージェントと配下の行（その起動の行も）を強調し、並びの初めの行
+ * （上を最新に並べるので、いちばん新しい行）へ移る。shown は画面に並ぶ順で渡す。
+ * ↑↓ で順に移る。移るときは一番上への付いていきをやめる（新しい行が来ても、見ている場所を動かさない）。
+ * 一番上への付いていきの layout effect より後ろで呼ぶ（同じ描き直しで、上へ送ったあとに強調の行へ移すため）
  */
 export function useActivityFocus(shown: readonly ActivityRow[], tree: SubagentTree | undefined, scrollRef: RefObject<HTMLDivElement | null>, following: RefObject<boolean>): ActivityFocus {
   const focus = useChatPaneState((s) => s.activityFocus) ?? null;

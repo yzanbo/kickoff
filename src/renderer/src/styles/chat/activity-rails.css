@@ -68,14 +68,14 @@
   height: 0;
 }
 
-/* 起動の行: 親の節から右へ出て、子の線へ曲がって入る */
+/* 起動の行: 親の節から右へ出て、子の線へ上へ曲がって入る（動きは上を最新に並べるので、子の線は起動の行より上へ伸びる） */
 .activity-rail-branch {
   position: absolute;
-  top: calc(var(--node-y) - 1px);
+  top: calc(var(--node-y) - 9px);
   height: 10px;
-  border-top: 2px solid var(--rail-color);
+  border-bottom: 2px solid var(--rail-color);
   border-right: 2px solid var(--rail-color);
-  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 .activity-rail-node {
