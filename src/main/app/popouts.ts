@@ -7,7 +7,7 @@ import { showMainWindow } from "./window.js";
 // 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャットを、メインのウィンドウの外に出して見る。2 枚目の画面に置くなど）
 
 /** 画面を読み込む前に見える地の色（メインのウィンドウと同じ） */
-const BACKGROUND = "#181b1a";
+const BACKGROUND = "#141818";
 
 /** 開いている別ウィンドウ（画面の route ごとに 1 つ。同じものを開こうとしたら前に出す） */
 const popouts = new Map<string, BrowserWindow>();

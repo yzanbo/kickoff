@@ -9,7 +9,7 @@ import { watchWindowLoad } from "./startupLog.js";
  * 画面を読み込む前・大きさを変えている間に見える地の色。画面の --bg（styles/base/tokens.css の既定のダーク）と同じにする
  * （以前は #0f1115 で、読み込む間だけ画面と違う色が見えていた）
  */
-const BACKGROUND = "#181b1a";
+const BACKGROUND = "#141818";
 
 let current: BrowserWindow | undefined;
 

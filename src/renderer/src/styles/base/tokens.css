@@ -1,34 +1,37 @@
 /* ==== デザイントークン（ダークが既定、ライトは data-theme="light"） ==== */
 
 :root {
-  /* 既定ダーク（緑みのダーク）に合わせた配色 */
+  /*
+   * 既定のダーク。地はごく薄い青緑みの暗い灰色、アクセントは翡翠の緑。
+   * 値は OKLCH の明るさ・彩度・色相で決め、文字と地のコントラスト比（本文 4.5 以上・状態の点 3 以上）を確かめてある（ライトも同じ）
+   */
   color-scheme: dark;
-  --bg: #181b1a; /* surface0: 画面の地 */
-  --bg-sidebar: #141716; /* surfaceSidebar */
-  --bg-elev: #1e2120; /* surface1: カード・入力欄 */
-  --bg-hover: #272a29; /* surface2 */
-  --bg-active: #434645; /* surface3: 自分の吹き出し・選択中 */
-  --border: #252b2a;
-  --border-strong: #2f3534; /* borderAccent */
+  --bg: #141818; /* 画面の地 */
+  --bg-sidebar: #0f1313; /* サイドバーの地 */
+  --bg-elev: #191f1f; /* カード・入力欄 */
+  --bg-hover: #212727; /* 乗せたとき */
+  --bg-active: #3b4343; /* 自分の吹き出し・選択中 */
+  --border: #1e2626;
+  --border-strong: #283131; /* 目立たせる枠 */
   /* 中のまとまりを分ける濃い区切り線（送信待ちとチャット欄・AI からの質問どうし）。文字の色から作るので、ライトでもそのまま濃く見える */
   --divider-strong: color-mix(in srgb, var(--text) 30%, transparent);
-  --text: #fafafa;
-  --muted: #a1a5a4;
-  --extra-muted: #717574;
-  --accent: #20744a;
-  --accent-bright: #7ccba0;
+  --text: #f5f7f7;
+  --muted: #9fa8a8;
+  --extra-muted: #6d7575;
+  --accent: #137752;
+  --accent-bright: #80d8ae;
   --accent-text: #ffffff;
   /* アクセントの色の文字（オンになっている切り替えなど。ダークでは明るい緑、ライトでは地に負けない濃い緑） */
   --accent-fg: var(--accent-bright);
-  --ok: #6cb17b;
-  --ng: #d8847b;
-  --warn: #c09664;
-  --info: #5caaf6;
-  /* 状態の点（statusDot*。明るさをそろえて見分けやすくしたもの） */
-  --dot-needs-input: #db932e;
-  --dot-failed: #f7796d;
-  --dot-running: #5caaf6;
-  --dot-unread: #35c264;
+  --ok: #74bd84;
+  --ng: #de8377;
+  --warn: #cba167;
+  --info: #65acee;
+  /* 状態の点（明るさをそろえて見分けやすくしたもの） */
+  --dot-needs-input: #e4962f;
+  --dot-failed: #f06d5f;
+  --dot-running: #65acee;
+  --dot-unread: #45c66d;
   /*
    * 状態の文字の色（チャット・子チャット・サブエージェントの「失敗」「回答待ち」などの文。印の色と同じ色合いで、文字として読める濃さ）。
    * 印の色に文字の色を少し混ぜる（ライトでは暗く、ダークでは明るくなる）ので、テーマごとに書き直さない
@@ -66,7 +69,7 @@
   /* ドラッグの絵（ui/drag-ghost.css の写し）の濃さ。下の「入る位置の線」・落とし先の枠が透けて見えるよう薄くする */
   --drag-ghost-opacity: 0.4;
   /* 選択欄の ▾（buttons-forms.css の select。色は --muted と同じ。CSS の変数は画像の中で使えないので色を書く） */
-  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a1a5a4' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239fa8a8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   /* 真ん中の画面（ボード・エディタ）に残す最小の幅。右のチャット欄を広げても、ここまでは残す */
   --main-min-w: 320px;
   --mono: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -80,26 +83,26 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23676c73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   --bg: #ffffff;
   --accent-fg: var(--accent);
-  --bg-sidebar: #f4f4f5;
-  --bg-elev: #fafafa;
-  --bg-hover: #f4f4f5;
-  --bg-active: #e4e4e7;
-  --border: #e4e4e7;
-  --border-strong: #ececf1;
-  --text: #1a1a1e;
-  --muted: #71717a;
-  --extra-muted: #a1a1aa;
-  --ok: #3e704a;
-  --ng: #9d433b;
-  --warn: #7b5d39;
-  --info: #268ae0;
-  --dot-needs-input: #b37824;
-  --dot-failed: #f12e2f;
-  --dot-running: #268ae0;
-  --dot-unread: #299f51;
+  --bg-sidebar: #f2f4f6;
+  --bg-elev: #f8fafb;
+  --bg-hover: #f0f2f4;
+  --bg-active: #e1e4e7;
+  --border: #e0e3e6;
+  --border-strong: #e8ebef;
+  --text: #171a1d;
+  --muted: #676c73;
+  --extra-muted: #9ea4a9;
+  --ok: #306c40;
+  --ng: #973c33;
+  --warn: #79562b;
+  --info: #1276c6;
+  --dot-needs-input: #b97515;
+  --dot-failed: #e4312b;
+  --dot-running: #1276c6;
+  --dot-unread: #0c9d49;
   --sec-requirements: #2a78d6;
   --sec-schedule: #6250d6;
   --sec-implementation: #eb6834;
