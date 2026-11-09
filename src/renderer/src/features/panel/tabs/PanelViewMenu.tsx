@@ -14,12 +14,14 @@ import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
 import { usePanelViewReset } from "./usePanelViewReset";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
-import { PANEL_TAB_GROUP_COLORS } from "@/lib/storageKeys";
+import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleTabField } from "./tabFields";
 import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/sidebar/chatGroupings";
 
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
- * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・チャットの並び順（サイドバーと共通）・グループ別のときに出すグループ（HiddenGroupItems）・アーカイブ済みのチャットを出すか・チャット画面表示
+ * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・チャットの並び順（サイドバーと共通）・タブに出す項目（tabFields）・グループ別のときに出すグループ（HiddenGroupItems）・アーカイブ済みのチャットを出すか・チャット画面表示
  * （タブの列・見出し・指示の帯・会話の横幅と文字の大きさ・チャット欄。ChatDisplayItems。どのチャットでも共通）
  * を 1 つにまとめる（以前はそれぞれのアイコンが並び、タブの列の道具が多かった）。
  * チャットの画面の切り替えは、見出しを隠しても戻せるよう、見出しの外のここに置く。
@@ -33,6 +35,9 @@ export function usePanelViewMenu(panel: PanelController) {
   const [archived, setArchived] = useShowArchivedChats();
   // チャットの並び順はサイドバーと共通の 1 つの設定（利用者の依頼。一覧のペインのチャットのタブはサイドバーと同じ並びなので、どちらで選んでもそろう）
   const { order, setOrder } = useChatLayout();
+  // タブに出す項目（隠した項目だけを覚える）
+  const [tabHidden, setTabHidden] = useSetting(PANEL_TAB_HIDDEN);
+  const hiddenFields = hiddenTabFields(tabHidden);
   const menu = useContextMenu();
   // いちばん下の「既定に戻す」（メニューに出ている選び方を初めの値に戻す。初めのままなら押せない）
   const defaults = usePanelViewReset(panel.surface, kinds.has("chat"));
@@ -97,6 +102,37 @@ export function usePanelViewMenu(panel: PanelController) {
             {o === order && <Check size={14} aria-hidden />}
           </MenuItem>
         )),
+      ),
+    );
+    // タブに出す項目（状態・ピン留め・グループ・作業場所。すべてのパネルで共通）。いまのまとめ方の項目（グループ別ならグループ・作業場所別なら作業場所）は、
+    // まとまりの札に出るので選んでいてもタブには出さない: チェックはそのまま薄くして押せなくし、別のまとめ方にすれば選んだとおりに出る
+    sections.push(
+      section(
+        "タブに出す項目",
+        TAB_FIELDS.map((f) => {
+          const on = !hiddenFields.has(f);
+          const grouped = groupedTabField(grouping) === f;
+          return (
+            <MenuItem
+              key={f}
+              role="menuitemcheckbox"
+              checked={on}
+              disabled={grouped}
+              keepOpen
+              title={
+                grouped
+                  ? `${CHAT_GROUPING_LABELS[grouping]}にまとめているので、${TAB_FIELD_LABELS[f]}はまとまりの札に出し、タブには出しません（別のまとめ方にすると、選んだとおりに出ます）`
+                  : on
+                    ? `タブの${TAB_FIELD_LABELS[f]}を隠す`
+                    : `タブに${TAB_FIELD_LABELS[f]}を出す`
+              }
+              onSelect={() => setTabHidden(toggleTabField(tabHidden, f))}
+            >
+              <span className="project-switch-item">{TAB_FIELD_LABELS[f]}</span>
+              {on && <Check size={14} aria-hidden />}
+            </MenuItem>
+          );
+        }),
       ),
     );
     // グループ別のときだけ: タブの列に出すグループ（自分で作ったグループを隠す・チャットのないグループを隠す）
