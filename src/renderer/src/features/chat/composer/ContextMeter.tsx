@@ -103,7 +103,7 @@ export function ContextMeter({
             </dl>
           </section>
 
-          {/* 圧縮の設定: 自動圧縮を始める量（設定の「チャット」と同じ値）と、圧縮の前に AI に送る指示（設定の「定型文」と同じ値） */}
+          {/* 圧縮の設定: 自動圧縮を始める量（設定の「チャット」と同じ値）と、圧縮の前に AI に送る指示（設定の「圧縮前・圧縮後指示」と同じ値） */}
           <section className="context-section">
             <AutoCompactSelect windowSize={windowSize} />
             <CompactPromptEditor kind="pre" projectId={projectId} />

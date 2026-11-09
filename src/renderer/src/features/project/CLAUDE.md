@@ -34,7 +34,7 @@
 
 ## 編集のダイアログ（`settings/`）
 
-プロジェクト名の横の歯車・サイドバーの右クリックから開く `ProjectEditDialog`（`TabbedDialog`。画面は移らない）。項目は `PROJECT_SETTINGS_SECTIONS`: 基本情報（プロジェクトフォルダ・メモフォルダ（見るだけ。「変更…」でメモの項目へ移る。`TabbedDialog` の子が受ける `select` で移る）・名前・説明・色・タグ。`BasicInfo`）・参照資料（AI がいつでも読めるフォルダ・ファイル。その場で保存。`ReferenceEditor`）・AI（どの AI を使うかのカードと、その AI の既定 `AiSection` / `AiDefaults`。「アプリの設定に従う」を選べる）・メモ（このプロジェクトだけメモを別の場所にする。`MemoLocation`）・定型文（このプロジェクトで使う定型文と、このプロジェクトの圧縮前指示・圧縮後指示。`features/snippet` の `SnippetSettings`）・削除（`DeleteProject`）。
+プロジェクト名の横の歯車・サイドバーの右クリックから開く `ProjectEditDialog`（`TabbedDialog`。画面は移らない）。項目は `PROJECT_SETTINGS_SECTIONS`: 基本情報（プロジェクトフォルダ・メモフォルダ（その場で変える `MemoFolderField`。ふだんは空欄で薄い文字にいまの場所、書く・選ぶとこのプロジェクトだけ別の場所。利用者の依頼で、前は別の項目「メモ」で変えていた）・名前・説明・色・タグ。`BasicInfo`）・参照資料（AI がいつでも読めるフォルダ・ファイル。その場で保存。`ReferenceEditor`）・AI（どの AI を使うかのカードと、その AI の既定 `AiSection` / `AiDefaults`。「アプリの設定に従う」を選べる）・定型文（このプロジェクトで使う定型文。`features/snippet` の `SnippetSettings`）・圧縮前・圧縮後指示（このプロジェクトの圧縮前指示・圧縮後指示。`CompactPromptSettings`。利用者の依頼で定型文から分けた）・削除（`DeleteProject`）。
 
 ## 新しいプロジェクト（`new/`）
 

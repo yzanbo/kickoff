@@ -24,7 +24,7 @@ function summaryOf(common: { saved: string | null; enabled: boolean }, project: 
 }
 
 /**
- * チャット欄のメーターの詳細の「圧縮前指示」「圧縮後指示」: 会話を圧縮する前・後に AI に送る指示を、その場で書いて保存する（設定の「定型文」の欄と同じ値）。
+ * チャット欄のメーターの詳細の「圧縮前指示」「圧縮後指示」: 会話を圧縮する前・後に AI に送る指示を、その場で書いて保存する（設定の「圧縮前・圧縮後指示」の欄と同じ値）。
  * 開閉の行（初めは閉じる。開いているかは種類ごとに覚える）に、書いてある指示の範囲（オフのものは「（オフ）」付き）を添える。開くと、共通 / プロジェクト（名前で出す）を切り替えて書く
  * （両方の書きかけを持ち、切り替えても消さない。送るときはオンの分を共通 → プロジェクトの順につなぐ）。右のオン / オフは選んでいる方の分で、押したらすぐ保存する（オフでも文は残す）
  */
@@ -54,7 +54,7 @@ export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKi
               value={scope}
               onChange={setScope}
               options={[
-                { value: "common", label: "共通", tip: "すべてのプロジェクトで送る指示（設定の「定型文」と同じ）" },
+                { value: "common", label: "共通", tip: "すべてのプロジェクトで送る指示（設定の「圧縮前・圧縮後指示」と同じ）" },
                 { value: "project", label: projectName, tip: `「${projectName}」だけで、共通の指示のあとにつなげて送る指示` },
               ]}
             />

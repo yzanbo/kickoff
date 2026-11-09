@@ -26,7 +26,7 @@ export function CompactPromptForm({ kind, projectId }: { kind: CompactPromptKind
       <h2>{label}</h2>
       <p className="muted small">
         {DESCRIPTIONS[kind]}
-        {projectId === null ? "プロジェクトの設定にも指示があれば、この共通の指示のあとにつなげて送ります。" : "アプリの設定の「定型文」に共通の指示があれば、そのあとにこのプロジェクトの指示をつなげて送ります。"}
+        {projectId === null ? "プロジェクトの設定にも指示があれば、この共通の指示のあとにつなげて送ります。" : "アプリの設定の「圧縮前・圧縮後指示」に共通の指示があれば、そのあとにこのプロジェクトの指示をつなげて送ります。"}
       </p>
       <div className="form">
         <Field as="div" label="送る" help="オフにすると、書いた文は残したまま送りません。">
