@@ -1,7 +1,7 @@
-import { Paperclip } from "lucide-react";
 import type { CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
+import { AddToChat } from "@/ui/icons";
 import { Chevron } from "@/ui/Chevron";
 import { Collapse } from "@/ui/Collapse";
 import { FileIcon } from "@/features/editor/FileIcon";
@@ -84,7 +84,7 @@ export function MemoChipTree(props: Props) {
               <span className="memo-chip-title">{node.name}</span>
               <IconButton
                 type="button"
-                icon={Paperclip}
+                icon={AddToChat}
                 size={13}
                 label="このチャットに添付"
                 title="メモを開かずに、このチャットの入力欄に添付します"
