@@ -32,6 +32,10 @@ test("parse: ファイルタブで開くファイル（ファイルタブでだ�
   assert.deepEqual(parse("#/projects/3/history?file=a.ts"), { name: "project", id: 3, tab: "history" });
   // 開くメモはメモのタブでだけ読む
   assert.deepEqual(parse("#/projects/3/changes?memo=a.md"), { name: "project", id: 3, tab: "changes" });
+  // メモで移る行は、開くメモがあるときだけ（0・数でないものは付けない）
+  assert.deepEqual(parse("#/projects/3/memos?memo=a.md&line=7"), { name: "project", id: 3, tab: "memos", memo: "a.md", memoLine: 7 });
+  assert.deepEqual(parse("#/projects/3/memos?memo=a.md&line=0"), { name: "project", id: 3, tab: "memos", memo: "a.md" });
+  assert.deepEqual(parse("#/projects/3/memos?line=7"), { name: "project", id: 3, tab: "memos" });
 });
 
 test("parse: 新しいチャット（以前の section は読まない）とチャット（focus は 0 なら付けない）", () => {
@@ -55,6 +59,7 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "memos" },
     { name: "project", id: 1, tab: "chats" },
     { name: "project", id: 1, tab: "memos", memo: "設計/DB の方針.md" },
+    { name: "project", id: 1, tab: "memos", memo: "設計/DB の方針.md", memoLine: 12 },
     { name: "newChat", projectId: 2, group: 4 },
     { name: "chat", projectId: 2, chatId: 30 },
     { name: "chat", projectId: 2, chatId: 30, focus: 8 },
@@ -81,6 +86,7 @@ test("boardTabOf: チャット・新しいチャットの URL では、チャッ
 test("lastingRoute: 起動したときに開く画面として覚えるのは、一度きりの指定（開くファイル・メモ・強調する発言）を外した形", () => {
   assert.equal(href(lastingRoute(parse("#/projects/3/files?file=src%2Fa.ts&line=4"))), "#/projects/3/files");
   assert.equal(href(lastingRoute(parse("#/projects/3/memos?memo=a.md"))), "#/projects/3/memos");
+  assert.equal(href(lastingRoute(parse("#/projects/3/memos?memo=a.md&line=4"))), "#/projects/3/memos");
   assert.equal(href(lastingRoute(parse("#/projects/3/chats/9?event=12"))), "#/projects/3/chats/9");
   assert.equal(href(lastingRoute(parse("#/projects/3/changes"))), "#/projects/3/changes");
   assert.equal(href(lastingRoute(parse("#/projects/3/new?group=2"))), "#/projects/3/new?group=2");

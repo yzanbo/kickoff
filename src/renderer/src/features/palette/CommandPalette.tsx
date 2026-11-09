@@ -1,6 +1,5 @@
-import { Bot, FolderGit2, MessageSquare, Search, SquarePen, User } from "lucide-react";
+import { FolderGit2, MessageSquare, Search, SquarePen } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { SearchHit } from "@shared/types";
 import { api } from "@/api";
 import { useChats } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -12,66 +11,25 @@ import { useProjects } from "@/stores/projects";
 import { navigate } from "@/app/router";
 import { COMMAND_PALETTE_TARGETS } from "@/lib/storageKeys";
 import type { PaletteItem as Item } from "./paletteItem";
+import { memoTextItem, messageItem, useDebouncedSearch } from "./textSearchItems";
 import { usePaletteMemos } from "./usePaletteMemos";
 
-/** 探す対象。チャットの中の文言は全文検索（⌘⇧F と同じ API）で、入力したときだけ探す。メモはすべてのプロジェクトのメモを名前（とフォルダ）で */
-type Target = "project" | "chat" | "memo" | "message";
+/**
+ * 探す対象。チャットの中の文言は全文検索（⌘⇧F と同じ API）で、入力したときだけ探す。メモはすべてのプロジェクトのメモを名前（とフォルダ）で。
+ * メモの中の文言は、すべてのプロジェクトのメモの中の行を、入力したときだけ探す
+ */
+type Target = "project" | "chat" | "memo" | "message" | "memoText";
 const TARGETS: { value: Target; label: string }[] = [
   { value: "project", label: "プロジェクト" },
   { value: "chat", label: "チャット" },
   { value: "memo", label: "メモ" },
   { value: "message", label: "チャット内の文言" },
+  { value: "memoText", label: "メモ内の文言" },
 ];
 const DEFAULT_TARGETS: Target[] = ["project", "chat", "memo"];
 const isTarget = (t: string): t is Target => TARGETS.some((x) => x.value === t);
 
-/** 全文検索の 1 件を、⌘K の行にする（押すとその発言へ移って強調する） */
-function messageItem(hit: SearchHit, projectName: (id: number) => string): Item {
-  return {
-    key: `m-${hit.event_id}`,
-    label: (
-      <>
-        {hit.snippet.slice(0, hit.match_start)}
-        <mark>{hit.snippet.slice(hit.match_start, hit.match_end)}</mark>
-        {hit.snippet.slice(hit.match_end)}
-      </>
-    ),
-    text: hit.snippet,
-    hint: `${chatTitle(hit.chat_title)} · ${projectName(hit.project_id)}`,
-    icon: hit.type === "user" ? <User size={15} aria-label="自分" /> : <Bot size={15} aria-label="AI" />,
-    route: { name: "chat", projectId: hit.project_id, chatId: hit.chat_id, focus: hit.event_id },
-  };
-}
-
-/** チャットの中の文言: 入力が止まったら全文検索する（対象に入れていないときは探さない） */
-function useMessageSearch(query: string, enabled: boolean) {
-  const [hits, setHits] = useState<SearchHit[]>([]);
-  const [searching, setSearching] = useState(false);
-  useEffect(() => {
-    const q = query.trim();
-    if (!enabled || !q) {
-      setHits([]);
-      setSearching(false);
-      return;
-    }
-    let alive = true;
-    setSearching(true);
-    const timer = setTimeout(() => {
-      api
-        .search(q, {})
-        .then((r) => alive && setHits(r))
-        .catch(() => alive && setHits([]))
-        .finally(() => alive && setSearching(false));
-    }, 200);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [query, enabled]);
-  return { hits, searching };
-}
-
-/** ⌘K: プロジェクト・チャット・メモを名前で（選べばチャットの中の文言でも）探して移動する */
+/** ⌘K: プロジェクト・チャット・メモを名前で（選べばチャット・メモの中の文言でも）探して移動する */
 export function CommandPalette({ onClose }: { onClose: () => void }) {
   const { projects, projectName } = useProjects();
   const [query, setQuery] = useState("");
@@ -87,7 +45,9 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     const next = TARGETS.map((x) => x.value).filter((x) => (x === t ? !targets.includes(t) : targets.includes(x)));
     if (next.length > 0) setStored(next);
   };
-  const { hits, searching } = useMessageSearch(query, targets.includes("message"));
+  const messages = useDebouncedSearch(query, targets.includes("message"), (q) => api.search(q, {}));
+  const memoTexts = useDebouncedSearch(query, targets.includes("memoText"), (q) => api.searchMemos(q).then((r) => r.hits));
+  const searching = messages.searching || memoTexts.searching;
   const memos = usePaletteMemos(projects, targets.includes("memo"), projectName);
 
   const items = useMemo<Item[]>(() => {
@@ -113,10 +73,10 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     }
     named.push(...memos);
     const filtered = q ? named.filter((i) => `${i.text} ${i.hint}`.toLowerCase().includes(q)) : named;
-    // 名前で見つかったものを先に、続けてチャットの中の文言（それぞれ 50 件まで）
-    return [...filtered.slice(0, 50), ...hits.map((h) => messageItem(h, projectName))];
+    // 名前で見つかったものを先に（50 件まで）、続けてチャットの中の文言・メモの中の文言
+    return [...filtered.slice(0, 50), ...messages.hits.map((h) => messageItem(h, projectName)), ...memoTexts.hits.map((h) => memoTextItem(h, projectName))];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, chats, memos, query, hits, targetKey, projectName]);
+  }, [projects, chats, memos, query, messages.hits, memoTexts.hits, targetKey, projectName]);
 
   function go(item: Item | undefined) {
     if (!item) return;

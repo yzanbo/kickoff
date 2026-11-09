@@ -27,6 +27,8 @@ interface ProjectPageProps {
   openFile?: FileTarget;
   /** メモのタブで開くメモ（チャットの「メモに追加」から） */
   openMemo?: string;
+  /** そのメモで移る行（⌘K の「メモ内の文言」から） */
+  openMemoLine?: number;
 }
 
 /**
@@ -42,7 +44,7 @@ export function ProjectPage(props: ProjectPageProps) {
   return <ProjectPageBody {...props} />;
 }
 
-function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo }: ProjectPageProps) {
+function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMemoLine }: ProjectPageProps) {
   // チャットをボードの右で開く置き方では「チャット」タブはないので、そのタブの URL はボードで出す
   const [placement] = useChatPlacement();
   const tab: ProjectTab = routeTab === "chats" && placement === "together" ? "board" : routeTab;
@@ -105,7 +107,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo }: Proje
         </WorktreeContext.Provider>
       )}
       {/* メモ（プロジェクトの外のフォルダ。作業場所には関係しない）。別のプロジェクトを読み込んでいる途中は、URL で来たメモを渡さない */}
-      {tab === "memos" && <MemoTab key={project.id} projectId={project.id} openMemo={stale ? undefined : openMemo} />}
+      {tab === "memos" && <MemoTab key={project.id} projectId={project.id} openMemo={stale ? undefined : openMemo} openMemoLine={openMemoLine} />}
       </div>
       </div>
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}

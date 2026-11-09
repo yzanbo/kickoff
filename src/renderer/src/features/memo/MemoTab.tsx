@@ -25,6 +25,7 @@ import { memoListDropProps } from "./memoDrag";
 import { MemoTree, type MemoRenaming } from "./MemoTree";
 import { confirmLeaveMemosUnder } from "./memoGuards";
 import { closeMemoTabsUnder, openMemoInPanel } from "./memoPanel";
+import { requestMemoReveal } from "./memoReveal";
 import { MemoPlanDialog } from "./MemoPlanDialog";
 import { followMovedMemo, useMemoActions } from "./useMemoActions";
 
@@ -34,11 +35,11 @@ const NO_TERMINALS: readonly TerminalTarget[] = [];
 
 /**
  * プロジェクトの「メモ」タブ（左にメモのフォルダの木、右に開いたメモ）。左の一覧は隠せる（MEMO_LIST_HIDDEN。隠している間は左端の細い帯に「一覧を表示」）。メモはプロジェクトの外（設定の親フォルダの下の、
- * プロジェクトごとのフォルダ）の Markdown。openMemo は URL の ?memo= で来たメモ（チャットの「メモに追加」から。開いたら URL から外す）。
+ * プロジェクトごとのフォルダ）の Markdown。openMemo は URL の ?memo= で来たメモ（チャットの「メモに追加」・⌘K から。開いたら URL から外す）、openMemoLine はそのメモで移る行（⌘K の「メモ内の文言」）。
  * 右は開いたメモをタブで並べるパネル（memos。チャットのパネルと同じく、タブのドラッグで上下・左右に分けられる）。一覧のメモを押すと、ピントのあるペインで表示中のメモを入れ替え、
  * ⌘クリックで新しいタブに開く（openMemoInPanel）。一覧の選んでいる行は、ピントのあるペインで表示中のメモ。最後に表示したメモは memoSelected に覚え、次に開いたときに開き直す
  */
-export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?: string }) {
+export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: number; openMemo?: string; openMemoLine?: number }) {
   const list = useMemoList(projectId);
   const panel = usePanel({ surface: "memos", scope: projectId, newChat: undefined, terminals: NO_TERMINALS });
   const { panelOpen, setOpen } = panel;
@@ -87,14 +88,16 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entriesLoaded]);
 
-  // URL で来たメモを新しいタブで開いて（開いていればそのタブ）、URL から外す（チャットの「メモに追加」のあと）
+  // URL で来たメモを新しいタブで開いて（開いていればそのタブ）、URL から外す（チャットの「メモに追加」のあと）。
+  // 行があれば（⌘K の「メモ内の文言」）、開いたメモでその行へ移る
   useEffect(() => {
     if (!openMemo) return;
+    if (openMemoLine) requestMemoReveal(projectId, openMemo, openMemoLine);
     void select(openMemo, true);
     memosStore.invalidate(projectId);
     navigate({ name: "project", id: projectId, tab: "memos" }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openMemo]);
+  }, [openMemo, openMemoLine]);
 
   /** 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える。一覧の操作と、題名での名前の変更・AI の整理案のまとめての移動で共通） */
   const moved = (from: string, to: string) => followMovedMemo(projectId, from, to);

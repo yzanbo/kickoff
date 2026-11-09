@@ -143,6 +143,7 @@ export function App() {
               focus={route.name === "project" ? undefined : route}
               openFile={route.name === "project" ? route.file : undefined}
               openMemo={route.name === "project" ? route.memo : undefined}
+              openMemoLine={route.name === "project" ? route.memoLine : undefined}
             />
           ) : (
             <AllProjectsPage />
