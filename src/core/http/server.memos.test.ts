@@ -263,3 +263,34 @@ test("メモの AI: フォルダの整理案は使える案だけを返し、動
   const paths = (await call("GET", `${base}/memos`)).body.entries.map((e: { path: string }) => e.path);
   assert.ok(paths.includes("メモ1.md"));
 });
+
+test("メモの中の文を探す: すべてのプロジェクトのメモ（.md・.html）の行を返す。アーカイブ・メモのフォルダを決めていないプロジェクトは探さない", async () => {
+  const { call, project, store } = setup();
+  await call("POST", `/api/projects/${project.id}/memos`, { path: "設計/DB.md", content: "# DB\n  索引は Chat ごとに張る\n関係ない行\n" });
+  await call("POST", `/api/projects/${project.id}/memos`, { path: "画面.html", content: "<p>chat の一覧</p>\n" });
+  const other = store.projects.create({ name: "ほか", repo_path: tempDir(), provider: "claude" });
+  await call("POST", `/api/projects/${other.id}/memos`, { path: "メモ.md", content: "CHAT の話\n" });
+  // まだメモのフォルダを決めていないプロジェクトは、探すだけでフォルダ名を決めない
+  const fresh = store.projects.create({ name: "まだ", repo_path: tempDir(), provider: "claude" });
+  // アーカイブしたプロジェクトは探さない
+  const archived = store.projects.create({ name: "しまった", repo_path: tempDir(), provider: "claude" });
+  await call("POST", `/api/projects/${archived.id}/memos`, { path: "古い.md", content: "chat\n" });
+  await call("PATCH", `/api/projects/${archived.id}`, { archived: true });
+
+  const res = await call("GET", `/api/memos/search?q=${encodeURIComponent("chat")}`);
+  assert.equal(res.status, 200);
+  const hits = res.body.hits as { project_id: number; path: string; line: number; text: string; match_start: number; match_end: number }[];
+  assert.deepEqual(
+    hits.map((h) => [h.project_id, h.path, h.line, h.text.slice(h.match_start, h.match_end)]).sort(),
+    [
+      [other.id, "メモ.md", 1, "CHAT"],
+      [project.id, "画面.html", 1, "chat"],
+      [project.id, "設計/DB.md", 2, "Chat"],
+    ].sort(),
+  );
+  assert.equal(res.body.truncated, false);
+  assert.equal(store.projects.get(fresh.id)?.memo_folder, null);
+  // 空なら何も返さない・長すぎれば 400
+  assert.deepEqual((await call("GET", "/api/memos/search?q=")).body, { hits: [], truncated: false });
+  assert.equal((await call("GET", `/api/memos/search?q=${"a".repeat(201)}`)).status, 400);
+});

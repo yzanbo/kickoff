@@ -41,6 +41,8 @@ export interface MemoEditorHandle {
   selectionRect: () => { left: number; top: number; width: number } | null;
   /** 選んでいる所を text に置き換える（選んでいなければカーソルの位置に入れる。⌘Z で戻せる） */
   insert: (text: string) => void;
+  /** その行（1 から）を選んで真ん中に見せる（⌘K の「メモ内の文言」から開いたとき。行が足りなければ最後の行） */
+  revealLine: (line: number) => void;
 }
 
 interface Props {
@@ -59,6 +61,8 @@ interface Props {
   handleRef?: MutableRefObject<MemoEditorHandle | null>;
   /** 本文の右クリック（画面の位置。メモの右クリックのメニューを開く） */
   onContextMenu?: (at: { x: number; y: number }) => void;
+  /** 作り終えた（外から動かす口が使えるようになった。頼まれていた行へ移るのに使う） */
+  onReady?: () => void;
 }
 
 /** HTML のソースの色分け（アプリの色の変数で、ダークでもライトでも読める色に。Markdown のメモには付けない） */
@@ -86,7 +90,7 @@ const selectionTheme = EditorView.theme({
  * 行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、メモを開いたときに初めて読み込む（default export）
  * 右クリックは自前のメニュー（onContextMenu。チャットに追加・コピーなど）。
  */
-export default function MemoEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu }: Props) {
+export default function MemoEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const [mode] = useState(() => new Compartment());
@@ -169,7 +173,13 @@ export default function MemoEditor({ initialValue, kind, live, hidden = false, o
           v.dispatch(v.state.replaceSelection(text), { scrollIntoView: true, userEvent: "input.paste" });
           v.focus();
         },
+        revealLine: (line) => {
+          const target = v.state.doc.line(Math.min(Math.max(1, line), v.state.doc.lines));
+          v.dispatch({ selection: { anchor: target.from, head: target.to }, effects: EditorView.scrollIntoView(target.from, { y: "center" }) });
+          v.focus();
+        },
       };
+      onReady?.();
     }
     return () => {
       v.destroy();

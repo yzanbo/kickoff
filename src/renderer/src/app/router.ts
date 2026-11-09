@@ -20,8 +20,11 @@ export interface FileTarget {
 export type Route =
   /** 全プロジェクト（全プロジェクトのチャットのカンバン。URL は #/） */
   | { name: "allProjects" }
-  /** file: ファイルタブで開くファイル（開いたら URL から外す）。memo: メモのタブで開くメモ（メモのフォルダからの相対パス。開いたら URL から外す） */
-  | { name: "project"; id: number; tab: ProjectTab; file?: FileTarget; memo?: string }
+  /**
+   * file: ファイルタブで開くファイル（開いたら URL から外す）。memo: メモのタブで開くメモ（メモのフォルダからの相対パス。開いたら URL から外す）。
+   * memoLine: そのメモで移る行（⌘K の「メモ内の文言」から。URL は ?line=）
+   */
+  | { name: "project"; id: number; tab: ProjectTab; file?: FileTarget; memo?: string; memoLine?: number }
   | { name: "newChat"; projectId: number; group?: number }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "chat"; projectId: number; chatId: number; focus?: number };
@@ -51,12 +54,14 @@ export function parse(hash: string): Route {
     const file = named === "files" || named === "changes" ? parseFileTarget(params) : undefined;
     const tab: ProjectTab = file ? "files" : named;
     const memo = tab === "memos" ? params.get("memo") : null;
+    const memoLine = Number(params.get("line"));
     return {
       name: "project",
       id: Number(project[1]),
       tab,
       ...(file ? { file } : {}),
       ...(memo ? { memo } : {}),
+      ...(memo && Number.isInteger(memoLine) && memoLine > 0 ? { memoLine } : {}),
     };
   }
   return { name: "allProjects" };
@@ -114,7 +119,8 @@ export function href(route: Route): string {
     case "project":
       if (route.tab === "board") return `#/projects/${route.id}`;
       if (route.tab === "files") return `#/projects/${route.id}/files${route.file ? fileQuery(route.file) : ""}`;
-      if (route.tab === "memos") return `#/projects/${route.id}/memos${route.memo ? `?${new URLSearchParams({ memo: route.memo })}` : ""}`;
+      if (route.tab === "memos")
+        return `#/projects/${route.id}/memos${route.memo ? `?${new URLSearchParams({ memo: route.memo, ...(route.memoLine ? { line: String(route.memoLine) } : {}) })}` : ""}`;
       return `#/projects/${route.id}/${route.tab}`;
     case "newChat": {
       return `#/projects/${route.projectId}/new${route.group ? `?group=${route.group}` : ""}`;

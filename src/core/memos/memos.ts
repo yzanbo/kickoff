@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { memoKindOf } from "@shared/memo/kinds";
 import { chatMemoName, projectMemoFolder } from "@shared/memo/names";
-import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoPlan, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
+import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoPlan, type MemoSearchResult, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { assertInside, readProjectFile, writeProjectFile } from "../git/index.js";
 import { asInvalid, Conflict, Invalid, NotFound } from "../http/errors.js";
@@ -12,6 +12,7 @@ import type { AgentProvider } from "../providers/types.js";
 import { runCommand } from "../system/exec.js";
 import { expandHome, realPathLoose } from "../system/paths.js";
 import { memoMergePrompt, memoPlanPrompt, parseMergedMemo, parseMemoPlan, type PlanFile } from "./memoAi.js";
+import { searchMemoTexts } from "./memoSearch.js";
 import { MemoWatcher } from "./memoWatcher.js";
 
 /** 一覧に出す数の上限（大きなフォルダを指しても重くならないように） */
@@ -119,6 +120,24 @@ export class MemoService {
     };
     if (exists) await walk("");
     return { dir, exists, entries, truncated };
+  }
+
+  /**
+   * すべてのプロジェクト（アーカイブしたものを除く）のメモの中の文を探す（⌘K の「メモ内の文言」）。
+   * まだメモのフォルダを決めていないプロジェクトは探さない（探すだけでフォルダ名を決めないように）。同じフォルダを指すプロジェクトは 1 回だけ
+   */
+  async search(query: string): Promise<MemoSearchResult> {
+    const seen = new Set<string>();
+    const sources: { projectId: number; dir: string; files: string[] }[] = [];
+    for (const project of this.opts.store.projects.list()) {
+      if (project.archived_at || (!project.memo_path && !project.memo_folder)) continue;
+      const real = realPathLoose(this.dirOf(project));
+      if (seen.has(real)) continue;
+      seen.add(real);
+      const list = await this.list(project);
+      if (list.exists) sources.push({ projectId: project.id, dir: list.dir, files: list.entries.filter((e) => !e.dir).map((e) => e.path) });
+    }
+    return searchMemoTexts(sources, query);
   }
 
   /** メモの中身（なければ 404） */

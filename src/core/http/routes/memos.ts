@@ -5,7 +5,7 @@ import type { MemoAiPlanBody, MemoCreateBody, MemoDefaults, MemoDirUsers, MemoFr
 import { MAX_MEMO_SOURCE_CHARS } from "../../memos/memos.js";
 import type { ServerDeps } from "../server.js";
 import { Conflict, Invalid, NotFound } from "../errors.js";
-import { jsonBody } from "../input.js";
+import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { folderPath, memoChatSchema, optionalId, repoPath } from "./schemas.js";
 
@@ -76,6 +76,12 @@ export function memoRoutes(app: Hono, { store, memos, runner }: ServerDeps) {
   app.get("/api/memos/users", (c) => {
     const q = z.object({ path: folderPath, except: optionalId }).parse({ path: c.req.query("path"), except: c.req.query("except") });
     return c.json({ project_ids: memos.usersOf(q.path, q.except).map((p) => p.id) } satisfies MemoDirUsers);
+  });
+
+  // すべてのプロジェクトのメモの中の文を探す（⌘K の「メモ内の文言」）
+  app.get("/api/memos/search", async (c) => {
+    const { q } = z.object({ q: z.string().max(200).default("") }).parse({ q: queryOf(c, "q") });
+    return c.json(await memos.search(q));
   });
 
   app.get("/api/projects/:id/memos", withProject, async (c) => c.json(await memos.list(c.var.project)));

@@ -36,6 +36,23 @@ export interface MemoDirUsers {
   project_ids: number[];
 }
 
+/** メモの中の文で見つかった行（GET /api/memos/search。⌘K の「メモ内の文言」）。text は行の文（長ければ前後を切る）、match_start / match_end は text の中の見つかった所 */
+export interface MemoSearchHit {
+  project_id: number;
+  /** メモのフォルダからの相対パス */
+  path: string;
+  line: number;
+  text: string;
+  match_start: number;
+  match_end: number;
+}
+
+/** メモの中の文を探した結果（多すぎれば途中で切る） */
+export interface MemoSearchResult {
+  hits: MemoSearchHit[];
+  truncated: boolean;
+}
+
 /** 作った・動かしたメモ（メモのフォルダからの相対パス） */
 export interface MemoRef {
   path: string;
