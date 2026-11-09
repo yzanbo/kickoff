@@ -16,7 +16,7 @@ const SUBAGENT_DETAIL_LABELS: Record<SubagentDetail, string> = {
 };
 
 /** 状態の文（細かい様子があればその文、なければ 5 つの状態の文） */
-export function subagentStateLabel({ state, detail }: SubagentState): string {
+export function subagentStateText({ state, detail }: SubagentState): string {
   return detail ? SUBAGENT_DETAIL_LABELS[detail] : SUBAGENT_STATE_LABELS[state];
 }
 
@@ -26,7 +26,7 @@ export function subagentStateLabel({ state, detail }: SubagentState): string {
  * 止まったあと、起動したエージェントが新しいサブエージェントでやり直したものは「やり直し済み」（止まった理由は subagentStatusTitle）
  */
 export function subagentStatusLabel(entry: SubagentEntry, waiting = false): string {
-  return subagentStateLabel(subagentState(entry, waiting));
+  return subagentStateText(subagentState(entry, waiting));
 }
 
 /** 状態の文に乗せたときの説明（やり直し済みは、止まった理由とやり直した回の名前） */

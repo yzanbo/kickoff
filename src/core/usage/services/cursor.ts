@@ -80,7 +80,7 @@ async function fetchCursorUsage(): Promise<ServiceUsage> {
   const loginFailed = () => result.error("Cursor のログインが使えませんでした。Cursor を開いてログインし直してください", { account });
   return fetchJsonOr<CursorUsageSummary, ServiceUsage>(
     USAGE_URL,
-    { headers: { Cookie: `WorkosCursorSessionToken=${userId}%3A%3A${auth.token}`, Accept: "application/json" } },
+    { headers: { Cookie: `WorkosCursorSessionToken=${userId}%3A%3A${auth.token}` } },
     (body) => parseCursorUsage(body, account),
     { 401: loginFailed, 403: loginFailed },
   );
