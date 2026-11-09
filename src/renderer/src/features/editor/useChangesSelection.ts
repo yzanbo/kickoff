@@ -6,7 +6,7 @@ import { confirmDialog } from "@/ui/dialogs";
  * 選んでいるファイル。変更の一覧から選んだときは、ステージ済み・未ステージのどちらか（同じファイルが両方にあることもある）。
  * エクスプローラーから選んだときは staged を持たない（変更があれば差分、なければ中身を出す）。
  * 検索の結果から選んだときは line を持つ（変更があってもいまの中身を出し、その行を目立たせる）。
- * edit は、差分の「編集」から来たとき（いまの中身を開いてすぐ編集する）
+ * edit は、差分の「編集」から来たとき（いまの中身を開いてすぐ編集する。staged はどちらの差分から来たか。編集しながらその差分を出す）
  */
 export interface Selection {
   path: string;
@@ -62,6 +62,12 @@ export function selectedChange(selected: Selection | undefined, groups: ChangeGr
   if (unstaged) return { file: unstaged, staged: false };
   const staged = selected.staged !== false ? find(groups.staged, selected.path) : undefined;
   return staged && { file: staged, staged: true };
+}
+
+/** 差分の「編集」から開いたファイルの差分（編集しながら、元の中身を左に並べる。来た方の差分がもうなければ、もう一方を探す） */
+export function editedChange(selected: Selection | undefined, groups: ChangeGroups): { file: GitFileChange; staged: boolean } | undefined {
+  if (!selected?.edit) return undefined;
+  return selectedChange({ path: selected.path, staged: selected.staged }, groups) ?? selectedChange({ path: selected.path }, groups);
 }
 
 /** 左の一覧の表示（ファイル・検索・変更。プロジェクトのタブの files / search / changes） */

@@ -44,7 +44,7 @@ export function useFileDiff({ projectId, file, staged, version, commit, active =
 }
 
 /** これより狭いときは、左右に並べる設定でも 1 列で出す */
-const SPLIT_MIN_WIDTH = 560;
+export const SPLIT_MIN_WIDTH = 560;
 
 /**
  * 選んだファイルの差分。VS Code と同じく左右に並べて出し、git diff と同じ 1 列にもできる（選んだ方を覚えておく）。

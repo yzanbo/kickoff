@@ -1,6 +1,6 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
-import { commitStaged, discardPaths, fetchRemote, gitCommitDetail, gitCommitDiff, gitDiff, gitLog, gitRefs, gitStatus, pullBranch, pushBranch, stagePaths, unstagePaths } from "../../git/index.js";
+import { commitStaged, discardPaths, fetchRemote, gitCommitDetail, gitCommitDiff, gitDiff, gitLog, gitOriginal, gitRefs, gitStatus, pullBranch, pushBranch, stagePaths, unstagePaths } from "../../git/index.js";
 import { createPullRequest, pullRequestFor } from "../../git/github.js";
 import type { ServerDeps } from "../server.js";
 import { Invalid } from "../errors.js";
@@ -28,6 +28,12 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
   app.get("/api/projects/:id/git/diff", withWorkdir, async (c) => {
     const query = diffQuerySchema.parse({ path: c.req.query("path"), old: c.req.query("old"), staged: c.req.query("staged") });
     return c.json(await gitDiff(c.var.workdir, query.path, query.staged === "1", query.old));
+  });
+
+  // 差分の元の中身（差分から編集するとき、左に並べる。staged なら HEAD、そうでなければ索引）
+  app.get("/api/projects/:id/git/original", withWorkdir, async (c) => {
+    const query = diffQuerySchema.parse({ path: c.req.query("path"), old: c.req.query("old"), staged: c.req.query("staged") });
+    return c.json(await gitOriginal(c.var.workdir, query.path, query.staged === "1", query.old));
   });
 
   // ステージ・ステージの取り消し・変更を捨てる（元に戻す）。終わったら新しい状態を返す

@@ -16,6 +16,7 @@ export function ChangesDetail({
   git,
   selection,
   change,
+  edited,
   kinds,
   empty,
 }: {
@@ -26,6 +27,8 @@ export function ChangesDetail({
   selection: ChangesSelection;
   /** 選んだファイルの差分（selectedChange。なければ中身を出す） */
   change?: { file: GitFileChange; staged: boolean };
+  /** 差分の「編集」から開いたファイルの差分（editedChange。編集しながら元の中身を左に並べる） */
+  edited?: { file: GitFileChange; staged: boolean };
   kinds: ChangeKinds;
   /** コミットしていない変更がないか（「変更」の案内の文に使う） */
   empty: boolean;
@@ -49,6 +52,7 @@ export function ChangesDetail({
           line={selected.line}
           changed={kinds.files.has(selected.path)}
           initialEditing={selected.edit}
+          diffBase={edited}
         />
       ) : change ? (
         <DiffView
@@ -56,7 +60,7 @@ export function ChangesDetail({
           file={change.file}
           staged={change.staged}
           version={git.version}
-          onEdit={change.file.kind === "D" ? undefined : () => void setSelected({ path: change.file.path, edit: true })}
+          onEdit={change.file.kind === "D" ? undefined : () => void setSelected({ path: change.file.path, staged: change.staged, edit: true })}
         />
       ) : selected && selected.staged === undefined ? (
         <FileView key={selected.path} {...fileViewProps(selected.path)} />

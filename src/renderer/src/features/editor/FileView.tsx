@@ -1,5 +1,6 @@
-import { ExternalLink, Pencil, Save, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, Pencil, Save, X } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import type { GitFileChange } from "@shared/types";
 import { api, ApiError } from "@/api";
 import { cx } from "@/lib/cx";
 import { confirmDialog } from "@/ui/dialogs";
@@ -7,9 +8,13 @@ import { useAction } from "@/hooks/useAction";
 import { useHighlight } from "@/hooks/useHighlight";
 import { languageOf } from "@/lib/languages";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
+import { useSetting } from "@/hooks/useSetting";
+import { DIFF_LAYOUT } from "@/lib/storageKeys";
+import { IconButton } from "@/ui/IconButton";
 import { CodeLine } from "@/ui/CodeLine";
 import { ErrorText } from "@/ui/ErrorText";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
+import { DiffLayoutToggle } from "./DiffLayoutToggle";
 
 // 編集の部品（Monaco）は大きいので、「編集」を押したときに初めて読み込む
 const CodeEditor = lazy(() => import("./CodeEditor"));
@@ -25,6 +30,8 @@ interface Props {
   changed?: boolean;
   /** 開いたらすぐ編集する（差分の「編集」から来たとき） */
   initialEditing?: boolean;
+  /** 差分の「編集」から来たときの差分。編集しながら、その元の中身（ステージ済みなら HEAD、未ステージならステージした中身）を左に並べる */
+  diffBase?: { file: GitFileChange; staged: boolean };
   version: number;
   /** 保存したとき（変更の一覧を取り直す） */
   onSaved?: () => void;
@@ -34,9 +41,10 @@ interface Props {
 
 /**
  * ファイルの中身（行番号つき）。「編集」で VS Code と同じ編集の部品にし、⌘S・保存ボタンで保存する。
- * 保存の前に、開いたあとでほかで（エージェントなどが）変えていないか確かめ、変わっていれば上書きするか聞く
+ * 保存の前に、開いたあとでほかで（エージェントなどが）変えていないか確かめ、変わっていれば上書きするか聞く。
+ * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身。打つたびに差分が変わる）
  */
-export function FileView({ projectId, repoPath, path, line, changed = false, initialEditing = false, version, onSaved, onDirtyChange }: Props) {
+export function FileView({ projectId, repoPath, path, line, changed = false, initialEditing = false, diffBase, version, onSaved, onDirtyChange }: Props) {
   // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
   const { target, key: at, worktree } = useGitTarget(projectId);
   const key = `${at}:${path}`;
@@ -50,6 +58,26 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
   const saving = useAction<"save">();
   const [editorKey, setEditorKey] = useState(0);
   const getValue = useRef<(() => string) | null>(null);
+  const goToDiff = useRef<((target: "next" | "previous") => void) | null>(null);
+  const [layout] = useSetting(DIFF_LAYOUT);
+  // 差分の元の中身は開いたときに一度だけ読む（保存して差分がなくなっても、比べる相手はそのまま）。
+  // undefined = 読み込み中、null = 差分なしで編集する（差分から来ていない・元がバイナリ・大きすぎる・読めない）
+  const [diffOf] = useState(diffBase);
+  const [original, setOriginal] = useState<string | null | undefined>(diffOf ? undefined : null);
+  useEffect(() => {
+    if (!diffOf) return;
+    let alive = true;
+    api.gitOriginal(target, diffOf.file, diffOf.staged).then(
+      (o) => alive && setOriginal(o.binary || o.truncated ? null : o.content),
+      () => alive && setOriginal(null),
+    );
+    return () => {
+      alive = false;
+    };
+    // 開いたときだけ（同じファイル・同じ作業場所の間は FileView が作り直されない）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const diffing = typeof original === "string";
 
   const current = loaded.loaded ? { file: loaded.data, error: loaded.error } : undefined;
   const editable = Boolean(current?.file && !current.file.binary && !current.file.truncated);
@@ -128,7 +156,10 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
         <span className="diff-path" title={path}>
           {path}
         </span>
-        <span className={cx("diff-state", saving.error && "error")}>
+        <span
+          className={cx("diff-state", saving.error && "error")}
+          title={base && diffing ? (diffOf?.staged ? "左はコミット（HEAD）の中身。右を編集すると、差分がその場で変わります" : "左はステージした中身（なければコミットの中身）。右を編集すると、差分がその場で変わります") : undefined}
+        >
           {saving.result?.text ??
             (base ? (dirty ? "編集中・未保存" : "編集中") : `${line !== undefined ? `${line} 行目・` : ""}${changed ? "変更あり" : "変更なし"}`)}
         </span>
@@ -137,6 +168,13 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
           <button className="btn btn-sm" title="VS Code でこのファイルを開く" onClick={() => void window.kickoff?.externalApps.openInVSCode(`${worktree ?? repoPath}/${path}`, line)}>
             <ExternalLink size={13} aria-hidden /> VS Code で開く
           </button>
+        )}
+        {base && diffing && (
+          <>
+            <IconButton icon={ArrowUp} size={14} label="前の変更へ" onClick={() => goToDiff.current?.("previous")} />
+            <IconButton icon={ArrowDown} size={14} label="次の変更へ" onClick={() => goToDiff.current?.("next")} />
+            <DiffLayoutToggle />
+          </>
         )}
         {base ? (
           <>
@@ -164,7 +202,9 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
         </div>
       )}
       <div className={cx("diff-body", base && "editing")}>
-        {base ? (
+        {base && original === undefined ? (
+          <p className="muted small diff-message">編集の準備中…</p>
+        ) : base ? (
           <Suspense fallback={<p className="muted small diff-message">編集の準備中…</p>}>
             <CodeEditor
               key={editorKey}
@@ -175,6 +215,9 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
               valueRef={getValue}
               onDirtyChange={changeDirty}
               onSave={(content) => void save(content)}
+              original={original ?? undefined}
+              layout={layout}
+              goToDiffRef={goToDiff}
             />
           </Suspense>
         ) : !current ? (

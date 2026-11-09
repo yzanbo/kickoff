@@ -212,6 +212,12 @@
   color: var(--muted);
 }
 
+/* 差分から編集しているときは見出しにボタンが増えるので、ボタンの文字を折り返さず、パスの方を省略する */
+.diff-head .btn,
+.diff-head .view-toggle button {
+  white-space: nowrap;
+}
+
 .diff-body {
   flex: 1;
   min-height: 0;

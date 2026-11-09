@@ -1,7 +1,7 @@
 // 作業ツリーの変更（差分・ステージ・コミット・プッシュ・プル・フェッチ）
-import type { GitDiff } from "@shared/types";
+import type { GitDiff, GitOriginal } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
-import { assertInside } from "./files.js";
+import { assertInside, MAX_FILE_BYTES } from "./files.js";
 import { gitPrefix, gitStatus, hasRef, listRemotes } from "./status.js";
 import { Conflict, Invalid } from "../http/errors.js";
 
@@ -23,6 +23,29 @@ export async function gitDiff(repo: string, file: string, staged: boolean, oldPa
     if (untracked.trim()) diff = await gitOutput(repo, ["diff", "--no-color", "--no-ext-diff", "--no-index", "--", "/dev/null", file], [1]);
   }
   return toGitDiff(diff);
+}
+
+/**
+ * 差分の元の中身（変更タブで差分から編集するとき、左に並べる）。staged ならコミット（HEAD）の中身、そうでなければステージした中身
+ * （索引。競合などで索引になければ HEAD）。どちらにもなければ空（追加・未追跡のファイル）。oldPath は名前を変えたときの元のパス。
+ * パスは作業場所から見た形（./ を付けて、リポジトリの中のフォルダでもそのフォルダから見る）。改行などは作業中のファイルと同じ変換をする（--filters）
+ */
+export async function gitOriginal(repo: string, file: string, staged: boolean, oldPath?: string): Promise<GitOriginal> {
+  await assertInside(repo, file);
+  const source = oldPath ?? file;
+  if (oldPath) await assertInside(repo, oldPath);
+  const specs = staged ? [`HEAD:./${source}`] : [`:./${source}`, `HEAD:./${source}`];
+  for (const spec of specs) {
+    // ないもの（コミットがまだない・追加したファイル）は 128 で終わる
+    const size = (await gitOutput(repo, ["cat-file", "-s", spec], [128])).trim();
+    if (!size) continue;
+    if (Number(size) > MAX_FILE_BYTES) return { content: "", binary: false, truncated: true };
+    const content = await gitOutput(repo, ["cat-file", "--filters", spec]);
+    // 先頭に NUL があればバイナリとみなす（ファイルの中身と同じ考え方）
+    const binary = content.slice(0, 8000).includes("\0");
+    return { content: binary ? "" : content, binary, truncated: false };
+  }
+  return { content: "", binary: false, truncated: false };
 }
 
 /** git diff の出力を画面に返す形にする（バイナリの印と、大きすぎれば途中で切る） */
