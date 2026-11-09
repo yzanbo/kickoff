@@ -2,6 +2,7 @@ import { CodeXml, Eye, Save } from "lucide-react";
 import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
+import { registerSavable } from "@/lib/saveAll";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
 import { MEMO_CHAT_HEIGHT, MEMO_CHAT_OPEN, MEMO_CHAT_PLACE, MEMO_CHAT_WIDTH, MEMO_QUICK_CHAT_HIDDEN, MEMO_VIEW } from "@/lib/storageKeys";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -133,17 +134,18 @@ export function MemoView({
   const [title, setTitle] = useState(savedTitle);
   useEffect(() => setTitle(savedTitle), [savedTitle]);
   const titleChanged = title.trim() !== "" && title.trim() !== savedTitle;
-  // ⌘S・保存のボタン: 本文を保存してから、題名が変わっていればファイルの名前を変える
-  const saveNow = () => {
-    void doc.save().then(async (saved) => {
-      if (!saved || !titleChanged) return;
-      const to = await doc.rename(title.trim()).catch((e: unknown) => {
-        reportFailure("名前を変えられませんでした")(e);
-        return null;
-      });
-      if (to) onRenamed(to);
+  // ⌘S・保存のボタン・⌘⇧S（すべて保存）: 本文を保存してから、題名が変わっていればファイルの名前を変える（保存できたかを返す）
+  const saveDoc = async () => {
+    if (!(await doc.save())) return false;
+    if (!titleChanged) return true;
+    const to = await doc.rename(title.trim()).catch((e: unknown) => {
+      reportFailure("名前を変えられませんでした")(e);
+      return null;
     });
+    if (to) onRenamed(to);
+    return Boolean(to);
   };
+  const saveNow = () => void saveDoc();
   // メモのチャットで送る前に、書きかけの本文を保存する（AI はファイルを読むので。保存できなければ送らない）
   const saveBeforeSend = async () => {
     if (!(await doc.save())) throw new Error("メモを保存できなかったので送りませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから送ってください）");
@@ -165,6 +167,10 @@ export function MemoView({
   const extension = memoExtensionOf(path);
   const unreadable = doc.file && (doc.file.binary || doc.file.truncated);
   const unsaved = doc.state === "dirty" || doc.state === "conflict" || doc.state === "error" || titleChanged;
+  // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（本文・題名。lib/saveAll）
+  const savable = useRef({ unsaved, saveDoc });
+  savable.current = { unsaved, saveDoc };
+  useEffect(() => registerSavable({ dirty: () => savable.current.unsaved, save: () => savable.current.saveDoc() }), []);
 
   return (
     <div ref={viewRef} className="memo-view">

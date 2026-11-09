@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { GitFileChange, GitStatus } from "@shared/types";
 import { api, ApiError } from "@/api";
 import { cx } from "@/lib/cx";
+import { registerSavable } from "@/lib/saveAll";
 import { confirmDialog } from "@/ui/dialogs";
 import { useAction } from "@/hooks/useAction";
 import { useHighlight } from "@/hooks/useHighlight";
@@ -109,6 +110,17 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
     if (next) saving.reset();
     onDirtyChange?.(next);
   };
+
+  // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（⌘S と同じ。lib/saveAll）
+  const savable = useRef({ dirty, saveCurrent: async () => false });
+  savable.current = {
+    dirty,
+    saveCurrent: async () => {
+      const value = getValue.current?.();
+      return value !== undefined && Boolean(await save(value));
+    },
+  };
+  useEffect(() => registerSavable({ dirty: () => savable.current.dirty, save: () => savable.current.saveCurrent() }), []);
 
   // 開いたときの指紋と比べて保存する。ほかで変わっていれば、上書きするか聞いてから指紋なしで保存し直す
   const save = (content: string) =>

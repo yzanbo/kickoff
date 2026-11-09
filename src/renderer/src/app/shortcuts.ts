@@ -1,6 +1,7 @@
 import { focusChatComposer } from "@/features/chat/composer/composerKeys";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { hasAppModifier } from "@/lib/keys";
+import { saveAll } from "@/lib/saveAll";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { CHAT_HEADER_ROW_HIDDEN } from "@/lib/storageKeys";
 import { runPageFind } from "@/ui/pageFind";
@@ -18,7 +19,7 @@ interface Actions {
  * アプリ全体のショートカット: ⌘B サイドバーの開閉 / ⌘K 検索・移動（ダイアログで全体を探す） / ⌘F 開いているページの中を探す（ブラウザと同じ。ページがなければボードのチャット名の検索欄） /
  * ⌘⇧F いまのプロジェクトの検索タブで、ファイルの中を探す欄にピントを置く（VS Code と同じ。利用者の依頼で、前はチャットの中の文言の全文検索。そちらはボードの検索欄の横のボタンと ⌘K の「チャット内の文言」から開く） / ⌘N / ⌘T 今のプロジェクトで新しいチャット（プロジェクトが 1 つもなければ、チャットはプロジェクトの中で始めることを案内して新しいプロジェクトへ誘う。⌘T はブラウザの「新しいタブ」と同じ手の動き。チャットは右のパネルのタブで開く） /
  * ⌘, 設定（Mac の環境設定と同じ）/ ⌘⇧A 作業中・回答待ち・未読のチャットの一覧（Chrome の「タブを検索」と同じキー）/
- * ⌘L チャット欄にピントを移す（ピントのあるパネルのチャット欄を優先）/
+ * ⌘L チャット欄にピントを移す（ピントのあるパネルのチャット欄を優先）/ ⌘⇧S すべて保存（このウィンドウで開いている、まだ保存していないメモ・ファイル。lib/saveAll）/
  * ⌥⌘T チャットの見出しの行の表示・非表示（Finder・Safari の「ツールバーを隠す」と同じキー。どのチャットでも共通）。
  * ⌘ は Mac のもので、ほかの OS（ブラウザから開いたとき）は Ctrl。Mac の Control 付き（⌃K など）は入力欄の編集に残し、ここでは受けない（hasAppModifier）
  */
@@ -34,8 +35,14 @@ export function useAppShortcuts(actions: Actions) {
     if (!hasAppModifier(e) || e.altKey) return;
     // エディタ（メモの CodeMirror・ファイルの Monaco）などが先に受け取ったキーは扱わない（その中の検索など）
     if (e.defaultPrevented) return;
-    // Shift つきは ⌘⇧F と ⌘⇧A だけ受け付ける
-    if (e.shiftKey && !["f", "a"].includes(e.key.toLowerCase())) return;
+    // Shift つきは ⌘⇧F・⌘⇧A・⌘⇧S だけ受け付ける
+    if (e.shiftKey && !["f", "a", "s"].includes(e.key.toLowerCase())) return;
+    if (e.shiftKey && e.key.toLowerCase() === "s") {
+      // ⌘⇧S: すべて保存（利用者の依頼。メモ・ファイル・検索・変更のどのページでも、開いている書きかけをまとめて保存する）
+      e.preventDefault();
+      void saveAll();
+      return;
+    }
     if (e.shiftKey && e.key.toLowerCase() === "a") {
       e.preventDefault();
       actions.openActiveChats();

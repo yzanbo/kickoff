@@ -8,6 +8,7 @@ import { runPageFind } from "@/ui/pageFind";
 import { usePageFind } from "@/ui/usePageFind";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { isKey } from "@/lib/keys";
+import { saveAll } from "@/lib/saveAll";
 import { openEditorFind } from "@/features/editor/editorFind";
 import { MemoProgress } from "@/features/memo/MemoProgress";
 import { DialogHost } from "@/ui/dialogs";
@@ -44,7 +45,14 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const find = usePageFind(rootRef, { native: openEditorFind, placeholder: "このウィンドウを検索", className: "page-find" });
   useWindowEvent("keydown", (e) => {
-    if (e.defaultPrevented || !(isKey(e, "f", { meta: true }) || isKey(e, "f", { ctrl: true }))) return;
+    if (e.defaultPrevented) return;
+    // ⌘⇧S: すべて保存（このウィンドウのメモ・ファイル。メインのウィンドウと同じ）
+    if (isKey(e, "s", { meta: true, shift: true }) || isKey(e, "s", { ctrl: true, shift: true })) {
+      e.preventDefault();
+      void saveAll();
+      return;
+    }
+    if (!(isKey(e, "f", { meta: true }) || isKey(e, "f", { ctrl: true }))) return;
     if (runPageFind()) e.preventDefault();
   });
   return (
