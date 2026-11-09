@@ -83,6 +83,12 @@ export interface ProjectSearchQuery {
   whole_word: boolean;
   /** 正規表現として探す */
   regex: boolean;
+  /** 含めるファイル（VS Code と同じ glob のカンマ区切り。空ならすべて） */
+  include: string;
+  /** 除外するファイル（glob のカンマ区切り） */
+  exclude: string;
+  /** .gitignore などで無視しているファイルを除く（false なら無視しているものも探す） */
+  use_ignore: boolean;
 }
 
 /** 見つかった行 */
@@ -100,6 +106,29 @@ export interface ProjectSearchResult {
   total: number;
   /** 多すぎて途中で切った */
   truncated: boolean;
+}
+
+/** 置換する行（検索の結果の行。text は結果の行の文で、いまの行と違えば置換しない） */
+export interface ReplaceLine {
+  line: number;
+  text: string;
+}
+
+/** 検索の結果を置換する（POST /api/projects/:id/search/replace）。files の行の中の、query で見つかる部分をすべて replace にする */
+export interface ProjectReplaceBody {
+  query: ProjectSearchQuery;
+  replace: string;
+  /** 見つかった文の大文字・小文字の形に合わせる */
+  preserve_case: boolean;
+  files: { path: string; lines: ReplaceLine[] }[];
+}
+
+/** 置換した結果。before は置換する前の中身（元に戻すのに使う。大きすぎれば null）、hash は置換したあとの指紋 */
+export interface ProjectReplaceResult {
+  replaced: number;
+  files: { path: string; count: number; before: string | null; hash: string }[];
+  /** 置換しなかったファイル・行（理由つき） */
+  skipped: { path: string; reason: string }[];
 }
 
 /** 履歴の 1 つのコミット（一覧に出すもの） */

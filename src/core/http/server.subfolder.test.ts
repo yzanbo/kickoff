@@ -34,6 +34,9 @@ test("リポジトリの中のフォルダ: 状態・差分・履歴・コミッ
   const found = (await call("GET", url("/search?q=o"))).body;
   assert.deepEqual(found.files, []);
   assert.deepEqual((await call("GET", url("/search?q=n"))).body.files.map((f: { path: string }) => f.path), ["new.txt"]);
+  // 含める・除外するファイルも、そのフォルダから見たパスで読む
+  assert.deepEqual((await call("GET", url("/search?q=a&include=./a.txt"))).body.files.map((f: { path: string }) => f.path), ["a.txt"]);
+  assert.deepEqual((await call("GET", url("/search?q=n&exclude=new.txt"))).body.files, []);
 
   // 外にもステージしたファイルがあれば、一緒にコミットしないよう断る
   await call("POST", url("/git/stage"), { paths: ["a.txt"] });

@@ -73,7 +73,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
                   renamable
                     ? (e) => {
                         e.preventDefault();
-                        rename.openMenu(e, node.path);
+                        rename.openMenu(e, node.path, node.dir);
                       }
                     : undefined
                 }

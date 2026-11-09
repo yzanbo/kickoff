@@ -1,37 +1,47 @@
-import { CaseSensitive, Regex, WholeWord } from "lucide-react";
-import { useMemo, useState } from "react";
-import type { SearchMatch } from "@shared/types";
+import { CaseSensitive, CaseUpper, ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, Ellipsis, EyeOff, ListX, Regex, ReplaceAll, WholeWord } from "lucide-react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { cx } from "@/lib/cx";
-import { isComposing } from "@/lib/keys";
-import { baseName } from "@/lib/format";
-import { Chevron } from "@/ui/Chevron";
+import { hasModifiers, isComposing, isKey } from "@/lib/keys";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
-import { PathParts } from "@/ui/PathParts";
-import { FileIcon } from "./FileIcon";
-import { searchPattern, splitMatches } from "@shared/search/searchMatch";
+import { SearchResults } from "./SearchResults";
+import { resultCounts } from "./searchHits";
 import type { ProjectSearchController } from "./useProjectSearch";
+import type { SearchReplaceController } from "./useSearchReplace";
 
 interface Props {
   search: ProjectSearchController;
+  replacer: SearchReplaceController;
   /** 選んでいる結果（ファイルと行） */
   selected?: { path: string; line?: number };
   onSelect: (path: string, line: number) => void;
 }
 
+/** オン・オフの切り替えのアイコンのボタン（入力欄の右） */
+function Toggle({ icon, label, on, onClick }: { icon: typeof CaseSensitive; label: string; on: boolean; onClick: () => void }) {
+  return <IconButton icon={icon} label={label} size={15} className={cx("code-search-toggle", on && "active")} aria-pressed={on} onClick={onClick} />;
+}
+
 /**
- * 「検索」タブ（VS Code と同じ: 大文字と小文字の区別・単語単位・正規表現を切り替えて、ファイルの中を探す）。
- * 結果はファイルごとにまとめ、見つかった部分に印を付ける。行を選ぶと、そのファイルのその行を右に出す
+ * 「検索」タブ（VS Code と同じ）。検索の欄（大文字と小文字の区別・単語単位・正規表現。↑↓ で履歴）、▸ で開く置換の欄
+ * （大文字と小文字を保持・すべて置換。⌘Enter でもすべて置換）、… で開く詳細（含める・除外するファイル。除外設定と .gitignore を使うかの切り替え）。
+ * 見出しに、探し直す・すべて閉じる / 開く・結果を消す。結果（SearchResults）の行を選ぶと、そのファイルのその行を右に出す
  */
-export function SearchView({ search, selected, onSelect }: Props) {
+export function SearchView({ search, replacer, selected, onSelect }: Props) {
   const { result } = search;
-  // 結果を出したときの探し方で印を付ける（打っている途中の文字ではなく）
-  const pattern = useMemo(() => (result ? searchPattern(result.query) : null), [result]);
-  const toggles = [
-    { key: "case_sensitive", icon: CaseSensitive, label: "大文字と小文字を区別する" },
-    { key: "whole_word", icon: WholeWord, label: "単語単位で探す" },
-    { key: "regex", icon: Regex, label: "正規表現を使う" },
-  ] as const;
+  const counts = resultCounts(search.files);
+  // 閉じているファイル（探し直したら、すべて開いた状態に戻す）
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => setCollapsed(new Set()), [result]);
+  const allCollapsed = search.files.length > 0 && search.files.every((f) => collapsed.has(f.path));
+  const canReplace = !!result && counts.lines > 0 && !replacer.busy;
+
+  const onSearchKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    // 修飾キーなしの Enter・↑↓ だけ（変換中は除く）
+    if (isComposing(e) || !hasModifiers(e)) return;
+    if (e.key === "Enter") search.rerun();
+    else if ((e.key === "ArrowUp" || e.key === "ArrowDown") && search.stepHistory(e.key === "ArrowUp")) e.preventDefault();
+  };
 
   return (
     <>
@@ -39,97 +49,127 @@ export function SearchView({ search, selected, onSelect }: Props) {
         <span className="changes-branch">検索</span>
         <span className="spacer" />
         <RefreshButton label="もう一度探す" busy={search.loading} disabled={!search.query} onClick={search.rerun} />
-      </header>
-      <div className="code-search-box">
-        <input
-          type="text"
-          className="code-search-input"
-          placeholder="検索"
-          aria-label="ファイルの中を検索"
-          autoFocus
-          value={search.query}
-          onChange={(e) => search.setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !isComposing(e) && search.rerun()}
+        <IconButton
+          icon={allCollapsed ? ChevronsUpDown : ChevronsDownUp}
+          size={14}
+          label={allCollapsed ? "すべて開く" : "すべて閉じる"}
+          disabled={search.files.length === 0}
+          onClick={() => setCollapsed(allCollapsed ? new Set() : new Set(search.files.map((f) => f.path)))}
         />
-        {toggles.map(({ key, icon, label }) => (
-          <IconButton
-            key={key}
-            icon={icon}
-            label={label}
-            size={15}
-            className={cx("code-search-toggle", search.options[key] && "active")}
-            aria-pressed={search.options[key]}
-            onClick={() => search.toggle(key)}
-          />
-        ))}
+        <IconButton icon={ListX} size={14} label="検索の結果を消す" disabled={!search.query} onClick={search.clear} />
+      </header>
+      <div className="code-search-form">
+        <IconButton
+          icon={search.showReplace ? ChevronDown : ChevronRight}
+          size={14}
+          label={search.showReplace ? "置換を隠す" : "置換を表示"}
+          className="code-search-replace-toggle"
+          aria-expanded={search.showReplace}
+          onClick={() => search.setShowReplace(!search.showReplace)}
+        />
+        <div className="code-search-fields">
+          <div className="code-search-box">
+            <input
+              type="text"
+              className="code-search-input"
+              placeholder="検索"
+              aria-label="ファイルの中を検索（↑↓ で履歴）"
+              autoFocus
+              value={search.query}
+              onChange={(e) => search.setQuery(e.target.value)}
+              onKeyDown={onSearchKey}
+            />
+            <Toggle icon={CaseSensitive} label="大文字と小文字を区別する" on={search.options.case_sensitive} onClick={() => search.toggle("case_sensitive")} />
+            <Toggle icon={WholeWord} label="単語単位で探す" on={search.options.whole_word} onClick={() => search.toggle("whole_word")} />
+            <Toggle icon={Regex} label="正規表現を使う（置換では $1 などで見つかった組を使える）" on={search.options.regex} onClick={() => search.toggle("regex")} />
+          </div>
+          {search.showReplace && (
+            <div className="code-search-box">
+              <input
+                type="text"
+                className="code-search-input"
+                placeholder="置換"
+                aria-label="置換する文字（⌘Enter ですべて置換）"
+                value={search.replace}
+                onChange={(e) => search.setReplace(e.target.value)}
+                onKeyDown={(e) => {
+                  if (isKey(e, "Enter", { meta: true }) && canReplace) replacer.replaceAll();
+                }}
+              />
+              <Toggle icon={CaseUpper} label="大文字と小文字を保持する（FOO → BAR・Foo → Bar）" on={search.preserveCase} onClick={() => search.setPreserveCase(!search.preserveCase)} />
+              <IconButton icon={ReplaceAll} size={15} label="すべて置換" keys="⌘Enter" className="code-search-toggle" disabled={!canReplace} onClick={replacer.replaceAll} />
+            </div>
+          )}
+        </div>
       </div>
+      <div className="code-search-details-toggle">
+        <IconButton
+          icon={Ellipsis}
+          size={14}
+          label="検索の詳細を切り替える（含める・除外するファイル）"
+          className={cx(search.showDetails && "active")}
+          aria-expanded={search.showDetails}
+          onClick={() => search.setShowDetails(!search.showDetails)}
+        />
+      </div>
+      {search.showDetails && (
+        <div className="code-search-details">
+          <label className="code-search-label">
+            含めるファイル
+            <span className="code-search-box">
+              <input type="text" className="code-search-input" placeholder="例: *.ts, ./src/editor/" value={search.include} onChange={(e) => search.setInclude(e.target.value)} />
+            </span>
+          </label>
+          <label className="code-search-label">
+            除外するファイル
+            <span className="code-search-box">
+              <input type="text" className="code-search-input" placeholder="例: *.test.ts, dist/" value={search.exclude} onChange={(e) => search.setExclude(e.target.value)} />
+              <Toggle
+                icon={EyeOff}
+                label="除外設定と .gitignore を使う（オフにすると、無視しているファイルも探す）"
+                on={search.options.use_ignore}
+                onClick={() => search.toggle("use_ignore")}
+              />
+            </span>
+          </label>
+        </div>
+      )}
       <ErrorText message={search.error} className="code-search-message" />
-      {result && search.query && (
-        <p className="muted small code-search-message">
-          {result.value.total === 0
-            ? "見つかりませんでした。"
-            : `${result.value.files.length} 個のファイルで ${result.value.total} 件${result.value.truncated ? "（多いため、途中までを表示しています）" : ""}`}
+      {replacer.last && (
+        <p className="muted small code-search-message code-search-replaced" role="status">
+          {replacer.last.message}
+          {replacer.last.undo && (
+            <button type="button" className="link-button" disabled={replacer.busy} onClick={replacer.undo}>
+              元に戻す
+            </button>
+          )}
         </p>
       )}
-      {search.query &&
-        result?.value.files.map((file) => (
-          <SearchFile key={file.path} path={file.path} matches={file.matches} pattern={pattern} selected={selected} onSelect={onSelect} />
-        ))}
-    </>
-  );
-}
-
-/** 1 つのファイルの結果（見出しで開閉。見つかった数をバッジで出す） */
-function SearchFile({
-  path,
-  matches,
-  pattern,
-  selected,
-  onSelect,
-}: {
-  path: string;
-  matches: SearchMatch[];
-  pattern: RegExp | null;
-  selected?: { path: string; line?: number };
-  onSelect: (path: string, line: number) => void;
-}) {
-  const [open, setOpen] = useState(true);
-  return (
-    <section className="change-group">
-      <button className="code-search-file" aria-expanded={open} title={path} onClick={() => setOpen(!open)}>
-        <Chevron open={open} />
-        <FileIcon name={baseName(path)} />
-        <PathParts path={path} nameClass="change-name" dirClass="change-dir" />
-        <span className="change-count">{matches.length}</span>
-      </button>
-      {open && (
-        <ul className="change-files">
-          {matches.map((match) => {
-            const isSelected = selected?.path === path && selected.line === match.line;
-            return (
-              <li key={match.line}>
-                <button
-                  className={cx("code-search-row", isSelected && "selected")}
-                  aria-current={isSelected || undefined}
-                  title={`${match.line} 行目`}
-                  onClick={() => onSelect(path, match.line)}
-                >
-                  {/* 行の頭の空白は省く（VS Code と同じ） */}
-                  {splitMatches(match.text.trimStart(), pattern).map((part, i) =>
-                    part.match ? (
-                      <mark key={i} className="code-search-match">
-                        {part.text}
-                      </mark>
-                    ) : (
-                      <span key={i}>{part.text}</span>
-                    ),
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      {result && search.query && (
+        <p className="muted small code-search-message">
+          {counts.lines === 0
+            ? result.value.total === 0
+              ? "見つかりませんでした。"
+              : "すべて結果から外しました。"
+            : `${counts.files} 個のファイルで ${counts.lines} 件${result.value.truncated ? "（多いため、途中までを表示しています）" : ""}`}
+        </p>
       )}
-    </section>
+      {search.query && result && (
+        <SearchResults
+          search={search}
+          replacer={replacer}
+          collapsed={collapsed}
+          onToggleFile={(path) =>
+            setCollapsed((prev) => {
+              const next = new Set(prev);
+              if (!next.delete(path)) next.add(path);
+              return next;
+            })
+          }
+          selected={selected}
+          onSelect={onSelect}
+        />
+      )}
+    </>
   );
 }

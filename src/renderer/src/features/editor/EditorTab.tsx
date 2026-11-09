@@ -19,6 +19,7 @@ import { GitInitNotice } from "@/features/project/GitInitNotice";
 import { useFileRename } from "./useFileRename";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectSearch } from "./useProjectSearch";
+import { useSearchReplace } from "./useSearchReplace";
 import { WorktreeBar } from "@/features/worktree/WorktreeBar";
 
 /**
@@ -64,7 +65,14 @@ export function EditorTab({
     git,
     onMoved: (from, to) =>
       setOpenFolders((prev) => new Set([...prev].map((p) => (p === from || p.startsWith(`${from}/`) ? to + p.slice(from.length) : p)))),
+    // フォルダーの右クリックの「フォルダー内を検索」: 含めるファイルをそのフォルダーにして、検索タブへ
+    onFindInFolder: (folder) => {
+      search.findInFolder(folder);
+      navigate({ name: "project", id: projectId, tab: "search" });
+    },
   });
+  // 検索の結果の置換（すべて・ファイルごと・行ごと。元に戻す）
+  const replacer = useSearchReplace(projectId, { search, selection, git });
   // 変更の一覧の操作（ステージ・コミット・プッシュなど）の実行中と失敗（表示を切り替えても残す）
   const gitAction = useAction<CommitBusy>();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
@@ -116,7 +124,7 @@ export function EditorTab({
         aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}
       >
         {view === "search" ? (
-          <SearchView search={search} selected={selected} onSelect={(path, line) => void setSelected({ path, line })} />
+          <SearchView search={search} replacer={replacer} selected={selected} onSelect={(path, line) => void setSelected({ path, line })} />
         ) : view === "files" ? (
           <FilesPane
             rootName={rootName}

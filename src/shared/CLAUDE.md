@@ -17,7 +17,7 @@
 - `project/`: プロジェクトの色（`colors.ts` の `PROJECT_HUES` と `pickProjectHue`。グループの色も同じ選び方）とタグ（`tags.ts` の `normalizeTags` / `matchesTags` / `collectTags`・`MAX_TAG_LENGTH` / `MAX_TAGS`・タグなしを表す `UNTAGGED`）。
 - `memo/`: メモの名前（`names.ts` の `safeMemoName`（ファイル名に使える形）/ `uniqueMemoName`（重ならない名前）/ `projectMemoFolder`（プロジェクトのメモのフォルダ名。コアが決める名前と、新しいプロジェクトのダイアログの見込みで同じにする）/ `chatMemoName`（チャットから作るメモの名前））と種類（`kinds.ts` の `MEMO_KINDS`（Markdown / HTML）・拡張子で決める `memoKindOf`・メモの拡張子 `memoExtensionOf`・新しい HTML のメモのひな形 `newHtmlMemo`）。コアと画面で同じものを使う。
 - `snippet/`: 定型文の決まり（`snippets.ts` の `snippetLabel`（名前がなければ本文の 1 行目）/ `snippetsFor`（そのプロジェクトで使うもの = 共通 ＋ そのプロジェクトだけのもの）/ `bySnippetPosition`（並び）/ `moveWithin`（見えている行だけで動かした並び））。
-- `search/`: ファイルの中の検索（`searchMatch.ts` の `searchPattern`（検索の指定と同じ探し方の正規表現）/ `splitMatches`（行を見つかった部分とそれ以外に分ける））。画面の結果の印と、コアの置換で同じ探し方にする。
+- `search/`: ファイルの中の検索と置換（`searchMatch.ts` の `searchPattern`（検索の指定と同じ探し方の正規表現）/ `splitMatches`（行を見つかった部分とそれ以外に分ける）/ `splitReplacements`・`replaceInLine`（置き換える。正規表現なら置換の文の `$1`・`$&`・`$<名前>`・`\n` などを使い、大文字と小文字を保持するなら `matchCase` で見つかった文の形に合わせる）、`pathGlobs.ts` の `toPathspecs`（含める・除外するファイルの glob を git の pathspec に。VS Code と同じ読み方: `./` で作業場所から、そうでなければどの深さでも、`{a,b}` は広げる））。画面の結果の印・置換のプレビューと、コアの置換で同じ探し方・置き換え方にする。
 - `ipc/`: Electron の IPC の取り決め（→「IPC の取り決め」）。
 - `testing/factories.ts`: テストのデータを作る関数（`makeChat` / `makeProject` / `makeGroup` / `makeEvent` / `eventSequence`。省いた項目はそれらしい既定値で埋める）。コアと画面のテストで共通にし、テストごとに作る関数を書かない。
 - `errors.ts`: `errorMessage`（例外を画面に出す文にする。`e instanceof Error ? e.message : String(e)` を書かない）。

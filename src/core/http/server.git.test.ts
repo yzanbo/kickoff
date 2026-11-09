@@ -108,6 +108,37 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal((await search("h.llo")).total, 0);
   assert.equal((await call("GET", `/api/projects/${project.id}/search?q=${encodeURIComponent("(")}&regex=1`)).status, 400);
   assert.deepEqual(await search(""), { files: [], total: 0, truncated: false });
+  // 含める・除外するファイル（glob のカンマ区切り）と、無視しているファイルも探す（ignore=0）
+  const paths = (r: { files: { path: string }[] }) => r.files.map((f) => f.path);
+  assert.deepEqual(paths(await search("hello", "&include=c.txt")), ["c.txt"]);
+  assert.deepEqual(paths(await search("hello", `&exclude=${encodeURIComponent("c.*")}`)), ["new.txt"]);
+  assert.deepEqual(paths(await search("hello", `&include=${encodeURIComponent("*.js")}&ignore=0`)), ["node_modules/pkg/hello.js"]);
+
+  // 置換: 結果の行だけを置き換え、置換する前の中身と指紋を返す。探したあとで変わった行は置換しない
+  const replace = (body: object) => call("POST", `/api/projects/${project.id}/search/replace`, body);
+  const q = { query: "hello", case_sensitive: false, whole_word: false, regex: false, include: "", exclude: "", use_ignore: true };
+  const replaced = await replace({
+    query: q,
+    replace: "bye",
+    preserve_case: true,
+    files: [
+      { path: "c.txt", lines: [{ line: 1, text: "Hello world" }, { line: 2, text: "stale" }] },
+      { path: "missing.txt", lines: [{ line: 1, text: "hello" }] },
+    ],
+  });
+  assert.equal(replaced.status, 200);
+  assert.equal(fs.readFileSync(path.join(repo, "c.txt"), "utf8"), "Bye world\nhello-there\nshell\n");
+  assert.equal(replaced.body.replaced, 1);
+  assert.deepEqual(replaced.body.files.map((f: { path: string; count: number; before: string }) => [f.path, f.count, f.before]), [["c.txt", 1, "Hello world\nhello-there\nshell\n"]]);
+  assert.match(replaced.body.files[0].hash, /^[0-9a-f]{40}$/);
+  assert.deepEqual(replaced.body.skipped.map((s: { path: string }) => s.path), ["c.txt", "missing.txt"]);
+  // 正規表現の $1 と、改行が CRLF のファイル
+  fs.writeFileSync(path.join(repo, "crlf.txt"), "key=1\r\nkey=2\r\n");
+  await replace({ query: { ...q, query: "key=(\\d)", regex: true }, replace: "k$1", preserve_case: false, files: [{ path: "crlf.txt", lines: [{ line: 2, text: "key=2\r" }] }] });
+  assert.equal(fs.readFileSync(path.join(repo, "crlf.txt"), "utf8"), "key=1\r\nk2\r\n");
+  // 正しくない正規表現・リポジトリの外は 400
+  assert.equal((await replace({ query: { ...q, query: "(", regex: true }, replace: "", preserve_case: false, files: [{ path: "c.txt", lines: [{ line: 1, text: "x" }] }] })).status, 400);
+  assert.equal((await replace({ query: q, replace: "", preserve_case: false, files: [{ path: "../outside.txt", lines: [{ line: 1, text: "x" }] }] })).status, 400);
 
   // ステージ・ステージの取り消し・元に戻す（未追跡のファイルは消す）
   const post = (action: string, paths: string[]) => call("POST", `/api/projects/${project.id}/git/${action}`, { paths });
