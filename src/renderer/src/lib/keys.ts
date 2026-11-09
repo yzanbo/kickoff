@@ -92,3 +92,14 @@ const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(n
 export function hasAppModifier(e: KeyInput, mac = IS_MAC): boolean {
   return mac ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
 }
+
+/** 修飾キーだけを押したときの key（これだけでは、ピントの枠を出すキーボードの操作とみなさない） */
+const MODIFIER_KEYS = new Set(["Shift", "Meta", "Control", "Alt", "CapsLock", "Fn", "FnLock", "OS", "Hyper", "Super", "AltGraph"]);
+
+/**
+ * ピントの枠（キーボードで操作しているときの枠）を出すキー操作か。修飾キーだけ・⌘ / ⌃ / ⌥ を押しながらのキー（ショートカット）は除く。
+ * ブラウザの :focus-visible は Shift だけでもキーボードの操作とみなし、マウスで押したボタンに枠を出すため（app/inputModality.ts）
+ */
+export function isFocusRingKey(e: KeyInput): boolean {
+  return !MODIFIER_KEYS.has(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey;
+}

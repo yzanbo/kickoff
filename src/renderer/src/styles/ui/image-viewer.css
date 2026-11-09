@@ -75,7 +75,7 @@
 }
 
 /* キーで動かしたときだけ、ピントの枠を出す（開いた直後はダイアログ自体にピントがあり、枠は出ない） */
-.image-viewer-head .icon-button:focus-visible {
+:where(:root:not([data-modality="pointer"])) .image-viewer-head .icon-button:focus-visible {
   outline: 2px solid rgb(255 255 255 / 60%);
   outline-offset: -2px;
 }

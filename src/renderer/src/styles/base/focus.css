@@ -1,14 +1,21 @@
 /* ==== ボタンのピントの枠（全体） ====
- * マウスで押したときは出さず、キーボード（Tab）で移ったときだけ、アクセントの色の細い枠を出す */
+ * マウスで押したときは出さず、キーボード（Tab）で移ったときだけ、アクセントの色の細い枠を出す。
+ * :focus-visible の規則には、いつも頭に :where(:root:not([data-modality="pointer"])) を付ける（app/inputModality.ts。
+ * ブラウザはマウスで押したボタンにピントがあるまま Shift を押しただけで :focus-visible にするので、マウスで操作している間は出さない。:where なので詳細度は変わらない） */
 button:focus,
 a:focus {
   outline: none;
 }
 
-button:focus-visible,
-a:focus-visible,
-[role="button"]:focus-visible {
+:where(:root:not([data-modality="pointer"])) button:focus-visible,
+:where(:root:not([data-modality="pointer"])) a:focus-visible,
+:where(:root:not([data-modality="pointer"])) [role="button"]:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent-bright) 70%, transparent);
   outline-offset: 2px;
 }
 
+
+/* マウスで操作している間は、ブラウザの既定の枠も出さない（Shift だけで :focus-visible になるため。:where なので、部品が自分で付ける枠には勝たない） */
+:where(:root[data-modality="pointer"] :focus-visible) {
+  outline: none;
+}

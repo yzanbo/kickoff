@@ -88,11 +88,11 @@
 }
 
 /* キーボードのピントは外の枠ではなくタブの地で示す（枠の上下が切り取られ、両側に縦線だけが出ていた） */
-.panel-tab-label:focus-visible {
+:where(:root:not([data-modality="pointer"])) .panel-tab-label:focus-visible {
   outline: none;
 }
 
-.panel-tab:not(.active):has(.panel-tab-label:focus-visible) {
+:where(:root:not([data-modality="pointer"])) .panel-tab:not(.active):has(.panel-tab-label:focus-visible) {
   color: var(--text);
   background: var(--bg-elev);
 }
@@ -164,7 +164,7 @@
 
 .panel-tab:hover .panel-tab-close,
 .panel-tab.active .panel-tab-close,
-.panel-tab-close:focus-visible {
+:where(:root:not([data-modality="pointer"])) .panel-tab-close:focus-visible {
   opacity: 1;
 }
 

@@ -127,7 +127,7 @@
 }
 
 .icon-button.custom-group-toggle:hover,
-.icon-button.custom-group-toggle:focus-visible {
+:where(:root:not([data-modality="pointer"])) .icon-button.custom-group-toggle:focus-visible {
   color: var(--text);
   background: transparent;
 }

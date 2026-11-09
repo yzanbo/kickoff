@@ -74,7 +74,7 @@
   background: var(--info);
 }
 
-.question-option:has(.question-input:focus-visible) .question-key {
+:where(:root:not([data-modality="pointer"])) .question-option:has(.question-input:focus-visible) .question-key {
   outline: 2px solid color-mix(in srgb, var(--accent-bright) 70%, transparent);
   outline-offset: 1px;
 }

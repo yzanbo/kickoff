@@ -100,7 +100,7 @@
 }
 
 .icon-button.workspace-toggle:hover,
-.icon-button.workspace-toggle:focus-visible {
+:where(:root:not([data-modality="pointer"])) .icon-button.workspace-toggle:focus-visible {
   color: var(--text);
   background: transparent;
 }

@@ -74,11 +74,11 @@
 
 /* ↑↓ で移った項目は、乗せたときと同じ地の色で示す（ボタンの共通のピントの枠は出さない）。メニューそのもの（開いた直後のピント）にも枠を出さない */
 .menu:focus,
-.menu button:focus-visible {
+:where(:root:not([data-modality="pointer"])) .menu button:focus-visible {
   outline: none;
 }
 
-.menu button:focus-visible {
+:where(:root:not([data-modality="pointer"])) .menu button:focus-visible {
   background: var(--bg-hover);
 }
 

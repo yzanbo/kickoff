@@ -54,6 +54,11 @@
   background: var(--bg-hover);
 }
 
+/* キーボードで移ったときの枠は内側に出す（タブの列ははみ出しを切るので、外側に出すと上下が切れて「（ ）」に見えた） */
+:where(:root:not([data-modality="pointer"])) .sidebar-view-tab:focus-visible {
+  outline-offset: -2px;
+}
+
 /* いまの見え方に合うビュー */
 .sidebar-view-tab.active {
   border-color: var(--border-strong);

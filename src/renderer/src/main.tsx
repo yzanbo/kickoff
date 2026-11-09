@@ -1,12 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { prepareStorage } from "@/app/prepareStorage";
+import { startInputModality } from "@/app/inputModality";
 import { startTheme } from "@/app/theme";
 import "@/styles/index.css";
 
 // 入力欄以外にファイルを落としたとき、ウィンドウがそのファイルを開いてしまわないようにする
 window.addEventListener("dragover", (e) => e.preventDefault());
 window.addEventListener("drop", (e) => e.preventDefault());
+
+// マウスで操作したあとは、修飾キーだけではピントの枠を出さない（app/inputModality.ts）
+startInputModality();
 
 // テーマは先に出す（ID を含まないので、表示の設定を整えるのを待たない。待つ間に違う色で光らないように）
 startTheme();
