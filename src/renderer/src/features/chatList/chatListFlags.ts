@@ -17,5 +17,5 @@ export const isWaitingState = (state: AgentState) => {
   return column === "needs_input" || column === "unread";
 };
 
-/** 自分待ちのチャット（アーカイブしたものは除く）。pending は ChatStatesContext の回答待ちの一覧 */
+/** 要対応のチャット（アーカイブしたものは除く）。pending は ChatStatesContext の回答待ちの一覧 */
 export const waitingChats = (chats: Chat[], pending: ApprovalIndex) => chats.filter((r) => !r.archived_at && isWaitingState(chatStateOf(r, pending)));

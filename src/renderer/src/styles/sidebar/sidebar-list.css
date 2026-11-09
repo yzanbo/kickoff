@@ -216,7 +216,7 @@
   --corner-ring: var(--bg-sidebar);
 }
 
-/* ==== 自分待ちを上にまとめる / 1 列にまとめる（WaitingInbox） ==== */
+/* ==== 要対応を上にまとめる / 1 列にまとめる（WaitingInbox） ==== */
 
 /* 上にまとめる: プロジェクトの一覧の上のまとまり（下の一覧と線で分ける） */
 .waiting-inbox.top {

@@ -1,12 +1,12 @@
-// 自分待ちがオンのときの表示を、2 つの軸（出し方 × 並べ方）に分けて扱う（保存は 1 つの値 SIDEBAR_WAITING_VIEW のまま）
+// 要対応がオンのときの表示を、2 つの軸（出し方 × 並べ方）に分けて扱う（保存は 1 つの値 SIDEBAR_WAITING_VIEW のまま）
 
 /**
- * 保存する表示: filter = 自分待ちだけ × プロジェクト別 / list = 自分待ちだけ × 状態順 / inbox = 一覧の上に × 状態順 / inbox-project = 一覧の上に × プロジェクト別 /
+ * 保存する表示: filter = 要対応だけ × プロジェクト別 / list = 要対応だけ × 状態順 / inbox = 一覧の上に × 状態順 / inbox-project = 一覧の上に × プロジェクト別 /
  * in-project = プロジェクト内の上に（プロジェクトの中に置くので、並べ方はプロジェクト別だけ）
  */
 export type WaitingView = "filter" | "list" | "inbox" | "inbox-project" | "in-project";
 
-/** 出し方: only = 自分待ちのチャットだけを出す / top = 一覧全体の上にまとめ、その下はすべて / project = 各プロジェクトの中のいちばん上にまとめ、その下はすべて */
+/** 出し方: only = 要対応のチャットだけを出す / top = 一覧全体の上にまとめ、その下はすべて / project = 各プロジェクトの中のいちばん上にまとめ、その下はすべて */
 export const WAITING_SCOPES = ["only", "top", "project"] as const;
 export type WaitingScope = (typeof WAITING_SCOPES)[number];
 

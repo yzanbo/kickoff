@@ -20,7 +20,7 @@ import { useWaitingView } from "./waitingView";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 /**
- * サイドバーのプロジェクトの並びの状態と操作（並べ方・並び順・しまったものを出すか・自分待ちだけ・検索・
+ * サイドバーのプロジェクトの並びの状態と操作（並べ方・並び順・しまったものを出すか・要対応だけ・検索・
  * いま選んでいるプロジェクトと切り替え・ショートカット・スワイプ・すべて閉じる / 開く）。表示は ProjectNav（ProjectStack / ProjectSlides）
  */
 export function useProjectNav(chats: Record<number, Chat[]>) {
@@ -35,7 +35,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   // 合わないプロジェクトは、固定・しまったものも含めて出さない）。sorted は絞り込む前のしまっていないもの
   const [projectOrder, setProjectOrder] = useSetting(SIDEBAR_PROJECT_ORDER);
   const { active: sorted, visible, archived, tagFilter } = useVisibleProjects();
-  // 自分待ちだけを出すときは、自分待ちのチャットか、送る前の新しいチャット（下書き）があるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
+  // 要対応だけを出すときは、要対応のチャットか、送る前の新しいチャット（下書き）があるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
   // オンのときの表示（プロジェクトで絞る / 上にまとめる / 1 列にまとめる）。プロジェクトとチャットを絞るのは「絞る」のときだけ
   const [waitingView, setWaitingView] = useWaitingView();
@@ -43,7 +43,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const [compact] = useCompactRows();
   const [compactProjects] = useCompactProjects();
   const drafts = useAllDrafts();
-  // 自分待ちの数（タグで絞り込んでいれば、出しているプロジェクトの分だけ。しまったプロジェクトは数えない）
+  // 要対応の数（タグで絞り込んでいれば、出しているプロジェクトの分だけ。しまったプロジェクトは数えない）
   const waitingCount = visible.reduce((n, p) => n + waitingChats(chats[p.id] ?? [], pending).length, 0);
   const hasWaiting = (p: Project) => waitingChats(chats[p.id] ?? [], pending).length > 0 || drafts.some((d) => d.projectId === p.id);
   // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
@@ -151,7 +151,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     showArchived,
     onShowArchived: setShowArchived,
     fold: { allCollapsed, set: setAllCollapsed },
-    // 自分待ちの行（オン / オフ・数・オンのときの表示。オフでも行は出し、表示の 2 つは薄くする）
+    // 要対応の行（オン / オフ・数・オンのときの表示。オフでも行は出し、表示の 2 つは薄くする）
     waiting: { on: waitingOnly, onToggle: () => setWaitingOnly(!waitingOnly), count: waitingCount, view: waitingView, onView: setWaitingView },
   };
 
@@ -173,7 +173,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     swipe,
     waitingOnly,
     setWaitingOnly,
-    /** 自分待ちがオンのときの表示と、プロジェクト・チャットを自分待ちで絞っているか（表示が「絞る」のとき） */
+    /** 要対応がオンのときの表示と、プロジェクト・チャットを要対応で絞っているか（表示が「絞る」のとき） */
     waitingView,
     filterByWaiting,
     tagFilter,

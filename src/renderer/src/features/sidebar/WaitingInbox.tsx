@@ -17,9 +17,9 @@ import { inboxByProject, inboxSections, waitingSince, type InboxSection } from "
 import type { WaitingOrder } from "./waitingAxes";
 
 /**
- * 自分待ちのチャットのまとまり。並べ方（order）は、状態順 = プロジェクトをまたいで回答待ち → エラー → 未読の見出しに分ける（見出しの中は待っている時間の長い順。
+ * 要対応のチャットのまとまり。並べ方（order）は、状態順 = プロジェクトをまたいで回答待ち → エラー → 未読の見出しに分ける（見出しの中は待っている時間の長い順。
  * 行にどのプロジェクトかの印を添える）/ プロジェクト別 = サイドバーのプロジェクトの並びで見出しに分ける（見出しの中は状態順）。
- * variant: top = 一覧の上にまとめる（「自分待ち n 件」の見出しで開閉し、その下にプロジェクトの一覧が続く）/ list = 自分待ちだけを並べる（これだけを並べる）。
+ * variant: top = 一覧の上にまとめる（「要対応 n 件」の見出しで開閉し、その下にプロジェクトの一覧が続く）/ list = 要対応だけを並べる（これだけを並べる）。
  * 行はプロジェクトの一覧と同じ ChatRow（右クリック・名前の変更・複数選択）。出すのはサイドバーと同じく、しまっていない・タグの絞り込みに合うプロジェクトのチャット
  */
 export function WaitingInbox({ chats, variant, order }: { chats: Record<number, Chat[]>; variant: "top" | "list"; order: WaitingOrder }) {
@@ -57,7 +57,7 @@ export function WaitingInbox({ chats, variant, order }: { chats: Record<number, 
   );
   const body =
     total === 0 ? (
-      <p className="chat-search-empty waiting-inbox-empty">自分待ちのチャットはありません</p>
+      <p className="chat-search-empty waiting-inbox-empty">要対応のチャットはありません</p>
     ) : (
       <>
         {sections.map((section) => (
@@ -71,7 +71,7 @@ export function WaitingInbox({ chats, variant, order }: { chats: Record<number, 
   return (
     <div className={`waiting-inbox ${variant}`}>
       {variant === "top" ? (
-        <FoldSection look="row" icon={Inbox} title="自分待ち（回答待ち・エラー・未読）" open={topFold.open} onToggle={topFold.toggle} label="自分待ち" count={total}>
+        <FoldSection look="row" icon={Inbox} title="要対応（回答待ち・エラー・未読）" open={topFold.open} onToggle={topFold.toggle} label="要対応" count={total}>
           {body}
         </FoldSection>
       ) : (

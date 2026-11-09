@@ -12,7 +12,7 @@ import { NO_GROUPS } from "@/stores/groups";
 /**
  * スライド: 1 ページ = 1 プロジェクトのチャット一覧で、スワイプ・丸・ショートカットで切り替える。
  * 横スライドは丸を下に並べて横にスワイプ、縦スライド（rail）は丸を左に縦に並べて縦にスワイプする。
- * waitingEmpty（自分待ちがないとき）・selectionBar は ProjectNav が作る
+ * waitingEmpty（要対応がないとき）・selectionBar は ProjectNav が作る
  */
 export function ProjectSlides({
   nav,
@@ -28,7 +28,7 @@ export function ProjectSlides({
   groups: Record<number, ChatGroup[]>;
   onNewProject: () => void;
   waitingEmpty: ReactNode;
-  /** 自分待ちを上にまとめる表示のとき、スライドの上に置くまとまり（高さに上限を付けて、中でスクロールする） */
+  /** 要対応を上にまとめる表示のとき、スライドの上に置くまとまり（高さに上限を付けて、中でスクロールする） */
   topInbox: ReactNode;
   selectionBar: ReactNode;
 }) {

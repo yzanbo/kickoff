@@ -50,7 +50,7 @@ export function ChatRow({
   onRename: () => void;
   /** 名前をその場で変えている途中のとき */
   rename?: ChatTitleEditor;
-  /** プロジェクトをまたぐ一覧（自分待ちのまとまり）では、どのプロジェクトのチャットかを印で添える */
+  /** プロジェクトをまたぐ一覧（要対応のまとまり）では、どのプロジェクトのチャットかを印で添える */
   project?: { id: number; name: string };
   /** 行の下に添えるもの（子チャットの開閉。ChildChatRows） */
   after?: ReactNode;

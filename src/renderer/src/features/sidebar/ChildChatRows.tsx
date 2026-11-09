@@ -33,7 +33,7 @@ export function ChildChatRows({
   const split = parentArchived ? [kids, []] : splitArchived(kids);
   const onlyArchived = split[0].length === 0;
   const [active, archived] = onlyArchived ? [kids, []] : split;
-  // 子孫のどれかが自分待ち（回答待ち・未読）なら、閉じていても点で知らせる（アーカイブ済みは数えない）
+  // 子孫のどれかが要対応（回答待ち・未読）なら、閉じていても点で知らせる（アーカイブ済みは数えない）
   const waiting = (list: Chat[]): boolean =>
     list.some((c) => (!c.archived_at || parentArchived) && (["needs_input", "unread", "failed"].includes(stateOf(c)) || waiting(childrenOf.get(c.id) ?? [])));
   const attention = waiting(active);

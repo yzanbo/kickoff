@@ -25,7 +25,7 @@ const isMainBucket = (b: BucketHead) => b.kind !== "pinned" && b.kind !== "archi
 
 /**
  * サイドバーの 1 プロジェクトのチャットの行の絞り込みと分け方（分けるのは bucketChats）。
- * 検索（プロジェクトの検索欄か、すべてのプロジェクトをまたぐ検索欄 searchAll）・自分待ち・見出しの状態の数で絞り、
+ * 検索（プロジェクトの検索欄か、すべてのプロジェクトをまたぐ検索欄 searchAll）・要対応・見出しの状態の数で絞り、
  * 上に固定したもの・グループごと・グループなし（まとめ方が作業場所・状態なら、その見出しのまとまり）・アーカイブ済みに分ける
  * （アーカイブ済みは、グループ別・作業場所別ならまとまりごとの archived、まとめないときはいちばん下の archived）
  */
@@ -45,7 +45,7 @@ export function useWorkspaceRows({
 }) {
   // まとめ方（まとめない / グループ / 作業場所）と並び順（最近動いた順 / 状態順 / 手動）。グループの見出しは「グループ」のときだけ出す
   const { grouping, order } = useChatLayout();
-  // 自分待ち（回答待ち・未読）だけを出すか（上の行の「自分待ち」で切り替え、表示が「プロジェクトで絞る」のときだけ絞る。
+  // 要対応（回答待ち・未読）だけを出すか（一覧の上の見出しの「要対応」の行で切り替え、表示が「プロジェクトで絞る」のときだけ絞る。
   // 「上にまとめる」では一覧はすべてを出し、待っているものは上のまとまりに出す）
   const [waitingOn] = useSetting(SIDEBAR_WAITING_ONLY);
   const [waitingView] = useWaitingView();
@@ -57,19 +57,19 @@ export function useWorkspaceRows({
   const { keyword, matches } = useChatSearch(query || searchAll);
   // 見出しの状態の数を押して、その状態のチャットだけに絞る（このプロジェクトだけ。もう一度押すと戻す）
   const [stateFilter, setStateFilter] = useState<CountedColumn | null>(null);
-  // 検索・自分待ち・状態で絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
+  // 検索・要対応・状態で絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
   const filtering = Boolean(keyword) || waitingOnly || stateFilter !== null;
   const { pending, stateOf } = useChatStates();
   // グループの見出しを出しているか（グループでまとめていて、グループがあるとき）
   const showGroups = grouping === "group" && groupCount > 0;
   // 送る前の新しいチャット（下書き）。グループの見出しを出しているときは作成先のグループの中（グループなし・もうないグループのものはグループなしの中）、
-  // 出していないときはいちばん上に並べる。自分が続きを書くものなので「自分待ち」でも出す（検索・状態での絞り込み中は出さない）
+  // 出していないときはいちばん上に並べる。自分が続きを書くものなので「要対応」でも出す（検索・状態での絞り込み中は出さない）
   // ピン留めした下書きは、チャットと同じくいちばん上の「固定」に抜き出す（グループの中・いちばん上には出さない）
   const allDrafts = useProjectDrafts(projectId);
   const showDrafts = !keyword && stateFilter === null;
   const { drafts, pinnedDrafts } = useMemo(() => splitPinnedDrafts(allDrafts), [allDrafts]);
 
-  // 出すチャット: アーカイブしていないものは検索・自分待ち・状態で絞り、アーカイブ済みは（出すときだけ）検索で絞る（自分待ちのときは出さない）。
+  // 出すチャット: アーカイブしていないものは検索・要対応・状態で絞り、アーカイブ済みは（出すときだけ）検索で絞る（要対応のときは出さない）。
   // 行の分け方は、チャット・絞り込み・回答待ちの一覧が変わったときだけ計算し直す（matches は検索語が変わるまで同じ関数）
   const shown = useMemo(
     () =>

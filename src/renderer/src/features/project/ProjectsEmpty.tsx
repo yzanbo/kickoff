@@ -35,7 +35,7 @@ function NewProjectActions({ primary, withImport, onPick }: { primary: boolean; 
 const STEPS = [
   { icon: FolderGit2, title: "プロジェクトを用意する", text: "新しいフォルダを作るか、いまあるフォルダ（リポジトリ）を取り込みます。" },
   { icon: MessageSquare, title: "チャットで頼む", text: "作りたいもの・直したいことを書いて送ると、AI がそのフォルダで作業します。" },
-  { icon: Inbox, title: "自分待ちで受け取る", text: "答えを待っているチャットと、まだ見ていない結果は、サイドバーの「自分待ち」に集まります。" },
+  { icon: Inbox, title: "要対応にまとまる", text: "答えを待っているチャットと、まだ見ていない結果は、サイドバーの「要対応」に集まります。" },
 ];
 
 /**
