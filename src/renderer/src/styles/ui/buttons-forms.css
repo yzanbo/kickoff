@@ -91,6 +91,12 @@
   background: var(--ng);
 }
 
+/* 乗せたときも赤い地のまま少し暗くする（緑の主ボタンと同じ。.btn の乗せたときの灰色の地にしない） */
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 88%, black);
+}
+
 .btn-danger-text {
   border-color: transparent;
   color: var(--ng);
