@@ -13,7 +13,7 @@ import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { SearchField } from "@/ui/SearchField";
 import { useContextMenu } from "@/ui/useContextMenu";
-import type { TreeNode } from "@/features/editor/treeModel";
+import { folderPaths, type TreeNode } from "@/features/editor/treeModel";
 import { FileIcon } from "@/features/editor/FileIcon";
 import { focusedPane } from "@/features/panel/layout/paneTree";
 import { Panel } from "@/features/panel/Panel";
@@ -66,6 +66,8 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
 
   const entries = list.data?.entries;
   const tree = useMemo(() => buildMemoTree(entries ?? []), [entries]);
+  // 木のフォルダ（すべて開く・閉じるの切り替えに使う。覚えた開閉には、もうないフォルダも残っていることがあるので木から数える）
+  const dirs = useMemo(() => folderPaths(tree), [tree]);
   const found = useMemo(() => (query.trim() ? filterMemos(entries ?? [], query) : null), [entries, query]);
   const dir = list.data?.dir ?? "";
 
@@ -156,12 +158,16 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
             dir={dir}
             hasMemos={hasMemos}
             refreshing={list.loading}
-            canCollapse={openList.length > 0}
+            folds={{
+              hasFolders: dirs.length > 0,
+              anyOpen: dirs.some((d) => open.has(d)),
+              // 開いているものがあればすべて閉じ（もうないフォルダの覚えも外す）、すべて閉じていればすべて開く
+              toggle: () => setOpenList(dirs.some((d) => open.has(d)) ? [] : dirs),
+            }}
             onCreate={(kind) => void actions.createMemo(folderForNew(null), kind)}
             onCreateFolder={() => void actions.createFolder(folderForNew(null))}
             onPlan={() => setPlanning(true)}
             onRefresh={() => memosStore.invalidate(projectId)}
-            onCollapse={() => setOpenList([])}
             onHide={() => setListHidden(true)}
           />
           <SearchField className="memo-search" value={query} onChange={setQuery} placeholder="メモを名前で探す" label="メモを名前で探す" />
