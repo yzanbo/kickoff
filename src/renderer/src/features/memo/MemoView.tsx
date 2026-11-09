@@ -92,9 +92,15 @@ export function MemoView({
   // 欄を閉じている間、下の入力欄も隠す（メモだけを広く見る。見出しの吹き出しの ▾・入力欄の「隠す」）
   const [quickHidden, setQuickHidden] = useSetting(MEMO_QUICK_CHAT_HIDDEN);
   const quickFolded = chatOpen || quickHidden;
-  // 欄を閉じている間は、メモのチャットの上のピルの列（指示の履歴・ToDo・サブエージェントなど）を下の入力欄の上に描く
+  // 欄を閉じている間は、メモのチャットの上のピルの列（指示の履歴・ToDo・サブエージェントなど）と送信待ちを下の入力欄の上に描く
+  // （利用者の依頼: 会話の欄を閉じていても送信待ちを見せる。送信待ちがあれば、下の入力欄から送るものも送信待ちに足す）
   const [chipsHost, setChipsHost] = useState<HTMLDivElement | null>(null);
-  const chipsPortal = useMemo(() => (chatOpen ? null : { target: chipsHost, reveal: () => setChatOpen(true) }), [chatOpen, chipsHost, setChatOpen]);
+  const [queueHost, setQueueHost] = useState<HTMLDivElement | null>(null);
+  const [queued, setQueued] = useState(false);
+  const chipsPortal = useMemo(
+    () => (chatOpen ? null : { target: chipsHost, queueTarget: queueHost, onQueued: setQueued, reveal: () => setChatOpen(true) }),
+    [chatOpen, chipsHost, queueHost, setChatOpen],
+  );
   // 足す先のチャット（開いたチャット・メモのチャット）。本文の右クリック・本文で選んだときの上のボタン・見出しの添付のボタンから
   const file = `${dir}/${path}`;
   const targets = memoChatTargets({ file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
@@ -322,7 +328,16 @@ export function MemoView({
         <div className={cx("memo-quick-slot", quickFolded && "folded", chatPlace === "bottom" && "chat-bottom", motion.moved && "chat-moved")} aria-hidden={quickFolded} inert={quickFolded}>
           <div className="memo-quick-clip">
             <div ref={motion.quickRef}>
-              <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} onHide={() => setQuickHidden(true)} chipsRef={setChipsHost} />
+              <MemoQuickChat
+                projectId={projectId}
+                path={path}
+                beforeSend={saveBeforeSend}
+                onOpenChat={() => setChatOpen(true)}
+                onHide={() => setQuickHidden(true)}
+                chipsRef={setChipsHost}
+                queueRef={setQueueHost}
+                queued={queued}
+              />
             </div>
           </div>
         </div>

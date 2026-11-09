@@ -42,6 +42,8 @@ const NO_SCROLL: TimelineScroll = { ref: { current: null }, following: () => fal
  * 選んだときの「メモのチャットに追加」の行き先がこの欄だと分かるように）・メモのチャットを開いたときと同じピルの列（指示の履歴・ToDo・
  * サブエージェント・子チャット・メモ。閉じている欄の中のチャットの画面が chipsPortal でここに描く。指示へ移る・サブエージェントを開くなどは、欄を開いてから）・
  * 作業中・回答待ちなどの様子・右端に「会話を開く」（メモのチャットの欄を開く）・「非表示にする」（×）。
+ * 入力欄のすぐ上に送信待ち（利用者の依頼。閉じている欄の中のチャットの画面が chipsPortal の queueTarget に描く。並べ替え・書き直し・すぐ送るなどもそのまま）。
+ * 送信待ちがあれば（queued）、チャット欄と同じく、作業していなくても送るものを送信待ちに足す。
  * 書きかけの文はメモのチャットの入力欄と共有する（chatDraft）。送る前に書きかけの本文を保存する（beforeSend。保存できなければ送らない）
  */
 export function MemoQuickChat({
@@ -51,6 +53,8 @@ export function MemoQuickChat({
   onOpenChat,
   onHide,
   chipsRef,
+  queueRef,
+  queued,
 }: {
   projectId: number;
   path: string;
@@ -60,6 +64,10 @@ export function MemoQuickChat({
   onHide: () => void;
   /** 名前の横の、メモのチャットのピルの列を描いてもらう場所（メモのチャットの画面が chipsPortal で描く） */
   chipsRef: (el: HTMLDivElement | null) => void;
+  /** 入力欄のすぐ上の、メモのチャットの送信待ちを描いてもらう場所（メモのチャットの画面が chipsPortal で描く） */
+  queueRef: (el: HTMLDivElement | null) => void;
+  /** メモのチャットに送信待ちがある */
+  queued: boolean;
 }) {
   const chat = useMemoChatOf(projectId, path);
   const { stateOf } = useChatStates();
@@ -92,7 +100,7 @@ export function MemoQuickChat({
         </span>
       </div>
       {/* チャットができたら選択（モデルなど）をそのチャットのものから始め直す */}
-      <MemoQuickComposer key={chat?.id ?? "new"} projectId={projectId} path={path} chat={chat} beforeSend={beforeSend} />
+      <MemoQuickComposer key={chat?.id ?? "new"} projectId={projectId} path={path} chat={chat} beforeSend={beforeSend} queueRef={queueRef} queued={Boolean(chat) && queued} />
     </div>
   );
 }
@@ -125,18 +133,22 @@ function useQuickStatusFit() {
 
 /**
  * メモのチャットに送る入力欄。チャットがあれば送り方はチャットの画面と同じ（useChatSend。作業中はチャット欄の切り替えの いま / あとで、
- * 送信の ▾ の「質問として送る」、中断）。まだなければ、送るとメモのチャットを作る（作業中にはならないので、送り方の切り替えも ▾ も出さない）
+ * 送信の ▾ の「質問として送る」、中断。送信待ちがあれば送信待ちに足す）。入力欄のすぐ上に送信待ちを描いてもらう場所（queueRef）を置く。まだなければ、送るとメモのチャットを作る（作業中にはならないので、送り方の切り替えも ▾ も出さない）
  */
 function MemoQuickComposer({
   projectId,
   path,
   chat,
   beforeSend,
+  queueRef,
+  queued,
 }: {
   projectId: number;
   path: string;
   chat: Chat | undefined;
   beforeSend: () => Promise<void>;
+  queueRef: (el: HTMLDivElement | null) => void;
+  queued: boolean;
 }) {
   const options = useChatOptions(
     chat ? { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode } : undefined,
@@ -153,8 +165,8 @@ function MemoQuickComposer({
   const send = useChatSend({
     chatId: chat?.id ?? 0,
     busy,
-    // 送信待ち・裏の作業・圧縮中の様子は読まない（会話の欄を開けば分かる。作業していなければ、送るとすぐ送る）
-    queued: false,
+    // 送信待ちがあれば送信待ちに足す（チャット欄と同じ）。裏の作業・圧縮中の様子は読まない（会話の欄を開けば分かる）
+    queued,
     compactHold: null,
     options,
     scroll: NO_SCROLL,
@@ -172,10 +184,13 @@ function MemoQuickComposer({
       };
   return (
     <div className="chat-composer">
+      {/* メモのチャットの送信待ち（閉じている欄の中のチャットの画面がここに描く。入力欄とつなげて 1 枚の枠に見せる） */}
+      <div ref={queueRef} className="memo-quick-queue" />
       <Composer
         chatContext={{ projectId, exclude: chat?.id }}
         options={options}
         busy={busy}
+        queueWhileIdle={!busy && queued}
         placeholder={busy ? send.placeholder : PLACEHOLDER}
         sendLabel={busy ? send.sendLabel : undefined}
         onSend={onSend}
