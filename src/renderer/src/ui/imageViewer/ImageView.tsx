@@ -5,6 +5,7 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { CopyButton } from "@/ui/CopyButton";
 import { IconButton } from "@/ui/IconButton";
 import { copyImage, downloadImage } from "./imageFile";
+import { useImageMenu } from "./useImageMenu";
 import { useImageZoom } from "./useImageZoom";
 import { ViewerHead } from "./ViewerHead";
 
@@ -20,7 +21,7 @@ const ZOOM_IN_KEYS = new Set(["=", "+", ";"]);
 /**
  * 画像 1 枚を、拡大・縮小・ドラッグで動かしながら見る（見出しと画像の枠）。
  * 開き直す・前後の画像へ移るたびに作り直すので、そのたびに「画面に合わせる」に戻る。
- * ⌘+ / ⌘- / ⌘0（画面に合わせる）。見出しに画像のコピーと保存。Esc は <dialog> に任せる
+ * ⌘+ / ⌘- / ⌘0（画面に合わせる）。見出しに画像のコピーと保存。画像の右クリックでも同じコピー・保存のメニュー（添付のサムネイルと同じ useImageMenu。利用者の依頼）。Esc は <dialog> に任せる
  */
 export function ImageView({
   image,
@@ -35,6 +36,7 @@ export function ImageView({
   nav?: ReactNode;
 }) {
   const zoom = useImageZoom();
+  const menu = useImageMenu();
 
   useWindowEvent(
     "keydown",
@@ -83,8 +85,9 @@ export function ImageView({
         // 画像の外を押すと閉じる（ドラッグで動かしたあとは閉じない）
         onClick={(e) => e.target === e.currentTarget && !zoom.justDragged() && onClose()}
       >
-        <img src={image.src} alt={image.name} {...zoom.imageProps} />
+        <img src={image.src} alt={image.name} {...zoom.imageProps} onContextMenu={(e) => menu.open(e, image)} />
       </div>
+      {menu.element}
     </>
   );
 }

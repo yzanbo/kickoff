@@ -10,7 +10,7 @@ interface DismissOptions {
   ignore?: string;
   /**
    * Esc の扱い
-   * - "stop": 先に受け取って閉じ、ほかの Esc（パネルを閉じるなど）には伝えない（重なったいちばん上だけ閉じる）
+   * - "stop": 先に受け取って閉じ、ほかの Esc（パネルを閉じる・下の <dialog> を閉じるなど）には伝えない（重なったいちばん上だけ閉じる）
    * - "pass": 閉じたうえで、ほかの Esc にも伝える
    * - "none": Esc では閉じない
    */
@@ -71,7 +71,12 @@ export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObje
     const onKey = (e: KeyboardEvent) => {
       // 日本語入力の変換をやめる Esc では閉じない（検索欄で変換をやめただけで、一覧が閉じないように）
       if (e.key !== "Escape" || isComposing(e)) return;
-      if (escape === "stop") e.stopImmediatePropagation();
+      if (escape === "stop") {
+        e.stopImmediatePropagation();
+        // 開いている <dialog> の Esc（cancel）は伝えるのを止めても起きるので、既定の動きも止める
+        // （大きく見た画像の右クリックのメニューを Esc で閉じると、画像のダイアログまで閉じていた）
+        e.preventDefault();
+      }
       dismiss.current();
     };
     if (outside) window.addEventListener("mousedown", onDown);
