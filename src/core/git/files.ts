@@ -4,8 +4,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { isInside } from "../system/paths.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
+import { imageFileType, isIcnsFile, MAX_IMAGE_FILE_BYTES } from "@shared/files/imageFiles";
 import type { FileContent, ProjectFiles, RenamedFile, SavedFile } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
+import { largestIcnsPng } from "./icns.js";
 import { gitStatus } from "./status.js";
 
 /** ファイルの一覧の上限（大きなリポジトリでも重くならないように） */
@@ -172,3 +174,21 @@ export async function readProjectFile(repo: string, file: string): Promise<FileC
   }
 }
 
+
+/**
+ * 画像のファイルの中身（ファイルタブのプレビュー。リポジトリの外を指すリンクは読まない）。画像でない・大きすぎるは 400。
+ * icns はブラウザで出せないので、中のいちばん大きい PNG を返す（PNG がなければ 400）
+ */
+export async function readProjectImage(repo: string, file: string): Promise<{ data: Buffer; type: string }> {
+  const type = imageFileType(file);
+  if (!type) throw new Invalid("画像のファイルではありません");
+  const real = await resolveInside(repo, file);
+  const stat = await fs.stat(real);
+  if (!stat.isFile()) throw new Invalid("ファイルではありません");
+  if (stat.size > MAX_IMAGE_FILE_BYTES) throw new Invalid(`画像が大きすぎます（上限 ${MAX_IMAGE_FILE_BYTES / 1024 / 1024} MB）`);
+  const data = await fs.readFile(real);
+  if (!isIcnsFile(file)) return { data, type };
+  const png = largestIcnsPng(data);
+  if (!png) throw new Invalid("このアイコンには、表示できる形（PNG）の画像が入っていません");
+  return { data: png, type };
+}

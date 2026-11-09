@@ -1,5 +1,6 @@
-import { ArrowDown, ArrowUp, ExternalLink, Save } from "lucide-react";
+import { ArrowDown, ArrowUp, CodeXml, ExternalLink, Image, Save } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { imageFileType, isSvgFile } from "@shared/files/imageFiles";
 import type { GitFileChange, GitStatus } from "@shared/types";
 import { api, ApiError } from "@/api";
 import { cx } from "@/lib/cx";
@@ -17,6 +18,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { useMainChat } from "@/features/chat/pane/mainChatContext";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
 import { DiffLayoutToggle } from "./DiffLayoutToggle";
+import { ImagePreview } from "./ImagePreview";
 import { changeOf } from "./sideFile";
 import { useQuickDiffBase } from "./useQuickDiffBase";
 
@@ -57,6 +59,8 @@ interface EditBase {
  * 保存の前に、開いたあとでほかで（エージェントなどが）変えていないか確かめ、変わっていれば上書きするか聞く。
  * 開いている間にほかで変わったら、未保存の変更がなければそのまま読み直し、あれば知らせて読み直すか選ばせる。
  * バイナリ・大きすぎて途中までのファイルは、読むだけの表で出す。
+ * 画像（png・jpg・gif・webp・ico・icns など）はプレビュー（ImagePreview）で出す。SVG はプレビューとコードを見出しのボタンで切り替える
+ * （初めはプレビュー。検索の行・差分・新しいファイルから来たときはコード。書きかけの中身もプレビューに出す）。
  * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身。打つたびに差分が変わる）
  */
 export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase, version, onSaved, onDirtyChange, autoFocus = false }: Props) {
@@ -93,6 +97,19 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const diffing = typeof original === "string";
+  // 画像: SVG 以外はプレビューだけ。SVG はプレビューとコードを切り替える（コードの編集の部品は、初めてコードを出すまで作らない）
+  const raster = imageFileType(path) !== null && !isSvgFile(path);
+  const svg = isSvgFile(path);
+  const [showCode, setShowCode] = useState(() => line !== undefined || Boolean(diffBase) || autoFocus);
+  const [codeMounted, setCodeMounted] = useState(showCode);
+  // プレビューに切り替えたときの、書きかけの中身（保存していなければ、これをプレビューに出す）
+  const [svgDraft, setSvgDraft] = useState<string | null>(null);
+  const previewing = svg && !showCode;
+  const toggleCode = () => {
+    if (showCode) setSvgDraft(getValue.current?.() ?? null);
+    else setCodeMounted(true);
+    setShowCode(!showCode);
+  };
 
   const current = loaded.loaded ? { file: loaded.data, error: loaded.error } : undefined;
   const editable = Boolean(current?.file && !current.file.binary && !current.file.truncated);
@@ -195,6 +212,11 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
             <ExternalLink size={13} aria-hidden /> VS Code で開く
           </button>
         )}
+        {svg && (
+          <button className="btn btn-sm" aria-pressed={showCode} title={showCode ? "画像として表示します" : "SVG のコードを表示・編集します"} onClick={toggleCode}>
+            {showCode ? <Image size={13} aria-hidden /> : <CodeXml size={13} aria-hidden />} {showCode ? "プレビュー" : "コードを表示"}
+          </button>
+        )}
         {base && diffing && (
           <>
             <IconButton icon={ArrowUp} size={14} label="前の変更へ" onClick={() => goToDiff.current?.("previous")} />
@@ -216,54 +238,61 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
           </button>
         </div>
       )}
-      <div className={cx("diff-body", base && "editing")}>
-        {base && original === undefined ? (
-          <p className="muted small diff-message">編集の準備中…</p>
-        ) : base ? (
-          <Suspense fallback={<p className="muted small diff-message">編集の準備中…</p>}>
-            <CodeEditor
-              key={`${key}:${editorKey}`}
-              path={path}
-              initialValue={base.content}
-              savedValue={base.content}
-              line={line}
-              valueRef={getValue}
-              onDirtyChange={changeDirty}
-              onSave={(content) => void save(content)}
-              original={original ?? undefined}
-              layout={layout}
-              goToDiffRef={goToDiff}
-              quickDiffBase={quickDiffBase}
-              nativeContextMenu={!inSide}
-              autoFocus={autoFocus}
-            />
-          </Suspense>
-        ) : !current ? (
-          <p className="muted small diff-message">読み込み中…</p>
-        ) : current.error ? (
-          <ErrorText message={current.error} className="diff-message" />
-        ) : current.file?.binary ? (
-          <p className="muted small diff-message">バイナリのファイルなので、中身は表示できません。</p>
-        ) : (
-          // data-quote-path・data-no: 右の欄・別ウィンドウで行を選んでチャットに足すとき（useCodeQuoteMenu・SideSelectionAttach）に読む
-          <table className="diff-table" data-quote-path={path}>
-            <colgroup>
-              <col className="diff-col-no" />
-              <col />
-            </colgroup>
-            <tbody>
-              {lines.map((text, i) => (
-                <tr key={i} ref={i + 1 === line ? focusRef : undefined} className={cx(i + 1 === line && "line-focus")}>
-                  <td className="diff-no">{i + 1}</td>
-                  <td className="diff-code" data-no={i + 1}>
-                    <CodeLine tokens={tokens?.[i]} text={text} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className={cx("diff-body", (base || raster || previewing) && "editing")}>
+        {raster && <ImagePreview projectId={projectId} path={path} version={version} />}
+        {previewing && <ImagePreview projectId={projectId} path={path} version={version} source={base ? (dirty && svgDraft !== null ? svgDraft : base.content) : undefined} />}
+        {/* コード（SVG をプレビューしている間は、書きかけの編集の部品を残したまま隠す） */}
+        {!raster && (!previewing || codeMounted) && (
+          <div className="file-code" hidden={previewing}>
+            {base && original === undefined ? (
+              <p className="muted small diff-message">編集の準備中…</p>
+            ) : base ? (
+              <Suspense fallback={<p className="muted small diff-message">編集の準備中…</p>}>
+                <CodeEditor
+                  key={`${key}:${editorKey}`}
+                  path={path}
+                  initialValue={base.content}
+                  savedValue={base.content}
+                  line={line}
+                  valueRef={getValue}
+                  onDirtyChange={changeDirty}
+                  onSave={(content) => void save(content)}
+                  original={original ?? undefined}
+                  layout={layout}
+                  goToDiffRef={goToDiff}
+                  quickDiffBase={quickDiffBase}
+                  nativeContextMenu={!inSide}
+                  autoFocus={autoFocus}
+                />
+              </Suspense>
+            ) : !current ? (
+              <p className="muted small diff-message">読み込み中…</p>
+            ) : current.error ? (
+              <ErrorText message={current.error} className="diff-message" />
+            ) : current.file?.binary ? (
+              <p className="muted small diff-message">バイナリのファイルなので、中身は表示できません。</p>
+            ) : (
+              // data-quote-path・data-no: 右の欄・別ウィンドウで行を選んでチャットに足すとき（useCodeQuoteMenu・SideSelectionAttach）に読む
+              <table className="diff-table" data-quote-path={path}>
+                <colgroup>
+                  <col className="diff-col-no" />
+                  <col />
+                </colgroup>
+                <tbody>
+                  {lines.map((text, i) => (
+                    <tr key={i} ref={i + 1 === line ? focusRef : undefined} className={cx(i + 1 === line && "line-focus")}>
+                      <td className="diff-no">{i + 1}</td>
+                      <td className="diff-code" data-no={i + 1}>
+                        <CodeLine tokens={tokens?.[i]} text={text} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {readOnly && current?.file?.truncated && <p className="muted small diff-message">大きいため、途中までを表示しています（編集はできません）。</p>}
+          </div>
         )}
-        {readOnly && current?.file?.truncated && <p className="muted small diff-message">大きいため、途中までを表示しています（編集はできません）。</p>}
       </div>
     </div>
   );
