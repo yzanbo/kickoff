@@ -1,5 +1,5 @@
 import { MEMO_KIND_EXTENSIONS, memoExtensionOf, newHtmlMemo, type MemoKind } from "@shared/memo/kinds";
-import { safeMemoName } from "@shared/memo/names";
+import { datedMemoName, safeMemoName } from "@shared/memo/names";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { memosStore } from "@/stores/memos";
@@ -9,7 +9,7 @@ import { memoOpenFolders, memoSelected } from "@/lib/storageKeys";
 import { ancestorsOf, baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./memoPaths";
 import { remapMemoTabs } from "./memoPanel";
 
-/** 新しく作るメモ・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ） */
+/** 新しく作るメモ・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ）。メモは頭に作った日の日付を付ける（datedMemoName） */
 const UNTITLED_MEMO = "無題のメモ";
 const UNTITLED_FOLDER = "名称未設定フォルダ";
 
@@ -42,10 +42,10 @@ export function useMemoActions(
   const refresh = () => memosStore.invalidate(projectId);
   const entries = () => memosStore.get(projectId).data?.entries ?? [];
 
-  /** 新しいメモ（HTML なら、題名の見出しと <style> の入ったひな形から始める）。仮の名前ですぐ作る */
+  /** 新しいメモ（HTML なら、題名の見出しと <style> の入ったひな形から始める）。仮の名前「2026-11-09 無題のメモ」（作った日の日付を頭に。利用者の依頼）ですぐ作る */
   const createMemo = async (folder: string, kind: MemoKind = "markdown") => {
     const html = kind === "html";
-    const path = untitledPath(entries(), folder, UNTITLED_MEMO, MEMO_KIND_EXTENSIONS[kind]);
+    const path = untitledPath(entries(), folder, datedMemoName(UNTITLED_MEMO, new Date()), MEMO_KIND_EXTENSIONS[kind]);
     await api.createMemo(projectId, path, html ? { content: newHtmlMemo(memoTitle(path)) } : {}).then(() => {
       refresh();
       onCreated?.(path, false);

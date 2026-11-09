@@ -11,6 +11,8 @@ interface Props {
   maxLength?: number;
   /** 入力欄のすぐ右に添える文（メモの拡張子など。名前には含めない） */
   suffix?: string;
+  /** 開いたときに選ぶ範囲の始まり（既定は 0 = 全体。頭の日付を残して後ろだけを書き換えてもらうときなど） */
+  selectFrom?: number;
   /** 書いた名前を使えないときの理由（使えるなら null）。理由があれば欄の下に出し、Enter・✓ では決めない（フォーカスを外すと取り消し） */
   validate?: (name: string) => string | null;
   onSubmit: (name: string) => void;
@@ -22,7 +24,7 @@ interface Props {
  * 横の ✓ / ✕ でも決定・取り消しできる（押しても入力欄からフォーカスが外れないようにして、二重に動かない）。
  * validate があれば書くたびに確かめ、使えない名前なら理由を欄の下に出して決めさせない（同じ名前のビューなど）
  */
-export function InlineName({ initial = "", placeholder, className, maxLength = 60, suffix, validate, onSubmit, onCancel }: Props) {
+export function InlineName({ initial = "", placeholder, className, maxLength = 60, suffix, selectFrom = 0, validate, onSubmit, onCancel }: Props) {
   const [value, setValue] = useState(initial);
   // 元の名前のまま・空は決めても何も変えない（取り消しと同じ）ので確かめない
   const trimmed = value.trim();
@@ -33,7 +35,12 @@ export function InlineName({ initial = "", placeholder, className, maxLength = 6
 
   useEffect(() => {
     ref.current?.focus();
-    ref.current?.select();
+    const input = ref.current;
+    if (input && selectFrom > 0) {
+      input.setSelectionRange(selectFrom, input.value.length);
+      // 狭い欄でも頭（残す日付など）から見せる（選んだ範囲の終わりまでスクロールして、頭が隠れるため）
+      input.scrollLeft = 0;
+    } else input?.select();
   }, []);
 
   const finish = (submit: boolean) => {
