@@ -169,15 +169,27 @@
 
 /*
  * 作業場所の札は省かずに出す（グループの札のようにタブの半分で省くと「本体 | m…」と切れるため）。
- * ブランチ名（「本体 | main」の「 | main」）は、タブの幅に入らないときだけ隠す（PanelTab が測る）
+ * タブの幅に入らないときの詰め方は下（PanelTab が測る）
  */
 .panel-tab-label .panel-tab-workplace {
   max-width: none;
 }
 
-/* 作業場所の札のブランチ名（「本体 | main」の「 | main」）は、タブの幅に入らないときだけ隠す（PanelTab が測る） */
-.panel-tab.place-short .panel-tab-workplace-branch {
+/*
+ * タブの幅に入らないとき（PanelTab が測る）: 本体は「本体」だけ、ワークツリーは「WT | 」を隠してブランチ名だけにし、
+ * それでも入らなければ「…」で省く（「WT」だけではどのワークツリーか分からないため）
+ */
+.panel-tab.place-short .panel-tab-workplace.main :is(.panel-tab-workplace-sep, .panel-tab-workplace-branch),
+.panel-tab.place-short .panel-tab-workplace.worktree :is(.panel-tab-workplace-kind, .panel-tab-workplace-sep) {
   display: none;
+}
+
+.panel-tab.place-short .panel-tab-label .panel-tab-workplace.worktree {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 未読（終わった・失敗したのに見ていない）のチャットのタブは、名前を太字にする（サイドバーの行と同じ） */
