@@ -33,10 +33,22 @@ function holdDragRegions(): () => void {
   };
 }
 
+/** 開いている層（useDismiss を使うポップオーバー・メニュー）の要素。開いた順 */
+type Layer = () => (HTMLElement | null)[];
+const layers: Layer[] = [];
+
+/** target が、layer より後に開いた層（その中から開いたメニューなど）の中にあるか */
+function insideLaterLayer(layer: Layer, target: Node): boolean {
+  const index = layers.indexOf(layer);
+  return layers.slice(index + 1).some((later) => later().some((el) => el?.contains(target)));
+}
+
 /**
  * ポップオーバー・メニューなどを、外側のクリックと Esc で閉じる。
  * ref の要素（いくつか渡せば、そのどれか。ポップオーバーと開いたボタンなど）の中のクリックでは閉じない
- * （ウィンドウのドラッグ領域のクリックでも閉じるよう、開いている間はドラッグ領域を止める）
+ * （ウィンドウのドラッグ領域のクリックでも閉じるよう、開いている間はドラッグ領域を止める）。
+ * 後から開いた層（ポップオーバーの中から開いたメニュー。body に出すので要素の上では外にある）の中のクリックも、外側とみなさない
+ * （前は ⚙ の窓の中のメニューの項目を押すと、押した時点で窓が閉じてメニューごと消え、選んだものが届かなかった）
  */
 export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObject<HTMLElement | null>[], onDismiss: () => void, options: DismissOptions = {}) {
   const { enabled = true, outside = true, ignore, escape = "stop" } = options;
@@ -47,11 +59,13 @@ export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObje
 
   useEffect(() => {
     if (!enabled) return;
+    const elements: Layer = () => (Array.isArray(refs.current) ? refs.current : [refs.current as RefObject<HTMLElement | null>]).map((r) => r.current);
+    layers.push(elements);
     const onDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      const inside = Array.isArray(refs.current) ? refs.current : [refs.current as RefObject<HTMLElement | null>];
-      if (inside.some((r) => r.current?.contains(target))) return;
+      if (elements().some((el) => el?.contains(target))) return;
       if (ignore && target.closest?.(ignore)) return;
+      if (insideLaterLayer(elements, target)) return;
       dismiss.current();
     };
     const onKey = (e: KeyboardEvent) => {
@@ -66,6 +80,7 @@ export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObje
     const capture = escape === "stop";
     if (escape !== "none") window.addEventListener("keydown", onKey, capture);
     return () => {
+      layers.splice(layers.indexOf(elements), 1);
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey, capture);
       release?.();
