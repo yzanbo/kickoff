@@ -2,15 +2,16 @@ import { Folder, FolderPlus } from "lucide-react";
 import { useState } from "react";
 import { api } from "@/api";
 import { useAction } from "@/hooks/useAction";
-import { promptDialog, reportFailure } from "@/ui/dialogs";
+import { reportFailure } from "@/ui/dialogs";
+import { askNewGroupName } from "@/features/group/groups";
 import { ErrorText } from "@/ui/ErrorText";
 import { InlineName } from "@/ui/InlineName";
 
 /** プロジェクトのボードのツールバーの「整える」の「グループを作成」（名前を聞くダイアログで作る） */
 export function GroupCreateToolButton({ projectId }: { projectId: number }) {
   const create = async () => {
-    const name = await promptDialog({ title: "新しいグループ", label: "グループ名", placeholder: "例: コードレビュー", confirmLabel: "作成" });
-    if (name?.trim()) await api.createGroup(projectId, name.trim()).catch(reportFailure("グループを作成できませんでした"));
+    const name = await askNewGroupName();
+    if (name) await api.createGroup(projectId, name).catch(reportFailure("グループを作成できませんでした"));
   };
   return (
     <button className="btn btn-sm" onClick={() => void create()}>

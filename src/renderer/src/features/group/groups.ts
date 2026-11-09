@@ -1,7 +1,7 @@
 import { useState, type DragEvent } from "react";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import type { Chat, ChatGroup } from "@shared/types";
-import { confirmDialog } from "@/ui/dialogs";
+import { confirmDialog, promptDialog } from "@/ui/dialogs";
 import type { DraftRef } from "@/features/panel/state/panelDrafts";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 import { startDragGhost } from "@/ui/dragGhost";
@@ -224,6 +224,12 @@ function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
 
 /** 全プロジェクトのボードのグループの列・サイドバーで、並べ替えの並びの中の「No Group」の ID（グループの ID は 1 から） */
 export const UNGROUPED_SORT_ID = 0;
+
+/** 新しいグループの名前を聞く（ボードの「グループを作成」・タブのまとまりの札・チャットの「グループを変更」で共通）。やめた・空なら null */
+export async function askNewGroupName(confirmLabel = "作成"): Promise<string | null> {
+  const name = await promptDialog({ title: "新しいグループ", label: "グループ名", placeholder: "例: コードレビュー", confirmLabel });
+  return name?.trim() || null;
+}
 
 /** グループの削除を確かめる（中のチャットは消えず、グループなしに戻る） */
 export function confirmDeleteGroup(group: Pick<ChatGroup, "name">): Promise<boolean> {
