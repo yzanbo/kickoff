@@ -9,6 +9,8 @@ import { Segmented } from "@/ui/Segmented";
 import { PanelToggle } from "@/features/panel/board/PanelToggle";
 import type { PanelController } from "@/features/panel/usePanel";
 import { IconButton } from "@/ui/IconButton";
+import { cx } from "@/lib/cx";
+import { useWrapCompact } from "@/hooks/useOverflowCompact";
 
 /** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる）・表（チャット 1 つが 1 行。見出しで並べ替える） */
 export type BoardView = SettingValue<typeof BOARD_VIEW>;
@@ -51,10 +53,13 @@ interface Props {
  * 右に パネルの開閉（右のパネルのあるプロジェクトのボードだけ。ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
 export function BoardHeader({ query, onQuery, filters, organize, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
+  // 狭いときは、まずまとまりごと次の行へ折り返し（2 段までは文字のまま）、3 段目が要るときだけボタンの文字を隠してアイコンにする
+  // （入るかは実際の段の数で決める。利用者の依頼で、前は見出しの幅 1120px 以下ですぐアイコンにしていた）
+  const fit = useWrapCompact<HTMLDivElement>(2, "icon-only");
   return (
     <div className="board-header">
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
-      <div className="board-tools">
+      <div ref={fit.ref} className={cx("board-tools", fit.compact && "icon-only")}>
         {organize && (
           <div className="board-tool-group" role="group" aria-label="整える">
             {organize}

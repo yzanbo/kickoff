@@ -115,3 +115,62 @@ export function useOverflowLevel<T extends HTMLElement>(maxLevel: number, resetK
 
   return { ref, level };
 }
+
+/**
+ * 折り返して並ぶ中身（el の子）の段の数（見えていない子は数えない）。上下の真ん中にそろえると高さの違う子は上端がずれるので、
+ * 前の段の下端より下から始まる子だけを新しい段に数える
+ */
+function wrappedRows(el: HTMLElement): number {
+  const boxes = [...el.children]
+    .filter((child) => child.getClientRects().length > 0)
+    .map((child) => child.getBoundingClientRect())
+    .sort((a, b) => a.top - b.top);
+  let rows = 0;
+  let bottom = -Infinity;
+  for (const box of boxes) {
+    if (box.top >= bottom - 1) {
+      rows += 1;
+      bottom = box.bottom;
+    } else {
+      bottom = Math.max(bottom, box.bottom);
+    }
+  }
+  return rows;
+}
+
+/**
+ * 折り返して並ぶ道具（flex-wrap の子）が maxRows 段に入らないときだけ詰めた表示（compact）にする（ボードの見出し: 2 段までは文字のまま、
+ * 3 段目が要るときだけアイコンにする）。決め打ちの幅では切り替えず、詰めた表示のときも compactClass をいったん外して、ふつうの表示での段の数を測る
+ * （測ったらすぐ戻す。描く前なので画面は動かない）。要素と親の大きさが変わったとき・中身（ボタン・文言）が変わったときに測り直す。
+ * 要素が隠れている・display: contents（幅 0）の間は測らない（狭いときの並べ方を CSS が持つとき）
+ */
+export function useWrapCompact<T extends HTMLElement>(maxRows: number, compactClass: string) {
+  const ref = useRef<T>(null);
+  const [compact, setCompact] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => {
+      if (el.clientWidth === 0) return;
+      const had = el.classList.contains(compactClass);
+      if (had) el.classList.remove(compactClass);
+      const over = wrappedRows(el) > maxRows;
+      if (had) el.classList.add(compactClass);
+      setCompact(over);
+    };
+    check();
+    const resize = new ResizeObserver(check);
+    resize.observe(el);
+    // 詰めた表示で 1 段に収まっていると、見出しが広がっても要素の幅は変わらないので、親の大きさも見る
+    if (el.parentElement) resize.observe(el.parentElement);
+    const mutation = new MutationObserver(check);
+    mutation.observe(el, { childList: true, subtree: true, characterData: true });
+    return () => {
+      resize.disconnect();
+      mutation.disconnect();
+    };
+  }, [maxRows, compactClass]);
+
+  return { ref, compact };
+}
