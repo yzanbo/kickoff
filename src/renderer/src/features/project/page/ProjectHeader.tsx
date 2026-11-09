@@ -6,10 +6,11 @@ import type { ProjectTab } from "@/app/router";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { ProjectTabs, useProjectTabsLayout, type TabRefreshing } from "./ProjectTabs";
 import { StateStats } from "./StateStats";
+import { ActiveChatsButton } from "@/features/palette/ActiveChatsButton";
 import type { ProjectData } from "./useProjectData";
 
 /**
- * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・状態ごとのチャット数と、
+ * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・状態ごとのチャット数・このプロジェクトの作業中・待ちのチャットの一覧（⌘⇧A）と、
  * タブの列（チャットの件数、変更は変更のあるファイルの数 changeCount。左に縦並びにする設定のときは、見出しには出さない）
  */
 export function ProjectHeader({
@@ -48,6 +49,8 @@ export function ProjectHeader({
       <div className="project-stats">
         {project.archived_at && <ToneChip label="アーカイブ済み" />}
         <StateStats chats={chats} />
+        {/* このプロジェクトに絞り込んだ ⌘⇧A の一覧（状態ごとの数が 0 でも出す。利用者の依頼） */}
+        <ActiveChatsButton project={project} />
       </div>
     </div>
     {layout === "top" && (

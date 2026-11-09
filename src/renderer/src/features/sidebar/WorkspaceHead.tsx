@@ -12,12 +12,14 @@ import { ProjectTags } from "@/features/project/ProjectTags";
 import { HeadCounts } from "./HeadCounts";
 import { pressedLeftOfName } from "@/ui/GroupToggle";
 import { useProjectMenu } from "@/features/project/ProjectMenu";
+import { ActiveChatsButton } from "@/features/palette/ActiveChatsButton";
 import type { CountedColumn, StateCounts } from "@/features/chat/chatState";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
  * 左の矢印（名前より左のどこでも）を押すと、選ばずに開閉だけする。カードのほかの部分（中のボタンを除く）を押すと、選んでいて開いていれば閉じ、それ以外は選び直して開く（サイドバー全体で同じ）。
- * 出すのは、いつも使うものだけ: チャット一覧の開閉（矢印）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
+ * 出すのは、いつも使うものだけ: チャット一覧の開閉（矢印）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・
+ * このプロジェクトの作業中・待ちのチャットの一覧（⌘⇧A の一覧を絞り込んで開く）・新しいチャット（＋）。
  * 名前の下の 2 行目に、チャット数とタグ（小さなチップ）を出す。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
@@ -128,6 +130,8 @@ export function WorkspaceHead({
           />
         )}
         <HeadCounts counts={counts} filter={stateFilter} onFilter={onStateFilter} />
+        {/* このプロジェクトに絞り込んだ ⌘⇧A の一覧（下書き・作業中・回答待ち・未読。利用者の依頼） */}
+        <ActiveChatsButton project={project} size={14} className="workspace-active-chats" />
         <IconButton
           icon={SquarePen}
           label={`${project.name} の新しいチャット`}

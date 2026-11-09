@@ -1,4 +1,5 @@
 import {
+  Activity,
   Archive,
   ArchiveRestore,
   Check,
@@ -21,6 +22,8 @@ import { alertDialog, promptDialog } from "@/ui/dialogs";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
 import { useOrderedTags } from "./projectTagFilter";
 import { openNewChat } from "@/app/router";
+import { ACTIVE_CHATS_LABEL } from "@/features/palette/ActiveChatsButton";
+import { openActiveChats } from "@/features/palette/openActiveChats";
 import { ProjectEditDialog } from "@/features/project/settings/ProjectEditDialog";
 import type { ProjectSettingsSection } from "@/features/project/settings/ProjectSettings";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
@@ -36,7 +39,7 @@ export interface ProjectMenuExtras {
 
 /**
  * プロジェクトの右クリックメニュー（サイドバーの見出しのカード・下の丸）。プロジェクトに対する操作をすべて、まとまりに分けて並べる:
- * このプロジェクト（新しいチャット・グループを作成・Finder。カンバンは名前を押せば開く）/ 整理（固定・開閉・アーカイブ）/
+ * このプロジェクト（新しいチャット・グループを作成・作業中・待ちのチャットを一覧・Finder。カンバンは名前を押せば開く）/ 整理（固定・開閉・アーカイブ）/
  * タグ（使っているタグの付け外しと、新しいタグ）/ 編集・削除（プロジェクトの編集のダイアログ）。
  * すべてのプロジェクトに効く設定（チャットの並べ方など）はここに入れず、一覧の上の見出しの行に置く。
  * 見出しのカードには、いつも使うもの（開閉・名前・状態ごとの数・＋）だけを常に出す。
@@ -110,6 +113,7 @@ function ProjectMenu({
       <div className="menu-label">このプロジェクト</div>
       {item("new", <SquarePen size={14} />, "新しいチャット", () => openNewChat(project.id))}
       {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}
+      {item("active", <Activity size={14} />, ACTIVE_CHATS_LABEL, () => openActiveChats({ projectId: project.id }))}
       {window.kickoff && item("finder", <FolderOpen size={14} />, "Finder で開く", () => void window.kickoff?.externalApps.openPath(project.repo_path))}
 
       <div className="menu-separator" role="separator" />
