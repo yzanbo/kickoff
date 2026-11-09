@@ -198,12 +198,21 @@ export function QuestionCard({ approval }: { approval: Approval }) {
           </div>
         );
       })}
-      <div className="approval-actions" hidden={folded}>
+      {/* ボタンの並び: 戻るは左端、右に進み具合・スキップ・次へ / 回答する（主ボタンを右端に置き、スキップはそのすぐ左） */}
+      <div className="approval-actions question-actions" hidden={folded}>
         {stepped && current > 0 && (
           <button className="btn" disabled={sending} onClick={() => setStep(current - 1)}>
             戻る
           </button>
         )}
+        {stepped && (
+          <span className="question-progress muted small">
+            {current + 1} / {questions.length}
+          </span>
+        )}
+        <button className="btn" disabled={sending} onClick={() => void resolve({ action: "deny", message: SKIP_MESSAGE })}>
+          スキップ
+        </button>
         {stepped && !isLast ? (
           <button className="btn btn-primary" disabled={sending || !answered(questions[current])} onClick={next}>
             次へ
@@ -212,14 +221,6 @@ export function QuestionCard({ approval }: { approval: Approval }) {
           <button className="btn btn-primary" disabled={sending || !complete} title={uploading ? "添付のアップロードが終わるまでお待ちください" : !complete ? "まだ答えていない質問があります" : undefined} onClick={answer}>
             回答する
           </button>
-        )}
-        <button className="btn" disabled={sending} onClick={() => void resolve({ action: "deny", message: SKIP_MESSAGE })}>
-          スキップ
-        </button>
-        {stepped && (
-          <span className="question-progress muted small">
-            {current + 1} / {questions.length}
-          </span>
         )}
       </div>
       <ErrorText message={error} />

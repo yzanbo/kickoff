@@ -188,9 +188,15 @@
   white-space: nowrap;
 }
 
+/* ボタンの行は右に寄せる（主ボタンが右端。戻るがあれば左端に残し、進み具合から右をまとめて右に寄せる） */
+.question-card .question-actions {
+  justify-content: flex-end;
+}
+
 .question-progress {
   align-self: center;
   margin-left: auto;
+  margin-right: 4px;
 }
 
 /* 「その他」の行: 鉛筆の箱と、枠のない「その他の回答」の欄 */
