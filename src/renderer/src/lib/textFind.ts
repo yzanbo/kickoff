@@ -1,18 +1,18 @@
-// 右の欄のタブの中の文字を探す（⌘F）の、照らし合わせの部分（純粋関数）。画面の文字の並び（テキストのノードごと）から、合う位置を返す
-// （1 つのノードの中で合うものだけ。太字・色付けで分かれた所をまたぐものは探さない）
+// ページの中の文字を探す（⌘F）の、照らし合わせの部分（純粋関数）。画面の文字の並び（テキストのノードごと）から、合う位置を返す
+// （1 つのノードの中で合うものだけ。太字・色付けで分かれた所をまたぐものは探さない）。描くのは ui/FindBar.tsx
 
 /** 合った位置（texts の何番目の、どこからどこまで） */
-export interface PaneMatch {
+export interface TextMatch {
   node: number;
   start: number;
   end: number;
 }
 
 /** 文字の並びから、query に合う位置を前から順に（大文字・小文字は区別しない。空なら何も返さない） */
-export function findInTexts(texts: readonly string[], query: string): PaneMatch[] {
+export function findInTexts(texts: readonly string[], query: string): TextMatch[] {
   if (!query) return [];
   const needle = query.toLowerCase();
-  const out: PaneMatch[] = [];
+  const out: TextMatch[] = [];
   texts.forEach((text, node) => {
     const hay = text.toLowerCase();
     for (let at = hay.indexOf(needle); at >= 0; at = hay.indexOf(needle, at + needle.length)) out.push({ node, start: at, end: at + needle.length });

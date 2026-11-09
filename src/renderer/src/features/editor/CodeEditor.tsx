@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import type { AppliedTheme } from "@/lib/appliedTheme";
 import { registerCodeSelection, type CodeSelection } from "./codeSelection";
+import { registerEditorFind } from "./editorFind";
 import { SPLIT_MIN_WIDTH } from "./DiffView";
 import { quickDiff, type QuickDiffHunk } from "./quickDiff";
 
@@ -193,11 +194,17 @@ export default function CodeEditor({
       timer = setTimeout(paintQuickDiff, QUICK_DIFF_DELAY_MS);
     });
     const unregister = registerCodeSelection(host, () => readSelection(editor));
+    // ページの ⌘F（ピントが部品の外にあるとき）で、Monaco の検索の欄を開く（部品の中にピントがあれば Monaco が自分で受け取る）
+    const unregisterFind = registerEditorFind(host, () => {
+      editor.focus();
+      void editor.getAction("actions.find")?.run();
+    });
     if (autoFocus) editor.focus();
     return () => {
       clearTimeout(timer);
       sub.dispose();
       unregister();
+      unregisterFind();
       refreshQuickDiff.current = null;
       // 差分の編集では、左右の部品は差分の部品が一緒に片付ける
       (diffRef.current ?? editor).dispose();

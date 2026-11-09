@@ -80,7 +80,7 @@
 
 - アーカイブでの絞り込みは `ArchiveFilterSelect`（すべて / 未アーカイブ / アーカイブ済み。`archiveFilter.ts` の `useArchiveFilter` / `archiveMatches`）。アーカイブ済みを出すかはサイドバー・右のパネルのタブと共通の `SIDEBAR_SHOW_ARCHIVED`（`useShowArchivedChats`）で連動し、「未アーカイブ」を選ぶとどこでも隠し、「すべて」「アーカイブ済み」を選ぶとどこでも出す（値は `linkedArchiveFilter`）。「アーカイブ済みだけ」はボードの中だけの絞り込みとして `BOARD_ARCHIVE_FILTER` に覚える。絞り込み中の色（緑の枠）は、アーカイブ済みだけに絞っているときだけ。
 - カンバンの絞り込み・候補・段は `useKanbanFilters`（アーカイブ・作業場所・名前の検索）/ `useWorktreeChoices`（ブランチ名で出し、フォルダが消えたものは「フォルダなし」と添える）/ `useKanbanLanes`、出すチャットは `useKanbanChats`（純粋関数 `kanbanChats`。全プロジェクトのボードではしまったプロジェクトの分を出さない）。カンバンにプロジェクトの絞り込みは置かない（見出しの名前 `ProjectSwitcher` から切り替える）。
-- 名前で探す検索欄は見出しの `.board-search`（⌘F。`useChatSearch`）。右のボタンでチャットの中の文言の全文検索（`openContentSearch`。⌘⇧F は利用者の依頼で検索タブ（ファイルの中を探す）に替えた）を開く。
+- 名前で探す検索欄は見出しの `.board-search`（⌘F。ページの ⌘F を置いていないボードでは、⌘F がこの欄へ。`useChatSearch`）。右のボタンでチャットの中の文言の全文検索（`openContentSearch`。⌘⇧F は利用者の依頼で検索タブ（ファイルの中を探す）に替えた）を開く。
 
 ## 見出し（ツールバー）と外枠
 
