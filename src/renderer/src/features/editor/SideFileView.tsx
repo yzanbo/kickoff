@@ -65,7 +65,7 @@ function SideFileBody({ projectId, worktree, path, line }: Props) {
         repoPath={repoPath}
         path={path}
         line={line}
-        changed={changed}
+        gitStatus={git.status}
         version={git.version}
         onSaved={() => void git.refresh()}
       />

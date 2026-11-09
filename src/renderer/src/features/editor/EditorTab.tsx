@@ -158,7 +158,6 @@ export function EditorTab({
         selection={selection}
         change={change}
         edited={edited}
-        kinds={kinds}
         empty={empty}
       />
     </div>

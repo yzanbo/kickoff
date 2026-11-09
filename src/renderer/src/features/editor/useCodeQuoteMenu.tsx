@@ -5,6 +5,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { AddToChatItems } from "@/features/chat/messages/AddToChatItems";
 import { pickedInCode, type Picked } from "@/features/chat/messages/SelectionAttach";
 import { useMainChat } from "@/features/chat/pane/mainChatContext";
+import { codeSelectionOf } from "./codeSelection";
 
 /** 開いたときの様子: 選んだ行の引用（なければ null）・ファイルのフルパス・コピーする文・選んだ行のコードと行（パスを含めてコピー。行を選んでいなければ null） */
 interface CodeMenuSource {
@@ -33,7 +34,9 @@ export function useCodeQuoteMenu(dir: string | undefined): { onContextMenu?: (e:
           const rel = section?.dataset.quotePath;
           if (!section || !rel || !e.currentTarget.contains(section)) return;
           const picked = pickedInCode(section);
-          menu.open(e, { quote: picked?.quote ?? null, path: dir ? `${dir}/${rel}` : rel, copy: window.getSelection()?.toString() ?? "", code: picked?.code ?? null });
+          // 編集の部品（Monaco）の選択はページの選択にならないので、部品から選んだ文を読む
+          const copy = codeSelectionOf(section)?.text ?? window.getSelection()?.toString() ?? "";
+          menu.open(e, { quote: picked?.quote ?? null, path: dir ? `${dir}/${rel}` : rel, copy, code: picked?.code ?? null });
         }
       : undefined,
     element: shown && (
