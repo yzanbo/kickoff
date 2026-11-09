@@ -1,4 +1,4 @@
-import { CodeXml, Eye, FolderSearch, Save } from "lucide-react";
+import { CodeXml, Eye, Save } from "lucide-react";
 import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
@@ -56,7 +56,7 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
 };
 
 /**
- * 開いているメモ（見出しに題名（すぐ後ろに拡張子を続け、ファイル名と同じに見せる）とフォルダ・保存の様子・保存・表示の切り替え・Finder で表示）。
+ * 開いているメモ（見出しに題名（すぐ後ろに拡張子を続け、ファイル名と同じに見せる）とフォルダ・保存の様子・保存・表示の切り替え。Finder で表示は、本文の右クリックとメモのタブの一覧の右クリックに）。
  * 表示は Markdown（Obsidian のライブプレビューと同じ。カーソルの行だけ記号を見せる）/ そのまま（記号もそのまま）。
  * HTML のメモ（.html）は、ページ（描いた見た目。書けない）/ ソース（HTML をそのまま書く）。ソースの編集の部品はページの間も隠して置く（元に戻す履歴を残す）。
  * 書いた所で ⌘S で保存する（書いている間は保存しない。まだ保存していない書きかけは残り、離れるときに聞く）。
@@ -231,7 +231,6 @@ export function MemoView({
         {doc.initial !== null && !unreadable && (
           <MemoChatToggle open={chatOpen} quickHidden={quickHidden} onOpenChange={setChatOpen} onQuickHiddenChange={setQuickHidden} />
         )}
-        {window.kickoff && <IconButton icon={FolderSearch} label="Finder で表示" onClick={() => void window.kickoff?.externalApps.revealPath(file)} />}
         {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
         <PopOutTabButton />
       </header>
