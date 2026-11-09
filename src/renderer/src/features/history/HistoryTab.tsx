@@ -14,6 +14,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { RefMenu } from "./RefMenu";
 import type { RefTarget } from "./refTarget";
 import { useBranchActions } from "./useBranchActions";
+import { useWorktreeActions } from "@/features/worktree/useWorktreeActions";
 
 /**
  * プロジェクトの「履歴」タブ（Fork と同じ形: 左にブランチ・リモート・ワークツリーなどの一覧、右上にコミットの表、右下に詳細）。
@@ -43,6 +44,9 @@ export function HistoryTab({
   // ブランチ・タグの右クリック（左の一覧とコミットの札で同じメニュー）
   const branchActions = useBranchActions(projectId, log, git, onWorktreeChange);
   const refMenu = useContextMenu<RefTarget>();
+  // ワークツリーの作成・削除（左の一覧の「ワークツリー」と、その行の右クリック）
+  const worktreeActions = useWorktreeActions(projectId, log);
+  const menuTree = refMenu.menu?.value.worktree ? log.worktrees?.find((w) => w.path === refMenu.menu?.value.worktree) : undefined;
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
@@ -58,9 +62,9 @@ export function HistoryTab({
       <div className={cx("changes", list.resizing && "resizing")}>
         <aside ref={list.paneRef} className="changes-list" style={{ width: list.size }} aria-label="履歴">
           <HistorySidebar
-            projectId={projectId}
             log={log}
             busy={branchActions.busy}
+            worktreeActions={worktreeActions}
             onRefMenu={refMenu.open}
             onPick={(hash) => {
               const found = log.commits?.find((c) => c.hash === hash);
@@ -73,7 +77,23 @@ export function HistoryTab({
           <HistoryMain projectId={projectId} log={log} commit={commit} onSelect={setCommit} onRefMenu={refMenu.open} />
         </div>
       </div>
-      {refMenu.menu && <RefMenu at={refMenu.menu.at} target={refMenu.menu.value} refs={log.refs} actions={branchActions} onClose={refMenu.close} />}
+      {refMenu.menu && (
+        <RefMenu
+          at={refMenu.menu.at}
+          target={refMenu.menu.value}
+          refs={log.refs}
+          actions={branchActions}
+          worktree={
+            menuTree && {
+              tree: menuTree,
+              viewing: menuTree.path === worktree,
+              onShow: () => onWorktreeChange(menuTree.path),
+              onRemove: () => void worktreeActions.removeWorktree(menuTree),
+            }
+          }
+          onClose={refMenu.close}
+        />
+      )}
     </>
   );
 }

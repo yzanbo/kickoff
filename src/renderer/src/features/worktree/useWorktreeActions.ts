@@ -39,3 +39,5 @@ export function useWorktreeActions(projectId: number, log: GitLogController) {
 
   return { error: worktreeError.error, createWorktree, removeWorktree };
 }
+
+export type WorktreeActions = ReturnType<typeof useWorktreeActions>;

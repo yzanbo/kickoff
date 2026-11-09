@@ -1,5 +1,5 @@
 import { Check, ChevronRight } from "lucide-react";
-import type { GitRefs } from "@shared/types";
+import type { GitRefs, GitWorktree } from "@shared/types";
 import type { Placement } from "@/lib/floating";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
@@ -13,9 +13,25 @@ const Separator = () => <div className="menu-separator" role="separator" />;
  * チェックアウト ｜ 早送り・プル・プッシュ・PR ｜ マージ・リベース ｜ 新しいブランチ・タグ ｜ 追跡・名前の変更・削除 ｜ 名前のコピー。
  * リモートのブランチ・タグは、それぞれに合う項目だけ。いまのブランチに意味のない項目は押せなくし、理由を乗せたときの説明に出す
  */
-export function RefMenu({ at, target, refs, actions, onClose }: { at: Placement; target: RefTarget; refs: GitRefs | undefined; actions: BranchActions; onClose: () => void }) {
+export function RefMenu({
+  at,
+  target,
+  refs,
+  actions,
+  worktree,
+  onClose,
+}: {
+  at: Placement;
+  target: RefTarget;
+  refs: GitRefs | undefined;
+  actions: BranchActions;
+  /** 左の一覧のワークツリーの行から開いたとき、そのワークツリーの操作（見る・Finder・VS Code・消す）も出す */
+  worktree?: { tree: GitWorktree; viewing: boolean; onShow: () => void; onRemove: () => void };
+  onClose: () => void;
+}) {
   return (
     <PopupMenu at={at} label={`${target.name} のメニュー`} onClose={onClose}>
+      {worktree && <WorktreeItems {...worktree} />}
       {target.kind === "branch" ? (
         <BranchItems name={target.name} refs={refs} actions={actions} />
       ) : target.kind === "remote" ? (
@@ -24,6 +40,29 @@ export function RefMenu({ at, target, refs, actions, onClose }: { at: Placement;
         <TagItems name={target.name} actions={actions} />
       )}
     </PopupMenu>
+  );
+}
+
+/** ワークツリーの行の項目（メニューのいちばん上。見ている作業場所の切り替え・フォルダを開く・消す） */
+function WorktreeItems({ tree, viewing, onShow, onRemove }: { tree: GitWorktree; viewing: boolean; onShow: () => void; onRemove: () => void }) {
+  return (
+    <>
+      <div className="menu-label">ワークツリー</div>
+      <MenuItem disabled={viewing || tree.prunable} title={viewing ? "いま見ている作業場所です" : tree.prunable ? "フォルダがなくなっています" : tree.path} onSelect={onShow}>
+        この作業場所を見る
+      </MenuItem>
+      {window.kickoff && (
+        <>
+          <MenuItem onSelect={() => void window.kickoff?.externalApps.openPath(tree.path)}>Finder で開く</MenuItem>
+          <MenuItem onSelect={() => void window.kickoff?.externalApps.openInVSCode(tree.path)}>VS Code で開く</MenuItem>
+        </>
+      )}
+      <MenuItem danger onSelect={onRemove}>
+        ワークツリーを消す…
+      </MenuItem>
+      <Separator />
+      <div className="menu-label">ブランチ</div>
+    </>
   );
 }
 
