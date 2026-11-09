@@ -1,4 +1,5 @@
 import { ChipPicker } from "@/ui/ChipPicker";
+import { api } from "@/api";
 import { promptDialog } from "@/ui/dialogs";
 import { useWorktrees } from "@/stores/worktrees";
 import { workplaceHue } from "./workplaceHue";
@@ -13,14 +14,23 @@ export const workplacePath = (place: Workplace): string | null | undefined => (p
 
 const NEW = "__new__";
 
-/** 新しいワークツリーのブランチ名を聞く（作業場所の選択と、作業中の作業場所に送るときの確かめで共通）。やめたら null */
-export function askNewWorktreeBranch(): Promise<string | null> {
+/**
+ * 新しいワークツリーのブランチ名を聞く（作業場所の選択と、作業中の作業場所に送るときの確かめで共通）。やめたら null。
+ * やりたいことを書いて「AI で提案」を押すと、ブランチ名の案を AI に作ってもらえる
+ */
+export function askNewWorktreeBranch(projectId: number): Promise<string | null> {
   return promptDialog({
     title: "新しいワークツリーで始める",
     message: "いまのコミットから新しいブランチを作り、別のフォルダで作業します。ほかのチャットと並行して進めても、ファイルがぶつかりません（本体の node_modules も写すので、すぐ動かせます）。",
     label: "ブランチの名前",
     placeholder: "例: feature/login",
     confirmLabel: "決める",
+    assist: {
+      label: "ワークツリーでやりたいこと（AI がブランチ名を提案します）",
+      placeholder: "例: ログイン画面を作り、セッションが切れたらログインに戻す",
+      buttonLabel: "AI で提案",
+      suggest: (summary) => api.suggestBranches(projectId, summary).then((r) => r.branches),
+    },
   });
 }
 
@@ -37,7 +47,7 @@ export function WorkplacePicker({ projectId, value, onChange }: { projectId: num
 
   const choose = async (next: string) => {
     if (next !== NEW) return onChange(next ? { kind: "existing", path: next } : { kind: "main" });
-    const branch = await askNewWorktreeBranch();
+    const branch = await askNewWorktreeBranch(projectId);
     if (branch) onChange({ kind: "new", branch });
   };
 

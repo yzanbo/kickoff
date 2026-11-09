@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/errors";
 import { DialogActions } from "./DialogActions";
 import { CheckField } from "./Field";
+import { PromptAssist, type PromptAssistOptions } from "./PromptAssist";
 
 /**
  * アプリ全体で使う確認・入力のダイアログ（OS 標準の confirm / prompt の代わり）。
@@ -37,6 +38,8 @@ interface PromptOptions {
   initial?: string;
   placeholder?: string;
   confirmLabel?: string;
+  /** 入力欄の上に、文から入力の案を作ってもらう欄を添える（あればその文の欄にピントを置く） */
+  assist?: PromptAssistOptions;
 }
 
 interface ChoiceOptions {
@@ -114,6 +117,7 @@ export function DialogHost() {
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const assistRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     show = (next) => {
@@ -131,7 +135,9 @@ export function DialogHost() {
     if (!req) return;
     ref.current?.showModal();
     // 入力ならその欄に、確認ならキャンセルにピントを置く（Enter で誤って実行しない）
-    if (req.kind === "prompt") {
+    if (req.kind === "prompt" && req.assist) {
+      assistRef.current?.focus();
+    } else if (req.kind === "prompt") {
       inputRef.current?.focus();
       inputRef.current?.select();
     } else if (req.kind === "confirm" && req.hideCancel) {
@@ -157,7 +163,7 @@ export function DialogHost() {
   return (
     <dialog
       ref={ref}
-      className={`dialog app-dialog ${req.kind === "choice" ? "app-dialog-choice" : ""}`}
+      className={`dialog app-dialog ${req.kind === "choice" ? "app-dialog-choice" : ""} ${req.kind === "prompt" && req.assist ? "app-dialog-assist" : ""}`}
       onCancel={(e) => {
         e.preventDefault();
         finish(false);
@@ -174,6 +180,7 @@ export function DialogHost() {
       >
         <h2 className="app-dialog-title">{req.title}</h2>
         {req.message && <p className="app-dialog-message">{req.message}</p>}
+        {req.kind === "prompt" && req.assist && <PromptAssist assist={req.assist} value={value} onPick={setValue} textRef={assistRef} />}
         {req.kind === "prompt" && (
           <label className="field">
             {req.label && <span className="field-label">{req.label}</span>}

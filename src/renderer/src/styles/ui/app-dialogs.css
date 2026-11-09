@@ -6,8 +6,9 @@
   animation: dialog-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* 選択肢のダイアログ（choiceDialog）は、ボタンが 3 つ以上並ぶので広げる */
-.dialog.app-dialog.app-dialog-choice {
+/* 選択肢のダイアログ（choiceDialog）は、ボタンが 3 つ以上並ぶので広げる。案を作ってもらう欄のある入力（assist）も、案が並ぶので広げる */
+.dialog.app-dialog.app-dialog-choice,
+.dialog.app-dialog.app-dialog-assist {
   width: min(520px, calc(100vw - 32px));
 }
 
@@ -91,4 +92,44 @@
   margin-top: 12px;
   font-size: 12px;
   color: var(--muted);
+}
+
+/* 入力のダイアログに添える、文から案を作ってもらう欄（PromptAssist。ワークツリーのブランチ名など） */
+.prompt-assist {
+  display: grid;
+  gap: 8px;
+}
+
+.prompt-assist textarea {
+  resize: vertical;
+}
+
+.prompt-assist-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 作ってもらった案（押すと入力欄に入る。いま入っている案は色を付ける） */
+.prompt-assist-option {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg-elev);
+  cursor: pointer;
+}
+
+.prompt-assist-option:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.prompt-assist-option.is-picked {
+  border-color: var(--accent);
+  color: var(--accent-bright);
 }

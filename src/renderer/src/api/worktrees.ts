@@ -1,4 +1,4 @@
-import type { GitWorktree, WorktreeRemovalInfo } from "@shared/types";
+import type { BranchSuggestions, GitWorktree, WorktreeRemovalInfo } from "@shared/types";
 import { request, withQuery } from "./http";
 
 /** プロジェクトのワークツリー（一覧・作る・消す。コアの routes/worktrees.ts）。作る・消すと、そのあとの一覧が返る */
@@ -11,4 +11,7 @@ export const worktreesApi = {
   /** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット） */
   worktreeRemovalInfo: (projectId: number, path: string) =>
     request<WorktreeRemovalInfo>("GET", withQuery(`/api/projects/${projectId}/git/worktrees/info`, { path })),
+  /** やりたいことの文から、新しいワークツリーのブランチ名の案を AI に作ってもらう（いまあるブランチとかぶらないもの） */
+  suggestBranches: (projectId: number, summary: string) =>
+    request<BranchSuggestions>("POST", `/api/projects/${projectId}/git/branch-suggestions`, { summary }),
 };

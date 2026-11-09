@@ -1,17 +1,24 @@
 import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { GitWorktree } from "@shared/types";
-import { addWorktree, findWorktree, isGitWorkTree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
+import type { BranchSuggestBody, BranchSuggestions, GitWorktree } from "@shared/types";
+import { addWorktree, findWorktree, gitRefs, isGitWorkTree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
+import { branchSuggestPrompt, parseBranchSuggestions } from "../../git/branchSuggest.js";
 import type { ServerDeps } from "../server.js";
 import { realPathOrSelf } from "../../system/paths.js";
-import { Conflict } from "../errors.js";
+import { asInvalid, Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
 import { branchName, folderPath } from "./schemas.js";
 
-/** ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」 */
-export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
+/** ブランチ名の案を頼む本文（やりたいことの概要） */
+const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(4000) }) satisfies z.ZodType<BranchSuggestBody>;
+
+/**
+ * ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」。
+ * 新しいワークツリーのブランチ名の案は branch-suggestions（やりたいことの概要から、プロジェクトの AI に 1 回だけ聞く）
+ */
+export function worktreeRoutes(app: Hono, { store, runner, providers }: ServerDeps) {
   const { withProject } = lookups(store);
 
   // Git で管理していないフォルダは、ワークツリーのないもの（空）として返す（Git の状態の repo: false と同じ扱い。失敗にすると、画面が取り直し続ける）
@@ -23,6 +30,19 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.get("/api/projects/:id/git/worktrees/path", withProject, async (c) => {
     const { branch } = z.object({ branch: branchName }).parse({ branch: c.req.query("branch") });
     return c.json({ path: await worktreePathFor(c.var.project.repo_path, branch) });
+  });
+
+  // やりたいことの概要から、ブランチ名の案を AI に出してもらう（軽いモデルで 1 回だけ。いまあるブランチと同じ名前は除く。案が作れなければ 400）
+  app.post("/api/projects/:id/git/branch-suggestions", withProject, async (c) => {
+    const { summary } = branchSuggestSchema.parse(await jsonBody(c));
+    const project = c.var.project;
+    const provider = providers[project.provider];
+    if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、ブランチ名の提案に対応していません");
+    const taken = (await isGitWorkTree(project.repo_path)) ? (await gitRefs(project.repo_path)).branches.map((b) => b.name) : [];
+    const answer = await provider.ask(branchSuggestPrompt(summary, taken), { model: "haiku" }).catch(asInvalid);
+    const branches = parseBranchSuggestions(answer, taken);
+    if (branches.length === 0) throw new Invalid("ブランチ名の案を作れませんでした。やりたいことを少し詳しく書いて、もう一度試してください");
+    return c.json({ branches } satisfies BranchSuggestions);
   });
 
   app.post("/api/projects/:id/git/worktrees", withProject, async (c) => {

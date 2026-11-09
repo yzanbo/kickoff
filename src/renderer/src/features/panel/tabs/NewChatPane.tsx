@@ -139,7 +139,7 @@ export function NewChatPane({
       const choice = await chooseBusyWorkplaceAction();
       if (!choice) throw new SendCancelled();
       if (choice === "worktree") {
-        const branch = await askNewWorktreeBranch();
+        const branch = await askNewWorktreeBranch(projectId);
         if (!branch) throw new SendCancelled();
         target = { kind: "new", branch };
         setPlace(target);
