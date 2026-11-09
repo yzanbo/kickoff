@@ -3,16 +3,16 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "r
 import type { GitFileChange } from "@shared/types";
 import { openProjectFile } from "@/app/router";
 import { cx } from "@/lib/cx";
-import { DIFF_LAYOUT, sideViewedFiles } from "@/lib/storageKeys";
+import { sideViewedFiles } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/stores/projects";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { PathParts } from "@/ui/PathParts";
-import { Segmented } from "@/ui/Segmented";
 import { FileLinkContext } from "@/features/fileLinks/fileLinkContext";
 import { WorktreeContext } from "@/features/worktree/worktreeContext";
+import { DiffLayoutToggle } from "./DiffLayoutToggle";
 import { CHANGE_LABELS, DiffView, useFileDiff } from "./DiffView";
 import { FileIcon } from "./FileIcon";
 import { changedFiles, diffFingerprint, pruneViewed, viewedStateOf } from "./sideFile";
@@ -53,7 +53,6 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
   const { projectsById } = useProjects();
   const codeMenu = useCodeQuoteMenu(worktree ?? projectsById.get(projectId)?.repo_path);
   const files = useMemo(() => changedFiles(git.status), [git.status]);
-  const [layout, setLayout] = useSetting(DIFF_LAYOUT);
   // 自分で開閉したファイル（ないものは、確認済みなら畳み、そうでなければファイルが少なければ開き、多ければ移る先のファイルだけ開く）
   const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map());
   const setOpen = (path: string, open: boolean) => setToggled((m) => new Map(m).set(path, open));
@@ -130,16 +129,7 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
         )}
         <span className="muted small">{worktree ? "ワークツリー" : "本体"}・コミットしていない変更</span>
         <span className="spacer" />
-        <Segmented
-          className="view-toggle"
-          label="差分の表示のしかた"
-          value={layout}
-          onChange={setLayout}
-          options={[
-            { value: "split", label: "並べて表示" },
-            { value: "unified", label: "まとめて表示" },
-          ]}
-        />
+        <DiffLayoutToggle />
         <RefreshButton label="取り直す" busy={git.refreshing} onClick={git.refresh} />
         <PopOutTabButton />
       </header>
