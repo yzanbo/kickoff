@@ -70,7 +70,7 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
  * プロジェクトの画面のタブ（ボード・チャット（ボードと分ける置き方のとき）・ファイル・検索・変更・履歴・メモ）。チャットのタブ（ボードと分けない置き方ならボード）には状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。
  * 縦並びはアイコンの角に重ね（左上 = 作業中・右上 = 未読・左下 = 回答待ち）、横並びは名前の後ろに並べる。作業中のまま未読のものは未読に数えない）、
  * 変更には変更のあるファイルの数を添える。取り直している最中（refreshing）は、VS Code のバッジと同じく数の代わりに回る印を出す。
- * vertical: 左に縦並び（アイコンだけ。名前と数は title と aria-label）。右クリックで置き方（横並び / 縦並び）を切り替え、並べ替えていれば元の並びに戻せる
+ * vertical: 左に縦並び（アイコンだけ。名前と数は aria-label と、乗せたときに右に出す説明 data-tip（利用者の依頼））。右クリックで置き方（横並び / 縦並び）を切り替え、並べ替えていれば元の並びに戻せる
  */
 export function ProjectTabs({
   projectId,
@@ -132,7 +132,8 @@ export function ProjectTabs({
                   role="tab"
                   aria-selected={selected}
                   aria-label={vertical ? `${label}${count > 0 ? `（${countLabel}）` : ""}` : undefined}
-                  title={vertical ? `${label}${count > 0 ? `（${countLabel}）` : ""}` : t === chatsTab && count > 0 ? countLabel : undefined}
+                  title={!vertical && t === chatsTab && count > 0 ? countLabel : undefined}
+                  {...(vertical && { "data-tip-title": label, "data-tip": count > 0 ? countLabel : "", "data-tip-side": "right" })}
                   className={cx("tab", selected && "active", order.tabClass(t))}
                   href={href({ name: "project", id: projectId, tab: target })}
                   {...order.tabProps(group, t)}

@@ -12,12 +12,14 @@ interface Tip {
   text: string;
   /** ショートカットのキー（見出しの右に出す） */
   keys?: string;
+  /** 出す向き（right = 要素の右。左の縦の列のアイコンのように、上に出すと隣を隠すもの） */
+  side?: "right";
   anchor: DOMRect;
 }
 
 /**
  * マウスを乗せたときの説明（アプリ全体で 1 つ。App が置く）。data-tip（説明）と data-tip-title（見出し。省ける）・data-tip-keys（ショートカット。省ける）を付けた要素に
- * 乗せると、少し待ってその上（入らなければ下）に出す。OS の title より早く出て、見出しと説明を分けて読める。
+ * 乗せると、少し待ってその上（入らなければ下。data-tip-side="right" なら右）に出す。OS の title より早く出て、見出しと説明を分けて読める。
  * ダイアログ（top layer）の上にも出るよう popover で出す。押した・キーを押した・スクロールした・離れたら消す
  */
 export function HoverTip() {
@@ -48,6 +50,7 @@ export function HoverTip() {
           title,
           text,
           keys: el.getAttribute("data-tip-keys") ?? undefined,
+          side: el.getAttribute("data-tip-side") === "right" ? "right" : undefined,
           anchor: el.getBoundingClientRect(),
         });
       }, SHOW_DELAY_MS);
@@ -81,6 +84,12 @@ export function HoverTip() {
     if (!el.matches(":popover-open")) el.showPopover();
     const { width, height } = el.getBoundingClientRect();
     const a = tip.anchor;
+    if (tip.side === "right") {
+      // 要素の右の、縦の真ん中にそろえる（入らなければ画面の中に寄せる）
+      el.style.top = `${Math.max(MARGIN, Math.min(window.innerHeight - height - MARGIN, a.top + a.height / 2 - height / 2))}px`;
+      el.style.left = `${Math.min(window.innerWidth - width - MARGIN, a.right + MARGIN)}px`;
+      return;
+    }
     const above = a.top - height - MARGIN;
     const top = above >= MARGIN ? above : Math.min(window.innerHeight - height - MARGIN, a.bottom + MARGIN);
     const left = Math.max(MARGIN, Math.min(window.innerWidth - width - MARGIN, a.left + a.width / 2 - width / 2));
