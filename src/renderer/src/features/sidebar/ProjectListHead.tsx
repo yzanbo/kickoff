@@ -1,4 +1,4 @@
-import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GalleryVertical, GripVertical, Rows2, Rows3, Rows4, type LucideIcon } from "lucide-react";
+import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GalleryVertical, GripVertical, Rows2, Rows3, Rows4, ToggleLeft, ToggleRight, type LucideIcon } from "lucide-react";
 import type { ProjectOrder } from "@/features/project/projectOrder";
 import type { SettingValue } from "@/lib/storage";
 import { SIDEBAR_BUCKET_COLORS, type SIDEBAR_LAYOUT } from "@/lib/storageKeys";
@@ -36,8 +36,8 @@ interface Props {
   archivedCount: number;
   showArchived: boolean;
   onShowArchived: (show: boolean) => void;
-  /** 自分待ちがオンのときだけ: その表示（出し方 = 自分待ちだけ / 一覧の上に / プロジェクト内の上に、並べ方 = プロジェクト別 / 状態順）を選ぶ行を出す */
-  waiting?: { view: WaitingView; onView: (view: WaitingView) => void };
+  /** 自分待ちの行: オン / オフ・数・オンのときの表示（出し方 = 自分待ちだけ / 一覧の上に / プロジェクト内の上に、並べ方 = プロジェクト別 / 状態順） */
+  waiting: WaitingRowProps;
 }
 
 /**
@@ -55,8 +55,8 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
   const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
   const [compact, setCompact] = useCompactRows();
   const [compactProjects, setCompactProjects] = useCompactProjects();
-  // ボタンの文字が横幅に入らないときだけ、文字を隠していまの値のアイコンだけにする（入るかは実際の幅で決める。自分待ちの行が出入りしたら測り直す）
-  const fit = useOverflowCompact<HTMLDivElement>(waiting !== undefined);
+  // ボタンの文字が横幅に入らないときだけ、文字を隠していまの値のアイコンだけにする（入るかは実際の幅で決める。タグの行が出入りしたら測り直す）
+  const fit = useOverflowCompact<HTMLDivElement>(null);
   /** アーカイブを出すかのボタン（プロジェクト・チャットで共通。押すたびに 表示 ⇄ 隠す） */
   const archiveToggle = (id: string, target: string, shown: boolean, set: (show: boolean) => void, note = "") => (
     <HeadToggle
@@ -148,33 +148,58 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         {/* アーカイブはプロジェクトの行と同じく右端 */}
         {archiveToggle("archive-chats", "チャット", showArchivedChats, setShowArchivedChats)}
       </div>
-      {/* 自分待ちがオンのときだけ、その表示を選ぶ行（上の行の「自分待ち」の右クリックでも選べる）。「チャット」の行の「まとめ方」「並び順」と同じく、種類ごとの 2 択の切り替え */}
-      {waiting && <WaitingRow view={waiting.view} onView={waiting.onView} />}
+      {/* 自分待ちの行（オン / オフと、オンのときの表示。利用者の依頼で、オン / オフを上の段から移し、オフでも出す） */}
+      <WaitingRow {...waiting} />
       {/* タグがあるときだけ、タグでの絞り込みの行（押すたびに付け外し） */}
       <TagFilterRow />
     </div>
   );
 }
 
+interface WaitingRowProps {
+  on: boolean;
+  onToggle: () => void;
+  /** 待っているチャットの数（行の名前の横に出す） */
+  count: number;
+  view: WaitingView;
+  onView: (view: WaitingView) => void;
+}
+
 /**
- * 「自分待ち」の行: 出し方（自分待ちだけ / 一覧の上に / プロジェクト内の上に。3 つなのでメニュー）と並べ方（プロジェクト別 ⇔ 状態順）。
+ * 「自分待ち」の行: オン / オフ（左。回答待ち・エラー・未読のチャットに目を向けるか）、出し方（自分待ちだけ / 一覧の上に / プロジェクト内の上に。3 つなのでメニュー）、
+ * 並べ方（プロジェクト別 ⇔ 状態順）。オフのときは出し方・並べ方を押せなくする（隠さず薄くする）。
  * プロジェクト内の上には、プロジェクトの中に置くので並べ方はプロジェクト別だけ（並べ方のボタンは押せない）
  */
-function WaitingRow({ view, onView }: { view: WaitingView; onView: (view: WaitingView) => void }) {
+function WaitingRow({ on, onToggle, count, view, onView }: WaitingRowProps) {
   const { scope, order } = waitingAxes(view);
   const scopeMeta = WAITING_SCOPE_META[scope];
   const orderMeta = WAITING_ORDER_META[order];
   const orderFree = canChooseOrder(scope);
+  const offNote = "自分待ちがオフのときは選べません（左の切り替えでオンにする）";
   return (
     <div className="project-list-row">
-      <span className="project-list-row-label">自分待ち</span>
+      <span className="project-list-row-label">
+        自分待ち
+        {count > 0 && <span className="count-badge project-list-count">{count}</span>}
+      </span>
+      <HeadToggle
+        id="waiting-on"
+        icon={on ? ToggleRight : ToggleLeft}
+        label="切り替え"
+        value={on ? "オン" : "オフ"}
+        values={["オン", "オフ"]}
+        title="自分待ち（回答待ち・エラー・未読のチャットに目を向ける）"
+        pressed={on}
+        onToggle={onToggle}
+      />
       <HeadMenu
         id="waiting-scope"
         icon={scopeMeta.icon}
         label="出し方"
         value={scopeMeta.short}
         values={WAITING_SCOPES.map((s) => WAITING_SCOPE_META[s].short)}
-        title={`自分待ちの出し方（いまは「${scopeMeta.label}」）`}
+        title={on ? `自分待ちの出し方（いまは「${scopeMeta.label}」）` : offNote}
+        disabled={!on}
         menu={{ title: "自分待ちの出し方", choices: WAITING_SCOPES, meta: WAITING_SCOPE_META, current: scope, onPick: (s) => onView(waitingViewOf(s, order)) }}
       />
       <HeadToggle
@@ -184,11 +209,13 @@ function WaitingRow({ view, onView }: { view: WaitingView; onView: (view: Waitin
         value={orderMeta.short}
         values={[WAITING_ORDER_META.project.short, WAITING_ORDER_META.status.short]}
         title={
-          orderFree
-            ? `自分待ちの並べ方（${WAITING_ORDER_META.project.label} / ${WAITING_ORDER_META.status.label}）`
-            : "自分待ちの並べ方: プロジェクト内の上にまとめるときは、プロジェクトの中に置くのでプロジェクト別だけです（中は状態順）"
+          !on
+            ? offNote
+            : orderFree
+              ? `自分待ちの並べ方（${WAITING_ORDER_META.project.label} / ${WAITING_ORDER_META.status.label}）`
+              : "自分待ちの並べ方: プロジェクト内の上にまとめるときは、プロジェクトの中に置くのでプロジェクト別だけです（中は状態順）"
         }
-        disabled={!orderFree}
+        disabled={!on || !orderFree}
         onToggle={() => onView(waitingViewOf(scope, order === "project" ? "status" : "project"))}
       />
     </div>

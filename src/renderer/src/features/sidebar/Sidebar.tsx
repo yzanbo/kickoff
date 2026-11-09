@@ -1,22 +1,14 @@
-import { Inbox, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
-import { cx } from "@/lib/cx";
-import { useSetting } from "@/hooks/useSetting";
+import { LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
 import { useProjects } from "@/stores/projects";
-import { useVisibleProjects } from "@/features/project/useVisibleProjects";
-import { useChatStates } from "@/app/chatStatesContext";
 import { href, useRoute } from "@/app/router";
 import { ProjectNav } from "./ProjectNav";
-import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
-import { useShowArchivedChats, waitingChats } from "@/features/chatList/chatListFlags";
+import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useChatsByProject } from "@/stores/chats";
 import { useGroupsOf } from "@/stores/groups";
 import type { SidebarController } from "./useSidebar";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { IconButton } from "@/ui/IconButton";
-import { useContextMenu } from "@/ui/useContextMenu";
-import { useWaitingView } from "./waitingView";
-import { WaitingViewMenu } from "./WaitingViewMenu";
 
 interface Props {
   sidebar: SidebarController;
@@ -25,24 +17,18 @@ interface Props {
   onNewProject: () => void;
 }
 
-/** 左のサイドバー（新しいチャット・全プロジェクト・自分待ち・検索、プロジェクトごとのチャット一覧、設定） */
+/**
+ * 左のサイドバー（新しいチャット・全プロジェクト・検索、プロジェクトごとのチャット一覧、設定）。自分待ちのオン / オフは一覧の上の見出しの「自分待ち」の行
+ * （利用者の依頼で、上の段から移した。上の段は押すと開く・作るものだけにする）
+ */
 export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   const route = useRoute();
   const { projects } = useProjects();
-  const { pending } = useChatStates();
   // すべてのプロジェクトのチャット（アーカイブ済みは、一覧の下に出すときだけ）とグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
   const [showArchivedChats] = useShowArchivedChats();
   const chats = useChatsByProject({ archived: showArchivedChats });
   const groupsOf = useGroupsOf(projects.map((p) => p.id));
   const groups = Object.fromEntries(projects.map((p) => [p.id, groupsOf(p.id)]));
-  // 自分待ち（回答待ち・未読）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）。
-  const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
-  // 自分待ちがオンのときの表示（上の行の「自分待ち」の右クリックで選ぶ）
-  const [waitingView, setWaitingView] = useWaitingView();
-  const waitingMenu = useContextMenu();
-  // タグで絞り込んでいれば、出しているプロジェクトの分だけを数える（押して出る一覧と合わせる）
-  const { visible } = useVisibleProjects();
-  const waitingCount = visible.reduce((n, p) => n + waitingChats(chats[p.id] ?? [], pending).length, 0);
   // チャットの複数選択（⌘ / Shift を押しながらクリック）。サイドバー全体で 1 つ
   const selection = useChatSelectionState(Object.values(chats).flatMap((list) => list.map((r) => r.id)));
   // ↑↓ でチャットを移る（サイドバーにピントがあるとき。Enter で開く。Shift を押しながらで選ぶものに足す）
@@ -77,33 +63,6 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
         <a className={`nav-row ${route.name === "allProjects" ? "active" : ""}`} href={href({ name: "allProjects" })}>
           <LayoutGrid size={15} /> 全プロジェクト
         </a>
-        {/*
-          自分待ちは画面ではなく一覧の絞り込みなので、オンは開いている画面の印（active）と別の見た目（on と「オン」の札）。
-          右クリックで、オンのときの表示（出し方 = 自分待ちだけ / 上にまとめる、並べ方 = プロジェクト別 / 状態順）を選ぶ（選ぶとオンにする）
-        */}
-        <button
-          className={cx("nav-row waiting-toggle", waitingOnly && "on")}
-          aria-pressed={waitingOnly}
-          title={waitingOnly ? "すべてのチャットを表示（右クリックで表示を選ぶ）" : "回答待ち・未読のチャットだけを表示（右クリックで表示を選ぶ）"}
-          onClick={() => setWaitingOnly(!waitingOnly)}
-          onContextMenu={waitingMenu.open}
-        >
-          <Inbox size={15} /> 自分待ち
-          {waitingOnly && <span className="nav-row-state">オン</span>}
-          {waitingCount > 0 && <span className="count-badge">{waitingCount}</span>}
-        </button>
-        {waitingMenu.menu && (
-          <WaitingViewMenu
-            at={waitingMenu.menu.at}
-            view={waitingView}
-            ignore=".waiting-toggle"
-            onPick={(view) => {
-              setWaitingView(view);
-              setWaitingOnly(true);
-            }}
-            onClose={waitingMenu.close}
-          />
-        )}
         <button className="nav-row" onClick={onSearch}>
           <Search size={15} /> 検索 <kbd>⌘K</kbd>
         </button>
