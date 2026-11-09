@@ -217,6 +217,11 @@ button.chat-row {
   color: var(--muted);
 }
 
+/* 出す札がない（まとまりの見出しと重なる札を隠した・グループなし）ときは、空の 2 行目を出さない */
+.chat-row-meta:empty {
+  display: none;
+}
+
 /* 親のチャットの下の子チャット（フォルダと同じく開閉。子の数と、要対応の子がいれば点。段下げは 3 段（子・孫・ひ孫）まで） */
 .chat-children {
   margin: 0 0 2px 22px;
