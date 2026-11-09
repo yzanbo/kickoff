@@ -21,6 +21,7 @@ import { focusedPanelKey, PanelHostContext } from "./panelHost";
 import { specOf } from "@/features/panel/tabs/tabKinds";
 import { usePanelViewMenu } from "@/features/panel/tabs/PanelViewMenu";
 import { useNewChild } from "@/features/panel/agents/useNewChild";
+import { useCompactRows } from "@/features/chatList/chatListFlags";
 
 /**
  * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは SURFACES と、殻が渡す frame）。
@@ -36,6 +37,9 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   const rules = SURFACES[panel.surface];
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const tabsHidden = !!rules.hideableTabs && tabRowHidden;
+  // サイドバーのチャットの行を 2 行にしているときは、チャットを出す欄のタブも 2 行にする（名前の下にグループ・作業場所の札。利用者の依頼）
+  const [compactRows] = useCompactRows();
+  const twoLine = !compactRows && panel.kinds.has("chat");
   // パネルそのもの（ピントがパネルの中にあるか・殻が大きさを測る）
   const ownRef = useRef<HTMLElement>(null);
   const asideRef = frame?.paneRef ?? ownRef;
@@ -84,6 +88,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
       panel={panel}
       pane={pane}
       split={split}
+      twoLine={twoLine}
       // 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）。分けていなければ、そのペインが一覧
       home={!split || pane.id === homeId}
       inert={!panelOpen}
@@ -137,7 +142,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
     <aside ref={asideRef} className={cx(rules.rootClass ?? "board-panel", rules.className, tabsHidden && "tabs-hidden")} aria-hidden={!panelOpen} data-panel-key={panel.key}>
       {frame?.resizeHandle && <div inert={!panelOpen} className="panel-resizer" aria-label="パネルの幅を変える" {...frame.resizeHandle} />}
       {!split && !tabsHidden && bar(leaves[0])}
-      <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing")} inert={!panelOpen}>
+      <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing", twoLine && "tabs-two-line")} inert={!panelOpen}>
         {!split && !anyShown(leaves[0].tabs) && empty(leaves[0])}
         {split &&
           panes.map(({ id, rect }) => {

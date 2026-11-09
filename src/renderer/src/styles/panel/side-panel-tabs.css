@@ -139,6 +139,47 @@
   --group-color: hsl(var(--group-hue) 55% 38%);
 }
 
+/*
+ * 2 行のタブ（サイドバーのチャットの行を 2 行にしているときの、チャットを出す欄。Panel の twoLine）: タブを高くし、名前の下の行にグループ・作業場所の札を並べる。
+ * 札のない種類のタブ（ブラウザ・ターミナル）は 1 行のまま真ん中に。分けたペインのタブの中身を下げる高さは --tab-lines-extra だけ足す（side-panel-split.css）
+ */
+.panel-tab.two-line {
+  height: 40px;
+}
+
+.panel-tab-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.panel-tab-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.panel-tab-tags {
+  gap: 4px;
+}
+
+/*
+ * 作業場所の札は省かずに出す（グループの札のようにタブの半分で省くと「本体 | m…」と切れるため）。
+ * ブランチ名（「本体 | main」の「 | main」）は、タブの幅に入らないときだけ隠す（PanelTab が測る）
+ */
+.panel-tab-label .panel-tab-workplace {
+  max-width: none;
+}
+
+/* 作業場所の札のブランチ名（「本体 | main」の「 | main」）は、タブの幅に入らないときだけ隠す（PanelTab が測る） */
+.panel-tab.place-short .panel-tab-workplace-branch {
+  display: none;
+}
+
 /* 未読（終わった・失敗したのに見ていない）のチャットのタブは、名前を太字にする（サイドバーの行と同じ） */
 .panel-tab.unread .panel-tab-label span:not(.panel-tab-group-name) {
   font-weight: 600;
@@ -180,9 +221,15 @@
   contain-intrinsic-inline-size: 180px;
 }
 
-/* 少し細いタブ: 添えたグループ名を隠し、名前を残す */
+/* 少し細いタブ: 添えたグループ名・作業場所を隠し、名前を残す（2 行のタブは札に下の行があるので、もっと細くなるまで残す） */
 @container panel-tab (max-width: 130px) {
-  .panel-tab-label .panel-tab-group-name {
+  .panel-tab:not(.two-line) .panel-tab-label .panel-tab-group-name {
+    display: none;
+  }
+}
+
+@container panel-tab (max-width: 84px) {
+  .panel-tab.two-line .panel-tab-label .panel-tab-group-name {
     display: none;
   }
 }
@@ -227,8 +274,15 @@
 }
 
 .panel-content {
+  /* 2 行のタブで高くなった分（分けたペインのタブの中身を下げる高さに足す。欄ごとに決め、入れ子の欄に受け継がせない） */
+  --tab-lines-extra: 0px;
+
   flex: 1;
   min-height: 0;
+}
+
+.panel-content.tabs-two-line {
+  --tab-lines-extra: 10px;
 }
 
 .panel-tab-page {

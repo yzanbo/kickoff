@@ -29,6 +29,7 @@ export function PaneTab({
   active,
   home,
   show,
+  twoLine,
   groupOf,
   className,
   extra,
@@ -44,6 +45,8 @@ export function PaneTab({
    * グループ別ならグループ・作業場所別なら作業場所は、まとまりの札に出るので選んでいても出さない。tabFields.ts の tabFieldShown）
    */
   show: (field: TabField) => boolean;
+  /** 2 行にする（名前の下にグループ・作業場所の札） */
+  twoLine: boolean;
   /** プロジェクトのグループ（名前と色）を引く */
   groupOf: TabGroupLookup;
   /** ドラッグで落とす位置の印など */
@@ -84,6 +87,8 @@ export function PaneTab({
       label={label}
       group={show("group") ? group : undefined}
       tag={workplaceTag}
+      tagKey={workplaceTag && place ? `${place.worktree_path ?? ""}|${place.branch ?? ""}` : undefined}
+      twoLine={twoLine}
       title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group.name}）` : label)}
       className={cx(className, agent && (agent.state === "unread" || agent.state === "failed" || agent.unread) && "unread")}
       extra={extra}
