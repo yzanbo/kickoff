@@ -2,7 +2,7 @@
 import type { AgentState, BoardColumn, Chat, ChatEvent } from "@shared/types";
 
 /**
- * チャットのエージェントの状態優先順位:
+ * チャットのエージェントの状態。優先順位:
  * 回答待ち → エラー → 作業中 → 未読 → 既読。
  * 失敗したものも、見るまで（unread がある間）はエラーとして目立たせ、見たら既読にする
  */
