@@ -38,6 +38,8 @@ interface Props {
   onSaved?: () => void;
   /** 保存していない変更があるか（別のファイルを開く前に確かめる） */
   onDirtyChange?: (dirty: boolean) => void;
+  /** 開いたら編集の部品にピントを置く（差分の「編集」から来たとき。チャット欄・一覧のピントを奪わないよう、ふだんは置かない） */
+  autoFocus?: boolean;
 }
 
 /** 編集の始まりの中身と指紋。ignoreHash = 保存した直後の、まだ取り直す前の古い中身の指紋（ほかで変わったと見ない） */
@@ -56,7 +58,7 @@ interface EditBase {
  * バイナリ・大きすぎて途中までのファイルは、読むだけの表で出す。
  * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身。打つたびに差分が変わる）
  */
-export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase, version, onSaved, onDirtyChange }: Props) {
+export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase, version, onSaved, onDirtyChange, autoFocus = false }: Props) {
   // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
   const { target, key: at, worktree } = useGitTarget(projectId);
   const key = `${at}:${path}`;
@@ -221,7 +223,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
               goToDiffRef={goToDiff}
               quickDiffBase={quickDiffBase}
               nativeContextMenu={!inSide}
-              autoFocus={diffOf !== undefined}
+              autoFocus={autoFocus}
             />
           </Suspense>
         ) : !current ? (
