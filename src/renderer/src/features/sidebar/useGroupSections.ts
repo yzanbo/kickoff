@@ -3,6 +3,7 @@ import type { Chat, ChatGroup, Project } from "@shared/types";
 import { moveDroppedChatToProject } from "@/features/chat/chatActions";
 import { busyBlockReason } from "@/features/chat/chatBusy";
 import { api } from "@/api";
+import { openNewChat } from "@/app/router";
 import { cx } from "@/lib/cx";
 import { confirmDeleteGroup, UNGROUPED_SORT_ID, useGroupDrop } from "@/features/group/groups";
 import { ungroupedPosition } from "@/features/group/groupOrder";
@@ -25,7 +26,7 @@ export interface GroupSectionProps {
 }
 
 /**
- * サイドバーの自分で作ったグループの操作（プロジェクトごとに 1 つ）: 「…」メニュー（名前を変更・削除）・名前の変更中のグループ・
+ * サイドバーの自分で作ったグループの操作（プロジェクトごとに 1 つ）: 「…」メニュー（新しいチャット・名前を変更・削除）・名前の変更中のグループ・
  * ドロップ先（チャットはそのグループへ、アーカイブ済みのチャットは確かめて戻してそのグループへ、ほかのプロジェクトのチャットは確かめてこのプロジェクトへ移してそのグループへ、グループの見出しはその位置へ並べ替える）。グループごとの束は sectionProps(group) で取る。
  * 「No Group」もグループと同じく見出しのドラッグでグループの間へ並べ替え、位置（ungroupedAt。前にあるグループの数）を
  * 全プロジェクトのボードのグループの列と同じ設定（groupBoardUngroupedAt。プロジェクトごと）に覚える（覚えていなければいちばん下）。
@@ -38,7 +39,12 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
     if (await confirmDeleteGroup(group)) await api.deleteGroup(group.id);
   };
   // グループの「…」メニュー（右クリックでも開く）
-  const menu = useGroupMenu({ onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g), extra: menuExtra });
+  const menu = useGroupMenu({
+    onNewChat: (g) => openNewChat(projectId, { group: g.id }),
+    onRename: (g) => setRenaming(g.id),
+    onDelete: (g) => void removeGroup(g),
+    extra: menuExtra,
+  });
   const [savedUngroupedAt, setUngroupedAt] = useSetting(groupBoardUngroupedAt(projectId));
   const ungroupedAt = ungroupedPosition(savedUngroupedAt, groups.length, true);
   // グループの並びは DB、「No Group」の位置は画面に覚える（変わった方だけ書く）
