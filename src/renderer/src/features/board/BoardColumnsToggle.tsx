@@ -18,7 +18,8 @@ export function useBoardColumns(allProjects: boolean) {
  * 状態だけ = 作業中・回答待ち・未読・既読と下書きの列 / グループだけ = グループの列（カードをドラッグしてグループを移す）/
  * 両方 = グループの列の中を状態で小分け（グループ×状態）/ どちらもオフ = 下書きもチャットも状態で分けずに 1 つの並び。
  * 覚える値は useBoardColumns の state / groups / none と BOARD_GROUPS_BY_STATE。
- * groups でなければ「グループ」を出さない（全プロジェクトのボードは段がプロジェクトのときだけ。グループはプロジェクトごとのもの）。
+ * groups でなければ「グループ」を出さない（全プロジェクトのボードは段がプロジェクトのときだけ。グループはプロジェクトごとのもの。
+ * プロジェクトのボードはボードのときだけ。リストでは段の「グループ」と同じ見た目になるため）。
  * 出さないときに「グループ」を覚えていれば、状態をオンにした形で出す
  */
 export function BoardColumnsToggle({ allProjects, groups }: { allProjects: boolean; groups: boolean }) {
