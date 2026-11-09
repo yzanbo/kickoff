@@ -1,3 +1,5 @@
+import { hiddenItemsOf, sameHiddenItemsOf, toggleHiddenItem } from "@/lib/hiddenItems";
+
 /**
  * チャットの見出しの行に出す項目（タブの列の「表示」→「見出しに出す項目」で、項目ごとに表示・非表示を選ぶ）。
  * 覚えるのは隠した項目だけ（CHAT_HEADER_HIDDEN）なので、項目を増やしても初めは表示になる
@@ -34,22 +36,13 @@ export const CHAT_HEADER_SECTIONS: readonly { title: string; items: readonly Cha
 ];
 
 /** 保存した値から、知っている項目だけを取り出す（消した項目の名前が残っていても無視する） */
-export function hiddenHeaderItems(saved: readonly string[]): ReadonlySet<ChatHeaderItem> {
-  return new Set(CHAT_HEADER_ITEMS.filter((i) => saved.includes(i)));
-}
+export const hiddenHeaderItems = (saved: readonly string[]): ReadonlySet<ChatHeaderItem> => hiddenItemsOf(CHAT_HEADER_ITEMS, saved);
 
 /** 隠している項目が同じか（保存した値の順・知らない名前は見ない。「既定に戻す」を押せるかに使う） */
-export function sameHiddenItems(a: readonly string[], b: readonly string[]): boolean {
-  const left = hiddenHeaderItems(a);
-  const right = hiddenHeaderItems(b);
-  return left.size === right.size && [...left].every((i) => right.has(i));
-}
+export const sameHiddenItems = (a: readonly string[], b: readonly string[]): boolean => sameHiddenItemsOf(CHAT_HEADER_ITEMS, a, b);
 
 /** item の表示・非表示を入れ替えた、保存する値（項目の順にそろえる） */
-export function toggleHeaderItem(saved: readonly string[], item: ChatHeaderItem): string[] {
-  const hidden = hiddenHeaderItems(saved);
-  return CHAT_HEADER_ITEMS.filter((i) => (i === item ? !hidden.has(i) : hidden.has(i)));
-}
+export const toggleHeaderItem = (saved: readonly string[], item: ChatHeaderItem): string[] => toggleHiddenItem(CHAT_HEADER_ITEMS, saved, item);
 
 /** 初めの並び（まとまりの順・まとまりの中の初めの順） */
 const DEFAULT_ORDER: readonly ChatHeaderItem[] = CHAT_HEADER_SECTIONS.flatMap((s) => s.items);
