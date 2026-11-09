@@ -162,9 +162,9 @@ export const BOARD_SPLIT = defineSetting("kickoff:board-split", flag());
 export const BOARD_SORT = defineSetting("kickoff:board-sort", json(parseSortPair, null, (v) => v === null));
 /**
  * ボードのカード・リストの行・フィードのカードで隠している項目（ツールバーの「表示項目」。features/board/cardFields.ts の CARD_FIELDS。すべてのボードで共通）。
- * 初めはモデル・ターン数・API 換算・コンテキスト・作成日を隠す（今までのカードに出していなかったもの。メニューの「既定に戻す」でこの値に戻す）
+ * 初めに出すのは状態・プロジェクト（全プロジェクトのボードだけ）・モデル・最終更新で、ほかは隠す（利用者の指定。メニューの「既定に戻す」でこの値に戻す）
  */
-export const BOARD_CARD_HIDDEN = defineSetting("kickoff:board-card-hidden", list(["model", "turns", "cost", "context", "created"]));
+export const BOARD_CARD_HIDDEN = defineSetting("kickoff:board-card-hidden", list(["group", "worktree", "pending", "turns", "cost", "context", "created"]));
 /**
  * 保存したボードのビュー（表示・段・列の分け方・並び順・アーカイブの絞り込みの組に名前を付けたもの。features/board/savedViews.ts）。
  * 全プロジェクトのボードとプロジェクトのボード（すべてのプロジェクトで共通）で別に覚える
