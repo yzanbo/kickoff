@@ -131,9 +131,10 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   // スイムレーンの段の分け方
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
   // 全プロジェクトのボードのグループの列は、段がプロジェクトのときだけ選べる（グループはプロジェクトごとのもの）。ほかの段では、覚えた「グループ」は状態の列で出す（段をプロジェクトに戻すとグループに戻る）。
-  // プロジェクトのボードはいつも選べる（グループを列にして縦に並べ、カードのドラッグでグループを移す。利用者の依頼）
+  // プロジェクトのボードはボードのときだけ選べる（グループを列にして縦に並べ、カードのドラッグでグループを移す。利用者の依頼）。
+  // リストでは段の「グループ」と同じ見た目になるので出さない（利用者の依頼。覚えた「グループ」は状態の列で出し、ボードに戻すとグループに戻る）
   const projectLanes = allProjects && split && lanes === "project";
-  const groupsAvailable = allProjects ? projectLanes : true;
+  const groupsAvailable = allProjects ? projectLanes : view !== "list";
   const byGroup = groupsAvailable && columns === "groups";
   const flat = columns === "none";
   // プロジェクトのボードでグループの列にしているときは、段の「グループ」は選べない（列と同じ分け方になるため）。覚えた段はそのままで、分けない形で出す
