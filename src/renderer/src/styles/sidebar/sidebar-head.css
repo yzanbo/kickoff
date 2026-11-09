@@ -1,6 +1,6 @@
-/* ==== プロジェクト一覧の上の見出しの行（1 行目はプロジェクト・2 行目はチャット。種類ごとのボタン） ==== */
+/* ==== サイドバーの見え方の調整（見出しの ⚙ の窓 SidebarViewTuner の中の 3 行。プロジェクト・チャット・要対応の種類ごとのボタン） ==== */
 
-/* プロジェクト一覧の上の見出し: 1 行目はプロジェクト、2 行目はチャットの設定（種類ごとのボタン）。左に何に効くかの名前 */
+/* 1 行目はプロジェクト、2 行目はチャット、3 行目は要対応の設定（種類ごとのボタン）。左に何に効くかの名前 */
 /*
  * 2 行のボタンを縦にそろえる: 見出し全体を 5 列（行の名前＋ボタン 4 つ）の格子にし、各行は subgrid で同じ列に乗せる。
  * 列の幅は、上下の行のボタンのうち長いほうに合わせ、余った幅は均等に配って横幅いっぱいにする
@@ -10,7 +10,6 @@
   flex: none;
   grid-template-columns: max-content repeat(4, minmax(max-content, 1fr));
   gap: 3px;
-  padding: 4px var(--gutter) 2px;
 }
 
 .project-list-row {
@@ -52,13 +51,7 @@
   margin-left: 3px;
 }
 
-/* 「チャット」の行の名前の右の「すべて閉じる / 開く」（小さなアイコンのボタン） */
-.icon-button.project-list-fold {
-  width: 20px;
-  height: 20px;
-}
-
-/* 設定の種類ごとのボタン: 上に種類の名前、下にいまの値（幅は取りうる値でいちばん長いものに固定。狭いときはアイコンだけ） */
+/* 設定の種類ごとのボタン: 上に種類の名前、下にいまの値（幅は取りうる値でいちばん長いものに固定） */
 .head-chip {
   display: inline-flex;
   flex: none;
@@ -124,22 +117,4 @@
 .head-chip-icon {
   display: none;
   color: var(--muted);
-}
-
-/*
- * 文字では横幅に入らないとき（useOverflowCompact が実際にあふれるかで決めて icon-only を付ける）は、文字を隠してアイコン（いまの値）だけにし、
- * アイコンをボタンの真ん中に置く。以前は見出しの幅 259px 以下で切り替えていて、ボタンの名前や数が変わると、切り替わる前に右端が見切れた
- */
-.project-list-head.icon-only .head-chip {
-  justify-content: center;
-  height: 26px;
-  padding: 0 6px;
-}
-
-.project-list-head.icon-only .head-chip-icon {
-  display: block;
-}
-
-.project-list-head.icon-only .head-chip-text {
-  display: none;
 }

@@ -131,6 +131,41 @@ export const SIDEBAR_SHOW_ARCHIVED = defineSetting("kickoff:sidebar-show-archive
 /** グループ別・作業場所別のまとまりの見出しに色を付けるか（パネルのタブのまとまりと同じ色。初めは付ける。features/chatList/bucketHues.ts） */
 export const SIDEBAR_BUCKET_COLORS = defineSetting("kickoff:sidebar-bucket-colors", flag(true));
 
+/**
+ * サイドバーのビュー（プロジェクト・チャット・要対応の見え方の組に名前を付けたもの。features/sidebar/sidebarViews.ts の SidebarViewState）。
+ * 初めは「標準」「要対応」「コンパクト」（利用者と決めた）。すべて消したら [] を覚え、初めのビューには戻さない（ボードの保存したビューと同じ）
+ */
+const sidebarView = (id: string, name: string, state: Readonly<Record<string, unknown>>): StoredView => ({
+  id,
+  name,
+  state: {
+    layout: "stack",
+    projectOrder: "recent",
+    projectCompact: false,
+    showArchivedProjects: false,
+    grouping: "group",
+    chatOrder: "recent",
+    chatCompact: false,
+    showArchivedChats: false,
+    waitingOn: false,
+    waitingView: "inbox-project",
+    ...state,
+  },
+});
+const DEFAULT_SIDEBAR_VIEWS: readonly StoredView[] = [
+  // 標準: 縦並び・グループ別・最近順
+  sidebarView("default-sidebar-standard", "標準", {}),
+  // 要対応: 要対応だけ・状態順
+  sidebarView("default-sidebar-waiting", "要対応", { waitingOn: true, waitingView: "list" }),
+  // コンパクト: プロジェクトもチャットも 1 行
+  sidebarView("default-sidebar-compact", "コンパクト", { projectCompact: true, chatCompact: true }),
+];
+export const SIDEBAR_SAVED_VIEWS = defineSetting("kickoff:sidebar-views", json(parseStoredViews, DEFAULT_SIDEBAR_VIEWS));
+/**
+ * 最後に選んだサイドバーのビュー（ID。⚙ の窓の「上書き」の先。まだ一度も選んでいなければ ""。そのときは最初のビューを当てる）
+ */
+export const SIDEBAR_VIEW_SELECTED = defineSetting("kickoff:sidebar-view-selected", text());
+
 // まとまりの開閉（ここだけで覚える）
 /**
  * まとまりを開いているか（hooks/useFold。サイドバーのプロジェクト・固定・グループ・グループなし・並べ方のまとまり・アーカイブ済み、

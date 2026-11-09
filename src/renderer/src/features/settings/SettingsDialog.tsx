@@ -1,4 +1,4 @@
-import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
+import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, PanelLeft, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
@@ -13,6 +13,7 @@ import { TabbedDialog, type DialogSection } from "@/ui/TabbedDialog";
 import { UsagePanel } from "@/features/usage/UsagePanel";
 import { SnippetBarField } from "@/features/snippet/SnippetBarField";
 import { SnippetSettings } from "@/features/snippet/SnippetSettings";
+import { SidebarViewSettings } from "@/features/sidebar/SidebarViewSettings";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 import { ChatSettings } from "./ChatSettings";
 import { ChildChatCreateField } from "./ChildChatCreateField";
@@ -24,11 +25,12 @@ import { NotificationSettings } from "./NotificationSettings";
 import { TerminalSettings } from "./TerminalSettings";
 import { VoiceSettings } from "./VoiceSettings";
 
-export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "snippets" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
+export type SettingsSection = "usage" | "display" | "sidebar" | "connection" | "ai" | "chats" | "snippets" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
   { key: "display", label: "表示", icon: Palette },
+  { key: "sidebar", label: "サイドバー", icon: PanelLeft },
   { key: "connection", label: "接続", icon: PlugZap },
   { key: "ai", label: "AI の既定", icon: Bot },
   { key: "chats", label: "チャット", icon: MessageSquare },
@@ -50,6 +52,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
         <>
           {section === "usage" && <UsageSettings />}
           {section === "display" && <DisplaySettings />}
+          {section === "sidebar" && <SidebarViewSettings />}
           {section === "connection" && <ConnectionSettings />}
           {section === "ai" && <AiDefaultsSettings />}
           {section === "chats" && <ChatSettings />}
