@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ChevronRight, Copy, FolderInput, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronRight, Copy, Folder, FolderInput, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
@@ -8,12 +8,14 @@ import { openNewProject } from "@/features/project/new/openNewProject";
 import { MenuItem } from "@/ui/PopupMenu";
 import { useSubmenu } from "@/ui/MenuFlyout";
 import { ProjectPickFlyout } from "@/features/project/ProjectPickFlyout";
+import { GroupPickFlyout } from "@/features/group/GroupPickFlyout";
+import { askNewGroupName } from "@/features/group/groups";
 import { openAskChild } from "./children/childChats";
 
 /**
  * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通）:
- * 開く・子チャットを作成・名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを変更・アーカイブ・削除。
- * before / after: その場所だけの項目（タブの分割・閉じるなど）。「プロジェクトを変更」に乗せる・押すと、横にプロジェクトの一覧（ProjectPickFlyout）を開く
+ * 開く・子チャットを作成・名前を変更・既読 / 未読・固定・セッション ID をコピー・グループを変更・プロジェクトを変更・アーカイブ・削除。
+ * before / after: その場所だけの項目（タブの分割・閉じるなど）。「グループを変更」「プロジェクトを変更」に乗せる・押すと、横にグループ・プロジェクトの一覧（GroupPickFlyout / ProjectPickFlyout）を開く
  */
 export function ChatMenuItems({
   chat,
@@ -34,8 +36,16 @@ export function ChatMenuItems({
   before?: ReactNode;
   after?: ReactNode;
 }) {
-  // 「プロジェクトを変更」の横に開く一覧
+  // 「グループを変更」「プロジェクトを変更」の横に開く一覧
+  const grouping = useSubmenu();
   const moving = useSubmenu();
+  // 新しいグループの名前を聞いて作り、このチャットをそこへ移す
+  const createGroupAndMove = async () => {
+    const name = await askNewGroupName("作成して移す");
+    if (!name) return;
+    const group = await api.createGroup(chat.project_id, name);
+    await api.setChatGroup(chat.id, group.id);
+  };
   // 失敗はお知らせで出す（メニューは閉じる）
   const act = (fn: () => Promise<unknown>) => {
     onClose();
@@ -84,6 +94,23 @@ export function ChatMenuItems({
         <MenuItem onSelect={() => act(() => navigator.clipboard.writeText(chat.session_id ?? ""))}>
           <Copy size={14} /> セッション ID をコピー
         </MenuItem>
+      )}
+      {/* 乗せる・押す・→ で横にこのプロジェクトのグループの一覧を開く（メニューは閉じない。子チャットはグループに入らないので出さない） */}
+      {chat.parent_chat_id === null && (
+        <button {...grouping.trigger}>
+          <Folder size={14} /> グループを変更
+          <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
+        </button>
+      )}
+      {grouping.anchor && (
+        <GroupPickFlyout
+          anchor={grouping.anchor}
+          projectId={chat.project_id}
+          current={chat.group_id}
+          onPick={(group) => act(() => api.setChatGroup(chat.id, group?.id ?? null))}
+          onCreate={() => act(createGroupAndMove)}
+          onBack={grouping.back}
+        />
       )}
       {/* 乗せる・押す・→ で横にプロジェクトの一覧を開く（メニューは閉じない） */}
       <button {...moving.trigger}>

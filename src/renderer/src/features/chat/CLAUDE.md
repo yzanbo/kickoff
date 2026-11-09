@@ -33,7 +33,8 @@
 
 - アーカイブ・削除などは `chatActions.ts`（`toggleArchiveChat` / `confirmArchiveChats` / `confirmDeleteChat` / `confirmDeleteChats` / `markChatsSeen` / `moveChatsToGroup` / `togglePinChat`。まとめての操作で断られたものは最後にまとめて知らせる。削除したチャットの書きかけの文 `chatDraft` も消す）。
 - 名前をその場で変えるのは `useChatRename` ＋ `ChatTitleInput`（ダイアログは使わない。`onError` を省くとお知らせで出す）。上限は `CHAT_TITLE_MAX`。
-- 右クリックのメニューの項目は `ChatMenuItems` 1 つ（開く（タブでは出さない）・子チャットを作成（「新しい子チャットで聞く」の画面を開く。アーカイブ済みでは出さない）・名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを変更・アーカイブ・削除。場所だけの項目は `before` / `after`）。サイドバーの行・ボードのカードは `ChatMenu`、パネルのタブは `TabMenu` から使う。
+- 右クリックのメニューの項目は `ChatMenuItems` 1 つ（開く（タブでは出さない）・子チャットを作成（「新しい子チャットで聞く」の画面を開く。アーカイブ済みでは出さない）・名前を変更・既読 / 未読・固定・セッション ID をコピー・グループを変更・プロジェクトを変更・アーカイブ・削除。場所だけの項目は `before` / `after`）。サイドバーの行・ボードのカードは `ChatMenu`、パネルのタブは `TabMenu` から使う。
+- 「グループを変更」（親のないチャットだけ。子チャットはグループに入らない）は乗せる・押す・→ で項目の横に `GroupPickFlyout`（`features/group`。そのプロジェクトのグループと「No Group」、いまのグループにチェック）を開き、選ぶと `api.setChatGroup`。区切り線の下の「新しいグループを作成…」は名前を聞いて（`askNewGroupName`）作り、そのままそこへ移す。サイドバーのグループへのドラッグと同じ結果を、ドラッグせずに選べる。
 - 「プロジェクトを変更」は乗せる・押す・→ で項目の横に `ProjectPickFlyout`（`features/project/CLAUDE.md`）を開き、確かめてから（`chatActions.ts` の `confirmMoveChatToProject`。サイドバーのほかのプロジェクトへのドラッグも同じ確かめ）`api.moveChat`（グループ・作業場所・ブランチは外れ、作業場所は移した先の本体。並び順は変えない。作業中は 409。会話は resume で続く）。いま開いているチャットを移したら、移した先で開き直す。移したチャットはチャットの店の知らせで元の一覧から外れる。
 - チャットのタブの ✕ は `closeChatWithChoice`（表示だけ消す・アーカイブ・削除を選んでから閉じる。既定は `CHAT_CLOSE_ACTION`（`ask` / `close` / `archive` / `delete`）で、設定の「チャット」と、聞いたときの「次からはこれにする」で変える。アーカイブ・削除は既定にしても毎回確かめる）。Esc・タブのメニューの「閉じる」は聞かずに閉じる。
 

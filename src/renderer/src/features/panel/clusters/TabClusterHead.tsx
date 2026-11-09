@@ -3,8 +3,8 @@ import { usePopover } from "@/ui/Popover";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
 import { useChatStates } from "@/app/chatStatesContext";
-import { promptDialog, reportFailure } from "@/ui/dialogs";
-import { confirmDeleteGroup } from "@/features/group/groups";
+import { reportFailure } from "@/ui/dialogs";
+import { askNewGroupName, confirmDeleteGroup } from "@/features/group/groups";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { cx } from "@/lib/cx";
@@ -93,8 +93,8 @@ export function TabClusterHead({
   };
   const createGroup = async () => {
     if (projectId === undefined) return;
-    const name = await promptDialog({ title: "新しいグループ", label: "グループ名", placeholder: "例: コードレビュー", confirmLabel: "作成" });
-    if (name?.trim()) await api.createGroup(projectId, name.trim()).catch(reportFailure("グループを作成できませんでした"));
+    const name = await askNewGroupName();
+    if (name) await api.createGroup(projectId, name).catch(reportFailure("グループを作成できませんでした"));
   };
   // 自分で作ったグループの札（グループ別のとき）か、グループなしの札か
   const group = cluster.group;
