@@ -112,7 +112,7 @@
   margin-left: 6px;
 }
 
-/* 「プロジェクトを変更」の横に開く一覧（ProjectPickFlyout。: 検索欄・新規プロジェクト・一覧） */
+/* 「プロジェクトを変更」の横に開く一覧（ProjectPickFlyout: 検索欄・新規プロジェクト・一覧） */
 .project-pick {
   width: 280px;
   min-width: 0;

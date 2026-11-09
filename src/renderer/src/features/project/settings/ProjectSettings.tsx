@@ -33,7 +33,7 @@ export function ProjectSettings({ project, section, onSelect }: { project: Proje
         <section className="section">
           <h2>参照資料</h2>
           <p className="muted small">
-            く、このプロジェクトのチャットで AI がいつでも読めるフォルダ・ファイルです。AI には一覧が伝わり、必要に応じて中身を読みます（書き込みはできません）。
+            このプロジェクトのチャットで AI がいつでも読めるフォルダ・ファイルです。AI には一覧が伝わり、必要に応じて中身を読みます（書き込みはできません）。
           </p>
           <ReferenceEditor project={project} />
         </section>
