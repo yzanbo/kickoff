@@ -158,6 +158,14 @@
   flex: none;
 }
 
+/* 行の右端の日時（作成日・最終更新。表示項目で出すものだけ） */
+.list-times {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
 .list-row .card-title {
   flex: 0 1 auto;
   min-width: 0;

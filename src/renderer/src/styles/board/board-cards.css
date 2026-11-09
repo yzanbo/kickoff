@@ -151,10 +151,13 @@
   color: var(--text);
 }
 
+/* 詳細・日時の行（表示項目でたくさん出したときは、カードの幅からはみ出さずに折り返す） */
 .card-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 2px 6px;
+  min-width: 0;
   font-size: 11px;
 }
 
@@ -169,6 +172,19 @@
   font-size: 11px;
   white-space: nowrap;
   text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+/* 下の行では、日時を縮めて省かずに次の行へ送る（残りの幅いっぱいに伸ばすのはそのまま） */
+.card-foot .card-time {
+  flex: 1 0 auto;
+}
+
+/* 表示項目で出す詳細（モデル・ターン数・API 換算・コンテキスト・作成日。ツールバーの「表示項目」） */
+.card-stat {
+  flex: none;
+  font-size: 11px;
+  white-space: nowrap;
   color: var(--muted);
 }
 

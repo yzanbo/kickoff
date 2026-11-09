@@ -88,3 +88,15 @@ test("isNoopViewMove: 自分の上・すぐ前の後ろ・すぐ後ろの前は�
   assert.equal(isNoopViewMove(views, "b", "a", "before"), false);
   assert.equal(isNoopViewMove(views, "b", "c", "after"), false);
 });
+
+test("parseViewState: 表示項目（cardHidden）は知っている項目だけ読み、配列でなければそのビューを捨てる", () => {
+  assert.deepEqual(parseViewState({ ...base, cardHidden: ["model", "gone", 3, "cost"] })?.cardHidden, ["model", "cost"]);
+  assert.equal(parseViewState({ ...base, cardHidden: "model" }), undefined);
+  assert.equal("cardHidden" in (parseViewState(base) ?? {}), false);
+});
+
+test("sameViewState: 表示項目は順によらず比べ、持たないビュー（前の版のもの）は比べない", () => {
+  assert.equal(sameViewState({ ...base, cardHidden: ["cost", "model"] }, { ...base, cardHidden: ["model", "cost"] }), true);
+  assert.equal(sameViewState({ ...base, cardHidden: ["model"] }, { ...base, cardHidden: [] }), false);
+  assert.equal(sameViewState(base, { ...base, cardHidden: ["model"] }), true);
+});
