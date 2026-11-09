@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ActivityRow } from "./activityRows";
-import { layoutRails } from "./activityRails";
+import { flipRails, layoutRails } from "./activityRails";
 
 type Row = Pick<ActivityRow, "agent" | "kind" | "child">;
 const row = (agent: string | null, kind: ActivityRow["kind"] = "tools", child?: string): Row => ({ agent, kind, ...(child ? { child } : {}) });
@@ -51,4 +51,18 @@ test("layoutRails: 絞り込みで行のない子へは枝分かれせず、起�
     [1, ["0:a:top-bottom", "1:b:top-node"], ""],
     [0, ["0:a:top-node"], ""],
   ]);
+});
+
+test("flipRails: 上を最新にするときは行を逆にし、縦の線の向きを入れ替える（子の線は起動の行の節から上へ、終わりの行の節で閉じる）", () => {
+  const rows = [row(null, "prompt"), row(null, "launch", "a"), row("a"), row("a", "end"), row(null, "reply")];
+  const flipped = flipRails(layoutRails(rows));
+  const drawn = flipped.rows.map((r) => [r.col, r.segments.map((s) => `${s.col}:${s.agent ?? "main"}:${s.from}-${s.to}`).sort(), r.branch ? `${r.branch.from}>${r.branch.to}` : ""]);
+  assert.deepEqual(drawn, [
+    [0, ["0:main:top-bottom"], ""],
+    [1, ["0:main:top-bottom", "1:a:node-bottom"], ""],
+    [1, ["0:main:top-bottom", "1:a:top-bottom"], ""],
+    [0, ["0:main:top-bottom", "1:a:top-node"], "0>1"],
+    [0, ["0:main:top-node"], ""],
+  ]);
+  assert.equal(flipped.width, 2);
 });

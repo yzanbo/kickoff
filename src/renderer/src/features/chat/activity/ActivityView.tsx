@@ -10,22 +10,23 @@ import { useSubagentsView } from "@/features/chat/subagents/subagentsContext";
 import { childrenOf, type SubagentTree } from "@/features/chat/subagents/subagentTree";
 import { agentHueStyle } from "@/features/chat/subagents/agentHues";
 import { activityRows, agentTargetOf, filterActivity, type ActivityFilter, type ActivityRow } from "./activityRows";
-import { layoutRails } from "./activityRails";
+import { flipRails, layoutRails } from "./activityRails";
 import { ActivityLine } from "./ActivityLine";
 import { ActivityFocusBar } from "./ActivityFocusBar";
 import { useActivityFocus } from "./useActivityFocus";
 
-/** 一度に描く行の数（上の「以前の動きを表示」で、この数ずつ前を足す。長いチャットでも全部は描かない） */
+/** 一度に描く行の数（下の「以前の動きを表示」で、この数ずつ前を足す。長いチャットでも全部は描かない） */
 const ACTIVITY_WINDOW = 300;
-/** 一番下を見ているとみなす、下端からの距離（ここにいる間は新しい行に付いていく） */
+/** 一番上を見ているとみなす、上端からの距離（ここにいる間は新しい行に付いていく） */
 const FOLLOW_SLACK_PX = 40;
 const ALL: ActivityFilter = { kind: "all" };
 
 /**
  * 動き: メインとすべてのサブエージェントの動きを、1 本の時系列に並べる（チャットの見出しの「会話 / 動き」で、会話と同じ場所に出す）。
- * 左の線は、メインの線から起動した時刻でサブエージェントの線が枝分かれし、終わった時刻で閉じる（配下であること・いつ始まりいつ終わったか・
+ * 履歴のタブと同じく、上を最新にする（利用者の依頼）。
+ * 左の線は、メインの線から起動した時刻でサブエージェントの線が枝分かれし（上へ伸びる）、終わった時刻で閉じる（配下であること・いつ始まりいつ終わったか・
  * どこが並行していたかを 1 枚で見せる）。上のチップでエージェントを絞り込み（その配下ごと）、行を押すと会話のその場所へ移る。
- * カードの「動きで見る」では、絞り込まずにそのサブエージェントと配下の行をすべて強調し、初めの行へ移る（useActivityFocus。↑↓ で順に）
+ * カードの「動きで見る」では、絞り込まずにそのサブエージェントと配下の行をすべて強調し、いちばん上（最新）の行へ移る（useActivityFocus。↑↓ で順に）
  */
 export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const view = useSubagentsView();
@@ -40,29 +41,31 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const busy = view?.busy ?? false;
   const rows = useMemo(() => (events && tree ? activityRows(events, tree, busy) : []), [events, tree, busy]);
   const shown = useMemo(() => (tree ? filterActivity(rows, tree, filter) : rows), [rows, tree, filter]);
-  // 線は絞り込んだ行の全体で決める（描くのが最近の分だけでも、それより前から続く線を上から通す）
-  const rails = useMemo(() => layoutRails(shown), [shown]);
+  // 上を最新にして並べる（履歴のタブと同じ）。線は絞り込んだ行の全体を時刻の順で決めてから逆にする
+  // （描くのが最近の分だけでも、それより前から続く線を下から通す）
+  const ordered = useMemo(() => [...shown].reverse(), [shown]);
+  const rails = useMemo(() => flipRails(layoutRails(shown)), [shown]);
 
-  // 一番下を見ている間は、新しい行に付いていく（初めと、絞り込みを変えたときは一番下から）
+  // 一番上を見ている間は、新しい行に付いていく（初めと、絞り込みを変えたときは一番上から）
   const scrollRef = useRef<HTMLDivElement>(null);
   const following = useRef(true);
-  const lastKey = shown.at(-1)?.key;
+  const newestKey = ordered[0]?.key;
   useLayoutEffect(() => {
     following.current = true;
   }, [filter]);
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (el && following.current) el.scrollTop = el.scrollHeight;
-  }, [lastKey, shown.length, filter]);
-  const focus = useActivityFocus(shown, tree, scrollRef, following);
-  // 強調している行が描く範囲より前なら、そこから描く（描き足した分は、次からも描いたまま）
-  const start = Math.min(Math.max(0, shown.length - limit), focus.currentIndex ?? Infinity);
+    if (el && following.current) el.scrollTop = 0;
+  }, [newestKey, ordered.length, filter]);
+  const focus = useActivityFocus(ordered, tree, scrollRef, following);
+  // 上から limit 行を描く。強調している行がその先なら、そこまで描く（描き足した分は、次からも描いたまま）
+  const end = Math.max(Math.min(ordered.length, limit), (focus.currentIndex ?? -1) + 1);
   useLayoutEffect(() => {
-    if (focus.currentIndex !== undefined) setLimit((n) => Math.max(n, shown.length - focus.currentIndex!));
-  }, [focus.currentIndex, shown.length]);
+    if (focus.currentIndex !== undefined) setLimit((n) => Math.max(n, focus.currentIndex! + 1));
+  }, [focus.currentIndex]);
+  const rest = ordered.length - end;
   const onScroll = (e: UIEvent<HTMLDivElement>) => {
-    const el = e.currentTarget;
-    following.current = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_SLACK_PX;
+    following.current = e.currentTarget.scrollTop < FOLLOW_SLACK_PX;
   };
 
   if (!view || !tree) return null;
@@ -102,17 +105,12 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
       {focus.key !== null && <ActivityFocusBar focus={focus} name={name(focus.key)} hue={view.hues.get(focus.key)} onClear={pane.clearActivityFocus} />}
       <div ref={scrollRef} className="activity" tabIndex={-1} onScroll={onScroll}>
         <div className="activity-inner" style={timeWidth}>
-          {start > 0 && (
-            <button type="button" className="link-button activity-more" onClick={() => setLimit((n) => n + ACTIVITY_WINDOW)}>
-              以前の動きを表示（あと {start} 件）
-            </button>
-          )}
           {shown.length === 0 && <p className="muted small activity-empty">まだ動きがありません</p>}
-          {shown.slice(start).map((row, i) => (
+          {ordered.slice(0, end).map((row, i) => (
             <ActivityLine
               key={row.key}
               row={row}
-              rail={rails.rows[start + i]}
+              rail={rails.rows[i]}
               width={rails.width}
               name={name(row.agent)}
               hues={view.hues}
@@ -126,6 +124,11 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
               onPick={pane.canOpenSide ? pick : undefined}
             />
           ))}
+          {rest > 0 && (
+            <button type="button" className="link-button activity-more" onClick={() => setLimit((n) => n + ACTIVITY_WINDOW)}>
+              以前の動きを表示（あと {rest} 件）
+            </button>
+          )}
         </div>
       </div>
       {menu.menu && (

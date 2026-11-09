@@ -70,3 +70,18 @@ export function layoutRails(rows: readonly Pick<ActivityRow, "agent" | "kind" | 
   });
   return { rows: out, width };
 }
+
+/**
+ * 上を最新にして並べるとき（動きは履歴のタブと同じく、新しい行を上に出す）の線: 時刻の順に決めた線（layoutRails）の行を逆の順にし、
+ * 縦の線の向きを入れ替える（節から下へ = 上から節まで、上から節まで = 節から下へ）。起動の行の横の線は、そのまま節の高さ。
+ * 子の線は、起動の行の節から上（あとの行）へ伸び、終わりの行の節で閉じる
+ */
+export function flipRails(layout: RailLayout): RailLayout {
+  const rows = layout.rows
+    .map((row) => ({
+      ...row,
+      segments: row.segments.map((s): RailSegment => ({ ...s, from: s.to === "node" ? "node" : "top", to: s.from === "node" ? "node" : "bottom" })),
+    }))
+    .reverse();
+  return { rows, width: layout.width };
+}
