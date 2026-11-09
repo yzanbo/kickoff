@@ -13,7 +13,8 @@ import { useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useBoardView } from "./BoardHeader";
 import { hiddenCardFields } from "./cardFields";
 import { DEFAULT_CHAT_SORT, parseChatSort, sameChatSort } from "./chatSort";
-import { activeView, addView, moveView, parseSavedViews, projectViewState, removeView, renameView, replaceViewState, type BoardViewState } from "./savedViews";
+import { addView, moveView, removeView, renameView, replaceViewState } from "@/lib/namedViews";
+import { activeView, parseSavedViews, projectViewState, type BoardViewState } from "./savedViews";
 import { useKanbanLanes } from "./useKanbanFilters";
 
 /**
