@@ -6,7 +6,7 @@ import { stateCounts } from "@/features/chat/chatState";
 import type { ProjectNavController } from "./useProjectNav";
 import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
-import { NO_CHATS } from "@/stores/chats";
+import { NO_CHATS, useChatsWithChildrenByProject } from "@/stores/chats";
 import { NO_GROUPS } from "@/stores/groups";
 
 /**
@@ -34,12 +34,14 @@ export function ProjectSlides({
 }) {
   const { ordered, index, swipe, collapsedMap, filterByWaiting, isArchived, reorder, go, projectMenu, pending, compact, compactProjects } = nav;
   const rail = nav.layout === "rail";
+  // 丸の角の状態ごとの数は、子チャットも数える（見出しの数・要対応と同じ）
+  const counted = useChatsWithChildrenByProject();
   const switcher = (
     <div className="workspace-switcher" {...swipe.stripHandlers}>
       <WorkspaceDots
         projects={ordered}
         index={index}
-        countsOf={(id) => stateCounts(chats[id] ?? [], pending)}
+        countsOf={(id) => stateCounts(counted[id] ?? NO_CHATS, pending)}
         isArchived={isArchived}
         reorder={reorder}
         onGo={go}

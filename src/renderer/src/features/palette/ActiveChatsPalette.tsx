@@ -3,14 +3,14 @@ import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from "reac
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
-import { useChats } from "@/stores/chats";
+import { useChatsWithChildren } from "@/stores/chats";
+import { openChatOrChild } from "@/features/chat/children/openChild";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/stores/projects";
 import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
-import { openChat } from "@/app/router";
 import { shortRelativeTime } from "@/lib/time";
 import { DRAFT_TONE } from "@/features/chat/tones";
 import { bucketTone, chatsByState } from "@/features/chatList/StateChatsPopover";
@@ -26,7 +26,7 @@ type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: st
 const draftTitle = (draft: PanelDraft) => draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE;
 
 /**
- * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形）。
+ * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形。子チャットも並べ、押すと設定の開き方で開く）。
  * 送る前の新しいチャット（下書き。サイドバー・ボードの「下書き」と同じもの）も、いちばん上に並べる。
  * 名前・プロジェクト名で絞り込め、↑↓・Enter で開く。開いている間もチャットの状態の変化に追いつく。
  * 入力欄の下の行で、プロジェクトでも絞り込める（すべて / プロジェクトごと。Tab / Shift+Tab でも切り替え。⌘⇧A で開くたびに「すべて」から。
@@ -40,8 +40,8 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
   const { visible, archived, tagFilter } = useVisibleProjects();
   const { pending } = useChatStates();
   const [query, setQuery] = useState("");
-  // すべてのプロジェクトのチャット（開いている間も、状態の変化・削除に追いつく）
-  const { chats } = useChats();
+  // すべてのプロジェクトのチャット（子チャットも入れる。開いている間も、状態の変化・削除に追いつく）
+  const chats = useChatsWithChildren();
   const dialog = useModalDialog();
   const drafts = useAllDrafts();
   const [project, setProject] = useState<ProjectFilterValue>(initialProject ?? "all");
@@ -93,7 +93,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
     if (!item) return;
     dialog.close();
     if (item.kind === "draft") openDraft(item.draft);
-    else openChat(item.chat.project_id, item.chat.id);
+    else openChatOrChild(item.chat);
   }
   const nav = useListNavigation(items, go);
   useEffect(() => nav.setIndex(0), [query, selected, showArchived]);

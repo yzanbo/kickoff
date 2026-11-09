@@ -79,7 +79,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMem
       <ProjectHeader data={shown} tab={tab} changeCount={git.count} refreshing={refreshing} onEdit={() => setEditing(true)} />
       {/* タブを左に縦並びにする設定のときは、本体の左にアイコンだけで並べる（見出しの下の行がなくなり、本体の縦の幅が増える） */}
       <div className="project-main">
-      {tabsLayout === "side" && <ProjectTabs projectId={project.id} tab={tab} chats={shown.chats} changeCount={git.count} refreshing={refreshing} vertical />}
+      {tabsLayout === "side" && <ProjectTabs projectId={project.id} tab={tab} changeCount={git.count} refreshing={refreshing} vertical />}
       <div className="project-content">
 
       {tab === "board" && <KanbanBoard projectId={project.id} focus={focus} />}

@@ -55,6 +55,12 @@ export function openChildChat(chat: Pick<Chat, "id" | "project_id" | "title">, p
   openChildSide(chat);
 }
 
+/** チャットを開く（子チャットなら設定の開き方で、いちばん上のチャットならチャットのパネルで。要対応・⌘⇧A など子チャットも並ぶ一覧から） */
+export function openChatOrChild(chat: Pick<Chat, "id" | "project_id" | "title" | "parent_chat_id">) {
+  if (chat.parent_chat_id !== null) openChildChat(chat);
+  else openChat(chat.project_id, chat.id);
+}
+
 /**
  * 作ったばかりの子チャットを、設定の「子チャットを作ったとき」（CHILD_CHAT_OPEN_ON_CREATE）で開く（右の欄 / 別ウィンドウ / 開かない）。
  * 作った知らせより先に一覧へ入れる（入っていないと親をたどれず、右の欄でなくふつうのチャットのタブで開いてしまう。入力欄の上の札にもすぐ並ぶ）

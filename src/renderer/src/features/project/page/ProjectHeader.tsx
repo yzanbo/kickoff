@@ -10,6 +10,7 @@ import { ActiveChatsButton } from "@/features/palette/ActiveChatsButton";
 import { useChatStates } from "@/app/chatStatesContext";
 import { chatStateOf } from "@/features/chat/chatState";
 import { waitingChats } from "@/features/chatList/chatListFlags";
+import { NO_CHATS, useChatsWithChildrenByProject } from "@/stores/chats";
 import type { ProjectData } from "./useProjectData";
 
 /**
@@ -29,11 +30,13 @@ export function ProjectHeader({
   refreshing: TabRefreshing;
   onEdit: () => void;
 }) {
-  const { project, chats } = data;
+  const { project } = data;
   const [layout] = useProjectTabsLayout();
   // 要対応（回答待ち・未読。サイドバーの「要対応」と同じ数え方）の数を、一覧のボタンの右上に出す
+  // 子チャットも数える（状態ごとの数・一覧も同じ。利用者の依頼）
   const { pending } = useChatStates();
-  const waiting = waitingChats(chats, pending);
+  const counted = useChatsWithChildrenByProject()[project.id] ?? NO_CHATS;
+  const waiting = waitingChats(counted, pending);
   const urgent = waiting.some((chat) => chatStateOf(chat, pending) === "needs_input");
   return (
   <header className="page-header project-header">
@@ -55,14 +58,14 @@ export function ProjectHeader({
       )}
       <div className="project-stats">
         {project.archived_at && <ToneChip label="アーカイブ済み" />}
-        <StateStats chats={chats} />
+        <StateStats chats={counted} />
         {/* このプロジェクトに絞り込んだ ⌘⇧A の一覧（状態ごとの数が 0 でも出す。右上に要対応の数。利用者の依頼） */}
         <ActiveChatsButton project={project} waiting={{ count: waiting.length, urgent }} />
       </div>
     </div>
     {layout === "top" && (
       <div className="project-tabs-row">
-        <ProjectTabs projectId={project.id} tab={tab} chats={chats} changeCount={changeCount} refreshing={refreshing} />
+        <ProjectTabs projectId={project.id} tab={tab} changeCount={changeCount} refreshing={refreshing} />
       </div>
     )}
   </header>

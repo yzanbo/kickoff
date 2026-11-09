@@ -230,6 +230,34 @@ export function useChatsByProject({ archived = false }: { archived?: boolean } =
   return useSyncExternalStore(subscribeChats, () => byProjectView(archived));
 }
 
+// アーカイブしていないチャットを子チャットも入れて（メモのチャットは入れない）。要対応・⌘⇧A・状態ごとの数で、子チャットも数えるため（利用者の依頼）
+const withChildrenCache: { active: Chat[] | undefined; chats: Chat[]; byProject: ChatsByProject } = { active: undefined, chats: NO_CHATS, byProject: {} };
+
+function withChildrenView(): { chats: Chat[]; byProject: ChatsByProject } {
+  const active = activeChats.get().data;
+  if (withChildrenCache.active === active) return withChildrenCache;
+  const next = (active ?? []).filter((r) => r.memo_path === null);
+  const chats = sameItems(withChildrenCache.chats, next) ? withChildrenCache.chats : next.length > 0 ? next : NO_CHATS;
+  const byProject = chats === withChildrenCache.chats ? withChildrenCache.byProject : chatsByProject(chats, withChildrenCache.byProject);
+  Object.assign(withChildrenCache, { active, chats, byProject });
+  return withChildrenCache;
+}
+
+/**
+ * アーカイブしていないチャットを、子チャット（孫・ひ孫も）も入れて最後に動いた順に（メモのチャットは入れない）。
+ * 要対応の一覧と数・⌘⇧A・プロジェクト画面の状態ごとの数で使う（ふつうの一覧の useChats は子チャットを入れず、親の中に出す）
+ */
+export function useChatsWithChildren(): Chat[] {
+  useStoreStatus(activeChats);
+  return useSyncExternalStore(subscribeChats, () => withChildrenView().chats);
+}
+
+/** useChatsWithChildren をプロジェクトごとに（サイドバーの要対応。中身の変わらないプロジェクトの一覧は同じ配列のまま） */
+export function useChatsWithChildrenByProject(): ChatsByProject {
+  useStoreStatus(activeChats);
+  return useSyncExternalStore(subscribeChats, () => withChildrenView().byProject);
+}
+
 /** そのメモのチャット（アーカイブしていない、いちばん新しいもの。まだなければ undefined。一覧が届くまでも undefined） */
 export function useMemoChatOf(projectId: number, memoPath: string): Chat | undefined {
   useStoreStatus(activeChats);
