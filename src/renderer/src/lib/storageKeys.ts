@@ -108,9 +108,9 @@ export const SIDEBAR_PROJECT_ORDER = defineSetting("kickoff:sidebar-project-orde
 export const SIDEBAR_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:sidebar-show-archived-projects", flag());
 /** プロジェクトのカードを 1 行で出すか（名前だけにして、チャット数の行を隠す） */
 export const SIDEBAR_PROJECT_COMPACT = defineSetting("kickoff:sidebar-project-compact", flag());
-/** プロジェクトごとに最後に見ていた画面（URL のハッシュ。横スライドで戻ってきたときに開く。アプリを閉じるまで） */
 /** 最後に見ていた画面（URL のハッシュ）。起動したとき・ウィンドウを作り直したときに開く（app/router.ts の restoreLastRoute。利用者の依頼） */
 export const LAST_ROUTE = defineSetting("kickoff:last-route", text(), { ids: true });
+/** プロジェクトごとに最後に見ていた画面（URL のハッシュ。横スライドで戻ってきたときに開く。アプリを閉じるまで） */
 export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project", record(isString), { ids: true, session: true });
 /** プロジェクトのタグでの絞り込み（選んだタグ。"" はタグのないプロジェクト。空なら絞り込まない。サイドバー・全プロジェクトの画面・⌘⇧A で共通） */
 export const PROJECT_TAG_FILTER = defineSetting("kickoff:project-tag-filter", list());
