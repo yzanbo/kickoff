@@ -19,6 +19,7 @@ import { LaneSelect } from "./BoardLanes";
 import { KanbanBody } from "./KanbanBody";
 import { GroupCreateToolButton } from "./GroupCreateForm";
 import { SortMenuButton } from "./BoardSortTools";
+import { CardFieldsButton } from "./CardFieldsMenu";
 import { useChatSort } from "./useChatSort";
 import { SavedViewTabs } from "./SavedViewTabs";
 import { FeedList } from "./FeedList";
@@ -232,10 +233,12 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
         />
         )
       }
+      // 並び順の左に「表示項目」（カード・行に出す項目。利用者の依頼）。フィードのカードにも効くので、フィードでも出す
       sortTools={
-        !feed && (
-        <SortMenuButton sort={sort} onSort={setSort} allProjects={allProjects} />
-        )
+        <>
+          <CardFieldsButton allProjects={allProjects} />
+          {!feed && <SortMenuButton sort={sort} onSort={setSort} allProjects={allProjects} />}
+        </>
       }
       panel={rightPanel?.panel}
     />

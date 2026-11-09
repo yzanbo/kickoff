@@ -1,3 +1,4 @@
+import { hiddenCardFields, sameHiddenCardFields, type CardField } from "./cardFields";
 import { parseChatSort, sameChatSort, type ChatSort } from "./chatSort";
 
 // 保存したビュー（ボードの見え方の組に名前を付けたもの。Notion のビューを参考に）。読み書きは useSavedViews、ここは形と比べ方・並びの操作（純粋な関数）
@@ -20,6 +21,8 @@ export type BoardViewState = {
   columns?: (typeof VIEW_COLUMNS)[number];
   sort: ChatSort;
   archive: (typeof VIEW_ARCHIVES)[number];
+  /** 表示項目で隠している項目（カード・行に出さないもの。前の版のビューにはなく、そのときは当てても表示項目を変えない） */
+  cardHidden?: CardField[];
 };
 
 export interface SavedView {
@@ -39,6 +42,7 @@ export function parseViewState(value: unknown): BoardViewState | undefined {
   const kind = v.view === "table" ? "list" : v.view;
   if (!oneOf(VIEW_KINDS, kind) || !oneOf(VIEW_LANES, v.lanes) || !oneOf(VIEW_ARCHIVES, v.archive) || !sort) return undefined;
   if (v.columns !== undefined && !oneOf(VIEW_COLUMNS, v.columns)) return undefined;
+  if (v.cardHidden !== undefined && !Array.isArray(v.cardHidden)) return undefined;
   // 前の版のビューのリストの行（compact）・表で隠す列（hidden）は読まない（リストの行はいつも 1 行に、表はなくした）
   return {
     view: kind,
@@ -46,6 +50,8 @@ export function parseViewState(value: unknown): BoardViewState | undefined {
     ...(v.columns === undefined ? {} : { columns: v.columns }),
     sort,
     archive: v.archive,
+    // 知らない項目の名前（消した項目）は読まない
+    ...(Array.isArray(v.cardHidden) ? { cardHidden: [...hiddenCardFields(v.cardHidden.filter((x): x is string => typeof x === "string"))] } : {}),
   };
 }
 
@@ -65,7 +71,7 @@ export function parseSavedViews(list: readonly { id: string; name: string; state
 }
 
 /**
- * いまの見え方が保存したビューと同じか（選んでいるビューの印）。列の分け方を持たないビュー（前の版のプロジェクトのボードのもの）は列の分け方を比べない
+ * いまの見え方が保存したビューと同じか（選んでいるビューの印）。列の分け方・表示項目を持たないビュー（前の版のもの）は、それを比べない
  */
 export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
   return (
@@ -73,7 +79,8 @@ export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
     a.lanes === b.lanes &&
     (a.columns === undefined || b.columns === undefined || a.columns === b.columns) &&
     a.archive === b.archive &&
-    sameChatSort(a.sort, b.sort)
+    sameChatSort(a.sort, b.sort) &&
+    (a.cardHidden === undefined || b.cardHidden === undefined || sameHiddenCardFields(a.cardHidden, b.cardHidden))
   );
 }
 

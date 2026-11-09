@@ -4,19 +4,21 @@ import {
   ALL_PROJECTS_FEED,
   ALL_PROJECTS_SAVED_VIEWS,
   BOARD_ARCHIVE_FILTER,
+  BOARD_CARD_HIDDEN,
   BOARD_SORT,
   PROJECT_SAVED_VIEWS,
 } from "@/lib/storageKeys";
 import { useArchiveFilter } from "./archiveFilter";
 import { useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useBoardView } from "./BoardHeader";
+import { hiddenCardFields } from "./cardFields";
 import { DEFAULT_CHAT_SORT, parseChatSort, sameChatSort } from "./chatSort";
 import { activeView, addView, moveView, parseSavedViews, projectViewState, removeView, renameView, replaceViewState, type BoardViewState } from "./savedViews";
 import { useKanbanLanes } from "./useKanbanFilters";
 
 /**
  * 保存したビュー（全プロジェクトのボードとプロジェクトのボードで別の一覧。プロジェクトのボードの一覧はすべてのプロジェクトで共通）と、いまの見え方・当てる操作。
- * 見え方の設定（表示・段・列の分け方・並び順・アーカイブ）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ。
+ * 見え方の設定（表示・段・列の分け方・並び順・アーカイブ・表示項目）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ。
  * projectId がなければ全プロジェクトのボード。列の分け方はどちらのボードも 状態 / グループ / グループ×状態 / 分けない を覚える
  * （列の分け方のないプロジェクトのボードの前の版のビューは、projectViewState で状態として読む）
  */
@@ -36,6 +38,7 @@ export function useSavedViews(projectId?: number) {
   const [archive, setArchive] = useArchiveFilter(BOARD_ARCHIVE_FILTER);
   const [feed, setFeed] = useSetting(ALL_PROJECTS_FEED);
   const [byState, setByState] = useGroupsByState();
+  const [cardHidden, setCardHidden] = useSetting(BOARD_CARD_HIDDEN);
 
   const current: BoardViewState = {
     view: allProjects && feed ? "feed" : view,
@@ -43,6 +46,7 @@ export function useSavedViews(projectId?: number) {
     columns: columns === "groups" && byState ? "groupsState" : columns,
     sort: parseChatSort(rawSort) ?? DEFAULT_CHAT_SORT,
     archive,
+    cardHidden: [...hiddenCardFields(cardHidden)],
   };
 
   /** ビューの見え方を当てる（そのボードで選べない段の分け方は、段の分け方だけそのまま） */
@@ -64,6 +68,7 @@ export function useSavedViews(projectId?: number) {
     }
     setSort(sameChatSort(state.sort, DEFAULT_CHAT_SORT) ? null : state.sort);
     setArchive(state.archive);
+    if (state.cardHidden) setCardHidden(state.cardHidden);
   };
 
   return {
