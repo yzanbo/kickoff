@@ -20,7 +20,8 @@
 
 - タグはプロジェクトの `tags`（文字の配列。`api.updateProject` の `tags` で置き換え、前後の空白・重複を除く。上限は `MAX_TAG_LENGTH`（30 文字）・`MAX_TAGS`（20 個）。整え方・照らし合わせ・一覧は `@shared/project/tags.ts`）。
 - 付け方は編集の「基本情報」の `TagEditor`（Enter・読点・カンマで足し、× で外す。ほかのプロジェクトのタグを候補に出す（↑↓・Enter・Esc）。足す・外すと、すぐ保存する。入力欄を先に置く: `Field` は label なので、名前を押したときに最初のチップの × が押されないように）と、右クリックのメニューの「タグ」。表示は小さなチップ `ProjectTags`（サイドバーのカードの 2 行目、チャット数の後ろ）。
-- 絞り込みは `projectTagFilter.ts` の `useProjectTagFilter()`（`tags`（使っているタグ・名前順）/ `selected` / `active` / `toggle` / `clear` / `matches(project)`）。保存は `PROJECT_TAG_FILTER`（選んだタグの配列。`""`（`UNTAGGED`）はタグなし。空なら絞り込まない。部品どうしでそろう）。どのプロジェクトにももう付いていないタグは選んでいないものとして扱う。効かせる場所: サイドバーの並び（どの並べ方でも。⌃Tab・⌥⌘← → ・⌃1〜9 もこの並び）・「要対応」の数・全プロジェクトの画面（カンバン・状態ごとの数）・⌘⇧A。合うプロジェクトがないときはその旨と「絞り込みを外す」を出し、サイドバー以外の画面には絞り込んでいる印 `TagFilterNotice`（× で外す）を出す。
+- タグの並びは、サイドバーのタグの行でドラッグして並べた順（`PROJECT_TAG_ORDER`。並べていないタグは後ろに名前順。`@shared/project/tags` の `orderTags`。読むのは `projectTagFilter.ts` の `useOrderedTags`。タグの行・右クリックのメニューの「タグ」で同じ順）。名前の変更・削除は `tagActions.ts` の `renameTag` / `deleteTag`（付いているすべてのプロジェクトのタグを 1 つずつ書き換える。同じ名前のタグがもうあれば確かめて 1 つにまとめ、削除は確かめてから外す（プロジェクトは消えない）。絞り込みで選んでいるか・並びも付け替える）。
+- 絞り込みは `projectTagFilter.ts` の `useProjectTagFilter()`（`tags`（使っているタグ・並べた順）/ `move`（ドラッグで並べ替え）/ `selected` / `active` / `toggle` / `clear` / `matches(project)`）。保存は `PROJECT_TAG_FILTER`（選んだタグの配列。`""`（`UNTAGGED`）はタグなし。空なら絞り込まない。部品どうしでそろう）。どのプロジェクトにももう付いていないタグは選んでいないものとして扱う。効かせる場所: サイドバーの並び（どの並べ方でも。⌃Tab・⌥⌘← → ・⌃1〜9 もこの並び）・「要対応」の数・全プロジェクトの画面（カンバン・状態ごとの数）・⌘⇧A。合うプロジェクトがないときはその旨と「絞り込みを外す」を出し、サイドバー以外の画面には絞り込んでいる印 `TagFilterNotice`（× で外す）を出す。
 
 ## プロジェクトの画面（`page/`）
 

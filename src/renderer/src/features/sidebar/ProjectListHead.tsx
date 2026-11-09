@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronsDownUp, ChevronsUpDown, Pencil, Save, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { cx } from "@/lib/cx";
+import { isRenameKey } from "@/lib/keys";
 import { viewNameTaken } from "@/lib/namedViews";
 import { confirmDialog } from "@/ui/dialogs";
 import { IconButton } from "@/ui/IconButton";
@@ -173,11 +174,17 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
               title={
                 !views.active && views.selected?.id === view.id
                   ? "このビューから見え方を変えています（押すとビューの見え方に戻す。⚙ で上書きできる）"
-                  : "押すとこのビューの見え方にする（ドラッグで並べ替え・右クリックで名前の変更・上書き・削除）"
+                  : "押すとこのビューの見え方にする（ドラッグで並べ替え・右クリック・Enter で名前の変更。右クリックで上書き・削除）"
               }
               onClick={() => views.apply(view)}
               onContextMenu={(e) => menu.open(e, view)}
               onDoubleClick={() => setRenaming(view.id)}
+              // ピントがあるときの Enter で名前を変える（チャットの行・タグと同じ。押すのは Space）
+              onKeyDown={(e) => {
+                if (!isRenameKey(e)) return;
+                e.preventDefault();
+                setRenaming(view.id);
+              }}
             >
               {view.name}
             </button>

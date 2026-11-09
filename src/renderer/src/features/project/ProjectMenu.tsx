@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
 import type { Placement } from "@/lib/floating";
-import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
+import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 import type { Project } from "@shared/types";
 import { alertDialog, promptDialog } from "@/ui/dialogs";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
-import { useProjects } from "@/stores/projects";
+import { useOrderedTags } from "./projectTagFilter";
 import { openNewChat } from "@/app/router";
 import { ProjectEditDialog } from "@/features/project/settings/ProjectEditDialog";
 import type { ProjectSettingsSection } from "@/features/project/settings/ProjectSettings";
@@ -96,9 +96,8 @@ function ProjectMenu({
   onEdit: (section?: ProjectSettingsSection) => void;
   onClose: () => void;
 }) {
-  // 使っているタグ（ほかのプロジェクトの分も。押すたびに付け外す）
-  const { projects } = useProjects();
-  const tags = collectTags(projects);
+  // 使っているタグ（ほかのプロジェクトの分も。サイドバーのタグの行で並べた順。押すたびに付け外す）
+  const { tags } = useOrderedTags();
   /** 押したらメニューを閉じてから行う */
   const item = (key: string, icon: ReactNode, label: string, run: () => void, opts: { danger?: boolean } = {}) => (
     <MenuItem key={key} danger={opts.danger} onSelect={run}>
