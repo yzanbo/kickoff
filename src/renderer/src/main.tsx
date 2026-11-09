@@ -29,6 +29,9 @@ void prepareStorage()
       );
       return;
     }
+    // 前回見ていた画面から開く（URL に画面の指定がないとき）
+    const { restoreLastRoute } = await import("@/app/router");
+    restoreLastRoute();
     const { App } = await import("@/app/App");
     root.render(
       <StrictMode>

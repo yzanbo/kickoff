@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { boardTabOf, href, parse, routeProjectId, type Route } from "./router";
+import { boardTabOf, href, lastingRoute, parse, routeProjectId, type Route } from "./router";
 
 test("parse: ハッシュを画面に読む（タブなしはボード、知らないタブはボード、知らない形は全プロジェクト）", () => {
   assert.deepEqual(parse(""), { name: "allProjects" });
@@ -76,4 +76,13 @@ test("routeProjectId: プロジェクトの画面・新しいチャット・チ�
 test("boardTabOf: チャット・新しいチャットの URL では、チャットをボードと分けていれば「チャット」タブ、ほかはボード", () => {
   assert.equal(boardTabOf("together"), "board");
   assert.equal(boardTabOf("separate"), "chats");
+});
+
+test("lastingRoute: 起動したときに開く画面として覚えるのは、一度きりの指定（開くファイル・メモ・強調する発言）を外した形", () => {
+  assert.equal(href(lastingRoute(parse("#/projects/3/files?file=src%2Fa.ts&line=4"))), "#/projects/3/files");
+  assert.equal(href(lastingRoute(parse("#/projects/3/memos?memo=a.md"))), "#/projects/3/memos");
+  assert.equal(href(lastingRoute(parse("#/projects/3/chats/9?event=12"))), "#/projects/3/chats/9");
+  assert.equal(href(lastingRoute(parse("#/projects/3/changes"))), "#/projects/3/changes");
+  assert.equal(href(lastingRoute(parse("#/projects/3/new?group=2"))), "#/projects/3/new?group=2");
+  assert.equal(href(lastingRoute(parse("#/"))), "#/");
 });

@@ -1,5 +1,7 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { readSetting, writeSetting } from "@/lib/storage";
+import { LAST_ROUTE } from "@/lib/storageKeys";
 
 // プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く。文書はファイルタブ（files）でファイルとして見る
 // （以前の要件定義書・スケジュール・タスク・レポートのタブの URL は、知らないタブとしてボードに戻る）
@@ -80,7 +82,26 @@ function fileQuery({ path, line, worktree }: FileTarget): string {
 export function useHashRoute(): Route {
   const [route, setRoute] = useState(() => parse(location.hash));
   useWindowEvent("hashchange", () => setRoute(parse(location.hash)));
+  // 最後に見ていた画面を覚える（次に起動したときに開く。restoreLastRoute）
+  useEffect(() => writeSetting(LAST_ROUTE, href(lastingRoute(route))), [route]);
   return route;
+}
+
+/** 覚えておく形（開いたら URL から外す一度きりのもの: 開くファイル・メモ・強調する発言は外す） */
+export function lastingRoute(route: Route): Route {
+  if (route.name === "project") return { name: "project", id: route.id, tab: route.tab };
+  if (route.name === "chat") return { name: "chat", projectId: route.projectId, chatId: route.chatId };
+  return route;
+}
+
+/**
+ * 起動したとき（ウィンドウを作り直したときも）、URL に画面の指定がなければ、最後に見ていた画面を開く（利用者の依頼。
+ * 前は起動するといつも全プロジェクトだった）。App を描く前に呼ぶ。指定があれば（再読み込み・別ウィンドウ）そのまま
+ */
+export function restoreLastRoute() {
+  if (location.hash.replace(/^#/, "") !== "") return;
+  const last = readSetting(LAST_ROUTE);
+  if (last) history.replaceState(null, "", last);
 }
 
 export const RouteContext = createContext<Route>({ name: "allProjects" });
