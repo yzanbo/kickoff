@@ -1,5 +1,5 @@
 import { busyWithUnread } from "@shared/chat/state";
-import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/types";
+import type { AgentState, Chat } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
 import type { ChatTitleEditor } from "@/features/chat/useChatRename";
 import { modelDisplayName } from "@/features/chat/options/models";
@@ -9,8 +9,6 @@ import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import { GroupChip } from "@/features/group/GroupChip";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
-import { STATE_TONE } from "@/features/chat/tones";
-import { StatusDot } from "@/ui/StatusDot";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { cardStatText } from "./cardFields";
 import type { ShowCardField } from "./CardFieldsMenu";
@@ -117,21 +115,15 @@ export function ChatCardContent({ chat, state, projectName, pending = 0, rename,
   );
 }
 
-/** リスト表示の行の中身（名前の後ろに札・状態・詳細、右に日時。出すものはツールバーの「表示項目」で選ぶ） */
+/** リスト表示の行の中身（状態の印は名前の左にカードと同じ StatusSlot で。名前の後ろに札・詳細、右に日時。出すものはツールバーの「表示項目」で選ぶ） */
 export function ChatRowContent({ chat, state, projectName, pending = 0, rename, show }: Props) {
   return (
     <>
       <div className="list-main">
+        {show("state") && <StatusSlot state={state} unread={busyWithUnread(chat, state)} />}
         {rename ? <ChatTitleInput chat={chat} editor={rename} /> : <span className="card-title one-line">{chatTitle(chat.title)}</span>}
         <span className="list-meta">
           <CardBadges chat={chat} projectName={projectName} show={show} />
-          {show("state") && (
-            <>
-              <StatusDot color={STATE_TONE[state]} />
-              <span className="muted small">{AGENT_STATE_LABELS[state]}</span>
-              {busyWithUnread(chat, state) && <UnreadMark />}
-            </>
-          )}
           <CardStats chat={chat} pending={pending} show={show} />
         </span>
       </div>
