@@ -174,7 +174,13 @@
   pointer-events: none;
 }
 
-/* 横並び: タブの間は 2px、まとまりの間は 10px の隙間の真ん中。端のまとまりは、横のスクロールで切れないよう内側の端に */
+/*
+ * 線は、上（左）の要素の後ろと下（右）の要素の前のどちらに付けても、同じ位置（隙間の真ん中）に 1 本だけ出るようにする。
+ * ずらす量 = -(隙間 / 2 + 線の太さ 2px / 2)。まとまりの間の隙間は、まとまりの margin に .tabs の gap を足したもの
+ * （gap を足し忘れると、上の後ろと下の前で線が 4px ずれて、境目で 2 本に見えていた）
+ */
+
+/* 横並び: タブの間は 2px（.tabs の gap はまとまりの中にも同じ 2px）、まとまりの間は 10px ＋ gap 2px = 12px。端のまとまりは、横のスクロールで切れないよう内側の端に */
 .tabs:not(.project-side-tabs) .tab.tab-drop-before::after {
   left: -2px;
 }
@@ -184,11 +190,11 @@
 }
 
 .tabs:not(.project-side-tabs) .project-tab-group.tab-drop-before::after {
-  left: -6px;
+  left: -7px;
 }
 
 .tabs:not(.project-side-tabs) .project-tab-group.tab-drop-after::after {
-  right: -6px;
+  right: -7px;
 }
 
 .tabs:not(.project-side-tabs) .project-tab-group.tab-drop-before:first-child::after {
@@ -199,7 +205,7 @@
   right: 0;
 }
 
-/* 縦並び: タブの間は 4px、まとまりの間は 8px の隙間の真ん中に横の線 */
+/* 縦並び: タブの間は 4px、まとまりの間は 8px ＋ gap 4px = 12px の隙間の真ん中に横の線 */
 .project-side-tabs .tab-drop-before::after,
 .project-side-tabs .tab-drop-after::after {
   top: auto;
@@ -219,11 +225,11 @@
 }
 
 .project-side-tabs .project-tab-group.tab-drop-before::after {
-  top: -5px;
+  top: -7px;
 }
 
 .project-side-tabs .project-tab-group.tab-drop-after::after {
-  bottom: -5px;
+  bottom: -7px;
 }
 
 .tabs .tab-dragging {
