@@ -6,6 +6,8 @@
  */
 .panel-content.split-view {
   --split-tabs-h: 37px;
+  /* タブの列の高さ（欄ごとの --split-tabs-h に、2 行のタブの分 --tab-lines-extra を足したもの。入れ子の欄には外側の値を受け継がせない） */
+  --split-tabs-total: calc(var(--split-tabs-h) + var(--tab-lines-extra));
 
   position: relative;
 }
@@ -19,7 +21,7 @@
 }
 
 .split-pane > .panel-tabs {
-  height: var(--split-tabs-h);
+  height: var(--split-tabs-total);
 }
 
 .split-pane > .panel-empty {
@@ -196,4 +198,5 @@ input[type="text"].panel-tab-input {
 /* タブの列を隠しているとき（チャットのパネル。CHAT_TAB_ROW_HIDDEN）は、ペインのタブの中身をタブの列の高さだけ下げない */
 .tabs-hidden > .panel-content.split-view {
   --split-tabs-h: 0px;
+  --tab-lines-extra: 0px;
 }

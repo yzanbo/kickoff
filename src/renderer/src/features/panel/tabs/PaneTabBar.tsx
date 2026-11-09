@@ -36,6 +36,7 @@ export function PaneTabBar({
   panel,
   pane,
   split,
+  twoLine,
   home,
   inert,
   controls,
@@ -56,6 +57,8 @@ export function PaneTabBar({
   pane: PaneLeaf;
   /** ペインを分けているか（ペインを閉じるボタンを出す） */
   split: boolean;
+  /** タブを 2 行にする（サイドバーのチャットの行を 2 行にしているとき。名前の下にグループ・作業場所の札） */
+  twoLine: boolean;
   /**
    * 一覧のペインか（サイドバーと連動して自動で足すチャットのタブが入るペイン）。一覧のペインだけ、タブのないグループの札・「チャット」の札を出し、
    * 札の数をサイドバーの数にする。分けたほかのペインは自分で置いたタブだけの列なので、札はタブのあるまとまりだけ・数はそのペインのタブの数
@@ -119,6 +122,7 @@ export function PaneTabBar({
         active={active === t.key}
         home={home}
         show={showField}
+        twoLine={twoLine}
         groupOf={groupOf}
         className={cx(
           // 印: index 番目の前。まとまりの境目で前のまとまりの最後に入れるとき（after）・いちばん後ろは、前のタブの後ろに付ける

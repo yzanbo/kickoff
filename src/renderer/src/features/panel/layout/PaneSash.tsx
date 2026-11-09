@@ -3,11 +3,11 @@ import { startPointerDrag } from "@/hooks/useDragSize";
 import { resizeAt, type FracRect, type Sash } from "./paneGeometry";
 import type { PaneNode } from "./paneTree";
 
-/** パネル全体に対する割合の位置を、絶対配置の style にする（top・height から tabs を引くと、タブの列の下の中身の位置） */
+/** パネル全体に対する割合の位置を、絶対配置の style にする（top・height から tabs を引くと、タブの列の下の中身の位置。タブの列の高さは 2 行のタブの分を足した --split-tabs-total） */
 export function fracStyle(r: FracRect, tabs = false): CSSProperties {
   const pct = (n: number) => `${n * 100}%`;
   return tabs
-    ? { left: pct(r.x), top: `calc(${pct(r.y)} + var(--split-tabs-h))`, width: pct(r.w), height: `calc(${pct(r.h)} - var(--split-tabs-h))` }
+    ? { left: pct(r.x), top: `calc(${pct(r.y)} + var(--split-tabs-total))`, width: pct(r.w), height: `calc(${pct(r.h)} - var(--split-tabs-total))` }
     : { left: pct(r.x), top: pct(r.y), width: pct(r.w), height: pct(r.h) };
 }
 
