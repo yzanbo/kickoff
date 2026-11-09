@@ -49,6 +49,9 @@
 | 子チャット（チャットの発言から「新しい子チャットで聞く」・右の欄の「＋」の「新しい子チャット」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`。作ったときは `CHILD_CHAT_OPEN_ON_CREATE` で、開かないも選べる）。孫・ひ孫も作れる。サブエージェントの「伝える」で「新しい子チャットで聞く」を選ぶと、そのサブエージェントの会話の記録を添えた子チャットになる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`startSubagentChildChat`（`core/chat/subagentChild.ts`）・`features/chat/children/` | なし |
 | 親への依頼文（子チャットの AI に、親チャットの AI へ渡す依頼文だけを書いてもらう頼み。発言の印 = 依頼文の頼み）・親チャットに追加（子チャットの作業の最後の返答を、そのまま直接の親に渡す。渡し方 = 入力欄 / 今すぐ送る / 送信待ち、渡したあと = そのまま / アーカイブ / 削除）・渡したことの印 / 出どころの札 | 頼み方の文 `handoffRequestPrompt`・最後の返答 `lastReplyOfTurn`（`@shared/chat/handoff`）・発言の印 `MessageMarks`（`handoff_request` / `handoff_from`）・渡し方 `HandoffVia`・渡したあと `HandoffAfter`・`POST /api/chats/:id/handoff`（`core/chat/handoff.ts`）・記録 `handoff`・`features/chat/children/handoff.ts` | なし（「最新の答えを引用して渡す」は前からの `handBackText`） |
 | 会話 / 動き（チャットの画面の見え方。動き = メインエージェントとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
+| GitHub タブ（予定。プロジェクトの画面の上のタブで、連携先のリポジトリの issue・PR を「issue｜PR」で切り替えて見る・書く・AI に渡す。要件定義書の「5.11 GitHub」） | タブ `github`（`#/projects/:id/github`）・画面 `features/github/`・コア `core/github/`（いまの `core/git/github.ts` の gh の呼び出しもここへ寄せる）・HTTP `/api/projects/:id/github/…` | なし（push と PR の作成だけ） |
+| 連携先（予定。issue・PR を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`） | `GitHubRepo`（`owner/name`）・切り替えたものはプロジェクトの `github_repo`・使う gh のアカウントは `github_account` | なし |
+| issue・PR の結び付き（予定。どの issue・PR のためのチャットか。カードに `#番号`） | `Chat` の `github_repo` / `github_number`（issue と PR の番号はリポジトリの中で重ならないので、種類は持たない） | なし |
 
 ### チャットの軸とエージェントの軸
 
@@ -189,6 +192,20 @@ CREATE TABLE snippets (
   updated_at TEXT NOT NULL DEFAULT (NOW)
 ) STRICT;
 -- v5: CREATE INDEX idx_snippets_position ON snippets(position);
+```
+
+### 予定: GitHub 連携（未実装）
+
+要件定義書の「5.11 GitHub」を作るときに `MIGRATIONS` の末尾に足す。GitHub の issue・PR の中身は DB に持たない（正しいのはいつも GitHub。コアのメモリに少しの間だけ覚え、開いたときは必ず GitHub に聞く）。
+
+```sql
+-- projects に足す（NULL = 自動。連携先は remote から決め、アカウントは gh でいま有効なもの）
+github_repo TEXT CHECK (github_repo <> ''),        -- 切り替えた連携先（owner/name）
+github_account TEXT CHECK (github_account <> ''),  -- 使う gh のアカウント（gh auth token --user）
+-- chats に足す（どちらも NULL = 結び付いていない）
+github_repo TEXT CHECK (github_repo <> ''),        -- 結び付いた issue・PR のリポジトリ（owner/name）
+github_number INTEGER CHECK (github_number > 0),   -- issue・PR の番号
+-- 2 つがそろって NULL か、そろって値があるかは店で守る（ALTER TABLE では表の CHECK を足せないため）
 ```
 
 ### 記録（chat_events の data）
