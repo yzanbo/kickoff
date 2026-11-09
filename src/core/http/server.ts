@@ -49,6 +49,8 @@ export interface ServerDeps {
   voice: VoiceService;
   /** プロジェクトのメモ（保存先はプロジェクトの外） */
   memos: MemoService;
+  /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」。テストでは差し替えて、本物のゴミ箱に入れない。なければ macOS のゴミ箱） */
+  trash?: (file: string) => Promise<void>;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
   staticDir?: string;
   /** 待ち受けているアドレスとポート（接続の詳細の表示用） */

@@ -210,18 +210,14 @@ export function setup(opts: { staticDir?: string } = {}) {
     fetch: () => voiceFake.download(),
   });
   // メモ: 親フォルダの既定は一時フォルダ。ゴミ箱へ移すのは本物のゴミ箱に入れず、消して覚える
+  // （ファイルタブの「ゴミ箱に入れる」も同じ。memoFake.trashed に覚える）
   const memoFake = { defaultDir: tempDir(), trashed: [] as string[] };
-  const memos = new MemoService({
-    store,
-    defaultDir: memoFake.defaultDir,
-    providers,
-    publish: (e) => bus.publish(e),
-    trash: async (file) => {
-      memoFake.trashed.push(file);
-      await fs.rm(file, { recursive: true });
-    },
-  });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, staticDir: opts.staticDir });
+  const trash = async (file: string) => {
+    memoFake.trashed.push(file);
+    await fs.rm(file, { recursive: true });
+  };
+  const memos = new MemoService({ store, defaultDir: memoFake.defaultDir, providers, publish: (e) => bus.publish(e), trash });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, trash, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {

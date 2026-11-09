@@ -9,7 +9,8 @@ import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
 
 test("Git の変更の API（状態と、ファイルごとの差分）", async () => {
-  const { call, project } = setup();
+  const ctx = setup();
+  const { call, project } = ctx;
   // Git で管理されていないフォルダ（ワークツリーの一覧は失敗にせず空）
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body, { repo: false });
   assert.deepEqual(await call("GET", `/api/projects/${project.id}/git/worktrees`), { status: 200, body: [] });
@@ -91,6 +92,34 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   const dir = await call("POST", `/api/projects/${project.id}/file/rename`, { path: "dir", name: "dir2" });
   assert.deepEqual(dir.body, { path: "dir2" });
   assert.equal((await call("POST", `/api/projects/${project.id}/file/rename`, { path: "../outside.txt", name: "x.txt" })).status, 400);
+
+  // 新しいファイル・フォルダ: 途中のフォルダも作る。同じ名前は 409、使えない名前・外は 400
+  const made = await call("POST", `/api/projects/${project.id}/files`, { path: "dir2/sub/new.ts" });
+  assert.deepEqual([made.status, made.body], [201, { path: "dir2/sub/new.ts" }]);
+  assert.equal(fs.readFileSync(path.join(repo, "dir2", "sub", "new.ts"), "utf8"), "");
+  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "dir2/sub/new.ts" })).status, 409);
+  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "empty", dir: true })).status, 201);
+  assert.equal(fs.statSync(path.join(repo, "empty")).isDirectory(), true);
+  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "empty/../x.ts" })).status, 400);
+  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "../outside.ts" })).status, 400);
+  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "a//b.ts" })).status, 400);
+  // リンクで外を指すフォルダの中には作らない
+  const outside = tempDir();
+  fs.symlinkSync(outside, path.join(repo, "out-link"));
+  assert.equal((await call("POST", `/api/projects/${project.id}/files`, { path: "out-link/deep/x.ts" })).status, 400);
+  assert.equal(fs.existsSync(path.join(outside, "deep")), false);
+  fs.unlinkSync(path.join(repo, "out-link"));
+  // 空のフォルダも一覧に出す（中の空のフォルダも）
+  fs.mkdirSync(path.join(repo, "empty", "inner"));
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/files`)).body.empty_dirs, ["empty", "empty/inner"]);
+
+  // ゴミ箱へ移す（テストでは消して覚える）。ないものは 404、外は 400
+  const { memoFake } = ctx;
+  assert.equal((await call("DELETE", `/api/projects/${project.id}/file?path=empty`)).status, 204);
+  assert.deepEqual(memoFake.trashed, [path.join(fs.realpathSync(repo), "empty")]);
+  assert.equal((await call("DELETE", `/api/projects/${project.id}/file?path=empty`)).status, 404);
+  assert.equal((await call("DELETE", `/api/projects/${project.id}/file?path=../outside.txt`)).status, 400);
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/files`)).body.empty_dirs, []);
 
   // ファイルの中を探す（大文字・小文字・単語単位・正規表現。無視しているフォルダは探さない）
   fs.writeFileSync(path.join(repo, "c.txt"), "Hello world\nhello-there\nshell\n");

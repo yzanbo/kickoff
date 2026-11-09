@@ -69,7 +69,7 @@ export function ChangesDetail({
           onEdit={change.file.kind === "D" ? undefined : () => void setSelected({ path: change.file.path, staged: change.staged, edit: true, focus: true })}
         />
       ) : selected && selected.staged === undefined ? (
-        <FileView key={selected.path} {...fileViewProps(selected.path)} />
+        <FileView key={selected.path} {...fileViewProps(selected.path)} autoFocus={selected.focus} />
       ) : (
         <p className="muted small changes-hint">
           {view === "changes" && empty ? "コミットしていない変更はありません。" : "ファイルを選ぶと中身を表示します（変更の一覧から選ぶと差分）。"}

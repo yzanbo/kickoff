@@ -16,7 +16,7 @@ import { changeKinds, parentFolders } from "./treeModel";
 import { changeSelection, editedChange, selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 import { GitInitNotice } from "@/features/project/GitInitNotice";
-import { useFileRename } from "./useFileRename";
+import { useFileActions } from "./useFileActions";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectSearch } from "./useProjectSearch";
 import { useSearchReplace } from "./useSearchReplace";
@@ -59,12 +59,16 @@ export function EditorTab({
   const files = useProjectFiles(projectId, view === "files" && Boolean(status?.repo), git.version);
   const kinds = useMemo(() => changeKinds(status), [status]);
   const search = useProjectSearch(projectId);
-  // ファイル・フォルダの名前の変更（ファイルタブ・変更タブの Enter・右クリック）。フォルダの名前を変えたら、開いていたフォルダも付け替える
-  const { rename, menuElement: renameMenu } = useFileRename(projectId, {
+  // ファイル・フォルダの操作（ファイルタブ・変更タブの Enter・右クリック。新しいファイル・ゴミ箱はファイルタブだけ）。フォルダの名前を変えたら、開いていたフォルダも付け替える
+  const { rename, create, menuElement: fileMenu } = useFileActions(projectId, {
+    root: worktree ?? repoPath,
+    explorer: view === "files",
     selection,
     git,
     onMoved: (from, to) =>
       setOpenFolders((prev) => new Set([...prev].map((p) => (p === from || p.startsWith(`${from}/`) ? to + p.slice(from.length) : p)))),
+    // 名前の欄・作ったものを見せるため、そのフォルダーとその上を開く
+    onReveal: (folder) => setOpenFolders((prev) => new Set([...prev, folder, ...parentFolders(folder)])),
     // フォルダーの右クリックの「フォルダー内を検索」: 含めるファイルをそのフォルダーにして、検索タブへ
     onFindInFolder: (folder) => {
       search.findInFolder(folder);
@@ -135,6 +139,7 @@ export function EditorTab({
             selected={selected?.path}
             onSelect={(path) => void setSelected({ path })}
             rename={rename}
+            create={create}
           />
         ) : (
           <ChangesPane
@@ -161,7 +166,7 @@ export function EditorTab({
         empty={empty}
       />
     </div>
-    {renameMenu}
+    {fileMenu}
     </>
   );
 }

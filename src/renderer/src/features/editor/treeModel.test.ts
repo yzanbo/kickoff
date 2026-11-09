@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildTree, changeKinds, parentFolders, type TreeNode } from "./treeModel";
+import { buildTree, changeKinds, joinTreePath, newEntryNameError, parentFolders, parentPath, type TreeNode } from "./treeModel";
 
 const names = (nodes: TreeNode[]): unknown => nodes.map((n) => (n.dir ? { [n.name + (n.ignored ? "（無視）" : "")]: names(n.children) } : n.name + (n.ignored ? "（無視）" : "")));
 
@@ -20,6 +20,11 @@ test("パスの一覧から、フォルダを先に名前の順で並べた木�
     ".gitignore",
     "README.md",
   ]);
+});
+
+test("空のフォルダも、中のないフォルダとして木に出す（中の空のフォルダも）", () => {
+  const tree = buildTree({ files: ["src/a.ts"], ignored: [], empty_dirs: ["empty", "empty/inner", "src/new"] });
+  assert.deepEqual(names(tree), [{ empty: [{ inner: [] }] }, { src: [{ new: [] }, "a.ts"] }]);
 });
 
 test("ファイルは未ステージ・競合を優先し、フォルダには中でいちばん目立つ記号を付ける", () => {
@@ -47,4 +52,24 @@ test("ファイルは未ステージ・競合を優先し、フォルダには�
 test("parentFolders: ファイルの上にあるフォルダを近い順に返す（直下のファイルは空）", () => {
   assert.deepEqual(parentFolders("a/b/c.ts"), ["a/b", "a"]);
   assert.deepEqual(parentFolders("README.md"), []);
+});
+
+test("新しいファイル・フォルダの名前: 同じ名前・空の段・「..」は断り、「/」で途中のフォルダを書ける", () => {
+  const siblings = [
+    { name: "src", dir: true },
+    { name: "a.ts", dir: false },
+  ];
+  assert.equal(newEntryNameError(siblings, "b.ts"), null);
+  assert.equal(newEntryNameError(siblings, "a.ts"), "「a.ts」はもうあります");
+  assert.equal(newEntryNameError(siblings, "src"), "「src」はもうあります");
+  // いまあるフォルダの中へは書ける。ファイルの中へは書けない
+  assert.equal(newEntryNameError(siblings, "src/new.ts"), null);
+  assert.equal(newEntryNameError(siblings, "a.ts/x"), "「a.ts」はもうあります");
+  assert.equal(newEntryNameError(siblings, "x//y"), "その名前は使えません");
+  assert.equal(newEntryNameError(siblings, "../x"), "その名前は使えません");
+  assert.equal(newEntryNameError(siblings, "a\\b"), "「\\」は名前に使えません");
+  assert.equal(joinTreePath("", "a.ts"), "a.ts");
+  assert.equal(joinTreePath("src", "a.ts"), "src/a.ts");
+  assert.equal(parentPath("src/lib/a.ts"), "src/lib");
+  assert.equal(parentPath("a.ts"), "");
 });
