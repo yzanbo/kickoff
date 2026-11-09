@@ -11,7 +11,7 @@ import { gitStatus } from "./status.js";
 /** ファイルの一覧の上限（大きなリポジトリでも重くならないように） */
 const MAX_FILES = 20_000;
 /** ファイルの中身を返す上限（バイト） */
-const MAX_FILE_BYTES = 1_000_000;
+export const MAX_FILE_BYTES = 1_000_000;
 
 /** リポジトリの中のパスか（外のファイルを読ませない）。リポジトリの中の絶対パスを返す */
 export async function assertInside(repo: string, file: string): Promise<string> {

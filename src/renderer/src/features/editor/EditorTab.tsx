@@ -13,7 +13,7 @@ import { ChangesPane } from "./ChangesPane";
 import { FilesPane } from "./FilesPane";
 import { SearchView } from "./SearchView";
 import { changeKinds, parentFolders } from "./treeModel";
-import { selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
+import { editedChange, selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 import { GitInitNotice } from "@/features/project/GitInitNotice";
 import { useFileRename } from "./useFileRename";
@@ -88,6 +88,7 @@ export function EditorTab({
   const groups = { staged: status.staged, unstaged: [...status.conflicts, ...status.unstaged] };
   const empty = groups.staged.length === 0 && groups.unstaged.length === 0;
   const change = selectedChange(selected, groups);
+  const edited = editedChange(selected, groups);
   const folders = {
     open: openFolders,
     toggle: (path: string) =>
@@ -148,6 +149,7 @@ export function EditorTab({
         git={git}
         selection={selection}
         change={change}
+        edited={edited}
         kinds={kinds}
         empty={empty}
       />

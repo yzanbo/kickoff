@@ -38,6 +38,13 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   // 未追跡のファイルは、すべて追加として出す
   const untracked = (await call("GET", `/api/projects/${project.id}/git/diff?path=new.txt`)).body;
   assert.match(untracked.diff, /^\+hello$/m);
+  // 差分の元の中身（未ステージは索引、ステージ済みは HEAD、未追跡は空）
+  const original = async (query: string) => (await call("GET", `/api/projects/${project.id}/git/original?${query}`)).body;
+  assert.deepEqual(await original("path=a.txt"), { content: "one\n", binary: false, truncated: false });
+  assert.equal((await original("path=b.txt")).content, "bee!\n");
+  assert.equal((await original("path=b.txt&staged=1")).content, "bee\n");
+  assert.equal((await original("path=new.txt")).content, "");
+  assert.equal((await call("GET", `/api/projects/${project.id}/git/original?path=../outside.txt`)).status, 400);
   // リポジトリの外は読ませない
   assert.equal((await call("GET", `/api/projects/${project.id}/git/diff?path=../outside.txt`)).status, 400);
   assert.equal((await call("GET", `/api/projects/${project.id}/git/diff?path=/etc/hosts`)).status, 400);

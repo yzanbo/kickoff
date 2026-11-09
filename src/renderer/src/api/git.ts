@@ -1,4 +1,4 @@
-import type { GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitStatus, PullRequestInfo } from "@shared/types";
+import type { GitCommitDetail, GitDiff, GitFileChange, GitLog, GitOriginal, GitRefs, GitStatus, PullRequestInfo } from "@shared/types";
 import { request } from "./http";
 import { workdirPath, type GitTarget } from "./workdir";
 
@@ -18,6 +18,9 @@ export const gitApi = {
   /** 変更のあるファイルの差分（staged ならステージしたもの） */
   gitDiff: (target: GitTarget, file: GitFileChange, staged: boolean) =>
     request<GitDiff>("GET", workdirPath(target, "/git/diff", { path: file.path, staged, old: file.old_path })),
+  /** 差分の元の中身（差分から編集するとき、左に並べる。staged なら HEAD、そうでなければステージした中身） */
+  gitOriginal: (target: GitTarget, file: GitFileChange, staged: boolean) =>
+    request<GitOriginal>("GET", workdirPath(target, "/git/original", { path: file.path, staged, old: file.old_path })),
   /** 作業場所のブランチの PR（なければ null）と、PR を作る（まだプッシュしていなければ先にプッシュする） */
   pullRequest: (target: GitTarget) => request<PullRequestInfo | null>("GET", workdirPath(target, "/git/pr")),
   createPullRequest: (target: GitTarget) => request<PullRequestInfo>("POST", workdirPath(target, "/git/pr")),

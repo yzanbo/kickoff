@@ -44,6 +44,15 @@ export interface GitDiff {
   truncated: boolean;
 }
 
+/** 差分の元の中身（GET /git/original。変更タブで差分から編集するとき、左に並べる。元にないファイルは空） */
+export interface GitOriginal {
+  content: string;
+  /** バイナリのファイル（中身は出せない） */
+  binary: boolean;
+  /** 大きすぎて読まなかった */
+  truncated: boolean;
+}
+
 /** プロジェクトのフォルダのファイルの一覧（エクスプローラーの表示） */
 export interface ProjectFiles {
   /** Git で管理している・まだ追加していないファイル（.gitignore で無視しているものは除く） */
