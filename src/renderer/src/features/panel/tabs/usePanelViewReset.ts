@@ -11,6 +11,7 @@ import {
   PANEL_HIDDEN_GROUPS,
   PANEL_HIDE_EMPTY_GROUPS,
   PANEL_TAB_GROUP_COLORS,
+  PANEL_TAB_HIDDEN,
   SIDEBAR_CHAT_ORDER,
   SIDEBAR_SHOW_ARCHIVED,
   SNIPPET_BAR_HIDDEN,
@@ -29,6 +30,7 @@ const CHAT_VIEW_SETTINGS: readonly Setting<unknown>[] = [
   PANEL_HIDDEN_GROUPS,
   PANEL_HIDE_EMPTY_GROUPS,
   PANEL_TAB_GROUP_COLORS,
+  PANEL_TAB_HIDDEN,
   CHAT_TAB_ROW_HIDDEN,
   CHAT_HEADER_ROW_HIDDEN,
   CHAT_HEADER_HIDDEN,
@@ -44,7 +46,7 @@ const CHAT_VIEW_SETTINGS: readonly Setting<unknown>[] = [
 const atInitial = <T>(setting: Setting<T>, value: T) => setting.encode(value) === setting.encode(setting.initial);
 
 /**
- * タブの列の「表示」のメニューのいちばん下の「既定に戻す」: メニューに出ている選び方（表示するタブ・チャットのまとめ方・並び順（サイドバーと共通）・出すグループ・
+ * タブの列の「表示」のメニューのいちばん下の「既定に戻す」: メニューに出ている選び方（表示するタブ・チャットのまとめ方・並び順（サイドバーと共通）・出すグループ・タブに出す項目・
  * アーカイブ済み・まとまりの色・チャットの画面の項目）を初めの値に戻す。chat はチャットの項目を出している欄か（出していない欄では、表示するタブだけを戻す）。
  * changed は初めと違う選び方があるか（なければ押せない）
  */

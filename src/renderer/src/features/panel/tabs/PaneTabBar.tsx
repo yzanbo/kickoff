@@ -18,7 +18,9 @@ import { PanelTabAdds } from "./PanelTabAdds";
 import { specOf, type TabGroupLookup } from "./tabKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
-import { PANEL_TAB_GROUP_COLORS } from "@/lib/storageKeys";
+import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { tabFieldShown, type TabField } from "./tabFields";
 import { AgentPanelAdds } from "@/features/panel/agents/AgentPanelAdds";
 
 /**
@@ -102,6 +104,9 @@ export function PaneTabBar({
     const group = groupId === null || groupId === undefined ? undefined : groupsOf(projectId).find((g) => g.id === groupId);
     return group && { name: group.name, hue: group.hue };
   };
+  // タブに出す項目（表示のメニューで選んだもの。まとめ方の項目はまとまりの札に出るので出さない）
+  const [hiddenTabFields] = useSetting(PANEL_TAB_HIDDEN);
+  const showField = (field: TabField) => tabFieldShown(field, hiddenTabFields, strip.grouping);
   /** タブ 1 つ（i は見た目の並びの位置。ドラッグで落とす位置の印もこの並びで付ける） */
   const tab = (key: string, i: number) => {
     const t = panel.tabs.find((x) => x.key === key);
@@ -113,7 +118,7 @@ export function PaneTabBar({
         tab={t}
         active={active === t.key}
         home={home}
-        badgeOf={strip.grouping === "group" ? "workplace" : "group"}
+        show={showField}
         groupOf={groupOf}
         className={cx(
           insertAt === i && "split-insert-before",

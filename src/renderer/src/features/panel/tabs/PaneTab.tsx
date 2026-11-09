@@ -15,6 +15,7 @@ import type { PanelTab as Tab } from "./panelTypes";
 import { specOf, type TabGroupLookup } from "./tabKinds";
 import { useChatTabHint } from "./useChatTabHint";
 import { useTabAgentState } from "./useTabAgentState";
+import type { TabField } from "./tabFields";
 
 /**
  * ペインのタブの列のタブ 1 つ。アイコン・名前・説明・グループ名は種類の表（tabKinds）から引き、チャット・子チャット・サブエージェントのタブは
@@ -27,7 +28,7 @@ export function PaneTab({
   tab: t,
   active,
   home,
-  badgeOf,
+  show,
   groupOf,
   className,
   extra,
@@ -39,10 +40,10 @@ export function PaneTab({
   /** 一覧のペインのタブか */
   home: boolean;
   /**
-   * 名前の後ろに添える札: グループ（まとめない・作業場所別）/ 作業場所（グループ別。グループはまとまりの頭に出るので、代わりにどの作業場所かを添える。
-   * チャット・新しいチャットのタブだけ）
+   * タブに出す項目（状態の印・ピン・グループの札・作業場所の札。タブの列の「表示」のメニューの「タブに出す項目」で選んだもの。
+   * グループ別ならグループ・作業場所別なら作業場所は、まとまりの札に出るので選んでいても出さない。tabFields.ts の tabFieldShown）
    */
-  badgeOf: "group" | "workplace";
+  show: (field: TabField) => boolean;
   /** プロジェクトのグループ（名前と色）を引く */
   groupOf: TabGroupLookup;
   /** ドラッグで落とす位置の印など */
@@ -73,7 +74,7 @@ export function PaneTab({
   // 作業場所の札（チャットはそのチャットの作業場所、新しいチャットは始める作業場所。ほかの種類は添えない）
   const place =
     t.kind === "chat" ? chat : t.kind === "new" ? { project_id: t.projectId, worktree_path: t.worktree ?? null, branch: null } : undefined;
-  const workplaceTag = badgeOf === "workplace" && place ? <TabWorkplaceBadge chat={place} /> : undefined;
+  const workplaceTag = show("worktree") && place ? <TabWorkplaceBadge chat={place} /> : undefined;
   return (
     <PanelTab
       active={active}
@@ -81,14 +82,15 @@ export function PaneTab({
       iconClass={spec.iconClass}
       badge={spec.badge && !SURFACES[panel.surface].noKindBadges ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
       label={label}
-      group={badgeOf === "group" ? group : undefined}
-      tag={badgeOf === "workplace" ? workplaceTag : undefined}
+      group={show("group") ? group : undefined}
+      tag={workplaceTag}
       title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group.name}）` : label)}
       className={cx(className, agent && (agent.state === "unread" || agent.state === "failed" || agent.unread) && "unread")}
       extra={extra}
       onSelect={() => panel.showTab(t.key)}
-      pinnedIn={chat?.pinned ? chat.project_id : null}
-      lead={spec.Lead ? <spec.Lead tab={t} /> : agent && <StatusSlot state={agent.state} unread={agent.unread} label={agent.label} />}
+      pinnedIn={show("pin") && chat?.pinned ? chat.project_id : null}
+      // 状態の印を隠したときは、ほかの種類のタブと同じくアイコンを出す（未読・失敗の太字はそのまま）
+      lead={spec.Lead ? <spec.Lead tab={t} /> : agent && show("state") ? <StatusSlot state={agent.state} unread={agent.unread} label={agent.label} /> : undefined}
       onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Chat) : undefined}
       // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値はタブの名前）
       editor={editor && t.kind === "chat" ? { ...editor, initial: t.title ?? "", maxLength: CHAT_TITLE_MAX } : undefined}

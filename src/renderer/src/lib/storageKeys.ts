@@ -209,6 +209,8 @@ export const PANEL_MAXIMIZED = defineSetting("kickoff:panel-maximized", flag());
 export const panelTabGrouping = defineSettingFamily("kickoff:panel-tab-grouping:", choice(SIDEBAR_CHAT_SECTIONS.choices, "none"));
 /** タブをまとめたときのまとまりに色を付けるか（札・タブの線。サイドバーのまとまりと同じ色。すべての欄で共通。初めは付ける） */
 export const PANEL_TAB_GROUP_COLORS = defineSetting("kickoff:panel-tab-group-colors", flag(true));
+/** タブに出さない項目（状態・ピン留め・グループ・作業場所。features/panel/tabs/tabFields.ts。すべてのパネルで共通。初めはすべて出す） */
+export const PANEL_TAB_HIDDEN = defineSetting("kickoff:panel-tab-hidden", list());
 /** タブの列（グループ別）で隠す、自分で作ったグループの ID（すべてのパネル・ペインで共通。グループなし・固定・アーカイブ済みは隠せない） */
 export const PANEL_HIDDEN_GROUPS = defineSetting("kickoff:panel-hidden-groups", list(), { ids: true });
 /** タブの列（グループ別）で、チャットが 1 つもないグループの札を隠すか（すべてのパネルで共通。初めは出す） */
