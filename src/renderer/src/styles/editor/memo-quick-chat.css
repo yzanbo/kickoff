@@ -197,3 +197,18 @@
 .memo-quick-actions .icon-button:first-child {
   color: var(--accent-fg);
 }
+
+/*
+ * 入力欄のすぐ上の送信待ち（メモのチャットの画面が chipsPortal で .memo-quick-queue の中に描く）。入れ物を挟むので、
+ * 入力欄とつなげて 1 枚の枠に見せる決まり（queued.css の .queued-messages + .composer）をここでも当てる
+ */
+.memo-quick-queue:has(+ .composer.compact) > .queued-messages {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.memo-quick-queue:has(> .queued-messages) + .composer,
+.memo-quick-queue:has(> .queued-messages) + .composer:focus-within {
+  border-top-color: var(--divider-strong);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
