@@ -173,6 +173,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         section={sections.sectionProps(group)}
         hue={colors.hueOf(bucket)}
         allChats={chats}
+        draftCount={list.draftCounts.get(bucket.key) ?? 0}
       />
     );
   };
@@ -186,7 +187,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       {showGroups && ungrouped && (ungrouped.chats.length > 0 || ungroupedDrafts.length > 0 || groupedDrafts || ungrouped.archived) && (
         <UngroupedHead
           projectId={project.id}
-          count={ungrouped.chats.length}
+          count={ungrouped.chats.length + (list.draftCounts.get(ungrouped.key) ?? 0)}
           open={ungroupedFold.open}
           onToggle={ungroupedFold.toggle}
           dragProps={sections.ungrouped.dragProps}

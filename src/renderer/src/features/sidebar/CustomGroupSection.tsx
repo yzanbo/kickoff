@@ -32,6 +32,7 @@ export function CustomGroupSection({
   renderRow,
   hue = null,
   allChats,
+  draftCount,
   section: { menu, renaming, onRenameStart, onRenameEnd, dropClass, dropProps, dragProps },
 }: {
   projectId: number;
@@ -49,6 +50,8 @@ export function CustomGroupSection({
   section: GroupSectionProps;
   /** プロジェクトのチャット（アーカイブ済みも。中のアーカイブ済みへ落としたチャットを引く） */
   allChats: readonly Chat[];
+  /** このグループの下書き（送る前の新しいチャット）の数。見出しの数に、チャットと同じく足す（手動の並びでチャットの行の後ろに置いたものも） */
+  draftCount: number;
 }) {
   const { chats: members, drafts } = bucket;
   // 見出しを押すと開閉する（前はそのグループのボードを開いていたが、プロジェクトのボードの列の分け方をなくし、グループのボードの画面もなくした）
@@ -99,7 +102,7 @@ export function CustomGroupSection({
             </button>
           )
         }
-        count={renaming ? undefined : members.length}
+        count={renaming ? undefined : members.length + draftCount}
         actions={
           !renaming && (
             <>
