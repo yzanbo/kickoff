@@ -9,6 +9,7 @@
 @import "./sidebar/sidebar-sections.css";
 @import "./sidebar/sidebar-projects.css";
 @import "./sidebar/sidebar-head.css";
+@import "./sidebar/sidebar-views.css";
 @import "./sidebar/sidebar-list.css";
 @import "./sidebar/sidebar-counts.css";
 @import "./ui/status.css";

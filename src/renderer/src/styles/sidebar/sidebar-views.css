@@ -1,0 +1,171 @@
+/* ==== プロジェクト一覧の上の見出し（ProjectListHead）: ビューのタブ 1 行と ⚙ の窓 ==== */
+
+/* 見出し（ビューのタブの行と、その下のタグの絞り込みの行） */
+.sidebar-head {
+  display: grid;
+  flex: none;
+  gap: 3px;
+  padding: 4px var(--gutter) 2px;
+}
+
+/* ビューのタブ・すべて閉じる / 開く・要対応の数・⚙ を 1 行に */
+.sidebar-view-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* タブは 1 行だけ見せ、入らないタブは折り返した先（2 行目）に送って隠す（隠れたタブは ▾ のメニューに出す） */
+.sidebar-view-tabs {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: 26px;
+  /* 上下の 1px は、選択中の枠・入る位置の線を切らないため */
+  padding: 1px 3px;
+  margin: -1px -3px;
+  overflow: hidden;
+}
+
+.sidebar-view-tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-view-tab:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* いまの見え方に合うビュー */
+.sidebar-view-tab.active {
+  border-color: var(--border-strong);
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+/* 最後に選んだビューから見え方を変えているとき（点線の枠） */
+.sidebar-view-tab.modified {
+  border-color: var(--border-strong);
+  border-style: dashed;
+  color: var(--text);
+}
+
+/* 折り返して隠れたタブ（▾ のメニューに出す） */
+.sidebar-view-tab.overflowed {
+  visibility: hidden;
+}
+
+.sidebar-view-tab .sidebar-view-count {
+  margin-left: 0;
+}
+
+/* タブの並べ替え（ドラッグ。useViewTabDrag）: 落とす先のタブの前か後ろに縦の線、動かしているタブは薄く */
+.sidebar-view-tab.sidebar-view-drop-before,
+.sidebar-view-tab.sidebar-view-drop-after {
+  position: relative;
+}
+
+.sidebar-view-tab.sidebar-view-drop-before::after,
+.sidebar-view-tab.sidebar-view-drop-after::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent-bright);
+  content: "";
+  pointer-events: none;
+}
+
+.sidebar-view-tab.sidebar-view-drop-before::after {
+  left: -3px;
+}
+
+.sidebar-view-tab.sidebar-view-drop-after::after {
+  right: -3px;
+}
+
+.sidebar-view-tab.sidebar-view-dragging {
+  opacity: var(--drag-source-opacity);
+}
+
+/* その場で名前を変える欄（タブの代わりに置く） */
+.sidebar-view-rename {
+  flex: none;
+}
+
+.sidebar-view-name {
+  width: 140px;
+}
+
+/* ▾・すべて閉じる / 開く・⚙（小さなアイコンのボタン） */
+.icon-button.sidebar-view-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+.icon-button.sidebar-view-icon.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* 隠れたタブの中に、いまの見え方のビューがあるとき（▾ をアクセントの色に） */
+.icon-button.sidebar-view-more.has-active {
+  color: var(--accent-fg);
+}
+
+/* 要対応の数（要対応の入ったビューのタブの中、なければ ⚙ の左） */
+.sidebar-view-count {
+  flex: none;
+}
+
+/* ⚙ の窓: いまの 3 行と、ビューに残す操作 */
+.sidebar-view-popover {
+  width: max-content;
+  max-width: min(440px, calc(100vw - 24px));
+  padding: 12px;
+}
+
+.sidebar-view-tuner {
+  display: grid;
+  gap: 10px;
+}
+
+.sidebar-view-tuner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* 「ビューを管理」は右端 */
+.sidebar-view-tuner-actions .sidebar-view-manage {
+  margin-left: auto;
+}
+
+/* 設定の「サイドバー」のビューの中身を変えるフォーム */
+.sidebar-view-form {
+  margin-top: 6px;
+}
