@@ -12,7 +12,7 @@ import { useSetting } from "@/hooks/useSetting";
 import { DIFF_LAYOUT } from "@/lib/storageKeys";
 import { CodeLine } from "@/ui/CodeLine";
 import { ErrorText } from "@/ui/ErrorText";
-import { Segmented } from "@/ui/Segmented";
+import { DiffLayoutToggle } from "./DiffLayoutToggle";
 import { parseDiff, toSplitRows, type DiffLine } from "./parseDiff";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
 
@@ -73,7 +73,7 @@ export function DiffView({
   /** 読み込み済みの差分（useFileDiff。外で読んでいるときは、ここでは読まない） */
   source?: LoadedDiff;
 }) {
-  const [layout, setLayout] = useSetting(DIFF_LAYOUT);
+  const [layout] = useSetting(DIFF_LAYOUT);
   // 左右に並べる設定でも、2 つ並べると読めない狭い欄（チャットの画面の右の欄など）では 1 列で出す（設定は変えない）
   const { ref, narrow } = useNarrowerThan<HTMLDivElement>(SPLIT_MIN_WIDTH);
   const shown = layout === "split" && narrow ? "unified" : layout;
@@ -99,16 +99,7 @@ export function DiffView({
             <Pencil size={13} aria-hidden /> 編集
           </button>
         )}
-        <Segmented
-          className="view-toggle"
-          label="差分の表示のしかた"
-          value={layout}
-          onChange={setLayout}
-          options={[
-            { value: "split", label: "並べて表示" },
-            { value: "unified", label: "まとめて表示" },
-          ]}
-        />
+        <DiffLayoutToggle />
       </header>
       )}
       <div className="diff-body">
