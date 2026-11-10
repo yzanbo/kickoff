@@ -1,4 +1,5 @@
 import { ChevronsDownUp, ChevronsUpDown, FilePlus, FolderPlus } from "lucide-react";
+import type { ComponentProps } from "react";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { FileTree } from "./FileTree";
@@ -23,6 +24,7 @@ export function FilesPane({
   onSelect,
   rename,
   create,
+  fileDrag,
 }: {
   rootName: string;
   git: GitStatusController;
@@ -31,11 +33,13 @@ export function FilesPane({
   folders: { open: Set<string>; toggle: (path: string) => void; openAll: () => void; closeAll: () => void };
   /** 選んでいるファイルのパス */
   selected?: string;
-  onSelect: (path: string) => void;
+  onSelect: (path: string, newTab?: boolean) => void;
   /** ファイル・フォルダの名前の変更（行にピントがあるときの Enter・右クリック） */
   rename: FileRename;
   /** 新しいファイル・フォルダの名前の欄 */
   create: FileCreate;
+  /** ファイルの行のドラッグ（右のファイルのタブの欄へ落として開く・分ける） */
+  fileDrag?: ComponentProps<typeof FileTree>["fileDrag"];
 }) {
   // 見出しのボタンで作る場所（開いているファイルの入ったフォルダー。VS Code は選んでいる行のフォルダーに作る）
   const createIn = selected ? parentPath(selected) : "";
@@ -68,7 +72,7 @@ export function FilesPane({
       >
         <ErrorText message={files.error} />
         {files.tree ? (
-          <FileTree nodes={files.tree} open={folders.open} onToggle={folders.toggle} selected={selected} onSelect={onSelect} kinds={kinds} rename={rename} create={create} />
+          <FileTree nodes={files.tree} open={folders.open} onToggle={folders.toggle} selected={selected} onSelect={onSelect} kinds={kinds} rename={rename} create={create} fileDrag={fileDrag} />
         ) : (
           !files.error && <p className="muted small changes-empty">読み込み中…</p>
         )}

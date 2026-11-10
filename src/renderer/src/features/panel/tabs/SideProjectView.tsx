@@ -10,7 +10,7 @@ import type { ProjectView } from "./panelTypes";
  * 右の欄の、プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面（中身はプロジェクトのタブの部品そのまま: EditorTab / HistoryTab）。
  * 見る作業場所はチャットの作業場所から始め、上の作業場所の切り替えで変えられる（このタブの中だけ。プロジェクトのタブの作業場所は変えない）
  */
-export function SideProjectView({ projectId, worktree: initial, view }: { projectId: number; worktree?: string; view: ProjectView }) {
+export function SideProjectView({ chatId, projectId, worktree: initial, view }: { chatId: number; projectId: number; worktree?: string; view: ProjectView }) {
   const [worktree, setWorktree] = useState(initial);
   const project = useProjects().projectsById.get(projectId);
   const git = useGitStatus(projectId, true, worktree);
@@ -21,7 +21,17 @@ export function SideProjectView({ projectId, worktree: initial, view }: { projec
         {view === "history" ? (
           <HistoryTab key={worktree ?? ""} projectId={projectId} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
         ) : (
-          <EditorTab key={worktree ?? ""} view={view} projectId={projectId} repoPath={project.repo_path} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
+          // 開いたファイルのタブは、プロジェクトのタブとは別に、チャットとタブの種類ごとに覚える
+          <EditorTab
+            key={worktree ?? ""}
+            view={view}
+            projectId={projectId}
+            repoPath={project.repo_path}
+            git={git}
+            worktree={worktree}
+            onWorktreeChange={setWorktree}
+            panelScope={`view-${chatId}-${view}`}
+          />
         )}
       </WorktreeContext.Provider>
     </div>

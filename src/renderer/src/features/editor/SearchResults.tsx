@@ -23,7 +23,8 @@ interface Props {
   onToggleFile: (path: string) => void;
   /** 選んでいる結果（ファイルと行） */
   selected?: { path: string; line?: number };
-  onSelect: (path: string, line: number) => void;
+  /** 行を押した（newTab = ⌘クリック・Ctrl クリック。新しいタブに開く） */
+  onSelect: (path: string, line: number, newTab?: boolean) => void;
 }
 
 /** 右クリックのメニューの対象（ファイルの見出しか、1 つの行） */
@@ -72,7 +73,7 @@ export function SearchResults({ search, replacer, collapsed, onToggleFile, selec
                   const text = match.text.trimStart();
                   return (
                     <li key={match.line} className={cx("code-search-row", isSelected && "selected")} onContextMenu={(e) => openMenu(e, { file, match })}>
-                      <button className="code-search-line" aria-current={isSelected || undefined} title={`${match.line} 行目`} onClick={() => onSelect(file.path, match.line)}>
+                      <button className="code-search-line" aria-current={isSelected || undefined} title={`${match.line} 行目`} onClick={(e) => onSelect(file.path, match.line, e.metaKey || e.ctrlKey)}>
                         {preview
                           ? splitReplacements(text, pattern, preview.replace, preview.options).map((part, i) =>
                               part.replacement !== undefined ? (

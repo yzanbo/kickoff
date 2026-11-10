@@ -15,7 +15,7 @@ interface Props {
   replacer: SearchReplaceController;
   /** 選んでいる結果（ファイルと行） */
   selected?: { path: string; line?: number };
-  onSelect: (path: string, line: number) => void;
+  onSelect: (path: string, line: number, newTab?: boolean) => void;
 }
 
 /** オン・オフの切り替えのアイコンのボタン（入力欄の右） */

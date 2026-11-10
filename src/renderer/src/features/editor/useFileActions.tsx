@@ -7,7 +7,7 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
 import { joinTreePath, parentPath } from "./treeModel";
-import type { ChangesSelection } from "./useChangesSelection";
+import type { ChangesSelection } from "./useFileTabs";
 import type { GitStatusController } from "./useGitStatus";
 
 /** 右クリックした行（null は木の下の空いている所） */
@@ -32,9 +32,6 @@ export interface FileCreate {
   submit: (name: string) => void;
   cancel: () => void;
 }
-
-/** そのパスか、そのフォルダの中か */
-const isUnder = (path: string, folder: string) => path === folder || path.startsWith(`${folder}/`);
 
 /**
  * ファイルタブ・変更タブのファイル・フォルダの操作（名前の変更・新しいファイル / フォルダー・ゴミ箱・Finder で表示・パスのコピー・フォルダー内を検索）と、
@@ -79,9 +76,9 @@ export function useFileActions(
   const absolute = (path: string) => (path ? `${root}/${path}` : root);
 
   const start = (path: string) => {
-    const open = selection.selected?.path;
-    if (open && isUnder(open, path) && selection.isDirty()) {
-      void alertDialog("保存していない変更があります", `「${baseName(open)}」を保存してから、名前を変えてください。`);
+    const unsaved = selection.dirtyUnder(path);
+    if (unsaved) {
+      void alertDialog("保存していない変更があります", `「${baseName(unsaved)}」を保存してから、名前を変えてください。`);
       return;
     }
     setCreating(null);
@@ -116,14 +113,13 @@ export function useFileActions(
         const folder = dir ? path : parentPath(path);
         if (folder) onReveal?.(folder);
         await git.refresh();
-        if (!dir) void selection.setSelected({ path, focus: true });
+        if (!dir) void selection.setSelected({ path, focus: true }, true);
       })
       .catch(reportFailure(dir ? "フォルダーを作れませんでした" : "ファイルを作れませんでした"));
   };
 
   const trash = async (path: string, dir: boolean) => {
-    const open = selection.selected?.path;
-    const unsaved = Boolean(open && isUnder(open, path) && selection.isDirty());
+    const unsaved = selection.dirtyUnder(path) !== null;
     const ok = await confirmDialog({
       title: dir ? `フォルダー「${baseName(path)}」をゴミ箱に入れますか？` : `「${baseName(path)}」をゴミ箱に入れますか？`,
       message: `${dir ? "中のファイルもすべてゴミ箱に入ります。" : ""}Finder のゴミ箱から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,

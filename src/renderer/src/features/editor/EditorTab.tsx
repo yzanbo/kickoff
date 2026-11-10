@@ -8,12 +8,17 @@ import { navigate, type FileTarget } from "@/app/router";
 import { CHANGES_LIST_WIDTH } from "@/lib/storageKeys";
 import { WorktreePicker } from "@/features/worktree/WorktreePicker";
 import { ErrorText } from "@/ui/ErrorText";
-import { ChangesDetail } from "./ChangesDetail";
 import { ChangesPane } from "./ChangesPane";
 import { FilesPane } from "./FilesPane";
 import { SearchView } from "./SearchView";
 import { changeKinds, openableFolders, parentFolders } from "./treeModel";
-import { changeSelection, editedChange, selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
+import { changeSelection, type ChangesView } from "./fileSelection";
+import { FileTabsContext, type FileTabsEnv } from "./ProjectFileTab";
+import { useFileTabs } from "./useFileTabs";
+import { fileDragProps } from "./fileTabs";
+import { Panel } from "@/features/panel/Panel";
+import type { PanelFrame } from "@/features/panel/PanelTools";
+import type { PanelScope } from "@/features/panel/surfaces";
 import type { GitStatusController } from "./useGitStatus";
 import { GitInitNotice } from "@/features/project/GitInitNotice";
 import { useFileActions } from "./useFileActions";
@@ -22,13 +27,16 @@ import { useProjectSearch } from "./useProjectSearch";
 import { useSearchReplace } from "./useSearchReplace";
 import { WorktreeBar } from "@/features/worktree/WorktreeBar";
 
+/** 右のファイルのタブの欄は画面そのものなので、閉じる・幅を変えるなどの道具を出さない */
+const FIXED_FRAME: PanelFrame = { fixed: true };
+
 /**
  * プロジェクトの「ファイル」「検索」「変更」タブ（VS Code のアクティビティバーと同じく、プロジェクトの左の縦の列で切り替える。view がいまのタブ）。
  * - ファイル（エクスプローラー）: フォルダの木。変更のあるファイルとフォルダだけ色を変える（FilesPane）
  * - 検索: ファイルの中を探す（SearchView）
  * - 変更（ソース管理）: ステージされている変更・変更（未追跡・競合を含む）（ChangesPane）
- * ファイルを選ぶと、変更があれば差分、なければ中身を右に出す（ChangesDetail）。3 つのタブを行き来しても同じ部品のままなので、
- * 開いたファイル・編集中の状態・開いたフォルダ・検索・Git の操作の様子は共有する。履歴は「履歴」タブ（HistoryTab）
+ * 選んだファイルは右にタブで並べる（useFileTabs。メモのタブと同じく、ふつうに押すと表示中のタブの中身を入れ替え、⌘クリックで新しいタブ。タブのドラッグで上下・左右に分けられる。
+ * 中身は ProjectFileTab）。3 つのタブを行き来しても同じ部品のままなので、開いたファイル・編集中の状態・開いたフォルダ・検索・Git の操作の様子は共有する。履歴は「履歴」タブ（HistoryTab）
  */
 export function EditorTab({
   view,
@@ -38,6 +46,7 @@ export function EditorTab({
   worktree,
   onWorktreeChange,
   openFile,
+  panelScope,
 }: {
   /** 左の一覧の表示（いまのタブ） */
   view: ChangesView;
@@ -49,10 +58,12 @@ export function EditorTab({
   onWorktreeChange: (worktree: string | undefined) => void;
   /** 開くファイル（チャットの返答のファイルのチップから。この作業場所のもの） */
   openFile?: FileTarget;
+  /** 右のファイルのタブを覚える範囲（なければプロジェクト。チャットの右の欄の中では、その部品ごとの名前） */
+  panelScope?: PanelScope;
 }) {
   const rootName = baseName(worktree ?? repoPath);
   const { status } = git;
-  const selection = useChangesSelection();
+  const selection = useFileTabs(projectId, panelScope ?? projectId);
   const { selected, setSelected } = selection;
   // エクスプローラーで開いているフォルダ（表示を切り替えても残す）
   const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set());
@@ -87,7 +98,7 @@ export function EditorTab({
     if (!openFile) return;
     const { path, line } = openFile;
     setOpenFolders((prev) => new Set([...prev, ...parentFolders(path)]));
-    void setSelected(line ? { path, line } : { path });
+    void setSelected(line ? { path, line } : { path }, true);
     navigate({ name: "project", id: projectId, tab: "files" }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openFile]);
@@ -99,8 +110,7 @@ export function EditorTab({
 
   const groups = { staged: status.staged, unstaged: [...status.conflicts, ...status.unstaged] };
   const empty = groups.staged.length === 0 && groups.unstaged.length === 0;
-  const change = selectedChange(selected, groups);
-  const edited = editedChange(selected, groups);
+  const env: FileTabsEnv = { projectId, repoPath, git, groups, open: (next) => void setSelected(next) };
   const folders = {
     open: openFolders,
     toggle: (path: string) =>
@@ -130,7 +140,7 @@ export function EditorTab({
         aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}
       >
         {view === "search" ? (
-          <SearchView search={search} replacer={replacer} selected={selected} onSelect={(path, line) => void setSelected({ path, line })} />
+          <SearchView search={search} replacer={replacer} selected={selected} onSelect={(path, line, newTab) => void setSelected({ path, line }, newTab)} />
         ) : view === "files" ? (
           <FilesPane
             rootName={rootName}
@@ -139,9 +149,10 @@ export function EditorTab({
             kinds={kinds}
             folders={folders}
             selected={selected?.path}
-            onSelect={(path) => void setSelected({ path })}
+            onSelect={(path, newTab) => void setSelected({ path }, newTab)}
             rename={rename}
             create={create}
+            fileDrag={fileDragProps(selection.panel.key, projectId)}
           />
         ) : (
           <ChangesPane
@@ -151,22 +162,16 @@ export function EditorTab({
             empty={empty}
             action={gitAction}
             selected={selected}
-            onSelect={(next) => void setSelected(changeSelection(next, groups))}
+            onSelect={(next, newTab) => void setSelected(changeSelection(next, groups), newTab)}
             rename={rename}
           />
         )}
       </aside>
       <div className="pane-resizer" aria-label="一覧の幅を変える" {...list.handle} />
-      <ChangesDetail
-        view={view}
-        projectId={projectId}
-        repoPath={repoPath}
-        git={git}
-        selection={selection}
-        change={change}
-        edited={edited}
-        empty={empty}
-      />
+      {/* 開いたファイルのタブ（中身が使う Git の状態などは FileTabsContext で渡す） */}
+      <FileTabsContext.Provider value={env}>
+        <Panel panel={selection.panel} frame={FIXED_FRAME} />
+      </FileTabsContext.Provider>
     </div>
     {fileMenu}
     </>

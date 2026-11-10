@@ -1,6 +1,4 @@
-import { useRef, useState } from "react";
 import type { GitFileChange } from "@shared/types";
-import { confirmDialog } from "@/ui/dialogs";
 
 /**
  * 選んでいるファイル。変更の一覧から選んだときは、ステージ済み・未ステージのどちらか（同じファイルが両方にあることもある）。
@@ -16,43 +14,6 @@ export interface Selection {
   edit?: boolean;
   focus?: boolean;
 }
-
-/** ファイルタブで選んでいるファイル。編集中に保存していない変更があれば、別のファイルを開く前に確かめる */
-export function useChangesSelection() {
-  const [selected, setSelectedState] = useState<Selection>();
-  // 編集中のファイルに保存していない変更があるか（別のファイルを開く前に確かめる）
-  const dirty = useRef(false);
-  const setSelected = async (next: Selection) => {
-    if (
-      dirty.current &&
-      !(await confirmDialog({ title: "保存していない変更があります", message: "別のファイルを開くと、変更は消えます。", confirmLabel: "変更を捨てて開く", danger: true }))
-    )
-      return;
-    dirty.current = false;
-    setSelectedState(next);
-  };
-  return {
-    selected,
-    /** 選ぶ（確かめてやめることがあるので async。画面からは void で呼ぶ） */
-    setSelected,
-    /** 編集中のファイルの保存していない変更の有無（FileView の onDirtyChange から） */
-    setDirty: (next: boolean) => void (dirty.current = next),
-    /** 編集中のファイルに保存していない変更があるか（名前を変える前に確かめる） */
-    isDirty: () => dirty.current,
-    /** 名前を変えたファイル・フォルダ（from）を選んでいれば、新しいパス（to）に付け替える（確かめない） */
-    relocate: (from: string, to: string) =>
-      setSelectedState((prev) => (prev && (prev.path === from || prev.path.startsWith(`${from}/`)) ? { ...prev, path: to + prev.path.slice(from.length) } : prev)),
-    /** ゴミ箱に入れたファイル・フォルダ（path）を選んでいれば、閉じる（確かめない。保存していない変更も捨てる） */
-    forget: (path: string) =>
-      setSelectedState((prev) => {
-        if (!prev || (prev.path !== path && !prev.path.startsWith(`${path}/`))) return prev;
-        dirty.current = false;
-        return undefined;
-      }),
-  };
-}
-
-export type ChangesSelection = ReturnType<typeof useChangesSelection>;
 
 /** 変更の一覧（ステージ済み / 未ステージ。未ステージには未追跡・競合も含む） */
 export interface ChangeGroups {

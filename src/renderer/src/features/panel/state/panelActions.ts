@@ -80,6 +80,8 @@ export function panelActions(key: string) {
     /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
     openBrowser: (url = "") => openTab(browserTab(url)),
     openTerminal,
+    /** 作ったタブを開く（領域ごとの種類のタブ。プロジェクトのファイルのタブ（features/editor/fileTabs.ts）など。同じキーのタブがあればそのペインで表示する） */
+    openPanelTab: (tab: PanelTab) => openTab(tab),
     /** 開いているタブを表示する（タブ・下書きを押したとき。隠している種類のタブなら、その種類を出す。ないタブなら何もしない） */
     showTab: (tabKey: string) => {
       const tab = panelStateOf(key).tabs.find((t) => t.key === tabKey);

@@ -45,6 +45,11 @@ export type PanelTab =
    * chatId: どのチャットの右の欄か。worktree: 初めに見る作業場所のワークツリーのフォルダ（本体ならない）
    */
   | { key: string; kind: "projectView"; chatId: number; projectId: number; worktree?: string; view: ProjectView }
+  /**
+   * プロジェクトの「ファイル」「検索」「変更」タブの右（パネルの files）に開いたファイル（features/editor/fileTabs.ts）。path: 作業場所からの相対パス。
+   * staged: 変更の一覧から開いた差分（ステージ済みか。なければ中身）。line: 検索の行から開いたときの行。edit: 差分を見ながら編集する。focus: 開いたら編集の部品にピントを置く
+   */
+  | { key: string; kind: "projectFile"; projectId: number; path: string; staged?: boolean; line?: number; edit?: boolean; focus?: boolean }
   /** チャットの画面の右の欄に開いた、プロジェクトのメモ（自動で保存）。chatId: どのチャットの右の欄か。path: メモのフォルダからの相対パス */
   | { key: string; kind: "memo"; chatId: number | null; projectId: number; path: string }
   /**

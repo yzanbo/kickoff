@@ -33,7 +33,8 @@ interface Props {
   /** フォルダの階層をたどった木で出す（VS Code の「ツリーで表示」） */
   tree: boolean;
   selected?: { path: string; staged?: boolean };
-  onSelect: (selection: { path: string; staged: boolean }) => void;
+  /** ファイルを押した（newTab = ⌘クリック・Ctrl クリック。新しいタブに開く） */
+  onSelect: (selection: { path: string; staged: boolean }, newTab?: boolean) => void;
   /** ステージ・ステージの取り消し・元に戻す */
   onAction: (action: GitAction, paths: string[]) => void;
   /** ファイルの名前の変更（行にピントがあるときの Enter・右クリック。消したファイルは変えない） */
@@ -103,7 +104,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
               onFoldChange({ ...fold, closed: next });
             }}
             selected={selected?.staged === staged ? selected.path : undefined}
-            onSelect={(path) => onSelect({ path, staged })}
+            onSelect={(path, newTab) => onSelect({ path, staged }, newTab)}
             kinds={kinds}
             actions={(node) => buttons(pathsUnder(node), node.dir ? `「${node.name}」の中` : `「${node.name}」`)}
             rename={rename}
@@ -133,7 +134,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
                     className={cx("change-file", isSelected && "selected")}
                     aria-current={isSelected || undefined}
                     title={`${file.path}（${CHANGE_LABELS[file.kind]}）`}
-                    onClick={() => onSelect({ path: file.path, staged })}
+                    onClick={(e) => onSelect({ path: file.path, staged }, e.metaKey || e.ctrlKey)}
                     // 行にピントがあるときの Enter で名前を変える（ファイルタブの木と同じ）
                     onKeyDown={(e) => {
                       if (!renamable || !isRenameKey(e)) return;

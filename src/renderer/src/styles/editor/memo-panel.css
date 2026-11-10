@@ -1,4 +1,4 @@
-/* ==== プロジェクトの「メモ」タブの右の、開いたメモをタブで並べるパネル ==== */
+/* ==== プロジェクトの「メモ」タブの右の、開いたメモをタブで並べるパネルと、ファイル・検索・変更のタブの右の、開いたファイルをタブで並べるパネル ==== */
 
 /*
  * 開いたメモをタブで並べるパネル（SURFACES の memos。チャットのパネルと同じタブ・分割）。チャットタブ（chats-tab.css）と同じく、
@@ -14,4 +14,22 @@
 .memo-main > .board-panel.memo-panel > .panel-tabs,
 .memo-main > .board-panel.memo-panel > .panel-content {
   width: auto;
+}
+
+/* ファイル・検索・変更のタブの右の、開いたファイルをタブで並べるパネル（SURFACES の files）。メモのタブの右と同じく、いつも見せて右いっぱいに広げる */
+.changes > .board-panel.file-panel {
+  flex: 1;
+  min-width: 0;
+  border-left: 0;
+  opacity: 1;
+}
+
+.changes > .board-panel.file-panel > .panel-tabs,
+.changes > .board-panel.file-panel > .panel-content {
+  width: auto;
+}
+
+/* タブの中身（.panel-tab-page はブロックの箱）の高さいっぱいに、ファイルの見出しと中身を並べる */
+.file-panel .panel-tab-page > .changes-diff {
+  height: 100%;
 }
