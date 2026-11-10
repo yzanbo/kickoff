@@ -1,4 +1,4 @@
-import { Check, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Fragment, type MouseEvent, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
@@ -6,23 +6,13 @@ import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ChatDisplayItems } from "@/features/chat/pane/ChatDisplayMenu";
-import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
-import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
-import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
-import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
-import { PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
-import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
 import { usePanelViewReset } from "./usePanelViewReset";
-import { BucketColorItem } from "@/features/chatList/BucketColorItem";
-import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN } from "@/lib/storageKeys";
-import { useSetting } from "@/hooks/useSetting";
-import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleTabField } from "./tabFields";
-import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/sidebar/chatGroupings";
+import { hasTabDisplayItems, TabDisplayItems } from "./TabDisplayItems";
 
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
- * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・チャットの並び順（サイドバーと共通）・タブに出す項目（tabFields）・グループ別のときに出すグループ（HiddenGroupItems）・アーカイブ済みのチャットを出すか・チャット画面表示
+ * タブの表示（表示するタブの種類・チャットのまとめ方・並び順・タブに出す項目・出すグループ・アーカイブ済み。TabDisplayItems。タブの右クリックの「タブの表示 ›」と共通）・チャット画面表示
  * （タブの列・見出し・指示の帯・会話の横幅と文字の大きさ・チャット欄。ChatDisplayItems。どのチャットでも共通。項目が多いので「チャット画面表示 ›」の横に開く子のメニューに入れる。利用者の依頼）
  * を 1 つにまとめる（以前はそれぞれのアイコンが並び、タブの列の道具が多かった）。
  * チャットの画面の切り替えは、見出しを隠しても戻せるよう、見出しの外のここに置く。
@@ -30,126 +20,20 @@ import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/sidebar/chatG
  * 既定と違う選び方をしていても、ボタンに印は付けない（自分で選んだ好みなので、ずっと印を出すと何か問題があるように見えるため。以前は点を付けていた）
  */
 export function usePanelViewMenu(panel: PanelController) {
-  const rules = SURFACES[panel.surface];
-  const { kinds } = panel;
-  const [grouping, setGrouping] = useTabGrouping(panel.surface);
-  const [archived, setArchived] = useShowArchivedChats();
-  // チャットの並び順はサイドバーと共通の 1 つの設定（利用者の依頼。一覧のペインのチャットのタブはサイドバーと同じ並びなので、どちらで選んでもそろう）
-  const { order, setOrder } = useChatLayout();
-  // タブに出す項目（隠した項目だけを覚える）
-  const [tabHidden, setTabHidden] = useSetting(PANEL_TAB_HIDDEN);
-  const hiddenFields = hiddenTabFields(tabHidden);
   const menu = useContextMenu();
   const chatDisplay = useSubmenu();
   // いちばん下の「既定に戻す」（メニューに出ている選び方を初めの値に戻す。初めのままなら押せない）
-  const defaults = usePanelViewReset(panel.surface, kinds.has("chat"));
-  const showKinds = !rules.fixedKinds;
-  const showChat = kinds.has("chat");
-  const has = showKinds || showChat;
+  const defaults = usePanelViewReset(panel.surface, panel.kinds.has("chat"));
+  const showChat = panel.kinds.has("chat");
+  const has = hasTabDisplayItems(panel);
   // 欄ごとにボタンを分ける（ほかの欄のボタンを押したときは、こちらのメニューを外側のクリックとして閉じる）
   const buttonClass = `panel-view-${panel.surface}`;
 
-  const section = (title: string, items: ReactNode) => (
-    <>
-      <div className="menu-label">{title}</div>
-      {items}
-    </>
-  );
   const separator = <div className="menu-separator" role="separator" />;
   const sections: ReactNode[] = [];
-  if (showKinds)
-    sections.push(
-      section(
-        "表示するタブ",
-        kinds.choices.map((k) => {
-          const on = kinds.has(k);
-          const last = on && kinds.kinds.length === 1;
-          return (
-            <MenuItem
-              key={k}
-              role="menuitemcheckbox"
-              checked={on}
-              title={last ? "1 つは表示しておきます" : on ? `${PANEL_KIND_LABELS[k]}のタブを隠す（閉じずに残します）` : `${PANEL_KIND_LABELS[k]}のタブを表示する`}
-              onSelect={() => kinds.toggle(k)}
-            >
-              <span className="project-switch-item">{PANEL_KIND_LABELS[k]}</span>
-              {on && <Check size={14} aria-hidden />}
-            </MenuItem>
-          );
-        }),
-      ),
-    );
+  // タブの表示（表示するタブ・まとめ方・並び順・タブに出す項目・出すグループ・アーカイブ済み。タブの右クリックの「タブの表示 ›」と共通）
+  if (has) sections.push(<TabDisplayItems panel={panel} />);
   if (showChat) {
-    sections.push(
-      section(
-        "チャットのまとめ方",
-        <>
-          {CHAT_GROUPINGS.map((g) => (
-            <MenuItem key={g} role="menuitemradio" checked={g === grouping} onSelect={() => setGrouping(g)}>
-              <span className="project-switch-item">{CHAT_GROUPING_LABELS[g]}</span>
-              {g === grouping && <Check size={14} aria-hidden />}
-            </MenuItem>
-          ))}
-          {/* まとめたまとまりの色（色付き / 色なし。まとまりの札の右クリックにも同じ項目）。まとめないときは効かないので出さない */}
-          {grouping !== "none" && <BucketColorItem setting={PANEL_TAB_GROUP_COLORS} keepOpen />}
-        </>,
-      ),
-    );
-    sections.push(
-      section(
-        "チャットの並び順",
-        CHAT_ORDERS.map((o) => (
-          <MenuItem key={o} role="menuitemradio" checked={o === order} title="サイドバーの「並び順」と共通の設定です" onSelect={() => setOrder(o)}>
-            <span className="project-switch-item">{ORDER_META[o].label}</span>
-            {o === order && <Check size={14} aria-hidden />}
-          </MenuItem>
-        )),
-      ),
-    );
-    // タブに出す項目（状態・ピン留め・グループ・作業場所。すべてのパネルで共通）。いまのまとめ方の項目（グループ別ならグループ・作業場所別なら作業場所）は、
-    // まとまりの札に出るので選んでいてもタブには出さない: チェックはそのまま薄くして押せなくし、別のまとめ方にすれば選んだとおりに出る
-    sections.push(
-      section(
-        "タブに出す項目",
-        TAB_FIELDS.map((f) => {
-          const on = !hiddenFields.has(f);
-          const grouped = groupedTabField(grouping) === f;
-          return (
-            <MenuItem
-              key={f}
-              role="menuitemcheckbox"
-              checked={on}
-              disabled={grouped}
-              keepOpen
-              title={
-                grouped
-                  ? `${CHAT_GROUPING_LABELS[grouping]}にまとめているので、${TAB_FIELD_LABELS[f]}はまとまりの札に出し、タブには出しません（別のまとめ方にすると、選んだとおりに出ます）`
-                  : on
-                    ? `タブの${TAB_FIELD_LABELS[f]}を隠す`
-                    : `タブに${TAB_FIELD_LABELS[f]}を出す`
-              }
-              onSelect={() => setTabHidden(toggleTabField(tabHidden, f))}
-            >
-              <span className="project-switch-item">{TAB_FIELD_LABELS[f]}</span>
-              {on && <Check size={14} aria-hidden />}
-            </MenuItem>
-          );
-        }),
-      ),
-    );
-    // グループ別のときだけ: タブの列に出すグループ（自分で作ったグループを隠す・チャットのないグループを隠す）
-    if (grouping === "group") sections.push(<HiddenGroupItems panel={panel} />);
-    sections.push(
-      <MenuItem
-        role="menuitemcheckbox"
-        checked={archived}
-        title="サイドバーの「アーカイブ」と共通の設定です"
-        onSelect={() => setArchived(!archived)}
-      >
-        <span className="project-switch-item">アーカイブ済みのチャットを表示</span>
-        {archived && <Check size={14} aria-hidden />}
-      </MenuItem>,
-    );
     // 乗せる・押す・→ で横に開く（メニューは閉じない）
     sections.push(
       <>

@@ -10,6 +10,7 @@ import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneTree"
 import type { PanelController } from "@/features/panel/usePanel";
 import type { NewChatTarget } from "./panelTypes";
 import { canPopOut, popOutTab } from "./popOutTab";
+import { TabDisplaySubmenu } from "./TabDisplayItems";
 
 /**
  * 右のパネルのタブの右クリックのメニュー: いちばん上に「新しいチャット」（チャットを出す欄だけ。利用者の依頼。右クリックしたタブのペインに、
@@ -18,6 +19,7 @@ import { canPopOut, popOutTab } from "./popOutTab";
  * チャットのタブには、会話 / 動きの切り替え（見出しの行を隠していても切り替えられるように）と、サイドバーの行と同じチャットの項目
  * （名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる。
  * 送る前の新しいチャットのタブは、サイドバーの下書きの行と同じ項目（DraftMenuItems。チャットの項目のうち下書きでもできるもの）を同じ並びで
+ * 閉じるの前に「タブの表示 ›」（タブの列の「表示」のメニューの上の部分と同じ項目を横に開く。TabDisplaySubmenu。利用者の依頼）。
  */
 export function TabMenu({
   panel,
@@ -121,6 +123,7 @@ export function TabMenu({
           before={paneItems}
           after={
             <>
+              <TabDisplaySubmenu panel={panel} />
               <div className="menu-separator" role="separator" />
               {closeItem}
             </>
@@ -142,6 +145,7 @@ export function TabMenu({
           }
           after={
             <>
+              <TabDisplaySubmenu panel={panel} />
               <div className="menu-separator" role="separator" />
               {closeItem}
             </>
@@ -151,6 +155,8 @@ export function TabMenu({
         <>
           {newChatItem}
           {paneItems}
+          <TabDisplaySubmenu panel={panel} />
+          <div className="menu-separator" role="separator" />
           {closeItem}
         </>
       )}
