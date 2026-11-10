@@ -88,10 +88,11 @@ export async function discardPaths(repo: string, paths: string[]): Promise<void>
 
 /**
  * ステージした変更をコミットする（メッセージは必須。ステージしたものがなければ失敗する）。
+ * amend は直前のコミットに足して書き直す（VS Code の「コミット (修正)」。ステージしたものがなくてもよく、メッセージが空なら前のメッセージのまま）。
  * プロジェクトのフォルダがリポジトリの中のフォルダで、その外にもステージしたファイルがあれば、一緒にコミットしないよう断る（409。外のファイルは画面に出ないため）
  */
-export async function commitStaged(repo: string, message: string): Promise<void> {
-  if (!message.trim()) throw new Invalid("コミットのメッセージを入れてください");
+export async function commitStaged(repo: string, message: string, amend = false): Promise<void> {
+  if (!amend && !message.trim()) throw new Invalid("コミットのメッセージを入れてください");
   if (await gitPrefix(repo)) {
     const all = nulList(await gitOutput(repo, ["diff", "--cached", "--name-only", "-z"]));
     const inside = new Set(nulList(await gitOutput(repo, ["diff", "--cached", "--name-only", "-z", "--", "."])));
@@ -101,7 +102,8 @@ export async function commitStaged(repo: string, message: string): Promise<void>
       throw new Conflict(`プロジェクトフォルダの外にも、ステージしたファイルがあります（${shown}）。一緒にコミットしないよう、ターミナルで git restore --staged で外してからコミットしてください`);
     }
   }
-  await gitOutput(repo, ["commit", "-q", "-m", message]);
+  if (amend) await gitOutput(repo, ["commit", "-q", "--amend", ...(message.trim() ? ["-m", message] : ["--no-edit"])]);
+  else await gitOutput(repo, ["commit", "-q", "-m", message]);
 }
 
 /**

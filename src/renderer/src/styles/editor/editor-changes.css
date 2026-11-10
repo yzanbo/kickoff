@@ -127,6 +127,10 @@
   padding-right: 10px;
 }
 
+.change-group-row:hover {
+  background: var(--bg-hover);
+}
+
 .change-group-row .change-group-head {
   flex: 1;
   width: auto;
@@ -172,21 +176,83 @@
   color: var(--extra-muted);
 }
 
-/* 「変更」の上のコミットの欄（VS Code と同じく、メッセージ・コミット・プッシュを縦に並べる） */
+/*
+ * 変更の一覧の行の操作（ステージ・元に戻すなど）は、VS Code と同じく、乗せた行・選んだ行・ピントのある行だけに出す
+ * （いつも出すと、狭い一覧でファイルの名前が隠れるため。木では、乗せたいちばん内側の行だけ）
+ */
+.change-group .row-actions {
+  display: none;
+}
+
+.change-group-row:is(:hover, :focus-within) > .row-actions,
+.change-item:is(:hover, :focus-within, :has(> .change-file.selected)) > .row-actions,
+.change-group .tree-item:hover:not(:has(.tree-item:hover)) > .row-actions,
+.change-group .tree-item:is(:has(> .tree-row:is(.selected, :focus-visible)), :has(> .row-actions:focus-within)) > .row-actions {
+  display: flex;
+}
+
+/* 乗せた行は、操作のボタンの所まで行の地を伸ばす（ボタンに乗せている間も行を乗せた色のまま。選んだ行は選んだ色） */
+.change-item:hover > :is(.change-file:not(.selected), .row-actions),
+.change-group .tree-item:hover:not(:has(.tree-item:hover)) > :is(.tree-row:not(.selected), .row-actions) {
+  background: var(--bg-hover);
+}
+
+.change-item:has(> .change-file.selected) > .row-actions,
+.change-group .tree-item:has(> .tree-row.selected) > .row-actions {
+  background: var(--bg-active);
+}
+
+/*
+ * 「変更」の上のコミットの欄（VS Code と同じく、メッセージ・コミット・プッシュを縦に並べる）。メッセージは 1 行から書いた分だけ伸び、
+ * ボタンは VS Code と同じ 26px の高さ。コミットは右に ▾（コミットの仕方のメニュー）を付けた 1 つのボタンに見せる
+ */
 .commit-box {
   display: grid;
   gap: 6px;
-  padding: 8px 10px 6px;
+  padding: 6px 10px 8px;
 }
 
 .commit-box .commit-message {
-  min-height: 52px;
-  padding: 6px 8px;
+  min-height: 28px;
+  max-height: 200px;
+  padding: 4px 8px;
   font-size: 13px;
-  resize: vertical;
+  line-height: 18px;
+  resize: none;
+  field-sizing: content;
+}
+
+/* 空のときは、VS Code と同じく案内を 1 行に収めて末尾を省く（狭い一覧で 2 行にしない） */
+.commit-box .commit-message:placeholder-shown {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .commit-button {
   justify-content: center;
   width: 100%;
+  height: 26px;
+  padding: 0 8px;
+}
+
+.commit-split {
+  display: flex;
+}
+
+.commit-split .commit-button {
+  flex: 1;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.commit-more {
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-left-color: color-mix(in srgb, var(--accent-text) 30%, transparent);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }

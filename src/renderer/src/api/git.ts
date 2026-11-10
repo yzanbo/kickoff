@@ -25,7 +25,7 @@ export const gitApi = {
   /** ステージ・ステージの取り消し・変更を元に戻す */
   gitAction: (target: GitTarget, action: "stage" | "unstage" | "discard", paths: string[]) =>
     request<GitStatus>("POST", workdirPath(target, `/git/${action}`), { paths }),
-  gitCommit: (target: GitTarget, message: string) => request<GitStatus>("POST", workdirPath(target, "/git/commit"), { message }),
+  gitCommit: (target: GitTarget, message: string, amend = false) => request<GitStatus>("POST", workdirPath(target, "/git/commit"), { message, amend }),
   gitPush: (target: GitTarget) => request<GitStatus>("POST", workdirPath(target, "/git/push")),
   gitPull: (target: GitTarget) => request<GitStatus>("POST", workdirPath(target, "/git/pull")),
   gitFetch: (target: GitTarget) => request<GitStatus>("POST", workdirPath(target, "/git/fetch")),

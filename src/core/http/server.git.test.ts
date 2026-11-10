@@ -211,6 +211,17 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   await post("stage", ["b.txt"]);
   st = (await call("POST", `/api/projects/${project.id}/git/commit`, { message: "b を直す" })).body;
   assert.deepEqual(st.staged, []);
+  // コミット (修正): メッセージが空なら前のメッセージのまま、書けばそのメッセージに書き直す（コミットは増えない）
+  const commitCount = () => execFileSync("git", ["rev-list", "--count", "HEAD"], { cwd: repo }).toString().trim();
+  const before = commitCount();
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/commit`, { message: "", amend: true })).status, 200);
+  assert.match(execFileSync("git", ["log", "--format=%s", "-1"], { cwd: repo }).toString(), /b を直す/);
+  st = (await call("POST", `/api/projects/${project.id}/git/commit`, { message: "b を直す（修正）", amend: true })).body;
+  assert.deepEqual(st.staged, []);
+  assert.equal(commitCount(), before);
+  assert.match(execFileSync("git", ["log", "--format=%s", "-1"], { cwd: repo }).toString(), /b を直す（修正）/);
+  // 下の履歴の確かめのため、もとのメッセージに戻す
+  await call("POST", `/api/projects/${project.id}/git/commit`, { message: "b を直す", amend: true });
   assert.equal((await call("POST", `/api/projects/${project.id}/git/push`)).status, 400);
   const remote = tempDir();
   execFileSync("git", ["init", "-q", "--bare", "-b", "main", remote]);

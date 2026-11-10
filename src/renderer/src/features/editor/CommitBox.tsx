@@ -1,71 +1,24 @@
-import { ArrowDown, ArrowUp, Check, UploadCloud } from "lucide-react";
-import { useState } from "react";
+import { ArrowDown, ArrowUp, Check, ChevronDown, UploadCloud } from "lucide-react";
 import type { GitStatus } from "@shared/types";
-import type { ActionState } from "@/hooks/useAction";
-import { confirmDialog } from "@/ui/dialogs";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { isKey } from "@/lib/keys";
-import type { GitStatusController } from "./useGitStatus";
-
-/** コミットの欄の操作（実行中は、ほかの操作のボタンも押せなくする） */
-export type CommitBusy = "commit" | "push" | "pull";
+import type { CommitActions } from "./useCommitActions";
 
 /**
- * 「変更」の上のコミットの欄（VS Code と同じ）。メッセージを書いて「コミット」（⌘Enter）。
- * ステージしたものがなければ、すべてステージしてコミットするか確かめる。リモートより進んでいれば「プッシュ」、
- * 追いかけるブランチがまだなければ「ブランチを公開」を出す
+ * 「変更」の上のコミットの欄（VS Code と同じ）。メッセージ（書いた分だけ伸びる 1 行の欄）を書いて「コミット」（⌘Enter）。右の ▾ で
+ * コミット / コミット (修正) / コミットしてプッシュ / コミットして同期 を選ぶ。ステージしたものがなければ、すべてステージしてコミットするか確かめる。
+ * リモートより進んでいれば「プッシュ」、追いかけるブランチがまだなければ「ブランチを公開」、遅れていれば「プル」を下に出す（利用者の依頼で残す）
  */
-export function CommitBox({
-  status,
-  git,
-  action,
-}: {
-  status: Extract<GitStatus, { repo: true }>;
-  git: GitStatusController;
-  /** 実行中と失敗（失敗は一覧の上に出す。親の useAction） */
-  action: ActionState<CommitBusy>;
-}) {
-  const [message, setMessage] = useState("");
-  const { busy } = action;
-  const changes = [...status.conflicts, ...status.unstaged];
-  const canCommit = status.staged.length > 0 || changes.length > 0;
-
-  const commit = async () => {
-    if (busy || !canCommit) return;
-    if (!message.trim()) return action.setError("コミットのメッセージを入れてください");
-    const stageAll = status.staged.length === 0;
-    if (
-      stageAll &&
-      !(await confirmDialog({
-        title: "ステージした変更がありません",
-        message: "すべての変更をステージしてコミットしますか？",
-        confirmLabel: "すべてステージしてコミット",
-      }))
-    )
-      return;
-    await action.run("commit", async () => {
-      if (stageAll) await git.act("stage", changes.map((f) => f.path));
-      await git.commit(message);
-      setMessage("");
-    });
-  };
-
-  const push = async () => {
-    if (!busy) await action.run("push", () => git.push());
-  };
-
-  // リモートより遅れていれば、早送りで取り込む（GitHub でマージした PR を手元に入れるときなど）
-  const pull = async () => {
-    if (!busy) await action.run("pull", () => git.pull());
-  };
-
-  // プッシュするもの: 進んでいるコミット、またはまだ公開していないブランチ（origin があるとき）
-  const publish = !status.upstream && status.has_origin && status.branch !== null;
+export function CommitBox({ status, actions }: { status: Extract<GitStatus, { repo: true }>; actions: CommitActions }) {
+  const { message, setMessage, busy, canCommit, canPush, publish, commit, push, pull } = actions;
+  const menu = useContextMenu({ align: "end" });
   return (
     <div className="commit-box">
       <textarea
         className="commit-message"
-        rows={2}
-        placeholder={`メッセージ（⌘Enter で ${status.branch ?? "いまのブランチ"} にコミット）`}
+        rows={1}
+        placeholder={`メッセージ (⌘Enter で "${status.branch ?? "いまのブランチ"}" にコミット)`}
         aria-label="コミットのメッセージ"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
@@ -76,17 +29,46 @@ export function CommitBox({
           }
         }}
       />
-      <button className="btn btn-primary commit-button" disabled={Boolean(busy) || !canCommit} onClick={() => void commit()}>
-        <Check size={14} aria-hidden /> {busy === "commit" ? "コミット中…" : "コミット"}
-      </button>
+      <div className="commit-split">
+        <button className="btn btn-primary commit-button" disabled={Boolean(busy) || !canCommit} onClick={() => void commit()}>
+          <Check size={16} aria-hidden /> {busy === "commit" ? "コミット中…" : "コミット"}
+        </button>
+        <button
+          className="btn btn-primary commit-more"
+          aria-label="コミットの仕方を選ぶ"
+          aria-haspopup="menu"
+          aria-expanded={menu.isOpen}
+          disabled={Boolean(busy)}
+          onClick={(e) => menu.toggle(e)}
+        >
+          <ChevronDown size={16} aria-hidden />
+        </button>
+      </div>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="コミットの仕方" ignore=".commit-more" onClose={menu.close}>
+          <MenuItem disabled={!canCommit} onSelect={() => void commit("commit")}>
+            コミット
+          </MenuItem>
+          <MenuItem title="ステージした変更（なければメッセージだけ）を直前のコミットに足して書き直します。メッセージが空なら前のメッセージのままです" onSelect={() => void commit("amend")}>
+            コミット (修正)
+          </MenuItem>
+          <div className="menu-separator" role="separator" />
+          <MenuItem disabled={!canCommit || !canPush} onSelect={() => void commit("push")}>
+            コミットしてプッシュ
+          </MenuItem>
+          <MenuItem disabled={!canCommit || !canPush} title="リモートより遅れていれば先に早送りで取り込み、コミットしてからプッシュします" onSelect={() => void commit("sync")}>
+            コミットして同期
+          </MenuItem>
+        </PopupMenu>
+      )}
       {status.behind > 0 && (
         <button className="btn commit-button" disabled={Boolean(busy)} onClick={() => void pull()}>
-          <ArrowDown size={14} aria-hidden /> {busy === "pull" ? "プル中…" : `プル（${status.behind} 件）`}
+          <ArrowDown size={16} aria-hidden /> {busy === "pull" ? "プル中…" : `プル（${status.behind} 件）`}
         </button>
       )}
       {(status.ahead > 0 || publish) && (
         <button className="btn commit-button" disabled={Boolean(busy)} onClick={() => void push()}>
-          {publish ? <UploadCloud size={14} aria-hidden /> : <ArrowUp size={14} aria-hidden />}
+          {publish ? <UploadCloud size={16} aria-hidden /> : <ArrowUp size={16} aria-hidden />}
           {busy === "push" ? "プッシュ中…" : publish ? "ブランチを公開" : `プッシュ（${status.ahead} 件）`}
         </button>
       )}

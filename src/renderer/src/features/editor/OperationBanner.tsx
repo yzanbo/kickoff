@@ -3,7 +3,7 @@ import type { GitConflictResolution, GitOperation, GitOperationAction, GitStatus
 import { GIT_OPERATION_LABELS } from "@shared/types";
 import type { ActionState } from "@/hooks/useAction";
 import { alertDialog, confirmDialog } from "@/ui/dialogs";
-import type { CommitBusy } from "./CommitBox";
+import type { CommitBusy } from "./useCommitActions";
 import type { GitStatusController } from "./useGitStatus";
 
 /** 衝突したファイルの「こちら」「取り込む側」が、操作ごとに何を指すか（リベースでは git の ours が土台のブランチになる） */

@@ -31,6 +31,19 @@
   color: var(--muted);
 }
 
+/* 見出しのアイコンのボタン（VS Code のビューの見出しと同じ 22px の枠に 16px のアイコン。ファイル・変更で共通） */
+.changes-head .icon-button {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+}
+
+/* ボタンどうしは詰めて並べる（狭い一覧でもブランチの名前を残す） */
+.changes-head .icon-button + .icon-button {
+  margin-left: -4px;
+}
+
 .changes-branch {
   overflow: hidden;
   font-weight: 600;
@@ -52,28 +65,29 @@
   margin: 16px 12px;
 }
 
+/* 「ステージされている変更」「変更」の見出し（VS Code と同じく、ファイルの行と同じ 22px・13px の 1 行。長い名前は省く） */
 .change-group-head {
   display: flex;
   align-items: center;
   gap: 4px;
   width: 100%;
-  padding: 8px 10px 4px 8px;
+  height: 22px;
+  padding: 0 4px 0 8px;
   border: none;
   font: inherit;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 13px;
   text-align: left;
-  color: var(--muted);
+  color: var(--text);
   background: transparent;
   cursor: pointer;
 }
 
-.change-group-head:hover {
-  color: var(--text);
-}
-
 .change-group-title {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 変更のあるファイルの数（VS Code と同じ丸いバッジ。グループの見出しとプロジェクトのタブ） */
@@ -101,10 +115,12 @@
   align-items: baseline;
   gap: 6px;
   width: 100%;
-  padding: 3px 10px 3px 26px;
+  /* VS Code の一覧と同じ 22px の行 */
+  padding: 0 10px 0 26px;
   border: none;
   font: inherit;
   font-size: 13px;
+  line-height: 22px;
   text-align: left;
   color: var(--text);
   background: transparent;

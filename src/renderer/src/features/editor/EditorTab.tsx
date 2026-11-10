@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
 import { useAction } from "@/hooks/useAction";
-import type { CommitBusy } from "./CommitBox";
+import type { CommitBusy } from "./useCommitActions";
 import { useDragSize } from "@/hooks/useDragSize";
 import { navigate, type FileTarget } from "@/app/router";
 import { CHANGES_LIST_WIDTH } from "@/lib/storageKeys";
