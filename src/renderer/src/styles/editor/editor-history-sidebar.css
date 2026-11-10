@@ -45,7 +45,7 @@
   background: var(--bg-hover);
 }
 
-/* いまのブランチ（Fork と同じく、地の色で目立たせる） */
+/* いまのブランチ（地の色で目立たせる） */
 .ref-item.current {
   font-weight: 600;
   background: var(--bg-active);

@@ -9,7 +9,7 @@ import { CommitView } from "./CommitView";
 import type { GitLogController } from "./useGitLog";
 import type { RefTarget } from "./refTarget";
 
-/** 履歴の右側（Fork と同じ: 上にコミットの表、下に選んだコミットの詳細。境目はドラッグで動かせる）。⌘F は、下の詳細（変わったファイル・差分）の中を探す */
+/** 履歴の右側（上にコミットの表、下に選んだコミットの詳細。境目はドラッグで動かせる）。⌘F は、下の詳細（変わったファイル・差分）の中を探す */
 export function HistoryMain({
   projectId,
   log,
