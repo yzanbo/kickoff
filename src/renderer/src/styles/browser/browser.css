@@ -110,3 +110,53 @@
   color: var(--muted);
 }
 
+
+/*
+ * AI が操作しているブラウザのタブ（.agent-browsing。features/browser/agentBrowsing.ts）。
+ * 表に出ていないタブも、見えない形で欄いっぱいに並べる（大きさがないとページを撮れず、位置で押せないため）。
+ * 透明にして後ろに置き、押せないようにする（見ているタブの操作を邪魔しない）
+ */
+.panel-content:has(> .panel-tab-page.agent-browsing[hidden]) {
+  position: relative;
+}
+
+.panel-tab-page.agent-browsing[hidden] {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 閉じたチャット欄（幅 0・隠している）の中のタブは、欄を開いたときの幅で画面の右端に置く（同じく見えない形） */
+.project-chat:not(.open) .panel-tab-page.agent-browsing {
+  position: fixed;
+  inset: 0 0 0 auto !important;
+  z-index: -1;
+  display: block;
+  width: var(--chat-shown) !important;
+  height: auto !important;
+  visibility: visible;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* タブの「AI 操作中」の印（ロボット。ゆっくり明滅させる） */
+.agent-browsing-mark {
+  display: inline-flex;
+  color: var(--accent);
+  animation: agent-browsing-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes agent-browsing-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-browsing-mark {
+    animation: none;
+  }
+}

@@ -7,7 +7,7 @@ import { sendEvent, type IpcHandlers } from "../ipc/register.js";
  * 埋め込みブラウザの開発者ツールを、同じ画面の別の埋め込みブラウザ（devtoolsId）の中に表示する（右・下に並べるため）。
  * どちらも、頼んできた画面の中の埋め込みブラウザであることを確かめる
  */
-const isOurWebview = (host: WebContents, c: WebContents | undefined): c is WebContents => Boolean(c && c.getType() === "webview" && c.hostWebContents === host);
+export const isOurWebview = (host: WebContents, c: WebContents | undefined): c is WebContents => Boolean(c && c.getType() === "webview" && c.hostWebContents === host);
 
 // 埋め込みブラウザ（の WebContents の ID）ごとの、開発者ツールの別のウィンドウ
 const devtoolsWindows = new Map<number, BrowserWindow>();

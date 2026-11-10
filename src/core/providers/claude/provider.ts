@@ -19,6 +19,7 @@ import { autoCompactEnv } from "@shared/chat/autoCompact";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./labels.js";
 import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";
+import { BROWSER_SERVER, browserMcpServer, browserReadOnlyTools } from "./browserTools.js";
 import { agentEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
@@ -183,7 +184,10 @@ export class ClaudeProvider implements AgentProvider {
           // ユーザーの ~/.claude（CLAUDE.md・スキル等）とリポジトリの設定を Claude Code と同様に読み込む
           settingSources: ["user", "project", "local"],
           permissionMode: params.permissionMode,
-          allowedTools: toAllowedTools(params.policy),
+          // 埋め込みブラウザのツールのうち、見るだけのものは聞かずに使わせる（開く・押す・打つ・JS は権限モードと承認に従う）
+          allowedTools: [...toAllowedTools(params.policy), ...(params.browser ? browserReadOnlyTools() : [])],
+          // Kickoff の埋め込みブラウザを操作するツール（デスクトップアプリのときだけ）
+          ...(params.browser ? { mcpServers: { [BROWSER_SERVER]: browserMcpServer(params.browser.control, params.browser) } } : {}),
           canUseTool,
           resume: params.resumeSessionId ?? undefined,
           abortController,

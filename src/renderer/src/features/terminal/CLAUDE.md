@@ -13,6 +13,7 @@
 - `BrowserPane`（開発中のアプリのプレビュー・ドキュメント閲覧。デスクトップアプリでのみ動く）。ページは Kickoff 本体と切り離した専用のセッション（`partition="persist:kickoff-browser"`。メインプロセスでも強制）で開く。アドレス欄の文字は `lib/url.ts` の `normalizeUrl`（URL らしければそのまま、localhost などは http、ドメインは https、それ以外は検索）。アドレス欄の横の「〜で開く」は選んでいる外のブラウザで開く。
 - 開発者ツールは `useDevtools`: 右・下はタブの中のもう 1 つの webview に、別のウィンドウはメインプロセスで作ったウィンドウに出す。どこに出しているかは画面の側で持ち、Electron の「開いた・閉じた」の知らせには頼らない（遅れて届く）。右と下の入れ替えは開き直さず、同じ入れ物の並べ方だけを変える。メニュー（`DockMenu`）で場所を選ぶと、その場所で開く。場所は `BROWSER_DEVTOOLS_DOCK`（初めは別のウィンドウ）、大きさは `BROWSER_DEVTOOLS_WIDTH` / `BROWSER_DEVTOOLS_HEIGHT`（`useDragSize`）。
 - 拡張機能は設定の「ブラウザの拡張機能」（`BrowserExtensions`）。
+- AI（チャットのエージェント）もブラウザのタブを見る・操作する（ツールは `core/providers/claude/browserTools.ts`、操作はメインプロセスの `browser/agentBrowser.ts`）。`BrowserPane` は `agentTarget`（タブのキーとパネルのプロジェクト）を受け、webview の準備ができたら `useAgentRegistration` でメインプロセスに登録する。AI が新しいタブを開くときは、App の `useAgentBrowserBridge`（`app/agentBrowser.ts`）がそのプロジェクトのチャット欄（`side:<プロジェクト>`）に表に出さずに足す（`panelActions.addBrowserBehind`。見ているタブ・欄の開閉は変えない。チャット欄はいま出ているプロジェクトの分だけ描くので、ほかのプロジェクトなら断って AI に理由を返す）。AI が操作している間はタブの名前の前を「AI 操作中」のロボット（`BrowserTabLead`。`agentBrowsing.ts` の `useAgentBrowsing`）にし、そのタブのページに `.agent-browsing` を付けて、表に出ていない・欄を閉じていても透明のまま欄の大きさで並べる（`browser.css`。前に出したり欄を開いたりはしない）。
 
 ## 外のアプリで開く（`features/openWith`）
 

@@ -35,6 +35,7 @@ import { DialogHost } from "@/ui/dialogs";
 import { DropHintHost } from "@/ui/DropHint";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useChatNotifications } from "./notifications";
+import { useAgentBrowserBridge } from "./agentBrowser";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
 import { boardTabOf, openNewChat, openProjectSearch, RouteContext, routeProjectId, useHashRoute } from "./router";
@@ -71,6 +72,8 @@ export function App() {
   const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え。設定が届くまでは知らせる）
   useChatNotifications({ enabled: appSettings?.desktop_notifications ?? true, projectName, route });
+  // AI が埋め込みブラウザのタブを開く・操作している印
+  useAgentBrowserBridge();
   const sidebar = useSidebar();
   // 新しいプロジェクトのダイアログ（null = 閉じている。名前の初めの値・作ったあとの処理を持てる）
   const [creating, setCreating] = useState<NewProjectRequest | null>(null);

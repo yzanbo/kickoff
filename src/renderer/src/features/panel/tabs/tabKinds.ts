@@ -9,6 +9,7 @@ import { normalizeUrl } from "@/lib/url";
 import { ChildTabBadge } from "@/features/chat/children/ChildTabBadge";
 import { FileTabLead } from "@/features/editor/FileTabLead";
 import { ProjectViewTabLead } from "./ProjectViewTabLead";
+import { BrowserTabLead } from "@/features/browser/BrowserTabLead";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
 import type { PopoutRoute } from "@/app/popout";
@@ -343,6 +344,8 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   browser: {
     shows: "browser",
     icon: Globe,
+    // AI が操作している間は「AI 操作中」の印
+    Lead: BrowserTabLead,
     // 空のページのあいだは「新しいタブ」
     label: (t) => t.title || (t.url ? hostOf(t.url) : "新しいタブ"),
     hint: (t) => t.url,
