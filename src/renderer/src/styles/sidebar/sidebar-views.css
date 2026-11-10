@@ -161,6 +161,12 @@
   border-top: 1px solid var(--border);
 }
 
+/* いまの見え方と同じビューがもうあるときの一言（ボタンの下に 1 行で） */
+.sidebar-view-same {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 /* 「ビューを管理」は右端 */
 .sidebar-view-tuner-actions .sidebar-view-manage {
   margin-left: auto;

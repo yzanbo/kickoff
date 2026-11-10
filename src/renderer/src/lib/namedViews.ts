@@ -17,6 +17,9 @@ const nameKey = (name: string) => name.trim().normalize("NFKC").toLowerCase();
 export const viewNameTaken = <V extends NamedView>(views: readonly V[], name: string, exceptId?: string): boolean =>
   views.some((v) => v.id !== exceptId && nameKey(v.name) === nameKey(name));
 
+/** いまの見え方と同じビューがもうあるときの文（新しいビューとして保存を押せなくした理由。サイドバー・ボードで共通） */
+export const sameViewExistsText = (name: string) => `いまの見え方と同じビュー「${name}」がすでにあります`;
+
 export const addView = <V extends NamedView>(views: readonly V[], view: V): V[] => [...views, view];
 
 export const renameView = <V extends NamedView>(views: readonly V[], id: string, name: string): V[] => views.map((v) => (v.id === id ? { ...v, name } : v));
