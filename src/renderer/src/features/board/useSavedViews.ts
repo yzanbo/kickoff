@@ -8,7 +8,6 @@ import {
   BOARD_SORT,
   PROJECT_SAVED_VIEWS,
 } from "@/lib/storageKeys";
-import { useArchiveFilter } from "./archiveFilter";
 import { useBoardColumns, useGroupsByState } from "./BoardColumnsToggle";
 import { useBoardView } from "./BoardHeader";
 import { hiddenCardFields } from "./cardFields";
@@ -36,7 +35,7 @@ export function useSavedViews(projectId?: number) {
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
   const [columns, setColumns] = useBoardColumns(allProjects);
   const [rawSort, setSort] = useSetting(BOARD_SORT);
-  const [archive, setArchive] = useArchiveFilter(BOARD_ARCHIVE_FILTER);
+  const [archive, setArchive] = useSetting(BOARD_ARCHIVE_FILTER);
   const [feed, setFeed] = useSetting(ALL_PROJECTS_FEED);
   const [byState, setByState] = useGroupsByState();
   const [cardHidden, setCardHidden] = useSetting(BOARD_CARD_HIDDEN);
