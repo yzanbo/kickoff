@@ -199,3 +199,9 @@
 .change-file .file-icon {
   align-self: center;
 }
+
+/* エディタのいまの行の右の、その行をいつ誰が変えたか（VS Code の GitLens と同じ薄い斜体。CodeEditor の行の変更の記録） */
+.monaco-editor .blame-inline {
+  font-style: italic;
+  color: var(--extra-muted);
+}

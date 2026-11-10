@@ -3,5 +3,6 @@ export { currentBranch, gitStatus, isGitWorkTree, parseGitStatus } from "./statu
 export { assertInside, createProjectFile, listProjectFiles, readProjectFile, readProjectImage, renameProjectFile, trashProjectFile, writeProjectFile } from "./files.js";
 export { replaceInProject, searchProject } from "./search.js";
 export { commitStaged, discardPaths, fetchRemote, gitDiff, gitOriginal, pullBranch, pushBranch, stagePaths, toGitDiff, unstagePaths } from "./changes.js";
+export { gitBlame } from "./blame.js";
 export { gitCommitDetail, gitCommitDiff, gitLog, gitRefs, parseCommit, parseNameStatus } from "./history.js";
 export { addWorktree, findWorktree, listWorktrees, parseWorktrees, removeWorktree, worktreePathFor, worktreeMoves, worktreeRemovalInfo } from "./worktrees.js";

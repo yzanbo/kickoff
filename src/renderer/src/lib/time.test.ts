@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatRunTime, relativeTime, resetInShort, shortRelativeTime } from "./time";
+import { agoText, formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatRunTime, relativeTime, resetInShort, shortRelativeTime } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {
   const now = new Date(2026, 10, 1, 23, 0);
@@ -107,4 +107,15 @@ test("終わった処理の実行時間は、並べた開始と終了の時刻�
   assert.equal(formatStampRunTime(at(37, 100), at(38, 900)), "1秒");
   // 同じ秒の中なら、時刻は 1 つで実行時間は添えない
   assert.equal(formatStampRangeWithRunTime(at(37, 100), at(37, 900), now), "13:27:37");
+});
+
+test("agoText: GitLens と同じく、日付にせずに何日前・何か月前・何年前まで言う", () => {
+  const now = Date.parse("2026-11-10T12:00:00Z");
+  const ago = (sec: number) => new Date(now - sec * 1000).toISOString();
+  assert.equal(agoText(ago(10), now), "たった今");
+  assert.equal(agoText(ago(5 * 60), now), "5分前");
+  assert.equal(agoText(ago(3 * 3600), now), "3時間前");
+  assert.equal(agoText(ago(5 * 86400), now), "5日前");
+  assert.equal(agoText(ago(65 * 86400), now), "2か月前");
+  assert.equal(agoText(ago(800 * 86400), now), "2年前");
 });

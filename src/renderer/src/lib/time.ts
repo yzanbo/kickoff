@@ -9,6 +9,18 @@ export function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
 }
 
+/** どれだけ前か（VS Code の GitLens と同じ形: たった今・5分前・3時間前・5日前・2か月前・1年前。日付にしない） */
+export function agoText(iso: string, now = Date.now()): string {
+  const diff = (now - new Date(iso).getTime()) / 1000;
+  const days = Math.floor(diff / 86400);
+  if (diff < 60) return "たった今";
+  if (diff < 3600) return `${Math.floor(diff / 60)}分前`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}時間前`;
+  if (days < 30) return `${days}日前`;
+  if (days < 365) return `${Math.floor(days / 30)}か月前`;
+  return `${Math.floor(days / 365)}年前`;
+}
+
 /** 狭い所（サイドバーの行）向けの短い経過時間: 今・5分・23時間・3日、それより前は 11/1（「前」は付けない） */
 export function shortRelativeTime(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;

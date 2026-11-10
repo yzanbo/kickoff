@@ -2,12 +2,14 @@
 import * as monaco from "./monacoEditor";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import { useEffect, useRef } from "react";
+import type { GitBlame } from "@shared/types";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import type { AppliedTheme } from "@/lib/appliedTheme";
 import { registerCodeSelection, type CodeSelection } from "./codeSelection";
 import { registerEditorFind } from "./editorFind";
 import { syncMonacoFindOptions } from "./monacoFindOptions";
 import { SPLIT_MIN_WIDTH } from "./DiffView";
+import { blameAt, blameHover, blameLabel } from "./blameText";
 import { quickDiff, type QuickDiffHunk } from "./quickDiff";
 
 // 補完・型チェックの裏の処理（言語ごとのワーカー）は使わない。差分の計算などの基本のワーカーだけ
@@ -100,12 +102,16 @@ interface Props {
   nativeContextMenu?: boolean;
   /** 開いたらピントを置く（差分の「編集」から来たとき。ふだんはチャット欄などのピントを奪わない） */
   autoFocus?: boolean;
+  /** 行ごとの変更の記録（いまの行の右に、いつ誰が変えたかを出す。null なら出さない） */
+  blame?: GitBlame | null;
 }
 
 /**
  * VS Code と同じ編集の部品（Monaco Editor）。補完・型チェックは入れず、編集と色付けだけ。
  * 行番号の横に Git との違いの帯（足した行 = 緑・変えた行 = 青・消した所 = 赤の三角。打つたびに付け直す）。
  * original があれば差分の編集（左は元の中身で読むだけ、右を編集する。変えるたびに差分を計算し直す）。
+ * カーソルのある行の右に、その行をいつ誰が変えたか（VS Code の GitLens と同じ「誰, いつ • メッセージ」。乗せると詳しく）を薄く出す
+ * （保存した中身で取った記録なので、未保存の変更がある間は出さない）。
  * 入れ物の `data-quote-path` に選んでいる所の読み方を置く（右の欄で選んだ行をチャットに足す。codeSelection.ts）
  */
 export default function CodeEditor({
@@ -122,6 +128,7 @@ export default function CodeEditor({
   quickDiffBase = null,
   nativeContextMenu = true,
   autoFocus = false,
+  blame = null,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -134,6 +141,10 @@ export default function CodeEditor({
   const quickBase = useRef(quickDiffBase);
   quickBase.current = quickDiffBase;
   const refreshQuickDiff = useRef<(() => void) | null>(null);
+  // 行の変更の記録: 記録と、いまの行に付け直す関数（部品を作ったときに入る）
+  const blameRef = useRef(blame);
+  blameRef.current = blame;
+  const refreshBlame = useRef<(() => void) | null>(null);
   const theme = useAppliedTheme();
 
   useEffect(() => {
@@ -194,6 +205,29 @@ export default function CodeEditor({
       clearTimeout(timer);
       timer = setTimeout(paintQuickDiff, QUICK_DIFF_DELAY_MS);
     });
+    // いまの行の変更の記録（行の終わりのあとに薄い字で足す。カーソルはそこに止まらない）
+    const blameDecorations = editor.createDecorationsCollection();
+    const paintBlame = () => {
+      const position = editor.getPosition();
+      const commit = position && model.getValue() === saved.current ? blameAt(blameRef.current, position.lineNumber, model.getLineCount()) : null;
+      if (!position || !commit) return blameDecorations.clear();
+      const column = model.getLineMaxColumn(position.lineNumber);
+      blameDecorations.set([
+        {
+          range: { startLineNumber: position.lineNumber, startColumn: column, endLineNumber: position.lineNumber, endColumn: column },
+          options: {
+            // 幅のない範囲の差し込みの文字は、showIfCollapsed がないと描かれない
+            showIfCollapsed: true,
+            after: { content: `\u2003${blameLabel(commit)}`, inlineClassName: "blame-inline", cursorStops: monaco.editor.InjectedTextCursorStops.None },
+            hoverMessage: { value: blameHover(commit) },
+          },
+        },
+      ]);
+    };
+    refreshBlame.current = paintBlame;
+    paintBlame();
+    const cursorSub = editor.onDidChangeCursorPosition(paintBlame);
+    const blameContentSub = model.onDidChangeContent(paintBlame);
     const unregister = registerCodeSelection(host, () => readSelection(editor));
     // ページの ⌘F（ピントが部品の外にあるとき）で、Monaco の検索の欄を開く（部品の中にピントがあれば Monaco が自分で受け取る）
     const unregisterFind = registerEditorFind(host, () => {
@@ -206,6 +240,9 @@ export default function CodeEditor({
     return () => {
       clearTimeout(timer);
       sub.dispose();
+      cursorSub.dispose();
+      blameContentSub.dispose();
+      refreshBlame.current = null;
       unregister();
       unregisterFind();
       unsyncFind();
@@ -232,6 +269,11 @@ export default function CodeEditor({
     editorRef.current?.updateOptions({ contextmenu: nativeContextMenu });
   }, [nativeContextMenu]);
 
+  // 行の変更の記録を読み直したら、いまの行に付け直す
+  useEffect(() => {
+    refreshBlame.current?.();
+  }, [blame]);
+
   // Git との違いの元の中身が変わったら（ステージした・取り直した）、帯を付け直す
   useEffect(() => {
     refreshQuickDiff.current?.();
@@ -252,6 +294,7 @@ export default function CodeEditor({
       if (view) editor.restoreViewState(view);
     }
     latest.current.onDirtyChange(editor.getValue() !== savedValue);
+    refreshBlame.current?.();
   }, [savedValue]);
 
   useEffect(() => {

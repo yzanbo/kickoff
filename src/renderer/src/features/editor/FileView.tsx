@@ -20,6 +20,7 @@ import { useGitTarget } from "@/features/worktree/worktreeContext";
 import { DiffLayoutToggle } from "./DiffLayoutToggle";
 import { ImagePreview } from "./ImagePreview";
 import { changeOf } from "./sideFile";
+import { useGitBlame } from "./useGitBlame";
 import { useQuickDiffBase } from "./useQuickDiffBase";
 
 // 編集の部品（Monaco）は大きいので、ファイルの中身を初めて開いたときに読み込む
@@ -121,6 +122,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
 
   const change = changeOf(gitStatus, path);
   const quickDiffBase = useQuickDiffBase({ target, key, gitStatus, change, version, content: base ? (current?.file?.content ?? null) : null });
+  const blame = useGitBlame({ target, key, path, hash: base?.hash ?? null, version, enabled: Boolean(gitStatus?.repo) && change?.file.kind !== "U" });
 
   const changeDirty = (next: boolean) => {
     setDirty(next);
@@ -261,6 +263,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
                   layout={layout}
                   goToDiffRef={goToDiff}
                   quickDiffBase={quickDiffBase}
+                  blame={blame}
                   nativeContextMenu={!inSide}
                   autoFocus={autoFocus}
                 />

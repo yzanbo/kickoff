@@ -1,6 +1,6 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
-import { commitStaged, discardPaths, fetchRemote, gitCommitDetail, gitCommitDiff, gitDiff, gitLog, gitOriginal, gitRefs, gitStatus, pullBranch, pushBranch, stagePaths, unstagePaths } from "../../git/index.js";
+import { commitStaged, discardPaths, fetchRemote, gitBlame, gitCommitDetail, gitCommitDiff, gitDiff, gitLog, gitOriginal, gitRefs, gitStatus, pullBranch, pushBranch, stagePaths, unstagePaths } from "../../git/index.js";
 import { mergePreview, resolveConflict, runBranchAction, runOperationAction } from "../../git/branches.js";
 import { createPullRequest, pullRequestFor } from "../../git/github.js";
 import type { GitBranchAction, GitBranchActionResult } from "@shared/types";
@@ -60,6 +60,12 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
   app.get("/api/projects/:id/git/original", withWorkdir, async (c) => {
     const query = diffQuerySchema.parse({ path: c.req.query("path"), old: c.req.query("old"), staged: c.req.query("staged") });
     return c.json(await gitOriginal(c.var.workdir, query.path, query.staged === "1", query.old));
+  });
+
+  // 行ごとの変更の記録（git blame。エディタのいまの行の右に、いつ誰が変えたかを出す。Git で管理していないファイルは null）
+  app.get("/api/projects/:id/git/blame", withWorkdir, async (c) => {
+    const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
+    return c.json(await gitBlame(c.var.workdir, path));
   });
 
   // ステージ・ステージの取り消し・変更を捨てる（元に戻す）。終わったら新しい状態を返す

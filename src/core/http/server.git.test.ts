@@ -222,6 +222,18 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.match(execFileSync("git", ["log", "--format=%s", "-1"], { cwd: repo }).toString(), /b を直す（修正）/);
   // 下の履歴の確かめのため、もとのメッセージに戻す
   await call("POST", `/api/projects/${project.id}/git/commit`, { message: "b を直す", amend: true });
+
+  // 行ごとの変更の記録: コミットした行はそのコミット、書き足してまだコミットしていない行は uncommitted。Git で管理していないファイルは null
+  fs.appendFileSync(path.join(repo, "b.txt"), "more\n");
+  const blame = (await call("GET", `/api/projects/${project.id}/git/blame?path=b.txt`)).body;
+  assert.equal(blame.lines.length, 2);
+  assert.equal(blame.commits[blame.lines[0]].summary, "b を直す");
+  assert.equal(blame.commits[blame.lines[1]].uncommitted, true);
+  fs.writeFileSync(path.join(repo, "b.txt"), "bee!\n");
+  fs.writeFileSync(path.join(repo, "untracked.txt"), "x\n");
+  assert.equal((await call("GET", `/api/projects/${project.id}/git/blame?path=untracked.txt`)).body, null);
+  fs.rmSync(path.join(repo, "untracked.txt"));
+  assert.equal((await call("GET", `/api/projects/${project.id}/git/blame?path=../outside.txt`)).status, 400);
   assert.equal((await call("POST", `/api/projects/${project.id}/git/push`)).status, 400);
   const remote = tempDir();
   execFileSync("git", ["init", "-q", "--bare", "-b", "main", remote]);
