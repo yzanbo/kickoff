@@ -72,7 +72,8 @@ export function useWorkspaceRows({
   const showDrafts = !keyword && stateFilter === null;
   const { drafts, pinnedDrafts } = useMemo(() => splitPinnedDrafts(allDrafts), [allDrafts]);
 
-  // 出すチャット: アーカイブしていないものは検索・要対応・状態で絞り、アーカイブ済みは（出すときだけ）検索で絞る（要対応のときは出さない）。
+  // 出すチャット: アーカイブしていないものは検索・要対応・状態で絞り、アーカイブ済みは（出すときだけ）検索で絞る（要対応・状態で絞っているときは出さない。
+  // 作業中・回答待ち・未読はアーカイブしていないチャットだけを数えるので、出すと数と合わず、絞り込み中はまとまりを開くので「アーカイブ済み」も開いて見えた。利用者の指摘）。
   // 行の分け方は、チャット・絞り込み・回答待ちの一覧が変わったときだけ計算し直す（matches は検索語が変わるまで同じ関数）
   // 要対応・状態で絞るときは、合う子チャットも行に並べる（親の中に閉じたままだと見えないため。数にも入れている。利用者の依頼）
   const shown = useMemo(() => {
@@ -80,7 +81,7 @@ export function useWorkspaceRows({
       const state = stateOf(chat);
       return matches(chat) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter);
     };
-    const top = chats.filter((chat) => (chat.archived_at ? showArchived && !waitingOnly && matches(chat) : fits(chat)));
+    const top = chats.filter((chat) => (chat.archived_at ? showArchived && !waitingOnly && stateFilter === null && matches(chat) : fits(chat)));
     if (!waitingOnly && stateFilter === null) return top;
     const children = counted.filter((chat) => chat.parent_chat_id !== null && fits(chat));
     return children.length > 0 ? [...top, ...children] : top;
