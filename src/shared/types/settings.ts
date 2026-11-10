@@ -1,7 +1,7 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // プロバイダー・推論の深さ・権限モードの定数と、アプリ全体の設定
 import type { ChatOptions } from "./chat";
-import type { VoiceProvider } from "./voice";
+import type { VoiceProvider, VoiceTtsProvider } from "./voice";
 
 export const PROVIDER_IDS = ["claude", "codex", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
@@ -56,6 +56,14 @@ export interface AppSettings {
   voice_openai_base_url: string;
   /** OpenAI の文字起こしのモデル */
   voice_openai_model: string;
+  /** 音声モードで返答を読み上げる方法（この Mac の声 / OpenAI の声） */
+  voice_tts_provider: VoiceTtsProvider;
+  /** この Mac の声の名前（空なら話す言語の既定の声） */
+  voice_tts_voice: string;
+  /** OpenAI の声（OPENAI_TTS_VOICES） */
+  voice_tts_openai_voice: string;
+  /** 読み上げの速さ（1 が標準。VOICE_TTS_RATE_MIN〜MAX） */
+  voice_tts_rate: number;
   /** メモの親フォルダ（この下にプロジェクトごとのフォルダを作る。null なら既定の ~/Documents/kickoff。開発版は kickoff-dev） */
   memos_dir: string | null;
   /** 自動圧縮を始めるコンテキストの使用率（%。null なら Claude Code の既定。Claude Code の CLAUDE_AUTOCOMPACT_PCT_OVERRIDE で渡す） */
@@ -85,6 +93,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   voice_model: "large-v3-turbo-q5_0",
   voice_openai_base_url: "",
   voice_openai_model: "gpt-4o-transcribe",
+  voice_tts_provider: "system",
+  voice_tts_voice: "",
+  voice_tts_openai_voice: "coral",
+  voice_tts_rate: 1,
   memos_dir: null,
   auto_compact_pct: null,
   pre_compact_prompt: null,

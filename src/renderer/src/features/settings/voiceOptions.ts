@@ -1,10 +1,20 @@
 // 設定の「音声入力」に出す、文字起こしの方法と OpenAI のモデルの説明（無料か・料金の目安）
-import type { OPENAI_TRANSCRIBE_MODELS, VoiceProvider } from "@shared/types";
+import type { OPENAI_TRANSCRIBE_MODELS, VoiceProvider, VoiceTtsProvider } from "@shared/types";
+
+/** 方法のカードに出すもの（名前・料金の札・ひとこと・良いところ・気を付けるところ） */
+export interface ProviderInfo {
+  title: string;
+  price: string;
+  free: boolean;
+  summary: string;
+  pros: string[];
+  cons: string[];
+}
 
 type OpenAiTranscribeModel = (typeof OPENAI_TRANSCRIBE_MODELS)[number];
 
 /** 文字起こしの方法のカード（名前・料金の札・良いところ・気を付けるところ） */
-export const VOICE_PROVIDER_INFO: Record<VoiceProvider, { title: string; price: string; free: boolean; summary: string; pros: string[]; cons: string[] }> = {
+export const VOICE_PROVIDER_INFO: Record<VoiceProvider, ProviderInfo> = {
   local: {
     title: "この Mac",
     price: "無料",
@@ -22,6 +32,35 @@ export const VOICE_PROVIDER_INFO: Record<VoiceProvider, { title: string; price: 
     cons: ["話した長さに応じて API の料金がかかります（1 分あたり約 $0.003〜$0.006）", "音声を OpenAI に送ります"],
   },
 };
+
+/** 音声モードの読み上げの声のカード（OpenAI の料金は gpt-4o-mini-tts の、読み上げた音声 1 分あたりの目安） */
+export const VOICE_TTS_PROVIDER_INFO: Record<VoiceTtsProvider, ProviderInfo> = {
+  system: {
+    title: "この Mac の声",
+    price: "無料",
+    free: true,
+    summary: "Mac に入っている声（Kyoko など）で読み上げます。",
+    pros: ["料金はかかりません", "文を外に送りません", "準備は要りません"],
+    cons: ["機械らしい声です"],
+  },
+  openai: {
+    title: "OpenAI の声",
+    price: "有料（使った分だけ）",
+    free: false,
+    summary: "返答の文を OpenAI に送って、自然な声で読み上げます。",
+    pros: ["人に近い、自然な声です"],
+    cons: ["読み上げた長さに応じて API の料金がかかります（1 分あたり約 $0.015）", "API キーが要ります（文字起こしと同じキー）", "返答の文を OpenAI に送ります"],
+  },
+};
+
+/** 読み上げの速さの選択肢 */
+export const VOICE_TTS_RATES = [
+  { value: 0.75, label: "ゆっくり（0.75 倍）" },
+  { value: 1, label: "標準" },
+  { value: 1.25, label: "少し速く（1.25 倍）" },
+  { value: 1.5, label: "速く（1.5 倍）" },
+  { value: 2, label: "とても速く（2 倍）" },
+] as const;
 
 /** OpenAI の文字起こしのモデル（料金は 1 分あたりのドル。2026 年 11 月時点の公表価格の目安） */
 export const OPENAI_MODEL_INFO: Record<OpenAiTranscribeModel, { note: string; perMinute: number; recommended: boolean }> = {

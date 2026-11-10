@@ -4,8 +4,11 @@ import { Invalid } from "../http/errors.js";
 
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 
+/** API の URL（Base URL が空なら OpenAI。末尾の / は除く） */
+export const openAiUrl = (baseUrl: string, path: string) => `${(baseUrl.trim() || DEFAULT_BASE_URL).replace(/\/+$/, "")}${path}`;
+
 /** 文字起こしの API の URL（Base URL が空なら OpenAI。末尾の / は除く） */
-export const transcriptionUrl = (baseUrl: string) => `${(baseUrl.trim() || DEFAULT_BASE_URL).replace(/\/+$/, "")}/audio/transcriptions`;
+export const transcriptionUrl = (baseUrl: string) => openAiUrl(baseUrl, "/audio/transcriptions");
 
 /** 送る multipart の中身（言語が "auto" なら送らず、サーバーに判別させる） */
 export function transcriptionForm(audio: AudioInput, opts: Pick<OpenAiOptions, "model" | "language">): FormData {
@@ -24,15 +27,15 @@ export function parseTranscription(body: unknown): string {
   return text.trim();
 }
 
-/** 失敗の応答を、画面に出す文にする（状態コードごとに案内を変える。分からなければ応答の文） */
-export function openAiFailure(status: number, body: unknown): string {
+/** 失敗の応答を、画面に出す文にする（状態コードごとに案内を変える。分からなければ応答の文。what は「文字起こし」「読み上げ」） */
+export function openAiFailure(status: number, body: unknown, what = "文字起こし"): string {
   const message = (body as { error?: { message?: unknown } } | null)?.error?.message;
   const detail = typeof message === "string" && message ? message : `HTTP ${status}`;
   if (status === 401) return `API キーが正しくありません。設定の「音声入力」で保存し直してください（${detail}）`;
-  if (status === 404) return `文字起こしの API が見つかりません。Base URL とモデルを確かめてください（${detail}）`;
+  if (status === 404) return `${what}の API が見つかりません。Base URL とモデルを確かめてください（${detail}）`;
   if (status === 413) return "音声が大きすぎます（25MB まで）。短く区切って話してください";
   if (status === 429) return `使用枠・回数の上限に達しました。しばらくしてから試してください（${detail}）`;
-  return `文字起こしに失敗しました（${detail}）`;
+  return `${what}に失敗しました（${detail}）`;
 }
 
 /** OpenAI（互換のサーバーも）の文字起こしの API で起こす（つながらない・断られたら、理由の文で 400） */

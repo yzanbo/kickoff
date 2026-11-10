@@ -1,8 +1,10 @@
-import { Mic } from "lucide-react";
+import { ChevronDown, Mic } from "lucide-react";
+import type { PointerEvent } from "react";
 import { cx } from "@/lib/cx";
 import { useTicker } from "@/hooks/useTicker";
 import { ErrorText } from "@/ui/ErrorText";
 import { CloseButton, IconButton } from "@/ui/IconButton";
+import { useDictationMenu } from "./DictationMenu";
 import type { Dictation } from "./useDictation";
 
 /** 音声入力のショートカット（チャット欄にピントがあるときだけ） */
@@ -20,10 +22,49 @@ function RecordingTime({ startedAt }: { startedAt: number }) {
 }
 
 /**
- * チャット欄の下の道具のマイクのボタン（1 回押して話し始め、話し終わったらもう一度押す）。
+ * マイクのボタンを押したとき: 押し始めを知らせ、離したら（ボタンの外で離しても。録音中は別のボタンに描き替わるので window で受ける）知らせる。
+ * 短く押せば 1 回押し（もう一度押すまで録る）、長く押せば離したところで止めて起こす（useDictation の press / release）
+ */
+function pressHandlers(dictation: Dictation) {
+  return {
+    onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
+      if (e.button !== 0) return;
+      dictation.press();
+      const up = () => {
+        window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointercancel", up);
+        dictation.release();
+      };
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", up);
+    },
+    // キーボード（Enter・Space）で押したときだけ（マウスは押し始めと離したときに扱った）
+    onClick: (e: { detail: number }) => {
+      if (e.detail === 0) dictation.toggle();
+    },
+  };
+}
+
+/**
+ * チャット欄の下の道具のマイクのボタン（1 回押して話し始め、話し終わったらもう一度押す。押したまま話して離してもよい）と、
+ * 右の ▾（右クリックでも開く）の音声入力の設定のメニュー（使うマイク・話す言語）。
  * 録音中は赤くして経過時間とやめるボタン、文字起こし中はスピナーを添える
  */
 export function DictationButton({ dictation }: { dictation: Dictation }) {
+  const menu = useDictationMenu();
+  return (
+    <span className="dictation-control" onContextMenu={menu.open}>
+      <DictationState dictation={dictation} />
+      {dictation.state.kind !== "recording" && dictation.state.kind !== "transcribing" && (
+        <IconButton icon={ChevronDown} label="音声入力の設定" title="音声入力の設定（使うマイク・話す言語）" size={12} className={cx("dictation-more", menu.isOpen && "open")} type="button" onClick={menu.toggle} />
+      )}
+      {menu.element}
+    </span>
+  );
+}
+
+/** マイクのボタン（いまの状態ごと） */
+function DictationState({ dictation }: { dictation: Dictation }) {
   const { state, ready } = dictation;
   if (state.kind === "recording") {
     return (
@@ -35,7 +76,7 @@ export function DictationButton({ dictation }: { dictation: Dictation }) {
           size={16}
           className="attach-button dictation-button recording"
           type="button"
-          onClick={() => void dictation.finish(false)}
+          {...pressHandlers(dictation)}
         />
         <RecordingTime startedAt={state.startedAt} />
         <CloseButton label="録音をやめる（Esc）" size={13} className="dictation-cancel" type="button" onClick={dictation.cancel} />
@@ -57,14 +98,14 @@ export function DictationButton({ dictation }: { dictation: Dictation }) {
       label={ready ? "音声入力" : "音声入力の設定を開く"}
       title={
         ready
-          ? `音声入力（${DICTATION_SHORTCUT}）。1 回押して話し始め、話し終わったらもう一度押してください`
+          ? `音声入力（${DICTATION_SHORTCUT}）。1 回押して話し始め、話し終わったらもう一度押してください。押したまま話して、離しても入ります。右クリックでマイクと言語を選べます`
           : "音声入力の準備ができていません。押すと設定の「音声入力」を開きます"
       }
       size={16}
       className={cx("attach-button dictation-button", !ready && "unready")}
       type="button"
       disabled={state.kind === "starting"}
-      onClick={dictation.toggle}
+      {...pressHandlers(dictation)}
     />
   );
 }

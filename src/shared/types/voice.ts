@@ -20,6 +20,23 @@ export const CJK_CHAR = /[\p{sc=Han}\p{sc=Hiragana}\p{sc=Katakana}]|[、。・�
 /** OpenAI の文字起こしのモデルの候補（互換のサーバーでは、ほかの名前も入れられる） */
 export const OPENAI_TRANSCRIBE_MODELS = ["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"] as const;
 
+/** 音声モードで返答を読み上げる方法（system = この Mac の声 / openai = OpenAI の声） */
+export const VOICE_TTS_PROVIDERS = ["system", "openai"] as const;
+export type VoiceTtsProvider = (typeof VOICE_TTS_PROVIDERS)[number];
+
+/** OpenAI の読み上げのモデル（Base URL と API キーは文字起こしと同じものを使う） */
+export const OPENAI_TTS_MODEL = "gpt-4o-mini-tts";
+
+/** OpenAI の読み上げの声 */
+export const OPENAI_TTS_VOICES = ["coral", "alloy", "ash", "ballad", "echo", "fable", "nova", "onyx", "sage", "shimmer", "verse"] as const;
+
+/** 読み上げの速さ（1 が標準） */
+export const VOICE_TTS_RATE_MIN = 0.5;
+export const VOICE_TTS_RATE_MAX = 2;
+
+/** 一度に読み上げてもらえる文の長さの上限（OpenAI の読み上げの API と同じ） */
+export const SPEECH_TEXT_MAX = 4096;
+
 /** モデルのダウンロードの進み具合（終わったら null。失敗したら error を残す） */
 export interface VoiceDownload {
   received: number;

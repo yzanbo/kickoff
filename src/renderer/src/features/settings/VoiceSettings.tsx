@@ -1,5 +1,5 @@
-import { Check, Mic, Minus } from "lucide-react";
-import { VOICE_LANGUAGES, VOICE_PROVIDERS, type AppSettings, type VoiceProvider, type VoiceStatus } from "@shared/types";
+import { Mic } from "lucide-react";
+import { VOICE_LANGUAGES, VOICE_PROVIDERS, type AppSettings, type VoiceStatus } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useSave } from "@/hooks/useSave";
 import { useVoiceStatus } from "@/stores/voice";
@@ -10,10 +10,12 @@ import { useSettingsDraft } from "./useSettingsDraft";
 import { VOICE_PROVIDER_INFO } from "./voiceOptions";
 import { VoiceLocalSetup } from "./VoiceLocalSetup";
 import { VoiceOpenAiSetup } from "./VoiceOpenAiSetup";
+import { VoiceProviderCard } from "./VoiceProviderCard";
+import { VoiceSpeechSettings } from "./VoiceSpeechSettings";
 
 /**
  * 設定: 音声入力（利用者の依頼で使いやすく作り直した）。上から、使うかのスイッチといま使えるか（1 枚のカード）→ 文字起こしの方法（無料 / 有料の札付きのカード）→
- * 話す言語 → 選んだ方法の準備（手順ごとに済んだら ✓）。変えたらその場で保存する（保存のボタンを押し忘れて効かない、をなくす）
+ * 話す言語 → 選んだ方法の準備（手順ごとに済んだら ✓）→ 音声モードの読み上げ（声の方法・声・速さ）。変えたらその場で保存する（保存のボタンを押し忘れて効かない、をなくす）
  */
 export function VoiceSettings() {
   const { draft, setDraft, saveFields } = useSettingsDraft();
@@ -39,7 +41,7 @@ export function VoiceSettings() {
       <Field as="div" label="文字起こしの方法">
         <div className="voice-providers" role="radiogroup" aria-label="文字起こしの方法">
           {VOICE_PROVIDERS.map((p) => (
-            <ProviderCard key={p} provider={p} selected={draft.voice_provider === p} onSelect={() => apply({ voice_provider: p })} />
+            <VoiceProviderCard key={p} name="voice-provider" info={VOICE_PROVIDER_INFO[p]} selected={draft.voice_provider === p} onSelect={() => apply({ voice_provider: p })} />
           ))}
         </div>
       </Field>
@@ -59,6 +61,8 @@ export function VoiceSettings() {
       ) : (
         <VoiceOpenAiSetup status={voice.data} draft={draft} apply={apply} />
       )}
+
+      <VoiceSpeechSettings status={voice.data} draft={draft} apply={apply} />
     </section>
   );
 }
@@ -83,38 +87,10 @@ function VoiceHero({ status, enabled, onToggle }: { status: VoiceStatus | undefi
           {status && !status.ready && <span className="muted">— {enabled ? status.reason : "スイッチを入れると、マイクのボタンで話せるようになります。"}</span>}
         </p>
         <p className="field-help">
-          チャット欄・AI からの質問の「その他」の欄のマイク（⌘⇧Space）を 1 回押して話し始め、話し終わったらもう一度押すと、文字になって入ります。
+          チャット欄・AI からの質問の「その他」の欄のマイク（⌘⇧Space）を 1 回押して話し始め、話し終わったらもう一度押すと、文字になって入ります（押したまま話して離しても入ります）。
+          チャット欄の波形のボタンは音声モードで、話しかけると送り、AI の返答を読み上げます。
         </p>
       </div>
     </div>
-  );
-}
-
-/** 文字起こしの方法のカード（名前と「無料」「有料」の札・ひとこと・良いところ ✓ と気を付けるところ −） */
-function ProviderCard({ provider, selected, onSelect }: { provider: VoiceProvider; selected: boolean; onSelect: () => void }) {
-  const info = VOICE_PROVIDER_INFO[provider];
-  return (
-    <label className={cx("voice-provider", selected && "selected")}>
-      <span className="voice-provider-head">
-        <input type="radio" name="voice-provider" checked={selected} onChange={onSelect} />
-        <span className="voice-provider-title">{info.title}</span>
-        <span className={cx("voice-price", info.free ? "free" : "paid")}>{info.price}</span>
-      </span>
-      <span className="voice-provider-summary">{info.summary}</span>
-      <ul className="voice-points">
-        {info.pros.map((t) => (
-          <li key={t} className="pro">
-            <Check size={12} aria-hidden />
-            {t}
-          </li>
-        ))}
-        {info.cons.map((t) => (
-          <li key={t} className="con">
-            <Minus size={12} aria-hidden />
-            {t}
-          </li>
-        ))}
-      </ul>
-    </label>
   );
 }

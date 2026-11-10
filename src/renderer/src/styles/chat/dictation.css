@@ -66,3 +66,21 @@
 .question-other-field .dictation-error {
   padding: 0;
 }
+
+/* マイクと右の ▾（音声入力の設定のメニュー。右クリックでも開く）。▾ はマイクに寄せた細いボタン */
+.dictation-control {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.dictation-more {
+  width: 16px;
+  height: 28px;
+  margin-left: -2px;
+  color: var(--muted);
+}
+
+.dictation-more.open {
+  color: var(--text);
+}

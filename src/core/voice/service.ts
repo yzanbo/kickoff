@@ -4,6 +4,7 @@ import { ModelDownloads } from "./downloads.js";
 import { transcribeLocal } from "./local.js";
 import { modelFile, WHISPER_MODELS } from "./models.js";
 import { transcribeOpenAi } from "./openai.js";
+import { synthesizeOpenAi } from "./speech.js";
 import { voiceUnreadyReason } from "./readiness.js";
 import { findVoiceTools, type VoiceTools } from "./tools.js";
 import type { AudioInput, TranscribeEngines } from "./types.js";
@@ -32,7 +33,7 @@ export class VoiceService {
   constructor(opts: VoiceServiceOptions) {
     this.store = opts.store;
     this.modelsDir = opts.modelsDir;
-    this.engines = opts.engines ?? { local: transcribeLocal, openai: (audio, o) => transcribeOpenAi(audio, o) };
+    this.engines = opts.engines ?? { local: transcribeLocal, openai: (audio, o) => transcribeOpenAi(audio, o), speech: (text, o) => synthesizeOpenAi(text, o) };
     this.findTools = opts.findTools ?? findVoiceTools;
     this.downloads = new ModelDownloads(
       opts.modelsDir,
@@ -78,6 +79,15 @@ export class VoiceService {
       return this.engines.openai(audio, { key, baseUrl: settings.voice_openai_base_url, model: settings.voice_openai_model, language: lang });
     }
     return this.engines.local(audio, { whisper: tools.whisper!, ffmpeg: tools.ffmpeg!, model: modelFile(this.modelsDir, settings.voice_model), language: lang });
+  }
+
+  /** 音声モードの返答を OpenAI の声で読み上げた mp3（音声入力がオフ・API キーがなければ 400。この Mac の声は画面が直接使う） */
+  async speak(text: string): Promise<Uint8Array> {
+    const settings = this.store.settings.get();
+    if (!settings.voice_enabled) throw new Invalid("音声入力がオフです。設定の「音声入力」でオンにしてください。");
+    const key = this.store.secrets.get("openai_transcribe_key") ?? "";
+    if (!key) throw new Invalid("OpenAI の API キーがありません。設定の「音声入力」で保存してください。");
+    return this.engines.speech(text, { key, baseUrl: settings.voice_openai_base_url, voice: settings.voice_tts_openai_voice, speed: settings.voice_tts_rate });
   }
 
   /** OpenAI の API キーを保存する（空なら消す）。保存したかだけを返す */

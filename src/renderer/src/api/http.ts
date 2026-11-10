@@ -63,3 +63,10 @@ export async function requestBlob(url: string): Promise<{ blob: Blob; headers: H
   if (!res.ok) throw await failure(res);
   return { blob: await res.blob(), headers: res.headers };
 }
+
+/** JSON を送って、本文をそのまま受け取る（読み上げの音声など。失敗は ApiError） */
+export async function postForBlob(url: string, body: unknown, signal?: AbortSignal): Promise<Blob> {
+  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", signal });
+  if (!res.ok) throw await failure(res);
+  return res.blob();
+}

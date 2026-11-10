@@ -9,6 +9,7 @@ import { VoiceService } from "../voice/service.js";
 import { MemoService } from "../memos/memos.js";
 import type { VoiceTools } from "../voice/tools.js";
 import type { AudioInput, LocalOptions, OpenAiOptions } from "../voice/types.js";
+import type { SpeechOptions } from "../voice/speech.js";
 import { FakeProviderBase } from "./fakeProvider.js";
 import "./gitRepo.js";
 import { tempDir } from "./tempDir.js";
@@ -195,6 +196,8 @@ export function setup(opts: { staticDir?: string } = {}) {
   const voiceFake = {
     tools: { whisper: "/fake/whisper-cli", ffmpeg: "/fake/ffmpeg" } as VoiceTools,
     calls: [] as { engine: "local" | "openai"; audio: AudioInput; opts: LocalOptions | OpenAiOptions }[],
+    /** 読み上げを頼まれた文と値 */
+    speeches: [] as { text: string; opts: SpeechOptions }[],
     /** ダウンロードで返す中身（Response を返す関数） */
     download: async (): Promise<Response> => new Response(new Uint8Array([1, 2, 3]), { headers: { "content-length": "3" } }),
   };
@@ -205,6 +208,7 @@ export function setup(opts: { staticDir?: string } = {}) {
     engines: {
       local: async (audio, opts) => (voiceFake.calls.push({ engine: "local", audio, opts }), "ローカルの文"),
       openai: async (audio, opts) => (voiceFake.calls.push({ engine: "openai", audio, opts }), "OpenAI の文"),
+      speech: async (text, opts) => (voiceFake.speeches.push({ text, opts }), new Uint8Array([9, 8, 7])),
     },
     findTools: async () => voiceFake.tools,
     fetch: () => voiceFake.download(),

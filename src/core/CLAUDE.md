@@ -12,7 +12,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - `providers/`: エージェントの実行基盤の抽象（`AgentProvider`）と Claude Code の実装。→ `providers/CLAUDE.md`
 - `git/`: Git・GitHub（gh）・プロジェクトのフォルダの作成と取り込み・ワークツリー。→「Git」
 - `usage/`: Claude のプランの使用枠と、ほかのサービスの使用状況。→「使用状況」
-- `voice/`: 音声入力の文字起こし。→「音声入力」
+- `voice/`: 音声入力の文字起こしと、音声モードの読み上げ（OpenAI の声）。→「音声入力」
 - `memos/`: プロジェクトのメモ（`memos.ts` の `MemoService`）。→「メモ」
 - `system/`: 外部コマンド・パス（→「外部コマンドとパス」）・ログインシェルの PATH（`shellEnv.ts` の `loadLoginShellPath`）・期限付きのキャッシュ（`ttlCache.ts`）・名前と保存先とポート（`appEnv.ts` の `APP_ENVS`。製品版 Kickoff = 4317、開発版 Kickoff Dev = 4318。同時に動かせ、開発中の変更で製品版のデータを壊さない）・開発版のデータの写し（`devData.ts` の `seedDevData`。開発の保存先がなければ製品版から一度だけ。DB は `VACUUM INTO`）。
 - `testing/`: テストからだけ使う補助。→「テスト」
@@ -75,8 +75,9 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 - 入口は `service.ts` の `VoiceService`。設定の `voice_provider` で振り分ける: `local` = Homebrew の `whisper-cli`（whisper-cpp）＋ `ffmpeg`（`tools.ts` の `findVoiceTools`）。`local.ts` で 16kHz・モノラルの wav にしてから起こし、一時フォルダは必ず消す / `openai` = `POST {Base URL}/audio/transcriptions`（`openai.ts`。Base URL が空なら OpenAI）。
 - 準備の確かめは `readiness.ts` の `voiceUnreadyReason`（できなければその理由で 400）、モデルの一覧は `models.ts` の `WHISPER_MODELS`（ggml。保存先の `models/ggml-<id>.bin`。開発版と製品版で別）、ダウンロードは `downloads.ts` の `ModelDownloads`（`.part` に書いて名前を変える。進み具合は SSE の `voice_model`）。
-- API は `http/routes/voice.ts`（`POST /api/transcribe`（multipart の `file` と `language`）→ `{ text }`、`GET /api/voice`、`POST /api/voice/models/:id/download`、`DELETE /api/voice/models/:id`、`PUT /api/voice/openai-key`）。OpenAI のキーは `secrets` の `openai_transcribe_key` に置く。
-- 文字起こしの処理・コマンドの探し方・ダウンロードの fetch は、テストで差し替える（`VoiceService` の `engines` / `findTools` / `fetch`）。
+- 音声モードの読み上げ（OpenAI の声）は `speech.ts` の `synthesizeOpenAi`（`POST {Base URL}/audio/speech`。モデルは `OPENAI_TTS_MODEL`、声 `voice_tts_openai_voice`・速さ `voice_tts_rate`、mp3）。入口は `VoiceService.speak`（音声入力がオフ・キーがなければ 400）。この Mac の声は画面が `speechSynthesis` で直接使うので、コアは持たない。
+- API は `http/routes/voice.ts`（`POST /api/transcribe`（multipart の `file` と `language`）→ `{ text }`、`POST /api/speech`（`{ text }`。`SPEECH_TEXT_MAX` 文字まで）→ mp3、`GET /api/voice`、`POST /api/voice/models/:id/download`、`DELETE /api/voice/models/:id`、`PUT /api/voice/openai-key`）。OpenAI のキーは `secrets` の `openai_transcribe_key` に置く。
+- 文字起こしの処理・読み上げ・コマンドの探し方・ダウンロードの fetch は、テストで差し替える（`VoiceService` の `engines`（`local` / `openai` / `speech`）/ `findTools` / `fetch`）。
 
 ## メモ（memos/）
 
