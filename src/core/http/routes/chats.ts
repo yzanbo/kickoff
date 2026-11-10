@@ -5,7 +5,7 @@ import type { ServerDeps } from "../server.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups, requireGroupOf, requireProject } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
-import { flag, newChatSchema, optionalId } from "./schemas.js";
+import { chatTitle, flag, newChatSchema, optionalId } from "./schemas.js";
 import { chatTranscript } from "../../chat/transcript.js";
 import type { ChatDetail, ChatPatch, ChatTranscript } from "@shared/types";
 
@@ -21,7 +21,7 @@ function chatListFilter(c: Context) {
 /** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
 const chatPatchSchema = z
   .object({
-    title: z.string().trim().min(1).max(100),
+    title: chatTitle,
     group_id: z.number().int().nullable(),
     // サイドバーの上に固定する・やめる（並び順は変えない）
     pinned: z.boolean(),
@@ -48,6 +48,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     const created = await runner.start({
       projectId: project.id,
       prompt: input.text,
+      title: input.title,
       options: input.options,
       attachments: input.attachments,
       groupId: input.group_id,

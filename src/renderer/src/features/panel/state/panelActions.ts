@@ -38,6 +38,7 @@ export function panelActions(key: string) {
     const tabKey = !seed && recent && recent.target === sig && Date.now() - recent.at < 100 ? recent.key : newTabKey("new");
     lastNew.set(key, { target: sig, key: tabKey, at: Date.now() });
     openTab(newChatTab(target, seed, tabKey));
+    return tabKey;
   };
 
   /** 内蔵ターミナルの新しいタブを開く（開く場所のフォルダでシェルを始める） */

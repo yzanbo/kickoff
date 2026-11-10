@@ -76,6 +76,8 @@ export interface MessageBody {
  * 新しく作るワークツリーのブランチ名（new_worktree_branch）。どちらもなければ本体
  */
 export interface NewChatBody extends MessageBody {
+  /** 送る前に付けた名前（あれば AI に名前を付けてもらわない） */
+  title?: string;
   group_id?: number;
   worktree_path?: string;
   new_worktree_branch?: string;

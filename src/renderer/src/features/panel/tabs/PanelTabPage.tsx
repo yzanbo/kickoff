@@ -56,6 +56,7 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       tabKey={t.key}
       projectId={t.projectId}
       group={t.group}
+      title={t.title}
       worktree={t.worktree}
       seed={t.seed}
       draftText={t.draftText}
