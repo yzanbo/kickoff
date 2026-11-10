@@ -1,13 +1,13 @@
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/cx";
 import { knownChat, useKnownChat } from "@/stores/chats";
-import { confirmLeaveMemo } from "@/features/memo/memoGuards";
-import { confirmCloseFileTab, useFileTabDirty } from "@/features/editor/fileTabs";
+import { useFileTabDirty } from "@/features/editor/fileTabs";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { chatTitle } from "@/features/chat/chatTitle";
 import type { PanelController } from "@/features/panel/usePanel";
 import { SURFACES } from "@/features/panel/surfaces";
+import { confirmCloseUnsaved } from "./confirmUnsaved";
 import { PanelTab } from "./PanelTab";
 import { TabWorkplaceBadge } from "./TabWorkplaceBadge";
 import type { PanelTab as Tab } from "./panelTypes";
@@ -72,11 +72,8 @@ export function PaneTab({
     if (backHome) return panel.returnToHome(t.key);
     // 子チャットのタブは、チャットの ✕ と同じく閉じ方を聞く（表示だけ消す = タブを閉じる。子チャットは残る）
     if (t.kind === "child") return void closeChatWithChoice({ id: t.childId, title: t.title, archived_at: knownChat(t.childId)?.archived_at }, () => panel.closeTab(t.key));
-    // メモのタブは、まだ保存していない書きかけがあれば保存するかを聞く
-    if (t.kind === "memo") return void confirmLeaveMemo(t.projectId, t.path).then((ok) => ok && panel.closeTab(t.key));
-    // ファイルのタブは、保存していない変更があれば 保存 / 保存しない / キャンセル を選んでもらう
-    if (t.kind === "projectFile") return void confirmCloseFileTab(panel.key, t.key).then((ok) => ok && panel.closeTab(t.key));
-    if (t.kind !== "chat") return panel.closeTab(t.key);
+    // メモ・ファイルのタブは、保存していない書きかけがあれば保存するかを聞く（confirmUnsaved.ts）
+    if (t.kind !== "chat") return void confirmCloseUnsaved(panel.key, t).then((ok) => ok && panel.closeTab(t.key));
     void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: chat?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }));
   };
   const editor = rename.editorFor(panel.key, t, child?.title);

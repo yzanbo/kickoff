@@ -13,6 +13,7 @@ import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
 import { useTabStrip } from "@/features/panel/clusters/useTabStrip";
 import { joinDropHandlers, useClusterTabDrop } from "@/features/panel/clusters/useClusterTabDrop";
 import type { OpenWithKind } from "@/features/openWith/useOpenWithMenu";
+import { confirmCloseAllUnsaved } from "./confirmUnsaved";
 import { PaneTab } from "./PaneTab";
 import { PanelTabAdds } from "./PanelTabAdds";
 import { specOf, type TabGroupLookup } from "./tabKinds";
@@ -105,6 +106,11 @@ export function PaneTabBar({
     stripRef.current?.querySelector(".panel-tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [active, pane.tabs.length]);
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
+  /** ペインを閉じる（閉じるファイル・メモのタブに保存していない書きかけがあれば、先に保存するかを聞く） */
+  const closePane = () => {
+    const tabs = panel.tabs.filter((t) => pane.tabs.includes(t.key));
+    void confirmCloseAllUnsaved(panel.key, tabs).then((ok) => ok && panel.closePane(pane.id));
+  };
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (active ?? undefined) : undefined);
   // タブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
   const groupsOf = useGroupsOf(panel.tabs.flatMap((t) => specOf(t).projectOf(t) ?? []));
@@ -251,7 +257,7 @@ export function PaneTabBar({
             <IconButton icon={Rows2} label="下に分ける" size={14} onClick={() => splitTo("column")} />
           </>
         )}
-        {split && <IconButton icon={X} label="ペインを閉じる" title="ペインを閉じる（チャットは一覧のペインに戻し、ほかのタブは閉じる）" size={15} onClick={() => panel.closePane(pane.id)} />}
+        {split && <IconButton icon={X} label="ペインを閉じる" title="ペインを閉じる（チャットは一覧のペインに戻し、ほかのタブは閉じる）" size={15} onClick={closePane} />}
         {endControls}
       </span>
     </div>

@@ -9,6 +9,7 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
 import type { NewChatTarget } from "./panelTypes";
+import { confirmCloseUnsaved } from "./confirmUnsaved";
 import { canPopOut, popOutTab } from "./popOutTab";
 import { TabDisplaySubmenu } from "./TabDisplayItems";
 
@@ -105,8 +106,8 @@ export function TabMenu({
           <Undo2 size={14} /> 一覧のペインに戻す
         </MenuItem>
       )}
-      {/* メニューの「閉じる」は聞かずに閉じる（× と違い、アーカイブ・削除はこのメニューの項目で選べる） */}
-      <MenuItem onSelect={() => panel.closeTab(tabKey)}>
+      {/* メニューの「閉じる」は、チャットの閉じ方を聞かずに閉じる（× と違い、アーカイブ・削除はこのメニューの項目で選べる）。保存していない書きかけのあるファイル・メモは × と同じく保存するかを聞く */}
+      <MenuItem onSelect={() => void (tab ? confirmCloseUnsaved(panel.key, tab) : Promise.resolve(true)).then((ok) => ok && panel.closeTab(tabKey))}>
         <X size={14} /> タブを閉じる
       </MenuItem>
     </>
