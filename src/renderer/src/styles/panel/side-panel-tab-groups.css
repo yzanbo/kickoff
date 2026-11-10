@@ -16,11 +16,11 @@
   gap: 2px;
   /* まとまりの色（札の文字・地、中のタブの線と枠）。ライトは地に負けない濃さ */
   --group-color: hsl(var(--group-hue) 60% 68%);
-  /* 札と中のタブの地（同じ色にして、どこまでが 1 つのまとまりか見せる） */
+  /* 頭の札の地 */
   --group-tint: color-mix(in srgb, var(--group-color) 18%, transparent);
 }
 
-/* 「その他」（色なし）は、札と同じ控えめな地 */
+/* 「その他」（色なし）の札は控えめな地 */
 .panel-tab-group.plain {
   --group-tint: var(--bg-elev);
 }
@@ -35,20 +35,9 @@
 }
 
 /*
- * まとまりの中のタブの地は、頭の札と同じ色（利用者の依頼。札とタブを 1 つの帯に見せる）。乗せたときは少し濃く。
- * 表示中のタブは、下の画面と 1 枚の面に見せるため画面の地のまま（side-panel-tab-sheet.css）
+ * まとまりの中のタブには地の色を付けない（利用者の依頼 2026-11-10。色はまとまりの頭の札だけに付け、タブはまとまりの外のタブと同じ見た目にする。
+ * 前は札と同じ色の地を付けて札とタブを 1 つの帯に見せていた）。乗せたとき・表示中は、ふつうのタブと同じ（side-panel-tabs.css・side-panel-tab-sheet.css）
  */
-.panel-tab-group .panel-tab:not(.active) {
-  background: var(--group-tint);
-}
-
-.panel-tab-group:not(.plain) .panel-tab:not(.active):hover {
-  background: color-mix(in srgb, var(--group-color) 28%, transparent);
-}
-
-.panel-tab-group.plain .panel-tab:not(.active):hover {
-  background: var(--bg-hover);
-}
 
 .panel-tab-group + .panel-tab-group {
   margin-left: 10px;
