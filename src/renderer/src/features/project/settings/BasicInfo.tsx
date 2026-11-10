@@ -28,17 +28,19 @@ export function BasicInfo({ project }: { project: Project }) {
     <section className="section">
       <h2>基本情報</h2>
       <div className="form">
+        {/* プロジェクト名と概要は、基本情報のいちばん上に置く（利用者の依頼。前はフォルダ・メモフォルダ・色・タグの下だった）。下の「保存」はこの 2 つだけのもの */}
+        <Field label="プロジェクト名">
+          <input type="text" value={draft.name} maxLength={100} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+        </Field>
+        {/* 概要の欄は、空なら 2 行の高さで、書いた分だけ伸ばす（field-sizing。利用者の依頼。前は空でも 4 行あった） */}
+        <Field label="概要" help="このプロジェクトのチャットで、AI にプロジェクトの説明として渡します。">
+          <textarea className="project-description" rows={2} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+        </Field>
+        <SaveActions save={save} disabled={!dirty || !draft.name.trim()} onSave={() => api.updateProject(project.id, { ...draft, name: draft.name.trim() })} />
         <FolderRow project={project} />
         <MemoDirRow project={project} />
         <ColorField project={project} />
         <TagEditor project={project} />
-        <Field label="プロジェクト名">
-          <input type="text" value={draft.name} maxLength={100} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-        </Field>
-        <Field label="概要・アイデア" help="このプロジェクトのチャットで、AI にプロジェクトの説明として渡します。">
-          <textarea rows={4} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
-        </Field>
-        <SaveActions save={save} disabled={!dirty || !draft.name.trim()} onSave={() => api.updateProject(project.id, { ...draft, name: draft.name.trim() })} />
       </div>
     </section>
   );
