@@ -59,20 +59,50 @@
 }
 
 .palette-label {
-  flex: 1;
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+/* 名前のすぐ後ろのグループと作業場所の札（サイドバーの行と同じ札。狭ければ札の名前を省く。札がなければ詰める） */
+.palette-chips {
+  display: inline-flex;
+  flex: 0 1 auto;
+  gap: 4px;
+  min-width: 0;
+}
+
+.palette-chips:empty {
+  display: none;
+}
+
+.palette-chips :is(.worktree-chip, .chat-group-chip) {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 140px;
+}
+
+/* 右の薄い文（プロジェクト名など）。前にサイドバーと同じプロジェクトの印を置く。右端に寄せる */
 .palette-hint {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 6px;
   /* チャットの中の文言の行は「チャット名 · プロジェクト」と長くなるので、本文を残して省く */
   max-width: 40%;
-  overflow: hidden;
+  min-width: 0;
+  margin-left: auto;
   font-size: 12px;
   color: var(--muted);
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.palette-hint-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .palette-empty {
