@@ -1,6 +1,6 @@
 # チャット（`features/chat`）
 
-チャット全般（状態・操作・名前・メニュー・状態の印）と、1 つのチャットの画面。チャット欄の音声入力（`features/dictation/`）と返答のファイルのチップ（`features/fileLinks/`）もここに書く。まとめ方・数え方は `features/chatList/CLAUDE.md`、タブの入れ物は `features/panel/CLAUDE.md`。
+チャット全般（状態・操作・名前・メニュー・状態の印）と、1 つのチャットの画面。チャット欄の音声入力と音声モード（`features/dictation/`）と返答のファイルのチップ（`features/fileLinks/`）もここに書く。まとめ方・数え方は `features/chatList/CLAUDE.md`、タブの入れ物は `features/panel/CLAUDE.md`。
 
 | フォルダ | 中身 |
 |---|---|
@@ -219,10 +219,15 @@
 - 探すのは記録から（`chatFindMatches.ts` の `findMatches`。自分の発言とメインエージェントの返答）で、移るときにその発言の前後だけを描く（`reveal`）。流れをすべて描かない。印は描いている範囲だけに CSS Custom Highlight API で付け（`::highlight(chat-find)`）、DOM を書き換えない。閉じたツールのまとまり・思考の中は探さない。
 - 打った文は前後の空白も削らずに探す（半角・全角の空白も）。右の「Aa」「ab」「.*」（⌥⌘C / ⌥⌘W / ⌥⌘R。VS Code と同じ。共有の `ui/FindOptionButtons`、値はどの検索の欄でも同じ `hooks/useFindOptions`。入れているときは `.find-option.on`）で、大文字・小文字の区別・単語単位・正規表現を切り替える（利用者の依頼。前は「Aa」だけ）。正規表現として読めなければ件数のところに「誤り」と出し（件数の文はどの欄でも同じ `findCountText`）、枠を赤くする。照らし合わせは記録と画面の印で共通の `lib/textFind.ts`（`findPattern` で探す形を作り、`spansIn` で合う位置。長さは合ったものの長さ）。
 
-## 音声入力（`features/dictation/`）
+## 音声入力と音声モード（`features/dictation/`）
 
-- チャット欄の下の道具（と AI からの質問の「その他」の欄 `QuestionOtherField`）のマイク `DictationButton` ＋ `useDictation`（1 回押して話し、もう一度押すと文字起こしして、キャレットの位置（選んでいればその範囲）に入れる。入れ方は純粋関数の `insertDictation`（英字とくっつくときだけ空白を補う））。録音は `recorder.ts`（`getUserMedia` ＋ `MediaRecorder`）、マイクの失敗の文は `micErrorMessage`。
+チャット欄の下の道具に 2 つ: マイク（音声入力 = 話した言葉を文字にして入力欄に入れる）と、既存のチャットのチャット欄だけに波形（音声モード = 話しかけると送り、AI の返答を声で読み上げる会話）。利用者の依頼で、どちらも用意した。
+
+- 音声入力: チャット欄の下の道具（と AI からの質問の「その他」の欄 `QuestionOtherField`）のマイク `DictationButton` ＋ `useDictation`。押し方は 2 つ: 短く押せば 1 回押し（話し終わったらもう一度押す）、`HOLD_MS`（400ms）より長く押せば長押し（押したまま話し、離すと止める）（`press` / `release`。録音中はボタンが描き替わるので、離したのは window の pointerup で受ける。キーボードで押したときは `toggle`）。止めると文字起こしして、キャレットの位置（選んでいればその範囲）に入れる。入れ方は純粋関数の `insertDictation`（英字とくっつくときだけ空白を補う）。録音は `recorder.ts`（`openMic` = マイクの ▾ で選んだマイク（`VOICE_MIC_DEVICE`。外していれば既定）・`recordStream`（`MediaRecorder`）・音量 `watchLevel`（`AnalyserNode` の RMS を 50ms ごと））、マイクの失敗の文は `micErrorMessage`。声が 1 分聞こえなければ止める（話していればそこまでを起こし、一度も話していなければ何も入れず「1 分間声が聞こえなかったため…」）。
 - 録音中は赤く経過時間、文字起こし中は「文字起こし中…」、失敗は `DictationError`（`ErrorText` と、録った音声で起こし直す「もう一度」）。録音中の送信ボタン・Enter・⌘Enter は、入れてそのまま送る。⌘⇧Space（チャット欄にピントがあるときだけ。`DICTATION_SHORTCUT`）で開始・停止、Esc でやめる。
+- マイクの右の ▾（とマイクの右クリック）は音声入力の設定のメニュー `useDictationMenu`: 使うマイク（開くたびに `listMics` で一覧を読み直す。この Mac の localStorage に覚える）・話す言語（設定の `voice_language` をすぐ保存）・「音声入力の設定を開く…」。
+- 音声モード（`useVoiceMode` ＋ `VoiceModeButton` / `VoiceModePanel`。中身は React に依存しない `voiceSession.ts` の `VoiceSession`）: 波形のボタンで始めると、文を書く欄の代わりに帯（マイクの音量で輪の広がる丸・いまの様子・起こした自分の文・失敗の文・「いま送る」「読み上げを止める」「終了」。書きかけの文は隠して残す）を出し、次をくり返す: 聞く → 話し始めて 1.5 秒黙ったら（声の見分けは純粋関数の `vad.ts` の `vadStep` と `LISTEN_VAD`。まわりの音の大きさを追って、声とみなす音量を決める）文字起こしして送る（定型文の「すぐ送る」と同じ `onSendOther`。入力欄の文は使わない）→ 送ったあとに届いたメインエージェントの文章の返答（`ChatComposerArea` が記録から渡す）を順に読み上げる → 作業が終わって読み終えたら、また聞く。読み上げ中に大きめの声で話す（`BARGE_IN_VAD`。スピーカーの音を拾って止まらないよう、大きく 400ms 以上）と、読み上げをやめて聞き始める（その作業の残りの返答は読まない）。マイクは会話の間開いたまま、話すたびに録音を作り直す（黙ったまま 30 秒たったら作り直し、黙っている間の音声を溜めない）。送ってから 20 秒、作業が始まらず返答もなければ、また聞く。終了・Esc・チャット欄を閉じると、録音・読み上げ・マイクをすべてやめる。準備（文字起こしの準備・OpenAI の声なら API キー）ができていなければ、押したときに設定の「音声入力」を開く。
+- 読み上げ（`speaker.ts` の `Speaker`）: 返答の Markdown から声に出す文だけを取り出し（純粋関数の `speechText.ts` の `speakableText`。利用者の選んだ「答えの文章だけ」: コードブロックは「（コードは画面に出しました）」、表は「（表は画面に出しました）」、リンクは文字だけ・URL は「（リンク）」、見出し・強調・箇条書きの印は外す）、文の終わりで区切って（`splitSpeech`。最初の区切りは短くして読み始めを早くする）順に読む。声は設定の `voice_tts_provider`: この Mac の声（無料。Web Speech の `speechSynthesis`。声の名前 `voice_tts_voice`、空なら話す言語の既定の声）/ OpenAI の声（有料。コアの `POST /api/speech` の mp3 を再生し、読んでいる間に次の区切りを頼んでおく）。速さは `voice_tts_rate`。
 - 準備の状態は店の `useVoiceStatus`（設定の変更で取り直し、ダウンロードの進み具合はその場で直す）で、準備ができていなければ押したときに設定の「音声入力」を開く（`openSettings("voice")`）。設定は `features/settings/CLAUDE.md`。
 
 ## 返答のファイルのチップ（`features/fileLinks/`）

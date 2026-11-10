@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { WHISPER_MODEL_IDS } from "../../voice/models.js";
-import { PROVIDER_IDS, VOICE_PROVIDERS, type AppSettings } from "@shared/types";
+import { OPENAI_TTS_VOICES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
 import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/chat/autoCompact";
 import { jsonBody } from "../input.js";
 import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, voiceLanguage } from "./schemas.js";
@@ -24,6 +24,11 @@ const settingsSchema = z
     voice_model: z.enum(WHISPER_MODEL_IDS),
     voice_openai_base_url: z.union([z.literal(""), z.url({ protocol: /^https?$/ })]),
     voice_openai_model: z.string().trim().min(1).max(100),
+    // 音声モードの読み上げ（声の名前は空ならその言語の既定の声）
+    voice_tts_provider: z.enum(VOICE_TTS_PROVIDERS),
+    voice_tts_voice: z.string().trim().max(200),
+    voice_tts_openai_voice: z.enum(OPENAI_TTS_VOICES),
+    voice_tts_rate: z.number().min(VOICE_TTS_RATE_MIN).max(VOICE_TTS_RATE_MAX),
     // メモの親フォルダ（null なら既定の場所）
     memos_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
     // 自動圧縮を始める使用率（null なら Claude Code の既定）

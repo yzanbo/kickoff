@@ -120,3 +120,34 @@ test("設定: 音声入力の項目を検証する（知らない方法・モデ
   assert.equal(defaults.voice_enabled, false);
   assert.equal(defaults.voice_model, "large-v3-turbo-q5_0");
 });
+
+test("読み上げ（OpenAI）: 音声入力がオフ・キーがない・文が空なら 400、あれば設定の声と速さで mp3 を返す", async () => {
+  const { app, call, voiceFake } = setup();
+  const speak = async (text: string) => app.request("/api/speech", { method: "POST", headers: { ...AUTH, "content-type": "application/json" }, body: JSON.stringify({ text }) });
+  const off = await speak("こんにちは");
+  assert.equal(off.status, 400);
+  assert.match((await off.json()).error, /音声入力がオフ/);
+  await call("PUT", "/api/settings", { voice_enabled: true, voice_tts_provider: "openai", voice_tts_openai_voice: "nova", voice_tts_rate: 1.25, voice_openai_base_url: "https://example.test/v1" });
+  const noKey = await speak("こんにちは");
+  assert.equal(noKey.status, 400);
+  assert.match((await noKey.json()).error, /API キーがありません/);
+  await call("PUT", "/api/voice/openai-key", { key: "sk-tts" });
+  assert.equal((await speak("   ")).status, 400);
+  assert.equal((await speak("あ".repeat(4097))).status, 400);
+  const ok = await speak(" こんにちは ");
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers.get("content-type"), "audio/mpeg");
+  assert.deepEqual([...new Uint8Array(await ok.arrayBuffer())], [9, 8, 7]);
+  assert.deepEqual(voiceFake.speeches, [{ text: "こんにちは", opts: { key: "sk-tts", baseUrl: "https://example.test/v1", voice: "nova", speed: 1.25 } }]);
+});
+
+test("設定: 読み上げの項目を検証する（知らない方法・声・範囲の外の速さは 400）", async () => {
+  const { call } = setup();
+  assert.equal((await call("PUT", "/api/settings", { voice_tts_provider: "google" })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { voice_tts_openai_voice: "robot" })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { voice_tts_rate: 3 })).status, 400);
+  const saved = (await call("PUT", "/api/settings", { voice_tts_voice: "Kyoko", voice_tts_rate: 0.75 })).body;
+  assert.equal(saved.voice_tts_voice, "Kyoko");
+  assert.equal(saved.voice_tts_rate, 0.75);
+  assert.equal(saved.voice_tts_provider, "system");
+});

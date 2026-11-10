@@ -208,3 +208,29 @@
 .voice-advanced .field + .field {
   margin-top: 10px;
 }
+
+/* 読み上げ（音声モード）: 声・速さ・試しに聞く を 1 行に（狭ければ折り返す） */
+.voice-speech-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.voice-speech-field {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.voice-speech-field select {
+  min-width: 180px;
+}
+
+.voice-speech-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

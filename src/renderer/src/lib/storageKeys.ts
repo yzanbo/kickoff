@@ -373,6 +373,8 @@ export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", li
 export const CHAT_HEADER_ORDER = defineSetting("kickoff:chat-header-order", list());
 /** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く。初めはコンパクトにしない） */
 export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag(false));
+/** 音声入力・音声モードで使うマイク（MediaDeviceInfo.deviceId。空なら Mac の既定のマイク。マイクの ▾ で選ぶ。見つからなければ既定のマイクで録る） */
+export const VOICE_MIC_DEVICE = defineSetting("kickoff:voice-mic-device", text());
 /** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・見出しと会話の右クリックの「チャット画面表示」・設定の「表示」。どのチャットでも同じ。初めは標準） */
 export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["xs", "sm", "md", "lg", "xl"], "md"));
 /** 会話の横幅を広げるか（どのチャットでも同じ。初めは広げる） */

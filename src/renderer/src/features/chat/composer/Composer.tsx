@@ -13,6 +13,9 @@ import { ErrorText } from "@/ui/ErrorText";
 import { DictationButton, DictationError } from "@/features/dictation/DictationButton";
 import { insertDictation } from "@/features/dictation/dictationText";
 import { useDictation } from "@/features/dictation/useDictation";
+import { useVoiceMode } from "@/features/dictation/useVoiceMode";
+import { VoiceModeButton, VoiceModePanel } from "@/features/dictation/VoiceModePanel";
+import type { VoiceReply } from "@/features/dictation/voiceSession";
 import { ChatOptionsBar, type ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 import { SuggestList } from "@/features/chat/composer/suggest/SuggestList";
 import { useSuggest } from "@/features/chat/composer/suggest/useSuggest";
@@ -69,7 +72,11 @@ interface Props {
   chatContext?: { projectId?: number; exclude?: number };
   /** 文を書く欄の右クリックのメニューで、クリップボードの組の下に並べる項目（定型文の帯の表示の切り替えなど） */
   menuItems?: ReactNode;
+  /** 音声モード（波形のボタン）を出すとき: 読み上げる候補の返答と、起こした文を送る口（既存のチャットのチャット欄だけ） */
+  voiceMode?: { replies: VoiceReply[]; send: (text: string) => Promise<void> };
 }
+
+const NO_REPLIES: VoiceReply[] = [];
 
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
 const TEXT_CHANGE_DELAY_MS = 300;
@@ -82,7 +89,7 @@ const ignoreStop = () => {};
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
  * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, savedAttachments, handleRef, chatContext, sendTo, menuItems }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, savedAttachments, handleRef, chatContext, sendTo, menuItems, voiceMode }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
@@ -162,6 +169,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
       }
     },
   });
+  // 音声モード: 話しかけると送り、返答を読み上げる（その間は文を書く欄の代わりに帯を出す。書きかけの文はそのまま残す）
+  const voice = useVoiceMode({ replies: voiceMode?.replies ?? NO_REPLIES, busy: Boolean(busy), send: (spoken) => voiceMode?.send(spoken) ?? Promise.resolve() });
   // 録音中は、送信で「起こした文を入れてそのまま送る」
   const canSend = (sender.hasContent || dictation.recording) && sender.ready;
 
@@ -200,7 +209,10 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
   /** チャット欄の中のキー: ⌘⇧Space で録音の開始・停止、録音中の Esc でやめる。ほかは Esc 2 回で中断・Shift+Tab で権限モード（composerKeys.ts） */
   function onComposerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     held.track(e);
-    if (e.code === "Space" && hasModifiers(e, { meta: true, shift: true })) {
+    if (voice.active && isCancelKey(e)) {
+      consumeKey(e);
+      voice.stop();
+    } else if (e.code === "Space" && hasModifiers(e, { meta: true, shift: true })) {
       e.preventDefault();
       dictation.toggle();
     } else if (isCancelKey(e) && (dictation.recording || dictation.state.kind === "transcribing")) {
@@ -224,7 +236,9 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
         </div>
       )}
       <SuggestList suggest={suggest} />
+      {voice.active && <VoiceModePanel voice={voice} />}
       <textarea
+        hidden={voice.active}
         ref={textareaRef}
         rows={1}
         value={text}
@@ -244,7 +258,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
         <div className="composer-tools">
           <AttachButton size={16} className="attach-button" onFiles={attach.addFiles} />
           {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
-          <DictationButton dictation={dictation} />
+          {!voice.active && <DictationButton dictation={dictation} />}
+          {voiceMode && <VoiceModeButton voice={voice} />}
           {options && <ChatOptionsBar state={options} />}
         </div>
         <ComposerActions

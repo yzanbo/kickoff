@@ -1,4 +1,5 @@
 // 文字起こしの部品どうしで使う型（画面と共有する型は types/voice.ts）
+import type { SpeechOptions } from "./speech.js";
 
 /** 画面から受け取った音声 */
 export interface AudioInput {
@@ -26,8 +27,9 @@ export interface OpenAiOptions {
   language: string;
 }
 
-/** 文字起こしの方法ごとの処理（テストでは偽物に差し替える） */
+/** 文字起こしの方法ごとの処理と、OpenAI の読み上げ（テストでは偽物に差し替える） */
 export interface TranscribeEngines {
   local: (audio: AudioInput, opts: LocalOptions) => Promise<string>;
   openai: (audio: AudioInput, opts: OpenAiOptions) => Promise<string>;
+  speech: (text: string, opts: SpeechOptions) => Promise<Uint8Array>;
 }

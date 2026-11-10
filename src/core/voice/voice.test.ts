@@ -5,6 +5,7 @@ import { audioExtension, commandFailure, ffmpegArgs, joinSegments, whisperArgs }
 import { modelFile, modelUrl, WHISPER_MODELS } from "./models.js";
 import { openAiFailure, parseTranscription, transcribeOpenAi, transcriptionForm, transcriptionUrl } from "./openai.js";
 import { voiceUnreadyReason } from "./readiness.js";
+import { speechBody, synthesizeOpenAi } from "./speech.js";
 
 const audio = { bytes: new Uint8Array([1, 2]), name: "voice.webm", type: "audio/webm;codecs=opus" };
 
@@ -66,6 +67,22 @@ test("OpenAI: 応答から文を取り出し、失敗は状態コードごとに
   assert.deepEqual(seen, { url: "https://api.openai.com/v1/audio/transcriptions", auth: "Bearer sk-1" });
   const down = (async () => Promise.reject(new Error("ECONNREFUSED"))) as typeof fetch;
   await assert.rejects(transcribeOpenAi(audio, { key: "k", baseUrl: "http://localhost:9/v1", model: "m", language: "ja" }, down), /つながりません（localhost:9）/);
+});
+
+test("OpenAI の読み上げ: 声・速さを付けて mp3 を頼み、失敗は「読み上げ」の言葉で案内する", async () => {
+  assert.deepEqual(speechBody("やあ", { voice: "coral", speed: 1.5 }), { model: "gpt-4o-mini-tts", input: "やあ", voice: "coral", speed: 1.5, response_format: "mp3" });
+  let seen: { url: string; auth: string | null; body: unknown } | undefined;
+  const ok = (async (url: string, init: RequestInit) => {
+    seen = { url, auth: new Headers(init.headers).get("authorization"), body: JSON.parse(String(init.body)) };
+    return new Response(new Uint8Array([1, 2, 3]));
+  }) as typeof fetch;
+  const audio = await synthesizeOpenAi("やあ", { key: "sk-2", baseUrl: "https://example.test/v1/", voice: "nova", speed: 1 }, ok);
+  assert.deepEqual([...audio], [1, 2, 3]);
+  assert.equal(seen?.url, "https://example.test/v1/audio/speech");
+  assert.equal(seen?.auth, "Bearer sk-2");
+  assert.equal((seen?.body as { voice: string }).voice, "nova");
+  const notFound = (async () => new Response(JSON.stringify({ error: { message: "no model" } }), { status: 404 })) as typeof fetch;
+  await assert.rejects(synthesizeOpenAi("やあ", { key: "k", baseUrl: "", voice: "coral", speed: 1 }, notFound), /読み上げの API が見つかりません/);
 });
 
 test("準備の確かめ: オフ → 方法ごとに足りないもの（キー / コマンド / モデル）の順に理由を返す", () => {

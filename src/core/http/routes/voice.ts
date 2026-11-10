@@ -5,12 +5,13 @@ import { findWhisperModel } from "../../voice/models.js";
 import { Invalid, NotFound } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { voiceLanguage } from "./schemas.js";
-import type { Transcription } from "@shared/types";
+import { SPEECH_TEXT_MAX, type Transcription } from "@shared/types";
 
 /** 受け取る音声の大きさの上限（OpenAI の文字起こしの API と同じ 25MB） */
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 
 const keySchema = z.object({ key: z.string().max(500) });
+const speechSchema = z.object({ text: z.string().trim().min(1).max(SPEECH_TEXT_MAX) });
 
 /** モデルの id（知らないものは 404） */
 function requireVoiceModel(id: string) {
@@ -36,6 +37,13 @@ export function voiceRoutes(app: Hono, { voice }: ServerDeps) {
   });
 
   app.get("/api/voice", async (c) => c.json(await voice.status()));
+
+  // 音声モードの返答を OpenAI の声で読み上げる（mp3 をそのまま返す。この Mac の声は画面が直接使う）
+  app.post("/api/speech", async (c) => {
+    const { text } = speechSchema.parse(await jsonBody(c));
+    const audio = await voice.speak(text);
+    return c.body(audio as Uint8Array<ArrayBuffer>, 200, { "content-type": "audio/mpeg", "cache-control": "no-store" });
+  });
 
   // モデルを落とし始める（終わるのは待たない。進み具合は voice_model のイベントと、状態の取り直しで分かる）
   app.post("/api/voice/models/:id/download", async (c) => {
