@@ -72,8 +72,11 @@ interface Props {
   chatContext?: { projectId?: number; exclude?: number };
   /** 文を書く欄の右クリックのメニューで、クリップボードの組の下に並べる項目（定型文の帯の表示の切り替えなど） */
   menuItems?: ReactNode;
-  /** 音声モード（波形のボタン）を出すとき: 読み上げる候補の返答と、起こした文を送る口（既存のチャットのチャット欄だけ） */
-  voiceMode?: { replies: VoiceReply[]; send: (text: string) => Promise<void> };
+  /**
+   * 音声モード（波形のボタン）を出すとき: 読み上げる候補の返答と、起こした文を送る口。既存のチャットは chatId、
+   * 送る前の新しいチャットは draft（送ったら、できたチャットへ音声モードを引き継ぐ）
+   */
+  voiceMode?: { replies: VoiceReply[]; send: (text: string) => Promise<void>; chatId?: number; draft?: boolean };
 }
 
 const NO_REPLIES: VoiceReply[] = [];
@@ -181,6 +184,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
     replies: voiceMode?.replies ?? NO_REPLIES,
     busy: Boolean(busy),
     send: (spoken) => voiceMode?.send(spoken) ?? Promise.resolve(),
+    draft: voiceMode?.draft,
+    chatId: voiceMode?.chatId,
     fill: (spoken) => {
       const inserted = withSpoken(spoken);
       fill(inserted.text, inserted.caret);
@@ -192,7 +197,12 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
   const canSend = (sender.hasContent || dictation.recording) && sender.ready;
 
   /** 送信ボタン・Enter: 録音中なら、止めて起こした文を入れてから送る */
-  const submit = (mode?: QueueSendMode) => (dictation.recording ? void dictation.finish(true) : void sender.send(undefined, mode));
+  const submit = (mode?: QueueSendMode) => {
+    // 新しいチャットで音声モードの間に送るなら、できたチャットへ音声モードを引き継ぐ
+    if (voice.active) voice.beforeSend();
+    if (dictation.recording) void dictation.finish(true);
+    else void sender.send(undefined, mode);
+  };
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     // 録音中の Enter・⌘Enter は、起こした文を入れてそのまま送る

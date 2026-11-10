@@ -25,8 +25,13 @@ import { ContextMeter } from "@/features/chat/composer/ContextMeter";
 import { MemoChip } from "@/features/memo/MemoChip";
 import { memoAttachment } from "@/features/memo/memoAttachment";
 import { AgentSplit } from "@/features/panel/agents/AgentSplit";
+import { claimVoiceHandoff } from "@/features/dictation/voiceHandoff";
+import type { VoiceReply } from "@/features/dictation/voiceSession";
 import { draftScope } from "@/features/panel/surfaces";
 import type { SidePanelHandle } from "@/features/chat/pane/useChatView";
+
+/** 送る前の新しいチャットには、読み上げる返答がまだない */
+const NO_REPLIES: VoiceReply[] = [];
 
 interface Props {
   /** このタブの key（右の欄の範囲 draft-<key>。送ったら、できたチャットの右の欄へ中身を移す） */
@@ -158,6 +163,8 @@ export function NewChatPane({
     });
     // 新しいワークツリーを作ったときは、ブランチの一覧をすぐ取り直す
     if (target.kind === "new") worktreesStore.invalidate(projectId);
+    // 音声モードの間に送ったなら、できたチャットのチャット欄で音声モードを続ける（このタブはそのチャットに置き換わる）
+    claimVoiceHandoff(chat.id);
     onCreated(chat);
   };
 
@@ -209,6 +216,15 @@ export function NewChatPane({
           // 会話が始まったあとのチャット欄と同じく右下にコンテキストのメーター（まだ 0%。圧縮の設定・圧縮前指示・圧縮後指示はここでも開ける）
           trailing={<ContextMeter chat={null} projectId={projectId} compacting={null} reserved={null} afterTurn={false} />}
           onSend={start}
+          // 音声モード（話して最初の指示を送ると、チャットを作り、できたチャットで音声モードを続ける。送る前に確かめてやめたら何もしない）
+          voiceMode={{
+            replies: NO_REPLIES,
+            draft: true,
+            send: (text) =>
+              start(text, []).catch((e: unknown) => {
+                if (!(e instanceof SendCancelled)) throw e;
+              }),
+          }}
         />
       )}
     </DraftChatPage>

@@ -154,7 +154,7 @@ export function ChatComposerArea({
         }
         // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
         menuItems={<SnippetBarToggleItem />}
-        voiceMode={{ replies: voiceReplies, send: sendSnippet }}
+        voiceMode={{ replies: voiceReplies, send: sendSnippet, chatId: chat.id }}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
         handleRef={composer}
         history={prompts.recalls}
