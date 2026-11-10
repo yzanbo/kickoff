@@ -173,7 +173,7 @@ export interface GitCommitDetail extends GitCommit {
   files: GitFileChange[];
 }
 
-/** ブランチ・リモート・タグ・stash（履歴の左の一覧。Fork と同じ） */
+/** ブランチ・リモート・タグ・stash（履歴の左の一覧） */
 export interface GitRefs {
   /** 手元のブランチ（current: いまのブランチ。ahead・behind は追いかけているリモートとの差） */
   branches: {

@@ -22,7 +22,7 @@ import { useGitTarget } from "@/features/worktree/worktreeContext";
 type CommitTab = "commit" | "changes";
 
 /**
- * 履歴で選んだコミットの詳細（Fork と同じ: 1 行の見出しと「コミット」「変更」のタブ）。
+ * 履歴で選んだコミットの詳細（1 行の見出しと「コミット」「変更」のタブ）。
  * 変更: 左に変わったファイル（木・一覧）、右に選んだファイルの差分。初めは 1 つ目のファイルの差分を出す
  */
 export function CommitView({ projectId, commit }: { projectId: number; commit: GitCommit }) {
@@ -32,7 +32,7 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
   const detail = loaded.data;
   const [file, setFile] = useState<GitFileChange>();
   const [tab, setTab] = useState<CommitTab>("changes");
-  // 変わったファイルを木で出すか（初めは木。Fork と同じ）
+  // 変わったファイルを木で出すか（初めは木）
   const [list, setList] = useSetting(COMMIT_FILES_LIST);
   // 左のファイルの一覧の幅（境目をドラッグで変える。ダブルクリックで元に戻す）
   const filesPane = useDragSize({ setting: COMMIT_FILES_WIDTH, min: 160, keep: 320 });

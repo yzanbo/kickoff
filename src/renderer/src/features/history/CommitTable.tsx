@@ -69,7 +69,7 @@ function RefBadges({ refs, known, onMenu }: { refs: string[]; known: GitRefs | u
   );
 }
 
-/** コミットの表（Fork と同じ列: 線つきの件名・作者・コミットの番号・日時）。選んだ行が見えるようにスクロールする */
+/** コミットの表（列: 線つきの件名・作者・コミットの番号・日時）。選んだ行が見えるようにスクロールする */
 export function CommitTable({
   log,
   selected,

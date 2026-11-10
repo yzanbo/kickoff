@@ -17,7 +17,7 @@ export interface GraphRow {
 }
 
 /**
- * 履歴のグラフ（Fork・VS Code と同じく、列ごとに「次に来るコミット」を待つ線を引く）。
+ * 履歴のグラフ（列ごとに「次に来るコミット」を待つ線を引く）。
  * commits は子が親より先に並んでいること（git log --topo-order）。lanes はいちばん広いところの列の数
  */
 export function layoutGraph(commits: { hash: string; parents: string[] }[]): { rows: GraphRow[]; lanes: number } {
