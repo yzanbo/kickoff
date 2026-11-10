@@ -5,7 +5,7 @@ import { makeChat, makeGroup, makeProject } from "@shared/testing/factories";
 import { approvalIndex } from "@/features/chat/chatState";
 import { COUNTED_COLUMNS } from "@/features/chat/chatState";
 import { chatHead, draftHead } from "./bucketHeads";
-import { bucketChats, flattenBucketChats, sortBuckets, type BucketHead, type ChatBucket } from "./buckets";
+import { bucketChats, flattenBucketChats, newChatPlaceOf, sortBuckets, type BucketHead, type ChatBucket } from "./buckets";
 
 // 並び順は id の順（新しいほど大きい）
 const chat = (id: number, patch: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-11-${String(id).padStart(2, "0")}T00:00:00Z`, ...patch });
@@ -248,4 +248,20 @@ test("flattenBucketChats: 画面に並ぶ順の 1 列にする（固定 → ま�
   // まとめないときは、最後に動いた順のあとにアーカイブ済み
   const flat = bucketChats(chats, { ...ctx, by: [], project: 1, pinned: true, archived: "bucket" });
   assert.deepEqual(flattenBucketChats(flat).map((c) => c.id), [4, 6, 5, 2, 1, 3]);
+});
+
+test("newChatPlaceOf: グループ・No Group・作業場所のまとまりだけ、そこで始める作成先を返す", () => {
+  const group = makeGroup(7, { project_id: 3 });
+  const place = (kind: "main" | "worktree" | "missing" | "past", key = "") => ({ key, kind, name: "b", title: "" });
+  assert.deepEqual(newChatPlaceOf({ key: "g", kind: "group", label: "G", projectId: 3, group }), { projectId: 3, group: 7 });
+  assert.deepEqual(newChatPlaceOf({ key: "u", kind: "ungrouped", label: "No Group", projectId: 3 }), { projectId: 3 });
+  assert.deepEqual(newChatPlaceOf({ key: "m", kind: "worktree", label: "main", projectId: 3, place: place("main") }), { projectId: 3 });
+  assert.deepEqual(newChatPlaceOf({ key: "w", kind: "worktree", label: "b", projectId: 3, place: place("worktree", "/wt/b") }), { projectId: 3, worktree: "/wt/b" });
+  // フォルダが見つからない・以前のブランチ・場所の決まらないまとまり・プロジェクトの分からないまとまりでは始めない
+  assert.equal(newChatPlaceOf({ key: "x", kind: "worktree", label: "b", projectId: 3, place: place("missing", "/wt/x") }), null);
+  assert.equal(newChatPlaceOf({ key: "p", kind: "worktree", label: "b", projectId: 3, place: place("past") }), null);
+  assert.equal(newChatPlaceOf({ key: "s", kind: "pinned", label: "固定", projectId: 3 }), null);
+  assert.equal(newChatPlaceOf({ key: "u", kind: "ungrouped", label: "No Group" }), null);
+  // プロジェクトを渡せば、まとまりにプロジェクトがなくてもそれを使う
+  assert.deepEqual(newChatPlaceOf({ key: "u", kind: "ungrouped", label: "No Group" }, 5), { projectId: 5 });
 });

@@ -194,6 +194,15 @@ export function PaneTabBar({
                     </>
                   }
                   canCreateGroup={strip.grouping === "group"}
+                  // 右クリックのいちばん上の「新しいチャット」（このペインに、そのまとまりのグループ・作業場所で始める）
+                  onNewChat={
+                    panel.kinds.has("chat")
+                      ? (place) => {
+                          panel.focusPane(pane.id);
+                          panel.openNew(place);
+                        }
+                      : undefined
+                  }
                 />
                 {shown.map((key) => tab(key, display.indexOf(key)))}
               </div>

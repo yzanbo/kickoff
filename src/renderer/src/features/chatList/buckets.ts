@@ -238,3 +238,19 @@ function bucketLevel<D extends DraftTarget>(
 export function flattenBucketChats(buckets: readonly ChatBucket[]): Chat[] {
   return buckets.flatMap((b) => [...(b.children ? flattenBucketChats(b.children) : b.chats), ...(b.archived ? flattenBucketChats([b.archived]) : [])]);
 }
+
+/**
+ * そのまとまりで始める新しいチャットの作成先（グループ・No Group・作業場所の見出しの右クリックの「新しいチャット」。サイドバー・タブのまとまりの札・ボードで共通）。
+ * グループはそのグループ、No Group はグループなし、作業場所は本体・そのワークツリー。フォルダが見つからない・以前のブランチの作業場所、
+ * 状態・固定・アーカイブ済みなど場所の決まらないまとまり、プロジェクトの分からないまとまりは null（そこでは始めない）
+ */
+export function newChatPlaceOf(head: BucketHead, projectId: number | undefined = head.projectId): DraftTarget | null {
+  if (projectId === undefined) return null;
+  if (head.kind === "group") return head.group ? { projectId, group: head.group.id } : null;
+  if (head.kind === "ungrouped") return { projectId };
+  if (head.kind === "worktree") {
+    if (head.place?.kind === "main") return { projectId };
+    if (head.place?.kind === "worktree") return { projectId, worktree: head.place.key };
+  }
+  return null;
+}
