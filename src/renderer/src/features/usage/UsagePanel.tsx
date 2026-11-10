@@ -7,6 +7,7 @@ import { FIVE_HOUR_IDLE, planLabel } from "./usage";
 import { ErrorText } from "@/ui/ErrorText";
 import { StatusDot, toneOf } from "@/ui/StatusDot";
 import { UsageMeter } from "./UsageMeter";
+import { PLANNED_BADGE, usePlannedProviders } from "@/features/settings/plannedProviders";
 
 /** 開いている間に取り直す間隔 */
 const POLL_MS = 5 * 60_000;
@@ -19,6 +20,8 @@ export function UsagePanel() {
   const [services, setServices] = useState<ServiceUsage[]>();
   // 開いている間の取り直しは失敗だけを出し、「更新」は押せなくして「更新中…」を出す
   const action = useAction<"refresh">();
+  // Kickoff のチャットでまだ使えない AI（Codex・Gemini）は、使用状況は見られるが今後の対応予定であることを添える
+  const planned = usePlannedProviders();
 
   useEffect(() => {
     const load = () => void action.guard(async () => setServices(await api.usageServices()));
@@ -44,7 +47,7 @@ export function UsagePanel() {
       ) : (
         <>
           {services.map((s) => (
-            <ServiceBlock key={s.id} service={s} />
+            <ServiceBlock key={s.id} service={s} planned={planned.ids.has(s.id)} />
           ))}
           <p className="muted small">開いている間は 5 分ごとに自動で更新します。各サービスのログイン情報は読むだけで、書き換えません。</p>
         </>
@@ -53,13 +56,14 @@ export function UsagePanel() {
   );
 }
 
-/** 1 つのサービス: 名前・プラン・アカウントと、枠のメーター（見られなければ理由） */
-function ServiceBlock({ service: s }: { service: ServiceUsage }) {
+/** 1 つのサービス: 名前・プラン・アカウントと、枠のメーター（見られなければ理由）。planned: Kickoff のチャットで使うのは今後の対応予定の AI */
+function ServiceBlock({ service: s, planned }: { service: ServiceUsage; planned: boolean }) {
   return (
     <div className="usage-service">
       <div className="usage-service-head">
         <StatusDot tone={toneOf(s.status === "ok" ? true : s.status === "error" ? false : null)} />
         <h3>{s.label}</h3>
+        {planned && <span className="badge">{PLANNED_BADGE}</span>}
         {s.plan && <span className="plan-chip">{planLabel(s.plan)}</span>}
         {s.account && <span className="muted small usage-service-account">{s.account}</span>}
         {s.status === "ok" && <span className="muted small usage-service-time">{formatClock(s.fetched_at)} 時点</span>}
@@ -73,6 +77,7 @@ function ServiceBlock({ service: s }: { service: ServiceUsage }) {
           ))}
         </div>
       )}
+      {planned && <p className="muted small">Kickoff のチャットで {s.label} を使えるようにするのは、今後の対応予定です（いまは使用状況を見られるだけです）。</p>}
       {s.notes.length > 0 && <p className="muted small">{s.notes.join(" ・ ")}</p>}
       {s.message && (s.status === "error" ? <ErrorText message={s.message} /> : <p className="muted small">{s.message}</p>)}
     </div>
