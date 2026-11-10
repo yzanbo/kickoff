@@ -1,5 +1,6 @@
 import { useMemo, useRef, type MutableRefObject } from "react";
 import { useServerEvent } from "@/api/events";
+import { runPageFind } from "@/ui/pageFind";
 import { memoAssetBase, memoLinkPath, withBaseHref } from "./htmlPage";
 import { parentOf } from "./memoPaths";
 
@@ -7,7 +8,7 @@ import { parentOf } from "./memoPaths";
  * HTML のメモをページとして描く（ここでは書けない。書くのはソースの表示）。iframe の srcdoc に中身をそのまま入れ、
  * 相対パスの CSS・画像はメモのフォルダから読む（<base> をコアのファイルの口へ向ける）。
  * sandbox は allow-same-origin だけ: 中の JavaScript・フォーム・ポップアップは動かさず、外（この画面）からは中の文書に触れる。
- * リンクは中で開かない（ページ内の # は飛ぶ、メモのフォルダの中は onOpenLink（開く側がメモを開く）、外のサイトはブラウザで開く）。右クリックは選んだ文を添えてメモのメニューを開き、⌘S は保存。
+ * リンクは中で開かない（ページ内の # は飛ぶ、メモのフォルダの中は onOpenLink（開く側がメモを開く）、外のサイトはブラウザで開く）。右クリックは選んだ文を添えてメモのメニューを開き、⌘S は保存、⌘F はこのメモを探す欄（ページの ⌘F。欄はページの中の文字も探す）。
  * 選んだ文とその位置は handleRef の selected で読む（選び終えた mouseup とスクロールは、親の画面へ伝え直す。「チャットに追加」のボタン）。
  * 読み直しても（AI が書き換えたときなど）スクロールの位置は保つ。ページが読む CSS・画像などのファイルがメモのフォルダで変わったときも描き直す（いつも最新の見た目）。画面の CSP をそのまま受け継ぐので、インターネット上の画像・フォントは読まない
  */
@@ -93,10 +94,16 @@ export function HtmlMemoPage({
       const rect = el.getBoundingClientRect();
       handlers.current.onContextMenu({ x: rect.left + e.clientX, y: rect.top + e.clientY }, win.getSelection()?.toString() ?? "");
     });
+    // ページの中のキーは親の画面に届かないので、⌘S（保存）・⌘F（このメモを探す。ページの文字も探す欄）はここで受ける
     doc.addEventListener("keydown", (e) => {
-      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "s") {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "s") {
         e.preventDefault();
         handlers.current.onSave();
+      } else if (key === "f") {
+        e.preventDefault();
+        runPageFind();
       }
     });
   };

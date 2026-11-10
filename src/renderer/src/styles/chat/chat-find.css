@@ -153,6 +153,12 @@
   top: 40px;
 }
 
+/* メモ: 右にメモのチャットを開いているときは、本文の右上に出す（チャットの欄の見出しを隠さない。幅は MemoView が --memo-find-right に入れる） */
+.memo-view > .pane-find.page-find {
+  right: calc(var(--memo-find-right, 0px) + 12px);
+  width: min(320px, calc(100% - var(--memo-find-right, 0px) - 24px));
+}
+
 /* 別ウィンドウでは、上の細い帯と中の画面の帯（件数・表示のしかた・取り直しなど）の下に出す（帯のボタンを隠さない） */
 .popout > .pane-find.page-find {
   top: 82px;

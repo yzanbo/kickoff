@@ -4,39 +4,14 @@ import { createPortal } from "react-dom";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing } from "@/lib/keys";
 import { findInTexts, stepMatch } from "@/lib/textFind";
+import { createFindMarks, findTextNodes, framesIn } from "./findMarks";
 import { CloseButton, IconButton } from "./IconButton";
-
-/** 印の名前（CSS の ::highlight(pane-find) / ::highlight(pane-find-current)） */
-const ALL = "pane-find";
-const CURRENT = "pane-find-current";
-
-/** 探すときに入らない要素（入力欄・見えないもの・検索の欄そのもの） */
-const SKIP = "input, textarea, script, style, [hidden], .pane-find";
 
 /** 中身が変わってから探し直すまで（読み込み・色付けが続けて届いても 1 回にまとめる） */
 const RESEARCH_DELAY_MS = 150;
 
-/** 要素の中の、見えている文字のノード */
-function textNodes(root: HTMLElement): Text[] {
-  const nodes: Text[] = [];
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode: (node) => {
-      const parent = node.parentElement;
-      if (!parent || !node.nodeValue?.trim() || parent.closest(SKIP) || !parent.checkVisibility()) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
-    },
-  });
-  for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.push(n as Text);
-  return nodes;
-}
-
-const clearMarks = () => {
-  CSS.highlights?.delete(ALL);
-  CSS.highlights?.delete(CURRENT);
-};
-
 /**
- * ページの中の文字を探す欄（⌘F）。target の中の見えている文字から探して印を付け（CSS Custom Highlight API。DOM は書き換えない）、
+ * ページの中の文字を探す欄（⌘F）。target の中の見えている文字（中の同じオリジンの iframe の中も。HTML のメモのページ）から探して印を付け（CSS Custom Highlight API。DOM は書き換えない。findMarks.ts）、
  * host の右上に浮かせる（host は position: relative の要素）。Enter / ↓ で次、Shift+Enter / ↑ で前、Esc で閉じる。
  * target の中身が変わったら（ファイルを選び直した・読み込みや色付けが届いた・差分を取り直した）、探し直す。
  * focusSignal が変わるたびに（もう一度 ⌘F を押したとき）、欄にピントを置いて文を選ぶ。
@@ -64,24 +39,23 @@ export function FindBar({
   // 印の位置（探し直したら作り直す）
   const ranges = useRef<Range[]>([]);
   const indexRef = useRef<number | null>(null);
+  // 印（iframe の中は、その文書に付ける）
+  const marks = useRef(createFindMarks()).current;
 
   /** 探し直す（文字・中身が変わったとき）。合った数を返す */
   const research = (text: string) => {
-    const nodes = textNodes(target);
+    const nodes = findTextNodes(target);
     const matches = findInTexts(
       nodes.map((n) => n.nodeValue ?? ""),
       text,
     );
     ranges.current = matches.map((m) => {
-      const range = document.createRange();
+      const range = nodes[m.node].ownerDocument.createRange();
       range.setStart(nodes[m.node], m.start);
       range.setEnd(nodes[m.node], m.end);
       return range;
     });
-    if (typeof Highlight !== "undefined" && CSS.highlights) {
-      if (ranges.current.length > 0) CSS.highlights.set(ALL, new Highlight(...ranges.current));
-      else clearMarks();
-    }
+    marks.all(ranges.current);
     setCount(ranges.current.length);
     return ranges.current.length;
   };
@@ -90,10 +64,9 @@ export function FindBar({
   const show = (i: number | null, scroll = true) => {
     setIndex(i);
     indexRef.current = i;
-    CSS.highlights?.delete(CURRENT);
     const range = i === null ? undefined : ranges.current[i];
+    marks.current(range);
     if (!range) return;
-    if (typeof Highlight !== "undefined") CSS.highlights?.set(CURRENT, new Highlight(range));
     if (scroll) range.startContainer.parentElement?.scrollIntoView({ block: "center", inline: "nearest" });
   };
 
@@ -117,24 +90,29 @@ export function FindBar({
   useEffect(() => {
     if (!query) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const observer = new MutationObserver(() => {
+    const researchSoon = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         const n = research(query);
         const i = indexRef.current;
         show(i !== null && i < n ? i : n > 0 ? 0 : null, false);
       }, RESEARCH_DELAY_MS);
-    });
+    };
+    const observer = new MutationObserver(researchSoon);
     observer.observe(target, { childList: true, subtree: true, characterData: true });
+    // 中の iframe は、読み込み直すと文書ごと入れ替わる（中の変化は MutationObserver に届かない）
+    const frames = framesIn(target);
+    for (const f of frames) f.addEventListener("load", researchSoon);
     return () => {
       clearTimeout(timer);
       observer.disconnect();
+      for (const f of frames) f.removeEventListener("load", researchSoon);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, target]);
 
   // 閉じたら・消えたら印を外す
-  useEffect(() => clearMarks, []);
+  useEffect(() => marks.clear, [marks]);
 
   const go = (step: 1 | -1) => {
     // 中身が変わっていることがある（実行中のサブエージェント・取り直した差分）ので、探し直してから移る
