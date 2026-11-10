@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { ProjectOrder } from "@/features/project/projectOrder";
 import type { SettingValue } from "@/lib/storage";
 import { SIDEBAR_BUCKET_COLORS, type SIDEBAR_LAYOUT } from "@/lib/storageKeys";
-import { viewNameTaken } from "@/lib/namedViews";
+import { sameViewExistsText, viewNameTaken } from "@/lib/namedViews";
 import { CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { useCompactProjects, useCompactRows, useShowArchivedChats } from "@/features/chatList/chatListFlags";
@@ -142,18 +142,25 @@ export function SidebarViewTuner({ layout, onLayout, order, onOrder, archivedCou
   );
 }
 
-/** 変えた見え方を残す操作: 選んでいるビューに上書き（同じなら押せない）・新しいビューとして保存（名前を聞く）・ビューの管理（設定の画面） */
+/**
+ * 変えた見え方を残す操作: 選んでいるビューに上書き（同じなら押せない）・新しいビューとして保存（名前を聞く）・ビューの管理（設定の画面）。
+ * いまの見え方と同じビューがもうあれば、新しいビューとして保存は押せなくし、どのビューと同じかを下に書く（同じ見え方のビューを 2 つ作らない。利用者の依頼）
+ */
 function TunerActions({ views }: { views: SidebarViews }) {
   const [naming, setNaming] = useState(false);
   const target = views.selected;
   const same = !target || sameSidebarViewState(target.state, views.current);
+  // いまの見え方と同じビュー（あれば新しく作らない）
+  const duplicate = views.active;
   return (
     <div className="sidebar-view-tuner-actions">
       {naming ? (
         <InlineName
           className="sidebar-view-name"
           placeholder="ビューの名前"
-          validate={(name) => (viewNameTaken(views.views, name) ? `「${name}」というビューはもうあります` : null)}
+          validate={(name) =>
+            viewNameTaken(views.views, name) ? `「${name}」というビューはもうあります` : duplicate ? sameViewExistsText(duplicate.name) : null
+          }
           onSubmit={(name) => {
             views.save(name);
             setNaming(false);
@@ -171,9 +178,16 @@ function TunerActions({ views }: { views: SidebarViews }) {
           >
             <Save size={13} aria-hidden /> {target ? `「${target.name}」に上書き` : "上書き"}
           </button>
-          <button type="button" className="btn btn-sm" title="いまの見え方に名前を付けて、ビューのタブに足す" onClick={() => setNaming(true)}>
+          <button
+            type="button"
+            className="btn btn-sm"
+            disabled={Boolean(duplicate)}
+            title={duplicate ? sameViewExistsText(duplicate.name) : "いまの見え方に名前を付けて、ビューのタブに足す"}
+            onClick={() => setNaming(true)}
+          >
             <Plus size={13} aria-hidden /> 新しいビューとして保存
           </button>
+          {duplicate && <p className="sidebar-view-same muted small">{sameViewExistsText(duplicate.name)}</p>}
         </>
       )}
       <button type="button" className="btn btn-sm sidebar-view-manage" title="設定の画面で、ビューの並べ替え・名前と中身の変更・削除をする" onClick={() => openSettings("sidebar")}>
