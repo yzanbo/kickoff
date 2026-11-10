@@ -21,6 +21,7 @@ export interface SendTarget {
 
 /**
  * チャット欄の右下の操作: 送信ボタンの左に置くもの（コンテキストのメーターなど）・送り方の切り替え（作業中・送信待ちがあるとき。
+ * 送信ボタンのすぐ左に音声の道具（マイク・▾・音声モードの波形。利用者の依頼で、話して送る流れが手元で済むよう送信の隣に置いた）。
  * ⌘ / ⌘⇧ を押している間は、Enter で使われる方を光らせる）・中断（作業中。Esc を 1 回押したら「もう一度 Esc で中断」、
  * 止めている間は「停止中…」で押せない）・送信（作業中も、書いていれば・録音中なら出す。録音中は文字起こしして送る）。
  * ほかの送り方・送り先を選べるとき（sendTargets。質問として送る・子チャットに送るなど）は、送信ボタンの右クリックでそれらを選ぶメニューを開く
@@ -39,6 +40,7 @@ export function ComposerActions({
   heldMode,
   busyControls,
   trailing,
+  voice,
   canSend,
   recording,
   hasContent,
@@ -58,6 +60,8 @@ export function ComposerActions({
   heldMode?: QueueSendMode;
   busyControls?: ReactNode;
   trailing?: ReactNode;
+  /** 送信ボタンのすぐ左に置く音声の道具（マイク・▾・音声モードの波形） */
+  voice?: ReactNode;
   canSend: boolean;
   recording: boolean;
   hasContent: boolean;
@@ -77,6 +81,7 @@ export function ComposerActions({
       {/* 作業中は中断。書いていれば（録音中も）、その横に待ちの列に入れるボタン */}
       {busy && onStop && !stopping && stopArmed && <span className="composer-stop-hint">もう一度 Esc で中断</span>}
       {busy && onStop && stopping && <span className="composer-stop-hint stopping">停止中…</span>}
+      {voice && <span className="composer-voice">{voice}</span>}
       {/* 丸いボタン（中断・送信）と ▾ は詰めて 1 組に並べる */}
       <span className="send-group">
         {busy && onStop && !plain && (

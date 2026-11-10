@@ -258,8 +258,6 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
         <div className="composer-tools">
           <AttachButton size={16} className="attach-button" onFiles={attach.addFiles} />
           {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
-          {!voice.active && <DictationButton dictation={dictation} />}
-          {voiceMode && <VoiceModeButton voice={voice} />}
           {options && <ChatOptionsBar state={options} />}
         </div>
         <ComposerActions
@@ -271,6 +269,12 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
           heldMode={heldMode}
           busyControls={busyControls}
           trailing={trailing}
+          voice={
+            <>
+              {!voice.active && <DictationButton dictation={dictation} />}
+              {voiceMode && <VoiceModeButton voice={voice} />}
+            </>
+          }
           canSend={canSend}
           recording={dictation.recording}
           hasContent={sender.hasContent}
