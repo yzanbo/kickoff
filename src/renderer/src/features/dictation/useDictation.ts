@@ -3,7 +3,7 @@ import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { openSettings } from "@/features/settings/openSettings";
 import { micErrorMessage, transcribeParts } from "./dictationText";
-import { startRecording, type Recording } from "./recorder";
+import { openMic, recordStream, watchLevel, type Recording } from "./recorder";
 import { useVoiceStatus, voiceStatusStore } from "@/stores/voice";
 
 /** これより長く押していたら長押し（離したところで止めて起こす）。短ければ 1 回押し（もう一度押すまで録る） */
@@ -19,15 +19,22 @@ export type DictationState =
 
 export type Dictation = ReturnType<typeof useDictation>;
 
+/** マイクの音量を受け取る相手（録音中の音量の表示。React の描き直しをせずに大きさを変える） */
+export type LevelListener = (level: number) => void;
+
 /**
  * チャット欄の音声入力。1 回押して話し、話し終わったらもう一度押す（toggle）か、押したまま話して離す（press / release）。
  * onText に起こした文を渡す（send なら、入れてそのまま送る）。準備ができていなければ、設定の「音声入力」を開く。
- * 長さの上限はない（止めるまで録る。長い録音は区切って起こし、つなぐ = recorder.ts の PART_BYTES）
+ * 長さの上限はない（止めるまで録る。長い録音は区切って起こし、つなぐ = recorder.ts の PART_BYTES）。
+ * 録音中はマイクの音量を subscribeLevel で知らせる（声を拾っているかを目で見せる）
  */
 export function useDictation({ onText }: { onText: (text: string, send: boolean) => void }) {
   const status = useVoiceStatus().data;
   const [state, setState] = useState<DictationState>({ kind: "idle" });
   const recording = useRef<Recording | null>(null);
+  // 音量の見張り（録音中だけ）と、受け取る相手
+  const stopWatch = useRef<(() => void) | null>(null);
+  const levelListeners = useRef(new Set<LevelListener>());
   // 押し始めた時刻（長押しの見分け）と、押したときに録音中だったか
   const pressed = useRef<{ at: number; wasRecording: boolean } | null>(null);
   // 始める・やめる・閉じるたびに進める（マイクや文字起こしを待つ間にやめた・閉じたら、届いたものを捨てる）
@@ -39,10 +46,17 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
   useEffect(
     () => () => {
       attempt.current++;
+      stopWatch.current?.();
       recording.current?.cancel();
     },
     [],
   );
+
+  /** 音量の見張りをやめる */
+  function unwatch() {
+    stopWatch.current?.();
+    stopWatch.current = null;
+  }
 
   async function transcribe(audio: Blob[], send: boolean) {
     const id = ++attempt.current;
@@ -70,9 +84,11 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
       return;
     }
     try {
-      const rec = await startRecording();
+      const stream = await openMic();
+      const rec = recordStream(stream, { release: true });
       if (id !== attempt.current) return rec.cancel();
       recording.current = rec;
+      stopWatch.current = watchLevel(stream, (level) => levelListeners.current.forEach((f) => f(level)));
       setState({ kind: "recording", startedAt: Date.now() });
     } catch (e) {
       if (id === attempt.current) setState({ kind: "error", message: micErrorMessage(e) });
@@ -84,6 +100,7 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
     const current = recording.current;
     if (!current) return;
     recording.current = null;
+    unwatch();
     setState({ kind: "transcribing" });
     void transcribe(await current.stop(), send);
   }
@@ -91,6 +108,7 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
   /** 録音・文字起こしをやめる（何も入れない） */
   function cancel() {
     attempt.current++;
+    unwatch();
     recording.current?.cancel();
     recording.current = null;
     setState({ kind: "idle" });
@@ -132,5 +150,10 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
       if (state.kind === "error" && state.audio) void transcribe(state.audio, Boolean(state.send));
     },
     dismiss: () => setState({ kind: "idle" }),
+    /** 録音中のマイクの音量を受け取る（返した関数でやめる） */
+    subscribeLevel: (listener: LevelListener) => {
+      levelListeners.current.add(listener);
+      return () => void levelListeners.current.delete(listener);
+    },
   };
 }

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Check, SendHorizontal, X } from "lucide-react";
 import { useEditKeys } from "@/hooks/useEditKeys";
 import type { Attachment } from "@shared/types";
@@ -7,12 +8,15 @@ import { AttachButton } from "@/features/chat/attachments/AttachButton";
 import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 import { PendingFileChips } from "@/features/chat/attachments/PendingFileChips";
 import { useComposerFiles } from "@/features/chat/attachments/useComposerFiles";
+import { DictationButton, DictationError } from "@/features/dictation/DictationButton";
+import { useFieldDictation } from "@/features/dictation/useFieldDictation";
 
 /**
  * 送信待ちの指示を書き直す欄（Enter で保存・⌘Enter で保存していま送る（チャット欄の「いま」と同じ。作業中なら止めずにいまのやり取りに足す）・
  * Shift+Enter で改行・Esc でやめる）。⌘ を押している間は、⌘Enter で使われる「保存していま送る」のボタンを青く光らせる（チャット欄と同じ）。
  * 添付は上にすべて並べ、× で外せる。📎・貼り付け・ドラッグ＆ドロップで足せる（チャット欄と同じく、選んだ時点でアップロードする）。
- * ボタン（📎・保存・保存していま送る・やめる）は入力欄の右に並べ、入力欄が縦に伸びたら上にそろえる。保存と送るは名前の書き直し（InlineName）・チャット欄と同じく緑
+ * 音声入力もチャット欄と同じマイク（キャレットの位置に入れる。録音中の Enter は入れて保存・⌘Enter は入れて保存していま送る・⌘⇧Space で開始・停止・Esc でやめる）。
+ * ボタン（マイク・📎・保存・保存していま送る・やめる）は入力欄の右に並べ、入力欄が縦に伸びたら上にそろえる。保存と送るは名前の書き直し（InlineName）・チャット欄と同じく緑
  */
 export function QueuedEditor({
   id,
@@ -60,6 +64,8 @@ export function QueuedEditor({
   // Enter で保存・⌘Enter で保存していま送る（チャット欄の ⌘Enter =「いま」と同じ）・Esc でやめる。
   // ⌘ を押している間は、⌘Enter で使われる「保存していま送る」のボタンを光らせる
   const keys = useEditKeys({ onSubmit: ({ meta }) => save(meta), onCancel });
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const { dictation, handleKey, submit } = useFieldDictation({ textareaRef, value: text, onChange, onSubmit: ({ meta }) => save(meta) });
   const sendLabel = busy ? "保存していま送る（止めずに、いまのやり取りに足す）" : "保存していま送る";
   const hasAttachments = attachments.length > 0 || files.files.length > 0;
   return (
@@ -84,6 +90,7 @@ export function QueuedEditor({
             rows={1}
             // 開いたら文の終わりから書き始める
             ref={(el) => {
+              textareaRef.current = el;
               if (el && !el.dataset.ready) {
                 el.dataset.ready = "1";
                 el.focus();
@@ -93,9 +100,11 @@ export function QueuedEditor({
             aria-label="待ちの指示を書き直す"
             onChange={(e) => onChange(e.target.value)}
             {...keys.keyProps}
+            onKeyDown={(e) => handleKey(e) || keys.keyProps.onKeyDown(e)}
             onPaste={files.onPaste}
           />
           <div className="queued-editor-actions">
+            <DictationButton dictation={dictation} />
             <AttachButton size={13} onFiles={files.addFiles} />
             <IconButton
               icon={Check}
@@ -104,7 +113,8 @@ export function QueuedEditor({
               size={13}
               className="queued-editor-ok"
               disabled={files.uploading}
-              onClick={() => save()}
+              // 録音中なら、止めて起こした文を入れてから保存する
+              onClick={() => submit({ meta: false })}
             />
             <IconButton
               icon={SendHorizontal}
@@ -113,11 +123,12 @@ export function QueuedEditor({
               size={13}
               className={cx("queued-editor-send", keys.heldMeta && "held")}
               disabled={files.uploading}
-              onClick={() => save(true)}
+              onClick={() => submit({ meta: true })}
             />
             <IconButton icon={X} label="やめる" title={ready ? "やめる（Esc。元の文のまま送ります）" : "やめる（Esc）"} size={13} onClick={onCancel} />
           </div>
         </div>
+        <DictationError dictation={dictation} />
       </div>
     </div>
   );

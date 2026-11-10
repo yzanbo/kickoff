@@ -5,17 +5,58 @@
   opacity: 0.55;
 }
 
-/* 録音中: 赤く塗り、ゆっくり脈打たせる */
+/*
+ * 録音中: 赤く塗り、マイクの音量（--mic-level 0〜1。DictationButton の useMicLevel）で外側の輪を広げる。
+ * 前は音に関係なく脈打たせていて、声を拾っているかが分からなかった（利用者の指摘）
+ */
+.dictation-recording {
+  --mic-level: 0;
+}
+
 .dictation-button.recording,
 .dictation-button.recording:hover {
   color: #fff;
   background: var(--ng);
-  animation: dictation-pulse 1.4s ease-in-out infinite;
+  box-shadow: 0 0 0 calc(1px + var(--mic-level) * 6px) color-mix(in srgb, var(--ng) 30%, transparent);
+  transition: box-shadow 60ms linear;
 }
 
-@keyframes dictation-pulse {
-  50% {
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ng) 30%, transparent);
+/* 音量の棒（5 本。真ん中ほど高く伸びる。黙っていれば低い点の並び） */
+.dictation-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+  margin-left: 4px;
+}
+
+.dictation-level i {
+  width: 3px;
+  height: 16px;
+  background: var(--ng);
+  border-radius: 2px;
+  transform: scaleY(min(1, calc(0.18 + var(--mic-level) * var(--bar, 1))));
+  transition: transform 60ms linear;
+}
+
+.dictation-level i:nth-child(1),
+.dictation-level i:nth-child(5) {
+  --bar: 0.55;
+}
+
+.dictation-level i:nth-child(2),
+.dictation-level i:nth-child(4) {
+  --bar: 0.9;
+}
+
+.dictation-level i:nth-child(3) {
+  --bar: 1.25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dictation-button.recording,
+  .dictation-level i {
+    transition: none;
   }
 }
 
@@ -62,9 +103,13 @@
   margin: 0;
 }
 
-/* AI からの質問の「その他」の欄の中の失敗の文（欄の幅に合わせ、チャット欄の余白を付けない） */
+/* AI からの質問の「その他」の欄・送信待ちの書き直す欄の中の失敗の文（欄の幅に合わせ、チャット欄の余白を付けない） */
 .question-other-field .dictation-error {
   padding: 0;
+}
+
+.queued-editor-body .dictation-error {
+  padding: 4px 0 0;
 }
 
 /* マイクと右の ▾（音声入力の設定のメニュー。右クリックでも開く）。▾ はマイクに寄せた細いボタン */

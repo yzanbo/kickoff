@@ -135,6 +135,7 @@
  *   --timeline-h チャットの流れの見えている高さ（ChatTimeline.tsx。サブエージェントのカードの窓の高さに使う）
  *   --activity-time-w 動きの時刻の欄の幅（ActivityView.tsx。別の日の行があれば日付の入る幅）
  *   --chat-font-scale 会話の文字の大きさの倍率（<html> に。chat/chatFontSize.ts。会話の入れ物で --chat-scale にして使う。chat.css）
+ *   --voice-level 音声モードの丸の広がり（マイクの音量 0〜1。VoiceModePanel.tsx）・--mic-level 音声入力の録音中の音量（0〜1。DictationButton.tsx の useMicLevel。初めの値は dictation.css）
  * 逆に、上の :root の値を getComputedStyle で読んでいるコードもある（名前を変えるときは一緒に直す）:
  *   mermaidConfig.ts（--text --bg --bg-sidebar --bg-hover --bg-elev --bg-active --muted --accent-bright --info --warn --ok --ng --dot-needs-input --sec-*）
  *   terminalTheme.ts・CodeEditor.tsx（--bg --text --mono）

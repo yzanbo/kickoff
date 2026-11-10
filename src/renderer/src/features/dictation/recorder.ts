@@ -93,11 +93,6 @@ export function recordStream(stream: MediaStream, { release, partBytes = PART_BY
   };
 }
 
-/** マイクで録音を始める（止める・やめるとマイクを放す） */
-export async function startRecording(): Promise<Recording> {
-  return recordStream(await openMic(), { release: true });
-}
-
 /**
  * マイクの音量（RMS。0〜1）を 50ms ごとに知らせる（AudioContext の AnalyserNode。返した関数で止める）。
  * 声の始まり・終わりの見分け（vad.ts）と、音声モードの丸の大きさに使う

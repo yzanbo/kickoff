@@ -1,5 +1,5 @@
 import { ChevronDown, Mic } from "lucide-react";
-import type { PointerEvent } from "react";
+import { useEffect, useRef, type PointerEvent } from "react";
 import { cx } from "@/lib/cx";
 import { useTicker } from "@/hooks/useTicker";
 import { ErrorText } from "@/ui/ErrorText";
@@ -17,6 +17,56 @@ function RecordingTime({ startedAt }: { startedAt: number }) {
   return (
     <span className="dictation-time" aria-live="off">
       {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+    </span>
+  );
+}
+
+/** 音量の表示の戻り方（声が止んだら、1 回ごとにこの割合まで縮める。上がるときはすぐ） */
+const LEVEL_DECAY = 0.8;
+
+/**
+ * 録音中の音量を、包みの要素の --mic-level（0〜1）に入れる（描き直しをせずに、マイクの輪と横の棒の高さを変える）。
+ * 声を拾っているかを目で見せる（前は経過時間だけで、話しても何も動かず、届いているか分からなかった）
+ */
+function useMicLevel(dictation: Dictation) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const { subscribeLevel } = dictation;
+  useEffect(() => {
+    let shown = 0;
+    return subscribeLevel((level) => {
+      // 話し声の RMS はおよそ 0.02〜0.2。0〜1 に広げ、下がるときはゆっくり戻す
+      shown = Math.max(Math.min(1, level * 8), shown * LEVEL_DECAY);
+      ref.current?.style.setProperty("--mic-level", shown.toFixed(3));
+    });
+    // 受け取る先は useDictation が持つ 1 つの入れ物なので、描き直しのたびに付け直さない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return ref;
+}
+
+/** 録音中の部分（音量で広がる輪の付いたマイク・音量の棒・経過時間・やめる） */
+function RecordingControls({ dictation, startedAt }: { dictation: Dictation; startedAt: number }) {
+  const ref = useMicLevel(dictation);
+  return (
+    <span ref={ref} className="dictation-recording">
+      <IconButton
+        icon={Mic}
+        label="録音を止めて文字起こし"
+        title={`録音を止めて、文字起こしした文を入れる（${DICTATION_SHORTCUT}）。送信ボタン・Enter なら入れてそのまま送る`}
+        size={16}
+        className="attach-button dictation-button recording"
+        type="button"
+        {...pressHandlers(dictation)}
+      />
+      <span className="dictation-level" aria-hidden>
+        <i />
+        <i />
+        <i />
+        <i />
+        <i />
+      </span>
+      <RecordingTime startedAt={startedAt} />
+      <CloseButton label="録音をやめる（Esc）" size={13} className="dictation-cancel" type="button" onClick={dictation.cancel} />
     </span>
   );
 }
@@ -48,7 +98,7 @@ function pressHandlers(dictation: Dictation) {
 /**
  * チャット欄の下の道具のマイクのボタン（1 回押して話し始め、話し終わったらもう一度押す。押したまま話して離してもよい）と、
  * 右の ▾（右クリックでも開く）の音声入力の設定のメニュー（使うマイク・話す言語）。
- * 録音中は赤くして経過時間とやめるボタン、文字起こし中はスピナーを添える
+ * 録音中は赤くして、音量（マイクの輪と棒）・経過時間・やめるボタン、文字起こし中はスピナーを添える
  */
 export function DictationButton({ dictation }: { dictation: Dictation }) {
   const menu = useDictationMenu();
@@ -66,23 +116,7 @@ export function DictationButton({ dictation }: { dictation: Dictation }) {
 /** マイクのボタン（いまの状態ごと） */
 function DictationState({ dictation }: { dictation: Dictation }) {
   const { state, ready } = dictation;
-  if (state.kind === "recording") {
-    return (
-      <span className="dictation-recording">
-        <IconButton
-          icon={Mic}
-          label="録音を止めて文字起こし"
-          title={`録音を止めて、文字起こしした文を入れる（${DICTATION_SHORTCUT}）。送信ボタン・Enter なら入れてそのまま送る`}
-          size={16}
-          className="attach-button dictation-button recording"
-          type="button"
-          {...pressHandlers(dictation)}
-        />
-        <RecordingTime startedAt={state.startedAt} />
-        <CloseButton label="録音をやめる（Esc）" size={13} className="dictation-cancel" type="button" onClick={dictation.cancel} />
-      </span>
-    );
-  }
+  if (state.kind === "recording") return <RecordingControls dictation={dictation} startedAt={state.startedAt} />;
   if (state.kind === "transcribing") {
     return (
       <span className="dictation-status" role="status">
