@@ -209,3 +209,10 @@
 .project-edit-button:hover {
   color: var(--text);
 }
+
+/* 基本情報の「概要」: 空なら 2 行の高さ、書いた分だけ伸ばす（長くなったら中でスクロール。つまみで縦に広げてもよい） */
+.project-description {
+  min-height: calc(2lh + 16px);
+  max-height: 360px;
+  field-sizing: content;
+}

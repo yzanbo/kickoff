@@ -38,7 +38,7 @@
 
 ## 編集のダイアログ（`settings/`）
 
-プロジェクト名の横の歯車・サイドバーの右クリックから開く `ProjectEditDialog`（`TabbedDialog`。画面は移らない）。項目は `PROJECT_SETTINGS_SECTIONS`: 基本情報（プロジェクトフォルダ・メモフォルダ（その場で変える `MemoFolderField`。ふだんは空欄で薄い文字にいまの場所、書く・選ぶとこのプロジェクトだけ別の場所。利用者の依頼で、前は別の項目「メモ」で変えていた）・名前・説明・色・タグ。`BasicInfo`）・参照資料（AI がいつでも読めるフォルダ・ファイル。その場で保存。`ReferenceEditor`）・AI（どの AI を使うかのカードと、その AI の既定 `AiSection` / `AiDefaults`。「アプリの設定に従う」を選べる）・定型文（このプロジェクトで使う定型文。`features/snippet` の `SnippetSettings`）・圧縮前・圧縮後指示（このプロジェクトの圧縮前指示・圧縮後指示。`CompactPromptSettings`。利用者の依頼で定型文から分けた）・削除（`DeleteProject`）。
+プロジェクト名の横の歯車・サイドバーの右クリックから開く `ProjectEditDialog`（`TabbedDialog`。画面は移らない）。項目は `PROJECT_SETTINGS_SECTIONS`: 基本情報（いちばん上にプロジェクト名と概要（AI に渡すプロジェクトの説明。空なら 2 行の高さで、書いた分だけ伸ばす `.project-description`。利用者の依頼で、前は「概要・アイデア」という名前で、フォルダ・色・タグの下にあり、空でも 4 行あった）とその「保存」、その下にプロジェクトフォルダ・メモフォルダ（その場で変える `MemoFolderField`。ふだんは空欄で薄い文字にいまの場所、書く・選ぶとこのプロジェクトだけ別の場所。利用者の依頼で、前は別の項目「メモ」で変えていた）・名前・説明・色・タグ。`BasicInfo`）・参照資料（AI がいつでも読めるフォルダ・ファイル。その場で保存。`ReferenceEditor`）・AI（どの AI を使うかのカードと、その AI の既定 `AiSection` / `AiDefaults`。「アプリの設定に従う」を選べる）・定型文（このプロジェクトで使う定型文。`features/snippet` の `SnippetSettings`）・圧縮前・圧縮後指示（このプロジェクトの圧縮前指示・圧縮後指示。`CompactPromptSettings`。利用者の依頼で定型文から分けた）・削除（`DeleteProject`）。
 
 ## 新しいプロジェクト（`new/`）
 
