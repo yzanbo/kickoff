@@ -80,9 +80,15 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
               {g === grouping && <Check size={14} aria-hidden />}
             </MenuItem>
           ))}
-          {/* まとめたまとまりの色（色付き / 色なし。まとまりの札の右クリックにも同じ項目）。まとめないときは効かないので出さない */}
-          {grouping !== "none" && <BucketColorItem setting={PANEL_TAB_GROUP_COLORS} keepOpen />}
-          {grouping !== "none" && <ClusterShortItem keepOpen />}
+          {/* まとめたまとまりの色（色付き / 色なし。まとまりの札の右クリックにも同じ項目）と名前の省略。まとめないときは効かないので出さない。
+              まとめ方の選択肢と見分けられるよう、上に区切り線を引く（利用者の依頼） */}
+          {grouping !== "none" && (
+            <>
+              {separator}
+              <BucketColorItem setting={PANEL_TAB_GROUP_COLORS} keepOpen />
+              <ClusterShortItem keepOpen />
+            </>
+          )}
         </>,
       ),
     );
@@ -126,6 +132,8 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
             </MenuItem>
           );
         }).concat(
+          // 項目の付け外しと見分けられるよう、上に区切り線を引く（利用者の依頼）
+          <Fragment key="two-line-sep">{separator}</Fragment>,
           // 2 行で表示: グループ・作業場所の札を名前の下の行に置く（すべてのパネルで共通。サイドバーのチャットの行の 1 行 / 2 行とは別）
           <MenuItem
             key="two-line"

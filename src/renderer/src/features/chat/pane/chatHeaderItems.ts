@@ -1,7 +1,7 @@
 import { hiddenItemsOf, sameHiddenItemsOf, toggleHiddenItem } from "@/lib/hiddenItems";
 
 /**
- * チャットの見出しの行に出す項目（タブの列の「表示」→「見出しに出す項目」で、項目ごとに表示・非表示を選ぶ）。
+ * チャットの見出しの行に出す項目（チャットの見出しの右クリックの「チャット画面表示」→「見出しに出す項目」で、項目ごとに表示・非表示を選ぶ）。
  * 覚えるのは隠した項目だけ（CHAT_HEADER_HIDDEN）なので、項目を増やしても初めは表示になる
  */
 export const CHAT_HEADER_ITEMS = ["project", "group", "worktree", "showing", "textWidth", "fontSize", "sticky", "find", "turns", "cost", "agents"] as const;

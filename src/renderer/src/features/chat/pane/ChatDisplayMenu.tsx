@@ -19,7 +19,7 @@ import { useWideText } from "./TextWidthToggle";
 import { CHAT_FONT_SIZE_LABELS, useChatFontSize } from "./chatFontSize";
 import { ChatFontSizeItems } from "./ChatFontSizeButton";
 
-/** 見出しの行のどの項目を出すか（どのチャットでも同じ。タブの列の「表示」→「見出しに出す項目」で選ぶ） */
+/** 見出しの行のどの項目を出すか（どのチャットでも同じ。チャットの見出しの右クリックの「チャット画面表示」→「見出しに出す項目」で選ぶ） */
 export function useChatHeaderItems() {
   const [saved] = useSetting(CHAT_HEADER_HIDDEN);
   const hidden = hiddenHeaderItems(saved);
@@ -72,11 +72,10 @@ function CheckItem({
 /**
  * 「チャット画面表示」のメニューの項目（どのチャットでも共通の表示の設定）。組を区切り線で分ける:
  * 「表示 / 非表示」の見出しの下に、画面の上から順に出す・隠すもの（タブの列・見出しの行・指示の帯。利用者の依頼）｜ 見出しに出す項目（横に開く子のメニューで 1 つずつ）・バッジを色付きで表示 ｜
- * 会話の横幅・会話の文字の大きさ（横に開く子のメニューで 5 段階）｜ 定型文の帯・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄。「チャット画面表示 ›」の横に開く子のメニュー）と、
- * 見出し・会話の何もないところの右クリックで同じものを出す。見出し・タブの列のどちらを隠しても、もう一方と会話の右クリックから戻せる。設定の「表示」と同じ値。
- * heading: いちばん上に「チャット画面表示」の見出しを出す（右クリックのメニュー。子のメニューでは開いた項目が同じ名前なので出さない）
+ * 会話の横幅・会話の文字の大きさ（横に開く子のメニューで 5 段階）｜ 定型文の帯・チャット欄のコンパクト表示。見出し・会話の何もないところの右クリックで出す
+ * （前はタブの列の「表示」のメニューの「チャット画面表示 ›」にもあったが、利用者の依頼で消した）。見出しを隠しても会話の右クリックから戻せる。設定の「表示」と同じ値
  */
-export function ChatDisplayItems({ heading = true }: { heading?: boolean }) {
+export function ChatDisplayItems() {
   const [tabRowHidden, setTabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const [rowHidden, setRowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [saved, setSaved] = useSetting(CHAT_HEADER_HIDDEN);
@@ -93,11 +92,9 @@ export function ChatDisplayItems({ heading = true }: { heading?: boolean }) {
   const separator = <div className="menu-separator" role="separator" />;
   return (
     <div className="menu-items">
-      {heading && (
-        <div className="menu-label" title="どのチャットでも共通の表示です（設定の「表示」と同じ値）">
-          チャット画面表示
-        </div>
-      )}
+      <div className="menu-label" title="どのチャットでも共通の表示です（設定の「表示」と同じ値）">
+        チャット画面表示
+      </div>
       {/* 画面の上から順に、出す・隠すを切り替えるもの（利用者の依頼で 1 つのまとまりに。前は効く場所ごとに区切り線で分けていた） */}
       <div className="menu-label">表示 / 非表示</div>
       <CheckItem

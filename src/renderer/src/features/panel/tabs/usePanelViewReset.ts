@@ -1,13 +1,6 @@
 import type { Setting } from "@/lib/storage";
 import { writeSetting } from "@/lib/storage";
 import {
-  CHAT_FONT_SIZE,
-  CHAT_HEADER_HIDDEN,
-  CHAT_HEADER_ORDER,
-  CHAT_HEADER_ROW_HIDDEN,
-  CHAT_TAB_ROW_HIDDEN,
-  CHAT_WIDE,
-  COMPOSER_COMPACT,
   PANEL_HIDDEN_GROUPS,
   PANEL_HIDE_EMPTY_GROUPS,
   PANEL_TAB_CLUSTER_SHORT,
@@ -17,8 +10,6 @@ import {
   PANEL_VIEW_BUTTON_HIDDEN,
   SIDEBAR_CHAT_ORDER,
   SIDEBAR_SHOW_ARCHIVED,
-  SNIPPET_BAR_HIDDEN,
-  STICKY_PROMPT_HIDDEN,
   panelTabGrouping,
   panelTabKinds,
 } from "@/lib/storageKeys";
@@ -26,7 +17,10 @@ import { useSetting } from "@/hooks/useSetting";
 import { decodeKinds } from "@/features/panel/state/panelKinds";
 import { SURFACES, type PanelSurface } from "@/features/panel/surfaces";
 
-/** 「表示」のメニューのチャットの項目が読む設定（まとめ方と表示するタブは欄ごとなので別に見る） */
+/**
+ * 「表示」のメニューのチャットの項目が読む設定（まとめ方と表示するタブは欄ごとなので別に見る）。
+ * チャットの画面の表示（タブの列・見出し・指示の帯など）はこのメニューから外したので戻さない（チャットの見出しの右クリック・設定の「表示」で選ぶ）
+ */
 const CHAT_VIEW_SETTINGS: readonly Setting<unknown>[] = [
   SIDEBAR_CHAT_ORDER,
   SIDEBAR_SHOW_ARCHIVED,
@@ -36,15 +30,6 @@ const CHAT_VIEW_SETTINGS: readonly Setting<unknown>[] = [
   PANEL_TAB_GROUP_COLORS,
   PANEL_TAB_HIDDEN,
   PANEL_TAB_TWO_LINE,
-  CHAT_TAB_ROW_HIDDEN,
-  CHAT_HEADER_ROW_HIDDEN,
-  CHAT_HEADER_HIDDEN,
-  CHAT_HEADER_ORDER,
-  STICKY_PROMPT_HIDDEN,
-  SNIPPET_BAR_HIDDEN,
-  CHAT_FONT_SIZE,
-  CHAT_WIDE,
-  COMPOSER_COMPACT,
 ] as Setting<unknown>[];
 
 /** 初めの値と同じか（保存する形で比べる。一覧の順も含めて同じ形で保存するので、そのまま比べてよい） */
@@ -52,7 +37,7 @@ const atInitial = <T>(setting: Setting<T>, value: T) => setting.encode(value) ==
 
 /**
  * タブの列の「表示」のメニューのいちばん下の「既定に戻す」: メニューに出ている選び方（表示するタブ・チャットのまとめ方・並び順（サイドバーと共通）・出すグループ・タブに出す項目・
- * アーカイブ済み・まとまりの色・チャットの画面の項目）を初めの値に戻す。chat はチャットの項目を出している欄か（出していない欄では、表示するタブだけを戻す）。
+ * アーカイブ済み・まとまりの色と名前の省略・2 行で表示）を初めの値に戻す。chat はチャットの項目を出している欄か（出していない欄では、表示するタブだけを戻す）。
  * changed は初めと違う選び方があるか（なければ押せない）
  */
 export function usePanelViewReset(surface: PanelSurface, chat: boolean) {

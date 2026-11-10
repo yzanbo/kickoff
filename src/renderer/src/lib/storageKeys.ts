@@ -358,17 +358,17 @@ export const STICKY_PROMPT_HIDDEN = defineSetting("kickoff:sticky-prompt-hidden"
 export const SNIPPET_BAR_HIDDEN = defineSetting("kickoff:snippet-bar-hidden", flag(false));
 /** チャットのパネルのタブの列を隠すか（タブの列の「表示」・見出しと会話の何もないところの右クリック・設定の「表示」。どのプロジェクトでも同じ） */
 export const CHAT_TAB_ROW_HIDDEN = defineSetting("kickoff:chat-tab-row-hidden", flag());
-/** チャットの見出しの行を隠すか（タブの列の「表示」・設定の「表示」・⌥⌘T。どのチャットでも同じ） */
+/** チャットの見出しの行を隠すか（見出しと会話の右クリックの「チャット画面表示」・設定の「表示」・⌥⌘T。どのチャットでも同じ） */
 export const CHAT_HEADER_ROW_HIDDEN = defineSetting("kickoff:chat-header-row-hidden", flag());
-/** チャットの見出しのグループ・作業場所のバッジを色付きで表示するか（見出し・会話の何もないところの右クリック・タブの列の「表示」・設定の「表示」。どのチャットでも同じ。初めは色付き） */
+/** チャットの見出しのグループ・作業場所のバッジを色付きで表示するか（見出し・会話の何もないところの右クリック・設定の「表示」。どのチャットでも同じ。初めは色付き） */
 export const CHAT_HEADER_BADGE_COLORS = defineSetting("kickoff:chat-header-badge-colors", flag(true));
-/** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。タブの列の「表示」→「見出しに出す項目」。初めはプロジェクト・会話 / 動きの切り替え・文字の大きさ・ターン数・API 換算を隠す（メニューの「既定に戻す」でこの値に戻す）。どのチャットでも同じ） */
+/** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。チャットの見出しの右クリックの「チャット画面表示」→「見出しに出す項目」。初めはプロジェクト・会話 / 動きの切り替え・文字の大きさ・ターン数・API 換算を隠す。どのチャットでも同じ） */
 export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list(["project", "showing", "fontSize", "turns", "cost"]));
-/** 見出しの行の項目の並び（タブの列の「表示」→「見出しに出す項目」で、まとまりの中をドラッグで並べ替える。chat/pane/chatHeaderItems.ts。空なら初めの並び） */
+/** 見出しの行の項目の並び（チャットの見出しの右クリックの「チャット画面表示」→「見出しに出す項目」で、まとまりの中をドラッグで並べ替える。chat/pane/chatHeaderItems.ts。空なら初めの並び） */
 export const CHAT_HEADER_ORDER = defineSetting("kickoff:chat-header-order", list());
 /** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く。初めはコンパクトにしない） */
 export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag(false));
-/** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・タブの列の「表示」・設定の「表示」。どのチャットでも同じ。初めは標準） */
+/** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・見出しと会話の右クリックの「チャット画面表示」・設定の「表示」。どのチャットでも同じ。初めは標準） */
 export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["xs", "sm", "md", "lg", "xl"], "md"));
 /** 会話の横幅を広げるか（どのチャットでも同じ。初めは広げる） */
 export const CHAT_WIDE = defineSetting("kickoff:chat-wide", flag(true));
