@@ -162,20 +162,43 @@ function answersOf(bubble: HTMLElement): PinnedAnswer[] {
   }));
 }
 
+/** 帯に出している指示を出し続ける線のゆとり（帯の高さの端数をスクロールの位置に丸めた差で、境目を行き来しないように） */
+const HOLD_SLACK_PX = 1.5;
+
+/**
+ * 帯に出している指示と、それを選んだときの線（流れの枠 `.timeline-wrap` の上端からの距離）。
+ * 出している指示の吹き出しは、流れの上端ではなく、この線（と流れの上端の低い方）を越えて下へ戻るまで出し続ける
+ */
+export interface PinnedHold {
+  id: number;
+  line: number;
+}
+
+/** いまの線（流れの上端 ＋ 1px）を、流れの枠の上端からの距離で（帯に出す指示を選んだときに覚える） */
+export function readingLine(timeline: HTMLElement): number {
+  const top = timeline.getBoundingClientRect().top;
+  return top + 1 - (timeline.parentElement?.getBoundingClientRect().top ?? top);
+}
+
 /**
  * いま読んでいる返答の元の自分の発言（帯に出す指示）: 流れの上端まで流れた（上端より上から始まる）いちばん下の吹き出し。
  * 読んでいる位置より上に描いている吹き出しがなければ、見えている最初の項目より前のいちばん新しい指示を記録の一覧（prompts）から出す
  * （流れは最近の項目だけを描く窓なので、1 回の作業でツール・返答が多いと、窓の中に自分の吹き出しが 1 つも入らず、帯が消えていた）。
  * それもなければ（いちばん上を見ている）、最初の吹き出し。吹き出しも指示もなければ undefined。
  * AI からの質問への回答も同じ吹き出しなので数え、問いと答えを添える（文は答えだけを並べた 1 行）。圧縮前指示・圧縮後指示（`.pre-compact` / `.post-compact`）はその印を添える。
- * 帯は流れの上に置き、流れに重ねないので、流れの上端をそのまま線にする
+ * 帯に出している指示（hold）とそれより前の吹き出しは、選んだときの線まで流れたものとみなす（`PinnedHold`）。
+ * 帯の高さは指示ごとに違い（全文を出しているとき）、帯が替わると流れの上端が動くので、上端だけで決めると、
+ * 一番下に付いていく間などに、替わった先の高さでまた元の指示に戻り、境目で帯が毎フレーム替わり続けた
  */
-export function readingPrompt(timeline: HTMLElement, prompts?: PromptList): PinnedPrompt | undefined {
-  const line = timeline.getBoundingClientRect().top + 1;
+export function readingPrompt(timeline: HTMLElement, prompts?: PromptList, hold?: PinnedHold): PinnedPrompt | undefined {
+  const timelineTop = timeline.getBoundingClientRect().top;
+  const line = timelineTop + 1;
+  const holdLine = hold ? Math.max(line, (timeline.parentElement?.getBoundingClientRect().top ?? timelineTop) + hold.line + HOLD_SLACK_PX) : line;
   const bubbles = timeline.querySelectorAll<HTMLElement>(".bubble.user");
   let found: HTMLElement | undefined;
   for (const bubble of bubbles) {
-    if (bubble.getBoundingClientRect().top >= line) break;
+    const held = hold !== undefined && Number(bubble.id.replace("ev-", "")) <= hold.id;
+    if (bubble.getBoundingClientRect().top >= (held ? holdLine : line)) break;
     found = bubble;
   }
   if (!found) {
