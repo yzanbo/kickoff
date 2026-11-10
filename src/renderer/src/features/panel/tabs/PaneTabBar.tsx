@@ -39,6 +39,7 @@ export function PaneTabBar({
   pane,
   split,
   twoLine,
+  scrollTabs,
   home,
   inert,
   controls,
@@ -61,6 +62,8 @@ export function PaneTabBar({
   split: boolean;
   /** タブを 2 行にする（「表示」のメニューの「2 行で表示」。名前の下にグループ・作業場所の札） */
   twoLine: boolean;
+  /** タブが入らないとき、細くせずにふだんの幅のまま並べ、タブの列を横にスクロールする（「表示」のメニューの「タブが増えたとき」） */
+  scrollTabs: boolean;
   /**
    * 一覧のペインか（サイドバーと連動して自動で足すチャットのタブが入るペイン）。一覧のペインだけ、タブのないグループの札・「チャット」の札を出し、
    * 札の数をサイドバーの数にする。分けたほかのペインは自分で置いたタブだけの列なので、札はタブのあるまとまりだけ・数はそのペインのタブの数
@@ -162,7 +165,18 @@ export function PaneTabBar({
           popoverTitle="状態ごとのチャット"
         />
       )}
-      <div ref={stripRef} className={cx("panel-tab-strip", clusters && "grouped")}>
+      <div
+        ref={stripRef}
+        className={cx("panel-tab-strip", clusters && "grouped", scrollTabs && "scroll-tabs")}
+        // 横にスクロールするときは、マウスのホイール（縦）でも横に動かす（トラックパッドの横のスワイプはそのまま）
+        onWheel={
+          scrollTabs
+            ? (e) => {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
+              }
+            : undefined
+        }
+      >
       {clusters
         ? clusters.map((c) => {
             // まとまりごとに 1 つの枠に入れ、色の付いた名前の札・薄い地・下の線で、どこからどこまでが 1 つのまとまりかを見せる（ブラウザのタブのグループと同じ）

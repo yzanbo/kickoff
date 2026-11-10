@@ -108,3 +108,12 @@
   border-radius: 50%;
   background: currentColor;
 }
+
+/*
+ * タブが増えたとき「横にスクロールする」（PANEL_TAB_OVERFLOW の scroll。PaneTabBar の .scroll-tabs）: タブ・まとまりを細くせず、ふだんの幅（180px）のまま並べ、
+ * タブの列（.panel-tab-strip の overflow-x）を横にスクロールする（VS Code と同じ。利用者の依頼。初めはタブを細くして収める）
+ */
+.panel-tab-strip.scroll-tabs .panel-tab,
+.panel-tab-strip.scroll-tabs .panel-tab-group {
+  flex-shrink: 0;
+}

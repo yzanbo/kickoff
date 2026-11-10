@@ -11,7 +11,7 @@ import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
 import { PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
-import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN, PANEL_TAB_TWO_LINE } from "@/lib/storageKeys";
+import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN, PANEL_TAB_OVERFLOW, PANEL_TAB_TWO_LINE } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/sidebar/chatGroupings";
 import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleTabField } from "./tabFields";
@@ -20,6 +20,13 @@ import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleT
 export const hasTabDisplayItems = (panel: PanelController) => !SURFACES[panel.surface].fixedKinds || panel.kinds.has("chat");
 
 const separator = <div className="menu-separator" role="separator" />;
+
+const TAB_OVERFLOWS = PANEL_TAB_OVERFLOW.choices;
+const TAB_OVERFLOW_LABELS: Record<(typeof TAB_OVERFLOWS)[number], string> = { shrink: "タブを細くして収める", scroll: "横にスクロールする" };
+const TAB_OVERFLOW_TIPS: Record<(typeof TAB_OVERFLOWS)[number], string> = {
+  shrink: "タブが増えたら、タブを細くしてタブの列に収めます（名前を省き、狭くなったらアイコンだけに）",
+  scroll: "タブが増えても幅を変えずに並べ、タブの列を横にスクロールします（トラックパッドの横のスワイプ・マウスのホイール）",
+};
 
 /**
  * タブの表示の項目（タブの列の「表示」のメニューの上の部分と、タブの右クリックの「タブの表示 ›」で共通。利用者の依頼）:
@@ -36,6 +43,8 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
   const hiddenFields = hiddenTabFields(tabHidden);
   // タブを 2 行にするか（サイドバーのチャットの行とは別の、タブだけの設定。利用者の依頼）
   const [twoLine, setTwoLine] = useSetting(PANEL_TAB_TWO_LINE);
+  // タブが増えて入らないとき、細くして収めるか横にスクロールするか（すべてのパネルで共通。利用者の依頼）
+  const [overflow, setOverflow] = useSetting(PANEL_TAB_OVERFLOW);
   const showKinds = !SURFACES[panel.surface].fixedKinds;
   const showChat = kinds.has("chat");
 
@@ -146,6 +155,25 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
             {twoLine && <Check size={14} aria-hidden />}
           </MenuItem>,
         ),
+      ),
+    );
+    // タブが増えたとき: 細くして収める（Chrome と同じ）か、ふだんの幅のまま横にスクロールする（VS Code と同じ）か
+    sections.push(
+      section(
+        "タブが増えたとき",
+        TAB_OVERFLOWS.map((o) => (
+          <MenuItem
+            key={o}
+            role="menuitemradio"
+            checked={overflow === o}
+            keepOpen
+            title={TAB_OVERFLOW_TIPS[o]}
+            onSelect={() => setOverflow(o)}
+          >
+            <span className="project-switch-item">{TAB_OVERFLOW_LABELS[o]}</span>
+            {overflow === o && <Check size={14} aria-hidden />}
+          </MenuItem>
+        )),
       ),
     );
     // グループ別のときだけ: タブの列に出すグループ（自分で作ったグループを隠す・チャットのないグループを隠す）
