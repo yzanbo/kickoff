@@ -1,13 +1,14 @@
-import { CaseSensitive, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
-import { consumeKey, hasModifiers, isCancelKey, isComposing, isKey } from "@/lib/keys";
+import { consumeKey, isCancelKey, isComposing, isKey } from "@/lib/keys";
+import { findPattern, spansIn, type FindPattern } from "@/lib/textFind";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
-import { useSetting } from "@/hooks/useSetting";
-import { CHAT_FIND_CASE } from "@/lib/storageKeys";
+import { useFindOptions } from "@/hooks/useFindOptions";
+import { FindOptionButtons, handleFindOptionKey } from "@/ui/FindOptionButtons";
 import { CloseButton, IconButton } from "@/ui/IconButton";
-import { findMatches, matchOffsets } from "./chatFindMatches";
+import { findMatches } from "./chatFindMatches";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 
 /** 見つけた文の印（CSS の ::highlight(chat-find) / ::highlight(chat-find-current) で色を付ける） */
@@ -20,7 +21,8 @@ const CURRENT = "chat-find-current";
  * 探すのは記録から（findMatches）で、流れ（最近の項目だけを描く窓）をすべて描かない。移るときに、その発言を描くよう窓を動かす（onGoto）。
  * 初めて移るときは、いちばん新しい一致へ。印は描いている範囲の文に CSS Custom Highlight API で付け、DOM は書き換えない（React の描画とぶつからない）。
  * 閉じたツールのまとまり・思考の中は探さない（見えていない文に印を付けないように）。
- * 打った文は前後の空白も削らずに探し（半角・全角の空白も探せる）、右の「Aa」（⌥⌘C）で大文字・小文字を区別するかを切り替える（VS Code と同じ。覚えておく）
+ * 打った文は前後の空白も削らずに探し（半角・全角の空白も探せる）、右の「Aa」「ab」「.*」（⌥⌘C / ⌥⌘W / ⌥⌘R）で大文字・小文字の区別・単語単位・正規表現を切り替える
+ * （VS Code と同じ。ほかの検索の欄と同じ値を覚えておく useFindOptions）
  */
 export function ChatFind({
   items,
@@ -41,13 +43,16 @@ export function ChatFind({
   const { root, reveal, focusComposer } = useChatPane();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
-  const [caseSensitive, setCaseSensitive] = useSetting(CHAT_FIND_CASE);
+  const { options, toggle } = useFindOptions();
   // 長いチャットでも打つのが遅れないよう、探すのは入力に遅れて（空白も探す文字なので削らない）
   const needle = useDeferredValue(query);
-  const matches = useMemo(() => findMatches(items, needle, caseSensitive), [items, needle, caseSensitive]);
+  // 探す形（正規表現の誤りなら error。件数のところに出す）
+  const pattern = useMemo(() => findPattern(needle, options), [needle, options]);
+  const invalid = pattern !== null && "error" in pattern;
+  const matches = useMemo(() => findMatches(items, pattern), [items, pattern]);
   // いま選んでいる一致（null = まだ移っていない）
   const [index, setIndex] = useState<number | null>(null);
-  useEffect(() => setIndex(null), [needle, caseSensitive]);
+  useEffect(() => setIndex(null), [pattern]);
   const current = index !== null ? matches[index] : undefined;
   // 移ったら、その発言を描いてからスクロールする
   const scrollPending = useRef(false);
@@ -56,12 +61,12 @@ export function ChatFind({
   useEffect(() => {
     const highlights = CSS.highlights;
     if (!highlights) return;
-    if (root.current && needle) highlights.set(HIGHLIGHT, new Highlight(...findRanges(root.current, needle, caseSensitive)));
+    if (root.current && pattern) highlights.set(HIGHLIGHT, new Highlight(...findRanges(root.current, pattern)));
     else highlights.delete(HIGHLIGHT);
     return () => {
       highlights.delete(HIGHLIGHT);
     };
-  }, [needle, caseSensitive, version, root]);
+  }, [pattern, version, root]);
 
   // いま選んでいる一致に印を付け、移ったばかりならそこまでスクロールする（その発言の中の nth 番目。描いた文と記録がずれたら最初）
   useEffect(() => {
@@ -71,7 +76,7 @@ export function ChatFind({
       highlights?.delete(CURRENT);
       return;
     }
-    const ranges = findRanges(el, needle, caseSensitive);
+    const ranges = findRanges(el, pattern);
     const range = ranges[current.nth] ?? ranges[0];
     if (range) highlights?.set(CURRENT, new Highlight(range));
     else highlights?.delete(CURRENT);
@@ -82,7 +87,7 @@ export function ChatFind({
     return () => {
       highlights?.delete(CURRENT);
     };
-  }, [current, needle, caseSensitive, version, root]);
+  }, [current, pattern, version, root]);
 
   const go = (step: 1 | -1) => {
     if (matches.length === 0) return;
@@ -118,15 +123,12 @@ export function ChatFind({
         placeholder="このチャットを検索"
         title="このチャットの中を検索（⌘F）"
         aria-label="このチャットの中を検索"
+        aria-invalid={invalid || undefined}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
           if (isComposing(e)) return;
-          // ⌥⌘C: 大文字・小文字を区別するかを切り替える（⌥ を押すと文字が変わるので、キーの位置で見る）
-          if (e.code === "KeyC" && hasModifiers(e, { meta: true, alt: true })) {
-            e.preventDefault();
-            setCaseSensitive(!caseSensitive);
-            return;
-          }
+          // ⌥⌘C / ⌥⌘W / ⌥⌘R: 探し方を切り替える
+          if (handleFindOptionKey(e, toggle)) return;
           if (e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault();
             go(e.key === "ArrowUp" || (e.key === "Enter" && e.shiftKey) ? -1 : 1);
@@ -139,20 +141,12 @@ export function ChatFind({
           }
         }}
       />
-      {/* 件数・前後・大文字小文字は、文を入れたときだけ出す（ふだんは見出しの行をすっきりさせる） */}
+      {/* 件数・前後・探し方は、文を入れたときだけ出す（ふだんは見出しの行をすっきりさせる） */}
       {query && (
         <>
-      <IconButton
-        icon={CaseSensitive}
-        label="大文字と小文字を区別する"
-        title="大文字と小文字を区別する（⌥⌘C）"
-        size={16}
-        className={cx("find-option", caseSensitive && "on")}
-        aria-pressed={caseSensitive}
-        onClick={() => setCaseSensitive(!caseSensitive)}
-      />
-      <span className="chat-find-count muted small" aria-live="polite">
-        {needle ? (matches.length ? (index === null ? `${matches.length} 件` : `${index + 1} / ${matches.length}`) : "見つかりません") : ""}
+      <FindOptionButtons options={options} onToggle={toggle} size={16} />
+      <span className={cx("chat-find-count muted small", invalid && "invalid")} aria-live="polite">
+        {invalid ? "正規表現の誤り" : needle ? (matches.length ? (index === null ? `${matches.length} 件` : `${index + 1} / ${matches.length}`) : "見つかりません") : ""}
       </span>
       <IconButton icon={ChevronUp} label="前を探す" title="前を探す（Shift+Enter）" size={14} disabled={matches.length === 0} onClick={() => go(-1)} />
       <IconButton icon={ChevronDown} label="次を探す" title="次を探す（Enter）" size={14} disabled={matches.length === 0} onClick={() => go(1)} />
@@ -163,8 +157,8 @@ export function ChatFind({
   );
 }
 
-/** root の中の、見えている文から query を探す（記録から探す matchOffsets と同じ照らし合わせ） */
-function findRanges(root: HTMLElement, query: string, caseSensitive: boolean): Range[] {
+/** root の中の、見えている文から pattern に合う所を探す（記録から探す findMatches と同じ照らし合わせ） */
+function findRanges(root: HTMLElement, pattern: FindPattern): Range[] {
   const ranges: Range[] = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => {
@@ -177,10 +171,10 @@ function findRanges(root: HTMLElement, query: string, caseSensitive: boolean): R
     },
   });
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    for (const at of matchOffsets(node.textContent ?? "", query, caseSensitive)) {
+    for (const span of spansIn(node.textContent ?? "", pattern)) {
       const range = document.createRange();
-      range.setStart(node, at);
-      range.setEnd(node, at + query.length);
+      range.setStart(node, span.start);
+      range.setEnd(node, span.end);
       ranges.push(range);
     }
   }

@@ -6,6 +6,7 @@ import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import type { AppliedTheme } from "@/lib/appliedTheme";
 import { registerCodeSelection, type CodeSelection } from "./codeSelection";
 import { registerEditorFind } from "./editorFind";
+import { syncMonacoFindOptions } from "./monacoFindOptions";
 import { SPLIT_MIN_WIDTH } from "./DiffView";
 import { quickDiff, type QuickDiffHunk } from "./quickDiff";
 
@@ -199,12 +200,15 @@ export default function CodeEditor({
       editor.focus();
       void editor.getAction("actions.find")?.run();
     });
+    // 検索の欄の「Aa」「ab」「.*」は、ほかの検索の欄と同じ値にそろえる
+    const unsyncFind = syncMonacoFindOptions(editor);
     if (autoFocus) editor.focus();
     return () => {
       clearTimeout(timer);
       sub.dispose();
       unregister();
       unregisterFind();
+      unsyncFind();
       refreshQuickDiff.current = null;
       // 差分の編集では、左右の部品は差分の部品が一緒に片付ける
       (diffRef.current ?? editor).dispose();

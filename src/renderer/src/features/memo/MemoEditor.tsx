@@ -8,9 +8,11 @@ import { Compartment, EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { MemoKind } from "@shared/memo/kinds";
+import { readFindOptions } from "@/hooks/useFindOptions";
 import { cx } from "@/lib/cx";
 import { livePreview } from "./livePreviewExtension";
 import type { MemoLines } from "./memoAttachment";
+import { createMemoFindPanel, memoSearchConfig } from "./memoFindPanel";
 
 /** 検索の欄の文言（CodeMirror の英語を、アプリの言い方にそろえる） */
 const SEARCH_PHRASES: Record<string, string> = {
@@ -124,8 +126,8 @@ export default function MemoEditor({ initialValue, kind, live, hidden = false, o
             ...defaultKeymap,
             ...historyKeymap,
           ]),
-          // ⌘F でエディタの中を探す（上に検索の欄。見えていない行も探せる）
-          search({ top: true }),
+          // ⌘F でエディタの中を探す（上に検索の欄。見えていない行も探せる）。欄はページ・チャットの検索と同じ見た目と探し方（memoFindPanel）
+          search({ top: true, createPanel: createMemoFindPanel, ...memoSearchConfig(readFindOptions()) }),
           EditorState.phrases.of(SEARCH_PHRASES),
           kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage }),
           EditorView.lineWrapping,
