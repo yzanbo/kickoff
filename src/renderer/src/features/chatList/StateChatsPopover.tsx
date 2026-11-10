@@ -1,4 +1,3 @@
-import { SquarePen } from "lucide-react";
 import type { RefObject } from "react";
 import { busyWithUnread } from "@shared/chat/state";
 import { BOARD_COLUMNS, type Chat } from "@shared/types";
@@ -31,7 +30,6 @@ export function chatsByState(chats: readonly Chat[], pending: ApprovalIndex, { a
  * 画面の見出しの状態ごとの数（StateStats）と、右のパネルのタブのまとまりの名前の札で共通。行を押すと onOpen。
  * 行の左には、サイドバーの行と同じ状態の印（StatusSlot。作業中は回るリング、作業中のまま未読があれば緑の点を重ねる）を出す。
  * showProject なら行にプロジェクト名も出す（いくつかのプロジェクトのチャットが混ざるとき）。
- * newChat を渡すと、いちばん下に新しいチャットを始めるボタンを置く（タブのまとまりの札から開いたとき。そのグループに new チャットを足す）。
  * 開いた要素（anchor）の下に、左端をそろえて出す
  */
 export function StateChatsPopover({
@@ -40,7 +38,6 @@ export function StateChatsPopover({
   sections,
   showProject = false,
   emptyText = "作業中・回答待ち・未読のチャットはありません",
-  newChat,
   onOpen,
   onClose,
   className,
@@ -53,7 +50,6 @@ export function StateChatsPopover({
   /** チャットがないときの文 */
   emptyText?: string;
   /** いちばん下の新しいチャットのボタン（文と、押したとき。一覧は閉じてから呼ぶ） */
-  newChat?: { label: string; onSelect: () => void };
   onOpen: (chat: Chat) => void;
   onClose: () => void;
   className?: string;
@@ -87,19 +83,6 @@ export function StateChatsPopover({
           ))}
         </section>
       ))}
-      {newChat && (
-        <button
-          type="button"
-          className="state-chats-new"
-          onClick={() => {
-            onClose();
-            newChat.onSelect();
-          }}
-        >
-          <SquarePen size={14} aria-hidden />
-          {newChat.label}
-        </button>
-      )}
     </Popover>
   );
 }

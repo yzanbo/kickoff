@@ -156,10 +156,6 @@ export function PaneTabBar({
           cluster={{ key: "all", kind: "all", label: "チャット", title: "このパネルのチャット", tabs: strip.known }}
           chats={strip.allChats}
           onOpen={(chat) => panel.open(chat)}
-          onStartNewChat={() => {
-            panel.focusPane(pane.id);
-            panel.startNewChat();
-          }}
           all
           popoverTitle="状態ごとのチャット"
         />
@@ -183,7 +179,6 @@ export function PaneTabBar({
                   cluster={c}
                   chats={strip.clusterChats(c)}
                   onOpen={(chat) => panel.open(chat)}
-                  onNewChat={(target) => panel.openNew(target)}
                   collapsed={collapsed}
                   onToggleCollapsed={c.tabs.length > 0 ? () => strip.toggleCollapsed(c) : undefined}
                   dragProps={strip.reorder.handle(c)}
