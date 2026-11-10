@@ -285,3 +285,21 @@ export type GitOperationAction = "abort" | "continue" | "skip";
 
 /** 衝突したファイルの解き方（ours: こちらの版 / theirs: 取り込む側の版 / mark: いまの中身で解決済みにする） */
 export type GitConflictResolution = "ours" | "theirs" | "mark";
+
+/** 行の変更の記録（git blame）の 1 つのコミット。uncommitted はまだコミットしていない行（作業中の変更）、you は自分（git の user.email）が作ったもの */
+export interface GitBlameCommit {
+  hash: string;
+  author: string;
+  email: string;
+  /** 作った時刻（ISO） */
+  date: string;
+  summary: string;
+  uncommitted: boolean;
+  you: boolean;
+}
+
+/** ファイルの行ごとの変更の記録（lines[i] は i + 1 行目のコミットの commits の位置）。Git で管理していないファイルは null */
+export interface GitBlame {
+  commits: GitBlameCommit[];
+  lines: number[];
+}
