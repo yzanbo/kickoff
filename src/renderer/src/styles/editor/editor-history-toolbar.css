@@ -1,0 +1,272 @@
+/* ==== 履歴タブの上の Git の操作の帯（HistoryToolbar）と、Git の操作の窓（GitCommandPalette） ==== */
+
+/* 帯: アイコンの下に名前を出すボタンを、まとまりごとに並べる。狭くなったら名前を隠す（下のコンテナクエリ） */
+.history-toolbar {
+  container: history-toolbar / inline-size;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.history-toolbar > .spacer {
+  flex: 1;
+}
+
+.history-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ボタン（上にアイコン・下に名前） */
+.history-tool {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 52px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  cursor: pointer;
+}
+
+.history-tool:hover:not([aria-disabled="true"]) {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.history-tool[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.history-tool.busy .history-tool-icon {
+  animation: spin 1s linear infinite;
+}
+
+.history-tool-icon {
+  position: relative;
+  display: inline-flex;
+}
+
+/* 進み・遅れの数（プッシュ・プルのアイコンの右上） */
+.history-tool-badge {
+  position: absolute;
+  top: -6px;
+  left: calc(100% - 6px);
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 15px;
+  text-align: center;
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+.history-tool-label {
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+/* ボタンと右の ▾ を 1 つに見せる */
+.history-tool-split {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.history-tool-split .history-tool {
+  min-width: 44px;
+  padding-right: 2px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.history-tool-caret {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--muted);
+  background: none;
+  cursor: pointer;
+}
+
+.history-tool-caret:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* 真ん中: プロジェクト名と、いまのブランチ ▾・作業場所の切り替え */
+.history-toolbar-repo {
+  display: flex;
+  flex: 0 1 360px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.history-toolbar-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.history-toolbar-place {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.history-toolbar-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  cursor: pointer;
+}
+
+.history-toolbar-branch:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.history-toolbar-branch-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 狭ければ名前を隠してアイコンだけ（真ん中の欄は残す） */
+@container history-toolbar (width < 820px) {
+  .history-tool-label {
+    display: none;
+  }
+
+  .history-tool,
+  .history-tool-split .history-tool {
+    min-width: 0;
+    padding: 6px;
+  }
+
+  .history-tool-caret {
+    padding: 0 2px;
+  }
+}
+
+/* Git の操作の窓 */
+.git-palette {
+  display: flex;
+  flex-direction: column;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(440px, 70vh);
+  padding: 6px;
+}
+
+.git-palette-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  background: var(--bg);
+}
+
+.git-palette-search:focus-within {
+  border-color: var(--accent);
+}
+
+.git-palette-search input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  font-size: 13px;
+  color: var(--text);
+  background: none;
+}
+
+.git-palette-list {
+  margin: 6px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.git-palette-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  cursor: pointer;
+}
+
+.git-palette-item.active {
+  background: var(--bg-hover);
+}
+
+[aria-disabled="true"] > .git-palette-item {
+  color: var(--muted);
+  opacity: 0.6;
+  cursor: default;
+}
+
+.git-palette-label {
+  flex: none;
+}
+
+.git-palette-hint {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.git-palette-empty {
+  padding: 10px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}

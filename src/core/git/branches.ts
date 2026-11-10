@@ -191,7 +191,27 @@ export async function runBranchAction(repo: string, a: GitBranchAction): Promise
       await gitOutput(repo, ["tag", "-d", assertRefName(a.name)]);
       if (a.remote) await gitOutput(repo, ["push", "-q", "origin", "--delete", `refs/tags/${a.name}`], [], NETWORK_TIMEOUT);
       return done;
+    case "stash_save": {
+      // 退避するものがなくても git は成功で返すので、退避の数が増えたかで確かめる
+      const before = await stashCount(repo);
+      const message = a.message?.trim();
+      await gitOutput(repo, ["stash", "push", "-q", ...(a.include_untracked ? ["-u"] : []), ...(message ? ["-m", message] : [])]);
+      if ((await stashCount(repo)) === before) throw new Invalid("退避する変更がありません");
+      return done;
+    }
+    case "stash_pop":
+    case "stash_apply":
+      // 戻した変更が作業中の変更とぶつかったら、衝突したファイルを返す（pop でも退避は消えずに残る）
+      return runStoppable(repo, ["stash", a.action === "stash_pop" ? "pop" : "apply", "-q", a.ref]);
+    case "stash_drop":
+      await gitOutput(repo, ["stash", "drop", "-q", a.ref]);
+      return done;
   }
+}
+
+/** 退避の数 */
+async function stashCount(repo: string): Promise<number> {
+  return (await gitOutput(repo, ["stash", "list", "--format=%gd"]).catch(() => "")).split("\n").filter(Boolean).length;
 }
 
 /** 途中で止まっているマージ・リベースなどを、取りやめる・続ける・飛ばす。続けた先でまた衝突したら、衝突したファイルを返す */

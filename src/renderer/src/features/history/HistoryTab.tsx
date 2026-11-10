@@ -15,11 +15,16 @@ import { RefMenu } from "./RefMenu";
 import type { RefTarget } from "./refTarget";
 import { useBranchActions } from "./useBranchActions";
 import { useWorktreeActions } from "@/features/worktree/useWorktreeActions";
+import { useProjects } from "@/stores/projects";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { HistoryToolbar } from "./HistoryToolbar";
+import { useHistoryOps } from "./useHistoryOps";
+import { useStashActions } from "./useStashActions";
 
 /**
- * プロジェクトの「履歴」タブ（Fork と同じ形: 左にブランチ・リモート・ワークツリーなどの一覧、右上にコミットの表、右下に詳細）。
- * ボード・ファイル・変更と並ぶタブ。上の WorktreePicker で見る作業場所を切り替える（ファイル・検索・変更のタブと同じ作業場所）。
- * ブランチ・タグの右クリックで、チェックアウト・プッシュ・マージなどの操作（RefMenu ＋ useBranchActions）
+ * プロジェクトの「履歴」タブ（上に Git の操作の帯、左にブランチ・リモート・ワークツリーなどの一覧、右上にコミットの表、右下に詳細）。
+ * ボード・ファイル・変更と並ぶタブ。帯の真ん中の WorktreePicker で見る作業場所を切り替える（ファイル・検索・変更のタブと同じ作業場所）。
+ * ブランチ・タグの右クリックで、チェックアウト・プッシュ・マージなどの操作（RefMenu ＋ useBranchActions）、退避の右クリックで戻す・適用・削除（useStashActions）
  */
 export function HistoryTab({
   projectId,
@@ -47,6 +52,11 @@ export function HistoryTab({
   // ワークツリーの作成・削除（左の一覧の「ワークツリー」と、その行の右クリック）
   const worktreeActions = useWorktreeActions(projectId, log);
   const menuTree = refMenu.menu?.value.worktree ? log.worktrees?.find((w) => w.path === refMenu.menu?.value.worktree) : undefined;
+  // 退避（帯の「退避」・左の一覧の退避の行の右クリック）と、帯の操作
+  const stashActions = useStashActions(projectId, branchActions, log);
+  const stashMenu = useContextMenu<string>();
+  const ops = useHistoryOps({ projectId, worktree, git, log, branch: branchActions, stash: stashActions, worktreeActions });
+  const { projectName } = useProjects();
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
@@ -55,24 +65,31 @@ export function HistoryTab({
 
   return (
     <>
-      {/* 作業場所（本体・ワークツリー）の切り替え。ワークツリーが本体だけなら空（CSS で隠す） */}
-      <div className="changes-bar">
-        <WorktreePicker projectId={projectId} value={worktree} onChange={onWorktreeChange} version={git.version} />
-      </div>
+      {/* Git の操作の帯。真ん中に作業場所（本体・ワークツリー）の切り替え（ワークツリーが本体だけなら出さない） */}
+      <HistoryToolbar
+        ops={ops}
+        projectName={projectName(projectId)}
+        worktreePicker={<WorktreePicker projectId={projectId} value={worktree} onChange={onWorktreeChange} version={git.version} />}
+      />
       <div className={cx("changes", list.resizing && "resizing")}>
-        <aside ref={list.paneRef} className="changes-list" style={{ width: list.size }} aria-label="履歴">
-          <HistorySidebar
-            log={log}
-            busy={branchActions.busy}
-            worktreeActions={worktreeActions}
-            onRefMenu={refMenu.open}
-            onPick={(hash) => {
-              const found = log.commits?.find((c) => c.hash === hash);
-              if (found) setCommit(found);
-            }}
-          />
-        </aside>
-        <div className="pane-resizer" aria-label="一覧の幅を変える" {...list.handle} />
+        {!ops.listHidden && (
+          <>
+            <aside ref={list.paneRef} className="changes-list" style={{ width: list.size }} aria-label="履歴">
+              <HistorySidebar
+                log={log}
+                busy={ops.busy}
+                worktreeActions={worktreeActions}
+                onRefMenu={refMenu.open}
+                onStashMenu={stashMenu.open}
+                onPick={(hash) => {
+                  const found = log.commits?.find((c) => c.hash === hash);
+                  if (found) setCommit(found);
+                }}
+              />
+            </aside>
+            <div className="pane-resizer" aria-label="一覧の幅を変える" {...list.handle} />
+          </>
+        )}
         <div className="changes-diff">
           <HistoryMain projectId={projectId} log={log} commit={commit} onSelect={setCommit} onRefMenu={refMenu.open} />
         </div>
@@ -93,6 +110,20 @@ export function HistoryTab({
           }
           onClose={refMenu.close}
         />
+      )}
+      {stashMenu.menu && (
+        <PopupMenu at={stashMenu.menu.at} label="退避のメニュー" onClose={stashMenu.close}>
+          <MenuItem title="作業場所に戻して、退避の一覧から消します" onSelect={() => void stashActions.pop(stashMenu.menu!.value)}>
+            戻す
+          </MenuItem>
+          <MenuItem title="作業場所に戻し、退避の一覧にも残します" onSelect={() => void stashActions.apply(stashMenu.menu!.value)}>
+            適用
+          </MenuItem>
+          <div className="menu-separator" role="separator" />
+          <MenuItem danger onSelect={() => void stashActions.drop(stashMenu.menu!.value)}>
+            削除…
+          </MenuItem>
+        </PopupMenu>
       )}
     </>
   );

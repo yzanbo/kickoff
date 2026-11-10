@@ -20,6 +20,8 @@ async function gitAction(c: Context, dir: string, action: () => Promise<void>) {
 
 /** ブランチ・タグの名前（手元・リモート・タグ・コミットの番号）。「-」で始まる名前はコアが断る */
 const refName = z.string().trim().min(1).max(255);
+/** 退避の名前（"stash@{0}" の形だけ） */
+const stashRef = z.string().regex(/^stash@\{\d+\}$/);
 
 /** ブランチ・タグの操作の本文（履歴の左の一覧・コミットの札の右クリック） */
 const branchActionSchema = z.discriminatedUnion("action", [
@@ -40,6 +42,10 @@ const branchActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("delete_remote_branch"), remote_branch: refName }),
   z.object({ action: z.literal("push_tag"), name: refName }),
   z.object({ action: z.literal("delete_tag"), name: refName, remote: z.boolean() }),
+  z.object({ action: z.literal("stash_save"), message: z.string().max(10_000).nullable(), include_untracked: z.boolean() }),
+  z.object({ action: z.literal("stash_pop"), ref: stashRef }),
+  z.object({ action: z.literal("stash_apply"), ref: stashRef }),
+  z.object({ action: z.literal("stash_drop"), ref: stashRef }),
 ]) satisfies z.ZodType<GitBranchAction>;
 
 /**
