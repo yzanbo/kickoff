@@ -33,6 +33,8 @@
 }
 
 .activity-rails {
+  /* 起動の行で横の線から子の線へ曲がる角の半径（線の中心で） */
+  --branch-r: 6px;
   position: relative;
   align-self: stretch;
   min-height: 26px;
@@ -68,14 +70,29 @@
   height: 0;
 }
 
-/* 起動の行: 親の節から右へ出て、子の線へ上へ曲がって入る（動きは上を最新に並べるので、子の線は起動の行より上へ伸びる） */
+/* 起動の行の子の線: 曲がり角の手前で止める（角は .activity-rail-branch が丸く描く。前は節の高さまで伸びて、丸い角の上に四角い角が重なっていた） */
+.activity-rail.joins.to-node {
+  height: calc(var(--node-y) - var(--branch-r) - 1px);
+}
+
+/* 最新の行より先へ続く線（まだ作業中）: 節から上へ薄れていく */
+.activity-rail.open {
+  background: linear-gradient(to bottom, transparent, var(--rail-color) var(--node-y));
+}
+
+/*
+ * 起動の行: 親の節から右へ出て、子の線へ上へ曲がって入る（動きは上を最新に並べるので、子の線は起動の行より上へ伸びる）。
+ * 横の線（下の枠線）の中心を節の高さに、縦の線（右の枠線）の中心を子の列に合わせ、角は線の中心で半径 --branch-r の曲線にする
+ * （前は横の線が節の中心より 2px 下にずれていた）
+ */
 .activity-rail-branch {
   position: absolute;
-  top: calc(var(--node-y) - 9px);
-  height: 10px;
+  top: calc(var(--node-y) - var(--branch-r) - 1px);
+  box-sizing: border-box;
+  height: calc(var(--branch-r) + 2px);
   border-bottom: 2px solid var(--rail-color);
   border-right: 2px solid var(--rail-color);
-  border-bottom-right-radius: 8px;
+  border-bottom-right-radius: calc(var(--branch-r) + 1px);
 }
 
 .activity-rail-node {

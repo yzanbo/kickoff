@@ -8,6 +8,10 @@ export interface RailSegment {
   agent: string | null;
   from: "top" | "node";
   to: "bottom" | "node";
+  /** 最新の行より先へ続く線（まだ作業中の持ち主。上を最新にしたとき、上へ薄れていく短い線で描く） */
+  open?: boolean;
+  /** 起動の行で、横の線から曲がって入る子の線（曲がり角の手前で止め、角は横の線の側で丸く描く） */
+  joins?: boolean;
 }
 
 /** 1 行の線（col = 行の持ち主の列 = 節を置く列。branch = 起動した子の列へ、節の高さで横に分かれる線） */
@@ -26,9 +30,11 @@ export interface RailLayout {
 /**
  * 行ごとの線を決める。列は使うときに、空いている左からの列を取る（起動した子は、起動した親より右の空いている列）。
  * 終わりの行（end）のあとは列を空け、あとから起動したものが使い回す。起動の行のない持ち主（絞り込んだ・記録を巻き戻した）は、
- * その最初の行の節から線を始める。絞り込みで行のない子へは枝分かれしない
+ * その最初の行の節から線を始める。絞り込みで行のない子へは枝分かれしない。
+ * active（まだ作業中の持ち主。メインはチャットが作業中なら null）を渡すと、最新の行より先へは作業中の持ち主の線だけを続け（open）、
+ * ほかは最新の行の節の高さで止める（利用者の指摘で、前は終わっているメインの線なども最新の行より先まで出ていた）
  */
-export function layoutRails(rows: readonly Pick<ActivityRow, "agent" | "kind" | "child">[]): RailLayout {
+export function layoutRails(rows: readonly Pick<ActivityRow, "agent" | "kind" | "child">[], active?: ReadonlySet<string | null>): RailLayout {
   const present = new Set(rows.map((r) => r.agent));
   // 持ち主ごとの終わりの行（その節で線を閉じる。ないもの（メイン・実行中）は最後まで）
   const closesAt = new Map<string | null, number>();
@@ -57,8 +63,16 @@ export function layoutRails(rows: readonly Pick<ActivityRow, "agent" | "kind" | 
     let branch: RailRow["branch"];
     if (row.kind === "launch" && row.child !== undefined && present.has(row.child) && !colOf.has(row.child)) {
       const to = take(row.child, col + 1);
-      segments.push({ col: to, agent: row.child, from: "node", to: "bottom" });
+      segments.push({ col: to, agent: row.child, from: "node", to: "bottom", joins: true });
       branch = { from: col, to, agent: row.child };
+    }
+    // 最新の行: 作業中の持ち主の線だけを先へ続け、ほかは節の高さで止める
+    if (active && i === rows.length - 1) {
+      for (const s of segments) {
+        if (s.to !== "bottom") continue;
+        if (active.has(s.agent)) s.open = true;
+        else s.to = "node";
+      }
     }
     width = Math.max(width, ...segments.map((s) => s.col + 1));
     // 終わった持ち主の列を空ける（次の行から使い回せる）

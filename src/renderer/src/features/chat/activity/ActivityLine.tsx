@@ -145,7 +145,7 @@ function Rails({ rail, width, hues }: { rail: RailRow; width: number; hues: Read
       {rail.segments.map((s) => (
         <span
           key={s.col}
-          className={cx("activity-rail", s.agent === null && "main", s.from === "node" && "from-node", s.to === "node" && "to-node")}
+          className={cx("activity-rail", s.agent === null && "main", s.from === "node" && "from-node", s.to === "node" && "to-node", s.open && "open", s.joins && "joins")}
           style={{ left: x(s.col), ...agentHueStyle(hueOf(hues, s.agent)) }}
         />
       ))}

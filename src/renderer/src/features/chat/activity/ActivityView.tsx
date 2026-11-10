@@ -44,7 +44,13 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   // 上を最新にして並べる（履歴のタブと同じ）。線は絞り込んだ行の全体を時刻の順で決めてから逆にする
   // （描くのが最近の分だけでも、それより前から続く線を下から通す）
   const ordered = useMemo(() => [...shown].reverse(), [shown]);
-  const rails = useMemo(() => flipRails(layoutRails(shown)), [shown]);
+  // 最新の行より先へ線を続けるのは、まだ作業中の持ち主（作業中のサブエージェントと、チャットが作業中ならメイン）だけ
+  const active = useMemo(() => {
+    const keys = new Set<string | null>(tree ? [...tree.byKey.values()].filter((s) => s.status === "running").map((s) => s.key) : []);
+    if (busy) keys.add(null);
+    return keys;
+  }, [tree, busy]);
+  const rails = useMemo(() => flipRails(layoutRails(shown, active)), [shown, active]);
 
   // 一番上を見ている間は、新しい行に付いていく（初めと、絞り込みを変えたときは一番上から）
   const scrollRef = useRef<HTMLDivElement>(null);
