@@ -23,6 +23,18 @@ export function insertDictation(value: string, start: number, end: number, inser
   return { text: head + glue(body, after) + after, caret: head.length };
 }
 
+/** 区切って起こした文を順につなぐ（前後がくっつくときだけ空白を補う。空の区切りは飛ばす） */
+export function joinTranscripts(texts: string[]): string {
+  return texts.reduce((all, t) => insertDictation(all, all.length, all.length, t).text, "");
+}
+
+/** 長い録音の区切りを順に文字にしてつなぐ（1 回に送れる大きさに上限があるため） */
+export async function transcribeParts(parts: Blob[], transcribe: (audio: Blob) => Promise<string>): Promise<string> {
+  const texts: string[] = [];
+  for (const part of parts) texts.push(await transcribe(part));
+  return joinTranscripts(texts);
+}
+
 /** マイクを使い始められなかったときの文（getUserMedia の例外の名前ごと） */
 export function micErrorMessage(e: unknown): string {
   const name = (e as { name?: unknown } | null)?.name;

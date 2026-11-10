@@ -375,6 +375,11 @@ export const CHAT_HEADER_ORDER = defineSetting("kickoff:chat-header-order", list
 export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag(false));
 /** 音声入力・音声モードで使うマイク（MediaDeviceInfo.deviceId。空なら Mac の既定のマイク。マイクの ▾ で選ぶ。見つからなければ既定のマイクで録る） */
 export const VOICE_MIC_DEVICE = defineSetting("kickoff:voice-mic-device", text());
+/**
+ * 音声モードで話し終わったときの扱い（send = すぐ送る（AI が作業中なら、いま / あとでの送り方 QUEUE_MODE で）/
+ * fill = チャット欄に入れて残す（自分で直して Enter で送る）。音声モードの帯で切り替える。どのチャットでも同じ）
+ */
+export const VOICE_MODE_DELIVERY = defineSetting("kickoff:voice-mode-delivery", choice(["send", "fill"], "send"));
 /** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・見出しと会話の右クリックの「チャット画面表示」・設定の「表示」。どのチャットでも同じ。初めは標準） */
 export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["xs", "sm", "md", "lg", "xl"], "md"));
 /** 会話の横幅を広げるか（どのチャットでも同じ。初めは広げる） */

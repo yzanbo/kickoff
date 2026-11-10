@@ -37,9 +37,20 @@ test("声の見分け: 短い物音では始めず、話している途中の短
 });
 
 test("声の見分け: まわりがうるさいと、声とみなす音量を上げる（下限は floor）", () => {
-  const noisy = run(Array<number>(100).fill(0.02)).state;
+  const noisy = run(Array<number>(200).fill(0.02)).state;
   assert.ok(vadThreshold(noisy, LISTEN_VAD) > 0.05);
   assert.equal(vadThreshold(initialVad(0, 0), LISTEN_VAD), LISTEN_VAD.floor);
   // 雑音より少し大きいだけでは始まらない
   assert.deepEqual(run(Array<number>(10).fill(0.04), LISTEN_VAD, noisy).events, []);
+});
+
+test("声の見分け: 息つぎの短い間だけで 30 秒話し続けても、途中で話し終わりにしない", () => {
+  // 1 秒話して 0.2 秒の息つぎ、を 25 回
+  const talk = Array.from({ length: 25 }, () => [...voice(20), ...quiet(4)]).flat();
+  const { events } = run([...quiet(4), ...talk, ...quiet(40)]);
+  assert.deepEqual(
+    events.map((e) => e[1]),
+    ["start", "end"],
+  );
+  assert.ok(events[1][0] > 30_000);
 });

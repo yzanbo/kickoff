@@ -48,7 +48,7 @@ export function VoiceSpeechSettings({ status, draft, apply }: { status: VoiceSta
   };
 
   return (
-    <Field as="div" label="読み上げ（音声モード）" help="チャット欄の波形のボタンで、話しかけると送り、AI の返答の文章を読み上げます。コード・表は読まずに「画面に出しました」と伝えます。">
+    <Field as="div" label="読み上げ（音声モード）" help="チャット欄の波形のボタンの音声モードで、AI の返答の文章を読み上げます。コード・表は読まずに「画面に出しました」と伝えます。">
       <div className="voice-providers" role="radiogroup" aria-label="読み上げの声">
         {VOICE_TTS_PROVIDERS.map((p) => (
           <VoiceProviderCard key={p} name="voice-tts-provider" info={VOICE_TTS_PROVIDER_INFO[p]} selected={draft.voice_tts_provider === p} onSelect={() => apply({ voice_tts_provider: p })} />
