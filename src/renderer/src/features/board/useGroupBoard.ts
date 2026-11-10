@@ -62,6 +62,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const dropClass = (groupId: number | null) => (over === (groupId ?? "none") ? (blocked ? "drop-blocked" : "drop-target") : undefined);
 
   return {
+    projectId,
     renaming,
     setRenaming,
     /** 操作の失敗（なければチャットの一覧を読み込めなかった理由） */

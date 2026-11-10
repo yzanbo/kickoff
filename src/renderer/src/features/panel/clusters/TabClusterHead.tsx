@@ -14,13 +14,16 @@ import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/State
 import { StateChatsPopover, chatsByState } from "@/features/chatList/StateChatsPopover";
 import type { TabCluster } from "./tabClusters";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
+import { NewChatItem, type NewChatPlace } from "@/features/chat/NewChatItem";
+import { newChatPlaceOf } from "@/features/chatList/buckets";
 
 /**
  * タブのまとまりの頭（まとまりの色の名前の札と、中のタブの数）。札の角に、そのまとまり（グループ・作業場所）のチャットの状態ごとの数を重ね、
  * 札を押すと、まとまりのチャットを状態ごと（作業中 → 回答待ち → 未読）にまとめた一覧を開く（画面の見出しの状態ごとの数と同じ一覧。行でそのチャットのタブを開く）。
  * runs が undefined の「その他」（ブラウザなど）は押せない札。まとまりはプロジェクトごとなので、一覧の行にプロジェクト名は出さない。
  * まとめないときも、タブの列の左端に「チャット」の札（all）として置き、パネルのチャット全体の状態ごとの数と一覧を出す（タブの数は出さない）。
- * 札の右クリック（プロジェクトの分かるまとまりだけ）: 新しいグループを作成（グループ別のときだけ。作業場所別の札はグループと関係がないので出さない）・
+ * 札の右クリック（プロジェクトの分かるまとまりだけ）: いちばん上に、そのまとまり（グループ・No Group・本体・ワークツリー）で始める「新しいチャット」
+ * （どこで始めるかの札を添える。チャットの右クリックと同じ NewChatItem。利用者の依頼。onNewChat を渡したときだけ）・新しいグループを作成（グループ別のときだけ。作業場所別の札はグループと関係がないので出さない）・
  * このグループをタブの列から隠す・表示する（自分で作ったグループのとき。useHiddenTabGroups）・表示するグループ / チャットのないグループを隠す（グループ別のとき）と
  * まとまりを色付きで表示（menuExtra）・このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）。
  * 自分で作ったグループの札はつかんで並べ替えられる（dragProps。サイドバーのグループの並びも同じに変わる）。
@@ -46,6 +49,7 @@ export function TabClusterHead({
   onToggleHidden,
   menuExtra,
   canCreateGroup = false,
+  onNewChat,
 }: {
   cluster: TabCluster;
   chats: Chat[] | undefined;
@@ -69,6 +73,8 @@ export function TabClusterHead({
   menuExtra?: ReactNode;
   /** 右クリックに「新しいグループを作成…」を出す（グループ別のときだけ。作業場所別の本体・ブランチの札では出さない） */
   canCreateGroup?: boolean;
+  /** 右クリックのいちばん上の「新しいチャット」（そのまとまりで始める。フォルダのない作業場所など、始められないまとまりでは出さない） */
+  onNewChat?: (place: NewChatPlace) => void;
 }) {
   const { pending } = useChatStates();
   // 札を押すと開く、まとまりのチャットの一覧（札の下に出す。タブの列に切り取られないよう top layer に出る）
@@ -76,8 +82,10 @@ export function TabClusterHead({
   // 札の右クリックのメニュー（プロジェクトの分かるまとまりだけ。「その他」「チャット」の札では出さない）
   const menu = useContextMenu();
   const projectId = cluster.projectId;
+  // そのまとまりで始める新しいチャットの作成先（グループ・No Group・本体・ワークツリー。始められないまとまりは null）
+  const newChatPlace = onNewChat ? newChatPlaceOf(cluster) : null;
   // 右クリックに出す項目があるか（作業場所別でタブのない札は何も出さない）
-  const hasMenu = (onToggleCollapsed && cluster.tabs.length > 0) || canCreateGroup || Boolean(cluster.group) || Boolean(menuExtra);
+  const hasMenu = Boolean(newChatPlace) || (onToggleCollapsed && cluster.tabs.length > 0) || canCreateGroup || Boolean(cluster.group) || Boolean(menuExtra);
   const openMenu = (e: React.MouseEvent) => {
     if (projectId === undefined || !hasMenu) return;
     // タブの列の何もないところの右クリック（「表示」のメニュー）に渡さない
@@ -135,6 +143,12 @@ export function TabClusterHead({
       </span>
       {menu.menu && projectId !== undefined && (
         <PopupMenu at={menu.menu.at} label={`「${cluster.label}」の操作`} onClose={menu.close}>
+          {newChatPlace && (
+            <>
+              <NewChatItem place={newChatPlace} branch={cluster.place?.name ?? null} sameAs="" onSelect={() => onNewChat?.(newChatPlace)} />
+              {(onToggleCollapsed && cluster.tabs.length > 0) || canCreateGroup || cluster.group || menuExtra ? <div className="menu-separator" role="separator" /> : null}
+            </>
+          )}
           {onToggleCollapsed && cluster.tabs.length > 0 && (
             <>
               <MenuItem onSelect={onToggleCollapsed}>{collapsed ? "タブを表示する" : "タブを畳む"}</MenuItem>

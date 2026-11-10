@@ -1,10 +1,10 @@
 import { SquarePen } from "lucide-react";
 import { openNewChat } from "@/app/router";
 import { IconButton } from "@/ui/IconButton";
-import { MenuItem } from "@/ui/PopupMenu";
 import { FoldHead } from "@/ui/FoldHead";
 import type { useGroupSections } from "./useGroupSections";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
+import { NewChatItem } from "@/features/chat/NewChatItem";
 import { huedHeadProps } from "./bucketColor";
 
 /**
@@ -43,9 +43,8 @@ export function UngroupedHead({
         ((e) =>
           onContextMenu(
             e,
-            <MenuItem title="グループに入れない新しいチャットを作ります" onSelect={() => openNewChat(projectId)}>
-              <SquarePen size={14} /> 新しいチャット
-            </MenuItem>,
+            // どこで始めるか（「No Group」と作業場所の札「本体」）を添える（チャットの右クリックと同じ NewChatItem）
+            <NewChatItem place={{ projectId }} sameAs="" onSelect={() => openNewChat(projectId)} />,
           ))
       }
       {...dragProps}

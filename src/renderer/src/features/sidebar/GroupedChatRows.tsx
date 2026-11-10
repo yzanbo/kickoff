@@ -1,7 +1,9 @@
 import { GitBranch } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
-import type { ChatBucket } from "@/features/chatList/buckets";
+import { newChatPlaceOf, type ChatBucket } from "@/features/chatList/buckets";
+import { openNewChat } from "@/app/router";
+import { NewChatItem } from "@/features/chat/NewChatItem";
 import { COLUMN_TONE } from "@/features/chat/tones";
 import { useFold } from "@/hooks/useFold";
 import { cx } from "@/lib/cx";
@@ -41,7 +43,17 @@ function Section({ bucket, renderRow, forceOpen, hue, onContextMenu, renderArchi
       label={label}
       count={bucket.chats.length}
       {...huedHeadProps(hue)}
-      onContextMenu={onContextMenu}
+      onContextMenu={
+        onContextMenu &&
+        ((e) => {
+          // 作業場所の見出しは、いちばん上にその作業場所で始める「新しいチャット」（どこで始めるかの札を添える。チャットの右クリックと同じ NewChatItem）
+          const place = newChatPlaceOf(bucket);
+          onContextMenu(
+            e,
+            place && <NewChatItem place={place} branch={bucket.place?.name ?? null} sameAs="" onSelect={() => openNewChat(place.projectId, { group: place.group, worktree: place.worktree })} />,
+          );
+        })
+      }
     >
       {bucket.children ? (
         <div className="custom-group-grouped">
@@ -90,8 +102,8 @@ export function GroupedChatRows({
 interface SectionProps {
   renderRow: (chat: Chat) => ReactNode;
   forceOpen: boolean;
-  /** 見出しの右クリック（「まとまりを色付きで表示」のメニュー。まとめないときは undefined） */
-  onContextMenu?: (e: MouseEvent) => void;
+  /** 見出しの右クリック（「まとまりを色付きで表示」のメニュー。lead はその上に置く項目（作業場所の「新しいチャット」）。まとめないときは undefined） */
+  onContextMenu?: (e: MouseEvent, lead?: ReactNode) => void;
   /** まとまりのアーカイブ済み（bucket.archived。作業場所別）を、中身のいちばん下に描く */
   renderArchived?: (archived: ChatBucket) => ReactNode;
 }

@@ -8,7 +8,11 @@ import { projectHueStyle } from "@/features/project/projectColor";
 import { useProjects } from "@/stores/projects";
 import type { PROJECT_BOARD_LANES } from "@/lib/storageKeys";
 import { WORKPLACE_KIND_LABELS } from "@/features/worktree/workplace";
-import type { ChatBucket } from "@/features/chatList/buckets";
+import { newChatPlaceOf, type ChatBucket, type DraftTarget } from "@/features/chatList/buckets";
+import { openNewChat } from "@/app/router";
+import { NewChatItem } from "@/features/chat/NewChatItem";
+import { PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import type { ChatGrouping } from "@/features/chatList/chatGrouping";
 import { useBucketHueOf } from "@/features/chatList/useChatBuckets";
 import { FoldHead } from "@/ui/FoldHead";
@@ -112,7 +116,9 @@ function useLaneTint(lanes: readonly ChatBucket<PanelDraft>[]): (lane: ChatBucke
 /**
  * ボードを段（スイムレーン）に分けて出す。段は bucketChats のまとまり（グループ・作業場所・プロジェクト。中の段が状態の列）で、
  * 段の中身（children: 下書きと状態の列・リストのまとまり）は呼ぶ側が描く。
- * 段は見出しで開閉でき（名前だけでなく、見出しの空いているところを押しても）、ボード（foldPlace）と段のまとまりのキーで覚える
+ * 段は見出しで開閉でき（名前だけでなく、見出しの空いているところを押しても）、ボード（foldPlace）と段のまとまりのキーで覚える。
+ * グループ・No Group・作業場所の段の見出しの右クリックは、その段で始める「新しいチャット」（どこで始めるかの札を添える。チャットの右クリックと同じ NewChatItem。
+ * 利用者の依頼。プロジェクトの段・フォルダのない作業場所の段では出さない）
  */
 export function BoardLanes({
   lanes,
@@ -141,6 +147,8 @@ export function BoardLanes({
   children: (lane: ChatBucket<PanelDraft>) => ReactNode;
 }) {
   const tint = useLaneTint(lanes);
+  // 段の見出しの右クリックのメニュー（その段で始める新しいチャット）
+  const laneMenu = useContextMenu<{ place: DraftTarget; branch: string | null }>();
   const folds = useFolds(
     foldPlace,
     lanes.map((l) => l.key),
@@ -152,6 +160,7 @@ export function BoardLanes({
         const open = folds.isOpen(lane.key);
         const extra = laneProps?.(lane) ?? {};
         const head = tint(lane);
+        const place = newChatPlaceOf(lane);
         return (
           <section key={lane.key} {...extra} className={cx("board-lane", extra.className)}>
             <FoldHead
@@ -169,11 +178,32 @@ export function BoardLanes({
               actions={actions?.(lane)}
               className={cx(head.className, actions && "board-lane-head-actions")}
               style={head.style}
+              onContextMenu={
+                place
+                  ? (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      laneMenu.open(e, { place, branch: lane.place?.name ?? null });
+                    }
+                  : undefined
+              }
             />
             {open && <div className={list ? "lane-list" : "board-columns lane-columns"}>{children(lane)}</div>}
           </section>
         );
       })}
+      {laneMenu.menu && (
+        <PopupMenu at={laneMenu.menu.at} label="段の操作" onClose={laneMenu.close}>
+          <NewChatItem
+            place={laneMenu.menu.value.place}
+            branch={laneMenu.menu.value.branch}
+            sameAs=""
+            onSelect={() => {
+              const target = laneMenu.menu?.value.place;
+              if (target) openNewChat(target.projectId, { group: target.group, worktree: target.worktree });
+            }}
+          />
+        </PopupMenu>
+      )}
     </div>
   );
 }
