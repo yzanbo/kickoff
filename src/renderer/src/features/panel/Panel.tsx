@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_TAB_ROW_HIDDEN } from "@/lib/storageKeys";
+import { CHAT_TAB_ROW_HIDDEN, PANEL_TAB_TWO_LINE } from "@/lib/storageKeys";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { PaneSash, fracStyle } from "@/features/panel/layout/PaneSash";
 import { PaneTabBar } from "@/features/panel/tabs/PaneTabBar";
@@ -21,7 +21,6 @@ import { focusedPanelKey, PanelHostContext } from "./panelHost";
 import { specOf } from "@/features/panel/tabs/tabKinds";
 import { usePanelViewMenu } from "@/features/panel/tabs/PanelViewMenu";
 import { useNewChild } from "@/features/panel/agents/useNewChild";
-import { useCompactRows } from "@/features/chatList/chatListFlags";
 
 /**
  * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは SURFACES と、殻が渡す frame）。
@@ -37,9 +36,9 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   const rules = SURFACES[panel.surface];
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const tabsHidden = !!rules.hideableTabs && tabRowHidden;
-  // サイドバーのチャットの行を 2 行にしているときは、チャットを出す欄のタブも 2 行にする（名前の下にグループ・作業場所の札。利用者の依頼）
-  const [compactRows] = useCompactRows();
-  const twoLine = !compactRows && panel.kinds.has("chat");
+  // タブの 2 行（名前の下にグループ・作業場所の札）。タブだけの設定で、サイドバーのチャットの行の 1 行 / 2 行とは別（利用者の依頼。前はサイドバーに合わせていた）
+  const [tabTwoLine] = useSetting(PANEL_TAB_TWO_LINE);
+  const twoLine = tabTwoLine && panel.kinds.has("chat");
   // パネルそのもの（ピントがパネルの中にあるか・殻が大きさを測る）
   const ownRef = useRef<HTMLElement>(null);
   const asideRef = frame?.paneRef ?? ownRef;

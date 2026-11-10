@@ -10,7 +10,7 @@ import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
 import { PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
-import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN } from "@/lib/storageKeys";
+import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN, PANEL_TAB_TWO_LINE } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/sidebar/chatGroupings";
 import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleTabField } from "./tabFields";
@@ -34,6 +34,8 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
   // タブに出す項目（隠した項目だけを覚える）
   const [tabHidden, setTabHidden] = useSetting(PANEL_TAB_HIDDEN);
   const hiddenFields = hiddenTabFields(tabHidden);
+  // タブを 2 行にするか（サイドバーのチャットの行とは別の、タブだけの設定。利用者の依頼）
+  const [twoLine, setTwoLine] = useSetting(PANEL_TAB_TWO_LINE);
   const showKinds = !SURFACES[panel.surface].fixedKinds;
   const showChat = kinds.has("chat");
 
@@ -121,7 +123,20 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
               {on && <Check size={14} aria-hidden />}
             </MenuItem>
           );
-        }),
+        }).concat(
+          // 2 行で表示: グループ・作業場所の札を名前の下の行に置く（すべてのパネルで共通。サイドバーのチャットの行の 1 行 / 2 行とは別）
+          <MenuItem
+            key="two-line"
+            role="menuitemcheckbox"
+            checked={twoLine}
+            keepOpen
+            title={twoLine ? "タブを 1 行に戻す（札を名前の右に並べる）" : "タブを 2 行にして、グループ・作業場所の札を名前の下の行に並べる（サイドバーのチャットの行とは別の設定です）"}
+            onSelect={() => setTwoLine(!twoLine)}
+          >
+            <span className="project-switch-item">2 行で表示</span>
+            {twoLine && <Check size={14} aria-hidden />}
+          </MenuItem>,
+        ),
       ),
     );
     // グループ別のときだけ: タブの列に出すグループ（自分で作ったグループを隠す・チャットのないグループを隠す）
