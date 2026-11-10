@@ -1,11 +1,9 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef } from "react";
 import { useEditKeys } from "@/hooks/useEditKeys";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { consumeKey, hasModifiers, isCancelKey, isSubmitKey } from "@/lib/keys";
 import { DictationButton, DictationError } from "@/features/dictation/DictationButton";
-import { insertDictation } from "@/features/dictation/dictationText";
-import { useDictation } from "@/features/dictation/useDictation";
+import { useFieldDictation } from "@/features/dictation/useFieldDictation";
 import { AttachButton } from "@/features/chat/attachments/AttachButton";
 import { PendingFileChips } from "@/features/chat/attachments/PendingFileChips";
 import { useComposerFiles } from "@/features/chat/attachments/useComposerFiles";
@@ -45,42 +43,8 @@ export function QuestionOtherField({
   // Enter で回答する（変換中の Enter は確定に使い、送らない）・Shift+Enter で改行
   const keys = useEditKeys({ onSubmit });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // 音声入力で「入れてそのまま回答」したとき、入れた文が回答に入ってから（描き直したあとで）回答する
-  const submitAfterInsert = useRef(false);
-  useEffect(() => {
-    if (!submitAfterInsert.current) return;
-    submitAfterInsert.current = false;
-    onSubmit();
-  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
-  // 音声入力: 起こした文をキャレットの位置（選んでいればその範囲）に入れ、「その他」を選ぶ（send なら入れてそのまま回答）
-  const dictation = useDictation({
-    onText: (spoken, send) => {
-      const el = textareaRef.current;
-      const current = el?.value ?? value;
-      const inserted = insertDictation(current, el?.selectionStart ?? current.length, el?.selectionEnd ?? current.length, spoken);
-      onFocus();
-      onChange(inserted.text);
-      if (send) submitAfterInsert.current = true;
-      else
-        requestAnimationFrame(() => {
-          el?.focus();
-          el?.setSelectionRange(inserted.caret, inserted.caret);
-        });
-    },
-  });
-  /** 欄のキー: 録音中の Enter は入れてそのまま回答・⌘⇧Space で録音の開始・停止・録音中の Esc でやめる。ほかは Enter で回答・Shift+Enter で改行 */
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (dictation.recording && isSubmitKey(e)) {
-      e.preventDefault();
-      void dictation.finish(true);
-    } else if (e.code === "Space" && hasModifiers(e, { meta: true, shift: true })) {
-      e.preventDefault();
-      dictation.toggle();
-    } else if (isCancelKey(e) && (dictation.recording || dictation.state.kind === "transcribing")) {
-      consumeKey(e);
-      dictation.cancel();
-    } else keys.keyProps.onKeyDown(e);
-  };
+  // 音声入力: 起こした文をキャレットの位置に入れ、「その他」を選ぶ（録音中の Enter は入れてそのまま回答・⌘⇧Space で開始・停止・Esc でやめる）
+  const { dictation, handleKey } = useFieldDictation({ textareaRef, value, onChange, onSubmit: () => onSubmit(), onInsert: onFocus });
   return (
     <div className={cx("question-other-field", files.dragging && "file-over")} {...files.dropProps}>
       {files.files.length > 0 && (
@@ -99,7 +63,7 @@ export function QuestionOtherField({
           onFocus={onFocus}
           onChange={(e) => onChange(e.target.value)}
           {...keys.keyProps}
-          onKeyDown={onKeyDown}
+          onKeyDown={(e) => handleKey(e) || keys.keyProps.onKeyDown(e)}
           onPaste={(e) => {
             onFocus();
             files.onPaste(e);
