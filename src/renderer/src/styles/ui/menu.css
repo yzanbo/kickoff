@@ -145,22 +145,6 @@
   background: var(--border-strong);
 }
 
-/*
- * まとまりの中の組（「チャット画面表示」の中の、効く場所ごとの組。ChatDisplayItems）: 見出しの下を左の縦線で囲んで少し字下げし、
- * 組の間は短く薄い線にする（まとまりの間の線（.menu-separator）と同じ線だと、組がそれぞれ別のまとまりに見えたため）
- */
-.menu-subgroups {
-  /* メニューと同じく grid にして、中の項目を横幅いっぱいに伸ばす（右端のチェック・› をほかの項目とそろえる） */
-  display: grid;
-  margin: 0 0 2px 12px;
-  border-left: 1px solid var(--border-strong);
-}
-
-.menu-subgroups > .menu-subseparator {
-  margin: 3px 6px 3px 10px;
-  background: var(--border);
-}
-
 @media (max-width: 720px) {
   /* スマホではパネルを全面に重ねる */
   .board-body.with-panel {
