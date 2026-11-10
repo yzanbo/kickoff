@@ -6,11 +6,7 @@
   display: none;
 }
 
-/* 送信待ちとつなげる（queued.css の .queued-messages + .composer と同じ） */
-.queued-messages:has(+ .held-edit > .composer.compact) {
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-
+/* 送信待ちとつなげる（queued.css の .queued-messages + .composer と同じ。コンパクト表示の角は composer-compact.css） */
 .queued-messages + .held-edit > .composer,
 .queued-messages + .held-edit > .composer:focus-within {
   border-top-color: var(--divider-strong);

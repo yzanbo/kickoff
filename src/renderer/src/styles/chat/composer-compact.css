@@ -1,0 +1,70 @@
+/*
+ * チャット欄のコンパクト表示（COMPOSER_COMPACT。設定の「表示」→「チャット欄」）を、入力欄の上の送信待ちとピルの列にも効かせる。
+ * 入力欄そのものは composer.css の末尾（.composer.compact）。送信待ち（QueuedMessages・QueuedPauseNotice）とピルの列（ChatComposerArea）は、
+ * メモの下の入力欄の上へ描くこともあるので、入力欄の兄弟で見分けず、それぞれの要素に付けた .compact で決める
+ */
+
+/* ---- 送信待ち（queued.css・queued-head.css の基底より後ろ。.queued-messages.compact で詳細度を上げる） ---- */
+.queued-messages.compact {
+  padding: 2px 6px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.queued-messages.compact.collapsed {
+  padding-block: 2px;
+}
+
+.queued-messages.compact.queued-pause-notice {
+  padding: 2px 6px 2px 10px;
+}
+
+.queued-messages.compact .queued-list {
+  padding-block: 2px;
+}
+
+.queued-messages.compact .queued-head {
+  font-size: 11px;
+}
+
+.queued-messages.compact .queued-text,
+.queued-messages.compact .queued-editor {
+  font-size: 12px;
+}
+
+.queued-messages.compact .icon-button {
+  width: 20px;
+  height: 20px;
+}
+
+.queued-messages.compact .queued-head-btn {
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10.5px;
+}
+
+.queued-messages.compact .queued-stop-line {
+  min-height: 18px;
+  font-size: 10.5px;
+}
+
+.queued-messages.compact .queued-editor-body {
+  --queued-editor-line-height: 26px;
+}
+
+/* ---- ピルの列（subagents.css の基底より後ろ）。メモの下の入力欄の上の 1 行（memo-quick-chat.css）の詰め方は、そちらを勝たせる ---- */
+.composer-chips.compact {
+  gap: 4px;
+  padding-bottom: 4px;
+}
+
+:where(.composer-chips.compact) .composer-chip {
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+/* 列の右端に置いた一番下へ戻るボタンも、ピルと同じ高さに（列の高さを変えない） */
+.composer-chips.compact .composer-chips-dock .scroll-bottom.guide {
+  height: 22px;
+}
