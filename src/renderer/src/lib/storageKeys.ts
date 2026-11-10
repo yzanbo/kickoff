@@ -128,7 +128,7 @@ export const SIDEBAR_WAITING_ONLY = defineSetting("kickoff:sidebar-waiting-only"
 export const SIDEBAR_WAITING_VIEW = defineSetting("kickoff:sidebar-waiting-view", choice(["filter", "inbox", "list", "inbox-project", "in-project"], "inbox-project"));
 /** チャットを 1 行で出すか（2 行目のブランチを隠す） */
 export const SIDEBAR_COMPACT = defineSetting("kickoff:sidebar-compact", flag(true));
-/** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブ・ボードの絞り込みで共通。初めは隠す） */
+/** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブで共通。ボードの絞り込み BOARD_ARCHIVE_FILTER とは連動しない。初めは隠す） */
 export const SIDEBAR_SHOW_ARCHIVED = defineSetting("kickoff:sidebar-show-archived", flag(false));
 /** グループ別・作業場所別のまとまりの見出しに色を付けるか（パネルのタブのまとまりと同じ色。初めは付ける。features/chatList/bucketHues.ts） */
 export const SIDEBAR_BUCKET_COLORS = defineSetting("kickoff:sidebar-bucket-colors", flag(true));
@@ -232,8 +232,8 @@ export const ALL_PROJECTS_FEED = defineSetting("kickoff:board-feed-all", flag())
 export const PROJECT_BOARD_LANES = defineSetting("kickoff:board-lanes", choice(["group", "worktree", "project"], "worktree"));
 /** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える。初めはプロジェクト別） */
 export const ALL_PROJECTS_BOARD_LANES = defineSetting("kickoff:board-lanes-all", choice(PROJECT_BOARD_LANES.choices, "project"));
-/** カンバンのアーカイブでの絞り込み（all = すべて / active = 未アーカイブ / archived = アーカイブ済みだけ） */
-export const BOARD_ARCHIVE_FILTER = defineSetting("kickoff:show-archived", choice(["all", "active", "archived"], "all"));
+/** カンバンのアーカイブでの絞り込み（all = すべて / active = 未アーカイブ / archived = アーカイブ済みだけ。サイドバーとは連動しない。初めは未アーカイブ） */
+export const BOARD_ARCHIVE_FILTER = defineSetting("kickoff:show-archived", choice(["all", "active", "archived"], "active"));
 /**
  * プロジェクトごとの、グループの列（全プロジェクトのボード）・サイドバーの「No Group」の位置（グループの並びの中で、前にあるグループの数。ボードとリストで共通）。
  * -1（覚えていない）なら、ボードは先頭・リストはいちばん下

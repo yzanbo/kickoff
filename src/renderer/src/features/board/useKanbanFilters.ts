@@ -6,11 +6,10 @@ import { ALL_PROJECTS_BOARD_LANES, BOARD_ARCHIVE_FILTER, PROJECT_BOARD_LANES } f
 import { workplaceOf } from "@/features/worktree/workplace";
 import { useWorktreesOf } from "@/stores/worktrees";
 import type { BoardLane } from "./BoardLanes";
-import { useArchiveFilter } from "./archiveFilter";
 
 /** カンバンの絞り込み（アーカイブ（覚えておく）・作業場所・名前の検索） */
 export function useKanbanFilters() {
-  const [archive, setArchive] = useArchiveFilter(BOARD_ARCHIVE_FILTER);
+  const [archive, setArchive] = useSetting(BOARD_ARCHIVE_FILTER);
   // 作業場所（ワークツリー）での絞り込み（"all" はすべて、"" は本体）
   const [worktree, setWorktree] = useState("all");
   const [query, setQuery] = useState("");
