@@ -124,7 +124,8 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
     if (!list) return;
     const measure = () => {
       const tabs = [...list.querySelectorAll<HTMLElement>("[data-view-id]")];
-      const top = tabs[0]?.offsetTop ?? 0;
+      // 名前を変えている欄は先頭に並べ替える（CSS の order）ので、DOM の最初のタブではなく、いちばん上の行の高さを基準にする
+      const top = Math.min(...tabs.map((t) => t.offsetTop));
       const next = tabs.filter((t) => t.offsetTop > top).map((t) => t.dataset.viewId ?? "");
       setHidden((prev) => (prev.length === next.length && prev.every((id, i) => id === next[i]) ? prev : next));
     };
