@@ -1,6 +1,8 @@
-import { ChevronRight, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Fragment, type MouseEvent, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
+import { useSetting } from "@/hooks/useSetting";
+import { PANEL_VIEW_BUTTON_HIDDEN } from "@/lib/storageKeys";
 import { IconButton } from "@/ui/IconButton";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
@@ -28,6 +30,8 @@ export function usePanelViewMenu(panel: PanelController) {
   const has = hasTabDisplayItems(panel);
   // 欄ごとにボタンを分ける（ほかの欄のボタンを押したときは、こちらのメニューを外側のクリックとして閉じる）
   const buttonClass = `panel-view-${panel.surface}`;
+  // タブの列の「表示」ボタンを出すか（すべてのパネルで共通。隠しても、タブの列の何もないところの右クリックでこのメニューを開ける）
+  const [buttonHidden, setButtonHidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
 
   const separator = <div className="menu-separator" role="separator" />;
   const sections: ReactNode[] = [];
@@ -49,6 +53,22 @@ export function usePanelViewMenu(panel: PanelController) {
       </>,
     );
   }
+  if (has)
+    sections.push(
+      <MenuItem
+        role="menuitemcheckbox"
+        checked={!buttonHidden}
+        title={
+          buttonHidden
+            ? "タブの列の左に「表示」ボタンを出します"
+            : "タブの列の左の「表示」ボタンを隠します（このメニューは、タブの列の何もないところの右クリックでも開けます）"
+        }
+        onSelect={() => setButtonHidden(!buttonHidden)}
+      >
+        <span className="project-switch-item">「表示」ボタンを出す</span>
+        {!buttonHidden && <Check size={14} aria-hidden />}
+      </MenuItem>,
+    );
   if (has)
     sections.push(
       <MenuItem
@@ -86,9 +106,10 @@ export function usePanelViewMenu(panel: PanelController) {
 
 export type PanelViewMenu = ReturnType<typeof usePanelViewMenu>;
 
-/** タブの列の左の道具の「表示」ボタン */
+/** タブの列の左の道具の「表示」ボタン（隠す設定 PANEL_VIEW_BUTTON_HIDDEN なら出さない。初めは出す） */
 export function PanelViewButton({ view }: { view: PanelViewMenu }) {
-  if (!view.has) return null;
+  const [hidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
+  if (!view.has || hidden) return null;
   const label = "表示";
   return (
     <IconButton

@@ -13,6 +13,7 @@ import {
   PANEL_TAB_GROUP_COLORS,
   PANEL_TAB_HIDDEN,
   PANEL_TAB_TWO_LINE,
+  PANEL_VIEW_BUTTON_HIDDEN,
   SIDEBAR_CHAT_ORDER,
   SIDEBAR_SHOW_ARCHIVED,
   SNIPPET_BAR_HIDDEN,
@@ -57,15 +58,18 @@ export function usePanelViewReset(surface: PanelSurface, chat: boolean) {
   const groupingSetting = panelTabGrouping(surface);
   const [storedKinds] = useSetting(kindsSetting);
   const [grouping] = useSetting(groupingSetting);
+  // 「表示」ボタンを出すか（どの欄のメニューにも出すので、チャットを出さない欄でも戻す）
+  const [buttonHidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
   // 設定の数は決まっているので、hook を並べて呼ぶ（どれが変わってもメニューを描き直す）
   const values = CHAT_VIEW_SETTINGS.map((s) => useSetting(s)[0]);
   const rules = SURFACES[surface];
   const kindsChanged = !rules.fixedKinds && decodeKinds(storedKinds, surface).join() !== rules.defaultKinds.join();
   const chatChanged = chat && (!atInitial(groupingSetting, grouping) || CHAT_VIEW_SETTINGS.some((s, i) => !atInitial(s, values[i])));
   return {
-    changed: kindsChanged || chatChanged,
+    changed: kindsChanged || chatChanged || buttonHidden !== PANEL_VIEW_BUTTON_HIDDEN.initial,
     reset: () => {
       if (!rules.fixedKinds) writeSetting(kindsSetting, kindsSetting.initial);
+      writeSetting(PANEL_VIEW_BUTTON_HIDDEN, PANEL_VIEW_BUTTON_HIDDEN.initial);
       if (!chat) return;
       writeSetting(groupingSetting, groupingSetting.initial);
       for (const s of CHAT_VIEW_SETTINGS) writeSetting(s, s.initial);

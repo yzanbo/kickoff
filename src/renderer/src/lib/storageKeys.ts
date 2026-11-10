@@ -271,6 +271,8 @@ export const PANEL_TAB_GROUP_COLORS = defineSetting("kickoff:panel-tab-group-col
 export const PANEL_TAB_HIDDEN = defineSetting("kickoff:panel-tab-hidden", list());
 /** チャットを出す欄のタブを 2 行にする（名前の下の行にグループ・作業場所の札。すべてのパネルで共通。初めは 1 行。サイドバーのチャットの行の 1 行 / 2 行とは別。利用者の依頼） */
 export const PANEL_TAB_TWO_LINE = defineSetting("kickoff:panel-tab-two-line", flag(false));
+/** タブの列の左の道具の「表示」ボタンを隠すか（すべてのパネルで共通。初めは出す。隠してもタブの列の何もないところの右クリックで同じメニューを開ける。利用者の依頼） */
+export const PANEL_VIEW_BUTTON_HIDDEN = defineSetting("kickoff:panel-view-button-hidden", flag());
 /** タブの列（グループ別）で隠す、自分で作ったグループの ID（すべてのパネル・ペインで共通。グループなし・固定・アーカイブ済みは隠せない） */
 export const PANEL_HIDDEN_GROUPS = defineSetting("kickoff:panel-hidden-groups", list(), { ids: true });
 /** タブの列（グループ別）で、チャットが 1 つもないグループの札を隠すか（すべてのパネルで共通。初めは出す） */
