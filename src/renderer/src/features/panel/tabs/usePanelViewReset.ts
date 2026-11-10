@@ -6,6 +6,7 @@ import {
   PANEL_TAB_CLUSTER_SHORT,
   PANEL_TAB_GROUP_COLORS,
   PANEL_TAB_HIDDEN,
+  PANEL_TAB_OVERFLOW,
   PANEL_TAB_TWO_LINE,
   PANEL_VIEW_BUTTON_HIDDEN,
   SIDEBAR_CHAT_ORDER,
@@ -30,6 +31,7 @@ const CHAT_VIEW_SETTINGS: readonly Setting<unknown>[] = [
   PANEL_TAB_GROUP_COLORS,
   PANEL_TAB_HIDDEN,
   PANEL_TAB_TWO_LINE,
+  PANEL_TAB_OVERFLOW,
 ] as Setting<unknown>[];
 
 /** 初めの値と同じか（保存する形で比べる。一覧の順も含めて同じ形で保存するので、そのまま比べてよい） */
@@ -37,7 +39,7 @@ const atInitial = <T>(setting: Setting<T>, value: T) => setting.encode(value) ==
 
 /**
  * タブの列の「表示」のメニューのいちばん下の「既定に戻す」: メニューに出ている選び方（表示するタブ・チャットのまとめ方・並び順（サイドバーと共通）・出すグループ・タブに出す項目・
- * アーカイブ済み・まとまりの色と名前の省略・2 行で表示）を初めの値に戻す。chat はチャットの項目を出している欄か（出していない欄では、表示するタブだけを戻す）。
+ * アーカイブ済み・まとまりの色と名前の省略・2 行で表示・タブが増えたとき）を初めの値に戻す。chat はチャットの項目を出している欄か（出していない欄では、表示するタブだけを戻す）。
  * changed は初めと違う選び方があるか（なければ押せない）
  */
 export function usePanelViewReset(surface: PanelSurface, chat: boolean) {
