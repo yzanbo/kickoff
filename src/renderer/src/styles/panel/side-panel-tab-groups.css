@@ -139,14 +139,17 @@
   padding: 0 9px;
 }
 
-/* 右側: 開いているときは「‹」、畳んでいるときは「+3」（隠れているタブの数）。名前とは細い縦線で区切る */
+/*
+ * 右側: 開いているときは「‹」、畳んでいるときは「3」（隠れているタブの数）。名前とは細い縦線で区切る。
+ * 細く（利用者の依頼。前は 23px ほど）: 「‹」と 1・2 桁の数は 14px、3 桁の数はその分だけ広がる
+ */
 .panel-tab-cluster-fold {
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  padding: 0 6px 0 5px;
+  min-width: 14px;
+  padding: 0 1px;
   border: none;
   border-left: 1px solid color-mix(in srgb, currentColor 30%, transparent);
   font: inherit;
@@ -168,9 +171,13 @@
   padding-left: 15px;
 }
 
-.panel-tab-cluster-pill:has(.corner-count.unread) .panel-tab-cluster-fold,
 .panel-tab-cluster-pill:has(.corner-count.unread):not(:has(.panel-tab-cluster-fold)) .panel-tab-cluster-name {
   padding-right: 15px;
+}
+
+/* 右の「‹」は細いので、右上の数の丸と重なる分だけ右を空ける（丸の幅まるごとは空けない） */
+.panel-tab-cluster-pill:has(.corner-count.unread) .panel-tab-cluster-fold {
+  padding-right: 8px;
 }
 
 /* 押せる名前（グループ・作業場所。状態ごとのチャットの一覧を開く）と畳む / 開く: 乗せた方・開いている方だけ明るく */
@@ -194,6 +201,22 @@ button.panel-tab-cluster-name[aria-expanded="true"],
   font-size: 13px;
   font-weight: 400;
   color: var(--text);
+}
+
+/* 「まとまりの名前を省略」: 名前は頭の 1 文字だけなので、2〜3 文字ぶんの下限を外して文字の幅に合わせる */
+.panel-tab-cluster-pill.short {
+  grid-template-columns: auto auto;
+}
+
+.panel-tab-cluster-pill.short .panel-tab-cluster-name {
+  justify-content: center;
+  min-width: 0;
+  padding: 0 6px;
+}
+
+/* 1 文字は省かない（省略の 3 点セットのままだと、grid の列が 0 まで縮んで文字が欠けた） */
+.panel-tab-cluster-pill.short .panel-tab-cluster-text {
+  overflow: visible;
 }
 
 .panel-tab-cluster-text {

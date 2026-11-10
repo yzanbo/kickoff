@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { makeGroup } from "@shared/testing/factories";
 import type { BucketHead } from "@/features/chatList/buckets";
-import { OTHER_CLUSTER, clusterTabs, orderLikeSidebar, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";
+import { OTHER_CLUSTER, clusterInitial, clusterTabs, orderLikeSidebar, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";
 
 const group = (id: number, position: number, hue = 0) => makeGroup(id, { position, hue });
 const head = (key: string, kind: BucketHead["kind"], extra: Partial<BucketHead> = {}): BucketHead => ({ key, kind, label: key, projectId: 1, ...extra });
@@ -106,4 +106,15 @@ test("orderLikeSidebar: チャットのタブだけサイドバーの並びに�
   // 変わらなければ同じ配列
   const same = ["c3", "new", "c1"];
   assert.equal(orderLikeSidebar(same, chatIdOf, order), same);
+});
+
+test("まとまりの名前を省略: グループ名・本体・ブランチ名の頭の 1 文字。プロジェクト名を添えた札でもプロジェクト名は使わない。絵文字は切らない", () => {
+  const group: BucketHead = { key: "g", kind: "group", label: "Kickoff · 開発", group: makeGroup(1, { name: "開発" }), projectId: 1 };
+  assert.equal(clusterInitial(group), "開");
+  const main: BucketHead = { key: "m", kind: "worktree", label: "本体 · main", place: { key: "", kind: "main", name: "main", title: "" } };
+  assert.equal(clusterInitial(main), "本");
+  const wt: BucketHead = { key: "w", kind: "worktree", label: "feature/x", place: { key: "/p", kind: "worktree", name: "feature/x", title: "" } };
+  assert.equal(clusterInitial(wt), "f");
+  assert.equal(clusterInitial({ key: "p", kind: "pinned", label: "Kickoff · 固定" }), "固");
+  assert.equal(clusterInitial({ key: "e", kind: "group", label: "x", group: makeGroup(2, { name: "🚀 リリース" }) }), "🚀");
 });

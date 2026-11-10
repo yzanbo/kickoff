@@ -4,6 +4,15 @@ import { sortBuckets, type BucketHead } from "@/features/chatList/buckets";
 export const OTHER_CLUSTER: BucketHead = { key: "other", kind: "other", label: "その他", title: "グループ・作業場所に入らないタブ（ブラウザなど）" };
 
 /** タブのまとまり（見出しは bucketChats と同じ形・同じキー。サイドバーの見出し・ボードの段と同じまとまり） */
+/**
+ * まとまりの札の名前を省略するときの 1 文字（「まとまりの名前を省略」。グループはグループ名・本体は「本」・ワークツリーはブランチ名の頭。
+ * いくつかのプロジェクトが並ぶときに札の名前の前に添えるプロジェクト名は使わない）。サロゲートペア（絵文字など）は切らない
+ */
+export function clusterInitial(head: BucketHead): string {
+  const name = head.group?.name ?? (head.place?.kind === "main" ? "本体" : head.place?.name) ?? head.label.split(" · ").pop() ?? head.label;
+  return Array.from(name.trim())[0] ?? "";
+}
+
 export interface TabCluster extends BucketHead {
   /** まとまりの中のタブのキー（ペインの並びのまま） */
   tabs: string[];

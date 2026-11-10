@@ -12,7 +12,9 @@ import { ChevronLeft } from "lucide-react";
 import { stateCounts } from "@/features/chat/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/StateCornerCounts";
 import { StateChatsPopover, chatsByState } from "@/features/chatList/StateChatsPopover";
-import type { TabCluster } from "./tabClusters";
+import { clusterInitial, type TabCluster } from "./tabClusters";
+import { useSetting } from "@/hooks/useSetting";
+import { PANEL_TAB_CLUSTER_SHORT } from "@/lib/storageKeys";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 import { NewChatItem, type NewChatPlace } from "@/features/chat/NewChatItem";
 import { newChatPlaceOf } from "@/features/chatList/buckets";
@@ -107,17 +109,20 @@ export function TabClusterHead({
   const countTitle = chats ? `チャット ${count} 件（サイドバーの見出しと同じ数）` : `タブ ${count} 個`;
   const summary = counts ? stateCountsSummary(counts) : "";
   const title = summary ? `${cluster.title ?? cluster.label}（${summary}）` : cluster.title;
-  const nameText = <span className="panel-tab-cluster-text">{cluster.label}</span>;
+  // 「まとまりの名前を省略」のときは頭の 1 文字だけ（名前は乗せたときの説明に出る。まとめないときの「チャット」の札は省かない）
+  const [shortSetting] = useSetting(PANEL_TAB_CLUSTER_SHORT);
+  const short = shortSetting && !all;
+  const nameText = <span className="panel-tab-cluster-text">{short ? clusterInitial(cluster) : cluster.label}</span>;
   return (
     <span ref={popover.anchor} className={cx("panel-tab-cluster", all && "all", dragProps && "draggable")} onContextMenu={openMenu} {...dragProps}>
       {/* 1 つの丸い札を左右に区切る: 左 = 名前（押すと一覧）・右 = 畳む / 開く。角の状態ごとの数は札全体の角に重ねる */}
-      <span className={cx("panel-tab-cluster-pill", collapsed && "collapsed")}>
+      <span className={cx("panel-tab-cluster-pill", collapsed && "collapsed", short && "short")}>
         {chats ? (
           <button type="button" className="panel-tab-cluster-name" title={`${title ?? cluster.label}・${countTitle}。押すと状態ごとのチャットを一覧する`} aria-expanded={popover.open} onClick={popover.toggle}>
             {nameText}
           </button>
         ) : (
-          <span className="panel-tab-cluster-name" title={title}>
+          <span className="panel-tab-cluster-name" title={title ?? cluster.label}>
             {nameText}
           </span>
         )}
@@ -136,7 +141,7 @@ export function TabClusterHead({
             }
             onClick={onToggleCollapsed}
           >
-            {collapsed ? tabCount : <ChevronLeft size={12} aria-hidden />}
+            {collapsed ? tabCount : <ChevronLeft size={11} aria-hidden />}
           </button>
         )}
         {counts && <StateCornerCounts counts={counts} />}
