@@ -9,6 +9,7 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { ErrorText } from "@/ui/ErrorText";
 import { StatusDot, type StatusTone } from "@/ui/StatusDot";
 import { AiDefaults } from "./AiDefaults";
+import { PLANNED_BADGE, usePlannedProviders } from "@/features/settings/plannedProviders";
 
 /** AI の見た目（カードのアイコンと、ログインに使う CLI） */
 const PROVIDER_META: Record<ProviderId, { icon: ReactNode; cli: string }> = {
@@ -20,6 +21,7 @@ const PROVIDER_META: Record<ProviderId, { icon: ReactNode; cli: string }> = {
 /** AI: どの AI を使うか（カード）と、その AI の既定 */
 export function AiSection({ project, app }: { project: Project; app: AppSettings | undefined }) {
   const providers = useProviders();
+  const planned = usePlannedProviders();
   const { error, guard } = useAction();
   const choose = (id: ProviderId) => guard(() => api.updateProject(project.id, { provider: id }));
 
@@ -38,6 +40,7 @@ export function AiSection({ project, app }: { project: Project; app: AppSettings
           />
         ))}
       </div>
+      {planned.note && <p className="muted small">{planned.note}対応するまでは選べません。</p>}
       <ErrorText message={error} />
       {project.provider === "claude" ? (
         <AiDefaults project={project} app={app} />
@@ -84,7 +87,7 @@ export function ProviderCard({
         <span className={`provider-icon provider-${id}`}>{meta.icon}</span>
         <span className="provider-name">{status?.label ?? id}</span>
         {selected && <Check size={16} className="provider-check" aria-label="使用中" />}
-        {status && !status.implemented && <span className="badge">対応予定</span>}
+        {status && !status.implemented && <span className="badge">{PLANNED_BADGE}</span>}
       </span>
       <span className="provider-state">
         <StatusDot tone={state.tone} />
