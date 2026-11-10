@@ -41,6 +41,92 @@
   margin-bottom: 10px;
 }
 
+/* 名前の行を寄せたときだけ表示・非表示にしているときは、見出しの下を空けない（タブの列だけが残るときは、タブの列の下の線で区切る） */
+.project-header.title-out {
+  margin-bottom: 6px;
+}
+
+.project-header.title-out:not(:has(.project-tabs-row)) {
+  margin-bottom: 0;
+}
+
+/*
+ * 名前の行を上端に寄せたときだけ出す（設定の「表示」→「プロジェクトの見出し」。下の帯と同じ）: 画面の上に重ね（縦の幅を取らない）、
+ * ふだんは上端の 6px だけを残して透明にする（そこにマウスを寄せると出る）。乗せている間・キーでピントを移している間・中の一覧やメニューを開いている間・
+ * 右上のレイアウトの開閉に乗せている間は出したまま。ウィンドウのドラッグ領域にはしない（ドラッグ領域にはマウスの動きが届かず、乗せても出せないため）
+ */
+.page-board:has(> .project-header .project-title-row.auto-hide) {
+  position: relative;
+}
+
+.project-title-row.auto-hide {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 25;
+  padding: 6px 100px 6px var(--page-x);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  opacity: 0;
+  transform: translateY(calc(-100% + 6px));
+  transition:
+    transform var(--panel-motion-duration) var(--panel-motion-ease),
+    opacity var(--panel-motion-duration) var(--panel-motion-ease);
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-collapsed .project-title-row.auto-hide {
+  padding-left: 104px;
+}
+
+.project-title-row.auto-hide:hover,
+:where(:root:not([data-modality="pointer"])) .project-title-row.auto-hide:has(:focus-visible),
+.project-title-row.auto-hide:has([aria-expanded="true"]),
+:root:has(.layout-toggles.auto-hide:hover) .project-title-row.auto-hide {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+ * 右上のレイアウトの開閉も、見出しの名前の行と一緒に出し入れする（置き場所はそのまま）。隠している間は押せなくする
+ * （名前の行がない分、下の画面（チャット欄のタブの列の右端のボタンなど）が上に詰まり、見えない開閉のボタンが重なって押せなくなるため）。
+ * 上端に寄せて名前の行を出すと押せるようになり、開閉に乗せている間は名前の行も出したまま
+ */
+.layout-toggles.auto-hide {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.layout-toggles.auto-hide:hover,
+:where(:root:not([data-modality="pointer"])) .layout-toggles.auto-hide:has(:focus-visible),
+:root:has(.project-title-row.auto-hide:hover, .project-title-row.auto-hide [aria-expanded="true"]) .layout-toggles.auto-hide {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/*
+ * サイドバーを閉じているときは、名前の行がなくても信号機ボタンと開くボタンの下から始める（重ならないように）。
+ * 空いた帯はウィンドウのドラッグ領域にする（ほかにドラッグできる所がなくなるため。寄せたときだけ表示の上端の帯は、後ろにある名前の行が優先される）
+ */
+.sidebar-collapsed .page-board:has(> .project-header.title-out),
+.sidebar-collapsed .page-board:not(:has(> .project-header)) {
+  position: relative;
+  padding-top: 34px;
+}
+
+.sidebar-collapsed .page-board:has(> .project-header.title-out)::before,
+.sidebar-collapsed .page-board:not(:has(> .project-header))::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 34px;
+  content: "";
+  -webkit-app-region: drag;
+}
+
 /*
  * タブの列と、右端のチャット欄の開閉。名前の行との間は少し空ける（開いているタブの地の色が、名前のカードにくっつかないように。
  * 高さは取りすぎない）。下の線はこの行に引く

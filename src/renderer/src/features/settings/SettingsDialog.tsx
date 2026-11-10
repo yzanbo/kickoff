@@ -8,6 +8,7 @@ import { Segmented } from "@/ui/Segmented";
 import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode, type FooterMode } from "@/features/footer/footerMode";
 import { CHAT_FONT_SIZE_LABELS, CHAT_FONT_SIZES, useChatFontSize, type ChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { PROJECT_TABS_LAYOUT_LABELS, useProjectTabsLayout, type ProjectTabsLayout } from "@/features/project/page/ProjectTabs";
+import { PROJECT_HEADER_MODE_LABELS, PROJECT_HEADER_MODES, useProjectHeaderMode, type ProjectHeaderMode } from "@/features/project/page/headerMode";
 import { CHAT_PLACEMENT_LABELS, useChatPlacement, type ChatPlacement } from "@/features/project/page/chatPlacement";
 import { TabbedDialog, type DialogSection } from "@/ui/TabbedDialog";
 import { UsagePanel } from "@/features/usage/UsagePanel";
@@ -101,6 +102,7 @@ function DisplaySettings() {
   const [childChatOpenIn, setChildChatOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
   const [memoOpenIn, setMemoOpenIn] = useSetting(MEMO_OPEN_IN);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
+  const [projectHeaderMode, setProjectHeaderMode] = useProjectHeaderMode();
   const [chatPlacement, setChatPlacement] = useChatPlacement();
   const [footerMode, setFooterMode] = useFooterMode();
   return (
@@ -239,6 +241,18 @@ function DisplaySettings() {
           value={memoOpenIn}
           onChange={setMemoOpenIn}
         />
+        <Field
+          label="プロジェクトの見出し"
+          help="プロジェクトの画面のいちばん上の、名前・設定・状態ごとの数・作業中と待ちのチャットの一覧のボタンが並ぶ行です。「寄せたときだけ表示」は、マウスを画面の上端に寄せると画面の上に重ねて出し、ふだんは縦の幅を取りません。表示のとき以外は、右上のサイドバー・ターミナル・チャット欄の開閉のボタンも一緒に隠します（⌘B・⌘J・⌥⌘B はそのまま使えます）。見出しの右クリックでも切り替えられます。"
+        >
+          <Segmented<ProjectHeaderMode>
+            className="segmented theme-switch"
+            label="プロジェクトの見出しの出し方"
+            value={projectHeaderMode}
+            onChange={setProjectHeaderMode}
+            options={PROJECT_HEADER_MODES.map((m) => ({ value: m, label: PROJECT_HEADER_MODE_LABELS[m] }))}
+          />
+        </Field>
         <Field label="プロジェクトのタブ" help="左に縦並びにすると、ボード・ファイルなどのタブをアイコンだけにして本体の左に並べます。見出しの下の行がなくなるので、ボードやチャット欄の縦の幅が少し広がります。">
           <Segmented<ProjectTabsLayout>
             className="segmented theme-switch"

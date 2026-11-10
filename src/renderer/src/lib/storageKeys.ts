@@ -245,6 +245,8 @@ export const groupBoardUngroupedAt = defineSettingFamily(
 );
 /** 下の帯（フッター）の出し方（show = 表示 / hover = 下端に寄せたときだけ表示 / hide = 非表示。features/footer/footerMode.ts） */
 export const FOOTER_MODE = defineSetting("kickoff:footer-mode", choice(["show", "hover", "hide"], "show"));
+/** プロジェクトの画面の見出しの行（名前・設定・状態ごとの数・一覧のボタン）の出し方（show = 表示 / hover = 上端に寄せたときだけ表示 / hide = 非表示。features/project/page/headerMode.ts） */
+export const PROJECT_HEADER_MODE = defineSetting("kickoff:project-header-mode", choice(["show", "hover", "hide"], "show"));
 /** プロジェクトの画面のタブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */
 export const PROJECT_TABS_LAYOUT = defineSetting("kickoff:project-tabs-layout", choice(["top", "side"], "side"));
 /** 検索タブの検索の履歴（新しい順。入力欄の ↑↓ でたどる。features/editor/useProjectSearch.ts） */
