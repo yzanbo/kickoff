@@ -25,7 +25,7 @@
 | チャットの記録 | `ChatEvent` / 表 `chat_events` | `RunEvent` / `run_events` |
 | グループ | `ChatGroup` / 表 `chat_groups` | `RunGroup` / `run_groups` |
 | 定型文（チャット欄の中の上の帯から入れる・送る、よく使う指示。共通かプロジェクトだけ） | `Snippet` / 表 `snippets`（`project_id` が NULL = 共通）・`features/snippet/` | なし |
-| 音声入力（マイク。話した言葉を文字にして入力欄に入れる）・音声モード（波形。話しかけると送り、AI の返答を声で読み上げる会話） | `useDictation` / `useVoiceMode`・`VoiceSession`・読み上げ `Speaker`（`features/dictation/`）・コアの `VoiceService` | なし |
+| 音声入力（マイク。話した言葉を文字にして入力欄に入れる）・音声モード（波形。話し終わったら送るか入力欄に入れ、AI の返答を声で読み上げる会話） | `useDictation` / `useVoiceMode`・`VoiceSession`・読み上げ `Speaker`（`features/dictation/`）・コアの `VoiceService` | なし |
 | 圧縮前指示（会話を圧縮する前に AI に送る指示。メモを残してもらうなど。設定の共通の指示 → プロジェクトの指示の順につなぐ。それぞれオン / オフを切り替えられ、オフなら文を残したまま送らない） | 設定・プロジェクトの `pre_compact_prompt` / `pre_compact_enabled`・`@shared/chat/prompts` の `compactPromptFor`・記録の `user.pre_compact`・`core/chat/preCompact.ts`・PreCompact フック `core/providers/claude/preCompact.ts` | なし |
 | 圧縮後指示（会話を圧縮したあと、圧縮の間に預かった指示より先に AI に送る指示。メモを読み直してもらうなど。つなぎ方は圧縮前指示と同じ） | 設定・プロジェクトの `post_compact_prompt` / `post_compact_enabled`・`@shared/chat/prompts` の `postCompactMessage`・記録の `user.post_compact`・送信待ちの `QueuedMessage.post_compact`・`core/chat/preCompact.ts` の `postCompactItem` | なし |
 | プロジェクトフォルダ（プロジェクトに登録したフォルダ。AI が作業する所。git のリポジトリの中のフォルダでもよい。「フォルダ」「プロジェクトのフォルダ」「本体のフォルダ」とは呼ばない。ワークツリーと並べるときだけ「本体」） | `Project.repo_path`（`PUT /api/projects/:id/repo-path`・`changeProjectFolder`。AI へはシステムプロンプトの「プロジェクトフォルダ」） | 「フォルダ」「プロジェクトのフォルダ」「本体のフォルダ」・システムプロンプトの「リポジトリ」 |

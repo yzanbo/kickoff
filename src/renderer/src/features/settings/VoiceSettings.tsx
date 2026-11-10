@@ -88,7 +88,7 @@ function VoiceHero({ status, enabled, onToggle }: { status: VoiceStatus | undefi
         </p>
         <p className="field-help">
           チャット欄・AI からの質問の「その他」の欄のマイク（⌘⇧Space）を 1 回押して話し始め、話し終わったらもう一度押すと、文字になって入ります（押したまま話して離しても入ります）。
-          チャット欄の波形のボタンは音声モードで、話しかけると送り、AI の返答を読み上げます。
+          チャット欄の波形のボタンは音声モードで、話し終わったら送るか入力欄に入れ、AI の返答を読み上げます。
         </p>
       </div>
     </div>

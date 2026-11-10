@@ -1,5 +1,5 @@
 // 声の始まりと終わりの見分け（純粋関数）: マイクの音量（RMS）を少しずつ渡し、話し始めた・話し終わった（黙った）を返す。
-// 音声モードの「黙ったら送る」・読み上げ中に話したら止める・音声入力の「1 分声がなければ止める」で使う
+// 音声モードの「黙ったら送る」・読み上げ中に話したら止める、で使う
 
 export interface VadOptions {
   /** これより小さい音量は、まわりの音がどれだけ静かでも声とみなさない */
@@ -42,8 +42,9 @@ export const vadThreshold = (state: VadState, opts: VadOptions) => Math.max(opts
 export function vadStep(state: VadState, level: number, now: number, opts: VadOptions): { state: VadState; event: VadEvent } {
   const loud = level >= vadThreshold(state, opts);
   if (loud) {
-    // 声の大きさの間も、まわりの音はごくゆっくり追う（ずっと鳴っている雑音を、いつまでも声とみなさない。10 秒ほどでなじむ）
-    const noise = state.noise * 0.995 + level * 0.005;
+    // 声の大きさの間も、まわりの音はごくゆっくり追う（ずっと鳴っている雑音を、いつまでも声とみなさない。20 秒ほどでなじむ。
+    // 速くすると、間をあけずに長く話したときに自分の声を雑音とみなし、話している途中で区切ってしまう）
+    const noise = state.noise * 0.998 + level * 0.002;
     const aboveSince = state.aboveSince ?? now;
     const starts = !state.speaking && now - aboveSince >= opts.minSpeechMs;
     const speaking = state.speaking || starts;

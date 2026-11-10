@@ -16,12 +16,37 @@
   display: none;
 }
 
+/* 帯: 上の行が丸・様子・操作、下の行が話し終わったときの扱いと作業中の送り方 */
 .voice-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px 6px;
+}
+
+.voice-mode-main {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 56px;
-  padding: 10px 14px 6px;
+  min-height: 40px;
+}
+
+/* 話し終わったら（すぐ送る / 入力欄に入れる）・作業中は（いま / あとで）。狭ければ折り返す */
+.voice-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.voice-mode-option-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 入力欄に入れるときは、帯の下に文を書く欄を出すので、間を線で区切る */
+.voice-mode:has(+ textarea:not([hidden])) {
+  border-bottom: 1px solid var(--border);
 }
 
 /* 丸: 聞いている間はマイクの音量（--voice-level 0〜1）で輪を広げ、読み上げ中はゆっくり脈打つ */
@@ -40,7 +65,6 @@
 }
 
 .voice-mode-transcribing .voice-mode-orb,
-.voice-mode-waiting .voice-mode-orb,
 .voice-mode-starting .voice-mode-orb {
   box-shadow: none;
   opacity: 0.7;

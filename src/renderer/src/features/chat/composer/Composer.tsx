@@ -153,14 +153,20 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
     onSent: () => {
       setText("");
       attach.clear();
+      // 音声モードの間に入力欄から送ったら、止めていた読み上げを戻して、その返答を読む
+      voice.noteSent();
     },
   });
-  // 音声入力: 起こした文をキャレットの位置（選んでいればその範囲）に入れる。send なら、入れてそのまま送る
+  /** 起こした文をキャレットの位置（選んでいればその範囲）に入れた文 */
+  const withSpoken = (spoken: string) => {
+    const el = textareaRef.current;
+    const value = el?.value ?? text;
+    return insertDictation(value, el?.selectionStart ?? value.length, el?.selectionEnd ?? value.length, spoken);
+  };
+  // 音声入力: 起こした文をキャレットの位置に入れる。send なら、入れてそのまま送る
   const dictation = useDictation({
     onText: (spoken, sendNow) => {
-      const el = textareaRef.current;
-      const value = el?.value ?? text;
-      const inserted = insertDictation(value, el?.selectionStart ?? value.length, el?.selectionEnd ?? value.length, spoken);
+      const inserted = withSpoken(spoken);
       if (sendNow) {
         setText(inserted.text);
         void sender.send(inserted.text);
@@ -169,8 +175,19 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
       }
     },
   });
-  // 音声モード: 話しかけると送り、返答を読み上げる（その間は文を書く欄の代わりに帯を出す。書きかけの文はそのまま残す）
-  const voice = useVoiceMode({ replies: voiceMode?.replies ?? NO_REPLIES, busy: Boolean(busy), send: (spoken) => voiceMode?.send(spoken) ?? Promise.resolve() });
+  // 音声モード: 話し終わったら、すぐ送る（その間は文を書く欄を隠して帯を出す。書きかけの文はそのまま残す）か、
+  // 入力欄に入れる（帯の下に文を書く欄を出したまま、キャレットの位置に足していく）。返答は読み上げる
+  const voice = useVoiceMode({
+    replies: voiceMode?.replies ?? NO_REPLIES,
+    busy: Boolean(busy),
+    send: (spoken) => voiceMode?.send(spoken) ?? Promise.resolve(),
+    fill: (spoken) => {
+      const inserted = withSpoken(spoken);
+      fill(inserted.text, inserted.caret);
+    },
+  });
+  // すぐ送る音声モードの間は、作業中の送り方（いま / あとで）を帯に出し、文を書く欄を隠す
+  const voiceSends = voice.active && voice.delivery === "send";
   // 録音中は、送信で「起こした文を入れてそのまま送る」
   const canSend = (sender.hasContent || dictation.recording) && sender.ready;
 
@@ -236,9 +253,9 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
         </div>
       )}
       <SuggestList suggest={suggest} />
-      {voice.active && <VoiceModePanel voice={voice} />}
+      {voice.active && <VoiceModePanel voice={voice} queueToggle={busyControls} />}
       <textarea
-        hidden={voice.active}
+        hidden={voiceSends}
         ref={textareaRef}
         rows={1}
         value={text}
@@ -267,7 +284,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
           onStop={onStop}
           queueing={sender.queueing}
           heldMode={heldMode}
-          busyControls={busyControls}
+          busyControls={voiceSends ? undefined : busyControls}
           trailing={trailing}
           voice={
             <>
