@@ -91,7 +91,8 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   };
   /** ステージ・ステージの取り消し・元に戻す */
   const act = (action: "stage" | "unstage" | "discard", paths: string[]) => apply(api.gitAction(target, action, paths));
-  const commit = (message: string) => apply(api.gitCommit(target, message));
+  /** コミット（amend は直前のコミットに足して書き直す「コミット (修正)」） */
+  const commit = (message: string, amend = false) => apply(api.gitCommit(target, message, amend));
   const push = () => apply(api.gitPush(target));
   const pull = () => apply(api.gitPull(target));
   /** リモートの情報を取ってきてから取り直す（遅れている数を出すため。取り直しのボタンで使う） */

@@ -75,9 +75,9 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
 
   // コミット・プッシュ（終わったら新しい状態を返す）
   app.post("/api/projects/:id/git/commit", withWorkdir, async (c) => {
-    const { message } = z.object({ message: z.string().max(10_000) }).parse(await jsonBody(c));
+    const { message, amend } = z.object({ message: z.string().max(10_000), amend: z.boolean().optional() }).parse(await jsonBody(c));
     const dir = c.var.workdir;
-    return gitAction(c, dir, () => commitStaged(dir, message));
+    return gitAction(c, dir, () => commitStaged(dir, message, amend));
   });
 
   app.post("/api/projects/:id/git/push", withWorkdir, async (c) => gitAction(c, c.var.workdir, () => pushBranch(c.var.workdir)));
