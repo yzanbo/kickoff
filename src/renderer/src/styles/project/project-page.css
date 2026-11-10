@@ -152,7 +152,7 @@ button.project-switch {
 }
 
 
-/* 見出しの「作業中・待ちのチャットを一覧」のボタン（ActiveChatsButton）と、右上に重ねる要対応の数（未読の緑。回答待ちがあればオレンジ） */
+/* 見出しの「作業中・待ちのチャットを一覧」のボタン（ActiveChatsButton。すべてのプロジェクト）と、右上に重ねるすべてのプロジェクトの要対応の数（未読の緑。回答待ちがあればオレンジ） */
 .active-chats-button {
   position: relative;
   display: inline-grid;
