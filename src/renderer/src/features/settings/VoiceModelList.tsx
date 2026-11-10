@@ -5,16 +5,28 @@ import { confirmDialog } from "@/ui/dialogs";
 import { useAction } from "@/hooks/useAction";
 import { voiceStatusStore } from "@/stores/voice";
 import { ErrorText } from "@/ui/ErrorText";
+import { formatModelSize } from "./voiceOptions";
 
-/** モデルの大きさ（1000MB からは GB） */
-const formatSize = (mb: number) => (mb >= 1000 ? `${(mb / 1000).toFixed(1)} GB` : `${mb} MB`);
+/** 精度・速さの目安の目盛り（4 つの点のうち value 個を塗る） */
+function Meter({ label, value }: { label: string; value: number }) {
+  return (
+    <span className="voice-meter" title={`${label}: ${value} / 4`}>
+      {label}
+      <span className="voice-meter-dots" aria-label={`${value} / 4`}>
+        {[1, 2, 3, 4].map((i) => (
+          <span key={i} className={cx("voice-meter-dot", i <= value && "on")} />
+        ))}
+      </span>
+    </span>
+  );
+}
 
 /** 落としている途中の割合（大きさが分からなければ null） */
 const percentOf = (m: VoiceModelInfo) => (m.download?.total ? Math.floor((m.download.received / m.download.total) * 100) : null);
 
 /**
- * この Mac で使う whisper のモデルの一覧（使うものを選ぶ・ダウンロード・進み具合・削除）。
- * 選んだモデルは、ほかの設定と一緒に保存する
+ * この Mac で使う whisper のモデルの一覧（使うものを選ぶ・精度と速さの目盛り・ダウンロード・進み具合・削除）。
+ * 選んだモデルはその場で保存する。選んだのにまだダウンロードしていなければ、そう添える
  */
 export function VoiceModelList({ models, selected, onSelect }: { models: VoiceModelInfo[] | undefined; selected: string; onSelect: (id: string) => void }) {
   const action = useAction();
@@ -38,13 +50,16 @@ export function VoiceModelList({ models, selected, onSelect }: { models: VoiceMo
               <input type="radio" name="voice-model" checked={m.id === selected} onChange={() => onSelect(m.id)} />
               <span className="voice-model-name">{m.label}</span>
               {m.recommended && <span className="badge voice-model-recommended">おすすめ</span>}
-              <span className="muted small">{formatSize(m.size_mb)}</span>
+              <span className="voice-model-meters">
+                <Meter label="精度" value={m.accuracy} />
+                <Meter label="速さ" value={m.speed} />
+              </span>
             </label>
             <p className="field-help voice-model-note">{m.note}</p>
             <div className="voice-model-actions">
               {m.downloaded ? (
                 <>
-                  <span className="success small">ダウンロード済み</span>
+                  <span className="success small">ダウンロード済み（{formatModelSize(m.size_mb)}）</span>
                   <button type="button" className="btn btn-sm btn-danger-text" onClick={() => void remove(m)}>
                     削除
                   </button>
@@ -64,9 +79,10 @@ export function VoiceModelList({ models, selected, onSelect }: { models: VoiceMo
               ) : (
                 <>
                   {m.download?.error && <ErrorText message={m.download.error} />}
-                  <button type="button" className="btn btn-sm" onClick={() => void download(m)}>
-                    {m.download?.error ? "もう一度ダウンロード" : "ダウンロード"}
+                  <button type="button" className={cx("btn btn-sm", m.id === selected && "btn-primary")} onClick={() => void download(m)}>
+                    {m.download?.error ? "もう一度ダウンロード" : `ダウンロード（${formatModelSize(m.size_mb)}）`}
                   </button>
+                  {m.id === selected && !m.download?.error && <span className="voice-model-hint small">使うにはダウンロードしてください</span>}
                 </>
               )}
             </div>

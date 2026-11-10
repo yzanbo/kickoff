@@ -1,0 +1,203 @@
+/* ==== 設定の「音声入力」（VoiceSettings）: スイッチといま使えるかのカード・文字起こしの方法のカード（無料 / 有料の札）・準備の手順・モデルの一覧 ==== */
+
+.voice-settings {
+  display: grid;
+  gap: 18px;
+}
+
+.voice-settings-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.voice-settings-head h2 {
+  margin: 0;
+}
+
+/* いちばん上のカード: 使うかのスイッチと、いま使えるか。使えるときは枠を緑に */
+.voice-hero {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.voice-hero.ready {
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+}
+
+.voice-hero-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.voice-hero.ready .voice-hero-icon {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+}
+
+.voice-hero-body {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.voice-hero-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.voice-hero-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.voice-hero-body .field-help {
+  margin: 2px 0 0;
+}
+
+/* スイッチ（チェックボックスを丸いつまみの形に） */
+.voice-switch {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--bg-active);
+  appearance: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.voice-switch::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+  content: "";
+  transition: transform 0.15s;
+}
+
+.voice-switch:checked {
+  background: var(--accent);
+}
+
+.voice-switch:checked::after {
+  transform: translateX(16px);
+}
+
+/* 文字起こしの方法: 2 枚のカードを横に並べる（狭ければ縦） */
+.voice-providers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.voice-provider {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  cursor: pointer;
+}
+
+.voice-provider:hover {
+  border-color: var(--border-strong, var(--muted));
+}
+
+.voice-provider.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.voice-provider-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-provider-title {
+  flex: 1;
+  font-weight: 600;
+}
+
+.voice-provider-summary {
+  font-size: 13px;
+}
+
+.voice-points {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  list-style: none;
+}
+
+.voice-points li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.voice-points svg {
+  flex: none;
+  position: relative;
+  top: 1px;
+}
+
+.voice-points .pro svg {
+  color: var(--ok);
+}
+
+/* 料金の札: 無料 = 緑・有料 = 注意の色 */
+.voice-price {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.voice-price.free {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+}
+
+.voice-price.paid {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+}
+
+.voice-language {
+  max-width: 240px;
+}

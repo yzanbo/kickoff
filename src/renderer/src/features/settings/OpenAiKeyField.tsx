@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { api } from "@/api";
 import { useSave } from "@/hooks/useSave";
 import { voiceStatusStore } from "@/stores/voice";
@@ -7,9 +7,10 @@ import { ResultMessage } from "@/ui/SaveActions";
 
 /**
  * OpenAI の API キー（音声入力）。保存したキーは二度と表示せず「保存済み」とだけ出す。
- * 入れ直せば置き換え、「消す」で消す。ほかの設定とは別に、その場で保存する
+ * 入れ直せば置き換え、「消す」で消す。ほかの設定とは別に、その場で保存する。
+ * label を渡せば名前を差し替える（null なら名前の行を出さない。手順の見出しが名前を兼ねるとき）
  */
-export function OpenAiKeyField({ saved }: { saved: boolean | undefined }) {
+export function OpenAiKeyField({ saved, label }: { saved: boolean | undefined; label?: ReactNode }) {
   const [key, setKey] = useState("");
   const save = useSave();
   const store = (value: string) =>
@@ -21,7 +22,7 @@ export function OpenAiKeyField({ saved }: { saved: boolean | undefined }) {
   return (
     <Field
       as="div"
-      label={<>OpenAI の API キー {saved && <span className="badge">保存済み</span>}</>}
+      label={label === undefined ? <>OpenAI の API キー {saved && <span className="badge">保存済み</span>}</> : label}
       help="キーはこの Mac の Kickoff の中だけに保存し、画面には二度と表示しません。"
     >
       <div className="input-row">

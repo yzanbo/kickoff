@@ -36,6 +36,10 @@ export interface VoiceModelInfo {
   size_mb: number;
   /** 速さ・日本語の向き不向きの説明 */
   note: string;
+  /** 日本語の精度の目安（1〜4） */
+  accuracy: number;
+  /** 速さの目安（1〜4。大きいほど速い） */
+  speed: number;
   recommended: boolean;
   downloaded: boolean;
   download: VoiceDownload | null;
