@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { eventSequence } from "@shared/testing/factories";
-import { historyMove, promptBefore, promptListOf, type HistoryInput } from "./promptHistory";
+import { CONTEXT_CLEARED_LABEL, historyMove, promptBefore, promptListOf, type HistoryInput } from "./promptHistory";
 
 const event = eventSequence();
 
@@ -67,6 +67,21 @@ test("指示の履歴: AI からの質問への回答も会話の順に並べ、
   assert.equal(answer.attachments.length, 1);
   assert.equal(list.history[0].answers, null);
   assert.deepEqual(list.recalls, ["続けて", "調べて"]);
+});
+
+test("指示の履歴: コンテキストの消去も会話の順に並べる（指示の一覧・↑↓ の呼び出しには入れない。入力欄に入れる文はない）", () => {
+  const events = [event("user", { text: "前の話" }), event("context_cleared", {}), event("user", { text: "新しい話" })];
+  const list = promptListOf(events);
+  assert.deepEqual(list.entries.map((p) => p.id), [events[0].id, events[2].id]);
+  assert.deepEqual(list.history.map((p) => [p.id, p.cleared]), [
+    [events[0].id, false],
+    [events[1].id, true],
+    [events[2].id, false],
+  ]);
+  const cleared = list.history[1];
+  assert.equal(cleared.text, "");
+  assert.equal(cleared.label, CONTEXT_CLEARED_LABEL);
+  assert.deepEqual(list.recalls, ["新しい話", "前の話"]);
 });
 
 const prompts = ["新しい", "1行目\n2行目", "古い"];

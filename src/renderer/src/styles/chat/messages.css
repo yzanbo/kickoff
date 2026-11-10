@@ -132,6 +132,23 @@
   box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
+/* 指示の履歴の行の「コンテキスト消去」の札（質問への回答の札と同じ形。色は会話の流れの消去の境目の行と同じ --info） */
+.context-cleared-tag {
+  display: inline-flex;
+  flex: none;
+  align-self: center;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: calc(10px * var(--chat-scale, 1));
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--info) 45%, transparent);
+}
+
 /* 吹き出しの中の書き直しの欄 */
 .user-message.editing {
   width: 80%;
