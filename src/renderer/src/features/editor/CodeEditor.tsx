@@ -5,21 +5,19 @@ import { useEffect, useRef, useState } from "react";
 import type { GitBlame } from "@shared/types";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import type { AppliedTheme } from "@/lib/appliedTheme";
-import { registerCodeSelection, type CodeSelection } from "./codeSelection";
+import { registerCodeSelection } from "./codeSelection";
+import { quickDiffDecorations, readSelection } from "./codeEditorParts";
 import { MonacoFindBar } from "./MonacoFindBar";
 import { syncMonacoFindOptions } from "./monacoFindOptions";
 import { SPLIT_MIN_WIDTH } from "./DiffView";
 import { blameAt, blameHover, blameLabel } from "./blameText";
-import { quickDiff, type QuickDiffHunk } from "./quickDiff";
+import { quickDiff } from "./quickDiff";
 
 // 補完・型チェックの裏の処理（言語ごとのワーカー）は使わない。差分の計算などの基本のワーカーだけ
 self.MonacoEnvironment = { getWorker: () => new EditorWorker() };
 
 /** 打つのが止まってから、Git との違いの帯を付け直すまでの時間 */
 const QUICK_DIFF_DELAY_MS = 200;
-
-/** 違いの種類ごとの色（右端の概要の帯。行の横の帯は CSS の .quick-diff-*） */
-const QUICK_DIFF_COLORS: Record<QuickDiffHunk["kind"], string> = { added: "--ok", modified: "--info", deleted: "--ng" };
 
 /** アプリの地の色に合わせた VS Code の配色（Dark+ / Light+） */
 function applyTheme(theme: AppliedTheme) {
@@ -28,49 +26,6 @@ function applyTheme(theme: AppliedTheme) {
   const name = theme === "dark" ? "kickoff-dark" : "kickoff-light";
   monaco.editor.defineTheme(name, { base: theme === "dark" ? "vs-dark" : "vs", inherit: true, rules: [], colors: { "editor.background": background } });
   monaco.editor.setTheme(name);
-}
-
-/** Git との違いの帯（行番号の横の色の帯と、右端の概要の帯の印） */
-function quickDiffDecorations(hunks: QuickDiffHunk[]): monaco.editor.IModelDeltaDecoration[] {
-  const style = getComputedStyle(document.documentElement);
-  return hunks.map((h) => {
-    // 消した所は、直前の行の下の端に印（先頭を消したときは 1 行目の上の端）
-    const start = Math.max(h.start, 1);
-    const end = Math.max(h.end, 1);
-    const top = h.kind === "deleted" && h.start === 0 ? " top" : "";
-    return {
-      range: { startLineNumber: start, startColumn: 1, endLineNumber: end, endColumn: 1 },
-      options: {
-        isWholeLine: true,
-        linesDecorationsClassName: `quick-diff quick-diff-${h.kind}${top}`,
-        overviewRuler: { color: style.getPropertyValue(QUICK_DIFF_COLORS[h.kind]).trim(), position: monaco.editor.OverviewRulerLane.Left },
-      },
-    };
-  });
-}
-
-/** 選んでいる所（行・文・画面の位置。選んでいなければ null） */
-function readSelection(editor: monaco.editor.ICodeEditor): CodeSelection | null {
-  const model = editor.getModel();
-  const selection = editor.getSelection();
-  const node = editor.getDomNode();
-  if (!model || !selection || selection.isEmpty() || !node) return null;
-  // 行の終わりから選び始めた・次の行の頭で選び終えたときは、その行を含めない（行ごと選んだときの形）
-  const first = selection.startLineNumber;
-  const from = selection.startColumn === model.getLineMaxColumn(first) && selection.endLineNumber > first ? first + 1 : first;
-  const to = selection.endColumn === 1 && selection.endLineNumber > from ? selection.endLineNumber - 1 : selection.endLineNumber;
-  const box = node.getBoundingClientRect();
-  const start = editor.getScrolledVisiblePosition(selection.getStartPosition());
-  const end = editor.getScrolledVisiblePosition(selection.getEndPosition());
-  const left = Math.min(start?.left ?? 0, end?.left ?? 0);
-  return {
-    from,
-    to,
-    text: model.getValueInRange(selection),
-    code: model.getValueInRange({ startLineNumber: from, startColumn: 1, endLineNumber: to, endColumn: model.getLineMaxColumn(to) }),
-    // 選び始めが上へ隠れていれば、部品の上の端に出す
-    rect: { left: box.left + left, top: box.top + Math.max(0, Math.min(start?.top ?? 0, box.height)), width: Math.abs((end?.left ?? left) - (start?.left ?? left)) },
-  };
 }
 
 interface Props {
