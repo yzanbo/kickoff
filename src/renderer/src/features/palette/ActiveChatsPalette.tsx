@@ -1,5 +1,5 @@
 import { Activity } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
@@ -16,6 +16,9 @@ import { DRAFT_TONE } from "@/features/chat/tones";
 import { bucketTone, chatsByState } from "@/features/chatList/StateChatsPopover";
 import { openDraft, useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { ToneChip } from "@/ui/ToneChip";
+import { StatusSlot } from "@/features/chat/StatusSlot";
+import { bucketMark } from "@/features/chatList/StateChip";
+import { busyWithUnread } from "@shared/chat/state";
 import { hiddenItemsOf, toggleHiddenItem } from "@/lib/hiddenItems";
 import { ACTIVE_CHATS_HIDDEN_STATES, ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/lib/storageKeys";
 import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, type ProjectFilterValue } from "./PaletteProjectFilter";
@@ -41,7 +44,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
   // 出すプロジェクト: サイドバーと同じく、しまったものを除いた並び（サイドバーの「タグ」で絞り込んでいれば、合うものだけ）。
   // アーカイブ済みのプロジェクトは、行の右端の切り替えで出したときだけ後ろに足す
   const { visible, archived, tagFilter } = useVisibleProjects();
-  const { pending } = useChatStates();
+  const { pending, stateOf } = useChatStates();
   const [query, setQuery] = useState("");
   // すべてのプロジェクトのチャット（子チャットも入れる。開いている間も、状態の変化・削除に追いつく）
   const chats = useChatsWithChildren();
@@ -101,11 +104,13 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
       .filter((d) => inProject(d.projectId))
       .map((draft) => ({ kind: "draft", key: `draft:${draft.panel}:${draft.key}`, draft }));
     const groups = [
-      { key: "draft", label: "下書き", tone: DRAFT_TONE, items: draftItems },
+      { key: "draft", label: "下書き", tone: DRAFT_TONE, mark: undefined as ReactNode, items: draftItems },
       ...sections.map((section) => ({
         key: section.key,
         label: section.label,
         tone: bucketTone(section),
+        // 見出しの札の印はサイドバーの行と同じ状態の印（作業中は回るリング。作業中のまま未読があれば緑の点）
+        mark: bucketMark(section, section.chats.filter((chat) => inProject(chat.project_id))),
         items: section.chats.filter((chat) => inProject(chat.project_id)).map((chat): Item => ({ kind: "chat", key: `chat:${chat.id}`, chat })),
       })),
     ].filter((g) => g.items.length > 0);
@@ -166,7 +171,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
         {groups.map((g) => (
           <Fragment key={g.key}>
             <li className="palette-group" role="presentation">
-              <ToneChip tone={g.tone} dot label={g.label} count={g.items.length} />
+              <ToneChip tone={g.tone} dot={!g.mark} icon={g.mark} label={g.label} count={g.items.length} />
             </li>
             {g.items.map((item) => {
               const i = items.indexOf(item);
@@ -179,12 +184,16 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
                   >
                     {item.kind === "draft" ? (
                       <>
+                        {/* 状態の印の場所をそろえる（下書きは AI が何もしていないので印なし） */}
+                        <span className="status-slot" aria-hidden />
                         <span className="palette-label">{draftTitle(item.draft)}</span>
                         {/* 「下書き」のまとまりの見出しの下に並ぶので、プロジェクト名だけを添える */}
                         <span className="palette-hint">{projectName(item.draft.projectId)}</span>
                       </>
                     ) : (
                       <>
+                        {/* サイドバーの行と同じ状態の印（見出しの札の印の真下） */}
+                        <StatusSlot state={stateOf(item.chat)} unread={busyWithUnread(item.chat, stateOf(item.chat))} />
                         <span className="palette-label">{chatTitle(item.chat.title)}</span>
                         <span className="palette-hint">
                           {projectName(item.chat.project_id)} · {shortRelativeTime(item.chat.active_at)}

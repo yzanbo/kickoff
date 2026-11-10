@@ -3,7 +3,7 @@ import { useChatStates } from "@/app/chatStatesContext";
 import { openChatOrChild } from "@/features/chat/children/openChild";
 import { StateChatsPopover, bucketTone, chatsByState } from "@/features/chatList/StateChatsPopover";
 import { usePopover } from "@/ui/Popover";
-import { ToneChip } from "@/ui/ToneChip";
+import { BucketChip } from "@/features/chatList/StateChip";
 
 /**
  * 画面の見出しの、状態ごとのチャット数（作業中・回答待ち・未読。0 のものは出さない）。
@@ -21,7 +21,7 @@ export function StateStats({ chats, showProject = false }: { chats: Chat[]; show
     <div ref={popover.anchor} className="state-stats">
       <button type="button" className="state-stats-button" aria-expanded={popover.open} title="状態ごとのチャットを一覧する" onClick={popover.toggle}>
         {sections.map((section) => (
-          <ToneChip key={section.key} tone={bucketTone(section)} dot label={section.label} count={section.chats.length} />
+          <BucketChip key={section.key} bucket={section} tone={bucketTone(section)} count={section.chats.length} chats={section.chats} />
         ))}
       </button>
       {popover.open && (

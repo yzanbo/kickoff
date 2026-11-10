@@ -5,13 +5,12 @@ import { AGENT_STATE_LABELS, type AgentState, type Chat, type FeedItem } from "@
 import { chatTitle } from "@/features/chat/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import type { ChatTitleEditor } from "@/features/chat/useChatRename";
-import { STATE_TONE } from "@/features/chat/tones";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { ArchivedFold, splitArchived } from "@/ui/ArchivedFold";
 import { EmptyState } from "@/ui/EmptyState";
-import { ToneChip } from "@/ui/ToneChip";
 import { feedPlainText } from "./feed";
-import { CardBadges, CardStats, CardTimes, UnreadMark } from "./ChatCard";
+import { CardBadges, CardStats, CardTimes } from "./ChatCard";
+import { StateChip } from "@/features/chatList/StateChip";
 import type { ShowCardField } from "./CardFieldsMenu";
 
 /**
@@ -84,8 +83,7 @@ export function FeedCardContent({
         {/* 状態はボードの列の見出しと同じ色の札（利用者の依頼。前は点と文だけ） */}
         {show("state") && (
           <span className="feed-card-state">
-            <ToneChip tone={STATE_TONE[state]} dot label={AGENT_STATE_LABELS[state]} />
-            {busyWithUnread(chat, state) && <UnreadMark />}
+            <StateChip state={state} label={AGENT_STATE_LABELS[state]} unread={busyWithUnread(chat, state)} />
           </span>
         )}
         <CardStats chat={chat} show={show} />
