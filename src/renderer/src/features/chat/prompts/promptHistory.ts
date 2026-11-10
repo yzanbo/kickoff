@@ -26,6 +26,11 @@ export interface PromptEntry {
    * text は空にして入力欄には入れない・label は答えだけを「 / 」でつなぐ（上に貼り付ける指示の帯をたたんだときと同じ）。指示なら null）
    */
   answers: QuestionAnswer[] | null;
+  /**
+   * コンテキストを消去した境目か（記録の context_cleared。指示の履歴にだけ並べ、「コンテキスト消去」の札を付ける。利用者の依頼。
+   * text は空にして入力欄には入れない・番号は数えない。指示なら false）
+   */
+  cleared: boolean;
 }
 
 /** AI からの質問への回答の 1 問（問いの文と選んだ答え。いくつも選んだ答えは「、」でつなぐ） */
@@ -39,8 +44,9 @@ export interface PromptList {
   /** 会話の順（指示だけ。⌘⌥↑ / ↓・上に貼り付ける指示・巻き戻しはこれを使う） */
   entries: PromptEntry[];
   /**
-   * 指示の履歴（ピル）に並べるもの: 指示と、AI からの質問への回答を会話の順に。回答も自分が入れたもので、上に貼り付ける指示の帯には出るので、
-   * 履歴にも出して「どこで何と答えたか」から戻れるようにする（前は帯には出るのに履歴にはなく、そろっていなかった）
+   * 指示の履歴（ピル）に並べるもの: 指示と、AI からの質問への回答と、コンテキストの消去を会話の順に。回答も自分が入れたもので、上に貼り付ける指示の帯には出るので、
+   * 履歴にも出して「どこで何と答えたか」から戻れるようにする（前は帯には出るのに履歴にはなく、そろっていなかった）。
+   * コンテキストの消去は、どの指示から新しい会話になったかを履歴の中で見分けられるようにする（利用者の依頼）
    */
   history: PromptEntry[];
   /** 記録の ID の並び（会話の順） */
@@ -52,6 +58,9 @@ export interface PromptList {
 }
 
 const NO_ATTACHMENTS: Attachment[] = [];
+
+/** 指示の履歴のコンテキストの消去の行の文（会話の流れの境目の行と同じ言い方） */
+export const CONTEXT_CLEARED_LABEL = "ここから新しい会話";
 
 // 記録の配列ごとの一覧（記録が増える・消えるたびに配列が替わるので、そのときだけ作り直す。読む所がいくつあっても 1 回）
 const lists = new WeakMap<readonly ChatEvent[], PromptList>();
@@ -68,13 +77,16 @@ export function promptListOf(events: readonly ChatEvent[]): PromptList {
       // サブエージェントに子チャットで聞いた発言は、前置きを除いた聞いた文だけ
       const text = (subagentAskOf(data.text)?.text ?? data.text).trim();
       const attachments = data.attachments ?? NO_ATTACHMENTS;
-      const entry: PromptEntry = { id: e.id, text, label: text || attachments.map((a) => a.name).join("、"), at: e.created_at, attachments, compactKind: compactKindOf(data), answers: null };
+      const entry: PromptEntry = { id: e.id, text, label: text || attachments.map((a) => a.name).join("、"), at: e.created_at, attachments, compactKind: compactKindOf(data), answers: null, cleared: false };
       entries.push(entry);
       history.push(entry);
     } else if (e.type === "approval_resolved" && e.data.action === "answer") {
       const answers = Object.entries(e.data.answers).map(([question, answer]) => ({ question, answer: Array.isArray(answer) ? answer.join("、") : answer }));
       const attachments = Object.values(e.data.attachments ?? {}).flat();
-      history.push({ id: e.id, text: "", label: answers.map((a) => a.answer).join(" / "), at: e.created_at, attachments, compactKind: null, answers });
+      history.push({ id: e.id, text: "", label: answers.map((a) => a.answer).join(" / "), at: e.created_at, attachments, compactKind: null, answers, cleared: false });
+    } else if (e.type === "context_cleared") {
+      // 送信待ちの「コンテキストを消去」で、ここから新しい会話にした境目（押すと会話の流れの境目の行へ移る）
+      history.push({ id: e.id, text: "", label: CONTEXT_CLEARED_LABEL, at: e.created_at, attachments: NO_ATTACHMENTS, compactKind: null, answers: null, cleared: true });
     }
   }
   const recalls: string[] = [];
