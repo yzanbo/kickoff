@@ -175,7 +175,7 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
               title={
                 !views.active && views.selected?.id === view.id
                   ? "このビューから見え方を変えています（押すとビューの見え方に戻す。⚙ で上書きできる）"
-                  : "押すとこのビューの見え方にする（ドラッグで並べ替え・右クリック・Enter で名前の変更。右クリックで上書き・削除）"
+                  : "押すとこのビューの見え方にする（ダブルクリック・Enter・右クリックで名前の変更。ドラッグで並べ替え・右クリックで上書き・削除）"
               }
               onClick={() => views.apply(view)}
               onContextMenu={(e) => menu.open(e, view)}

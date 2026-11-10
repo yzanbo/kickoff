@@ -1,6 +1,7 @@
 import { Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { cx } from "@/lib/cx";
+import { isRenameKey } from "@/lib/keys";
 import { confirmDialog } from "@/ui/dialogs";
 import { InlineName } from "@/ui/InlineName";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
@@ -56,10 +57,16 @@ export function SavedViewTabs({ projectId }: { projectId?: number }) {
             aria-selected={saved.active?.id === view.id}
             {...drag.tabProps(view.id)}
             className={cx("board-view-tab", saved.active?.id === view.id && "active", drag.tabClass(view.id))}
-            title="押すとこのビューの表示にする（ドラッグで並べ替え・右クリックで名前の変更・上書き・削除）"
+            title="押すとこのビューの表示にする（ダブルクリック・Enter で名前の変更。ドラッグで並べ替え・右クリックで名前の変更・上書き・削除）"
             onClick={() => saved.apply(view.state)}
             onContextMenu={(e) => menu.open(e, view)}
             onDoubleClick={() => setRenaming(view.id)}
+            // ピントがあるときの Enter で名前を変える（サイドバーのビュー・チャットのタブと同じ。押すのは Space）
+            onKeyDown={(e) => {
+              if (!isRenameKey(e)) return;
+              e.preventDefault();
+              setRenaming(view.id);
+            }}
           >
             {view.name}
           </button>
