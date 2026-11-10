@@ -1,10 +1,10 @@
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef } from "react";
 import { usePageFind } from "@/ui/usePageFind";
 import { DiffView } from "./DiffView";
 import { openEditorFind } from "./editorFind";
 import { FileView } from "./FileView";
 import { editedChange, selectedChange, type ChangeGroups, type Selection } from "./fileSelection";
-import { selectionOf, setFileTabDirty, type FileTab } from "./fileTabs";
+import { registerFileTabSaver, selectionOf, setFileTabDirty, type FileTab } from "./fileTabs";
 import type { GitStatusController } from "./useGitStatus";
 
 /** ファイルのタブの中身が使うもの（EditorTab が、タブを並べるパネルの外から渡す） */
@@ -32,6 +32,8 @@ export function ProjectFileTab({ tab, panelKey }: { tab: FileTab; panelKey: stri
   const find = usePageFind(ref, { native: openEditorFind, placeholder: "このファイルを検索", className: "page-find" });
   // 中身がなくなったら（タブを閉じた・別の画面へ移った）、書きかけも一緒になくなるので、保存していない印も外す
   useEffect(() => () => setFileTabDirty(panelKey, tab.key, false), [panelKey, tab.key]);
+  // タブの × で「保存」を選んだときの保存のしかた（⌘S と同じ）
+  const registerSave = useCallback((save: () => Promise<boolean>) => registerFileTabSaver(panelKey, tab.key, save), [panelKey, tab.key]);
   if (!env) return null;
   const { projectId, repoPath, git, groups } = env;
   const selected = selectionOf(tab);
@@ -46,6 +48,7 @@ export function ProjectFileTab({ tab, panelKey }: { tab: FileTab; panelKey: stri
     version: git.version,
     onSaved: () => void git.refresh(),
     onDirtyChange: (dirty: boolean) => setFileTabDirty(panelKey, tab.key, dirty),
+    registerSave,
     autoFocus: selected.focus,
   };
   return (
