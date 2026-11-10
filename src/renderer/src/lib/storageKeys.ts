@@ -182,6 +182,8 @@ export const FOLDS = defineSettingFamily("kickoff:fold:", optionalFlag(), { ids:
 export const COMMAND_PALETTE_TARGETS = defineSetting("kickoff:command-palette-targets", list());
 /** ⌘⇧A（作業中・待ちのチャットの一覧）に、アーカイブ済みのプロジェクトのチャットも出すか */
 export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:active-chats-show-archived-projects", flag());
+/** ⌘⇧A の一覧で隠す状態（下書き・作業中・回答待ち・未読のうち、入力欄の下の行で外したもの。隠したものだけを覚える。palette/PaletteStateFilter） */
+export const ACTIVE_CHATS_HIDDEN_STATES = defineSetting("kickoff:active-chats-hidden-states", list());
 
 // ボード（カンバン）
 /**
