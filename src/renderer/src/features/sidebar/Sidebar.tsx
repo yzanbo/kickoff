@@ -1,4 +1,4 @@
-import { LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
+import { LayoutGrid, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { useProjects } from "@/stores/projects";
 import { href, useRoute } from "@/app/router";
 import { ProjectNav } from "./ProjectNav";
@@ -9,10 +9,13 @@ import type { SidebarController } from "./useSidebar";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { IconButton } from "@/ui/IconButton";
+import { NewChatButton } from "./NewChatButton";
 
 interface Props {
   sidebar: SidebarController;
   onNewChat: () => void;
+  /** ⌘N の新しいチャットを始めるプロジェクト（開いているもの。なければサイドバーで選んでいるもの。プロジェクトがひとつもなければ undefined） */
+  newChatProject: number | undefined;
   onSearch: () => void;
   onNewProject: () => void;
 }
@@ -21,7 +24,7 @@ interface Props {
  * 左のサイドバー（新しいチャット・全プロジェクト・検索、プロジェクトごとのチャット一覧、設定）。要対応のオン / オフは一覧の上の見出しの「要対応」の行
  * （利用者の依頼で、上の段から移した。上の段は押すと開く・作るものだけにする）
  */
-export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
+export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
   const route = useRoute();
   const { projects } = useProjects();
   // すべてのプロジェクトのチャット（アーカイブ済みは、一覧の下に出すときだけ）とグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
@@ -57,9 +60,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
         <IconButton icon={PanelLeftClose} className="titlebar-toggle" label="サイドバーを閉じる" keys="⌘B" onClick={sidebar.toggle} />
       </div>
       <div className="nav-rows">
-        <button className="nav-row" onClick={onNewChat} title="新しいチャット（⌘N）">
-          <SquarePen size={15} /> 新しいチャット <kbd>⌘N</kbd>
-        </button>
+        <NewChatButton projectId={newChatProject} onClick={onNewChat} />
         <a className={`nav-row ${route.name === "allProjects" ? "active" : ""}`} href={href({ name: "allProjects" })}>
           <LayoutGrid size={15} /> 全プロジェクト
         </a>
