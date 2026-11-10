@@ -1,4 +1,4 @@
-import { AppWindow, ArrowRightLeft, Columns2, GitBranch, MessageSquare, Rows2, SquarePen, Undo2, X } from "lucide-react";
+import { AppWindow, ArrowRightLeft, Columns2, GitBranch, MessageSquare, Pencil, Rows2, SquarePen, Undo2, X } from "lucide-react";
 import { alertDialog } from "@/ui/dialogs";
 import { ChatMenuItems } from "@/features/chat/ChatMenuItems";
 import { DraftMenuItems } from "@/features/chat/DraftMenuItems";
@@ -154,6 +154,12 @@ export function TabMenu({
       ) : (
         <>
           {newChatItem}
+          {/* 子チャットのタブも、チャットのタブと同じく名前を変えられる（ダブルクリック・Enter と同じ） */}
+          {tab?.kind === "child" && (
+            <MenuItem onSelect={onRename}>
+              <Pencil size={14} /> 名前を変更
+            </MenuItem>
+          )}
           {paneItems}
           <TabDisplaySubmenu panel={panel} />
           <div className="menu-separator" role="separator" />

@@ -1,9 +1,10 @@
 import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/cx";
-import { knownChat } from "@/stores/chats";
+import { knownChat, useKnownChat } from "@/stores/chats";
 import { confirmLeaveMemo } from "@/features/memo/memoGuards";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { StatusSlot } from "@/features/chat/StatusSlot";
+import { chatTitle } from "@/features/chat/chatTitle";
 import type { PanelController } from "@/features/panel/usePanel";
 import { SURFACES } from "@/features/panel/surfaces";
 import { PanelTab } from "./PanelTab";
@@ -58,7 +59,9 @@ export function PaneTab({
   // チャットのタブのチャット（ボードの一覧になければ、タブの中のチャットから届いたもの）と、エージェントの状態（チャット・子チャット・サブエージェント）
   const chat = panel.chatOf(t);
   const agent = useTabAgentState(panel, t);
-  const label = spec.label(t, chat);
+  // 子チャットのタブの名前は、いまの子チャットの名前（タブに覚えた名前は開いたときのもので、名前を変えると古いまま残った）
+  const child = useKnownChat(t.kind === "child" ? t.childId : 0);
+  const label = t.kind === "child" && child ? chatTitle(child.title) : spec.label(t, chat);
   const group = spec.group?.(t, chat, groupOf);
   const chatHint = useChatTabHint(t.kind === "chat" ? chat : undefined, label, group?.name);
   const backHome = !home && panel.isLinkedTab(t.key);
@@ -71,7 +74,7 @@ export function PaneTab({
     if (t.kind !== "chat") return panel.closeTab(t.key);
     void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: chat?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }));
   };
-  const editor = rename.editorFor(panel.key, t);
+  const editor = rename.editorFor(panel.key, t, child?.title);
   // 作業場所の札（チャットはそのチャットの作業場所、新しいチャットは始める作業場所。ほかの種類は添えない）
   const place =
     t.kind === "chat" ? chat : t.kind === "new" ? { project_id: t.projectId, worktree_path: t.worktree ?? null, branch: null } : undefined;
