@@ -4,7 +4,9 @@ import { createPortal } from "react-dom";
 import type { Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { api } from "@/api";
-import { chatAttachmentsDraft, chatDraft } from "@/lib/storageKeys";
+import { chatAttachmentsDraft, chatDraft, COMPOSER_COMPACT } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { cx } from "@/lib/cx";
 import { settingAttachmentDraft } from "@/features/chat/attachments/useComposerFiles";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { Composer } from "@/features/chat/composer/Composer";
@@ -90,8 +92,10 @@ export function ChatComposerArea({
   const sendSnippet = (text: string) => send.onSendOther(text, []);
   // メモのチャットの欄を閉じている間は、ピルの列と送信待ちをメモの下の入力欄の上に描く（chipsPortal）
   const portal = useChipsPortal();
+  // チャット欄のコンパクト表示は、上のピルの列にも効かせる（ピルを低く・小さな文字に。composer-compact.css）
+  const [compact] = useSetting(COMPOSER_COMPACT);
   const chips = (
-    <div className="composer-chips">
+    <div className={cx("composer-chips", compact && "compact")}>
       <PromptsChip prompts={prompts.history} />
       <TodoChip chatId={chat.id} events={events} />
       <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} />

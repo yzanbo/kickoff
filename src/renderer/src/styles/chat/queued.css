@@ -11,10 +11,6 @@
   background: var(--bg-elev);
 }
 
-.queued-messages:has(+ .composer.compact) {
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-
 /* つなげた入力欄: 上の角を落とし、上の辺は区切り線にする（太さは 1px のまま、見分けやすいよう濃い色。ピントがあっても区切り線のまま） */
 .queued-messages + .composer,
 .queued-messages + .composer:focus-within {

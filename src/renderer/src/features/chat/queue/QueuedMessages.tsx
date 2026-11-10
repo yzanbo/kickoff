@@ -24,7 +24,7 @@ import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { cx } from "@/lib/cx";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
-import { QUEUE_COLLAPSED, QUEUE_EXPANDED, QUEUE_HEIGHT } from "@/lib/storageKeys";
+import { COMPOSER_COMPACT, QUEUE_COLLAPSED, QUEUE_EXPANDED, QUEUE_HEIGHT } from "@/lib/storageKeys";
 import { moveStopOnce, removeStopOnce } from "@shared/chat/queueStops";
 
 /** 一覧の高さの上限の初め（5 件ほど）と、つまみで縮められる下限（1 件ほど） */
@@ -75,6 +75,8 @@ export function QueuedMessages({
   // 送った指示は、チャット欄の発言か預かりの吹き出しに出るまで、いちばん上に「送信中」で残す（どこにもない間を作らない）
   const sending = useSendingQueued(chatId, queue.messages, sentShown);
   const [collapsed, setCollapsed] = useSetting(QUEUE_COLLAPSED);
+  // チャット欄のコンパクト表示は、送信待ちにも効かせる（文字・余白・ボタンを小さく。composer-compact.css）
+  const [compact] = useSetting(COMPOSER_COMPACT);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
   const [expanded, setExpanded] = useSetting(QUEUE_EXPANDED);
   const listRef = useRef<HTMLDivElement>(null);
@@ -115,7 +117,7 @@ export function QueuedMessages({
     setOverflowing(Boolean(el && !expanded && el.scrollHeight > el.clientHeight + 1));
   }, [messages, edit.edits, collapsed, expanded, height]);
   // 空のときは出さない。いまの作業が終わったら止める印だけがあれば（質問として送った）、その予定の 1 行だけ出す
-  if (messages.length === 0 && sending.length === 0) return busy && stops.includes(0) ? <QueuedPauseNotice chatId={chatId} /> : null;
+  if (messages.length === 0 && sending.length === 0) return busy && stops.includes(0) ? <QueuedPauseNotice chatId={chatId} compact={compact} /> : null;
   // 新しいチャット・子チャットで聞く指示（選んでいる行なら選んだものすべて）。挟む行（会話の圧縮・コンテキストの消去）は持っていかない（送信待ちに残す）
   const askWith = (run: (ids: string[], remove: boolean) => void, id: string, remove: boolean) => {
     const ids = selected.includes(id) && selected.length > 1 ? selected : [id];
@@ -166,7 +168,7 @@ export function QueuedMessages({
   const next = collapsed && messages.length > 0 ? nextQueuedText(messages[0]) : "";
 
   return (
-    <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
+    <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing", compact && "compact")} aria-label="送信待ちの指示">
       {!collapsed && (
         <div className="queued-resizer" aria-label="送信待ちの一覧の高さ" {...resize.handle} />
       )}
