@@ -1,6 +1,6 @@
 import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, PanelLeft, Palette, PlugZap, Puzzle, Shrink, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
+import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, PANEL_VIEW_BUTTON_HIDDEN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
@@ -98,6 +98,7 @@ function DisplaySettings() {
   const [headerHidden, setHeaderHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [badgeColors, setBadgeColors] = useSetting(CHAT_HEADER_BADGE_COLORS);
   const [tabRowHidden, setTabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
+  const [viewButtonHidden, setViewButtonHidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [childChatOpenIn, setChildChatOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
   const [memoOpenIn, setMemoOpenIn] = useSetting(MEMO_OPEN_IN);
@@ -164,6 +165,21 @@ function DisplaySettings() {
             label="チャットのタブの列"
             value={tabRowHidden ? "hide" : "show"}
             onChange={(v) => setTabRowHidden(v === "hide")}
+            options={[
+              { value: "show", label: "表示する" },
+              { value: "hide", label: "隠す" },
+            ]}
+          />
+        </Field>
+        <Field
+          label="タブの列の「表示」ボタン"
+          help="タブの列の左の、表示するタブ・チャットのまとめ方・チャット画面表示などを選ぶボタン（調整のアイコン）です。すべてのパネル（チャット・下のパネル・チャット欄など）で共通です。隠しても、タブの列の何もないところの右クリックで同じメニューを開けます。そのメニューの「「表示」ボタンを出す」でも切り替えられます。"
+        >
+          <Segmented<"show" | "hide">
+            className="segmented theme-switch"
+            label="タブの列の「表示」ボタン"
+            value={viewButtonHidden ? "hide" : "show"}
+            onChange={(v) => setViewButtonHidden(v === "hide")}
             options={[
               { value: "show", label: "表示する" },
               { value: "hide", label: "隠す" },
