@@ -19,6 +19,7 @@ import { ToneChip } from "@/ui/ToneChip";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { bucketMark } from "@/features/chatList/StateChip";
 import { PaletteChatChips, PaletteProjectMark } from "./PaletteChatParts";
+import { ChildDepthMark } from "@/features/chat/children/ChildDepthMark";
 import { busyWithUnread } from "@shared/chat/state";
 import { hiddenItemsOf, toggleHiddenItem } from "@/lib/hiddenItems";
 import { ACTIVE_CHATS_HIDDEN_STATES, ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/lib/storageKeys";
@@ -198,6 +199,8 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
                       <>
                         {/* サイドバーの行と同じ状態の印（見出しの札の印の真下） */}
                         <StatusSlot state={stateOf(item.chat)} unread={busyWithUnread(item.chat, stateOf(item.chat))} />
+                        {/* 子チャットも親の外に 1 行で並ぶので、深さの札（「子」「孫」）を付ける */}
+                        {item.chat.parent_chat_id !== null && <ChildDepthMark chat={item.chat} />}
                         <span className="palette-label">{chatTitle(item.chat.title)}</span>
                         <PaletteChatChips chat={item.chat} />
                         <span className="palette-hint">

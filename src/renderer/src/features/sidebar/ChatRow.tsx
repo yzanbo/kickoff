@@ -20,6 +20,7 @@ import { StatusSlot } from "@/features/chat/StatusSlot";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
 import { GroupChip } from "@/features/group/GroupChip";
 import { ProjectMark } from "@/features/project/ProjectMark";
+import { ChildDepthMark } from "@/features/chat/children/ChildDepthMark";
 import type { RowReorderProps } from "./useChatRowReorder";
 
 /**
@@ -40,6 +41,7 @@ export function ChatRow({
   onOpen,
   reorder,
   hideChip,
+  childMark = false,
 }: {
   chat: Chat;
   state: AgentState;
@@ -62,6 +64,8 @@ export function ChatRow({
   reorder?: RowReorderProps;
   /** 2 行目で隠す札（グループ別・作業場所別のまとまりの中では、見出しと同じことを言う札を出さない。利用者の依頼） */
   hideChip?: "group" | "worktree";
+  /** 子チャットなら名前の前に深さの札（「子」「孫」）を付けるか（親の行の外に 1 行で並ぶとき。状態・要対応で絞った一覧・要対応のまとまり） */
+  childMark?: boolean;
 }) {
   // hooks は、下の早い return（名前の変更中）より前に呼ぶ
   const selection = useChatSelection();
@@ -133,6 +137,7 @@ export function ChatRow({
         <span className="chat-row-body">
           <span className="chat-row-line">
             {project && <ProjectMark project={project} className="chat-row-project" />}
+            {childMark && chat.parent_chat_id !== null && <ChildDepthMark chat={chat} />}
             <span className="chat-row-title">{chatTitle(chat.title)}</span>
             {state === "running" ? (
               <RunningTime chat={chat} />

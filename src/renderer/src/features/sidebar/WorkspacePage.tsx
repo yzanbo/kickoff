@@ -157,6 +157,8 @@ export const WorkspacePage = memo(function WorkspacePage({
         onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
         reorder={rowReorder(chat)}
         hideChip={inBucket ? bucketChip : undefined}
+        // 状態・要対応で絞ると子チャットも親の外に 1 行で並ぶので、子チャットだと分かる札を付ける
+        childMark={list.stateFilter !== null || list.waitingOnly}
       />
       {/* 手動の並びで、タブの列でこのチャットのすぐ後ろにある下書き（タブの位置に合わせる。useDraftPlacement） */}
       {drafts && list.draftsAfter.get(chat.id)?.map((d) => <DraftRow key={`${d.panel}:${d.key}`} draft={d} />)}
