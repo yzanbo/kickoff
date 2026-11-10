@@ -1,4 +1,3 @@
-import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { MemoAiPlanBody, MemoCreateBody, MemoDefaults, MemoDirUsers, MemoFromChatBody, MemoMoveBody, MemoWriteBody } from "@shared/types";
@@ -7,43 +6,11 @@ import type { ServerDeps } from "../server.js";
 import { Conflict, Invalid, NotFound } from "../errors.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
+import { assetResponse, decodeSegments } from "../assets.js";
 import { folderPath, memoChatSchema, optionalId, repoPath } from "./schemas.js";
-
-/** HTML のメモが読むファイルの種類（拡張子 → Content-Type。ほかは application/octet-stream） */
-const ASSET_TYPES: Record<string, string> = {
-  ".html": "text/html; charset=utf-8",
-  ".htm": "text/html; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".avif": "image/avif",
-  ".svg": "image/svg+xml",
-  ".ico": "image/x-icon",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".ttf": "font/ttf",
-  ".otf": "font/otf",
-  ".json": "application/json",
-  ".txt": "text/plain; charset=utf-8",
-  ".md": "text/plain; charset=utf-8",
-};
 
 /** HTML のメモのファイルを返す口の前置き（この後ろがメモのフォルダからの相対パス。画面の <base> と同じ） */
 const ASSET_PREFIX = /^\/api\/projects\/[^/]+\/memo\/file\//;
-
-/** URL のパスを 1 段ずつ解く（解けなければ 400。段の中の / は許さない） */
-function decodeSegments(raw: string): string {
-  try {
-    const parts = raw.split("/").map(decodeURIComponent);
-    if (parts.some((p) => p.includes("/"))) throw new Error();
-    return parts.join("/");
-  } catch {
-    throw new Invalid("パスが正しくありません");
-  }
-}
 
 /** メモの中身の上限（文字） */
 const MAX_MEMO_CHARS = 5_000_000;
@@ -97,14 +64,7 @@ export function memoRoutes(app: Hono, { store, memos, runner }: ServerDeps) {
     // c.req.path は Hono が解いたあとの形なので、URL の生のパスから 1 段ずつ解く（%2F・%25 を取り違えない）
     const raw = new URL(c.req.url).pathname.replace(ASSET_PREFIX, "");
     const file = repoPath.parse(decodeSegments(raw));
-    const data = await memos.asset(c.var.project, file);
-    const ext = path.posix.extname(file).toLowerCase();
-    return c.body(new Uint8Array(data), 200, {
-      "Content-Type": ASSET_TYPES[ext] ?? "application/octet-stream",
-      "Content-Security-Policy": "sandbox",
-      "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "no-cache",
-    });
+    return assetResponse(c, file, await memos.asset(c.var.project, file));
   });
 
   app.put("/api/projects/:id/memo", withProject, async (c) => {

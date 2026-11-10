@@ -4,6 +4,8 @@ import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import { useEffect, useRef, useState } from "react";
 import type { GitBlame } from "@shared/types";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
+import { useSetting } from "@/hooks/useSetting";
+import { EDITOR_WORD_WRAP } from "@/lib/storageKeys";
 import type { AppliedTheme } from "@/lib/appliedTheme";
 import { registerCodeSelection } from "./codeSelection";
 import { quickDiffDecorations, readSelection } from "./codeEditorParts";
@@ -101,6 +103,10 @@ export default function CodeEditor({
   blameRef.current = blame;
   const refreshBlame = useRef<(() => void) | null>(null);
   const theme = useAppliedTheme();
+  // 横幅に入らない行を折り返すか（ファイルの見出しのボタンと、エディタの中の ⌥Z で切り替える。どのファイルでも共通）
+  const [wrap, setWrap] = useSetting(EDITOR_WORD_WRAP);
+  const wrapRef = useRef({ wrap, setWrap });
+  wrapRef.current = { wrap, setWrap };
   // ⌘F の検索の欄に渡すエディタ（作ったら入れる。差分の編集では右の編集する側）
   const [findEditor, setFindEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
 
@@ -122,6 +128,7 @@ export default function CodeEditor({
       scrollBeyondLastLine: false,
       fixedOverflowWidgets: true,
       contextmenu: nativeContextMenu,
+      wordWrap: wrap ? ("on" as const) : ("off" as const),
     };
     // 差分の編集: 元の中身は同じ言語で色付けし、読むだけにする（URI は編集する中身と被らないよう別の形）
     const originalModel = original === undefined ? null : monaco.editor.createModel(original, model.getLanguageId(), monaco.Uri.from({ scheme: "kickoff-original", path: `/${path}` }));
@@ -148,6 +155,8 @@ export default function CodeEditor({
     editorRef.current = editor;
     valueRef.current = () => editor.getValue();
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => latest.current.onSave(editor.getValue()));
+    // ⌥Z で折り返しを切り替える（VS Code と同じキー）
+    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyZ, () => wrapRef.current.setWrap(!wrapRef.current.wrap));
     // Git との違いの帯（差分の編集では、差分そのものが出ているので付けない）
     const decorations = editor.createDecorationsCollection();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -222,6 +231,13 @@ export default function CodeEditor({
   useEffect(() => {
     editorRef.current?.updateOptions({ contextmenu: nativeContextMenu });
   }, [nativeContextMenu]);
+
+  // 折り返しを切り替えたら、作り直さずに変える（差分の編集では左右とも）
+  useEffect(() => {
+    const wordWrap = wrap ? "on" : "off";
+    if (diffRef.current) diffRef.current.updateOptions({ wordWrap });
+    else editorRef.current?.updateOptions({ wordWrap });
+  }, [wrap]);
 
   // 行の変更の記録を読み直したら、いまの行に付け直す
   useEffect(() => {

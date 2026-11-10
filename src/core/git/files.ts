@@ -179,6 +179,18 @@ export async function readProjectFile(repo: string, file: string): Promise<FileC
  * 画像のファイルの中身（ファイルタブのプレビュー。リポジトリの外を指すリンクは読まない）。画像でない・大きすぎるは 400。
  * icns はブラウザで出せないので、中のいちばん大きい PNG を返す（PNG がなければ 400）
  */
+/** ページのプレビュー（HTML のファイル）が読むファイルの上限 */
+const MAX_ASSET_BYTES = 30 * 1024 * 1024;
+
+/** 作業場所のファイルの中身をそのまま読む（HTML のファイルのプレビューと、そのページが相対パスで読む CSS・画像。作業場所の外は断る） */
+export async function readProjectAsset(repo: string, file: string): Promise<Buffer> {
+  const real = await resolveInside(repo, file);
+  const stat = await fs.stat(real);
+  if (!stat.isFile()) throw new Invalid("ファイルではありません");
+  if (stat.size > MAX_ASSET_BYTES) throw new Invalid(`ファイルが大きすぎます（上限 ${MAX_ASSET_BYTES / 1024 / 1024} MB）`);
+  return fs.readFile(real);
+}
+
 export async function readProjectImage(repo: string, file: string): Promise<{ data: Buffer; type: string }> {
   const type = imageFileType(file);
   if (!type) throw new Invalid("画像のファイルではありません");

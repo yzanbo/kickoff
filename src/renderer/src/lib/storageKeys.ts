@@ -393,6 +393,10 @@ export const CHANGES_TREE = defineSetting("kickoff:changes-tree", flag(true));
 export const CHANGES_LIST_WIDTH = defineSetting("kickoff:changes-list-width", number(246));
 /** 差分の並べ方（split = 左右に並べる / unified = 1 列） */
 export const DIFF_LAYOUT = defineSetting("kickoff:diff-layout", choice(["split", "unified"], "unified"));
+/** ファイルの中身（編集の部品・読むだけの表）を、横幅に入らない行で折り返すか（ファイルの見出しのボタン・エディタの中の ⌥Z で切り替える。初めは折り返さない） */
+export const EDITOR_WORD_WRAP = defineSetting("kickoff:editor-word-wrap", flag());
+/** Markdown・HTML のファイルを開いたとき、プレビューで出すか（ファイルの見出しの「プレビュー / コードを表示」で最後に選んだ方を覚える。初めはコード） */
+export const EDITOR_PAGE_PREVIEW = defineSetting("kickoff:editor-page-preview", flag());
 /** コミットの詳細の変わったファイルを一覧で出すか（初めは木） */
 export const COMMIT_FILES_LIST = defineSetting("kickoff:commit-files-tree", flag());
 export const COMMIT_FILES_WIDTH = defineSetting("kickoff:commit-files-width", number(260));
