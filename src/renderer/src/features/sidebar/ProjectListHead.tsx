@@ -88,7 +88,7 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
           ref={tunerAnchor}
           icon={SlidersHorizontal}
           label="見え方を調整"
-          title="プロジェクト・チャット・要対応の見え方を細かく変える（変えたものはビューに上書き・新しいビューとして保存できる）"
+          title="プロジェクト・チャット・要対応の見え方を細かく変える（変えたものはビューに上書き・今のビューを新規保存できる）"
           size={14}
           className={cx("sidebar-view-icon", tunerOpen && "active")}
           aria-expanded={tunerOpen}

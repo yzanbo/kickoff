@@ -34,7 +34,7 @@ export function SidebarViewSettings() {
     <section className="section">
       <h2>サイドバーのビュー</h2>
       <p className="muted small">
-        サイドバーの上に並べるビューです。ビューは、プロジェクト・チャット・要対応の見え方の組に名前を付けたもので、タブを押すとその見え方になります。見出しの ⚙ でいまの見え方を変えて、ビューに上書き・新しいビューとして保存することもできます。
+        サイドバーの上に並べるビューです。ビューは、プロジェクト・チャット・要対応の見え方の組に名前を付けたもので、タブを押すとその見え方になります。見出しの ⚙ でいまの見え方を変えて、ビューに上書き・今のビューを新規保存することもできます。
       </p>
       <div className="snippet-manager">
         <div className="snippet-manager-head">
