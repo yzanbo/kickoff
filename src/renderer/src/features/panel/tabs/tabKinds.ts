@@ -289,6 +289,18 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
       title: t.path,
     }),
   },
+  projectFile: {
+    shows: "file",
+    icon: FileText,
+    Lead: FileTabLead,
+    // 差分のタブは、同じファイルの中身のタブと見分ける（VS Code の「(Working Tree)」「(Index)」と同じ）
+    label: (t) => `${baseName(t.path)}${t.staged === undefined || t.line !== undefined ? "" : t.staged ? "（ステージ済み）" : "（変更）"}`,
+    hint: (t) => (t.line ? `${t.path}（${t.line} 行目）` : t.path),
+    projectOf: (t) => t.projectId,
+    // 見ていないタブのファイルまで読み込まない
+    lazy: true,
+    cluster: () => OTHER_CLUSTER,
+  },
   memo: {
     shows: "file",
     icon: StickyNote,

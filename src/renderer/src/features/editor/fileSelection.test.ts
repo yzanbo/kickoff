@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { changeSelection, editedChange, selectedChange, type ChangeGroups } from "./useChangesSelection";
+import { changeSelection, editedChange, selectedChange, type ChangeGroups } from "./fileSelection";
 
 const groups: ChangeGroups = {
   staged: [{ path: "a.ts", kind: "M" }, { path: "b.ts", kind: "R", old_path: "old.ts" }],

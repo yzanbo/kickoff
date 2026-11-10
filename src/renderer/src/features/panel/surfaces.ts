@@ -7,20 +7,27 @@ import type { PanelKind } from "./state/panelKinds";
 /**
  * タブの欄（board = ボードの右のパネル / side = 画面の右端のチャット欄 / bottom = フッター（下のパネル） /
  * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く） /
- * memos = プロジェクトの「メモ」タブの右（開いたメモをタブで並べる。左の一覧から開く））
+ * memos = プロジェクトの「メモ」タブの右（開いたメモをタブで並べる。左の一覧から開く） /
+ * files = プロジェクトの「ファイル」「検索」「変更」タブの右（開いたファイル・差分をタブで並べる。左の一覧から開く））
  */
-export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos";
+export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos" | "files";
 
 /**
  * どの画面の欄か（プロジェクトの ID・全プロジェクトの画面 "all"。サブエージェントの欄はチャットの ID）。
  * 覚えておく状態と、サイドバーと連動する範囲がこれで決まる
  */
-export type PanelScope = number | "all" | DraftScope;
+export type PanelScope = number | "all" | DraftScope | ViewScope;
 
 /**
  * 送る前の新しいチャット（下書きのタブ）の右の欄の範囲（draft-<タブの key>）。送ってチャットができたら、そのチャットの右の欄へ中身を移す（moveDraftSidePanel）
  */
 export type DraftScope = `draft-${string}`;
+
+/**
+ * 画面の中に入れ子で置いた、プロジェクトの画面と同じ部品の欄の範囲（view-<部品ごとの名前>。チャットの右の欄の「ファイル」タブの中のファイルのタブ。
+ * プロジェクトの画面の欄とは別に持ち、アプリを閉じるまで覚える）
+ */
+export type ViewScope = `view-${string}`;
 
 /** 下書きのタブの右の欄の範囲 */
 export const draftScope = (tabKey: string): DraftScope => `draft-${tabKey}`;
@@ -139,6 +146,18 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     noKindBadges: true,
     className: "memo-panel",
   },
+  files: {
+    memoryPrefix: "files",
+    // ファイルのタブは「ファイル」の種類に入る（出す種類は決まっている）
+    defaultKinds: ["file"],
+    closeOnEsc: false,
+    closeWhenEmpty: false,
+    openWhenEmpty: null,
+    emptyHint: "左の一覧でファイルを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
+    fixedKinds: true,
+    noKindBadges: true,
+    className: "file-panel",
+  },
 };
 
 const SURFACE_NAMES = Object.keys(SURFACES) as PanelSurface[];
@@ -164,6 +183,7 @@ export function parsePanelKey(key: string): { surface: PanelSurface; scope: Pane
   if (at < 0 || !surface) return undefined;
   if (rest === "all") return { surface, scope: "all" };
   if (rest.startsWith("draft-") && rest.length > 6) return { surface, scope: rest as DraftScope };
+  if (rest.startsWith("view-") && rest.length > 5) return { surface, scope: rest as ViewScope };
   return Number.isInteger(id) && id > 0 ? { surface, scope: id } : undefined;
 }
 

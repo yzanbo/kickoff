@@ -13,7 +13,7 @@ import { CommitBox } from "./CommitBox";
 import { useCommitActions, type CommitBusy } from "./useCommitActions";
 import { OperationBanner } from "./OperationBanner";
 import { buildTree, folderPaths } from "./treeModel";
-import type { ChangeGroups, Selection } from "./useChangesSelection";
+import type { ChangeGroups, Selection } from "./fileSelection";
 import type { FileRename } from "./useFileActions";
 import type { GitStatusController } from "./useGitStatus";
 
@@ -39,7 +39,7 @@ export function ChangesPane({
   empty: boolean;
   action: ActionState<CommitBusy>;
   selected?: Selection;
-  onSelect: (next: { path: string; staged: boolean }) => void;
+  onSelect: (next: { path: string; staged: boolean }, newTab?: boolean) => void;
   rename: FileRename;
 }) {
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）

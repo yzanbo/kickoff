@@ -5,7 +5,7 @@ import { baseName } from "@/lib/format";
 import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
 import { replaceTargets, resultCounts, type SearchFileResult } from "./searchHits";
-import type { ChangesSelection } from "./useChangesSelection";
+import type { ChangesSelection } from "./useFileTabs";
 import type { GitStatusController } from "./useGitStatus";
 import type { ProjectSearchController } from "./useProjectSearch";
 
@@ -34,8 +34,8 @@ export function useSearchReplace(projectId: number, { search, selection, git }: 
   const replace = async (files: readonly SearchFileResult[], scope: "all" | "file" | "line") => {
     const result = search.result;
     if (!result || files.length === 0 || busy) return;
-    const open = selection.selected?.path;
-    if (open && selection.isDirty() && files.some((f) => f.path === open)) {
+    const open = selection.dirtyPaths().find((p) => files.some((f) => f.path === p));
+    if (open) {
       void alertDialog("保存していない変更があります", `「${baseName(open)}」を保存してから置換してください。`);
       return;
     }

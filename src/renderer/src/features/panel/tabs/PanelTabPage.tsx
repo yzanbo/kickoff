@@ -8,6 +8,7 @@ import { SideChanges } from "@/features/editor/SideChanges";
 import { SideChildChat } from "@/features/chat/children/SideChildChat";
 import { NewChildPane } from "@/features/chat/children/NewChildPane";
 import { SideMemo } from "@/features/memo/SideMemo";
+import { ProjectFileTab } from "@/features/editor/ProjectFileTab";
 import { SideFileView } from "@/features/editor/SideFileView";
 import { SideProjectView } from "./SideProjectView";
 import { childTab, memoTab } from "./tabKinds";
@@ -91,7 +92,9 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   // チャットの画面の右の欄だけに開く。作業場所のコミットしていない変更（押したファイルの位置へ移る）と、ファイルの中身
   changes: ({ tab: t }) => <SideChanges projectId={t.projectId} worktree={t.worktree} focus={t.focus} focusAt={t.focusAt} />,
   // チャットの画面の右の欄だけに開く。プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面
-  projectView: ({ tab: t }) => <SideProjectView projectId={t.projectId} worktree={t.worktree} view={t.view} />,
+  projectView: ({ tab: t }) => <SideProjectView chatId={t.chatId} projectId={t.projectId} worktree={t.worktree} view={t.view} />,
+  // プロジェクトの「ファイル」「検索」「変更」タブの右だけに開く（中身が使う Git の状態などは EditorTab が FileTabsContext で渡す）
+  projectFile: ({ tab: t, panel }) => <ProjectFileTab tab={t} panelKey={panel.key} />,
   file: ({ tab: t }) => <SideFileView projectId={t.projectId} worktree={t.worktree} path={t.path} line={t.line} />,
   // チャットの画面の右の欄だけに開く。プロジェクトのメモ（自動で保存）と、子チャット（孫・ひ孫も、いちばん上の親の右の欄）
   // 名前を変えたら、新しい名前のメモのタブに置き換える（同じ位置のまま）

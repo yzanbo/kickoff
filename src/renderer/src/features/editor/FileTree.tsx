@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, DragEvent, ReactNode } from "react";
 import type { GitChangeKind } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { isRenameKey } from "@/lib/keys";
@@ -15,7 +15,8 @@ interface Props {
   open: Set<string>;
   onToggle: (path: string) => void;
   selected?: string;
-  onSelect: (path: string) => void;
+  /** ファイルを押した（newTab = ⌘クリック・Ctrl クリック。新しいタブに開く） */
+  onSelect: (path: string, newTab?: boolean) => void;
   /** 変更の記号（ファイルとフォルダ。VS Code と同じく、変更のあるものだけ色を変える） */
   kinds: { files: Map<string, GitChangeKind>; folders: Map<string, GitChangeKind> };
   /** 行の右に出す操作（ステージ・元に戻すなど。マウスを乗せたときに出す） */
@@ -25,6 +26,8 @@ interface Props {
   canRename?: (node: TreeNode) => boolean;
   /** 新しいファイル・フォルダの名前の欄（その中のいちばん上に出す。ファイルタブだけ） */
   create?: FileCreate;
+  /** ファイルの行をドラッグできるようにする（右のファイルのタブの欄へ落として開く・分ける。ファイルタブだけ） */
+  fileDrag?: (path: string) => { draggable: true; onDragStart: (e: DragEvent<HTMLElement>) => void; onDragEnd: () => void };
   /** この段のフォルダのパス（いちばん外側は空） */
   parent?: string;
   depth?: number;
@@ -35,7 +38,7 @@ export const siblingNameError = (siblings: readonly { name: string; path: string
   /[/\\]/.test(name) ? "「/」は名前に使えません" : siblings.some((n) => n.path !== self && n.name === name) ? `「${name}」はもうあります` : null;
 
 /** エクスプローラーのフォルダの木（開いているフォルダの中だけ描く） */
-export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, actions, rename, canRename, create, parent = "", depth = 0 }: Props) {
+export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, actions, rename, canRename, create, fileDrag, parent = "", depth = 0 }: Props) {
   const creating = create?.creating;
   return (
     // 入れ子の段は、親のフォルダの開閉の矢印の下に縦の線（.file-tree[role="group"]::before。--guide-depth は親のフォルダの段）
@@ -93,7 +96,8 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
                 style={{ "--depth": depth } as CSSProperties}
                 data-kind={kind}
                 title={kind ? `${node.path}（${CHANGE_LABELS[kind]}）` : node.path}
-                onClick={() => (node.dir ? expandable && onToggle(node.path) : onSelect(node.path))}
+                onClick={(e) => (node.dir ? expandable && onToggle(node.path) : onSelect(node.path, e.metaKey || e.ctrlKey))}
+                {...(!node.dir && fileDrag ? fileDrag(node.path) : {})}
                 // 行にピントがあるときの Enter で名前を変える（Finder・メモの木と同じ。開くのは押す・Space）
                 onKeyDown={(e) => {
                   if (!renamable || !isRenameKey(e)) return;
@@ -129,6 +133,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
                 rename={rename}
                 canRename={canRename}
                 create={create}
+                fileDrag={fileDrag}
                 parent={node.path}
                 depth={depth + 1}
               />

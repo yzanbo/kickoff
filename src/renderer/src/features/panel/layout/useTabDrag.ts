@@ -2,6 +2,7 @@ import { useState, type DragEvent } from "react";
 import { dropZoneAt, insertSlotAt, splitOfZone, type DropZone, type InsertSlot } from "./paneGeometry";
 import type { PanelController } from "@/features/panel/usePanel";
 import { startDragGhost } from "@/ui/dragGhost";
+import { endExternalTabDrag, EXTERNAL_TAB_MIME, useExternalTabDrag } from "./externalTabDrag";
 
 /** 右のパネルのタブをドラッグするときの dataTransfer の型（ファイルのドロップ（チャット欄への添付）と取り違えないよう独自の型にする） */
 const TAB_MIME = "application/x-kickoff-panel-tab";
@@ -9,11 +10,15 @@ const TAB_MIME = "application/x-kickoff-panel-tab";
 /**
  * 右のパネルのタブのドラッグ（HTML5）。ほかのペインのタブの列に落とすとそのペインへ移し（同じペインなら並べ替え）、
  * ペインの中身の端に落とすとその側に分けて置き、真ん中ならそのペインへ移す。
- * ドラッグ中だけ中身の上に透明の覆い（cover）を置き、webview やターミナルの上でも落とす場所を出す
+ * ドラッグ中だけ中身の上に透明の覆い（cover）を置き、webview やターミナルの上でも落とす場所を出す。
+ * パネルの外からタブにして落とすもの（externalTabDrag。ファイルタブの木の行）も同じ形で受け、落としたらタブを開いてから移す・分ける
  */
 export function useTabDrag(panel: PanelController) {
   // ドラッグ中のタブ（このパネルのタブだけを受け付ける）
-  const [dragging, setDragging] = useState<string | null>(null);
+  const [own, setDragging] = useState<string | null>(null);
+  // 外からドラッグしているタブ（この欄に落とせるものだけ）
+  const external = useExternalTabDrag(panel.key);
+  const dragging = own ?? external?.key ?? null;
   // タブの列に落とす位置（何番目の前か。まとまりの境目では、印を前のまとまりの最後に付けるか）と、中身の上の落とす場所
   const [insert, setInsert] = useState<({ paneId: string } & InsertSlot) | null>(null);
   const [zone, setZone] = useState<{ paneId: string; zone: DropZone } | null>(null);
@@ -22,8 +27,14 @@ export function useTabDrag(panel: PanelController) {
     setDragging(null);
     setInsert(null);
     setZone(null);
+    endExternalTabDrag();
   };
-  const accepts = (e: DragEvent) => dragging !== null && e.dataTransfer.types.includes(TAB_MIME);
+  const accepts = (e: DragEvent) => dragging !== null && (e.dataTransfer.types.includes(TAB_MIME) || e.dataTransfer.types.includes(EXTERNAL_TAB_MIME));
+  /** 落としたタブのキー（外から来たものは、ここでタブを開く） */
+  const dropped = () => {
+    if (!own && external) panel.openPanelTab(external);
+    return dragging;
+  };
   /** 要素の外へ出たときだけ（中の子へ移ったときは除く） */
   const leaving = (e: DragEvent<HTMLElement>) => !(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget));
 
@@ -72,9 +83,10 @@ export function useTabDrag(panel: PanelController) {
       onDrop: (e: DragEvent<HTMLElement>) => {
         if (!accepts(e) || !dragging) return;
         e.preventDefault();
+        const key = dropped() ?? dragging;
         // 並びを別に決めているタブ（一覧のペインのチャットのタブ = サイドバーの手動の並び）は、その並びを変える
         const slot = insert?.paneId === paneId ? insert : undefined;
-        if (!slot || !reorderInPlace?.(dragging, slot.index, slot.after)) panel.moveTab(dragging, paneId, slot ? toPaneIndex(slot.index) : undefined);
+        if (!slot || !reorderInPlace?.(key, slot.index, slot.after)) panel.moveTab(key, paneId, slot ? toPaneIndex(slot.index) : undefined);
         reset();
       },
     }),
@@ -94,9 +106,10 @@ export function useTabDrag(panel: PanelController) {
       onDrop: (e: DragEvent<HTMLElement>) => {
         if (!accepts(e) || !dragging) return;
         e.preventDefault();
+        const key = dropped() ?? dragging;
         const split = zone?.paneId === paneId ? splitOfZone(zone.zone) : null;
-        if (split) panel.splitPane(paneId, split.dir, split.side, dragging);
-        else panel.moveTab(dragging, paneId);
+        if (split) panel.splitPane(paneId, split.dir, split.side, key);
+        else panel.moveTab(key, paneId);
         reset();
       },
     }),
