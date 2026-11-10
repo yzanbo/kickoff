@@ -3,7 +3,7 @@ import { Fragment, type ReactNode } from "react";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem } from "@/ui/PopupMenu";
 import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
-import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
+import { ArchivedChatsItem } from "@/features/chatList/ArchivedChatsItem";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { ClusterShortItem } from "@/features/panel/clusters/ClusterShortItem";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
@@ -29,7 +29,6 @@ const separator = <div className="menu-separator" role="separator" />;
 export function TabDisplayItems({ panel }: { panel: PanelController }) {
   const { kinds } = panel;
   const [grouping, setGrouping] = useTabGrouping(panel.surface);
-  const [archived, setArchived] = useShowArchivedChats();
   // チャットの並び順はサイドバーと共通の 1 つの設定（利用者の依頼。一覧のペインのチャットのタブはサイドバーと同じ並びなので、どちらで選んでもそろう）
   const { order, setOrder } = useChatLayout();
   // タブに出す項目（隠した項目だけを覚える）
@@ -151,12 +150,7 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
     );
     // グループ別のときだけ: タブの列に出すグループ（自分で作ったグループを隠す・チャットのないグループを隠す）
     if (grouping === "group") sections.push(<HiddenGroupItems panel={panel} />);
-    sections.push(
-      <MenuItem role="menuitemcheckbox" checked={archived} title="サイドバーの「アーカイブ」と共通の設定です" onSelect={() => setArchived(!archived)}>
-        <span className="project-switch-item">アーカイブ済みのチャットを表示</span>
-        {archived && <Check size={14} aria-hidden />}
-      </MenuItem>,
-    );
+    sections.push(<ArchivedChatsItem />);
   }
   return sections.map((s, i) => (
     <Fragment key={i}>
