@@ -12,6 +12,7 @@ import { ActiveChatsPalette } from "@/features/palette/ActiveChatsPalette";
 import { OPEN_ACTIVE_CHATS_EVENT, type ActiveChatsRequest } from "@/features/palette/openActiveChats";
 import { CommandPalette } from "@/features/palette/CommandPalette";
 import { LayoutToggles } from "./LayoutToggles";
+import { useProjectHeaderMode } from "@/features/project/page/headerMode";
 import { SearchPanel } from "@/features/palette/SearchPanel";
 import { NewProjectDialog } from "@/features/project/new/NewProjectDialog";
 import { OPEN_NEW_PROJECT_EVENT, OPEN_NO_PROJECTS_GUIDE_EVENT, type NewProjectRequest } from "@/features/project/new/openNewProject";
@@ -96,6 +97,9 @@ export function App() {
   // チャット・新しいチャットの URL では、プロジェクトのボードのパネルで開く
   // チャットを開く場所（ボードと分けた「チャット」タブ / ボードの右のパネル）
   const [chatPlacement] = useChatPlacement();
+  // プロジェクトの画面（チャット・新しいチャットもその中に出す）では、右上のレイアウトの開閉を見出しの行の出し方に合わせる
+  const [projectHeaderMode] = useProjectHeaderMode();
+  const showsProjectPage = route.name === "project" || route.name === "chat" || route.name === "newChat";
 
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める（もうないプロジェクトは飛ばす） */
   const startNewChat = () => {
@@ -147,7 +151,7 @@ export function App() {
         {/* 画面と、その下のパネル（ターミナル） */}
         <div className={`main-column ${bottomPanel.open && bottomPanel.maximized ? "bottom-maximized" : ""}`}>
         <main className="main">
-          {route.name === "project" || route.name === "chat" || route.name === "newChat" ? (
+          {showsProjectPage ? (
             // チャット・新しいチャットはプロジェクトのボードの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
             <ProjectPage
               id={route.name === "project" ? route.id : route.projectId}
@@ -196,6 +200,7 @@ export function App() {
           sidebar={{ open: sidebar.open, onToggle: sidebar.toggle }}
           bottom={bottomPanel.available ? { open: bottomPanel.open, onToggle: bottomPanel.toggle } : undefined}
           chat={chat.projectId !== undefined ? { open: chat.open, onToggle: chat.toggle } : undefined}
+          reveal={showsProjectPage ? projectHeaderMode : "show"}
         />
         <DialogHost />
         {/* ドラッグ中に、落とせない理由をカーソルの横に出す（作業中のチャットは移せない、など） */}
