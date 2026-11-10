@@ -145,6 +145,7 @@ export function App() {
         <Sidebar
           sidebar={sidebar}
           onNewChat={startNewChat}
+          newChatProject={projectId ?? fallbackProject}
           onSearch={() => setPalette(true)}
           onNewProject={() => setCreating({})}
         />

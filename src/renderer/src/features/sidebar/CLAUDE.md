@@ -2,6 +2,7 @@
 
 上に新しいチャット・全プロジェクト・検索（押すと開く・作るものだけ）、その下にプロジェクトごとのチャット一覧、左下に設定。グループの操作の共通部分（`features/group/`）もここに書く。まとめ方・数え方・開閉の仕組みは `features/chatList/CLAUDE.md`、プロジェクトの印・メニュー・並び・タグは `features/project/CLAUDE.md`。
 
+- 上の「新しいチャット」（`NewChatButton`。⌘N と同じ `startNewChat`）は、押したらいまどんなチャットができるかが分かるよう、右クリックのメニューの「新しいチャット」と同じグループの札と作業場所の札（`features/chat/NewChatItem.tsx` の `useNewChatPlace` ＋ `NewChatPlaceBadges`）を「新しいチャット」と ⌘N の間に添える（利用者の依頼）。作成先は App が渡す `newChatProject`（開いているプロジェクト、なければサイドバーで選んでいるもの `useFallbackProject`）で、⌘N はグループなし・本体で始めるので札は「No Group」「本体」（作業場所の札は、ほかの「新しいチャット」と同じく Git のリポジトリのときだけ）。乗せたときの説明にはプロジェクトの名前も出す。プロジェクトが 1 つもなければ札を出さない。札が入らない幅では、先に ⌘N を隠し、さらに狭ければグループの札も隠して作業場所の札だけにする（`sidebar.css` の `@container nav-rows`）。
 - 開閉（⌘B）と幅（右端のドラッグ、ダブルクリックで既定に戻す。200〜480px）は `useSidebar` ＋ `Sidebar`。閉じているときの「開く」ボタン `SidebarOpenButton` は、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く。
 - プロジェクトの並びの状態と操作は `useProjectNav`（並べ方・並び順・しまったものを出すか・要対応だけ・検索・いま選んでいるプロジェクト（`saveCurrentProject`。⌘N・全プロジェクトのボードの「新規」の作成先と、全プロジェクトの画面のチャット欄の持ち主にも使う。読むのは `currentProject.ts` の `useFallbackProject`（もうなければ先頭））と切り替え・ショートカット・スワイプ・すべて閉じる / 開く）、表示は `ProjectNav`（縦並び `ProjectStack` / スライド `ProjectSlides`）。1 プロジェクトのページは `WorkspacePage`（中身の変わらないページは描き直さない）、その行の絞り込みと分け方は `useWorkspaceRows`（段の決め方 `sidebarLevels` は `sidebarChatOrder.ts`。同じ分け方でチャットの並びだけを返す `useSidebarChatOrder` を、パネルの一覧のペインのチャットのタブの並びにも使う）。
 

@@ -31,6 +31,8 @@
 /* 上部のメニュー行（新規・履歴・検索の並び） */
 
 .nav-rows {
+  /* 「新しいチャット」の札を、サイドバーの幅に合わせて詰める（下の @container） */
+  container: nav-rows / inline-size;
   display: grid;
   gap: 1px;
   padding: 0 var(--gutter) 8px;
@@ -61,6 +63,48 @@
 
 .nav-row kbd {
   margin-left: auto;
+}
+
+/* 「新しいチャット」の札（いまどんなチャットができるか。グループ・作業場所）。狭ければグループの札の名前だけを省き
+   （「新しいチャット」の文字・アイコン・作業場所の札「本体」「WT」は縮めない）、⌘N は札のすぐ右に */
+.new-chat-row {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.new-chat-row > svg {
+  flex: none;
+}
+
+.new-chat-row .menu-place-badges {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding-left: 4px;
+}
+
+.new-chat-row .menu-place-badge:first-child {
+  min-width: 0;
+}
+
+.new-chat-row .menu-place-badge + .menu-place-badge {
+  flex: none;
+}
+
+/* 札がすべて入らない幅では、先に ⌘N を隠し（乗せたときの説明にある）、さらに狭ければグループの札も隠して作業場所の札だけにする */
+@container nav-rows (width < 270px) {
+  .new-chat-row kbd {
+    display: none;
+  }
+}
+
+@container nav-rows (width < 215px) {
+  .new-chat-row .menu-place-badge:first-child:not(:last-child) {
+    display: none;
+  }
+}
+
+.new-chat-row .menu-place-badges + kbd {
+  margin-left: 0;
 }
 
 /* 要対応だけを出していて、ひとつもないとき */
