@@ -1,7 +1,9 @@
-import { FolderGit2, Search, SquarePen } from "lucide-react";
+import { Search, SquarePen } from "lucide-react";
 import { busyWithUnread } from "@shared/chat/state";
 import { useChatStates } from "@/app/chatStatesContext";
 import { StatusSlot } from "@/features/chat/StatusSlot";
+import { ProjectMark } from "@/features/project/ProjectMark";
+import { PaletteChatChips, PaletteProjectMark } from "./PaletteChatParts";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/api";
 import { useChats } from "@/stores/chats";
@@ -67,13 +69,13 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         }
       }
       for (const p of projects) {
-        named.push({ key: `p-${p.id}`, label: p.name, text: p.name, hint: "プロジェクト", icon: <FolderGit2 size={15} />, route: { name: "project", id: p.id, tab: "board" } });
+        named.push({ key: `p-${p.id}`, label: p.name, text: p.name, hint: "プロジェクト", icon: <ProjectMark project={p} />, route: { name: "project", id: p.id, tab: "board" } });
       }
     }
     if (targets.includes("chat")) {
       for (const r of chats) {
         const title = chatTitle(r.title);
-        named.push({ key: `r-${r.id}`, label: title, text: title, hint: projectName(r.project_id), icon: <StatusSlot state={stateOf(r)} unread={busyWithUnread(r, stateOf(r))} />, route: { name: "chat", projectId: r.project_id, chatId: r.id } });
+        named.push({ key: `r-${r.id}`, label: title, text: title, hint: projectName(r.project_id), hintMark: <PaletteProjectMark projectId={r.project_id} />, chips: <PaletteChatChips chat={r} />, icon: <StatusSlot state={stateOf(r)} unread={busyWithUnread(r, stateOf(r))} />, route: { name: "chat", projectId: r.project_id, chatId: r.id } });
       }
     }
     named.push(...memos);
@@ -128,7 +130,11 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
             <button className={cx("palette-item", i === nav.index && "active")} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
               {item.icon}
               <span className="palette-label">{item.label}</span>
-              <span className="palette-hint">{item.hint}</span>
+              {item.chips}
+              <span className="palette-hint">
+                {item.hintMark}
+                <span className="palette-hint-text">{item.hint}</span>
+              </span>
             </button>
           </li>
         ))}

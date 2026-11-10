@@ -18,6 +18,7 @@ import { openDraft, useAllDrafts, type PanelDraft } from "@/features/panel/state
 import { ToneChip } from "@/ui/ToneChip";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { bucketMark } from "@/features/chatList/StateChip";
+import { PaletteChatChips, PaletteProjectMark } from "./PaletteChatParts";
 import { busyWithUnread } from "@shared/chat/state";
 import { hiddenItemsOf, toggleHiddenItem } from "@/lib/hiddenItems";
 import { ACTIVE_CHATS_HIDDEN_STATES, ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/lib/storageKeys";
@@ -188,15 +189,22 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
                         <span className="status-slot" aria-hidden />
                         <span className="palette-label">{draftTitle(item.draft)}</span>
                         {/* 「下書き」のまとまりの見出しの下に並ぶので、プロジェクト名だけを添える */}
-                        <span className="palette-hint">{projectName(item.draft.projectId)}</span>
+                        <span className="palette-hint">
+                          <PaletteProjectMark projectId={item.draft.projectId} />
+                          <span className="palette-hint-text">{projectName(item.draft.projectId)}</span>
+                        </span>
                       </>
                     ) : (
                       <>
                         {/* サイドバーの行と同じ状態の印（見出しの札の印の真下） */}
                         <StatusSlot state={stateOf(item.chat)} unread={busyWithUnread(item.chat, stateOf(item.chat))} />
                         <span className="palette-label">{chatTitle(item.chat.title)}</span>
+                        <PaletteChatChips chat={item.chat} />
                         <span className="palette-hint">
-                          {projectName(item.chat.project_id)} · {shortRelativeTime(item.chat.active_at)}
+                          <PaletteProjectMark projectId={item.chat.project_id} />
+                          <span className="palette-hint-text">
+                            {projectName(item.chat.project_id)} · {shortRelativeTime(item.chat.active_at)}
+                          </span>
                         </span>
                       </>
                     )}
