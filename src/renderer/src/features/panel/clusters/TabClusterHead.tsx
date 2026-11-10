@@ -13,7 +13,6 @@ import { stateCounts } from "@/features/chat/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/StateCornerCounts";
 import { StateChatsPopover, chatsByState } from "@/features/chatList/StateChatsPopover";
 import type { TabCluster } from "./tabClusters";
-import type { NewChatTarget } from "@/features/panel/usePanel";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 
 /**
@@ -36,8 +35,6 @@ export function TabClusterHead({
   cluster,
   chats,
   onOpen,
-  onNewChat,
-  onStartNewChat,
   all = false,
   popoverTitle = `${cluster.label}のチャット`,
   collapsed = false,
@@ -53,10 +50,6 @@ export function TabClusterHead({
   cluster: TabCluster;
   chats: Chat[] | undefined;
   onOpen: (chat: Chat) => void;
-  /** 札の右クリック・一覧の「このグループ（作業場所）で新しいチャット」 */
-  onNewChat?: (target: NewChatTarget) => void;
-  /** 「チャット」の札（まとめないとき）の一覧の「新しいチャット」（欄が決めた作成先で始める） */
-  onStartNewChat?: () => void;
   all?: boolean;
   popoverTitle?: string;
   /** まとまりのタブを畳んでいるか（表示中のタブだけを残す） */
@@ -96,33 +89,13 @@ export function TabClusterHead({
     const name = await askNewGroupName();
     if (name) await api.createGroup(projectId, name).catch(reportFailure("グループを作成できませんでした"));
   };
-  // 自分で作ったグループの札（グループ別のとき）か、グループなしの札か
+  // 自分で作ったグループの札（グループ別のとき）
   const group = cluster.group;
-  const byGroup = cluster.kind === "group" || cluster.kind === "ungrouped";
   const deleteGroup = async () => {
     if (!group) return;
     if (await confirmDeleteGroup({ name: group.name })) await api.deleteGroup(group.id).catch(reportFailure("グループを削除できませんでした"));
   };
   const counts = chats ? stateCounts(chats, pending) : undefined;
-  // このまとまりで始める新しいチャット: グループ別はそのグループ（グループなしならグループを付けない）、作業場所別は本体・そのワークツリー
-  // （フォルダが見つからない・以前のブランチのまとまりは、そこでは始められないので出さない）
-  const place = cluster.kind === "worktree" ? cluster.place : undefined;
-  const placeTarget = place?.kind === "main" ? {} : place?.kind === "worktree" ? { worktree: place.key } : undefined;
-  const newChatTarget =
-    projectId === undefined || !onNewChat ? undefined : byGroup ? { projectId, group: group?.id } : placeTarget ? { projectId, ...placeTarget } : undefined;
-  const newChatLabel = byGroup
-    ? group
-      ? `「${group.name}」で新しいチャット`
-      : `${NO_GROUP_LABEL} で新しいチャット`
-    : place?.kind === "worktree"
-      ? `「${place.name}」で新しいチャット`
-      : "本体で新しいチャット";
-  // 一覧の下の「新しいチャット」（まとまりのものか、「チャット」の札なら欄が決めた作成先）
-  const listNewChat = newChatTarget
-    ? { label: newChatLabel, onSelect: () => onNewChat?.(newChatTarget) }
-    : onStartNewChat
-      ? { label: "新しいチャット", onSelect: onStartNewChat }
-      : undefined;
   const countTitle = chats ? `チャット ${count} 件（サイドバーの見出しと同じ数）` : `タブ ${count} 個`;
   const summary = counts ? stateCountsSummary(counts) : "";
   const title = summary ? `${cluster.title ?? cluster.label}（${summary}）` : cluster.title;
@@ -204,8 +177,6 @@ export function TabClusterHead({
           // まとまりのチャットをすべて（既読・アーカイブ済みも）状態ごとに並べる
           sections={chatsByState(chats, pending, { all: true })}
           emptyText="チャットはありません"
-          // まとまり（グループ・作業場所）では、そこに new チャットを足すボタンも置く（札の右クリックの項目と同じ）。「チャット」の札は欄の作成先で
-          newChat={listNewChat}
           onOpen={onOpen}
           onClose={popover.close}
           className="cluster-chats-popover"
