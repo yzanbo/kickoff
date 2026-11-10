@@ -5,6 +5,7 @@ import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { checkClaudeUpdate } from "./check-claude-update.mjs";
 
 const root = path.join(import.meta.dirname, "..");
 const target = "/Applications/Kickoff.app";
@@ -87,3 +88,7 @@ execFileSync("ditto", [built, target]);
 execFileSync("codesign", ["--verify", "--deep", "--strict", target]);
 console.log(`${target} を入れ替えました`);
 if (wasRunning) execFileSync("open", ["-a", target]);
+
+// Claude Code（同梱の SDK）に新しい版が出ていれば 1 行で知らせる（入れ替えは止めない）
+const claudeNotice = await checkClaudeUpdate().catch(() => null);
+if (claudeNotice) console.log(claudeNotice);
