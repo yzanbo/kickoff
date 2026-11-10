@@ -31,6 +31,7 @@ export function PanelTab({
   onSelect,
   onClose,
   closeLabel,
+  dirty = false,
   onRename,
   editor,
   lead,
@@ -58,6 +59,8 @@ export function PanelTab({
   onClose: () => void;
   /** 閉じるボタンの名前（なければ「〜 のタブを閉じる」。分けたペインのチャットは「一覧のペインに戻す」） */
   closeLabel?: string;
+  /** 保存していない変更がある（ファイルのタブ）。閉じるボタンを「●」にし、乗せたときだけ × にする（VS Code と同じ。細い・表示中でないタブでも出す） */
+  dirty?: boolean;
   /** アイコンの代わりに名前の前に置くもの（チャットのタブの状態の印） */
   lead?: ReactNode;
   /** ピン留めしたチャットのタブなら、そのチャットのプロジェクトの ID（いちばん左にピンをその色で出す）。ピン留めでなければ null */
@@ -80,7 +83,7 @@ export function PanelTab({
   const measure = tag ? measureRef : undefined;
   return (
     <div
-      className={cx("panel-tab", active && "active", twoLine && "two-line", placeShort && "place-short", badge && `panel-tab-typed tab-kind-${badge.kind}`, className)}
+      className={cx("panel-tab", active && "active", dirty && "dirty", twoLine && "two-line", placeShort && "place-short", badge && `panel-tab-typed tab-kind-${badge.kind}`, className)}
       role="tab"
       aria-selected={active}
       {...extra}
@@ -135,7 +138,7 @@ export function PanelTab({
       )}
       {/* 名前を変えている間は、入力欄の ✓ / ✕ と並ばないよう閉じるを隠す */}
       {!editor && (
-        <CloseButton label={closeLabel ?? `${label} のタブを閉じる`} size={12} className="panel-tab-close" onClick={onClose} />
+        <CloseButton label={closeLabel ?? `${label} のタブを閉じる`} size={12} className={cx("panel-tab-close", dirty && "dirty")} onClick={onClose} />
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import type { HTMLAttributes } from "react";
 import { cx } from "@/lib/cx";
 import { knownChat, useKnownChat } from "@/stores/chats";
 import { confirmLeaveMemo } from "@/features/memo/memoGuards";
-import { confirmCloseFileTab } from "@/features/editor/fileTabs";
+import { confirmCloseFileTab, useFileTabDirty } from "@/features/editor/fileTabs";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -66,13 +66,15 @@ export function PaneTab({
   const group = spec.group?.(t, chat, groupOf);
   const chatHint = useChatTabHint(t.kind === "chat" ? chat : undefined, label, group?.name);
   const backHome = !home && panel.isLinkedTab(t.key);
+  // ファイルのタブは、保存していない変更があれば × の代わりに「●」（乗せると ×。VS Code と同じ）
+  const dirty = useFileTabDirty(panel.key, t.kind === "projectFile" ? t.key : null);
   const close = () => {
     if (backHome) return panel.returnToHome(t.key);
     // 子チャットのタブは、チャットの ✕ と同じく閉じ方を聞く（表示だけ消す = タブを閉じる。子チャットは残る）
     if (t.kind === "child") return void closeChatWithChoice({ id: t.childId, title: t.title, archived_at: knownChat(t.childId)?.archived_at }, () => panel.closeTab(t.key));
     // メモのタブは、まだ保存していない書きかけがあれば保存するかを聞く
     if (t.kind === "memo") return void confirmLeaveMemo(t.projectId, t.path).then((ok) => ok && panel.closeTab(t.key));
-    // ファイルのタブは、保存していない変更があれば捨ててよいかを聞く
+    // ファイルのタブは、保存していない変更があれば 保存 / 保存しない / キャンセル を選んでもらう
     if (t.kind === "projectFile") return void confirmCloseFileTab(panel.key, t.key).then((ok) => ok && panel.closeTab(t.key));
     if (t.kind !== "chat") return panel.closeTab(t.key);
     void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: chat?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }));
@@ -103,7 +105,8 @@ export function PaneTab({
       onRename={rename.canRename(t) ? () => rename.start(t.key) : undefined}
       // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値はタブの名前。新しいチャットは付けた名前）
       editor={editor}
-      closeLabel={backHome ? `${label} を一覧のペインに戻す` : undefined}
+      closeLabel={backHome ? `${label} を一覧のペインに戻す` : dirty ? `${label} のタブを閉じる（保存していない変更があります）` : undefined}
+      dirty={dirty}
       onClose={close}
     />
   );

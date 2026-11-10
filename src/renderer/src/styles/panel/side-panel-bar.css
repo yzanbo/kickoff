@@ -87,3 +87,24 @@
   cursor: default;
 }
 
+
+/*
+ * 保存していない変更のあるタブ（ファイルのタブ。PanelTab の dirty）: 閉じるを「●」にし、乗せたときだけ × に戻す（VS Code と同じ）。
+ * どのタブに未保存があるか見えるよう、表示中でない・細いタブでも出す（side-panel-tabs.css の、乗せていないときに閉じるを隠す決まりより後ろ）
+ */
+.panel-tab.dirty .panel-tab-close {
+  display: grid;
+  opacity: 1;
+}
+
+.panel-tab-close.dirty:not(:hover) svg {
+  display: none;
+}
+
+.panel-tab-close.dirty:not(:hover)::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}

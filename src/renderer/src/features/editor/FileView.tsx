@@ -43,6 +43,8 @@ interface Props {
   onSaved?: () => void;
   /** 保存していない変更があるか（別のファイルを開く前に確かめる） */
   onDirtyChange?: (dirty: boolean) => void;
+  /** 保存のしかたを知らせる（ファイルのタブの × の「保存」で呼ぶ。返した関数で外す） */
+  registerSave?: (save: () => Promise<boolean>) => () => void;
   /** 開いたら編集の部品にピントを置く（差分の「編集」から来たとき。チャット欄・一覧のピントを奪わないよう、ふだんは置かない） */
   autoFocus?: boolean;
 }
@@ -66,7 +68,7 @@ interface EditBase {
  * 横幅に入らない行を折り返すかは、見出しのボタン・エディタの中の ⌥Z で切り替える（EDITOR_WORD_WRAP）。
  * 差分から編集するとき（diffBase）は、VS Code と同じく差分を見ながら編集する（左に元の中身、右に編集する中身。打つたびに差分が変わる）
  */
-export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase, version, onSaved, onDirtyChange, autoFocus = false }: Props) {
+export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase, version, onSaved, onDirtyChange, registerSave, autoFocus = false }: Props) {
   // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
   const { target, key: at, worktree } = useGitTarget(projectId);
   const key = `${at}:${path}`;
@@ -147,6 +149,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
     },
   };
   useEffect(() => registerSavable({ dirty: () => savable.current.dirty, save: () => savable.current.saveCurrent() }), []);
+  useEffect(() => registerSave?.(() => savable.current.saveCurrent()), [registerSave]);
 
   // 開いたときの指紋と比べて保存する。ほかで変わっていれば、上書きするか聞いてから指紋なしで保存し直す
   const save = (content: string) =>
