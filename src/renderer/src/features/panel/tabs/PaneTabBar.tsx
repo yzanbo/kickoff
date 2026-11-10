@@ -18,6 +18,7 @@ import { PanelTabAdds } from "./PanelTabAdds";
 import { specOf, type TabGroupLookup } from "./tabKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
+import { ClusterShortItem } from "@/features/panel/clusters/ClusterShortItem";
 import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { tabFieldShown, type TabField } from "./tabFields";
@@ -191,6 +192,7 @@ export function PaneTabBar({
                     <>
                       {strip.grouping === "group" && <HiddenGroupItems panel={panel} />}
                       <BucketColorItem setting={PANEL_TAB_GROUP_COLORS} />
+                      <ClusterShortItem />
                     </>
                   }
                   canCreateGroup={strip.grouping === "group"}

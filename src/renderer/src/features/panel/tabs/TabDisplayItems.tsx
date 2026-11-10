@@ -5,6 +5,7 @@ import { MenuItem } from "@/ui/PopupMenu";
 import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
+import { ClusterShortItem } from "@/features/panel/clusters/ClusterShortItem";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
 import { PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
@@ -81,6 +82,7 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
           ))}
           {/* まとめたまとまりの色（色付き / 色なし。まとまりの札の右クリックにも同じ項目）。まとめないときは効かないので出さない */}
           {grouping !== "none" && <BucketColorItem setting={PANEL_TAB_GROUP_COLORS} keepOpen />}
+          {grouping !== "none" && <ClusterShortItem keepOpen />}
         </>,
       ),
     );
