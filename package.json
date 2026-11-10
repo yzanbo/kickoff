@@ -8,7 +8,7 @@
     "preview": "electron-vite preview",
     "daemon": "tsx src/core/daemon.ts",
     "typecheck": "tsc --noEmit --noUnusedLocals",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test": "node --import tsx --test \"src/**/*.test.ts\" \"scripts/**/*.test.mjs\"",
     "dist": "electron-vite build && electron-builder --mac --arm64",
     "install-app": "node scripts/install-app.mjs",
     "icon": "node scripts/build-icon.mjs",

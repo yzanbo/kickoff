@@ -1,5 +1,18 @@
 {
   "permissions": {
     "deny": ["Bash(pkill:*)", "Bash(killall:*)"]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/check-claude-update.mjs\" --hook",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   }
 }

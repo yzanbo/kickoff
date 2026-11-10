@@ -58,6 +58,8 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 
 開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/core/system/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
 
+このリポジトリの `.claude/settings.json` の SessionStart フックで、Kickoff に入っている Claude Code（`@anthropic-ai/claude-agent-sdk` の `claudeCodeVersion`）に新しい版が出たら、このリポジトリのチャット（製品版の Kickoff の kickoff プロジェクトも）のエージェントに知らせる（`scripts/check-claude-update.mjs`。npm に聞くのは 24 時間に 1 回、同じ版の知らせは 1 日 1 回まで。覚えは `node_modules/.cache/kickoff/claude-update.json`）。`npm run install-app` の最後にも、新しい版があれば 1 行出す。
+
 `npm install` のあと（postinstall）に、開発用の Electron.app の名前とアイコンを「Kickoff Dev」に書き換える（`scripts/dev-app-identity.mjs`。Dock やメニューバーに「Electron」と出ないように）。アイコンを作り直したら `node scripts/dev-app-identity.mjs` で当て直し、開発アプリを起動し直す。
 
 ## 構成
