@@ -17,6 +17,7 @@ import { PaneTab } from "./PaneTab";
 import { PanelTabAdds } from "./PanelTabAdds";
 import { specOf, type TabGroupLookup } from "./tabKinds";
 import { SURFACES } from "@/features/panel/surfaces";
+import { ArchivedChatsItem } from "@/features/chatList/ArchivedChatsItem";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { ClusterShortItem } from "@/features/panel/clusters/ClusterShortItem";
 import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN } from "@/lib/storageKeys";
@@ -187,12 +188,13 @@ export function PaneTabBar({
                   tabCount={c.tabs.length}
                   hidden={strip.isHidden(c)}
                   onToggleHidden={strip.toggleHidden && c.group ? () => strip.toggleHidden?.(c) : undefined}
-                  // 右クリックの下の項目: グループ別なら出すグループ（「表示」のメニューと同じ）、どちらのまとめ方でも「まとまりを色付きで表示」
+                  // 右クリックの下の項目: グループ別なら出すグループ（「表示」のメニューと同じ）、どちらのまとめ方でも「まとまりを色付きで表示」「まとまりの名前を省略」「アーカイブ済みのチャットを表示」
                   menuExtra={
                     <>
                       {strip.grouping === "group" && <HiddenGroupItems panel={panel} />}
                       <BucketColorItem setting={PANEL_TAB_GROUP_COLORS} />
                       <ClusterShortItem />
+                      <ArchivedChatsItem />
                     </>
                   }
                   canCreateGroup={strip.grouping === "group"}
