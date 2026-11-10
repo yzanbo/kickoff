@@ -217,3 +217,46 @@ test("リベース: 衝突して止まったら、こちらの版で解く・飛
   assert.deepEqual(clean.body.conflicts, []);
   assert.equal(clean.body.status.operation, null);
 });
+
+test("退避（stash）: 作業中の変更を退避する（未追跡も）・戻す（pop は消す / apply は残す）・消す。退避するものがなければ 400、ぶつかれば衝突したファイル", async () => {
+  const { act, refs, status, dir } = branchSetup();
+  const stashes = async () => (await refs()).stashes.map((s: { ref: string; message: string }) => s.message);
+
+  // 変更がなければ退避できない
+  assert.equal((await act({ action: "stash_save", message: null, include_untracked: false })).status, 400);
+
+  // 変更したファイルを名前を付けて退避 → 作業場所はきれいになる
+  fs.writeFileSync(path.join(dir, "a.txt"), "two\n");
+  const saved = await act({ action: "stash_save", message: "途中の作業", include_untracked: false });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.body.status.unstaged.length + saved.body.status.staged.length, 0);
+  assert.equal((await stashes()).length, 1);
+  assert.match((await stashes())[0], /途中の作業/);
+
+  // 未追跡のファイルは include_untracked のときだけ退避する
+  fs.writeFileSync(path.join(dir, "new.txt"), "new\n");
+  assert.equal((await act({ action: "stash_save", message: null, include_untracked: false })).status, 400);
+  assert.equal((await act({ action: "stash_save", message: "未追跡", include_untracked: true })).status, 200);
+  assert.ok(!fs.existsSync(path.join(dir, "new.txt")));
+  assert.equal((await stashes()).length, 2);
+
+  // apply は戻しても残す、pop は戻したら消す
+  assert.equal((await act({ action: "stash_apply", ref: "stash@{0}" })).status, 200);
+  assert.ok(fs.existsSync(path.join(dir, "new.txt")));
+  assert.equal((await stashes()).length, 2);
+  assert.equal((await act({ action: "stash_drop", ref: "stash@{0}" })).status, 200);
+  assert.equal((await stashes()).length, 1);
+  fs.rmSync(path.join(dir, "new.txt"));
+
+  // 作業中の変更とぶつかる退避を戻すと、衝突したファイルを返す（pop でも退避は残る）
+  fs.writeFileSync(path.join(dir, "a.txt"), "three\n");
+  gitIn(dir)("commit", "-q", "-am", "a を three に");
+  const popped = await act({ action: "stash_pop", ref: "stash@{0}" });
+  assert.equal(popped.status, 200);
+  assert.deepEqual(popped.body.conflicts, ["a.txt"]);
+  assert.equal((await stashes()).length, 1);
+  assert.ok((await status()).conflicts.some((f: { path: string }) => f.path === "a.txt"));
+
+  // 名前の形が違えば 400
+  assert.equal((await act({ action: "stash_drop", ref: "--all" })).status, 400);
+});

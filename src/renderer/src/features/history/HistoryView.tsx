@@ -43,9 +43,10 @@ function FolderButtons({ path }: { path: string }) {
 }
 
 /**
- * 履歴の左の一覧: すべてのコミット・本体・ワークツリー・リモート・タグ・stash。ブランチは取り出している作業場所で分ける
+ * 履歴の左の一覧: すべてのコミット・本体・ワークツリー・リモート・タグ・退避（stash）。ブランチは取り出している作業場所で分ける
  * （本体 = 本体で取り出しているブランチと、どこにも取り出していないブランチ / ワークツリー = ワークツリーごとに取り出しているブランチ。`groupBranches`）。
- * 名前で絞り込め、押すとそのコミットを表で選ぶ。ブランチ・リモートのブランチ・タグの右クリックで、そのメニュー（onRefMenu。ワークツリーの行はワークツリーの項目も）。
+ * 名前で絞り込め、押すとそのコミットを表で選ぶ。ブランチ・リモートのブランチ・タグの右クリックで、そのメニュー（onRefMenu。ワークツリーの行はワークツリーの項目も）、
+ * 退避の右クリックで戻す・適用・削除（onStashMenu）。
  * busy は実行中のブランチの操作
  */
 export function HistorySidebar({
@@ -54,12 +55,15 @@ export function HistorySidebar({
   worktreeActions,
   onPick,
   onRefMenu,
+  onStashMenu,
 }: {
   log: GitLogController;
   busy: string | null;
   worktreeActions: WorktreeActions;
   onPick: (hash: string) => void;
   onRefMenu: (e: MouseEvent, target: RefTarget) => void;
+  /** 退避の行の右クリック（戻す・適用・削除。ref は "stash@{0}" の形） */
+  onStashMenu: (e: MouseEvent, ref: string) => void;
 }) {
   const [filter, setFilter] = useState("");
   const refs = log.refs;
@@ -160,9 +164,9 @@ export function HistorySidebar({
           />
         ))}
       </RefSection>
-      <RefSection title="stash" count={stashes.length}>
+      <RefSection title="退避（stash）" count={stashes.length}>
         {stashes.map((s) => (
-          <RefItem key={s.ref} icon={<Archive size={14} aria-hidden />} name={s.message} onClick={() => onPick(s.hash)} />
+          <RefItem key={s.ref} icon={<Archive size={14} aria-hidden />} name={s.message} onClick={() => onPick(s.hash)} onContextMenu={(e) => onStashMenu(e, s.ref)} />
         ))}
       </RefSection>
     </>

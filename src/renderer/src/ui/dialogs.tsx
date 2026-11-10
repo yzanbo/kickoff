@@ -42,6 +42,8 @@ interface PromptOptions {
   assist?: PromptAssistOptions;
   /** 入力と一緒に選んでもらうチェック（あれば入力欄の下に出す。promptWithCheck） */
   check?: DialogCheck;
+  /** 空のままでも決められる（空なら "" を返す。退避のメッセージなど、省ける入力） */
+  optional?: boolean;
 }
 
 interface ChoiceOptions {
@@ -161,7 +163,7 @@ export function DialogHost() {
     if (!req) return;
     if (req.kind === "confirm") req.resolve(ok, remember);
     else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null, remember);
-    else req.resolve(ok && value.trim() ? value.trim() : null, remember);
+    else req.resolve(ok && (value.trim() || req.optional) ? value.trim() : null, remember);
     setReq(null);
     ref.current?.close();
   };
@@ -219,7 +221,7 @@ export function DialogHost() {
             <button
               type={req.kind === "prompt" ? "submit" : "button"}
               className={`btn ${danger ? "btn-danger" : "btn-primary"}`}
-              disabled={req.kind === "prompt" && !value.trim()}
+              disabled={req.kind === "prompt" && !value.trim() && !req.optional}
               onClick={req.kind === "confirm" ? () => finish(true) : undefined}
             >
               {confirmLabel}

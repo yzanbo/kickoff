@@ -398,6 +398,8 @@ export const COMMIT_FILES_LIST = defineSetting("kickoff:commit-files-tree", flag
 export const COMMIT_FILES_WIDTH = defineSetting("kickoff:commit-files-width", number(260));
 /** 履歴の上のコミットの表の高さ（割合 %） */
 export const HISTORY_SPLIT = defineSetting("kickoff:history-split", number(43));
+/** 履歴タブの左の一覧（ブランチ・リモート・タグ・退避）を閉じているか（上の帯のいちばん左のボタンで開閉） */
+export const HISTORY_LIST_HIDDEN = defineSetting("kickoff:history-list-hidden", flag());
 /** プロジェクトごとの、ファイルタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
 export const editorWorktree = defineSettingFamily("kickoff:editor-worktree:", text(), { ids: true });
 /** プロジェクトごとの、メモのタブで開いているメモ（メモのフォルダからの相対パス。空なら選んでいない） */

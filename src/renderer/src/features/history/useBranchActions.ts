@@ -13,7 +13,7 @@ import type { GitStatusController } from "@/features/editor/useGitStatus";
 import type { GitLogController } from "./useGitLog";
 
 /** 衝突したファイルを、ダイアログに出す数まで並べる */
-function fileList(files: string[], max = 8): string {
+export function fileList(files: string[], max = 8): string {
   const shown = files.slice(0, max).map((f) => `・${f}`);
   if (files.length > max) shown.push(`ほか ${files.length - max} 件`);
   return shown.join("\n");
@@ -60,15 +60,21 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
     }
   };
 
-  /** 操作を 1 つ送る（実行中の名前を出し、失敗はダイアログで知らせる）。衝突したら operation の名前で選んでもらう */
-  const run = async (name: string, body: GitBranchAction, operation?: GitOperation): Promise<GitBranchActionResult | null> => {
+  /**
+   * 操作を 1 つ送る（実行中の名前を出し、失敗はダイアログで知らせる）。衝突したら operation の名前で選んでもらう
+   * （途中の操作にならない衝突（退避を戻したときなど）は、関数を渡してそちらで知らせる）
+   */
+  const run = async (name: string, body: GitBranchAction, operation?: GitOperation | ((conflicts: string[]) => Promise<void>)): Promise<GitBranchActionResult | null> => {
     setBusy(name);
     try {
       const result = await api.gitBranchAction(target, body);
       git.applyStatus(result.status);
       log.refresh();
       const stopped = result.status.repo ? result.status.operation : null;
-      if (result.conflicts.length > 0) await handleConflicts(result.conflicts, stopped ?? operation ?? "merge");
+      if (result.conflicts.length > 0) {
+        if (typeof operation === "function") await operation(result.conflicts);
+        else await handleConflicts(result.conflicts, stopped ?? operation ?? "merge");
+      }
       return result;
     } catch (e) {
       await alertDialog(`${name}できませんでした`, errorMessage(e));
@@ -109,6 +115,10 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
   return {
     busy,
     current,
+    /** 操作を 1 つ送る（退避の操作 useStashActions も使う） */
+    run,
+    /** ファイルが入れ替わる操作の前の注意 */
+    filesWarning,
     remotes: refs?.remotes ?? [],
 
     /** 手元のブランチをチェックアウト（ファイルが入れ替わるときの注意があれば確かめる） */

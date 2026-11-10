@@ -264,7 +264,12 @@ export type GitBranchAction =
   | { action: "delete_branch"; branch: string; force: boolean; remote: boolean }
   | { action: "delete_remote_branch"; remote_branch: string }
   | { action: "push_tag"; name: string }
-  | { action: "delete_tag"; name: string; remote: boolean };
+  | { action: "delete_tag"; name: string; remote: boolean }
+  // 退避（stash）: 作業中の変更を退避する（include_untracked なら未追跡のファイルも）・戻す（pop は戻したら消す / apply は残す）・消す。ref は "stash@{0}" の形
+  | { action: "stash_save"; message: string | null; include_untracked: boolean }
+  | { action: "stash_pop"; ref: string }
+  | { action: "stash_apply"; ref: string }
+  | { action: "stash_drop"; ref: string };
 
 /** ブランチ・タグの操作の結果（操作のあとの状態。衝突したら conflicts に衝突したファイル、PR を作ったら pr） */
 export interface GitBranchActionResult {
