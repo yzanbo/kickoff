@@ -46,7 +46,7 @@ export interface TunerProps {
  * プロジェクト = 並べ方（縦並び / 横スライド / 縦スライド）・並び順（手動 / 最近動いた順）・表示（カードを 1 行 / 2 行）・アーカイブ（出すか）/
  * チャット = まとめ方（まとめない / グループ別 / 作業場所別）・並び順（最近動いた順 / 状態順 / 手動）・表示（行を 1 行 / 2 行）・アーカイブ（出すか）/
  * 要対応 = オン / オフ・出し方・並べ方。
- * 下に、変えた見え方を残す操作（選んでいるビューに上書き・新しいビューとして保存）と、設定の画面の「サイドバー」へ
+ * 下に、変えた見え方を残す操作（選んでいるビューに上書き・今のビューを新規保存）と、設定の画面の「サイドバー」へ
  */
 export function SidebarViewTuner({ layout, onLayout, order, onOrder, archivedCount, showArchived, onShowArchived, waiting, views }: TunerProps & { views: SidebarViews }) {
   const { grouping, setGrouping, order: chatOrder, setOrder: setChatOrder } = useChatLayout();
@@ -143,8 +143,8 @@ export function SidebarViewTuner({ layout, onLayout, order, onOrder, archivedCou
 }
 
 /**
- * 変えた見え方を残す操作: 選んでいるビューに上書き（同じなら押せない）・新しいビューとして保存（名前を聞く）・ビューの管理（設定の画面）。
- * いまの見え方と同じビューがもうあれば、新しいビューとして保存は押せなくし、どのビューと同じかを下に書く（同じ見え方のビューを 2 つ作らない。利用者の依頼）
+ * 変えた見え方を残す操作: 選んでいるビューに上書き（同じなら押せない）・今のビューを新規保存（名前を聞く）・ビューの管理（設定の画面）。
+ * いまの見え方と同じビューがもうあれば、今のビューを新規保存は押せなくし、どのビューと同じかを下に書く（同じ見え方のビューを 2 つ作らない。利用者の依頼）
  */
 function TunerActions({ views }: { views: SidebarViews }) {
   const [naming, setNaming] = useState(false);
@@ -185,7 +185,7 @@ function TunerActions({ views }: { views: SidebarViews }) {
             title={duplicate ? sameViewExistsText(duplicate.name) : "いまの見え方に名前を付けて、ビューのタブに足す"}
             onClick={() => setNaming(true)}
           >
-            <Plus size={13} aria-hidden /> 新しいビューとして保存
+            <Plus size={13} aria-hidden /> 今のビューを新規保存
           </button>
           {duplicate && <p className="sidebar-view-same muted small">{sameViewExistsText(duplicate.name)}</p>}
         </>
