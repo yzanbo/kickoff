@@ -148,6 +148,8 @@
   background: var(--bg-elev);
   border: 1px solid var(--border);
   border-radius: 13px;
+  /* ボタンは既定のカーソルが矢印なので、ほかのボタン（.btn・.icon-button）と同じく指の形にする */
+  cursor: pointer;
 }
 
 .voice-mode-action:hover {
