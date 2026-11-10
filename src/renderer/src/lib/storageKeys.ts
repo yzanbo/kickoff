@@ -362,8 +362,13 @@ export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag(f
 export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["xs", "sm", "md", "lg", "xl"], "md"));
 /** 会話の横幅を広げるか（どのチャットでも同じ。初めは広げる） */
 export const CHAT_WIDE = defineSetting("kickoff:chat-wide", flag(true));
-/** チャットの中の検索で、大文字・小文字を区別するか（どのチャットでも同じ） */
-export const CHAT_FIND_CASE = defineSetting("kickoff:chat-find-case-sensitive", flag());
+/**
+ * ⌘F の検索の欄の探し方（大文字・小文字を区別・単語単位・正規表現。VS Code の「Aa」「ab」「.*」）。チャット・ファイル・差分・メモ・履歴など、
+ * どの検索の欄でも同じ値を使う（hooks/useFindOptions）。大文字・小文字のキーは、チャットの中の検索だけにあったころの名前のまま
+ */
+export const FIND_CASE = defineSetting("kickoff:chat-find-case-sensitive", flag());
+export const FIND_WHOLE_WORD = defineSetting("kickoff:find-whole-word", flag());
+export const FIND_REGEX = defineSetting("kickoff:find-regex", flag());
 /** AI からの質問が複数あるときの出し方（steps = 1 問ずつ / all = すべて並べる） */
 export const QUESTION_LAYOUT = defineSetting("kickoff:question-layout", choice(["steps", "all"], "steps"));
 /** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除） */

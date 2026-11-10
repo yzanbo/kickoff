@@ -1,3 +1,4 @@
+import { spansIn, type FindPattern } from "@/lib/textFind";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 
 /** チャットの中の検索で見つけた 1 か所（どの発言の、その中の何番目か） */
@@ -8,31 +9,18 @@ export interface ChatFindMatch {
 }
 
 /**
- * 文 text の中で query が出てくる位置（重ならないように前から）。query は打ったまま使い、前後の空白も削らない
- * （半角・全角の空白も探す文字のうち。VS Code の検索と同じ）。caseSensitive でなければ大文字・小文字を区別しない
- */
-export function matchOffsets(text: string, query: string, caseSensitive: boolean): number[] {
-  if (!query) return [];
-  const hay = caseSensitive ? text : text.toLowerCase();
-  const needle = caseSensitive ? query : query.toLowerCase();
-  const offsets: number[] = [];
-  for (let at = hay.indexOf(needle); at >= 0; at = hay.indexOf(needle, at + needle.length)) offsets.push(at);
-  return offsets;
-}
-
-/**
- * チャットの記録から、自分の発言とメインの AI の返答の文で query を探す（流れの順）。
+ * チャットの記録から、自分の発言とメインの AI の返答の文で pattern を探す（流れの順。探し方は lib/textFind の findPattern で作る。画面の印と同じ照らし合わせ）。
  * 画面に描いた文ではなく記録から探すので、長いチャットでも流れをすべて描かずに数え、移れる
  */
-export function findMatches(items: TimelineItem[], query: string, caseSensitive = false): ChatFindMatch[] {
-  if (!query) return [];
+export function findMatches(items: TimelineItem[], pattern: FindPattern): ChatFindMatch[] {
+  if (!pattern || "error" in pattern) return [];
   const matches: ChatFindMatch[] = [];
   for (const item of items) {
     if (item.kind !== "event") continue;
     const e = item.event;
     // 自分の発言とメインの AI の返答だけ（サブエージェントの返答は除く）
     if (e.type !== "user" && !(e.type === "text" && !e.data.parent)) continue;
-    matchOffsets(e.data.text, query, caseSensitive).forEach((_, nth) => matches.push({ eventId: item.event.id, nth }));
+    spansIn(e.data.text, pattern).forEach((_, nth) => matches.push({ eventId: item.event.id, nth }));
   }
   return matches;
 }

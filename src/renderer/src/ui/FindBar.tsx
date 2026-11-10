@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing } from "@/lib/keys";
-import { findInTexts, stepMatch } from "@/lib/textFind";
+import { useFindOptions } from "@/hooks/useFindOptions";
+import { findInTexts, findPattern, stepMatch } from "@/lib/textFind";
 import { createFindMarks, findTextNodes, framesIn } from "./findMarks";
+import { FindOptionButtons, handleFindOptionKey } from "./FindOptionButtons";
 import { CloseButton, IconButton } from "./IconButton";
 
 /** 中身が変わってから探し直すまで（読み込み・色付けが続けて届いても 1 回にまとめる） */
@@ -13,6 +15,7 @@ const RESEARCH_DELAY_MS = 150;
 /**
  * ページの中の文字を探す欄（⌘F）。target の中の見えている文字（中の同じオリジンの iframe の中も。HTML のメモのページ）から探して印を付け（CSS Custom Highlight API。DOM は書き換えない。findMarks.ts）、
  * host の右上に浮かせる（host は position: relative の要素）。Enter / ↓ で次、Shift+Enter / ↑ で前、Esc で閉じる。
+ * 探し方（大文字・小文字の区別・単語単位・正規表現。⌥⌘C / ⌥⌘W / ⌥⌘R）は、ほかの検索の欄と同じ値（useFindOptions）。
  * target の中身が変わったら（ファイルを選び直した・読み込みや色付けが届いた・差分を取り直した）、探し直す。
  * focusSignal が変わるたびに（もう一度 ⌘F を押したとき）、欄にピントを置いて文を選ぶ。
  * 使うのは、ページの ⌘F（usePageFind）とチャットの画面の右の欄の ⌘F（AgentPanelFind）
@@ -33,6 +36,11 @@ export function FindBar({
   className?: string;
 }) {
   const [query, setQuery] = useState("");
+  const { options, toggle } = useFindOptions();
+  const invalid = (() => {
+    const pattern = findPattern(query, options);
+    return pattern !== null && "error" in pattern;
+  })();
   const [count, setCount] = useState(0);
   const [index, setIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +56,7 @@ export function FindBar({
     const matches = findInTexts(
       nodes.map((n) => n.nodeValue ?? ""),
       text,
+      options,
     );
     ranges.current = matches.map((m) => {
       const range = nodes[m.node].ownerDocument.createRange();
@@ -84,7 +93,7 @@ export function FindBar({
     const n = research(query);
     show(n > 0 ? 0 : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, target]);
+  }, [query, target, options]);
 
   // 中身が変わったら探し直す（いまの位置は、数の中にあればそのまま。スクロールはしない）
   useEffect(() => {
@@ -109,7 +118,7 @@ export function FindBar({
       for (const f of frames) f.removeEventListener("load", researchSoon);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, target]);
+  }, [query, target, options]);
 
   // 閉じたら・消えたら印を外す
   useEffect(() => marks.clear, [marks]);
@@ -130,9 +139,10 @@ export function FindBar({
         value={query}
         placeholder={placeholder}
         aria-label={placeholder}
+        aria-invalid={invalid || undefined}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
-          if (isComposing(e)) return;
+          if (isComposing(e) || handleFindOptionKey(e, toggle)) return;
           if (isCancelKey(e)) {
             // パネル・右の欄を閉じる Esc に渡さない
             e.stopPropagation();
@@ -144,7 +154,8 @@ export function FindBar({
           }
         }}
       />
-      <span className="pane-find-count">{query ? (count === 0 ? "0 件" : `${(index ?? 0) + 1}/${count}`) : ""}</span>
+      <FindOptionButtons options={options} onToggle={toggle} size={14} />
+      <span className={cx("pane-find-count", invalid && "invalid")}>{invalid ? "誤り" : query ? (count === 0 ? "0 件" : `${(index ?? 0) + 1}/${count}`) : ""}</span>
       <IconButton type="button" icon={ChevronUp} size={13} label="前へ" keys="⇧Enter" disabled={count === 0} onClick={() => go(-1)} />
       <IconButton type="button" icon={ChevronDown} size={13} label="次へ" keys="Enter" disabled={count === 0} onClick={() => go(1)} />
       <CloseButton type="button" size={13} label="検索を閉じる" keys="Esc" onClick={onClose} />

@@ -2,7 +2,7 @@
 
 /*
  * チャットの中の検索（見出しの行の右にいつも置く入力欄。⌘F でピントが入る）。ふだんは細く、ピントが入る・文を入れると広げ、
- * 件数・前後・大文字小文字は文を入れたときだけ出す。狭い見出し（右端のチャット欄など）では虫眼鏡だけにして、押す・⌘F で広げる
+ * 件数・前後・探し方（Aa・ab・.*）は文を入れたときだけ出す。狭い見出し（右端のチャット欄など）では虫眼鏡だけにして、押す・⌘F で広げる
  */
 .chat-find {
   display: flex;
@@ -85,6 +85,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 正規表現として読めないとき（チャットの中の検索・ページの検索の欄・メモのエディタの検索の欄で共通）: 枠と件数のところを赤く */
+.chat-find-count.invalid,
+.pane-find-count.invalid {
+  color: var(--ng);
+}
+
+.chat-find:has(input[aria-invalid="true"]),
+.pane-find:has(input[aria-invalid="true"]) {
+  border-color: color-mix(in srgb, var(--ng) 70%, var(--border));
+}
+
 ::highlight(chat-find) {
   background-color: color-mix(in srgb, var(--warn) 35%, transparent);
 }
@@ -103,7 +114,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  width: min(320px, calc(100% - 24px));
+  width: min(400px, calc(100% - 24px));
   height: 30px;
   padding: 0 4px 0 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 60%, var(--border));
