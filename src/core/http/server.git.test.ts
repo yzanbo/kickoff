@@ -99,6 +99,25 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal((await image("outside.png")).status, 400);
   assert.equal((await image("../x.png")).status, 400);
 
+  // HTML のファイルのプレビューが読む口: 1 段目が作業場所（"-" = 本体）、後ろが作業場所からの相対パス。種類ごとの Content-Type と sandbox
+  fs.mkdirSync(path.join(repo, "site", "css"), { recursive: true });
+  fs.writeFileSync(path.join(repo, "site", "index.html"), "<h1>hi</h1>");
+  fs.writeFileSync(path.join(repo, "site", "css", "a b.css"), "h1{color:red}");
+  const asset = (place: string, rel: string) => ctx.app.request(`/api/projects/${project.id}/file/asset/${place}/${rel}`, { headers: AUTH });
+  const page = await asset("-", "site/index.html");
+  assert.equal(page.status, 200);
+  assert.equal(page.headers.get("content-type"), "text/html; charset=utf-8");
+  assert.equal(page.headers.get("content-security-policy"), "sandbox");
+  const css = await asset("-", `site/css/${encodeURIComponent("a b.css")}`);
+  assert.equal(css.headers.get("content-type"), "text/css; charset=utf-8");
+  assert.equal(await css.text(), "h1{color:red}");
+  // 作業場所の外・リンクで外を指すもの・このプロジェクトのワークツリーでないものは 400、ないものは 404
+  assert.equal((await asset("-", "outside.png")).status, 400);
+  assert.equal((await asset("-", "..%2Fx.html")).status, 400);
+  assert.equal((await asset(encodeURIComponent("/tmp/not-a-worktree"), "site/index.html")).status, 400);
+  assert.equal((await asset("-", "site/none.css")).status, 404);
+  assert.equal((await ctx.app.request(`/api/projects/${project.id}/file/asset/-/site/index.html`)).status, 401);
+
   // 名前の変更: 同じフォルダの中で変え、変えたあとのパスを返す。同じ名前があれば 409、ないものは 404、使えない名前・外は 400
   fs.mkdirSync(path.join(repo, "dir"));
   fs.writeFileSync(path.join(repo, "dir", "old.txt"), "x\n");

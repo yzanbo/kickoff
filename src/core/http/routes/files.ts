@@ -1,11 +1,14 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { createProjectFile, listProjectFiles, readProjectFile, readProjectImage, renameProjectFile, replaceInProject, searchProject, trashProjectFile, writeProjectFile } from "../../git/index.js";
+import { createProjectFile, listProjectFiles, readProjectAsset, readProjectFile, readProjectImage, renameProjectFile, replaceInProject, searchProject, trashProjectFile, writeProjectFile } from "../../git/index.js";
 import { moveToTrash } from "../../system/trash.js";
 import type { ServerDeps } from "../server.js";
 import type { ProjectReplaceBody } from "@shared/types";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
+import { assetResponse, decodeSegments } from "../assets.js";
+import { requireWorktree } from "../workdir.js";
+import { Invalid } from "../errors.js";
 import { flag, repoPath } from "./schemas.js";
 
 /** 置換の本文（検索の指定・置換の文・置換する行） */
@@ -24,9 +27,12 @@ const replaceBodySchema = z.object({
   files: z.array(z.object({ path: repoPath, lines: z.array(z.object({ line: z.number().int().min(1), text: z.string().max(1000) })).min(1).max(1000) })).min(1).max(5000),
 }) satisfies z.ZodType<ProjectReplaceBody>;
 
+/** HTML のファイルのプレビューの口の前置き（1 段目が作業場所、その後ろが作業場所からの相対パス。画面の <base> と同じ形） */
+const ASSET_PREFIX = /^\/api\/projects\/[^/]+\/file\/asset\/([^/]+)\/(.+)$/;
+
 /** 作業場所のファイル（エクスプローラーの一覧・中身・検索・置換・保存・作る・名前の変更・ゴミ箱）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir */
 export function filesRoutes(app: Hono, { store, trash = moveToTrash }: ServerDeps) {
-  const { withWorkdir } = lookups(store);
+  const { withProject, withWorkdir } = lookups(store);
 
   // Git で管理されていなければ 400
   app.get("/api/projects/:id/files", withWorkdir, async (c) => c.json(await listProjectFiles(c.var.workdir)));
@@ -47,6 +53,22 @@ export function filesRoutes(app: Hono, { store, trash = moveToTrash }: ServerDep
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "no-cache",
     });
+  });
+
+  // HTML のファイルのプレビューが読むファイル（ページ自身と、相対パスの CSS・画像）。画面は <base> をそのファイルのフォルダに向ける。
+  // 相対パスで解くと ?worktree= が落ちるので、作業場所はパスの 1 段目に入れる（"-" = 本体 / ワークツリーのフォルダを 1 段に符号化したもの）
+  app.get("/api/projects/:id/file/asset/:place/*", withProject, async (c) => {
+    const match = ASSET_PREFIX.exec(new URL(c.req.url).pathname);
+    if (!match) throw new Invalid("パスが正しくありません");
+    let place: string;
+    try {
+      place = decodeURIComponent(match[1]);
+    } catch {
+      throw new Invalid("作業場所の指定が正しくありません");
+    }
+    const workdir = place === "-" ? c.var.project.repo_path : ((await requireWorktree(c.var.project.repo_path, place))?.path ?? c.var.project.repo_path);
+    const file = repoPath.parse(decodeSegments(match[2]));
+    return assetResponse(c, file, await readProjectAsset(workdir, file));
   });
 
   // ファイルの中を探す（正規表現・含める / 除外するファイルの書き方が正しくなければ 400）。ignore=0 なら .gitignore で無視しているものも探す

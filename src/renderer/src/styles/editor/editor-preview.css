@@ -1,0 +1,38 @@
+/* ==== ファイルタブの Markdown・HTML のプレビュー（PagePreview）と、読むだけの表を折り返さないとき ==== */
+
+.page-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Markdown は返答と同じ書式（ui/markdown）。読みやすい幅に収め、欄の中でスクロールする */
+.page-preview-markdown {
+  overflow: auto;
+  padding: 16px 28px 40px;
+}
+
+.page-preview-markdown > .markdown {
+  max-width: 880px;
+}
+
+/*
+ * HTML は中身のページの見た目のまま描くので、ページの既定と同じ白地・明るい配色に置く
+ * （HTML のメモのページ .memo-html-page と同じ理由。アプリのダークの color-scheme を受け継ぐと白地に白い文字になる）
+ */
+.page-preview-html {
+  border: 0;
+  color-scheme: light;
+  background: #fff;
+}
+
+/* 読むだけの表（FileView の ReadOnlyCode）を折り返さないとき: 表を中身の幅まで広げ、欄ごと横にスクロールする */
+.diff-table.no-wrap {
+  width: max-content;
+  min-width: 100%;
+}
+
+.diff-table.no-wrap .diff-code {
+  white-space: pre;
+  overflow-wrap: normal;
+}
