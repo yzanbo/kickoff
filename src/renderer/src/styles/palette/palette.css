@@ -155,3 +155,13 @@
 .palette-archived-toggle {
   flex: none;
 }
+
+/* ⌘⇧A の状態での絞り込み（プロジェクトの行のすぐ下。2 つの行を 1 つの帯に見せる） */
+.palette-filters:has(+ .palette-state-filters) {
+  padding-bottom: 4px;
+  border-bottom: none;
+}
+
+.palette-state-filters {
+  padding-top: 4px;
+}
