@@ -1,11 +1,10 @@
-import { Pin, SquarePen, Trash2 } from "lucide-react";
-import { useMemo } from "react";
-import type { Placement } from "@/lib/floating";
-import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { SquarePen } from "lucide-react";
+import { useMemo, useState } from "react";
+import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { startDraftDrag } from "@/features/group/groups";
-import { discardDraft, openDraft, togglePinDraft, useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
-import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
+import { draftTitleOf, openDraft, useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
+import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chat/DraftMenuItems";
 import { useRoute } from "@/app/router";
 import { cx } from "@/lib/cx";
 import { panelKey } from "@/features/panel/surfaces";
@@ -32,7 +31,7 @@ export function useProjectDrafts(projectId: number): PanelDraft[] {
 
 /**
  * サイドバーのプロジェクトの、送る前の新しいチャット（ボードの右のパネル・プロジェクトのチャット欄で書いている途中）。
- * ボードの「下書き」の列と同じもの。押すとそのパネルで開き（別の画面のものは、その画面へ移ってから）、右クリックで開く・ピン留め・削除（ピン留めしたものは「固定」に出す）。
+ * ボードの「下書き」の列と同じもの。押すとそのパネルで開き（別の画面のものは、その画面へ移ってから）、右クリックはチャットの行と同じ並びの DraftMenuItems（ピン留めしたものは「固定」に出す）。
  * ドラッグしてグループ（・グループなし）へ落とすと、作成先のグループを変える（送ったときにそのグループに入る。落とし先はまとまりを包む要素）
  */
 export function DraftRows({ drafts }: { drafts: readonly PanelDraft[] }) {
@@ -50,63 +49,57 @@ export function DraftRows({ drafts }: { drafts: readonly PanelDraft[] }) {
 export function DraftRow({ draft }: { draft: PanelDraft }) {
   const menu = useContextMenu();
   const selected = useDraftSelected(draft);
+  const [renaming, setRenaming] = useState(false);
+  const slot = (
+    <span className="status-slot draft-slot" aria-hidden>
+      <SquarePen size={12} />
+    </span>
+  );
+  // 名前を変えている間は、チャットの行と同じく押しても開かず、ドラッグもしない（入力欄の文字を選べるように）
+  if (renaming)
+    return (
+      <li className="chat-row-item">
+        <div className={cx("chat-row draft-row renaming", selected && "active")}>
+          {slot}
+          <span className="chat-row-body">
+            <DraftTitleInput draft={draft} onDone={() => setRenaming(false)} />
+          </span>
+        </div>
+      </li>
+    );
   return (
     <li className="chat-row-item">
       <button
         type="button"
         className={cx("chat-row draft-row", selected && "active")}
         aria-current={selected || undefined}
-        title="下書き（ドラッグでグループへ移す・右クリックでピン留め・削除）"
+        title="下書き（ドラッグでグループへ移す・右クリックで名前の変更・ピン留め・グループやプロジェクトの変更・削除）"
         draggable
         onDragStart={(e) => startDraftDrag(e, draft)}
         onClick={() => openDraft(draft)}
         onContextMenu={menu.open}
       >
-        <span className="status-slot draft-slot" aria-hidden>
-          <SquarePen size={12} />
-        </span>
+        {slot}
         <span className="chat-row-body">
           <span className="chat-row-line">
-            {/* 名前は最初のチャットを送るまで「New Chat」のまま（タブと同じ。利用者の依頼で、前は書きかけの文の 1 行目を出していた） */}
-            <span className="chat-row-title">{NEW_CHAT_TITLE}</span>
+            {/* 名前は最初のチャットを送るまで「New Chat」のまま（タブと同じ。利用者の依頼で、前は書きかけの文の 1 行目を出していた）。右クリックで付けた名前があればそれ */}
+            <span className="chat-row-title">{draftTitleOf(draft)}</span>
             <span className="chat-row-time">下書き</span>
           </span>
         </span>
       </button>
       {menu.menu && (
-        <DraftMenu at={menu.menu.at} pinned={draft.pinned} onOpen={() => openDraft(draft)} onPin={() => togglePinDraft(draft)} onDelete={() => discardDraft(draft)} onClose={menu.close} />
+        // チャットの行の右クリック（ChatMenu）と同じ並びで、右・下に分けて開くも置く
+        <PopupMenu at={menu.menu.at} label="下書きの操作" escape="pass" onClose={menu.close}>
+          <DraftMenuItems
+            draft={draft}
+            onOpen={() => openDraft(draft)}
+            onRename={() => setRenaming(true)}
+            onClose={menu.close}
+            before={<DraftSplitItems draft={draft} />}
+          />
+        </PopupMenu>
       )}
     </li>
-  );
-}
-
-function DraftMenu({
-  at,
-  pinned,
-  onOpen,
-  onPin,
-  onDelete,
-  onClose,
-}: {
-  at: Placement;
-  pinned: boolean;
-  onOpen: () => void;
-  onPin: () => void;
-  onDelete: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <PopupMenu at={at} label="下書きの操作" onClose={onClose}>
-      <MenuItem onSelect={onOpen}>
-        <SquarePen size={14} /> 開く
-      </MenuItem>
-      {/* チャットのメニューの「ピン留め」と同じ文とアイコン。固定したものはプロジェクトのいちばん上の「固定」に出す */}
-      <MenuItem onSelect={onPin}>
-        <Pin size={14} /> {pinned ? "ピン留めを外す" : "ピン留め"}
-      </MenuItem>
-      <MenuItem danger onSelect={onDelete}>
-        <Trash2 size={14} /> 削除
-      </MenuItem>
-    </PopupMenu>
   );
 }

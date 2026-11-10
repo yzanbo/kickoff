@@ -151,6 +151,17 @@ test("チャットの手動の並び: ids の順に position を振り、ほか�
   assert.equal((await call("PUT", "/api/projects/999/chats/order", { ids: [] })).status, 404);
 });
 
+test("新しいチャットの名前: 送る前に付けた名前（前後の空白を除く）で作り、AI に名前を付けてもらわない。空白だけ・長すぎる名前は断る", async () => {
+  const { call, project, runner, store } = setup();
+  const started = await call("POST", `/api/projects/${project.id}/chats`, { text: "最初の指示", title: "  送る前の名前  " });
+  assert.equal(started.status, 201);
+  assert.equal(started.body.title, "送る前の名前");
+  await until(() => !runner.isBusy(started.body.id));
+  assert.equal(store.chats.get(started.body.id)?.title, "送る前の名前");
+  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { text: "x", title: "   " })).status, 400);
+  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { text: "x", title: "あ".repeat(101) })).status, 400);
+});
+
 test("作業中のチャットはアーカイブ・削除できない（409）。断るときはほかの項目も変えない", async () => {
   const { call, project, runner, provider, store } = setup();
   const release = provider.hold();

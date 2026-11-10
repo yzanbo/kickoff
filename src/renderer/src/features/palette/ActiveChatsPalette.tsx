@@ -25,7 +25,7 @@ import { ACTIVE_STATE_LABELS, ACTIVE_STATES, PaletteStateFilter, type ActiveStat
 type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: PanelDraft };
 
 /** 下書きの名前（書いた文の 1 行目。まだ書いていなければ「新しいチャット」） */
-const draftTitle = (draft: PanelDraft) => draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE;
+const draftTitle = (draft: PanelDraft) => draft.title ?? (draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE);
 
 /**
  * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形。子チャットも並べ、押すと設定の開き方で開く）。

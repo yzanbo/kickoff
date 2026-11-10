@@ -34,6 +34,8 @@ interface Props {
   projectId: number;
   /** グループの＋から始めたときのグループ */
   group?: number;
+  /** 送る前に付けた名前（右クリックの「名前を変更」。あれば、その名前でチャットを作る） */
+  title?: string;
   /** 作業場所別のまとまりの「新しいチャット」から始めたときのワークツリーのフォルダ（なければ本体） */
   worktree?: string;
   /** 初めに入力欄に入れるもの（送信待ちの指示・選んだ文を新しいチャットで聞くとき。文と添付） */
@@ -64,6 +66,7 @@ export function NewChatPane({
   tabKey,
   projectId,
   group,
+  title,
   worktree,
   seed,
   draftText,
@@ -147,6 +150,7 @@ export function NewChatPane({
     }
     const chat = await api.startChat(projectId, {
       text: prompt,
+      title,
       options: options.options,
       attachments,
       group_id: group,

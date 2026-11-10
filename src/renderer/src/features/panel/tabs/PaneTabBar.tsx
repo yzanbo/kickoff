@@ -3,7 +3,7 @@ import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import type { PaneLeaf, SplitDir } from "@/features/panel/layout/paneTree";
-import type { useChatRename } from "@/features/chat/useChatRename";
+import type { TabRename } from "./useTabRename";
 import type { TabDrag } from "@/features/panel/layout/useTabDrag";
 import { useGroupsOf } from "@/stores/groups";
 import type { PanelController } from "@/features/panel/usePanel";
@@ -85,7 +85,7 @@ export function PaneTabBar({
   /** タブの列の何もないところの右クリック（ボードの右のパネルだけ。見出しの置き方を選ぶ） */
   onBarMenu?: (e: React.MouseEvent) => void;
   /** チャットのタブの名前をその場で変える（ダブルクリック・右クリックの「名前を変更」。パネル全体で 1 つ） */
-  rename: ReturnType<typeof useChatRename>;
+  rename: TabRename;
 }) {
   const insertAt = drag.insertAt(pane.id);
   // 見せている表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ）

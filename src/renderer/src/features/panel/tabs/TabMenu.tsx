@@ -1,7 +1,8 @@
 import { AppWindow, ArrowRightLeft, Columns2, GitBranch, MessageSquare, Rows2, SquarePen, Undo2, X } from "lucide-react";
-import type { Chat } from "@shared/types";
 import { alertDialog } from "@/ui/dialogs";
 import { ChatMenuItems } from "@/features/chat/ChatMenuItems";
+import { DraftMenuItems } from "@/features/chat/DraftMenuItems";
+import { draftOfPanelTab } from "@/features/panel/state/panelDrafts";
 import { chatPaneAt, chatPaneSlot } from "@/features/chat/pane/chatPaneContext";
 import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
@@ -9,14 +10,14 @@ import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneTree"
 import type { PanelController } from "@/features/panel/usePanel";
 import type { NewChatTarget } from "./panelTypes";
 import { canPopOut, popOutTab } from "./popOutTab";
-import { NewChatItem } from "@/features/chat/NewChatItem";
 
 /**
  * 右のパネルのタブの右クリックのメニュー: いちばん上に「新しいチャット」（チャットを出す欄だけ。利用者の依頼。右クリックしたタブのペインに、
  * チャット・新しいチャットのタブなら同じグループ・作業場所で、ほかのタブなら欄の作成先で始める）、右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
  * 一覧のペインに「（一覧）」と添える）、分けたペインのサイドバーと連動したチャットは一覧のペインに戻す、閉じる。
  * チャットのタブには、会話 / 動きの切り替え（見出しの行を隠していても切り替えられるように）と、サイドバーの行と同じチャットの項目
- * （名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる
+ * （名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる。
+ * 送る前の新しいチャットのタブは、サイドバーの下書きの行と同じ項目（DraftMenuItems。チャットの項目のうち下書きでもできるもの）を同じ並びで
  */
 export function TabMenu({
   panel,
@@ -29,8 +30,8 @@ export function TabMenu({
   tabKey: string;
   /** 置く場所（右クリックの位置） */
   at: Placement;
-  /** チャットのタブの名前をその場で変え始める */
-  onRename: (chat: Chat) => void;
+  /** チャット・新しいチャットのタブの名前をその場で変え始める */
+  onRename: () => void;
   onClose: () => void;
 }) {
   const pane = paneOfTab(panel.layout, tabKey);
@@ -46,28 +47,18 @@ export function TabMenu({
   // そのタブで描いているチャットの画面（会話 / 動きを切り替える。描いていなければ出さない）
   const chatPane = chat ? chatPaneAt(chatPaneSlot(panel.key, tabKey)) : undefined;
   const activity = chatPane?.state.get().showing === "activity";
-  // 右クリックしたタブと同じグループ・作業場所で始める（チャット・新しいチャットのタブ。ほかは欄の作成先）
-  const sameTarget: NewChatTarget | undefined = chat
-    ? { projectId: chat.project_id, group: chat.group_id ?? undefined, worktree: chat.worktree_path ?? undefined }
-    : tab?.kind === "new"
-      ? { projectId: tab.projectId, group: tab.group, worktree: tab.worktree }
-      : undefined;
-  // 右クリックしたタブのペインに開く（チャットのタブは ChatMenuItems のいちばん上の「新しいチャット」から）
+  // 右クリックしたタブのペインに開く（チャット・新しいチャットのタブは、いちばん上の「新しいチャット」から同じグループ・作業場所で。ほかは欄の作成先）
   const startNew = (target: NewChatTarget | undefined) => {
     panel.focusPane(pane.id);
     if (target) panel.openNew(target);
     else panel.startNewChat();
   };
-  // チャットでないタブの「新しいチャット」（新しいチャットのタブは、チャットのタブと同じくグループ・作業場所の札を添える）
+  // チャットでないタブの「新しいチャット」（欄の作成先で始める）
   const newChatItem = panel.kinds.has("chat") && (
     <>
-      {sameTarget ? (
-        <NewChatItem place={sameTarget} onSelect={() => startNew(sameTarget)} />
-      ) : (
-        <MenuItem title="このペインで新しいチャットを始める" onSelect={() => startNew(undefined)}>
-          <SquarePen size={14} /> 新しいチャット
-        </MenuItem>
-      )}
+      <MenuItem title="このペインで新しいチャットを始める" onSelect={() => startNew(undefined)}>
+        <SquarePen size={14} /> 新しいチャット
+      </MenuItem>
       <div className="menu-separator" role="separator" />
     </>
   );
@@ -118,9 +109,24 @@ export function TabMenu({
       </MenuItem>
     </>
   );
+  const draft = draftOfPanelTab(panel.key, tab);
   return (
     <PopupMenu at={at} label="タブのメニュー" onClose={onClose}>
-      {chat ? (
+      {draft ? (
+        <DraftMenuItems
+          draft={draft}
+          onNewChat={panel.kinds.has("chat") ? (place) => startNew(place) : undefined}
+          onRename={onRename}
+          onClose={onClose}
+          before={paneItems}
+          after={
+            <>
+              <div className="menu-separator" role="separator" />
+              {closeItem}
+            </>
+          }
+        />
+      ) : chat ? (
         <ChatMenuItems
           chat={chat}
           onRename={onRename}

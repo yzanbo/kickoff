@@ -102,10 +102,14 @@ const CONTENT_REQUIRED = { message: "メッセージか添付ファイルが必�
 /** 続けて送る・止めずに伝える指示（pause_after なら、この指示の作業が終わったら送信待ちを一時停止する） */
 export const messageInputSchema = z.object({ ...messageShape, ...marksShape, pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SendMessageBody>;
 
-/** 新しいチャットの最初の指示。作業場所は、いまあるワークツリーのフォルダか、新しく作るワークツリーのブランチ名（どちらもなければ本体） */
+/** チャットの名前（名前の変更・送る前に付けた名前） */
+export const chatTitle = z.string().trim().min(1).max(100);
+
+/** 新しいチャットの最初の指示。作業場所は、いまあるワークツリーのフォルダか、新しく作るワークツリーのブランチ名（どちらもなければ本体）。名前を付けていれば、AI に名前を付けてもらわない */
 export const newChatSchema = z
   .object({
     ...messageShape,
+    title: chatTitle.optional(),
     group_id: z.number().int().optional(),
     worktree_path: folderPath.optional(),
     new_worktree_branch: branchName.optional(),

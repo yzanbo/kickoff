@@ -1,10 +1,12 @@
-import { SquarePen, Trash2 } from "lucide-react";
+import { SquarePen } from "lucide-react";
+import { useState } from "react";
 import { cx } from "@/lib/cx";
 import { useProjects } from "@/stores/projects";
-import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { discardDraft, openDraft, type PanelDraft } from "@/features/panel/state/panelDrafts";
+import { openDraft, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
+import { DraftMenuItems, DraftSplitItems, DraftTitleInput } from "@/features/chat/DraftMenuItems";
 import { ProjectChip } from "@/features/project/ProjectChip";
 
 /**
@@ -13,59 +15,55 @@ import { ProjectChip } from "@/features/project/ProjectChip";
  */
 export function DraftCards({ drafts, showProject = false }: { drafts: readonly PanelDraft[]; showProject?: boolean }) {
   const { projectName } = useProjects();
-  return drafts.map((d) => (
-    <DraftCard
-      key={`${d.panel}:${d.key}`}
-      text={d.text}
-      active={d.showing}
-      project={showProject ? { id: d.projectId, name: projectName(d.projectId) } : undefined}
-      onOpen={() => openDraft(d)}
-      onDelete={() => discardDraft(d)}
-    />
-  ));
+  return drafts.map((d) => <DraftCard key={`${d.panel}:${d.key}`} draft={d} project={showProject ? { id: d.projectId, name: projectName(d.projectId) } : undefined} />);
 }
 
-/** 下書きのカード。書いている途中の文があれば、その初めの数行を出す。押すとそのタブを表示し、右クリックで開く・削除を選べる */
+/**
+ * 下書きのカード。名前（付けていなければ、書いている途中の文があれば「書きかけ」）と、書いている途中の文の初めの数行を出す。
+ * 押すとそのタブを表示し、右クリックはチャットのカードと同じ並びの DraftMenuItems（名前の変更はカードの名前を入力欄にする）
+ */
 function DraftCard({
-  text,
-  active,
+  draft,
   project,
-  onOpen,
-  onDelete,
 }: {
-  text: string;
-  active: boolean;
+  draft: PanelDraft;
   /** どのプロジェクトの下書きか（全プロジェクトのボードだけ） */
   project?: { id: number; name: string };
-  onOpen: () => void;
-  onDelete: () => void;
 }) {
-  const written = text.trim();
+  const written = draft.text.trim();
   const menu = useContextMenu();
+  const [renaming, setRenaming] = useState(false);
+  const title = draft.title ?? (written ? "書きかけ" : NEW_CHAT_TITLE);
+  const head = (
+    <span className="draft-card-head">
+      <SquarePen size={13} aria-hidden />
+      {renaming ? <DraftTitleInput draft={draft} onDone={() => setRenaming(false)} /> : title}
+      {project && <ProjectChip id={project.id} name={project.name} />}
+    </span>
+  );
   return (
     <>
-      <button
-        type="button"
-        className={cx("draft-card", active && "selected")}
-        title={project ? `プロジェクト「${project.name}」で入力中の新しいチャット（押すと開きます。右クリックで削除）` : "右側で入力中の新しいチャット（右クリックで削除）"}
-        onClick={onOpen}
-        onContextMenu={menu.open}
-      >
-        <span className="draft-card-head">
-          <SquarePen size={13} aria-hidden />
-          {written ? "書きかけ" : NEW_CHAT_TITLE}
-          {project && <ProjectChip id={project.id} name={project.name} />}
-        </span>
-        {written && <span className="draft-card-text">{written}</span>}
-      </button>
+      {renaming ? (
+        // 名前を変えている間は押しても開かない（入力欄の文字を選べるように）
+        <div className={cx("draft-card", draft.showing && "selected")}>
+          {head}
+          {written && <span className="draft-card-text">{written}</span>}
+        </div>
+      ) : (
+        <button
+          type="button"
+          className={cx("draft-card", draft.showing && "selected")}
+          title={project ? `プロジェクト「${project.name}」で入力中の新しいチャット（押すと開きます。右クリックで名前の変更・削除など）` : "右側で入力中の新しいチャット（右クリックで名前の変更・削除など）"}
+          onClick={() => openDraft(draft)}
+          onContextMenu={menu.open}
+        >
+          {head}
+          {written && <span className="draft-card-text">{written}</span>}
+        </button>
+      )}
       {menu.menu && (
-        <PopupMenu at={menu.menu.at} onClose={menu.close}>
-          <MenuItem onSelect={onOpen}>
-            <SquarePen size={14} /> 開く
-          </MenuItem>
-          <MenuItem danger onSelect={onDelete}>
-            <Trash2 size={14} /> 削除（入力中の内容は消えます）
-          </MenuItem>
+        <PopupMenu at={menu.menu.at} label="下書きの操作" escape="pass" onClose={menu.close}>
+          <DraftMenuItems draft={draft} onOpen={() => openDraft(draft)} onRename={() => setRenaming(true)} onClose={menu.close} before={<DraftSplitItems draft={draft} />} />
         </PopupMenu>
       )}
     </>

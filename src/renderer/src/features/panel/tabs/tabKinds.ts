@@ -227,7 +227,8 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   new: {
     shows: "chat",
     icon: SquarePen,
-    label: () => NEW_CHAT_TITLE,
+    // 送る前に名前を付けていればその名前（右クリックの「名前を変更」）
+    label: (t) => t.title ?? NEW_CHAT_TITLE,
     // 作成先のグループ名（パネルの中で分かりしだい入れる。送ったあとのチャットのタブも同じく添える）
     group: (t, _chat, groupOf) => groupOf(t.projectId, t.group) ?? (t.groupName ? { name: t.groupName, hue: null } : undefined),
     projectOf: (t) => t.projectId,

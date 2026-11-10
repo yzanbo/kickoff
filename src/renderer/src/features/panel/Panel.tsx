@@ -12,7 +12,7 @@ import { PanelTabPage } from "@/features/panel/tabs/PanelTabPage";
 import { layoutRects } from "@/features/panel/layout/paneGeometry";
 import { focusedPane, homePane, leavesOf, topRightPane, type PaneLeaf } from "@/features/panel/layout/paneTree";
 import { TabMenu } from "@/features/panel/tabs/TabMenu";
-import { useChatRename } from "@/features/chat/useChatRename";
+import { useTabRename } from "@/features/panel/tabs/useTabRename";
 import { useTabDrag } from "@/features/panel/layout/useTabDrag";
 import type { PanelController } from "./usePanel";
 import { useOpenWithMenu } from "@/features/openWith/useOpenWithMenu";
@@ -47,8 +47,8 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   const drag = useTabDrag(panel);
   // タブの右クリックのメニュー
   const tabMenu = useContextMenu<string>();
-  // チャットのタブの名前をその場で変える（タブのダブルクリック・右クリックの「名前を変更」で共通）
-  const rename = useChatRename();
+  // チャット・新しいチャットのタブの名前をその場で変える（タブのダブルクリック・右クリックの「名前を変更」で共通）
+  const rename = useTabRename();
   // 境目をドラッグしている間（中身の上でポインターを奪われないようにする）
   const [resizing, setResizing] = useState(false);
   const leaves = leavesOf(layout.root);
@@ -208,7 +208,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
             );
           })}
       </div>
-      {tabMenu.menu && <TabMenu panel={panel} tabKey={tabMenu.menu.value} at={tabMenu.menu.at} onRename={(chat) => rename.start(chat)} onClose={tabMenu.close} />}
+      {tabMenu.menu && <TabMenu panel={panel} tabKey={tabMenu.menu.value} at={tabMenu.menu.at} onRename={() => rename.start(tabMenu.menu!.value)} onClose={tabMenu.close} />}
     </aside>
     </PanelHostContext.Provider>
   );

@@ -1,18 +1,16 @@
 import type { HTMLAttributes } from "react";
-import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { CHAT_TITLE_MAX } from "@/features/chat/chatTitle";
 import { knownChat } from "@/stores/chats";
 import { confirmLeaveMemo } from "@/features/memo/memoGuards";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { StatusSlot } from "@/features/chat/StatusSlot";
-import type { useChatRename } from "@/features/chat/useChatRename";
 import type { PanelController } from "@/features/panel/usePanel";
 import { SURFACES } from "@/features/panel/surfaces";
 import { PanelTab } from "./PanelTab";
 import { TabWorkplaceBadge } from "./TabWorkplaceBadge";
 import type { PanelTab as Tab } from "./panelTypes";
 import { specOf, type TabGroupLookup } from "./tabKinds";
+import type { TabRename } from "./useTabRename";
 import { useChatTabHint } from "./useChatTabHint";
 import { useTabAgentState } from "./useTabAgentState";
 import type { TabField } from "./tabFields";
@@ -53,8 +51,8 @@ export function PaneTab({
   className?: string;
   /** ドラッグ・右クリックのメニュー */
   extra: HTMLAttributes<HTMLDivElement>;
-  /** チャットのタブの名前をその場で変える（パネル全体で 1 つ） */
-  rename: ReturnType<typeof useChatRename>;
+  /** チャット・新しいチャットのタブの名前をその場で変える（パネル全体で 1 つ） */
+  rename: TabRename;
 }) {
   const spec = specOf(t);
   // チャットのタブのチャット（ボードの一覧になければ、タブの中のチャットから届いたもの）と、エージェントの状態（チャット・子チャット・サブエージェント）
@@ -73,7 +71,7 @@ export function PaneTab({
     if (t.kind !== "chat") return panel.closeTab(t.key);
     void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: chat?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }));
   };
-  const editor = t.kind === "chat" ? rename.editorFor({ id: t.id } as Chat) : undefined;
+  const editor = rename.editorFor(panel.key, t);
   // 作業場所の札（チャットはそのチャットの作業場所、新しいチャットは始める作業場所。ほかの種類は添えない）
   const place =
     t.kind === "chat" ? chat : t.kind === "new" ? { project_id: t.projectId, worktree_path: t.worktree ?? null, branch: null } : undefined;
@@ -96,9 +94,9 @@ export function PaneTab({
       pinnedIn={show("pin") && chat?.pinned ? chat.project_id : null}
       // 状態の印を隠したときは、ほかの種類のタブと同じくアイコンを出す（未読・失敗の太字はそのまま）
       lead={spec.Lead ? <spec.Lead tab={t} /> : agent && show("state") ? <StatusSlot state={agent.state} unread={agent.unread} label={agent.label} /> : undefined}
-      onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Chat) : undefined}
-      // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値はタブの名前）
-      editor={editor && t.kind === "chat" ? { ...editor, initial: t.title ?? "", maxLength: CHAT_TITLE_MAX } : undefined}
+      onRename={rename.canRename(t) ? () => rename.start(t.key) : undefined}
+      // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値はタブの名前。新しいチャットは付けた名前）
+      editor={editor}
       closeLabel={backHome ? `${label} を一覧のペインに戻す` : undefined}
       onClose={close}
     />
