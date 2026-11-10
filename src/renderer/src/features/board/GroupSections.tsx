@@ -9,7 +9,7 @@ import { DraftCards } from "./DraftCards";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { GroupColumnHead } from "./GroupColumnHead";
 import { bucketTone } from "@/features/chatList/StateChatsPopover";
-import { ToneChip } from "@/ui/ToneChip";
+import { BucketChip } from "@/features/chatList/StateChip";
 import { orderGroupBuckets } from "@/features/group/groupOrder";
 import type { GroupBoardState } from "./useGroupBoard";
 
@@ -89,7 +89,7 @@ function StateParts({ parts, render }: { parts: readonly ChatBucket<PanelDraft>[
     return (
       <div key={part.key} className="group-state-part">
         <div className="group-state-head">
-          <ToneChip tone={bucketTone(part)} dot label={part.label} count={active.length} />
+          <BucketChip bucket={part} tone={bucketTone(part)} count={active.length} chats={active} />
         </div>
         {active.map(render)}
       </div>

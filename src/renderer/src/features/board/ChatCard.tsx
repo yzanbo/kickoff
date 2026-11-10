@@ -133,8 +133,3 @@ export function ChatRowContent({ chat, state, projectName, pending = 0, rename, 
     </>
   );
 }
-
-/** 作業中のまま、まだ見ていない返答がある（状態の横に添える） */
-export function UnreadMark() {
-  return <span className="card-unread">未読あり</span>;
-}

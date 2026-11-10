@@ -1,4 +1,7 @@
-import { FolderGit2, MessageSquare, Search, SquarePen } from "lucide-react";
+import { FolderGit2, Search, SquarePen } from "lucide-react";
+import { busyWithUnread } from "@shared/chat/state";
+import { useChatStates } from "@/app/chatStatesContext";
+import { StatusSlot } from "@/features/chat/StatusSlot";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/api";
 import { useChats } from "@/stores/chats";
@@ -35,6 +38,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   // すべてのプロジェクトのチャット（アーカイブしていないもの）
   const { chats } = useChats();
+  // チャットの行の左は、サイドバーの行と同じ状態の印（作業中は回るリング・作業中のまま未読なら緑の点）
+  const { stateOf } = useChatStates();
   const dialog = useModalDialog();
   // 探す対象（複数選べる。開き直しても覚えておく。1 つは必ず残す）
   const [stored, setStored] = useSetting(COMMAND_PALETTE_TARGETS);
@@ -68,7 +73,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     if (targets.includes("chat")) {
       for (const r of chats) {
         const title = chatTitle(r.title);
-        named.push({ key: `r-${r.id}`, label: title, text: title, hint: projectName(r.project_id), icon: <MessageSquare size={15} />, route: { name: "chat", projectId: r.project_id, chatId: r.id } });
+        named.push({ key: `r-${r.id}`, label: title, text: title, hint: projectName(r.project_id), icon: <StatusSlot state={stateOf(r)} unread={busyWithUnread(r, stateOf(r))} />, route: { name: "chat", projectId: r.project_id, chatId: r.id } });
       }
     }
     named.push(...memos);
@@ -76,7 +81,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     // 名前で見つかったものを先に（50 件まで）、続けてチャットの中の文言・メモの中の文言
     return [...filtered.slice(0, 50), ...messages.hits.map((h) => messageItem(h, projectName)), ...memoTexts.hits.map((h) => memoTextItem(h, projectName))];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, chats, memos, query, messages.hits, memoTexts.hits, targetKey, projectName]);
+  }, [projects, chats, memos, query, messages.hits, memoTexts.hits, targetKey, projectName, stateOf]);
 
   function go(item: Item | undefined) {
     if (!item) return;

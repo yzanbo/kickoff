@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import type { ChatBucket } from "@/features/chatList/buckets";
 import { bucketTone } from "@/features/chatList/StateChatsPopover";
+import { bucketMark } from "@/features/chatList/StateChip";
 import { DRAFT_TONE } from "@/features/chat/tones";
 import { ArchiveAllButton } from "./ArchiveAllButton";
 import { ArchivedFold, splitArchived } from "@/ui/ArchivedFold";
@@ -46,7 +47,7 @@ export function StateColumn({
   );
   return (
     <section className={list ? "list-group" : "board-column"}>
-      <ColumnHead label={column.label} tone={bucketTone(column)} count={active.length} action={column.column === "read" ? <ArchiveAllButton chats={active} /> : undefined} />
+      <ColumnHead label={column.label} tone={bucketTone(column)} mark={bucketMark(column, active)} count={active.length} action={column.column === "read" ? <ArchiveAllButton chats={active} /> : undefined} />
       {list ? body : <div className="column-cards">{body}</div>}
     </section>
   );
@@ -144,7 +145,7 @@ function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns:
           const list = archivedOf(c);
           return (
             <div key={c.key} className="archived-list-state">
-              <ColumnHead label={c.label} tone={bucketTone(c)} count={list.length} />
+              <ColumnHead label={c.label} tone={bucketTone(c)} mark={bucketMark(c)} count={list.length} />
               {list.length === 0 ? <p className="column-empty">なし</p> : list.map(render)}
             </div>
           );

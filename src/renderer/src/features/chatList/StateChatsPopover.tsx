@@ -9,9 +9,9 @@ import { COUNTED_COLUMNS, type ApprovalIndex } from "@/features/chat/chatState";
 import { shortRelativeTime } from "@/lib/time";
 import { COLUMN_TONE } from "@/features/chat/tones";
 import { Popover } from "@/ui/Popover";
-import { ToneChip } from "@/ui/ToneChip";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { bucketChats, type BucketHead, type ChatBucket } from "./buckets";
+import { BucketChip } from "./StateChip";
 
 /** 状態のまとまりの色（カンバンの列と同じ。いちばん下の「アーカイブ済み」は控えめな灰。画面の見出しの状態ごとの数 StateStats でも使う） */
 export const bucketTone = (bucket: Pick<BucketHead, "column">) => (bucket.column ? COLUMN_TONE[bucket.column] : "var(--extra-muted)");
@@ -62,7 +62,7 @@ export function StateChatsPopover({
       {sections.map((section) => (
         <section key={section.key} className="state-chats-section">
           <h3 className="state-chats-head">
-            <ToneChip tone={bucketTone(section)} dot label={section.label} count={section.chats.length} />
+            <BucketChip bucket={section} tone={bucketTone(section)} count={section.chats.length} chats={section.chats} />
           </h3>
           {section.chats.map((chat) => (
             <button
@@ -74,7 +74,7 @@ export function StateChatsPopover({
                 onOpen(chat);
               }}
             >
-              {/* サイドバーの行と同じ状態の印（見出しの状態と同じでも、行ごとにひと目で分かるように） */}
+              {/* サイドバーの行と同じ状態の印（見出しの札の印の真下。見出しの状態と同じでも、行ごとにひと目で分かるように） */}
               <StatusSlot state={stateOf(chat)} unread={busyWithUnread(chat, stateOf(chat))} />
               <span className="state-chats-title">{chatTitle(chat.title)}</span>
               {showProject && <span className="state-chats-project muted">{projectName(chat.project_id)}</span>}
