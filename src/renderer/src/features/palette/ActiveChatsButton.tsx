@@ -3,20 +3,16 @@ import type { Project } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import { openActiveChats } from "./openActiveChats";
+import type { WaitingBadge } from "./useAllWaiting";
 
 /** プロジェクトの作業中・待ちのチャットの一覧のボタンの文（右クリックのメニューの項目と同じ） */
 export const ACTIVE_CHATS_LABEL = "作業中・待ちのチャットを一覧";
 
-/** ボタンの右上に重ねる要対応の数（回答待ち・未読。urgent = 回答待ちがあるか。色を回答待ちのオレンジにする） */
-interface WaitingBadge {
-  count: number;
-  urgent: boolean;
-}
-
 /**
- * このプロジェクトに絞り込んだ ⌘⇧A の一覧を開くボタン（アイコンは ⌘⇧A の一覧の入力欄と同じ Activity）。
- * サイドバーのプロジェクトのカードとプロジェクト画面の見出しに置く（利用者の依頼）。
- * waiting を渡すと、要対応の数を右上に重ねる（0 なら出さない。プロジェクト画面の見出し。利用者の依頼）
+ * ⌘⇧A の一覧を開くボタン（アイコンは ⌘⇧A の一覧の入力欄と同じ Activity）。
+ * project を渡すとそのプロジェクトに絞り込んだところから開く（サイドバーのプロジェクトのカード。利用者の依頼）。
+ * 省くと「すべて」のプロジェクトから開く（プロジェクト画面の見出し。ほかのプロジェクトに要対応があるかを見るため。利用者の依頼）。
+ * waiting を渡すと、要対応の数を右上に重ねる（0 なら出さない）
  */
 export function ActiveChatsButton({
   project,
@@ -24,7 +20,7 @@ export function ActiveChatsButton({
   className,
   waiting,
 }: {
-  project: Pick<Project, "id" | "name">;
+  project?: Pick<Project, "id" | "name">;
   size?: number;
   className?: string;
   waiting?: WaitingBadge;
@@ -36,10 +32,14 @@ export function ActiveChatsButton({
       icon={Activity}
       size={size}
       className={className}
-      label={`${project.name} の${ACTIVE_CHATS_LABEL}${note}`}
-      title={`${ACTIVE_CHATS_LABEL}${note}（下書き・作業中・回答待ち・未読。⌘⇧A の一覧をこのプロジェクトで絞り込んで開く）`}
+      label={`${project ? `${project.name} の` : "すべてのプロジェクトの"}${ACTIVE_CHATS_LABEL}${note}`}
+      title={
+        project
+          ? `${ACTIVE_CHATS_LABEL}${note}（下書き・作業中・回答待ち・未読。⌘⇧A の一覧をこのプロジェクトで絞り込んで開く）`
+          : `すべてのプロジェクトの${ACTIVE_CHATS_LABEL}${note}（下書き・作業中・回答待ち・未読。⌘⇧A の一覧を「すべて」で開く。数はすべてのプロジェクトの回答待ち・未読）`
+      }
       aria-haspopup="dialog"
-      onClick={() => openActiveChats({ projectId: project.id })}
+      onClick={() => openActiveChats(project ? { projectId: project.id } : {})}
     />
   );
   if (waiting === undefined) return button;

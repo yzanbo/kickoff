@@ -7,14 +7,12 @@ import { ProjectSwitcher } from "./ProjectSwitcher";
 import { ProjectTabs, useProjectTabsLayout, type TabRefreshing } from "./ProjectTabs";
 import { StateStats } from "./StateStats";
 import { ActiveChatsButton } from "@/features/palette/ActiveChatsButton";
-import { useChatStates } from "@/app/chatStatesContext";
-import { chatStateOf } from "@/features/chat/chatState";
-import { waitingChats } from "@/features/chatList/chatListFlags";
+import { useAllWaiting } from "@/features/palette/useAllWaiting";
 import { NO_CHATS, useChatsWithChildrenByProject } from "@/stores/chats";
 import type { ProjectData } from "./useProjectData";
 
 /**
- * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・状態ごとのチャット数・このプロジェクトの作業中・待ちのチャットの一覧（⌘⇧A）と、
+ * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・状態ごとのチャット数・すべてのプロジェクトの作業中・待ちのチャットの一覧（⌘⇧A）と、
  * タブの列（チャットの件数、変更は変更のあるファイルの数 changeCount。左に縦並びにする設定のときは、見出しには出さない）
  */
 export function ProjectHeader({
@@ -32,12 +30,10 @@ export function ProjectHeader({
 }) {
   const { project } = data;
   const [layout] = useProjectTabsLayout();
-  // 要対応（回答待ち・未読。サイドバーの「要対応」と同じ数え方）の数を、一覧のボタンの右上に出す
-  // 子チャットも数える（状態ごとの数・一覧も同じ。利用者の依頼）
-  const { pending } = useChatStates();
+  // 状態ごとの数は、このプロジェクトのチャット（子チャットも数える。利用者の依頼）
   const counted = useChatsWithChildrenByProject()[project.id] ?? NO_CHATS;
-  const waiting = waitingChats(counted, pending);
-  const urgent = waiting.some((chat) => chatStateOf(chat, pending) === "needs_input");
+  // 一覧のボタンの右上の要対応の数は、すべてのプロジェクトのもの（ほかのプロジェクトに要対応があるかを見るため。利用者の依頼）
+  const waiting = useAllWaiting();
   return (
   <header className="page-header project-header">
     <div className="project-title-row">
@@ -59,8 +55,8 @@ export function ProjectHeader({
       <div className="project-stats">
         {project.archived_at && <ToneChip label="アーカイブ済み" />}
         <StateStats chats={counted} />
-        {/* このプロジェクトに絞り込んだ ⌘⇧A の一覧（状態ごとの数が 0 でも出す。右上に要対応の数。利用者の依頼） */}
-        <ActiveChatsButton project={project} waiting={{ count: waiting.length, urgent }} />
+        {/* すべてのプロジェクトの ⌘⇧A の一覧（「すべて」から開く。状態ごとの数が 0 でも出す。右上にすべてのプロジェクトの要対応の数。利用者の依頼） */}
+        <ActiveChatsButton waiting={waiting} />
       </div>
     </div>
     {layout === "top" && (
