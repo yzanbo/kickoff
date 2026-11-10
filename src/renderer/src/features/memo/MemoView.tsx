@@ -173,7 +173,12 @@ export function MemoView({
   useEffect(() => registerSavable({ dirty: () => savable.current.unsaved, save: () => savable.current.saveDoc() }), []);
 
   return (
-    <div ref={viewRef} className="memo-view">
+    <div
+      ref={viewRef}
+      className="memo-view"
+      // ⌘F の検索の欄は本文の右上に出す（右にメモのチャットを開いていれば、その欄の見出しを隠さないよう左へずらす）
+      style={chatOpen && chatPlace !== "bottom" ? ({ "--memo-find-right": `${chatWidth.size}px` } as CSSProperties) : undefined}
+    >
       {find}
       <header className="memo-head">
         <div className="memo-head-title">
