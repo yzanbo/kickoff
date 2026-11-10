@@ -70,9 +70,9 @@ function CheckItem({
 }
 
 /**
- * 「チャット画面表示」のメニューの項目（どのチャットでも共通の表示の設定）。画面の上から順に、効く場所ごとの組を区切り線で分ける:
- * タブの列 ｜ 見出しの行・見出しに出す項目（横に開く子のメニューで 1 つずつ）・バッジを色付きで表示 ｜ 指示の帯 ｜ 会話の横幅・会話の文字の大きさ（横に開く子のメニューで 5 段階）｜
- * 定型文の帯・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄。「チャット画面表示 ›」の横に開く子のメニュー）と、
+ * 「チャット画面表示」のメニューの項目（どのチャットでも共通の表示の設定）。組を区切り線で分ける:
+ * 「表示 / 非表示」の見出しの下に、画面の上から順に出す・隠すもの（タブの列・見出しの行・指示の帯。利用者の依頼）｜ 見出しに出す項目（横に開く子のメニューで 1 つずつ）・バッジを色付きで表示 ｜
+ * 会話の横幅・会話の文字の大きさ（横に開く子のメニューで 5 段階）｜ 定型文の帯・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄。「チャット画面表示 ›」の横に開く子のメニュー）と、
  * 見出し・会話の何もないところの右クリックで同じものを出す。見出し・タブの列のどちらを隠しても、もう一方と会話の右クリックから戻せる。設定の「表示」と同じ値。
  * heading: いちばん上に「チャット画面表示」の見出しを出す（右クリックのメニュー。子のメニューでは開いた項目が同じ名前なので出さない）
  */
@@ -98,6 +98,8 @@ export function ChatDisplayItems({ heading = true }: { heading?: boolean }) {
           チャット画面表示
         </div>
       )}
+      {/* 画面の上から順に、出す・隠すを切り替えるもの（利用者の依頼で 1 つのまとまりに。前は効く場所ごとに区切り線で分けていた） */}
+      <div className="menu-label">表示 / 非表示</div>
       <CheckItem
         on={!tabRowHidden}
         title={
@@ -109,7 +111,6 @@ export function ChatDisplayItems({ heading = true }: { heading?: boolean }) {
       >
         タブの列
       </CheckItem>
-      {separator}
       <CheckItem
         on={!rowHidden}
         title={rowHidden ? "見出しの行を表示する（⌥⌘T）" : "見出しの行を隠す（⌥⌘T）。隠しても、動きを見ている間とアーカイブ済みのチャットでは出し、⌘F でチャットの右上に検索欄が出ます"}
@@ -117,6 +118,14 @@ export function ChatDisplayItems({ heading = true }: { heading?: boolean }) {
       >
         見出しの行
       </CheckItem>
+      <CheckItem
+        on={!stickyHidden}
+        title="読んでいる返答の元の自分の指示を、チャットの上の帯に出します（帯の右クリックでも隠せます）"
+        onToggle={() => setStickyHidden(!stickyHidden)}
+      >
+        指示の帯
+      </CheckItem>
+      {separator}
       {/* 乗せる・押す・→ で横に項目の一覧を開く（メニューは閉じない） */}
       <button {...items.trigger} title="見出しの行に出すバッジ・ボタン・数を、1 つずつ選びます">
         <span className="project-switch-item">見出しに出す項目</span>
@@ -170,14 +179,6 @@ export function ChatDisplayItems({ heading = true }: { heading?: boolean }) {
         onToggle={() => setBadgeColors(!badgeColors)}
       >
         バッジを色付きで表示
-      </CheckItem>
-      {separator}
-      <CheckItem
-        on={!stickyHidden}
-        title="読んでいる返答の元の自分の指示を、チャットの上の帯に出します（帯の右クリックでも隠せます）"
-        onToggle={() => setStickyHidden(!stickyHidden)}
-      >
-        指示の帯
       </CheckItem>
       {separator}
       <CheckItem on={wide} title="発言の流れとチャット欄の幅の上限を外し、パネルいっぱいまで広げます（パネルの大きさはそのまま）" onToggle={() => setWide(!wide)}>
