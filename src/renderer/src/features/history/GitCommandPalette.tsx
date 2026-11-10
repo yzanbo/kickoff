@@ -57,7 +57,6 @@ function gitCommands(ops: HistoryOps): GitCommand[] {
         ]
       : []),
     { id: "list", label: ops.listHidden ? "左の一覧を開く" : "左の一覧を閉じる", run: ops.toggleList },
-    { id: "home", label: "全プロジェクトを開く", run: ops.home },
   ];
 }
 

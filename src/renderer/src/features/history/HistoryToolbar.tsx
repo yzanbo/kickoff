@@ -6,7 +6,6 @@ import {
   CloudDownload,
   GitBranch,
   GitBranchPlus,
-  House,
   PanelLeftClose,
   PanelLeftOpen,
   Share,
@@ -78,7 +77,7 @@ type MenuKind = "stash" | "branch" | "switch" | "open";
 
 /**
  * 履歴タブの上の帯（利用者の依頼で、よく使う Git の操作を名前つきのボタンで並べた）: 一覧の開閉・Git の操作の窓 ｜ フェッチ・プル（遅れの数）・プッシュ（進みの数）・退避 ▾ ｜
- * 真ん中にプロジェクト名といまのブランチ ▾（押すとほかのブランチへ切り替える）と作業場所の切り替え ｜ ブランチ ▾ ｜ 右に外で開く・全プロジェクト。
+ * 真ん中にプロジェクト名といまのブランチ ▾（押すとほかのブランチへ切り替える）と作業場所の切り替え ｜ ブランチ ▾ ｜ 右に外で開く。
  * 狭ければ名前を隠してアイコンだけにする（styles/editor/editor-history-toolbar.css のコンテナクエリ）
  */
 export function HistoryToolbar({ ops, projectName, worktreePicker }: { ops: HistoryOps; projectName: string; worktreePicker: ReactNode }) {
@@ -143,10 +142,11 @@ export function HistoryToolbar({ ops, projectName, worktreePicker }: { ops: Hist
         </span>
       </div>
       <span className="spacer" />
-      <div className="history-toolbar-group">
-        {ops.canOpenOutside && <ToolButton icon={Share} label="外で開く" tip="作業場所のフォルダを Finder・VS Code・ターミナルで開く" onClick={(e) => menu.toggle(e, "open")} />}
-        <ToolButton icon={House} label="全プロジェクト" tip="全プロジェクトの画面を開く" onClick={ops.home} />
-      </div>
+      {ops.canOpenOutside && (
+        <div className="history-toolbar-group">
+          <ToolButton icon={Share} label="外で開く" tip="作業場所のフォルダを Finder・VS Code・ターミナルで開く" onClick={(e) => menu.toggle(e, "open")} />
+        </div>
+      )}
 
       {palette.open && <GitCommandPalette anchor={palette.anchor} ops={ops} onClose={palette.close} />}
       {menu.menu && (

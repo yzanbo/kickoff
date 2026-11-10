@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { navigate } from "@/app/router";
 import { useSetting } from "@/hooks/useSetting";
 import { HISTORY_LIST_HIDDEN } from "@/lib/storageKeys";
 import { useProjects } from "@/stores/projects";
@@ -11,7 +10,7 @@ import type { GitLogController } from "./useGitLog";
 import type { StashActions } from "./useStashActions";
 
 /**
- * 履歴タブの上の帯と Git の操作の窓で共有する操作（一覧の開閉・フェッチ・プル・プッシュ・退避・ブランチ・外で開く・全プロジェクト）。
+ * 履歴タブの上の帯と Git の操作の窓で共有する操作（一覧の開閉・フェッチ・プル・プッシュ・退避・ブランチ・外で開く）。
  * プル・プッシュはいまのブランチに対するブランチの操作（確かめ・衝突の扱いも同じ）。外で開くのは見ている作業場所のフォルダ
  */
 export function useHistoryOps({
@@ -89,7 +88,6 @@ export function useHistoryOps({
     openVSCode: () => folder && void window.kickoff?.externalApps.openInVSCode(folder),
     openTerminal: () => folder && terminal.open(folder),
     terminalLabel: terminal.label,
-    home: () => navigate({ name: "allProjects" }),
   };
 }
 
