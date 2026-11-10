@@ -178,12 +178,20 @@
   color: inherit;
 }
 
-/* タグが折り返したときも、行の名前「タグ」は 1 段目にそろえる */
-.tag-filter-row {
+/*
+ * 「タグ」の名前の右にタグを並べて 1 行にする（利用者の依頼。前は名前の下の行にタグが並び、2 行を取っていた）。
+ * サイドバーの見出し（.sidebar-head）は格子でないので、見え方の調整の行の subgrid は効かない。この行だけで 2 列にする。
+ * 入らないタグは右の列の中で折り返し、名前「タグ」は 1 段目にそろえる
+ * （.project-list-row の subgrid より強くするため、2 つのクラスで指定する）
+ */
+.project-list-row.tag-filter-row {
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: start;
+  column-gap: 6px;
 }
 
 .tag-filter-row .project-list-row-label {
+  width: auto;
   padding-top: 4px;
 }
 
