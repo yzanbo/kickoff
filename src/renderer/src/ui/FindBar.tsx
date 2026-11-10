@@ -1,13 +1,10 @@
-import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/lib/cx";
-import { isCancelKey, isComposing } from "@/lib/keys";
 import { useFindOptions } from "@/hooks/useFindOptions";
 import { findInTexts, findPattern, stepMatch } from "@/lib/textFind";
 import { createFindMarks, findTextNodes, framesIn } from "./findMarks";
-import { FindOptionButtons, handleFindOptionKey } from "./FindOptionButtons";
-import { CloseButton, IconButton } from "./IconButton";
+import { FindField, findCountText } from "./FindField";
 
 /** 中身が変わってから探し直すまで（読み込み・色付けが続けて届いても 1 回にまとめる） */
 const RESEARCH_DELAY_MS = 150;
@@ -131,35 +128,20 @@ export function FindBar({
 
   if (!host.isConnected) return null;
   return createPortal(
-    <div className={cx("pane-find", className)} role="search">
-      <Search size={13} className="muted" aria-hidden />
-      <input
-        ref={inputRef}
-        type="text"
-        value={query}
-        placeholder={placeholder}
-        aria-label={placeholder}
-        aria-invalid={invalid || undefined}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (isComposing(e) || handleFindOptionKey(e, toggle)) return;
-          if (isCancelKey(e)) {
-            // パネル・右の欄を閉じる Esc に渡さない
-            e.stopPropagation();
-            e.nativeEvent.stopImmediatePropagation();
-            onClose();
-          } else if (e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp") {
-            e.preventDefault();
-            go(e.key === "ArrowUp" || (e.key === "Enter" && e.shiftKey) ? -1 : 1);
-          }
-        }}
-      />
-      <FindOptionButtons options={options} onToggle={toggle} size={14} />
-      <span className={cx("pane-find-count", invalid && "invalid")}>{invalid ? "誤り" : query ? (count === 0 ? "0 件" : `${(index ?? 0) + 1}/${count}`) : ""}</span>
-      <IconButton type="button" icon={ChevronUp} size={13} label="前へ" keys="⇧Enter" disabled={count === 0} onClick={() => go(-1)} />
-      <IconButton type="button" icon={ChevronDown} size={13} label="次へ" keys="Enter" disabled={count === 0} onClick={() => go(1)} />
-      <CloseButton type="button" size={13} label="検索を閉じる" keys="Esc" onClick={onClose} />
-    </div>,
+    <FindField
+      inputRef={inputRef}
+      value={query}
+      onChange={setQuery}
+      placeholder={placeholder}
+      invalid={invalid}
+      options={options}
+      onToggleOption={toggle}
+      count={findCountText({ invalid, query, total: count, current: index })}
+      canStep={count > 0}
+      onStep={go}
+      onClose={onClose}
+      className={cx("pane-find", className)}
+    />,
     host,
   );
 }

@@ -133,88 +133,23 @@
 }
 
 /*
- * ⌘F の検索の欄（memoFindPanel。CodeMirror の検索の欄をエディタの上に出し、中はページ・チャットの検索と同じ見た目: 入力の枠の中に「Aa」「ab」「.*」、
- * 右に件数・前後・閉じる。左の ▸ で置き換えの行を開く）と、見つかった文字の印（チャットの検索と同じ色）
+ * ⌘F の検索の欄（memoFindPanel。中は ui/FindField で、ほかの検索の欄と同じ見た目）: CodeMirror の上の帯にせず、
+ * ページの検索の欄と同じく本文の右上に浮かせる（帯の地・線は消す。本文はずれない）。見つかった文字の印はチャットの検索と同じ色
  */
-.md-editor .cm-panels {
-  border-color: var(--border);
-  color: var(--text);
-  background: var(--bg-sidebar);
-}
-
-.md-editor .cm-panels-top {
-  border-bottom: 1px solid var(--border);
-}
-
-.find-panel {
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 6px 10px 6px 4px;
-}
-
-.find-panel-toggle {
-  flex: none;
-  margin-top: 2px;
-}
-
-/* 検索の行と置き換えの行の入力の枠を同じ幅にそろえる（左の列 = 枠、右の列 = 件数とボタン） */
-.find-panel-rows {
-  display: grid;
-  flex: 1;
-  grid-template-columns: minmax(120px, 360px) auto;
-  align-items: center;
-  gap: 4px 4px;
-  min-width: 0;
-}
-
-.find-panel-row {
-  display: contents;
-}
-
-.find-panel-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.find-panel-box {
-  display: flex;
-  align-items: center;
-  gap: 1px;
-  min-width: 120px;
-  height: 28px;
-  padding: 0 2px 0 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
-}
-
-.find-panel-box:focus-within {
-  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
-}
-
-/* 正規表現として読めないときは赤い枠（ピントがあっても） */
-.find-panel-box.invalid {
-  border-color: color-mix(in srgb, var(--ng) 70%, var(--border));
-}
-
-.find-panel-box input {
-  flex: 1;
-  min-width: 0;
-  padding: 0 4px;
-  border: none;
-  font: inherit;
-  font-size: 12px;
+.md-editor .cm-panels.cm-panels-top {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  left: auto;
+  z-index: 5;
+  width: min(400px, calc(100% - 24px));
+  border: 0;
   color: var(--text);
   background: transparent;
-  outline: none;
 }
 
-.find-panel .pane-find-count {
-  min-width: 44px;
-  padding: 0 4px;
-  text-align: center;
+.memo-find {
+  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
 }
 
 .md-editor .cm-searchMatch {

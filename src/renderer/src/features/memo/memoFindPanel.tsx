@@ -1,16 +1,12 @@
 import { closeSearchPanel, findNext, findPrevious, getSearchQuery, replaceAll, replaceNext, SearchQuery, setSearchQuery } from "@codemirror/search";
 import type { EditorState } from "@codemirror/state";
 import { runScopeHandlers, type EditorView, type Panel, type ViewUpdate } from "@codemirror/view";
-import { ChevronDown, ChevronRight, ChevronUp, Replace, ReplaceAll } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { useFindOptions } from "@/hooks/useFindOptions";
-import { cx } from "@/lib/cx";
-import { isComposing } from "@/lib/keys";
 import type { FindOptions } from "@/lib/textFind";
-import { FindOptionButtons, handleFindOptionKey } from "@/ui/FindOptionButtons";
-import { CloseButton, IconButton } from "@/ui/IconButton";
+import { FindField, findCountText } from "@/ui/FindField";
 
 /** 数える一致の上限（大きなメモで打つたびに数えすぎない） */
 const MAX_COUNT = 10_000;
@@ -45,8 +41,8 @@ function countMatches(state: EditorState): { total: number; current: number | nu
 }
 
 /**
- * メモのエディタ（CodeMirror）の ⌘F の検索の欄。ページの検索の欄（ui/FindBar）・チャットの中の検索と同じ見た目と探し方（「Aa」「ab」「.*」。useFindOptions）で、
- * VS Code と同じく左の ▸ で置き換えの行を開く（Enter で 1 つ、⌘Enter ですべて置き換える）。
+ * メモのエディタ（CodeMirror）の ⌘F の検索の欄。ほかの検索の欄と同じ部品（ui/FindField）・探し方（「Aa」「ab」「.*」。useFindOptions）で、
+ * 本文の右上に浮かせる（.memo-find）。VS Code と同じく左の ▸ で置き換えの行を開く（Enter で 1 つ、⌘Enter ですべて置き換える）。
  * 検索の欄の中のキー（Esc で閉じる・⌘G で次へなど）は CodeMirror の検索の欄と同じ（searchKeymap の search-panel）
  */
 function MemoFindPanel({ view, initialFocus }: { view: EditorView; initialFocus: boolean }) {
@@ -95,83 +91,48 @@ function MemoFindPanel({ view, initialFocus }: { view: EditorView; initialFocus:
 
   const { total, current, capped } = countMatches(view.state);
   const invalid = Boolean(text) && !query.valid;
-  const countText = invalid ? "誤り" : !text ? "" : total === 0 ? "0 件" : `${current === null ? "?" : current + 1}/${total}${capped ? "+" : ""}`;
 
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>, field: "search" | "replace") => {
-    if (isComposing(e) || handleFindOptionKey(e, toggle)) return;
-    if (runScopeHandlers(view, e.nativeEvent, "search-panel")) {
-      e.preventDefault();
-      // パネル・右の欄を閉じる Esc に渡さない
-      e.stopPropagation();
-      return;
-    }
-    if (e.key !== "Enter") return;
+  // 検索の欄の中のキー（Esc で閉じる・⌘G で次へなど）は CodeMirror の検索の欄と同じ（searchKeymap の search-panel）
+  const scopeKeys = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!runScopeHandlers(view, e.nativeEvent, "search-panel")) return false;
     e.preventDefault();
-    if (field === "search") (e.shiftKey ? findPrevious : findNext)(view);
-    else if (e.metaKey || e.ctrlKey) replaceAll(view);
-    else replaceNext(view);
+    // パネル・右の欄を閉じる Esc に渡さない
+    e.stopPropagation();
+    return true;
   };
 
   return (
-    <div className="find-panel" role="search">
-      <IconButton
-        type="button"
-        icon={replaceOpen ? ChevronDown : ChevronRight}
-        size={14}
-        label={replaceOpen ? "置き換えを閉じる" : "置き換えを開く"}
-        className="find-panel-toggle"
-        aria-expanded={replaceOpen}
-        onClick={() => setReplaceOpen(!replaceOpen)}
-      />
-      <div className="find-panel-rows">
-        <div className="find-panel-row">
-          <div className={cx("find-panel-box", invalid && "invalid")}>
-            <input
-              ref={searchRef}
-              main-field="true"
-              type="text"
-              value={text}
-              placeholder="検索"
-              aria-label="メモの中を検索"
-              aria-invalid={invalid || undefined}
-              onChange={(e) => {
-                setText(e.target.value);
-                push(e.target.value, replace, options);
-              }}
-              onKeyDown={(e) => onKeyDown(e, "search")}
-            />
-            <FindOptionButtons options={options} onToggle={toggle} size={14} />
-          </div>
-          <div className="find-panel-actions">
-            <span className={cx("pane-find-count", invalid && "invalid")}>{countText}</span>
-            <IconButton type="button" icon={ChevronUp} size={14} label="前へ" keys="⇧Enter" disabled={total === 0} onClick={() => findPrevious(view)} />
-            <IconButton type="button" icon={ChevronDown} size={14} label="次へ" keys="Enter" disabled={total === 0} onClick={() => findNext(view)} />
-            <CloseButton type="button" size={14} label="検索を閉じる" keys="Esc" onClick={() => closeSearchPanel(view)} />
-          </div>
-        </div>
-        {replaceOpen && (
-          <div className="find-panel-row">
-            <div className="find-panel-box">
-              <input
-                type="text"
-                value={replace}
-                placeholder="置き換え"
-                aria-label="置き換える文"
-                onChange={(e) => {
-                  setReplace(e.target.value);
-                  push(text, e.target.value, options);
-                }}
-                onKeyDown={(e) => onKeyDown(e, "replace")}
-              />
-            </div>
-            <div className="find-panel-actions">
-              <IconButton type="button" icon={Replace} size={14} label="置き換える" keys="Enter" disabled={total === 0} onClick={() => replaceNext(view)} />
-              <IconButton type="button" icon={ReplaceAll} size={14} label="すべて置き換える" keys="⌘Enter" disabled={total === 0} onClick={() => replaceAll(view)} />
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    <FindField
+      inputRef={searchRef}
+      value={text}
+      onChange={(v) => {
+        setText(v);
+        push(v, replace, options);
+      }}
+      placeholder="このメモを検索"
+      inputProps={{ "main-field": "true" }}
+      invalid={invalid}
+      options={options}
+      onToggleOption={toggle}
+      count={findCountText({ invalid, query: text, total, current, capped })}
+      canStep={total > 0}
+      onStep={(step) => (step === 1 ? findNext : findPrevious)(view)}
+      onClose={() => closeSearchPanel(view)}
+      onKeyDown={scopeKeys}
+      replace={{
+        open: replaceOpen,
+        onOpenChange: setReplaceOpen,
+        value: replace,
+        onChange: (v) => {
+          setReplace(v);
+          push(text, v, options);
+        },
+        onReplace: () => replaceNext(view),
+        onReplaceAll: () => replaceAll(view),
+        canReplace: total > 0,
+      }}
+      className="memo-find"
+    />
   );
 }
 

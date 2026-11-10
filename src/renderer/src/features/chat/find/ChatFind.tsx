@@ -1,13 +1,11 @@
-import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
-import { consumeKey, isCancelKey, isComposing, isKey } from "@/lib/keys";
+import { consumeKey, isKey } from "@/lib/keys";
 import { findPattern, spansIn, type FindPattern } from "@/lib/textFind";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
 import { useFindOptions } from "@/hooks/useFindOptions";
-import { FindOptionButtons, handleFindOptionKey } from "@/ui/FindOptionButtons";
-import { CloseButton, IconButton } from "@/ui/IconButton";
+import { FindField, findCountText } from "@/ui/FindField";
 import { findMatches } from "./chatFindMatches";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 
@@ -113,47 +111,35 @@ export function ChatFind({
   );
 
   return (
-    // 欄のどこを押しても入力欄にピント（虫眼鏡も。狭い見出しでは虫眼鏡だけになり、押す・⌘F で広がる）
-    <div className={cx("chat-find", query && "active", floating && "floating")} role="search" onPointerDown={(e) => e.target === e.currentTarget && (e.preventDefault(), inputRef.current?.focus())}>
-      <Search size={13} className="muted" aria-hidden onPointerDown={(e) => (e.preventDefault(), inputRef.current?.focus())} />
-      <input
-        ref={inputRef}
-        type="text"
-        value={query}
-        placeholder="このチャットを検索"
-        title="このチャットの中を検索（⌘F）"
-        aria-label="このチャットの中を検索"
-        aria-invalid={invalid || undefined}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (isComposing(e)) return;
-          // ⌥⌘C / ⌥⌘W / ⌥⌘R: 探し方を切り替える
-          if (handleFindOptionKey(e, toggle)) return;
-          if (e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp") {
-            e.preventDefault();
-            go(e.key === "ArrowUp" || (e.key === "Enter" && e.shiftKey) ? -1 : 1);
-          } else if (isCancelKey(e)) {
-            // パネルを閉じる Esc より先に、検索をやめる（文を消して印を外し、チャット欄にピントを戻す）
-            consumeKey(e);
-            e.nativeEvent.stopImmediatePropagation();
-            setQuery("");
-            focusComposer();
-          }
-        }}
-      />
-      {/* 件数・前後・探し方は、文を入れたときだけ出す（ふだんは見出しの行をすっきりさせる） */}
-      {query && (
-        <>
-      <FindOptionButtons options={options} onToggle={toggle} size={16} />
-      <span className={cx("chat-find-count muted small", invalid && "invalid")} aria-live="polite">
-        {invalid ? "正規表現の誤り" : needle ? (matches.length ? (index === null ? `${matches.length} 件` : `${index + 1} / ${matches.length}`) : "見つかりません") : ""}
-      </span>
-      <IconButton icon={ChevronUp} label="前を探す" title="前を探す（Shift+Enter）" size={14} disabled={matches.length === 0} onClick={() => go(-1)} />
-      <IconButton icon={ChevronDown} label="次を探す" title="次を探す（Enter）" size={14} disabled={matches.length === 0} onClick={() => go(1)} />
-      <CloseButton label="検索の文を消す" title="消す（Esc）" size={14} onClick={() => (setQuery(""), inputRef.current?.focus())} />
-        </>
-      )}
-    </div>
+    // 欄のどこを押しても入力欄にピント（虫眼鏡も。狭い見出しでは虫眼鏡だけになり、押す・⌘F で広がる）。見た目と操作はほかの検索の欄と同じ FindField
+    <FindField
+      inputRef={inputRef}
+      value={query}
+      onChange={setQuery}
+      placeholder="このチャットを検索"
+      inputProps={{ title: "このチャットの中を検索（⌘F）" }}
+      invalid={invalid}
+      options={options}
+      onToggleOption={toggle}
+      count={findCountText({ invalid, query: needle, total: matches.length, current: index })}
+      canStep={matches.length > 0}
+      onStep={go}
+      closeLabel="検索の文を消す"
+      // 閉じる・Esc: 文を消して印を外す（見出しの欄は残る）。Esc はチャット欄にピントを戻し、パネルを閉じる Esc より先に受け取る
+      onClose={() => (setQuery(""), inputRef.current?.focus())}
+      onEscape={(e) => {
+        consumeKey(e);
+        e.nativeEvent.stopImmediatePropagation();
+        setQuery("");
+        focusComposer();
+      }}
+      className={cx("chat-find", query && "active", floating && "floating")}
+      onPointerDown={(e) => {
+        if ((e.target as HTMLElement).closest("button, input")) return;
+        e.preventDefault();
+        inputRef.current?.focus();
+      }}
+    />
   );
 }
 

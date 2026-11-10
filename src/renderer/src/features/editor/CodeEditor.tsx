@@ -1,12 +1,12 @@
 // このファイルは FileView から使うときだけ読み込む（Monaco は大きいので、普段の起動に含めない）
 import * as monaco from "./monacoEditor";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GitBlame } from "@shared/types";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import type { AppliedTheme } from "@/lib/appliedTheme";
 import { registerCodeSelection, type CodeSelection } from "./codeSelection";
-import { registerEditorFind } from "./editorFind";
+import { MonacoFindBar } from "./MonacoFindBar";
 import { syncMonacoFindOptions } from "./monacoFindOptions";
 import { SPLIT_MIN_WIDTH } from "./DiffView";
 import { blameAt, blameHover, blameLabel } from "./blameText";
@@ -146,6 +146,8 @@ export default function CodeEditor({
   blameRef.current = blame;
   const refreshBlame = useRef<(() => void) | null>(null);
   const theme = useAppliedTheme();
+  // ⌘F の検索の欄に渡すエディタ（作ったら入れる。差分の編集では右の編集する側）
+  const [findEditor, setFindEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   useEffect(() => {
     applyTheme(theme);
@@ -229,11 +231,8 @@ export default function CodeEditor({
     const cursorSub = editor.onDidChangeCursorPosition(paintBlame);
     const blameContentSub = model.onDidChangeContent(paintBlame);
     const unregister = registerCodeSelection(host, () => readSelection(editor));
-    // ページの ⌘F（ピントが部品の外にあるとき）で、Monaco の検索の欄を開く（部品の中にピントがあれば Monaco が自分で受け取る）
-    const unregisterFind = registerEditorFind(host, () => {
-      editor.focus();
-      void editor.getAction("actions.find")?.run();
-    });
+    // ⌘F の検索の欄（ほかの検索の欄と同じ部品。エディタの中の ⌘F・ページの ⌘F は MonacoFindBar が受け取る）
+    setFindEditor(editor);
     // 検索の欄の「Aa」「ab」「.*」は、ほかの検索の欄と同じ値にそろえる
     const unsyncFind = syncMonacoFindOptions(editor);
     if (autoFocus) editor.focus();
@@ -244,7 +243,7 @@ export default function CodeEditor({
       blameContentSub.dispose();
       refreshBlame.current = null;
       unregister();
-      unregisterFind();
+      setFindEditor(null);
       unsyncFind();
       refreshQuickDiff.current = null;
       // 差分の編集では、左右の部品は差分の部品が一緒に片付ける
@@ -304,5 +303,10 @@ export default function CodeEditor({
   }, [line]);
 
   // data-quote-path: 右の欄・別ウィンドウで選んだ行をチャットに足すとき（useCodeQuoteMenu・SideSelectionAttach）に読む
-  return <div ref={hostRef} className="code-editor" data-quote-path={path} />;
+  return (
+    <>
+      <div ref={hostRef} className="code-editor" data-quote-path={path} />
+      {findEditor && hostRef.current && <MonacoFindBar editor={findEditor} host={hostRef.current} />}
+    </>
+  );
 }

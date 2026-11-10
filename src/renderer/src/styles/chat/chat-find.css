@@ -1,14 +1,10 @@
-/* ==== チャットの中の検索（ChatFind。チャットの見出しの行） ==== */
+/* ==== 検索の欄（ui/FindField。チャット・ページ・メモ・ファイルのエディタの ⌘F で同じ見た目。置き場所は下の .chat-find・.pane-find などで決める） ==== */
 
-/*
- * チャットの中の検索（見出しの行の右にいつも置く入力欄。⌘F でピントが入る）。ふだんは細く、ピントが入る・文を入れると広げ、
- * 件数・前後・探し方（Aa・ab・.*）は文を入れたときだけ出す。狭い見出し（右端のチャット欄など）では虫眼鏡だけにして、押す・⌘F で広げる
- */
-.chat-find {
+/* 枠の中に、虫眼鏡・入力・探し方（Aa・ab・.*）・件数・前後・閉じる。ピントがあればアクセントの枠、正規表現として読めなければ赤い枠 */
+.find-box {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 2px;
-  height: 26px;
   padding: 0 4px 0 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -16,26 +12,96 @@
   cursor: text;
 }
 
-.chat-find:focus-within {
+.find-box:focus-within {
   border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
 }
 
-.chat-find input {
-  width: 140px;
+.find-box.invalid {
+  border-color: color-mix(in srgb, var(--ng) 70%, var(--border));
+}
+
+/* 置き換えの行があるとき（エディタ）: 左に開閉の ▸ を置くので、左の余白を詰める */
+.find-box.has-replace {
+  padding-left: 2px;
+}
+
+.find-box-toggle.icon-button {
+  flex: none;
+  width: 20px;
+  height: 28px;
+}
+
+.find-box-rows {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.find-box-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  min-width: 0;
+}
+
+.find-box-icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.find-box input {
+  flex: 1;
   min-width: 0;
   padding: 0 4px;
   border: none;
   font: inherit;
   font-size: 12px;
-  color: inherit;
+  color: var(--text);
   background: transparent;
   outline: none;
+}
+
+.find-box-controls {
+  display: contents;
+}
+
+.find-box-count {
+  flex: none;
+  min-width: 36px;
+  padding: 0 2px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.find-box-count.invalid {
+  color: var(--ng);
+}
+
+/*
+ * チャットの中の検索（ChatFind。見出しの行の右にいつも置く。⌘F でピントが入る）: ふだんは細く、ピントが入る・文を入れると広げ、
+ * 探し方・件数・前後・閉じるはそのときだけ見せる。見出しの行に合わせて少し低く（26px）。狭い見出し（右端のチャット欄など）では虫眼鏡だけにして、押す・⌘F で広げる
+ */
+.chat-find .find-box-row {
+  height: 24px;
+}
+
+.chat-find input {
+  flex: none;
+  width: 140px;
   transition: width var(--panel-motion-duration) var(--panel-motion-ease);
 }
 
 .chat-find:focus-within input,
 .chat-find.active input {
   width: 200px;
+}
+
+.chat-find:not(:focus-within, .active) .find-box-controls {
+  display: none;
 }
 
 @container (max-width: 420px) {
@@ -58,7 +124,7 @@
 }
 
 /*
- * 見出しに出さないとき（見出しの行・項目を隠した）の検索欄（floating）: チャットの右上（見出しのすぐ下）に浮かせ、下の会話は動かさない。
+ * 見出しに出さないとき（見出しの行・項目を隠した）の検索欄（floating）: チャットの右上（見出しのすぐ下）に、ページの検索の欄と同じ高さで浮かせ、下の会話は動かさない。
  * ⌘F でピントが入っている・文が残っている間だけ出し、ふだんはピントを受けられるよう、display: none にせず場所を取らずに見えなくする
  * （詳細度で上の @container の規則に勝つ）
  */
@@ -67,7 +133,11 @@
   top: calc(100% + 6px);
   right: var(--gutter);
   z-index: 5;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
+}
+
+.chat-find.floating .find-box-row {
+  height: 28px;
 }
 
 .chat-find.floating:not(:focus-within, .active) {
@@ -80,22 +150,6 @@
   pointer-events: none;
 }
 
-.chat-find-count {
-  flex: none;
-  font-variant-numeric: tabular-nums;
-}
-
-/* 正規表現として読めないとき（チャットの中の検索・ページの検索の欄・メモのエディタの検索の欄で共通）: 枠と件数のところを赤く */
-.chat-find-count.invalid,
-.pane-find-count.invalid {
-  color: var(--ng);
-}
-
-.chat-find:has(input[aria-invalid="true"]),
-.pane-find:has(input[aria-invalid="true"]) {
-  border-color: color-mix(in srgb, var(--ng) 70%, var(--border));
-}
-
 ::highlight(chat-find) {
   background-color: color-mix(in srgb, var(--warn) 35%, transparent);
 }
@@ -105,41 +159,14 @@
   background-color: var(--warn);
 }
 
-/* チャットの画面の右の欄の ⌘F（AgentPanelFind）: 欄の右上（タブの列のすぐ下）に浮かせる検索の欄。印はチャットの検索と同じ色 */
+/* 浮かせる検索の欄（ui/FindBar。チャットの画面の右の欄の ⌘F・ページの ⌘F）: 欄の右上（タブの列のすぐ下）に浮かせる。印はチャットの検索と同じ色 */
 .pane-find {
   position: absolute;
   z-index: 5;
   top: 42px;
   right: 12px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
   width: min(400px, calc(100% - 24px));
-  height: 30px;
-  padding: 0 4px 0 8px;
-  border: 1px solid color-mix(in srgb, var(--accent) 60%, var(--border));
-  border-radius: var(--radius);
-  background: var(--bg-elev);
   box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
-}
-
-.pane-find input {
-  flex: 1;
-  min-width: 0;
-  padding: 0 4px;
-  border: none;
-  font: inherit;
-  font-size: 12px;
-  color: var(--text);
-  background: transparent;
-  outline: none;
-}
-
-.pane-find-count {
-  flex: none;
-  font-size: 11px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
 }
 
 ::highlight(pane-find) {

@@ -6,8 +6,26 @@
 }
 
 .code-editor {
+  position: relative;
   width: 100%;
   height: 100%;
+}
+
+/*
+ * ⌘F の検索の欄（MonacoFindBar。ほかの検索の欄と同じ ui/FindField）: エディタの右上に浮かせる。
+ * Monaco が描く検索の欄は隠す（探す・印・移る・置き換えは Monaco の仕組みのまま）
+ */
+.code-editor .monaco-editor .find-widget {
+  display: none;
+}
+
+.monaco-find {
+  position: absolute;
+  top: 6px;
+  right: 20px;
+  z-index: 6;
+  width: min(420px, calc(100% - 40px));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
 }
 
 .diff-state.error {
