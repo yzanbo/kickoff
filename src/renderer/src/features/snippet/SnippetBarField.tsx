@@ -5,7 +5,7 @@ import { Segmented } from "@/ui/Segmented";
 
 /**
  * 定型文の帯を表示するか（設定の「定型文」のいちばん上と「表示」に置く。どのチャットでも同じ値で、
- * タブの列の「表示」→「定型文の帯」・帯の右クリックの「定型文の帯を隠す」と同じ設定）
+ * チャットの見出しの右クリックの「チャット画面表示」→「定型文の帯」・帯の右クリックの「定型文の帯を隠す」と同じ設定）
  */
 export function SnippetBarField() {
   const [hidden, setHidden] = useSetting(SNIPPET_BAR_HIDDEN);
