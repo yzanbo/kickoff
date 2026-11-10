@@ -1,7 +1,8 @@
-import { Check, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { Fragment, type MouseEvent, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
+import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ChatDisplayItems } from "@/features/chat/pane/ChatDisplayMenu";
@@ -22,7 +23,7 @@ import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/sidebar/chatG
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
  * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・チャットの並び順（サイドバーと共通）・タブに出す項目（tabFields）・グループ別のときに出すグループ（HiddenGroupItems）・アーカイブ済みのチャットを出すか・チャット画面表示
- * （タブの列・見出し・指示の帯・会話の横幅と文字の大きさ・チャット欄。ChatDisplayItems。どのチャットでも共通）
+ * （タブの列・見出し・指示の帯・会話の横幅と文字の大きさ・チャット欄。ChatDisplayItems。どのチャットでも共通。項目が多いので「チャット画面表示 ›」の横に開く子のメニューに入れる。利用者の依頼）
  * を 1 つにまとめる（以前はそれぞれのアイコンが並び、タブの列の道具が多かった）。
  * チャットの画面の切り替えは、見出しを隠しても戻せるよう、見出しの外のここに置く。
  * 欄に関係のない項目は出さない（サブエージェントの欄は項目がないので、ボタンも右クリックも出さない）。
@@ -39,6 +40,7 @@ export function usePanelViewMenu(panel: PanelController) {
   const [tabHidden, setTabHidden] = useSetting(PANEL_TAB_HIDDEN);
   const hiddenFields = hiddenTabFields(tabHidden);
   const menu = useContextMenu();
+  const chatDisplay = useSubmenu();
   // いちばん下の「既定に戻す」（メニューに出ている選び方を初めの値に戻す。初めのままなら押せない）
   const defaults = usePanelViewReset(panel.surface, kinds.has("chat"));
   const showKinds = !rules.fixedKinds;
@@ -148,7 +150,20 @@ export function usePanelViewMenu(panel: PanelController) {
         {archived && <Check size={14} aria-hidden />}
       </MenuItem>,
     );
-    sections.push(<ChatDisplayItems />);
+    // 乗せる・押す・→ で横に開く（メニューは閉じない）
+    sections.push(
+      <>
+        <button {...chatDisplay.trigger} title="どのチャットでも共通の表示です（設定の「表示」と同じ値）">
+          <span className="project-switch-item">チャット画面表示</span>
+          <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
+        </button>
+        {chatDisplay.anchor && (
+          <MenuFlyout anchor={chatDisplay.anchor} label="チャット画面表示" onBack={chatDisplay.back}>
+            <ChatDisplayItems heading={false} />
+          </MenuFlyout>
+        )}
+      </>,
+    );
   }
   if (has)
     sections.push(

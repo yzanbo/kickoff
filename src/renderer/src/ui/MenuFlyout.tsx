@@ -3,7 +3,8 @@ import { cx } from "@/lib/cx";
 
 /**
  * メニューの項目の横に開く子のメニューの開閉。
- * trigger は開く項目に渡す（乗せる・押す・→ で開く。メニューは閉じない）。同じメニューのほかの項目に乗せたら閉じる。
+ * trigger は開く項目に渡す（乗せる・押す・→ で開く。メニューは閉じない）。同じメニューのほかの項目に乗せたら閉じる
+ * （子のメニューの中にさらに子のメニューを開くときは、開いた項目のある子のメニューのほかの項目に乗せたら閉じる）。
  * back は ← で子のメニューを閉じて、開いた項目にピントを戻す
  */
 export function useSubmenu() {
@@ -15,7 +16,9 @@ export function useSubmenu() {
     if (!menu) return;
     const onOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest(".menu-flyout") || target.closest(".menu-submenu") === anchor) return;
+      // 開いた項目のあるメニュー（それ自身が子のメニューのこともある）の外の、子のメニューの上では閉じない
+      const flyout = target.closest(".menu-flyout");
+      if ((flyout && flyout !== menu) || target.closest(".menu-submenu") === anchor) return;
       if (target.closest("button")) setAnchor(null);
     };
     menu.addEventListener("mouseover", onOver);
@@ -94,6 +97,8 @@ export function MenuFlyout({
         // ← は項目の上でだけ（入力欄では文字の間を動く）
         if (e.key === "ArrowLeft" && (e.target as HTMLElement).tagName === "BUTTON") {
           e.preventDefault();
+          // 子のメニューの中の子のメニューで押したとき、外側の子のメニューまで閉じない
+          e.stopPropagation();
           onBack();
         }
       }}
