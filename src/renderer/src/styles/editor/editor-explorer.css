@@ -26,11 +26,37 @@
   padding: 4px 0 8px;
 }
 
-/* ファイルタブの木と、その下の空いている所（右クリックで新しいファイル・フォルダー） */
+/*
+ * ファイルタブの木と、その下の空いている所（右クリックで新しいファイル・フォルダー）。木だけを流し、上の見出し（.changes-head）は
+ * いつも出す（VS Code のエクスプローラーと同じ。下の開いたフォルダの行を貼り付ける位置の基準にもなる）
+ */
 .files-pane {
   display: flex;
-  flex: 1 0 auto;
+  flex: 1 1 0;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/*
+ * 開いたフォルダの行を上に貼り付ける（利用者の依頼。VS Code のエクスプローラーの Sticky Scroll と同じ）: 中身を流している間、
+ * 入っているフォルダの行を深さの順に上へ積み、そのフォルダの中身が流れ切ると、次のフォルダの行に押し出される（sticky は親の li の中だけで効く）。
+ * 浅い段ほど上に重ね（押し出される深い段がその下へ潜る）、縦の線（z-index 1）より上に出す。地は流れる行を隠すため不透明に
+ */
+.files-pane .tree-item[aria-expanded="true"] > .tree-row {
+  --tree-row-height: 24px;
+  position: sticky;
+  top: calc(var(--depth, 0) * var(--tree-row-height));
+  z-index: max(2, calc(20 - var(--depth, 0)));
+  background: var(--bg-sidebar);
+}
+
+.files-pane .tree-item[aria-expanded="true"] > .tree-row:hover {
+  background: var(--bg-hover);
+}
+
+.files-pane .tree-item[aria-expanded="true"] > .tree-row.selected {
+  background: var(--bg-active);
 }
 
 /*
