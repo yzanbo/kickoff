@@ -126,3 +126,8 @@
   flex: 1;
   max-width: 240px;
 }
+
+/* AI からの質問の「その他」の欄の中の失敗の文（欄の幅に合わせ、チャット欄の余白を付けない） */
+.question-other-field .dictation-error {
+  padding: 0;
+}
