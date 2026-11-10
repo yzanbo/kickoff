@@ -1,4 +1,4 @@
-/* ==== 音声入力: チャット欄のマイクのボタン（録音中・文字起こし中・失敗）と、設定の「音声入力」（この Mac の準備・モデルの一覧） ==== */
+/* ==== 音声入力: チャット欄・質問の「その他」の欄のマイクのボタン（録音中・文字起こし中・失敗）。設定の「音声入力」は voice-settings.css ==== */
 
 /* 準備ができていないとき（押すと設定を開く）は、ほかの道具より薄く */
 .dictation-button.unready {
@@ -60,71 +60,6 @@
 .dictation-error .error {
   flex: 1;
   margin: 0;
-}
-
-/* 設定: この Mac の準備（見出しの横に確かめ直すボタン） */
-.voice-tools-head {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.voice-tools {
-  margin: 4px 0;
-}
-
-/* 設定: モデルの一覧（選んでいるものは枠の色で示す） */
-.voice-models {
-  display: grid;
-  gap: 8px;
-}
-
-.voice-model {
-  display: grid;
-  gap: 4px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
-}
-
-.voice-model.selected {
-  border-color: var(--accent);
-}
-
-.voice-model-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.voice-model-name {
-  font-weight: 600;
-}
-
-.voice-model-recommended {
-  color: var(--accent-bright);
-}
-
-.voice-model-note {
-  margin: 0;
-}
-
-.voice-model-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 26px;
-}
-
-.voice-model-actions .error {
-  margin: 0;
-}
-
-.voice-model-progress {
-  flex: 1;
-  max-width: 240px;
 }
 
 /* AI からの質問の「その他」の欄の中の失敗の文（欄の幅に合わせ、チャット欄の余白を付けない） */

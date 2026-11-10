@@ -1,0 +1,210 @@
+/* ==== 設定の「音声入力」の準備（VoiceLocalSetup・VoiceOpenAiSetup）: 手順の番号と ✓・brew のコマンド・ツールの行・モデルの一覧（精度と速さの目盛り・料金）・詳しい設定。voice-settings.css が 300 行を超えたので分けた ==== */
+
+/* 準備の手順（左に番号の丸、済んだら緑の ✓） */
+.voice-steps {
+  display: grid;
+  gap: 14px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.voice-step {
+  display: flex;
+  gap: 10px;
+}
+
+.voice-step-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.voice-step.done .voice-step-mark {
+  border-color: transparent;
+  color: #fff;
+  background: var(--ok);
+}
+
+.voice-step-body {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.voice-step-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  font-weight: 600;
+}
+
+.voice-step-body .field-help {
+  margin: 0;
+}
+
+.voice-step-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* brew のコマンドとコピー */
+.voice-command {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 6px 4px 10px;
+  border-radius: 6px;
+  background: var(--bg-hover);
+}
+
+.voice-command code {
+  overflow-wrap: anywhere;
+}
+
+.voice-tools {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.voice-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.voice-tool-name {
+  flex: none;
+  font-size: 13px;
+}
+
+.voice-tool .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* モデルの一覧（選んでいるものは枠の色で示す） */
+.voice-models {
+  display: grid;
+  gap: 8px;
+}
+
+.voice-model {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.voice-model.selected {
+  border-color: var(--accent);
+}
+
+.voice-model-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.voice-model-name {
+  font-weight: 600;
+}
+
+.voice-model-recommended {
+  color: var(--accent-bright);
+}
+
+.voice-model-meters,
+.voice-model-price {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.voice-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.voice-meter-dots {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.voice-meter-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bg-active);
+}
+
+.voice-meter-dot.on {
+  background: var(--accent-bright);
+}
+
+.voice-model-note {
+  margin: 0;
+}
+
+.voice-model-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.voice-model-actions .error {
+  margin: 0;
+}
+
+.voice-model-hint {
+  color: var(--warn);
+}
+
+.voice-model-progress {
+  flex: 1;
+  max-width: 240px;
+}
+
+/* OpenAI の詳しい設定（互換のサーバー） */
+.voice-advanced {
+  margin-top: 12px;
+}
+
+.voice-advanced summary {
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.voice-advanced[open] summary {
+  margin-bottom: 8px;
+}
+
+.voice-advanced .field + .field {
+  margin-top: 10px;
+}

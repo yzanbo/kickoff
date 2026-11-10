@@ -21,7 +21,8 @@ export function Field({
 }) {
   return (
     <Tag className="field">
-      <span className={cx("field-label", labelClassName)}>{label}</span>
+      {/* label が null なら名前の行を出さない（まわりの見出しが名前を兼ねるとき） */}
+      {label !== null && <span className={cx("field-label", labelClassName)}>{label}</span>}
       {children}
       {help && <span className="field-help">{help}</span>}
     </Tag>

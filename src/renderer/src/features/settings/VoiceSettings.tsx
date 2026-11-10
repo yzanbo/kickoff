@@ -1,147 +1,120 @@
-import { OPENAI_TRANSCRIBE_MODELS, VOICE_LANGUAGES, type AppSettings, type VoiceProvider, type VoiceStatus } from "@shared/types";
-import { useVoiceStatus, voiceStatusStore } from "@/stores/voice";
-import { ErrorText } from "@/ui/ErrorText";
-import { CheckField, Field } from "@/ui/Field";
-import { RefreshButton } from "@/ui/IconButton";
-import { SaveActions } from "@/ui/SaveActions";
-import { Segmented } from "@/ui/Segmented";
-import { StatusCard } from "@/ui/StatusCard";
-import { OpenAiKeyField } from "./OpenAiKeyField";
+import { Check, Mic, Minus } from "lucide-react";
+import { VOICE_LANGUAGES, VOICE_PROVIDERS, type AppSettings, type VoiceProvider, type VoiceStatus } from "@shared/types";
+import { cx } from "@/lib/cx";
+import { useSave } from "@/hooks/useSave";
+import { useVoiceStatus } from "@/stores/voice";
+import { Field } from "@/ui/Field";
+import { ResultMessage } from "@/ui/SaveActions";
+import { StatusDot } from "@/ui/StatusDot";
 import { useSettingsDraft } from "./useSettingsDraft";
-import { VoiceModelList } from "./VoiceModelList";
+import { VOICE_PROVIDER_INFO } from "./voiceOptions";
+import { VoiceLocalSetup } from "./VoiceLocalSetup";
+import { VoiceOpenAiSetup } from "./VoiceOpenAiSetup";
 
-/** OpenAI のモデルの候補の一覧の id（互換のサーバーでは、ほかの名前も入れられる） */
-const OPENAI_MODEL_LIST_ID = "voice-openai-models";
-
-/** 設定: チャット欄の音声入力（使うか・文字起こしの方法・言語・この Mac のモデル / OpenAI のキー） */
+/**
+ * 設定: 音声入力（利用者の依頼で使いやすく作り直した）。上から、使うかのスイッチといま使えるか（1 枚のカード）→ 文字起こしの方法（無料 / 有料の札付きのカード）→
+ * 話す言語 → 選んだ方法の準備（手順ごとに済んだら ✓）。変えたらその場で保存する（保存のボタンを押し忘れて効かない、をなくす）
+ */
 export function VoiceSettings() {
-  const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
+  const { draft, setDraft, saveFields } = useSettingsDraft();
   const voice = useVoiceStatus();
-  const status = voice.data;
+  const save = useSave();
   if (!draft) return null;
-  const set = (patch: Partial<AppSettings>) => setDraft({ ...draft, ...patch });
+  /** 変えた項目をすぐ保存する（下書きにも入れて、保存の応答を待たずに画面をそろえる） */
+  const apply = (patch: Partial<AppSettings>) => {
+    setDraft({ ...draft, ...patch });
+    void save.run(() => saveFields(patch));
+  };
   return (
-    <section className="section">
-      <h2>音声入力</h2>
-      <p className="muted small">
-        チャット欄のマイクのボタン（⌘⇧Space）で話した内容を文字にして、入力欄に入れます。1 回押して話し始め、話し終わったらもう一度押してください。
-      </p>
-      <VoiceReadiness status={status} dirty={dirty} />
-      <div className="form">
-        <CheckField
-          label="チャット欄で音声入力を使う"
-          help="オフのときにマイクのボタンを押すと、この設定を開きます。"
-          checked={draft.voice_enabled}
-          onChange={(on) => set({ voice_enabled: on })}
-        />
-        <Field label="文字起こしの方法" help={draft.voice_provider === "local" ? "この Mac の中で文字にします（音声を外に送りません）。whisper.cpp とモデルが要ります。" : "OpenAI の API に音声を送って文字にします（API の料金がかかります）。"}>
-          <Segmented<VoiceProvider>
-            className="segmented"
-            label="文字起こしの方法"
-            value={draft.voice_provider}
-            onChange={(voiceProvider) => set({ voice_provider: voiceProvider })}
-            options={[
-              { value: "local", label: "この Mac" },
-              { value: "openai", label: "OpenAI" },
-            ]}
-          />
-        </Field>
-        <Field label="話す言語" help="決まった言語で話すなら、指定したほうが正確です。">
-          <select value={draft.voice_language} onChange={(e) => set({ voice_language: e.target.value })}>
-            {VOICE_LANGUAGES.map((l) => (
-              <option key={l.value} value={l.value}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        {draft.voice_provider === "local" ? (
-          <>
-            <LocalTools status={status} checking={voice.loading} error={voice.error} />
-            <Field as="div" label="モデル">
-              <VoiceModelList models={status?.local.models} selected={draft.voice_model} onSelect={(voiceModel) => set({ voice_model: voiceModel })} />
-            </Field>
-          </>
-        ) : (
-          <>
-            <OpenAiKeyField saved={status?.openai.key_saved} />
-            <Field label="Base URL（任意）" help="OpenAI 互換のサーバーを使うときだけ入れます。空なら https://api.openai.com/v1 です。">
-              <input type="url" value={draft.voice_openai_base_url} placeholder="https://api.openai.com/v1" onChange={(e) => set({ voice_openai_base_url: e.target.value })} />
-            </Field>
-            <Field label="モデル" help="gpt-4o-transcribe が正確です。gpt-4o-mini-transcribe は安く、whisper-1 は以前からのモデルです。">
-              <input list={OPENAI_MODEL_LIST_ID} value={draft.voice_openai_model} onChange={(e) => set({ voice_openai_model: e.target.value })} />
-              <datalist id={OPENAI_MODEL_LIST_ID}>
-                {OPENAI_TRANSCRIBE_MODELS.map((m) => (
-                  <option key={m} value={m} />
-                ))}
-              </datalist>
-            </Field>
-          </>
-        )}
+    <section className="section voice-settings">
+      <div className="voice-settings-head">
+        <h2>音声入力</h2>
+        <span className="voice-settings-saved small">
+          <ResultMessage result={save.message} />
+          {!save.message && <span className="muted">変えるとすぐ保存されます</span>}
+        </span>
       </div>
-      <SaveActions
-        save={save}
-        disabled={!dirty}
-        onSave={() =>
-          saveFields({
-            voice_enabled: draft.voice_enabled,
-            voice_provider: draft.voice_provider,
-            voice_language: draft.voice_language,
-            voice_model: draft.voice_model,
-            voice_openai_base_url: draft.voice_openai_base_url.trim(),
-            voice_openai_model: draft.voice_openai_model.trim(),
-          })
-        }
-      />
+      <VoiceHero status={voice.data} enabled={draft.voice_enabled} onToggle={(on) => apply({ voice_enabled: on })} />
+
+      <Field as="div" label="文字起こしの方法">
+        <div className="voice-providers" role="radiogroup" aria-label="文字起こしの方法">
+          {VOICE_PROVIDERS.map((p) => (
+            <ProviderCard key={p} provider={p} selected={draft.voice_provider === p} onSelect={() => apply({ voice_provider: p })} />
+          ))}
+        </div>
+      </Field>
+
+      <Field label="話す言語" help="決まった言語で話すなら、選んでおくと正確になります。">
+        <select className="voice-language" value={draft.voice_language} onChange={(e) => apply({ voice_language: e.target.value })}>
+          {VOICE_LANGUAGES.map((l) => (
+            <option key={l.value} value={l.value}>
+              {l.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      {draft.voice_provider === "local" ? (
+        <VoiceLocalSetup voice={voice} model={draft.voice_model} onModel={(voiceModel) => apply({ voice_model: voiceModel })} />
+      ) : (
+        <VoiceOpenAiSetup status={voice.data} draft={draft} apply={apply} />
+      )}
     </section>
   );
 }
 
-/** いま使えるか（保存した設定で。使えなければ理由） */
-function VoiceReadiness({ status, dirty }: { status: VoiceStatus | undefined; dirty: boolean }) {
+/** いちばん上のカード: 使うかのスイッチと、いま使えるか（使えなければ理由）・使い方 */
+function VoiceHero({ status, enabled, onToggle }: { status: VoiceStatus | undefined; enabled: boolean; onToggle: (on: boolean) => void }) {
+  const tone = status === undefined ? "pending" : status.ready ? "ok" : enabled ? "ng" : "na";
+  const state = status === undefined ? "確認中…" : status.ready ? "使えます" : enabled ? "準備が必要です" : "オフ";
   return (
-    <div className="card-grid">
-      <StatusCard
-        title="音声入力"
-        ok={status ? status.ready : undefined}
-        detail={
-          <>
-            {status ? (status.ready ? "使えます。チャット欄のマイクのボタンから話せます。" : status.reason) : "確認中…"}
-            {dirty && <span className="field-help"> 変更は保存してから効きます。</span>}
-          </>
-        }
-      />
+    <div className={cx("voice-hero", status?.ready && "ready")}>
+      <span className="voice-hero-icon" aria-hidden>
+        <Mic size={18} />
+      </span>
+      <div className="voice-hero-body">
+        <label className="voice-hero-title">
+          <span>チャット欄で音声入力を使う</span>
+          <input type="checkbox" role="switch" className="voice-switch" checked={enabled} onChange={(e) => onToggle(e.target.checked)} />
+        </label>
+        <p className="voice-hero-state">
+          <StatusDot tone={tone} />
+          <b>{state}</b>
+          {status && !status.ready && <span className="muted">— {enabled ? status.reason : "スイッチを入れると、マイクのボタンで話せるようになります。"}</span>}
+        </p>
+        <p className="field-help">
+          チャット欄・AI からの質問の「その他」の欄のマイク（⌘⇧Space）を 1 回押して話し始め、話し終わったらもう一度押すと、文字になって入ります。
+        </p>
+      </div>
     </div>
   );
 }
 
-/** この Mac の whisper-cli・ffmpeg が見つかるか（なければ brew の案内）。checking は準備の状態を取り直している間 */
-function LocalTools({ status, checking, error }: { status: VoiceStatus | undefined; checking: boolean; error: string | undefined }) {
-  const tool = (path: string | null | undefined) => (status === undefined ? "確認中…" : path ?? "見つかりません");
-  const missing = status && (!status.local.whisper || !status.local.ffmpeg);
+/** 文字起こしの方法のカード（名前と「無料」「有料」の札・ひとこと・良いところ ✓ と気を付けるところ −） */
+function ProviderCard({ provider, selected, onSelect }: { provider: VoiceProvider; selected: boolean; onSelect: () => void }) {
+  const info = VOICE_PROVIDER_INFO[provider];
   return (
-    <Field
-      as="div"
-      labelClassName="voice-tools-head"
-      label={
-        <>
-          この Mac の準備
-          <RefreshButton label="もう一度確かめる" busy={checking} onClick={() => void voiceStatusStore.reload()} type="button" />
-        </>
-      }
-      help={
-        missing && (
-          <>
-            ターミナルで <code>brew install whisper-cpp ffmpeg</code> を実行してから、もう一度確かめてください。
-          </>
-        )
-      }
-    >
-      <div className="card-grid voice-tools">
-        <StatusCard title="whisper-cli（whisper.cpp）" ok={status ? Boolean(status.local.whisper) : undefined} detail={tool(status?.local.whisper)} />
-        <StatusCard title="ffmpeg" ok={status ? Boolean(status.local.ffmpeg) : undefined} detail={tool(status?.local.ffmpeg)} />
-      </div>
-      <ErrorText message={error} />
-    </Field>
+    <label className={cx("voice-provider", selected && "selected")}>
+      <span className="voice-provider-head">
+        <input type="radio" name="voice-provider" checked={selected} onChange={onSelect} />
+        <span className="voice-provider-title">{info.title}</span>
+        <span className={cx("voice-price", info.free ? "free" : "paid")}>{info.price}</span>
+      </span>
+      <span className="voice-provider-summary">{info.summary}</span>
+      <ul className="voice-points">
+        {info.pros.map((t) => (
+          <li key={t} className="pro">
+            <Check size={12} aria-hidden />
+            {t}
+          </li>
+        ))}
+        {info.cons.map((t) => (
+          <li key={t} className="con">
+            <Minus size={12} aria-hidden />
+            {t}
+          </li>
+        ))}
+      </ul>
+    </label>
   );
 }

@@ -49,6 +49,8 @@
 @import "./chat/composer.css";
 @import "./chat/queue-mode.css";
 @import "./chat/dictation.css";
+@import "./chat/voice-settings.css";
+@import "./chat/voice-setup.css";
 @import "./chat/snippets.css";
 @import "./chat/snippet-manager.css";
 @import "./chat/queued.css";
