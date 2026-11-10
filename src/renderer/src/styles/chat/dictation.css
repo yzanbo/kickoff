@@ -84,3 +84,11 @@
 .dictation-more.open {
   color: var(--text);
 }
+
+/* 送信ボタンのすぐ左の音声の道具（マイク・▾・音声モードの波形）を 1 組に詰める */
+.composer-voice {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+}
