@@ -1,0 +1,25 @@
+/*
+ * 親の行の外に 1 行で並ぶ子チャットの行の、名前の前の深さの札（「子」「孫」「ひ孫」。features/chat/children/ChildDepthMark.tsx）。
+ * サイドバーで状態・要対応で絞り込んだ一覧・要対応のまとまり・⌘⇧A の行で使う。色は右の欄の子チャットのタブの札と同じ深さの色、形も同じ薄い地の丸い札
+ */
+.child-depth-badge {
+  --child-color: var(--child-depth-1);
+
+  flex: none;
+  align-self: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--child-color);
+  background: color-mix(in srgb, var(--child-color) 18%, transparent);
+}
+
+.child-depth-badge.child-depth-mark-2 {
+  --child-color: var(--child-depth-2);
+}
+
+.child-depth-badge.child-depth-mark-3 {
+  --child-color: var(--child-depth-3);
+}

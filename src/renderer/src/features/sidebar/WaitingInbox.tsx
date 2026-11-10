@@ -58,6 +58,8 @@ export function WaitingInbox({ variant, order }: { variant: "top" | "list"; orde
       // 状態順はプロジェクトをまたぐので、どのプロジェクトかの印を添える（プロジェクト別は見出しで分かる）
       project={order === "status" ? projectOf.get(chat.project_id) : undefined}
       onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
+      // 子チャットも親の外に 1 行で並ぶので、子チャットだと分かる札を付ける
+      childMark
     />
   );
   const body =

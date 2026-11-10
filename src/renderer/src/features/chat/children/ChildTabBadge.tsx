@@ -1,6 +1,6 @@
 import { childDepthLabel, childDepthShort } from "@shared/chat/childDepth";
-import { knownChat, useChatsValue, useKnownChat } from "@/stores/chats";
-import { ancestorsOf } from "./childChats";
+import { useKnownChat } from "@/stores/chats";
+import { useChildDepth } from "./ChildDepthMark";
 
 /**
  * 子チャットのタブの種類の札の文: 深さで「子 / 孫 / ひ孫」（`childDepthShort`）。孫・ひ孫も同じ欄に子と並ぶので見分ける。
@@ -8,7 +8,7 @@ import { ancestorsOf } from "./childChats";
  */
 export function ChildTabBadge({ tab }: { tab: { childId: number } }) {
   const chat = useKnownChat(tab.childId);
-  const depth = Math.max(useChatsValue(() => (chat ? ancestorsOf(chat, knownChat).length : 0)) ?? 0, 1);
+  const depth = useChildDepth(chat);
   return (
     <span className={`child-depth-mark-${Math.min(depth, 3)}`} data-tip={childDepthLabel(depth)}>
       {childDepthShort(depth)}
