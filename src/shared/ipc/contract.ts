@@ -94,6 +94,22 @@ export const NATIVE_API = {
     /** 開発者ツールの別のウィンドウを、利用者が閉じた */
     onWindowClosed: event<[targetId: number]>(),
   },
+  /**
+   * AI（チャットのエージェント）による埋め込みブラウザの操作（main/browser/agentBrowser.ts）。
+   * 画面のブラウザのタブは webview の準備ができたら登録し、AI が新しいタブを開くときはメインが画面に頼む
+   */
+  agentBrowser: {
+    /** ブラウザのタブの webview を登録する（webContentsId: その WebContents の ID / tabKey: パネルのタブのキー / projectId: どのプロジェクトのパネルか） */
+    register: send<[webContentsId: number, tabKey: string, projectId: number | null]>(),
+    /** タブを閉じた */
+    unregister: send<[webContentsId: number]>(),
+    /** 開く頼み（onOpenRequest）の返事（足したタブのキー。開けなければ null と理由） */
+    opened: send<[requestId: number, tabKey: string | null, error: string | null]>(),
+    /** AI が新しいタブを開く: そのプロジェクトのチャット欄に、表に出さずにブラウザのタブを足して opened で返す */
+    onOpenRequest: event<[requestId: number, projectId: number, url: string]>(),
+    /** AI がタブを操作している・しばらく操作していない（タブに「AI 操作中」の印を出す・消す） */
+    onActivity: event<[tabKey: string, active: boolean]>(),
+  },
   /** 埋め込みブラウザの拡張機能（React DevTools など）。どれも、そのあとの一覧を返す */
   browserExtensions: {
     list: invoke<[], BrowserExtensionInfo[]>(),

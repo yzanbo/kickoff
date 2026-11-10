@@ -1,3 +1,4 @@
+import type { BrowserControl } from "../browser/control.js";
 import type { ChatPolicy } from "../chat/policy.js";
 import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
 
@@ -84,6 +85,8 @@ export interface ProviderTurnParams {
   additionalDirectories: string[];
   /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */
   readOnlyPaths?: string[];
+  /** Kickoff の埋め込みブラウザを AI に操作させる口と、このチャット（デスクトップアプリのときだけ。なければブラウザのツールを出さない） */
+  browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
 }
 
 export interface ApprovalRequest {

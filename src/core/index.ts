@@ -19,6 +19,7 @@ import { VoiceService } from "./voice/service.js";
 import { MemoService } from "./memos/memos.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
+import type { BrowserControl } from "./browser/control.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -26,6 +27,8 @@ interface CoreOptions {
   /** 127.0.0.1 なら Mac 内からのみ、0.0.0.0 なら LAN にも公開 */
   host?: string;
   staticDir?: string;
+  /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。AI がブラウザのタブを見る・操作するツールに使う） */
+  browser?: BrowserControl;
 }
 
 export interface Core {
@@ -78,7 +81,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   });
   // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
   // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), interrupted: recovered });
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), publish: (e) => bus.publish(e) });
   const host = opts.host ?? "127.0.0.1";

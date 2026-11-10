@@ -79,6 +79,13 @@ export function panelActions(key: string) {
     openNewChild: (target: { chatId: number; projectId: number }) => openTab(newChildTab(target)),
     /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
     openBrowser: (url = "") => openTab(browserTab(url)),
+    /** ブラウザのタブを表に出さずに足し、そのキーを返す（AI が開いたとき。見ているタブ・欄の開閉は変えない） */
+    addBrowserBehind: (url: string) => {
+      const tab = browserTab(url);
+      if (at) showKind(at.surface, "browser");
+      dispatch({ type: "add", tab });
+      return tab.key;
+    },
     openTerminal,
     /** 作ったタブを開く（領域ごとの種類のタブ。プロジェクトのファイルのタブ（features/editor/fileTabs.ts）など。同じキーのタブがあればそのペインで表示する） */
     openPanelTab: (tab: PanelTab) => openTab(tab),

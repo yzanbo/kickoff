@@ -1,3 +1,4 @@
+import type { BrowserControl } from "../browser/control.js";
 import { mkdirSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -27,6 +28,8 @@ export interface ExecutionDeps {
   bus?: Bus;
   /** プロジェクトのメモのフォルダ（メモのチャットで、AI にメモを読み書きさせるため。なければメモのチャットでもメモのフォルダを足さない） */
   memoDirOf?: (project: Project) => string;
+  /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。なければ AI にブラウザのツールを出さない） */
+  browser?: BrowserControl;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -160,6 +163,7 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(memoDir ? [memoDir] : [])],
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
     readOnlyPaths: project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p)),
+    browser: deps.browser ? { control: deps.browser, projectId: chat.project_id, chatId: chat.id } : null,
   };
 }
 

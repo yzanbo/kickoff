@@ -9,8 +9,10 @@ import { RENDERER_DIR, seedDevDataOnce, setupEnvironment } from "./app/environme
 import { registerShutdown } from "./app/shutdown.js";
 import { logLaunch, startupLog, watchChildProcesses } from "./app/startupLog.js";
 import { openMainWindow, showMainWindow } from "./app/window.js";
+import { agentBrowser } from "./browser/agentBrowser.js";
 import { hardenWebviews } from "./browser/browser.js";
 import { loadSavedExtensions } from "./browser/extensions.js";
+import { watchWebviewConsoles } from "./browser/webviewConsole.js";
 import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
 import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
 import { registerIpc } from "./ipc/ipc.js";
@@ -23,6 +25,8 @@ watchChildProcesses();
 seedDevDataOnce();
 // 3. 埋め込みブラウザの安全設定は、ウィンドウを作る前に登録しておく
 hardenWebviews();
+// AI が読む埋め込みブラウザのコンソールの出力は、webview ができたときから覚える
+watchWebviewConsoles();
 
 let core: Core | undefined;
 
@@ -42,7 +46,8 @@ async function start() {
   void moveLegacyDiagnostics();
   try {
     // 開発時は electron-vite の dev サーバーが画面を配り、本番はコアが配る
-    core = await startCore({ dataDir: app.getPath("userData"), port, staticDir: devUrl ? undefined : RENDERER_DIR });
+    // AI には埋め込みブラウザの操作も渡す（browser/agentBrowser.ts）
+    core = await startCore({ dataDir: app.getPath("userData"), port, staticDir: devUrl ? undefined : RENDERER_DIR, browser: agentBrowser });
     setDiagnosticsCore(core);
     startupLog(`コアを起動しました ${core.localUrl}`);
   } catch (e) {

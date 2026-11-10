@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { activeTabOf, FIRST_PANE, homePane, isTabVisible, leavesOf, nextActiveTab, normalize, paneOfTab, singlePane, topRightPane, type PaneLayout, type PaneNode } from "./paneTree";
-import { closeLayoutTabs, closePane, focusPane, moveTab, placeTab, reconcileLayout, renameTab, returnToHome, splitPane } from "./paneLayout";
+import { activeTabOf, FIRST_PANE, focusedPane, homePane, isTabVisible, leavesOf, nextActiveTab, normalize, paneOfTab, singlePane, topRightPane, type PaneLayout, type PaneNode } from "./paneTree";
+import { addTabBehind, closeLayoutTabs, closePane, focusPane, moveTab, placeTab, reconcileLayout, renameTab, returnToHome, splitPane } from "./paneLayout";
 import { equalizeSplit, setSplitSizes } from "./paneSizes";
 
 const pane = (id: string, tabs: string[], active: string | null = tabs[0] ?? null): PaneNode => ({ type: "pane", id, tabs, active });
@@ -111,6 +111,17 @@ test("placeTab: どこかにあればそのペインで表示してピントを�
   assert.ok(isTabVisible(l3, "a") && isTabVisible(l3, "d") && !isTabVisible(l3, "b"));
   // もうそのペインで表示していて、ピントもあれば同じ配置
   assert.equal(placeTab(l3, "d"), l3);
+});
+
+test("addTabBehind: ピントのあるペインの最後に足すが、表示中のタブとピントは変えない（空のペインなら表示する）", () => {
+  const l1 = focusPane(splitPane(base(), FIRST_PANE, "row", "after", "p1", "c"), "p1");
+  const l2 = addTabBehind(l1, "x");
+  assert.equal(shape(l2.root), `row(0.50:${FIRST_PANE}[a,*b] 0.50:p1[*c,x])`);
+  assert.equal(l2.focused, "p1");
+  // もうどこかにあれば同じ配置
+  assert.equal(addTabBehind(l2, "a"), l2);
+  const empty = singlePane([], null);
+  assert.equal(focusedPane(addTabBehind(empty, "x")).active, "x");
 });
 
 test("renameTab: 置き場所と表示中かはそのままでキーを変える", () => {

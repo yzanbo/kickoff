@@ -39,6 +39,7 @@
 | フィード（全プロジェクトの画面の、チャットごとのメインエージェントの最新の返答 1 件を新しい順に並べたもの） | `FeedItem`（`GET /api/feed`・`store.events.feed`・画面の `FeedList` / `useFeed`） | なし |
 | チャットの選択（モデル・深さ・権限・ファスト） | `ChatOptions`（`model` / `effort` / `permission_mode` / `fast_mode`） | `RunOptions`・`ProjectDefaults`（`permission` / `fastMode`）・設定（`claudeModel` / `defaultPermission`）・`ProviderRunParams`（`permissionMode`）の 4 通り |
 | 権限モード | `PermissionMode` | `PermissionChoice` |
+| AI のブラウザ操作（チャットの AI が Kickoff の埋め込みブラウザのタブを見る・操作する。操作中のタブには「AI 操作中」の印） | 口 `BrowserControl`（`core/browser/`）・ツール `kickoff_browser`（`browserMcpServer`）・実装 `agentBrowser`（`main/browser/`）・IPC `agentBrowser`・印 `useAgentBrowsing` | なし |
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |
 | タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
 | 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインエージェントとのつながりが見えないのでやめた） |

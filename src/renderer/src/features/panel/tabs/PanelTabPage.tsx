@@ -1,6 +1,7 @@
 import { lazy, Suspense, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BrowserPane } from "@/features/browser/BrowserPane";
+import { useAgentBrowsing } from "@/features/browser/agentBrowsing";
 import { ChatPane } from "@/features/chat/pane/ChatPane";
 import { chatPaneSlot } from "@/features/chat/pane/chatPaneContext";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
@@ -17,6 +18,7 @@ import { TabPageContext } from "./tabPageContext";
 import { NewChatPane } from "./NewChatPane";
 import { moveDraftSidePanel } from "@/features/panel/agents/draftSide";
 import { panelStateOf } from "@/features/panel/state/panelStore";
+import { parsePanelKey } from "@/features/panel/surfaces";
 import { api } from "@/api";
 import { reportFailure } from "@/ui/dialogs";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
@@ -121,11 +123,19 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   browser: ({ tab: t, panel }) => (
     <BrowserPane
       url={t.url}
+      // AI に操作させるため、どのパネルのどのタブかをメインプロセスに登録する（プロジェクトの欄でなければプロジェクトは null）
+      agentTarget={{ tabKey: t.key, projectId: projectOfPanel(panel.key) }}
       // 空のページのあいだは「新しいタブ」と表示する
       onChange={({ url, title }) => panel.patchTab(t.key, { kind: "browser", fields: { title: url === "about:blank" ? "" : title, current: url } })}
     />
   ),
 };
+
+/** パネルのプロジェクト（プロジェクトごとの欄でなければ null） */
+function projectOfPanel(panelKey: string): number | null {
+  const scope = parsePanelKey(panelKey)?.scope;
+  return typeof scope === "number" ? scope : null;
+}
 
 /** タブの種類の中身を描く（種類と中身の型を結びつけて引く） */
 const pageOf = <T extends PanelTab>(tab: T) => PAGES[tab.kind] as unknown as (props: PageProps<T>) => ReactNode;
@@ -163,8 +173,10 @@ export function PanelTabPage({
   const Page = pageOf(tab);
   // 中身の見出しの右端の「別ウィンドウで開く」（PopOutTabButton）に渡す
   const actions = { popOut: canPopOut(tab) ? () => popOutTab(panel, tab.key) : null };
+  // AI が操作しているブラウザのタブは、表に出ていなくても見えない形で並べる（撮る・押すため。browser.css）
+  const agentBrowsing = useAgentBrowsing(tab.kind === "browser" ? tab.key : null);
   return (
-    <div className={cx("panel-tab-page", split && focused && "pane-focused")} hidden={!active} style={style} onPointerDownCapture={focus} onFocusCapture={focus}>
+    <div className={cx("panel-tab-page", split && focused && "pane-focused", agentBrowsing && "agent-browsing")} hidden={!active} style={style} onPointerDownCapture={focus} onFocusCapture={focus}>
       <TabPageContext.Provider value={actions}>
         <Page tab={tab} panel={panel} visible={panelOpen && active} focused={focused} />
       </TabPageContext.Provider>

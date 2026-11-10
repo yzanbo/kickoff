@@ -60,6 +60,17 @@ export function placeTab(layout: PaneLayout, key: string): PaneLayout {
   return insert(layout, focusedPane(layout).id, key);
 }
 
+/**
+ * タブを表に出さずに足す（AI がブラウザのタブを開いたとき。利用者が見ているタブ・ピントは変えない）。
+ * ピントのあるペインの最後に足し、そのペインが空なら表示する。もうどこかにあれば同じ配置を返す
+ */
+export function addTabBehind(layout: PaneLayout, key: string): PaneLayout {
+  if (paneOfTab(layout, key)) return layout;
+  const target = focusedPane(layout);
+  const root = mapLeaves(layout.root, (p) => (p.id === target.id ? { ...p, tabs: [...p.tabs, key], active: p.active ?? key } : p));
+  return { ...layout, root: root ?? layout.root };
+}
+
 /** タブのキーを変える（送った新しいチャットのタブを、できたチャットのタブにするとき。置き場所と表示中かはそのまま） */
 export function renameTab(layout: PaneLayout, from: string, to: string): PaneLayout {
   if (from === to || !paneOfTab(layout, from)) return layout;

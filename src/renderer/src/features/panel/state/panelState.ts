@@ -1,7 +1,7 @@
 import type { Chat } from "@shared/types";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { singlePane, type PaneLayout } from "@/features/panel/layout/paneTree";
-import { closeLayoutTabs, closePane, placeTab, reconcileLayout, renameTab } from "@/features/panel/layout/paneLayout";
+import { addTabBehind, closeLayoutTabs, closePane, placeTab, reconcileLayout, renameTab } from "@/features/panel/layout/paneLayout";
 import { closedLinks, NO_LINKS, openedLinks, syncLinkedTabs, type LinkState } from "./linkedTabs";
 
 /**
@@ -32,6 +32,8 @@ export type TabPatch = { [K in TabKind]: { kind: K; fields: TabFields<K> } }[Tab
 export type PanelAction =
   /** タブを開く: なければピントのあるペインに足し、あればそのペインで表示する（reopen はもう開いていたときに変える中身）。欄も開く */
   | { type: "open"; tab: PanelTab; reopen?: TabPatch }
+  /** タブを表に出さずに足す（もうあれば何もしない）。見ているタブ・欄の開閉は変えない（AI が開いたブラウザのタブ） */
+  | { type: "add"; tab: PanelTab }
   /** 開いているタブを表示する（ないタブなら何もしない）。欄も開く */
   | { type: "show"; key: string }
   /** タブの中身を変える（変わらなければ同じ状態のまま） */
@@ -90,6 +92,9 @@ export function panelReducer(state: PanelState, action: PanelAction, rules: Pane
       if (tabs === state.tabs && layout === state.layout && links === state.links && state.open) return state;
       return { ...state, tabs, layout, open: true, links };
     }
+    case "add":
+      if (state.tabs.some((t) => t.key === action.tab.key)) return state;
+      return { ...state, tabs: [...state.tabs, action.tab], layout: addTabBehind(state.layout, action.tab.key) };
     case "show": {
       if (!state.tabs.some((t) => t.key === action.key)) return state;
       const layout = placeTab(state.layout, action.key);

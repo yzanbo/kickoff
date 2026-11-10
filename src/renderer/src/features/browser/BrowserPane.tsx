@@ -8,18 +8,21 @@ import { IconButton } from "@/ui/IconButton";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { DockMenu } from "./DockMenu";
 import { DEVTOOLS_DOCK_LABELS, useDevtools } from "./useDevtools";
+import { useAgentRegistration } from "./agentBrowsing";
 
 interface Props {
   url: string;
   /** ページのタイトル・URL が変わったとき（タブの表示と、次回の初期 URL の保存に使う） */
   onChange?: (info: { url: string; title: string }) => void;
+  /** AI に操作させるときの登録先（パネルのタブのキーと、どのプロジェクトの欄か） */
+  agentTarget?: { tabKey: string; projectId: number | null };
 }
 
 /**
  * 埋め込みブラウザ（開発中のアプリのプレビュー・ドキュメント閲覧）。
  * デスクトップアプリでのみ動く。表示するページは Kickoff 本体と切り離した専用のセッションで開く。
  */
-export function BrowserPane({ url: initialUrl, onChange }: Props) {
+export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
   const ref = useRef<WebviewTag | null>(null);
   const [address, setAddress] = useState(initialUrl);
   const [current, setCurrent] = useState(initialUrl);
@@ -72,6 +75,9 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
       view.removeEventListener("did-fail-load", onFail);
     };
   }, []);
+
+  // AI に操作させるため、準備ができたら webview をメインプロセスに登録する（閉じたら外す）
+  useAgentRegistration(ref, agentTarget?.tabKey ?? null, agentTarget?.projectId ?? null);
 
   if (!window.kickoff) {
     return (
