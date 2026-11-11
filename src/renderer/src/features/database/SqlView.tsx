@@ -138,8 +138,8 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
     setFinishing(true);
     try {
       const st = how === "commit" ? await api.commitDbSession(client.projectId, connection.id, tab.key) : await api.rollbackDbSession(client.projectId, connection.id, tab.key);
+      // 何かした（10 分を数え直す）に数えない。時間が来てトランザクションの終わりを待っていたら、ここで読み取り専用に戻す
       setSqlPending(tab.key, st.in_transaction);
-      write.touch();
     } catch (e) {
       await alertDialog(how === "commit" ? "コミットできませんでした" : "取り消せませんでした", errorMessage(e));
     } finally {
