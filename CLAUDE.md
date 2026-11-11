@@ -12,7 +12,7 @@
 | プロバイダー（Claude Code） | `src/core/providers/CLAUDE.md` |
 | Electron のメインプロセス・preload | `src/main/CLAUDE.md` |
 | 画面全体（置き場所・データ・保存・API の窓口・共有部品・表示・性能） | `src/renderer/src/CLAUDE.md` |
-| 画面の領域 | `src/renderer/src/features/<領域>/CLAUDE.md`（chat・chatList・sidebar・board・panel・project・palette・editor・worktree・settings・terminal・popout・memo・snippet。小さな領域がどこに書いてあるかは画面全体の `CLAUDE.md` の表） |
+| 画面の領域 | `src/renderer/src/features/<領域>/CLAUDE.md`（chat・chatList・sidebar・board・panel・project・palette・editor・worktree・settings・terminal・popout・memo・snippet・database。小さな領域がどこに書いてあるかは画面全体の `CLAUDE.md` の表） |
 | CSS | `src/renderer/src/styles/CLAUDE.md` |
 
 新しい領域を作ったら、そのフォルダに `CLAUDE.md` を足し、この表と画面全体の表に 1 行足す。振る舞いを変えたら、その領域の `CLAUDE.md` も同じコミットで直す。

@@ -3,7 +3,7 @@ import { errorMessage } from "@shared/errors";
 import { api } from "@/api";
 import { ErrorText } from "@/ui/ErrorText";
 import { ImageViewer } from "@/ui/imageViewer/ImageViewer";
-import { formatBytes } from "@/features/chat/attachments/AttachmentChip";
+import { formatBytes } from "@/lib/format";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
 
 /**

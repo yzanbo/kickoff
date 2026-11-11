@@ -15,7 +15,11 @@ export default defineConfig({
     resolve: { alias: shared },
     // 音声入力の「macOS の音声認識」の補助コマンドも一緒に作る（out/native）
     plugins: [speechHelper()],
-    build: { outDir: "out/main" },
+    build: {
+      outDir: "out/main",
+      // DB クライアントの DB ワーカー（コアが別のプロセスで起動する。out/main/dbWorker.js）もメインプロセスと一緒に作る
+      rolldownOptions: { input: { index: resolve("src/main/index.ts"), dbWorker: resolve("src/core/databases/worker/main.ts") } },
+    },
   },
   preload: {
     resolve: { alias: shared },

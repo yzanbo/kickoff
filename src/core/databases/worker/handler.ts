@@ -1,0 +1,107 @@
+// DB ワーカーの中身: 頼みを受けて、名前ごとの接続（session）で流す。プロセスとのつなぎは main.ts（テストでは同じプロセスで使う）
+import { errorMessage } from "@shared/errors";
+import type { DbTarget, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "../protocol.js";
+import type { DbDriver } from "./driver.js";
+import { openSqlite, testSqlite } from "./sqlite.js";
+
+/** 種類ごとの開き方（PostgreSQL・MySQL はあとで足す） */
+async function openDriver(target: DbTarget): Promise<DbDriver> {
+  if (target.engine === "sqlite") return openSqlite(target);
+  throw new Error(`${target.engine} にはまだ対応していません`);
+}
+
+async function testTarget(target: DbTarget): Promise<string | null> {
+  if (target.engine === "sqlite") return testSqlite(target);
+  const driver = await openDriver(target);
+  try {
+    return await driver.serverVersion();
+  } finally {
+    await driver.close();
+  }
+}
+
+interface OpenSession {
+  driver: DbDriver;
+  /** つないだ先の指紋（変わったら、トランザクションの途中でなければつなぎ直す） */
+  fingerprint: string;
+}
+
+type Handlers = { [M in WorkerMethod]: (params: WorkerMethods[M]["params"], id: number) => Promise<WorkerMethods[M]["result"]> };
+
+/** ワーカーの中身（頼みを流す handle・止める cancel・すべて閉じる closeAll） */
+export function createWorkerHandler() {
+  const sessions = new Map<string, OpenSession>();
+  /** 流している頼み（id → 使っている接続。止めるときに使う） */
+  const running = new Map<number, DbDriver>();
+
+  /** 名前の接続を返す（なければ開く。つなぐ先が変わっていれば、トランザクションの途中でなければ開き直す） */
+  const sessionOf = async (name: string, target: DbTarget): Promise<DbDriver> => {
+    const fingerprint = JSON.stringify(target);
+    const open = sessions.get(name);
+    if (open && open.fingerprint === fingerprint) return open.driver;
+    if (open) {
+      if (open.driver.inTransaction()) throw new Error("トランザクションの途中なので、つなぎ方を変えられません。先にコミットか取り消しをしてください");
+      sessions.delete(name);
+      await open.driver.close().catch(() => {});
+    }
+    const driver = await openDriver(target);
+    sessions.set(name, { driver, fingerprint });
+    return driver;
+  };
+  const existing = (name: string) => sessions.get(name)?.driver ?? null;
+  /** 接続を使う頼み（流している間は止められるよう覚える） */
+  const use = async <T>(id: number, name: string, target: DbTarget, fn: (d: DbDriver) => Promise<T>) => {
+    const driver = await sessionOf(name, target);
+    running.set(id, driver);
+    return fn(driver);
+  };
+
+  const handlers: Handlers = {
+    test: async ({ target }) => ({ server_version: await testTarget(target) }),
+    databases: (p, id) => use(id, p.session, p.target, (d) => d.databases()),
+    schemas: (p, id) => use(id, p.session, p.target, (d) => d.schemas(p.database)),
+    objects: (p, id) => use(id, p.session, p.target, (d) => d.objects(p.path)),
+    table: (p, id) => use(id, p.session, p.target, (d) => d.table(p.path, p.name)),
+    rows: (p, id) => use(id, p.session, p.target, (d) => d.rows(p.path, p.name, p.sort, p.offset, p.limit)),
+    count: (p, id) => use(id, p.session, p.target, async (d) => ({ count: await d.count(p.path, p.name) })),
+    outline: (p, id) => use(id, p.session, p.target, (d) => d.outline(p.path)),
+    query: (p, id) => use(id, p.session, p.target, (d) => d.query(p.sql, p.max_rows)),
+    commit: async ({ session }) => {
+      const driver = existing(session);
+      await driver?.commit();
+      return { in_transaction: driver?.inTransaction() ?? false };
+    },
+    rollback: async ({ session }) => {
+      const driver = existing(session);
+      await driver?.rollback();
+      return { in_transaction: driver?.inTransaction() ?? false };
+    },
+    close: async ({ session }) => {
+      const open = sessions.get(session);
+      sessions.delete(session);
+      await open?.driver.close().catch(() => {});
+      return { closed: Boolean(open) };
+    },
+  };
+
+  return {
+    async handle(req: WorkerRequest): Promise<WorkerResponse> {
+      try {
+        const result = await (handlers[req.method] as (p: unknown, id: number) => Promise<unknown>)(req.params, req.id);
+        return { id: req.id, ok: true, result };
+      } catch (e) {
+        return { id: req.id, ok: false, error: errorMessage(e) };
+      } finally {
+        running.delete(req.id);
+      }
+    },
+    /** 流している頼みを止める（DB に止めるよう頼む。止められない種類は何もしない） */
+    async cancel(id: number) {
+      await running.get(id)?.cancel();
+    },
+    async closeAll() {
+      for (const { driver } of sessions.values()) await driver.close().catch(() => {});
+      sessions.clear();
+    },
+  };
+}

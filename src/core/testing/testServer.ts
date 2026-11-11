@@ -10,6 +10,8 @@ import { WorktreePrWatch } from "../git/prWatch.js";
 import { listWorktrees } from "../git/worktrees.js";
 import type { BranchPullRequest } from "../git/github.js";
 import { MemoService } from "../memos/memos.js";
+import { DbWorkerClient, inProcessWorker } from "../databases/client.js";
+import { DatabaseService } from "../databases/service.js";
 import type { VoiceTools } from "../voice/tools.js";
 import type { MacosSpeech } from "../voice/macos.js";
 import type { AudioInput, LocalOptions, MacosOptions, OpenAiOptions } from "../voice/types.js";
@@ -246,7 +248,10 @@ export function setup(opts: { staticDir?: string } = {}) {
       return prFake.prs;
     },
   });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  // DB クライアントは同じプロセスのワーカーで動かす（中身は本物と同じ。dataDir は Kickoff 自身の保存先の代わり）
+  const dbFake = { dataDir: tempDir() };
+  const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), dataDir: dbFake.dataDir });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -258,6 +263,6 @@ export function setup(opts: { staticDir?: string } = {}) {
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, prWatch, network, approvals, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, prWatch, network, approvals, databases, dbFake, codexCalls: () => codexCalls };
 }
 

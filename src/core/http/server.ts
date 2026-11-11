@@ -16,8 +16,10 @@ import type { Runner } from "../chat/runner.js";
 import type { UploadStore } from "../chat/uploads.js";
 import type { VoiceService } from "../voice/service.js";
 import type { MemoService } from "../memos/memos.js";
+import type { DatabaseService } from "../databases/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { chatRoutes } from "./routes/chats.js";
+import { databaseRoutes } from "./routes/databases.js";
 import { filesRoutes } from "./routes/files.js";
 import { gitRoutes } from "./routes/git.js";
 import { groupRoutes } from "./routes/groups.js";
@@ -53,6 +55,8 @@ export interface ServerDeps {
   memos: MemoService;
   /** ワークツリーの PR の見張り（マージ・マージせずに閉じたことの知らせ） */
   prWatch: WorktreePrWatch;
+  /** DB クライアント（接続の登録・木・テーブル・SQL。DB の処理は別のプロセスの DB ワーカーで動かす） */
+  databases: DatabaseService;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。テストでは差し替えて、gh を呼ばない。なければ gh auth status） */
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」。テストでは差し替えて、本物のゴミ箱に入れない。なければ macOS のゴミ箱） */
@@ -129,6 +133,7 @@ export function createApp(deps: ServerDeps): Hono {
   worktreePrRoutes(app, deps);
   voiceRoutes(app, deps);
   memoRoutes(app, deps);
+  databaseRoutes(app, deps);
 
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>

@@ -1,4 +1,4 @@
-import { FileDiff, Files, GripHorizontal, GripVertical, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote } from "lucide-react";
+import { Database, FileDiff, Files, GripHorizontal, GripVertical, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote } from "lucide-react";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { stateCounts } from "@/features/chat/chatState";
@@ -64,6 +64,8 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
     ],
   },
   { key: "memos", label: "メモ", tabs: [{ tab: "memos", label: "メモ", icon: StickyNote }] },
+  // DB クライアント（この Mac のアプリの中だけ。ブラウザ・スマホからは出さない）
+  ...(window.kickoff ? [{ key: "db", label: "DB", tabs: [{ tab: "db" as const, label: "DB", icon: Database }] }] : []),
 ];
 
 /**

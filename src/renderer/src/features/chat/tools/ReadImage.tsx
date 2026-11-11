@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { errorMessage } from "@shared/errors";
 import { api } from "@/api";
-import { formatBytes } from "@/features/chat/attachments/AttachmentChip";
+import { formatBytes } from "@/lib/format";
 import { useAttachmentViewer } from "@/features/chat/attachments/useAttachmentViewer";
 
 /** 読み込んだ画像（画面で使う URL・大きさ・最後に変えた時刻） */

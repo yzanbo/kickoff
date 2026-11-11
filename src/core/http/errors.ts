@@ -10,6 +10,8 @@ export class HttpError extends Error {
   constructor(
     readonly status: 400 | 404 | 409,
     message: string,
+    /** 画面が文でなく種類で見分ける失敗の印（DB クライアントの「このワークツリーにはありません」など。なければ省く） */
+    readonly code?: string,
   ) {
     super(message);
   }
@@ -24,8 +26,8 @@ export class Invalid extends HttpError {
 
 /** 指したもの（チャット・プロジェクト・待ちの指示・ファイルなど）が見つからない（404） */
 export class NotFound extends HttpError {
-  constructor(message: string) {
-    super(404, message);
+  constructor(message: string, code?: string) {
+    super(404, message, code);
   }
 }
 
@@ -46,8 +48,8 @@ export function asInvalid(e: unknown): never {
 }
 
 /** 失敗を応答にする。外部コマンド（Git・gh など）の失敗は、その説明の文のまま 400。知らない失敗は 500 */
-export function errorResponse(err: Error): { status: 400 | 404 | 409 | 500; body: { error: string; issues?: z.ZodError["issues"] } } {
-  if (err instanceof HttpError) return { status: err.status, body: { error: err.message } };
+export function errorResponse(err: Error): { status: 400 | 404 | 409 | 500; body: { error: string; code?: string; issues?: z.ZodError["issues"] } } {
+  if (err instanceof HttpError) return { status: err.status, body: err.code ? { error: err.message, code: err.code } : { error: err.message } };
   if (err instanceof z.ZodError) return { status: 400, body: { error: "入力が正しくありません", issues: err.issues } };
   if (err instanceof CommandError) return { status: 400, body: { error: err.message } };
   return { status: 500, body: { error: err.message } };

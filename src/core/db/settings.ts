@@ -3,7 +3,9 @@ import { DEFAULT_SETTINGS, type AppSettings } from "@shared/types";
 import type { Notify } from "./common.js";
 
 /** 秘密の値の名前（secrets の表） */
-export type SecretKey = "openai_transcribe_key";
+export type SecretKey = "openai_transcribe_key" | DbSecretKey;
+/** DB の接続のパスワード（接続を消したら、表のトリガーで消える） */
+export type DbSecretKey = `db_connection:${number}:password`;
 
 /** アプリ全体の設定（settings の表。キーごとに JSON で持ち、既定とマージして返す） */
 export function createSettingsStore(db: DatabaseSync, onChange: Notify) {

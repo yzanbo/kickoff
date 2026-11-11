@@ -23,6 +23,9 @@ import { MemoService } from "./memos/memos.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
 import type { BrowserControl } from "./browser/control.js";
+import { DbWorkerClient, forkWorker, type WorkerEntry } from "./databases/client.js";
+import { DatabaseService } from "./databases/service.js";
+import { devWorkerEntry } from "./databases/entry.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -34,6 +37,8 @@ interface CoreOptions {
   browser?: BrowserControl;
   /** macOS の音声認識の補助コマンド（kickoff-speech）の場所（ビルドで out/native に作る。渡さなければ、音声入力の「macOS の音声認識」は使えない） */
   speechHelper?: string;
+  /** DB ワーカーの入口（Electron のビルドが作る out/main/dbWorker.js。渡さなければ、ソースの worker/main.ts を node ＋ tsx で動かす） */
+  dbWorker?: WorkerEntry;
 }
 
 export interface Core {
@@ -91,6 +96,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
   // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）
   const prWatch = new WorktreePrWatch({ store, publish: (e) => bus.publish(e), listWorktrees, listPullRequests });
+  // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める）
+  const databases = new DatabaseService({ store, client: new DbWorkerClient(() => forkWorker(opts.dbWorker ?? devWorkerEntry())), dataDir: opts.dataDir });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
@@ -105,6 +112,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     voice,
     memos,
     prWatch,
+    databases,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });
@@ -132,6 +140,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       prWatch.stop();
       stopAutoArchive();
       memos.close();
+      databases.close();
       await stopHttpServer(server);
       store.close();
     },

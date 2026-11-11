@@ -224,8 +224,38 @@ ALTER TABLE projects ADD COLUMN github_remote TEXT CHECK (github_remote <> '');
 ALTER TABLE projects ADD COLUMN pr_watch INTEGER NOT NULL DEFAULT 1 CHECK (pr_watch IN (0, 1));
 `;
 
+/**
+ * v13: DB クライアントの接続（プロジェクトごと。段階 1 の項目だけ。SSH・準備のコマンド・手順メモなどは段階 2 で足す）。
+ * パスワードは secrets の db_connection:<id>:password に置き、接続を消したら（プロジェクトごとの削除も）トリガーで消す
+ */
+const SCHEMA_V13 = `
+CREATE TABLE db_connections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL CHECK (name <> ''),
+  engine TEXT NOT NULL,
+  environment TEXT NOT NULL,
+  host TEXT CHECK (host <> ''),
+  port INTEGER CHECK (port > 0),
+  database TEXT CHECK (database <> ''),
+  username TEXT CHECK (username <> ''),
+  file_path TEXT CHECK (file_path <> ''),
+  ssl TEXT CHECK (json_valid(ssl) AND json_type(ssl) = 'object'),
+  read_only INTEGER NOT NULL CHECK (read_only IN (0, 1)),
+  ai_access TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  last_connected_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (${NOW}),
+  updated_at TEXT NOT NULL DEFAULT (${NOW})
+) STRICT;
+CREATE INDEX idx_db_connections_project ON db_connections(project_id, position);
+CREATE TRIGGER db_connections_drop_secrets AFTER DELETE ON db_connections BEGIN
+  DELETE FROM secrets WHERE key LIKE 'db_connection:' || OLD.id || ':%';
+END;
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

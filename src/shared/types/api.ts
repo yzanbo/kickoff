@@ -4,6 +4,7 @@ import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
 import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
+import type { DbAiAccess, DbEngine, DbEnvironment, DbObjectPath, DbSort, DbSsl } from "./database";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
 
@@ -252,4 +253,60 @@ export type SnippetPatch = Partial<NewSnippetBody>;
 /** 起動したときの送信待ちの確かめに答える（POST /api/queue-resumes。チャットごと） */
 export interface QueueResumeBody {
   decisions: { chat_id: number; action: QueueResumeAction }[];
+}
+
+/**
+ * DB の接続を作る（POST /api/projects/:id/db-connections）。SQLite は file_path、ほかは host・port・database・username。
+ * password: 保存するパスワード（省く・null なら保存しない。値は二度と API に出さない）
+ */
+export interface NewDbConnectionBody {
+  name: string;
+  engine: DbEngine;
+  environment: DbEnvironment;
+  host: string | null;
+  port: number | null;
+  database: string | null;
+  username: string | null;
+  file_path: string | null;
+  ssl: DbSsl | null;
+  read_only: boolean;
+  ai_access: DbAiAccess;
+  password?: string | null;
+}
+
+/** DB の接続を変える（PATCH …/db-connections/:cid。書いた項目だけ。password: 省けばそのまま・null で消す・文字列で替える） */
+export type DbConnectionPatch = Partial<NewDbConnectionBody>;
+
+/**
+ * つながるか試す（POST …/db-connections/test。保存しない）。connection_id があれば、password を省いたときにその接続の保存したパスワードを使う
+ */
+export type DbConnectionTestBody = Omit<NewDbConnectionBody, "name" | "read_only" | "ai_access"> & { connection_id?: number };
+
+/** つながるか試した結果 */
+export interface DbConnectionTestResult {
+  ok: boolean;
+  /** つながったときの DB の版（分かれば） */
+  server_version: string | null;
+  error: string | null;
+}
+
+/** ほかのプロジェクトの接続を写す（POST …/db-connections/copy）。copy_password が false ならパスワードは写さない */
+export interface CopyDbConnectionBody {
+  from_id: number;
+  copy_password: boolean;
+}
+
+/** テーブルの行を読む（POST …/db-connections/:cid/rows。DB_TABLE_PAGE_ROWS 行まで） */
+export interface DbRowsBody {
+  path: DbObjectPath;
+  table: string;
+  sort: DbSort[];
+  offset: number;
+}
+
+/** SQL のタブで 1 つの文を流す（POST …/db-connections/:cid/sql）。session: SQL のタブごとの接続の ID。write: 「書き込む」の間（読み取り専用を外す） */
+export interface DbSqlBody {
+  session: string;
+  sql: string;
+  write: boolean;
 }

@@ -14,6 +14,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - `usage/`: Claude のプランの使用枠と、ほかのサービスの使用状況。→「使用状況」
 - `voice/`: 音声入力の文字起こしと、音声モードの読み上げ（OpenAI の声）。→「音声入力」
 - `memos/`: プロジェクトのメモ（`memos.ts` の `MemoService`）。→「メモ」
+- `databases/`: DB クライアント（`service.ts` の `DatabaseService` と、DB に触る別のプロセス DB ワーカー）。→「DB クライアント」
 - `browser/`: AI に埋め込みブラウザを操作させる口 `BrowserControl`（`control.ts`。コアは Electron に依らないので、中身はメインプロセスが `startCore({ browser })` で渡す（`main/browser/agentBrowser.ts`）。単体のコア（`npm run daemon`）では渡されず、AI にブラウザのツールを出さない）と、AI に返す文の組み立て（`format.ts`: タブの一覧 `formatTabs`（このプロジェクトのタブを先に）・ページの読み取り `formatSnapshot`（押せる要素の番号 ref と見えている文。文は `SNAPSHOT_TEXT_MAX` で切る）・URL の補い `normalizeBrowserUrl`（localhost・ポート付きは http、ほかは https。http(s) 以外は開かない））。ツールそのものは `providers/claude/browserTools.ts`。
 - `system/`: 外部コマンド・パス（→「外部コマンドとパス」）・ログインシェルの PATH（`shellEnv.ts` の `loadLoginShellPath`）・期限付きのキャッシュ（`ttlCache.ts`）・名前と保存先とポート（`appEnv.ts` の `APP_ENVS`。製品版 Kickoff = 4317、開発版 Kickoff Dev = 4318。同時に動かせ、開発中の変更で製品版のデータを壊さない）・開発版のデータの写し（`devData.ts` の `seedDevData`。開発の保存先がなければ製品版から一度だけ。DB は `VACUUM INTO`）。
 - `testing/`: テストからだけ使う補助。→「テスト」
@@ -25,7 +26,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - 版は `PRAGMA application_id`（`APPLICATION_ID` = 'KICK'）と `user_version`（`USER_VERSION_BASE` の 200 ＋ 版。v1 = 201）で持つ。触る前に `inspectSchema` で調べ、Kickoff のものでない・このアプリより新しい版なら、データに触らずに例外にする。
 - リリース前の系統（印が KICK で `user_version` が 100 ＋ 版）は引き継がない。起動のときに `db/open.ts` の `discardPrereleaseData` が DB（`-wal`・`-shm` も）・`backups/`・`uploads/` を消し、空の DB から作る（音声のモデル・トークンなど DB に依らないものは残す）。`openDatabase` はリリース前の DB を開かない。古い DB を変換する仕組みは作らない。
 - `openDatabase` は WAL と外部キーを有効にしてから `migrate` する。
-- `Store`（`db/store.ts`）は表ごとの店をまとめて持つだけ: `store.settings` / `secrets` / `projects` / `groups` / `chats` / `events` / `queues` / `snippets`（定型文）/ `prNotices`（ワークツリーの PR の確認を閉じた覚え。v11 の `pr_notice_dismissals`）。各店は `db/<表>.ts` の `createXxxStore(db, onChange)` で、変える操作は `onChange` で知らせる（SSE の起点。秘密の値は知らせず、送信待ちの知らせは `ChatRuntime` が出す）。ルートなどから SQL を書かず、店を直接使う。作るときの入力の形は `db/types.ts`（`NewProject` / `NewChat`）。
+- `Store`（`db/store.ts`）は表ごとの店をまとめて持つだけ: `store.settings` / `secrets` / `projects` / `groups` / `chats` / `events` / `queues` / `snippets`（定型文）/ `prNotices`（ワークツリーの PR の確認を閉じた覚え。v11 の `pr_notice_dismissals`）/ `dbConnections`（DB クライアントの接続。v13 の `db_connections`）。各店は `db/<表>.ts` の `createXxxStore(db, onChange)` で、変える操作は `onChange` で知らせる（SSE の起点。秘密の値は知らせず、送信待ちの知らせは `ChatRuntime` が出す）。ルートなどから SQL を書かず、店を直接使う。作るときの入力の形は `db/types.ts`（`NewProject` / `NewChat`）。
 - 行と型の変換は各店の `toChat` / `toProject` などに集める（真偽値は `db/common.ts` の `bit()` で 0 / 1、JSON の列は読み書きのときに変換）。型と API は boolean で返す。変えられる列の一覧（`CHAT_COLUMNS` / `PROJECT_COLUMNS`）を型と UPDATE の両方に使い、`updateRow` で書いた項目だけを変える。
 - チャットのアーカイブは `store.chats.archive`（子孫も一緒。決まりは `chat/CLAUDE.md` の「子チャット」）。
 - `chats.active_at`（最後に動いた時刻。一覧の並び順）を進めるのは、状態（`status`）を変える更新だけ（`chats.update` に `status` があるとき = 送った・終わった）。未読・固定・グループ（`setUnread` / `setPinned` / `setGroup`）・手動の並び（`reorder`）・名前・アーカイブ・移動・作業場所の片付け・起動のときの復旧では進めない。
@@ -96,6 +97,18 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - AI のフォルダの整理案（`memoAi.ts`。動かさず、案を返すだけ）: `aiPlan`（メモのパスと書き出しを見せて、名前の変更・移動の案を JSON で受け、使える案だけを残す `parseMemoPlan`: 一覧にないメモ・使えない行き先・拡張子が変わる・行き先が重なる・もうある名前は除く）。プロジェクトのプロバイダーの `ask`（sonnet）で聞く。
 - メモの中の文を探す（⌘K の「メモ内の文言」。`MemoService.search` → `memos/memoSearch.ts` の `searchMemoTexts`）: メモのフォルダは Git で管理していないこともあるので、一覧（`list`）のメモ（.md・.html。1MB まで）を読んで、行ごとに大文字・小文字を区別せず探す（行の頭の空白は省き、長い行は見つかった所が見えるように前後を切って「…」。見つかった所の位置 `match_start` / `match_end` も返す）。1 つのメモから 5 行・全部で 100 行まで（超えたら `truncated`）。アーカイブしたプロジェクトと、まだメモのフォルダを決めていないプロジェクト（`memo_path` も `memo_folder` もない。探すだけでフォルダ名を決めないように）は探さず、同じフォルダを指すプロジェクトは 1 回だけ。
 - API は `http/routes/memos.ts`（`GET /api/memos/defaults`・すべてのプロジェクトのメモの中の文を探す `GET /api/memos/search?q=`（200 文字まで）・そのフォルダをメモのフォルダにしているプロジェクト `GET /api/memos/users?path=&except=`（`MemoService.usersOf`。~ とリンクを解いて比べ、まだメモのフォルダを決めていないプロジェクトは数えない。画面が被りを知らせる）・`GET /api/projects/:id/memos`・`GET|PUT|DELETE /api/projects/:id/memo`・HTML のメモが読むファイル `GET /api/projects/:id/memo/file/*`・`POST /api/projects/:id/memos`（作る）・`/memos/move`・`/memos/from-chat`・メモのチャットを始める `POST /api/projects/:id/memo/chat`・AI の整理案 `POST /api/projects/:id/memos/ai-plan`）。
+
+## DB クライアント（databases/）
+
+プロジェクトごとに登録した DB（SQLite・PostgreSQL・MySQL / MariaDB）を見る・SQL を流す（要件 5.12。画面は `features/database/CLAUDE.md`）。
+
+- 接続は表 `db_connections`（v13。店は `db/dbConnections.ts`。並びは `position`）。パスワードは `secrets` の `db_connection:<ID>:password` に置き、応答には `has_password` だけを返す（暗号化は製品版の署名を整えてから）。接続を消すと、表のトリガー `db_connections_drop_secrets` がそのパスワードも消す（プロジェクトを消したときの連鎖の削除でも効く）。変えたら SSE の `db_connections`（プロジェクトの ID だけ。中身は載せない）。
+- API は `http/routes/databases.ts`（`/api/projects/:id/db-connections`。接続の一覧・作る・変える・並べ替え・写す・試す・消すと、DB・スキーマ・テーブルの一覧・テーブルの詳細・行・数・補完の名前・SQL・SQL のタブの接続の止める / コミット / 取り消す / 閉じる）。すべて 127.0.0.1 から来たものだけ受け、ほかは 403（`localOnly`。リモートのアクセス・スマホからは使わせない）。`?worktree=` で SQLite のファイルを開く作業場所を選ぶ。
+- SQLite のファイルはプロジェクトフォルダからの場所（`/` か `~` からなら外のファイル）で、ワークツリーでは中の同じ場所を開く。ないときは 404 と `code: "db_file_not_in_worktree"`（`DB_NOT_IN_WORKTREE`。画面が「本体のものを開く」を出す）。Kickoff のデータのフォルダの中のファイルは、実体のパスで比べて断る（自分の DB を書き換えさせない）。
+- DB ワーカー（`databases/worker/`）: DB に触るのは別のプロセス（`client.ts` の `DbWorkerClient` が `child_process.fork` で立ち上げる。Electron では `out/main/dbWorker.js` を `ELECTRON_RUN_AS_NODE` で、開発の単体のコア・テストでは `worker/main.ts` を tsx で（`entry.ts`））。重い SQL・止まった DB がコアの HTTP と SSE を止めないため。頼みは `{ id, method, params }` → `{ id, ok, result | error }`、止めるのは `{ cancel: id }`（`protocol.ts`）。5 分使わなければ止め（トランザクションの途中の接続があれば止めない）、落ちたら待っている頼みを失敗にして、次の頼みで立ち上げ直す。SQLite（`node:sqlite`）は同期で途中で止められないので、止めるときはワーカーごと止める。
+- 接続（ワーカーの中のセッション）: 木・テーブルのタブは接続・作業場所・DB ごとに共有（`shared:<接続>:<作業場所>:<DB>`。PostgreSQL は DB ごとにつなぐ）、SQL のタブはタブごと（`sql:<接続>:<タブのキー>`）。つなぎ先が変わったら開き直す（トランザクションの途中なら断る）。
+- 読み取り専用の接続は 2 段で守る: 文の判定（`@shared/database/sqlStatements.ts` の `isReadOnlyStatement`）と DB 側の読み取り専用（SQLite は `readOnly` で開く）。SQL は 1 回に 1 文だけ受ける（`node:sqlite` の `prepare` は 2 つ目からの文を黙って捨てるため。画面が文に分けて 1 つずつ送る）。結果は `DB_SQL_MAX_ROWS`（1000 行）まで、テーブルの行は `DB_TABLE_PAGE_ROWS`（100 行）ずつ。値は `worker/values.ts` の `toDbValue`（バイナリは大きさと頭だけ）。
+- テストは `http/server.databases.test.ts`（ワーカーは同じプロセスの `inProcessWorker`）と `databases/client.test.ts`（本物の fork）。
 
 ## テスト
 
