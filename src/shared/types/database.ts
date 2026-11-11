@@ -73,6 +73,37 @@ export interface DbConnection {
 /** 名前の長さの上限 */
 export const DB_CONNECTION_NAME_MAX = 100;
 
+/** プロジェクトから接続を取り込むときに見る所（.env の DATABASE_URL など・docker compose の DB のサービス・Prisma の設定・SQLite のファイル） */
+export const DB_IMPORT_SOURCES = ["env", "compose", "prisma", "file"] as const;
+export type DbImportSource = (typeof DB_IMPORT_SOURCES)[number];
+export const DB_IMPORT_SOURCE_LABELS: Record<DbImportSource, string> = { env: ".env", compose: "docker compose", prisma: "Prisma", file: "SQLite のファイル" };
+
+/** プロジェクトの中で見つけた接続の案（GET …/db-connections/import。パスワードは返さず、あるかだけ） */
+export interface DbImportCandidate {
+  /** 見つけた所の印（取り込むときに指す。例: env:.env:DATABASE_URL） */
+  key: string;
+  source: DbImportSource;
+  /** 見つけた所の文（「.env の DATABASE_URL」「compose.yaml のサービス db」） */
+  origin: string;
+  /** 名前の案 */
+  name: string;
+  engine: DbEngine;
+  host: string | null;
+  port: number | null;
+  database: string | null;
+  username: string | null;
+  /** SQLite のファイル（プロジェクトフォルダからの相対） */
+  file_path: string | null;
+  ssl: DbSsl | null;
+  /** 推した環境（ファイルの名前・ホストから。分からない外のホストは本番） */
+  environment: DbEnvironment;
+  has_password: boolean;
+  /** 気をつけること（compose のポートを外に出していない・サービス名を localhost に読み替えた など） */
+  note: string | null;
+  /** 同じ接続がもう登録してあれば、その接続 */
+  existing_id: number | null;
+}
+
 /** 失敗の種類の印: SQLite のファイルが、開いているワークツリーにない（画面は本体のものを開くか聞く） */
 export const DB_NOT_IN_WORKTREE = "db_file_not_in_worktree";
 

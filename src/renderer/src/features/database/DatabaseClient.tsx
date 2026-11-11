@@ -1,4 +1,4 @@
-import { Copy, Database, Network, PanelLeftClose, PanelLeftOpen, Pencil, Plus, SquareTerminal, Trash2 } from "lucide-react";
+import { Copy, Database, FolderInput, Network, PanelLeftClose, PanelLeftOpen, Pencil, Plus, SquareTerminal, Trash2 } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { errorMessage } from "@shared/errors";
@@ -19,6 +19,7 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ConnectionDialog } from "./ConnectionDialog";
 import { CopyConnectionDialog } from "./CopyConnectionDialog";
+import { ImportConnectionDialog } from "./ImportConnectionDialog";
 import { DbClientContext, type DbClientActions } from "./dbClientContext";
 import { DbTree } from "./DbTree";
 import { TabObjectIcon } from "./DbTreeObjects";
@@ -47,6 +48,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   const [hidden, setHidden] = useSetting(DB_LIST_HIDDEN);
   const [editing, setEditing] = useState<DbConnection | null | undefined>(undefined);
   const [copying, setCopying] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [mainOnly, setMainOnly] = useState<ReadonlySet<number>>(new Set());
   const menu = useContextMenu<DbConnection>();
   const width = useDragSize({ setting: DB_LIST_WIDTH, min: 180, keep: 320 });
@@ -140,6 +142,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
             <div className="db-list-head">
               <span className="db-list-title">接続</span>
               <IconButton icon={Plus} label="接続を追加" onClick={() => setEditing(null)} />
+              <IconButton icon={FolderInput} label="プロジェクトから取り込む（.env・docker compose・Prisma・SQLite のファイル）" onClick={() => setImporting(true)} />
               <IconButton icon={Copy} label="ほかのプロジェクトの接続を写す" onClick={() => setCopying(true)} />
               <IconButton icon={PanelLeftClose} label="一覧を隠す" onClick={() => (narrow ? setOverlay(false) : setHidden(true))} />
             </div>
@@ -149,6 +152,9 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                 <p>まだ接続がありません。</p>
                 <button type="button" className="btn btn-sm" onClick={() => setEditing(null)}>
                   接続を追加
+                </button>
+                <button type="button" className="btn btn-sm" onClick={() => setImporting(true)}>
+                  プロジェクトから取り込む
                 </button>
               </div>
             ) : (
@@ -227,6 +233,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
         )}
         {editing !== undefined && <ConnectionDialog projectId={projectId} connection={editing} worktree={worktree} onClose={() => setEditing(undefined)} />}
         {copying && <CopyConnectionDialog projectId={projectId} onClose={() => setCopying(false)} />}
+        {importing && <ImportConnectionDialog projectId={projectId} onClose={() => setImporting(false)} />}
       </div>
     </DbClientContext.Provider>
   );

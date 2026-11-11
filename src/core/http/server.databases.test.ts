@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
-import type { BusEvent, DbConnection, DbErSchema, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
+import type { BusEvent, DbConnection, DbErSchema, DbImportCandidate, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
 import { AUTH, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import { gitRepo } from "../testing/gitRepo.js";
@@ -123,6 +123,42 @@ test("DB の接続: ほかのプロジェクトから写す（パスワードは
   assert.equal(without.has_password, false);
   const withPassword = (await call("POST", `/api/projects/${project.id}/db-connections/copy`, { from_id: from.id, copy_password: true })).body as DbConnection;
   assert.equal(store.dbConnections.password(withPassword.id), "p");
+});
+
+test("DB の接続: プロジェクトから取り込む（案にパスワードは出さず、取り込むときに読み直す。登録済みの印・環境の既定・ないものは 404）", async () => {
+  const { call, project, store } = setup();
+  const base = `/api/projects/${project.id}/db-connections/import`;
+  makeSqlite(project.repo_path);
+  fs.writeFileSync(path.join(project.repo_path, ".env"), "DATABASE_URL=postgres://app:s3cret@db.example.com/shop\n");
+  store.dbConnections.create(project.id, { ...sqliteBody(), password: null });
+
+  const res = await call("GET", base);
+  assert.equal(res.status, 200);
+  assert.ok(!JSON.stringify(res.body).includes("s3cret"));
+  const list = res.body as DbImportCandidate[];
+  assert.deepEqual(
+    list.map((c) => [c.key, c.engine, c.environment, c.has_password, c.existing_id !== null]),
+    [
+      ["env:.env:DATABASE_URL", "postgres", "production", true, false],
+      ["file:app.db", "sqlite", "local", false, true],
+    ],
+  );
+
+  const created = await call("POST", base, { items: [{ key: "env:.env:DATABASE_URL", name: "店の DB", environment: "staging" }] });
+  assert.equal(created.status, 201);
+  const [conn] = created.body as DbConnection[];
+  assert.equal(conn.name, "店の DB");
+  assert.equal(conn.host, "db.example.com");
+  assert.equal(conn.environment, "staging");
+  assert.equal(conn.ai_access, "ask");
+  assert.equal(conn.read_only, false);
+  assert.equal(conn.has_password, true);
+  assert.ok(!JSON.stringify(created.body).includes("s3cret"));
+  assert.equal(store.dbConnections.password(conn.id), "s3cret");
+  assert.equal(((await call("GET", base)).body as DbImportCandidate[])[0].existing_id, conn.id);
+
+  assert.equal((await call("POST", base, { items: [{ key: "env:.env:NOPE", name: "x", environment: "local" }] })).status, 404);
+  assert.equal((await call("POST", base, { items: [] })).status, 400);
 });
 
 test("DB の接続: AI 用のユーザーとパスワード（パスワードは保存したかだけ返す・写すのは選んだときだけ・消すと秘密の値も消える）", async () => {
