@@ -1,10 +1,11 @@
-import { Bot, ChevronDown, ChevronRight, FileDiff, MessageSquarePlus, MessagesSquare, StickyNote, type LucideIcon } from "lucide-react";
+import { Bot, ChevronDown, ChevronRight, Database, FileDiff, MessageSquarePlus, MessagesSquare, StickyNote, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { openChildChat } from "@/features/chat/children/openChild";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { useSubagentsView } from "@/features/chat/subagents/subagentsContext";
 import { flattenTree } from "@/features/chat/subagents/subagentTree";
+import { DbMenuItems } from "@/features/database/DbMenuItems";
 import { RecentMemoItems } from "@/features/memo/MemoMenuItems";
 import { parsePanelKey } from "@/features/panel/surfaces";
 import { PROJECT_VIEW_LABELS, type ProjectView } from "@/features/panel/tabs/panelTypes";
@@ -21,7 +22,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 /**
  * 右の欄のタブの列の新しいタブのボタン: 「新しい子チャット」と、横の ▾ で、ほかに右の欄に開けるもののメニュー（2 つを 1 つのボタンに見せる .panel-split-button）。
  * メニューは 新しい子チャット ｜ 子チャット ▸（このチャットの子）・サブエージェント ▸（アーカイブしたものは除く）｜ ファイル・検索・変更・履歴（プロジェクトの左の列のタブと同じ画面。
- * 作業場所はこのチャットの作業場所から）｜ メモ ▸（最近変えた 12 件）。
+ * 作業場所はこのチャットの作業場所から）｜ メモ ▸（最近変えた 12 件）・DB ▸（DB クライアントと、接続ごとの新しい SQL のタブ。この Mac のアプリの中だけ）。
  * どれも設定の開き方によらず、この右の欄に開く（▸ の一覧が空なら押せない）
  */
 export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; onNewChild: () => void }) {
@@ -33,7 +34,7 @@ export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; 
         <IconButton
           icon={ChevronDown}
           label="右の欄に開く"
-          title="新しい子チャット・子チャット・サブエージェント・ファイル・検索・変更・履歴・メモから選んで、右の欄に開く"
+          title="新しい子チャット・子チャット・サブエージェント・ファイル・検索・変更・履歴・メモ・DB から選んで、右の欄に開く"
           size={12}
           className="panel-open-with agent-panel-adds-more"
           aria-haspopup="menu"
@@ -64,6 +65,7 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const childMenu = useSubmenu();
   const agentMenu = useSubmenu();
   const memoMenu = useSubmenu();
+  const dbMenu = useSubmenu();
   if (!chat) return null;
   const worktree = chat.worktree_path ?? undefined;
   /** プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面を、この右の欄に開く項目 */
@@ -121,6 +123,16 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
       <SubmenuItem submenu={memoMenu} icon={StickyNote} label="メモ" empty={null}>
         <RecentMemoItems projectId={chat.project_id} onPick={(path) => panel.openMemo({ chatId: chat.id, projectId: chat.project_id, path })} />
       </SubmenuItem>
+      {/* DB はこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける） */}
+      {window.kickoff && (
+        <SubmenuItem submenu={dbMenu} icon={Database} label="DB" empty={null}>
+          <DbMenuItems
+            projectId={chat.project_id}
+            place={`chat-${chat.id}`}
+            onOpen={() => panel.openDatabase({ chatId: chat.id, projectId: chat.project_id, ...(worktree ? { worktree } : {}) })}
+          />
+        </SubmenuItem>
+      )}
     </>
   );
 }

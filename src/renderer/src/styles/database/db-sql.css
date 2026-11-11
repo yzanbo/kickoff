@@ -41,6 +41,56 @@
   color: var(--info);
 }
 
+/* 接続の環境の札（環境の色の点と名前） */
+.db-sql-env {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--db-env) 14%, transparent);
+  color: color-mix(in srgb, var(--db-env) 70%, var(--text));
+  white-space: nowrap;
+}
+
+/* 「書き込む」の間: 上の赤い帯と、タブの枠の赤い線（読み取り専用を外していると、ひと目で分かるように） */
+.db-sql-view.writing {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ng) 70%, transparent);
+}
+
+.db-sql-write-band {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 5px var(--gutter);
+  border-bottom: 1px solid var(--ng);
+  background: color-mix(in srgb, var(--ng) 38%, var(--bg));
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.db-sql-write-band > svg {
+  flex: none;
+  color: var(--ng);
+}
+
+.db-sql-write-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-sql-write-band .btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
 .db-sql-pending {
   display: inline-flex;
   align-items: center;

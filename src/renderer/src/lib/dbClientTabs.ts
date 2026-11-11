@@ -83,3 +83,10 @@ export function nextSqlTitle(state: DbClientTabs): string {
   while (used.has(`SQL ${n}`)) n++;
   return `SQL ${n}`;
 }
+
+/** 新しい SQL のタブのキー（SQL のタブの DB の接続の名前にも使う。英数字と -） */
+const newSqlKey = () => `sql-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+/** 接続の新しい SQL のタブを開く（DB クライアントの中と、右の欄の ▾ のメニューから） */
+export const openNewSqlTab = (state: DbClientTabs, connectionId: number): DbClientTabs =>
+  openDbTab(state, { key: newSqlKey(), kind: "sql", connection_id: connectionId, title: nextSqlTitle(state) });

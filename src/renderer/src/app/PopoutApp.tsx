@@ -18,6 +18,7 @@ import { PopoutFiles } from "@/features/popout/PopoutFiles";
 import { PopoutSubagent } from "@/features/popout/PopoutSubagent";
 import { PopoutChildChat } from "@/features/popout/PopoutChildChat";
 import { SideMemo } from "@/features/memo/SideMemo";
+import { DatabaseClient } from "@/features/database/DatabaseClient";
 import { SideScope } from "@/features/popout/SideScope";
 import { PopoutDockButton } from "@/features/popout/PopoutDockButton";
 import { AskChildHost } from "@/features/chat/children/AskChildHost";
@@ -26,10 +27,10 @@ import { popoutPath, type PopoutRoute } from "./popout";
 import { RouteContext, useHashRoute } from "./router";
 
 /** 上の帯の、何のウィンドウかの札 */
-const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ" };
+const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ", database: "DB" };
 
 /**
- * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ）の画面。メインのウィンドウの App は使わない
+ * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアント）の画面。メインのウィンドウの App は使わない
  * （サイドバー・通知・ショートカット・下の帯などを 2 つ動かさないため）。サーバーとのつながり・回答待ち・プロジェクトの色・会話の文字の大きさだけを持つ。
  * 表示の設定は localStorage をメインのウィンドウと共有し、書き換えは storage の知らせでそろう（lib/storage）。
  * ⌘F は、ウィンドウの中を探す（ファイル・メモはエディタの検索、ほかは右上の検索の欄。子チャットはチャットの中の検索が先に受け取る）
@@ -85,6 +86,10 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
                     // 名前を変えたら、ウィンドウの URL も新しい名前に（読み込み直しても同じメモを開く）
                     onRenamed={(to) => history.replaceState(null, "", `#${popoutPath({ ...route, path: to })}`)}
                   />
+                </div>
+              ) : route.kind === "database" ? (
+                <div className="popout-body">
+                  <DatabaseClient projectId={route.projectId} place={`chat-${route.chatId}`} worktree={route.worktree ?? null} />
                 </div>
               ) : (
                 <PopoutFiles route={route} />

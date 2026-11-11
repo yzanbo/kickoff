@@ -1,4 +1,4 @@
-// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモを、メインのウィンドウの外に出して見る）の行き先
+// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアントを、メインのウィンドウの外に出して見る）の行き先
 import { postWindowMessage } from "./windowBus";
 
 /** 別ウィンドウで開くもの（メモのほかは、開いたチャットに結びつく。chatId はメインのウィンドウのそのチャットへ知らせるのに使う） */
@@ -15,7 +15,9 @@ export type PopoutRoute =
    * プロジェクトのメモ（path はメモのフォルダからの相対）。chatId は開いたチャット（メモをそのチャットの入力欄に添付する先。
    * チャットごとに別のウィンドウ）。メモのタブなど、チャットの外から開いたものはなし
    */
-  | { kind: "memo"; projectId: number; path: string; chatId?: number };
+  | { kind: "memo"; projectId: number; path: string; chatId?: number }
+  /** DB クライアント（右の欄の DB のタブ。worktree は SQLite のファイルを開く作業場所） */
+  | { kind: "database"; chatId: number; projectId: number; worktree?: string };
 
 const PREFIX = "/popout/";
 
@@ -75,6 +77,7 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
     const focus = params.get("focus") || undefined;
     return { kind, ...place, ...(focus ? { focus } : {}) };
   }
+  if (kind === "database") return { kind, ...place };
   if (kind === "file") {
     const path = params.get("path");
     const line = positive(params.get("line"));

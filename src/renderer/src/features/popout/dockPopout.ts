@@ -1,5 +1,5 @@
 // 別ウィンドウの「右の欄に戻す」: 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（メインのウィンドウで呼ぶ）。
-// 子チャット・変更・ファイルは結びついたチャット（子チャットなら、いちばん上の親）の右の欄、サブエージェントはそのチャットの右の欄、
+// 子チャット・変更・ファイル・DB クライアントは結びついたチャット（子チャットなら、いちばん上の親）の右の欄、サブエージェントはそのチャットの右の欄、
 // メモは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければメモのタブ）
 import type { PopoutRoute } from "@/app/popout";
 import { openMemo } from "@/app/router";
@@ -29,6 +29,9 @@ export function dockPopout(route: PopoutRoute) {
       openInRootSide(chat.id, () => whenDrawn(chat.id, () => chatPaneOf(chat.id)?.openSubagentSide(route.agentKey)));
       return;
     }
+    case "database":
+      openInRootSide(route.chatId, (rootId, side) => side.openDatabase({ chatId: rootId, projectId: route.projectId, ...(route.worktree ? { worktree: route.worktree } : {}) }));
+      return;
     case "changes":
     case "file": {
       const place = { projectId: route.projectId, ...(route.worktree ? { worktree: route.worktree } : {}) };
