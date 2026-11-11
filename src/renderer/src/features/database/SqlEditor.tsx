@@ -26,6 +26,8 @@ export interface SqlEditorHandle {
   /** 選んでいる範囲（なければ null）とカーソルの位置 */
   selection: () => { from: number; to: number; empty: boolean };
   focus: () => void;
+  /** 文の終わりに空行を挟んで足し、そこを選ぶ（⌘↵ でそのまま流せる。履歴から入れる）。⌘Z で戻せる */
+  append: (text: string) => void;
 }
 
 /**
@@ -89,6 +91,17 @@ export function SqlEditor({
         return { from: r.from, to: r.to, empty: r.empty };
       },
       focus: () => editor.focus(),
+      append: (text) => {
+        const doc = editor.state.doc.toString();
+        const sep = doc.trim() === "" ? "" : doc.endsWith("\n\n") ? "" : doc.endsWith("\n") ? "\n" : "\n\n";
+        const from = doc.trim() === "" ? 0 : doc.length + sep.length;
+        editor.dispatch({
+          changes: doc.trim() === "" ? { from: 0, to: doc.length, insert: text } : { from: doc.length, insert: sep + text },
+          selection: { anchor: from, head: from + text.length },
+          scrollIntoView: true,
+        });
+        editor.focus();
+      },
     };
     return () => {
       editor.destroy();

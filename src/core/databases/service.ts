@@ -192,10 +192,19 @@ export class DatabaseService {
     this.running.get(session)?.abort();
     const controller = new AbortController();
     this.running.set(session, controller);
+    const started = Date.now();
+    // 流した文は成功・失敗とも SQL の履歴に残す（判定で断った文は流していないので残さない）
+    const record = (entry: { duration_ms: number; row_count?: number | null; error?: string }) =>
+      this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql: body.sql, ran_by: "user", chat_id: null, ...entry });
     try {
-      return await this.run(() =>
+      const result = await this.run(() =>
         this.opts.client.request("query", { session, target, sql: body.sql, max_rows: DB_SQL_MAX_ROWS }, { signal: controller.signal, engine: target.engine }),
       );
+      record({ duration_ms: result.duration_ms, row_count: result.columns.length > 0 ? result.rows.length : result.affected });
+      return result;
+    } catch (e) {
+      record({ duration_ms: Date.now() - started, error: controller.signal.aborted ? "止めました" : errorMessage(e) });
+      throw e;
     } finally {
       if (this.running.get(session) === controller) this.running.delete(session);
     }
@@ -239,6 +248,11 @@ export class DatabaseService {
       clearTimeout(timer);
       if (this.opts.client.running) await this.opts.client.request("close", { session }).catch(() => {});
     }
+  }
+
+  /** SQL の履歴（新しい順） */
+  history(connection: DbConnection, limit: number) {
+    return this.opts.store.dbQueryHistory.list(connection.id, limit);
   }
 
   /** SQL のタブで流している文を止める（流していなければ何もしない） */

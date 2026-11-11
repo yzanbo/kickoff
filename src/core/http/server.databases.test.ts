@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
-import type { BusEvent, DbConnection, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
+import type { BusEvent, DbConnection, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
 import { AUTH, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import { gitRepo } from "../testing/gitRepo.js";
@@ -265,6 +265,31 @@ test("SQL のタブ: 文を流す・トランザクションの途中の印・�
   const failed = await sql("select * from nope");
   assert.equal(failed.status, 400);
   assert.match(failed.body.error, /no such table/);
+});
+
+test("SQL の履歴: 利用者が流した文は成功も失敗も新しい順に残り、判定で断った文は残さない", async () => {
+  const { call, project, store } = setup();
+  makeSqlite(project.repo_path);
+  const c = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody({ read_only: true }))).body as DbConnection;
+  const base = `/api/projects/${project.id}/db-connections/${c.id}`;
+  await call("POST", `${base}/sql`, { session: "h", sql: "select count(*) from users", write: false });
+  assert.equal((await call("POST", `${base}/sql`, { session: "h", sql: "select * from missing_table", write: false })).status, 400);
+  assert.equal((await call("POST", `${base}/sql`, { session: "h", sql: "delete from users", write: false })).status, 400);
+  await call("DELETE", `${base}/sessions/h`);
+  const history = (await call("GET", `${base}/history`)).body as DbQueryHistoryEntry[];
+  assert.deepEqual(
+    history.map((h) => [h.sql, h.ran_by, h.row_count, h.error !== null, h.chat_title]),
+    [
+      ["select * from missing_table", "user", null, true, null],
+      ["select count(*) from users", "user", 1, false, null],
+    ],
+  );
+  assert.equal(((await call("GET", `${base}/history?limit=1`)).body as DbQueryHistoryEntry[]).length, 1);
+  assert.equal((await call("GET", `${base}/history?limit=0`)).status, 400);
+  // AI が流したものはチャットの名前も
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "調べもの", status: "completed" });
+  store.dbQueryHistory.add({ connection_id: c.id, sql: "select 1", ran_by: "ai", chat_id: chat.id, duration_ms: 1, row_count: 1 });
+  assert.deepEqual(((await call("GET", `${base}/history?limit=1`)).body as DbQueryHistoryEntry[]).map((h) => [h.ran_by, h.chat_title]), [["ai", "調べもの"]]);
 });
 
 test("SQL のタブ: 読み取り専用の接続は書く文を断り、「書き込む」の間だけ流せる", async () => {

@@ -37,7 +37,9 @@ export function createDbQueryHistoryStore(db: DatabaseSync) {
     },
     /** 接続の履歴（新しい順） */
     list(connectionId: number, limit = DB_HISTORY_MAX): DbQueryHistoryEntry[] {
-      return db.prepare("SELECT * FROM db_query_history WHERE connection_id = ? ORDER BY id DESC LIMIT ?").all(connectionId, limit) as unknown as DbQueryHistoryEntry[];
+      return db
+        .prepare("SELECT h.*, c.title AS chat_title FROM db_query_history h LEFT JOIN chats c ON c.id = h.chat_id WHERE h.connection_id = ? ORDER BY h.id DESC LIMIT ?")
+        .all(connectionId, limit) as unknown as DbQueryHistoryEntry[];
     },
   };
 }

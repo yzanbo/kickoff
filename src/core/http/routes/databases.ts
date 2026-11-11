@@ -6,6 +6,7 @@ import {
   DB_CONNECTION_NAME_MAX,
   DB_ENGINES,
   DB_ENVIRONMENTS,
+  DB_HISTORY_MAX,
   type CopyDbConnectionBody,
   type DbConnection,
   type DbConnectionPatch,
@@ -61,6 +62,7 @@ const testSchema = z.object({
   password: connectionShape.password,
   connection_id: z.number().int().positive().optional(),
 }) satisfies z.ZodType<DbConnectionTestBody, unknown>;
+const historyLimit = z.coerce.number().int().min(1).max(DB_HISTORY_MAX).default(200);
 const copySchema = z.object({ from_id: z.number().int().positive(), copy_password: z.boolean() }) satisfies z.ZodType<CopyDbConnectionBody>;
 const objectPath = z.object({ database: z.string().max(500).nullable(), schema: z.string().max(500).nullable() });
 const objectName = z.string().min(1).max(500);
@@ -201,6 +203,11 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     const body = sqlSchema.parse(await jsonBody(c));
     return c.json(await databases.sql(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body));
   });
+
+  // SQL の履歴（新しい順。AI が流したものは ran_by = ai とチャット）
+  app.get(`${base}/:cid/history`, withProject, withConnection, (c) =>
+    c.json(databases.history(c.var.connection, historyLimit.parse(queryOf(c, "limit") ?? undefined))),
+  );
 
   app.post(`${base}/:cid/sessions/:session/cancel`, withProject, withConnection, (c) => {
     databases.cancel(c.var.connection, sessionId.parse(c.req.param("session")));
