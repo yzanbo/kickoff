@@ -41,6 +41,7 @@ import { inboxSections, waitingSince } from "./inboxOrder";
 import { waitingAxes } from "./waitingAxes";
 import { useWaitingView } from "./waitingView";
 import { huedHeadProps, useSidebarBucketColors } from "./bucketColor";
+import { useShownChildChats } from "./useShownChildChats";
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -66,6 +67,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   searchAll?: string;
 }) {
   const route = useRoute();
+  // 右の欄で見えている子チャットも、開いている行にする（タブと同じく、どれを開いているか分かるように）
+  const shownChildren = useShownChildChats();
   // まとめ方（まとめない / グループ / 作業場所）。グループの見出しは「グループ」のときだけ出す
   const { grouping, setGrouping } = useChatLayout();
   // 見出しのクリックでチャット一覧を開閉する
@@ -146,7 +149,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       <ChatRow
         chat={chat}
         state={stateOf(chat)}
-        active={route.name === "chat" && route.chatId === chat.id}
+        active={(route.name === "chat" && route.chatId === chat.id) || shownChildren.has(chat.id)}
         menuOpen={rowMenu.menu?.value.id === chat.id}
         onMenu={(at) => rowMenu.openAt(at, chat)}
         onCloseMenu={rowMenu.close}
