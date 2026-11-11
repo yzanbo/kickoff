@@ -1,5 +1,6 @@
 // MySQL / MariaDB の接続（mysql2。1 つの接続で DB を名前で指す。流している文は、別の接続から KILL QUERY で止める）
 import mysql, { type Connection, type ConnectionOptions, type FieldPacket, type ResultSetHeader } from "mysql2";
+import type { DbEditParam } from "@shared/database/dbEdit";
 import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFilter";
 import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
@@ -102,6 +103,18 @@ class MysqlDriver implements DbDriver {
         if (err) return reject(err);
         if (!Array.isArray(result)) this.status = (result as ResultSetHeader).serverStatus ?? this.status;
         resolve(Array.isArray(result) ? (result as Row[]) : []);
+      });
+    });
+  }
+
+  /** 値を params で渡して流し、当たった行の数（mysql2 は FOUND_ROWS なので、同じ値への更新も数える） */
+  execute(sql: string, params: DbEditParam[]): Promise<number> {
+    return new Promise((resolve, reject) => {
+      this.conn.query({ sql, values: params }, (err, result) => {
+        if (err) return reject(err);
+        const header = result as ResultSetHeader;
+        this.status = header.serverStatus ?? this.status;
+        resolve(header.affectedRows ?? 0);
       });
     });
   }

@@ -152,6 +152,23 @@ export interface DbConnection {
   updated_at: string;
 }
 
+/** セルの編集で入れる値（文字のまま DB に渡し、型は DB が読み替える。null = NULL） */
+export type DbEditValue = string | null;
+/** 行を指すキーの値（読んだときの値のまま） */
+export type DbKeyValue = string | number | boolean | null;
+
+/**
+ * テーブルの行の変更（段階 3 のセルの編集）。更新・削除はキー（主キーか、NULL を許さない一意の列の組）で 1 行を指す。
+ * 追加の values にない列は DB の既定値
+ */
+export type DbRowEdit =
+  | { kind: "update"; key: Record<string, DbKeyValue>; values: Record<string, DbEditValue> }
+  | { kind: "insert"; values: Record<string, DbEditValue> }
+  | { kind: "delete"; key: Record<string, DbKeyValue> };
+
+/** 1 回の保存で送れる変更の数（CSV の取り込みもこの中で） */
+export const DB_EDITS_MAX = 10_000;
+
 /** 名前の長さの上限 */
 export const DB_CONNECTION_NAME_MAX = 100;
 

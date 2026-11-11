@@ -1,6 +1,7 @@
 // SQLite の接続（node:sqlite。同期で動くので、文を流している間はワーカーが止まる。止めるときはコアがワーカーごと止める）
 import fs from "node:fs";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
+import type { DbEditParam } from "@shared/database/dbEdit";
 import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFilter";
 import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
@@ -191,6 +192,10 @@ class SqliteDriver implements DbDriver {
 
   async query(sql: string, maxRows: number) {
     return runStatement(this.db, this.db.prepare(sql), maxRows);
+  }
+
+  async execute(sql: string, params: DbEditParam[]) {
+    return Number(this.db.prepare(sql).run(...params).changes);
   }
 
   async cancel() {}

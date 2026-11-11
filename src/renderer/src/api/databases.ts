@@ -6,6 +6,8 @@ import type {
   DbConnectionTestResult,
   DbDatabases,
   DbDefinition,
+  DbEditsBody,
+  DbEditsResult,
   DbErPositions,
   DbErSchema,
   DbImportBody,
@@ -79,6 +81,8 @@ export const databasesApi = {
   dbRows: (projectId: number, id: number, body: DbRowsBody, worktree: string | null) => request<DbQueryResult>("POST", at(`${one(projectId, id)}/rows`, worktree), body),
   dbCount: (projectId: number, id: number, path: DbObjectPath, name: string, filter: DbRowFilter, worktree: string | null) =>
     request<{ count: number }>("POST", at(`${one(projectId, id)}/count`, worktree), { path, name, filter }),
+  saveDbEdits: (projectId: number, id: number, body: DbEditsBody, worktree: string | null) =>
+    request<DbEditsResult>("POST", at(`${one(projectId, id)}/edits`, worktree), body),
   dbOutline: (projectId: number, id: number, path: DbObjectPath, worktree: string | null) =>
     request<DbOutlineTable[]>("POST", at(`${one(projectId, id)}/outline`, worktree), { path }),
   dbEr: (projectId: number, id: number, path: DbObjectPath, names: string[] | null, worktree: string | null) =>

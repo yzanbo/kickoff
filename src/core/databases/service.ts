@@ -3,9 +3,10 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { editStatements } from "@shared/database/dbEdit";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
 import { hasConnectCommands, normalizePrep, type DbPrepVars } from "@shared/database/dbPrep";
-import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEngine, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
+import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbEngine, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
@@ -296,6 +297,33 @@ export class DatabaseService {
       throw e;
     } finally {
       if (this.running.get(session) === controller) this.running.delete(session);
+    }
+  }
+
+  /**
+   * テーブルの行の変更をまとめて保存する（段階 3 のセルの編集・行の追加と削除・CSV の取り込み）。SQL は画面から受けずに
+   * 変更の形から組み立て（@shared/database/dbEdit）、新しい接続の 1 つのトランザクションで流す（更新・削除がちょうど 1 行に当たらなければ、
+   * すべて取り消す）。読み取り専用の接続は「書き込む」の間（write）だけ。流した文は SQL の履歴に 1 件で残す
+   */
+  async applyEdits(connection: DbConnection, project: Project, workdir: Workdir, body: DbEditsBody): Promise<DbEditsResult> {
+    if (connection.read_only && !body.write) throw new Invalid("読み取り専用の接続なので保存できません（テーブルのタブの「書き込む」を押してから保存してください）");
+    const statements = editStatements(connection.engine, body.path, body.table, body.edits);
+    if (statements.length === 0) return { affected: [], duration_ms: 0 };
+    const target = this.target(connection, project, workdir, { write: body.write, database: connection.engine === "postgres" ? body.path.database : null });
+    const session = `edit:${connection.id}:${randomUUID()}`;
+    const sql = statements.map((s) => `${s.preview};`).join("\n");
+    const started = Date.now();
+    try {
+      const result = await this.run(() =>
+        this.opts.client.request("apply", { session, target, statements: statements.map(({ sql, params, expect }) => ({ sql, params, expect })) }, { engine: target.engine }),
+      );
+      this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql, ran_by: "user", chat_id: null, duration_ms: result.duration_ms, row_count: result.affected.reduce((a, b) => a + b, 0) });
+      return result;
+    } catch (e) {
+      this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql, ran_by: "user", chat_id: null, duration_ms: Date.now() - started, error: errorMessage(e) });
+      throw e;
+    } finally {
+      if (this.opts.client.running) await this.opts.client.request("close", { session }).catch(() => {});
     }
   }
 

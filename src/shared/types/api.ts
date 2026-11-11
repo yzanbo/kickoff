@@ -4,7 +4,7 @@ import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
 import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
-import type { DbAiAccess, DbEngine, DbEnvironment, DbErPositions, DbObjectPath, DbPrep, DbRowFilter, DbSort, DbSsh, DbSsl } from "./database";
+import type { DbAiAccess, DbEngine, DbEnvironment, DbErPositions, DbObjectPath, DbPrep, DbRowEdit, DbRowFilter, DbSort, DbSsh, DbSsl } from "./database";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
 
@@ -350,6 +350,21 @@ export interface DbErLayoutBody {
 }
 
 /** SQL のタブで 1 つの文を流す（POST …/db-connections/:cid/sql）。session: SQL のタブごとの接続の ID。write: 「書き込む」の間（読み取り専用を外す） */
+/** テーブルの行の変更をまとめて保存する（1 つのトランザクション。更新・削除がちょうど 1 行に当たらなければ、すべて取り消す） */
+export interface DbEditsBody {
+  path: DbObjectPath;
+  table: string;
+  edits: DbRowEdit[];
+  /** 読み取り専用の接続で「書き込む」の間（読み取り専用でない接続は false でよい） */
+  write: boolean;
+}
+
+/** 保存の結果（変更ごとに変えた行の数） */
+export interface DbEditsResult {
+  affected: number[];
+  duration_ms: number;
+}
+
 export interface DbSqlBody {
   session: string;
   sql: string;

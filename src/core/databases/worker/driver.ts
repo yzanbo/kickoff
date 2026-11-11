@@ -1,5 +1,6 @@
 // DB の種類ごとの接続（ワーカーの中だけで使う）。テーブルなどの場所 path は種類ごとに読み替える
 import type { DbDatabases, DbDefinition, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail } from "@shared/types";
+import type { DbEditParam } from "@shared/database/dbEdit";
 import type { DbOutlineTable } from "../protocol.js";
 
 export interface DbDriver {
@@ -18,6 +19,8 @@ export interface DbDriver {
   outline(path: DbObjectPath): Promise<DbOutlineTable[]>;
   /** 1 つの文を流し、max_rows 行まで読む */
   query(sql: string, maxRows: number): Promise<DbQueryResult>;
+  /** 値を params で渡して 1 つの文を流し、当たった行の数を返す（セルの編集。BEGIN・COMMIT もこれで流す） */
+  execute(sql: string, params: DbEditParam[]): Promise<number>;
   /** 流している文を止める（止められない種類は何もしない） */
   cancel(): Promise<void>;
   inTransaction(): boolean;

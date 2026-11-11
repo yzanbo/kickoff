@@ -78,6 +78,38 @@ async function erSchema(d: DbDriver, path: DbObjectPath, names: string[] | null)
   return { names: all, tables };
 }
 
+/** 当たった行の数が違うときの文 */
+function expectError(index: number, affected: number) {
+  return affected === 0
+    ? `${index + 1} 番目の変更の行が見つかりません（ほかで変わったか、消えたのかもしれません）。すべて取り消しました`
+    : `${index + 1} 番目の変更が ${affected} 行に当たりました（行を 1 つに決められません）。すべて取り消しました`;
+}
+
+/** 文をまとめて 1 つのトランザクションで流す（失敗・当たった行の数の違いで、すべて取り消す） */
+async function applyStatements(d: DbDriver, statements: WorkerMethods["apply"]["params"]["statements"]) {
+  const started = performance.now();
+  if (d.inTransaction()) throw new Error("トランザクションの途中なので保存できません");
+  await d.execute("BEGIN", []);
+  const affected: number[] = [];
+  try {
+    for (const [i, s] of statements.entries()) {
+      let n: number;
+      try {
+        n = await d.execute(s.sql, s.params);
+      } catch (e) {
+        throw new Error(`${i + 1} 番目の変更で失敗しました。すべて取り消しました: ${errorMessage(e)}`);
+      }
+      if (s.expect !== null && n !== s.expect) throw new Error(expectError(i, n));
+      affected.push(n);
+    }
+    await d.execute("COMMIT", []);
+  } catch (e) {
+    await d.execute("ROLLBACK", []).catch(() => {});
+    throw e;
+  }
+  return { affected, duration_ms: performance.now() - started };
+}
+
 interface OpenSession {
   driver: DbDriver;
   /** 使っている SSH トンネル（なければ null） */
@@ -154,6 +186,7 @@ export function createWorkerHandler(emit: EmitRun = () => {}) {
     count: (p, id) => use(id, p.session, p.target, async (d) => ({ count: await d.count(p.path, p.name, p.filter) })),
     outline: (p, id) => use(id, p.session, p.target, (d) => d.outline(p.path)),
     query: (p, id) => use(id, p.session, p.target, (d) => d.query(p.sql, p.max_rows)),
+    apply: (p, id) => use(id, p.session, p.target, (d) => applyStatements(d, p.statements)),
     commit: ({ session }) =>
       serial(session, async () => {
         const driver = existing(session);

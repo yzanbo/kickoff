@@ -1,5 +1,6 @@
 // コアと DB ワーカー（別のプロセス）のやり取りの形。コアは頼み（Request）を送り、ワーカーは同じ id の答え（Response）を返す。
 // 止めるときは { cancel: id } を送る（SQLite は文を流している間ワーカーが受け取れないので、コアがワーカーごと止める）
+import type { DbEditParam } from "@shared/database/dbEdit";
 import type { DbPrepVars } from "@shared/database/dbPrep";
 import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbPrepKind, DbPrepState, DbRowFilter, DbObjectPath, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail } from "@shared/types";
 
@@ -72,6 +73,8 @@ export interface WorkerMethods {
   count: { params: Session & { path: DbObjectPath; name: string; filter: DbRowFilter }; result: { count: number } };
   outline: { params: Session & { path: DbObjectPath }; result: DbOutlineTable[] };
   query: { params: Session & { sql: string; max_rows: number }; result: DbQueryResult };
+  /** 文をまとめて 1 つのトランザクションで流す（当たった行の数が expect と違えば、すべて取り消して失敗にする） */
+  apply: { params: Session & { statements: { sql: string; params: DbEditParam[]; expect: number | null }[] }; result: { affected: number[]; duration_ms: number } };
   commit: { params: { session: string }; result: { in_transaction: boolean } };
   rollback: { params: { session: string }; result: { in_transaction: boolean } };
   /** 接続を閉じる（途中のトランザクションは取り消す） */

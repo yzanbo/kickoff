@@ -2,6 +2,8 @@ import { useState } from "react";
 import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
+import { cx } from "@/lib/cx";
+import { isKey } from "@/lib/keys";
 import { formatBytes } from "@/lib/format";
 import type { DbTableTab } from "@/lib/dbClientTabs";
 import { CopyButton } from "@/ui/CopyButton";
@@ -11,7 +13,9 @@ import { RefreshButton } from "@/ui/IconButton";
 import { Segmented } from "@/ui/Segmented";
 import { useDbClient } from "./dbClientContext";
 import { objectPathLabel } from "./dbFormat";
+import { DbWriteBand } from "./DbWriteBand";
 import { TableData, useTableRows } from "./TableData";
+import { useTableEdits } from "./useTableEdits";
 
 type View = "data" | "structure" | "relations" | "ddl" | "info";
 const VIEWS: { value: View; label: string }[] = [
@@ -24,7 +28,8 @@ const VIEWS: { value: View; label: string }[] = [
 
 /**
  * テーブル・ビューのタブ（データ / 構造 / リレーション / DDL / 情報）。データは 100 行ずつ読み（続きは「さらに読む」）、列の見出しで並べ替え（ORDER BY を付けて取り直す）、
- * 絞り込みはタブに覚える（onFilter）。全体の行数は統計の推定で出し、「正確に数える」を押したときだけ COUNT(*) を流す
+ * 絞り込みはタブに覚える（onFilter）。全体の行数は統計の推定で出し、「正確に数える」を押したときだけ COUNT(*) を流す。
+ * セルの書き換えなどの保存していない変更は、表示を切り替えても残るようここで持ち（useTableEdits）、⌘S で保存する
  */
 export function TableView({ tab, connection, onFilter }: { tab: DbTableTab; connection: DbConnection; onFilter: (filter: DbRowFilter | null) => void }) {
   const client = useDbClient();
@@ -32,10 +37,19 @@ export function TableView({ tab, connection, onFilter }: { tab: DbTableTab; conn
   const [view, setView] = useState<View>("data");
   const detail = useAsync(() => api.dbTable(client.projectId, connection.id, tab.path, tab.name, worktree), [connection.id, tab.key, worktree]);
   const data = useTableRows(tab, connection, worktree);
+  const edit = useTableEdits(tab, connection, detail.data, worktree, data.reload);
   const label = objectPathLabel(tab.path, tab.name);
 
   return (
-    <div className="db-table-view">
+    <div
+      className={cx("db-table-view", edit.write.on && "writing")}
+      onKeyDown={(e) => {
+        if (!isKey(e, "s", { meta: true }) && !isKey(e, "s", { ctrl: true })) return;
+        e.preventDefault();
+        void edit.save();
+      }}
+    >
+      {edit.write.on && <DbWriteBand connection={connection} what="保存する" blocked={edit.saving ? "保存し終わってから戻せます" : null} onRevert={edit.write.revert} />}
       <div className="db-view-head">
         <span className="db-view-title" title={label}>
           {label}
@@ -52,7 +66,7 @@ export function TableView({ tab, connection, onFilter }: { tab: DbTableTab; conn
         />
       </div>
       <ErrorText message={detail.error} />
-      {view === "data" && <TableData data={data} detail={detail.data} connection={connection} tab={tab} worktree={worktree} onFilter={onFilter} />}
+      {view === "data" && <TableData data={data} detail={detail.data} connection={connection} tab={tab} worktree={worktree} edit={edit} onFilter={onFilter} />}
       {view === "structure" && detail.data && <TableStructure detail={detail.data} />}
       {view === "relations" && detail.data && <TableRelations detail={detail.data} />}
       {view === "ddl" && detail.data && (

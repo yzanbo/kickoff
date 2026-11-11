@@ -1,5 +1,5 @@
 import type { SQLNamespace } from "@codemirror/lang-sql";
-import { Lock, Play, PlayCircle, Square, TriangleAlert } from "lucide-react";
+import { Play, PlayCircle, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { splitStatements, statementAt, type SqlStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/errors";
@@ -15,6 +15,7 @@ import { alertDialog } from "@/ui/dialogs";
 import { ErrorText } from "@/ui/ErrorText";
 import { DataGrid } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
+import { DbWriteBand } from "./DbWriteBand";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
 import { SqlHistoryButton } from "./SqlHistory";
 import { setSqlPending, useSqlPending } from "./sqlSessions";
@@ -153,21 +154,12 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
   return (
     <div className={cx("db-sql-view", write.on && "writing")}>
       {write.on && (
-        <div className="db-sql-write-band" role="alert">
-          <TriangleAlert size={14} aria-hidden />
-          <span className="db-sql-write-text">
-            書き込めます（{DB_ENVIRONMENT_LABELS[connection.environment]}）。流すたびに確かめます。10 分何もしなければ読み取り専用に戻ります
-          </span>
-          <button
-            type="button"
-            className="btn btn-sm"
-            disabled={pending || running}
-            onClick={write.revert}
-            data-tip={pending ? "コミットか取り消しのあとに戻せます" : "このタブを読み取り専用に戻す"}
-          >
-            <Lock size={12} aria-hidden /> 読み取り専用に戻す
-          </button>
-        </div>
+        <DbWriteBand
+          connection={connection}
+          what="流す"
+          blocked={pending ? "コミットか取り消しのあとに戻せます" : running ? "流し終わってから戻せます" : null}
+          onRevert={write.revert}
+        />
       )}
       <div ref={height.paneRef} className="db-sql-top" style={{ height: `${height.size}%` }}>
         <div className="db-sql-toolbar">

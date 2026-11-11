@@ -1,0 +1,147 @@
+/* ==== テーブルのデータの編集（段階 3）: 編集の帯・書き直しの欄・変えたセル / 足す行 / 消す行の印・CSV の取り込み（db-table-tools の続き） ==== */
+
+/* 編集の帯（行を足す・CSV・保存していない変更の数・取り消す・保存） */
+.db-edit-bar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 4px var(--gutter);
+  border-bottom: 1px solid var(--border);
+}
+
+.db-edit-bar .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-edit-spacer {
+  flex: 1;
+}
+
+.db-edit-count {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+/* セルの書き直しの欄（セルの上に重ね、中身に合わせて右と下へ伸ばす） */
+.db-grid-editor {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  min-height: 26px;
+  max-height: 240px;
+  margin: 0;
+  padding: 3px 7px;
+  border: 1.5px solid var(--accent);
+  border-radius: 0;
+  outline: none;
+  background: var(--bg-elev);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre-wrap;
+  resize: none;
+  field-sizing: content;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
+}
+
+/* 書き換えたセル（保存していない） */
+.db-grid-cell.db-cell-changed {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+}
+
+/* 足す行で入れていない列（DB の既定値） */
+.db-cell-default {
+  font-style: italic;
+  color: var(--extra-muted);
+}
+
+.db-grid-row.db-row-added {
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+
+.db-grid-row.db-row-added > .db-grid-index {
+  color: var(--ok);
+}
+
+.db-grid-row.db-row-deleted {
+  background: color-mix(in srgb, var(--ng) 12%, transparent);
+}
+
+.db-grid-row.db-row-deleted > .db-grid-cell {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* CSV の取り込みのダイアログ（共通の .dialog.app-dialog の幅に負けないよう同じ詳細度で） */
+.dialog.app-dialog.db-csv-dialog {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.db-csv-source,
+.db-csv-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+}
+
+.db-csv-source .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-csv-options label:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.db-csv-text {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 96px;
+  max-height: 200px;
+  font-family: var(--mono);
+  font-size: 12px;
+  resize: vertical;
+}
+
+.db-csv-preview p {
+  margin: 0 0 6px;
+}
+
+.db-csv-table {
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.db-csv-table table {
+  border-collapse: collapse;
+  font-family: var(--mono);
+}
+
+.db-csv-table th,
+.db-csv-table td {
+  max-width: 200px;
+  padding: 2px 8px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-csv-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-elev);
+}

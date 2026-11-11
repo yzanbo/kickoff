@@ -605,3 +605,65 @@ test("DB クライアントの API は、この Mac 以外からの頼みを 403
   // ほかの API は LAN からも使える
   assert.equal((await app.request(`/api/projects/${project.id}`, { headers: AUTH }, lan)).status, 200);
 });
+
+test("DB の接続: テーブルの行の変更をまとめて保存する（1 つのトランザクション・行が合わなければすべて取り消す・読み取り専用は書き込むの間だけ・履歴）", async () => {
+  const { call, project } = setup();
+  const file = makeSqlite(project.repo_path);
+  const base = `/api/projects/${project.id}/db-connections`;
+  const conn = (await call("POST", base, sqliteBody())).body as DbConnection;
+  const url = `${base}/${conn.id}/edits`;
+  const path = { database: "main", schema: null };
+  const names = () => new DatabaseSync(file, { readOnly: true }).prepare("SELECT id, name FROM users ORDER BY id").all().map((r) => ({ ...r }));
+
+  const saved = await call("POST", url, {
+    path,
+    table: "users",
+    write: false,
+    edits: [
+      { kind: "update", key: { id: 1 }, values: { name: "B'2" } },
+      { kind: "delete", key: { id: 3 } },
+      { kind: "insert", values: { name: "d", avatar: null } },
+    ],
+  });
+  assert.equal(saved.status, 200);
+  assert.deepEqual(saved.body.affected, [1, 1, 1]);
+  assert.deepEqual(names(), [
+    { id: 1, name: "B'2" },
+    { id: 2, name: "a" },
+    // AUTOINCREMENT でない SQLite は、消した番号を使い直す
+    { id: 3, name: "d" },
+  ]);
+  const [history] = (await call("GET", `${base}/${conn.id}/history`)).body as DbQueryHistoryEntry[];
+  assert.match(history.sql, /UPDATE "main"\."users" SET "name" = 'B''2' WHERE "id" = 1;/);
+  assert.equal(history.row_count, 3);
+
+  // 2 つ目が行に当たらない（消えた行）→ 1 つ目も取り消す
+  const missing = await call("POST", url, {
+    path,
+    table: "users",
+    write: false,
+    edits: [
+      { kind: "update", key: { id: 2 }, values: { name: "x" } },
+      { kind: "update", key: { id: 99 }, values: { name: "y" } },
+    ],
+  });
+  assert.equal(missing.status, 400);
+  assert.match(missing.body.error, /2 番目の変更の行が見つかりません/);
+  assert.equal((names()[1] as { name: string }).name, "a");
+  // DB の失敗（NOT NULL）も、何番目かを添えてすべて取り消す
+  const invalid = await call("POST", url, { path, table: "users", write: false, edits: [{ kind: "delete", key: { id: 2 } }, { kind: "insert", values: { name: null } }] });
+  assert.match(invalid.body.error, /2 番目の変更で失敗しました/);
+  assert.equal(names().length, 3);
+
+  // 読み取り専用の接続は「書き込む」の間だけ
+  await call("PATCH", `${base}/${conn.id}`, { read_only: true });
+  const refused = await call("POST", url, { path, table: "users", write: false, edits: [{ kind: "delete", key: { id: 2 } }] });
+  assert.equal(refused.status, 400);
+  assert.match(refused.body.error, /読み取り専用/);
+  assert.equal((await call("POST", url, { path, table: "users", write: true, edits: [{ kind: "delete", key: { id: 2 } }] })).status, 200);
+  assert.equal(names().length, 2);
+
+  // 形の確かめ（キーのない更新・空の変更）
+  assert.equal((await call("POST", url, { path, table: "users", write: true, edits: [{ kind: "update", key: {}, values: { name: "z" } }] })).status, 400);
+  assert.equal((await call("POST", url, { path, table: "users", write: true, edits: [] })).status, 400);
+});
