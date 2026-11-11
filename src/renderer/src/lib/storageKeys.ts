@@ -129,7 +129,7 @@ export const SIDEBAR_WAITING_ONLY = defineSetting("kickoff:sidebar-waiting-only"
 export const SIDEBAR_WAITING_VIEW = defineSetting("kickoff:sidebar-waiting-view", choice(["filter", "inbox", "list", "inbox-project", "in-project"], "inbox-project"));
 /** チャットを 1 行で出すか（2 行目のブランチを隠す） */
 export const SIDEBAR_COMPACT = defineSetting("kickoff:sidebar-compact", flag(true));
-/** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブで共通。ボードの絞り込み BOARD_ARCHIVE_FILTER とは連動しない。初めは隠す） */
+/** サイドバーにアーカイブ済みのチャットを出すか（パネルのタブは PANEL_SHOW_ARCHIVED で別。ボードの絞り込み BOARD_ARCHIVE_FILTER とは連動しない。初めは隠す） */
 export const SIDEBAR_SHOW_ARCHIVED = defineSetting("kickoff:sidebar-show-archived", flag(false));
 /** グループ別・作業場所別のまとまりの見出しに色を付けるか（パネルのタブのまとまりと同じ色。初めは付ける。features/chatList/bucketHues.ts） */
 export const SIDEBAR_BUCKET_COLORS = defineSetting("kickoff:sidebar-bucket-colors", flag(true));
@@ -285,6 +285,8 @@ export const PANEL_VIEW_BUTTON_HIDDEN = defineSetting("kickoff:panel-view-button
 export const PANEL_HIDDEN_GROUPS = defineSetting("kickoff:panel-hidden-groups", list(), { ids: true });
 /** タブの列（グループ別）で、チャットが 1 つもないグループの札を隠すか（すべてのパネルで共通。初めは出す） */
 export const PANEL_HIDE_EMPTY_GROUPS = defineSetting("kickoff:panel-hide-empty-groups", flag(false));
+/** パネルのチャットのタブにアーカイブ済みのチャットを出すか（すべてのパネルで共通。サイドバーの SIDEBAR_SHOW_ARCHIVED とは別。利用者の依頼で、サイドバーで出していてもタブには出さない。初めは隠す） */
+export const PANEL_SHOW_ARCHIVED = defineSetting("kickoff:panel-show-archived", flag(false));
 /** 欄ごとの、表示するタブの種類（chat / browser / terminal。空なら欄ごとの既定） */
 export const panelTabKinds = defineSettingFamily("kickoff:panel-tab-kinds:", list());
 /** プロジェクトごとの、右のチャット欄を開いているか */

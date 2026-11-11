@@ -3,7 +3,6 @@ import { Fragment, type ReactNode } from "react";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem } from "@/ui/PopupMenu";
 import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
-import { ArchivedChatsItem } from "@/features/chatList/ArchivedChatsItem";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { ClusterShortItem } from "@/features/panel/clusters/ClusterShortItem";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
@@ -15,6 +14,7 @@ import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN, PANEL_TAB_OVERFLOW, PANEL_TAB
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/sidebar/chatGroupings";
 import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleTabField } from "./tabFields";
+import { ArchivedChatsItem } from "./ArchivedChatsItem";
 
 /** その欄に、タブの表示の項目があるか（表示するタブの種類を選べる欄か、チャットを出す欄。サブエージェントの欄はない） */
 export const hasTabDisplayItems = (panel: PanelController) => !SURFACES[panel.surface].fixedKinds || panel.kinds.has("chat");
