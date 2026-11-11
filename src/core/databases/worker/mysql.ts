@@ -20,10 +20,23 @@ type Row = Record<string, unknown>;
 /** 識別子を `…` で囲む（中の ` は 2 つにする） */
 const quoteName = (name: string) => `\`${name.replaceAll("`", "``")}\``;
 
-/** 列の型の名前（mysql2 の型の番号から。VAR_STRING → var_string） */
+/** mysql2 の型の名前のうち、SQL の型の名前と違うもの（DECIMAL は NEWDECIMAL、INT は LONG で届く） */
+const SQL_TYPE_NAMES: Record<string, string> = {
+  NEWDECIMAL: "decimal",
+  TINY: "tinyint",
+  SHORT: "smallint",
+  INT24: "mediumint",
+  LONG: "int",
+  LONGLONG: "bigint",
+  VAR_STRING: "varchar",
+  STRING: "char",
+  NEWDATE: "date",
+};
+
+/** 列の型の名前（mysql2 の型の番号から、SQL の型の名前で。DECIMAL → decimal） */
 const typeName = (f: FieldPacket) => {
   const name = (mysql.Types as unknown as Record<number, string | undefined>)[f.columnType ?? f.type ?? -1];
-  return name ? name.toLowerCase() : null;
+  return name ? (SQL_TYPE_NAMES[name] ?? name.toLowerCase()) : null;
 };
 
 function connectionOptions(target: DbTarget): ConnectionOptions {

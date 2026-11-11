@@ -180,6 +180,9 @@ for (const c of CASES) {
       const one = await sql("SELECT 1 AS x");
       assert.equal(Number(one.rows[0][0]), 1);
       assert.equal(one.truncated, false);
+      // 列の型は SQL の型の名前で（MySQL の DECIMAL は mysql2 では NEWDECIMAL と届く）
+      const typed = await sql("SELECT CAST(1.5 AS DECIMAL(10,2)) AS d, CAST('a' AS CHAR(5)) AS c");
+      assert.equal(typed.columns[0].type, c.engine === "postgres" ? "numeric" : "decimal");
     });
 
     test("SQL: トランザクションの途中を知らせ、取り消すと戻る", async () => {
