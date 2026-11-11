@@ -5,7 +5,7 @@ import { refTargetOf } from "./refTarget";
 
 const refs: GitRefs = {
   branches: [{ name: "feature/x", hash: "a", current: false, upstream: null, ahead: 0, behind: 0, worktree: null }],
-  remotes: [{ name: "origin", branches: [{ name: "origin/main", hash: "b" }] }],
+  remotes: [{ name: "origin", github: true, branches: [{ name: "origin/main", hash: "b" }] }],
   tags: [],
   stashes: [],
 };

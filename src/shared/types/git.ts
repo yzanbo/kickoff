@@ -186,8 +186,8 @@ export interface GitRefs {
     /** このブランチを取り出している作業場所（本体・ワークツリーのフォルダ。どこにも取り出していなければ null） */
     worktree: string | null;
   }[];
-  /** リモートごとのブランチ（name は "origin/main" の形） */
-  remotes: { name: string; branches: { name: string; hash: string }[] }[];
+  /** リモートごとのブランチ（name は "origin/main" の形。github は GitHub を指す remote か。札に GitHub のマークを出す） */
+  remotes: { name: string; github: boolean; branches: { name: string; hash: string }[] }[];
   tags: { name: string; hash: string }[];
   /** stash（ref は "stash@{0}" の形） */
   stashes: { ref: string; hash: string; message: string }[];

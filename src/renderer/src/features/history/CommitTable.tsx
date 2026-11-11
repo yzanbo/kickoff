@@ -1,9 +1,12 @@
-import { useEffect, useRef, type MouseEvent } from "react";
+import { Check, Cloud, Tag } from "lucide-react";
+import { useEffect, useRef, type CSSProperties, type MouseEvent } from "react";
 import type { GitCommit, GitRefs } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { formatDayTime } from "@/lib/time";
+import { GitHubMark } from "@/ui/GitHubMark";
 import type { GraphRow } from "./commitGraph";
-import { refTargetOf, type RefTarget } from "./refTarget";
+import { refBadgesOf } from "./refBadges";
+import type { RefTarget } from "./refTarget";
 import type { GitLogController } from "./useGitLog";
 
 /** グラフの 1 列の幅と、1 行の高さ（px） */
@@ -39,19 +42,24 @@ function GraphCell({ row, lanes, merge }: { row: GraphRow; lanes: number; merge:
   );
 }
 
-/** ブランチ・タグの印（"HEAD -> main" はいまのブランチ、"tag: v1" はタグ、"origin/…" はリモート）。右クリックでそのブランチ・タグのメニュー */
-function RefBadges({ refs, known, onMenu }: { refs: string[]; known: GitRefs | undefined; onMenu?: (e: MouseEvent, target: RefTarget) => void }) {
+/**
+ * ブランチ・タグの札（その行の線の色で塗る。いまのブランチは ✓ と濃い色、タグはタグのマーク）。
+ * リモートのブランチには remote のマーク（GitHub なら GitHub のマーク、ほかは雲）を付け、同じコミットにある手元のブランチの札にはまとめてマークだけを添える。
+ * 右クリックでそのブランチ・タグのメニュー
+ */
+function RefBadges({ refs, known, color, onMenu }: { refs: string[]; known: GitRefs | undefined; color: string; onMenu?: (e: MouseEvent, target: RefTarget) => void }) {
   return (
     <>
-      {refs.map((ref) => {
-        const target = refTargetOf(ref, known);
-        if (!target) return null;
-        const head = ref.startsWith("HEAD -> ");
+      {refBadgesOf(refs, known).map(({ target, ref, head, remotes }) => {
+        const remoteOnly = target.kind === "remote";
+        const marks = remotes.map((r) => (r.github ? <GitHubMark key={r.name} size={11} /> : <Cloud key={r.name} size={11} aria-hidden />));
+        const pushed = !remoteOnly && remotes.length > 0 ? `（${remotes.map((r) => r.name).join("・")} にもある）` : "";
         return (
           <span
             key={ref}
-            className={cx("ref-badge", head && "head", target.kind === "tag" && "tag", target.kind === "remote" && "remote")}
-            title={`${ref}（右クリックでメニュー）`}
+            className={cx("ref-badge", head && "head", target.kind === "tag" && "tag", remoteOnly && "remote")}
+            style={{ "--ref-color": color } as CSSProperties}
+            title={`${ref}${pushed}（右クリックでメニュー）`}
             onContextMenu={
               onMenu &&
               ((e) => {
@@ -60,8 +68,11 @@ function RefBadges({ refs, known, onMenu }: { refs: string[]; known: GitRefs | u
               })
             }
           >
-            {head && "✓ "}
-            {target.name}
+            {head && <Check size={11} strokeWidth={3} aria-hidden />}
+            {target.kind === "tag" && <Tag size={11} aria-hidden />}
+            {remoteOnly && marks}
+            <span className="ref-badge-name">{target.name}</span>
+            {!remoteOnly && marks}
           </span>
         );
       })}
@@ -104,7 +115,7 @@ export function CommitTable({
             >
               <GraphCell row={log.graph.rows[i]} lanes={log.graph.lanes} merge={commit.parents.length > 1} />
               <span className="history-subject">
-                <RefBadges refs={commit.refs} known={log.refs} onMenu={onRefMenu} />
+                <RefBadges refs={commit.refs} known={log.refs} color={colorOf(log.graph.rows[i].color)} onMenu={onRefMenu} />
                 {commit.subject}
               </span>
               <span className="history-author" title={commit.email}>
