@@ -245,6 +245,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  /* 説明のある欄と並べても、隣の入力欄を縦に伸ばさない */
+  align-items: start;
 }
 
 .db-test-result {
