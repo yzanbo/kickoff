@@ -8,6 +8,7 @@ import { SendCancelled } from "@/features/chat/composer/useComposerSend";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { askNewWorktreeBranch, WorkplacePicker, workplacePath, type Workplace } from "@/features/worktree/WorkplacePicker";
+import { BusyNeighborsNotice } from "@/features/worktree/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { countBusyAt } from "@/features/worktree/workplace";
 import { chooseBusyWorkplaceAction } from "@/features/worktree/busyWorkplace";
@@ -103,8 +104,8 @@ export function NewChatPane({
     setPlace(next);
     onWorktreeChange?.(next.kind === "existing" ? next.path : undefined);
   };
-  // 同じ作業場所で、ほかのチャットが作業中か（同じファイルを触るとぶつかる。チャットの画面と同じ数え方）
-  const busyHere = useBusyNeighbors(projectId, workplacePath(place)) > 0;
+  // 同じ作業場所で作業中のほかのチャットの数（同じファイルを触るとぶつかる。チャットの画面と同じ数え方・同じ知らせ）
+  const busyNeighbors = useBusyNeighbors(projectId, workplacePath(place));
   // 作成先のグループ（作る・名前を変える・消すと、サーバーの知らせで選択肢も直る）
   const groups = useGroups(projectId);
   const groupName = groupNameIn(groups, group);
@@ -190,10 +191,11 @@ export function NewChatPane({
           {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
           {seed && <p className="muted small">聞くことを入力欄に入れました。直して送れます{groupBadge && !rowHidden ? "（作成先のグループは上で選べます）" : ""}</p>}
           {place.kind === "new" && <p className="muted small">新しいワークツリー「{place.branch}」を作り、その中で作業します</p>}
-          {busyHere && <p className="small warn-text">この作業場所では、ほかのチャットが作業中です。同じファイルを触ると作業がぶつかることがあります。</p>}
         </div>
       }
     >
+      {/* 会話が始まったあとのチャット欄と同じく、ピルの列の上に作業中のほかのチャットの知らせ */}
+      <BusyNeighborsNotice count={busyNeighbors} />
       {/* 会話が始まったあとのチャット欄と同じピルの列（いまはメモだけ。指示の履歴・ToDo・サブエージェント・子チャットは中身がないので出さない） */}
       <div className="composer-chips">
         <MemoChip projectId={projectId} chatId={null} onAttach={(path) => composer.current?.fill("", { append: true, attachments: [memoAttachment(path)] })} />
