@@ -1,11 +1,12 @@
-import { Check, GitBranch, Settings, WifiOff } from "lucide-react";
+import { Check, GitBranch, Settings, Unplug, WifiOff } from "lucide-react";
 import { useOnline } from "@/hooks/useOnline";
 import type { ConnectionState } from "@/api/useServerConnection";
 import { href } from "@/app/router";
 import { FIVE_HOUR_IDLE, planName, type usePlanUsage } from "@/features/usage/usage";
 import { useMainBranch } from "@/features/worktree/useWorkplace";
 import type { SettingsSection } from "@/features/settings/SettingsDialog";
-import { CONNECTION_LABELS, ConnectionPopover } from "./ConnectionPopover";
+import { ConnectionPopover, connectionLabel } from "./ConnectionPopover";
+import { useConnectionNotice } from "./useConnectionNotice";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -26,14 +27,16 @@ interface Props {
 }
 
 /**
- * 下の帯（左: 設定とサーバーとの接続・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。
- * 接続と使用状況は押すと、その上に詳細を出す（画面は移らない）。
+ * 下の帯（左: 設定・サーバーとの接続が切れたときの札・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。
+ * 接続の札は、つながっている間は出さない（デスクトップ版ではサーバーはアプリの中で動き、いつも「接続済み」だったため）。
+ * 接続の札と使用状況は押すと、その上に詳細を出す（画面は移らない）。
  * 出し方（表示 / 下端に寄せたときだけ表示 / 非表示。useFooterMode）は、帯の右クリックと設定の「表示」で選ぶ。下端に寄せたときだけ出すときは、
  * 画面の上に重ねて出し（縦の幅を取らない）、乗せている間・中の詳細を開いている間は出したままにする（.app-footer.auto-hide）
  */
 export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: Props) {
   const online = useOnline();
   const conn = usePopover();
+  const notice = useConnectionNotice(connection.state);
   const usagePopover = usePopover();
   const usage = planUsage.usage;
   const [mode, setMode] = useFooterMode();
@@ -43,15 +46,20 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
     <footer className={cx("app-footer", mode === "hover" && "auto-hide")} onContextMenu={menu.open}>
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
       <IconButton icon={Settings} label="設定" title="設定（⌘,）" className="footer-settings" onClick={() => onOpenSettings("usage")} />
-      <button
-        ref={conn.anchor}
-        className={`footer-button conn conn-${connection.state} ${conn.open ? "active" : ""}`}
-        title="接続の詳細"
-        aria-expanded={conn.open}
-        onClick={conn.toggle}
-      >
-        {CONNECTION_LABELS[connection.state]}
-      </button>
+      {/* サーバーとの接続が切れたときだけ（SSE が切れると返答・状態・承認待ちが止まって見え、操作も失敗する）。
+          詳細を開いている間につながったら、閉じるまで残す */}
+      {(notice || conn.open) && (
+        <button
+          ref={conn.anchor}
+          className={cx("footer-button conn", connection.state !== "open" && "conn-down", conn.open && "active")}
+          title={connection.state === "open" ? "接続の詳細" : "Kickoff サーバーとの接続が切れています。返答・状態の知らせが止まり、操作も失敗します。押すと詳細を開きます"}
+          aria-expanded={conn.open}
+          onClick={conn.toggle}
+        >
+          {connection.state === "open" ? null : <Unplug size={13} aria-hidden />}
+          {connectionLabel(connection.state, connection.since)}
+        </button>
+      )}
       {conn.open && (
         <ConnectionPopover
           anchor={conn.anchor}
