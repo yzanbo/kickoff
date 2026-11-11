@@ -16,6 +16,7 @@ import {
   type DbConnectionPatch,
   type DbConnectionTestBody,
   type DbEditsBody,
+  type DbEnteredPasswordsBody,
   type DbErBody,
   type DbErLayoutBody,
   type DbImportBody,
@@ -98,6 +99,9 @@ const connectionShape = {
 };
 const newConnectionSchema = z.object(connectionShape) satisfies z.ZodType<NewDbConnectionBody, unknown>;
 const connectionPatchSchema = z.object(connectionShape).partial() satisfies z.ZodType<DbConnectionPatch, unknown>;
+const enteredPassword = z.string().min(1).max(10_000).optional();
+const enteredPasswordsSchema = z.object({ password: enteredPassword, ai_password: enteredPassword, ssh_password: enteredPassword }) satisfies z.ZodType<DbEnteredPasswordsBody>;
+
 const testSchema = z.object({
   engine: connectionShape.engine,
   environment: connectionShape.environment,
@@ -323,6 +327,13 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     // パスワードを保存し直したら、キーチェーンで開けなかったときに入れた値は使わない
     if (patch.password !== undefined || patch.ai_password !== undefined || patch.ssh_password !== undefined) databases.vault.forget(c.var.connection.id);
     return c.json(updated);
+  });
+
+  // 保存したパスワードをキーチェーンで開けなかったときに、利用者が入れたパスワード（Kickoff を終えるまでコアのメモリにだけ持つ。保存した値は変えない）
+  app.post(`${base}/:cid/entered-passwords`, withProject, withConnection, async (c) => {
+    const body = enteredPasswordsSchema.parse(await jsonBody(c));
+    databases.vault.enter(c.var.connection.id, body);
+    return c.body(null, 204);
   });
 
   app.delete(`${base}/:cid`, withProject, withConnection, (c) => {
