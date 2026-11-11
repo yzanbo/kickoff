@@ -24,6 +24,8 @@ const conn = (patch: Partial<DbConnection>): DbConnection => ({
   has_password: true,
   has_ai_password: false,
   memo_path: null,
+  ssh: null,
+  has_ssh_password: false,
   position: 0,
   last_connected_at: null,
   created_at: "",

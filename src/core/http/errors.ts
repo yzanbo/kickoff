@@ -33,8 +33,8 @@ export class NotFound extends HttpError {
 
 /** いまの状態ではできない（作業中・回答済み・待っていない・ほかで変わったなど。409） */
 export class Conflict extends HttpError {
-  constructor(message: string) {
-    super(409, message);
+  constructor(message: string, code?: string) {
+    super(409, message, code);
   }
 }
 

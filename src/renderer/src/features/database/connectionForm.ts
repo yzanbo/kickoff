@@ -25,6 +25,14 @@ export interface ConnectionForm {
   clearAiPassword: boolean;
   /** 手順メモ（メモのフォルダからの相対パス。空ならなし） */
   memo_path: string;
+  /** SSH トンネルを通す（踏み台・ホスト・ユーザー・鍵。空ならなし = ~/.ssh/config と ssh の既定） */
+  ssh_on: boolean;
+  ssh_host: string;
+  ssh_port: string;
+  ssh_user: string;
+  ssh_identity_file: string;
+  ssh_password: string;
+  clearSshPassword: boolean;
 }
 
 export const formOf = (c: DbConnection | null): ConnectionForm => ({
@@ -46,6 +54,13 @@ export const formOf = (c: DbConnection | null): ConnectionForm => ({
   ai_password: "",
   clearAiPassword: false,
   memo_path: c?.memo_path ?? "",
+  ssh_on: c?.ssh != null,
+  ssh_host: c?.ssh?.host ?? "",
+  ssh_port: c?.ssh?.port ? String(c.ssh.port) : "",
+  ssh_user: c?.ssh?.user ?? "",
+  ssh_identity_file: c?.ssh?.identity_file ?? "",
+  ssh_password: "",
+  clearSshPassword: false,
 });
 
 /** 送る形（使わない欄は null。パスワードは書いたときだけ・消すなら null・省けばそのまま） */
@@ -54,6 +69,8 @@ export function bodyOf(form: ConnectionForm, editing: boolean): NewDbConnectionB
   const text = (v: string) => v.trim() || null;
   const password = form.clearPassword ? null : form.password ? form.password : editing ? undefined : null;
   const aiPassword = form.clearAiPassword ? null : form.ai_password ? form.ai_password : editing ? undefined : null;
+  const ssh = !sqlite && form.ssh_on && form.ssh_host.trim();
+  const sshPassword = !ssh || form.clearSshPassword ? null : form.ssh_password ? form.ssh_password : editing ? undefined : null;
   return {
     name: form.name.trim(),
     engine: form.engine,
@@ -70,5 +87,9 @@ export function bodyOf(form: ConnectionForm, editing: boolean): NewDbConnectionB
     ai_username: sqlite ? null : text(form.ai_username),
     ...(sqlite || aiPassword === undefined ? {} : { ai_password: aiPassword }),
     memo_path: text(form.memo_path),
+    ssh: ssh
+      ? { host: form.ssh_host.trim(), port: form.ssh_port.trim() ? Number(form.ssh_port) : null, user: text(form.ssh_user), identity_file: text(form.ssh_identity_file) }
+      : null,
+    ...(sshPassword === undefined ? {} : { ssh_password: sshPassword }),
   };
 }

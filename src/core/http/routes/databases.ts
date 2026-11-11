@@ -20,6 +20,7 @@ import {
   type DbRowFilter,
   type DbRowsBody,
   type DbSqlBody,
+  type DbSshHostKeyBody,
   type NewDbConnectionBody,
   type Project,
 } from "@shared/types";
@@ -29,6 +30,7 @@ import { idParam, jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
 import { scanProjectDbs, toImportCandidates } from "../../databases/import/index.js";
+import { acceptSshHostKey, scanSshHostKey, sshConfigHosts } from "../../databases/sshHostKey.js";
 
 // ---- 入力の形 ----
 
@@ -40,6 +42,21 @@ const text = (max: number) =>
     .nullable()
     .transform((v) => v || null);
 const ssl = z.object({ mode: z.enum(["require", "verify"]), ca_path: text(2000) }).nullable();
+/** SSH トンネル（ホストは ~/.ssh/config の Host かホスト名。「-」で始まるものは ssh のオプションと取り違えるので断る） */
+const sshHost = z
+  .string()
+  .trim()
+  .min(1)
+  .max(500)
+  .refine((v) => !v.startsWith("-") && !/\s/.test(v), "SSH のホストの形が正しくありません");
+const ssh = z
+  .object({
+    host: sshHost,
+    port: z.number().int().min(1).max(65535).nullable(),
+    user: text(200).refine((v) => v === null || !v.startsWith("-"), "SSH のユーザーの形が正しくありません"),
+    identity_file: text(2000),
+  })
+  .nullable();
 const connectionShape = {
   name: z.string().trim().min(1).max(DB_CONNECTION_NAME_MAX),
   engine: z.enum(DB_ENGINES),
@@ -59,6 +76,8 @@ const connectionShape = {
   memo_path: text(1000)
     .refine((v) => v === null || (!v.startsWith("/") && !v.split("/").includes("..")), "手順メモはメモのフォルダの中のメモを選んでください")
     .optional(),
+  ssh: ssh.optional(),
+  ssh_password: z.string().max(10_000).nullable().optional(),
 };
 const newConnectionSchema = z.object(connectionShape) satisfies z.ZodType<NewDbConnectionBody, unknown>;
 const connectionPatchSchema = z.object(connectionShape).partial() satisfies z.ZodType<DbConnectionPatch, unknown>;
@@ -72,8 +91,14 @@ const testSchema = z.object({
   file_path: connectionShape.file_path,
   ssl,
   password: connectionShape.password,
+  ssh: ssh.optional(),
+  ssh_password: connectionShape.ssh_password,
   connection_id: z.number().int().positive().optional(),
 }) satisfies z.ZodType<DbConnectionTestBody, unknown>;
+const hostKeySchema = z.object({
+  ssh: ssh.unwrap(),
+  fingerprints: z.array(z.string().max(200)).max(20).optional(),
+}) satisfies z.ZodType<DbSshHostKeyBody, unknown>;
 const historyLimit = z.coerce.number().int().min(1).max(DB_HISTORY_MAX).default(200);
 const importSchema = z.object({
   items: z
@@ -168,11 +193,23 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     const { from_id, copy_password } = copySchema.parse(await jsonBody(c));
     const from = store.dbConnections.get(from_id);
     if (!from) throw new NotFound("写す接続が見つかりません");
-    const { id: _id, project_id: _p, position: _pos, has_password: _h, has_ai_password: _ha, last_connected_at: _l, created_at: _c, updated_at: _u, ...fields } = from;
+    const {
+      id: _id,
+      project_id: _p,
+      position: _pos,
+      has_password: _h,
+      has_ai_password: _ha,
+      has_ssh_password: _hs,
+      last_connected_at: _l,
+      created_at: _c,
+      updated_at: _u,
+      ...fields
+    } = from;
     const password = copy_password ? store.dbConnections.password(from.id) : null;
     // 手順メモはプロジェクトごとのメモのフォルダにあるので写さない
     const ai_password = copy_password ? store.dbConnections.aiPassword(from.id) : null;
-    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, memo_path: null, password, ai_password }), 201);
+    const ssh_password = copy_password ? store.dbConnections.sshPassword(from.id) : null;
+    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, memo_path: null, password, ai_password, ssh_password }), 201);
   });
 
   // プロジェクトから取り込む: 見つけた接続の案（パスワードは返さない）と、選んだ案を作る（パスワードは見つけた所から読み直す）
@@ -217,6 +254,19 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     return c.json(created.map((body) => store.dbConnections.create(c.var.project.id, body)), 201);
   });
 
+  // 踏み台のサーバーの鍵: 見る（初めてのサーバーの指紋を画面で確かめる）・受け入れて ~/.ssh/known_hosts に足す
+  app.post(`${base}/ssh-host-key`, withProject, async (c) => {
+    const body = hostKeySchema.parse(await jsonBody(c));
+    return c.json(await scanSshHostKey(body.ssh));
+  });
+  app.post(`${base}/ssh-host-key/accept`, withProject, async (c) => {
+    const body = hostKeySchema.parse(await jsonBody(c));
+    await acceptSshHostKey(body.ssh, body.fingerprints ?? []);
+    return c.body(null, 204);
+  });
+  // ~/.ssh/config の Host（SSH の欄の候補）
+  app.get(`${base}/ssh-hosts`, withProject, async (c) => c.json(await sshConfigHosts()));
+
   app.post(`${base}/test`, withProject, async (c) => {
     const body = testSchema.parse(await jsonBody(c));
     return c.json(await databases.test(c.var.project, body, await workdirOf(c, c.var.project)));
@@ -231,6 +281,8 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
 
   app.delete(`${base}/:cid`, withProject, withConnection, (c) => {
     store.dbConnections.delete(c.var.connection.id);
+    // 開いていた接続と SSH トンネルは待たずに閉じる
+    void databases.forgetConnection(c.var.connection.id).catch(() => {});
     return c.body(null, 204);
   });
 

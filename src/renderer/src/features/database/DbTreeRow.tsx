@@ -1,10 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { DB_NOT_IN_WORKTREE, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/types";
+import { DB_NOT_IN_WORKTREE, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { ApiError } from "@/api";
 import { cx } from "@/lib/cx";
 import { Chevron } from "@/ui/Chevron";
 import { useDbClient } from "./dbClientContext";
+import { SshHostKeyDialog } from "./SshHostKeyDialog";
 
 /**
  * 木の 1 行（開閉の矢印・アイコン・名前・添える文）。押すと開閉か、葉なら onOpen。
@@ -76,18 +77,27 @@ export function TreeRow({
  */
 export function TreeError({ depth, error, connection, onRetry }: { depth: number; error: unknown; connection: DbConnection; onRetry?: () => void }) {
   const client = useDbClient();
-  const missing = error instanceof ApiError && error.code === DB_NOT_IN_WORKTREE;
+  const [checkingKey, setCheckingKey] = useState(false);
+  const code = error instanceof ApiError ? error.code : undefined;
   return (
     <div className="db-tree-error" style={{ paddingLeft: 26 + depth * 14 }}>
       <span>{errorMessage(error)}</span>
-      {missing ? (
+      {code === DB_NOT_IN_WORKTREE ? (
         <button type="button" className="link-button small" onClick={() => client.useMain(connection.id)}>
           本体のものを開く
+        </button>
+      ) : code === DB_SSH_UNKNOWN_HOST && connection.ssh ? (
+        // 初めてつなぐ踏み台: 鍵の指紋を確かめて受け入れたら読み直す
+        <button type="button" className="link-button small" onClick={() => setCheckingKey(true)}>
+          サーバーの鍵を確かめる…
         </button>
       ) : (
         <button type="button" className="link-button small" onClick={() => client.showFailure({ connection, error: errorMessage(error), retry: onRetry })}>
           直し方を見る
         </button>
+      )}
+      {checkingKey && connection.ssh && (
+        <SshHostKeyDialog projectId={client.projectId} ssh={connection.ssh} onAccepted={() => onRetry?.()} onClose={() => setCheckingKey(false)} />
       )}
     </div>
   );

@@ -1,31 +1,43 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
-import type { DbConnection, DbConnectionPatch, DbSsl, NewDbConnectionBody } from "@shared/types";
+import type { DbConnection, DbConnectionPatch, DbSsh, DbSsl, NewDbConnectionBody } from "@shared/types";
 import { NOW } from "./schema.js";
 import { bit, updateRow, type Notify } from "./common.js";
 import type { DbSecretKey } from "./settings.js";
 
 /** 変えられる列（パスワードは秘密の値なので別） */
-const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "ai_access", "ai_username", "memo_path"] as const;
+const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "ai_access", "ai_username", "memo_path", "ssh"] as const;
 
-type Row = Omit<DbConnection, "ssl" | "read_only" | "has_password" | "has_ai_password"> & { ssl: string | null; read_only: number; has_password: number; has_ai_password: number };
+type Row = Omit<DbConnection, "ssl" | "ssh" | "read_only" | "has_password" | "has_ai_password" | "has_ssh_password"> & {
+  ssl: string | null;
+  ssh: string | null;
+  read_only: number;
+  has_password: number;
+  has_ai_password: number;
+  has_ssh_password: number;
+};
 
 const SELECT = `SELECT c.*,
   EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':password') AS has_password,
-  EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':ai_password') AS has_ai_password
+  EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':ai_password') AS has_ai_password,
+  EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':ssh_password') AS has_ssh_password
   FROM db_connections AS c`;
 
 const toConnection = (row: Row): DbConnection => ({
   ...row,
   ssl: row.ssl ? (JSON.parse(row.ssl) as DbSsl) : null,
+  ssh: row.ssh ? (JSON.parse(row.ssh) as DbSsh) : null,
   read_only: row.read_only === 1,
   has_password: row.has_password === 1,
   has_ai_password: row.has_ai_password === 1,
+  has_ssh_password: row.has_ssh_password === 1,
 });
 
 /** 接続のパスワードの秘密の値の名前 */
 export const dbPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:password`;
 /** AI 用のユーザーのパスワードの秘密の値の名前 */
 export const dbAiPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:ai_password`;
+/** SSH のパスワードの秘密の値の名前 */
+export const dbSshPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:ssh_password`;
 
 /**
  * DB クライアントの接続（db_connections の表。プロジェクトごとの並び position）。パスワードは秘密の値（secrets）に置き、
@@ -51,10 +63,12 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     ai_access: body.ai_access,
     ai_username: body.ai_username,
     memo_path: body.memo_path,
+    ssh: body.ssh === undefined ? undefined : body.ssh === null ? null : JSON.stringify(body.ssh),
   });
-  const setPasswords = (id: number, body: Pick<DbConnectionPatch, "password" | "ai_password">) => {
+  const setPasswords = (id: number, body: Pick<DbConnectionPatch, "password" | "ai_password" | "ssh_password">) => {
     if (body.password !== undefined) secrets.set(dbPasswordKey(id), body.password ?? "");
     if (body.ai_password !== undefined) secrets.set(dbAiPasswordKey(id), body.ai_password ?? "");
+    if (body.ssh_password !== undefined) secrets.set(dbSshPasswordKey(id), body.ssh_password ?? "");
   };
   return {
     get,
@@ -66,7 +80,7 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
       const row = toRow(body);
       const { lastInsertRowid } = db
         .prepare(
-          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, ai_access, ai_username, memo_path, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, ai_access, ai_username, memo_path, ssh, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .run(projectId, ...COLUMNS.map((c) => row[c] ?? null), next);
       const id = Number(lastInsertRowid);
@@ -90,6 +104,10 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     /** AI 用のユーザーのパスワード（なければ null） */
     aiPassword(id: number): string | null {
       return secrets.get(dbAiPasswordKey(id));
+    },
+    /** SSH のパスワード（なければ null） */
+    sshPassword(id: number): string | null {
+      return secrets.get(dbSshPasswordKey(id));
     },
     /** つながった時刻を残す（一覧の並びは変えない。知らせは出さない） */
     touchConnected(id: number) {

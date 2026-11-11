@@ -4,7 +4,7 @@ import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
 import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
-import type { DbAiAccess, DbEngine, DbEnvironment, DbErPositions, DbObjectPath, DbRowFilter, DbSort, DbSsl } from "./database";
+import type { DbAiAccess, DbEngine, DbEnvironment, DbErPositions, DbObjectPath, DbRowFilter, DbSort, DbSsh, DbSsl } from "./database";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
 
@@ -278,6 +278,10 @@ export interface NewDbConnectionBody {
   ai_password?: string | null;
   /** 接続の手順メモ（メモのフォルダからの相対パス。null で外す） */
   memo_path?: string | null;
+  /** SSH トンネル（省けばそのまま・null で使わない） */
+  ssh?: DbSsh | null;
+  /** SSH のパスワード（password と同じく、省けばそのまま・null で消す） */
+  ssh_password?: string | null;
 }
 
 /** DB の接続を変える（PATCH …/db-connections/:cid。書いた項目だけ。password: 省けばそのまま・null で消す・文字列で替える） */
@@ -288,12 +292,23 @@ export type DbConnectionPatch = Partial<NewDbConnectionBody>;
  */
 export type DbConnectionTestBody = Omit<NewDbConnectionBody, "name" | "read_only" | "ai_access" | "ai_username" | "ai_password" | "memo_path"> & { connection_id?: number };
 
+/**
+ * 踏み台のサーバーの鍵を見る（POST …/db-connections/ssh-host-key）・受け入れて ~/.ssh/known_hosts に足す（…/ssh-host-key/accept。
+ * fingerprints は画面で見せた指紋。読み直した鍵と合わなければ足さない）
+ */
+export interface DbSshHostKeyBody {
+  ssh: DbSsh;
+  fingerprints?: string[];
+}
+
 /** つながるか試した結果 */
 export interface DbConnectionTestResult {
   ok: boolean;
   /** つながったときの DB の版（分かれば） */
   server_version: string | null;
   error: string | null;
+  /** 失敗の印（初めての SSH のサーバーなら DB_SSH_UNKNOWN_HOST。画面が鍵を確かめさせる） */
+  code?: string;
 }
 
 /** ほかのプロジェクトの接続を写す（POST …/db-connections/copy）。copy_password が false ならパスワードは写さない */

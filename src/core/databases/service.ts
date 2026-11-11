@@ -5,14 +5,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
 import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEngine, DbObjectPath, DbRowFilter, DbSort, Project } from "@shared/types";
-import { DB_NOT_IN_WORKTREE, DB_SQL_MAX_ROWS, DB_TABLE_PAGE_ROWS } from "@shared/types";
+import { DB_NOT_IN_WORKTREE, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
-import { Invalid, NotFound } from "../http/errors.js";
+import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { expandHome, isInside, realPathLoose } from "../system/paths.js";
 import type { DbWorkerClient } from "./client.js";
 import type { DbTarget } from "./protocol.js";
 import { DB_AI_MAX_ROWS, DB_AI_TIMEOUT_MS } from "./aiFormat.js";
+
+/** ワーカーの失敗の文の頭の印（「db_ssh_unknown_host: …」）を分ける */
+function splitCode(text: string): { message: string; code: string | null } {
+  const m = new RegExp(`^(${DB_SSH_UNKNOWN_HOST}): `).exec(text);
+  return m ? { message: text.slice(m[0].length), code: m[1] } : { message: text, code: null };
+}
 
 /** 作業場所（null なら本体） */
 type Workdir = string | null;
@@ -76,6 +82,7 @@ export class DatabaseService {
       file: connection.engine === "sqlite" && connection.file_path ? this.sqliteFile(connection.file_path, project, workdir) : null,
       ssl: connection.ssl,
       read_only: connection.read_only && !opts.write,
+      ssh: connection.engine !== "sqlite" && connection.ssh ? { ...connection.ssh, password: this.opts.store.dbConnections.sshPassword(connection.id) } : null,
     };
   }
 
@@ -88,20 +95,25 @@ export class DatabaseService {
     return `sql:${connection.id}:${session}`;
   }
 
-  /** ワーカーの失敗を「その操作はできない」（400）にする */
+  /** ワーカーの失敗を「その操作はできない」（400）にする（初めての SSH のサーバーは 409 と印 DB_SSH_UNKNOWN_HOST。画面が鍵を確かめさせる） */
   private async run<T>(fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
     } catch (e) {
       if (e instanceof Invalid || e instanceof NotFound) throw e;
-      throw new Invalid(errorMessage(e));
+      const { message, code } = splitCode(errorMessage(e));
+      if (code) throw new Conflict(message, code);
+      throw new Invalid(message);
     }
   }
 
   /** つながるか試す（保存しない。password を省けば、connection_id の接続の保存したパスワード） */
   async test(project: Project, body: DbConnectionTestBody, workdir: Workdir): Promise<DbConnectionTestResult> {
     const saved = body.connection_id ? this.opts.store.dbConnections.get(body.connection_id) : undefined;
-    const password = body.password !== undefined ? body.password : saved && saved.project_id === project.id ? this.opts.store.dbConnections.password(saved.id) : null;
+    const own = saved && saved.project_id === project.id ? saved : undefined;
+    const password = body.password !== undefined ? body.password : own ? this.opts.store.dbConnections.password(own.id) : null;
+    const sshPassword = body.ssh_password !== undefined ? body.ssh_password : own ? this.opts.store.dbConnections.sshPassword(own.id) : null;
+    const ssh = body.ssh === undefined ? (own?.ssh ?? null) : body.ssh;
     let target: DbTarget;
     try {
       target = {
@@ -114,6 +126,7 @@ export class DatabaseService {
         file: body.engine === "sqlite" && body.file_path ? this.sqliteFile(body.file_path, project, workdir) : null,
         ssl: body.ssl,
         read_only: true,
+        ssh: body.engine !== "sqlite" && ssh ? { ...ssh, password: sshPassword } : null,
       };
     } catch (e) {
       return { ok: false, server_version: null, error: errorMessage(e) };
@@ -123,7 +136,8 @@ export class DatabaseService {
       if (saved) this.opts.store.dbConnections.touchConnected(saved.id);
       return { ok: true, server_version, error: null };
     } catch (e) {
-      return { ok: false, server_version: null, error: errorMessage(e) };
+      const { message, code } = splitCode(errorMessage(e));
+      return { ok: false, server_version: null, error: message, ...(code ? { code } : {}) };
     }
   }
 
@@ -286,6 +300,12 @@ export class DatabaseService {
   async closeSession(connection: DbConnection, session: string) {
     if (!this.opts.client.running) return;
     await this.run(() => this.opts.client.request("close", { session: this.sqlSession(connection, session) }));
+  }
+
+  /** 消した接続のワーカーの接続（木・SQL のタブ・AI）をすべて閉じる（SSH トンネルも残さない） */
+  async forgetConnection(id: number) {
+    if (!this.opts.client.running) return;
+    await this.opts.client.request("closeMatching", { prefixes: ["shared", "sql", "ai"].map((kind) => `${kind}:${id}:`) });
   }
 
   /** トランザクションの途中か（SQL のタブを閉じる・切るときの確かめ） */

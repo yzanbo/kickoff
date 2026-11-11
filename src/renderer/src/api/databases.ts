@@ -17,6 +17,8 @@ import type {
   DbRowFilter,
   DbRowsBody,
   DbSqlBody,
+  DbSsh,
+  DbSshHostKey,
   DbTableDetail,
   NewDbConnectionBody,
 } from "@shared/types";
@@ -48,6 +50,13 @@ export const databasesApi = {
   copyDbConnection: (projectId: number, body: CopyDbConnectionBody) => request<DbConnection>("POST", `${base(projectId)}/copy`, body),
   testDbConnection: (projectId: number, body: DbConnectionTestBody, worktree: string | null) =>
     request<DbConnectionTestResult>("POST", at(`${base(projectId)}/test`, worktree), body),
+  /** 踏み台のサーバーの鍵の指紋（初めてのサーバーを画面で確かめる） */
+  dbSshHostKey: (projectId: number, ssh: DbSsh) => request<DbSshHostKey>("POST", `${base(projectId)}/ssh-host-key`, { ssh }),
+  /** 見せた指紋のサーバーの鍵を ~/.ssh/known_hosts に足す（読み直して合わなければ 409） */
+  acceptDbSshHostKey: (projectId: number, ssh: DbSsh, fingerprints: string[]) =>
+    request<void>("POST", `${base(projectId)}/ssh-host-key/accept`, { ssh, fingerprints }),
+  /** ~/.ssh/config の Host の一覧（SSH のホストの候補） */
+  dbSshHosts: (projectId: number) => request<string[]>("GET", `${base(projectId)}/ssh-hosts`),
   dbDatabases: (projectId: number, id: number, worktree: string | null) => request<DbDatabases>("GET", at(`${one(projectId, id)}/databases`, worktree)),
   dbSchemas: (projectId: number, id: number, database: string | null, worktree: string | null) =>
     request<string[]>("GET", withQuery(`${one(projectId, id)}/schemas`, { database, worktree })),

@@ -12,11 +12,13 @@ import {
   DB_ENVIRONMENT_LABELS,
   DB_SSL_MODES,
   DB_SSL_MODE_LABELS,
+  DB_SSH_UNKNOWN_HOST,
   type DbAiAccess,
   type DbConnection,
   type DbConnectionTestResult,
   type DbEngine,
   type DbEnvironment,
+  type DbSsh,
   type DbSslMode,
 } from "@shared/types";
 import { api } from "@/api";
@@ -28,7 +30,9 @@ import { CheckField, Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
 import { bodyOf, formOf, type ConnectionForm } from "./connectionForm";
 import { ConnectionMemoField } from "./ConnectionMemoField";
+import { ConnectionSshFields } from "./ConnectionSshFields";
 import { DbFailureHelp } from "./DbFailureDialog";
+import { SshHostKeyDialog } from "./SshHostKeyDialog";
 
 /**
  * DB の接続を登録・編集するダイアログ。URL を貼れば欄が埋まり、「つながるか試す」の結果をその場に出す。
@@ -54,6 +58,8 @@ export function ConnectionDialog({
   const [test, setTest] = useState<DbConnectionTestResult | "testing" | null>(null);
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
+  /** 鍵を確かめている踏み台（初めてのサーバーで試すのに失敗したとき） */
+  const [hostKey, setHostKey] = useState<DbSsh | null>(null);
   const set = <K extends keyof ConnectionForm>(key: K, value: ConnectionForm[K]) => setForm((f) => ({ ...f, [key]: value }));
   const sqlite = form.engine === "sqlite";
 
@@ -187,6 +193,7 @@ export function ConnectionDialog({
                 <input value={form.ca_path} onChange={(e) => set("ca_path", e.target.value)} placeholder="~/certs/ca.pem" spellCheck={false} />
               </Field>
             )}
+            <ConnectionSshFields projectId={projectId} form={form} hasPassword={!!connection?.has_ssh_password} set={set} />
           </>
         )}
         <Field label="環境" as="div" help="環境ごとに色を付け、本番は初めから読み取り専用にします">
@@ -240,7 +247,12 @@ export function ConnectionDialog({
         {test && test !== "testing" && (
           <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{test.ok ? `つながりました（${test.server_version ?? "版は不明"}）` : `つながりません: ${test.error}`}</p>
         )}
-        {test && test !== "testing" && !test.ok && test.error && <DbFailureHelp error={test.error} />}
+        {test && test !== "testing" && !test.ok && test.code === DB_SSH_UNKNOWN_HOST && (
+          <button type="button" className="btn btn-sm db-ssh-key-button" onClick={() => setHostKey(bodyOf(form, editing).ssh ?? null)}>
+            サーバーの鍵を確かめる…
+          </button>
+        )}
+        {test && test !== "testing" && !test.ok && test.error && test.code !== DB_SSH_UNKNOWN_HOST && <DbFailureHelp error={test.error} />}
         <ErrorText message={error} />
         <DialogActions onCancel={() => dialog.close()} submit={{ label: editing ? "保存" : "追加", busyLabel: "保存中…", busy: saving }}>
           <button type="button" className="btn" disabled={test === "testing"} onClick={() => void runTest()}>
@@ -248,6 +260,7 @@ export function ConnectionDialog({
           </button>
         </DialogActions>
       </form>
+      {hostKey && <SshHostKeyDialog projectId={projectId} ssh={hostKey} onAccepted={() => void runTest()} onClose={() => setHostKey(null)} />}
     </dialog>
   );
 }
