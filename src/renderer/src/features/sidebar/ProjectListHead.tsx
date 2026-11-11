@@ -207,7 +207,19 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
           {views.views
             .filter((v) => hidden.includes(v.id))
             .map((view) => (
-              <MenuItem key={view.id} role="menuitemradio" checked={views.active?.id === view.id} onSelect={() => views.apply(view)}>
+              <MenuItem
+                key={view.id}
+                role="menuitemradio"
+                checked={views.active?.id === view.id}
+                onSelect={() => views.apply(view)}
+                // 右クリックはタブと同じメニュー（▾ のメニューは閉じて、その位置に開く）
+                buttonProps={{
+                  onContextMenu: (e) => {
+                    menu.open(e, view);
+                    more.close();
+                  },
+                }}
+              >
                 {view.name}
               </MenuItem>
             ))}
