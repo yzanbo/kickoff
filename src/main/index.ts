@@ -4,6 +4,7 @@ import { errorMessage } from "@shared/errors";
 import { startCore, type Core } from "../core/index.js";
 import { loadLoginShellPath } from "../core/system/shellEnv.js";
 import { setAppMenu } from "./app/appMenu.js";
+import { utilityWorker } from "./app/dbWorker.js";
 import { prepareAppSession } from "./app/appSession.js";
 import { DB_WORKER_FILE, RENDERER_DIR, SPEECH_HELPER, seedDevDataOnce, setupEnvironment } from "./app/environment.js";
 import { registerShutdown } from "./app/shutdown.js";
@@ -53,8 +54,8 @@ async function start() {
       staticDir: devUrl ? undefined : RENDERER_DIR,
       browser: agentBrowser,
       speechHelper: SPEECH_HELPER,
-      // DB ワーカーは自分の実行ファイルを Node として動かす（ELECTRON_RUN_AS_NODE）
-      dbWorker: { file: DB_WORKER_FILE, execArgv: ["--disable-warning=ExperimentalWarning"], electron: true },
+      // DB ワーカーは utilityProcess で起動する（製品版は fuses で ELECTRON_RUN_AS_NODE を切るため。app/dbWorker.ts）
+      dbWorker: () => utilityWorker(DB_WORKER_FILE),
     });
     setDiagnosticsCore(core);
     startupLog(`コアを起動しました ${core.localUrl}`);

@@ -1,11 +1,11 @@
 // DB ワーカーを本物の別のプロセス（node ＋ tsx）で動かす: 起動・頼み・DB 側の読み取り専用・止める（SQLite はワーカーごと）・
-// 何もしないと止まる（準備のコマンドを流している間は止めない）
+// 何もしないと止まる（準備のコマンドを流している間は止めない）・止めるとワーカーが起動したシェルも止める
 import assert from "node:assert/strict";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { tempDir } from "../testing/tempDir.js";
-import { DbWorkerClient, forkWorker, type WorkerChannel } from "./client.js";
+import { DbWorkerClient, forkWorker, killGroup, type WorkerChannel } from "./client.js";
 import { devWorkerEntry } from "./entry.js";
 import type { DbTarget } from "./protocol.js";
 
@@ -78,4 +78,24 @@ test("DB ワーカー: 何もしない状態が続いたら止まる（トラン
   assert.equal(client.running, true);
   await new Promise((r) => setTimeout(r, 1200));
   assert.equal(client.running, false);
+});
+
+test("DB ワーカー: 止めると、ワーカーが起動したシェル（準備のコマンド）も止める", async () => {
+  const killed: number[] = [];
+  const client = new DbWorkerClient(
+    () => forkWorker(devWorkerEntry()),
+    60_000,
+    (pid) => {
+      killed.push(pid);
+      killGroup(pid);
+    },
+  );
+  const running = client.request("prepare", { connection_id: 1, commands: ["sleep 30"], cleanup: [], vars: {}, my_ip_url: null }).catch(() => null);
+  await new Promise((r) => setTimeout(r, 800));
+  client.stop();
+  await running;
+  assert.equal(killed.length, 1);
+  await new Promise((r) => setTimeout(r, 200));
+  // シェルのプロセスグループはもういない
+  assert.throws(() => process.kill(-killed[0], 0));
 });
