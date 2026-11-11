@@ -55,6 +55,28 @@ export async function pullRequestFor(cwd: string, branch: string): Promise<PullR
   }
 }
 
+/** ブランチと PR の組（ワークツリーの PR の見張りが、プロジェクトごとに 1 回まとめて取る） */
+export interface BranchPullRequest {
+  number: number;
+  title: string;
+  url: string;
+  state: PullRequestInfo["state"];
+  /** PR の元のブランチ（head） */
+  branch: string;
+  /** ほかのリポジトリ（fork）からの PR（同じ名前のブランチでも、手元のブランチのものではない） */
+  cross_repository: boolean;
+}
+
+/** 見張りで見る PR の数（新しい順。手元のワークツリーのブランチの PR は、ふつうこの中に入る） */
+const PR_LIST_LIMIT = 100;
+
+/** リポジトリの PR を、状態によらず新しい順に取る（gh pr list を 1 回。失敗は gh の説明で投げる） */
+export async function listPullRequests(cwd: string): Promise<BranchPullRequest[]> {
+  const out = await gh(cwd, ["pr", "list", "--state", "all", "--limit", String(PR_LIST_LIMIT), "--json", "number,title,url,state,headRefName,isCrossRepository"]);
+  const rows = JSON.parse(out) as { number: number; title: string; url: string; state: PullRequestInfo["state"]; headRefName: string; isCrossRepository: boolean }[];
+  return rows.map((r) => ({ number: r.number, title: r.title, url: r.url, state: r.state, branch: r.headRefName, cross_repository: r.isCrossRepository }));
+}
+
 /** いまのブランチの PR を作る（タイトルと本文はコミットから。プッシュは先に済ませておく） */
 export async function createPullRequest(cwd: string, branch: string): Promise<PullRequestInfo> {
   await gh(cwd, ["pr", "create", "--fill", "--head", branch]);

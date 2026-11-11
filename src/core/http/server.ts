@@ -32,6 +32,8 @@ import { uploadRoutes } from "./routes/uploads.js";
 import { usageRoutes } from "./routes/usage.js";
 import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
+import { worktreePrRoutes } from "./routes/worktreePrs.js";
+import type { WorktreePrWatch } from "../git/prWatch.js";
 import type { ProviderId, ServerStatus } from "@shared/types";
 
 export interface ServerDeps {
@@ -49,6 +51,8 @@ export interface ServerDeps {
   voice: VoiceService;
   /** プロジェクトのメモ（保存先はプロジェクトの外） */
   memos: MemoService;
+  /** ワークツリーの PR の見張り（マージ・マージせずに閉じたことの知らせ） */
+  prWatch: WorktreePrWatch;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」。テストでは差し替えて、本物のゴミ箱に入れない。なければ macOS のゴミ箱） */
   trash?: (file: string) => Promise<void>;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
@@ -120,6 +124,7 @@ export function createApp(deps: ServerDeps): Hono {
   gitRoutes(app, deps);
   filesRoutes(app, deps);
   worktreeRoutes(app, deps);
+  worktreePrRoutes(app, deps);
   voiceRoutes(app, deps);
   memoRoutes(app, deps);
 

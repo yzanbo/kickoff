@@ -13,6 +13,8 @@ import { baseName } from "@/lib/format";
 import { confirmRemoveWorktree } from "./removeWorktree";
 import type { GitStatusController } from "@/features/editor/useGitStatus";
 import { worktreesStore } from "@/stores/worktrees";
+import { useWorktreePrLookup } from "@/stores/worktreePrs";
+import { openPrNotice } from "./prNotice/PrNoticeDialog";
 
 const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オープン", MERGED: "マージ済み", CLOSED: "クローズ" };
 
@@ -57,7 +59,10 @@ export function WorktreeBar({
       void git.refresh();
     });
 
+  // 見張りの知らせがあれば、「片付ける」はその確認（チャットの扱いも一緒に選ぶ）を開く
+  const prNotice = useWorktreePrLookup()(worktree);
   const finish = async () => {
+    if (prNotice) return openPrNotice(prNotice);
     const ok = await confirmDialog({
       title: "ワークツリーを片付けますか？",
       message: `PR がマージされたので、${worktree} のフォルダと、手元のブランチ「${status?.branch ?? ""}」を消します。そのあと本体を最新にします。このワークツリーで作業していたチャットは、続きを本体で進めます。`,

@@ -25,6 +25,7 @@ import { HoverTip } from "@/ui/HoverTip";
 import { MemoProgress } from "@/features/memo/MemoProgress";
 import { AskChildHost } from "@/features/chat/children/AskChildHost";
 import { QueueResumeHost } from "@/features/chat/queue/QueueResumeDialog";
+import { PrNoticeHost } from "@/features/worktree/prNotice/PrNoticeDialog";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/openSettings";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/Sidebar";
 import { useFallbackProject } from "@/features/sidebar/currentProject";
@@ -197,6 +198,8 @@ export function App() {
         <AskChildHost />
         {/* 起動したときの送信待ちの確かめ（前回の終了で、自動で送るまま送信待ちが残ったチャットを、送るか聞く） */}
         <QueueResumeHost />
+        {/* ワークツリーの PR がマージされた・閉じられた知らせ（片付けとチャットの扱いを 1 つの確認で聞く） */}
+        <PrNoticeHost />
         {/* 開くボタンは、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く */}
         <SidebarOpenButton sidebar={sidebar} />
         {/* 右上のレイアウトの開閉（ドラッグ領域より優先されるよう、開くボタンと同じく後ろに置く） */}

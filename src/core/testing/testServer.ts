@@ -6,6 +6,9 @@ import type { ApiRetryInfo, BackgroundState, FileRewindResult, SlashCommandOptio
 import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
+import { WorktreePrWatch } from "../git/prWatch.js";
+import { listWorktrees } from "../git/worktrees.js";
+import type { BranchPullRequest } from "../git/github.js";
 import { MemoService } from "../memos/memos.js";
 import type { VoiceTools } from "../voice/tools.js";
 import type { MacosSpeech } from "../voice/macos.js";
@@ -227,7 +230,19 @@ export function setup(opts: { staticDir?: string } = {}) {
     await fs.rm(file, { recursive: true });
   };
   const memos = new MemoService({ store, defaultDir: memoFake.defaultDir, providers, publish: (e) => bus.publish(e), trash });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, trash, staticDir: opts.staticDir });
+  // ワークツリーの PR の見張り: ワークツリーは本物の git、PR の一覧は偽物（prFake.prs を返し、聞いた回数を覚える。失敗させるなら fail）
+  const prFake = { prs: [] as BranchPullRequest[], asked: 0, fail: false };
+  const prWatch = new WorktreePrWatch({
+    store,
+    publish: (e) => bus.publish(e),
+    listWorktrees,
+    listPullRequests: async () => {
+      prFake.asked++;
+      if (prFake.fail) throw new Error("gh が見つかりません");
+      return prFake.prs;
+    },
+  });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, trash, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -239,6 +254,6 @@ export function setup(opts: { staticDir?: string } = {}) {
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, network, approvals, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, prWatch, network, approvals, codexCalls: () => codexCalls };
 }
 

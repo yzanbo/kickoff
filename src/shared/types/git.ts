@@ -235,6 +235,19 @@ export interface WorktreeRemovalInfo {
 }
 
 /** ブランチの PR（GitHub。gh で調べる） */
+/**
+ * ワークツリーの PR の知らせ（ワークツリーのブランチのいちばん新しい PR が、GitHub でマージされた・マージせずに閉じられた）。
+ * ワークツリーを片付けるまで出し続ける。dismissed = 確認を閉じた（同じ PR では確認を出し直さず、印から開き直す）
+ */
+export interface WorktreePrNotice {
+  project_id: number;
+  /** ワークツリーの作業するフォルダ（GitWorktree の path。チャットの worktree_path と同じ） */
+  worktree: string;
+  branch: string;
+  pr: { number: number; title: string; url: string; state: "MERGED" | "CLOSED" };
+  dismissed: boolean;
+}
+
 export interface PullRequestInfo {
   number: number;
   url: string;

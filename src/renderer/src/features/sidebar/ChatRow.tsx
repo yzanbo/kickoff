@@ -150,7 +150,7 @@ export function ChatRow({
           {/* 2 行目: グループと作業場所（ブランチ）（1 行で出すときは隠す。まとまりの見出しと重なる札は hideChip で隠し、札がなければ行ごと出さない） */}
           <span className="chat-row-meta">
             {hideChip !== "group" && <GroupChip chat={chat} />}
-            {hideChip !== "worktree" && <WorktreeChip chat={chat} />}
+            {hideChip !== "worktree" && <WorktreeChip chat={chat} markIconOnly />}
           </span>
         </span>
       </a>
