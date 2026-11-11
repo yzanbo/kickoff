@@ -6,7 +6,7 @@ import { api } from "@/api";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
-import { closeConnectionTabs, closeDbTab, openDbTab, openErTab, openNewSqlTab, tableTabKey, updateErTab, type DbClientTab } from "@/lib/dbClientTabs";
+import { closeConnectionTabs, closeDbTab, openErTab, openNewSqlTab, openTableTab, setTableFilter, tableTabKey, updateErTab, type DbClientTab } from "@/lib/dbClientTabs";
 import { DB_LIST_HIDDEN, DB_LIST_WIDTH, dbClientTabs, dbSqlDraft } from "@/lib/storageKeys";
 import { writeSetting } from "@/lib/storage";
 import { dbConnectionsStore, useDbConnections } from "@/stores/dbConnections";
@@ -74,8 +74,8 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     place,
     worktreeOf: (id) => (mainOnly.has(id) ? null : worktree),
     useMain: (id) => setMainOnly((s) => new Set([...s, id])),
-    openTable: (c, path, name, object) => {
-      setState(openDbTab(state, { key: tableTabKey(c.id, path, name, object), kind: "table", connection_id: c.id, path, name, object }));
+    openTable: (c, path, name, object, filter) => {
+      setState(openTableTab(state, { key: tableTabKey(c.id, path, name, object), kind: "table", connection_id: c.id, path, name, object, ...(filter ? { filter } : {}) }));
       setOverlay(false);
     },
     openSql: (c) => {
@@ -195,7 +195,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                   ) : t.object === "function" || t.object === "enum" ? (
                     <DefinitionView tab={{ ...t, object: t.object }} connection={c} />
                   ) : (
-                    <TableView tab={t} connection={c} />
+                    <TableView tab={t} connection={c} onFilter={(filter) => setState(setTableFilter(state, t.key, filter))} />
                   )}
                 </div>
               );

@@ -15,7 +15,8 @@ const INDEX_WIDTH = 52;
 /**
  * DB の結果の表（テーブルのデータ・SQL の結果で共通）。行は見えている所だけ描く（何千行でも重くしない）。
  * 列の見出しを押すと onSort（渡したときだけ。並べ替えの印は sort）。セルを押すと選び、⌘C でその文をコピーする。
- * セルの文は 1 行に収め、全部は乗せたときの説明に出す（NULL・バイナリは薄く、数は右寄せ）
+ * セルの文は 1 行に収め、全部は乗せたときの説明に出す（NULL・バイナリは薄く、数は右寄せ）。
+ * onPickRow は選んだセルの行（行の詳細）、onCellMenu はセルの右クリック（選んでから開く）
  */
 export function DataGrid({
   columns,
@@ -24,6 +25,8 @@ export function DataGrid({
   onSort,
   rowOffset = 0,
   className,
+  onPickRow,
+  onCellMenu,
 }: {
   columns: DbColumnInfo[];
   rows: DbValue[][];
@@ -32,6 +35,8 @@ export function DataGrid({
   /** 行の番号の始まり（テーブルの続きを読んだとき。0 なら 1 から） */
   rowOffset?: number;
   className?: string;
+  onPickRow?: (row: number | null) => void;
+  onCellMenu?: (e: React.MouseEvent, row: number, col: number) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ top: 0, height: 400 });
@@ -47,6 +52,7 @@ export function DataGrid({
   }, []);
   // 結果が変わったら選んだセルを外す
   useEffect(() => setPicked(null), [rows, columns]);
+  useEffect(() => onPickRow?.(picked?.row ?? null), [picked?.row, onPickRow]);
 
   const first = Math.max(0, Math.floor(view.top / ROW_HEIGHT) - OVERSCAN);
   const last = Math.min(rows.length, Math.ceil((view.top + view.height) / ROW_HEIGHT) + OVERSCAN);
@@ -112,6 +118,14 @@ export function DataGrid({
                     className={cx("db-grid-cell", `db-cell-${cellKind(value)}`, picked?.row === index && picked.col === col && "picked")}
                     title={text.length > 20 ? text : undefined}
                     onMouseDown={() => setPicked({ row: index, col })}
+                    onContextMenu={
+                      onCellMenu
+                        ? (e) => {
+                            setPicked({ row: index, col });
+                            onCellMenu(e, index, col);
+                          }
+                        : undefined
+                    }
                   >
                     {text}
                   </span>

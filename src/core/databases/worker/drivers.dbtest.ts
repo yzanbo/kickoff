@@ -24,6 +24,9 @@ const CASES: EngineCase[] = [
 ];
 
 /** 0〜9 の行（MySQL・MariaDB で連番を作る） */
+/** 絞り込みなし */
+const ALL = { filters: [], where: null };
+
 const DIGITS = `(SELECT 0 AS n ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `UNION ALL SELECT ${n}`).join(" ")})`;
 const series = (max: number) => `SELECT a.n + b.n * 10 + c.n * 100 + d.n * 1000 + 1 AS n FROM ${DIGITS} a, ${DIGITS} b, ${DIGITS} c, ${DIGITS} d WHERE a.n + b.n * 10 + c.n * 100 + d.n * 1000 + 1 <= ${max}`;
 
@@ -197,7 +200,7 @@ for (const c of CASES) {
     });
 
     test("行（並べ替え・続き・値の形）と数", async () => {
-      const page = await call("rows", { session: "tree", target: target(), path, name: "users", sort: [{ column: "id", desc: true }], offset: 0, limit: 100 });
+      const page = await call("rows", { session: "tree", target: target(), path, name: "users", sort: [{ column: "id", desc: true }], offset: 0, limit: 100, filter: ALL });
       assert.equal(page.rows.length, 100);
       assert.equal(page.truncated, true);
       const names = page.columns.map((col) => col.name);
@@ -210,12 +213,32 @@ for (const c of CASES) {
       assert.deepEqual(row.avatar, { binary: true, bytes: 4, head: "01020304" });
       assert.equal(row.big, "9007199254740993");
       assert.equal(row.created_at, "2026-01-02 03:04:05");
-      const last = await call("rows", { session: "tree", target: target(), path, name: "users", sort: [], offset: 1450, limit: 100 });
+      const last = await call("rows", { session: "tree", target: target(), path, name: "users", sort: [], offset: 1450, limit: 100, filter: ALL });
       assert.equal(last.rows.length, 50);
       assert.equal(last.truncated, false);
-      assert.equal((await call("count", { session: "tree", target: target(), path, name: "users" })).count, 1500);
+      assert.equal((await call("count", { session: "tree", target: target(), path, name: "users", filter: ALL })).count, 1500);
       const outline = await call("outline", { session: "tree", target: target(), path });
       assert.deepEqual(outline.find((t) => t.name === "posts")?.columns, ["id", "user_id", "title"]);
+    });
+
+    test("行の絞り込み（値は params・含むは大文字と小文字を区別しない・NULL・WHERE の文）と、絞った数", async () => {
+      const rows = (filter: { filters: { column: string; op: "eq" | "contains" | "is_null" | "ge"; value: string }[]; where: string | null }) =>
+        call("rows", { session: "tree", target: target(), path, name: "users", sort: [{ column: "id", desc: false }], offset: 0, limit: 100, filter });
+      const count = (filter: { filters: { column: string; op: "eq" | "contains" | "is_null" | "ge"; value: string }[]; where: string | null }) =>
+        call("count", { session: "tree", target: target(), path, name: "users", filter });
+      const eq = await rows({ filters: [{ column: "id", op: "eq", value: "42" }], where: null });
+      assert.equal(eq.rows.length, 1);
+      assert.equal(Number(eq.rows[0][0]), 42);
+      const like = { filters: [{ column: "name", op: "contains" as const, value: "USER149" }], where: null };
+      assert.equal((await rows(like)).rows.length, 11);
+      assert.equal((await count(like)).count, 11);
+      // 1500 までの 7 の倍数は 214 個
+      assert.equal((await count({ filters: [{ column: "email", op: "is_null", value: "" }], where: null })).count, 214);
+      assert.equal((await count({ filters: [{ column: "id", op: "ge", value: "1401" }, { column: "email", op: "is_null", value: "" }], where: null })).count, 14);
+      const where = await rows({ filters: [], where: "id < 3 -- 後ろの LIMIT を消さない" });
+      assert.equal(where.rows.length, 2);
+      // 引用符を含む値も params なので崩れない
+      assert.equal((await count({ filters: [{ column: "name", op: "eq", value: "x' OR '1'='1" }], where: null })).count, 0);
     });
 
     test("SQL: 上限で切り、そのあとも同じ接続で流せる", async () => {
@@ -240,7 +263,7 @@ for (const c of CASES) {
       assert.equal(ins.affected, 1);
       assert.equal(ins.in_transaction, true);
       assert.deepEqual(await call("rollback", { session: "tx" }), { in_transaction: false });
-      assert.equal((await call("count", { session: "tree", target: target(), path, name: "users" })).count, 1500);
+      assert.equal((await call("count", { session: "tree", target: target(), path, name: "users", filter: ALL })).count, 1500);
       // コミットも
       await sql(c.engine === "postgres" ? "BEGIN" : "START TRANSACTION", "tx");
       await sql("UPDATE users SET email = 'changed@ex.com' WHERE id = 1", "tx");

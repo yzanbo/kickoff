@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
-import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEngine, DbObjectPath, DbSort, Project } from "@shared/types";
+import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEngine, DbObjectPath, DbRowFilter, DbSort, Project } from "@shared/types";
 import { DB_NOT_IN_WORKTREE, DB_SQL_MAX_ROWS, DB_TABLE_PAGE_ROWS } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
@@ -22,6 +22,12 @@ interface Options {
   client: DbWorkerClient;
   /** Kickoff 自身の保存先（この中のファイルは登録させない） */
   dataDir: string;
+}
+
+/** 絞り込みの WHERE の文に、文の区切り（2 つ目の文）を入れさせない（式だけを受ける） */
+function assertWhere(filter: DbRowFilter, engine: DbEngine) {
+  if (filter.where === null || filter.where.trim() === "") return;
+  if (splitStatements(`SELECT 1 WHERE ${filter.where}`, engine).length > 1) throw new Invalid("WHERE には式だけを書いてください（; で文を足せません）");
 }
 
 /** AI が流せる SQL か（読み取りの 1 文だけ）。承認を聞く前にも確かめる（流せない文を利用者に聞かない） */
@@ -169,12 +175,15 @@ export class DatabaseService {
     return this.browse("er", connection, project, workdir, objectPath, { names });
   }
 
-  rows(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, name: string, sort: DbSort[], offset: number) {
-    return this.browse("rows", connection, project, workdir, objectPath, { name, sort, offset, limit: DB_TABLE_PAGE_ROWS });
+  /** テーブルの行（絞り込みの WHERE の文は 1 文の中の式だけ。2 つ目の文を足させない） */
+  rows(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, name: string, sort: DbSort[], offset: number, filter: DbRowFilter) {
+    assertWhere(filter, connection.engine);
+    return this.browse("rows", connection, project, workdir, objectPath, { name, sort, offset, limit: DB_TABLE_PAGE_ROWS, filter });
   }
 
-  count(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, name: string) {
-    return this.browse("count", connection, project, workdir, objectPath, { name });
+  count(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, name: string, filter: DbRowFilter) {
+    assertWhere(filter, connection.engine);
+    return this.browse("count", connection, project, workdir, objectPath, { name, filter });
   }
 
   outline(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath) {

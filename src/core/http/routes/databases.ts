@@ -7,6 +7,7 @@ import {
   DB_ENGINES,
   DB_ENVIRONMENTS,
   DB_ER_MAX,
+  DB_FILTER_OPS,
   DB_HISTORY_MAX,
   type CopyDbConnectionBody,
   type DbConnection,
@@ -14,6 +15,7 @@ import {
   type DbConnectionTestBody,
   type DbErBody,
   type DbErLayoutBody,
+  type DbRowFilter,
   type DbRowsBody,
   type DbSqlBody,
   type NewDbConnectionBody,
@@ -69,9 +71,16 @@ const historyLimit = z.coerce.number().int().min(1).max(DB_HISTORY_MAX).default(
 const copySchema = z.object({ from_id: z.number().int().positive(), copy_password: z.boolean() }) satisfies z.ZodType<CopyDbConnectionBody>;
 const objectPath = z.object({ database: z.string().max(500).nullable(), schema: z.string().max(500).nullable() });
 const objectName = z.string().min(1).max(500);
+/** 絞り込み（条件は 20 個まで・WHERE の文は 1 万文字まで） */
+const rowFilter = z.object({
+  filters: z.array(z.object({ column: objectName, op: z.enum(DB_FILTER_OPS), value: z.string().max(10_000) })).max(20),
+  where: z.string().max(10_000).nullable(),
+}) satisfies z.ZodType<DbRowFilter>;
+const noFilter: DbRowFilter = { filters: [], where: null };
 const rowsSchema = z.object({
   path: objectPath,
   table: objectName,
+  filter: rowFilter.default(noFilter),
   sort: z.array(z.object({ column: objectName, desc: z.boolean() })).max(10),
   offset: z.number().int().min(0),
 }) satisfies z.ZodType<DbRowsBody>;
@@ -196,12 +205,12 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
 
   app.post(`${base}/:cid/rows`, withProject, withConnection, async (c) => {
     const body = rowsSchema.parse(await jsonBody(c));
-    return c.json(await databases.rows(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body.path, body.table, body.sort, body.offset));
+    return c.json(await databases.rows(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body.path, body.table, body.sort, body.offset, body.filter));
   });
 
   app.post(`${base}/:cid/count`, withProject, withConnection, async (c) => {
-    const { path, name } = z.object({ path: objectPath, name: objectName }).parse(await jsonBody(c));
-    return c.json(await databases.count(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path, name));
+    const { path, name, filter } = z.object({ path: objectPath, name: objectName, filter: rowFilter.default(noFilter) }).parse(await jsonBody(c));
+    return c.json(await databases.count(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path, name, filter));
   });
 
   app.post(`${base}/:cid/outline`, withProject, withConnection, async (c) => {

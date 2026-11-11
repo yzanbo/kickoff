@@ -113,6 +113,36 @@ export const DB_OBJECT_KINDS = ["table", "view", "function", "enum"] as const;
 export type DbObjectKind = (typeof DB_OBJECT_KINDS)[number];
 export const DB_OBJECT_KIND_LABELS: Record<DbObjectKind, string> = { table: "テーブル", view: "ビュー", function: "関数", enum: "列挙型" };
 
+/** テーブルのデータの絞り込みの演算子（含む・始まるは大文字と小文字を区別しない） */
+export const DB_FILTER_OPS = ["eq", "ne", "lt", "gt", "le", "ge", "contains", "not_contains", "starts", "is_null", "not_null"] as const;
+export type DbFilterOp = (typeof DB_FILTER_OPS)[number];
+export const DB_FILTER_OP_LABELS: Record<DbFilterOp, string> = {
+  eq: "=",
+  ne: "≠",
+  lt: "<",
+  gt: ">",
+  le: "≤",
+  ge: "≥",
+  contains: "含む",
+  not_contains: "含まない",
+  starts: "で始まる",
+  is_null: "NULL",
+  not_null: "NULL でない",
+};
+
+/** テーブルのデータの絞り込みの条件 1 つ（値は文字列のまま送り、DB に型を合わせてもらう。is_null・not_null は値を使わない） */
+export interface DbFilter {
+  column: string;
+  op: DbFilterOp;
+  value: string;
+}
+
+/** テーブルのデータの絞り込み（条件をすべて満たす行。where があれば条件の代わりに WHERE の文） */
+export interface DbRowFilter {
+  filters: DbFilter[];
+  where: string | null;
+}
+
 /** テーブルなどの場所（PostgreSQL: DB とスキーマ / MySQL: DB（スキーマは DB と同じ）/ SQLite: main など） */
 export interface DbObjectPath {
   database: string | null;

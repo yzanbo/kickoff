@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { errorMessage } from "@shared/errors";
-import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbQueryResult, type DbSort, type DbTableDetail } from "@shared/types";
+import { useState } from "react";
+import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { formatBytes } from "@/lib/format";
@@ -10,9 +9,9 @@ import { ErrorText } from "@/ui/ErrorText";
 import { HighlightedCode } from "@/ui/HighlightedCode";
 import { RefreshButton } from "@/ui/IconButton";
 import { Segmented } from "@/ui/Segmented";
-import { DataGrid } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
-import { nextSort, objectPathLabel } from "./dbFormat";
+import { objectPathLabel } from "./dbFormat";
+import { TableData, useTableRows } from "./TableData";
 
 type View = "data" | "structure" | "relations" | "ddl" | "info";
 const VIEWS: { value: View; label: string }[] = [
@@ -24,10 +23,10 @@ const VIEWS: { value: View; label: string }[] = [
 ];
 
 /**
- * テーブル・ビューのタブ（データ / 構造 / リレーション / DDL / 情報）。データは 100 行ずつ読み（続きは「さらに読む」）、列の見出しで並べ替え（ORDER BY を付けて取り直す）。
- * 全体の行数は統計の推定で出し、「正確に数える」を押したときだけ COUNT(*) を流す
+ * テーブル・ビューのタブ（データ / 構造 / リレーション / DDL / 情報）。データは 100 行ずつ読み（続きは「さらに読む」）、列の見出しで並べ替え（ORDER BY を付けて取り直す）、
+ * 絞り込みはタブに覚える（onFilter）。全体の行数は統計の推定で出し、「正確に数える」を押したときだけ COUNT(*) を流す
  */
-export function TableView({ tab, connection }: { tab: DbTableTab; connection: DbConnection }) {
+export function TableView({ tab, connection, onFilter }: { tab: DbTableTab; connection: DbConnection; onFilter: (filter: DbRowFilter | null) => void }) {
   const client = useDbClient();
   const worktree = client.worktreeOf(connection.id);
   const [view, setView] = useState<View>("data");
@@ -53,7 +52,7 @@ export function TableView({ tab, connection }: { tab: DbTableTab; connection: Db
         />
       </div>
       <ErrorText message={detail.error} />
-      {view === "data" && <TableData data={data} detail={detail.data} connection={connection} tab={tab} worktree={worktree} />}
+      {view === "data" && <TableData data={data} detail={detail.data} connection={connection} tab={tab} worktree={worktree} onFilter={onFilter} />}
       {view === "structure" && detail.data && <TableStructure detail={detail.data} />}
       {view === "relations" && detail.data && <TableRelations detail={detail.data} />}
       {view === "ddl" && detail.data && (
@@ -71,97 +70,6 @@ export function TableView({ tab, connection }: { tab: DbTableTab; connection: Db
         </div>
       )}
       {view === "info" && detail.data && <TableInfo detail={detail.data} label={label} />}
-    </div>
-  );
-}
-
-/** テーブルの行（並べ替え・続きを読む） */
-function useTableRows(tab: DbTableTab, connection: DbConnection, worktree: string | null) {
-  const client = useDbClient();
-  const [sort, setSort] = useState<DbSort[]>([]);
-  const [result, setResult] = useState<DbQueryResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>();
-  const [nonce, setNonce] = useState(0);
-  const load = async (offset: number, base: DbQueryResult | null) => {
-    setLoading(true);
-    setError(undefined);
-    try {
-      const page = await api.dbRows(client.projectId, connection.id, { path: tab.path, table: tab.name, sort, offset }, worktree);
-      setResult(base ? { ...page, rows: [...base.rows, ...page.rows] } : page);
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    void load(0, null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab.key, connection.id, worktree, sort, nonce]);
-  return {
-    sort,
-    result,
-    loading,
-    error,
-    sortBy: (column: string) => setSort((s) => nextSort(s, column)),
-    more: () => result && void load(result.rows.length, result),
-    reload: () => setNonce((n) => n + 1),
-  };
-}
-
-function TableData({
-  data,
-  detail,
-  connection,
-  tab,
-  worktree,
-}: {
-  data: ReturnType<typeof useTableRows>;
-  detail: DbTableDetail | undefined;
-  connection: DbConnection;
-  tab: DbTableTab;
-  worktree: string | null;
-}) {
-  const client = useDbClient();
-  const [exact, setExact] = useState<number | "counting" | null>(null);
-  const [countError, setCountError] = useState<string>();
-  useEffect(() => setExact(null), [tab.key]);
-  const count = async () => {
-    setExact("counting");
-    setCountError(undefined);
-    try {
-      setExact((await api.dbCount(client.projectId, connection.id, tab.path, tab.name, worktree)).count);
-    } catch (e) {
-      setCountError(errorMessage(e));
-      setExact(null);
-    }
-  };
-  const shown = data.result?.rows.length ?? 0;
-  return (
-    <div className="db-table-data">
-      {data.result && <DataGrid columns={data.result.columns} rows={data.result.rows} sort={data.sort} onSort={data.sortBy} />}
-      <ErrorText message={data.error ?? countError} />
-      <div className="db-table-foot small">
-        <span>{shown.toLocaleString()} 行を表示</span>
-        {data.result?.truncated && (
-          <button type="button" className="btn btn-sm" disabled={data.loading} onClick={data.more}>
-            {data.loading ? "読み込み中…" : "さらに 100 行読む"}
-          </button>
-        )}
-        <span className="db-table-count muted">
-          {typeof exact === "number"
-            ? `全体 ${exact.toLocaleString()} 行`
-            : detail?.estimated_rows != null
-              ? `全体 約 ${detail.estimated_rows.toLocaleString()} 行（推定）`
-              : "全体の行数は数えていません"}
-        </span>
-        {typeof exact !== "number" && (
-          <button type="button" className="link-button small" disabled={exact === "counting"} onClick={() => void count()}>
-            {exact === "counting" ? "数えています…" : "正確に数える"}
-          </button>
-        )}
-      </div>
     </div>
   );
 }

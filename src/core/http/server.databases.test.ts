@@ -212,6 +212,19 @@ test("DB の木とテーブル: DB・テーブルとビュー・構造・行（�
   assert.equal(page.rows.length, 1);
 
   assert.deepEqual((await call("POST", `${base}/count`, { path: main, name: "users" })).body, { count: 3 });
+  // 絞り込み（条件は AND・値は params・WHERE の文は式だけ）と、絞った数
+  const filtered = (f: object) => call("POST", `${base}/rows`, { path: main, table: "users", sort: [{ column: "id", desc: false }], offset: 0, filter: f });
+  const byName = { filters: [{ column: "name", op: "contains", value: "B" }], where: null };
+  assert.deepEqual(((await filtered(byName)).body as DbQueryResult).rows.map((r) => r[1]), ["b"]);
+  assert.deepEqual((await call("POST", `${base}/count`, { path: main, name: "users", filter: byName })).body, { count: 1 });
+  const nulls = { filters: [{ column: "avatar", op: "is_null", value: "" }, { column: "id", op: "ge", value: "3" }], where: null };
+  assert.deepEqual(((await filtered(nulls)).body as DbQueryResult).rows.map((r) => r[1]), ["c"]);
+  assert.deepEqual(((await filtered({ filters: [], where: "name <> 'a' -- コメント" })).body as DbQueryResult).rows.map((r) => r[1]), ["b", "c"]);
+  const twoStatements = await filtered({ filters: [], where: "1 = 1; delete from users" });
+  assert.equal(twoStatements.status, 400);
+  assert.match(twoStatements.body.error, /WHERE には式だけ/);
+  assert.equal((await filtered({ filters: [{ column: "name", op: "like", value: "a" }], where: null })).status, 400);
+  assert.equal(((await filtered({ filters: [], where: "no_such_column = 1" })).status), 400);
   const outline = (await call("POST", `${base}/outline`, { path: main })).body;
   assert.deepEqual(outline.find((t: { name: string }) => t.name === "posts").columns, ["id", "user_id", "title"]);
   // つないだ時刻を残す

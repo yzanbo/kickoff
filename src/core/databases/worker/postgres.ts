@@ -2,12 +2,20 @@
 import type { EventEmitter } from "node:events";
 import pg from "pg";
 import Cursor from "pg-cursor";
-import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTableDetail, DbValue } from "@shared/types";
+import { filterSql, type FilterDialect } from "@shared/database/dbFilter";
+import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
 import { APPLICATION_NAME, CONNECT_TIMEOUT_MS, tlsOptions, triggerHead } from "./network.js";
 import { pgDefinition, pgRoutineObjects } from "./postgresRoutines.js";
 import { quoteIdent, toDbValue } from "./values.js";
+
+/** 絞り込みの書き方（$1 … と、文字列にして ILIKE。数・日時の列でも含むで探せる） */
+const DIALECT: FilterDialect = {
+  quote: quoteIdent,
+  placeholder: (n) => `$${n + 1}`,
+  like: (column, not, param) => `CAST(${column} AS text) ${not ? "NOT ILIKE" : "ILIKE"} ${param} ESCAPE '!'`,
+};
 
 /** 補完のために読むテーブルの数の上限 */
 const OUTLINE_TABLES = 500;
@@ -245,15 +253,17 @@ class PostgresDriver implements DbDriver {
     return parts.join("\n\n");
   }
 
-  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number): Promise<DbQueryResult> {
+  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter): Promise<DbQueryResult> {
     const rel = await this.relation(path, name);
+    const where = filterSql(filter, DIALECT);
+    const n = where.params.length;
     const order = sort.length > 0 ? ` ORDER BY ${sort.map((s) => `${quoteIdent(s.column)}${s.desc ? " DESC" : ""}`).join(", ")}` : "";
     const started = performance.now();
     try {
       // 1 行多く読んで、続きがあるかを知る
       const result = await this.client.query({
-        text: `SELECT * FROM ${quoteIdent(rel.nspname)}.${quoteIdent(name)}${order} LIMIT $1 OFFSET $2`,
-        values: [limit + 1, offset],
+        text: `SELECT * FROM ${quoteIdent(rel.nspname)}.${quoteIdent(name)}${where.clause}${order} LIMIT $${n + 1} OFFSET $${n + 2}`,
+        values: [...where.params, limit + 1, offset],
         rowMode: "array",
       });
       return {
@@ -269,9 +279,10 @@ class PostgresDriver implements DbDriver {
     }
   }
 
-  async count(path: DbObjectPath, name: string) {
+  async count(path: DbObjectPath, name: string, filter: DbRowFilter) {
     const rel = await this.relation(path, name);
-    const [row] = await this.all(`SELECT COUNT(*) AS n FROM ${quoteIdent(rel.nspname)}.${quoteIdent(name)}`);
+    const where = filterSql(filter, DIALECT);
+    const [row] = await this.all(`SELECT COUNT(*) AS n FROM ${quoteIdent(rel.nspname)}.${quoteIdent(name)}${where.clause}`, where.params);
     return Number(row?.n ?? 0);
   }
 
