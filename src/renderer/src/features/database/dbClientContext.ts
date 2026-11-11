@@ -1,6 +1,6 @@
 // DB クライアントの中の部品（木・テーブルのタブ・SQL のタブ）に、置き場所・作業場所・タブの開き方を渡す口
 import { createContext, useContext } from "react";
-import type { DbConnection, DbObjectKind, DbObjectPath } from "@shared/types";
+import type { DbConnection, DbObjectKind, DbObjectPath, DbRowFilter } from "@shared/types";
 
 export interface DbClientActions {
   projectId: number;
@@ -10,7 +10,8 @@ export interface DbClientActions {
   worktreeOf(connectionId: number): string | null;
   /** ワークツリーにファイルがない接続を、本体のファイルで開き直す */
   useMain(connectionId: number): void;
-  openTable(connection: DbConnection, path: DbObjectPath, name: string, object: DbObjectKind): void;
+  /** テーブルのタブを開く（filter を渡せばその絞り込みで。外部キーで移るとき） */
+  openTable(connection: DbConnection, path: DbObjectPath, name: string, object: DbObjectKind, filter?: DbRowFilter): void;
   openSql(connection: DbConnection): void;
   /** ER 図のタブを開く（focus があればそのテーブルのまわりだけ） */
   openEr(connection: DbConnection, path: DbObjectPath, focus: string | null): void;

@@ -1,6 +1,6 @@
 // コアと DB ワーカー（別のプロセス）のやり取りの形。コアは頼み（Request）を送り、ワーカーは同じ id の答え（Response）を返す。
 // 止めるときは { cancel: id } を送る（SQLite は文を流している間ワーカーが受け取れないので、コアがワーカーごと止める）
-import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbObjectPath, DbQueryResult, DbSort, DbSsl, DbTableDetail } from "@shared/types";
+import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbRowFilter, DbObjectPath, DbQueryResult, DbSort, DbSsl, DbTableDetail } from "@shared/types";
 
 /** つなぐ先（コアが接続の登録・秘密の値・作業場所から組み立てて、頼みのたびに渡す。ワーカーは保存しない） */
 export interface DbTarget {
@@ -40,8 +40,8 @@ export interface WorkerMethods {
   definition: { params: Session & { path: DbObjectPath; kind: "function" | "enum"; name: string }; result: DbDefinition };
   /** ER 図（names: 描くテーブル・ビュー。null なら DB_ER_AUTO_MAX 以下のときだけすべて） */
   er: { params: Session & { path: DbObjectPath; names: string[] | null }; result: DbErSchema };
-  rows: { params: Session & { path: DbObjectPath; name: string; sort: DbSort[]; offset: number; limit: number }; result: DbQueryResult };
-  count: { params: Session & { path: DbObjectPath; name: string }; result: { count: number } };
+  rows: { params: Session & { path: DbObjectPath; name: string; sort: DbSort[]; offset: number; limit: number; filter: DbRowFilter }; result: DbQueryResult };
+  count: { params: Session & { path: DbObjectPath; name: string; filter: DbRowFilter }; result: { count: number } };
   outline: { params: Session & { path: DbObjectPath }; result: DbOutlineTable[] };
   query: { params: Session & { sql: string; max_rows: number }; result: DbQueryResult };
   commit: { params: { session: string }; result: { in_transaction: boolean } };

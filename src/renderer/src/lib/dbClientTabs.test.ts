@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, parseDbClientTabs, tableTabKey, updateErTab, type DbClientTab } from "./dbClientTabs";
+import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, openTableTab, parseDbClientTabs, setTableFilter, tableTabKey, updateErTab, type DbClientTab } from "./dbClientTabs";
 
 const path = { database: "main", schema: null };
 const table = (name: string, connection_id = 1): DbClientTab => ({ key: tableTabKey(connection_id, path, name), kind: "table", connection_id, path, name, object: "table" });
@@ -75,4 +75,17 @@ test("openErTab: 接続・場所ごとに 1 つ。開き直すと focus を付�
   const reset = openErTab(s, 1, path, "tags").tabs[1];
   assert.ok(reset.kind === "er" && reset.focus === "tags" && reset.names === null);
   assert.equal(parseDbClientTabs({ tabs: [{ key: "er:1::", kind: "er", connection_id: 1, path, focus: 3, depth: 1, names: null }], active: null })!.tabs.length, 0);
+});
+
+test("openTableTab / setTableFilter: 絞り込みを付けて開く（もうあるタブも付け替える）・外す・保存した値も読める", () => {
+  const filter = { filters: [{ column: "id", op: "eq" as const, value: "3" }], where: null };
+  let s = openTableTab(NO_DB_TABS, { ...(table("users") as Extract<DbClientTab, { kind: "table" }>) });
+  s = openTableTab(s, { ...(table("users") as Extract<DbClientTab, { kind: "table" }>), filter });
+  assert.equal(s.tabs.length, 1);
+  assert.deepEqual(s.tabs[0].kind === "table" && s.tabs[0].filter, filter);
+  assert.deepEqual(parseDbClientTabs(JSON.parse(JSON.stringify(s))), s);
+  s = setTableFilter(s, s.tabs[0].key, null);
+  assert.equal(s.tabs[0].kind === "table" && "filter" in s.tabs[0], false);
+  // 形の合わない絞り込みのタブは捨てる
+  assert.equal(parseDbClientTabs({ tabs: [{ ...table("x"), filter: { filters: [{ column: "a", op: "like", value: "" }], where: null } }], active: null })!.tabs.length, 0);
 });

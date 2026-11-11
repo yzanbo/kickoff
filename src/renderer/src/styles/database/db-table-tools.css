@@ -1,0 +1,235 @@
+/* ==== テーブルのデータの道具: 絞り込みの帯・行の詳細・下の帯の流す SQL（db-table の続き） ==== */
+
+/* 絞り込みの帯（条件 / WHERE を書く） */
+.db-filter-bar {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px var(--gutter);
+  border-bottom: 1px solid var(--border);
+}
+
+.db-filter-mode {
+  flex: none;
+  grid-auto-columns: auto;
+}
+
+.db-filter-mode button {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.db-filter-rows {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
+.db-filter-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-filter-row select,
+.db-filter-row input[type="text"],
+.db-filter-where input[type="text"] {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  font-size: 12px;
+}
+
+.db-filter-row select {
+  width: auto;
+  max-width: 180px;
+  padding-right: 24px;
+  background-position: right 6px center;
+}
+
+.db-filter-row input[type="text"] {
+  width: 140px;
+  font-family: var(--mono);
+}
+
+.db-filter-rows .link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.db-filter-where {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.db-filter-where-head {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.db-filter-where input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+}
+
+.db-filter-actions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.db-filter-actions .btn,
+.db-table-foot .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 表と行の詳細を横に並べる */
+.db-table-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.db-row-detail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: min(360px, 45%);
+  min-height: 0;
+  overflow: auto;
+  border-left: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.db-row-detail-empty {
+  padding: 12px var(--gutter);
+}
+
+.db-row-detail-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px var(--gutter);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.db-row-detail-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.db-row-detail-list {
+  margin: 0;
+  padding: 4px 0;
+}
+
+.db-row-detail-item {
+  padding: 4px var(--gutter);
+}
+
+.db-row-detail-item + .db-row-detail-item {
+  border-top: 1px solid var(--border);
+}
+
+.db-row-detail-item dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.db-row-detail-name {
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-row-detail-type {
+  flex: none;
+  color: var(--extra-muted);
+}
+
+.db-row-detail-copy {
+  margin-left: auto;
+}
+
+.db-row-detail-item dd {
+  margin: 2px 0 0;
+}
+
+.db-row-detail-value {
+  max-height: 240px;
+  margin: 0;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.db-row-detail-value:is(.kind-null, .kind-empty, .kind-binary) {
+  font-style: italic;
+  color: var(--extra-muted);
+}
+
+.db-row-detail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.db-row-detail-refs {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px var(--gutter) 10px;
+  border-top: 1px solid var(--border);
+}
+
+.db-row-detail-refs h4 {
+  margin: 0 0 2px;
+  font-weight: 600;
+}
+
+/* 読み込み・数えるの失敗の文（WHERE の誤りなど） */
+.db-table-error {
+  margin: 0;
+  padding: 4px var(--gutter);
+}
+
+/* 下の帯: 流す SQL は行数と道具の間の残りの幅に 1 行で（入らなければ … で切り、ほかの道具を折り返させない） */
+.db-table-sql {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--extra-muted);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

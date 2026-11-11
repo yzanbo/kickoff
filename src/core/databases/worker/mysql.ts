@@ -1,6 +1,7 @@
 // MySQL / MariaDB の接続（mysql2。1 つの接続で DB を名前で指す。流している文は、別の接続から KILL QUERY で止める）
 import mysql, { type Connection, type ConnectionOptions, type FieldPacket, type ResultSetHeader } from "mysql2";
-import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTableDetail, DbValue } from "@shared/types";
+import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFilter";
+import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
 import { CONNECT_TIMEOUT_MS, tlsOptions } from "./network.js";
@@ -20,6 +21,9 @@ type Row = Record<string, unknown>;
 
 /** 識別子を `…` で囲む（中の ` は 2 つにする） */
 const quoteName = (name: string) => `\`${name.replaceAll("`", "``")}\``;
+
+/** 絞り込みの書き方（? と LIKE。照合順序が大文字と小文字を区別しなければ区別しない） */
+const DIALECT: FilterDialect = { quote: quoteName, placeholder: () => "?", like: plainLike };
 
 /** mysql2 の型の名前のうち、SQL の型の名前と違うもの（DECIMAL は NEWDECIMAL、INT は LONG で届く） */
 const SQL_TYPE_NAMES: Record<string, string> = {
@@ -226,13 +230,14 @@ class MysqlDriver implements DbDriver {
     };
   }
 
-  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number): Promise<DbQueryResult> {
+  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter): Promise<DbQueryResult> {
     const db = await this.databaseOf(path);
+    const where = filterSql(filter, DIALECT);
     const order = sort.length > 0 ? ` ORDER BY ${sort.map((s) => `${quoteName(s.column)}${s.desc ? " DESC" : ""}`).join(", ")}` : "";
     const started = performance.now();
     // 1 行多く読んで、続きがあるかを知る
     const { rows, fields } = await new Promise<{ rows: unknown[][]; fields: FieldPacket[] }>((resolve, reject) =>
-      this.conn.query({ sql: `SELECT * FROM ${quoteName(db)}.${quoteName(name)}${order} LIMIT ? OFFSET ?`, values: [limit + 1, offset], rowsAsArray: true }, (err, result, fields) =>
+      this.conn.query({ sql: `SELECT * FROM ${quoteName(db)}.${quoteName(name)}${where.clause}${order} LIMIT ? OFFSET ?`, values: [...where.params, limit + 1, offset], rowsAsArray: true }, (err, result, fields) =>
         err ? reject(err) : resolve({ rows: result as unknown[][], fields: fields ?? [] }),
       ),
     );
@@ -246,9 +251,10 @@ class MysqlDriver implements DbDriver {
     };
   }
 
-  async count(path: DbObjectPath, name: string) {
+  async count(path: DbObjectPath, name: string, filter: DbRowFilter) {
     const db = await this.databaseOf(path);
-    const [row] = await this.run(`SELECT COUNT(*) AS n FROM ${quoteName(db)}.${quoteName(name)}`);
+    const where = filterSql(filter, DIALECT);
+    const [row] = await this.run(`SELECT COUNT(*) AS n FROM ${quoteName(db)}.${quoteName(name)}${where.clause}`, where.params);
     return Number(row?.n ?? 0);
   }
 

@@ -1,6 +1,6 @@
 // DB クライアントの右のタブ（テーブル・SQL）の並びと、表示中のタブ。置き場所（プロジェクトの DB タブ・右の欄・別ウィンドウ）ごとに覚える（保存は storageKeys の dbClientTabs）。
 // 形の確かめと、開く・閉じる・選ぶを純粋関数で持つ（React に依らない）
-import { DB_OBJECT_KINDS, type DbObjectKind, type DbObjectPath } from "@shared/types";
+import { DB_FILTER_OPS, DB_OBJECT_KINDS, type DbFilterOp, type DbObjectKind, type DbObjectPath, type DbRowFilter } from "@shared/types";
 
 /** テーブル・ビューのタブ（同じ接続・場所・名前は 1 つ） */
 export interface DbTableTab {
@@ -10,6 +10,8 @@ export interface DbTableTab {
   path: DbObjectPath;
   name: string;
   object: DbObjectKind;
+  /** データの絞り込み（なければ絞らない。外部キーで移ったときは参照先の値で絞って開く） */
+  filter?: DbRowFilter;
 }
 
 /** SQL のタブ（タブごとに DB の接続を 1 本持つ。key はその接続の名前にも使う） */
@@ -48,6 +50,17 @@ const isPath = (v: unknown): v is DbObjectPath => {
   return p !== null && typeof p === "object" && (p.database === null || typeof p.database === "string") && (p.schema === null || typeof p.schema === "string");
 };
 
+const isFilter = (v: unknown): v is DbRowFilter => {
+  const f = v as DbRowFilter | null;
+  return (
+    f !== null &&
+    typeof f === "object" &&
+    (f.where === null || typeof f.where === "string") &&
+    Array.isArray(f.filters) &&
+    f.filters.every((x) => typeof x?.column === "string" && typeof x.value === "string" && DB_FILTER_OPS.includes(x.op as DbFilterOp))
+  );
+};
+
 const isTab = (v: unknown): v is DbClientTab => {
   const t = v as Record<string, unknown> | null;
   if (!t || typeof t !== "object" || typeof t.key !== "string" || typeof t.connection_id !== "number") return false;
@@ -56,7 +69,7 @@ const isTab = (v: unknown): v is DbClientTab => {
     const namesOk = t.names === null || (Array.isArray(t.names) && t.names.every((n) => typeof n === "string"));
     return isPath(t.path) && (t.focus === null || typeof t.focus === "string") && typeof t.depth === "number" && namesOk;
   }
-  return t.kind === "table" && typeof t.name === "string" && isPath(t.path) && DB_OBJECT_KINDS.includes(t.object as DbObjectKind);
+  return t.kind === "table" && typeof t.name === "string" && isPath(t.path) && DB_OBJECT_KINDS.includes(t.object as DbObjectKind) && (t.filter === undefined || isFilter(t.filter));
 };
 
 /** 保存した値を読む（形の合わないタブは捨てる。表示中のタブがなければ最初のタブ） */
@@ -82,6 +95,27 @@ export function openDbTab(state: DbClientTabs, tab: DbClientTab): DbClientTabs {
   const tabs = [...state.tabs];
   tabs.splice(at < 0 ? tabs.length : at + 1, 0, tab);
   return { tabs, active: tab.key };
+}
+
+/** テーブルのタブを開く（filter を渡せば、もうあるタブもその絞り込みにする） */
+export function openTableTab(state: DbClientTabs, tab: DbTableTab): DbClientTabs {
+  const opened = openDbTab(state, tab);
+  if (!tab.filter) return opened;
+  return { ...opened, tabs: opened.tabs.map((t) => (t.key === tab.key && t.kind === "table" ? { ...t, filter: tab.filter } : t)) };
+}
+
+/** テーブルのタブの絞り込みを変える（null なら外す） */
+export function setTableFilter(state: DbClientTabs, key: string, filter: DbRowFilter | null): DbClientTabs {
+  return {
+    ...state,
+    tabs: state.tabs.map((t) => {
+      if (t.key !== key || t.kind !== "table") return t;
+      if (filter) return { ...t, filter };
+      const { filter: _drop, ...rest } = t;
+      void _drop;
+      return rest;
+    }),
+  };
 }
 
 /** タブを閉じる（表示中なら右隣、なければ左隣を表示） */

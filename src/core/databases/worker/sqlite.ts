@@ -1,10 +1,14 @@
 // SQLite の接続（node:sqlite。同期で動くので、文を流している間はワーカーが止まる。止めるときはコアがワーカーごと止める）
 import fs from "node:fs";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
-import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTableDetail, DbValue } from "@shared/types";
+import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFilter";
+import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
 import { quoteIdent, toDbValue } from "./values.js";
+
+/** 絞り込みの書き方（? と LIKE） */
+const DIALECT: FilterDialect = { quote: quoteIdent, placeholder: () => "?", like: plainLike };
 
 /** 補完のために読むテーブルの数の上限 */
 const OUTLINE_TABLES = 500;
@@ -152,15 +156,16 @@ class SqliteDriver implements DbDriver {
     }
   }
 
-  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number): Promise<DbQueryResult> {
+  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter): Promise<DbQueryResult> {
     const order = sort.length > 0 ? ` ORDER BY ${sort.map((s) => `${quoteIdent(s.column)}${s.desc ? " DESC" : ""}`).join(", ")}` : "";
-    const stmt = this.db.prepare(`SELECT * FROM ${this.schemaOf(path)}.${quoteIdent(name)}${order} LIMIT ? OFFSET ?`);
+    const where = filterSql(filter, DIALECT);
+    const stmt = this.db.prepare(`SELECT * FROM ${this.schemaOf(path)}.${quoteIdent(name)}${where.clause}${order} LIMIT ? OFFSET ?`);
     stmt.setReadBigInts(true);
     // LIMIT は 1 行多く読んで、続きがあるかを知る
     const columns = stmt.columns().map((c) => ({ name: c.name, type: c.type ?? null }));
     stmt.setReturnArrays(true);
     const started = performance.now();
-    const raw = stmt.all(limit + 1, offset) as unknown as unknown[][];
+    const raw = stmt.all(...where.params, limit + 1, offset) as unknown as unknown[][];
     return {
       columns,
       rows: raw.slice(0, limit).map((r) => r.map(toDbValue)),
@@ -171,8 +176,9 @@ class SqliteDriver implements DbDriver {
     };
   }
 
-  async count(path: DbObjectPath, name: string) {
-    return Number((this.db.prepare(`SELECT COUNT(*) AS n FROM ${this.schemaOf(path)}.${quoteIdent(name)}`).get() as { n: number }).n);
+  async count(path: DbObjectPath, name: string, filter: DbRowFilter) {
+    const where = filterSql(filter, DIALECT);
+    return Number((this.db.prepare(`SELECT COUNT(*) AS n FROM ${this.schemaOf(path)}.${quoteIdent(name)}${where.clause}`).get(...where.params) as { n: number }).n);
   }
 
   async outline(path: DbObjectPath): Promise<DbOutlineTable[]> {

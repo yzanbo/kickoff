@@ -22,6 +22,12 @@
 
 データ / 構造 / リレーション / DDL / 情報の切り替え。データは 100 行ずつ（「さらに 100 行読む」）、列の見出しを押すと並べ替え（昇順 → 降順 → なし。`dbFormat.ts` の `nextSort`。ORDER BY を付けて取り直す）。全体の行数は統計の推定（SQLite にはないので「数えていません」）で、「正確に数える」を押したときだけ COUNT(*)。表は `DataGrid`（見えている行だけ描く・26px の同じ高さ・セルを押して ⌘C でコピー・NULL とバイナリ（「バイナリ n B」）は薄く斜体・数は右寄せ）。
 
+データ（`TableData`。行を読むのは `useTableRows`）:
+- 上の絞り込みの帯（`TableFilterBar`）: 「条件」（列 ▾・比べ方 ▾・値の行を「＋ 条件」で足し、すべてを満たす行）と「WHERE を書く」（式だけ。`;` で文を足すとコアが断る）。書いている間は下書きで、「絞る」か Enter で当てる。当てた絞り込みはタブ（`DbTableTab.filter`。`setTableFilter`）に覚え、開き直しても残る。
+- 表のセルの右クリック: 「この値で絞る / 除く」（NULL なら NULL である / でない。WHERE で絞っていたら条件に切り替える。`dbRowTools.ts` の `valueFilter`）・外部キーの列は「<参照先> の行を開く」（参照先のテーブルのタブを、参照する値の条件で開く。同じテーブルのタブがあればそれに当てる）・「値をコピー」。
+- 「行の詳細」（下の帯の切り替え。`TableRowDetail`）: 選んだセルの行を右に縦に並べる（JSON は整え、空文字・NULL・バイナリは分かる形に。`detailText`）。外部キーの列に参照先の行へのボタン、下に「この行を指しているもの」（`referenced_by` を、この行の値の条件で開く）。
+- 下の帯: 表示した行数（絞り込み中の印）・全体 / 当てはまる行の数・流す SQL（`previewRowsSql`。値は見本としてそのまま埋める）とそのコピー・「書き出す」（読み込んだ行を CSV / TSV / JSON。`exportRows`。CSV は区切り・"・改行を含むセルだけ囲み、TSV はタブと改行を空白に、バイナリは `\x` と頭の 16 進。保存は `lib/download.ts` の `downloadText`）。
+
 ## 関数・列挙型のタブ（`DefinitionView`）
 
 テーブルのタブと同じ `DbTableTab`（`object` が `function` / `enum`。キーは `tableTabKey` の頭の印でテーブルと分ける）。上に引数・戻り値（プロシージャは「なし」）か値と説明、下に作る文（`api.dbDefinition`。PostgreSQL は `pg_get_functiondef`・列挙型は値から組み立て、MySQL は SHOW CREATE（権限がなければ本文だけ））。作る文の `<pre>` には右上にコピーのボタン（テーブルの DDL と同じ）。
@@ -48,4 +54,4 @@
 
 ## CSS
 
-`styles/database/`（`db-client.css` = 枠・一覧・木・タブ・環境の色 `--db-env`（ローカル灰・開発緑・ステージング琥珀・本番赤。`.db-env-<環境>`）、`db-table.css` = `DataGrid` とテーブルのタブ、`db-sql.css` = SQL のタブと接続のダイアログ、`db-er.css` = ER 図のタブ（道具の行・箱・線と端の印・本番の枠）、`db-er-picker.css` = 描くテーブルを選ぶ一覧）。
+`styles/database/`（`db-client.css` = 枠・一覧・木・タブ・環境の色 `--db-env`（ローカル灰・開発緑・ステージング琥珀・本番赤。`.db-env-<環境>`）、`db-table.css` = `DataGrid` とテーブルのタブ、`db-table-tools.css` = データの絞り込みの帯・行の詳細・下の帯の流す SQL、`db-sql.css` = SQL のタブと接続のダイアログ、`db-er.css` = ER 図のタブ（道具の行・箱・線と端の印・本番の枠）、`db-er-picker.css` = 描くテーブルを選ぶ一覧）。

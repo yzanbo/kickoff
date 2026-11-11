@@ -182,10 +182,6 @@ button.db-grid-col:hover {
   color: var(--muted);
 }
 
-.db-table-count {
-  margin-left: auto;
-}
-
 /* 構造・リレーション・DDL・情報 */
 .db-detail,
 .db-ddl {
