@@ -61,7 +61,9 @@ export function TableView({ tab, connection }: { tab: DbTableTab; connection: Db
           {detail.data.ddl ? (
             <>
               <CopyButton label="DDL をコピー" text={detail.data.ddl} className="db-ddl-copy" />
-              <HighlightedCode code={detail.data.ddl} lang="sql" />
+              <pre>
+                <HighlightedCode code={detail.data.ddl} lang="sql" />
+              </pre>
             </>
           ) : (
             <p className="muted small">この DB からは作る文を読めませんでした</p>
