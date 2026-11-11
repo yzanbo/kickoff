@@ -7,6 +7,7 @@ import { accountLine } from "@/features/usage/usage";
 import { ErrorText } from "@/ui/ErrorText";
 import { Popover } from "@/ui/Popover";
 import { StatusDot, toneOf, type StatusTone } from "@/ui/StatusDot";
+import { ServerInfoRows, serverTimeText } from "./ServerInfo";
 
 interface Props {
   /** 開いた左下の接続の表示（その左端にそろえて上に出す） */
@@ -33,8 +34,6 @@ export function connectionLabel(state: ConnectionState, since: number | null): s
 
 const CONNECTION_TONES: Record<ConnectionState, StatusTone> = { connecting: "pending", open: "ok", closed: "ng" };
 const STATE_TEXT: Record<ConnectionState, string> = { connecting: "接続中…", open: "接続済み", closed: "切断（5 秒ごとに再接続します）" };
-
-const timeText = (t: number | string) => new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 /** 左下の接続の表示を押したときに、左下から出る詳細（画面は移らない） */
 export function ConnectionPopover({ anchor, state, since, onClose, onOpenSettings }: Props) {
@@ -91,25 +90,10 @@ export function ConnectionPopover({ anchor, state, since, onClose, onOpenSetting
           {since && state === "open" && (
             <>
               <dt>接続した時刻</dt>
-              <dd>{timeText(since)}</dd>
+              <dd>{serverTimeText(since)}</dd>
             </>
           )}
-          {server && (
-            <>
-              <dt>アドレス</dt>
-              <dd className="mono">
-                {server.host}:{server.port}
-              </dd>
-              <dt>起動した時刻</dt>
-              <dd>{timeText(server.started_at)}</dd>
-              <dt>エージェント</dt>
-              <dd>
-                実行中 {server.agents.running}
-              </dd>
-              <dt>スマホ連携</dt>
-              <dd>{server.remote_enabled ? "オン（ほかの端末から接続できます）" : "オフ（この Mac からだけ）"}</dd>
-            </>
-          )}
+          {server && <ServerInfoRows server={server} />}
         </dl>
       </section>
 

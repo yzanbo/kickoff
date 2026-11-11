@@ -1,4 +1,4 @@
-import { Check, GitBranch, Settings, Unplug, WifiOff } from "lucide-react";
+import { Check, GitBranch, Settings, TriangleAlert, Unplug, WifiOff } from "lucide-react";
 import { useOnline } from "@/hooks/useOnline";
 import type { ConnectionState } from "@/api/useServerConnection";
 import { href } from "@/app/router";
@@ -7,6 +7,8 @@ import { useMainBranch } from "@/features/worktree/useWorkplace";
 import type { SettingsSection } from "@/features/settings/SettingsDialog";
 import { ConnectionPopover, connectionLabel } from "./ConnectionPopover";
 import { useConnectionNotice } from "./useConnectionNotice";
+import { toolNotices } from "./toolNotices";
+import { useGitHubStatus, useProviders } from "@/stores/providers";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -27,7 +29,7 @@ interface Props {
 }
 
 /**
- * 下の帯（左: 設定・サーバーとの接続が切れたときの札・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。
+ * 下の帯（左: 設定・サーバーとの接続が切れたときの札・CLI が使えないときの札・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。
  * 接続の札は、つながっている間は出さない（デスクトップ版ではサーバーはアプリの中で動き、いつも「接続済み」だったため）。
  * 接続の札と使用状況は押すと、その上に詳細を出す（画面は移らない）。
  * 出し方（表示 / 下端に寄せたときだけ表示 / 非表示。useFooterMode）は、帯の右クリックと設定の「表示」で選ぶ。下端に寄せたときだけ出すときは、
@@ -75,6 +77,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
           <WifiOff size={13} aria-hidden /> オフライン
         </span>
       )}
+      <ToolNotices onOpen={() => onOpenSettings("connection")} />
       {projectId !== undefined && <FooterBranch projectId={projectId} />}
       {/* 起動したときの送信待ちの確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
       <QueueResumeFooterButton />
@@ -122,6 +125,17 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       )}
     </footer>
   );
+}
+
+/** Claude Code・gh が使えないときの札（ふだんは出さない。押すと設定の「接続」を開き、そこで確かめ直す） */
+function ToolNotices({ onOpen }: { onOpen: () => void }) {
+  const providers = useProviders();
+  const github = useGitHubStatus();
+  return toolNotices(providers.data, github.data).map((n) => (
+    <button key={n.key} type="button" className="footer-button conn-down" title={n.title} onClick={onOpen}>
+      <TriangleAlert size={13} aria-hidden /> {n.label}
+    </button>
+  ));
 }
 
 /** いまのプロジェクト（本体）のブランチ（VS Code の左下と同じ）。押すとファイルタブ（コミット・プッシュ・プル）を開く */
