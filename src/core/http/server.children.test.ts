@@ -77,8 +77,45 @@ test("子チャット: 引き継がない・引き継げる会話がないとき
   assert.match(notice.type === "notice" ? notice.data.message : "", /引き継げる会話がまだない/);
   release();
   await until(() => !ctx.runner.isBusy(busyParent) && !ctx.runner.isBusy(child.id));
-  // 文がないと 400
-  assert.equal((await call("POST", `/api/chats/${parentId}/children`, { text: "" })).status, 400);
+  // 引き継がないなら、文がないと 400
+  assert.equal((await call("POST", `/api/chats/${parentId}/children`, { text: "", inherit: false })).status, 400);
+});
+
+test("子チャット: 聞くことなしで会話を引き継ぐと、親の会話を写した子チャットを作るだけで動かさず、最初に送った文から名前を付ける", async () => {
+  const ctx = setup();
+  const { call, store, provider, runner } = ctx;
+  const parentId = await finishedChat(ctx);
+  const answer = store.events.list(parentId).find((e) => e.type === "result")!;
+  const created = await call("POST", `/api/chats/${parentId}/children`, { text: "", inherit: true, event_id: answer.id });
+  assert.equal(created.status, 201);
+  const child = created.body;
+  assert.equal(child.parent_chat_id, parentId);
+  assert.equal(child.parent_event_id, answer.id);
+  assert.equal(child.status, "completed");
+  assert.equal(child.title, "");
+  assert.equal(child.session_id, "fork-1");
+  assert.equal(runner.isBusy(child.id), false);
+  // 引き継いだお知らせだけ（発言はない）。まだ動かしていない
+  assert.deepEqual(store.events.list(child.id).map((e) => e.type), ["notice"]);
+  assert.ok(!provider.resumes.includes("fork-1"));
+  // 最初に送ると、写したセッションの続きから動き、その文が名前になる
+  await call("POST", `/api/chats/${child.id}/messages`, { text: "これはどういう意味？\n2 行目" });
+  await until(() => provider.resumes.includes("fork-1"));
+  assert.equal(store.chats.get(child.id)?.title, "これはどういう意味？");
+  await until(() => !runner.isBusy(child.id));
+  // 2 回目からは名前を変えない
+  await call("POST", `/api/chats/${child.id}/messages`, { text: "別の話" });
+  await until(() => !runner.isBusy(child.id));
+  assert.equal(store.chats.get(child.id)?.title, "これはどういう意味？");
+
+  // まだ引き継げる会話のない親（作業中のまま）からは、聞くことなしでは開けない
+  const release = provider.hold();
+  const busyParent: number = (await call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "長い作業" })).body.id;
+  const refused = await call("POST", `/api/chats/${busyParent}/children`, { text: "", inherit: true });
+  assert.equal(refused.status, 400);
+  assert.match(refused.body.error, /引き継げる会話がまだありません/);
+  release();
+  await until(() => !runner.isBusy(busyParent));
 });
 
 test("子チャット: チャット欄から送るときは添付も渡せ（文が空でも添付があれば作れる）、指示に添付のパスが添えられる", async () => {

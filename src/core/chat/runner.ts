@@ -3,7 +3,7 @@ import { executeTurn, type ExecutionDeps, type TurnRequest, type TurnOutcome } f
 import { RunnerQueue, type SendOpts } from "./runnerQueue.js";
 import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
-import { createChat, followupPrompt, type StartChatInput } from "./input.js";
+import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type QueueResume, type QueueResumeAction, type TellResult, type MessageMarks } from "@shared/types";
 import { resumeMomentsOf } from "./queueResume.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
@@ -174,6 +174,8 @@ export class Runner extends RunnerQueue {
     this.forgetRecovery(chatId);
     const { prompt, handover } = prepared;
     const messageUuid = randomUUID();
+    // 聞かずに開いた子チャット（名前も発言もない）は、最初に送った文から名前を付ける
+    if (!postCompact) nameOnFirstMessage(this.deps, chat.id, text, attachments);
     store.events.add(chat.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), ...marks, message_uuid: messageUuid });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
     store.chats.update(chat.id, {

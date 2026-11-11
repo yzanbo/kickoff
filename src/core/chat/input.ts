@@ -80,6 +80,18 @@ export async function followupPrompt(deps: ExecutionDeps, chatId: number, text: 
   return { prompt, handover: lost.length ? { handover: lost.map((s) => s.key) } : {} };
 }
 
+/**
+ * まだ名前も発言もないチャット（聞かずに開いた子チャット）に初めて送るとき、作るときと同じく、その文の 1 行目を名前にして AI にも名前を付けてもらう。
+ * 名前を変えた・もう発言のあるチャットはそのまま
+ */
+export function nameOnFirstMessage(deps: ExecutionDeps, chatId: number, text: string, attachments: Attachment[]) {
+  const chat = deps.store.chats.get(chatId);
+  if (!chat || chat.title !== "" || deps.store.events.list(chatId).some((e) => e.type === "user")) return;
+  const titleText = text.trim() || attachments.map((a) => a.name).join("、");
+  deps.store.chats.update(chatId, { title: firstLine(titleText) });
+  void autoTitle(deps, chatId, titleText);
+}
+
 /** 最初の発言の 1 行目（60 文字まで）。AI が名前を付けるまでのチャット名 */
 function firstLine(text: string): string {
   const line = text.trim().split("\n")[0] ?? "";

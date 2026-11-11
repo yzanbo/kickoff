@@ -127,7 +127,8 @@ export const childChatSchema = z
     inherit: z.boolean().default(true),
     event_id: z.number().int().positive().nullable().default(null),
   })
-  .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<ChildChatBody, unknown>;
+  // 会話を引き継ぐときは、文も添付もなくてよい（聞かずに、親の会話を写した子チャットを開くだけ）
+  .refine((v) => v.inherit || hasContent(v), CONTENT_REQUIRED) satisfies z.ZodType<ChildChatBody, unknown>;
 
 /** サブエージェントに子チャットで聞く（文か添付が要る） */
 export const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SubagentChildBody, unknown>;

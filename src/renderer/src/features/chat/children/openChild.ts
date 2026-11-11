@@ -63,12 +63,15 @@ export function openChatOrChild(chat: Pick<Chat, "id" | "project_id" | "title" |
 
 /**
  * 作ったばかりの子チャットを、設定の「子チャットを作ったとき」（CHILD_CHAT_OPEN_ON_CREATE）で開く（右の欄 / 別ウィンドウ / 開かない）。
+ * always（「引き継いで開く」で聞かずに作ったとき）なら、開かない設定でも「子チャットを開く場所」で開く。
  * 作った知らせより先に一覧へ入れる（入っていないと親をたどれず、右の欄でなくふつうのチャットのタブで開いてしまう。入力欄の上の札にもすぐ並ぶ）
  */
-export function openCreatedChild(child: Chat) {
+export function openCreatedChild(child: Chat, { always = false }: { always?: boolean } = {}) {
   addChat(child);
   const on = readSetting(CHILD_CHAT_OPEN_ON_CREATE);
   if (on !== "none") openChildChat(child, on);
+  // 聞かずに開いた子チャット（always）は、開かない設定でも開く（開くために作ったので）。場所は「子チャットを開く場所」
+  else if (always) openChildChat(child);
 }
 
 /** そのチャットの画面を見せる（子チャットなら右の欄のタブ、いちばん上のチャットならチャットのパネル） */

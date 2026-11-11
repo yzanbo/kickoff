@@ -332,3 +332,8 @@
 .inherit-choice-help {
   min-width: 0;
 }
+
+/* 「引き継いで開く」（聞くことなしで、会話を引き継いだ子チャットを開く。引き継ぐを選んでいる間だけ、切り替えの行の右端に） */
+.inherit-choice-open {
+  margin-left: auto;
+}

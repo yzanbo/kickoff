@@ -16,6 +16,7 @@ import { memoAttachment } from "@/features/memo/memoAttachment";
 import { DraftChatPage } from "@/features/chat/pane/DraftChatPage";
 import { useChatHeaderItems } from "@/features/chat/pane/ChatDisplayMenu";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
+import { reportFailure } from "@/ui/dialogs";
 import { NewChildBar } from "./ChildChatBar";
 import { InheritChoice } from "./InheritChoice";
 
@@ -52,6 +53,19 @@ function NewChildForm({ parent, onCreated }: { parent: Chat; onCreated: (child: 
     addChat(child);
     onCreated(child);
   };
+  // 聞くことなしで、親の会話を引き継いだ子チャットを作り、このタブをその子チャットのタブに置き換える
+  const [opening, setOpening] = useState(false);
+  const openOnly = async () => {
+    setOpening(true);
+    try {
+      const child = await api.createChildChat(parent.id, { text: "", quote: null, inherit: true, event_id: null, options: options.options });
+      addChat(child);
+      onCreated(child);
+    } catch (e) {
+      setOpening(false);
+      reportFailure("子チャットを開けませんでした")(e);
+    }
+  };
   return (
     <div className="side-child-chat">
       <NewChildBar parentId={parent.id} />
@@ -76,7 +90,7 @@ function NewChildForm({ parent, onCreated }: { parent: Chat; onCreated: (child: 
           }
         >
           {/* 会話を引き継ぐか（初めは引き継ぐ。書きながら目に入るよう、入力欄のすぐ上に置く。「新しい子チャットで聞く」の画面と同じ形） */}
-          <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" />
+          <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" onOpen={() => void openOnly()} opening={opening} />
           {/* 会話が始まったあとのチャット欄と同じピルの列（いまはメモだけ。中身のないピルは出さない） */}
           <div className="composer-chips">
             <MemoChip projectId={parent.project_id} chatId={null} onAttach={(path) => composer.current?.fill("", { append: true, attachments: [memoAttachment(path)] })} />

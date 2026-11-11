@@ -1,8 +1,10 @@
 // 子チャット: チャットの寄り道の質問を、親に紐づいた別のチャットで聞く（親の作業を止めずに並行して動く。何往復でも会話でき、
-// 結果は自分で選んで親に渡す）。親の会話を引き継ぐなら、親のいちばん新しい「最後まで終わった作業」の時点から会話を写して始める
+// 結果は自分で選んで親に渡す）。親の会話を引き継ぐなら、親のいちばん新しい「最後まで終わった作業」の時点から会話を写して始める。
+// 聞くことがなければ（文も添付もない）、会話を写した子チャットを作るだけで動かさない（開いてから書いて送る）
 import type { Attachment, Chat, ChatOptionsPatch, ProviderId } from "@shared/types";
+import { resolveChatOptions } from "@shared/chat/chatOptions";
 import type { Store } from "../db/store.js";
-import { asInvalid } from "../http/errors.js";
+import { asInvalid, Invalid } from "../http/errors.js";
 import type { AgentProvider } from "../providers/types.js";
 import type { Runner } from "./runner.js";
 import { resumePointBefore } from "./sessionPoints.js";
@@ -66,6 +68,11 @@ export async function startChildChat(
       notice = `親のチャット「${parentName}」には引き継げる会話がまだないので、選択部分だけで始めました`;
     }
   }
+  // 聞くことがない: 会話を写した子チャットを作るだけ（動かさない。名前は最初に送った文から付ける runner.send）
+  if (!input.text.trim() && !input.attachments?.length) {
+    if (!sessionId) throw new Invalid(input.inherit ? `親のチャット「${parentName}」には引き継げる会話がまだありません。聞きたいことを書いてください` : "メッセージか添付ファイルが必要です");
+    return openChildChat(store, parent, { sessionId, notice, eventId: input.eventId, options: input.options });
+  }
   const prompt = input.quote?.trim() ? `${quoteBlock(input.quote)}\n\n${input.text}` : input.text;
   return runner.start({
     projectId: parent.project_id,
@@ -79,4 +86,23 @@ export async function startChildChat(
     sessionId,
     notice,
   });
+}
+
+/** 聞かずに開く子チャット: 親の会話を写したセッションを持たせて作り、引き継いだお知らせだけを残す（作業は動かさない。名前は空 = 最初に送った文から付ける） */
+function openChildChat(store: Store, parent: Chat, init: { sessionId: string; notice: string; eventId: number | null; options?: ChatOptionsPatch }): Chat {
+  const project = store.projects.get(parent.project_id)!;
+  const created = store.chats.create({
+    project_id: parent.project_id,
+    provider: project.provider,
+    title: "",
+    status: "completed",
+    ...resolveChatOptions(store.settings.get(), project.chat_defaults, init.options),
+    group_id: null,
+    worktree_path: parent.worktree_path,
+    parent_chat_id: parent.id,
+    parent_event_id: init.eventId,
+    memo_path: null,
+  });
+  store.events.add(created.id, { type: "notice", message: init.notice });
+  return store.chats.update(created.id, { session_id: init.sessionId, branch: parent.branch, context_window: parent.context_window });
 }
