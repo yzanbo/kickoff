@@ -8,6 +8,48 @@ import { AUTH, setup, until } from "../testing/testServer.js";
 import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
 
+test("Git で管理していないフォルダでも、ファイルの一覧と検索は使える（.gitignore と node_modules は無視しているものに。フォルダの中に Git の印は作らない）", async () => {
+  const { call, project } = setup();
+  const dir = project.repo_path;
+  const write = (file: string, text: string) => {
+    fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+    fs.writeFileSync(path.join(dir, file), text);
+  };
+  write("src/a.ts", "hello world\n");
+  write("README.md", "Hello again\n");
+  write(".gitignore", "secret.txt\n");
+  write("secret.txt", "hello secret\n");
+  write("node_modules/pkg/index.js", "hello dep\n");
+  write(".DS_Store", "x");
+  fs.mkdirSync(path.join(dir, "empty"));
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body, { repo: false });
+
+  const files = (await call("GET", `/api/projects/${project.id}/files`)).body;
+  assert.deepEqual(files.files, [".gitignore", "README.md", "src/a.ts"]);
+  assert.deepEqual(files.ignored, [
+    { path: ".DS_Store", dir: false },
+    { path: "node_modules", dir: true },
+    { path: "secret.txt", dir: false },
+  ]);
+  assert.deepEqual(files.empty_dirs, ["empty"]);
+  assert.equal(files.truncated, false);
+
+  const search = async (q: string, opts = "") => (await call("GET", `/api/projects/${project.id}/search?q=${encodeURIComponent(q)}${opts}`)).body;
+  const hits = await search("hello");
+  assert.deepEqual(
+    hits.files.map((f: { path: string }) => f.path),
+    ["README.md", "src/a.ts"],
+  );
+  assert.deepEqual(hits.files[1].matches, [{ line: 1, column: 1, text: "hello world" }]);
+  assert.equal((await search("hello", "&case=1")).total, 1);
+  // 無視しているものも探す・含めるファイルの指定も効く
+  assert.equal((await search("hello", "&ignore=0")).total, 4);
+  assert.deepEqual((await search("hello", "&include=src")).files.map((f: { path: string }) => f.path), ["src/a.ts"]);
+  // 中身の読み書きは前から Git に依らない
+  assert.equal((await call("GET", `/api/projects/${project.id}/file?path=src/a.ts`)).body.content, "hello world\n");
+  assert.equal(fs.existsSync(path.join(dir, ".git")), false);
+});
+
 test("Git の変更の API（状態と、ファイルごとの差分）", async () => {
   const ctx = setup();
   const { call, project } = ctx;

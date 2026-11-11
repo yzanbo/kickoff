@@ -8,7 +8,8 @@ import { imageFileType, isIcnsFile, MAX_IMAGE_FILE_BYTES } from "@shared/files/i
 import type { FileContent, ProjectFiles, RenamedFile, SavedFile } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
 import { largestIcnsPng } from "./icns.js";
-import { gitStatus } from "./status.js";
+import { plainLsFiles } from "./plainFolder.js";
+import { isGitWorkTree } from "./status.js";
 
 /** ファイルの一覧の上限（大きなリポジトリでも重くならないように） */
 const MAX_FILES = 20_000;
@@ -26,16 +27,17 @@ export async function assertInside(repo: string, file: string): Promise<string> 
 }
 
 /**
- * エクスプローラーに出すファイルの一覧（Git で管理していなければ 400）。
+ * エクスプローラーに出すファイルの一覧。
  * 管理しているファイルと、まだ追加していないファイル（消したファイルは除く）。.gitignore で無視しているものは、
- * フォルダなら中を開かずにまとめて返す（node_modules などを全部たどらないように）
+ * フォルダなら中を開かずにまとめて返す（node_modules などを全部たどらないように）。
+ * Git で管理していないフォルダも、中のファイルを同じ形で返す（.gitignore も読む。node_modules などはいつも無視しているものにする。plainFolder.ts）
  */
 export async function listProjectFiles(repo: string): Promise<ProjectFiles> {
-  if ((await gitStatus(repo)).repo === false) throw new Invalid("このプロジェクトフォルダは、Git で管理されていません");
+  const lsFiles = (await isGitWorkTree(repo)) ? (args: string[]) => gitOutput(repo, ["ls-files", ...args]) : (args: string[]) => plainLsFiles(repo, args);
   const [all, deleted, ignored] = await Promise.all([
-    gitOutput(repo, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"]),
-    gitOutput(repo, ["ls-files", "--deleted", "-z"]),
-    gitOutput(repo, ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"]),
+    lsFiles(["--cached", "--others", "--exclude-standard", "-z"]),
+    lsFiles(["--deleted", "-z"]),
+    lsFiles(["--others", "--ignored", "--exclude-standard", "--directory", "-z"]),
   ]);
   const gone = new Set(nulList(deleted));
   const files = [...new Set(nulList(all))].filter((f) => !gone.has(f)).sort();

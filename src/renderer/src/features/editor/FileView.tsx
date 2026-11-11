@@ -211,7 +211,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
           className={cx("diff-state", saving.error && "error", dirty && !saving.result && "unsaved")}
           title={base && diffing ? (diffOf?.staged ? "左はコミット（HEAD）の中身。右を編集すると、差分がその場で変わります" : "左はステージした中身（なければコミットの中身）。右を編集すると、差分がその場で変わります") : undefined}
         >
-          {saving.result?.text ?? (dirty ? "● 未保存" : `${line !== undefined ? `${line} 行目・` : ""}${change ? "変更あり" : "変更なし"}`)}
+          {saving.result?.text ?? (dirty ? "● 未保存" : [line !== undefined && `${line} 行目`, gitStatus?.repo && (change ? "変更あり" : "変更なし")].filter(Boolean).join("・"))}
         </span>
         <span className="spacer" />
         {window.kickoff && (

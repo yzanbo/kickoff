@@ -67,7 +67,8 @@ export function EditorTab({
   const { selected, setSelected } = selection;
   // エクスプローラーで開いているフォルダ（表示を切り替えても残す）
   const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set());
-  const files = useProjectFiles(projectId, view === "files" && Boolean(status?.repo), git.version);
+  // Git で管理していないフォルダでも、ファイルの一覧と検索は出す（変更だけ Git の案内にする）
+  const files = useProjectFiles(projectId, view === "files" && Boolean(status), git.version);
   const kinds = useMemo(() => changeKinds(status), [status]);
   const search = useProjectSearch(projectId);
   // ファイル・フォルダの操作（ファイルタブ・変更タブの Enter・右クリック。新しいファイル・ゴミ箱はファイルタブだけ）。フォルダの名前を変えたら、開いていたフォルダも付け替える
@@ -106,9 +107,9 @@ export function EditorTab({
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
   }
-  if (!status.repo) return <GitInitNotice projectId={projectId} onStarted={git.refresh} />;
+  if (!status.repo && view === "changes") return <GitInitNotice projectId={projectId} onStarted={git.refresh} />;
 
-  const groups = { staged: status.staged, unstaged: [...status.conflicts, ...status.unstaged] };
+  const groups = status.repo ? { staged: status.staged, unstaged: [...status.conflicts, ...status.unstaged] } : { staged: [], unstaged: [] };
   const empty = groups.staged.length === 0 && groups.unstaged.length === 0;
   const env: FileTabsEnv = { projectId, repoPath, git, groups, open: (next) => void setSelected(next) };
   const folders = {
@@ -155,16 +156,18 @@ export function EditorTab({
             fileDrag={fileDragProps(selection.panel.key, projectId)}
           />
         ) : (
-          <ChangesPane
-            status={status}
-            git={git}
-            groups={groups}
-            empty={empty}
-            action={gitAction}
-            selected={selected}
-            onSelect={(next, newTab) => void setSelected(changeSelection(next, groups), newTab)}
-            rename={rename}
-          />
+          status.repo && (
+            <ChangesPane
+              status={status}
+              git={git}
+              groups={groups}
+              empty={empty}
+              action={gitAction}
+              selected={selected}
+              onSelect={(next, newTab) => void setSelected(changeSelection(next, groups), newTab)}
+              rename={rename}
+            />
+          )
         )}
       </aside>
       <div className="pane-resizer" aria-label="一覧の幅を変える" {...list.handle} />
