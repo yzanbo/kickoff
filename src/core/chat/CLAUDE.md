@@ -109,6 +109,7 @@
 
 - 判定はプロバイダーに依らない純粋関数で、Claude は PreToolUse のフック（`turnHooks`）で毎回呼ぶ（権限モード・許可ルールに関係なく効く）。
 - `scope.ts` の `evaluateReferenceWrite`: 作業場所の外の参照資料への書き込み（Write / Edit / MultiEdit / NotebookEdit）を断る（リンクを解決して比べる）。
+- `hiddenDb.ts` の `evaluateHiddenDbAccess`: 利用者が「見せない」にした DB の接続（`ai_access: none`）に、AI が Kickoff の DB のツールを通らずに入る呼び出しを断る（AI は `.env` の `DATABASE_URL` を読んで `psql` で直接入れ、そこでは読み取り専用も見せないも効かないため）。Bash は、ドットのあるホスト・IP はそのまま、1 語のホスト（docker の `db` など）は `@db`・`db:5432`・`-h db`・`host=db` のときだけ、この Mac のホスト（localhost など）はポート付き・DB のコマンドとポートの指定があるときだけ、SQLite のファイルは絶対パス・登録した書き方・ファイル名（見せる接続に同じ名前があれば名前だけでは探さない）で見分ける。ファイルのツールで SQLite のファイルを開くのも断る。つなぎ先は実行の初めに `hiddenDbTargets.ts` の `hiddenDbTargets` が作り（SQLite のファイルは作業場所と本体の両方で解く）、`ProviderTurnParams.hiddenDb` で渡す（なければフックを付けない）。うっかりを防ぐもので、わざと避ける書き方までは見抜けない（接続のダイアログの説明にも書く）。
 - `selfProtection.ts` の `evaluateSelfProtection`: エージェントを動かしている Kickoff 自身（`currentSelf`: プロセス・保存先・API のポート・アプリ本体）を壊す呼び出し（保存先やアプリ本体に触る・自分の API を叩く・自分を kill・名前での pkill / killall・AppleScript）を断る。保存先の `uploads/`（添付）を Read で読むのは通す。開発版は別の名前・保存先・ポートなので断らない。うっかりを防ぐもので、わざと避ける書き方までは見抜けない。
 
 ## 添付・ほかのチャットの記録・移動・自動のアーカイブ

@@ -1,4 +1,5 @@
 import type { BrowserControl } from "../browser/control.js";
+import type { HiddenDbTarget } from "../chat/guard/hiddenDb.js";
 import type { DbAiTools } from "../databases/aiTools.js";
 import type { ChatPolicy } from "../chat/policy.js";
 import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
@@ -92,6 +93,8 @@ export interface ProviderTurnParams {
   browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
   /** プロジェクトの DB を AI に読ませる口（AI に見せる接続があるときだけ。なければ DB のツールを出さない） */
   database?: DbAiTools | null;
+  /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
+  hiddenDb?: HiddenDbTarget[];
 }
 
 export interface ApprovalRequest {
