@@ -116,39 +116,193 @@
   min-height: 0;
 }
 
-.commit-meta {
+/*
+ * 「コミット」タブ（CommitSummary）: 左の細い列に作者の丸い印と項目の名前（右寄せ）、右に中身。
+ * メッセージと変わったファイルは線で区切り、右の列にそろえる
+ */
+.commit-summary {
+  display: grid;
   flex: 1;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-content: start;
+  gap: 6px 14px;
   min-height: 0;
-  padding: 12px 14px 6px;
+  padding: 14px 18px 12px 10px;
   overflow-y: auto;
+  font-size: 13px;
 }
 
-.commit-subject {
-  margin: 0 0 6px;
+.commit-summary-side {
+  grid-column: 1;
+  justify-self: end;
+}
+
+.commit-summary-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 20px;
+  color: var(--muted);
+}
+
+.commit-avatar {
+  --avatar-hue: 210;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: hsl(var(--avatar-hue) 45% 42%);
+  font-size: 19px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.commit-author-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin-bottom: 6px;
+}
+
+.commit-author-block .commit-summary-label {
+  line-height: 16px;
+}
+
+.commit-author-name {
   font-size: 15px;
 }
 
-.commit-body {
-  margin: 0 0 8px;
+.commit-summary-refs,
+.commit-summary-sha,
+.commit-summary-parents {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  line-height: 20px;
+}
+
+.commit-summary-sha .mono {
+  overflow-wrap: anywhere;
+}
+
+.commit-github {
+  color: var(--muted);
+}
+
+.commit-summary-parents .link-button {
   font-size: 13px;
-  white-space: pre-wrap;
+  color: var(--info);
+}
+
+.commit-summary-parents .link-button:disabled {
   color: var(--muted);
+  cursor: default;
 }
 
-.commit-facts {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 2px 12px;
-  margin: 0 0 8px;
-  font-size: 12px;
+.commit-summary-rule {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 8px 0;
+  border: none;
+  border-top: 1px solid var(--border);
 }
 
-.commit-facts dt {
-  color: var(--muted);
+.commit-message {
+  grid-column: 2;
+  min-width: 0;
 }
 
-.commit-facts dd {
+.commit-subject {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.commit-body {
   margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.commit-summary-count {
+  grid-column: 2;
+}
+
+.commit-summary-files {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commit-summary-file {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 3px 0;
+  border: none;
+  border-radius: 4px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.commit-summary-file:hover {
+  background: var(--bg-hover);
+}
+
+.commit-summary-file-marks {
+  display: inline-flex;
+  justify-self: end;
+  align-items: center;
+  gap: 6px;
+}
+
+.commit-summary-file .deleted {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+/* 変更の種類の四角い札（M = 黄、A・U = 緑、D = 赤、R・C = 青。文字は地の色で抜く（暗いテーマは濃い字、明るいテーマは白い字になる）） */
+.change-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--warn);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bg);
+}
+
+.change-badge[data-kind="A"],
+.change-badge[data-kind="U"] {
+  background: var(--ok);
+}
+
+.change-badge[data-kind="D"],
+.change-badge[data-kind="!"] {
+  background: var(--ng);
+}
+
+.change-badge[data-kind="R"],
+.change-badge[data-kind="C"] {
+  background: var(--info);
 }
 
 /* 履歴の表の列（件名・作者・コミットの番号・日時） */

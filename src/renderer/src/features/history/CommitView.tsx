@@ -1,9 +1,10 @@
 import { List, ListTree } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import type { GitCommit, GitFileChange } from "@shared/types";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import type { GitCommit, GitFileChange, GitRefs } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
+import { useAsync } from "@/hooks/useAsync";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
 import { useSetting } from "@/hooks/useSetting";
@@ -18,18 +19,41 @@ import { FileIcon } from "@/features/editor/FileIcon";
 import { FileTree } from "@/features/editor/FileTree";
 import { buildTree, folderPaths, kindMaps } from "@/features/editor/treeModel";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
+import { CommitSummary } from "./CommitSummary";
+import type { RefTarget } from "./refTarget";
 
 type CommitTab = "commit" | "changes";
 
 /**
  * 履歴で選んだコミットの詳細（1 行の見出しと「コミット」「変更」のタブ）。
+ * コミット: 作者・参照・SHA・親・メッセージ・変わったファイル（`CommitSummary`。ファイルを押すと「変更」でその差分）。
  * 変更: 左に変わったファイル（木・一覧）、右に選んだファイルの差分。初めは 1 つ目のファイルの差分を出す
  */
-export function CommitView({ projectId, commit }: { projectId: number; commit: GitCommit }) {
+export function CommitView({
+  projectId,
+  commit,
+  known,
+  refColor,
+  canPick,
+  onPick,
+  onRefMenu,
+}: {
+  projectId: number;
+  commit: GitCommit;
+  /** ブランチ・リモート・タグの一覧（札を手元・リモート・タグに分ける） */
+  known: GitRefs | undefined;
+  /** 表のこのコミットの線の色（札を同じ色で塗る） */
+  refColor: string;
+  canPick: (hash: string) => boolean;
+  onPick: (hash: string) => void;
+  onRefMenu?: (e: MouseEvent, target: RefTarget) => void;
+}) {
   const { target, key: at } = useGitTarget(projectId);
   // コミットごとに読む（作業場所が変わったら同じコミットでも取り直す。その間は前の内容を出す）
   const loaded = useKeyedAsync(commit.hash, () => api.gitCommitDetail(target, commit.hash), { deps: [at] });
   const detail = loaded.data;
+  // 連携先が GitHub なら、SHA の横にこのコミットの GitHub のページを開くボタンを出す（プロジェクトごとに 1 回聞く）
+  const github = useAsync(() => api.projectGitHub(projectId).catch(() => null), [projectId]);
   const [file, setFile] = useState<GitFileChange>();
   const [tab, setTab] = useState<CommitTab>("changes");
   // 変わったファイルを木で出すか（初めは木）
@@ -70,34 +94,20 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
       </header>
       <ErrorText message={loaded.error} className="code-search-message" />
       {tab === "commit" ? (
-        <section className="commit-meta">
-          <h3 className="commit-subject">{commit.subject}</h3>
-          {detail && detail.body.split("\n").slice(1).join("\n").trim() && <p className="commit-body">{detail.body.split("\n").slice(1).join("\n").trim()}</p>}
-          <dl className="commit-facts">
-            <dt>作者</dt>
-            <dd>
-              {commit.author}（{commit.email}）
-            </dd>
-            <dt>日時</dt>
-            <dd>{new Date(commit.date).toLocaleString("ja-JP")}</dd>
-            {detail && detail.committer !== commit.author && (
-              <>
-                <dt>コミットした人</dt>
-                <dd>{detail.committer}</dd>
-              </>
-            )}
-            <dt>コミット</dt>
-            <dd className="mono">{commit.hash}</dd>
-            {commit.parents.length > 0 && (
-              <>
-                <dt>{commit.parents.length > 1 ? "親（マージ）" : "親"}</dt>
-                <dd className="mono">{commit.parents.map((p) => p.slice(0, 9)).join("・")}</dd>
-              </>
-            )}
-            <dt>変わったファイル</dt>
-            <dd>{detail ? `${files.length} 個${commit.parents.length > 1 ? "（1 つ目の親との差）" : ""}` : "読み込み中…"}</dd>
-          </dl>
-        </section>
+        <CommitSummary
+          commit={commit}
+          detail={detail}
+          known={known}
+          refColor={refColor}
+          githubUrl={github.data?.repo ? `https://github.com/${github.data.repo}/commit/${commit.hash}` : null}
+          canPick={canPick}
+          onPick={onPick}
+          onOpenFile={(f) => {
+            setFile(f);
+            setTab("changes");
+          }}
+          onRefMenu={onRefMenu}
+        />
       ) : (
         <div className={cx("commit-changes", filesPane.resizing && "resizing")}>
           <aside ref={filesPane.paneRef} className="commit-files" style={{ width: filesPane.size }}>
