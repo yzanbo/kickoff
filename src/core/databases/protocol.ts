@@ -1,6 +1,7 @@
 // コアと DB ワーカー（別のプロセス）のやり取りの形。コアは頼み（Request）を送り、ワーカーは同じ id の答え（Response）を返す。
 // 止めるときは { cancel: id } を送る（SQLite は文を流している間ワーカーが受け取れないので、コアがワーカーごと止める）
-import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbRowFilter, DbObjectPath, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail } from "@shared/types";
+import type { DbPrepVars } from "@shared/database/dbPrep";
+import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbPrepKind, DbPrepState, DbRowFilter, DbObjectPath, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail } from "@shared/types";
 
 /** つなぐ先（コアが接続の登録・秘密の値・作業場所から組み立てて、頼みのたびに渡す。ワーカーは保存しない） */
 export interface DbTarget {
@@ -19,6 +20,29 @@ export interface DbTarget {
   ssh?: (DbSsh & { password: string | null }) | null;
   /** トンネルを通すときの、証明書を確かめるホスト名（ワーカーが入れる。つなぐ先は 127.0.0.1 になるため） */
   tls_host?: string | null;
+  /** つなぐときに流すコマンド（ポートの転送・パスワードを取る。利用者が確かめたものだけをコアが入れる。null = なし） */
+  commands?: DbTargetCommands | null;
+}
+
+/** つなぐときに流すコマンド（ワーカーがログインシェルで流す） */
+export interface DbTargetCommands {
+  connection_id: number;
+  /** ポートを転送するコマンド（{local_port} につながるまで待ち、使う接続がなくなったら止める） */
+  tunnel: string | null;
+  /** パスワードを取るコマンド（出力をパスワードにする。保存も表示もしない） */
+  password: string | null;
+  my_ip_url: string | null;
+  /** {host} などに入れる値（{local_port}・{my_ip} はワーカーが入れる） */
+  vars: DbPrepVars;
+}
+
+/** ワーカーから知らせる、流したコマンドの結果（コアが準備の記録に残す。出力は送らない） */
+export interface WorkerEvent {
+  event: "prep_run";
+  connection_id: number;
+  kind: DbPrepKind;
+  command: string;
+  ok: boolean;
 }
 
 /** 補完に使う、スキーマの中のテーブルと列の名前 */
@@ -53,7 +77,15 @@ export interface WorkerMethods {
   /** 接続を閉じる（途中のトランザクションは取り消す） */
   close: { params: { session: string }; result: { closed: boolean } };
   /** 名前が prefixes のどれかで始まる接続をすべて閉じる（消した接続の木・SQL のタブ・AI の接続。SSH トンネルも使う接続がなくなれば止まる） */
-  closeMatching: { params: { prefixes: string[] }; result: { closed: number } };
+  closeMatching: { params: { prefixes: string[]; cleanup_for?: number }; result: { closed: number } };
+  /** 準備のコマンドを順に流し始める（待たずに返す。様子は prepState。済んだら、切るときに cleanup を流す） */
+  prepare: { params: { connection_id: number; commands: string[]; cleanup: string[]; vars: DbPrepVars; my_ip_url: string | null }; result: { started: boolean } };
+  /** 準備の様子（最後の 1 回分。なければ null） */
+  prepState: { params: { connection_id: number }; result: DbPrepState | null };
+  /** 流している準備のコマンドを止める */
+  prepCancel: { params: { connection_id: number }; result: { cancelled: boolean } };
+  /** 止める前の片付け（すべての接続を閉じ、準備した接続の後片付けのコマンドを流す）。idle（使っていないので止める）なら、準備を流している間は何もせず done: false */
+  shutdown: { params: { idle?: boolean }; result: { done: boolean } };
 }
 
 export type WorkerMethod = keyof WorkerMethods;

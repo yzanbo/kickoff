@@ -1,4 +1,4 @@
-import { RotateCcw, Sparkles, StickyNote } from "lucide-react";
+import { Play, RotateCcw, Sparkles, StickyNote } from "lucide-react";
 import { useState } from "react";
 import { DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureKind, dbFixPrompt } from "@shared/database/dbFailure";
 import { errorMessage } from "@shared/errors";
@@ -49,7 +49,7 @@ async function askAiToFix(projectId: number, c: DbConnection, error: string): Pr
 
 /**
  * つながらないときの案内（木の接続の失敗の行の「直し方を見る」から）: 失敗の文・見分けた種類とよくある原因・最後につながった日時・
- * 手順メモの中身（なければ作る）・「AI に直してもらう」・「つなぎ直す」
+ * 手順メモの中身（なければ作る）・「AI に直してもらう」・「準備を流す…」（準備のコマンドがあれば）・「つなぎ直す」
  */
 export function DbFailureDialog({
   projectId,
@@ -57,6 +57,7 @@ export function DbFailureDialog({
   error,
   onMemo,
   onRetry,
+  onPrep,
   onClose,
 }: {
   projectId: number;
@@ -66,6 +67,8 @@ export function DbFailureDialog({
   onMemo: () => void;
   /** 開いていた段を読み直す（なければ出さない） */
   onRetry?: () => void;
+  /** つなぐ前の準備のダイアログを出す（準備のコマンドがあるときだけ出す） */
+  onPrep: () => void;
   onClose: () => void;
 }) {
   const dialog = useModalDialog();
@@ -135,6 +138,11 @@ export function DbFailureDialog({
           <button type="button" className="btn" disabled={asking} onClick={() => void ask()}>
             <Sparkles size={14} aria-hidden /> {asking ? "チャットを作っています…" : "AI に直してもらう"}
           </button>
+          {c.prep && c.prep.prepare.length > 0 && (
+            <button type="button" className="btn" onClick={then(onPrep)}>
+              <Play size={14} aria-hidden /> 準備を流す…
+            </button>
+          )}
           <span className="db-failure-spacer" />
           <button type="button" className="btn" onClick={() => dialog.close()}>
             閉じる

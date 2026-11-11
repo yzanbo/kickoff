@@ -12,6 +12,8 @@ import type {
   DbImportCandidate,
   DbObject,
   DbObjectPath,
+  DbPrepRun,
+  DbPrepState,
   DbQueryHistoryEntry,
   DbQueryResult,
   DbRowFilter,
@@ -57,6 +59,15 @@ export const databasesApi = {
     request<void>("POST", `${base(projectId)}/ssh-host-key/accept`, { ssh, fingerprints }),
   /** ~/.ssh/config の Host の一覧（SSH のホストの候補） */
   dbSshHosts: (projectId: number) => request<string[]>("GET", `${base(projectId)}/ssh-hosts`),
+  /** いまの準備のコマンドを確かめた（確かめるまで流さない） */
+  confirmDbPrep: (projectId: number, id: number) => request<DbConnection>("POST", `${one(projectId, id)}/prep/confirm`),
+  /** 準備のコマンドを流し始める（202。様子は dbPrepState で） */
+  prepareDb: (projectId: number, id: number) => request<{ started: boolean }>("POST", `${one(projectId, id)}/prepare`),
+  /** 準備のいまの様子（DB ワーカーが止まっていれば null） */
+  dbPrepState: (projectId: number, id: number) => request<DbPrepState | null>("GET", `${one(projectId, id)}/prepare`),
+  cancelDbPrep: (projectId: number, id: number) => request<void>("POST", `${one(projectId, id)}/prepare/cancel`),
+  /** 準備のコマンドの記録（いつ・どれ・成否。出力は残さない） */
+  dbPrepRuns: (projectId: number, id: number) => request<DbPrepRun[]>("GET", `${one(projectId, id)}/prep-runs`),
   dbDatabases: (projectId: number, id: number, worktree: string | null) => request<DbDatabases>("GET", at(`${one(projectId, id)}/databases`, worktree)),
   dbSchemas: (projectId: number, id: number, database: string | null, worktree: string | null) =>
     request<string[]>("GET", withQuery(`${one(projectId, id)}/schemas`, { database, worktree })),

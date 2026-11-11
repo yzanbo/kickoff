@@ -62,6 +62,15 @@ test("AI の DB のツール: 見せない接続は一覧に出さず名前で�
   assert.match(described, /\(user_id\) → users\(id\)/);
 });
 
+test("AI の DB のツール: つなぐときにコマンドを流す接続は使わない（準備だけの接続は使える）", async () => {
+  const { store, project, tools } = prepare();
+  const prep = { prepare: [], cleanup: [], tunnel: null, password: null, my_ip_url: null };
+  store.dbConnections.create(project.id, sqliteBody({ name: "準備だけ", prep: { ...prep, prepare: ["echo hi"] } }));
+  store.dbConnections.create(project.id, sqliteBody({ name: "ステージング", engine: "postgres", file_path: null, host: "db", prep: { ...prep, password: "op read x" } }));
+  await assert.rejects(tools.objects({ connection: "ステージング" }), /つなぐときにコマンドを流す接続なので、AI からは使えません/);
+  assert.match(await tools.objects({ connection: "準備だけ" }), /- users（table）/);
+});
+
 test("AI の DB のツール: 読み取りの 1 文だけ流し、結果をデータの印で包む。履歴に AI の印で残る", async () => {
   const { store, project, tools } = prepare();
   const c = store.dbConnections.create(project.id, sqliteBody());

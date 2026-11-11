@@ -1,5 +1,6 @@
 // チャットの AI の DB のツール（kickoff_db）の中身。プロバイダーに依らない口で、MCP のツールは providers/claude/dbTools.ts が組み立てる。
 // 接続は呼ぶたびに店から引き直す（作業の途中で利用者が許可を変えたら、次の呼び出しから効く）
+import { hasConnectCommands } from "@shared/database/dbPrep";
 import type { DbConnection, Project } from "@shared/types";
 import { Invalid } from "../http/errors.js";
 import type { Store } from "../db/store.js";
@@ -36,11 +37,13 @@ export function createDbAiTools(deps: { store: Store; databases: DatabaseService
   const resolve = (name: string | undefined): DbConnection => {
     const shown = visible();
     if (!name) {
-      if (shown.length === 1) return shown[0];
+      if (shown.length === 1) return resolve(shown[0].name);
       throw new Invalid(shown.length === 0 ? "このプロジェクトには、AI に見せる DB の接続がありません。" : "connection に接続の名前を渡してください（db_connections で一覧）。");
     }
     const hit = shown.find((c) => c.name === name) ?? shown.find((c) => c.name.toLowerCase() === name.toLowerCase());
     if (!hit) throw new Invalid(`「${name}」という AI に見せる接続はありません（db_connections で一覧。利用者が AI に見せないと決めた接続は使えません）。`);
+    // つなぐときにコマンド（ポートの転送・パスワードを取る）を流す接続は、AI からはつながない（準備のコマンドは利用者が押したときだけ流す）
+    if (hasConnectCommands(hit.prep)) throw new Invalid(`「${hit.name}」はつなぐときにコマンドを流す接続なので、AI からは使えません。利用者に DB クライアントで見てもらってください。`);
     return hit;
   };
 

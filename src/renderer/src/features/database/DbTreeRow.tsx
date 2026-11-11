@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { DB_NOT_IN_WORKTREE, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/types";
+import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { ApiError } from "@/api";
 import { cx } from "@/lib/cx";
@@ -85,6 +85,11 @@ export function TreeError({ depth, error, connection, onRetry }: { depth: number
       {code === DB_NOT_IN_WORKTREE ? (
         <button type="button" className="link-button small" onClick={() => client.useMain(connection.id)}>
           本体のものを開く
+        </button>
+      ) : code === DB_PREP_UNCONFIRMED ? (
+        // つなぐときのコマンドをまだ確かめていない: 中身を見せて確かめたら読み直す
+        <button type="button" className="link-button small" onClick={() => client.showPrep({ connection, retry: onRetry })}>
+          コマンドを確かめる…
         </button>
       ) : code === DB_SSH_UNKNOWN_HOST && connection.ssh ? (
         // 初めてつなぐ踏み台: 鍵の指紋を確かめて受け入れたら読み直す

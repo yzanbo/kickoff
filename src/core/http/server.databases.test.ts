@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
-import type { BusEvent, DbConnection, DbErSchema, DbImportCandidate, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
+import type { BusEvent, DbConnection, DbErSchema, DbImportCandidate, DbPrepRun, DbPrepState, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
 import { AUTH, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import { gitRepo } from "../testing/gitRepo.js";
@@ -245,6 +245,117 @@ test("DB の接続: SSH トンネル（パスワードは保存したかだけ�
 
   await call("DELETE", `${base}/${created.id}`);
   assert.equal(store.dbConnections.sshPassword(created.id), null);
+});
+
+test("DB の接続: 準備のコマンド（確かめるまで流さない・流す様子と記録・失敗で止める・中身を変えたら確かめ直す・消す / 止めると後片付け）", async () => {
+  const { call, project, databases } = setup();
+  makeSqlite(project.repo_path);
+  const base = `/api/projects/${project.id}/db-connections`;
+  const dir = tempDir();
+  const prep = { prepare: [" echo ready ", "", "printf '%s' second"], cleanup: [`touch ${dir}/cleaned`], tunnel: null, password: null, my_ip_url: null };
+  const created = (await call("POST", base, { ...sqliteBody(), prep, check_on: "2026-12-01", check_note: "ローテーション" })).body as DbConnection;
+  assert.deepEqual(created.prep, { ...prep, prepare: ["echo ready", "printf '%s' second"] });
+  assert.equal(created.prep_confirmed, false);
+  assert.deepEqual([created.check_on, created.check_note], ["2026-12-01", "ローテーション"]);
+  const one = `${base}/${created.id}`;
+
+  // 確かめるまで流さない
+  const refused = await call("POST", `${one}/prepare`);
+  assert.equal(refused.status, 409);
+  assert.equal(refused.body.code, "db_prep_unconfirmed");
+  assert.equal(((await call("POST", `${one}/prep/confirm`)).body as DbConnection).prep_confirmed, true);
+
+  const waitDone = async () => {
+    let state: DbPrepState | null = null;
+    for (let i = 0; i < 200; i++) {
+      state = (await call("GET", `${one}/prepare`)).body as DbPrepState | null;
+      if (state && !state.running) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return state!;
+  };
+  assert.equal((await call("POST", `${one}/prepare`)).status, 202);
+  const done = await waitDone();
+  assert.equal(done.error, null);
+  assert.deepEqual(
+    done.steps.map((s) => [s.command, s.status, s.output.trim()]),
+    [
+      ["echo ready", "ok", "ready"],
+      ["printf '%s' second", "ok", "second"],
+    ],
+  );
+  const runs = (await call("GET", `${one}/prep-runs`)).body as DbPrepRun[];
+  assert.deepEqual(
+    runs.map((r) => [r.kind, r.command, r.ok]),
+    [
+      ["prepare", "printf '%s' second", true],
+      ["prepare", "echo ready", true],
+    ],
+  );
+
+  // 中身を変えたら確かめ直し。失敗したコマンドで止める
+  const changed = (await call("PATCH", one, { prep: { ...prep, prepare: ["echo a", "exit 3", "echo never"] } })).body as DbConnection;
+  assert.equal(changed.prep_confirmed, false);
+  await call("POST", `${one}/prep/confirm`);
+  await call("POST", `${one}/prepare`);
+  const failed = await waitDone();
+  assert.deepEqual(
+    failed.steps.map((s) => s.status),
+    ["ok", "failed"],
+  );
+  assert.match(failed.error ?? "", /「exit 3」が失敗しました/);
+  // 写すと準備も写るが、写した先で確かめ直す
+  const copied = (await call("POST", `${base}/copy`, { from_id: created.id, copy_password: false })).body as DbConnection;
+  assert.deepEqual(copied.prep?.prepare, ["echo a", "exit 3", "echo never"]);
+  assert.equal(copied.prep_confirmed, false);
+
+  // 準備が済んだ接続を消すと、後片付けのコマンドを流す
+  await call("PATCH", one, { prep });
+  await call("POST", `${one}/prep/confirm`);
+  await call("POST", `${one}/prepare`);
+  assert.equal((await waitDone()).error, null);
+  await call("DELETE", one);
+  await until(() => fs.existsSync(path.join(dir, "cleaned")));
+
+  // アプリを止めるときも、準備が済んだ接続の後片付けを流してから止める
+  const other = (await call("POST", base, { ...sqliteBody({ name: "止めるとき" }), prep: { ...prep, cleanup: [`touch ${dir}/closed`] } })).body as DbConnection;
+  await call("POST", `${base}/${other.id}/prep/confirm`);
+  await call("POST", `${base}/${other.id}/prepare`);
+  for (let i = 0; i < 200 && ((await call("GET", `${base}/${other.id}/prepare`)).body as DbPrepState | null)?.running !== false; i++) await new Promise((r) => setTimeout(r, 50));
+  await databases.close();
+  assert.ok(fs.existsSync(path.join(dir, "closed")));
+
+  // 空の準備は null・SSH と一緒のポートの転送は断る・日付の形
+  assert.equal(((await call("POST", base, { ...sqliteBody({ name: "空" }), prep: { ...prep, prepare: [" "], cleanup: [] } })).body as DbConnection).prep, null);
+  const pg = sqliteBody({ engine: "postgres", host: "h", file_path: null });
+  assert.equal((await call("POST", base, { ...pg, ssh: { host: "b", port: null, user: null, identity_file: null }, prep: { ...prep, tunnel: "x {local_port}" } })).status, 400);
+  assert.equal((await call("POST", base, { ...pg, check_on: "12/01" })).status, 400);
+  assert.equal((await call("POST", base, { ...pg, prep: { ...prep, prepare: ["a\nb"] } })).status, 400);
+});
+
+test("DB の接続: つなぐときのコマンド（パスワードを取る）は確かめるまで流さず、流したら記録に残す（出力は残さない）", async () => {
+  const { call, project } = setup();
+  const base = `/api/projects/${project.id}/db-connections`;
+  const body = { ...sqliteBody({ engine: "postgres", host: "127.0.0.1", port: 1, file_path: null }), prep: { prepare: [], cleanup: [], tunnel: null, password: "printf s3cret", my_ip_url: null } };
+  const conn = (await call("POST", base, body)).body as DbConnection;
+  const refused = await call("GET", `${base}/${conn.id}/databases`);
+  assert.equal(refused.status, 409);
+  assert.equal(refused.body.code, "db_prep_unconfirmed");
+  await call("POST", `${base}/${conn.id}/prep/confirm`);
+  // パスワードを取ってからつなぐ（ポート 1 なのでつながらない）
+  assert.equal((await call("GET", `${base}/${conn.id}/databases`)).status, 400);
+  const runs = (await call("GET", `${base}/${conn.id}/prep-runs`)).body as DbPrepRun[];
+  assert.deepEqual(
+    runs.map((r) => [r.kind, r.command, r.ok]),
+    [["password", "printf s3cret", true]],
+  );
+  // 記録は種類・コマンド・成否だけ（出力 = パスワードは持たない）
+  assert.deepEqual(Object.keys(runs[0]).sort(), ["command", "id", "kind", "ok", "ran_at"]);
+  // 「つながるか試す」は、ダイアログで見えているコマンドを流す（確かめ済みかは問わない）。失敗するコマンドは出力を出さない
+  const tested = (await call("POST", `${base}/test`, { ...body, prep: { ...body.prep, password: "echo leaked; exit 1" } })).body;
+  assert.equal(tested.ok, false);
+  assert.match(tested.error, /パスワードを取るコマンドが失敗しました/);
+  assert.doesNotMatch(tested.error, /leaked/);
 });
 
 test("DB の接続: つながるか試す（保存しない）。ないファイルは失敗を返す", async () => {

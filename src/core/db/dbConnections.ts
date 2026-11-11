@@ -1,15 +1,18 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
-import type { DbConnection, DbConnectionPatch, DbSsh, DbSsl, NewDbConnectionBody } from "@shared/types";
+import { normalizePrep, prepConfirmKey } from "@shared/database/dbPrep";
+import type { DbConnection, DbConnectionPatch, DbPrep, DbSsh, DbSsl, NewDbConnectionBody } from "@shared/types";
 import { NOW } from "./schema.js";
 import { bit, updateRow, type Notify } from "./common.js";
 import type { DbSecretKey } from "./settings.js";
 
 /** 変えられる列（パスワードは秘密の値なので別） */
-const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "ai_access", "ai_username", "memo_path", "ssh"] as const;
+const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "ai_access", "ai_username", "memo_path", "ssh", "prep", "check_on", "check_note"] as const;
 
-type Row = Omit<DbConnection, "ssl" | "ssh" | "read_only" | "has_password" | "has_ai_password" | "has_ssh_password"> & {
+type Row = Omit<DbConnection, "ssl" | "ssh" | "prep" | "prep_confirmed" | "read_only" | "has_password" | "has_ai_password" | "has_ssh_password"> & {
   ssl: string | null;
   ssh: string | null;
+  prep: string | null;
+  prep_confirmed: string | null;
   read_only: number;
   has_password: number;
   has_ai_password: number;
@@ -22,15 +25,27 @@ const SELECT = `SELECT c.*,
   EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':ssh_password') AS has_ssh_password
   FROM db_connections AS c`;
 
-const toConnection = (row: Row): DbConnection => ({
-  ...row,
-  ssl: row.ssl ? (JSON.parse(row.ssl) as DbSsl) : null,
-  ssh: row.ssh ? (JSON.parse(row.ssh) as DbSsh) : null,
-  read_only: row.read_only === 1,
-  has_password: row.has_password === 1,
-  has_ai_password: row.has_ai_password === 1,
-  has_ssh_password: row.has_ssh_password === 1,
-});
+const toConnection = (row: Row): DbConnection => {
+  const prep = row.prep ? (JSON.parse(row.prep) as DbPrep) : null;
+  return {
+    ...row,
+    ssl: row.ssl ? (JSON.parse(row.ssl) as DbSsl) : null,
+    ssh: row.ssh ? (JSON.parse(row.ssh) as DbSsh) : null,
+    prep,
+    // 確かめた中身の写しといまの中身が同じ間だけ確かめ済み（中身を変えたら確かめ直す）
+    prep_confirmed: prep !== null && row.prep_confirmed === prepConfirmKey(prep),
+    read_only: row.read_only === 1,
+    has_password: row.has_password === 1,
+    has_ai_password: row.has_ai_password === 1,
+    has_ssh_password: row.has_ssh_password === 1,
+  };
+};
+
+/** 保存する準備のコマンド（空の行・欄を落とし、何もなければ null） */
+function prepText(prep: DbPrep | null): string | null {
+  const normalized = normalizePrep(prep);
+  return normalized ? JSON.stringify(normalized) : null;
+}
 
 /** 接続のパスワードの秘密の値の名前 */
 export const dbPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:password`;
@@ -64,6 +79,9 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     ai_username: body.ai_username,
     memo_path: body.memo_path,
     ssh: body.ssh === undefined ? undefined : body.ssh === null ? null : JSON.stringify(body.ssh),
+    prep: body.prep === undefined ? undefined : prepText(body.prep),
+    check_on: body.check_on,
+    check_note: body.check_note,
   });
   const setPasswords = (id: number, body: Pick<DbConnectionPatch, "password" | "ai_password" | "ssh_password">) => {
     if (body.password !== undefined) secrets.set(dbPasswordKey(id), body.password ?? "");
@@ -80,7 +98,7 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
       const row = toRow(body);
       const { lastInsertRowid } = db
         .prepare(
-          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, ai_access, ai_username, memo_path, ssh, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, ai_access, ai_username, memo_path, ssh, prep, check_on, check_note, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .run(projectId, ...COLUMNS.map((c) => row[c] ?? null), next);
       const id = Number(lastInsertRowid);
@@ -108,6 +126,13 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     /** SSH のパスワード（なければ null） */
     sshPassword(id: number): string | null {
       return secrets.get(dbSshPasswordKey(id));
+    },
+    /** いまの準備のコマンドを利用者が確かめた（写しを残す。中身を変えると確かめ済みでなくなる） */
+    confirmPrep(id: number): DbConnection {
+      const connection = get(id)!;
+      db.prepare("UPDATE db_connections SET prep_confirmed = ? WHERE id = ?").run(connection.prep ? prepConfirmKey(connection.prep) : null, id);
+      notify(connection.project_id);
+      return get(id)!;
     },
     /** つながった時刻を残す（一覧の並びは変えない。知らせは出さない） */
     touchConnected(id: number) {

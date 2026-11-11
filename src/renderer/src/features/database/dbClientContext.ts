@@ -21,6 +21,13 @@ export interface DbClientActions {
   openMemo(connection: DbConnection): void;
   /** つながらないときの案内を出す */
   showFailure(failure: DbFailure): void;
+  /** つなぐ前の準備のダイアログを出す（retry: 済んだら開いていた段を読み直す） */
+  showPrep(target: DbPrepTarget): void;
+}
+
+export interface DbPrepTarget {
+  connection: DbConnection;
+  retry?: () => void;
 }
 
 /** つながらなかった接続と失敗の文（retry: 開いていた段を読み直す。案内の「つなぎ直す」） */

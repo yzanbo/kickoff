@@ -57,6 +57,18 @@ const ssh = z
     identity_file: text(2000),
   })
   .nullable();
+/** コマンド 1 つ（1 行。改行は入れない） */
+const command = z.string().max(4000).refine((v) => !/[\r\n]/.test(v), "コマンドは 1 行に 1 つにしてください");
+/** つなぐ前の準備のコマンド（各 20 個まで） */
+const prep = z
+  .object({
+    prepare: z.array(command).max(20),
+    cleanup: z.array(command).max(20),
+    tunnel: command.nullable(),
+    password: command.nullable(),
+    my_ip_url: z.string().trim().max(500).regex(/^https?:\/\//, "{my_ip} の問い合わせ先は http(s):// の URL にしてください").nullable(),
+  })
+  .nullable();
 const connectionShape = {
   name: z.string().trim().min(1).max(DB_CONNECTION_NAME_MAX),
   engine: z.enum(DB_ENGINES),
@@ -78,6 +90,9 @@ const connectionShape = {
     .optional(),
   ssh: ssh.optional(),
   ssh_password: z.string().max(10_000).nullable().optional(),
+  prep: prep.optional(),
+  check_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "日付は YYYY-MM-DD で書いてください").nullable().optional(),
+  check_note: text(200).optional(),
 };
 const newConnectionSchema = z.object(connectionShape) satisfies z.ZodType<NewDbConnectionBody, unknown>;
 const connectionPatchSchema = z.object(connectionShape).partial() satisfies z.ZodType<DbConnectionPatch, unknown>;
@@ -93,6 +108,7 @@ const testSchema = z.object({
   password: connectionShape.password,
   ssh: ssh.optional(),
   ssh_password: connectionShape.ssh_password,
+  prep: prep.optional(),
   connection_id: z.number().int().positive().optional(),
 }) satisfies z.ZodType<DbConnectionTestBody, unknown>;
 const hostKeySchema = z.object({
@@ -166,11 +182,12 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
   /** ?worktree= の作業場所のフォルダ（なければ本体 = null） */
   const workdirOf = async (c: Context, project: Project) => (await requireWorktree(project.repo_path, queryOf(c, "worktree")))?.path ?? null;
   /** 種類ごとに要る項目の確かめ（SQLite はファイル、ほかはホスト） */
-  const checkFields = (project: Project, body: Pick<NewDbConnectionBody, "engine" | "host" | "file_path">) => {
+  const checkFields = (project: Project, body: Pick<NewDbConnectionBody, "engine" | "host" | "file_path" | "ssh" | "prep">) => {
     if (body.engine === "sqlite") {
       if (!body.file_path) throw new Invalid("SQLite のファイルを指定してください");
       databases.checkFile(body.file_path, project);
     } else if (!body.host) throw new Invalid("ホストを指定してください");
+    if (body.ssh && body.prep?.tunnel?.trim()) throw new Invalid("SSH トンネルとポートを転送するコマンドは、どちらか 1 つにしてください");
   };
 
   const base = "/api/projects/:id/db-connections";
@@ -200,13 +217,14 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
       has_password: _h,
       has_ai_password: _ha,
       has_ssh_password: _hs,
+      prep_confirmed: _pc,
       last_connected_at: _l,
       created_at: _c,
       updated_at: _u,
       ...fields
     } = from;
     const password = copy_password ? store.dbConnections.password(from.id) : null;
-    // 手順メモはプロジェクトごとのメモのフォルダにあるので写さない
+    // 手順メモはプロジェクトごとのメモのフォルダにあるので写さない。準備のコマンドは写すが、写した先で確かめ直す
     const ai_password = copy_password ? store.dbConnections.aiPassword(from.id) : null;
     const ssh_password = copy_password ? store.dbConnections.sshPassword(from.id) : null;
     return c.json(store.dbConnections.create(c.var.project.id, { ...fields, memo_path: null, password, ai_password, ssh_password }), 201);
@@ -355,6 +373,16 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
   });
 
   // SQL の履歴（新しい順。AI が流したものは ran_by = ai とチャット）
+  // つなぐ前の準備: 中身を確かめた・流す（待たずに 202。様子は GET で）・止める・記録（いつ・どのコマンド・成功 / 失敗）
+  app.post(`${base}/:cid/prep/confirm`, withProject, withConnection, (c) => c.json(store.dbConnections.confirmPrep(c.var.connection.id)));
+  app.post(`${base}/:cid/prepare`, withProject, withConnection, async (c) => c.json(await databases.prepare(c.var.connection), 202));
+  app.get(`${base}/:cid/prepare`, withProject, withConnection, async (c) => c.json(await databases.prepState(c.var.connection)));
+  app.post(`${base}/:cid/prepare/cancel`, withProject, withConnection, async (c) => {
+    await databases.prepCancel(c.var.connection);
+    return c.body(null, 204);
+  });
+  app.get(`${base}/:cid/prep-runs`, withProject, withConnection, (c) => c.json(store.dbPrepRuns.list(c.var.connection.id)));
+
   app.get(`${base}/:cid/history`, withProject, withConnection, (c) =>
     c.json(databases.history(c.var.connection, historyLimit.parse(queryOf(c, "limit") ?? undefined))),
   );

@@ -30,6 +30,7 @@ import { CheckField, Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
 import { bodyOf, formOf, type ConnectionForm } from "./connectionForm";
 import { ConnectionMemoField } from "./ConnectionMemoField";
+import { ConnectionPrepFields } from "./ConnectionPrepFields";
 import { ConnectionSshFields } from "./ConnectionSshFields";
 import { DbFailureHelp } from "./DbFailureDialog";
 import { SshHostKeyDialog } from "./SshHostKeyDialog";
@@ -90,9 +91,9 @@ export function ConnectionDialog({
 
   const runTest = async () => {
     setTest("testing");
-    // 手順メモはつながるかに関係しないので送らない
-    const { memo_path: _memo, ...body } = bodyOf(form, editing);
-    void _memo;
+    // 手順メモ・次に確かめる日はつながるかに関係しないので送らない
+    const { memo_path: _memo, check_on: _on, check_note: _note, ...body } = bodyOf(form, editing);
+    void [_memo, _on, _note];
     try {
       setTest(
         await api.testDbConnection(
@@ -243,6 +244,7 @@ export function ConnectionDialog({
         {!sqlite && form.ai_access !== "none" && connection?.has_ai_password && (
           <CheckField label="保存した AI 用のパスワードを消す" checked={form.clearAiPassword} onChange={(v) => set("clearAiPassword", v)} />
         )}
+        <ConnectionPrepFields form={form} set={set} />
         <ConnectionMemoField projectId={projectId} value={form.memo_path} onChange={(v) => set("memo_path", v)} />
         {test && test !== "testing" && (
           <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{test.ok ? `つながりました（${test.server_version ?? "版は不明"}）` : `つながりません: ${test.error}`}</p>

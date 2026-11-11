@@ -1,5 +1,6 @@
-import { Database, Layers, Lock, Network, StickyNote, Table2 } from "lucide-react";
+import { CalendarClock, Database, Layers, Lock, Network, StickyNote, Table2 } from "lucide-react";
 import { useState } from "react";
+import { isCheckDue, localToday } from "@shared/database/dbPrep";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { api } from "@/api";
 import { useSetting } from "@/hooks/useSetting";
@@ -66,11 +67,18 @@ function ConnectionNode({ connection: c, isOpen, toggle, menu, onMenu }: NodePro
         icon={<span className="db-env-dot" aria-hidden />}
         label={c.name}
         mark={
-          c.memo_path ? (
-            <span className="db-tree-memo" data-tip={`手順メモ: ${c.memo_path}`} aria-label="手順メモあり">
-              <StickyNote size={11} aria-hidden />
-            </span>
-          ) : undefined
+          <>
+            {c.memo_path && (
+              <span className="db-tree-memo" data-tip={`手順メモ: ${c.memo_path}`} aria-label="手順メモあり">
+                <StickyNote size={11} aria-hidden />
+              </span>
+            )}
+            {isCheckDue(c.check_on, localToday()) && (
+              <span className="db-tree-check" data-tip={`確かめる日（${c.check_on}）が来ました${c.check_note ? `: ${c.check_note}` : ""}`} aria-label="確かめる日が来ました">
+                <CalendarClock size={11} aria-hidden />
+              </span>
+            )}
+          </>
         }
         note={c.read_only ? undefined : DB_ENVIRONMENT_LABELS[c.environment]}
         title={`${c.name}（${DB_ENGINE_LABELS[c.engine]} · ${DB_ENVIRONMENT_LABELS[c.environment]}${c.read_only ? " · 読み取り専用" : ""}）\n${connectionPlace(c)}`}
