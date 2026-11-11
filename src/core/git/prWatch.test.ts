@@ -15,13 +15,13 @@ const worktree = (branch: string | null, extra: Partial<GitWorktree> = {}): GitW
   prunable: false,
   ...extra,
 });
-const pr = (number: number, branch: string, state: BranchPullRequest["state"], cross = false): BranchPullRequest => ({
+const pr = (number: number, branch: string, state: BranchPullRequest["state"], owner = "me"): BranchPullRequest => ({
   number,
   title: `PR ${number}`,
   url: `https://github.com/o/r/pull/${number}`,
   state,
   branch,
-  cross_repository: cross,
+  head_owner: owner,
 });
 
 test("知らせ: ブランチごとのいちばん新しい PR がマージ済み・閉じたなら知らせ、開いていれば知らせない（本体・ブランチのないもの・fork からの同じ名前の PR は見ない）", () => {
@@ -34,12 +34,12 @@ test("知らせ: ブランチごとのいちばん新しい PR がマージ済�
     pr(4, "feat/b", "OPEN"),
     pr(5, "feat/c", "CLOSED"),
     // fork からの同じ名前のブランチの PR は、手元のブランチのものではない
-    pr(6, "feat/d", "MERGED", true),
+    pr(6, "feat/d", "MERGED", "someone"),
   ];
-  const notices = noticesFor(7, worktrees, prs, { dismissed: new Set([5]) });
+  const notices = noticesFor(7, worktrees, prs, { dismissed: new Set([5]), headOwner: "Me" });
   assert.deepEqual(notices, [
     { project_id: 7, worktree: "/w/feat/a", branch: "feat/a", pr: { number: 2, title: "PR 2", url: "https://github.com/o/r/pull/2", state: "MERGED" }, dismissed: false },
     { project_id: 7, worktree: "/w/feat/c", branch: "feat/c", pr: { number: 5, title: "PR 5", url: "https://github.com/o/r/pull/5", state: "CLOSED" }, dismissed: true },
   ]);
-  assert.deepEqual(noticesFor(7, worktrees, [], { dismissed: new Set() }), []);
+  assert.deepEqual(noticesFor(7, worktrees, [], { dismissed: new Set(), headOwner: "me" }), []);
 });

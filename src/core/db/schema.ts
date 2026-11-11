@@ -214,8 +214,18 @@ CREATE TABLE pr_notice_dismissals (
 ) STRICT;
 `;
 
+/**
+ * v12: プロジェクトごとの GitHub の連携（使うアカウント・連携先の remote。null なら gh で有効なアカウント・自動の remote）と、
+ * ワークツリーの PR の見張りをするか
+ */
+const SCHEMA_V12 = `
+ALTER TABLE projects ADD COLUMN github_account TEXT CHECK (github_account <> '');
+ALTER TABLE projects ADD COLUMN github_remote TEXT CHECK (github_remote <> '');
+ALTER TABLE projects ADD COLUMN pr_watch INTEGER NOT NULL DEFAULT 1 CHECK (pr_watch IN (0, 1));
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

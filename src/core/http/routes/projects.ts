@@ -4,9 +4,11 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { expandHome, realPathLoose, realPathOrSelf } from "../../system/paths.js";
 import type { ServerDeps } from "../server.js";
-import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProjectRepoPathBody, type ProviderId } from "@shared/types";
+import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProjectGitHub, type ProjectRepoPathBody, type ProviderId } from "@shared/types";
 import { createWorkspace, initGitRepo, inspectWorkspace, prepareImportedWorkspace, toFolderName } from "../../git/workspace.js";
 import { worktreeMoves } from "../../git/index.js";
+import { listGitHubAccounts } from "../../git/githubAccount.js";
+import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes } from "../../git/githubTarget.js";
 import { Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
@@ -74,11 +76,15 @@ const projectPatchSchema = z
     // このプロジェクトの圧縮前指示・圧縮後指示を送るか（オフでも文は残す）
     pre_compact_enabled: z.boolean(),
     post_compact_enabled: z.boolean(),
+    // GitHub で使うアカウント・連携先の remote（null なら gh で有効なアカウント・自動）と、ワークツリーの PR を見張るか
+    github_account: z.string().trim().min(1).max(100).nullable(),
+    github_remote: z.string().trim().min(1).max(255).nullable(),
+    pr_watch: z.boolean(),
   })
   .partial() satisfies z.ZodType<ProjectPatch>;
 
 /** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
-export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
+export function projectRoutes(app: Hono, { store, runner, prWatch, githubAccounts = listGitHubAccounts }: ServerDeps) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;
@@ -140,13 +146,29 @@ export function projectRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.patch("/api/projects/:id", withProject, async (c) => {
     const { project } = c.var;
     const { reference_paths, archived, ...patch } = projectPatchSchema.parse(await jsonBody(c));
-    return c.json(
-      store.projects.update(project.id, {
-        ...patch,
-        ...(reference_paths ? { reference_paths: resolveReferences(reference_paths) } : {}),
-        ...(archived === undefined ? {} : { archived_at: archived ? (project.archived_at ?? new Date().toISOString()) : null }),
-      }),
-    );
+    const updated = store.projects.update(project.id, {
+      ...patch,
+      ...(reference_paths ? { reference_paths: resolveReferences(reference_paths) } : {}),
+      ...(archived === undefined ? {} : { archived_at: archived ? (project.archived_at ?? new Date().toISOString()) : null }),
+    });
+    // GitHub の連携・アーカイブを変えたら、ワークツリーの PR の見張りをそのプロジェクトだけ聞き直す（待たない）
+    if (patch.github_account !== undefined || patch.github_remote !== undefined || patch.pr_watch !== undefined || archived !== undefined) {
+      void prWatch.checkProject(project.id);
+    }
+    return c.json(updated);
+  });
+
+  // GitHub の連携（設定の「GitHub」: gh に入っているアカウント・GitHub の remote・自動で選ぶ remote・いまの連携先）
+  app.get("/api/projects/:id/github", withProject, async (c) => {
+    const { project } = c.var;
+    const [accounts, { remotes, ghDefault }] = await Promise.all([githubAccounts(), readGitHubRemotes(project.repo_path)]);
+    const auto = autoGitHubRemote(remotes, ghDefault);
+    return c.json({
+      accounts,
+      remotes,
+      auto_remote: auto?.name ?? null,
+      repo: pickGitHubTarget(remotes, ghDefault, project.github_remote)?.repo ?? null,
+    } satisfies ProjectGitHub);
   });
 
   /**
