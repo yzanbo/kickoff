@@ -1,28 +1,45 @@
-import { Database, Layers, Lock } from "lucide-react";
+import { Database, Layers, Lock, Network, Table2 } from "lucide-react";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { api } from "@/api";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
 import { dbTreeOpen } from "@/lib/storageKeys";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { useDbClient } from "./dbClientContext";
 import { connectionPlace } from "./dbFormat";
 import { ObjectsNode } from "./DbTreeObjects";
-import { TreeError, TreeHint, TreeRow, useNodeLoad, type TreeOpen } from "./DbTreeRow";
+import { TreeError, TreeHint, TreeRow, useNodeLoad, type TreeMenuTarget, type TreeOpen } from "./DbTreeRow";
 
 /**
  * 左の木: 接続 → DB → スキーマ（PostgreSQL だけ）→ テーブル / ビュー / 関数 / 列挙型 → 列・インデックス・外部キー・トリガー（DbTreeObjects）。
- * 開いた段だけ読む（開いている段は置き場所ごとに覚える）。名前を押すとタブを開く。接続の右クリックは onConnectionMenu
+ * 開いた段だけ読む（開いている段は置き場所ごとに覚える）。名前を押すとタブを開く。接続の右クリックは onConnectionMenu、
+ * DB・スキーマの右クリックは「ER 図」、テーブル・ビューは「開く」「この表のまわりの ER 図」
  */
 export function DbTree({ connections, onConnectionMenu }: { connections: DbConnection[]; onConnectionMenu: (e: React.MouseEvent, connection: DbConnection) => void }) {
   const client = useDbClient();
   const [openList, setOpenList] = useSetting(dbTreeOpen(client.place));
   const isOpen = (key: string) => openList.includes(key);
   const toggle = (key: string) => setOpenList(isOpen(key) ? openList.filter((k) => k !== key) : [...openList, key]);
+  const menu = useContextMenu<TreeMenuTarget>();
+  const target = menu.menu?.value;
   return (
     <div className="db-tree" role="tree">
       {connections.map((c) => (
-        <ConnectionNode key={c.id} connection={c} isOpen={isOpen} toggle={toggle} onMenu={(e) => onConnectionMenu(e, c)} />
+        <ConnectionNode key={c.id} connection={c} isOpen={isOpen} toggle={toggle} menu={menu.open} onMenu={(e) => onConnectionMenu(e, c)} />
       ))}
+      {menu.menu && target && (
+        <PopupMenu at={menu.menu.at} label={target.table ? "テーブルのメニュー" : "DB のメニュー"} onClose={menu.close}>
+          {target.table && (
+            <MenuItem onSelect={() => client.openTable(target.connection, target.path, target.table!.name, target.table!.kind)}>
+              <Table2 size={14} /> 開く
+            </MenuItem>
+          )}
+          <MenuItem onSelect={() => client.openEr(target.connection, target.path, target.table?.name ?? null)}>
+            <Network size={14} /> {target.table ? "この表のまわりの ER 図" : "ER 図"}
+          </MenuItem>
+        </PopupMenu>
+      )}
     </div>
   );
 }
@@ -31,7 +48,7 @@ interface NodeProps extends TreeOpen {
   connection: DbConnection;
 }
 
-function ConnectionNode({ connection: c, isOpen, toggle, onMenu }: NodeProps & { onMenu: (e: React.MouseEvent) => void }) {
+function ConnectionNode({ connection: c, isOpen, toggle, menu, onMenu }: NodeProps & { onMenu: (e: React.MouseEvent) => void }) {
   const client = useDbClient();
   const key = `c:${c.id}`;
   const open = isOpen(key);
@@ -61,15 +78,15 @@ function ConnectionNode({ connection: c, isOpen, toggle, onMenu }: NodeProps & {
         dbs.value &&
         // DB が 1 つだけ（SQLite の main など）なら段を飛ばしてテーブルを出す
         (dbs.value.databases.length === 1 && !dbs.value.has_schemas ? (
-          <ObjectsNode connection={c} depth={1} path={{ database: dbs.value.databases[0], schema: null }} tree={{ isOpen, toggle }} />
+          <ObjectsNode connection={c} depth={1} path={{ database: dbs.value.databases[0], schema: null }} tree={{ isOpen, toggle, menu }} />
         ) : (
-          dbs.value.databases.map((d) => <DatabaseNode key={d} connection={c} database={d} current={d === dbs.value?.current} hasSchemas={dbs.value!.has_schemas} isOpen={isOpen} toggle={toggle} />)
+          dbs.value.databases.map((d) => <DatabaseNode key={d} connection={c} database={d} current={d === dbs.value?.current} hasSchemas={dbs.value!.has_schemas} isOpen={isOpen} toggle={toggle} menu={menu} />)
         ))}
     </>
   );
 }
 
-function DatabaseNode({ connection: c, database, current, hasSchemas, isOpen, toggle }: NodeProps & { database: string; current: boolean; hasSchemas: boolean }) {
+function DatabaseNode({ connection: c, database, current, hasSchemas, isOpen, toggle, menu }: NodeProps & { database: string; current: boolean; hasSchemas: boolean }) {
   const client = useDbClient();
   const key = `d:${c.id}:${database}`;
   const open = isOpen(key);
@@ -77,8 +94,17 @@ function DatabaseNode({ connection: c, database, current, hasSchemas, isOpen, to
   const schemas = useNodeLoad(open && hasSchemas, () => api.dbSchemas(client.projectId, c.id, database, worktree), [c.id, database, worktree]);
   return (
     <>
-      <TreeRow depth={1} open={open} icon={<Database size={13} aria-hidden />} label={database} note={current ? "既定" : undefined} onToggle={() => toggle(key)} />
-      {open && !hasSchemas && <ObjectsNode connection={c} depth={2} path={{ database, schema: null }} tree={{ isOpen, toggle }} />}
+      <TreeRow
+        depth={1}
+        open={open}
+        icon={<Database size={13} aria-hidden />}
+        label={database}
+        note={current ? "既定" : undefined}
+        onToggle={() => toggle(key)}
+        // PostgreSQL は DB の中のスキーマごとに描くので、DB の右クリックは public のスキーマ
+        onContextMenu={(e) => menu(e, { connection: c, path: { database, schema: hasSchemas ? "public" : null }, table: null })}
+      />
+      {open && !hasSchemas && <ObjectsNode connection={c} depth={2} path={{ database, schema: null }} tree={{ isOpen, toggle, menu }} />}
       {open && schemas.loading && <TreeHint depth={2}>読み込み中…</TreeHint>}
       {open && schemas.error && <TreeError depth={2} error={schemas.error} connection={c} />}
       {open &&
@@ -87,8 +113,15 @@ function DatabaseNode({ connection: c, database, current, hasSchemas, isOpen, to
           const sOpen = isOpen(sKey);
           return (
             <div key={s}>
-              <TreeRow depth={2} open={sOpen} icon={<Layers size={13} aria-hidden />} label={s} onToggle={() => toggle(sKey)} />
-              {sOpen && <ObjectsNode connection={c} depth={3} path={{ database, schema: s }} tree={{ isOpen, toggle }} />}
+              <TreeRow
+                depth={2}
+                open={sOpen}
+                icon={<Layers size={13} aria-hidden />}
+                label={s}
+                onToggle={() => toggle(sKey)}
+                onContextMenu={(e) => menu(e, { connection: c, path: { database, schema: s }, table: null })}
+              />
+              {sOpen && <ObjectsNode connection={c} depth={3} path={{ database, schema: s }} tree={{ isOpen, toggle, menu }} />}
             </div>
           );
         })}

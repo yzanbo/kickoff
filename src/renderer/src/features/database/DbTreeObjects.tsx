@@ -37,7 +37,17 @@ function ObjectNode({ connection: c, depth, path, object: o, tree }: { connectio
   const isOpen = tree.isOpen(key);
   return (
     <>
-      <TreeRow depth={depth} open={isOpen} openOnClick icon={<Icon size={13} aria-hidden />} label={o.name} className="db-tree-object" onToggle={() => tree.toggle(key)} onOpen={open} />
+      <TreeRow
+        depth={depth}
+        open={isOpen}
+        openOnClick
+        icon={<Icon size={13} aria-hidden />}
+        label={o.name}
+        className="db-tree-object"
+        onToggle={() => tree.toggle(key)}
+        onOpen={open}
+        onContextMenu={(e) => tree.menu(e, { connection: c, path, table: { name: o.name, kind: o.kind } })}
+      />
       {isOpen && <TableChildren connection={c} depth={depth + 1} path={path} name={o.name} treeKey={key} tree={tree} onOpen={open} />}
     </>
   );

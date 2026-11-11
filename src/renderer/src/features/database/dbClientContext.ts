@@ -12,6 +12,8 @@ export interface DbClientActions {
   useMain(connectionId: number): void;
   openTable(connection: DbConnection, path: DbObjectPath, name: string, object: DbObjectKind): void;
   openSql(connection: DbConnection): void;
+  /** ER 図のタブを開く（focus があればそのテーブルのまわりだけ） */
+  openEr(connection: DbConnection, path: DbObjectPath, focus: string | null): void;
   /** 接続の登録・編集のダイアログ（null なら新しく作る） */
   editConnection(connection: DbConnection | null): void;
 }

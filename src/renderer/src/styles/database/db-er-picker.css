@@ -1,0 +1,64 @@
+/* ==== ER 図の描くテーブルを選ぶ一覧（テーブルの多い DB の初めの画面と、道具の行の「テーブルを選ぶ」のポップオーバー） ==== */
+
+.db-er-pick-popover {
+  width: 340px;
+}
+
+.db-er-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.db-er-picker-bulk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.db-er-picker-bulk .muted {
+  margin-left: auto;
+}
+
+.db-er-picker-list {
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  list-style: none;
+}
+
+.db-er-choose .db-er-picker-list {
+  max-height: none;
+  flex: 1;
+}
+
+.db-er-choose .db-er-picker {
+  flex: 1;
+}
+
+.db-er-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.db-er-picker-row:hover {
+  background: var(--bg-hover);
+}
+
+.db-er-picker-over {
+  color: var(--ng);
+}
+
+.db-er-picker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}

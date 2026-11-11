@@ -136,7 +136,7 @@ export class DatabaseService {
   }
 
   /** 木・テーブルのタブの頼み（場所の DB で共有の接続を選ぶ） */
-  private async browse<M extends "objects" | "table" | "definition" | "count" | "outline" | "rows">(
+  private async browse<M extends "objects" | "table" | "definition" | "er" | "count" | "outline" | "rows">(
     method: M,
     connection: DbConnection,
     project: Project,
@@ -162,6 +162,11 @@ export class DatabaseService {
   /** 関数・列挙型の定義（木から開いたタブ） */
   definition(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, kind: "function" | "enum", name: string) {
     return this.browse("definition", connection, project, workdir, objectPath, { kind, name });
+  }
+
+  /** ER 図の中身（names: 描くテーブル。null なら多すぎなければすべて） */
+  er(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, names: string[] | null) {
+    return this.browse("er", connection, project, workdir, objectPath, { names });
   }
 
   rows(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, name: string, sort: DbSort[], offset: number) {

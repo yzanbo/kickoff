@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { closeConnectionTabs, closeDbTab, nextSqlTitle, NO_DB_TABS, openDbTab, parseDbClientTabs, tableTabKey, type DbClientTab } from "./dbClientTabs";
+import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, parseDbClientTabs, tableTabKey, updateErTab, type DbClientTab } from "./dbClientTabs";
 
 const path = { database: "main", schema: null };
 const table = (name: string, connection_id = 1): DbClientTab => ({ key: tableTabKey(connection_id, path, name), kind: "table", connection_id, path, name, object: "table" });
@@ -12,7 +12,7 @@ test("openDbTab: 同じキーは選ぶだけ、新しいタブは表示中のタ
   s = { ...s, active: s.tabs[0].key };
   s = openDbTab(s, table("c"));
   assert.deepEqual(
-    s.tabs.map((t) => (t.kind === "table" ? t.name : t.title)),
+    s.tabs.map((t) => (t.kind === "table" ? t.name : t.kind === "sql" ? t.title : t.key)),
     ["a", "c", "b"],
   );
   const again = openDbTab(s, table("b"));
@@ -54,4 +54,25 @@ test("parseDbClientTabs: 形の合わないタブを捨て、表示中がなけ�
     [table("a").key, "q"],
   );
   assert.equal(parsed?.active, table("a").key);
+});
+
+test("openErTab: 接続・場所ごとに 1 つ。開き直すと focus を付け替えて選び、絞り込みは updateErTab で変える。保存した値も読める", () => {
+  let s = openDbTab(NO_DB_TABS, table("a"));
+  s = openErTab(s, 1, path, null);
+  const key = erTabKey(1, path);
+  assert.equal(s.active, key);
+  s = { ...s, active: s.tabs[0].key };
+  s = openErTab(s, 1, path, "users");
+  assert.equal(s.tabs.length, 2);
+  assert.equal(s.active, key);
+  const er = s.tabs[1];
+  assert.ok(er.kind === "er" && er.focus === "users" && er.depth === 1 && er.names === null);
+  s = updateErTab(s, key, { depth: 2, names: ["users", "posts"] });
+  assert.deepEqual(parseDbClientTabs(JSON.parse(JSON.stringify(s))), s);
+  // 選んだテーブルにない focus なら選び直す・あれば残す
+  const kept = openErTab(s, 1, path, "posts").tabs[1];
+  assert.ok(kept.kind === "er" && kept.names?.length === 2);
+  const reset = openErTab(s, 1, path, "tags").tabs[1];
+  assert.ok(reset.kind === "er" && reset.focus === "tags" && reset.names === null);
+  assert.equal(parseDbClientTabs({ tabs: [{ key: "er:1::", kind: "er", connection_id: 1, path, focus: 3, depth: 1, names: null }], active: null })!.tabs.length, 0);
 });

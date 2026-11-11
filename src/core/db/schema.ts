@@ -275,7 +275,17 @@ CREATE INDEX idx_db_query_history_connection ON db_query_history(connection_id, 
 `;
 
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14];
+/** v15: DB クライアントの ER 図で動かしたテーブルの位置（接続と場所（DB・スキーマ）ごと。「自動で並べ直す」で消す） */
+const SCHEMA_V15 = `
+CREATE TABLE db_er_layouts (
+  connection_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
+  place TEXT NOT NULL CHECK (place <> ''),
+  positions TEXT NOT NULL CHECK (json_valid(positions) AND json_type(positions) = 'object'),
+  updated_at TEXT NOT NULL DEFAULT (${NOW}),
+  PRIMARY KEY (connection_id, place)
+) STRICT;`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

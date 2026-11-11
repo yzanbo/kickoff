@@ -6,6 +6,8 @@ import type {
   DbConnectionTestResult,
   DbDatabases,
   DbDefinition,
+  DbErPositions,
+  DbErSchema,
   DbObject,
   DbObjectPath,
   DbQueryHistoryEntry,
@@ -54,6 +56,11 @@ export const databasesApi = {
     request<{ count: number }>("POST", at(`${one(projectId, id)}/count`, worktree), { path, name }),
   dbOutline: (projectId: number, id: number, path: DbObjectPath, worktree: string | null) =>
     request<DbOutlineTable[]>("POST", at(`${one(projectId, id)}/outline`, worktree), { path }),
+  dbEr: (projectId: number, id: number, path: DbObjectPath, names: string[] | null, worktree: string | null) =>
+    request<DbErSchema>("POST", at(`${one(projectId, id)}/er`, worktree), { path, names }),
+  dbErLayout: (projectId: number, id: number, place: string) => request<DbErPositions>("GET", withQuery(`${one(projectId, id)}/er-layout`, { place })),
+  saveDbErLayout: (projectId: number, id: number, place: string, positions: DbErPositions) => request<void>("PUT", `${one(projectId, id)}/er-layout`, { place, positions }),
+  resetDbErLayout: (projectId: number, id: number, place: string) => request<void>("DELETE", withQuery(`${one(projectId, id)}/er-layout`, { place })),
   runDbSql: (projectId: number, id: number, body: DbSqlBody, worktree: string | null) => request<DbQueryResult>("POST", at(`${one(projectId, id)}/sql`, worktree), body),
   dbHistory: (projectId: number, id: number, limit?: number) => request<DbQueryHistoryEntry[]>("GET", withQuery(`${one(projectId, id)}/history`, { limit })),
   cancelDbSql: (projectId: number, id: number, session: string) => request<void>("POST", `${one(projectId, id)}/sessions/${session}/cancel`),

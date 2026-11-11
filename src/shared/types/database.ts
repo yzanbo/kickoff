@@ -233,3 +233,28 @@ export interface DbQueryHistoryEntry {
   error: string | null;
   ran_at: string;
 }
+
+/** ER 図: これより多いテーブルの場所では、初めは全体を描かずに選ばせる */
+export const DB_ER_AUTO_MAX = 100;
+/** ER 図: 1 度に描くテーブルの上限 */
+export const DB_ER_MAX = 300;
+
+/** ER 図の 1 つのテーブル（列・外部キー・一意の組。多さの印と制約のない関係の推測に使う） */
+export interface DbErTable {
+  name: string;
+  kind: DbObjectKind;
+  comment: string | null;
+  columns: { name: string; type: string; nullable: boolean; primary_key: boolean }[];
+  foreign_keys: DbForeignKey[];
+  /** 一意の列の組（主キー・一意のインデックス。1 対 1 の見分けに使う） */
+  unique_sets: string[][];
+}
+
+/** ER 図の中身（names: 場所のテーブル・ビューの名前すべて。tables: 描くもの。多すぎて選んでいなければ空） */
+export interface DbErSchema {
+  names: string[];
+  tables: DbErTable[];
+}
+
+/** ER 図で動かしたテーブルの位置（テーブル名 → 左上の座標） */
+export type DbErPositions = Record<string, { x: number; y: number }>;

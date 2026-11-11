@@ -1,5 +1,7 @@
 // DB ワーカーの中身: 頼みを受けて、名前ごとの接続（session）で流す。プロセスとのつなぎは main.ts（テストでは同じプロセスで使う）
+import { erTableOf } from "@shared/database/erDiagram";
 import { errorMessage } from "@shared/errors";
+import { DB_ER_AUTO_MAX, DB_ER_MAX, type DbErSchema, type DbObjectPath } from "@shared/types";
 import type { DbTarget, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
 import { openMysql } from "./mysql.js";
@@ -26,6 +28,19 @@ async function testTarget(target: DbTarget): Promise<string | null> {
   } finally {
     await driver.close();
   }
+}
+
+/**
+ * ER 図の中身: 場所のテーブル・ビューの名前すべてと、描くものの構造（names が null なら DB_ER_AUTO_MAX 以下のときだけすべて。
+ * 多すぎれば空で返し、画面が選ばせる。描くのは DB_ER_MAX まで）
+ */
+async function erSchema(d: DbDriver, path: DbObjectPath, names: string[] | null): Promise<DbErSchema> {
+  const all = (await d.objects(path)).filter((o) => o.kind === "table" || o.kind === "view").map((o) => o.name);
+  const known = new Set(all);
+  const pick = names ? names.filter((n) => known.has(n)) : all.length <= DB_ER_AUTO_MAX ? all : [];
+  const tables = [];
+  for (const name of pick.slice(0, DB_ER_MAX)) tables.push(erTableOf(name, await d.table(path, name)));
+  return { names: all, tables };
 }
 
 interface OpenSession {
@@ -88,6 +103,7 @@ export function createWorkerHandler() {
     objects: (p, id) => use(id, p.session, p.target, (d) => d.objects(p.path)),
     table: (p, id) => use(id, p.session, p.target, (d) => d.table(p.path, p.name)),
     definition: (p, id) => use(id, p.session, p.target, (d) => d.definition(p.path, p.kind, p.name)),
+    er: (p, id) => use(id, p.session, p.target, (d) => erSchema(d, p.path, p.names)),
     rows: (p, id) => use(id, p.session, p.target, (d) => d.rows(p.path, p.name, p.sort, p.offset, p.limit)),
     count: (p, id) => use(id, p.session, p.target, async (d) => ({ count: await d.count(p.path, p.name) })),
     outline: (p, id) => use(id, p.session, p.target, (d) => d.outline(p.path)),
