@@ -34,7 +34,7 @@ const ASSET_PREFIX = /^\/api\/projects\/[^/]+\/file\/asset\/([^/]+)\/(.+)$/;
 export function filesRoutes(app: Hono, { store, trash = moveToTrash }: ServerDeps) {
   const { withProject, withWorkdir } = lookups(store);
 
-  // Git で管理されていなければ 400
+  // Git で管理していないフォルダも、中のファイルを同じ形で返す
   app.get("/api/projects/:id/files", withWorkdir, async (c) => c.json(await listProjectFiles(c.var.workdir)));
 
   // ファイルの中身（リポジトリの外・外を指すリンクは 400、なければ 404）

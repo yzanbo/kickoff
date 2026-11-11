@@ -6,6 +6,8 @@ import { replaceInLine, searchPattern } from "@shared/search/searchMatch";
 import { Invalid, NotFound } from "../http/errors.js";
 import { gitOutput } from "./exec.js";
 import { hashOf, MAX_FILE_BYTES, resolveInside } from "./files.js";
+import { plainSearchExcludes } from "./plainFolder.js";
+import { isGitWorkTree } from "./status.js";
 
 /** 検索で返す行の上限・1 ファイルあたりの上限・1 行の長さの上限 */
 const MAX_MATCHES = 2000;
@@ -20,17 +22,21 @@ const lineText = (text: string) => (text.length > MAX_LINE_CHARS ? text.slice(0,
 /**
  * プロジェクトのファイルの中を探す（git grep。.gitignore で無視しているもの・バイナリは除く。未追加のファイルは含める）。
  * 含める・除外するファイル（VS Code と同じ glob のカンマ区切り）は pathspec に、use_ignore が false なら無視しているファイルも探す。
+ * Git で管理していないフォルダは git grep --no-index で探す（.gitignore は --exclude-standard で読み、node_modules などもいつも除く。plainFolder.ts）。
  * 探せなければ 400（正規表現の書き方が正しくないときは、そう伝える）
  */
 export async function searchProject(repo: string, q: ProjectSearchQuery): Promise<ProjectSearchResult> {
   const result: ProjectSearchResult = { files: [], total: 0, truncated: false };
   if (!q.query) return result;
   // --no-full-name: リポジトリの中のフォルダでは、そのフォルダから見たパスで返す（設定の grep.fullName に左右されない）
-  const args = ["grep", "-n", "--column", "-I", "--untracked", "--no-full-name", "-z", `--max-count=${MAX_MATCHES_PER_FILE}`];
-  if (!q.use_ignore) args.push("--no-exclude-standard");
+  const plain = !(await isGitWorkTree(repo));
+  const args = ["grep", "-n", "--column", "-I", "--no-full-name", "-z", `--max-count=${MAX_MATCHES_PER_FILE}`];
+  // Git の中は未追加のファイルも探し、無視しているものは既定で除く。--no-index（Git の外）は逆で、無視しているものを除くには頼む
+  if (plain) args.push("--no-index", ...(q.use_ignore ? ["--exclude-standard"] : []));
+  else args.push("--untracked", ...(q.use_ignore ? [] : ["--no-exclude-standard"]));
   if (!q.case_sensitive) args.push("-i");
   if (q.whole_word) args.push("-w");
-  args.push(q.regex ? "-E" : "-F", "-e", q.query, "--", ...toPathspecs(q.include, q.exclude));
+  args.push(q.regex ? "-E" : "-F", "-e", q.query, "--", ...toPathspecs(q.include, q.exclude), ...(plain && q.use_ignore ? plainSearchExcludes() : []));
   // 見つからなければ終了コード 1
   const out = await gitOutput(repo, args, [1]).catch(() => {
     throw new Invalid(q.regex ? "正規表現の書き方が正しくありません" : "検索できませんでした（含める・除外するファイルの書き方を確かめてください）");
