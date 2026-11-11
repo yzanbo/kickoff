@@ -68,7 +68,11 @@ export function DataGrid({
       tabIndex={0}
       role="grid"
       aria-rowcount={rows.length}
-      onScroll={(e) => setView((v) => ({ ...v, top: e.currentTarget.scrollTop }))}
+      onScroll={(e) => {
+        // 更新の関数はあとで呼ばれ、そのときイベントの currentTarget は null になっているので、先に読んでおく
+        const top = e.currentTarget.scrollTop;
+        setView((v) => ({ ...v, top }));
+      }}
       onKeyDown={onKeyDown}
     >
       <div className="db-grid-head" role="row">
