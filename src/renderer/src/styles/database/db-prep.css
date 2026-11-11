@@ -1,0 +1,160 @@
+/* つなぐ前の準備: 接続のダイアログの欄・木の確かめる日の印・準備を流すダイアログ */
+
+.db-prep-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+
+.db-prep-fields textarea {
+  font-family: var(--mono);
+  font-size: 12px;
+  resize: vertical;
+}
+
+.db-prep-fields input:not([type="date"]) {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.db-prep-placeholders {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 10px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.db-prep-placeholders div {
+  display: contents;
+}
+
+.db-prep-placeholders dt {
+  font-family: var(--mono);
+}
+
+.db-prep-placeholders dd {
+  margin: 0;
+}
+
+/* 木の接続の行の「確かめる日が来た」印 */
+.db-tree-check {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--warn);
+}
+
+.db-prep-dialog {
+  width: min(620px, 94vw);
+}
+
+.db-prep-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.db-prep-group-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.db-prep-commands,
+.db-prep-output {
+  max-height: 160px;
+  margin: 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+
+.db-prep-warning {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+}
+
+.db-prep-warning svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--warn);
+}
+
+.db-prep-run {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.db-prep-step {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.db-prep-step-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.db-prep-step-head code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-prep-done {
+  margin: 0;
+  color: var(--ok);
+}
+
+.db-prep-history ul {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.db-prep-history li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.db-prep-history-kind {
+  flex: none;
+  width: 7em;
+  color: var(--muted);
+}
+
+.db-prep-history code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -3,13 +3,14 @@
 import { fork } from "node:child_process";
 import { errorMessage } from "@shared/errors";
 import type { DbEngine } from "@shared/types";
-import type { WorkerCancel, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "./protocol.js";
+import type { WorkerCancel, WorkerEvent, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "./protocol.js";
 import { createWorkerHandler } from "./worker/handler.js";
 
 /** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス） */
 export interface WorkerChannel {
   send(message: WorkerRequest | WorkerCancel): void;
-  onMessage(fn: (res: WorkerResponse) => void): void;
+  /** 答えと、ワーカーからの知らせ（流したコマンドの結果） */
+  onMessage(fn: (res: WorkerResponse | WorkerEvent) => void): void;
   /** 止まった（自分で止めたときは呼ばない） */
   onExit(fn: (reason: string) => void): void;
   kill(): void;
@@ -36,7 +37,7 @@ export function forkWorker(entry: WorkerEntry): WorkerChannel {
     send: (message) => {
       if (child.connected) child.send(message);
     },
-    onMessage: (fn) => child.on("message", (m) => fn(m as WorkerResponse)),
+    onMessage: (fn) => child.on("message", (m) => fn(m as WorkerResponse | WorkerEvent)),
     onExit: (fn) => {
       child.on("exit", (code, signal) => !killed && fn(signal ? `シグナル ${signal}` : `終了コード ${code}`));
       child.on("error", (e) => !killed && fn(errorMessage(e)));
@@ -56,8 +57,8 @@ export function forkWorker(entry: WorkerEntry): WorkerChannel {
 
 /** 同じプロセスで動かす（テスト用。本物のワーカーと同じ中身を使う） */
 export function inProcessWorker(): WorkerChannel {
-  const handler = createWorkerHandler();
-  let listener: (res: WorkerResponse) => void = () => {};
+  let listener: (res: WorkerResponse | WorkerEvent) => void = () => {};
+  const handler = createWorkerHandler((event) => listener(event));
   return {
     send: (message) => {
       if ("cancel" in message) void handler.cancel(message.cancel);
@@ -77,6 +78,8 @@ interface Pending {
 
 /** 何もしない状態がこれだけ続いたらワーカーを止める */
 const IDLE_MS = 5 * 60_000;
+/** 止める前の片付け（後片付けのコマンド）を待つ時間 */
+const SHUTDOWN_MS = 30_000;
 
 export class DbWorkerClient {
   private channel: WorkerChannel | null = null;
@@ -85,6 +88,8 @@ export class DbWorkerClient {
   /** トランザクションの途中の接続（あれば何もしなくても止めない。止めると取り消されるため） */
   private readonly inTransaction = new Set<string>();
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  /** ワーカーからの知らせ（流したコマンドの結果。コアが準備の記録に残す） */
+  onEvent: (event: WorkerEvent) => void = () => {};
 
   constructor(
     private readonly spawn: () => WorkerChannel,
@@ -104,7 +109,7 @@ export class DbWorkerClient {
   private ensure(): WorkerChannel {
     if (this.channel) return this.channel;
     const channel = this.spawn();
-    channel.onMessage((res) => this.settle(res));
+    channel.onMessage((m) => ("event" in m ? this.onEvent(m) : this.settle(m)));
     channel.onExit((reason) => {
       if (this.channel !== channel) return;
       this.channel = null;
@@ -135,7 +140,7 @@ export class DbWorkerClient {
     this.idleTimer = null;
     if (this.pending.size > 0 || !this.channel) return;
     this.idleTimer = setTimeout(() => {
-      if (this.pending.size === 0 && this.inTransaction.size === 0) this.stop();
+      if (this.pending.size === 0 && this.inTransaction.size === 0) void this.shutdown(undefined, { idle: true });
     }, this.idleMs);
     this.idleTimer.unref?.();
   }
@@ -182,6 +187,25 @@ export class DbWorkerClient {
       return;
     }
     this.channel.send({ cancel: id });
+  }
+
+  /** 片付けてから止める（接続を閉じ、準備した接続の後片付けのコマンドを流すのを待つ。待ちきれなければそのまま止める）。
+   * idle（使っていないので止める）は、ワーカーが準備を流していれば止めずに、また待つ */
+  async shutdown(message?: string, { idle = false } = {}) {
+    if (!this.channel) return;
+    const shutdownId = this.nextId;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const result = await Promise.race([
+      this.request("shutdown", { idle }).catch(() => null),
+      new Promise<null>((r) => {
+        timer = setTimeout(() => r(null), SHUTDOWN_MS);
+      }),
+    ]);
+    clearTimeout(timer);
+    if (result?.done === false) return this.scheduleIdle();
+    // 片付けている間に新しい頼みが来たら止めない（ワーカーは頼みに応じてつなぎ直す）
+    if ([...this.pending.keys()].some((id) => id > shutdownId)) return;
+    this.stop(message);
   }
 
   /** ワーカーを止める（待っている頼みは失敗にする） */

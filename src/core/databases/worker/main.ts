@@ -3,7 +3,8 @@
 import type { WorkerCancel, WorkerRequest } from "../protocol.js";
 import { createWorkerHandler } from "./handler.js";
 
-const handler = createWorkerHandler();
+// 流したコマンドの結果（準備の記録）はコアに知らせる
+const handler = createWorkerHandler((event) => process.send?.(event));
 
 process.on("message", (message: WorkerRequest | WorkerCancel) => {
   if ("cancel" in message) {

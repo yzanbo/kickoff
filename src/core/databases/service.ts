@@ -4,14 +4,15 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
-import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEngine, DbObjectPath, DbRowFilter, DbSort, Project } from "@shared/types";
-import { DB_NOT_IN_WORKTREE, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS } from "@shared/types";
+import { hasConnectCommands, normalizePrep, type DbPrepVars } from "@shared/database/dbPrep";
+import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEngine, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
+import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { expandHome, isInside, realPathLoose } from "../system/paths.js";
 import type { DbWorkerClient } from "./client.js";
-import type { DbTarget } from "./protocol.js";
+import type { DbTarget, DbTargetCommands } from "./protocol.js";
 import { DB_AI_MAX_ROWS, DB_AI_TIMEOUT_MS } from "./aiFormat.js";
 
 /** ワーカーの失敗の文の頭の印（「db_ssh_unknown_host: …」）を分ける */
@@ -19,6 +20,22 @@ function splitCode(text: string): { message: string; code: string | null } {
   const m = new RegExp(`^(${DB_SSH_UNKNOWN_HOST}): `).exec(text);
   return m ? { message: text.slice(m[0].length), code: m[1] } : { message: text, code: null };
 }
+
+/** コマンドの {host}・{port}・{database}・{user} に入れる値 */
+const prepVarsOf = (c: Pick<DbConnection, "host" | "port" | "database" | "username">): DbPrepVars => ({
+  host: c.host,
+  port: c.port === null ? null : String(c.port),
+  database: c.database,
+  user: c.username,
+});
+
+const commandsOf = (connectionId: number, c: Pick<DbConnection, "host" | "port" | "database" | "username">, prep: DbPrep): DbTargetCommands => ({
+  connection_id: connectionId,
+  tunnel: prep.tunnel,
+  password: prep.password,
+  my_ip_url: prep.my_ip_url,
+  vars: prepVarsOf(c),
+});
 
 /** 作業場所（null なら本体） */
 type Workdir = string | null;
@@ -46,7 +63,12 @@ export class DatabaseService {
   /** SQL のタブごとの、流している文を止める口 */
   private readonly running = new Map<string, AbortController>();
 
-  constructor(private readonly opts: Options) {}
+  constructor(private readonly opts: Options) {
+    // ワーカーが流したコマンドの結果を準備の記録に残す（消した接続のものは残さない）
+    opts.client.onEvent = (event) => {
+      if (event.event === "prep_run" && opts.store.dbConnections.get(event.connection_id)) opts.store.dbPrepRuns.add(event.connection_id, event.kind, event.command, event.ok);
+    };
+  }
 
   /** Kickoff 自身のデータフォルダの中のファイルか（リンクを解いた実体で比べる） */
   private insideKickoffData(file: string) {
@@ -83,7 +105,43 @@ export class DatabaseService {
       ssl: connection.ssl,
       read_only: connection.read_only && !opts.write,
       ssh: connection.engine !== "sqlite" && connection.ssh ? { ...connection.ssh, password: this.opts.store.dbConnections.sshPassword(connection.id) } : null,
+      commands: this.connectCommands(connection),
     };
+  }
+
+  /** つなぐときに流すコマンド（ポートの転送・パスワードを取る）。確かめていなければ 409 と DB_PREP_UNCONFIRMED（画面が中身を見せて確かめさせる） */
+  private connectCommands(connection: DbConnection): DbTargetCommands | null {
+    if (connection.engine === "sqlite" || !hasConnectCommands(connection.prep)) return null;
+    if (!connection.prep_confirmed) {
+      throw new Conflict(`「${connection.name}」はつなぐときにコマンドを流します。流す前に、コマンドの中身を確かめてください`, DB_PREP_UNCONFIRMED);
+    }
+    return commandsOf(connection.id, connection, connection.prep!);
+  }
+
+  /** 準備のコマンドを流し始める（確かめていなければ 409。様子は prepState） */
+  async prepare(connection: DbConnection) {
+    if (!connection.prep || connection.prep.prepare.length === 0) throw new Invalid("この接続には準備のコマンドがありません");
+    if (!connection.prep_confirmed) throw new Conflict("準備のコマンドを流す前に、中身を確かめてください", DB_PREP_UNCONFIRMED);
+    return this.run(() =>
+      this.opts.client.request("prepare", {
+        connection_id: connection.id,
+        commands: connection.prep!.prepare,
+        cleanup: connection.prep!.cleanup,
+        vars: prepVarsOf(connection),
+        my_ip_url: connection.prep!.my_ip_url,
+      }),
+    );
+  }
+
+  /** 準備の様子（ワーカーが止まっていれば null） */
+  async prepState(connection: DbConnection) {
+    if (!this.opts.client.running) return null;
+    return this.opts.client.request("prepState", { connection_id: connection.id });
+  }
+
+  async prepCancel(connection: DbConnection) {
+    if (!this.opts.client.running) return;
+    await this.opts.client.request("prepCancel", { connection_id: connection.id });
   }
 
   /** テーブルのタブ・木で共有する接続の名前（接続・作業場所・DB ごとに 1 本） */
@@ -100,7 +158,7 @@ export class DatabaseService {
     try {
       return await fn();
     } catch (e) {
-      if (e instanceof Invalid || e instanceof NotFound) throw e;
+      if (e instanceof Invalid || e instanceof NotFound || e instanceof Conflict) throw e;
       const { message, code } = splitCode(errorMessage(e));
       if (code) throw new Conflict(message, code);
       throw new Invalid(message);
@@ -114,6 +172,7 @@ export class DatabaseService {
     const password = body.password !== undefined ? body.password : own ? this.opts.store.dbConnections.password(own.id) : null;
     const sshPassword = body.ssh_password !== undefined ? body.ssh_password : own ? this.opts.store.dbConnections.sshPassword(own.id) : null;
     const ssh = body.ssh === undefined ? (own?.ssh ?? null) : body.ssh;
+    const prep = normalizePrep(body.prep === undefined ? (own?.prep ?? null) : body.prep);
     let target: DbTarget;
     try {
       target = {
@@ -127,6 +186,8 @@ export class DatabaseService {
         ssl: body.ssl,
         read_only: true,
         ssh: body.engine !== "sqlite" && ssh ? { ...ssh, password: sshPassword } : null,
+        // 接続のダイアログで見えているコマンドを、利用者が「つながるか試す」を押して流すので、確かめ済みかは問わない
+        commands: body.engine !== "sqlite" && hasConnectCommands(prep) ? commandsOf(own?.id ?? 0, body, prep!) : null,
       };
     } catch (e) {
       return { ok: false, server_version: null, error: errorMessage(e) };
@@ -305,7 +366,7 @@ export class DatabaseService {
   /** 消した接続のワーカーの接続（木・SQL のタブ・AI）をすべて閉じる（SSH トンネルも残さない） */
   async forgetConnection(id: number) {
     if (!this.opts.client.running) return;
-    await this.opts.client.request("closeMatching", { prefixes: ["shared", "sql", "ai"].map((kind) => `${kind}:${id}:`) });
+    await this.opts.client.request("closeMatching", { prefixes: ["shared", "sql", "ai"].map((kind) => `${kind}:${id}:`), cleanup_for: id });
   }
 
   /** トランザクションの途中か（SQL のタブを閉じる・切るときの確かめ） */
@@ -313,8 +374,9 @@ export class DatabaseService {
     return this.opts.client.isInTransaction(this.sqlSession(connection, session));
   }
 
-  close() {
+  /** 止める（準備した接続の後片付けのコマンドを流してから） */
+  async close() {
     for (const c of this.running.values()) c.abort();
-    this.opts.client.stop();
+    await this.opts.client.shutdown();
   }
 }

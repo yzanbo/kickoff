@@ -1,8 +1,6 @@
-import { Copy, Database, FolderInput, Network, PanelLeftClose, PanelLeftOpen, Pencil, Plus, SquareTerminal, StickyNote, Trash2 } from "lucide-react";
+import { Copy, Database, FolderInput, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { DbConnection } from "@shared/types";
-import { errorMessage } from "@shared/errors";
-import { api } from "@/api";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
@@ -21,20 +19,20 @@ import {
 } from "@/lib/dbClientTabs";
 import { DB_LIST_HIDDEN, DB_LIST_WIDTH, dbClientTabs, dbSqlDraft } from "@/lib/storageKeys";
 import { readSetting, writeSetting } from "@/lib/storage";
-import { dbConnectionsStore, useDbConnections } from "@/stores/dbConnections";
+import { useDbConnections } from "@/stores/dbConnections";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
-import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { CloseButton, IconButton } from "@/ui/IconButton";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
-import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ConnectionDialog } from "./ConnectionDialog";
+import { ConnectionMenu } from "./ConnectionMenu";
 import { CopyConnectionDialog } from "./CopyConnectionDialog";
 import { ImportConnectionDialog } from "./ImportConnectionDialog";
-import { DbClientContext, type DbClientActions, type DbFailure } from "./dbClientContext";
+import { DbClientContext, type DbClientActions, type DbFailure, type DbPrepTarget } from "./dbClientContext";
 import { DbFailureDialog } from "./DbFailureDialog";
+import { DbPrepDialog } from "./DbPrepDialog";
 import { createConnectionMemo } from "./dbMemo";
 import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle } from "./DbTabParts";
 import { DbTree } from "./DbTree";
@@ -64,6 +62,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   const [copying, setCopying] = useState(false);
   const [importing, setImporting] = useState(false);
   const [failure, setFailure] = useState<DbFailure | null>(null);
+  const [prepFor, setPrepFor] = useState<DbPrepTarget | null>(null);
   const [mainOnly, setMainOnly] = useState<ReadonlySet<number>>(new Set());
   const menu = useContextMenu<DbConnection>();
   const width = useDragSize({ setting: DB_LIST_WIDTH, min: 180, keep: 320 });
@@ -106,6 +105,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     editConnection: (c) => setEditing(c),
     openMemo: (c) => void openConnectionMemo(c),
     showFailure: setFailure,
+    showPrep: setPrepFor,
   };
 
   /** 接続の手順メモをタブで開く（なければ作ってから。作るのをやめたら何もしない） */
@@ -115,17 +115,6 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     // 作るダイアログの間にタブが変わっていてもよいよう、いまの値から開く
     setState(openMemoTab(readSetting(dbClientTabs(place)), c.id, path));
     setOverlay(false);
-  };
-
-  /** 接続の右クリックの「ER 図」: つないでいる DB（PostgreSQL は public のスキーマ）で開く */
-  const openConnectionEr = async (c: DbConnection) => {
-    try {
-      const dbs = await api.dbDatabases(projectId, c.id, actions.worktreeOf(c.id));
-      const database = dbs.current ?? dbs.databases[0] ?? null;
-      actions.openEr(c, { database, schema: dbs.has_schemas ? "public" : null }, null);
-    } catch (e) {
-      await alertDialog("ER 図を開けませんでした", errorMessage(e));
-    }
   };
 
   /** タブを閉じる（SQL のタブはコミットしていなければ聞き（やめたら閉じない）、DB の接続を閉じて書きかけの SQL を消す） */
@@ -139,22 +128,6 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
       writeSetting(dbSqlDraft(`${place}:${tab.key}`), "");
     }
     setState(closeDbTab(state, tab.key));
-  };
-
-  const removeConnection = async (c: DbConnection) => {
-    const ok = await confirmDialog({
-      title: `接続「${c.name}」を消しますか？`,
-      message: "保存したパスワードも消えます。DB の中身には触りません。",
-      confirmLabel: "消す",
-      danger: true,
-    });
-    if (!ok) return;
-    try {
-      await api.deleteDbConnection(projectId, c.id);
-      dbConnectionsStore.invalidate(projectId);
-    } catch (e) {
-      await alertDialog("接続を消せませんでした", errorMessage(e));
-    }
   };
 
   const active = state.tabs.find((t) => t.key === state.active) ?? null;
@@ -249,25 +222,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
             )}
           </div>
         </section>
-        {menu.menu && (
-          <PopupMenu at={menu.menu.at} label="接続のメニュー" onClose={menu.close}>
-            <MenuItem onSelect={() => actions.openSql(menu.menu!.value)}>
-              <SquareTerminal size={14} /> SQL を開く
-            </MenuItem>
-            <MenuItem onSelect={() => void openConnectionEr(menu.menu!.value)}>
-              <Network size={14} /> ER 図
-            </MenuItem>
-            <MenuItem onSelect={() => void openConnectionMemo(menu.menu!.value)}>
-              <StickyNote size={14} /> {menu.menu.value.memo_path ? "手順メモを開く" : "手順メモを作る…"}
-            </MenuItem>
-            <MenuItem onSelect={() => setEditing(menu.menu!.value)}>
-              <Pencil size={14} /> 編集…
-            </MenuItem>
-            <MenuItem danger onSelect={() => void removeConnection(menu.menu!.value)}>
-              <Trash2 size={14} /> 消す…
-            </MenuItem>
-          </PopupMenu>
-        )}
+        {menu.menu && <ConnectionMenu at={menu.menu.at} connection={menu.menu.value} onClose={menu.close} />}
         {editing !== undefined && <ConnectionDialog projectId={projectId} connection={editing} worktree={worktree} onClose={() => setEditing(undefined)} />}
         {copying && <CopyConnectionDialog projectId={projectId} onClose={() => setCopying(false)} />}
         {importing && <ImportConnectionDialog projectId={projectId} onClose={() => setImporting(false)} />}
@@ -279,7 +234,17 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
             error={failure.error}
             onMemo={() => void openConnectionMemo(byId.get(failure.connection.id) ?? failure.connection)}
             onRetry={failure.retry}
+            onPrep={() => setPrepFor({ connection: failure.connection, retry: failure.retry })}
             onClose={() => setFailure(null)}
+          />
+        )}
+        {prepFor && (
+          <DbPrepDialog
+            projectId={projectId}
+            // 確かめたら一覧が取り直されるので、新しい方で
+            connection={byId.get(prepFor.connection.id) ?? prepFor.connection}
+            onRetry={prepFor.retry}
+            onClose={() => setPrepFor(null)}
           />
         )}
       </div>

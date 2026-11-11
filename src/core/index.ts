@@ -140,7 +140,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       prWatch.stop();
       stopAutoArchive();
       memos.close();
-      databases.close();
+      await databases.close();
       await stopHttpServer(server);
       store.close();
     },

@@ -62,9 +62,10 @@
 | テーブルの絞り込み（テーブルのタブのデータの上の帯。条件か WHERE の式）・行の詳細・書き出し | 絞り込み `DbRowFilter`（条件 `DbFilter`・比べ方 `DbFilterOp` / `DB_FILTER_OPS`・WHERE の式 `where`。タブの `DbTableTab.filter`。SQL は `@shared/database/dbFilter.ts` の `filterSql`）・行の詳細 `TableRowDetail`・書き出しの形 `DbExportFormat`（CSV / TSV / JSON） | なし |
 | プロジェクトからの取り込み（DB クライアントの接続の一覧の「プロジェクトから取り込む」） | 見つけた案 `DbImportCandidate`（見つけた所 `DbImportSource` / `DB_IMPORT_SOURCES`: env・compose・prisma・file）・取り込む本文 `DbImportBody`・コア `core/databases/import/`（`scanProjectDbs`）・`GET|POST …/db-connections/import` | なし |
 | 接続の手順メモ（つなぎ方（経路）ごとに 1 つのメモ。いくつもの接続で同じメモを使える）・つながらないときの案内 | 接続の `memo_path`（v16。メモのフォルダからの相対パス。`MemoService.move` が `store.dbConnections.remapMemoPath` で付け替える）・置き場所 `DB_MEMO_DIR`（`DB/`）・タブ `DbMemoTab`（`lib/dbClientTabs.ts`）・失敗の種類 `DbFailureKind`（`@shared/database/dbFailure.ts` の `dbFailureKind`・よくある原因 `DB_FAILURE_CAUSES`・AI に送る文 `dbFixPrompt`）・案内 `DbFailureDialog` | なし |
+| つなぐ前の準備（つなぐ前に流すコマンド・切るときの後片付け・ポートを転送するコマンド・パスワードを取るコマンド。初めて・中身を変えたあとは確かめてから流す）と次に確かめる日 | 接続の `prep`（`DbPrep`。v18）・確かめたか `prep_confirmed`（確かめていなければ 409 と `DB_PREP_UNCONFIRMED`）・`check_on` / `check_note`・記録 `DbPrepRun`（表 `db_prep_runs`）・いまの様子 `DbPrepState`（ワーカーのメモリだけ）・`{名前}` の埋め方 `@shared/database/dbPrep.ts`・ワーカーの `worker/prep.ts` と `worker/shell.ts`・画面の `ConnectionPrepFields` / `DbPrepDialog` | なし |
 | SSH トンネル（踏み台を通して DB につなぐ。初めての踏み台は鍵の指紋を確かめる） | 接続の `ssh`（`DbSsh`: `host` / `port` / `user` / `identity_file`。v17）・パスワード `db_connection:<ID>:ssh_password`（`has_ssh_password`）・ワーカーの `worker/tunnel.ts`（`createTunnels`。同じ踏み台と DB へのトンネルは使い回す）・初めての踏み台の印 `DB_SSH_UNKNOWN_HOST`（409）・鍵 `DbSshHostKey`（`sshHostKey.ts`）・画面の `SshHostKeyDialog` | なし |
 | SQL の履歴（接続ごと。AI が流したものに印） | `DbQueryHistoryEntry` / 表 `db_query_history`（v14。`ran_by` = `user` / `ai`、AI なら `chat_id`。接続ごとに新しい `DB_HISTORY_MAX`（500）件だけ残す）・店 `store.dbQueryHistory` | なし |
-| DB ワーカー（DB の接続・SQL の実行・結果の整形・SSH トンネル（段階 2 で準備のコマンドも）を動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める） | `core/databases/worker/`（Electron では `out/main/dbWorker.js` を `ELECTRON_RUN_AS_NODE=1` で fork、`npm run daemon`・テストでは `worker/main.ts` を tsx で。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
+| DB ワーカー（DB の接続・SQL の実行・結果の整形・SSH トンネル・準備のコマンドを動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める（準備のコマンドを流している間は止めない）） | `core/databases/worker/`（Electron では `out/main/dbWorker.js` を `ELECTRON_RUN_AS_NODE=1` で fork、`npm run daemon`・テストでは `worker/main.ts` を tsx で。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
 
 ### チャットの軸とエージェントの軸
 
@@ -272,6 +273,23 @@ ALTER TABLE db_connections ADD COLUMN memo_path TEXT CHECK (memo_path <> '');
 
 -- v17: SSH トンネル（{ host, port, user, identity_file }。NULL = なし。パスワードは secrets の db_connection:<ID>:ssh_password）
 ALTER TABLE db_connections ADD COLUMN ssh TEXT CHECK (json_valid(ssh) AND json_type(ssh) = 'object');
+
+-- v18: つなぐ前の準備のコマンド（DbPrep: { prepare: [], cleanup: [], tunnel, password, my_ip_url }。NULL = なし）・
+-- 利用者が確かめた中身の写し（@shared/database/dbPrep の prepConfirmKey。いまの prep と同じ間だけ確かめ済み）・次に確かめる日とひとこと
+ALTER TABLE db_connections ADD COLUMN prep TEXT CHECK (json_valid(prep) AND json_type(prep) = 'object');
+ALTER TABLE db_connections ADD COLUMN prep_confirmed TEXT CHECK (prep_confirmed <> '');
+ALTER TABLE db_connections ADD COLUMN check_on TEXT CHECK (check_on <> '');   -- YYYY-MM-DD
+ALTER TABLE db_connections ADD COLUMN check_note TEXT CHECK (check_note <> '');
+-- v18: 準備のコマンドの記録（いつ・どの種類のどのコマンド・成功 / 失敗だけ。出力は残さない。接続ごとに新しい 200 件）
+CREATE TABLE db_prep_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  connection_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,                        -- prepare / cleanup / tunnel / password（DB_PREP_KINDS）
+  command TEXT NOT NULL CHECK (command <> ''),  -- 登録したまま（{my_ip} などを埋める前）
+  ok INTEGER NOT NULL CHECK (ok IN (0, 1)),
+  ran_at TEXT NOT NULL DEFAULT (NOW)
+) STRICT;
+-- v18: CREATE INDEX idx_db_prep_runs_connection ON db_prep_runs(connection_id, id);
 ```
 
 ### 予定: GitHub 連携（未実装）
@@ -288,21 +306,9 @@ github_number INTEGER CHECK (github_number > 0),   -- issue・PR の番号
 
 ### 予定: DB クライアントの段階 2・段階 3（未実装）
 
-段階 1（登録・接続・表の中身・SQL・本番の守り）は v13 の `db_connections`、段階 2 の AI の読み取り（AI 用のユーザー）と SQL の履歴は v14、ER 図の位置は v15、手順メモは v16、SSH トンネルは v17 で作った。要件定義書の「5.12 DB クライアント」の段階 2 以降を作るときに `MIGRATIONS` の末尾に足す（詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
+段階 1（登録・接続・表の中身・SQL・本番の守り）は v13 の `db_connections`、段階 2 の AI の読み取り（AI 用のユーザー）と SQL の履歴は v14、ER 図の位置は v15、手順メモは v16、SSH トンネルは v17、準備のコマンドは v18 で作った（段階 2 はこれで終わり）。段階 3（セルの編集）を作るときに、要るものがあれば `MIGRATIONS` の末尾に足す（詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
 
-```sql
--- db_connections に足す（段階 2: つなぎにくい DB の準備。手順メモの memo_path は v16、SSH トンネルの ssh は v17 で入れた）
-tunnel_command TEXT CHECK (tunnel_command <> ''),                 -- ポートを転送するコマンド（{local_port} など）
-prepare_commands TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(prepare_commands) AND json_type(prepare_commands) = 'array'),
-cleanup_commands TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(cleanup_commands) AND json_type(cleanup_commands) = 'array'),
-password_source TEXT NOT NULL DEFAULT 'none',                     -- saved / command / none
-password_command TEXT CHECK (password_command <> ''),             -- つなぐたびに流し、出力をパスワードにする（保存しない）
-my_ip_url TEXT CHECK (my_ip_url <> ''),     -- {my_ip} の問い合わせ先（NULL = https://checkip.amazonaws.com）
-check_on TEXT CHECK (check_on <> ''),       -- 次に確かめる日（YYYY-MM-DD）
-check_note TEXT CHECK (check_note <> ''),
-```
-
-- 準備のコマンドの記録（いつ・どのコマンド・成功 / 失敗だけ。出力は残さない）と、初めて流すとき・中身を変えたあとに確かめたことの覚え（確かめた中身の指紋など）の置き場所は、段階 2 を作るときに決める。
+- 準備のコマンドは列を分けず、1 つの JSON の列 `prep` にした（パスワードの出どころは「`password` のコマンドがあればそれ、なければ保存したパスワード」で決まるので、`password_source` は持たない）。確かめた覚えは中身の写し `prep_confirmed`（中身・問い合わせ先を変えれば写しと合わなくなり、確かめ直す）。
 - 置き場所: コアは `core/databases/`（`service.ts`・ワーカー `worker/`（種類ごとのドライバ `sqlite.ts` / `postgres.ts` / `mysql.ts`）。段階 2 の SSH トンネル `worker/tunnel.ts`・ssh の引数と出力の読み方 `sshArgs.ts`・サーバーの鍵 `sshHostKey.ts`・取り込みの `import/`）、文の分割と判定（`@shared/database/sqlStatements.ts`）・URL の読み取り（`dbUrl.ts`）・段階 2 の制約のない関係の推測は純粋な関数として `src/shared` に置いてテストする。API のテストは `server.databases.test.ts`。PostgreSQL・MySQL・MariaDB を使うテストは `worker/drivers.dbtest.ts` を Docker で立てて別のコマンド `npm run test:db` で流す（`npm test` は外につながないまま）。
 - 段階 1 で決めたこと: ワーカーとのやり取りは `{ id, method, params }` → `{ id, ok, result | error }`、止めるのは `{ cancel: id }`（`core/databases/protocol.ts`）。ワーカーが落ちたら待っている頼みを失敗にし、次の頼みで立ち上げ直す。
 

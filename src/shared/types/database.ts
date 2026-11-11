@@ -63,6 +63,53 @@ export interface DbSshHostKey {
   keys: { type: string; fingerprint: string }[];
 }
 
+/**
+ * つなぐ前の準備のコマンド（db_connections.prep。null = なし）。コマンドはこの Mac のログインシェルで流す。中では
+ * {local_port}（Kickoff が選んだ空きポート）・{my_ip}（いまの IP。使うときだけ my_ip_url に聞く）・{host}・{port}・{database}・{user} を使える
+ */
+export interface DbPrep {
+  /** つなぐ前に順に流す（押したときだけ。1 つが失敗したらそこで止める） */
+  prepare: string[];
+  /** 切るとき（何もしない状態で自動で切れたとき・接続を消したとき・アプリを止めたときも）に流す。準備で開けたものを閉じる */
+  cleanup: string[];
+  /** ポートを転送するコマンド（流しっぱなしにし、{local_port} につながるまで待つ。切るときに止める）。SSH トンネルとは一緒に使わない */
+  tunnel: string | null;
+  /** パスワードを取るコマンド（つなぐたびに流し、出力をパスワードにする。保存も表示もしない） */
+  password: string | null;
+  /** {my_ip} の問い合わせ先（null = DB_MY_IP_URL） */
+  my_ip_url: string | null;
+}
+
+/** {my_ip} の既定の問い合わせ先 */
+export const DB_MY_IP_URL = "https://checkip.amazonaws.com";
+
+/** 準備のコマンドの中身を確かめていない（初めて流す・中身を変えた）。画面が中身を見せて確かめさせる */
+export const DB_PREP_UNCONFIRMED = "db_prep_unconfirmed";
+
+/** 準備の記録の種類（準備・後片付け・ポートの転送・パスワードを取る） */
+export const DB_PREP_KINDS = ["prepare", "cleanup", "tunnel", "password"] as const;
+export type DbPrepKind = (typeof DB_PREP_KINDS)[number];
+export const DB_PREP_KIND_LABELS: Record<DbPrepKind, string> = { prepare: "準備", cleanup: "後片付け", tunnel: "ポートの転送", password: "パスワードを取る" };
+
+/** 準備の記録（db_prep_runs。いつ・どのコマンド・成功 / 失敗だけ。出力は残さない） */
+export interface DbPrepRun {
+  id: number;
+  kind: DbPrepKind;
+  /** 登録したままのコマンド（{my_ip} などを埋める前） */
+  command: string;
+  ok: boolean;
+  ran_at: string;
+}
+
+/** 準備のいまの様子（GET …/:cid/prepare。出力は DB ワーカーのメモリに最後の 1 回分だけ持つ） */
+export interface DbPrepState {
+  running: boolean;
+  steps: { command: string; status: "running" | "ok" | "failed"; output: string }[];
+  /** 失敗の文（コマンドの外の失敗: {my_ip} を取れない など） */
+  error: string | null;
+  finished_at: string | null;
+}
+
 /** DB の接続（db_connections の表。パスワードは秘密の値に置き、ここには保存したかだけ） */
 export interface DbConnection {
   id: number;
@@ -93,6 +140,13 @@ export interface DbConnection {
   has_ssh_password: boolean;
   /** 接続の手順メモ（メモのフォルダからの相対パス。つなぎ方ごとに 1 つで、いくつもの接続で同じでよい。null なら選んでいない） */
   memo_path: string | null;
+  /** つなぐ前の準備のコマンド（null = なし） */
+  prep: DbPrep | null;
+  /** いまの準備のコマンドを利用者が確かめたか（初めて・中身を変えたあとは false。確かめるまで流さない） */
+  prep_confirmed: boolean;
+  /** 次に確かめる日（YYYY-MM-DD。過ぎたら木の接続の行に印）とひとこと */
+  check_on: string | null;
+  check_note: string | null;
   last_connected_at: string | null;
   created_at: string;
   updated_at: string;

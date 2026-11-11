@@ -1,5 +1,5 @@
 // DB ワーカーを本物の別のプロセス（node ＋ tsx）で動かす: 起動・頼み・DB 側の読み取り専用・止める（SQLite はワーカーごと）・
-// 何もしないと止まる
+// 何もしないと止まる（準備のコマンドを流している間は止めない）
 import assert from "node:assert/strict";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -71,4 +71,11 @@ test("DB ワーカー: 何もしない状態が続いたら止まる（トラン
   client.stop();
   assert.equal(client.isInTransaction("s"), false);
   assert.ok(channel);
+
+  // 準備のコマンドを流している間も止めない（終われば止まる）
+  await client.request("prepare", { connection_id: 1, commands: ["sleep 1"], cleanup: [], vars: {}, my_ip_url: null });
+  await new Promise((r) => setTimeout(r, 700));
+  assert.equal(client.running, true);
+  await new Promise((r) => setTimeout(r, 1200));
+  assert.equal(client.running, false);
 });

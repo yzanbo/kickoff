@@ -4,6 +4,7 @@ import type { Notify } from "./common.js";
 import { createDbConnectionStore } from "./dbConnections.js";
 import { createDbErLayoutStore } from "./dbErLayouts.js";
 import { createDbQueryHistoryStore } from "./dbQueryHistory.js";
+import { createDbPrepRunStore } from "./dbPrepRuns.js";
 import { createEventStore } from "./events.js";
 import { createGroupStore } from "./groups.js";
 import { openDatabase } from "./open.js";
@@ -36,6 +37,7 @@ export class Store {
   readonly dbConnections;
   readonly dbQueryHistory;
   readonly dbErLayouts;
+  readonly dbPrepRuns;
 
   constructor(
     private readonly file: string,
@@ -55,6 +57,7 @@ export class Store {
     this.dbConnections = createDbConnectionStore(this.db, onChange, this.secrets);
     this.dbQueryHistory = createDbQueryHistoryStore(this.db);
     this.dbErLayouts = createDbErLayoutStore(this.db);
+    this.dbPrepRuns = createDbPrepRunStore(this.db);
   }
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */

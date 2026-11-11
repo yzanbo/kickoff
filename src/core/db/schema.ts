@@ -291,7 +291,28 @@ const SCHEMA_V16 = `ALTER TABLE db_connections ADD COLUMN memo_path TEXT CHECK (
 /** v17: 接続の SSH トンネル（null = 使わない。パスワードは secrets の db_connection:<id>:ssh_password） */
 const SCHEMA_V17 = `ALTER TABLE db_connections ADD COLUMN ssh TEXT CHECK (json_valid(ssh) AND json_type(ssh) = 'object');`;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17];
+/**
+ * v18: 接続のつなぐ前の準備のコマンド（prep: 準備・後片付け・ポートの転送・パスワードを取る・{my_ip} の問い合わせ先）・
+ * 確かめた中身の写し（prep_confirmed。いまの prep と同じ間だけ確かめ済み）・次に確かめる日とひとこと、
+ * 準備の記録（いつ・どのコマンド・成功 / 失敗だけ。出力は残さない）
+ */
+const SCHEMA_V18 = `
+ALTER TABLE db_connections ADD COLUMN prep TEXT CHECK (json_valid(prep) AND json_type(prep) = 'object');
+ALTER TABLE db_connections ADD COLUMN prep_confirmed TEXT CHECK (prep_confirmed <> '');
+ALTER TABLE db_connections ADD COLUMN check_on TEXT CHECK (check_on <> '');
+ALTER TABLE db_connections ADD COLUMN check_note TEXT CHECK (check_note <> '');
+CREATE TABLE db_prep_runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  connection_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  command TEXT NOT NULL CHECK (command <> ''),
+  ok INTEGER NOT NULL CHECK (ok IN (0, 1)),
+  ran_at TEXT NOT NULL DEFAULT (${NOW})
+) STRICT;
+CREATE INDEX idx_db_prep_runs_connection ON db_prep_runs(connection_id, id);
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
