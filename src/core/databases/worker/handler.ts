@@ -57,12 +57,29 @@ export function createWorkerHandler() {
     return driver;
   };
   const existing = (name: string) => sessions.get(name)?.driver ?? null;
-  /** 接続を使う頼み（流している間は止められるよう覚える） */
-  const use = async <T>(id: number, name: string, target: DbTarget, fn: (d: DbDriver) => Promise<T>) => {
-    const driver = await sessionOf(name, target);
-    running.set(id, driver);
-    return fn(driver);
+
+  /** 接続ごとの頼みの列（前の頼みが終わってから次を流す） */
+  const queues = new Map<string, Promise<unknown>>();
+  /**
+   * 同じ名前の接続への頼みを 1 つずつ流す。木の段・テーブルのタブは同時に頼むので、並べると、まだない接続を
+   * それぞれ開いて 1 本が閉じられずに残り、1 本の接続（pg・mysql2）に文を重ねて送ることになる
+   */
+  const serial = <T>(name: string, fn: () => Promise<T>): Promise<T> => {
+    const next = (queues.get(name) ?? Promise.resolve()).then(fn, fn);
+    const tail = next.catch(() => {});
+    queues.set(name, tail);
+    void tail.then(() => {
+      if (queues.get(name) === tail) queues.delete(name);
+    });
+    return next;
   };
+  /** 接続を使う頼み（流している間は止められるよう覚える） */
+  const use = <T>(id: number, name: string, target: DbTarget, fn: (d: DbDriver) => Promise<T>) =>
+    serial(name, async () => {
+      const driver = await sessionOf(name, target);
+      running.set(id, driver);
+      return fn(driver);
+    });
 
   const handlers: Handlers = {
     test: async ({ target }) => ({ server_version: await testTarget(target) }),
@@ -74,16 +91,19 @@ export function createWorkerHandler() {
     count: (p, id) => use(id, p.session, p.target, async (d) => ({ count: await d.count(p.path, p.name) })),
     outline: (p, id) => use(id, p.session, p.target, (d) => d.outline(p.path)),
     query: (p, id) => use(id, p.session, p.target, (d) => d.query(p.sql, p.max_rows)),
-    commit: async ({ session }) => {
-      const driver = existing(session);
-      await driver?.commit();
-      return { in_transaction: driver?.inTransaction() ?? false };
-    },
-    rollback: async ({ session }) => {
-      const driver = existing(session);
-      await driver?.rollback();
-      return { in_transaction: driver?.inTransaction() ?? false };
-    },
+    commit: ({ session }) =>
+      serial(session, async () => {
+        const driver = existing(session);
+        await driver?.commit();
+        return { in_transaction: driver?.inTransaction() ?? false };
+      }),
+    rollback: ({ session }) =>
+      serial(session, async () => {
+        const driver = existing(session);
+        await driver?.rollback();
+        return { in_transaction: driver?.inTransaction() ?? false };
+      }),
+    // 閉じるのは待たない（流している文ごと閉じる）
     close: async ({ session }) => {
       const open = sessions.get(session);
       sessions.delete(session);
