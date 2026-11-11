@@ -1,4 +1,5 @@
 // Electron なしでコアだけを起動する（開発・動作確認用。保存先とポートは開発用: appEnv.ts）
+import path from "node:path";
 import { APP_ENVS, appDataDir } from "./system/appEnv.js";
 import { seedDevData } from "./system/devData.js";
 import { startCore } from "./index.js";
@@ -11,7 +12,8 @@ const port = Number(process.env.KICKOFF_PORT ?? APP_ENVS.development.port);
 // 開発のデータがまだなければ、本番のデータから一度だけ写す
 if (!process.env.KICKOFF_DATA_DIR) seedDevData(appDataDir("production"), dataDir);
 
-const core = await startCore({ dataDir, port, host: process.env.KICKOFF_HOST });
+// macOS の音声認識の補助コマンドは、ビルド（npm run build・npm run dev）が out/native に作る
+const core = await startCore({ dataDir, port, host: process.env.KICKOFF_HOST, speechHelper: path.resolve("out/native/kickoff-speech") });
 console.log(`Kickoff core: ${core.localUrl}/pair?token=${core.token}`);
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {

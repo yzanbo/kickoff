@@ -16,12 +16,20 @@ type OpenAiTranscribeModel = (typeof OPENAI_TRANSCRIBE_MODELS)[number];
 /** 文字起こしの方法のカード（名前・料金の札・良いところ・気を付けるところ） */
 export const VOICE_PROVIDER_INFO: Record<VoiceProvider, ProviderInfo> = {
   local: {
-    title: "この Mac",
+    title: "この Mac（whisper）",
     price: "無料",
     free: true,
-    summary: "この Mac の中で文字にします。",
-    pros: ["料金はかかりません", "音声を外に送りません", "ネットにつながっていなくても使えます"],
+    summary: "この Mac の中で、whisper のモデルで文字にします。",
+    pros: ["料金はかかりません", "音声を外に送りません", "ネットにつながっていなくても使えます", "日本語の聞き取りが正確です"],
     cons: ["はじめに準備が要ります（whisper.cpp を入れ、モデルをダウンロード）"],
+  },
+  macos: {
+    title: "macOS の音声認識",
+    price: "無料",
+    free: true,
+    summary: "macOS に入っている音声認識で、この Mac の中で文字にします。",
+    pros: ["料金はかかりません", "音声を外に送りません", "入れるものはありません（macOS 26 以上）", "速く、Mac に負荷をかけません"],
+    cons: ["「この Mac（whisper）」より、聞き取りが劣ることがあります", "言語の自動の判別はできません（Mac の言語で起こします）"],
   },
   openai: {
     title: "OpenAI",

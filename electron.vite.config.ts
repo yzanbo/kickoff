@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { defineConfig } from "electron-vite";
 import react from "@vitejs/plugin-react";
 import { APP_ENVS } from "./src/core/system/appEnv";
+import { speechHelper } from "./scripts/speech-helper";
 
 // コアの API サーバーのポート（開発時は Vite から /api をここへ転送する。開発用のポート: appEnv.ts）
 const corePort = Number(process.env.KICKOFF_PORT ?? APP_ENVS.development.port);
@@ -12,6 +13,8 @@ const shared = { "@shared": resolve("src/shared") };
 export default defineConfig({
   main: {
     resolve: { alias: shared },
+    // 音声入力の「macOS の音声認識」の補助コマンドも一緒に作る（out/native）
+    plugins: [speechHelper()],
     build: { outDir: "out/main" },
   },
   preload: {

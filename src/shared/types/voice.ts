@@ -1,8 +1,8 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // 音声入力（チャット欄のディクテーション）の文字起こし
 
-/** 文字起こしの方法（local = この Mac の whisper-cli / openai = OpenAI の API（互換のサーバーも可）） */
-export const VOICE_PROVIDERS = ["local", "openai"] as const;
+/** 文字起こしの方法（local = この Mac の whisper-cli / macos = macOS の音声認識（macOS 26 以上）/ openai = OpenAI の API（互換のサーバーも可）） */
+export const VOICE_PROVIDERS = ["local", "macos", "openai"] as const;
 export type VoiceProvider = (typeof VOICE_PROVIDERS)[number];
 
 /** 話す言語の選択肢（auto = 自動で判別。値は whisper・OpenAI に渡す ISO 639-1 の言語コード） */
@@ -75,6 +75,17 @@ export interface VoiceStatus {
     whisper: string | null;
     ffmpeg: string | null;
     models: VoiceModelInfo[];
+  };
+  /** macOS の音声認識（話す言語の設定で確かめたもの） */
+  macos: {
+    /** 補助プログラムがこの Kickoff に入っているか */
+    helper: boolean;
+    /** この Mac で使えるか（macOS 26 以上） */
+    available: boolean;
+    /** 起こす言語と地域（ja-JP など。対応していなければ null） */
+    locale: string | null;
+    /** その言語のモデルが Mac に入っているか（なければ、はじめて使うときに macOS が落とす） */
+    installed: boolean;
   };
   openai: {
     /** API キーを保存してあるか（キーそのものは返さない） */
