@@ -1,4 +1,5 @@
 import type { BrowserControl } from "../browser/control.js";
+import type { DbAiTools } from "../databases/aiTools.js";
 import type { ChatPolicy } from "../chat/policy.js";
 import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
 
@@ -89,6 +90,8 @@ export interface ProviderTurnParams {
   env?: Record<string, string>;
   /** Kickoff の埋め込みブラウザを AI に操作させる口と、このチャット（デスクトップアプリのときだけ。なければブラウザのツールを出さない） */
   browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
+  /** プロジェクトの DB を AI に読ませる口（AI に見せる接続があるときだけ。なければ DB のツールを出さない） */
+  database?: DbAiTools | null;
 }
 
 export interface ApprovalRequest {

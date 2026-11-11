@@ -79,6 +79,8 @@ function PermissionCard({ approval }: { approval: Approval }) {
   const [denying, setDenying] = useState(false);
   const [message, setMessage] = useState("");
   const description = typeof approval.input.description === "string" ? approval.input.description : approval.description;
+  // チャットの AI の DB のツール（kickoff_db）の SQL（接続の名前は見出しにある）
+  const dbSql = approval.tool_name === "mcp__kickoff_db__db_query" && typeof approval.input.sql === "string" ? approval.input.sql : null;
 
   return (
     <div className="approval-card">
@@ -88,8 +90,10 @@ function PermissionCard({ approval }: { approval: Approval }) {
       </div>
       {description && <p className="muted small">{description}</p>}
       <pre className="approval-command">
-        {/* コマンドは、実行のあとの欄と同じくシェルの文法で色を付ける */}
-        {approval.tool_name === "Bash" ? (
+        {/* コマンドは、実行のあとの欄と同じくシェルの文法で色を付ける。AI が DB に流す SQL は、確かめられるよう切らずに全文を SQL の色で */}
+        {dbSql !== null ? (
+          <HighlightedCode code={dbSql} lang="sql" />
+        ) : approval.tool_name === "Bash" ? (
           <HighlightedCode code={describeApprovalInput(approval.tool_name, approval.input)} lang="shellscript" />
         ) : (
           describeApprovalInput(approval.tool_name, approval.input)

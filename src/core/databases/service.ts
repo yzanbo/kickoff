@@ -1,9 +1,10 @@
 // DB クライアントの窓口（ルートから使う）: 接続の登録・秘密の値・作業場所から、つなぐ先（DbTarget）を組み立てて DB ワーカーに頼む。
 // 読み取り専用の接続は、文の判定（1 段目）と DB 側の読み取り専用（2 段目）で守る。「書き込む」の間（write）だけ外す
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
-import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbObjectPath, DbSort, Project } from "@shared/types";
+import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEngine, DbObjectPath, DbSort, Project } from "@shared/types";
 import { DB_NOT_IN_WORKTREE, DB_SQL_MAX_ROWS, DB_TABLE_PAGE_ROWS } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
@@ -11,6 +12,7 @@ import { Invalid, NotFound } from "../http/errors.js";
 import { expandHome, isInside, realPathLoose } from "../system/paths.js";
 import type { DbWorkerClient } from "./client.js";
 import type { DbTarget } from "./protocol.js";
+import { DB_AI_MAX_ROWS, DB_AI_TIMEOUT_MS } from "./aiFormat.js";
 
 /** 作業場所（null なら本体） */
 type Workdir = string | null;
@@ -20,6 +22,12 @@ interface Options {
   client: DbWorkerClient;
   /** Kickoff 自身の保存先（この中のファイルは登録させない） */
   dataDir: string;
+}
+
+/** AI が流せる SQL か（読み取りの 1 文だけ）。承認を聞く前にも確かめる（流せない文を利用者に聞かない） */
+export function assertAiSql(sql: string, engine: DbEngine) {
+  if (splitStatements(sql, engine).length !== 1) throw new Invalid("1 回に流せるのは 1 つの文だけです");
+  if (!isReadOnlyStatement(sql, engine)) throw new Invalid("AI が流せるのは読み取りの文（SELECT・WITH・SHOW・EXPLAIN など）だけです");
 }
 
 export class DatabaseService {
@@ -190,6 +198,46 @@ export class DatabaseService {
       );
     } finally {
       if (this.running.get(session) === controller) this.running.delete(session);
+    }
+  }
+
+  /**
+   * チャットの AI が流す SQL（読み取りの 1 文だけ）。守りは 4 段: 文の判定・DB 側の読み取り専用・呼び出しごとの新しい接続（SET などの状態を残さない）・
+   * AI 用のユーザー（あれば）。DB_AI_MAX_ROWS 行まで、DB_AI_TIMEOUT_MS を超えたら止める。結果は履歴に AI の印で残す
+   */
+  async aiQuery(connection: DbConnection, project: Project, workdir: Workdir, input: { sql: string; database: string | null; chatId: number }) {
+    assertAiSql(input.sql, connection.engine);
+    const base = this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null });
+    const target: DbTarget = {
+      ...base,
+      read_only: true,
+      ...(connection.ai_username ? { username: connection.ai_username, password: this.opts.store.dbConnections.aiPassword(connection.id) } : {}),
+    };
+    const session = `ai:${connection.id}:${randomUUID()}`;
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, DB_AI_TIMEOUT_MS);
+    const started = Date.now();
+    // MySQL は DB を名前で指すので、指されたら先に切り替える（同じ接続の中だけ。終わったら閉じる）
+    const sql = input.sql;
+    try {
+      if (connection.engine === "mysql" && input.database) {
+        await this.opts.client.request("query", { session, target, sql: `USE \`${input.database.replaceAll("`", "``")}\``, max_rows: 1 }, { signal: controller.signal, engine: target.engine });
+      }
+      const result = await this.opts.client.request("query", { session, target, sql, max_rows: DB_AI_MAX_ROWS }, { signal: controller.signal, engine: target.engine });
+      this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql, ran_by: "ai", chat_id: input.chatId, duration_ms: result.duration_ms, row_count: result.columns.length > 0 ? result.rows.length : result.affected });
+      this.opts.store.dbConnections.touchConnected(connection.id);
+      return result;
+    } catch (e) {
+      const error = timedOut ? `${DB_AI_TIMEOUT_MS / 1000} 秒を超えたので止めました` : errorMessage(e);
+      this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql, ran_by: "ai", chat_id: input.chatId, duration_ms: Date.now() - started, error });
+      throw new Invalid(error);
+    } finally {
+      clearTimeout(timer);
+      if (this.opts.client.running) await this.opts.client.request("close", { session }).catch(() => {});
     }
   }
 

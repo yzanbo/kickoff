@@ -20,6 +20,7 @@ import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./label
 import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";
 import { BROWSER_SERVER, browserMcpServer, browserReadOnlyTools } from "./browserTools.js";
+import { DB_SERVER, dbMcpServer, dbToolNames } from "./dbTools.js";
 import { agentEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
@@ -185,9 +186,17 @@ export class ClaudeProvider implements AgentProvider {
           settingSources: ["user", "project", "local"],
           permissionMode: params.permissionMode,
           // 埋め込みブラウザのツールのうち、見るだけのものは聞かずに使わせる（開く・押す・打つ・JS は権限モードと承認に従う）
-          allowedTools: [...toAllowedTools(params.policy), ...(params.browser ? browserReadOnlyTools() : [])],
-          // Kickoff の埋め込みブラウザを操作するツール（デスクトップアプリのときだけ）
-          ...(params.browser ? { mcpServers: { [BROWSER_SERVER]: browserMcpServer(params.browser.control, params.browser) } } : {}),
+          // DB のツールはすべて（承認と断りはツールの中で行う）
+          allowedTools: [...toAllowedTools(params.policy), ...(params.browser ? browserReadOnlyTools() : []), ...(params.database ? dbToolNames() : [])],
+          // Kickoff の埋め込みブラウザを操作するツール（デスクトップアプリのときだけ）と、プロジェクトの DB を読むツール（AI に見せる接続があるときだけ）
+          ...(params.browser || params.database
+            ? {
+                mcpServers: {
+                  ...(params.browser ? { [BROWSER_SERVER]: browserMcpServer(params.browser.control, params.browser) } : {}),
+                  ...(params.database ? { [DB_SERVER]: dbMcpServer(params.database, cb, abortController.signal) } : {}),
+                },
+              }
+            : {}),
           canUseTool,
           resume: params.resumeSessionId ?? undefined,
           abortController,

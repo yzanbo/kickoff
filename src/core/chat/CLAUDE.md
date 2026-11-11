@@ -22,7 +22,7 @@
 ## 1 回の実行（turn.ts）
 
 - 作業場所は `workdirOf`（`worktree_path`、null なら本体。フォルダが消えていれば分かる文で失敗にする）。送るたびに、いまのブランチを `chats.branch` に覚える（ワークツリーを片付けても消さない）。動かし始める前に止められたら、プロバイダーを動かさずに中断で終える（中断済みの signal には abort の知らせが来ないため）。
-- プロバイダーには、システムプロンプト（`buildSystemPrompt`）・指示に添える文脈（子チャットの親・子チャットのあるチャットの子孫。`chatContextNote`）・許可（`CHAT_POLICY`）・選択・続きのセッション・読めるフォルダ（添付の保存先と参照資料）・作業場所の外の参照資料（`readOnlyPaths`。読むだけ）を渡す。知らせは、記録を `store.events.add`（`init` のセッション ID はチャットに書く）、作業中の様子を `ChatRuntime.update`、返答の途中経過 `chat_delta`・サブエージェントの途中経過 `chat_subagent`・実行中のコマンドの出力 `chat_command_output` は配るだけ（保存しない）。
+- プロバイダーには、システムプロンプト（`buildSystemPrompt`）・指示に添える文脈（子チャットの親・子チャットのあるチャットの子孫。`chatContextNote`）・許可（`CHAT_POLICY`）・選択・続きのセッション・読めるフォルダ（添付の保存先と参照資料）・作業場所の外の参照資料（`readOnlyPaths`。読むだけ）・プロジェクトに AI に見せる DB の接続があれば DB のツールの中身（`database`。`core/databases/aiTools.ts`）を渡す。知らせは、記録を `store.events.add`（`init` のセッション ID はチャットに書く）、作業中の様子を `ChatRuntime.update`、返答の途中経過 `chat_delta`・サブエージェントの途中経過 `chat_subagent`・実行中のコマンドの出力 `chat_command_output` は配るだけ（保存しない）。
 - 圧縮の直後のコンテキストの大きさ（`ProviderCallbacks.context`）は、作業の終わりを待たずにチャットの `context_tokens` に書く（自動の圧縮は作業の途中で起き、そのあとも作業が続くので、終わりまで入力欄のメーターが圧縮の前の値のままだった）。作業の終わりには最後の応答の大きさで書き直す。
 - 結果の反映（`applyResult`）: 状態・費用・回数・コンテキストの大きさ・未読を書き、作業の終わりの記録 `result` を残す（`network`・`usage_limit`、最後まで終わったときだけ分岐の起点の `session_id` / `message_id`）。この実行で始めたサブエージェントが終わっていなければ、作業の終わりとともに止まったことをお知らせに残す（`unfinishedSubagents`。Claude Code のプロセスが終わるため。通信の切断のときは再開の段取りが知らせる）。
 - 失敗は投げずに、チャットの失敗（未読）と `error` の記録にする。終わったら再試行・裏の作業・圧縮中の表示と作業中の操作を外す。

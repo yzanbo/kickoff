@@ -125,6 +125,33 @@ test("DB の接続: ほかのプロジェクトから写す（パスワードは
   assert.equal(store.dbConnections.password(withPassword.id), "p");
 });
 
+test("DB の接続: AI 用のユーザーとパスワード（パスワードは保存したかだけ返す・写すのは選んだときだけ・消すと秘密の値も消える）", async () => {
+  const { call, project, store } = setup();
+  const base = `/api/projects/${project.id}/db-connections`;
+  const body = { ...sqliteBody({ engine: "postgres", host: "h", file_path: null }), ai_username: "ai_reader", ai_password: "ai-s3cret" };
+  const created = (await call("POST", base, body)).body as DbConnection;
+  assert.equal(created.ai_username, "ai_reader");
+  assert.equal(created.has_ai_password, true);
+  assert.equal(created.has_password, false);
+  assert.ok(!JSON.stringify(created).includes("ai-s3cret"));
+  assert.equal(store.dbConnections.aiPassword(created.id), "ai-s3cret");
+  // 省けばそのまま、null で消す
+  assert.equal(((await call("PATCH", `${base}/${created.id}`, { name: "x" })).body as DbConnection).has_ai_password, true);
+  assert.equal(((await call("PATCH", `${base}/${created.id}`, { ai_password: null })).body as DbConnection).has_ai_password, false);
+  await call("PATCH", `${base}/${created.id}`, { ai_password: "again" });
+  // 空のユーザーは「ない」（null）
+  assert.equal(((await call("POST", base, { ...body, name: "空", ai_username: " " })).body as DbConnection).ai_username, null);
+
+  const other = (await call("POST", `${base}/copy`, { from_id: created.id, copy_password: false })).body as DbConnection;
+  assert.equal(other.ai_username, "ai_reader");
+  assert.equal(other.has_ai_password, false);
+  const copied = (await call("POST", `${base}/copy`, { from_id: created.id, copy_password: true })).body as DbConnection;
+  assert.equal(store.dbConnections.aiPassword(copied.id), "again");
+
+  await call("DELETE", `${base}/${created.id}`);
+  assert.equal(store.dbConnections.aiPassword(created.id), null);
+});
+
 test("DB の接続: つながるか試す（保存しない）。ないファイルは失敗を返す", async () => {
   const { call, project } = setup();
   makeSqlite(project.repo_path);

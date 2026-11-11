@@ -45,6 +45,10 @@ interface Form {
   password: string;
   /** 保存したパスワードを消す（編集のときだけ） */
   clearPassword: boolean;
+  /** AI が SQL を流すときに使うユーザー（空ならふつうのユーザー） */
+  ai_username: string;
+  ai_password: string;
+  clearAiPassword: boolean;
 }
 
 const formOf = (c: DbConnection | null): Form => ({
@@ -62,6 +66,9 @@ const formOf = (c: DbConnection | null): Form => ({
   ai_access: c?.ai_access ?? DB_ENVIRONMENT_DEFAULTS.local.ai_access,
   password: "",
   clearPassword: false,
+  ai_username: c?.ai_username ?? "",
+  ai_password: "",
+  clearAiPassword: false,
 });
 
 /** 送る形（使わない欄は null。パスワードは書いたときだけ・消すなら null・省けばそのまま） */
@@ -69,6 +76,7 @@ function bodyOf(form: Form, editing: boolean): NewDbConnectionBody {
   const sqlite = form.engine === "sqlite";
   const text = (v: string) => v.trim() || null;
   const password = form.clearPassword ? null : form.password ? form.password : editing ? undefined : null;
+  const aiPassword = form.clearAiPassword ? null : form.ai_password ? form.ai_password : editing ? undefined : null;
   return {
     name: form.name.trim(),
     engine: form.engine,
@@ -82,6 +90,8 @@ function bodyOf(form: Form, editing: boolean): NewDbConnectionBody {
     read_only: form.read_only,
     ai_access: form.ai_access,
     ...(sqlite || password === undefined ? {} : { password }),
+    ai_username: sqlite ? null : text(form.ai_username),
+    ...(sqlite || aiPassword === undefined ? {} : { ai_password: aiPassword }),
   };
 }
 
@@ -257,7 +267,10 @@ export function ConnectionDialog({
           checked={form.read_only}
           onChange={(v) => set("read_only", v)}
         />
-        <Field label="チャットの AI に見せるか" help="AI が DB を読むときの範囲（AI の DB のツールはこれから足します）">
+        <Field
+          label="チャットの AI に見せるか"
+          help="自由に見せる = AI が聞かずに読む / 承認して見せる = AI が SQL を流す前に聞く / 見せない = AI のツールに出さず、AI がコマンドでつなぐのも断る。AI が流せるのは読み取りの 1 文だけ（100 行・30 秒まで）"
+        >
           <select value={form.ai_access} onChange={(e) => set("ai_access", e.target.value as DbAiAccess)}>
             {DB_AI_ACCESSES.map((v) => (
               <option key={v} value={v}>
@@ -266,6 +279,26 @@ export function ConnectionDialog({
             ))}
           </select>
         </Field>
+        {!sqlite && form.ai_access !== "none" && (
+          <div className="db-connection-row">
+            <Field label="AI 用のユーザー（任意）" help="AI が SQL を流すときだけ、このユーザーでつなぎます（読み取りの権限だけのユーザーを作っておくと、より安全です）">
+              <input value={form.ai_username} onChange={(e) => set("ai_username", e.target.value)} spellCheck={false} autoComplete="off" />
+            </Field>
+            <Field label="AI 用のパスワード" help={connection?.has_ai_password ? "保存してあります（変えるときだけ入力）" : undefined}>
+              <input
+                type="password"
+                value={form.ai_password}
+                onChange={(e) => set("ai_password", e.target.value)}
+                disabled={form.clearAiPassword || !form.ai_username.trim()}
+                autoComplete="new-password"
+                placeholder={connection?.has_ai_password ? "••••••••" : ""}
+              />
+            </Field>
+          </div>
+        )}
+        {!sqlite && form.ai_access !== "none" && connection?.has_ai_password && (
+          <CheckField label="保存した AI 用のパスワードを消す" checked={form.clearAiPassword} onChange={(v) => set("clearAiPassword", v)} />
+        )}
         {test && test !== "testing" && (
           <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{test.ok ? `つながりました（${test.server_version ?? "版は不明"}）` : `つながりません: ${test.error}`}</p>
         )}

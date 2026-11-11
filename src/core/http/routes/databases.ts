@@ -44,6 +44,8 @@ const connectionShape = {
   read_only: z.boolean(),
   ai_access: z.enum(DB_AI_ACCESSES),
   password: z.string().max(10_000).nullable().optional(),
+  ai_username: text(500).optional(),
+  ai_password: z.string().max(10_000).nullable().optional(),
 };
 const newConnectionSchema = z.object(connectionShape) satisfies z.ZodType<NewDbConnectionBody, unknown>;
 const connectionPatchSchema = z.object(connectionShape).partial() satisfies z.ZodType<DbConnectionPatch, unknown>;
@@ -130,9 +132,10 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     const { from_id, copy_password } = copySchema.parse(await jsonBody(c));
     const from = store.dbConnections.get(from_id);
     if (!from) throw new NotFound("写す接続が見つかりません");
-    const { id: _id, project_id: _p, position: _pos, has_password: _h, last_connected_at: _l, created_at: _c, updated_at: _u, ...fields } = from;
+    const { id: _id, project_id: _p, position: _pos, has_password: _h, has_ai_password: _ha, last_connected_at: _l, created_at: _c, updated_at: _u, ...fields } = from;
     const password = copy_password ? store.dbConnections.password(from.id) : null;
-    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, password }), 201);
+    const ai_password = copy_password ? store.dbConnections.aiPassword(from.id) : null;
+    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, password, ai_password }), 201);
   });
 
   app.post(`${base}/test`, withProject, async (c) => {

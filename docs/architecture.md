@@ -54,10 +54,11 @@
 | ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたこと。印と 1 つの確認で片付けを聞く） | `WorktreePrNotice`・見張り `WorktreePrWatch`（`core/git/prWatch.ts`）・閉じた確認の表 `pr_notice_dismissals`・画面 `features/worktree/prNotice/` | 「マージの通知」（macOS の通知と紛らわしい） |
 | issue・PR の結び付き（予定。どの issue・PR のためのチャットか。カードに `#番号`） | `Chat` の `github_repo` / `github_number`（issue と PR の番号はリポジトリの中で重ならないので、種類は持たない） | なし |
 | DB クライアント（プロジェクトの画面の上のタブ「DB」・チャットの右の欄の ▾ の「DB ▸」・別ウィンドウで開く。接続の一覧・テーブル・SQL（ER 図は段階 2 の予定）。要件定義書の「5.12 DB クライアント」） | タブ `db`（`#/projects/:id/db`）・画面 `features/database/`・コア `core/databases/`・HTTP `/api/projects/:id/db-connections/…`（接続元が 127.0.0.1 の頼みだけ受ける） | なし |
-| DB 接続（プロジェクトごとに登録する接続。ほかのプロジェクトから写せる） | `DbConnection` / 表 `db_connections`（v13）。パスワードは `secrets` の `db_connection:<id>:password`（段階 2 で `:ssh_password`・`:ai_password`）。接続を消すと、表のトリガー `db_connections_drop_secrets` がその接続の秘密の値も消す（プロジェクトを消したときの連鎖の削除でも効く） | なし |
+| DB 接続（プロジェクトごとに登録する接続。ほかのプロジェクトから写せる） | `DbConnection` / 表 `db_connections`（v13）。パスワードは `secrets` の `db_connection:<id>:password`、AI 用のユーザーのパスワードは `:ai_password`（v14。段階 2 で `:ssh_password`）。接続を消すと、表のトリガー `db_connections_drop_secrets` がその接続の秘密の値も消す（プロジェクトを消したときの連鎖の削除でも効く） | なし |
 | DB の種類 | `DbEngine`（`sqlite` / `postgres` / `mysql`。MariaDB は `mysql`） | なし |
 | 環境（DB 接続の環境。色・読み取り専用・書き込みの前の確かめ・AI の既定をまとめて決める） | `DbEnvironment`（`local` / `dev` / `staging` / `production`） | なし |
-| AI に見せるか（DB 接続ごと。見せない / 承認して見せる / 自由に見せる。選んで覚えるところまで作り、AI のツールは段階 2 の予定） | `DbAiAccess`（`none` / `ask` / `allow`。既定は環境から: ローカル・開発 = `allow`、ステージング = `ask`、本番 = `none`）・AI のツール `kickoff_db`（予定）（`db_connections` / `db_objects` / `db_describe` / `db_query`。`db_query` はいつも `always_ask` で、`canUseTool` が `ai_access` を見て通す・承認カード・断るを決める） | なし |
+| AI に見せるか（DB 接続ごと。見せない / 承認して見せる / 自由に見せる） | `DbAiAccess`（`none` / `ask` / `allow`。既定は環境から: ローカル・開発 = `allow`、ステージング = `ask`、本番 = `none`）・AI のツール `kickoff_db`（`db_connections` / `db_objects` / `db_describe` / `db_query`。中身は `core/databases/aiTools.ts` の `DbAiTools`、MCP は `providers/claude/dbTools.ts`。すべて `allowedTools` に入れ、ツールの中で `ai_access` を見て、見せない接続は名前でも断り、承認して見せる接続の `db_query` は承認カードで聞く（権限モードによらず効く））・AI 用のユーザー `ai_username`（v14。あれば AI の SQL だけこのユーザーでつなぐ） | なし |
+| SQL の履歴（接続ごと。AI が流したものに印） | `DbQueryHistoryEntry` / 表 `db_query_history`（v14。`ran_by` = `user` / `ai`、AI なら `chat_id`。接続ごとに新しい `DB_HISTORY_MAX`（500）件だけ残す）・店 `store.dbQueryHistory` | なし |
 | DB ワーカー（DB の接続・SQL の実行・結果の整形（段階 2 で SSH トンネル・準備のコマンド）を動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める） | `core/databases/worker/`（Electron では `out/main/dbWorker.js` を `ELECTRON_RUN_AS_NODE=1` で fork、`npm run daemon`・テストでは `worker/main.ts` を tsx で。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
 
 ### チャットの軸とエージェントの軸
@@ -235,6 +236,22 @@ CREATE TABLE db_connections (
 -- CREATE TRIGGER db_connections_drop_secrets AFTER DELETE ON db_connections BEGIN
 --   DELETE FROM secrets WHERE key LIKE 'db_connection:' || OLD.id || ':%';
 -- END;
+
+-- v14: AI 用のユーザー（NULL = username と同じ。パスワードは secrets の db_connection:<id>:ai_password）
+ALTER TABLE db_connections ADD COLUMN ai_username TEXT CHECK (ai_username <> '');
+-- v14: SQL の履歴（接続ごとに新しい 500 件だけ残す。AI が流したものは ran_by = ai と chat_id）
+CREATE TABLE db_query_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  connection_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
+  sql TEXT NOT NULL CHECK (sql <> ''),
+  ran_by TEXT NOT NULL,                       -- user / ai（仕様書の by。SQL の予約語なので名前を変えた）
+  chat_id INTEGER REFERENCES chats(id) ON DELETE SET NULL,
+  duration_ms INTEGER,
+  row_count INTEGER,
+  error TEXT,
+  ran_at TEXT NOT NULL DEFAULT (NOW)
+) STRICT;
+-- v14: CREATE INDEX idx_db_query_history_connection ON db_query_history(connection_id, id);
 ```
 
 ### 予定: GitHub 連携（未実装）
@@ -251,11 +268,10 @@ github_number INTEGER CHECK (github_number > 0),   -- issue・PR の番号
 
 ### 予定: DB クライアントの段階 2・段階 3（未実装）
 
-段階 1（登録・接続・表の中身・SQL・本番の守り）は v13 の `db_connections` で作った。要件定義書の「5.12 DB クライアント」の段階 2 以降を作るときに `MIGRATIONS` の末尾に足す（詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
+段階 1（登録・接続・表の中身・SQL・本番の守り）は v13 の `db_connections`、段階 2 の AI の読み取り（AI 用のユーザー）と SQL の履歴は v14 で作った。要件定義書の「5.12 DB クライアント」の段階 2 以降を作るときに `MIGRATIONS` の末尾に足す（詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
 
 ```sql
--- db_connections に足す（段階 2: つなぎにくい DB の準備・AI 用のユーザー・接続の手順メモ）
-ai_username TEXT CHECK (ai_username <> ''), -- AI 用の読み取り専用のユーザー（NULL = username と同じ）
+-- db_connections に足す（段階 2: つなぎにくい DB の準備・接続の手順メモ）
 ssh TEXT CHECK (json_valid(ssh) AND json_type(ssh) = 'object'),   -- NULL = SSH トンネルなし
 tunnel_command TEXT CHECK (tunnel_command <> ''),                 -- ポートを転送するコマンド（{local_port} など）
 prepare_commands TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(prepare_commands) AND json_type(prepare_commands) = 'array'),
@@ -266,20 +282,6 @@ my_ip_url TEXT CHECK (my_ip_url <> ''),     -- {my_ip} の問い合わせ先（N
 check_on TEXT CHECK (check_on <> ''),       -- 次に確かめる日（YYYY-MM-DD）
 check_note TEXT CHECK (check_note <> ''),
 memo_path TEXT CHECK (memo_path <> ''),     -- 接続の手順メモ（メモフォルダからの相対。いくつもの接続で同じでよい。メモの名前の変更・移動で付け替える）
-
--- SQL の履歴（接続ごとに新しい 500 件だけ残す。AI が流したものは ran_by = ai と chat_id）
-CREATE TABLE db_query_history (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  connection_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
-  sql TEXT NOT NULL CHECK (sql <> ''),
-  ran_by TEXT NOT NULL,                       -- user / ai（仕様書の by。SQL の予約語なので名前を変えた）
-  chat_id INTEGER REFERENCES chats(id) ON DELETE SET NULL,
-  duration_ms INTEGER,
-  row_count INTEGER,
-  error TEXT CHECK (error <> ''),
-  ran_at TEXT NOT NULL DEFAULT (NOW)
-) STRICT;
--- CREATE INDEX idx_db_query_history_connection ON db_query_history(connection_id, id);
 
 -- ER 図で動かした位置（接続・スキーマごと。「自動で並べ直す」で消す）
 CREATE TABLE db_er_layouts (

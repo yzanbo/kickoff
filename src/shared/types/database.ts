@@ -13,7 +13,7 @@ export const DB_ENVIRONMENTS = ["local", "dev", "staging", "production"] as cons
 export type DbEnvironment = (typeof DB_ENVIRONMENTS)[number];
 export const DB_ENVIRONMENT_LABELS: Record<DbEnvironment, string> = { local: "ローカル", dev: "開発", staging: "ステージング", production: "本番" };
 
-/** AI に見せるか（段階 2 で AI のツールに使う。見せない / 承認して見せる / 自由に見せる） */
+/** AI に見せるか（チャットの AI の DB のツール。見せない / 承認して見せる / 自由に見せる） */
 export const DB_AI_ACCESSES = ["none", "ask", "allow"] as const;
 export type DbAiAccess = (typeof DB_AI_ACCESSES)[number];
 export const DB_AI_ACCESS_LABELS: Record<DbAiAccess, string> = { none: "見せない", ask: "承認して見せる", allow: "自由に見せる" };
@@ -61,6 +61,10 @@ export interface DbConnection {
   position: number;
   /** パスワードを保存したか（値は API に出さない） */
   has_password: boolean;
+  /** AI が流す SQL に使う別のユーザー（読み取り専用のユーザーをすすめる。null なら username のまま） */
+  ai_username: string | null;
+  /** AI 用のユーザーのパスワードを保存したか */
+  has_ai_password: boolean;
   last_connected_at: string | null;
   created_at: string;
   updated_at: string;
@@ -202,3 +206,28 @@ export interface DbSort {
 export const DB_TABLE_PAGE_ROWS = 100;
 /** SQL のタブで読む行の上限 */
 export const DB_SQL_MAX_ROWS = 1000;
+
+// ---- SQL の履歴（接続ごとに新しい DB_HISTORY_MAX 件） ----
+
+/** だれが流したか（利用者の SQL のタブ / チャットの AI） */
+export const DB_QUERY_RAN_BY = ["user", "ai"] as const;
+export type DbQueryRanBy = (typeof DB_QUERY_RAN_BY)[number];
+
+/** 接続ごとに残す履歴の件数 */
+export const DB_HISTORY_MAX = 500;
+
+/** SQL の履歴の 1 件（db_query_history） */
+export interface DbQueryHistoryEntry {
+  id: number;
+  connection_id: number;
+  sql: string;
+  ran_by: DbQueryRanBy;
+  /** AI が流したときのチャット（消えたら null） */
+  chat_id: number | null;
+  duration_ms: number | null;
+  /** 返した行の数（変えた文は変えた行の数。分からなければ null） */
+  row_count: number | null;
+  /** 失敗したときの文 */
+  error: string | null;
+  ran_at: string;
+}
