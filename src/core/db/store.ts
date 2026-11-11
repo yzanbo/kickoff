@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { createChatStore } from "./chats.js";
 import type { Notify } from "./common.js";
 import { createDbConnectionStore } from "./dbConnections.js";
+import { createDbQueryHistoryStore } from "./dbQueryHistory.js";
 import { createEventStore } from "./events.js";
 import { createGroupStore } from "./groups.js";
 import { openDatabase } from "./open.js";
@@ -32,6 +33,7 @@ export class Store {
   readonly prNotices;
   /** DB クライアントの接続（プロジェクトごと。パスワードは secrets） */
   readonly dbConnections;
+  readonly dbQueryHistory;
 
   constructor(
     private readonly file: string,
@@ -49,6 +51,7 @@ export class Store {
     this.snippets = createSnippetStore(this.db, onChange);
     this.prNotices = createPrNoticeStore(this.db);
     this.dbConnections = createDbConnectionStore(this.db, onChange, this.secrets);
+    this.dbQueryHistory = createDbQueryHistoryStore(this.db);
   }
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */

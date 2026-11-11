@@ -1,4 +1,6 @@
 import type { BrowserControl } from "../browser/control.js";
+import { createDbAiTools, hasAiConnections } from "../databases/aiTools.js";
+import type { DatabaseService } from "../databases/service.js";
 import { githubEnvForGit, runAsGitHubAccount } from "../git/githubAccount.js";
 import { mkdirSync } from "node:fs";
 import fs from "node:fs/promises";
@@ -31,6 +33,8 @@ export interface ExecutionDeps {
   memoDirOf?: (project: Project) => string;
   /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。なければ AI にブラウザのツールを出さない） */
   browser?: BrowserControl;
+  /** DB クライアント（AI に見せる接続があるプロジェクトで、AI に DB のツールを出す。なければ出さない） */
+  databases?: DatabaseService;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -167,6 +171,10 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
     readOnlyPaths: project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p)),
     browser: deps.browser ? { control: deps.browser, projectId: chat.project_id, chatId: chat.id } : null,
+    database:
+      deps.databases && hasAiConnections(deps.store, project.id)
+        ? createDbAiTools({ store: deps.store, databases: deps.databases }, { project, workdir: chat.worktree_path, chatId: chat.id })
+        : null,
   };
 }
 

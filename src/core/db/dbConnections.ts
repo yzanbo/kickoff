@@ -5,21 +5,27 @@ import { bit, updateRow, type Notify } from "./common.js";
 import type { DbSecretKey } from "./settings.js";
 
 /** 変えられる列（パスワードは秘密の値なので別） */
-const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "ai_access"] as const;
+const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "ai_access", "ai_username"] as const;
 
-type Row = Omit<DbConnection, "ssl" | "read_only" | "has_password"> & { ssl: string | null; read_only: number; has_password: number };
+type Row = Omit<DbConnection, "ssl" | "read_only" | "has_password" | "has_ai_password"> & { ssl: string | null; read_only: number; has_password: number; has_ai_password: number };
 
-const SELECT = `SELECT c.*, EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':password') AS has_password FROM db_connections AS c`;
+const SELECT = `SELECT c.*,
+  EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':password') AS has_password,
+  EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':ai_password') AS has_ai_password
+  FROM db_connections AS c`;
 
 const toConnection = (row: Row): DbConnection => ({
   ...row,
   ssl: row.ssl ? (JSON.parse(row.ssl) as DbSsl) : null,
   read_only: row.read_only === 1,
   has_password: row.has_password === 1,
+  has_ai_password: row.has_ai_password === 1,
 });
 
 /** 接続のパスワードの秘密の値の名前 */
 export const dbPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:password`;
+/** AI 用のユーザーのパスワードの秘密の値の名前 */
+export const dbAiPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:ai_password`;
 
 /**
  * DB クライアントの接続（db_connections の表。プロジェクトごとの並び position）。パスワードは秘密の値（secrets）に置き、
@@ -43,9 +49,11 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     ssl: body.ssl === undefined ? undefined : body.ssl === null ? null : JSON.stringify(body.ssl),
     read_only: bit(body.read_only),
     ai_access: body.ai_access,
+    ai_username: body.ai_username,
   });
-  const setPassword = (id: number, password: string | null | undefined) => {
-    if (password !== undefined) secrets.set(dbPasswordKey(id), password ?? "");
+  const setPasswords = (id: number, body: Pick<DbConnectionPatch, "password" | "ai_password">) => {
+    if (body.password !== undefined) secrets.set(dbPasswordKey(id), body.password ?? "");
+    if (body.ai_password !== undefined) secrets.set(dbAiPasswordKey(id), body.ai_password ?? "");
   };
   return {
     get,
@@ -57,11 +65,11 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
       const row = toRow(body);
       const { lastInsertRowid } = db
         .prepare(
-          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, ai_access, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, ai_access, ai_username, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .run(projectId, ...COLUMNS.map((c) => row[c] ?? null), next);
       const id = Number(lastInsertRowid);
-      setPassword(id, body.password);
+      setPasswords(id, body);
       notify(projectId);
       return get(id)!;
     },
@@ -70,13 +78,17 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
       const before = get(id)!;
       updateRow(db, "db_connections", id, toRow(patch) as Record<string, SQLInputValue>, COLUMNS);
       db.prepare(`UPDATE db_connections SET updated_at = ${NOW} WHERE id = ?`).run(id);
-      setPassword(id, patch.password);
+      setPasswords(id, patch);
       notify(before.project_id);
       return get(id)!;
     },
     /** 保存したパスワード（なければ null。API には出さず、つなぐときだけコアの中で使う） */
     password(id: number): string | null {
       return secrets.get(dbPasswordKey(id));
+    },
+    /** AI 用のユーザーのパスワード（なければ null） */
+    aiPassword(id: number): string | null {
+      return secrets.get(dbAiPasswordKey(id));
     },
     /** つながった時刻を残す（一覧の並びは変えない。知らせは出さない） */
     touchConnected(id: number) {

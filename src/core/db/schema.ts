@@ -254,8 +254,28 @@ CREATE TRIGGER db_connections_drop_secrets AFTER DELETE ON db_connections BEGIN
 END;
 `;
 
+/**
+ * v14: DB クライアントの段階 2（AI の読み取り）。AI が流す SQL に使う別のユーザー（ai_username。パスワードは secrets の
+ * db_connection:<id>:ai_password）と、SQL の履歴（接続ごとに新しい 500 件だけ残す。ran_by は user / ai、AI のものは chat_id）
+ */
+const SCHEMA_V14 = `
+ALTER TABLE db_connections ADD COLUMN ai_username TEXT CHECK (ai_username <> '');
+CREATE TABLE db_query_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  connection_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
+  sql TEXT NOT NULL CHECK (sql <> ''),
+  ran_by TEXT NOT NULL,
+  chat_id INTEGER REFERENCES chats(id) ON DELETE SET NULL,
+  duration_ms INTEGER,
+  row_count INTEGER,
+  error TEXT,
+  ran_at TEXT NOT NULL DEFAULT (${NOW})
+) STRICT;
+CREATE INDEX idx_db_query_history_connection ON db_query_history(connection_id, id);
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
