@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { DB_NOT_IN_WORKTREE, type DbConnection } from "@shared/types";
+import { DB_NOT_IN_WORKTREE, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { ApiError } from "@/api";
 import { cx } from "@/lib/cx";
@@ -110,8 +110,16 @@ export function TreeHint({ depth, children }: { depth: number; children: ReactNo
   );
 }
 
-/** 木の段の開閉（開いている段は置き場所ごとに覚える） */
+/** 右クリックした段（DB・スキーマ・テーブル。table があればテーブル・ビュー） */
+export interface TreeMenuTarget {
+  connection: DbConnection;
+  path: DbObjectPath;
+  table: { name: string; kind: DbObjectKind } | null;
+}
+
+/** 木の段の開閉（開いている段は置き場所ごとに覚える）と、DB・スキーマ・テーブルの右クリック */
 export interface TreeOpen {
   isOpen: (key: string) => boolean;
   toggle: (key: string) => void;
+  menu: (e: React.MouseEvent, target: TreeMenuTarget) => void;
 }

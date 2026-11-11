@@ -1,12 +1,12 @@
-import { Copy, Database, PanelLeftClose, PanelLeftOpen, Pencil, Plus, SquareTerminal, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Copy, Database, Network, PanelLeftClose, PanelLeftOpen, Pencil, Plus, SquareTerminal, Trash2 } from "lucide-react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { api } from "@/api";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
-import { closeConnectionTabs, closeDbTab, openDbTab, openNewSqlTab, tableTabKey, type DbClientTab } from "@/lib/dbClientTabs";
+import { closeConnectionTabs, closeDbTab, openDbTab, openErTab, openNewSqlTab, tableTabKey, updateErTab, type DbClientTab } from "@/lib/dbClientTabs";
 import { DB_LIST_HIDDEN, DB_LIST_WIDTH, dbClientTabs, dbSqlDraft } from "@/lib/storageKeys";
 import { writeSetting } from "@/lib/storage";
 import { dbConnectionsStore, useDbConnections } from "@/stores/dbConnections";
@@ -27,6 +27,9 @@ import { objectPathLabel } from "./dbFormat";
 import { useSqlPending } from "./sqlSessions";
 import { SqlView } from "./SqlView";
 import { TableView } from "./TableView";
+
+/** ER 図（@xyflow/react と elkjs は ER 図を開いたときだけ読む） */
+const ErView = lazy(() => import("./er/ErView"));
 
 /** 左の一覧を自動で隠す幅（これより狭い所では一覧を重ねて出し、右にパンくず） */
 const NARROW_WIDTH = 560;
@@ -79,7 +82,22 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
       setState(openNewSqlTab(state, c.id));
       setOverlay(false);
     },
+    openEr: (c, path, focus) => {
+      setState(openErTab(state, c.id, path, focus));
+      setOverlay(false);
+    },
     editConnection: (c) => setEditing(c),
+  };
+
+  /** 接続の右クリックの「ER 図」: つないでいる DB（PostgreSQL は public のスキーマ）で開く */
+  const openConnectionEr = async (c: DbConnection) => {
+    try {
+      const dbs = await api.dbDatabases(projectId, c.id, actions.worktreeOf(c.id));
+      const database = dbs.current ?? dbs.databases[0] ?? null;
+      actions.openEr(c, { database, schema: dbs.has_schemas ? "public" : null }, null);
+    } catch (e) {
+      await alertDialog("ER 図を開けませんでした", errorMessage(e));
+    }
   };
 
   /** タブを閉じる（SQL のタブはコミットしていなければ聞き（やめたら閉じない）、DB の接続を閉じて書きかけの SQL を消す） */
@@ -148,8 +166,8 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                 <div key={t.key} className={cx("db-tab", t.key === state.active && "active", c && `db-env-${c.environment}`)} role="tab" aria-selected={t.key === state.active}>
                   <button type="button" className="db-tab-name" title={tabTitle(t, c)} onClick={() => setState({ ...state, active: t.key })}>
                     <span className="db-env-dot" aria-hidden />
-                    {t.kind === "sql" ? <SquareTerminal size={12} aria-hidden /> : <TabObjectIcon object={t.object} />}
-                    <span className="db-tab-label">{t.kind === "sql" ? t.title : t.name}</span>
+                    {t.kind === "sql" ? <SquareTerminal size={12} aria-hidden /> : t.kind === "er" ? <Network size={12} aria-hidden /> : <TabObjectIcon object={t.object} />}
+                    <span className="db-tab-label">{tabLabel(t)}</span>
                     {t.kind === "sql" && <PendingMark tabKey={t.key} />}
                   </button>
                   <CloseButton label="タブを閉じる" size={12} className="db-tab-close" onClick={() => void closeTab(t)} />
@@ -170,6 +188,10 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                 <div key={t.key} className="db-tab-page" hidden={t.key !== state.active}>
                   {t.kind === "sql" ? (
                     <SqlView tab={t} connection={c} />
+                  ) : t.kind === "er" ? (
+                    <Suspense fallback={<p className="db-er-loading small muted">読み込み中…</p>}>
+                      <ErView tab={t} connection={c} active={t.key === state.active} onChange={(patch) => setState(updateErTab(state, t.key, patch))} />
+                    </Suspense>
                   ) : t.object === "function" || t.object === "enum" ? (
                     <DefinitionView tab={{ ...t, object: t.object }} connection={c} />
                   ) : (
@@ -192,6 +214,9 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
             <MenuItem onSelect={() => actions.openSql(menu.menu!.value)}>
               <SquareTerminal size={14} /> SQL を開く
             </MenuItem>
+            <MenuItem onSelect={() => void openConnectionEr(menu.menu!.value)}>
+              <Network size={14} /> ER 図
+            </MenuItem>
             <MenuItem onSelect={() => setEditing(menu.menu!.value)}>
               <Pencil size={14} /> 編集…
             </MenuItem>
@@ -213,11 +238,20 @@ function PendingMark({ tabKey }: { tabKey: string }) {
   return pending ? <span className="db-tab-pending" data-tip="コミットしていない変更があります" aria-label="コミットしていない変更があります" /> : null;
 }
 
+/** タブの名前（ER 図はまわりを見ているテーブル、なければ場所） */
+const tabLabel = (t: DbClientTab) =>
+  t.kind === "sql" ? t.title : t.kind === "er" ? `ER 図${t.focus ? `: ${t.focus}` : t.path.schema || t.path.database ? `: ${t.path.schema ?? t.path.database}` : ""}` : t.name;
+
 const tabTitle = (t: DbClientTab, c: DbConnection | undefined) =>
-  [c ? `${c.name}（${DB_ENVIRONMENT_LABELS[c.environment]}）` : "", t.kind === "table" ? objectPathLabel(t.path, t.name) : t.title].filter(Boolean).join(" › ");
+  [
+    c ? `${c.name}（${DB_ENVIRONMENT_LABELS[c.environment]}）` : "",
+    t.kind === "table" ? objectPathLabel(t.path, t.name) : t.kind === "er" ? `${objectPathLabel(t.path, t.focus ?? undefined)} の ER 図` : t.title,
+  ]
+    .filter(Boolean)
+    .join(" › ");
 
 const breadcrumbOf = (t: DbClientTab, c: DbConnection | undefined) =>
-  [c?.name, ...(t.kind === "table" ? [t.path.database, t.path.schema, t.name] : [t.title])].filter(Boolean).join(" › ");
+  [c?.name, ...(t.kind === "sql" ? [t.title] : [t.path.database, t.path.schema, t.kind === "er" ? "ER 図" : t.name])].filter(Boolean).join(" › ");
 
 /**
  * SQL のタブを閉じる・切る前に、コミットしていなければ「コミット / 取り消す」を聞いてから接続を閉じる（取り消すなら接続を閉じて捨てる）。

@@ -6,11 +6,14 @@ import {
   DB_CONNECTION_NAME_MAX,
   DB_ENGINES,
   DB_ENVIRONMENTS,
+  DB_ER_MAX,
   DB_HISTORY_MAX,
   type CopyDbConnectionBody,
   type DbConnection,
   type DbConnectionPatch,
   type DbConnectionTestBody,
+  type DbErBody,
+  type DbErLayoutBody,
   type DbRowsBody,
   type DbSqlBody,
   type NewDbConnectionBody,
@@ -72,6 +75,15 @@ const rowsSchema = z.object({
   sort: z.array(z.object({ column: objectName, desc: z.boolean() })).max(10),
   offset: z.number().int().min(0),
 }) satisfies z.ZodType<DbRowsBody>;
+const erSchema = z.object({ path: objectPath, names: z.array(objectName).max(DB_ER_MAX).nullable() }) satisfies z.ZodType<DbErBody>;
+/** ER 図の場所のキー（erPlace の形: DB.スキーマ・main など） */
+const erPlace = z.string().min(1).max(1001);
+const erPoint = z.object({ x: z.number().finite(), y: z.number().finite() });
+/** 位置は描けるテーブルの数の数倍まで（選び直して隠したテーブルの位置も残す） */
+const erLayoutSchema = z.object({
+  place: erPlace,
+  positions: z.record(objectName, erPoint).refine((p) => Object.keys(p).length <= DB_ER_MAX * 10, "位置が多すぎます"),
+}) satisfies z.ZodType<DbErLayoutBody>;
 /** SQL のタブの接続の名前（画面が作る。英数字・- と _） */
 const sessionId = z.string().regex(/^[\w-]{1,64}$/, "SQL のタブの指定が正しくありません");
 const sqlSchema = z.object({ session: sessionId, sql: z.string().trim().min(1, "SQL を入れてください").max(1_000_000), write: z.boolean() }) satisfies z.ZodType<DbSqlBody>;
@@ -195,6 +207,27 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
   app.post(`${base}/:cid/outline`, withProject, withConnection, async (c) => {
     const { path } = z.object({ path: objectPath }).parse(await jsonBody(c));
     return c.json(await databases.outline(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path));
+  });
+
+  // ---- ER 図 ----
+
+  app.post(`${base}/:cid/er`, withProject, withConnection, async (c) => {
+    const { path, names } = erSchema.parse(await jsonBody(c));
+    return c.json(await databases.er(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path, names));
+  });
+
+  // 動かしたテーブルの位置（接続と場所ごと。消すと「自動で並べ直す」）
+  app.get(`${base}/:cid/er-layout`, withProject, withConnection, (c) => c.json(store.dbErLayouts.get(c.var.connection.id, erPlace.parse(queryOf(c, "place")))));
+
+  app.put(`${base}/:cid/er-layout`, withProject, withConnection, async (c) => {
+    const { place, positions } = erLayoutSchema.parse(await jsonBody(c));
+    store.dbErLayouts.set(c.var.connection.id, place, positions);
+    return c.body(null, 204);
+  });
+
+  app.delete(`${base}/:cid/er-layout`, withProject, withConnection, (c) => {
+    store.dbErLayouts.delete(c.var.connection.id, erPlace.parse(queryOf(c, "place")));
+    return c.body(null, 204);
   });
 
   // ---- SQL のタブ（タブごとの接続） ----

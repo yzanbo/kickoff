@@ -53,11 +53,12 @@
 | 連携先（PR・issue を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`）と、プロジェクトで使う GitHub のアカウント（gh に入っているものから選ぶ。gh の有効なアカウントは切り替えない） | `GitHubRemote`・`GitHubTarget`（`core/git/githubTarget.ts`）・選んだ remote はプロジェクトの `github_remote`・アカウントは `github_account`（`GitHubAccount`・`core/git/githubAccount.ts` の `runAsGitHubAccount`）・ワークツリーの PR を見張るかは `pr_watch`・設定の画面は `ProjectGitHub` | なし |
 | ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたこと。印と 1 つの確認で片付けを聞く） | `WorktreePrNotice`・見張り `WorktreePrWatch`（`core/git/prWatch.ts`）・閉じた確認の表 `pr_notice_dismissals`・画面 `features/worktree/prNotice/` | 「マージの通知」（macOS の通知と紛らわしい） |
 | issue・PR の結び付き（予定。どの issue・PR のためのチャットか。カードに `#番号`） | `Chat` の `github_repo` / `github_number`（issue と PR の番号はリポジトリの中で重ならないので、種類は持たない） | なし |
-| DB クライアント（プロジェクトの画面の上のタブ「DB」・チャットの右の欄の ▾ の「DB ▸」・別ウィンドウで開く。接続の一覧・テーブル・SQL（ER 図は段階 2 の予定）。要件定義書の「5.12 DB クライアント」） | タブ `db`（`#/projects/:id/db`）・画面 `features/database/`・コア `core/databases/`・HTTP `/api/projects/:id/db-connections/…`（接続元が 127.0.0.1 の頼みだけ受ける） | なし |
+| DB クライアント（プロジェクトの画面の上のタブ「DB」・チャットの右の欄の ▾ の「DB ▸」・別ウィンドウで開く。接続の一覧・テーブル・SQL・ER 図。要件定義書の「5.12 DB クライアント」） | タブ `db`（`#/projects/:id/db`）・画面 `features/database/`・コア `core/databases/`・HTTP `/api/projects/:id/db-connections/…`（接続元が 127.0.0.1 の頼みだけ受ける） | なし |
 | DB 接続（プロジェクトごとに登録する接続。ほかのプロジェクトから写せる） | `DbConnection` / 表 `db_connections`（v13）。パスワードは `secrets` の `db_connection:<id>:password`、AI 用のユーザーのパスワードは `:ai_password`（v14。段階 2 で `:ssh_password`）。接続を消すと、表のトリガー `db_connections_drop_secrets` がその接続の秘密の値も消す（プロジェクトを消したときの連鎖の削除でも効く） | なし |
 | DB の種類 | `DbEngine`（`sqlite` / `postgres` / `mysql`。MariaDB は `mysql`） | なし |
 | 環境（DB 接続の環境。色・読み取り専用・書き込みの前の確かめ・AI の既定をまとめて決める） | `DbEnvironment`（`local` / `dev` / `staging` / `production`） | なし |
 | AI に見せるか（DB 接続ごと。見せない / 承認して見せる / 自由に見せる） | `DbAiAccess`（`none` / `ask` / `allow`。既定は環境から: ローカル・開発 = `allow`、ステージング = `ask`、本番 = `none`）・AI のツール `kickoff_db`（`db_connections` / `db_objects` / `db_describe` / `db_query`。中身は `core/databases/aiTools.ts` の `DbAiTools`、MCP は `providers/claude/dbTools.ts`。すべて `allowedTools` に入れ、ツールの中で `ai_access` を見て、見せない接続は名前でも断り、承認して見せる接続の `db_query` は承認カードで聞く（権限モードによらず効く））・AI 用のユーザー `ai_username`（v14。あれば AI の SQL だけこのユーザーでつなぐ）・見せない接続の守り（AI がそのホスト・URL・SQLite のファイルを使う Bash と、ファイルのツールで SQLite のファイルを開くのを PreToolUse で断る。`chat/guard/hiddenDb.ts`） | なし |
+| ER 図（DB クライアントのタブ。接続と場所（DB・スキーマ）ごとに 1 つ） | タブ `DbErTab`（`lib/dbClientTabs.ts`。まわりを見る中心 `focus`・段の数 `depth`・描くテーブル `names`）・中身 `DbErSchema` / `DbErTable`（`POST …/db-connections/:cid/er`）・関係 `ErRelation`（外部キーと、制約のない関係の推測 `inferred`。多さ `ErCardinality`）・動かした位置 `DbErPositions` / 表 `db_er_layouts`（v15）・店 `store.dbErLayouts` | なし |
 | SQL の履歴（接続ごと。AI が流したものに印） | `DbQueryHistoryEntry` / 表 `db_query_history`（v14。`ran_by` = `user` / `ai`、AI なら `chat_id`。接続ごとに新しい `DB_HISTORY_MAX`（500）件だけ残す）・店 `store.dbQueryHistory` | なし |
 | DB ワーカー（DB の接続・SQL の実行・結果の整形（段階 2 で SSH トンネル・準備のコマンド）を動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める） | `core/databases/worker/`（Electron では `out/main/dbWorker.js` を `ELECTRON_RUN_AS_NODE=1` で fork、`npm run daemon`・テストでは `worker/main.ts` を tsx で。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
 
@@ -252,6 +253,15 @@ CREATE TABLE db_query_history (
   ran_at TEXT NOT NULL DEFAULT (NOW)
 ) STRICT;
 -- v14: CREATE INDEX idx_db_query_history_connection ON db_query_history(connection_id, id);
+
+-- v15: ER 図で動かした位置（接続と場所ごと。「自動で並べ直す」で消す）
+CREATE TABLE db_er_layouts (
+  connection_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
+  place TEXT NOT NULL CHECK (place <> ''),   -- 場所のキー（@shared/database/erDiagram の erPlace: DB.スキーマ。SQLite は main）
+  positions TEXT NOT NULL CHECK (json_valid(positions) AND json_type(positions) = 'object'),  -- テーブル名 → { x, y }
+  updated_at TEXT NOT NULL DEFAULT (NOW),
+  PRIMARY KEY (connection_id, place)
+) STRICT;
 ```
 
 ### 予定: GitHub 連携（未実装）
@@ -268,7 +278,7 @@ github_number INTEGER CHECK (github_number > 0),   -- issue・PR の番号
 
 ### 予定: DB クライアントの段階 2・段階 3（未実装）
 
-段階 1（登録・接続・表の中身・SQL・本番の守り）は v13 の `db_connections`、段階 2 の AI の読み取り（AI 用のユーザー）と SQL の履歴は v14 で作った。要件定義書の「5.12 DB クライアント」の段階 2 以降を作るときに `MIGRATIONS` の末尾に足す（詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
+段階 1（登録・接続・表の中身・SQL・本番の守り）は v13 の `db_connections`、段階 2 の AI の読み取り（AI 用のユーザー）と SQL の履歴は v14、ER 図の位置は v15 で作った。要件定義書の「5.12 DB クライアント」の段階 2 以降を作るときに `MIGRATIONS` の末尾に足す（詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
 
 ```sql
 -- db_connections に足す（段階 2: つなぎにくい DB の準備・接続の手順メモ）
@@ -282,15 +292,6 @@ my_ip_url TEXT CHECK (my_ip_url <> ''),     -- {my_ip} の問い合わせ先（N
 check_on TEXT CHECK (check_on <> ''),       -- 次に確かめる日（YYYY-MM-DD）
 check_note TEXT CHECK (check_note <> ''),
 memo_path TEXT CHECK (memo_path <> ''),     -- 接続の手順メモ（メモフォルダからの相対。いくつもの接続で同じでよい。メモの名前の変更・移動で付け替える）
-
--- ER 図で動かした位置（接続・スキーマごと。「自動で並べ直す」で消す）
-CREATE TABLE db_er_layouts (
-  connection_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
-  schema_name TEXT NOT NULL CHECK (schema_name <> ''),  -- PG はスキーマ名、MySQL は DB 名、SQLite は main
-  positions TEXT NOT NULL CHECK (json_valid(positions) AND json_type(positions) = 'object'),  -- テーブル名 → { x, y }
-  updated_at TEXT NOT NULL DEFAULT (NOW),
-  PRIMARY KEY (connection_id, schema_name)
-) STRICT;
 ```
 
 - 準備のコマンドの記録（いつ・どのコマンド・成功 / 失敗だけ。出力は残さない）と、初めて流すとき・中身を変えたあとに確かめたことの覚え（確かめた中身の指紋など）の置き場所は、段階 2 を作るときに決める。

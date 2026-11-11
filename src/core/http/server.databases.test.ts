@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
-import type { BusEvent, DbConnection, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
+import type { BusEvent, DbConnection, DbErSchema, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
 import { AUTH, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import { gitRepo } from "../testing/gitRepo.js";
@@ -221,6 +221,41 @@ test("DB の木とテーブル: DB・テーブルとビュー・構造・行（�
   assert.equal(definition.status, 400);
   assert.match(definition.body.error, /SQLite には関数・列挙型がありません/);
   assert.equal((await call("POST", `${base}/definition`, { path: main, kind: "table", name: "users" })).status, 400);
+});
+
+test("ER 図: テーブル・ビューの構造（一意の組・外部キー）と、選んだものだけ。動かした位置は接続と場所ごとに覚えて消せる", async () => {
+  const { call, project, store } = setup();
+  makeSqlite(project.repo_path);
+  const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
+  const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
+  const main = { database: "main", schema: null };
+
+  const all = (await call("POST", `${base}/er`, { path: main, names: null })).body as DbErSchema;
+  assert.deepEqual(all.names, ["posts", "user_names", "users"]);
+  const posts = all.tables.find((t) => t.name === "posts")!;
+  assert.deepEqual(posts.foreign_keys.map((f) => [f.columns, f.ref_table]), [[["user_id"], "users"]]);
+  assert.deepEqual(posts.unique_sets, [["id"]]);
+  assert.deepEqual(posts.columns[1], { name: "user_id", type: "INTEGER", nullable: true, primary_key: false });
+  assert.equal(all.tables.find((t) => t.name === "user_names")!.kind, "view");
+
+  // 選んだもの（ないものは飛ばす）
+  const picked = (await call("POST", `${base}/er`, { path: main, names: ["users", "missing"] })).body as DbErSchema;
+  assert.deepEqual(picked.tables.map((t) => t.name), ["users"]);
+  assert.equal(picked.names.length, 3);
+
+  const layout = `${base}/er-layout`;
+  assert.deepEqual((await call("GET", `${layout}?place=main`)).body, {});
+  assert.equal((await call("PUT", layout, { place: "main", positions: { users: { x: 10, y: 20.5 } } })).status, 204);
+  assert.equal((await call("PUT", layout, { place: "other", positions: { posts: { x: 0, y: 0 } } })).status, 204);
+  assert.deepEqual((await call("GET", `${layout}?place=main`)).body, { users: { x: 10, y: 20.5 } });
+  assert.equal((await call("PUT", layout, { place: "main", positions: { users: { x: "a", y: 0 } } })).status, 400);
+  assert.equal((await call("GET", layout)).status, 400);
+  assert.equal((await call("DELETE", `${layout}?place=main`)).status, 204);
+  assert.deepEqual((await call("GET", `${layout}?place=main`)).body, {});
+  assert.deepEqual(store.dbErLayouts.get(conn.id, "other"), { posts: { x: 0, y: 0 } });
+  // 接続を消すと位置も消える
+  await call("DELETE", base);
+  assert.deepEqual(store.dbErLayouts.get(conn.id, "other"), {});
 });
 
 test("SQL のタブ: 文を流す・トランザクションの途中の印・コミットと取り消し・閉じると取り消す", async () => {

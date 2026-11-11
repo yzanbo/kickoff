@@ -4,7 +4,7 @@
 
 ## 置き場所と部品
 
-- `DatabaseClient`（左に接続の一覧と木 `DbTree`、右にタブ（テーブル `TableView` / 関数・列挙型 `DefinitionView` / SQL `SqlView`））を 1 つ作り、置き場所（`place`: プロジェクトの DB タブ = `project-<ID>`、右の欄と別ウィンドウ = `chat-<右の欄のチャット>`（移しても同じタブのまま））ごとに開いているタブ（`dbClientTabs(place)`。形と操作は純粋関数の `lib/dbClientTabs.ts`）と木の開き具合（`dbTreeOpen(place)`）を覚える。`worktree` は SQLite のファイルを開く作業場所（プロジェクトの画面では、ファイル・検索・変更・履歴のタブで選んだ作業場所、右の欄ではそのチャットの作業場所。null なら本体）。
+- `DatabaseClient`（左に接続の一覧と木 `DbTree`、右にタブ（テーブル `TableView` / 関数・列挙型 `DefinitionView` / SQL `SqlView` / ER 図 `er/ErView`））を 1 つ作り、置き場所（`place`: プロジェクトの DB タブ = `project-<ID>`、右の欄と別ウィンドウ = `chat-<右の欄のチャット>`（移しても同じタブのまま））ごとに開いているタブ（`dbClientTabs(place)`。形と操作は純粋関数の `lib/dbClientTabs.ts`）と木の開き具合（`dbTreeOpen(place)`）を覚える。`worktree` は SQLite のファイルを開く作業場所（プロジェクトの画面では、ファイル・検索・変更・履歴のタブで選んだ作業場所、右の欄ではそのチャットの作業場所。null なら本体）。
 - 下の部品が読む操作（プロジェクト・置き場所・作業場所・タブを開く・接続を編集）は `DbClientContext`（`dbClientContext.ts` の `useDbClient`）で配る。
 - 左の一覧の幅は `DB_LIST_WIDTH`（つまみ）、隠すかは `DB_LIST_HIDDEN`。欄の幅が 560px より狭いと一覧を隠し、左上のボタンで重ねて出し、タブの下にパンくず（接続 › DB › スキーマ › テーブル）を出す（`ResizeObserver` で `DatabaseClient` の幅を測る）。
 - 接続の登録・編集は `ConnectionDialog`（URL を貼ると欄を埋める `@shared/database/dbUrl.ts` の `parseDbUrl`。種類・環境（`DB_ENVIRONMENT_DEFAULTS`: 本番は読み取り専用・AI に見せない）・SSL・「つながるか試す」・チャットの AI に見せるか（見せない / 承認して見せる / 自由に見せる。見せないは AI がコマンド・ファイルで直接つなぐのも断るが、わざと避ける書き方までは見抜けないことを説明に書く）と、見せるときだけ AI 用のユーザーとパスワード（任意。AI が SQL を流すときだけそのユーザーでつなぐ。パスワードは `has_ai_password` だけが届く））。ほかのプロジェクトの接続を写すのは `CopyConnectionDialog`（パスワードは「パスワードも写す」のときだけ）。接続の一覧は `stores/dbConnections.ts`（SSE の `db_connections` で取り直す。中身は SSE に載せない）。
@@ -13,7 +13,7 @@
 
 ## 木（`DbTree`）
 
-接続 → DB（PostgreSQL・MySQL）→ スキーマ（PostgreSQL）→ テーブル・ビュー・関数・列挙型の段（`DbTreeObjects.tsx`）→ テーブル・ビューの中の段。行の部品と読み込み（`TreeRow` / `TreeHint` / `TreeError` / `useNodeLoad`）は `DbTreeRow.tsx`。段ごとに開いたときに読む（`useNodeLoad`。失敗の `ApiError.code` を残す）。ワークツリーにその SQLite のファイルがない（`DB_NOT_IN_WORKTREE`）ときは失敗の行に「本体のものを開く」を出し、その接続だけ本体のファイルを開く（`useMain`。画面を閉じるまで）。接続の右クリック: SQL を開く・編集…・消す…（パスワードも消える。DB の中身には触らない）。
+接続 → DB（PostgreSQL・MySQL）→ スキーマ（PostgreSQL）→ テーブル・ビュー・関数・列挙型の段（`DbTreeObjects.tsx`）→ テーブル・ビューの中の段。行の部品と読み込み（`TreeRow` / `TreeHint` / `TreeError` / `useNodeLoad`）は `DbTreeRow.tsx`。段ごとに開いたときに読む（`useNodeLoad`。失敗の `ApiError.code` を残す）。ワークツリーにその SQLite のファイルがない（`DB_NOT_IN_WORKTREE`）ときは失敗の行に「本体のものを開く」を出し、その接続だけ本体のファイルを開く（`useMain`。画面を閉じるまで）。接続の右クリック: SQL を開く・ER 図（つないでいる DB。PostgreSQL は public のスキーマ）・編集…・消す…（パスワードも消える。DB の中身には触らない）。DB・スキーマの右クリックは「ER 図」（PostgreSQL の DB は public のスキーマ）、テーブル・ビューの右クリックは「開く」「この表のまわりの ER 図」（`DbTree` の 1 つのメニュー。段は `TreeOpen.menu` で右クリックした場所 `TreeMenuTarget` を知らせる）。
 
 - テーブル・ビューは、名前を押すとタブを開き（`openOnClick`）、矢印を押す・→ / ← で中の段を開閉する。中の段は列（主キーは琥珀の鍵 `.db-tree-pk`、右に型と NOT NULL。名前を先に見せ、入らなければ型の方を省く）と、あるときだけ開閉のまとまり（インデックス・外部キー・トリガー。数を添える）。中身は `api.dbTable`（テーブルのタブと同じ詳細）。中の行を押すとそのテーブルのタブを開く。開き具合は段と同じく `dbTreeOpen(place)`（キーは `t:<接続>:<DB>:<スキーマ>:<名前>` と、まとまりは後ろに `:idx` / `:fk` / `:trg`）。
 - 関数（PostgreSQL は `名前(引数)` で同じ名前の別の引数も分ける。MySQL / MariaDB は関数とプロシージャを名前で 1 つ）・列挙型（PostgreSQL だけ。MySQL の ENUM は列の型）は葉で、押すと定義のタブを開く。アイコンは木とタブで同じ（`TabObjectIcon`）。SQLite には出ない。
@@ -37,6 +37,15 @@
 - 読み取り専用の接続では帯に「読み取り専用」を出し、書く文はコアが断る（1 段目は文の判定 `isReadOnlyStatement`、2 段目は DB 側の読み取り専用）。
 - 「書き込む」（`useSqlWrite`。要件 5.12 の本番の守り）: 読み取り専用の接続で、このタブだけ読み取り専用を外す（API の `write: true`。接続の設定は変えない）。押すと環境の名前（「本番」など）を打たせ、違えば外さない。外している間は上に赤い帯（「読み取り専用に戻す」）とタブの枠の赤い線、流すたびに流す文を見せて確かめる（`confirmDialog`。やめたら流さない）。10 分何もしない（流す・打つがない）と戻し、トランザクションの途中ならコミットか取り消しのあとに戻す（コミット・取り消しは何かしたに数えない。数えると、待っていた戻しが 10 分先に延びる）（読み取り専用に戻すとワーカーの接続をつなぎ直すため。途中は「読み取り専用に戻す」「書き込む」も押せない）。覚えないので、タブを閉じる・読み込み直す・別ウィンドウへ移すと戻る。
 
+## ER 図のタブ（`er/`）
+
+- `@xyflow/react`（図）と `elkjs`（自動で並べる計算。Web Worker の `elk-worker.min.js?url` で動かす）は、`DatabaseClient` が `ErView` を `lazy` で読むので、ER 図を開くまで読み込まない。xyflow の CSS も同じ塊に入る。
+- タブは接続と場所（DB・スキーマ）ごとに 1 つ（`DbErTab`。`lib/dbClientTabs.ts` の `openErTab` / `updateErTab`。キーは `erTabKey`）。まわりを見る中心 `focus`・段の数 `depth`（1・2・3・すべて = `ER_ALL_DEPTH`）・描くテーブル `names`（null なら全部）をタブに覚える（読み込み直しても残る）。開き直すと `focus` を付け替え、選んで描いているテーブルに `focus` がなければ選び直す。
+- 状態と操作は `useErDiagram`（構造 `api.dbEr` と覚えた位置 `api.dbErLayout` を読み、関係 `erRelations`（推測の切り替え）・まわり `erNeighborhood`・名前の絞り込みを当て、覚えた位置も自動の位置もないテーブルがあれば見せているものを `erLayout.ts` の `erAutoLayout`（elk の layered。左から右へ、指される親が右）で並べる。覚えた位置はそのまま使う）。テーブルが `DB_ER_AUTO_MAX`（100）個を超える DB では、初めは描かずに `ErPicker` で選ばせる。「この表のまわり」から開いたら、そのテーブルの詳細（`api.dbTable`）から直接つながるテーブルを選んで描く。
+- 描く: 箱は `ErTableNode`（見出し・列（主キーは琥珀の鍵・外部キーはつなぐ印・型・NULL を許せば「?」）。ビューは斜体）。線は列ごとの見えない取っ手（線をつなぐ列だけ。列を出さないときは見出し）につなぎ、左右は箱の位置で決める。端の印はカラスの足（`ErMarkers`: 子の側は 0 か 1 / 0 以上の多、親の側は必ず 1 / NULL を許せば 0 か 1）、推測の関係は点線。乗せると、そのテーブルとつながったテーブル・線を強く（線に列の名前）、ほかを薄く。見えている箱だけ描く（`onlyRenderVisibleElements`）。
+- 操作: 押すとテーブルのタブ（ダブルクリックと分けるため 250ms 待つ）、ダブルクリックでそのテーブルのまわりに絞る。ドラッグで動かすと、見せているテーブルの位置すべてを覚える（`api.saveDbErLayout`。ほかの覚えた位置は残す）。道具の行（`ErToolbar`）: 名前の絞り込み・まわりの段と「全体」・表示の細かさ（すべての列 / キーだけ / 名前だけ。`erColumnsOf`）・推測の関係・「テーブルを選ぶ」（`ErPicker` のポップオーバー。100 個以下なら「すべて描く」）・「自動で並べ直す」（覚えた位置を消す）・「Mermaid でコピー」・「メモに書き出す」（見えているものを `erMermaid` の文にして、メモのフォルダの一番上に「ER 図 <接続> <場所>.md」を作り、メモのタブで開くか聞く）・読み直す。
+- 本番の接続の図は環境の色の枠（`.db-er.db-env-production::after`。図の地が inset の影を隠すので上に重ねる）。
+
 ## CSS
 
-`styles/database/`（`db-client.css` = 枠・一覧・木・タブ・環境の色 `--db-env`（ローカル灰・開発緑・ステージング琥珀・本番赤。`.db-env-<環境>`）、`db-table.css` = `DataGrid` とテーブルのタブ、`db-sql.css` = SQL のタブと接続のダイアログ）。
+`styles/database/`（`db-client.css` = 枠・一覧・木・タブ・環境の色 `--db-env`（ローカル灰・開発緑・ステージング琥珀・本番赤。`.db-env-<環境>`）、`db-table.css` = `DataGrid` とテーブルのタブ、`db-sql.css` = SQL のタブと接続のダイアログ、`db-er.css` = ER 図のタブ（道具の行・箱・線と端の印・本番の枠）、`db-er-picker.css` = 描くテーブルを選ぶ一覧）。

@@ -120,6 +120,8 @@
 @import "./database/db-client.css";
 @import "./database/db-table.css";
 @import "./database/db-sql.css";
+@import "./database/db-er.css";
+@import "./database/db-er-picker.css";
 @import "./chat/open-place.css";
 @import "./terminal/terminal.css";
 @import "./panel/bottom-panel.css";

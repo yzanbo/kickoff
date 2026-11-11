@@ -20,7 +20,21 @@ export interface DbSqlTab {
   title: string;
 }
 
-export type DbClientTab = DbTableTab | DbSqlTab;
+/**
+ * ER 図のタブ（接続・場所ごとに 1 つ。focus: まわりだけ見るテーブル（null なら全体）・depth: その段の数・
+ * names: 描くテーブル（null なら DB_ER_AUTO_MAX 以下のときだけすべて。多い DB では選ばせる））
+ */
+export interface DbErTab {
+  key: string;
+  kind: "er";
+  connection_id: number;
+  path: DbObjectPath;
+  focus: string | null;
+  depth: number;
+  names: string[] | null;
+}
+
+export type DbClientTab = DbTableTab | DbSqlTab | DbErTab;
 
 export interface DbClientTabs {
   tabs: DbClientTab[];
@@ -38,6 +52,10 @@ const isTab = (v: unknown): v is DbClientTab => {
   const t = v as Record<string, unknown> | null;
   if (!t || typeof t !== "object" || typeof t.key !== "string" || typeof t.connection_id !== "number") return false;
   if (t.kind === "sql") return typeof t.title === "string";
+  if (t.kind === "er") {
+    const namesOk = t.names === null || (Array.isArray(t.names) && t.names.every((n) => typeof n === "string"));
+    return isPath(t.path) && (t.focus === null || typeof t.focus === "string") && typeof t.depth === "number" && namesOk;
+  }
   return t.kind === "table" && typeof t.name === "string" && isPath(t.path) && DB_OBJECT_KINDS.includes(t.object as DbObjectKind);
 };
 
@@ -94,3 +112,25 @@ const newSqlKey = () => `sql-${Date.now().toString(36)}-${Math.random().toString
 /** 接続の新しい SQL のタブを開く（DB クライアントの中と、右の欄の ▾ のメニューから） */
 export const openNewSqlTab = (state: DbClientTabs, connectionId: number): DbClientTabs =>
   openDbTab(state, { key: newSqlKey(), kind: "sql", connection_id: connectionId, title: nextSqlTitle(state) });
+
+/** ER 図のタブのキー（接続・場所ごとに 1 つ） */
+export const erTabKey = (connectionId: number, path: DbObjectPath) => `er:${connectionId}:${path.database ?? ""}:${path.schema ?? ""}`;
+
+/**
+ * ER 図のタブを開く（同じ場所のタブがあれば、focus を付け替えて選ぶ。focus がなければ全体）。
+ * 選んで描いているテーブルに focus がなければ選び直す（多い DB では focus のまわりを選び直す）
+ */
+export function openErTab(state: DbClientTabs, connectionId: number, path: DbObjectPath, focus: string | null): DbClientTabs {
+  const key = erTabKey(connectionId, path);
+  const found = state.tabs.find((t): t is DbErTab => t.key === key && t.kind === "er");
+  if (found) {
+    const names = focus && found.names && !found.names.includes(focus) ? null : found.names;
+    return { tabs: state.tabs.map((t) => (t === found ? { ...found, focus, names } : t)), active: key };
+  }
+  return openDbTab(state, { key, kind: "er", connection_id: connectionId, path, focus, depth: 1, names: null });
+}
+
+/** ER 図のタブの絞り込み（focus・段の数・描くテーブル）を変える */
+export function updateErTab(state: DbClientTabs, key: string, patch: Partial<Pick<DbErTab, "focus" | "depth" | "names">>): DbClientTabs {
+  return { ...state, tabs: state.tabs.map((t) => (t.key === key && t.kind === "er" ? { ...t, ...patch } : t)) };
+}
