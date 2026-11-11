@@ -1,4 +1,4 @@
-import { MessageSquarePlus, MessagesSquare, OctagonPause, TriangleAlert } from "lucide-react";
+import { MessageSquarePlus, MessagesSquare, OctagonPause } from "lucide-react";
 import { useEffect, useMemo, type MutableRefObject } from "react";
 import { createPortal } from "react-dom";
 import type { Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
@@ -8,6 +8,7 @@ import { chatAttachmentsDraft, chatDraft, COMPOSER_COMPACT } from "@/lib/storage
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
 import { settingAttachmentDraft } from "@/features/chat/attachments/useComposerFiles";
+import { BusyNeighborsNotice } from "@/features/worktree/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { Composer } from "@/features/chat/composer/Composer";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
@@ -116,12 +117,7 @@ export function ChatComposerArea({
         同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる）。押して開くピルの列とは役割が違うので、
         ピルに混ぜず、その上の 1 行に分ける（以前はピルの横に並べていて、ピルの一つに見えた・狭いと折り返してピルの間に入った）
       */}
-      {busyNeighbors > 0 && (
-        <p className="composer-notice small warn-text">
-          <TriangleAlert size={13} aria-hidden />
-          <span>この作業場所では、ほかのチャット {busyNeighbors} 件も作業中です。同じファイルを触ると作業がぶつかることがあります。</span>
-        </p>
-      )}
+      <BusyNeighborsNotice count={busyNeighbors} />
       {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる（外に描く先があればそこへ。一番下へ戻るボタンは流れの側に残す） */}
       {portal?.target ? createPortal(chips, portal.target) : chips}
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順。外に描く先があれば、そこの入力欄の上へ） */}
