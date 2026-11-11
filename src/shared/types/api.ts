@@ -300,6 +300,11 @@ export interface CopyDbConnectionBody {
   copy_password: boolean;
 }
 
+/** プロジェクトから見つけた接続を取り込む（POST …/db-connections/import。パスワードはコアが見つけた所から読み直す） */
+export interface DbImportBody {
+  items: { key: string; name: string; environment: DbEnvironment }[];
+}
+
 /** テーブルの行を読む（POST …/db-connections/:cid/rows。DB_TABLE_PAGE_ROWS 行まで） */
 export interface DbRowsBody {
   path: DbObjectPath;

@@ -8,6 +8,8 @@ import type {
   DbDefinition,
   DbErPositions,
   DbErSchema,
+  DbImportBody,
+  DbImportCandidate,
   DbObject,
   DbObjectPath,
   DbQueryHistoryEntry,
@@ -41,6 +43,8 @@ export const databasesApi = {
   updateDbConnection: (projectId: number, id: number, patch: DbConnectionPatch) => request<DbConnection>("PATCH", one(projectId, id), patch),
   deleteDbConnection: (projectId: number, id: number) => request<void>("DELETE", one(projectId, id)),
   reorderDbConnections: (projectId: number, ids: number[]) => request<DbConnection[]>("PUT", `${base(projectId)}/order`, { ids }),
+  dbImportCandidates: (projectId: number) => request<DbImportCandidate[]>("GET", `${base(projectId)}/import`),
+  importDbConnections: (projectId: number, body: DbImportBody) => request<DbConnection[]>("POST", `${base(projectId)}/import`, body),
   copyDbConnection: (projectId: number, body: CopyDbConnectionBody) => request<DbConnection>("POST", `${base(projectId)}/copy`, body),
   testDbConnection: (projectId: number, body: DbConnectionTestBody, worktree: string | null) =>
     request<DbConnectionTestResult>("POST", at(`${base(projectId)}/test`, worktree), body),

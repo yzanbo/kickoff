@@ -3,6 +3,7 @@ import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import {
   DB_AI_ACCESSES,
+  DB_ENVIRONMENT_DEFAULTS,
   DB_CONNECTION_NAME_MAX,
   DB_ENGINES,
   DB_ENVIRONMENTS,
@@ -15,6 +16,7 @@ import {
   type DbConnectionTestBody,
   type DbErBody,
   type DbErLayoutBody,
+  type DbImportBody,
   type DbRowFilter,
   type DbRowsBody,
   type DbSqlBody,
@@ -26,6 +28,7 @@ import { Invalid, NotFound } from "../errors.js";
 import { idParam, jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
+import { scanProjectDbs, toImportCandidates } from "../../databases/import/index.js";
 
 // ---- 入力の形 ----
 
@@ -68,6 +71,12 @@ const testSchema = z.object({
   connection_id: z.number().int().positive().optional(),
 }) satisfies z.ZodType<DbConnectionTestBody, unknown>;
 const historyLimit = z.coerce.number().int().min(1).max(DB_HISTORY_MAX).default(200);
+const importSchema = z.object({
+  items: z
+    .array(z.object({ key: z.string().min(1).max(3000), name: connectionShape.name, environment: connectionShape.environment }))
+    .min(1)
+    .max(50),
+}) satisfies z.ZodType<DbImportBody, unknown>;
 const copySchema = z.object({ from_id: z.number().int().positive(), copy_password: z.boolean() }) satisfies z.ZodType<CopyDbConnectionBody>;
 const objectPath = z.object({ database: z.string().max(500).nullable(), schema: z.string().max(500).nullable() });
 const objectName = z.string().min(1).max(500);
@@ -159,6 +168,48 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     const password = copy_password ? store.dbConnections.password(from.id) : null;
     const ai_password = copy_password ? store.dbConnections.aiPassword(from.id) : null;
     return c.json(store.dbConnections.create(c.var.project.id, { ...fields, password, ai_password }), 201);
+  });
+
+  // プロジェクトから取り込む: 見つけた接続の案（パスワードは返さない）と、選んだ案を作る（パスワードは見つけた所から読み直す）
+  const scanImports = (project: Project) =>
+    scanProjectDbs(project.repo_path, (absolute) => {
+      try {
+        databases.checkFile(absolute, project);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  app.get(`${base}/import`, withProject, async (c) => {
+    const found = await scanImports(c.var.project);
+    return c.json(toImportCandidates(found, store.dbConnections.list(c.var.project.id), c.var.project.repo_path));
+  });
+  app.post(`${base}/import`, withProject, async (c) => {
+    const { items } = importSchema.parse(await jsonBody(c));
+    const found = new Map((await scanImports(c.var.project)).map((f) => [f.key, f]));
+    const picked = items.map((item) => {
+      const f = found.get(item.key);
+      if (!f) throw new NotFound("取り込む接続が見つかりません。プロジェクトの中が変わったかもしれないので、開き直してください");
+      return { item, f };
+    });
+    const created = picked.map(({ item, f }) => {
+      const body: NewDbConnectionBody = {
+        name: item.name,
+        engine: f.engine,
+        environment: item.environment,
+        host: f.host,
+        port: f.port,
+        database: f.database,
+        username: f.username,
+        file_path: f.file_path,
+        ssl: f.ssl,
+        ...DB_ENVIRONMENT_DEFAULTS[item.environment],
+        password: f.password,
+      };
+      checkFields(c.var.project, body);
+      return body;
+    });
+    return c.json(created.map((body) => store.dbConnections.create(c.var.project.id, body)), 201);
   });
 
   app.post(`${base}/test`, withProject, async (c) => {

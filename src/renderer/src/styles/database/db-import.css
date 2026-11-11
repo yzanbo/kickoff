@@ -1,0 +1,82 @@
+/* ==== プロジェクトから接続を取り込むダイアログ（ImportConnectionDialog） ==== */
+
+/* 共通の .dialog.app-dialog の幅に負けないよう同じ詳細度で */
+.dialog.app-dialog.db-import-dialog {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.db-import-list {
+  display: grid;
+  gap: 6px;
+  max-height: 55vh;
+  overflow: auto;
+}
+
+.db-import-empty {
+  margin: 0;
+}
+
+.db-import-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.db-import-row > input[type="checkbox"] {
+  margin-top: 8px;
+}
+
+.db-import-row.off .db-import-main {
+  opacity: 0.6;
+}
+
+.db-import-main {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.db-import-fields {
+  display: flex;
+  gap: 6px;
+}
+
+.db-import-fields input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.db-import-fields select {
+  flex: none;
+  width: auto;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.db-import-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.db-import-source {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.db-import-registered {
+  color: var(--warn);
+}
+
+.db-import-note {
+  margin: 0;
+  color: var(--warn);
+}
