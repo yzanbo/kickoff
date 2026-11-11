@@ -29,6 +29,8 @@
   position: relative;
   display: flex;
   flex: 1;
+  /* 右の欄のタブの中身（ブロックの入れ物）でも高さいっぱいに */
+  height: 100%;
   min-width: 0;
   min-height: 0;
   container-type: inline-size;
@@ -189,6 +191,18 @@
 
 .db-tabs > .icon-button {
   align-self: center;
+}
+
+/* タブの列の右端（右の欄の「別ウィンドウで開く」） */
+.db-tabs-end {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-left: auto;
+}
+
+.db-tabs-end:empty {
+  display: none;
 }
 
 .db-tab {

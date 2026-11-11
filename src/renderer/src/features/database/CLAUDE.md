@@ -1,14 +1,15 @@
 # DB クライアント（`features/database`）
 
-プロジェクトの「DB」タブ（`ProjectPage` の `tab === "db"`）で使う DB クライアント。要件は `docs/requirements.md` の 5.12、コア（表 `db_connections`・API・DB ワーカー）は `src/core/CLAUDE.md` の「DB クライアント」。この Mac のアプリの中だけで使う（コアの API は 127.0.0.1 からだけ受け、画面もブラウザ・スマホから開いたときは「DB」タブを出さずボードにする。`window.kickoff` があるか）。
+プロジェクトの「DB」タブ（`ProjectPage` の `tab === "db"`）・チャットの画面の右の欄の DB のタブ・その別ウィンドウで使う DB クライアント。要件は `docs/requirements.md` の 5.12、コア（表 `db_connections`・API・DB ワーカー）は `src/core/CLAUDE.md` の「DB クライアント」。この Mac のアプリの中だけで使う（コアの API は 127.0.0.1 からだけ受け、画面もブラウザ・スマホから開いたときは「DB」タブを出さずボードにする。`window.kickoff` があるか）。
 
 ## 置き場所と部品
 
-- `DatabaseClient`（左に接続の一覧と木 `DbTree`、右にタブ（テーブル `TableView` / SQL `SqlView`））を 1 つ作り、置き場所（`place`: プロジェクトの DB タブ = `project-<ID>`。右の欄・別ウィンドウはこれから）ごとに開いているタブ（`dbClientTabs(place)`。形と操作は純粋関数の `lib/dbClientTabs.ts`）と木の開き具合（`dbTreeOpen(place)`）を覚える。`worktree` は SQLite のファイルを開く作業場所（プロジェクトの画面では、ファイル・検索・変更・履歴のタブで選んだ作業場所。null なら本体）。
+- `DatabaseClient`（左に接続の一覧と木 `DbTree`、右にタブ（テーブル `TableView` / SQL `SqlView`））を 1 つ作り、置き場所（`place`: プロジェクトの DB タブ = `project-<ID>`、右の欄と別ウィンドウ = `chat-<右の欄のチャット>`（移しても同じタブのまま））ごとに開いているタブ（`dbClientTabs(place)`。形と操作は純粋関数の `lib/dbClientTabs.ts`）と木の開き具合（`dbTreeOpen(place)`）を覚える。`worktree` は SQLite のファイルを開く作業場所（プロジェクトの画面では、ファイル・検索・変更・履歴のタブで選んだ作業場所、右の欄ではそのチャットの作業場所。null なら本体）。
 - 下の部品が読む操作（プロジェクト・置き場所・作業場所・タブを開く・接続を編集）は `DbClientContext`（`dbClientContext.ts` の `useDbClient`）で配る。
 - 左の一覧の幅は `DB_LIST_WIDTH`（つまみ）、隠すかは `DB_LIST_HIDDEN`。欄の幅が 560px より狭いと一覧を隠し、左上のボタンで重ねて出し、タブの下にパンくず（接続 › DB › スキーマ › テーブル）を出す（`ResizeObserver` で `DatabaseClient` の幅を測る）。
 - 接続の登録・編集は `ConnectionDialog`（URL を貼ると欄を埋める `@shared/database/dbUrl.ts` の `parseDbUrl`。種類・環境（`DB_ENVIRONMENT_DEFAULTS`: 本番は読み取り専用・AI に見せない）・SSL・「つながるか試す」）。ほかのプロジェクトの接続を写すのは `CopyConnectionDialog`（パスワードは「パスワードも写す」のときだけ）。接続の一覧は `stores/dbConnections.ts`（SSE の `db_connections` で取り直す。中身は SSE に載せない）。
 - パスワードは送るだけで、画面には保存したか（`has_password`）だけが届く。
+- 右の欄（`features/panel/CLAUDE.md` のタブの種類 `database`。欄に 1 つ）: ▾ のメニューの「DB ▸」（`DbMenuItems`: DB クライアントを開く ｜ 接続ごとに、新しい SQL のタブを開いて DB クライアントを開く。この Mac のアプリの中だけ）。タブの列の右端に「別ウィンドウで開く」（`PopOutTabButton`。右の欄のときだけ出る）。
 
 ## 木（`DbTree`）
 
@@ -24,7 +25,9 @@
 - ⌘↵ / 「流す」= カーソルのある文（選んでいればその範囲の文）、⇧⌘↵ / 「すべて流す」= すべての文。文は `@shared/database/sqlStatements.ts` の `splitStatements` で分け、1 つずつ送る（コアは 1 回に 1 文だけ受ける）。失敗した文・止めた文で止め、後ろの文は流さない。結果は 2 文以上なら番号のタブ（失敗は赤）。
 - タブごとに DB の接続を 1 本持つ（接続の名前はタブのキー）。トランザクションの途中なら、帯に「コミットしていない変更があります」とコミット / 取り消すを出し、タブの名前の後ろに琥珀の点（`sqlSessions.ts` の `setSqlPending` / `useSqlPending`。開いたときに `api.dbSessionState` で読み直す）。タブを閉じるときは、途中なら `finishSession` でコミット / 取り消すを聞く（やめたら閉じない）。
 - 止める: `api.cancelDbSql`（SQLite は DB ワーカーを止めて、次の頼みで立ち上げ直す）。
+- 道具の行の右に接続の環境の札（環境の色の点と名前 `.db-sql-env`）。
 - 読み取り専用の接続では帯に「読み取り専用」を出し、書く文はコアが断る（1 段目は文の判定 `isReadOnlyStatement`、2 段目は DB 側の読み取り専用）。
+- 「書き込む」（`useSqlWrite`。要件 5.12 の本番の守り）: 読み取り専用の接続で、このタブだけ読み取り専用を外す（API の `write: true`。接続の設定は変えない）。押すと環境の名前（「本番」など）を打たせ、違えば外さない。外している間は上に赤い帯（「読み取り専用に戻す」）とタブの枠の赤い線、流すたびに流す文を見せて確かめる（`confirmDialog`。やめたら流さない）。10 分何もしない（流す・打つ・コミットがない）と戻し、トランザクションの途中ならコミットか取り消しのあとに戻す（読み取り専用に戻すとワーカーの接続をつなぎ直すため。途中は「読み取り専用に戻す」「書き込む」も押せない）。覚えないので、タブを閉じる・読み込み直す・別ウィンドウへ移すと戻る。
 
 ## CSS
 

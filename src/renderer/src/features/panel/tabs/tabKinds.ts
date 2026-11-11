@@ -1,4 +1,4 @@
-import { Bot, FileDiff, FileText, Globe, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen, SquareTerminal, StickyNote, type LucideIcon } from "lucide-react";
+import { Bot, Database, FileDiff, FileText, Globe, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen, SquareTerminal, StickyNote, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
@@ -111,6 +111,15 @@ export const memoTab = ({ chatId, projectId, path }: Omit<TabOf<"memo">, "key" |
   chatId,
   projectId,
   path,
+});
+
+/** 右の欄に開く DB クライアントのタブ（その欄に 1 つ） */
+export const databaseTab = ({ chatId, projectId, worktree }: Omit<TabOf<"database">, "key" | "kind">): TabOf<"database"> => ({
+  key: "database",
+  kind: "database",
+  chatId,
+  projectId,
+  ...(worktree ? { worktree } : {}),
 });
 
 /** 子チャットのタブのキー（同じ子チャットは、その欄に 1 つのタブ） */
@@ -313,6 +322,20 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     chatIdOf: (t) => t.chatId,
     cluster: () => OTHER_CLUSTER,
     popout: (t) => ({ route: { kind: "memo", projectId: t.projectId, path: t.path, ...(t.chatId !== null ? { chatId: t.chatId } : {}) }, title: `${baseName(t.path)} — メモ` }),
+  },
+  database: {
+    shows: "file",
+    icon: Database,
+    label: () => "DB",
+    hint: (t) => `DB クライアント（SQLite は${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}のファイル）`,
+    projectOf: (t) => t.projectId,
+    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+    chatIdOf: (t) => t.chatId,
+    cluster: () => OTHER_CLUSTER,
+    popout: (t) => ({
+      route: { kind: "database", chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) },
+      title: `DB — ${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}`,
+    }),
   },
   child: {
     shows: "subagent",

@@ -9,6 +9,7 @@ import { SideChanges } from "@/features/editor/SideChanges";
 import { SideChildChat } from "@/features/chat/children/SideChildChat";
 import { NewChildPane } from "@/features/chat/children/NewChildPane";
 import { SideMemo } from "@/features/memo/SideMemo";
+import { DatabaseClient } from "@/features/database/DatabaseClient";
 import { ProjectFileTab } from "@/features/editor/ProjectFileTab";
 import { SideFileView } from "@/features/editor/SideFileView";
 import { SideProjectView } from "./SideProjectView";
@@ -101,6 +102,8 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   // チャットの画面の右の欄だけに開く。プロジェクトのメモ（自動で保存）と、子チャット（孫・ひ孫も、いちばん上の親の右の欄）
   // 名前を変えたら、新しい名前のメモのタブに置き換える（同じ位置のまま）
   memo: ({ tab: t, panel }) => <SideMemo projectId={t.projectId} path={t.path} chatId={t.chatId} onRenamed={(to) => panel.replaceTab(t.key, memoTab({ chatId: t.chatId, projectId: t.projectId, path: to }))} />,
+  // チャットの画面の右の欄だけに開く。DB クライアント（開いているタブ・木の開き具合はチャットごとに覚える。別ウィンドウと同じ place）
+  database: ({ tab: t }) => <DatabaseClient projectId={t.projectId} place={`chat-${t.chatId}`} worktree={t.worktree ?? null} />,
   child: ({ tab: t, panel, visible }) => (
     <SideChildChat
       chatId={t.childId}

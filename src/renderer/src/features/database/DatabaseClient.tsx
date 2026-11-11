@@ -6,10 +6,11 @@ import { api } from "@/api";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
-import { closeConnectionTabs, closeDbTab, nextSqlTitle, openDbTab, tableTabKey, type DbClientTab } from "@/lib/dbClientTabs";
+import { closeConnectionTabs, closeDbTab, openDbTab, openNewSqlTab, tableTabKey, type DbClientTab } from "@/lib/dbClientTabs";
 import { DB_LIST_HIDDEN, DB_LIST_WIDTH, dbClientTabs, dbSqlDraft } from "@/lib/storageKeys";
 import { writeSetting } from "@/lib/storage";
 import { dbConnectionsStore, useDbConnections } from "@/stores/dbConnections";
+import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { alertDialog, choiceDialog, confirmDialog } from "@/ui/dialogs";
 import { CloseButton, IconButton } from "@/ui/IconButton";
 import { EmptyState } from "@/ui/EmptyState";
@@ -27,9 +28,6 @@ import { TableView } from "./TableView";
 
 /** 左の一覧を自動で隠す幅（これより狭い所では一覧を重ねて出し、右にパンくず） */
 const NARROW_WIDTH = 560;
-
-/** 新しい SQL のタブのキー（SQL のタブの DB の接続の名前にも使う。英数字と -） */
-const newSqlKey = () => `sql-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 /**
  * DB クライアント（左に接続の一覧と木、右にタブ（テーブル・SQL））。プロジェクトの「DB」タブ・チャットの右の欄・別ウィンドウで同じものを使い、
@@ -76,7 +74,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
       setOverlay(false);
     },
     openSql: (c) => {
-      setState(openDbTab(state, { key: newSqlKey(), kind: "sql", connection_id: c.id, title: nextSqlTitle(state) }));
+      setState(openNewSqlTab(state, c.id));
       setOverlay(false);
     },
     editConnection: (c) => setEditing(c),
@@ -156,6 +154,10 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                 </div>
               );
             })}
+            {/* 右の欄では「別ウィンドウで開く」（ほかのタブの中身と同じく右端） */}
+            <span className="db-tabs-end">
+              <PopOutTabButton />
+            </span>
           </div>
           {active && narrow && <div className="db-breadcrumb small">{breadcrumbOf(active, byId.get(active.connection_id))}</div>}
           <div className="db-tab-body">

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parsePopout, popoutKey, popoutPath, type PopoutRoute } from "./popout";
 
-test("popoutPath / parsePopout: 変更・ファイル・サブエージェント・子チャット・メモを行き来できる", () => {
+test("popoutPath / parsePopout: 変更・ファイル・サブエージェント・子チャット・メモ・DB を行き来できる", () => {
   const routes: PopoutRoute[] = [
     { kind: "changes", chatId: 3, projectId: 1 },
     { kind: "changes", chatId: 3, projectId: 1, worktree: "/tmp/wt a", focus: "src/a.ts" },
@@ -12,6 +12,8 @@ test("popoutPath / parsePopout: 変更・ファイル・サブエージェント
     { kind: "chat", chatId: 7 },
     { kind: "memo", projectId: 2, path: "設計/メモ 1.md" },
     { kind: "memo", projectId: 2, path: "設計/メモ 1.md", chatId: 5 },
+    { kind: "database", chatId: 3, projectId: 1 },
+    { kind: "database", chatId: 3, projectId: 1, worktree: "/tmp/wt" },
   ];
   for (const route of routes) assert.deepEqual(parsePopout(`#${popoutPath(route)}`), route);
 });

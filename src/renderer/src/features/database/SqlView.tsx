@@ -1,9 +1,9 @@
 import type { SQLNamespace } from "@codemirror/lang-sql";
-import { Play, PlayCircle, Square } from "lucide-react";
+import { Lock, Play, PlayCircle, Square, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { splitStatements, statementAt, type SqlStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/errors";
-import { DB_SQL_MAX_ROWS, type DbConnection, type DbQueryResult } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, DB_SQL_MAX_ROWS, type DbConnection, type DbQueryResult } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -17,6 +17,7 @@ import { DataGrid } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
 import { setSqlPending, useSqlPending } from "./sqlSessions";
+import { useSqlWrite } from "./useSqlWrite";
 
 /** 1 つの文を流した結果（失敗したら error。止めたら stopped） */
 interface StatementRun {
@@ -31,7 +32,8 @@ const DRAFT_DELAY = 400;
 
 /**
  * SQL のタブ。上に入力欄（⌘↵ でカーソルの文か選んだ範囲、⇧⌘↵ ですべての文）、下に文ごとの結果のタブ。
- * 文は 1 つずつ送り、失敗した文で止める。タブごとに DB の接続を 1 本持ち、トランザクションの途中ならコミット / 取り消すを出す
+ * 文は 1 つずつ送り、失敗した文で止める。タブごとに DB の接続を 1 本持ち、トランザクションの途中ならコミット / 取り消すを出す。
+ * 読み取り専用の接続は「書き込む」でこのタブだけ外せる（useSqlWrite。外している間は赤い帯）
  */
 export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConnection }) {
   const client = useDbClient();
@@ -46,6 +48,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
   const stopRequested = useRef(false);
   const pending = useSqlPending(tab.key);
   const [finishing, setFinishing] = useState(false);
+  const write = useSqlWrite(connection, pending);
   const height = useDragSize<HTMLDivElement>({ setting: DB_SQL_EDITOR_HEIGHT, axis: "y", unit: "%", min: 15, max: 85 });
 
   // 補完に使うテーブルと列（接続の既定の DB・スキーマ）
@@ -67,6 +70,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
   }, [client.projectId, connection.id, tab.key]);
 
   const saveDraft = (text: string) => {
+    write.touch();
     window.clearTimeout(draftTimer.current);
     draftTimer.current = window.setTimeout(() => writeSetting(draftKey, text), DRAFT_DELAY);
   };
@@ -89,6 +93,10 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
     if (running) return;
     const statements = pickStatements(all);
     if (statements.length === 0) return;
+    write.touch();
+    if (!(await write.confirmRun(statements))) return;
+    // 押したときに書き込む間だったか（流している途中に戻っても、この回は同じ様子で流す）
+    const writing = write.on;
     stopRequested.current = false;
     setRunning(true);
     const done: StatementRun[] = [];
@@ -98,7 +106,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
       if (stopRequested.current) break;
       const run: StatementRun = { sql: s.text };
       try {
-        run.result = await api.runDbSql(client.projectId, connection.id, { session: tab.key, sql: s.text, write: false }, worktree);
+        run.result = await api.runDbSql(client.projectId, connection.id, { session: tab.key, sql: s.text, write: writing }, worktree);
         setSqlPending(tab.key, run.result.in_transaction);
       } catch (e) {
         if (stopRequested.current) run.stopped = true;
@@ -118,6 +126,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
         .catch(() => {});
     }
     setRunning(false);
+    write.touch();
   };
 
   const stop = () => {
@@ -130,6 +139,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
     try {
       const st = how === "commit" ? await api.commitDbSession(client.projectId, connection.id, tab.key) : await api.rollbackDbSession(client.projectId, connection.id, tab.key);
       setSqlPending(tab.key, st.in_transaction);
+      write.touch();
     } catch (e) {
       await alertDialog(how === "commit" ? "コミットできませんでした" : "取り消せませんでした", errorMessage(e));
     } finally {
@@ -140,7 +150,24 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
   const current = runs[shown];
 
   return (
-    <div className="db-sql-view">
+    <div className={cx("db-sql-view", write.on && "writing")}>
+      {write.on && (
+        <div className="db-sql-write-band" role="alert">
+          <TriangleAlert size={14} aria-hidden />
+          <span className="db-sql-write-text">
+            書き込めます（{DB_ENVIRONMENT_LABELS[connection.environment]}）。流すたびに確かめます。10 分何もしなければ読み取り専用に戻ります
+          </span>
+          <button
+            type="button"
+            className="btn btn-sm"
+            disabled={pending || running}
+            onClick={write.revert}
+            data-tip={pending ? "コミットか取り消しのあとに戻せます" : "このタブを読み取り専用に戻す"}
+          >
+            <Lock size={12} aria-hidden /> 読み取り専用に戻す
+          </button>
+        </div>
+      )}
       <div ref={height.paneRef} className="db-sql-top" style={{ height: `${height.size}%` }}>
         <div className="db-sql-toolbar">
           <button type="button" className="btn btn-sm" disabled={running} onClick={() => void execute(false)} data-tip="カーソルの文か、選んだ範囲を流す" data-tip-keys="⌘↵">
@@ -155,7 +182,24 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
             </button>
           )}
           <span className="db-sql-spacer" />
-          {connection.read_only && <span className="db-sql-readonly small">読み取り専用</span>}
+          <span className={cx("db-sql-env small", `db-env-${connection.environment}`)}>
+            <span className="db-env-dot" aria-hidden />
+            {DB_ENVIRONMENT_LABELS[connection.environment]}
+          </span>
+          {connection.read_only && !write.on && (
+            <>
+              <span className="db-sql-readonly small">読み取り専用</span>
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={running || pending}
+                onClick={() => void write.start()}
+                data-tip={pending ? "コミットか取り消しのあとに外せます" : "このタブだけ読み取り専用を外す（環境の名前を入れて確かめます。接続の設定は変えません）"}
+              >
+                書き込む
+              </button>
+            </>
+          )}
           {pending && (
             <span className="db-sql-pending small">
               コミットしていない変更があります

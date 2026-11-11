@@ -52,6 +52,8 @@ export type PanelTab =
   | { key: string; kind: "projectFile"; projectId: number; path: string; staged?: boolean; line?: number; edit?: boolean; focus?: boolean }
   /** チャットの画面の右の欄に開いた、プロジェクトのメモ（自動で保存）。chatId: どのチャットの右の欄か。path: メモのフォルダからの相対パス */
   | { key: string; kind: "memo"; chatId: number | null; projectId: number; path: string }
+  /** チャットの画面の右の欄に開いた DB クライアント（欄に 1 つ）。chatId: どのチャットの右の欄か。worktree: SQLite のファイルを開く作業場所のワークツリーのフォルダ（本体ならない） */
+  | { key: string; kind: "database"; chatId: number; projectId: number; worktree?: string }
   /**
    * チャットの画面の右の欄に開いた子チャット（孫・ひ孫も、いちばん上の親の右の欄に開く）。chatId: どのチャットの右の欄か（いちばん上の親）。
    * childId: 子チャット。title: タブに出す名前（開いたときの名前。中身が読み込んだら最新にする）
