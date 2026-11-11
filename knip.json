@@ -5,6 +5,7 @@
     "src/preload/index.ts",
     "src/renderer/src/main.tsx",
     "src/core/daemon.ts",
+    "src/**/*.dbtest.ts",
     "electron.vite.config.ts",
     "scripts/*.mjs",
     "scripts/*.cjs"

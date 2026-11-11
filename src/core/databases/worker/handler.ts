@@ -2,12 +2,20 @@
 import { errorMessage } from "@shared/errors";
 import type { DbTarget, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
+import { openMysql } from "./mysql.js";
+import { openPostgres } from "./postgres.js";
 import { openSqlite, testSqlite } from "./sqlite.js";
 
-/** 種類ごとの開き方（PostgreSQL・MySQL はあとで足す） */
+/** 種類ごとの開き方 */
 async function openDriver(target: DbTarget): Promise<DbDriver> {
-  if (target.engine === "sqlite") return openSqlite(target);
-  throw new Error(`${target.engine} にはまだ対応していません`);
+  switch (target.engine) {
+    case "sqlite":
+      return openSqlite(target);
+    case "postgres":
+      return openPostgres(target);
+    case "mysql":
+      return openMysql(target);
+  }
 }
 
 async function testTarget(target: DbTarget): Promise<string | null> {
@@ -38,9 +46,9 @@ export function createWorkerHandler() {
   const sessionOf = async (name: string, target: DbTarget): Promise<DbDriver> => {
     const fingerprint = JSON.stringify(target);
     const open = sessions.get(name);
-    if (open && open.fingerprint === fingerprint) return open.driver;
+    if (open && open.fingerprint === fingerprint && open.driver.alive()) return open.driver;
     if (open) {
-      if (open.driver.inTransaction()) throw new Error("トランザクションの途中なので、つなぎ方を変えられません。先にコミットか取り消しをしてください");
+      if (open.driver.alive() && open.driver.inTransaction()) throw new Error("トランザクションの途中なので、つなぎ方を変えられません。先にコミットか取り消しをしてください");
       sessions.delete(name);
       await open.driver.close().catch(() => {});
     }

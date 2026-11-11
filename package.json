@@ -13,6 +13,7 @@
     "install-app": "node scripts/install-app.mjs",
     "icon": "node scripts/build-icon.mjs",
     "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper && node scripts/dev-app-identity.mjs",
+    "test:db": "node scripts/test-db.mjs",
     "knip": "knip"
   },
   "description": "Claude Agent SDK で要件定義〜実装〜テスト〜デプロイを一元管理するローカルアプリ",
@@ -26,7 +27,10 @@
     "hono": "^4.13.14",
     "mdast-util-gfm": "^3.1.0",
     "mdast-util-to-markdown": "^2.2.2",
+    "mysql2": "^3.24.6",
     "node-pty": "^1.1.0",
+    "pg": "^8.23.1",
+    "pg-cursor": "^2.22.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -44,6 +48,8 @@
     "@lezer/markdown": "^1.8.1",
     "@types/hast": "^3.0.5",
     "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "@types/pg-cursor": "^2.7.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

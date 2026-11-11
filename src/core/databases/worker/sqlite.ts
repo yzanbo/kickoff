@@ -54,6 +54,10 @@ class SqliteDriver implements DbDriver {
     return quoteIdent(path.database ?? "main");
   }
 
+  alive() {
+    return true;
+  }
+
   async serverVersion() {
     return `SQLite ${(this.db.prepare("SELECT sqlite_version() AS v").get() as { v: string }).v}`;
   }

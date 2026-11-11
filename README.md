@@ -37,6 +37,7 @@
 npm install
 npm run dev        # Electron アプリを開発モードで起動
 npm test           # コアの単体テスト
+npm run test:db    # DB クライアントのドライバ（PostgreSQL・MySQL・MariaDB）を Docker で立てた本物の DB で確かめる（Docker が要る。終わったらコンテナを消す）
 npm run typecheck  # 型チェック（使っていない import・変数も見る）
 npm run daemon     # Electron なしでコア（API サーバー）だけを起動
 npm run dist       # .app / .dmg を作成
