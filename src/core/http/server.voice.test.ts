@@ -85,6 +85,29 @@ test("モデルのダウンロード: 失敗したら理由を残して知らせ
   await until(() => events.some((e) => e.type === "voice_model" && e.id === "small" && e.downloaded && e.download === null));
 });
 
+test("文字起こし（macOS の音声認識）: コマンド・モデル・キーなしで振り分け、言語は指定 → 設定の順。この Mac で使えなければ 400 で理由", async () => {
+  const { app, call, voiceFake } = setup();
+  await call("PUT", "/api/settings", { voice_enabled: true, voice_provider: "macos", voice_language: "ja" });
+  voiceFake.tools = { whisper: null, ffmpeg: null };
+  const status = (await call("GET", "/api/voice")).body as VoiceStatus;
+  assert.equal(status.ready, true);
+  assert.deepEqual(status.macos, { helper: true, available: true, locale: "ja-JP", installed: true });
+  const ok = await transcribe(app);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.text, "macOS の文");
+  assert.equal(voiceFake.calls[0].engine, "macos");
+  assert.deepEqual(voiceFake.calls[0].opts, { helper: "/fake/kickoff-speech", language: "ja" });
+  await transcribe(app, { language: "en" });
+  assert.equal(voiceFake.calls[1].opts.language, "en");
+
+  voiceFake.speech = { helper: true, available: false, locale: null, installed: false };
+  const old = await transcribe(app);
+  assert.equal(old.status, 400);
+  assert.match(old.body.error, /macOS 26 以上/);
+  assert.equal(((await call("GET", "/api/voice")).body as VoiceStatus).ready, false);
+  assert.equal(voiceFake.calls.length, 2);
+});
+
 test("文字起こし（OpenAI）: キーがなければ 400、保存したら OpenAI に振り分ける。キーは応答・設定・配信のどこにも出さず、空で消せる", async () => {
   const { app, call, bus, voiceFake } = setup();
   const events: string[] = [];

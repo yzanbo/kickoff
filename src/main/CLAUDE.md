@@ -4,7 +4,7 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 
 ## 構成と起動
 
-- `index.ts` は起動の順番だけを書く: 名前・保存先・ポートを決めて起動の記録を始める（`app/environment.ts` の `setupEnvironment`）→ 開発のデータがなければ製品版から一度だけ写す（`seedDevDataOnce`）→ 埋め込みブラウザの安全設定（`hardenWebviews`。ウィンドウを作る前）と、AI が読むコンソールの出力の記録（`watchWebviewConsoles`）→ 1 つだけ起動（2 つ目は、いまのウィンドウを前に出して終わる）→ 準備ができたら、ログインシェルの PATH → コア（`startCore`。開発時は electron-vite の dev サーバーが画面を配り、製品版はコアが配る。AI のブラウザ操作 `agentBrowser` も渡す）→ 画面のセッション（`prepareAppSession`）→ IPC（`registerIpc`）→ メニュー（`setAppMenu`）→ ウィンドウ（`openMainWindow`）。
+- `index.ts` は起動の順番だけを書く: 名前・保存先・ポートを決めて起動の記録を始める（`app/environment.ts` の `setupEnvironment`）→ 開発のデータがなければ製品版から一度だけ写す（`seedDevDataOnce`）→ 埋め込みブラウザの安全設定（`hardenWebviews`。ウィンドウを作る前）と、AI が読むコンソールの出力の記録（`watchWebviewConsoles`）→ 1 つだけ起動（2 つ目は、いまのウィンドウを前に出して終わる）→ 準備ができたら、ログインシェルの PATH → コア（`startCore`。開発時は electron-vite の dev サーバーが画面を配り、製品版はコアが配る。AI のブラウザ操作 `agentBrowser` と、音声入力の「macOS の音声認識」の補助コマンドの場所 `SPEECH_HELPER` も渡す）→ 画面のセッション（`prepareAppSession`）→ IPC（`registerIpc`）→ メニュー（`setAppMenu`）→ ウィンドウ（`openMainWindow`）。
 - 中身はフォルダごと: `app/`（環境・ウィンドウ・メニュー・終了の片付け・子の Electron・画面のセッションと権限・ダイアログ・外のアプリで開く・別ウィンドウ（`popouts.ts`。IPC の `windows.openPopout` / `focusMain` / `closeSelf`。画面のチャットの右の欄の中身と子チャットを同じ画面の URL のハッシュで開き、同じものは前に出す。子チャットのウィンドウは最小化で閉じ、✕ は止めて `onCloseRequested` で画面に閉じ方を聞かせる）・起動の記録・ログの場所）/ `ipc/`（登録と引数の形）/ `browser/`（埋め込みブラウザ）/ `terminal/`（内蔵ターミナル）/ `notifications/`（Mac の通知）/ `diagnostics/`（性能の記録）。
 - Electron に依らない判定・組み立ては別のファイルに分けてテストする（`app/urls.ts`・`app/openCommands.ts`・`app/mediaPermission.ts`・`app/childApps.ts` の `descendantElectronMains`・`ipc/register.ts`・`ipc/args.ts`・`notifications/notificationIds.ts`・`terminal/output.ts`・`browser/extensionDirs.ts`・`browser/crx.ts`・`browser/keys.ts`・`browser/flatten.ts`・`diagnostics/profileSummary.ts`・`diagnostics/rendererTiming.ts`）。
 - 開発版は `KICKOFF_REMOTE_DEBUG=<port>` のときだけ CDP のポートを開く（製品版では開かない）。このときは、隠れた窓でもタイマー・描画・アニメーションを止めない（Chromium の `disable-background-timer-throttling` など。確かめるときは開発版の窓を前に出さないので、止まると、なめらかなスクロールなどの動きを外から確かめられない）。
@@ -28,6 +28,7 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 - `app/appSession.ts` の `prepareAppSession`: 画面（defaultSession）に認証の Cookie を置き（トークンを画面のコードに渡さない）、マイクの許可の答え方を登録する。
 - `app/mediaPermission.ts`: マイクはアプリ自身の画面からの音声だけ許し、カメラ・ほかの出どころは断る。media 以外は Electron の既定どおり許す（通知・クリップボードなどを壊さない）。判定は純粋関数（`permissionAllowed` / `permissionCheckAllowed`）でテストする。埋め込みブラウザは別のセッションなので広げない。
 - 製品版で macOS がマイクの許可を聞けるよう、`electron-builder.yml` の `mac.extendInfo` に `NSMicrophoneUsageDescription` を置く（hardened runtime を使わないので entitlement は要らない）。
+- 音声入力の「macOS の音声認識」の補助コマンド `kickoff-speech`（Swift。ソースは `native/kickoff-speech/main.swift`）は、メインプロセスのビルドの始めに `scripts/speech-helper.ts` の差し込み（`electron.vite.config.ts`）が `swiftc` で `out/native/kickoff-speech` に作る（ソースより新しければ作らない。Swift のコンパイラがないなどで作れなくても、警告を出してビルドは続ける。その Kickoff では「macOS の音声認識」が選べないだけ）。古い macOS でも起動して「使えない」と答えられるよう、対象の版は macOS 12 にして、新しい API は実行のときに確かめて使う。場所は `app/environment.ts` の `SPEECH_HELPER`（実行ファイルは asar の中からは動かせないので、`electron-builder.yml` の `asarUnpack` に `out/native/**` を足し、製品版では `app.asar.unpacked` の下を指す）。呼ぶのはコア（`src/core/CLAUDE.md` の「音声入力」）。
 
 ## ウィンドウ・外のアプリ
 

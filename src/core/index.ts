@@ -29,6 +29,8 @@ interface CoreOptions {
   staticDir?: string;
   /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。AI がブラウザのタブを見る・操作するツールに使う） */
   browser?: BrowserControl;
+  /** macOS の音声認識の補助コマンド（kickoff-speech）の場所（ビルドで out/native に作る。渡さなければ、音声入力の「macOS の音声認識」は使えない） */
+  speechHelper?: string;
 }
 
 export interface Core {
@@ -83,7 +85,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
-  const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), publish: (e) => bus.publish(e) });
+  const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,

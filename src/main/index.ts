@@ -5,7 +5,7 @@ import { startCore, type Core } from "../core/index.js";
 import { loadLoginShellPath } from "../core/system/shellEnv.js";
 import { setAppMenu } from "./app/appMenu.js";
 import { prepareAppSession } from "./app/appSession.js";
-import { RENDERER_DIR, seedDevDataOnce, setupEnvironment } from "./app/environment.js";
+import { RENDERER_DIR, SPEECH_HELPER, seedDevDataOnce, setupEnvironment } from "./app/environment.js";
 import { registerShutdown } from "./app/shutdown.js";
 import { logLaunch, startupLog, watchChildProcesses } from "./app/startupLog.js";
 import { openMainWindow, showMainWindow } from "./app/window.js";
@@ -47,7 +47,7 @@ async function start() {
   try {
     // 開発時は electron-vite の dev サーバーが画面を配り、本番はコアが配る
     // AI には埋め込みブラウザの操作も渡す（browser/agentBrowser.ts）
-    core = await startCore({ dataDir: app.getPath("userData"), port, staticDir: devUrl ? undefined : RENDERER_DIR, browser: agentBrowser });
+    core = await startCore({ dataDir: app.getPath("userData"), port, staticDir: devUrl ? undefined : RENDERER_DIR, browser: agentBrowser, speechHelper: SPEECH_HELPER });
     setDiagnosticsCore(core);
     startupLog(`コアを起動しました ${core.localUrl}`);
   } catch (e) {

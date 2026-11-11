@@ -238,7 +238,7 @@ src/
     providers/         プロバイダーの抽象（types）と実装（claude/）
     git/               Git（exec・status・files・changes・history・worktrees）・GitHub・取り込みの点検・ワークツリーの準備
     usage/             使用状況（Claude のプランの枠と、ほかのサービス services/）
-    voice/             音声入力の文字起こしと、音声モードの読み上げ（OpenAI の声）
+    voice/             音声入力の文字起こし（whisper-cli・macOS の音声認識・OpenAI）と、音声モードの読み上げ（OpenAI の声）
     memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown・HTML の一覧・読み書き・移動・ゴミ箱・チャットの文から作る・HTML のメモが読むファイルを返す）
     system/            外部コマンド・パス・ログインシェルの環境・期限付きキャッシュ・保存先と名前（appEnv）・開発版のデータの写し
     testing/           テストの補助（サーバーの準備・偽のプロバイダー・一時フォルダ・Git の作業場所）

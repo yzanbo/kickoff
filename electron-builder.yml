@@ -13,6 +13,8 @@ asarUnpack:
   - node_modules/@anthropic-ai/claude-agent-sdk-*/**
   # 内蔵ターミナルの node-pty（ネイティブのモジュールと spawn-helper）
   - node_modules/node-pty/**
+  # 音声入力の「macOS の音声認識」の補助コマンド（native/kickoff-speech をビルドが作る実行ファイル）
+  - out/native/**
 mac:
   target: dmg
   category: public.app-category.developer-tools

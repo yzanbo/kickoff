@@ -74,11 +74,12 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## 音声入力（voice/）
 
-- 入口は `service.ts` の `VoiceService`。設定の `voice_provider` で振り分ける: `local` = Homebrew の `whisper-cli`（whisper-cpp）＋ `ffmpeg`（`tools.ts` の `findVoiceTools`）。`local.ts` で 16kHz・モノラルの wav にしてから起こし、一時フォルダは必ず消す / `openai` = `POST {Base URL}/audio/transcriptions`（`openai.ts`。Base URL が空なら OpenAI）。
+- 入口は `service.ts` の `VoiceService`。設定の `voice_provider` で振り分ける: `local` = Homebrew の `whisper-cli`（whisper-cpp）＋ `ffmpeg`（`tools.ts` の `findVoiceTools`）。`local.ts` で 16kHz・モノラルの wav にしてから起こし、一時フォルダは必ず消す / `macos` = macOS の音声認識（下）/ `openai` = `POST {Base URL}/audio/transcriptions`（`openai.ts`。Base URL が空なら OpenAI）。
+- macOS の音声認識（`macos.ts`。利用者の依頼で、方法を選べるようにした。SpeechAnalyzer。macOS 26 以上）: 入れるもの（whisper-cli・ffmpeg・モデル・キー）は要らない。Swift の補助コマンド `kickoff-speech`（ソースは `native/kickoff-speech/main.swift`。ビルドが `out/native` に作り、場所は `startCore({ speechHelper })` で受ける。単体のコアは `out/native` を見る）を呼ぶ: `check <言語>` → 使えるか・起こす言語と地域・言語のモデルが入っているか（`checkMacosSpeech` → `VoiceStatus.macos`。補助コマンドがない・動かないなら使えない扱い。0.1 秒ほどなので覚えない）、`transcribe <言語> <ファイル>` → 文（`transcribeMacos`。言語のモデルがなければ、はじめの 1 回は macOS が落とすのを待つ）。言語は設定の値のまま渡し、補助コマンドが地域つきの対応している言語に直す（ja → ja-JP。`auto` は自動の判別ができないので Mac の言語）。使えない理由は `macosUnreadyReason`（補助コマンドがない → macOS が古い → 言語に対応していない）。画面の録音（WebM の Opus）は macOS が読めないので、`webmToOgg.ts` で音はそのままに Ogg の Opus へ詰め替えてから渡す（`macosAudioFile`。WebM の要素を頭から読み（MediaRecorder の「大きさ不明」の Segment・Cluster は中へ進む）、Opus のトラックの OpusHead とパケットを取り出して Ogg のページ（検査の CRC・位置はパケットの長さから数えたサンプル数）に並べる。ffmpeg は要らない。Opus でない WebM は 400。ほかの形式はそのまま渡す）。
 - 準備の確かめは `readiness.ts` の `voiceUnreadyReason`（できなければその理由で 400）、モデルの一覧は `models.ts` の `WHISPER_MODELS`（ggml。保存先の `models/ggml-<id>.bin`。開発版と製品版で別）、ダウンロードは `downloads.ts` の `ModelDownloads`（`.part` に書いて名前を変える。進み具合は SSE の `voice_model`）。
 - 音声モードの読み上げ（OpenAI の声）は `speech.ts` の `synthesizeOpenAi`（`POST {Base URL}/audio/speech`。モデルは `OPENAI_TTS_MODEL`、声 `voice_tts_openai_voice`・速さ `voice_tts_rate`、mp3）。入口は `VoiceService.speak`（音声入力がオフ・キーがなければ 400）。この Mac の声は画面が `speechSynthesis` で直接使うので、コアは持たない。
 - API は `http/routes/voice.ts`（`POST /api/transcribe`（multipart の `file` と `language`）→ `{ text }`、`POST /api/speech`（`{ text }`。`SPEECH_TEXT_MAX` 文字まで）→ mp3、`GET /api/voice`、`POST /api/voice/models/:id/download`、`DELETE /api/voice/models/:id`、`PUT /api/voice/openai-key`）。OpenAI のキーは `secrets` の `openai_transcribe_key` に置く。
-- 文字起こしの処理・読み上げ・コマンドの探し方・ダウンロードの fetch は、テストで差し替える（`VoiceService` の `engines`（`local` / `openai` / `speech`）/ `findTools` / `fetch`）。
+- 文字起こしの処理・読み上げ・コマンドの探し方・macOS の音声認識の確かめ・ダウンロードの fetch は、テストで差し替える（`VoiceService` の `engines`（`local` / `macos` / `openai` / `speech`）/ `findTools` / `checkSpeech` / `fetch`）。
 
 ## メモ（memos/）
 

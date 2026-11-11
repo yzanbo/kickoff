@@ -71,8 +71,9 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 | `src/main` | Electron のメインプロセス（起動と終了 `app/`・IPC `ipc/`・埋め込みブラウザ・ターミナル・通知・性能の記録） |
 | `src/preload` | 画面に公開する最小限のネイティブ機能（`@shared/ipc` の取り決めから作る） |
 | `src/renderer` | 画面（React）。`app/`・`api/`・`stores/`・`lib/`・`hooks/`・`ui/`・`features/<領域>/`、CSS は `styles/`（領域ごとのサブフォルダを `index.css` の `@import` の順でつなぐ。import は `@/…`） |
+| `native` | 音声入力の「macOS の音声認識」の補助コマンド（Swift の `kickoff-speech`。ビルドのときに `out/native` へ作る。Xcode の Command Line Tools の `swiftc` が要り、なければ作らずにビルドを続ける） |
 | `build` | アプリのアイコン（元の絵は本番 `icon.svg`・開発版 `icon-dev.svg`） |
-| `scripts` | 製品版の入れ替え（`install-app`）・アイコンの作成・開発用の Electron.app の書き換え・開発版の画面の点検（`ui-audit-buttons`・`ui-snapshot`） |
+| `scripts` | 製品版の入れ替え（`install-app`）・アイコンの作成・開発用の Electron.app の書き換え・開発版の画面の点検（`ui-audit-buttons`・`ui-snapshot`）・補助コマンドのビルドの差し込み（`speech-helper.ts`） |
 
 設計（語彙・スキーマ・構成）は [docs/architecture.md](docs/architecture.md)、書き方の決まりは `CLAUDE.md`（ルートと各フォルダ）。
 

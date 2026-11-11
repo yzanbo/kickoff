@@ -1,7 +1,8 @@
-// 文字起こしの純粋関数（コマンドの引数・出力の整形・OpenAI の応答とエラー・準備の確かめ。コマンドの探し方は system/exec.test.ts）
+// 文字起こしの純粋関数（コマンドの引数・出力の整形・OpenAI の応答とエラー・macOS の音声認識の確かめ・準備の確かめ。コマンドの探し方は system/exec.test.ts。録音の詰め替えは webmToOgg.test.ts）
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { audioExtension, commandFailure, ffmpegArgs, joinSegments, whisperArgs } from "./local.js";
+import { macosAudioFile, macosUnreadyReason, parseSpeechCheck } from "./macos.js";
 import { modelFile, modelUrl, WHISPER_MODELS } from "./models.js";
 import { openAiFailure, parseTranscription, transcribeOpenAi, transcriptionForm, transcriptionUrl } from "./openai.js";
 import { voiceUnreadyReason } from "./readiness.js";
@@ -85,13 +86,35 @@ test("OpenAI の読み上げ: 声・速さを付けて mp3 を頼み、失敗は
   await assert.rejects(synthesizeOpenAi("やあ", { key: "k", baseUrl: "", voice: "coral", speed: 1 }, notFound), /読み上げの API が見つかりません/);
 });
 
-test("準備の確かめ: オフ → 方法ごとに足りないもの（キー / コマンド / モデル）の順に理由を返す", () => {
+test("macOS の音声認識: 確かめの出力を読み、使えない理由（補助プログラム → macOS の版 → 言語）を返す。モデルがまだなくても使える", () => {
+  const ready = parseSpeechCheck('{"available":true,"installed":true,"locale":"ja-JP"}');
+  assert.deepEqual(ready, { helper: true, available: true, locale: "ja-JP", installed: true });
+  assert.equal(macosUnreadyReason(ready), null);
+  assert.equal(macosUnreadyReason({ ...ready, installed: false }), null);
+  assert.match(macosUnreadyReason({ ...ready, helper: false }) ?? "", /補助プログラム/);
+  assert.match(macosUnreadyReason(parseSpeechCheck('{"available":false,"installed":false,"locale":null}')) ?? "", /macOS 26 以上/);
+  assert.match(macosUnreadyReason(parseSpeechCheck('{"available":true,"installed":false,"locale":null}')) ?? "", /言語に対応していません/);
+  // 読めない出力は、使えない扱い
+  assert.deepEqual(parseSpeechCheck("oops"), { helper: true, available: false, locale: null, installed: false });
+});
+
+test("macOS の音声認識に渡すファイル: WebM 以外はそのまま、Opus でない WebM は 400", () => {
+  assert.deepEqual(macosAudioFile({ bytes: new Uint8Array([7]), name: "a.m4a", type: "audio/mp4" }), { name: "audio.m4a", bytes: new Uint8Array([7]) });
+  assert.throws(() => macosAudioFile(audio), /録音を読めませんでした/);
+});
+
+test("準備の確かめ: オフ → 方法ごとに足りないもの（キー / コマンド / モデル / macOS の音声認識）の順に理由を返す", () => {
   const tools = { whisper: "/w", ffmpeg: "/f" };
-  const base = { settings: { voice_enabled: true, voice_provider: "local" as const, voice_model: "base" }, tools, modelDownloaded: true, keySaved: false };
+  const macos = { helper: true, available: true, locale: "ja-JP", installed: true };
+  const base = { settings: { voice_enabled: true, voice_provider: "local" as const, voice_model: "base" }, tools, modelDownloaded: true, keySaved: false, macos };
   assert.equal(voiceUnreadyReason(base), null);
   assert.match(voiceUnreadyReason({ ...base, settings: { ...base.settings, voice_enabled: false } }) ?? "", /オフ/);
   assert.match(voiceUnreadyReason({ ...base, tools: { whisper: null, ffmpeg: null } }) ?? "", /whisper-cli と ffmpeg が見つかりません/);
   assert.match(voiceUnreadyReason({ ...base, modelDownloaded: false }) ?? "", /モデル（base）をダウンロード/);
   assert.match(voiceUnreadyReason({ ...base, settings: { ...base.settings, voice_provider: "openai" } }) ?? "", /API キー/);
   assert.equal(voiceUnreadyReason({ ...base, settings: { ...base.settings, voice_provider: "openai" }, tools: { whisper: null, ffmpeg: null }, keySaved: true }), null);
+  // macOS の音声認識は、コマンド・モデル・キーが要らない
+  const viaMacos = { ...base, settings: { ...base.settings, voice_provider: "macos" as const }, tools: { whisper: null, ffmpeg: null }, modelDownloaded: false };
+  assert.equal(voiceUnreadyReason(viaMacos), null);
+  assert.match(voiceUnreadyReason({ ...viaMacos, macos: { ...macos, available: false } }) ?? "", /macOS 26 以上/);
 });

@@ -9,12 +9,13 @@ import { StatusDot } from "@/ui/StatusDot";
 import { useSettingsDraft } from "./useSettingsDraft";
 import { VOICE_PROVIDER_INFO } from "./voiceOptions";
 import { VoiceLocalSetup } from "./VoiceLocalSetup";
+import { VoiceMacosSetup } from "./VoiceMacosSetup";
 import { VoiceOpenAiSetup } from "./VoiceOpenAiSetup";
 import { VoiceProviderCard } from "./VoiceProviderCard";
 import { VoiceSpeechSettings } from "./VoiceSpeechSettings";
 
 /**
- * 設定: 音声入力（利用者の依頼で使いやすく作り直した）。上から、使うかのスイッチといま使えるか（1 枚のカード）→ 文字起こしの方法（無料 / 有料の札付きのカード）→
+ * 設定: 音声入力（利用者の依頼で使いやすく作り直した）。上から、使うかのスイッチといま使えるか（1 枚のカード）→ 文字起こしの方法（無料 / 有料の札付きのカード 3 枚）→
  * 話す言語 → 選んだ方法の準備（手順ごとに済んだら ✓）→ 音声モードの読み上げ（声の方法・声・速さ）。変えたらその場で保存する（保存のボタンを押し忘れて効かない、をなくす）
  */
 export function VoiceSettings() {
@@ -56,11 +57,9 @@ export function VoiceSettings() {
         </select>
       </Field>
 
-      {draft.voice_provider === "local" ? (
-        <VoiceLocalSetup voice={voice} model={draft.voice_model} onModel={(voiceModel) => apply({ voice_model: voiceModel })} />
-      ) : (
-        <VoiceOpenAiSetup status={voice.data} draft={draft} apply={apply} />
-      )}
+      {draft.voice_provider === "local" && <VoiceLocalSetup voice={voice} model={draft.voice_model} onModel={(voiceModel) => apply({ voice_model: voiceModel })} />}
+      {draft.voice_provider === "macos" && <VoiceMacosSetup voice={voice} language={draft.voice_language} />}
+      {draft.voice_provider === "openai" && <VoiceOpenAiSetup status={voice.data} draft={draft} apply={apply} />}
 
       <VoiceSpeechSettings status={voice.data} draft={draft} apply={apply} />
     </section>

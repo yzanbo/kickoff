@@ -9,6 +9,11 @@ import { seedDevData } from "../../core/system/devData.js";
 const outDir = path.join(import.meta.dirname, "..");
 /** 画面に読み込ませる preload */
 export const PRELOAD_FILE = path.join(outDir, "preload", "index.cjs");
+/**
+ * macOS の音声認識の補助コマンド（native/kickoff-speech をビルドが out/native に作る）。
+ * 実行ファイルは asar の中からは動かせないので、製品版では asar の外（app.asar.unpacked）に置いたものを指す
+ */
+export const SPEECH_HELPER = path.join(outDir, "native", "kickoff-speech").replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 /** 本番の画面のファイル（コアが配る） */
 export const RENDERER_DIR = path.join(outDir, "renderer");
 
