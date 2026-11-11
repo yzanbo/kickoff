@@ -19,11 +19,17 @@ interface Props {
   onOpenSettings: () => void;
 }
 
-export const CONNECTION_LABELS: Record<ConnectionState, string> = {
-  connecting: "Kickoff サーバーに接続中…",
+/** 下の帯の札の文（札はつながらないときだけ出す。open は詳細を開いたままつながったときだけ見える） */
+const CONNECTION_LABELS: Record<ConnectionState, string> = {
+  connecting: "Kickoff サーバーから切断（再接続中）",
   open: "Kickoff サーバーに接続済み",
   closed: "Kickoff サーバーから切断",
 };
+
+/** 札の文。一度もつながっていない（起動してからつながらない）ときの connecting は「切断」でなく「接続中」 */
+export function connectionLabel(state: ConnectionState, since: number | null): string {
+  return state === "connecting" && since === null ? "Kickoff サーバーに接続中…" : CONNECTION_LABELS[state];
+}
 
 const CONNECTION_TONES: Record<ConnectionState, StatusTone> = { connecting: "pending", open: "ok", closed: "ng" };
 const STATE_TEXT: Record<ConnectionState, string> = { connecting: "接続中…", open: "接続済み", closed: "切断（5 秒ごとに再接続します）" };
