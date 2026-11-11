@@ -42,7 +42,7 @@ export type ImportProjectBody = {
  * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・chat_defaults・reference_paths は送った内容で置き換える。
  * 参照資料はパスだけ送れば、フォルダかファイルかはサーバーで調べる。archived はしまう（アーカイブ）・戻す
  */
-export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "chat_defaults" | "memo_path" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled">> & {
+export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "chat_defaults" | "memo_path" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch">> & {
   archived?: boolean;
   reference_paths?: Pick<ProjectReference, "path">[];
 };

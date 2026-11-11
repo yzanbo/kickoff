@@ -1,4 +1,5 @@
 import type { BrowserControl } from "../browser/control.js";
+import { githubEnvForGit, runAsGitHubAccount } from "../git/githubAccount.js";
 import { mkdirSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -86,13 +87,15 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     const preCompactText = compact ? null : preCompactPromptOf(store, project);
     // 圧縮したら（手で・自動のどちらも）、預かった指示より先に送る圧縮後指示
     const postCompactText = postCompactPromptOf(store, project);
+    // プロジェクトで GitHub のアカウントを選んでいれば、AI が動かす gh・git もそのアカウントにする（gh にそのアカウントがなければ、gh で有効なもののまま）
+    const env = project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {};
 
     // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
     const result: ProviderTurnResult = signal.aborted
       ? { status: "cancelled", sessionId: chat.session_id }
       : await providers[chat.provider].run(
-          { ...buildTurnParams(deps, chat, project, cwd, prompt, promptId), preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent) },
+          { ...buildTurnParams(deps, chat, project, cwd, prompt, promptId), preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent), env },
           callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText }),
           signal,
         );

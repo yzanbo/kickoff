@@ -85,6 +85,8 @@ export interface ProviderTurnParams {
   additionalDirectories: string[];
   /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */
   readOnlyPaths?: string[];
+  /** 子プロセスに足す環境変数（プロジェクトで選んだ GitHub のアカウントのトークン GH_TOKEN。省略なら足さない） */
+  env?: Record<string, string>;
   /** Kickoff の埋め込みブラウザを AI に操作させる口と、このチャット（デスクトップアプリのときだけ。なければブラウザのツールを出さない） */
   browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
 }

@@ -2,11 +2,20 @@ import { errorMessage } from "@shared/errors";
 import { CommandError, nonInteractiveEnv, runCommand } from "../system/exec.js";
 import type { GitHubStatus, PullRequestInfo } from "@shared/types";
 import { Invalid } from "../http/errors.js";
+import { githubEnv } from "./githubAccount.js";
+import { ownerOf, type GitHubTarget } from "./githubTarget.js";
 
 const GH_MISSING = "gh が見つかりません。`brew install gh` でインストールしてください";
 
-/** gh を実行する（認証などを聞かれても待たない。失敗は CommandError） */
-const runGh = (args: string[], opts: { cwd?: string; timeout: number }) => runCommand("gh", args, { ...opts, env: nonInteractiveEnv() });
+/** gh を実行する（認証などを聞かれても待たない。プロジェクトで選んだアカウントがあれば、そのトークンで。失敗は CommandError） */
+const runGh = async (args: string[], opts: { cwd?: string; timeout: number }) =>
+  runCommand("gh", args, { ...opts, env: { ...nonInteractiveEnv(), ...(await githubEnv()) } });
+
+/** 連携先を gh に渡す引数（決まっていなければ、gh がフォルダの remote から決める） */
+const repoArgs = (target: GitHubTarget | null) => (target ? ["--repo", target.repo] : []);
+
+/** ブランチを gh に渡す形（連携先が fork の元なら「持ち主:ブランチ」。手元のブランチは origin にあるため） */
+const headRef = (branch: string, target: GitHubTarget | null) => (target && ownerOf(target.repo).toLowerCase() !== target.headOwner.toLowerCase() ? `${target.headOwner}:${branch}` : branch);
 
 /** gh CLI のインストール・ログイン状態（push と PR 作成に使う） */
 export async function githubStatus(): Promise<GitHubStatus> {
@@ -45,9 +54,9 @@ export function toPullRequestInfo(raw: { number: number; url: string; title: str
 }
 
 /** ブランチの PR（なければ null） */
-export async function pullRequestFor(cwd: string, branch: string): Promise<PullRequestInfo | null> {
+export async function pullRequestFor(cwd: string, branch: string, target: GitHubTarget | null = null): Promise<PullRequestInfo | null> {
   try {
-    return toPullRequestInfo(JSON.parse(await gh(cwd, ["pr", "view", branch, "--json", PR_FIELDS])));
+    return toPullRequestInfo(JSON.parse(await gh(cwd, ["pr", "view", headRef(branch, target), ...repoArgs(target), "--json", PR_FIELDS])));
   } catch (e) {
     // PR がまだない
     if (/no pull requests found/i.test(errorMessage(e))) return null;
@@ -63,24 +72,24 @@ export interface BranchPullRequest {
   state: PullRequestInfo["state"];
   /** PR の元のブランチ（head） */
   branch: string;
-  /** ほかのリポジトリ（fork）からの PR（同じ名前のブランチでも、手元のブランチのものではない） */
-  cross_repository: boolean;
+  /** PR の元のブランチがあるリポジトリの持ち主（手元のブランチのプッシュ先の持ち主と同じものだけが、手元のブランチの PR） */
+  head_owner: string;
 }
 
 /** 見張りで見る PR の数（新しい順。手元のワークツリーのブランチの PR は、ふつうこの中に入る） */
 const PR_LIST_LIMIT = 100;
 
 /** リポジトリの PR を、状態によらず新しい順に取る（gh pr list を 1 回。失敗は gh の説明で投げる） */
-export async function listPullRequests(cwd: string): Promise<BranchPullRequest[]> {
-  const out = await gh(cwd, ["pr", "list", "--state", "all", "--limit", String(PR_LIST_LIMIT), "--json", "number,title,url,state,headRefName,isCrossRepository"]);
-  const rows = JSON.parse(out) as { number: number; title: string; url: string; state: PullRequestInfo["state"]; headRefName: string; isCrossRepository: boolean }[];
-  return rows.map((r) => ({ number: r.number, title: r.title, url: r.url, state: r.state, branch: r.headRefName, cross_repository: r.isCrossRepository }));
+export async function listPullRequests(cwd: string, target: GitHubTarget): Promise<BranchPullRequest[]> {
+  const out = await gh(cwd, ["pr", "list", ...repoArgs(target), "--state", "all", "--limit", String(PR_LIST_LIMIT), "--json", "number,title,url,state,headRefName,headRepositoryOwner"]);
+  const rows = JSON.parse(out) as { number: number; title: string; url: string; state: PullRequestInfo["state"]; headRefName: string; headRepositoryOwner?: { login?: string } | null }[];
+  return rows.map((r) => ({ number: r.number, title: r.title, url: r.url, state: r.state, branch: r.headRefName, head_owner: r.headRepositoryOwner?.login ?? "" }));
 }
 
 /** いまのブランチの PR を作る（タイトルと本文はコミットから。プッシュは先に済ませておく） */
-export async function createPullRequest(cwd: string, branch: string): Promise<PullRequestInfo> {
-  await gh(cwd, ["pr", "create", "--fill", "--head", branch]);
-  const pr = await pullRequestFor(cwd, branch);
+export async function createPullRequest(cwd: string, branch: string, target: GitHubTarget | null = null): Promise<PullRequestInfo> {
+  await gh(cwd, ["pr", "create", ...repoArgs(target), "--fill", "--head", headRef(branch, target)]);
+  const pr = await pullRequestFor(cwd, branch, target);
   if (!pr) throw new Invalid("PR を作れませんでした");
   return pr;
 }

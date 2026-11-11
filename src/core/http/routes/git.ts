@@ -3,6 +3,7 @@ import { z } from "zod";
 import { commitStaged, discardPaths, fetchRemote, gitBlame, gitCommitDetail, gitCommitDiff, gitDiff, gitLog, gitOriginal, gitRefs, gitStatus, pullBranch, pushBranch, stagePaths, unstagePaths } from "../../git/index.js";
 import { mergePreview, resolveConflict, runBranchAction, runOperationAction } from "../../git/branches.js";
 import { createPullRequest, pullRequestFor } from "../../git/github.js";
+import { resolveGitHubTarget } from "../../git/githubTarget.js";
 import type { GitBranchAction, GitBranchActionResult } from "@shared/types";
 import type { ServerDeps } from "../server.js";
 import { Invalid } from "../errors.js";
@@ -124,7 +125,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const { conflicts } = await runBranchAction(dir, body);
     const result: GitBranchActionResult = { status: await gitStatus(dir), conflicts };
     // プッシュして PR を作る（gh で、タイトルと本文はコミットから）
-    if (body.action === "push_pr") result.pr = await createPullRequest(dir, body.branch);
+    if (body.action === "push_pr") result.pr = await createPullRequest(dir, body.branch, await resolveGitHubTarget(dir, c.var.project.github_remote));
     return c.json(result);
   });
 
@@ -154,7 +155,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const dir = c.var.workdir;
     const status = await gitStatus(dir);
     if (!status.repo || !status.branch || !status.has_origin) return c.json(null);
-    return c.json(await pullRequestFor(dir, status.branch));
+    return c.json(await pullRequestFor(dir, status.branch, await resolveGitHubTarget(dir, c.var.project.github_remote)));
   });
 
   // PR を作る（まだプッシュしていなければ、先にプッシュする）
@@ -163,6 +164,6 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const status = await gitStatus(dir);
     if (!status.repo || !status.branch) throw new Invalid("PR にするブランチがありません");
     if (!status.upstream || status.ahead > 0) await pushBranch(dir);
-    return c.json(await createPullRequest(dir, status.branch), 201);
+    return c.json(await createPullRequest(dir, status.branch, await resolveGitHubTarget(dir, c.var.project.github_remote)), 201);
   });
 }

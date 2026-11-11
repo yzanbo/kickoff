@@ -34,6 +34,12 @@ export interface Project {
   pre_compact_enabled: boolean;
   /** このプロジェクトの圧縮後指示を送るか（false なら文を残したまま送らない） */
   post_compact_enabled: boolean;
+  /** GitHub で使うアカウント（gh に入っているアカウントのログイン名。null なら gh でいま有効なもの） */
+  github_account: string | null;
+  /** 連携先の GitHub のリポジトリの remote の名前（null なら自動: gh repo set-default → upstream → origin） */
+  github_remote: string | null;
+  /** ワークツリーの PR がマージされた・閉じられたことを見張るか */
+  pr_watch: boolean;
   created_at: string;
 }
 

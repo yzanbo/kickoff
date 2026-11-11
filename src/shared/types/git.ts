@@ -321,3 +321,27 @@ export interface GitBlame {
   commits: GitBlameCommit[];
   lines: number[];
 }
+
+/** gh に入っている GitHub のアカウント（active = gh でいま有効なもの。ok = トークンが使える） */
+export interface GitHubAccount {
+  login: string;
+  active: boolean;
+  ok: boolean;
+}
+
+/** GitHub の remote（repo = 「持ち主/名前」） */
+export interface GitHubRemote {
+  name: string;
+  repo: string;
+  url: string;
+}
+
+/** プロジェクトの GitHub の連携（設定の「GitHub」に出す。選べるアカウント・remote と、いま使うもの） */
+export interface ProjectGitHub {
+  accounts: GitHubAccount[];
+  remotes: GitHubRemote[];
+  /** 自動で選ぶ remote の名前（GitHub の remote がなければ null） */
+  auto_remote: string | null;
+  /** いま連携しているリポジトリ（「持ち主/名前」。GitHub の remote がなければ null） */
+  repo: string | null;
+}

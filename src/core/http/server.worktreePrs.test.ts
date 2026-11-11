@@ -1,7 +1,8 @@
 // API のテスト: ワークツリーの PR の知らせ（見張り・確認を閉じる・片付けたら消える。共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { BusEvent, GitWorktree, WorktreePrNotice } from "@shared/types";
+import { execFileSync } from "node:child_process";
+import type { BusEvent, GitWorktree, Project, ProjectGitHub, WorktreePrNotice } from "@shared/types";
 import { setup } from "../testing/testServer.js";
 import { gitRepo } from "../testing/gitRepo.js";
 
@@ -11,7 +12,7 @@ const merged = (number: number, branch: string, state: "MERGED" | "CLOSED" | "OP
   url: `https://github.com/o/r/pull/${number}`,
   state,
   branch,
-  cross_repository: false,
+  head_owner: "o",
 });
 
 test("ワークツリーの PR の知らせ: ワークツリーがなければ GitHub に聞かない。マージ済みの PR は（前に開いているのを見ていなくても）知らせる", async () => {
@@ -79,4 +80,45 @@ test("ワークツリーの PR の知らせ: 確認を閉じたら DB に覚え�
   assert.equal(prFake.asked, asked);
   assert.ok(events.some((e) => e.type === "worktree_prs" && e.notices.length === 0));
   assert.deepEqual([...store.prNotices.dismissed(project.id)], []);
+});
+
+test("プロジェクトの GitHub の連携: 設定の「GitHub」にアカウント・GitHub の remote・自動の連携先を返し、見張りをオフにすると知らせが消えて GitHub に聞かない", async () => {
+  const { call, project, prFake, prWatch } = setup();
+  const dir = project.repo_path;
+  gitRepo({ dir, files: { "a.txt": "a\n" } });
+  execFileSync("git", ["remote", "add", "origin", "https://github.com/me/r.git"], { cwd: dir });
+  execFileSync("git", ["remote", "add", "upstream", "git@github.com:org/r.git"], { cwd: dir });
+  execFileSync("git", ["remote", "add", "backup", "/tmp/elsewhere.git"], { cwd: dir });
+
+  const github = (await call("GET", `/api/projects/${project.id}/github`)).body as ProjectGitHub;
+  assert.deepEqual(github.accounts.map((a) => a.login), ["me", "work"]);
+  assert.deepEqual(github.remotes.map((r) => r.name), ["origin", "upstream"]);
+  assert.equal(github.auto_remote, "upstream");
+  assert.equal(github.repo, "org/r");
+
+  // 連携先とアカウントを選ぶ
+  const patched = (await call("PATCH", `/api/projects/${project.id}`, { github_remote: "origin", github_account: "work" })).body as Project;
+  assert.equal(patched.github_remote, "origin");
+  assert.equal(patched.github_account, "work");
+  assert.equal(((await call("GET", `/api/projects/${project.id}/github`)).body as ProjectGitHub).repo, "me/r");
+  // 空の名前は断る・null で自動に戻す
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { github_remote: "" })).status, 400);
+  assert.equal(((await call("PATCH", `/api/projects/${project.id}`, { github_remote: null, github_account: null })).body as Project).github_remote, null);
+
+  // 見張り: マージ済みの PR を知らせたあと、オフにすると消え、聞き直さない
+  await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/z" });
+  prFake.prs = [merged(3, "feat/z")];
+  await prWatch.checkAll();
+  assert.equal(prWatch.list().length, 1);
+  assert.equal(((await call("PATCH", `/api/projects/${project.id}`, { pr_watch: false })).body as Project).pr_watch, false);
+  await prWatch.checkProject(project.id);
+  assert.deepEqual(prWatch.list(), []);
+  const asked = prFake.asked;
+  await prWatch.checkAll();
+  assert.equal(prFake.asked, asked);
+  assert.deepEqual(prWatch.list(), []);
+  // オンに戻すと、また知らせる
+  await call("PATCH", `/api/projects/${project.id}`, { pr_watch: true });
+  await prWatch.checkProject(project.id);
+  assert.equal(prWatch.list().length, 1);
 });

@@ -50,7 +50,7 @@
 | 親への依頼文（子チャットの AI に、親チャットの AI へ渡す依頼文だけを書いてもらう頼み。発言の印 = 依頼文の頼み）・親チャットに追加（子チャットの作業の最後の返答を、そのまま直接の親に渡す。渡し方 = 入力欄 / 今すぐ送る / 送信待ち、渡したあと = そのまま / アーカイブ / 削除）・渡したことの印 / 出どころの札 | 頼み方の文 `handoffRequestPrompt`・最後の返答 `lastReplyOfTurn`（`@shared/chat/handoff`）・発言の印 `MessageMarks`（`handoff_request` / `handoff_from`）・渡し方 `HandoffVia`・渡したあと `HandoffAfter`・`POST /api/chats/:id/handoff`（`core/chat/handoff.ts`）・記録 `handoff`・`features/chat/children/handoff.ts` | なし（「最新の答えを引用して渡す」は前からの `handBackText`） |
 | 会話 / 動き（チャットの画面の見え方。動き = メインエージェントとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
 | GitHub タブ（予定。プロジェクトの画面の上のタブで、連携先のリポジトリの issue・PR を「issue｜PR」で切り替えて見る・書く・AI に渡す。要件定義書の「5.11 GitHub」） | タブ `github`（`#/projects/:id/github`）・画面 `features/github/`・コア `core/github/`（いまの `core/git/github.ts` の gh の呼び出しもここへ寄せる）・HTTP `/api/projects/:id/github/…` | なし（push と PR の作成だけ） |
-| 連携先（予定。issue・PR を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`） | `GitHubRepo`（`owner/name`）・切り替えたものはプロジェクトの `github_repo`・使う gh のアカウントは `github_account` | なし |
+| 連携先（PR・issue を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`）と、プロジェクトで使う GitHub のアカウント（gh に入っているものから選ぶ。gh の有効なアカウントは切り替えない） | `GitHubRemote`・`GitHubTarget`（`core/git/githubTarget.ts`）・選んだ remote はプロジェクトの `github_remote`・アカウントは `github_account`（`GitHubAccount`・`core/git/githubAccount.ts` の `runAsGitHubAccount`）・ワークツリーの PR を見張るかは `pr_watch`・設定の画面は `ProjectGitHub` | なし |
 | ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたこと。印と 1 つの確認で片付けを聞く） | `WorktreePrNotice`・見張り `WorktreePrWatch`（`core/git/prWatch.ts`）・閉じた確認の表 `pr_notice_dismissals`・画面 `features/worktree/prNotice/` | 「マージの通知」（macOS の通知と紛らわしい） |
 | issue・PR の結び付き（予定。どの issue・PR のためのチャットか。カードに `#番号`） | `Chat` の `github_repo` / `github_number`（issue と PR の番号はリポジトリの中で重ならないので、種類は持たない） | なし |
 
@@ -115,7 +115,11 @@ CREATE TABLE projects (
   post_compact_prompt TEXT CHECK (post_compact_prompt <> ''),
   -- v9: 圧縮前指示・圧縮後指示を送るか（0 = オフ。文は残す）
   pre_compact_enabled INTEGER NOT NULL DEFAULT 1 CHECK (pre_compact_enabled IN (0, 1)),
-  post_compact_enabled INTEGER NOT NULL DEFAULT 1 CHECK (post_compact_enabled IN (0, 1))
+  post_compact_enabled INTEGER NOT NULL DEFAULT 1 CHECK (post_compact_enabled IN (0, 1)),
+  -- v12: このプロジェクトの GitHub（NULL = 自動。アカウントは gh でいま有効なもの、連携先は remote から決める）
+  github_account TEXT CHECK (github_account <> ''),  -- 使う gh のアカウント（gh auth token --user のトークンを GH_TOKEN で渡す）
+  github_remote TEXT CHECK (github_remote <> ''),    -- 選んだ連携先の remote の名前（もうない remote なら自動）
+  pr_watch INTEGER NOT NULL DEFAULT 1 CHECK (pr_watch IN (0, 1))  -- ワークツリーの PR を見張るか
 ) STRICT;
 -- 以前の active_at（画面は使っていなかった。最近動いた順はチャットの active_at で決める）と、一覧の集計（費用・動いている数。未使用）はなくす
 
@@ -207,9 +211,7 @@ CREATE TABLE pr_notice_dismissals (
 要件定義書の「5.11 GitHub」を作るときに `MIGRATIONS` の末尾に足す。GitHub の issue・PR の中身は DB に持たない（正しいのはいつも GitHub。コアのメモリに少しの間だけ覚え、開いたときは必ず GitHub に聞く）。
 
 ```sql
--- projects に足す（NULL = 自動。連携先は remote から決め、アカウントは gh でいま有効なもの）
-github_repo TEXT CHECK (github_repo <> ''),        -- 切り替えた連携先（owner/name）
-github_account TEXT CHECK (github_account <> ''),  -- 使う gh のアカウント（gh auth token --user）
+-- projects の連携先（github_remote）・アカウント（github_account）は v12 で入れた
 -- chats に足す（どちらも NULL = 結び付いていない）
 github_repo TEXT CHECK (github_repo <> ''),        -- 結び付いた issue・PR のリポジトリ（owner/name）
 github_number INTEGER CHECK (github_number > 0),   -- issue・PR の番号

@@ -1,8 +1,10 @@
 // ワークツリーの PR の見張り: ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたことに気づいて、画面に知らせる。
 // 前に「開いている」のを見たかは問わず、いまの状態で決める（Kickoff を閉じている間・この機能を入れる前にマージされたものも、ワークツリーが残っていれば知らせる）
-import type { BusEvent, GitWorktree, WorktreePrNotice } from "@shared/types";
+import type { BusEvent, GitWorktree, Project, WorktreePrNotice } from "@shared/types";
 import type { Store } from "../db/store.js";
 import type { BranchPullRequest } from "./github.js";
+import { runAsGitHubAccount } from "./githubAccount.js";
+import { resolveGitHubTarget, type GitHubTarget } from "./githubTarget.js";
 import { isGitWorkTree } from "./status.js";
 
 /** 見張る間隔（5 分。ほかに、画面の窓に戻ったときも取り直す） */
@@ -12,18 +14,20 @@ const REFRESH_MIN_MS = 30_000;
 
 /**
  * ワークツリーと PR の一覧から知らせを作る（純粋な関数）。本体・ブランチのないワークツリーは見ない。
- * ブランチごとにいちばん新しい PR（番号の大きいもの。fork からの同じ名前の PR は除く）が、マージ済み・閉じたなら知らせる（開いていれば何もしない）
+ * ブランチごとにいちばん新しい PR（番号の大きいもの。手元のブランチのプッシュ先の持ち主 headOwner のものだけ。ほかの fork からの同じ名前の PR は除く）が、
+ * マージ済み・閉じたなら知らせる（開いていれば何もしない）
  */
 export function noticesFor(
   projectId: number,
   worktrees: GitWorktree[],
   prs: BranchPullRequest[],
-  opts: { dismissed: Set<number> },
+  opts: { dismissed: Set<number>; headOwner: string },
 ): WorktreePrNotice[] {
   const notices: WorktreePrNotice[] = [];
   for (const w of worktrees) {
     if (w.main || !w.branch) continue;
-    const latest = prs.filter((p) => p.branch === w.branch && !p.cross_repository).sort((a, b) => b.number - a.number)[0];
+    const own = (p: BranchPullRequest) => p.branch === w.branch && p.head_owner.toLowerCase() === opts.headOwner.toLowerCase();
+    const latest = prs.filter(own).sort((a, b) => b.number - a.number)[0];
     if (!latest || latest.state === "OPEN") continue;
     notices.push({
       project_id: projectId,
@@ -41,21 +45,24 @@ interface WatchOptions {
   publish: (event: BusEvent) => void;
   /** ワークツリーの一覧（git worktree list）と、PR の一覧（gh pr list）。テストでは差し替える */
   listWorktrees: (repo: string) => Promise<GitWorktree[]>;
-  listPullRequests: (repo: string) => Promise<BranchPullRequest[]>;
+  listPullRequests: (repo: string, target: GitHubTarget) => Promise<BranchPullRequest[]>;
+  /** 連携先の GitHub のリポジトリ（git の remote とプロジェクトの選択から。GitHub でなければ null。テストでは差し替える） */
+  resolveTarget?: (repo: string, chosen: string | null) => Promise<GitHubTarget | null>;
   /** フォルダが Git で管理されているか（テストでは差し替える） */
   isGitRepo?: (repo: string) => Promise<boolean>;
 }
 
 /**
  * ワークツリーの PR の見張り。5 分ごとと、画面が窓に戻ったときに、ワークツリーのあるプロジェクトだけ GitHub に 1 回ずつ聞く
+ * （プロジェクトの設定で見張らないことにしたもの・GitHub の remote がないものは聞かない。連携先の remote・アカウントはプロジェクトの選択のとおり）
  * （ワークツリーがなければ聞かない。gh がない・ログインしていない・GitHub でないなどで聞けなければ、そのプロジェクトは前の知らせのまま）。
  * 知らせはメモリに持ち、変わったら SSE の worktree_prs で配る。ワークツリーを消したときは、GitHub に聞き直さずに覚えた PR の一覧で作り直す
  */
 export class WorktreePrWatch {
   private readonly opts: WatchOptions;
   private readonly notices = new Map<number, WorktreePrNotice[]>();
-  /** プロジェクトごとに最後に取った PR の一覧（ワークツリーを消したときの作り直しに使う） */
-  private readonly prs = new Map<number, BranchPullRequest[]>();
+  /** プロジェクトごとに最後に取った PR の一覧と、手元のブランチのプッシュ先の持ち主（ワークツリーを消したときの作り直しに使う） */
+  private readonly prs = new Map<number, { prs: BranchPullRequest[]; headOwner: string }>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private running: Promise<void> | null = null;
   private lastRun = 0;
@@ -94,7 +101,7 @@ export class WorktreePrWatch {
       const projects = this.opts.store.projects.list().filter((p) => p.archived_at === null);
       const alive = new Set(projects.map((p) => p.id));
       for (const id of [...this.notices.keys()]) if (!alive.has(id)) this.set(id, []);
-      for (const project of projects) await this.check(project.id, project.repo_path, true).catch(() => undefined);
+      for (const project of projects) await this.check(project, true).catch(() => undefined);
     })().finally(() => {
       this.running = null;
     });
@@ -104,8 +111,16 @@ export class WorktreePrWatch {
   /** ワークツリーを消したあと: GitHub に聞き直さず、覚えた PR の一覧で、いまのワークツリーから知らせを作り直す（すべてのプロジェクト） */
   async recomputeAll(): Promise<void> {
     for (const project of this.opts.store.projects.list()) {
-      if (this.notices.has(project.id)) await this.check(project.id, project.repo_path, false).catch(() => undefined);
+      if (this.notices.has(project.id)) await this.check(project, false).catch(() => undefined);
     }
+  }
+
+  /** プロジェクトの GitHub の連携（アカウント・連携先・見張るか）を変えたとき: そのプロジェクトだけ聞き直す */
+  async checkProject(projectId: number): Promise<void> {
+    const project = this.opts.store.projects.get(projectId);
+    if (!project) return this.set(projectId, []);
+    this.prs.delete(projectId);
+    await this.check(project, true).catch(() => undefined);
   }
 
   /** 確認を閉じた（同じ PR では確認を出し直さない） */
@@ -118,7 +133,17 @@ export class WorktreePrWatch {
     );
   }
 
-  private async check(projectId: number, repo: string, ask: boolean) {
+  /** プロジェクトを確かめる（見張らない設定・Git でない・GitHub の remote がなければ知らせなし。gh は選んだアカウントで動かす） */
+  private check(project: Project, ask: boolean): Promise<void> {
+    return runAsGitHubAccount(project.github_account, () => this.checkAs(project, ask));
+  }
+
+  private async checkAs(project: Project, ask: boolean) {
+    const { id: projectId, repo_path: repo } = project;
+    if (!project.pr_watch || project.archived_at !== null) {
+      this.prs.delete(projectId);
+      return this.set(projectId, []);
+    }
     if (!(await (this.opts.isGitRepo ?? isGitWorkTree)(repo))) return this.set(projectId, []);
     const worktrees = (await this.opts.listWorktrees(repo)).filter((w) => !w.main && w.branch && !w.prunable);
     if (worktrees.length === 0) {
@@ -126,13 +151,18 @@ export class WorktreePrWatch {
       this.opts.store.prNotices.keepOnly(projectId, []);
       return this.set(projectId, []);
     }
-    let prs = this.prs.get(projectId);
-    if (ask || !prs) {
-      prs = await this.opts.listPullRequests(repo);
-      this.prs.set(projectId, prs);
+    let known = this.prs.get(projectId);
+    if (ask || !known) {
+      const target = await (this.opts.resolveTarget ?? resolveGitHubTarget)(repo, project.github_remote);
+      if (!target) {
+        this.prs.delete(projectId);
+        return this.set(projectId, []);
+      }
+      known = { prs: await this.opts.listPullRequests(repo, target), headOwner: target.headOwner };
+      this.prs.set(projectId, known);
     }
     const { store } = this.opts;
-    const notices = noticesFor(projectId, worktrees, prs, { dismissed: store.prNotices.dismissed(projectId) });
+    const notices = noticesFor(projectId, worktrees, known.prs, { dismissed: store.prNotices.dismissed(projectId), headOwner: known.headOwner });
     // 片付けて知らせがなくなった PR は、閉じた覚えも消す
     store.prNotices.keepOnly(
       projectId,

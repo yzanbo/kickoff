@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../providers/types.js";
 import { createApp } from "../http/server.js";
-import type { ApiRetryInfo, BackgroundState, FileRewindResult, SlashCommandOption } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, SlashCommandOption } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
@@ -232,17 +232,21 @@ export function setup(opts: { staticDir?: string } = {}) {
   const memos = new MemoService({ store, defaultDir: memoFake.defaultDir, providers, publish: (e) => bus.publish(e), trash });
   // ワークツリーの PR の見張り: ワークツリーは本物の git、PR の一覧は偽物（prFake.prs を返し、聞いた回数を覚える。失敗させるなら fail）
   const prFake = { prs: [] as BranchPullRequest[], asked: 0, fail: false };
+  // gh に入っている GitHub のアカウント（設定の「GitHub」。gh を呼ばない）
+  const githubFake = { accounts: [{ login: "me", active: true, ok: true }, { login: "work", active: false, ok: true }] as GitHubAccount[] };
   const prWatch = new WorktreePrWatch({
     store,
     publish: (e) => bus.publish(e),
     listWorktrees,
+    // 連携先は GitHub の o/r（手元のブランチも o にプッシュする）とみなす
+    resolveTarget: async () => ({ repo: "o/r", headOwner: "o" }),
     listPullRequests: async () => {
       prFake.asked++;
       if (prFake.fail) throw new Error("gh が見つかりません");
       return prFake.prs;
     },
   });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, trash, staticDir: opts.staticDir });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -254,6 +258,6 @@ export function setup(opts: { staticDir?: string } = {}) {
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, prWatch, network, approvals, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, prWatch, network, approvals, codexCalls: () => codexCalls };
 }
 

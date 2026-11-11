@@ -34,7 +34,7 @@ import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
 import { worktreePrRoutes } from "./routes/worktreePrs.js";
 import type { WorktreePrWatch } from "../git/prWatch.js";
-import type { ProviderId, ServerStatus } from "@shared/types";
+import type { GitHubAccount, ProviderId, ServerStatus } from "@shared/types";
 
 export interface ServerDeps {
   store: Store;
@@ -53,6 +53,8 @@ export interface ServerDeps {
   memos: MemoService;
   /** ワークツリーの PR の見張り（マージ・マージせずに閉じたことの知らせ） */
   prWatch: WorktreePrWatch;
+  /** gh に入っている GitHub のアカウント（設定の「GitHub」。テストでは差し替えて、gh を呼ばない。なければ gh auth status） */
+  githubAccounts?: () => Promise<GitHubAccount[]>;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」。テストでは差し替えて、本物のゴミ箱に入れない。なければ macOS のゴミ箱） */
   trash?: (file: string) => Promise<void>;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */

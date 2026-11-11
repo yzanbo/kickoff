@@ -192,7 +192,7 @@ export class ClaudeProvider implements AgentProvider {
           resume: params.resumeSessionId ?? undefined,
           abortController,
           // 自動圧縮を始める使用率を決めていれば渡す（決めていなければ Claude Code の既定）
-          env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct) },
+          env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct), ...params.env },
           pathToClaudeCodeExecutable: this.executable,
           hooks: {
             ...turnHooks(params, this.self),
