@@ -3,6 +3,8 @@ import type { DbDatabases, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTabl
 import type { DbOutlineTable } from "../protocol.js";
 
 export interface DbDriver {
+  /** まだつながっているか（DB が接続を切ったら false。次の頼みでつなぎ直す） */
+  alive(): boolean;
   serverVersion(): Promise<string | null>;
   databases(): Promise<DbDatabases>;
   schemas(database: string | null): Promise<string[]>;
