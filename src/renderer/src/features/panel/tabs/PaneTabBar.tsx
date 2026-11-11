@@ -18,12 +18,12 @@ import { PaneTab } from "./PaneTab";
 import { PanelTabAdds } from "./PanelTabAdds";
 import { specOf, type TabGroupLookup } from "./tabKinds";
 import { SURFACES } from "@/features/panel/surfaces";
-import { ArchivedChatsItem } from "@/features/chatList/ArchivedChatsItem";
 import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { ClusterShortItem } from "@/features/panel/clusters/ClusterShortItem";
 import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { tabFieldShown, type TabField } from "./tabFields";
+import { ArchivedChatsItem } from "./ArchivedChatsItem";
 import { AgentPanelAdds } from "@/features/panel/agents/AgentPanelAdds";
 
 /**

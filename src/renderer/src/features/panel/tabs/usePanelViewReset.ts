@@ -3,6 +3,7 @@ import { writeSetting } from "@/lib/storage";
 import {
   PANEL_HIDDEN_GROUPS,
   PANEL_HIDE_EMPTY_GROUPS,
+  PANEL_SHOW_ARCHIVED,
   PANEL_TAB_CLUSTER_SHORT,
   PANEL_TAB_GROUP_COLORS,
   PANEL_TAB_HIDDEN,
@@ -10,7 +11,6 @@ import {
   PANEL_TAB_TWO_LINE,
   PANEL_VIEW_BUTTON_HIDDEN,
   SIDEBAR_CHAT_ORDER,
-  SIDEBAR_SHOW_ARCHIVED,
   panelTabGrouping,
   panelTabKinds,
 } from "@/lib/storageKeys";
@@ -24,9 +24,10 @@ import { SURFACES, type PanelSurface } from "@/features/panel/surfaces";
  */
 const CHAT_VIEW_SETTINGS: readonly Setting<unknown>[] = [
   SIDEBAR_CHAT_ORDER,
-  SIDEBAR_SHOW_ARCHIVED,
+  PANEL_SHOW_ARCHIVED,
   PANEL_HIDDEN_GROUPS,
   PANEL_HIDE_EMPTY_GROUPS,
+  PANEL_SHOW_ARCHIVED,
   PANEL_TAB_CLUSTER_SHORT,
   PANEL_TAB_GROUP_COLORS,
   PANEL_TAB_HIDDEN,
