@@ -11,7 +11,7 @@ import type { TabGroupBadge } from "./tabKinds";
  * パネルのタブ 1 つ（右のパネル・下のパネルで共通）。タブのどこを押しても表示し（名前のボタンの押せる範囲を CSS でタブ全体に広げる）、× で閉じる。
  * onRename があれば名前のダブルクリック・ピントがあるときの Enter で名前を変え始め、editor がある間は名前の代わりに入力欄を出す（チャットのタブ）。
  * pinnedIn があればいちばん左にピンを出す（ピン留めしたチャット。サイドバーの「固定」と同じく、まっすぐのピンをそのプロジェクトの色で塗る）。extra は右のパネルで足す属性（ドラッグ・右クリックのメニュー）、className はドラッグで落とす位置の印など。
- * twoLine なら、グループ・作業場所の札を名前の下の行に置く（「表示」のメニューの「タブに出す項目」の「2 行で表示」）。
+ * after は名前のすぐ後ろ（子チャットの動きの印）。twoLine なら、グループ・作業場所の札を名前の下の行に置く（「表示」のメニューの「タブに出す項目」の「2 行で表示」）。
  * 作業場所の札（tag）は、入る幅があるときだけ「本体 | main」「WT | ブランチ」、入らなければ「本体」・ブランチ名だけ（省く）にする（useBranchShort。
  * 2 行のタブは札の行、1 行のタブは名前ごと見るので、名前を省くことになるならブランチ名を隠す）
  */
@@ -21,6 +21,7 @@ export function PanelTab({
   iconClass,
   badge,
   label,
+  after,
   group,
   tag,
   tagKey,
@@ -43,6 +44,8 @@ export function PanelTab({
   /** 名前の前に置く種類の札（メモ・サブ・子）。タブの枠もその種類の色にする（kind で色を分ける。CSS の .tab-kind-<kind>） */
   badge?: { text: ReactNode; kind: string };
   label: string;
+  /** 名前のすぐ後ろに添えるもの（子チャットの動きの印 ChildActivityMark。2 行のタブでも名前の行に置く） */
+  after?: ReactNode;
   /** チャットのグループ（名前の後ろに、グループの色の札で添える。グループなしなら出さない） */
   group?: TabGroupBadge;
   /** グループの札の後ろに添えるもの（作業場所の札 TabWorkplaceBadge） */
@@ -120,6 +123,7 @@ export function PanelTab({
               <span className="panel-tab-line">
                 {badge && <span className="panel-tab-kind">{badge.text}</span>}
                 <span>{label}</span>
+                {after}
               </span>
               <span ref={measure} className="panel-tab-line panel-tab-tags">
                 {groupBadge}
@@ -130,6 +134,7 @@ export function PanelTab({
             <>
               {badge && <span className="panel-tab-kind">{badge.text}</span>}
               <span>{label}</span>
+              {after}
               {groupBadge}
               {tag}
             </>

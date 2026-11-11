@@ -53,3 +53,42 @@
 .panel-tab.unread .panel-tab-label .panel-tab-kind {
   color: var(--tab-color);
 }
+
+/*
+ * 子チャットの動きの印（ChildActivityMark。チャットのタブの名前の後ろ）: 子孫の子チャットが作業中なら、子チャットのマークと作業中のリング（と件数）を
+ * 作業中の色の薄い地の丸い札に、回答待ちがあれば回答待ちの色の「!」にする。親のタブを見るだけで、裏で子チャットが動いていると分かるように（利用者の依頼）
+ */
+.panel-tab-label .tab-child-activity {
+  --activity-color: var(--dot-running);
+
+  display: inline-flex;
+  flex: none;
+  gap: 3px;
+  align-items: center;
+  height: 16px;
+  padding: 0 5px;
+  overflow: visible;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--activity-color);
+  background: color-mix(in srgb, var(--activity-color) 16%, transparent);
+}
+
+.panel-tab-label .tab-child-activity.state-needs_input {
+  --activity-color: var(--dot-needs-input);
+}
+
+.panel-tab-label .tab-child-activity .status-ring {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  overflow: visible;
+  border-width: 1.5px;
+}
+
+.panel-tab-label .tab-child-activity-alert {
+  overflow: visible;
+  font-weight: 700;
+}
