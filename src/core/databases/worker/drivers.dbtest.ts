@@ -1,7 +1,8 @@
 // PostgreSQL・MySQL・MariaDB のドライバを本物の DB で確かめる（npm run test:db が Docker で DB を立てて流す。ポートの環境変数がなければ飛ばす）
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
-import type { DbEngine, DbObjectPath, DbQueryResult } from "@shared/types";
+import { editStatements } from "@shared/database/dbEdit";
+import type { DbEngine, DbObjectPath, DbQueryResult, DbRowEdit } from "@shared/types";
 import type { DbTarget, WorkerMethod, WorkerMethods } from "../protocol.js";
 import { createWorkerHandler } from "./handler.js";
 
@@ -288,6 +289,34 @@ for (const c of CASES) {
       assert.ok(Date.now() - startedAt < 8000, "20 秒待たずに止まる");
       // 止めたあとも同じ接続で流せる
       assert.equal(Number((await sql("SELECT 2", "slow")).rows[0][0]), 2);
+    });
+
+    test("行の変更をまとめて保存する（同じ値への更新も 1 行と数え、行が合わなければすべて取り消す）", async () => {
+      await sql("DROP TABLE IF EXISTS edits_t", "edit");
+      await sql(`CREATE TABLE edits_t (id integer PRIMARY KEY, name varchar(20) NOT NULL, flag ${c.engine === "postgres" ? "boolean" : "tinyint"} NOT NULL DEFAULT ${c.engine === "postgres" ? "false" : "0"})`, "edit");
+      await sql("INSERT INTO edits_t (id, name) VALUES (1, 'a'), (2, 'b')", "edit");
+      const apply = (edits: DbRowEdit[]) =>
+        call("apply", { session: "edit", target: target(), statements: editStatements(c.engine, path, "edits_t", edits).map(({ sql: text, params, expect }) => ({ sql: text, params, expect })) });
+      const done = await apply([
+        { kind: "update", key: { id: 1 }, values: { name: "a" } },
+        { kind: "update", key: { id: 2 }, values: { name: "B", flag: c.engine === "postgres" ? "true" : "1" } },
+        { kind: "insert", values: { id: "3", name: "c" } },
+      ]);
+      assert.deepEqual(done.affected, [1, 1, 1]);
+      await assert.rejects(
+        apply([
+          { kind: "delete", key: { id: 3 } },
+          { kind: "update", key: { id: 9 }, values: { name: "x" } },
+        ]),
+        /2 番目の変更の行が見つかりません/,
+      );
+      const rows = (await sql("SELECT id, name FROM edits_t ORDER BY id", "edit")).rows.map((r) => [Number(r[0]), r[1]]);
+      assert.deepEqual(rows, [
+        [1, "a"],
+        [2, "B"],
+        [3, "c"],
+      ]);
+      await call("close", { session: "edit" });
     });
 
     test("DB が接続を切ったら、次の頼みでつなぎ直す", async () => {

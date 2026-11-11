@@ -9,11 +9,11 @@ const SQL_WRITE_IDLE_MS = 10 * 60_000;
 /** 流す前の確かめに見せる SQL の長さ（長い文は頭だけ） */
 const PREVIEW_CHARS = 1200;
 
-/** 確かめのダイアログに見せる SQL（文ごとに番号を付け、長ければ頭だけ） */
-function previewOf(statements: SqlStatement[]): string {
-  const lines = statements.map((s, i) => `${statements.length > 1 ? `${i + 1}. ` : ""}${s.text}`).join("\n\n");
-  return lines.length > PREVIEW_CHARS ? `${lines.slice(0, PREVIEW_CHARS)}…（${lines.length.toLocaleString()} 文字）` : lines;
-}
+/** 確かめのダイアログに見せる SQL（長ければ頭だけ。テーブルの保存の確かめでも使う） */
+export const clipSql = (text: string) => (text.length > PREVIEW_CHARS ? `${text.slice(0, PREVIEW_CHARS)}…（${text.length.toLocaleString()} 文字）` : text);
+
+/** 流す前の確かめに見せる SQL（文ごとに番号を付け、長ければ頭だけ） */
+const previewOf = (statements: SqlStatement[]) => clipSql(statements.map((s, i) => `${statements.length > 1 ? `${i + 1}. ` : ""}${s.text}`).join("\n\n"));
 
 /**
  * SQL のタブの「書き込む」（読み取り専用の接続で、このタブだけ読み取り専用を外す）。
@@ -52,7 +52,7 @@ export function useSqlWrite(connection: DbConnection, pending: boolean) {
   const start = async () => {
     const typed = await promptDialog({
       title: `「${connection.name}」に書き込む`,
-      message: `このタブだけ読み取り専用を外します（接続の設定は変えません）。外している間は、流すたびに SQL を見せて確かめます。\n10 分何もしないか、タブを閉じると読み取り専用に戻ります。`,
+      message: `このタブだけ読み取り専用を外します（接続の設定は変えません）。外している間は、流す・保存するたびに SQL を見せて確かめます。\n10 分何もしないか、タブを閉じると読み取り専用に戻ります。`,
       label: `確かめのため、環境の名前「${env}」を入れてください`,
       placeholder: env,
       confirmLabel: "書き込む",

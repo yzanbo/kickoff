@@ -54,11 +54,12 @@
 }
 
 /* 「書き込む」の間: 上の赤い帯と、タブの枠の赤い線（読み取り専用を外していると、ひと目で分かるように） */
-.db-sql-view.writing {
+.db-sql-view.writing,
+.db-table-view.writing {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ng) 70%, transparent);
 }
 
-.db-sql-write-band {
+.db-write-band {
   display: flex;
   flex: none;
   align-items: center;
@@ -71,12 +72,12 @@
   font-weight: 600;
 }
 
-.db-sql-write-band > svg {
+.db-write-band > svg {
   flex: none;
   color: var(--ng);
 }
 
-.db-sql-write-text {
+.db-write-text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -84,7 +85,7 @@
   white-space: nowrap;
 }
 
-.db-sql-write-band .btn {
+.db-write-band .btn {
   display: inline-flex;
   flex: none;
   align-items: center;

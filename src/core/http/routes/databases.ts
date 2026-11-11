@@ -7,6 +7,7 @@ import {
   DB_CONNECTION_NAME_MAX,
   DB_ENGINES,
   DB_ENVIRONMENTS,
+  DB_EDITS_MAX,
   DB_ER_MAX,
   DB_FILTER_OPS,
   DB_HISTORY_MAX,
@@ -14,6 +15,7 @@ import {
   type DbConnection,
   type DbConnectionPatch,
   type DbConnectionTestBody,
+  type DbEditsBody,
   type DbErBody,
   type DbErLayoutBody,
   type DbImportBody,
@@ -150,6 +152,27 @@ const erLayoutSchema = z.object({
 /** SQL のタブの接続の名前（画面が作る。英数字・- と _） */
 const sessionId = z.string().regex(/^[\w-]{1,64}$/, "SQL のタブの指定が正しくありません");
 const sqlSchema = z.object({ session: sessionId, sql: z.string().trim().min(1, "SQL を入れてください").max(1_000_000), write: z.boolean() }) satisfies z.ZodType<DbSqlBody>;
+
+/** テーブルの行の変更（値は 100 万文字まで・1 行の列は 1000 個まで・1 回に DB_EDITS_MAX 個まで） */
+const editValues = z.record(objectName, z.string().max(1_000_000).nullable()).refine((v) => Object.keys(v).length <= 1000, "列が多すぎます");
+const editKey = z
+  .record(objectName, z.union([z.string().max(10_000), z.number(), z.boolean(), z.null()]))
+  .refine((k) => Object.keys(k).length > 0 && Object.keys(k).length <= 32, "行を指すキーがありません");
+const editsSchema = z.object({
+  path: objectPath,
+  table: objectName,
+  edits: z
+    .array(
+      z.discriminatedUnion("kind", [
+        z.object({ kind: z.literal("update"), key: editKey, values: editValues }),
+        z.object({ kind: z.literal("insert"), values: editValues }),
+        z.object({ kind: z.literal("delete"), key: editKey }),
+      ]),
+    )
+    .min(1)
+    .max(DB_EDITS_MAX),
+  write: z.boolean(),
+}) satisfies z.ZodType<DbEditsBody>;
 
 // ---- 接続元の確かめ ----
 
@@ -370,6 +393,12 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
   app.post(`${base}/:cid/sql`, withProject, withConnection, async (c) => {
     const body = sqlSchema.parse(await jsonBody(c));
     return c.json(await databases.sql(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body));
+  });
+
+  // テーブルの行の変更をまとめて保存する（1 つのトランザクション）
+  app.post(`${base}/:cid/edits`, withProject, withConnection, async (c) => {
+    const body = editsSchema.parse(await jsonBody(c));
+    return c.json(await databases.applyEdits(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body));
   });
 
   // SQL の履歴（新しい順。AI が流したものは ran_by = ai とチャット）

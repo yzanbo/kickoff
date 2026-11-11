@@ -2,6 +2,7 @@
 import type { EventEmitter } from "node:events";
 import pg from "pg";
 import Cursor from "pg-cursor";
+import type { DbEditParam } from "@shared/database/dbEdit";
 import { filterSql, type FilterDialect } from "@shared/database/dbFilter";
 import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
@@ -326,6 +327,14 @@ class PostgresDriver implements DbDriver {
       duration_ms: performance.now() - started,
       in_transaction: this.inTransaction(),
     };
+  }
+
+  async execute(sql: string, params: DbEditParam[]) {
+    try {
+      return (await this.client.query(sql, params)).rowCount ?? 0;
+    } catch (e) {
+      throw pgError(e);
+    }
   }
 
   /** カーソルを閉じる（ReadyForQuery を待つ。接続が切れたら待たない） */

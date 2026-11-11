@@ -1,8 +1,8 @@
-import { ArrowUpRight, Copy, Download, Filter, FilterX, PanelRight } from "lucide-react";
+import { Download, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { previewRowsSql } from "@shared/database/dbFilter";
 import { errorMessage } from "@shared/errors";
-import { DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, type DbObjectPath, type DbQueryResult, type DbRowFilter, type DbSort, type DbTableDetail } from "@shared/types";
+import { DB_EDITS_MAX, DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, type DbObjectPath, type DbQueryResult, type DbRowFilter, type DbSort, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import type { DbTableTab } from "@/lib/dbClientTabs";
@@ -11,12 +11,17 @@ import { CopyButton } from "@/ui/CopyButton";
 import { ErrorText } from "@/ui/ErrorText";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { DataGrid } from "./DataGrid";
+import { CsvImportDialog } from "./CsvImportDialog";
+import { DataGrid, type DataGridEdit } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
 import { nextSort } from "./dbFormat";
-import { DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, foreignKeysByColumn, linkFilters, valueFilter, type DbExportFormat } from "./dbRowTools";
+import { DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, type DbExportFormat } from "./dbRowTools";
+import { TableCellMenu } from "./TableCellMenu";
+import { TableEditBar } from "./TableEditBar";
+import { addInserts, displayRows, setCell, setInsertCell } from "./tableEdits";
 import { TableFilterBar } from "./TableFilterBar";
 import { TableRowDetail } from "./TableRowDetail";
+import type { TableEditsState } from "./useTableEdits";
 
 /** つながった行へ移る先（外部キーの参照先・この行を指しているテーブル） */
 export interface RowLink {
@@ -75,8 +80,8 @@ function linkPath(connection: DbConnection, path: DbObjectPath, schema: string |
 }
 
 /**
- * テーブルのデータ: 絞り込みの帯・表（右クリックで「この値で絞る / 除く」・参照先の行を開く）・行の詳細・下の帯
- * （流す SQL・行数・正確に数える・書き出し CSV / TSV / JSON）
+ * テーブルのデータ: 絞り込みの帯・編集の帯・表（右クリックで「この値で絞る / 除く」・参照先の行を開く・NULL にする・行を消す）・行の詳細・下の帯
+ * （流す SQL・行数・正確に数える・書き出し CSV / TSV / JSON）。セルの書き換え・足す行・消す行は edit（TableView が持つ）に、保存するまで持つ
  */
 export function TableData({
   data,
@@ -84,6 +89,7 @@ export function TableData({
   connection,
   tab,
   worktree,
+  edit,
   onFilter,
 }: {
   data: ReturnType<typeof useTableRows>;
@@ -91,6 +97,7 @@ export function TableData({
   connection: DbConnection;
   tab: DbTableTab;
   worktree: string | null;
+  edit: TableEditsState;
   onFilter: (filter: DbRowFilter | null) => void;
 }) {
   const client = useDbClient();
@@ -100,13 +107,43 @@ export function TableData({
   const [showDetail, setShowDetail] = useState(false);
   const menu = useContextMenu<{ row: number; col: number }>();
   const exportMenu = useContextMenu();
+  const [importing, setImporting] = useState(false);
+  const [pickRequest, setPickRequest] = useState<{ row: number; col: number } | null>(null);
   const filterKey = JSON.stringify(tab.filter ?? null);
   useEffect(() => setExact(null), [tab.key, filterKey]);
   const onPickRow = useCallback((row: number | null) => setPickedRow(row), []);
 
   const columns = useMemo(() => detail?.columns.map((c) => c.name) ?? data.result?.columns.map((c) => c.name) ?? [], [detail, data.result]);
-  const fks = useMemo(() => foreignKeysByColumn(detail?.foreign_keys ?? []), [detail]);
   const result = data.result;
+  const { edits, keyColumns, writable } = edit;
+  const display = useMemo(() => (result ? displayRows(result.columns, result.rows, keyColumns, edits) : null), [result, keyColumns, edits]);
+  const gridEdit = useMemo((): DataGridEdit | undefined => {
+    if (!display || !result) return undefined;
+    return {
+      canEdit: (row, col) => {
+        const value = display.rows[row]?.[col];
+        if (!writable || value === undefined || (value !== null && typeof value === "object")) return false;
+        return display.insertIds[row] !== null || (display.keys[row] !== null && display.rowState(row) !== "deleted");
+      },
+      rowState: display.rowState,
+      cellState: display.cellState,
+      onCommit: (row, col, text) => {
+        const name = result.columns[col].name;
+        const insertId = display.insertIds[row];
+        const key = display.keys[row];
+        if (insertId !== null) edit.change((e) => setInsertCell(e, insertId, name, text));
+        else if (key) edit.change((e) => setCell(e, key, name, text, result.rows[row][col]));
+      },
+    };
+    // edit.change は描き直しごとに作り直すが、中で読むのはいちばん新しい変更なので、表の中身が変わったときだけ作り直す
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [display, result, writable]);
+  /** 行を足して、その行の頭のセルを選ぶ */
+  const addRow = () => {
+    if (!display) return;
+    edit.change((e) => addInserts(e, [{}]));
+    setPickRequest({ row: display.rows.length, col: 0 });
+  };
 
   const count = async () => {
     setExact("counting");
@@ -129,23 +166,23 @@ export function TableData({
   const sql = previewRowsSql(tab.name, data.filter, data.sort, quote, DB_TABLE_PAGE_ROWS);
   const shown = result?.rows.length ?? 0;
   const filtered = Boolean(tab.filter);
-  const picked = menu.menu?.value;
-  const pickedCol = picked && result ? result.columns[picked.col] : null;
-  const pickedValue = picked && result ? result.rows[picked.row]?.[picked.col] : undefined;
-  const detailRow = showDetail && pickedRow !== null && result ? result.rows[pickedRow] : undefined;
+  const detailRow = showDetail && pickedRow !== null && display ? display.rows[pickedRow] : undefined;
 
   return (
     <div className="db-table-data">
       <TableFilterBar columns={columns} applied={tab.filter} onApply={onFilter} />
+      {detail && <TableEditBar state={edit} connection={connection} onAddRow={addRow} onImportCsv={() => setImporting(true)} />}
       <div className="db-table-body">
-        {result && (
+        {result && display && (
           <DataGrid
             columns={result.columns}
-            rows={result.rows}
+            rows={display.rows}
             sort={data.sort}
             onSort={data.sortBy}
             onPickRow={onPickRow}
             onCellMenu={(e, row, col) => menu.open(e, { row, col })}
+            edit={gridEdit}
+            pickRequest={pickRequest}
           />
         )}
         {result && showDetail && (
@@ -200,37 +237,31 @@ export function TableData({
           ))}
         </PopupMenu>
       )}
-      {menu.menu && picked && pickedCol && pickedValue !== undefined && result && (
-        <PopupMenu at={menu.menu.at} label="セルのメニュー" onClose={menu.close}>
-          {(() => {
-            const keep = valueFilter(pickedCol.name, pickedValue, false);
-            const drop = valueFilter(pickedCol.name, pickedValue, true);
-            return (
-              <>
-                <MenuItem disabled={!keep} onSelect={() => keep && addFilter(keep)}>
-                  <Filter size={14} /> この値で絞る
-                </MenuItem>
-                <MenuItem disabled={!drop} onSelect={() => drop && addFilter(drop)}>
-                  <FilterX size={14} /> この値を除く
-                </MenuItem>
-              </>
-            );
-          })()}
-          {(fks.get(pickedCol.name) ?? []).map((fk) => {
-            const filters = linkFilters(result.rows[picked.row], result.columns, fk.columns, fk.ref_columns);
-            return (
-              <MenuItem key={`${fk.ref_table}:${fk.columns.join(",")}`} disabled={!filters} onSelect={() => filters && openLink({ schema: fk.ref_schema, table: fk.ref_table, filters })}>
-                <ArrowUpRight size={14} /> {fk.ref_table} の行を開く
-              </MenuItem>
-            );
-          })}
-          <MenuItem
-            disabled={pickedValue === null || typeof pickedValue === "object"}
-            onSelect={() => void navigator.clipboard.writeText(pickedValue === null || typeof pickedValue === "object" ? "" : String(pickedValue))}
-          >
-            <Copy size={14} /> 値をコピー
-          </MenuItem>
-        </PopupMenu>
+      {menu.menu && result && display && (
+        <TableCellMenu
+          at={menu.menu.at}
+          row={menu.menu.value.row}
+          col={menu.menu.value.col}
+          result={result}
+          display={display}
+          detail={detail}
+          edit={edit}
+          onClose={menu.close}
+          onFilter={addFilter}
+          onLink={openLink}
+        />
+      )}
+      {importing && (
+        <CsvImportDialog
+          table={tab.name}
+          columns={columns}
+          room={DB_EDITS_MAX - edit.counts.total}
+          onImport={(rows) => {
+            edit.change((e) => addInserts(e, rows));
+            if (display) setPickRequest({ row: display.rows.length, col: 0 });
+          }}
+          onClose={() => setImporting(false)}
+        />
       )}
     </div>
   );

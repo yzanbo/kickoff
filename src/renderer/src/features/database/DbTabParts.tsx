@@ -4,6 +4,7 @@ import type { DbClientTab } from "@/lib/dbClientTabs";
 import { TabObjectIcon } from "./DbTreeObjects";
 import { objectPathLabel } from "./dbFormat";
 import { useSqlPending } from "./sqlSessions";
+import { unsavedTables } from "./tabFlags";
 
 // DB クライアントの右のタブの名前・説明・アイコン・パンくず（DatabaseClient から分けたもの）
 
@@ -22,6 +23,12 @@ export function DbTabIcon({ tab: t }: { tab: DbClientTab }) {
 export function PendingMark({ tabKey }: { tabKey: string }) {
   const pending = useSqlPending(tabKey);
   return pending ? <span className="db-tab-pending" data-tip="コミットしていない変更があります" aria-label="コミットしていない変更があります" /> : null;
+}
+
+/** テーブルのタブに保存していない変更があれば、名前の後ろに「保存していない」印（flagKey: unsavedKey） */
+export function UnsavedMark({ flagKey }: { flagKey: string }) {
+  const unsaved = unsavedTables.useFlag(flagKey);
+  return unsaved ? <span className="db-tab-pending" data-tip="保存していない変更があります" aria-label="保存していない変更があります" /> : null;
 }
 
 /** タブの名前（ER 図はまわりを見ているテーブル、なければ場所。手順メモはメモの名前） */

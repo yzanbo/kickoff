@@ -24,6 +24,7 @@ import { SideMemo } from "@/features/memo/SideMemo";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { CloseButton, IconButton } from "@/ui/IconButton";
 import { EmptyState } from "@/ui/EmptyState";
+import { confirmDialog } from "@/ui/dialogs";
 import { ErrorText } from "@/ui/ErrorText";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ConnectionDialog } from "./ConnectionDialog";
@@ -34,11 +35,12 @@ import { DbClientContext, type DbClientActions, type DbFailure, type DbPrepTarge
 import { DbFailureDialog } from "./DbFailureDialog";
 import { DbPrepDialog } from "./DbPrepDialog";
 import { createConnectionMemo } from "./dbMemo";
-import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle } from "./DbTabParts";
+import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle, UnsavedMark } from "./DbTabParts";
 import { DbTree } from "./DbTree";
 import { DefinitionView } from "./DefinitionView";
 import { finishSession } from "./sqlSessions";
 import { SqlView } from "./SqlView";
+import { unsavedKey, unsavedTables } from "./tabFlags";
 import { TableView } from "./TableView";
 
 /** ER 図（@xyflow/react と elkjs は ER 図を開いたときだけ読む） */
@@ -117,8 +119,12 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     setOverlay(false);
   };
 
-  /** タブを閉じる（SQL のタブはコミットしていなければ聞き（やめたら閉じない）、DB の接続を閉じて書きかけの SQL を消す） */
+  /** タブを閉じる（SQL のタブはコミットしていなければ聞き（やめたら閉じない）、DB の接続を閉じて書きかけの SQL を消す。テーブルのタブは保存していない変更があれば捨てるか聞く） */
   const closeTab = async (tab: DbClientTab) => {
+    if (tab.kind === "table" && unsavedTables.has(unsavedKey(place, tab.key))) {
+      const ok = await confirmDialog({ title: "保存していない変更があります", message: `「${tab.name}」の変更を保存せずに閉じますか？変更は捨てます。`, confirmLabel: "捨てて閉じる", danger: true });
+      if (!ok) return;
+    }
     if (tab.kind === "sql") {
       const c = byId.get(tab.connection_id);
       if (c) {
@@ -174,6 +180,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                     <DbTabIcon tab={t} />
                     <span className="db-tab-label">{tabLabel(t)}</span>
                     {t.kind === "sql" && <PendingMark tabKey={t.key} />}
+                    {t.kind === "table" && <UnsavedMark flagKey={unsavedKey(place, t.key)} />}
                   </button>
                   <CloseButton label="タブを閉じる" size={12} className="db-tab-close" onClick={() => void closeTab(t)} />
                 </div>
