@@ -100,6 +100,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const vault = new DbSecretVault(store, opts.secretCipher ?? null);
   migrateInBackground(vault);
   const databases = new DatabaseService({ store, client: new DbWorkerClient(opts.dbWorker ?? (() => forkWorker(devWorkerEntry()))), vault, dataDir: opts.dataDir });
+  // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
+  databases.cleanExports();
   // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
   // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, interrupted: recovered });

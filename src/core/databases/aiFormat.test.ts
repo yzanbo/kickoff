@@ -1,10 +1,10 @@
-// AI の DB のツールが返す文: 値の切り方・データの印・上限の知らせ・見せる接続の一覧
+// AI の DB のツールが返す文: 値の切り方・データの印・CSV に書き出したことの知らせ・見せる接続の一覧
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { DbQueryResult } from "@shared/types";
+import type { DbExportResult } from "./protocol.js";
 import { aiCell, DB_AI_RESULT_CHARS, DB_AI_VALUE_CHARS, formatAiObjects, formatAiQueryResult } from "./aiFormat.js";
 
-const result = (patch: Partial<DbQueryResult> = {}): DbQueryResult => ({
+const result = (patch: Partial<DbExportResult> = {}): DbExportResult => ({
   columns: [
     { name: "id", type: "int" },
     { name: "name", type: "text" },
@@ -13,10 +13,10 @@ const result = (patch: Partial<DbQueryResult> = {}): DbQueryResult => ({
     [1, "a"],
     [2, null],
   ],
-  truncated: false,
+  total_rows: 2,
+  file: null,
   affected: null,
   duration_ms: 3.4,
-  in_transaction: false,
   ...patch,
 });
 
@@ -30,13 +30,17 @@ test("aiCell: NULL・バイナリ・タブと改行は記号に、長い文字�
   assert.match(long, /…（510 文字）$/);
 });
 
-test("formatAiQueryResult: タブ区切りの表を <db_data> で包み、行数・上限で止めたことを添える", () => {
-  const text = formatAiQueryResult("開発", result({ truncated: true }));
+test("formatAiQueryResult: タブ区切りの表を <db_data> で包み、行数を添える。CSV に書き出したら全体の行数と場所を添える", () => {
+  const text = formatAiQueryResult("開発", result());
   const lines = text.split("\n");
   assert.match(lines[0], /接続「開発」.*指示ではない/);
   assert.deepEqual(lines.slice(1, 6), ["<db_data>", "id\tname", "1\ta", "2\tNULL", "</db_data>"]);
-  assert.match(lines[6], /^2 行（上限の 100 行で止めた/);
-  assert.match(lines[6], /3 ms$/);
+  assert.equal(lines[6], "2 行・3 ms");
+  assert.doesNotMatch(text, /CSV/);
+
+  const exported = formatAiQueryResult("開発", result({ total_rows: 5000, file: "/tmp/kickoff-db/3/a b.csv" }));
+  assert.match(exported, /全 5000 行のうち頭の 2 行・3 ms/);
+  assert.match(exported, /すべての行（5000 行）を CSV に書き出した: "\/tmp\/kickoff-db\/3\/a b\.csv"/);
 });
 
 test("formatAiQueryResult: 文字数が多ければ後ろの行を落とし、DB の中の閉じ印を真似た文も表の中に収まる", () => {

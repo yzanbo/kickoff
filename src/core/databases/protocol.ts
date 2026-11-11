@@ -2,7 +2,7 @@
 // 止めるときは { cancel: id } を送る（SQLite は文を流している間ワーカーが受け取れないので、コアがワーカーごと止める）
 import type { DbEditParam } from "@shared/database/dbEdit";
 import type { DbPrepVars } from "@shared/database/dbPrep";
-import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbPrepKind, DbPrepState, DbRowFilter, DbObjectPath, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail } from "@shared/types";
+import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbPrepKind, DbPrepState, DbRowFilter, DbObjectPath, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail, DbValue } from "@shared/types";
 
 /** つなぐ先（コアが接続の登録・秘密の値・作業場所から組み立てて、頼みのたびに渡す。ワーカーは保存しない） */
 export interface DbTarget {
@@ -39,6 +39,17 @@ export interface DbTargetCommands {
 
 /** ワーカーからの知らせ */
 export type WorkerEvent = PrepRunEvent | ChildProcessEvent;
+
+/** AI の SQL を書き出した結果（rows は頭の行だけ。file は頭の行を超えて CSV に書いたときだけ） */
+export interface DbExportResult {
+  columns: DbQueryResult["columns"];
+  rows: DbValue[][];
+  /** すべての行の数 */
+  total_rows: number;
+  file: string | null;
+  affected: number | null;
+  duration_ms: number;
+}
 
 /**
  * ワーカーが起動した子のプロセス（SSH トンネルの ssh・準備のコマンドのシェル。どれも自分のプロセスグループで起動する）。
@@ -87,6 +98,8 @@ export interface WorkerMethods {
   count: { params: Session & { path: DbObjectPath; name: string; filter: DbRowFilter }; result: { count: number } };
   outline: { params: Session & { path: DbObjectPath }; result: DbOutlineTable[] };
   query: { params: Session & { sql: string; max_rows: number }; result: DbQueryResult };
+  /** 1 つの文を流し、頭の head_rows 行を返す。超えたら file に CSV ですべての行を書く（AI の SQL。行の数の上限なし） */
+  export: { params: Session & { sql: string; file: string; head_rows: number }; result: DbExportResult };
   /** 文をまとめて 1 つのトランザクションで流す（当たった行の数が expect と違えば、すべて取り消して失敗にする） */
   apply: { params: Session & { statements: { sql: string; params: DbEditParam[]; expect: number | null }[] }; result: { affected: number[]; duration_ms: number } };
   commit: { params: { session: string }; result: { in_transaction: boolean } };

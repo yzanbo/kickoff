@@ -5,7 +5,7 @@ import type { DbEditParam } from "@shared/database/dbEdit";
 import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFilter";
 import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
-import type { DbDriver } from "./driver.js";
+import type { DbColumns, DbDriver } from "./driver.js";
 import { quoteIdent, toDbValue } from "./values.js";
 
 /** 絞り込みの書き方（? と LIKE） */
@@ -192,6 +192,17 @@ class SqliteDriver implements DbDriver {
 
   async query(sql: string, maxRows: number) {
     return runStatement(this.db, this.db.prepare(sql), maxRows);
+  }
+
+  async stream(sql: string, onColumns: (columns: DbColumns) => void, onRow: (row: unknown[]) => void) {
+    const stmt = this.db.prepare(sql);
+    stmt.setReadBigInts(true);
+    const columns = stmt.columns().map((c) => ({ name: c.name, type: c.type ?? null }));
+    onColumns(columns);
+    if (columns.length === 0) return { affected: Number(stmt.run().changes) };
+    stmt.setReturnArrays(true);
+    for (const row of stmt.iterate() as Iterable<unknown[]>) onRow(row);
+    return { affected: null };
   }
 
   async execute(sql: string, params: DbEditParam[]) {

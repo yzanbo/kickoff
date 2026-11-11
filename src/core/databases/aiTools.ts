@@ -8,8 +8,11 @@ import { formatAiConnections, formatAiObjects, formatAiQueryResult, formatAiTabl
 import { assertAiSql, type DatabaseService } from "./service.js";
 import { DbPasswordLocked } from "./secrets.js";
 
-/** AI の SQL を流す前に、利用者に聞く（「承認して見せる」の接続だけ）。断られたら理由の文、許されたら null */
-export type DbAiApprove = (request: { connection: string; sql: string }) => Promise<string | null>;
+/**
+ * AI の SQL を流す前に、利用者に聞く（「承認して見せる」の接続と、30 秒を超えて流す時間 timeout_minutes を頼まれたとき）。
+ * 断られたら理由の文、許されたら null
+ */
+export type DbAiApprove = (request: { connection: string; sql: string; timeout_minutes?: number }) => Promise<string | null>;
 
 export interface DbAiTools {
   /** AI に見せる接続の一覧 */
@@ -18,8 +21,8 @@ export interface DbAiTools {
   objects(input: { connection?: string; database?: string; schema?: string; search?: string }): Promise<string>;
   /** テーブルの構造 */
   describe(input: { connection?: string; table: string; database?: string; schema?: string }): Promise<string>;
-  /** 読み取りの SQL を 1 文だけ流す */
-  query(input: { connection?: string; sql: string; database?: string }, approve: DbAiApprove): Promise<string>;
+  /** 読み取りの SQL を 1 文だけ流す（timeout_minutes: 30 秒を超えて流す時間。signal: チャットの作業を止めたら SQL も止める） */
+  query(input: { connection?: string; sql: string; database?: string; timeout_minutes?: number }, approve: DbAiApprove, signal?: AbortSignal): Promise<string>;
 }
 
 /**
@@ -88,15 +91,16 @@ export function createDbAiTools(deps: { store: Store; databases: DatabaseService
         return formatAiTable(table, await databases.table(c, project, workdir, path, table));
       }),
 
-    query: ({ connection, sql, database }, approve) =>
+    query: ({ connection, sql, database, timeout_minutes }, approve, signal) =>
       askUserIfLocked(async () => {
         const c = resolve(connection);
         assertAiSql(sql, c.engine);
-        if (c.ai_access === "ask") {
-          const denied = await approve({ connection: c.name, sql });
+        // 長く流すのは、自由に見せる接続でも必ず利用者に聞く（DB に重い負荷をかけうるため）
+        if (c.ai_access === "ask" || timeout_minutes) {
+          const denied = await approve({ connection: c.name, sql, ...(timeout_minutes ? { timeout_minutes } : {}) });
           if (denied !== null) throw new Invalid(denied);
         }
-        const result = await databases.aiQuery(c, project, workdir, { sql, database: database || null, chatId });
+        const result = await databases.aiQuery(c, project, workdir, { sql, database: database || null, chatId, timeoutMinutes: timeout_minutes ?? null, signal });
         return formatAiQueryResult(c.name, result);
       }),
   };

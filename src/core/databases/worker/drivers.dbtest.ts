@@ -1,5 +1,8 @@
 // PostgreSQL・MySQL・MariaDB のドライバを本物の DB で確かめる（npm run test:db が Docker で DB を立てて流す。ポートの環境変数がなければ飛ばす）
 import assert from "node:assert/strict";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { editStatements } from "@shared/database/dbEdit";
 import type { DbEngine, DbObjectPath, DbQueryResult, DbRowEdit } from "@shared/types";
@@ -289,6 +292,42 @@ for (const c of CASES) {
       assert.ok(Date.now() - startedAt < 8000, "20 秒待たずに止まる");
       // 止めたあとも同じ接続で流せる
       assert.equal(Number((await sql("SELECT 2", "slow")).rows[0][0]), 2);
+    });
+
+    test("AI の SQL の書き出し: 頭の行で収まればファイルを作らず、超えたらすべての行を CSV に書く。止めると書きかけを残さない", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "kickoff-dbtest-"));
+      try {
+        const few = await call("export", { session: "export", target: target(), sql: "SELECT id, name FROM users ORDER BY id LIMIT 3", file: join(dir, "few.csv"), head_rows: 100 });
+        assert.equal(few.file, null);
+        assert.equal(few.total_rows, 3);
+        assert.equal(existsSync(join(dir, "few.csv")), false);
+
+        const file = join(dir, "all.csv");
+        const all = await call("export", { session: "export", target: target(), sql: "SELECT id, name, email, avatar FROM users ORDER BY id", file, head_rows: 100 });
+        assert.equal(all.file, file);
+        assert.equal(all.total_rows, 1500);
+        assert.equal(all.rows.length, 100);
+        const lines = readFileSync(file, "utf8").trimEnd().split("\n");
+        assert.equal(lines.length, 1501);
+        assert.equal(lines[0], "id,name,email,avatar");
+        // 1 行目の利用者はほかのテストが書き換えるので、2 行目から見る
+        assert.equal(lines[2], "2,user2,u2@ex.com,\\x01020304");
+        assert.equal(lines[7], "7,user7,,\\x01020304");
+        // 同じ接続で続けて流せる
+        assert.equal(Number((await sql("SELECT 5", "export")).rows[0][0]), 5);
+
+        const id = nextId++;
+        const slowFile = join(dir, "slow.csv");
+        const slowSql = c.engine === "postgres" ? "SELECT g, pg_sleep(0.01) FROM generate_series(1, 3000) g" : `SELECT s.n, SLEEP(0.01) FROM (${series(3000)}) s`;
+        const running = handler.handle({ id, method: "export", params: { session: "export-slow", target: target(), sql: slowSql, file: slowFile, head_rows: 100 } });
+        await new Promise((r) => setTimeout(r, 2500));
+        await handler.cancel(id);
+        const res = await running;
+        assert.equal(res.ok, false);
+        assert.equal(existsSync(slowFile), false);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
     });
 
     test("行の変更をまとめて保存する（同じ値への更新も 1 行と数え、行が合わなければすべて取り消す）", async () => {

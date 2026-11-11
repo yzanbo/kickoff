@@ -9,6 +9,7 @@ import { openPostgres } from "./postgres.js";
 import { openSqlite, testSqlite } from "./sqlite.js";
 import { createPrep, type EmitRun, type Prep } from "./prep.js";
 import { createTunnels } from "./tunnel.js";
+import { exportQuery } from "./csvExport.js";
 
 type Tunnels = ReturnType<typeof createTunnels>;
 
@@ -186,6 +187,7 @@ export function createWorkerHandler(emit: EmitRun = () => {}) {
     count: (p, id) => use(id, p.session, p.target, async (d) => ({ count: await d.count(p.path, p.name, p.filter) })),
     outline: (p, id) => use(id, p.session, p.target, (d) => d.outline(p.path)),
     query: (p, id) => use(id, p.session, p.target, (d) => d.query(p.sql, p.max_rows)),
+    export: (p, id) => use(id, p.session, p.target, (d) => exportQuery(d, p.sql, p.file, p.head_rows)),
     apply: (p, id) => use(id, p.session, p.target, (d) => applyStatements(d, p.statements)),
     commit: ({ session }) =>
       serial(session, async () => {

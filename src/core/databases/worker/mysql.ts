@@ -4,7 +4,7 @@ import type { DbEditParam } from "@shared/database/dbEdit";
 import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFilter";
 import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
-import type { DbDriver } from "./driver.js";
+import type { DbColumns, DbDriver } from "./driver.js";
 import { CONNECT_TIMEOUT_MS, tlsOptions } from "./network.js";
 import { mysqlDefinition, mysqlRoutineObjects } from "./mysqlRoutines.js";
 import { toDbValue } from "./values.js";
@@ -325,6 +325,31 @@ class MysqlDriver implements DbDriver {
         reject(err);
       });
       q.on("end", finish);
+    });
+  }
+
+  /** すべての行を流れてくるまま渡す（上限で止めない） */
+  stream(sql: string, onColumns: (columns: DbColumns) => void, onRow: (row: unknown[]) => void): Promise<{ affected: number | null }> {
+    return new Promise((resolve, reject) => {
+      let affected: number | null = null;
+      let named = false;
+      const q = this.conn.query({ sql, rowsAsArray: true });
+      q.on("fields", (fields: FieldPacket[] | undefined) => {
+        if (named) return;
+        named = true;
+        onColumns(fields ? fields.map((f) => ({ name: f.name, type: typeName(f) })) : []);
+      });
+      q.on("result", (row: unknown) => {
+        if (Array.isArray(row)) return onRow(row);
+        const header = row as ResultSetHeader;
+        affected = header.affectedRows ?? null;
+        this.status = header.serverStatus ?? this.status;
+      });
+      q.on("error", reject);
+      q.on("end", () => {
+        if (!named) onColumns([]);
+        resolve({ affected });
+      });
     });
   }
 
