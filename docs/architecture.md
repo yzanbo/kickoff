@@ -53,12 +53,12 @@
 | 連携先（PR・issue を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`）と、プロジェクトで使う GitHub のアカウント（gh に入っているものから選ぶ。gh の有効なアカウントは切り替えない） | `GitHubRemote`・`GitHubTarget`（`core/git/githubTarget.ts`）・選んだ remote はプロジェクトの `github_remote`・アカウントは `github_account`（`GitHubAccount`・`core/git/githubAccount.ts` の `runAsGitHubAccount`）・ワークツリーの PR を見張るかは `pr_watch`・設定の画面は `ProjectGitHub` | なし |
 | ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたこと。印と 1 つの確認で片付けを聞く） | `WorktreePrNotice`・見張り `WorktreePrWatch`（`core/git/prWatch.ts`）・閉じた確認の表 `pr_notice_dismissals`・画面 `features/worktree/prNotice/` | 「マージの通知」（macOS の通知と紛らわしい） |
 | issue・PR の結び付き（予定。どの issue・PR のためのチャットか。カードに `#番号`） | `Chat` の `github_repo` / `github_number`（issue と PR の番号はリポジトリの中で重ならないので、種類は持たない） | なし |
-| DB クライアント（予定。プロジェクトの画面の上のタブ「DB」・チャットの右の欄の ▾ の「DB ▸」・別ウィンドウで開く。接続の一覧・テーブル・SQL・ER 図。要件定義書の「5.12 DB クライアント」） | タブ `db`（`#/projects/:id/db`）・画面 `features/database/`・コア `core/databases/`・HTTP `/api/projects/:id/db-connections/…`（接続元が 127.0.0.1 の頼みだけ受ける） | なし |
-| DB 接続（予定。プロジェクトごとに登録する接続。ほかのプロジェクトから写せる） | `DbConnection` / 表 `db_connections`。パスワードは `secrets` の `db_connection:<id>:password`・`:ssh_password`・`:ai_password`（接続とつながっていないので、接続・プロジェクトを消したらコアで消す） | なし |
-| DB の種類（予定） | `DbEngine`（`sqlite` / `postgres` / `mysql`。MariaDB は `mysql`） | なし |
-| 環境（予定。DB 接続の環境。色・読み取り専用・書き込みの前の確かめ・AI の既定をまとめて決める） | `DbEnvironment`（`local` / `dev` / `staging` / `production`） | なし |
-| AI に見せるか（予定。DB 接続ごと。見せない / 承認して見せる / 自由に見せる） | `DbAiAccess`（`none` / `ask` / `allow`。既定は環境から: ローカル・開発 = `allow`、ステージング = `ask`、本番 = `none`）・AI のツール `kickoff_db`（`db_connections` / `db_objects` / `db_describe` / `db_query`。`db_query` はいつも `always_ask` で、`canUseTool` が `ai_access` を見て通す・承認カード・断るを決める） | なし |
-| DB ワーカー（予定。DB の接続・SQL の実行・結果の整形・SSH トンネル・準備のコマンドを動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める） | `core/databases/worker/`（Electron では `ELECTRON_RUN_AS_NODE=1` で fork、`npm run daemon` では tsx。メインプロセスの側は登録の表とワーカーとのやり取りだけ） | なし |
+| DB クライアント（プロジェクトの画面の上のタブ「DB」・チャットの右の欄の ▾ の「DB ▸」・別ウィンドウで開く。接続の一覧・テーブル・SQL（ER 図は段階 2 の予定）。要件定義書の「5.12 DB クライアント」） | タブ `db`（`#/projects/:id/db`）・画面 `features/database/`・コア `core/databases/`・HTTP `/api/projects/:id/db-connections/…`（接続元が 127.0.0.1 の頼みだけ受ける） | なし |
+| DB 接続（プロジェクトごとに登録する接続。ほかのプロジェクトから写せる） | `DbConnection` / 表 `db_connections`（v13）。パスワードは `secrets` の `db_connection:<id>:password`（段階 2 で `:ssh_password`・`:ai_password`）。接続を消すと、表のトリガー `db_connections_drop_secrets` がその接続の秘密の値も消す（プロジェクトを消したときの連鎖の削除でも効く） | なし |
+| DB の種類 | `DbEngine`（`sqlite` / `postgres` / `mysql`。MariaDB は `mysql`） | なし |
+| 環境（DB 接続の環境。色・読み取り専用・書き込みの前の確かめ・AI の既定をまとめて決める） | `DbEnvironment`（`local` / `dev` / `staging` / `production`） | なし |
+| AI に見せるか（DB 接続ごと。見せない / 承認して見せる / 自由に見せる。選んで覚えるところまで作り、AI のツールは段階 2 の予定） | `DbAiAccess`（`none` / `ask` / `allow`。既定は環境から: ローカル・開発 = `allow`、ステージング = `ask`、本番 = `none`）・AI のツール `kickoff_db`（予定）（`db_connections` / `db_objects` / `db_describe` / `db_query`。`db_query` はいつも `always_ask` で、`canUseTool` が `ai_access` を見て通す・承認カード・断るを決める） | なし |
+| DB ワーカー（DB の接続・SQL の実行・結果の整形（段階 2 で SSH トンネル・準備のコマンド）を動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める） | `core/databases/worker/`（Electron では `out/main/dbWorker.js` を `ELECTRON_RUN_AS_NODE=1` で fork、`npm run daemon`・テストでは `worker/main.ts` を tsx で。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
 
 ### チャットの軸とエージェントの軸
 
@@ -210,6 +210,31 @@ CREATE TABLE pr_notice_dismissals (
   dismissed_at TEXT NOT NULL DEFAULT (NOW),
   PRIMARY KEY (project_id, pr_number)
 ) STRICT;
+-- v13: DB クライアントの接続（プロジェクトごと。パスワードは secrets の db_connection:<id>:password に置き、ここには持たない）
+CREATE TABLE db_connections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  name TEXT NOT NULL CHECK (name <> ''),
+  engine TEXT NOT NULL,                       -- DbEngine
+  environment TEXT NOT NULL,                  -- DbEnvironment
+  host TEXT CHECK (host <> ''),
+  port INTEGER CHECK (port > 0),
+  database TEXT CHECK (database <> ''),
+  username TEXT CHECK (username <> ''),
+  file_path TEXT CHECK (file_path <> ''),     -- SQLite: プロジェクトフォルダからの相対（外のファイルは絶対パス）。ワークツリーではその中の同じパス
+  ssl TEXT CHECK (json_valid(ssl) AND json_type(ssl) = 'object'),   -- NULL = SSL なし（{ mode: require | verify, ca_path? }）
+  read_only INTEGER NOT NULL CHECK (read_only IN (0, 1)),
+  ai_access TEXT NOT NULL,                    -- DbAiAccess
+  position INTEGER NOT NULL,                  -- プロジェクトの中の並び
+  last_connected_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (NOW),
+  updated_at TEXT NOT NULL DEFAULT (NOW)
+) STRICT;
+-- v13: CREATE INDEX idx_db_connections_project ON db_connections(project_id, position);
+-- v13: 接続を消したら、その接続の秘密の値（パスワード）も消す（プロジェクトを消したときの連鎖の削除でも効く）
+-- CREATE TRIGGER db_connections_drop_secrets AFTER DELETE ON db_connections BEGIN
+--   DELETE FROM secrets WHERE key LIKE 'db_connection:' || OLD.id || ':%';
+-- END;
 ```
 
 ### 予定: GitHub 連携（未実装）
@@ -224,43 +249,23 @@ github_number INTEGER CHECK (github_number > 0),   -- issue・PR の番号
 -- 2 つがそろって NULL か、そろって値があるかは店で守る（ALTER TABLE では表の CHECK を足せないため）
 ```
 
-### 予定: DB クライアント（未実装）
+### 予定: DB クライアントの段階 2・段階 3（未実装）
 
-要件定義書の「5.12 DB クライアント」を作るときに `MIGRATIONS` の末尾に足す（詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
+段階 1（登録・接続・表の中身・SQL・本番の守り）は v13 の `db_connections` で作った。要件定義書の「5.12 DB クライアント」の段階 2 以降を作るときに `MIGRATIONS` の末尾に足す（詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
 
 ```sql
--- DB 接続（プロジェクトごと。パスワードは secrets の db_connection:<id>:… に置き、ここには持たない）
-CREATE TABLE db_connections (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  name TEXT NOT NULL CHECK (name <> ''),
-  engine TEXT NOT NULL,                       -- DbEngine
-  environment TEXT NOT NULL,                  -- DbEnvironment
-  host TEXT CHECK (host <> ''),
-  port INTEGER CHECK (port > 0),
-  database TEXT CHECK (database <> ''),
-  username TEXT CHECK (username <> ''),
-  ai_username TEXT CHECK (ai_username <> ''), -- AI 用の読み取り専用のユーザー（NULL = username と同じ）
-  file_path TEXT CHECK (file_path <> ''),     -- SQLite: プロジェクトフォルダからの相対（外のファイルは絶対パス）。ワークツリーではその中の同じパス
-  ssl TEXT CHECK (json_valid(ssl) AND json_type(ssl) = 'object'),   -- NULL = SSL なし
-  ssh TEXT CHECK (json_valid(ssh) AND json_type(ssh) = 'object'),   -- NULL = SSH トンネルなし
-  tunnel_command TEXT CHECK (tunnel_command <> ''),                 -- ポートを転送するコマンド（{local_port} など）
-  prepare_commands TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(prepare_commands) AND json_type(prepare_commands) = 'array'),
-  cleanup_commands TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(cleanup_commands) AND json_type(cleanup_commands) = 'array'),
-  password_source TEXT NOT NULL DEFAULT 'none',                     -- saved / command / none
-  password_command TEXT CHECK (password_command <> ''),             -- つなぐたびに流し、出力をパスワードにする（保存しない）
-  my_ip_url TEXT CHECK (my_ip_url <> ''),     -- {my_ip} の問い合わせ先（NULL = https://checkip.amazonaws.com）
-  check_on TEXT CHECK (check_on <> ''),       -- 次に確かめる日（YYYY-MM-DD）
-  check_note TEXT CHECK (check_note <> ''),
-  memo_path TEXT CHECK (memo_path <> ''),     -- 接続の手順メモ（メモフォルダからの相対。いくつもの接続で同じでよい。メモの名前の変更・移動で付け替える）
-  last_connected_at TEXT,
-  read_only INTEGER NOT NULL CHECK (read_only IN (0, 1)),
-  ai_access TEXT NOT NULL,                    -- DbAiAccess
-  position INTEGER NOT NULL,                  -- プロジェクトの中の並び
-  created_at TEXT NOT NULL DEFAULT (NOW),
-  updated_at TEXT NOT NULL DEFAULT (NOW)
-) STRICT;
--- CREATE INDEX idx_db_connections_project ON db_connections(project_id, position);
+-- db_connections に足す（段階 2: つなぎにくい DB の準備・AI 用のユーザー・接続の手順メモ）
+ai_username TEXT CHECK (ai_username <> ''), -- AI 用の読み取り専用のユーザー（NULL = username と同じ）
+ssh TEXT CHECK (json_valid(ssh) AND json_type(ssh) = 'object'),   -- NULL = SSH トンネルなし
+tunnel_command TEXT CHECK (tunnel_command <> ''),                 -- ポートを転送するコマンド（{local_port} など）
+prepare_commands TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(prepare_commands) AND json_type(prepare_commands) = 'array'),
+cleanup_commands TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(cleanup_commands) AND json_type(cleanup_commands) = 'array'),
+password_source TEXT NOT NULL DEFAULT 'none',                     -- saved / command / none
+password_command TEXT CHECK (password_command <> ''),             -- つなぐたびに流し、出力をパスワードにする（保存しない）
+my_ip_url TEXT CHECK (my_ip_url <> ''),     -- {my_ip} の問い合わせ先（NULL = https://checkip.amazonaws.com）
+check_on TEXT CHECK (check_on <> ''),       -- 次に確かめる日（YYYY-MM-DD）
+check_note TEXT CHECK (check_note <> ''),
+memo_path TEXT CHECK (memo_path <> ''),     -- 接続の手順メモ（メモフォルダからの相対。いくつもの接続で同じでよい。メモの名前の変更・移動で付け替える）
 
 -- SQL の履歴（接続ごとに新しい 500 件だけ残す。AI が流したものは ran_by = ai と chat_id）
 CREATE TABLE db_query_history (
@@ -287,8 +292,8 @@ CREATE TABLE db_er_layouts (
 ```
 
 - 準備のコマンドの記録（いつ・どのコマンド・成功 / 失敗だけ。出力は残さない）と、初めて流すとき・中身を変えたあとに確かめたことの覚え（確かめた中身の指紋など）の置き場所は、段階 2 を作るときに決める。
-- 置き場所: コアは `core/databases/`（種類ごとのドライバ・`tunnel.ts`・取り込みの `import/`・ワーカー `worker/`）、文の分割と判定・制約のない関係の推測は純粋な関数として `src/shared` に置いてテストする。API のテストは `server.databases.test.ts`。PostgreSQL・MySQL・MariaDB を使うテストは Docker で立てて別のコマンド `npm run test:db` で流す（`npm test` は外につながないまま）。
-- 作るときに決めてよいもの: DB ワーカーの立ち上げ方（上の語彙の表。electron-vite のビルドにワーカーの入口を足す）・ワーカーとのやり取りの形（頼みの ID・中止・エラー）・ワーカーが落ちたときのつなぎ直し。
+- 置き場所: コアは `core/databases/`（`service.ts`・ワーカー `worker/`（種類ごとのドライバ `sqlite.ts` / `postgres.ts` / `mysql.ts`）。段階 2 で `tunnel.ts`・取り込みの `import/`）、文の分割と判定（`@shared/database/sqlStatements.ts`）・URL の読み取り（`dbUrl.ts`）・段階 2 の制約のない関係の推測は純粋な関数として `src/shared` に置いてテストする。API のテストは `server.databases.test.ts`。PostgreSQL・MySQL・MariaDB を使うテストは `worker/drivers.dbtest.ts` を Docker で立てて別のコマンド `npm run test:db` で流す（`npm test` は外につながないまま）。
+- 段階 1 で決めたこと: ワーカーとのやり取りは `{ id, method, params }` → `{ id, ok, result | error }`、止めるのは `{ cancel: id }`（`core/databases/protocol.ts`）。ワーカーが落ちたら待っている頼みを失敗にし、次の頼みで立ち上げ直す。
 
 ### 記録（chat_events の data）
 
