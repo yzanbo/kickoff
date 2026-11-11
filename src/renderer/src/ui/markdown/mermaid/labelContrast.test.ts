@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { blend, colorBehind, contrastRatio, LABEL_TEXT_DARK, LABEL_TEXT_LIGHT, parseColor, readableLabelColor, type Layer, type Rgb } from "./labelContrast";
+import { blend, colorBehind, contrastRatio, LABEL_TEXT_DARK, LABEL_TEXT_LIGHT, onLayer, parseColor, readableLabelColor, readableStrokeColor, type Layer, type Rgb } from "./labelContrast";
 
 const WHITE: Rgb = [250, 250, 250];
 const BLACK: Rgb = [26, 26, 30];
@@ -56,4 +56,24 @@ test("ダークの地に暗い文字色だけを指定した線のラベルは�
 test("読める組み合わせは替えない", () => {
   assert.equal(readableLabelColor([240, 253, 244], [17, 17, 17]), null);
   assert.equal(readableLabelColor([38, 38, 38], WHITE), null);
+});
+
+test("readableStrokeColor: 明るい塗りの上の白い線は暗い色に、見える線はそのまま、通る所すべてでいちばん見える色を選ぶ", () => {
+  const PALE_BLUE: Rgb = [232, 240, 254];
+  // ダークのテーマの白い線が、明るい青の塗り（シーケンス図の rect）の上を通る
+  assert.equal(readableStrokeColor([PALE_BLUE, PALE_BLUE], WHITE), LABEL_TEXT_DARK);
+  // 暗い地の上の白い線・明るい地の上の黒い線は替えない
+  assert.equal(readableStrokeColor([DARK_BG], WHITE), null);
+  assert.equal(readableStrokeColor([PALE_BLUE], BLACK), null);
+  // 暗い塗りの上の黒い線は明るい色に
+  assert.equal(readableStrokeColor([DARK_BG, DARK_BG], BLACK), LABEL_TEXT_LIGHT);
+  // 通る所がなければ替えない
+  assert.equal(readableStrokeColor([], WHITE), null);
+});
+
+test("onLayer: 点が塗った形のどれかの上にあるか", () => {
+  const layers = [layer(0, 0, 10, 10, "#e8f0fe")];
+  assert.equal(onLayer(5, 5, layers), true);
+  assert.equal(onLayer(20, 5, layers), false);
+  assert.equal(onLayer(5, 5, []), false);
 });
