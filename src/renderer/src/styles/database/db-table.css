@@ -245,8 +245,10 @@ button.db-grid-col:hover {
   line-height: 1.8;
 }
 
+/* 右上のコピーのボタンに文が重ならないよう、右を空ける */
 .db-ddl pre {
   margin: 0;
+  padding-right: 32px;
   font-size: 12px;
   white-space: pre-wrap;
 }
