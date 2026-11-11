@@ -14,7 +14,7 @@ Kickoff.app（Electron）
 ```
 
 - AI 実行: Claude Agent SDK（`claude` のログインを使用）。プロバイダーを差し替えられる構造にして Codex を後で追加する
-- GitHub: `gh` CLI（push と PR 作成、PR のマージ状態の確認のみ）
+- GitHub: `gh` CLI（この計画の時点では push と PR 作成、PR のマージ状態の確認のみ。いまの範囲（プロジェクトごとのアカウントと連携先の選択・ワークツリーの PR の見張り・予定している issue と PR の連携）は要件定義書の「5.11 GitHub」）
 - データ: `~/Library/Application Support/Kickoff/` の SQLite
 
 ## マイルストーン
