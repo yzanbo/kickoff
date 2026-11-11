@@ -1,0 +1,258 @@
+/* ==== DB クライアントの結果の表（DataGrid）とテーブルのタブ（データ / 構造 / リレーション / DDL / 情報） ==== */
+
+.db-grid {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  font-size: 12px;
+  outline: none;
+}
+
+.db-grid-head,
+.db-grid-row {
+  display: grid;
+  grid-template-columns: var(--db-grid-cols);
+  width: max-content;
+  min-width: 100%;
+}
+
+.db-grid-head {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  height: 28px;
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+}
+
+.db-grid-col {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 8px;
+  border: none;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+}
+
+button.db-grid-col {
+  cursor: pointer;
+}
+
+button.db-grid-col:hover {
+  background: var(--bg-hover);
+}
+
+.db-grid-col-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-grid-col-type {
+  flex: none;
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--extra-muted);
+}
+
+.db-grid-col > svg {
+  flex: none;
+  color: var(--accent-fg);
+}
+
+.db-grid-body {
+  position: relative;
+}
+
+.db-grid-row {
+  position: absolute;
+  left: 0;
+  height: 26px;
+  border-bottom: 1px solid var(--border);
+}
+
+.db-grid-row:hover {
+  background: var(--bg-hover);
+}
+
+.db-grid-index {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding: 0 6px;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  font-variant-numeric: tabular-nums;
+  line-height: 26px;
+  color: var(--extra-muted);
+  text-align: right;
+}
+
+.db-grid-head > .db-grid-index {
+  z-index: 3;
+  background: var(--bg-elev);
+}
+
+.db-grid-cell {
+  padding: 0 8px;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  font-family: var(--mono);
+  line-height: 25px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.db-grid-cell.picked {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.db-cell-null,
+.db-cell-binary {
+  font-style: italic;
+  color: var(--extra-muted);
+}
+
+.db-cell-number {
+  text-align: right;
+}
+
+.db-cell-boolean {
+  color: var(--warn);
+}
+
+/* テーブルのタブ */
+.db-table-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.db-view-head {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px var(--gutter);
+  border-bottom: 1px solid var(--border);
+}
+
+.db-view-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-view-kind {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.db-view-switch {
+  margin-left: auto;
+}
+
+.db-table-data {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.db-table-foot {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 5px var(--gutter);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.db-table-count {
+  margin-left: auto;
+}
+
+/* 構造・リレーション・DDL・情報 */
+.db-detail,
+.db-ddl {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 8px var(--gutter) 24px;
+  overflow: auto;
+}
+
+.db-detail-head {
+  margin: 12px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.db-detail-head:first-child {
+  margin-top: 4px;
+}
+
+.db-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.db-detail-table :is(th, td) {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.db-detail-table th {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.db-info-table th {
+  width: 140px;
+}
+
+.db-mono {
+  font-family: var(--mono);
+}
+
+.db-pk {
+  font-size: 10px;
+  color: var(--warn);
+}
+
+.db-relations {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.db-ddl pre {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.db-ddl-copy {
+  position: absolute;
+  top: 8px;
+  right: var(--gutter);
+}

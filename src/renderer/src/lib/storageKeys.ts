@@ -10,6 +10,7 @@ import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
 import { HANDOFF_VIAS, type Attachment, type HandoffFrom } from "@shared/types";
 import { HANDOFF_AFTERS } from "@shared/chat/handoff";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
+import { NO_DB_TABS, parseDbClientTabs } from "./dbClientTabs";
 
 const NO_ATTACHMENTS: readonly Attachment[] = [];
 
@@ -428,6 +429,21 @@ export const MEMO_VIEW = defineSetting("kickoff:memo-view", choice(["edit", "pre
 export const memoDraft = defineSettingFamily("kickoff:memo-draft:", json(parseMemoDraft, null, (v) => v === null), { ids: true });
 /** メモのタブの左の一覧（メモのフォルダの木）を隠しているか（どのプロジェクトでも同じ） */
 export const MEMO_LIST_HIDDEN = defineSetting("kickoff:memo-list-hidden", flag(false));
+/**
+ * DB クライアントの右のタブ（テーブル・SQL）と表示中のタブ。置き場所ごと（プロジェクトの DB タブ = project-<ID>・チャットの右の欄 = chat-<ID>・別ウィンドウ = popout-<ID>）。
+ * 接続・プロジェクトの ID を含むので DB を作り直したら捨てる
+ */
+export const dbClientTabs = defineSettingFamily("kickoff:db-tabs:", json(parseDbClientTabs, NO_DB_TABS, (v) => v.tabs.length === 0), { ids: true });
+/** DB クライアントの左の木で開いている段（置き場所ごと。段のキーの列） */
+export const dbTreeOpen = defineSettingFamily("kickoff:db-tree-open:", list(), { ids: true });
+/** SQL のタブの書きかけの SQL（キーは「置き場所:タブのキー」。タブを閉じたら消す。アプリを閉じても残す） */
+export const dbSqlDraft = defineSettingFamily("kickoff:db-sql:", text(), { ids: true });
+/** DB クライアントの左の一覧の幅（どの置き場所でも同じ） */
+export const DB_LIST_WIDTH = defineSetting("kickoff:db-list-width", number(260));
+/** SQL のタブの入力欄の高さ（タブの中の割合 %。どの SQL のタブでも同じ） */
+export const DB_SQL_EDITOR_HEIGHT = defineSetting("kickoff:db-sql-editor-height", number(40));
+/** DB クライアントの左の一覧を隠しているか（どの置き場所でも同じ。狭い所ではいつも隠してパンくずにする） */
+export const DB_LIST_HIDDEN = defineSetting("kickoff:db-list-hidden", flag(false));
 /** メモのチャットの欄（本文の右）を開いているか（どのメモでも同じ。チャットそのものは DB の chats.memo_path） */
 export const MEMO_CHAT_OPEN = defineSetting("kickoff:memo-chat-open", flag(false));
 /** メモのチャットの欄を閉じている間、メモの下の入力欄（MemoQuickChat）も隠すか（どのメモでも同じ。見出しの吹き出しの ▾・入力欄の「隠す」で切り替える） */

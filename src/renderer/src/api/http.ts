@@ -6,6 +6,8 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    /** サーバーが付けた失敗の種類の印（DB クライアントの「このワークツリーにはありません」など。なければ undefined） */
+    readonly code?: string,
   ) {
     super(message);
   }
@@ -29,8 +31,8 @@ export function withQuery(path: string, query: Query): string {
 
 /** 失敗の応答を ApiError にする（サーバーは { error: 文 } で返す。本文が読めなければ状態コードだけ） */
 async function failure(res: Response): Promise<ApiError> {
-  const data = (await res.json().catch(() => ({}))) as { error?: unknown };
-  return new ApiError(res.status, typeof data.error === "string" ? data.error : `HTTP ${res.status}`);
+  const data = (await res.json().catch(() => ({}))) as { error?: unknown; code?: unknown };
+  return new ApiError(res.status, typeof data.error === "string" ? data.error : `HTTP ${res.status}`, typeof data.code === "string" ? data.code : undefined);
 }
 
 /** 応答の本文（返すもののない応答（204）は undefined） */

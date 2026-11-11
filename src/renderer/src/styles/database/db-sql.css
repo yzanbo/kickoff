@@ -1,0 +1,249 @@
+/* ==== DB クライアントの SQL のタブ（上に入力欄、下に文ごとの結果）と、接続のダイアログ ==== */
+
+.db-sql-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.db-sql-top {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-height: 80px;
+}
+
+.db-sql-toolbar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--gutter);
+  border-bottom: 1px solid var(--border);
+}
+
+.db-sql-toolbar .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-sql-spacer {
+  flex: 1;
+}
+
+.db-sql-readonly {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  color: var(--info);
+}
+
+.db-sql-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--state-needs-input);
+}
+
+.db-sql-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.db-sql-editor .cm-editor {
+  height: 100%;
+  font-size: 13px;
+}
+
+.db-sql-editor .cm-scroller {
+  font-family: var(--mono);
+  line-height: 1.55;
+}
+
+.db-sql-editor .cm-content {
+  padding: 8px 0;
+  caret-color: var(--text);
+}
+
+.db-sql-editor .cm-line {
+  padding: 0 var(--gutter);
+}
+
+.db-sql-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.db-sql-editor .cm-placeholder {
+  color: var(--extra-muted);
+}
+
+.db-sql-editor .cm-selectionBackground,
+.db-sql-editor .cm-focused .cm-selectionBackground {
+  background: color-mix(in srgb, var(--accent) 35%, transparent) !important;
+}
+
+.db-sql-editor .cm-tooltip {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--text);
+}
+
+.db-sql-editor .cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* 入力欄と結果の境目の高さのつまみ（.pane-resizer の縦向き） */
+.db-sql-resizer {
+  width: auto;
+  height: 5px;
+  margin: -2px 0 -3px;
+  box-shadow: inset 0 2px 0 -1px var(--border);
+  cursor: row-resize;
+}
+
+.db-sql-resizer:hover,
+.resizing > .db-sql-resizer {
+  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+}
+
+.db-sql-results {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.db-result-tabs {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 4px var(--gutter);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.db-result-tab {
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.db-result-tab.active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.db-result-tab.failed {
+  color: var(--ng);
+}
+
+.db-sql-result {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.db-sql-note {
+  margin: 0;
+  padding: 10px var(--gutter);
+}
+
+.db-sql-error {
+  padding: 8px var(--gutter);
+  overflow: auto;
+}
+
+.db-sql-failed-statement {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.db-sql-truncated {
+  color: var(--warn);
+}
+
+/* 接続のダイアログ */
+.db-connection-dialog {
+  width: min(560px, 94vw);
+}
+
+/* 種類・環境の切り替えの名前を折り返さない */
+.db-connection-dialog .segmented > button {
+  white-space: nowrap;
+}
+
+.db-connection-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.db-test-result {
+  margin: 0;
+  font-size: 12px;
+}
+
+.db-test-result.ok {
+  color: var(--ok);
+}
+
+.db-test-result.ng {
+  color: var(--ng);
+}
+
+/* ほかのプロジェクトの接続を写すダイアログ */
+.db-copy-dialog {
+  width: min(520px, 94vw);
+}
+
+.db-copy-list {
+  display: grid;
+  gap: 8px;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.db-copy-group {
+  margin: 0;
+  padding: 4px 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.db-copy-group legend {
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.db-copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.db-copy-name {
+  font-weight: 600;
+}

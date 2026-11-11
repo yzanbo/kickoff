@@ -1,0 +1,190 @@
+// 型と定数のみ。Node 依存なし（コア・画面で共有する）
+// DB クライアント（プロジェクトの「DB」タブ。プロジェクトごとに DB の接続を登録し、テーブルを見る・SQL を流す）
+
+/** DB の種類（MariaDB は mysql） */
+export const DB_ENGINES = ["sqlite", "postgres", "mysql"] as const;
+export type DbEngine = (typeof DB_ENGINES)[number];
+export const DB_ENGINE_LABELS: Record<DbEngine, string> = { sqlite: "SQLite", postgres: "PostgreSQL", mysql: "MySQL / MariaDB" };
+/** 種類ごとの既定のポート（SQLite はファイルなのでなし） */
+export const DB_DEFAULT_PORTS: Record<DbEngine, number | null> = { sqlite: null, postgres: 5432, mysql: 3306 };
+
+/** 環境（色・読み取り専用・書き込みの前の確かめ・AI の既定をまとめて決める） */
+export const DB_ENVIRONMENTS = ["local", "dev", "staging", "production"] as const;
+export type DbEnvironment = (typeof DB_ENVIRONMENTS)[number];
+export const DB_ENVIRONMENT_LABELS: Record<DbEnvironment, string> = { local: "ローカル", dev: "開発", staging: "ステージング", production: "本番" };
+
+/** AI に見せるか（段階 2 で AI のツールに使う。見せない / 承認して見せる / 自由に見せる） */
+export const DB_AI_ACCESSES = ["none", "ask", "allow"] as const;
+export type DbAiAccess = (typeof DB_AI_ACCESSES)[number];
+export const DB_AI_ACCESS_LABELS: Record<DbAiAccess, string> = { none: "見せない", ask: "承認して見せる", allow: "自由に見せる" };
+
+/** 環境ごとの既定（作るときに選んだ環境から埋める。あとで接続ごとに変えられる） */
+export const DB_ENVIRONMENT_DEFAULTS: Record<DbEnvironment, { read_only: boolean; ai_access: DbAiAccess }> = {
+  local: { read_only: false, ai_access: "allow" },
+  dev: { read_only: false, ai_access: "allow" },
+  staging: { read_only: false, ai_access: "ask" },
+  production: { read_only: true, ai_access: "none" },
+};
+
+/** SSL（言葉で選ぶ。off = 使わない / require = 暗号化するが証明書は確かめない / verify = 証明書とホスト名も確かめる） */
+export const DB_SSL_MODES = ["off", "require", "verify"] as const;
+export type DbSslMode = (typeof DB_SSL_MODES)[number];
+export const DB_SSL_MODE_LABELS: Record<DbSslMode, string> = {
+  off: "使わない",
+  require: "暗号化する（証明書は確かめない）",
+  verify: "暗号化して、証明書も確かめる",
+};
+
+/** SSL の設定（db_connections.ssl。null = 使わない）。ca_path: 確かめに使う CA の証明書のファイル（null なら OS の証明書） */
+export interface DbSsl {
+  mode: Exclude<DbSslMode, "off">;
+  ca_path: string | null;
+}
+
+/** DB の接続（db_connections の表。パスワードは秘密の値に置き、ここには保存したかだけ） */
+export interface DbConnection {
+  id: number;
+  project_id: number;
+  name: string;
+  engine: DbEngine;
+  environment: DbEnvironment;
+  host: string | null;
+  port: number | null;
+  database: string | null;
+  username: string | null;
+  /** SQLite のファイル（プロジェクトフォルダからの相対。外のファイルは絶対パス。ワークツリーではその中の同じパスを開く） */
+  file_path: string | null;
+  ssl: DbSsl | null;
+  read_only: boolean;
+  ai_access: DbAiAccess;
+  /** プロジェクトの中の並び（小さいほど上） */
+  position: number;
+  /** パスワードを保存したか（値は API に出さない） */
+  has_password: boolean;
+  last_connected_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 名前の長さの上限 */
+export const DB_CONNECTION_NAME_MAX = 100;
+
+/** 失敗の種類の印: SQLite のファイルが、開いているワークツリーにない（画面は本体のものを開くか聞く） */
+export const DB_NOT_IN_WORKTREE = "db_file_not_in_worktree";
+
+// ---- 中身（いつも接続先に聞き、Kickoff には保存しない） ----
+
+/** セルの値（JSON で送れる形。大きな整数は文字列、日時は ISO の文字列、バイナリは大きさと頭の数バイト） */
+export type DbValue = string | number | boolean | null | DbBinary;
+export interface DbBinary {
+  binary: true;
+  /** 全体のバイト数 */
+  bytes: number;
+  /** 頭の 16 バイトまでの 16 進 */
+  head: string;
+}
+
+/** 結果の列 */
+export interface DbColumnInfo {
+  name: string;
+  /** DB が返す型の名前（分からなければ null） */
+  type: string | null;
+}
+
+/** 1 つの文の結果 */
+export interface DbQueryResult {
+  columns: DbColumnInfo[];
+  rows: DbValue[][];
+  /** 読んだ上限で止めた（もっと行がある） */
+  truncated: boolean;
+  /** 変えた行の数（INSERT・UPDATE・DELETE など。分からなければ null） */
+  affected: number | null;
+  duration_ms: number;
+  /** この文のあと、トランザクションの途中か（SQL のタブのコミットしていない印） */
+  in_transaction: boolean;
+}
+
+/** 木の段（接続 → DB → スキーマ → テーブル / ビュー / 関数 / 列挙型） */
+export const DB_OBJECT_KINDS = ["table", "view", "function", "enum"] as const;
+export type DbObjectKind = (typeof DB_OBJECT_KINDS)[number];
+export const DB_OBJECT_KIND_LABELS: Record<DbObjectKind, string> = { table: "テーブル", view: "ビュー", function: "関数", enum: "列挙型" };
+
+/** テーブルなどの場所（PostgreSQL: DB とスキーマ / MySQL: DB（スキーマは DB と同じ）/ SQLite: main など） */
+export interface DbObjectPath {
+  database: string | null;
+  schema: string | null;
+}
+
+export interface DbObject {
+  kind: DbObjectKind;
+  name: string;
+}
+
+/** DB の一覧と、どれがいまつないでいるものか（SQLite は main と付け足した DB） */
+export interface DbDatabases {
+  databases: string[];
+  current: string | null;
+  /** スキーマの段があるか（PostgreSQL だけ。ほかは DB のすぐ下にテーブル） */
+  has_schemas: boolean;
+}
+
+export interface DbTableColumn {
+  name: string;
+  type: string;
+  nullable: boolean;
+  default: string | null;
+  primary_key: boolean;
+  comment: string | null;
+}
+
+export interface DbIndex {
+  name: string;
+  columns: string[];
+  unique: boolean;
+  primary: boolean;
+}
+
+export interface DbForeignKey {
+  name: string | null;
+  columns: string[];
+  ref_schema: string | null;
+  ref_table: string;
+  ref_columns: string[];
+  on_update: string | null;
+  on_delete: string | null;
+}
+
+export interface DbTrigger {
+  name: string;
+  timing: string | null;
+  event: string | null;
+}
+
+/** テーブルの構造（テーブルのタブの 構造 / リレーション / DDL / 情報） */
+export interface DbTableDetail {
+  kind: DbObjectKind;
+  columns: DbTableColumn[];
+  indexes: DbIndex[];
+  foreign_keys: DbForeignKey[];
+  /** ほかのテーブルからこのテーブルを指す外部キー（リレーションのタブ） */
+  referenced_by: (DbForeignKey & { schema: string | null; table: string })[];
+  triggers: DbTrigger[];
+  /** 作る文（DB が返せなければ null） */
+  ddl: string | null;
+  /** 統計の推定の行数（分からなければ null） */
+  estimated_rows: number | null;
+  /** 大きさ（バイト。分からなければ null） */
+  size_bytes: number | null;
+  comment: string | null;
+}
+
+/** テーブルのデータの並べ替え（列の見出し。ORDER BY を付けて取り直す） */
+export interface DbSort {
+  column: string;
+  desc: boolean;
+}
+
+/** テーブルのタブで読む行の上限 */
+export const DB_TABLE_PAGE_ROWS = 100;
+/** SQL のタブで読む行の上限 */
+export const DB_SQL_MAX_ROWS = 1000;

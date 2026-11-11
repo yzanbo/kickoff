@@ -5,13 +5,8 @@ import { knownChat } from "@/stores/chats";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { openMemoFromChat } from "@/features/memo/openMemoFrom";
 import type { ViewerImage } from "@/ui/imageViewer/ImageViewer";
+import { formatBytes } from "@/lib/format";
 import { useAttachmentViewer } from "./useAttachmentViewer";
-
-export function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
-}
 
 const PREVIEWABLE = /^image\/(png|jpeg|gif|webp)$/;
 

@@ -41,4 +41,6 @@ export type BusEvent =
   /** プロジェクトのメモを作った・書いた・動かした・ゴミ箱へ移した（Kickoff の中の操作だけ。一覧と開いているメモを取り直す） */
   | { type: "memos"; project_id: number; path: string | null }
   // ワークツリーの PR の知らせ（そのプロジェクトの分を丸ごと。変わったときだけ）
-  | { type: "worktree_prs"; project_id: number; notices: WorktreePrNotice[] };
+  | { type: "worktree_prs"; project_id: number; notices: WorktreePrNotice[] }
+  /** DB の接続の一覧が変わった（中身は送らない。SSE はスマホにも届くので、画面は 127.0.0.1 からの API で読み直す） */
+  | { type: "db_connections"; project_id: number };

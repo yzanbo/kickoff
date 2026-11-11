@@ -1,0 +1,282 @@
+/* ==== DB クライアント（プロジェクトの「DB」タブ・右の欄・別ウィンドウ。左に接続の一覧と木、右にタブ） ==== */
+
+/* 環境の色（接続の点・タブの点・SQL のタブの帯で共通。ローカルは灰・開発は緑・ステージングは琥珀・本番は赤） */
+.db-env-local {
+  --db-env: var(--extra-muted);
+}
+
+.db-env-dev {
+  --db-env: var(--ok);
+}
+
+.db-env-staging {
+  --db-env: var(--warn);
+}
+
+.db-env-production {
+  --db-env: var(--ng);
+}
+
+.db-env-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--db-env, var(--extra-muted));
+}
+
+.db-client {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+/* 左の接続の一覧と木 */
+.db-list {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+/* 狭い所では一覧を重ねて出す */
+.db-list.overlay {
+  position: absolute;
+  z-index: 5;
+  inset: 0 auto 0 0;
+  width: min(300px, 85%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+.db-list-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 0 4px 0 var(--gutter);
+  border-bottom: 1px solid var(--border);
+}
+
+.db-list-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.db-list-empty {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 12px var(--gutter);
+}
+
+.db-list-empty p {
+  margin: 0;
+}
+
+/* 一覧の右の端に重ねる幅のつまみ */
+.db-list-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  margin: 0;
+}
+
+/* 木 */
+.db-tree {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 0 12px;
+  overflow: auto;
+}
+
+.db-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  height: var(--row-tight);
+  padding: 0 8px 0 6px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.db-tree-row:hover {
+  background: var(--bg-hover);
+}
+
+.db-tree-row > svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.db-tree-chevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 12px;
+  color: var(--muted);
+}
+
+.db-tree-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-tree-connection .db-tree-label {
+  font-weight: 600;
+}
+
+.db-tree-note {
+  flex: none;
+  font-size: 11px;
+  color: var(--extra-muted);
+}
+
+.db-tree-error,
+.db-tree-hint,
+.db-tree-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 3px 8px 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.db-tree-error {
+  color: var(--ng);
+}
+
+/* 右: タブの列と中身 */
+.db-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.db-tabs {
+  display: flex;
+  flex: none;
+  align-items: stretch;
+  gap: 1px;
+  height: 34px;
+  padding: 0 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+.db-tabs > .icon-button {
+  align-self: center;
+}
+
+.db-tab {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  max-width: 220px;
+  padding-right: 2px;
+  color: var(--muted);
+}
+
+.db-tab.active {
+  color: var(--text);
+  background: var(--bg-elev);
+  box-shadow: inset 0 2px 0 var(--db-env, var(--accent));
+}
+
+.db-tab:hover:not(.active) {
+  background: var(--bg-hover);
+}
+
+.db-tab-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px 0 10px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.db-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* コミットしていない変更がある SQL のタブ（琥珀の点） */
+.db-tab-pending {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot-needs-input);
+}
+
+.db-tab-close {
+  width: 20px;
+  height: 20px;
+  opacity: 0.6;
+}
+
+.db-tab:hover .db-tab-close,
+.db-tab.active .db-tab-close {
+  opacity: 1;
+}
+
+.db-breadcrumb {
+  flex: none;
+  padding: 4px var(--gutter);
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-tab-body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.db-tab-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.db-tab-page[hidden] {
+  display: none;
+}

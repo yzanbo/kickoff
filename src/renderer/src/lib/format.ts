@@ -23,3 +23,11 @@ export function formatTokens(n: number): string {
   const m = n / 1_000_000;
   return `${Number.isInteger(m) ? m : m.toFixed(1)}m`;
 }
+
+/** バイト数を読める大きさに（12 B / 3.4 KB / 1.2 MB / 2.0 GB。添付・画像・DB のバイナリのセル・テーブルの大きさ） */
+export function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return `${(n / 1024 / 1024 / 1024).toFixed(1)} GB`;
+}
