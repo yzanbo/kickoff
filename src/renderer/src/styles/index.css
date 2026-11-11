@@ -107,6 +107,7 @@
 @import "./editor/editor-history-sidebar.css";
 @import "./editor/editor-history-toolbar.css";
 @import "./editor/editor-chips.css";
+@import "./editor/pr-notice.css";
 @import "./editor/editor-side.css";
 @import "./editor/editor-image.css";
 @import "./editor/editor-preview.css";

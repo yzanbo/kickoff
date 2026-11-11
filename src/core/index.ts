@@ -16,6 +16,9 @@ import { Runner } from "./chat/runner.js";
 import { UploadStore } from "./chat/uploads.js";
 import { startAutoArchive } from "./chat/autoArchive.js";
 import { VoiceService } from "./voice/service.js";
+import { WorktreePrWatch } from "./git/prWatch.js";
+import { listPullRequests } from "./git/github.js";
+import { listWorktrees } from "./git/worktrees.js";
 import { MemoService } from "./memos/memos.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
@@ -86,6 +89,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
+  // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）
+  const prWatch = new WorktreePrWatch({ store, publish: (e) => bus.publish(e), listWorktrees, listPullRequests });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
@@ -99,6 +104,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     uploads,
     voice,
     memos,
+    prWatch,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });
@@ -109,6 +115,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     throw e;
   });
   usage.start();
+  prWatch.start();
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ）
   const stopAutoArchive = startAutoArchive(store, bus);
 
@@ -122,6 +129,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       runner.shutdown();
       voice.downloads.stopAll();
       usage.stop();
+      prWatch.stop();
       stopAutoArchive();
       memos.close();
       await stopHttpServer(server);

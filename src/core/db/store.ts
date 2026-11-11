@@ -4,6 +4,7 @@ import type { Notify } from "./common.js";
 import { createEventStore } from "./events.js";
 import { createGroupStore } from "./groups.js";
 import { openDatabase } from "./open.js";
+import { createPrNoticeStore } from "./prNotices.js";
 import { createProjectStore } from "./projects.js";
 import { createQueueStore } from "./queues.js";
 import { createSecretStore, createSettingsStore, readDatabaseId } from "./settings.js";
@@ -26,6 +27,8 @@ export class Store {
   readonly events;
   readonly queues;
   readonly snippets;
+  /** ワークツリーの PR の知らせで、確認を閉じた PR */
+  readonly prNotices;
 
   constructor(
     private readonly file: string,
@@ -41,6 +44,7 @@ export class Store {
     this.events = createEventStore(this.db, onChange, this.chats.get);
     this.queues = createQueueStore(this.db);
     this.snippets = createSnippetStore(this.db, onChange);
+    this.prNotices = createPrNoticeStore(this.db);
   }
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */

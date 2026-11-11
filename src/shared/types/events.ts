@@ -8,6 +8,7 @@ import type { ChatEvent, CommandOutput, SubagentInfo } from "./chatEvent";
 import type { ChatLive } from "./chatLive";
 import type { Snippet } from "./snippet";
 import type { VoiceDownload } from "./voice";
+import type { WorktreePrNotice } from "./git";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
 export type BusEvent =
@@ -38,4 +39,6 @@ export type BusEvent =
   /** 音声入力のモデルのダウンロードの進み具合（download が null なら終わった・やめた。downloaded はファイルがあるか） */
   | { type: "voice_model"; id: string; download: VoiceDownload | null; downloaded: boolean }
   /** プロジェクトのメモを作った・書いた・動かした・ゴミ箱へ移した（Kickoff の中の操作だけ。一覧と開いているメモを取り直す） */
-  | { type: "memos"; project_id: number; path: string | null };
+  | { type: "memos"; project_id: number; path: string | null }
+  // ワークツリーの PR の知らせ（そのプロジェクトの分を丸ごと。変わったときだけ）
+  | { type: "worktree_prs"; project_id: number; notices: WorktreePrNotice[] };

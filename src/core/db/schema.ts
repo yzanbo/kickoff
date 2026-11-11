@@ -201,8 +201,21 @@ const SCHEMA_V10 = `
 ALTER TABLE chats ADD COLUMN position INTEGER;
 `;
 
+/**
+ * v11: ワークツリーの PR の知らせで、確認を閉じた PR（同じ PR では確認を出し直さない。いくつもの窓・スマホのどこで閉じてもそろえるため DB に置く）。
+ * ワークツリーを消して知らせがなくなったら、見張りが消す
+ */
+const SCHEMA_V11 = `
+CREATE TABLE pr_notice_dismissals (
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  pr_number INTEGER NOT NULL CHECK (pr_number > 0),
+  dismissed_at TEXT NOT NULL DEFAULT (${NOW}),
+  PRIMARY KEY (project_id, pr_number)
+) STRICT;
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

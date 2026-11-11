@@ -51,6 +51,7 @@
 | 会話 / 動き（チャットの画面の見え方。動き = メインエージェントとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
 | GitHub タブ（予定。プロジェクトの画面の上のタブで、連携先のリポジトリの issue・PR を「issue｜PR」で切り替えて見る・書く・AI に渡す。要件定義書の「5.11 GitHub」） | タブ `github`（`#/projects/:id/github`）・画面 `features/github/`・コア `core/github/`（いまの `core/git/github.ts` の gh の呼び出しもここへ寄せる）・HTTP `/api/projects/:id/github/…` | なし（push と PR の作成だけ） |
 | 連携先（予定。issue・PR を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`） | `GitHubRepo`（`owner/name`）・切り替えたものはプロジェクトの `github_repo`・使う gh のアカウントは `github_account` | なし |
+| ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたこと。印と 1 つの確認で片付けを聞く） | `WorktreePrNotice`・見張り `WorktreePrWatch`（`core/git/prWatch.ts`）・閉じた確認の表 `pr_notice_dismissals`・画面 `features/worktree/prNotice/` | 「マージの通知」（macOS の通知と紛らわしい） |
 | issue・PR の結び付き（予定。どの issue・PR のためのチャットか。カードに `#番号`） | `Chat` の `github_repo` / `github_number`（issue と PR の番号はリポジトリの中で重ならないので、種類は持たない） | なし |
 
 ### チャットの軸とエージェントの軸
@@ -192,6 +193,13 @@ CREATE TABLE snippets (
   updated_at TEXT NOT NULL DEFAULT (NOW)
 ) STRICT;
 -- v5: CREATE INDEX idx_snippets_position ON snippets(position);
+-- v11: ワークツリーの PR の知らせで、確認を閉じた PR（同じ PR では確認を出し直さない。ワークツリーを消して知らせがなくなったら消す）
+CREATE TABLE pr_notice_dismissals (
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  pr_number INTEGER NOT NULL CHECK (pr_number > 0),
+  dismissed_at TEXT NOT NULL DEFAULT (NOW),
+  PRIMARY KEY (project_id, pr_number)
+) STRICT;
 ```
 
 ### 予定: GitHub 連携（未実装）

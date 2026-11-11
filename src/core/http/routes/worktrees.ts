@@ -18,7 +18,7 @@ const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(400
  * ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」。
  * 新しいワークツリーのブランチ名の案は branch-suggestions（やりたいことの概要から、プロジェクトの AI に 1 回だけ聞く）
  */
-export function worktreeRoutes(app: Hono, { store, runner, providers }: ServerDeps) {
+export function worktreeRoutes(app: Hono, { store, runner, providers, prWatch }: ServerDeps) {
   const { withProject } = lookups(store);
 
   // Git で管理していないフォルダは、ワークツリーのないもの（空）として返す（Git の状態の repo: false と同じ扱い。失敗にすると、画面が取り直し続ける）
@@ -99,6 +99,8 @@ export function worktreeRoutes(app: Hono, { store, runner, providers }: ServerDe
     try {
       const worktrees = await removeWorktree(project.repo_path, folder, { force, deleteBranch: delete_branch });
       clearChats(users);
+      // そのワークツリーの PR の知らせ・印を消す（GitHub には聞き直さない）
+      await prWatch.recomputeAll();
       return c.json(worktrees);
     } catch (e) {
       // 一覧も取れなければ、消えたか分からないので戻さない

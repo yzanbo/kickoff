@@ -1,0 +1,96 @@
+/*
+ * ワークツリーの PR の知らせ（features/worktree/prNotice）。
+ * 印 .pr-notice-mark: 作業場所の札の後ろ・作業場所の切り替えの横・履歴のワークツリーの一覧に出す「マージ済み」「閉じた」。
+ * 色は PR の札（.pr-chip）と同じ（マージ済み = --sec-schedule、閉じた = --ng）。押すと片付けの確認を開く
+ */
+.pr-notice-mark {
+  --pr-notice-color: var(--sec-schedule);
+
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--pr-notice-color) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pr-notice-color) 12%, transparent);
+  color: var(--pr-notice-color);
+  font-size: 11px;
+  line-height: 17px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pr-notice-mark.closed {
+  --pr-notice-color: var(--ng);
+}
+
+.pr-notice-mark:hover {
+  background: color-mix(in srgb, var(--pr-notice-color) 24%, transparent);
+}
+
+/* アイコンだけ（サイドバーのチャットの行） */
+.pr-notice-mark.icon-only {
+  justify-content: center;
+  width: 19px;
+  padding: 0;
+}
+
+/* 確認のダイアログ */
+.dialog.app-dialog.pr-notice-dialog {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.pr-notice-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pr-notice-title.merged svg {
+  color: var(--sec-schedule);
+}
+
+.pr-notice-title.closed svg {
+  color: var(--ng);
+}
+
+.pr-notice-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.pr-notice-link-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pr-notice-section {
+  display: grid;
+  gap: 6px;
+}
+
+.pr-notice-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pr-notice-path {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pr-notice-warnings {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}

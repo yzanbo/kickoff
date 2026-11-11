@@ -9,6 +9,7 @@ import type { GitLogController } from "./useGitLog";
 import type { RefTarget } from "./refTarget";
 import { groupBranches } from "./refGroups";
 import type { WorktreeActions } from "@/features/worktree/useWorktreeActions";
+import { WorktreePrMark } from "@/features/worktree/prNotice/PrNoticeMark";
 
 /** 追いかけているリモートとの進み・遅れ（どちらもなければ出さない） */
 function SyncNote({ branch }: { branch?: GitRefs["branches"][number] }) {
@@ -119,7 +120,16 @@ export function HistorySidebar({
             name={w.branch ?? "（ブランチなし）"}
             title={w.path}
             active={branch?.current}
-            note={w.prunable ? "なくなっています" : <SyncNote branch={branch} />}
+            note={
+              w.prunable ? (
+                "なくなっています"
+              ) : (
+                <>
+                  <WorktreePrMark worktree={w.path} iconOnly />
+                  <SyncNote branch={branch} />
+                </>
+              )
+            }
             onClick={() => onPick(w.head)}
             onContextMenu={(e) => worktreeMenu(e, w)}
             actions={
