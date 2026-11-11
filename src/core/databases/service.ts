@@ -14,6 +14,7 @@ import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { expandHome, isInside, realPathLoose } from "../system/paths.js";
 import type { DbWorkerClient } from "./client.js";
 import type { DbTarget, DbTargetCommands } from "./protocol.js";
+import type { DbSecretVault } from "./secrets.js";
 import { DB_AI_MAX_ROWS, DB_AI_TIMEOUT_MS } from "./aiFormat.js";
 
 /** ワーカーの失敗の文の頭の印（「db_ssh_unknown_host: …」）を分ける */
@@ -44,6 +45,8 @@ type Workdir = string | null;
 interface Options {
   store: Store;
   client: DbWorkerClient;
+  /** パスワードの暗号化・復号（キーチェーンで開けなければ、その場で入れた値をメモリに持つ） */
+  vault: DbSecretVault;
   /** Kickoff 自身の保存先（この中のファイルは登録させない） */
   dataDir: string;
 }
@@ -61,10 +64,13 @@ export function assertAiSql(sql: string, engine: DbEngine) {
 }
 
 export class DatabaseService {
+  /** パスワードの暗号化・復号（ルートが保存する前に seal する） */
+  readonly vault: DbSecretVault;
   /** SQL のタブごとの、流している文を止める口 */
   private readonly running = new Map<string, AbortController>();
 
   constructor(private readonly opts: Options) {
+    this.vault = opts.vault;
     // ワーカーが流したコマンドの結果を準備の記録に残す（消した接続のものは残さない）
     opts.client.onEvent = (event) => {
       if (event.event === "prep_run" && opts.store.dbConnections.get(event.connection_id)) opts.store.dbPrepRuns.add(event.connection_id, event.kind, event.command, event.ok);
@@ -93,20 +99,30 @@ export class DatabaseService {
     if (filePath) this.sqliteFile(filePath, project, null);
   }
 
-  /** 接続からつなぐ先を組み立てる（database を指せば、その DB に。PostgreSQL は DB ごとにつなぎ直すため） */
-  target(connection: DbConnection, project: Project, workdir: Workdir, opts: { write?: boolean; database?: string | null } = {}): DbTarget {
+  /**
+   * 接続からつなぐ先を組み立てる（database を指せば、その DB に。PostgreSQL は DB ごとにつなぎ直すため）。
+   * ai なら AI 用のユーザー（あれば）でつなぎ、接続の設定によらず DB 側も読み取り専用にする。
+   * パスワードはキーチェーンで開く（開けなければ DbPasswordLocked。ほかの確かめを先に済ませ、要らないときに許可を聞かない）
+   */
+  async target(connection: DbConnection, project: Project, workdir: Workdir, opts: { write?: boolean; database?: string | null; ai?: boolean } = {}): Promise<DbTarget> {
+    const file = connection.engine === "sqlite" && connection.file_path ? this.sqliteFile(connection.file_path, project, workdir) : null;
+    const commands = this.connectCommands(connection);
+    const aiUser = opts.ai && connection.ai_username ? connection.ai_username : null;
+    const vault = this.opts.vault;
+    const password = await vault.read(connection, aiUser ? "ai_password" : "password");
+    const ssh = connection.engine !== "sqlite" && connection.ssh ? { ...connection.ssh, password: await vault.read(connection, "ssh_password") } : null;
     return {
       engine: connection.engine,
       host: connection.host,
       port: connection.port,
       database: opts.database ?? connection.database,
-      username: connection.username,
-      password: this.opts.store.dbConnections.password(connection.id),
-      file: connection.engine === "sqlite" && connection.file_path ? this.sqliteFile(connection.file_path, project, workdir) : null,
+      username: aiUser ?? connection.username,
+      password,
+      file,
       ssl: connection.ssl,
-      read_only: connection.read_only && !opts.write,
-      ssh: connection.engine !== "sqlite" && connection.ssh ? { ...connection.ssh, password: this.opts.store.dbConnections.sshPassword(connection.id) } : null,
-      commands: this.connectCommands(connection),
+      read_only: opts.ai ? true : connection.read_only && !opts.write,
+      ssh,
+      commands,
     };
   }
 
@@ -170,8 +186,8 @@ export class DatabaseService {
   async test(project: Project, body: DbConnectionTestBody, workdir: Workdir): Promise<DbConnectionTestResult> {
     const saved = body.connection_id ? this.opts.store.dbConnections.get(body.connection_id) : undefined;
     const own = saved && saved.project_id === project.id ? saved : undefined;
-    const password = body.password !== undefined ? body.password : own ? this.opts.store.dbConnections.password(own.id) : null;
-    const sshPassword = body.ssh_password !== undefined ? body.ssh_password : own ? this.opts.store.dbConnections.sshPassword(own.id) : null;
+    const password = body.password !== undefined ? body.password : own ? await this.opts.vault.read(own, "password") : null;
+    const sshPassword = body.ssh_password !== undefined ? body.ssh_password : own ? await this.opts.vault.read(own, "ssh_password") : null;
     const ssh = body.ssh === undefined ? (own?.ssh ?? null) : body.ssh;
     const prep = normalizePrep(body.prep === undefined ? (own?.prep ?? null) : body.prep);
     let target: DbTarget;
@@ -204,7 +220,7 @@ export class DatabaseService {
   }
 
   async databases(connection: DbConnection, project: Project, workdir: Workdir) {
-    const target = this.target(connection, project, workdir);
+    const target = await this.target(connection, project, workdir);
     const result = await this.run(() =>
       this.opts.client.request("databases", { session: this.sharedSession(connection, workdir, target.database), target }, { engine: target.engine }),
     );
@@ -213,7 +229,7 @@ export class DatabaseService {
   }
 
   async schemas(connection: DbConnection, project: Project, workdir: Workdir, database: string | null) {
-    const target = this.target(connection, project, workdir, { database });
+    const target = await this.target(connection, project, workdir, { database });
     return this.run(() => this.opts.client.request("schemas", { session: this.sharedSession(connection, workdir, target.database), target, database }, { engine: target.engine }));
   }
 
@@ -228,7 +244,7 @@ export class DatabaseService {
   ) {
     // PostgreSQL は DB ごとにつなぐ。ほかは 1 本の接続で DB を名前で指す
     const database = connection.engine === "postgres" ? objectPath.database : null;
-    const target = this.target(connection, project, workdir, { database });
+    const target = await this.target(connection, project, workdir, { database });
     const session = this.sharedSession(connection, workdir, target.database);
     return this.run(() => this.opts.client.request(method, { session, target, path: objectPath, ...extra } as never, { engine: target.engine }));
   }
@@ -277,7 +293,7 @@ export class DatabaseService {
     if (connection.read_only && !write && !isReadOnlyStatement(body.sql, connection.engine)) {
       throw new Invalid("読み取り専用の接続なので、書き込む文は流せません（書くときは SQL のタブの「書き込む」を押してください）");
     }
-    const target = this.target(connection, project, workdir, { write });
+    const target = await this.target(connection, project, workdir, { write });
     const session = this.sqlSession(connection, body.session);
     this.running.get(session)?.abort();
     const controller = new AbortController();
@@ -309,7 +325,7 @@ export class DatabaseService {
     if (connection.read_only && !body.write) throw new Invalid("読み取り専用の接続なので保存できません（テーブルのタブの「書き込む」を押してから保存してください）");
     const statements = editStatements(connection.engine, body.path, body.table, body.edits);
     if (statements.length === 0) return { affected: [], duration_ms: 0 };
-    const target = this.target(connection, project, workdir, { write: body.write, database: connection.engine === "postgres" ? body.path.database : null });
+    const target = await this.target(connection, project, workdir, { write: body.write, database: connection.engine === "postgres" ? body.path.database : null });
     const session = `edit:${connection.id}:${randomUUID()}`;
     const sql = statements.map((s) => `${s.preview};`).join("\n");
     const started = Date.now();
@@ -333,12 +349,7 @@ export class DatabaseService {
    */
   async aiQuery(connection: DbConnection, project: Project, workdir: Workdir, input: { sql: string; database: string | null; chatId: number }) {
     assertAiSql(input.sql, connection.engine);
-    const base = this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null });
-    const target: DbTarget = {
-      ...base,
-      read_only: true,
-      ...(connection.ai_username ? { username: connection.ai_username, password: this.opts.store.dbConnections.aiPassword(connection.id) } : {}),
-    };
+    const target = await this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null, ai: true });
     const session = `ai:${connection.id}:${randomUUID()}`;
     const controller = new AbortController();
     let timedOut = false;

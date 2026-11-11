@@ -43,6 +43,33 @@ export function createSecretStore(db: DatabaseSync) {
       if (value) db.prepare("INSERT INTO secrets (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, value);
       else db.prepare("DELETE FROM secrets WHERE key = ?").run(key);
     },
+    /** 名前が prefix で始まる値（暗号化せずに置いていた DB のパスワードを置き換えるときに探す） */
+    list(prefix: string): { key: SecretKey; value: string }[] {
+      return db.prepare("SELECT key, value FROM secrets WHERE substr(key, 1, ?) = ?").all(prefix.length, prefix) as { key: SecretKey; value: string }[];
+    },
+    /**
+     * まとめて書き換え、前の値をファイルに残さない（secure_delete で消した所を 0 で埋め、WAL も切り詰める。
+     * 暗号化していないパスワードを暗号化したものに置き換えるとき、元の値がファイルの空き・WAL から読めないように）
+     */
+    replaceSecurely(entries: { key: SecretKey; value: string }[]) {
+      if (entries.length === 0) return;
+      const before = (db.prepare("PRAGMA secure_delete").get() as { secure_delete: number }).secure_delete;
+      db.exec("PRAGMA secure_delete = ON");
+      try {
+        db.exec("BEGIN");
+        try {
+          const update = db.prepare("UPDATE secrets SET value = ? WHERE key = ?");
+          for (const e of entries) update.run(e.value, e.key);
+          db.exec("COMMIT");
+        } catch (error) {
+          db.exec("ROLLBACK");
+          throw error;
+        }
+      } finally {
+        db.exec(`PRAGMA secure_delete = ${before ? "ON" : "OFF"}`);
+      }
+      db.prepare("PRAGMA wal_checkpoint(TRUNCATE)").get();
+    },
   };
 }
 

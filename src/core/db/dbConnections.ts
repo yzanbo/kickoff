@@ -55,7 +55,8 @@ export const dbAiPasswordKey = (id: number): DbSecretKey => `db_connection:${id}
 export const dbSshPasswordKey = (id: number): DbSecretKey => `db_connection:${id}:ssh_password`;
 
 /**
- * DB クライアントの接続（db_connections の表。プロジェクトごとの並び position）。パスワードは秘密の値（secrets）に置き、
+ * DB クライアントの接続（db_connections の表。プロジェクトごとの並び position）。パスワードは秘密の値（secrets）に置き
+ * （書く値はルートが DbSecretVault の seal で暗号化したもの）、
  * 行には保存したか（has_password）だけを付けて返す。変えたら db_connections の知らせ（中身なし）を出す
  */
 export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secrets: { get(key: DbSecretKey): string | null; set(key: DbSecretKey, value: string): void }) {
@@ -115,15 +116,18 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
       notify(before.project_id);
       return get(id)!;
     },
-    /** 保存したパスワード（なければ null。API には出さず、つなぐときだけコアの中で使う） */
+    /**
+     * 保存したままのパスワード（暗号化したもの。なければ null）。つなぐときは databases/secrets.ts の DbSecretVault で開く。
+     * ここで読むのは、写すとき（暗号化したまま写す）とテストだけ
+     */
     password(id: number): string | null {
       return secrets.get(dbPasswordKey(id));
     },
-    /** AI 用のユーザーのパスワード（なければ null） */
+    /** AI 用のユーザーの保存したままのパスワード（なければ null） */
     aiPassword(id: number): string | null {
       return secrets.get(dbAiPasswordKey(id));
     },
-    /** SSH のパスワード（なければ null） */
+    /** SSH の保存したままのパスワード（なければ null） */
     sshPassword(id: number): string | null {
       return secrets.get(dbSshPasswordKey(id));
     },

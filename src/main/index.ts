@@ -5,6 +5,7 @@ import { startCore, type Core } from "../core/index.js";
 import { loadLoginShellPath } from "../core/system/shellEnv.js";
 import { setAppMenu } from "./app/appMenu.js";
 import { utilityWorker } from "./app/dbWorker.js";
+import { safeStorageCipher } from "./app/secretCipher.js";
 import { prepareAppSession } from "./app/appSession.js";
 import { DB_WORKER_FILE, RENDERER_DIR, SPEECH_HELPER, seedDevDataOnce, setupEnvironment } from "./app/environment.js";
 import { registerShutdown } from "./app/shutdown.js";
@@ -56,6 +57,8 @@ async function start() {
       speechHelper: SPEECH_HELPER,
       // DB ワーカーは utilityProcess で起動する（製品版は fuses で ELECTRON_RUN_AS_NODE を切るため。app/dbWorker.ts）
       dbWorker: () => utilityWorker(DB_WORKER_FILE),
+      // DB のパスワードはキーチェーンの鍵（safeStorage）で暗号化して置く（app/secretCipher.ts）
+      secretCipher: safeStorageCipher,
     });
     setDiagnosticsCore(core);
     startupLog(`コアを起動しました ${core.localUrl}`);

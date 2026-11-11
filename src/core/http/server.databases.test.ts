@@ -667,3 +667,37 @@ test("DB の接続: テーブルの行の変更をまとめて保存する（1 �
   assert.equal((await call("POST", url, { path, table: "users", write: true, edits: [{ kind: "update", key: {}, values: { name: "z" } }] })).status, 400);
   assert.equal((await call("POST", url, { path, table: "users", write: true, edits: [] })).status, 400);
 });
+
+test("DB: 暗号化の口があれば、作る・取り込む・変えるパスワードを暗号化して置き、写すときは暗号化したまま。キーチェーンで拒否されたら 409", async () => {
+  let deny = false;
+  const secretCipher = {
+    encrypt: async (plain: string) => Buffer.from(plain).toString("base64"),
+    decrypt: async (sealed: string) => {
+      if (deny) throw new Error("User denied");
+      return Buffer.from(sealed, "base64").toString();
+    },
+  };
+  const { call, store, project, databases } = setup({ secretCipher });
+  const base = `/api/projects/${project.id}/db-connections`;
+  const pgBody = { ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, database: "app", username: "u", file_path: null }), password: "s3cret", ssh_password: null };
+  const pg = (await call("POST", base, pgBody)).body as DbConnection;
+  assert.equal(pg.has_password, true);
+  const stored = store.dbConnections.password(pg.id)!;
+  assert.equal(stored, `safe:v1:${Buffer.from("s3cret").toString("base64")}`);
+  assert.equal(await databases.vault.read(pg, "password"), "s3cret");
+
+  const copied = (await call("POST", `${base}/copy`, { from_id: pg.id, copy_password: true })).body as DbConnection;
+  assert.equal(store.dbConnections.password(copied.id), stored);
+
+  await call("PATCH", `${base}/${pg.id}`, { password: "next" });
+  assert.match(store.dbConnections.password(pg.id)!, /^safe:v1:/);
+  assert.equal(await databases.vault.read(pg, "password"), "next");
+
+  // 一度開いた値は起動している間覚えているので、拒否されても聞き直さない。まだ開いていない値は 409
+  deny = true;
+  assert.equal((await call("GET", `${base}/${copied.id}/databases`)).status, 400);
+  const fresh = (await call("POST", base, { ...pgBody, name: "別", password: "other" })).body as DbConnection;
+  const locked = await call("GET", `${base}/${fresh.id}/databases`);
+  assert.equal(locked.status, 409, JSON.stringify(locked.body));
+  assert.equal((locked.body as { code: string }).code, "db_password_locked");
+});
