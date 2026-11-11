@@ -39,10 +39,15 @@ async function gh(cwd: string, args: string[]): Promise<string> {
 
 const PR_FIELDS = "number,url,title,state,isDraft";
 
+/** gh の PR の JSON（camelCase）を、API の形（snake_case）にする */
+export function toPullRequestInfo(raw: { number: number; url: string; title: string; state: PullRequestInfo["state"]; isDraft?: boolean }): PullRequestInfo {
+  return { number: raw.number, url: raw.url, title: raw.title, state: raw.state, is_draft: raw.isDraft === true };
+}
+
 /** ブランチの PR（なければ null） */
 export async function pullRequestFor(cwd: string, branch: string): Promise<PullRequestInfo | null> {
   try {
-    return JSON.parse(await gh(cwd, ["pr", "view", branch, "--json", PR_FIELDS])) as PullRequestInfo;
+    return toPullRequestInfo(JSON.parse(await gh(cwd, ["pr", "view", branch, "--json", PR_FIELDS])));
   } catch (e) {
     // PR がまだない
     if (/no pull requests found/i.test(errorMessage(e))) return null;
