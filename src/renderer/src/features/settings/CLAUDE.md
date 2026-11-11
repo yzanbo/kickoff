@@ -13,7 +13,7 @@
 - 定型文: 帯を表示するか（「表示」と同じ `SnippetBarField`）・すべてのプロジェクトの定型文（`features/snippet` の `SnippetSettings`。説明は `features/snippet/CLAUDE.md`）。
 - 圧縮前・圧縮後指示: 共通の圧縮前指示・圧縮後指示（`features/snippet` の `CompactPromptSettings`。利用者の依頼で「定型文」から分けた）。
 - メモ: メモの親フォルダ（`memos_dir`。`MemoSettings`。欄は `features/memo` の `MemoFolderField`）。
-- 通知: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・ntfy）。「テスト通知を送る」（届かなければ理由を出す）と「Mac の通知の設定を開く」。知らせる中身は `app/notifications.ts` の `useChatNotifications`（Kickoff を見ていてそのチャットを開いているときは知らせない。押すとそのチャットを開く。スマホのブラウザではブラウザの通知）。
+- 通知: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・Dock のアイコンの数・ntfy）。Dock のアイコンの数（`dock_badge`。初めはオン。利用者の依頼）は、アーカイブしていないプロジェクトの要対応（回答待ち・未読。子チャットも）のチャットの数を赤い数字で出す（`app/dockBadge.ts` の `useDockBadge` / `dockBadgeCount`。メインの窓の App が数え、タグの絞り込み・しまったプロジェクトの見せ方には左右されない。0・オフなら消す）。「テスト通知を送る」（届かなければ理由を出す）と「Mac の通知の設定を開く」。知らせる中身は `app/notifications.ts` の `useChatNotifications`（Kickoff を見ていてそのチャットを開いているときは知らせない。押すとそのチャットを開く。スマホのブラウザではブラウザの通知）。
 - ターミナル: 外部のターミナルとして開くアプリ（`useExternalTerminal`。`features/terminal/CLAUDE.md`）。ブラウザの拡張機能は `features/browser/BrowserExtensions`。
 - 診断（`DiagnosticsSettings`）: 重いときに、再起動せずその場で性能の記録を取る（10 秒。アプリのメニューの「ヘルプ → 性能の記録を取る」と同じ）。押すと設定を閉じ、記録の間も操作を続けられる。保存先と最近の記録（新しい順）を、場所・コピー・Finder で開くの行 `features/diagnostics/DiagnosticsPath` で出す。記録の様子は画面の右下の `DiagnosticsIndicator`（ダイアログにしない）。
 

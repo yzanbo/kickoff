@@ -237,7 +237,7 @@ github_number INTEGER CHECK (github_number > 0),   -- issue・PR の番号
 
 ### 設定（AppSettings）
 
-snake_case にし、チャットの選択の既定を `ChatOptions` 1 つにまとめる: `default_provider` / `chat_defaults`（`ChatOptions`）/ `remote_enabled` / `ntfy_url` / `desktop_notifications` / `projects_dir` / `auto_resume_on_reconnect` / `auto_archive_days` / `voice_enabled` / `voice_provider` / `voice_language` / `voice_model` / `voice_openai_base_url` / `voice_openai_model` / `pre_compact_prompt` / `post_compact_prompt` / `pre_compact_enabled` / `post_compact_enabled`（圧縮前指示・圧縮後指示の共通の分と、送るか）。選択はチャット → プロジェクトの `chat_defaults` → 設定の `chat_defaults` の順に、同じ形を重ねて決める（`resolveChatOptions`）。
+snake_case にし、チャットの選択の既定を `ChatOptions` 1 つにまとめる: `default_provider` / `chat_defaults`（`ChatOptions`）/ `remote_enabled` / `ntfy_url` / `desktop_notifications` / `dock_badge` / `projects_dir` / `auto_resume_on_reconnect` / `auto_archive_days` / `voice_enabled` / `voice_provider` / `voice_language` / `voice_model` / `voice_openai_base_url` / `voice_openai_model` / `pre_compact_prompt` / `post_compact_prompt` / `pre_compact_enabled` / `post_compact_enabled`（圧縮前指示・圧縮後指示の共通の分と、送るか）。選択はチャット → プロジェクトの `chat_defaults` → 設定の `chat_defaults` の順に、同じ形を重ねて決める（`resolveChatOptions`）。
 
 ### DB を作り直したときの画面の状態
 

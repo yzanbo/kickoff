@@ -142,6 +142,8 @@ export const NATIVE_API = {
     notify: invoke<[request: NotifyRequest], NotifyResult>(),
     /** Mac の「システム設定 → 通知」を開く（Kickoff の通知を許可する・出し方を変える） */
     openSettings: invoke<[]>(),
+    /** Dock のアイコンの赤い数字（要対応のチャットの数。0 なら消す） */
+    setBadge: send<[count: number]>(),
     /** 通知が押されて、そのチャットを開くとき（Kickoff を起動し直したあとに、前の通知が押されたときも） */
     onOpenChat: event<[projectId: number, chatId: number]>(),
   },

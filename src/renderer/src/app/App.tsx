@@ -36,6 +36,7 @@ import { DialogHost } from "@/ui/dialogs";
 import { DropHintHost } from "@/ui/DropHint";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useChatNotifications } from "./notifications";
+import { useDockBadge } from "./dockBadge";
 import { useAgentBrowserBridge } from "./agentBrowser";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
@@ -73,6 +74,8 @@ export function App() {
   const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え。設定が届くまでは知らせる）
   useChatNotifications({ enabled: appSettings?.desktop_notifications ?? true, projectName, route });
+  // 要対応（回答待ち・未読）の数を Dock のアイコンの赤い数字で出す（設定で切り替え。設定が届くまでは出す）
+  useDockBadge({ enabled: appSettings?.dock_badge ?? true, projects, pending: chatStates.pending });
   // AI が埋め込みブラウザのタブを開く・操作している印
   useAgentBrowserBridge();
   const sidebar = useSidebar();

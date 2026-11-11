@@ -13,6 +13,7 @@ const settingsSchema = z
     remote_enabled: z.boolean(),
     ntfy_url: z.union([z.literal(""), z.url()]),
     desktop_notifications: z.boolean(),
+    dock_badge: z.boolean(),
     projects_dir: z.string().min(1).max(500),
     // 送った内容で置き換える（4 つとも送る）
     chat_defaults: chatDefaultsSchema,

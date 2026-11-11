@@ -1,5 +1,5 @@
 // Mac の通知（メインプロセスの Notification）。画面を読み込み直しても・Kickoff を終えても通知センターに残り、押すとそのチャットを開く
-import { Notification, shell } from "electron";
+import { Notification, app, shell } from "electron";
 import type { NotifyRequest, NotifyResult } from "@shared/ipc";
 import { mainWindow, showMainWindow } from "../app/window.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
@@ -41,6 +41,8 @@ export function notificationHandlers(): IpcHandlers["notifications"] {
   return {
     notify: (_e, request) => show(request, keep),
     openSettings: () => shell.openExternal(NOTIFICATION_SETTINGS_URL),
+    // Dock のアイコンの赤い数字（Mac。0 で消える）
+    setBadge: (_e, count) => void app.setBadgeCount(count),
   };
 }
 
