@@ -5,6 +5,7 @@ import { useFileTabDirty } from "@/features/editor/fileTabs";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { chatTitle } from "@/features/chat/chatTitle";
+import { ChildActivityMark } from "@/features/chat/children/ChildActivityMark";
 import type { PanelController } from "@/features/panel/usePanel";
 import { SURFACES } from "@/features/panel/surfaces";
 import { confirmCloseUnsaved } from "./confirmUnsaved";
@@ -19,7 +20,7 @@ import type { TabField } from "./tabFields";
 
 /**
  * ペインのタブの列のタブ 1 つ。アイコン・名前・説明・グループ名は種類の表（tabKinds）から引き、チャット・子チャット・サブエージェントのタブは
- * サイドバーの行と同じ状態の印を出す（useTabAgentState。未読・失敗のタブは名前も太字。ピン留めしたチャットはいちばん左にピン）。チャットのタブは名前のダブルクリックでその場で名前を変え（見出しには名前を出さない）、
+ * サイドバーの行と同じ状態の印を出す（useTabAgentState。未読・失敗のタブは名前も太字。ピン留めしたチャットはいちばん左にピン）。子孫の子チャットが動いていれば名前の後ろに印（ChildActivityMark）。チャットのタブは名前のダブルクリックでその場で名前を変え（見出しには名前を出さない）、
  * × は表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）。分けたペイン（home でない）のサイドバーと連動したチャットは、
  * × で聞かずに一覧のペインへ戻す（ペインを閉じたときと同じ。アーカイブ・削除は右クリックから）
  */
@@ -81,6 +82,9 @@ export function PaneTab({
   const place =
     t.kind === "chat" ? chat : t.kind === "new" ? { project_id: t.projectId, worktree_path: t.worktree ?? null, branch: null } : undefined;
   const workplaceTag = show("worktree") && place ? <TabWorkplaceBadge chat={place} /> : undefined;
+  // 子孫の子チャットが作業中・回答待ちなら、名前の後ろに印（チャットのタブは子・孫…、子チャットのタブはその下の孫…。状態の印と同じく「状態」を隠せば出さない）
+  const activityOf = t.kind === "chat" ? chat?.id : t.kind === "child" ? t.childId : undefined;
+  const activity = show("state") && activityOf !== undefined ? <ChildActivityMark chatId={activityOf} /> : undefined;
   return (
     <PanelTab
       active={active}
@@ -88,6 +92,7 @@ export function PaneTab({
       iconClass={spec.iconClass}
       badge={spec.badge && !SURFACES[panel.surface].noKindBadges ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
       label={label}
+      after={activity}
       group={show("group") ? group : undefined}
       tag={workplaceTag}
       tagKey={workplaceTag && place ? `${place.worktree_path ?? ""}|${place.branch ?? ""}` : undefined}
