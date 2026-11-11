@@ -1,7 +1,9 @@
 import { Archive, ArrowDown, ArrowUp, Check, Cloud, ExternalLink, FolderOpen, GitBranch, History, Plus, Tag, Trash2 } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import type { GitRefs, GitWorktree } from "@shared/types";
+import { Chevron } from "@/ui/Chevron";
 import { ErrorText } from "@/ui/ErrorText";
+import { GitHubMark } from "@/ui/GitHubMark";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { SearchField } from "@/ui/SearchField";
 import { RefItem, RefSection } from "./RefList";
@@ -15,7 +17,7 @@ import { WorktreePrMark } from "@/features/worktree/prNotice/PrNoticeMark";
 function SyncNote({ branch }: { branch?: GitRefs["branches"][number] }) {
   if (!branch || (branch.ahead === 0 && branch.behind === 0)) return null;
   return (
-    <>
+    <span className="ref-sync" title={`追いかけているリモートより ${branch.ahead} 進み・${branch.behind} 遅れ`}>
       {branch.ahead > 0 && (
         <>
           {branch.ahead}
@@ -28,7 +30,49 @@ function SyncNote({ branch }: { branch?: GitRefs["branches"][number] }) {
           <ArrowDown size={11} aria-label="遅れている" />
         </>
       )}
-    </>
+    </span>
+  );
+}
+
+/**
+ * リモート 1 つ（名前の行で開閉。GitHub を指す remote は GitHub のマーク、ほかは雲。初めは閉じておき、絞り込んでいる間は開く）。
+ * 中の行はリモートのブランチ（押すとそのコミットを選ぶ・右クリックでメニュー）
+ */
+function RemoteGroup({
+  remote,
+  forceOpen,
+  onPick,
+  onRefMenu,
+}: {
+  remote: GitRefs["remotes"][number];
+  forceOpen: boolean;
+  onPick: (hash: string) => void;
+  onRefMenu: (e: MouseEvent, target: RefTarget) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const shown = open || forceOpen;
+  return (
+    <li>
+      <button type="button" className="ref-remote-name" aria-expanded={shown} title={`${remote.name}（${remote.branches.length} 本のブランチ）`} onClick={() => setOpen(!shown)}>
+        <Chevron open={shown} />
+        {remote.github ? <GitHubMark size={14} /> : <Cloud size={14} aria-hidden />}
+        <span className="ref-name">{remote.name}</span>
+      </button>
+      {shown && (
+        <ul className="ref-items">
+          {remote.branches.map((b) => (
+            <RefItem
+              key={b.name}
+              icon={<GitBranch size={14} aria-hidden />}
+              name={b.name.slice(remote.name.length + 1)}
+              depth={1}
+              onClick={() => onPick(b.hash)}
+              onContextMenu={(e) => onRefMenu(e, { kind: "remote", name: b.name })}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
   );
 }
 
@@ -144,23 +188,7 @@ export function HistorySidebar({
       <ErrorText message={worktreeActions.error} className="code-search-message" />
       <RefSection title="リモート" count={remotes.length}>
         {remotes.map((r) => (
-          <li key={r.name}>
-            <span className="ref-remote-name">
-              <Cloud size={14} aria-hidden /> {r.name}
-            </span>
-            <ul className="ref-items">
-              {r.branches.map((b) => (
-                <RefItem
-                  key={b.name}
-                  icon={<GitBranch size={14} aria-hidden />}
-                  name={b.name.slice(r.name.length + 1)}
-                  depth={1}
-                  onClick={() => onPick(b.hash)}
-                  onContextMenu={(e) => onRefMenu(e, { kind: "remote", name: b.name })}
-                />
-              ))}
-            </ul>
-          </li>
+          <RemoteGroup key={r.name} remote={r} forceOpen={filter.trim() !== ""} onPick={onPick} onRefMenu={onRefMenu} />
         ))}
       </RefSection>
       <RefSection title="タグ" count={tags.length}>
