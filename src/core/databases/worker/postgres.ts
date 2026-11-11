@@ -2,10 +2,11 @@
 import type { EventEmitter } from "node:events";
 import pg from "pg";
 import Cursor from "pg-cursor";
-import type { DbDatabases, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTableDetail, DbValue } from "@shared/types";
+import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
 import { APPLICATION_NAME, CONNECT_TIMEOUT_MS, tlsOptions, triggerHead } from "./network.js";
+import { pgDefinition, pgRoutineObjects } from "./postgresRoutines.js";
 import { quoteIdent, toDbValue } from "./values.js";
 
 /** 補完のために読むテーブルの数の上限 */
@@ -142,7 +143,13 @@ class PostgresDriver implements DbDriver {
        WHERE n.nspname = COALESCE($1, current_schema()) AND c.relkind IN ${RELKINDS} AND NOT c.relispartition ORDER BY c.relname`,
       [path.schema],
     );
-    return rows.map((r) => ({ kind: r.relkind === "v" || r.relkind === "m" ? "view" : "table", name: String(r.relname) }));
+    const relations = rows.map((r): DbObject => ({ kind: r.relkind === "v" || r.relkind === "m" ? "view" : "table", name: String(r.relname) }));
+    // テーブル・ビューのあとに関数・列挙型
+    return [...relations, ...(await pgRoutineObjects((sql, values) => this.all(sql, values), path.schema))];
+  }
+
+  definition(path: DbObjectPath, kind: "function" | "enum", name: string): Promise<DbDefinition> {
+    return pgDefinition((sql, values) => this.all(sql, values), path.schema, kind, name);
   }
 
   async table(path: DbObjectPath, name: string): Promise<DbTableDetail> {

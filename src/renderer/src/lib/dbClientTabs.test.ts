@@ -34,6 +34,12 @@ test("closeDbTab: 表示中なら右隣、右がなければ左隣。接続の�
   );
 });
 
+test("tableTabKey: テーブルとビューは同じキー、関数・列挙型は同じ名前でも別のキー", () => {
+  assert.equal(tableTabKey(1, path, "users"), tableTabKey(1, path, "users", "view"));
+  assert.notEqual(tableTabKey(1, path, "users"), tableTabKey(1, path, "users", "function"));
+  assert.notEqual(tableTabKey(1, path, "users", "function"), tableTabKey(1, path, "users", "enum"));
+});
+
 test("nextSqlTitle: 使っていないいちばん小さい番号", () => {
   const s = [sql("a", "SQL 1"), sql("b", "SQL 3")].reduce(openDbTab, NO_DB_TABS);
   assert.equal(nextSqlTitle(s), "SQL 2");

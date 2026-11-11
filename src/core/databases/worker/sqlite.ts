@@ -1,7 +1,7 @@
 // SQLite の接続（node:sqlite。同期で動くので、文を流している間はワーカーが止まる。止めるときはコアがワーカーごと止める）
 import fs from "node:fs";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
-import type { DbDatabases, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTableDetail, DbValue } from "@shared/types";
+import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
 import { quoteIdent, toDbValue } from "./values.js";
@@ -76,6 +76,10 @@ class SqliteDriver implements DbDriver {
       kind: r.type === "view" ? "view" : "table",
       name: String(r.name),
     }));
+  }
+
+  async definition(): Promise<DbDefinition> {
+    throw new Error("SQLite には関数・列挙型がありません");
   }
 
   async table(path: DbObjectPath, name: string): Promise<DbTableDetail> {

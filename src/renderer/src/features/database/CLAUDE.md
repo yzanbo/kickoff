@@ -4,7 +4,7 @@
 
 ## 置き場所と部品
 
-- `DatabaseClient`（左に接続の一覧と木 `DbTree`、右にタブ（テーブル `TableView` / SQL `SqlView`））を 1 つ作り、置き場所（`place`: プロジェクトの DB タブ = `project-<ID>`、右の欄と別ウィンドウ = `chat-<右の欄のチャット>`（移しても同じタブのまま））ごとに開いているタブ（`dbClientTabs(place)`。形と操作は純粋関数の `lib/dbClientTabs.ts`）と木の開き具合（`dbTreeOpen(place)`）を覚える。`worktree` は SQLite のファイルを開く作業場所（プロジェクトの画面では、ファイル・検索・変更・履歴のタブで選んだ作業場所、右の欄ではそのチャットの作業場所。null なら本体）。
+- `DatabaseClient`（左に接続の一覧と木 `DbTree`、右にタブ（テーブル `TableView` / 関数・列挙型 `DefinitionView` / SQL `SqlView`））を 1 つ作り、置き場所（`place`: プロジェクトの DB タブ = `project-<ID>`、右の欄と別ウィンドウ = `chat-<右の欄のチャット>`（移しても同じタブのまま））ごとに開いているタブ（`dbClientTabs(place)`。形と操作は純粋関数の `lib/dbClientTabs.ts`）と木の開き具合（`dbTreeOpen(place)`）を覚える。`worktree` は SQLite のファイルを開く作業場所（プロジェクトの画面では、ファイル・検索・変更・履歴のタブで選んだ作業場所、右の欄ではそのチャットの作業場所。null なら本体）。
 - 下の部品が読む操作（プロジェクト・置き場所・作業場所・タブを開く・接続を編集）は `DbClientContext`（`dbClientContext.ts` の `useDbClient`）で配る。
 - 左の一覧の幅は `DB_LIST_WIDTH`（つまみ）、隠すかは `DB_LIST_HIDDEN`。欄の幅が 560px より狭いと一覧を隠し、左上のボタンで重ねて出し、タブの下にパンくず（接続 › DB › スキーマ › テーブル）を出す（`ResizeObserver` で `DatabaseClient` の幅を測る）。
 - 接続の登録・編集は `ConnectionDialog`（URL を貼ると欄を埋める `@shared/database/dbUrl.ts` の `parseDbUrl`。種類・環境（`DB_ENVIRONMENT_DEFAULTS`: 本番は読み取り専用・AI に見せない）・SSL・「つながるか試す」）。ほかのプロジェクトの接続を写すのは `CopyConnectionDialog`（パスワードは「パスワードも写す」のときだけ）。接続の一覧は `stores/dbConnections.ts`（SSE の `db_connections` で取り直す。中身は SSE に載せない）。
@@ -13,11 +13,18 @@
 
 ## 木（`DbTree`）
 
-接続 → DB（PostgreSQL・MySQL）→ スキーマ（PostgreSQL）→ テーブル・ビューの段。段ごとに開いたときに読む（`useNodeLoad`。失敗の `ApiError.code` を残す）。ワークツリーにその SQLite のファイルがない（`DB_NOT_IN_WORKTREE`）ときは失敗の行に「本体のものを開く」を出し、その接続だけ本体のファイルを開く（`useMain`。画面を閉じるまで）。接続の右クリック: SQL を開く・編集…・消す…（パスワードも消える。DB の中身には触らない）。
+接続 → DB（PostgreSQL・MySQL）→ スキーマ（PostgreSQL）→ テーブル・ビュー・関数・列挙型の段（`DbTreeObjects.tsx`）→ テーブル・ビューの中の段。行の部品と読み込み（`TreeRow` / `TreeHint` / `TreeError` / `useNodeLoad`）は `DbTreeRow.tsx`。段ごとに開いたときに読む（`useNodeLoad`。失敗の `ApiError.code` を残す）。ワークツリーにその SQLite のファイルがない（`DB_NOT_IN_WORKTREE`）ときは失敗の行に「本体のものを開く」を出し、その接続だけ本体のファイルを開く（`useMain`。画面を閉じるまで）。接続の右クリック: SQL を開く・編集…・消す…（パスワードも消える。DB の中身には触らない）。
+
+- テーブル・ビューは、名前を押すとタブを開き（`openOnClick`）、矢印を押す・→ / ← で中の段を開閉する。中の段は列（主キーは琥珀の鍵 `.db-tree-pk`、右に型と NOT NULL。名前を先に見せ、入らなければ型の方を省く）と、あるときだけ開閉のまとまり（インデックス・外部キー・トリガー。数を添える）。中身は `api.dbTable`（テーブルのタブと同じ詳細）。中の行を押すとそのテーブルのタブを開く。開き具合は段と同じく `dbTreeOpen(place)`（キーは `t:<接続>:<DB>:<スキーマ>:<名前>` と、まとまりは後ろに `:idx` / `:fk` / `:trg`）。
+- 関数（PostgreSQL は `名前(引数)` で同じ名前の別の引数も分ける。MySQL / MariaDB は関数とプロシージャを名前で 1 つ）・列挙型（PostgreSQL だけ。MySQL の ENUM は列の型）は葉で、押すと定義のタブを開く。アイコンは木とタブで同じ（`TabObjectIcon`）。SQLite には出ない。
 
 ## テーブルのタブ（`TableView`）
 
 データ / 構造 / リレーション / DDL / 情報の切り替え。データは 100 行ずつ（「さらに 100 行読む」）、列の見出しを押すと並べ替え（昇順 → 降順 → なし。`dbFormat.ts` の `nextSort`。ORDER BY を付けて取り直す）。全体の行数は統計の推定（SQLite にはないので「数えていません」）で、「正確に数える」を押したときだけ COUNT(*)。表は `DataGrid`（見えている行だけ描く・26px の同じ高さ・セルを押して ⌘C でコピー・NULL とバイナリ（「バイナリ n B」）は薄く斜体・数は右寄せ）。
+
+## 関数・列挙型のタブ（`DefinitionView`）
+
+テーブルのタブと同じ `DbTableTab`（`object` が `function` / `enum`。キーは `tableTabKey` の頭の印でテーブルと分ける）。上に引数・戻り値（プロシージャは「なし」）か値と説明、下に作る文（`api.dbDefinition`。PostgreSQL は `pg_get_functiondef`・列挙型は値から組み立て、MySQL は SHOW CREATE（権限がなければ本文だけ））。作る文の `<pre>` には右上にコピーのボタン（テーブルの DDL と同じ）。
 
 ## SQL のタブ（`SqlView`）
 

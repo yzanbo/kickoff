@@ -152,6 +152,34 @@
   color: var(--extra-muted);
 }
 
+/* テーブルの中の段: 主キーの列は鍵の色、列・インデックスなどの葉は少し小さく */
+.db-tree-row > svg.db-tree-pk {
+  color: var(--warn);
+}
+
+.db-tree-leaf,
+.db-tree-group {
+  font-size: 12px;
+}
+
+/* 名前を先に見せ、残りの幅に型などを右寄せで（足りなければ型の方を省く） */
+.db-tree-leaf .db-tree-label {
+  flex: 0 1 auto;
+}
+
+.db-tree-leaf .db-tree-note {
+  flex: 1 1 0;
+  min-width: 48px;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-tree-group .db-tree-label {
+  color: var(--muted);
+}
+
 .db-tree-error,
 .db-tree-hint,
 .db-tree-badge {

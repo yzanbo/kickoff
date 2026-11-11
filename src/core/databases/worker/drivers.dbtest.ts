@@ -41,6 +41,13 @@ function fixture(engine: DbEngine): string[] {
       "INSERT INTO users (name, email, avatar, big) SELECT 'user' || g, CASE WHEN g % 7 = 0 THEN NULL ELSE 'u' || g || '@ex.com' END, '\\x01020304'::bytea, 9007199254740993 FROM generate_series(1, 1500) g",
       "INSERT INTO posts (user_id, title) SELECT (g % 10) + 1, 'title ' || g FROM generate_series(1, 40) g",
       "ANALYZE users",
+      "DROP FUNCTION IF EXISTS add_one(integer)",
+      "DROP FUNCTION IF EXISTS add_one(text)",
+      "DROP TYPE IF EXISTS mood",
+      "CREATE FUNCTION add_one(x integer) RETURNS integer LANGUAGE sql AS $$ SELECT x + 1 $$",
+      "CREATE FUNCTION add_one(x text) RETURNS text LANGUAGE sql AS $$ SELECT x || '1' $$",
+      "COMMENT ON FUNCTION add_one(integer) IS '1 を足す'",
+      "CREATE TYPE mood AS ENUM ('sad', 'ok', 'it''s fine')",
     ];
   }
   return [
@@ -50,6 +57,10 @@ function fixture(engine: DbEngine): string[] {
     "CREATE VIEW user_posts AS SELECT u.name, p.title FROM users u JOIN posts p ON p.user_id = u.id",
     `INSERT INTO users (name, email, avatar, big) SELECT CONCAT('user', s.n), IF(s.n % 7 = 0, NULL, CONCAT('u', s.n, '@ex.com')), X'01020304', 9007199254740993 FROM (${series(1500)}) s ORDER BY s.n`,
     `INSERT INTO posts (user_id, title) SELECT (s.n % 10) + 1, CONCAT('title ', s.n) FROM (${series(40)}) s ORDER BY s.n`,
+    "DROP FUNCTION IF EXISTS add_one",
+    "DROP PROCEDURE IF EXISTS count_posts",
+    "CREATE FUNCTION add_one(x INT) RETURNS INT DETERMINISTIC NO SQL COMMENT '1 を足す' RETURN x + 1",
+    "CREATE PROCEDURE count_posts(IN uid BIGINT, OUT n INT) READS SQL DATA SELECT COUNT(*) INTO n FROM posts WHERE user_id = uid",
   ];
 }
 
@@ -116,6 +127,44 @@ for (const c of CASES) {
           { kind: "table", name: "users" },
         ],
       );
+    });
+
+    test("関数・列挙型の一覧と定義", async () => {
+      const objects = await call("objects", { session: "tree", target: target(), path });
+      const routines = objects.filter((o) => o.kind === "function" || o.kind === "enum");
+      if (c.engine === "postgres") {
+        assert.deepEqual(routines, [
+          { kind: "function", name: "add_one(x integer)" },
+          { kind: "function", name: "add_one(x text)" },
+          { kind: "enum", name: "mood" },
+        ]);
+        const fn = await call("definition", { session: "tree", target: target(), path, kind: "function", name: "add_one(x integer)" });
+        assert.equal(fn.arguments, "x integer");
+        assert.equal(fn.returns, "integer");
+        assert.equal(fn.comment, "1 を足す");
+        assert.match(fn.ddl ?? "", /CREATE OR REPLACE FUNCTION public\.add_one\(x integer\)/);
+        const mood = await call("definition", { session: "tree", target: target(), path, kind: "enum", name: "mood" });
+        assert.deepEqual(mood.values, ["sad", "ok", "it's fine"]);
+        assert.equal(mood.ddl, `CREATE TYPE "public"."mood" AS ENUM ('sad', 'ok', 'it''s fine');`);
+      } else {
+        assert.deepEqual(
+          routines.sort((a, b) => (a.name < b.name ? -1 : 1)),
+          [
+            { kind: "function", name: "add_one" },
+            { kind: "function", name: "count_posts" },
+          ],
+        );
+        const fn = await call("definition", { session: "tree", target: target(), path, kind: "function", name: "add_one" });
+        // MariaDB は表示の幅を付けて返す（int(11)）
+        assert.match(fn.arguments ?? "", /^x int(\(\d+\))?$/);
+        assert.match(fn.returns ?? "", /^int(\(\d+\))?$/);
+        assert.equal(fn.comment, "1 を足す");
+        assert.match(fn.ddl ?? "", /CREATE .*FUNCTION `add_one`/);
+        const proc = await call("definition", { session: "tree", target: target(), path, kind: "function", name: "count_posts" });
+        assert.match(proc.arguments ?? "", /^IN uid bigint(\(\d+\))?, OUT n int(\(\d+\))?$/);
+        assert.equal(proc.returns, null);
+        assert.match(proc.ddl ?? "", /CREATE .*PROCEDURE `count_posts`/);
+      }
     });
 
     test("テーブルの構造・リレーション・DDL・情報", async () => {

@@ -5,6 +5,7 @@ import type {
   DbConnectionTestBody,
   DbConnectionTestResult,
   DbDatabases,
+  DbDefinition,
   DbObject,
   DbObjectPath,
   DbQueryResult,
@@ -45,6 +46,8 @@ export const databasesApi = {
   dbObjects: (projectId: number, id: number, path: DbObjectPath, worktree: string | null) => request<DbObject[]>("POST", at(`${one(projectId, id)}/objects`, worktree), { path }),
   dbTable: (projectId: number, id: number, path: DbObjectPath, name: string, worktree: string | null) =>
     request<DbTableDetail>("POST", at(`${one(projectId, id)}/table`, worktree), { path, name }),
+  dbDefinition: (projectId: number, id: number, path: DbObjectPath, kind: "function" | "enum", name: string, worktree: string | null) =>
+    request<DbDefinition>("POST", at(`${one(projectId, id)}/definition`, worktree), { path, kind, name }),
   dbRows: (projectId: number, id: number, body: DbRowsBody, worktree: string | null) => request<DbQueryResult>("POST", at(`${one(projectId, id)}/rows`, worktree), body),
   dbCount: (projectId: number, id: number, path: DbObjectPath, name: string, worktree: string | null) =>
     request<{ count: number }>("POST", at(`${one(projectId, id)}/count`, worktree), { path, name }),

@@ -253,6 +253,24 @@ button.db-grid-col:hover {
   white-space: pre-wrap;
 }
 
+/* 関数・列挙型のタブ: 情報の表の下に作る文（外の .db-detail でまとめて流す） */
+.db-definition-ddl {
+  position: relative;
+  margin-top: 14px;
+}
+
+.db-definition-ddl pre {
+  margin: 0;
+  padding-right: 32px;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.db-definition-ddl .db-ddl-copy {
+  top: 0;
+  right: 0;
+}
+
 .db-ddl-copy {
   position: absolute;
   top: 8px;

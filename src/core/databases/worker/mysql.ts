@@ -1,9 +1,10 @@
 // MySQL / MariaDB の接続（mysql2。1 つの接続で DB を名前で指す。流している文は、別の接続から KILL QUERY で止める）
 import mysql, { type Connection, type ConnectionOptions, type FieldPacket, type ResultSetHeader } from "mysql2";
-import type { DbDatabases, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTableDetail, DbValue } from "@shared/types";
+import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
 import { CONNECT_TIMEOUT_MS, tlsOptions } from "./network.js";
+import { mysqlDefinition, mysqlRoutineObjects } from "./mysqlRoutines.js";
 import { toDbValue } from "./values.js";
 
 /** 補完のために読むテーブルの数の上限 */
@@ -131,7 +132,14 @@ class MysqlDriver implements DbDriver {
   async objects(path: DbObjectPath): Promise<DbObject[]> {
     const db = await this.databaseOf(path);
     const rows = await this.run("SELECT TABLE_NAME AS name, TABLE_TYPE AS type FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME", [db]);
-    return rows.map((r) => ({ kind: String(r.type).includes("VIEW") ? "view" : "table", name: String(r.name) }));
+    const relations = rows.map((r): DbObject => ({ kind: String(r.type).includes("VIEW") ? "view" : "table", name: String(r.name) }));
+    // テーブル・ビューのあとに関数・プロシージャ（MySQL の列挙型は列の型なので段にしない）
+    return [...relations, ...(await mysqlRoutineObjects((sql, values) => this.run(sql, values), db))];
+  }
+
+  async definition(path: DbObjectPath, kind: "function" | "enum", name: string): Promise<DbDefinition> {
+    if (kind === "enum") throw new Error("MySQL の列挙型は列の型で、ひとつの物としては見られません");
+    return mysqlDefinition((sql, values) => this.run(sql, values), await this.databaseOf(path), name);
   }
 
   async table(path: DbObjectPath, name: string): Promise<DbTableDetail> {
