@@ -3,6 +3,7 @@ import type { GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRef
 import { toGitDiff } from "./changes.js";
 import { gitOutput } from "./exec.js";
 import { assertInside } from "./files.js";
+import { readGitHubRemotes } from "./githubTarget.js";
 import { gitPrefix, hasRef, kindOf, parseAheadBehind } from "./status.js";
 import { Invalid } from "../http/errors.js";
 
@@ -85,12 +86,15 @@ export async function gitCommitDiff(repo: string, hash: string, file: string, ol
 /** ブランチ・リモート・タグ・stash（履歴の左の一覧） */
 export async function gitRefs(repo: string): Promise<GitRefs> {
   const refs: GitRefs = { branches: [], remotes: [], tags: [], stashes: [] };
-  const out = await gitOutput(repo, [
-    "for-each-ref",
-    "--format=%(refname)%00%(objectname)%00%(*objectname)%00%(upstream:short)%00%(upstream:track)%00%(HEAD)%00%(worktreepath)",
-    "refs/heads",
-    "refs/remotes",
-    "refs/tags",
+  const [out, github] = await Promise.all([
+    gitOutput(repo, [
+      "for-each-ref",
+      "--format=%(refname)%00%(objectname)%00%(*objectname)%00%(upstream:short)%00%(upstream:track)%00%(HEAD)%00%(worktreepath)",
+      "refs/heads",
+      "refs/remotes",
+      "refs/tags",
+    ]),
+    readGitHubRemotes(repo).then((r) => new Set(r.remotes.map((remote) => remote.name))),
   ]);
   for (const line of out.split("\n").filter(Boolean)) {
     const [ref, object, peeled, upstream, track, head, worktree] = line.split("\0");
@@ -110,7 +114,7 @@ export async function gitRefs(repo: string): Promise<GitRefs> {
       if (name.endsWith("/HEAD")) continue;
       const remote = name.slice(0, name.indexOf("/"));
       let group = refs.remotes.find((r) => r.name === remote);
-      if (!group) refs.remotes.push((group = { name: remote, branches: [] }));
+      if (!group) refs.remotes.push((group = { name: remote, github: github.has(remote), branches: [] }));
       group.branches.push({ name, hash });
     } else if (ref.startsWith("refs/tags/")) {
       refs.tags.push({ name: ref.slice(10), hash });
