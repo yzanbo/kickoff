@@ -1,4 +1,5 @@
 import { AppWindow, ArrowRightLeft, Columns2, GitBranch, MessageSquare, Pencil, Rows2, SquarePen, Undo2, X } from "lucide-react";
+import { useKnownChat } from "@/stores/chats";
 import { alertDialog } from "@/ui/dialogs";
 import { ChatMenuItems } from "@/features/chat/ChatMenuItems";
 import { DraftMenuItems } from "@/features/chat/DraftMenuItems";
@@ -17,8 +18,9 @@ import { TabDisplaySubmenu } from "./TabDisplayItems";
  * 右のパネルのタブの右クリックのメニュー: いちばん上に「新しいチャット」（チャットを出す欄だけ。利用者の依頼。右クリックしたタブのペインに、
  * チャット・新しいチャットのタブなら同じグループ・作業場所で、ほかのタブなら欄の作成先で始める）、右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
  * 一覧のペインに「（一覧）」と添える）、分けたペインのサイドバーと連動したチャットは一覧のペインに戻す、閉じる。
- * チャットのタブには、会話 / 動きの切り替え（見出しの行を隠していても切り替えられるように）と、サイドバーの行と同じチャットの項目
- * （名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる。
+ * チャットのタブと子チャットのタブには、会話 / 動きの切り替え（見出しの行を隠していても切り替えられるように）と、サイドバーの行と同じチャットの項目
+ * （ChatMenuItems。名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる（子チャットのタブも、ふつうのチャットのタブと
+ * 同じ並びにする。利用者の依頼。前は名前を変更・分けて開く・別ウィンドウで開く・閉じるだけだった）。
  * 送る前の新しいチャットのタブは、サイドバーの下書きの行と同じ項目（DraftMenuItems。チャットの項目のうち下書きでもできるもの）を同じ並びで
  * 閉じるの前に「タブの表示 ›」（タブの列の「表示」のメニューの上の部分と同じ項目を横に開く。TabDisplaySubmenu。利用者の依頼）。
  */
@@ -37,12 +39,14 @@ export function TabMenu({
   onRename: () => void;
   onClose: () => void;
 }) {
+  const tab = panel.tabs.find((t) => t.key === tabKey);
+  // 子チャットのタブは、店に読み込んだ子チャット（hooks は種類によらず呼ぶ。子チャットでなければ ID 0 = いつも分からない）
+  const child = useKnownChat(tab?.kind === "child" ? tab.childId : 0);
   const pane = paneOfTab(panel.layout, tabKey);
   if (!pane) return null;
   const panes = leavesOf(panel.layout.root);
-  const tab = panel.tabs.find((t) => t.key === tabKey);
   // ボードの一覧にあればそれを、なければタブの中のチャットから届いたもの（まだ読み込んでいなければチャットの項目は出さない）
-  const chat = panel.chatOf(tab);
+  const chat = tab?.kind === "child" ? child : panel.chatOf(tab);
   // 一覧のペインはサイドバーと連動したチャットが入るペインなので、チャットを出す欄だけで「（一覧）」と添える
   const homeId = panes.length > 1 && panel.kinds.has("chat") ? homePane(panel.layout).id : undefined;
   // 分けたペインにある、サイドバーと連動したチャット（× と同じく、一覧のペインへ戻せる）
@@ -155,7 +159,7 @@ export function TabMenu({
       ) : (
         <>
           {newChatItem}
-          {/* 子チャットのタブも、チャットのタブと同じく名前を変えられる（ダブルクリック・Enter と同じ） */}
+          {/* 子チャットがまだ読み込まれていなくても、名前は変えられる（ダブルクリック・Enter と同じ） */}
           {tab?.kind === "child" && (
             <MenuItem onSelect={onRename}>
               <Pencil size={14} /> 名前を変更

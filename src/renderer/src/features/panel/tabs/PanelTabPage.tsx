@@ -109,6 +109,7 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       chatId={t.childId}
       visible={visible}
       onTitle={(title) => panel.patchTab(t.key, { kind: "child", fields: { title } })}
+      slot={chatPaneSlot(panel.key, t.key)}
     />
   ),
   // 右の欄の「＋」で開く新しい子チャット。最初の文を送ったら、できた子チャットのタブに置き換える（同じ位置のまま）
