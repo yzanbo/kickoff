@@ -9,6 +9,7 @@ import type { BusEvent, DbConnection, DbErSchema, DbImportCandidate, DbQueryHist
 import { AUTH, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import { gitRepo } from "../testing/gitRepo.js";
+import { until } from "../testing/testCore.js";
 
 /** プロジェクトのフォルダに SQLite のファイルを作る（users と、users を指す posts） */
 function makeSqlite(dir: string, name = "app.db") {
@@ -212,6 +213,40 @@ test("DB の接続: AI 用のユーザーとパスワード（パスワードは
   assert.equal(store.dbConnections.aiPassword(created.id), null);
 });
 
+test("DB の接続: SSH トンネル（パスワードは保存したかだけ返す・写すのは選んだときだけ・「-」で始まるホストは断る・~/.ssh/config の Host の一覧）", async () => {
+  const { call, project, store } = setup();
+  const base = `/api/projects/${project.id}/db-connections`;
+  const ssh = { host: "bastion", port: 2222, user: "ec2-user", identity_file: "~/.ssh/id_ed25519" };
+  const body = { ...sqliteBody({ engine: "postgres", host: "db.internal", file_path: null }), ssh, ssh_password: "ssh-s3cret" };
+  const created = (await call("POST", base, body)).body as DbConnection;
+  assert.deepEqual(created.ssh, ssh);
+  assert.equal(created.has_ssh_password, true);
+  assert.equal(created.has_password, false);
+  assert.ok(!JSON.stringify(created).includes("ssh-s3cret"));
+  assert.equal(store.dbConnections.sshPassword(created.id), "ssh-s3cret");
+  // 省けばそのまま、null で消す。ssh: null でトンネルをやめる
+  assert.equal(((await call("PATCH", `${base}/${created.id}`, { name: "x" })).body as DbConnection).has_ssh_password, true);
+  assert.equal(((await call("PATCH", `${base}/${created.id}`, { ssh_password: null })).body as DbConnection).has_ssh_password, false);
+  await call("PATCH", `${base}/${created.id}`, { ssh_password: "again" });
+  assert.equal(((await call("POST", base, { ...body, name: "なし", ssh: null })).body as DbConnection).ssh, null);
+
+  const other = (await call("POST", `${base}/copy`, { from_id: created.id, copy_password: false })).body as DbConnection;
+  assert.deepEqual(other.ssh, ssh);
+  assert.equal(other.has_ssh_password, false);
+  const copied = (await call("POST", `${base}/copy`, { from_id: created.id, copy_password: true })).body as DbConnection;
+  assert.equal(store.dbConnections.sshPassword(copied.id), "again");
+
+  // ssh のオプションと取り違えるホスト・ユーザー・空白入りは断る
+  for (const bad of [{ host: "-oProxyCommand=touch /tmp/x" }, { host: "a b" }, { user: "-oX" }]) {
+    assert.equal((await call("POST", base, { ...body, name: "悪い", ssh: { ...ssh, ...bad } })).status, 400);
+    assert.equal((await call("POST", `${base}/ssh-host-key`, { ssh: { ...ssh, ...bad } })).status, 400);
+  }
+  assert.ok(Array.isArray((await call("GET", `${base}/ssh-hosts`)).body));
+
+  await call("DELETE", `${base}/${created.id}`);
+  assert.equal(store.dbConnections.sshPassword(created.id), null);
+});
+
 test("DB の接続: つながるか試す（保存しない）。ないファイルは失敗を返す", async () => {
   const { call, project } = setup();
   makeSqlite(project.repo_path);
@@ -373,6 +408,21 @@ test("SQL のタブ: 文を流す・トランザクションの途中の印・�
   const failed = await sql("select * from nope");
   assert.equal(failed.status, 400);
   assert.match(failed.body.error, /no such table/);
+});
+
+test("接続を消すと、その接続のワーカーの接続（SQL のタブの途中のトランザクションも）を閉じる", async () => {
+  const { call, project, databases } = setup();
+  makeSqlite(project.repo_path);
+  const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
+  const other = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody({ name: "ほか" }))).body as DbConnection;
+  const sql = (c: DbConnection, s: string) => call("POST", `/api/projects/${project.id}/db-connections/${c.id}/sql`, { session: "tab1", sql: s, write: false });
+  await sql(conn, "begin");
+  await sql(other, "begin");
+  assert.equal(databases.inTransaction(conn, "tab1"), true);
+  await call("DELETE", `/api/projects/${project.id}/db-connections/${conn.id}`);
+  await until(() => !databases.inTransaction(conn, "tab1"));
+  // ほかの接続はそのまま
+  assert.equal(databases.inTransaction(other, "tab1"), true);
 });
 
 test("SQL の履歴: 利用者が流した文は成功も失敗も新しい順に残り、判定で断った文は残さない", async () => {

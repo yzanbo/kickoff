@@ -28,6 +28,8 @@ export function forkWorker(entry: WorkerEntry): WorkerChannel {
     execArgv: entry.execArgv,
     env: entry.electron ? { ...process.env, ELECTRON_RUN_AS_NODE: "1" } : process.env,
     stdio: ["ignore", "inherit", "inherit", "ipc"],
+    // 自分のプロセスグループにする（止めるときにグループごと送り、ワーカーが開いた SSH トンネルの ssh も残さない）
+    detached: true,
   });
   let killed = false;
   return {
@@ -41,7 +43,13 @@ export function forkWorker(entry: WorkerEntry): WorkerChannel {
     },
     kill: () => {
       killed = true;
-      child.kill();
+      // JS の受け口は使わない（SQLite の文を流している間は動けず、止められなくなる）。OS がグループごと止める
+      try {
+        if (child.pid) process.kill(-child.pid, "SIGTERM");
+        else child.kill();
+      } catch {
+        child.kill();
+      }
     },
   };
 }
@@ -150,6 +158,11 @@ export class DbWorkerClient {
 
   /** トランザクションの途中かを答えから覚える */
   private track(method: WorkerMethod, params: unknown, result: unknown) {
+    if (method === "closeMatching") {
+      const { prefixes } = params as WorkerMethods["closeMatching"]["params"];
+      for (const s of [...this.inTransaction]) if (prefixes.some((p) => s.startsWith(p))) this.inTransaction.delete(s);
+      return;
+    }
     const session = (params as { session?: string }).session;
     if (!session) return;
     if (method === "close") this.inTransaction.delete(session);

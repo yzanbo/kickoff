@@ -1,6 +1,6 @@
 // コアと DB ワーカー（別のプロセス）のやり取りの形。コアは頼み（Request）を送り、ワーカーは同じ id の答え（Response）を返す。
 // 止めるときは { cancel: id } を送る（SQLite は文を流している間ワーカーが受け取れないので、コアがワーカーごと止める）
-import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbRowFilter, DbObjectPath, DbQueryResult, DbSort, DbSsl, DbTableDetail } from "@shared/types";
+import type { DbDatabases, DbDefinition, DbEngine, DbErSchema, DbObject, DbRowFilter, DbObjectPath, DbQueryResult, DbSort, DbSsh, DbSsl, DbTableDetail } from "@shared/types";
 
 /** つなぐ先（コアが接続の登録・秘密の値・作業場所から組み立てて、頼みのたびに渡す。ワーカーは保存しない） */
 export interface DbTarget {
@@ -15,6 +15,10 @@ export interface DbTarget {
   ssl: DbSsl | null;
   /** DB 側でも読み取り専用にしてつなぐ（読み取り専用の守りの 2 段目） */
   read_only: boolean;
+  /** SSH トンネル（null = 使わない。host・port は踏み台から見た DB の場所。password は SSH のパスワード） */
+  ssh?: (DbSsh & { password: string | null }) | null;
+  /** トンネルを通すときの、証明書を確かめるホスト名（ワーカーが入れる。つなぐ先は 127.0.0.1 になるため） */
+  tls_host?: string | null;
 }
 
 /** 補完に使う、スキーマの中のテーブルと列の名前 */
@@ -48,6 +52,8 @@ export interface WorkerMethods {
   rollback: { params: { session: string }; result: { in_transaction: boolean } };
   /** 接続を閉じる（途中のトランザクションは取り消す） */
   close: { params: { session: string }; result: { closed: boolean } };
+  /** 名前が prefixes のどれかで始まる接続をすべて閉じる（消した接続の木・SQL のタブ・AI の接続。SSH トンネルも使う接続がなくなれば止まる） */
+  closeMatching: { params: { prefixes: string[] }; result: { closed: number } };
 }
 
 export type WorkerMethod = keyof WorkerMethods;

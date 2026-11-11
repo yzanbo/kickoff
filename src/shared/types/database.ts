@@ -41,6 +41,28 @@ export interface DbSsl {
   ca_path: string | null;
 }
 
+/**
+ * SSH トンネル（db_connections.ssh。null = 使わない）。この Mac の ssh で踏み台につなぎ、DB へのポートを手元に転送する。
+ * host は ~/.ssh/config の Host（別名）か、ホスト名。port・user・identity_file は省けば ~/.ssh/config と ssh の既定
+ */
+export interface DbSsh {
+  host: string;
+  port: number | null;
+  user: string | null;
+  /** 秘密鍵のファイル（~ から書ける） */
+  identity_file: string | null;
+}
+
+/** サーバーの鍵がまだ known_hosts にない（初めてつなぐサーバー。画面で指紋を確かめてから受け入れる） */
+export const DB_SSH_UNKNOWN_HOST = "db_ssh_unknown_host";
+
+/** 踏み台のサーバーの鍵（POST …/db-connections/ssh-host-key。指紋は SHA256:…） */
+export interface DbSshHostKey {
+  /** known_hosts に書く名前（ssh -G で解いたホスト名。22 番でなければ [名前]:ポート） */
+  host: string;
+  keys: { type: string; fingerprint: string }[];
+}
+
 /** DB の接続（db_connections の表。パスワードは秘密の値に置き、ここには保存したかだけ） */
 export interface DbConnection {
   id: number;
@@ -65,6 +87,10 @@ export interface DbConnection {
   ai_username: string | null;
   /** AI 用のユーザーのパスワードを保存したか */
   has_ai_password: boolean;
+  /** SSH トンネル（null = 使わない） */
+  ssh: DbSsh | null;
+  /** SSH のパスワードを保存したか（鍵・ssh-agent ならなし） */
+  has_ssh_password: boolean;
   /** 接続の手順メモ（メモのフォルダからの相対パス。つなぎ方ごとに 1 つで、いくつもの接続で同じでよい。null なら選んでいない） */
   memo_path: string | null;
   last_connected_at: string | null;

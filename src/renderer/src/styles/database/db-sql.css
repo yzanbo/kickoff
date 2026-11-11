@@ -262,6 +262,53 @@
   color: var(--ng);
 }
 
+/* SSH トンネルの欄（チェックの下に字下げして並べる） */
+.db-ssh-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+
+.db-ssh-key-button {
+  align-self: flex-start;
+  justify-self: start;
+  width: fit-content;
+}
+
+/* 踏み台のサーバーの鍵を確かめるダイアログ */
+.db-ssh-key-dialog {
+  width: min(520px, 94vw);
+}
+
+.db-ssh-key-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.db-ssh-key-list li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
+.db-ssh-key-type {
+  flex: none;
+  width: 150px;
+  color: var(--muted);
+}
+
+.db-ssh-key-list code {
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
 /* ほかのプロジェクトの接続を写すダイアログ */
 .db-copy-dialog {
   width: min(520px, 94vw);

@@ -7,6 +7,29 @@ import type { DbDriver } from "./driver.js";
 import { openMysql } from "./mysql.js";
 import { openPostgres } from "./postgres.js";
 import { openSqlite, testSqlite } from "./sqlite.js";
+import { createTunnels } from "./tunnel.js";
+
+type Tunnels = ReturnType<typeof createTunnels>;
+
+/** つなぐ（SSH トンネルを使う接続は、トンネルを開いて手元のポートへ。使ったトンネルの key も返す） */
+async function openVia(target: DbTarget, tunnels: Tunnels): Promise<{ driver: DbDriver; tunnel: string | null }> {
+  if (!target.ssh || target.engine === "sqlite") return { driver: await openDriver(target), tunnel: null };
+  const { key, port } = await tunnels.acquire({
+    ssh: target.ssh,
+    remote_host: target.host ?? "localhost",
+    remote_port: target.port ?? (target.engine === "postgres" ? 5432 : 3306),
+  });
+  try {
+    return { driver: await openDriver({ ...target, host: "127.0.0.1", port, ssh: null, tls_host: target.host }), tunnel: key };
+  } catch (e) {
+    // 踏み台から DB につなげないと、DB のドライバには「切れた」としか届かない。ssh の文が遅れて届くのを少し待って添える
+    await new Promise((r) => setTimeout(r, 300));
+    const failure = tunnels.forwardFailure(key);
+    tunnels.release(key);
+    if (failure) throw new Error(`SSH トンネルは開きましたが、踏み台から DB（${target.host ?? "localhost"}:${target.port ?? "既定のポート"}）につながりません（ホスト・ポートは踏み台から見た場所です）: ${failure}`);
+    throw e;
+  }
+}
 
 /** 種類ごとの開き方 */
 async function openDriver(target: DbTarget): Promise<DbDriver> {
@@ -20,13 +43,14 @@ async function openDriver(target: DbTarget): Promise<DbDriver> {
   }
 }
 
-async function testTarget(target: DbTarget): Promise<string | null> {
+async function testTarget(target: DbTarget, tunnels: Tunnels): Promise<string | null> {
   if (target.engine === "sqlite") return testSqlite(target);
-  const driver = await openDriver(target);
+  const { driver, tunnel } = await openVia(target, tunnels);
   try {
     return await driver.serverVersion();
   } finally {
     await driver.close();
+    if (tunnel) tunnels.release(tunnel);
   }
 }
 
@@ -45,6 +69,8 @@ async function erSchema(d: DbDriver, path: DbObjectPath, names: string[] | null)
 
 interface OpenSession {
   driver: DbDriver;
+  /** 使っている SSH トンネル（なければ null） */
+  tunnel: string | null;
   /** つないだ先の指紋（変わったら、トランザクションの途中でなければつなぎ直す） */
   fingerprint: string;
 }
@@ -54,6 +80,12 @@ type Handlers = { [M in WorkerMethod]: (params: WorkerMethods[M]["params"], id: 
 /** ワーカーの中身（頼みを流す handle・止める cancel・すべて閉じる closeAll） */
 export function createWorkerHandler() {
   const sessions = new Map<string, OpenSession>();
+  const tunnels = createTunnels();
+  /** 接続を閉じ、使っていたトンネルを返す */
+  const closeSession = async (open: OpenSession) => {
+    await open.driver.close().catch(() => {});
+    if (open.tunnel) tunnels.release(open.tunnel);
+  };
   /** 流している頼み（id → 使っている接続。止めるときに使う） */
   const running = new Map<number, DbDriver>();
 
@@ -65,10 +97,10 @@ export function createWorkerHandler() {
     if (open) {
       if (open.driver.alive() && open.driver.inTransaction()) throw new Error("トランザクションの途中なので、つなぎ方を変えられません。先にコミットか取り消しをしてください");
       sessions.delete(name);
-      await open.driver.close().catch(() => {});
+      await closeSession(open);
     }
-    const driver = await openDriver(target);
-    sessions.set(name, { driver, fingerprint });
+    const { driver, tunnel } = await openVia(target, tunnels);
+    sessions.set(name, { driver, tunnel, fingerprint });
     return driver;
   };
   const existing = (name: string) => sessions.get(name)?.driver ?? null;
@@ -97,7 +129,7 @@ export function createWorkerHandler() {
     });
 
   const handlers: Handlers = {
-    test: async ({ target }) => ({ server_version: await testTarget(target) }),
+    test: async ({ target }) => ({ server_version: await testTarget(target, tunnels) }),
     databases: (p, id) => use(id, p.session, p.target, (d) => d.databases()),
     schemas: (p, id) => use(id, p.session, p.target, (d) => d.schemas(p.database)),
     objects: (p, id) => use(id, p.session, p.target, (d) => d.objects(p.path)),
@@ -124,8 +156,17 @@ export function createWorkerHandler() {
     close: async ({ session }) => {
       const open = sessions.get(session);
       sessions.delete(session);
-      await open?.driver.close().catch(() => {});
+      if (open) await closeSession(open);
       return { closed: Boolean(open) };
+    },
+    closeMatching: async ({ prefixes }) => {
+      const names = [...sessions.keys()].filter((name) => prefixes.some((p) => name.startsWith(p)));
+      for (const name of names) {
+        const open = sessions.get(name)!;
+        sessions.delete(name);
+        await closeSession(open);
+      }
+      return { closed: names.length };
     },
   };
 
@@ -147,6 +188,7 @@ export function createWorkerHandler() {
     async closeAll() {
       for (const { driver } of sessions.values()) await driver.close().catch(() => {});
       sessions.clear();
+      tunnels.closeAll();
     },
   };
 }

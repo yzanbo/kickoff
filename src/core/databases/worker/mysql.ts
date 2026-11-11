@@ -52,7 +52,8 @@ function connectionOptions(target: DbTarget): ConnectionOptions {
     user: target.username ?? undefined,
     password: target.password ?? undefined,
     database: target.database ?? undefined,
-    ssl: tls || undefined,
+    // mysql2 は SslOptions の形（名乗る名前は使わず、トンネルでも CA で確かめる）
+    ssl: tls ? (tls as ConnectionOptions["ssl"]) : undefined,
     connectTimeout: CONNECT_TIMEOUT_MS,
     // 日時は文字列のまま（Date にするとこの Mac の時間帯でずれて見える）。大きな整数・小数は、数で表せない桁のものだけ文字列で
     dateStrings: true,
