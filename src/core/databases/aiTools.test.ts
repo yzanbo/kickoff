@@ -140,3 +140,14 @@ test("AI の DB のツール: 承認して見せる接続は、流す前に聞�
   // 一覧・構造は聞かずに読める
   assert.match(await tools.objects({}), /users/);
 });
+
+test("AI の DB のツール: 保存したパスワードをキーチェーンで開けなければ、利用者に DB タブから接続し直してもらうよう返す", async () => {
+  const secretCipher = { encrypt: async (plain: string) => plain, decrypt: async () => Promise.reject(new Error("User denied")) };
+  const { store, project, databases } = setup({ secretCipher });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const tools = createDbAiTools({ store, databases }, { project, workdir: null, chatId: chat.id });
+  const body = await databases.vault.seal({ ...sqliteBody({ name: "本番", engine: "postgres", host: "127.0.0.1", port: 1, file_path: null, ai_access: "allow" }), password: "p" });
+  store.dbConnections.create(project.id, body);
+  await assert.rejects(tools.objects({}), /「本番」の保存したパスワードを読めませんでした.*利用者に DB タブから接続し直してもらってください/);
+  await assert.rejects(tools.query({ sql: "select 1" }, allow), /DB タブから接続し直して/);
+});

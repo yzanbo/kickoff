@@ -9,6 +9,7 @@ import { cx } from "@/lib/cx";
 export function DialogActions({
   onCancel,
   cancelRef,
+  cancelLabel = "キャンセル",
   submit,
   align = "end",
   className,
@@ -17,6 +18,8 @@ export function DialogActions({
   onCancel?: () => void;
   /** キャンセルのボタン（開いたときにピントを置くなど） */
   cancelRef?: Ref<HTMLButtonElement>;
+  /** キャンセルのボタンの名前（既定は「キャンセル」） */
+  cancelLabel?: string;
   submit?: { label: string; busyLabel?: string; busy?: boolean; disabled?: boolean };
   align?: "start" | "end";
   className?: string;
@@ -26,7 +29,7 @@ export function DialogActions({
     <div className={cx("dialog-actions", align === "start" && "start", className)}>
       {onCancel && (
         <button ref={cancelRef} type="button" className="btn" onClick={onCancel}>
-          キャンセル
+          {cancelLabel}
         </button>
       )}
       {children}

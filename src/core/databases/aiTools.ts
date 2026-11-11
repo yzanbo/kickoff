@@ -6,6 +6,7 @@ import { Invalid } from "../http/errors.js";
 import type { Store } from "../db/store.js";
 import { formatAiConnections, formatAiObjects, formatAiQueryResult, formatAiTable } from "./aiFormat.js";
 import { assertAiSql, type DatabaseService } from "./service.js";
+import { DbPasswordLocked } from "./secrets.js";
 
 /** AI の SQL を流す前に、利用者に聞く（「承認して見せる」の接続だけ）。断られたら理由の文、許されたら null */
 export type DbAiApprove = (request: { connection: string; sql: string }) => Promise<string | null>;
@@ -19,6 +20,19 @@ export interface DbAiTools {
   describe(input: { connection?: string; table: string; database?: string; schema?: string }): Promise<string>;
   /** 読み取りの SQL を 1 文だけ流す */
   query(input: { connection?: string; sql: string; database?: string }, approve: DbAiApprove): Promise<string>;
+}
+
+/**
+ * 保存したパスワードをキーチェーンで開けなかったら、AI には利用者に頼むよう伝える（AI はパスワードを入れられない。
+ * DB タブからつなげば、その場でパスワードを聞かれ、入れた値は Kickoff を終えるまで AI のツールでも使う）
+ */
+async function askUserIfLocked<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    if (e instanceof DbPasswordLocked) throw new Invalid(`${e.message}。利用者に DB タブから接続し直してもらってください（DB タブで開くとパスワードを聞かれ、入れたあとはこのツールでも使えます）。`);
+    throw e;
+  }
 }
 
 /** プロジェクトに AI に見せる接続があるか（なければツールを出さない） */
@@ -60,27 +74,30 @@ export function createDbAiTools(deps: { store: Store; databases: DatabaseService
   return {
     connections: () => formatAiConnections(visible()),
 
-    async objects({ connection, database, schema, search }) {
-      const c = resolve(connection);
-      const { dbs, path } = await placeOf(c, database, schema);
-      return formatAiObjects(await databases.objects(c, project, workdir, path), label(c, path), dbs, search);
-    },
+    objects: ({ connection, database, schema, search }) =>
+      askUserIfLocked(async () => {
+        const c = resolve(connection);
+        const { dbs, path } = await placeOf(c, database, schema);
+        return formatAiObjects(await databases.objects(c, project, workdir, path), label(c, path), dbs, search);
+      }),
 
-    async describe({ connection, table, database, schema }) {
-      const c = resolve(connection);
-      const { path } = await placeOf(c, database, schema);
-      return formatAiTable(table, await databases.table(c, project, workdir, path, table));
-    },
+    describe: ({ connection, table, database, schema }) =>
+      askUserIfLocked(async () => {
+        const c = resolve(connection);
+        const { path } = await placeOf(c, database, schema);
+        return formatAiTable(table, await databases.table(c, project, workdir, path, table));
+      }),
 
-    async query({ connection, sql, database }, approve) {
-      const c = resolve(connection);
-      assertAiSql(sql, c.engine);
-      if (c.ai_access === "ask") {
-        const denied = await approve({ connection: c.name, sql });
-        if (denied !== null) throw new Invalid(denied);
-      }
-      const result = await databases.aiQuery(c, project, workdir, { sql, database: database || null, chatId });
-      return formatAiQueryResult(c.name, result);
-    },
+    query: ({ connection, sql, database }, approve) =>
+      askUserIfLocked(async () => {
+        const c = resolve(connection);
+        assertAiSql(sql, c.engine);
+        if (c.ai_access === "ask") {
+          const denied = await approve({ connection: c.name, sql });
+          if (denied !== null) throw new Invalid(denied);
+        }
+        const result = await databases.aiQuery(c, project, workdir, { sql, database: database || null, chatId });
+        return formatAiQueryResult(c.name, result);
+      }),
   };
 }

@@ -12,6 +12,7 @@ import { saveAll } from "@/lib/saveAll";
 import { openEditorFind } from "@/features/editor/editorFind";
 import { MemoProgress } from "@/features/memo/MemoProgress";
 import { DialogHost } from "@/ui/dialogs";
+import { DbUnlockHost } from "@/features/database/DbUnlockHost";
 import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { setProjectHues } from "@/features/project/projectColor";
 import { PopoutFiles } from "@/features/popout/PopoutFiles";
@@ -100,6 +101,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
         <HoverTip />
         <MemoProgress />
         <AskChildHost />
+        <DbUnlockHost />
         <DialogHost />
       </ChatStatesContext.Provider>
     </RouteContext.Provider>

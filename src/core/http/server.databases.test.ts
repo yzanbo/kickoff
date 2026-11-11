@@ -700,4 +700,12 @@ test("DB: 暗号化の口があれば、作る・取り込む・変えるパス�
   const locked = await call("GET", `${base}/${fresh.id}/databases`);
   assert.equal(locked.status, 409, JSON.stringify(locked.body));
   assert.equal((locked.body as { code: string }).code, "db_password_locked");
+
+  // その場で入れたパスワードで先へ進む（ここではつなぎ先がないので接続の失敗になる）。保存した値は変えない
+  const storedFresh = store.dbConnections.password(fresh.id);
+  assert.equal((await call("POST", `${base}/${fresh.id}/entered-passwords`, { password: "typed" })).status, 204);
+  assert.equal((await call("GET", `${base}/${fresh.id}/databases`)).status, 400);
+  assert.equal(await databases.vault.read(fresh, "password"), "typed");
+  assert.equal(store.dbConnections.password(fresh.id), storedFresh);
+  assert.equal((await call("POST", `${base}/${fresh.id}/entered-passwords`, { password: "" })).status, 400);
 });

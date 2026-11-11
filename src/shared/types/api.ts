@@ -365,6 +365,13 @@ export interface DbEditsResult {
   duration_ms: number;
 }
 
+/** 保存したパスワードをキーチェーンで開けなかったときに、利用者が入れたパスワード（入れた種類だけ。Kickoff を終えるまでコアのメモリにだけ持つ） */
+export interface DbEnteredPasswordsBody {
+  password?: string;
+  ai_password?: string;
+  ssh_password?: string;
+}
+
 export interface DbSqlBody {
   session: string;
   sql: string;

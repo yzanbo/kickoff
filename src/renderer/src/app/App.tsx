@@ -33,6 +33,7 @@ import { requestCodeSearchFocus } from "@/features/editor/codeSearchFocus";
 import { useSidebar } from "@/features/sidebar/useSidebar";
 import { terminalTargets } from "@/features/panel/usePanel";
 import { DialogHost } from "@/ui/dialogs";
+import { DbUnlockHost } from "@/features/database/DbUnlockHost";
 import { DropHintHost } from "@/ui/DropHint";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useChatNotifications } from "./notifications";
@@ -213,6 +214,8 @@ export function App() {
           reveal={showsProjectPage ? projectHeaderMode : "show"}
         />
         <DialogHost />
+        {/* 保存した DB のパスワードをキーチェーンで開けなかったときに、その場で聞く */}
+        <DbUnlockHost />
         {/* ドラッグ中に、落とせない理由をカーソルの横に出す（作業中のチャットは移せない、など） */}
         <DropHintHost />
         {palette && <CommandPalette onClose={() => setPalette(false)} />}
