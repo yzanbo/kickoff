@@ -31,6 +31,7 @@
 - 上に入力欄 `SqlEditor`（CodeMirror ＋ `@codemirror/lang-sql`。DB の種類の方言、補完はテーブルと列の名前（`api.dbOutline`））、下に文ごとの結果。境目のつまみで高さを変える（`DB_SQL_EDITOR_HEIGHT`。%）。書きかけの SQL は `dbSqlDraft("<place>:<タブのキー>")` に覚え、タブを閉じたら消す。
 - ⌘↵ / 「流す」= カーソルのある文（選んでいればその範囲の文）、⇧⌘↵ / 「すべて流す」= すべての文。文は `@shared/database/sqlStatements.ts` の `splitStatements` で分け、1 つずつ送る（コアは 1 回に 1 文だけ受ける）。失敗した文・止めた文で止め、後ろの文は流さない。結果は 2 文以上なら番号のタブ（失敗は赤）。
 - タブごとに DB の接続を 1 本持つ（接続の名前はタブのキー）。トランザクションの途中なら、帯に「コミットしていない変更があります」とコミット / 取り消すを出し、タブの名前の後ろに琥珀の点（`sqlSessions.ts` の `setSqlPending` / `useSqlPending`。開いたときに `api.dbSessionState` で読み直す）。タブを閉じるときは、途中なら `finishSession` でコミット / 取り消すを聞く（やめたら閉じない）。
+- 履歴（道具の行の「履歴」。`SqlHistory.tsx` の `SqlHistoryButton`）: この接続で流した SQL（利用者と AI。新しい順に 200 件。`api.dbHistory`）をポップオーバーで出し、SQL・チャットの名前で絞り込める。AI が流したものは「AI · チャットの名前」の札。押すと入力欄の終わりに空行を挟んで足して選ぶ（`SqlEditorHandle.append`。⌘↵ でそのまま流せる・⌘Z で戻せる）。開いたときに読む（開いている間に流した分は開き直すと出る）。
 - 止める: `api.cancelDbSql`（SQLite は DB ワーカーを止めて、次の頼みで立ち上げ直す）。
 - 道具の行の右に接続の環境の札（環境の色の点と名前 `.db-sql-env`）。
 - 読み取り専用の接続では帯に「読み取り専用」を出し、書く文はコアが断る（1 段目は文の判定 `isReadOnlyStatement`、2 段目は DB 側の読み取り専用）。

@@ -16,6 +16,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { DataGrid } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
+import { SqlHistoryButton } from "./SqlHistory";
 import { setSqlPending, useSqlPending } from "./sqlSessions";
 import { useSqlWrite } from "./useSqlWrite";
 
@@ -181,6 +182,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
               <Square size={12} aria-hidden /> 止める
             </button>
           )}
+          <SqlHistoryButton connection={connection} onPick={(sql) => editor.current?.append(sql)} />
           <span className="db-sql-spacer" />
           <span className={cx("db-sql-env small", `db-env-${connection.environment}`)}>
             <span className="db-env-dot" aria-hidden />

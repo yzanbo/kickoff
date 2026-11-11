@@ -224,6 +224,8 @@ export interface DbQueryHistoryEntry {
   ran_by: DbQueryRanBy;
   /** AI が流したときのチャット（消えたら null） */
   chat_id: number | null;
+  /** AI が流したときのチャットの名前（チャットが消えていれば null） */
+  chat_title: string | null;
   duration_ms: number | null;
   /** 返した行の数（変えた文は変えた行の数。分からなければ null） */
   row_count: number | null;

@@ -297,3 +297,81 @@
 .db-copy-name {
   font-weight: 600;
 }
+
+/* SQL の履歴（SQL のタブの「履歴」のポップオーバー） */
+.db-sql-history {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.db-sql-history-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.db-sql-history-list {
+  max-height: min(420px, 60vh);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.db-sql-history-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.db-sql-history-row:hover,
+.db-sql-history-row:focus-visible {
+  background: var(--bg-hover);
+}
+
+.db-sql-history-sql {
+  display: -webkit-box;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.db-sql-history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.db-sql-history-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 260px;
+  padding: 0 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent-fg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-sql-history-error {
+  overflow: hidden;
+  color: var(--ng);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

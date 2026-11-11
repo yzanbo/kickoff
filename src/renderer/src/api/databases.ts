@@ -8,6 +8,7 @@ import type {
   DbDefinition,
   DbObject,
   DbObjectPath,
+  DbQueryHistoryEntry,
   DbQueryResult,
   DbRowsBody,
   DbSqlBody,
@@ -54,6 +55,7 @@ export const databasesApi = {
   dbOutline: (projectId: number, id: number, path: DbObjectPath, worktree: string | null) =>
     request<DbOutlineTable[]>("POST", at(`${one(projectId, id)}/outline`, worktree), { path }),
   runDbSql: (projectId: number, id: number, body: DbSqlBody, worktree: string | null) => request<DbQueryResult>("POST", at(`${one(projectId, id)}/sql`, worktree), body),
+  dbHistory: (projectId: number, id: number, limit?: number) => request<DbQueryHistoryEntry[]>("GET", withQuery(`${one(projectId, id)}/history`, { limit })),
   cancelDbSql: (projectId: number, id: number, session: string) => request<void>("POST", `${one(projectId, id)}/sessions/${session}/cancel`),
   dbSessionState: (projectId: number, id: number, session: string) => request<{ in_transaction: boolean }>("GET", `${one(projectId, id)}/sessions/${session}`),
   commitDbSession: (projectId: number, id: number, session: string) => request<{ in_transaction: boolean }>("POST", `${one(projectId, id)}/sessions/${session}/commit`),
