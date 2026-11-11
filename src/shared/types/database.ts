@@ -86,6 +86,12 @@ export const DB_MY_IP_URL = "https://checkip.amazonaws.com";
 /** 準備のコマンドの中身を確かめていない（初めて流す・中身を変えた）。画面が中身を見せて確かめさせる */
 export const DB_PREP_UNCONFIRMED = "db_prep_unconfirmed";
 
+/**
+ * 保存したパスワードをキーチェーンで開けなかった（利用者が拒否した）。画面がその場でパスワードを聞き、
+ * 入れた値は Kickoff を終えるまでコアのメモリにだけ持つ
+ */
+export const DB_PASSWORD_LOCKED = "db_password_locked";
+
 /** 準備の記録の種類（準備・後片付け・ポートの転送・パスワードを取る） */
 export const DB_PREP_KINDS = ["prepare", "cleanup", "tunnel", "password"] as const;
 export type DbPrepKind = (typeof DB_PREP_KINDS)[number];

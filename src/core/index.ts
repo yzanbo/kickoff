@@ -26,6 +26,7 @@ import type { BrowserControl } from "./browser/control.js";
 import { DbWorkerClient, forkWorker, type WorkerChannel } from "./databases/client.js";
 import { DatabaseService } from "./databases/service.js";
 import { devWorkerEntry } from "./databases/entry.js";
+import { DbSecretVault, migrateInBackground, type SecretCipher } from "./databases/secrets.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -42,6 +43,8 @@ interface CoreOptions {
    * 渡さなければ、ソースの worker/main.ts を node ＋ tsx で fork する）
    */
   dbWorker?: () => WorkerChannel;
+  /** DB のパスワードの暗号化（Electron の safeStorage。渡さなければ、暗号化せずに置く） */
+  secretCipher?: SecretCipher;
 }
 
 export interface Core {
@@ -93,7 +96,10 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     publish: (e) => bus.publish(e),
   });
   // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる）
-  const databases = new DatabaseService({ store, client: new DbWorkerClient(opts.dbWorker ?? (() => forkWorker(devWorkerEntry()))), dataDir: opts.dataDir });
+  // DB のパスワードはキーチェーンの鍵で暗号化して置く（暗号化せずに置いていたものは、起動のときに一度だけ置き換える）
+  const vault = new DbSecretVault(store, opts.secretCipher ?? null);
+  migrateInBackground(vault);
+  const databases = new DatabaseService({ store, client: new DbWorkerClient(opts.dbWorker ?? (() => forkWorker(devWorkerEntry()))), vault, dataDir: opts.dataDir });
   // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
   // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, interrupted: recovered });

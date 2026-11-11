@@ -12,6 +12,7 @@ import type { BranchPullRequest } from "../git/github.js";
 import { MemoService } from "../memos/memos.js";
 import { DbWorkerClient, inProcessWorker } from "../databases/client.js";
 import { DatabaseService } from "../databases/service.js";
+import { DbSecretVault, type SecretCipher } from "../databases/secrets.js";
 import type { VoiceTools } from "../voice/tools.js";
 import type { MacosSpeech } from "../voice/macos.js";
 import type { AudioInput, LocalOptions, MacosOptions, OpenAiOptions } from "../voice/types.js";
@@ -172,7 +173,7 @@ class FakeProvider extends FakeProviderBase {
  * 偽のプロバイダーで API のアプリを組み立てる（一時フォルダは、そのテストが終わったら消える）。
  * Git の名前は、設定していない環境でもコミットできるよう testing/gitRepo.ts が環境変数で渡す
  */
-export function setup(opts: { staticDir?: string } = {}) {
+export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } = {}) {
   const uploads = new UploadStore(tempDir());
   // 通信: online を false にすると AI の API に届かない（つながったかの確かめに使う）
   const network = { online: true };
@@ -250,7 +251,7 @@ export function setup(opts: { staticDir?: string } = {}) {
   });
   // DB クライアントは同じプロセスのワーカーで動かす（中身は本物と同じ。dataDir は Kickoff 自身の保存先の代わり）
   const dbFake = { dataDir: tempDir() };
-  const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), dataDir: dbFake.dataDir });
+  const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), vault: new DbSecretVault(store, opts.secretCipher ?? null), dataDir: dbFake.dataDir });
   const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */

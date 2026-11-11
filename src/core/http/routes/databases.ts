@@ -220,7 +220,7 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
   app.post(base, withProject, async (c) => {
     const body = newConnectionSchema.parse(await jsonBody(c));
     checkFields(c.var.project, body);
-    return c.json(store.dbConnections.create(c.var.project.id, body), 201);
+    return c.json(store.dbConnections.create(c.var.project.id, await databases.vault.seal(body)), 201);
   });
 
   app.put(`${base}/order`, withProject, async (c) => {
@@ -246,6 +246,7 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
       updated_at: _u,
       ...fields
     } = from;
+    // パスワードは暗号化したまま写す
     const password = copy_password ? store.dbConnections.password(from.id) : null;
     // 手順メモはプロジェクトごとのメモのフォルダにあるので写さない。準備のコマンドは写すが、写した先で確かめ直す
     const ai_password = copy_password ? store.dbConnections.aiPassword(from.id) : null;
@@ -292,7 +293,8 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
       checkFields(c.var.project, body);
       return body;
     });
-    return c.json(created.map((body) => store.dbConnections.create(c.var.project.id, body)), 201);
+    const sealed = await Promise.all(created.map((body) => databases.vault.seal(body)));
+    return c.json(sealed.map((body) => store.dbConnections.create(c.var.project.id, body)), 201);
   });
 
   // 踏み台のサーバーの鍵: 見る（初めてのサーバーの指紋を画面で確かめる）・受け入れて ~/.ssh/known_hosts に足す
@@ -317,11 +319,15 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     const patch = connectionPatchSchema.parse(await jsonBody(c));
     const merged = { ...c.var.connection, ...patch };
     checkFields(c.var.project, merged);
-    return c.json(store.dbConnections.update(c.var.connection.id, patch));
+    const updated = store.dbConnections.update(c.var.connection.id, await databases.vault.seal(patch));
+    // パスワードを保存し直したら、キーチェーンで開けなかったときに入れた値は使わない
+    if (patch.password !== undefined || patch.ai_password !== undefined || patch.ssh_password !== undefined) databases.vault.forget(c.var.connection.id);
+    return c.json(updated);
   });
 
   app.delete(`${base}/:cid`, withProject, withConnection, (c) => {
     store.dbConnections.delete(c.var.connection.id);
+    databases.vault.forget(c.var.connection.id);
     // 開いていた接続と SSH トンネルは待たずに閉じる
     void databases.forgetConnection(c.var.connection.id).catch(() => {});
     return c.body(null, 204);
