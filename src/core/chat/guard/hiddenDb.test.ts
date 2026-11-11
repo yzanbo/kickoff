@@ -23,6 +23,7 @@ const conn = (patch: Partial<DbConnection>): DbConnection => ({
   ai_username: null,
   has_password: true,
   has_ai_password: false,
+  memo_path: null,
   position: 0,
   last_connected_at: null,
   created_at: "",

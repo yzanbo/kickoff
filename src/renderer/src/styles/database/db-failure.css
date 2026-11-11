@@ -1,0 +1,106 @@
+/* ==== 接続の手順メモ・つながらないときの案内（DbFailureDialog・DbFailureHelp・木の手順メモの印） ==== */
+
+/* 木の接続の行の名前の後ろの、手順メモがあることの小さな印 */
+.db-tree-memo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--extra-muted);
+}
+
+/* よくある原因（接続のダイアログの「つながるか試す」の下と、案内のダイアログ） */
+.db-failure-help {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.db-failure-help .db-failure-kind {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.db-failure-help ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.db-failure-help li + li {
+  margin-top: 2px;
+}
+
+/* 案内のダイアログ: 共通の .dialog.app-dialog の幅に負けないよう同じ詳細度で */
+.dialog.app-dialog.db-failure-dialog {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.db-failure-env {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--db-env);
+  border-radius: 999px;
+  color: var(--db-env);
+  font-size: 11px;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.db-failure-error {
+  max-height: 120px;
+  margin: 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--ng) 10%, transparent);
+  color: var(--ng);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.db-failure-memo {
+  display: grid;
+  gap: 6px;
+}
+
+.db-failure-memo-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.db-failure-memo-head > .muted {
+  overflow: hidden;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-failure-memo-tools {
+  margin-left: auto;
+}
+
+.db-failure-memo p {
+  margin: 0;
+}
+
+.db-failure-memo-body {
+  max-height: 34vh;
+  padding: 4px 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+
+/* 「AI に直してもらう」を左、閉じる・つなぎ直すを右に */
+.db-failure-actions .db-failure-spacer {
+  flex: 1;
+}
+
+.db-failure-actions .btn svg {
+  vertical-align: -2px;
+}

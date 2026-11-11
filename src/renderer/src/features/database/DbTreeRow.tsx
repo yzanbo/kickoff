@@ -16,6 +16,7 @@ export function TreeRow({
   icon,
   label,
   note,
+  mark,
   title,
   className,
   openOnClick,
@@ -29,6 +30,8 @@ export function TreeRow({
   icon: ReactNode;
   label: string;
   note?: string;
+  /** 名前の後ろに添える小さな印（接続の手順メモなど） */
+  mark?: ReactNode;
   title?: string;
   className?: string;
   openOnClick?: boolean;
@@ -61,21 +64,29 @@ export function TreeRow({
       <span className="db-tree-chevron">{open !== undefined && <Chevron open={open} size={12} />}</span>
       {icon}
       <span className="db-tree-label">{label}</span>
+      {mark}
       {note && <span className="db-tree-note">{note}</span>}
     </button>
   );
 }
 
-/** 読み込みの失敗の行（ワークツリーにファイルがなければ、本体のものを開くボタン） */
-export function TreeError({ depth, error, connection }: { depth: number; error: unknown; connection: DbConnection }) {
+/**
+ * 読み込みの失敗の行（ワークツリーにファイルがなければ、本体のものを開くボタン。ほかの失敗は「直し方を見る」でつながらないときの案内。
+ * onRetry: 案内の「つなぎ直す」で、この段を読み直す）
+ */
+export function TreeError({ depth, error, connection, onRetry }: { depth: number; error: unknown; connection: DbConnection; onRetry?: () => void }) {
   const client = useDbClient();
   const missing = error instanceof ApiError && error.code === DB_NOT_IN_WORKTREE;
   return (
     <div className="db-tree-error" style={{ paddingLeft: 26 + depth * 14 }}>
       <span>{errorMessage(error)}</span>
-      {missing && (
+      {missing ? (
         <button type="button" className="link-button small" onClick={() => client.useMain(connection.id)}>
           本体のものを開く
+        </button>
+      ) : (
+        <button type="button" className="link-button small" onClick={() => client.showFailure({ connection, error: errorMessage(error), retry: onRetry })}>
+          直し方を見る
         </button>
       )}
     </div>

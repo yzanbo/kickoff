@@ -189,6 +189,8 @@ export class MemoService {
     await fs.rename(source, target);
     // メモのチャットも新しい名前へ付け替える（フォルダなら中のメモのものも）
     this.opts.store.chats.remapMemoPath(project.id, from, to);
+    // DB の接続の手順メモも付け替える
+    this.opts.store.dbConnections.remapMemoPath(project.id, from, to);
     this.changed(project, to);
     return { path: to };
   }

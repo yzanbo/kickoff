@@ -17,6 +17,17 @@ export interface DbClientActions {
   openEr(connection: DbConnection, path: DbObjectPath, focus: string | null): void;
   /** 接続の登録・編集のダイアログ（null なら新しく作る） */
   editConnection(connection: DbConnection | null): void;
+  /** 接続の手順メモをタブで開く（なければ作ってから） */
+  openMemo(connection: DbConnection): void;
+  /** つながらないときの案内を出す */
+  showFailure(failure: DbFailure): void;
+}
+
+/** つながらなかった接続と失敗の文（retry: 開いていた段を読み直す。案内の「つなぎ直す」） */
+export interface DbFailure {
+  connection: DbConnection;
+  error: string;
+  retry?: () => void;
 }
 
 export const DbClientContext = createContext<DbClientActions | null>(null);

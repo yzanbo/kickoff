@@ -1,4 +1,5 @@
-import { Database, Layers, Lock, Network, Table2 } from "lucide-react";
+import { Database, Layers, Lock, Network, StickyNote, Table2 } from "lucide-react";
+import { useState } from "react";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { api } from "@/api";
 import { useSetting } from "@/hooks/useSetting";
@@ -53,7 +54,9 @@ function ConnectionNode({ connection: c, isOpen, toggle, menu, onMenu }: NodePro
   const key = `c:${c.id}`;
   const open = isOpen(key);
   const worktree = client.worktreeOf(c.id);
-  const dbs = useNodeLoad(open, () => api.dbDatabases(client.projectId, c.id, worktree), [c.id, c.updated_at, worktree]);
+  // つながらないときの案内の「つなぎ直す」で増やして読み直す
+  const [attempt, setAttempt] = useState(0);
+  const dbs = useNodeLoad(open, () => api.dbDatabases(client.projectId, c.id, worktree), [c.id, c.updated_at, worktree, attempt]);
   return (
     <>
       <TreeRow
@@ -62,6 +65,13 @@ function ConnectionNode({ connection: c, isOpen, toggle, menu, onMenu }: NodePro
         className={cx("db-tree-connection", `db-env-${c.environment}`)}
         icon={<span className="db-env-dot" aria-hidden />}
         label={c.name}
+        mark={
+          c.memo_path ? (
+            <span className="db-tree-memo" data-tip={`手順メモ: ${c.memo_path}`} aria-label="手順メモあり">
+              <StickyNote size={11} aria-hidden />
+            </span>
+          ) : undefined
+        }
         note={c.read_only ? undefined : DB_ENVIRONMENT_LABELS[c.environment]}
         title={`${c.name}（${DB_ENGINE_LABELS[c.engine]} · ${DB_ENVIRONMENT_LABELS[c.environment]}${c.read_only ? " · 読み取り専用" : ""}）\n${connectionPlace(c)}`}
         onToggle={() => toggle(key)}
@@ -73,7 +83,7 @@ function ConnectionNode({ connection: c, isOpen, toggle, menu, onMenu }: NodePro
         </div>
       )}
       {open && dbs.loading && <TreeHint depth={1}>読み込み中…</TreeHint>}
-      {open && dbs.error && <TreeError depth={1} error={dbs.error} connection={c} />}
+      {open && dbs.error && <TreeError depth={1} error={dbs.error} connection={c} onRetry={() => setAttempt((n) => n + 1)} />}
       {open &&
         dbs.value &&
         // DB が 1 つだけ（SQLite の main など）なら段を飛ばしてテーブルを出す

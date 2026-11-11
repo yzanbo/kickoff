@@ -18,7 +18,6 @@ import {
   type DbEngine,
   type DbEnvironment,
   type DbSslMode,
-  type NewDbConnectionBody,
 } from "@shared/types";
 import { api } from "@/api";
 import { useModalDialog } from "@/hooks/useModalDialog";
@@ -27,73 +26,9 @@ import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
 import { CheckField, Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
-
-/** 入力欄の値（数・null も文字で持つ。送るときに直す） */
-interface Form {
-  name: string;
-  engine: DbEngine;
-  environment: DbEnvironment;
-  host: string;
-  port: string;
-  database: string;
-  username: string;
-  file_path: string;
-  ssl: DbSslMode;
-  ca_path: string;
-  read_only: boolean;
-  ai_access: DbAiAccess;
-  password: string;
-  /** 保存したパスワードを消す（編集のときだけ） */
-  clearPassword: boolean;
-  /** AI が SQL を流すときに使うユーザー（空ならふつうのユーザー） */
-  ai_username: string;
-  ai_password: string;
-  clearAiPassword: boolean;
-}
-
-const formOf = (c: DbConnection | null): Form => ({
-  name: c?.name ?? "",
-  engine: c?.engine ?? "sqlite",
-  environment: c?.environment ?? "local",
-  host: c?.host ?? "",
-  port: c?.port ? String(c.port) : "",
-  database: c?.database ?? "",
-  username: c?.username ?? "",
-  file_path: c?.file_path ?? "",
-  ssl: c?.ssl?.mode ?? "off",
-  ca_path: c?.ssl?.ca_path ?? "",
-  read_only: c?.read_only ?? DB_ENVIRONMENT_DEFAULTS.local.read_only,
-  ai_access: c?.ai_access ?? DB_ENVIRONMENT_DEFAULTS.local.ai_access,
-  password: "",
-  clearPassword: false,
-  ai_username: c?.ai_username ?? "",
-  ai_password: "",
-  clearAiPassword: false,
-});
-
-/** 送る形（使わない欄は null。パスワードは書いたときだけ・消すなら null・省けばそのまま） */
-function bodyOf(form: Form, editing: boolean): NewDbConnectionBody {
-  const sqlite = form.engine === "sqlite";
-  const text = (v: string) => v.trim() || null;
-  const password = form.clearPassword ? null : form.password ? form.password : editing ? undefined : null;
-  const aiPassword = form.clearAiPassword ? null : form.ai_password ? form.ai_password : editing ? undefined : null;
-  return {
-    name: form.name.trim(),
-    engine: form.engine,
-    environment: form.environment,
-    host: sqlite ? null : text(form.host),
-    port: sqlite || !form.port.trim() ? null : Number(form.port),
-    database: sqlite ? null : text(form.database),
-    username: sqlite ? null : text(form.username),
-    file_path: sqlite ? text(form.file_path) : null,
-    ssl: sqlite || form.ssl === "off" ? null : { mode: form.ssl, ca_path: text(form.ca_path) },
-    read_only: form.read_only,
-    ai_access: form.ai_access,
-    ...(sqlite || password === undefined ? {} : { password }),
-    ai_username: sqlite ? null : text(form.ai_username),
-    ...(sqlite || aiPassword === undefined ? {} : { ai_password: aiPassword }),
-  };
-}
+import { bodyOf, formOf, type ConnectionForm } from "./connectionForm";
+import { ConnectionMemoField } from "./ConnectionMemoField";
+import { DbFailureHelp } from "./DbFailureDialog";
 
 /**
  * DB の接続を登録・編集するダイアログ。URL を貼れば欄が埋まり、「つながるか試す」の結果をその場に出す。
@@ -113,13 +48,13 @@ export function ConnectionDialog({
 }) {
   const dialog = useModalDialog({ closeOnBackdrop: false });
   const editing = connection !== null;
-  const [form, setForm] = useState<Form>(() => formOf(connection));
+  const [form, setForm] = useState<ConnectionForm>(() => formOf(connection));
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState<string>();
   const [test, setTest] = useState<DbConnectionTestResult | "testing" | null>(null);
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
-  const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }));
+  const set = <K extends keyof ConnectionForm>(key: K, value: ConnectionForm[K]) => setForm((f) => ({ ...f, [key]: value }));
   const sqlite = form.engine === "sqlite";
 
   const chooseEnvironment = (environment: DbEnvironment) =>
@@ -149,7 +84,9 @@ export function ConnectionDialog({
 
   const runTest = async () => {
     setTest("testing");
-    const body = bodyOf(form, editing);
+    // 手順メモはつながるかに関係しないので送らない
+    const { memo_path: _memo, ...body } = bodyOf(form, editing);
+    void _memo;
     try {
       setTest(
         await api.testDbConnection(
@@ -299,9 +236,11 @@ export function ConnectionDialog({
         {!sqlite && form.ai_access !== "none" && connection?.has_ai_password && (
           <CheckField label="保存した AI 用のパスワードを消す" checked={form.clearAiPassword} onChange={(v) => set("clearAiPassword", v)} />
         )}
+        <ConnectionMemoField projectId={projectId} value={form.memo_path} onChange={(v) => set("memo_path", v)} />
         {test && test !== "testing" && (
           <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{test.ok ? `つながりました（${test.server_version ?? "版は不明"}）` : `つながりません: ${test.error}`}</p>
         )}
+        {test && test !== "testing" && !test.ok && test.error && <DbFailureHelp error={test.error} />}
         <ErrorText message={error} />
         <DialogActions onCancel={() => dialog.close()} submit={{ label: editing ? "保存" : "追加", busyLabel: "保存中…", busy: saving }}>
           <button type="button" className="btn" disabled={test === "testing"} onClick={() => void runTest()}>
