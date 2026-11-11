@@ -45,10 +45,13 @@
   background: var(--bg-hover);
 }
 
-/* いまのブランチ（地の色で目立たせる） */
+/* いまのブランチ（太字と濃い ✓ で目立たせる。地の色は付けない） */
 .ref-item.current {
-  font-weight: 600;
-  background: var(--bg-active);
+  font-weight: 700;
+}
+
+.ref-item.current svg {
+  color: var(--text);
 }
 
 .ref-item svg,
@@ -73,12 +76,39 @@
   color: var(--muted);
 }
 
+/* 追いかけているリモートとの進み・遅れ（「13↑」。数は読みやすく文字の色で） */
+.ref-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.ref-item .ref-sync svg {
+  color: var(--text);
+}
+
+/* リモートの名前の行（押して開閉。GitHub のマーク・雲） */
 .ref-remote-name {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px 3px 22px;
+  width: 100%;
+  padding: 3px 10px 3px 8px;
+  border: none;
+  font: inherit;
   font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ref-remote-name:hover {
+  background: var(--bg-hover);
 }
 
 /* コミットの詳細の 1 行の見出し（作者・番号・日時・件名・タブ） */
