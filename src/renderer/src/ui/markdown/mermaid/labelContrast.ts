@@ -80,3 +80,20 @@ export function readableLabelColor(background: Rgb, text: Rgb): string | null {
   if (contrastRatio(background, text) >= MIN_LABEL_CONTRAST) return null;
   return contrastRatio(background, DARK) >= contrastRatio(background, LIGHT) ? LABEL_TEXT_DARK : LABEL_TEXT_LIGHT;
 }
+
+/** 点 (x, y) が、塗った形のどれかの上にあるか（図を書く側が塗った地の上の線だけを直すため。地の色だけの所はテーマの色のまま） */
+export function onLayer(x: number, y: number, layers: readonly Layer[]): boolean {
+  return layers.some(({ box }) => x >= box.left && x <= box.right && y >= box.top && y <= box.bottom);
+}
+
+/**
+ * 線（矢印など）の色 stroke が、線の通る所の下の色 backgrounds（線に沿って取った点ごと）のどこかで見えにくければ、
+ * 通る所すべてでいちばん見える色（暗い / 明るい）を返す（見えるときは null で、替えない）。
+ * 明るい塗りの上の白い線のように、図を書く側の塗りとテーマの線の色が重なって見えなくなるため
+ */
+export function readableStrokeColor(backgrounds: readonly Rgb[], stroke: Rgb): string | null {
+  if (backgrounds.length === 0) return null;
+  const worst = (rgb: Rgb) => Math.min(...backgrounds.map((bg) => contrastRatio(bg, rgb)));
+  if (worst(stroke) >= MIN_LABEL_CONTRAST) return null;
+  return worst(DARK) >= worst(LIGHT) ? LABEL_TEXT_DARK : LABEL_TEXT_LIGHT;
+}
