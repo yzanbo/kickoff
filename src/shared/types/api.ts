@@ -276,6 +276,8 @@ export interface NewDbConnectionBody {
   ai_username?: string | null;
   /** AI 用のユーザーのパスワード（password と同じく、省けばそのまま・null で消す） */
   ai_password?: string | null;
+  /** 接続の手順メモ（メモのフォルダからの相対パス。null で外す） */
+  memo_path?: string | null;
 }
 
 /** DB の接続を変える（PATCH …/db-connections/:cid。書いた項目だけ。password: 省けばそのまま・null で消す・文字列で替える） */
@@ -284,7 +286,7 @@ export type DbConnectionPatch = Partial<NewDbConnectionBody>;
 /**
  * つながるか試す（POST …/db-connections/test。保存しない）。connection_id があれば、password を省いたときにその接続の保存したパスワードを使う
  */
-export type DbConnectionTestBody = Omit<NewDbConnectionBody, "name" | "read_only" | "ai_access" | "ai_username" | "ai_password"> & { connection_id?: number };
+export type DbConnectionTestBody = Omit<NewDbConnectionBody, "name" | "read_only" | "ai_access" | "ai_username" | "ai_password" | "memo_path"> & { connection_id?: number };
 
 /** つながるか試した結果 */
 export interface DbConnectionTestResult {

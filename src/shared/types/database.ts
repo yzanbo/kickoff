@@ -65,6 +65,8 @@ export interface DbConnection {
   ai_username: string | null;
   /** AI 用のユーザーのパスワードを保存したか */
   has_ai_password: boolean;
+  /** 接続の手順メモ（メモのフォルダからの相対パス。つなぎ方ごとに 1 つで、いくつもの接続で同じでよい。null なら選んでいない） */
+  memo_path: string | null;
   last_connected_at: string | null;
   created_at: string;
   updated_at: string;

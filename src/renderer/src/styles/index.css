@@ -122,6 +122,7 @@
 @import "./database/db-table-tools.css";
 @import "./database/db-sql.css";
 @import "./database/db-import.css";
+@import "./database/db-failure.css";
 @import "./database/db-er.css";
 @import "./database/db-er-picker.css";
 @import "./chat/open-place.css";

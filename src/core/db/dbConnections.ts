@@ -5,7 +5,7 @@ import { bit, updateRow, type Notify } from "./common.js";
 import type { DbSecretKey } from "./settings.js";
 
 /** 変えられる列（パスワードは秘密の値なので別） */
-const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "ai_access", "ai_username"] as const;
+const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "ai_access", "ai_username", "memo_path"] as const;
 
 type Row = Omit<DbConnection, "ssl" | "read_only" | "has_password" | "has_ai_password"> & { ssl: string | null; read_only: number; has_password: number; has_ai_password: number };
 
@@ -50,6 +50,7 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     read_only: bit(body.read_only),
     ai_access: body.ai_access,
     ai_username: body.ai_username,
+    memo_path: body.memo_path,
   });
   const setPasswords = (id: number, body: Pick<DbConnectionPatch, "password" | "ai_password">) => {
     if (body.password !== undefined) secrets.set(dbPasswordKey(id), body.password ?? "");
@@ -65,7 +66,7 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
       const row = toRow(body);
       const { lastInsertRowid } = db
         .prepare(
-          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, ai_access, ai_username, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, ai_access, ai_username, memo_path, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .run(projectId, ...COLUMNS.map((c) => row[c] ?? null), next);
       const id = Number(lastInsertRowid);
@@ -103,6 +104,16 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
       order.forEach((id, i) => stmt.run(i, id));
       notify(projectId);
       return this.list(projectId);
+    },
+    /** メモの名前を変えた・動かしたとき、それを手順メモにしている接続の memo_path を付け替える（フォルダなら中のメモのものも） */
+    remapMemoPath(projectId: number, from: string, to: string) {
+      const rows = db
+        .prepare("SELECT id, memo_path FROM db_connections WHERE project_id = ? AND (memo_path = ? OR substr(memo_path, 1, length(?) + 1) = ? || '/')")
+        .all(projectId, from, from, from) as { id: number; memo_path: string }[];
+      if (rows.length === 0) return;
+      const stmt = db.prepare("UPDATE db_connections SET memo_path = ? WHERE id = ?");
+      for (const r of rows) stmt.run(r.memo_path === from ? to : `${to}${r.memo_path.slice(from.length)}`, r.id);
+      notify(projectId);
     },
     /** 消す（パスワードの秘密の値は表のトリガーが消す） */
     delete(id: number) {

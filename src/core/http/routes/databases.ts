@@ -55,6 +55,10 @@ const connectionShape = {
   password: z.string().max(10_000).nullable().optional(),
   ai_username: text(500).optional(),
   ai_password: z.string().max(10_000).nullable().optional(),
+  // 手順メモ: メモのフォルダからの相対パス（/ で始まる・.. を含むものは断る）
+  memo_path: text(1000)
+    .refine((v) => v === null || (!v.startsWith("/") && !v.split("/").includes("..")), "手順メモはメモのフォルダの中のメモを選んでください")
+    .optional(),
 };
 const newConnectionSchema = z.object(connectionShape) satisfies z.ZodType<NewDbConnectionBody, unknown>;
 const connectionPatchSchema = z.object(connectionShape).partial() satisfies z.ZodType<DbConnectionPatch, unknown>;
@@ -166,8 +170,9 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     if (!from) throw new NotFound("写す接続が見つかりません");
     const { id: _id, project_id: _p, position: _pos, has_password: _h, has_ai_password: _ha, last_connected_at: _l, created_at: _c, updated_at: _u, ...fields } = from;
     const password = copy_password ? store.dbConnections.password(from.id) : null;
+    // 手順メモはプロジェクトごとのメモのフォルダにあるので写さない
     const ai_password = copy_password ? store.dbConnections.aiPassword(from.id) : null;
-    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, password, ai_password }), 201);
+    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, memo_path: null, password, ai_password }), 201);
   });
 
   // プロジェクトから取り込む: 見つけた接続の案（パスワードは返さない）と、選んだ案を作る（パスワードは見つけた所から読み直す）

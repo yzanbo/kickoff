@@ -161,6 +161,30 @@ test("DB の接続: プロジェクトから取り込む（案にパスワード
   assert.equal((await call("POST", base, { items: [] })).status, 400);
 });
 
+test("DB の接続: 手順メモ（メモのフォルダからの相対パス。外を指すものは断り、メモの名前の変更・フォルダの移動で付け替え、写すときは外す）", async () => {
+  const { call, project, store } = setup();
+  const base = `/api/projects/${project.id}/db-connections`;
+  makeSqlite(project.repo_path);
+  assert.equal((await call("POST", base, { ...sqliteBody(), memo_path: "../x.md" })).status, 400);
+  assert.equal((await call("POST", base, { ...sqliteBody(), memo_path: "/etc/x.md" })).status, 400);
+  const a = (await call("POST", base, { ...sqliteBody(), memo_path: "DB/ローカル.md" })).body as DbConnection;
+  const b = (await call("POST", base, { ...sqliteBody({ name: "2 つ目" }), memo_path: "DB/ローカル.md" })).body as DbConnection;
+  const other = (await call("POST", base, { ...sqliteBody({ name: "別" }), memo_path: "DB/ローカル.md.bak" })).body as DbConnection;
+  assert.equal(a.memo_path, "DB/ローカル.md");
+
+  assert.equal((await call("POST", `/api/projects/${project.id}/memos`, { path: "DB/ローカル.md", content: "# x" })).status, 201);
+  assert.equal((await call("POST", `/api/projects/${project.id}/memos/move`, { from: "DB/ローカル.md", to: "DB/Docker.md" })).status, 200);
+  assert.deepEqual([a, b, other].map((c) => store.dbConnections.get(c.id)!.memo_path), ["DB/Docker.md", "DB/Docker.md", "DB/ローカル.md.bak"]);
+  assert.equal((await call("POST", `/api/projects/${project.id}/memos/move`, { from: "DB", to: "接続" })).status, 200);
+  assert.equal(store.dbConnections.get(a.id)!.memo_path, "接続/Docker.md");
+
+  const cleared = (await call("PATCH", `${base}/${a.id}`, { memo_path: null })).body as DbConnection;
+  assert.equal(cleared.memo_path, null);
+  const otherProject = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
+  const copied = (await call("POST", `/api/projects/${otherProject.id}/db-connections/copy`, { from_id: b.id, copy_password: false })).body as DbConnection;
+  assert.equal(copied.memo_path, null);
+});
+
 test("DB の接続: AI 用のユーザーとパスワード（パスワードは保存したかだけ返す・写すのは選んだときだけ・消すと秘密の値も消える）", async () => {
   const { call, project, store } = setup();
   const base = `/api/projects/${project.id}/db-connections`;

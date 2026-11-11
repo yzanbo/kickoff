@@ -1,17 +1,30 @@
-import { Copy, Database, FolderInput, Network, PanelLeftClose, PanelLeftOpen, Pencil, Plus, SquareTerminal, Trash2 } from "lucide-react";
+import { Copy, Database, FolderInput, Network, PanelLeftClose, PanelLeftOpen, Pencil, Plus, SquareTerminal, StickyNote, Trash2 } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
+import type { DbConnection } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { api } from "@/api";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
-import { closeConnectionTabs, closeDbTab, openErTab, openNewSqlTab, openTableTab, setTableFilter, tableTabKey, updateErTab, type DbClientTab } from "@/lib/dbClientTabs";
+import {
+  closeConnectionTabs,
+  closeDbTab,
+  openErTab,
+  openMemoTab,
+  openNewSqlTab,
+  openTableTab,
+  renameMemoTab,
+  setTableFilter,
+  tableTabKey,
+  updateErTab,
+  type DbClientTab,
+} from "@/lib/dbClientTabs";
 import { DB_LIST_HIDDEN, DB_LIST_WIDTH, dbClientTabs, dbSqlDraft } from "@/lib/storageKeys";
-import { writeSetting } from "@/lib/storage";
+import { readSetting, writeSetting } from "@/lib/storage";
 import { dbConnectionsStore, useDbConnections } from "@/stores/dbConnections";
+import { SideMemo } from "@/features/memo/SideMemo";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
-import { alertDialog, choiceDialog, confirmDialog } from "@/ui/dialogs";
+import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { CloseButton, IconButton } from "@/ui/IconButton";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
@@ -20,12 +33,13 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { ConnectionDialog } from "./ConnectionDialog";
 import { CopyConnectionDialog } from "./CopyConnectionDialog";
 import { ImportConnectionDialog } from "./ImportConnectionDialog";
-import { DbClientContext, type DbClientActions } from "./dbClientContext";
+import { DbClientContext, type DbClientActions, type DbFailure } from "./dbClientContext";
+import { DbFailureDialog } from "./DbFailureDialog";
+import { createConnectionMemo } from "./dbMemo";
+import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle } from "./DbTabParts";
 import { DbTree } from "./DbTree";
-import { TabObjectIcon } from "./DbTreeObjects";
 import { DefinitionView } from "./DefinitionView";
-import { objectPathLabel } from "./dbFormat";
-import { useSqlPending } from "./sqlSessions";
+import { finishSession } from "./sqlSessions";
 import { SqlView } from "./SqlView";
 import { TableView } from "./TableView";
 
@@ -49,6 +63,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   const [editing, setEditing] = useState<DbConnection | null | undefined>(undefined);
   const [copying, setCopying] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [failure, setFailure] = useState<DbFailure | null>(null);
   const [mainOnly, setMainOnly] = useState<ReadonlySet<number>>(new Set());
   const menu = useContextMenu<DbConnection>();
   const width = useDragSize({ setting: DB_LIST_WIDTH, min: 180, keep: 320 });
@@ -89,6 +104,17 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
       setOverlay(false);
     },
     editConnection: (c) => setEditing(c),
+    openMemo: (c) => void openConnectionMemo(c),
+    showFailure: setFailure,
+  };
+
+  /** 接続の手順メモをタブで開く（なければ作ってから。作るのをやめたら何もしない） */
+  const openConnectionMemo = async (c: DbConnection) => {
+    const path = c.memo_path ?? (await createConnectionMemo(projectId, c));
+    if (!path) return;
+    // 作るダイアログの間にタブが変わっていてもよいよう、いまの値から開く
+    setState(openMemoTab(readSetting(dbClientTabs(place)), c.id, path));
+    setOverlay(false);
   };
 
   /** 接続の右クリックの「ER 図」: つないでいる DB（PostgreSQL は public のスキーマ）で開く */
@@ -172,7 +198,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                 <div key={t.key} className={cx("db-tab", t.key === state.active && "active", c && `db-env-${c.environment}`)} role="tab" aria-selected={t.key === state.active}>
                   <button type="button" className="db-tab-name" title={tabTitle(t, c)} onClick={() => setState({ ...state, active: t.key })}>
                     <span className="db-env-dot" aria-hidden />
-                    {t.kind === "sql" ? <SquareTerminal size={12} aria-hidden /> : t.kind === "er" ? <Network size={12} aria-hidden /> : <TabObjectIcon object={t.object} />}
+                    <DbTabIcon tab={t} />
                     <span className="db-tab-label">{tabLabel(t)}</span>
                     {t.kind === "sql" && <PendingMark tabKey={t.key} />}
                   </button>
@@ -192,7 +218,15 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
               if (!c) return null;
               return (
                 <div key={t.key} className="db-tab-page" hidden={t.key !== state.active}>
-                  {t.kind === "sql" ? (
+                  {t.kind === "memo" ? (
+                    <SideMemo
+                      projectId={projectId}
+                      path={t.path}
+                      chatId={null}
+                      // 接続の memo_path はコアが付け替えて知らせる
+                      onRenamed={(to) => setState(renameMemoTab(readSetting(dbClientTabs(place)), t.key, to))}
+                    />
+                  ) : t.kind === "sql" ? (
                     <SqlView tab={t} connection={c} />
                   ) : t.kind === "er" ? (
                     <Suspense fallback={<p className="db-er-loading small muted">読み込み中…</p>}>
@@ -223,6 +257,9 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
             <MenuItem onSelect={() => void openConnectionEr(menu.menu!.value)}>
               <Network size={14} /> ER 図
             </MenuItem>
+            <MenuItem onSelect={() => void openConnectionMemo(menu.menu!.value)}>
+              <StickyNote size={14} /> {menu.menu.value.memo_path ? "手順メモを開く" : "手順メモを作る…"}
+            </MenuItem>
             <MenuItem onSelect={() => setEditing(menu.menu!.value)}>
               <Pencil size={14} /> 編集…
             </MenuItem>
@@ -234,56 +271,18 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
         {editing !== undefined && <ConnectionDialog projectId={projectId} connection={editing} worktree={worktree} onClose={() => setEditing(undefined)} />}
         {copying && <CopyConnectionDialog projectId={projectId} onClose={() => setCopying(false)} />}
         {importing && <ImportConnectionDialog projectId={projectId} onClose={() => setImporting(false)} />}
+        {failure && (
+          <DbFailureDialog
+            projectId={projectId}
+            // 一覧が取り直されたら（手順メモを結んだなど）新しい方で
+            connection={byId.get(failure.connection.id) ?? failure.connection}
+            error={failure.error}
+            onMemo={() => void openConnectionMemo(byId.get(failure.connection.id) ?? failure.connection)}
+            onRetry={failure.retry}
+            onClose={() => setFailure(null)}
+          />
+        )}
       </div>
     </DbClientContext.Provider>
   );
-}
-
-/** SQL のタブがトランザクションの途中なら、名前の後ろに「コミットしていない」印 */
-function PendingMark({ tabKey }: { tabKey: string }) {
-  const pending = useSqlPending(tabKey);
-  return pending ? <span className="db-tab-pending" data-tip="コミットしていない変更があります" aria-label="コミットしていない変更があります" /> : null;
-}
-
-/** タブの名前（ER 図はまわりを見ているテーブル、なければ場所） */
-const tabLabel = (t: DbClientTab) =>
-  t.kind === "sql" ? t.title : t.kind === "er" ? `ER 図${t.focus ? `: ${t.focus}` : t.path.schema || t.path.database ? `: ${t.path.schema ?? t.path.database}` : ""}` : t.name;
-
-const tabTitle = (t: DbClientTab, c: DbConnection | undefined) =>
-  [
-    c ? `${c.name}（${DB_ENVIRONMENT_LABELS[c.environment]}）` : "",
-    t.kind === "table" ? objectPathLabel(t.path, t.name) : t.kind === "er" ? `${objectPathLabel(t.path, t.focus ?? undefined)} の ER 図` : t.title,
-  ]
-    .filter(Boolean)
-    .join(" › ");
-
-const breadcrumbOf = (t: DbClientTab, c: DbConnection | undefined) =>
-  [c?.name, ...(t.kind === "sql" ? [t.title] : [t.path.database, t.path.schema, t.kind === "er" ? "ER 図" : t.name])].filter(Boolean).join(" › ");
-
-/**
- * SQL のタブを閉じる・切る前に、コミットしていなければ「コミット / 取り消す」を聞いてから接続を閉じる（取り消すなら接続を閉じて捨てる）。
- * やめたら false（タブを閉じない）
- */
-export async function finishSession(projectId: number, c: DbConnection, session: string): Promise<boolean> {
-  const { in_transaction } = await api.dbSessionState(projectId, c.id, session).catch(() => ({ in_transaction: false }));
-  if (in_transaction) {
-    const choice = await choiceDialog({
-      title: "コミットしていない変更があります",
-      message: `「${c.name}」で流した変更をコミットしますか？「取り消す」を選ぶと、変更は捨てます。`,
-      choices: [
-        { value: "commit", label: "コミット", primary: true },
-        { value: "rollback", label: "取り消す" },
-      ],
-    });
-    // やめたら閉じない
-    if (choice === null) return false;
-    try {
-      if (choice === "commit") await api.commitDbSession(projectId, c.id, session);
-    } catch (e) {
-      await alertDialog("コミットできませんでした", errorMessage(e));
-      return false;
-    }
-  }
-  await api.closeDbSession(projectId, c.id, session).catch(() => {});
-  return true;
 }

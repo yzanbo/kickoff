@@ -14,6 +14,8 @@ export type WindowMessage =
   | { type: "openProjectFile"; projectId: number; file: FileTarget }
   /** メインのウィンドウでそのメモを開く（chatId があればそのチャットの右の欄、なければメモのタブ。別ウィンドウの返答から「メモに追加」したとき） */
   | { type: "openMemo"; projectId: number; path: string; chatId: number | null }
+  /** メインのウィンドウでチャットを開く（別ウィンドウの DB クライアントの「AI に直してもらう」で作ったチャット） */
+  | { type: "openChat"; projectId: number; chatId: number }
   /** メインのウィンドウで子チャットを開く（設定が右の欄のとき。別ウィンドウの子チャットの札・通知から） */
   | { type: "openChild"; chatId: number }
   /** 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（別ウィンドウの「右の欄に戻す」。別ウィンドウは閉じる） */

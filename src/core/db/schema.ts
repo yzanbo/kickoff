@@ -285,7 +285,10 @@ CREATE TABLE db_er_layouts (
   PRIMARY KEY (connection_id, place)
 ) STRICT;`;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15];
+/** v16: DB クライアントの段階 2（接続の手順メモ）。メモのフォルダからの相対パス（いくつもの接続で同じメモを使える） */
+const SCHEMA_V16 = `ALTER TABLE db_connections ADD COLUMN memo_path TEXT CHECK (memo_path <> '');`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
