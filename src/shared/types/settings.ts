@@ -38,6 +38,8 @@ export interface AppSettings {
   ntfy_url: string;
   /** チャットの完了・失敗・回答待ちを Mac の通知で知らせる */
   desktop_notifications: boolean;
+  /** Dock の Kickoff のアイコンに、要対応（回答待ち・未読）のチャットの数を赤い数字で出す */
+  dock_badge: boolean;
   /** 新規プロジェクトの保存先（前回使ったフォルダ） */
   projects_dir: string;
   /** 通信が切れて止まったチャットを、つながったら自動で再開するか（何度か続かなければ、再開するかを聞く） */
@@ -84,6 +86,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   remote_enabled: false,
   ntfy_url: "",
   desktop_notifications: true,
+  dock_badge: true,
   projects_dir: "~/Documents",
   auto_archive_days: null,
   auto_resume_on_reconnect: true,

@@ -4,7 +4,7 @@ import { CheckField, Field } from "@/ui/Field";
 import { ResultMessage, SaveActions } from "@/ui/SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
 
-/** 設定: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・ntfy） */
+/** 設定: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・Dock のアイコンの数・ntfy） */
 export function NotificationSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
   // テスト通知を送っている間と、その結果（届かなかったら理由。Mac の設定で許可していないときなど）
@@ -34,6 +34,12 @@ export function NotificationSettings() {
           checked={draft.desktop_notifications}
           onChange={(on) => setDraft({ ...draft, desktop_notifications: on })}
         />
+        <CheckField
+          label="Dock のアイコンに要対応の数を出す"
+          help="回答待ち・未読のチャットの数を、Dock の Kickoff のアイコンに赤い数字で出します（アーカイブしたプロジェクト・チャットは数えません）。"
+          checked={draft.dock_badge}
+          onChange={(on) => setDraft({ ...draft, dock_badge: on })}
+        />
         {/* Mac の通知が届くかを試す・Mac の設定（許可・バナーか通知パネルか・音）を開く（デスクトップアプリだけ） */}
         {native && (
           <div className="notification-test">
@@ -50,7 +56,7 @@ export function NotificationSettings() {
           <input type="url" value={draft.ntfy_url} placeholder="https://ntfy.sh/your-topic" onChange={(e) => setDraft({ ...draft, ntfy_url: e.target.value })} />
         </Field>
       </div>
-      <SaveActions save={save} disabled={!dirty} onSave={() => saveFields({ desktop_notifications: draft.desktop_notifications, ntfy_url: draft.ntfy_url.trim() })} />
+      <SaveActions save={save} disabled={!dirty} onSave={() => saveFields({ desktop_notifications: draft.desktop_notifications, dock_badge: draft.dock_badge, ntfy_url: draft.ntfy_url.trim() })} />
     </section>
   );
 }
