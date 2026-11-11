@@ -1,5 +1,6 @@
 import type { BrowserControl } from "../browser/control.js";
 import { createDbAiTools, hasAiConnections } from "../databases/aiTools.js";
+import { hiddenDbTargets } from "./guard/hiddenDbTargets.js";
 import type { DatabaseService } from "../databases/service.js";
 import { githubEnvForGit, runAsGitHubAccount } from "../git/githubAccount.js";
 import { mkdirSync } from "node:fs";
@@ -175,6 +176,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
       deps.databases && hasAiConnections(deps.store, project.id)
         ? createDbAiTools({ store: deps.store, databases: deps.databases }, { project, workdir: chat.worktree_path, chatId: chat.id })
         : null,
+    // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
+    hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
   };
 }
 

@@ -269,7 +269,7 @@ export function ConnectionDialog({
         />
         <Field
           label="チャットの AI に見せるか"
-          help="自由に見せる = AI が聞かずに読む / 承認して見せる = AI が SQL を流す前に聞く / 見せない = AI のツールに出さず、AI がコマンドでつなぐのも断る。AI が流せるのは読み取りの 1 文だけ（100 行・30 秒まで）"
+          help="自由に見せる = AI が聞かずに読む / 承認して見せる = AI が SQL を流す前に聞く / 見せない = AI のツールに出さず、AI がコマンド・ファイルで直接つなぐのも断る（うっかりを防ぐもので、変数に分けるなどわざと避ける書き方までは見抜けません）。AI が流せるのは読み取りの 1 文だけ（100 行・30 秒まで）"
         >
           <select value={form.ai_access} onChange={(e) => set("ai_access", e.target.value as DbAiAccess)}>
             {DB_AI_ACCESSES.map((v) => (

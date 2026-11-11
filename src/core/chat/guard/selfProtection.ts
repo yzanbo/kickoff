@@ -36,7 +36,7 @@ type SelfDecision = { decision: "pass" } | { decision: "deny"; reason: string };
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** シェルの書き方の違い（~・$HOME・\ で区切った空白）をそろえて、パスを探しやすくする */
-function normalizeCommand(command: string): string {
+export function normalizeCommand(command: string): string {
   const home = os.homedir();
   return command
     .replace(/\\ /g, " ")
