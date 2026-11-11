@@ -23,6 +23,7 @@ const initialText = (quote: string) => (quote.trim() ? `${quoteComment(quote, ""
 /**
  * 子チャットで聞く: 聞く欄（選んだ文を引用（`> `）にして初めから入れておき、書き換えられる。キャレットは引用の下）・「会話を引き継ぐ / 新しく始める」（初めは引き継ぐ）。
  * 聞くと子チャットが動き始め、設定の「子チャットを作ったとき」（右の欄 / 別ウィンドウ / 開かない）で開く（親の会話の聞いた位置と入力欄の上に札が出て、答えが来たら点と通知で分かる）。
+ * 引き継ぐを選んでいる間は、切り替えの右の「引き継いで開く」で、聞くことなしで会話を引き継いだ子チャットを開くだけにもできる（設定が「開かない」でも開く）。
  * Enter で聞く・Shift+Enter で改行・Esc でやめる
  */
 function AskChildDialog({ request }: { request: AskChildRequest }) {
@@ -53,6 +54,19 @@ function AskChildDialog({ request }: { request: AskChildRequest }) {
       setBusy(false);
     }
   };
+  // 聞くことなしで、このチャットの会話を引き継いだ子チャットを開くだけ（書いた文があっても送らない）
+  const openOnly = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const child = await api.createChildChat(request.parentId, { text: "", quote: null, inherit: true, event_id: request.eventId });
+      dialog.close();
+      openCreatedChild(child, { always: true });
+    } catch (e) {
+      setError(errorMessage(e));
+      setBusy(false);
+    }
+  };
   const keys = useEditKeys({ onSubmit: () => void submit() });
   return (
     <dialog ref={dialog.ref} className="dialog app-dialog ask-child" onClose={closeAskChild}>
@@ -69,7 +83,7 @@ function AskChildDialog({ request }: { request: AskChildRequest }) {
           {request.quote.trim() && "選択部分は引用として入れてあります。書き換えたり、消したりできます。"}
         </p>
         {/* 会話を引き継ぐか（初めは引き継ぐ。新しい子チャットのタブと同じく聞く欄のすぐ上） */}
-        <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="このチャット" />
+        <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="このチャット" onOpen={() => void openOnly()} opening={busy} />
         <textarea
           ref={inputRef}
           className="ask-child-input"
