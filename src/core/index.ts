@@ -23,7 +23,7 @@ import { MemoService } from "./memos/memos.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
 import type { BrowserControl } from "./browser/control.js";
-import { DbWorkerClient, forkWorker, type WorkerEntry } from "./databases/client.js";
+import { DbWorkerClient, forkWorker, type WorkerChannel } from "./databases/client.js";
 import { DatabaseService } from "./databases/service.js";
 import { devWorkerEntry } from "./databases/entry.js";
 
@@ -37,8 +37,11 @@ interface CoreOptions {
   browser?: BrowserControl;
   /** macOS の音声認識の補助コマンド（kickoff-speech）の場所（ビルドで out/native に作る。渡さなければ、音声入力の「macOS の音声認識」は使えない） */
   speechHelper?: string;
-  /** DB ワーカーの入口（Electron のビルドが作る out/main/dbWorker.js。渡さなければ、ソースの worker/main.ts を node ＋ tsx で動かす） */
-  dbWorker?: WorkerEntry;
+  /**
+   * DB ワーカーを起動してつなぐ（Electron のアプリはメインプロセスが utilityProcess でビルドの out/main/dbWorker.js を起動する。
+   * 渡さなければ、ソースの worker/main.ts を node ＋ tsx で fork する）
+   */
+  dbWorker?: () => WorkerChannel;
 }
 
 export interface Core {
@@ -90,7 +93,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     publish: (e) => bus.publish(e),
   });
   // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる）
-  const databases = new DatabaseService({ store, client: new DbWorkerClient(() => forkWorker(opts.dbWorker ?? devWorkerEntry())), dataDir: opts.dataDir });
+  const databases = new DatabaseService({ store, client: new DbWorkerClient(opts.dbWorker ?? (() => forkWorker(devWorkerEntry()))), dataDir: opts.dataDir });
   // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
   // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, interrupted: recovered });

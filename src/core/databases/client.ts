@@ -16,18 +16,17 @@ export interface WorkerChannel {
   kill(): void;
 }
 
-/** ワーカーの起動のしかた（Electron は自分の実行ファイルを ELECTRON_RUN_AS_NODE で、単体のコア・テストは node ＋ tsx で動かす） */
+/** 単体のコア・テストでの起動のしかた（node ＋ tsx。Electron のアプリはメインプロセスが utilityProcess でつなぐ WorkerChannel を startCore に渡す） */
 export interface WorkerEntry {
   file: string;
   execArgv: string[];
-  electron: boolean;
 }
 
-/** 別のプロセスで起動する */
+/** 別のプロセスで起動する（child_process.fork。Electron の実行ファイルを ELECTRON_RUN_AS_NODE で Node として動かす形は使わない。製品版は fuses で切るため） */
 export function forkWorker(entry: WorkerEntry): WorkerChannel {
   const child = fork(entry.file, [], {
     execArgv: entry.execArgv,
-    env: entry.electron ? { ...process.env, ELECTRON_RUN_AS_NODE: "1" } : process.env,
+    env: process.env,
     stdio: ["ignore", "inherit", "inherit", "ipc"],
     // 自分のプロセスグループにする（止めるときにグループごと送り、ワーカーが開いた SSH トンネルの ssh も残さない）
     detached: true,
@@ -76,6 +75,15 @@ interface Pending {
   engine: DbEngine | null;
 }
 
+/** プロセスグループごと止める（ワーカーが起動した ssh・シェル。もう終わっていれば何もしない） */
+export function killGroup(pid: number) {
+  try {
+    process.kill(-pid, "SIGTERM");
+  } catch {
+    // もう終わっている
+  }
+}
+
 /** 何もしない状態がこれだけ続いたらワーカーを止める */
 const IDLE_MS = 5 * 60_000;
 /** 止める前の片付け（後片付けのコマンド）を待つ時間 */
@@ -88,12 +96,15 @@ export class DbWorkerClient {
   /** トランザクションの途中の接続（あれば何もしなくても止めない。止めると取り消されるため） */
   private readonly inTransaction = new Set<string>();
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  /** ワーカーが起動して、まだ動いている子のプロセス（ssh・シェル。ワーカーを止めるときに一緒に止める） */
+  private readonly children = new Set<number>();
   /** ワーカーからの知らせ（流したコマンドの結果。コアが準備の記録に残す） */
   onEvent: (event: WorkerEvent) => void = () => {};
 
   constructor(
     private readonly spawn: () => WorkerChannel,
     private readonly idleMs = IDLE_MS,
+    private readonly killChild: (pid: number) => void = killGroup,
   ) {}
 
   /** ワーカーが動いているか */
@@ -109,10 +120,16 @@ export class DbWorkerClient {
   private ensure(): WorkerChannel {
     if (this.channel) return this.channel;
     const channel = this.spawn();
-    channel.onMessage((m) => ("event" in m ? this.onEvent(m) : this.settle(m)));
+    channel.onMessage((m) => {
+      if (!("event" in m)) return this.settle(m);
+      if (m.event !== "child") return this.onEvent(m);
+      if (m.alive) this.children.add(m.pid);
+      else this.children.delete(m.pid);
+    });
     channel.onExit((reason) => {
       if (this.channel !== channel) return;
       this.channel = null;
+      this.killChildren();
       this.failAll(`DB ワーカーが止まりました（${reason}）。もう一度試すと起動し直します`);
     });
     this.channel = channel;
@@ -215,6 +232,13 @@ export class DbWorkerClient {
     const channel = this.channel;
     this.channel = null;
     channel?.kill();
+    this.killChildren();
     this.failAll(message);
+  }
+
+  /** ワーカーが残した子のプロセスを止める（ワーカーが落ちた・止めたとき） */
+  private killChildren() {
+    for (const pid of this.children) this.killChild(pid);
+    this.children.clear();
   }
 }

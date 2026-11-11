@@ -1,19 +1,36 @@
-// DB ワーカーの入口（コアが child_process.fork で起動する別のプロセス。Electron では ELECTRON_RUN_AS_NODE=1、単体のコア・テストでは tsx）。
-// 親とは IPC のメッセージだけでやり取りし、親がいなくなったら閉じて終わる
-import type { WorkerCancel, WorkerRequest } from "../protocol.js";
+// DB ワーカーの入口（コアが起動する別のプロセス。Electron のアプリではメインプロセスが utilityProcess で、単体のコア・テストでは
+// child_process.fork ＋ tsx で起動する）。親とはメッセージだけでやり取りし（utilityProcess は process.parentPort、fork は IPC の process.send）、
+// 親がいなくなったら閉じて終わる（utilityProcess は親が終わると Electron が止める）
+import type { WorkerCancel, WorkerEvent, WorkerRequest, WorkerResponse } from "../protocol.js";
+import { setChildReporter } from "./children.js";
 import { createWorkerHandler } from "./handler.js";
 
-// 流したコマンドの結果（準備の記録）はコアに知らせる
-const handler = createWorkerHandler((event) => process.send?.(event));
+type Message = WorkerRequest | WorkerCancel;
+/** Electron の utilityProcess の中だけにある、親とのつなぎ（コアは Electron の型を読まないので、使う所だけの形にする） */
+interface ParentPort {
+  on(event: "message", fn: (e: { data: Message }) => void): void;
+  postMessage(message: unknown): void;
+}
+const parentPort = (process as unknown as { parentPort?: ParentPort }).parentPort;
 
-process.on("message", (message: WorkerRequest | WorkerCancel) => {
+const send = (message: WorkerResponse | WorkerEvent) => (parentPort ? parentPort.postMessage(message) : process.send?.(message));
+
+// 流したコマンドの結果（準備の記録）と、起動した子のプロセスはコアに知らせる
+setChildReporter(send);
+const handler = createWorkerHandler(send);
+
+const receive = (message: Message) => {
   if ("cancel" in message) {
     void handler.cancel(message.cancel);
     return;
   }
-  void handler.handle(message).then((res) => process.send?.(res));
-});
+  void handler.handle(message).then(send);
+};
 
-process.on("disconnect", () => {
-  void handler.closeAll().finally(() => process.exit(0));
-});
+if (parentPort) parentPort.on("message", (e) => receive(e.data));
+else {
+  process.on("message", receive);
+  process.on("disconnect", () => {
+    void handler.closeAll().finally(() => process.exit(0));
+  });
+}

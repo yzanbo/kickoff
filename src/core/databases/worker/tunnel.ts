@@ -1,7 +1,7 @@
 // 手元のポートへのトンネル（DB ワーカーの中）: SSH トンネル（この Mac の ssh -L）と、ポートを転送するコマンド（aws ssm start-session など）。
 // どちらも 127.0.0.1 の空いたポートに転送し、同じ行き先へのトンネルは使っている接続があるあいだ 1 本を使い回し、使う接続がなくなったら止める。
 // SSH のサーバーの鍵は StrictHostKeyChecking=yes（初めてのサーバーはつながず、コアが画面で指紋を確かめてから known_hosts に足す）
-import { spawn, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -10,6 +10,7 @@ import { expandPrepCommand, type DbPrepVars } from "@shared/database/dbPrep";
 import { DB_SSH_UNKNOWN_HOST, type DbSsh } from "@shared/types";
 import { isChangedHostKey, isUnknownHostKey, sshTargetArgs } from "../sshArgs.js";
 import { killTree, spawnShell } from "./shell.js";
+import { spawnTracked } from "./children.js";
 
 /** SSH で手元のポートにつながるまで待つ時間（ミリ秒。踏み台の起動・ログインを含む） */
 const SSH_TIMEOUT_MS = 30_000;
@@ -92,7 +93,7 @@ function spawnSsh(spec: TunnelSpec, port: number): ChildProcess {
     Object.assign(env, { SSH_ASKPASS: askpass(), SSH_ASKPASS_REQUIRE: "force", DISPLAY: env.DISPLAY ?? ":0", KICKOFF_SSH_PASSWORD: spec.ssh.password });
     options.push("-o", "NumberOfPasswordPrompts=1");
   } else options.push("-o", "BatchMode=yes");
-  return spawn("ssh", ["-N", "-L", `127.0.0.1:${port}:${spec.remote_host}:${spec.remote_port}`, ...options, ...sshTargetArgs(spec.ssh)], { stdio: ["ignore", "ignore", "pipe"], env });
+  return spawnTracked("ssh", ["-N", "-L", `127.0.0.1:${port}:${spec.remote_host}:${spec.remote_port}`, ...options, ...sshTargetArgs(spec.ssh)], { stdio: ["ignore", "ignore", "pipe"], env });
 }
 
 export function createTunnels(opts: { onCommandRun?: (spec: CommandTunnelSpec, ok: boolean) => void } = {}) {

@@ -1,7 +1,8 @@
 // 準備のコマンドの流し方（DB ワーカーの中）: この Mac のログインシェルで流す（AWS のプロファイルなど、ターミナルと同じ設定が要るため）。
 // 止めるときは子孫のプロセスごと止める（aws ssm のように、コマンドが別のプログラムを起動するため）
-import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { execFileSync, type ChildProcess } from "node:child_process";
 import path from "node:path";
+import { spawnTracked } from "./children.js";
 
 /** 出力を手元に持つ上限（終わりのほうを残す） */
 const OUTPUT_MAX = 20_000;
@@ -10,7 +11,7 @@ const OUTPUT_MAX = 20_000;
 export const loginShell = () => (process.env.SHELL && path.isAbsolute(process.env.SHELL) ? process.env.SHELL : "/bin/zsh");
 
 /** ログインシェルでコマンドを起動する（標準入力は渡さない。待たない） */
-export const spawnShell = (command: string): ChildProcess => spawn(loginShell(), ["-l", "-c", command], { stdio: ["ignore", "pipe", "pipe"], env: process.env });
+export const spawnShell = (command: string): ChildProcess => spawnTracked(loginShell(), ["-l", "-c", command], { stdio: ["ignore", "pipe", "pipe"], env: process.env });
 
 /** プロセスと、その子孫すべてに SIGTERM を送る（ps で親子をたどる） */
 export function killTree(pid: number | undefined) {

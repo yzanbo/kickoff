@@ -37,8 +37,22 @@ export interface DbTargetCommands {
   vars: DbPrepVars;
 }
 
+/** ワーカーからの知らせ */
+export type WorkerEvent = PrepRunEvent | ChildProcessEvent;
+
+/**
+ * ワーカーが起動した子のプロセス（SSH トンネルの ssh・準備のコマンドのシェル。どれも自分のプロセスグループで起動する）。
+ * コアはワーカーを止めるとき、まだ動いている子もグループごと止める（Electron の utilityProcess のワーカーは自分のグループを持てず、
+ * ワーカーだけを止めると子が残るため。SQLite の文を流している間のワーカーは JS を動かせないので、ワーカーには片付けさせない）
+ */
+export interface ChildProcessEvent {
+  event: "child";
+  pid: number;
+  alive: boolean;
+}
+
 /** ワーカーから知らせる、流したコマンドの結果（コアが準備の記録に残す。出力は送らない） */
-export interface WorkerEvent {
+export interface PrepRunEvent {
   event: "prep_run";
   connection_id: number;
   kind: DbPrepKind;
