@@ -18,7 +18,7 @@ function previewOf(statements: SqlStatement[]): string {
 /**
  * SQL のタブの「書き込む」（読み取り専用の接続で、このタブだけ読み取り専用を外す）。
  * 始めるときに環境の名前を打たせ、外している間は流すたびに SQL を見せて確かめる。
- * 10 分何もしなければ戻す（トランザクションの途中なら、コミットか取り消しのあとに戻す）。タブを閉じる・読み込み直すと戻る（覚えない）。接続の設定は変えない
+ * 10 分何もしなければ（流す・打つがなければ）戻す（トランザクションの途中なら、コミットか取り消しのあとに戻す。コミット・取り消しは何かしたに数えない）。タブを閉じる・読み込み直すと戻る（覚えない）。接続の設定は変えない
  */
 export function useSqlWrite(connection: DbConnection, pending: boolean) {
   const [on, setOn] = useState(false);
