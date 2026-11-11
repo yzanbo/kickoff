@@ -189,6 +189,11 @@ test("DB の木とテーブル: DB・テーブルとビュー・構造・行（�
   assert.deepEqual(outline.find((t: { name: string }) => t.name === "posts").columns, ["id", "user_id", "title"]);
   // つないだ時刻を残す
   assert.ok((await call("GET", `/api/projects/${project.id}/db-connections`)).body[0].last_connected_at);
+  // 関数・列挙型の定義: SQLite にはないので失敗を返し、種類の違うものは 400
+  const definition = await call("POST", `${base}/definition`, { path: main, kind: "function", name: "f" });
+  assert.equal(definition.status, 400);
+  assert.match(definition.body.error, /SQLite には関数・列挙型がありません/);
+  assert.equal((await call("POST", `${base}/definition`, { path: main, kind: "table", name: "users" })).status, 400);
 });
 
 test("SQL のタブ: 文を流す・トランザクションの途中の印・コミットと取り消し・閉じると取り消す", async () => {

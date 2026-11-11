@@ -1,4 +1,4 @@
-import { Copy, Database, PanelLeftClose, PanelLeftOpen, Pencil, Plus, SquareTerminal, Table2, Trash2 } from "lucide-react";
+import { Copy, Database, PanelLeftClose, PanelLeftOpen, Pencil, Plus, SquareTerminal, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { errorMessage } from "@shared/errors";
@@ -21,6 +21,8 @@ import { ConnectionDialog } from "./ConnectionDialog";
 import { CopyConnectionDialog } from "./CopyConnectionDialog";
 import { DbClientContext, type DbClientActions } from "./dbClientContext";
 import { DbTree } from "./DbTree";
+import { TabObjectIcon } from "./DbTreeObjects";
+import { DefinitionView } from "./DefinitionView";
 import { objectPathLabel } from "./dbFormat";
 import { useSqlPending } from "./sqlSessions";
 import { SqlView } from "./SqlView";
@@ -70,7 +72,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     worktreeOf: (id) => (mainOnly.has(id) ? null : worktree),
     useMain: (id) => setMainOnly((s) => new Set([...s, id])),
     openTable: (c, path, name, object) => {
-      setState(openDbTab(state, { key: tableTabKey(c.id, path, name), kind: "table", connection_id: c.id, path, name, object }));
+      setState(openDbTab(state, { key: tableTabKey(c.id, path, name, object), kind: "table", connection_id: c.id, path, name, object }));
       setOverlay(false);
     },
     openSql: (c) => {
@@ -146,7 +148,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                 <div key={t.key} className={cx("db-tab", t.key === state.active && "active", c && `db-env-${c.environment}`)} role="tab" aria-selected={t.key === state.active}>
                   <button type="button" className="db-tab-name" title={tabTitle(t, c)} onClick={() => setState({ ...state, active: t.key })}>
                     <span className="db-env-dot" aria-hidden />
-                    {t.kind === "sql" ? <SquareTerminal size={12} aria-hidden /> : <Table2 size={12} aria-hidden />}
+                    {t.kind === "sql" ? <SquareTerminal size={12} aria-hidden /> : <TabObjectIcon object={t.object} />}
                     <span className="db-tab-label">{t.kind === "sql" ? t.title : t.name}</span>
                     {t.kind === "sql" && <PendingMark tabKey={t.key} />}
                   </button>
@@ -166,7 +168,13 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
               if (!c) return null;
               return (
                 <div key={t.key} className="db-tab-page" hidden={t.key !== state.active}>
-                  {t.kind === "table" ? <TableView tab={t} connection={c} /> : <SqlView tab={t} connection={c} />}
+                  {t.kind === "sql" ? (
+                    <SqlView tab={t} connection={c} />
+                  ) : t.object === "function" || t.object === "enum" ? (
+                    <DefinitionView tab={{ ...t, object: t.object }} connection={c} />
+                  ) : (
+                    <TableView tab={t} connection={c} />
+                  )}
                 </div>
               );
             })}

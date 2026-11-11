@@ -87,6 +87,7 @@ export function createWorkerHandler() {
     schemas: (p, id) => use(id, p.session, p.target, (d) => d.schemas(p.database)),
     objects: (p, id) => use(id, p.session, p.target, (d) => d.objects(p.path)),
     table: (p, id) => use(id, p.session, p.target, (d) => d.table(p.path, p.name)),
+    definition: (p, id) => use(id, p.session, p.target, (d) => d.definition(p.path, p.kind, p.name)),
     rows: (p, id) => use(id, p.session, p.target, (d) => d.rows(p.path, p.name, p.sort, p.offset, p.limit)),
     count: (p, id) => use(id, p.session, p.target, async (d) => ({ count: await d.count(p.path, p.name) })),
     outline: (p, id) => use(id, p.session, p.target, (d) => d.outline(p.path)),

@@ -172,6 +172,11 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     return c.json(await databases.table(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path, name));
   });
 
+  app.post(`${base}/:cid/definition`, withProject, withConnection, async (c) => {
+    const { path, kind, name } = z.object({ path: objectPath, kind: z.enum(["function", "enum"]), name: objectName }).parse(await jsonBody(c));
+    return c.json(await databases.definition(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path, kind, name));
+  });
+
   app.post(`${base}/:cid/rows`, withProject, withConnection, async (c) => {
     const body = rowsSchema.parse(await jsonBody(c));
     return c.json(await databases.rows(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body.path, body.table, body.sort, body.offset));

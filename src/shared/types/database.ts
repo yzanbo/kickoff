@@ -178,6 +178,20 @@ export interface DbTableDetail {
   comment: string | null;
 }
 
+/** 関数・列挙型の定義（木から開いたタブ。PostgreSQL の関数と列挙型・MySQL / MariaDB のストアドルーチン） */
+export interface DbDefinition {
+  kind: "function" | "enum";
+  /** 関数: 引数（「a integer, b text」）。列挙型・分からなければ null */
+  arguments: string | null;
+  /** 関数: 戻り値の型（プロシージャ・分からなければ null） */
+  returns: string | null;
+  /** 列挙型の値（並び順のまま。関数は空） */
+  values: string[];
+  /** 作る文（DB が返せなければ null） */
+  ddl: string | null;
+  comment: string | null;
+}
+
 /** テーブルのデータの並べ替え（列の見出し。ORDER BY を付けて取り直す） */
 export interface DbSort {
   column: string;

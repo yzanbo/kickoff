@@ -50,8 +50,12 @@ export function parseDbClientTabs(value: unknown): DbClientTabs | undefined {
   return { tabs, active };
 }
 
-/** テーブルのタブのキー（同じ接続・場所・名前なら同じ） */
-export const tableTabKey = (connectionId: number, path: DbObjectPath, name: string) => `t:${connectionId}:${path.database ?? ""}:${path.schema ?? ""}:${name}`;
+/**
+ * テーブル・ビュー・関数・列挙型のタブのキー（同じ接続・場所・名前なら同じ）。
+ * テーブルとビューは同じ名前を持てないので同じ印、関数・列挙型はテーブルと同じ名前を持てるので別の印
+ */
+export const tableTabKey = (connectionId: number, path: DbObjectPath, name: string, object: DbObjectKind = "table") =>
+  `${object === "function" ? "f" : object === "enum" ? "e" : "t"}:${connectionId}:${path.database ?? ""}:${path.schema ?? ""}:${name}`;
 
 /** タブを開く（同じキーがあれば選ぶだけ。新しいタブは表示中のタブの右に足す） */
 export function openDbTab(state: DbClientTabs, tab: DbClientTab): DbClientTabs {
