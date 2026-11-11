@@ -6,7 +6,10 @@ import type { DbEditParam } from "@shared/database/dbEdit";
 import { filterSql, type FilterDialect } from "@shared/database/dbFilter";
 import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
-import type { DbDriver } from "./driver.js";
+import type { DbColumns, DbDriver } from "./driver.js";
+
+/** 結果をすべて読むとき（CSV の書き出し）に 1 回でカーソルから読む行の数 */
+const STREAM_BATCH = 1000;
 import { APPLICATION_NAME, CONNECT_TIMEOUT_MS, tlsOptions, triggerHead } from "./network.js";
 import { pgDefinition, pgRoutineObjects } from "./postgresRoutines.js";
 import { quoteIdent, toDbValue } from "./values.js";
@@ -327,6 +330,38 @@ class PostgresDriver implements DbDriver {
       duration_ms: performance.now() - started,
       in_transaction: this.inTransaction(),
     };
+  }
+
+  /** すべての行を 1000 行ずつカーソルで読んで渡す（メモリに全部を持たない） */
+  async stream(sql: string, onColumns: (columns: DbColumns) => void, onRow: (row: unknown[]) => void) {
+    const cursor = this.client.query(new Cursor(sql, [], { rowMode: "array" }));
+    let affected: number | null = null;
+    try {
+      let first = true;
+      for (;;) {
+        const read = await new Promise<{ rows: unknown[][]; result: pg.QueryResult }>((resolve, reject) => {
+          this.inflight.add(reject);
+          cursor.read(STREAM_BATCH, (err, rows, result) => {
+            this.inflight.delete(reject);
+            if (err) reject(err);
+            else resolve({ rows: rows as unknown[][], result });
+          });
+        });
+        if (first) {
+          const fields = read.result.fields ?? [];
+          onColumns(fields.map((f) => ({ name: f.name, type: TYPE_NAMES.get(f.dataTypeID) ?? null })));
+          if (fields.length === 0) affected = read.result.rowCount ?? null;
+          first = false;
+        }
+        for (const row of read.rows) onRow(row);
+        if (read.rows.length < STREAM_BATCH) break;
+      }
+    } catch (e) {
+      await this.closeCursor(cursor);
+      throw pgError(e);
+    }
+    await this.closeCursor(cursor);
+    return { affected };
   }
 
   async execute(sql: string, params: DbEditParam[]) {

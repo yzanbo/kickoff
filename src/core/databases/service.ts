@@ -15,6 +15,7 @@ import { expandHome, isInside, realPathLoose } from "../system/paths.js";
 import type { DbWorkerClient } from "./client.js";
 import type { DbTarget, DbTargetCommands } from "./protocol.js";
 import type { DbSecretVault } from "./secrets.js";
+import { AI_EXPORT_KEEP_MS, aiExportFile, aiExportRoot, cleanAiExports, removeChatExports } from "./aiExports.js";
 import { DB_AI_MAX_ROWS, DB_AI_TIMEOUT_MS } from "./aiFormat.js";
 
 /** ワーカーの失敗の文の頭の印（「db_ssh_unknown_host: …」）を分ける */
@@ -49,7 +50,12 @@ interface Options {
   vault: DbSecretVault;
   /** Kickoff 自身の保存先（この中のファイルは登録させない） */
   dataDir: string;
+  /** AI の SQL の結果を書き出す CSV の置き場所（省けば OS の一時フォルダの <保存先の名前>-db。テストは一時フォルダの中） */
+  exportRoot?: string;
 }
+
+/** 片付けの間隔（CSV を書き出すたびに、これより前に片付けていれば片付ける） */
+const EXPORT_CLEAN_INTERVAL_MS = 60 * 60_000;
 
 /** 絞り込みの WHERE の文に、文の区切り（2 つ目の文）を入れさせない（式だけを受ける） */
 function assertWhere(filter: DbRowFilter, engine: DbEngine) {
@@ -63,14 +69,27 @@ export function assertAiSql(sql: string, engine: DbEngine) {
   if (!isReadOnlyStatement(sql, engine)) throw new Invalid("AI が流せるのは読み取りの文（SELECT・WITH・SHOW・EXPLAIN など）だけです");
 }
 
+/** チャットの作業を止めたので AI の SQL も止めたときの文 */
+const TURN_STOPPED = "チャットの作業を止めたので、SQL も止めました";
+
+/** 時間の上限で止めたときの文（30 秒なら、延ばして頼み直す方法を AI に伝える） */
+function timeoutMessage(minutes: number | null | undefined) {
+  if (minutes) return `${minutes} 分を超えたので止めました。`;
+  return `${DB_AI_TIMEOUT_MS / 1000} 秒を超えたので止めました。もっと時間がかかる SQL なら、timeout_minutes に流してよい時間（分）を入れてもう一度呼んでください（利用者に承認を聞きます）。`;
+}
+
 export class DatabaseService {
   /** パスワードの暗号化・復号（ルートが保存する前に seal する） */
   readonly vault: DbSecretVault;
+  /** AI の SQL の結果を書き出す CSV の置き場所 */
+  readonly exportRoot: string;
+  private exportCleanedAt = 0;
   /** SQL のタブごとの、流している文を止める口 */
   private readonly running = new Map<string, AbortController>();
 
   constructor(private readonly opts: Options) {
     this.vault = opts.vault;
+    this.exportRoot = opts.exportRoot ?? aiExportRoot(opts.dataDir);
     // ワーカーが流したコマンドの結果を準備の記録に残す（消した接続のものは残さない）
     opts.client.onEvent = (event) => {
       if (event.event === "prep_run" && opts.store.dbConnections.get(event.connection_id)) opts.store.dbPrepRuns.add(event.connection_id, event.kind, event.command, event.ok);
@@ -345,18 +364,29 @@ export class DatabaseService {
 
   /**
    * チャットの AI が流す SQL（読み取りの 1 文だけ）。守りは 4 段: 文の判定・DB 側の読み取り専用・呼び出しごとの新しい接続（SET などの状態を残さない）・
-   * AI 用のユーザー（あれば）。DB_AI_MAX_ROWS 行まで、DB_AI_TIMEOUT_MS を超えたら止める。結果は履歴に AI の印で残す
+   * AI 用のユーザー（あれば）。DB_AI_TIMEOUT_MS（30 秒）を超えたら止める（timeoutMinutes があればその分。利用者が承認したときだけ渡る）。
+   * チャットの作業を止めたら（signal）SQL も止める。DB_AI_MAX_ROWS 行を超える結果は、すべての行を CSV に書き出して場所を返す。結果は履歴に AI の印で残す
    */
-  async aiQuery(connection: DbConnection, project: Project, workdir: Workdir, input: { sql: string; database: string | null; chatId: number }) {
+  async aiQuery(
+    connection: DbConnection,
+    project: Project,
+    workdir: Workdir,
+    input: { sql: string; database: string | null; chatId: number; timeoutMinutes?: number | null; signal?: AbortSignal },
+  ) {
     assertAiSql(input.sql, connection.engine);
+    // 承認を待つ間にチャットの作業を止めていたら流さない
+    if (input.signal?.aborted) throw new Invalid(TURN_STOPPED);
     const target = await this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null, ai: true });
     const session = `ai:${connection.id}:${randomUUID()}`;
     const controller = new AbortController();
+    const limitMs = input.timeoutMinutes ? input.timeoutMinutes * 60_000 : DB_AI_TIMEOUT_MS;
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
       controller.abort();
-    }, DB_AI_TIMEOUT_MS);
+    }, limitMs);
+    const stopTurn = () => controller.abort();
+    input.signal?.addEventListener("abort", stopTurn, { once: true });
     const started = Date.now();
     // MySQL は DB を名前で指すので、指されたら先に切り替える（同じ接続の中だけ。終わったら閉じる）
     const sql = input.sql;
@@ -364,18 +394,40 @@ export class DatabaseService {
       if (connection.engine === "mysql" && input.database) {
         await this.opts.client.request("query", { session, target, sql: `USE \`${input.database.replaceAll("`", "``")}\``, max_rows: 1 }, { signal: controller.signal, engine: target.engine });
       }
-      const result = await this.opts.client.request("query", { session, target, sql, max_rows: DB_AI_MAX_ROWS }, { signal: controller.signal, engine: target.engine });
-      this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql, ran_by: "ai", chat_id: input.chatId, duration_ms: result.duration_ms, row_count: result.columns.length > 0 ? result.rows.length : result.affected });
+      const file = aiExportFile(this.exportRoot, input.chatId, connection.name);
+      const result = await this.opts.client.request("export", { session, target, sql, file, head_rows: DB_AI_MAX_ROWS }, { signal: controller.signal, engine: target.engine });
+      this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql, ran_by: "ai", chat_id: input.chatId, duration_ms: result.duration_ms, row_count: result.columns.length > 0 ? result.total_rows : result.affected });
       this.opts.store.dbConnections.touchConnected(connection.id);
+      if (result.file) this.cleanExportsSometimes();
       return result;
     } catch (e) {
-      const error = timedOut ? `${DB_AI_TIMEOUT_MS / 1000} 秒を超えたので止めました` : errorMessage(e);
+      const error = timedOut ? timeoutMessage(input.timeoutMinutes) : controller.signal.aborted ? TURN_STOPPED : errorMessage(e);
       this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql, ran_by: "ai", chat_id: input.chatId, duration_ms: Date.now() - started, error });
       throw new Invalid(error);
     } finally {
       clearTimeout(timer);
+      input.signal?.removeEventListener("abort", stopTurn);
       if (this.opts.client.running) await this.opts.client.request("close", { session }).catch(() => {});
     }
+  }
+
+  /** AI の SQL の CSV を片付ける（7 日を過ぎたもの・もうないチャットのもの。起動のときと、書き出したときに 1 時間ごと） */
+  cleanExports(now = Date.now()) {
+    this.exportCleanedAt = now;
+    try {
+      cleanAiExports(this.exportRoot, (chatId) => this.opts.store.chats.get(chatId) !== undefined, now, AI_EXPORT_KEEP_MS);
+    } catch (e) {
+      console.warn(`[databases] AI の SQL の CSV を片付けられませんでした: ${errorMessage(e)}`);
+    }
+  }
+
+  private cleanExportsSometimes() {
+    if (Date.now() - this.exportCleanedAt > EXPORT_CLEAN_INTERVAL_MS) this.cleanExports();
+  }
+
+  /** チャットを消したら、そのチャットの CSV も消す */
+  forgetChatExports(chatIds: number[]) {
+    for (const id of chatIds) removeChatExports(this.exportRoot, id);
   }
 
   /** SQL の履歴（新しい順） */

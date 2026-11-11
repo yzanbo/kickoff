@@ -3,6 +3,9 @@ import type { DbDatabases, DbDefinition, DbObject, DbObjectPath, DbQueryResult, 
 import type { DbEditParam } from "@shared/database/dbEdit";
 import type { DbOutlineTable } from "../protocol.js";
 
+/** 結果の列 */
+export type DbColumns = DbQueryResult["columns"];
+
 export interface DbDriver {
   /** まだつながっているか（DB が接続を切ったら false。次の頼みでつなぎ直す） */
   alive(): boolean;
@@ -19,6 +22,11 @@ export interface DbDriver {
   outline(path: DbObjectPath): Promise<DbOutlineTable[]>;
   /** 1 つの文を流し、max_rows 行まで読む */
   query(sql: string, maxRows: number): Promise<DbQueryResult>;
+  /**
+   * 1 つの文を流し、すべての行を読んだままの値で 1 行ずつ渡す（AI の結果を CSV に書き出す。行の数の上限なし。
+   * 列は行より先に渡す）。行を返さない文は当たった行の数
+   */
+  stream(sql: string, onColumns: (columns: DbColumns) => void, onRow: (row: unknown[]) => void): Promise<{ affected: number | null }>;
   /** 値を params で渡して 1 つの文を流し、当たった行の数を返す（セルの編集。BEGIN・COMMIT もこれで流す） */
   execute(sql: string, params: DbEditParam[]): Promise<number>;
   /** 流している文を止める（止められない種類は何もしない） */

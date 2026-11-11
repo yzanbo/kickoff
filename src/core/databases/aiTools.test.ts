@@ -1,5 +1,6 @@
 // チャットの AI の DB のツール（kickoff_db の中身）: 見せる接続だけ・承認・読み取りの 1 文だけ・DB 側の読み取り専用・呼び出しごとの接続・履歴
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
@@ -107,7 +108,7 @@ test("AI の DB のツール: 読み取り専用でない接続でも DB 側は�
   const c = store.dbConnections.create(project.id, { ...sqliteBody({ read_only: false }), password: "p", ai_username: "reader", ai_password: "ai-p" });
   await tools.query({ sql: "select 1" }, allow);
   await tools.query({ sql: "select 2" }, allow);
-  const queries = calls.filter((x) => x.method === "query");
+  const queries = calls.filter((x) => x.method === "export");
   assert.equal(queries.length, 2);
   for (const q of queries) {
     assert.equal(q.target?.read_only, true);
@@ -150,4 +151,48 @@ test("AI の DB のツール: 保存したパスワードをキーチェーン�
   store.dbConnections.create(project.id, body);
   await assert.rejects(tools.objects({}), /「本番」の保存したパスワードを読めませんでした.*利用者に DB タブから接続し直してもらってください/);
   await assert.rejects(tools.query({ sql: "select 1" }, allow), /DB タブから接続し直して/);
+});
+
+test("AI の DB のツール: 100 行を超えたら、すべての行を CSV に書き出して場所と頭の 100 行を返し、履歴には全体の行数", async () => {
+  const { store, project, databases } = prepare();
+  const db = new DatabaseSync(path.join(project.repo_path, "app.db"));
+  const insert = db.prepare("INSERT INTO users (name) VALUES (?)");
+  for (let i = 0; i < 298; i++) insert.run(`u${i}`);
+  db.close();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c2", status: "completed" });
+  const tools = createDbAiTools({ store, databases }, { project, workdir: null, chatId: chat.id });
+  const c = store.dbConnections.create(project.id, sqliteBody());
+  const text = await tools.query({ sql: "select id, name from users order by id" }, allow);
+  assert.match(text, /全 300 行のうち頭の 100 行/);
+  const file = JSON.parse(/CSV に書き出した: (".*?")（/.exec(text)![1]) as string;
+  assert.ok(file.startsWith(path.join(databases.exportRoot, String(chat.id)) + path.sep));
+  const lines = fs.readFileSync(file, "utf8").trimEnd().split("\n");
+  assert.equal(lines.length, 301);
+  assert.deepEqual(lines.slice(0, 2), ["id,name", "1,a"]);
+  assert.equal(store.dbQueryHistory.list(c.id, 1)[0].row_count, 300);
+  // チャットを消すと CSV も消える
+  databases.forgetChatExports([chat.id]);
+  assert.equal(fs.existsSync(file), false);
+});
+
+test("AI の DB のツール: timeout_minutes を付けたら、自由に見せる接続でも時間を添えて聞き、断られたら流さない。止めたチャットの SQL は流さない", async () => {
+  const { store, project, tools } = prepare();
+  const c = store.dbConnections.create(project.id, sqliteBody({ ai_access: "allow" }));
+  const asked: unknown[] = [];
+  const deny: DbAiApprove = async (r) => {
+    asked.push(r);
+    return "利用者が断りました";
+  };
+  await assert.rejects(tools.query({ sql: "select 1", timeout_minutes: 10 }, deny), /利用者が断りました/);
+  assert.deepEqual(asked, [{ connection: "開発", sql: "select 1", timeout_minutes: 10 }]);
+  // 付けなければ聞かない
+  assert.match(await tools.query({ sql: "select 1 as one" }, deny), /one\n1/);
+  assert.equal(asked.length, 1);
+  assert.match(await tools.query({ sql: "select 2 as two", timeout_minutes: 10 }, allow), /two\n2/);
+
+  const stopped = new AbortController();
+  stopped.abort();
+  const before = store.dbQueryHistory.list(c.id, 10).length;
+  await assert.rejects(tools.query({ sql: "select 3" }, allow, stopped.signal), /チャットの作業を止めたので、SQL も止めました/);
+  assert.equal(store.dbQueryHistory.list(c.id, 10).length, before);
 });

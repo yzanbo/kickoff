@@ -34,7 +34,7 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
+export function chatRoutes(app: Hono, { store, runner, approvals, databases }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
@@ -148,6 +148,8 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     for (const c of [chat, ...family]) runner.requireIdle(c.id, "削除");
     store.chats.delete(chat.id);
     for (const c of [chat, ...family]) runner.forget(c.id);
+    // AI の SQL の結果を書き出した CSV も消す
+    databases.forgetChatExports([chat, ...family].map((c) => c.id));
     return c.body(null, 204);
   });
 }
