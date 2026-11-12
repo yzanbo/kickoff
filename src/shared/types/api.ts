@@ -399,6 +399,8 @@ export interface DbConnectionTestResult {
   error: string | null;
   /** 失敗の印（初めての SSH のサーバーなら DB_SSH_UNKNOWN_HOST。画面が鍵を確かめさせる） */
   code?: string;
+  /** つなぐのにかかった時間（SSH・準備のコマンドを含む。つなぐ前に断ったときは null） */
+  duration_ms: number | null;
 }
 
 /** ほかのプロジェクトの接続を写す（POST …/db-connections/copy）。copy_password が false ならパスワードは写さない */

@@ -60,3 +60,6 @@ export function estimatedRowsLabel(rows: number | null | undefined): string | nu
   if (rows === null || rows === undefined || !Number.isFinite(rows) || rows < 0) return null;
   return `${COMPACT.format(rows)}行`;
 }
+
+/** かかった時間の文（小数 1 桁まで。「12.3 ms」「1,204 ms」） */
+export const durationLabel = (ms: number) => `${(Math.round(ms * 10) / 10).toLocaleString()} ms`;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cellKind, cellText, connectionPlace, estimatedRowsLabel, nextSort, objectPathLabel } from "./dbFormat";
+import { cellKind, cellText, connectionPlace, durationLabel, estimatedRowsLabel, nextSort, objectPathLabel } from "./dbFormat";
 
 test("cellText / cellKind: NULL・バイナリの札・数・文字", () => {
   assert.equal(cellText(null), "NULL");
@@ -56,4 +56,10 @@ test("estimatedRowsLabel: 万・億で短く。統計がない・負の数は nu
   assert.equal(estimatedRowsLabel(null), null);
   assert.equal(estimatedRowsLabel(undefined), null);
   assert.equal(estimatedRowsLabel(-1), null);
+});
+
+test("durationLabel: 小数 1 桁まで・桁区切り", () => {
+  assert.equal(durationLabel(0.04), "0 ms");
+  assert.equal(durationLabel(12.345), "12.3 ms");
+  assert.equal(durationLabel(1204), "1,204 ms");
 });

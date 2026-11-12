@@ -253,10 +253,14 @@ export function databaseRoutes(app: Hono, { store, databases, providers }: Serve
     } = from;
     // パスワードは暗号化したまま写す
     const password = copy_password ? store.dbConnections.password(from.id) : null;
-    // 手順メモはプロジェクトごとのメモのフォルダにあるので写さない。準備のコマンドは写すが、写した先で確かめ直す
+    // 手順メモはプロジェクトごとのメモのフォルダにあるので、ほかのプロジェクトへは写さない（同じプロジェクトの中なら同じメモを指す）。
+    // 準備のコマンドは写すが、写した先で確かめ直す。同じプロジェクトの中で写したら、名前に「のコピー」を付けて見分ける
+    const same = from.project_id === c.var.project.id;
     const ai_password = copy_password ? store.dbConnections.aiPassword(from.id) : null;
     const ssh_password = copy_password ? store.dbConnections.sshPassword(from.id) : null;
-    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, memo_path: null, password, ai_password, ssh_password }), 201);
+    const name = same ? `${from.name} のコピー` : from.name;
+    const memo_path = same ? from.memo_path : null;
+    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, name, memo_path, password, ai_password, ssh_password }), 201);
   });
 
   // プロジェクトから取り込む: 見つけた接続の案（パスワードは返さない）と、選んだ案を作る（パスワードは見つけた所から読み直す）

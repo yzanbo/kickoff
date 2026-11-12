@@ -14,6 +14,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { CsvImportDialog } from "./CsvImportDialog";
 import { DataGrid, type DataGridEdit } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
+import { durationLabel } from "./dbFormat";
 import { columnKeysOf, DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, hasLongValue, hasUnreadImage, type DbExportFormat } from "./dbRowTools";
 import { TableCellMenu } from "./TableCellMenu";
 import { TableEditBar } from "./TableEditBar";
@@ -190,6 +191,7 @@ export function TableData({
             {exact === "counting" ? "数えています…" : "正確に数える"}
           </button>
         )}
+        {result && <span className="muted">{durationLabel(result.duration_ms)}</span>}
         <code className="db-table-sql" title={sql}>
           {sql}
         </code>

@@ -17,7 +17,8 @@ import { SqlConnectionPill } from "./SqlConnectionPill";
 import { useDbClient } from "./dbClientContext";
 import { DbWriteBand } from "./DbWriteBand";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
-import { RunResult, type StatementRun } from "./SqlRunResult";
+import { RunMessages, RunResult, type StatementRun } from "./SqlRunResult";
+import { envSentence, runTabLabel } from "./sqlResultLabels";
 import { useIdleFinish, useSqlResultBudget } from "./useSqlTabLife";
 import { SqlHistoryButton } from "./SqlHistory";
 import { setSqlPending, useSqlPending } from "./sqlSessions";
@@ -247,7 +248,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
       </div>
       <div className="pane-resizer db-sql-resizer" {...height.handle} />
       <div className="db-sql-results">
-        {runs.length > 1 && (
+        {runs.length > 0 && (
           <div className="db-result-tabs" role="tablist">
             {runs.map((r, i) => (
               <button
@@ -259,16 +260,22 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
                 title={r.sql}
                 onClick={() => setShown(i)}
               >
-                {i + 1}
+                {runTabLabel(r, i)}
               </button>
             ))}
+            {/* 文ごとの結果を並べた「メッセージ」（shown が runs.length のとき） */}
+            <button type="button" role="tab" aria-selected={shown === runs.length} className={cx("db-result-tab", shown === runs.length && "active")} onClick={() => setShown(runs.length)}>
+              メッセージ
+            </button>
           </div>
         )}
         {running && runs.length === 0 && <p className="db-sql-note small muted">流しています…</p>}
         {!running && runs.length === 0 && <p className="db-sql-note small muted">結果はここに出ます。</p>}
+        {runs.length > 0 && shown === runs.length && <RunMessages runs={runs} onPick={setShown} />}
         {current && (
           <RunResult
             run={current}
+            env={envSentence(connection)}
             canMore={!running && isReadOnlyStatement(current.sql, connection.engine)}
             loadingMore={loadingMore}
             onMore={() => void more(shown)}

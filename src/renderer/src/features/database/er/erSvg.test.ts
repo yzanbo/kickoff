@@ -45,3 +45,8 @@ test("erSvg: 箱がなければ余白だけの小さな図", () => {
   assert.equal(width, 48);
   assert.equal(height, 48);
 });
+
+test("erSvg: 本番の接続の図は環境の色の枠を描く（なければ描かない）", () => {
+  assert.doesNotMatch(erSvg([users], [], colors).svg, /stroke-width="6"/);
+  assert.match(erSvg([users], [], { ...colors, frame: "#f00" }).svg, /<rect [^>]*fill="none" stroke="#f00" stroke-width="6"\/>/);
+});

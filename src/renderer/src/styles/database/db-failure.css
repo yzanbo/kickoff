@@ -106,3 +106,15 @@
 .db-failure-actions .btn svg {
   vertical-align: -2px;
 }
+
+/* 接続のダイアログの手順メモの欄（選ぶ ▾ と「新しく作る…」） */
+.db-memo-field {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.db-memo-field select {
+  flex: 1;
+  min-width: 0;
+}

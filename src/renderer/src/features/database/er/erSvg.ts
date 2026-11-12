@@ -41,6 +41,8 @@ export interface ErSvgColors {
   muted: string;
   edge: string;
   key: string;
+  /** 図のまわりの枠の色（本番の接続の環境の色。画面の図と同じく、保存した画像でも本番だと分かるように）。なければ枠なし */
+  frame?: string | null;
 }
 
 const MARGIN = 24;
@@ -118,6 +120,7 @@ export function erSvg(boxes: readonly ErSvgBox[], lines: readonly ErSvgLine[], c
     `<rect x="${num(minX)}" y="${num(minY)}" width="${width}" height="${height}" fill="${colors.background}"/>`,
     ...lines.map((l) => lineSvg(l, byName, colors)),
     ...boxes.map((b) => boxSvg(b, colors)),
+    ...(colors.frame ? [`<rect x="${num(minX + 3)}" y="${num(minY + 3)}" width="${width - 6}" height="${height - 6}" fill="none" stroke="${colors.frame}" stroke-width="6"/>`] : []),
     `</svg>`,
   ].join("\n");
   return { svg, width, height };

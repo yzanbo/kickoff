@@ -35,6 +35,8 @@ interface TabSpec {
   tab: ProjectTab;
   label: string;
   icon: LucideIcon;
+  /** 乗せたときの名前（札より長く言うとき。DB の「DB クライアント」） */
+  tip?: string;
 }
 
 /**
@@ -65,7 +67,7 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
   },
   { key: "memos", label: "メモ", tabs: [{ tab: "memos", label: "メモ", icon: StickyNote }] },
   // DB クライアント（この Mac のアプリの中だけ。ブラウザ・スマホからは出さない）
-  ...(window.kickoff ? [{ key: "db", label: "DB", tabs: [{ tab: "db" as const, label: "DB", icon: Database }] }] : []),
+  ...(window.kickoff ? [{ key: "db", label: "DB", tabs: [{ tab: "db" as const, label: "DB", icon: Database, tip: "DB クライアント" }] }] : []),
   // GitHub（連携先のリポジトリの issue・PR。この Mac のアプリの中だけ。DB と同じく LAN からは使わせない）
   ...(window.kickoff ? [{ key: "github", label: "GitHub", tabs: [{ tab: "github" as const, label: "GitHub", icon: GitPullRequest }] }] : []),
 ];
@@ -122,7 +124,7 @@ export function ProjectTabs({
                 {vertical ? <GripHorizontal size={12} aria-hidden /> : <GripVertical size={12} aria-hidden />}
               </span>
             )}
-            {shown.map(({ tab: t, label, icon: Icon }) => {
+            {shown.map(({ tab: t, label, icon: Icon, tip }) => {
               const selected = tab === t;
               const target: ProjectTab = t;
               // 数はチャットのタブ（状態ごとのチャット）と変更（変更のあるファイル）だけ。ほかには出さない
@@ -133,9 +135,9 @@ export function ProjectTabs({
                   key={t}
                   role="tab"
                   aria-selected={selected}
-                  aria-label={vertical ? `${label}${count > 0 ? `（${countLabel}）` : ""}` : undefined}
-                  title={!vertical && t === chatsTab && count > 0 ? countLabel : undefined}
-                  {...(vertical && { "data-tip-title": label, "data-tip": count > 0 ? countLabel : "", "data-tip-side": "right" })}
+                  aria-label={vertical ? `${tip ?? label}${count > 0 ? `（${countLabel}）` : ""}` : undefined}
+                  title={!vertical && t === chatsTab && count > 0 ? countLabel : !vertical ? tip : undefined}
+                  {...(vertical && { "data-tip-title": tip ?? label, "data-tip": count > 0 ? countLabel : "", "data-tip-side": "right" })}
                   className={cx("tab", selected && "active", order.tabClass(t))}
                   href={href({ name: "project", id: projectId, tab: target })}
                   {...order.tabProps(group, t)}

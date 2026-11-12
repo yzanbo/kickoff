@@ -1,4 +1,4 @@
-import { CalendarClock, Database, Layers, Lock, Network, Pin, PinOff, StickyNote, Table2 } from "lucide-react";
+import { CalendarClock, Database, Layers, Lock, Network, Pin, PinOff, Server, StickyNote, Table2 } from "lucide-react";
 import { useState } from "react";
 import { isCheckDue, localToday } from "@shared/database/dbPrep";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
@@ -122,13 +122,61 @@ function ConnectionNode({ connection: c, connected, isOpen, toggle, menu, onMenu
         (dbs.value.databases.length === 1 && !dbs.value.has_schemas ? (
           <ObjectsNode connection={c} depth={1} path={{ database: dbs.value.databases[0], schema: null }} tree={{ isOpen, toggle, menu }} />
         ) : (
-          dbs.value.databases.map((d) => <DatabaseNode key={d} connection={c} database={d} current={d === dbs.value?.current} hasSchemas={dbs.value!.has_schemas} isOpen={isOpen} toggle={toggle} menu={menu} />)
+          <DatabaseList connection={c} databases={dbs.value.databases} current={dbs.value.current} hasSchemas={dbs.value.has_schemas} isOpen={isOpen} toggle={toggle} menu={menu} />
         ))}
     </>
   );
 }
 
-function DatabaseNode({ connection: c, database, current, hasSchemas, isOpen, toggle, menu }: NodeProps & { database: string; current: boolean; hasSchemas: boolean }) {
+/**
+ * 接続の下の DB の並び。PostgreSQL（スキーマを持つ）は、つないでいる DB を上に出し、サーバーの中の別の DB は閉じた段「ほかの DB n」にまとめる
+ * （開くと別に接続する。開き具合のキーは `o:<接続>`）。MySQL / MariaDB は DB = スキーマなのでそのまま並べる
+ */
+function DatabaseList({
+  connection: c,
+  databases,
+  current,
+  hasSchemas,
+  isOpen,
+  toggle,
+  menu,
+}: NodeProps & { databases: string[]; current: string | null; hasSchemas: boolean }) {
+  const others = hasSchemas && current ? databases.filter((d) => d !== current) : [];
+  const node = (d: string, depth: number) => (
+    <DatabaseNode key={d} connection={c} database={d} depth={depth} current={d === current} hasSchemas={hasSchemas} isOpen={isOpen} toggle={toggle} menu={menu} />
+  );
+  if (!hasSchemas || !current || !databases.includes(current)) return <>{databases.map((d) => node(d, 1))}</>;
+  const key = `o:${c.id}`;
+  const open = isOpen(key);
+  return (
+    <>
+      {node(current, 1)}
+      {others.length > 0 && (
+        <TreeRow
+          depth={1}
+          open={open}
+          icon={<Server size={13} aria-hidden />}
+          label="ほかの DB"
+          note={String(others.length)}
+          title="同じサーバーの別の DB（開くと別に接続する）"
+          onToggle={() => toggle(key)}
+        />
+      )}
+      {open && others.map((d) => node(d, 2))}
+    </>
+  );
+}
+
+function DatabaseNode({
+  connection: c,
+  database,
+  depth,
+  current,
+  hasSchemas,
+  isOpen,
+  toggle,
+  menu,
+}: NodeProps & { database: string; depth: number; current: boolean; hasSchemas: boolean }) {
   const client = useDbClient();
   const key = `d:${c.id}:${database}`;
   const open = isOpen(key);
@@ -137,7 +185,7 @@ function DatabaseNode({ connection: c, database, current, hasSchemas, isOpen, to
   return (
     <>
       <TreeRow
-        depth={1}
+        depth={depth}
         open={open}
         icon={<Database size={13} aria-hidden />}
         label={database}
@@ -146,9 +194,9 @@ function DatabaseNode({ connection: c, database, current, hasSchemas, isOpen, to
         // PostgreSQL は DB の中のスキーマごとに描くので、DB の右クリックは public のスキーマ
         onContextMenu={(e) => menu(e, { connection: c, path: { database, schema: hasSchemas ? "public" : null }, table: null })}
       />
-      {open && !hasSchemas && <ObjectsNode connection={c} depth={2} path={{ database, schema: null }} tree={{ isOpen, toggle, menu }} />}
-      {open && schemas.loading && <TreeHint depth={2}>読み込み中…</TreeHint>}
-      {open && schemas.error && <TreeError depth={2} error={schemas.error} connection={c} />}
+      {open && !hasSchemas && <ObjectsNode connection={c} depth={depth + 1} path={{ database, schema: null }} tree={{ isOpen, toggle, menu }} />}
+      {open && schemas.loading && <TreeHint depth={depth + 1}>読み込み中…</TreeHint>}
+      {open && schemas.error && <TreeError depth={depth + 1} error={schemas.error} connection={c} />}
       {open &&
         schemas.value?.map((s) => {
           const sKey = `s:${c.id}:${database}:${s}`;
@@ -156,14 +204,14 @@ function DatabaseNode({ connection: c, database, current, hasSchemas, isOpen, to
           return (
             <div key={s}>
               <TreeRow
-                depth={2}
+                depth={depth + 1}
                 open={sOpen}
                 icon={<Layers size={13} aria-hidden />}
                 label={s}
                 onToggle={() => toggle(sKey)}
                 onContextMenu={(e) => menu(e, { connection: c, path: { database, schema: s }, table: null })}
               />
-              {sOpen && <ObjectsNode connection={c} depth={3} path={{ database, schema: s }} tree={{ isOpen, toggle, menu }} />}
+              {sOpen && <ObjectsNode connection={c} depth={depth + 2} path={{ database, schema: s }} tree={{ isOpen, toggle, menu }} />}
             </div>
           );
         })}

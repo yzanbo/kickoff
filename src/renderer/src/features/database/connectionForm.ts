@@ -1,5 +1,5 @@
 import { normalizePrep } from "@shared/database/dbPrep";
-import { DB_ENVIRONMENT_DEFAULTS, type DbAiAccess, type DbConnection, type DbWriteCheck, type DbEngine, type DbEnvironment, type DbPrep, type DbSslMode, type NewDbConnectionBody } from "@shared/types";
+import { DB_ENVIRONMENT_DEFAULTS, type DbAiAccess, type DbConnection, type DbWriteCheck, type DbEngine, type DbEnvironment, type DbPrep, type DbSslMode, type NewDbConnectionBody, type DbConnectionTestResult } from "@shared/types";
 
 // 接続の登録・編集のダイアログ（ConnectionDialog）の入力欄の値と、送る形への直し方
 
@@ -130,4 +130,18 @@ export function bodyOf(form: ConnectionForm, editing: boolean): NewDbConnectionB
     check_on: text(form.check_on),
     check_note: text(form.check_note),
   };
+}
+
+/** SSL の様子の短い言葉（「つながるか試す」の結果に添える） */
+const SSL_NOTES: Record<DbSslMode, string> = { off: "SSL なし", require: "SSL（証明書は確かめない）", verify: "SSL（証明書も確かめる）" };
+
+/**
+ * 「つながるか試す」の結果の文（つながった: 版・SSL・かかった時間 / つながらない: 失敗の文とかかった時間）。
+ * ssl は SQLite なら null（SSL の話を出さない）
+ */
+export function testResultText(result: DbConnectionTestResult, ssl: DbSslMode | null): string {
+  const time = result.duration_ms != null ? `${result.duration_ms.toLocaleString()} ms` : null;
+  if (!result.ok) return `つながりません: ${result.error}${time ? `（${time}）` : ""}`;
+  const notes = [result.server_version ?? "版は不明", ssl ? SSL_NOTES[ssl] : null, time].filter(Boolean);
+  return `つながりました（${notes.join(" · ")}）`;
 }

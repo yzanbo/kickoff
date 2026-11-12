@@ -5,13 +5,9 @@ import {
   DB_AI_ACCESSES,
   DB_AI_ACCESS_LABELS,
   DB_DEFAULT_PORTS,
-  DB_ENGINES,
-  DB_ENGINE_LABELS,
   DB_ENVIRONMENTS,
   DB_ENVIRONMENT_DEFAULTS,
   DB_ENVIRONMENT_LABELS,
-  DB_SSL_MODES,
-  DB_SSL_MODE_LABELS,
   DB_SSH_UNKNOWN_HOST,
   DB_WRITE_CHECKS,
   DB_WRITE_CHECK_LABELS,
@@ -21,7 +17,6 @@ import {
   type DbEngine,
   type DbEnvironment,
   type DbSsh,
-  type DbSslMode,
   type DbWriteCheck,
 } from "@shared/types";
 import { api } from "@/api";
@@ -31,7 +26,8 @@ import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
 import { CheckField, Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
-import { bodyOf, formOf, type ConnectionForm } from "./connectionForm";
+import { ConnectionSslFields, EngineTiles } from "./ConnectionBasicFields";
+import { bodyOf, formOf, testResultText, type ConnectionForm } from "./connectionForm";
 import { ConnectionMemoField } from "./ConnectionMemoField";
 import { ConnectionPrepFields } from "./ConnectionPrepFields";
 import { ConnectionSshFields } from "./ConnectionSshFields";
@@ -106,7 +102,7 @@ export function ConnectionDialog({
         ),
       );
     } catch (e) {
-      setTest({ ok: false, server_version: null, error: errorMessage(e) });
+      setTest({ ok: false, server_version: null, error: errorMessage(e), duration_ms: null });
     }
   };
 
@@ -139,13 +135,7 @@ export function ConnectionDialog({
           <input value={form.name} onChange={(e) => set("name", e.target.value)} required maxLength={100} placeholder="開発の DB" />
         </Field>
         <Field label="DB の種類" as="div">
-          <Segmented
-            className="segmented"
-            label="DB の種類"
-            value={form.engine}
-            options={DB_ENGINES.map((v) => ({ value: v, label: DB_ENGINE_LABELS[v] }))}
-            onChange={chooseEngine}
-          />
+          <EngineTiles value={form.engine} onChange={chooseEngine} />
         </Field>
         {sqlite ? (
           <Field label="ファイル" help="プロジェクトフォルダからの場所（外のファイルは / か ~ から）。ワークツリーでは、その中の同じ場所のファイルを開きます">
@@ -183,20 +173,7 @@ export function ConnectionDialog({
               />
             </Field>
             {connection?.has_password && <CheckField label="保存したパスワードを消す" checked={form.clearPassword} onChange={(v) => set("clearPassword", v)} />}
-            <Field label="SSL">
-              <select value={form.ssl} onChange={(e) => set("ssl", e.target.value as DbSslMode)}>
-                {DB_SSL_MODES.map((m) => (
-                  <option key={m} value={m}>
-                    {DB_SSL_MODE_LABELS[m]}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            {form.ssl === "verify" && (
-              <Field label="CA の証明書（省けば OS の証明書で確かめます）">
-                <input value={form.ca_path} onChange={(e) => set("ca_path", e.target.value)} placeholder="~/certs/ca.pem" spellCheck={false} />
-              </Field>
-            )}
+            <ConnectionSslFields form={form} set={set} />
             <ConnectionSshFields projectId={projectId} form={form} hasPassword={!!connection?.has_ssh_password} set={set} />
           </>
         )}
@@ -262,9 +239,9 @@ export function ConnectionDialog({
           <CheckField label="保存した AI 用のパスワードを消す" checked={form.clearAiPassword} onChange={(v) => set("clearAiPassword", v)} />
         )}
         <ConnectionPrepFields form={form} set={set} />
-        <ConnectionMemoField projectId={projectId} value={form.memo_path} onChange={(v) => set("memo_path", v)} />
+        <ConnectionMemoField projectId={projectId} value={form.memo_path} from={{ engine: form.engine, environment: form.environment, host: form.host.trim() || null }} onChange={(v) => set("memo_path", v)} />
         {test && test !== "testing" && (
-          <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{test.ok ? `つながりました（${test.server_version ?? "版は不明"}）` : `つながりません: ${test.error}`}</p>
+          <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{testResultText(test, form.engine === "sqlite" ? null : form.ssl)}</p>
         )}
         {test && test !== "testing" && !test.ok && test.code === DB_SSH_UNKNOWN_HOST && (
           <button type="button" className="btn btn-sm db-ssh-key-button" onClick={() => setHostKey(bodyOf(form, editing).ssh ?? null)}>

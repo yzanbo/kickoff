@@ -14,6 +14,15 @@ import { alertDialog, confirmDialog, promptDialog } from "@/ui/dialogs";
  * 結んだメモのパス、やめた・作れなければ null
  */
 export async function createConnectionMemo(projectId: number, c: DbConnection): Promise<string | null> {
+  const path = await createDbMemoFile(projectId, c, "この接続");
+  return path ? linkConnectionMemo(projectId, c, path) : null;
+}
+
+/**
+ * 手順メモのファイルだけを作る（接続のダイアログの「新しく作る…」。保存する前の接続にも使えるよう、結ぶのは呼ぶ側）。
+ * 名前は c のつなぎ方からすすめる。同じ名前のメモがあれば、それを使うか聞く（target は確かめの文の「〜の手順メモにしますか」）。作った・使うメモのパス、やめたら null
+ */
+export async function createDbMemoFile(projectId: number, c: Pick<DbConnection, "engine" | "environment" | "host">, target: string): Promise<string | null> {
   const name = (
     await promptDialog({
       title: "手順メモを作る",
@@ -32,10 +41,10 @@ export async function createConnectionMemo(projectId: number, c: DbConnection): 
       await alertDialog("手順メモを作れませんでした", errorMessage(e));
       return null;
     }
-    const use = await confirmDialog({ title: "同じ名前のメモがあります", message: `「${path}」をこの接続の手順メモにしますか？`, confirmLabel: "このメモを使う" });
+    const use = await confirmDialog({ title: "同じ名前のメモがあります", message: `「${path}」を${target}の手順メモにしますか？`, confirmLabel: "このメモを使う" });
     if (!use) return null;
   }
-  return linkConnectionMemo(projectId, c, path);
+  return path;
 }
 
 /** 接続の手順メモを選び直す（null で外す）。結んだパスを返す */

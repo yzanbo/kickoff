@@ -256,15 +256,17 @@ export class DatabaseService {
         commands: body.engine !== "sqlite" && hasConnectCommands(prep) ? commandsOf(own?.id ?? 0, body, prep!) : null,
       };
     } catch (e) {
-      return { ok: false, server_version: null, error: errorMessage(e) };
+      return { ok: false, server_version: null, error: errorMessage(e), duration_ms: null };
     }
+    const started = performance.now();
+    const elapsed = () => Math.round(performance.now() - started);
     try {
       const { server_version } = await this.opts.client.request("test", { target }, { engine: target.engine });
       if (saved) this.opts.store.dbConnections.touchConnected(saved.id);
-      return { ok: true, server_version, error: null };
+      return { ok: true, server_version, error: null, duration_ms: elapsed() };
     } catch (e) {
       const { message, code } = splitCode(errorMessage(e));
-      return { ok: false, server_version: null, error: message, ...(code ? { code } : {}) };
+      return { ok: false, server_version: null, error: message, ...(code ? { code } : {}), duration_ms: elapsed() };
     }
   }
 
