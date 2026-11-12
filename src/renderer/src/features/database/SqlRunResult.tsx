@@ -13,10 +13,13 @@ export interface StatementRun {
   stopped?: boolean;
   /** 「さらに読む」の失敗 */
   moreError?: string;
+  /** 裏のタブの結果が多すぎて捨てた（読み取りの文は戻ったら流し直す） */
+  evicted?: boolean;
 }
 
 export function RunResult({ run, canMore, loadingMore, onMore }: { run: StatementRun; canMore: boolean; loadingMore: boolean; onMore: () => void }) {
   if (run.stopped) return <p className="db-sql-note small muted">止めました。</p>;
+  if (run.evicted) return <p className="db-sql-note small muted">ほかのタブの結果と合わせて多くなったので、この結果は捨てました。読み取りの文は、このタブに戻ると流し直します（書く文は流し直しません）。</p>;
   if (run.error) {
     return (
       <div className="db-sql-error">

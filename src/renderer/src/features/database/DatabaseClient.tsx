@@ -207,7 +207,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                       onRenamed={(to) => setState(renameMemoTab(readSetting(dbClientTabs(place)), t.key, to))}
                     />
                   ) : t.kind === "sql" ? (
-                    <SqlView tab={t} connection={c} />
+                    <SqlView tab={t} connection={c} active={t.key === state.active} />
                   ) : t.kind === "er" ? (
                     <Suspense fallback={<p className="db-er-loading small muted">読み込み中…</p>}>
                       <ErView tab={t} connection={c} active={t.key === state.active} onChange={(patch) => setState(updateErTab(state, t.key, patch))} />
@@ -215,7 +215,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                   ) : t.object === "function" || t.object === "enum" ? (
                     <DefinitionView tab={{ ...t, object: t.object }} connection={c} />
                   ) : (
-                    <TableView tab={t} connection={c} onFilter={(filter) => setState(setTableFilter(state, t.key, filter))} />
+                    <TableView tab={t} connection={c} active={t.key === state.active} onFilter={(filter) => setState(setTableFilter(state, t.key, filter))} />
                   )}
                 </div>
               );

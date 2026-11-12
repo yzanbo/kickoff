@@ -3,7 +3,7 @@ import { Play, PlayCircle, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isReadOnlyStatement, splitStatements, statementAt, type SqlStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/errors";
-import { DB_ENVIRONMENT_LABELS, DB_SESSION_IDLE_MS, type DbConnection } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -16,8 +16,9 @@ import { useDbClient } from "./dbClientContext";
 import { DbWriteBand } from "./DbWriteBand";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
 import { RunResult, type StatementRun } from "./SqlRunResult";
+import { useIdleFinish, useSqlResultBudget } from "./useSqlTabLife";
 import { SqlHistoryButton } from "./SqlHistory";
-import { finishSession, setSqlPending, useSqlPending } from "./sqlSessions";
+import { setSqlPending, useSqlPending } from "./sqlSessions";
 import { useSqlWrite } from "./useSqlWrite";
 
 /** 書きかけの SQL を覚えるまでの間（打つたびに書かない） */
@@ -28,7 +29,7 @@ const DRAFT_DELAY = 400;
  * 文は 1 つずつ送り、失敗した文で止める。タブごとに DB の接続を 1 本持ち、トランザクションの途中ならコミット / 取り消すを出す。
  * 読み取り専用の接続は「書き込む」でこのタブだけ外せる（useSqlWrite。外している間は赤い帯）
  */
-export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConnection }) {
+export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection: DbConnection; active: boolean }) {
   const client = useDbClient();
   const worktree = client.worktreeOf(connection.id);
   const draftKey = dbSqlDraft(`${client.place}:${tab.key}`);
@@ -62,32 +63,12 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
       .catch(() => {});
   }, [client.projectId, connection.id, tab.key]);
 
-  // 何かした（打つ・流す・続きを読む）時刻。トランザクションの途中で DB_SESSION_IDLE_MS 何もしなければ、コミットか取り消しを聞いて切る
-  const lastActive = useRef(Date.now());
+  // 何かした（打つ・流す・続きを読む）。トランザクションの途中で 10 分何もしなければ、コミットか取り消しを聞いて切る
+  const markActive = useIdleFinish(pending, connection, tab.key);
   const activity = () => {
-    lastActive.current = Date.now();
+    markActive();
     write.touch();
   };
-  useEffect(() => {
-    if (!pending) return;
-    let timer: number | undefined;
-    const check = async () => {
-      const left = DB_SESSION_IDLE_MS - (Date.now() - lastActive.current);
-      if (left > 0) {
-        timer = window.setTimeout(() => void check(), left);
-        return;
-      }
-      const done = await finishSession(client.projectId, connection, tab.key, "10 分何もしていないので、接続を切ります");
-      // やめたら、また 10 分待ってから聞く
-      if (!done) {
-        lastActive.current = Date.now();
-        timer = window.setTimeout(() => void check(), DB_SESSION_IDLE_MS);
-      }
-    };
-    timer = window.setTimeout(() => void check(), Math.max(0, DB_SESSION_IDLE_MS - (Date.now() - lastActive.current)));
-    return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pending, connection.id, tab.key]);
 
   const saveDraft = (text: string) => {
     activity();
@@ -185,6 +166,9 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
       setFinishing(false);
     }
   };
+
+  // 裏のタブの結果が多すぎれば捨て、戻ったら読み取りの文だけ流し直す
+  useSqlResultBudget({ tab, connection, worktree, active, busy: running || loadingMore, runs, setRuns });
 
   const current = runs[shown];
 
