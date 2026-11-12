@@ -273,6 +273,15 @@
   cursor: default;
 }
 
+/* AI の守りの説明（一覧のいちばん下。乗せると効かない場合の説明） */
+.docker-guard-note {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin: 12px 0 0;
+  cursor: default;
+}
+
 .docker-starter-command {
   display: inline-flex;
   gap: 6px;

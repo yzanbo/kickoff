@@ -95,7 +95,8 @@ export class DockerService {
     return lines.filter((l) => !l.ts || l.ts < until);
   }
 
-  private async workplaces(project: Project): Promise<Workplace[]> {
+  /** プロジェクトの本体とワークツリー（パスは realpath。AI の Docker の守りも使う） */
+  async workplacesOf(project: Project): Promise<Workplace[]> {
     const root = realPathOrSelf(project.repo_path);
     try {
       const wts = await listWorktrees(project.repo_path);
@@ -105,13 +106,25 @@ export class DockerService {
     }
   }
 
+  /** 作業場所ごとの compose が答える組の名前（覚えた設定を使う。AI の Docker の守りが、ボリュームの持ち主を決めるのに使う） */
+  async composeNames(project: Project): Promise<{ path: string; name: string }[]> {
+    const out: { path: string; name: string }[] = [];
+    for (const wp of await this.workplacesOf(project)) {
+      for (const file of findComposeFiles(wp.path)) {
+        const name = (await this.configs.read(upFilesFor(file), false)).config?.name;
+        if (name) out.push({ path: wp.path, name });
+      }
+    }
+    return out;
+  }
+
   private async snapshot(project: Project): Promise<Snapshot> {
     const empty = { composes: [], others: [], silent: {} };
     if (!this.cli.bin()) return { list: { engine: "missing", context: null, starter: null, ...empty }, containers: [], owner: new Map(), upFiles: new Map() };
     const [up, context] = await Promise.all([this.cli.engineUp(), this.cli.context()]);
     if (!up) return { list: { engine: "stopped", context, starter: starterOf(context), ...empty }, containers: [], owner: new Map(), upFiles: new Map() };
 
-    const [workplaces, psOut] = await Promise.all([this.workplaces(project), this.cli.run(["ps", "-a", "--format", PS_FORMAT], { timeout: 10_000 })]);
+    const [workplaces, psOut] = await Promise.all([this.workplacesOf(project), this.cli.run(["ps", "-a", "--format", PS_FORMAT], { timeout: 10_000 })]);
     const containers = parsePs(psOut).map((c) => ({ ...c, dir: c.dir ? realPathOrSelf(c.dir) : null, files: c.files.map((f) => realPathOrSelf(f)) }));
     const entries = await this.entries(workplaces, containers);
     const built = buildDockerList(workplaces, containers, entries);
