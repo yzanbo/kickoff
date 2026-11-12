@@ -3,7 +3,8 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
-import { useEffect, useRef } from "react";
+import { RotateCcw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/errors";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { terminalFont, terminalTheme } from "./terminalTheme";
@@ -11,12 +12,18 @@ import { useTerminalSelectionMenu } from "./useTerminalSelectionMenu";
 
 /** シェルが終わったときに出す文 */
 const EXITED = "\r\n\x1b[2m[プロセスが終了しました。キーを押すと新しいシェルを開きます]\x1b[0m\r\n";
+/** 決まったコマンドのタブが終わったときに出す文（シェルは開き直さない） */
+const commandExited = (code: number) => `\r\n\x1b[2m[終了しました${code === 0 ? "" : `（終了コード ${code}）`}]\x1b[0m\r\n`;
 
 interface Props {
   /** タブのキー（裏のシェルのキー） */
   termKey: string;
   /** シェルを始めるフォルダ */
   cwd: string;
+  /** 流すコマンド（Docker のシェルなど）。終わってもシェルは開き直さず「終了しました」と［もう一度流す］を出す */
+  command?: string;
+  /** シェルに足す環境変数（command のタブ） */
+  env?: Record<string, string>;
   /** パネルで表示しているか（表示したときに大きさを合わせる） */
   visible: boolean;
   /** 入力先か（分割したペインのうち 1 つ。省略なら表示しているとき） */
@@ -31,13 +38,16 @@ interface Props {
  * 内蔵ターミナル（xterm.js）。シェルは Electron のメインプロセスで動いていて、タブを裏に回しても・ボードを切り替えても動き続ける。
  * 表示し直したときは、いまの画面の内容をもらって描き直す。使うときだけ読み込む（Panel から lazy で読む）
  */
-export default function TerminalPane({ termKey, cwd, visible, focused = visible, onOpenUrl, projectId = null }: Props) {
+export default function TerminalPane({ termKey, cwd, command, env, visible, focused = visible, onOpenUrl, projectId = null }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal>(undefined);
   const fitRef = useRef<FitAddon>(undefined);
   const theme = useAppliedTheme();
   const openUrl = useRef(onOpenUrl);
   openUrl.current = onOpenUrl;
+  // 決まったコマンドのタブが終わったか（［もう一度流す］を出す）と、流し直す操作
+  const [commandDone, setCommandDone] = useState(false);
+  const rerun = useRef<() => void>(undefined);
   // 選んだ文の小さな「チャットに追加 ▾」と、右クリックのコピー・「チャットに追加」
   const selectionMenu = useTerminalSelectionMenu({ projectId, cwd, term: () => termRef.current, screen: () => ref.current });
 
@@ -81,7 +91,7 @@ export default function TerminalPane({ termKey, cwd, visible, focused = visible,
     const connect = async () => {
       ready = false;
       try {
-        const { snapshot } = await native.open(termKey, cwd, term.cols, term.rows);
+        const { snapshot } = await native.open(termKey, cwd, term.cols, term.rows, command ? { command, env } : undefined);
         if (!alive) return;
         if (snapshot) term.write(snapshot);
         // つなぎ直したときは、シェルの大きさをこの画面に合わせる
@@ -97,13 +107,25 @@ export default function TerminalPane({ termKey, cwd, visible, focused = visible,
     const offData = native.onData((key, data) => {
       if (key === termKey && ready) term.write(data);
     });
-    const offExit = native.onExit((key) => {
+    const offExit = native.onExit((key, code) => {
       if (key !== termKey) return;
       exited = true;
-      term.write(EXITED);
+      if (!command) return term.write(EXITED);
+      term.write(commandExited(code));
+      setCommandDone(true);
     });
+    // ［もう一度流す］: 画面を消して、同じコマンドで始め直す（裏のシェルは終わったときに片付いている）
+    rerun.current = () => {
+      setCommandDone(false);
+      exited = false;
+      term.reset();
+      void connect();
+      term.focus();
+    };
     const input = term.onData((data) => {
       if (!exited) return native.write(termKey, data);
+      // 決まったコマンドのタブは、キーでは開き直さない（［もう一度流す］で）
+      if (command) return;
       // 終わったあとにキーを押したら、新しいシェルを開く
       exited = false;
       term.reset();
@@ -156,6 +178,11 @@ export default function TerminalPane({ termKey, cwd, visible, focused = visible,
       onWheel={selectionMenu.handlers.onWheel}
     >
       {window.kickoff?.terminal ? <div ref={ref} className="terminal-screen" /> : <p className="muted small">ターミナルは Mac のアプリでだけ使えます。</p>}
+      {commandDone && (
+        <button type="button" className="btn terminal-rerun" onClick={() => rerun.current?.()} title={command}>
+          <RotateCcw size={13} /> もう一度流す
+        </button>
+      )}
       {selectionMenu.element}
     </div>
   );

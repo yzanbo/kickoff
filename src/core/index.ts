@@ -28,6 +28,7 @@ import { DatabaseService } from "./databases/service.js";
 import { GitHubService } from "./github/service.js";
 import { devWorkerEntry } from "./databases/entry.js";
 import { DbSecretVault, migrateInBackground, type SecretCipher } from "./databases/secrets.js";
+import { stopAllStreams } from "./system/stream.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -148,6 +149,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     databaseStats: () => store.stats(),
     close: async () => {
       runner.shutdown();
+      // 流れ続けている外部コマンド（docker events・起動の途中の up -d など）は聞かずに止める
+      stopAllStreams();
       voice.downloads.stopAll();
       usage.stop();
       prWatch.stop();

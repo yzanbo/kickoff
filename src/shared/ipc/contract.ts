@@ -7,7 +7,7 @@ import type { BrowserHandOffCapture } from "./browserHandOff";
 import type { DiagnosticsFolders, DiagnosticsState } from "./diagnostics";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { NotifyRequest, NotifyResult } from "./notifications";
-import type { TerminalOpenResult } from "./terminal";
+import type { TerminalOpenResult, TerminalStart } from "./terminal";
 
 /** 呼び方の種類: invoke = 画面から呼んで返事を待つ / send = 画面から送るだけ（返事なし） / event = メインから画面への知らせ */
 export type IpcKind = "invoke" | "send" | "event";
@@ -134,8 +134,8 @@ export const NATIVE_API = {
   },
   /** 内蔵ターミナル（パネルのタブ）。key はタブごとのキー */
   terminal: {
-    /** シェルにつなぐ（なければ cwd で始める） */
-    open: invoke<[key: string, cwd: string, cols: number, rows: number], TerminalOpenResult>(),
+    /** シェルにつなぐ（なければ cwd で始める。start があれば、そのコマンドを流すタブとして始める） */
+    open: invoke<[key: string, cwd: string, cols: number, rows: number, start?: TerminalStart], TerminalOpenResult>(),
     /** キー入力 */
     write: send<[key: string, data: string]>(),
     resize: send<[key: string, cols: number, rows: number]>(),

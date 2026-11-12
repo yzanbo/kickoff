@@ -10,3 +10,12 @@ export interface TerminalOpenResult {
   /** 新しく始めたか */
   created: boolean;
 }
+
+/**
+ * 決まったコマンドで開くタブ（Docker のシェルなど）。command はログインシェルの -l -c で流し、終わってもシェルは開き直さない。
+ * env はシェルに足す環境変数。つなぎ直し（すでにあるシェル）のときは使わない（流し直さない）
+ */
+export interface TerminalStart {
+  command?: string;
+  env?: Record<string, string>;
+}

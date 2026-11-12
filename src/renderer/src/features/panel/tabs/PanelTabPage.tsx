@@ -138,6 +138,8 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       <TerminalPane
         termKey={t.key}
         cwd={t.cwd}
+        command={t.command}
+        env={t.env}
         visible={visible}
         focused={visible && focused}
         onOpenUrl={(url) => panel.openBrowser(url)}
