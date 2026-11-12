@@ -81,9 +81,13 @@ export function panelActions(key: string) {
     openChild: (target: { chatId: number; childId: number; projectId: number; title: string }) => openTab(childTab(target)),
     /** 新しい子チャットのタブを開く（チャットの画面の右の欄の「＋」。押すたびに新しいタブ。最初の文を送ると、できた子チャットのタブになる） */
     openNewChild: (target: Parameters<typeof newChildTab>[0]) => openTab(newChildTab(target)),
-    /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
-    openBrowser: (url = "") => openTab(browserTab(url)),
-    /** ブラウザのタブを表に出さずに足し、そのキーを返す（AI が開いたとき。見ているタブ・欄の開閉は変えない） */
+    /** ブラウザの新しいタブを開き、そのキーを返す（url がなければ空のページで、アドレス欄に入力して開く） */
+    openBrowser: (url = "") => {
+      const tab = browserTab(url);
+      openTab(tab);
+      return tab.key;
+    },
+    /** ブラウザのタブを表に出さずに足し、そのキーを返す（AI が「裏で」開いたとき。見ているタブ・欄の開閉は変えない） */
     addBrowserBehind: (url: string) => {
       const tab = browserTab(url);
       if (at) showKind(at.surface, "browser");

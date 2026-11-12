@@ -50,7 +50,8 @@ export const IPC_ARGS = defineArgSchemas({
   agentBrowser: {
     register: z.tuple([webContentsId, z.string().min(1).max(200), positiveInt.nullable()]),
     unregister: z.tuple([webContentsId]),
-    opened: z.tuple([positiveInt, z.string().min(1).max(200).nullable(), z.string().max(1000).nullable()]),
+    opened: z.tuple([positiveInt, z.string().min(1).max(200).nullable(), z.boolean(), z.string().max(1000).nullable()]),
+    revealed: z.tuple([positiveInt, z.boolean()]),
   },
   browserExtensions: {
     list: none,

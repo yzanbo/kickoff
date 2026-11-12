@@ -103,10 +103,17 @@ export const NATIVE_API = {
     register: send<[webContentsId: number, tabKey: string, projectId: number | null]>(),
     /** タブを閉じた */
     unregister: send<[webContentsId: number]>(),
-    /** 開く頼み（onOpenRequest）の返事（足したタブのキー。開けなければ null と理由） */
-    opened: send<[requestId: number, tabKey: string | null, error: string | null]>(),
-    /** AI が新しいタブを開く: そのプロジェクトのチャット欄に、表に出さずにブラウザのタブを足して opened で返す */
-    onOpenRequest: event<[requestId: number, projectId: number, url: string]>(),
+    /** 開く頼み（onOpenRequest）の返事（足したタブのキー・表に出したか。開けなければ null と理由） */
+    opened: send<[requestId: number, tabKey: string | null, revealed: boolean, error: string | null]>(),
+    /**
+     * AI が新しいタブを開く: そのプロジェクトのチャット欄にブラウザのタブを足して opened で返す。reveal なら欄を開いて表に出す
+     * （after は、この作業で前に表に出したタブのキー。あれば、利用者がまだそれを見ているときだけ表に出す）。キーボードのピントは動かさない
+     */
+    onOpenRequest: event<[requestId: number, projectId: number, url: string, reveal: boolean, after: string | null]>(),
+    /** 表に出す頼み（onRevealRequest）の返事（表に出したか） */
+    revealed: send<[requestId: number, shown: boolean]>(),
+    /** AI が作業の初めにタブを使う: そのタブのある欄を開いて表示中にし、revealed で返す（after は onOpenRequest と同じ。キーボードのピントは動かさない） */
+    onRevealRequest: event<[requestId: number, tabKey: string, after: string | null]>(),
     /** AI がタブを操作している・しばらく操作していない（タブに「AI 操作中」の印を出す・消す） */
     onActivity: event<[tabKey: string, active: boolean]>(),
   },
