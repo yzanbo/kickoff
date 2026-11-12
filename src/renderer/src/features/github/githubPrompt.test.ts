@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { makePullDetail, makeReviewThread } from "@shared/testing/factories";
-import { itemPrompt, linkOf, reviewFixPrompt, threadPrompt } from "./githubPrompt";
+import { itemPrompt, linkOf, quotePrompt, reviewFixPrompt, threadPrompt } from "./githubPrompt";
 
 const user = { login: "alice", avatar_url: null };
 
@@ -52,4 +52,8 @@ test("レビューコメントで直す文: 解決していないスレッドの
   assert.match(text, /- @alice: 1 行目\n  2 行目/);
   assert.equal(text.match(/### /g)?.length, 2);
   assert.match(threadPrompt(detail, detail.review_threads[2]), /次のレビューコメントに対応してください。\n\n### src\/a\.ts:1\n- @alice/);
+});
+
+test("選んだ文の引用: どの issue・PR の文かを頭に、選んだ文を Markdown の引用に", () => {
+  assert.equal(quotePrompt(makePullDetail(), "1 行目\n\n2 行目 "), "GitHub の PR #5「直す」（https://github.com/o/r/pull/5）より:\n> 1 行目\n>\n> 2 行目");
 });

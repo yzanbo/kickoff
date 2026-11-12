@@ -4,10 +4,15 @@ import { navigate } from "@/app/router";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { githubFilters, githubSelected } from "@/lib/storageKeys";
 
-/** GitHub タブでその issue・PR を開く（一覧を issue｜PR のその種類にし、中身にそれを出す） */
-export function openGitHubItem(projectId: number, link: Pick<GitHubLink, "kind" | "number">) {
+/** GitHub タブで開いているものをその issue・PR にする（一覧を issue｜PR のその種類にし、中身にそれを出す。プロジェクトのタブと右の欄で同じ値） */
+export function selectGitHubItem(projectId: number, link: Pick<GitHubLink, "kind" | "number">) {
   writeSetting(githubFilters(projectId), { ...readSetting(githubFilters(projectId)), kind: link.kind });
   writeSetting(githubSelected(projectId), `${link.kind}:${link.number}`);
+}
+
+/** プロジェクトの GitHub タブへ移って、その issue・PR を開く */
+export function openGitHubItem(projectId: number, link: Pick<GitHubLink, "kind" | "number">) {
+  selectGitHubItem(projectId, link);
   navigate({ name: "project", id: projectId, tab: "github" });
 }
 

@@ -1,5 +1,6 @@
 // GitHub の issue・PR を AI に渡す文（新しいチャット・チャットに追加・レビューコメントで直すの入力欄に入れる。送るのは自分で）
 import type { GitHubIssueDetail, GitHubLink, GitHubPullDetail, GitHubReviewThread, GitHubUser } from "@shared/types";
+import { quoteComment } from "@/features/chat/messages/quoteComment";
 
 const KIND_NAMES = { issue: "issue", pr: "PR" } as const;
 
@@ -51,4 +52,9 @@ export function reviewFixPrompt(detail: GitHubPullDetail, threads: GitHubReviewT
 /** 1 つのスレッドを渡す文（スレッドごとの「AI に渡す」） */
 export function threadPrompt(detail: GitHubPullDetail, thread: GitHubReviewThread): string {
   return [`GitHub の ${headOf(detail)}の次のレビューコメントに対応してください。`, "", threadText(thread)].join("\n");
+}
+
+/** 本文・コメントで選んだ文を引用して足す文（どの issue・PR の文かを頭に添える。右クリックの「チャットに追加」） */
+export function quotePrompt(detail: GitHubIssueDetail, quote: string): string {
+  return `GitHub の ${headOf(detail)}より:\n${quoteComment(quote, "")}`;
 }
