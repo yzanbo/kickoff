@@ -62,10 +62,12 @@ export type PanelTab =
    */
   | { key: string; kind: "child"; chatId: number; childId: number; projectId: number; title: string }
   /**
-   * チャットの画面の右の欄の「＋」で開いた、これから作る子チャット（入力欄だけ。最初の文を送ると、できた子チャットのタブに置き換わる）。
-   * chatId: どのチャットの右の欄か（作る子チャットの親）
+   * これから作る子チャット（入力欄だけ。右の欄の「＋」・「子チャットを作成」・「新しい子チャットで聞く」で開く。最初の文を送ると、できた子チャットのタブに置き換わる）。
+   * chatId: どのチャットの右の欄か（いちばん上の親）。parentId: 作る子チャットの親（右の欄のチャットと違うとき = 子チャットから孫を作るときだけ）。
+   * quote: 入力欄に引用として初めに入れる文（選んだ文・発言）。eventId: 親の会話の聞いた位置（発言の右クリックから）。
+   * follow: 作ったあと設定の「子チャットを作ったとき」に従う（右の欄なら置き換え、別ウィンドウ・開かないならタブを閉じる。右の欄の「＋」は従わず、いつも置き換える）
    */
-  | { key: string; kind: "newChild"; chatId: number; projectId: number }
+  | { key: string; kind: "newChild"; chatId: number; projectId: number; parentId?: number; quote?: string; eventId?: number; follow?: boolean }
   /** url は開いたときのページ（webview の初めの src）、current はいま表示しているページ（外のブラウザで開くときに渡す） */
   | { key: string; kind: "browser"; url: string; title: string; current?: string }
   /** cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。projectId: どのプロジェクトの作業場所か。key は裏のシェルのキーにも使う */

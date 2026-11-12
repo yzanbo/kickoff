@@ -138,13 +138,8 @@ export const childTab = ({ chatId, childId, projectId, title }: Omit<TabOf<"chil
   title,
 });
 
-/** 右の欄の「＋」で開く、新しい子チャットのタブ（押すたびに新しいキー。最初の文を送ると childTab に置き換える） */
-export const newChildTab = ({ chatId, projectId }: { chatId: number; projectId: number }): TabOf<"newChild"> => ({
-  key: newTabKey("newChild"),
-  kind: "newChild",
-  chatId,
-  projectId,
-});
+/** 新しい子チャットのタブ（押すたびに新しいキー。最初の文を送ると childTab に置き換える。中身の意味は PanelTab の newChild） */
+export const newChildTab = (target: Omit<TabOf<"newChild">, "key" | "kind">): TabOf<"newChild"> => ({ key: newTabKey("newChild"), kind: "newChild", ...target });
 
 /** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く。押すたびに新しいキー） */
 export const browserTab = (url = ""): TabOf<"browser"> => ({ key: newTabKey("browser"), kind: "browser", url, title: "" });
@@ -373,8 +368,8 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     label: () => "新しい子チャット",
     hint: () => "新しい子チャット（このチャットの会話を引き継ぎ、最初の文を送ると始まります）",
     projectOf: (t) => t.projectId,
-    // 親のチャットを消したら閉じる
-    chatIdOf: (t) => t.chatId,
+    // 親のチャットを消したら閉じる（孫を作るタブは、その親）
+    chatIdOf: (t) => t.parentId ?? t.chatId,
     cluster: () => OTHER_CLUSTER,
   },
   browser: {

@@ -10,7 +10,7 @@ import { useSubmenu } from "@/ui/MenuFlyout";
 import { ProjectPickFlyout } from "@/features/project/ProjectPickFlyout";
 import { GroupPickFlyout } from "@/features/group/GroupPickFlyout";
 import { askNewGroupName } from "@/features/group/groups";
-import { openAskChild } from "./children/childChats";
+import { openAskChild } from "./children/openChild";
 import { openNewChat } from "@/app/router";
 import { NewChatItem, type NewChatPlace } from "./NewChatItem";
 
@@ -64,7 +64,7 @@ export function ChatMenuItems({
   return (
     <div className="menu-items">
       {canNew && <NewChatItem place={place} branch={chat.branch} onSelect={() => onNewChat(place)} />}
-      {/* このチャットの子チャットを始める（発言の右クリックと同じ聞く画面。引用はなし。アーカイブしたチャットからは始めない） */}
+      {/* このチャットの子チャットを始める（発言の右クリックと同じく、右の欄の新しい子チャットのタブを開く。引用はなし。アーカイブしたチャットからは始めない） */}
       {canChild && (
         <MenuItem
           onSelect={() => {

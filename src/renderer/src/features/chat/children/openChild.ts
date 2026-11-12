@@ -12,7 +12,7 @@ import { appendBlock } from "@/features/chat/messages/quoteComment";
 import { chatPaneOf, isChatPaneShown } from "@/features/chat/pane/windowMessages";
 import { panelActions } from "@/features/panel/state/panelActions";
 import { panelKey } from "@/features/panel/surfaces";
-import { rootChatOf } from "./childChats";
+import { rootChatOf, type AskChildTarget } from "./childChats";
 
 /** 別ウィンドウの中か（右の欄はメインのウィンドウにだけあるので、メインに知らせて開く） */
 const inPopout = () => parsePopout(location.hash) !== undefined;
@@ -62,16 +62,44 @@ export function openChatOrChild(chat: Pick<Chat, "id" | "project_id" | "title" |
 }
 
 /**
- * 作ったばかりの子チャットを、設定の「子チャットを作ったとき」（CHILD_CHAT_OPEN_ON_CREATE）で開く（右の欄 / 別ウィンドウ / 開かない）。
- * always（「引き継いで開く」で聞かずに作ったとき）なら、開かない設定でも「子チャットを開く場所」で開く。
+ * 作ったばかりの子チャットを開く場所（設定の「子チャットを作ったとき」CHILD_CHAT_OPEN_ON_CREATE。開かないなら null）。
+ * always（「引き継いで開く」で聞かずに作ったとき）なら、開かない設定でも「子チャットを開く場所」（開くために作ったので）。
+ * 別ウィンドウを開けない（スマホのブラウザ）なら右の欄
+ */
+export function createdChildPlace({ always = false }: { always?: boolean } = {}): "side" | "window" | null {
+  const on = readSetting(CHILD_CHAT_OPEN_ON_CREATE);
+  const place = on !== "none" ? on : always ? readSetting(CHILD_CHAT_OPEN_IN) : null;
+  return place === "window" && !canPopout() ? "side" : place;
+}
+
+/**
+ * 作ったばかりの子チャットを、設定の「子チャットを作ったとき」で開く（右の欄 / 別ウィンドウ / 開かない。createdChildPlace）。
  * 作った知らせより先に一覧へ入れる（入っていないと親をたどれず、右の欄でなくふつうのチャットのタブで開いてしまう。入力欄の上の札にもすぐ並ぶ）
  */
-export function openCreatedChild(child: Chat, { always = false }: { always?: boolean } = {}) {
+export function openCreatedChild(child: Chat, opts: { always?: boolean } = {}) {
   addChat(child);
-  const on = readSetting(CHILD_CHAT_OPEN_ON_CREATE);
-  if (on !== "none") openChildChat(child, on);
-  // 聞かずに開いた子チャット（always）は、開かない設定でも開く（開くために作ったので）。場所は「子チャットを開く場所」
-  else if (always) openChildChat(child);
+  const place = createdChildPlace(opts);
+  if (place) openChildChat(child, place);
+}
+
+/**
+ * 「新しい子チャットで聞く」「子チャットを作成」: いちばん上の親の右の欄に、新しい子チャットのタブを開く（選んだ文は引用として入力欄に入れ、聞いた位置は送るときに渡す）。
+ * 送る前は設定によらず右の欄で書き、作ったあとは設定の「子チャットを作ったとき」に従う（タブの follow）。別ウィンドウからはメインのウィンドウに頼む
+ */
+export function openAskChild({ parentId, eventId, quote }: AskChildTarget) {
+  if (inPopout()) return postToMainWindow({ type: "askChild", parentId, eventId, quote });
+  const parent = knownChat(parentId);
+  if (!parent) return;
+  openInRootSide(parentId, (rootId, side) =>
+    side.openNewChild({
+      chatId: rootId,
+      projectId: parent.project_id,
+      ...(parentId !== rootId ? { parentId } : {}),
+      ...(quote.trim() ? { quote } : {}),
+      ...(eventId !== null ? { eventId } : {}),
+      follow: true,
+    }),
+  );
 }
 
 /** そのチャットの画面を見せる（子チャットなら右の欄のタブ、いちばん上のチャットならチャットのパネル） */
