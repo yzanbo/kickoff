@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   composeFilesFromEnv,
+  parseLogLine,
   dbKindOf,
   deepestWorkplace,
   isAltComposeName,
@@ -137,4 +138,10 @@ test("dbKindOf: postgres・mysql・mariadb のイメージ", () => {
   assert.equal(dbKindOf("docker.io/library/mariadb:11"), "mysql");
   assert.equal(dbKindOf("redis:7"), null);
   assert.equal(dbKindOf(null), null);
+});
+
+test("parseLogLine: 時刻の小数を 9 桁にそろえ、時刻のない行はそのまま", () => {
+  assert.deepEqual(parseLogLine("2026-11-13T03:01:02.12345Z hello world"), { ts: "2026-11-13T03:01:02.123450000Z", text: "hello world" });
+  assert.deepEqual(parseLogLine("2026-11-13T03:01:02Z  indented\r"), { ts: "2026-11-13T03:01:02.000000000Z", text: " indented" });
+  assert.deepEqual(parseLogLine("no timestamp"), { ts: "", text: "no timestamp" });
 });

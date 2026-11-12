@@ -482,6 +482,14 @@ export const MEMO_CHAT_HEIGHT = defineSetting("kickoff:memo-chat-height", number
 /** チャットの画面の右の欄の「変更」で確認済みにしたファイル（キーは「プロジェクト:ワークツリーのフォルダ（本体は空）」。値はパス → 確認したときの差分の指紋） */
 export const sideViewedFiles = defineSettingFamily("kickoff:side-viewed:", record(isString), { ids: true });
 
+// Docker タブ
+/** ログの画面の行の頭に時刻を出すか */
+export const DOCKER_LOG_TIMESTAMPS = defineSetting("kickoff:docker-log-timestamps", flag(true));
+/** ログの画面の長い行を折り返すか（折り返さなければ横にスクロール） */
+export const DOCKER_LOG_WRAP = defineSetting("kickoff:docker-log-wrap", flag(true));
+/** ログの画面の高さ（Docker タブの高さに対する %。一覧との境目のつまみで変える） */
+export const DOCKER_LOG_HEIGHT = defineSetting("kickoff:docker-log-height", number(55));
+
 // 外のアプリ・埋め込みブラウザ
 /** 外部のターミナルとして開くアプリ（EXTERNAL_TERMINALS の id） */
 export const EXTERNAL_TERMINAL = defineSetting("kickoff:external-terminal", choice(EXTERNAL_TERMINALS.map((t) => t.id), "terminal"));

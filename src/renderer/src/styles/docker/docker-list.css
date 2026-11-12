@@ -6,8 +6,18 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+}
+
+/* 一覧（ログの画面を開いていれば、その上の残り。中でスクロール） */
+.docker-tab-list {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 12px var(--gutter) 16px;
+}
+
+.docker-tab.has-logs .docker-tab-list {
+  min-height: 80px;
 }
 
 .docker-tab-head {

@@ -1,6 +1,6 @@
 # Docker タブ（`features/docker`）
 
-プロジェクトの「Docker」タブ（`ProjectPage` の `tab === "docker"`。`#/projects/:id/docker`）。本体とワークツリーの compose のサービスを見て、起動・停止・再起動・片付けし、シェルを開く。要件は `docs/requirements.md` の 5.14、詳しい仕様はメモの「Docker 仕様書」、コア（一覧・操作・docker events）は `src/core/CLAUDE.md` の「Docker タブ」。この Mac のアプリの中だけで使う（DB・GitHub と同じく、ブラウザ・スマホから開いたときはタブを出さずボードにする。`window.kickoff` があるか）。
+プロジェクトの「Docker」タブ（`ProjectPage` の `tab === "docker"`。`#/projects/:id/docker`）。本体とワークツリーの compose のサービスを見て、起動・停止・再起動・片付けし、ログ（一覧の下の専用の画面）とシェルを開く。要件は `docs/requirements.md` の 5.14、詳しい仕様はメモの「Docker 仕様書」、コア（一覧・操作・docker events）は `src/core/CLAUDE.md` の「Docker タブ」。この Mac のアプリの中だけで使う（DB・GitHub と同じく、ブラウザ・スマホから開いたときはタブを出さずボードにする。`window.kickoff` があるか）。
 
 ## 状態と取り直し（`useDocker.ts`）
 
@@ -17,7 +17,22 @@
 - 見出しの下: 同じ組の名前の相手ごとの ⚠（`shareText`）・設定を読めなかったときの ⚠ と標準エラー・最後の失敗（何ができなかったか・標準エラーの最後の行・［ターミナルで流し直す］（下のパネルに、失敗したコマンドを決まったコマンドのタブで開く）・［×］で閉じる `dismiss`）。
 - サービスの行: 印（`MARK_GLYPHS`。色は動いている = 緑・異常に終了 = 赤・起動中 / 一時停止 = 黄）・名前・イメージ・様子の文（`serviceStatusText`。1 つだけ動いているときは出さない）・Mac に出しているポート（`servicePorts`。押すとチャット欄のブラウザで `http://localhost:<ポート>`、右クリックで外部のブラウザ・URL のコピー）・操作（印で決める主な操作 = 停止 / 再開 / 起動、動いていれば再起動、動いているコンテナがあればシェル）。右クリックに起動・停止・再起動・再開・シェルを並べる。札付きのサービスは動いていなければ薄く、「tools のときだけ」。使い捨てのコンテナは行の下に「└ 使い捨て n 個（m 個動いている）」と畳み、開くと 1 つずつ並べて動いているものに［停止］（`stop_container`）。
 - シェル: 下のパネル（`bottom:<プロジェクト>`）に、決まったコマンドのターミナルのタブ（`shellCommand`。bash があれば bash、なければ sh。タブの名前は「シェル · <サービス>」）を開く。数を増やしたサービスは 1 番目の動いているコンテナ。
+- ［ログ］: compose の見出し（すべての札）・サービスの行（そのサービスの札。作ったものだけ）・使い捨ての行（「svc · 使い捨て」の札）と、それぞれの右クリック。
 
-## 表示の文（`dockerView.ts`。純粋な関数。テストは `dockerView.test.ts`）
+## ログの画面（`DockerLogs`。一覧の下）
 
-作業場所の文 `workplaceText`・印の文字 `MARK_GLYPHS`・様子の文 `serviceStatusText`・ポート `servicePorts`・使い捨てのまとめ `oneoffSummary`・同じ組の ⚠ の文 `shareText`・シェルのコマンド `shellCommand`・ほかのプロジェクトの説明 `othersTip`。API の窓口は `api/docker.ts`。CSS は `styles/docker/docker-list.css`。
+- 置き場所: Docker タブの一覧の下。境目のつまみで高さを変える（`DOCKER_LOG_HEIGHT`。タブの高さの %。ダブルクリックで戻す）。開いている間、一覧は上の残りでスクロールする。見出しは「ログ: <札>」と札の並び・切り替え（エラー・警告だけ・時刻・折り返し・探す）・［×］。開くのは compose 1 つで、別の［ログ］を押すと札を選び直す（`DockerLogsRequest` の `nonce`）。compose がなくなった・エンジンが止まったら出さない。
+- 流れ（`useDockerLogs.ts`）: コアの SSE（`api.dockerLogsUrl`。`EventSource`）でコンテナ（`sources`）と行を受け、時刻の順に混ぜて持つ（`mergeRows`。届いた行は 1 フレームの分をまとめる）。持つのは 1 万行（`LOG_ROW_LIMIT`）までで古い行から捨てる。読み返している間（いちばん下にいない `setHold`）は捨てずに 2 万行まで（位置がずれないように）。止まった・起動したは区切りの行（「── db が止まりました（exit 1）12:05:10 ──」）。つなぎ直したら（コアが最新の 500 行から送り直すので）持っている行を捨てる。「さらに前を読む」は、いま出している札のコンテナごとに持っているいちばん古い行より前の 500 行（`api.dockerLogsBefore`）。500 行より少なければ、そのコンテナはもう前がないとしてボタンを出さない（捨てたら出し直す）。
+- 札: compose のサービスの並び（まだ作っていないサービスは点線で薄く「まだ起動していません」）と、使い捨ての札（`logChips`）。押して出す・隠す。サービスごとに色（`.docker-log-c0`〜7）。いくつものコンテナを出しているときだけ、行の頭に札の名前（app#1 など）。
+- 見え方: いちばん下にいる間は付いていき、上へ戻すと止まって「最新へ ↓（新しい行 n）」（止めたあとに届いた、止めたときの最後の行より新しい行の数。さかのぼって読んだ行は数えない）。時刻・折り返しの切り替えは覚える（`DOCKER_LOG_TIMESTAMPS` / `DOCKER_LOG_WRAP`）。アプリが付けた色（ANSI の SGR。16 色・256 色・24 bit・太字など）はそのまま出し（`ansi.ts` の `ansiSpans`。色は `styles/docker/docker-ansi.css`）、ほかの制御の印は落とす（`stripAnsi`）。JSON の行（オブジェクトか配列）は押すと整えて開く（`prettyJson`）。見えていない行は描かない（`content-visibility: auto`）。
+- エラーと警告: 行の文字の決まりで見分ける目安（`logLevelOf`。ERROR・FATAL・panic・Exception・Traceback・level=error など → エラー、WARN・WARNING など → 警告。標準出力か標準エラーかは使わない）。行の左に赤・黄の印、「エラー・警告だけ出す」の切り替え。見分けは行ごとに 1 回（`WeakMap`）。
+- ⌘F（`useDockerLogFind.ts`）: ログの画面を `registerPageFind` に置くので、ピントがある・最後に押したのがログの画面ならアプリ全体の ⌘F でここが開く（見出しの虫眼鏡でも）。見た目と操作は `FindField`（探し方の「Aa」「ab」「.*」はほかの欄と同じ値）。色の印を外した文から探し、見つけた所に印（`markSpans` で色のまとまりを切る）、↑↓ で移って真ん中に出す。「一致した行だけ」。
+- AI に渡す（`useDockerLogMenu.tsx`）: 行を選び終えると範囲の終わりの下に「チャットに追加 ▾」、右クリックに「コピー」と同じ渡し先（`HandOffItems`。選んだ範囲の行をまるごと渡す）。行の右クリック（選んでいないとき）は「この行をコピー」と「この行と前後 20 行をチャットに追加」。エラーの行に乗せると「AI に聞く」（前後 20 行。同じものを右クリックにも）。入力欄に足す文は、頭に「Docker のログ: 本体 | main・compose.yaml・db（myapp-db-1）・12:01:03〜12:01:09」の文脈を付けたコードのブロック（`logQuote`。行は「時刻 札 | 文」、色の印は外す）。長ければ（ターミナルと同じ 30 行・3000 文字を超える）押した時点の中身の札（出どころ `docker_logs`。外から来た中身ではない）。送るのは自分。
+
+## 表示の文（純粋な関数。テストは隣の `*.test.ts`）
+
+- `dockerView.ts`: 作業場所の文 `workplaceText`・印の文字 `MARK_GLYPHS`・様子の文 `serviceStatusText`・ポート `servicePorts`・使い捨てのまとめ `oneoffSummary`・同じ組の ⚠ の文 `shareText`・シェルのコマンド `shellCommand`・ほかのプロジェクトの説明 `othersTip`。
+- `dockerLogView.ts`: 行の並べ方 `mergeRows`・時刻 `normTs` / `fillTs` / `clockOf`・札 `chipOf` / `logChips`・エラーと警告 `logLevelOf`・JSON `prettyJson`・区切りの文 `separatorText`・AI に渡す文 `logQuote` / `rowText` / `logCaptureLabel`・前後の行 `aroundRow`。
+- `ansi.ts`: 色のまとまり `ansiSpans`・色の印を外す `stripAnsi`・見つけた所の印 `markSpans`。
+
+API の窓口は `api/docker.ts`。CSS は `styles/docker/docker-list.css`（一覧）・`docker-logs.css`（ログの画面）・`docker-ansi.css`（ログの色）。

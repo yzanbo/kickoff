@@ -1,29 +1,46 @@
-import { useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import { Container } from "lucide-react";
 import type { DockerList } from "@shared/types";
+import { useDragSize } from "@/hooks/useDragSize";
+import { cx } from "@/lib/cx";
+import { DOCKER_LOG_HEIGHT } from "@/lib/storageKeys";
 import { CopyButton } from "@/ui/CopyButton";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
 import { RefreshButton } from "@/ui/IconButton";
 import { DockerComposeBlock } from "./DockerComposeBlock";
+import { DockerLogs, type DockerLogsRequest } from "./DockerLogs";
 import { othersTip } from "./dockerView";
 import { useDocker } from "./useDocker";
 
 /**
  * プロジェクトの「Docker」タブ（要件 5.14 の段階 1）: 本体とワークツリーの compose ごとに見出しとサービスの行を並べ、起動・停止・シェルを出す。
+ * ［ログ］で一覧の下にログの画面（DockerLogs。境目のつまみで高さを変える）。
  * エンジンが入っていない・動いていないときは理由と、開くボタン（context の名前から決めたもの）を出す
  */
 export function DockerTab({ projectId }: { projectId: number }) {
   const docker = useDocker(projectId);
   const { list, error } = docker;
   const [refreshing, setRefreshing] = useState(false);
+  const [logs, setLogs] = useState<DockerLogsRequest | null>(null);
+  const openLogs = (compose: string, chips: string[] | null) => setLogs({ compose, chips, nonce: Date.now() });
+  const tabRef = useRef<HTMLDivElement>(null);
+  const logPane = useRef<HTMLDivElement>(null);
+  const height = useDragSize({ setting: DOCKER_LOG_HEIGHT, axis: "y", edge: "start", unit: "%", min: 20, max: 85, write: "--docker-log-h", pane: logPane, target: () => tabRef.current });
+  // ログを開いた compose（なくなった・エンジンが止まったら出さない）
+  const logCompose = logs && list?.engine === "ok" ? list.composes.find((c) => c.key === logs.compose) : undefined;
   const refresh = () => {
     setRefreshing(true);
     void docker.reload({ refresh: true }).finally(() => setRefreshing(false));
   };
 
   return (
-    <div className="docker-tab">
+    <div
+      ref={tabRef}
+      className={cx("docker-tab", logCompose && "has-logs", height.resizing && "resizing")}
+      style={{ "--docker-log-h": `${height.size}%` } as CSSProperties}
+    >
+      <div className="docker-tab-list">
       <div className="docker-tab-head">
         <h2 className="docker-tab-title">Docker</h2>
         {list?.context && <span className="docker-tab-context muted small" data-tip="docker context show">{list.context}</span>}
@@ -43,7 +60,7 @@ export function DockerTab({ projectId }: { projectId: number }) {
       ) : (
         <div className="docker-composes">
           {list.composes.map((c) => (
-            <DockerComposeBlock key={c.key} projectId={projectId} compose={c} act={docker.act} />
+            <DockerComposeBlock key={c.key} projectId={projectId} compose={c} act={docker.act} onLogs={(chips) => openLogs(c.key, chips)} />
           ))}
         </div>
       )}
@@ -51,6 +68,15 @@ export function DockerTab({ projectId }: { projectId: number }) {
         <div className="docker-others muted small" data-tip={othersTip(list.others)} data-tip-title="ほかのプロジェクトのコンテナ">
           ほかのプロジェクトで動いているコンテナ {list.others.length} 個
         </div>
+      )}
+      </div>
+      {logs && logCompose && (
+        <>
+          <div className="pane-resizer docker-log-resizer" aria-label="ログの画面の高さを変える" {...height.handle} />
+          <div ref={logPane} className="docker-log-pane">
+            <DockerLogs key={logCompose.key} projectId={projectId} compose={logCompose} request={logs} onClose={() => setLogs(null)} />
+          </div>
+        </>
       )}
     </div>
   );

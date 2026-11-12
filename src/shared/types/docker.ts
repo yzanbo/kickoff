@@ -215,3 +215,27 @@ export interface DockerActionBody {
 
 /** 別の作業場所と同じ組になる起動を断ったときの code（画面が確かめてから confirm_shared で送り直す） */
 export const DOCKER_SHARED_PROJECT = "docker_shared_project";
+
+/** ログの画面のコンテナ 1 つ（数を増やしたサービスは app#1・app#2、使い捨ては「app · 使い捨て」） */
+export interface DockerLogSource {
+  container: string;
+  service: string;
+  /** 行の頭に出す名前 */
+  label: string;
+  running: boolean;
+  exit_code: number | null;
+}
+
+/** ログの 1 行（ts は docker logs --timestamps の時刻。小数は 9 桁にそろえるので、文字の順が時刻の順） */
+export interface DockerLogLine {
+  ts: string;
+  text: string;
+}
+
+/** ログの画面の流れ（GET …/docker/logs の SSE。行は 100ms ずつまとめて送る） */
+export type DockerLogEvent =
+  | { type: "sources"; sources: DockerLogSource[] }
+  | { type: "lines"; container: string; lines: DockerLogLine[] }
+  | { type: "stopped"; container: string; at: string; exit_code: number | null }
+  | { type: "started"; container: string; at: string }
+  | { type: "error"; message: string };

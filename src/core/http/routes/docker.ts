@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { DOCKER_ACTIONS, type DockerActionBody } from "@shared/types";
 import type { ServerDeps } from "../server.js";
@@ -7,6 +8,7 @@ import { lookups } from "../lookups.js";
 import { localOnly } from "../thisMac.js";
 import { Invalid } from "../errors.js";
 import { findOrb } from "../../docker/cli.js";
+import { DockerLogSession } from "../../docker/logs.js";
 import { starterOf } from "../../docker/parse.js";
 import { runCommand } from "../../system/exec.js";
 
@@ -19,7 +21,7 @@ const actionBody = z.object({
 }) satisfies z.ZodType<DockerActionBody>;
 
 /** Docker タブ（この Mac からだけ。スマホの画面にはタブを出さない） */
-export function dockerRoutes(app: Hono, { store, docker }: ServerDeps) {
+export function dockerRoutes(app: Hono, { store, docker, bus }: ServerDeps) {
   const { withProject } = lookups(store);
   app.use("/api/projects/:id/docker", localOnly("Docker タブは、この Mac からだけ使えます"));
   app.use("/api/projects/:id/docker/*", localOnly("Docker タブは、この Mac からだけ使えます"));
@@ -40,6 +42,34 @@ export function dockerRoutes(app: Hono, { store, docker }: ServerDeps) {
     if (body.action === "cancel" || body.action === "dismiss") return c.body(null, 204);
     // 始めたあとの一覧を返す（動いている操作が入っている。画面は届いた一覧をそのまま出す）
     return c.json(await docker.list(c.var.project), 202);
+  });
+
+  // ログの画面（SSE。compose のコンテナごとの docker logs を 1 本にまとめる。止まった・起動し直したら区切り。閉じたら止める）
+  app.get("/api/projects/:id/docker/logs", withProject, (c) => {
+    const project = c.var.project;
+    const compose = z.string().min(1).max(4000).parse(queryOf(c, "compose"));
+    return streamSSE(c, async (stream) => {
+      const session = new DockerLogSession(docker.cli, () => docker.logSources(project, compose), (event) => void stream.writeSSE({ data: JSON.stringify(event) }));
+      const unsubscribe = bus.subscribe((event) => {
+        if (event.type === "docker_changed" && event.project_id === project.id) void session.sync();
+      });
+      const closed = new Promise<void>((resolve) => stream.onAbort(resolve));
+      await stream.writeSSE({ event: "ping", data: "" });
+      void session.sync();
+      const ping = setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);
+      await closed;
+      clearInterval(ping);
+      unsubscribe();
+      session.close();
+    });
+  });
+
+  // ログの「さらに前を読む」（until より前の 500 行。この compose のコンテナだけ）
+  app.get("/api/projects/:id/docker/logs/before", withProject, async (c) => {
+    const compose = z.string().min(1).max(4000).parse(queryOf(c, "compose"));
+    const container = z.string().regex(/^[0-9a-f]{12,64}$/).parse(queryOf(c, "container"));
+    const until = z.string().regex(/^\d{4}-\d\d-\d\dT[\d:.]+Z$/).parse(queryOf(c, "until"));
+    return c.json({ lines: await docker.logsBefore(c.var.project, compose, container, until) });
   });
 
   // エンジンが止まっているときの「OrbStack を開く」など（開くアプリは context の名前から決める。本文では受けない）
