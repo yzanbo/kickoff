@@ -108,3 +108,36 @@
   overflow-y: auto;
   padding: 12px 16px 24px;
 }
+
+/* 見出しの「AI に渡す ▾」（取り直し・GitHub で開くの左） */
+.github-handoff-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/*
+ * チャットが結び付いた issue・PR の札（チャットの見出し・ボードのカードの「#12」。features/github の GitHubLinkChip）。
+ * 形はブランチの印・グループの札と同じ小さなピルで、色は GitHub の印の灰色。押すと GitHub タブでその issue・PR を開く
+ */
+.github-link-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  line-height: 17px;
+  white-space: nowrap;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.github-link-chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}

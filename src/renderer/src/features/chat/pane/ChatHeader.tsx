@@ -5,6 +5,7 @@ import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
+import { GitHubLinkChip } from "@/features/github/GitHubLinkChip";
 import { ChatFind } from "@/features/chat/find/ChatFind";
 import { AgentPanelToggle } from "@/features/panel/agents/AgentPanelToggle";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
@@ -74,6 +75,8 @@ export function ChatHeader({
           {ordered(["project", "group", "worktree"] as const).map((k) => (
             <Fragment key={k}>{badges[k]}</Fragment>
           ))}
+          {/* 結び付いた GitHub の issue・PR（押すと GitHub タブでそれを開く） */}
+          <GitHubLinkChip chat={chat} />
         </span>
         {chat.archived_at && <span className="archived-chip">アーカイブ済み</span>}
         <span className="spacer" />

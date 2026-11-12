@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ChevronRight, Copy, Folder, FolderInput, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronRight, Copy, Folder, FolderInput, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
@@ -17,7 +17,7 @@ import { NewChatItem, type NewChatPlace } from "./NewChatItem";
 /**
  * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通。どこで右クリックしても同じ並びにする）:
  * 新しいチャット（同じグループ・作業場所。NewChatItem）・子チャットを作成 ｜ 開く・その場所だけの項目（before。分けて開く・動きを見るなど）｜
- * 名前を変更・既読 / 未読・固定・セッション ID をコピー・グループを変更・プロジェクトを変更 ｜ アーカイブ・削除 ｜ after（タブを閉じるなど）。
+ * 名前を変更・既読 / 未読・固定・セッション ID をコピー・GitHub との結び付きを外す・グループを変更・プロジェクトを変更 ｜ アーカイブ・削除 ｜ after（タブを閉じるなど）。
  * 「グループを変更」「プロジェクトを変更」に乗せる・押すと、横にグループ・プロジェクトの一覧（GroupPickFlyout / ProjectPickFlyout）を開く
  */
 export function ChatMenuItems({
@@ -106,6 +106,12 @@ export function ChatMenuItems({
       {chat.session_id && (
         <MenuItem onSelect={() => act(() => navigator.clipboard.writeText(chat.session_id ?? ""))}>
           <Copy size={14} /> セッション ID をコピー
+        </MenuItem>
+      )}
+      {/* GitHub の issue・PR との結び付き（GitHub タブの「AI に渡す」で付く。外すと PR を作るときの「Closes #n」・札・一覧の印からも外れる） */}
+      {chat.github_number !== null && (
+        <MenuItem onSelect={() => act(() => api.clearChatGitHub(chat.id))}>
+          <Unlink size={14} /> GitHub #{chat.github_number} との結び付きを外す
         </MenuItem>
       )}
       {/* 乗せる・押す・→ で横にこのプロジェクトのグループの一覧を開く（メニューは閉じない。子チャットはグループに入らないので出さない） */}

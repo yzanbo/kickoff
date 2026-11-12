@@ -9,7 +9,10 @@ import { GitHubChecksList } from "./GitHubChecksList";
 import { GitHubPullChanges } from "./GitHubPullChanges";
 import { GitHubLabels, REVIEW_DECISION_LABELS } from "./GitHubItemRow";
 import { GitHubStateChip } from "./GitHubStateIcon";
-import { GitHubAuthor, GitHubTime, GitHubTimeline } from "./GitHubTimeline";
+import { GitHubAuthor, GitHubTime, GitHubTimeline, ThreadHandoffContext } from "./GitHubTimeline";
+import { GitHubHandoffMenu } from "./GitHubHandoffMenu";
+import { fixReviewComments } from "./githubHandoff";
+import { linkOf } from "./githubPrompt";
 import { useGitHubDetail, type GitHubDetail as Detail } from "./useGitHubDetail";
 
 /** PR の中身の切り替え */
@@ -35,6 +38,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
           {onBack && <IconButton icon={ArrowLeft} label="一覧へ戻る" onClick={onBack} />}
           {data && detail.loading && <span className="github-updating muted small">更新中…</span>}
           <span className="github-detail-spacer" />
+          {data && <GitHubHandoffMenu projectId={projectId} detail={data} />}
           <RefreshButton label="GitHub から取り直す" busy={detail.loading} onClick={detail.refresh} />
           {data && <IconButton icon={ExternalLink} label="GitHub で開く" onClick={() => window.open(data.item.url, "_blank", "noopener")} />}
         </div>
@@ -89,6 +93,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
       <ErrorText message={detail.error ?? undefined} />
       {!data && !detail.error && <p className="muted small github-detail-loading">読み込み中…</p>}
       {data && (
+        <ThreadHandoffContext.Provider value={isPull(data) ? (thread) => void fixReviewComments(projectId, data, linkOf(data), [thread]) : null}>
         <div className="github-detail-body">
           {isPull(data) && view === "checks" ? (
             <GitHubChecksList checks={data.checks} />
@@ -107,6 +112,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
             </>
           )}
         </div>
+        </ThreadHandoffContext.Provider>
       )}
     </section>
   );

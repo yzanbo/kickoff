@@ -9,6 +9,7 @@ import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import { GroupChip } from "@/features/group/GroupChip";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
+import { GitHubLinkChip } from "@/features/github/GitHubLinkChip";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { cardStatText } from "./cardFields";
 import type { ShowCardField } from "./CardFieldsMenu";
@@ -26,13 +27,14 @@ interface Props {
   show: ShowCardField;
 }
 
-/** カード・リストの行・フィードのカードの札（プロジェクト・グループ・作業場所。表示項目で出すものだけ。アーカイブ済みの札はいつも） */
+/** カード・リストの行・フィードのカードの札（プロジェクト・グループ・作業場所は表示項目で出すものだけ。結び付いた GitHub の issue・PR とアーカイブ済みの札はいつも） */
 export function CardBadges({ chat, projectName, show }: Pick<Props, "chat" | "projectName" | "show">) {
   return (
     <>
       {projectName !== undefined && show("project") && <ProjectChip id={chat.project_id} name={projectName} />}
       {show("group") && <GroupChip chat={chat} />}
       {show("worktree") && <WorktreeChip chat={chat} />}
+      <GitHubLinkChip chat={chat} />
       {chat.archived_at && <span className="archived-chip">アーカイブ済み</span>}
     </>
   );

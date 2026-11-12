@@ -1,6 +1,8 @@
 import { memo, type CSSProperties } from "react";
-import { Check, CircleDashed, MessageSquare, X } from "lucide-react";
-import type { GitHubChecksState, GitHubItem, GitHubLabel, GitHubReviewDecision } from "@shared/types";
+import { Check, CircleDashed, MessageSquare, MessagesSquare, X } from "lucide-react";
+import type { Chat, GitHubChecksState, GitHubItem, GitHubLabel, GitHubReviewDecision } from "@shared/types";
+import { openChat } from "@/app/router";
+import { chatTitle } from "@/features/chat/chatTitle";
 import { cx } from "@/lib/cx";
 import { agoText } from "@/lib/time";
 import { GitHubStateIcon } from "./GitHubStateIcon";
@@ -31,9 +33,13 @@ export function GitHubChecksMark({ state }: { state: GitHubChecksState | null })
 
 export const REVIEW_DECISION_LABELS: Record<GitHubReviewDecision, string> = { approved: "承認済み", changes_requested: "変更の依頼あり", review_required: "レビュー待ち" };
 
-/** 一覧の 1 行（状態の印・題名とラベル・番号・作った人・更新・コメントの数・PR は CI とレビュー） */
-export const GitHubItemRow = memo(function GitHubItemRow({ item, selected, onOpen }: { item: GitHubItem; selected: boolean; onOpen: (item: GitHubItem) => void }) {
+/**
+ * 一覧の 1 行（状態の印・題名とラベル・番号・作った人・更新・コメントの数・PR は CI とレビュー）。
+ * 結び付いたチャットがあれば（chats。最近動いた順）、右上に印を出し、押すといちばん最近動いたチャットを開く
+ */
+export const GitHubItemRow = memo(function GitHubItemRow({ item, selected, chats, onOpen }: { item: GitHubItem; selected: boolean; chats?: Chat[]; onOpen: (item: GitHubItem) => void }) {
   return (
+    <div className="github-item-wrap">
     <button type="button" className={cx("github-item", selected && "selected")} aria-current={selected || undefined} onClick={() => onOpen(item)}>
       <GitHubStateIcon item={item} />
       <span className="github-item-main">
@@ -56,5 +62,17 @@ export const GitHubItemRow = memo(function GitHubItemRow({ item, selected, onOpe
         </span>
       </span>
     </button>
+    {chats && chats.length > 0 && (
+      <button
+        type="button"
+        className="github-item-chats"
+        data-tip={`結び付いたチャット: ${chats.map((c) => chatTitle(c.title)).join("、")}（押すと「${chatTitle(chats[0].title)}」を開く）`}
+        onClick={() => openChat(chats[0].project_id, chats[0].id)}
+      >
+        <MessagesSquare size={12} aria-hidden />
+        {chats.length > 1 ? chats.length : "チャット"}
+      </button>
+    )}
+    </div>
   );
 });

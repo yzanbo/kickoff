@@ -15,12 +15,13 @@ export const workplacePath = (place: Workplace): string | null | undefined => (p
 const NEW = "__new__";
 
 /**
- * 新しいワークツリーのブランチ名を聞く（作業場所の選択と、作業中の作業場所に送るときの確かめで共通）。やめたら null。
+ * 新しいワークツリーのブランチ名を聞く（作業場所の選択と、作業中の作業場所に送るときの確かめで共通。initial は初めに入れておく名前）。やめたら null。
  * やりたいことを書いて「AI で提案」を押すと、ブランチ名の案を AI に作ってもらえる
  */
-export function askNewWorktreeBranch(projectId: number): Promise<string | null> {
+export function askNewWorktreeBranch(projectId: number, initial?: string): Promise<string | null> {
   return promptDialog({
     title: "新しいワークツリーで始める",
+    initial,
     message: "いまのコミットから新しいブランチを作り、別のフォルダで作業します。ほかのチャットと並行して進めても、ファイルがぶつかりません（本体の node_modules も写すので、すぐ動かせます）。",
     label: "ブランチの名前",
     placeholder: "例: feature/login",

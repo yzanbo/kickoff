@@ -135,6 +135,38 @@
   padding: 12px var(--gutter);
 }
 
+/* 行の入れ物（行のボタンと、結び付いたチャットの印のボタンを重ねる。ボタンの中にボタンを置かないため） */
+.github-item-wrap {
+  position: relative;
+}
+
+/* 結び付いたチャットの印（右上。押すといちばん最近動いたチャットを開く） */
+.github-item-chats {
+  position: absolute;
+  top: 6px;
+  right: var(--gutter);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
+  background: var(--bg);
+  font: inherit;
+  font-size: 11px;
+  line-height: 17px;
+  color: var(--accent-fg);
+  cursor: pointer;
+}
+
+.github-item-wrap:has(> .github-item-chats) > .github-item {
+  padding-right: calc(var(--gutter) + 76px);
+}
+
+.github-item-chats:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+
 .github-item {
   display: flex;
   align-items: flex-start;

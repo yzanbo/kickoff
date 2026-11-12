@@ -1,13 +1,17 @@
 // 送信待ちの指示を、新しいチャットで聞く（右クリックのメニュー。文と添付（画像も）を新しいチャットのタブの入力欄に入れて開く）
-import type { Attachment, QueuedMessage } from "@shared/types";
+import type { Attachment, GitHubLink, QueuedMessage } from "@shared/types";
 import { api } from "@/api";
 import { reportFailure } from "@/ui/dialogs";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 
-/** 新しいチャットの入力欄に、初めに入れておくもの（送信待ちの指示から始めるとき） */
+/** 新しいチャットの入力欄に、初めに入れておくもの（送信待ちの指示・GitHub の issue から始めるとき） */
 export interface NewChatSeed {
   text: string;
   attachments: Attachment[];
+  /** 作るチャットに結び付ける GitHub の issue・PR（GitHub タブの「新しいチャット」） */
+  github?: GitHubLink;
+  /** 初めの作業場所を新しいワークツリーにするときのブランチ名（GitHub タブで「新しいワークツリー」を選んだとき） */
+  newWorktreeBranch?: string;
 }
 
 /** 選んだ指示（列の順に、文は空行を挟んでつなぎ、添付は順に並べる）を 1 つの初めの入力にする */
