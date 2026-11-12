@@ -23,6 +23,7 @@ import { SettingsDialog, type SettingsSection } from "@/features/settings/Settin
 import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicator";
 import { HoverTip } from "@/ui/HoverTip";
 import { MemoProgress } from "@/features/memo/MemoProgress";
+import { ToastHost } from "@/ui/toast";
 import { GitHubDialogHost } from "@/features/github/GitHubDialogHost";
 import { QueueResumeHost } from "@/features/chat/queue/QueueResumeDialog";
 import { PrNoticeHost } from "@/features/worktree/prNotice/PrNoticeDialog";
@@ -199,6 +200,7 @@ export function App() {
         {/* マウスを乗せたときの説明（data-tip を付けた要素。アプリ全体で 1 つ） */}
         <HoverTip />
         <MemoProgress />
+        <ToastHost />
         {/* GitHub の新しい issue・マージの確認（GitHub タブとメモ・チャットの「issue にする」から） */}
         <GitHubDialogHost />
         {/* 起動したときの送信待ちの確かめ（前回の終了で、自動で送るまま送信待ちが残ったチャットを、送るか聞く） */}

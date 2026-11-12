@@ -21,6 +21,7 @@
 @import "./ui/dialogs.css";
 @import "./project/project-edit.css";
 @import "./ui/app-dialogs.css";
+@import "./ui/toast.css";
 @import "./project/new-project.css";
 @import "./palette/palette.css";
 @import "./palette/search.css";

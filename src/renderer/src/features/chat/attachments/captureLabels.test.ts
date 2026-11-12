@@ -17,8 +17,9 @@ const capture: CaptureAttachment = {
 };
 const clock = () => "01:30";
 
-test("captureSubline: 出どころと取った時刻", () => {
+test("captureSubline: 出どころと取った時刻、伏せた数・切った印", () => {
   assert.equal(captureSubline(capture, clock), "GitHub の issue · 01:30 に取得");
+  assert.equal(captureSubline({ ...capture, redacted: 2, truncated: true }, clock), "GitHub の issue · 01:30 に取得 · 鍵 2 か所を伏せた · 頭と終わりだけ");
 });
 
 test("captureTitle: 外から来たか・伏せた数・切ったことを書く", () => {

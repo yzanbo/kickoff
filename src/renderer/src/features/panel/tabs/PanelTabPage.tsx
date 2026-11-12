@@ -122,6 +122,8 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
     <NewChildPane
       parentId={t.parentId ?? t.chatId}
       quote={t.quote}
+      text={t.text}
+      attachments={t.attachments}
       eventId={t.eventId}
       onCreated={(child, opts) => {
         const place = t.follow ? createdChildPlace(opts) : "side";
