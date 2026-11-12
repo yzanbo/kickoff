@@ -3,14 +3,11 @@ import ELK from "elkjs/lib/elk-api";
 import elkWorkerUrl from "elkjs/lib/elk-worker.min.js?url";
 import type { DbErPositions, DbErTable } from "@shared/types";
 import type { ErRelation } from "@shared/database/erDiagram";
+import { ER_HEAD_HEIGHT, ER_PAD, ER_ROW_HEIGHT } from "./erBox";
 
 /** 列の出し方（すべて / 主キーと外部キーだけ / テーブル名だけ） */
 export type ErDetail = "all" | "keys" | "names";
 
-/** 箱の見出しと 1 行の高さ（ErTableNode の CSS と合わせる） */
-export const ER_HEAD_HEIGHT = 30;
-export const ER_ROW_HEIGHT = 22;
-const ER_PAD = 6;
 const ER_MIN_WIDTH = 160;
 const ER_MAX_WIDTH = 340;
 
