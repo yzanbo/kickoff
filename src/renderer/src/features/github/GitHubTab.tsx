@@ -15,8 +15,8 @@ import { GitHubFilterBar } from "./GitHubFilterBar";
 import { GitHubItemRow } from "./GitHubItemRow";
 import { useGitHubList } from "./useGitHubList";
 
-/** これより狭いときは、一覧と中身を切り替えて 1 つずつ出す（右の欄など） */
-const NARROW_WIDTH = 640;
+/** 中身の欄に残したい最小の幅。一覧の幅を足してこれが入らないときは、一覧と中身を切り替えて 1 つずつ出す（チャットの右の欄など） */
+const DETAIL_MIN_WIDTH = 440;
 
 /** 開いているもの（「issue:12」「pr:5」）を読む */
 function parseSelected(text: string): { kind: GitHubKind; number: number } | null {
@@ -62,14 +62,16 @@ function GitHubBrowser({ projectId, repo }: { projectId: number; repo: string })
   const meta = useKeyedAsync(String(projectId), () => api.githubMeta(projectId));
   const width = useDragSize({ setting: GITHUB_LIST_WIDTH, min: 260, keep: 360 });
   const root = useRef<HTMLDivElement>(null);
-  const [narrow, setNarrow] = useState(false);
+  const [rootWidth, setRootWidth] = useState<number | null>(null);
   useEffect(() => {
     const el = root.current;
     if (!el) return;
-    const observer = new ResizeObserver(() => setNarrow(el.clientWidth < NARROW_WIDTH));
+    const observer = new ResizeObserver(() => setRootWidth(el.clientWidth));
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  // 隠れて幅 0 の間は切り替えない（右の欄の裏のタブなど）
+  const narrow = rootWidth !== null && rootWidth > 0 && rootWidth < width.size + DETAIL_MIN_WIDTH;
 
   const change = (patch: Partial<GitHubListFilter>) => setFilters({ ...filters, [filter.kind]: { ...filter, ...patch } });
   const open = useCallback((item: GitHubItem) => setSelectedText(`${item.kind}:${item.number}`), [setSelectedText]);

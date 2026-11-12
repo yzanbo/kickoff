@@ -10,6 +10,7 @@ import { SideChildChat } from "@/features/chat/children/SideChildChat";
 import { NewChildPane } from "@/features/chat/children/NewChildPane";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { DatabaseClient } from "@/features/database/DatabaseClient";
+import { GitHubTab } from "@/features/github/GitHubTab";
 import { ProjectFileTab } from "@/features/editor/ProjectFileTab";
 import { SideFileView } from "@/features/editor/SideFileView";
 import { SideProjectView } from "./SideProjectView";
@@ -104,6 +105,8 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   memo: ({ tab: t, panel }) => <SideMemo projectId={t.projectId} path={t.path} chatId={t.chatId} onRenamed={(to) => panel.replaceTab(t.key, memoTab({ chatId: t.chatId, projectId: t.projectId, path: to }))} />,
   // チャットの画面の右の欄だけに開く。DB クライアント（開いているタブ・木の開き具合はチャットごとに覚える。別ウィンドウと同じ place）
   database: ({ tab: t }) => <DatabaseClient projectId={t.projectId} place={`chat-${t.chatId}`} worktree={t.worktree ?? null} />,
+  // チャットの画面の右の欄だけに開く。プロジェクトの「GitHub」タブと同じ画面（狭いので一覧と中身を切り替えて出す。絞り込みと開いているものはプロジェクトのタブと共通）
+  github: ({ tab: t }) => <GitHubTab projectId={t.projectId} />,
   child: ({ tab: t, panel, visible }) => (
     <SideChildChat
       chatId={t.childId}
