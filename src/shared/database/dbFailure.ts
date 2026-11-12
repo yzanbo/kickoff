@@ -52,7 +52,7 @@ const RULES: [DbFailureKind, RegExp][] = [
   ["dns", /ENOTFOUND|EAI_AGAIN|getaddrinfo|name or service not known|nodename nor servname/i],
   ["refused", /ECONNREFUSED|connection refused/i],
   ["timeout", /ETIMEDOUT|timeout|timed out|EHOSTUNREACH|ENETUNREACH|connection terminated unexpectedly/i],
-  ["file", /unable to open database|SQLITE_CANTOPEN|ENOENT|no such file|このワークツリーにはありません/i],
+  ["file", /unable to open database|SQLITE_CANTOPEN|ENOENT|no such file|ファイルが見つかりません|このワークツリーにはありません/i],
 ];
 
 /** 失敗の文から種類を見分ける（分からなければ other） */

@@ -1,5 +1,5 @@
 import { NotebookPen, Play, RotateCcw, Sparkles, StickyNote } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { appendDbMemoFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureKind, dbFixPrompt, dbMemoFixEntry } from "@shared/database/dbFailure";
 import { localToday } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/errors";
@@ -8,6 +8,7 @@ import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/lib/time";
+import { dbConnectionsStore } from "@/stores/dbConnections";
 import { confirmDialog, promptDialog } from "@/ui/dialogs";
 import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
@@ -81,6 +82,8 @@ export function DbFailureDialog({
   onClose: () => void;
 }) {
   const dialog = useModalDialog();
+  // つながった時刻はつなぐたびには知らせない（一覧を取り直させない）ので、開いたときに一覧を読み直して「最後につながった」を新しくする
+  useEffect(() => dbConnectionsStore.invalidate(projectId), [projectId]);
   const memo = useAsync(() => (c.memo_path ? api.memo(projectId, c.memo_path) : Promise.resolve(null)), [projectId, c.memo_path]);
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState<string>();
