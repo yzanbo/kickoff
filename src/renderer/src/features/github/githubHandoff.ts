@@ -62,14 +62,14 @@ export async function startChatWith(projectId: number, text: string, link: GitHu
 
 /**
  * チャットの入力欄の後ろに足して、そのチャットを開く（画面がまだなければ書きかけの文に足しておき、開いたときに入る）。
- * まだどれにも結び付いていないチャットなら link に結び付ける
+ * まだどれにも結び付いていないチャットなら link に結び付ける（null なら結び付けない。選んだ文の引用など）
  */
-export function addToChatWith(chat: Pick<Chat, "id" | "project_id" | "github_number">, text: string, link: GitHubLink) {
+export function addToChatWith(chat: Pick<Chat, "id" | "project_id" | "github_number">, text: string, link: GitHubLink | null) {
   const pane = chatPaneOf(chat.id);
   if (pane) pane.fillComposer(text, { append: true });
   else writeSetting(chatDraft(chat.id), appendBlock(readSetting(chatDraft(chat.id)), text));
   openChat(chat.project_id, chat.id);
-  if (chat.github_number === null) void api.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
+  if (link && chat.github_number === null) void api.setChatGitHub(chat.id, link).catch(reportFailure("GitHub との結び付きを保存できませんでした"));
 }
 
 /**

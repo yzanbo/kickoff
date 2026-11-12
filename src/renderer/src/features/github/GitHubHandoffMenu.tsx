@@ -46,44 +46,14 @@ export function GitHubHandoffMenu({ projectId, detail }: { projectId: number; de
 /** メニューの中身（開いている間だけ描くので、チャットの一覧はこのときだけ読む） */
 function HandoffItems({ projectId, detail }: { projectId: number; detail: GitHubIssueDetail | GitHubPullDetail }) {
   const link = linkOf(detail);
-  const mainChatId = useMainChat();
-  const mainChat = useKnownChat(mainChatId ?? 0);
-  const { chats } = useChats({ projectId, enabled: mainChatId === null });
-  const chatMenu = useSubmenu();
   const unresolved = isPull(detail) ? detail.review_threads.filter((t) => !t.resolved).length : 0;
-  const add = (chat: Chat) => addToChatWith(chat, itemPrompt(detail), link);
 
   return (
     <>
       <MenuItem title="作業場所（新しいワークツリー・本体・いまあるワークツリー）を選んで、題名・本文・コメントを入れた新しいチャットを開く" onSelect={() => void startChatWith(projectId, itemPrompt(detail), link)}>
         <SquarePen size={14} /> 新しいチャットで始める
       </MenuItem>
-      {/* 右の欄ではその欄のチャットへ。プロジェクトのタブでは最近動いたチャットから選ぶ */}
-      {mainChat ? (
-        <MenuItem title={`題名・本文・コメントを「${chatTitle(mainChat.title)}」の入力欄に足す`} onSelect={() => add(mainChat)}>
-          <AddToChat size={14} /> 「{chatTitle(mainChat.title)}」に追加
-        </MenuItem>
-      ) : chats.length === 0 ? (
-        <MenuItem disabled title="このプロジェクトにチャットがありません" onSelect={() => {}}>
-          <AddToChat size={14} /> チャットに追加
-        </MenuItem>
-      ) : (
-        <>
-          <button {...chatMenu.trigger}>
-            <AddToChat size={14} /> チャットに追加
-            <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
-          </button>
-          {chatMenu.anchor && (
-            <MenuFlyout anchor={chatMenu.anchor} label="チャットに追加" onBack={chatMenu.back}>
-              {chats.slice(0, CHAT_CHOICES).map((c) => (
-                <MenuItem key={c.id} title={`題名・本文・コメントを「${chatTitle(c.title)}」の入力欄に足して開く`} onSelect={() => add(c)}>
-                  {chatTitle(c.title)}
-                </MenuItem>
-              ))}
-            </MenuFlyout>
-          )}
-        </>
-      )}
+      <GitHubChatTargets projectId={projectId} what="題名・本文・コメント" onAdd={(chat) => addToChatWith(chat, itemPrompt(detail), link)} />
       {isPull(detail) && (
         <>
           <div className="menu-separator" role="separator" />
@@ -99,6 +69,48 @@ function HandoffItems({ projectId, detail }: { projectId: number; detail: GitHub
             <Wrench size={14} /> レビューコメントで直す{unresolved > 0 ? `（${unresolved}）` : ""}
           </MenuItem>
         </>
+      )}
+    </>
+  );
+}
+
+/**
+ * 「チャットに追加」の項目（メニューの中で使う）: 右の欄ではその欄のチャット（MainChatContext）の「「チャット名」に追加」、
+ * プロジェクトのタブでは「チャットに追加 ▸」でこのプロジェクトの最近動いたチャットから選ぶ。what は足すもの（乗せたときの説明に使う）
+ */
+export function GitHubChatTargets({ projectId, what, onAdd }: { projectId: number; what: string; onAdd: (chat: Chat) => void }) {
+  const mainChatId = useMainChat();
+  const mainChat = useKnownChat(mainChatId ?? 0);
+  const { chats } = useChats({ projectId, enabled: mainChatId === null });
+  const chatMenu = useSubmenu();
+  if (mainChat) {
+    return (
+      <MenuItem title={`${what}を「${chatTitle(mainChat.title)}」の入力欄に足す`} onSelect={() => onAdd(mainChat)}>
+        <AddToChat size={14} /> 「{chatTitle(mainChat.title)}」に追加
+      </MenuItem>
+    );
+  }
+  if (chats.length === 0) {
+    return (
+      <MenuItem disabled title="このプロジェクトにチャットがありません" onSelect={() => {}}>
+        <AddToChat size={14} /> チャットに追加
+      </MenuItem>
+    );
+  }
+  return (
+    <>
+      <button {...chatMenu.trigger}>
+        <AddToChat size={14} /> チャットに追加
+        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
+      </button>
+      {chatMenu.anchor && (
+        <MenuFlyout anchor={chatMenu.anchor} label="チャットに追加" onBack={chatMenu.back}>
+          {chats.slice(0, CHAT_CHOICES).map((c) => (
+            <MenuItem key={c.id} title={`${what}を「${chatTitle(c.title)}」の入力欄に足して開く`} onSelect={() => onAdd(c)}>
+              {chatTitle(c.title)}
+            </MenuItem>
+          ))}
+        </MenuFlyout>
       )}
     </>
   );

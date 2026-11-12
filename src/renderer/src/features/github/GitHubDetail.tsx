@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowLeft, ExternalLink, TriangleAlert } from "lucide-react";
 import type { GitHubKind, GitHubPullDetail } from "@shared/types";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
@@ -14,6 +14,7 @@ import { GitHubHandoffMenu } from "./GitHubHandoffMenu";
 import { fixReviewComments } from "./githubHandoff";
 import { linkOf } from "./githubPrompt";
 import { useGitHubDetail, type GitHubDetail as Detail } from "./useGitHubDetail";
+import { useGitHubBodyActions } from "./useGitHubBodyActions";
 
 /** PR の中身の切り替え */
 const PR_VIEWS = ["conversation", "files", "checks"] as const;
@@ -94,7 +95,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
       {!data && !detail.error && <p className="muted small github-detail-loading">読み込み中…</p>}
       {data && (
         <ThreadHandoffContext.Provider value={isPull(data) ? (thread) => void fixReviewComments(projectId, data, linkOf(data), [thread]) : null}>
-        <div className="github-detail-body">
+        <DetailBody projectId={projectId} detail={data}>
           {isPull(data) && view === "checks" ? (
             <GitHubChecksList checks={data.checks} />
           ) : isPull(data) && view === "files" ? (
@@ -111,9 +112,20 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
               <GitHubTimeline entries={data.timeline} threads={isPull(data) ? data.review_threads : []} truncated={data.timeline_truncated} />
             </>
           )}
-        </div>
+        </DetailBody>
         </ThreadHandoffContext.Provider>
       )}
     </section>
+  );
+}
+
+/** 中身の本文の入れ物（本文の中のこのリポジトリの #番号 のリンクは Kickoff の中で開き、選んだ文は右クリックでチャットに追加。useGitHubBodyActions） */
+function DetailBody({ projectId, detail, children }: { projectId: number; detail: Detail; children: ReactNode }) {
+  const actions = useGitHubBodyActions(projectId, detail);
+  return (
+    <div className="github-detail-body" onClick={actions.onClick} onContextMenu={actions.onContextMenu}>
+      {children}
+      {actions.menu}
+    </div>
   );
 }
