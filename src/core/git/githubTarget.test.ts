@@ -28,6 +28,11 @@ test("git remote -v: 取ってくる側の GitHub の remote だけを、名前�
   ]);
 });
 
+test("git remote -v: 部分クローンの remote（行の終わりの「 [blob:none]」）も読む", () => {
+  const out = "origin\thttps://github.com/cli/cli (fetch) [blob:none]\norigin\thttps://github.com/cli/cli (push)\n";
+  assert.deepEqual(parseGitHubRemotes(out), [{ name: "origin", repo: "cli/cli", url: "https://github.com/cli/cli" }]);
+});
+
 const remote = (name: string, repo: string): GitHubRemote => ({ name, repo, url: `https://github.com/${repo}.git` });
 
 test("自動で選ぶ連携先: gh repo set-default → upstream → origin → 最初のもの", () => {
