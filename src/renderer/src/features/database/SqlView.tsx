@@ -12,6 +12,7 @@ import type { DbSqlTab } from "@/lib/dbClientTabs";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { DB_SQL_EDITOR_HEIGHT, dbSqlDraft } from "@/lib/storageKeys";
 import { alertDialog } from "@/ui/dialogs";
+import { SqlAssistButton } from "./DbAiButtons";
 import { useDbClient } from "./dbClientContext";
 import { DbWriteBand } from "./DbWriteBand";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
@@ -200,6 +201,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
             </button>
           )}
           <SqlHistoryButton connection={connection} onPick={(sql) => editor.current?.append(sql)} />
+          <SqlAssistButton connection={connection} editor={editor} />
           <span className="db-sql-spacer" />
           <span className={cx("db-sql-env small", `db-env-${connection.environment}`)}>
             <span className="db-env-dot" aria-hidden />

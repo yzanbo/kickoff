@@ -53,4 +53,6 @@ test("previewRowsSql: 値を文字列の形で埋めた、見せるための SQL
     `SELECT * FROM "users" WHERE "name" = 'O''Neil' ORDER BY "id" DESC LIMIT 100`,
   );
   assert.equal(previewRowsSql("t", { filters: [], where: "a = 1" }, [], q, 100), `SELECT * FROM "t" WHERE (a = 1) LIMIT 100`);
+  // 場所つきの名前（SQL のタブで開くとき）
+  assert.equal(previewRowsSql("t", { filters: [], where: null }, [], q, 100, `"app"."t"`), `SELECT * FROM "app"."t" LIMIT 100`);
 });

@@ -101,8 +101,11 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
       setState(preview ? openPreviewTab(state, tab, (key) => unsavedTables.has(unsavedKey(place, key))) : openTableTab(state, tab));
       setOverlay(false);
     },
-    openSql: (c) => {
-      setState(openNewSqlTab(state, c.id));
+    openSql: (c, sql) => {
+      const next = openNewSqlTab(state, c.id);
+      // SQL のタブは開いたときに書きかけを読むので、先に書いておく
+      if (sql && next.active) writeSetting(dbSqlDraft(`${place}:${next.active}`), sql);
+      setState(next);
       setOverlay(false);
     },
     openEr: (c, path, focus) => {

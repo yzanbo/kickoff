@@ -11,6 +11,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { HighlightedCode } from "@/ui/HighlightedCode";
 import { RefreshButton } from "@/ui/IconButton";
 import { Segmented } from "@/ui/Segmented";
+import { AskAiButton, OpenAsSqlButton } from "./DbAiButtons";
 import { useDbClient } from "./dbClientContext";
 import { objectPathLabel } from "./dbFormat";
 import { DbWriteBand } from "./DbWriteBand";
@@ -76,6 +77,10 @@ export function TableView({
         </span>
         <span className="db-view-kind">{DB_OBJECT_KIND_LABELS[tab.object]}</span>
         <Segmented className="segmented db-view-switch" label="表示" value={view} options={VIEWS} onChange={setView} />
+        <span className="db-view-actions">
+          <AskAiButton connection={connection} path={tab.path} tables={[tab.name]} />
+          <OpenAsSqlButton connection={connection} tab={tab} filter={data.filter} sort={data.sort} />
+        </span>
         <RefreshButton
           label="取り直す"
           busy={detail.loading || data.loading}

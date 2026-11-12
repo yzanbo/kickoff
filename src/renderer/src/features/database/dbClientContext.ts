@@ -12,7 +12,8 @@ export interface DbClientActions {
   useMain(connectionId: number): void;
   /** テーブルのタブを開く（filter を渡せばその絞り込みで。外部キーで移るとき。preview なら仮のタブ（木で 1 回押したとき）） */
   openTable(connection: DbConnection, path: DbObjectPath, name: string, object: DbObjectKind, filter?: DbRowFilter, preview?: boolean): void;
-  openSql(connection: DbConnection): void;
+  /** 新しい SQL のタブを開く（sql を渡せば、入力欄にそれを書いて） */
+  openSql(connection: DbConnection, sql?: string): void;
   /** ER 図のタブを開く（focus があればそのテーブルのまわりだけ） */
   openEr(connection: DbConnection, path: DbObjectPath, focus: string | null): void;
   /** 接続の登録・編集のダイアログ（null なら新しく作る） */

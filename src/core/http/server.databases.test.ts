@@ -627,6 +627,25 @@ test("接続の状態: 木・SQL のタブの接続を開いたらつないだ�
   assert.deepEqual((await call("GET", `${list}/connected`)).body, { ids: [] });
 });
 
+test("SQL の「AI に頼む」: テーブルと列の名前と頼みを AI に渡して SQL を返す。AI に見せない接続は断る", async () => {
+  const { call, project, provider } = setup();
+  makeSqlite(project.repo_path);
+  const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
+  const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
+  provider.askReply = "```sql\nSELECT count(*) FROM users;\n```";
+  const res = await call("POST", `${base}/sql-assist`, { path: { database: "main", schema: null }, request: "ユーザーの数", sql: "" });
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, { sql: "SELECT count(*) FROM users;" });
+  const asked = provider.asked.at(-1);
+  assert.equal(asked?.model, "sonnet");
+  assert.match(asked?.prompt ?? "", /- users\(id, name, avatar\)/);
+  assert.match(asked?.prompt ?? "", /<頼み>\nユーザーの数\n<\/頼み>/);
+  // 中身の値は渡さない
+  assert.doesNotMatch(asked?.prompt ?? "", /'b'|"b"/);
+  await call("PATCH", base, { ai_access: "none" });
+  assert.equal((await call("POST", `${base}/sql-assist`, { path: { database: "main", schema: null }, request: "x", sql: "" })).status, 400);
+});
+
 test("接続を消すと、その接続のワーカーの接続（SQL のタブの途中のトランザクションも）を閉じる", async () => {
   const { call, project, databases } = setup();
   makeSqlite(project.repo_path);
