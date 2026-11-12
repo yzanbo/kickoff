@@ -1,0 +1,80 @@
+/* ==== 「AI に渡す」で取ったものの札と、中身を読むだけのダイアログ（ふつうの添付の札は attachments.css） ==== */
+
+/* 「AI に渡す」で取ったもの: 押すと取った中身を読むだけのダイアログで見る。外から来た中身は名前の後ろに盾の印 */
+.capture-attachment .attachment-link {
+  padding: 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  background: none;
+  cursor: pointer;
+}
+
+.capture-attachment .attachment-icon {
+  color: var(--muted);
+}
+
+.capture-attachment .attachment-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.capture-external {
+  flex: none;
+  color: var(--warn);
+}
+
+.dialog.app-dialog.capture-viewer {
+  display: grid;
+  gap: 8px;
+  width: min(760px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+  padding: 14px 16px;
+}
+
+.capture-viewer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.capture-viewer-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.capture-viewer-note {
+  margin: 0;
+}
+
+.capture-viewer-body {
+  max-height: calc(100vh - 200px);
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg);
+}
+
+/* 画像の札（ブラウザの画面）の中身: ダイアログに収めて全体を見せる */
+.capture-viewer-image {
+  max-width: 100%;
+  max-height: calc(100vh - 200px);
+  justify-self: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  object-fit: contain;
+}

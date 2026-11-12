@@ -68,12 +68,14 @@ export interface ChatPatch {
 
 /**
  * 「AI に渡す」で取る中身（POST /api/captures）。コアが鍵らしい値を伏せ、添付の上限を超えれば頭と終わりを残して切ってから保存し、CaptureAttachment を返す。
- * tail_share は残す分のうち終わりに回す割合（ログは多め。省けば半分）
+ * tail_share は残す分のうち終わりに回す割合（ログは多め。省けば半分）。
+ * 中身は文 text か、画像 image_base64（ブラウザの画面など。mime は画像の形式。伏せず・切らず、添付の上限を超えれば 400）のどちらか 1 つ
  */
 export interface CaptureBody {
   name: string;
   mime?: string;
-  text: string;
+  text?: string;
+  image_base64?: string;
   source: AttachmentSource;
   tail_share?: number;
 }

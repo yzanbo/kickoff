@@ -195,7 +195,7 @@ export interface QueuedMessage extends MessageMarks {
 /**
  * 「AI に渡す」で取ったもの（capture の添付）の出どころの種類。札のアイコン・見出しの名前・外から来た中身かは `@shared/attachment/sources` の表で決める
  */
-export const ATTACHMENT_SOURCE_TYPES = ["github_issue", "github_pull", "github_review", "db_failure"] as const;
+export const ATTACHMENT_SOURCE_TYPES = ["github_issue", "github_pull", "github_review", "db_failure", "browser_console", "browser_screen", "terminal"] as const;
 export type AttachmentSourceType = (typeof ATTACHMENT_SOURCE_TYPES)[number];
 
 /** capture の添付の出どころ（種類・札と見出しに出す名前「#12 ログインで落ちる」・元を開くリンク） */

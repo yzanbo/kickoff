@@ -12,14 +12,22 @@ import { lookups, requireProject } from "../lookups.js";
 import { jsonBody } from "../input.js";
 import { attachmentSourceSchema } from "./schemas.js";
 
-/** 「AI に渡す」で取る中身（文字数は切る前の上限。保存するときに添付の上限まで切る） */
-const captureSchema = z.object({
-  name: z.string().min(1).max(200),
-  mime: z.string().max(200).default("text/markdown"),
-  text: z.string().max(200_000_000),
-  source: attachmentSourceSchema,
-  tail_share: z.number().min(0).max(1).optional(),
-}) satisfies z.ZodType<CaptureBody>;
+/** 「AI に渡す」で取る画像の形式（画面で大きく見られ、AI が Read で読めるもの） */
+const CAPTURE_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+
+/** 「AI に渡す」で取る中身（文字数は切る前の上限。保存するときに添付の上限まで切る）。文か画像のどちらか 1 つ */
+const captureSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    mime: z.string().max(200).default("text/markdown"),
+    text: z.string().max(200_000_000).optional(),
+    // 添付の上限（30MB）の base64 より少し長くまで受け、上限は保存するときに確かめる
+    image_base64: z.string().max(45_000_000).optional(),
+    source: attachmentSourceSchema,
+    tail_share: z.number().min(0).max(1).optional(),
+  })
+  .refine((b) => (b.text === undefined) !== (b.image_base64 === undefined), "中身は text か image_base64 のどちらか 1 つで送ってください")
+  .refine((b) => b.image_base64 === undefined || CAPTURE_IMAGE_TYPES.includes(b.mime), "画像の形式が対応していません") satisfies z.ZodType<CaptureBody>;
 
 /** 添付ファイル（受け取り・画面での表示）と、ツールの結果の画像の表示 */
 export function uploadRoutes(app: Hono, { uploads, store, memos }: ServerDeps) {
@@ -34,10 +42,14 @@ export function uploadRoutes(app: Hono, { uploads, store, memos }: ServerDeps) {
     return c.json(attachment, 201);
   });
 
-  // 「AI に渡す」で押したときの中身を添付として保存する（鍵らしい値を伏せ、大きすぎれば頭と終わりを残して切る。入力欄の札になる）
+  // 「AI に渡す」で押したときの中身を添付として保存する（文は鍵らしい値を伏せ、大きすぎれば頭と終わりを残して切る。画像はそのまま。入力欄の札になる）
   app.post("/api/captures", async (c) => {
     const body = captureSchema.parse(await jsonBody(c));
-    return c.json(await uploads.saveCapture({ name: body.name, mime: body.mime, text: body.text, source: body.source, tailShare: body.tail_share }), 201);
+    if (body.image_base64 !== undefined) {
+      const bytes = new Uint8Array(Buffer.from(body.image_base64, "base64"));
+      return c.json(await uploads.saveCaptureImage({ name: body.name, mime: body.mime, bytes, source: body.source }), 201);
+    }
+    return c.json(await uploads.saveCapture({ name: body.name, mime: body.mime, text: body.text ?? "", source: body.source, tailShare: body.tail_share }), 201);
   });
 
   app.post("/api/uploads", async (c) => {

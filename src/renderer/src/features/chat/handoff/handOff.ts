@@ -21,8 +21,8 @@ export interface HandOffItem {
   what: string;
   /** 入力欄に入れる一言（書き換えられる。空なら札だけ） */
   text: string;
-  /** 押した時点の中身を添付にする（コアが鍵らしい値を伏せて保存した札）。なければ一言だけ（選んだ文の引用など） */
-  capture?: () => Promise<Attachment>;
+  /** 押した時点の中身を添付にする（コアが鍵らしい値を伏せて保存した札。ブラウザの画面とコンソールのように、いくつかまとめてもよい）。なければ一言だけ（選んだ文の引用など） */
+  capture?: () => Promise<Attachment | Attachment[]>;
   /** 結び付ける issue・PR（新しいチャット・まだ結び付いていないチャットに付ける） */
   link?: GitHubLink;
   /** 新しいワークツリーの名前の案（なければ作業場所を聞かずに本体で始める） */
@@ -37,7 +37,7 @@ const failed = reportFailure("AI に渡す中身を取れませんでした");
 async function captureOf(item: HandOffItem): Promise<Attachment[] | null> {
   if (!item.capture) return [];
   try {
-    return [await item.capture()];
+    return [await item.capture()].flat();
   } catch (e) {
     failed(e);
     return null;

@@ -73,6 +73,7 @@
 @import "./chat/activity-rails.css";
 @import "./chat/context-meter.css";
 @import "./chat/attachments.css";
+@import "./chat/capture-attachments.css";
 @import "./ui/image-viewer.css";
 @import "./chat/approval.css";
 @import "./chat/question-card.css";
