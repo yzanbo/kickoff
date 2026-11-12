@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { DbColumnInfo, DbValue } from "@shared/types";
-import { detailText, exportRows, foreignKeysByColumn, linkFilters, valueFilter } from "./dbRowTools";
+import { detailText, exportRows, foreignKeysByColumn, hasLongValue, linkFilters, rowKeyFilters, valueFilter } from "./dbRowTools";
 
 const cols: DbColumnInfo[] = [
   { name: "id", type: "integer" },
@@ -47,4 +47,21 @@ test("exportRows: CSV は区切り・\"・改行を含むセルだけ囲み、TS
   assert.equal(exportRows(cols, rows, "tsv"), 'id\tuser_id\tnote\n1\t\ta,"b"\n2\t3\tx y z\n');
   assert.deepEqual(JSON.parse(exportRows(cols, rows.slice(0, 1), "json")), [{ id: 1, user_id: null, note: 'a,"b"' }]);
   assert.equal(exportRows(cols.slice(0, 1), [[{ binary: true, bytes: 2, head: "0102" }]], "csv"), "id\n\\x0102\n");
+});
+
+test("頭だけの長い文字: 絞れない・行の詳細は頭と「…」・書き出しは頭・行を指す条件はキーの列から", () => {
+  const long: DbValue = { long: true, head: "ab", chars: 20_000 };
+  assert.equal(valueFilter("note", long, false), null);
+  assert.deepEqual(detailText(long), { text: "ab…", kind: "long" });
+  assert.equal(exportRows(cols.slice(2), [[long]], "csv"), "note\nab\n");
+  assert.equal(hasLongValue([1, null, long]), true);
+  assert.equal(hasLongValue([1, "x"]), false);
+  assert.deepEqual(rowKeyFilters(cols, [3, null, long], ["id"]), [{ column: "id", op: "eq", value: "3" }]);
+  assert.deepEqual(rowKeyFilters(cols, [3, null, long], ["id", "user_id"]), [
+    { column: "id", op: "eq", value: "3" },
+    { column: "user_id", op: "is_null", value: "" },
+  ]);
+  assert.equal(rowKeyFilters(cols, [3, null, long], ["note"]), null);
+  assert.equal(rowKeyFilters(cols, [3, null, long], null), null);
+  assert.equal(rowKeyFilters(cols, [3, null, long], ["nope"]), null);
 });

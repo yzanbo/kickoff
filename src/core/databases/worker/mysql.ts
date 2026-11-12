@@ -244,7 +244,7 @@ class MysqlDriver implements DbDriver {
     };
   }
 
-  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter): Promise<DbQueryResult> {
+  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter, full = false): Promise<DbQueryResult> {
     const db = await this.databaseOf(path);
     const where = filterSql(filter, DIALECT);
     const order = sort.length > 0 ? ` ORDER BY ${sort.map((s) => `${quoteName(s.column)}${s.desc ? " DESC" : ""}`).join(", ")}` : "";
@@ -257,7 +257,7 @@ class MysqlDriver implements DbDriver {
     );
     return {
       columns: fields.map((f) => ({ name: f.name, type: typeName(f) })),
-      rows: rows.slice(0, limit).map((r) => r.map(toDbValue)),
+      rows: rows.slice(0, limit).map((r) => r.map((v) => toDbValue(v, full))),
       truncated: rows.length > limit,
       affected: null,
       duration_ms: performance.now() - started,
@@ -311,7 +311,7 @@ class MysqlDriver implements DbDriver {
           return;
         }
         if (rows.length < maxRows) {
-          rows.push(row.map(toDbValue));
+          rows.push(row.map((v) => toDbValue(v)));
         } else if (!truncated) {
           // 上限に届いた。続きは送らせない
           truncated = true;

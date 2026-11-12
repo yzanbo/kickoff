@@ -257,7 +257,7 @@ class PostgresDriver implements DbDriver {
     return parts.join("\n\n");
   }
 
-  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter): Promise<DbQueryResult> {
+  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter, full = false): Promise<DbQueryResult> {
     const rel = await this.relation(path, name);
     const where = filterSql(filter, DIALECT);
     const n = where.params.length;
@@ -272,7 +272,7 @@ class PostgresDriver implements DbDriver {
       });
       return {
         columns: result.fields.map((f) => ({ name: f.name, type: TYPE_NAMES.get(f.dataTypeID) ?? null })),
-        rows: (result.rows as unknown[][]).slice(0, limit).map((r) => r.map(toDbValue)),
+        rows: (result.rows as unknown[][]).slice(0, limit).map((r) => r.map((v) => toDbValue(v, full))),
         truncated: result.rows.length > limit,
         affected: null,
         duration_ms: performance.now() - started,
@@ -321,7 +321,7 @@ class PostgresDriver implements DbDriver {
     // 閉じ終える（ReadyForQuery が届く）と、トランザクションの様子が決まる
     await this.closeCursor(cursor);
     const fields = read.result.fields ?? [];
-    const values: DbValue[][] = read.rows.slice(0, maxRows).map((r) => r.map(toDbValue));
+    const values: DbValue[][] = read.rows.slice(0, maxRows).map((r) => r.map((v) => toDbValue(v)));
     return {
       columns: fields.map((f) => ({ name: f.name, type: TYPE_NAMES.get(f.dataTypeID) ?? null })),
       rows: values,

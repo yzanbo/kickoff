@@ -229,8 +229,18 @@ export const DB_NOT_IN_WORKTREE = "db_file_not_in_worktree";
 
 // ---- 中身（いつも接続先に聞き、Kickoff には保存しない） ----
 
-/** セルの値（JSON で送れる形。大きな整数は文字列、日時は ISO の文字列、バイナリは大きさと頭の数バイト） */
-export type DbValue = string | number | boolean | null | DbBinary;
+/** セルの値（JSON で送れる形。大きな整数は文字列、日時は ISO の文字列、バイナリは大きさと頭の数バイト、長い文字は頭だけ） */
+export type DbValue = string | number | boolean | null | DbBinary | DbLongText;
+/** 長い文字（DB_VALUE_HEAD_CHARS を超えるものは頭だけ送る。テーブルの行の詳細を開いたら残りを取る） */
+export interface DbLongText {
+  long: true;
+  /** 頭の DB_VALUE_HEAD_CHARS 文字 */
+  head: string;
+  /** 全体の文字数 */
+  chars: number;
+}
+/** これより長い文字の値は頭だけ送る（10KB ほど） */
+export const DB_VALUE_HEAD_CHARS = 10_000;
 export interface DbBinary {
   binary: true;
   /** 全体のバイト数 */

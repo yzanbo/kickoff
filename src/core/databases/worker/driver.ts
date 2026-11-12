@@ -16,8 +16,8 @@ export interface DbDriver {
   table(path: DbObjectPath, name: string): Promise<DbTableDetail>;
   /** 関数・列挙型の定義（ない種類は失敗にする） */
   definition(path: DbObjectPath, kind: "function" | "enum", name: string): Promise<DbDefinition>;
-  /** テーブルの行（filter の値は params で渡す。@shared/database/dbFilter の filterSql） */
-  rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter): Promise<DbQueryResult>;
+  /** テーブルの行（filter の値は params で渡す。@shared/database/dbFilter の filterSql。長い文字は頭だけ、full なら全体） */
+  rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter, full?: boolean): Promise<DbQueryResult>;
   count(path: DbObjectPath, name: string, filter: DbRowFilter): Promise<number>;
   outline(path: DbObjectPath): Promise<DbOutlineTable[]>;
   /** 1 つの文を流し、max_rows 行まで読む */

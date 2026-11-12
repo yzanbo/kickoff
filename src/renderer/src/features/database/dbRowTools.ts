@@ -1,7 +1,8 @@
 // テーブルのデータの補助（セルの値で絞る・外部キーで移る条件・行の詳細の値の整え方・CSV / TSV / JSON の書き出し）。React に依らない
 import type { DbColumnInfo, DbFilter, DbForeignKey, DbValue } from "@shared/types";
+import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
 
-/** 絞り込みの値にする文（NULL は null、バイナリは絞れないので undefined） */
+/** 絞り込みの値にする文（NULL は null、バイナリ・頭だけの長い文字は絞れないので undefined） */
 export function filterValueOf(value: DbValue): string | null | undefined {
   if (value === null) return null;
   if (typeof value === "object") return undefined;
@@ -32,6 +33,23 @@ export function linkFilters(row: DbValue[], columns: DbColumnInfo[], from: strin
   return filters.length > 0 ? filters : null;
 }
 
+/** 頭だけの長い文字を含む行か */
+export const hasLongValue = (row: DbValue[]) => row.some(isDbLongText);
+
+/** 行を指すキーの列の条件（全体を読み直すとき。キーの列がない・値がバイナリや頭だけの文字なら null） */
+export function rowKeyFilters(columns: DbColumnInfo[], row: DbValue[], keyColumns: string[] | null): DbFilter[] | null {
+  if (!keyColumns || keyColumns.length === 0) return null;
+  const filters: DbFilter[] = [];
+  for (const name of keyColumns) {
+    const at = columns.findIndex((c) => c.name === name);
+    if (at < 0) return null;
+    const v = filterValueOf(row[at]);
+    if (v === undefined) return null;
+    filters.push(v === null ? { column: name, op: "is_null", value: "" } : { column: name, op: "eq", value: v });
+  }
+  return filters;
+}
+
 /** 列 → その列を含む外部キー（セルの右クリック・行の詳細で参照先へ移る） */
 export function foreignKeysByColumn(fks: DbForeignKey[]): Map<string, DbForeignKey[]> {
   const map = new Map<string, DbForeignKey[]>();
@@ -39,9 +57,10 @@ export function foreignKeysByColumn(fks: DbForeignKey[]): Map<string, DbForeignK
   return map;
 }
 
-/** 行の詳細で見せる値（JSON の文字列は整えて、空文字は「（空文字）」と分かるように） */
-export function detailText(value: DbValue): { text: string; kind: "null" | "binary" | "json" | "empty" | "text" } {
+/** 行の詳細で見せる値（JSON の文字列は整えて、空文字は「（空文字）」と分かるように。頭だけの長い文字は頭と「…」） */
+export function detailText(value: DbValue): { text: string; kind: "null" | "binary" | "long" | "json" | "empty" | "text" } {
   if (value === null) return { text: "NULL", kind: "null" };
+  if (isDbLongText(value)) return { text: `${value.head}…`, kind: "long" };
   if (typeof value === "object") return { text: `${value.bytes.toLocaleString()} バイト\n${value.head}${value.bytes > value.head.length / 2 ? "…" : ""}`, kind: "binary" };
   const text = String(value);
   if (text === "") return { text: "（空文字）", kind: "empty" };
@@ -60,8 +79,8 @@ export function detailText(value: DbValue): { text: string; kind: "null" | "bina
 export const DB_EXPORT_FORMATS = ["csv", "tsv", "json"] as const;
 export type DbExportFormat = (typeof DB_EXPORT_FORMATS)[number];
 
-/** 書き出すときのセルの文（NULL は空、バイナリは 16 進の頭に \x） */
-const exportCell = (value: DbValue) => (value === null ? "" : typeof value === "object" ? `\\x${value.head}` : String(value));
+/** 書き出すときのセルの文（NULL は空、バイナリは 16 進の頭に \x。頭だけの長い文字は頭。書き出す前に全体を取っておく） */
+const exportCell = (value: DbValue) => (value === null ? "" : isDbBinary(value) ? `\\x${value.head}` : isDbLongText(value) ? value.head : String(value));
 
 /** CSV（区切りや " や改行を含むセルは " で囲み、" は 2 つに）・TSV（タブ・改行は空白に） */
 function delimited(columns: DbColumnInfo[], rows: DbValue[][], format: "csv" | "tsv"): string {

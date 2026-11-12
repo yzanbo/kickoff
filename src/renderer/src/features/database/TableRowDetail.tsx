@@ -1,10 +1,16 @@
 import { ArrowUpRight, CornerDownLeft, KeyRound, Link } from "lucide-react";
 import type { DbColumnInfo, DbTableDetail, DbValue } from "@shared/types";
+import { isDbLongText } from "@shared/database/dbValue";
 import { cx } from "@/lib/cx";
 import { CloseButton } from "@/ui/IconButton";
 import { CopyButton } from "@/ui/CopyButton";
 import { detailText, foreignKeysByColumn, linkFilters } from "./dbRowTools";
 import type { RowLink } from "./TableData";
+
+/** 頭だけの長い文字の添え書き（残りは TableData が読み直す。キーの列がなければ読めない） */
+function longNote(value: DbValue): string {
+  return isDbLongText(value) ? `全体 ${value.chars.toLocaleString()} 文字のうち、頭の ${value.head.length.toLocaleString()} 文字だけです（残りを読んでいます。行を指す列がない表では読めません）` : "";
+}
 
 /**
  * 行の詳細（選んだセルの行を縦に並べる。JSON は整え、空文字・NULL・バイナリは分かる形に）。
@@ -50,10 +56,11 @@ export function TableRowDetail({
                 {pk.has(c.name) ? <KeyRound size={11} className="db-tree-pk" aria-hidden /> : fks.has(c.name) ? <Link size={11} aria-hidden /> : null}
                 <span className="db-row-detail-name">{c.name}</span>
                 {c.type && <span className="db-row-detail-type">{c.type}</span>}
-                {shown.kind !== "null" && shown.kind !== "binary" && <CopyButton label={`${c.name} の値をコピー`} size={11} text={String(row[i])} className="db-row-detail-copy" />}
+                {shown.kind !== "null" && shown.kind !== "binary" && shown.kind !== "long" && <CopyButton label={`${c.name} の値をコピー`} size={11} text={String(row[i])} className="db-row-detail-copy" />}
               </dt>
               <dd>
                 <pre className={cx("db-row-detail-value", `kind-${shown.kind}`)}>{shown.text}</pre>
+                {shown.kind === "long" && <p className="small muted">{longNote(row[i])}</p>}
                 {links.map(({ fk, filters }) => (
                   <button
                     key={`${fk.ref_table}:${fk.columns.join(",")}`}

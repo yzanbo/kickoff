@@ -1,18 +1,20 @@
 // DB クライアントの表示の補助（セルの文・接続の行の説明・列の並べ替えの切り替え）。React に依らない
 import type { DbConnection, DbObjectPath, DbSort, DbValue } from "@shared/types";
+import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { formatBytes } from "@/lib/format";
 
-/** セルに出す文（NULL・バイナリの札・真偽値） */
+/** セルに出す文（NULL・バイナリの札・真偽値・長い文字は頭と「…」） */
 export function cellText(value: DbValue): string {
   if (value === null) return "NULL";
-  if (typeof value === "object") return `バイナリ ${formatBytes(value.bytes)}`;
+  if (isDbBinary(value)) return `バイナリ ${formatBytes(value.bytes)}`;
+  if (isDbLongText(value)) return `${value.head}…`;
   return String(value);
 }
 
 /** セルの値の種類（見た目のクラスに使う。NULL・バイナリは薄く、数は右寄せ） */
 export function cellKind(value: DbValue): "null" | "binary" | "number" | "text" {
   if (value === null) return "null";
-  if (typeof value === "object") return "binary";
+  if (isDbBinary(value)) return "binary";
   if (typeof value === "number") return "number";
   return "text";
 }

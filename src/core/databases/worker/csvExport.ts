@@ -9,7 +9,7 @@ import { toDbValue } from "./values.js";
 /** CSV の 1 つのセル（NULL は空・バイナリは \x と 16 進のすべて。区切り・"・改行・頭や後ろの空白を含むものだけ "…" で囲む） */
 export function csvCell(raw: unknown): string {
   if (raw === null || raw === undefined) return "";
-  const text = raw instanceof Uint8Array ? `\\x${Buffer.from(raw).toString("hex")}` : String(toDbValue(raw) ?? "");
+  const text = raw instanceof Uint8Array ? `\\x${Buffer.from(raw).toString("hex")}` : String(toDbValue(raw, true) ?? "");
   return /[",\r\n]|^\s|\s$/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
@@ -78,7 +78,7 @@ export async function exportQuery(driver: DbDriver, sql: string, file: string, h
     (out as CsvFile | null)?.close();
     return {
       columns,
-      rows: head.map((r) => r.map(toDbValue)),
+      rows: head.map((r) => r.map((v) => toDbValue(v))),
       total_rows: total,
       file: out ? file : null,
       affected,

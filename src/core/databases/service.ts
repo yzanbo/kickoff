@@ -6,7 +6,7 @@ import path from "node:path";
 import { editStatements } from "@shared/database/dbEdit";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
 import { hasConnectCommands, normalizePrep, type DbPrepVars } from "@shared/database/dbPrep";
-import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbEngine, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
+import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbEngine, DbFilter, DbFullRow, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
@@ -290,6 +290,15 @@ export class DatabaseService {
   rows(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, name: string, sort: DbSort[], offset: number, filter: DbRowFilter) {
     assertWhere(filter, connection.engine);
     return this.browse("rows", connection, project, workdir, objectPath, { name, sort, offset, limit: DB_TABLE_PAGE_ROWS, filter });
+  }
+
+  /** テーブルの 1 行を全体のまま（長い文字の残りを取る。条件がちょうど 1 行に当たらなければ失敗） */
+  async fullRow(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, name: string, filters: DbFilter[]): Promise<DbFullRow> {
+    if (filters.length === 0) throw new Invalid("行を指す条件がありません");
+    const result = await this.browse("rows", connection, project, workdir, objectPath, { name, sort: [], offset: 0, limit: 2, filter: { filters, where: null }, full: true });
+    if (result.rows.length === 0) throw new NotFound("行が見つかりません（ほかで変わったか、消えたのかもしれません）");
+    if (result.rows.length > 1) throw new Invalid("行を 1 つに決められません");
+    return { columns: result.columns, row: result.rows[0]! };
   }
 
   count(connection: DbConnection, project: Project, workdir: Workdir, objectPath: DbObjectPath, name: string, filter: DbRowFilter) {

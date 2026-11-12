@@ -5,7 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
-import type { BusEvent, DbConnection, DbErSchema, DbImportCandidate, DbPrepRun, DbPrepState, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
+import { DB_VALUE_HEAD_CHARS } from "@shared/types";
+import type { BusEvent, DbConnection, DbErSchema, DbFullRow, DbImportCandidate, DbPrepRun, DbPrepState, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
 import { AUTH, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import { gitRepo } from "../testing/gitRepo.js";
@@ -458,6 +459,31 @@ test("DB の木とテーブル: DB・テーブルとビュー・構造・行（�
   assert.equal(definition.status, 400);
   assert.match(definition.body.error, /SQLite には関数・列挙型がありません/);
   assert.equal((await call("POST", `${base}/definition`, { path: main, kind: "table", name: "users" })).status, 400);
+});
+
+test("テーブルの行: 長い文字は頭だけ返し、行を指す条件で 1 行を全体のまま読み直せる（当たらなければ 404）", async () => {
+  const { call, project } = setup();
+  const file = makeSqlite(project.repo_path);
+  const long = "あ".repeat(DB_VALUE_HEAD_CHARS + 5);
+  const db = new DatabaseSync(file);
+  db.prepare("UPDATE users SET name = ? WHERE id = 1").run(long);
+  db.close();
+  const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
+  const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
+  const main = { database: "main", schema: null };
+
+  const rows = (await call("POST", `${base}/rows`, { path: main, table: "users", sort: [{ column: "id", desc: false }], offset: 0 })).body as DbQueryResult;
+  assert.deepEqual(rows.rows[0][1], { long: true, head: long.slice(0, DB_VALUE_HEAD_CHARS), chars: long.length });
+  assert.equal(rows.rows[1][1], "a");
+  const full = await call("POST", `${base}/full-row`, { path: main, table: "users", filters: [{ column: "id", op: "eq", value: "1" }] });
+  assert.equal(full.status, 200);
+  assert.deepEqual((full.body as DbFullRow).columns.map((c) => c.name), ["id", "name", "avatar"]);
+  assert.equal((full.body as DbFullRow).row[1], long);
+  assert.equal((await call("POST", `${base}/full-row`, { path: main, table: "users", filters: [{ column: "id", op: "eq", value: "99" }] })).status, 404);
+  assert.equal((await call("POST", `${base}/full-row`, { path: main, table: "users", filters: [] })).status, 400);
+  // SQL のタブも頭だけ
+  const sql = (await call("POST", `${base}/sql`, { sql: "SELECT name FROM users WHERE id = 1", session: "t1", write: false })).body as DbQueryResult;
+  assert.equal((sql.rows[0][0] as { chars: number }).chars, long.length);
 });
 
 test("ER 図: テーブル・ビューの構造（一意の組・外部キー）と、選んだものだけ。動かした位置は接続と場所ごとに覚えて消せる", async () => {
