@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { RotateCcw, ScrollText, SquareTerminal, TriangleAlert } from "lucide-react";
+import { Database, RotateCcw, ScrollText, SquareTerminal, TriangleAlert } from "lucide-react";
 import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerService, DockerSilentConflict } from "@shared/types";
-import { DOCKER_MARK_LABELS } from "@shared/types";
+import { DOCKER_DB_NO_PORT, DOCKER_MARK_LABELS } from "@shared/types";
 import { useExternalBrowser } from "@/features/openWith/externalApps";
 import { panelActions } from "@/features/panel/state/panelActions";
 import { panelKey } from "@/features/panel/surfaces";
@@ -14,6 +14,7 @@ import { Chevron } from "@/ui/Chevron";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
+import { useOpenDockerDb } from "./useOpenDockerDb";
 import { MARK_GLYPHS, oneoffSummary, servicePorts, serviceStatusText, shellCommand, silentText, unpublishedPorts } from "./dockerView";
 
 type Send = (action: DockerActionBody["action"], extra?: Partial<DockerActionBody>) => void;
@@ -68,6 +69,9 @@ export function DockerServiceRow({
   const warnPorts = new Set(silent.map((x) => x.port));
   // 動いているのに Mac に出すはずのポートを出していない（前にポートの取り合いで起動に失敗したコンテナ）
   const unpublished = unpublishedPorts(s);
+  // DB のサービスの「DB で開く」（Mac にポートを出していなければ押せない。動いていなければ確かめて起動してから）
+  const db = useOpenDockerDb(projectId, compose, s, () => run("start"));
+  const dbBlocked = s.db_kind === null ? null : s.published.length === 0 ? DOCKER_DB_NO_PORT : db.waiting ? `${s.name} の起動を待っています` : null;
 
   return (
     <div className={cx("docker-service", s.profiles.length > 0 && s.running === 0 && "is-optional")}>
@@ -80,7 +84,7 @@ export function DockerServiceRow({
         <span className={cx("docker-service-status small", s.mark === "failed" ? "is-failed" : "muted")}>{s.mark === "running" && s.containers.length === 1 ? "" : serviceStatusText(s)}</span>
         <span className="docker-ports">
           {ports.map((p) => (
-            <PortButton key={p} projectId={projectId} port={p} warn={warnPorts.has(p)} />
+            <PortButton key={p} projectId={projectId} port={p} warn={warnPorts.has(p)} onOpenDb={s.db_kind && !dbBlocked ? db.request : null} />
           ))}
         </span>
         <span className="docker-service-actions">
@@ -90,6 +94,9 @@ export function DockerServiceRow({
           {s.running > 0 && <IconButton icon={RotateCcw} label="再起動" disabled={busy} onClick={() => run("restart")} />}
           {s.containers.length > 0 && <IconButton icon={ScrollText} label="ログ（一覧の下に、このサービスの札で）" onClick={() => onLogs([s.name])} />}
           {shellTarget && <IconButton icon={SquareTerminal} label="シェル（下のパネルのターミナル）" onClick={() => openShell(s.name, shellTarget)} />}
+          {s.db_kind && (
+            <IconButton icon={Database} label="DB で開く" title={dbBlocked ?? "DB で開く（DB タブの DB クライアント）"} disabled={dbBlocked !== null || busy} onClick={db.request} />
+          )}
         </span>
       </div>
       {unpublished.length > 0 && (
@@ -151,6 +158,11 @@ export function DockerServiceRow({
           <MenuItem disabled={!shellTarget} onSelect={() => shellTarget && openShell(s.name, shellTarget)}>
             シェル
           </MenuItem>
+          {s.db_kind && (
+            <MenuItem disabled={dbBlocked !== null || busy} title={dbBlocked ?? undefined} onSelect={db.request}>
+              DB で開く
+            </MenuItem>
+          )}
         </PopupMenu>
       )}
     </div>
@@ -203,8 +215,8 @@ function OneoffRow({ c, busy, onStop, onLogs }: { c: DockerContainer; busy: bool
   );
 }
 
-/** Mac に出しているポート（押すとパネルのブラウザ、右クリックで外部のブラウザ・URL のコピー）。静かなぶつかりがあれば ⚠ */
-function PortButton({ projectId, port, warn }: { projectId: number; port: number; warn: boolean }) {
+/** Mac に出しているポート（押すとパネルのブラウザ、右クリックで外部のブラウザ・URL のコピー・DB のサービスなら DB で開く）。静かなぶつかりがあれば ⚠ */
+function PortButton({ projectId, port, warn, onOpenDb }: { projectId: number; port: number; warn: boolean; onOpenDb: (() => void) | null }) {
   const menu = useContextMenu();
   const browser = useExternalBrowser();
   const url = `http://localhost:${port}`;
@@ -224,6 +236,7 @@ function PortButton({ projectId, port, warn }: { projectId: number; port: number
         <PopupMenu at={menu.menu.at} label={`:${port}`} onClose={menu.close}>
           <MenuItem onSelect={() => browser.open(url)}>外部のブラウザで開く（{browser.label}）</MenuItem>
           <MenuItem onSelect={() => void navigator.clipboard.writeText(url).catch(reportFailure("コピーできませんでした"))}>URL をコピー</MenuItem>
+          {onOpenDb && <MenuItem onSelect={onOpenDb}>DB で開く</MenuItem>}
         </PopupMenu>
       )}
     </>

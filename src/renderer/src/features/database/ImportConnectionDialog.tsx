@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { errorMessage } from "@shared/errors";
-import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, DB_ENVIRONMENTS, DB_IMPORT_SOURCE_LABELS, type DbEnvironment, type DbImportCandidate } from "@shared/types";
+import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, DB_ENVIRONMENTS, DB_IMPORT_SOURCE_LABELS, type DbConnection, type DbEnvironment, type DbImportCandidate } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useModalDialog } from "@/hooks/useModalDialog";
@@ -9,6 +9,7 @@ import { dbConnectionsStore } from "@/stores/dbConnections";
 import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
 import { connectionPlace } from "./dbFormat";
+import { withPreselect } from "./importPreselect";
 
 /** 案ごとの選び（取り込むか・名前・環境） */
 interface ImportChoice {
@@ -19,21 +20,33 @@ interface ImportChoice {
 
 /**
  * プロジェクトから接続を取り込むダイアログ: コアが .env の DATABASE_URL など・docker compose の DB のサービス・Prisma の設定・
- * SQLite のファイルから見つけた案を並べ、選んだものを名前と環境を直して作る（パスワードは画面に来ず、コアが見つけた所から読み直す）
+ * SQLite のファイルから見つけた案を並べ、選んだものを名前と環境を直して作る（パスワードは画面に来ず、コアが見つけた所から読み直す）。
+ * Docker タブの「DB で開く」からは、その DB の案（preselect）だけを選んだ形で開き、作ったらその接続を onImported に渡す
  */
-export function ImportConnectionDialog({ projectId, onClose }: { projectId: number; onClose: () => void }) {
+export function ImportConnectionDialog({
+  projectId,
+  preselect,
+  onImported,
+  onClose,
+}: {
+  projectId: number;
+  preselect?: DbImportCandidate | null;
+  onImported?: (connection: DbConnection) => void;
+  onClose: () => void;
+}) {
   const dialog = useModalDialog();
   const found = useAsync(() => api.dbImportCandidates(projectId), [projectId]);
   const [picks, setPicks] = useState<Record<string, ImportChoice>>({});
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
-  const list = found.data ?? [];
+  const list = useMemo(() => (found.data && preselect ? withPreselect(found.data, preselect) : (found.data ?? [])), [found.data, preselect]);
 
-  // 届いたら、まだ登録していないものを選んだ形で始める
+  // 届いたら、まだ登録していないもの（Docker タブからならその DB の案だけ）を選んだ形で始める
   useEffect(() => {
     if (!found.data) return;
-    setPicks(Object.fromEntries(found.data.map((c) => [c.key, { on: c.existing_id === null, name: c.name, environment: c.environment }])));
-  }, [found.data]);
+    setPicks(Object.fromEntries(list.map((c) => [c.key, { on: preselect ? c.key === preselect.key : c.existing_id === null, name: c.name, environment: c.environment }])));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list]);
 
   const update = (key: string, patch: Partial<ImportChoice>) => setPicks((p) => ({ ...p, [key]: { ...p[key], ...patch } }));
   const chosen = list.filter((c) => picks[c.key]?.on && picks[c.key].name.trim());
@@ -43,9 +56,12 @@ export function ImportConnectionDialog({ projectId, onClose }: { projectId: numb
     if (chosen.length === 0) return;
     setSaving(true);
     try {
-      await api.importDbConnections(projectId, { items: chosen.map((c) => ({ key: c.key, name: picks[c.key].name.trim(), environment: picks[c.key].environment })) });
+      const created = await api.importDbConnections(projectId, { items: chosen.map((c) => ({ key: c.key, name: picks[c.key].name.trim(), environment: picks[c.key].environment })) });
       dbConnectionsStore.invalidate(projectId);
       dialog.close();
+      // 作った接続は選んだ順に返る
+      const opened = preselect ? created[chosen.findIndex((c) => c.key === preselect.key)] : undefined;
+      if (opened) onImported?.(opened);
     } catch (err) {
       setError(errorMessage(err));
       setSaving(false);

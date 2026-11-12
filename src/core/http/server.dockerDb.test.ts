@@ -3,8 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import type { DbConnection, DockerDbTarget, DockerList } from "@shared/types";
-import { DOCKER_DB_NO_PORT } from "../docker/dbTarget.js";
+import { DOCKER_DB_NO_PORT, type DbConnection, type DockerDbTarget, type DockerList } from "@shared/types";
 import { setup } from "../testing/testServer.js";
 
 const pg = { image: "postgres:16", environment: { POSTGRES_USER: "app", POSTGRES_PASSWORD: "secret", POSTGRES_DB: "app_dev" }, ports: [{ target: 5432, published: "5433" }] };

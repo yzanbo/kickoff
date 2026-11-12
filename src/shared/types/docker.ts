@@ -246,6 +246,9 @@ export type DockerLogEvent =
   | { type: "started"; container: string; at: string }
   | { type: "error"; message: string };
 
+/** ports: がなく Mac にポートを出していない DB のサービスで「DB で開く」を押せない理由 */
+export const DOCKER_DB_NO_PORT = "Mac にポートを出していないので、DB クライアントからはつなげません";
+
 /**
  * 「DB で開く」の行き先（GET …/docker/db?compose=&service=）。登録済みの同じ DB（種類・localhost・ポート）があればその接続、
  * なければ取り込みの案（パスワードは has_password だけ。登録は POST …/db-connections/import にこの案の key を渡す）、Mac にポートを出していなければ押せない理由

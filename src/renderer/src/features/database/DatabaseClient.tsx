@@ -1,6 +1,6 @@
 import { PanelLeftOpen } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { DbConnection } from "@shared/types";
+import type { DbConnection, DbImportCandidate } from "@shared/types";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
@@ -68,7 +68,8 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   const [treeOpen, setTreeOpen] = useSetting(dbTreeOpen(place));
   const [editing, setEditing] = useState<DbConnection | null | undefined>(undefined);
   const [copying, setCopying] = useState(false);
-  const [importing, setImporting] = useState(false);
+  // 取り込みの画面（Docker タブの「DB で開く」からは、その DB の案を選んだ形で）
+  const [importing, setImporting] = useState<{ preselect: DbImportCandidate | null } | null>(null);
   const [finding, setFinding] = useState(false);
   const [failure, setFailure] = useState<DbFailure | null>(null);
   const [prepFor, setPrepFor] = useState<DbPrepTarget | null>(null);
@@ -86,15 +87,21 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     return () => observer.disconnect();
   }, []);
 
-  // 右の欄の ▾ の「DB ▸」から: 接続を選ぶ（木で開いて一覧を出す）・接続を足す
-  useDbClientRequests(place, (r) => {
-    if (r.kind === "add") return setEditing(null);
-    const key = `c:${r.connectionId}`;
+  /** 接続を選ぶ（木で開いて一覧を出す） */
+  const focusConnection = (connectionId: number) => {
+    const key = `c:${connectionId}`;
     const open = readSetting(dbTreeOpen(place));
     if (!open.includes(key)) setTreeOpen([...open, key]);
     // 描いたばかり（預けた頼み）だと narrow がまだ測れていないので、その場で幅を測る
     if ((root.current?.clientWidth ?? Infinity) < NARROW_WIDTH) setOverlay(true);
     else setHidden(false);
+  };
+
+  // 右の欄の ▾ の「DB ▸」から: 接続を選ぶ・接続を足す。Docker タブの「DB で開く」から: 接続を選ぶ・案を選んで取り込みの画面を開く
+  useDbClientRequests(place, (r) => {
+    if (r.kind === "add") return setEditing(null);
+    if (r.kind === "import") return setImporting({ preselect: r.candidate });
+    focusConnection(r.connectionId);
   });
 
   // 消した接続のタブは閉じる（一覧が届いてから）
@@ -194,7 +201,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
             narrow={narrow}
             width={width}
             onAdd={() => setEditing(null)}
-            onImport={() => setImporting(true)}
+            onImport={() => setImporting({ preselect: null })}
             onCopy={() => setCopying(true)}
             onFind={() => setFinding(true)}
             onHide={() => (narrow ? setOverlay(false) : setHidden(true))}
@@ -285,7 +292,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
         {editing !== undefined && <ConnectionDialog projectId={projectId} connection={editing} worktree={worktree} onClose={() => setEditing(undefined)} />}
         {copying && <CopyConnectionDialog projectId={projectId} onClose={() => setCopying(false)} />}
         {finding && <DbFindPalette connections={list} activeTab={active} onClose={() => setFinding(false)} />}
-        {importing && <ImportConnectionDialog projectId={projectId} onClose={() => setImporting(false)} />}
+        {importing && <ImportConnectionDialog projectId={projectId} preselect={importing.preselect} onImported={(c) => focusConnection(c.id)} onClose={() => setImporting(null)} />}
         {failure && (
           <DbFailureDialog
             projectId={projectId}
