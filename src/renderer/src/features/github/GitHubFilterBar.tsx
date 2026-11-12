@@ -1,5 +1,5 @@
 import { useEffect, useState, type MouseEvent } from "react";
-import { Check, ChevronDown, X } from "lucide-react";
+import { Check, ChevronDown, Plus, X } from "lucide-react";
 import {
   GITHUB_KIND_LABELS,
   GITHUB_KINDS,
@@ -18,7 +18,7 @@ import { cx } from "@/lib/cx";
 import { activeFilterCount } from "@/lib/githubFilters";
 import { isComposing } from "@/lib/keys";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
-import { RefreshButton } from "@/ui/IconButton";
+import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { SearchField } from "@/ui/SearchField";
 import { Segmented } from "@/ui/Segmented";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -39,7 +39,7 @@ function FilterChip({ label, active, onOpen }: { label: string; active: boolean;
 }
 
 /**
- * GitHub タブの一覧の上（issue｜PR の切り替え・件数・取り直し、検索の欄、状態・自分・ラベル・担当・マイルストーン・並べ方の札）。
+ * GitHub タブの一覧の上（issue｜PR の切り替え・件数・取り直し・新しい issue、検索の欄、状態・自分・ラベル・担当・マイルストーン・並べ方の札）。
  * 絞り込みの候補（ラベルなど）は meta（なければ札のメニューに「読み込み中…」）
  */
 export function GitHubFilterBar({
@@ -50,6 +50,7 @@ export function GitHubFilterBar({
   onChange,
   onKind,
   onRefresh,
+  onNewIssue,
 }: {
   filter: GitHubListFilter;
   meta: GitHubRepoMeta | undefined;
@@ -58,6 +59,8 @@ export function GitHubFilterBar({
   onChange: (patch: Partial<GitHubListFilter>) => void;
   onKind: (kind: GitHubKind) => void;
   onRefresh: () => void;
+  /** 新しい issue（ダイアログを開く） */
+  onNewIssue: () => void;
 }) {
   const menu = useContextMenu<MenuKind>();
   const [text, setText] = useState(filter.text);
@@ -92,6 +95,7 @@ export function GitHubFilterBar({
         />
         <span className="github-filter-count muted small">{total === null ? "" : `${total.toLocaleString()} 件`}</span>
         <RefreshButton label="GitHub から取り直す" busy={loading} onClick={onRefresh} />
+        <IconButton icon={Plus} label="新しい issue" onClick={onNewIssue} />
       </div>
       <SearchField
         className="github-search"

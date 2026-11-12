@@ -7,11 +7,12 @@
  *   ID が 1 から振り直され、別のものを指すため）。ID ごとのものは defineSettingFamily（キーは頭 ＋ ID）
  */
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
-import { HANDOFF_VIAS, type Attachment, type HandoffFrom } from "@shared/types";
+import { GITHUB_MERGE_METHODS, HANDOFF_VIAS, type Attachment, type HandoffFrom } from "@shared/types";
 import { HANDOFF_AFTERS } from "@shared/chat/handoff";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
 import { NO_DB_TABS, parseDbClientTabs } from "./dbClientTabs";
 import { DEFAULT_GITHUB_FILTERS, parseGitHubFilters } from "./githubFilters";
+import { EMPTY_REVIEW_DRAFT, isEmptyReviewDraft, parseReviewDraft } from "./githubReviewDraft";
 
 const NO_ATTACHMENTS: readonly Attachment[] = [];
 
@@ -445,6 +446,10 @@ export const dbSqlDraft = defineSettingFamily("kickoff:db-sql:", text(), { ids: 
 export const githubFilters = defineSettingFamily("kickoff:github-filters:", json(parseGitHubFilters, DEFAULT_GITHUB_FILTERS), { ids: true });
 /** GitHub タブで開いている issue・PR（プロジェクトごと。「issue:12」「pr:5」の形） */
 export const githubSelected = defineSettingFamily("kickoff:github-selected:", text(), { ids: true });
+/** PR のマージで前回選んだ方式（プロジェクトごと。確認の初めの選択） */
+export const githubMergeMethod = defineSettingFamily("kickoff:github-merge-method:", choice(GITHUB_MERGE_METHODS, "merge"), { ids: true });
+/** PR のレビューの書きかけ（キーは「プロジェクト:PR の番号」。ためた行のコメントと本文。送ったら消す。アプリを閉じても残す） */
+export const githubReviewDraft = defineSettingFamily("kickoff:github-review:", json(parseReviewDraft, EMPTY_REVIEW_DRAFT, isEmptyReviewDraft), { ids: true });
 /** GitHub タブの左の一覧の幅（どのプロジェクトでも同じ） */
 export const GITHUB_LIST_WIDTH = defineSetting("kickoff:github-list-width", number(380));
 /** DB クライアントの左の一覧の幅（どの置き場所でも同じ） */

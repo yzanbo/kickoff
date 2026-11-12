@@ -2,6 +2,7 @@ import { Fragment, type MutableRefObject, type ReactNode } from "react";
 import { ClipboardItems } from "@/ui/ClipboardItems";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
+import { IssueFromTextItem } from "@/features/github/IssueFromTextItem";
 import type { MemoLines } from "./memoAttachment";
 import type { MemoEditorHandle } from "./MemoEditor";
 
@@ -32,7 +33,8 @@ export interface MemoChatTarget {
  * メモの本文の右クリックのメニュー。足すもので組に分け（利用者の依頼。前は足す先のチャットごとの組だった）、それぞれの組に足す先を並べる:
  * 「選択部分をチャットに追加」（選んでいるときだけ）/「メモすべてをチャットに追加」（メモ全体を添付）/「パスをチャットに追加」（メモのファイルのフルパス）。
  * 足す先は、開いたチャット（main を渡したとき。「「機能開発」に追加」。チャットの右の欄・別ウィンドウのメモ）とメモのチャット（「メモのチャットに追加」）。送るのは自分で。
- * その下に「クリップボード」の組（ClipboardItems: 切り取り・コピー・パスを含めてコピー・パスをコピー・貼り付け。file = メモのファイルのフルパス）と、いちばん下に「Finder で表示」（Mac のアプリのとき）。
+ * その下に「クリップボード」の組（ClipboardItems: 切り取り・コピー・パスを含めてコピー・パスをコピー・貼り付け。file = メモのファイルのフルパス）と、
+ * 「issue にする」（選んだ文、なければメモ全体を本文にした GitHub の新しい issue。issue を渡したとき）、いちばん下に「Finder で表示」（Mac のアプリのとき）。
  * 文を選んだだけではチャットに足さない（右クリックで選んだときだけ）。
  * HTML のメモのページの表示からは、選んだ文を渡して開く（チャットに足す項目と、切り取り・貼り付けのないクリップボードの組）。
  * 見出しの題名の欄からも同じメニューを開く（openFor。切り取り・貼り付けは題名の欄に効き、何も選んでいなければコピーは題名の全体。パスを含めてコピーは選んだ文だけ）
@@ -41,6 +43,8 @@ export function useMemoEditMenu(
   editor: MutableRefObject<MemoEditorHandle | null>,
   targets: { main?: MemoChatTarget; memo: MemoChatTarget },
   file: string,
+  /** 「issue にする」（選んでいなければメモ全体を本文に。projectId はメモのプロジェクト、body はいまの本文（書きかけも）） */
+  issue?: { projectId: number; body: () => string },
 ): {
   open: (at: { x: number; y: number }, pageSelection?: string) => void;
   openFor: (at: { x: number; y: number }, source: MemoMenuSource) => void;
@@ -103,6 +107,12 @@ export function useMemoEditMenu(
           onCut={insert ? () => insert("") : undefined}
           onPaste={insert ?? undefined}
         />
+        {issue && (
+          <>
+            <div className="menu-separator" role="separator" />
+            <IssueFromTextItem projectId={issue.projectId} body={() => (selected.trim() ? selected : issue.body())} />
+          </>
+        )}
         {/* Finder で表示（利用者の依頼で、見出しのボタンから右クリックへ移した。メモのタブでは一覧の右クリックにもある） */}
         {window.kickoff && (
           <>

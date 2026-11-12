@@ -24,6 +24,7 @@ import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicato
 import { HoverTip } from "@/ui/HoverTip";
 import { MemoProgress } from "@/features/memo/MemoProgress";
 import { AskChildHost } from "@/features/chat/children/AskChildHost";
+import { GitHubDialogHost } from "@/features/github/GitHubDialogHost";
 import { QueueResumeHost } from "@/features/chat/queue/QueueResumeDialog";
 import { PrNoticeHost } from "@/features/worktree/prNotice/PrNoticeDialog";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/openSettings";
@@ -200,6 +201,8 @@ export function App() {
         <HoverTip />
         <MemoProgress />
         <AskChildHost />
+        {/* GitHub の新しい issue・マージの確認（GitHub タブとメモ・チャットの「issue にする」から） */}
+        <GitHubDialogHost />
         {/* 起動したときの送信待ちの確かめ（前回の終了で、自動で送るまま送信待ちが残ったチャットを、送るか聞く） */}
         <QueueResumeHost />
         {/* ワークツリーの PR がマージされた・閉じられた知らせ（片付けとチャットの扱いを 1 つの確認で聞く） */}

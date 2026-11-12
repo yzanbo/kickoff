@@ -43,9 +43,9 @@ async function chooseWorkplace(projectId: number, branch: string): Promise<Workp
 
 /**
  * 文を入れた新しいチャットのタブを、プロジェクトのチャットのパネルに開く（画面に出ていなければ、その画面へ移る）。
- * link は作るチャットに結び付ける issue・PR
+ * link は作るチャットに結び付ける issue・PR（text が空なら入力欄は空のまま。チェックアウトのあとの「ここで新しいチャット」）
  */
-function openSeededChat(projectId: number, place: Workplace, text: string, link: GitHubLink) {
+export function openSeededChat(projectId: number, place: Workplace, text: string, link: GitHubLink) {
   const panel = panelKey("board", projectId);
   const key = panelActions(panel).openNew(
     { projectId, ...(place.kind === "existing" ? { worktree: place.path } : {}) },

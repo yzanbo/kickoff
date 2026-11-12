@@ -4,6 +4,7 @@ import type { GitHubReviewThread, GitHubTimelineEntry, GitHubUser } from "@share
 import { cx } from "@/lib/cx";
 import { agoText, formatFullStamp } from "@/lib/time";
 import { GitHubHtml } from "./GitHubHtml";
+import { GitHubThreadActions } from "./GitHubThreadActions";
 
 /** GitHub のユーザーの顔と名前 */
 export function GitHubAuthor({ user }: { user: GitHubUser | null }) {
@@ -37,7 +38,7 @@ const REVIEW_TEXT: Record<string, string> = {
 export const ThreadHandoffContext = createContext<((thread: GitHubReviewThread) => void) | null>(null);
 
 /**
- * 行のスレッド 1 つ（ファイルと行・解決済み・古い差分の印・差分の終わりの数行・コメント）。
+ * 行のスレッド 1 つ（ファイルと行・解決済み・古い差分の印・差分の終わりの数行・コメント・返信と解決（PR の中身の中だけ））。
  * inline は PR の「変更」の差分の行の下に出すとき（ファイルと差分の数行は差分そのものが見えているので出さない）
  */
 export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewThread; inline?: boolean }) {
@@ -83,6 +84,7 @@ export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewT
           <GitHubHtml html={c.body_html} empty="" />
         </div>
       ))}
+      <GitHubThreadActions thread={thread} />
     </div>
   );
 }

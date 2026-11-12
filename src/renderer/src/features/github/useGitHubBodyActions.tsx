@@ -44,6 +44,8 @@ export function useGitHubBodyActions(projectId: number, detail: GitHubIssueDetai
   };
 
   const onContextMenu = (e: MouseEvent<HTMLElement>) => {
+    // 書く欄（コメント・返信）の上は、入力欄のふつうのメニューに任せる
+    if ((e.target as Element).closest?.("textarea, input")) return;
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
     const range = selection.getRangeAt(0);
