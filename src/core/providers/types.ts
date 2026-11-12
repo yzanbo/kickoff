@@ -1,4 +1,5 @@
 import type { BrowserControl } from "../browser/control.js";
+import type { AiChildChatTools } from "../chat/aiChildChat.js";
 import type { HiddenDbTarget } from "../chat/guard/hiddenDb.js";
 import type { DbAiTools } from "../databases/aiTools.js";
 import type { ChatPolicy } from "../chat/policy.js";
@@ -93,6 +94,8 @@ export interface ProviderTurnParams {
   browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
   /** プロジェクトの DB を AI に読ませる口（AI に見せる接続があるときだけ。なければ DB のツールを出さない） */
   database?: DbAiTools | null;
+  /** このチャットの子チャットを AI に作らせる口（設定で止めていない・深さの上限に達していないときだけ。なければ子チャットのツールを出さない） */
+  childChat?: AiChildChatTools | null;
   /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
   hiddenDb?: HiddenDbTarget[];
 }

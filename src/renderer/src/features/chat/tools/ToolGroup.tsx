@@ -14,6 +14,8 @@ import { HighlightedCode } from "@/ui/HighlightedCode";
 import { ReadResult, SearchResult, SearchTitle, ToolPath } from "./ToolResultCode";
 import { ReadImage } from "./ReadImage";
 import { DB_QUERY_TOOL, DbQueryToolDetail } from "@/features/database/DbQueryToolDetail";
+import { ChildChatToolDetail } from "@/features/chat/children/ChildChatToolDetail";
+import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 import { toolImageType } from "@shared/chat/toolImage";
 import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkContext";
 
@@ -87,12 +89,16 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
   const isSearch = (name === "Grep" || name === "Glob") && typeof input.pattern === "string";
   // チャットの AI が DB に流した SQL（全文と「SQL のタブで開く」。結果の文も下に出す）
   const isDbQuery = name === DB_QUERY_TOOL && typeof input.sql === "string";
+  // チャットの AI が作った子チャット（送った依頼の全文と「子チャットを開く」。結果の文も下に出す）
+  const isChildChat = name === AI_CHILD_CHAT_TOOL && typeof input.text === "string";
   // 見出しの行の色付けは、まとまりを開いて一覧が見えてから（コマンドと同じ）
   const highlightTitle = listed || opened;
   if (isCommand) {
     detail = <BashOutput command={String(input.command)} result={r} rel={rel} highlight={opened} />;
   } else if (isDbQuery) {
     detail = <DbQueryToolDetail chatId={call.use.chat_id} sql={String(input.sql)} connectionName={strOf(input.connection)} result={r?.content} highlight={opened} />;
+  } else if (isChildChat) {
+    detail = <ChildChatToolDetail text={String(input.text)} result={r?.content} />;
   } else if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
     detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
   } else if (name === "Write" && typeof input.content === "string") {
@@ -127,7 +133,7 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
         <CallTime call={call} running={running} />
       </summary>
       {detail}
-      {content && !isCommand && (r?.is_error || !detail || isDbQuery) && (
+      {content && !isCommand && (r?.is_error || !detail || isDbQuery || isChildChat) && (
         <pre className={cx("tool-output", r?.is_error && "error")}>
           {rel(content)}
         </pre>

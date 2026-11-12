@@ -169,8 +169,8 @@
   color: var(--ng);
 }
 
-/* チャットの AI が DB に流した SQL の下の「SQL のタブで開く」 */
-.tool-db-actions {
+/* ツールの行を開いた中身の下のボタン（DB に流した SQL の「SQL のタブで開く」・作った子チャットの「子チャットを開く」） */
+.tool-actions {
   display: flex;
   gap: 6px;
   padding: 6px 12px;

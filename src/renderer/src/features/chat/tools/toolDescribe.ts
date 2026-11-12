@@ -1,4 +1,5 @@
 // ツールの呼び出しを人が読める文にする（タイムラインのツールの行・実行中の表示・承認カードで共通）
+import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 import { isSubagentTool } from "@shared/chat/subagents";
 
 type Input = Record<string, unknown>;
@@ -39,6 +40,7 @@ const TOOL_LABELS: Record<string, string> = {
   EnterPlanMode: "計画モード",
   EnterWorktree: "ワークツリーに入る",
   ExitWorktree: "ワークツリーを出る",
+  [AI_CHILD_CHAT_TOOL]: "子チャットを作る",
 };
 
 /** ToDo の状態の表示名（TaskUpdate の status） */
@@ -192,6 +194,9 @@ function describeKnown(name: string, input: Input): string | null {
       return "";
     case "AskUserQuestion":
       return describeQuestions(input.questions);
+    case AI_CHILD_CHAT_TOOL:
+      // 名前があれば名前、なければ依頼の 1 行目（依頼の全文は開いた中身と承認カードで見る）
+      return clip(str(input.title) || str(input.text));
   }
   // サブエージェントは、依頼の概要と種類だけ（依頼の全文は「中身を見る」で見られる）
   if (isSubagentTool(name) && typeof input.description === "string") {
@@ -221,6 +226,8 @@ export function describeToolInput(name: string, input: Input): string {
 /** 承認カードに出す入力（計画の提示は計画の全文。ほかは describeToolInput と同じ） */
 export function describeApprovalInput(name: string, input: Input): string {
   if (name === "ExitPlanMode" && typeof input.plan === "string") return input.plan;
+  // AI が子チャットに送る依頼は、確かめられるよう切らずに全文（名前は見出しにある）
+  if (name === AI_CHILD_CHAT_TOOL && typeof input.text === "string") return input.text;
   return describeToolInput(name, input);
 }
 

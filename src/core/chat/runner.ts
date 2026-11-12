@@ -4,6 +4,7 @@ import { RunnerQueue, type SendOpts } from "./runnerQueue.js";
 import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input.js";
+import { startChildChat } from "./children.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type QueueResume, type QueueResumeAction, type TellResult, type MessageMarks } from "@shared/types";
 import { resumeMomentsOf } from "./queueResume.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
@@ -34,6 +35,9 @@ export class Runner extends RunnerQueue {
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り */
   private readonly recovery: ChatRecovery;
 
+  /** 1 回の実行に渡すもの（AI が自分の子チャットを作るツールのために、子チャットの作り方を足す） */
+  private readonly turnDeps: ExecutionDeps;
+
 
   constructor(
     private readonly deps: ExecutionDeps & {
@@ -49,6 +53,7 @@ export class Runner extends RunnerQueue {
     },
   ) {
     super();
+    this.turnDeps = { ...deps, startChildChat: (parent, input) => startChildChat({ store: deps.store, runner: this, providers: deps.providers }, parent, input) };
     // 再起動しても送信待ちの列は残す（読み戻した列は止めておく）
     this.runtimes = new ChatRuntimes({
       store: deps.store,
@@ -604,7 +609,7 @@ export class Runner extends RunnerQueue {
     if (item.compact) runtime.update({ awaitingCompact: true });
     let outcome: TurnOutcome = { status: "failed", network: false };
     try {
-      outcome = await executeTurn(this.deps, runtime, item, controller.signal);
+      outcome = await executeTurn(this.turnDeps, runtime, item, controller.signal);
     } finally {
       runtime.turn = null;
       // 通信が切れた・使用枠の上限で止まったときは送らず、つながる・枠が戻るのを待つ（送っても失敗して消えるため。アプリを終えるときも送らない）

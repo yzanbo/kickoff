@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { WHISPER_MODEL_IDS } from "../../voice/models.js";
-import { OPENAI_TTS_VOICES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
+import { AI_CHILD_CHAT_MODES, OPENAI_TTS_VOICES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
 import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/chat/autoCompact";
 import { jsonBody } from "../input.js";
 import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, voiceLanguage } from "./schemas.js";
@@ -40,6 +40,8 @@ const settingsSchema = z
     // 共通の圧縮前指示・圧縮後指示を送るか（オフでも文は残す）
     pre_compact_enabled: z.boolean(),
     post_compact_enabled: z.boolean(),
+    // チャットの AI が自分の子チャットを作るとき（毎回聞く / 聞かずに作る / 作らせない）
+    ai_child_chat: z.enum(AI_CHILD_CHAT_MODES),
   })
   .partial()
   .strict() satisfies z.ZodType<Partial<AppSettings>>;
