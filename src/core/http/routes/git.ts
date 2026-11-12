@@ -3,8 +3,9 @@ import { z } from "zod";
 import { commitStaged, discardPaths, fetchRemote, gitBlame, gitCommitDetail, gitCommitDiff, gitDiff, gitLog, gitOriginal, gitRefs, gitStatus, pullBranch, pushBranch, stagePaths, unstagePaths } from "../../git/index.js";
 import { mergePreview, resolveConflict, runBranchAction, runOperationAction } from "../../git/branches.js";
 import { createPullRequest, pullRequestFor } from "../../git/github.js";
-import { resolveGitHubTarget } from "../../git/githubTarget.js";
-import type { GitBranchAction, GitBranchActionResult } from "@shared/types";
+import { resolveGitHubTarget, type GitHubTarget } from "../../git/githubTarget.js";
+import type { GitBranchAction, GitBranchActionResult, Project } from "@shared/types";
+import type { Store } from "../../db/store.js";
 import type { ServerDeps } from "../server.js";
 import { Invalid } from "../errors.js";
 import { jsonBody, queryOf } from "../input.js";
@@ -17,6 +18,18 @@ const diffQuerySchema = z.object({ path: repoPath, old: repoPath.optional(), sta
 async function gitAction(c: Context, dir: string, action: () => Promise<void>) {
   await action();
   return c.json(await gitStatus(dir));
+}
+
+/**
+ * PR を作るとき閉じる issue: この作業場所（本体なら worktree_path が null）で作業している、アーカイブしていないチャットが結び付いた、連携先の issue の番号
+ */
+function closingIssues(store: Store, project: Project, dir: string, target: GitHubTarget | null): number[] {
+  if (!target) return [];
+  const worktree = dir === project.repo_path ? null : dir;
+  return store.chats
+    .list({ projectId: project.id })
+    .filter((c) => c.worktree_path === worktree && c.github_kind === "issue" && c.github_number !== null && c.github_repo?.toLowerCase() === target.repo.toLowerCase())
+    .map((c) => c.github_number!);
 }
 
 /** ブランチ・タグの名前（手元・リモート・タグ・コミットの番号）。「-」で始まる名前はコアが断る */
@@ -125,7 +138,10 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const { conflicts } = await runBranchAction(dir, body);
     const result: GitBranchActionResult = { status: await gitStatus(dir), conflicts };
     // プッシュして PR を作る（gh で、タイトルと本文はコミットから）
-    if (body.action === "push_pr") result.pr = await createPullRequest(dir, body.branch, await resolveGitHubTarget(dir, c.var.project.github_remote));
+    if (body.action === "push_pr") {
+      const target = await resolveGitHubTarget(dir, c.var.project.github_remote);
+      result.pr = await createPullRequest(dir, body.branch, target, closingIssues(store, c.var.project, dir, target));
+    }
     return c.json(result);
   });
 
@@ -164,6 +180,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const status = await gitStatus(dir);
     if (!status.repo || !status.branch) throw new Invalid("PR にするブランチがありません");
     if (!status.upstream || status.ahead > 0) await pushBranch(dir);
-    return c.json(await createPullRequest(dir, status.branch, await resolveGitHubTarget(dir, c.var.project.github_remote)), 201);
+    const target = await resolveGitHubTarget(dir, c.var.project.github_remote);
+    return c.json(await createPullRequest(dir, status.branch, target, closingIssues(store, c.var.project, dir, target)), 201);
   });
 }

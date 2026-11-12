@@ -116,7 +116,7 @@ export interface GitHubRepoMeta {
 
 /** issue・PR の出来事（会話の流れの 1 つ） */
 export type GitHubTimelineEntry =
-  | { type: "comment"; id: string; author: GitHubUser | null; created_at: string; body_html: string; url: string | null }
+  | { type: "comment"; id: string; author: GitHubUser | null; created_at: string; body_html: string; body_markdown: string; url: string | null }
   | {
       type: "review";
       id: string;
@@ -125,6 +125,7 @@ export type GitHubTimelineEntry =
       /** approved / changes_requested / commented / dismissed */
       state: string;
       body_html: string;
+      body_markdown: string;
       /** このレビューで付けた行のスレッドの ID（中身は PR の review_threads） */
       thread_ids: string[];
     }
@@ -142,7 +143,7 @@ export interface GitHubReviewThread {
   side: "LEFT" | "RIGHT";
   resolved: boolean;
   outdated: boolean;
-  comments: { id: string; author: GitHubUser | null; created_at: string; body_html: string; diff_hunk: string; url: string | null }[];
+  comments: { id: string; author: GitHubUser | null; created_at: string; body_html: string; /** 書いたままの Markdown（AI に渡す文に使う） */ body_markdown: string; diff_hunk: string; url: string | null }[];
 }
 
 /** PR のチェック 1 つ */
@@ -160,6 +161,8 @@ export interface GitHubCheck {
 export interface GitHubIssueDetail {
   item: GitHubItem;
   body_html: string;
+  /** 本文の書いたままの Markdown（AI に渡す文に使う。コメント・レビューも同じ） */
+  body_markdown: string;
   timeline: GitHubTimelineEntry[];
   /** 出来事が多くて途中までしか読めなかった */
   timeline_truncated: boolean;

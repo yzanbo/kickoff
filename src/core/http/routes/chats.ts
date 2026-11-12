@@ -5,7 +5,7 @@ import type { ServerDeps } from "../server.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups, requireGroupOf, requireProject } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
-import { chatTitle, flag, newChatSchema, optionalId } from "./schemas.js";
+import { chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "./schemas.js";
 import { chatTranscript } from "../../chat/transcript.js";
 import type { ChatDetail, ChatPatch, ChatTranscript } from "@shared/types";
 
@@ -53,9 +53,14 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases }: S
       attachments: input.attachments,
       groupId: input.group_id,
       worktreePath,
+      github: input.github,
     });
     return c.json(created, 201);
   });
+
+  // GitHub の issue・PR を結び付ける・外す（並び順は変えない）
+  app.put("/api/chats/:id/github", withChat, async (c) => c.json(store.chats.setGitHub(c.var.chat.id, githubLinkSchema.parse(await jsonBody(c)))));
+  app.delete("/api/chats/:id/github", withChat, (c) => c.json(store.chats.setGitHub(c.var.chat.id, null)));
 
   // チャットのやり取りのキーワード検索（⌘F）
   // 手動の並び（サイドバーの並び順「手動順」）を ids の順にする。並べたチャットを並びの順に返す

@@ -49,10 +49,10 @@
 | 子チャット（チャットの発言から「新しい子チャットで聞く」・右の欄の「＋」の「新しい子チャット」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`。作ったときは `CHILD_CHAT_OPEN_ON_CREATE` で、開かないも選べる）。孫・ひ孫も作れる。サブエージェントの「伝える」で「新しい子チャットで聞く」を選ぶと、そのサブエージェントの会話の記録を添えた子チャットになる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`startSubagentChildChat`（`core/chat/subagentChild.ts`）・`features/chat/children/` | なし |
 | 親への依頼文（子チャットの AI に、親チャットの AI へ渡す依頼文だけを書いてもらう頼み。発言の印 = 依頼文の頼み）・親チャットに追加（子チャットの作業の最後の返答を、そのまま直接の親に渡す。渡し方 = 入力欄 / 今すぐ送る / 送信待ち、渡したあと = そのまま / アーカイブ / 削除）・渡したことの印 / 出どころの札 | 頼み方の文 `handoffRequestPrompt`・最後の返答 `lastReplyOfTurn`（`@shared/chat/handoff`）・発言の印 `MessageMarks`（`handoff_request` / `handoff_from`）・渡し方 `HandoffVia`・渡したあと `HandoffAfter`・`POST /api/chats/:id/handoff`（`core/chat/handoff.ts`）・記録 `handoff`・`features/chat/children/handoff.ts` | なし（「最新の答えを引用して渡す」は前からの `handBackText`） |
 | 会話 / 動き（チャットの画面の見え方。動き = メインエージェントとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
-| GitHub タブ（プロジェクトの画面の上のタブで、連携先のリポジトリの issue・PR を「issue｜PR」で切り替えて見る・書く・AI に渡す。チャットの右の欄にも開ける。要件定義書の「5.11 GitHub」。いまは段階 1 の「読む」まで） | タブ `github`（`#/projects/:id/github`）・右の欄のタブの種類 `github`・画面 `features/github/`・コア `core/github/`（gh api の GraphQL・REST。ワークツリーの PR の見張り・push の `core/git/github.ts` はそのまま）・HTTP `/api/projects/:id/github/…` | なし（push と PR の作成だけ） |
+| GitHub タブ（プロジェクトの画面の上のタブで、連携先のリポジトリの issue・PR を「issue｜PR」で切り替えて見る・書く・AI に渡す。チャットの右の欄にも開ける。要件定義書の「5.11 GitHub」。いまは段階 2 の「AI に渡す」まで） | タブ `github`（`#/projects/:id/github`）・右の欄のタブの種類 `github`・画面 `features/github/`・コア `core/github/`（gh api の GraphQL・REST。ワークツリーの PR の見張り・push の `core/git/github.ts` はそのまま）・HTTP `/api/projects/:id/github/…` | なし（push と PR の作成だけ） |
 | 連携先（PR・issue を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`）と、プロジェクトで使う GitHub のアカウント（gh に入っているものから選ぶ。gh の有効なアカウントは切り替えない） | `GitHubRemote`・`GitHubTarget`（`core/git/githubTarget.ts`）・選んだ remote はプロジェクトの `github_remote`・アカウントは `github_account`（`GitHubAccount`・`core/git/githubAccount.ts` の `runAsGitHubAccount`）・ワークツリーの PR を見張るかは `pr_watch`・設定の画面は `ProjectGitHub` | なし |
 | ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたこと。印と 1 つの確認で片付けを聞く） | `WorktreePrNotice`・見張り `WorktreePrWatch`（`core/git/prWatch.ts`）・閉じた確認の表 `pr_notice_dismissals`・画面 `features/worktree/prNotice/` | 「マージの通知」（macOS の通知と紛らわしい） |
-| issue・PR の結び付き（予定。どの issue・PR のためのチャットか。カードに `#番号`） | `Chat` の `github_repo` / `github_number`（issue と PR の番号はリポジトリの中で重ならないので、種類は持たない） | なし |
+| issue・PR の結び付き（どの issue・PR のためのチャットか。カード・見出しに `#番号`。GitHub タブの「AI に渡す」で付く） | `Chat` の `github_repo` / `github_number` / `github_kind`（v19。種類は PR を作るときに「Closes #番号」を足すのを issue だけにするため） | なし |
 | DB クライアント（プロジェクトの画面の上のタブ「DB」・チャットの右の欄の ▾ の「DB ▸」・別ウィンドウで開く。接続の一覧・テーブル・SQL・ER 図。要件定義書の「5.12 DB クライアント」） | タブ `db`（`#/projects/:id/db`）・画面 `features/database/`・コア `core/databases/`・HTTP `/api/projects/:id/db-connections/…`（接続元が 127.0.0.1 の頼みだけ受ける） | なし |
 | DB 接続（プロジェクトごとに登録する接続。ほかのプロジェクトから写せる） | `DbConnection` / 表 `db_connections`（v13）。パスワードは `secrets` の `db_connection:<id>:password`、AI 用のユーザーのパスワードは `:ai_password`（v14。段階 2 で `:ssh_password`）。値はメインプロセスが渡す `safeStorage` で暗号化したもの（暗号化した印を付ける。`safeStorage` のない単体のコア・テストだけ暗号化せずに置く。暗号化を入れた版の最初の起動で、暗号化せずに置いていた値を一度だけ置き換える）。キーチェーンで拒否されて開けないときに利用者が入れたパスワードは、コアのメモリにだけ持つ。接続を消すと、表のトリガー `db_connections_drop_secrets` がその接続の秘密の値も消す（プロジェクトを消したときの連鎖の削除でも効く） | なし |
 | DB の種類 | `DbEngine`（`sqlite` / `postgres` / `mysql`。MariaDB は `mysql`） | なし |
@@ -293,16 +293,17 @@ CREATE TABLE db_prep_runs (
 -- v18: CREATE INDEX idx_db_prep_runs_connection ON db_prep_runs(connection_id, id);
 ```
 
-### 予定: GitHub 連携（未実装）
+### GitHub 連携
 
-要件定義書の「5.11 GitHub」を作るときに `MIGRATIONS` の末尾に足す。GitHub の issue・PR の中身は DB に持たない（正しいのはいつも GitHub。コアのメモリに少しの間だけ覚え、開いたときは必ず GitHub に聞く）。
+要件定義書の「5.11 GitHub」。GitHub の issue・PR の中身は DB に持たない（正しいのはいつも GitHub。コアのメモリに少しの間だけ覚え、開いたときは必ず GitHub に聞く）。段階 1「読む」はスキーマを変えずに作り、段階 2「AI に渡す」のチャットとの結び付きを v19 で足した。
 
 ```sql
 -- projects の連携先（github_remote）・アカウント（github_account）は v12 で入れた
--- chats に足す（どちらも NULL = 結び付いていない）
+-- v19: chats に足す（どれも NULL = 結び付いていない）
 github_repo TEXT CHECK (github_repo <> ''),        -- 結び付いた issue・PR のリポジトリ（owner/name）
 github_number INTEGER CHECK (github_number > 0),   -- issue・PR の番号
--- 2 つがそろって NULL か、そろって値があるかは店で守る（ALTER TABLE では表の CHECK を足せないため）
+github_kind TEXT CHECK (github_kind <> ''),        -- issue / pr（PR を作るとき「Closes #番号」を足すのは issue だけ）
+-- 3 つがそろって NULL か、そろって値があるかは店で守る（ALTER TABLE では表の CHECK を足せないため）
 ```
 
 ### DB クライアントの段階 2・段階 3

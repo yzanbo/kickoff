@@ -393,3 +393,23 @@ test("フィード: チャットごとにメインエージェントの最新の
   assert.equal(items[1].text, "b の返答");
   assert.equal((await call("GET", "/api/feed?limit=1")).body.length, 1);
 });
+
+test("GitHub の結び付き: 作るときに付け、PUT で付け替え、DELETE で外す（形が違えば 400・最後に動いた時刻は進めない）", async () => {
+  const { call, project, store } = setup();
+  const created = await call("POST", `/api/projects/${project.id}/chats`, { text: "直して", github: { repo: "o/r", number: 12, kind: "issue" } });
+  assert.equal(created.status, 201);
+  assert.deepEqual([created.body.github_repo, created.body.github_number, created.body.github_kind], ["o/r", 12, "issue"]);
+  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { text: "x", github: { repo: "not a repo", number: 1, kind: "issue" } })).status, 400);
+
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const put = await call("PUT", `/api/chats/${chat.id}/github`, { repo: "o/r", number: 5, kind: "pr" });
+  assert.equal(put.status, 200);
+  assert.deepEqual([put.body.github_repo, put.body.github_number, put.body.github_kind], ["o/r", 5, "pr"]);
+  assert.equal(put.body.active_at, chat.active_at);
+  assert.equal((await call("PUT", `/api/chats/${chat.id}/github`, { repo: "o/r", number: 0, kind: "pr" })).status, 400);
+  assert.equal((await call("PUT", `/api/chats/${chat.id}/github`, { repo: "o/r", number: 5, kind: "discussion" })).status, 400);
+
+  const removed = await call("DELETE", `/api/chats/${chat.id}/github`);
+  assert.deepEqual([removed.body.github_repo, removed.body.github_number, removed.body.github_kind], [null, null, null]);
+  assert.equal((await call("DELETE", "/api/chats/99999/github")).status, 404);
+});

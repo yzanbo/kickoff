@@ -8,6 +8,8 @@ import type {
   GitHubListFilter,
   GitHubPullDetail,
   GitHubPullFiles,
+  GitHubPullWorktree,
+  GitHubRemote,
   GitHubRepoMeta,
   GitHubUser,
   Project,
@@ -16,7 +18,9 @@ import { githubSearchQuery } from "@shared/github/searchQuery";
 import { errorMessage } from "@shared/errors";
 import { Invalid, NotFound } from "../http/errors.js";
 import { runAsGitHubAccount } from "../git/githubAccount.js";
-import { resolveGitHubTarget, type GitHubTarget } from "../git/githubTarget.js";
+import { readGitHubRemotes, resolveGitHubTarget, type GitHubTarget } from "../git/githubTarget.js";
+import { isGitWorkTree } from "../git/status.js";
+import { checkoutPullWorktree } from "../git/pullWorktree.js";
 import { ttlCache } from "../system/ttlCache.js";
 import { ghApi, type GitHubApi } from "./ghApi.js";
 import { DETAIL_QUERY, META_QUERY, SEARCH_QUERY, TIMELINE_MAX_PAGES, TIMELINE_MORE_QUERY, VIEWER_QUERY } from "./queries.js";
@@ -41,6 +45,8 @@ interface GitHubServiceOptions {
   resolveTarget?: (repo: string, chosen: string | null) => Promise<GitHubTarget | null>;
   /** GitHub に聞く口（テストでは差し替える） */
   api?: (repo: string) => GitHubApi;
+  /** GitHub の remote の一覧（テストでは差し替える） */
+  remotes?: (repo: string) => Promise<GitHubRemote[]>;
   now?: () => number;
 }
 
@@ -177,7 +183,7 @@ export class GitHubService {
         items.push(...connectionNodes(conn));
         cursor = nextCursor(conn);
       }
-      const base = { item, body_html: String(raw.bodyHTML ?? ""), timeline_truncated: cursor !== null, fetched_at: new Date(this.now()).toISOString() };
+      const base = { item, body_html: String(raw.bodyHTML ?? ""), body_markdown: String(raw.body ?? ""), timeline_truncated: cursor !== null, fetched_at: new Date(this.now()).toISOString() };
       if (kind === "issue") return { ...base, timeline: toTimeline(items) };
       const { threads, threadReview } = toThreads(raw.reviewThreads);
       const statusCommit = connectionNodes(raw.statusCommits)[0] as { commit?: { statusCheckRollup?: { contexts?: unknown } } } | undefined;
@@ -196,6 +202,25 @@ export class GitHubService {
           .map(toCheck)
           .filter((c): c is NonNullable<typeof c> => c !== null),
       } satisfies GitHubPullDetail;
+    });
+  }
+
+  /**
+   * PR のブランチのワークツリー（レビューコメントで直すチャットの作業場所）。そのブランチを取り出している作業場所があればそれ、
+   * なければ PR の元のブランチを取ってきて作る（git/pullWorktree.ts）。Git で管理していないフォルダ・連携先の remote がなければ 400
+   */
+  pullWorktree(project: Project, number: number): Promise<GitHubPullWorktree> {
+    return this.within(project, async ({ api, repo }) => {
+      if (!(await isGitWorkTree(project.repo_path))) throw new Invalid("プロジェクトフォルダを Git で管理していないので、ワークツリーを作れません");
+      const res = await api.rest(`repos/${repo}/pulls/${number}`);
+      const head = (res.body as { head?: { ref?: unknown; repo?: { full_name?: unknown } | null } } | null)?.head;
+      if (typeof head?.ref !== "string" || !head.ref) throw new NotFound(`${repo} に PR #${number} はありません`);
+      const remotes = await (this.opts.remotes ?? (async (r: string) => (await readGitHubRemotes(r)).remotes))(project.repo_path);
+      const target = remotes.find((r) => r.repo.toLowerCase() === repo.toLowerCase());
+      if (!target) throw new Invalid(`連携先（${repo}）の remote が見つかりません`);
+      const headRepo = typeof head.repo?.full_name === "string" ? head.repo.full_name : null;
+      const worktree = await checkoutPullWorktree(project.repo_path, { number, head_ref: head.ref, head_repo: headRepo }, remotes, target.name);
+      return { worktree_path: worktree.main ? null : worktree.path, branch: worktree.branch ?? head.ref };
     });
   }
 

@@ -40,7 +40,7 @@ export function filterOfQuery(query: z.infer<typeof listQuery>): GitHubListFilte
 const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "labels", "assignee", "milestone", "q", "sort", "cursor", "refresh"].map((k) => [k, queryOf(c, k)]));
 
 /**
- * GitHub タブ（要件 5.11 の段階 1「読む」。core/github/service.ts）: 連携の状態・絞り込みの候補・一覧・issue と PR の中身・PR の変更。
+ * GitHub タブ（要件 5.11 の段階 1「読む」と段階 2「AI に渡す」。core/github/service.ts）: 連携の状態・絞り込みの候補・一覧・issue と PR の中身・PR の変更・PR のブランチのワークツリー。
  * この Mac からの頼みだけ受ける（中身は DB に持たず、開くたびに GitHub に聞く。gh はプロジェクトで選んだアカウントで動かす）
  */
 export function githubRoutes(app: Hono, { store, github }: ServerDeps) {
@@ -57,5 +57,7 @@ export function githubRoutes(app: Hono, { store, github }: ServerDeps) {
 
   app.get("/api/projects/:id/github/issues/:number", withProject, async (c) => c.json(await github.issue(c.var.project, idParam(c, "number"))));
   app.get("/api/projects/:id/github/pulls/:number", withProject, async (c) => c.json(await github.pull(c.var.project, idParam(c, "number"))));
+  // レビューコメントで直す: PR のブランチのワークツリー（いまあればそれ、なければ作る）
+  app.post("/api/projects/:id/github/pulls/:number/worktree", withProject, async (c) => c.json(await github.pullWorktree(c.var.project, idParam(c, "number"))));
   app.get("/api/projects/:id/github/pulls/:number/files", withProject, async (c) => c.json(await github.pullFiles(c.var.project, idParam(c, "number"))));
 }

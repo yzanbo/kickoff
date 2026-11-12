@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { Chat, ChatStatus } from "@shared/types";
+import type { Chat, ChatStatus, GitHubLink } from "@shared/types";
 import { bit, updateRow, type Notify, type Row } from "./common.js";
 import type { NewChat } from "./types.js";
 
@@ -136,8 +136,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     create(input: NewChat): Chat {
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path, github_repo, github_number, github_kind)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           input.project_id,
@@ -153,6 +153,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
           input.parent_chat_id ?? null,
           input.parent_event_id ?? null,
           input.memo_path ?? null,
+          // repo・番号・種類はそろって入れる（どれかがなければ結び付けない）
+          ...(input.github_repo && input.github_number && input.github_kind ? [input.github_repo, input.github_number, input.github_kind] : [null, null, null]),
         );
       const chat = get(Number(lastInsertRowid))!;
       onChange({ type: "chat", chat });
@@ -164,6 +166,13 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
      */
     update(id: number, patch: ChatPatch): Chat {
       updateRow(db, "chats", id, toChatRow(patch), CHAT_COLUMNS, patch.status !== undefined);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
+    },
+    /** GitHub の issue・PR を結び付ける・外す（null）。最後に動いた時刻は進めない（並び順を変えない） */
+    setGitHub(id: number, link: GitHubLink | null): Chat {
+      db.prepare("UPDATE chats SET github_repo = ?, github_number = ?, github_kind = ? WHERE id = ?").run(link?.repo ?? null, link?.number ?? null, link?.kind ?? null, id);
       const chat = get(id)!;
       onChange({ type: "chat", chat });
       return chat;

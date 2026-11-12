@@ -312,7 +312,17 @@ CREATE TABLE db_prep_runs (
 CREATE INDEX idx_db_prep_runs_connection ON db_prep_runs(connection_id, id);
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18];
+/**
+ * v19: チャットと GitHub の issue・PR の結び付き（どの issue・PR のためのチャットか。issue から始めた・レビューコメントで直すチャット）。
+ * repo は「持ち主/名前」、kind は issue / pr（PR を作るとき「Closes #n」を足すのは issue だけ）。3 つがそろって NULL か、そろって値があるかは店で守る（ALTER TABLE では表の CHECK を足せないため）
+ */
+const SCHEMA_V19 = `
+ALTER TABLE chats ADD COLUMN github_repo TEXT CHECK (github_repo <> '');
+ALTER TABLE chats ADD COLUMN github_number INTEGER CHECK (github_number > 0);
+ALTER TABLE chats ADD COLUMN github_kind TEXT CHECK (github_kind <> '');
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

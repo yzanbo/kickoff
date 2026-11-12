@@ -1,5 +1,5 @@
 // 店に渡す作成時の入力（DB の行の形ではなく、省略できる項目は既定で埋める。コアの中だけで使う）
-import type { ChatOptionsPatch, ChatStatus, ProviderId } from "@shared/types";
+import type { ChatOptionsPatch, ChatStatus, GitHubKind, ProviderId } from "@shared/types";
 
 export interface NewProject {
   name: string;
@@ -22,4 +22,8 @@ export interface NewChat extends ChatOptionsPatch {
   parent_event_id?: number | null;
   /** メモのチャットのメモ（メモのフォルダからの相対パス） */
   memo_path?: string | null;
+  /** 結び付いた GitHub の issue・PR */
+  github_repo?: string | null;
+  github_number?: number | null;
+  github_kind?: GitHubKind | null;
 }

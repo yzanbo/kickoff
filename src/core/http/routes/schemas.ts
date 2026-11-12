@@ -1,8 +1,8 @@
 import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
-import type { ChatOptionsPatch, ChildChatBody, HandoffBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
-import { EFFORT_LEVELS, HANDOFF_VIAS, PERMISSION_MODES } from "@shared/types";
+import type { ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
+import { EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, PERMISSION_MODES } from "@shared/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 
 // ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
@@ -105,6 +105,13 @@ export const messageInputSchema = z.object({ ...messageShape, ...marksShape, pau
 /** チャットの名前（名前の変更・送る前に付けた名前） */
 export const chatTitle = z.string().trim().min(1).max(100);
 
+/** GitHub の issue・PR の結び付き（repo は「持ち主/名前」） */
+export const githubLinkSchema = z.object({
+  repo: z.string().regex(/^[\w.-]+\/[\w.-]+$/, "リポジトリは「持ち主/名前」で書いてください"),
+  number: z.number().int().positive(),
+  kind: z.enum(GITHUB_KINDS),
+}) satisfies z.ZodType<GitHubLink>;
+
 /** 新しいチャットの最初の指示。作業場所は、いまあるワークツリーのフォルダか、新しく作るワークツリーのブランチ名（どちらもなければ本体）。名前を付けていれば、AI に名前を付けてもらわない */
 export const newChatSchema = z
   .object({
@@ -113,6 +120,7 @@ export const newChatSchema = z
     group_id: z.number().int().optional(),
     worktree_path: folderPath.optional(),
     new_worktree_branch: branchName.optional(),
+    github: githubLinkSchema.optional(),
   })
   .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<NewChatBody>;
 
