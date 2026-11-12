@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, openMemoTab, openPreviewTab, openTableTab, parseDbClientTabs, pinDbTab, renameMemoTab, setTableFilter, tableTabKey, type DbClientTab, updateErTab } from "./dbClientTabs";
+import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, openMemoTab, openPreviewTab, setSqlConnection, openTableTab, parseDbClientTabs, pinDbTab, renameMemoTab, setTableFilter, tableTabKey, type DbClientTab, updateErTab } from "./dbClientTabs";
 
 const path = { database: "main", schema: null };
 const table = (name: string, connection_id = 1): DbClientTab => ({ key: tableTabKey(connection_id, path, name), kind: "table", connection_id, path, name, object: "table" });
@@ -125,4 +125,12 @@ test("openPreviewTab / pinDbTab: 仮のタブは次の仮のタブで同じ場�
   assert.deepEqual(names(setTableFilter(s, table("e").key, { filters: [], where: "1 = 1" })), ["a", "c", "d", "e"]);
   // 保存した値も読める
   assert.deepEqual(parseDbClientTabs(JSON.parse(JSON.stringify(s))), s);
+});
+
+test("setSqlConnection: SQL のタブの接続だけ替える（ほかの種類・ほかのタブは変えない）", () => {
+  const s = { tabs: [sql("s1", "SQL 1"), table("a")], active: "s1" };
+  const next = setSqlConnection(s, "s1", 2);
+  assert.equal(next.tabs[0].connection_id, 2);
+  assert.equal(next.tabs[1], s.tabs[1]);
+  assert.equal(setSqlConnection(s, table("a").key, 3).tabs[1].connection_id, 1);
 });

@@ -13,6 +13,7 @@ import { readSetting, writeSetting } from "@/lib/storage";
 import { DB_SQL_EDITOR_HEIGHT, dbSqlDraft } from "@/lib/storageKeys";
 import { alertDialog } from "@/ui/dialogs";
 import { SqlAssistButton } from "./DbAiButtons";
+import { SqlConnectionPill } from "./SqlConnectionPill";
 import { useDbClient } from "./dbClientContext";
 import { DbWriteBand } from "./DbWriteBand";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
@@ -189,6 +190,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
       )}
       <div ref={height.paneRef} className="db-sql-top" style={{ height: `${height.size}%` }}>
         <div className="db-sql-toolbar">
+          <SqlConnectionPill connection={connection} tabKey={tab.key} disabled={running || write.on} />
           <button type="button" className="btn btn-sm" disabled={running} onClick={() => void execute(false)} data-tip="カーソルの文か、選んだ範囲を流す" data-tip-keys="⌘↵">
             <Play size={13} aria-hidden /> 流す
           </button>
