@@ -60,7 +60,7 @@ export function DockerTab({ projectId }: { projectId: number }) {
       ) : (
         <div className="docker-composes">
           {list.composes.map((c) => (
-            <DockerComposeBlock key={c.key} projectId={projectId} compose={c} act={docker.act} onLogs={(chips) => openLogs(c.key, chips)} />
+            <DockerComposeBlock key={c.key} projectId={projectId} compose={c} act={docker.act} silent={list.silent} onLogs={(chips) => openLogs(c.key, chips)} />
           ))}
         </div>
       )}

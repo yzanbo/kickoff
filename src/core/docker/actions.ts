@@ -1,7 +1,7 @@
 // Docker タブの操作を docker のコマンドの並びにする（純粋な関数。仕様書の 6 章の表）。
 // compose のファイルを要るのは up だけ: サービスの行はコンテナの ID、compose の停止・片付けは -p で、ファイルのないフォルダ（/）で流す
 import path from "node:path";
-import type { DockerAction, DockerCompose } from "@shared/types";
+import type { DockerAction, DockerCompose, DockerFailure } from "@shared/types";
 import { Invalid } from "../http/errors.js";
 
 /** 流す 1 つのコマンド（docker の引数・フォルダ・つないだまま受け取るか） */
@@ -25,6 +25,8 @@ export interface PlanInput {
   action: DockerAction;
   service?: string;
   container?: string;
+  /** ［相手を止めて起動］: やり直す元の操作と、ポートでぶつかった相手（最後の失敗） */
+  retry?: Pick<DockerFailure, "action" | "service" | "conflicts">;
 }
 
 /** -p だけで流すフォルダ（compose のファイルがあるフォルダで流すと、そのファイルが読まれて札付きのサービスが動いたまま残る） */
@@ -33,7 +35,7 @@ const NO_FILE_DIR = "/";
 const ids = (list: { id: string }[]) => list.map((c) => c.id);
 
 /** 操作 → コマンドの並び。できない操作は Invalid（400） */
-export function planDockerAction({ compose, upFiles, action, service, container }: PlanInput): DockerPlan {
+export function planDockerAction({ compose, upFiles, action, service, container, retry }: PlanInput): DockerPlan {
   const name = compose.project_name;
   const fileShared = compose.shares.some((s) => s.kind === "file");
   const allContainers = compose.services.flatMap((s) => s.containers);
@@ -69,8 +71,13 @@ export function planDockerAction({ compose, upFiles, action, service, container 
       if (!steps.length) throw new Invalid("起動するサービスがありません");
       return { steps, usesUp: missing.length > 0 };
     }
-    case "recreate":
-      return { steps: [up(["up", "-d"])], usesUp: true };
+    case "recreate": {
+      if (!service) return { steps: [up(["up", "-d"])], usesUp: true };
+      // 1 つのサービスだけ作り直す（ポートの取り合いで起動に失敗したあと、ポートを出さずに動いているコンテナを直す）
+      const s = svc();
+      const profile = s.profiles[0];
+      return { steps: [up([...(profile ? ["--profile", profile] : []), "up", "-d", "--no-deps", "--force-recreate", s.name])], usesUp: true };
+    }
     case "stop_all": {
       // 同じ作業場所のほかの compose と同じ組なら、-p で止めると両方止まるので、この見出しのコンテナの ID で
       if (fileShared) {
@@ -117,7 +124,17 @@ export function planDockerAction({ compose, upFiles, action, service, container 
       if (!target) throw new Invalid("この compose のコンテナではありません");
       return { steps: [docker(["stop", target.id])], usesUp: false };
     }
-    case "stop_others_and_start":
-      throw new Invalid("この操作は、ポートでぶつかった失敗の行から使います");
+    case "stop_others_and_start": {
+      if (!retry?.conflicts.length) throw new Invalid("止める相手がありません。もう一度起動してください");
+      // 相手を止め（データは残る）、ぶつかって起動できなかったサービスは作り直す（ポートで起動に失敗したコンテナは、あとで起動しても Mac にポートを出さない。
+      // 止め直しても戻らず、作り直すまで直らないことを 2026-11-13 に OrbStack で確かめた）。すべて起動なら、残りも同じ起動で
+      const ports = new Set(retry.conflicts.map((c) => c.port));
+      const blocked = compose.services.filter((s) => (retry.service ? s.name === retry.service : true) && s.published.some((p) => ports.has(p)));
+      const profiles = [...new Set(blocked.flatMap((s) => s.profiles.slice(0, 1)))];
+      const steps = [docker(["stop", ...new Set(retry.conflicts.map((c) => c.container_id))])];
+      if (blocked.length) steps.push(up([...profiles.flatMap((p) => ["--profile", p]), "up", "-d", "--no-deps", "--force-recreate", ...blocked.map((s) => s.name)]));
+      if (!retry.service || !blocked.length) steps.push(...planDockerAction({ compose, upFiles, action: retry.action, service: retry.service ?? undefined }).steps);
+      return { steps, usesUp: true };
+    }
   }
 }

@@ -203,6 +203,11 @@ export interface DockerList {
   silent: Record<string, DockerSilentConflict[]>;
 }
 
+/** POST /api/projects/:id/docker/brew-stop の本文（静かなぶつかりの相手の Homebrew のサービス。応答は { message }（戻し方を添えた文）） */
+export interface DockerBrewStopBody {
+  name: string;
+}
+
 /** POST /api/projects/:id/docker/actions の本文 */
 export interface DockerActionBody {
   action: DockerAction | "cancel" | "dismiss";

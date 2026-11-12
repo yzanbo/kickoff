@@ -196,3 +196,62 @@ test("Docker: ログの流れは最新の 500 行を追い、止まったら区�
     session.close();
   }
 });
+
+test("Docker: ポートで失敗したら相手を全部残し、［相手を止めて起動］で相手を止めてから同じ起動をやり直す", async () => {
+  const s = setup();
+  withCompose(s, [{ match: "up -d", code: 1, stderr: "Error response from daemon: Bind for 0.0.0.0:5432 failed: port is already allocated\n" }], [
+    { id: "x1", name: "else-db-1", state: "running", project: "else", service: "db", dir: "/somewhere/else", ports: "0.0.0.0:5432->5432/tcp" },
+    { id: "x2", name: "kickoff-dbtest-pg", state: "running", ports: "127.0.0.1:5432->5432/tcp" },
+  ]);
+  const [c] = (await list(s)).composes;
+  await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
+  await until(() => !s.docker["operations"].size);
+  const failure = (await list(s)).composes[0].failure;
+  assert.deepEqual(
+    failure?.conflicts.map((x) => [x.port, x.container_id, x.label]),
+    [
+      [5432, "x1", "else（ほかのプロジェクト）の db"],
+      [5432, "x2", "kickoff-dbtest-pg（compose の外で作ったコンテナ）"],
+    ],
+  );
+  // 作り直しは通り、そのあとのすべて起動はまた失敗する
+  const containers = [{ id: "x1", name: "else-db-1", state: "running", project: "else", service: "db", dir: "/somewhere/else", ports: "0.0.0.0:5432->5432/tcp" }];
+  withCompose(s, [{ match: "--force-recreate", code: 0 }, { match: "up -d", code: 1, stderr: "Bind for 0.0.0.0:5432 failed: port is already allocated\n" }], containers);
+  s.dockerFake.clearCalls();
+  const res = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "stop_others_and_start", compose: c.key });
+  assert.equal(res.status, 202);
+  await until(() => !s.docker["operations"].size);
+  const ran = s.dockerFake.calls().filter((x) => x.args[0] === "stop" || x.args.includes("up")).map((x) => x.args.join(" "));
+  assert.equal(ran[0], "stop x1 x2");
+  // ぶつかったサービスは作り直す（ポートで失敗したコンテナは、あとで起動してもポートを出さないため）。そのあと元の起動をやり直す
+  assert.match(ran[1], /up -d --no-deps --force-recreate db$/);
+  assert.match(ran[2], /up -d$/);
+  // やり直しも失敗したら、元の操作（すべて起動）として残る（もう一度［相手を止めて起動］できる）
+  assert.equal((await list(s)).composes[0].failure?.action, "start_all");
+});
+
+test("Docker: 相手がいないときの［相手を止めて起動］は 400", async () => {
+  const s = setup();
+  withCompose(s);
+  const [c] = (await list(s)).composes;
+  assert.equal((await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "stop_others_and_start", compose: c.key })).status, 400);
+});
+
+test("Docker: 静かなぶつかり（Docker の外のプロセスが同じポート）を lsof で見つけ、Homebrew のサービスなら止められる", async () => {
+  const s = setup();
+  const file = path.join(s.project.repo_path, "compose.yaml");
+  withCompose(s, [], [{ id: "c1", name: "app-db-1", state: "running", project: "app", service: "db", dir: s.project.repo_path, files: file, ports: "0.0.0.0:5432->5432/tcp", hash: "h1" }]);
+  s.portsFake.lsof = [
+    "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME",
+    "OrbStack\\x20Helper 900 me 10u IPv4 0x1 0t0 TCP *:5432 (LISTEN)",
+    "postgres 123 me 7u IPv4 0x2 0t0 TCP 127.0.0.1:5432 (LISTEN)",
+  ].join("\n");
+  s.portsFake.brewServices = JSON.stringify([{ name: "postgresql@16", running: true, pid: 123 }]);
+  const l = await list(s);
+  assert.deepEqual(l.silent, { c1: [{ port: 5432, address: "127.0.0.1:5432", process: "postgres", pid: 123, brew_service: "postgresql@16" }] });
+  assert.equal((await s.call("POST", `/api/projects/${s.project.id}/docker/brew-stop`, { name: "redis" })).status, 400);
+  const res = await s.call("POST", `/api/projects/${s.project.id}/docker/brew-stop`, { name: "postgresql@16" });
+  assert.equal(res.status, 200);
+  assert.match(res.body.message, /brew services start postgresql@16/);
+  assert.deepEqual(s.portsFake.brewStopped, ["postgresql@16"]);
+});

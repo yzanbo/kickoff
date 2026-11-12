@@ -1,4 +1,4 @@
-import type { DockerActionBody, DockerList, DockerLogLine } from "@shared/types";
+import type { DockerActionBody, DockerBrewStopBody, DockerList, DockerLogLine } from "@shared/types";
 import { request, withQuery } from "./http";
 
 /** Docker タブ（プロジェクトの compose の一覧・操作。コアの routes/docker.ts。この Mac のアプリの中だけ） */
@@ -15,5 +15,7 @@ export const dockerApi = {
   /** ログの「さらに前を読む」（until より前の 500 行。この compose のコンテナだけ） */
   dockerLogsBefore: (projectId: number, compose: string, container: string, until: string) =>
     request<{ lines: DockerLogLine[] }>("GET", withQuery(`/api/projects/${projectId}/docker/logs/before`, { compose, container, until })),
+  /** 静かなぶつかりの相手の Homebrew のサービスを止める（応答は戻し方を添えた文） */
+  dockerBrewStop: (projectId: number, name: string) => request<{ message: string }>("POST", `/api/projects/${projectId}/docker/brew-stop`, { name } satisfies DockerBrewStopBody),
   dockerOpenEngine: (projectId: number) => request<void>("POST", `/api/projects/${projectId}/docker/open-engine`),
 };

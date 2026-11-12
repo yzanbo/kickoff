@@ -2,7 +2,7 @@
 // docker events（見ている画面があるときだけ）。DB は使わない（覚えるものはメモリだけ）
 import fs from "node:fs";
 import path from "node:path";
-import type { DockerActionBody, DockerFailure, DockerList, DockerLogLine, DockerLogSource, DockerOperation, Project } from "@shared/types";
+import type { DockerAction, DockerActionBody, DockerFailure, DockerList, DockerLogLine, DockerLogSource, DockerOperation, Project } from "@shared/types";
 import { DOCKER_SHARED_PROJECT } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Bus } from "../bus.js";
@@ -18,9 +18,20 @@ import { DockerEvents } from "./events.js";
 import { buildDockerList, headFileOf, logSourcesOf, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
 import { DOCKER_LOG_TAIL, readLog } from "./logs.js";
 import { PS_FORMAT, parsePs, starterOf, type RawContainer } from "./parse.js";
+import { allocatedPortOf, conflictLabel, hostPortsOf, portConflictsOf } from "./portConflict.js";
+import { DockerPorts } from "./ports.js";
 
 /** 失敗の文に残す標準エラーの行数 */
 const FAILURE_LINES = 8;
+
+/** 動いている操作（止める口と、失敗を残すときの操作。［相手を止めて起動］なら、やり直した元の操作） */
+interface RunningOp {
+  op: DockerOperation;
+  projectId: number;
+  stream: StreamedCommand | null;
+  cancelled: boolean;
+  failureAction: DockerAction;
+}
 
 /** 一覧を作ったときの中身（操作で compose を引き当てる） */
 interface Snapshot {
@@ -35,8 +46,10 @@ export class DockerService {
   private readonly configs: ComposeConfigCache;
   private readonly events: DockerEvents;
   /** compose（見出しのキー）ごとの動いている操作と、止める口 */
-  private readonly operations = new Map<string, { op: DockerOperation; projectId: number; stream: StreamedCommand | null; cancelled: boolean }>();
+  private readonly operations = new Map<string, RunningOp>();
   private readonly failures = new Map<string, DockerFailure>();
+  /** 静かなぶつかりを調べる口（テストでは probe を差し替える） */
+  readonly ports = new DockerPorts();
 
   constructor(
     private readonly bus: Bus,
@@ -109,7 +122,10 @@ export class DockerService {
       upFiles.set(c.key, entry?.upFiles ?? []);
     }
     const composes = built.composes.map((c) => ({ ...c, operation: this.operations.get(c.key)?.op ?? null, failure: this.failures.get(c.key) ?? null }));
-    return { list: { engine: "ok", context, starter: starterOf(context), composes, others: built.others, silent: {} }, containers, owner: built.owner, upFiles };
+    // 静かなぶつかり: このプロジェクトの動いているコンテナが Mac に出しているポートを、Docker の外のプロセスも待っていないか（AI・ターミナルが起動したものも）
+    const portsById = new Map(containers.filter((c) => c.state === "running" && built.owner.has(c.id)).map((c) => [c.id, hostPortsOf(c)] as const));
+    const silent = await this.ports.silent(portsById);
+    return { list: { engine: "ok", context, starter: starterOf(context), composes, others: built.others, silent }, containers, owner: built.owner, upFiles };
   }
 
   /** compose のファイルごとの読み取り（見つけたものと、作ったコンテナのラベルにあるもの）。作ってあるものはラベルのファイルで up する */
@@ -152,32 +168,61 @@ export class DockerService {
     if (snap.list.engine !== "ok") throw new Invalid(snap.list.engine === "missing" ? "Docker が入っていません" : "Docker が動いていません");
     const compose = snap.list.composes.find((c) => c.key === body.compose);
     if (!compose) throw new NotFound("この compose はもうありません。一覧を取り直してください");
-    const plan = planDockerAction({ compose, upFiles: snap.upFiles.get(compose.key) ?? [], action: body.action, service: body.service, container: body.container });
+    const upFiles = snap.upFiles.get(compose.key) ?? [];
+    // ［相手を止めて起動］は最後の失敗（やり直す操作とポートでぶつかった相手）から組み立て、失敗したらやり直した元の操作として残す
+    const prev = body.action === "stop_others_and_start" ? this.failures.get(compose.key) : undefined;
+    const plan = planDockerAction({ compose, upFiles, action: body.action, service: body.service, container: body.container, retry: prev });
+    const failureAction: DockerAction = prev?.action ?? body.action;
+    const service = prev ? prev.service : (body.service ?? null);
     if (plan.usesUp && !body.confirm_shared) {
       const victims = sharedVictims(compose.key, compose.project_name, snap.containers, snap.owner);
       if (victims.length) throw new Conflict(sharedMessage(compose.project_name ?? "", victims), DOCKER_SHARED_PROJECT);
     }
     this.failures.delete(compose.key);
-    const op: DockerOperation = { action: body.action, service: body.service ?? null, started_at: new Date().toISOString(), cancellable: plan.steps.some((s) => s.stream) };
-    const running = { op, projectId: project.id, stream: null as StreamedCommand | null, cancelled: false };
+    const op: DockerOperation = { action: body.action, service, started_at: new Date().toISOString(), cancellable: plan.steps.some((s) => s.stream) };
+    const running: RunningOp = { op, projectId: project.id, stream: null, cancelled: false, failureAction };
     this.operations.set(compose.key, running);
     this.changed(project.id);
-    void this.runSteps(compose.key, running, plan.steps);
+    void this.runSteps(project, compose.key, running, plan.steps);
   }
 
-  private async runSteps(key: string, running: { op: DockerOperation; projectId: number; stream: StreamedCommand | null; cancelled: boolean }, steps: DockerStep[]) {
+  private async runSteps(project: Project, key: string, running: RunningOp, steps: DockerStep[]) {
     let failure: DockerFailure | null = null;
     for (const step of steps) {
       if (running.cancelled) break;
       const message = await this.runStep(step, running);
       if (message !== null && !running.cancelled) {
-        failure = { action: running.op.action, service: running.op.service, message, command: `docker ${step.args.map(shellWord).join(" ")}`, cwd: step.cwd, conflicts: [], at: new Date().toISOString() };
+        const conflicts = allocatedPortOf(message) === null ? [] : await this.conflictsFor(project, key, running.op.service).catch(() => []);
+        failure = { action: running.failureAction, service: running.op.service, message, command: `docker ${step.args.map(shellWord).join(" ")}`, cwd: step.cwd, conflicts, at: new Date().toISOString() };
         break;
       }
     }
     this.operations.delete(key);
     if (failure) this.failures.set(key, failure);
     this.changed(running.projectId);
+  }
+
+  /**
+   * ポートで失敗したときの相手（エラー文には最初の 1 つしか出ないので、起動しようとしたサービスの Mac に出すポートを、動いているコンテナとすべて突き合わせる）。
+   * サービスの行ならそのサービス、すべて起動なら札のないサービス
+   */
+  private async conflictsFor(project: Project, key: string, service: string | null) {
+    const snap = await this.snapshot(project);
+    const compose = snap.list.composes.find((c) => c.key === key);
+    if (!compose) return [];
+    const published = compose.services.filter((s) => (service ? s.name === service : s.profiles.length === 0)).flatMap((s) => s.published);
+    const composeOf = (id: string) => snap.list.composes.find((c) => c.key === snap.owner.get(id));
+    return portConflictsOf(published, snap.containers, (c) => snap.owner.get(c.id) === key, (c) => conflictLabel(c, composeOf));
+  }
+
+  /** 静かなぶつかりの［Docker の db を使う］: 相手の Homebrew のサービスを止める（いまぶつかっている相手の名前だけ受ける）。戻し方の文を返す */
+  async stopBrewService(project: Project, name: string): Promise<string> {
+    const snap = await this.snapshot(project);
+    const known = Object.values(snap.list.silent).some((list) => list.some((c) => c.brew_service === name));
+    if (!known) throw new Invalid("いまポートでぶつかっている Homebrew のサービスではありません。一覧を取り直してください");
+    await this.ports.stopBrew(name);
+    this.changed(project.id);
+    return `${name} を止めました。戻すときは brew services start ${name} を流してください`;
   }
 
   /** 1 つ流す。失敗なら標準エラーの最後の数行（成功なら null） */
