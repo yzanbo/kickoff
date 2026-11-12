@@ -80,6 +80,8 @@
 }
 
 .db-failure-memo-tools {
+  display: inline-flex;
+  gap: 6px;
   margin-left: auto;
 }
 

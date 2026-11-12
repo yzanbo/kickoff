@@ -93,6 +93,39 @@ export function dbMemoTemplate(title: string, today: string): string {
 `;
 }
 
+/** 手順メモの直し方の見出し（dbMemoTemplate と同じ） */
+const FIX_HEADING = "## つながらないときの直し方";
+
+/** 「手順メモに追記」の 1 行: 日付・失敗の種類と失敗の文の頭・直し方（どちらも 1 行に詰める） */
+export function dbMemoFixEntry(today: string, error: string, fix: string): string {
+  const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+  const head = oneLine(error.split("\n")[0] ?? "");
+  const clipped = head.length > 80 ? `${head.slice(0, 80)}…` : head;
+  return `- ${today} ${DB_FAILURE_LABELS[dbFailureKind(error)]}${clipped ? `「${clipped}」` : ""} → ${oneLine(fix)}`;
+}
+
+/**
+ * 手順メモの「つながらないときの直し方」の終わりに 1 行足す（その段の最後の行の次。段がなければメモの終わりに見出しごと足す）。
+ * ほかの段・例の行はそのまま
+ */
+export function appendDbMemoFix(content: string, entry: string): string {
+  const lines = content.split("\n");
+  const at = lines.findIndex((l) => l.trim() === FIX_HEADING);
+  if (at < 0) return `${content.trimEnd()}${content.trim() ? "\n\n" : ""}${FIX_HEADING}\n\n${entry}\n`;
+  let end = lines.findIndex((l, i) => i > at && /^#{1,2}\s/.test(l));
+  if (end < 0) end = lines.length;
+  let last = -1;
+  for (let i = end - 1; i > at; i--) {
+    if (lines[i].trim()) {
+      last = i;
+      break;
+    }
+  }
+  if (last >= 0) lines.splice(last + 1, 0, entry);
+  else lines.splice(at + 1, 0, "", entry, ...(end < lines.length ? [""] : []));
+  return lines.join("\n");
+}
+
 /**
  * 「AI に直してもらう」で新しいチャットに送る文: 失敗の文・接続の設定（パスワードは入れない）・手順メモの場所。
  * AI はふつうのチャットと同じく承認を通してコマンドを流せる。直ったら手順メモに追記してもらう
