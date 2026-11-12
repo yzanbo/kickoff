@@ -143,6 +143,10 @@ export interface GitHubReviewThread {
   side: "LEFT" | "RIGHT";
   resolved: boolean;
   outdated: boolean;
+  /** 自分が返信できる */
+  can_reply: boolean;
+  /** 自分が解決済みにできる（解決済みなら、戻せる） */
+  can_resolve: boolean;
   comments: { id: string; author: GitHubUser | null; created_at: string; body_html: string; /** 書いたままの Markdown（AI に渡す文に使う） */ body_markdown: string; diff_hunk: string; url: string | null }[];
 }
 
@@ -166,6 +170,8 @@ export interface GitHubIssueDetail {
   timeline: GitHubTimelineEntry[];
   /** 出来事が多くて途中までしか読めなかった */
   timeline_truncated: boolean;
+  /** 自分にできること */
+  viewer: GitHubViewerAbilities;
   fetched_at: string;
 }
 
@@ -178,6 +184,11 @@ export interface GitHubPullDetail extends GitHubIssueDetail {
   head_sha: string | null;
   head_owner: string | null;
   mergeable: "mergeable" | "conflicting" | "unknown";
+  merge_state: GitHubMergeState;
+  /** リポジトリが許すマージの方式 */
+  merge_methods: GitHubMergeMethod[];
+  /** 自分がマージできる（リポジトリへの書き込みの権限がある） */
+  can_merge: boolean;
   review_threads: GitHubReviewThread[];
   checks: GitHubCheck[];
 }
@@ -199,3 +210,47 @@ export interface GitHubPullFiles {
   truncated: boolean;
   fetched_at: string;
 }
+
+// ---- 段階 3「書く」（コメント・閉じる / 開き直す・ラベル・issue の作成・レビューの送信・マージ・チェックアウト） ----
+
+/** 自分（プロジェクトのアカウント）がこの issue・PR にできること（できないボタンは出さない） */
+export interface GitHubViewerAbilities {
+  can_close: boolean;
+  can_reopen: boolean;
+  can_label: boolean;
+}
+
+/** issue の閉じ方 */
+export const GITHUB_CLOSE_REASONS = ["completed", "not_planned"] as const;
+export type GitHubCloseReason = (typeof GITHUB_CLOSE_REASONS)[number];
+export const GITHUB_CLOSE_REASON_LABELS: Record<GitHubCloseReason, string> = { completed: "完了として閉じる", not_planned: "対応しないとして閉じる" };
+
+/** マージの方式（リポジトリが許すものだけを選べる） */
+export const GITHUB_MERGE_METHODS = ["merge", "squash", "rebase"] as const;
+export type GitHubMergeMethod = (typeof GITHUB_MERGE_METHODS)[number];
+export const GITHUB_MERGE_METHOD_LABELS: Record<GitHubMergeMethod, string> = { merge: "マージコミットを作る", squash: "1 つにまとめる（squash）", rebase: "リベースして載せる（rebase）" };
+
+/**
+ * PR のマージの様子（GitHub の mergeStateStatus）: clean = マージできる・behind = base より古い・blocked = 保護ルールで止まっている（承認・チェック）・
+ * dirty = 衝突・unstable = 必須でないチェックが落ちている・has_hooks = フックあり・draft = 下書き・unknown = まだ分からない
+ */
+export const GITHUB_MERGE_STATES = ["clean", "behind", "blocked", "dirty", "unstable", "has_hooks", "draft", "unknown"] as const;
+export type GitHubMergeState = (typeof GITHUB_MERGE_STATES)[number];
+
+/** レビューの送り方 */
+export const GITHUB_REVIEW_EVENTS = ["comment", "approve", "request_changes"] as const;
+export type GitHubReviewEvent = (typeof GITHUB_REVIEW_EVENTS)[number];
+export const GITHUB_REVIEW_EVENT_LABELS: Record<GitHubReviewEvent, string> = { comment: "コメント", approve: "承認", request_changes: "変更依頼" };
+
+/** レビューにためた行のコメント（start_line があれば start_line〜line の範囲） */
+export interface GitHubReviewDraftComment {
+  path: string;
+  line: number;
+  side: "LEFT" | "RIGHT";
+  start_line: number | null;
+  body: string;
+}
+
+/** PR のチェックアウトの行き先（新しいワークツリー / 本体） */
+export const GITHUB_CHECKOUT_PLACES = ["worktree", "main"] as const;
+export type GitHubCheckoutPlace = (typeof GITHUB_CHECKOUT_PLACES)[number];

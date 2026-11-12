@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import type { GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubPullDetail, GitHubPullFiles, GitHubPullWorktree } from "@shared/types";
+import { Invalid } from "./errors.js";
 import { setup, TOKEN } from "../testing/testServer.js";
 import { gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
@@ -197,4 +198,112 @@ test("GitHub タブ: PR のブランチのワークツリー（PR の元のブ�
   // 連携先の remote がない
   ghFake.remotes = [{ name: "origin", repo: "x/y", url: bare }];
   assert.equal((await call("POST", `/api/projects/${project.id}/github/pulls/5/worktree`)).status, 400);
+});
+
+test("GitHub タブの書き込み: コメント・閉じる / 開き直す・ラベル・issue の作成を REST で送る（空の本文・題名は 400）", async () => {
+  const { call, project, ghFake } = setup();
+  const base = `/api/projects/${project.id}/github`;
+  ghFake.send = (method, path) => (path.endsWith("/labels") ? [{ name: "bug", color: "d73a4a" }] : method === "POST" && path === "repos/o/r/issues" ? { number: 42, html_url: "https://github.com/o/r/issues/42" } : {});
+  const sent = () => ghFake.calls.filter((c) => c.kind === "send").map((c) => [c.method, c.detail, c.body]);
+
+  assert.equal((await call("POST", `${base}/items/7/comments`, { body: "見ました" })).status, 204);
+  assert.equal((await call("POST", `${base}/items/7/comments`, { body: "  " })).status, 400);
+  assert.equal((await call("POST", `${base}/issues/7/state`, { state: "closed", reason: "not_planned" })).status, 204);
+  assert.equal((await call("POST", `${base}/issues/7/state`, { state: "open" })).status, 204);
+  assert.equal((await call("POST", `${base}/pulls/8/state`, { state: "closed" })).status, 204);
+  assert.equal((await call("POST", `${base}/issues/7/state`, { state: "merged" })).status, 400);
+  const labels = await call("PUT", `${base}/items/7/labels`, { labels: ["bug"] });
+  assert.deepEqual(labels.body, [{ name: "bug", color: "d73a4a" }]);
+  const created = await call("POST", `${base}/issues`, { title: "落ちる", body: "手順", labels: ["bug"], assignees: ["me"] });
+  assert.equal(created.status, 201);
+  assert.deepEqual(created.body, { number: 42, url: "https://github.com/o/r/issues/42" });
+  assert.equal((await call("POST", `${base}/issues`, { title: " " })).status, 400);
+
+  assert.deepEqual(sent(), [
+    ["POST", "repos/o/r/issues/7/comments", { body: "見ました" }],
+    ["PATCH", "repos/o/r/issues/7", { state: "closed", state_reason: "not_planned" }],
+    ["PATCH", "repos/o/r/issues/7", { state: "open", state_reason: "reopened" }],
+    ["PATCH", "repos/o/r/pulls/8", { state: "closed" }],
+    ["PUT", "repos/o/r/issues/7/labels", { labels: ["bug"] }],
+    ["POST", "repos/o/r/issues", { title: "落ちる", body: "手順", labels: ["bug"], assignees: ["me"] }],
+  ]);
+});
+
+test("GitHub タブの書き込み: レビューの送信・スレッドへの返信と解決・マージ（GitHub が断ったら理由の文で 400）", async () => {
+  const { call, project, ghFake } = setup();
+  const base = `/api/projects/${project.id}/github`;
+  const review = { event: "comment", body: "", commit_id: "abc1234", comments: [{ path: "a.ts", line: 3, side: "RIGHT", body: "ここ" }] };
+  assert.equal((await call("POST", `${base}/pulls/5/reviews`, review)).status, 204);
+  assert.deepEqual(ghFake.calls.at(-1)?.body, { event: "COMMENT", commit_id: "abc1234", comments: [{ path: "a.ts", line: 3, side: "RIGHT", body: "ここ" }] });
+  assert.equal((await call("POST", `${base}/pulls/5/reviews`, { event: "comment", body: "", comments: [] })).status, 400);
+  assert.equal((await call("POST", `${base}/pulls/5/reviews`, { event: "lgtm" })).status, 400);
+
+  ghFake.graphql = () => ({});
+  assert.equal((await call("POST", `${base}/pulls/5/threads/PRRT_kw1/replies`, { body: "直しました" })).status, 204);
+  assert.deepEqual(ghFake.calls.at(-1)?.vars, { thread: "PRRT_kw1", body: "直しました" });
+  assert.equal((await call("POST", `${base}/pulls/5/threads/PRRT_kw1/resolve`, { resolved: true })).status, 204);
+  assert.match(ghFake.calls.at(-1)?.detail ?? "", /resolveReviewThread/);
+  assert.equal((await call("POST", `${base}/pulls/5/threads/PRRT_kw1/resolve`, { resolved: false })).status, 204);
+  assert.match(ghFake.calls.at(-1)?.detail ?? "", /unresolveReviewThread/);
+  assert.equal((await call("POST", `${base}/pulls/5/threads/a%20b/resolve`, { resolved: true })).status, 400);
+
+  ghFake.send = () => ({ merged: true, sha: "def5678" });
+  const merged = await call("POST", `${base}/pulls/5/merge`, { method: "squash", sha: "abc1234" });
+  assert.deepEqual(merged.body, { sha: "def5678" });
+  assert.deepEqual(ghFake.calls.at(-1)?.body, { merge_method: "squash", sha: "abc1234" });
+  assert.equal(ghFake.calls.at(-1)?.method, "PUT");
+  assert.equal((await call("POST", `${base}/pulls/5/merge`, { method: "fast" })).status, 400);
+
+  ghFake.send = () => {
+    throw new Invalid("GitHub に断られました（HTTP 405）: At least 1 approving review is required by reviewers with write access.");
+  };
+  const refused = await call("POST", `${base}/pulls/5/merge`, { method: "merge", sha: null });
+  assert.equal(refused.status, 400);
+  assert.match((refused.body as { error: string }).error, /approving review is required/);
+});
+
+test("GitHub タブ: 中身に自分にできること、PR にマージの様子・許す方式・マージできるかを返す", async () => {
+  const { call, project, ghFake } = setup();
+  ghFake.graphql = () => ({
+    repository: {
+      mergeCommitAllowed: false,
+      squashMergeAllowed: true,
+      rebaseMergeAllowed: false,
+      viewerPermission: "WRITE",
+      issueOrPullRequest: {
+        __typename: "PullRequest",
+        number: 5,
+        title: "t",
+        state: "OPEN",
+        labels: { nodes: [] },
+        assignees: { nodes: [] },
+        comments: { totalCount: 0 },
+        viewerCanClose: true,
+        viewerCanLabel: true,
+        mergeStateStatus: "BEHIND",
+        timelineItems: { pageInfo: { hasNextPage: false }, nodes: [] },
+      },
+    },
+  });
+  const detail = (await call("GET", `/api/projects/${project.id}/github/pulls/5`)).body as GitHubPullDetail;
+  assert.deepEqual(detail.viewer, { can_close: true, can_reopen: false, can_label: true });
+  assert.equal(detail.merge_state, "behind");
+  assert.deepEqual(detail.merge_methods, ["squash"]);
+  assert.equal(detail.can_merge, true);
+});
+
+test("GitHub タブ: PR のチェックアウト（本体なら本体のブランチを切り替える。ワークツリーは今までどおり）", async () => {
+  const { call, project, ghFake } = setup();
+  const src = gitRepo({ files: { "a.txt": "a\n" } });
+  src.git("branch", "fix");
+  const bare = path.join(tempDir(), "o-r.git");
+  execFileSync("git", ["clone", "-q", "--bare", src.dir, bare]);
+  execFileSync("git", ["clone", "-q", bare, project.repo_path]);
+  ghFake.remotes = [{ name: "origin", repo: "o/r", url: bare }];
+  ghFake.rest = (p) => ({ status: 200, etag: null, body: p.startsWith("repos/o/r/pulls/") ? { head: { ref: "fix", repo: { full_name: "o/r" } } } : null });
+
+  const res = await call("POST", `/api/projects/${project.id}/github/pulls/4/checkout`, { place: "main" });
+  assert.deepEqual(res.body, { worktree_path: null, branch: "fix" } satisfies GitHubPullWorktree);
+  assert.equal(execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: project.repo_path, encoding: "utf8" }).trim(), "fix");
+  assert.equal((await call("POST", `/api/projects/${project.id}/github/pulls/4/checkout`, { place: "elsewhere" })).status, 400);
 });

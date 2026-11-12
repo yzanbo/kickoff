@@ -5,12 +5,16 @@ import type {
   GitHubItem,
   GitHubItemState,
   GitHubLabel,
+  GitHubMergeMethod,
+  GitHubMergeState,
   GitHubPullFile,
   GitHubReviewDecision,
   GitHubReviewThread,
   GitHubTimelineEntry,
   GitHubUser,
+  GitHubViewerAbilities,
 } from "@shared/types";
+import { GITHUB_MERGE_STATES } from "@shared/types";
 
 /** GitHub の答え（形は 1 つずつ確かめながら読む） */
 type Raw = any;
@@ -160,6 +164,8 @@ export function toThreads(conn: Raw): { threads: GitHubReviewThread[]; threadRev
       side: t.diffSide === "LEFT" ? "LEFT" : "RIGHT",
       resolved: t.isResolved === true,
       outdated: t.isOutdated === true,
+      can_reply: t.viewerCanReply === true,
+      can_resolve: t.isResolved === true ? t.viewerCanUnresolve === true : t.viewerCanResolve === true,
       comments: comments.map((c) => ({
         id: String(c.id),
         author: toUser(c.author),
@@ -203,3 +209,23 @@ export function toPullFile(raw: Raw): GitHubPullFile {
 export const nextCursor = (conn: Raw): string | null => (conn?.pageInfo?.hasNextPage && typeof conn.pageInfo.endCursor === "string" ? conn.pageInfo.endCursor : null);
 
 export { nodes as connectionNodes };
+
+/** 自分にできること（issue・PR の viewerCan…） */
+export function toViewer(raw: Raw): GitHubViewerAbilities {
+  return { can_close: raw?.viewerCanClose === true, can_reopen: raw?.viewerCanReopen === true, can_label: raw?.viewerCanLabel === true };
+}
+
+/** PR のマージの様子（知らない値は unknown） */
+export function toMergeState(raw: unknown): GitHubMergeState {
+  const v = lower(raw);
+  return (GITHUB_MERGE_STATES as readonly string[]).includes(v ?? "") ? (v as GitHubMergeState) : "unknown";
+}
+
+/** リポジトリが許すマージの方式と、自分がマージできるか（書き込みの権限: ADMIN・MAINTAIN・WRITE） */
+export function toMergeAbility(repo: Raw): { merge_methods: GitHubMergeMethod[]; can_merge: boolean } {
+  const methods: GitHubMergeMethod[] = [];
+  if (repo?.mergeCommitAllowed === true) methods.push("merge");
+  if (repo?.squashMergeAllowed === true) methods.push("squash");
+  if (repo?.rebaseMergeAllowed === true) methods.push("rebase");
+  return { merge_methods: methods, can_merge: ["ADMIN", "MAINTAIN", "WRITE"].includes(String(repo?.viewerPermission ?? "")) };
+}
