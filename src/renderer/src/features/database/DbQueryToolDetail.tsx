@@ -25,7 +25,7 @@ export function DbQueryToolDetail({ chatId, sql, connectionName, result, highlig
         <HighlightedCode code={sql} lang={highlight ? "sql" : undefined} />
       </pre>
       {local && chat && (
-        <div className="tool-db-actions">
+        <div className="tool-actions">
           <button
             type="button"
             className="btn btn-sm"

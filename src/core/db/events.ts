@@ -67,6 +67,11 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
     list(chatId: number): ChatEvent[] {
       return (db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? ORDER BY id`).all(chatId) as unknown as EventRow[]).map(toEvent);
     },
+    /** いちばん新しい自分の発言（user）の記録の id（なければ null） */
+    latestUserId(chatId: number): number | null {
+      const row = db.prepare("SELECT MAX(id) AS id FROM chat_events WHERE chat_id = ? AND type = 'user'").get(chatId) as { id: number | null };
+      return row.id;
+    },
     /** 未読にする「新しい結果」（shared/chat/state.ts の isUnreadEvent と同じもの）のうち、いちばん新しい記録の id（なければ 0） */
     latestUnreadId(chatId: number): number {
       const row = db

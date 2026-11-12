@@ -27,6 +27,17 @@ export const PERMISSION_LABELS: Record<PermissionMode, string> = {
   auto: "Auto mode",
   plan: "計画のみ",
 };
+
+/** チャットの AI が自分の子チャットを作るツール（kickoff_chat）の扱い: 毎回聞く / 聞かずに作る / 作らせない（ツールを渡さない） */
+export const AI_CHILD_CHAT_MODES = ["ask", "allow", "off"] as const;
+export type AiChildChatMode = (typeof AI_CHILD_CHAT_MODES)[number];
+
+export const AI_CHILD_CHAT_MODE_LABELS: Record<AiChildChatMode, string> = {
+  ask: "毎回聞く",
+  allow: "聞かずに作る",
+  off: "作らせない",
+};
+
 export interface AppSettings {
   /** 新規プロジェクトの既定プロバイダー */
   default_provider: ProviderId;
@@ -78,6 +89,8 @@ export interface AppSettings {
   pre_compact_enabled: boolean;
   /** 共通の圧縮後指示を送るか（false なら文を残したまま送らない） */
   post_compact_enabled: boolean;
+  /** チャットの AI が自分の子チャットを作るとき（承認カードの「常に許可」で allow になる。権限モードによらない） */
+  ai_child_chat: AiChildChatMode;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -106,4 +119,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   post_compact_prompt: null,
   pre_compact_enabled: true,
   post_compact_enabled: true,
+  ai_child_chat: "ask",
 };

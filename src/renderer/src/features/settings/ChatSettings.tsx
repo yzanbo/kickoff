@@ -6,6 +6,7 @@ import { CheckField, Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
 import { SaveActions } from "@/ui/SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
+import { AiChildChatField } from "./AiChildChatField";
 import { AUTO_COMPACT_CHOICES } from "@shared/chat/autoCompact";
 
 /** 自動のアーカイブで選べる日数（null はしない） */
@@ -18,7 +19,7 @@ const ARCHIVE_CHOICES: { value: number | null; label: string }[] = [
   { value: 30, label: "30 日" },
 ];
 
-/** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・自動圧縮を始める量・通信が切れて止まったときの自動の再開・✕ を押したときの扱い・作業中の作業場所で始めるときの扱い） */
+/** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・自動圧縮を始める量・通信が切れて止まったときの自動の再開・✕ を押したときの扱い・作業中の作業場所で始めるときの扱い・AI が子チャットを作るとき） */
 export function ChatSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
   // ✕ を押したときの扱い（この Mac の画面の設定なので、選んだらすぐ反映する）
@@ -99,6 +100,7 @@ export function ChatSettings() {
             options={BUSY_WORKPLACE_ACTIONS.map((value) => ({ value, label: BUSY_WORKPLACE_ACTION_LABELS[value] }))}
           />
         </Field>
+        <AiChildChatField />
       </div>
     </section>
   );

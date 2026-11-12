@@ -21,6 +21,7 @@ import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOptio
 import { createCanUseTool } from "./approvals.js";
 import { BROWSER_SERVER, browserMcpServer, browserReadOnlyTools } from "./browserTools.js";
 import { DB_SERVER, dbMcpServer, dbToolNames } from "./dbTools.js";
+import { CHAT_SERVER, chatMcpServer, chatToolNames } from "./chatTools.js";
 import { agentEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
@@ -144,6 +145,13 @@ export class ClaudeProvider implements AgentProvider {
     if (signal.aborted) onAbort();
 
     const canUseTool = createCanUseTool(cb);
+    // Kickoff の埋め込みブラウザを操作するツール（デスクトップアプリのときだけ）・プロジェクトの DB を読むツール（AI に見せる接続があるときだけ）・
+    // 自分の子チャットを作るツール（設定で止めていない・深さの上限に達していないときだけ）
+    const mcpServers = {
+      ...(params.browser ? { [BROWSER_SERVER]: browserMcpServer(params.browser.control, params.browser) } : {}),
+      ...(params.database ? { [DB_SERVER]: dbMcpServer(params.database, cb, abortController.signal) } : {}),
+      ...(params.childChat ? { [CHAT_SERVER]: chatMcpServer(params.childChat, cb, abortController.signal) } : {}),
+    };
 
     let sessionId = params.resumeSessionId;
     let final: SDKResultMessage | undefined;
@@ -186,17 +194,14 @@ export class ClaudeProvider implements AgentProvider {
           settingSources: ["user", "project", "local"],
           permissionMode: params.permissionMode,
           // 埋め込みブラウザのツールのうち、見るだけのものは聞かずに使わせる（開く・押す・打つ・JS は権限モードと承認に従う）
-          // DB のツールはすべて（承認と断りはツールの中で行う）
-          allowedTools: [...toAllowedTools(params.policy), ...(params.browser ? browserReadOnlyTools() : []), ...(params.database ? dbToolNames() : [])],
-          // Kickoff の埋め込みブラウザを操作するツール（デスクトップアプリのときだけ）と、プロジェクトの DB を読むツール（AI に見せる接続があるときだけ）
-          ...(params.browser || params.database
-            ? {
-                mcpServers: {
-                  ...(params.browser ? { [BROWSER_SERVER]: browserMcpServer(params.browser.control, params.browser) } : {}),
-                  ...(params.database ? { [DB_SERVER]: dbMcpServer(params.database, cb, abortController.signal) } : {}),
-                },
-              }
-            : {}),
+          // DB のツール・子チャットのツールはすべて（承認と断りはツールの中で行う）
+          allowedTools: [
+            ...toAllowedTools(params.policy),
+            ...(params.browser ? browserReadOnlyTools() : []),
+            ...(params.database ? dbToolNames() : []),
+            ...(params.childChat ? chatToolNames() : []),
+          ],
+          ...(Object.keys(mcpServers).length > 0 ? { mcpServers } : {}),
           canUseTool,
           resume: params.resumeSessionId ?? undefined,
           abortController,

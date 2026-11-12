@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { describeApprovalInput, describeTool, describeToolInput, describeUnknownInput, toolLabel, visibleToolResult } from "./toolDescribe";
+import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
   assert.equal(describeTool("TaskCreate", { subject: "確認 1", description: "動作確認用タスク 1" }), "ToDo を追加: 確認 1");
@@ -71,4 +72,10 @@ test("ツールの結果: ツール検索の [tool_reference] は出さない", 
   assert.equal(visibleToolResult("[tool_reference]\n[tool_reference]"), "");
   assert.equal(visibleToolResult("Task #1 created successfully: 確認 1"), "Task #1 created successfully: 確認 1");
   assert.equal(visibleToolResult("見つかった\n[tool_reference]"), "見つかった");
+});
+
+test("AI が子チャットを作るツール: 行は名前（なければ依頼の 1 行目）、承認カードは依頼の全文", () => {
+  assert.equal(describeTool(AI_CHILD_CHAT_TOOL, { title: "ログの調査", text: "ログの形式を調べて" }), "子チャットを作る: ログの調査");
+  assert.equal(describeTool(AI_CHILD_CHAT_TOOL, { text: "1 行目\n2 行目" }), "子チャットを作る: 1 行目");
+  assert.equal(describeApprovalInput(AI_CHILD_CHAT_TOOL, { title: "ログの調査", text: "1 行目\n2 行目" }), "1 行目\n2 行目");
 });

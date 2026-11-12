@@ -14,6 +14,8 @@ import { currentBranch } from "../git/index.js";
 import { isInside } from "../system/paths.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
 import { chatContextNote, chatContextOf } from "./chatContext.js";
+import { canCreateChildChat, createAiChildChatTools } from "./aiChildChat.js";
+import type { ChildChatInput } from "./children.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
@@ -36,6 +38,8 @@ export interface ExecutionDeps {
   browser?: BrowserControl;
   /** DB クライアント（AI に見せる接続があるプロジェクトで、AI に DB のツールを出す。なければ出さない） */
   databases?: DatabaseService;
+  /** 子チャットを作る（Runner が渡す。チャットの AI に自分の子チャットを作るツールを出す。なければ出さない） */
+  startChildChat?: (parent: Chat, input: ChildChatInput) => Promise<Chat>;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -176,6 +180,9 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
       deps.databases && hasAiConnections(deps.store, project.id)
         ? createDbAiTools({ store: deps.store, databases: deps.databases }, { project, workdir: chat.worktree_path, chatId: chat.id })
         : null,
+    // 自分の子チャットを作るツール（設定で止めていない・孫チャットより深くならないときだけ）
+    childChat:
+      deps.startChildChat && canCreateChildChat(deps.store, chat) ? createAiChildChatTools({ store: deps.store, startChild: deps.startChildChat }, chat.id) : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
   };

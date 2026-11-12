@@ -22,6 +22,8 @@ export interface ChildChatInput {
   options?: ChatOptionsPatch;
   /** 添付（チャット欄から子チャットに送ったとき） */
   attachments?: Attachment[];
+  /** 名前（AI が作るときに付けたもの。なければ文から付ける） */
+  title?: string;
 }
 
 /** 選んだ文を Markdown の引用にする */
@@ -77,6 +79,7 @@ export async function startChildChat(
   return runner.start({
     projectId: parent.project_id,
     prompt,
+    ...(input.title ? { title: input.title } : {}),
     titleText: titleSourceOf(input.text),
     options: input.options,
     attachments: input.attachments,

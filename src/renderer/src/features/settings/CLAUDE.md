@@ -9,7 +9,7 @@
 - 接続: AI エージェントと GitHub の CLI のログイン状態（`StatusCard` / `GitHubStatusCard`。`.card-grid`）。
 - 対応予定の AI（まだ Kickoff のチャットで使えない Codex・Gemini。コアの `PlannedProvider`）は、出てくる所すべてで「対応予定」の札と、今後の対応予定であることの一言を添える（利用者の依頼）: 設定の「接続」（カードの札と説明の下の一言）・「使用状況」（見出しの札と「Kickoff のチャットで使えるようにするのは今後の対応予定（いまは使用状況を見られるだけ）」）・プロジェクトの設定の「AI」（カードの札とカードの下の一言）。どれが対応予定かと文言は `plannedProviders.ts` の `usePlannedProviders`（プロバイダーの `implemented` から決める。対応したら札も一言も消える）・`PLANNED_BADGE`。
 - AI の既定: 新しいチャットのモデル・推論の深さ・権限モード・ファストモード（`AiDefaultsSettings`。選択肢の部品は `features/chat/options/AiOptions.tsx`）。
-- チャット: 完了したチャットの自動のアーカイブ・自動圧縮を始める量（`auto_compact_pct`。コンテキストの 10〜90% / Claude Code の既定。コアが次のやり取りから Claude Code に渡す。チャット欄のメーターの詳細でも選べる）・通信が切れて止まったときの自動の再開・✕ を押したときの扱い（`CHAT_CLOSE_ACTION`）・ほかのチャットが作業中の作業場所で新しいチャットを始めるときの扱い（`BUSY_WORKPLACE_ACTION`。`features/worktree/busyWorkplace.ts`）。
+- チャット: 完了したチャットの自動のアーカイブ・自動圧縮を始める量（`auto_compact_pct`。コンテキストの 10〜90% / Claude Code の既定。コアが次のやり取りから Claude Code に渡す。チャット欄のメーターの詳細でも選べる）・通信が切れて止まったときの自動の再開・✕ を押したときの扱い（`CHAT_CLOSE_ACTION`）・ほかのチャットが作業中の作業場所で新しいチャットを始めるときの扱い（`BUSY_WORKPLACE_ACTION`。`features/worktree/busyWorkplace.ts`）・AI が子チャットを作るとき（`AiChildChatField`。アプリの設定 `ai_child_chat`: 毎回聞く / 聞かずに作る / 作らせない。承認カードの「常に許可」でも変わるので、下書きにせず、いまの設定を出して選んだらすぐ保存する）。
 - 定型文: 帯を表示するか（「表示」と同じ `SnippetBarField`）・すべてのプロジェクトの定型文（`features/snippet` の `SnippetSettings`。説明は `features/snippet/CLAUDE.md`）。
 - 圧縮前・圧縮後指示: 共通の圧縮前指示・圧縮後指示（`features/snippet` の `CompactPromptSettings`。利用者の依頼で「定型文」から分けた）。
 - メモ: メモの親フォルダ（`memos_dir`。`MemoSettings`。欄は `features/memo` の `MemoFolderField`）。
