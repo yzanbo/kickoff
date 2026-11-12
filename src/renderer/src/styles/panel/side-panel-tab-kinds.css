@@ -76,6 +76,16 @@
   background: color-mix(in srgb, var(--activity-color) 16%, transparent);
 }
 
+/* 押すと子チャットの一覧を開く（ChildActivityMark → TabChildChatsPopover）。乗せたら地を濃くして押せると分かるように */
+.panel-tab-label .tab-child-activity[role="button"] {
+  cursor: pointer;
+}
+
+.panel-tab-label .tab-child-activity[role="button"]:hover,
+.panel-tab-label .tab-child-activity[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--activity-color) 30%, transparent);
+}
+
 .panel-tab-label .tab-child-activity.state-needs_input {
   --activity-color: var(--dot-needs-input);
 }

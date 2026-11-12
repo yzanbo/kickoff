@@ -42,6 +42,26 @@ export function rootChatOf<T extends Pick<Chat, "id" | "parent_chat_id">>(chat: 
   return ancestorsOf(chat, lookup)[0] ?? chat;
 }
 
+/**
+ * 子・孫・ひ孫…を、親の下に子が続く順（木の順。兄弟は最後に動いた順）に平らに並べ、深さ（1 = 子）を添える。アーカイブ済みとその下は入れない。
+ * 輪になっていても止まる。タブの子チャットの印を押して開く一覧（ChildActivityMark）で使う
+ */
+export function descendantRows(chatId: number, childrenOf: ReadonlyMap<number, readonly Chat[]>): { chat: Chat; depth: number }[] {
+  const rows: { chat: Chat; depth: number }[] = [];
+  const seen = new Set([chatId]);
+  const walk = (id: number, depth: number) => {
+    const kids = [...(childrenOf.get(id) ?? [])].sort((a, b) => b.active_at.localeCompare(a.active_at) || b.id - a.id);
+    for (const c of kids) {
+      if (c.archived_at || seen.has(c.id)) continue;
+      seen.add(c.id);
+      rows.push({ chat: c, depth });
+      walk(c.id, depth + 1);
+    }
+  };
+  walk(chatId, 1);
+  return rows;
+}
+
 /** サイドバーの「子チャット n」の行に数を出す、子孫の状態（印を出す順。どれも 0 なら出さない） */
 export const CHILD_STATE_MARKS = ["needs_input", "failed", "unread", "running"] as const;
 export type ChildStateMark = (typeof CHILD_STATE_MARKS)[number];

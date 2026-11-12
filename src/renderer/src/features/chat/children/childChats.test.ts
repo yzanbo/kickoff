@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { makeChat } from "@shared/testing/factories";
-import { ancestorsOf, childActivityOf, childStateCounts, handBackText, rootChatOf } from "./childChats";
+import { ancestorsOf, childActivityOf, childStateCounts, descendantRows, handBackText, rootChatOf } from "./childChats";
 
 test("handBackText: どの子チャットの答えかを添えて、答えを引用にする（空行も引用の中に残す）", () => {
   assert.equal(handBackText({ title: "違い" }, "A です。\n\nB です。\n"), "子チャット「違い」の答え:\n> A です。\n>\n> B です。\n\n");
@@ -77,4 +77,23 @@ test("childStateCounts: 子孫を状態ごとに数える（既読は数えず�
   assert.deepEqual(childStateCounts(1, childrenOf, stateOf), { needs_input: 0, failed: 0, unread: 1, running: 2 });
   assert.deepEqual(childStateCounts(1, childrenOf, stateOf, { withArchived: true }), { needs_input: 1, failed: 1, unread: 1, running: 2 });
   assert.deepEqual(childStateCounts(2, childrenOf, stateOf), { needs_input: 0, failed: 0, unread: 0, running: 0 });
+});
+
+test("descendantRows: 子の下に孫が続く順に並べ、兄弟は最後に動いた順・深さを添える（アーカイブ済みとその下・輪は入れない）", () => {
+  const at = (h: number) => `2026-11-12T0${h}:00:00Z`;
+  const childrenOf = new Map([
+    [1, [makeChat(2, { parent_chat_id: 1, active_at: at(1) }), makeChat(3, { parent_chat_id: 1, active_at: at(3) }), makeChat(5, { parent_chat_id: 1, archived_at: at(2) })]],
+    [2, [makeChat(4, { parent_chat_id: 2, active_at: at(2) })]],
+    [5, [makeChat(6, { parent_chat_id: 5 })]],
+    [4, [makeChat(1, { parent_chat_id: 4 })]],
+  ]);
+  assert.deepEqual(
+    descendantRows(1, childrenOf).map((r) => [r.chat.id, r.depth]),
+    [
+      [3, 1],
+      [2, 1],
+      [4, 2],
+    ],
+  );
+  assert.deepEqual(descendantRows(3, childrenOf), []);
 });
