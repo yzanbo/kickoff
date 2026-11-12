@@ -1,6 +1,8 @@
 import type { BrowserControl } from "../browser/control.js";
 import { createDbAiTools, hasAiConnections } from "../databases/aiTools.js";
 import { hiddenDbTargets } from "./guard/hiddenDbTargets.js";
+import { createDockerGuard } from "../docker/guardFacts.js";
+import type { DockerService } from "../docker/service.js";
 import type { DatabaseService } from "../databases/service.js";
 import { githubEnvForGit, runAsGitHubAccount } from "../git/githubAccount.js";
 import { mkdirSync } from "node:fs";
@@ -40,6 +42,8 @@ export interface ExecutionDeps {
   databases?: DatabaseService;
   /** 子チャットを作る（Runner が渡す。チャットの AI に自分の子チャットを作るツールを出す。なければ出さない） */
   startChildChat?: (parent: Chat, input: ChildChatInput) => Promise<Chat>;
+  /** Docker タブ（AI の Docker の守りが docker ps・compose の組の名前を引く。なければ守りを付けない） */
+  docker?: DockerService;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -185,6 +189,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
       deps.startChildChat && canCreateChildChat(deps.store, chat) ? createAiChildChatTools({ store: deps.store, startChild: deps.startChildChat }, chat.id) : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
+    // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く
+    dockerGuard: deps.docker ? createDockerGuard(deps.docker, project, cwd) : null,
   };
 }
 

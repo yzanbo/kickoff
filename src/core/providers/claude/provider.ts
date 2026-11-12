@@ -209,7 +209,7 @@ export class ClaudeProvider implements AgentProvider {
           env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct), ...params.env },
           pathToClaudeCodeExecutable: this.executable,
           hooks: {
-            ...turnHooks(params, this.self),
+            ...turnHooks(params, this.self, cb),
             ...(preCompact ? { PreCompact: [preCompactHook(preCompact)] } : {}),
             // このチャットの文脈（子チャットの親など）は、実行の初めの指示に添える
             ...(params.turnContext ? { UserPromptSubmit: [turnContextHook(params.turnContext)] } : {}),

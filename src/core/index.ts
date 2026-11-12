@@ -107,13 +107,13 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   databases.cleanExports();
   // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
   // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, interrupted: recovered });
+  // Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く）
+  const docker = new DockerService(bus);
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, docker, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
   // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）
   const prWatch = new WorktreePrWatch({ store, publish: (e) => bus.publish(e), listWorktrees, listPullRequests });
-  // Docker タブ（docker events は見ている画面があるときだけ動かす）
-  const docker = new DockerService(bus);
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,

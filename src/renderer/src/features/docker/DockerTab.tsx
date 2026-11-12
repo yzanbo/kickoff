@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties } from "react";
-import { Container } from "lucide-react";
+import { Container, ShieldCheck } from "lucide-react";
 import type { DockerList } from "@shared/types";
 import { useDragSize } from "@/hooks/useDragSize";
 import { cx } from "@/lib/cx";
@@ -12,6 +12,11 @@ import { DockerComposeBlock } from "./DockerComposeBlock";
 import { DockerLogs, type DockerLogsRequest } from "./DockerLogs";
 import { othersTip } from "./dockerView";
 import { useDocker } from "./useDocker";
+
+/** AI の守りの説明（効くのは Kickoff が起動したチャットの AI だけ。わざと避ける書き方は見抜けない） */
+const GUARD_NOTE = "チャットの AI が、別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直すとき、まとめて止める・消すときは、流す前に承認カードで聞きます（Auto mode でも）。効くのは Kickoff が起動したチャットの AI だけです。";
+const GUARD_TIP =
+  "ターミナルで直接起動した AI など Kickoff の外の AI・人のコマンドには効きません。eval・変数に入れた名前・スクリプトのファイルに書いてから流すもの・DB の中で消すもの（DROP DATABASE など）・Docker の口に直接頼むものも見抜けません。うっかりを防ぐ守りです。";
 
 /**
  * プロジェクトの「Docker」タブ（要件 5.14 の段階 1）: 本体とワークツリーの compose ごとに見出しとサービスの行を並べ、起動・停止・シェルを出す。
@@ -68,6 +73,12 @@ export function DockerTab({ projectId }: { projectId: number }) {
         <div className="docker-others muted small" data-tip={othersTip(list.others)} data-tip-title="ほかのプロジェクトのコンテナ">
           ほかのプロジェクトで動いているコンテナ {list.others.length} 個
         </div>
+      )}
+      {list && list.engine === "ok" && (
+        <p className="docker-guard-note muted small" data-tip={GUARD_TIP} data-tip-title="AI の守り">
+          <ShieldCheck size={12} aria-hidden />
+          <span>AI の守り: {GUARD_NOTE}</span>
+        </p>
       )}
       </div>
       {logs && logCompose && (

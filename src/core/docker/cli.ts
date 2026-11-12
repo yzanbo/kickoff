@@ -27,10 +27,10 @@ export class DockerCli {
   }
 
   /** すぐ終わるコマンド（ps・start・stop・config など）。失敗は CommandError */
-  async run(args: string[], { cwd, timeout = 60_000 }: { cwd?: string; timeout?: number } = {}): Promise<string> {
+  async run(args: string[], { cwd, timeout = 60_000, env }: { cwd?: string; timeout?: number; env?: NodeJS.ProcessEnv } = {}): Promise<string> {
     const bin = this.bin();
     if (!bin) throw new CommandError(Object.assign(new Error("Docker が入っていません"), { code: "ENOENT" }));
-    return runCommand(bin, args, { cwd, timeout, env: dockerEnv() });
+    return runCommand(bin, args, { cwd, timeout, env: dockerEnv(env) });
   }
 
   /** 流れ続けるコマンド（docker events・中止できる up -d）。見つからなければ null */
