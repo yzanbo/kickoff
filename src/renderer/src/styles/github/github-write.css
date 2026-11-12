@@ -1,0 +1,240 @@
+/* GitHub タブの書き込み（features/github の段階 3）: Markdown の書く欄・コメント欄・ラベルの札・新しい issue・マージの確認・レビューの帯と行のコメント・スレッドの返信 */
+
+/* 書く｜プレビューの欄 */
+.github-md-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.segmented.github-md-mode {
+  align-self: flex-start;
+}
+
+.github-md-input {
+  width: 100%;
+  min-height: 4.5em;
+  max-height: 50vh;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  field-sizing: content;
+}
+
+.github-md-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.github-md-preview {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: auto;
+  max-height: 50vh;
+}
+
+/* 会話の下のコメント欄 */
+.github-comment-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.github-comment-actions,
+.github-thread-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+/* ボタンと ▾ を 1 つに見せる組（閉じ方を選ぶ） */
+.github-split-button {
+  display: inline-flex;
+}
+
+.github-split-button > .btn:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.github-split-button > .github-split-toggle {
+  padding-inline: 4px;
+  border-left: none;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* ラベル・担当の札・PR の操作 */
+.github-label-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.github-pull-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.github-pull-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 新しい issue */
+.dialog.github-new-issue {
+  width: min(720px, 92vw);
+}
+
+.github-new-issue-pickers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.github-picked-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.github-picked-remove {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.github-picked-remove:hover {
+  background: var(--bg-hover);
+  color: inherit;
+}
+
+/* マージの確認 */
+.dialog.github-merge {
+  width: min(560px, 92vw);
+}
+
+.github-merge-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.github-merge-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+
+.github-merge-warning svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.github-merge-warning.danger {
+  background: color-mix(in srgb, var(--ng) 14%, transparent);
+  color: var(--ng);
+}
+
+.github-merge-warning.warn {
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  color: var(--warn);
+}
+
+.github-merge-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.github-merge-method {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+/* レビューの帯（「変更」の上）と、差分の行の下の書く欄・ためた行のコメント */
+.github-review-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.github-review-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.github-review-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.github-review-editor,
+.github-review-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0;
+  padding: 8px 10px;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.github-review-draft .github-thread-head {
+  padding: 0;
+  border: none;
+}
+
+/* 行のスレッドの返信・解決 */
+.github-thread-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 10px 8px;
+  border-top: 1px solid var(--border);
+}

@@ -13,6 +13,7 @@ import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
 import { GitHubDetail } from "./GitHubDetail";
 import { GitHubFilterBar } from "./GitHubFilterBar";
+import { openNewIssue } from "./githubDialogs";
 import { GitHubItemRow } from "./GitHubItemRow";
 import { useGitHubList } from "./useGitHubList";
 
@@ -104,6 +105,16 @@ function GitHubBrowser({ projectId, repo }: { projectId: number; repo: string })
             onChange={change}
             onKind={(kind) => setFilters({ ...filters, kind })}
             onRefresh={list.refresh}
+            onNewIssue={() =>
+              openNewIssue(projectId, {
+                // 作ったら issue の一覧に切り替えて、その issue を開く
+                onCreated: (n) => {
+                  setFilters({ ...filters, kind: "issue" });
+                  setSelectedText(`issue:${n}`);
+                  list.refresh();
+                },
+              })
+            }
           />
           <ErrorText message={list.error ?? meta.error ?? undefined} />
           <div className={cx("github-items", list.loading && page && "stale")} aria-busy={list.loading || undefined}>

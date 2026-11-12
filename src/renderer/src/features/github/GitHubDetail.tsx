@@ -1,7 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ArrowLeft, ExternalLink, TriangleAlert } from "lucide-react";
 import type { GitHubKind, GitHubPullDetail } from "@shared/types";
+import { api } from "@/api";
+import { CopyButton } from "@/ui/CopyButton";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
+import { reportFailure } from "@/ui/dialogs";
 import { ErrorText } from "@/ui/ErrorText";
 import { Segmented } from "@/ui/Segmented";
 import { GitHubHtml } from "./GitHubHtml";
@@ -11,6 +14,10 @@ import { GitHubLabels, REVIEW_DECISION_LABELS } from "./GitHubItemRow";
 import { GitHubStateChip } from "./GitHubStateIcon";
 import { GitHubAuthor, GitHubTime, GitHubTimeline, ThreadHandoffContext } from "./GitHubTimeline";
 import { GitHubHandoffMenu } from "./GitHubHandoffMenu";
+import { GitHubCommentBox } from "./GitHubCommentBox";
+import { GitHubLabelPicker } from "./GitHubLabelPicker";
+import { GitHubPullActions } from "./GitHubPullActions";
+import { ThreadActionsContext, type ThreadActions } from "./GitHubThreadActions";
 import { fixReviewComments } from "./githubHandoff";
 import { linkOf } from "./githubPrompt";
 import { useGitHubDetail, type GitHubDetail as Detail } from "./useGitHubDetail";
@@ -25,12 +32,34 @@ const isPull = (d: Detail): d is GitHubPullDetail => d.item.kind === "pr";
 
 /**
  * GitHub タブの右（開いた issue・PR の中身）。見出し（題名・状態・作った人・ラベル・担当、PR はブランチ・増減・レビュー・衝突）と、
- * issue は本文と会話の流れ、PR は会話・変更（差分と行のスレッド）・チェックの切り替え。取り直している間は前の中身に「更新中」の印を出す
+ * issue は本文と会話の流れ、PR は会話・変更（差分と行のスレッド）・チェックの切り替え。取り直している間は前の中身に「更新中」の印を出す。
+ * 書く（段階 3）: 会話の下のコメント欄（閉じる・開き直すも）・ラベル・URL のコピー、PR はチェックアウト・マージ・行のスレッドへの返信と解決・「変更」でのレビュー。
+ * 書いたら中身を取り直す
  */
 export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: number; kind: GitHubKind; number: number; onBack?: () => void }) {
   const detail = useGitHubDetail(projectId, kind, number, true);
   const [view, setView] = useState<PrView>("conversation");
   const data = detail.data;
+  const refresh = detail.refresh;
+  // 行のスレッドへの返信と解決（返信・解決済みにするのは人）。したら取り直す
+  const threadActions = useMemo<ThreadActions>(
+    () => ({
+      reply: async (thread, body) => {
+        await api.githubReplyThread(projectId, number, thread.id, body);
+        refresh();
+      },
+      resolve: async (thread, resolved) => {
+        await api.githubResolveThread(projectId, number, thread.id, resolved);
+        refresh();
+      },
+    }),
+    [projectId, number, refresh],
+  );
+  const setLabels = (labels: string[]) =>
+    void api
+      .githubSetLabels(projectId, number, labels)
+      .then(refresh)
+      .catch(reportFailure("ラベルを変えられませんでした"));
 
   return (
     <section className="github-detail" aria-busy={detail.loading || undefined}>
@@ -41,6 +70,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
           <span className="github-detail-spacer" />
           {data && <GitHubHandoffMenu projectId={projectId} detail={data} />}
           <RefreshButton label="GitHub から取り直す" busy={detail.loading} onClick={detail.refresh} />
+          {data && <CopyButton label="URL をコピー" text={data.item.url} />}
           {data && <IconButton icon={ExternalLink} label="GitHub で開く" onClick={() => window.open(data.item.url, "_blank", "noopener")} />}
         </div>
         {data && (
@@ -67,11 +97,13 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
               )}
               {data.item.review_decision && <span className={`github-review github-review-${data.item.review_decision}`}>{REVIEW_DECISION_LABELS[data.item.review_decision]}</span>}
             </div>
-            {(data.item.labels.length > 0 || data.item.assignees.length > 0 || data.item.milestone) && (
+            {(data.item.labels.length > 0 || data.item.assignees.length > 0 || data.item.milestone || data.viewer.can_label || isPull(data)) && (
               <div className="github-detail-meta">
+                {data.viewer.can_label && <GitHubLabelPicker key={data.item.labels.map((l) => l.name).join("\n")} projectId={projectId} selected={data.item.labels.map((l) => l.name)} onCommit={setLabels} />}
                 <GitHubLabels labels={data.item.labels} />
                 {data.item.assignees.length > 0 && <span className="muted small">担当: {data.item.assignees.map((a) => a.login).join("、")}</span>}
                 {data.item.milestone && <span className="muted small">マイルストーン: {data.item.milestone}</span>}
+                {isPull(data) && <GitHubPullActions projectId={projectId} detail={data} onChanged={refresh} />}
               </div>
             )}
             {isPull(data) && data.item.state === "open" && data.mergeable === "conflicting" && (
@@ -95,11 +127,12 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
       {!data && !detail.error && <p className="muted small github-detail-loading">読み込み中…</p>}
       {data && (
         <ThreadHandoffContext.Provider value={isPull(data) ? (thread) => void fixReviewComments(projectId, data, linkOf(data), [thread]) : null}>
+        <ThreadActionsContext.Provider value={isPull(data) ? threadActions : null}>
         <DetailBody projectId={projectId} detail={data}>
           {isPull(data) && view === "checks" ? (
             <GitHubChecksList checks={data.checks} />
           ) : isPull(data) && view === "files" ? (
-            <GitHubPullChanges projectId={projectId} number={number} threads={data.review_threads} version={data.head_sha ?? data.fetched_at} />
+            <GitHubPullChanges projectId={projectId} number={number} threads={data.review_threads} version={data.head_sha ?? data.fetched_at} headSha={data.head_sha} onChanged={refresh} />
           ) : (
             <>
               <article className="github-entry github-body">
@@ -110,9 +143,11 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
                 <GitHubHtml html={data.body_html} />
               </article>
               <GitHubTimeline entries={data.timeline} threads={isPull(data) ? data.review_threads : []} truncated={data.timeline_truncated} />
+              <GitHubCommentBox key={`${kind}:${number}`} projectId={projectId} detail={data} onChanged={refresh} />
             </>
           )}
         </DetailBody>
+        </ThreadActionsContext.Provider>
         </ThreadHandoffContext.Provider>
       )}
     </section>
