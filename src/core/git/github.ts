@@ -86,10 +86,30 @@ export async function listPullRequests(cwd: string, target: GitHubTarget): Promi
   return rows.map((r) => ({ number: r.number, title: r.title, url: r.url, state: r.state, branch: r.headRefName, head_owner: r.headRepositoryOwner?.login ?? "" }));
 }
 
-/** いまのブランチの PR を作る（タイトルと本文はコミットから。プッシュは先に済ませておく） */
-export async function createPullRequest(cwd: string, branch: string, target: GitHubTarget | null = null): Promise<PullRequestInfo> {
+/**
+ * PR の本文の終わりに「Closes #n」を足す（マージしたら issue が閉じる。もう書いてある番号は足さない。純粋な関数）。
+ * 足すものがなければ null
+ */
+export function withClosingRefs(body: string, issues: number[]): string | null {
+  const written = new Set([...body.matchAll(/\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b/gi)].map((m) => Number(m[1])));
+  const add = [...new Set(issues)].filter((n) => !written.has(n)).sort((a, b) => a - b);
+  if (add.length === 0) return null;
+  const lines = add.map((n) => `Closes #${n}`).join("\n");
+  return body.trim() ? `${body.trimEnd()}\n\n${lines}` : lines;
+}
+
+/**
+ * いまのブランチの PR を作る（タイトルと本文はコミットから。プッシュは先に済ませておく）。
+ * closes は閉じる issue（この作業場所の issue に結び付いたチャットのもの）で、作ったあと本文の終わりに「Closes #n」を足す
+ */
+export async function createPullRequest(cwd: string, branch: string, target: GitHubTarget | null = null, closes: number[] = []): Promise<PullRequestInfo> {
   await gh(cwd, ["pr", "create", ...repoArgs(target), "--fill", "--head", headRef(branch, target)]);
   const pr = await pullRequestFor(cwd, branch, target);
   if (!pr) throw new Invalid("PR を作れませんでした");
+  if (closes.length > 0) {
+    const { body } = JSON.parse(await gh(cwd, ["pr", "view", String(pr.number), ...repoArgs(target), "--json", "body"])) as { body?: string };
+    const next = withClosingRefs(body ?? "", closes);
+    if (next !== null) await gh(cwd, ["pr", "edit", String(pr.number), ...repoArgs(target), "--body", next]);
+  }
   return pr;
 }

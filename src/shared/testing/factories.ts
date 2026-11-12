@@ -1,6 +1,6 @@
 // テストのデータを作る関数（コアと画面のテストで共通。テストからだけ使う）。省いた項目は、それらしい既定値で埋める。
 // Node・DOM に依存しない
-import type { Chat, ChatEventDataOf, ChatEventOf, ChatEventType, ChatGroup, GitHubReviewThread, Project } from "@shared/types";
+import type { Chat, ChatEventDataOf, ChatEventOf, ChatEventType, ChatGroup, GitHubPullDetail, GitHubReviewThread, Project } from "@shared/types";
 
 /** 既定の時刻 */
 const TEST_TIME = "2026-11-01T00:00:00Z";
@@ -34,6 +34,9 @@ export function makeChat(id: number, patch: Partial<Chat> = {}): Chat {
     parent_chat_id: null,
     parent_event_id: null,
     memo_path: null,
+    github_repo: null,
+    github_number: null,
+    github_kind: null,
     created_at: TEST_TIME,
     active_at: TEST_TIME,
     ...patch,
@@ -84,7 +87,48 @@ export function makeReviewThread(id: number, patch: Partial<GitHubReviewThread> 
     side: "RIGHT",
     resolved: false,
     outdated: false,
-    comments: [{ id: `c${id}`, author: null, created_at: TEST_TIME, body_html: "<p>コメント</p>", diff_hunk: "@@ -1 +1 @@", url: null }],
+    comments: [{ id: `c${id}`, author: null, created_at: TEST_TIME, body_html: "<p>コメント</p>", body_markdown: "コメント", diff_hunk: "@@ -1 +1 @@", url: null }],
+    ...patch,
+  };
+}
+
+/** PR の中身（o/r の #5「直す」・本文「本文」・会話もスレッドもなし。issue にするなら item.kind を issue に） */
+export function makePullDetail(patch: Partial<GitHubPullDetail> = {}): GitHubPullDetail {
+  return {
+    item: {
+      kind: "pr",
+      number: 5,
+      title: "直す",
+      state: "open",
+      state_reason: null,
+      url: "https://github.com/o/r/pull/5",
+      author: { login: "me", avatar_url: null },
+      labels: [],
+      assignees: [],
+      milestone: null,
+      comments: 0,
+      created_at: TEST_TIME,
+      updated_at: TEST_TIME,
+      closed_at: null,
+      is_draft: false,
+      review_decision: null,
+      checks: null,
+      head_ref: "fix",
+      base_ref: "main",
+    },
+    body_html: "<p>本文</p>",
+    body_markdown: "本文",
+    timeline: [],
+    timeline_truncated: false,
+    fetched_at: TEST_TIME,
+    additions: 1,
+    deletions: 0,
+    changed_files: 1,
+    head_sha: "abc",
+    head_owner: "o",
+    mergeable: "mergeable",
+    review_threads: [],
+    checks: [],
     ...patch,
   };
 }

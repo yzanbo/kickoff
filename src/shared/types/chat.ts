@@ -1,6 +1,7 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 import type { EffortLevel, PermissionMode, ProviderId } from "./settings";
 import type { MessageMarks } from "./chatEvent";
+import type { GitHubKind } from "./github";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
 /** チャット欄で選べるモデル */
@@ -118,6 +119,10 @@ export interface Chat {
    * サイドバー・ボードに並べず、そのメモの右の欄から開く
    */
   memo_path: string | null;
+  /** 結び付いた GitHub の issue・PR のリポジトリ（「持ち主/名前」）と番号（どちらも null なら結び付いていない。issue と PR の番号はリポジトリの中で重ならないので種類は持たない） */
+  github_repo: string | null;
+  github_number: number | null;
+  github_kind: GitHubKind | null;
   created_at: string;
   /** 最後に動いた時刻（作った・送った・状態が変わったときに進む。一覧の並び順。印・固定・グループ・作業場所の変更では進めない） */
   active_at: string;

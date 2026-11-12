@@ -1,8 +1,13 @@
 // API のテスト: GitHub タブ（連携の状態・一覧と ETag での取り直し・issue / PR の中身・PR の変更。GitHub の答えは testServer の ghFake）
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
-import type { GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubPullDetail, GitHubPullFiles } from "@shared/types";
+import type { GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubPullDetail, GitHubPullFiles, GitHubPullWorktree } from "@shared/types";
 import { setup, TOKEN } from "../testing/testServer.js";
+import { gitRepo } from "../testing/gitRepo.js";
+import { tempDir } from "../testing/tempDir.js";
 
 const searchAnswer = (numbers: number[]) => ({
   search: {
@@ -166,4 +171,30 @@ test("GitHub タブ: この Mac からの頼みだけ受ける", async () => {
   const { app, project } = setup();
   const res = await app.request(`/api/projects/${project.id}/github/connection`, { headers: { authorization: `Bearer ${TOKEN}` } }, { incoming: { socket: { remoteAddress: "192.168.1.5" } } });
   assert.equal(res.status, 403);
+});
+
+test("GitHub タブ: PR のブランチのワークツリー（PR の元のブランチを聞いて作り、2 回目はあるものを返す。Git でないフォルダは 400）", async () => {
+  const { call, project, ghFake } = setup();
+  const url = `/api/projects/${project.id}/github/pulls/4/worktree`;
+  assert.equal((await call("POST", url)).status, 400);
+
+  // 連携先の代わりの bare のリポジトリ（ブランチ fix）を clone したものをプロジェクトフォルダにする
+  const src = gitRepo({ files: { "a.txt": "a\n" } });
+  src.git("branch", "fix");
+  const bare = path.join(tempDir(), "o-r.git");
+  execFileSync("git", ["clone", "-q", "--bare", src.dir, bare]);
+  execFileSync("git", ["clone", "-q", bare, project.repo_path]);
+  ghFake.remotes = [{ name: "origin", repo: "o/r", url: bare }];
+  ghFake.rest = (p) => ({ status: 200, etag: null, body: p.startsWith("repos/o/r/pulls/") ? { head: { ref: "fix", repo: { full_name: "o/r" } } } : null });
+
+  const made = await call("POST", url);
+  assert.equal(made.status, 200);
+  const result = made.body as GitHubPullWorktree;
+  assert.equal(result.branch, "fix");
+  assert.ok(result.worktree_path && fs.existsSync(path.join(result.worktree_path, "a.txt")));
+  assert.deepEqual((await call("POST", url)).body, result);
+
+  // 連携先の remote がない
+  ghFake.remotes = [{ name: "origin", repo: "x/y", url: bare }];
+  assert.equal((await call("POST", `/api/projects/${project.id}/github/pulls/5/worktree`)).status, 400);
 });

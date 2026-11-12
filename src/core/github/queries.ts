@@ -66,7 +66,7 @@ const PR_EVENT_TYPES = [
 
 const EVENT_FIELDS = `
   __typename
-  ... on IssueComment { id author { ${USER} } createdAt bodyHTML url }
+  ... on IssueComment { id author { ${USER} } createdAt body bodyHTML url }
   ... on LabeledEvent { id ${ACTOR} createdAt label { name } }
   ... on UnlabeledEvent { id ${ACTOR} createdAt label { name } }
   ... on AssignedEvent { id ${ACTOR} createdAt assignee { ... on User { login } ... on Bot { login } ... on Mannequin { login } } }
@@ -79,7 +79,7 @@ const EVENT_FIELDS = `
   ... on DemilestonedEvent { id ${ACTOR} createdAt milestoneTitle }`;
 
 const PR_EVENT_FIELDS = `
-  ... on PullRequestReview { id author { ${USER} } createdAt state bodyHTML }
+  ... on PullRequestReview { id author { ${USER} } createdAt state body bodyHTML }
   ... on PullRequestCommit { id commit { oid messageHeadline committedDate author { name user { ${USER} } } } }
   ... on MergedEvent { id ${ACTOR} createdAt mergeRefName commit { abbreviatedOid } }
   ... on ReviewRequestedEvent { id ${ACTOR} createdAt requestedReviewer { ... on User { login } ... on Team { name } ... on Bot { login } } }
@@ -99,12 +99,12 @@ export const DETAIL_QUERY = `query($owner: String!, $name: String!, $number: Int
   repository(owner: $owner, name: $name) {
     issueOrPullRequest(number: $number) {
       ${ITEM_FIELDS}
-      ... on Issue { bodyHTML ${timeline(COMMON_EVENT_TYPES, EVENT_FIELDS)} }
+      ... on Issue { body bodyHTML ${timeline(COMMON_EVENT_TYPES, EVENT_FIELDS)} }
       ... on PullRequest {
-        bodyHTML additions deletions changedFiles mergeable headRefOid headRepositoryOwner { login }
+        body bodyHTML additions deletions changedFiles mergeable headRefOid headRepositoryOwner { login }
         ${timeline([...COMMON_EVENT_TYPES, ...PR_EVENT_TYPES], EVENT_FIELDS + PR_EVENT_FIELDS)}
         reviewThreads(first: 100) { nodes { id path line originalLine diffSide isResolved isOutdated
-          comments(first: 50) { nodes { id author { ${USER} } createdAt bodyHTML diffHunk url pullRequestReview { id } } } } }
+          comments(first: 50) { nodes { id author { ${USER} } createdAt body bodyHTML diffHunk url pullRequestReview { id } } } } }
         statusCommits: commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
           __typename
           ... on CheckRun { name status conclusion detailsUrl title checkSuite { workflowRun { workflow { name } } } }

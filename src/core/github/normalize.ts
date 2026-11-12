@@ -116,14 +116,14 @@ export function toTimeline(items: Raw[], threads: GitHubReviewThread[] = [], thr
   for (const raw of items) {
     if (!raw) continue;
     if (raw.__typename === "IssueComment") {
-      out.push({ type: "comment", id: String(raw.id), author: toUser(raw.author), created_at: String(raw.createdAt ?? ""), body_html: String(raw.bodyHTML ?? ""), url: raw.url ?? null });
+      out.push({ type: "comment", id: String(raw.id), author: toUser(raw.author), created_at: String(raw.createdAt ?? ""), body_html: String(raw.bodyHTML ?? ""), body_markdown: String(raw.body ?? ""), url: raw.url ?? null });
     } else if (raw.__typename === "PullRequestReview") {
       const id = String(raw.id);
       const threadIds = threads.filter((t) => threadReview.get(t.id) === id).map((t) => t.id);
       const body = String(raw.bodyHTML ?? "");
       // 本文も行のスレッドもない「コメントだけ」のレビューは出さない（返信のたびにできる空のレビュー）
       if (!body.trim() && threadIds.length === 0 && raw.state === "COMMENTED") continue;
-      out.push({ type: "review", id, author: toUser(raw.author), created_at: String(raw.createdAt ?? ""), state: lower(raw.state) ?? "commented", body_html: body, thread_ids: threadIds });
+      out.push({ type: "review", id, author: toUser(raw.author), created_at: String(raw.createdAt ?? ""), state: lower(raw.state) ?? "commented", body_html: body, body_markdown: String(raw.body ?? ""), thread_ids: threadIds });
     } else if (raw.__typename === "PullRequestCommit") {
       const c = raw.commit ?? {};
       const commit = { oid: String(c.oid ?? ""), message: String(c.messageHeadline ?? "") };
@@ -165,6 +165,7 @@ export function toThreads(conn: Raw): { threads: GitHubReviewThread[]; threadRev
         author: toUser(c.author),
         created_at: String(c.createdAt ?? ""),
         body_html: String(c.bodyHTML ?? ""),
+        body_markdown: String(c.body ?? ""),
         diff_hunk: String(c.diffHunk ?? ""),
         url: c.url ?? null,
       })),

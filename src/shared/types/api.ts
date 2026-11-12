@@ -5,6 +5,7 @@ import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
 import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
 import type { DbAiAccess, DbEngine, DbEnvironment, DbErPositions, DbObjectPath, DbPrep, DbRowEdit, DbRowFilter, DbSort, DbSsh, DbSsl } from "./database";
+import type { GitHubKind } from "./github";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
 
@@ -82,6 +83,24 @@ export interface NewChatBody extends MessageBody {
   group_id?: number;
   worktree_path?: string;
   new_worktree_branch?: string;
+  /** 結び付ける GitHub の issue・PR（issue から始めた・レビューコメントで直すチャット） */
+  github?: GitHubLink;
+}
+
+/** チャットと GitHub の issue・PR の結び付き（PUT /api/chats/:id/github の本文にも使う） */
+export interface GitHubLink {
+  /** 「持ち主/名前」 */
+  repo: string;
+  number: number;
+  kind: GitHubKind;
+}
+
+/** PR のブランチのワークツリー（POST /api/projects/:id/github/pulls/:number/worktree の応答。いまあればそれ、なければ作ったもの） */
+export interface GitHubPullWorktree {
+  /** 作業場所（本体で取り出しているなら null） */
+  worktree_path: string | null;
+  /** 手元のブランチ（元のブランチを remote に持っていればその名前、ほかの人の fork なら pr-N） */
+  branch: string;
 }
 
 /**

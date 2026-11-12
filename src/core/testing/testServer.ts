@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../providers/types.js";
 import { createApp } from "../http/server.js";
-import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, SlashCommandOption } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, GitHubRemote, SlashCommandOption } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
@@ -14,7 +14,7 @@ import { DbWorkerClient, inProcessWorker } from "../databases/client.js";
 import { DatabaseService } from "../databases/service.js";
 import { GitHubService } from "../github/service.js";
 import type { GraphqlVars, RestResponse } from "../github/ghApi.js";
-import type { GitHubTarget } from "../git/githubTarget.js";
+import { readGitHubRemotes, type GitHubTarget } from "../git/githubTarget.js";
 import { DbSecretVault, type SecretCipher } from "../databases/secrets.js";
 import type { VoiceTools } from "../voice/tools.js";
 import type { MacosSpeech } from "../voice/macos.js";
@@ -258,6 +258,8 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   // GitHub タブ: 連携先と GitHub の答えは偽物（graphql / rest / pages を差し替える。聞いたものは calls に残る）
   const ghFake = {
     target: { repo: "o/r", headOwner: "o" } as GitHubTarget | null,
+    /** GitHub の remote の一覧（null なら本物の git remote -v を読む） */
+    remotes: null as GitHubRemote[] | null,
     calls: [] as { kind: "graphql" | "rest" | "pages"; detail: string; vars?: GraphqlVars; etag?: string | null }[],
     graphql: (_query: string, _vars: GraphqlVars): unknown => {
       throw new Error("GitHub の偽物に答えがありません");
@@ -267,6 +269,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   };
   const github = new GitHubService({
     resolveTarget: async () => ghFake.target,
+    remotes: async (repo) => ghFake.remotes ?? (await readGitHubRemotes(repo)).remotes,
     api: () => ({
       graphql: async <T,>(query: string, vars: GraphqlVars) => {
         ghFake.calls.push({ kind: "graphql", detail: query, vars });

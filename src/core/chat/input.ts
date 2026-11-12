@@ -5,7 +5,7 @@ import { resolveChatOptions } from "@shared/chat/chatOptions";
 import type { ExecutionDeps } from "./turn.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { Attachment, ChatOptionsPatch, Project } from "@shared/types";
+import type { Attachment, ChatOptionsPatch, GitHubLink, Project } from "@shared/types";
 import { withAttachmentNote } from "./uploads.js";
 import { Invalid, NotFound } from "../http/errors.js";
 import { isInside } from "../system/paths.js";
@@ -31,6 +31,8 @@ export interface StartChatInput {
   titleText?: string;
   /** メモのチャット: どのメモについてのチャットか（メモのフォルダからの相対パス） */
   memoPath?: string;
+  /** 結び付ける GitHub の issue・PR */
+  github?: GitHubLink;
 }
 
 /**
@@ -57,6 +59,9 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
     parent_chat_id: input.parentChatId ?? null,
     parent_event_id: input.parentEventId ?? null,
     memo_path: input.memoPath ?? null,
+    github_repo: input.github?.repo ?? null,
+    github_number: input.github?.number ?? null,
+    github_kind: input.github?.kind ?? null,
   });
   // 親の会話を引き継ぐ子チャットは、親の会話を写したセッションの続きから始める
   const chat = input.sessionId ? store.chats.update(created.id, { session_id: input.sessionId }) : created;
