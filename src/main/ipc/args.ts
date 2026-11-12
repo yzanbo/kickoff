@@ -52,6 +52,7 @@ export const IPC_ARGS = defineArgSchemas({
     unregister: z.tuple([webContentsId]),
     opened: z.tuple([positiveInt, z.string().min(1).max(200).nullable(), z.boolean(), z.string().max(1000).nullable()]),
     revealed: z.tuple([positiveInt, z.boolean()]),
+    handOffCapture: z.tuple([webContentsId]),
   },
   browserExtensions: {
     list: none,

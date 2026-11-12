@@ -1,8 +1,8 @@
-import { CircleDot, Database, GitPullRequest, MessageSquareCode, ShieldAlert, type LucideIcon } from "lucide-react";
+import { CircleDot, Database, GitPullRequest, Monitor, MessageSquareCode, ShieldAlert, SquareTerminal, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachment/sources";
 import type { AttachmentSourceType, CaptureAttachment } from "@shared/types";
-import { api } from "@/api";
+import { api, attachmentUrl } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { formatDayTime } from "@/lib/time";
@@ -16,10 +16,16 @@ const SOURCE_ICONS: Record<AttachmentSourceType, LucideIcon> = {
   github_pull: GitPullRequest,
   github_review: MessageSquareCode,
   db_failure: Database,
+  browser_console: TriangleAlert,
+  browser_screen: Monitor,
+  terminal: SquareTerminal,
 };
 
+/** 画像の札か（ブラウザの画面など。コアが受けるのは画面で見られる形式だけ） */
+const isImage = (a: CaptureAttachment) => a.mime.startsWith("image/");
+
 /**
- * 「AI に渡す」で取ったものの札（出どころのアイコン・名前・種類と取った時刻。外から来た中身は盾の印）。
+ * 「AI に渡す」で取ったものの札（出どころのアイコン・名前・種類と取った時刻。外から来た中身は盾の印。画像はアイコンの代わりに小さく出す）。
  * 押すと取った中身を読むだけのダイアログで見る（送ったあとも）
  */
 export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: CaptureAttachment; onRemove?: () => void }) {
@@ -29,9 +35,13 @@ export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: Ca
   return (
     <span className="attachment capture-attachment" title={captureTitle(attachment, formatDayTime)}>
       <button type="button" className="attachment-link" aria-label={`${attachment.source.label} の中身を見る`} onClick={() => setViewing(true)}>
-        <span className="attachment-icon">
-          <Icon size={16} aria-hidden />
-        </span>
+        {isImage(attachment) ? (
+          <img className="attachment-thumb" src={attachmentUrl(attachment)} alt="" />
+        ) : (
+          <span className="attachment-icon">
+            <Icon size={16} aria-hidden />
+          </span>
+        )}
         <span className="attachment-meta">
           <span className="attachment-name">
             {attachment.source.label}
@@ -50,10 +60,11 @@ export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: Ca
   );
 }
 
-/** 取った中身を読むだけで見るダイアログ */
+/** 取った中身を読むだけで見るダイアログ（画像はそのまま出す） */
 function CaptureViewer({ attachment, onClose }: { attachment: CaptureAttachment; onClose: () => void }) {
   const dialog = useModalDialog({ focusSelf: true });
-  const text = useAsync(() => api.attachmentText(attachment), [attachment.id]);
+  const image = isImage(attachment);
+  const text = useAsync(() => (image ? Promise.resolve("") : api.attachmentText(attachment)), [attachment.id]);
   const Icon = SOURCE_ICONS[attachment.source.type];
   return (
     <dialog ref={dialog.ref} className="dialog app-dialog capture-viewer" aria-label={attachment.source.label} onClose={onClose} {...dialog.backdropProps}>
@@ -67,7 +78,11 @@ function CaptureViewer({ attachment, onClose }: { attachment: CaptureAttachment;
       <p className="small muted capture-viewer-note">{captureTitle(attachment, formatDayTime).split("\n").slice(1).join(" / ")}</p>
       {text.loading && <p className="small muted">読み込み中…</p>}
       <ErrorText message={text.error} />
-      {text.data !== undefined && <pre className="capture-viewer-body">{text.data}</pre>}
+      {image ? (
+        <img className="capture-viewer-image" src={attachmentUrl(attachment)} alt={attachment.source.label} />
+      ) : (
+        text.data !== undefined && <pre className="capture-viewer-body">{text.data}</pre>
+      )}
     </dialog>
   );
 }

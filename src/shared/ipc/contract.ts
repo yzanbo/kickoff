@@ -3,6 +3,7 @@
 // メインはこの表の型どおりに登録する（main/ipc/register.ts）。名前や形が食い違えば typecheck で分かる。
 // 値は種類だけ（zod・Electron・Node に依存しない。サンドボックスの preload にも束ねるため）
 import type { BrowserExtensionInfo, KnownExtensionKey } from "./browserExtensions";
+import type { BrowserHandOffCapture } from "./browserHandOff";
 import type { DiagnosticsFolders, DiagnosticsState } from "./diagnostics";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { NotifyRequest, NotifyResult } from "./notifications";
@@ -116,6 +117,8 @@ export const NATIVE_API = {
     onRevealRequest: event<[requestId: number, tabKey: string, after: string | null]>(),
     /** AI がタブを操作している・しばらく操作していない（タブに「AI 操作中」の印を出す・消す） */
     onActivity: event<[tabKey: string, active: boolean]>(),
+    /** タブの「AI に渡す」: 見えている範囲の画面と、覚えているコンソールのエラー・警告を取る（webContentsId はそのタブの webview） */
+    handOffCapture: invoke<[webContentsId: number], BrowserHandOffCapture>(),
   },
   /** 埋め込みブラウザの拡張機能（React DevTools など）。どれも、そのあとの一覧を返す */
   browserExtensions: {

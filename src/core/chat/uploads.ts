@@ -36,19 +36,25 @@ export class UploadStore {
     const redacted = redactSecrets(input.text);
     const cut = truncateText(redacted.text, MAX_UPLOAD_BYTES, input.tailShare);
     const bytes = new TextEncoder().encode(cut.text);
+    return this.storeCapture(input, bytes, { truncated: cut.truncated, original_size: cut.originalSize, redacted: redacted.count });
+  }
+
+  /** 「AI に渡す」で押したときの画像（ブラウザの画面など）を保存する。伏せも切りもしない（添付の上限を超えれば 400） */
+  async saveCaptureImage(input: { name: string; mime: string; bytes: Uint8Array; source: AttachmentSource }): Promise<CaptureAttachment> {
+    const size = input.bytes.byteLength;
+    if (size === 0) throw new Invalid("画像が空です");
+    if (size > MAX_UPLOAD_BYTES) throw new Invalid(`画像が大きすぎます（${formatSize(size)}。上限は ${formatSize(MAX_UPLOAD_BYTES)}）`);
+    return this.storeCapture(input, input.bytes, { truncated: false, original_size: size, redacted: 0 });
+  }
+
+  /** 取ったものを保存し、添付の記録も置く */
+  private async storeCapture(
+    input: { name: string; mime: string; source: AttachmentSource },
+    bytes: Uint8Array,
+    marks: Pick<CaptureAttachment, "truncated" | "original_size" | "redacted">,
+  ): Promise<CaptureAttachment> {
     const { id, name } = await this.write(input.name, bytes);
-    const attachment: CaptureAttachment = {
-      kind: "capture",
-      id,
-      name,
-      mime: input.mime,
-      size: bytes.byteLength,
-      source: input.source,
-      taken_at: new Date().toISOString(),
-      truncated: cut.truncated,
-      original_size: cut.originalSize,
-      redacted: redacted.count,
-    };
+    const attachment: CaptureAttachment = { kind: "capture", id, name, mime: input.mime, size: bytes.byteLength, source: input.source, taken_at: new Date().toISOString(), ...marks };
     await this.writeMeta(attachment);
     return attachment;
   }

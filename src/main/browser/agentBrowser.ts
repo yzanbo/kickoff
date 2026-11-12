@@ -1,11 +1,12 @@
 import { nativeImage, webContents, type IpcMainEvent, type WebContents } from "electron";
+import type { BrowserHandOffCapture } from "@shared/ipc";
 import type { BrowserControl, BrowserTabInfo, HistoryAction, PageSnapshot, RevealRequest } from "../../core/browser/control.js";
 import { mainWindow } from "../app/window.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { isOurWebview } from "./devtools.js";
 import { flattenOnWhite } from "./flatten.js";
 import { browserKeyCode } from "./keys.js";
-import { webviewConsoleOf } from "./webviewConsole.js";
+import { webviewConsoleOf, webviewProblemsOf } from "./webviewConsole.js";
 import { clickScript, pointScript, scrollScript, SNAPSHOT_SCRIPT, typeScript, VIEWPORT_SCRIPT } from "./pageScripts.js";
 
 // AI（チャットのエージェント）に埋め込みブラウザを操作させる口（コアの BrowserControl の実装）。
@@ -104,6 +105,33 @@ async function laidOut(wc: WebContents): Promise<boolean> {
   return false;
 }
 
+/** 見えている範囲を撮る（幅は SHOT_MAX_WIDTH まで・白の上に置いた JPEG の base64。AI の browser_screenshot とタブの「AI に渡す」で同じもの） */
+async function shoot(wc: WebContents): Promise<{ data: string; width: number; height: number }> {
+  if (!(await laidOut(wc))) throw new Error("このタブはいま画面に並んでいないため撮れません（チャット欄・パネルを開くと撮れます）");
+  let image = await wc.capturePage();
+  if (image.isEmpty()) throw new Error("画面を撮れませんでした（タブが画面に並んでいない可能性があります）");
+  if (image.getSize().width > SHOT_MAX_WIDTH) image = image.resize({ width: SHOT_MAX_WIDTH, quality: "good" });
+  // 背景を決めていないページは透明に撮れるので、利用者に見えているとおり白の上に置く（JPEG では黒くなる）
+  const size = image.getSize();
+  image = nativeImage.createFromBitmap(Buffer.from(flattenOnWhite(image.toBitmap())), size);
+  return { data: image.toJPEG(80).toString("base64"), ...size };
+}
+
+/**
+ * タブの「AI に渡す」: 見えている範囲の画面と、覚えているコンソールのエラー・警告を取る（画面が撮れなくてもコンソールは返す）。
+ * 頼んだ画面の中の webview だけを受ける（ほかのウィンドウ・ページのものは断る）
+ */
+async function handOffCapture(e: { sender: WebContents }, webContentsId: number): Promise<BrowserHandOffCapture> {
+  const wc = webContents.fromId(webContentsId);
+  if (!isOurWebview(e.sender, wc) || wc.isDestroyed()) throw new Error("このタブのページが見つかりません");
+  const console = webviewProblemsOf(wc.id);
+  try {
+    return { screen: await shoot(wc), screenError: null, console };
+  } catch (e) {
+    return { screen: null, screenError: e instanceof Error ? e.message : String(e), console };
+  }
+}
+
 const truncate = (s: string) => (s.length > RESULT_MAX ? `${s.slice(0, RESULT_MAX)}\n…（以下 ${s.length - RESULT_MAX} 文字を省略）` : s);
 
 /** 押した・打ったあとの様子（ページが移ったら、その先） */
@@ -194,15 +222,8 @@ export const agentBrowser: BrowserControl = {
   },
 
   async screenshot(tabId) {
-    const { wc } = entryOf(tabId);
-    if (!(await laidOut(wc))) throw new Error("このタブはいま画面に並んでいないため撮れません（チャット欄・パネルを開くと撮れます）");
-    let image = await wc.capturePage();
-    if (image.isEmpty()) throw new Error("画面を撮れませんでした（タブが画面に並んでいない可能性があります）");
-    if (image.getSize().width > SHOT_MAX_WIDTH) image = image.resize({ width: SHOT_MAX_WIDTH, quality: "good" });
-    // 背景を決めていないページは透明に撮れるので、利用者に見えているとおり白の上に置く（JPEG では黒くなる）
-    const size = image.getSize();
-    image = nativeImage.createFromBitmap(Buffer.from(flattenOnWhite(image.toBitmap())), size);
-    return { data: image.toJPEG(80).toString("base64"), mimeType: "image/jpeg" };
+    const { data } = await shoot(entryOf(tabId).wc);
+    return { data, mimeType: "image/jpeg" };
   },
 
   async click(tabId, ref) {
@@ -299,4 +320,5 @@ export const agentBrowserHandlers: IpcHandlers["agentBrowser"] = {
   },
   opened: (_e, requestId, tabKey, revealed, error) => pendingOpens.get(requestId)?.(tabKey ? { tabKey, revealed } : { error: error ?? "タブを開けませんでした" }),
   revealed: (_e, requestId, shown) => pendingReveals.get(requestId)?.(shown),
+  handOffCapture,
 };

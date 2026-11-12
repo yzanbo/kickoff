@@ -38,6 +38,13 @@
   border-color: color-mix(in srgb, var(--accent-bright) 60%, var(--border));
 }
 
+/* 「AI に渡す ▾」（画面とコンソールの札）: アドレス欄に押されて縮まない */
+.browser-toolbar .browser-hand-off {
+  flex: none;
+  margin: 0 2px;
+  white-space: nowrap;
+}
+
 .browser-error {
   margin: 0;
   padding: 6px 12px;

@@ -5,10 +5,12 @@ import { cx } from "@/lib/cx";
 import { useExternalBrowser } from "@/features/openWith/externalApps";
 import { normalizeUrl } from "@/lib/url";
 import { IconButton } from "@/ui/IconButton";
+import { HandOffButton } from "@/features/chat/handoff/HandOffMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { DockMenu } from "./DockMenu";
 import { DEVTOOLS_DOCK_LABELS, useDevtools } from "./useDevtools";
 import { useAgentRegistration } from "./agentBrowsing";
+import { browserHandOffItem } from "./browserHandOff";
 
 interface Props {
   url: string;
@@ -92,6 +94,23 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
   }
 
   const devtoolsShown = devtools.shown !== null;
+  // 「AI に渡す」（プロジェクトの欄のタブだけ。渡し先のチャットはそのプロジェクトのもの）
+  const projectId = agentTarget?.projectId ?? null;
+  const handOff =
+    projectId === null
+      ? null
+      : browserHandOffItem(
+          projectId,
+          () => {
+            try {
+              return ref.current?.getWebContentsId() ?? null;
+            } catch {
+              // 読み込みの準備ができる前は ID がない
+              return null;
+            }
+          },
+          () => ({ url: ref.current?.getURL() ?? current, title: ref.current?.getTitle() ?? "" }),
+        );
 
   function go(e: FormEvent) {
     e.preventDefault();
@@ -147,6 +166,7 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
             onClick={dockMenu.toggle}
           />
         </span>
+        {handOff && <HandOffButton item={handOff} className="browser-hand-off" />}
         <IconButton
           icon={ExternalLink}
           label={`${external.label}で開く`}
