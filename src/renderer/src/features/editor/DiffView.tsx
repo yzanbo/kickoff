@@ -1,5 +1,5 @@
 import { Pencil } from "lucide-react";
-import { useMemo } from "react";
+import { Fragment, useMemo, type ReactNode } from "react";
 import type { GitDiff, GitFileChange } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
@@ -80,7 +80,7 @@ export function DiffView({
   const own = useFileDiff({ projectId, file, staged, version, commit, active: source === undefined });
   const current = source ?? own;
   const lines = useMemo(() => (current?.diff ? parseDiff(current.diff.diff) : []), [current?.diff]);
-  const tokensOf = useDiffHighlight(lines, file);
+  const tokensOf = useDiffHighlight(lines, file.path, file.old_path);
 
   return (
     <div ref={ref} className="diff-view">
@@ -122,21 +122,20 @@ export function DiffView({
   );
 }
 
-/** git diff と同じ 1 列（左に変更前・変更後の行番号） */
 /**
  * 差分の行の色（VS Code と同じ配色）。前後の行のつながり（複数行のコメントなど）を保つため、
  * 変更前（残した行・消した行）と変更後（残した行・足した行）をそれぞれ 1 つのコードとして色を付ける
  */
-function useDiffHighlight(lines: DiffLine[], file: GitFileChange) {
+export function useDiffHighlight(lines: DiffLine[], path: string, oldPath?: string | null) {
   const before = useMemo(() => lines.filter((l) => l.oldNo !== undefined), [lines]);
   const after = useMemo(() => lines.filter((l) => l.newNo !== undefined), [lines]);
   const beforeTokens = useHighlight(
     useMemo(() => before.map((l) => l.text), [before]),
-    languageOf(file.old_path ?? file.path),
+    languageOf(oldPath ?? path),
   );
   const afterTokens = useHighlight(
     useMemo(() => after.map((l) => l.text), [after]),
-    languageOf(file.path),
+    languageOf(path),
   );
   return useMemo(() => {
     const map = new Map<DiffLine, CodeToken[]>();
@@ -148,7 +147,8 @@ function useDiffHighlight(lines: DiffLine[], file: GitFileChange) {
 
 type TokensOf = Map<DiffLine, CodeToken[]>;
 
-function UnifiedDiff({ lines, tokensOf }: { lines: DiffLine[]; tokensOf: TokensOf }) {
+/** git diff と同じ 1 列（左に変更前・変更後の行番号）。after はその行の下に横幅いっぱいで足すもの（GitHub の PR の行のスレッド） */
+export function UnifiedDiff({ lines, tokensOf, after }: { lines: DiffLine[]; tokensOf: TokensOf; after?: (line: DiffLine) => ReactNode }) {
   return (
     <table className="diff-table">
       <colgroup>
@@ -163,15 +163,18 @@ function UnifiedDiff({ lines, tokensOf }: { lines: DiffLine[]; tokensOf: TokensO
               <td colSpan={3}>{line.text}</td>
             </tr>
           ) : (
-            <tr key={i} className={`line-${line.type}`}>
-              <td className="diff-no">{line.oldNo}</td>
-              <td className="diff-no">{line.newNo}</td>
-              {/* 行の番号と変更前・変更後のどちらか（チャットの画面の右の欄で、選んだ行の「チャットに追加」に使う） */}
-              <td className="diff-code" data-no={line.newNo ?? line.oldNo} data-side={line.newNo !== undefined ? "new" : "old"}>
-                <span className="diff-sign">{line.type === "add" ? "+" : line.type === "del" ? "-" : " "}</span>
-                <CodeLine tokens={tokensOf.get(line)} text={line.text} />
-              </td>
-            </tr>
+            <Fragment key={i}>
+              <tr className={`line-${line.type}`}>
+                <td className="diff-no">{line.oldNo}</td>
+                <td className="diff-no">{line.newNo}</td>
+                {/* 行の番号と変更前・変更後のどちらか（チャットの画面の右の欄で、選んだ行の「チャットに追加」に使う） */}
+                <td className="diff-code" data-no={line.newNo ?? line.oldNo} data-side={line.newNo !== undefined ? "new" : "old"}>
+                  <span className="diff-sign">{line.type === "add" ? "+" : line.type === "del" ? "-" : " "}</span>
+                  <CodeLine tokens={tokensOf.get(line)} text={line.text} />
+                </td>
+              </tr>
+              {after?.(line)}
+            </Fragment>
           ),
         )}
       </tbody>

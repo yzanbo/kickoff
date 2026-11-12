@@ -101,7 +101,7 @@ export const DETAIL_QUERY = `query($owner: String!, $name: String!, $number: Int
       ${ITEM_FIELDS}
       ... on Issue { bodyHTML ${timeline(COMMON_EVENT_TYPES, EVENT_FIELDS)} }
       ... on PullRequest {
-        bodyHTML additions deletions changedFiles mergeable headRepositoryOwner { login }
+        bodyHTML additions deletions changedFiles mergeable headRefOid headRepositoryOwner { login }
         ${timeline([...COMMON_EVENT_TYPES, ...PR_EVENT_TYPES], EVENT_FIELDS + PR_EVENT_FIELDS)}
         reviewThreads(first: 100) { nodes { id path line originalLine diffSide isResolved isOutdated
           comments(first: 50) { nodes { id author { ${USER} } createdAt bodyHTML diffHunk url pullRequestReview { id } } } } }

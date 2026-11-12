@@ -73,7 +73,9 @@
   /* 真ん中の画面（ボード・エディタ）に残す最小の幅。右のチャット欄を広げても、ここまでは残す */
   --main-min-w: 320px;
   --mono: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", sans-serif;
+  /* 本文の字（等幅の中に本文を戻すとき。GitHub の差分の行の下のスレッド） */
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", sans-serif;
+  font-family: var(--sans);
   font-size: 14px;
   line-height: 1.55;
   color: var(--text);

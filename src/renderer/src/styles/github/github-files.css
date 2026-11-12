@@ -1,0 +1,96 @@
+/* GitHub タブの PR の「変更」（ファイルごとの見出しと差分、差分の行の下の行のスレッド） */
+
+.github-files {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.github-file {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* 見出しは差分を流している間も上に残す（外側の .github-detail-body でスクロールする） */
+.github-file-head {
+  position: sticky;
+  top: -12px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--bg-elev);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.github-file-head:hover {
+  background: var(--bg-hover);
+}
+
+.github-file-head[aria-expanded="true"] {
+  border-bottom: 1px solid var(--border);
+}
+
+.github-file-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.github-file-status,
+.github-file-threads {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.github-file-head .github-diffstat {
+  flex: none;
+}
+
+/* 差分はファイルの高さのまま並べる */
+.github-file-diff {
+  flex: none;
+}
+
+.github-file-diff .diff-body {
+  overflow: visible;
+}
+
+/* 差分の行の下のスレッド（表の行の幅いっぱい。コードの等幅ではなく本文の字で） */
+.github-diff-threads > td {
+  padding: 2px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: normal;
+}
+
+.github-thread.inline {
+  max-width: 760px;
+  margin: 6px 10px 6px 12px;
+}
+
+.github-file-rest {
+  padding: 6px 0 2px;
+  border-top: 1px solid var(--border);
+}
+
+.github-file-rest > p {
+  margin: 0 10px;
+}
