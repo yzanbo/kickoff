@@ -14,10 +14,16 @@
   color: var(--muted);
 }
 
+/* 名前の文字だけを「…」で切り、後ろの盾の印は残す（名前ごと切ると、長い名前で印が隠れた） */
 .capture-attachment .attachment-name {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+}
+
+.capture-name-text {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

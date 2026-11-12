@@ -43,8 +43,9 @@ export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: Ca
           </span>
         )}
         <span className="attachment-meta">
+          {/* 名前が長くても盾の印は隠さない（名前の文字だけを切る） */}
           <span className="attachment-name">
-            {attachment.source.label}
+            <span className="capture-name-text">{attachment.source.label}</span>
             {external && <ShieldAlert size={12} className="capture-external" aria-label="外から来たデータ" />}
           </span>
           <span className="muted small">{captureSubline(attachment, formatDayTime)}</span>
