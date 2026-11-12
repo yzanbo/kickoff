@@ -169,6 +169,14 @@
   color: var(--ng);
 }
 
+/* チャットの AI が DB に流した SQL の下の「SQL のタブで開く」 */
+.tool-db-actions {
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+}
+
 .diff-add {
   display: block;
   color: var(--ok);
