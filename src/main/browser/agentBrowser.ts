@@ -1,5 +1,5 @@
 import { nativeImage, webContents, type IpcMainEvent, type WebContents } from "electron";
-import type { BrowserControl, BrowserTabInfo, HistoryAction, PageSnapshot } from "../../core/browser/control.js";
+import type { BrowserControl, BrowserTabInfo, HistoryAction, PageSnapshot, RevealRequest } from "../../core/browser/control.js";
 import { mainWindow } from "../app/window.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { isOurWebview } from "./devtools.js";
@@ -11,7 +11,8 @@ import { clickScript, pointScript, scrollScript, SNAPSHOT_SCRIPT, typeScript, VI
 // AI（チャットのエージェント）に埋め込みブラウザを操作させる口（コアの BrowserControl の実装）。
 // 画面のブラウザのタブは、webview の準備ができたら自分を登録する（agentBrowser.register。タブのキーとプロジェクト）。
 // AI が新しいタブを開くときは、画面に頼んでそのプロジェクトのチャット欄にタブを足させ、その webview が登録されるのを待つ。
-// 操作したタブは画面に知らせ（onActivity）、タブに「AI 操作中」の印を出し、表に出ていなくても見えない形で並べさせる（撮る・押すため）
+// 操作したタブは画面に知らせ（onActivity）、タブに「AI 操作中」の印を出し、表に出ていなくても見えない形で並べさせる（撮る・押すため）。
+// 作業の初めに使うタブは、画面に頼んで欄を開いて表に出させ（onRevealRequest。キーボードのピントは動かさない）、並び終えるのを待ってから操作する
 
 interface Entry {
   wc: WebContents;
@@ -37,7 +38,11 @@ const entries = new Map<number, Entry>();
 /** タブのキーで登録を待っているもの（AI が開いたタブ） */
 const waiters = new Map<string, (entry: Entry) => void>();
 /** 画面に頼んだタブの開き方の返事 */
-const pendingOpens = new Map<number, (result: { tabKey: string } | { error: string }) => void>();
+const pendingOpens = new Map<number, (result: { tabKey: string; revealed: boolean } | { error: string }) => void>();
+/** 画面に頼んだ、表に出すの返事 */
+const pendingReveals = new Map<number, (shown: boolean) => void>();
+/** 画面が表に出す頼みに答えるのを待つ長さ */
+const REVEAL_TIMEOUT_MS = 3000;
 let nextRequest = 1;
 /** タブのキーごとの、印を消すタイマー */
 const activity = new Map<string, NodeJS.Timeout>();
@@ -56,6 +61,24 @@ function entryOf(tabId: number): Entry {
   const entry = entries.get(tabId);
   if (!entry || entry.wc.isDestroyed()) throw new Error(`tab_id=${tabId} のタブはありません（閉じられた可能性があります）。browser_tabs で確かめてください。`);
   return entry;
+}
+
+/** 表に出す頼みの after（前に表に出したタブ）を、タブのキーにする（もう閉じていれば undefined = 利用者は見ていない） */
+function afterKeyOf(request: RevealRequest): string | null | undefined {
+  if (request.after === null) return null;
+  const entry = entries.get(request.after);
+  return entry && !entry.wc.isDestroyed() ? entry.tabKey : undefined;
+}
+
+/** 表に出したタブが、開いた欄の大きさで並び終えるのを待つ（大きさが 2 回続けて同じになるまで。閉じた欄の見えない並びから変わるため） */
+async function settledLayout(wc: WebContents) {
+  let last = "";
+  for (let i = 0; i < 20; i++) {
+    const size = await run<string>(wc, "`${innerWidth}x${innerHeight}`").catch(() => "");
+    if (size !== "" && size !== "0x0" && size === last) return;
+    last = size;
+    await sleep(50);
+  }
 }
 
 const infoOf = ({ wc, projectId }: Entry): BrowserTabInfo => ({ id: wc.id, project_id: projectId, url: wc.getURL(), title: wc.getTitle(), loading: wc.isLoading() });
@@ -101,12 +124,15 @@ function sendKey(wc: WebContents, key: string) {
 export const agentBrowser: BrowserControl = {
   tabs: () => [...entries.values()].filter((e) => !e.wc.isDestroyed()).map(infoOf),
 
-  async open(projectId, url) {
+  async open(projectId, url, reveal) {
     const win = mainWindow();
     if (!win) throw new Error("Kickoff の画面が開いていません");
     const requestId = nextRequest++;
-    const reply = new Promise<{ tabKey: string } | { error: string }>((resolve) => pendingOpens.set(requestId, resolve));
-    sendEvent(win.webContents, "agentBrowser", "onOpenRequest", requestId, projectId, url);
+    const reply = new Promise<{ tabKey: string; revealed: boolean } | { error: string }>((resolve) => pendingOpens.set(requestId, resolve));
+    const after = reveal ? afterKeyOf(reveal) : undefined;
+    // 前に表に出したタブがもう閉じていれば、利用者は見ていないので表に出さない
+    const show = reveal !== null && after !== undefined;
+    sendEvent(win.webContents, "agentBrowser", "onOpenRequest", requestId, projectId, url, show, after ?? null);
     const result = await withTimeout(reply, 5000, "Kickoff の画面が応答しません").finally(() => pendingOpens.delete(requestId));
     if ("error" in result) throw new Error(result.error);
     const registered = [...entries.values()].find((e) => e.tabKey === result.tabKey);
@@ -116,7 +142,23 @@ export const agentBrowser: BrowserControl = {
         waiters.delete(result.tabKey),
       ));
     await settle(entry.wc, 0);
-    return infoOf(entry);
+    if (result.revealed) await settledLayout(entry.wc);
+    return { tab: infoOf(entry), revealed: result.revealed };
+  },
+
+  async reveal(tabId, request) {
+    const entry = entries.get(tabId);
+    const win = mainWindow();
+    const after = afterKeyOf(request);
+    if (!entry || entry.wc.isDestroyed() || !win || after === undefined) return false;
+    const requestId = nextRequest++;
+    const reply = new Promise<boolean>((resolve) => pendingReveals.set(requestId, resolve));
+    sendEvent(win.webContents, "agentBrowser", "onRevealRequest", requestId, entry.tabKey, after);
+    const shown = await withTimeout(reply, REVEAL_TIMEOUT_MS, "Kickoff の画面が応答しません")
+      .catch(() => false)
+      .finally(() => pendingReveals.delete(requestId));
+    if (shown) await settledLayout(entry.wc);
+    return shown;
   },
 
   async navigate(tabId, url) {
@@ -255,5 +297,6 @@ export const agentBrowserHandlers: IpcHandlers["agentBrowser"] = {
   unregister: (_e, webContentsId) => {
     entries.delete(webContentsId);
   },
-  opened: (_e, requestId, tabKey, error) => pendingOpens.get(requestId)?.(tabKey ? { tabKey } : { error: error ?? "タブを開けませんでした" }),
+  opened: (_e, requestId, tabKey, revealed, error) => pendingOpens.get(requestId)?.(tabKey ? { tabKey, revealed } : { error: error ?? "タブを開けませんでした" }),
+  revealed: (_e, requestId, shown) => pendingReveals.get(requestId)?.(shown),
 };

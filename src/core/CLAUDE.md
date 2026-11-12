@@ -16,7 +16,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - `voice/`: 音声入力の文字起こしと、音声モードの読み上げ（OpenAI の声）。→「音声入力」
 - `memos/`: プロジェクトのメモ（`memos.ts` の `MemoService`）。→「メモ」
 - `databases/`: DB クライアント（`service.ts` の `DatabaseService` と、DB に触る別のプロセス DB ワーカー）。→「DB クライアント」
-- `browser/`: AI に埋め込みブラウザを操作させる口 `BrowserControl`（`control.ts`。コアは Electron に依らないので、中身はメインプロセスが `startCore({ browser })` で渡す（`main/browser/agentBrowser.ts`）。単体のコア（`npm run daemon`）では渡されず、AI にブラウザのツールを出さない）と、AI に返す文の組み立て（`format.ts`: タブの一覧 `formatTabs`（このプロジェクトのタブを先に）・ページの読み取り `formatSnapshot`（押せる要素の番号 ref と見えている文。文は `SNAPSHOT_TEXT_MAX` で切る）・URL の補い `normalizeBrowserUrl`（localhost・ポート付きは http、ほかは https。http(s) 以外は開かない））。ツールそのものは `providers/claude/browserTools.ts`。
+- `browser/`: AI に埋め込みブラウザを操作させる口 `BrowserControl`（`control.ts`。タブのある欄を開いて表に出す `reveal` と、開くときの表に出す頼み `RevealRequest` も。コアは Electron に依らないので、中身はメインプロセスが `startCore({ browser })` で渡す（`main/browser/agentBrowser.ts`）。単体のコア（`npm run daemon`）では渡されず、AI にブラウザのツールを出さない）と、AI に返す文の組み立て（`format.ts`: タブの一覧 `formatTabs`（このプロジェクトのタブを先に）・ページの読み取り `formatSnapshot`（押せる要素の番号 ref と見えている文。文は `SNAPSHOT_TEXT_MAX` で切る）・URL の補い `normalizeBrowserUrl`（localhost・ポート付きは http、ほかは https。http(s) 以外は開かない））。ツールそのものは `providers/claude/browserTools.ts`。
 - `system/`: 外部コマンド・パス（→「外部コマンドとパス」）・ログインシェルの PATH（`shellEnv.ts` の `loadLoginShellPath`）・期限付きのキャッシュ（`ttlCache.ts`）・名前と保存先とポート（`appEnv.ts` の `APP_ENVS`。製品版 Kickoff = 4317、開発版 Kickoff Dev = 4318。同時に動かせ、開発中の変更で製品版のデータを壊さない）・開発版のデータの写し（`devData.ts` の `seedDevData`。開発の保存先がなければ製品版から一度だけ。DB は `VACUUM INTO`）。
 - `testing/`: テストからだけ使う補助。→「テスト」
 

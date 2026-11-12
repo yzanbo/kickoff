@@ -31,12 +31,25 @@ export interface PageImage {
 
 export type HistoryAction = "back" | "forward" | "reload";
 
+/**
+ * タブを表に出す頼み（AI が作業の初めにタブを使うとき。利用者が AI の操作に気づけるように）。
+ * after は、この作業で前に表に出したタブ。あれば、利用者がまだそのタブを見ているときだけ切り替える（ほかのタブに切り替えた・欄を閉じたなら出さない）
+ */
+export interface RevealRequest {
+  after: number | null;
+}
+
 /** メインプロセスが実装する、埋め込みブラウザの操作。失敗は理由の文の Error で投げる */
 export interface BrowserControl {
   /** いま開いているブラウザのタブ */
   tabs(): BrowserTabInfo[];
-  /** プロジェクトのチャット欄に新しいブラウザのタブを開き、読み込み終えたら返す */
-  open(projectId: number, url: string): Promise<BrowserTabInfo>;
+  /**
+   * プロジェクトのチャット欄に新しいブラウザのタブを開き、読み込み終えたら返す。reveal があれば欄を開いて表に出し（キーボードのピントは動かさない）、
+   * なければ表に出さずに足す。revealed は表に出したか
+   */
+  open(projectId: number, url: string, reveal: RevealRequest | null): Promise<{ tab: BrowserTabInfo; revealed: boolean }>;
+  /** タブのある欄（チャット欄・下のパネル・ボードの右のパネル）を開き、そのタブを表示中にする（キーボードのピントは動かさない）。表に出したら true */
+  reveal(tabId: number, request: RevealRequest): Promise<boolean>;
   navigate(tabId: number, url: string): Promise<BrowserTabInfo>;
   history(tabId: number, action: HistoryAction): Promise<BrowserTabInfo>;
   read(tabId: number): Promise<PageSnapshot>;
