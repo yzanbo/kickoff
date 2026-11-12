@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, openMemoTab, openTableTab, parseDbClientTabs, renameMemoTab, setTableFilter, tableTabKey, type DbClientTab, updateErTab } from "./dbClientTabs";
+import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, openMemoTab, openPreviewTab, openTableTab, parseDbClientTabs, pinDbTab, renameMemoTab, setTableFilter, tableTabKey, type DbClientTab, updateErTab } from "./dbClientTabs";
 
 const path = { database: "main", schema: null };
 const table = (name: string, connection_id = 1): DbClientTab => ({ key: tableTabKey(connection_id, path, name), kind: "table", connection_id, path, name, object: "table" });
@@ -101,4 +101,28 @@ test("openMemoTab / renameMemoTab: 手順メモはメモごとに 1 つ。名前
   assert.deepEqual([s.tabs.length, s.active], [1, "memo:DB/AWS 本番.md"]);
   assert.equal(parseDbClientTabs(JSON.parse(JSON.stringify(s)))?.tabs.length, 1);
   assert.equal(parseDbClientTabs({ tabs: [{ key: "memo:", kind: "memo", connection_id: 1, path: "" }], active: null })?.tabs.length, 0);
+});
+
+test("openPreviewTab / pinDbTab: 仮のタブは次の仮のタブで同じ場所に置き換わり、固定したもの・変更のあるものは残る。固定して開く・絞り込みでも固定", () => {
+  const preview = (name: string) => table(name) as Extract<DbClientTab, { kind: "table" }>;
+  let s = openDbTab(NO_DB_TABS, table("a"));
+  s = openPreviewTab(s, preview("b"));
+  s = openPreviewTab(s, preview("c"));
+  const names = (x: typeof s) => x.tabs.map((t) => (t.kind === "table" ? `${t.name}${t.preview ? "*" : ""}` : t.key));
+  assert.deepEqual(names(s), ["a", "c*"]);
+  assert.equal(s.active, table("c").key);
+  // もうあるタブは選ぶだけ（固定したものは仮にしない）
+  assert.deepEqual(names(openPreviewTab(s, preview("a"))), ["a", "c*"]);
+  // 固定すると、次の仮のタブは右に足す
+  s = pinDbTab(s, table("c").key);
+  s = openPreviewTab(s, preview("d"));
+  assert.deepEqual(names(s), ["a", "c", "d*"]);
+  // 変更のある仮のタブは固定して残す
+  s = openPreviewTab(s, preview("e"), (key) => key === table("d").key);
+  assert.deepEqual(names(s), ["a", "c", "d", "e*"]);
+  // 固定して開く・絞り込みで固定
+  assert.deepEqual(names(openTableTab(s, preview("e"))), ["a", "c", "d", "e"]);
+  assert.deepEqual(names(setTableFilter(s, table("e").key, { filters: [], where: "1 = 1" })), ["a", "c", "d", "e"]);
+  // 保存した値も読める
+  assert.deepEqual(parseDbClientTabs(JSON.parse(JSON.stringify(s))), s);
 });
