@@ -1,0 +1,274 @@
+/* GitHub タブ（features/github）: 枠・左の一覧と絞り込み・一覧の行・状態の印とラベル */
+
+.github-tab {
+  position: relative;
+  display: flex;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.github-tab-loading {
+  padding: 16px var(--gutter);
+}
+
+.github-list {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.github-browser.narrow .github-list {
+  flex: 1;
+  width: auto;
+  border-right: 0;
+}
+
+.github-list-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  margin: 0;
+}
+
+.github-list-repo {
+  padding: 8px var(--gutter) 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 絞り込みの帯 */
+.github-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px var(--gutter) 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.github-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.github-filter-count {
+  margin-left: auto;
+}
+
+.github-search {
+  margin: 0;
+}
+
+.github-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.github-filter-chip,
+.github-filter-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.github-filter-chip:hover,
+.github-filter-clear:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.github-filter-chip.active {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-fg);
+}
+
+.github-filter-clear {
+  border-style: dashed;
+}
+
+.github-label-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* 一覧 */
+.github-items {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.github-items.stale .github-item {
+  opacity: 0.6;
+}
+
+.github-updating-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 2px var(--gutter);
+  background: var(--bg-sidebar);
+}
+
+.github-items-note {
+  padding: 12px var(--gutter);
+}
+
+.github-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 7px var(--gutter);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.github-item:hover {
+  background: var(--bg-hover);
+}
+
+.github-item.selected {
+  background: var(--bg-active);
+}
+
+.github-item > .github-state {
+  flex: none;
+  margin-top: 2px;
+}
+
+.github-item-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.github-item-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.github-item-title-text {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.github-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.github-item-comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.github-more {
+  display: block;
+  margin: 10px auto 14px;
+}
+
+/* 状態の印（issue: 開いている = 緑・完了 = 紫・やらない = 灰 / PR: 開いている = 緑・下書き = 灰・マージ = 紫・閉じた = 赤） */
+.github-state-open {
+  color: var(--ok);
+}
+
+.github-state-done,
+.github-state-merged {
+  color: var(--sec-schedule);
+}
+
+.github-state-draft {
+  color: var(--muted);
+}
+
+.github-state-skipped {
+  color: var(--muted);
+}
+
+.github-state-closed {
+  color: var(--ng);
+}
+
+/* ラベル（GitHub の色を薄い地と点に） */
+.github-labels {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.github-label {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border: 1px solid color-mix(in srgb, var(--label-color, #888) 55%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--label-color, #888) 18%, transparent);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* CI とレビュー */
+.github-checks-success {
+  color: var(--ok);
+}
+
+.github-checks-failure {
+  color: var(--ng);
+}
+
+.github-checks-pending {
+  color: var(--warn);
+}
+
+.github-checks-neutral {
+  color: var(--muted);
+}
+
+.github-review-approved {
+  color: var(--ok);
+}
+
+.github-review-changes_requested {
+  color: var(--ng);
+}

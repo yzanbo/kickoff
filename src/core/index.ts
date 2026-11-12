@@ -25,6 +25,7 @@ import type { DatabaseStats } from "./db/stats.js";
 import type { BrowserControl } from "./browser/control.js";
 import { DbWorkerClient, forkWorker, type WorkerChannel } from "./databases/client.js";
 import { DatabaseService } from "./databases/service.js";
+import { GitHubService } from "./github/service.js";
 import { devWorkerEntry } from "./databases/entry.js";
 import { DbSecretVault, migrateInBackground, type SecretCipher } from "./databases/secrets.js";
 
@@ -124,6 +125,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     memos,
     prWatch,
     databases,
+    github: new GitHubService(),
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });

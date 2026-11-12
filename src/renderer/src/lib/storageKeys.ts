@@ -11,6 +11,7 @@ import { HANDOFF_VIAS, type Attachment, type HandoffFrom } from "@shared/types";
 import { HANDOFF_AFTERS } from "@shared/chat/handoff";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
 import { NO_DB_TABS, parseDbClientTabs } from "./dbClientTabs";
+import { DEFAULT_GITHUB_FILTERS, parseGitHubFilters } from "./githubFilters";
 
 const NO_ATTACHMENTS: readonly Attachment[] = [];
 
@@ -440,6 +441,12 @@ export const dbClientTabs = defineSettingFamily("kickoff:db-tabs:", json(parseDb
 export const dbTreeOpen = defineSettingFamily("kickoff:db-tree-open:", list(), { ids: true });
 /** SQL のタブの書きかけの SQL（キーは「置き場所:タブのキー」。タブを閉じたら消す。アプリを閉じても残す） */
 export const dbSqlDraft = defineSettingFamily("kickoff:db-sql:", text(), { ids: true });
+/** GitHub タブの一覧の絞り込み（プロジェクトごと。issue と PR で別々に、いま見ている種類も） */
+export const githubFilters = defineSettingFamily("kickoff:github-filters:", json(parseGitHubFilters, DEFAULT_GITHUB_FILTERS), { ids: true });
+/** GitHub タブで開いている issue・PR（プロジェクトごと。「issue:12」「pr:5」の形） */
+export const githubSelected = defineSettingFamily("kickoff:github-selected:", text(), { ids: true });
+/** GitHub タブの左の一覧の幅（どのプロジェクトでも同じ） */
+export const GITHUB_LIST_WIDTH = defineSetting("kickoff:github-list-width", number(380));
 /** DB クライアントの左の一覧の幅（どの置き場所でも同じ） */
 export const DB_LIST_WIDTH = defineSetting("kickoff:db-list-width", number(260));
 /** SQL のタブの入力欄の高さ（タブの中の割合 %。どの SQL のタブでも同じ） */

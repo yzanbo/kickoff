@@ -3,6 +3,7 @@ import { KanbanBoard } from "@/features/board/KanbanBoard";
 import { EditorTab } from "@/features/editor/EditorTab";
 import { HistoryTab } from "@/features/history/HistoryTab";
 import { DatabaseClient } from "@/features/database/DatabaseClient";
+import { GitHubTab } from "@/features/github/GitHubTab";
 import { MemoTab } from "@/features/memo/MemoTab";
 import { ChatsTab } from "@/features/panel/board/ChatsTab";
 import { useChatPlacement } from "./chatPlacement";
@@ -48,8 +49,8 @@ export function ProjectPage(props: ProjectPageProps) {
 function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMemoLine }: ProjectPageProps) {
   // チャットをボードの右で開く置き方では「チャット」タブはないので、そのタブの URL はボードで出す
   const [placement] = useChatPlacement();
-  // DB のタブはこの Mac のアプリの中だけ（ブラウザ・スマホから開いたらボード）
-  const tab: ProjectTab = (routeTab === "chats" && placement === "together") || (routeTab === "db" && !window.kickoff) ? "board" : routeTab;
+  // DB・GitHub のタブはこの Mac のアプリの中だけ（ブラウザ・スマホから開いたらボード）
+  const tab: ProjectTab = (routeTab === "chats" && placement === "together") || ((routeTab === "db" || routeTab === "github") && !window.kickoff) ? "board" : routeTab;
   const { data: shown, error, loading: chatsLoading } = useProjectData(id);
   const [editing, setEditing] = useState(false);
   // ファイル・検索・変更・履歴タブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
@@ -112,6 +113,8 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMem
       {tab === "memos" && <MemoTab key={project.id} projectId={project.id} openMemo={stale ? undefined : openMemo} openMemoLine={openMemoLine} />}
       {/* DB クライアント（SQLite のファイルは、ファイル・検索・変更・履歴のタブで選んだ作業場所の中を開く） */}
       {tab === "db" && <DatabaseClient key={project.id} projectId={project.id} place={`project-${project.id}`} worktree={worktree ?? null} />}
+      {/* GitHub（連携先のリポジトリの issue・PR を読む） */}
+      {tab === "github" && <GitHubTab key={project.id} projectId={project.id} />}
       </div>
       </div>
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
