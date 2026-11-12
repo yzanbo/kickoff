@@ -24,6 +24,8 @@ test("AI の Docker の守り: 聞くと決めた Bash は承認カードで聞�
   const cb = { requestApproval: async (req: ApprovalRequest) => (asked.push(req), answer === "allow" ? { action: "allow" as const } : { action: "deny" as const, message: "だめ" }) };
   const matcher = turnHooks(params, undefined, cb)?.PreToolUse?.[0];
   assert.equal(matcher?.matcher, "Bash");
+  // 既定の待ち時間で承認カードが閉じないよう、1 日より長く待つ
+  assert.ok((matcher?.timeout ?? 0) >= 24 * 60 * 60);
   const [hook] = matcher?.hooks ?? [];
   const bash = (command: string) => ({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, tool_use_id: "t1", session_id: "s", transcript_path: "/tmp/t", cwd: "/tmp" }) as HookInput;
   assert.deepEqual(await hook(bash("docker ps"), undefined, { signal }), {});

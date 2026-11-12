@@ -8,6 +8,12 @@ import type { ProviderCallbacks, ProviderTurnParams } from "../types.js";
 
 type Decision = { decision: "deny"; reason: string } | { decision: "pass" };
 
+/**
+ * Docker の守りのフックの待ち時間（秒）。Claude Code は待ち時間を書いていないフックに既定の待ち時間を当て、過ぎると止める知らせ（signal）を送るので、
+ * 書かないと利用者が答える前に承認カードが閉じて「拒否」になる。利用者が答えるか、チャットを止めるまで待つよう長くする（タイマーの上限 24.8 日より短く）
+ */
+const DOCKER_GUARD_HOOK_TIMEOUT_S = 7 * 24 * 60 * 60;
+
 /** ツールの呼び出しを判定して断るフック（PreToolUse）。権限モードや許可ルールより先に毎回呼ばれる */
 function denyHook(evaluate: (toolName: string, input: Record<string, unknown>) => Decision): HookCallbackMatcher {
   return {
@@ -29,6 +35,7 @@ function denyHook(evaluate: (toolName: string, input: Record<string, unknown>) =
 function dockerGuardHook(guard: DockerGuard, cb: Pick<ProviderCallbacks, "requestApproval">): HookCallbackMatcher {
   return {
     matcher: "Bash",
+    timeout: DOCKER_GUARD_HOOK_TIMEOUT_S,
     hooks: [
       async (input: HookInput, _toolUseId, { signal }): Promise<SyncHookJSONOutput> => {
         if (input.hook_event_name !== "PreToolUse" || input.tool_name !== "Bash") return {};
