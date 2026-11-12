@@ -1,0 +1,231 @@
+/* GitHub タブ（features/github）: 顔と名前・会話の流れ・行のスレッド・本文の GitHub だけの部品・チェック */
+
+/* 顔と名前・時刻 */
+.github-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.github-avatar {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+}
+
+.github-author-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.github-time {
+  font-size: 11px;
+}
+
+/* 会話の流れ */
+.github-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.github-entry {
+  min-width: 0;
+}
+
+.github-comment,
+.github-body,
+.github-review-entry {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.github-entry-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.github-entry .github-html,
+.github-entry .github-html-empty {
+  padding: 8px 12px;
+}
+
+.github-review-entry.github-review-approved {
+  border-color: color-mix(in srgb, var(--ok) 50%, var(--border));
+}
+
+.github-review-entry.github-review-changes_requested {
+  border-color: color-mix(in srgb, var(--ng) 50%, var(--border));
+}
+
+.github-review-state {
+  font-size: 12px;
+}
+
+.github-event-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.github-event-line b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.github-event-dot {
+  width: 6px;
+  height: 6px;
+  margin: 0 4px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.github-commit-list {
+  margin: 4px 0 0 26px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.github-commit-list li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 行のスレッド */
+.github-thread {
+  margin: 8px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.github-thread.resolved {
+  opacity: 0.75;
+}
+
+.github-thread-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-hover);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.github-thread-path {
+  overflow-wrap: anywhere;
+}
+
+.github-thread-badge {
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-family: inherit;
+  color: var(--muted);
+}
+
+.github-thread-hunk {
+  margin: 0;
+  padding: 6px 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.github-thread-comment + .github-thread-comment {
+  border-top: 1px solid var(--border);
+}
+
+.github-thread-comment .github-entry-head {
+  border-bottom: 0;
+}
+
+.github-thread-comment .github-html {
+  padding: 0 10px 8px;
+}
+
+/* 本文の GitHub だけの部品（チェックリスト・画像・折りたたみ） */
+.github-html img {
+  max-width: 100%;
+  height: auto;
+}
+
+.github-html .task-list-item {
+  list-style: none;
+}
+
+.github-html .task-list-item input {
+  margin: 0 6px 0 -18px;
+}
+
+.github-html details > summary {
+  cursor: pointer;
+}
+
+.github-html-empty {
+  margin: 0;
+}
+
+/* チェック */
+.github-checks-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.github-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.github-check-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.github-check-desc {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.github-check-link {
+  display: inline-grid;
+  place-items: center;
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.github-checks-empty,
+.github-updating {
+  margin: 0;
+}

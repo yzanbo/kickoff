@@ -12,6 +12,9 @@ import type { BranchPullRequest } from "../git/github.js";
 import { MemoService } from "../memos/memos.js";
 import { DbWorkerClient, inProcessWorker } from "../databases/client.js";
 import { DatabaseService } from "../databases/service.js";
+import { GitHubService } from "../github/service.js";
+import type { GraphqlVars, RestResponse } from "../github/ghApi.js";
+import type { GitHubTarget } from "../git/githubTarget.js";
 import { DbSecretVault, type SecretCipher } from "../databases/secrets.js";
 import type { VoiceTools } from "../voice/tools.js";
 import type { MacosSpeech } from "../voice/macos.js";
@@ -252,7 +255,34 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   // DB クライアントは同じプロセスのワーカーで動かす（中身は本物と同じ。dataDir は Kickoff 自身の保存先の代わり）
   const dbFake = { dataDir: tempDir() };
   const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), vault: new DbSecretVault(store, opts.secretCipher ?? null), dataDir: dbFake.dataDir, exportRoot: tempDir() });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  // GitHub タブ: 連携先と GitHub の答えは偽物（graphql / rest / pages を差し替える。聞いたものは calls に残る）
+  const ghFake = {
+    target: { repo: "o/r", headOwner: "o" } as GitHubTarget | null,
+    calls: [] as { kind: "graphql" | "rest" | "pages"; detail: string; vars?: GraphqlVars; etag?: string | null }[],
+    graphql: (_query: string, _vars: GraphqlVars): unknown => {
+      throw new Error("GitHub の偽物に答えがありません");
+    },
+    rest: (_path: string, _etag: string | null): RestResponse => ({ status: 200, etag: '"e1"', body: [] }),
+    pages: (_path: string): { items: unknown[]; truncated: boolean } => ({ items: [], truncated: false }),
+  };
+  const github = new GitHubService({
+    resolveTarget: async () => ghFake.target,
+    api: () => ({
+      graphql: async <T,>(query: string, vars: GraphqlVars) => {
+        ghFake.calls.push({ kind: "graphql", detail: query, vars });
+        return ghFake.graphql(query, vars) as T;
+      },
+      rest: async (path, o = {}) => {
+        ghFake.calls.push({ kind: "rest", detail: path, etag: o.etag ?? null });
+        return ghFake.rest(path, o.etag ?? null);
+      },
+      restPages: async (path) => {
+        ghFake.calls.push({ kind: "pages", detail: path });
+        return ghFake.pages(path);
+      },
+    }),
+  });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -264,6 +294,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, prWatch, network, approvals, databases, dbFake, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, codexCalls: () => codexCalls };
 }
 

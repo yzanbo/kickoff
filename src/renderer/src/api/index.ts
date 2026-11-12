@@ -6,6 +6,7 @@ import { chatsApi } from "./chats";
 import { databasesApi } from "./databases";
 import { filesApi } from "./files";
 import { gitApi } from "./git";
+import { githubApi } from "./github";
 import { groupsApi } from "./groups";
 import { memosApi } from "./memos";
 import { projectsApi } from "./projects";
@@ -37,6 +38,7 @@ export const api = {
   ...memosApi,
   ...snippetsApi,
   ...databasesApi,
+  ...githubApi,
 };
 
 export { ApiError } from "./http";

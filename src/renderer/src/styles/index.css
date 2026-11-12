@@ -127,6 +127,9 @@
 @import "./database/db-prep.css";
 @import "./database/db-er.css";
 @import "./database/db-er-picker.css";
+@import "./github/github-list.css";
+@import "./github/github-detail.css";
+@import "./github/github-timeline.css";
 @import "./chat/open-place.css";
 @import "./terminal/terminal.css";
 @import "./panel/bottom-panel.css";
