@@ -1,4 +1,4 @@
-import type { DbEngine } from "../types/database";
+import type { DbEngine, DbWriteCheck } from "../types/database";
 
 // SQL の文の分け方と、読むだけの文かの判定（SQL のタブの ⌘↵ / ⇧⌘↵ と、読み取り専用の接続の 1 段目の守り）。
 // 文字列・識別子・コメントの中の ; や語は数えない。MySQL の DELIMITER（手続きを作るときの区切りの付け替え）は扱わない
@@ -213,4 +213,65 @@ export function isReadOnlyStatement(text: string, engine: DbEngine): boolean {
     default:
       return false;
   }
+}
+
+/** 危険な文でなく、確かめずに流してよい書く文の頭の語（「危険な文だけ確かめる」の接続で。ここにない語は判定できない文として確かめる） */
+const PLAIN_WRITE_WORDS = new Set(["INSERT", "UPDATE", "DELETE", "CREATE", "REPLACE", "UPSERT", "SET", "USE", "ANALYZE", "COMMENT"]);
+/** いつも危険な文の頭の語と、その理由 */
+const DANGER_WORDS: Record<string, string> = {
+  DROP: "DROP（消す）",
+  TRUNCATE: "TRUNCATE（中身をすべて消す）",
+  ALTER: "ALTER（テーブルなどの形を変える）",
+};
+
+/**
+ * 危険な文ならその理由（書き込む前の確かめの「危険な文だけ確かめる」。読むだけの文・ふつうの書く文なら null）。
+ * 危険な文 = DROP・TRUNCATE・ALTER・WHERE のない UPDATE / DELETE（括弧の外に WHERE がない。WITH の中・EXPLAIN ANALYZE の後ろも見る）・判定できない文
+ */
+export function dangerReason(text: string, engine: DbEngine): string | null {
+  if (isReadOnlyStatement(text, engine)) return null;
+  const tokens = tokenize(text, engine).filter((t) => t.kind !== "comment");
+  // 括弧の深さごとの語（WHERE は文の外側の段で探す）
+  let depth = 0;
+  const words: { word: string; depth: number }[] = [];
+  for (const t of tokens) {
+    if (t.kind === "symbol" && t.text === "(") depth++;
+    else if (t.kind === "symbol" && t.text === ")") depth = Math.max(0, depth - 1);
+    else if (t.kind === "word") words.push({ word: upper(t), depth });
+  }
+  const head = words[0]?.word;
+  if (!head) return null;
+  // WITH … / EXPLAIN ANALYZE … は、中の最初の書く文で決める
+  const verbAt = head === "WITH" || head === "EXPLAIN" ? words.findIndex((w) => WRITE_WORDS.has(w.word)) : 0;
+  const verb = verbAt >= 0 ? words[verbAt] : undefined;
+  if (!verb) return `判定できない文（${head}）`;
+  if (DANGER_WORDS[verb.word]) return DANGER_WORDS[verb.word];
+  if (verb.word === "UPDATE" || verb.word === "DELETE") {
+    const where = words.slice(verbAt + 1).some((w) => w.word === "WHERE" && w.depth === verb.depth);
+    return where ? null : verb.word === "UPDATE" ? "WHERE のない UPDATE（すべての行を書き換える）" : "WHERE のない DELETE（すべての行を消す）";
+  }
+  return PLAIN_WRITE_WORDS.has(verb.word) ? null : `判定できない文（${verb.word}）`;
+}
+
+/** 流す前の確かめの要り方（none = 確かめない / confirm = SQL を見せて確かめる / env_name = 環境の名前を打たせる）と、危険な文の理由 */
+export interface WriteConfirmation {
+  kind: "none" | "confirm" | "env_name";
+  /** 危険な文ごとの番号（1 から）と理由 */
+  dangers: { index: number; reason: string }[];
+}
+
+/**
+ * 読み取り専用でない接続で、流す文に要る確かめ（純粋な関数）。読むだけの文ばかりなら確かめない。
+ * dangerous = 危険な文があるときだけ確かめる / all = 書く文があれば確かめる / env_name = 書く文があれば環境の名前を打たせる
+ */
+export function writeConfirmation(check: DbWriteCheck, texts: string[], engine: DbEngine): WriteConfirmation {
+  const dangers = texts.flatMap((text, i) => {
+    const reason = dangerReason(text, engine);
+    return reason ? [{ index: i + 1, reason }] : [];
+  });
+  const writes = texts.some((text) => !isReadOnlyStatement(text, engine));
+  if (!writes) return { kind: "none", dangers };
+  if (check === "env_name") return { kind: "env_name", dangers };
+  if (check === "all" || dangers.length > 0) return { kind: "confirm", dangers };
+  return { kind: "none", dangers };
 }

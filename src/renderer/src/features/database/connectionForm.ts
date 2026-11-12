@@ -1,5 +1,5 @@
 import { normalizePrep } from "@shared/database/dbPrep";
-import { DB_ENVIRONMENT_DEFAULTS, type DbAiAccess, type DbConnection, type DbEngine, type DbEnvironment, type DbPrep, type DbSslMode, type NewDbConnectionBody } from "@shared/types";
+import { DB_ENVIRONMENT_DEFAULTS, type DbAiAccess, type DbConnection, type DbWriteCheck, type DbEngine, type DbEnvironment, type DbPrep, type DbSslMode, type NewDbConnectionBody } from "@shared/types";
 
 // 接続の登録・編集のダイアログ（ConnectionDialog）の入力欄の値と、送る形への直し方
 
@@ -16,6 +16,7 @@ export interface ConnectionForm {
   ssl: DbSslMode;
   ca_path: string;
   read_only: boolean;
+  write_check: DbWriteCheck;
   ai_access: DbAiAccess;
   password: string;
   /** 保存したパスワードを消す（編集のときだけ） */
@@ -58,6 +59,7 @@ export const formOf = (c: DbConnection | null): ConnectionForm => ({
   ssl: c?.ssl?.mode ?? "off",
   ca_path: c?.ssl?.ca_path ?? "",
   read_only: c?.read_only ?? DB_ENVIRONMENT_DEFAULTS.local.read_only,
+  write_check: c?.write_check ?? DB_ENVIRONMENT_DEFAULTS.local.write_check,
   ai_access: c?.ai_access ?? DB_ENVIRONMENT_DEFAULTS.local.ai_access,
   password: "",
   clearPassword: false,
@@ -114,6 +116,7 @@ export function bodyOf(form: ConnectionForm, editing: boolean): NewDbConnectionB
     file_path: sqlite ? text(form.file_path) : null,
     ssl: sqlite || form.ssl === "off" ? null : { mode: form.ssl, ca_path: text(form.ca_path) },
     read_only: form.read_only,
+    write_check: form.write_check,
     ai_access: form.ai_access,
     ...(sqlite || password === undefined ? {} : { password }),
     ai_username: sqlite ? null : text(form.ai_username),

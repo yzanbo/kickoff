@@ -4,7 +4,7 @@ import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
 import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
-import type { DbAiAccess, DbEngine, DbEnvironment, DbErPositions, DbObjectPath, DbPrep, DbRowEdit, DbRowFilter, DbSort, DbSsh, DbSsl } from "./database";
+import type { DbAiAccess, DbEngine, DbEnvironment, DbErPositions, DbObjectPath, DbPrep, DbRowEdit, DbRowFilter, DbSort, DbSsh, DbSsl, DbWriteCheck } from "./database";
 import type { GitHubCheckoutPlace, GitHubCloseReason, GitHubKind, GitHubMergeMethod, GitHubReviewDraftComment, GitHubReviewEvent } from "./github";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
@@ -353,6 +353,8 @@ export interface NewDbConnectionBody {
   file_path: string | null;
   ssl: DbSsl | null;
   read_only: boolean;
+  /** 書き込む前の確かめ（作るときに省けば環境の既定） */
+  write_check?: DbWriteCheck;
   ai_access: DbAiAccess;
   password?: string | null;
   /** AI が流す SQL に使う別のユーザー（null なら username のまま） */
@@ -378,7 +380,7 @@ export type DbConnectionPatch = Partial<NewDbConnectionBody>;
 /**
  * つながるか試す（POST …/db-connections/test。保存しない）。connection_id があれば、password を省いたときにその接続の保存したパスワードを使う
  */
-export type DbConnectionTestBody = Omit<NewDbConnectionBody, "name" | "read_only" | "ai_access" | "ai_username" | "ai_password" | "memo_path" | "check_on" | "check_note"> & { connection_id?: number };
+export type DbConnectionTestBody = Omit<NewDbConnectionBody, "name" | "read_only" | "write_check" | "ai_access" | "ai_username" | "ai_password" | "memo_path" | "check_on" | "check_note"> & { connection_id?: number };
 
 /**
  * 踏み台のサーバーの鍵を見る（POST …/db-connections/ssh-host-key）・受け入れて ~/.ssh/known_hosts に足す（…/ssh-host-key/accept。

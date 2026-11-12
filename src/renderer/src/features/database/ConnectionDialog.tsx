@@ -13,6 +13,8 @@ import {
   DB_SSL_MODES,
   DB_SSL_MODE_LABELS,
   DB_SSH_UNKNOWN_HOST,
+  DB_WRITE_CHECKS,
+  DB_WRITE_CHECK_LABELS,
   type DbAiAccess,
   type DbConnection,
   type DbConnectionTestResult,
@@ -20,6 +22,7 @@ import {
   type DbEnvironment,
   type DbSsh,
   type DbSslMode,
+  type DbWriteCheck,
 } from "@shared/types";
 import { api } from "@/api";
 import { useModalDialog } from "@/hooks/useModalDialog";
@@ -212,6 +215,20 @@ export function ConnectionDialog({
           checked={form.read_only}
           onChange={(v) => set("read_only", v)}
         />
+        {!form.read_only && (
+          <Field
+            label="書き込む前の確かめ"
+            help="SQL のタブで流すとき・テーブルの変更を保存するときに確かめます。危険な文 = DROP・TRUNCATE・ALTER・WHERE のない UPDATE / DELETE・判定できない文"
+          >
+            <select value={form.write_check} onChange={(e) => set("write_check", e.target.value as DbWriteCheck)}>
+              {DB_WRITE_CHECKS.map((v) => (
+                <option key={v} value={v}>
+                  {DB_WRITE_CHECK_LABELS[v]}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field
           label="チャットの AI に見せるか"
           help="自由に見せる = AI が聞かずに読む / 承認して見せる = AI が SQL を流す前に聞く / 見せない = AI のツールに出さず、AI がコマンド・ファイルで直接つなぐのも断る（うっかりを防ぐもので、変数に分けるなどわざと避ける書き方までは見抜けません）。AI が流せるのは読み取りの 1 文だけ（100 行・30 秒まで）"

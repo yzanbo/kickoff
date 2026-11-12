@@ -114,6 +114,24 @@ test("DB の接続: 種類ごとに要る項目・Kickoff 自身のデータは�
   assert.equal(store.dbConnections.password(theirs.id), null);
 });
 
+test("DB の接続: 書き込む前の確かめ（省けば環境の既定・選んだ値・変える・写すときも同じ）", async () => {
+  const { call, project, store } = setup();
+  makeSqlite(project.repo_path);
+  const base = `/api/projects/${project.id}/db-connections`;
+  const local = (await call("POST", base, sqliteBody())).body as DbConnection;
+  assert.equal(local.write_check, "dangerous");
+  const staging = (await call("POST", base, sqliteBody({ name: "ステージング", environment: "staging" }))).body as DbConnection;
+  assert.equal(staging.write_check, "all");
+  const chosen = (await call("POST", base, sqliteBody({ name: "選んだ", write_check: "env_name" }))).body as DbConnection;
+  assert.equal(chosen.write_check, "env_name");
+  const changed = (await call("PATCH", `${base}/${local.id}`, { write_check: "all" })).body as DbConnection;
+  assert.equal(changed.write_check, "all");
+  assert.equal((await call("PATCH", `${base}/${local.id}`, { write_check: "never" })).status, 400);
+  const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
+  const copied = (await call("POST", `/api/projects/${other.id}/db-connections/copy`, { from_id: chosen.id, copy_password: false })).body as DbConnection;
+  assert.equal(copied.write_check, "env_name");
+});
+
 test("DB の接続: ほかのプロジェクトから写す（パスワードは選んだときだけ）", async () => {
   const { call, project, store } = setup();
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
