@@ -6,6 +6,15 @@ export type DockerContainerState = "created" | "running" | "paused" | "restartin
 /** サービスの行の印（画面の言葉は DOCKER_MARK_LABELS） */
 export const DOCKER_MARKS = ["running", "starting", "paused", "failed", "created", "stopped", "none"] as const;
 export type DockerMark = (typeof DOCKER_MARKS)[number];
+export const DOCKER_MARK_LABELS: Record<DockerMark, string> = {
+  running: "動いている",
+  starting: "起動中",
+  paused: "一時停止中",
+  failed: "異常に終了",
+  created: "未起動",
+  stopped: "止まっている",
+  none: "作っていない",
+};
 
 /** Mac に出しているポート（0.0.0.0:5432->5432/tcp） */
 export interface DockerPort {
@@ -67,6 +76,21 @@ export const DOCKER_ACTIONS = [
   "stop_others_and_start",
 ] as const;
 export type DockerAction = (typeof DOCKER_ACTIONS)[number];
+
+/** 操作中に出す文 */
+export const DOCKER_ACTION_BUSY_LABELS: Record<DockerAction, string> = {
+  start_all: "起動中…",
+  stop_all: "停止中…",
+  restart_all: "再起動中…",
+  down: "片付け中…",
+  recreate: "作り直し中…",
+  start: "起動中…",
+  stop: "停止中…",
+  restart: "再起動中…",
+  unpause: "再開中…",
+  stop_container: "停止中…",
+  stop_others_and_start: "相手を止めて起動中…",
+};
 
 
 /** compose で動いている操作（コアが compose ごとに 1 つだけ持つ） */

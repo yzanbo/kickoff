@@ -40,7 +40,7 @@ const container = (over: Partial<RawContainer>): RawContainer => ({
   ...over,
 });
 
-test("buildDockerList: 作ったものと作っていないものを作業場所ごとに見出しにし、profiles の札付きも並べる", () => {
+test("buildDockerList: 作ったものと作っていないものを作業場所ごとに見出しにし、profiles の札付きも後ろに並べる", () => {
   const list = buildDockerList(
     [main, wt],
     [container({})],
@@ -53,12 +53,12 @@ test("buildDockerList: 作ったものと作っていないものを作業場所
   assert.deepEqual(
     m.services.map((s) => [s.name, s.mark, s.profiles]),
     [
-      ["adminer", "none", ["tools"]],
       ["db", "running", []],
       ["redis", "none", []],
+      ["adminer", "none", ["tools"]],
     ],
   );
-  assert.equal(m.services[1].db_kind, "postgres");
+  assert.equal(m.services[0].db_kind, "postgres");
   assert.equal(w.created, false);
   assert.equal(w.worktree_path, wt.path);
   assert.deepEqual(w.shares, []);

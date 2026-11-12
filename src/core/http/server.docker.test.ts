@@ -51,12 +51,12 @@ test("Docker: 一覧は作っていない compose・作ったサービス・札�
   assert.deepEqual(
     c.services.map((x) => [x.name, x.mark]),
     [
-      ["adminer", "none"],
       ["db", "running"],
       ["redis", "none"],
+      ["adminer", "none"],
     ],
   );
-  assert.deepEqual(c.services[1].containers[0].ports.map((p) => p.host_port), [5432]);
+  assert.deepEqual(c.services[0].containers[0].ports.map((p) => p.host_port), [5432]);
   assert.deepEqual(l.others, [{ name: "other-1", ports: [8080] }]);
 });
 

@@ -50,11 +50,13 @@ function toContainer(c: RawContainer): DockerContainer {
   return { id: c.id, name: c.name, image: c.image, state: c.state, status: c.status, exit_code: exitCode, health, ports: parsePorts(c.ports), number: c.number };
 }
 
-/** サービスの行（設定のサービスに、設定にないコンテナのサービスを足す） */
+/** サービスの行（設定のサービスに、設定にないコンテナのサービスを足す。札付きは後ろ） */
 function servicesOf(config: ComposeConfig | null, containers: RawContainer[]): DockerService[] {
   const names = new Set([...(config?.services.map((s) => s.name) ?? []), ...containers.map((c) => c.service ?? "").filter(Boolean)]);
+  // 札付きのサービス（ふだんの up では起動しない）は後ろに、それぞれ名前の順
+  const optional = (name: string) => (config?.services.find((s) => s.name === name)?.profiles.length ?? 0) > 0;
   return [...names]
-    .sort((a, b) => a.localeCompare(b))
+    .sort((a, b) => Number(optional(a)) - Number(optional(b)) || a.localeCompare(b))
     .map((name) => {
       const fromConfig = config?.services.find((s) => s.name === name);
       const mine = containers.filter((c) => c.service === name);
