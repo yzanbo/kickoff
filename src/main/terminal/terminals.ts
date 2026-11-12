@@ -2,6 +2,7 @@ import { statSync } from "node:fs";
 import os from "node:os";
 import { app, type WebContents } from "electron";
 import * as pty from "node-pty";
+import type { TerminalStart } from "@shared/ipc";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { TerminalOutput } from "./output.js";
 
@@ -47,9 +48,11 @@ function shellEnv(): Record<string, string> {
   return env;
 }
 
-function start(key: string, cwd: string, cols: number, rows: number, owner: WebContents): Session {
+function start(key: string, cwd: string, cols: number, rows: number, owner: WebContents, startWith: TerminalStart = {}): Session {
   const shell = process.env.SHELL || "/bin/zsh";
-  const proc = pty.spawn(shell, ["-l"], { name: "xterm-256color", cols, rows, cwd, env: shellEnv() });
+  // 決まったコマンドのタブは、ログインシェルでそのコマンドだけを流す（PATH などはふだんのシェルと同じ）
+  const args = startWith.command ? ["-l", "-c", startWith.command] : ["-l"];
+  const proc = pty.spawn(shell, args, { name: "xterm-256color", cols, rows, cwd, env: { ...shellEnv(), ...startWith.env } });
   // 出力は、いまつないでいる画面へ送る（つなぎ直すと owner が変わる）
   const output = new TerminalOutput((data) => sendEvent(session.owner, "terminal", "onData", key, data), { cols, rows });
   const session: Session = { pty: proc, output, owner };
@@ -106,10 +109,11 @@ function watchOwner(owner: WebContents) {
 /** 内蔵ターミナル（IPC の terminal）。引数の形は登録の補助（ipc/register.ts）が確かめてから渡す */
 export const terminalHandlers: IpcHandlers["terminal"] = {
   /**
-   * タブを表示したとき: そのキーのシェルがあれば、いまの画面の内容を返す（つなぎ直す）。なければ cwd で新しく始める。
+   * タブを表示したとき: そのキーのシェルがあれば、いまの画面の内容を返す（つなぎ直す。startWith は使わず、流し直さない）。なければ cwd で新しく始める
+   * （startWith のコマンドがあれば、それを流すタブとして）。
    * 画面は返事が届くまでの出力を捨てるので、まだ送っていない出力は snapshot に入れて返す
    */
-  open: async (e, key, cwd, cols, rows) => {
+  open: async (e, key, cwd, cols, rows, startWith) => {
     const existing = sessions.get(key);
     if (existing) {
       // 別の画面（読み直したあとなど）からつなぎ直したときも、その画面が消えたらシェルを止められるように見張る
@@ -119,7 +123,7 @@ export const terminalHandlers: IpcHandlers["terminal"] = {
     }
     const found = isDirectory(cwd);
     watchOwner(e.sender);
-    const session = start(key, found ? cwd : os.homedir(), clampSize(cols), clampSize(rows), e.sender);
+    const session = start(key, found ? cwd : os.homedir(), clampSize(cols), clampSize(rows), e.sender, startWith);
     // 作業場所のフォルダが見つからず（ワークツリーが消されたなど）ホームで開いたときは、画面の先頭でそう知らせる。
     // 知らせとして送ると画面が捨てるので、裏の端末に書いて snapshot に入れる（つなぎ直したときにも出る）
     if (cwd !== "" && !found) session.output.write(`\x1b[33m作業場所のフォルダが見つからないため、ホームフォルダで開きました（${cwd}）\x1b[0m\r\n`);

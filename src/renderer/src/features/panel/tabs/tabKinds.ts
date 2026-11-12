@@ -145,7 +145,7 @@ export const newChildTab = (target: Omit<TabOf<"newChild">, "key" | "kind">): Ta
 export const browserTab = (url = ""): TabOf<"browser"> => ({ key: newTabKey("browser"), kind: "browser", url, title: "" });
 
 /** ターミナルのタブ（開く場所のフォルダでシェルを始める。どのプロジェクトの作業場所かも覚える） */
-export const terminalTab = ({ cwd, label, projectId }: TerminalTarget): TabOf<"terminal"> => ({ key: newTabKey("terminal"), kind: "terminal", cwd, label, projectId });
+export const terminalTab = (target: TerminalTarget): TabOf<"terminal"> => ({ key: newTabKey("terminal"), kind: "terminal", ...target });
 
 /** ブラウザのタブに出すホスト名（URL として読めなければそのまま） */
 export function hostOf(url: string): string {
@@ -386,8 +386,8 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   terminal: {
     shows: "terminal",
     icon: SquareTerminal,
-    label: (t) => `ターミナル · ${t.label}`,
-    hint: (t) => t.cwd,
+    label: (t) => t.title ?? `ターミナル · ${t.label}`,
+    hint: (t) => (t.command ? `${t.command}\n${t.cwd}` : t.cwd),
     projectOf: (t) => t.projectId,
     dispose: (t) => void globalThis.window?.kickoff?.terminal.close(t.key),
     cluster: (t, r) => r.ofFolder(t.projectId, t.cwd),

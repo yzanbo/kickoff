@@ -4,7 +4,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## フォルダの役割
 
-- `index.ts`: `startCore` で組み立てて起動し、`close` で止める（実行中のエージェント → 音声のダウンロード → 使用枠 → 自動のアーカイブ → メモの見張り → HTTP → DB）。起動のときに、リリース前の保存データを消し（`discardPrereleaseData`）、前回の終了で作業中のまま残ったチャットを未読の失敗にする（`store.chats.recoverInterrupted`。そのチャットの ID は、起動したときの送信待ちの確かめで「続けてから送る」を選べるよう `Runner` に渡す）。
+- `index.ts`: `startCore` で組み立てて起動し、`close` で止める（実行中のエージェント → 流れ続けている外部コマンド → 音声のダウンロード → 使用枠 → 自動のアーカイブ → メモの見張り → HTTP → DB）。起動のときに、リリース前の保存データを消し（`discardPrereleaseData`）、前回の終了で作業中のまま残ったチャットを未読の失敗にする（`store.chats.recoverInterrupted`。そのチャットの ID は、起動したときの送信待ちの確かめで「続けてから送る」を選べるよう `Runner` に渡す）。
 - `bus.ts`: 変更の知らせ `Bus`（`@shared/types` の `BusEvent`。SSE で配る）。
 - `db/`: SQLite（`node:sqlite`）。→「DB」
 - `http/`: Hono の API・認証・SSE・画面の配信。→「HTTP」
@@ -53,6 +53,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## 外部コマンドとパス（system/）
 
+- 流れ続けるコマンド（`docker events`・中止できる `docker compose up -d`）だけは `system/stream.ts` の `streamCommand`（spawn。標準出力・標準エラーを 1 行ずつ渡し、`stop()` で SIGTERM → 3 秒で SIGKILL、`done` は終了コードと標準エラーの最後の行を返して reject しない）で動かす。すぐ終わるものは `runCommand` のまま（どちらにするかはコマンドごとに決めておく）。動いているものはコアを閉じるときに `stopAllStreams` で聞かずに止める。
 - コアの外部コマンドは `system/exec.ts` の `runCommand(file, args, opts)` で動かす（標準出力を返す。失敗は `CommandError` で、文は標準エラー、なければ元の例外の文。`okCodes` の終了コードは失敗にしない。標準出力の上限は既定 20MB）。コアで `execFileAsync` を直接使わない。`CommandError` はそのまま投げれば 400 になる。
 - 認証などを聞かれても答えられないので、git・gh は `nonInteractiveEnv()` で待たずに失敗させる。git は `git/exec.ts` の `gitOutput` だけを通す。
 - 実行ファイルは `findExecutable(names, searchDirs())` で探す（PATH の順 → `/opt/homebrew/bin` → `/usr/local/bin` → `~/.local/bin`。Finder から起動してログインシェルの PATH を取り込めなかったときの補い）。

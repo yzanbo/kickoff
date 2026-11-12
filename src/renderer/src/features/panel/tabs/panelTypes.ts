@@ -71,15 +71,24 @@ export type PanelTab =
   | { key: string; kind: "newChild"; chatId: number; projectId: number; parentId?: number; quote?: string; eventId?: number; follow?: boolean; text?: string; attachments?: Attachment[] }
   /** url は開いたときのページ（webview の初めの src）、current はいま表示しているページ（外のブラウザで開くときに渡す） */
   | { key: string; kind: "browser"; url: string; title: string; current?: string }
-  /** cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。projectId: どのプロジェクトの作業場所か。key は裏のシェルのキーにも使う */
-  | { key: string; kind: "terminal"; cwd: string; label: string; projectId: number };
+  /**
+   * cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。projectId: どのプロジェクトの作業場所か。key は裏のシェルのキーにも使う。
+   * command・title・env: 決まったコマンドで開くタブ（Docker のシェルなど。TerminalTarget）
+   */
+  | ({ key: string; kind: "terminal" } & TerminalTarget);
 
-/** 内蔵ターミナルを開く場所（タブの列の＋のメニューに出す） */
+/** 内蔵ターミナルを開く場所（タブの列の＋のメニューに出す）。command があれば、そのコマンドを流すタブとして開く */
 export interface TerminalTarget {
   cwd: string;
   label: string;
   /** どのプロジェクトのターミナルか */
   projectId: number;
+  /** 流すコマンド（ログインシェルの -l -c。終わってもシェルは開き直さず「終了しました」と［もう一度流す］を出す） */
+  command?: string;
+  /** タブに出す名前（command のタブ。なければ「ターミナル · label」） */
+  title?: string;
+  /** シェルに足す環境変数 */
+  env?: Record<string, string>;
 }
 
 /** ボードのタブの列の＋から開けるターミナル（プロジェクトのボードはそのプロジェクトの本体、全プロジェクトのボードは各プロジェクト） */

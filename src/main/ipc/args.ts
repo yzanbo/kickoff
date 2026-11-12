@@ -62,7 +62,13 @@ export const IPC_ARGS = defineArgSchemas({
     remove: z.tuple([absolutePath]),
   },
   terminal: {
-    open: z.tuple([terminalKey, z.string(), terminalSize, terminalSize]),
+    open: z.tuple([
+      terminalKey,
+      z.string(),
+      terminalSize,
+      terminalSize,
+      z.object({ command: z.string().max(20_000).optional(), env: z.record(z.string(), z.string()).optional() }).optional(),
+    ]),
     write: z.tuple([terminalKey, z.string()]),
     resize: z.tuple([terminalKey, terminalSize, terminalSize]),
     close: z.tuple([terminalKey]),
