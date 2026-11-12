@@ -1,0 +1,155 @@
+/* ==== 接続のホーム（DbHome。タブを開いていないときの接続のカードと、未登録の DB の候補） ==== */
+
+.db-home {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  height: 100%;
+  padding: 20px;
+  overflow: auto;
+}
+
+.db-home-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.db-home-title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.db-home-head .btn {
+  margin-left: auto;
+}
+
+.db-home-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+/* 左の線が環境の色（ローカル灰・開発緑・ステージング琥珀・本番赤） */
+.db-home-card {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--db-env, var(--extra-muted));
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.db-home-card:hover {
+  background: var(--bg-hover);
+}
+
+.db-home-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.db-home-card-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-home-card-memo {
+  flex: none;
+  color: var(--extra-muted);
+}
+
+.db-home-card-place {
+  overflow: hidden;
+  font-family: var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-home-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.db-home-env,
+.db-home-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.db-home-env {
+  color: var(--db-env, var(--muted));
+}
+
+.db-home-when {
+  margin-left: auto;
+}
+
+.db-home-card-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 80px;
+  border-style: dashed;
+  border-left-width: 1px;
+  background: none;
+  color: var(--muted);
+}
+
+/* DB の種類の短い印（Pg / My / Lt） */
+.db-engine-mark {
+  flex: none;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.db-home-found {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.db-home-found-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.db-home-found-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.db-home-found-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.db-home-found-text {
+  flex: 1;
+  min-width: 0;
+}

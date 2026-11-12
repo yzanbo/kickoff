@@ -1,4 +1,4 @@
-import { Copy, Database, FolderInput, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { Copy, FolderInput, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { DbConnection } from "@shared/types";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -17,13 +17,12 @@ import {
   updateErTab,
   type DbClientTab,
 } from "@/lib/dbClientTabs";
-import { DB_LIST_HIDDEN, DB_LIST_WIDTH, dbClientTabs, dbSqlDraft } from "@/lib/storageKeys";
+import { DB_LIST_HIDDEN, DB_LIST_WIDTH, dbClientTabs, dbSqlDraft, dbTreeOpen } from "@/lib/storageKeys";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { useDbConnections } from "@/stores/dbConnections";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { CloseButton, IconButton } from "@/ui/IconButton";
-import { EmptyState } from "@/ui/EmptyState";
 import { confirmDialog } from "@/ui/dialogs";
 import { ErrorText } from "@/ui/ErrorText";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -33,6 +32,7 @@ import { CopyConnectionDialog } from "./CopyConnectionDialog";
 import { ImportConnectionDialog } from "./ImportConnectionDialog";
 import { DbClientContext, type DbClientActions, type DbFailure, type DbPrepTarget } from "./dbClientContext";
 import { DbFailureDialog } from "./DbFailureDialog";
+import { DbHome } from "./DbHome";
 import { DbPrepDialog } from "./DbPrepDialog";
 import { createConnectionMemo } from "./dbMemo";
 import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle, UnsavedMark } from "./DbTabParts";
@@ -60,6 +60,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   const byId = useMemo(() => new Map(list.map((c) => [c.id, c])), [list]);
   const [state, setState] = useSetting(dbClientTabs(place));
   const [hidden, setHidden] = useSetting(DB_LIST_HIDDEN);
+  const [treeOpen, setTreeOpen] = useSetting(dbTreeOpen(place));
   const [editing, setEditing] = useState<DbConnection | null | undefined>(undefined);
   const [copying, setCopying] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -220,12 +221,20 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                 </div>
               );
             })}
-            {!active && (
-              <EmptyState icon={Database} title={list.length === 0 ? "DB の接続を登録しましょう" : "テーブルか SQL を開きましょう"}>
-                {list.length === 0
-                  ? "このプロジェクトの DB（SQLite・PostgreSQL・MySQL / MariaDB）を登録すると、テーブルを見たり SQL を流したりできます。"
-                  : "左の木でテーブルを押すと中身が開きます。接続の右クリックの「SQL を開く」で SQL を流せます。"}
-              </EmptyState>
+            {!active && connections.data && (
+              <DbHome
+                projectId={projectId}
+                connections={list}
+                onOpen={(c) => {
+                  // 左の木でその接続を開く（一覧を隠していれば出す）
+                  const key = `c:${c.id}`;
+                  if (!treeOpen.includes(key)) setTreeOpen([...treeOpen, key]);
+                  if (narrow) setOverlay(true);
+                  else setHidden(false);
+                }}
+                onMenu={(e, c) => menu.open(e, c)}
+                onAdd={() => setEditing(null)}
+              />
             )}
           </div>
         </section>
