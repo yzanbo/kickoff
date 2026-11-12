@@ -4,8 +4,6 @@ import { errorMessage } from "@shared/errors";
 import { DB_ER_AUTO_MAX, DB_ER_MAX, DB_SESSION_IDLE_MS, type DbErSchema, type DbObjectPath } from "@shared/types";
 import type { DbTarget, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
-import { openMysql } from "./mysql.js";
-import { openPostgres } from "./postgres.js";
 import { openSqlite, testSqlite } from "./sqlite.js";
 import { createPrep, type EmitRun, type Prep } from "./prep.js";
 import { createTunnels } from "./tunnel.js";
@@ -43,15 +41,15 @@ async function openVia(target: DbTarget, tunnels: Tunnels, prep: Prep): Promise<
   }
 }
 
-/** 種類ごとの開き方 */
+/** 種類ごとの開き方（pg・mysql2 は使うときに読む。SQLite だけ使う間はワーカーの起動で読み込まない） */
 async function openDriver(target: DbTarget): Promise<DbDriver> {
   switch (target.engine) {
     case "sqlite":
       return openSqlite(target);
     case "postgres":
-      return openPostgres(target);
+      return (await import("./postgres.js")).openPostgres(target);
     case "mysql":
-      return openMysql(target);
+      return (await import("./mysql.js")).openMysql(target);
   }
 }
 
