@@ -8,11 +8,14 @@ export function parseGitHubRepo(url: string): string | null {
   return m ? `${m[1]}/${m[2]}` : null;
 }
 
-/** git remote -v の出力から、GitHub の remote の一覧を作る（取ってくる側の URL。同じ名前は 1 つ。純粋な関数） */
+/**
+ * git remote -v の出力から、GitHub の remote の一覧を作る（取ってくる側の URL。同じ名前は 1 つ。純粋な関数）。
+ * 部分クローン（--filter）の remote は行の終わりに「 [blob:none]」のような絞り方が付くので、それも読む
+ */
 export function parseGitHubRemotes(out: string): GitHubRemote[] {
   const remotes: GitHubRemote[] = [];
   for (const line of out.split("\n")) {
-    const m = /^(\S+)\t(\S+) \(fetch\)$/.exec(line.trim());
+    const m = /^(\S+)\t(\S+) \(fetch\)(?: \[[^\]]*\])?$/.exec(line.trim());
     if (!m || remotes.some((r) => r.name === m[1])) continue;
     const repo = parseGitHubRepo(m[2]);
     if (repo) remotes.push({ name: m[1], repo, url: m[2] });
