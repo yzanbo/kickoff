@@ -1,12 +1,7 @@
 // Docker タブの表示の文（純粋な関数。テストは dockerView.test.ts）
 import type { DockerCompose, DockerContainer, DockerPortConflict, DockerService, DockerShare, DockerSilentConflict } from "@shared/types";
 import { DOCKER_MARK_LABELS } from "@shared/types";
-
-/** 作業場所の文（「本体 | main」「WT | feat-x」。Git でない本体は「本体」） */
-export function workplaceText(worktreePath: string | null, branch: string | null): string {
-  if (worktreePath === null) return branch ? `本体 | ${branch}` : "本体";
-  return `WT | ${branch ?? worktreePath.split("/").pop() ?? ""}`;
-}
+import { workplaceText } from "@shared/docker/workplace";
 
 /** サービスの行の印の文字（● ○ ✕ ◌ ⏸ ◇） */
 export const MARK_GLYPHS: Record<DockerService["mark"], string> = {

@@ -1,7 +1,7 @@
 // Docker のログの画面の純粋な関数: 行の並べ方（時刻の順に混ぜる・上限）・札・エラーと警告の見分け・JSON の整え・区切りの文・AI に渡す文
 import type { DockerCompose, DockerLogSource } from "@shared/types";
 import { stripAnsi } from "./ansi";
-import { workplaceText } from "./dockerView";
+import { workplaceText } from "@shared/docker/workplace";
 
 /** 画面に持つ行の数（超えたら古い行から捨てる。さかのぼればまた読める） */
 export const LOG_ROW_LIMIT = 10_000;
