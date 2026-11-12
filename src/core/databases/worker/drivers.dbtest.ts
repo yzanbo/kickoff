@@ -127,13 +127,19 @@ for (const c of CASES) {
       const objects = await call("objects", { session: "tree", target: target(), path });
       assert.deepEqual(
         // 並びは DB の照合順序による（MariaDB は users が user_posts より前）ので、名前で並べてから比べる
-        objects.filter((o) => ["posts", "users", "user_posts"].includes(o.name)).sort((a, b) => (a.name < b.name ? -1 : 1)),
+        objects
+          .filter((o) => ["posts", "users", "user_posts"].includes(o.name))
+          .sort((a, b) => (a.name < b.name ? -1 : 1))
+          .map(({ kind, name }) => ({ kind, name })),
         [
           { kind: "table", name: "posts" },
           { kind: "view", name: "user_posts" },
           { kind: "table", name: "users" },
         ],
       );
+      // 行数の目安は統計しだい（数か null）。ビューは null
+      for (const o of objects.filter((o) => o.kind === "table" || o.kind === "view")) assert.ok(o.estimated_rows === null || typeof o.estimated_rows === "number");
+      assert.equal(objects.find((o) => o.name === "user_posts")?.estimated_rows, null);
     });
 
     test("関数・列挙型の一覧と定義", async () => {

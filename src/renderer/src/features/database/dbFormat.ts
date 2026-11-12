@@ -47,3 +47,11 @@ export function nextSort(sort: DbSort[], column: string, add = false): DbSort[] 
 export function objectPathLabel(path: DbObjectPath, name?: string): string {
   return [path.database, path.schema, name].filter((v): v is string => Boolean(v)).join(".");
 }
+
+const COMPACT = new Intl.NumberFormat("ja-JP", { notation: "compact", maximumFractionDigits: 1 });
+
+/** 木に薄く添える、テーブルのおおよその行数（「1.2万行」の形。統計がなければ null） */
+export function estimatedRowsLabel(rows: number | null | undefined): string | null {
+  if (rows === null || rows === undefined || !Number.isFinite(rows) || rows < 0) return null;
+  return `${COMPACT.format(rows)}行`;
+}

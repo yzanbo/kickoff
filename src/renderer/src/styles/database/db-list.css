@@ -1,0 +1,28 @@
+/* DB クライアントの左の一覧の補い: 下の帯（つないでいる数・AI に見せる数）・ピン留めの行・探す窓の注意・木の軽さ */
+
+/* 木の行は、画面の外にある間は描かない（テーブルの多い DB でも開いた段を軽く保つ。行の高さは決まっている） */
+.db-tree-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--row-tight);
+}
+
+.db-tree-row > svg.db-tree-pin {
+  color: var(--accent);
+}
+
+.db-list-foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 var(--gutter);
+  border-top: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.db-find-note {
+  margin: 0;
+  padding: 6px 16px 10px;
+}

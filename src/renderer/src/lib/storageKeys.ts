@@ -440,6 +440,8 @@ export const MEMO_LIST_HIDDEN = defineSetting("kickoff:memo-list-hidden", flag(f
 export const dbClientTabs = defineSettingFamily("kickoff:db-tabs:", json(parseDbClientTabs, NO_DB_TABS, (v) => v.tabs.length === 0), { ids: true });
 /** DB クライアントの左の木で開いている段（置き場所ごと。段のキーの列） */
 export const dbTreeOpen = defineSettingFamily("kickoff:db-tree-open:", list(), { ids: true });
+/** DB クライアントの左の木のピン留め（プロジェクトごと。どの置き場所でも同じ。dbPins.ts の pinId の列） */
+export const dbTreePins = defineSettingFamily("kickoff:db-pins:", list(), { ids: true });
 /** SQL のタブの書きかけの SQL（キーは「置き場所:タブのキー」。タブを閉じたら消す。アプリを閉じても残す） */
 export const dbSqlDraft = defineSettingFamily("kickoff:db-sql:", text(), { ids: true });
 /** GitHub タブの一覧の絞り込み（プロジェクトごと。issue と PR で別々に、いま見ている種類も） */

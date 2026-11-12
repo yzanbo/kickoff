@@ -118,6 +118,7 @@
 @import "./editor/memo-chat.css";
 @import "./editor/memo-quick-chat.css";
 @import "./database/db-client.css";
+@import "./database/db-list.css";
 @import "./database/db-table.css";
 @import "./database/db-table-tools.css";
 @import "./database/db-table-edit.css";

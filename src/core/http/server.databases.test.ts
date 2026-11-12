@@ -394,17 +394,29 @@ test("DB の接続: つながるか試す（保存しない）。ないファイ
 
 test("DB の木とテーブル: DB・テーブルとビュー・構造・行（並べ替え・続き）・数・補完の名前", async () => {
   const { call, project } = setup();
-  makeSqlite(project.repo_path);
+  const file = makeSqlite(project.repo_path);
   const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
   const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
   const main = { database: "main", schema: null };
 
   assert.deepEqual((await call("GET", `${base}/databases`)).body, { databases: ["main"], current: "main", has_schemas: false });
   assert.deepEqual((await call("POST", `${base}/objects`, { path: main })).body, [
-    { kind: "table", name: "posts" },
-    { kind: "view", name: "user_names" },
-    { kind: "table", name: "users" },
+    { kind: "table", name: "posts", estimated_rows: null },
+    { kind: "view", name: "user_names", estimated_rows: null },
+    { kind: "table", name: "users", estimated_rows: null },
   ]);
+  // ANALYZE の統計があれば、テーブルの行数の目安を返す（ビューは null のまま）
+  const analyzed = new DatabaseSync(file);
+  analyzed.exec("ANALYZE");
+  analyzed.close();
+  assert.deepEqual(
+    ((await call("POST", `${base}/objects`, { path: main })).body as { name: string; estimated_rows: number | null }[]).map((o) => [o.name, o.estimated_rows]),
+    [
+      ["posts", 1],
+      ["user_names", null],
+      ["users", 3],
+    ],
+  );
 
   const users = (await call("POST", `${base}/table`, { path: main, name: "users" })).body as DbTableDetail;
   assert.deepEqual(

@@ -1,9 +1,10 @@
-import { Copy, FolderInput, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { PanelLeftOpen } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { DbConnection } from "@shared/types";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
+import { hasAppModifier } from "@/lib/keys";
 import {
   closeConnectionTabs,
   closeDbTab,
@@ -27,7 +28,6 @@ import { SideMemo } from "@/features/memo/SideMemo";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { CloseButton, IconButton } from "@/ui/IconButton";
 import { confirmDialog } from "@/ui/dialogs";
-import { ErrorText } from "@/ui/ErrorText";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ConnectionDialog } from "./ConnectionDialog";
 import { ConnectionMenu } from "./ConnectionMenu";
@@ -35,11 +35,12 @@ import { CopyConnectionDialog } from "./CopyConnectionDialog";
 import { ImportConnectionDialog } from "./ImportConnectionDialog";
 import { DbClientContext, type DbClientActions, type DbFailure, type DbPrepTarget } from "./dbClientContext";
 import { DbFailureDialog } from "./DbFailureDialog";
+import { DbFindPalette } from "./DbFindPalette";
 import { DbHome } from "./DbHome";
+import { DbList } from "./DbList";
 import { DbPrepDialog } from "./DbPrepDialog";
 import { createConnectionMemo } from "./dbMemo";
 import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle, UnsavedMark } from "./DbTabParts";
-import { DbTree } from "./DbTree";
 import { DefinitionView } from "./DefinitionView";
 import { finishSession } from "./sqlSessions";
 import { SqlView } from "./SqlView";
@@ -67,6 +68,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   const [editing, setEditing] = useState<DbConnection | null | undefined>(undefined);
   const [copying, setCopying] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [finding, setFinding] = useState(false);
   const [failure, setFailure] = useState<DbFailure | null>(null);
   const [prepFor, setPrepFor] = useState<DbPrepTarget | null>(null);
   const [mainOnly, setMainOnly] = useState<ReadonlySet<number>>(new Set());
@@ -157,32 +159,32 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
 
   return (
     <DbClientContext.Provider value={actions}>
-      <div ref={root} className={cx("db-client", narrow && "narrow")}>
+      <div
+        ref={root}
+        className={cx("db-client", narrow && "narrow")}
+        // ⌘⇧O: テーブル・列を探す（ピントがこの DB クライアントの中にあるとき）
+        onKeyDown={(e) => {
+          if (hasAppModifier(e) && e.shiftKey && !e.altKey && e.code === "KeyO" && list.length > 0) {
+            e.preventDefault();
+            setFinding(true);
+          }
+        }}
+      >
         {listShown && (
-          <aside ref={width.paneRef} className={cx("db-list", narrow && "overlay")} style={narrow ? undefined : { width: width.size }}>
-            <div className="db-list-head">
-              <span className="db-list-title">接続</span>
-              <IconButton icon={Plus} label="接続を追加" onClick={() => setEditing(null)} />
-              <IconButton icon={FolderInput} label="プロジェクトから取り込む（.env・docker compose・Prisma・SQLite のファイル）" onClick={() => setImporting(true)} />
-              <IconButton icon={Copy} label="ほかのプロジェクトの接続を写す" onClick={() => setCopying(true)} />
-              <IconButton icon={PanelLeftClose} label="一覧を隠す" onClick={() => (narrow ? setOverlay(false) : setHidden(true))} />
-            </div>
-            <ErrorText message={connections.error} />
-            {connections.data && list.length === 0 ? (
-              <div className="db-list-empty small muted">
-                <p>まだ接続がありません。</p>
-                <button type="button" className="btn btn-sm" onClick={() => setEditing(null)}>
-                  接続を追加
-                </button>
-                <button type="button" className="btn btn-sm" onClick={() => setImporting(true)}>
-                  プロジェクトから取り込む
-                </button>
-              </div>
-            ) : (
-              <DbTree connections={list} onConnectionMenu={(e, c) => menu.open(e, c)} />
-            )}
-            {!narrow && <div className="pane-resizer db-list-resizer" {...width.handle} />}
-          </aside>
+          <DbList
+            projectId={projectId}
+            connections={list}
+            loaded={Boolean(connections.data)}
+            error={connections.error}
+            narrow={narrow}
+            width={width}
+            onAdd={() => setEditing(null)}
+            onImport={() => setImporting(true)}
+            onCopy={() => setCopying(true)}
+            onFind={() => setFinding(true)}
+            onHide={() => (narrow ? setOverlay(false) : setHidden(true))}
+            onConnectionMenu={(e, c) => menu.open(e, c)}
+          />
         )}
         <section className="db-main">
           <div className="db-tabs" role="tablist">
@@ -262,6 +264,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
         {menu.menu && <ConnectionMenu at={menu.menu.at} connection={menu.menu.value} onClose={menu.close} />}
         {editing !== undefined && <ConnectionDialog projectId={projectId} connection={editing} worktree={worktree} onClose={() => setEditing(undefined)} />}
         {copying && <CopyConnectionDialog projectId={projectId} onClose={() => setCopying(false)} />}
+        {finding && <DbFindPalette connections={list} activeTab={active} onClose={() => setFinding(false)} />}
         {importing && <ImportConnectionDialog projectId={projectId} onClose={() => setImporting(false)} />}
         {failure && (
           <DbFailureDialog

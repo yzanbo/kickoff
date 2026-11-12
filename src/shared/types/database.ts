@@ -317,6 +317,8 @@ export interface DbObjectPath {
 export interface DbObject {
   kind: DbObjectKind;
   name: string;
+  /** テーブルのおおよその行数（DB の統計。統計がない・ビューは null。関数・列挙型にはない） */
+  estimated_rows?: number | null;
 }
 
 /** DB の一覧と、どれがいまつないでいるものか（SQLite は main と付け足した DB） */
