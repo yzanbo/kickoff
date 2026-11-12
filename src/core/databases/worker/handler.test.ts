@@ -55,3 +55,33 @@ test("DB ワーカー: 10 分使わなかった接続は閉じ、トランザク
   // 閉じた名前で頼むと開き直す
   assert.ok((await query("idle", "select 1")).ok);
 });
+
+test("DB ワーカー: 何もしないで閉じたとき、その接続の接続がすべて閉じたら準備の後片付けを流す", async (t) => {
+  let clock = 0;
+  const runs: string[] = [];
+  const handler = createWorkerHandler((e) => e.event === "prep_run" && runs.push(`${e.connection_id}:${e.kind}`), { sessionIdleMs: 1000, now: () => clock });
+  t.after(() => handler.closeAll());
+  const target = sqliteTarget();
+  let id = 0;
+  const call = (method: string, params: unknown) => handler.handle({ id: ++id, method, params } as WorkerRequest);
+  assert.ok((await call("prepare", { connection_id: 7, commands: [], cleanup: ["true"], vars: {}, my_ip_url: null })).ok);
+  // 準備が済むのを待つ
+  for (let i = 0; i < 100; i++) {
+    const s = await call("prepState", { connection_id: 7 });
+    if (s.ok && !(s.result as { running: boolean }).running) break;
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  const query = (session: string) => call("query", { session, target, sql: "select 1", max_rows: 10 });
+  assert.ok((await query("shared:7:-:-")).ok);
+  assert.ok((await query("sql:7:tab")).ok);
+  assert.ok((await query("shared:8:-:-")).ok);
+  clock = 500;
+  assert.ok((await query("sql:7:tab")).ok);
+  clock = 1200;
+  // 7 の SQL のタブがまだ開いているので流さない
+  assert.deepEqual(await handler.closeIdle(), ["shared:7:-:-", "shared:8:-:-"]);
+  assert.deepEqual(runs, []);
+  clock = 1600;
+  assert.deepEqual(await handler.closeIdle(), ["sql:7:tab"]);
+  assert.deepEqual(runs, ["7:cleanup"]);
+});
