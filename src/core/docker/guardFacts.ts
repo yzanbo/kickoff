@@ -8,12 +8,26 @@ import type { DockerService } from "./service.js";
 /** 守りの問い合わせの待ち時間（Docker が答えないときは、AI のコマンドもどうせ失敗するので通す） */
 const GUARD_TIMEOUT_MS = 3_000;
 
+/** 3 秒で答えなければ fallback（守りの問い合わせは待たせない） */
+async function within<T>(work: Promise<T>, fallback: T): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const late = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), GUARD_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([work.catch(() => fallback), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** チャットの実行 1 回分の守り（作業場所 workdir のチャット）。docker の文がなければ何も問い合わせない */
 export function createDockerGuard(docker: DockerService, project: Project, workdir: string): DockerGuard {
   const cli = docker.cli;
   const facts: DockerGuardFacts = {
     workdir: realPathOrSelf(workdir),
-    workplaces: () => docker.workplacesOf(project),
+    // 作業場所が分からなければ、チャットの作業場所の中のものだけを自分のものとみなす（dockerGuard の isMine）
+    workplaces: () => within(docker.workplacesOf(project), []),
     containers: async () => {
       try {
         const out = await cli.run(["ps", "-a", "--format", PS_FORMAT], { timeout: GUARD_TIMEOUT_MS });
@@ -45,7 +59,8 @@ export function createDockerGuard(docker: DockerService, project: Project, workd
         return null;
       }
     },
-    composeNames: () => docker.composeNames(project).catch(() => []),
+    // compose の設定を覚えていなければ compose に聞く（20 秒まで待つ）ので、守りでは 3 秒で打ち切る
+    composeNames: () => within(docker.composeNames(project), []),
   };
   return { check: (command) => judgeDockerCommand(command, facts) };
 }
