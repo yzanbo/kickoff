@@ -28,6 +28,7 @@ import {
   type Project,
 } from "@shared/types";
 import type { ServerDeps } from "../server.js";
+import { localOnly } from "../thisMac.js";
 import { Invalid, NotFound } from "../errors.js";
 import { idParam, jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
@@ -178,26 +179,15 @@ const editsSchema = z.object({
   write: z.boolean(),
 }) satisfies z.ZodType<DbEditsBody>;
 
-// ---- 接続元の確かめ ----
-
-/** この Mac からの頼みか（127.0.0.1・::1。node-server の受けた接続の相手。テストのように接続がなければ通す） */
-function fromThisMac(c: Context) {
-  const address = (c.env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined)?.incoming?.socket?.remoteAddress;
-  return address === undefined || address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
-}
-
 /**
  * DB クライアント（接続の登録・試す・木・テーブル・SQL）。この Mac からの頼みだけ受ける（LAN は暗号化なしの HTTP で、
  * 読むだけでも DB の中身が流れるため）。変えたら db_connections の知らせ（中身なし）を出し、画面はここから読み直す
  */
 export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
   const { withProject } = lookups(store);
-  const localOnly = createMiddleware(async (c, next) => {
-    if (!fromThisMac(c)) return c.json({ error: "DB クライアントは、この Mac からだけ使えます" }, 403);
-    await next();
-  });
-  app.use("/api/projects/:id/db-connections", localOnly);
-  app.use("/api/projects/:id/db-connections/*", localOnly);
+  const thisMacOnly = localOnly("DB クライアントは、この Mac からだけ使えます");
+  app.use("/api/projects/:id/db-connections", thisMacOnly);
+  app.use("/api/projects/:id/db-connections/*", thisMacOnly);
 
   /** :cid の接続（このプロジェクトのものでなければ 404） */
   const withConnection = createMiddleware<{ Variables: { project: Project; connection: DbConnection } }>(async (c, next) => {
