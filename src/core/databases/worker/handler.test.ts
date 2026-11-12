@@ -85,3 +85,18 @@ test("DB ワーカー: 何もしないで閉じたとき、その接続の接続
   assert.deepEqual(await handler.closeIdle(), ["sql:7:tab"]);
   assert.deepEqual(runs, ["7:cleanup"]);
 });
+
+test("DB ワーカー: 読み取り専用の SQLite は ATTACH を DB の側でも断る（書ける接続では使える）", async (t) => {
+  const handler = createWorkerHandler();
+  t.after(() => handler.closeAll());
+  const target = sqliteTarget();
+  const other = sqliteTarget().file!;
+  let id = 0;
+  const query = (session: string, sql: string, readOnly: boolean) =>
+    handler.handle({ id: ++id, method: "query", params: { session, target: { ...target, read_only: readOnly }, sql, max_rows: 10 } } as WorkerRequest);
+  const denied = await query("ro", `ATTACH DATABASE '${other}' AS other`, true);
+  assert.equal(denied.ok, false);
+  assert.match(denied.ok ? "" : denied.error, /not authorized/);
+  assert.ok((await query("ro", "SELECT a FROM t", true)).ok);
+  assert.ok((await query("rw", `ATTACH DATABASE '${other}' AS other`, false)).ok);
+});
