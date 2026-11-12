@@ -160,7 +160,7 @@ const erLayoutSchema = z.object({
 }) satisfies z.ZodType<DbErLayoutBody>;
 /** SQL のタブの接続の名前（画面が作る。英数字・- と _） */
 const sessionId = z.string().regex(/^[\w-]{1,64}$/, "SQL のタブの指定が正しくありません");
-const sqlSchema = z.object({ session: sessionId, sql: z.string().trim().min(1, "SQL を入れてください").max(1_000_000), write: z.boolean() }) satisfies z.ZodType<DbSqlBody>;
+const sqlSchema = z.object({ session: sessionId, sql: z.string().trim().min(1, "SQL を入れてください").max(1_000_000), write: z.boolean(), offset: z.number().int().min(0).optional() }) satisfies z.ZodType<DbSqlBody>;
 
 /** テーブルの行の変更（値は 100 万文字まで・1 行の列は 1000 個まで・1 回に DB_EDITS_MAX 個まで） */
 const editValues = z.record(objectName, z.string().max(1_000_000).nullable()).refine((v) => Object.keys(v).length <= 1000, "列が多すぎます");

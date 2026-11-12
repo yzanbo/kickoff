@@ -98,7 +98,8 @@ export interface WorkerMethods {
   rows: { params: Session & { path: DbObjectPath; name: string; sort: DbSort[]; offset: number; limit: number; filter: DbRowFilter; full?: boolean }; result: DbQueryResult };
   count: { params: Session & { path: DbObjectPath; name: string; filter: DbRowFilter }; result: { count: number } };
   outline: { params: Session & { path: DbObjectPath }; result: DbOutlineTable[] };
-  query: { params: Session & { sql: string; max_rows: number }; result: DbQueryResult };
+  /** 1 つの文を流し、頭の skip 行（省けば 0）を飛ばして max_rows 行まで */
+  query: { params: Session & { sql: string; max_rows: number; skip?: number }; result: DbQueryResult };
   /** 1 つの文を流し、頭の head_rows 行を返す。超えたら file に CSV ですべての行を書く（AI の SQL。行の数の上限なし） */
   export: { params: Session & { sql: string; file: string; head_rows: number }; result: DbExportResult };
   /** 文をまとめて 1 つのトランザクションで流す（当たった行の数が expect と違えば、すべて取り消して失敗にする） */

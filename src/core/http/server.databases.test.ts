@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
-import { DB_VALUE_HEAD_CHARS } from "@shared/types";
+import { DB_SQL_MAX_ROWS, DB_VALUE_HEAD_CHARS } from "@shared/types";
 import type { BusEvent, DbConnection, DbErSchema, DbFullRow, DbImportCandidate, DbPrepRun, DbPrepState, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
 import { AUTH, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
@@ -563,6 +563,29 @@ test("SQL のタブ: 文を流す・トランザクションの途中の印・�
   const failed = await sql("select * from nope");
   assert.equal(failed.status, 400);
   assert.match(failed.body.error, /no such table/);
+});
+
+test("SQL のタブ: 「さらに読む」は読み取りの文を流し直して頭を飛ばし、続きの 1000 行を返す（書く文は断る・履歴に残さない）", async () => {
+  const { call, project } = setup();
+  const file = makeSqlite(project.repo_path);
+  const db = new DatabaseSync(file);
+  db.exec("CREATE TABLE nums (n INTEGER PRIMARY KEY); WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x < 2500) INSERT INTO nums SELECT x FROM c;");
+  db.close();
+  const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
+  const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
+  const run = (offset?: number, sql = "SELECT n FROM nums ORDER BY n") => call("POST", `${base}/sql`, { session: "more", sql, write: false, offset });
+  const first = (await run()).body as DbQueryResult;
+  assert.equal(first.rows.length, DB_SQL_MAX_ROWS);
+  assert.equal(first.truncated, true);
+  const second = (await run(1000)).body as DbQueryResult;
+  assert.equal(second.rows[0][0], 1001);
+  assert.equal(second.truncated, true);
+  const last = (await run(2000)).body as DbQueryResult;
+  assert.equal(last.rows.length, 500);
+  assert.equal(last.truncated, false);
+  assert.equal((await run(1000, "DELETE FROM nums")).status, 400);
+  const history = (await call("GET", `${base}/history`)).body as DbQueryHistoryEntry[];
+  assert.equal(history.length, 1);
 });
 
 test("接続を消すと、その接続のワーカーの接続（SQL のタブの途中のトランザクションも）を閉じる", async () => {

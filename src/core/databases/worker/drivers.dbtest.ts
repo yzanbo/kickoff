@@ -253,6 +253,14 @@ for (const c of CASES) {
         r.columns.map((col) => col.name),
         ["id", "name"],
       );
+      // 「さらに読む」: 頭を飛ばして続き（流し直す）
+      const next: DbQueryResult = await call("query", { session: "main", target: target(), sql: "SELECT id FROM users ORDER BY id", max_rows: 1000, skip: 1000 });
+      assert.equal(Number(next.rows[0][0]), 1001);
+      const tail: DbQueryResult = await call("query", { session: "main", target: target(), sql: "SELECT id FROM users ORDER BY id", max_rows: 1000, skip: 1400 });
+      assert.equal(tail.truncated, false);
+      // 長い文字は頭だけ
+      const long: DbQueryResult = await sql(`SELECT ${c.engine === "postgres" ? "repeat('x', 20000)" : "REPEAT('x', 20000)"} AS t`);
+      assert.deepEqual(long.rows[0][0], { long: true, head: "x".repeat(10_000), chars: 20_000 });
       const one = await sql("SELECT 1 AS x");
       assert.equal(Number(one.rows[0][0]), 1);
       assert.equal(one.truncated, false);

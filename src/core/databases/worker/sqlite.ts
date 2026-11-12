@@ -26,7 +26,7 @@ export function openSqlite(target: DbTarget): DbDriver {
 }
 
 /** 文の結果を読む（列があれば max 行まで、なければ流して変えた行の数） */
-function runStatement(db: DatabaseSync, stmt: StatementSync, maxRows: number): DbQueryResult {
+function runStatement(db: DatabaseSync, stmt: StatementSync, maxRows: number, skip = 0): DbQueryResult {
   const started = performance.now();
   stmt.setReadBigInts(true);
   const columns = stmt.columns().map((c) => ({ name: c.name, type: c.type ?? null }));
@@ -37,7 +37,12 @@ function runStatement(db: DatabaseSync, stmt: StatementSync, maxRows: number): D
   stmt.setReturnArrays(true);
   const rows: DbValue[][] = [];
   let truncated = false;
+  let skipped = 0;
   for (const row of stmt.iterate() as Iterable<unknown[]>) {
+    if (skipped < skip) {
+      skipped++;
+      continue;
+    }
     if (rows.length >= maxRows) {
       truncated = true;
       break;
@@ -190,8 +195,8 @@ class SqliteDriver implements DbDriver {
     }));
   }
 
-  async query(sql: string, maxRows: number) {
-    return runStatement(this.db, this.db.prepare(sql), maxRows);
+  async query(sql: string, maxRows: number, skip = 0) {
+    return runStatement(this.db, this.db.prepare(sql), maxRows, skip);
   }
 
   async stream(sql: string, onColumns: (columns: DbColumns) => void, onRow: (row: unknown[]) => void) {

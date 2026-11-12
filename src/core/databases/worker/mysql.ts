@@ -285,11 +285,13 @@ class MysqlDriver implements DbDriver {
   }
 
   /** 1 つの文を流す（行は流れてくるまま受け、max 行を超えたら KILL QUERY で止めて、そこまでを返す） */
-  query(sql: string, maxRows: number): Promise<DbQueryResult> {
+  query(sql: string, maxRows: number, skip = 0): Promise<DbQueryResult> {
     const started = performance.now();
     return new Promise((resolve, reject) => {
       let columns: DbQueryResult["columns"] = [];
       const rows: DbValue[][] = [];
+      // 「さらに読む」: 頭の skip 行は受けて捨てる
+      let skipped = 0;
       let truncated = false;
       let affected: number | null = null;
       let settled = false;
@@ -310,7 +312,9 @@ class MysqlDriver implements DbDriver {
           this.status = header.serverStatus ?? this.status;
           return;
         }
-        if (rows.length < maxRows) {
+        if (skipped < skip) {
+          skipped++;
+        } else if (rows.length < maxRows) {
           rows.push(row.map((v) => toDbValue(v)));
         } else if (!truncated) {
           // 上限に届いた。続きは送らせない

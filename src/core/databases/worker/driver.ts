@@ -20,8 +20,8 @@ export interface DbDriver {
   rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter, full?: boolean): Promise<DbQueryResult>;
   count(path: DbObjectPath, name: string, filter: DbRowFilter): Promise<number>;
   outline(path: DbObjectPath): Promise<DbOutlineTable[]>;
-  /** 1 つの文を流し、max_rows 行まで読む */
-  query(sql: string, maxRows: number): Promise<DbQueryResult>;
+  /** 1 つの文を流し、頭の skip 行を飛ばして max_rows 行まで読む（skip は SQL のタブの「さらに読む」。読み取りの文だけ） */
+  query(sql: string, maxRows: number, skip?: number): Promise<DbQueryResult>;
   /**
    * 1 つの文を流し、すべての行を読んだままの値で 1 行ずつ渡す（AI の結果を CSV に書き出す。行の数の上限なし。
    * 列は行より先に渡す）。行を返さない文は当たった行の数
