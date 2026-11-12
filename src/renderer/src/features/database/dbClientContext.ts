@@ -6,6 +6,8 @@ export interface DbClientActions {
   projectId: number;
   /** 置き場所（project-<ID> / chat-<ID> / popout-<ID>。タブ・木の開き具合・書きかけの SQL を置き場所ごとに覚える） */
   place: string;
+  /** DB クライアントの幅が狭い（720px 未満。一覧を重ねて出し、テーブルの表示の切り替えはアイコンだけ・行の詳細は下に重ねる） */
+  narrow: boolean;
   /** その接続を開く作業場所（SQLite のファイルをワークツリーで開く。本体を選び直した接続は null） */
   worktreeOf(connectionId: number): string | null;
   /** ワークツリーにファイルがない接続を、本体のファイルで開き直す */

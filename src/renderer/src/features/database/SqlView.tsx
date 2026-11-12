@@ -179,7 +179,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
   const current = runs[shown];
 
   return (
-    <div className={cx("db-sql-view", write.on && "writing")}>
+    <div className={cx("db-sql-view", `db-env-${connection.environment}`, write.on && "writing")}>
       {write.on && (
         <DbWriteBand
           connection={connection}

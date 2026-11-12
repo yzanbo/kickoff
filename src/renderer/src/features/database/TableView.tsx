@@ -1,3 +1,4 @@
+import { Columns3, FileCode, Info, Link2, Table2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
@@ -10,7 +11,7 @@ import { CopyButton } from "@/ui/CopyButton";
 import { ErrorText } from "@/ui/ErrorText";
 import { HighlightedCode } from "@/ui/HighlightedCode";
 import { RefreshButton } from "@/ui/IconButton";
-import { Segmented } from "@/ui/Segmented";
+import { Segmented, type SegmentOption } from "@/ui/Segmented";
 import { AskAiButton, OpenAsSqlButton } from "./DbAiButtons";
 import { useDbClient } from "./dbClientContext";
 import { objectPathLabel } from "./dbFormat";
@@ -21,13 +22,15 @@ import { estimateRowsBytes, useResultBudget } from "./resultBudget";
 import { useTableEdits } from "./useTableEdits";
 
 type View = "data" | "structure" | "relations" | "ddl" | "info";
-const VIEWS: { value: View; label: string }[] = [
-  { value: "data", label: "データ" },
-  { value: "structure", label: "構造" },
-  { value: "relations", label: "リレーション" },
-  { value: "ddl", label: "DDL" },
-  { value: "info", label: "情報" },
+const VIEWS: SegmentOption<View>[] = [
+  { value: "data", label: "データ", icon: Table2 },
+  { value: "structure", label: "構造", icon: Columns3 },
+  { value: "relations", label: "リレーション", icon: Link2 },
+  { value: "ddl", label: "DDL", icon: FileCode },
+  { value: "info", label: "情報", icon: Info },
 ];
+/** 狭い所ではアイコンだけ（名前は乗せたときの説明と読み上げ） */
+const ICON_VIEWS = VIEWS.map((v) => ({ ...v, iconOnly: true }));
 
 /**
  * テーブル・ビューのタブ（データ / 構造 / リレーション / DDL / 情報）。データは 100 行ずつ読み（続きは「さらに読む」）、列の見出しで並べ替え（ORDER BY を付けて取り直す）、
@@ -76,7 +79,7 @@ export function TableView({
           {label}
         </span>
         <span className="db-view-kind">{DB_OBJECT_KIND_LABELS[tab.object]}</span>
-        <Segmented className="segmented db-view-switch" label="表示" value={view} options={VIEWS} onChange={setView} />
+        <Segmented className="segmented db-view-switch" label="表示" value={view} options={client.narrow ? ICON_VIEWS : VIEWS} onChange={setView} />
         <span className="db-view-actions">
           <AskAiButton connection={connection} path={tab.path} tables={[tab.name]} />
           <OpenAsSqlButton connection={connection} tab={tab} filter={data.filter} sort={data.sort} />
