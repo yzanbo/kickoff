@@ -129,17 +129,24 @@
   pointer-events: none;
 }
 
-/* 閉じたチャット欄（幅 0・隠している）の中のタブは、欄を開いたときの幅で画面の右端に置く（同じく見えない形） */
-.project-chat:not(.open) .panel-tab-page.agent-browsing {
-  position: fixed;
-  inset: 0 0 0 auto !important;
+/*
+ * 閉じたチャット欄（幅 0・隠している）は、AI が中のタブを操作している間だけ、開いたときと同じ幅・高さ・タブの列で並べる
+ * （ページの大きさを、利用者が欄を開いたときに見る大きさとそろえる。AI が撮る画面と利用者の画面が同じになるように。
+ * 前はタブのページだけをウィンドウの高さいっぱいに置き、タブの列の分だけ縦長に撮れていた）。
+ * 負の margin で列の幅は 0 のまま右端に重ね、欄は隠したまま（visibility。タブの列のドラッグ領域を残さない）で、ページだけを透明で見せる
+ */
+.project-chat:not(.open):has(.panel-tab-page.agent-browsing) {
   z-index: -1;
-  display: block;
-  width: var(--chat-shown) !important;
-  height: auto !important;
+  width: var(--chat-shown);
+  /* 左の枠の 1px も含めて打ち消す（真ん中の画面の幅を変えない） */
+  margin-left: calc(-1px - var(--chat-shown));
+  pointer-events: none;
+  transition: none;
+}
+
+.project-chat:not(.open) .panel-tab-page.agent-browsing {
   visibility: visible;
   opacity: 0;
-  pointer-events: none;
 }
 
 /* タブの「AI 操作中」の印（ロボット。ゆっくり明滅させる） */
