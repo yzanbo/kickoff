@@ -245,7 +245,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     publish: (e) => bus.publish(e),
     listWorktrees,
     // 連携先は GitHub の o/r（手元のブランチも o にプッシュする）とみなす
-    resolveTarget: async () => ({ repo: "o/r", headOwner: "o" }),
+    resolveTarget: async () => ({ host: "github.com", repo: "o/r", headOwner: "o" }),
     listPullRequests: async () => {
       prFake.asked++;
       if (prFake.fail) throw new Error("gh が見つかりません");
@@ -257,7 +257,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), vault: new DbSecretVault(store, opts.secretCipher ?? null), dataDir: dbFake.dataDir, exportRoot: tempDir() });
   // GitHub タブ: 連携先と GitHub の答えは偽物（graphql / rest / pages を差し替える。聞いたものは calls に残る）
   const ghFake = {
-    target: { repo: "o/r", headOwner: "o" } as GitHubTarget | null,
+    target: { host: "github.com", repo: "o/r", headOwner: "o" } as GitHubTarget | null,
     /** GitHub の remote の一覧（null なら本物の git remote -v を読む） */
     remotes: null as GitHubRemote[] | null,
     calls: [] as { kind: "graphql" | "rest" | "pages" | "send"; detail: string; vars?: GraphqlVars; etag?: string | null; method?: WriteMethod; body?: unknown }[],

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { CommandError } from "../system/exec.js";
-import { GH_LOGGED_OUT, GH_MISSING, ghFailureMessage, githubWriteError, parseIncludeOutput } from "./ghApi.js";
+import { GH_LOGGED_OUT, GH_MISSING, ghApiHostArgs, ghFailureMessage, githubWriteError, parseIncludeOutput } from "./ghApi.js";
 import { reviewPayload } from "./writes.js";
 import { checksStateOf, eventText, toCheck, toItem, toMergeAbility, toMergeState, toPullFile, toThreads, toTimeline, toViewer } from "./normalize.js";
 
@@ -200,4 +200,9 @@ test("reviewPayload: REST のレビューの本文（範囲の行・空の本文
   assert.deepEqual(reviewPayload({ event: "approve", body: "", commit_id: null, comments: [] }), { event: "APPROVE", comments: [] });
   assert.throws(() => reviewPayload({ event: "comment", body: "  ", commit_id: null, comments: [] }), /本文か行のコメント/);
   assert.throws(() => reviewPayload({ event: "request_changes", body: "", commit_id: null, comments: [] }), /直してほしいこと/);
+});
+
+test("ghApiHostArgs: github.com なら何も足さず、GitHub Enterprise なら --hostname", () => {
+  assert.deepEqual(ghApiHostArgs("github.com"), []);
+  assert.deepEqual(ghApiHostArgs("ghe.example.com"), ["--hostname", "ghe.example.com"]);
 });

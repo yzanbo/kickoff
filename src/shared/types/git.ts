@@ -329,9 +329,10 @@ export interface GitHubAccount {
   ok: boolean;
 }
 
-/** GitHub の remote（repo = 「持ち主/名前」） */
+/** GitHub の remote（host = GitHub のホスト（github.com など）。repo = 「持ち主/名前」） */
 export interface GitHubRemote {
   name: string;
+  host: string;
   repo: string;
   url: string;
 }
@@ -344,4 +345,6 @@ export interface ProjectGitHub {
   auto_remote: string | null;
   /** いま連携しているリポジトリ（「持ち主/名前」。GitHub の remote がなければ null） */
   repo: string | null;
+  /** そのリポジトリのホスト（github.com など。GitHub の remote がなければ null） */
+  host: string | null;
 }

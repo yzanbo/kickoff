@@ -97,6 +97,8 @@ export interface GitHubItemPage {
 
 /** 連携の状態（GitHub タブの頭。使えなければ reason に直し方） */
 export interface GitHubConnection {
+  /** 連携先のホスト（github.com など。GitHub の remote がなければ null） */
+  host: string | null;
   /** 連携先のリポジトリ（「持ち主/名前」。GitHub の remote がなければ null） */
   repo: string | null;
   /** 使うアカウント（gh でいま有効なもの・プロジェクトで選んだもの。わからなければ null） */

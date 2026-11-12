@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import { Copy } from "lucide-react";
+import { GITHUB_DEFAULT_HOST, githubHostOfUrl } from "@shared/github/host";
 import type { GitHubIssueDetail } from "@shared/types";
 import { selectionToMarkdown } from "@/ui/markdown/selectionMarkdown";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
@@ -32,12 +33,14 @@ function htmlRootOf(range: Range): Element | null {
 export function useGitHubBodyActions(projectId: number, detail: GitHubIssueDetail) {
   const menu = useContextMenu<Picked>();
   const repo = linkOf(detail).repo;
+  // ホストは中身の URL から（GitHub Enterprise ならそのホスト）
+  const host = githubHostOfUrl(detail.item.url) ?? GITHUB_DEFAULT_HOST;
 
   const onClick = (e: MouseEvent<HTMLElement>) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const link = (e.target as Element).closest?.("a[href]");
     if (!link?.closest(".github-html") || !e.currentTarget.contains(link)) return;
-    const ref = githubItemRef(link.getAttribute("href") ?? "", repo);
+    const ref = githubItemRef(link.getAttribute("href") ?? "", repo, host);
     if (!ref) return;
     e.preventDefault();
     selectGitHubItem(projectId, ref);
@@ -69,5 +72,5 @@ export function useGitHubBodyActions(projectId: number, detail: GitHubIssueDetai
     </PopupMenu>
   );
 
-  return { onClick, onContextMenu, menu: element };
+  return { onClick, onContextMenu, menu: element, host };
 }

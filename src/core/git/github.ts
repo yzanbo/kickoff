@@ -1,18 +1,19 @@
 import { errorMessage } from "@shared/errors";
 import { CommandError, nonInteractiveEnv, runCommand } from "../system/exec.js";
 import type { GitHubStatus, PullRequestInfo } from "@shared/types";
+import { isDefaultGitHubHost } from "@shared/github/host";
 import { Invalid } from "../http/errors.js";
 import { githubEnv } from "./githubAccount.js";
 import { ownerOf, type GitHubTarget } from "./githubTarget.js";
 
 const GH_MISSING = "gh が見つかりません。`brew install gh` でインストールしてください";
 
-/** gh を実行する（認証などを聞かれても待たない。プロジェクトで選んだアカウントがあれば、そのトークンで。失敗は CommandError） */
-const runGh = async (args: string[], opts: { cwd?: string; timeout: number }) =>
-  runCommand("gh", args, { ...opts, env: { ...nonInteractiveEnv(), ...(await githubEnv()) } });
+/** gh を実行する（認証などを聞かれても待たない。プロジェクトで選んだアカウントがあれば、そのトークンで。host = 連携先のホスト。失敗は CommandError） */
+const runGh = async (args: string[], opts: { cwd?: string; timeout: number; host?: string }) =>
+  runCommand("gh", args, { cwd: opts.cwd, timeout: opts.timeout, env: { ...nonInteractiveEnv(), ...(await githubEnv(opts.host)) } });
 
-/** 連携先を gh に渡す引数（決まっていなければ、gh がフォルダの remote から決める） */
-const repoArgs = (target: GitHubTarget | null) => (target ? ["--repo", target.repo] : []);
+/** 連携先を gh に渡す引数（github.com でなければ「ホスト/持ち主/名前」。決まっていなければ、gh がフォルダの remote から決める。純粋な関数） */
+export const repoArgs = (target: GitHubTarget | null) => (target ? ["--repo", isDefaultGitHubHost(target.host) ? target.repo : `${target.host}/${target.repo}`] : []);
 
 /** ブランチを gh に渡す形（連携先が fork の元なら「持ち主:ブランチ」。手元のブランチは origin にあるため） */
 const headRef = (branch: string, target: GitHubTarget | null) => (target && ownerOf(target.repo).toLowerCase() !== target.headOwner.toLowerCase() ? `${target.headOwner}:${branch}` : branch);
@@ -32,10 +33,10 @@ export async function githubStatus(): Promise<GitHubStatus> {
   }
 }
 
-/** 作業場所で gh を実行する（失敗したら、よくある理由は分かる文にする。ほかは gh の説明のまま） */
-async function gh(cwd: string, args: string[]): Promise<string> {
+/** 作業場所で gh を実行する（host = 連携先のホスト。失敗したら、よくある理由は分かる文にする。ほかは gh の説明のまま） */
+async function gh(cwd: string, args: string[], host?: string): Promise<string> {
   try {
-    return await runGh(args, { cwd, timeout: 60_000 });
+    return await runGh(args, { cwd, timeout: 60_000, host });
   } catch (e) {
     if (e instanceof CommandError) {
       if (e.code === "ENOENT") throw new Invalid(GH_MISSING);
@@ -56,7 +57,7 @@ export function toPullRequestInfo(raw: { number: number; url: string; title: str
 /** ブランチの PR（なければ null） */
 export async function pullRequestFor(cwd: string, branch: string, target: GitHubTarget | null = null): Promise<PullRequestInfo | null> {
   try {
-    return toPullRequestInfo(JSON.parse(await gh(cwd, ["pr", "view", headRef(branch, target), ...repoArgs(target), "--json", PR_FIELDS])));
+    return toPullRequestInfo(JSON.parse(await gh(cwd, ["pr", "view", headRef(branch, target), ...repoArgs(target), "--json", PR_FIELDS], target?.host)));
   } catch (e) {
     // PR がまだない
     if (/no pull requests found/i.test(errorMessage(e))) return null;
@@ -81,7 +82,7 @@ const PR_LIST_LIMIT = 100;
 
 /** リポジトリの PR を、状態によらず新しい順に取る（gh pr list を 1 回。失敗は gh の説明で投げる） */
 export async function listPullRequests(cwd: string, target: GitHubTarget): Promise<BranchPullRequest[]> {
-  const out = await gh(cwd, ["pr", "list", ...repoArgs(target), "--state", "all", "--limit", String(PR_LIST_LIMIT), "--json", "number,title,url,state,headRefName,headRepositoryOwner"]);
+  const out = await gh(cwd, ["pr", "list", ...repoArgs(target), "--state", "all", "--limit", String(PR_LIST_LIMIT), "--json", "number,title,url,state,headRefName,headRepositoryOwner"], target?.host);
   const rows = JSON.parse(out) as { number: number; title: string; url: string; state: PullRequestInfo["state"]; headRefName: string; headRepositoryOwner?: { login?: string } | null }[];
   return rows.map((r) => ({ number: r.number, title: r.title, url: r.url, state: r.state, branch: r.headRefName, head_owner: r.headRepositoryOwner?.login ?? "" }));
 }
@@ -103,13 +104,13 @@ export function withClosingRefs(body: string, issues: number[]): string | null {
  * closes は閉じる issue（この作業場所の issue に結び付いたチャットのもの）で、作ったあと本文の終わりに「Closes #n」を足す
  */
 export async function createPullRequest(cwd: string, branch: string, target: GitHubTarget | null = null, closes: number[] = []): Promise<PullRequestInfo> {
-  await gh(cwd, ["pr", "create", ...repoArgs(target), "--fill", "--head", headRef(branch, target)]);
+  await gh(cwd, ["pr", "create", ...repoArgs(target), "--fill", "--head", headRef(branch, target)], target?.host);
   const pr = await pullRequestFor(cwd, branch, target);
   if (!pr) throw new Invalid("PR を作れませんでした");
   if (closes.length > 0) {
-    const { body } = JSON.parse(await gh(cwd, ["pr", "view", String(pr.number), ...repoArgs(target), "--json", "body"])) as { body?: string };
+    const { body } = JSON.parse(await gh(cwd, ["pr", "view", String(pr.number), ...repoArgs(target), "--json", "body"], target?.host)) as { body?: string };
     const next = withClosingRefs(body ?? "", closes);
-    if (next !== null) await gh(cwd, ["pr", "edit", String(pr.number), ...repoArgs(target), "--body", next]);
+    if (next !== null) await gh(cwd, ["pr", "edit", String(pr.number), ...repoArgs(target), "--body", next], target?.host);
   }
   return pr;
 }

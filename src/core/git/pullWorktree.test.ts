@@ -9,7 +9,7 @@ import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
 import { checkoutPullMain, checkoutPullWorktree, pullCheckoutOf } from "./pullWorktree.js";
 
-const remote = (name: string, repo: string, url = ""): GitHubRemote => ({ name, repo, url });
+const remote = (name: string, repo: string, url = ""): GitHubRemote => ({ name, host: "github.com", repo, url });
 
 test("取り出し方: 元のブランチのリポジトリを remote に持っていればそのブランチ名（大文字・小文字は問わない）、なければ pr-N", () => {
   const remotes = [remote("upstream", "acme/app"), remote("origin", "me/app")];

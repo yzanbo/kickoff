@@ -1,11 +1,26 @@
 // プロジェクトの連携先の GitHub のリポジトリ（git の remote から決める。fork なら元のリポジトリ（upstream）を先に選ぶ）
+import { GITHUB_DEFAULT_HOST, normalizeGitHubHost } from "@shared/github/host";
 import type { GitHubRemote } from "@shared/types";
 import { gitOutput } from "./exec.js";
 
-/** remote の URL から GitHub の「持ち主/名前」を読む（GitHub でなければ null。https・ssh・git@ の形。純粋な関数） */
-export function parseGitHubRepo(url: string): string | null {
-  const m = /^(?:https?:\/\/(?:[^@/]+@)?github\.com\/|ssh:\/\/git@github\.com(?::\d+)?\/|git@github\.com:)([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(url.trim());
-  return m ? `${m[1]}/${m[2]}` : null;
+/**
+ * Kickoff が GitHub として扱うホスト（いまは github.com だけ）。GitHub Enterprise を足すときは、ここに足す
+ * （ほかの所はホストを受け取って動く。残りの手順は src/core/CLAUDE.md の「GitHub のホスト」）
+ */
+export const GITHUB_HOSTS: readonly string[] = [GITHUB_DEFAULT_HOST];
+
+/**
+ * remote の URL から GitHub のホストと「持ち主/名前」を読む（hosts にないホストなら null。https・ssh://・git@ の形。純粋な関数）。
+ * ホストは小文字にそろえる
+ */
+export function parseGitHubUrl(url: string, hosts: readonly string[] = GITHUB_HOSTS): { host: string; repo: string } | null {
+  const m =
+    /^https?:\/\/(?:[^@/]+@)?([^/:@\s]+)(?::\d+)?\/([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(url.trim()) ??
+    /^ssh:\/\/(?:[^@/]+@)?([^/:@\s]+)(?::\d+)?\/([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(url.trim()) ??
+    /^[^@/:\s]+@([^/:@\s]+):([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/i.exec(url.trim());
+  if (!m) return null;
+  const host = normalizeGitHubHost(m[1]);
+  return hosts.some((h) => normalizeGitHubHost(h) === host) ? { host, repo: `${m[2]}/${m[3]}` } : null;
 }
 
 /**
@@ -17,8 +32,8 @@ export function parseGitHubRemotes(out: string): GitHubRemote[] {
   for (const line of out.split("\n")) {
     const m = /^(\S+)\t(\S+) \(fetch\)(?: \[[^\]]*\])?$/.exec(line.trim());
     if (!m || remotes.some((r) => r.name === m[1])) continue;
-    const repo = parseGitHubRepo(m[2]);
-    if (repo) remotes.push({ name: m[1], repo, url: m[2] });
+    const parsed = parseGitHubUrl(m[2]);
+    if (parsed) remotes.push({ name: m[1], host: parsed.host, repo: parsed.repo, url: m[2] });
   }
   return remotes;
 }
@@ -46,8 +61,9 @@ export async function readGitHubRemotes(repo: string): Promise<{ remotes: GitHub
   return { remotes, ghDefault: base ? base[1] : null };
 }
 
-/** gh に渡す連携先（repo = 「持ち主/名前」。headOwner = 手元のブランチをプッシュする先（origin）の持ち主。fork からの PR の head に使う） */
+/** gh に渡す連携先（host = GitHub のホスト。repo = 「持ち主/名前」。headOwner = 手元のブランチをプッシュする先（origin）の持ち主。fork からの PR の head に使う） */
 export interface GitHubTarget {
+  host: string;
   repo: string;
   headOwner: string;
 }
@@ -60,7 +76,7 @@ export function pickGitHubTarget(remotes: GitHubRemote[], ghDefault: string | nu
   const target = remotes.find((r) => r.name === chosen) ?? autoGitHubRemote(remotes, ghDefault);
   if (!target) return null;
   const push = remotes.find((r) => r.name === "origin") ?? target;
-  return { repo: target.repo, headOwner: ownerOf(push.repo) };
+  return { host: target.host, repo: target.repo, headOwner: ownerOf(push.repo) };
 }
 
 /** 「持ち主/名前」の持ち主 */

@@ -17,3 +17,9 @@ test("githubItemRef: ほかのリポジトリ・issue / PR でないページ・
   assert.equal(githubItemRef("https://github.com/o/r/issues/1", ""), null);
   assert.equal(githubItemRef("https://github.com/o/r-other/issues/1", "o/r"), null);
 });
+
+test("githubItemRef: ホストも同じものだけ（GitHub Enterprise ならそのホスト。既定は github.com）", () => {
+  assert.deepEqual(githubItemRef("https://ghe.example.com/o/r/pull/5", "o/r", "GHE.example.com"), { kind: "pr", number: 5 });
+  assert.equal(githubItemRef("https://github.com/o/r/pull/5", "o/r", "ghe.example.com"), null);
+  assert.equal(githubItemRef("https://ghe.example.com/o/r/pull/5", "o/r"), null);
+});
