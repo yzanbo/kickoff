@@ -39,6 +39,7 @@ import { idParam, jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
 import { scanProjectDbs, toImportCandidates } from "../../databases/import/index.js";
+import { parseDockerDbKey } from "../../docker/dbTarget.js";
 import { acceptSshHostKey, scanSshHostKey, sshConfigHosts } from "../../databases/sshHostKey.js";
 import { parseSqlAnswer, sqlAssistPrompt } from "../../databases/sqlAssist.js";
 
@@ -132,7 +133,7 @@ const hostKeySchema = z.object({
 const historyLimit = z.coerce.number().int().min(1).max(DB_HISTORY_MAX).default(200);
 const importSchema = z.object({
   items: z
-    .array(z.object({ key: z.string().min(1).max(3000), name: connectionShape.name, environment: connectionShape.environment }))
+    .array(z.object({ key: z.string().min(1).max(4300), name: connectionShape.name, environment: connectionShape.environment }))
     .min(1)
     .max(50),
 }) satisfies z.ZodType<DbImportBody, unknown>;
@@ -191,7 +192,7 @@ const editsSchema = z.object({
  * DB クライアント（接続の登録・試す・木・テーブル・SQL）。この Mac からの頼みだけ受ける（LAN は暗号化なしの HTTP で、
  * 読むだけでも DB の中身が流れるため）。変えたら db_connections の知らせ（中身なし）を出し、画面はここから読み直す
  */
-export function databaseRoutes(app: Hono, { store, databases, providers }: ServerDeps) {
+export function databaseRoutes(app: Hono, { store, databases, providers, docker }: ServerDeps) {
   const { withProject } = lookups(store);
   const thisMacOnly = localOnly("DB クライアントは、この Mac からだけ使えます");
   app.use("/api/projects/:id/db-connections", thisMacOnly);
@@ -280,6 +281,14 @@ export function databaseRoutes(app: Hono, { store, databases, providers }: Serve
   app.post(`${base}/import`, withProject, async (c) => {
     const { items } = importSchema.parse(await jsonBody(c));
     const found = new Map((await scanImports(c.var.project)).map((f) => [f.key, f]));
+    // Docker タブの「DB で開く」の案（docker:…）は、compose に聞き直して作る
+    for (const item of items) {
+      const target = parseDockerDbKey(item.key);
+      if (!target) continue;
+      const result = await docker.dbCandidate(c.var.project, target.composeKey, target.service);
+      if ("blocked" in result) throw new Invalid(result.blocked);
+      found.set(item.key, result.found);
+    }
     const picked = items.map((item) => {
       const f = found.get(item.key);
       if (!f) throw new NotFound("取り込む接続が見つかりません。プロジェクトの中が変わったかもしれないので、開き直してください");

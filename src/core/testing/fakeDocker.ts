@@ -38,6 +38,10 @@ if (rule.hang) setInterval(() => {}, 1000);
 else process.exitCode = rule.code ?? 0;
 `;
 
+/** docker ps -a の答え（PS_FORMAT の 1 行 1 つの JSON。足さなかった項目は動いているふつうのコンテナ） */
+export const psOutput = (rows: Record<string, unknown>[]) =>
+  rows.map((r) => JSON.stringify({ ports: "", files: "", oneoff: "False", number: "1", hash: "", status: "Up 1 hour", image: "img", ...r })).join("\n") + "\n";
+
 /** 偽の docker を作る。bin を DockerCli に渡す */
 export function fakeDocker() {
   const dir = tempDir();

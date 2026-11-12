@@ -68,6 +68,8 @@ export interface ComposeRead {
   config: ComposeConfig | null;
   error: string | null;
   hashes: Map<string, string> | null;
+  /** config --format json をそのまま読んだもの（DB で開くときの案を、DB クライアントの取り込みと同じ読み方で作る） */
+  doc: unknown;
 }
 
 const mtimeOf = (p: string) => {
@@ -107,7 +109,7 @@ export class ComposeConfigCache {
     try {
       const out = await this.cli.run(["compose", ...fArgs, "--profile", "*", "config", "--format", "json"], { cwd, timeout: 20_000 });
       const config = parseComposeConfig(out);
-      if (!config) return { config: null, error: "compose の設定を読めませんでした", hashes: null };
+      if (!config) return { config: null, error: "compose の設定を読めませんでした", hashes: null, doc: null };
       let hashes: Map<string, string> | null = null;
       if (withHash) {
         hashes = await this.cli
@@ -115,10 +117,10 @@ export class ComposeConfigCache {
           .then(parseConfigHashes)
           .catch(() => null);
       }
-      return { config, error: null, hashes };
+      return { config, error: null, hashes, doc: JSON.parse(out) as unknown };
     } catch (e) {
       const message = e instanceof CommandError ? e.stderr || e.message : errorMessage(e);
-      return { config: null, error: message.split("\n").slice(-6).join("\n").trim(), hashes: null };
+      return { config: null, error: message.split("\n").slice(-6).join("\n").trim(), hashes: null, doc: null };
     }
   }
 }
