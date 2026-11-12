@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { chatStateOf } from "@/features/chat/chatState";
 import { waitingChats } from "@/features/chatList/chatListFlags";
@@ -14,21 +15,28 @@ export interface WaitingBadge {
 }
 
 /**
- * すべてのプロジェクトの要対応（回答待ち・未読。サイドバーの「要対応」と同じ数え方。子チャットも数える）の数。
- * 数えるプロジェクトは ⌘⇧A の一覧の「すべて」と同じ（しまったものは一覧の切り替えで出しているときだけ、タグで絞り込んでいれば合うものだけ）。
- * 一覧を開いたときと同じ数になるようにする
+ * ⌘⇧A の一覧の「すべて」と同じプロジェクトのチャット（子チャットも。しまったプロジェクトは一覧の切り替えで出しているときだけ、タグで絞り込んでいれば合うものだけ）。
+ * 要対応の数（useAllWaiting）と、プロジェクトの見出しの「すべてのプロジェクトの状態ごとのチャット」（AllStateChats）で同じ範囲にする
  */
-export function useAllWaiting(): WaitingBadge {
-  const { pending } = useChatStates();
+export function useAllProjectChats(): Chat[] {
   const chats = useChatsWithChildren();
   const { visible, archived } = useVisibleProjects();
   const [showArchived] = useSetting(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS);
   return useMemo(() => {
     const allowed = new Set((showArchived ? [...visible, ...archived] : visible).map((p) => p.id));
-    const waiting = waitingChats(
-      chats.filter((chat) => allowed.has(chat.project_id)),
-      pending,
-    );
+    return chats.filter((chat) => allowed.has(chat.project_id));
+  }, [chats, visible, archived, showArchived]);
+}
+
+/**
+ * すべてのプロジェクトの要対応（回答待ち・未読。サイドバーの「要対応」と同じ数え方。子チャットも数える）の数。
+ * 数えるプロジェクトは ⌘⇧A の一覧の「すべて」と同じ（useAllProjectChats）。一覧を開いたときと同じ数になるようにする
+ */
+export function useAllWaiting(): WaitingBadge {
+  const { pending } = useChatStates();
+  const chats = useAllProjectChats();
+  return useMemo(() => {
+    const waiting = waitingChats(chats, pending);
     return { count: waiting.length, urgent: waiting.some((chat) => chatStateOf(chat, pending) === "needs_input") };
-  }, [chats, pending, visible, archived, showArchived]);
+  }, [chats, pending]);
 }

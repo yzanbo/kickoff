@@ -9,14 +9,14 @@ import type { ProjectTab } from "@/app/router";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { ProjectTabs, useProjectTabsLayout, type TabRefreshing } from "./ProjectTabs";
 import { StateStats } from "./StateStats";
-import { ActiveChatsButton } from "@/features/palette/ActiveChatsButton";
+import { AllStateChats } from "./AllStateChats";
 import { useAllWaiting } from "@/features/palette/useAllWaiting";
 import { NO_CHATS, useChatsWithChildrenByProject } from "@/stores/chats";
 import type { ProjectData } from "./useProjectData";
 import { PROJECT_HEADER_MODE_LABELS, PROJECT_HEADER_MODES, useProjectHeaderMode } from "./headerMode";
 
 /**
- * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・状態ごとのチャット数・すべてのプロジェクトの作業中・待ちのチャットの一覧（⌘⇧A）と、
+ * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・状態ごとのチャット数・すべてのプロジェクトの状態ごとのチャット（AllStateChats）と、
  * タブの列（チャットの件数、変更は変更のあるファイルの数 changeCount。左に縦並びにする設定のときは、見出しには出さない）。
  * 名前の行の出し方（表示 / 上端に寄せたときだけ表示 / 非表示。useProjectHeaderMode）は、名前の行の右クリックと設定の「表示」で選ぶ（下の帯と同じ。利用者の依頼）。
  * 寄せたときだけ表示は、画面の上に重ねて出し（縦の幅を取らない）、乗せている間・中のメニューや一覧を開いている間は出したまま（.project-title-row.auto-hide）
@@ -66,8 +66,8 @@ export function ProjectHeader({
       <div className="project-stats">
         {project.archived_at && <ToneChip label="アーカイブ済み" />}
         <StateStats chats={counted} />
-        {/* すべてのプロジェクトの ⌘⇧A の一覧（「すべて」から開く。状態ごとの数が 0 でも出す。右上にすべてのプロジェクトの要対応の数。利用者の依頼） */}
-        <ActiveChatsButton waiting={waiting} />
+        {/* すべてのプロジェクトの状態ごとのチャット（左の数と同じ一覧を「すべてのプロジェクト」から開く。状態ごとの数が 0 でも出す。右上にすべてのプロジェクトの要対応の数。利用者の依頼） */}
+        <AllStateChats project={project} waiting={waiting} />
       </div>
     </div>
     )}

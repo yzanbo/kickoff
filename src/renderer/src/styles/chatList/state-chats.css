@@ -66,3 +66,18 @@
   margin: 4px 6px;
   font-size: 12px;
 }
+
+/* すべてのプロジェクト / このプロジェクトの切り替え（プロジェクトの見出しの右端のボタンの一覧。AllStateChats） */
+.segmented.state-chats-scope {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  margin-bottom: 10px;
+}
+
+.segmented.state-chats-scope button {
+  overflow: hidden;
+  padding: 4px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
