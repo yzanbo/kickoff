@@ -1,13 +1,14 @@
-import { Play, RotateCcw, Sparkles, StickyNote } from "lucide-react";
+import { NotebookPen, Play, RotateCcw, Sparkles, StickyNote } from "lucide-react";
 import { useState } from "react";
-import { DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureKind, dbFixPrompt } from "@shared/database/dbFailure";
+import { appendDbMemoFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureKind, dbFixPrompt, dbMemoFixEntry } from "@shared/database/dbFailure";
+import { localToday } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/lib/time";
-import { confirmDialog } from "@/ui/dialogs";
+import { confirmDialog, promptDialog } from "@/ui/dialogs";
 import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
 import { Markdown } from "@/ui/markdown/Markdown";
@@ -40,9 +41,24 @@ async function askAiToFix(projectId: number, c: DbConnection, error: string): Pr
   return true;
 }
 
+/** 手順メモの「つながらないときの直し方」に 1 行足す（直し方を聞いて、いまの中身に足して保存。開いたあとでほかで変わっていれば 409）。足したら true */
+async function appendFixToMemo(projectId: number, path: string, error: string): Promise<boolean> {
+  const fix = await promptDialog({
+    title: "手順メモに直し方を追記",
+    message: `何をしたらつながったかを、手順メモ「${path}」の「つながらないときの直し方」に、日付と失敗の種類を添えて 1 行で足します。次につながらないとき、この案内に出ます。`,
+    label: "直し方",
+    placeholder: "例: VPN をつなぎ直した / いまの IP をセキュリティグループに足した",
+    confirmLabel: "追記する",
+  });
+  if (!fix?.trim()) return false;
+  const now = await api.memo(projectId, path);
+  await api.saveMemo(projectId, path, appendDbMemoFix(now.content, dbMemoFixEntry(localToday(), error, fix)), now.hash);
+  return true;
+}
+
 /**
  * つながらないときの案内（木の接続の失敗の行の「直し方を見る」から）: 失敗の文・見分けた種類とよくある原因・最後につながった日時・
- * 手順メモの中身（なければ作る）・「AI に直してもらう」・「準備を流す…」（準備のコマンドがあれば）・「つなぎ直す」
+ * 手順メモの中身（なければ作る。あれば「直し方を追記…」で、直ったときの直し方を 1 行足す）・「AI に直してもらう」・「準備を流す…」（準備のコマンドがあれば）・「つなぎ直す」
  */
 export function DbFailureDialog({
   projectId,
@@ -71,6 +87,17 @@ export function DbFailureDialog({
   const then = (run: () => void) => () => {
     dialog.close();
     run();
+  };
+
+  const [memoError, setMemoError] = useState<string>();
+  const appendFix = async () => {
+    if (!c.memo_path) return;
+    setMemoError(undefined);
+    try {
+      if (await appendFixToMemo(projectId, c.memo_path, error)) memo.reload();
+    } catch (e) {
+      setMemoError(errorMessage(e));
+    }
   };
 
   const ask = async () => {
@@ -107,9 +134,14 @@ export function DbFailureDialog({
             {c.memo_path && <span className="muted small">{c.memo_path}</span>}
             <span className="db-failure-memo-tools">
               {c.memo_path ? (
-                <button type="button" className="btn btn-sm" onClick={then(onMemo)}>
-                  開く
-                </button>
+                <>
+                  <button type="button" className="btn btn-sm" disabled={!memo.data} onClick={() => void appendFix()} data-tip="つながったら、何をしたら直ったかを手順メモに 1 行足す">
+                    <NotebookPen size={13} aria-hidden /> 直し方を追記…
+                  </button>
+                  <button type="button" className="btn btn-sm" onClick={then(onMemo)}>
+                    開く
+                  </button>
+                </>
               ) : (
                 <button type="button" className="btn btn-sm" onClick={then(onMemo)}>
                   手順メモを作る…
@@ -117,6 +149,7 @@ export function DbFailureDialog({
               )}
             </span>
           </div>
+          <ErrorText message={memoError} />
           {!c.memo_path && <p className="small muted">つなぐ前にやること・直し方を残しておくと、次につながらないときにここに出ます。</p>}
           {c.memo_path && memo.loading && <p className="small muted">読み込み中…</p>}
           {c.memo_path && memo.error && <p className="small muted">手順メモが見つかりません（名前を変えた・消したなら、接続の編集で選び直してください）</p>}
