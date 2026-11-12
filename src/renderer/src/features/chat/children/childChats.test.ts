@@ -30,7 +30,7 @@ test("rootChatOf: 親をたどって、いちばん上のチャットを返す�
   assert.deepEqual(ids(5), [6]);
 });
 
-test("childActivityOf: 子孫の作業中・回答待ちを数え、回答待ちがあれば回答待ちにする（アーカイブ済みとその下は数えない）", () => {
+test("childActivityOf: 子孫と、その中の作業中・回答待ちを数え、回答待ちがあれば回答待ちにする（アーカイブ済みとその下は数えない）", () => {
   const states = new Map<number, string>([
     [2, "running"],
     [3, "read"],
@@ -45,10 +45,14 @@ test("childActivityOf: 子孫の作業中・回答待ちを数え、回答待ち
   ]);
   const stateOf = (c: { id: number }) => states.get(c.id) ?? "read";
   // 子の 2・孫の 4 が作業中（アーカイブ済みの 5 とその下の 6 は数えない）
-  assert.deepEqual(childActivityOf(1, childrenOf, stateOf), { state: "running", count: 2 });
+  assert.deepEqual(childActivityOf(1, childrenOf, stateOf), { state: "running", count: 2, total: 3 });
   // 子チャットのタブでは、その下（孫）だけ
-  assert.deepEqual(childActivityOf(3, childrenOf, stateOf), { state: "running", count: 1 });
+  assert.deepEqual(childActivityOf(3, childrenOf, stateOf), { state: "running", count: 1, total: 1 });
   assert.equal(childActivityOf(2, childrenOf, stateOf), null);
+  // 子孫がどれも動いていなければ idle（子チャットがあることは出す）
+  states.set(4, "read");
+  assert.deepEqual(childActivityOf(3, childrenOf, stateOf), { state: "idle", count: 0, total: 1 });
+  states.set(4, "running");
   states.set(3, "needs_input");
-  assert.deepEqual(childActivityOf(1, childrenOf, stateOf), { state: "needs_input", count: 3 });
+  assert.deepEqual(childActivityOf(1, childrenOf, stateOf), { state: "needs_input", count: 3, total: 3 });
 });

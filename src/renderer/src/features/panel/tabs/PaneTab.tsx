@@ -20,7 +20,7 @@ import type { TabField } from "./tabFields";
 
 /**
  * ペインのタブの列のタブ 1 つ。アイコン・名前・説明・グループ名は種類の表（tabKinds）から引き、チャット・子チャット・サブエージェントのタブは
- * サイドバーの行と同じ状態の印を出す（useTabAgentState。未読・失敗のタブは名前も太字。ピン留めしたチャットはいちばん左にピン）。子孫の子チャットが動いていれば名前の後ろに印（ChildActivityMark）。チャットのタブは名前のダブルクリックでその場で名前を変え（見出しには名前を出さない）、
+ * サイドバーの行と同じ状態の印を出す（useTabAgentState。未読・失敗のタブは名前も太字。ピン留めしたチャットはいちばん左にピン）。子孫の子チャットがあれば名前の後ろに印（ChildActivityMark。動いていれば色付き）。チャットのタブは名前のダブルクリックでその場で名前を変え（見出しには名前を出さない）、
  * × は表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）。分けたペイン（home でない）のサイドバーと連動したチャットは、
  * × で聞かずに一覧のペインへ戻す（ペインを閉じたときと同じ。アーカイブ・削除は右クリックから）
  */
@@ -82,9 +82,13 @@ export function PaneTab({
   const place =
     t.kind === "chat" ? chat : t.kind === "new" ? { project_id: t.projectId, worktree_path: t.worktree ?? null, branch: null } : undefined;
   const workplaceTag = show("worktree") && place ? <TabWorkplaceBadge chat={place} /> : undefined;
-  // 子孫の子チャットが作業中・回答待ちなら、名前の後ろに印（チャットのタブは子・孫…、子チャットのタブはその下の孫…。状態の印と同じく「状態」を隠せば出さない）
+  // 子孫の子チャットの印を名前の後ろに（チャットのタブは子・孫…、子チャットのタブはその下の孫…）。作業中・回答待ちの色付きの印は「状態」、
+  // 動いていなくても子チャットがあることを出すのは「子チャット」（タブに出す項目）
   const activityOf = t.kind === "chat" ? chat?.id : t.kind === "child" ? t.childId : undefined;
-  const activity = show("state") && activityOf !== undefined ? <ChildActivityMark chatId={activityOf} /> : undefined;
+  const activity =
+    activityOf !== undefined && (show("state") || show("children")) ? (
+      <ChildActivityMark chatId={activityOf} moving={show("state")} always={show("children")} />
+    ) : undefined;
   return (
     <PanelTab
       active={active}

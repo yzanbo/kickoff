@@ -56,7 +56,7 @@
 
 /*
  * 子チャットの動きの印（ChildActivityMark。チャットのタブの名前の後ろ）: 子孫の子チャットが作業中なら、子チャットのマークと作業中のリング（と件数）を
- * 作業中の色の薄い地の丸い札に、回答待ちがあれば回答待ちの色の「!」にする。親のタブを見るだけで、裏で子チャットが動いていると分かるように（利用者の依頼）
+ * 作業中の色の薄い地の丸い札に、回答待ちがあれば回答待ちの色の「!」にする。どれも動いていなければ子チャットのマークと数だけを薄く。親のタブを見るだけで、子チャットがあること・裏で動いていることが分かるように（利用者の依頼）
  */
 .panel-tab-label .tab-child-activity {
   --activity-color: var(--dot-running);
@@ -78,6 +78,15 @@
 
 .panel-tab-label .tab-child-activity.state-needs_input {
   --activity-color: var(--dot-needs-input);
+}
+
+/* 動いている子孫がないときは、子チャットがあることだけを薄く（色の札にせず、名前より控えめな文字の色で。タブに出す項目の「子チャット」） */
+.panel-tab-label .tab-child-activity.state-idle {
+  --activity-color: var(--muted);
+
+  background: none;
+  padding: 0 2px;
+  font-weight: 500;
 }
 
 .panel-tab-label .tab-child-activity .status-ring {
