@@ -1,4 +1,4 @@
-import { Ellipsis, TriangleAlert } from "lucide-react";
+import { Ellipsis, ScrollText, TriangleAlert } from "lucide-react";
 import type { DockerActionBody, DockerCompose } from "@shared/types";
 import { DOCKER_ACTION_BUSY_LABELS } from "@shared/types";
 import { openProjectFile } from "@/app/router";
@@ -35,7 +35,7 @@ async function confirmed(compose: DockerCompose, action: "down" | "recreate"): P
  * compose のファイル 1 つ（見出しの行・⚠・動いている操作・最後の失敗・サービスの行）。
  * 見出しの操作はいつもボタンで出し（すべて起動・すべて停止・⋯）、同じものを見出しの右クリックにも入れる
  */
-export function DockerComposeBlock({ projectId, compose, act }: { projectId: number; compose: DockerCompose; act: DockerAct }) {
+export function DockerComposeBlock({ projectId, compose, act, onLogs }: { projectId: number; compose: DockerCompose; act: DockerAct; onLogs: (chips: string[] | null) => void }) {
   const menu = useContextMenu();
   const busy = compose.operation !== null;
   const send = (action: DockerActionBody["action"], extra: Partial<DockerActionBody> = {}) => void act({ action, compose: compose.key, ...extra });
@@ -85,6 +85,9 @@ export function DockerComposeBlock({ projectId, compose, act }: { projectId: num
               </button>
             </>
           )}
+          <button type="button" className="btn btn-sm" disabled={!compose.created} data-tip="すべてのサービスのログを、時刻の順に一覧の下に出す" onClick={() => onLogs(null)}>
+            <ScrollText size={13} aria-hidden /> ログ
+          </button>
           <IconButton icon={Ellipsis} label="compose の操作" className="docker-compose-more" onClick={(e) => menu.toggle(e)} />
         </span>
       </div>
@@ -123,7 +126,7 @@ export function DockerComposeBlock({ projectId, compose, act }: { projectId: num
       )}
       <div className="docker-services">
         {compose.services.map((s) => (
-          <DockerServiceRow key={s.name} projectId={projectId} compose={compose} service={s} busy={busy} send={send} />
+          <DockerServiceRow key={s.name} projectId={projectId} compose={compose} service={s} busy={busy} send={send} onLogs={onLogs} />
         ))}
       </div>
       {menu.menu && (
@@ -146,6 +149,9 @@ export function DockerComposeBlock({ projectId, compose, act }: { projectId: num
             片付け…
           </MenuItem>
           <div className="menu-separator" role="separator" />
+          <MenuItem disabled={!compose.created} onSelect={() => onLogs(null)}>
+            ログ
+          </MenuItem>
           <MenuItem disabled={!compose.file} onSelect={openFile}>
             compose のファイルを開く
           </MenuItem>

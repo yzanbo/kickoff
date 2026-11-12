@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import type { DockerList } from "@shared/types";
+import type { DockerList, DockerLogEvent } from "@shared/types";
+import { DockerLogSession } from "../docker/logs.js";
 import { setup } from "../testing/testServer.js";
 import { until } from "../testing/testCore.js";
 
@@ -150,4 +151,48 @@ test("Docker: 見ていますで docker events を立てる。どこからも見
   assert.equal(events.running, true);
   events.stop();
   assert.equal(events.running, false);
+});
+
+test("Docker: ログのさらに前を読むは until より前の 500 行を時刻の順に（標準エラーも）。ほかの compose のコンテナは 404", async () => {
+  const s = setup();
+  const file = path.join(s.project.repo_path, "compose.yaml");
+  const id = "abcdef0123456789";
+  withCompose(
+    s,
+    [{ match: "logs --timestamps --until", stdout: "2026-11-13T01:00:00.000000002Z b\n2026-11-13T01:00:05Z same\n", stderr: "2026-11-13T01:00:00.1Z err\n" }],
+    [{ id, name: "app-db-1", state: "exited", status: "Exited (1) 1 minute ago", project: "app", service: "db", dir: s.project.repo_path, files: file }],
+  );
+  const [c] = (await list(s)).composes;
+  const url = (container: string) => `/api/projects/${s.project.id}/docker/logs/before?compose=${encodeURIComponent(c.key)}&container=${container}&until=2026-11-13T01:00:05.000000000Z`;
+  const res = await s.call("GET", url(id));
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.lines, [
+    { ts: "2026-11-13T01:00:00.000000002Z", text: "b" },
+    { ts: "2026-11-13T01:00:00.100000000Z", text: "err" },
+  ]);
+  assert.ok(s.dockerFake.calls().some((x) => x.args.join(" ") === `logs --timestamps --until 2026-11-13T01:00:05.000000000Z --tail 500 ${id}`));
+  assert.equal((await s.call("GET", url("ffffffffffff"))).status, 404);
+  assert.equal((await s.call("GET", url("not-hex"))).status, 400);
+});
+
+test("Docker: ログの流れは最新の 500 行を追い、止まったら区切りを知らせる", async () => {
+  const s = setup();
+  s.dockerFake.set([{ match: "logs -f", stdout: "2026-11-13T01:00:00Z hello\n", hang: true }]);
+  const events: DockerLogEvent[] = [];
+  let running = true;
+  const source = () => [{ container: "abcdef012345", service: "web", label: "web", running, exit_code: running ? null : 1 }];
+  const session = new DockerLogSession(s.docker.cli, async () => source(), (e) => events.push(e));
+  try {
+    await session.sync();
+    await until(() => events.some((e) => e.type === "lines"));
+    assert.deepEqual(events[0], { type: "sources", sources: source() });
+    assert.deepEqual(events.find((e) => e.type === "lines"), { type: "lines", container: "abcdef012345", lines: [{ ts: "2026-11-13T01:00:00.000000000Z", text: "hello" }] });
+    assert.ok(s.dockerFake.calls().some((x) => x.args.join(" ") === "logs -f --timestamps --tail 500 abcdef012345"));
+    running = false;
+    await session.sync();
+    const stopped = events.find((e) => e.type === "stopped");
+    assert.equal(stopped?.type === "stopped" && stopped.exit_code, 1);
+  } finally {
+    session.close();
+  }
 });

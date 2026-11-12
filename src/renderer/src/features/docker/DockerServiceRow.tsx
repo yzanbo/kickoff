@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RotateCcw, SquareTerminal } from "lucide-react";
+import { RotateCcw, ScrollText, SquareTerminal } from "lucide-react";
 import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerService } from "@shared/types";
 import { DOCKER_MARK_LABELS } from "@shared/types";
 import { useExternalBrowser } from "@/features/openWith/externalApps";
@@ -36,7 +36,21 @@ function useOpenShell(projectId: number, compose: DockerCompose) {
  * サービスの行（印・名前・イメージ・様子・Mac に出すポート・操作）。操作はいつもボタンで出し、同じものを右クリックにも入れる。
  * 札付きのサービスは動いていなければ薄く。使い捨てのコンテナは行の下に畳んで出す
  */
-export function DockerServiceRow({ projectId, compose, service: s, busy, send }: { projectId: number; compose: DockerCompose; service: DockerService; busy: boolean; send: Send }) {
+export function DockerServiceRow({
+  projectId,
+  compose,
+  service: s,
+  busy,
+  send,
+  onLogs,
+}: {
+  projectId: number;
+  compose: DockerCompose;
+  service: DockerService;
+  busy: boolean;
+  send: Send;
+  onLogs: (chips: string[]) => void;
+}) {
   const menu = useContextMenu();
   const [oneoffsOpen, setOneoffsOpen] = useState(false);
   const openShell = useOpenShell(projectId, compose);
@@ -65,6 +79,7 @@ export function DockerServiceRow({ projectId, compose, service: s, busy, send }:
             {primary.label}
           </button>
           {s.running > 0 && <IconButton icon={RotateCcw} label="再起動" disabled={busy} onClick={() => run("restart")} />}
+          {s.containers.length > 0 && <IconButton icon={ScrollText} label="ログ（一覧の下に、このサービスの札で）" onClick={() => onLogs([s.name])} />}
           {shellTarget && <IconButton icon={SquareTerminal} label="シェル（下のパネルのターミナル）" onClick={() => openShell(s.name, shellTarget)} />}
         </span>
       </div>
@@ -84,6 +99,9 @@ export function DockerServiceRow({ projectId, compose, service: s, busy, send }:
                     停止
                   </button>
                 )}
+                <button type="button" className="btn btn-sm" onClick={() => onLogs([`${s.name} · 使い捨て`])}>
+                  ログ
+                </button>
               </div>
             ))}
         </div>
@@ -105,6 +123,9 @@ export function DockerServiceRow({ projectId, compose, service: s, busy, send }:
             再起動
           </MenuItem>
           <div className="menu-separator" role="separator" />
+          <MenuItem disabled={s.containers.length === 0} onSelect={() => onLogs([s.name])}>
+            ログ
+          </MenuItem>
           <MenuItem disabled={!shellTarget} onSelect={() => shellTarget && openShell(s.name, shellTarget)}>
             シェル
           </MenuItem>

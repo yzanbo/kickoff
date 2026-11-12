@@ -1,5 +1,5 @@
-import type { DockerActionBody, DockerList } from "@shared/types";
-import { request } from "./http";
+import type { DockerActionBody, DockerList, DockerLogLine } from "@shared/types";
+import { request, withQuery } from "./http";
 
 /** Docker タブ（プロジェクトの compose の一覧・操作。コアの routes/docker.ts。この Mac のアプリの中だけ） */
 export const dockerApi = {
@@ -10,5 +10,10 @@ export const dockerApi = {
   /** 操作（待たずに始まり、始めたあとの一覧を返す。cancel・dismiss は何も返さない。別の作業場所と同じ組になる起動は 409・code docker_shared_project） */
   dockerAction: (projectId: number, body: DockerActionBody) => request<DockerList | undefined>("POST", `/api/projects/${projectId}/docker/actions`, body),
   /** エンジンを開く（OrbStack・Docker Desktop。開くアプリは context の名前からコアが決める） */
+  /** ログの画面の流れ（SSE の URL。EventSource でつなぐ。中身は DockerLogEvent） */
+  dockerLogsUrl: (projectId: number, compose: string) => withQuery(`/api/projects/${projectId}/docker/logs`, { compose }),
+  /** ログの「さらに前を読む」（until より前の 500 行。この compose のコンテナだけ） */
+  dockerLogsBefore: (projectId: number, compose: string, container: string, until: string) =>
+    request<{ lines: DockerLogLine[] }>("GET", withQuery(`/api/projects/${projectId}/docker/logs/before`, { compose, container, until })),
   dockerOpenEngine: (projectId: number) => request<void>("POST", `/api/projects/${projectId}/docker/open-engine`),
 };

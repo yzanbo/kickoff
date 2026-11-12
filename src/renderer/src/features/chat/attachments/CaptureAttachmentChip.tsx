@@ -1,4 +1,4 @@
-import { CircleDot, Database, GitPullRequest, Monitor, MessageSquareCode, ShieldAlert, SquareTerminal, TriangleAlert, type LucideIcon } from "lucide-react";
+import { CircleDot, Container, Database, GitPullRequest, MessageSquareCode, Monitor, ShieldAlert, SquareTerminal, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachment/sources";
 import type { AttachmentSourceType, CaptureAttachment } from "@shared/types";
@@ -19,6 +19,7 @@ const SOURCE_ICONS: Record<AttachmentSourceType, LucideIcon> = {
   browser_console: TriangleAlert,
   browser_screen: Monitor,
   terminal: SquareTerminal,
+  docker_logs: Container,
 };
 
 /** 画像の札か（ブラウザの画面など。コアが受けるのは画面で見られる形式だけ） */

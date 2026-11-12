@@ -1,7 +1,7 @@
 // Docker タブの一覧の組み立て（純粋な関数）: コンテナを作業場所と組に振り分け、見つけた compose のファイルと合わせて見出しを作る。
 // どれをこのプロジェクトのものとするかは、コンテナの working_dir がいちばん深く入る作業場所（仕様書の 5 章）
 import path from "node:path";
-import type { DockerCompose, DockerContainer, DockerOtherContainer, DockerService, DockerShare } from "@shared/types";
+import type { DockerCompose, DockerContainer, DockerLogSource, DockerOtherContainer, DockerService, DockerShare } from "@shared/types";
 import { dbKindOf, deepestWorkplace, parsePorts, parseStatus, serviceMark, type ComposeConfig, type RawContainer } from "./parse.js";
 
 /** 作業場所（path は realpath でそろえたもの） */
@@ -186,4 +186,12 @@ export function buildDockerList(workplaces: readonly Workplace[], containers: re
 export function sharedVictims(composeKey: string, projectName: string | null, containers: readonly RawContainer[], owner: ReadonlyMap<string, string>): RawContainer[] {
   if (!projectName) return [];
   return containers.filter((c) => c.project === projectName && owner.get(c.id) !== composeKey);
+}
+
+/** ログの画面のコンテナ（数を増やしたサービスは「app#2」、使い捨ては「app · 使い捨て」。作っていないサービスは入れない） */
+export function logSourcesOf(compose: Pick<DockerCompose, "services">): DockerLogSource[] {
+  return compose.services.flatMap((s) => [
+    ...s.containers.map((c) => ({ container: c.id, service: s.name, label: s.containers.length > 1 ? `${s.name}#${c.number}` : s.name, running: c.state === "running" || c.state === "restarting", exit_code: c.exit_code })),
+    ...s.oneoffs.map((c) => ({ container: c.id, service: s.name, label: `${s.name} · 使い捨て`, running: c.state === "running", exit_code: c.exit_code })),
+  ]);
 }

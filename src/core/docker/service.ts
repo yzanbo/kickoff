@@ -2,7 +2,7 @@
 // docker events（見ている画面があるときだけ）。DB は使わない（覚えるものはメモリだけ）
 import fs from "node:fs";
 import path from "node:path";
-import type { DockerActionBody, DockerFailure, DockerList, DockerOperation, Project } from "@shared/types";
+import type { DockerActionBody, DockerFailure, DockerList, DockerLogLine, DockerLogSource, DockerOperation, Project } from "@shared/types";
 import { DOCKER_SHARED_PROJECT } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Bus } from "../bus.js";
@@ -15,7 +15,8 @@ import { planDockerAction, type DockerStep } from "./actions.js";
 import { DockerCli, shellWord } from "./cli.js";
 import { ComposeConfigCache, findComposeFiles, upFilesFor } from "./compose.js";
 import { DockerEvents } from "./events.js";
-import { buildDockerList, headFileOf, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
+import { buildDockerList, headFileOf, logSourcesOf, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
+import { DOCKER_LOG_TAIL, readLog } from "./logs.js";
 import { PS_FORMAT, parsePs, starterOf, type RawContainer } from "./parse.js";
 
 /** 失敗の文に残す標準エラーの行数 */
@@ -66,6 +67,19 @@ export class DockerService {
   /** 一覧 */
   async list(project: Project): Promise<DockerList> {
     return (await this.snapshot(project)).list;
+  }
+
+  /** ログの画面のコンテナ（compose の見出しのキーで。なくなっていれば空） */
+  async logSources(project: Project, composeKey: string): Promise<DockerLogSource[]> {
+    const compose = (await this.list(project)).composes.find((c) => c.key === composeKey);
+    return compose ? logSourcesOf(compose) : [];
+  }
+
+  /** ログの「さらに前を読む」: until より前の 500 行（この compose のコンテナだけ） */
+  async logsBefore(project: Project, composeKey: string, container: string, until: string): Promise<DockerLogLine[]> {
+    if (!(await this.logSources(project, composeKey)).some((s) => s.container === container)) throw new NotFound("この compose のコンテナではありません");
+    const lines = await readLog(this.cli, ["--until", until, "--tail", String(DOCKER_LOG_TAIL), container]);
+    return lines.filter((l) => !l.ts || l.ts < until);
   }
 
   private async workplaces(project: Project): Promise<Workplace[]> {
