@@ -227,7 +227,11 @@ function PortButton({ projectId, port, warn, onOpenDb }: { projectId: number; po
         className={cx("docker-port small", warn && "is-warn")}
         data-tip={`${url} をチャット欄のブラウザで開く`}
         onClick={() => panelActions(panelKey("side", projectId)).openBrowser(url)}
-        onContextMenu={(e) => menu.open(e)}
+        onContextMenu={(e) => {
+          // 行の右クリックのメニューまで開かないように
+          e.stopPropagation();
+          menu.open(e);
+        }}
       >
         :{port}
         {warn && " ⚠"}
