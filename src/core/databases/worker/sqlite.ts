@@ -1,6 +1,6 @@
 // SQLite の接続（node:sqlite。同期で動くので、文を流している間はワーカーが止まる。止めるときはコアがワーカーごと止める）
 import fs from "node:fs";
-import { DatabaseSync, type StatementSync } from "node:sqlite";
+import { constants as sqliteCodes, DatabaseSync, type StatementSync } from "node:sqlite";
 import type { DbEditParam } from "@shared/database/dbEdit";
 import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFilter";
 import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
@@ -22,6 +22,9 @@ export function openSqlite(target: DbTarget): DbDriver {
   // 書ける形で開くと、ないファイルを新しく作ってしまうので、先に確かめる
   if (!fs.existsSync(file)) throw new Error(`ファイルが見つかりません: ${file}`);
   const db = new DatabaseSync(file, { readOnly: target.read_only, open: true });
+  // 読み取り専用（AI の SQL・読み取り専用の接続）では ATTACH / DETACH を DB の側でも断る（ほかの SQLite のファイルを開いて読ませない。
+  // 文の判定でも断るが、守りを 2 段にする。PRAGMA query_only は SQL から戻せるので頼らない）
+  if (target.read_only) db.setAuthorizer((code) => (code === sqliteCodes.SQLITE_ATTACH || code === sqliteCodes.SQLITE_DETACH ? sqliteCodes.SQLITE_DENY : sqliteCodes.SQLITE_OK));
   return new SqliteDriver(db);
 }
 
