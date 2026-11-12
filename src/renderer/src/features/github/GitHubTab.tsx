@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GitPullRequest } from "lucide-react";
+import { ExternalLink, GitPullRequest } from "lucide-react";
+import { GITHUB_DEFAULT_HOST } from "@shared/github/host";
 import type { Chat, GitHubItem, GitHubKind, GitHubListFilter } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
@@ -11,10 +12,12 @@ import { GITHUB_LIST_WIDTH, githubFilters, githubSelected } from "@/lib/storageK
 import { useChats } from "@/stores/chats";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
+import { IconButton } from "@/ui/IconButton";
 import { GitHubDetail } from "./GitHubDetail";
 import { GitHubFilterBar } from "./GitHubFilterBar";
 import { openNewIssue } from "./githubDialogs";
 import { GitHubItemRow } from "./GitHubItemRow";
+import { githubListUrl, githubRepoUrl } from "./githubLinks";
 import { useGitHubList } from "./useGitHubList";
 
 /** 中身の欄に残したい最小の幅。一覧の幅を足してこれが入らないときは、一覧と中身を切り替えて 1 つずつ出す（チャットの右の欄など） */
@@ -52,10 +55,10 @@ export function GitHubTab({ projectId }: { projectId: number }) {
         </EmptyState>
       </div>
     );
-  return <GitHubBrowser projectId={projectId} repo={conn.repo ?? ""} />;
+  return <GitHubBrowser projectId={projectId} host={conn.host ?? GITHUB_DEFAULT_HOST} repo={conn.repo ?? ""} />;
 }
 
-function GitHubBrowser({ projectId, repo }: { projectId: number; repo: string }) {
+function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: string; repo: string }) {
   const [filters, setFilters] = useSetting(githubFilters(projectId));
   const [selectedText, setSelectedText] = useSetting(githubSelected(projectId));
   const selected = parseSelected(selectedText);
@@ -96,7 +99,13 @@ function GitHubBrowser({ projectId, repo }: { projectId: number; repo: string })
     <div ref={root} className={cx("github-tab github-browser", narrow && "narrow")}>
       {showList && (
         <aside ref={width.paneRef} className="github-list" style={narrow ? undefined : { width: width.size }}>
-          <div className="github-list-repo small muted">{repo}</div>
+          {/* リポジトリの名前は GitHub のリポジトリのページへ、右の印はいまの絞り込みの一覧を GitHub で開く（外のブラウザ） */}
+          <div className="github-list-repo small">
+            <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">
+              {repo}
+            </a>
+            <IconButton icon={ExternalLink} size={13} label="この一覧を GitHub で開く" onClick={() => window.open(githubListUrl(host, repo, filter), "_blank", "noopener")} />
+          </div>
           <GitHubFilterBar
             filter={filter}
             meta={meta.data}

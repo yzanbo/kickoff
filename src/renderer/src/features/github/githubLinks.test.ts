@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { githubItemRef } from "./githubLinks";
+import { defaultGitHubFilter } from "@shared/github/searchQuery";
+import { githubItemRef, githubListUrl, githubRepoUrl } from "./githubLinks";
 
 test("githubItemRef: 同じリポジトリの issue・PR は種類と番号（後ろの /files・#… は問わない。持ち主/名前の大文字・小文字は区別しない）", () => {
   assert.deepEqual(githubItemRef("https://github.com/o/r/issues/12", "o/r"), { kind: "issue", number: 12 });
@@ -22,4 +23,12 @@ test("githubItemRef: ホストも同じものだけ（GitHub Enterprise なら�
   assert.deepEqual(githubItemRef("https://ghe.example.com/o/r/pull/5", "o/r", "GHE.example.com"), { kind: "pr", number: 5 });
   assert.equal(githubItemRef("https://github.com/o/r/pull/5", "o/r", "ghe.example.com"), null);
   assert.equal(githubItemRef("https://ghe.example.com/o/r/pull/5", "o/r"), null);
+});
+
+test("githubRepoUrl・githubListUrl: リポジトリのページと、いまの絞り込みの一覧のページ（issue は /issues・PR は /pulls。repo: は外す）", () => {
+  assert.equal(githubRepoUrl("github.com", "o/r"), "https://github.com/o/r");
+  assert.equal(githubRepoUrl("GHE.example.com", "o/r"), "https://ghe.example.com/o/r");
+  assert.equal(githubListUrl("github.com", "o/r", defaultGitHubFilter("issue")), `https://github.com/o/r/issues?q=${encodeURIComponent("is:issue is:open sort:updated-desc")}`);
+  const pr = { ...defaultGitHubFilter("pr"), state: "merged" as const, labels: ["bug fix"], text: "login" };
+  assert.equal(githubListUrl("github.com", "o/r", pr), `https://github.com/o/r/pulls?q=${encodeURIComponent('is:pr is:merged label:"bug fix" sort:updated-desc login')}`);
 });
