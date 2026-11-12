@@ -1,0 +1,40 @@
+/* 画面の下の真ん中に少しの間だけ出す知らせ（ui/toast.tsx。メモの追加の様子 .memo-progress と同じ形） */
+.toast-stack {
+  position: fixed;
+  bottom: 56px;
+  left: 50%;
+  z-index: 60;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100vw - 48px));
+  padding: 6px 8px 6px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-elev);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  pointer-events: auto;
+  animation: dialog-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.toast-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.toast-action {
+  flex: none;
+  border-radius: 999px;
+}

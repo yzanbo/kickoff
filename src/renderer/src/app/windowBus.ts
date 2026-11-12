@@ -1,5 +1,6 @@
 // ウィンドウの間の知らせ（メインのウィンドウと別ウィンドウ。同じ出どころなので BroadcastChannel で届く）
-import type { Attachment } from "@shared/types";
+import type { Attachment, GitHubLink } from "@shared/types";
+import type { Workplace } from "@/features/worktree/WorkplacePicker";
 import type { PopoutRoute } from "./popout";
 import type { FileTarget } from "./router";
 
@@ -14,12 +15,14 @@ export type WindowMessage =
   | { type: "openProjectFile"; projectId: number; file: FileTarget }
   /** メインのウィンドウでそのメモを開く（chatId があればそのチャットの右の欄、なければメモのタブ。別ウィンドウの返答から「メモに追加」したとき） */
   | { type: "openMemo"; projectId: number; path: string; chatId: number | null }
-  /** メインのウィンドウでチャットを開く（別ウィンドウの DB クライアントの「AI に直してもらう」で作ったチャット） */
+  /** メインのウィンドウでチャットを開く（別ウィンドウの DB クライアントの「AI に聞く」で作ったチャット・聞いたチャット） */
   | { type: "openChat"; projectId: number; chatId: number }
+  /** メインのウィンドウのプロジェクトのチャットのパネルに、文と添付を入れた新しいチャットのタブを開く（別ウィンドウの「AI に渡す」の「新しいチャットで始める」。openSeededChat） */
+  | { type: "openSeededChat"; projectId: number; place: Workplace; text: string; attachments: Attachment[]; link: GitHubLink | null }
   /** メインのウィンドウで子チャットを開く（設定が右の欄のとき。別ウィンドウの子チャットの札・通知から） */
   | { type: "openChild"; chatId: number }
   /** メインのウィンドウで、そのチャットの新しい子チャットのタブを開く（別ウィンドウの「新しい子チャットで聞く」「子チャットを作成」。openAskChild） */
-  | { type: "askChild"; parentId: number; eventId: number | null; quote: string }
+  | { type: "askChild"; parentId: number; eventId: number | null; quote: string; text?: string; attachments?: Attachment[] }
   /** 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（別ウィンドウの「右の欄に戻す」。別ウィンドウは閉じる） */
   | { type: "dockPopout"; route: PopoutRoute }
   /** 別ウィンドウの子チャットから親へ: 親の聞いた位置を見る（reveal）/ 答えを親の入力欄に入れる（handBack） */

@@ -86,8 +86,8 @@ export function openCreatedChild(child: Chat, opts: { always?: boolean } = {}) {
  * 「新しい子チャットで聞く」「子チャットを作成」: いちばん上の親の右の欄に、新しい子チャットのタブを開く（選んだ文は引用として入力欄に入れ、聞いた位置は送るときに渡す）。
  * 送る前は設定によらず右の欄で書き、作ったあとは設定の「子チャットを作ったとき」に従う（タブの follow）。別ウィンドウからはメインのウィンドウに頼む
  */
-export function openAskChild({ parentId, eventId, quote }: AskChildTarget) {
-  if (inPopout()) return postToMainWindow({ type: "askChild", parentId, eventId, quote });
+export function openAskChild({ parentId, eventId, quote, text, attachments }: AskChildTarget) {
+  if (inPopout()) return postToMainWindow({ type: "askChild", parentId, eventId, quote, text, attachments });
   const parent = knownChat(parentId);
   if (!parent) return;
   openInRootSide(parentId, (rootId, side) =>
@@ -97,6 +97,8 @@ export function openAskChild({ parentId, eventId, quote }: AskChildTarget) {
       ...(parentId !== rootId ? { parentId } : {}),
       ...(quote.trim() ? { quote } : {}),
       ...(eventId !== null ? { eventId } : {}),
+      ...(text ? { text } : {}),
+      ...(attachments?.length ? { attachments } : {}),
       follow: true,
     }),
   );

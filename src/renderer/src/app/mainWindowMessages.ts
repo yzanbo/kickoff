@@ -1,7 +1,8 @@
 // 別ウィンドウからメインのウィンドウへの知らせのうち、チャットの画面ではなく App が受け取るもの
-// （ファイルタブ・チャット・メモ・子チャットを開く・新しい子チャットのタブを開く・子チャットから親へ・別ウィンドウを右の欄に戻す。チャットの画面への知らせは features/chat/pane/windowMessages）
+// （ファイルタブ・チャット・メモ・子チャットを開く・新しい子チャットのタブ・文を入れた新しいチャットのタブを開く・子チャットから親へ・別ウィンドウを右の欄に戻す。チャットの画面への知らせは features/chat/pane/windowMessages）
 import { knownChat } from "@/stores/chats";
 import { handBackToParent, openAskChild, openChildSide, revealInParent } from "@/features/chat/children/openChild";
+import { openSeededChat } from "@/features/chat/handoff/workplace";
 import { openMemoFromChat } from "@/features/memo/openMemoFrom";
 import { dockPopout } from "@/features/popout/dockPopout";
 import { openChat, openProjectFile } from "./router";
@@ -13,6 +14,7 @@ export function handleMainWindowMessage(m: WindowMessage) {
   else if (m.type === "openMemo") openMemoFromChat(m);
   else if (m.type === "dockPopout") dockPopout(m.route);
   else if (m.type === "askChild") openAskChild(m);
+  else if (m.type === "openSeededChat") openSeededChat(m.projectId, m.place, m);
   else if (m.type === "openChild") {
     const chat = knownChat(m.chatId);
     if (chat) openChildSide(chat);

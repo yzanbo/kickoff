@@ -28,6 +28,9 @@ interface Props {
   parentId: number;
   /** 入力欄に引用として初めに入れる文（選んだ文・発言。なければ空の入力欄） */
   quote?: string;
+  /** 入力欄に初めに入れる文と添付（「AI に渡す」の「子チャットで聞く」） */
+  text?: string;
+  attachments?: Attachment[];
   /** 親の会話の聞いた位置（発言の右クリックから。親の会話のその位置に札が付く） */
   eventId?: number;
   /** 子チャットができたとき（このタブを、できた子チャットのタブに置き換える・設定どおりに開く） */
@@ -49,17 +52,17 @@ export function NewChildPane({ parentId, ...rest }: Props) {
   return <NewChildForm parent={parent} {...rest} />;
 }
 
-function NewChildForm({ parent, quote, eventId, onCreated }: Omit<Props, "parentId"> & { parent: Chat }) {
+function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachments, eventId, onCreated }: Omit<Props, "parentId"> & { parent: Chat }) {
   // 選択（モデルなど）は親から引き継がず、新しいチャットと同じく設定どおり（プロジェクトの既定 → 設定の既定）から始める。このタブで変えたものだけ効かせる
   const options = useChatOptions(undefined, parent.project_id, parent.worktree_path ?? undefined);
   const [inherit, setInherit] = useState(true);
   const project = useProjects().projectsById.get(parent.project_id);
   const shows = useChatHeaderItems();
   const composer = useRef<ComposerHandle | null>(null);
-  // 選んだ文から開いたら、引用を入力欄に入れる（キャレットはその下）
+  // 選んだ文から開いたら、引用を入力欄に入れる（キャレットはその下）。「AI に渡す」から開いたら、一言と添付も入れる
   useEffect(() => {
-    const text = initialText(quote);
-    if (text) composer.current?.fill(text);
+    const text = `${initialText(quote)}${seedText ?? ""}`;
+    if (text || seedAttachments?.length) composer.current?.fill(text, seedAttachments?.length ? { attachments: seedAttachments } : undefined);
     // 開いたときに 1 回だけ（書き換えたあとで引用を入れ直さない）
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
