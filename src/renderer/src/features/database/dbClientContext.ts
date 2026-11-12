@@ -14,6 +14,8 @@ export interface DbClientActions {
   openTable(connection: DbConnection, path: DbObjectPath, name: string, object: DbObjectKind, filter?: DbRowFilter, preview?: boolean): void;
   /** 新しい SQL のタブを開く（sql を渡せば、入力欄にそれを書いて） */
   openSql(connection: DbConnection, sql?: string): void;
+  /** SQL のタブで流す接続を替える（いまの接続がコミットしていなければ先に聞き、やめたら替えない） */
+  switchSqlConnection(tabKey: string, connection: DbConnection): Promise<void>;
   /** ER 図のタブを開く（focus があればそのテーブルのまわりだけ） */
   openEr(connection: DbConnection, path: DbObjectPath, focus: string | null): void;
   /** 接続の登録・編集のダイアログ（null なら新しく作る） */

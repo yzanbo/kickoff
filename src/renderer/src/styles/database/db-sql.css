@@ -42,6 +42,51 @@
 }
 
 /* 接続の環境の札（環境の色の点と名前） */
+/* 道具の行の頭の「どの接続・DB で流すか」のピル（環境の色。押すと接続を替える） */
+.db-sql-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 280px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--db-env) 45%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--db-env) 10%, transparent);
+  color: var(--text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.db-sql-pill:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--db-env) 18%, transparent);
+}
+
+.db-sql-pill:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.db-sql-pill-name,
+.db-sql-pill-place {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.db-sql-pill-place {
+  color: var(--muted);
+}
+
+.db-sql-pill-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ⌘↵ で流れる文（カーソルのある文・選んだ範囲）の行の左の緑の線 */
+.db-sql-editor .cm-run-target {
+  box-shadow: inset 2px 0 0 var(--ok);
+}
+
 .db-sql-env {
   display: inline-flex;
   align-items: center;

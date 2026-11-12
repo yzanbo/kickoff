@@ -181,6 +181,11 @@ const newSqlKey = () => `sql-${Date.now().toString(36)}-${Math.random().toString
 export const openNewSqlTab = (state: DbClientTabs, connectionId: number): DbClientTabs =>
   openDbTab(state, { key: newSqlKey(), kind: "sql", connection_id: connectionId, title: nextSqlTitle(state) });
 
+/** SQL のタブで流す接続を替える（入力欄の SQL はそのまま。タブのキー = ワーカーの中の接続の名前は変えない） */
+export function setSqlConnection(state: DbClientTabs, key: string, connectionId: number): DbClientTabs {
+  return { ...state, tabs: state.tabs.map((t) => (t.key === key && t.kind === "sql" ? { ...t, connection_id: connectionId } : t)) };
+}
+
 /** ER 図のタブのキー（接続・場所ごとに 1 つ） */
 export const erTabKey = (connectionId: number, path: DbObjectPath) => `er:${connectionId}:${path.database ?? ""}:${path.schema ?? ""}`;
 

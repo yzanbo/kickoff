@@ -7,6 +7,7 @@ import { drawSelection, EditorView, keymap, placeholder } from "@codemirror/view
 import { tags } from "@lezer/highlight";
 import { useEffect, useRef, type MutableRefObject } from "react";
 import type { DbEngine } from "@shared/types";
+import { runTargetMark } from "./sqlRunMark";
 
 /** SQL の色分け（アプリの色の変数で、ダークでもライトでも読める色に） */
 const sqlHighlight = HighlightStyle.define([
@@ -70,6 +71,8 @@ export function SqlEditor({
           placeholder("SQL を書いて ⌘↵ で流します（⇧⌘↵ ですべての文）"),
           language.current.of(sql({ dialect: DIALECTS[engine], schema, upperCaseKeywords: false })),
           syntaxHighlighting(sqlHighlight),
+          // ⌘↵ で流れる文の行の左に緑の線
+          runTargetMark(engine),
           autocompletion({ activateOnTyping: true }),
           Prec.highest(
             keymap.of([

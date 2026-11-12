@@ -14,6 +14,7 @@ import {
   openTableTab,
   pinDbTab,
   renameMemoTab,
+  setSqlConnection,
   setTableFilter,
   tableTabKey,
   updateErTab,
@@ -107,6 +108,13 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
       if (sql && next.active) writeSetting(dbSqlDraft(`${place}:${next.active}`), sql);
       setState(next);
       setOverlay(false);
+    },
+    switchSqlConnection: async (tabKey, c) => {
+      const tab = readSetting(dbClientTabs(place)).tabs.find((t) => t.key === tabKey);
+      const old = tab && byId.get(tab.connection_id);
+      if (old && !(await finishSession(projectId, old, tabKey))) return;
+      // 聞いている間にタブが変わっていてもよいよう、いまの値から替える
+      setState(setSqlConnection(readSetting(dbClientTabs(place)), tabKey, c.id));
     },
     openEr: (c, path, focus) => {
       setState(openErTab(state, c.id, path, focus));
