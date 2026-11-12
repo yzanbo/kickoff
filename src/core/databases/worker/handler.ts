@@ -122,6 +122,12 @@ interface OpenSession {
   fingerprint: string;
 }
 
+/** 接続（セッション）の名前から、どの接続のものか（shared: / sql: / ai: / edit: の次の段。分からなければ null） */
+function connectionIdOfSession(name: string): number | null {
+  const id = Number(name.split(":")[1]);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
 type Handlers = { [M in WorkerMethod]: (params: WorkerMethods[M]["params"], id: number) => Promise<WorkerMethods[M]["result"]> };
 
 /** ワーカーの中身（頼みを流す handle・止める cancel・使っていない接続を閉じる closeIdle・すべて閉じる closeAll） */
@@ -254,6 +260,10 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
       .filter(([, open]) => now() - open.usedAt >= sessionIdleMs && !busy.has(open.driver) && !(open.driver.alive() && open.driver.inTransaction()))
       .map(([name]) => name);
     for (const name of names) await dropSession(name);
+    // その接続の接続（セッション）がすべて閉じたら、準備の後片付けも流す（IP の許可などを開けっぱなしにしない。仕様の「何もしない状態で自動で切れたときも」）
+    const closedIds = new Set(names.map(connectionIdOfSession).filter((id) => id !== null));
+    const stillOpen = new Set([...sessions.keys()].map(connectionIdOfSession));
+    for (const id of closedIds) if (!stillOpen.has(id) && !prep.state(id)?.running) await prep.cleanup(id);
     return names;
   }
 
