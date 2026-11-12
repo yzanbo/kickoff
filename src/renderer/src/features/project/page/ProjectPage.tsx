@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { KanbanBoard } from "@/features/board/KanbanBoard";
 import { EditorTab } from "@/features/editor/EditorTab";
 import { HistoryTab } from "@/features/history/HistoryTab";
-import { DatabaseClient } from "@/features/database/DatabaseClient";
+import { LazyDatabaseClient } from "@/features/database/LazyDatabaseClient";
 import { GitHubTab } from "@/features/github/GitHubTab";
 import { MemoTab } from "@/features/memo/MemoTab";
 import { ChatsTab } from "@/features/panel/board/ChatsTab";
@@ -112,7 +112,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMem
       {/* メモ（プロジェクトの外のフォルダ。作業場所には関係しない）。別のプロジェクトを読み込んでいる途中は、URL で来たメモを渡さない */}
       {tab === "memos" && <MemoTab key={project.id} projectId={project.id} openMemo={stale ? undefined : openMemo} openMemoLine={openMemoLine} />}
       {/* DB クライアント（SQLite のファイルは、ファイル・検索・変更・履歴のタブで選んだ作業場所の中を開く） */}
-      {tab === "db" && <DatabaseClient key={project.id} projectId={project.id} place={`project-${project.id}`} worktree={worktree ?? null} />}
+      {tab === "db" && <LazyDatabaseClient key={project.id} projectId={project.id} place={`project-${project.id}`} worktree={worktree ?? null} />}
       {/* GitHub（連携先のリポジトリの issue・PR を読む） */}
       {tab === "github" && <GitHubTab key={project.id} projectId={project.id} />}
       </div>

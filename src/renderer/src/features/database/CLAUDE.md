@@ -78,6 +78,7 @@
 
 ## ER 図のタブ（`er/`）
 
+- DB クライアントそのものも、使う所（`ProjectPage`・`PanelTabPage`・`PopoutApp`）は `LazyDatabaseClient`（`lazy` と「読み込み中…」の `Suspense`）で読み、開くまで DB の画面と SQL の色付け（`@codemirror/lang-sql`）を読み込まない（仕様の「起動を遅くしない」。前は起動のときに読んでいた）。
 - `@xyflow/react`（図）と `elkjs`（自動で並べる計算。Web Worker の `elk-worker.min.js?url` で動かす）は、`DatabaseClient` が `ErView` を `lazy` で読むので、ER 図を開くまで読み込まない。xyflow の CSS も同じ塊に入る。
 - タブは接続と場所（DB・スキーマ）ごとに 1 つ（`DbErTab`。`lib/dbClientTabs.ts` の `openErTab` / `updateErTab`。キーは `erTabKey`）。まわりを見る中心 `focus`・段の数 `depth`（1・2・3・すべて = `ER_ALL_DEPTH`）・描くテーブル `names`（null なら全部）をタブに覚える（読み込み直しても残る）。開き直すと `focus` を付け替え、選んで描いているテーブルに `focus` がなければ選び直す。
 - 状態と操作は `useErDiagram`（構造 `api.dbEr` と覚えた位置 `api.dbErLayout` を読み、関係 `erRelations`（推測の切り替え）・まわり `erNeighborhood`・名前の絞り込みを当て、覚えた位置も自動の位置もないテーブルがあれば見せているものを `erLayout.ts` の `erAutoLayout`（elk の layered。左から右へ、指される親が右）で並べる。覚えた位置はそのまま使う）。テーブルが `DB_ER_AUTO_MAX`（100）個を超える DB では、初めは描かずに `ErPicker` で選ばせる。「この表のまわり」から開いたら、そのテーブルの詳細（`api.dbTable`）から直接つながるテーブルを選んで描く。
