@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { DockerContainer, DockerService } from "@shared/types";
-import { buildDockerList, composeKeyOf, logSourcesOf, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
+import { buildDockerList, composeKeyOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
 import type { ComposeConfig, RawContainer } from "./parse.js";
 
 const main: Workplace = { path: "/r/app", worktree_path: null, branch: "main" };
@@ -175,4 +175,16 @@ test("logSourcesOf: 数を増やしたサービスは番号付き、使い捨て
       ["r1", "db · 使い捨て", true, null],
     ],
   );
+});
+
+test("sharedMessage: 相手は作業場所の札・同じ作業場所の compose のファイル・ほかのプロジェクトのフォルダ名で出す", () => {
+  const composes: Record<string, { worktree_path: string | null; branch: string | null; file: string | null; project_name: string | null }> = {
+    m1: { worktree_path: null, branch: "main", file: "compose.yaml", project_name: "app" },
+    e1: { worktree_path: "/r/app-worktrees/feat-x", branch: "feat-x", file: "compose.e2e.yaml", project_name: "app" },
+  };
+  const of = (id: string) => composes[id];
+  const wt = { worktree_path: "/r/app-worktrees/feat-x" };
+  assert.equal(sharedMessage("app", [{ id: "m1", name: "app-db-1", dir: "/r/app" }], wt, of), "本体 | main の組と同じ名前（app）です。起動すると、そちらのコンテナが作り直されます");
+  assert.equal(sharedMessage("app", [{ id: "e1", name: "app-db-1", dir: "/r/app-worktrees/feat-x" }], wt, of), "同じ作業場所の compose.e2e.yaml の組と同じ名前（app）です。起動すると、そちらのコンテナが作り直されます");
+  assert.equal(sharedMessage("app", [{ id: "x", name: "app-db-1", dir: "/elsewhere/app" }, { id: "m1", name: "app-web-1", dir: "/r/app" }], wt, of), "ほかのプロジェクト（app）・本体 | main の組と同じ名前（app）です。起動すると、そちらのコンテナが作り直されます");
 });

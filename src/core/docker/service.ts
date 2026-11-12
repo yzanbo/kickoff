@@ -15,7 +15,7 @@ import { planDockerAction, type DockerStep } from "./actions.js";
 import { DockerCli, shellWord } from "./cli.js";
 import { ComposeConfigCache, findComposeFiles, upFilesFor } from "./compose.js";
 import { DockerEvents } from "./events.js";
-import { buildDockerList, headFileOf, logSourcesOf, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
+import { buildDockerList, headFileOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
 import { DOCKER_LOG_TAIL, readLog } from "./logs.js";
 import { PS_FORMAT, parsePs, starterOf, type RawContainer } from "./parse.js";
 import { allocatedPortOf, conflictLabel, hostPortsOf, portConflictsOf } from "./portConflict.js";
@@ -189,7 +189,8 @@ export class DockerService {
     const service = prev ? prev.service : (body.service ?? null);
     if (plan.usesUp && !body.confirm_shared) {
       const victims = sharedVictims(compose.key, compose.project_name, snap.containers, snap.owner);
-      if (victims.length) throw new Conflict(sharedMessage(compose.project_name ?? "", victims), DOCKER_SHARED_PROJECT);
+      const composeOf = (id: string) => snap.list.composes.find((x) => x.key === snap.owner.get(id));
+      if (victims.length) throw new Conflict(sharedMessage(compose.project_name ?? "", victims, compose, composeOf), DOCKER_SHARED_PROJECT);
     }
     this.failures.delete(compose.key);
     const op: DockerOperation = { action: body.action, service, started_at: new Date().toISOString(), cancellable: plan.steps.some((s) => s.stream) };
@@ -266,9 +267,3 @@ export class DockerService {
 const tail = (s: string) => s.split("\n").filter(Boolean).slice(-FAILURE_LINES).join("\n").trim() || "失敗しました";
 
 const pathExists = (p: string) => fs.existsSync(p);
-
-/** 同じ組になる起動の確かめの文 */
-function sharedMessage(name: string, victims: RawContainer[]): string {
-  const where = [...new Set(victims.map((v) => (v.dir ? path.basename(v.dir) : v.name)))].join("・");
-  return `${where} の組と同じ名前（${name}）です。起動すると、そちらのコンテナが作り直されます`;
-}

@@ -138,13 +138,17 @@ export function parseConfigHashes(out: string): Map<string, string> {
   return map;
 }
 
-/** サービスの行の印（全部動いていれば running。一部でも動いていれば running に数を添える。異常に終わったものが動いているものより先） */
+/**
+ * サービスの行の印（全部動いていれば running。数を増やしたサービスで一部でも動いていれば running（画面が「×3（2 個動いている）」と数を添える）。
+ * unhealthy・dead は動いていても failed。異常に終わったもの（exit が 0 でない）は、動いているものがないときだけ failed）
+ */
 export function serviceMark(containers: { state: DockerContainerState; exitCode: number | null; health: string | null }[]): DockerMark {
   if (containers.length === 0) return "none";
   if (containers.some((c) => c.state === "paused")) return "paused";
   if (containers.some((c) => c.state === "restarting" || c.state === "removing" || c.health === "starting")) return "starting";
-  if (containers.some((c) => c.health === "unhealthy" || c.state === "dead" || (c.state === "exited" && c.exitCode !== null && c.exitCode !== 0))) return "failed";
+  if (containers.some((c) => c.health === "unhealthy" || c.state === "dead")) return "failed";
   if (containers.some((c) => c.state === "running")) return "running";
+  if (containers.some((c) => c.state === "exited" && c.exitCode !== null && c.exitCode !== 0)) return "failed";
   if (containers.every((c) => c.state === "created")) return "created";
   return "stopped";
 }

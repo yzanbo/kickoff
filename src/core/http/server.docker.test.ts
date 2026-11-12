@@ -86,7 +86,7 @@ test("Docker: 別の作業場所と同じ組になる起動は 409 で確かめ�
   const denied = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
   assert.equal(denied.status, 409);
   assert.equal(denied.body.code, "docker_shared_project");
-  assert.match(denied.body.error, /作り直されます/);
+  assert.equal(denied.body.error, "ほかのプロジェクト（app）の組と同じ名前（app）です。起動すると、そちらのコンテナが作り直されます");
   const ok = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key, confirm_shared: true });
   assert.equal(ok.status, 202);
 });
@@ -192,6 +192,26 @@ test("Docker: ログの流れは最新の 500 行を追い、止まったら区�
     await session.sync();
     const stopped = events.find((e) => e.type === "stopped");
     assert.equal(stopped?.type === "stopped" && stopped.exit_code, 1);
+  } finally {
+    session.close();
+  }
+});
+
+test("Docker: ログの流れは、作り直された（同じ札の新しいコンテナ）ときも起動の区切りを入れて最新の 500 行から追う", async () => {
+  const s = setup();
+  s.dockerFake.set([{ match: "logs -f", stdout: "2026-11-13T01:00:00Z hello\n", hang: true }]);
+  const events: DockerLogEvent[] = [];
+  let id = "aaaaaaaaaaaa";
+  const source = () => [{ container: id, service: "db", label: "db", running: true, exit_code: null }];
+  const session = new DockerLogSession(s.docker.cli, async () => source(), (e) => events.push(e));
+  try {
+    await session.sync();
+    // 初めて開いたときは区切りを入れない
+    assert.equal(events.some((e) => e.type === "started"), false);
+    id = "bbbbbbbbbbbb";
+    await session.sync();
+    assert.ok(events.some((e) => e.type === "started" && e.container === "bbbbbbbbbbbb"));
+    await until(() => s.dockerFake.calls().some((x) => x.args.join(" ") === "logs -f --timestamps --tail 500 bbbbbbbbbbbb"));
   } finally {
     session.close();
   }
