@@ -10,8 +10,8 @@ export interface DbClientActions {
   worktreeOf(connectionId: number): string | null;
   /** ワークツリーにファイルがない接続を、本体のファイルで開き直す */
   useMain(connectionId: number): void;
-  /** テーブルのタブを開く（filter を渡せばその絞り込みで。外部キーで移るとき） */
-  openTable(connection: DbConnection, path: DbObjectPath, name: string, object: DbObjectKind, filter?: DbRowFilter): void;
+  /** テーブルのタブを開く（filter を渡せばその絞り込みで。外部キーで移るとき。preview なら仮のタブ（木で 1 回押したとき）） */
+  openTable(connection: DbConnection, path: DbObjectPath, name: string, object: DbObjectKind, filter?: DbRowFilter, preview?: boolean): void;
   openSql(connection: DbConnection): void;
   /** ER 図のタブを開く（focus があればそのテーブルのまわりだけ） */
   openEr(connection: DbConnection, path: DbObjectPath, focus: string | null): void;

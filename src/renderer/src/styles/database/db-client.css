@@ -281,6 +281,11 @@
   white-space: nowrap;
 }
 
+/* 仮のタブ（木で 1 回押して開いた。次に押したもので置き換わる。ダブルクリックで固定） */
+.db-tab.preview .db-tab-label {
+  font-style: italic;
+}
+
 /* コミットしていない変更がある SQL のタブ（琥珀の点） */
 .db-tab-pending {
   flex: none;

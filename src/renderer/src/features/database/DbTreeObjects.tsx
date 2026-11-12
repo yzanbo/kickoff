@@ -29,9 +29,11 @@ export function ObjectsNode({ connection: c, depth, path, tree }: { connection: 
 function ObjectNode({ connection: c, depth, path, object: o, tree }: { connection: DbConnection; depth: number; path: DbObjectPath; object: DbObject; tree: TreeOpen }) {
   const client = useDbClient();
   const Icon = OBJECT_ICONS[o.kind];
+  // 1 回押すと仮のタブ、ダブルクリックで固定
+  const preview = () => client.openTable(c, path, o.name, o.kind, undefined, true);
   const open = () => client.openTable(c, path, o.name, o.kind);
   if (o.kind !== "table" && o.kind !== "view") {
-    return <TreeRow depth={depth} icon={<Icon size={13} aria-hidden />} label={o.name} className="db-tree-object" onOpen={open} />;
+    return <TreeRow depth={depth} icon={<Icon size={13} aria-hidden />} label={o.name} className="db-tree-object" onOpen={preview} onPin={open} />;
   }
   const key = `t:${c.id}:${path.database ?? ""}:${path.schema ?? ""}:${o.name}`;
   const isOpen = tree.isOpen(key);
@@ -45,7 +47,8 @@ function ObjectNode({ connection: c, depth, path, object: o, tree }: { connectio
         label={o.name}
         className="db-tree-object"
         onToggle={() => tree.toggle(key)}
-        onOpen={open}
+        onOpen={preview}
+        onPin={open}
         onContextMenu={(e) => tree.menu(e, { connection: c, path, table: { name: o.name, kind: o.kind } })}
       />
       {isOpen && <TableChildren connection={c} depth={depth + 1} path={path} name={o.name} treeKey={key} tree={tree} onOpen={open} />}

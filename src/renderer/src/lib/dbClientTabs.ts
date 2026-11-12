@@ -12,6 +12,8 @@ export interface DbTableTab {
   object: DbObjectKind;
   /** データの絞り込み（なければ絞らない。外部キーで移ったときは参照先の値で絞って開く） */
   filter?: DbRowFilter;
+  /** 仮のタブ（木で 1 回押して開いた。次に木で押したもので置き換わる。ダブルクリック・絞り込みで固定） */
+  preview?: boolean;
 }
 
 /** SQL のタブ（タブごとに DB の接続を 1 本持つ。key はその接続の名前にも使う） */
@@ -79,7 +81,7 @@ const isTab = (v: unknown): v is DbClientTab => {
     const namesOk = t.names === null || (Array.isArray(t.names) && t.names.every((n) => typeof n === "string"));
     return isPath(t.path) && (t.focus === null || typeof t.focus === "string") && typeof t.depth === "number" && namesOk;
   }
-  return t.kind === "table" && typeof t.name === "string" && isPath(t.path) && DB_OBJECT_KINDS.includes(t.object as DbObjectKind) && (t.filter === undefined || isFilter(t.filter));
+  return t.kind === "table" && typeof t.name === "string" && isPath(t.path) && DB_OBJECT_KINDS.includes(t.object as DbObjectKind) && (t.filter === undefined || isFilter(t.filter)) && (t.preview === undefined || typeof t.preview === "boolean");
 };
 
 /** 保存した値を読む（形の合わないタブは捨てる。表示中のタブがなければ最初のタブ） */
@@ -107,18 +109,40 @@ export function openDbTab(state: DbClientTabs, tab: DbClientTab): DbClientTabs {
   return { tabs, active: tab.key };
 }
 
-/** テーブルのタブを開く（filter を渡せば、もうあるタブもその絞り込みにする） */
+/** テーブルのタブを固定して開く（もうある仮のタブも固定する。filter を渡せば、もうあるタブもその絞り込みにする） */
 export function openTableTab(state: DbClientTabs, tab: DbTableTab): DbClientTabs {
-  const opened = openDbTab(state, tab);
+  const opened = pinDbTab(openDbTab(state, tab), tab.key);
   if (!tab.filter) return opened;
   return { ...opened, tabs: opened.tabs.map((t) => (t.key === tab.key && t.kind === "table" ? { ...t, filter: tab.filter } : t)) };
 }
 
-/** テーブルのタブの絞り込みを変える（null なら外す） */
+/**
+ * テーブルのタブを仮のタブで開く（木で 1 回押したとき）: 同じキーがあれば選ぶだけ。いまの仮のタブを同じ場所で置き換え、なければ表示中のタブの右に足す。
+ * keep が true の仮のタブ（保存していない変更がある）は置き換えずに固定して、新しい仮のタブを足す
+ */
+export function openPreviewTab(state: DbClientTabs, tab: DbTableTab, keep: (key: string) => boolean = () => false): DbClientTabs {
+  if (state.tabs.some((t) => t.key === tab.key)) return { ...state, active: tab.key };
+  const next: DbTableTab = { ...tab, preview: true };
+  const current = state.tabs.find((t) => t.kind === "table" && t.preview);
+  if (current && !keep(current.key)) return { tabs: state.tabs.map((t) => (t === current ? next : t)), active: next.key };
+  return openDbTab(current ? pinDbTab(state, current.key) : state, next);
+}
+
+/** 仮のタブを固定する（仮でなければそのまま） */
+export function pinDbTab(state: DbClientTabs, key: string): DbClientTabs {
+  const found = state.tabs.find((t) => t.key === key);
+  if (!found || found.kind !== "table" || !found.preview) return state;
+  const { preview: _drop, ...pinned } = found;
+  void _drop;
+  return { ...state, tabs: state.tabs.map((t) => (t === found ? pinned : t)) };
+}
+
+/** テーブルのタブの絞り込みを変える（null なら外す。仮のタブは固定する） */
 export function setTableFilter(state: DbClientTabs, key: string, filter: DbRowFilter | null): DbClientTabs {
+  const pinned = pinDbTab(state, key);
   return {
-    ...state,
-    tabs: state.tabs.map((t) => {
+    ...pinned,
+    tabs: pinned.tabs.map((t) => {
       if (t.key !== key || t.kind !== "table") return t;
       if (filter) return { ...t, filter };
       const { filter: _drop, ...rest } = t;

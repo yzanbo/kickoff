@@ -23,6 +23,7 @@ export function TreeRow({
   openOnClick,
   onToggle,
   onOpen,
+  onPin,
   onContextMenu,
 }: {
   depth: number;
@@ -38,6 +39,8 @@ export function TreeRow({
   openOnClick?: boolean;
   onToggle?: () => void;
   onOpen?: () => void;
+  /** ダブルクリック（テーブル・ビュー・関数・列挙型は、1 回押すと仮のタブ・ダブルクリックで固定） */
+  onPin?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
   return (
@@ -52,7 +55,7 @@ export function TreeRow({
         if (onToggle) onToggle();
         else onOpen?.();
       }}
-      onDoubleClick={!openOnClick && onToggle && onOpen ? onOpen : undefined}
+      onDoubleClick={onPin ?? (!openOnClick && onToggle && onOpen ? onOpen : undefined)}
       onKeyDown={(e) => {
         if (!onToggle || open === undefined) return;
         if ((e.key === "ArrowRight" && !open) || (e.key === "ArrowLeft" && open)) {

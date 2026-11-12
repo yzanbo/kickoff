@@ -10,7 +10,9 @@ import {
   openErTab,
   openMemoTab,
   openNewSqlTab,
+  openPreviewTab,
   openTableTab,
+  pinDbTab,
   renameMemoTab,
   setTableFilter,
   tableTabKey,
@@ -93,8 +95,10 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     place,
     worktreeOf: (id) => (mainOnly.has(id) ? null : worktree),
     useMain: (id) => setMainOnly((s) => new Set([...s, id])),
-    openTable: (c, path, name, object, filter) => {
-      setState(openTableTab(state, { key: tableTabKey(c.id, path, name, object), kind: "table", connection_id: c.id, path, name, object, ...(filter ? { filter } : {}) }));
+    openTable: (c, path, name, object, filter, preview) => {
+      const tab = { key: tableTabKey(c.id, path, name, object), kind: "table" as const, connection_id: c.id, path, name, object, ...(filter ? { filter } : {}) };
+      // 仮のタブは、保存していない変更があれば置き換えずに残す
+      setState(preview ? openPreviewTab(state, tab, (key) => unsavedTables.has(unsavedKey(place, key))) : openTableTab(state, tab));
       setOverlay(false);
     },
     openSql: (c) => {
@@ -175,8 +179,14 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
             {state.tabs.map((t) => {
               const c = byId.get(t.connection_id);
               return (
-                <div key={t.key} className={cx("db-tab", t.key === state.active && "active", c && `db-env-${c.environment}`)} role="tab" aria-selected={t.key === state.active}>
-                  <button type="button" className="db-tab-name" title={tabTitle(t, c)} onClick={() => setState({ ...state, active: t.key })}>
+                <div key={t.key} className={cx("db-tab", t.key === state.active && "active", t.kind === "table" && t.preview && "preview", c && `db-env-${c.environment}`)} role="tab" aria-selected={t.key === state.active}>
+                  <button
+                    type="button"
+                    className="db-tab-name"
+                    title={t.kind === "table" && t.preview ? `${tabTitle(t, c)}\n仮のタブ（ダブルクリックで固定）` : tabTitle(t, c)}
+                    onClick={() => setState({ ...state, active: t.key })}
+                    onDoubleClick={() => setState(pinDbTab(state, t.key))}
+                  >
                     <span className="db-env-dot" aria-hidden />
                     <DbTabIcon tab={t} />
                     <span className="db-tab-label">{tabLabel(t)}</span>
