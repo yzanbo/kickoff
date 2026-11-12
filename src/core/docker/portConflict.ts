@@ -1,4 +1,5 @@
 // ポートの取り合いの純粋な関数: up の失敗の文からぶつかったポート・Docker 同士の相手・静かなぶつかり（lsof）・Homebrew のサービス
+import { workplaceText } from "@shared/docker/workplace";
 import type { DockerPortConflict, DockerSilentConflict } from "@shared/types";
 import type { RawContainer } from "./parse.js";
 import { parsePorts } from "./parse.js";
@@ -105,8 +106,7 @@ export function conflictLabel(
 ): string {
   const mine = composeOf(c.id);
   if (mine) {
-    const place = mine.worktree_path === null ? `本体${mine.branch ? ` | ${mine.branch}` : ""}` : `WT | ${mine.branch ?? mine.worktree_path.split("/").pop()}`;
-    return `${place} の ${c.service ?? c.name}`;
+    return `${workplaceText(mine.worktree_path, mine.branch)} の ${c.service ?? c.name}`;
   }
   if (c.project) return `${c.dir ? c.dir.split("/").pop() : c.project}（ほかのプロジェクト）の ${c.service ?? c.name}`;
   return `${c.name}（compose の外で作ったコンテナ）`;

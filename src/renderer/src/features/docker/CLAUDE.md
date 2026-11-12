@@ -32,8 +32,9 @@
 
 ## 表示の文（純粋な関数。テストは隣の `*.test.ts`）
 
-- `dockerView.ts`: 作業場所の文 `workplaceText`・印の文字 `MARK_GLYPHS`・様子の文 `serviceStatusText`・ポート `servicePorts`・使い捨てのまとめ `oneoffSummary`・同じ組の ⚠ の文 `shareText`・シェルのコマンド `shellCommand`・ほかのプロジェクトの説明 `othersTip`・ポートの取り合いの文 `conflictText` / `stopOthersLabel` / `silentText`・出していないポート `unpublishedPorts`。
+- `dockerView.ts`: 印の文字 `MARK_GLYPHS`・様子の文 `serviceStatusText`・ポート `servicePorts`・使い捨てのまとめ `oneoffSummary`・同じ組の ⚠ の文 `shareText`・シェルのコマンド `shellCommand`・ほかのプロジェクトの説明 `othersTip`・ポートの取り合いの文 `conflictText` / `stopOthersLabel` / `silentText`・出していないポート `unpublishedPorts`。
 - `dockerLogView.ts`: 行の並べ方 `mergeRows`・時刻 `normTs` / `fillTs` / `clockOf`・札 `chipOf` / `logChips`・エラーと警告 `logLevelOf`・JSON `prettyJson`・区切りの文 `separatorText`・AI に渡す文 `logQuote` / `rowText` / `logCaptureLabel`・前後の行 `aroundRow`。
+- 作業場所の文（「本体 | main」）はコアと同じ `@shared/docker/workplace` の `workplaceText`。
 - `ansi.ts`: 色のまとまり `ansiSpans`・色の印を外す `stripAnsi`・見つけた所の印 `markSpans`。
 
 API の窓口は `api/docker.ts`。CSS は `styles/docker/docker-list.css`（一覧）・`docker-ports.css`（ポートの ⚠ とぶつかりの文）・`docker-logs.css`（ログの画面）・`docker-ansi.css`（ログの色）。

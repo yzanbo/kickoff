@@ -4,6 +4,7 @@ import path from "node:path";
 import type { RawContainer } from "../../docker/parse.js";
 import { deepestWorkplace } from "../../docker/parse.js";
 import type { Workplace } from "../../docker/listing.js";
+import { workplaceText } from "@shared/docker/workplace";
 import { isInside } from "../../system/paths.js";
 import { dockerIntents, type ComposeSub, type ContainerVerb, type DockerIntent } from "./dockerCommand.js";
 
@@ -57,8 +58,8 @@ const VERB_TEXT: Record<ContainerVerb | ComposeSub, string> = {
 
 /** 作業場所の呼び名（「本体 | main」「WT | feat-x」）と短い呼び名（「本体（main）」） */
 function placeOf(w: Workplace): { long: string; short: string } {
-  const name = w.branch ?? path.basename(w.path);
-  return w.worktree_path === null ? { long: `本体${w.branch ? ` | ${w.branch}` : ""}`, short: `本体${w.branch ? `（${w.branch}）` : ""}` } : { long: `WT | ${name}`, short: `WT（${name}）` };
+  const long = workplaceText(w.worktree_path === null ? null : w.path, w.branch);
+  return { long, short: long.replace(/ \| (.+)$/, "（$1）") };
 }
 
 /** ほかのプロジェクトの呼び名 */
