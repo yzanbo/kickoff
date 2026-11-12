@@ -11,7 +11,9 @@ import { RefreshButton } from "@/ui/IconButton";
 import { Popover } from "@/ui/Popover";
 import { SearchField } from "@/ui/SearchField";
 import { Segmented } from "@/ui/Segmented";
+import { AskAiButton } from "@/features/database/DbAiButtons";
 import { useDbClient } from "@/features/database/dbClientContext";
+import { ErImageButton } from "./ErImageButton";
 import { ErPicker } from "./ErPicker";
 import type { ErDetail } from "./erLayout";
 import { ER_ALL_DEPTH, type ErDiagramState, type ErTabPatch } from "./useErDiagram";
@@ -30,7 +32,7 @@ const DEPTHS = [
 
 /**
  * ER 図の道具の行: 名前の絞り込み・まわりの段（中心のテーブルがあるとき）・表示の細かさ・推測の関係・テーブルを選ぶ・
- * 自動で並べ直す・Mermaid でコピー・メモに書き出す・読み直す
+ * 自動で並べ直す・Mermaid でコピー・メモに書き出す・画像で保存（SVG / PNG）・見えているテーブルについてチャットで聞く・読み直す
  */
 export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; connection: DbConnection; er: ErDiagramState; onChange: (patch: ErTabPatch) => void }) {
   const client = useDbClient();
@@ -39,6 +41,8 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
   const [copied, setCopied] = useState(false);
   const names = er.schema?.names ?? [];
 
+  // 書き出すメモ・画像の名前
+  const title = `ER 図 ${connection.name} ${erPlace(tab.path)}${tab.focus ? ` ${tab.focus}` : ""}`;
   const mermaid = () => erMermaid(er.shown, er.shownRelations, er.detail);
   const copy = async () => {
     await navigator.clipboard.writeText(mermaid());
@@ -49,7 +53,7 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
     try {
       const list = await api.memos(client.projectId);
       const taken = list.entries.filter((e) => !e.dir && !e.path.includes("/")).map((e) => e.path.replace(/\.md$/i, ""));
-      const name = uniqueMemoName(safeMemoName(`ER 図 ${connection.name} ${erPlace(tab.path)}${tab.focus ? ` ${tab.focus}` : ""}`), taken);
+      const name = uniqueMemoName(safeMemoName(title), taken);
       const where = [connection.name, tab.path.database, tab.path.schema].filter(Boolean).join(" / ");
       const content = `# ER 図: ${where}${tab.focus ? `（${tab.focus} のまわり）` : ""}\n\n\`\`\`mermaid\n${mermaid()}\n\`\`\`\n`;
       const path = `${name}.md`;
@@ -98,6 +102,8 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
       <button type="button" className="btn btn-sm" disabled={er.shown.length === 0} onClick={() => void exportMemo()} data-tip="見えているテーブルを Mermaid の図にして、このプロジェクトのメモに書き出す">
         <FileText size={13} aria-hidden /> メモに書き出す
       </button>
+      <ErImageButton er={er} name={title} />
+      <AskAiButton connection={connection} path={tab.path} tables={er.shown.map((t) => t.name)} label="チャットで聞く" />
       <RefreshButton label="構造を読み直す" busy={er.loading} onClick={er.reload} />
       {picking && (
         <Popover anchor={pickAnchor} align="end" label="描くテーブル" title="描くテーブル" className="db-er-pick-popover" onClose={() => setPicking(false)}>

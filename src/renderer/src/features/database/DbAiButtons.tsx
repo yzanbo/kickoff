@@ -43,7 +43,7 @@ export function AskAiButton({ connection, path, tables, label = "AI に聞く" }
       confirmLabel: "チャットで聞く",
     });
     if (!question?.trim()) return;
-    await startDbChat(client.projectId, dbAskPrompt(connection, place, tables, question), `DB「${tables.join("・")}」について`).catch(reportFailure("チャットを作れませんでした"));
+    await startDbChat(client.projectId, dbAskPrompt(connection, place, tables, question), `DB「${tables.length > 3 ? `${tables.slice(0, 3).join("・")} ほか ${tables.length - 3} 個` : tables.join("・")}」について`).catch(reportFailure("チャットを作れませんでした"));
   };
   return (
     <button type="button" className="btn btn-sm" disabled={hidden || tables.length === 0} onClick={() => void ask()} data-tip={hidden ? AI_HIDDEN_TIP : "聞きたいことを新しいチャットで AI に聞く"}>
