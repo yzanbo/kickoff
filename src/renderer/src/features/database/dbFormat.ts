@@ -3,17 +3,22 @@ import type { DbConnection, DbEngine, DbObjectPath, DbSort, DbValue } from "@sha
 import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { formatBytes } from "@/lib/format";
 
-/** セルに出す文（NULL・バイナリの札・真偽値・長い文字は頭と「…」） */
+/** セルに出す文（NULL・バイナリの札・空文字は「（空文字）」・真偽値・長い文字は頭と「…」） */
 export function cellText(value: DbValue): string {
   if (value === null) return "NULL";
+  if (value === "") return EMPTY_TEXT_LABEL;
   if (isDbBinary(value)) return `バイナリ ${formatBytes(value.bytes)}`;
   if (isDbLongText(value)) return `${value.head}…`;
   return String(value);
 }
 
-/** セルの値の種類（見た目のクラスに使う。NULL・バイナリは薄く、数は右寄せ） */
-export function cellKind(value: DbValue): "null" | "binary" | "number" | "text" {
+/** 空文字のセルに出す札（NULL と見分ける。行の詳細と同じ言葉） */
+export const EMPTY_TEXT_LABEL = "（空文字）";
+
+/** セルの値の種類（見た目のクラスに使う。NULL・バイナリ・空文字は薄く、数は右寄せ） */
+export function cellKind(value: DbValue): "null" | "binary" | "empty" | "number" | "text" {
   if (value === null) return "null";
+  if (value === "") return "empty";
   if (isDbBinary(value)) return "binary";
   if (typeof value === "number") return "number";
   return "text";

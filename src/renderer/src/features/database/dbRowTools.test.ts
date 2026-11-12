@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { DbColumnInfo, DbValue } from "@shared/types";
-import { detailText, exportRows, foreignKeysByColumn, hasLongValue, linkFilters, rowKeyFilters, valueFilter } from "./dbRowTools";
+import { columnKeysOf, detailText, exportRows, foreignKeysByColumn, hasLongValue, linkFilters, rowKeyFilters, valueFilter } from "./dbRowTools";
 
 const cols: DbColumnInfo[] = [
   { name: "id", type: "integer" },
@@ -64,4 +64,12 @@ test("頭だけの長い文字: 絞れない・行の詳細は頭と「…」・
   assert.equal(rowKeyFilters(cols, [3, null, long], ["note"]), null);
   assert.equal(rowKeyFilters(cols, [3, null, long], null), null);
   assert.equal(rowKeyFilters(cols, [3, null, long], ["nope"]), null);
+});
+
+test("columnKeysOf: 主キーの列と、外部キーの列ごとの参照先（複数の列の外部キーは対応する列を）", () => {
+  const col = (name: string, primary_key = false) => ({ name, type: "int", nullable: false, default: null, primary_key, comment: null });
+  const fk = (columns: string[], ref_table: string, ref_columns: string[], ref_schema: string | null = null) => ({ name: null, columns, ref_schema, ref_table, ref_columns, on_update: null, on_delete: null });
+  const keys = columnKeysOf({ columns: [col("id", true), col("user_id"), col("a"), col("b")], foreign_keys: [fk(["user_id"], "users", ["id"], "public"), fk(["a", "b"], "pairs", ["x", "y"])] });
+  assert.deepEqual([...keys.primary], ["id"]);
+  assert.deepEqual(Object.fromEntries(keys.foreign), { user_id: "public.users.id", a: "pairs.x", b: "pairs.y" });
 });

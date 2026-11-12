@@ -1,5 +1,5 @@
 import { ArrowDownAZ, Columns3, Eye, KeyRound, Link, ListOrdered, SquareFunction, Table2, Zap, type LucideIcon } from "lucide-react";
-import type { DbConnection, DbObject, DbObjectKind, DbObjectPath, DbTableDetail } from "@shared/types";
+import { DB_OBJECT_KIND_LABELS, DB_OBJECT_KINDS, type DbConnection, type DbObject, type DbObjectKind, type DbObjectPath, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
 import { useDbClient } from "./dbClientContext";
 import { estimatedRowsLabel } from "./dbFormat";
@@ -14,7 +14,7 @@ export function TabObjectIcon({ object }: { object: DbObjectKind }) {
 }
 
 /**
- * テーブル・ビュー・関数・列挙型の一覧。名前を押すとタブを開く。
+ * テーブル・ビュー・関数・列挙型の一覧（種類ごとの段に数を添えて分ける）。名前を押すとタブを開く。
  * テーブル・ビューは矢印（→ / ←）で中の段（列・インデックス・外部キー・トリガー）を開く
  */
 export function ObjectsNode({ connection: c, depth, path, tree }: { connection: DbConnection; depth: number; path: DbObjectPath; tree: TreeOpen }) {
@@ -24,7 +24,24 @@ export function ObjectsNode({ connection: c, depth, path, tree }: { connection: 
   if (objects.loading) return <TreeHint depth={depth}>読み込み中…</TreeHint>;
   if (objects.error) return <TreeError depth={depth} error={objects.error} connection={c} />;
   if (objects.value?.length === 0) return <TreeHint depth={depth}>テーブルがありません</TreeHint>;
-  return <>{objects.value?.map((o) => <ObjectNode key={`${o.kind}:${o.name}`} connection={c} depth={depth} path={path} object={o} tree={tree} />)}</>;
+  // 種類ごとの段（テーブル 12・ビュー 3 …）に分ける。中身のない種類は出さない。初めは開いておく（閉じた段だけ覚える）
+  return (
+    <>
+      {DB_OBJECT_KINDS.map((kind) => {
+        const items = objects.value?.filter((o) => o.kind === kind) ?? [];
+        if (items.length === 0) return null;
+        const closedKey = `k:${c.id}:${path.database ?? ""}:${path.schema ?? ""}:${kind}:closed`;
+        const open = !tree.isOpen(closedKey);
+        const Icon = OBJECT_ICONS[kind];
+        return (
+          <div key={kind}>
+            <TreeRow depth={depth} open={open} icon={<Icon size={12} aria-hidden />} label={DB_OBJECT_KIND_LABELS[kind]} note={items.length.toLocaleString()} className="db-tree-group" onToggle={() => tree.toggle(closedKey)} />
+            {open && items.map((o) => <ObjectNode key={`${o.kind}:${o.name}`} connection={c} depth={depth + 1} path={path} object={o} tree={tree} />)}
+          </div>
+        );
+      })}
+    </>
+  );
 }
 
 function ObjectNode({ connection: c, depth, path, object: o, tree }: { connection: DbConnection; depth: number; path: DbObjectPath; object: DbObject; tree: TreeOpen }) {

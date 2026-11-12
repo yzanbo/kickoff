@@ -11,7 +11,7 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { StatusDot } from "@/ui/StatusDot";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useDbClient } from "./dbClientContext";
-import { connectionPlace } from "./dbFormat";
+import { connectionPlace, ENGINE_MARKS } from "./dbFormat";
 import { isPinned, togglePin } from "./dbPins";
 import { ObjectsNode } from "./DbTreeObjects";
 import { PinnedObjects } from "./DbTreePins";
@@ -76,11 +76,21 @@ function ConnectionNode({ connection: c, connected, isOpen, toggle, menu, onMenu
       <TreeRow
         depth={0}
         open={open}
+        // 左の色の線が環境、頭の短い印が DB の種類（Pg / My / Lt。商標のロゴは使わない）
         className={cx("db-tree-connection", `db-env-${c.environment}`)}
-        icon={<span className="db-env-dot" aria-hidden />}
+        icon={
+          <span className="db-engine-mark" aria-label={DB_ENGINE_LABELS[c.engine]}>
+            {ENGINE_MARKS[c.engine]}
+          </span>
+        }
         label={c.name}
         mark={
           <>
+            {c.read_only && (
+              <span className="db-tree-lock" data-tip="読み取り専用（書く文は流しません）" aria-label="読み取り専用">
+                <Lock size={11} aria-hidden />
+              </span>
+            )}
             {connected && (
               <span className="db-tree-connected" data-tip="つないでいます（右クリックの「接続を切る」で切れます）" aria-label="つないでいます">
                 <StatusDot tone="ok" />
@@ -98,16 +108,11 @@ function ConnectionNode({ connection: c, connected, isOpen, toggle, menu, onMenu
             )}
           </>
         }
-        note={c.read_only ? undefined : DB_ENVIRONMENT_LABELS[c.environment]}
+        note={DB_ENVIRONMENT_LABELS[c.environment]}
         title={`${c.name}（${DB_ENGINE_LABELS[c.engine]} · ${DB_ENVIRONMENT_LABELS[c.environment]}${c.read_only ? " · 読み取り専用" : ""}）\n${connectionPlace(c)}`}
         onToggle={() => toggle(key)}
         onContextMenu={onMenu}
       />
-      {open && c.read_only && (
-        <div className="db-tree-badge" style={{ paddingLeft: 26 }}>
-          <Lock size={11} aria-hidden /> 読み取り専用 · {DB_ENVIRONMENT_LABELS[c.environment]}
-        </div>
-      )}
       {open && <PinnedObjects connection={c} tree={{ isOpen, toggle, menu }} />}
       {open && dbs.loading && <TreeHint depth={1}>読み込み中…</TreeHint>}
       {open && dbs.error && <TreeError depth={1} error={dbs.error} connection={c} onRetry={() => setAttempt((n) => n + 1)} />}

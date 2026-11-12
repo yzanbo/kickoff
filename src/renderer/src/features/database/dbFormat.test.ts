@@ -13,6 +13,9 @@ test("cellText / cellKind: NULL・バイナリの札・数・文字", () => {
   assert.equal(cellKind({ long: true, head: "ab", chars: 20_000 }), "text");
   assert.equal(cellKind(1.5), "number");
   assert.equal(cellKind("a"), "text");
+  // 空文字は NULL と見分ける札
+  assert.equal(cellText(""), "（空文字）");
+  assert.equal(cellKind(""), "empty");
 });
 
 test("connectionPlace: SQLite はファイル、ほかはユーザー@ホスト:ポート/DB（ないものは省く）", () => {

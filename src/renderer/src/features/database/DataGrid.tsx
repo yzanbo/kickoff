@@ -1,9 +1,10 @@
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpRight, KeyRound } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { DbColumnInfo, DbSort, DbValue } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey, isSubmitKey } from "@/lib/keys";
 import { cellKind, cellText } from "./dbFormat";
+import type { ColumnKeys } from "./dbRowTools";
 import { editableText, type TableCellState, type TableRowState } from "./tableEdits";
 
 /** 行の高さ（見えている所だけ描くので、どの行も同じ高さにする） */
@@ -50,6 +51,7 @@ export function DataGrid({
   onCellMenu,
   edit,
   pickRequest,
+  keys,
 }: {
   columns: DbColumnInfo[];
   rows: DbValue[][];
@@ -63,6 +65,8 @@ export function DataGrid({
   edit?: DataGridEdit;
   /** このセルを選んで見せる（足した行など。新しい物を渡すたびに） */
   pickRequest?: { row: number; col: number } | null;
+  /** 見出しに 🔑 主キー・↗ 外部キーを出す列（テーブルのタブだけ。SQL の結果はどのテーブルの列か分からないので渡さない） */
+  keys?: ColumnKeys;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ top: 0, height: 400, left: 0, width: 1200 });
@@ -145,7 +149,8 @@ export function DataGrid({
       const value = rows[picked.row]?.[picked.col];
       if (value === undefined) return;
       e.preventDefault();
-      void navigator.clipboard.writeText(value === null ? "" : cellText(value));
+      // NULL・空文字は空で写す（札の文を写さない）
+      void navigator.clipboard.writeText(value === null || value === "" ? "" : cellText(value));
       return;
     }
     if (edit && (isKey(e, "Enter") || isKey(e, "F2"))) {
@@ -185,8 +190,13 @@ export function DataGrid({
           const c = columns[i];
           const s = sort?.find((x) => x.column === c.name);
           const order = s && sort && sort.length > 1 ? sort.indexOf(s) + 1 : null;
+          const pk = keys?.primary.has(c.name) ?? false;
+          const fk = keys?.foreign.get(c.name);
+          const keyNote = [pk ? "主キー" : null, fk ? `外部キー → ${fk}` : null].filter(Boolean).join(" · ");
           const label = (
             <>
+              {pk && <KeyRound size={11} className="db-grid-pk" aria-label="主キー" />}
+              {fk && <ArrowUpRight size={11} className="db-grid-fk" aria-label={`外部キー → ${fk}`} />}
               <span className="db-grid-col-name">{c.name}</span>
               {c.type && <span className="db-grid-col-type">{c.type}</span>}
               {s && (s.desc ? <ArrowDown size={11} aria-label="降順" /> : <ArrowUp size={11} aria-label="昇順" />)}
@@ -194,11 +204,11 @@ export function DataGrid({
             </>
           );
           return onSort ? (
-            <button key={i} type="button" role="columnheader" className="db-grid-col" style={{ gridColumn: i + 2 }} aria-colindex={i + 1} title={`${c.name}${c.type ? `（${c.type}）` : ""} で並べ替え（⇧ を押しながらで並べ替えに足す）`} onClick={(e) => onSort(c.name, e.shiftKey)}>
+            <button key={i} type="button" role="columnheader" className="db-grid-col" style={{ gridColumn: i + 2 }} aria-colindex={i + 1} title={`${c.name}${c.type ? `（${c.type}）` : ""}${keyNote ? ` ${keyNote}` : ""} で並べ替え（⇧ を押しながらで並べ替えに足す）`} onClick={(e) => onSort(c.name, e.shiftKey)}>
               {label}
             </button>
           ) : (
-            <span key={i} role="columnheader" className="db-grid-col" style={{ gridColumn: i + 2 }} aria-colindex={i + 1} title={c.type ? `${c.name}（${c.type}）` : c.name}>
+            <span key={i} role="columnheader" className="db-grid-col" style={{ gridColumn: i + 2 }} aria-colindex={i + 1} title={`${c.type ? `${c.name}（${c.type}）` : c.name}${keyNote ? ` ${keyNote}` : ""}`}>
               {label}
             </span>
           );

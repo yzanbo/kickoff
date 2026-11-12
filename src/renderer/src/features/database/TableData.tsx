@@ -14,7 +14,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { CsvImportDialog } from "./CsvImportDialog";
 import { DataGrid, type DataGridEdit } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
-import { DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, hasLongValue, hasUnreadImage, type DbExportFormat } from "./dbRowTools";
+import { columnKeysOf, DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, hasLongValue, hasUnreadImage, type DbExportFormat } from "./dbRowTools";
 import { TableCellMenu } from "./TableCellMenu";
 import { TableEditBar } from "./TableEditBar";
 import { addInserts, displayRows, setCell, setInsertCell } from "./tableEdits";
@@ -73,6 +73,8 @@ export function TableData({
   const onPickRow = useCallback((row: number | null) => setPickedRow(row), []);
 
   const columns = useMemo(() => detail?.columns.map((c) => c.name) ?? data.result?.columns.map((c) => c.name) ?? [], [detail, data.result]);
+  // 見出しの 🔑 主キー・↗ 外部キー
+  const keys = useMemo(() => (detail ? columnKeysOf(detail) : undefined), [detail]);
   const result = data.result;
   const { edits, keyColumns, writable } = edit;
   const display = useMemo(() => (result ? displayRows(result.columns, result.rows, keyColumns, edits) : null), [result, keyColumns, edits]);
@@ -153,6 +155,7 @@ export function TableData({
             onCellMenu={(e, row, col) => menu.open(e, { row, col })}
             edit={gridEdit}
             pickRequest={pickRequest}
+            keys={keys}
           />
         )}
         {result && showDetail && (
