@@ -5,7 +5,7 @@ import { api } from "@/api";
 import type { DbTableTab } from "@/lib/dbClientTabs";
 import { useDbClient } from "./dbClientContext";
 import { nextSort } from "./dbFormat";
-import { hasLongValue, rowKeyFilters } from "./dbRowTools";
+import { hasLongValue, hasUnreadImage, rowKeyFilters } from "./dbRowTools";
 
 const NO_FILTER: DbRowFilter = { filters: [], where: null };
 
@@ -46,7 +46,7 @@ export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree
   }, [tab.key, connection.id, worktree, sort, nonce, filterKey]);
 
   /**
-   * 頭だけの長い文字がある行（indexes の中）を全体のまま読み直して差し替え、差し替えたあとの行を返す
+   * 頭だけの長い文字・まだ中身を読んでいない画像がある行（indexes の中）を全体のまま読み直して差し替え、差し替えたあとの行を返す
    * （キーの列がない・読めなかった行は頭のまま。読み直している間に取り直したら null）
    */
   const fill = async (indexes: number[], keyColumns: string[] | null): Promise<DbValue[][] | null> => {
@@ -56,7 +56,7 @@ export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree
     let changed = false;
     for (const i of indexes) {
       const row = rows[i];
-      if (!row || !hasLongValue(row)) continue;
+      if (!row || !(hasLongValue(row) || hasUnreadImage(row))) continue;
       const filters = rowKeyFilters(base.columns, row, keyColumns);
       if (!filters) continue;
       try {
@@ -83,7 +83,7 @@ export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree
     result,
     loading,
     error,
-    sortBy: (column: string) => setSort((s) => nextSort(s, column)),
+    sortBy: (column: string, add = false) => setSort((s) => nextSort(s, column, add)),
     more: () => result && void load(result.rows.length, result),
     reload: () => {
       setEvicted(false);

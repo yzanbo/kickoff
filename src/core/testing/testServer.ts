@@ -254,7 +254,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   });
   // DB クライアントは同じプロセスのワーカーで動かす（中身は本物と同じ。dataDir は Kickoff 自身の保存先の代わり）
   const dbFake = { dataDir: tempDir() };
-  const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), vault: new DbSecretVault(store, opts.secretCipher ?? null), dataDir: dbFake.dataDir, exportRoot: tempDir() });
+  const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), vault: new DbSecretVault(store, opts.secretCipher ?? null), dataDir: dbFake.dataDir, exportRoot: tempDir(), publish: (e) => bus.publish(e) });
   // GitHub タブ: 連携先と GitHub の答えは偽物（graphql / rest / pages を差し替える。聞いたものは calls に残る）
   const ghFake = {
     target: { host: "github.com", repo: "o/r", headOwner: "o" } as GitHubTarget | null,

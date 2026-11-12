@@ -135,10 +135,15 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
   const tunnels = createTunnels({
     onCommandRun: (spec, ok) => emit({ event: "prep_run", connection_id: spec.connection_id, kind: "tunnel", command: spec.command, ok }),
   });
-  /** 接続を閉じ、使っていたトンネルを返す */
-  const closeSession = async (open: OpenSession) => {
+  /** 名前の接続を覚えから外して閉じ、使っていたトンネルを返す（閉じたことをコアに知らせる。接続の状態の知らせ） */
+  const dropSession = async (name: string) => {
+    const open = sessions.get(name);
+    if (!open) return false;
+    sessions.delete(name);
+    emit({ event: "session", name, open: false });
     await open.driver.close().catch(() => {});
     if (open.tunnel) tunnels.release(open.tunnel);
+    return true;
   };
   /** 流している頼み（id → 使っている接続。止めるときに使う） */
   const running = new Map<number, DbDriver>();
@@ -153,11 +158,11 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
     }
     if (open) {
       if (open.driver.alive() && open.driver.inTransaction()) throw new Error("トランザクションの途中なので、つなぎ方を変えられません。先にコミットか取り消しをしてください");
-      sessions.delete(name);
-      await closeSession(open);
+      await dropSession(name);
     }
     const { driver, tunnel } = await openVia(target, tunnels, prep);
     sessions.set(name, { driver, tunnel, fingerprint, usedAt: now() });
+    emit({ event: "session", name, open: true });
     return driver;
   };
   const existing = (name: string) => {
@@ -216,19 +221,10 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
         return { in_transaction: driver?.inTransaction() ?? false };
       }),
     // 閉じるのは待たない（流している文ごと閉じる）
-    close: async ({ session }) => {
-      const open = sessions.get(session);
-      sessions.delete(session);
-      if (open) await closeSession(open);
-      return { closed: Boolean(open) };
-    },
+    close: async ({ session }) => ({ closed: await dropSession(session) }),
     closeMatching: async ({ prefixes, cleanup_for }) => {
       const names = [...sessions.keys()].filter((name) => prefixes.some((p) => name.startsWith(p)));
-      for (const name of names) {
-        const open = sessions.get(name)!;
-        sessions.delete(name);
-        await closeSession(open);
-      }
+      for (const name of names) await dropSession(name);
       if (cleanup_for !== undefined) await prep.cleanup(cleanup_for);
       return { closed: names.length };
     },
@@ -245,8 +241,7 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
 
   /** すべての接続とトンネルを閉じ、準備した接続の後片付けを流す */
   async function closeAll() {
-    for (const { driver } of sessions.values()) await driver.close().catch(() => {});
-    sessions.clear();
+    for (const name of [...sessions.keys()]) await dropSession(name);
     tunnels.closeAll();
     await prep.cleanupAll();
   }
@@ -260,11 +255,7 @@ export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdl
     const names = [...sessions.entries()]
       .filter(([, open]) => now() - open.usedAt >= sessionIdleMs && !busy.has(open.driver) && !(open.driver.alive() && open.driver.inTransaction()))
       .map(([name]) => name);
-    for (const name of names) {
-      const open = sessions.get(name)!;
-      sessions.delete(name);
-      await closeSession(open);
-    }
+    for (const name of names) await dropSession(name);
     return names;
   }
 

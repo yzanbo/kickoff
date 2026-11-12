@@ -5,8 +5,10 @@ import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@sha
 import { api } from "@/api";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
+import { useDbConnectedIds } from "@/stores/dbConnections";
 import { dbTreeOpen } from "@/lib/storageKeys";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { StatusDot } from "@/ui/StatusDot";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useDbClient } from "./dbClientContext";
 import { connectionPlace } from "./dbFormat";
@@ -25,10 +27,11 @@ export function DbTree({ connections, onConnectionMenu }: { connections: DbConne
   const toggle = (key: string) => setOpenList(isOpen(key) ? openList.filter((k) => k !== key) : [...openList, key]);
   const menu = useContextMenu<TreeMenuTarget>();
   const target = menu.menu?.value;
+  const connected = useDbConnectedIds(client.projectId).data;
   return (
     <div className="db-tree" role="tree">
       {connections.map((c) => (
-        <ConnectionNode key={c.id} connection={c} isOpen={isOpen} toggle={toggle} menu={menu.open} onMenu={(e) => onConnectionMenu(e, c)} />
+        <ConnectionNode key={c.id} connection={c} connected={connected?.includes(c.id) ?? false} isOpen={isOpen} toggle={toggle} menu={menu.open} onMenu={(e) => onConnectionMenu(e, c)} />
       ))}
       {menu.menu && target && (
         <PopupMenu at={menu.menu.at} label={target.table ? "テーブルのメニュー" : "DB のメニュー"} onClose={menu.close}>
@@ -50,7 +53,7 @@ interface NodeProps extends TreeOpen {
   connection: DbConnection;
 }
 
-function ConnectionNode({ connection: c, isOpen, toggle, menu, onMenu }: NodeProps & { onMenu: (e: React.MouseEvent) => void }) {
+function ConnectionNode({ connection: c, connected, isOpen, toggle, menu, onMenu }: NodeProps & { connected: boolean; onMenu: (e: React.MouseEvent) => void }) {
   const client = useDbClient();
   const key = `c:${c.id}`;
   const open = isOpen(key);
@@ -68,6 +71,11 @@ function ConnectionNode({ connection: c, isOpen, toggle, menu, onMenu }: NodePro
         label={c.name}
         mark={
           <>
+            {connected && (
+              <span className="db-tree-connected" data-tip="つないでいます（右クリックの「接続を切る」で切れます）" aria-label="つないでいます">
+                <StatusDot tone="ok" />
+              </span>
+            )}
             {c.memo_path && (
               <span className="db-tree-memo" data-tip={`手順メモ: ${c.memo_path}`} aria-label="手順メモあり">
                 <StickyNote size={11} aria-hidden />

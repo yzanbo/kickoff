@@ -34,7 +34,7 @@ export interface DataGridEdit {
 
 /**
  * DB の結果の表（テーブルのデータ・SQL の結果で共通）。行も列も見えている所だけ描く（何千行・何百列でも重くしない）。
- * 列の見出しを押すと onSort（渡したときだけ。並べ替えの印は sort）。セルを押すと選び、⌘C でその文をコピーする。
+ * 列の見出しを押すと onSort（渡したときだけ。⇧ を押しながらなら add で今の並べ替えに足す。並べ替えの印は sort、2 列以上なら何番目か）。セルを押すと選び、⌘C でその文をコピーする。
  * セルの文は 1 行に収め、全部は乗せたときの説明に出す（NULL・バイナリは薄く、数は右寄せ）。
  * onPickRow は選んだセルの行（行の詳細）、onCellMenu はセルの右クリック（選んでから開く）。↑↓←→ で選ぶセルを動かす。
  * edit を渡すと、ダブルクリック・Enter・F2 でセルを書き直す（Enter で決める・Shift+Enter で改行・Esc でやめる・外を押すと決める）
@@ -54,7 +54,7 @@ export function DataGrid({
   columns: DbColumnInfo[];
   rows: DbValue[][];
   sort?: DbSort[];
-  onSort?: (column: string) => void;
+  onSort?: (column: string, add: boolean) => void;
   /** 行の番号の始まり（テーブルの続きを読んだとき。0 なら 1 から） */
   rowOffset?: number;
   className?: string;
@@ -184,15 +184,17 @@ export function DataGrid({
         {shownCols.map((i) => {
           const c = columns[i];
           const s = sort?.find((x) => x.column === c.name);
+          const order = s && sort && sort.length > 1 ? sort.indexOf(s) + 1 : null;
           const label = (
             <>
               <span className="db-grid-col-name">{c.name}</span>
               {c.type && <span className="db-grid-col-type">{c.type}</span>}
               {s && (s.desc ? <ArrowDown size={11} aria-label="降順" /> : <ArrowUp size={11} aria-label="昇順" />)}
+              {order && <span className="db-grid-sort-order">{order}</span>}
             </>
           );
           return onSort ? (
-            <button key={i} type="button" role="columnheader" className="db-grid-col" style={{ gridColumn: i + 2 }} aria-colindex={i + 1} title={`${c.name}${c.type ? `（${c.type}）` : ""} で並べ替え`} onClick={() => onSort(c.name)}>
+            <button key={i} type="button" role="columnheader" className="db-grid-col" style={{ gridColumn: i + 2 }} aria-colindex={i + 1} title={`${c.name}${c.type ? `（${c.type}）` : ""} で並べ替え（⇧ を押しながらで並べ替えに足す）`} onClick={(e) => onSort(c.name, e.shiftKey)}>
               {label}
             </button>
           ) : (

@@ -272,3 +272,11 @@ button.db-grid-col:hover {
   top: 8px;
   right: var(--gutter);
 }
+
+/* 2 列以上で並べ替えているときの何番目か */
+.db-grid-sort-order {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-fg);
+}

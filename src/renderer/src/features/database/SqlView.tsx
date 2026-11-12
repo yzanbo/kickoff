@@ -116,8 +116,12 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
       done.push(run);
       setRuns([...done]);
       setShown(done.length - 1);
-      // 失敗した文・止めた文で止める（後ろの文は流さない）
-      if (run.error || run.stopped) break;
+      // 失敗した文・止めた文で止める（後ろの文は流さず、「流していません」として並べる）
+      if (run.error || run.stopped) {
+        const rest = statements.slice(statements.indexOf(s) + 1).map((r): StatementRun => ({ sql: r.text, write: writing, skipped: true }));
+        if (rest.length > 0) setRuns([...done, ...rest]);
+        break;
+      }
     }
     // 失敗のあとは、トランザクションの途中かを DB 側に聞き直す
     if (done.some((r) => r.error || r.stopped)) {
@@ -247,7 +251,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
                 type="button"
                 role="tab"
                 aria-selected={i === shown}
-                className={cx("db-result-tab", i === shown && "active", r.error && "failed")}
+                className={cx("db-result-tab", i === shown && "active", r.error && "failed", r.skipped && "skipped")}
                 title={r.sql}
                 onClick={() => setShown(i)}
               >

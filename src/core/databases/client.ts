@@ -103,7 +103,9 @@ export class DbWorkerClient {
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   /** ワーカーが起動して、まだ動いている子のプロセス（ssh・シェル。ワーカーを止めるときに一緒に止める） */
   private readonly children = new Set<number>();
-  /** ワーカーからの知らせ（流したコマンドの結果。コアが準備の記録に残す） */
+  /** ワーカーの中で開いている接続（セッション）の名前。ワーカーが止まったら、閉じた知らせを出して空にする */
+  private readonly openSessions = new Set<string>();
+  /** ワーカーからの知らせ（流したコマンドの結果・接続を開いた / 閉じた。コアが準備の記録に残し、接続の状態を数える） */
   onEvent: (event: WorkerEvent) => void = () => {};
 
   constructor(
@@ -132,6 +134,11 @@ export class DbWorkerClient {
     const channel = this.spawn();
     channel.onMessage((m) => {
       if (!("event" in m)) return this.settle(m);
+      if (m.event === "session") {
+        if (m.open) this.openSessions.add(m.name);
+        else if (!this.openSessions.delete(m.name)) return;
+        return this.onEvent(m);
+      }
       if (m.event !== "child") return this.onEvent(m);
       if (m.alive) this.children.add(m.pid);
       else this.children.delete(m.pid);
@@ -140,6 +147,7 @@ export class DbWorkerClient {
       if (this.channel !== channel) return;
       this.channel = null;
       this.killChildren();
+      this.dropSessions();
       this.failAll(`DB ワーカーが止まりました（${reason}）。もう一度試すと起動し直します`);
     });
     this.channel = channel;
@@ -243,7 +251,15 @@ export class DbWorkerClient {
     this.channel = null;
     channel?.kill();
     this.killChildren();
+    this.dropSessions();
     this.failAll(message);
+  }
+
+  /** ワーカーが止まったので、開いていた接続をすべて閉じたことにする（知らせを出す） */
+  private dropSessions() {
+    const names = [...this.openSessions];
+    this.openSessions.clear();
+    for (const name of names) this.onEvent({ event: "session", name, open: false });
   }
 
   /** ワーカーが残した子のプロセスを止める（ワーカーが落ちた・止めたとき） */

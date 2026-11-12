@@ -100,7 +100,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // DB のパスワードはキーチェーンの鍵で暗号化して置く（暗号化せずに置いていたものは、起動のときに一度だけ置き換える）
   const vault = new DbSecretVault(store, opts.secretCipher ?? null);
   migrateInBackground(vault);
-  const databases = new DatabaseService({ store, client: new DbWorkerClient(opts.dbWorker ?? (() => forkWorker(devWorkerEntry()))), vault, dataDir: opts.dataDir });
+  const databases = new DatabaseService({ store, client: new DbWorkerClient(opts.dbWorker ?? (() => forkWorker(devWorkerEntry()))), vault, dataDir: opts.dataDir, publish: (e) => bus.publish(e) });
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   databases.cleanExports();
   // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる

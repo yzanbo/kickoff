@@ -14,7 +14,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { CsvImportDialog } from "./CsvImportDialog";
 import { DataGrid, type DataGridEdit } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
-import { DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, hasLongValue, type DbExportFormat } from "./dbRowTools";
+import { DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, hasLongValue, hasUnreadImage, type DbExportFormat } from "./dbRowTools";
 import { TableCellMenu } from "./TableCellMenu";
 import { TableEditBar } from "./TableEditBar";
 import { addInserts, displayRows, setCell, setInsertCell } from "./tableEdits";
@@ -129,9 +129,10 @@ export function TableData({
   const shown = result?.rows.length ?? 0;
   const filtered = Boolean(tab.filter);
   const detailRow = showDetail && pickedRow !== null && display ? display.rows[pickedRow] : undefined;
-  // 選んだ行に頭だけの長い文字があれば、行の詳細を開いているとき・書き換えられるときに残りを読む（書き直しは全体の値から）
+  // 選んだ行に頭だけの長い文字があれば、行の詳細を開いているとき・書き換えられるときに残りを読む（書き直しは全体の値から）。
+  // 画像のバイナリは、行の詳細を開いているときに中身を読んで縮小表示する
   const pickedRead = pickedRow !== null && result && pickedRow < result.rows.length ? result.rows[pickedRow] : undefined;
-  const needFill = Boolean(pickedRead && hasLongValue(pickedRead) && (showDetail || writable));
+  const needFill = Boolean(pickedRead && ((hasLongValue(pickedRead) && (showDetail || writable)) || (hasUnreadImage(pickedRead) && showDetail)));
   useEffect(() => {
     if (needFill && pickedRow !== null) void data.fill([pickedRow], keyColumns);
     // eslint-disable-next-line react-hooks/exhaustive-deps

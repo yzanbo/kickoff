@@ -1,6 +1,6 @@
 import { ArrowUpRight, CornerDownLeft, KeyRound, Link } from "lucide-react";
 import type { DbColumnInfo, DbTableDetail, DbValue } from "@shared/types";
-import { isDbLongText } from "@shared/database/dbValue";
+import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { cx } from "@/lib/cx";
 import { CloseButton } from "@/ui/IconButton";
 import { CopyButton } from "@/ui/CopyButton";
@@ -61,6 +61,7 @@ export function TableRowDetail({
               <dd>
                 <pre className={cx("db-row-detail-value", `kind-${shown.kind}`)}>{shown.text}</pre>
                 {shown.kind === "long" && <p className="small muted">{longNote(row[i])}</p>}
+                {isDbBinary(row[i]) && row[i].data_url && <img className="db-row-detail-image" src={row[i].data_url} alt={`${c.name} の画像`} />}
                 {links.map(({ fk, filters }) => (
                   <button
                     key={`${fk.ref_table}:${fk.columns.join(",")}`}

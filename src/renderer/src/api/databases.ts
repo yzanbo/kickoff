@@ -6,6 +6,7 @@ import type {
   DbConnectionTestResult,
   DbDatabases,
   DbDefinition,
+  DbConnectedIds,
   DbDisconnectResult,
   DbEditsBody,
   DbEditsResult,
@@ -112,6 +113,7 @@ export const databasesApi = {
     connecting(projectId, id, () => request<DbDefinition>("POST", at(`${one(projectId, id)}/definition`, worktree), { path, kind, name })),
   dbRows: (projectId: number, id: number, body: DbRowsBody, worktree: string | null) =>
     connecting(projectId, id, () => request<DbQueryResult>("POST", at(`${one(projectId, id)}/rows`, worktree), body)),
+  dbConnectedIds: (projectId: number) => request<DbConnectedIds>("GET", `${base(projectId)}/connected`),
   disconnectDb: (projectId: number, id: number, force: boolean) => request<DbDisconnectResult>("POST", `${one(projectId, id)}/disconnect`, { force }),
   dbFullRow: (projectId: number, id: number, body: DbFullRowBody, worktree: string | null) =>
     connecting(projectId, id, () => request<DbFullRow>("POST", at(`${one(projectId, id)}/full-row`, worktree), body)),

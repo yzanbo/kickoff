@@ -22,19 +22,19 @@
 
 ## 木（`DbTree`）
 
-接続 → DB（PostgreSQL・MySQL）→ スキーマ（PostgreSQL）→ テーブル・ビュー・関数・列挙型の段（`DbTreeObjects.tsx`）→ テーブル・ビューの中の段。行の部品と読み込み（`TreeRow` / `TreeHint` / `TreeError` / `useNodeLoad`）は `DbTreeRow.tsx`。段ごとに開いたときに読む（`useNodeLoad`。失敗の `ApiError.code` を残す）。初めての踏み台（`DB_SSH_UNKNOWN_HOST`）なら失敗の行に「サーバーの鍵を確かめる…」（受け入れたら読み直す）、ワークツリーにその SQLite のファイルがない（`DB_NOT_IN_WORKTREE`）ときは「本体のものを開く」を出し、その接続だけ本体のファイルを開く（`useMain`。画面を閉じるまで）。接続の右クリック（`ConnectionMenu`）: SQL を開く・ER 図（つないでいる DB。PostgreSQL は public のスキーマ）・手順メモを開く / 手順メモを作る…・準備のコマンドを流す…（準備のコマンドがあるとき）・接続を切る（`sqlSessions.ts` の `disconnectConnection`。コミットしていない SQL のタブがあれば「取り消して切る」か聞く。次に使えばつなぎ直す）・編集…・消す…（パスワードも消える。DB の中身には触らない）。確かめていない、つなぐときにコマンドを流す接続は、失敗の行に「コマンドを確かめる…」。DB・スキーマの右クリックは「ER 図」（PostgreSQL の DB は public のスキーマ）、テーブル・ビューの右クリックは「開く」「この表のまわりの ER 図」（`DbTree` の 1 つのメニュー。段は `TreeOpen.menu` で右クリックした場所 `TreeMenuTarget` を知らせる）。
+接続 → DB（PostgreSQL・MySQL）→ スキーマ（PostgreSQL）→ テーブル・ビュー・関数・列挙型の段（`DbTreeObjects.tsx`）→ テーブル・ビューの中の段。行の部品と読み込み（`TreeRow` / `TreeHint` / `TreeError` / `useNodeLoad`）は `DbTreeRow.tsx`。段ごとに開いたときに読む（`useNodeLoad`。失敗の `ApiError.code` を残す）。初めての踏み台（`DB_SSH_UNKNOWN_HOST`）なら失敗の行に「サーバーの鍵を確かめる…」（受け入れたら読み直す）、ワークツリーにその SQLite のファイルがない（`DB_NOT_IN_WORKTREE`）ときは「本体のものを開く」を出し、その接続だけ本体のファイルを開く（`useMain`。画面を閉じるまで）。接続の右クリック（`ConnectionMenu`）: SQL を開く・ER 図（つないでいる DB。PostgreSQL は public のスキーマ）・手順メモを開く / 手順メモを作る…・準備のコマンドを流す…（準備のコマンドがあるとき）・接続を切る（`sqlSessions.ts` の `disconnectConnection`。つないでいる接続（木・テーブル・SQL のタブの接続がワーカーで開いているもの）は行の名前の後ろに緑の点（`StatusDot`。`stores/dbConnections.ts` の `useDbConnectedIds`: `GET …/db-connections/connected` で読み、SSE の `db_connection_state` で足し外す `reduceConnectedIds`。10 分使わずに閉じた・ワーカーが止まったときも消える）。コミットしていない SQL のタブがあれば「取り消して切る」か聞く。次に使えばつなぎ直す）・編集…・消す…（パスワードも消える。DB の中身には触らない）。確かめていない、つなぐときにコマンドを流す接続は、失敗の行に「コマンドを確かめる…」。DB・スキーマの右クリックは「ER 図」（PostgreSQL の DB は public のスキーマ）、テーブル・ビューの右クリックは「開く」「この表のまわりの ER 図」（`DbTree` の 1 つのメニュー。段は `TreeOpen.menu` で右クリックした場所 `TreeMenuTarget` を知らせる）。
 
 - テーブル・ビューは、名前を押すとタブを開き（`openOnClick`）、矢印を押す・→ / ← で中の段を開閉する。中の段は列（主キーは琥珀の鍵 `.db-tree-pk`、右に型と NOT NULL。名前を先に見せ、入らなければ型の方を省く）と、あるときだけ開閉のまとまり（インデックス・外部キー・トリガー。数を添える）。中身は `api.dbTable`（テーブルのタブと同じ詳細）。中の行を押すとそのテーブルのタブを開く。開き具合は段と同じく `dbTreeOpen(place)`（キーは `t:<接続>:<DB>:<スキーマ>:<名前>` と、まとまりは後ろに `:idx` / `:fk` / `:trg`）。
 - 関数（PostgreSQL は `名前(引数)` で同じ名前の別の引数も分ける。MySQL / MariaDB は関数とプロシージャを名前で 1 つ）・列挙型（PostgreSQL だけ。MySQL の ENUM は列の型）は葉で、押すと定義のタブを開く。アイコンは木とタブで同じ（`TabObjectIcon`）。SQLite には出ない。
 
 ## テーブルのタブ（`TableView`）
 
-データ / 構造 / リレーション / DDL / 情報の切り替え。データは 100 行ずつ（「さらに 100 行読む」）、列の見出しを押すと並べ替え（昇順 → 降順 → なし。`dbFormat.ts` の `nextSort`。ORDER BY を付けて取り直す）。全体の行数は統計の推定（SQLite にはないので「数えていません」）で、「正確に数える」を押したときだけ COUNT(*)。表は `DataGrid`（見えている行と列だけ描く（列は 180px の同じ幅で、グリッドの何列目かを指定して描かない列の場所を空けておく）・26px の同じ高さ・セルを押して ⌘C でコピー・↑↓←→ で選ぶセルを動かす（見えるようにスクロール）・NULL とバイナリ（「バイナリ n B」）は薄く斜体・数は右寄せ。`edit` を渡したときだけセルの書き直し）。
+データ / 構造 / リレーション / DDL / 情報の切り替え。データは 100 行ずつ（「さらに 100 行読む」）、列の見出しを押すと並べ替え（昇順 → 降順 → なし。⇧ を押しながらなら今の並べ替えに足し、足した列は昇順 → 降順 → その列だけ外す。2 列以上なら見出しに何番目か。`dbFormat.ts` の `nextSort`。ORDER BY を付けて取り直す）。全体の行数は統計の推定（SQLite にはないので「数えていません」）で、「正確に数える」を押したときだけ COUNT(*)。表は `DataGrid`（見えている行と列だけ描く（列は 180px の同じ幅で、グリッドの何列目かを指定して描かない列の場所を空けておく）・26px の同じ高さ・セルを押して ⌘C でコピー・↑↓←→ で選ぶセルを動かす（見えるようにスクロール）・NULL とバイナリ（「バイナリ n B」）は薄く斜体・数は右寄せ。`edit` を渡したときだけセルの書き直し）。
 
 データ（`TableData`。行を読むのは `useTableRows.ts` の `useTableRows`）:
 - 上の絞り込みの帯（`TableFilterBar`）: 「条件」（列 ▾・比べ方 ▾・値の行を「＋ 条件」で足し、すべてを満たす行）と「WHERE を書く」（式だけ。`;` で文を足すとコアが断る）。書いている間は下書きで、「絞る」か Enter で当てる。当てた絞り込みはタブ（`DbTableTab.filter`。`setTableFilter`）に覚え、開き直しても残る。
 - 表のセルの右クリック: 「この値で絞る / 除く」（NULL なら NULL である / でない。WHERE で絞っていたら条件に切り替える。`dbRowTools.ts` の `valueFilter`）・外部キーの列は「<参照先> の行を開く」（参照先のテーブルのタブを、参照する値の条件で開く。同じテーブルのタブがあればそれに当てる）・「値をコピー」。
-- 「行の詳細」（下の帯の切り替え。`TableRowDetail`）: 選んだセルの行を右に縦に並べる（JSON は整え、空文字・NULL・バイナリは分かる形に。`detailText`）。外部キーの列に参照先の行へのボタン、下に「この行を指しているもの」（`referenced_by` を、この行の値の条件で開く）。
+- 「行の詳細」（下の帯の切り替え。`TableRowDetail`）: 選んだセルの行を右に縦に並べる（JSON は整え、空文字・NULL・バイナリは分かる形に。`detailText`）。画像のバイナリ（PNG・JPEG・GIF・WebP。頭の印で見分ける。SVG は出さない）は小さく描く（コアが全体の行を読むときだけ `data_url` を付けるので、行の詳細を開いているときに `fill` で読み直す。`dbRowTools.ts` の `hasUnreadImage`。5MB を超えるものは描かない）。外部キーの列に参照先の行へのボタン、下に「この行を指しているもの」（`referenced_by` を、この行の値の条件で開く）。
 - 長い値（1 万文字を超える文字。コアが頭だけの `DbLongText` で送る）: セルは頭と「…」、絞り込みには使えない（`filterValueOf`）。選んだ行に長い値があれば、行の詳細を開いているとき・書き換えられる表のときに、行を指すキーの列（`dbRowTools.ts` の `rowKeyFilters`）で `api.dbFullRow` を呼び、その行を全体のものに差し替える（`useTableRows` の `fill`。書き直しは全体の値から）。書き出しの前にも長い値のある行を読み直す。キーの列のない表（ビューなど）は頭のまま（行の詳細に「全体 n 文字のうち頭だけ」と添える）。
 - 下の帯: 表示した行数（絞り込み中の印）・全体 / 当てはまる行の数・流す SQL（`previewRowsSql`。値は見本としてそのまま埋める）とそのコピー・「書き出す」（読み込んだ行を CSV / TSV / JSON。`exportRows`。CSV は区切り・"・改行を含むセルだけ囲み、TSV はタブと改行を空白に、バイナリは `\x` と頭の 16 進。保存は `lib/download.ts` の `downloadText`）。
 
@@ -55,7 +55,7 @@
 ## SQL のタブ（`SqlView`）
 
 - 上に入力欄 `SqlEditor`（CodeMirror ＋ `@codemirror/lang-sql`。DB の種類の方言、補完はテーブルと列の名前（`api.dbOutline`））、下に文ごとの結果。境目のつまみで高さを変える（`DB_SQL_EDITOR_HEIGHT`。%）。書きかけの SQL は `dbSqlDraft("<place>:<タブのキー>")` に覚え、タブを閉じたら消す。
-- ⌘↵ / 「流す」= カーソルのある文（選んでいればその範囲の文）、⇧⌘↵ / 「すべて流す」= すべての文。文は `@shared/database/sqlStatements.ts` の `splitStatements` で分け、1 つずつ送る（コアは 1 回に 1 文だけ受ける）。失敗した文・止めた文で止め、後ろの文は流さない。結果は 2 文以上なら番号のタブ（失敗は赤）。
+- ⌘↵ / 「流す」= カーソルのある文（選んでいればその範囲の文）、⇧⌘↵ / 「すべて流す」= すべての文。文は `@shared/database/sqlStatements.ts` の `splitStatements` で分け、1 つずつ送る（コアは 1 回に 1 文だけ受ける）。失敗した文・止めた文で止め、後ろの文は流さない（流さなかった文も番号のタブに薄い取り消し線で並べ、押すと「前の文で止まったので、流していません。」とその文）。結果は 2 文以上なら番号のタブ（失敗は赤）。
 - タブごとに DB の接続を 1 本持つ（接続の名前はタブのキー）。トランザクションの途中なら、帯に「コミットしていない変更があります」とコミット / 取り消すを出し、タブの名前の後ろに琥珀の点（`sqlSessions.ts` の `setSqlPending` / `useSqlPending`。中身は `tabFlags.ts` の `createTabFlags`。開いたときに `api.dbSessionState` で読み直す）。タブを閉じるときは、途中なら `finishSession` でコミット / 取り消すを聞く（やめたら閉じない）。トランザクションの途中で 10 分（`DB_SESSION_IDLE_MS`。`useSqlTabLife.ts` の `useIdleFinish`）何もしない（打つ・流す・続きを読むがない）と、「10 分何もしていないので、接続を切ります」とコミット / 取り消すを聞いて切る（やめたら、また 10 分後に聞く。途中でない接続はコアのワーカーが 10 分で閉じる）。
 - 履歴（道具の行の「履歴」。`SqlHistory.tsx` の `SqlHistoryButton`）: この接続で流した SQL（利用者と AI。新しい順に 200 件。`api.dbHistory`）をポップオーバーで出し、SQL・チャットの名前で絞り込める。AI が流したものは「AI · チャットの名前」の札。押すと入力欄の終わりに空行を挟んで足して選ぶ（`SqlEditorHandle.append`。⌘↵ でそのまま流せる・⌘Z で戻せる）。開いたときに読む（開いている間に流した分は開き直すと出る）。
 - 結果の表（`SqlRunResult.tsx` の `RunResult`）は 1000 行まで。続きがあれば「続きがあります」と「さらに 1,000 行読む」（読み取りの文だけ。`api.runDbSql` の `offset` に読んだ行の数を渡して同じ文を流し直し、後ろに足す。流したときの「書き込む」の様子のまま）。

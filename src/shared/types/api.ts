@@ -429,6 +429,11 @@ export interface DbDisconnectResult {
   pending_sessions: string[];
 }
 
+/** つないでいる接続（GET …/db-connections/connected。木・テーブル・SQL のタブの接続が開いているもの） */
+export interface DbConnectedIds {
+  ids: number[];
+}
+
 /** テーブルの 1 行を全体のまま読む（POST …/db-connections/:cid/full-row。行の詳細で、頭だけ送った長い文字の残りを取る）。filters は行を指すキーの列の条件 */
 export interface DbFullRowBody {
   path: DbObjectPath;

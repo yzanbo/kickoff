@@ -605,6 +605,28 @@ test("接続を切る: コミットしていない SQL のタブがあれば切�
   assert.equal(after.in_transaction, false);
 });
 
+test("接続の状態: 木・SQL のタブの接続を開いたらつないだ、すべて閉じたら切れたと知らせる（AI・行の保存の接続は数えない）", async () => {
+  const { call, project, bus } = setup();
+  const events: BusEvent[] = [];
+  bus.subscribe((e) => e.type === "db_connection_state" && events.push(e));
+  makeSqlite(project.repo_path);
+  const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
+  const list = `/api/projects/${project.id}/db-connections`;
+  const base = `${list}/${conn.id}`;
+  assert.deepEqual((await call("GET", `${list}/connected`)).body, { ids: [] });
+  await call("POST", `${base}/sql`, { session: "tab1", sql: "SELECT 1", write: false });
+  await call("POST", `${base}/sql`, { session: "tab2", sql: "SELECT 1", write: false });
+  assert.deepEqual((await call("GET", `${list}/connected`)).body, { ids: [conn.id] });
+  // 2 つ目の接続を開いても、知らせは 1 回だけ
+  assert.deepEqual(events, [{ type: "db_connection_state", project_id: project.id, connection_id: conn.id, connected: true }]);
+  await call("DELETE", `${base}/sessions/tab1`);
+  assert.equal(events.length, 1);
+  assert.equal((await call("POST", `${base}/disconnect`, {})).body.disconnected, true);
+  await until(() => events.length === 2);
+  assert.deepEqual(events[1], { type: "db_connection_state", project_id: project.id, connection_id: conn.id, connected: false });
+  assert.deepEqual((await call("GET", `${list}/connected`)).body, { ids: [] });
+});
+
 test("接続を消すと、その接続のワーカーの接続（SQL のタブの途中のトランザクションも）を閉じる", async () => {
   const { call, project, databases } = setup();
   makeSqlite(project.repo_path);

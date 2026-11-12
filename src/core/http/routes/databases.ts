@@ -18,6 +18,7 @@ import {
   type DbConnectionTestBody,
   type DbEditsBody,
   type DbEnteredPasswordsBody,
+  type DbConnectedIds,
   type DbErBody,
   type DbErLayoutBody,
   type DbImportBody,
@@ -214,6 +215,9 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
   const base = "/api/projects/:id/db-connections";
 
   app.get(base, withProject, (c) => c.json(store.dbConnections.list(c.var.project.id)));
+
+  // つないでいる接続（DB タブの左の一覧の印。変わったら SSE の db_connection_state）
+  app.get(`${base}/connected`, withProject, (c) => c.json({ ids: databases.connectedIds(c.var.project.id) } satisfies DbConnectedIds));
 
   app.post(base, withProject, async (c) => {
     const body = newConnectionSchema.parse(await jsonBody(c));
