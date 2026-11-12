@@ -37,13 +37,24 @@ const SQL_TYPE_NAMES: Record<string, string> = {
   VAR_STRING: "varchar",
   STRING: "char",
   NEWDATE: "date",
+  TINY_BLOB: "tinyblob",
+  MEDIUM_BLOB: "mediumblob",
+  LONG_BLOB: "longblob",
 };
 
-/** 列の型の名前（mysql2 の型の番号から、SQL の型の名前で。DECIMAL → decimal） */
-const typeName = (f: FieldPacket) => {
+/** TEXT の列も BLOB の型の番号で届く（文字コードが binary でないものが TEXT） */
+const TEXT_OF_BLOB: Record<string, string> = { TINY_BLOB: "tinytext", BLOB: "text", MEDIUM_BLOB: "mediumtext", LONG_BLOB: "longtext" };
+/** MySQL の文字コードの番号のうち、バイナリ（BLOB・BINARY）を表すもの */
+const BINARY_CHARSET = 63;
+
+/** 列の型の名前（mysql2 の型の番号から、SQL の型の名前で。DECIMAL → decimal、文字コードのある BLOB → text） */
+export function mysqlTypeName(f: Pick<FieldPacket, "columnType" | "type" | "characterSet">): string | null {
   const name = (mysql.Types as unknown as Record<number, string | undefined>)[f.columnType ?? f.type ?? -1];
-  return name ? (SQL_TYPE_NAMES[name] ?? name.toLowerCase()) : null;
-};
+  if (!name) return null;
+  const text = TEXT_OF_BLOB[name];
+  if (text && f.characterSet !== undefined && f.characterSet !== BINARY_CHARSET) return text;
+  return SQL_TYPE_NAMES[name] ?? name.toLowerCase();
+}
 
 function connectionOptions(target: DbTarget): ConnectionOptions {
   const tls = tlsOptions(target);
@@ -264,7 +275,7 @@ class MysqlDriver implements DbDriver {
       ),
     );
     return {
-      columns: fields.map((f) => ({ name: f.name, type: typeName(f) })),
+      columns: fields.map((f) => ({ name: f.name, type: mysqlTypeName(f) })),
       rows: rows.slice(0, limit).map((r) => r.map((v) => toDbValue(v, full))),
       truncated: rows.length > limit,
       affected: null,
@@ -311,7 +322,7 @@ class MysqlDriver implements DbDriver {
       const q = this.conn.query({ sql, rowsAsArray: true });
       // 行を返さない文でも fields は来る（中身は undefined）
       q.on("fields", (fields: FieldPacket[] | undefined) => {
-        if (fields && columns.length === 0) columns = fields.map((f) => ({ name: f.name, type: typeName(f) }));
+        if (fields && columns.length === 0) columns = fields.map((f) => ({ name: f.name, type: mysqlTypeName(f) }));
       });
       q.on("result", (row: unknown) => {
         if (!Array.isArray(row)) {
@@ -349,7 +360,7 @@ class MysqlDriver implements DbDriver {
       q.on("fields", (fields: FieldPacket[] | undefined) => {
         if (named) return;
         named = true;
-        onColumns(fields ? fields.map((f) => ({ name: f.name, type: typeName(f) })) : []);
+        onColumns(fields ? fields.map((f) => ({ name: f.name, type: mysqlTypeName(f) })) : []);
       });
       q.on("result", (row: unknown) => {
         if (Array.isArray(row)) return onRow(row);
