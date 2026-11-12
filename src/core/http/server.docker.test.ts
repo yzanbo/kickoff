@@ -5,10 +5,10 @@ import path from "node:path";
 import { test } from "node:test";
 import type { DockerList, DockerLogEvent } from "@shared/types";
 import { DockerLogSession } from "../docker/logs.js";
+import { psOutput } from "../testing/fakeDocker.js";
 import { setup } from "../testing/testServer.js";
 import { until } from "../testing/testCore.js";
 
-const ps = (rows: Record<string, unknown>[]) => rows.map((r) => JSON.stringify({ ports: "", files: "", oneoff: "False", number: "1", hash: "", status: "Up 1 hour", image: "img", ...r })).join("\n") + "\n";
 const config = (name: string, services: Record<string, unknown>) => JSON.stringify({ name, services });
 
 /** プロジェクトに compose.yaml を置き、設定の答えを決める */
@@ -18,7 +18,7 @@ function withCompose(s: ReturnType<typeof setup>, extra: { match: string; stdout
     ...extra,
     { match: "config --hash", stdout: "db h1\nredis h2\n" },
     { match: "config --format json", stdout: config("app", { db: { image: "postgres:16", ports: [{ published: "5432" }] }, redis: { image: "redis:7" }, adminer: { image: "adminer", profiles: ["tools"] } }) },
-    { match: "ps -a", stdout: ps(containers) },
+    { match: "ps -a", stdout: psOutput(containers) },
   ]);
 }
 

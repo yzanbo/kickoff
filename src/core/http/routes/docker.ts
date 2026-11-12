@@ -1,13 +1,15 @@
 import type { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
-import { DOCKER_ACTIONS, type DockerActionBody, type DockerBrewStopBody } from "@shared/types";
+import { DOCKER_ACTIONS, type DockerActionBody, type DockerBrewStopBody, type DockerDbTarget } from "@shared/types";
 import type { ServerDeps } from "../server.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { localOnly } from "../thisMac.js";
 import { Invalid } from "../errors.js";
+import { toImportCandidates } from "../../databases/import/index.js";
 import { findOrb } from "../../docker/cli.js";
+import { sameServerConnection } from "../../docker/dbTarget.js";
 import { DockerLogSession } from "../../docker/logs.js";
 import { starterOf } from "../../docker/parse.js";
 import { runCommand } from "../../system/exec.js";
@@ -72,6 +74,19 @@ export function dockerRoutes(app: Hono, { store, docker, bus }: ServerDeps) {
     const container = z.string().regex(/^[0-9a-f]{12,64}$/).parse(queryOf(c, "container"));
     const until = z.string().regex(/^\d{4}-\d\d-\d\dT[\d:.]+Z$/).parse(queryOf(c, "until"));
     return c.json({ lines: await docker.logsBefore(c.var.project, compose, container, until) });
+  });
+
+  // 「DB で開く」の行き先: 登録済みの同じ DB（種類・localhost・ポート）の接続か、DB クライアントの取り込みの案か、押せない理由
+  app.get("/api/projects/:id/docker/db", withProject, async (c) => {
+    const project = c.var.project;
+    const compose = z.string().min(1).max(4000).parse(queryOf(c, "compose"));
+    const service = z.string().min(1).max(200).parse(queryOf(c, "service"));
+    const result = await docker.dbCandidate(project, compose, service);
+    if ("blocked" in result) return c.json({ connection_id: null, candidate: null, blocked: result.blocked } satisfies DockerDbTarget);
+    const connections = store.dbConnections.list(project.id);
+    const same = sameServerConnection(connections, result.found);
+    const candidate = same ? null : (toImportCandidates([result.found], connections, project.repo_path)[0] ?? null);
+    return c.json({ connection_id: same?.id ?? null, candidate, blocked: null } satisfies DockerDbTarget);
   });
 
   // 静かなぶつかりの［Docker の db を使う］: 相手の Homebrew のサービスを止める（いまぶつかっている相手の名前だけ受ける）

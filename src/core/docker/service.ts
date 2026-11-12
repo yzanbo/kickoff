@@ -14,6 +14,7 @@ import type { StreamedCommand } from "../system/stream.js";
 import { planDockerAction, type DockerStep } from "./actions.js";
 import { DockerCli, shellWord } from "./cli.js";
 import { ComposeConfigCache, findComposeFiles, upFilesFor } from "./compose.js";
+import { dockerDbCandidate, type DockerDbCandidate } from "./dbTarget.js";
 import { DockerEvents } from "./events.js";
 import { buildDockerList, headFileOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
 import { DOCKER_LOG_TAIL, readLog } from "./logs.js";
@@ -88,6 +89,27 @@ export class DockerService {
     return compose ? logSourcesOf(compose) : [];
   }
 
+  /**
+   * 「DB で開く」の案: その compose の DB のサービスを、compose に聞いた設定から DB クライアントの取り込みと同じ読み方で案にする。
+   * ワークツリーの db は本体の同じ compose・同じサービスのポートと比べ、別のポートならブランチを名前に添える
+   */
+  async dbCandidate(project: Project, composeKey: string, service: string): Promise<DockerDbCandidate> {
+    const snap = await this.snapshot(project);
+    if (snap.list.engine !== "ok") throw new Invalid(snap.list.engine === "missing" ? "Docker が入っていません" : "Docker が動いていません");
+    const compose = snap.list.composes.find((c) => c.key === composeKey);
+    if (!compose) throw new NotFound("この compose はもうありません。一覧を取り直してください");
+    const svc = compose.services.find((s) => s.name === service);
+    if (!svc?.db_kind) throw new Invalid("DB のサービスではありません");
+    const files = snap.upFiles.get(compose.key) ?? [];
+    const read = files.length ? await this.configs.read(files, false) : null;
+    if (!read?.doc) throw new Invalid(read?.error ?? "compose の設定を読めませんでした");
+    const main = compose.worktree_path === null ? null : snap.list.composes.find((c) => c.worktree_path === null && c.file === compose.file);
+    const mainPort = main?.services.find((s) => s.name === service)?.published[0] ?? null;
+    const found = dockerDbCandidate({ compose, service, doc: read.doc, mainPort });
+    if (!found) throw new Invalid("DB のサービスではありません");
+    return found;
+  }
+
   /** ログの「さらに前を読む」: until より前の 500 行（この compose のコンテナだけ） */
   async logsBefore(project: Project, composeKey: string, container: string, until: string): Promise<DockerLogLine[]> {
     if (!(await this.logSources(project, composeKey)).some((s) => s.container === container)) throw new NotFound("この compose のコンテナではありません");
@@ -156,7 +178,7 @@ export class DockerService {
     return Promise.all(
       [...wanted.values()].map(async (w) => {
         const filesExist = w.upFiles.length > 0 && w.upFiles.every(pathExists);
-        const read = filesExist ? await this.configs.read(w.upFiles, w.created) : { config: null, error: null, hashes: null };
+        const read = filesExist ? await this.configs.read(w.upFiles, w.created) : { config: null, error: null, hashes: null, doc: null };
         return { workplace: w.workplace, file: w.file, upFiles: w.upFiles, filesExist, discovered: w.discovered, ...read };
       }),
     );
