@@ -30,3 +30,15 @@ test("parseDbUrl: SQLite はファイルのパス、知らない形は null", ()
   assert.equal(parseDbUrl("https://example.com"), null);
   assert.equal(parseDbUrl("ただの文"), null);
 });
+
+test("parseDbUrl: パスワードに符号化していない # / ? @ があっても、最後の @ までをユーザー名とパスワードとして読む", () => {
+  const pg = parseDbUrl("postgres://u:p#ss@h:5433/db")!;
+  assert.deepEqual([pg.username, pg.password, pg.host, pg.port, pg.database], ["u", "p#ss", "h", 5433, "db"]);
+  const mixed = parseDbUrl("mysql://admin:a/b?c@d@db.local/shop?ssl=true")!;
+  assert.deepEqual([mixed.username, mixed.password, mixed.host, mixed.database, mixed.ssl?.mode], ["admin", "a/b?c@d", "db.local", "shop", "require"]);
+  // パスワードの中の : はパスワードのうち（最初の : で分ける）
+  assert.equal(parseDbUrl("postgres://u:a:b@h/d")!.password, "a:b");
+  // ユーザー名だけ・どちらもない
+  assert.deepEqual([parseDbUrl("postgres://u@h/d")!.username, parseDbUrl("postgres://u@h/d")!.password], ["u", null]);
+  assert.equal(parseDbUrl("postgres://h/d")!.username, null);
+});

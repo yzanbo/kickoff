@@ -55,13 +55,24 @@ export function parseDbUrl(input: string): ParsedDbUrl | null {
     const file = decode(rest);
     return { engine, host: null, port: null, database: null, username: null, password: null, file_path: file || null, ssl: null };
   }
+  // ユーザー名とパスワードは、最後の @ までを自分で切り出す（パスワードに符号化していない # / ? @ があると、URL は別の所で切って読み違える）
+  let rest = text.slice(scheme.length + 1);
+  let userinfo: string | null = null;
+  const at = rest.startsWith("//") ? rest.lastIndexOf("@") : -1;
+  if (at > 1) {
+    userinfo = rest.slice(2, at);
+    rest = `//${rest.slice(at + 1)}`;
+  }
   let url: URL;
   try {
     // URL は知らない方式の host を読まないことがあるので、http に置き換えて読む
-    url = new URL(`http:${text.slice(scheme.length + 1)}`);
+    url = new URL(`http:${rest}`);
   } catch {
     return null;
   }
+  const colon = userinfo?.indexOf(":") ?? -1;
+  const username = userinfo === null ? "" : colon === -1 ? userinfo : userinfo.slice(0, colon);
+  const password = userinfo === null || colon === -1 ? "" : userinfo.slice(colon + 1);
   const port = url.port ? Number(url.port) : null;
   const database = decode(url.pathname.replace(/^\//, "")) || null;
   return {
@@ -69,8 +80,8 @@ export function parseDbUrl(input: string): ParsedDbUrl | null {
     host: decode(url.hostname).replace(/^\[|\]$/g, "") || null,
     port: port ?? DB_DEFAULT_PORTS[engine],
     database,
-    username: url.username ? decode(url.username) : null,
-    password: url.password ? decode(url.password) : null,
+    username: username ? decode(username) : null,
+    password: password ? decode(password) : null,
     file_path: null,
     ssl: sslOf(url.searchParams),
   };
