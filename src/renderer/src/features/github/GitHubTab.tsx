@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GitPullRequest } from "lucide-react";
-import type { GitHubItem, GitHubKind, GitHubListFilter } from "@shared/types";
+import type { Chat, GitHubItem, GitHubKind, GitHubListFilter } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -8,6 +8,7 @@ import { useKeyedAsync } from "@/hooks/useKeyedAsync";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
 import { GITHUB_LIST_WIDTH, githubFilters, githubSelected } from "@/lib/storageKeys";
+import { useChats } from "@/stores/chats";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
 import { GitHubDetail } from "./GitHubDetail";
@@ -76,6 +77,17 @@ function GitHubBrowser({ projectId, repo }: { projectId: number; repo: string })
   const change = (patch: Partial<GitHubListFilter>) => setFilters({ ...filters, [filter.kind]: { ...filter, ...patch } });
   const open = useCallback((item: GitHubItem) => setSelectedText(`${item.kind}:${item.number}`), [setSelectedText]);
   const page = list.page;
+  // この一覧のリポジトリの issue・PR に結び付いたチャット（「種類:番号」→ 最近動いた順）
+  const { chats } = useChats({ projectId });
+  const linked = useMemo(() => {
+    const map = new Map<string, Chat[]>();
+    for (const c of chats) {
+      if (c.github_number === null || c.github_kind === null || c.github_repo?.toLowerCase() !== repo.toLowerCase()) continue;
+      const key = `${c.github_kind}:${c.github_number}`;
+      map.set(key, [...(map.get(key) ?? []), c]);
+    }
+    return map;
+  }, [chats, repo]);
   const showList = !narrow || !selected;
   const showDetail = !narrow || selected;
 
@@ -99,7 +111,7 @@ function GitHubBrowser({ projectId, repo }: { projectId: number; repo: string })
             {!page && !list.error && <p className="muted small github-items-note">読み込み中…</p>}
             {page && page.items.length === 0 && <p className="muted small github-items-note">当てはまる{filter.kind === "pr" ? " PR" : " issue"}はありません。</p>}
             {page?.items.map((item) => (
-              <GitHubItemRow key={item.number} item={item} selected={selected?.number === item.number && selected.kind === item.kind} onOpen={open} />
+              <GitHubItemRow key={item.number} item={item} selected={selected?.number === item.number && selected.kind === item.kind} chats={linked.get(`${item.kind}:${item.number}`)} onOpen={open} />
             ))}
             {page?.cursor && (
               <button type="button" className="btn btn-sm github-more" disabled={list.loadingMore} onClick={list.loadMore}>

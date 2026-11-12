@@ -1,3 +1,4 @@
+import { createContext, useContext } from "react";
 import { GitCommitHorizontal } from "lucide-react";
 import type { GitHubReviewThread, GitHubTimelineEntry, GitHubUser } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -32,17 +33,31 @@ const REVIEW_TEXT: Record<string, string> = {
   pending: "レビューを書いています",
 };
 
+/** スレッドごとの「AI に渡す」（PR の中身が渡す。そのスレッドだけでレビューコメントで直す。ないところでは出さない） */
+export const ThreadHandoffContext = createContext<((thread: GitHubReviewThread) => void) | null>(null);
+
 /**
  * 行のスレッド 1 つ（ファイルと行・解決済み・古い差分の印・差分の終わりの数行・コメント）。
  * inline は PR の「変更」の差分の行の下に出すとき（ファイルと差分の数行は差分そのものが見えているので出さない）
  */
 export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewThread; inline?: boolean }) {
   const line = thread.line ?? thread.original_line;
+  const handoff = useContext(ThreadHandoffContext);
   const hunk = inline ? "" : (thread.comments[0]?.diff_hunk.split("\n").slice(-4).join("\n") ?? "");
   const badges = (
     <>
       {thread.resolved && <span className="github-thread-badge">解決済み</span>}
       {thread.outdated && <span className="github-thread-badge">古い差分</span>}
+      {handoff && !thread.resolved && (
+        <button
+          type="button"
+          className="link-button small github-thread-handoff"
+          data-tip="このスレッドのコメントを、PR のブランチで作業するチャットの入力欄に入れる（なければ新しいチャット）"
+          onClick={() => handoff(thread)}
+        >
+          AI に渡す
+        </button>
+      )}
     </>
   );
   return (
@@ -56,7 +71,7 @@ export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewT
           {badges}
         </div>
       ) : (
-        (thread.resolved || thread.outdated) && <div className="github-thread-head">{badges}</div>
+        (thread.resolved || thread.outdated || handoff) && <div className="github-thread-head">{badges}</div>
       )}
       {hunk && <pre className="github-thread-hunk">{hunk}</pre>}
       {thread.comments.map((c) => (

@@ -91,7 +91,8 @@ export function NewChatPane({
   const project = projectsById.get(projectId);
   const chats = useChats({ projectId });
   // 作業場所（初めは本体か、作業場所別のまとまりから始めたときはそのワークツリー。並行して進めたいときにワークツリーを選ぶ）
-  const initialPlace = (): Workplace => (worktree ? { kind: "existing", path: worktree } : { kind: "main" });
+  // GitHub の issue から「新しいワークツリー」で始めたときは、そのブランチ名の新しいワークツリー（送ったときに作る）
+  const initialPlace = (): Workplace => (worktree ? { kind: "existing", path: worktree } : seed?.newWorktreeBranch ? { kind: "new", branch: seed.newWorktreeBranch } : { kind: "main" });
   const [place, setPlace] = useState<Workplace>(initialPlace);
   const firstProject = useRef(projectId);
   useEffect(() => {
@@ -160,6 +161,7 @@ export function NewChatPane({
       options: options.options,
       attachments,
       group_id: group,
+      github: seed?.github,
       ...(target.kind === "existing" ? { worktree_path: target.path } : target.kind === "new" ? { new_worktree_branch: target.branch } : {}),
     });
     // 新しいワークツリーを作ったときは、ブランチの一覧をすぐ取り直す
@@ -190,6 +192,7 @@ export function NewChatPane({
           <p className="muted">調べもの・設計・実装・テストなど、AI に頼みたいことを書いて始めます</p>
           {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
           {seed && <p className="muted small">聞くことを入力欄に入れました。直して送れます{groupBadge && !rowHidden ? "（作成先のグループは上で選べます）" : ""}</p>}
+          {seed?.github && <p className="muted small">作るチャットは GitHub の #{seed.github.number} と結び付きます</p>}
           {place.kind === "new" && <p className="muted small">新しいワークツリー「{place.branch}」を作り、その中で作業します</p>}
         </div>
       }
