@@ -7,6 +7,12 @@
   min-height: 0;
 }
 
+/* ステージング・本番の接続の SQL は上に環境の色の帯 */
+.db-sql-view.db-env-staging,
+.db-sql-view.db-env-production {
+  border-top: 3px solid var(--db-env);
+}
+
 .db-sql-top {
   display: flex;
   flex: none;
@@ -281,6 +287,13 @@
 
 .db-sql-truncated {
   color: var(--warn);
+}
+
+/* 結果の下の帯の右の「書き出す」「コピー」 */
+.db-sql-result-tools {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
 }
 
 /* 接続のダイアログ */

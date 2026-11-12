@@ -1,7 +1,14 @@
 // SQL のタブの文ごとの結果（表・変えた行の数・失敗・止めた・続きがあれば「さらに読む」）
+import { Copy, Download } from "lucide-react";
+import { useEffect, useState } from "react";
 import { DB_SQL_MAX_ROWS, type DbQueryResult } from "@shared/types";
+import { downloadText } from "@/lib/download";
+import { reportFailure } from "@/ui/dialogs";
 import { ErrorText } from "@/ui/ErrorText";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { DataGrid } from "./DataGrid";
+import { DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, type DbExportFormat } from "./dbRowTools";
 
 /** 1 つの文を流した結果（失敗したら error。止めたら stopped） */
 export interface StatementRun {
@@ -57,7 +64,53 @@ export function RunResult({ run, canMore, loadingMore, onMore }: { run: Statemen
         )}
         <ErrorText message={run.moreError} />
         <span>{(Math.round(r.duration_ms * 10) / 10).toLocaleString()} ms</span>
+        {hasRows && r.rows.length > 0 && <ResultExport result={r} />}
       </div>
     </div>
+  );
+}
+
+/** コピーしたことを見せておく時間 */
+const COPIED_MS = 1500;
+
+/**
+ * 結果の下の帯の「書き出す」（CSV / TSV / JSON のファイル）と「コピー」（同じ形でクリップボードへ）。読み込んだ行だけで、長い値は頭だけ
+ * （SQL の結果は行を指すキーが分からないので、テーブルのタブのように残りを読み直せない）
+ */
+function ResultExport({ result }: { result: DbQueryResult }) {
+  const menu = useContextMenu<"download" | "copy">();
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), COPIED_MS);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  const run = (how: "download" | "copy", format: DbExportFormat) => {
+    const text = exportRows(result.columns, result.rows, format);
+    if (how === "download") downloadText(`sql-result.${format}`, text, DB_EXPORT_TYPES[format]);
+    else navigator.clipboard.writeText(text).then(() => setCopied(true), reportFailure("コピーできませんでした"));
+  };
+  const count = result.rows.length.toLocaleString();
+  const open = menu.menu;
+  return (
+    <>
+      <span className="db-sql-result-tools">
+        <button type="button" className="btn btn-sm" onClick={(e) => menu.toggle(e, "download")} aria-haspopup="menu" data-tip="読み込んだ行をファイルに書き出す">
+          <Download size={12} aria-hidden /> 書き出す
+        </button>
+        <button type="button" className="btn btn-sm" onClick={(e) => menu.toggle(e, "copy")} aria-haspopup="menu" data-tip="読み込んだ行をクリップボードに写す（TSV なら表計算に貼れる）">
+          <Copy size={12} aria-hidden /> {copied ? "コピーしました" : "コピー"}
+        </button>
+      </span>
+      {open && (
+        <PopupMenu at={open.at} label={open.value === "download" ? "書き出す形" : "コピーする形"} onClose={menu.close}>
+          {DB_EXPORT_FORMATS.map((f) => (
+            <MenuItem key={f} onSelect={() => run(open.value, f)}>
+              {f.toUpperCase()}（読み込んだ {count} 行）
+            </MenuItem>
+          ))}
+        </PopupMenu>
+      )}
+    </>
   );
 }

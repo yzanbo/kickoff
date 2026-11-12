@@ -39,6 +39,7 @@ import { DbFindPalette } from "./DbFindPalette";
 import { DbHome } from "./DbHome";
 import { DbList } from "./DbList";
 import { DbPrepDialog } from "./DbPrepDialog";
+import { useDbClientRequests } from "./dbClientRequests";
 import { createConnectionMemo } from "./dbMemo";
 import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle, UnsavedMark } from "./DbTabParts";
 import { DefinitionView } from "./DefinitionView";
@@ -50,8 +51,8 @@ import { TableView } from "./TableView";
 /** ER 図（@xyflow/react と elkjs は ER 図を開いたときだけ読む） */
 const ErView = lazy(() => import("./er/ErView"));
 
-/** 左の一覧を自動で隠す幅（これより狭い所では一覧を重ねて出し、右にパンくず） */
-const NARROW_WIDTH = 560;
+/** 左の一覧を自動で隠す幅（これより狭い所では一覧を重ねて出し、右にパンくず。テーブルの表示の切り替えはアイコンだけ・行の詳細は下に重ねる） */
+const NARROW_WIDTH = 720;
 
 /**
  * DB クライアント（左に接続の一覧と木、右にタブ（テーブル・SQL））。プロジェクトの「DB」タブ・チャットの右の欄・別ウィンドウで同じものを使い、
@@ -85,6 +86,17 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     return () => observer.disconnect();
   }, []);
 
+  // 右の欄の ▾ の「DB ▸」から: 接続を選ぶ（木で開いて一覧を出す）・接続を足す
+  useDbClientRequests(place, (r) => {
+    if (r.kind === "add") return setEditing(null);
+    const key = `c:${r.connectionId}`;
+    const open = readSetting(dbTreeOpen(place));
+    if (!open.includes(key)) setTreeOpen([...open, key]);
+    // 描いたばかり（預けた頼み）だと narrow がまだ測れていないので、その場で幅を測る
+    if ((root.current?.clientWidth ?? Infinity) < NARROW_WIDTH) setOverlay(true);
+    else setHidden(false);
+  });
+
   // 消した接続のタブは閉じる（一覧が届いてから）
   useEffect(() => {
     if (!connections.data) return;
@@ -96,6 +108,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   const actions: DbClientActions = {
     projectId,
     place,
+    narrow,
     worktreeOf: (id) => (mainOnly.has(id) ? null : worktree),
     useMain: (id) => setMainOnly((s) => new Set([...s, id])),
     openTable: (c, path, name, object, filter, preview) => {
@@ -155,6 +168,8 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
   };
 
   const active = state.tabs.find((t) => t.key === state.active) ?? null;
+  /** タブにいくつもの接続が混ざるとき、タブの名前の前に接続の名前を添える */
+  const mixedConnections = new Set(state.tabs.map((t) => t.connection_id)).size > 1;
   const listShown = narrow ? overlay : !hidden;
 
   return (
@@ -202,6 +217,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                   >
                     <span className="db-env-dot" aria-hidden />
                     <DbTabIcon tab={t} />
+                    {mixedConnections && c && <span className="db-tab-conn">{c.name}</span>}
                     <span className="db-tab-label">{tabLabel(t)}</span>
                     {t.kind === "sql" && <PendingMark tabKey={t.key} />}
                     {t.kind === "table" && <UnsavedMark flagKey={unsavedKey(place, t.key)} />}
@@ -215,7 +231,11 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
               <PopOutTabButton />
             </span>
           </div>
-          {active && narrow && <div className="db-breadcrumb small">{breadcrumbOf(active, byId.get(active.connection_id))}</div>}
+          {active && narrow && (
+            <button type="button" className="db-breadcrumb small" title="接続の一覧を重ねて出す" onClick={() => setOverlay(true)}>
+              {breadcrumbOf(active, byId.get(active.connection_id))}
+            </button>
+          )}
           <div className="db-tab-body">
             {state.tabs.map((t) => {
               const c = byId.get(t.connection_id);

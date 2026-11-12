@@ -153,3 +153,21 @@
   flex: 1;
   min-width: 0;
 }
+
+/* 右の欄の ▾ の「DB ▸」の接続の行（環境の色の点・DB の種類の印・名前・つないでいる点） */
+.db-menu-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.db-menu-connection-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-menu-connected {
+  display: inline-flex;
+}

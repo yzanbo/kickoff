@@ -115,6 +115,24 @@
   background: var(--bg-elev);
 }
 
+/* 狭い所では行の詳細を表の下に重ねる */
+.db-client.narrow .db-table-body {
+  position: relative;
+}
+
+.db-client.narrow .db-row-detail {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  width: auto;
+  max-height: 55%;
+  border-top: 1px solid var(--border);
+  border-left: none;
+  box-shadow: 0 -6px 16px rgb(0 0 0 / 18%);
+}
+
 .db-row-detail-empty {
   padding: 12px var(--gutter);
 }
