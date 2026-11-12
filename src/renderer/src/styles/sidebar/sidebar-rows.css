@@ -222,7 +222,7 @@ button.chat-row {
   display: none;
 }
 
-/* 親のチャットの下の子チャット（フォルダと同じく開閉。子の数と、要対応の子がいれば点。段下げは 3 段（子・孫・ひ孫）まで） */
+/* 親のチャットの下の子チャット（フォルダと同じく開閉。子の数と、子孫の様子の印と数。段下げは 3 段（子・孫・ひ孫）まで） */
 .chat-children {
   margin: 0 0 2px 22px;
 }
@@ -250,11 +250,35 @@ button.chat-row {
   font-variant-numeric: tabular-nums;
 }
 
-.chat-children-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent-bright);
+/* 子孫の様子（行の先頭と同じ状態の印 StatusSlot と数。回答待ち → 失敗 → 未読 → 作業中の順） */
+.chat-children-states {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 2px;
+}
+
+.chat-children-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 印は開閉の行の文字（11px）に合わせて小さく（状態の札の印 .tone-chip .status-slot と同じ考え方） */
+.chat-children-state .status-slot {
+  width: 12px;
+  height: 14px;
+}
+
+.chat-children-state .status-slot svg {
+  width: 11px;
+  height: 11px;
+}
+
+.chat-children-state .status-ring {
+  width: 9px;
+  height: 9px;
 }
 
 /* 子がすべてアーカイブ済みなら、開閉の行もアーカイブしたチャットの行と同じく薄くする */

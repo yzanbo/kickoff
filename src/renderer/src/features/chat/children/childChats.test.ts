@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { makeChat } from "@shared/testing/factories";
-import { ancestorsOf, childActivityOf, handBackText, rootChatOf } from "./childChats";
+import { ancestorsOf, childActivityOf, childStateCounts, handBackText, rootChatOf } from "./childChats";
 
 test("handBackText: どの子チャットの答えかを添えて、答えを引用にする（空行も引用の中に残す）", () => {
   assert.equal(handBackText({ title: "違い" }, "A です。\n\nB です。\n"), "子チャット「違い」の答え:\n> A です。\n>\n> B です。\n\n");
@@ -55,4 +55,26 @@ test("childActivityOf: 子孫と、その中の作業中・回答待ちを数え
   states.set(4, "running");
   states.set(3, "needs_input");
   assert.deepEqual(childActivityOf(1, childrenOf, stateOf), { state: "needs_input", count: 3, total: 3 });
+});
+
+test("childStateCounts: 子孫を状態ごとに数える（既読は数えず、アーカイブ済みとその下は withArchived のときだけ）", () => {
+  const states = new Map<number, string>([
+    [2, "running"],
+    [3, "read"],
+    [4, "unread"],
+    [5, "needs_input"],
+    [6, "failed"],
+    [7, "running"],
+  ]);
+  const childrenOf = new Map([
+    [1, [makeChat(2, { parent_chat_id: 1 }), makeChat(3, { parent_chat_id: 1 }), makeChat(5, { parent_chat_id: 1, archived_at: "2026-11-11T00:00:00Z" })]],
+    [3, [makeChat(4, { parent_chat_id: 3 }), makeChat(7, { parent_chat_id: 3 })]],
+    [5, [makeChat(6, { parent_chat_id: 5 })]],
+    // 輪になっていても止まる
+    [7, [makeChat(1, { parent_chat_id: 7 })]],
+  ]);
+  const stateOf = (c: { id: number }) => states.get(c.id) ?? "read";
+  assert.deepEqual(childStateCounts(1, childrenOf, stateOf), { needs_input: 0, failed: 0, unread: 1, running: 2 });
+  assert.deepEqual(childStateCounts(1, childrenOf, stateOf, { withArchived: true }), { needs_input: 1, failed: 1, unread: 1, running: 2 });
+  assert.deepEqual(childStateCounts(2, childrenOf, stateOf), { needs_input: 0, failed: 0, unread: 0, running: 0 });
 });
