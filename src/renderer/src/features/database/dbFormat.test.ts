@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cellKind, cellText, connectionPlace, nextSort, objectPathLabel } from "./dbFormat";
+import { cellKind, cellText, connectionPlace, estimatedRowsLabel, nextSort, objectPathLabel } from "./dbFormat";
 
 test("cellText / cellKind: NULL・バイナリの札・数・文字", () => {
   assert.equal(cellText(null), "NULL");
@@ -43,4 +43,14 @@ test("objectPathLabel: あるものだけを . でつなぐ", () => {
   assert.equal(objectPathLabel({ database: "app", schema: "public" }, "users"), "app.public.users");
   assert.equal(objectPathLabel({ database: "main", schema: null }, "t"), "main.t");
   assert.equal(objectPathLabel({ database: null, schema: null }), "");
+});
+
+test("estimatedRowsLabel: 万・億で短く。統計がない・負の数は null", () => {
+  assert.equal(estimatedRowsLabel(0), "0行");
+  assert.equal(estimatedRowsLabel(950), "950行");
+  assert.equal(estimatedRowsLabel(12_345), "1.2万行");
+  assert.equal(estimatedRowsLabel(250_000_000), "2.5億行");
+  assert.equal(estimatedRowsLabel(null), null);
+  assert.equal(estimatedRowsLabel(undefined), null);
+  assert.equal(estimatedRowsLabel(-1), null);
 });

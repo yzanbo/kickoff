@@ -82,10 +82,12 @@ class SqliteDriver implements DbDriver {
   }
 
   async objects(path: DbObjectPath): Promise<DbObject[]> {
-    return this.all(`SELECT type, name FROM ${this.schemaOf(path)}.sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY name`).map((r) => ({
-      kind: r.type === "view" ? "view" : "table",
-      name: String(r.name),
-    }));
+    const schema = this.schemaOf(path);
+    const stats = this.allEstimatedRows(schema);
+    return this.all(`SELECT type, name FROM ${schema}.sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY name`).map((r) => {
+      const kind = r.type === "view" ? "view" : "table";
+      return { kind, name: String(r.name), estimated_rows: kind === "table" ? (stats.get(String(r.name)) ?? null) : null };
+    });
   }
 
   async definition(): Promise<DbDefinition> {
@@ -149,6 +151,20 @@ class SqliteDriver implements DbDriver {
       byId.set(id, fk);
     }
     return [...byId.values()];
+  }
+
+  /** ANALYZE の統計（sqlite_stat1）にあるテーブルの行数をまとめて（統計がなければ空） */
+  private allEstimatedRows(schema: string): Map<string, number> {
+    const out = new Map<string, number>();
+    try {
+      for (const r of this.all(`SELECT tbl, stat FROM ${schema}.sqlite_stat1`)) {
+        const n = Number(String(r.stat).split(" ")[0]);
+        if (!out.has(String(r.tbl)) && Number.isFinite(n)) out.set(String(r.tbl), n);
+      }
+    } catch {
+      // sqlite_stat1 がない（ANALYZE をしていない）
+    }
+    return out;
   }
 
   /** ANALYZE の統計（sqlite_stat1）があれば、その行数 */

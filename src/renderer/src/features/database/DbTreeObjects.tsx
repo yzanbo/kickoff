@@ -2,6 +2,7 @@ import { ArrowDownAZ, Columns3, Eye, KeyRound, Link, ListOrdered, SquareFunction
 import type { DbConnection, DbObject, DbObjectKind, DbObjectPath, DbTableDetail } from "@shared/types";
 import { api } from "@/api";
 import { useDbClient } from "./dbClientContext";
+import { estimatedRowsLabel } from "./dbFormat";
 import { TreeError, TreeHint, TreeRow, useNodeLoad, type TreeOpen } from "./DbTreeRow";
 
 const OBJECT_ICONS: Record<DbObjectKind, LucideIcon> = { table: Table2, view: Eye, function: SquareFunction, enum: ListOrdered };
@@ -37,6 +38,8 @@ function ObjectNode({ connection: c, depth, path, object: o, tree }: { connectio
   }
   const key = `t:${c.id}:${path.database ?? ""}:${path.schema ?? ""}:${o.name}`;
   const isOpen = tree.isOpen(key);
+  // おおよその行数（DB の統計）を薄く添える
+  const rows = estimatedRowsLabel(o.estimated_rows);
   return (
     <>
       <TreeRow
@@ -45,6 +48,8 @@ function ObjectNode({ connection: c, depth, path, object: o, tree }: { connectio
         openOnClick
         icon={<Icon size={13} aria-hidden />}
         label={o.name}
+        note={rows ?? undefined}
+        title={rows ? `${o.name}（おおよそ ${o.estimated_rows!.toLocaleString()} 行。DB の統計から）` : undefined}
         className="db-tree-object"
         onToggle={() => tree.toggle(key)}
         onOpen={preview}

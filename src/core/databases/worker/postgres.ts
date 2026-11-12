@@ -151,11 +151,16 @@ class PostgresDriver implements DbDriver {
 
   async objects(path: DbObjectPath): Promise<DbObject[]> {
     const rows = await this.all(
-      `SELECT c.relname, c.relkind FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      `SELECT c.relname, c.relkind, c.reltuples FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname = COALESCE($1, current_schema()) AND c.relkind IN ${RELKINDS} AND NOT c.relispartition ORDER BY c.relname`,
       [path.schema],
     );
-    const relations = rows.map((r): DbObject => ({ kind: r.relkind === "v" || r.relkind === "m" ? "view" : "table", name: String(r.relname) }));
+    const relations = rows.map((r): DbObject => {
+      const isView = r.relkind === "v" || r.relkind === "m";
+      // reltuples は統計を取る前は -1（PostgreSQL 14 から）
+      const est = Number(r.reltuples);
+      return { kind: isView ? "view" : "table", name: String(r.relname), estimated_rows: !isView && est >= 0 ? Math.round(est) : null };
+    });
     // テーブル・ビューのあとに関数・列挙型
     return [...relations, ...(await pgRoutineObjects((sql, values) => this.all(sql, values), path.schema))];
   }

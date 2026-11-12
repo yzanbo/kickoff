@@ -149,8 +149,11 @@ class MysqlDriver implements DbDriver {
 
   async objects(path: DbObjectPath): Promise<DbObject[]> {
     const db = await this.databaseOf(path);
-    const rows = await this.run("SELECT TABLE_NAME AS name, TABLE_TYPE AS type FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME", [db]);
-    const relations = rows.map((r): DbObject => ({ kind: String(r.type).includes("VIEW") ? "view" : "table", name: String(r.name) }));
+    const rows = await this.run("SELECT TABLE_NAME AS name, TABLE_TYPE AS type, TABLE_ROWS AS est FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME", [db]);
+    const relations = rows.map((r): DbObject => {
+      const isView = String(r.type).includes("VIEW");
+      return { kind: isView ? "view" : "table", name: String(r.name), estimated_rows: !isView && r.est !== null && r.est !== undefined ? Number(r.est) : null };
+    });
     // テーブル・ビューのあとに関数・プロシージャ（MySQL の列挙型は列の型なので段にしない）
     return [...relations, ...(await mysqlRoutineObjects((sql, values) => this.run(sql, values), db))];
   }

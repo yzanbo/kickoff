@@ -1,4 +1,4 @@
-import { CalendarClock, Database, Layers, Lock, Network, StickyNote, Table2 } from "lucide-react";
+import { CalendarClock, Database, Layers, Lock, Network, Pin, PinOff, StickyNote, Table2 } from "lucide-react";
 import { useState } from "react";
 import { isCheckDue, localToday } from "@shared/database/dbPrep";
 import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
@@ -6,19 +6,21 @@ import { api } from "@/api";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
 import { useDbConnectedIds } from "@/stores/dbConnections";
-import { dbTreeOpen } from "@/lib/storageKeys";
+import { dbTreeOpen, dbTreePins } from "@/lib/storageKeys";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { StatusDot } from "@/ui/StatusDot";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useDbClient } from "./dbClientContext";
 import { connectionPlace } from "./dbFormat";
+import { isPinned, togglePin } from "./dbPins";
 import { ObjectsNode } from "./DbTreeObjects";
+import { PinnedObjects } from "./DbTreePins";
 import { TreeError, TreeHint, TreeRow, useNodeLoad, type TreeMenuTarget, type TreeOpen } from "./DbTreeRow";
 
 /**
  * 左の木: 接続 → DB → スキーマ（PostgreSQL だけ）→ テーブル / ビュー / 関数 / 列挙型 → 列・インデックス・外部キー・トリガー（DbTreeObjects）。
  * 開いた段だけ読む（開いている段は置き場所ごとに覚える）。名前を押すとタブを開く。接続の右クリックは onConnectionMenu、
- * DB・スキーマの右クリックは「ER 図」、テーブル・ビューは「開く」「この表のまわりの ER 図」
+ * DB・スキーマの右クリックは「ER 図」、テーブル・ビューは「開く」「ピン留め（接続のすぐ下に並べる）」「この表のまわりの ER 図」
  */
 export function DbTree({ connections, onConnectionMenu }: { connections: DbConnection[]; onConnectionMenu: (e: React.MouseEvent, connection: DbConnection) => void }) {
   const client = useDbClient();
@@ -28,6 +30,9 @@ export function DbTree({ connections, onConnectionMenu }: { connections: DbConne
   const menu = useContextMenu<TreeMenuTarget>();
   const target = menu.menu?.value;
   const connected = useDbConnectedIds(client.projectId).data;
+  const [pins, setPins] = useSetting(dbTreePins(String(client.projectId)));
+  const pin = target?.table && (target.table.kind === "table" || target.table.kind === "view") ? { connection_id: target.connection.id, path: target.path, name: target.table.name, kind: target.table.kind } : null;
+  const pinned = pin !== null && isPinned(pins, pin);
   return (
     <div className="db-tree" role="tree">
       {connections.map((c) => (
@@ -38,6 +43,11 @@ export function DbTree({ connections, onConnectionMenu }: { connections: DbConne
           {target.table && (
             <MenuItem onSelect={() => client.openTable(target.connection, target.path, target.table!.name, target.table!.kind)}>
               <Table2 size={14} /> 開く
+            </MenuItem>
+          )}
+          {pin && (
+            <MenuItem onSelect={() => setPins(togglePin(pins, pin))}>
+              {pinned ? <PinOff size={14} /> : <Pin size={14} />} {pinned ? "ピン留めを外す" : "ピン留めする"}
             </MenuItem>
           )}
           <MenuItem onSelect={() => client.openEr(target.connection, target.path, target.table?.name ?? null)}>
@@ -98,6 +108,7 @@ function ConnectionNode({ connection: c, connected, isOpen, toggle, menu, onMenu
           <Lock size={11} aria-hidden /> 読み取り専用 · {DB_ENVIRONMENT_LABELS[c.environment]}
         </div>
       )}
+      {open && <PinnedObjects connection={c} tree={{ isOpen, toggle, menu }} />}
       {open && dbs.loading && <TreeHint depth={1}>読み込み中…</TreeHint>}
       {open && dbs.error && <TreeError depth={1} error={dbs.error} connection={c} onRetry={() => setAttempt((n) => n + 1)} />}
       {open &&
