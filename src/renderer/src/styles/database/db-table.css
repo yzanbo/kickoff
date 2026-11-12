@@ -164,6 +164,12 @@ button.db-grid-col:hover {
   margin-left: auto;
 }
 
+/* 見出しの右の「AI に聞く」「SQL で開く」 */
+.db-view-actions {
+  display: flex;
+  gap: 6px;
+}
+
 .db-table-data {
   display: flex;
   flex: 1;

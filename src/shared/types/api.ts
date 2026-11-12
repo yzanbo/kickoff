@@ -429,6 +429,18 @@ export interface DbDisconnectResult {
   pending_sessions: string[];
 }
 
+/** SQL のタブの「AI に頼む」（POST …/db-connections/:cid/sql-assist）。path の場所のテーブルと列の名前・いまの SQL・頼みから、AI に 1 回だけ SQL を書いてもらう */
+export interface DbSqlAssistBody {
+  path: DbObjectPath;
+  request: string;
+  /** いま入力欄にある SQL（空でよい） */
+  sql: string;
+}
+
+export interface DbSqlAssistResult {
+  sql: string;
+}
+
 /** つないでいる接続（GET …/db-connections/connected。木・テーブル・SQL のタブの接続が開いているもの） */
 export interface DbConnectedIds {
   ids: number[];

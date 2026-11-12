@@ -7,6 +7,8 @@ import type {
   DbDatabases,
   DbDefinition,
   DbConnectedIds,
+  DbSqlAssistBody,
+  DbSqlAssistResult,
   DbDisconnectResult,
   DbEditsBody,
   DbEditsResult,
@@ -121,6 +123,8 @@ export const databasesApi = {
     connecting(projectId, id, () => request<{ count: number }>("POST", at(`${one(projectId, id)}/count`, worktree), { path, name, filter })),
   saveDbEdits: (projectId: number, id: number, body: DbEditsBody, worktree: string | null) =>
     connecting(projectId, id, () => request<DbEditsResult>("POST", at(`${one(projectId, id)}/edits`, worktree), body)),
+  dbSqlAssist: (projectId: number, id: number, body: DbSqlAssistBody, worktree: string | null) =>
+    connecting(projectId, id, () => request<DbSqlAssistResult>("POST", at(`${one(projectId, id)}/sql-assist`, worktree), body)),
   dbOutline: (projectId: number, id: number, path: DbObjectPath, worktree: string | null) =>
     connecting(projectId, id, () => request<DbOutlineTable[]>("POST", at(`${one(projectId, id)}/outline`, worktree), { path })),
   dbEr: (projectId: number, id: number, path: DbObjectPath, names: string[] | null, worktree: string | null) =>

@@ -25,6 +25,8 @@ import {
   type DbRowFilter,
   type DbRowsBody,
   type DbFullRowBody,
+  type DbSqlAssistBody,
+  type DbSqlAssistResult,
   type DbSqlBody,
   type DbSshHostKeyBody,
   type NewDbConnectionBody,
@@ -32,12 +34,13 @@ import {
 } from "@shared/types";
 import type { ServerDeps } from "../server.js";
 import { localOnly } from "../thisMac.js";
-import { Invalid, NotFound } from "../errors.js";
+import { asInvalid, Invalid, NotFound } from "../errors.js";
 import { idParam, jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
 import { scanProjectDbs, toImportCandidates } from "../../databases/import/index.js";
 import { acceptSshHostKey, scanSshHostKey, sshConfigHosts } from "../../databases/sshHostKey.js";
+import { parseSqlAnswer, sqlAssistPrompt } from "../../databases/sqlAssist.js";
 
 // ---- 入力の形 ----
 
@@ -188,7 +191,7 @@ const editsSchema = z.object({
  * DB クライアント（接続の登録・試す・木・テーブル・SQL）。この Mac からの頼みだけ受ける（LAN は暗号化なしの HTTP で、
  * 読むだけでも DB の中身が流れるため）。変えたら db_connections の知らせ（中身なし）を出し、画面はここから読み直す
  */
-export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
+export function databaseRoutes(app: Hono, { store, databases, providers }: ServerDeps) {
   const { withProject } = lookups(store);
   const thisMacOnly = localOnly("DB クライアントは、この Mac からだけ使えます");
   app.use("/api/projects/:id/db-connections", thisMacOnly);
@@ -390,6 +393,21 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
   app.post(`${base}/:cid/outline`, withProject, withConnection, async (c) => {
     const { path } = z.object({ path: objectPath }).parse(await jsonBody(c));
     return c.json(await databases.outline(c.var.connection, c.var.project, await workdirOf(c, c.var.project), path));
+  });
+
+  // SQL のタブの「AI に頼む」: テーブルと列の名前（値は渡さない）・いまの SQL・頼みから、プロジェクトの AI に 1 回だけ SQL を書いてもらう。
+  // 「AI に見せない」接続は断る
+  app.post(`${base}/:cid/sql-assist`, withProject, withConnection, async (c) => {
+    const body = z.object({ path: objectPath, request: z.string().trim().min(1).max(2000), sql: z.string().max(20_000) }).parse(await jsonBody(c)) satisfies DbSqlAssistBody;
+    const { connection, project } = c.var;
+    if (connection.ai_access === "none") throw new Invalid("この接続は AI に見せない設定なので、AI に頼めません（接続の編集で変えられます）");
+    const provider = providers[project.provider];
+    if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、SQL を書くのに対応していません");
+    const tables = await databases.outline(connection, project, await workdirOf(c, project), body.path);
+    const answer = await provider.ask(sqlAssistPrompt({ engine: connection.engine, tables, request: body.request, current: body.sql }), { model: "sonnet" }).catch(asInvalid);
+    const sql = parseSqlAnswer(answer);
+    if (!sql) throw new Invalid("AI から答えがありませんでした");
+    return c.json({ sql } satisfies DbSqlAssistResult);
   });
 
   // ---- ER 図 ----

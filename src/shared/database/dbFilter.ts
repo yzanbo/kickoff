@@ -62,10 +62,13 @@ export const isEmptyFilter = (filter: DbRowFilter) => (filter.where === null || 
 /** SQL の文字列にする（画面で「流す SQL」を見せるとき。実際は値を params で渡す） */
 const literal = (value: string) => `'${value.replaceAll("'", "''")}'`;
 
-/** 画面に見せる、テーブルのデータを読む SQL（値は文字列の形で埋め、WHERE の文の改行は空白に。実際に流すものは値を params で渡す） */
-export function previewRowsSql(table: string, filter: DbRowFilter, sort: { column: string; desc: boolean }[], quote: (name: string) => string, limit: number): string {
+/**
+ * 画面に見せる、テーブルのデータを読む SQL（値は文字列の形で埋め、WHERE の文の改行は空白に。実際に流すものは値を params で渡す）。
+ * from は FROM に書く名前（場所つきの名前にするとき。省けば table を囲んだもの）
+ */
+export function previewRowsSql(table: string, filter: DbRowFilter, sort: { column: string; desc: boolean }[], quote: (name: string) => string, limit: number, from?: string): string {
   const { clause, params } = filterSql(filter, { quote, placeholder: (n) => `\u0000${n}\u0000`, like: plainLike });
   const where = clause.replace(/\u0000(\d+)\u0000/g, (_m, n: string) => literal(params[Number(n)] ?? "")).replace(/\(\n|\n\)/g, (m) => (m === "(\n" ? "(" : ")"));
   const order = sort.length > 0 ? ` ORDER BY ${sort.map((s) => `${quote(s.column)}${s.desc ? " DESC" : ""}`).join(", ")}` : "";
-  return `SELECT * FROM ${quote(table)}${where}${order} LIMIT ${limit}`;
+  return `SELECT * FROM ${from ?? quote(table)}${where}${order} LIMIT ${limit}`;
 }

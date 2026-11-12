@@ -4,17 +4,14 @@ import { DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureKind, dbFixPrompt } from
 import { errorMessage } from "@shared/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { api } from "@/api";
-import { parsePopout } from "@/app/popout";
-import { openChat } from "@/app/router";
-import { postToMainWindow } from "@/app/windowBus";
 import { useAsync } from "@/hooks/useAsync";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/lib/time";
-import { addChat } from "@/stores/chats";
 import { confirmDialog } from "@/ui/dialogs";
 import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
 import { Markdown } from "@/ui/markdown/Markdown";
+import { startDbChat } from "./dbChat";
 
 /** 失敗の文から見分けた種類と、よくある原因（接続のダイアログの「つながるか試す」と、つながらないときの案内で共通） */
 export function DbFailureHelp({ error }: { error: string }) {
@@ -39,11 +36,7 @@ async function askAiToFix(projectId: number, c: DbConnection, error: string): Pr
     confirmLabel: "チャットを作って送る",
   });
   if (!ok) return false;
-  const chat = await api.startChat(projectId, { text: dbFixPrompt(c, error), title: `DB「${c.name}」につながらない` });
-  addChat(chat);
-  // 別ウィンドウの中なら、メインのウィンドウで開く
-  if (parsePopout(location.hash) !== undefined) postToMainWindow({ type: "openChat", projectId, chatId: chat.id });
-  else openChat(projectId, chat.id);
+  await startDbChat(projectId, dbFixPrompt(c, error), `DB「${c.name}」につながらない`);
   return true;
 }
 
