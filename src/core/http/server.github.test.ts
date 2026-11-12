@@ -104,6 +104,7 @@ test("GitHub タブ: issue と PR の中身（種類が違えば 404）・PR の
     deletions: 1,
     changedFiles: 2,
     mergeable: "CONFLICTING",
+    headRefOid: "abc123",
     headRepositoryOwner: { login: "fork" },
     timelineItems: {
       pageInfo: { hasNextPage: false, endCursor: null },
@@ -119,6 +120,7 @@ test("GitHub タブ: issue と PR の中身（種類が違えば 404）・PR の
   assert.equal(detail.body_html, "<p>本文</p>");
   assert.equal(detail.mergeable, "conflicting");
   assert.equal(detail.head_owner, "fork");
+  assert.equal(detail.head_sha, "abc123");
   assert.deepEqual(
     detail.review_threads.map((t) => t.id),
     ["T1"],

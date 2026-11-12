@@ -188,6 +188,7 @@ export class GitHubService {
         additions: Number(raw.additions ?? 0),
         deletions: Number(raw.deletions ?? 0),
         changed_files: Number(raw.changedFiles ?? 0),
+        head_sha: typeof raw.headRefOid === "string" ? raw.headRefOid : null,
         head_owner: (raw.headRepositoryOwner as { login?: string } | null)?.login ?? null,
         mergeable: mergeable === "mergeable" || mergeable === "conflicting" ? mergeable : "unknown",
         review_threads: threads,

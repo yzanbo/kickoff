@@ -6,21 +6,22 @@ import { ErrorText } from "@/ui/ErrorText";
 import { Segmented } from "@/ui/Segmented";
 import { GitHubHtml } from "./GitHubHtml";
 import { GitHubChecksList } from "./GitHubChecksList";
+import { GitHubPullChanges } from "./GitHubPullChanges";
 import { GitHubLabels, REVIEW_DECISION_LABELS } from "./GitHubItemRow";
 import { GitHubStateChip } from "./GitHubStateIcon";
 import { GitHubAuthor, GitHubTime, GitHubTimeline } from "./GitHubTimeline";
 import { useGitHubDetail, type GitHubDetail as Detail } from "./useGitHubDetail";
 
 /** PR の中身の切り替え */
-const PR_VIEWS = ["conversation", "checks"] as const;
+const PR_VIEWS = ["conversation", "files", "checks"] as const;
 type PrView = (typeof PR_VIEWS)[number];
-const PR_VIEW_LABELS: Record<PrView, string> = { conversation: "会話", checks: "チェック" };
+const PR_VIEW_LABELS: Record<PrView, string> = { conversation: "会話", files: "変更", checks: "チェック" };
 
 const isPull = (d: Detail): d is GitHubPullDetail => d.item.kind === "pr";
 
 /**
  * GitHub タブの右（開いた issue・PR の中身）。見出し（題名・状態・作った人・ラベル・担当、PR はブランチ・増減・レビュー・衝突）と、
- * issue は本文と会話の流れ、PR は会話・チェックの切り替え。取り直している間は前の中身に「更新中」の印を出す
+ * issue は本文と会話の流れ、PR は会話・変更（差分と行のスレッド）・チェックの切り替え。取り直している間は前の中身に「更新中」の印を出す
  */
 export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: number; kind: GitHubKind; number: number; onBack?: () => void }) {
   const detail = useGitHubDetail(projectId, kind, number, true);
@@ -79,7 +80,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
                 label="PR の中身の切り替え"
                 value={view}
                 onChange={setView}
-                options={PR_VIEWS.map((v) => ({ value: v, label: v === "checks" ? `${PR_VIEW_LABELS[v]} ${data.checks.length}` : PR_VIEW_LABELS[v] }))}
+                options={PR_VIEWS.map((v) => ({ value: v, label: v === "conversation" ? PR_VIEW_LABELS[v] : `${PR_VIEW_LABELS[v]} ${v === "checks" ? data.checks.length : data.changed_files}` }))}
               />
             )}
           </>
@@ -91,6 +92,8 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
         <div className="github-detail-body">
           {isPull(data) && view === "checks" ? (
             <GitHubChecksList checks={data.checks} />
+          ) : isPull(data) && view === "files" ? (
+            <GitHubPullChanges projectId={projectId} number={number} threads={data.review_threads} version={data.head_sha ?? data.fetched_at} />
           ) : (
             <>
               <article className="github-entry github-body">

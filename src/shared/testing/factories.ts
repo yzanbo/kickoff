@@ -1,6 +1,6 @@
 // テストのデータを作る関数（コアと画面のテストで共通。テストからだけ使う）。省いた項目は、それらしい既定値で埋める。
 // Node・DOM に依存しない
-import type { Chat, ChatEventDataOf, ChatEventOf, ChatEventType, ChatGroup, Project } from "@shared/types";
+import type { Chat, ChatEventDataOf, ChatEventOf, ChatEventType, ChatGroup, GitHubReviewThread, Project } from "@shared/types";
 
 /** 既定の時刻 */
 const TEST_TIME = "2026-11-01T00:00:00Z";
@@ -72,6 +72,21 @@ export function makeProject(id: number, patch: Partial<Project> = {}): Project {
 /** チャットのグループ（名前は「G<id>」、プロジェクト 1、並び順は id） */
 export function makeGroup(id: number, patch: Partial<ChatGroup> = {}): ChatGroup {
   return { id, project_id: 1, name: `G${id}`, position: id, hue: 0, created_at: TEST_TIME, ...patch };
+}
+
+/** PR の行のスレッド（ID は「t<id>」、src/a.ts の新しい側の 1 行目・解決していない・コメント 1 つ） */
+export function makeReviewThread(id: number, patch: Partial<GitHubReviewThread> = {}): GitHubReviewThread {
+  return {
+    id: `t${id}`,
+    path: "src/a.ts",
+    line: 1,
+    original_line: 1,
+    side: "RIGHT",
+    resolved: false,
+    outdated: false,
+    comments: [{ id: `c${id}`, author: null, created_at: TEST_TIME, body_html: "<p>コメント</p>", diff_hunk: "@@ -1 +1 @@", url: null }],
+    ...patch,
+  };
 }
 
 /** makeEvent に渡す中身（type ごとの形。発言の message_uuid とツールの結果の is_error は省ける） */

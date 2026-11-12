@@ -171,6 +171,8 @@ export interface GitHubPullDetail extends GitHubIssueDetail {
   additions: number;
   deletions: number;
   changed_files: number;
+  /** 最新のコミット（変わったら「変更」を取り直す） */
+  head_sha: string | null;
   head_owner: string | null;
   mergeable: "mergeable" | "conflicting" | "unknown";
   review_threads: GitHubReviewThread[];

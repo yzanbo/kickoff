@@ -32,20 +32,32 @@ const REVIEW_TEXT: Record<string, string> = {
   pending: "レビューを書いています",
 };
 
-/** 行のスレッド 1 つ（ファイルと行・解決済み・古い差分の印・差分の終わりの数行・コメント） */
-export function GitHubThread({ thread }: { thread: GitHubReviewThread }) {
+/**
+ * 行のスレッド 1 つ（ファイルと行・解決済み・古い差分の印・差分の終わりの数行・コメント）。
+ * inline は PR の「変更」の差分の行の下に出すとき（ファイルと差分の数行は差分そのものが見えているので出さない）
+ */
+export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewThread; inline?: boolean }) {
   const line = thread.line ?? thread.original_line;
-  const hunk = thread.comments[0]?.diff_hunk.split("\n").slice(-4).join("\n") ?? "";
+  const hunk = inline ? "" : (thread.comments[0]?.diff_hunk.split("\n").slice(-4).join("\n") ?? "");
+  const badges = (
+    <>
+      {thread.resolved && <span className="github-thread-badge">解決済み</span>}
+      {thread.outdated && <span className="github-thread-badge">古い差分</span>}
+    </>
+  );
   return (
-    <div className={cx("github-thread", thread.resolved && "resolved")}>
-      <div className="github-thread-head">
-        <span className="github-thread-path">
-          {thread.path}
-          {line !== null && `:${line}`}
-        </span>
-        {thread.resolved && <span className="github-thread-badge">解決済み</span>}
-        {thread.outdated && <span className="github-thread-badge">古い差分</span>}
-      </div>
+    <div className={cx("github-thread", thread.resolved && "resolved", inline && "inline")}>
+      {!inline ? (
+        <div className="github-thread-head">
+          <span className="github-thread-path">
+            {thread.path}
+            {line !== null && `:${line}`}
+          </span>
+          {badges}
+        </div>
+      ) : (
+        (thread.resolved || thread.outdated) && <div className="github-thread-head">{badges}</div>
+      )}
       {hunk && <pre className="github-thread-hunk">{hunk}</pre>}
       {thread.comments.map((c) => (
         <div key={c.id} className="github-thread-comment">
