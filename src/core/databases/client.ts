@@ -4,7 +4,7 @@ import { fork } from "node:child_process";
 import { errorMessage } from "@shared/errors";
 import type { DbEngine } from "@shared/types";
 import type { WorkerCancel, WorkerEvent, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "./protocol.js";
-import { createWorkerHandler } from "./worker/handler.js";
+import { createWorkerHandler, IDLE_SWEEP_MS } from "./worker/handler.js";
 
 /** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス） */
 export interface WorkerChannel {
@@ -58,6 +58,8 @@ export function forkWorker(entry: WorkerEntry): WorkerChannel {
 export function inProcessWorker(): WorkerChannel {
   let listener: (res: WorkerResponse | WorkerEvent) => void = () => {};
   const handler = createWorkerHandler((event) => listener(event));
+  const sweep = setInterval(() => void handler.closeIdle(), IDLE_SWEEP_MS);
+  sweep.unref();
   return {
     send: (message) => {
       if ("cancel" in message) void handler.cancel(message.cancel);
@@ -65,7 +67,10 @@ export function inProcessWorker(): WorkerChannel {
     },
     onMessage: (fn) => (listener = fn),
     onExit: () => {},
-    kill: () => void handler.closeAll(),
+    kill: () => {
+      clearInterval(sweep);
+      void handler.closeAll();
+    },
   };
 }
 
@@ -110,6 +115,11 @@ export class DbWorkerClient {
   /** ワーカーが動いているか */
   get running() {
     return this.channel !== null;
+  }
+
+  /** 名前が prefix で始まる、トランザクションの途中の接続（接続を切る前の確かめ） */
+  transactionsOf(prefix: string) {
+    return [...this.inTransaction].filter((s) => s.startsWith(prefix));
   }
 
   /** トランザクションの途中か（SQL のタブのコミットしていない印。ワーカーが止まれば false） */

@@ -368,6 +368,11 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
     return c.json(await databases.rows(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body.path, body.table, body.sort, body.offset, body.filter));
   });
 
+  app.post(`${base}/:cid/disconnect`, withProject, withConnection, async (c) => {
+    const { force } = z.object({ force: z.boolean().default(false) }).parse(await jsonBody(c));
+    return c.json(await databases.disconnect(c.var.connection, force));
+  });
+
   app.post(`${base}/:cid/full-row`, withProject, withConnection, async (c) => {
     const body = fullRowSchema.parse(await jsonBody(c));
     return c.json(await databases.fullRow(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body.path, body.table, body.filters));

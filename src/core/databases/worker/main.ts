@@ -3,7 +3,7 @@
 // 親がいなくなったら閉じて終わる（utilityProcess は親が終わると Electron が止める）
 import type { WorkerCancel, WorkerEvent, WorkerRequest, WorkerResponse } from "../protocol.js";
 import { setChildReporter } from "./children.js";
-import { createWorkerHandler } from "./handler.js";
+import { createWorkerHandler, IDLE_SWEEP_MS } from "./handler.js";
 
 type Message = WorkerRequest | WorkerCancel;
 /** Electron の utilityProcess の中だけにある、親とのつなぎ（コアは Electron の型を読まないので、使う所だけの形にする） */
@@ -18,6 +18,8 @@ const send = (message: WorkerResponse | WorkerEvent) => (parentPort ? parentPort
 // 流したコマンドの結果（準備の記録）と、起動した子のプロセスはコアに知らせる
 setChildReporter(send);
 const handler = createWorkerHandler(send);
+// 10 分使っていない接続（とトンネル）を閉じる。1 分ごとに見る（プロセスを生かし続けない）
+setInterval(() => void handler.closeIdle(), IDLE_SWEEP_MS).unref();
 
 const receive = (message: Message) => {
   if ("cancel" in message) {

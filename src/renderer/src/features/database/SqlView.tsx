@@ -3,7 +3,7 @@ import { Play, PlayCircle, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isReadOnlyStatement, splitStatements, statementAt, type SqlStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/errors";
-import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, DB_SESSION_IDLE_MS, type DbConnection } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -17,7 +17,7 @@ import { DbWriteBand } from "./DbWriteBand";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
 import { RunResult, type StatementRun } from "./SqlRunResult";
 import { SqlHistoryButton } from "./SqlHistory";
-import { setSqlPending, useSqlPending } from "./sqlSessions";
+import { finishSession, setSqlPending, useSqlPending } from "./sqlSessions";
 import { useSqlWrite } from "./useSqlWrite";
 
 /** 書きかけの SQL を覚えるまでの間（打つたびに書かない） */
@@ -62,8 +62,35 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
       .catch(() => {});
   }, [client.projectId, connection.id, tab.key]);
 
-  const saveDraft = (text: string) => {
+  // 何かした（打つ・流す・続きを読む）時刻。トランザクションの途中で DB_SESSION_IDLE_MS 何もしなければ、コミットか取り消しを聞いて切る
+  const lastActive = useRef(Date.now());
+  const activity = () => {
+    lastActive.current = Date.now();
     write.touch();
+  };
+  useEffect(() => {
+    if (!pending) return;
+    let timer: number | undefined;
+    const check = async () => {
+      const left = DB_SESSION_IDLE_MS - (Date.now() - lastActive.current);
+      if (left > 0) {
+        timer = window.setTimeout(() => void check(), left);
+        return;
+      }
+      const done = await finishSession(client.projectId, connection, tab.key, "10 分何もしていないので、接続を切ります");
+      // やめたら、また 10 分待ってから聞く
+      if (!done) {
+        lastActive.current = Date.now();
+        timer = window.setTimeout(() => void check(), DB_SESSION_IDLE_MS);
+      }
+    };
+    timer = window.setTimeout(() => void check(), Math.max(0, DB_SESSION_IDLE_MS - (Date.now() - lastActive.current)));
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, connection.id, tab.key]);
+
+  const saveDraft = (text: string) => {
+    activity();
     window.clearTimeout(draftTimer.current);
     draftTimer.current = window.setTimeout(() => writeSetting(draftKey, text), DRAFT_DELAY);
   };
@@ -86,7 +113,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
     if (running) return;
     const statements = pickStatements(all);
     if (statements.length === 0) return;
-    write.touch();
+    activity();
     if (!(await write.confirmRun(statements))) return;
     // 押したときに書き込む間だったか（流している途中に戻っても、この回は同じ様子で流す）
     const writing = write.on;
@@ -119,7 +146,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
         .catch(() => {});
     }
     setRunning(false);
-    write.touch();
+    activity();
   };
 
   /** 「さらに読む」: 同じ文を流し直し、読んだ行の数だけ飛ばして続きの DB_SQL_MAX_ROWS 行を足す（読み取りの文だけ） */
@@ -127,7 +154,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
   const more = async (index: number) => {
     const run = runs[index];
     if (!run?.result || running || loadingMore) return;
-    write.touch();
+    activity();
     setLoadingMore(true);
     let next: StatementRun;
     try {

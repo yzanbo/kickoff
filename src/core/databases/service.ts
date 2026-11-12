@@ -6,7 +6,7 @@ import path from "node:path";
 import { editStatements } from "@shared/database/dbEdit";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
 import { hasConnectCommands, normalizePrep, type DbPrepVars } from "@shared/database/dbPrep";
-import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbEngine, DbFilter, DbFullRow, DbSqlBody, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
+import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbEngine, DbDisconnectResult, DbFilter, DbFullRow, DbSqlBody, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
@@ -470,6 +470,19 @@ export class DatabaseService {
   async forgetConnection(id: number) {
     if (!this.opts.client.running) return;
     await this.opts.client.request("closeMatching", { prefixes: ["shared", "sql", "ai"].map((kind) => `${kind}:${id}:`), cleanup_for: id });
+  }
+
+  /**
+   * 接続を切る（木・テーブルのタブ・SQL のタブ・AI のワーカーの接続をすべて閉じ、トンネルを止めて後片付けを流す。次に使えばつなぎ直す）。
+   * コミットしていない SQL のタブがあれば、force でなければ切らずにそのタブ（セッション）を返す（force なら取り消して切る）
+   */
+  async disconnect(connection: DbConnection, force: boolean): Promise<DbDisconnectResult> {
+    const prefix = this.sqlSession(connection, "");
+    const pending = this.opts.client.transactionsOf(prefix).map((s) => s.slice(prefix.length));
+    if (pending.length > 0 && !force) return { disconnected: false, pending_sessions: pending };
+    for (const session of pending) this.running.get(this.sqlSession(connection, session))?.abort();
+    await this.forgetConnection(connection.id);
+    return { disconnected: true, pending_sessions: pending };
   }
 
   /** トランザクションの途中か（SQL のタブを閉じる・切るときの確かめ） */

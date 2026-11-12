@@ -28,3 +28,30 @@ test("DB ワーカー: まだない接続に同時に頼んでも 1 本だけ開
   assert.ok(after.ok);
   assert.equal((after.result as { in_transaction: boolean }).in_transaction, true);
 });
+
+test("DB ワーカー: 10 分使わなかった接続は閉じ、トランザクションの途中の接続は残す。使えば数え直す", async (t) => {
+  let clock = 0;
+  const handler = createWorkerHandler(undefined, { sessionIdleMs: 1000, now: () => clock });
+  t.after(() => handler.closeAll());
+  const target = sqliteTarget();
+  let id = 0;
+  const query = (session: string, sql: string) => handler.handle({ id: ++id, method: "query", params: { session, target, sql, max_rows: 10 } } as WorkerRequest);
+  assert.ok((await query("idle", "select 1")).ok);
+  assert.ok((await query("tx", "begin")).ok);
+  clock = 500;
+  assert.ok((await query("used", "select 1")).ok);
+  assert.deepEqual(await handler.closeIdle(), []);
+  clock = 1200;
+  // 使っていない接続だけ閉じる（トランザクションの途中の tx・500 に使った used は残す）
+  assert.deepEqual(await handler.closeIdle(), ["idle"]);
+  clock = 1600;
+  assert.deepEqual(await handler.closeIdle(), ["used"]);
+  // tx はまだトランザクションの途中なので残り、コミットのあとに閉じる
+  const tx = await query("tx", "select a from t");
+  assert.ok(tx.ok && (tx.result as { in_transaction: boolean }).in_transaction);
+  assert.ok((await handler.handle({ id: ++id, method: "commit", params: { session: "tx" } } as WorkerRequest)).ok);
+  clock = 3000;
+  assert.deepEqual(await handler.closeIdle(), ["tx"]);
+  // 閉じた名前で頼むと開き直す
+  assert.ok((await query("idle", "select 1")).ok);
+});
