@@ -9,6 +9,11 @@ export function findDocker(): string | null {
   return findExecutable(["docker"], [...searchDirs(), path.join(os.homedir(), ".orbstack", "bin"), "/Applications/Docker.app/Contents/Resources/bin"]);
 }
 
+/** OrbStack の orb コマンド（アプリが開いたままエンジンだけ止まっていると、open -a では起動しないため orb start で起こす） */
+export function findOrb(): string | null {
+  return findExecutable(["orb"], [...searchDirs(), path.join(os.homedir(), ".orbstack", "bin")]);
+}
+
 /** docker に渡す環境（ヒントの文を出させない） */
 export const dockerEnv = (extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv => ({ ...process.env, DOCKER_CLI_HINTS: "false", ...extra });
 
