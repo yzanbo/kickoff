@@ -126,11 +126,16 @@ export function appendDbMemoFix(content: string, entry: string): string {
   return lines.join("\n");
 }
 
+/** つながらない様子を「AI に渡す」ときに入力欄に入れる一言（書き換えられる。様子は札にある） */
+export function dbFixText(c: Pick<DbConnection, "name">): string {
+  return `DB の接続「${c.name}」につながりません。添付のつながらない様子を見て原因を調べ、つながるように直すのを手伝ってください。`;
+}
+
 /**
- * 「AI に直してもらう」で新しいチャットに送る文: 失敗の文・接続の設定（パスワードは入れない）・手順メモの場所。
+ * つながらない様子の札の中身（「AI に渡す」）: 失敗の文・接続の設定（パスワードは入れない）・手順メモの場所と、直したあと・直し方の決まり。
  * AI はふつうのチャットと同じく承認を通してコマンドを流せる。直ったら手順メモに追記してもらう
  */
-export function dbFixPrompt(c: Pick<DbConnection, "name" | "engine" | "environment" | "host" | "port" | "database" | "username" | "file_path" | "ssl" | "read_only" | "memo_path">, error: string): string {
+export function dbFailureDocument(c: Pick<DbConnection, "name" | "engine" | "environment" | "host" | "port" | "database" | "username" | "file_path" | "ssl" | "read_only" | "memo_path">, error: string): string {
   const fields: [string, string | null][] = [
     ["名前", c.name],
     ["種類", DB_ENGINE_LABELS[c.engine]],
@@ -145,7 +150,7 @@ export function dbFixPrompt(c: Pick<DbConnection, "name" | "engine" | "environme
   ];
   const kind = dbFailureKind(error);
   return [
-    `Kickoff の DB クライアントで、DB の接続「${c.name}」につながりません。原因を調べて、つながるように直すのを手伝ってください。`,
+    `# DB の接続「${c.name}」につながらない様子（Kickoff の DB クライアント）`,
     "",
     "## 失敗の文",
     "",

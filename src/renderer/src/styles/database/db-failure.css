@@ -98,7 +98,7 @@
   font-size: 13px;
 }
 
-/* 「AI に直してもらう」を左、閉じる・つなぎ直すを右に */
+/* 「AI に渡す ▾」を左、閉じる・つなぎ直すを右に */
 .db-failure-actions .db-failure-spacer {
   flex: 1;
 }

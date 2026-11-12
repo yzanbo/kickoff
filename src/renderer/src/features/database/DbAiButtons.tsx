@@ -6,9 +6,12 @@ import { qualifiedTable, quoteName } from "@shared/database/dbEdit";
 import { DB_TABLE_PAGE_ROWS, type DbConnection, type DbObjectPath, type DbRowFilter, type DbSort } from "@shared/types";
 import { api } from "@/api";
 import type { DbTableTab } from "@/lib/dbClientTabs";
-import { promptDialog, reportFailure } from "@/ui/dialogs";
+import { useChats, useKnownChat } from "@/stores/chats";
+import { promptDialog, promptWithSelect, reportFailure } from "@/ui/dialogs";
+import { chatTitle } from "@/features/chat/chatTitle";
+import { useMainChat } from "@/features/chat/pane/mainChatContext";
 import { useDbClient } from "./dbClientContext";
-import { startDbChat } from "./dbChat";
+import { askDbInChat, startDbChat } from "./dbChat";
 import { objectPathLabel } from "./dbFormat";
 import type { SqlEditorHandle } from "./SqlEditor";
 
@@ -29,24 +32,46 @@ export function OpenAsSqlButton({ connection, tab, filter, sort }: { connection:
   );
 }
 
-/** テーブルの「AI に聞く」（テーブルのタブ・ER 図の選んだテーブル）: 聞きたいことを入れてもらい、新しいチャットで聞く（中身は AI が kickoff_db のツールで読む） */
+/** 「AI に聞く」で選べるいまあるチャットの数（最近動いた順） */
+const ASK_CHAT_CHOICES = 15;
+
+/**
+ * テーブルの「AI に聞く」（テーブルのタブ・ER 図の選んだテーブル）: 聞きたいことと聞く先（新しいチャット・このチャット・最近動いたチャット）を選んでもらい、
+ * そのまま送る（書き終えた時点で送るつもりがあるので、入力欄では止めない。いまあるチャットが作業中なら送信待ちに入れる）。中身は AI が kickoff_db のツールで読む
+ */
 export function AskAiButton({ connection, path, tables, label = "AI に聞く" }: { connection: DbConnection; path: DbObjectPath; tables: string[]; label?: string }) {
   const client = useDbClient();
   const hidden = connection.ai_access === "none";
+  const mainChatId = useMainChat();
+  const mainChat = useKnownChat(mainChatId ?? 0);
+  const { chats } = useChats({ projectId: client.projectId });
   const ask = async () => {
     const place = objectPathLabel(path) || "既定の場所";
-    const question = await promptDialog({
+    const targets = [...(mainChat && mainChat.archived_at === null ? [mainChat] : []), ...chats.filter((c) => c.id !== mainChat?.id && c.archived_at === null).slice(0, ASK_CHAT_CHOICES)];
+    const answer = await promptWithSelect({
       title: tables.length === 1 ? `「${tables[0]}」について AI に聞く` : `選んだ ${tables.length} 個のテーブルについて AI に聞く`,
-      message: `新しいチャットで聞きます。AI はこの接続（${connection.name}）の構造と中身を、DB のツールで読んでから答えます${connection.ai_access === "ask" ? "（SQL を流す前に承認を聞きます）" : ""}。`,
+      message: `AI はこの接続（${connection.name}）の構造と中身を、DB のツールで読んでから答えます${connection.ai_access === "ask" ? "（SQL を流す前に承認を聞きます）" : ""}。決めたらすぐ送ります（作業中のチャットなら送信待ちに入れます）。`,
       label: "聞きたいこと",
       placeholder: "例: 先月いちばん多く注文した人は？",
       confirmLabel: "チャットで聞く",
+      select: {
+        label: "聞く先",
+        initial: "new",
+        options: [
+          { value: "new", label: "新しいチャット" },
+          ...targets.map((c) => ({ value: String(c.id), label: c.id === mainChat?.id ? `このチャット（${chatTitle(c.title)}）` : chatTitle(c.title) })),
+        ],
+      },
     });
-    if (!question?.trim()) return;
-    await startDbChat(client.projectId, dbAskPrompt(connection, place, tables, question), `DB「${tables.length > 3 ? `${tables.slice(0, 3).join("・")} ほか ${tables.length - 3} 個` : tables.join("・")}」について`).catch(reportFailure("チャットを作れませんでした"));
+    if (!answer?.value.trim()) return;
+    const text = dbAskPrompt(connection, place, tables, answer.value);
+    const chat = targets.find((c) => String(c.id) === answer.selected);
+    const fail = reportFailure(chat ? "チャットに送れませんでした" : "チャットを作れませんでした");
+    if (chat) return askDbInChat(chat, text).catch(fail);
+    await startDbChat(client.projectId, text, `DB「${tables.length > 3 ? `${tables.slice(0, 3).join("・")} ほか ${tables.length - 3} 個` : tables.join("・")}」について`).catch(fail);
   };
   return (
-    <button type="button" className="btn btn-sm" disabled={hidden || tables.length === 0} onClick={() => void ask()} data-tip={hidden ? AI_HIDDEN_TIP : "聞きたいことを新しいチャットで AI に聞く"}>
+    <button type="button" className="btn btn-sm" disabled={hidden || tables.length === 0} onClick={() => void ask()} data-tip={hidden ? AI_HIDDEN_TIP : "聞きたいことを書いて、新しいチャットか選んだチャットで AI に聞く（すぐ送る）"}>
       <Sparkles size={13} aria-hidden /> {label}
     </button>
   );

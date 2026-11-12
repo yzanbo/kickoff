@@ -44,6 +44,15 @@ interface PromptOptions {
   check?: DialogCheck;
   /** 空のままでも決められる（空なら "" を返す。退避のメッセージなど、省ける入力） */
   optional?: boolean;
+  /** 入力と一緒に 1 つ選んでもらう一覧（あれば入力欄の下に出す。promptWithSelect） */
+  select?: DialogSelect;
+}
+
+/** 入力のダイアログに添える 1 つ選ぶ一覧（initial は初めに選んでおく value） */
+interface DialogSelect {
+  label: string;
+  options: { value: string; label: string }[];
+  initial: string;
 }
 
 interface ChoiceOptions {
@@ -57,7 +66,7 @@ interface ChoiceOptions {
 
 type Request =
   | ({ kind: "confirm"; resolve: (ok: boolean, checked: boolean) => void } & ConfirmOptions)
-  | ({ kind: "prompt"; resolve: (value: string | null, checked: boolean) => void } & PromptOptions)
+  | ({ kind: "prompt"; resolve: (value: string | null, checked: boolean, selected: string) => void } & PromptOptions)
   | ({ kind: "choice"; resolve: (value: string | null, remember: boolean) => void } & ChoiceOptions);
 
 let show: ((req: Request) => void) | undefined;
@@ -102,6 +111,14 @@ export function promptWithCheck(options: Omit<PromptOptions, "check"> & { check:
   });
 }
 
+/** 一覧から 1 つ選んでもらう入力のダイアログ（「聞きたいこと」と「どのチャットで聞くか」など）。決定すれば入力と選んだ value、キャンセルなら null */
+export function promptWithSelect(options: Omit<PromptOptions, "select"> & { select: DialogSelect }): Promise<{ value: string; selected: string } | null> {
+  return new Promise((resolve) => {
+    if (!show) return resolve(null);
+    show({ kind: "prompt", resolve: (value, _checked, selected) => resolve(value === null ? null : { value, selected }), ...options });
+  });
+}
+
 /** いくつかの選択肢から選ぶダイアログ（「このまま送る / 新しいワークツリーで始める」など）。選んだものの value、キャンセルなら null */
 export function choiceDialog<T extends string>(options: Omit<ChoiceOptions, "choices"> & { choices: { value: T; label: string; primary?: boolean }[] }): Promise<T | null> {
   return new Promise((resolve) => {
@@ -126,6 +143,8 @@ export function DialogHost() {
   const [value, setValue] = useState("");
   // 「次からはこれにする」のチェック（確認に添えるチェックも、これで持つ）
   const [remember, setRemember] = useState(false);
+  // 入力に添える一覧で選んでいるもの
+  const [selected, setSelected] = useState("");
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -134,6 +153,7 @@ export function DialogHost() {
   useEffect(() => {
     show = (next) => {
       setValue(next.kind === "prompt" ? (next.initial ?? "") : "");
+      setSelected(next.kind === "prompt" ? (next.select?.initial ?? "") : "");
       // 「次からはこれにする」と、確認に添えるチェックの初めの状態
       setRemember(next.kind === "confirm" || next.kind === "prompt" ? Boolean(next.check?.initial) : false);
       setReq(next);
@@ -163,7 +183,7 @@ export function DialogHost() {
     if (!req) return;
     if (req.kind === "confirm") req.resolve(ok, remember);
     else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null, remember);
-    else req.resolve(ok && (value.trim() || req.optional) ? value.trim() : null, remember);
+    else req.resolve(ok && (value.trim() || req.optional) ? value.trim() : null, remember, selected);
     setReq(null);
     ref.current?.close();
   };
@@ -204,6 +224,18 @@ export function DialogHost() {
               maxLength={200}
               onChange={(e) => setValue(e.target.value)}
             />
+          </label>
+        )}
+        {req.kind === "prompt" && req.select && (
+          <label className="field">
+            <span className="field-label">{req.select.label}</span>
+            <select value={selected} onChange={(e) => setSelected(e.target.value)}>
+              {req.select.options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </label>
         )}
         {req.kind === "choice" && req.remember && <CheckField className="app-dialog-remember" label={req.remember} checked={remember} onChange={setRemember} />}
