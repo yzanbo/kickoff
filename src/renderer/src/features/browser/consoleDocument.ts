@@ -15,11 +15,12 @@ export function pageHostOf(url: string): string {
 /** 札の元を開くリンク（http(s) のページだけ） */
 export const pageLinkOf = (url: string): string | null => (/^https?:\/\//.test(url) ? url : null);
 
-/** 画面の札の名前（「ログイン（localhost:5173）」。題がなければホストだけ） */
-export function screenLabelOf(page: { url: string; title: string }): string {
+/** 画面の札の名前（「ログイン（localhost:5173）・1280 × 800」。題がなければホストだけ。大きさは撮った画像の px） */
+export function screenLabelOf(page: { url: string; title: string }, size?: { width: number; height: number }): string {
   const host = pageHostOf(page.url);
   const title = page.title.trim();
-  return title && title !== page.url ? `${title}（${host}）` : host;
+  const name = title && title !== page.url ? `${title}（${host}）` : host;
+  return size ? `${name}・${size.width} × ${size.height}` : name;
 }
 
 /** エラーと警告の数 */
