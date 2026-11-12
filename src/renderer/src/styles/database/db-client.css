@@ -142,6 +142,13 @@
   white-space: nowrap;
 }
 
+/* 接続の行の名前の後ろの「つないでいる」印（木・テーブル・SQL のタブの接続が開いている間） */
+.db-tree-connected {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
 .db-tree-connection .db-tree-label {
   font-weight: 600;
 }

@@ -1,6 +1,6 @@
 // テーブルのデータの補助（セルの値で絞る・外部キーで移る条件・行の詳細の値の整え方・CSV / TSV / JSON の書き出し）。React に依らない
-import type { DbColumnInfo, DbFilter, DbForeignKey, DbValue } from "@shared/types";
-import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
+import { DB_IMAGE_PREVIEW_BYTES, type DbColumnInfo, type DbFilter, type DbForeignKey, type DbValue } from "@shared/types";
+import { dbImageType, isDbBinary, isDbLongText } from "@shared/database/dbValue";
 
 /** 絞り込みの値にする文（NULL は null、バイナリ・頭だけの長い文字は絞れないので undefined） */
 export function filterValueOf(value: DbValue): string | null | undefined {
@@ -35,6 +35,9 @@ export function linkFilters(row: DbValue[], columns: DbColumnInfo[], from: strin
 
 /** 頭だけの長い文字を含む行か */
 export const hasLongValue = (row: DbValue[]) => row.some(isDbLongText);
+
+/** まだ縮小表示の中身（data_url）を読んでいない、大きすぎない画像のバイナリを含む行か */
+export const hasUnreadImage = (row: DbValue[]) => row.some((v) => isDbBinary(v) && !v.data_url && v.bytes <= DB_IMAGE_PREVIEW_BYTES && dbImageType(v.head) !== null);
 
 /** 行を指すキーの列の条件（全体を読み直すとき。キーの列がない・値がバイナリや頭だけの文字なら null） */
 export function rowKeyFilters(columns: DbColumnInfo[], row: DbValue[], keyColumns: string[] | null): DbFilter[] | null {

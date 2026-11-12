@@ -6,7 +6,7 @@ import path from "node:path";
 import { editStatements } from "@shared/database/dbEdit";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
 import { hasConnectCommands, normalizePrep, type DbPrepVars } from "@shared/database/dbPrep";
-import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbEngine, DbDisconnectResult, DbFilter, DbFullRow, DbSqlBody, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
+import type { BusEvent, DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbEngine, DbDisconnectResult, DbFilter, DbFullRow, DbSqlBody, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
@@ -52,7 +52,12 @@ interface Options {
   dataDir: string;
   /** AI の SQL の結果を書き出す CSV の置き場所（省けば OS の一時フォルダの <保存先の名前>-db。テストは一時フォルダの中） */
   exportRoot?: string;
+  /** 接続の状態の知らせ（SSE の db_connection_state。省けば知らせない） */
+  publish?: (event: BusEvent) => void;
 }
+
+/** 数える接続（セッション）の種類（木・テーブルのタブと SQL のタブ。AI・行の保存の接続は 1 回ずつ開いて閉じるので数えない） */
+const COUNTED_SESSION = /^(?:shared|sql):(\d+):/;
 
 /** 片付けの間隔（CSV を書き出すたびに、これより前に片付けていれば片付ける） */
 const EXPORT_CLEAN_INTERVAL_MS = 60 * 60_000;
@@ -86,6 +91,8 @@ export class DatabaseService {
   private exportCleanedAt = 0;
   /** SQL のタブごとの、流している文を止める口 */
   private readonly running = new Map<string, AbortController>();
+  /** 接続ごとの、ワーカーの中で開いている接続（セッション）の数（つないでいる印。0 になったら消す） */
+  private readonly openCounts = new Map<number, number>();
 
   constructor(private readonly opts: Options) {
     this.vault = opts.vault;
@@ -93,7 +100,27 @@ export class DatabaseService {
     // ワーカーが流したコマンドの結果を準備の記録に残す（消した接続のものは残さない）
     opts.client.onEvent = (event) => {
       if (event.event === "prep_run" && opts.store.dbConnections.get(event.connection_id)) opts.store.dbPrepRuns.add(event.connection_id, event.kind, event.command, event.ok);
+      if (event.event === "session") this.countSession(event.name, event.open);
     };
+  }
+
+  /** 開いた・閉じた接続（セッション）を数え、つないでいるかが変わったら知らせる */
+  private countSession(name: string, open: boolean) {
+    const m = COUNTED_SESSION.exec(name);
+    if (!m) return;
+    const id = Number(m[1]);
+    const before = this.openCounts.get(id) ?? 0;
+    const after = Math.max(0, before + (open ? 1 : -1));
+    if (after === 0) this.openCounts.delete(id);
+    else this.openCounts.set(id, after);
+    if ((before > 0) === (after > 0)) return;
+    const connection = this.opts.store.dbConnections.get(id);
+    if (connection) this.opts.publish?.({ type: "db_connection_state", project_id: connection.project_id, connection_id: id, connected: after > 0 });
+  }
+
+  /** つないでいる接続の ID（プロジェクトの分） */
+  connectedIds(projectId: number) {
+    return [...this.openCounts.keys()].filter((id) => this.opts.store.dbConnections.get(id)?.project_id === projectId);
   }
 
   /** Kickoff 自身のデータフォルダの中のファイルか（リンクを解いた実体で比べる） */

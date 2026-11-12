@@ -99,3 +99,20 @@ test("DB ワーカー: 止めると、ワーカーが起動したシェル（準
   // シェルのプロセスグループはもういない
   assert.throws(() => process.kill(-killed[0], 0));
 });
+
+test("DB ワーカー: 開いた接続の知らせを覚え、ワーカーが落ちたら開いていた接続をすべて閉じたと知らせる", () => {
+  let listener: Parameters<WorkerChannel["onMessage"]>[0] = () => {};
+  let exited: (reason: string) => void = () => {};
+  const channel: WorkerChannel = { send: () => {}, onMessage: (fn) => (listener = fn), onExit: (fn) => (exited = fn), kill: () => {} };
+  const client = new DbWorkerClient(() => channel);
+  const seen: string[] = [];
+  client.onEvent = (e) => e.event === "session" && seen.push(`${e.name}:${e.open}`);
+  void client.request("close", { session: "z" }).catch(() => {});
+  listener({ event: "session", name: "a", open: true });
+  listener({ event: "session", name: "b", open: true });
+  listener({ event: "session", name: "a", open: false });
+  // 知らない接続を閉じた知らせは流さない
+  listener({ event: "session", name: "x", open: false });
+  exited("終了コード 1");
+  assert.deepEqual(seen, ["a:true", "b:true", "a:false", "b:false"]);
+});

@@ -1,5 +1,6 @@
 // DB から読んだ値を、JSON で送れるセルの値（DbValue）にする（どの種類のドライバでも同じ形にする）
-import { DB_VALUE_HEAD_CHARS, type DbValue } from "@shared/types";
+import { dbImageType } from "@shared/database/dbValue";
+import { DB_IMAGE_PREVIEW_BYTES, DB_VALUE_HEAD_CHARS, type DbValue } from "@shared/types";
 
 const HEAD_BYTES = 16;
 
@@ -18,7 +19,12 @@ export function toDbValue(value: unknown, full = false): DbValue {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return Number.isFinite(value) ? value : String(value);
   if (typeof value === "bigint") return value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : value.toString();
-  if (value instanceof Uint8Array) return { binary: true, bytes: value.byteLength, head: hex(value) };
+  if (value instanceof Uint8Array) {
+    const head = hex(value);
+    // 全体のまま読むとき（行の詳細）だけ、大きすぎない画像は data: の URL も付ける（縮小表示）
+    const image = full && value.byteLength <= DB_IMAGE_PREVIEW_BYTES ? dbImageType(head) : null;
+    return image ? { binary: true, bytes: value.byteLength, head, data_url: `data:${image};base64,${Buffer.from(value).toString("base64")}` } : { binary: true, bytes: value.byteLength, head };
+  }
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? String(value) : value.toISOString();
   if (Array.isArray(value) || typeof value === "object") {
     try {

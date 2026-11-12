@@ -29,6 +29,16 @@ test("nextSort: 昇順 → 降順 → なし、ほかの列は昇順から", () 
   assert.deepEqual(nextSort([{ column: "a", desc: true }], "b"), [{ column: "b", desc: false }]);
 });
 
+test("nextSort: ⇧ で足す（入っていない列は後ろに昇順、入っている列は 昇順 → 降順 → 外す）", () => {
+  const a = { column: "a", desc: false };
+  assert.deepEqual(nextSort([a], "b", true), [a, { column: "b", desc: false }]);
+  assert.deepEqual(nextSort([a, { column: "b", desc: false }], "b", true), [a, { column: "b", desc: true }]);
+  assert.deepEqual(nextSort([a, { column: "b", desc: true }], "b", true), [a]);
+  assert.deepEqual(nextSort([], "a", true), [a]);
+  // ⇧ なしで押すと、その列だけに戻す
+  assert.deepEqual(nextSort([a, { column: "b", desc: true }], "b"), [{ column: "b", desc: false }]);
+});
+
 test("objectPathLabel: あるものだけを . でつなぐ", () => {
   assert.equal(objectPathLabel({ database: "app", schema: "public" }, "users"), "app.public.users");
   assert.equal(objectPathLabel({ database: "main", schema: null }, "t"), "main.t");

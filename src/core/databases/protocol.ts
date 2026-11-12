@@ -38,7 +38,14 @@ export interface DbTargetCommands {
 }
 
 /** ワーカーからの知らせ */
-export type WorkerEvent = PrepRunEvent | ChildProcessEvent;
+export type WorkerEvent = PrepRunEvent | ChildProcessEvent | SessionEvent;
+
+/** ワーカーの中の接続（セッション）を開いた・閉じた（コアが接続ごとに数えて、つないでいるかを画面に知らせる） */
+export interface SessionEvent {
+  event: "session";
+  name: string;
+  open: boolean;
+}
 
 /** AI の SQL を書き出した結果（rows は頭の行だけ。file は頭の行を超えて CSV に書いたときだけ） */
 export interface DbExportResult {

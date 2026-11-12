@@ -247,7 +247,11 @@ export interface DbBinary {
   bytes: number;
   /** 頭の 16 バイトまでの 16 進 */
   head: string;
+  /** 画像（PNG・JPEG・GIF・WebP で DB_IMAGE_PREVIEW_BYTES まで）なら data: の URL（行を全体のまま読んだときだけ。行の詳細の縮小表示） */
+  data_url?: string;
 }
+/** これより大きな画像のバイナリは、行の詳細で縮小表示しない */
+export const DB_IMAGE_PREVIEW_BYTES = 5 * 1024 * 1024;
 
 /** 結果の列 */
 export interface DbColumnInfo {

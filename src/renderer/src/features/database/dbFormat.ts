@@ -26,9 +26,16 @@ export function connectionPlace(c: Pick<DbConnection, "engine" | "host" | "port"
   return `${c.username ? `${c.username}@` : ""}${host}${c.database ? `/${c.database}` : ""}`;
 }
 
-/** 列の見出しを押したときの並べ替え（その列で 昇順 → 降順 → 並べ替えなし。ほかの列を押したらその列の昇順だけ） */
-export function nextSort(sort: DbSort[], column: string): DbSort[] {
+/**
+ * 列の見出しを押したときの並べ替え（その列で 昇順 → 降順 → 並べ替えなし。ほかの列を押したらその列の昇順だけ）。
+ * add（⇧ を押しながら）なら今の並べ替えに足す: 入っていない列は後ろに昇順で足し、入っている列は 昇順 → 降順 → 外す（ほかの列は残す）
+ */
+export function nextSort(sort: DbSort[], column: string, add = false): DbSort[] {
   const current = sort.find((s) => s.column === column);
+  if (add) {
+    if (!current) return [...sort, { column, desc: false }];
+    return current.desc ? sort.filter((s) => s.column !== column) : sort.map((s) => (s.column === column ? { column, desc: true } : s));
+  }
   if (!current || sort.length > 1) return [{ column, desc: false }];
   return current.desc ? [] : [{ column, desc: true }];
 }
