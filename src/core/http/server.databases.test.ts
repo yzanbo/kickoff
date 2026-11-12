@@ -145,6 +145,16 @@ test("DB の接続: ほかのプロジェクトから写す（パスワードは
   assert.equal(store.dbConnections.password(withPassword.id), "p");
 });
 
+test("DB の接続: 同じプロジェクトの中で写すと、名前に「のコピー」を付けて手順メモも同じものを指す", async () => {
+  const { call, project } = setup();
+  const base = `/api/projects/${project.id}/db-connections`;
+  const from = (await call("POST", base, sqliteBody({ name: "開発", memo_path: "DB/開発.md" }))).body as DbConnection;
+  const copied = (await call("POST", `${base}/copy`, { from_id: from.id, copy_password: false })).body as DbConnection;
+  assert.equal(copied.name, "開発 のコピー");
+  assert.equal(copied.memo_path, "DB/開発.md");
+  assert.equal(copied.file_path, from.file_path);
+});
+
 test("DB の接続: プロジェクトから取り込む（案にパスワードは出さず、取り込むときに読み直す。登録済みの印・環境の既定・ないものは 404）", async () => {
   const { call, project, store } = setup();
   const base = `/api/projects/${project.id}/db-connections/import`;
@@ -384,6 +394,8 @@ test("DB の接続: つながるか試す（保存しない）。ないファイ
   const ok = (await call("POST", `${base}/test`, { ...sqliteBody(), name: undefined })).body;
   assert.equal(ok.ok, true);
   assert.match(ok.server_version, /^SQLite \d/);
+  // つなぐのにかかった時間も返す（画面が結果に添える）
+  assert.equal(typeof ok.duration_ms, "number");
   const missing = (await call("POST", `${base}/test`, sqliteBody({ file_path: "none.db" }))).body;
   assert.equal(missing.ok, false);
   assert.match(missing.error, /見つかりません/);

@@ -26,6 +26,8 @@ function colorsOf(el: Element): ErSvgColors {
     muted: v("--muted", "#777777"),
     edge: v("--er-edge", "#888888"),
     key: v("--warn", "#c08000"),
+    // 本番の接続の図は環境の色の枠（画面の .db-er.db-env-production::after と同じ）
+    frame: el.classList.contains("db-env-production") ? v("--db-env", "#d04040") : null,
   };
 }
 

@@ -231,7 +231,9 @@
 }
 
 .db-result-tab {
+  flex: none;
   min-width: 26px;
+  white-space: nowrap;
   height: 22px;
   padding: 0 6px;
   border: 1px solid var(--border);
@@ -256,6 +258,48 @@
 .db-result-tab.skipped {
   color: var(--extra-muted);
   text-decoration: line-through;
+}
+
+/* 結果の「メッセージ」: 文ごとの結果を 1 行ずつ */
+.db-sql-messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px var(--gutter);
+  overflow: auto;
+  list-style: none;
+}
+
+.db-sql-messages li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.db-sql-message-sql {
+  min-width: 0;
+  max-width: 60ch;
+  overflow: hidden;
+  font-family: var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-sql-messages li.failed .db-sql-message-error {
+  flex-basis: 100%;
+  color: var(--ng);
+}
+
+.db-sql-messages li.skipped {
+  color: var(--extra-muted);
+}
+
+/* 結果の下の帯の環境の一文 */
+.db-sql-env-note {
+  color: color-mix(in srgb, var(--db-env, var(--muted)) 70%, var(--text));
 }
 
 .db-sql-result {
@@ -328,6 +372,41 @@
 }
 
 /* SSH トンネルの欄（チェックの下に字下げして並べる） */
+/* 接続のダイアログの DB の種類のタイル（印・名前・一言） */
+.db-engine-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.db-engine-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.db-engine-tile:hover {
+  background: var(--bg-hover);
+}
+
+.db-engine-tile.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-elev));
+}
+
+.db-engine-tile-name {
+  font-weight: 600;
+}
+
 .db-ssh-fields {
   display: flex;
   flex-direction: column;

@@ -8,6 +8,8 @@ import { ErrorText } from "@/ui/ErrorText";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { DataGrid } from "./DataGrid";
+import { durationLabel } from "./dbFormat";
+import { runOutcome } from "./sqlResultLabels";
 import { DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, type DbExportFormat } from "./dbRowTools";
 
 /** 1 つの文を流した結果（失敗したら error。止めたら stopped） */
@@ -26,7 +28,20 @@ export interface StatementRun {
   skipped?: boolean;
 }
 
-export function RunResult({ run, canMore, loadingMore, onMore }: { run: StatementRun; canMore: boolean; loadingMore: boolean; onMore: () => void }) {
+export function RunResult({
+  run,
+  env,
+  canMore,
+  loadingMore,
+  onMore,
+}: {
+  run: StatementRun;
+  /** 下の帯の環境の一文（sqlResultLabels.ts の envSentence） */
+  env: string;
+  canMore: boolean;
+  loadingMore: boolean;
+  onMore: () => void;
+}) {
   if (run.stopped) return <p className="db-sql-note small muted">止めました。</p>;
   if (run.skipped) {
     return (
@@ -63,7 +78,8 @@ export function RunResult({ run, canMore, loadingMore, onMore }: { run: Statemen
           </button>
         )}
         <ErrorText message={run.moreError} />
-        <span>{(Math.round(r.duration_ms * 10) / 10).toLocaleString()} ms</span>
+        <span>{durationLabel(r.duration_ms)}</span>
+        <span className="db-sql-env-note">{env}</span>
         {hasRows && r.rows.length > 0 && <ResultExport result={r} />}
       </div>
     </div>
@@ -112,5 +128,23 @@ function ResultExport({ result }: { result: DbQueryResult }) {
         </PopupMenu>
       )}
     </>
+  );
+}
+
+/** 結果の「メッセージ」のタブ: 流した文ごとの結果を 1 行ずつ（番号・文の頭・結果と時間。失敗は失敗の文も）。押すとその文の結果のタブ */
+export function RunMessages({ runs, onPick }: { runs: StatementRun[]; onPick: (index: number) => void }) {
+  return (
+    <ol className="db-sql-messages small">
+      {runs.map((r, i) => (
+        <li key={i} className={r.error ? "failed" : r.skipped ? "skipped" : undefined}>
+          <button type="button" className="link-button" onClick={() => onPick(i)}>
+            結果 {i + 1}
+          </button>
+          <code className="db-sql-message-sql">{r.sql.replace(/\s+/g, " ").slice(0, 120)}</code>
+          <span className="muted">{runOutcome(r)}</span>
+          {r.error && <span className="db-sql-message-error">{r.error}</span>}
+        </li>
+      ))}
+    </ol>
   );
 }
