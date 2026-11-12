@@ -21,10 +21,11 @@ test("pageHostOf / pageLinkOf: http(s) はホストとポート・リンクあ�
   assert.equal(pageLinkOf("about:blank"), null);
 });
 
-test("screenLabelOf: 題とホスト。題がない・URL と同じならホストだけ", () => {
+test("screenLabelOf: 題とホストと大きさ。題がない・URL と同じならホストだけ", () => {
   assert.equal(screenLabelOf({ url: "http://localhost:5173/login", title: "ログイン" }), "ログイン（localhost:5173）");
   assert.equal(screenLabelOf({ url: "http://localhost:5173/", title: " " }), "localhost:5173");
   assert.equal(screenLabelOf({ url: "http://localhost:5173/", title: "http://localhost:5173/" }), "localhost:5173");
+  assert.equal(screenLabelOf({ url: "http://localhost:5173/", title: "ホーム" }, { width: 1280, height: 800 }), "ホーム（localhost:5173）・1280 × 800");
 });
 
 test("consoleLabelOf: ホストと、0 でない種類の数", () => {

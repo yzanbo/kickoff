@@ -19,7 +19,7 @@ async function captureTab(webContentsId: number, page: { url: string; title: str
   const url = pageLinkOf(page.url);
   const jobs: Promise<Attachment>[] = [];
   if (taken.screen) {
-    jobs.push(api.capture({ name: "browser-screen.jpg", mime: "image/jpeg", image_base64: taken.screen.data, source: { type: "browser_screen", label: screenLabelOf(page), url } }));
+    jobs.push(api.capture({ name: "browser-screen.jpg", mime: "image/jpeg", image_base64: taken.screen.data, source: { type: "browser_screen", label: screenLabelOf(page, taken.screen), url } }));
   }
   if (taken.console.length > 0) {
     jobs.push(

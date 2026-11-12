@@ -31,3 +31,18 @@ export function terminalCaptureLabel(cwd: string, text: string): string {
   const folder = cwd.replace(/\/+$/, "").split("/").pop() || cwd;
   return `${folder}・${lineCount(text)} 行`;
 }
+
+/**
+ * 選んだ範囲の終わりのすぐ下に「チャットに追加」の小さなボタンを置く位置（画面の座標）。end は xterm の選択の終わり（列・バッファの行。0 から）、
+ * view は見えている範囲（いちばん上の行・行数・列数）、box は文字を描く面の位置と大きさ。終わりが見えている範囲の外なら null
+ */
+export function selectionButtonPoint(
+  end: { x: number; y: number },
+  view: { viewportY: number; rows: number; cols: number },
+  box: { left: number; top: number; width: number; height: number },
+): { x: number; y: number } | null {
+  const row = end.y - view.viewportY;
+  if (row < 0 || row >= view.rows || view.cols <= 0) return null;
+  const cell = { w: box.width / view.cols, h: box.height / view.rows };
+  return { x: box.left + Math.min(end.x, view.cols) * cell.w, y: box.top + (row + 1) * cell.h + 4 };
+}

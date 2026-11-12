@@ -38,8 +38,8 @@ export default function TerminalPane({ termKey, cwd, visible, focused = visible,
   const theme = useAppliedTheme();
   const openUrl = useRef(onOpenUrl);
   openUrl.current = onOpenUrl;
-  // 右クリック: 選んだ文のコピーと「チャットに追加」
-  const selectionMenu = useTerminalSelectionMenu({ projectId, cwd, selection: () => termRef.current?.getSelection() ?? "" });
+  // 選んだ文の小さな「チャットに追加 ▾」と、右クリックのコピー・「チャットに追加」
+  const selectionMenu = useTerminalSelectionMenu({ projectId, cwd, term: () => termRef.current, screen: () => ref.current });
 
   useEffect(() => {
     const native = window.kickoff?.terminal;
@@ -148,9 +148,12 @@ export default function TerminalPane({ termKey, cwd, visible, focused = visible,
       className="terminal-pane"
       // ⌘ のないキー（⌃B・⌃K・Esc など）はシェルのもの。アプリのショートカットやパネルを閉じる Esc に渡さない
       onKeyDown={(e) => {
+        selectionMenu.handlers.onKeyDown();
         if (!e.metaKey) e.stopPropagation();
       }}
-      onContextMenu={selectionMenu.onContextMenu}
+      onContextMenu={selectionMenu.handlers.onContextMenu}
+      onMouseUp={selectionMenu.handlers.onMouseUp}
+      onWheel={selectionMenu.handlers.onWheel}
     >
       {window.kickoff?.terminal ? <div ref={ref} className="terminal-screen" /> : <p className="muted small">ターミナルは Mac のアプリでだけ使えます。</p>}
       {selectionMenu.element}
