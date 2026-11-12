@@ -5,6 +5,7 @@
 ## 置き場所と部品
 
 - `DatabaseClient`（左に接続の一覧と木 `DbTree`、右にタブ（テーブル `TableView` / 関数・列挙型 `DefinitionView` / SQL `SqlView` / ER 図 `er/ErView` / 手順メモ（`SideMemo`））。タブの名前・説明・アイコン・パンくずは `DbTabParts.tsx`）を 1 つ作り、置き場所（`place`: プロジェクトの DB タブ = `project-<ID>`、右の欄と別ウィンドウ = `chat-<右の欄のチャット>`（移しても同じタブのまま））ごとに開いているタブ（`dbClientTabs(place)`。形と操作は純粋関数の `lib/dbClientTabs.ts`）と木の開き具合（`dbTreeOpen(place)`）を覚える。`worktree` は SQLite のファイルを開く作業場所（プロジェクトの画面では、ファイル・検索・変更・履歴のタブで選んだ作業場所、右の欄ではそのチャットの作業場所。null なら本体）。
+- 接続のホーム（`DbHome`。タブを 1 つも開いていないとき）: 接続を環境の色の線のカードで並べる（DB の種類の印 `dbFormat.ts` の `ENGINE_MARKS`（Pg / My / Lt）・名前・つないでいる緑の点・手順メモの印・場所・環境・読み取り専用・AI に見せるか・最後につながった時刻）。押すと左の木でその接続を開き（一覧を隠していれば出す）、右クリックは接続のメニュー。「＋ 接続を足す」のカードと見出しのボタン。下に、プロジェクトの中で見つけたまだ登録していない DB（`api.dbImportCandidates` の `existing_id` が null のもの。登録の数が変わったら探し直す）を「＋ 足す」で、名前と環境は案のまま取り込む（直したいときは一覧の見出しの「プロジェクトから取り込む」）。
 - 下の部品が読む操作（プロジェクト・置き場所・作業場所・タブを開く・接続を編集・手順メモを開く `openMemo`・つながらないときの案内を出す `showFailure`・つなぐ前の準備のダイアログを出す `showPrep`）は `DbClientContext`（`dbClientContext.ts` の `useDbClient`）で配る。
 - 裏のタブ（いま見ていないタブ）の結果は、合わせて `DB_BACKGROUND_RESULT_BYTES`（50MB ほど）を超えたら、裏に回った古いタブから捨てる（`resultBudget.ts`: 量の見積もり `estimateRowsBytes`・捨てるタブ `pickEvictions`・タブが知らせる `useResultBudget`。タブには `active` を渡す）。テーブルのタブは戻ったら読み直す（保存していない変更があるタブは捨てない）。SQL のタブは結果を「捨てました」にし、戻ったら読み取りの文だけ流し直す（書く文は流し直さない。`useSqlTabLife.ts` の `useSqlResultBudget`）。
 - 左の一覧の幅は `DB_LIST_WIDTH`（つまみ）、隠すかは `DB_LIST_HIDDEN`。欄の幅が 560px より狭いと一覧を隠し、左上のボタンで重ねて出し、タブの下にパンくず（接続 › DB › スキーマ › テーブル）を出す（`ResizeObserver` で `DatabaseClient` の幅を測る）。
@@ -76,4 +77,4 @@
 
 ## CSS
 
-`styles/database/`（`db-client.css` = 枠・一覧・木・タブ・環境の色 `--db-env`（ローカル灰・開発緑・ステージング琥珀・本番赤。`.db-env-<環境>`）、`db-table.css` = `DataGrid` とテーブルのタブ、`db-table-tools.css` = データの絞り込みの帯・行の詳細・下の帯の流す SQL、`db-table-edit.css` = 編集の帯・書き直しの欄・変えたセル / 足す行 / 消す行の印・CSV の取り込みのダイアログ、`db-sql.css` = SQL のタブ（「書き込む」の赤い帯 `.db-write-band` はテーブルのタブと共通）と接続のダイアログ（SSH の欄・鍵を確かめるダイアログも）、`db-import.css` = プロジェクトから取り込むダイアログ、`db-failure.css` = 木の手順メモの印・つながらないときの案内とよくある原因、`db-prep.css` = 接続のダイアログの準備の欄・木の確かめる日の印・準備のダイアログ、`db-er.css` = ER 図のタブ（道具の行・箱・線と端の印・本番の枠）、`db-er-picker.css` = 描くテーブルを選ぶ一覧）。
+`styles/database/`（`db-client.css` = 枠・一覧・木・タブ・環境の色 `--db-env`（ローカル灰・開発緑・ステージング琥珀・本番赤。`.db-env-<環境>`）、`db-table.css` = `DataGrid` とテーブルのタブ、`db-table-tools.css` = データの絞り込みの帯・行の詳細・下の帯の流す SQL、`db-table-edit.css` = 編集の帯・書き直しの欄・変えたセル / 足す行 / 消す行の印・CSV の取り込みのダイアログ、`db-sql.css` = SQL のタブ（「書き込む」の赤い帯 `.db-write-band` はテーブルのタブと共通）と接続のダイアログ（SSH の欄・鍵を確かめるダイアログも）、`db-import.css` = プロジェクトから取り込むダイアログ、`db-home.css` = 接続のホームと DB の種類の印 `.db-engine-mark`、`db-failure.css` = 木の手順メモの印・つながらないときの案内とよくある原因、`db-prep.css` = 接続のダイアログの準備の欄・木の確かめる日の印・準備のダイアログ、`db-er.css` = ER 図のタブ（道具の行・箱・線と端の印・本番の枠）、`db-er-picker.css` = 描くテーブルを選ぶ一覧）。
