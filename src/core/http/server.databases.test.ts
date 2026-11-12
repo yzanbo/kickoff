@@ -588,6 +588,23 @@ test("SQL のタブ: 「さらに読む」は読み取りの文を流し直し�
   assert.equal(history.length, 1);
 });
 
+test("接続を切る: コミットしていない SQL のタブがあれば切らずに返し、force なら取り消して切る。次に使えばつなぎ直す", async () => {
+  const { call, project } = setup();
+  makeSqlite(project.repo_path);
+  const conn = (await call("POST", `/api/projects/${project.id}/db-connections`, sqliteBody())).body as DbConnection;
+  const base = `/api/projects/${project.id}/db-connections/${conn.id}`;
+  const sql = (s: string, session = "tab1") => call("POST", `${base}/sql`, { session, sql: s, write: false });
+  assert.equal((await call("POST", `${base}/disconnect`, {})).body.disconnected, true);
+  await sql("BEGIN");
+  await sql("UPDATE users SET name = 'z' WHERE id = 1");
+  assert.deepEqual((await call("POST", `${base}/disconnect`, {})).body, { disconnected: false, pending_sessions: ["tab1"] });
+  assert.deepEqual((await call("POST", `${base}/disconnect`, { force: true })).body, { disconnected: true, pending_sessions: ["tab1"] });
+  // 取り消したので、変更は残っていない
+  const after = (await sql("SELECT name FROM users WHERE id = 1")).body as DbQueryResult;
+  assert.equal(after.rows[0][0], "b");
+  assert.equal(after.in_transaction, false);
+});
+
 test("接続を消すと、その接続のワーカーの接続（SQL のタブの途中のトランザクションも）を閉じる", async () => {
   const { call, project, databases } = setup();
   makeSqlite(project.repo_path);

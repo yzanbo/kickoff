@@ -1,7 +1,7 @@
 // DB ワーカーの中身: 頼みを受けて、名前ごとの接続（session）で流す。プロセスとのつなぎは main.ts（テストでは同じプロセスで使う）
 import { erTableOf } from "@shared/database/erDiagram";
 import { errorMessage } from "@shared/errors";
-import { DB_ER_AUTO_MAX, DB_ER_MAX, type DbErSchema, type DbObjectPath } from "@shared/types";
+import { DB_ER_AUTO_MAX, DB_ER_MAX, DB_SESSION_IDLE_MS, type DbErSchema, type DbObjectPath } from "@shared/types";
 import type { DbTarget, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "../protocol.js";
 import type { DbDriver } from "./driver.js";
 import { openMysql } from "./mysql.js";
@@ -111,8 +111,13 @@ async function applyStatements(d: DbDriver, statements: WorkerMethods["apply"]["
   return { affected, duration_ms: performance.now() - started };
 }
 
+/** 使っていない接続を見る間隔 */
+export const IDLE_SWEEP_MS = 60_000;
+
 interface OpenSession {
   driver: DbDriver;
+  /** 最後に使った時刻（使っていない接続を閉じる） */
+  usedAt: number;
   /** 使っている SSH トンネル（なければ null） */
   tunnel: string | null;
   /** つないだ先の指紋（変わったら、トランザクションの途中でなければつなぎ直す） */
@@ -121,8 +126,10 @@ interface OpenSession {
 
 type Handlers = { [M in WorkerMethod]: (params: WorkerMethods[M]["params"], id: number) => Promise<WorkerMethods[M]["result"]> };
 
-/** ワーカーの中身（頼みを流す handle・止める cancel・すべて閉じる closeAll） */
-export function createWorkerHandler(emit: EmitRun = () => {}) {
+/** ワーカーの中身（頼みを流す handle・止める cancel・使っていない接続を閉じる closeIdle・すべて閉じる closeAll） */
+export function createWorkerHandler(emit: EmitRun = () => {}, opts: { sessionIdleMs?: number; now?: () => number } = {}) {
+  const sessionIdleMs = opts.sessionIdleMs ?? DB_SESSION_IDLE_MS;
+  const now = opts.now ?? Date.now;
   const sessions = new Map<string, OpenSession>();
   const prep = createPrep(emit);
   const tunnels = createTunnels({
@@ -140,17 +147,24 @@ export function createWorkerHandler(emit: EmitRun = () => {}) {
   const sessionOf = async (name: string, target: DbTarget): Promise<DbDriver> => {
     const fingerprint = JSON.stringify(target);
     const open = sessions.get(name);
-    if (open && open.fingerprint === fingerprint && open.driver.alive()) return open.driver;
+    if (open && open.fingerprint === fingerprint && open.driver.alive()) {
+      open.usedAt = now();
+      return open.driver;
+    }
     if (open) {
       if (open.driver.alive() && open.driver.inTransaction()) throw new Error("トランザクションの途中なので、つなぎ方を変えられません。先にコミットか取り消しをしてください");
       sessions.delete(name);
       await closeSession(open);
     }
     const { driver, tunnel } = await openVia(target, tunnels, prep);
-    sessions.set(name, { driver, tunnel, fingerprint });
+    sessions.set(name, { driver, tunnel, fingerprint, usedAt: now() });
     return driver;
   };
-  const existing = (name: string) => sessions.get(name)?.driver ?? null;
+  const existing = (name: string) => {
+    const open = sessions.get(name);
+    if (open) open.usedAt = now();
+    return open?.driver ?? null;
+  };
 
   /** 接続ごとの頼みの列（前の頼みが終わってから次を流す） */
   const queues = new Map<string, Promise<unknown>>();
@@ -237,7 +251,25 @@ export function createWorkerHandler(emit: EmitRun = () => {}) {
     await prep.cleanupAll();
   }
 
+  /**
+   * sessionIdleMs のあいだ使わなかった接続を閉じ、トンネルも返す（トランザクションの途中・流している最中のものは残す）。
+   * 閉じた接続の名前を返す
+   */
+  async function closeIdle(): Promise<string[]> {
+    const busy = new Set([...running.values()]);
+    const names = [...sessions.entries()]
+      .filter(([, open]) => now() - open.usedAt >= sessionIdleMs && !busy.has(open.driver) && !(open.driver.alive() && open.driver.inTransaction()))
+      .map(([name]) => name);
+    for (const name of names) {
+      const open = sessions.get(name)!;
+      sessions.delete(name);
+      await closeSession(open);
+    }
+    return names;
+  }
+
   return {
+    closeIdle,
     async handle(req: WorkerRequest): Promise<WorkerResponse> {
       try {
         const result = await (handlers[req.method] as (p: unknown, id: number) => Promise<unknown>)(req.params, req.id);

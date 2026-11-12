@@ -422,6 +422,13 @@ export interface DbRowsBody {
   filter?: DbRowFilter;
 }
 
+/** 接続を切った結果（POST …/db-connections/:cid/disconnect。本文 { force }）。コミットしていない SQL のタブがあって force でなければ切らない */
+export interface DbDisconnectResult {
+  disconnected: boolean;
+  /** トランザクションの途中だった SQL のタブ（セッションの名前 = タブのキー。force なら取り消した） */
+  pending_sessions: string[];
+}
+
 /** テーブルの 1 行を全体のまま読む（POST …/db-connections/:cid/full-row。行の詳細で、頭だけ送った長い文字の残りを取る）。filters は行を指すキーの列の条件 */
 export interface DbFullRowBody {
   path: DbObjectPath;

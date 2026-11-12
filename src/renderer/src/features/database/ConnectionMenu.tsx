@@ -1,4 +1,4 @@
-import { Network, Pencil, Play, SquareTerminal, StickyNote, Trash2 } from "lucide-react";
+import { Network, Pencil, Play, SquareTerminal, StickyNote, Trash2, Unplug } from "lucide-react";
 import { errorMessage } from "@shared/errors";
 import type { DbConnection } from "@shared/types";
 import { api } from "@/api";
@@ -7,8 +7,9 @@ import { dbConnectionsStore } from "@/stores/dbConnections";
 import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useDbClient } from "./dbClientContext";
+import { disconnectConnection } from "./sqlSessions";
 
-/** 接続の右クリック: SQL を開く・ER 図・手順メモ・準備のコマンド（あれば）・編集・消す */
+/** 接続の右クリック: SQL を開く・ER 図・手順メモ・準備のコマンド（あれば）・接続を切る・編集・消す */
 export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; connection: DbConnection; onClose: () => void }) {
   const client = useDbClient();
 
@@ -55,6 +56,9 @@ export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; 
           <Play size={14} /> {c.prep.prepare.length > 0 ? "準備のコマンドを流す…" : "つなぐときのコマンドを見る…"}
         </MenuItem>
       )}
+      <MenuItem onSelect={() => void disconnectConnection(client.projectId, c)} title="つないでいる接続（木・テーブル・SQL のタブ）を閉じる。次に使えばつなぎ直す">
+        <Unplug size={14} /> 接続を切る
+      </MenuItem>
       <MenuItem onSelect={() => client.editConnection(c)}>
         <Pencil size={14} /> 編集…
       </MenuItem>

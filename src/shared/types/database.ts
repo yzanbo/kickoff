@@ -397,6 +397,8 @@ export interface DbSort {
 export const DB_TABLE_PAGE_ROWS = 100;
 /** SQL のタブで読む行の上限 */
 export const DB_SQL_MAX_ROWS = 1000;
+/** これだけ何もしなかった DB の接続は切る（ワーカーが閉じる。トランザクションの途中なら SQL のタブがコミットか取り消しを聞いてから） */
+export const DB_SESSION_IDLE_MS = 10 * 60_000;
 
 // ---- SQL の履歴（接続ごとに新しい DB_HISTORY_MAX 件） ----
 
