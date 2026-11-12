@@ -23,6 +23,7 @@ import {
   type DbImportBody,
   type DbRowFilter,
   type DbRowsBody,
+  type DbFullRowBody,
   type DbSqlBody,
   type DbSshHostKeyBody,
   type NewDbConnectionBody,
@@ -147,6 +148,7 @@ const rowsSchema = z.object({
   sort: z.array(z.object({ column: objectName, desc: z.boolean() })).max(10),
   offset: z.number().int().min(0),
 }) satisfies z.ZodType<DbRowsBody>;
+const fullRowSchema = z.object({ path: objectPath, table: objectName, filters: rowFilter.shape.filters.min(1) }) satisfies z.ZodType<DbFullRowBody>;
 const erSchema = z.object({ path: objectPath, names: z.array(objectName).max(DB_ER_MAX).nullable() }) satisfies z.ZodType<DbErBody>;
 /** ER 図の場所のキー（erPlace の形: DB.スキーマ・main など） */
 const erPlace = z.string().min(1).max(1001);
@@ -364,6 +366,11 @@ export function databaseRoutes(app: Hono, { store, databases }: ServerDeps) {
   app.post(`${base}/:cid/rows`, withProject, withConnection, async (c) => {
     const body = rowsSchema.parse(await jsonBody(c));
     return c.json(await databases.rows(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body.path, body.table, body.sort, body.offset, body.filter));
+  });
+
+  app.post(`${base}/:cid/full-row`, withProject, withConnection, async (c) => {
+    const body = fullRowSchema.parse(await jsonBody(c));
+    return c.json(await databases.fullRow(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body.path, body.table, body.filters));
   });
 
   app.post(`${base}/:cid/count`, withProject, withConnection, async (c) => {

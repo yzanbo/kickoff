@@ -28,6 +28,8 @@ test("aiCell: NULL・バイナリ・タブと改行は記号に、長い文字�
   const long = aiCell("x".repeat(DB_AI_VALUE_CHARS + 10));
   assert.ok(long.startsWith("x".repeat(DB_AI_VALUE_CHARS)));
   assert.match(long, /…（510 文字）$/);
+  // 頭だけ届いた長い文字は、全体の文字数を添える
+  assert.match(aiCell({ long: true, head: "abc", chars: 20_000 }), /^abc…（20000 文字）$/);
 });
 
 test("formatAiQueryResult: タブ区切りの表を <db_data> で包み、行数を添える。CSV に書き出したら全体の行数と場所を添える", () => {

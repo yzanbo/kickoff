@@ -9,6 +9,8 @@ test("cellText / cellKind: NULL・バイナリの札・数・文字", () => {
   assert.equal(cellText(3), "3");
   assert.equal(cellKind(null), "null");
   assert.equal(cellKind({ binary: true, bytes: 1, head: "" }), "binary");
+  assert.equal(cellText({ long: true, head: "ab", chars: 20_000 }), "ab…");
+  assert.equal(cellKind({ long: true, head: "ab", chars: 20_000 }), "text");
   assert.equal(cellKind(1.5), "number");
   assert.equal(cellKind("a"), "text");
 });

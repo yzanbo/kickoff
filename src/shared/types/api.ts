@@ -4,7 +4,7 @@ import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
 import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
-import type { DbAiAccess, DbEngine, DbEnvironment, DbErPositions, DbObjectPath, DbPrep, DbRowEdit, DbRowFilter, DbSort, DbSsh, DbSsl, DbWriteCheck } from "./database";
+import type { DbAiAccess, DbColumnInfo, DbEngine, DbEnvironment, DbErPositions, DbFilter, DbObjectPath, DbPrep, DbRowEdit, DbRowFilter, DbSort, DbSsh, DbSsl, DbValue, DbWriteCheck } from "./database";
 import type { GitHubCheckoutPlace, GitHubCloseReason, GitHubKind, GitHubMergeMethod, GitHubReviewDraftComment, GitHubReviewEvent } from "./github";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
@@ -420,6 +420,19 @@ export interface DbRowsBody {
   offset: number;
   /** 絞り込み（省くと絞らない） */
   filter?: DbRowFilter;
+}
+
+/** テーブルの 1 行を全体のまま読む（POST …/db-connections/:cid/full-row。行の詳細で、頭だけ送った長い文字の残りを取る）。filters は行を指すキーの列の条件 */
+export interface DbFullRowBody {
+  path: DbObjectPath;
+  table: string;
+  filters: DbFilter[];
+}
+
+/** テーブルの 1 行（長い文字も全体のまま。バイナリは大きさと頭のまま） */
+export interface DbFullRow {
+  columns: DbColumnInfo[];
+  row: DbValue[];
 }
 
 /** ER 図の中身を読む（POST …/db-connections/:cid/er）。names: 描くテーブル・ビュー（null なら DB_ER_AUTO_MAX 以下のときだけすべて） */

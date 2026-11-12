@@ -2,7 +2,7 @@ import { Download, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { previewRowsSql } from "@shared/database/dbFilter";
 import { errorMessage } from "@shared/errors";
-import { DB_EDITS_MAX, DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, type DbObjectPath, type DbQueryResult, type DbRowFilter, type DbSort, type DbTableDetail } from "@shared/types";
+import { DB_EDITS_MAX, DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, type DbObjectPath, type DbRowFilter, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import type { DbTableTab } from "@/lib/dbClientTabs";
@@ -14,61 +14,20 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { CsvImportDialog } from "./CsvImportDialog";
 import { DataGrid, type DataGridEdit } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
-import { nextSort } from "./dbFormat";
-import { DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, type DbExportFormat } from "./dbRowTools";
+import { DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, hasLongValue, type DbExportFormat } from "./dbRowTools";
 import { TableCellMenu } from "./TableCellMenu";
 import { TableEditBar } from "./TableEditBar";
 import { addInserts, displayRows, setCell, setInsertCell } from "./tableEdits";
 import { TableFilterBar } from "./TableFilterBar";
 import { TableRowDetail } from "./TableRowDetail";
 import type { TableEditsState } from "./useTableEdits";
+import type { useTableRows } from "./useTableRows";
 
 /** つながった行へ移る先（外部キーの参照先・この行を指しているテーブル） */
 export interface RowLink {
   schema: string | null;
   table: string;
   filters: DbFilter[];
-}
-
-const NO_FILTER: DbRowFilter = { filters: [], where: null };
-
-/** テーブルの行（絞り込み・並べ替え・続きを読む） */
-export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree: string | null) {
-  const client = useDbClient();
-  const [sort, setSort] = useState<DbSort[]>([]);
-  const [result, setResult] = useState<DbQueryResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>();
-  const [nonce, setNonce] = useState(0);
-  const filter = tab.filter ?? NO_FILTER;
-  const filterKey = JSON.stringify(filter);
-  const load = async (offset: number, base: DbQueryResult | null) => {
-    setLoading(true);
-    setError(undefined);
-    try {
-      const page = await api.dbRows(client.projectId, connection.id, { path: tab.path, table: tab.name, sort, offset, filter }, worktree);
-      setResult(base ? { ...page, rows: [...base.rows, ...page.rows] } : page);
-    } catch (e) {
-      setError(errorMessage(e));
-      if (!base) setResult(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    void load(0, null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab.key, connection.id, worktree, sort, nonce, filterKey]);
-  return {
-    sort,
-    filter,
-    result,
-    loading,
-    error,
-    sortBy: (column: string) => setSort((s) => nextSort(s, column)),
-    more: () => result && void load(result.rows.length, result),
-    reload: () => setNonce((n) => n + 1),
-  };
 }
 
 /** つながった行の場所（PostgreSQL は参照先のスキーマ、MySQL は参照先の DB、SQLite は同じ場所） */
@@ -158,15 +117,25 @@ export function TableData({
   /** 絞り込みに条件を足す（WHERE の文で絞っていたら、条件に切り替える） */
   const addFilter = (f: DbFilter) => onFilter({ filters: [...(tab.filter?.where ? [] : (tab.filter?.filters ?? [])), f], where: null });
   const openLink = (link: RowLink) => client.openTable(connection, linkPath(connection, tab.path, link.schema), link.table, "table", { filters: link.filters, where: null });
-  const exportAs = (format: DbExportFormat) => {
+  // 書き出す前に、頭だけの長い文字の残りを読む
+  const exportAs = async (format: DbExportFormat) => {
     if (!result) return;
-    downloadText(`${tab.name}.${format}`, exportRows(result.columns, result.rows, format), DB_EXPORT_TYPES[format]);
+    const long = result.rows.flatMap((r, i) => (hasLongValue(r) ? [i] : []));
+    const rows = long.length > 0 ? ((await data.fill(long, keyColumns)) ?? result.rows) : result.rows;
+    downloadText(`${tab.name}.${format}`, exportRows(result.columns, rows, format), DB_EXPORT_TYPES[format]);
   };
   const quote = connection.engine === "mysql" ? (n: string) => `\`${n.replaceAll("`", "``")}\`` : (n: string) => `"${n.replaceAll('"', '""')}"`;
   const sql = previewRowsSql(tab.name, data.filter, data.sort, quote, DB_TABLE_PAGE_ROWS);
   const shown = result?.rows.length ?? 0;
   const filtered = Boolean(tab.filter);
   const detailRow = showDetail && pickedRow !== null && display ? display.rows[pickedRow] : undefined;
+  // 選んだ行に頭だけの長い文字があれば、行の詳細を開いているとき・書き換えられるときに残りを読む（書き直しは全体の値から）
+  const pickedRead = pickedRow !== null && result && pickedRow < result.rows.length ? result.rows[pickedRow] : undefined;
+  const needFill = Boolean(pickedRead && hasLongValue(pickedRead) && (showDetail || writable));
+  useEffect(() => {
+    if (needFill && pickedRow !== null) void data.fill([pickedRow], keyColumns);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needFill, pickedRow]);
 
   return (
     <div className="db-table-data">
@@ -231,7 +200,7 @@ export function TableData({
       {exportMenu.menu && (
         <PopupMenu at={exportMenu.menu.at} label="書き出す形" onClose={exportMenu.close}>
           {DB_EXPORT_FORMATS.map((f) => (
-            <MenuItem key={f} onSelect={() => exportAs(f)}>
+            <MenuItem key={f} onSelect={() => void exportAs(f)}>
               {f.toUpperCase()}（読み込んだ {shown.toLocaleString()} 行）
             </MenuItem>
           ))}

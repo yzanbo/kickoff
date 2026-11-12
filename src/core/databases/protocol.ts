@@ -94,7 +94,8 @@ export interface WorkerMethods {
   definition: { params: Session & { path: DbObjectPath; kind: "function" | "enum"; name: string }; result: DbDefinition };
   /** ER 図（names: 描くテーブル・ビュー。null なら DB_ER_AUTO_MAX 以下のときだけすべて） */
   er: { params: Session & { path: DbObjectPath; names: string[] | null }; result: DbErSchema };
-  rows: { params: Session & { path: DbObjectPath; name: string; sort: DbSort[]; offset: number; limit: number; filter: DbRowFilter }; result: DbQueryResult };
+  /** テーブルの行（長い文字は頭だけ。full なら全体 = 行の詳細で残りを取る） */
+  rows: { params: Session & { path: DbObjectPath; name: string; sort: DbSort[]; offset: number; limit: number; filter: DbRowFilter; full?: boolean }; result: DbQueryResult };
   count: { params: Session & { path: DbObjectPath; name: string; filter: DbRowFilter }; result: { count: number } };
   outline: { params: Session & { path: DbObjectPath }; result: DbOutlineTable[] };
   query: { params: Session & { sql: string; max_rows: number }; result: DbQueryResult };

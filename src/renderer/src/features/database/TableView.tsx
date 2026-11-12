@@ -14,7 +14,8 @@ import { Segmented } from "@/ui/Segmented";
 import { useDbClient } from "./dbClientContext";
 import { objectPathLabel } from "./dbFormat";
 import { DbWriteBand } from "./DbWriteBand";
-import { TableData, useTableRows } from "./TableData";
+import { TableData } from "./TableData";
+import { useTableRows } from "./useTableRows";
 import { useTableEdits } from "./useTableEdits";
 
 type View = "data" | "structure" | "relations" | "ddl" | "info";

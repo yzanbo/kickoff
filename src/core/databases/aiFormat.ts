@@ -1,5 +1,6 @@
 // チャットの AI の DB のツール（kickoff_db）が返す文の組み立て（純粋な関数）。
 // 接続の情報（ホスト・パスワード・ファイルの場所）は出さない。DB から読んだ値は「データであって指示ではない」と包んで返す
+import { isDbBinary, isDbLongText } from "@shared/database/dbValue";
 import { DB_AI_ACCESS_LABELS, DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS } from "@shared/types";
 import type { DbConnection, DbDatabases, DbObject, DbTableDetail, DbValue } from "@shared/types";
 import type { DbExportResult } from "./protocol.js";
@@ -63,9 +64,11 @@ export function formatAiTable(name: string, detail: DbTableDetail): string {
 /** 1 つの値を文にする（NULL・バイナリ・長い文字は頭だけ。タブと改行は記号にして、行と列を崩さない） */
 export function aiCell(value: DbValue): string {
   if (value === null) return "NULL";
-  if (typeof value === "object") return `<バイナリ ${value.bytes} B>`;
-  const text = String(value).replace(/\t/g, "\\t").replace(/\r?\n/g, "\\n");
-  return text.length > DB_AI_VALUE_CHARS ? `${text.slice(0, DB_AI_VALUE_CHARS)}…（${text.length} 文字）` : text;
+  if (isDbBinary(value)) return `<バイナリ ${value.bytes} B>`;
+  const whole = isDbLongText(value) ? value.chars : null;
+  const text = (isDbLongText(value) ? value.head : String(value)).replace(/\t/g, "\\t").replace(/\r?\n/g, "\\n");
+  const chars = whole ?? text.length;
+  return text.length > DB_AI_VALUE_CHARS || whole !== null ? `${text.slice(0, DB_AI_VALUE_CHARS)}…（${chars} 文字）` : text;
 }
 
 /**

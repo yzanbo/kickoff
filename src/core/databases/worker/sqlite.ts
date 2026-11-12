@@ -42,7 +42,7 @@ function runStatement(db: DatabaseSync, stmt: StatementSync, maxRows: number): D
       truncated = true;
       break;
     }
-    rows.push(row.map(toDbValue));
+    rows.push(row.map((v) => toDbValue(v)));
   }
   return { columns, rows, truncated, affected: null, duration_ms: performance.now() - started, in_transaction: db.isTransaction };
 }
@@ -157,7 +157,7 @@ class SqliteDriver implements DbDriver {
     }
   }
 
-  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter): Promise<DbQueryResult> {
+  async rows(path: DbObjectPath, name: string, sort: DbSort[], offset: number, limit: number, filter: DbRowFilter, full = false): Promise<DbQueryResult> {
     const order = sort.length > 0 ? ` ORDER BY ${sort.map((s) => `${quoteIdent(s.column)}${s.desc ? " DESC" : ""}`).join(", ")}` : "";
     const where = filterSql(filter, DIALECT);
     const stmt = this.db.prepare(`SELECT * FROM ${this.schemaOf(path)}.${quoteIdent(name)}${where.clause}${order} LIMIT ? OFFSET ?`);
@@ -169,7 +169,7 @@ class SqliteDriver implements DbDriver {
     const raw = stmt.all(...where.params, limit + 1, offset) as unknown as unknown[][];
     return {
       columns,
-      rows: raw.slice(0, limit).map((r) => r.map(toDbValue)),
+      rows: raw.slice(0, limit).map((r) => r.map((v) => toDbValue(v, full))),
       truncated: raw.length > limit,
       affected: null,
       duration_ms: performance.now() - started,
