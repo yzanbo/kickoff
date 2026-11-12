@@ -15,3 +15,4 @@ export * from "./api";
 export * from "./snippet";
 export * from "./database";
 export * from "./github";
+export * from "./docker";

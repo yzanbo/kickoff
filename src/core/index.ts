@@ -29,6 +29,7 @@ import { GitHubService } from "./github/service.js";
 import { devWorkerEntry } from "./databases/entry.js";
 import { DbSecretVault, migrateInBackground, type SecretCipher } from "./databases/secrets.js";
 import { stopAllStreams } from "./system/stream.js";
+import { DockerService } from "./docker/service.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -111,6 +112,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
   // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）
   const prWatch = new WorktreePrWatch({ store, publish: (e) => bus.publish(e), listWorktrees, listPullRequests });
+  // Docker タブ（docker events は見ている画面があるときだけ動かす）
+  const docker = new DockerService(bus);
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
@@ -127,6 +130,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     prWatch,
     databases,
     github: new GitHubService(),
+    docker,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });
@@ -151,6 +155,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       runner.shutdown();
       // 流れ続けている外部コマンド（docker events・起動の途中の up -d など）は聞かずに止める
       stopAllStreams();
+      docker.close();
       voice.downloads.stopAll();
       usage.stop();
       prWatch.stop();

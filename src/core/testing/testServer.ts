@@ -1,4 +1,5 @@
 // API のテスト（server.*.test.ts）の共通の準備: 偽のプロバイダーでアプリを組み立て、トークン付きで呼ぶ補助を返す。テストからだけ使う
+import { after } from "node:test";
 import fs from "node:fs/promises";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../providers/types.js";
 import { createApp } from "../http/server.js";
@@ -14,6 +15,9 @@ import { DbWorkerClient } from "../databases/client.js";
 import { inProcessWorker } from "../databases/inProcessWorker.js";
 import { DatabaseService } from "../databases/service.js";
 import { GitHubService } from "../github/service.js";
+import { DockerService } from "../docker/service.js";
+import { DockerCli } from "../docker/cli.js";
+import { fakeDocker } from "./fakeDocker.js";
 import type { GraphqlVars, RestResponse, WriteMethod } from "../github/ghApi.js";
 import { readGitHubRemotes, type GitHubTarget } from "../git/githubTarget.js";
 import { DbSecretVault, type SecretCipher } from "../databases/secrets.js";
@@ -295,7 +299,11 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
       },
     }),
   });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  // Docker タブ: 偽の docker（dockerFake.set で答えを決め、dockerFake.calls で呼ばれた引数を見る。docker が入っていない様子は dockerFake.missing）
+  const dockerFake = Object.assign(fakeDocker(), { missing: false });
+  const docker = new DockerService(bus, new DockerCli(() => (dockerFake.missing ? null : dockerFake.bin)));
+  after(() => docker.close());
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, docker, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -307,6 +315,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, docker, codexCalls: () => codexCalls };
 }
 
