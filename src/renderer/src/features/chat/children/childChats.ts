@@ -42,6 +42,35 @@ export function rootChatOf<T extends Pick<Chat, "id" | "parent_chat_id">>(chat: 
   return ancestorsOf(chat, lookup)[0] ?? chat;
 }
 
+/** サイドバーの「子チャット n」の行に数を出す、子孫の状態（印を出す順。どれも 0 なら出さない） */
+export const CHILD_STATE_MARKS = ["needs_input", "failed", "unread", "running"] as const;
+export type ChildStateMark = (typeof CHILD_STATE_MARKS)[number];
+
+/**
+ * 子・孫・ひ孫…の状態ごとの数（回答待ち・失敗・未読・作業中。既読は数えない）。アーカイブ済みとその下は数えない（withArchived なら数える。親ごとアーカイブしたとき）。
+ * 輪になっていても止まる。サイドバーの親の行の下の「子チャット n」に、閉じていても子孫の様子が分かるよう出す（利用者の依頼）
+ */
+export function childStateCounts(
+  chatId: number,
+  childrenOf: ReadonlyMap<number, readonly Chat[]>,
+  stateOf: (chat: Chat) => string,
+  { withArchived = false }: { withArchived?: boolean } = {},
+): Record<ChildStateMark, number> {
+  const counts: Record<ChildStateMark, number> = { needs_input: 0, failed: 0, unread: 0, running: 0 };
+  const seen = new Set([chatId]);
+  const walk = (id: number) => {
+    for (const c of childrenOf.get(id) ?? []) {
+      if ((c.archived_at && !withArchived) || seen.has(c.id)) continue;
+      seen.add(c.id);
+      const state = stateOf(c);
+      if ((CHILD_STATE_MARKS as readonly string[]).includes(state)) counts[state as ChildStateMark]++;
+      walk(c.id);
+    }
+  };
+  walk(chatId);
+  return counts;
+}
+
 /** タブに出す子孫の様子（印の状態・作業中と回答待ちの数・アーカイブしていない子孫の数） */
 export interface ChildActivity {
   /** 回答待ちがあれば回答待ち、作業中があれば作業中、どれも動いていなければ idle */
