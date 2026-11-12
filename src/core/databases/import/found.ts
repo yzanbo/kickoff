@@ -1,7 +1,7 @@
 import path from "node:path";
 import { parseDbUrl, type ParsedDbUrl } from "@shared/database/dbUrl";
 import { DB_CONNECTION_NAME_MAX, type DbEngine, type DbEnvironment, type DbImportCandidate } from "@shared/types";
-import { expandHome } from "../../system/paths.js";
+import { expandHome, realPathLoose } from "../../system/paths.js";
 
 /** 見つけた接続の案（コアの中だけ。パスワードも持つ。画面へは DbImportCandidate にして has_password だけ） */
 export type FoundDb = Omit<DbImportCandidate, "has_password" | "existing_id"> & { password: string | null };
@@ -39,7 +39,8 @@ export const candidateName = (main: string, where: string) => `${main}（${where
 export function identityOf(c: { engine: DbEngine; host: string | null; port: number | null; database: string | null; file_path: string | null }, root: string): string {
   if (c.engine === "sqlite") {
     const file = expandHome(c.file_path ?? "");
-    return `sqlite:${path.resolve(root, file)}`;
+    // リンクを解いた実体で比べる（/tmp と /private/tmp のように、登録したパスとプロジェクトのフォルダの書き方が違っても同じファイル）
+    return `sqlite:${realPathLoose(path.resolve(root, file))}`;
   }
   const host = isLocalHost(c.host) ? "localhost" : (c.host ?? "").toLowerCase();
   return `${c.engine}:${host}:${c.port ?? ""}:${c.database ?? ""}`;
