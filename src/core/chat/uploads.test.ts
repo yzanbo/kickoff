@@ -26,7 +26,7 @@ test("ファイル名からパス区切りを取り除き、大きすぎるフ�
 });
 
 test("エージェントへのメッセージに添付のパスを書き添える", () => {
-  const files = [{ path: "/data/uploads/x/a.pdf", attachment: { id: "x", name: "a.pdf", mime: "application/pdf", size: 2048 } }];
+  const files = [{ path: "/data/uploads/x/a.pdf", attachment: { kind: "file" as const, id: "x", name: "a.pdf", mime: "application/pdf", size: 2048 } }];
   assert.match(withAttachmentNote("これを読んで", files), /これを読んで\n\n添付ファイル（Read ツールで読めます）:\n- \/data\/uploads\/x\/a.pdf（application\/pdf, 2.0 KB）/);
   // 本文がなくても添付だけで送れる
   assert.match(withAttachmentNote("", files), /^添付ファイル/);

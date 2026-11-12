@@ -32,6 +32,7 @@
 | 作業フォルダ（そのチャットの AI が実際に作業する所。本体で作業するならプロジェクトフォルダ、ワークツリーならその中の同じ位置） | `workdirOf(chat, project)`（`chat.worktree_path ?? project.repo_path`） | システムプロンプトの「リポジトリ」 |
 | メモフォルダ（「メモ」タブのメモを置くフォルダ。プロジェクトフォルダとは別の場所で、プロジェクトフォルダを変えても変わらない） | `MemoService.dirOf(project)`（`memo_path` か、設定の `memos_dir` の下の `memo_folder`） | 「メモの保存先」「メモのフォルダ」 |
 | 送信待ち | `Queue`（`chat_queues`） | `followups` / `run_queues` |
+| 添付（チャットの指示に添えるもの。種類 = ファイル（📎・ドラッグ・貼り付け）/ メモ（付けたときの写し）/ 取ったもの（「AI に渡す」で押したときの中身をファイルにしたもの）。中身は送らず、パスと見出しを書き添えて AI が Read で読む） | `Attachment`（`kind`: `file` / `memo` / `capture`）・取ったものの出どころ `AttachmentSource`（`type` は `ATTACHMENT_SOURCE_TYPES`）・`POST /api/captures`・`POST /api/projects/:id/memo/snapshot`・`UploadStore`（`core/chat/uploads.ts`）・見出し `core/chat/attachmentNotes.ts`・鍵を伏せる `@shared/secrets/redact` | kind のない添付（memo があればメモ。読むときに `normalizeAttachment` で読み替える） |
 | 起動したときの送信待ちの確かめ（前回の終了で、自動で送るまま残った送信待ちを、起動してから送るか聞く。送る / 続けてから送る / 止めておく） | `QueueResume` / `QueueResumeAction`（確かめを待つ印は `ChatLive.queue_resume`。`GET\|POST /api/queue-resumes`・`Runner.queueResumes`・画面の `QueueResumeDialog` / `QueueResumeBanner`・店 `stores/queueResumes.ts`） | なし |
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `Runner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `core/chat/sessionPoints.ts`） | なし |

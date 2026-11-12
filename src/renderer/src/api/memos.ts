@@ -1,4 +1,4 @@
-import type { Chat, FileContent, MemoChatBody, MemoDefaults, MemoDirUsers, MemoFromChatBody, MemoList, MemoPlan, MemoRef, MemoSearchResult, SavedFile } from "@shared/types";
+import type { Chat, FileContent, MemoAttachment, MemoChatBody, MemoDefaults, MemoDirUsers, MemoFromChatBody, MemoList, MemoPlan, MemoRef, MemoSearchResult, SavedFile } from "@shared/types";
 import { request, withQuery } from "./http";
 
 /** プロジェクトのメモ（保存先はプロジェクトの外。パスはメモのフォルダからの相対。コアの routes/memos.ts） */
@@ -10,6 +10,8 @@ export const memosApi = {
   searchMemos: (q: string) => request<MemoSearchResult>("GET", withQuery("/api/memos/search", { q })),
   memos: (projectId: number) => request<MemoList>("GET", `/api/projects/${projectId}/memos`),
   memo: (projectId: number, path: string) => request<FileContent>("GET", withQuery(`/api/projects/${projectId}/memo`, { path })),
+  /** メモの写しを添付にする（入力欄にメモを添付したとき。付けたときの中身を送る） */
+  memoSnapshot: (projectId: number, path: string) => request<MemoAttachment>("POST", `/api/projects/${projectId}/memo/snapshot`, { path }),
   /** メモを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
   saveMemo: (projectId: number, path: string, content: string, baseHash: string | null) =>
     request<SavedFile>("PUT", `/api/projects/${projectId}/memo`, { path, content, base_hash: baseHash }),

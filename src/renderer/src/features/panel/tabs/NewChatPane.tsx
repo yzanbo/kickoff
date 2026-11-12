@@ -24,7 +24,7 @@ import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/chat/pane
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import { ContextMeter } from "@/features/chat/composer/ContextMeter";
 import { MemoChip } from "@/features/memo/MemoChip";
-import { memoAttachment } from "@/features/memo/memoAttachment";
+import { reportFailure } from "@/ui/dialogs";
 import { AgentSplit } from "@/features/panel/agents/AgentSplit";
 import { claimVoiceHandoff } from "@/features/dictation/voiceHandoff";
 import type { VoiceReply } from "@/features/dictation/voiceSession";
@@ -201,7 +201,7 @@ export function NewChatPane({
       <BusyNeighborsNotice count={busyNeighbors} />
       {/* 会話が始まったあとのチャット欄と同じピルの列（いまはメモだけ。指示の履歴・ToDo・サブエージェント・子チャットは中身がないので出さない） */}
       <div className="composer-chips">
-        <MemoChip projectId={projectId} chatId={null} onAttach={(path) => composer.current?.fill("", { append: true, attachments: [memoAttachment(path)] })} />
+        <MemoChip projectId={projectId} chatId={null} onAttach={(path) => void api.memoSnapshot(projectId, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("メモを添付できませんでした"))} />
       </div>
       {ready && (
         <Composer

@@ -1,7 +1,7 @@
 // HTTP API の本文と応答の形（コアのルートと画面で同じものを使う）。型のみ
 // 資源そのもの（Project・Chat・ChatGroup など）は各ファイルにあり、ここには API にだけ出てくる形を置く
 import type { Approval } from "./approval";
-import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
+import type { Attachment, AttachmentSource, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
 import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
 import type { DbAiAccess, DbColumnInfo, DbEngine, DbEnvironment, DbErPositions, DbFilter, DbObjectPath, DbPrep, DbRowEdit, DbRowFilter, DbSort, DbSsh, DbSsl, DbValue, DbWriteCheck } from "./database";
@@ -64,6 +64,18 @@ export interface ChatPatch {
   group_id?: number | null;
   pinned?: boolean;
   archived?: boolean;
+}
+
+/**
+ * 「AI に渡す」で取る中身（POST /api/captures）。コアが鍵らしい値を伏せ、添付の上限を超えれば頭と終わりを残して切ってから保存し、CaptureAttachment を返す。
+ * tail_share は残す分のうち終わりに回す割合（ログは多め。省けば半分）
+ */
+export interface CaptureBody {
+  name: string;
+  mime?: string;
+  text: string;
+  source: AttachmentSource;
+  tail_share?: number;
 }
 
 /** 送る指示（続き・止めずに伝える。POST /api/chats/:id/messages・/tell）。文が空でも、添付があれば送れる */

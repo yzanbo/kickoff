@@ -11,7 +11,7 @@ test("前の発言: 自分の発言だけを新しい順に。添付だけの発
     event("text", { text: "AI の返答" }),
     event("user", { text: "  二つ目  " }),
     event("user", { text: "二つ目" }),
-    event("user", { text: "", attachments: [{ id: "a", name: "a.png", mime: "image/png", size: 1 }] }),
+    event("user", { text: "", attachments: [{ kind: "file", id: "a", name: "a.png", mime: "image/png", size: 1 }] }),
     event("user", { text: "三つ目" }),
   ];
   assert.deepEqual(promptListOf(events).recalls, ["三つ目", "二つ目", "一つ目"]);
@@ -22,7 +22,7 @@ test("指示の一覧: 自分の発言を会話の順に（添付だけならフ
   const events = [
     event("user", { text: " 調べて " }),
     event("text", { text: "AI の返答" }),
-    event("user", { text: "", attachments: [{ id: "a", name: "a.png", mime: "image/png", size: 1 }] }),
+    event("user", { text: "", attachments: [{ kind: "file", id: "a", name: "a.png", mime: "image/png", size: 1 }] }),
     event("result", { status: "completed" }),
   ];
   const list = promptListOf(events);
@@ -49,7 +49,7 @@ test("指示の履歴: AI からの質問への回答も会話の順に並べ、
       kind: "question",
       action: "answer",
       answers: { "どの形にしますか？": "表", "どこに置きますか？": ["上", "下"] },
-      attachments: { "どの形にしますか？": [{ id: "a", name: "a.png", mime: "image/png", size: 1 }] },
+      attachments: { "どの形にしますか？": [{ kind: "file", id: "a", name: "a.png", mime: "image/png", size: 1 }] },
     }),
     event("approval_resolved", { approval_id: "t1", kind: "permission", action: "allow" }),
     event("user", { text: "続けて" }),

@@ -3,11 +3,23 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { TOOL_IMAGE_MTIME_HEADER } from "@shared/chat/toolImage";
+import type { CaptureBody } from "@shared/types";
 import { readToolImage } from "../../chat/toolImage.js";
 import { chatTranscript, transcriptFileName } from "../../chat/transcript.js";
 import { workdirOf } from "../../chat/workdir.js";
 import { Invalid, NotFound } from "../errors.js";
 import { lookups, requireProject } from "../lookups.js";
+import { jsonBody } from "../input.js";
+import { attachmentSourceSchema } from "./schemas.js";
+
+/** 「AI に渡す」で取る中身（文字数は切る前の上限。保存するときに添付の上限まで切る） */
+const captureSchema = z.object({
+  name: z.string().min(1).max(200),
+  mime: z.string().max(200).default("text/markdown"),
+  text: z.string().max(200_000_000),
+  source: attachmentSourceSchema,
+  tail_share: z.number().min(0).max(1).optional(),
+}) satisfies z.ZodType<CaptureBody>;
 
 /** 添付ファイル（受け取り・画面での表示）と、ツールの結果の画像の表示 */
 export function uploadRoutes(app: Hono, { uploads, store, memos }: ServerDeps) {
@@ -20,6 +32,12 @@ export function uploadRoutes(app: Hono, { uploads, store, memos }: ServerDeps) {
     const text = chatTranscript(chat, project, store.events.list(chat.id));
     const attachment = await uploads.save({ name: transcriptFileName(chat), type: "text/markdown", bytes: new TextEncoder().encode(text) });
     return c.json(attachment, 201);
+  });
+
+  // 「AI に渡す」で押したときの中身を添付として保存する（鍵らしい値を伏せ、大きすぎれば頭と終わりを残して切る。入力欄の札になる）
+  app.post("/api/captures", async (c) => {
+    const body = captureSchema.parse(await jsonBody(c));
+    return c.json(await uploads.saveCapture({ name: body.name, mime: body.mime, text: body.text, source: body.source, tailShare: body.tail_share }), 201);
   });
 
   app.post("/api/uploads", async (c) => {

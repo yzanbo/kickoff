@@ -54,7 +54,7 @@ test("巻き戻し・分岐は、止めた作業の終わりを起点にしな�
 
 test("巻き戻しの API: 自分の発言の手前まで戻し、書き直した文で送り直す（添付は引き継ぐ）", async () => {
   const { call, project, store, runner, provider } = setup();
-  const attachment = { id: randomUUID(), name: "a.txt", mime: "text/plain", size: 1 };
+  const attachment = { kind: "file", id: randomUUID(), name: "a.txt", mime: "text/plain", size: 1 };
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2", attachments: [attachment] });

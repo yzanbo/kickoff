@@ -8,7 +8,7 @@ const project = makeProject(1, { name: "Demo", repo_path: "/r" });
 
 test("チャットの記録: 自分の発言・AI の返答を順に並べ、作業ごとに変えたファイルと失敗を添える（ツールの出力・サブエージェントの発言は入れない）", () => {
   const md = chatTranscript(chat, project, [
-    makeEvent(1, "user", { text: "ボタンを直して", attachments: [{ id: "a", name: "画面.png", mime: "image/png", size: 1 }] }),
+    makeEvent(1, "user", { text: "ボタンを直して", attachments: [{ kind: "file", id: "a", name: "画面.png", mime: "image/png", size: 1 }] }),
     makeEvent(2, "thinking", { text: "考え中" }),
     makeEvent(3, "tool_use", { id: "t1", name: "Edit", input: { file_path: "/r/src/Login.tsx" } }),
     makeEvent(4, "tool_result", { tool_use_id: "t1", content: "ok" }),
@@ -41,7 +41,7 @@ test("チャットの記録: AI からの質問に答えた内容を、質問ご
       action: "answer",
       kind: "question",
       answers: { "好きな色は？": "この色", "好きな季節は？": ["春", "秋"] },
-      attachments: { "好きな色は？": [{ id: "a", name: "色.png", mime: "image/png", size: 1 }] },
+      attachments: { "好きな色は？": [{ kind: "file", id: "a", name: "色.png", mime: "image/png", size: 1 }] },
     }),
     makeEvent(3, "approval_resolved", { approval_id: "z", action: "deny", kind: "question" }),
   ]);

@@ -1,4 +1,4 @@
-import { FileText, StickyNote } from "lucide-react";
+import { FileInput, FileText, StickyNote } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Attachment } from "@shared/types";
 import { attachmentUrl } from "@/api";
@@ -68,8 +68,8 @@ export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
   );
 }
 
-/** 画像以外の添付の印（メモの添付はメモの印） */
+/** 画像以外の添付の印（メモの添付はメモの印、「AI に渡す」で取ったものは取り込みの印） */
 function PeekIcon({ attachment }: { attachment: Attachment }) {
-  const Icon = attachment.memo !== undefined ? StickyNote : FileText;
+  const Icon = attachment.kind === "memo" ? StickyNote : attachment.kind === "capture" ? FileInput : FileText;
   return <Icon size={12} aria-hidden />;
 }

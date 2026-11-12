@@ -194,7 +194,7 @@ test("質問の「その他」に添付して答えたら、記録には選ん�
   const chat = await runner.start({ projectId: project.id, prompt: "q" });
   await until(() => approvals.list({ chatId: chat.id }).length === 1);
   const [pending] = approvals.list({ chatId: chat.id });
-  const attachment = { id: "a1", name: "色.png", mime: "image/png", size: 10 };
+  const attachment = { kind: "file" as const, id: "a1", name: "色.png", mime: "image/png", size: 10 };
   approvals.resolve(pending.id, { action: "answer", answers: { 好きな色: "この色（/path/色.png）" }, plain: { 好きな色: "この色" }, attachments: { 好きな色: [attachment] } });
   await until(() => store.chats.get(chat.id)?.status === "completed");
   assert.deepEqual((received as { answers: unknown }).answers, { 好きな色: "この色（/path/色.png）" });

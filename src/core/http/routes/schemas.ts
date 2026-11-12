@@ -1,8 +1,9 @@
 import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
-import type { ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
-import { EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, PERMISSION_MODES } from "@shared/types";
+import { normalizeAttachment } from "@shared/attachment/normalize";
+import type { Attachment, AttachmentSource, ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
+import { ATTACHMENT_SOURCE_TYPES, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, PERMISSION_MODES } from "@shared/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 
 // ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
@@ -70,20 +71,44 @@ export const chatDefaultsSchema = z.object({
   fast_mode: z.boolean(),
 });
 
-/** 添付（アップロード済みのファイル） */
-export const attachmentSchema = z.object({
+/** メモのフォルダからの相対パス（外・隠しファイルは指せない） */
+export const memoPathSchema = z
+  .string()
+  .min(1)
+  .max(1000)
+  .refine((p) => !p.startsWith("/") && p.split("/").every((part) => part !== "" && !part.startsWith(".")), "メモのパスが正しくありません");
+
+/** 「AI に渡す」で取ったものの出どころ */
+export const attachmentSourceSchema = z.object({
+  type: z.enum(ATTACHMENT_SOURCE_TYPES),
+  label: z.string().min(1).max(500),
+  url: z.string().url().max(2000).nullable(),
+}) satisfies z.ZodType<AttachmentSource>;
+
+const attachmentBase = {
   id: z.string().uuid(),
   name: z.string().max(300),
   mime: z.string().max(200),
   size: z.number().int().nonnegative(),
-  // メモの添付（メモのフォルダからの相対パス。外・隠しファイルは指せない）
-  memo: z
-    .string()
-    .min(1)
-    .max(1000)
-    .refine((p) => !p.startsWith("/") && p.split("/").every((part) => part !== "" && !part.startsWith(".")), "メモのパスが正しくありません")
-    .optional(),
-});
+};
+
+/** 添付（保存済みのファイル・メモ・「AI に渡す」で取ったもの）。種類を持つ前の形（kind なし）も受け取り、今の形に読み替える */
+export const attachmentSchema = z.preprocess(
+  (v) => (v && typeof v === "object" && !("kind" in v) ? normalizeAttachment(v as Parameters<typeof normalizeAttachment>[0]) : v),
+  z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("file"), ...attachmentBase }),
+    z.object({ kind: z.literal("memo"), ...attachmentBase, memo: memoPathSchema, taken_at: z.string().max(40).optional() }),
+    z.object({
+      kind: z.literal("capture"),
+      ...attachmentBase,
+      source: attachmentSourceSchema,
+      taken_at: z.string().max(40),
+      truncated: z.boolean(),
+      original_size: z.number().int().nonnegative(),
+      redacted: z.number().int().nonnegative(),
+    }),
+  ]),
+) satisfies z.ZodType<Attachment>;
 export const attachmentsSchema = z.array(attachmentSchema).max(MAX_ATTACHMENTS);
 
 /** 送る指示の文（前後の空白は除く） */

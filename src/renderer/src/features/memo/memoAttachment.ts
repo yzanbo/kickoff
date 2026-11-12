@@ -1,13 +1,5 @@
-// メモをメインのチャットの入力欄に添付するときの形（純粋関数）: メモ全体はメモの添付（Attachment の memo）、選択部分は出どころ付きの引用
-import { memoKindOf } from "@shared/memo/kinds";
-import type { Attachment } from "@shared/types";
+// メモをチャットの入力欄に添付するときの形（純粋関数）: 選択部分は出どころ付きの引用（メモ全体は api.memoSnapshot で付けたときの写しを添付にする）
 import { quoteComment } from "@/features/chat/messages/quoteComment";
-import { baseName } from "./memoPaths";
-
-/** メモ全体の添付（アップロードしない。送るときにコアがメモのファイルのパスを AI に伝える） */
-export function memoAttachment(path: string): Attachment {
-  return { id: crypto.randomUUID(), name: baseName(path), mime: memoKindOf(path) === "html" ? "text/html" : "text/markdown", size: 0, memo: path };
-}
 
 /** 選んだ範囲の行（1 から数える。1 行の中なら from と to は同じ） */
 export interface MemoLines {

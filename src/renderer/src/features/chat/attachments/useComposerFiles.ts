@@ -4,6 +4,7 @@ import type { Attachment } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { readSetting, subscribeSetting, writeSetting, type Setting } from "@/lib/storage";
+import { sameAttachment } from "./attachmentMerge";
 
 export interface PendingFile {
   key: string;
@@ -128,10 +129,13 @@ export function useComposerFiles(saved?: AttachmentDraft) {
       .catch((e: unknown) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: errorMessage(e) } : f))));
   }
 
-  /** アップロード済みの添付・メモの添付を足す（送信待ちの指示を新しいチャットで聞くとき・メモを添付したとき。アップロードし直さない。同じメモは重ねない） */
+  /**
+   * 保存済みの添付を足す（送信待ちの指示を新しいチャットで聞くとき・メモを添付したとき・「AI に渡す」。アップロードし直さない）。
+   * 同じメモ・同じ出どころの取ったものは重ねず、新しく足したもの（付けなおした時点の中身）に入れ替える
+   */
   function addAttachments(list: Attachment[]) {
     const added = list.map((attachment) => ({ key: newKey(), file: new File([], attachment.name, { type: attachment.mime }), attachment }));
-    setFiles((prev) => [...prev, ...added.filter((a) => a.attachment.memo === undefined || !prev.some((f) => f.attachment?.memo === a.attachment.memo))]);
+    setFiles((prev) => [...prev.filter((f) => !f.attachment || !list.some((a) => sameAttachment(a, f.attachment!))), ...added]);
   }
 
   function removeFile(key: string) {

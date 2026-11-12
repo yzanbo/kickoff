@@ -43,11 +43,13 @@ test("宣言: ID を含むもの（チャット・グループ・下書き）に
   assert.equal(DATABASE_ID.ids, false);
 });
 
-test("送る前の添付: 形の合う添付だけを読み、空なら保存しない", () => {
+test("送る前の添付: 形の合う添付だけを読み（種類を持つ前の形は読み替える）、空なら保存しない", () => {
   const setting = chatAttachmentsDraft(1);
-  const ok = { id: "a", name: "x.png", mime: "image/png", size: 3 };
-  const memo = { id: "b", name: "m.md", mime: "text/markdown", size: 0, memo: "m.md" };
-  assert.deepEqual(setting.decode(JSON.stringify([ok, { id: 1 }, null, memo])), [ok, memo]);
+  const ok = { kind: "file" as const, id: "a", name: "x.png", mime: "image/png", size: 3 };
+  const legacy = { id: "b", name: "m.md", mime: "text/markdown", size: 0, memo: "m.md" };
+  const capture = { kind: "capture", id: "c", name: "i.md", mime: "text/markdown", size: 1, source: { type: "github_issue", label: "#1", url: null }, taken_at: "2026-11-13T00:00:00Z", truncated: false, original_size: 1, redacted: 0 };
+  const broken = { kind: "capture", id: "d", name: "i.md", mime: "text/markdown", size: 1 };
+  assert.deepEqual(setting.decode(JSON.stringify([ok, { id: 1 }, null, legacy, capture, broken])), [ok, { ...legacy, kind: "memo" }, capture]);
   assert.equal(setting.decode("{}"), undefined);
   assert.equal(setting.encode([]), null);
   assert.equal(setting.encode([ok]), JSON.stringify([ok]));

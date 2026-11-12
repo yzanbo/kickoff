@@ -1,6 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { QueuedMessage } from "@shared/types";
+import { normalizeAttachment } from "@shared/attachment/normalize";
 import { bit } from "./common.js";
+
+/** 送信待ちの添付を今の形にする（種類を持つ前に保存した列は、読むときに読み替える） */
+const withNormalizedAttachments = (message: QueuedMessage): QueuedMessage => (message.attachments ? { ...message, attachments: message.attachments.map(normalizeAttachment) } : message);
 
 /** 保存した送信待ちの列（チャットごと） */
 export interface SavedQueue {
@@ -17,7 +21,7 @@ export function createQueueStore(db: DatabaseSync) {
     /** 保存したすべての列（起動したときに読み戻す。すべて送ったあとの印だけが残った空の列も読む） */
     list(): SavedQueue[] {
       const rows = db.prepare("SELECT chat_id, messages, paused, stops FROM chat_queues").all() as { chat_id: number; messages: string; paused: number; stops: string }[];
-      return rows.map((row) => ({ chatId: row.chat_id, messages: JSON.parse(row.messages), paused: row.paused === 1, stops: JSON.parse(row.stops) }));
+      return rows.map((row) => ({ chatId: row.chat_id, messages: (JSON.parse(row.messages) as QueuedMessage[]).map(withNormalizedAttachments), paused: row.paused === 1, stops: JSON.parse(row.stops) }));
     },
     /**
      * 列を丸ごと書く（指示も印もなければ消す。もうないチャットの列は書かない）。

@@ -193,13 +193,56 @@ export interface QueuedMessage extends MessageMarks {
 }
 
 /**
- * チャットの添付ファイル。memo があればメモの添付（チャットのプロジェクトのメモ。メモのフォルダからの相対パス）で、
- * アップロードせず、送るときにコアがメモのファイルのパスを AI に伝える（中身は送るときのもの。size は 0）
+ * 「AI に渡す」で取ったもの（capture の添付）の出どころの種類。札のアイコン・見出しの名前・外から来た中身かは `@shared/attachment/sources` の表で決める
  */
-export interface Attachment {
+export const ATTACHMENT_SOURCE_TYPES = ["github_issue", "github_pull", "github_review", "db_failure"] as const;
+export type AttachmentSourceType = (typeof ATTACHMENT_SOURCE_TYPES)[number];
+
+/** capture の添付の出どころ（種類・札と見出しに出す名前「#12 ログインで落ちる」・元を開くリンク） */
+export interface AttachmentSource {
+  type: AttachmentSourceType;
+  label: string;
+  url: string | null;
+}
+
+interface AttachmentBase {
   id: string;
   name: string;
   mime: string;
   size: number;
-  memo?: string;
 }
+
+/** 📎・ドラッグ＆ドロップ・貼り付けで付けたファイル（保存先 uploads のファイル。AI には保存先のパスを書き添える） */
+export interface FileAttachment extends AttachmentBase {
+  kind: "file";
+}
+
+/**
+ * メモの添付（チャットのプロジェクトのメモ。memo はメモのフォルダからの相対パス）。付けたときの中身の写しを保存先に置き（id がその写し）、
+ * 送るときは写しのパスと元のメモのパスを AI に伝える（頼まれたら元のメモを書き換えてよい）。taken_at は写した時刻。
+ * 写しのない古いメモの添付（taken_at なし・size 0）は、送るときのメモのファイルのパスだけを伝える
+ */
+export interface MemoAttachment extends AttachmentBase {
+  kind: "memo";
+  memo: string;
+  taken_at?: string;
+}
+
+/**
+ * 「AI に渡す」で押したときの中身をファイルにしたもの（issue・PR・DB のつながらない様子など）。中身はコアが鍵らしい値を伏せ（redacted は伏せた数）、
+ * 大きすぎれば頭と終わりを残して切ってから（truncated。original_size は切る前のバイト数）保存先に置く
+ */
+export interface CaptureAttachment extends AttachmentBase {
+  kind: "capture";
+  source: AttachmentSource;
+  taken_at: string;
+  truncated: boolean;
+  original_size: number;
+  redacted: number;
+}
+
+/**
+ * チャットの添付（種類 kind で分ける）。チャットの記録・送信待ちに残るので、古い形（kind なし。memo があればメモ）は読むときに
+ * `@shared/attachment/normalize` の normalizeAttachment で読み替える（表は作り直さない）
+ */
+export type Attachment = FileAttachment | MemoAttachment | CaptureAttachment;

@@ -110,7 +110,7 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
         onOpen={open}
         onAttach={(path) => {
           popover.close();
-          if (chatId !== null) attachMemoToChat(chatId, path);
+          if (chatId !== null) attachMemoToChat(chatId, projectId, path);
           else onAttach?.(path);
         }}
         places={places}
