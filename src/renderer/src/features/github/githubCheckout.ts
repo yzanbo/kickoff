@@ -6,7 +6,7 @@ import { useChatsWithChildren } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { worktreesStore } from "@/stores/worktrees";
 import { choiceDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
-import { openSeededChat } from "./githubHandoff";
+import { openSeededChat } from "@/features/chat/handoff/workplace";
 import { mainCheckoutNotes } from "./githubMerge";
 import { linkOf } from "./githubPrompt";
 
@@ -43,7 +43,7 @@ export async function checkoutPull(projectId: number, detail: GitHubPullDetail, 
     message: `ブランチ ${result.branch} を${where}に取り出しました。`,
     choices: [{ value: "chat", label: "ここで新しいチャット", primary: true }],
   });
-  if (start) openSeededChat(projectId, result.worktree_path ? { kind: "existing", path: result.worktree_path } : { kind: "main" }, "", linkOf(detail));
+  if (start) openSeededChat(projectId, result.worktree_path ? { kind: "existing", path: result.worktree_path } : { kind: "main" }, { text: "", link: linkOf(detail) });
 }
 
 /** 本体で作業中のチャットの名前（子チャットも。チェックアウトの確認に使う） */

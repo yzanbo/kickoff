@@ -5,9 +5,8 @@ import type { GitHubIssueDetail } from "@shared/types";
 import { selectionToMarkdown } from "@/ui/markdown/selectionMarkdown";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { GitHubChatTargets } from "./GitHubHandoffMenu";
+import { HandOffItems } from "@/features/chat/handoff/HandOffMenu";
 import { selectGitHubItem } from "./GitHubLinkChip";
-import { addToChatWith } from "./githubHandoff";
 import { githubItemRef } from "./githubLinks";
 import { linkOf, quotePrompt } from "./githubPrompt";
 
@@ -27,8 +26,8 @@ function htmlRootOf(range: Range): Element | null {
  * 中身の本文・コメント（GitHubHtml）への操作（GitHubDetail の本文の入れ物に付ける）:
  * - リンクを押す: このリポジトリの issue・PR（「#12」など）なら Kickoff の中で開く（いま見ている GitHub タブ・右の欄で、そのものに切り替える）。
  *   ほかは今までどおり外のブラウザ。⌘・Shift などを押しながらなら、このリポジトリのものも外のブラウザ（GitHub で見たいとき）
- * - 文を選んで右クリック: 「チャットに追加」（右の欄ではその欄のチャット、プロジェクトのタブでは最近動いたチャットから選ぶ）で、
- *   どの issue・PR の文かを添えた引用を入力欄の後ろに足す（チャットは結び付けない）。コピーも。文を選んでいなければ何もしない
+ * - 文を選んで右クリック: 「このチャットに追加」（右の欄ではその欄のチャット）・「ほかのチャットに追加 ▸」（最近動いたチャットから選ぶ。画面は移らない）で、
+ *   どの issue・PR の文かを添えた引用を入力欄の後ろに足す（札にはしない。チャットは結び付けない）。コピーも。文を選んでいなければ何もしない
  */
 export function useGitHubBodyActions(projectId: number, detail: GitHubIssueDetail) {
   const menu = useContextMenu<Picked>();
@@ -64,7 +63,7 @@ export function useGitHubBodyActions(projectId: number, detail: GitHubIssueDetai
   const element = menu.menu && picked && (
     <PopupMenu at={menu.menu.at} label="選んだ文" onClose={menu.close}>
       <div className="menu-label">選んだ文</div>
-      <GitHubChatTargets projectId={projectId} what="選んだ文の引用" onAdd={(chat) => addToChatWith(chat, quotePrompt(detail, picked.markdown), null)} />
+      <HandOffItems item={{ projectId, what: "選んだ文の引用", text: quotePrompt(detail, picked.markdown), hide: ["new", "child"] }} />
       <div className="menu-separator" role="separator" />
       <MenuItem onSelect={() => void navigator.clipboard.writeText(picked.plain)}>
         <Copy size={14} /> コピー
