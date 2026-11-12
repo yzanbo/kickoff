@@ -20,6 +20,8 @@ export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [nonce, setNonce] = useState(0);
+  // 裏のタブの結果が多すぎて捨てた（戻ったら取り直す。resultBudget.ts）
+  const [evicted, setEvicted] = useState(false);
   const filter = tab.filter ?? NO_FILTER;
   const filterKey = JSON.stringify(filter);
   // fill が読むいちばん新しい結果（読み直している間に取り直したら、差し替えない）
@@ -83,7 +85,17 @@ export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree
     error,
     sortBy: (column: string) => setSort((s) => nextSort(s, column)),
     more: () => result && void load(result.rows.length, result),
-    reload: () => setNonce((n) => n + 1),
+    reload: () => {
+      setEvicted(false);
+      setNonce((n) => n + 1);
+    },
+    evicted,
+    /** 結果を捨てる（裏のタブの量が多すぎるとき） */
+    evict: () => {
+      latest.current = null;
+      setResult(null);
+      setEvicted(true);
+    },
     fill,
   };
 }

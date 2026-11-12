@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
@@ -16,6 +16,7 @@ import { objectPathLabel } from "./dbFormat";
 import { DbWriteBand } from "./DbWriteBand";
 import { TableData } from "./TableData";
 import { useTableRows } from "./useTableRows";
+import { estimateRowsBytes, useResultBudget } from "./resultBudget";
 import { useTableEdits } from "./useTableEdits";
 
 type View = "data" | "structure" | "relations" | "ddl" | "info";
@@ -32,13 +33,31 @@ const VIEWS: { value: View; label: string }[] = [
  * 絞り込みはタブに覚える（onFilter）。全体の行数は統計の推定で出し、「正確に数える」を押したときだけ COUNT(*) を流す。
  * セルの書き換えなどの保存していない変更は、表示を切り替えても残るようここで持ち（useTableEdits）、⌘S で保存する
  */
-export function TableView({ tab, connection, onFilter }: { tab: DbTableTab; connection: DbConnection; onFilter: (filter: DbRowFilter | null) => void }) {
+export function TableView({
+  tab,
+  connection,
+  active,
+  onFilter,
+}: {
+  tab: DbTableTab;
+  connection: DbConnection;
+  /** いま見ているタブか（裏のタブの結果は多すぎれば捨て、戻ったら取り直す） */
+  active: boolean;
+  onFilter: (filter: DbRowFilter | null) => void;
+}) {
   const client = useDbClient();
   const worktree = client.worktreeOf(connection.id);
   const [view, setView] = useState<View>("data");
   const detail = useAsync(() => api.dbTable(client.projectId, connection.id, tab.path, tab.name, worktree), [connection.id, tab.key, worktree]);
   const data = useTableRows(tab, connection, worktree);
   const edit = useTableEdits(tab, connection, detail.data, worktree, data.reload);
+  // 保存していない変更があるタブの結果は捨てない（変更は読んだ行に重ねて見せるため）
+  const bytes = useMemo(() => (data.result && edit.counts.total === 0 ? estimateRowsBytes(data.result.rows) : 0), [data.result, edit.counts.total]);
+  useResultBudget(`${client.place}:${tab.key}`, bytes, active, data.evict);
+  useEffect(() => {
+    if (active && data.evicted) data.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, data.evicted]);
   const label = objectPathLabel(tab.path, tab.name);
 
   return (
