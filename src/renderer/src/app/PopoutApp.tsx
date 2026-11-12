@@ -19,7 +19,7 @@ import { PopoutFiles } from "@/features/popout/PopoutFiles";
 import { PopoutSubagent } from "@/features/popout/PopoutSubagent";
 import { PopoutChildChat } from "@/features/popout/PopoutChildChat";
 import { SideMemo } from "@/features/memo/SideMemo";
-import { DatabaseClient } from "@/features/database/DatabaseClient";
+import { LazyDatabaseClient } from "@/features/database/LazyDatabaseClient";
 import { SideScope } from "@/features/popout/SideScope";
 import { PopoutDockButton } from "@/features/popout/PopoutDockButton";
 import { GitHubDialogHost } from "@/features/github/GitHubDialogHost";
@@ -90,7 +90,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
                 </div>
               ) : route.kind === "database" ? (
                 <div className="popout-body">
-                  <DatabaseClient projectId={route.projectId} place={`chat-${route.chatId}`} worktree={route.worktree ?? null} />
+                  <LazyDatabaseClient projectId={route.projectId} place={`chat-${route.chatId}`} worktree={route.worktree ?? null} />
                 </div>
               ) : (
                 <PopoutFiles route={route} />
