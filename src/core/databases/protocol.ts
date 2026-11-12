@@ -17,6 +17,11 @@ export interface DbTarget {
   ssl: DbSsl | null;
   /** DB 側でも読み取り専用にしてつなぐ（読み取り専用の守りの 2 段目） */
   read_only: boolean;
+  /**
+   * DB の側の時間の上限（ミリ秒。AI の SQL だけ。PostgreSQL は statement_timeout、MySQL は max_execution_time（SELECT だけ）、MariaDB は max_statement_time。
+   * Kickoff の側でも止めるが、ワーカーが落ちても DB の中で流れ続けないように。SQLite は DB の側の上限がないので使わない。null / なし = 付けない）
+   */
+  timeout_ms?: number | null;
   /** SSH トンネル（null = 使わない。host・port は踏み台から見た DB の場所。password は SSH のパスワード） */
   ssh?: (DbSsh & { password: string | null }) | null;
   /** トンネルを通すときの、証明書を確かめるホスト名（ワーカーが入れる。つなぐ先は 127.0.0.1 になるため） */

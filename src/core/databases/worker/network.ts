@@ -11,6 +11,9 @@ export const CONNECT_TIMEOUT_MS = 10_000;
 /** DB に名乗る名前（DB 側の接続の一覧で、Kickoff からの接続と分かるように） */
 export const APPLICATION_NAME = "Kickoff";
 
+/** DB の側の時間の上限に渡すミリ秒（整数・1 以上・DB が受ける 32 ビットの整数まで） */
+export const dbTimeoutMs = (ms: number) => Math.min(2_147_483_647, Math.max(1, Math.round(ms)));
+
 /** TLS の設定（なし = 使わない / require = 使うが証明書は確かめない / verify = 証明書を確かめる（CA を指定すればそれで）） */
 export function tlsOptions(target: DbTarget): false | tls.ConnectionOptions {
   const ssl = target.ssl;

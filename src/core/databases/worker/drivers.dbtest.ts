@@ -290,6 +290,19 @@ for (const c of CASES) {
       assert.equal(after.rows[0][0], "changed@ex.com");
     });
 
+    test("DB の側の時間の上限（AI の SQL）: 超えたら DB が止める", async () => {
+      // MySQL の max_execution_time は SELECT だけ・SLEEP は止められても 1 を返すので、上限の値が付いたことを確かめる
+      const value =
+        c.key === "PG"
+          ? (await sql("SHOW statement_timeout", "timeout", { timeout_ms: 1500 })).rows[0][0]
+          : (await sql(c.key === "MYSQL" ? "SELECT @@SESSION.max_execution_time" : "SELECT @@SESSION.max_statement_time", "timeout", { timeout_ms: 1500 })).rows[0][0];
+      // PostgreSQL は「1500ms」、MySQL はミリ秒、MariaDB は秒
+      if (c.key === "PG") assert.equal(value, "1500ms");
+      else assert.equal(Number(value), c.key === "MYSQL" ? 1500 : 1.5);
+      if (c.key === "PG") await assert.rejects(sql("SELECT pg_sleep(5)", "timeout", { timeout_ms: 1500 }), /statement timeout/);
+      await call("close", { session: "timeout" });
+    });
+
     test("読み取り専用の接続は DB 側でも書けない", async () => {
       await assert.rejects(sql("INSERT INTO users (name) VALUES ('ro')", "ro", { read_only: true }), /read.only|READ ONLY/i);
       const read = await sql("SELECT COUNT(*) FROM users", "ro", { read_only: true });

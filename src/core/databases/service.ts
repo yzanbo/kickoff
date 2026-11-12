@@ -59,6 +59,9 @@ interface Options {
 /** 数える接続（セッション）の種類（木・テーブルのタブと SQL のタブ。AI・行の保存の接続は 1 回ずつ開いて閉じるので数えない） */
 const COUNTED_SESSION = /^(?:shared|sql):(\d+):/;
 
+/** AI の SQL の DB の側の時間の上限を、手元で止める時間より長くする分（手元の方が先に止めて「時間切れ」の文を返すため） */
+const DB_SIDE_TIMEOUT_MARGIN_MS = 5_000;
+
 /** 片付けの間隔（CSV を書き出すたびに、これより前に片付けていれば片付ける） */
 const EXPORT_CLEAN_INTERVAL_MS = 60 * 60_000;
 
@@ -415,10 +418,11 @@ export class DatabaseService {
     assertAiSql(input.sql, connection.engine);
     // 承認を待つ間にチャットの作業を止めていたら流さない
     if (input.signal?.aborted) throw new Invalid(TURN_STOPPED);
-    const target = await this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null, ai: true });
+    const limitMs = input.timeoutMinutes ? input.timeoutMinutes * 60_000 : DB_AI_TIMEOUT_MS;
+    // DB の側にも時間の上限を付ける（ワーカーが落ちても DB の中で流れ続けない）。手元で止める方が先に効くよう少し長く（止めたときの文を「時間切れ」にするため）
+    const target = { ...(await this.target(connection, project, workdir, { database: connection.engine === "postgres" ? input.database : null, ai: true })), timeout_ms: limitMs + DB_SIDE_TIMEOUT_MARGIN_MS };
     const session = `ai:${connection.id}:${randomUUID()}`;
     const controller = new AbortController();
-    const limitMs = input.timeoutMinutes ? input.timeoutMinutes * 60_000 : DB_AI_TIMEOUT_MS;
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;

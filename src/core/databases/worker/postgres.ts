@@ -10,7 +10,7 @@ import type { DbColumns, DbDriver } from "./driver.js";
 
 /** 結果をすべて読むとき（CSV の書き出し）に 1 回でカーソルから読む行の数 */
 const STREAM_BATCH = 1000;
-import { APPLICATION_NAME, CONNECT_TIMEOUT_MS, tlsOptions, triggerHead } from "./network.js";
+import { APPLICATION_NAME, CONNECT_TIMEOUT_MS, tlsOptions, triggerHead, dbTimeoutMs } from "./network.js";
 import { pgDefinition, pgRoutineObjects } from "./postgresRoutines.js";
 import { quoteIdent, toDbValue } from "./values.js";
 
@@ -69,6 +69,7 @@ export async function openPostgres(target: DbTarget): Promise<DbDriver> {
   try {
     await client.connect();
     if (target.read_only) await client.query("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY");
+    if (target.timeout_ms) await client.query(`SET statement_timeout = ${dbTimeoutMs(target.timeout_ms)}`);
   } catch (e) {
     await client.end().catch(() => {});
     throw pgError(e);

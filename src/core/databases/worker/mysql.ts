@@ -5,7 +5,7 @@ import { filterSql, plainLike, type FilterDialect } from "@shared/database/dbFil
 import type { DbDatabases, DbDefinition, DbForeignKey, DbIndex, DbObject, DbObjectPath, DbQueryResult, DbRowFilter, DbSort, DbTableDetail, DbValue } from "@shared/types";
 import type { DbOutlineTable, DbTarget } from "../protocol.js";
 import type { DbColumns, DbDriver } from "./driver.js";
-import { CONNECT_TIMEOUT_MS, tlsOptions } from "./network.js";
+import { CONNECT_TIMEOUT_MS, tlsOptions, dbTimeoutMs } from "./network.js";
 import { mysqlDefinition, mysqlRoutineObjects } from "./mysqlRoutines.js";
 import { toDbValue } from "./values.js";
 
@@ -75,6 +75,11 @@ export async function openMysql(target: DbTarget): Promise<DbDriver> {
   const options = connectionOptions(target);
   const driver = new MysqlDriver(await connect(options), options);
   if (target.read_only) await driver.run("SET SESSION TRANSACTION READ ONLY");
+  if (target.timeout_ms) {
+    const ms = dbTimeoutMs(target.timeout_ms);
+    // MySQL は max_execution_time（ミリ秒・SELECT だけ）、MariaDB にはないので max_statement_time（秒）
+    await driver.run(`SET SESSION max_execution_time = ${ms}`).catch(() => driver.run(`SET SESSION max_statement_time = ${ms / 1000}`));
+  }
   return driver;
 }
 
