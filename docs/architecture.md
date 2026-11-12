@@ -68,6 +68,13 @@
 | SSH トンネル（踏み台を通して DB につなぐ。初めての踏み台は鍵の指紋を確かめる） | 接続の `ssh`（`DbSsh`: `host` / `port` / `user` / `identity_file`。v17）・パスワード `db_connection:<ID>:ssh_password`（`has_ssh_password`）・ワーカーの `worker/tunnel.ts`（`createTunnels`。同じ踏み台と DB へのトンネルは使い回す）・初めての踏み台の印 `DB_SSH_UNKNOWN_HOST`（409）・鍵 `DbSshHostKey`（`sshHostKey.ts`）・画面の `SshHostKeyDialog` | なし |
 | SQL の履歴（接続ごと。AI が流したものに印） | `DbQueryHistoryEntry` / 表 `db_query_history`（v14。`ran_by` = `user` / `ai`、AI なら `chat_id`。接続ごとに新しい `DB_HISTORY_MAX`（500）件だけ残す）・店 `store.dbQueryHistory` | なし |
 | DB ワーカー（DB の接続・SQL の実行・結果の整形・SSH トンネル・準備のコマンドを動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める（準備のコマンドを流している間は止めない）） | `core/databases/worker/`（Electron ではメインプロセスが `utilityProcess` で `out/main/dbWorker.js` を起動する口をコアに渡す（製品版は Electron の fuses で RunAsNode をオフにするので `ELECTRON_RUN_AS_NODE` は使わない）、`npm run daemon`・テストでは `worker/main.ts` を tsx で fork。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
+| Docker タブ（プロジェクトの画面の上のタブ「Docker」（「DB」の隣）。本体とワークツリーの compose のサービスを見て、起動・停止し、ログとシェルを下のパネルのターミナルで開く。この Mac のアプリの中だけ。要件定義書の「5.14 Docker」。まだ作っていない） | タブ `docker`（`#/projects/:id/docker`）・画面 `features/docker/`（状態と操作の hook `useDocker`・描く部品 `DockerPane`）・コア `core/docker/`・API `GET /api/projects/:id/docker`（一覧）・`POST …/docker/actions`（操作）・`POST …/docker/watch`（見ています）・SSE `docker_changed`（`project_id`）・共有の型 `@shared/types/docker.ts` | なし |
+| compose（Docker タブの見出し。compose のファイルごとに 1 つ。プロジェクトフォルダからの場所と作業場所の札を出す）・サービス（compose に書いた 1 つ 1 つ。行）・コンテナ（サービスから作ったもの。「作っていない」サービスもある） | 見つけ方とファイルの選び方 `core/docker/compose.ts`（中身は `docker compose -f … --profile '*' config --format json` に聞く。YAML は読まない） | なし |
+| 組の名前（compose のプロジェクト名。`-p` / `name:` / `COMPOSE_PROJECT_NAME`。Kickoff のプロジェクトと混ざるので、画面でも文書でも「プロジェクト」と呼ばない） | ラベル `com.docker.compose.project`（作ってあるもの）・`config --format json` の `name`（作っていないもの） | なし |
+| 札付きのサービス（compose の `profiles:` の札が付いた、必要なときだけ使うサービス。薄く並べ、「すべて起動」に含めない）・使い捨てのコンテナ（`docker compose run` で作ったもの。サービスの行の下に畳む） | `profiles`・ラベル `com.docker.compose.oneoff=True` | なし |
+| 同じ組（2 つの作業場所、または同じ作業場所の 2 つの compose が同じ組の名前になること。コンテナとボリュームを共有し、片方の up でもう片方が作り直される） | 見出しの ⚠・起動の前の［起動する］［やめる］ | なし |
+| ポートの取り合い（Docker 同士。up が失敗してから相手を出す）・静かなぶつかり（Docker の外のプロセスが同じ番号で待っている。起動は成功し、127.0.0.1 への接続は外のプロセスが受ける） | `core/docker/portConflict.ts`（`lsof -nP +c 0`・エンジンの名前の一覧・`brew services info --all --json`） | なし |
+| AI の Docker の守り（別の作業場所のコンテナを止める・消す・作り直す、ボリュームを消す、まとめて止める・消す AI の Bash を、Auto mode でも承認カードで聞く） | `core/chat/guard/dockerGuard.ts`（待てる PreToolUse。承認は `requestApproval`・`canRemember: false`） | なし |
 
 ### チャットの軸とエージェントの軸
 
@@ -319,6 +326,18 @@ github_kind TEXT CHECK (github_kind <> ''),        -- issue / pr（PR を作る�
 - 置き場所: コアは `core/databases/`（`service.ts`・ワーカー `worker/`（種類ごとのドライバ `sqlite.ts` / `postgres.ts` / `mysql.ts`）。段階 2 の SSH トンネル `worker/tunnel.ts`・ssh の引数と出力の読み方 `sshArgs.ts`・サーバーの鍵 `sshHostKey.ts`・取り込みの `import/`）、文の分割と判定（`@shared/database/sqlStatements.ts`）・URL の読み取り（`dbUrl.ts`）・段階 2 の制約のない関係の推測は純粋な関数として `src/shared` に置いてテストする。API のテストは `server.databases.test.ts`。PostgreSQL・MySQL・MariaDB を使うテストは `worker/drivers.dbtest.ts` を Docker で立てて別のコマンド `npm run test:db` で流す（`npm test` は外につながないまま）。
 - 段階 1 で決めたこと: ワーカーとのやり取りは `{ id, method, params }` → `{ id, ok, result | error }`、止めるのは `{ cancel: id }`（`core/databases/protocol.ts`）。ワーカーが落ちたら待っている頼みを失敗にし、次の頼みで立ち上げ直す。
 
+### Docker タブ（段階 1。まだ作っていない）
+
+要件定義書の「5.14 Docker」。詳しい仕様はメモの「Docker 仕様書」（段階 1 は決定・2026-11-12）。**表は足さない**（覚えるものがない。正しいのはいつも Docker で、一覧は開くたび・知らせのたびに `docker ps` から作る）。コアのメモリにだけ持つのは、compose ごとの「動いている操作」と「最後の失敗」（コアを起動し直したら消える）、compose の中身（`config --format json` の結果。compose のファイルと `.env` の更新日時を鍵に覚える）、「見ています」の期限。
+
+- 置き場所: 共有の型 `src/shared/types/docker.ts`（コンテナの状態の値（`as const`）と `…_LABELS`、一覧・操作の形。snake_case）。コア `src/core/docker/`（`docker.ts` 一覧・操作・エンジンの状態、`dockerEvents.ts` 見ている間だけ動かす `docker events`、`compose.ts` compose のファイルと override・`COMPOSE_FILE` を見つける・組の名前、`portConflict.ts` ポートの取り合いと静かなぶつかり）。ルート `core/http/routes/docker.ts`（`thisMac.ts` の `localOnly` で 127.0.0.1 からだけ受ける）。AI の守り `src/core/chat/guard/dockerGuard.ts`（`selfProtection.ts` の隣）。画面 `features/docker/`（`CLAUDE.md` を足し、ルートと画面全体の表に 1 行足す）。プロジェクトのタブは `router.ts` の `PROJECT_TABS` に `docker`、スマホで隠すのは「DB」「GitHub」タブと同じ形（`ProjectPage.tsx`・`ProjectTabs.tsx` の `window.kickoff` での出し分け）。
+- 依存の向き: `core/docker` はコマンドを `core/system` の補助で流すだけで、チャットを知らない。`core/chat/guard/dockerGuard.ts` は相手の作業場所を決めるために `core/docker` の読み取り（`docker ps` の読み方・作業場所への振り分け・組の名前）を使う（`chat → docker` の向き。`docker` から `chat` は import しない）。判定は文だけで決める純粋な関数と、止める・消すコマンドのときだけ `docker ps` を引く部分に分ける。
+- コマンドの流し方: すぐ終わるもの（`ps`・`start` / `stop` / `restart` / `unpause`・`config`・`lsof`・`brew services` など）は今の `runCommand`（`core/system/exec.ts`）。流れ続ける `docker events` と、［中止］できる `docker compose up -d` だけは、`spawn` で動かす小さな補助を `core/system` に足して使う（止める口と、出力を 1 行ずつ渡す口を持つ）。どちらで動かすかはコマンドごとに作るときに決める。`core.close()` で流れているものをすべて止める。`docker` はログインシェルから取り込んだ PATH（`loadLoginShellPath`）と `~/.orbstack/bin` で探し、環境変数は `DOCKER_CLI_HINTS=false`。
+- 見ている間だけ: Docker タブを表示している画面は `POST /api/projects/:id/docker/watch` を 20 秒ごとに送り（開いた瞬間にすぐ 1 回。応答に今の一覧）、コアはどのプロジェクトからも 45 秒届かなければ `docker events` を止める。変化は 300ms まとめて一覧を取り直し、SSE の `docker_changed` を出す（操作の始まり・終わり・失敗・［中止］・失敗の［×］のときも）。
+- ターミナル: IPC の `terminal.open(key, cwd, cols, rows)` に、省いてよい `{ command, title, env }` を足す（取り決めは `src/shared/ipc`。画面の `panelActions.openTerminal`・タブの型 `panelTypes.ts` も）。`command` はログインシェルの `-l -c` で流し、終わったら開き直さない（`TerminalPane.tsx`）。⌘F はピントがターミナルにあれば `@xterm/addon-search`、それ以外は `registerPageFind`。
+- AI の守りのフック: 今の `turnHooks(params, self)`（`core/providers/claude/policy.ts`）の `denyHook` は判定をすぐ返す作りなので、待てる PreToolUse を足し、`ProviderCallbacks` を渡す口を足す（フックの中で `requestApproval` を呼ぶ。DB のツールの承認 `dbTools.ts` と同じ口）。`docker ps` は 3 秒で打ち切り、答えがなければ通す。承認は時間で打ち切らない。入れ子の作業場所を見分けるため、フックにはチャットの作業場所に加えて、プロジェクトの本体とワークツリーの一覧を渡す。
+- 別の機能に分けたもの: 本体とワークツリーで組の名前・ポートを確実に分ける仕組みは「ワークツリーの実行環境」（メモの仕様書は下書き）。Docker タブは組の名前を変えない。
+
 ### 記録（chat_events の data）
 
 `ChatEvent` は `type` で中身が決まる判別共用体にする（以前は `data` が `type` と結びついておらず、`event.data as …` が 50 か所あった）。新しい DB なので「以前の記録にはない」ための任意の項目は必須にする。
@@ -349,7 +368,7 @@ ID 入りの localStorage のキー（グループの開閉・下書き・送信
 ```
 src/
   shared/              どのプロセスからも使う型と純粋な関数（Node・DOM・Electron・React に依存しない）。import は @shared/…
-    types/             API・SSE・DB の形（chat / chatEvent / chatLive / project / approval / settings / provider / git / github / voice / events / api）
+    types/             API・SSE・DB の形（chat / chatEvent / chatLive / project / approval / settings / provider / git / github / voice / events / api。docker は Docker タブで足す予定）
     github/            GitHub タブの絞り込みを GitHub の検索の文にする（searchQuery）
     chat/              チャットの決まり（状態と列 state・サブエージェントの一覧 subagents・選択の解決 chatOptions・送信待ちの印 queueStops・失敗の見分け・AI への定型文）
     project/           プロジェクトの決まり（タグ・色）
@@ -369,6 +388,7 @@ src/
     github/            GitHub タブの読み取り（gh api の GraphQL と REST・応答を形にする normalize・一覧の ETag の覚え）
     usage/             使用状況（Claude のプランの枠と、ほかのサービス services/）
     voice/             音声入力の文字起こし（whisper-cli・macOS の音声認識・OpenAI）と、音声モードの読み上げ（OpenAI の声）
+    docker/            Docker タブ（予定。一覧・操作・エンジンの状態・見ている間だけの docker events・compose のファイル・ポートの取り合い。表は持たない）
     memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown・HTML の一覧・読み書き・移動・ゴミ箱・チャットの文から作る・HTML のメモが読むファイルを返す）
     system/            外部コマンド・パス・ログインシェルの環境・期限付きキャッシュ・保存先と名前（appEnv）・開発版のデータの写し
     testing/           テストの補助（サーバーの準備・偽のプロバイダー・一時フォルダ・Git の作業場所）
@@ -393,7 +413,7 @@ src/
       group/           グループ（並べ替え・ドラッグ・メニュー）
       sidebar/  board/  palette/
       panel/           タブの入れ物（状態 state/・ペインの分割 layout/・タブ tabs/・まとまり clusters/・欄 bottom/ projectChat/）
-      editor/  history/  worktree/  github/  database/
+      editor/  history/  worktree/  github/  database/  docker/（予定）
       settings/  terminal/  browser/  openWith/  dictation/  fileLinks/  footer/  usage/  diagnostics/
     styles/            CSS。index.css の @import の順（＝カスケードの順）でつなぐ。中身は領域ごとのサブフォルダ（base/ ui/ chat/ sidebar/ board/ panel/ editor/ …）
 ```
