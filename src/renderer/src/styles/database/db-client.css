@@ -153,6 +153,18 @@
   font-weight: 600;
 }
 
+/* 接続の行の左の色の線（環境。ホームのカードと同じ色） */
+.db-tree-connection {
+  box-shadow: inset 3px 0 0 var(--db-env, var(--extra-muted));
+}
+
+.db-tree-lock {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--muted);
+}
+
 .db-tree-note {
   flex: none;
   font-size: 11px;

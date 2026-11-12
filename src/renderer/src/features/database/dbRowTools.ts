@@ -1,6 +1,7 @@
 // テーブルのデータの補助（セルの値で絞る・外部キーで移る条件・行の詳細の値の整え方・CSV / TSV / JSON の書き出し）。React に依らない
-import { DB_IMAGE_PREVIEW_BYTES, type DbColumnInfo, type DbFilter, type DbForeignKey, type DbValue } from "@shared/types";
+import { DB_IMAGE_PREVIEW_BYTES, type DbColumnInfo, type DbFilter, type DbForeignKey, type DbTableDetail, type DbValue } from "@shared/types";
 import { dbImageType, isDbBinary, isDbLongText } from "@shared/database/dbValue";
+import { EMPTY_TEXT_LABEL } from "./dbFormat";
 
 /** 絞り込みの値にする文（NULL は null、バイナリ・頭だけの長い文字は絞れないので undefined） */
 export function filterValueOf(value: DbValue): string | null | undefined {
@@ -66,7 +67,7 @@ export function detailText(value: DbValue): { text: string; kind: "null" | "bina
   if (isDbLongText(value)) return { text: `${value.head}…`, kind: "long" };
   if (typeof value === "object") return { text: `${value.bytes.toLocaleString()} バイト\n${value.head}${value.bytes > value.head.length / 2 ? "…" : ""}`, kind: "binary" };
   const text = String(value);
-  if (text === "") return { text: "（空文字）", kind: "empty" };
+  if (text === "") return { text: EMPTY_TEXT_LABEL, kind: "empty" };
   if (/^\s*[[{]/.test(text)) {
     try {
       const parsed: unknown = JSON.parse(text);
@@ -99,3 +100,20 @@ export function exportRows(columns: DbColumnInfo[], rows: DbValue[][], format: D
 }
 
 export const DB_EXPORT_TYPES: Record<DbExportFormat, string> = { csv: "text/csv", tsv: "text/tab-separated-values", json: "application/json" };
+
+/** 表の見出しに出す列のキー（主キーの列と、外部キーの列 → 参照先「テーブル.列」） */
+export interface ColumnKeys {
+  primary: ReadonlySet<string>;
+  foreign: ReadonlyMap<string, string>;
+}
+
+/** テーブルの詳細から、見出しに出す列のキーを作る（外部キーは foreignKeysByColumn の最初のもの。複数の列の外部キーは、その列に対応する参照先の列） */
+export function columnKeysOf(detail: Pick<DbTableDetail, "columns" | "foreign_keys">): ColumnKeys {
+  const primary = new Set(detail.columns.filter((c) => c.primary_key).map((c) => c.name));
+  const foreign = new Map<string, string>();
+  for (const [col, [fk]] of foreignKeysByColumn(detail.foreign_keys)) {
+    const table = fk.ref_schema ? `${fk.ref_schema}.${fk.ref_table}` : fk.ref_table;
+    foreign.set(col, `${table}.${fk.ref_columns[fk.columns.indexOf(col)] ?? fk.ref_columns[0] ?? ""}`);
+  }
+  return { primary, foreign };
+}

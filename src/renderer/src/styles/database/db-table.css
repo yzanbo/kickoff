@@ -55,6 +55,17 @@ button.db-grid-col:hover {
   white-space: nowrap;
 }
 
+/* 見出しの主キー（鍵の色。木の主キーと同じ）・外部キーの印 */
+.db-grid-col > svg.db-grid-pk {
+  flex: none;
+  color: var(--warn);
+}
+
+.db-grid-col > svg.db-grid-fk {
+  flex: none;
+  color: var(--accent);
+}
+
 .db-grid-col-type {
   flex: none;
   font-weight: 400;
@@ -116,7 +127,8 @@ button.db-grid-col:hover {
 }
 
 .db-cell-null,
-.db-cell-binary {
+.db-cell-binary,
+.db-cell-empty {
   font-style: italic;
   color: var(--extra-muted);
 }
