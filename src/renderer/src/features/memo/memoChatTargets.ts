@@ -12,7 +12,7 @@ import type { MemoChatTarget } from "./useMemoEditMenu";
 import { api } from "@/api";
 
 /**
- * 足す先ごとの口: 選んでいれば、ファイルのフルパスと行番号付きの引用を足し、なければメモ全体を添付する（AI は保存したファイルを読むので、
+ * 足す先ごとの口: 選んでいれば、ファイルのフルパスと行番号付きの引用を足し、なければメモ全体の写しを札で足す（AI は保存したファイルを読むので、
  * 書きかけは先に保存する）。addPath はメモのファイルのフルパスを足す。main は attachTo（開いたチャット）があるときだけ。
  * メモのチャットに足すときは、その欄を開く（openMemoChat）
  */
@@ -37,7 +37,7 @@ export function memoChatTargets({
 }): { main?: MemoChatTarget; memo: MemoChatTarget } {
   const savedForAttach = async () => {
     if (await save()) return true;
-    void alertDialog("添付できませんでした", "メモを保存できなかったので、添付しませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから添付してください）。");
+    void alertDialog("チャットに追加できませんでした", "メモを保存できなかったので、追加しませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから追加してください）。");
     return false;
   };
   const quoteOf = (selection: string, lines: Parameters<typeof lineLocation>[1]) => memoQuote(lineLocation(file, lines), selection);
@@ -50,7 +50,7 @@ export function memoChatTargets({
     add: async (selection, lines) => {
       if (selection.trim()) toMemoChat(quoteOf(selection, lines));
       else if (await savedForAttach()) {
-        await api.memoSnapshot(projectId, path).then((a) => toMemoChat("", [a]), reportFailure("メモを添付できませんでした"));
+        await api.memoSnapshot(projectId, path).then((a) => toMemoChat("", [a]), reportFailure("メモをチャットに追加できませんでした"));
       }
     },
     addQuote: (quote) => toMemoChat(quote),

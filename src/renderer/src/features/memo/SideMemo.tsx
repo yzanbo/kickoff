@@ -5,7 +5,7 @@ import { MemoView } from "./MemoView";
 
 /**
  * チャットの画面の右の欄・別ウィンドウで開いたメモ（メモのタブの右と同じ。⌘S で保存）。
- * chatId は開いたチャット（見出しのボタン・本文の右クリックで、メモをそのチャットの入力欄に添付する）。
+ * chatId は開いたチャット（見出しのボタン・本文の右クリックで、メモをそのチャットの入力欄に追加する）。
  * 題名で名前を変えた・HTML のメモのリンクで別のメモへ移ったら、そのパスで開き直す（onRenamed で、開いている側（タブ・別ウィンドウの URL）にも知らせる）
  */
 export function SideMemo({ projectId, path: opened, chatId, onRenamed }: { projectId: number; path: string; chatId: number | null; onRenamed?: (path: string) => void }) {
