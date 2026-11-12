@@ -65,15 +65,19 @@ export function rootChatOf<T extends Pick<Chat, "id" | "parent_chat_id">>(chat: 
   return ancestorsOf(chat, lookup)[0] ?? chat;
 }
 
-/** タブに出す子孫の動き（作業中・回答待ちの子孫の数と、印の状態。回答待ちがあれば回答待ち） */
+/** タブに出す子孫の様子（印の状態・作業中と回答待ちの数・アーカイブしていない子孫の数） */
 export interface ChildActivity {
-  state: "running" | "needs_input";
+  /** 回答待ちがあれば回答待ち、作業中があれば作業中、どれも動いていなければ idle */
+  state: "running" | "needs_input" | "idle";
+  /** 作業中・回答待ちの子孫の数 */
   count: number;
+  /** アーカイブしていない子孫（子・孫・ひ孫…）の数 */
+  total: number;
 }
 
 /**
- * 子・孫・ひ孫…のうち、作業中・回答待ちのものを数える（アーカイブ済みとその下は数えない。輪になっていても止まる）。
- * どれもなければ null。親のタブで、裏で子チャットが動いていることを見せるため（利用者の依頼）
+ * 子・孫・ひ孫…を数える（アーカイブ済みとその下は数えない。輪になっていても止まる）。子孫がなければ null。
+ * 親のタブで、子チャットがあること・裏で動いていることを見せるため（利用者の依頼）
  */
 export function childActivityOf(
   chatId: number,
@@ -82,11 +86,13 @@ export function childActivityOf(
 ): ChildActivity | null {
   let running = 0;
   let waiting = 0;
+  let total = 0;
   const seen = new Set([chatId]);
   const walk = (id: number) => {
     for (const c of childrenOf.get(id) ?? []) {
       if (c.archived_at || seen.has(c.id)) continue;
       seen.add(c.id);
+      total++;
       const state = stateOf(c);
       if (state === "running") running++;
       else if (state === "needs_input") waiting++;
@@ -94,6 +100,6 @@ export function childActivityOf(
     }
   };
   walk(chatId);
-  if (running + waiting === 0) return null;
-  return { state: waiting > 0 ? "needs_input" : "running", count: running + waiting };
+  if (total === 0) return null;
+  return { state: waiting > 0 ? "needs_input" : running > 0 ? "running" : "idle", count: running + waiting, total };
 }

@@ -5,11 +5,12 @@ import type { SIDEBAR_CHAT_SECTIONS } from "@/lib/storageKeys";
 // タブに出す項目（タブの列の「表示」のメニューの「タブに出す項目」で、項目ごとに出す・隠すを選ぶ。利用者の依頼）。
 // 覚えるのは隠した項目だけ（PANEL_TAB_HIDDEN。すべてのパネルで共通）。名前・種類の札（メモ・サブ・子）はいつも出す
 
-export const TAB_FIELDS = ["state", "pin", "group", "worktree"] as const;
+export const TAB_FIELDS = ["state", "children", "pin", "group", "worktree"] as const;
 export type TabField = (typeof TAB_FIELDS)[number];
 
 export const TAB_FIELD_LABELS: Record<TabField, string> = {
   state: "状態",
+  children: "子チャット",
   pin: "ピン留め",
   group: "グループ",
   worktree: "作業場所（ブランチ）",
