@@ -10,11 +10,16 @@ import { editableText, type TableCellState, type TableRowState } from "./tableEd
 const ROW_HEIGHT = 26;
 /** 見えている所の前後に余分に描く行の数 */
 const OVERSCAN = 12;
+/** 見えている所の左右に余分に描く列の数（列も見えている所だけ描く。何百列でも重くしない） */
+const COL_OVERSCAN = 3;
 /** 列の幅 */
 const COLUMN_WIDTH = 180;
 const INDEX_WIDTH = 52;
 /** 列の見出しの高さ（上に貼り付くので、選んだセルを見せるときに除く） */
 const HEAD_HEIGHT = 28;
+
+/** 行の番号の列はいつもグリッドの 1 列目 */
+const INDEX_PLACE: CSSProperties = { gridColumn: 1 };
 
 const MOVES: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
 
@@ -28,7 +33,7 @@ export interface DataGridEdit {
 }
 
 /**
- * DB の結果の表（テーブルのデータ・SQL の結果で共通）。行は見えている所だけ描く（何千行でも重くしない）。
+ * DB の結果の表（テーブルのデータ・SQL の結果で共通）。行も列も見えている所だけ描く（何千行・何百列でも重くしない）。
  * 列の見出しを押すと onSort（渡したときだけ。並べ替えの印は sort）。セルを押すと選び、⌘C でその文をコピーする。
  * セルの文は 1 行に収め、全部は乗せたときの説明に出す（NULL・バイナリは薄く、数は右寄せ）。
  * onPickRow は選んだセルの行（行の詳細）、onCellMenu はセルの右クリック（選んでから開く）。↑↓←→ で選ぶセルを動かす。
@@ -60,12 +65,12 @@ export function DataGrid({
   pickRequest?: { row: number; col: number } | null;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
-  const [view, setView] = useState({ top: 0, height: 400 });
+  const [view, setView] = useState({ top: 0, height: 400, left: 0, width: 1200 });
   const [picked, setPicked] = useState<{ row: number; col: number } | null>(null);
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    const measure = () => setView({ top: el.scrollTop, height: el.clientHeight });
+    const measure = () => setView({ top: el.scrollTop, height: el.clientHeight, left: el.scrollLeft, width: el.clientWidth });
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
@@ -96,6 +101,10 @@ export function DataGrid({
 
   const first = Math.max(0, Math.floor(view.top / ROW_HEIGHT) - OVERSCAN);
   const last = Math.min(rows.length, Math.ceil((view.top + view.height) / ROW_HEIGHT) + OVERSCAN);
+  const colFirst = Math.max(0, Math.floor((view.left - INDEX_WIDTH) / COLUMN_WIDTH) - COL_OVERSCAN);
+  const colLast = Math.min(columns.length, Math.ceil((view.left + view.width) / COLUMN_WIDTH) + COL_OVERSCAN);
+  /** 描く列（グリッドの何列目かを指定するので、描かない列の場所は空いたまま幅を保つ） */
+  const shownCols = Array.from({ length: Math.max(0, colLast - colFirst) }, (_, i) => colFirst + i);
   const template = { "--db-grid-cols": `${INDEX_WIDTH}px repeat(${columns.length}, ${COLUMN_WIDTH}px)` } as CSSProperties;
 
   /** 選んだセルが見えるようにスクロールする（上の見出しと左の番号の列の下に隠さない） */
@@ -162,16 +171,18 @@ export function DataGrid({
       tabIndex={0}
       role="grid"
       aria-rowcount={rows.length}
+      aria-colcount={columns.length}
       onScroll={(e) => {
         // 更新の関数はあとで呼ばれ、そのときイベントの currentTarget は null になっているので、先に読んでおく
-        const top = e.currentTarget.scrollTop;
-        setView((v) => ({ ...v, top }));
+        const { scrollTop: top, scrollLeft: left } = e.currentTarget;
+        setView((v) => (v.top === top && v.left === left ? v : { ...v, top, left }));
       }}
       onKeyDown={onKeyDown}
     >
       <div className="db-grid-head" role="row">
-        <span className="db-grid-index" />
-        {columns.map((c, i) => {
+        <span className="db-grid-index" style={INDEX_PLACE} />
+        {shownCols.map((i) => {
+          const c = columns[i];
           const s = sort?.find((x) => x.column === c.name);
           const label = (
             <>
@@ -181,11 +192,11 @@ export function DataGrid({
             </>
           );
           return onSort ? (
-            <button key={i} type="button" role="columnheader" className="db-grid-col" title={`${c.name}${c.type ? `（${c.type}）` : ""} で並べ替え`} onClick={() => onSort(c.name)}>
+            <button key={i} type="button" role="columnheader" className="db-grid-col" style={{ gridColumn: i + 2 }} aria-colindex={i + 1} title={`${c.name}${c.type ? `（${c.type}）` : ""} で並べ替え`} onClick={() => onSort(c.name)}>
               {label}
             </button>
           ) : (
-            <span key={i} role="columnheader" className="db-grid-col" title={c.type ? `${c.name}（${c.type}）` : c.name}>
+            <span key={i} role="columnheader" className="db-grid-col" style={{ gridColumn: i + 2 }} aria-colindex={i + 1} title={c.type ? `${c.name}（${c.type}）` : c.name}>
               {label}
             </span>
           );
@@ -197,14 +208,17 @@ export function DataGrid({
           const rowState = edit?.rowState(index) ?? null;
           return (
             <div key={index} className={cx("db-grid-row", rowState && `db-row-${rowState}`)} role="row" style={{ top: index * ROW_HEIGHT }}>
-              <span className="db-grid-index">{rowState === "added" ? "＋" : rowOffset + index + 1}</span>
-              {row.map((value, col) => {
+              <span className="db-grid-index" style={INDEX_PLACE}>{rowState === "added" ? "＋" : rowOffset + index + 1}</span>
+              {shownCols.map((col) => {
+                const value = row[col] ?? null;
                 const state = edit?.cellState(index, col) ?? null;
                 const text = state === "default" ? "既定値" : cellText(value);
                 return (
                   <span
                     key={col}
                     role="gridcell"
+                    aria-colindex={col + 1}
+                    style={{ gridColumn: col + 2 }}
                     className={cx(
                       "db-grid-cell",
                       state === "default" ? "db-cell-default" : `db-cell-${cellKind(value)}`,
