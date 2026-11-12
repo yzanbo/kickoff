@@ -163,11 +163,13 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, githubAccount
     const { project } = c.var;
     const [accounts, { remotes, ghDefault }] = await Promise.all([githubAccounts(), readGitHubRemotes(project.repo_path)]);
     const auto = autoGitHubRemote(remotes, ghDefault);
+    const target = pickGitHubTarget(remotes, ghDefault, project.github_remote);
     return c.json({
       accounts,
       remotes,
       auto_remote: auto?.name ?? null,
-      repo: pickGitHubTarget(remotes, ghDefault, project.github_remote)?.repo ?? null,
+      repo: target?.repo ?? null,
+      host: target?.host ?? null,
     } satisfies ProjectGitHub);
   });
 

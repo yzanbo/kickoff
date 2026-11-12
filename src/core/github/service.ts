@@ -55,8 +55,8 @@ interface CachedPage {
 interface GitHubServiceOptions {
   /** 連携先（テストでは差し替える） */
   resolveTarget?: (repo: string, chosen: string | null) => Promise<GitHubTarget | null>;
-  /** GitHub に聞く口（テストでは差し替える） */
-  api?: (repo: string) => GitHubApi;
+  /** GitHub に聞く口（repo = 連携先・host = そのホスト。テストでは差し替える） */
+  api?: (repo: string, host: string) => GitHubApi;
   /** GitHub の remote の一覧（テストでは差し替える） */
   remotes?: (repo: string) => Promise<GitHubRemote[]>;
   now?: () => number;
@@ -81,8 +81,8 @@ export class GitHubService {
       const target = await (this.opts.resolveTarget ?? resolveGitHubTarget)(project.repo_path, project.github_remote);
       if (!target) throw new Invalid(NO_REMOTE);
       const [owner, name] = target.repo.split("/");
-      const api = (this.opts.api ?? ghApi)(target.repo);
-      return fn({ repo: target.repo, owner, name, api, key: `${project.id}:${target.repo}:${project.github_account ?? ""}` });
+      const api = (this.opts.api ?? ghApi)(target.repo, target.host);
+      return fn({ host: target.host, repo: target.repo, owner, name, api, key: `${project.id}:${target.host}/${target.repo}:${project.github_account ?? ""}` });
     });
   }
 
@@ -91,12 +91,12 @@ export class GitHubService {
     const target = await runAsGitHubAccount(project.github_account, () =>
       (this.opts.resolveTarget ?? resolveGitHubTarget)(project.repo_path, project.github_remote).catch(() => null),
     );
-    if (!target) return { repo: null, account: project.github_account, reason: NO_REMOTE };
+    if (!target) return { host: null, repo: null, account: project.github_account, reason: NO_REMOTE };
     try {
       const login = await this.within(project, async ({ api }) => (await api.graphql<{ viewer: { login: string } }>(VIEWER_QUERY, {})).viewer.login);
-      return { repo: target.repo, account: login, reason: null };
+      return { host: target.host, repo: target.repo, account: login, reason: null };
     } catch (e) {
-      return { repo: target.repo, account: project.github_account, reason: errorMessage(e) };
+      return { host: target.host, repo: target.repo, account: project.github_account, reason: errorMessage(e) };
     }
   }
 

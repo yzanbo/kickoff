@@ -22,7 +22,7 @@ test("GitHub タブ: 連携の状態（remote がない・聞けない・使え�
   const { call, project, ghFake } = setup();
   const base = `/api/projects/${project.id}/github`;
   ghFake.graphql = () => ({ viewer: { login: "me" } });
-  assert.deepEqual((await call("GET", `${base}/connection`)).body, { repo: "o/r", account: "me", reason: null } satisfies GitHubConnection);
+  assert.deepEqual((await call("GET", `${base}/connection`)).body, { host: "github.com", repo: "o/r", account: "me", reason: null } satisfies GitHubConnection);
 
   ghFake.graphql = () => {
     throw new Error("gh: To get started with GitHub CLI, please run:  gh auth login");
@@ -185,7 +185,7 @@ test("GitHub タブ: PR のブランチのワークツリー（PR の元のブ�
   const bare = path.join(tempDir(), "o-r.git");
   execFileSync("git", ["clone", "-q", "--bare", src.dir, bare]);
   execFileSync("git", ["clone", "-q", bare, project.repo_path]);
-  ghFake.remotes = [{ name: "origin", repo: "o/r", url: bare }];
+  ghFake.remotes = [{ name: "origin", host: "github.com", repo: "o/r", url: bare }];
   ghFake.rest = (p) => ({ status: 200, etag: null, body: p.startsWith("repos/o/r/pulls/") ? { head: { ref: "fix", repo: { full_name: "o/r" } } } : null });
 
   const made = await call("POST", url);
@@ -196,7 +196,7 @@ test("GitHub タブ: PR のブランチのワークツリー（PR の元のブ�
   assert.deepEqual((await call("POST", url)).body, result);
 
   // 連携先の remote がない
-  ghFake.remotes = [{ name: "origin", repo: "x/y", url: bare }];
+  ghFake.remotes = [{ name: "origin", host: "github.com", repo: "x/y", url: bare }];
   assert.equal((await call("POST", `/api/projects/${project.id}/github/pulls/5/worktree`)).status, 400);
 });
 
@@ -299,7 +299,7 @@ test("GitHub タブ: PR のチェックアウト（本体なら本体のブラ�
   const bare = path.join(tempDir(), "o-r.git");
   execFileSync("git", ["clone", "-q", "--bare", src.dir, bare]);
   execFileSync("git", ["clone", "-q", bare, project.repo_path]);
-  ghFake.remotes = [{ name: "origin", repo: "o/r", url: bare }];
+  ghFake.remotes = [{ name: "origin", host: "github.com", repo: "o/r", url: bare }];
   ghFake.rest = (p) => ({ status: 200, etag: null, body: p.startsWith("repos/o/r/pulls/") ? { head: { ref: "fix", repo: { full_name: "o/r" } } } : null });
 
   const res = await call("POST", `/api/projects/${project.id}/github/pulls/4/checkout`, { place: "main" });

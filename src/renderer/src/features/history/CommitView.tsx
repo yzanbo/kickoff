@@ -1,5 +1,6 @@
 import { List, ListTree } from "lucide-react";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { GITHUB_DEFAULT_HOST, githubWebOrigin } from "@shared/github/host";
 import type { GitCommit, GitFileChange, GitRefs } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
@@ -99,7 +100,7 @@ export function CommitView({
           detail={detail}
           known={known}
           refColor={refColor}
-          githubUrl={github.data?.repo ? `https://github.com/${github.data.repo}/commit/${commit.hash}` : null}
+          githubUrl={github.data?.repo ? `${githubWebOrigin(github.data.host ?? GITHUB_DEFAULT_HOST)}/${github.data.repo}/commit/${commit.hash}` : null}
           canPick={canPick}
           onPick={onPick}
           onOpenFile={(f) => {

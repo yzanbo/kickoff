@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { CommandError, nonInteractiveEnv, runCommand } from "../system/exec.js";
 import { Invalid } from "../http/errors.js";
+import { GITHUB_DEFAULT_HOST, isDefaultGitHubHost } from "@shared/github/host";
 import { githubEnv } from "../git/githubAccount.js";
 
 /** GraphQL の変数（文字は -f でそのまま渡し、@ で始まってもファイルとして読ませない） */
@@ -32,6 +33,8 @@ export interface GitHubApi {
 
 /** プロジェクトの連携先とアカウントで GitHub に聞くための組（GitHubService.within が作る） */
 export interface GitHubContext {
+  /** GitHub のホスト（github.com など） */
+  host: string;
   /** 「持ち主/名前」 */
   repo: string;
   owner: string;
@@ -75,10 +78,18 @@ export function githubWriteError(status: number, body: unknown, repo: string | n
   return `GitHub に断られました（HTTP ${status}）${text ? `: ${text.slice(0, 500)}` : ""}`;
 }
 
-/** gh api を動かす（okCodes の終了コードも成功として出力を返す） */
-async function runGhApi(args: string[], repo: string | null, okCodes: number[] = []): Promise<string> {
+/** gh api に渡すホストの引数（github.com なら何も足さない。純粋な関数） */
+export const ghApiHostArgs = (host: string): string[] => (isDefaultGitHubHost(host) ? [] : ["--hostname", host]);
+
+/** gh api を動かす（host = 聞く先のホスト。okCodes の終了コードも成功として出力を返す） */
+async function runGhApi(args: string[], repo: string | null, host: string, okCodes: number[] = []): Promise<string> {
   try {
-    return await runCommand("gh", ["api", ...args], { timeout: 60_000, env: { ...nonInteractiveEnv(), ...(await githubEnv()) }, okCodes, maxBuffer: 64 * 1024 * 1024 });
+    return await runCommand("gh", ["api", ...ghApiHostArgs(host), ...args], {
+      timeout: 60_000,
+      env: { ...nonInteractiveEnv(), ...(await githubEnv(host)) },
+      okCodes,
+      maxBuffer: 64 * 1024 * 1024,
+    });
   } catch (e) {
     if (e instanceof Invalid) throw e;
     throw new Invalid(ghFailureMessage(e, repo));
@@ -103,8 +114,8 @@ export function parseIncludeOutput(out: string): RestResponse {
   return { status, etag, body };
 }
 
-/** gh で GitHub に聞く口（repo は失敗の文に使う連携先） */
-export function ghApi(repo: string | null): GitHubApi {
+/** gh で GitHub に聞く口（repo は失敗の文に使う連携先。host は聞く先のホスト） */
+export function ghApi(repo: string | null, host: string = GITHUB_DEFAULT_HOST): GitHubApi {
   return {
     async graphql<T>(query: string, vars: GraphqlVars): Promise<T> {
       const args = ["graphql", "-f", `query=${query}`];
@@ -112,14 +123,14 @@ export function ghApi(repo: string | null): GitHubApi {
         if (v === null) continue;
         args.push(typeof v === "string" ? "-f" : "-F", `${k}=${v}`);
       }
-      const out = JSON.parse(await runGhApi(args, repo)) as { data?: T; errors?: { message: string }[] };
+      const out = JSON.parse(await runGhApi(args, repo, host)) as { data?: T; errors?: { message: string }[] };
       if (!out.data) throw new Invalid(ghFailureMessage(new Error(out.errors?.map((e) => e.message).join("\n") ?? "no data"), repo));
       return out.data;
     },
     async rest(path, opts = {}) {
       const args = ["-i", ...(opts.etag ? ["-H", `If-None-Match: ${opts.etag}`] : []), path];
       // 304 は gh が失敗（終了コード 1）にするので、出力から状態を読む
-      const res = parseIncludeOutput(await runGhApi(args, repo, [1]));
+      const res = parseIncludeOutput(await runGhApi(args, repo, host, [1]));
       if (res.status >= 400 || res.status === 0) throw new Invalid(ghFailureMessage(new Error(`HTTP ${res.status}`), repo));
       return res;
     },
@@ -127,7 +138,7 @@ export function ghApi(repo: string | null): GitHubApi {
       const items: unknown[] = [];
       for (let page = 1; page <= maxPages; page++) {
         const sep = path.includes("?") ? "&" : "?";
-        const out = JSON.parse(await runGhApi([`${path}${sep}per_page=100&page=${page}`], repo)) as unknown[];
+        const out = JSON.parse(await runGhApi([`${path}${sep}per_page=100&page=${page}`], repo, host)) as unknown[];
         items.push(...out);
         if (out.length < 100) return { items, truncated: false };
       }
@@ -139,7 +150,7 @@ export function ghApi(repo: string | null): GitHubApi {
       if (file) await fs.writeFile(file, JSON.stringify(body), { mode: 0o600 });
       try {
         // 断られたときも gh は応答を出して終わり値 1 を返すので、状態の行と本文から理由を読む
-        const res = parseIncludeOutput(await runGhApi(["-i", "-X", method, ...(file ? ["--input", file] : []), apiPath], repo, [1]));
+        const res = parseIncludeOutput(await runGhApi(["-i", "-X", method, ...(file ? ["--input", file] : []), apiPath], repo, host, [1]));
         if (res.status === 0) throw new Invalid(ghFailureMessage(new Error("no response"), repo));
         if (res.status >= 400) throw new Invalid(githubWriteError(res.status, res.body, repo));
         return res.body;

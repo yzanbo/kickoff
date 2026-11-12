@@ -7,7 +7,7 @@ import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { reportFailure } from "@/ui/dialogs";
 import { ErrorText } from "@/ui/ErrorText";
 import { Segmented } from "@/ui/Segmented";
-import { GitHubHtml } from "./GitHubHtml";
+import { GitHubHostContext, GitHubHtml } from "./GitHubHtml";
 import { GitHubChecksList } from "./GitHubChecksList";
 import { GitHubPullChanges } from "./GitHubPullChanges";
 import { GitHubLabels, REVIEW_DECISION_LABELS } from "./GitHubItemRow";
@@ -158,9 +158,11 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
 function DetailBody({ projectId, detail, children }: { projectId: number; detail: Detail; children: ReactNode }) {
   const actions = useGitHubBodyActions(projectId, detail);
   return (
-    <div className="github-detail-body" onClick={actions.onClick} onContextMenu={actions.onContextMenu}>
-      {children}
-      {actions.menu}
-    </div>
+    <GitHubHostContext.Provider value={actions.host}>
+      <div className="github-detail-body" onClick={actions.onClick} onContextMenu={actions.onContextMenu}>
+        {children}
+        {actions.menu}
+      </div>
+    </GitHubHostContext.Provider>
   );
 }
