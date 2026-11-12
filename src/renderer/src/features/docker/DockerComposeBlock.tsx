@@ -1,5 +1,5 @@
 import { Ellipsis, ScrollText, TriangleAlert } from "lucide-react";
-import type { DockerActionBody, DockerCompose } from "@shared/types";
+import type { DockerActionBody, DockerCompose, DockerSilentConflict } from "@shared/types";
 import { DOCKER_ACTION_BUSY_LABELS } from "@shared/types";
 import { openProjectFile } from "@/app/router";
 import { panelActions } from "@/features/panel/state/panelActions";
@@ -10,7 +10,7 @@ import { CloseButton, IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { DockerServiceRow } from "./DockerServiceRow";
-import { shareText } from "./dockerView";
+import { conflictText, shareText, stopOthersLabel } from "./dockerView";
 
 export type DockerAct = (body: DockerActionBody) => Promise<void>;
 
@@ -35,7 +35,20 @@ async function confirmed(compose: DockerCompose, action: "down" | "recreate"): P
  * compose のファイル 1 つ（見出しの行・⚠・動いている操作・最後の失敗・サービスの行）。
  * 見出しの操作はいつもボタンで出し（すべて起動・すべて停止・⋯）、同じものを見出しの右クリックにも入れる
  */
-export function DockerComposeBlock({ projectId, compose, act, onLogs }: { projectId: number; compose: DockerCompose; act: DockerAct; onLogs: (chips: string[] | null) => void }) {
+export function DockerComposeBlock({
+  projectId,
+  compose,
+  act,
+  silent,
+  onLogs,
+}: {
+  projectId: number;
+  compose: DockerCompose;
+  act: DockerAct;
+  /** 静かなぶつかり（コンテナの ID ごと） */
+  silent: Record<string, DockerSilentConflict[]>;
+  onLogs: (chips: string[] | null) => void;
+}) {
   const menu = useContextMenu();
   const busy = compose.operation !== null;
   const send = (action: DockerActionBody["action"], extra: Partial<DockerActionBody> = {}) => void act({ action, compose: compose.key, ...extra });
@@ -121,12 +134,22 @@ export function DockerComposeBlock({ projectId, compose, act, onLogs }: { projec
             </button>
             <CloseButton label="閉じる" size={14} onClick={() => send("dismiss")} />
           </div>
+          {failure.conflicts.length > 0 && (
+            <div className="docker-conflicts">
+              {failure.conflicts.map((c) => (
+                <div key={`${c.container_id}:${c.port}`}>{conflictText(c)}</div>
+              ))}
+              <button type="button" className="btn btn-sm" disabled={busy} data-tip="相手を docker stop してから、起動できなかったサービスを作り直して起動します（どちらもボリュームのデータは残ります）" onClick={() => send("stop_others_and_start")}>
+                {stopOthersLabel(failure.conflicts)}
+              </button>
+            </div>
+          )}
           <pre className="docker-stderr">{failure.message}</pre>
         </div>
       )}
       <div className="docker-services">
         {compose.services.map((s) => (
-          <DockerServiceRow key={s.name} projectId={projectId} compose={compose} service={s} busy={busy} send={send} onLogs={onLogs} />
+          <DockerServiceRow key={s.name} projectId={projectId} compose={compose} service={s} busy={busy} send={send} silent={silent} onLogs={onLogs} />
         ))}
       </div>
       {menu.menu && (

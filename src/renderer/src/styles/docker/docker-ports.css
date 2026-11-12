@@ -1,0 +1,29 @@
+/* Docker タブ（features/docker）のポート: 取り合いの相手と［相手を止めて起動］・静かなぶつかりの ⚠ と、どちらを使うかのボタン */
+
+/* ポートの取り合いの相手と［相手を止めて起動］（最後の失敗の中） */
+.docker-conflicts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  margin-top: 6px;
+  color: var(--text);
+}
+
+/* 静かなぶつかり（Docker の外のプロセスが同じポートで待っている）: ポートの ⚠ とサービスの行の下の 1 行 */
+.docker-port.is-warn {
+  color: var(--warn);
+}
+
+.docker-silent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 10px 6px 30px;
+  color: var(--warn);
+}
+
+.docker-silent-text {
+  flex: 1 1 260px;
+}

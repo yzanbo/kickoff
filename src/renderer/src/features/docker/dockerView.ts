@@ -1,5 +1,5 @@
 // Docker タブの表示の文（純粋な関数。テストは dockerView.test.ts）
-import type { DockerCompose, DockerContainer, DockerService, DockerShare } from "@shared/types";
+import type { DockerCompose, DockerContainer, DockerPortConflict, DockerService, DockerShare, DockerSilentConflict } from "@shared/types";
 import { DOCKER_MARK_LABELS } from "@shared/types";
 
 /** 作業場所の文（「本体 | main」「WT | feat-x」。Git でない本体は「本体」） */
@@ -36,6 +36,19 @@ export function servicePorts(s: DockerService): number[] {
   return [...new Set(ports)].sort((a, b) => a - b);
 }
 
+/**
+ * compose で Mac に出すはずのポートのうち、動いているコンテナが出していないもの（ポートの取り合いで起動に失敗したコンテナは、
+ * あとで起動してもポートを出さないまま動く。作り直すまで直らない）
+ */
+export function unpublishedPorts(s: Pick<DockerService, "published" | "containers">): number[] {
+  const missing = new Set<number>();
+  for (const c of s.containers.filter((x) => x.state === "running")) {
+    const host = new Set(c.ports.map((p) => p.host_port));
+    for (const p of s.published) if (!host.has(p)) missing.add(p);
+  }
+  return [...missing].sort((a, b) => a - b);
+}
+
 /** 使い捨てのまとめの文（「使い捨て 2 個（1 個動いている）」） */
 export function oneoffSummary(oneoffs: DockerContainer[]): string {
   const running = oneoffs.filter((c) => c.state === "running").length;
@@ -59,4 +72,18 @@ export const shellCommand = (containerId: string) => `docker exec -it ${containe
 /** ほかのプロジェクトのコンテナの説明（乗せると名前とポート） */
 export function othersTip(others: { name: string; ports: number[] }[]): string {
   return others.map((o) => (o.ports.length ? `${o.name}（${o.ports.map((p) => `:${p}`).join(" ")}）` : o.name)).join("\n");
+}
+
+/** ポートの取り合いの相手の 1 行（「:5432 は「本体 | main の db」が使っています」） */
+export const conflictText = (c: Pick<DockerPortConflict, "port" | "label">) => `:${c.port} は「${c.label}」が使っています`;
+
+/** ［相手を止めて起動］の文（相手が 1 つならその名前） */
+export function stopOthersLabel(conflicts: Pick<DockerPortConflict, "container_id" | "label">[]): string {
+  const targets = [...new Map(conflicts.map((c) => [c.container_id, c.label])).values()];
+  return targets.length === 1 ? `${targets[0]} を止めて起動` : `相手を止めて起動（${targets.length} 個）`;
+}
+
+/** 静かなぶつかりの文（「127.0.0.1:5432 は postgres（PID 123・Homebrew）も開いています。localhost への接続はそちらに行きます」） */
+export function silentText(c: Pick<DockerSilentConflict, "address" | "process" | "pid" | "brew_service">): string {
+  return `${c.address} は ${c.process}（PID ${c.pid}${c.brew_service ? "・Homebrew" : ""}）も開いています。localhost への接続はそちらに行きます`;
 }

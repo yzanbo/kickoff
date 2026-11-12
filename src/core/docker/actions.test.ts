@@ -63,3 +63,24 @@ test("planDockerAction: 一時停止中だけ再開、ほかの compose のコ�
   assert.deepEqual(planDockerAction({ compose: c, upFiles, action: "unpause", service: "db" }).steps[0].args, ["unpause", "c1"]);
   assert.throws(() => planDockerAction({ compose: c, upFiles, action: "stop_container", container: "zzz" }), /この compose のコンテナではありません/);
 });
+
+test("planDockerAction: 相手を止めて起動は相手を止め、ぶつかったサービスを作り直す。1 つのサービスの起動ならそこで終わり、相手がなければ断る", () => {
+  const c = compose({ services: [svc("db", { published: [5432], containers: [ctr("c1", "exited")] }), svc("adminer", { profiles: ["tools"], published: [8080] }), svc("web", { published: [3000] })] });
+  const conflict = (port: number, id: string) => ({ port, container_id: id, container_name: id, label: id });
+  const one = planDockerAction({ compose: c, upFiles, action: "stop_others_and_start", retry: { action: "start", service: "adminer", conflicts: [conflict(8080, "x1")] } });
+  assert.deepEqual(one.steps[0].args, ["stop", "x1"]);
+  assert.deepEqual(one.steps.length, 2);
+  assert.deepEqual(one.steps[1].args.slice(-7), ["--profile", "tools", "up", "-d", "--no-deps", "--force-recreate", "adminer"]);
+  const all = planDockerAction({ compose: c, upFiles, action: "stop_others_and_start", retry: { action: "start_all", service: null, conflicts: [conflict(5432, "x1"), conflict(5432, "x2")] } });
+  assert.deepEqual(all.steps[0].args, ["stop", "x1", "x2"]);
+  assert.deepEqual(all.steps[1].args.slice(-5), ["up", "-d", "--no-deps", "--force-recreate", "db"]);
+  assert.ok(all.steps.length > 2, "残りはすべて起動をやり直す");
+  assert.throws(() => planDockerAction({ compose: c, upFiles, action: "stop_others_and_start", retry: { action: "start_all", service: null, conflicts: [] } }), /止める相手がありません/);
+});
+
+test("planDockerAction: サービスを指した作り直しはそのサービスだけ --force-recreate（札付きは札を付けて）", () => {
+  const c = compose({ services: [svc("web", { published: [8080], containers: [ctr("c1")] }), svc("adminer", { profiles: ["tools"], containers: [ctr("c2")] })] });
+  assert.deepEqual(planDockerAction({ compose: c, upFiles, action: "recreate", service: "web" }).steps[0].args.slice(-5), ["up", "-d", "--no-deps", "--force-recreate", "web"]);
+  assert.deepEqual(planDockerAction({ compose: c, upFiles, action: "recreate", service: "adminer" }).steps[0].args.slice(-7), ["--profile", "tools", "up", "-d", "--no-deps", "--force-recreate", "adminer"]);
+  assert.deepEqual(planDockerAction({ compose: c, upFiles, action: "recreate" }).steps[0].args.slice(-2), ["up", "-d"]);
+});

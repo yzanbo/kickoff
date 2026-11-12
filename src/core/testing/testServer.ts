@@ -302,6 +302,13 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   // Docker タブ: 偽の docker（dockerFake.set で答えを決め、dockerFake.calls で呼ばれた引数を見る。docker が入っていない様子は dockerFake.missing）
   const dockerFake = Object.assign(fakeDocker(), { missing: false });
   const docker = new DockerService(bus, new DockerCli(() => (dockerFake.missing ? null : dockerFake.bin)));
+  // 静かなぶつかりの lsof・brew も偽物（portsFake.lsof に lsof の出力、brewServices に brew services info の JSON を入れる。止めた名前は brewStopped）
+  const portsFake = { lsof: "", brewServices: "[]", brewStopped: [] as string[] };
+  docker.ports.probe = {
+    lsof: async () => portsFake.lsof,
+    brewServices: async () => portsFake.brewServices,
+    brewStop: async (name) => void portsFake.brewStopped.push(name),
+  };
   after(() => docker.close());
   const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, docker, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
@@ -315,6 +322,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, docker, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, codexCalls: () => codexCalls };
 }
 

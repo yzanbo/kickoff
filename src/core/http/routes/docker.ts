@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
-import { DOCKER_ACTIONS, type DockerActionBody } from "@shared/types";
+import { DOCKER_ACTIONS, type DockerActionBody, type DockerBrewStopBody } from "@shared/types";
 import type { ServerDeps } from "../server.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
@@ -19,6 +19,8 @@ const actionBody = z.object({
   container: z.string().max(200).optional(),
   confirm_shared: z.boolean().optional(),
 }) satisfies z.ZodType<DockerActionBody>;
+
+const brewStopBody = z.object({ name: z.string().regex(/^[\w@.+-]{1,200}$/) }) satisfies z.ZodType<DockerBrewStopBody>;
 
 /** Docker タブ（この Mac からだけ。スマホの画面にはタブを出さない） */
 export function dockerRoutes(app: Hono, { store, docker, bus }: ServerDeps) {
@@ -70,6 +72,12 @@ export function dockerRoutes(app: Hono, { store, docker, bus }: ServerDeps) {
     const container = z.string().regex(/^[0-9a-f]{12,64}$/).parse(queryOf(c, "container"));
     const until = z.string().regex(/^\d{4}-\d\d-\d\dT[\d:.]+Z$/).parse(queryOf(c, "until"));
     return c.json({ lines: await docker.logsBefore(c.var.project, compose, container, until) });
+  });
+
+  // 静かなぶつかりの［Docker の db を使う］: 相手の Homebrew のサービスを止める（いまぶつかっている相手の名前だけ受ける）
+  app.post("/api/projects/:id/docker/brew-stop", withProject, async (c) => {
+    const { name } = brewStopBody.parse(await jsonBody(c));
+    return c.json({ message: await docker.stopBrewService(c.var.project, name) });
   });
 
   // エンジンが止まっているときの「OrbStack を開く」など（開くアプリは context の名前から決める。本文では受けない）

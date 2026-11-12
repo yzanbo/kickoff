@@ -16,6 +16,7 @@
 - 確かめを聞くのは元に戻せないものだけ: 片付け（「コンテナとネットワークを消します（使い捨てのコンテナも消します）。ボリューム（DB のデータ）は残ります」）と作り直して起動（「新しい設定でコンテナを作り直します。データ（ボリューム）は残ります」。数を増やしたサービスがあれば 1 つに戻ることも）。起動・停止・再起動は聞かない。
 - 見出しの下: 同じ組の名前の相手ごとの ⚠（`shareText`）・設定を読めなかったときの ⚠ と標準エラー・最後の失敗（何ができなかったか・標準エラーの最後の行・［ターミナルで流し直す］（下のパネルに、失敗したコマンドを決まったコマンドのタブで開く）・［×］で閉じる `dismiss`）。
 - サービスの行: 印（`MARK_GLYPHS`。色は動いている = 緑・異常に終了 = 赤・起動中 / 一時停止 = 黄）・名前・イメージ・様子の文（`serviceStatusText`。1 つだけ動いているときは出さない）・Mac に出しているポート（`servicePorts`。押すとチャット欄のブラウザで `http://localhost:<ポート>`、右クリックで外部のブラウザ・URL のコピー）・操作（印で決める主な操作 = 停止 / 再開 / 起動、動いていれば再起動、動いているコンテナがあればシェル）。右クリックに起動・停止・再起動・再開・シェルを並べる。札付きのサービスは動いていなければ薄く、「tools のときだけ」。使い捨てのコンテナは行の下に「└ 使い捨て n 個（m 個動いている）」と畳み、開くと 1 つずつ並べて動いているものに［停止］（`stop_container`）。
+- ポートの取り合い（要件 5.14・仕様書「ポートの取り合い」）: 起動・作り直しがポートで失敗したら（コアが失敗に `conflicts` を付ける）、失敗の下に相手ごとの文（`conflictText`。「:5432 は「本体 | main の db」が使っています」）と［相手を止めて起動］（`stopOthersLabel`。相手が 1 つならその名前。`stop_others_and_start`: 相手を docker stop し、起動できなかったサービスを作り直してから元の操作をやり直す。聞かない。ボリュームのデータは残る）。Docker の外のプロセスが同じポートを待っている静かなぶつかり（一覧の `silent`。コンテナの ID ごと）は、ポートのボタンに ⚠（`is-warn`）とサービスの行の下に文（`silentText`）と［Docker の外の <プロセス> を使う］（このサービスのコンテナを止める）、Homebrew のサービスなら［Docker の <サービス> を使う］（危ない確かめのあと `api.dockerBrewStop` で `brew services stop`。知らせに戻すコマンドのコピー）。動いているのに Mac に出すはずのポートを出していないサービス（`unpublishedPorts`。ポートで起動に失敗したコンテナは、あとで docker start してもポートを出さないまま動き、作り直すまで直らない）は、行の下に文と［作り直す］（サービスを指した `recreate` = そのサービスだけ `--force-recreate`）。
 - シェル: 下のパネル（`bottom:<プロジェクト>`）に、決まったコマンドのターミナルのタブ（`shellCommand`。bash があれば bash、なければ sh。タブの名前は「シェル · <サービス>」）を開く。数を増やしたサービスは 1 番目の動いているコンテナ。
 - ［ログ］: compose の見出し（すべての札）・サービスの行（そのサービスの札。作ったものだけ）・使い捨ての行（「svc · 使い捨て」の札）と、それぞれの右クリック。
 
@@ -31,8 +32,8 @@
 
 ## 表示の文（純粋な関数。テストは隣の `*.test.ts`）
 
-- `dockerView.ts`: 作業場所の文 `workplaceText`・印の文字 `MARK_GLYPHS`・様子の文 `serviceStatusText`・ポート `servicePorts`・使い捨てのまとめ `oneoffSummary`・同じ組の ⚠ の文 `shareText`・シェルのコマンド `shellCommand`・ほかのプロジェクトの説明 `othersTip`。
+- `dockerView.ts`: 作業場所の文 `workplaceText`・印の文字 `MARK_GLYPHS`・様子の文 `serviceStatusText`・ポート `servicePorts`・使い捨てのまとめ `oneoffSummary`・同じ組の ⚠ の文 `shareText`・シェルのコマンド `shellCommand`・ほかのプロジェクトの説明 `othersTip`・ポートの取り合いの文 `conflictText` / `stopOthersLabel` / `silentText`・出していないポート `unpublishedPorts`。
 - `dockerLogView.ts`: 行の並べ方 `mergeRows`・時刻 `normTs` / `fillTs` / `clockOf`・札 `chipOf` / `logChips`・エラーと警告 `logLevelOf`・JSON `prettyJson`・区切りの文 `separatorText`・AI に渡す文 `logQuote` / `rowText` / `logCaptureLabel`・前後の行 `aroundRow`。
 - `ansi.ts`: 色のまとまり `ansiSpans`・色の印を外す `stripAnsi`・見つけた所の印 `markSpans`。
 
-API の窓口は `api/docker.ts`。CSS は `styles/docker/docker-list.css`（一覧）・`docker-logs.css`（ログの画面）・`docker-ansi.css`（ログの色）。
+API の窓口は `api/docker.ts`。CSS は `styles/docker/docker-list.css`（一覧）・`docker-ports.css`（ポートの ⚠ とぶつかりの文）・`docker-logs.css`（ログの画面）・`docker-ansi.css`（ログの色）。
