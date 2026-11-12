@@ -23,7 +23,7 @@ interface Props {
   onDropTarget: (folder: string | null) => void;
   /** メモを開く（place を省けば設定の開き方） */
   onOpen: (path: string, place?: "side" | "window") => void;
-  /** メモを開かずに、このチャットの入力欄に添付する */
+  /** メモを開かずに、このチャットの入力欄に追加する（押した時点の写しの札） */
   onAttach: (path: string) => void;
   /** 行の右の「右で開く」「新規ウィンドウで開く」 */
   places: readonly OpenPlace[];
@@ -32,7 +32,7 @@ interface Props {
 
 /**
  * 入力欄の上の「メモ」の一覧の木（メモのタブと同じフォルダの並び。開いているフォルダの中だけ描き、開閉は高さをなめらかに変える `Collapse`）。
- * フォルダの行は押すと開閉し、メモの行は押すと開く。メモの行の右に「このチャットに添付」と開く場所のボタン。
+ * フォルダの行は押すと開閉し、メモの行は押すと開く。メモの行の右に「このチャットに追加」と開く場所のボタン。
  * 行をドラッグしてフォルダへ落とすと動かす（メモのタブの木と同じ `useMemoRowDrag`。落とす先のフォルダは行と中身をまとめて囲む）
  */
 export function MemoChipTree(props: Props) {
@@ -86,8 +86,8 @@ export function MemoChipTree(props: Props) {
                 type="button"
                 icon={AddToChat}
                 size={13}
-                label="このチャットに添付"
-                title="メモを開かずに、このチャットの入力欄に添付します"
+                label="このチャットに追加"
+                title="メモを開かずに、押した時点の中身をこのチャットの入力欄に札で足します"
                 className="open-place-button memo-chip-attach"
                 onClick={(ev) => {
                   ev.stopPropagation();

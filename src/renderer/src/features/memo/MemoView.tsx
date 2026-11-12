@@ -65,7 +65,7 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
  * 本文を保存してからファイルの名前を変える（onRenamed に変えたあとのパス。開いている側がパスを付け替える）。Esc で元の題名に戻す。
  * HTML のメモのページのリンクがメモのフォルダの中を指すとき、メモなら onOpenMemo（開いている側が同じ場所で開く）、フォルダ・メモでないファイルは Finder で表示する。
  * attachTo（チャットの右の欄・別ウィンドウで開いたとき、開いたチャット）があれば、見出しのボタン・本文の右クリックで、
- * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に添付する。本文で文を選ぶと、上のボタン（開いたチャット・メモのチャット。メモのタブではメモのチャットだけ）ですぐ引用を足せる。
+ * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に追加する（メモ全体は押した時点の写しの札）。本文で文を選ぶと、上のボタン（開いたチャット・メモのチャット。メモのタブではメモのチャットだけ）ですぐ引用を足せる。
  * メモのチャットの欄を閉じている間は、下にこのメモを AI に直してもらう入力欄（MemoQuickChat）を出す（隠すこともできる。MEMO_QUICK_CHAT_HIDDEN）
  */
 export function MemoView({
@@ -102,7 +102,7 @@ export function MemoView({
     () => (chatOpen ? null : { target: chipsHost, queueTarget: queueHost, onQueued: setQueued, reveal: () => setChatOpen(true) }),
     [chatOpen, chipsHost, queueHost, setChatOpen],
   );
-  // 足す先のチャット（開いたチャット・メモのチャット）。本文の右クリック・本文で選んだときの上のボタン・見出しの添付のボタンから
+  // 足す先のチャット（開いたチャット・メモのチャット）。本文の右クリック・本文で選んだときの上のボタン・見出しの「…に追加」のボタンから
   const file = `${dir}/${path}`;
   const targets = memoChatTargets({ projectId, file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
   const editMenu = useMemoEditMenu(editor, targets, file, { projectId, body: () => doc.text() ?? "" });
@@ -243,7 +243,7 @@ export function MemoView({
           ]}
         />
         {targets.main && doc.initial !== null && !unreadable && (
-          <IconButton icon={AddToChat} label={`${targets.main.name}に添付`} title="このメモを、開いたチャットの入力欄に添付します（送ると AI がメモを読み、頼めば続きも書けます）" onClick={() => targets.main?.add("", null)} />
+          <IconButton icon={AddToChat} label={`${targets.main.name}に追加`} title="このメモの押した時点の中身を、開いたチャットの入力欄に札で足します（送ると AI が写しを読みます。元のメモを直してほしいときはそう頼んでください）" onClick={() => targets.main?.add("", null)} />
         )}
         {doc.initial !== null && !unreadable && (
           <MemoChatToggle open={chatOpen} quickHidden={quickHidden} onOpenChange={setChatOpen} onQuickHiddenChange={setQuickHidden} />

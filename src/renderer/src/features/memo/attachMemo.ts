@@ -1,4 +1,4 @@
-// メモをメインのチャットの入力欄に添付する（右の欄・別ウィンドウのメモ・入力欄の上のメモの一覧から）。
+// メモを開いたチャットの入力欄に追加する（押した時点の写しの札）（右の欄・別ウィンドウのメモ・入力欄の上のメモの一覧から）。
 // 別ウィンドウの中からは、メインのウィンドウのそのチャットに知らせる（addToChat）
 import { addToChat } from "@/features/chat/pane/addToChat";
 import { reportFailure } from "@/ui/dialogs";
@@ -9,5 +9,5 @@ export function attachMemoToChat(chatId: number, projectId: number, path: string
   if (text) return addToChat(chatId, text);
   void api.memoSnapshot(projectId, path)
     .then((attachment) => addToChat(chatId, "", [attachment]))
-    .catch(reportFailure("メモを添付できませんでした"));
+    .catch(reportFailure("メモをチャットに追加できませんでした"));
 }
