@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isReadOnlyStatement, splitStatements, statementAt } from "./sqlStatements";
+import { dangerReason, isReadOnlyStatement, splitStatements, statementAt, writeConfirmation } from "./sqlStatements";
 
 const texts = (sql: string, engine: Parameters<typeof splitStatements>[1] = "postgres") => splitStatements(sql, engine).map((s) => s.text);
 
@@ -93,4 +93,39 @@ test("isReadOnlyStatement: 書く文・分からない文", () => {
     assert.equal(isReadOnlyStatement(sql, "postgres"), false, sql);
   for (const sql of ["pragma foreign_keys = off", "pragma journal_mode(wal)", "pragma optimize", "attach database 'x' as y"]) assert.equal(isReadOnlyStatement(sql, "sqlite"), false, sql);
   assert.equal(isReadOnlyStatement("pragma table_info(t)", "postgres"), false);
+});
+
+test("dangerReason: DROP・TRUNCATE・ALTER・WHERE のない UPDATE / DELETE・判定できない文は理由、読む文・ふつうの書く文は null", () => {
+  const pg = (sql: string) => dangerReason(sql, "postgres");
+  assert.equal(pg("select * from users"), null);
+  assert.equal(pg("insert into t values (1)"), null);
+  assert.equal(pg("update t set a = 1 where id = 2"), null);
+  assert.equal(pg("delete from t where id = 2"), null);
+  assert.equal(pg("create table t (id int)"), null);
+  assert.equal(pg("set search_path = app"), null);
+  assert.match(pg("DROP TABLE users") ?? "", /DROP/);
+  assert.match(pg("truncate users") ?? "", /TRUNCATE/);
+  assert.match(pg("alter table users add column x int") ?? "", /ALTER/);
+  assert.match(pg("update t set a = 1") ?? "", /WHERE のない UPDATE/);
+  assert.match(pg("delete from t") ?? "", /WHERE のない DELETE/);
+  // 括弧の中（副問い合わせ）の WHERE は数えない
+  assert.match(pg("update t set a = (select b from u where u.id = 1)") ?? "", /WHERE のない UPDATE/);
+  // WITH の中の書く文・コメントの中の WHERE
+  assert.match(pg("with x as (select 1) delete from t -- where id = 1") ?? "", /WHERE のない DELETE/);
+  assert.equal(pg("with x as (select 1) delete from t where id in (select * from x)"), null);
+  assert.match(pg("grant select on t to bob") ?? "", /判定できない文（GRANT）/);
+  assert.match(pg("vacuum") ?? "", /判定できない文（VACUUM）/);
+  assert.equal(dangerReason("replace into t values (1)", "mysql"), null);
+});
+
+test("writeConfirmation: 読む文だけなら確かめず、dangerous は危険な文があるとき・all は書く文があれば・env_name は書く文があれば名前を打たせる", () => {
+  const read = ["select 1", "show tables"];
+  const plain = ["select 1", "insert into t values (1)"];
+  const danger = ["insert into t values (1)", "drop table t"];
+  assert.equal(writeConfirmation("all", read, "mysql").kind, "none");
+  assert.equal(writeConfirmation("env_name", read, "mysql").kind, "none");
+  assert.equal(writeConfirmation("dangerous", plain, "mysql").kind, "none");
+  assert.equal(writeConfirmation("all", plain, "mysql").kind, "confirm");
+  assert.equal(writeConfirmation("env_name", plain, "mysql").kind, "env_name");
+  assert.deepEqual(writeConfirmation("dangerous", danger, "mysql"), { kind: "confirm", dangers: [{ index: 2, reason: "DROP（消す）" }] });
 });

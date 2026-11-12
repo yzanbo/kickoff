@@ -322,7 +322,17 @@ ALTER TABLE chats ADD COLUMN github_number INTEGER CHECK (github_number > 0);
 ALTER TABLE chats ADD COLUMN github_kind TEXT CHECK (github_kind <> '');
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19];
+/**
+ * v20: DB の接続の書き込む前の確かめ（write_check: dangerous / all / env_name。要件 5.12 の本番の守り）。
+ * いまある接続は環境の既定にそろえる（ステージング = all・本番 = env_name・ほか = dangerous）
+ */
+const SCHEMA_V20 = `
+ALTER TABLE db_connections ADD COLUMN write_check TEXT NOT NULL DEFAULT 'dangerous';
+UPDATE db_connections SET write_check = 'all' WHERE environment = 'staging';
+UPDATE db_connections SET write_check = 'env_name' WHERE environment = 'production';
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

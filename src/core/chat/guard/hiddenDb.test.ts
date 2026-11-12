@@ -19,6 +19,7 @@ const conn = (patch: Partial<DbConnection>): DbConnection => ({
   file_path: null,
   ssl: null,
   read_only: true,
+  write_check: "env_name",
   ai_access: "none",
   ai_username: null,
   has_password: true,

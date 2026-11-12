@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { SqlStatement } from "@shared/database/sqlStatements";
+import { writeConfirmation, type SqlStatement } from "@shared/database/sqlStatements";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { alertDialog, confirmDialog, promptDialog } from "@/ui/dialogs";
 
@@ -14,6 +14,19 @@ export const clipSql = (text: string) => (text.length > PREVIEW_CHARS ? `${text.
 
 /** 流す前の確かめに見せる SQL（文ごとに番号を付け、長ければ頭だけ） */
 const previewOf = (statements: SqlStatement[]) => clipSql(statements.map((s, i) => `${statements.length > 1 ? `${i + 1}. ` : ""}${s.text}`).join("\n\n"));
+
+/**
+ * 環境の名前を打たせて確かめる（書き込む前の確かめが「環境の名前を打たないと流せない」の接続。打ったものが違えば流さない）。
+ * テーブルの変更の保存でも使う
+ */
+export async function confirmByEnvName(connection: DbConnection, title: string, message: string, confirmLabel: string): Promise<boolean> {
+  const env = DB_ENVIRONMENT_LABELS[connection.environment];
+  const typed = await promptDialog({ title, message, label: `確かめのため、環境の名前「${env}」を入れてください`, placeholder: env, confirmLabel });
+  if (typed === null) return false;
+  if (typed === env) return true;
+  await alertDialog("環境の名前が違います", `「${env}」と入れてください。流していません。`);
+  return false;
+}
 
 /**
  * SQL のタブの「書き込む」（読み取り専用の接続で、このタブだけ読み取り専用を外す）。
@@ -68,15 +81,20 @@ export function useSqlWrite(connection: DbConnection, pending: boolean) {
     setExpired(false);
   };
 
-  /** 流す前の確かめ（書き込む間だけ。読み取り専用のときは聞かない） */
+  /**
+   * 流す前の確かめ。読み取り専用を外している間（書き込む）はいつも SQL を見せて確かめ、読み取り専用のままなら聞かない（書く文はコアが断る）。
+   * 読み取り専用でない接続は、接続の書き込む前の確かめ（write_check）のとおり: 危険な文だけ / 書き込みのたび / 環境の名前を打たせる（writeConfirmation）
+   */
   const confirmRun = async (statements: SqlStatement[]): Promise<boolean> => {
-    if (!on) return true;
-    return confirmDialog({
-      title: `「${connection.name}」（${env}）に流しますか？`,
-      message: previewOf(statements),
-      confirmLabel: "流す",
-      danger: true,
-    });
+    const title = `「${connection.name}」（${env}）に流しますか？`;
+    if (on) return confirmDialog({ title, message: previewOf(statements), confirmLabel: "流す", danger: true });
+    if (connection.read_only) return true;
+    const need = writeConfirmation(connection.write_check, statements.map((s) => s.text), connection.engine);
+    if (need.kind === "none") return true;
+    const dangers = need.dangers.map((d) => `・${statements.length > 1 ? `${d.index}. ` : ""}${d.reason}`).join("\n");
+    const message = `${dangers ? `危険な文があります:\n${dangers}\n\n` : ""}${previewOf(statements)}`;
+    if (need.kind === "env_name") return confirmByEnvName(connection, title, message, "流す");
+    return confirmDialog({ title, message, confirmLabel: "流す", danger: need.dangers.length > 0 });
   };
 
   return { on, start, revert, touch, confirmRun };

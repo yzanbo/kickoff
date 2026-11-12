@@ -18,12 +18,25 @@ export const DB_AI_ACCESSES = ["none", "ask", "allow"] as const;
 export type DbAiAccess = (typeof DB_AI_ACCESSES)[number];
 export const DB_AI_ACCESS_LABELS: Record<DbAiAccess, string> = { none: "見せない", ask: "承認して見せる", allow: "自由に見せる" };
 
+/**
+ * 書き込む前の確かめ（読み取り専用でない接続で、利用者が流す SQL・保存する変更に。要件 5.12 の本番の守り）:
+ * dangerous = 危険な文（DROP・TRUNCATE・ALTER・WHERE のない UPDATE / DELETE・判定できない文）だけ確かめる /
+ * all = 書き込みのたびに SQL を見せて確かめる / env_name = 環境の名前を打たないと流せない
+ */
+export const DB_WRITE_CHECKS = ["dangerous", "all", "env_name"] as const;
+export type DbWriteCheck = (typeof DB_WRITE_CHECKS)[number];
+export const DB_WRITE_CHECK_LABELS: Record<DbWriteCheck, string> = {
+  dangerous: "危険な文だけ確かめる",
+  all: "書き込みのたびに SQL を見せて確かめる",
+  env_name: "環境の名前を打たないと流せない",
+};
+
 /** 環境ごとの既定（作るときに選んだ環境から埋める。あとで接続ごとに変えられる） */
-export const DB_ENVIRONMENT_DEFAULTS: Record<DbEnvironment, { read_only: boolean; ai_access: DbAiAccess }> = {
-  local: { read_only: false, ai_access: "allow" },
-  dev: { read_only: false, ai_access: "allow" },
-  staging: { read_only: false, ai_access: "ask" },
-  production: { read_only: true, ai_access: "none" },
+export const DB_ENVIRONMENT_DEFAULTS: Record<DbEnvironment, { read_only: boolean; write_check: DbWriteCheck; ai_access: DbAiAccess }> = {
+  local: { read_only: false, write_check: "dangerous", ai_access: "allow" },
+  dev: { read_only: false, write_check: "dangerous", ai_access: "allow" },
+  staging: { read_only: false, write_check: "all", ai_access: "ask" },
+  production: { read_only: true, write_check: "env_name", ai_access: "none" },
 };
 
 /** SSL（言葉で選ぶ。off = 使わない / require = 暗号化するが証明書は確かめない / verify = 証明書とホスト名も確かめる） */
@@ -131,6 +144,8 @@ export interface DbConnection {
   file_path: string | null;
   ssl: DbSsl | null;
   read_only: boolean;
+  /** 書き込む前の確かめ（読み取り専用でないときに効く） */
+  write_check: DbWriteCheck;
   ai_access: DbAiAccess;
   /** プロジェクトの中の並び（小さいほど上） */
   position: number;

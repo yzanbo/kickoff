@@ -57,6 +57,7 @@
 | DB 接続（プロジェクトごとに登録する接続。ほかのプロジェクトから写せる） | `DbConnection` / 表 `db_connections`（v13）。パスワードは `secrets` の `db_connection:<id>:password`、AI 用のユーザーのパスワードは `:ai_password`（v14。段階 2 で `:ssh_password`）。値はメインプロセスが渡す `safeStorage` で暗号化したもの（暗号化した印を付ける。`safeStorage` のない単体のコア・テストだけ暗号化せずに置く。暗号化を入れた版の最初の起動で、暗号化せずに置いていた値を一度だけ置き換える）。キーチェーンで拒否されて開けないときに利用者が入れたパスワードは、コアのメモリにだけ持つ。接続を消すと、表のトリガー `db_connections_drop_secrets` がその接続の秘密の値も消す（プロジェクトを消したときの連鎖の削除でも効く） | なし |
 | DB の種類 | `DbEngine`（`sqlite` / `postgres` / `mysql`。MariaDB は `mysql`） | なし |
 | 環境（DB 接続の環境。色・読み取り専用・書き込みの前の確かめ・AI の既定をまとめて決める） | `DbEnvironment`（`local` / `dev` / `staging` / `production`） | なし |
+| 書き込む前の確かめ（DB 接続ごと。危険な文だけ / 書き込みのたび / 環境の名前を打つ） | `DbWriteCheck`（`dangerous` / `all` / `env_name`。既定は環境から: ローカル・開発 = `dangerous`、ステージング = `all`、本番 = `env_name`）・接続の `write_check`（v20）。危険な文の判定は `@shared/database/sqlStatements.ts` の `dangerReason` / `writeConfirmation` | なし |
 | AI に見せるか（DB 接続ごと。見せない / 承認して見せる / 自由に見せる） | `DbAiAccess`（`none` / `ask` / `allow`。既定は環境から: ローカル・開発 = `allow`、ステージング = `ask`、本番 = `none`）・AI のツール `kickoff_db`（`db_connections` / `db_objects` / `db_describe` / `db_query`。中身は `core/databases/aiTools.ts` の `DbAiTools`、MCP は `providers/claude/dbTools.ts`。すべて `allowedTools` に入れ、ツールの中で `ai_access` を見て、見せない接続は名前でも断り、承認して見せる接続の `db_query` は承認カードで聞く（権限モードによらず効く））・AI 用のユーザー `ai_username`（v14。あれば AI の SQL だけこのユーザーでつなぐ）・見せない接続の守り（AI がそのホスト・URL・SQLite のファイルを使う Bash と、ファイルのツールで SQLite のファイルを開くのを PreToolUse で断る。`chat/guard/hiddenDb.ts`） | なし |
 | ER 図（DB クライアントのタブ。接続と場所（DB・スキーマ）ごとに 1 つ） | タブ `DbErTab`（`lib/dbClientTabs.ts`。まわりを見る中心 `focus`・段の数 `depth`・描くテーブル `names`）・中身 `DbErSchema` / `DbErTable`（`POST …/db-connections/:cid/er`）・関係 `ErRelation`（外部キーと、制約のない関係の推測 `inferred`。多さ `ErCardinality`）・動かした位置 `DbErPositions` / 表 `db_er_layouts`（v15）・店 `store.dbErLayouts` | なし |
 | テーブルの絞り込み（テーブルのタブのデータの上の帯。条件か WHERE の式）・行の詳細・書き出し | 絞り込み `DbRowFilter`（条件 `DbFilter`・比べ方 `DbFilterOp` / `DB_FILTER_OPS`・WHERE の式 `where`。タブの `DbTableTab.filter`。SQL は `@shared/database/dbFilter.ts` の `filterSql`）・行の詳細 `TableRowDetail`・書き出しの形 `DbExportFormat`（CSV / TSV / JSON） | なし |
@@ -291,6 +292,10 @@ CREATE TABLE db_prep_runs (
   ran_at TEXT NOT NULL DEFAULT (NOW)
 ) STRICT;
 -- v18: CREATE INDEX idx_db_prep_runs_connection ON db_prep_runs(connection_id, id);
+
+-- v20: 書き込む前の確かめ（DbWriteCheck: dangerous = 危険な文だけ / all = 書き込みのたび / env_name = 環境の名前を打つ。既定は環境から。
+--      v20 より前の接続は ステージング = all・本番 = env_name・ほか = dangerous に入れた）
+ALTER TABLE db_connections ADD COLUMN write_check TEXT NOT NULL DEFAULT 'dangerous';
 ```
 
 ### GitHub 連携
@@ -308,7 +313,7 @@ github_kind TEXT CHECK (github_kind <> ''),        -- issue / pr（PR を作る�
 
 ### DB クライアントの段階 2・段階 3
 
-段階 1（登録・接続・表の中身・SQL・本番の守り）は v13 の `db_connections`、段階 2 の AI の読み取り（AI 用のユーザー）と SQL の履歴は v14、ER 図の位置は v15、手順メモは v16、SSH トンネルは v17、準備のコマンドは v18 で作った（段階 2 はこれで終わり）。段階 3（セルの編集・行の追加と削除・CSV の取り込み）はスキーマを変えずに作った（変更は画面のメモリにだけ持ち、保存は SQL の履歴に残す。詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
+段階 1（登録・接続・表の中身・SQL・本番の守り）は v13 の `db_connections`、段階 2 の AI の読み取り（AI 用のユーザー）と SQL の履歴は v14、ER 図の位置は v15、手順メモは v16、SSH トンネルは v17、準備のコマンドは v18 で作った（段階 2 はこれで終わり）。接続ごとの書き込む前の確かめは v20。段階 3（セルの編集・行の追加と削除・CSV の取り込み）はスキーマを変えずに作った（変更は画面のメモリにだけ持ち、保存は SQL の履歴に残す。詳しい仕様はメモの「DB クライアント 仕様書」。決めることはすべて決定・2026-11-11）。DB の中身・スキーマは持たない（いつも接続先に聞く）。
 
 - 準備のコマンドは列を分けず、1 つの JSON の列 `prep` にした（パスワードの出どころは「`password` のコマンドがあればそれ、なければ保存したパスワード」で決まるので、`password_source` は持たない）。確かめた覚えは中身の写し `prep_confirmed`（中身・問い合わせ先を変えれば写しと合わなくなり、確かめ直す）。
 - 置き場所: コアは `core/databases/`（`service.ts`・ワーカー `worker/`（種類ごとのドライバ `sqlite.ts` / `postgres.ts` / `mysql.ts`）。段階 2 の SSH トンネル `worker/tunnel.ts`・ssh の引数と出力の読み方 `sshArgs.ts`・サーバーの鍵 `sshHostKey.ts`・取り込みの `import/`）、文の分割と判定（`@shared/database/sqlStatements.ts`）・URL の読み取り（`dbUrl.ts`）・段階 2 の制約のない関係の推測は純粋な関数として `src/shared` に置いてテストする。API のテストは `server.databases.test.ts`。PostgreSQL・MySQL・MariaDB を使うテストは `worker/drivers.dbtest.ts` を Docker で立てて別のコマンド `npm run test:db` で流す（`npm test` は外につながないまま）。

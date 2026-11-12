@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   DB_AI_ACCESSES,
   DB_ENVIRONMENT_DEFAULTS,
+  DB_WRITE_CHECKS,
   DB_CONNECTION_NAME_MAX,
   DB_ENGINES,
   DB_ENVIRONMENTS,
@@ -84,6 +85,7 @@ const connectionShape = {
   file_path: text(2000),
   ssl,
   read_only: z.boolean(),
+  write_check: z.enum(DB_WRITE_CHECKS).optional(),
   ai_access: z.enum(DB_AI_ACCESSES),
   password: z.string().max(10_000).nullable().optional(),
   ai_username: text(500).optional(),

@@ -1,12 +1,12 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import { normalizePrep, prepConfirmKey } from "@shared/database/dbPrep";
-import type { DbConnection, DbConnectionPatch, DbPrep, DbSsh, DbSsl, NewDbConnectionBody } from "@shared/types";
+import { DB_ENVIRONMENT_DEFAULTS, type DbConnection, type DbConnectionPatch, type DbPrep, type DbSsh, type DbSsl, type NewDbConnectionBody } from "@shared/types";
 import { NOW } from "./schema.js";
 import { bit, updateRow, type Notify } from "./common.js";
 import type { DbSecretKey } from "./settings.js";
 
 /** 変えられる列（パスワードは秘密の値なので別） */
-const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "ai_access", "ai_username", "memo_path", "ssh", "prep", "check_on", "check_note"] as const;
+const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "write_check", "ai_access", "ai_username", "memo_path", "ssh", "prep", "check_on", "check_note"] as const;
 
 type Row = Omit<DbConnection, "ssl" | "ssh" | "prep" | "prep_confirmed" | "read_only" | "has_password" | "has_ai_password" | "has_ssh_password"> & {
   ssl: string | null;
@@ -76,6 +76,7 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     file_path: body.file_path,
     ssl: body.ssl === undefined ? undefined : body.ssl === null ? null : JSON.stringify(body.ssl),
     read_only: bit(body.read_only),
+    write_check: body.write_check,
     ai_access: body.ai_access,
     ai_username: body.ai_username,
     memo_path: body.memo_path,
@@ -96,10 +97,11 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     },
     create(projectId: number, body: NewDbConnectionBody): DbConnection {
       const { next } = db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM db_connections WHERE project_id = ?").get(projectId) as { next: number };
-      const row = toRow(body);
+      // 書き込む前の確かめを省いたら環境の既定
+      const row = toRow({ ...body, write_check: body.write_check ?? DB_ENVIRONMENT_DEFAULTS[body.environment].write_check });
       const { lastInsertRowid } = db
         .prepare(
-          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, ai_access, ai_username, memo_path, ssh, prep, check_on, check_note, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, write_check, ai_access, ai_username, memo_path, ssh, prep, check_on, check_note, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .run(projectId, ...COLUMNS.map((c) => row[c] ?? null), next);
       const id = Number(lastInsertRowid);

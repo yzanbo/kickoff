@@ -9,7 +9,7 @@ import { confirmDialog } from "@/ui/dialogs";
 import { useDbClient } from "./dbClientContext";
 import { unsavedKey, unsavedTables } from "./tabFlags";
 import { buildEdits, editCounts, NO_EDITS, type TableEdits } from "./tableEdits";
-import { clipSql, useSqlWrite } from "./useSqlWrite";
+import { clipSql, confirmByEnvName, useSqlWrite } from "./useSqlWrite";
 
 /**
  * テーブルのタブのまだ保存していない変更（段階 3）。タブを開いている間だけ持つ（データと構造を切り替えても残す。閉じるときは捨てるか聞く）。
@@ -60,12 +60,13 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
       const sql = editStatements(connection.engine, tab.path, tab.name, list)
         .map((s) => `${s.preview};`)
         .join("\n");
-      const ok = await confirmDialog({
-        title: `「${connection.name}」（${DB_ENVIRONMENT_LABELS[connection.environment]}）の ${tab.name} に ${n.toLocaleString()} 件の変更を保存しますか？`,
-        message: `${clipSql(sql)}\n\n1 つのトランザクションで流し、1 つでも失敗したらすべて取り消します。`,
-        confirmLabel: "保存",
-        danger: write.on || connection.environment === "production",
-      });
+      const title = `「${connection.name}」（${DB_ENVIRONMENT_LABELS[connection.environment]}）の ${tab.name} に ${n.toLocaleString()} 件の変更を保存しますか？`;
+      const message = `${clipSql(sql)}\n\n1 つのトランザクションで流し、1 つでも失敗したらすべて取り消します。`;
+      // 保存はいつも SQL を見せて確かめる。読み取り専用でなく「環境の名前を打たないと流せない」の接続は、名前も打たせる
+      const ok =
+        !write.on && connection.write_check === "env_name"
+          ? await confirmByEnvName(connection, title, message, "保存")
+          : await confirmDialog({ title, message, confirmLabel: "保存", danger: write.on || connection.environment === "production" });
       if (!ok) return false;
       setSaving(true);
       await api.saveDbEdits(client.projectId, connection.id, { path: tab.path, table: tab.name, edits: list, write: write.on }, worktree);
