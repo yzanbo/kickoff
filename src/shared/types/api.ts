@@ -474,4 +474,6 @@ export interface DbSqlBody {
   session: string;
   sql: string;
   write: boolean;
+  /** 「さらに読む」: 頭のこの行数を飛ばして続きを読む（読み取りの文だけ。流し直すので履歴には残さない。省けば 0） */
+  offset?: number;
 }

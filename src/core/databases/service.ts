@@ -6,7 +6,7 @@ import path from "node:path";
 import { editStatements } from "@shared/database/dbEdit";
 import { isReadOnlyStatement, splitStatements } from "@shared/database/sqlStatements";
 import { hasConnectCommands, normalizePrep, type DbPrepVars } from "@shared/database/dbPrep";
-import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbEngine, DbFilter, DbFullRow, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
+import type { DbConnection, DbConnectionTestBody, DbConnectionTestResult, DbEditsBody, DbEditsResult, DbEngine, DbFilter, DbFullRow, DbSqlBody, DbObjectPath, DbPrep, DbRowFilter, DbSort, Project } from "@shared/types";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOWN_HOST, DB_TABLE_PAGE_ROWS } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
@@ -314,8 +314,11 @@ export class DatabaseService {
    * SQL のタブで 1 つの文を流す（タブごとの接続。読み取り専用の接続で書く文は、「書き込む」の間でなければ流す前に断る）。
    * 時間の上限は付けず、止める（cancel）まで待つ
    */
-  async sql(connection: DbConnection, project: Project, workdir: Workdir, body: { session: string; sql: string; write: boolean }) {
+  async sql(connection: DbConnection, project: Project, workdir: Workdir, body: DbSqlBody) {
     const write = body.write;
+    const offset = body.offset ?? 0;
+    // 「さらに読む」は同じ文を流し直すので、書く文では断る（もう一度書き込んでしまう）
+    if (offset > 0 && !isReadOnlyStatement(body.sql, connection.engine)) throw new Invalid("続きを読めるのは読み取りの文だけです");
     // DB によっては 2 つ目からの文を黙って捨てるので、1 回に 1 つだけにする（画面が文に分けて 1 つずつ送る）
     if (splitStatements(body.sql, connection.engine).length > 1) throw new Invalid("1 回に流せるのは 1 つの文だけです");
     if (connection.read_only && !write && !isReadOnlyStatement(body.sql, connection.engine)) {
@@ -332,12 +335,12 @@ export class DatabaseService {
       this.opts.store.dbQueryHistory.add({ connection_id: connection.id, sql: body.sql, ran_by: "user", chat_id: null, ...entry });
     try {
       const result = await this.run(() =>
-        this.opts.client.request("query", { session, target, sql: body.sql, max_rows: DB_SQL_MAX_ROWS }, { signal: controller.signal, engine: target.engine }),
+        this.opts.client.request("query", { session, target, sql: body.sql, max_rows: DB_SQL_MAX_ROWS, skip: offset }, { signal: controller.signal, engine: target.engine }),
       );
-      record({ duration_ms: result.duration_ms, row_count: result.columns.length > 0 ? result.rows.length : result.affected });
+      if (offset === 0) record({ duration_ms: result.duration_ms, row_count: result.columns.length > 0 ? result.rows.length : result.affected });
       return result;
     } catch (e) {
-      record({ duration_ms: Date.now() - started, error: controller.signal.aborted ? "止めました" : errorMessage(e) });
+      if (offset === 0) record({ duration_ms: Date.now() - started, error: controller.signal.aborted ? "止めました" : errorMessage(e) });
       throw e;
     } finally {
       if (this.running.get(session) === controller) this.running.delete(session);

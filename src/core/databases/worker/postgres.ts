@@ -301,19 +301,29 @@ class PostgresDriver implements DbDriver {
   }
 
   /** 1 つの文を流す（カーソルで max 行 ＋ 1 行だけ読み、続きは読まない） */
-  async query(sql: string, maxRows: number): Promise<DbQueryResult> {
+  async query(sql: string, maxRows: number, skip = 0): Promise<DbQueryResult> {
     const started = performance.now();
     const cursor = this.client.query(new Cursor(sql, [], { rowMode: "array" }));
-    let read: { rows: unknown[][]; result: pg.QueryResult };
-    try {
-      read = await new Promise((resolve, reject) => {
+    const readRows = (n: number) =>
+      new Promise<{ rows: unknown[][]; result: pg.QueryResult }>((resolve, reject) => {
         this.inflight.add(reject);
-        cursor.read(maxRows + 1, (err, rows, result) => {
+        cursor.read(n, (err, rows, result) => {
           this.inflight.delete(reject);
           if (err) reject(err);
           else resolve({ rows: rows as unknown[][], result });
         });
       });
+    let read: { rows: unknown[][]; result: pg.QueryResult };
+    try {
+      // 「さらに読む」: 頭の skip 行は STREAM_BATCH ずつ読んで捨てる（メモリに持たない）
+      let left = skip;
+      let ended = false;
+      while (left > 0 && !ended) {
+        const batch = await readRows(Math.min(left, STREAM_BATCH));
+        left -= batch.rows.length;
+        ended = batch.rows.length === 0;
+      }
+      read = await readRows(maxRows + 1);
     } catch (e) {
       await this.closeCursor(cursor);
       throw pgError(e);

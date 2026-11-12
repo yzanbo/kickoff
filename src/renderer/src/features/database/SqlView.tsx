@@ -1,9 +1,9 @@
 import type { SQLNamespace } from "@codemirror/lang-sql";
 import { Play, PlayCircle, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { splitStatements, statementAt, type SqlStatement } from "@shared/database/sqlStatements";
+import { isReadOnlyStatement, splitStatements, statementAt, type SqlStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/errors";
-import { DB_ENVIRONMENT_LABELS, DB_SQL_MAX_ROWS, type DbConnection, type DbQueryResult } from "@shared/types";
+import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -12,22 +12,13 @@ import type { DbSqlTab } from "@/lib/dbClientTabs";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { DB_SQL_EDITOR_HEIGHT, dbSqlDraft } from "@/lib/storageKeys";
 import { alertDialog } from "@/ui/dialogs";
-import { ErrorText } from "@/ui/ErrorText";
-import { DataGrid } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
 import { DbWriteBand } from "./DbWriteBand";
 import { SqlEditor, type SqlEditorHandle } from "./SqlEditor";
+import { RunResult, type StatementRun } from "./SqlRunResult";
 import { SqlHistoryButton } from "./SqlHistory";
 import { setSqlPending, useSqlPending } from "./sqlSessions";
 import { useSqlWrite } from "./useSqlWrite";
-
-/** 1 つの文を流した結果（失敗したら error。止めたら stopped） */
-interface StatementRun {
-  sql: string;
-  result?: DbQueryResult;
-  error?: string;
-  stopped?: boolean;
-}
 
 /** 書きかけの SQL を覚えるまでの間（打つたびに書かない） */
 const DRAFT_DELAY = 400;
@@ -106,7 +97,7 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
     setShown(0);
     for (const s of statements) {
       if (stopRequested.current) break;
-      const run: StatementRun = { sql: s.text };
+      const run: StatementRun = { sql: s.text, write: writing };
       try {
         run.result = await api.runDbSql(client.projectId, connection.id, { session: tab.key, sql: s.text, write: writing }, worktree);
         setSqlPending(tab.key, run.result.in_transaction);
@@ -129,6 +120,25 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
     }
     setRunning(false);
     write.touch();
+  };
+
+  /** 「さらに読む」: 同じ文を流し直し、読んだ行の数だけ飛ばして続きの DB_SQL_MAX_ROWS 行を足す（読み取りの文だけ） */
+  const [loadingMore, setLoadingMore] = useState(false);
+  const more = async (index: number) => {
+    const run = runs[index];
+    if (!run?.result || running || loadingMore) return;
+    write.touch();
+    setLoadingMore(true);
+    let next: StatementRun;
+    try {
+      const page = await api.runDbSql(client.projectId, connection.id, { session: tab.key, sql: run.sql, write: run.write, offset: run.result.rows.length }, worktree);
+      setSqlPending(tab.key, page.in_transaction);
+      next = { ...run, moreError: undefined, result: { ...page, rows: [...run.result.rows, ...page.rows], duration_ms: run.result.duration_ms + page.duration_ms } };
+    } catch (e) {
+      next = { ...run, moreError: errorMessage(e) };
+    }
+    setRuns((all) => all.map((r) => (r === run ? next : r)));
+    setLoadingMore(false);
   };
 
   const stop = () => {
@@ -237,35 +247,14 @@ export function SqlView({ tab, connection }: { tab: DbSqlTab; connection: DbConn
         )}
         {running && runs.length === 0 && <p className="db-sql-note small muted">流しています…</p>}
         {!running && runs.length === 0 && <p className="db-sql-note small muted">結果はここに出ます。</p>}
-        {current && <RunResult run={current} />}
-      </div>
-    </div>
-  );
-}
-
-function RunResult({ run }: { run: StatementRun }) {
-  if (run.stopped) return <p className="db-sql-note small muted">止めました。</p>;
-  if (run.error) {
-    return (
-      <div className="db-sql-error">
-        <ErrorText message={run.error} />
-        <pre className="db-sql-failed-statement">{run.sql}</pre>
-      </div>
-    );
-  }
-  const r = run.result!;
-  const hasRows = r.columns.length > 0;
-  return (
-    <div className="db-sql-result">
-      {hasRows ? (
-        <DataGrid columns={r.columns} rows={r.rows} />
-      ) : (
-        <p className="db-sql-note small">{r.affected != null ? `${r.affected.toLocaleString()} 行を変えました。` : "流しました。"}</p>
-      )}
-      <div className="db-table-foot small muted">
-        {hasRows && <span>{r.rows.length.toLocaleString()} 行</span>}
-        {r.truncated && <span className="db-sql-truncated">先頭の {DB_SQL_MAX_ROWS.toLocaleString()} 行だけを出しています</span>}
-        <span>{(Math.round(r.duration_ms * 10) / 10).toLocaleString()} ms</span>
+        {current && (
+          <RunResult
+            run={current}
+            canMore={!running && isReadOnlyStatement(current.sql, connection.engine)}
+            loadingMore={loadingMore}
+            onMore={() => void more(shown)}
+          />
+        )}
       </div>
     </div>
   );

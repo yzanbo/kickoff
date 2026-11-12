@@ -186,7 +186,7 @@ export function createWorkerHandler(emit: EmitRun = () => {}) {
     rows: (p, id) => use(id, p.session, p.target, (d) => d.rows(p.path, p.name, p.sort, p.offset, p.limit, p.filter, p.full ?? false)),
     count: (p, id) => use(id, p.session, p.target, async (d) => ({ count: await d.count(p.path, p.name, p.filter) })),
     outline: (p, id) => use(id, p.session, p.target, (d) => d.outline(p.path)),
-    query: (p, id) => use(id, p.session, p.target, (d) => d.query(p.sql, p.max_rows)),
+    query: (p, id) => use(id, p.session, p.target, (d) => d.query(p.sql, p.max_rows, p.skip ?? 0)),
     export: (p, id) => use(id, p.session, p.target, (d) => exportQuery(d, p.sql, p.file, p.head_rows)),
     apply: (p, id) => use(id, p.session, p.target, (d) => applyStatements(d, p.statements)),
     commit: ({ session }) =>
