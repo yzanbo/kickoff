@@ -4,9 +4,8 @@ import { fork } from "node:child_process";
 import { errorMessage } from "@shared/errors";
 import type { DbEngine } from "@shared/types";
 import type { WorkerCancel, WorkerEvent, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "./protocol.js";
-import { createWorkerHandler, IDLE_SWEEP_MS } from "./worker/handler.js";
 
-/** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス） */
+/** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス `inProcessWorker.ts`） */
 export interface WorkerChannel {
   send(message: WorkerRequest | WorkerCancel): void;
   /** 答えと、ワーカーからの知らせ（流したコマンドの結果） */
@@ -50,26 +49,6 @@ export function forkWorker(entry: WorkerEntry): WorkerChannel {
       } catch {
         child.kill();
       }
-    },
-  };
-}
-
-/** 同じプロセスで動かす（テスト用。本物のワーカーと同じ中身を使う） */
-export function inProcessWorker(): WorkerChannel {
-  let listener: (res: WorkerResponse | WorkerEvent) => void = () => {};
-  const handler = createWorkerHandler((event) => listener(event));
-  const sweep = setInterval(() => void handler.closeIdle(), IDLE_SWEEP_MS);
-  sweep.unref();
-  return {
-    send: (message) => {
-      if ("cancel" in message) void handler.cancel(message.cancel);
-      else void handler.handle(message).then((res) => listener(res));
-    },
-    onMessage: (fn) => (listener = fn),
-    onExit: () => {},
-    kill: () => {
-      clearInterval(sweep);
-      void handler.closeAll();
     },
   };
 }

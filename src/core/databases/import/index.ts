@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { parse as parseYaml } from "yaml";
 import type { DbConnection, DbImportCandidate } from "@shared/types";
 import { expandHome } from "../../system/paths.js";
 import { parseEnvFile } from "./envFile.js";
@@ -88,6 +87,8 @@ export async function scanProjectDbs(root: string, allowFile: (absolute: string)
 
   const hosts: ComposeHosts = new Map();
   const compose: FoundDb[] = [];
+  // yaml は取り込みを開いたときだけ読む（メインプロセスの起動で読み込まない）
+  const { parse: parseYaml } = await import("yaml");
   for (const name of COMPOSE_FILES) {
     const text = await readText(path.join(root, name));
     if (text === null) continue;
