@@ -1,4 +1,5 @@
 import path from "node:path";
+import { isLocalHost } from "@shared/database/dbServer";
 import { parseDbUrl, type ParsedDbUrl } from "@shared/database/dbUrl";
 import { DB_CONNECTION_NAME_MAX, type DbEngine, type DbEnvironment, type DbImportCandidate } from "@shared/types";
 import { expandHome, realPathLoose } from "../../system/paths.js";
@@ -6,14 +7,6 @@ import { expandHome, realPathLoose } from "../../system/paths.js";
 /** 見つけた接続の案（コアの中だけ。パスワードも持つ。画面へは DbImportCandidate にして has_password だけ） */
 export type FoundDb = Omit<DbImportCandidate, "has_password" | "existing_id"> & { password: string | null };
 
-const LOCAL_HOSTS = new Set(["localhost", "0.0.0.0", "::1", "host.docker.internal"]);
-
-/** この Mac の中のホストか（SQLite・localhost・127.x） */
-export function isLocalHost(host: string | null): boolean {
-  if (!host) return true;
-  const h = host.toLowerCase();
-  return LOCAL_HOSTS.has(h) || h.startsWith("127.");
-}
 
 const word = (name: string, words: string) => new RegExp(`(^|[._-])(${words})([._-]|$)`).test(name.toLowerCase());
 

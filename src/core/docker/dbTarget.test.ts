@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { DbConnection } from "@shared/types";
-import { DOCKER_DB_NO_PORT, dockerDbCandidate, dockerDbKey, parseDockerDbKey, sameServerConnection } from "./dbTarget.js";
+import { DOCKER_DB_NO_PORT, type DbConnection } from "@shared/types";
+import { dockerDbCandidate, dockerDbKey, parseDockerDbKey, sameServerConnection } from "./dbTarget.js";
 
 const doc = (db: Record<string, unknown>) => ({ name: "app", services: { db, redis: { image: "redis:7" } } });
 const pg = { image: "postgres:16", environment: { POSTGRES_USER: "app", POSTGRES_PASSWORD: "secret", POSTGRES_DB: "app_dev" }, ports: [{ target: 5432, published: "5433" }] };
@@ -55,9 +55,9 @@ const conn = (id: number, patch: Partial<DbConnection>): DbConnection =>
 
 test("sameServerConnection: 種類・この Mac の中のホスト・ポートが同じ接続（DB の名前まで同じものを先に）", () => {
   const list = [conn(1, { database: "other" }), conn(2, { host: "127.0.0.1" }), conn(3, { host: "db.example.com" }), conn(4, { engine: "mysql", port: 3306 })];
-  assert.equal(sameServerConnection(list, { engine: "postgres", port: 5432, database: "app" })?.id, 2);
-  assert.equal(sameServerConnection(list, { engine: "postgres", port: 5432, database: "zzz" })?.id, 1);
-  assert.equal(sameServerConnection(list, { engine: "postgres", port: 5433, database: "app" }), undefined);
+  assert.equal(sameServerConnection(list, { engine: "postgres", host: "localhost", port: 5432, database: "app" })?.id, 2);
+  assert.equal(sameServerConnection(list, { engine: "postgres", host: "localhost", port: 5432, database: "zzz" })?.id, 1);
+  assert.equal(sameServerConnection(list, { engine: "postgres", host: "localhost", port: 5433, database: "app" }), undefined);
   // ポートを書いていなければ既定のポート
-  assert.equal(sameServerConnection([conn(5, { engine: "mysql", port: null })], { engine: "mysql", port: 3306, database: "app" })?.id, 5);
+  assert.equal(sameServerConnection([conn(5, { engine: "mysql", port: null })], { engine: "mysql", host: "localhost", port: 3306, database: "app" })?.id, 5);
 });

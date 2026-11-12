@@ -1,12 +1,10 @@
 // Docker タブの「DB で開く」（段階 2）: compose の DB のサービスから、DB クライアントの登録済みの接続か、取り込みの案を決める（純粋な関数）。
 // 案の作り方は DB クライアントの「プロジェクトからの取り込み」と同じ（candidatesFromCompose）で、compose に聞いた設定（変数を埋めたもの）から読む
 import path from "node:path";
-import { DB_DEFAULT_PORTS, type DbConnection, type DockerCompose } from "@shared/types";
+import { sameLocalServer } from "@shared/database/dbServer";
+import { DOCKER_DB_NO_PORT, type DbConnection, type DockerCompose } from "@shared/types";
 import { candidatesFromCompose } from "../databases/import/fromCompose.js";
-import { candidateName, isLocalHost, type FoundDb } from "../databases/import/found.js";
-
-/** ports: がなく Mac にポートを出していない DB のサービス（「DB で開く」を押せない理由） */
-export const DOCKER_DB_NO_PORT = "Mac にポートを出していないので、DB クライアントからはつなげません";
+import { candidateName, type FoundDb } from "../databases/import/found.js";
 
 /** Docker タブから作った取り込みの案の印（サービス名に「:」は使えないので、最初の「:」までがサービス） */
 export const dockerDbKey = (composeKey: string, service: string) => `docker:${service}:${composeKey}`;
@@ -51,9 +49,7 @@ export function dockerDbCandidate(input: {
 }
 
 /** 同じ DB の登録済みの接続（種類・この Mac の中のホスト・ポートが同じもの。DB の名前まで同じものを先に） */
-export function sameServerConnection(connections: readonly DbConnection[], found: Pick<FoundDb, "engine" | "port" | "database">): DbConnection | undefined {
-  if (found.engine === "sqlite") return undefined;
-  const portOf = (c: Pick<DbConnection, "engine" | "port">) => c.port ?? (c.engine === "sqlite" ? null : DB_DEFAULT_PORTS[c.engine]);
-  const same = connections.filter((c) => c.engine === found.engine && isLocalHost(c.host) && portOf(c) === found.port);
+export function sameServerConnection(connections: readonly DbConnection[], found: Pick<FoundDb, "engine" | "host" | "port" | "database">): DbConnection | undefined {
+  const same = connections.filter((c) => sameLocalServer(c, found));
   return same.find((c) => (c.database ?? null) === (found.database ?? null)) ?? same[0];
 }
