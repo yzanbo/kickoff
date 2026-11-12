@@ -124,19 +124,7 @@ export function DockerServiceRow({
           </button>
           {oneoffsOpen &&
             s.oneoffs.map((c) => (
-              <div key={c.id} className="docker-oneoff small">
-                <span className={cx("docker-mark", c.state === "running" ? "mark-running" : "mark-stopped")}>{c.state === "running" ? "●" : "○"}</span>
-                <span className="docker-oneoff-name">{c.name}</span>
-                <span className="muted">{c.status}</span>
-                {c.state === "running" && (
-                  <button type="button" className="btn btn-sm" disabled={busy} onClick={() => send("stop_container", { container: c.id })}>
-                    停止
-                  </button>
-                )}
-                <button type="button" className="btn btn-sm" onClick={() => onLogs([`${s.name} · 使い捨て`])}>
-                  ログ
-                </button>
-              </div>
+              <OneoffRow key={c.id} c={c} busy={busy} onStop={() => send("stop_container", { container: c.id })} onLogs={() => onLogs([`${s.name} · 使い捨て`])} />
             ))}
         </div>
       )}
@@ -184,6 +172,35 @@ async function chooseDockerSide(projectId: number, service: string, port: number
   } catch (e) {
     reportFailure(`${brew} を止められませんでした`)(e);
   }
+}
+
+/** 使い捨てのコンテナの行（［停止］［ログ］。同じものを右クリックにも） */
+function OneoffRow({ c, busy, onStop, onLogs }: { c: DockerContainer; busy: boolean; onStop: () => void; onLogs: () => void }) {
+  const menu = useContextMenu();
+  const running = c.state === "running";
+  return (
+    <div className="docker-oneoff small" onContextMenu={(e) => menu.open(e)}>
+      <span className={cx("docker-mark", running ? "mark-running" : "mark-stopped")}>{running ? "●" : "○"}</span>
+      <span className="docker-oneoff-name">{c.name}</span>
+      <span className="muted">{c.status}</span>
+      {running && (
+        <button type="button" className="btn btn-sm" disabled={busy} onClick={onStop}>
+          停止
+        </button>
+      )}
+      <button type="button" className="btn btn-sm" onClick={onLogs}>
+        ログ
+      </button>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label={`${c.name} の操作`} onClose={menu.close}>
+          <MenuItem disabled={busy || !running} onSelect={onStop}>
+            停止
+          </MenuItem>
+          <MenuItem onSelect={onLogs}>ログ</MenuItem>
+        </PopupMenu>
+      )}
+    </div>
+  );
 }
 
 /** Mac に出しているポート（押すとパネルのブラウザ、右クリックで外部のブラウザ・URL のコピー）。静かなぶつかりがあれば ⚠ */

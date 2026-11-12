@@ -86,7 +86,7 @@ test("parseConfigHashes: サービス名と指紋", () => {
   ]);
 });
 
-test("serviceMark: 一時停止 → 起動中 → 異常 → 動いている → 未起動 → 止まっている", () => {
+test("serviceMark: 一時停止 → 起動中 → unhealthy → 動いている → 異常に終了 → 未起動 → 止まっている", () => {
   const c = (state: "running" | "exited" | "created" | "paused" | "restarting", exitCode: number | null = null, health: string | null = null) => ({ state, exitCode, health });
   assert.equal(serviceMark([]), "none");
   assert.equal(serviceMark([c("running"), c("paused")]), "paused");
@@ -95,6 +95,9 @@ test("serviceMark: 一時停止 → 起動中 → 異常 → 動いている →
   assert.equal(serviceMark([c("exited", 1)]), "failed");
   assert.equal(serviceMark([c("running", null, "unhealthy")]), "failed");
   assert.equal(serviceMark([c("running"), c("exited", 0)]), "running");
+  // 数を増やしたサービスで 1 つだけ異常に終わっても、ほかが動いていれば ●（数は画面が添える）
+  assert.equal(serviceMark([c("running"), c("exited", 1), c("running")]), "running");
+  assert.equal(serviceMark([c("exited", 0), c("exited", 1)]), "failed");
   assert.equal(serviceMark([c("created")]), "created");
   assert.equal(serviceMark([c("exited", 0)]), "stopped");
 });

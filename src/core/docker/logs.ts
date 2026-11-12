@@ -46,12 +46,16 @@ export class DockerLogSession {
     if (this.closed) return;
     this.send({ type: "sources", sources });
     const now = new Date().toISOString();
+    // 作り直されたか: 前に同じ札（サービス・番号）の別のコンテナを見ていた（Docker から見ると別のコンテナになる）
+    const seenLabels = new Map([...this.known.values()].map((k) => [k.label, k.container] as const));
     for (const s of sources) {
       const prev = this.known.get(s.container);
       this.known.set(s.container, s);
       if (s.running && !this.followers.has(s.container)) {
-        // 止まっていたものが起動し直した（同じコンテナ）なら区切りを入れて続きから。新しいコンテナ（作り直し・数を増やした）は最新の 500 行から
-        if (prev && !prev.running) this.send({ type: "started", container: s.container, at: now });
+        // 止まっていたものが起動し直した（同じコンテナ）・作り直された（同じ札の新しいコンテナ）なら区切りを入れる。
+        // 起動し直したものは続きから、新しいコンテナ（作り直し・数を増やした）は最新の 500 行から
+        const recreated = !prev && seenLabels.has(s.label) && seenLabels.get(s.label) !== s.container;
+        if ((prev && !prev.running) || recreated) this.send({ type: "started", container: s.container, at: now });
         this.follow(s.container);
       } else if (!s.running && prev?.running) {
         this.flush();

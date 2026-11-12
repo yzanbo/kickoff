@@ -73,7 +73,8 @@ export function logChips(compose: Pick<DockerCompose, "services">, sources: Dock
 /** エラー・警告（行の文字の決まりで見分ける目安。標準出力か標準エラーかは使わない） */
 export type LogLevel = "error" | "warn";
 
-const ERROR_WORDS = /\b(?:ERROR|FATAL|CRITICAL|PANIC|EMERG|ALERT)\b|\bpanic:|Traceback \(most recent call last\)|\b[A-Z]\w*(?:Exception|Error)\b/;
+// Exception は単独（raise Exception）と付いた名前（NullPointerException）の両方、Error は付いた名前（TypeError）と行の頭の書き方（Error: …）、panic は Go の panic: と goroutine panic
+const ERROR_WORDS = /\b(?:ERROR|FATAL|CRITICAL|PANIC|EMERG|ALERT)\b|\bpanic\b|Traceback \(most recent call last\)|\b(?:[A-Z]\w*)?Exception\b|\b[A-Z]\w*Error\b|\bError:/;
 const ERROR_MARKS = /\[(?:error|crit|alert|emerg|fatal)\]|\blevel=["']?(?:error|fatal|critical|panic)\b|"(?:level|severity|lvl)"\s*:\s*"(?:error|fatal|critical|panic)"|^\s*E\d{4} /im;
 const WARN_WORDS = /\b(?:WARN|WARNING)\b/;
 const WARN_MARKS = /\[warn(?:ing)?\]|\blevel=["']?warn(?:ing)?\b|"(?:level|severity|lvl)"\s*:\s*"warn(?:ing)?"|^\s*W\d{4} /im;

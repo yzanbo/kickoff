@@ -68,10 +68,10 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
   { key: "memos", label: "メモ", tabs: [{ tab: "memos", label: "メモ", icon: StickyNote }] },
   // DB クライアント（この Mac のアプリの中だけ。ブラウザ・スマホからは出さない）
   ...(window.kickoff ? [{ key: "db", label: "DB", tabs: [{ tab: "db" as const, label: "DB", icon: Database, tip: "DB クライアント" }] }] : []),
+  // Docker（プロジェクトの compose のサービス。仕様のとおり「DB」の隣。この Mac のアプリの中だけ。DB・GitHub と同じく LAN からは使わせない）
+  ...(window.kickoff ? [{ key: "docker", label: "Docker", tabs: [{ tab: "docker" as const, label: "Docker", icon: Container }] }] : []),
   // GitHub（連携先のリポジトリの issue・PR。この Mac のアプリの中だけ。DB と同じく LAN からは使わせない）
   ...(window.kickoff ? [{ key: "github", label: "GitHub", tabs: [{ tab: "github" as const, label: "GitHub", icon: GitPullRequest }] }] : []),
-  // Docker（プロジェクトの compose のサービス。この Mac のアプリの中だけ。DB・GitHub と同じく LAN からは使わせない）
-  ...(window.kickoff ? [{ key: "docker", label: "Docker", tabs: [{ tab: "docker" as const, label: "Docker", icon: Container }] }] : []),
 ];
 
 /**

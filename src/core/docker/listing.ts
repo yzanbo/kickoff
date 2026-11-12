@@ -1,6 +1,7 @@
 // Docker タブの一覧の組み立て（純粋な関数）: コンテナを作業場所と組に振り分け、見つけた compose のファイルと合わせて見出しを作る。
 // どれをこのプロジェクトのものとするかは、コンテナの working_dir がいちばん深く入る作業場所（仕様書の 5 章）
 import path from "node:path";
+import { workplaceText } from "@shared/docker/workplace";
 import type { DockerCompose, DockerContainer, DockerLogSource, DockerOtherContainer, DockerService, DockerShare } from "@shared/types";
 import { dbKindOf, deepestWorkplace, parsePorts, parseStatus, serviceMark, type ComposeConfig, type RawContainer } from "./parse.js";
 
@@ -186,6 +187,25 @@ export function buildDockerList(workplaces: readonly Workplace[], containers: re
 export function sharedVictims(composeKey: string, projectName: string | null, containers: readonly RawContainer[], owner: ReadonlyMap<string, string>): RawContainer[] {
   if (!projectName) return [];
   return containers.filter((c) => c.project === projectName && owner.get(c.id) !== composeKey);
+}
+
+/**
+ * 同じ組になる起動の確かめの文。相手は札（「本体 | main」「WT | feat-x」）、同じ作業場所のほかの compose ならそのファイル、
+ * このプロジェクトの compose のものでなければ「ほかのプロジェクト（フォルダ名）」、compose のフォルダが分からなければコンテナの名前
+ */
+export function sharedMessage(
+  name: string,
+  victims: readonly Pick<RawContainer, "id" | "name" | "dir">[],
+  self: Pick<DockerCompose, "worktree_path">,
+  composeOf: (containerId: string) => Pick<DockerCompose, "worktree_path" | "branch" | "file" | "project_name"> | undefined,
+): string {
+  const labelOf = (v: Pick<RawContainer, "id" | "name" | "dir">) => {
+    const c = composeOf(v.id);
+    if (c) return c.worktree_path === self.worktree_path ? `同じ作業場所の ${c.file ?? c.project_name ?? "compose"}` : workplaceText(c.worktree_path, c.branch);
+    return v.dir ? `ほかのプロジェクト（${path.basename(v.dir)}）` : v.name;
+  };
+  const where = [...new Set(victims.map(labelOf))].join("・");
+  return `${where}${where.endsWith("）") ? "" : " "}の組と同じ名前（${name}）です。起動すると、そちらのコンテナが作り直されます`;
 }
 
 /** ログの画面のコンテナ（数を増やしたサービスは「app#2」、使い捨ては「app · 使い捨て」。作っていないサービスは入れない） */

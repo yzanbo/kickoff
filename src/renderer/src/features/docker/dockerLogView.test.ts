@@ -33,10 +33,10 @@ test("chipOf と logChips: 数を増やしたものは 1 つの札、まだ作�
 });
 
 test("logLevelOf: エラーと警告の決まり（目安）", () => {
-  for (const t of ["ERROR: relation does not exist", "2026 FATAL boom", "panic: nil map", "Traceback (most recent call last):", "TypeError: x is undefined", '{"level":"error","msg":"x"}', "level=error msg=x", "[error] 12#12: open()", "\u001b[31mERROR\u001b[0m x"])
+  for (const t of ["ERROR: relation does not exist", "2026 FATAL boom", "panic: nil map", "Traceback (most recent call last):", "TypeError: x is undefined", '{"level":"error","msg":"x"}', "level=error msg=x", "[error] 12#12: open()", "\u001b[31mERROR\u001b[0m x", "Exception: boom", 'raise Exception("x")', "java.lang.NullPointerException", "Error: connect ECONNREFUSED 127.0.0.1:5432", "goroutine 1 panic"])
     assert.equal(logLevelOf(t), "error", t);
   for (const t of ["WARNING: no index", "level=warn x", '{"level":"warn"}', "[warn] conflicting server name"]) assert.equal(logLevelOf(t), "warn", t);
-  for (const t of ["0 errors, 0 warnings", "ready to accept connections", "GET /error 200"]) assert.equal(logLevelOf(t), null, t);
+  for (const t of ["0 errors, 0 warnings", "ready to accept connections", "GET /error 200", "error handling enabled"]) assert.equal(logLevelOf(t), null, t);
 });
 
 test("prettyJson: オブジェクトと配列の行だけ整える", () => {
