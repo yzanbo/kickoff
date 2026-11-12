@@ -93,6 +93,11 @@
   align-self: flex-start;
 }
 
+/* 「チェック 14」などを折り返さない（狭い欄で 2 行になって高さがそろわなかった） */
+.github-pr-views button {
+  white-space: nowrap;
+}
+
 .github-detail-loading {
   padding: 16px;
 }

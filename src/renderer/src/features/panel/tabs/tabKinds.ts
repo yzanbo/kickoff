@@ -1,4 +1,4 @@
-import { Bot, Database, FileDiff, FileText, Globe, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen, SquareTerminal, StickyNote, type LucideIcon } from "lucide-react";
+import { Bot, Database, FileDiff, FileText, GitPullRequest, Globe, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen, SquareTerminal, StickyNote, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
@@ -121,6 +121,9 @@ export const databaseTab = ({ chatId, projectId, worktree }: Omit<TabOf<"databas
   projectId,
   ...(worktree ? { worktree } : {}),
 });
+
+/** 右の欄に開く GitHub のタブ（その欄に 1 つ） */
+export const githubTab = ({ chatId, projectId }: Omit<TabOf<"github">, "key" | "kind">): TabOf<"github"> => ({ key: "github", kind: "github", chatId, projectId });
 
 /** 子チャットのタブのキー（同じ子チャットは、その欄に 1 つのタブ） */
 export const childTabKey = (childId: number) => `child:${childId}`;
@@ -336,6 +339,16 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
       route: { kind: "database", chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) },
       title: `DB — ${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}`,
     }),
+  },
+  github: {
+    shows: "file",
+    icon: GitPullRequest,
+    label: () => "GitHub",
+    hint: () => "GitHub（このプロジェクトの連携先の issue・PR）",
+    projectOf: (t) => t.projectId,
+    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+    chatIdOf: (t) => t.chatId,
+    cluster: () => OTHER_CLUSTER,
   },
   child: {
     shows: "subagent",

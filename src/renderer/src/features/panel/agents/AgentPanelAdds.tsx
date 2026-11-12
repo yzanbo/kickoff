@@ -1,4 +1,4 @@
-import { Bot, ChevronDown, ChevronRight, Database, FileDiff, MessageSquarePlus, MessagesSquare, StickyNote, type LucideIcon } from "lucide-react";
+import { Bot, ChevronDown, ChevronRight, Database, FileDiff, GitPullRequest, MessageSquarePlus, MessagesSquare, StickyNote, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { openChildChat } from "@/features/chat/children/openChild";
@@ -132,6 +132,12 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
             onOpen={() => panel.openDatabase({ chatId: chat.id, projectId: chat.project_id, ...(worktree ? { worktree } : {}) })}
           />
         </SubmenuItem>
+      )}
+      {/* GitHub もこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける。プロジェクトの「GitHub」タブと同じ） */}
+      {window.kickoff && (
+        <MenuItem title="プロジェクトの「GitHub」タブと同じ画面（issue・PR の一覧と中身）を開く" onSelect={() => panel.openGitHub({ chatId: chat.id, projectId: chat.project_id })}>
+          <GitPullRequest size={14} /> GitHub
+        </MenuItem>
       )}
     </>
   );
