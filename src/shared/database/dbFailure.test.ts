@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { appendDbMemoFix, dbFailureKind, dbFixPrompt, dbMemoFixEntry, dbMemoTemplate, suggestDbMemoName } from "./dbFailure";
+import { appendDbMemoFix, dbFailureDocument, dbFailureKind, dbFixText, dbMemoFixEntry, dbMemoTemplate, suggestDbMemoName } from "./dbFailure";
 
 test("dbFailureKind: ドライバの失敗の文から種類を見分ける", () => {
   const cases: [string, string][] = [
@@ -29,16 +29,18 @@ test("手順メモ: 名前の案はつなぎ方（環境とホスト）、ひな
   for (const head of ["## つなぐ前にやること", "## つながらないときの直し方", "## 関係する場所", "## 変えた履歴", "パスワードそのものは書かない", "- 2026-11-11 作った"]) assert.ok(memo.includes(head), head);
 });
 
-test("dbFixPrompt: 失敗の文・種類・設定（パスワードなし）・手順メモの場所を入れる", () => {
+test("dbFailureDocument・dbFixText: 失敗の文・種類・設定（パスワードなし）・手順メモの場所を入れる", () => {
   const base = { name: "本番", engine: "postgres", environment: "production", host: "db.example.com", port: 5432, database: "shop", username: "app", file_path: null, ssl: { mode: "require", ca_path: null }, read_only: true } as const;
-  const text = dbFixPrompt({ ...base, memo_path: "DB/本番.md" }, "connect ETIMEDOUT 10.0.0.5:5432");
+  const text = dbFailureDocument({ ...base, memo_path: "DB/本番.md" }, "connect ETIMEDOUT 10.0.0.5:5432");
   assert.match(text, /ETIMEDOUT/);
   assert.match(text, /見分けた種類: 時間切れ・届かない/);
   assert.match(text, /- ホスト: db\.example\.com/);
   assert.match(text, /- SSL: 暗号化する/);
   assert.match(text, /「DB\/本番\.md」/);
   assert.doesNotMatch(text, /SQLite のファイル/);
-  assert.match(dbFixPrompt({ ...base, memo_path: null }, "x"), /まだ手順メモがありません/);
+  assert.match(dbFailureDocument({ ...base, memo_path: null }, "x"), /まだ手順メモがありません/);
+  assert.match(text, /^# DB の接続「本番」につながらない様子/);
+  assert.match(dbFixText(base), /^DB の接続「本番」につながりません。/);
 });
 
 test("dbMemoFixEntry: 日付・失敗の種類と文の頭（1 行・80 文字まで）・直し方", () => {

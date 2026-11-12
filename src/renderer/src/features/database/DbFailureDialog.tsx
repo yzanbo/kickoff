@@ -1,6 +1,6 @@
-import { NotebookPen, Play, RotateCcw, Sparkles, StickyNote } from "lucide-react";
+import { NotebookPen, Play, RotateCcw, StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
-import { appendDbMemoFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureKind, dbFixPrompt, dbMemoFixEntry } from "@shared/database/dbFailure";
+import { appendDbMemoFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureDocument, dbFailureKind, dbFixText, dbMemoFixEntry } from "@shared/database/dbFailure";
 import { localToday } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
@@ -9,11 +9,12 @@ import { useAsync } from "@/hooks/useAsync";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { formatDayTime, relativeTime } from "@/lib/time";
 import { dbConnectionsStore } from "@/stores/dbConnections";
-import { confirmDialog, promptDialog } from "@/ui/dialogs";
+import { promptDialog } from "@/ui/dialogs";
 import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
 import { Markdown } from "@/ui/markdown/Markdown";
-import { startDbChat } from "./dbChat";
+import type { HandOffItem } from "@/features/chat/handoff/handOff";
+import { HandOffButton } from "@/features/chat/handoff/HandOffMenu";
 
 /** 失敗の文から見分けた種類と、よくある原因（接続のダイアログの「つながるか試す」と、つながらないときの案内で共通） */
 export function DbFailureHelp({ error }: { error: string }) {
@@ -30,16 +31,14 @@ export function DbFailureHelp({ error }: { error: string }) {
   );
 }
 
-/** つながらない接続を、新しいチャットで AI に直してもらう（失敗の文・接続の設定（パスワードなし）・手順メモの場所を送る）。作ったら開く */
-async function askAiToFix(projectId: number, c: DbConnection, error: string): Promise<boolean> {
-  const ok = await confirmDialog({
-    title: "AI に直してもらいますか？",
-    message: `新しいチャットを作り、失敗の文と接続の設定（パスワードは入れません）${c.memo_path ? "・手順メモの場所" : ""}を送ります。AI は、ふつうのチャットと同じく承認を通してコマンド（AWS の CLI など）を流せます。直ったら手順メモに書き足すよう頼みます。`,
-    confirmLabel: "チャットを作って送る",
-  });
-  if (!ok) return false;
-  await startDbChat(projectId, dbFixPrompt(c, error), `DB「${c.name}」につながらない`);
-  return true;
+/** つながらない様子を渡すもの（一言と、押した時点の失敗の文・接続の設定（パスワードなし）・手順メモの場所の札。作業場所は聞かずに本体で） */
+function failureItem(projectId: number, c: DbConnection, error: string): HandOffItem {
+  return {
+    projectId,
+    what: `「${c.name}」につながらない様子（失敗の文・接続の設定・手順メモの場所）`,
+    text: dbFixText(c),
+    capture: () => api.capture({ name: "db-failure.md", mime: "text/markdown", text: dbFailureDocument(c, error), source: { type: "db_failure", label: c.name, url: null } }),
+  };
 }
 
 /** 手順メモの「つながらないときの直し方」に 1 行足す（直し方を聞いて、いまの中身に足して保存。開いたあとでほかで変わっていれば 409）。足したら true */
@@ -59,7 +58,7 @@ async function appendFixToMemo(projectId: number, path: string, error: string): 
 
 /**
  * つながらないときの案内（木の接続の失敗の行の「直し方を見る」から）: 失敗の文・見分けた種類とよくある原因・最後につながった日時・
- * 手順メモの中身（なければ作る。あれば「直し方を追記…」で、直ったときの直し方を 1 行足す）・「AI に直してもらう」・「準備を流す…」（準備のコマンドがあれば）・「つなぎ直す」
+ * 手順メモの中身（なければ作る。あれば「直し方を追記…」で、直ったときの直し方を 1 行足す）・「AI に渡す ▾」（AI に見せない接続では出さない）・「準備を流す…」（準備のコマンドがあれば）・「つなぎ直す」
  */
 export function DbFailureDialog({
   projectId,
@@ -85,8 +84,6 @@ export function DbFailureDialog({
   // つながった時刻はつなぐたびには知らせない（一覧を取り直させない）ので、開いたときに一覧を読み直して「最後につながった」を新しくする
   useEffect(() => dbConnectionsStore.invalidate(projectId), [projectId]);
   const memo = useAsync(() => (c.memo_path ? api.memo(projectId, c.memo_path) : Promise.resolve(null)), [projectId, c.memo_path]);
-  const [asking, setAsking] = useState(false);
-  const [askError, setAskError] = useState<string>();
   const then = (run: () => void) => () => {
     dialog.close();
     run();
@@ -100,18 +97,6 @@ export function DbFailureDialog({
       if (await appendFixToMemo(projectId, c.memo_path, error)) memo.reload();
     } catch (e) {
       setMemoError(errorMessage(e));
-    }
-  };
-
-  const ask = async () => {
-    setAsking(true);
-    setAskError(undefined);
-    try {
-      if (await askAiToFix(projectId, c, error)) dialog.close();
-    } catch (e) {
-      setAskError(errorMessage(e));
-    } finally {
-      setAsking(false);
     }
   };
 
@@ -162,11 +147,8 @@ export function DbFailureDialog({
             </div>
           )}
         </section>
-        <ErrorText message={askError} />
         <DialogActions className="db-failure-actions">
-          <button type="button" className="btn" disabled={asking} onClick={() => void ask()}>
-            <Sparkles size={14} aria-hidden /> {asking ? "チャットを作っています…" : "AI に直してもらう"}
-          </button>
+          {c.ai_access !== "none" && <HandOffButton item={failureItem(projectId, c, error)} small={false} onPick={() => dialog.close()} />}
           {c.prep && c.prep.prepare.length > 0 && (
             <button type="button" className="btn" onClick={then(onPrep)}>
               <Play size={14} aria-hidden /> 準備を流す…
