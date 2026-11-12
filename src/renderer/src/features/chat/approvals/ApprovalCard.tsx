@@ -9,6 +9,7 @@ import { waitingSubagentKeys } from "@shared/chat/subagentState";
 import { useSubagentsView } from "@/features/chat/subagents/subagentsContext";
 import { agentHueStyle } from "@/features/chat/subagents/agentHues";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
+import { DB_QUERY_TOOL } from "@/features/database/DbQueryToolDetail";
 
 /** ツール実行の承認依頼、AI からの質問（AskUserQuestion）、または通信の切断で何度再開しても続かなかったときの再開の確認 */
 export function ApprovalCard({ approval }: { approval: Approval }) {
@@ -80,7 +81,7 @@ function PermissionCard({ approval }: { approval: Approval }) {
   const [message, setMessage] = useState("");
   const description = typeof approval.input.description === "string" ? approval.input.description : approval.description;
   // チャットの AI の DB のツール（kickoff_db）の SQL（接続の名前は見出しにある）
-  const dbSql = approval.tool_name === "mcp__kickoff_db__db_query" && typeof approval.input.sql === "string" ? approval.input.sql : null;
+  const dbSql = approval.tool_name === DB_QUERY_TOOL && typeof approval.input.sql === "string" ? approval.input.sql : null;
 
   return (
     <div className="approval-card">
