@@ -67,6 +67,8 @@ test("Docker: すべて起動は作ってあるものを start（/ で）、作�
   s.dockerFake.clearCalls();
   const res = await s.call("POST", `/api/projects/${s.project.id}/docker/actions`, { action: "start_all", compose: c.key });
   assert.equal(res.status, 202);
+  // 始めたあとの一覧を返す（画面がそのまま出す）
+  assert.equal((res.body as DockerList).composes[0].key, c.key);
   await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
   await until(() => !s.docker["operations"].size);
   const calls = s.dockerFake.calls().filter((x) => x.args[0] === "compose" && !x.args.includes("config"));

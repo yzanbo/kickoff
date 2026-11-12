@@ -6,6 +6,7 @@ import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { localOnly } from "../thisMac.js";
 import { Invalid } from "../errors.js";
+import { findOrb } from "../../docker/cli.js";
 import { starterOf } from "../../docker/parse.js";
 import { runCommand } from "../../system/exec.js";
 
@@ -32,11 +33,13 @@ export function dockerRoutes(app: Hono, { store, docker }: ServerDeps) {
   // 見ています（画面が 20 秒ごとに送る。docker events を立て、今の一覧を返す）
   app.post("/api/projects/:id/docker/watch", withProject, async (c) => c.json(await docker.watch(c.var.project)));
 
-  // 操作（待たずに始める。様子は SSE の docker_changed）
+  // 操作（待たずに始める。様子は SSE の docker_changed。cancel・dismiss は 204）
   app.post("/api/projects/:id/docker/actions", withProject, async (c) => {
     const body = actionBody.parse(await jsonBody(c));
     await docker.act(c.var.project, body);
-    return c.body(null, body.action === "cancel" || body.action === "dismiss" ? 204 : 202);
+    if (body.action === "cancel" || body.action === "dismiss") return c.body(null, 204);
+    // 始めたあとの一覧を返す（動いている操作が入っている。画面は届いた一覧をそのまま出す）
+    return c.json(await docker.list(c.var.project), 202);
   });
 
   // エンジンが止まっているときの「OrbStack を開く」など（開くアプリは context の名前から決める。本文では受けない）
@@ -44,6 +47,9 @@ export function dockerRoutes(app: Hono, { store, docker }: ServerDeps) {
     const starter = starterOf(await docker.cli.context());
     if (starter?.kind !== "open") throw new Invalid("開くアプリが分かりません。Docker のアプリを起動してください");
     await runCommand("open", ["-a", starter.app]);
+    // OrbStack はアプリが開いたままエンジンだけ止まっていることがある（open -a では起きない）。orb start は起きるまで待つので待たずに流し、画面が 2 秒ごとに調べ直す
+    const orb = starter.app === "OrbStack" ? findOrb() : null;
+    if (orb) void runCommand(orb, ["start"], { timeout: 120_000 }).catch(() => {});
     return c.body(null, 204);
   });
 }
