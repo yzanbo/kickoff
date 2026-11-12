@@ -152,6 +152,11 @@ test("scanProjectDbs: .env・compose・Prisma・SQLite のファイルを探し�
 
   const shown = toImportCandidates(found, [{ id: 9, engine: "sqlite", host: null, port: null, database: null, file_path: "prisma/dev.db" } as never], root);
   assert.equal(shown[0].existing_id, 9);
+  // 絶対パスで登録した接続も、リンクを解いた実体が同じなら登録済み（/tmp → /private/tmp など）
+  const linked = path.join(tempDir(), "link");
+  fs.symlinkSync(root, linked);
+  const byLink = toImportCandidates(found, [{ id: 7, engine: "sqlite", host: null, port: null, database: null, file_path: path.join(linked, "prisma", "dev.db") } as never], root);
+  assert.equal(byLink[0].existing_id, 7);
   assert.equal(shown[1].has_password, true);
   assert.equal(shown[3].has_password, false);
   assert.ok(shown.every((c) => !("password" in c)));
