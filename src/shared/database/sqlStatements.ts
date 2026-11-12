@@ -1,7 +1,8 @@
 import type { DbEngine, DbWriteCheck } from "../types/database";
 
 // SQL の文の分け方と、読むだけの文かの判定（SQL のタブの ⌘↵ / ⇧⌘↵ と、読み取り専用の接続の 1 段目の守り）。
-// 文字列・識別子・コメントの中の ; や語は数えない。MySQL の DELIMITER（手続きを作るときの区切りの付け替え）は扱わない
+// 文字列・識別子・コメントの中の ; や語は数えない。MySQL の DELIMITER（手続きを作るときの区切りの付け替え）は扱わない。
+// MySQL の /*! … * /（版つきの実行されるコメント。MariaDB の /*M! … * / も）は中身を文として読む（コメントとして捨てると、中の INTO OUTFILE・DROP などが守りを素通りする）
 
 /** 文の 1 つ（start / end は元の SQL の中の位置。text は前後の空白を除いたもの） */
 export interface SqlStatement {
@@ -18,12 +19,35 @@ interface Token {
   end: number;
 }
 
+/** 囲むコメント（/* から * / まで）の終わりの次の位置（nested: PostgreSQL は入れ子にできる。閉じていなければ終わりまで） */
+function blockCommentEnd(sql: string, from: number, nested: boolean): number {
+  let depth = 0;
+  let j = from;
+  while (j < sql.length) {
+    if (sql.startsWith("/*", j)) {
+      if (depth > 0 && !nested) {
+        j += 2;
+        continue;
+      }
+      depth++;
+      j += 2;
+    } else if (sql.startsWith("*/", j)) {
+      depth--;
+      j += 2;
+      if (depth === 0) return j;
+    } else j++;
+  }
+  return sql.length;
+}
+
 /** SQL を字句に分ける（空白は捨てる） */
 function tokenize(sql: string, engine: DbEngine): Token[] {
   const tokens: Token[] = [];
   const mysql = engine === "mysql";
   let i = 0;
   const n = sql.length;
+  // MySQL の /*! … * / の中か（閉じる印は飛ばす）
+  let inExecComment = false;
   // 閉じる印まで進める（backslash: \ の次の文字を飛ばす。doubled: 同じ印 2 つは中身）
   const until = (close: string, from: number, backslash: boolean) => {
     let j = from;
@@ -43,7 +67,20 @@ function tokenize(sql: string, engine: DbEngine): Token[] {
       i++;
       continue;
     }
-    if (c === "-" && sql[i + 1] === "-") {
+    if (inExecComment && c === "*" && sql[i + 1] === "/") {
+      inExecComment = false;
+      i += 2;
+      continue;
+    }
+    const execHead = mysql && !inExecComment ? /^\/\*M?!\d{0,6}/.exec(sql.slice(i, i + 10)) : null;
+    if (execHead) {
+      // 版の番号に関わらず、中身はいつも流れるものとして読む（守りの側に倒す）
+      inExecComment = true;
+      i += execHead[0].length;
+      continue;
+    }
+    // MySQL の -- は後ろに空白（か終わり）があるときだけコメント（1--1 は引き算）
+    if (c === "-" && sql[i + 1] === "-" && (!mysql || i + 2 >= n || /\s/.test(sql[i + 2]))) {
       const nl = sql.indexOf("\n", i);
       i = nl === -1 ? n : nl;
       tokens.push({ kind: "comment", text: sql.slice(start, i), start, end: i });
@@ -52,12 +89,16 @@ function tokenize(sql: string, engine: DbEngine): Token[] {
       i = nl === -1 ? n : nl;
       tokens.push({ kind: "comment", text: sql.slice(start, i), start, end: i });
     } else if (c === "/" && sql[i + 1] === "*") {
-      const close = sql.indexOf("*/", i + 2);
-      i = close === -1 ? n : close + 2;
+      i = blockCommentEnd(sql, i, engine === "postgres");
       tokens.push({ kind: "comment", text: sql.slice(start, i), start, end: i });
     } else if (c === "'") {
-      i = until("'", i + 1, mysql);
-      tokens.push({ kind: "string", text: sql.slice(start, i), start, end: i });
+      // PostgreSQL の E'…'（\ でエスケープする文字列。E'\'' は ' 1 文字）。前の E の語は文字列に含める
+      const prev = tokens.at(-1);
+      const escaped = engine === "postgres" && prev?.kind === "word" && prev.end === i && /^[eE]$/.test(prev.text);
+      i = until("'", i + 1, mysql || escaped);
+      if (escaped) tokens.pop();
+      const from = escaped ? start - 1 : start;
+      tokens.push({ kind: "string", text: sql.slice(from, i), start: from, end: i });
     } else if (c === '"') {
       i = until('"', i + 1, mysql);
       tokens.push({ kind: mysql ? "string" : "ident", text: sql.slice(start, i), start, end: i });

@@ -129,3 +129,34 @@ test("writeConfirmation: 読む文だけなら確かめず、dangerous は危険
   assert.equal(writeConfirmation("env_name", plain, "mysql").kind, "env_name");
   assert.deepEqual(writeConfirmation("dangerous", danger, "mysql"), { kind: "confirm", dangers: [{ index: 2, reason: "DROP（消す）" }] });
 });
+
+test("MySQL の /*! … */ は中身を文として読む（INTO OUTFILE・DROP・; を見落とさない）", () => {
+  assert.equal(isReadOnlyStatement("SELECT * FROM t /*!50000 INTO OUTFILE '/tmp/x' */", "mysql"), false);
+  assert.equal(isReadOnlyStatement("SELECT * FROM t /*M!100100 INTO OUTFILE '/tmp/x' */", "mysql"), false);
+  // 中の ; で分ける（DROP を別の文として確かめる。閉じていない頭の文は DB が断る）
+  assert.deepEqual(texts("SELECT 1 /*! ; DROP TABLE t */", "mysql"), ["SELECT 1 /*!", "DROP TABLE t"]);
+  assert.equal(dangerReason("/*!40101 DROP TABLE t */", "mysql"), "DROP（消す）");
+  // ふつうのコメント・最適化のヒントはコメントのまま
+  assert.equal(isReadOnlyStatement("SELECT /*+ MAX_EXECUTION_TIME(1000) */ * FROM t /* INTO OUTFILE */", "mysql"), true);
+  // PostgreSQL・SQLite では /*! もただのコメント
+  assert.equal(isReadOnlyStatement("SELECT 1 /*! INTO x */", "postgres"), true);
+});
+
+test("MySQL の -- は後ろに空白があるときだけコメント（1--1 は引き算）", () => {
+  assert.equal(isReadOnlyStatement("SELECT 1--1 INTO OUTFILE '/tmp/x'", "mysql"), false);
+  assert.equal(isReadOnlyStatement("SELECT 1 -- INTO OUTFILE '/tmp/x'", "mysql"), true);
+  assert.deepEqual(texts("SELECT 1--\n; SELECT 2", "mysql"), ["SELECT 1--", "SELECT 2"]);
+  // PostgreSQL は -- の直後に何があってもコメント
+  assert.equal(isReadOnlyStatement("SELECT 1--x INTO y", "postgres"), true);
+});
+
+test("PostgreSQL の E'…' は \\ でエスケープし、入れ子の /* */ はひと続きのコメント", () => {
+  assert.deepEqual(texts("SELECT E'\\''; DROP TABLE t; SELECT '1'"), ["SELECT E'\\''", "DROP TABLE t", "SELECT '1'"]);
+  assert.equal(isReadOnlyStatement("SELECT E'\\''; DROP TABLE t; --'", "postgres"), true);
+  assert.deepEqual(splitStatements("SELECT E'a\\'b' AS x", "postgres")[0].text, "SELECT E'a\\'b' AS x");
+  // ふつうの文字列は \ でエスケープしない
+  assert.deepEqual(texts("SELECT 'a\\'; SELECT 2"), ["SELECT 'a\\'", "SELECT 2"]);
+  assert.deepEqual(texts("SELECT 1 /* a /* b; */ c; */; SELECT 2"), ["SELECT 1 /* a /* b; */ c; */", "SELECT 2"]);
+  // SQLite は入れ子にしない（最初の */ で閉じる）
+  assert.deepEqual(texts("SELECT 1 /* a /* b */; SELECT 2", "sqlite"), ["SELECT 1 /* a /* b */", "SELECT 2"]);
+});
