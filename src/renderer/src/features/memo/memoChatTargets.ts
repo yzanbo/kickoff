@@ -1,13 +1,15 @@
 // メモの本文の右クリック・本文で選んだときの上のボタン・見出しのボタンから、メモを足す先のチャット（開いたチャット・メモのチャット）
 import type { MutableRefObject } from "react";
+import type { Attachment } from "@shared/types";
 import { lineLocation } from "@/lib/pathCopy";
-import { alertDialog } from "@/ui/dialogs";
+import { alertDialog, reportFailure } from "@/ui/dialogs";
 import { knownChat } from "@/stores/chats";
 import { chatTargetName } from "@/features/chat/chatTitle";
 import { attachMemoToChat } from "./attachMemo";
-import { memoAttachment, memoQuote } from "./memoAttachment";
+import { memoQuote } from "./memoAttachment";
 import type { MemoChatHandle } from "./MemoChat";
 import type { MemoChatTarget } from "./useMemoEditMenu";
+import { api } from "@/api";
 
 /**
  * 足す先ごとの口: 選んでいれば、ファイルのフルパスと行番号付きの引用を足し、なければメモ全体を添付する（AI は保存したファイルを読むので、
@@ -15,6 +17,7 @@ import type { MemoChatTarget } from "./useMemoEditMenu";
  * メモのチャットに足すときは、その欄を開く（openMemoChat）
  */
 export function memoChatTargets({
+  projectId,
   file,
   path,
   attachTo,
@@ -22,6 +25,7 @@ export function memoChatTargets({
   memoChat,
   openMemoChat,
 }: {
+  projectId: number;
   /** メモのファイルのフルパス */
   file: string;
   /** メモのフォルダからのパス（メモの添付） */
@@ -37,7 +41,7 @@ export function memoChatTargets({
     return false;
   };
   const quoteOf = (selection: string, lines: Parameters<typeof lineLocation>[1]) => memoQuote(lineLocation(file, lines), selection);
-  const toMemoChat = (text: string, attachments?: ReturnType<typeof memoAttachment>[]) => {
+  const toMemoChat = (text: string, attachments?: Attachment[]) => {
     openMemoChat();
     memoChat.current?.add(text, attachments);
   };
@@ -45,7 +49,9 @@ export function memoChatTargets({
     name: "メモのチャット",
     add: async (selection, lines) => {
       if (selection.trim()) toMemoChat(quoteOf(selection, lines));
-      else if (await savedForAttach()) toMemoChat("", [memoAttachment(path)]);
+      else if (await savedForAttach()) {
+        await api.memoSnapshot(projectId, path).then((a) => toMemoChat("", [a]), reportFailure("メモを添付できませんでした"));
+      }
     },
     addQuote: (quote) => toMemoChat(quote),
     addPath: () => toMemoChat(file),
@@ -54,11 +60,11 @@ export function memoChatTargets({
   const main: MemoChatTarget = {
     name: chatTargetName(knownChat(attachTo)),
     add: async (selection, lines) => {
-      if (selection.trim()) attachMemoToChat(attachTo, path, quoteOf(selection, lines));
-      else if (await savedForAttach()) attachMemoToChat(attachTo, path);
+      if (selection.trim()) attachMemoToChat(attachTo, projectId, path, quoteOf(selection, lines));
+      else if (await savedForAttach()) attachMemoToChat(attachTo, projectId, path);
     },
-    addQuote: (quote) => attachMemoToChat(attachTo, path, quote),
-    addPath: () => attachMemoToChat(attachTo, path, file),
+    addQuote: (quote) => attachMemoToChat(attachTo, projectId, path, quote),
+    addPath: () => attachMemoToChat(attachTo, projectId, path, file),
   };
   return { main, memo };
 }

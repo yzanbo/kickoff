@@ -104,7 +104,7 @@ export function MemoView({
   );
   // 足す先のチャット（開いたチャット・メモのチャット）。本文の右クリック・本文で選んだときの上のボタン・見出しの添付のボタンから
   const file = `${dir}/${path}`;
-  const targets = memoChatTargets({ file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
+  const targets = memoChatTargets({ projectId, file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
   const editMenu = useMemoEditMenu(editor, targets, file, { projectId, body: () => doc.text() ?? "" });
   // 頼まれた行へ移る（⌘K の「メモ内の文言」から。開いているときは知らせで、これから開くときは編集の部品ができたときに）
   const reveal = () => {

@@ -37,7 +37,7 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   assert.equal((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "  " })).status, 400);
   assert.equal((await call("PATCH", `/api/chats/${chatId}/queue/nope`, { text: "x" })).status, 404);
   // 添付も置き換えられる（足す・外す）。添付があれば文は空にでき、文も添付もなくなるなら断る
-  const image = { id: randomUUID(), name: "a.png", mime: "image/png", size: 10 };
+  const image = { kind: "file", id: randomUUID(), name: "a.png", mime: "image/png", size: 10 };
   const withImage = await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "", attachments: [image] });
   assert.deepEqual(withImage.body.messages.find((m: { id: string }) => m.id === queue[1].id).attachments, [image]);
   assert.equal((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "", attachments: [] })).status, 400);

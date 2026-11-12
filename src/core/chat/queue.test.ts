@@ -22,7 +22,7 @@ function restarted(store: Store, chatId: number): ChatQueue {
 test("送信待ち: 変わるたびに保存し、作り直す（再起動する）と、止めておくか・「ここまで」の印も終えたときのまま読み戻す", () => {
   const { store, chat } = setup();
   const queue = new ChatQueue(chat.id, () => {}, store.queues);
-  const first = queue.add("1 つ目", { model: "opus" }, [{ id: "u1", name: "a.png", mime: "image/png", size: 10 }]);
+  const first = queue.add("1 つ目", { model: "opus" }, [{ kind: "file", id: "u1", name: "a.png", mime: "image/png", size: 10 }]);
   const second = queue.add("2 つ目", {}, []);
   queue.add("3 つ目", {}, []);
   queue.move(second.id, 0);

@@ -12,7 +12,6 @@ import { WorktreeChip } from "@/features/worktree/WorktreeChip";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import { ContextMeter } from "@/features/chat/composer/ContextMeter";
 import { MemoChip } from "@/features/memo/MemoChip";
-import { memoAttachment } from "@/features/memo/memoAttachment";
 import { DraftChatPage } from "@/features/chat/pane/DraftChatPage";
 import { useChatHeaderItems } from "@/features/chat/pane/ChatDisplayMenu";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
@@ -112,7 +111,7 @@ function NewChildForm({ parent, quote, eventId, onCreated }: Omit<Props, "parent
           <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" onOpen={() => void openOnly()} opening={opening} />
           {/* 会話が始まったあとのチャット欄と同じピルの列（いまはメモだけ。中身のないピルは出さない） */}
           <div className="composer-chips">
-            <MemoChip projectId={parent.project_id} chatId={null} onAttach={(path) => composer.current?.fill("", { append: true, attachments: [memoAttachment(path)] })} />
+            <MemoChip projectId={parent.project_id} chatId={null} onAttach={(path) => void api.memoSnapshot(parent.project_id, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("メモを添付できませんでした"))} />
           </div>
           <Composer
             chatContext={{ projectId: parent.project_id }}

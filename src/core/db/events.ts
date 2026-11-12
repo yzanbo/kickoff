@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { FEED_TEXT_LIMIT, type Chat, type ChatEvent, type ChatEventData, type FeedItem, type SearchHit } from "@shared/types";
+import { normalizeAttachment } from "@shared/attachment/normalize";
 import type { Notify, Row } from "./common.js";
 
 interface EventRow {
@@ -13,7 +14,16 @@ interface EventRow {
 /** 記録の列（生成列 text は検索だけに使うので、読み出す形には入れない） */
 const EVENT_COLUMNS = "id, chat_id, type, data, created_at";
 
-const toEvent = (row: EventRow): ChatEvent => ({ ...row, data: JSON.parse(row.data) }) as ChatEvent;
+const toEvent = (row: EventRow): ChatEvent => ({ ...row, data: withNormalizedAttachments(JSON.parse(row.data) as ChatEventData) }) as ChatEvent;
+
+/** 記録の添付（自分の発言・質問への回答）を今の形にする（種類を持つ前の記録は、読むときに読み替える） */
+function withNormalizedAttachments(data: ChatEventData): ChatEventData {
+  if (data.type === "user" && data.attachments) return { ...data, attachments: data.attachments.map(normalizeAttachment) };
+  if (data.type === "approval_resolved" && data.action === "answer" && data.attachments) {
+    return { ...data, attachments: Object.fromEntries(Object.entries(data.attachments).map(([q, list]) => [q, list.map(normalizeAttachment)])) };
+  }
+  return data;
+}
 
 /** キーワードの前後を切り出す（前 40 文字・後ろ 80 文字程度） */
 function snippetAround(text: string, keyword: string): { snippet: string; match_start: number; match_end: number } {

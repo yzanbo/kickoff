@@ -7,7 +7,8 @@ import { Conflict, Invalid, NotFound } from "../errors.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { assetResponse, decodeSegments } from "../assets.js";
-import { folderPath, memoChatSchema, optionalId, repoPath } from "./schemas.js";
+import { folderPath, memoChatSchema, memoPathSchema, optionalId, repoPath } from "./schemas.js";
+import { memoKindOf } from "@shared/memo/kinds";
 
 /** HTML のメモのファイルを返す口の前置き（この後ろがメモのフォルダからの相対パス。画面の <base> と同じ） */
 const ASSET_PREFIX = /^\/api\/projects\/[^/]+\/memo\/file\//;
@@ -33,7 +34,7 @@ const aiPlanSchema = z.object({ instruction: instructionText.nullable() }) satis
  * プロジェクトのメモ（一覧・中身・保存・作成・名前の変更と移動・ゴミ箱・チャットの文から作る・メモのチャットを始める・AI のフォルダの整理案（動かさない））。
  * 保存先はプロジェクトの外（設定の memos_dir の下の、プロジェクトごとのフォルダ）。パスはメモのフォルダからの相対
  */
-export function memoRoutes(app: Hono, { store, memos, runner }: ServerDeps) {
+export function memoRoutes(app: Hono, { store, memos, runner, uploads }: ServerDeps) {
   const { withProject } = lookups(store);
 
   // 設定の画面で、親フォルダをまだ選んでいないときに出す既定の場所
@@ -86,6 +87,14 @@ export function memoRoutes(app: Hono, { store, memos, runner }: ServerDeps) {
     const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
     await memos.trash(c.var.project, path);
     return c.body(null, 204);
+  });
+
+  // メモの写しを添付として保存する（入力欄にメモを添付したとき。送るときは写しと元のメモのパスを AI に伝える）
+  app.post("/api/projects/:id/memo/snapshot", withProject, async (c) => {
+    const { path } = z.object({ path: memoPathSchema }).parse(await jsonBody(c));
+    const bytes = await memos.asset(c.var.project, path);
+    const attachment = await uploads.saveMemoSnapshot({ memo: path, mime: memoKindOf(path) === "html" ? "text/html" : "text/markdown", bytes });
+    return c.json(attachment, 201);
   });
 
   // メモのチャットを始める（メモごとに 1 つ。続きはふつうのチャットと同じく /api/chats/:id/messages）。メモがなければ 404、もうあれば 409

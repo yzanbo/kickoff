@@ -237,8 +237,10 @@ test("メモの添付: 入力欄に添付したメモは、メモのフォルダ
   assert.ok(provider.prompts.at(-1)!.includes(path.join(memoDir, "設計/DB.md")));
   assert.ok(provider.lastDirs.includes(memoDir));
   // 記録には添付のまま残す（画面がメモの札で出す）
+  // 種類を持つ前の形（kind なし）で送っても、メモの添付として読み替える
   const user = store.events.list(created.body.id).find((e) => e.type === "user");
-  assert.equal(user?.type === "user" && user.data.attachments?.[0].memo, "設計/DB.md");
+  const first = user?.type === "user" ? user.data.attachments?.[0] : undefined;
+  assert.equal(first?.kind === "memo" && first.memo, "設計/DB.md");
   // 続きの指示でも。見つからないメモは書かない
   await call("POST", `/api/chats/${created.body.id}/messages`, { text: "続きを書いて", attachments: [memo("設計/DB.md"), memo("ない.md")] });
   await until(() => provider.prompts.length === 2 && store.chats.get(created.body.id)?.status === "completed");
