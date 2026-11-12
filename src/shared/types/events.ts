@@ -45,4 +45,6 @@ export type BusEvent =
   /** DB の接続の一覧が変わった（中身は送らない。SSE はスマホにも届くので、画面は 127.0.0.1 からの API で読み直す） */
   | { type: "db_connections"; project_id: number }
   /** DB の接続につないだ・切れた（木・テーブル・SQL のタブの接続が 1 つでも開いているか。DB タブの左の一覧の印） */
-  | { type: "db_connection_state"; project_id: number; connection_id: number; connected: boolean };
+  | { type: "db_connection_state"; project_id: number; connection_id: number; connected: boolean }
+  /** Docker タブ: そのプロジェクトのコンテナ・操作の様子が変わった（受けた画面は一覧を取り直す） */
+  | { type: "docker_changed"; project_id: number };
