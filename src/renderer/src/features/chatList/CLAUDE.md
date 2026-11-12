@@ -26,7 +26,7 @@
 
 - 状態ごとのチャット数は `features/chat/chatState.ts` の `stateCounts`（カンバンの列と同じ決め方 `boardColumnOf`。数えるのは作業中・回答待ち・未読 `COUNTED_COLUMNS` で、既読とアーカイブ済みは数えない。作業中のまま未読のものは作業中として数える）。サイドバーのプロジェクト・画面の見出し・タブのまとまりの札で同じ数になるよう、数えるのはここだけ（`bucketChats` のまとまりの `counts` もこれ）。
 - 角に出す数は `StateCornerCounts`（左上 = 作業中（青）・右上 = 未読（緑）・左下 = 回答待ち（オレンジ）。0 は出さない）。サイドバーのプロジェクトの丸・プロジェクトの画面の左のボードのタブ・右のパネルのタブのまとまりの札で共通。置く要素は position: relative、丸の縁の色は `--corner-ring`、はみ出す量は `--corner-offset`（CSS は `styles/ui/status.css` の `.corner-count`）。`inline` なら文の後ろに色付きの数を並べる（横並びのタブ）。文にするなら `stateCountsSummary`。
-- 状態ごとのチャットの一覧は `StateChatsPopover`（作業中 → 回答待ち → 未読のまとまりにチャットを並べ、行を押すと `onOpen`。行の左にはサイドバーの行と同じ `StatusSlot` を見出しの点の真下に。`showProject` で行にプロジェクト名）。分け方は `chatsByState`（数え方は `stateCounts` と同じ。`all` なら既読と、いちばん下にアーカイブ済みも並べ、渡したチャットをすべて出す）。画面の見出しの状態ごとの数 `StateStats` と、右のパネルのタブのまとまりの札 `TabClusterHead` で共通。色は `bucketTone`、CSS は `styles/chatList/state-chats.css`。
+- 状態ごとのチャットの一覧は `StateChatsPopover`（作業中 → 回答待ち → 未読のまとまりにチャットを並べ、行を押すと `onOpen`。行の左にはサイドバーの行と同じ `StatusSlot` を見出しの点の真下に。子チャットは名前の前に深さの札 `ChildDepthMark`（「子」「孫」「ひ孫」。乗せると親の名前。サイドバーの絞り込みの行・⌘⇧A と同じ）。`showProject` で行にプロジェクト名）。分け方は `chatsByState`（数え方は `stateCounts` と同じ。`all` なら既読と、いちばん下にアーカイブ済みも並べ、渡したチャットをすべて出す）。画面の見出しの状態ごとの数 `StateStats` と、右のパネルのタブのまとまりの札 `TabClusterHead` で共通。色は `bucketTone`、CSS は `styles/chatList/state-chats.css`。
 - 状態のまとまりの札（`StateChip.tsx`。状態ごとの一覧・画面の見出しの数・⌘⇧A の見出し・ボードの状態の列とグループの中の小見出し・フィードのカードの状態）は、左の印をサイドバーのチャットの行と同じ `StatusSlot` にする（`bucketMark`。作業中 = 回るリング・回答待ち = 琥珀色の！・未読 = 緑の点・既読 = 薄い点。作業中のまとまりに作業中のまま未読のあるチャットがあれば、行と同じくリングの右上に緑の点。利用者の依頼。前はどの状態も色の点だけで、作業中も回らなかった）。状態のないまとまり（アーカイブ済み・下書き）は色の点のまま。札の中の大きさと緑の点の縁は `styles/ui/tone-chip.css`。
 
 ## 開閉の記憶（`hooks/useFold`）
