@@ -135,7 +135,14 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   ),
   terminal: ({ tab: t, panel, visible, focused }) => (
     <Suspense fallback={<div className="page muted">読み込み中…</div>}>
-      <TerminalPane termKey={t.key} cwd={t.cwd} visible={visible} focused={visible && focused} onOpenUrl={(url) => panel.openBrowser(url)} />
+      <TerminalPane
+        termKey={t.key}
+        cwd={t.cwd}
+        visible={visible}
+        focused={visible && focused}
+        onOpenUrl={(url) => panel.openBrowser(url)}
+        projectId={projectOfPanel(panel.key)}
+      />
     </Suspense>
   ),
   browser: ({ tab: t, panel }) => (
@@ -149,10 +156,10 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   ),
 };
 
-/** パネルのプロジェクト（プロジェクトごとの欄でなければ null） */
+/** パネルのプロジェクト（プロジェクトごとの欄でなければ null。チャットの右の欄の範囲はチャットの ID なので取り違えない） */
 function projectOfPanel(panelKey: string): number | null {
-  const scope = parsePanelKey(panelKey)?.scope;
-  return typeof scope === "number" ? scope : null;
+  const at = parsePanelKey(panelKey);
+  return at && at.surface !== "agents" && typeof at.scope === "number" ? at.scope : null;
 }
 
 /** タブの種類の中身を描く（種類と中身の型を結びつけて引く） */
