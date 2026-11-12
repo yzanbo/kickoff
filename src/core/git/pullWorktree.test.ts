@@ -7,7 +7,7 @@ import { test } from "node:test";
 import type { GitHubRemote } from "@shared/types";
 import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
-import { checkoutPullWorktree, pullCheckoutOf } from "./pullWorktree.js";
+import { checkoutPullMain, checkoutPullWorktree, pullCheckoutOf } from "./pullWorktree.js";
 
 const remote = (name: string, repo: string, url = ""): GitHubRemote => ({ name, repo, url });
 
@@ -64,4 +64,19 @@ test("ワークツリー: そのブランチを本体で取り出していれば
   git("checkout", "-q", "fix");
   const found = await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, [remote("origin", "acme/app")], "origin");
   assert.equal(found.main, true);
+});
+
+test("本体に取り出す: 本体のブランチを PR のブランチ（ほかの人の fork は pr-N）に切り替え、ほかのワークツリーで取り出しているブランチは断る", async () => {
+  const { local, theirs, git } = setupRemote();
+  const remotes = [remote("origin", "acme/app")];
+
+  assert.equal(await checkoutPullMain(local, { number: 9, head_ref: "main", head_repo: "someone/app" }, remotes, "origin"), "pr-9");
+  assert.equal(git("rev-parse", "--abbrev-ref", "HEAD").trim(), "pr-9");
+  assert.equal(git("rev-parse", "HEAD").trim(), theirs);
+  // もう本体で取り出していれば、そのまま
+  assert.equal(await checkoutPullMain(local, { number: 9, head_ref: "main", head_repo: "someone/app" }, remotes, "origin"), "pr-9");
+
+  await checkoutPullWorktree(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin");
+  await assert.rejects(checkoutPullMain(local, { number: 1, head_ref: "fix", head_repo: "acme/app" }, remotes, "origin"), /ワークツリー.*本体には取り出せません/);
+  assert.equal(git("rev-parse", "--abbrev-ref", "HEAD").trim(), "pr-9");
 });

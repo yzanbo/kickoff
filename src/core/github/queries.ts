@@ -87,6 +87,9 @@ const PR_EVENT_FIELDS = `
   ... on ReadyForReviewEvent { id ${ACTOR} createdAt }
   ... on ConvertToDraftEvent { id ${ACTOR} createdAt }`;
 
+/** 自分にできること（閉じる・開き直す・ラベル） */
+const VIEWER_CAN = "viewerCanClose viewerCanReopen viewerCanLabel";
+
 /** 出来事を読む 1 回の数（3 回まで続きを読む） */
 export const TIMELINE_PAGE = 100;
 export const TIMELINE_MAX_PAGES = 3;
@@ -97,13 +100,14 @@ const timeline = (types: string[], fields: string) =>
 /** issue か PR の中身（番号から。PR は行のスレッドとチェックも） */
 export const DETAIL_QUERY = `query($owner: String!, $name: String!, $number: Int!, $after: String) {
   repository(owner: $owner, name: $name) {
+    mergeCommitAllowed squashMergeAllowed rebaseMergeAllowed viewerPermission
     issueOrPullRequest(number: $number) {
       ${ITEM_FIELDS}
-      ... on Issue { body bodyHTML ${timeline(COMMON_EVENT_TYPES, EVENT_FIELDS)} }
+      ... on Issue { body bodyHTML ${VIEWER_CAN} ${timeline(COMMON_EVENT_TYPES, EVENT_FIELDS)} }
       ... on PullRequest {
-        body bodyHTML additions deletions changedFiles mergeable headRefOid headRepositoryOwner { login }
+        body bodyHTML ${VIEWER_CAN} additions deletions changedFiles mergeable mergeStateStatus headRefOid headRepositoryOwner { login }
         ${timeline([...COMMON_EVENT_TYPES, ...PR_EVENT_TYPES], EVENT_FIELDS + PR_EVENT_FIELDS)}
-        reviewThreads(first: 100) { nodes { id path line originalLine diffSide isResolved isOutdated
+        reviewThreads(first: 100) { nodes { id path line originalLine diffSide isResolved isOutdated viewerCanReply viewerCanResolve viewerCanUnresolve
           comments(first: 50) { nodes { id author { ${USER} } createdAt body bodyHTML diffHunk url pullRequestReview { id } } } } }
         statusCommits: commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
           __typename
@@ -124,3 +128,12 @@ export const TIMELINE_MORE_QUERY = `query($owner: String!, $name: String!, $numb
     }
   }
 }`;
+
+/** 行のスレッドに返信する（段階 3。返信・解決は人がする） */
+export const THREAD_REPLY_MUTATION = `mutation($thread: ID!, $body: String!) {
+  addPullRequestReviewThreadReply(input: { pullRequestReviewThreadId: $thread, body: $body }) { comment { id } }
+}`;
+
+/** 行のスレッドを解決済みにする / 戻す */
+export const RESOLVE_THREAD_MUTATION = `mutation($thread: ID!) { resolveReviewThread(input: { threadId: $thread }) { thread { isResolved } } }`;
+export const UNRESOLVE_THREAD_MUTATION = `mutation($thread: ID!) { unresolveReviewThread(input: { threadId: $thread }) { thread { isResolved } } }`;

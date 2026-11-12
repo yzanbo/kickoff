@@ -1,16 +1,27 @@
-// GitHub タブ（要件 5.11 の段階 1「読む」）: プロジェクトの連携先のリポジトリの issue・PR の一覧と中身を、プロジェクトのアカウントで GitHub に聞く。
+// GitHub タブ（要件 5.11 の段階 1「読む」・段階 3「書く」）: プロジェクトの連携先のリポジトリの issue・PR の一覧と中身を、プロジェクトのアカウントで GitHub に聞く。
 // 中身は DB に持たない（正しいのはいつも GitHub）。一覧だけ少しの間メモリに覚え、変わっていなければ（ETag で 304 = 使用量に数えない）覚えたものを返す
 import type {
+  GitHubCheckoutPlace,
   GitHubConnection,
+  GitHubCreatedIssue,
   GitHubIssueDetail,
   GitHubItem,
   GitHubItemPage,
+  GitHubKind,
+  GitHubLabel,
+  GitHubLabelsBody,
   GitHubListFilter,
+  GitHubMergeBody,
+  GitHubMergeResult,
+  GitHubNewIssueBody,
   GitHubPullDetail,
   GitHubPullFiles,
   GitHubPullWorktree,
   GitHubRemote,
   GitHubRepoMeta,
+  GitHubReviewBody,
+  GitHubStateBody,
+  GitHubThreadResolveBody,
   GitHubUser,
   Project,
 } from "@shared/types";
@@ -20,11 +31,12 @@ import { Invalid, NotFound } from "../http/errors.js";
 import { runAsGitHubAccount } from "../git/githubAccount.js";
 import { readGitHubRemotes, resolveGitHubTarget, type GitHubTarget } from "../git/githubTarget.js";
 import { isGitWorkTree } from "../git/status.js";
-import { checkoutPullWorktree } from "../git/pullWorktree.js";
+import { checkoutPullMain, checkoutPullWorktree } from "../git/pullWorktree.js";
 import { ttlCache } from "../system/ttlCache.js";
-import { ghApi, type GitHubApi } from "./ghApi.js";
+import { ghApi, type GitHubApi, type GitHubContext } from "./ghApi.js";
 import { DETAIL_QUERY, META_QUERY, SEARCH_QUERY, TIMELINE_MAX_PAGES, TIMELINE_MORE_QUERY, VIEWER_QUERY } from "./queries.js";
-import { connectionNodes, nextCursor, toCheck, toItem, toPullFile, toThreads, toTimeline, toUser } from "./normalize.js";
+import { createIssue, mergePull, postComment, replaceLabels, replyToThread, resolveThread, setState, submitReview } from "./writes.js";
+import { connectionNodes, nextCursor, toCheck, toItem, toMergeAbility, toMergeState, toPullFile, toThreads, toTimeline, toUser, toViewer } from "./normalize.js";
 
 /** 一覧の 1 回の件数 */
 export const GITHUB_PAGE_SIZE = 50;
@@ -50,16 +62,6 @@ interface GitHubServiceOptions {
   now?: () => number;
 }
 
-/** プロジェクトの連携先とアカウントで GitHub に聞くための組 */
-interface Context {
-  repo: string;
-  owner: string;
-  name: string;
-  api: GitHubApi;
-  /** 覚えるときのキーの頭（プロジェクト・リポジトリ・アカウント） */
-  key: string;
-}
-
 export class GitHubService {
   private readonly opts: GitHubServiceOptions;
   private readonly lists = new Map<string, CachedPage>();
@@ -74,7 +76,7 @@ export class GitHubService {
   }
 
   /** プロジェクトのアカウントの中で fn を動かす（連携先がなければ 400） */
-  private async within<T>(project: Project, fn: (ctx: Context) => Promise<T>): Promise<T> {
+  private async within<T>(project: Project, fn: (ctx: GitHubContext) => Promise<T>): Promise<T> {
     return runAsGitHubAccount(project.github_account, async () => {
       const target = await (this.opts.resolveTarget ?? resolveGitHubTarget)(project.repo_path, project.github_remote);
       if (!target) throw new Invalid(NO_REMOTE);
@@ -142,7 +144,7 @@ export class GitHubService {
     });
   }
 
-  private async search(ctx: Context, q: string, after: string | null): Promise<GitHubItemPage> {
+  private async search(ctx: GitHubContext, q: string, after: string | null): Promise<GitHubItemPage> {
     const data = await ctx.api.graphql<{ search: { issueCount: number; pageInfo: unknown; nodes: unknown[] } }>(SEARCH_QUERY, { q, first: GITHUB_PAGE_SIZE, after });
     return {
       items: (data.search.nodes ?? []).map(toItem).filter((i): i is GitHubItem => i !== null),
@@ -169,7 +171,7 @@ export class GitHubService {
   private detail(project: Project, number: number, kind: "issue" | "pr"): Promise<GitHubIssueDetail | GitHubPullDetail> {
     return this.within(project, async ({ api, repo, owner, name }) => {
       const vars = { owner, name, number, after: null as string | null };
-      const data = await api.graphql<{ repository: { issueOrPullRequest: Record<string, unknown> | null } | null }>(DETAIL_QUERY, vars);
+      const data = await api.graphql<{ repository: ({ issueOrPullRequest: Record<string, unknown> | null } & Record<string, unknown>) | null }>(DETAIL_QUERY, vars);
       const raw = data.repository?.issueOrPullRequest;
       const item = raw ? toItem(raw) : null;
       if (!raw || !item) throw new NotFound(`${repo} に #${number} はありません`);
@@ -183,7 +185,7 @@ export class GitHubService {
         items.push(...connectionNodes(conn));
         cursor = nextCursor(conn);
       }
-      const base = { item, body_html: String(raw.bodyHTML ?? ""), body_markdown: String(raw.body ?? ""), timeline_truncated: cursor !== null, fetched_at: new Date(this.now()).toISOString() };
+      const base = { item, body_html: String(raw.bodyHTML ?? ""), body_markdown: String(raw.body ?? ""), timeline_truncated: cursor !== null, viewer: toViewer(raw), fetched_at: new Date(this.now()).toISOString() };
       if (kind === "issue") return { ...base, timeline: toTimeline(items) };
       const { threads, threadReview } = toThreads(raw.reviewThreads);
       const statusCommit = connectionNodes(raw.statusCommits)[0] as { commit?: { statusCheckRollup?: { contexts?: unknown } } } | undefined;
@@ -197,6 +199,8 @@ export class GitHubService {
         head_sha: typeof raw.headRefOid === "string" ? raw.headRefOid : null,
         head_owner: (raw.headRepositoryOwner as { login?: string } | null)?.login ?? null,
         mergeable: mergeable === "mergeable" || mergeable === "conflicting" ? mergeable : "unknown",
+        merge_state: toMergeState(raw.mergeStateStatus),
+        ...toMergeAbility(data.repository),
         review_threads: threads,
         checks: connectionNodes(statusCommit?.commit?.statusCheckRollup?.contexts)
           .map(toCheck)
@@ -210,17 +214,66 @@ export class GitHubService {
    * なければ PR の元のブランチを取ってきて作る（git/pullWorktree.ts）。Git で管理していないフォルダ・連携先の remote がなければ 400
    */
   pullWorktree(project: Project, number: number): Promise<GitHubPullWorktree> {
+    return this.pullCheckout(project, number, "worktree");
+  }
+
+  /**
+   * PR のチェックアウト（段階 3）: worktree はワークツリー（pullWorktree と同じ）、main は本体のブランチを PR のブランチに切り替える
+   * （ほかのワークツリーで取り出しているブランチは 400。fork の PR も取れる）
+   */
+  pullCheckout(project: Project, number: number, place: GitHubCheckoutPlace): Promise<GitHubPullWorktree> {
     return this.within(project, async ({ api, repo }) => {
-      if (!(await isGitWorkTree(project.repo_path))) throw new Invalid("プロジェクトフォルダを Git で管理していないので、ワークツリーを作れません");
+      if (!(await isGitWorkTree(project.repo_path))) throw new Invalid("プロジェクトフォルダを Git で管理していないので、PR のブランチを取り出せません");
       const res = await api.rest(`repos/${repo}/pulls/${number}`);
       const head = (res.body as { head?: { ref?: unknown; repo?: { full_name?: unknown } | null } } | null)?.head;
       if (typeof head?.ref !== "string" || !head.ref) throw new NotFound(`${repo} に PR #${number} はありません`);
       const remotes = await (this.opts.remotes ?? (async (r: string) => (await readGitHubRemotes(r)).remotes))(project.repo_path);
       const target = remotes.find((r) => r.repo.toLowerCase() === repo.toLowerCase());
       if (!target) throw new Invalid(`連携先（${repo}）の remote が見つかりません`);
-      const headRepo = typeof head.repo?.full_name === "string" ? head.repo.full_name : null;
-      const worktree = await checkoutPullWorktree(project.repo_path, { number, head_ref: head.ref, head_repo: headRepo }, remotes, target.name);
+      const pr = { number, head_ref: head.ref, head_repo: typeof head.repo?.full_name === "string" ? head.repo.full_name : null };
+      if (place === "main") return { worktree_path: null, branch: await checkoutPullMain(project.repo_path, pr, remotes, target.name) };
+      const worktree = await checkoutPullWorktree(project.repo_path, pr, remotes, target.name);
       return { worktree_path: worktree.main ? null : worktree.path, branch: worktree.branch ?? head.ref };
+    });
+  }
+
+  // ---- 書き込み（段階 3。writes.ts）。書いたら、このプロジェクトの覚えた一覧を捨てる ----
+
+  comment(project: Project, number: number, body: string): Promise<void> {
+    return this.write(project, (ctx) => postComment(ctx, number, body));
+  }
+
+  setState(project: Project, kind: GitHubKind, number: number, input: GitHubStateBody): Promise<void> {
+    return this.write(project, (ctx) => setState(ctx, kind, number, input));
+  }
+
+  setLabels(project: Project, number: number, input: GitHubLabelsBody): Promise<GitHubLabel[]> {
+    return this.write(project, (ctx) => replaceLabels(ctx, number, input));
+  }
+
+  createIssue(project: Project, input: GitHubNewIssueBody): Promise<GitHubCreatedIssue> {
+    return this.write(project, (ctx) => createIssue(ctx, input));
+  }
+
+  review(project: Project, number: number, input: GitHubReviewBody): Promise<void> {
+    return this.write(project, (ctx) => submitReview(ctx, number, input));
+  }
+
+  replyToThread(project: Project, threadId: string, body: string): Promise<void> {
+    return this.write(project, (ctx) => replyToThread(ctx, threadId, body));
+  }
+
+  resolveThread(project: Project, threadId: string, input: GitHubThreadResolveBody): Promise<void> {
+    return this.write(project, (ctx) => resolveThread(ctx, threadId, input));
+  }
+
+  merge(project: Project, number: number, input: GitHubMergeBody): Promise<GitHubMergeResult> {
+    return this.write(project, (ctx) => mergePull(ctx, number, input));
+  }
+
+  private write<T>(project: Project, fn: (ctx: GitHubContext) => Promise<T>): Promise<T> {
+    return this.within(project, fn).finally(() => {
+      for (const key of [...this.lists.keys()]) if (key.startsWith(`${project.id}:`)) this.lists.delete(key);
     });
   }
 

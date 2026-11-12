@@ -1,5 +1,10 @@
 // GitHub タブが GitHub に聞く口（gh api。プロジェクトで選んだアカウントのトークンは githubAccount の runAsGitHubAccount の中で渡る）。
-// 失敗は、よくある理由（gh がない・ログインしていない・リポジトリが見えない・使用量の上限）を分かる文にする
+// 失敗は、よくある理由（gh がない・ログインしていない・リポジトリが見えない・使用量の上限）を分かる文にする。
+// 書き込み（段階 3）は JSON の本文を一時ファイルから --input で渡し、GitHub が断った理由（保護ルールなど）をそのまま文にする
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { CommandError, nonInteractiveEnv, runCommand } from "../system/exec.js";
 import { Invalid } from "../http/errors.js";
 import { githubEnv } from "../git/githubAccount.js";
@@ -21,7 +26,22 @@ export interface GitHubApi {
   rest(path: string, opts?: { etag?: string | null }): Promise<RestResponse>;
   /** 続きのページもすべて（配列の応答。maxPages まで） */
   restPages(path: string, maxPages: number): Promise<{ items: unknown[]; truncated: boolean }>;
+  /** 書き込み（POST・PATCH・PUT・DELETE と JSON の本文）。GitHub が断ったら、その理由の文で Invalid */
+  send(method: WriteMethod, path: string, body?: unknown): Promise<unknown>;
 }
+
+/** プロジェクトの連携先とアカウントで GitHub に聞くための組（GitHubService.within が作る） */
+export interface GitHubContext {
+  /** 「持ち主/名前」 */
+  repo: string;
+  owner: string;
+  name: string;
+  api: GitHubApi;
+  /** 覚えるときのキーの頭（プロジェクト・リポジトリ・アカウント） */
+  key: string;
+}
+
+export type WriteMethod = "POST" | "PATCH" | "PUT" | "DELETE";
 
 export const GH_MISSING = "gh が見つかりません。`brew install gh` でインストールしてください";
 export const GH_LOGGED_OUT = "GitHub にログインしていません。ターミナルで `gh auth login` を実行してください";
@@ -37,6 +57,22 @@ export function ghFailureMessage(e: unknown, repo: string | null): string {
   if (/timed out|ETIMEDOUT|ENOTFOUND|ECONNRESET|network/i.test(stderr)) return "GitHub につながりませんでした。ネットワークを確かめてください";
   const line = stderr.split("\n").find((l) => l.trim()) ?? "";
   return `GitHub に聞けませんでした: ${line.replace(/^gh: /, "").slice(0, 300)}`;
+}
+
+/**
+ * 書き込みを GitHub が断ったときの文（純粋な関数）。GitHub の答えの message と errors（保護ルール・入力の誤りの説明）を添える。
+ * 401 はログインの案内、404 は見えない・書き込めない
+ */
+export function githubWriteError(status: number, body: unknown, repo: string | null): string {
+  if (status === 401) return GH_LOGGED_OUT;
+  const b = (body && typeof body === "object" ? body : {}) as { message?: unknown; errors?: unknown };
+  const details = (Array.isArray(b.errors) ? b.errors : [])
+    .map((e) => (typeof e === "string" ? e : e && typeof e === "object" ? String((e as { message?: unknown }).message ?? (e as { code?: unknown }).code ?? "") : ""))
+    .filter(Boolean);
+  const message = typeof b.message === "string" ? b.message : "";
+  if (status === 404) return `${repo ? `「${repo}」` : ""}で見つからないか、このアカウントには書き込む権限がありません${message && message !== "Not Found" ? `（${message}）` : ""}`;
+  const text = [message, ...details].filter((t, i, all) => t && all.indexOf(t) === i).join(" / ");
+  return `GitHub に断られました（HTTP ${status}）${text ? `: ${text.slice(0, 500)}` : ""}`;
 }
 
 /** gh api を動かす（okCodes の終了コードも成功として出力を返す） */
@@ -96,6 +132,20 @@ export function ghApi(repo: string | null): GitHubApi {
         if (out.length < 100) return { items, truncated: false };
       }
       return { items, truncated: true };
+    },
+    async send(method, apiPath, body) {
+      // 本文は一時ファイルから渡す（-f / -F では空の配列・入れ子を送れず、-F は @ で始まる値をファイルとして読むため）
+      const file = body === undefined ? null : path.join(os.tmpdir(), `kickoff-gh-${crypto.randomUUID()}.json`);
+      if (file) await fs.writeFile(file, JSON.stringify(body), { mode: 0o600 });
+      try {
+        // 断られたときも gh は応答を出して終わり値 1 を返すので、状態の行と本文から理由を読む
+        const res = parseIncludeOutput(await runGhApi(["-i", "-X", method, ...(file ? ["--input", file] : []), apiPath], repo, [1]));
+        if (res.status === 0) throw new Invalid(ghFailureMessage(new Error("no response"), repo));
+        if (res.status >= 400) throw new Invalid(githubWriteError(res.status, res.body, repo));
+        return res.body;
+      } finally {
+        if (file) await fs.rm(file, { force: true });
+      }
     },
   };
 }

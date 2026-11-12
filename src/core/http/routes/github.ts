@@ -1,8 +1,27 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
-import { GITHUB_KINDS, GITHUB_MINE_FILTERS, GITHUB_SORTS, GITHUB_STATE_FILTERS, type GitHubListFilter } from "@shared/types";
+import {
+  GITHUB_CHECKOUT_PLACES,
+  GITHUB_CLOSE_REASONS,
+  GITHUB_KINDS,
+  GITHUB_MERGE_METHODS,
+  GITHUB_MINE_FILTERS,
+  GITHUB_REVIEW_EVENTS,
+  GITHUB_SORTS,
+  GITHUB_STATE_FILTERS,
+  type GitHubCheckoutBody,
+  type GitHubCommentBody,
+  type GitHubLabelsBody,
+  type GitHubListFilter,
+  type GitHubMergeBody,
+  type GitHubNewIssueBody,
+  type GitHubReviewBody,
+  type GitHubStateBody,
+  type GitHubThreadReplyBody,
+  type GitHubThreadResolveBody,
+} from "@shared/types";
 import type { ServerDeps } from "../server.js";
-import { idParam, queryOf } from "../input.js";
+import { idParam, jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { localOnly } from "../thisMac.js";
 
@@ -37,13 +56,52 @@ export function filterOfQuery(query: z.infer<typeof listQuery>): GitHubListFilte
   };
 }
 
+/** GitHub に書く Markdown（GitHub の上限は 65,536 文字） */
+const markdown = z.string().max(65_536);
+const labelName = z.string().trim().min(1).max(100);
+const login = z.string().trim().min(1).max(100);
+
+const commentBody = z.object({ body: markdown.refine((b) => b.trim() !== "", "本文を書いてください") }) satisfies z.ZodType<GitHubCommentBody>;
+const stateBody = z.object({ state: z.enum(["open", "closed"]), reason: z.enum(GITHUB_CLOSE_REASONS).nullable().default(null) }) satisfies z.ZodType<GitHubStateBody>;
+const labelsBody = z.object({ labels: z.array(labelName).max(100) }) satisfies z.ZodType<GitHubLabelsBody>;
+const newIssueBody = z.object({
+  title: z.string().trim().min(1, "題名を書いてください").max(256),
+  body: markdown.default(""),
+  labels: z.array(labelName).max(100).default([]),
+  assignees: z.array(login).max(10).default([]),
+}) satisfies z.ZodType<GitHubNewIssueBody>;
+const reviewBody = z.object({
+  event: z.enum(GITHUB_REVIEW_EVENTS),
+  body: markdown.default(""),
+  comments: z
+    .array(
+      z.object({
+        path: z.string().min(1).max(4096),
+        line: z.number().int().positive(),
+        side: z.enum(["LEFT", "RIGHT"]),
+        start_line: z.number().int().positive().nullable().default(null),
+        body: markdown.refine((b) => b.trim() !== "", "行のコメントの本文を書いてください"),
+      }),
+    )
+    .max(200)
+    .default([]),
+  commit_id: z.string().regex(/^[0-9a-f]{7,64}$/).nullable().default(null),
+}) satisfies z.ZodType<GitHubReviewBody>;
+const replyBody = commentBody satisfies z.ZodType<GitHubThreadReplyBody>;
+const resolveBody = z.object({ resolved: z.boolean() }) satisfies z.ZodType<GitHubThreadResolveBody>;
+const mergeBody = z.object({ method: z.enum(GITHUB_MERGE_METHODS), sha: z.string().regex(/^[0-9a-f]{7,64}$/).nullable().default(null) }) satisfies z.ZodType<GitHubMergeBody>;
+const checkoutBody = z.object({ place: z.enum(GITHUB_CHECKOUT_PLACES) }) satisfies z.ZodType<GitHubCheckoutBody>;
+/** GraphQL の行のスレッドの ID */
+const threadParam = (c: Context) => z.string().regex(/^[A-Za-z0-9_=-]{1,200}$/, "スレッドの ID が正しくありません").parse(c.req.param("thread"));
+
 const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "labels", "assignee", "milestone", "q", "sort", "cursor", "refresh"].map((k) => [k, queryOf(c, k)]));
 
 /**
- * GitHub タブ（要件 5.11 の段階 1「読む」と段階 2「AI に渡す」。core/github/service.ts）: 連携の状態・絞り込みの候補・一覧・issue と PR の中身・PR の変更・PR のブランチのワークツリー。
+ * GitHub タブ（要件 5.11 の段階 1「読む」・段階 2「AI に渡す」・段階 3「書く」。core/github/service.ts）: 連携の状態・絞り込みの候補・一覧・issue と PR の中身・PR の変更・PR のブランチのワークツリー、
+ * コメント・閉じる / 開き直す・ラベル・issue の作成・レビューの送信・スレッドへの返信と解決・マージ・チェックアウト。
  * この Mac からの頼みだけ受ける（中身は DB に持たず、開くたびに GitHub に聞く。gh はプロジェクトで選んだアカウントで動かす）
  */
-export function githubRoutes(app: Hono, { store, github }: ServerDeps) {
+export function githubRoutes(app: Hono, { store, github, prWatch }: ServerDeps) {
   const { withProject } = lookups(store);
   app.use("/api/projects/:id/github/*", localOnly("GitHub タブは、この Mac からだけ使えます"));
 
@@ -60,4 +118,43 @@ export function githubRoutes(app: Hono, { store, github }: ServerDeps) {
   // レビューコメントで直す: PR のブランチのワークツリー（いまあればそれ、なければ作る）
   app.post("/api/projects/:id/github/pulls/:number/worktree", withProject, async (c) => c.json(await github.pullWorktree(c.var.project, idParam(c, "number"))));
   app.get("/api/projects/:id/github/pulls/:number/files", withProject, async (c) => c.json(await github.pullFiles(c.var.project, idParam(c, "number"))));
+
+  // ---- 書き込み（段階 3）。様子が変わるだけのものは 204（画面が中身を取り直す） ----
+  app.post("/api/projects/:id/github/items/:number/comments", withProject, async (c) => {
+    await github.comment(c.var.project, idParam(c, "number"), commentBody.parse(await jsonBody(c)).body);
+    return c.body(null, 204);
+  });
+  app.post("/api/projects/:id/github/issues/:number/state", withProject, async (c) => {
+    await github.setState(c.var.project, "issue", idParam(c, "number"), stateBody.parse(await jsonBody(c)));
+    return c.body(null, 204);
+  });
+  app.post("/api/projects/:id/github/pulls/:number/state", withProject, async (c) => {
+    await github.setState(c.var.project, "pr", idParam(c, "number"), stateBody.parse(await jsonBody(c)));
+    return c.body(null, 204);
+  });
+  app.put("/api/projects/:id/github/items/:number/labels", withProject, async (c) => c.json(await github.setLabels(c.var.project, idParam(c, "number"), labelsBody.parse(await jsonBody(c)))));
+  app.post("/api/projects/:id/github/issues", withProject, async (c) => c.json(await github.createIssue(c.var.project, newIssueBody.parse(await jsonBody(c))), 201));
+  app.post("/api/projects/:id/github/pulls/:number/reviews", withProject, async (c) => {
+    await github.review(c.var.project, idParam(c, "number"), reviewBody.parse(await jsonBody(c)));
+    return c.body(null, 204);
+  });
+  app.post("/api/projects/:id/github/pulls/:number/threads/:thread/replies", withProject, async (c) => {
+    idParam(c, "number");
+    await github.replyToThread(c.var.project, threadParam(c), replyBody.parse(await jsonBody(c)).body);
+    return c.body(null, 204);
+  });
+  app.post("/api/projects/:id/github/pulls/:number/threads/:thread/resolve", withProject, async (c) => {
+    idParam(c, "number");
+    await github.resolveThread(c.var.project, threadParam(c), resolveBody.parse(await jsonBody(c)));
+    return c.body(null, 204);
+  });
+  // マージしたら、ワークツリーの PR の見張りにその場で聞き直させる（ワークツリーがあれば片付けの確認が出る）
+  app.post("/api/projects/:id/github/pulls/:number/merge", withProject, async (c) => {
+    const result = await github.merge(c.var.project, idParam(c, "number"), mergeBody.parse(await jsonBody(c)));
+    void prWatch.checkProject(c.var.project.id);
+    return c.json(result);
+  });
+  app.post("/api/projects/:id/github/pulls/:number/checkout", withProject, async (c) =>
+    c.json(await github.pullCheckout(c.var.project, idParam(c, "number"), checkoutBody.parse(await jsonBody(c)).place)),
+  );
 }

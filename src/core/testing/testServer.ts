@@ -13,7 +13,7 @@ import { MemoService } from "../memos/memos.js";
 import { DbWorkerClient, inProcessWorker } from "../databases/client.js";
 import { DatabaseService } from "../databases/service.js";
 import { GitHubService } from "../github/service.js";
-import type { GraphqlVars, RestResponse } from "../github/ghApi.js";
+import type { GraphqlVars, RestResponse, WriteMethod } from "../github/ghApi.js";
 import { readGitHubRemotes, type GitHubTarget } from "../git/githubTarget.js";
 import { DbSecretVault, type SecretCipher } from "../databases/secrets.js";
 import type { VoiceTools } from "../voice/tools.js";
@@ -260,12 +260,14 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     target: { repo: "o/r", headOwner: "o" } as GitHubTarget | null,
     /** GitHub の remote の一覧（null なら本物の git remote -v を読む） */
     remotes: null as GitHubRemote[] | null,
-    calls: [] as { kind: "graphql" | "rest" | "pages"; detail: string; vars?: GraphqlVars; etag?: string | null }[],
+    calls: [] as { kind: "graphql" | "rest" | "pages" | "send"; detail: string; vars?: GraphqlVars; etag?: string | null; method?: WriteMethod; body?: unknown }[],
     graphql: (_query: string, _vars: GraphqlVars): unknown => {
       throw new Error("GitHub の偽物に答えがありません");
     },
     rest: (_path: string, _etag: string | null): RestResponse => ({ status: 200, etag: '"e1"', body: [] }),
     pages: (_path: string): { items: unknown[]; truncated: boolean } => ({ items: [], truncated: false }),
+    /** 書き込みの答え（断らせるなら Invalid を投げる） */
+    send: (_method: WriteMethod, _path: string, _body: unknown): unknown => ({}),
   };
   const github = new GitHubService({
     resolveTarget: async () => ghFake.target,
@@ -282,6 +284,10 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
       restPages: async (path) => {
         ghFake.calls.push({ kind: "pages", detail: path });
         return ghFake.pages(path);
+      },
+      send: async (method, path, body) => {
+        ghFake.calls.push({ kind: "send", detail: path, method, body });
+        return ghFake.send(method, path, body);
       },
     }),
   });
