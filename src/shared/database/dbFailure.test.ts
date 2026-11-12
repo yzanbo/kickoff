@@ -14,6 +14,7 @@ test("dbFailureKind: ドライバの失敗の文から種類を見分ける", ()
     ["getaddrinfo ENOTFOUND db.example.internal", "dns"],
     ["connect ECONNREFUSED 127.0.0.1:5432", "refused"],
     ["connect ETIMEDOUT 10.0.0.5:5432", "timeout"],
+    ["ファイルが見つかりません: /repo/db/dev.sqlite3", "file"],
     ["Connection terminated due to connection timeout", "timeout"],
     ["unable to open database file", "file"],
     ["something else", "other"],
