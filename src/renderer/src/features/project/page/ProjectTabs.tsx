@@ -1,4 +1,4 @@
-import { Database, FileDiff, Files, GitPullRequest, GripHorizontal, GripVertical, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote } from "lucide-react";
+import { Container, Database, FileDiff, Files, GitPullRequest, GripHorizontal, GripVertical, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote } from "lucide-react";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { stateCounts } from "@/features/chat/chatState";
@@ -70,6 +70,8 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
   ...(window.kickoff ? [{ key: "db", label: "DB", tabs: [{ tab: "db" as const, label: "DB", icon: Database, tip: "DB クライアント" }] }] : []),
   // GitHub（連携先のリポジトリの issue・PR。この Mac のアプリの中だけ。DB と同じく LAN からは使わせない）
   ...(window.kickoff ? [{ key: "github", label: "GitHub", tabs: [{ tab: "github" as const, label: "GitHub", icon: GitPullRequest }] }] : []),
+  // Docker（プロジェクトの compose のサービス。この Mac のアプリの中だけ。DB・GitHub と同じく LAN からは使わせない）
+  ...(window.kickoff ? [{ key: "docker", label: "Docker", tabs: [{ tab: "docker" as const, label: "Docker", icon: Container }] }] : []),
 ];
 
 /**
