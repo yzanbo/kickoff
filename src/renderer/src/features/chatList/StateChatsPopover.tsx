@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { busyWithUnread } from "@shared/chat/state";
 import { BOARD_COLUMNS, type Chat } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -41,6 +41,7 @@ export function StateChatsPopover({
   onOpen,
   onClose,
   className,
+  header,
 }: {
   title: string;
   /** 開いた要素（画面の見出しの状態ごとの数・タブのまとまりの札） */
@@ -53,11 +54,14 @@ export function StateChatsPopover({
   onOpen: (chat: Chat) => void;
   onClose: () => void;
   className?: string;
+  /** 一覧の上に置くもの（すべてのプロジェクト / このプロジェクトの切り替えなど） */
+  header?: ReactNode;
 }) {
   const { projectName } = useProjects();
   const { stateOf } = useChatStates();
   return (
     <Popover anchor={anchor} gap={6} title={title} label={title} className={cx("state-chats-popover", className)} onClose={onClose}>
+      {header}
       {sections.length === 0 && <p className="state-chats-empty muted">{emptyText}</p>}
       {sections.map((section) => (
         <section key={section.key} className="state-chats-section">

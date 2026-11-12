@@ -9,48 +9,29 @@ import type { WaitingBadge } from "./useAllWaiting";
 export const ACTIVE_CHATS_LABEL = "作業中・待ちのチャットを一覧";
 
 /**
- * ⌘⇧A の一覧を開くボタン（アイコンは ⌘⇧A の一覧の入力欄と同じ Activity）。
- * project を渡すとそのプロジェクトに絞り込んだところから開く（サイドバーのプロジェクトのカード。利用者の依頼）。
- * 省くと「すべて」のプロジェクトから開く（プロジェクト画面の見出し。ほかのプロジェクトに要対応があるかを見るため。利用者の依頼）。
- * waiting を渡すと、要対応の数を右上に重ねる（0 なら出さない）
+ * ⌘⇧A の一覧を、そのプロジェクトに絞り込んだところから開くボタン（サイドバーのプロジェクトのカード。利用者の依頼。アイコンは ⌘⇧A の一覧の入力欄と同じ Activity）。
+ * プロジェクトの見出しの右端の、すべてのプロジェクトの状態ごとのチャットは features/project/page/AllStateChats
  */
-export function ActiveChatsButton({
-  project,
-  size,
-  className,
-  waiting,
-}: {
-  project?: Pick<Project, "id" | "name">;
-  size?: number;
-  className?: string;
-  waiting?: WaitingBadge;
-}) {
-  const shown = waiting && waiting.count > 0 ? waiting : null;
-  const note = shown ? `（要対応 ${shown.count} 件）` : "";
-  const button = (
+export function ActiveChatsButton({ project, size, className }: { project: Pick<Project, "id" | "name">; size?: number; className?: string }) {
+  return (
     <IconButton
       icon={Activity}
       size={size}
       className={className}
-      label={`${project ? `${project.name} の` : "すべてのプロジェクトの"}${ACTIVE_CHATS_LABEL}${note}`}
-      title={
-        project
-          ? `${ACTIVE_CHATS_LABEL}${note}（下書き・作業中・回答待ち・未読。⌘⇧A の一覧をこのプロジェクトで絞り込んで開く）`
-          : `すべてのプロジェクトの${ACTIVE_CHATS_LABEL}${note}（下書き・作業中・回答待ち・未読。⌘⇧A の一覧を「すべて」で開く。数はすべてのプロジェクトの回答待ち・未読）`
-      }
+      label={`${project.name} の${ACTIVE_CHATS_LABEL}`}
+      title={`${ACTIVE_CHATS_LABEL}（下書き・作業中・回答待ち・未読。⌘⇧A の一覧をこのプロジェクトで絞り込んで開く）`}
       aria-haspopup="dialog"
-      onClick={() => openActiveChats(project ? { projectId: project.id } : {})}
+      onClick={() => openActiveChats({ projectId: project.id })}
     />
   );
-  if (waiting === undefined) return button;
+}
+
+/** ボタンの右上に重ねる要対応の数（0 なら出さない。回答待ちがあればオレンジ、なければ緑。置く要素は .active-chats-button） */
+export function WaitingCountBadge({ waiting }: { waiting: WaitingBadge }) {
+  if (waiting.count === 0) return null;
   return (
-    <span className="active-chats-button">
-      {button}
-      {shown && (
-        <span className={cx("active-chats-badge", shown.urgent && "urgent")} aria-hidden>
-          {shown.count > 99 ? "99+" : shown.count}
-        </span>
-      )}
+    <span className={cx("active-chats-badge", waiting.urgent && "urgent")} aria-hidden>
+      {waiting.count > 99 ? "99+" : waiting.count}
     </span>
   );
 }
