@@ -18,6 +18,8 @@ export type WindowMessage =
   | { type: "openChat"; projectId: number; chatId: number }
   /** メインのウィンドウで子チャットを開く（設定が右の欄のとき。別ウィンドウの子チャットの札・通知から） */
   | { type: "openChild"; chatId: number }
+  /** メインのウィンドウで、そのチャットの新しい子チャットのタブを開く（別ウィンドウの「新しい子チャットで聞く」「子チャットを作成」。openAskChild） */
+  | { type: "askChild"; parentId: number; eventId: number | null; quote: string }
   /** 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（別ウィンドウの「右の欄に戻す」。別ウィンドウは閉じる） */
   | { type: "dockPopout"; route: PopoutRoute }
   /** 別ウィンドウの子チャットから親へ: 親の聞いた位置を見る（reveal）/ 答えを親の入力欄に入れる（handBack） */

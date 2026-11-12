@@ -8,6 +8,7 @@ import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { SideChanges } from "@/features/editor/SideChanges";
 import { SideChildChat } from "@/features/chat/children/SideChildChat";
 import { NewChildPane } from "@/features/chat/children/NewChildPane";
+import { createdChildPlace, openChildChat } from "@/features/chat/children/openChild";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { DatabaseClient } from "@/features/database/DatabaseClient";
 import { GitHubTab } from "@/features/github/GitHubTab";
@@ -115,11 +116,19 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       slot={chatPaneSlot(panel.key, t.key)}
     />
   ),
-  // 右の欄の「＋」で開く新しい子チャット。最初の文を送ったら、できた子チャットのタブに置き換える（同じ位置のまま）
+  // 新しい子チャット。最初の文を送ったら、できた子チャットのタブに置き換える（同じ位置のまま）。
+  // 「子チャットを作成」「新しい子チャットで聞く」から開いたタブ（follow）は、設定の「子チャットを作ったとき」が別ウィンドウ・開かないなら、閉じてそちらで開く
   newChild: ({ tab: t, panel }) => (
     <NewChildPane
-      parentId={t.chatId}
-      onCreated={(child) => panel.replaceTab(t.key, childTab({ chatId: t.chatId, childId: child.id, projectId: child.project_id, title: child.title }))}
+      parentId={t.parentId ?? t.chatId}
+      quote={t.quote}
+      eventId={t.eventId}
+      onCreated={(child, opts) => {
+        const place = t.follow ? createdChildPlace(opts) : "side";
+        if (place === "side") return panel.replaceTab(t.key, childTab({ chatId: t.chatId, childId: child.id, projectId: child.project_id, title: child.title }));
+        panel.closeTab(t.key);
+        if (place === "window") openChildChat(child, "window");
+      }}
     />
   ),
   terminal: ({ tab: t, panel, visible, focused }) => (

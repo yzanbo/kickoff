@@ -80,7 +80,7 @@ export function panelActions(key: string) {
     /** 子チャットをタブで開く（いちばん上の親のチャットの画面の右の欄。同じ子チャットのタブがあればそのペインで表示する） */
     openChild: (target: { chatId: number; childId: number; projectId: number; title: string }) => openTab(childTab(target)),
     /** 新しい子チャットのタブを開く（チャットの画面の右の欄の「＋」。押すたびに新しいタブ。最初の文を送ると、できた子チャットのタブになる） */
-    openNewChild: (target: { chatId: number; projectId: number }) => openTab(newChildTab(target)),
+    openNewChild: (target: Parameters<typeof newChildTab>[0]) => openTab(newChildTab(target)),
     /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
     openBrowser: (url = "") => openTab(browserTab(url)),
     /** ブラウザのタブを表に出さずに足し、そのキーを返す（AI が開いたとき。見ているタブ・欄の開閉は変えない） */

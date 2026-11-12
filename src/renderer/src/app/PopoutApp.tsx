@@ -22,7 +22,6 @@ import { SideMemo } from "@/features/memo/SideMemo";
 import { DatabaseClient } from "@/features/database/DatabaseClient";
 import { SideScope } from "@/features/popout/SideScope";
 import { PopoutDockButton } from "@/features/popout/PopoutDockButton";
-import { AskChildHost } from "@/features/chat/children/AskChildHost";
 import { GitHubDialogHost } from "@/features/github/GitHubDialogHost";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 import { popoutPath, type PopoutRoute } from "./popout";
@@ -101,7 +100,6 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
         </div>
         <HoverTip />
         <MemoProgress />
-        <AskChildHost />
         {/* GitHub の新しい issue・マージの確認（GitHub タブとメモ・チャットの「issue にする」から） */}
         <GitHubDialogHost />
         <DbUnlockHost />
