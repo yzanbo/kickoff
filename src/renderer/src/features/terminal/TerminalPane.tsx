@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import { errorMessage } from "@shared/errors";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { terminalFont, terminalTheme } from "./terminalTheme";
+import { useTerminalSelectionMenu } from "./useTerminalSelectionMenu";
 
 /** シェルが終わったときに出す文 */
 const EXITED = "\r\n\x1b[2m[プロセスが終了しました。キーを押すと新しいシェルを開きます]\x1b[0m\r\n";
@@ -22,19 +23,23 @@ interface Props {
   focused?: boolean;
   /** ⌘ を押しながら URL を押したとき（アプリの中のブラウザで開く） */
   onOpenUrl: (url: string) => void;
+  /** どのプロジェクトの欄か（選んだ文をそのプロジェクトのチャットに足す。プロジェクトの欄でなければ null） */
+  projectId?: number | null;
 }
 
 /**
  * 内蔵ターミナル（xterm.js）。シェルは Electron のメインプロセスで動いていて、タブを裏に回しても・ボードを切り替えても動き続ける。
  * 表示し直したときは、いまの画面の内容をもらって描き直す。使うときだけ読み込む（Panel から lazy で読む）
  */
-export default function TerminalPane({ termKey, cwd, visible, focused = visible, onOpenUrl }: Props) {
+export default function TerminalPane({ termKey, cwd, visible, focused = visible, onOpenUrl, projectId = null }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal>(undefined);
   const fitRef = useRef<FitAddon>(undefined);
   const theme = useAppliedTheme();
   const openUrl = useRef(onOpenUrl);
   openUrl.current = onOpenUrl;
+  // 右クリック: 選んだ文のコピーと「チャットに追加」
+  const selectionMenu = useTerminalSelectionMenu({ projectId, cwd, selection: () => termRef.current?.getSelection() ?? "" });
 
   useEffect(() => {
     const native = window.kickoff?.terminal;
@@ -145,8 +150,10 @@ export default function TerminalPane({ termKey, cwd, visible, focused = visible,
       onKeyDown={(e) => {
         if (!e.metaKey) e.stopPropagation();
       }}
+      onContextMenu={selectionMenu.onContextMenu}
     >
       {window.kickoff?.terminal ? <div ref={ref} className="terminal-screen" /> : <p className="muted small">ターミナルは Mac のアプリでだけ使えます。</p>}
+      {selectionMenu.element}
     </div>
   );
 }
