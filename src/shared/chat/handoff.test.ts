@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { eventSequence } from "@shared/testing/factories";
-import { handoffAfterFor, handoffRequestPrompt, lastReplyOfTurn } from "./handoff";
+import { handoffAfterFor, handoffRequestExtra, handoffRequestPrompt, lastReplyOfTurn } from "./handoff";
 
 test("handoffRequestPrompt: 子チャットの名前を頭の文に入れる（名前がなければ Untitled Chat）", () => {
   const text = handoffRequestPrompt("違いの調査");
@@ -9,6 +9,15 @@ test("handoffRequestPrompt: 子チャットの名前を頭の文に入れる（�
   assert.ok(text.includes("- 頭は「子チャット「違いの調査」で検討した結果、次をお願いします。」で始める。"));
   assert.ok(text.endsWith("- このあと依頼文を直すよう頼まれたら、直した依頼文の全文だけを書く。"));
   assert.ok(handoffRequestPrompt("  ").includes("子チャット「Untitled Chat」で検討した結果"));
+});
+
+test("handoffRequestPrompt / handoffRequestExtra: 追加の指示は終わりに足し、たたんだ発言に添えるために取り出せる", () => {
+  const text = handoffRequestPrompt("違いの調査", "  手順は 3 つまでにまとめて\nテストの方針も入れて  ");
+  assert.ok(text.endsWith("\n\n依頼文を書くときの、利用者からの追加の指示:\n手順は 3 つまでにまとめて\nテストの方針も入れて"));
+  assert.equal(handoffRequestExtra(text), "手順は 3 つまでにまとめて\nテストの方針も入れて");
+  // 空白だけなら足さない
+  assert.equal(handoffRequestPrompt("違いの調査", "   "), handoffRequestPrompt("違いの調査"));
+  assert.equal(handoffRequestExtra(handoffRequestPrompt("違いの調査")), null);
 });
 
 test("lastReplyOfTurn: 作業の終わりの直前のメインのひと続きの返答だけ（途中の文・サブエージェント・思考は入れない）", () => {

@@ -41,6 +41,15 @@
   color: var(--muted);
 }
 
+/* 何行も書ける入力（promptDialog の multiline）: 書いた分だけ伸び、画面の 4 割を超えたら中でスクロール */
+.app-dialog-textarea {
+  field-sizing: content;
+  min-height: calc(3lh + 16px);
+  max-height: 40vh;
+  resize: none;
+  line-height: 1.6;
+}
+
 /* 確認・入力・選択のダイアログのボタンの行（並べ方は .dialog-actions） */
 .app-dialog-actions {
   margin-top: 4px;
