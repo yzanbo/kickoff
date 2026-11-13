@@ -26,7 +26,7 @@ test("子チャット: 親の会話を引き継ぐと、親の最後まで終わ
   assert.equal(child.parent_chat_id, parentId);
   assert.equal(child.parent_event_id, answer.id);
   assert.equal(child.title, "これはどういう意味？");
-  assert.equal(child.session_id, "fork-1");
+  await until(() => store.chats.get(child.id)?.session_id === "fork-1");
   assert.deepEqual(provider.forks, [["s1", "m1", project.repo_path]]);
   // 最初の発言は、選んだ文の引用 ＋ 質問。前に引き継いだことのお知らせ
   const events = store.events.list(child.id);
@@ -37,6 +37,64 @@ test("子チャット: 親の会話を引き継ぐと、親の最後まで終わ
   await until(() => provider.resumes.includes("fork-1"));
   release();
   await until(() => !runner.isBusy(parentId) && !runner.isBusy(child.id));
+});
+
+test("子チャット: 親の会話を写すのを待たずに作って最初の発言を残し、写している間は作業中（inheriting）。写し終えたらそのセッションで動かす", async () => {
+  const ctx = setup();
+  const { call, store, provider, runner } = ctx;
+  const parentId = await finishedChat(ctx);
+  const release = provider.holdFork();
+  const created = await call("POST", `/api/chats/${parentId}/children`, { text: "長い親から聞く", inherit: true });
+  assert.equal(created.status, 201);
+  const child = created.body;
+  // まだ写している: 発言は残り、作業中で、引き継ぎ中の様子を配る。プロバイダーはまだ動かさない
+  assert.deepEqual(store.events.list(child.id).map((e) => e.type), ["notice", "user"]);
+  assert.equal(runner.isBusy(child.id), true);
+  assert.equal(runner.live(child.id).inheriting, true);
+  assert.equal(child.session_id, null);
+  const turnsBefore = provider.resumes.length;
+  // 写している間の「いま」は預かる
+  assert.equal((await call("POST", `/api/chats/${child.id}/tell`, { text: "ついでに" })).body.result, "held");
+  assert.equal(provider.resumes.length, turnsBefore);
+  const releaseTurn = provider.hold();
+  release();
+  await until(() => provider.resumes.includes("fork-1"));
+  assert.equal(store.chats.get(child.id)?.session_id !== null, true);
+  assert.equal(runner.live(child.id).inheriting, false);
+  // 預かった「いま」は、動かし始めた作業に伝える
+  await until(() => provider.told.includes("ついでに"));
+  releaseTurn();
+  await until(() => !runner.isBusy(child.id));
+});
+
+test("子チャット: 親の会話を写している間に止めると、写し終えたところでプロバイダーを動かさずに中断で終える", async () => {
+  const ctx = setup();
+  const { call, store, provider, runner } = ctx;
+  const parentId = await finishedChat(ctx);
+  const release = provider.holdFork();
+  const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "やっぱりやめる", inherit: true })).body;
+  const turnsBefore = provider.resumes.length;
+  assert.equal((await call("POST", `/api/chats/${child.id}/cancel`)).status, 204);
+  assert.equal(runner.live(child.id).stopping, true);
+  release();
+  await until(() => !runner.isBusy(child.id));
+  assert.equal(provider.resumes.length, turnsBefore);
+  assert.equal(store.chats.get(child.id)?.status, "cancelled");
+  assert.equal(runner.live(child.id).stopping, false);
+});
+
+test("子チャット: 親の会話を写せなければ、お知らせを残して引き継がずに動かす", async () => {
+  const ctx = setup();
+  const { call, store, provider, runner } = ctx;
+  const parentId = await finishedChat(ctx);
+  provider.forkError = "ENOSPC: no space left on device";
+  const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "聞きたい", inherit: true })).body;
+  assert.equal(child.status === "running" || runner.isBusy(child.id), true);
+  await until(() => !runner.isBusy(child.id) && store.chats.get(child.id)?.status === "completed");
+  const notices = store.events.list(child.id).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
+  assert.ok(notices.some((m) => m.includes("親の会話を引き継げませんでした（ENOSPC: no space left on device）")));
+  // 引き継がずに（続きのセッションなしで）動かす
+  assert.equal(provider.resumes.at(-1) ?? null, null);
 });
 
 test("子チャット: 文の頭に引用を入れて送ると、引用はそのまま指示に入り、名前は引用のあとの文から付ける", async () => {
@@ -311,6 +369,6 @@ test("AI が作る子チャット: 親の会話を引き継げたら、親の最
   assert.match(result, /いまの作業より前に終わったところまでを引き継いでいます/);
   const child = ctx.store.chats.descendants(parentId)[0];
   assert.equal(child.parent_chat_id, parentId);
-  assert.equal(child.session_id?.startsWith("fork-"), true);
+  await until(() => ctx.store.chats.get(child.id)?.session_id?.startsWith("fork-") === true);
   await until(() => !ctx.runner.isBusy(child.id));
 });

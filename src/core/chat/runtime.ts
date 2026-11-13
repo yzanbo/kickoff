@@ -35,6 +35,11 @@ interface LiveFields {
    * この間の「いま」は預かり、作業の終わりに送信待ちより先に送る（送信待ちに戻すと、止めている・一時停止の線があるときに送られず、順番も変わるため）
    */
   tellsClosed: boolean;
+  /**
+   * 子チャットで親の会話を写している（動かし始める前。親の記録が大きいと数十秒かかる。ChatLive の inheriting）。
+   * この間の「いま」は預かり、動かし始めたらその作業に伝える
+   */
+  inheriting: boolean;
   /** 起動したときの送信待ちの確かめを待っている（答えるまで送信待ちを送らない。ChatLive の queue_resume） */
   resume: { interrupted: boolean } | null;
 }
@@ -65,7 +70,7 @@ export class ChatRuntime {
   readonly afterCompactEdits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, tellsClosed: false, resume: null };
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, tellsClosed: false, inheriting: false, resume: null };
   /** 圧縮が終わった（圧縮後指示を伝える。圧縮中・圧縮前指示から圧縮が終わるまで（compactPhase）が外れたとき） */
   private readonly onCompactEnded: () => void;
 
@@ -98,7 +103,17 @@ export class ChatRuntime {
    * 預かった指示を書き直している間も（その指示より先に入らないように）、いまの作業に足せなくなったあと（tellsClosed。先に預かった指示より先に入らないように）も預かる
    */
   get holdsTells(): boolean {
-    return this.compactPhase || this.fields.compactedTurn || this.fields.deliveringAfterCompact || this.editingAfterCompact || this.fields.tellsClosed;
+    return this.compactPhase || this.fields.compactedTurn || this.fields.deliveringAfterCompact || this.editingAfterCompact || this.fields.tellsClosed || this.fields.inheriting;
+  }
+
+  /** 子チャットで親の会話を写しているか（動かし始める前） */
+  get inheriting(): boolean {
+    return this.fields.inheriting;
+  }
+
+  /** 止めるよう頼んだか（終わるまで。親の会話を写している間に頼んだときは、写し終えたら動かさずに止める） */
+  get stopping(): boolean {
+    return this.fields.stopping;
   }
 
   /** いまの作業に「いま」を足せなくなったか（作業の終わりまで預かる） */
@@ -173,7 +188,7 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn, compactedTurn, tellsClosed, resume } = this.fields;
+    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn, compactedTurn, tellsClosed, inheriting, resume } = this.fields;
     return {
       queue: this.queueState(),
       background,
@@ -186,6 +201,7 @@ export class ChatRuntime {
       compact_after_turn: compactAfterTurn,
       compacted_turn: compactedTurn,
       tells_closed: tellsClosed,
+      inheriting,
       queue_resume: resume,
     };
   }

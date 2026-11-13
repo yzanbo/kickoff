@@ -26,6 +26,11 @@ export interface StartChatInput {
   parentEventId?: number;
   /** 続きから始める会話（子チャットで親の会話を引き継ぐとき。親の会話を写したセッション） */
   sessionId?: string;
+  /**
+   * 続きから始める会話を、作ったあとで用意する（子チャットで親の会話を写すとき。親の記録が大きいと数十秒かかるので、
+   * チャットと最初の発言を先に作って返し、写し終えてから動かす。Runner.start）
+   */
+  prepareSession?: () => Promise<string>;
   /** 最初の発言の前に残すお知らせ（子チャットで、親の会話を引き継いだか） */
   notice?: string;
   /** 名前（1 行目・AI が付ける名前）のもとにする文（なければ prompt。子チャットでは引用を除いた質問だけ） */

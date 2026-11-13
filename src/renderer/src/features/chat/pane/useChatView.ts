@@ -90,6 +90,7 @@ export function useChatView(
       compact_after_turn: busy && coreLive.compact_after_turn,
       compacted_turn: busy && coreLive.compacted_turn,
       tells_closed: busy && coreLive.tells_closed,
+      inheriting: busy && coreLive.inheriting,
     }),
     [coreLive, busy, stopClicked],
   );

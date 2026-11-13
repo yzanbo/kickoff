@@ -58,21 +58,26 @@ export async function startChildChat(
   const { store, runner, providers } = deps;
   const project = store.projects.get(parent.project_id);
   const parentName = parent.title || "（名前なし）";
-  let sessionId: string | undefined;
+  // 親の会話を写す手順（写すのは親の記録の大きさに比例して時間がかかる。会話が長いと数十秒）
+  let fork: (() => Promise<string>) | undefined;
   let notice = input.inherit ? `親のチャット「${parentName}」の会話を引き継いで始めました` : `親のチャット「${parentName}」から、会話を引き継がずに始めました`;
   if (input.inherit && project) {
     // 親の最後まで終わった作業の終わり（そのあとでコンテキストを消去していれば、引き継げる会話はない）
     const point = resumePointBefore(store.events.list(parent.id));
     const provider = providers[parent.provider];
-    if (point?.session_id && point.message_id && provider.fork) {
-      sessionId = await provider.fork(point.session_id, point.message_id, workdirOf(parent, project)).catch(asInvalid);
+    const { session_id: from, message_id: at } = point ?? {};
+    if (from && at && provider.fork) {
+      const forkSession = provider.fork.bind(provider);
+      const workdir = workdirOf(parent, project);
+      fork = () => forkSession(from, at, workdir);
     } else {
       notice = `親のチャット「${parentName}」には引き継げる会話がまだないので、選択部分だけで始めました`;
     }
   }
   // 聞くことがない: 会話を写した子チャットを作るだけ（動かさない。名前は最初に送った文から付ける runner.send）
   if (!input.text.trim() && !input.attachments?.length) {
-    if (!sessionId) throw new Invalid(input.inherit ? `親のチャット「${parentName}」には引き継げる会話がまだありません。聞きたいことを書いてください` : "メッセージか添付ファイルが必要です");
+    if (!fork) throw new Invalid(input.inherit ? `親のチャット「${parentName}」には引き継げる会話がまだありません。聞きたいことを書いてください` : "メッセージか添付ファイルが必要です");
+    const sessionId = await fork().catch(asInvalid);
     return openChildChat(store, parent, { sessionId, notice, eventId: input.eventId, options: input.options });
   }
   const prompt = input.quote?.trim() ? `${quoteBlock(input.quote)}\n\n${input.text}` : input.text;
@@ -86,7 +91,8 @@ export async function startChildChat(
     worktreePath: parent.worktree_path ?? undefined,
     parentChatId: parent.id,
     parentEventId: input.eventId ?? undefined,
-    sessionId,
+    // 会話を写すのは作ったあとで待たずに（写し終えるまで作業中として見せ、終わったら送る Runner.start）
+    prepareSession: fork,
     notice,
   });
 }

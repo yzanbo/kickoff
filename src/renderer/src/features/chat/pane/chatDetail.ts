@@ -22,6 +22,7 @@ const IDLE_LIVE: ChatLive = {
   compact_after_turn: false,
   compacted_turn: false,
   tells_closed: false,
+  inheriting: false,
   queue_resume: null,
 };
 
@@ -46,6 +47,7 @@ export function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
     compact_after_turn: next.compact_after_turn,
     compacted_turn: next.compacted_turn,
     tells_closed: next.tells_closed,
+    inheriting: next.inheriting,
     queue_resume: keep(prev.queue_resume, next.queue_resume),
   };
 }

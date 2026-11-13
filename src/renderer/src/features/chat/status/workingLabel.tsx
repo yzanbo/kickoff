@@ -19,6 +19,8 @@ export interface ChatActivity {
  */
 export function workingLabel(chat: Chat, last: TimelineItem | undefined, streaming: string, live: ChatLive, runningAgents: number, activity: ChatActivity): ReactNode {
   if (live.stopping) return "停止中…";
+  // 子チャットで親の会話を写している（写し終えたら送る。親の会話が長いと数十秒かかる）
+  if (live.inheriting) return "親の会話を引き継いでいます（会話が長いと数十秒かかります）";
   if (live.retry) return <RetryLabel retry={live.retry} agents={Math.max(runningAgents, countBackground(live.background).agents)} />;
   // 会話を要約して、コンテキストを空けている（手で圧縮した・上限に近づいて自動で。終わると続きを始める）
   if (live.compacting !== null) return compactingLabel(live.compacting.trigger);
