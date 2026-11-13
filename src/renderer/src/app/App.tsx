@@ -41,6 +41,7 @@ import { useChatNotifications } from "./notifications";
 import { useCiFailureNotifications } from "./ciNotifications";
 import { useDockBadge } from "./dockBadge";
 import { useAgentBrowserBridge } from "./agentBrowser";
+import { useAiOpenRequests } from "./aiOpenRequests";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
 import { boardTabOf, openNewChat, openProjectSearch, RouteContext, routeProjectId, useHashRoute } from "./router";
@@ -83,6 +84,8 @@ export function App() {
   useDockBadge({ enabled: appSettings?.dock_badge ?? true, projects, pending: chatStates.pending });
   // AI が埋め込みブラウザのタブを開く・操作している印
   useAgentBrowserBridge();
+  // チャットの AI が頼んだメモ・家系のチャットを開く（kickoff_chat の open_memo・open_chat）
+  useAiOpenRequests();
   const sidebar = useSidebar();
   // 新しいプロジェクトのダイアログ（null = 閉じている。名前の初めの値・作ったあとの処理を持てる）
   const [creating, setCreating] = useState<NewProjectRequest | null>(null);

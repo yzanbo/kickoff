@@ -20,7 +20,7 @@ const MAX_DEPTH = 20;
 const nameOf = (title: string) => title.trim() || "（名前なし）";
 
 /** いちばん上の親チャットから、そのチャット自身までの並び */
-function lineageOf(store: Store, chat: Chat): Chat[] {
+export function lineageOf(store: Store, chat: Chat): Chat[] {
   const path = [chat];
   const seen = new Set([chat.id]);
   let parentId = chat.parent_chat_id;
@@ -35,7 +35,7 @@ function lineageOf(store: Store, chat: Chat): Chat[] {
 }
 
 /** 家系のチャット（親のすぐ下に子が続く並び）と、それぞれのいちばん上の親からのパス（関係の呼び名に使う） */
-function familyOf(store: Store, self: Chat) {
+export function familyOf(store: Store, self: Chat) {
   const root = lineageOf(store, self)[0];
   const members = familyOrder(root, store.chats.descendants(root.id));
   const paths = new Map<number, number[]>();

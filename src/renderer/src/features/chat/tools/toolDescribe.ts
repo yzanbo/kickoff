@@ -1,6 +1,7 @@
 // ツールの呼び出しを人が読める文にする（タイムラインのツールの行・実行中の表示・承認カードで共通）
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL, describeUpdateChat } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
+import { AI_OPEN_CHAT_TOOL, AI_OPEN_MEMO_TOOL, describeOpenChat, describeOpenMemo } from "@shared/chat/aiOpen";
 import { isSubagentTool } from "@shared/chat/subagents";
 
 type Input = Record<string, unknown>;
@@ -44,6 +45,8 @@ const TOOL_LABELS: Record<string, string> = {
   [AI_CHILD_CHAT_TOOL]: "子チャットを作る",
   [AI_LIST_FAMILY_TOOL]: "同じ家系のチャットを確かめる",
   [AI_UPDATE_CHAT_TOOL]: "チャットを変更",
+  [AI_OPEN_MEMO_TOOL]: "メモを開く",
+  [AI_OPEN_CHAT_TOOL]: "チャットを開く",
 };
 
 /** ToDo の状態の表示名（TaskUpdate の status） */
@@ -205,6 +208,11 @@ function describeKnown(name: string, input: Input): string | null {
     case AI_UPDATE_CHAT_TOOL:
       // どのチャットの何を変えたか（引数から。「名前を『…』に変えた・固定した（チャット 12）」）
       return clip(describeUpdateChat(input));
+    case AI_OPEN_MEMO_TOOL:
+      // どのメモをどこに開いたか（「機能の仕様/図.html（別ウィンドウ）」。場所を省いたら設定の開き方なので付けない）
+      return clip(describeOpenMemo(input));
+    case AI_OPEN_CHAT_TOOL:
+      return clip(describeOpenChat(input));
   }
   // サブエージェントは、依頼の概要と種類だけ（依頼の全文は「中身を見る」で見られる）
   if (isSubagentTool(name) && typeof input.description === "string") {
