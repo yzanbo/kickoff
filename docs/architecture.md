@@ -320,7 +320,7 @@ ALTER TABLE db_connections ADD COLUMN write_check TEXT NOT NULL DEFAULT 'dangero
 
 ### GitHub 連携
 
-要件定義書の「5.11 GitHub」。GitHub の issue・PR の中身は DB に持たない（正しいのはいつも GitHub。コアのメモリに少しの間だけ覚え、開いたときは必ず GitHub に聞く）。段階 1「読む」はスキーマを変えずに作り、段階 2「AI に渡す」のチャットとの結び付きを v19 で足した。
+要件定義書の「5.11 GitHub」。GitHub の issue・PR の中身は DB に持たない（正しいのはいつも GitHub。コアのメモリに少しの間だけ覚え、開いたときは必ず GitHub に聞く）。段階 1「読む」はスキーマを変えずに作り、段階 2「AI に渡す」のチャットとの結び付きを v19 で足した。メモリに覚えるのは、一覧（ETag で変わったかを聞く）と、最後に取った中身（開き直したときのつなぎの表示。`?cached=1`）。非公開のリポジトリの中のファイルを指す本文の画像は、コアが `gh api` で取って返す（`GET …/github/image`。鍵はコアにも画面にも持たない。2026-11-13）。
 
 ```sql
 -- projects の連携先（github_remote）・アカウント（github_account）は v12 で入れた
@@ -444,7 +444,7 @@ ID 入りの localStorage のキー（グループの開閉・下書き・送信
 src/
   shared/              どのプロセスからも使う型と純粋な関数（Node・DOM・Electron・React に依存しない）。import は @shared/…
     types/             API・SSE・DB の形（chat / chatEvent / chatLive / project / approval / settings / provider / git / github / voice / docker / events / api）
-    github/            GitHub タブの絞り込みを GitHub の検索の文にする（searchQuery）
+    github/            GitHub タブの絞り込みと GitHub の検索の文の行き来（searchQuery）・本文の画像のリポジトリのファイルの見分け（repoImage）
     chat/              チャットの決まり（状態と列 state・サブエージェントの一覧 subagents・選択の解決 chatOptions・送信待ちの印 queueStops・失敗の見分け・AI への定型文）
     project/           プロジェクトの決まり（タグ・色）
     memo/              メモの名前の決まり（ファイル名に使える形・重ならない名前・チャットから作るメモの名前）と種類（Markdown / HTML）
