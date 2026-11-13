@@ -375,7 +375,22 @@ ALTER TABLE chats ADD COLUMN untracked_only INTEGER NOT NULL DEFAULT 0 CHECK (un
 ALTER TABLE db_connections ADD COLUMN worktree_path TEXT CHECK (worktree_path <> '');
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23];
+/**
+ * v24: スマホ連携の端末（スマホなど、この Mac の Kickoff を外から使う端末）。トークンは hash だけを置く（本物は端末にだけある）。
+ * push はプッシュの宛先（Expo のトークン・Web Push の購読。外に出さない）。DB を写して開発版を作ったときは、写した先で空にする（system/devData.ts）
+ */
+const SCHEMA_V24 = `
+CREATE TABLE devices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL CHECK (name <> ''),
+  token_hash TEXT NOT NULL UNIQUE CHECK (token_hash <> ''),
+  push TEXT CHECK (push IS NULL OR (json_valid(push) AND json_type(push) = 'object')),
+  created_at TEXT NOT NULL DEFAULT (${NOW}),
+  last_used_at TEXT
+) STRICT;
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

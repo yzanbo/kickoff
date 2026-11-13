@@ -5,6 +5,7 @@ import { createDbConnectionStore } from "./dbConnections.js";
 import { createDbErLayoutStore } from "./dbErLayouts.js";
 import { createDbQueryHistoryStore } from "./dbQueryHistory.js";
 import { createDbPrepRunStore } from "./dbPrepRuns.js";
+import { createDeviceStore } from "./devices.js";
 import { createEventStore } from "./events.js";
 import { createGroupStore } from "./groups.js";
 import { openDatabase } from "./open.js";
@@ -23,7 +24,7 @@ import { createWorktreeEnvStore } from "./worktreeEnvs.js";
  */
 export class Store {
   readonly db: DatabaseSync;
-  /** この DB を作ったときに決めた ID（meta の表） */
+  /** この DB を作ったときに決めた ID（meta の表）。スマホ連携の本体の ID（スマホが複数の本体を切り替える目印）も兼ねる */
   readonly databaseId: string;
   readonly settings;
   readonly secrets;
@@ -44,6 +45,8 @@ export class Store {
   readonly dbPrepRuns;
   /** ワークツリーの実行環境（ポートの帯・組の名前） */
   readonly worktreeEnvs;
+  /** スマホ連携の端末（トークンの hash・最後に使った時刻・プッシュの宛先） */
+  readonly devices;
 
   constructor(
     private readonly file: string,
@@ -66,6 +69,7 @@ export class Store {
     this.dbErLayouts = createDbErLayoutStore(this.db);
     this.dbPrepRuns = createDbPrepRunStore(this.db);
     this.worktreeEnvs = createWorktreeEnvStore(this.db);
+    this.devices = createDeviceStore(this.db);
   }
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
