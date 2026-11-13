@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { DockerContainer, DockerService } from "@shared/types";
-import { conflictText, oneoffSummary, othersTip, servicePorts, serviceStatusText, shareText, shellCommand, silentText, stopOthersLabel, unpublishedPorts } from "./dockerView";
+import { conflictText, conflictsByService, oneoffSummary, othersTip, servicePorts, serviceStatusText, shareText, shellCommand, silentText, stopOthersLabel, unpublishedPorts } from "./dockerView";
 
 const ctr = (over: Partial<DockerContainer> = {}): DockerContainer => ({ id: "c", name: "c", image: "i", state: "running", status: "", exit_code: null, health: null, ports: [], number: 1, ...over });
 const svc = (over: Partial<DockerService> = {}): DockerService => ({ name: "db", image: "postgres", profiles: [], published: [], containers: [], oneoffs: [], mark: "none", running: 0, db_kind: null, ...over });
@@ -58,4 +58,23 @@ test("unpublishedPorts: 動いているのに出すはずのポートを出し�
   assert.deepEqual(unpublishedPorts(svc({ published: [18082], containers: [ctr({ ports: [p(18082)] })] })), []);
   assert.deepEqual(unpublishedPorts(svc({ published: [18082], containers: [ctr({ state: "exited" })] })), []);
   assert.deepEqual(unpublishedPorts(svc({ published: [9000, 8080], containers: [ctr({ ports: [p(9000)] })] })), [8080]);
+});
+
+test("conflictsByService: 相手を、失敗した操作が起動しようとしたサービスのうちそのポートを出すものの行に分ける（札付きは行の操作のときだけ）", () => {
+  const conflict = (port: number, id: string) => ({ port, container_id: id, container_name: id, label: id });
+  const services = [svc({ name: "db", published: [5432] }), svc({ name: "web", published: [3000, 8080] }), svc({ name: "db-e2e", profiles: ["e2e"], published: [5432] })];
+  const conflicts = [conflict(5432, "x1"), conflict(8080, "x2"), conflict(3000, "x2"), conflict(9999, "x3")];
+  const all = conflictsByService(services, { service: null, conflicts });
+  assert.deepEqual(
+    all.rows.map((r) => [r.service, r.conflicts.map((c) => `${c.container_id}:${c.port}`)]),
+    [
+      ["db", ["x1:5432"]],
+      ["web", ["x2:8080", "x2:3000"]],
+    ],
+  );
+  assert.deepEqual(all.rest.map((c) => c.port), [9999]);
+  // 札付きの行の［起動］でぶつかったなら、その行だけ
+  const e2e = conflictsByService(services, { service: "db-e2e", conflicts: [conflict(5432, "x1")] });
+  assert.deepEqual(e2e.rows.map((r) => r.service), ["db-e2e"]);
+  assert.deepEqual(e2e.rest, []);
 });

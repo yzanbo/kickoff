@@ -1,5 +1,5 @@
 // Docker タブの表示の文（純粋な関数。テストは dockerView.test.ts）
-import type { DockerCompose, DockerContainer, DockerPortConflict, DockerService, DockerShare, DockerSilentConflict } from "@shared/types";
+import type { DockerCompose, DockerContainer, DockerFailure, DockerPortConflict, DockerService, DockerShare, DockerSilentConflict } from "@shared/types";
 import { DOCKER_MARK_LABELS } from "@shared/types";
 import { workplaceText } from "@shared/docker/workplace";
 
@@ -71,6 +71,21 @@ export function othersTip(others: { name: string; ports: number[] }[]): string {
 
 /** ポートの取り合いの相手の 1 行（「:5432 は「本体 | main の db」が使っています」） */
 export const conflictText = (c: Pick<DockerPortConflict, "port" | "label">) => `:${c.port} は「${c.label}」が使っています`;
+
+/**
+ * ポートの取り合いの相手を、ぶつかったサービスごとに分ける（どのサービスがぶつかったのかを、その行に出すため）。
+ * ぶつかったサービス = 失敗した操作が起動しようとしたサービス（行の操作ならそのサービス、すべて起動なら札のないもの。コアの startedServices と同じ）のうち、
+ * 相手のポートを Mac に出すもの。サービスの並びの順で、どのサービスにも当たらない相手は rest
+ */
+export function conflictsByService(
+  services: Pick<DockerService, "name" | "profiles" | "published">[],
+  failure: Pick<DockerFailure, "service" | "conflicts">,
+): { rows: { service: string; conflicts: DockerPortConflict[] }[]; rest: DockerPortConflict[] } {
+  const started = services.filter((s) => (failure.service ? s.name === failure.service : s.profiles.length === 0));
+  const rows = started.map((s) => ({ service: s.name, conflicts: failure.conflicts.filter((c) => s.published.includes(c.port)) })).filter((r) => r.conflicts.length > 0);
+  const placed = new Set(rows.flatMap((r) => r.conflicts));
+  return { rows, rest: failure.conflicts.filter((c) => !placed.has(c)) };
+}
 
 /** ［相手を止めて起動］の文（相手が 1 つならその名前） */
 export function stopOthersLabel(conflicts: Pick<DockerPortConflict, "container_id" | "label">[]): string {

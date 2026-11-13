@@ -10,7 +10,7 @@ import { CloseButton, IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { DockerServiceRow } from "./DockerServiceRow";
-import { conflictText, shareText, stopOthersLabel } from "./dockerView";
+import { conflictText, conflictsByService, shareText, stopOthersLabel } from "./dockerView";
 
 export type DockerAct = (body: DockerActionBody) => Promise<void>;
 
@@ -58,6 +58,10 @@ export function DockerComposeBlock({
   const openFile = () => compose.file && openProjectFile(projectId, { path: compose.file, ...(compose.worktree_path ? { worktree: compose.worktree_path } : {}) });
   const anyRunning = compose.services.some((s) => s.running > 0 || s.oneoffs.some((c) => c.state === "running"));
   const failure = compose.failure;
+  // ポートの取り合いの相手は、ぶつかったサービスの行に出す（［相手を止めて起動］は最初の行に 1 つだけ。どの行にも当たらない相手は失敗の中に）
+  const conflicts = failure && failure.conflicts.length > 0 ? conflictsByService(compose.services, failure) : null;
+  const stopOthers = failure && conflicts ? stopOthersLabel(failure.conflicts) : null;
+  const stopOthersTip = "相手を docker stop してから、起動できなかったサービスを作り直して起動します（どちらもボリュームのデータは残ります）";
 
   return (
     <section className="docker-compose" aria-label={compose.file ?? compose.project_name ?? "compose"}>
@@ -134,23 +138,39 @@ export function DockerComposeBlock({
             </button>
             <CloseButton label="閉じる" size={14} onClick={() => send("dismiss")} />
           </div>
-          {failure.conflicts.length > 0 && (
+          {conflicts && conflicts.rest.length > 0 && (
             <div className="docker-conflicts">
-              {failure.conflicts.map((c) => (
+              {conflicts.rest.map((c) => (
                 <div key={`${c.container_id}:${c.port}`}>{conflictText(c)}</div>
               ))}
-              <button type="button" className="btn btn-sm" disabled={busy} data-tip="相手を docker stop してから、起動できなかったサービスを作り直して起動します（どちらもボリュームのデータは残ります）" onClick={() => send("stop_others_and_start")}>
-                {stopOthersLabel(failure.conflicts)}
-              </button>
+              {conflicts.rows.length === 0 && (
+                <button type="button" className="btn btn-sm" disabled={busy} data-tip={stopOthersTip} onClick={() => send("stop_others_and_start")}>
+                  {stopOthers}
+                </button>
+              )}
             </div>
           )}
           <pre className="docker-stderr">{failure.message}</pre>
         </div>
       )}
       <div className="docker-services">
-        {compose.services.map((s) => (
-          <DockerServiceRow key={s.name} projectId={projectId} compose={compose} service={s} busy={busy} send={send} silent={silent} onLogs={onLogs} />
-        ))}
+        {compose.services.map((s) => {
+          const row = conflicts?.rows.findIndex((r) => r.service === s.name) ?? -1;
+          return (
+            <DockerServiceRow
+              key={s.name}
+              projectId={projectId}
+              compose={compose}
+              service={s}
+              busy={busy}
+              send={send}
+              silent={silent}
+              onLogs={onLogs}
+              conflicts={row >= 0 ? conflicts!.rows[row].conflicts : []}
+              stopOthers={row === 0 && stopOthers ? { label: stopOthers, tip: stopOthersTip } : null}
+            />
+          );
+        })}
       </div>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="compose の操作" ignore=".docker-compose-more" onClose={menu.close}>

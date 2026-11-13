@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Database, RotateCcw, ScrollText, SquareTerminal, TriangleAlert } from "lucide-react";
-import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerService, DockerSilentConflict } from "@shared/types";
+import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerPortConflict, DockerService, DockerSilentConflict } from "@shared/types";
 import { DOCKER_DB_NO_PORT, DOCKER_MARK_LABELS } from "@shared/types";
 import { useExternalBrowser } from "@/features/openWith/externalApps";
 import { panelActions } from "@/features/panel/state/panelActions";
@@ -15,7 +15,7 @@ import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useOpenDockerDb } from "./useOpenDockerDb";
-import { MARK_GLYPHS, oneoffSummary, servicePorts, serviceStatusText, shellCommand, silentText, unpublishedPorts } from "./dockerView";
+import { MARK_GLYPHS, conflictText, oneoffSummary, servicePorts, serviceStatusText, shellCommand, silentText, unpublishedPorts } from "./dockerView";
 
 type Send = (action: DockerActionBody["action"], extra?: Partial<DockerActionBody>) => void;
 
@@ -47,6 +47,8 @@ export function DockerServiceRow({
   send,
   silent: silentById,
   onLogs,
+  conflicts,
+  stopOthers,
 }: {
   projectId: number;
   compose: DockerCompose;
@@ -55,6 +57,10 @@ export function DockerServiceRow({
   send: Send;
   silent: Record<string, DockerSilentConflict[]>;
   onLogs: (chips: string[]) => void;
+  /** このサービスがポートでぶつかった相手（最後の失敗） */
+  conflicts: DockerPortConflict[];
+  /** ［相手を止めて起動］（ぶつかった最初の行だけ。押すと相手をまとめて止める） */
+  stopOthers: { label: string; tip: string } | null;
 }) {
   const menu = useContextMenu();
   const [oneoffsOpen, setOneoffsOpen] = useState(false);
@@ -99,6 +105,21 @@ export function DockerServiceRow({
           )}
         </span>
       </div>
+      {conflicts.length > 0 && (
+        <div className="docker-conflict small" role="alert">
+          <TriangleAlert size={13} aria-hidden />
+          <span className="docker-conflict-text">
+            {conflicts.map((c) => (
+              <span key={`${c.container_id}:${c.port}`}>{conflictText(c)}</span>
+            ))}
+          </span>
+          {stopOthers && (
+            <button type="button" className="btn btn-sm" disabled={busy} data-tip={stopOthers.tip} onClick={() => send("stop_others_and_start")}>
+              {stopOthers.label}
+            </button>
+          )}
+        </div>
+      )}
       {unpublished.length > 0 && (
         <div className="docker-silent small">
           <TriangleAlert size={13} aria-hidden />
