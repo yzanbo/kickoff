@@ -8,7 +8,7 @@ import { Conflict, NotFound } from "../http/errors.js";
 import { runCommand } from "../system/exec.js";
 import { LSOF, lsofListening, parseLsof } from "../system/listening.js";
 import { realPathLoose } from "../system/paths.js";
-import { bandNotes, originOf, parseCwds, parsePs, selfAndAncestors, shortCommand, workplaceOf, type BandOwner, type Workplace } from "./parse.js";
+import { appBundleOf, bandNotes, originOf, parseCwds, parsePs, selfAndAncestors, selfHelpers, shortCommand, workplaceOf, type BandOwner, type Workplace } from "./parse.js";
 
 export interface ProcessProbe {
   /** `lsof -nP +c 0 -iTCP -sTCP:LISTEN` の出力 */
@@ -49,6 +49,8 @@ interface Options {
   probe?: ProcessProbe;
   /** 自分（Kickoff）の pid。自分と祖先は一覧に出さず、止めさせない */
   selfPid?: number;
+  /** 自分の .app の束（末尾の / まで。この中の実行ファイルの子孫 = Helper も一覧に出さない。.app でなければ null） */
+  selfBundle?: string | null;
   /** 止めたあとに待つ時間（テストで縮める） */
   stopWaitMs?: number;
 }
@@ -57,23 +59,25 @@ export class PortProcessService {
   probe: ProcessProbe;
   private readonly store: Store;
   private readonly selfPid: number;
+  private readonly selfBundle: string | null;
   private readonly stopWaitMs: number;
 
-  constructor({ store, probe = defaultProcessProbe, selfPid = process.pid, stopWaitMs = STOP_WAIT_MS }: Options) {
+  constructor({ store, probe = defaultProcessProbe, selfPid = process.pid, selfBundle = appBundleOf(process.execPath), stopWaitMs = STOP_WAIT_MS }: Options) {
     this.store = store;
     this.probe = probe;
     this.selfPid = selfPid;
+    this.selfBundle = selfBundle;
     this.stopWaitMs = stopWaitMs;
   }
 
-  /** 調べる（lsof が使えなければ空。プロジェクトのフォルダの外・Kickoff 自身とその祖先は出さない） */
+  /** 調べる（lsof が使えなければ空。プロジェクトのフォルダの外・Kickoff 自身（メイン・Helper）とその祖先は出さない） */
   async list(): Promise<PortProcess[]> {
     const sockets = await this.probe.lsof().then(parseLsof, () => []);
     const portsByPid = new Map<number, Set<number>>();
     for (const s of sockets) portsByPid.set(s.pid, (portsByPid.get(s.pid) ?? new Set()).add(s.port));
     if (portsByPid.size === 0) return [];
     const table = await this.probe.ps().then(parsePs, () => new Map());
-    const self = selfAndAncestors(this.selfPid, table);
+    const self = new Set([...selfAndAncestors(this.selfPid, table), ...selfHelpers(this.selfPid, this.selfBundle, table)]);
     const pids = [...portsByPid.keys()].filter((pid) => !self.has(pid));
     if (pids.length === 0) return [];
     const [cwds, places] = await Promise.all([this.probe.cwds(pids).then(parseCwds, () => new Map<number, string>()), this.workplaces()]);

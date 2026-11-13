@@ -10,23 +10,24 @@ import { setup, until } from "../testing/testServer.js";
 const LSOF_HEAD = "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n";
 const lsofLine = (pid: number, port: number, name = "node") => `${name} ${pid} me 20u IPv4 0x1 0t0 TCP 127.0.0.1:${port} (LISTEN)\n`;
 
-/** Kickoff（偽の自分は 1000）の下のシェルから起動した vite・切り離された vite・プロジェクトの外の node・自分の祖先 */
+/** Kickoff（偽の自分は 1000。束は /dev/Electron.app/）の下のシェルから起動した vite・切り離された vite・プロジェクトの外の node・自分の祖先・自分の Helper */
 function arrange(s: ReturnType<typeof setup>) {
   const repo = fs.realpathSync(s.project.repo_path);
-  s.portsFake.lsof = LSOF_HEAD + lsofLine(2001, 5173) + lsofLine(2001, 24678) + lsofLine(2002, 20100) + lsofLine(2003, 7265) + lsofLine(999, 4317, "Kickoff");
+  s.portsFake.lsof = LSOF_HEAD + lsofLine(2001, 5173) + lsofLine(2001, 24678) + lsofLine(2002, 20100) + lsofLine(2003, 7265) + lsofLine(999, 4317, "Kickoff") + lsofLine(1001, 9333, "Electron\\x20Helper");
   s.portsFake.ps = [
     "  999     1 01:00:00 /Applications/Kickoff.app/Contents/MacOS/Kickoff",
     " 1000   999    50:00 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .",
+    " 1001  1000    50:00 /dev/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility",
     " 1500  1000    20:00 /bin/zsh -l",
     " 2001  1500    12:00 node /work/node_modules/.bin/vite",
     " 2002     1    05:00 node /work/node_modules/.bin/vite --port 20100",
     " 2003     1 03:00:00 node /Applications/Raycast.app/x.js",
   ].join("\n");
-  s.portsFake.cwds = `p2001\nn${repo}\np2002\nn${path.join(repo, "src")}\np2003\nn/\n`;
+  s.portsFake.cwds = `p1001\nn${repo}\np2001\nn${repo}\np2002\nn${path.join(repo, "src")}\np2003\nn/\n`;
   return repo;
 }
 
-test("GET /api/ports: プロジェクトのフォルダのものだけを、起動元・短いコマンド・帯の添え書き付きで返す（自分と祖先・外のものは出さない）", async () => {
+test("GET /api/ports: プロジェクトのフォルダのものだけを、起動元・短いコマンド・帯の添え書き付きで返す（自分と祖先・自分の Helper・外のものは出さない）", async () => {
   const s = setup();
   const repo = arrange(s);
   // 本体のプロセスが、ワークツリー feat-y の帯の番号を使っている
@@ -46,14 +47,33 @@ test("GET /api/ports: プロジェクトのフォルダのものだけを、起�
   assert.equal(list[0].uptime_seconds, 720);
   assert.equal(list[0].command_full, "node /work/node_modules/.bin/vite");
   assert.deepEqual(list[1].bands, [{ port: 20100, worktree_path: path.join(repo, "..", "wt-feat-y"), label: "wt-feat-y", slot: "開発サーバー", mismatch: true }]);
-  // ほかの窓にも配る（窓を開いて調べたときは、新しく現れたものとして知らせない）
-  const sent = events.find((e) => e.type === "ports");
-  assert.ok(sent && sent.type === "ports");
-  assert.equal(sent.processes.length, 2);
-  assert.deepEqual(sent.fresh, []);
+  // ほかの窓には数だけを配る（コマンドの全文は SSE に載せない。窓を開いて調べたときは、新しく現れたものとして知らせない）
+  const sent = events.find((e) => e.type === "ports_changed");
+  assert.deepEqual(sent, { type: "ports_changed", count: 2, fresh: 0 });
 });
 
-test("チャットの実行が終わったら少し待って調べ、前になかった pid を fresh で知らせる", async () => {
+test("GET /api/ports?cached=1: 最後に調べた一覧を返し、調べ直さない（まだ調べていなければ調べる）", async () => {
+  const s = setup();
+  arrange(s);
+  const events: BusEvent[] = [];
+  s.bus.subscribe((e) => events.push(e));
+  // まだ調べていない → 調べる
+  let res = await s.call("GET", "/api/ports?cached=1");
+  assert.equal((res.body as { processes: PortProcess[] }).processes.length, 2);
+  assert.equal(events.length, 1);
+  // 新しいサーバーが現れても、覚えた一覧のまま
+  s.portsFake.lsof += lsofLine(2004, 3000);
+  s.portsFake.ps += "\n 2004     1    00:05 node /work/node_modules/next/dist/bin/next dev";
+  s.portsFake.cwds += `p2004\nn${fs.realpathSync(s.project.repo_path)}\n`;
+  res = await s.call("GET", "/api/ports?cached=1");
+  assert.equal((res.body as { processes: PortProcess[] }).processes.length, 2);
+  assert.equal(events.length, 1);
+  // 調べ直すと増える
+  res = await s.call("GET", "/api/ports");
+  assert.equal((res.body as { processes: PortProcess[] }).processes.length, 3);
+});
+
+test("チャットの実行が終わったら少し待って調べ、前になかった pid の数を fresh で知らせる", async () => {
   const s = setup();
   arrange(s);
   await s.call("GET", "/api/ports");
@@ -66,11 +86,10 @@ test("チャットの実行が終わったら少し待って調べ、前にな�
   const chat = makeChat(42, { project_id: s.project.id });
   s.bus.publish({ type: "chat", chat: { ...chat, status: "running" } });
   s.bus.publish({ type: "chat", chat: { ...chat, status: "completed" } });
-  await until(() => events.some((e) => e.type === "ports"));
-  const sent = events.find((e) => e.type === "ports");
-  assert.ok(sent && sent.type === "ports");
-  assert.deepEqual(sent.fresh, [2004]);
-  assert.equal(sent.processes.find((p) => p.pid === 2004)?.command, "next dev");
+  await until(() => events.some((e) => e.type === "ports_changed"));
+  assert.deepEqual(events.find((e) => e.type === "ports_changed"), { type: "ports_changed", count: 3, fresh: 1 });
+  const list = (await s.call("GET", "/api/ports?cached=1")).body as { processes: PortProcess[] };
+  assert.equal(list.processes.find((p) => p.pid === 2004)?.command, "next dev");
 });
 
 test("POST /api/ports/stop: SIGTERM を送り、残れば stopped: false（強制終了は SIGKILL）。一覧にない・コマンドが変わったものは断る", async () => {

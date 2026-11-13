@@ -1,5 +1,5 @@
 import { Network, Search, SquarePen } from "lucide-react";
-import { openPortsPopover } from "@/features/footer/ports/portsStore";
+import { openPortsPopover, portsAvailable } from "@/features/footer/ports/portsStore";
 import { busyWithUnread } from "@shared/chat/state";
 import { useChatStates } from "@/app/chatStatesContext";
 import { StatusSlot } from "@/features/chat/StatusSlot";
@@ -80,8 +80,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       }
     }
     named.push(...memos);
-    // 操作（何か入力したときだけ。下の帯を隠していても開ける）
-    if (q) {
+    // 操作（何か入力したときだけ。下の帯を隠していても開ける。Mac のアプリの中だけ）
+    if (q && portsAvailable()) {
       const label = "ポートを使っているプロセス";
       named.push({ key: "ports", label, text: `${label} port`, hint: "操作", icon: <Network size={15} />, run: openPortsPopover });
     }
