@@ -235,6 +235,8 @@ export interface WorktreeRemovalInfo {
   pushed: boolean;
   /** リポジトリにリモートがあるか（なければプッシュの話はしない） */
   has_remote: boolean;
+  /** Docker タブの「DB で開く」でこのワークツリーの DB から作った DB クライアントの接続（消す確認の「この接続も消す」） */
+  db_connections: { id: number; name: string }[];
 }
 
 /** ブランチの PR（GitHub。gh で調べる） */

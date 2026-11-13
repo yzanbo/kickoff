@@ -17,7 +17,8 @@ export function parseDockerDbKey(key: string): { composeKey: string; service: st
   return { service: rest.slice(0, at), composeKey: rest.slice(at + 1) };
 }
 
-export type DockerDbCandidate = { found: FoundDb } | { blocked: string };
+/** 案（found。worktree_path はどのワークツリーの compose か。本体なら null）か、作れない理由（blocked） */
+export type DockerDbCandidate = { found: FoundDb; worktree_path?: string | null } | { blocked: string };
 
 /**
  * compose の設定（config --format json を読んだもの）から、そのサービスの取り込みの案を作る（DB のイメージでなければ null）。

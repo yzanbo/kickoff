@@ -185,6 +185,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(memoDir ? [memoDir] : [])],
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
     readOnlyPaths: project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p)),
+    // ［AI で整える］のチャットは、Git で管理していないファイルだけを書ける（続きの指示でも）
+    untrackedOnly: chat.untracked_only,
     browser: deps.browser ? { control: deps.browser, projectId: chat.project_id, chatId: chat.id } : null,
     database:
       deps.databases && hasAiConnections(deps.store, project.id)

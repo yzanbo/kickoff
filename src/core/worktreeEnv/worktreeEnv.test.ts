@@ -5,6 +5,7 @@ import { assignSlots, bandOf, pickBand } from "./bands.js";
 import { composePortsOf, overrideYaml, portSpec } from "./composeOverride.js";
 import { commentOutKeys, rewriteEnvPorts, withKickoffBlock, withoutKickoffBlock } from "./envRewrite.js";
 import { browserHostOf, composeProjectNameOf } from "./names.js";
+import { envSetupPrompt, envSetupTitle } from "./setupPrompt.js";
 
 test("pickBand: 渡してある帯・使用中の番号がある帯を飛ばし、一番小さい帯を選ぶ", () => {
   assert.equal(pickBand(new Set(), []), 20100);
@@ -145,4 +146,19 @@ test("browserHostOf・composeProjectNameOf: ブランチ名から作る名前", 
   assert.equal(composeProjectNameOf("myapp", "feat/x"), "myapp-feat-x");
   assert.equal(composeProjectNameOf("My App", "fix_y"), "my-app-fix-y");
   assert.equal(composeProjectNameOf("", "x"), "x");
+});
+
+test("［AI で整える］の指示: 帯がなければそう書き、止まった理由・ほかの帯・守ることを添える", () => {
+  const text = envSetupPrompt({
+    label: "feat/x",
+    path: "/r-worktrees/feat-x",
+    mainPath: "/r",
+    env: { band: null, host: null, slots: [], compose_names: [], rewritten: [], issues: [], blocked: "ワークツリーの実行環境を整えられませんでした: x" },
+    otherBands: [20100, 20300],
+  });
+  assert.match(text, /ポートの帯はまだ割り当てていません/);
+  assert.match(text, /手順が止まった理由:\n- ワークツリーの実行環境を整えられませんでした: x/);
+  assert.match(text, /ほかのワークツリーの帯（使わない）: 20100〜20199、20300〜20399/);
+  assert.match(text, /Git で管理しているファイル（compose\.yaml・vite\.config・package\.json など）は書き換えない/);
+  assert.equal(envSetupTitle("feat/x"), "実行環境を整える（feat/x）");
 });

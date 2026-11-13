@@ -1,4 +1,6 @@
 // ワークツリーの実行環境（ワークツリーごとにポートの帯と Docker の組の名前を分ける。メモの仕様書「ワークツリーの実行環境」）
+import type { Chat } from "./chat";
+import type { GitWorktree } from "./git";
 
 /** 帯の中の 1 つの番号の割り当て（+00 は開発サーバー、+01 から先は Docker の公開ポート） */
 export interface WorktreePortSlot {
@@ -54,4 +56,15 @@ export function worktreeSlotLabel(slot: WorktreePortSlot): string {
   const where = slot.compose_dir ? `${slot.compose_dir}/${slot.service}` : slot.service;
   const proto = slot.protocol && slot.protocol !== "tcp" ? `/${slot.protocol}` : "";
   return `${where} ${slot.original ?? slot.target}${proto} → ${slot.port}`;
+}
+
+/** ［AI で整える］を頼む（POST …/git/worktrees/env-setup。path は作業するフォルダ） */
+export interface WorktreeEnvSetupBody {
+  path: string;
+}
+
+/** ［AI で整える］の結果: 作ったチャット（Git で管理していないファイルだけを書ける）と、手順を流したあとのワークツリーの一覧 */
+export interface WorktreeEnvSetupResult {
+  chat: Chat;
+  worktrees: GitWorktree[];
 }

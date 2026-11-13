@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import type { GitWorktree, Project } from "@shared/types";
+import type { GitWorktree, Project, WorktreeEnvSetupResult } from "@shared/types";
 import { gitIn, gitRepo } from "../testing/gitRepo.js";
-import { setup } from "../testing/testServer.js";
+import { setup, until } from "../testing/testServer.js";
 
 const COMPOSE_CONFIG = JSON.stringify({
   name: "myapp",
@@ -128,4 +128,50 @@ test("帯を使い切ったら、分けずに作って知らせる。docker が�
   assert.equal(wt.env?.band, 20100);
   assert.deepEqual(wt.env?.slots.map((x) => x.kind), ["dev"]);
   assert.ok(wt.env?.issues.some((i) => i.startsWith("compose の設定を読めませんでした")));
+});
+
+test("［AI で整える］: この機能より前に作ったワークツリーは先に手順を流し、Git で管理していないファイルだけを書ける新しいチャットを始める", async () => {
+  const s = setup();
+  withRepo(s);
+  const wt = await create(s, "feat/old");
+  // この機能より前に作ったワークツリー（覚えがない）にする
+  s.store.worktreeEnvs.remove(wt.path);
+  const res = await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/env-setup`, { path: wt.path });
+  assert.equal(res.status, 201);
+  const { chat, worktrees } = res.body as WorktreeEnvSetupResult;
+  assert.equal(worktrees.find((w) => w.path === wt.path)?.env?.band, 20100);
+  assert.equal(chat.title, "実行環境を整える（feat/old）");
+  assert.equal(chat.worktree_path, wt.path);
+  assert.equal(chat.untracked_only, true);
+  await until(() => s.store.chats.get(chat.id)?.status === "completed");
+  assert.equal(s.provider.lastUntrackedOnly, true);
+  assert.equal(s.provider.lastCwd, wt.path);
+  const prompt = s.provider.prompts.at(-1)!;
+  assert.match(prompt, /帯: 20100〜20199/);
+  assert.match(prompt, /db 5432 → 20101/);
+  assert.match(prompt, /NEXTAUTH_URL/);
+  assert.match(prompt, /docker compose config/);
+  // 本体・知らないフォルダは断る
+  assert.equal((await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/env-setup`, { path: s.project.repo_path })).status, 400);
+  // ふつうのチャットは書き込みを守らない
+  const plain = await s.call("POST", `/api/projects/${s.project.id}/chats`, { text: "hi", worktree_path: wt.path });
+  await until(() => s.store.chats.get(plain.body.id)?.status === "completed");
+  assert.equal(s.provider.lastUntrackedOnly, false);
+});
+
+test("消すとき: drop_db_connections なら、このワークツリーの DB から作った接続も消す。選ばなければ結び付きだけ外す", async () => {
+  const s = setup();
+  withRepo(s);
+  const a = await create(s, "feat/a");
+  const b = await create(s, "feat/b");
+  const body = { name: "db", engine: "postgres", environment: "local", host: "localhost", port: 20101, database: "app", username: "app", file_path: null, ssl: null, read_only: false, ai_access: "allow" } as const;
+  const connA = s.store.dbConnections.create(s.project.id, body, a.path);
+  const connB = s.store.dbConnections.create(s.project.id, { ...body, port: 20201 }, b.path);
+  const other = s.store.dbConnections.create(s.project.id, { ...body, port: 5432 });
+  assert.equal(connA.worktree_path, a.path);
+  await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/remove`, { path: a.path, drop_db_connections: true });
+  assert.equal(s.store.dbConnections.get(connA.id), undefined);
+  await s.call("POST", `/api/projects/${s.project.id}/git/worktrees/remove`, { path: b.path });
+  assert.equal(s.store.dbConnections.get(connB.id)?.worktree_path, null);
+  assert.equal(s.store.dbConnections.get(other.id)?.worktree_path, null);
 });

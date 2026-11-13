@@ -281,13 +281,15 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
   app.post(`${base}/import`, withProject, async (c) => {
     const { items } = importSchema.parse(await jsonBody(c));
     const found = new Map((await scanImports(c.var.project)).map((f) => [f.key, f]));
-    // Docker タブの「DB で開く」の案（docker:…）は、compose に聞き直して作る
+    // Docker タブの「DB で開く」の案（docker:…）は、compose に聞き直して作る（ワークツリーの DB なら、そのワークツリーを覚える）
+    const worktreeOf = new Map<string, string | null>();
     for (const item of items) {
       const target = parseDockerDbKey(item.key);
       if (!target) continue;
       const result = await docker.dbCandidate(c.var.project, target.composeKey, target.service);
       if ("blocked" in result) throw new Invalid(result.blocked);
       found.set(item.key, result.found);
+      worktreeOf.set(item.key, result.worktree_path ?? null);
     }
     const picked = items.map((item) => {
       const f = found.get(item.key);
@@ -309,10 +311,10 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
         password: f.password,
       };
       checkFields(c.var.project, body);
-      return body;
+      return { body, worktreePath: worktreeOf.get(item.key) ?? null };
     });
-    const sealed = await Promise.all(created.map((body) => databases.vault.seal(body)));
-    return c.json(sealed.map((body) => store.dbConnections.create(c.var.project.id, body)), 201);
+    const sealed = await Promise.all(created.map(async ({ body, worktreePath }) => ({ body: await databases.vault.seal(body), worktreePath })));
+    return c.json(sealed.map(({ body, worktreePath }) => store.dbConnections.create(c.var.project.id, body, worktreePath)), 201);
   });
 
   // 踏み台のサーバーの鍵: 見る（初めてのサーバーの指紋を画面で確かめる）・受け入れて ~/.ssh/known_hosts に足す
@@ -351,10 +353,7 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
   });
 
   app.delete(`${base}/:cid`, withProject, withConnection, (c) => {
-    store.dbConnections.delete(c.var.connection.id);
-    databases.vault.forget(c.var.connection.id);
-    // 開いていた接続と SSH トンネルは待たずに閉じる
-    void databases.forgetConnection(c.var.connection.id).catch(() => {});
+    databases.removeConnection(c.var.connection.id);
     return c.body(null, 204);
   });
 

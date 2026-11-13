@@ -28,6 +28,7 @@ const conn = (patch: Partial<DbConnection>): DbConnection => ({
   ssh: null,
   has_ssh_password: false,
   prep: null,
+  worktree_path: null,
   prep_confirmed: false,
   check_on: null,
   check_note: null,

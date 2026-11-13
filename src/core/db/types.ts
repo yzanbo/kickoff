@@ -22,6 +22,8 @@ export interface NewChat extends ChatOptionsPatch {
   parent_event_id?: number | null;
   /** メモのチャットのメモ（メモのフォルダからの相対パス） */
   memo_path?: string | null;
+  /** Git で管理していないファイルだけを書けるチャットか（省けば false） */
+  untracked_only?: boolean;
   /** 結び付いた GitHub の issue・PR */
   github_repo?: string | null;
   github_number?: number | null;

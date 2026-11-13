@@ -35,12 +35,12 @@ const CHAT_COLUMNS = [
 export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;
 
 /** DB の行（真偽値は 0 / 1。archived_with_parent は店の中だけで使い、Chat には出さない） */
-type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned"> & { fast_mode: number; unread: number; pinned: number; archived_with_parent: number };
+type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only"> & { fast_mode: number; unread: number; pinned: number; untracked_only: number; archived_with_parent: number };
 
 /** DB の行をアプリの型にする（真偽値の列を boolean に） */
 function toChat(row: unknown): Chat {
   const { archived_with_parent: _withParent, ...r } = row as ChatRow;
-  return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1 };
+  return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1, untracked_only: r.untracked_only === 1 };
 }
 
 /** 変える項目を DB の列の値にする（真偽値は 0 / 1） */
@@ -136,8 +136,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     create(input: NewChat): Chat {
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path, github_repo, github_number, github_kind)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path, untracked_only, github_repo, github_number, github_kind)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           input.project_id,
@@ -153,6 +153,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
           input.parent_chat_id ?? null,
           input.parent_event_id ?? null,
           input.memo_path ?? null,
+          bit(input.untracked_only ?? false),
           // repo・番号・種類はそろって入れる（どれかがなければ結び付けない）
           ...(input.github_repo && input.github_number && input.github_kind ? [input.github_repo, input.github_number, input.github_kind] : [null, null, null]),
         );

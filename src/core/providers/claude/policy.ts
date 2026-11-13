@@ -2,7 +2,7 @@ import type { HookCallbackMatcher, HookEvent, HookInput, SyncHookJSONOutput } fr
 import type { ChatPolicy } from "../../chat/policy.js";
 import { DOCKER_GUARD_DENIED, type DockerGuard } from "../../chat/guard/dockerGuard.js";
 import { evaluateHiddenDbAccess } from "../../chat/guard/hiddenDb.js";
-import { evaluateReferenceWrite } from "../../chat/guard/scope.js";
+import { evaluateReferenceWrite, evaluateUntrackedWrite } from "../../chat/guard/scope.js";
 import { evaluateSelfProtection, type SelfInfo } from "../../chat/guard/selfProtection.js";
 import type { ProviderCallbacks, ProviderTurnParams } from "../types.js";
 
@@ -15,12 +15,12 @@ type Decision = { decision: "deny"; reason: string } | { decision: "pass" };
 const DOCKER_GUARD_HOOK_TIMEOUT_S = 7 * 24 * 60 * 60;
 
 /** ツールの呼び出しを判定して断るフック（PreToolUse）。権限モードや許可ルールより先に毎回呼ばれる */
-function denyHook(evaluate: (toolName: string, input: Record<string, unknown>) => Decision): HookCallbackMatcher {
+function denyHook(evaluate: (toolName: string, input: Record<string, unknown>) => Decision | Promise<Decision>): HookCallbackMatcher {
   return {
     hooks: [
       async (input: HookInput): Promise<SyncHookJSONOutput> => {
         if (input.hook_event_name !== "PreToolUse") return {};
-        const result = evaluate(input.tool_name, (input.tool_input ?? {}) as Record<string, unknown>);
+        const result = await evaluate(input.tool_name, (input.tool_input ?? {}) as Record<string, unknown>);
         if (result.decision === "pass") return {};
         return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: result.reason } };
       },
@@ -70,6 +70,7 @@ function dockerGuardHook(guard: DockerGuard, cb: Pick<ProviderCallbacks, "reques
 /**
  * チャットの実行に付けるフック。エージェントを動かしている Kickoff 自身（プロセス・アプリ本体・保存先・API）を壊す呼び出し
  * （selfProtection.ts）はいつも、参照資料への書き込みは参照資料があるときだけ、「見せない」DB の接続に直接入るのは、そういう接続があるときだけ断る。
+ * Git で管理していないファイルだけを書けるチャット（untrackedOnly）は、Git で管理しているファイルの書き込みと Git の中身を変える git のコマンドを断る。
  * 別の作業場所・ほかのプロジェクトの Docker に手を出す Bash は、守りがあれば承認カードで聞く（dockerGuardHook）。Auto mode や許可ルールがあっても効く
  */
 export function turnHooks(
@@ -81,6 +82,7 @@ export function turnHooks(
   const matchers = [
     ...(self ? [denyHook((tool, input) => evaluateSelfProtection(self, tool, input))] : []),
     ...(readOnly.length > 0 ? [denyHook((tool, input) => evaluateReferenceWrite(params.cwd, readOnly, tool, input))] : []),
+    ...(params.untrackedOnly ? [denyHook((tool, input) => evaluateUntrackedWrite(params.cwd, tool, input))] : []),
     ...(params.hiddenDb?.length ? [denyHook((tool, input) => evaluateHiddenDbAccess(params.hiddenDb ?? [], tool, input))] : []),
     ...(params.dockerGuard ? [dockerGuardHook(params.dockerGuard, cb)] : []),
   ];

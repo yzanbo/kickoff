@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { DOCKER_DB_NO_PORT, type DbConnection, type DockerDbTarget, type DockerList } from "@shared/types";
+import { gitRepo } from "../testing/gitRepo.js";
 import { setup } from "../testing/testServer.js";
 
 const pg = { image: "postgres:16", environment: { POSTGRES_USER: "app", POSTGRES_PASSWORD: "secret", POSTGRES_DB: "app_dev" }, ports: [{ target: 5432, published: "5433" }] };
@@ -52,6 +53,8 @@ test("Docker の DB で開く: 案の key で取り込むと作られ（パス�
   assert.equal(conn.port, 5433);
   assert.equal(conn.username, "app");
   assert.equal(conn.has_password, true);
+  // 本体の DB から作った接続は、どのワークツリーのものでもない
+  assert.equal(conn.worktree_path, null);
   assert.equal(((await target(s, compose, "db")).body as DockerDbTarget).connection_id, conn.id);
 
   // ポートを出していないサービスの案は作れない
@@ -65,4 +68,19 @@ test("Docker の DB で開く: 同じ種類・この Mac の中のホスト・�
   const res = await s.call("POST", `/api/projects/${s.project.id}/db-connections`, { name: "手で登録", engine: "postgres", environment: "local", host: "127.0.0.1", port: 5433, database: "other", username: "app", file_path: null, ssl: null, read_only: false, ai_access: "allow" });
   assert.equal(res.status, 201);
   assert.deepEqual((await target(s, compose, "db")).body, { connection_id: (res.body as DbConnection).id, candidate: null, blocked: null });
+});
+
+test("Docker の DB で開く: ワークツリーの DB から作った接続は、そのワークツリーを覚える（消すとき一緒に消せる）", async () => {
+  const s = setup();
+  gitRepo({ dir: s.project.repo_path, files: { "compose.yaml": "services: {}\n", ".gitignore": ".env\n" } });
+  s.dockerFake.set([{ match: "config --format json", stdout: JSON.stringify({ name: "app", services: { db: pg } }) }]);
+  const made = await s.call("POST", `/api/projects/${s.project.id}/git/worktrees`, { branch: "feat/x" });
+  const wt = (made.body as { path: string; main: boolean }[]).find((w) => !w.main)!;
+  const list = (await s.call("GET", `/api/projects/${s.project.id}/docker`)).body as DockerList;
+  const compose = list.composes.find((c) => c.worktree_path === wt.path);
+  assert.ok(compose);
+  const { candidate } = (await target(s, compose.key, "db")).body as DockerDbTarget;
+  assert.ok(candidate);
+  const created = await s.call("POST", `/api/projects/${s.project.id}/db-connections/import`, { items: [{ key: candidate.key, name: candidate.name, environment: "local" }] });
+  assert.equal((created.body as DbConnection[])[0].worktree_path, wt.path);
 });

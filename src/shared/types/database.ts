@@ -163,6 +163,8 @@ export interface DbConnection {
   memo_path: string | null;
   /** つなぐ前の準備のコマンド（null = なし） */
   prep: DbPrep | null;
+  /** Docker タブの「DB で開く」で、どのワークツリーの DB から作った接続か（作業するフォルダ。null なら本体・ほか。ワークツリーを消すとき一緒に消せる） */
+  worktree_path: string | null;
   /** いまの準備のコマンドを利用者が確かめたか（初めて・中身を変えたあとは false。確かめるまで流さない） */
   prep_confirmed: boolean;
   /** 次に確かめる日（YYYY-MM-DD。過ぎたら木の接続の行に印）とひとこと */

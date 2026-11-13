@@ -21,8 +21,8 @@ interface ConfirmOptions {
   danger?: boolean;
   /** キャンセルを出さない（お知らせ） */
   hideCancel?: boolean;
-  /** 実行のときに一緒に選んでもらうチェック（あれば出す。confirmWithCheck） */
-  check?: DialogCheck;
+  /** 実行のときに一緒に選んでもらうチェック（あれば上から順に出す。confirmWithCheck / confirmWithChecks） */
+  checks?: DialogCheck[];
 }
 
 /** 確認のダイアログに添えるチェック（initial は初めの状態。help はチェックの状態ごとの説明） */
@@ -42,7 +42,7 @@ interface PromptOptions {
   /** 入力欄の上に、文から入力の案を作ってもらう欄を添える（あればその文の欄にピントを置く） */
   assist?: PromptAssistOptions;
   /** 入力と一緒に選んでもらうチェック（あれば入力欄の下に出す。promptWithCheck） */
-  check?: DialogCheck;
+  checks?: DialogCheck[];
   /** 空のままでも決められる（空なら "" を返す。退避のメッセージなど、省ける入力） */
   optional?: boolean;
   /** 何行も書ける欄にする（書いた分だけ伸びる。Enter で決め、Shift+Enter で改行。AI への追加の指示など） */
@@ -65,14 +65,15 @@ interface ChoiceOptions {
   choices: { value: string; label: string; primary?: boolean; danger?: boolean }[];
   /** 「次からはこれにする」のチェックの文（あれば出す。選んだときにチェックしていたかを返す） */
   remember?: string;
-  /** 選ぶときに一緒に決めてもらうチェック（あれば出す。choiceDialogWithCheck。remember とは一緒に使わない） */
-  check?: DialogCheck;
+  /** 選ぶときに一緒に決めてもらうチェック（あれば上から順に出す。choiceDialogWithCheck / choiceDialogWithChecks） */
+  checks?: DialogCheck[];
 }
 
+/** checked はチェックの状態（checks の順） */
 type Request =
-  | ({ kind: "confirm"; resolve: (ok: boolean, checked: boolean) => void } & ConfirmOptions)
-  | ({ kind: "prompt"; resolve: (value: string | null, checked: boolean, selected: string) => void } & PromptOptions)
-  | ({ kind: "choice"; resolve: (value: string | null, remember: boolean) => void } & ChoiceOptions);
+  | ({ kind: "confirm"; resolve: (ok: boolean, checked: boolean[]) => void } & ConfirmOptions)
+  | ({ kind: "prompt"; resolve: (value: string | null, checked: boolean[], selected: string) => void } & PromptOptions)
+  | ({ kind: "choice"; resolve: (value: string | null, remember: boolean, checked: boolean[]) => void } & ChoiceOptions);
 
 let show: ((req: Request) => void) | undefined;
 
@@ -85,7 +86,12 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
 }
 
 /** チェックを 1 つ添えた確認のダイアログ（「git の管理を始める」など）。実行を選べばチェックの状態、キャンセルなら null */
-export function confirmWithCheck(options: Omit<ConfirmOptions, "check" | "hideCancel"> & { check: DialogCheck }): Promise<{ checked: boolean } | null> {
+export function confirmWithCheck({ check, ...options }: Omit<ConfirmOptions, "checks" | "hideCancel"> & { check: DialogCheck }): Promise<{ checked: boolean } | null> {
+  return confirmWithChecks({ ...options, checks: [check] }).then((r) => r && { checked: r.checked[0] });
+}
+
+/** チェックをいくつか添えた確認のダイアログ（「コンテナとデータも消す」「この接続も消す」など）。実行を選べばチェックの状態（checks の順）、キャンセルなら null */
+export function confirmWithChecks(options: Omit<ConfirmOptions, "checks" | "hideCancel"> & { checks: DialogCheck[] }): Promise<{ checked: boolean[] } | null> {
   return new Promise((resolve) => {
     if (!show) return resolve(null);
     show({ kind: "confirm", resolve: (ok, checked) => resolve(ok ? { checked } : null), ...options });
@@ -109,10 +115,10 @@ export function promptDialog(options: PromptOptions): Promise<string | null> {
 }
 
 /** チェックを 1 つ添えた入力のダイアログ（「新しいブランチ」と「作ったらチェックアウトする」など）。決定すれば入力とチェックの状態、キャンセルなら null */
-export function promptWithCheck(options: Omit<PromptOptions, "check"> & { check: DialogCheck }): Promise<{ value: string; checked: boolean } | null> {
+export function promptWithCheck({ check, ...options }: Omit<PromptOptions, "checks"> & { check: DialogCheck }): Promise<{ value: string; checked: boolean } | null> {
   return new Promise((resolve) => {
     if (!show) return resolve(null);
-    show({ kind: "prompt", resolve: (value, checked) => resolve(value === null ? null : { value, checked }), ...options });
+    show({ kind: "prompt", resolve: (value, checked) => resolve(value === null ? null : { value, checked: checked[0] }), ...options, checks: [check] });
   });
 }
 
@@ -132,13 +138,13 @@ export function choiceDialog<T extends string>(options: Omit<ChoiceOptions, "cho
   });
 }
 
-/** 選ぶダイアログにチェックを 1 つ添える（「コンテナとデータも消す」など。選んだものと、チェックの状態。やめたら null） */
-export function choiceDialogWithCheck<T extends string>(
-  options: Omit<ChoiceOptions, "choices" | "remember" | "check"> & { choices: { value: T; label: string; primary?: boolean; danger?: boolean }[]; check: DialogCheck },
-): Promise<{ value: T; checked: boolean } | null> {
+/** 選ぶダイアログにチェックをいくつか添える（「コンテナとデータも消す」「この接続も消す」など。選んだものと、チェックの状態（checks の順）。やめたら null） */
+export function choiceDialogWithChecks<T extends string>(
+  options: Omit<ChoiceOptions, "choices" | "remember" | "checks"> & { choices: { value: T; label: string; primary?: boolean; danger?: boolean }[]; checks: DialogCheck[] },
+): Promise<{ value: T; checked: boolean[] } | null> {
   return new Promise((resolve) => {
     if (!show) return resolve(null);
-    show({ kind: "choice", resolve: (value, checked) => resolve(value === null ? null : { value: value as T, checked }), ...options });
+    show({ kind: "choice", resolve: (value, _remember, checked) => resolve(value === null ? null : { value: value as T, checked }), ...options });
   });
 }
 
@@ -156,8 +162,10 @@ export function choiceDialogWithRemember<T extends string>(
 export function DialogHost() {
   const [req, setReq] = useState<Request | null>(null);
   const [value, setValue] = useState("");
-  // 「次からはこれにする」のチェック（確認に添えるチェックも、これで持つ）
+  // 「次からはこれにする」のチェック
   const [remember, setRemember] = useState(false);
+  // 確認・入力・選ぶダイアログに添えるチェックの状態（checks の順）
+  const [checked, setChecked] = useState<boolean[]>([]);
   // 入力に添える一覧で選んでいるもの
   const [selected, setSelected] = useState("");
   const ref = useRef<HTMLDialogElement>(null);
@@ -170,8 +178,9 @@ export function DialogHost() {
     show = (next) => {
       setValue(next.kind === "prompt" ? (next.initial ?? "") : "");
       setSelected(next.kind === "prompt" ? (next.select?.initial ?? "") : "");
-      // 「次からはこれにする」と、確認に添えるチェックの初めの状態
-      setRemember(Boolean(next.check?.initial));
+      // 「次からはこれにする」は初めは外し、添えるチェックは初めの状態に
+      setRemember(false);
+      setChecked((next.checks ?? []).map((c) => Boolean(c.initial)));
       setReq(next);
     };
     return () => {
@@ -200,9 +209,9 @@ export function DialogHost() {
 
   const finish = (ok: boolean, choice?: string) => {
     if (!req) return;
-    if (req.kind === "confirm") req.resolve(ok, remember);
-    else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null, remember);
-    else req.resolve(ok && (value.trim() || req.optional) ? value.trim() : null, remember, selected);
+    if (req.kind === "confirm") req.resolve(ok, checked);
+    else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null, remember, checked);
+    else req.resolve(ok && (value.trim() || req.optional) ? value.trim() : null, checked, selected);
     setReq(null);
     ref.current?.close();
   };
@@ -276,9 +285,16 @@ export function DialogHost() {
           </label>
         )}
         {req.kind === "choice" && req.remember && <CheckField className="app-dialog-remember" label={req.remember} checked={remember} onChange={setRemember} />}
-        {req.check && (
-          <CheckField className="app-dialog-remember" label={req.check.label} help={req.check.help?.(remember)} checked={remember} onChange={setRemember} />
-        )}
+        {req.checks?.map((check, i) => (
+          <CheckField
+            key={check.label}
+            className="app-dialog-remember"
+            label={check.label}
+            help={check.help?.(checked[i] ?? false)}
+            checked={checked[i] ?? false}
+            onChange={(on) => setChecked((prev) => prev.map((v, j) => (j === i ? on : v)))}
+          />
+        ))}
         <DialogActions className="app-dialog-actions" cancelRef={cancelRef} onCancel={req.kind === "confirm" && req.hideCancel ? undefined : () => finish(false)}>
           {req.kind === "choice" ? (
             req.choices.map((c) => (

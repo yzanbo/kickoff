@@ -1,13 +1,14 @@
 import type { GitWorktree } from "@shared/types";
 import { api } from "@/api";
-import { choiceDialog, choiceDialogWithCheck, confirmDialog } from "@/ui/dialogs";
+import { choiceDialog, choiceDialogWithChecks, confirmDialog } from "@/ui/dialogs";
 import { worktreeEnvOf, worktreesStore } from "@/stores/worktrees";
-import { downVolumesCheck } from "./worktreeEnvText";
+import { removalChecks } from "./worktreeEnvText";
 
 /**
  * ワークツリーを消す（確かめてから）。消す前に、コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミットを調べて知らせ、
  * 「ワークツリーだけ消す（ブランチは残す）」か「ブランチも消す」かを選んでもらう。このブランチにしかないコミットがあるのにブランチも消すときは、もう一度確かめる。
- * Kickoff が組の名前を割り当てたワークツリー（ワークツリーの実行環境）なら、「コンテナとデータも消す」を選んだ状態で添える。
+ * Kickoff が組の名前を割り当てたワークツリー（ワークツリーの実行環境）なら「コンテナとデータも消す」、このワークツリーの DB から作った
+ * DB クライアントの接続があれば「この接続も消す」を、選んだ状態で添える。
  * 消したら一覧を取り直し、消した後の一覧を返す（やめたら null）。失敗は投げる
  */
 export async function confirmRemoveWorktree(projectId: number, worktree: Pick<GitWorktree, "path" | "branch">, label: string): Promise<GitWorktree[] | null> {
@@ -32,8 +33,10 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
       ]
     : [{ value: "keep", label: "消す", primary: true }];
   const title = `ワークツリー「${label}」を消しますか？`;
-  const check = downVolumesCheck(worktreeEnvOf(projectId, worktree.path));
-  const picked = check ? await choiceDialogWithCheck({ title, message, choices, check }) : await choiceDialog({ title, message, choices }).then((value) => value && { value, checked: false });
+  const { checks, read } = removalChecks(worktreeEnvOf(projectId, worktree.path), info.db_connections);
+  const picked = checks.length
+    ? await choiceDialogWithChecks({ title, message, choices, checks })
+    : await choiceDialog({ title, message, choices }).then((value) => value && { value, checked: [] });
   if (!picked) return null;
   const choice = picked.value;
   const deleteBranch = choice === "both";
@@ -47,7 +50,7 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
     if (!ok) return null;
   }
   // コミットしていない変更は、上で知らせたうえで消すので force で消す
-  const list = await api.removeWorktree(projectId, worktree.path, info.changes > 0, deleteBranch, picked.checked);
+  const list = await api.removeWorktree(projectId, worktree.path, { force: info.changes > 0, deleteBranch, ...read(picked.checked) });
   worktreesStore.set(projectId, list);
   worktreesStore.invalidate(projectId);
   return list;

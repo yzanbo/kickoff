@@ -37,6 +37,8 @@ export interface StartChatInput {
   titleText?: string;
   /** メモのチャット: どのメモについてのチャットか（メモのフォルダからの相対パス） */
   memoPath?: string;
+  /** Git で管理していないファイルだけを書けるチャット（ワークツリーの実行環境の［AI で整える］） */
+  untrackedOnly?: boolean;
   /** 結び付ける GitHub の issue・PR */
   github?: GitHubLink;
 }
@@ -65,6 +67,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
     parent_chat_id: input.parentChatId ?? null,
     parent_event_id: input.parentEventId ?? null,
     memo_path: input.memoPath ?? null,
+    untracked_only: input.untrackedOnly ?? false,
     github_repo: input.github?.repo ?? null,
     github_number: input.github?.number ?? null,
     github_kind: input.github?.kind ?? null,
