@@ -35,12 +35,25 @@ export const REVIEW_DECISION_LABELS: Record<GitHubReviewDecision, string> = { ap
 
 /**
  * 一覧の 1 行（状態の印・題名とラベル・番号・作った人・更新・コメントの数・PR は CI とレビュー）。
- * 結び付いたチャットがあれば（chats。最近動いた順）、右上に印を出し、押すといちばん最近動いたチャットを開く
+ * 結び付いたチャットがあれば（chats。最近動いた順）、右上に印を出し、押すといちばん最近動いたチャットを開く。
+ * fresh は取り直しで新しくなった行（少しの間だけ色を付ける）
  */
-export const GitHubItemRow = memo(function GitHubItemRow({ item, selected, chats, onOpen }: { item: GitHubItem; selected: boolean; chats?: Chat[]; onOpen: (item: GitHubItem) => void }) {
+export const GitHubItemRow = memo(function GitHubItemRow({
+  item,
+  selected,
+  fresh = false,
+  chats,
+  onOpen,
+}: {
+  item: GitHubItem;
+  selected: boolean;
+  fresh?: boolean;
+  chats?: Chat[];
+  onOpen: (item: GitHubItem) => void;
+}) {
   return (
     <div className="github-item-wrap">
-    <button type="button" className={cx("github-item", selected && "selected")} aria-current={selected || undefined} onClick={() => onOpen(item)}>
+    <button type="button" className={cx("github-item", selected && "selected", fresh && "fresh")} aria-current={selected || undefined} onClick={() => onOpen(item)}>
       <GitHubStateIcon item={item} />
       <span className="github-item-main">
         <span className="github-item-title">
