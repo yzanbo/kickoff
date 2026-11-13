@@ -1,4 +1,4 @@
-// API のテスト: DB クライアント（接続の登録・パスワードの扱い・写す・試す・木とテーブル・SQL のタブ・読み取り専用・この Mac からだけ）
+// API のテスト: DB クライアント（接続の登録・パスワードの扱い・写す・試す・木とテーブル・SQL のタブ・読み取り専用）
 // DB ワーカーは同じプロセスで動かす（testing/testServer.ts の setup()）。本物のプロセスでの起動は databases/client.test.ts
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { DB_SQL_MAX_ROWS, DB_VALUE_HEAD_CHARS } from "@shared/types";
 import type { BusEvent, DbConnection, DbErSchema, DbFullRow, DbImportCandidate, DbPrepRun, DbPrepState, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
-import { AUTH, setup } from "../testing/testServer.js";
+import { setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import { gitRepo } from "../testing/gitRepo.js";
 import { until } from "../testing/testCore.js";
@@ -749,17 +749,6 @@ test("SQLite のファイルはワークツリーではその中の同じパス�
   assert.equal(missing.body.code, "db_file_not_in_worktree");
   makeSqlite(wtPath);
   assert.equal((await call("GET", `/api/projects/${project.id}/db-connections/${conn.id}/databases?worktree=${worktree}`)).status, 200);
-});
-
-test("DB クライアントの API は、この Mac 以外からの頼みを 403 で断る", async () => {
-  const { app, project } = setup();
-  const lan = { incoming: { socket: { remoteAddress: "192.168.1.20" } } };
-  const local = { incoming: { socket: { remoteAddress: "127.0.0.1" } } };
-  assert.equal((await app.request(`/api/projects/${project.id}/db-connections`, { headers: AUTH }, lan)).status, 403);
-  assert.equal((await app.request(`/api/projects/${project.id}/db-connections/1/databases`, { headers: AUTH }, lan)).status, 403);
-  assert.equal((await app.request(`/api/projects/${project.id}/db-connections`, { headers: AUTH }, local)).status, 200);
-  // ほかの API は LAN からも使える
-  assert.equal((await app.request(`/api/projects/${project.id}`, { headers: AUTH }, lan)).status, 200);
 });
 
 test("DB の接続: テーブルの行の変更をまとめて保存する（1 つのトランザクション・行が合わなければすべて取り消す・読み取り専用は書き込むの間だけ・履歴）", async () => {

@@ -182,12 +182,6 @@ test("GitHub タブ: issue と PR の中身（種類が違えば 404）・PR の
   assert.equal(ghFake.calls.at(-1)?.detail, "repos/o/r/pulls/5/files");
 });
 
-test("GitHub タブ: この Mac からの頼みだけ受ける", async () => {
-  const { app, project } = setup();
-  const res = await app.request(`/api/projects/${project.id}/github/connection`, { headers: { authorization: `Bearer ${TOKEN}` } }, { incoming: { socket: { remoteAddress: "192.168.1.5" } } });
-  assert.equal(res.status, 403);
-});
-
 test("GitHub タブ: PR のブランチのワークツリー（PR の元のブランチを聞いて作り、2 回目はあるものを返す。Git でないフォルダは 400）", async () => {
   const { call, project, ghFake } = setup();
   const url = `/api/projects/${project.id}/github/pulls/4/worktree`;

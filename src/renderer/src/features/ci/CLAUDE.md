@@ -2,7 +2,7 @@
 
 プロジェクトの「CI」タブ（`#/projects/:id/ci`）。連携先のリポジトリの GitHub Actions の実行を見て、落ちたら AI に直してもらい、やり直す。要件定義書の「5.15 CI の結果」・メモの「CI の結果 仕様書」。コアは `src/core/CLAUDE.md` の「CI のタブ」、API は `api/ci.ts`。
 
-- この Mac のアプリの中だけ（`window.kickoff`。GitHub タブと同じく、ブラウザ・スマホからはタブを出さない。コアの口は `localOnly`）。連携先とアカウントは GitHub タブと同じ（プロジェクトの設定の「GitHub」）。
+- この Mac のアプリの中だけ（`window.kickoff`。GitHub タブと同じく、ブラウザ・スマホからはタブを出さない。コアの口は端末に開かない）。連携先とアカウントは GitHub タブと同じ（プロジェクトの設定の「GitHub」）。
 - `CiTab`: 初めに連携を確かめ（`api.githubConnection`）、使えなければ理由と直し方・「もう一度確かめる」を `EmptyState` で出す。使えれば `CiBrowser`: 左に一覧（幅は `CI_LIST_WIDTH`）、右に開いた実行の中身。枠と行の見た目は GitHub タブのクラス（`github-tab` / `github-list` / `github-item` / `github-detail`）を使い、CI だけの部分は `styles/ci/ci.css`。中身の欄に `DETAIL_MIN_WIDTH`（GitHub タブと同じ）が残らない幅では一覧と中身を切り替える（`hooks/useNarrowSplit`）。開いている実行は `ciSelected(プロジェクト)`（「実行の ID」か「実行の ID:ジョブの ID」。読み書きは純粋関数の `ciView.ts` の `parseCiSelected` / `ciSelectedText`）。
 - 一覧: いちばん上に外の CI（作業場所のブランチと既定のブランチの先頭のコミットの、GitHub Actions でないチェック・コミットの状態。成否・説明・リンクだけ `CiExternalRow`）、その下に GitHub Actions の実行（新しい 50 件。PR のない実行も。`CiRunRow`: 状態の印 `CiStateIcon`・題・ワークフロー #番号（やり直した回）・ブランチ（作業場所・既定のブランチ = 落ちたら知らせるブランチはアクセントの色）・PR・きっかけ・起こした人・時刻）。取り直しは GitHub タブと同じ `useGitHubRefresh`（開いたとき・窓に戻ったとき・ボタン）で、動いている実行・外の CI がある間（`hasPending`）は 15 秒ごと（`CI_PENDING_REFRESH_MS`）、ほかは 1 分ごと。見張りの `ci_failed` が届いたら、そのプロジェクトの一覧を取り直す。
 - 中身（`CiRunDetailView`）: 見出しに題・状態の札・ワークフロー #番号・ブランチ・きっかけ・コミット・PR（押すと GitHub タブでその PR）・起こした人。操作は、落ちた実行は「失敗したジョブをやり直す」「すべてやり直す」と「AI に渡す ▾」、通った・取り消した実行は「すべてやり直す」だけ、動いている実行はなし（やり直したら知らせ（`showToast`）、中身と一覧を取り直す）。取り直し・URL のコピー・GitHub で開く。

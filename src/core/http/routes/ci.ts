@@ -4,7 +4,6 @@ import type { CiRerunBody } from "@shared/types";
 import type { ServerDeps } from "../server.js";
 import { idParam, jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
-import { localOnly } from "../thisMac.js";
 
 const rerunBody = z.object({ failed: z.boolean() }) satisfies z.ZodType<CiRerunBody>;
 
@@ -14,7 +13,6 @@ const rerunBody = z.object({ failed: z.boolean() }) satisfies z.ZodType<CiRerunB
  */
 export function ciRoutes(app: Hono, { store, ci }: ServerDeps) {
   const { withProject } = lookups(store);
-  app.use("/api/projects/:id/ci/*", localOnly("CI のタブは、この Mac からだけ使えます"));
 
   app.get("/api/projects/:id/ci/runs", withProject, async (c) => c.json(await ci.list(c.var.project)));
   app.get("/api/projects/:id/ci/runs/:run", withProject, async (c) => c.json(await ci.detail(c.var.project, idParam(c, "run"))));

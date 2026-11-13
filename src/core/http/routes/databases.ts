@@ -33,7 +33,6 @@ import {
   type Project,
 } from "@shared/types";
 import type { ServerDeps } from "../server.js";
-import { localOnly } from "../thisMac.js";
 import { asInvalid, Invalid, NotFound } from "../errors.js";
 import { idParam, jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
@@ -194,9 +193,6 @@ const editsSchema = z.object({
  */
 export function databaseRoutes(app: Hono, { store, databases, providers, docker }: ServerDeps) {
   const { withProject } = lookups(store);
-  const thisMacOnly = localOnly("DB クライアントは、この Mac からだけ使えます");
-  app.use("/api/projects/:id/db-connections", thisMacOnly);
-  app.use("/api/projects/:id/db-connections/*", thisMacOnly);
 
   /** :cid の接続（このプロジェクトのものでなければ 404） */
   const withConnection = createMiddleware<{ Variables: { project: Project; connection: DbConnection } }>(async (c, next) => {

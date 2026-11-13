@@ -5,6 +5,8 @@ import { getCookie, setCookie } from "hono/cookie";
 import { streamSSE } from "hono/streaming";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { AUTH_COOKIE, tokenMatches } from "./auth.js";
+import { callerOf, hashToken, setCaller } from "./caller.js";
+import { deviceMaySee, deviceMayUse } from "./deviceAccess.js";
 import { errorResponse } from "./errors.js";
 import type { Bus } from "../bus.js";
 import type { AgentProvider } from "../providers/index.js";
@@ -45,7 +47,7 @@ import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
 import { worktreePrRoutes } from "./routes/worktreePrs.js";
 import type { WorktreePrWatch } from "../git/prWatch.js";
-import type { GitHubAccount, ProviderId, ServerStatus } from "@shared/types";
+import { DEVICE_FORBIDDEN, type GitHubAccount, type ProviderId, type ServerStatus } from "@shared/types";
 
 export interface ServerDeps {
   store: Store;
@@ -104,10 +106,20 @@ export function createApp(deps: ServerDeps): Hono {
     return c.redirect("/");
   });
 
+  // 認証と呼び主: 本体のトークン（この Mac の画面の Cookie）ならこの Mac、端末のトークンならその端末（http/caller.ts）。
+  // 端末は deviceAccess.ts に書いた口だけ使える（既定で閉じる。ほかは 403）
   app.use("/api/*", async (c, next) => {
-    const bearer = c.req.header("authorization")?.replace(/^Bearer\s+/i, "");
-    if (tokenMatches(token, bearer) || tokenMatches(token, getCookie(c, AUTH_COOKIE))) return next();
-    return c.json({ error: "unauthorized" }, 401);
+    const given = [c.req.header("authorization")?.replace(/^Bearer\s+/i, ""), getCookie(c, AUTH_COOKIE)].filter((t): t is string => Boolean(t));
+    if (given.some((t) => tokenMatches(token, t))) {
+      setCaller(c, { kind: "host" });
+      return next();
+    }
+    const device = given.map((t) => store.devices.byTokenHash(hashToken(t))).find((d) => d !== null);
+    if (!device) return c.json({ error: "unauthorized" }, 401);
+    store.devices.touch(device.id);
+    setCaller(c, { kind: "device", device });
+    if (!deviceMayUse(c.req.method, c.req.path)) return c.json({ error: "この操作は、この Mac の Kickoff からだけ使えます", code: DEVICE_FORBIDDEN }, 403);
+    return next();
   });
 
   // 失敗はここでまとめて応答にする（種類は errors.ts。知らない失敗だけ記録する）
@@ -161,8 +173,10 @@ export function createApp(deps: ServerDeps): Hono {
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>
     streamSSE(c, async (stream) => {
+      // 端末には、開いた口の知らせだけを届ける（deviceAccess.ts）
+      const visible = callerOf(c).kind === "device" ? deviceMaySee : () => true;
       const unsubscribe = bus.subscribe((event) => {
-        void stream.writeSSE({ data: JSON.stringify(event) });
+        if (visible(event)) void stream.writeSSE({ data: JSON.stringify(event) });
       });
       const ping = setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);
       // 切断の知らせは、待つ前（最初の書き込みの前）に受け取れるようにしておく

@@ -23,7 +23,6 @@ import {
 import type { ServerDeps } from "../server.js";
 import { idParam, jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
-import { localOnly } from "../thisMac.js";
 
 /** 一覧の絞り込み（クエリ。label・assignees は , 区切り、milestones は改行区切り（名前に , を含みうる）） */
 const listQuery = z.object({
@@ -102,11 +101,10 @@ const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "
 /**
  * GitHub タブ（要件 5.11 の段階 1「読む」・段階 2「AI に渡す」・段階 3「書く」。core/github/service.ts）: 連携の状態・絞り込みの候補・一覧・issue と PR の中身・PR の変更・PR のブランチのワークツリー、
  * コメント・閉じる / 開き直す・ラベル・issue の作成・レビューの送信・スレッドへの返信と解決・マージ・チェックアウト。
- * この Mac からの頼みだけ受ける（中身は DB に持たず、開くたびに GitHub に聞く。gh はプロジェクトで選んだアカウントで動かす）
+ * 端末には開かない（http/deviceAccess.ts。中身は DB に持たず、開くたびに GitHub に聞く。gh はプロジェクトで選んだアカウントで動かす）
  */
 export function githubRoutes(app: Hono, { store, github, prWatch }: ServerDeps) {
   const { withProject } = lookups(store);
-  app.use("/api/projects/:id/github/*", localOnly("GitHub タブは、この Mac からだけ使えます"));
 
   app.get("/api/projects/:id/github/connection", withProject, async (c) => c.json(await github.connection(c.var.project)));
   app.get("/api/projects/:id/github/meta", withProject, async (c) => c.json(await github.meta(c.var.project)));
