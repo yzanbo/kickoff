@@ -24,7 +24,8 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const store = new Store(":memory:", (e) => bus.publish(e));
   const approvals = new ApprovalCenter(bus);
   const providers = { claude: provider, codex: provider, gemini: provider } as Record<ProviderId, AgentProvider>;
-  const runner = new Runner({ store, approvals, providers, usage: offlineUsage, bus, ...runnerOptions });
+  // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない
+  const runner = new Runner({ store, approvals, providers, usage: offlineUsage, bus, tellableWaitMs: 50, ...runnerOptions });
   // プロジェクトのフォルダは一時フォルダの中に作る（隣に作るワークツリーの <repo>-worktrees/ も、テストのあとに一緒に消える）
   const repo = path.join(tempDir(), "repo");
   fs.mkdirSync(repo);

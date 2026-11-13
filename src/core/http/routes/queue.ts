@@ -112,7 +112,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json(runner.queueState(chat.id));
   });
 
-  // 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ列の先頭に戻す）
+  // 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ預かり、作業の終わりに送信待ちより先に送る）
   app.post("/api/chats/:id/queue/send-all", withChat, async (c) => {
     const { chat } = c.var;
     const { ids } = queueIdsSchema.partial().parse(await jsonBody(c));
@@ -157,7 +157,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json(runner.queueState(chat.id));
   });
 
-  // 待ちの 1 件をすぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ列の先頭に戻す）
+  // 待ちの 1 件をすぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ預かり、作業の終わりに送信待ちより先に送る）
   app.post("/api/chats/:id/queue/:queueId/send", withChat, async (c) => {
     const { chat } = c.var;
     await runner.sendQueuedNow(chat.id, c.req.param("queueId"));

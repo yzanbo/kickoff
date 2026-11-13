@@ -17,7 +17,7 @@ export const turnsApi = {
   sendMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], pauseAfter = false, marks: MessageMarks = {}) =>
     request<Chat>("POST", `/api/chats/${chatId}/messages`, { text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}), ...marks } satisfies SendMessageBody),
   /**
-   * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）。
+   * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ預かり、作業の終わりに送信待ちより先に送る。作業中でなければすぐ送る）。
    * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った / held = 圧縮中なので預かった。pauseAfter・marks は sendMessage と同じ
    */
   tellChat: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], pauseAfter = false, marks: MessageMarks = {}) =>

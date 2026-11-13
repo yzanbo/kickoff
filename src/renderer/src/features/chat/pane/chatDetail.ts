@@ -21,6 +21,7 @@ const IDLE_LIVE: ChatLive = {
   awaiting_compact: false,
   compact_after_turn: false,
   compacted_turn: false,
+  tells_closed: false,
   queue_resume: null,
 };
 
@@ -44,6 +45,7 @@ export function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
     awaiting_compact: next.awaiting_compact,
     compact_after_turn: next.compact_after_turn,
     compacted_turn: next.compacted_turn,
+    tells_closed: next.tells_closed,
     queue_resume: keep(prev.queue_resume, next.queue_resume),
   };
 }

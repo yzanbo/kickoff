@@ -44,7 +44,8 @@ export function TimelineEnd({
   // 圧縮を待つ間（圧縮前指示の作業中・圧縮中）は、コアが圧縮の記録を受け取って預かりの先頭に入れる前から、圧縮後指示を送る順で見せる
   const waitingCompact = busy && (live.compacting !== null || live.awaiting_compact);
   const pendingPost = waitingCompact && !live.after_compact.some((m) => m.post_compact) ? post : null;
-  const until: AfterCompactUntil = waitingCompact ? "compact" : busy && live.compacted_turn ? "exchange" : busy ? "turn" : "next";
+  // いまの作業に足せなくなったあと（tells_closed）の「いま」は、作業の終わりに送る
+  const until: AfterCompactUntil = waitingCompact ? "compact" : busy && live.tells_closed ? "closed" : busy && live.compacted_turn ? "exchange" : busy ? "turn" : "next";
   return (
     <>
       {streaming && <StreamingReply text={streaming} scroll={scroll} />}

@@ -36,7 +36,7 @@ export abstract class RunnerQueue {
   protected abstract readonly runtimes: ChatRuntimes;
   abstract isBusy(chatId: number): boolean;
   abstract send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<Chat>;
-  abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts & { at?: number }): Promise<TellResult["result"]>;
+  abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<TellResult["result"]>;
   /** 会話を圧縮する（作業中なら、いまのやり取りが終わったらすぐ圧縮するよう、送信待ちのいちばん上に入れる） */
   abstract compact(chatId: number): Promise<Chat>;
   /** コンテキストを消去する（作業中なら 409・まだ会話がなければ 409） */
@@ -144,7 +144,7 @@ export abstract class RunnerQueue {
   }
 
   /**
-   * 待ちの 1 件をすぐ送る。作業中なら止めずに伝え、伝えられなければ列の先頭に戻す。
+   * 待ちの 1 件をすぐ送る。作業中なら止めずに伝え、伝えられなければ預かって作業の終わりに送信待ちより先に送る。
    * 圧縮・消去の行なら、すぐ行う（作業中なら、いまのやり取りが終わったらすぐ行うよう、いちばん上へ移す。まだ会話がなければ 409 で列に残す）。
    * 消去はその場で済むので、済んだら送信待ちの次を送る（止めているときは送らない。圧縮はその作業の終わりで送る）
    */
@@ -168,7 +168,7 @@ export abstract class RunnerQueue {
       await this.sendNextQueued(chatId);
       return;
     }
-    await this.tell(chatId, message.text, message.options, message.attachments, { at: 0, postCompact: message.post_compact, marks: marksOf(message) });
+    await this.tell(chatId, message.text, message.options, message.attachments, { postCompact: message.post_compact, marks: marksOf(message) });
   }
 
   /**

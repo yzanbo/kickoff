@@ -297,7 +297,7 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
   );
   assert.deepEqual(
     { ...last, queue: { ...last.queue, messages: [] } },
-    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, after_compact: [], awaiting_compact: false, compact_after_turn: false, compacted_turn: false, queue_resume: null },
+    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, after_compact: [], awaiting_compact: false, compact_after_turn: false, compacted_turn: false, tells_closed: false, queue_resume: null },
   );
   await call("DELETE", `/api/chats/${chatId}/queue`);
   release();
@@ -682,7 +682,7 @@ test("圧縮後指示は送信待ちに入れない: いまの作業に足せな
   assert.deepEqual(queueTexts(), ["次"]);
 });
 
-test("止めずに伝える API: 作業中なら止めずに足して自分の発言に残し、足せなければ待ちの列へ。作業中でなければすぐ送る", async () => {
+test("止めずに伝える API: 作業中なら止めずに足して自分の発言に残し、足せなければ預かって作業の終わりに送信待ちより先に送る。作業中でなければすぐ送る", async () => {
   const { call, project, runner, provider, store } = setup();
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
@@ -694,28 +694,37 @@ test("止めずに伝える API: 作業中なら止めずに足して自分の�
   assert.equal(runner.isBusy(chatId), true);
   assert.equal((store.events.list(chatId).findLast((e) => e.type === "user")?.data as { text?: string }).text, "ついでに");
   assert.equal((await call("POST", `/api/chats/${chatId}/tell`, {})).status, 400);
-  // 足せない（入力が閉じている）ときは待ちの列へ。行の「すぐ送る」で伝え直すときは先頭に戻す
+  // 足せない（入力が閉じている）ときは送信待ちに戻さず預かる。このあとの「いま」と、行の「すぐ送る」も預かりの後ろへ
   provider.acceptTell = false;
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "あとで" })).body, { result: "queued" });
-  await call("POST", `/api/chats/${chatId}/queue`, { text: "2 番目" });
-  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["あとで", "2 番目"]);
-  await call("POST", `/api/chats/${chatId}/queue/${runner.live(chatId).queue.messages[1].id}/send`);
-  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["2 番目", "あとで"]);
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "あとで" })).body, { result: "held" });
+  assert.equal(runner.live(chatId).tells_closed, true);
   provider.acceptTell = true;
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "続けて" })).body, { result: "held" });
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "送信待ち" });
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "すぐ送る" });
   await call("POST", `/api/chats/${chatId}/queue/${runner.live(chatId).queue.messages[1].id}/send`);
-  assert.deepEqual(provider.told, ["ついでに", "あとで"]);
+  assert.deepEqual(runner.live(chatId).after_compact.map((m) => m.text), ["あとで", "続けて", "すぐ送る"]);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["送信待ち"]);
+  assert.deepEqual(provider.told, ["ついでに"]);
   // 裏の作業を 1 つ止める
   assert.equal((await call("POST", `/api/chats/${chatId}/background/b1/stop`)).status, 204);
   assert.deepEqual(provider.stoppedTasks, ["b1"]);
-  await call("DELETE", `/api/chats/${chatId}/queue`);
+  // 送信待ちを止めていても、預かった指示は作業の終わりに送信待ちより先に送る（1 件目を新しい作業として、残りはその作業に）
+  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
   release();
-  await until(() => !runner.isBusy(chatId));
+  await until(() => runner.live(chatId).after_compact.length === 0 && !runner.isBusy(chatId));
+  assert.equal(provider.prompts[1], "あとで");
+  assert.deepEqual([...provider.prompts.slice(2), ...provider.told.slice(1)].sort(), ["すぐ送る", "続けて"]);
+  assert.equal(runner.live(chatId).tells_closed, false);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["送信待ち"]);
+  await call("DELETE", `/api/chats/${chatId}/queue`);
   // 作業中でなければ 409（状態による失敗）
   assert.equal((await call("POST", `/api/chats/${chatId}/background/b1/stop`)).status, 409);
   // 作業中でなければ、すぐ送る
+  const sent = provider.prompts.length;
   assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "ふつう" })).body, { result: "sent" });
-  await until(() => provider.prompts.length === 2);
-  assert.equal(provider.prompts[1], "ふつう");
+  await until(() => provider.prompts.length === sent + 1);
+  assert.equal(provider.prompts.at(-1), "ふつう");
 });
 
 test("発言の印（依頼文の頼み・子チャットから渡した依頼）は、送る・送信待ちに入れる・送信待ちから送るのどの道でも発言の記録に残る", async () => {
