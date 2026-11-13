@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { describeApprovalInput, describeTool, describeToolInput, describeUnknownInput, toolLabel, visibleToolResult } from "./toolDescribe";
+import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
@@ -78,4 +79,10 @@ test("AI が子チャットを作るツール: 行は名前（なければ依頼
   assert.equal(describeTool(AI_CHILD_CHAT_TOOL, { title: "ログの調査", text: "ログの形式を調べて" }), "子チャットを作る: ログの調査");
   assert.equal(describeTool(AI_CHILD_CHAT_TOOL, { text: "1 行目\n2 行目" }), "子チャットを作る: 1 行目");
   assert.equal(describeApprovalInput(AI_CHILD_CHAT_TOOL, { title: "ログの調査", text: "1 行目\n2 行目" }), "1 行目\n2 行目");
+});
+
+test("AI がチャットの名前・固定・グループを変えるツール: 行は引数から作った「どのチャットの何を変えたか」", () => {
+  assert.equal(describeTool(AI_LIST_FAMILY_TOOL, {}), "同じ家系のチャットを確かめる");
+  assert.equal(describeTool(AI_UPDATE_CHAT_TOOL, { chat_id: 12, title: "【済】調査", pinned: true }), "チャットを変更: 名前を『【済】調査』に変えた・固定した（チャット 12）");
+  assert.equal(describeTool(AI_UPDATE_CHAT_TOOL, { chat_id: 3, group_id: null }), "チャットを変更: グループから外した（チャット 3）");
 });
