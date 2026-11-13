@@ -9,6 +9,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { createBackgroundTracker } from "./background.js";
+import { findSessionFile, removeSession, writeRecentSegments } from "./sessionFiles.js";
 import { createTurnOver } from "./turnOver.js";
 import { createCommandOutputWatcher } from "./commandOutput.js";
 import { createInputChannel } from "./input.js";
@@ -322,9 +323,23 @@ export class ClaudeProvider implements AgentProvider {
 
   /**
    * 会話を messageId の位置までで分け、新しいセッションにする（元のセッションは変えない）。
-   * cwd はそのセッションを動かした作業フォルダ（消えていれば、すべてのプロジェクトから探す）
+   * cwd はそのセッションを動かした作業フォルダ（消えていれば、すべてのプロジェクトから探す）。
+   * 写すのは位置の手前の直近 2 区切り（圧縮の印から後ろ）だけ: Claude Code は圧縮しても古いやり取りを消さないので、長く続けた会話を丸ごと写すと
+   * 1GB を超え、本体が数秒ずつ止まっていた（1.6GB の親で約 18 秒 → 直近 2 区切りで約 0.2 秒・約 6MB。利用者と決めた）。
+   * 続きで Claude Code が読むのは最後の圧縮の要約から後ろなので、会話の中身は変わらない。切り出せなければ丸ごと写す
    */
   async fork(sessionId: string, messageId: string, cwd: string): Promise<string> {
+    const file = await findSessionFile(sessionId, [cwd]).catch(() => null);
+    const recent = file ? await writeRecentSegments(file, sessionId, messageId).catch(() => null) : null;
+    if (recent) {
+      try {
+        return (await forkSession(recent.sessionId, { upToMessageId: messageId })).sessionId;
+      } catch {
+        // 切り出したものを写せなければ、丸ごと写す
+      } finally {
+        await removeSession(recent.path).catch(() => {});
+      }
+    }
     try {
       return (await forkSession(sessionId, { dir: cwd, upToMessageId: messageId })).sessionId;
     } catch {
