@@ -1,7 +1,20 @@
 // ツールの呼び出しを人が読める文にする（タイムラインのツールの行・実行中の表示・承認カードで共通）
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL, describeUpdateChat } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
-import { AI_OPEN_CHAT_TOOL, AI_OPEN_MEMO_TOOL, describeOpenChat, describeOpenMemo } from "@shared/chat/aiOpen";
+import {
+  AI_ADD_DRAFT_TOOL,
+  AI_OPEN_CHAT_TOOL,
+  AI_OPEN_DIFF_TOOL,
+  AI_OPEN_FILE_TOOL,
+  AI_OPEN_MEMO_TOOL,
+  AI_OPEN_SQL_TOOL,
+  describeAddDraft,
+  describeOpenChat,
+  describeOpenDiff,
+  describeOpenFile,
+  describeOpenMemo,
+  describeOpenSql,
+} from "@shared/chat/aiOpen";
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL, describeAddSnippet, describeMoveMemo } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL, describeReadChat } from "@shared/chat/aiRead";
 import { isSubagentTool } from "@shared/chat/subagents";
@@ -54,6 +67,10 @@ const TOOL_LABELS: Record<string, string> = {
   [AI_USAGE_TOOL]: "使用枠を確かめる",
   [AI_ADD_SNIPPET_TOOL]: "定型文に登録",
   [AI_MOVE_MEMO_TOOL]: "メモを移動",
+  [AI_OPEN_FILE_TOOL]: "ファイルを開く",
+  [AI_OPEN_DIFF_TOOL]: "差分を開く",
+  [AI_OPEN_SQL_TOOL]: "SQL のタブに入れる",
+  [AI_ADD_DRAFT_TOOL]: "下書きを入れる",
 };
 
 /** ToDo の状態の表示名（TaskUpdate の status） */
@@ -230,6 +247,14 @@ function describeKnown(name: string, input: Input): string | null {
       return clip(describeAddSnippet(input));
     case AI_MOVE_MEMO_TOOL:
       return clip(describeMoveMemo(input));
+    case AI_OPEN_FILE_TOOL:
+      return clip(describeOpenFile(input));
+    case AI_OPEN_DIFF_TOOL:
+      return clip(describeOpenDiff(input));
+    case AI_OPEN_SQL_TOOL:
+      return clip(describeOpenSql(input));
+    case AI_ADD_DRAFT_TOOL:
+      return clip(describeAddDraft(input));
   }
   // サブエージェントは、依頼の概要と種類だけ（依頼の全文は「中身を見る」で見られる）
   if (isSubagentTool(name) && typeof input.description === "string") {

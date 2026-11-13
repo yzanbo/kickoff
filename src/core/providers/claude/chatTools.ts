@@ -2,10 +2,10 @@ import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from "@
 import { z } from "zod";
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
-import { AI_OPEN_CHAT_TOOL, AI_OPEN_MEMO_TOOL } from "@shared/chat/aiOpen";
+import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_MEMO_TOOL, AI_OPEN_SQL_TOOL } from "@shared/chat/aiOpen";
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
-import { CHAT_TITLE_MAX, OPEN_PLACES } from "@shared/types";
+import { CHAT_TITLE_MAX } from "@shared/types";
 import type { AiChatEditTools } from "../../chat/aiChatEdit.js";
 import type { AiChatReadTools } from "../../chat/aiChatRead.js";
 import type { AiChildChatDecision, AiChildChatTools } from "../../chat/aiChildChat.js";
@@ -13,6 +13,7 @@ import type { AiOpenTools } from "../../chat/aiOpen.js";
 import type { AiProjectTools } from "../../chat/aiProject.js";
 import type { ProviderCallbacks } from "../types.js";
 import { failure, text } from "./chatToolResult.js";
+import { OPEN_INSTRUCTIONS, openTools } from "./chatOpenTools.js";
 import { PROJECT_INSTRUCTIONS, projectTools } from "./chatProjectTools.js";
 import { READ_INSTRUCTIONS, readTools } from "./chatReadTools.js";
 
@@ -35,7 +36,7 @@ export interface ChatTools {
 export const chatToolNames = (tools: ChatTools) => [
   ...(tools.childChat ? [AI_CHILD_CHAT_TOOL] : []),
   ...(tools.chatEdit ? [AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL] : []),
-  ...(tools.open ? [AI_OPEN_MEMO_TOOL, AI_OPEN_CHAT_TOOL] : []),
+  ...(tools.open ? [AI_OPEN_MEMO_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_SQL_TOOL, AI_ADD_DRAFT_TOOL] : []),
   ...(tools.read ? [AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL] : []),
   ...(tools.project ? [AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL] : []),
 ];
@@ -55,14 +56,6 @@ const EDIT_INSTRUCTIONS = [
   "update_chat は、同じ家系のチャットの名前（title）・固定（pinned）・グループ（group_id）を、利用者に聞かずに変える（利用者はいつでも戻せる）。chat_id は必ず書く（自分のチャットでも。自分の ID は指示に添えた文脈にある）。兄弟などの ID が分からなければ、先に list_family_chats で確かめる。",
   "省いた項目は変わらない。頼まれた項目だけを渡す。group_id: null はグループから外す。グループは作れず、選べるのは list_family_chats の groups だけ。子チャットはグループに入らない。家系の外のチャットは変えられない。",
   "利用者が「タイトルに【済】を付けて」「このチャットを固定して」のように頼んだときに使う。頼まれていないのに名前などを変えない。",
-];
-
-/** メモ・家系のチャットを開くツールの使い方 */
-const OPEN_INSTRUCTIONS = [
-  "open_memo は、このプロジェクトのメモ（メモのフォルダの .md・.html）を Kickoff の画面に開く。path はメモのフォルダからの相対パスか、メモのフォルダの中の絶対パス。",
-  "open_chat は、このチャットと同じ家系のチャット（list_family_chats の一覧）を Kickoff の画面に開く。子チャット・孫チャットは右の欄か別ウィンドウ、いちばん上の親チャットはチャットのパネルに開く。",
-  "place は side（いちばん上の親チャットの画面の右の欄。子チャットの中からでも親の右の欄に開く）か window（別ウィンドウ）。利用者が「右で」「右の欄で」「サイドで」と言ったら side、「別ウィンドウで」「新しいウィンドウで」と言ったら window。場所を言われなければ省く（利用者の設定の開き方になる）。",
-  "どちらも開くだけで何も変えないので、聞かずに開く。利用者が「開いて」「見せて」と頼んだときに使い、頼まれていないのに開かない。開けたかは返らない（画面に頼むだけ）。",
 ];
 
 /** 渡すツールに合わせた使い方 */
@@ -140,37 +133,6 @@ function chatEditTools(chatEdit: AiChatEditTools) {
       async (args) => {
         try {
           return text(chatEdit.update(args));
-        } catch (e) {
-          return failure(e);
-        }
-      },
-    ),
-  ];
-}
-
-/** メモ・家系のチャットを開くツール（聞かずに画面に頼む） */
-function openTools(open: AiOpenTools) {
-  const place = z.enum(OPEN_PLACES).optional().describe("side = 右の欄（いちばん上の親チャットの画面）/ window = 別ウィンドウ。利用者が場所を言わなければ省く（設定の開き方）");
-  return [
-    tool(
-      "open_memo",
-      "このプロジェクトのメモを Kickoff の画面（右の欄・別ウィンドウ）に開く（開くだけ）",
-      { path: z.string().min(1).describe("メモのフォルダからの相対パス（「機能の仕様/図.html」）か、メモのフォルダの中の絶対パス"), place },
-      async (args) => {
-        try {
-          return text(await open.openMemo(args));
-        } catch (e) {
-          return failure(e);
-        }
-      },
-    ),
-    tool(
-      "open_chat",
-      "同じ家系のチャット（子チャット・孫チャット・親など）を Kickoff の画面に開く（開くだけ）",
-      { chat_id: z.number().int().describe("開くチャットの ID（分からなければ list_family_chats で確かめる）"), place },
-      async (args) => {
-        try {
-          return text(open.openChat(args));
         } catch (e) {
           return failure(e);
         }

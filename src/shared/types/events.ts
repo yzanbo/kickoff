@@ -4,7 +4,7 @@ import type { AppSettings } from "./settings";
 import type { Project } from "./project";
 import type { PlanUsage } from "./provider";
 import type { Chat, ChatGroup } from "./chat";
-import type { ChatEvent, CommandOutput, SubagentInfo } from "./chatEvent";
+import type { ChatEvent, CommandOutput, HandoffFrom, SubagentInfo } from "./chatEvent";
 import type { ChatLive } from "./chatLive";
 import type { Snippet } from "./snippet";
 import type { VoiceDownload } from "./voice";
@@ -51,8 +51,10 @@ export type BusEvent =
   | { type: "docker_changed"; project_id: number }
   /** 見張っているブランチの CI が落ちた（同じ実行は 1 回だけ。画面は設定の「通知」に合わせて Mac の通知を出し、CI のタブを取り直す） */
   | { type: "ci_failed"; failure: CiFailure }
-  /** チャットの AI が、メモ・家系のチャットを開くよう頼んだ（Mac のアプリのメインのウィンドウだけが受けて開く。kickoff_chat の open_memo・open_chat） */
+  /** チャットの AI が、メモ・家系のチャット・ファイル・差分・SQL を開くよう頼んだ（Mac のアプリのメインのウィンドウだけが受けて開く。kickoff_chat の open_…） */
   | { type: "open_view"; request: OpenViewRequest }
+  /** チャットの AI が、家系のチャットの入力欄に下書きを入れるよう頼んだ（Mac のアプリのメインのウィンドウだけが受けて入れる。kickoff_chat の add_draft） */
+  | { type: "chat_draft"; request: ChatDraftRequest }
   /**
    * ポートを使っているプロセスを調べ直した（数だけ。一覧はコマンドの全文を含むので SSE に載せず、この Mac の画面が GET /api/ports?cached=1 で読む。
    * SSE はスマホの画面にも届くため）。fresh は、チャットの実行が終わったあとに調べて新しく現れたものの数
@@ -71,4 +73,20 @@ export const OPEN_PLACE_LABELS: Record<OpenPlace, string> = { side: "右の欄",
  */
 export type OpenViewRequest =
   | { kind: "memo"; project_id: number; path: string; place: OpenPlace | null; lineage: Chat[] }
-  | { kind: "chat"; place: OpenPlace | null; lineage: Chat[] };
+  | { kind: "chat"; place: OpenPlace | null; lineage: Chat[] }
+  /** 頼んだチャットの作業場所のファイル（path は作業場所からの相対パス。line は目立たせる行） */
+  | { kind: "file"; project_id: number; worktree: string | null; path: string; line: number | null; place: OpenPlace | null; lineage: Chat[] }
+  /** 頼んだチャットの作業場所のコミットしていない変更（path を渡せばそのファイルの位置へ） */
+  | { kind: "diff"; project_id: number; worktree: string | null; path: string | null; place: OpenPlace | null; lineage: Chat[] }
+  /** 頼んだチャットの右の欄の DB クライアントの、その接続の新しい SQL のタブに sql を入れて開く（流さない） */
+  | { kind: "sql"; project_id: number; connection_id: number; sql: string; lineage: Chat[] };
+
+/**
+ * AI が家系のチャットの入力欄に入れる下書き（書きかけの後ろに空行を挟んで足す。送るのは利用者）。lineage はいちばん上の親チャットから入れる先のチャットまで、
+ * from は入れる先が頼んだチャットの親チャットのとき、頼んだ子チャット（画面の「子チャットから渡した」の札と同じ）
+ */
+export interface ChatDraftRequest {
+  text: string;
+  from: HandoffFrom | null;
+  lineage: Chat[];
+}

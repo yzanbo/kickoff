@@ -1,4 +1,4 @@
-// チャットの AI が流した SQL（db_query）を、そのチャットの右の欄の DB クライアントの新しい SQL のタブで開き直す
+// チャットの AI が流した SQL（db_query）・用意した SQL（open_sql）を、そのチャットの右の欄の DB クライアントの新しい SQL のタブで開く
 import type { Chat, DbConnection } from "@shared/types";
 import { parsePopout } from "@/app/popout";
 import { postToMainWindow } from "@/app/windowBus";
@@ -13,7 +13,7 @@ import { knownChat } from "@/stores/chats";
  * 右の欄（子チャットなら、いちばん上の親の右の欄）の DB クライアントに、その接続の新しい SQL のタブを足して sql を書き、DB クライアントを開く。
  * 開いているタブは localStorage に置くので、別ウィンドウの中からはタブだけ足して、開くのはメインのウィンドウに頼む
  */
-export function openSqlFromChat(chat: Pick<Chat, "id" | "project_id" | "parent_chat_id" | "worktree_path">, connection: DbConnection, sql: string) {
+export function openSqlFromChat(chat: Pick<Chat, "id" | "project_id" | "parent_chat_id" | "worktree_path">, connection: Pick<DbConnection, "id">, sql: string) {
   const root = rootChatOf(chat, (id) => knownChat(id));
   const place = `chat-${root.id}`;
   const next = openNewSqlTab(readSetting(dbClientTabs(place)), connection.id);

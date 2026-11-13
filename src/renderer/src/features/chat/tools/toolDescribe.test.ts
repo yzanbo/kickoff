@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { describeApprovalInput, describeTool, describeToolInput, describeUnknownInput, toolLabel, visibleToolResult } from "./toolDescribe";
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
-import { AI_OPEN_CHAT_TOOL, AI_OPEN_MEMO_TOOL } from "@shared/chat/aiOpen";
+import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_MEMO_TOOL, AI_OPEN_SQL_TOOL } from "@shared/chat/aiOpen";
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 
@@ -108,4 +108,12 @@ test("AI がプロジェクトに足す・変えるツール: 定型文は名前
   assert.equal(describeTool(AI_ADD_SNIPPET_TOOL, { text: "テストを流して", label: "テスト" }), "定型文に登録: テスト");
   assert.equal(describeTool(AI_ADD_SNIPPET_TOOL, { text: "型を確かめて\n二行目" }), "定型文に登録: 型を確かめて");
   assert.equal(describeTool(AI_MOVE_MEMO_TOOL, { from: "案.md", to: "済/案.md" }), "メモを移動: 案.md → 済/案.md");
+});
+
+test("AI が画面に頼むツール: 開いたファイル・差分・SQL と、下書きを入れたチャット", () => {
+  assert.equal(describeTool(AI_OPEN_FILE_TOOL, { path: "src/a.ts", line: 12, place: "window" }), "ファイルを開く: src/a.ts:12（別ウィンドウ）");
+  assert.equal(describeTool(AI_OPEN_DIFF_TOOL, {}), "差分を開く: 変更の全体");
+  assert.equal(describeTool(AI_OPEN_DIFF_TOOL, { path: "src/a.ts", place: "side" }), "差分を開く: src/a.ts（右の欄）");
+  assert.equal(describeTool(AI_OPEN_SQL_TOOL, { connection: "開発", sql: "UPDATE users\nSET a = 1" }), "SQL のタブに入れる: 開発: UPDATE users");
+  assert.equal(describeTool(AI_ADD_DRAFT_TOOL, { chat_id: 3, text: "a" }), "下書きを入れる: チャット 3");
 });
