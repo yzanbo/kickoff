@@ -1,28 +1,48 @@
 import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
+import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 import { errorMessage } from "@shared/errors";
+import { CHAT_TITLE_MAX } from "@shared/types";
+import type { AiChatEditTools } from "../../chat/aiChatEdit.js";
 import type { AiChildChatDecision, AiChildChatTools } from "../../chat/aiChildChat.js";
 import type { ProviderCallbacks } from "../types.js";
 
 /** Kickoff のチャットを AI が操作するツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_chat__…） */
 export const CHAT_SERVER = "kickoff_chat";
 
-/**
- * allowedTools に足す名前。承認（設定が「毎回聞く」のとき）はツールの中で行うので、
- * 権限モードにかかわらず同じに効く（Auto mode でも承認を飛ばさない）
- */
-export const chatToolNames = () => [AI_CHILD_CHAT_TOOL];
+/** 1 回の実行に渡すチャットのツールの中身（子チャットを作るのは設定と深さで渡さないことがある。名前・固定・グループはどのチャットにも渡す） */
+export interface ChatTools {
+  childChat: AiChildChatTools | null;
+  chatEdit: AiChatEditTools | null;
+}
 
-/** このツールの使い方（MCP の instructions として AI に渡す） */
-const INSTRUCTIONS = [
-  "Kickoff（このチャットを動かしているアプリ）のチャットを操作するツール。",
+/**
+ * allowedTools に足す名前（渡すツールだけ）。子チャットの承認（設定が「毎回聞く」のとき）はツールの中で行うので、
+ * 権限モードにかかわらず同じに効く（Auto mode でも承認を飛ばさない）。名前・固定・グループは聞かずに変える
+ */
+export const chatToolNames = (tools: ChatTools) => [...(tools.childChat ? [AI_CHILD_CHAT_TOOL] : []), ...(tools.chatEdit ? [AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL] : [])];
+
+/** 子チャットを作るツールの使い方（MCP の instructions として AI に渡す） */
+const CHILD_INSTRUCTIONS = [
   "create_child_chat は、このチャットの子チャット（Kickoff の画面で、このチャットにぶら下がる別のチャット）を作り、最初の依頼を送る。作れるのはこのチャットの子チャットだけ。",
   "利用者が「子チャットを作って」「子チャットで調べて」と頼んだとき、または本筋と別に並行して進めたい寄り道を、利用者と相談のうえで切り出すときに使う。自分で片付く調べものにはサブエージェント（Agent ツール）を使う。",
   "子チャットの答えはこのツールには返らない（作るだけ）。利用者が子チャットを開いて見る。答えを待たずに、いまの作業を続ける。",
   "inherit（既定 true）は、このチャットの会話を引き継ぐか。引き継げるのは、いまの作業より前に終わったところまで。いまの作業で分かったこと・頼む理由は text に書く。",
   "利用者の設定によっては、作る前に利用者に承認を聞く。断られたら、同じ依頼で何度も頼まない。",
-].join("\n");
+];
+
+/** 名前・固定・グループを変えるツールの使い方 */
+const EDIT_INSTRUCTIONS = [
+  "list_family_chats は、このチャットと同じ家系のチャット（いちばん上の親チャットから下にぶら下がるチャット: 自分・親・祖父母・兄弟・子・孫など）の一覧（ID・名前・関係・固定・グループ）と、同じプロジェクトのグループの一覧を返す。",
+  "update_chat は、同じ家系のチャットの名前（title）・固定（pinned）・グループ（group_id）を、利用者に聞かずに変える（利用者はいつでも戻せる）。chat_id は必ず書く（自分のチャットでも。自分の ID は指示に添えた文脈にある）。兄弟などの ID が分からなければ、先に list_family_chats で確かめる。",
+  "省いた項目は変わらない。頼まれた項目だけを渡す。group_id: null はグループから外す。グループは作れず、選べるのは list_family_chats の groups だけ。子チャットはグループに入らない。家系の外のチャットは変えられない。",
+  "利用者が「タイトルに【済】を付けて」「このチャットを固定して」のように頼んだときに使う。頼まれていないのに名前などを変えない。",
+];
+
+/** 渡すツールに合わせた使い方 */
+const instructionsFor = (tools: ChatTools) =>
+  ["Kickoff（このチャットを動かしているアプリ）のチャットを操作するツール。", ...(tools.childChat ? CHILD_INSTRUCTIONS : []), ...(tools.chatEdit ? EDIT_INSTRUCTIONS : [])].join("\n");
 
 const text = (s: string) => ({ content: [{ type: "text" as const, text: s }] });
 const failure = (e: unknown) => ({ content: [{ type: "text" as const, text: errorMessage(e) }], isError: true });
@@ -33,25 +53,20 @@ function toDecision(decision: Awaited<ReturnType<ProviderCallbacks["requestAppro
   return { action: "deny", message: decision.action === "deny" ? (decision.message ?? null) : null };
 }
 
-/** 1 回の実行に渡す、チャットを操作するツールの MCP サーバー（設定が「毎回聞く」なら requestApproval で利用者に聞く） */
-export function chatMcpServer(tools: AiChildChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): McpSdkServerConfigWithInstance {
-  return createSdkMcpServer({
-    name: CHAT_SERVER,
-    version: "1.0.0",
-    instructions: INSTRUCTIONS,
-    tools: [
-      tool(
+/** 子チャットを作るツール（設定が「毎回聞く」なら requestApproval で利用者に聞く） */
+function childChatTool(childChat: AiChildChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal) {
+  return tool(
         "create_child_chat",
         "このチャットの子チャットを作り、最初の依頼を送る（作るだけで、子チャットの答えは返らない）",
         {
           text: z.string().min(1).describe("子チャットに送る最初の依頼（そのまま子チャットの AI への指示になる。頼む理由・前提も書く）"),
-          title: z.string().max(100).optional().describe("子チャットの名前（省くと依頼の文から付ける）"),
+          title: z.string().max(CHAT_TITLE_MAX).optional().describe("子チャットの名前（省くと依頼の文から付ける）"),
           inherit: z.boolean().optional().describe("このチャットの会話を引き継ぐか（既定 true）"),
         },
         async (args) => {
           try {
             return text(
-              await tools.create(args, async (request) =>
+              await childChat.create(args, async (request) =>
                 toDecision(
                   await cb.requestApproval(
                     {
@@ -71,7 +86,46 @@ export function chatMcpServer(tools: AiChildChatTools, cb: Pick<ProviderCallback
             return failure(e);
           }
         },
-      ),
-    ],
+      );
+}
+
+/** 家系のチャットの一覧と、名前・固定・グループを変えるツール（聞かずに変える） */
+function chatEditTools(chatEdit: AiChatEditTools) {
+  return [
+    tool("list_family_chats", "このチャットと同じ家系のチャット（ID・名前・関係・固定・グループ）と、同じプロジェクトのグループの一覧", {}, async () => {
+      try {
+        return text(chatEdit.listFamily());
+      } catch (e) {
+        return failure(e);
+      }
+    }),
+    tool(
+      "update_chat",
+      "同じ家系のチャットの名前・固定・グループを変える（聞かずに変える。省いた項目は変えない）",
+      {
+        chat_id: z.number().int().describe("変えるチャットの ID（必須。自分のチャットでも書く。分からなければ list_family_chats で確かめる）"),
+        title: z.string().min(1).max(CHAT_TITLE_MAX).optional().describe("新しい名前（省くと変えない）"),
+        pinned: z.boolean().optional().describe("固定する（true）・外す（false）。省くと変えない"),
+        group_id: z.number().int().nullable().optional().describe("入れるグループの ID（list_family_chats の groups から）。null でグループから外す。省くと変えない"),
+      },
+      async (args) => {
+        try {
+          return text(chatEdit.update(args));
+        } catch (e) {
+          return failure(e);
+        }
+      },
+    ),
+  ];
+}
+
+/** 1 回の実行に渡す、チャットを操作するツールの MCP サーバー（渡すツールがなければ null） */
+export function chatMcpServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): McpSdkServerConfigWithInstance | null {
+  if (!tools.childChat && !tools.chatEdit) return null;
+  return createSdkMcpServer({
+    name: CHAT_SERVER,
+    version: "1.0.0",
+    instructions: instructionsFor(tools),
+    tools: [...(tools.childChat ? [childChatTool(tools.childChat, cb, signal)] : []), ...(tools.chatEdit ? chatEditTools(tools.chatEdit) : [])],
   });
 }

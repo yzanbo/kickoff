@@ -16,6 +16,7 @@ import { currentBranch } from "../git/index.js";
 import { isInside } from "../system/paths.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
 import { chatContextNote, chatContextOf } from "./chatContext.js";
+import { createAiChatEditTools } from "./aiChatEdit.js";
 import { canCreateChildChat, createAiChildChatTools } from "./aiChildChat.js";
 import type { ChildChatInput } from "./children.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
@@ -187,6 +188,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     // 自分の子チャットを作るツール（設定で止めていない・孫チャットより深くならないときだけ）
     childChat:
       deps.startChildChat && canCreateChildChat(deps.store, chat) ? createAiChildChatTools({ store: deps.store, startChild: deps.startChildChat }, chat.id) : null,
+    // 同じ家系のチャットの名前・固定・グループを変えるツール（どのチャットにも。孫チャット・子チャットを作らせない設定のときも渡す）
+    chatEdit: createAiChatEditTools(deps.store, chat.id),
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く

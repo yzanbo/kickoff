@@ -146,11 +146,13 @@ export class ClaudeProvider implements AgentProvider {
 
     const canUseTool = createCanUseTool(cb);
     // Kickoff の埋め込みブラウザを操作するツール（デスクトップアプリのときだけ）・プロジェクトの DB を読むツール（AI に見せる接続があるときだけ）・
-    // 自分の子チャットを作るツール（設定で止めていない・深さの上限に達していないときだけ）
+    // チャットのツール（子チャットを作るのは設定で止めていない・深さの上限に達していないときだけ。家系のチャットの名前・固定・グループを変えるのはいつも）
+    const chatTools = { childChat: params.childChat ?? null, chatEdit: params.chatEdit ?? null };
+    const chatServer = chatMcpServer(chatTools, cb, abortController.signal);
     const mcpServers = {
       ...(params.browser ? { [BROWSER_SERVER]: browserMcpServer(params.browser.control, params.browser) } : {}),
       ...(params.database ? { [DB_SERVER]: dbMcpServer(params.database, cb, abortController.signal) } : {}),
-      ...(params.childChat ? { [CHAT_SERVER]: chatMcpServer(params.childChat, cb, abortController.signal) } : {}),
+      ...(chatServer ? { [CHAT_SERVER]: chatServer } : {}),
     };
 
     let sessionId = params.resumeSessionId;
@@ -194,12 +196,12 @@ export class ClaudeProvider implements AgentProvider {
           settingSources: ["user", "project", "local"],
           permissionMode: params.permissionMode,
           // 埋め込みブラウザのツールのうち、見るだけのものは聞かずに使わせる（開く・押す・打つ・JS は権限モードと承認に従う）
-          // DB のツール・子チャットのツールはすべて（承認と断りはツールの中で行う）
+          // DB のツール・チャットのツールはすべて（承認と断りはツールの中で行う）
           allowedTools: [
             ...toAllowedTools(params.policy),
             ...(params.browser ? browserReadOnlyTools() : []),
             ...(params.database ? dbToolNames() : []),
-            ...(params.childChat ? chatToolNames() : []),
+            ...chatToolNames(chatTools),
           ],
           ...(Object.keys(mcpServers).length > 0 ? { mcpServers } : {}),
           canUseTool,
