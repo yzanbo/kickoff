@@ -20,6 +20,7 @@ import type { DatabaseService } from "../databases/service.js";
 import type { GitHubService } from "../github/service.js";
 import type { CiService } from "../github/ci.js";
 import type { DockerService } from "../docker/service.js";
+import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { chatRoutes } from "./routes/chats.js";
 import { databaseRoutes } from "./routes/databases.js";
@@ -69,6 +70,8 @@ export interface ServerDeps {
   ci: CiService;
   /** Docker タブ（プロジェクトの compose の一覧・操作・docker events） */
   docker: DockerService;
+  /** ワークツリーの実行環境（ポートの帯・組の名前） */
+  worktreeEnvs: WorktreeEnvService;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。テストでは差し替えて、gh を呼ばない。なければ gh auth status） */
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」。テストでは差し替えて、本物のゴミ箱に入れない。なければ macOS のゴミ箱） */

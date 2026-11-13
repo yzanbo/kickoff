@@ -13,7 +13,7 @@ import { realPathOrSelf } from "../system/paths.js";
 import type { StreamedCommand } from "../system/stream.js";
 import { planDockerAction, startedServices, type DockerStep } from "./actions.js";
 import { DockerCli, shellWord } from "./cli.js";
-import { ComposeConfigCache, findComposeFiles, upFilesFor } from "./compose.js";
+import { ComposeConfigCache, findComposeFiles, upFilesFor, type ComposeRead } from "./compose.js";
 import { dockerDbCandidate, type DockerDbCandidate } from "./dbTarget.js";
 import { DockerEvents } from "./events.js";
 import { buildDockerList, headFileOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
@@ -75,6 +75,11 @@ export class DockerService {
     const list = await this.list(project);
     this.events.lease(project.id);
     return list;
+  }
+
+  /** compose の設定を聞く（覚えた答えを使う。ワークツリーの実行環境が、公開ポートと組の名前を読む） */
+  readCompose(files: string[]): Promise<ComposeRead> {
+    return this.configs.read(files, false);
   }
 
   /** ［↻］: 覚えた compose の設定を捨てて取り直す */

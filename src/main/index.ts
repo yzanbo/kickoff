@@ -18,6 +18,7 @@ import { watchWebviewConsoles } from "./browser/webviewConsole.js";
 import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
 import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
 import { registerIpc } from "./ipc/ipc.js";
+import { setTerminalEnvOf } from "./terminal/terminals.js";
 
 // 1. 名前・保存先を決め、起動の記録を始める（~/Library/Logs/<アプリ名>/startup.log。入れ替えた直後だけ画面が出ないことの原因を追うため）
 const { port, devUrl } = setupEnvironment();
@@ -61,6 +62,8 @@ async function start() {
       secretCipher: safeStorageCipher,
     });
     setDiagnosticsCore(core);
+    // ワークツリーのターミナルには、その帯の開発サーバーの番号（PORT）を渡す
+    setTerminalEnvOf((cwd) => core?.worktreeEnvFor(cwd) ?? {});
     startupLog(`コアを起動しました ${core.localUrl}`);
   } catch (e) {
     startupLog(`コアを起動できません: ${errorMessage(e)}`);

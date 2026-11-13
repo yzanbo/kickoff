@@ -1,5 +1,6 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // Git の状態・差分・ファイル・検索・履歴・ワークツリー・PR（エディタタブ）
+import type { WorktreeEnv } from "./worktreeEnv";
 /**
  * Git の変更のあるファイル（VS Code のソース管理と同じ記号）。
  * M: 変更 / A: 追加 / D: 削除 / R: 名前の変更 / C: コピー / T: 種類の変更 / U: 未追跡（新しいファイル） / !: 競合
@@ -217,6 +218,8 @@ export interface GitWorktree {
   locked: boolean;
   /** フォルダがなくなっていて、片付けられる */
   prunable: boolean;
+  /** ワークツリーの実行環境（ポートの帯・組の名前。一覧の API だけが付ける。この機能の前に作った・本体は null） */
+  env?: WorktreeEnv | null;
 }
 
 /** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット） */

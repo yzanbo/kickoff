@@ -48,11 +48,19 @@ function shellEnv(): Record<string, string> {
   return env;
 }
 
+/** 作業場所ごとに足す環境変数（ワークツリーの実行環境の PORT。コアを起動したら setTerminalEnvOf で渡される） */
+let envOf: (cwd: string) => Record<string, string> = () => ({});
+
+/** 作業場所ごとに足す環境変数の口を渡す（index.ts がコアを起動したあと） */
+export function setTerminalEnvOf(fn: (cwd: string) => Record<string, string>) {
+  envOf = fn;
+}
+
 function start(key: string, cwd: string, cols: number, rows: number, owner: WebContents, startWith: TerminalStart = {}): Session {
   const shell = process.env.SHELL || "/bin/zsh";
   // 決まったコマンドのタブは、ログインシェルでそのコマンドだけを流す（PATH などはふだんのシェルと同じ）
   const args = startWith.command ? ["-l", "-c", startWith.command] : ["-l"];
-  const proc = pty.spawn(shell, args, { name: "xterm-256color", cols, rows, cwd, env: { ...shellEnv(), ...startWith.env } });
+  const proc = pty.spawn(shell, args, { name: "xterm-256color", cols, rows, cwd, env: { ...shellEnv(), ...envOf(cwd), ...startWith.env } });
   // 出力は、いまつないでいる画面へ送る（つなぎ直すと owner が変わる）
   const output = new TerminalOutput((data) => sendEvent(session.owner, "terminal", "onData", key, data), { cols, rows });
   const session: Session = { pty: proc, output, owner };

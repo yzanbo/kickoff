@@ -15,6 +15,7 @@ import { createQueueStore } from "./queues.js";
 import { createSecretStore, createSettingsStore, readDatabaseId } from "./settings.js";
 import { createSnippetStore } from "./snippets.js";
 import { databaseStats, type DatabaseStats } from "./stats.js";
+import { createWorktreeEnvStore } from "./worktreeEnvs.js";
 
 /**
  * SQLite の永続化層。表ごとの店（store.chats.get など）をまとめて持つ。変更系の操作は onChange で知らせる
@@ -41,6 +42,8 @@ export class Store {
   readonly dbQueryHistory;
   readonly dbErLayouts;
   readonly dbPrepRuns;
+  /** ワークツリーの実行環境（ポートの帯・組の名前） */
+  readonly worktreeEnvs;
 
   constructor(
     private readonly file: string,
@@ -62,6 +65,7 @@ export class Store {
     this.dbQueryHistory = createDbQueryHistoryStore(this.db);
     this.dbErLayouts = createDbErLayoutStore(this.db);
     this.dbPrepRuns = createDbPrepRunStore(this.db);
+    this.worktreeEnvs = createWorktreeEnvStore(this.db);
   }
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */

@@ -18,6 +18,7 @@ import { GitHubService } from "../github/service.js";
 import { CiService } from "../github/ci.js";
 import { DockerService } from "../docker/service.js";
 import { DockerCli } from "../docker/cli.js";
+import { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { fakeDocker } from "./fakeDocker.js";
 import type { GraphqlVars, RestResponse, WriteMethod } from "../github/ghApi.js";
 import { readGitHubRemotes, type GitHubTarget } from "../git/githubTarget.js";
@@ -303,6 +304,8 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     cli: (_args: string[]): string => "",
   };
   const github = new GitHubService({
+    // PR・CI から作ったワークツリーも整える（worktreeEnvs は下で作る）
+    onWorktreeCreated: (project, worktree) => worktreeEnvs.prepare(project, worktree),
     resolveTarget: async () => ghFake.target,
     remotes: async (repo) => ghFake.remotes ?? (await readGitHubRemotes(repo)).remotes,
     api: () => ({
@@ -341,7 +344,9 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     brewStop: async (name) => void portsFake.brewStopped.push(name),
   };
   after(() => docker.close());
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  // ワークツリーの実行環境（compose の設定は dockerFake、使用中の番号は portsFake.lsof）
+  const worktreeEnvs = new WorktreeEnvService(store, docker);
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -353,6 +358,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, codexCalls: () => codexCalls };
 }
 

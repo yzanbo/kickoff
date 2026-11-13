@@ -345,7 +345,27 @@ CREATE TABLE ci_failure_notices (
 ) STRICT;
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21];
+/**
+ * v22: ワークツリーの実行環境。ワークツリー（作業するフォルダ）ごとのポートの帯・帯の中の番号の対応・Kickoff が割り当てた組の名前・知らせ。
+ * 帯は全プロジェクトで 1 つのワークツリーにだけ渡す（UNIQUE）。プロジェクトを消したら一緒に消え、帯が空く
+ */
+const SCHEMA_V22 = `
+CREATE TABLE worktree_envs (
+  path TEXT PRIMARY KEY CHECK (path <> ''),
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  band INTEGER UNIQUE CHECK (band IS NULL OR band > 0),
+  host TEXT CHECK (host <> ''),
+  slots TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(slots) AND json_type(slots) = 'array'),
+  compose_names TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(compose_names) AND json_type(compose_names) = 'array'),
+  rewritten TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(rewritten) AND json_type(rewritten) = 'array'),
+  issues TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(issues) AND json_type(issues) = 'array'),
+  blocked TEXT CHECK (blocked <> ''),
+  created_at TEXT NOT NULL DEFAULT (${NOW})
+) STRICT;
+CREATE INDEX idx_worktree_envs_project ON worktree_envs(project_id);
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
