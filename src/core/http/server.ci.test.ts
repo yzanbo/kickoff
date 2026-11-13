@@ -6,7 +6,7 @@ import path from "node:path";
 import { test } from "node:test";
 import type { BusEvent, CiFailedLog, CiJobLog, CiRunDetail, CiRunList, CiRunWorktree } from "@shared/types";
 import { Invalid } from "./errors.js";
-import { setup, TOKEN } from "../testing/testServer.js";
+import { setup } from "../testing/testServer.js";
 import { gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
 
@@ -163,8 +163,3 @@ test("CI の失敗の見張り: 作業場所のブランチと既定のブラン
   assert.equal(failed().length, 1);
 });
 
-test("CI: この Mac からの頼みだけ受ける", async () => {
-  const { app, project } = setup();
-  const res = await app.request(`/api/projects/${project.id}/ci/runs`, { headers: { authorization: `Bearer ${TOKEN}` } }, { incoming: { socket: { remoteAddress: "192.168.1.5" } } });
-  assert.equal(res.status, 403);
-});

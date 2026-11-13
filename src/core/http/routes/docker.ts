@@ -5,7 +5,6 @@ import { DOCKER_ACTIONS, type DockerActionBody, type DockerBrewStopBody, type Do
 import type { ServerDeps } from "../server.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
-import { localOnly } from "../thisMac.js";
 import { Invalid } from "../errors.js";
 import { toImportCandidates } from "../../databases/import/index.js";
 import { findOrb } from "../../docker/cli.js";
@@ -24,11 +23,9 @@ const actionBody = z.object({
 
 const brewStopBody = z.object({ name: z.string().regex(/^[\w@.+-]{1,200}$/) }) satisfies z.ZodType<DockerBrewStopBody>;
 
-/** Docker タブ（この Mac からだけ。スマホの画面にはタブを出さない） */
+/** Docker タブ（端末には開かない = http/deviceAccess.ts。スマホの画面にはタブを出さない） */
 export function dockerRoutes(app: Hono, { store, docker, bus }: ServerDeps) {
   const { withProject } = lookups(store);
-  app.use("/api/projects/:id/docker", localOnly("Docker タブは、この Mac からだけ使えます"));
-  app.use("/api/projects/:id/docker/*", localOnly("Docker タブは、この Mac からだけ使えます"));
 
   // 一覧（?refresh=1 は覚えた compose の設定を捨てて取り直す ［↻］）
   app.get("/api/projects/:id/docker", withProject, async (c) => {

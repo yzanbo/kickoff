@@ -1,6 +1,6 @@
 # DB クライアント（`features/database`）
 
-プロジェクトの「DB」タブ（`ProjectPage` の `tab === "db"`）・チャットの画面の右の欄の DB のタブ・その別ウィンドウで使う DB クライアント。要件は `docs/requirements.md` の 5.12、コア（表 `db_connections`・API・DB ワーカー）は `src/core/CLAUDE.md` の「DB クライアント」。この Mac のアプリの中だけで使う（コアの API は 127.0.0.1 からだけ受け、画面もブラウザ・スマホから開いたときは「DB」タブを出さずボードにする。`window.kickoff` があるか）。
+プロジェクトの「DB」タブ（`ProjectPage` の `tab === "db"`）・チャットの画面の右の欄の DB のタブ・その別ウィンドウで使う DB クライアント。要件は `docs/requirements.md` の 5.12、コア（表 `db_connections`・API・DB ワーカー）は `src/core/CLAUDE.md` の「DB クライアント」。この Mac のアプリの中だけで使う（コアの API は端末（スマホ）に開かず、画面もブラウザ・スマホから開いたときは「DB」タブを出さずボードにする。`window.kickoff` があるか）。
 
 ## 置き場所と部品
 

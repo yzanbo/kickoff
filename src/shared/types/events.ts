@@ -43,7 +43,7 @@ export type BusEvent =
   | { type: "memos"; project_id: number; path: string | null }
   // ワークツリーの PR の知らせ（そのプロジェクトの分を丸ごと。変わったときだけ）
   | { type: "worktree_prs"; project_id: number; notices: WorktreePrNotice[] }
-  /** DB の接続の一覧が変わった（中身は送らない。SSE はスマホにも届くので、画面は 127.0.0.1 からの API で読み直す） */
+  /** DB の接続の一覧が変わった（中身は送らない。端末には届けない = http/deviceAccess.ts） */
   | { type: "db_connections"; project_id: number }
   /** DB の接続につないだ・切れた（木・テーブル・SQL のタブの接続が 1 つでも開いているか。DB タブの左の一覧の印） */
   | { type: "db_connection_state"; project_id: number; connection_id: number; connected: boolean }
