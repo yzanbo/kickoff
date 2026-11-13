@@ -93,6 +93,8 @@ export interface ProviderTurnParams {
   additionalDirectories: string[];
   /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */
   readOnlyPaths?: string[];
+  /** Git で管理していないファイルだけを書けるチャットか（ワークツリーの実行環境の［AI で整える］。chat/guard/scope.ts の evaluateUntrackedWrite で断る） */
+  untrackedOnly?: boolean;
   /** 子プロセスに足す環境変数（プロジェクトで選んだ GitHub のアカウントのトークン GH_TOKEN。省略なら足さない） */
   env?: Record<string, string>;
   /** Kickoff の埋め込みブラウザを AI に操作させる口と、このチャット（デスクトップアプリのときだけ。なければブラウザのツールを出さない） */

@@ -117,7 +117,7 @@ export class DockerService {
     const mainPort = main?.services.find((s) => s.name === service)?.published[0] ?? null;
     const found = dockerDbCandidate({ compose, service, doc: read.doc, mainPort });
     if (!found) throw new Invalid("DB のサービスではありません");
-    return found;
+    return "found" in found ? { ...found, worktree_path: compose.worktree_path } : found;
   }
 
   /** ログの「さらに前を読む」: until より前の 500 行（この compose のコンテナだけ） */

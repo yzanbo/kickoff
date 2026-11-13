@@ -10,7 +10,7 @@ const notice = (state: "MERGED" | "CLOSED"): WorktreePrNotice => ({
   pr: { number: 12, title: "t", url: "u", state },
   dismissed: false,
 });
-const info = (patch: Partial<WorktreeRemovalInfo> = {}): WorktreeRemovalInfo => ({ branch: "x", changes: 0, unpushed: 0, only_here: 0, pushed: true, has_remote: true, ...patch });
+const info = (patch: Partial<WorktreeRemovalInfo> = {}): WorktreeRemovalInfo => ({ branch: "x", changes: 0, unpushed: 0, only_here: 0, pushed: true, has_remote: true, db_connections: [], ...patch });
 
 test("PR の知らせ: 見出し・印・ワークツリーの扱いの初めの値（マージ = ブランチも消す / 閉じた = ワークツリーだけ）", () => {
   assert.equal(prNoticeTitle(notice("MERGED")), "PR #12 がマージされました");

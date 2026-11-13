@@ -34,6 +34,7 @@ export function makeChat(id: number, patch: Partial<Chat> = {}): Chat {
     parent_chat_id: null,
     parent_event_id: null,
     memo_path: null,
+    untracked_only: false,
     github_repo: null,
     github_number: null,
     github_kind: null,

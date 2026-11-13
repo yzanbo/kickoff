@@ -365,7 +365,17 @@ CREATE TABLE worktree_envs (
 CREATE INDEX idx_worktree_envs_project ON worktree_envs(project_id);
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22];
+/**
+ * v23: ワークツリーの実行環境の段階 2。
+ * chats.untracked_only = Git で管理していないファイルだけを書けるチャット（［AI で整える］のチャット。続きの指示でも守る）。
+ * db_connections.worktree_path = Docker タブの「DB で開く」で、どのワークツリーの DB から作った接続か（null なら本体・ほか。ワークツリーを消すとき一緒に消せる）
+ */
+const SCHEMA_V23 = `
+ALTER TABLE chats ADD COLUMN untracked_only INTEGER NOT NULL DEFAULT 0 CHECK (untracked_only IN (0, 1));
+ALTER TABLE db_connections ADD COLUMN worktree_path TEXT CHECK (worktree_path <> '');
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

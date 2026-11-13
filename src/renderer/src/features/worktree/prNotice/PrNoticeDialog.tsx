@@ -16,7 +16,7 @@ import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
 import { CheckField } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
-import { downVolumesCheck } from "../worktreeEnvText";
+import { downVolumesCheck, dropConnectionsCheck } from "../worktreeEnvText";
 import {
   PR_CHAT_ACTIONS,
   PR_CHAT_ACTION_LABELS,
@@ -97,6 +97,9 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
   // Kickoff が組の名前を割り当てたワークツリーなら、コンテナとデータも消すか（初めは消す）
   const volumes = downVolumesCheck(useWorktreeEnv(projectId, notice.worktree));
   const [downVolumes, setDownVolumes] = useState(true);
+  // このワークツリーの DB から作った DB クライアントの接続も消すか（初めは消す）
+  const connections = dropConnectionsCheck(info.data?.db_connections ?? []);
+  const [dropConnections, setDropConnections] = useState(true);
   const action = useAction();
   const effectiveChatAction = chats.length > 0 ? chatAction : "keep";
   const warnings = prNoticeWarnings(info.data, running, worktreeAction, effectiveChatAction);
@@ -118,7 +121,12 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
     const ok = await action.run("submit", async () => {
       if (worktreeAction !== "keep") {
         // コミットしていない変更は、確認の中で知らせたうえで消すので force で消す
-        const list = await api.removeWorktree(projectId, notice.worktree, (info.data?.changes ?? 0) > 0, worktreeAction === "both", volumes !== null && downVolumes);
+        const list = await api.removeWorktree(projectId, notice.worktree, {
+          force: (info.data?.changes ?? 0) > 0,
+          deleteBranch: worktreeAction === "both",
+          downVolumes: volumes !== null && downVolumes,
+          dropDbConnections: connections !== null && dropConnections,
+        });
         worktreesStore.set(projectId, list);
         worktreesStore.invalidate(projectId);
         // マージされたなら本体を最新にする（手元に変更があってできなければ、あとで伝える）
@@ -175,6 +183,9 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
             {notice.worktree}
           </p>
           {volumes && worktreeAction !== "keep" && <CheckField label={volumes.label} help={volumes.help(downVolumes)} checked={downVolumes} onChange={setDownVolumes} />}
+          {connections && worktreeAction !== "keep" && (
+            <CheckField label={connections.label} help={connections.help(dropConnections)} checked={dropConnections} onChange={setDropConnections} />
+          )}
         </section>
         {chats.length > 0 && (
           <section className="pr-notice-section">

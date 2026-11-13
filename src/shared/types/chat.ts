@@ -122,6 +122,8 @@ export interface Chat {
    * サイドバー・ボードに並べず、そのメモの右の欄から開く
    */
   memo_path: string | null;
+  /** Git で管理していないファイルだけを書けるチャット（ワークツリーの実行環境の［AI で整える］。AI のファイルの書き込みを守りで断る） */
+  untracked_only: boolean;
   /** 結び付いた GitHub の issue・PR のリポジトリ（「持ち主/名前」）と番号（どちらも null なら結び付いていない。issue と PR の番号はリポジトリの中で重ならないので種類は持たない） */
   github_repo: string | null;
   github_number: number | null;

@@ -113,7 +113,7 @@ export async function worktreeMoves(oldRepo: string, newRepo: string): Promise<M
 }
 
 /** ワークツリーを消す前の確かめ（コミットしていない変更の数・どのリモートにもないコミットの数・プッシュしたことがあるか） */
-export async function worktreeRemovalInfo(repo: string, target: string): Promise<WorktreeRemovalInfo> {
+export async function worktreeRemovalInfo(repo: string, target: string): Promise<Omit<WorktreeRemovalInfo, "db_connections">> {
   const worktree = await findWorktree(repo, target);
   if (!worktree) throw new NotFound("ワークツリーが見つかりません");
   const ok = (p: Promise<string>) => p.then((out) => out, () => "");

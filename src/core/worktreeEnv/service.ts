@@ -16,6 +16,7 @@ import { composePortsOf, overrideYaml, portSpec } from "./composeOverride.js";
 import { commentOutKeys, rewriteEnvPorts, withKickoffBlock } from "./envRewrite.js";
 import { KICKOFF_DIR, OVERRIDE_FILE, addGitExclude, devServerIssue, envFilesIn, exists, isIgnored, isTracked } from "./files.js";
 import { browserHostOf, composeProjectNameOf } from "./names.js";
+import type { EnvSetupPromptInput } from "./setupPrompt.js";
 
 /** compose のフォルダ（プロジェクトのフォルダからの相対。直下は ""）ごとの、-f に渡すファイル */
 interface ComposeFolder {
@@ -53,6 +54,23 @@ export class WorktreeEnvService {
       env = this.blocked(project, worktree, `ワークツリーの実行環境を整えられませんでした: ${errorMessage(e)}`);
     }
     this.store.worktreeEnvs.put(env);
+  }
+
+  /**
+   * ［AI で整える］の下ごしらえ: この機能より前に作ったワークツリー（覚えがない）なら、先に手順を流す（.env を写す・帯・①〜③）。
+   * AI に渡す材料（割り当て・ほかのワークツリーの帯）を返す
+   */
+  async setupInput(project: Project, worktree: GitWorktree): Promise<EnvSetupPromptInput> {
+    await this.prepare(project, worktree);
+    const env = this.store.worktreeEnvs.get(worktree.path)!;
+    const { path: _path, project_id: _project, ...rest } = env;
+    return {
+      label: worktree.branch ?? path.basename(worktree.root),
+      path: worktree.path,
+      mainPath: project.repo_path,
+      env: rest,
+      otherBands: [...this.store.worktreeEnvs.takenBands(worktree.path)].sort((a, b) => a - b),
+    };
   }
 
   private blocked(project: Project, worktree: GitWorktree, reason: string, issues: string[] = []): StoredWorktreeEnv {

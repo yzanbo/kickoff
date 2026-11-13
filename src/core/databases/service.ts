@@ -499,6 +499,13 @@ export class DatabaseService {
     await this.run(() => this.opts.client.request("close", { session: this.sqlSession(connection, session) }));
   }
 
+  /** 接続を消す（パスワードは表のトリガーが消す。開いていた接続と SSH トンネルは待たずに閉じる）。接続の削除とワークツリーを消すときで同じ */
+  removeConnection(id: number) {
+    this.opts.store.dbConnections.delete(id);
+    this.vault.forget(id);
+    void this.forgetConnection(id).catch(() => {});
+  }
+
   /** 消した接続のワーカーの接続（木・SQL のタブ・AI）をすべて閉じる（SSH トンネルも残さない） */
   async forgetConnection(id: number) {
     if (!this.opts.client.running) return;

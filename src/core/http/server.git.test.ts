@@ -424,7 +424,7 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   gitIn(wt)("commit", "-q", "-m", "d");
   fs.writeFileSync(path.join(wt, "e.txt"), "e\n");
   const info = await call("GET", `/api/projects/${project.id}/git/worktrees/info?path=${encodeURIComponent(wt)}`);
-  assert.deepEqual(info.body, { branch: "feat/d", changes: 1, unpushed: 0, only_here: 1, pushed: false, has_remote: false });
+  assert.deepEqual(info.body, { branch: "feat/d", changes: 1, unpushed: 0, only_here: 1, pushed: false, has_remote: false, db_connections: [] });
   // 変更があると force なしでは消せない。force とブランチを消す指定で、フォルダもブランチも消える
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt })).status, 400);
   assert.equal((await call("POST", removeUrl, { path: wt, force: true, delete_branch: true })).status, 200);

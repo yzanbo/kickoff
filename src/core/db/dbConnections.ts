@@ -95,15 +95,16 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     list(projectId: number): DbConnection[] {
       return (db.prepare(`${SELECT} WHERE c.project_id = ? ORDER BY c.position, c.id`).all(projectId) as unknown as Row[]).map(toConnection);
     },
-    create(projectId: number, body: NewDbConnectionBody): DbConnection {
+    /** 作る（worktreePath: Docker タブの「DB で開く」で、ワークツリーの DB から作ったとき） */
+    create(projectId: number, body: NewDbConnectionBody, worktreePath: string | null = null): DbConnection {
       const { next } = db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM db_connections WHERE project_id = ?").get(projectId) as { next: number };
       // 書き込む前の確かめを省いたら環境の既定
       const row = toRow({ ...body, write_check: body.write_check ?? DB_ENVIRONMENT_DEFAULTS[body.environment].write_check });
       const { lastInsertRowid } = db
         .prepare(
-          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, write_check, ai_access, ai_username, memo_path, ssh, prep, check_on, check_note, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO db_connections (project_id, name, engine, environment, host, port, database, username, file_path, ssl, read_only, write_check, ai_access, ai_username, memo_path, ssh, prep, check_on, check_note, position, worktree_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
-        .run(projectId, ...COLUMNS.map((c) => row[c] ?? null), next);
+        .run(projectId, ...COLUMNS.map((c) => row[c] ?? null), next, worktreePath);
       const id = Number(lastInsertRowid);
       setPasswords(id, body);
       notify(projectId);
@@ -163,6 +164,16 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
       const stmt = db.prepare("UPDATE db_connections SET memo_path = ? WHERE id = ?");
       for (const r of rows) stmt.run(r.memo_path === from ? to : `${to}${r.memo_path.slice(from.length)}`, r.id);
       notify(projectId);
+    },
+    /** そのワークツリー（作業するフォルダ）の DB から作った接続（全プロジェクト） */
+    ofWorktree(worktreePath: string): DbConnection[] {
+      return (db.prepare(`${SELECT} WHERE c.worktree_path = ? ORDER BY c.project_id, c.position, c.id`).all(worktreePath) as unknown as Row[]).map(toConnection);
+    },
+    /** ワークツリーを消したが接続は残すとき、どのワークツリーのものかを外す（あとで同じ場所に作ったワークツリーと結び付けない） */
+    clearWorktree(worktreePath: string) {
+      const projects = db.prepare("SELECT DISTINCT project_id FROM db_connections WHERE worktree_path = ?").all(worktreePath) as { project_id: number }[];
+      db.prepare("UPDATE db_connections SET worktree_path = NULL WHERE worktree_path = ?").run(worktreePath);
+      for (const p of projects) notify(p.project_id);
     },
     /** 消す（パスワードの秘密の値は表のトリガーが消す） */
     delete(id: number) {
