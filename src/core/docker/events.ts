@@ -20,12 +20,19 @@ export class DockerEvents {
   private sweepTimer: NodeJS.Timeout | null = null;
   private pollTimer: NodeJS.Timeout | null = null;
 
+  private readonly now: () => number;
+  private readonly enginePollMs: number;
+
   constructor(
-    private readonly cli: DockerCli,
+    private readonly cli: Pick<DockerCli, "stream" | "engineUp">,
     /** 変わったときに、見ているプロジェクトへ知らせる */
     private readonly onChange: (projectIds: number[]) => void,
-    private readonly now: () => number = Date.now,
-  ) {}
+    /** テストで差し替える（時計・エンジンを調べ直す間隔） */
+    timing: { now?: () => number; enginePollMs?: number } = {},
+  ) {
+    this.now = timing.now ?? Date.now;
+    this.enginePollMs = timing.enginePollMs ?? ENGINE_POLL_MS;
+  }
 
   /** いま docker events を受けているか（テストと確かめ用） */
   get running(): boolean {
@@ -69,7 +76,7 @@ export class DockerEvents {
         this.notify();
         this.start();
       } else this.poll();
-    }, ENGINE_POLL_MS);
+    }, this.enginePollMs);
     this.pollTimer.unref();
   }
 
