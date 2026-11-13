@@ -32,7 +32,14 @@
   gap: 8px;
 }
 
+/* 承認・再開の確認: 見出しが長く折り返しても、バッジは縮めず 1 行のまま見出しの 1 行目にそろえる（質問のカードの見出しは開閉のボタンなので除く） */
+.approval-head:has(> .approval-title) {
+  align-items: baseline;
+}
+
 .approval-badge {
+  flex-shrink: 0;
+  white-space: nowrap;
   padding: 1px 8px;
   border-radius: 999px;
   font-size: calc(12px * var(--chat-scale, 1));
@@ -47,7 +54,9 @@
 }
 
 .approval-title {
+  min-width: 0;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .approval-command {
