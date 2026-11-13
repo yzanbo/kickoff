@@ -50,4 +50,19 @@ export type BusEvent =
   /** Docker タブ: そのプロジェクトのコンテナ・操作の様子が変わった（受けた画面は一覧を取り直す） */
   | { type: "docker_changed"; project_id: number }
   /** 見張っているブランチの CI が落ちた（同じ実行は 1 回だけ。画面は設定の「通知」に合わせて Mac の通知を出し、CI のタブを取り直す） */
-  | { type: "ci_failed"; failure: CiFailure };
+  | { type: "ci_failed"; failure: CiFailure }
+  /** チャットの AI が、メモ・家系のチャットを開くよう頼んだ（Mac のアプリのメインのウィンドウだけが受けて開く。kickoff_chat の open_memo・open_chat） */
+  | { type: "open_view"; request: OpenViewRequest };
+
+/** AI が開くときの場所（side = いちばん上の親チャットの画面の右の欄 / window = 別ウィンドウ） */
+export const OPEN_PLACES = ["side", "window"] as const;
+export type OpenPlace = (typeof OPEN_PLACES)[number];
+export const OPEN_PLACE_LABELS: Record<OpenPlace, string> = { side: "右の欄", window: "別ウィンドウ" };
+
+/**
+ * AI が画面に頼む「開く」の中身。place が null なら画面の設定の開き方（メモ = チャットからメモを開く場所・子チャット = 子チャットを開く場所）。
+ * lineage は、いちばん上の親チャットから、頼んだチャット（メモ）・開くチャット（チャット）までの並び（画面がまだ読み込んでいない子チャットでも、親をたどって右の欄に開けるように）
+ */
+export type OpenViewRequest =
+  | { kind: "memo"; project_id: number; path: string; place: OpenPlace | null; lineage: Chat[] }
+  | { kind: "chat"; place: OpenPlace | null; lineage: Chat[] };
