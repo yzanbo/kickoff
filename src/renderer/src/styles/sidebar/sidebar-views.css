@@ -78,6 +78,20 @@
   color: var(--text);
 }
 
+/*
+ * ライト: 共通の --border-strong・--bg-elev はサイドバーの地（--bg-sidebar）とほとんど同じ色で、選んでいるタブ・点線の枠が見えなかった（利用者の指摘）。
+ * 選んでいるタブは白い地に濃い枠と薄い影、点線の枠は薄い文字の色にする（ダークは今のまま）
+ */
+:root[data-theme="light"] .sidebar-view-tab.active {
+  border-color: var(--bg-active);
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+:root[data-theme="light"] .sidebar-view-tab.modified {
+  border-color: var(--extra-muted);
+}
+
 /* 折り返して隠れたタブ（▾ のメニューに出す） */
 .sidebar-view-tab.overflowed {
   visibility: hidden;
