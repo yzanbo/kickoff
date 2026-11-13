@@ -16,6 +16,8 @@ import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, p
 import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 import { projectMemoFolder } from "@shared/memo/names";
+import { collectChatSessions, discardUnusedSessions } from "../../chat/sessionCleanup.js";
+import { moveToTrash } from "../../system/trash.js";
 
 // 新しいプロジェクト・取り込むプロジェクトのメモのフォルダ（省けば初めてメモを使ったときにプロジェクト名から決める）
 const memoDirFields = {
@@ -84,7 +86,7 @@ const projectPatchSchema = z
   .partial() satisfies z.ZodType<ProjectPatch>;
 
 /** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
-export function projectRoutes(app: Hono, { store, runner, prWatch, githubAccounts = listGitHubAccounts }: ServerDeps) {
+export function projectRoutes(app: Hono, { store, runner, prWatch, providers, databases, trash = moveToTrash, githubAccounts = listGitHubAccounts }: ServerDeps) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;
@@ -214,9 +216,18 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, githubAccount
     return c.json(store.projects.reorder(ids));
   });
 
-  // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない
+  // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない。中のチャットは消え、エージェントの会話記録のファイルはゴミ箱へ
+  // （チャットの削除と同じ。作業中のチャットがあれば消せない = 書いている途中の会話記録を動かさない）
   app.delete("/api/projects/:id", withProject, (c) => {
-    store.projects.delete(c.var.project.id);
+    const { project } = c.var;
+    requireNoBusyChat(project.id, "プロジェクトを削除できません");
+    const chats = store.chats.list({ projectId: project.id, includeArchived: true });
+    // 記録はプロジェクトと一緒に消えるので先に集め、消したあとで残ったチャットが使っていないものだけ移す（待たない）
+    const sessions = collectChatSessions(store, chats);
+    store.projects.delete(project.id);
+    void discardUnusedSessions(store, providers, sessions, trash);
+    for (const chat of chats) runner.forget(chat.id);
+    databases.forgetChatExports(chats.map((chat) => chat.id));
     return c.body(null, 204);
   });
 }

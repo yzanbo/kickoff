@@ -10,7 +10,7 @@ export function DeleteProject({ project }: { project: Project }) {
   const remove = async () => {
     const ok = await confirmDialog({
       title: `プロジェクト「${project.name}」を削除しますか？`,
-      message: `チャット・グループなどの Kickoff 上の記録は消えます。フォルダとリポジトリ（${project.repo_path}）は削除されません。`,
+      message: `チャット・グループなどの Kickoff 上の記録は消えます（チャットの Claude Code の会話記録はゴミ箱へ移します）。フォルダとリポジトリ（${project.repo_path}）は削除されません。作業中のチャットがあると削除できません。`,
       confirmLabel: "削除",
       danger: true,
     });
