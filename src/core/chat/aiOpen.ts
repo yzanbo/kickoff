@@ -8,7 +8,7 @@ import type { AddDraftInput, OpenChatInput, OpenDiffInput, OpenFileInput, OpenMe
 import { memoExtensionOf } from "@shared/memo/kinds";
 import { OPEN_PLACE_LABELS, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type OpenPlace, type Project } from "@shared/types";
 import type { Store } from "../db/store.js";
-import { isInside, realPathOrSelf } from "../system/paths.js";
+import { isInside, realPathOrSelf, relativeApiPath } from "../system/paths.js";
 import { familyOf, lineageOf } from "./aiChatEdit.js";
 import { workdirOf } from "./workdir.js";
 
@@ -51,7 +51,7 @@ export function memoPathIn(dir: string, given: string): string {
   const abs = path.isAbsolute(raw) ? raw : path.join(dir, raw);
   const base = [dir, realPathOrSelf(dir)].find((d) => isInside(d, abs) || isInside(d, realPathOrSelf(abs)));
   if (!base) throw new Error(`${raw} はこのプロジェクトのメモのフォルダ（${dir}）の外です。開けるのはメモのフォルダの中のメモだけです`);
-  const rel = path.relative(base, isInside(base, abs) ? abs : realPathOrSelf(abs)).split(path.sep).join("/");
+  const rel = relativeApiPath(base, isInside(base, abs) ? abs : realPathOrSelf(abs));
   if (!rel) throw new Error("メモのフォルダそのものは開けません。メモのファイルを指してください");
   if (rel.split("/").some((part) => part.startsWith("."))) throw new Error("「.」で始まる名前のファイル・フォルダは、メモとして扱いません");
   return rel;
@@ -66,7 +66,7 @@ export function workPathIn(dir: string, given: string): string {
   const abs = path.isAbsolute(raw) ? raw : path.join(dir, raw);
   const base = [dir, realPathOrSelf(dir)].find((d) => isInside(d, abs) || isInside(d, realPathOrSelf(abs)));
   if (!base) throw new Error(`${raw} はこのチャットの作業場所（${dir}）の外です。開けるのは作業場所の中のファイルだけです`);
-  const rel = path.relative(base, isInside(base, abs) ? abs : realPathOrSelf(abs)).split(path.sep).join("/");
+  const rel = relativeApiPath(base, isInside(base, abs) ? abs : realPathOrSelf(abs));
   if (!rel) throw new Error("作業場所そのものは開けません。ファイルを指してください");
   return rel;
 }

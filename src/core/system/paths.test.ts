@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { expandHome, isInside, realPathLoose } from "./paths.js";
+import { expandHome, isInside, realPathLoose, relativeApiPath, toApiPath } from "./paths.js";
 import { tempDir } from "../testing/tempDir.js";
 
 test("isInside: 中（自身を含む）か外か。'..' で始まる名前のフォルダは外と見なさない", () => {
@@ -43,4 +43,12 @@ test("realPathLoose: あるところまでリンクを解決し、まだない�
   assert.equal(realPathLoose(path.join(root, "link", "new", "file.md")), path.join(root, "real", "new", "file.md"));
   assert.equal(realPathLoose(path.join(root, "missing", "x")), path.join(root, "missing", "x"));
   assert.ok(path.isAbsolute(realPathLoose("relative/none")));
+});
+
+test("toApiPath: OS の区切りを「/」にする（macOS の「/」はそのまま、Windows の「\\」は置き換える）", () => {
+  assert.equal(toApiPath("src/a b/c.ts", "/"), "src/a b/c.ts");
+  // macOS では「\」はファイル名の文字なので変えない
+  assert.equal(toApiPath("a\\b.md", "/"), "a\\b.md");
+  assert.equal(toApiPath("src\\a b\\c.ts", "\\"), "src/a b/c.ts");
+  assert.equal(relativeApiPath("/r", "/r/x/y.md"), "x/y.md");
 });

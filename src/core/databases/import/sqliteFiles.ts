@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { relativeApiPath } from "../../system/paths.js";
 
 // プロジェクトの中の SQLite のファイル（*.sqlite / *.sqlite3 / *.db / *.db3）を探す。中身の頭が SQLite の印のものだけ
 
@@ -40,7 +41,7 @@ export async function findSqliteFiles(root: string): Promise<string[]> {
       if (entry.isDirectory()) {
         if (depth < MAX_DEPTH && !SKIP_DIRS.has(entry.name)) queue.push({ dir: full, depth: depth + 1 });
       } else if (entry.isFile() && EXTENSIONS.has(path.extname(entry.name).toLowerCase()) && (await isSqlite(full))) {
-        found.push(path.relative(root, full));
+        found.push(relativeApiPath(root, full));
         if (found.length >= MAX_FILES) break;
       }
     }

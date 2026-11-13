@@ -63,6 +63,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - コアの外部コマンドは `system/exec.ts` の `runCommand(file, args, opts)` で動かす（標準出力を返す。失敗は `CommandError` で、文は標準エラー、なければ元の例外の文。`okCodes` の終了コードは失敗にしない。標準出力の上限は既定 20MB）。コアで `execFileAsync` を直接使わない。`CommandError` はそのまま投げれば 400 になる。
 - 認証などを聞かれても答えられないので、git・gh は `nonInteractiveEnv()` で待たずに失敗させる。git は `git/exec.ts` の `gitOutput` だけを通す。
 - 実行ファイルは `findExecutable(names, searchDirs())` で探す（PATH の順 → `/opt/homebrew/bin` → `/usr/local/bin` → `~/.local/bin`。Finder から起動してログインシェルの PATH を取り込めなかったときの補い）。
+- API・SSE・DB に出す相対パスの区切りはいつも「/」（`docs/architecture.md` の「名前の決まり」）。`path.relative` などで作った相対パスを外に出すときは `system/paths.ts` の `toApiPath` / `relativeApiPath` を通す（macOS では何も変わらないが、ほかの OS で「\」のまま出さないため）。
 - パスの包含判定・`~` の展開・リンクの解決は `system/paths.ts`（`isInside` / `expandHome` / `realPathLoose` / `realPathOrSelf`）、期限付きのキャッシュは `ttlCache`（モデル・/ のコマンドの一覧）。例外の文は `@shared/errors` の `errorMessage`。
 
 ## Git（git/）

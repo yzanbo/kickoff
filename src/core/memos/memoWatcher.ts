@@ -1,6 +1,7 @@
 // メモのフォルダを見張り、Kickoff の外（Finder・Obsidian・エディタ）での変更も SSE の memos で知らせる。
 // プロジェクトごとに 1 つ、一覧・中身を読まれたときに見張り始める（フォルダがまだなければ、作られて読まれたときに始める）
 import fs from "node:fs";
+import { toApiPath } from "../system/paths.js";
 
 /** 続けて変わったものをまとめて知らせるまで（ミリ秒。保存のたびに何度も知らせない） */
 const SETTLE_MS = 200;
@@ -44,7 +45,7 @@ export class MemoWatcher {
     }
     const w: Watch = { dir, watcher, timer: undefined, changed: new Set() };
     watcher.on("change", (_type, filename) => {
-      const file = typeof filename === "string" ? filename.split("\\").join("/") : null;
+      const file = typeof filename === "string" ? toApiPath(filename) : null;
       if (file !== null && isHidden(file)) return;
       w.changed.add(file);
       clearTimeout(w.timer);

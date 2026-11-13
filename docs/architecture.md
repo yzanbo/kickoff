@@ -113,6 +113,7 @@
 - 外のツールの形をそのまま写すもの（Claude Code の AskUserQuestion の `multiSelect` など）は、そのままにする。
 - 「ない」は `null`（空文字で「本体」「不明」を表さない。`worktree_path` が `null` なら本体）。
 - 状態の値は 1 か所の定数（`as const` の配列）から型を作り、画面の文言は同じ場所の `…_LABELS` に置く。
+- HTTP API・SSE・DB に出る相対パス（ファイル・メモ・検索の結果・Git の一覧・compose のファイル・取り込みの SQLite のファイルなど）の区切りは、OS によらずいつも「/」。コアは外に出す前に `core/system/paths.ts` の `toApiPath` / `relativeApiPath` を通す（Git の出力はもともと「/」）。受けたパスは `path.join` がどちらの区切りも読むので、そのまま使う。画面・スマホは区切りを OS で読み分けない。絶対パス（`repo_path`・`worktree_path` など）は OS の形のまま。
 
 ## 3. スキーマ（新しい v1）
 
