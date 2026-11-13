@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { DockerCompose, DockerContainer, DockerService } from "@shared/types";
-import { planDockerAction } from "./actions.js";
+import { planDockerAction, startedServices } from "./actions.js";
 
 const ctr = (id: string, state: DockerContainer["state"] = "running"): DockerContainer => ({ id, name: id, image: "img", state, status: "", exit_code: null, health: null, ports: [], number: 1 });
 const svc = (name: string, over: Partial<DockerService> = {}): DockerService => ({ name, image: "img", profiles: [], published: [], containers: [], oneoffs: [], mark: "none", running: 0, db_kind: null, ...over });
@@ -83,4 +83,29 @@ test("planDockerAction: サービスを指した作り直しはそのサービ�
   assert.deepEqual(planDockerAction({ compose: c, upFiles, action: "recreate", service: "web" }).steps[0].args.slice(-5), ["up", "-d", "--no-deps", "--force-recreate", "web"]);
   assert.deepEqual(planDockerAction({ compose: c, upFiles, action: "recreate", service: "adminer" }).steps[0].args.slice(-7), ["--profile", "tools", "up", "-d", "--no-deps", "--force-recreate", "adminer"]);
   assert.deepEqual(planDockerAction({ compose: c, upFiles, action: "recreate" }).steps[0].args.slice(-2), ["up", "-d"]);
+});
+
+test("planDockerAction: 相手を止めて起動で作り直すのは、元の操作で起動しようとしたサービスのうちぶつかったものだけ（同じポートの札付きは起動しない）", () => {
+  // E2E 用の db（札付き）が開発用の db と同じ 5432 を使う
+  const c = compose({
+    services: [svc("db", { published: [5432], containers: [ctr("c1", "exited")] }), svc("web", { published: [3000] }), svc("db-e2e", { profiles: ["e2e"], published: [5432] })],
+  });
+  const conflict = { port: 5432, container_id: "x1", container_name: "x1", label: "x1" };
+  const all = planDockerAction({ compose: c, upFiles, action: "stop_others_and_start", retry: { action: "start_all", service: null, conflicts: [conflict] } });
+  assert.deepEqual(all.steps[1].args.slice(-5), ["up", "-d", "--no-deps", "--force-recreate", "db"]);
+  assert.ok(!all.steps.some((s) => s.args.includes("--profile") || s.args.includes("db-e2e")), "札付きは作り直さない・起動しない");
+  // 札付きの行の［起動］でぶつかったなら、その札付きだけ（札を付けて）
+  const e2e = planDockerAction({ compose: c, upFiles, action: "stop_others_and_start", retry: { action: "start", service: "db-e2e", conflicts: [conflict] } });
+  assert.equal(e2e.steps.length, 2);
+  assert.deepEqual(e2e.steps[1].args.slice(-7), ["--profile", "e2e", "up", "-d", "--no-deps", "--force-recreate", "db-e2e"]);
+  // 行の［起動］ならそのサービスだけ
+  const one = planDockerAction({ compose: c, upFiles, action: "stop_others_and_start", retry: { action: "start", service: "db", conflicts: [conflict] } });
+  assert.deepEqual(one.steps[1].args.slice(-5), ["up", "-d", "--no-deps", "--force-recreate", "db"]);
+});
+
+test("startedServices: サービスの行ならそのサービス（札付きでも）、指さなければ札のないサービス", () => {
+  const c = compose({ services: [svc("db"), svc("adminer", { profiles: ["tools"] })] });
+  assert.deepEqual(startedServices(c, null).map((s) => s.name), ["db"]);
+  assert.deepEqual(startedServices(c, "adminer").map((s) => s.name), ["adminer"]);
+  assert.deepEqual(startedServices(c, "nothing"), []);
 });
