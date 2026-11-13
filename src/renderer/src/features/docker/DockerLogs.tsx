@@ -128,6 +128,15 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
   const toggleJson = useCallback((id: number) => setExpanded((s) => new Set(s.has(id) ? [...s].filter((x) => x !== id) : [...s, id])), []);
   const canReadBefore = containers.length > 0 && logs.canReadBefore(containers);
   const title = picked === null || picked.size === chips.length ? "すべて" : [...picked].join("・") || "（札なし）";
+  // 選んだ札のサービスがどれもまだ起動していない（何も作っていない compose を開いた）なら、起動したら流れ始めると添える
+  const emptyText =
+    !logs.connected && logs.rows.length === 0
+      ? "読み込み中…"
+      : containers.length > 0
+        ? "ログはまだありません"
+        : chips.some(isPicked)
+          ? "まだ起動していません。起動したら流れ始めます"
+          : "札を選ぶと、そのサービスのログが出ます";
 
   return (
     <section ref={rootRef} className="docker-logs" aria-label="ログ" tabIndex={-1}>
@@ -193,7 +202,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
             {logs.readingBefore ? "読み込み中…" : "さらに前を読む"}
           </button>
         )}
-        {shown.length === 0 && <div className="docker-logs-empty muted small">{!logs.connected && logs.rows.length === 0 ? "読み込み中…" : containers.length === 0 ? "札を選ぶと、そのサービスのログが出ます" : "ログはまだありません"}</div>}
+        {shown.length === 0 && <div className="docker-logs-empty muted small">{emptyText}</div>}
         {shown.map((row, index) => (
           <DockerLogRow
             key={row.id}
