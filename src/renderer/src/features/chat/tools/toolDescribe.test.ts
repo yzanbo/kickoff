@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { describeApprovalInput, describeTool, describeToolInput, describeUnknownInput, toolLabel, visibleToolResult } from "./toolDescribe";
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
+import { AI_OPEN_CHAT_TOOL, AI_OPEN_MEMO_TOOL } from "@shared/chat/aiOpen";
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
   assert.equal(describeTool("TaskCreate", { subject: "確認 1", description: "動作確認用タスク 1" }), "ToDo を追加: 確認 1");
@@ -85,4 +86,11 @@ test("AI がチャットの名前・固定・グループを変えるツール: 
   assert.equal(describeTool(AI_LIST_FAMILY_TOOL, {}), "同じ家系のチャットを確かめる");
   assert.equal(describeTool(AI_UPDATE_CHAT_TOOL, { chat_id: 12, title: "【済】調査", pinned: true }), "チャットを変更: 名前を『【済】調査』に変えた・固定した（チャット 12）");
   assert.equal(describeTool(AI_UPDATE_CHAT_TOOL, { chat_id: 3, group_id: null }), "チャットを変更: グループから外した（チャット 3）");
+});
+
+test("AI がメモ・チャットを開くツール: 何をどこに開いたか（場所を省いたら付けない）", () => {
+  assert.equal(describeTool(AI_OPEN_MEMO_TOOL, { path: "機能の仕様/図.html", place: "window" }), "メモを開く: 機能の仕様/図.html（別ウィンドウ）");
+  assert.equal(describeTool(AI_OPEN_MEMO_TOOL, { path: "メモ.md" }), "メモを開く: メモ.md");
+  assert.equal(describeTool(AI_OPEN_CHAT_TOOL, { chat_id: 12, place: "side" }), "チャットを開く: チャット 12（右の欄）");
+  assert.equal(describeTool(AI_OPEN_CHAT_TOOL, { chat_id: 3, place: "どこか" }), "チャットを開く: チャット 3");
 });
