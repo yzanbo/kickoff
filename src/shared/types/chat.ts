@@ -46,6 +46,9 @@ export type ChatOptionsPatch = Partial<ChatOptions>;
 /** 名前が空のチャット（文字を書かずに添付だけで送ったときなど）の代わりの名前（画面・メモ・会話の書き出しで共通。New Chat・No Group とそろえて英語） */
 export const UNTITLED_CHAT_TITLE = "Untitled Chat";
 
+/** チャットの名前の文字数の上限（コアの入力の検証・AI がチャットの名前を変えるツール・画面の名前の欄で共通） */
+export const CHAT_TITLE_MAX = 100;
+
 export const BOARD_COLUMNS = ["running", "needs_input", "unread", "read"] as const;
 export type BoardColumn = (typeof BOARD_COLUMNS)[number];
 

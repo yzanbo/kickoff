@@ -3,7 +3,7 @@ import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
 import { normalizeAttachment } from "@shared/attachment/normalize";
 import type { Attachment, AttachmentSource, ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
-import { ATTACHMENT_SOURCE_TYPES, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, PERMISSION_MODES } from "@shared/types";
+import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, PERMISSION_MODES } from "@shared/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 
 // ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
@@ -128,7 +128,7 @@ const CONTENT_REQUIRED = { message: "メッセージか添付ファイルが必�
 export const messageInputSchema = z.object({ ...messageShape, ...marksShape, pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SendMessageBody>;
 
 /** チャットの名前（名前の変更・送る前に付けた名前） */
-export const chatTitle = z.string().trim().min(1).max(100);
+export const chatTitle = z.string().trim().min(1).max(CHAT_TITLE_MAX);
 
 /** GitHub の issue・PR の結び付き（repo は「持ち主/名前」） */
 export const githubLinkSchema = z.object({
