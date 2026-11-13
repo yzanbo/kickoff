@@ -45,7 +45,7 @@ export function ChildChatBar({
       self={chat}
       title={chatTitle(chat.title)}
       handBack={{
-        request: chat.archived_at ? undefined : () => requestHandoff(chat),
+        request: chat.archived_at ? undefined : () => void requestHandoff(chat),
         quote: answerText ? () => handBackToParent(chat, handBackText(chat, answerText)) : undefined,
       }}
       extra={extra}

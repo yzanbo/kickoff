@@ -174,7 +174,7 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs, bus
           size={13}
           type="button"
           className="turn-action"
-          onClick={() => requestHandoff(child)}
+          onClick={() => void requestHandoff(child)}
         />
       )}
     </div>

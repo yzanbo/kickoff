@@ -31,6 +31,16 @@
   transition: transform 0.15s;
 }
 
+/* 頼みに添えた追加の指示（たたんでいる間だけ、1 行の下にそのまま出す） */
+.handoff-request-extra {
+  margin-top: 4px;
+  padding-left: 18px;
+  font-size: calc(13px * var(--chat-scale, 1));
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .handoff-request-toggle[aria-expanded="true"] .handoff-request-chevron {
   transform: rotate(90deg);
 }

@@ -2,6 +2,7 @@ import { ChevronRight, ClipboardPenLine, History, Inbox, MessageSquarePlus, Penc
 import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatEventOf } from "@shared/types";
 import { subagentAskOf } from "@shared/chat/prompts";
+import { handoffRequestExtra } from "@shared/chat/handoff";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
@@ -28,6 +29,7 @@ const COLLAPSE_PX = 240;
  * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact）は、上に「圧縮前指示」「圧縮後指示」と添えて、自分で書いた指示と見分けられるようにする。
  * サブエージェントについて子チャットで聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』について聞く」と添える（コピー・書き直しは書いた文で）。
  * 子チャットに親への依頼文を頼んだ発言（記録の handoff_request。頼み方の文は決まった長い文なので）は、1 行「親への依頼文を頼みました」にたたみ、押すと全文を出す。
+ * 追加の指示を添えて頼んだときは、たたんだ行の下にその指示だけを出す（全文を開かなくても、何を頼んだか分かるように）。
  * 子チャットから渡した依頼（記録の handoff_from）は、吹き出しの下に出どころの札「子チャット『…』から」
  */
 export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy: boolean }) {
@@ -38,6 +40,8 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
   const withHead = (t: string) => (subagentAsk ? data.text.slice(0, data.text.length - subagentAsk.text.length) + t : t);
   const compactKind = compactKindOf(data);
   const handoffRequest = data.handoff_request === true;
+  // 依頼文の頼みに添えた追加の指示（なければ null）
+  const handoffExtra = handoffRequest ? handoffRequestExtra(data.text) : null;
   // 依頼文の頼みの全文を開いているか
   const [requestOpen, setRequestOpen] = useState(false);
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
@@ -101,6 +105,7 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
             <ChevronRight size={13} aria-hidden className="handoff-request-chevron" />
           </button>
         )}
+        {handoffExtra && !requestOpen && <div className="handoff-request-extra">{handoffExtra}</div>}
         {attachments.length > 0 && (
           <div className="bubble-attachments">
             <AttachmentChips attachments={attachments} />

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/errors";
+import { isSubmitKey } from "@/lib/keys";
 import { DialogActions } from "./DialogActions";
 import { CheckField } from "./Field";
 import { PromptAssist, type PromptAssistOptions } from "./PromptAssist";
@@ -44,6 +45,8 @@ interface PromptOptions {
   check?: DialogCheck;
   /** 空のままでも決められる（空なら "" を返す。退避のメッセージなど、省ける入力） */
   optional?: boolean;
+  /** 何行も書ける欄にする（書いた分だけ伸びる。Enter で決め、Shift+Enter で改行。AI への追加の指示など） */
+  multiline?: boolean;
   /** 入力と一緒に 1 つ選んでもらう一覧（あれば入力欄の下に出す。promptWithSelect） */
   select?: DialogSelect;
 }
@@ -148,6 +151,7 @@ export function DialogHost() {
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const assistRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -169,6 +173,9 @@ export function DialogHost() {
     // 入力ならその欄に、確認ならキャンセルにピントを置く（Enter で誤って実行しない）
     if (req.kind === "prompt" && req.assist) {
       assistRef.current?.focus();
+    } else if (req.kind === "prompt" && req.multiline) {
+      textareaRef.current?.focus();
+      textareaRef.current?.select();
     } else if (req.kind === "prompt") {
       inputRef.current?.focus();
       inputRef.current?.select();
@@ -216,14 +223,32 @@ export function DialogHost() {
         {req.kind === "prompt" && (
           <label className="field">
             {req.label && <span className="field-label">{req.label}</span>}
-            <input
-              ref={inputRef}
-              type="text"
-              value={value}
-              placeholder={req.placeholder}
-              maxLength={200}
-              onChange={(e) => setValue(e.target.value)}
-            />
+            {req.multiline ? (
+              <textarea
+                ref={textareaRef}
+                className="app-dialog-textarea"
+                value={value}
+                placeholder={req.placeholder}
+                rows={3}
+                maxLength={4000}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter で決める（Shift+Enter は改行・変換を確定する Enter は除く）
+                  if (!isSubmitKey(e)) return;
+                  e.preventDefault();
+                  if (value.trim() || req.optional) finish(true);
+                }}
+              />
+            ) : (
+              <input
+                ref={inputRef}
+                type="text"
+                value={value}
+                placeholder={req.placeholder}
+                maxLength={200}
+                onChange={(e) => setValue(e.target.value)}
+              />
+            )}
           </label>
         )}
         {req.kind === "prompt" && req.select && (

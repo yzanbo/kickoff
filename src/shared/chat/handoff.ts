@@ -14,12 +14,17 @@ export function handoffAfterFor(after: HandoffAfter, via: HandoffVia): HandoffAf
   return after === "delete" && via === "composer" ? "archive" : after;
 }
 
+/** 頼み方の文の終わりに、利用者が添えた追加の指示を続けるときの見出し（handoffRequestExtra がこの行で見分ける） */
+const HANDOFF_EXTRA_HEAD = "依頼文を書くときの、利用者からの追加の指示:";
+
 /**
  * 子チャットに依頼文を書いてもらう頼み方の文（「親への依頼文を作ってもらう」で送る。記録には handoff_request の印を付ける）。
- * 返答はそのまま親チャットの入力欄に入り、親の AI への指示として送られるので、依頼文だけを書かせる
+ * 返答はそのまま親チャットの入力欄に入り、親の AI への指示として送られるので、依頼文だけを書かせる。
+ * extra（利用者が添えた追加の指示。「手順は 3 つまでに」など）があれば、見出しの行に続けて終わりに足す
  */
-export function handoffRequestPrompt(childTitle: string): string {
+export function handoffRequestPrompt(childTitle: string, extra = ""): string {
   const name = childTitle.trim() || UNTITLED_CHAT_TITLE;
+  const added = extra.trim();
   return [
     "親チャットに渡す依頼文を書いてください。",
     "",
@@ -33,7 +38,15 @@ export function handoffRequestPrompt(childTitle: string): string {
     "- この会話で決まっていないことを勝手に決めない。出ていないことは足さない。",
     "- 確かめるためにファイルを読むのはよいが、ファイルは書き換えない。最後の返答には依頼文だけを書く。",
     "- このあと依頼文を直すよう頼まれたら、直した依頼文の全文だけを書く。",
+    ...(added ? ["", HANDOFF_EXTRA_HEAD, added] : []),
   ].join("\n");
+}
+
+/** 頼み方の文に添えた追加の指示（handoffRequestPrompt の extra。なければ null。流れの 1 行にたたんだ発言に添える） */
+export function handoffRequestExtra(text: string): string | null {
+  const at = text.lastIndexOf(`\n\n${HANDOFF_EXTRA_HEAD}\n`);
+  if (at < 0) return null;
+  return text.slice(at + HANDOFF_EXTRA_HEAD.length + 3).trim() || null;
 }
 
 /** 子チャットの AI に渡す文脈に足す 1 行（利用者が自分の言葉で頼み直しても、同じ形の返答になるように） */

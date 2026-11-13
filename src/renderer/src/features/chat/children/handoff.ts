@@ -2,17 +2,28 @@
 import { UNTITLED_CHAT_TITLE, type Chat, type HandoffResult, type HandoffVia } from "@shared/types";
 import { handoffAfterFor, handoffRequestPrompt, type HandoffAfter } from "@shared/chat/handoff";
 import { api } from "@/api";
-import { alertDialog, reportFailure } from "@/ui/dialogs";
+import { alertDialog, promptDialog, reportFailure } from "@/ui/dialogs";
 import { knownChat } from "@/stores/chats";
 import { confirmDeleteChat, toggleArchiveChat } from "@/features/chat/chatActions";
 import { handBackToParent } from "./openChild";
 
 /**
  * 子チャットに、親への依頼文を書いてもらう（頼み方の文 handoffRequestPrompt を送る。記録の発言には頼みの印 handoff_request を付け、
- * 流れでは 1 行にたたむ）。作業していなければすぐ送り、作業中なら止めずにいまのやり取りに伝える（チャット欄の「いま」と同じ api.tellChat）
+ * 流れでは 1 行にたたむ）。送る前に、書き方の追加の指示を聞く（空のままでも頼める。添えたら頼み方の文の終わりに足す。やめたら送らない）。
+ * 作業していなければすぐ送り、作業中なら止めずにいまのやり取りに伝える（チャット欄の「いま」と同じ api.tellChat）
  */
-export function requestHandoff(chat: Pick<Chat, "id" | "title">) {
-  void api.tellChat(chat.id, handoffRequestPrompt(chat.title ?? ""), {}, [], false, { handoff_request: true }).catch(reportFailure("依頼文を頼めませんでした"));
+export async function requestHandoff(chat: Pick<Chat, "id" | "title">) {
+  const extra = await promptDialog({
+    title: "依頼文を作ってもらう",
+    message: "この子チャットの AI に、親チャットの AI へ渡す依頼文を書いてもらいます。書き方の注文があれば添えてください（空のままでも頼めます）。",
+    label: "追加の指示（任意）",
+    placeholder: "例: 手順は 3 つまでにまとめて。テストの方針も入れて",
+    confirmLabel: "頼む",
+    optional: true,
+    multiline: true,
+  });
+  if (extra === null) return;
+  await api.tellChat(chat.id, handoffRequestPrompt(chat.title ?? "", extra), {}, [], false, { handoff_request: true }).catch(reportFailure("依頼文を頼めませんでした"));
 }
 
 /**
