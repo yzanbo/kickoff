@@ -217,6 +217,27 @@ test("Docker: ログの流れは、作り直された（同じ札の新しいコ
   }
 });
 
+test("Docker: 同じ compose に操作が同時に 2 つ届いても、一覧を取り直す間にすり抜けず 2 つ目は 409。断った・失敗したら予約を外す", async () => {
+  const s = setup();
+  withCompose(s, [{ match: "up -d", hang: true }]);
+  const [c] = (await list(s)).composes;
+  const url = `/api/projects/${s.project.id}/docker/actions`;
+  // 1 つ目が一覧を取り直している間（docker を何度か呼ぶ）に 2 つ目が届く
+  const both = await Promise.all([s.call("POST", url, { action: "start_all", compose: c.key }), s.call("POST", url, { action: "start_all", compose: c.key })]);
+  assert.deepEqual(both.map((r) => r.status).sort(), [202, 409]);
+  assert.match(both.find((r) => r.status === 409)?.body.error ?? "", /ほかの操作が動いています/);
+  await until(() => s.dockerFake.calls().some((x) => x.args.includes("up")));
+  assert.equal(s.dockerFake.calls().filter((x) => x.args.includes("up")).length, 1, "up は 1 回だけ流れる");
+  await s.call("POST", url, { action: "cancel", compose: c.key });
+  await until(() => !s.docker["operations"].size);
+  // エンジンが止まっていて断った操作は予約を残さず、動いたら同じ compose の操作を受ける
+  s.dockerFake.set([{ match: "version", code: 1, stderr: "Cannot connect to the Docker daemon" }]);
+  assert.equal((await s.call("POST", url, { action: "start_all", compose: c.key })).status, 400);
+  assert.equal(s.docker["reserved"].size, 0);
+  withCompose(s, [{ match: "up -d", code: 0 }]);
+  assert.equal((await s.call("POST", url, { action: "start_all", compose: c.key })).status, 202);
+});
+
 test("Docker: ポートで失敗したら相手を全部残し、［相手を止めて起動］で相手を止めてから同じ起動をやり直す", async () => {
   const s = setup();
   withCompose(s, [{ match: "up -d", code: 1, stderr: "Error response from daemon: Bind for 0.0.0.0:5432 failed: port is already allocated\n" }], [
