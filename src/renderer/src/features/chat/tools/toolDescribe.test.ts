@@ -6,6 +6,7 @@ import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_MEMO_TOOL, AI_OPEN_SQL_TOOL } from "@shared/chat/aiOpen";
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
+import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/chat/aiTerminal";
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
   assert.equal(describeTool("TaskCreate", { subject: "確認 1", description: "動作確認用タスク 1" }), "ToDo を追加: 確認 1");
@@ -116,4 +117,10 @@ test("AI が画面に頼むツール: 開いたファイル・差分・SQL と�
   assert.equal(describeTool(AI_OPEN_DIFF_TOOL, { path: "src/a.ts", place: "side" }), "差分を開く: src/a.ts（右の欄）");
   assert.equal(describeTool(AI_OPEN_SQL_TOOL, { connection: "開発", sql: "UPDATE users\nSET a = 1" }), "SQL のタブに入れる: 開発: UPDATE users");
   assert.equal(describeTool(AI_ADD_DRAFT_TOOL, { chat_id: 3, text: "a" }), "下書きを入れる: チャット 3");
+});
+
+test("AI がターミナルを読むツール: 一覧は名前だけ、出力は読んだ行の数を渡したときだけ添える", () => {
+  assert.equal(describeTool(AI_LIST_TERMINALS_TOOL, {}), "ターミナルを確かめる");
+  assert.equal(describeTool(AI_READ_TERMINAL_TOOL, { terminal: "terminal:1:a" }), "ターミナルの出力を読む");
+  assert.equal(describeTool(AI_READ_TERMINAL_TOOL, { terminal: "terminal:1:a", lines: 50 }), "ターミナルの出力を読む: 最後の 50 行");
 });

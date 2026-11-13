@@ -68,6 +68,7 @@ export const IPC_ARGS = defineArgSchemas({
       terminalSize,
       terminalSize,
       z.object({ command: z.string().max(20_000).optional(), env: z.record(z.string(), z.string()).optional() }).optional(),
+      z.object({ projectId: z.number().int().nullable(), title: z.string().max(500) }).optional(),
     ]),
     write: z.tuple([terminalKey, z.string()]),
     resize: z.tuple([terminalKey, terminalSize, terminalSize]),

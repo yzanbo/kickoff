@@ -2,7 +2,8 @@ import { statSync } from "node:fs";
 import os from "node:os";
 import { app, type WebContents } from "electron";
 import * as pty from "node-pty";
-import type { TerminalStart } from "@shared/ipc";
+import type { TerminalStart, TerminalTabMeta } from "@shared/ipc";
+import type { TerminalControl } from "../../core/terminal/control.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { TerminalOutput } from "./output.js";
 
@@ -17,6 +18,11 @@ interface Session {
   /** 裏の端末と、画面へまとめて送る出力（output.ts） */
   output: TerminalOutput;
   owner: WebContents;
+  /** 始めたフォルダと、決まったコマンドのタブならそのコマンド（AI が読むタブの一覧に出す） */
+  cwd: string;
+  command: string | null;
+  /** タブの持ち主と名前（画面がつなぐたびに知らせる。知らせていなければ null） */
+  meta: TerminalTabMeta | null;
 }
 
 const sessions = new Map<string, Session>();
@@ -63,7 +69,7 @@ function start(key: string, cwd: string, cols: number, rows: number, owner: WebC
   const proc = pty.spawn(shell, args, { name: "xterm-256color", cols, rows, cwd, env: { ...shellEnv(), ...envOf(cwd), ...startWith.env } });
   // 出力は、いまつないでいる画面へ送る（つなぎ直すと owner が変わる）
   const output = new TerminalOutput((data) => sendEvent(session.owner, "terminal", "onData", key, data), { cols, rows });
-  const session: Session = { pty: proc, output, owner };
+  const session: Session = { pty: proc, output, owner, cwd, command: startWith.command ?? null, meta: null };
   // 止めたあと（タブを閉じた・開き直した）に届いたものは捨てる
   const current = () => sessions.get(key) === session;
   proc.onData((data) => {
@@ -121,9 +127,10 @@ export const terminalHandlers: IpcHandlers["terminal"] = {
    * （startWith のコマンドがあれば、それを流すタブとして）。
    * 画面は返事が届くまでの出力を捨てるので、まだ送っていない出力は snapshot に入れて返す
    */
-  open: async (e, key, cwd, cols, rows, startWith) => {
+  open: async (e, key, cwd, cols, rows, startWith, meta) => {
     const existing = sessions.get(key);
     if (existing) {
+      if (meta) existing.meta = meta;
       // 別の画面（読み直したあとなど）からつなぎ直したときも、その画面が消えたらシェルを止められるように見張る
       existing.owner = e.sender;
       watchOwner(e.sender);
@@ -132,6 +139,7 @@ export const terminalHandlers: IpcHandlers["terminal"] = {
     const found = isDirectory(cwd);
     watchOwner(e.sender);
     const session = start(key, found ? cwd : os.homedir(), clampSize(cols), clampSize(rows), e.sender, startWith);
+    session.meta = meta ?? null;
     // 作業場所のフォルダが見つからず（ワークツリーが消されたなど）ホームで開いたときは、画面の先頭でそう知らせる。
     // 知らせとして送ると画面が捨てるので、裏の端末に書いて snapshot に入れる（つなぎ直したときにも出る）
     if (cwd !== "" && !found) session.output.write(`\x1b[33m作業場所のフォルダが見つからないため、ホームフォルダで開きました（${cwd}）\x1b[0m\r\n`);
@@ -151,4 +159,17 @@ export const terminalHandlers: IpcHandlers["terminal"] = {
   },
   // タブを閉じたとき
   close: (_e, key) => kill(key),
+};
+
+/**
+ * AI に渡すターミナルの読み取り（コアの TerminalControl。index.ts が startCore に渡す）。読むだけで、コマンドの起動・停止・キーの入力は渡さない。
+ * プロジェクトを知らせていないタブ（画面が古いなど）は project_id が null で、どのプロジェクトのチャットからも読めない
+ */
+export const agentTerminals: TerminalControl = {
+  list: () =>
+    [...sessions].map(([key, s]) => ({ key, project_id: s.meta?.projectId ?? null, title: s.meta?.title ?? "ターミナル", cwd: s.cwd, command: s.command })),
+  tail: async (key, lines) => {
+    const session = sessions.get(key);
+    return session ? session.output.tail(lines) : null;
+  },
 };

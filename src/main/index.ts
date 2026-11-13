@@ -18,7 +18,7 @@ import { watchWebviewConsoles } from "./browser/webviewConsole.js";
 import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
 import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
 import { registerIpc } from "./ipc/ipc.js";
-import { setTerminalEnvOf } from "./terminal/terminals.js";
+import { agentTerminals, setTerminalEnvOf } from "./terminal/terminals.js";
 
 // 1. 名前・保存先を決め、起動の記録を始める（~/Library/Logs/<アプリ名>/startup.log。入れ替えた直後だけ画面が出ないことの原因を追うため）
 const { port, devUrl } = setupEnvironment();
@@ -55,6 +55,8 @@ async function start() {
       port,
       staticDir: devUrl ? undefined : RENDERER_DIR,
       browser: agentBrowser,
+      // 内蔵ターミナルの出力も AI に読ませる（読むだけ。terminal/terminals.ts）
+      terminals: agentTerminals,
       speechHelper: SPEECH_HELPER,
       // DB ワーカーは utilityProcess で起動する（製品版は fuses で ELECTRON_RUN_AS_NODE を切るため。app/dbWorker.ts）
       dbWorker: () => utilityWorker(DB_WORKER_FILE),

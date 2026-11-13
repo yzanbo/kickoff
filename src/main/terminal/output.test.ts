@@ -62,3 +62,15 @@ test("止めたら: ためている出力は送らず、取っている途中の
   await wait(30);
   assert.deepEqual(sent, []);
 });
+
+test("最後の行（AI が読む）: 折り返しをつないだ 1 行ずつ・色の印なし・終わりの空行は落とし、残っている行の数も返す", async () => {
+  const out = new TerminalOutput(() => {}, { cols: 10, rows: 5 });
+  out.write("one\r\n\x1b[31mtwo\x1b[0m\r\n");
+  // 10 桁で折り返す 1 行（つなぎ目の空白も残す）
+  out.write("abcdefghi jklmn\r\n\r\n");
+  assert.deepEqual(await out.tail(10), { lines: ["one", "two", "abcdefghi jklmn"], total: 3 });
+  assert.deepEqual(await out.tail(2), { lines: ["two", "abcdefghi jklmn"], total: 3 });
+  out.dispose();
+  // 止めたあとは空
+  assert.deepEqual(await out.tail(5), { lines: [], total: 0 });
+});
