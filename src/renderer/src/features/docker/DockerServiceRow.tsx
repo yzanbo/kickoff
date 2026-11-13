@@ -98,7 +98,7 @@ export function DockerServiceRow({
             {primary.label}
           </button>
           {s.running > 0 && <IconButton icon={RotateCcw} label="再起動" disabled={busy} onClick={() => run("restart")} />}
-          {s.containers.length > 0 && <IconButton icon={ScrollText} label="ログ（一覧の下に、このサービスの札で）" onClick={() => onLogs([s.name])} />}
+          <IconButton icon={ScrollText} label="ログ（一覧の下に、このサービスの札で）" title={s.containers.length ? undefined : "ログ（まだ起動していません。起動したら流れ始めます）"} onClick={() => onLogs([s.name])} />
           {shellTarget && <IconButton icon={SquareTerminal} label="シェル（下のパネルのターミナル）" onClick={() => openShell(s.name, shellTarget)} />}
           {s.db_kind && (
             <IconButton icon={Database} label="DB で開く" title={dbBlocked ?? "DB で開く（DB タブの DB クライアント）"} disabled={dbBlocked !== null || busy} onClick={db.request} />
@@ -173,7 +173,7 @@ export function DockerServiceRow({
             再起動
           </MenuItem>
           <div className="menu-separator" role="separator" />
-          <MenuItem disabled={s.containers.length === 0} onSelect={() => onLogs([s.name])}>
+          <MenuItem onSelect={() => onLogs([s.name])}>
             ログ
           </MenuItem>
           <MenuItem disabled={!shellTarget} onSelect={() => shellTarget && openShell(s.name, shellTarget)}>

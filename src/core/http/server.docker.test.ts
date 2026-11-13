@@ -197,6 +197,28 @@ test("Docker: ログの流れは最新の 500 行を追い、止まったら区�
   }
 });
 
+test("Docker: ログの流れは、何も作っていない compose（コンテナ 0 個）でもつながり、あとから作られたコンテナを最新の 500 行から流し始める", async () => {
+  const s = setup();
+  s.dockerFake.set([{ match: "logs -f", stdout: "2026-11-13T01:00:00Z ready\n", hang: true }]);
+  const events: DockerLogEvent[] = [];
+  let sources: { container: string; service: string; label: string; running: boolean; exit_code: number | null }[] = [];
+  const session = new DockerLogSession(s.docker.cli, async () => sources, (e) => events.push(e));
+  try {
+    await session.sync();
+    assert.deepEqual(events, [{ type: "sources", sources: [] }]);
+    assert.equal(s.dockerFake.calls().filter((x) => x.args[0] === "logs").length, 0);
+    // ［すべて起動］で作られた（docker_changed で sync される）
+    sources = [{ container: "fedcba543210", service: "db", label: "db", running: true, exit_code: null }];
+    await session.sync();
+    await until(() => events.some((e) => e.type === "lines"));
+    assert.ok(s.dockerFake.calls().some((x) => x.args.join(" ") === "logs -f --timestamps --tail 500 fedcba543210"));
+    // 初めて見るコンテナなので、起動の区切りは入れない
+    assert.ok(!events.some((e) => e.type === "started"));
+  } finally {
+    session.close();
+  }
+});
+
 test("Docker: ログの流れは、作り直された（同じ札の新しいコンテナ）ときも起動の区切りを入れて最新の 500 行から追う", async () => {
   const s = setup();
   s.dockerFake.set([{ match: "logs -f", stdout: "2026-11-13T01:00:00Z hello\n", hang: true }]);

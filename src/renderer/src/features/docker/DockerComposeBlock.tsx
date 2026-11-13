@@ -102,7 +102,7 @@ export function DockerComposeBlock({
               </button>
             </>
           )}
-          <button type="button" className="btn btn-sm" disabled={!compose.created} data-tip="すべてのサービスのログを、時刻の順に一覧の下に出す" onClick={() => onLogs(null)}>
+          <button type="button" className="btn btn-sm" data-tip={compose.created ? "すべてのサービスのログを、時刻の順に一覧の下に出す" : "すべてのサービスのログを一覧の下に出す（まだ起動していません。起動したら流れ始めます）"} onClick={() => onLogs(null)}>
             <ScrollText size={13} aria-hidden /> ログ
           </button>
           <IconButton icon={Ellipsis} label="compose の操作" className="docker-compose-more" onClick={(e) => menu.toggle(e)} />
@@ -192,7 +192,7 @@ export function DockerComposeBlock({
             片付け…
           </MenuItem>
           <div className="menu-separator" role="separator" />
-          <MenuItem disabled={!compose.created} onSelect={() => onLogs(null)}>
+          <MenuItem onSelect={() => onLogs(null)}>
             ログ
           </MenuItem>
           <MenuItem disabled={!compose.file} onSelect={openFile}>
