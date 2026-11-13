@@ -21,6 +21,8 @@
 
 .app-dialog-body {
   display: grid;
+  /* 列はダイアログの幅まで（auto のままだと、折り返さない長い文（PR の題名・パス）の幅まで列が伸び、横にスクロールした） */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 20px 20px 16px;
 }
