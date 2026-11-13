@@ -2,12 +2,11 @@
 import { app, BrowserWindow, dialog } from "electron";
 import { errorMessage } from "@shared/errors";
 import { startCore, type Core } from "../core/index.js";
-import { macosPlatform } from "../core/platform/macos/index.js";
 import { setAppMenu } from "./app/appMenu.js";
 import { utilityWorker } from "./app/dbWorker.js";
 import { safeStorageCipher } from "./app/secretCipher.js";
 import { prepareAppSession } from "./app/appSession.js";
-import { DB_WORKER_FILE, RENDERER_DIR, SPEECH_HELPER, seedDevDataOnce, setupEnvironment } from "./app/environment.js";
+import { DB_WORKER_FILE, RENDERER_DIR, seedDevDataOnce, setupEnvironment } from "./app/environment.js";
 import { registerShutdown } from "./app/shutdown.js";
 import { logLaunch, startupLog, watchChildProcesses } from "./app/startupLog.js";
 import { openMainWindow, showMainWindow } from "./app/window.js";
@@ -18,6 +17,7 @@ import { watchWebviewConsoles } from "./browser/webviewConsole.js";
 import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
 import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
 import { registerIpc } from "./ipc/ipc.js";
+import { hostPlatform } from "./platform/index.js";
 import { agentTerminals, setTerminalEnvOf } from "./terminal/terminals.js";
 
 // 1. 名前・保存先を決め、起動の記録を始める（~/Library/Logs/<アプリ名>/startup.log。入れ替えた直後だけ画面が出ないことの原因を追うため）
@@ -44,9 +44,8 @@ if (!app.requestSingleInstanceLock()) {
 /** 準備ができたら: コア（DB・エージェント・HTTP API）→ 画面のセッション → IPC・メニュー → ウィンドウ */
 async function start() {
   startupLog("whenReady");
-  // OS ごとに違う処理の口（いまは macOS だけ。音声認識の補助コマンドの場所も渡す）
-  const platform = macosPlatform({ speechHelper: SPEECH_HELPER });
-  platform.loadLoginShellPath();
+  // OS ごとに違う処理の口（platform/index.ts で選ぶ。いまは macOS だけ）
+  hostPlatform.loadLoginShellPath();
   startupLog("ログインシェルの PATH を読みました");
   void moveLegacyDiagnostics();
   try {
@@ -59,7 +58,7 @@ async function start() {
       browser: agentBrowser,
       // 内蔵ターミナルの出力も AI に読ませる（読むだけ。terminal/terminals.ts）
       terminals: agentTerminals,
-      platform,
+      platform: hostPlatform,
       // DB ワーカーは utilityProcess で起動する（製品版は fuses で ELECTRON_RUN_AS_NODE を切るため。app/dbWorker.ts）
       dbWorker: () => utilityWorker(DB_WORKER_FILE),
       // DB のパスワードはキーチェーンの鍵（safeStorage）で暗号化して置く（app/secretCipher.ts）

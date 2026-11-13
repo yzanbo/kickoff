@@ -5,6 +5,7 @@ import * as pty from "node-pty";
 import type { TerminalStart, TerminalTabMeta } from "@shared/ipc";
 import type { TerminalControl } from "../../core/terminal/control.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
+import { desktopPlatform } from "../platform/index.js";
 import { TerminalOutput } from "./output.js";
 
 /**
@@ -63,10 +64,9 @@ export function setTerminalEnvOf(fn: (cwd: string) => Record<string, string>) {
 }
 
 function start(key: string, cwd: string, cols: number, rows: number, owner: WebContents, startWith: TerminalStart = {}): Session {
-  const shell = process.env.SHELL || "/bin/zsh";
-  // 決まったコマンドのタブは、ログインシェルでそのコマンドだけを流す（PATH などはふだんのシェルと同じ）
-  const args = startWith.command ? ["-l", "-c", startWith.command] : ["-l"];
-  const proc = pty.spawn(shell, args, { name: "xterm-256color", cols, rows, cwd, env: { ...shellEnv(), ...envOf(cwd), ...startWith.env } });
+  // 決まったコマンドのタブは、そのコマンドだけを流す（シェルと引数は OS の口。macOS はログインシェル）
+  const shell = desktopPlatform.terminalShell();
+  const proc = pty.spawn(shell.file, shell.args(startWith.command ?? null), { name: "xterm-256color", cols, rows, cwd, env: { ...shellEnv(), ...envOf(cwd), ...startWith.env } });
   // 出力は、いまつないでいる画面へ送る（つなぎ直すと owner が変わる）
   const output = new TerminalOutput((data) => sendEvent(session.owner, "terminal", "onData", key, data), { cols, rows });
   const session: Session = { pty: proc, output, owner, cwd, command: startWith.command ?? null, meta: null };

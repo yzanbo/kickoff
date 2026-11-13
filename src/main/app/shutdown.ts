@@ -1,5 +1,6 @@
 import { app, session } from "electron";
 import type { Core } from "../../core/index.js";
+import { desktopPlatform, hostPlatform } from "../platform/index.js";
 import { stopChildElectronApps } from "./childApps.js";
 import { killAllTerminals } from "../terminal/terminals.js";
 
@@ -17,7 +18,7 @@ export function registerShutdown(core: () => Core | undefined) {
     closing = true;
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5000));
     const cleanup = async () => {
-      await stopChildElectronApps(3000);
+      await stopChildElectronApps(3000, hostPlatform, desktopPlatform);
       killAllTerminals();
       await coreToClose.close();
     };
