@@ -11,7 +11,8 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 
 ## 終了
 
-- 終了時の片付けは `app/shutdown.ts` の `registerShutdown`: `before-quit` で `preventDefault` → 自分から起動した Electron のアプリ（`stopChildElectronApps`。3 秒まで）→ ターミナル（`killAllTerminals`）→ コア（`core.close()`）→ `app.exit(0)`。片付けは 5 秒で打ち切る。`app.quit()` を呼び直さない（ウィンドウを閉じたところで終了が取り消され、アプリが残る）。
+- 終了時の片付けは `app/shutdown.ts` の `registerShutdown`: `before-quit` で `preventDefault` → 自分から起動した Electron のアプリ（`stopChildElectronApps`。3 秒まで）→ ターミナル（`killAllTerminals`）→ コア（`core.close()`）→ 終える（`exitKeepingNotifications`）。片付けは 5 秒で打ち切る。`app.quit()` を呼び直さない（ウィンドウを閉じたところで終了が取り消され、アプリが残る）。
+- 最後は `app.exit()` を使わず、localStorage（`flushStorageData`）と Cookie（`cookies.flushStore`）を書き出してから `process.reallyExit(0)` で Electron の後片付けを通らずに終える。`app.exit()` で普通に終わると、Electron が後片付けで、この起動で出した通知を通知センターからすべて消すため（残す手立ては公開されていない。異常終了した起動の通知だけが残っていた）。`flushStorageData` は書き終わりを知らせないので、少し待ってから終える。DB などの片付けは、その前の `core.close()` で済ませる。
 - 子の Electron（`app/childApps.ts`）: 製品版の内蔵ターミナル・エージェントから起動した開発版などは、製品版の子孫になる。終わるときは、そのメインプロセスにだけ先に SIGTERM を送り、終わるのを待つ。シェルやエージェントを先に止めると、開発版が Helper ごといきなり止められ、localStorage が消えるため。
 - コアの HTTP サーバーは `core/http/httpServer.ts` の `stopHttpServer` で止める（開いたままの SSE の接続もすべて切る。切らないと close が終わらず、終了まで止まる）。
 
@@ -53,7 +54,7 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 
 ## 通知（notifications/）
 
-- Mac の通知はメインプロセスの `Notification` で出す（画面の通知は、画面を読み込み直す・終えると通知センターから消え、届かなかった理由も分からないため）。参照をなくした通知も通知センターから消えるので、新しいものから 50 件の参照を持つ。
+- Mac の通知はメインプロセスの `Notification` で出す（画面の通知は、画面を読み込み直す・終えると通知センターから消え、届かなかった理由も分からないため）。押したときの処理を付けておくため、新しいものから 50 件の参照を持つ。Kickoff を終えても通知センターに残る（終わり方は「終了」）。
 - 通知の ID にチャット（`kickoff-chat:`）か CI の実行（`kickoff-ci:`。CI の失敗の知らせ）を埋め込み（`notificationIds.ts` の `notificationIdOf` / `chatOfNotificationId` / `ciOfNotificationId`。毎回変える）、起動したら `Notification.getHistory()` で通知センターに残っているものにも押したときの処理を付け直す。押したら Kickoff を前に出し、`notifications.onOpenChat` で画面にそのチャットを、`notifications.onOpenCi` で CI のタブのその実行を開かせる。
 - 画面からは `notifications.notify`（結果は `{ ok }` か `{ ok: false, error }`）・`notifications.openSettings`（Mac の「システム設定 → 通知」）・`notifications.setBadge`（Dock のアイコンの赤い数字。`app.setBadgeCount`。0 で消える。数えるのは画面）。
 
