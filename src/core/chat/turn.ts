@@ -17,7 +17,7 @@ import { isInside } from "../system/paths.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
 import { chatContextNote, chatContextOf } from "./chatContext.js";
 import { createAiChatEditTools } from "./aiChatEdit.js";
-import { canCreateChildChat, createAiChildChatTools } from "./aiChildChat.js";
+import { canCreateChildChat, createAiChildChatTools, type StartedChild } from "./aiChildChat.js";
 import type { ChildChatInput } from "./children.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import type { Store } from "../db/store.js";
@@ -42,7 +42,7 @@ export interface ExecutionDeps {
   /** DB クライアント（AI に見せる接続があるプロジェクトで、AI に DB のツールを出す。なければ出さない） */
   databases?: DatabaseService;
   /** 子チャットを作る（Runner が渡す。チャットの AI に自分の子チャットを作るツールを出す。なければ出さない） */
-  startChildChat?: (parent: Chat, input: ChildChatInput) => Promise<Chat>;
+  startChildChat?: (parent: Chat, input: ChildChatInput) => Promise<StartedChild>;
   /** Docker タブ（AI の Docker の守りが docker ps・compose の組の名前を引く。なければ守りを付けない） */
   docker?: DockerService;
 }

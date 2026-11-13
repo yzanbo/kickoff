@@ -7,6 +7,12 @@ import type { Chat } from "@shared/types";
 import type { Store } from "../db/store.js";
 import type { ChildChatInput } from "./children.js";
 
+/** 作った子チャットと、親の会話を引き継いだか（写し終えた・いま写している） */
+export interface StartedChild {
+  chat: Chat;
+  inherited: boolean;
+}
+
 /** AI が頼んだ子チャット（承認カードに出す） */
 export interface AiChildChatRequest {
   text: string;
@@ -44,7 +50,7 @@ export function canCreateChildChat(store: Store, chat: Chat): boolean {
  * chatId のチャットの AI に渡す、子チャットを作るツールの中身。設定と深さは呼ぶたびに確かめ直す（作業の途中で設定を変えたら次の呼び出しから効く）。
  * 設定が「毎回聞く」なら approve で利用者に聞く（権限モード・Auto mode によらない）。「常に許可」なら設定を「聞かずに作る」にしてから作る
  */
-export function createAiChildChatTools(deps: { store: Store; startChild: (parent: Chat, input: ChildChatInput) => Promise<Chat> }, chatId: number): AiChildChatTools {
+export function createAiChildChatTools(deps: { store: Store; startChild: (parent: Chat, input: ChildChatInput) => Promise<StartedChild> }, chatId: number): AiChildChatTools {
   const { store } = deps;
   const requireParent = () => {
     const chat = store.chats.get(chatId);
@@ -68,15 +74,15 @@ export function createAiChildChatTools(deps: { store: Store; startChild: (parent
         if (decision.action === "allow_always") store.settings.update({ ai_child_chat: "allow" });
       }
       // 聞いている間に親が消えていないか確かめ直す。聞いた位置は、いまの作業のもとになった自分の発言（その発言の下に子チャットの札が出る）
-      const child = await deps.startChild(requireParent(), {
+      const { chat: child, inherited } = await deps.startChild(requireParent(), {
         text,
         quote: null,
         inherit: request.inherit,
         eventId: store.events.latestUserId(chatId),
         ...(request.title ? { title: request.title } : {}),
       });
-      // 引き継げたら、子は親の会話を写したセッションを持って始まる（引き継げなければ、依頼の文だけで始まりお知らせが残る）
-      return resultText(child, request.inherit ? (child.session_id !== null ? "inherited" : "failed") : "fresh");
+      // 引き継げたら、子は親の会話を写したセッションで始まる（写すのは作ったあと。引き継げなければ、依頼の文だけで始まりお知らせが残る）
+      return resultText(child, request.inherit ? (inherited ? "inherited" : "failed") : "fresh");
     },
   };
 }

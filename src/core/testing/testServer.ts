@@ -140,9 +140,21 @@ class FakeProvider extends FakeProviderBase {
   }
   /** 渡した指示の ID（自分の発言の記録の message_uuid と同じもの） */
   promptIds: (string | undefined)[] = [];
+  /** 分岐を返すまで待たせる（親の会話が長くて写すのに時間がかかるとき。holdFork で立てる）と、写せないときの失敗 */
+  private forkGate: Promise<void> | null = null;
+  forkError: string | null = null;
   async fork(sessionId: string, messageId: string, cwd: string) {
     this.forks.push([sessionId, messageId, cwd]);
-    return `fork-${this.forks.length}`;
+    const n = this.forks.length;
+    if (this.forkGate) await this.forkGate;
+    if (this.forkError) throw new Error(this.forkError);
+    return `fork-${n}`;
+  }
+  /** 次からの分岐を、返した関数を呼ぶまで返さない */
+  holdFork(): () => void {
+    let release = () => {};
+    this.forkGate = new Promise((resolve) => (release = () => ((this.forkGate = null), resolve())));
+    return release;
   }
   /** サブエージェントの会話（サブエージェントの ID ごと。なければ空）と、読んだ呼び出し（親のセッション・ID・作業フォルダ） */
   subagentLogs: Record<string, SubagentLogItem[]> = {};

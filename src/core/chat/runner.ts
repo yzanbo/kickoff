@@ -55,7 +55,15 @@ export class Runner extends RunnerQueue {
     },
   ) {
     super();
-    this.turnDeps = { ...deps, startChildChat: (parent, input) => startChildChat({ store: deps.store, runner: this, providers: deps.providers }, parent, input) };
+    this.turnDeps = {
+      ...deps,
+      startChildChat: async (parent, input) => {
+        const chat = await startChildChat({ store: deps.store, runner: this, providers: deps.providers }, parent, input);
+        // 親の会話を写し終えた・いま写している（写すのは作ったあとで待たずに進める inheritThenExecute。もう写し終えていることもあるので店から引き直す）
+        const inherited = this.runtimes.get(chat.id).inheriting || (deps.store.chats.get(chat.id)?.session_id ?? null) !== null;
+        return { chat, inherited };
+      },
+    };
     // 再起動しても送信待ちの列は残す（読み戻した列は止めておく）
     this.runtimes = new ChatRuntimes({
       store: deps.store,
@@ -151,8 +159,44 @@ export class Runner extends RunnerQueue {
 
   async start(input: StartChatInput): Promise<Chat> {
     const { chat, prompt, messageUuid } = await createChat(this.deps, input);
-    void this.execute({ chatId: chat.id, prompt, promptId: messageUuid });
+    if (input.prepareSession) this.inheritThenExecute(chat.id, input.prepareSession, { chatId: chat.id, prompt, promptId: messageUuid });
+    else void this.execute({ chatId: chat.id, prompt, promptId: messageUuid });
     return this.deps.store.chats.get(chat.id)!;
+  }
+
+  /**
+   * 親の会話を写してから動かす（子チャット）。写す間（親の記録が大きいと数十秒）も作業中として数え（preparing）、画面には
+   * ChatLive.inheriting で「親の会話を引き継いでいます」を出す。前は写し終えるまで子チャットを作らず、送った発言も作業中の行も出なかった（利用者の指摘）。
+   * この間の「いま」は預かり（holdsTells）、動かし始めたらその作業に伝える。止めたら、写し終えたところで動かさずに中断で終える。
+   * 写せなければ、引き継がずに始めることをお知らせに残して動かす
+   */
+  private inheritThenExecute(chatId: number, prepare: () => Promise<string>, item: TurnRequest) {
+    const { store } = this.deps;
+    const runtime = this.runtimes.get(chatId);
+    runtime.preparing = true;
+    runtime.update({ inheriting: true });
+    void (async () => {
+      let sessionId: string | null = null;
+      try {
+        sessionId = await prepare();
+      } catch (e) {
+        if (store.chats.get(chatId)) store.events.add(chatId, { type: "notice", message: `親の会話を引き継げませんでした（${errorMessage(e)}）。会話を引き継がずに始めます` });
+      }
+      runtime.preparing = false;
+      const cancelled = runtime.stopping;
+      runtime.update({ inheriting: false });
+      // 写している間にチャットを消した・アプリを終える
+      if (!store.chats.get(chatId) || this.shuttingDown) return;
+      if (sessionId) store.chats.update(chatId, { session_id: sessionId });
+      void this.execute(item);
+      // 写している間に止めた: 動かし始める前に止める（プロバイダーを動かさずに中断で終える）
+      if (cancelled) runtime.turn?.abort();
+      // 写している間に預かった「いま」: 動かし始めた作業に足す口ができるのを待ってから伝える（作業がもう終われば、作業の終わりに deliverHeld が送る）
+      else if (runtime.afterCompact.length > 0)
+        void untilTellable(runtime).then(() => {
+          if (runtime.control && runtime.afterCompact.length > 0 && !runtime.deliveringAfterCompact) this.drainAfterCompact(chatId, false);
+        });
+    })();
   }
 
   /**
@@ -584,6 +628,8 @@ export class Runner extends RunnerQueue {
    */
   cancel(chatId: number) {
     const runtime = this.runtimes.get(chatId);
+    // 親の会話を写している間（子チャット）: 写し終えたら動かさずに中断で終える（写すのは途中で止められない）
+    if (!runtime.turn && runtime.inheriting) runtime.update({ stopping: true });
     if (!runtime.turn) return;
     runtime.update({ stopping: true });
     runtime.turn.abort();
