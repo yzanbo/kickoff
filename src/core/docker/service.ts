@@ -48,6 +48,11 @@ export class DockerService {
   private readonly events: DockerEvents;
   /** compose（見出しのキー）ごとの動いている操作と、止める口 */
   private readonly operations = new Map<string, RunningOp>();
+  /**
+   * 調べてから始めるまでの間の予約（compose のキー）。一覧を取り直す間に 2 つ目の操作が届いても、すり抜けて両方流れないように、
+   * 調べたらすぐ覚え、始めた（operations に入れた）・断ったら外す
+   */
+  private readonly reserved = new Set<string>();
   private readonly failures = new Map<string, DockerFailure>();
   /** 静かなぶつかりを調べる口（テストでは probe を差し替える） */
   readonly ports = new DockerPorts();
@@ -198,28 +203,33 @@ export class DockerService {
       this.changed(project.id);
       return;
     }
-    if (this.operations.has(body.compose)) throw new Conflict("この compose ではほかの操作が動いています。終わってからもう一度押してください");
-    const snap = await this.snapshot(project);
-    if (snap.list.engine !== "ok") throw new Invalid(snap.list.engine === "missing" ? "Docker が入っていません" : "Docker が動いていません");
-    const compose = snap.list.composes.find((c) => c.key === body.compose);
-    if (!compose) throw new NotFound("この compose はもうありません。一覧を取り直してください");
-    const upFiles = snap.upFiles.get(compose.key) ?? [];
-    // ［相手を止めて起動］は最後の失敗（やり直す操作とポートでぶつかった相手）から組み立て、失敗したらやり直した元の操作として残す
-    const prev = body.action === "stop_others_and_start" ? this.failures.get(compose.key) : undefined;
-    const plan = planDockerAction({ compose, upFiles, action: body.action, service: body.service, container: body.container, retry: prev });
-    const failureAction: DockerAction = prev?.action ?? body.action;
-    const service = prev ? prev.service : (body.service ?? null);
-    if (plan.usesUp && !body.confirm_shared) {
-      const victims = sharedVictims(compose.key, compose.project_name, snap.containers, snap.owner);
-      const composeOf = (id: string) => snap.list.composes.find((x) => x.key === snap.owner.get(id));
-      if (victims.length) throw new Conflict(sharedMessage(compose.project_name ?? "", victims, compose, composeOf), DOCKER_SHARED_PROJECT);
+    if (this.operations.has(body.compose) || this.reserved.has(body.compose)) throw new Conflict("この compose ではほかの操作が動いています。終わってからもう一度押してください");
+    this.reserved.add(body.compose);
+    try {
+      const snap = await this.snapshot(project);
+      if (snap.list.engine !== "ok") throw new Invalid(snap.list.engine === "missing" ? "Docker が入っていません" : "Docker が動いていません");
+      const compose = snap.list.composes.find((c) => c.key === body.compose);
+      if (!compose) throw new NotFound("この compose はもうありません。一覧を取り直してください");
+      const upFiles = snap.upFiles.get(compose.key) ?? [];
+      // ［相手を止めて起動］は最後の失敗（やり直す操作とポートでぶつかった相手）から組み立て、失敗したらやり直した元の操作として残す
+      const prev = body.action === "stop_others_and_start" ? this.failures.get(compose.key) : undefined;
+      const plan = planDockerAction({ compose, upFiles, action: body.action, service: body.service, container: body.container, retry: prev });
+      const failureAction: DockerAction = prev?.action ?? body.action;
+      const service = prev ? prev.service : (body.service ?? null);
+      if (plan.usesUp && !body.confirm_shared) {
+        const victims = sharedVictims(compose.key, compose.project_name, snap.containers, snap.owner);
+        const composeOf = (id: string) => snap.list.composes.find((x) => x.key === snap.owner.get(id));
+        if (victims.length) throw new Conflict(sharedMessage(compose.project_name ?? "", victims, compose, composeOf), DOCKER_SHARED_PROJECT);
+      }
+      this.failures.delete(compose.key);
+      const op: DockerOperation = { action: body.action, service, started_at: new Date().toISOString(), cancellable: plan.steps.some((s) => s.stream) };
+      const running: RunningOp = { op, projectId: project.id, stream: null, cancelled: false, failureAction };
+      this.operations.set(compose.key, running);
+      this.changed(project.id);
+      void this.runSteps(project, compose.key, running, plan.steps);
+    } finally {
+      this.reserved.delete(body.compose);
     }
-    this.failures.delete(compose.key);
-    const op: DockerOperation = { action: body.action, service, started_at: new Date().toISOString(), cancellable: plan.steps.some((s) => s.stream) };
-    const running: RunningOp = { op, projectId: project.id, stream: null, cancelled: false, failureAction };
-    this.operations.set(compose.key, running);
-    this.changed(project.id);
-    void this.runSteps(project, compose.key, running, plan.steps);
   }
 
   private async runSteps(project: Project, key: string, running: RunningOp, steps: DockerStep[]) {
