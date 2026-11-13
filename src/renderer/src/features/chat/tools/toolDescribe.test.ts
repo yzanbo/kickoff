@@ -4,6 +4,7 @@ import { describeApprovalInput, describeTool, describeToolInput, describeUnknown
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 import { AI_OPEN_CHAT_TOOL, AI_OPEN_MEMO_TOOL } from "@shared/chat/aiOpen";
+import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
@@ -101,4 +102,10 @@ test("AI が読むだけのツール: 一覧・使用枠は名前だけ、会話
   assert.equal(describeTool(AI_USAGE_TOOL, {}), "使用枠を確かめる");
   assert.equal(describeTool(AI_READ_CHAT_TOOL, { chat_id: 12 }), "チャットの会話を読む: チャット 12");
   assert.equal(describeTool(AI_READ_CHAT_TOOL, { chat_id: 12, before: 38, turns: 5 }), "チャットの会話を読む: チャット 12（38 回目より前）");
+});
+
+test("AI がプロジェクトに足す・変えるツール: 定型文は名前（なければ 1 行目）、メモは移す前と後", () => {
+  assert.equal(describeTool(AI_ADD_SNIPPET_TOOL, { text: "テストを流して", label: "テスト" }), "定型文に登録: テスト");
+  assert.equal(describeTool(AI_ADD_SNIPPET_TOOL, { text: "型を確かめて\n二行目" }), "定型文に登録: 型を確かめて");
+  assert.equal(describeTool(AI_MOVE_MEMO_TOOL, { from: "案.md", to: "済/案.md" }), "メモを移動: 案.md → 済/案.md");
 });

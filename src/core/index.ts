@@ -119,7 +119,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const worktreeEnvs = new WorktreeEnvService(store, docker);
   // ポートを使っているプロセス（AI が残した開発サーバーに気付いて止める。調べるのは窓を開いた・チャットの実行が終わったときだけ）
   const ports = new PortWatch(bus, new PortProcessService({ store }));
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, docker, worktreeEnvs, interrupted: recovered });
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, databases, docker, worktreeEnvs, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）

@@ -2,6 +2,7 @@ import type { BrowserControl } from "../browser/control.js";
 import type { AiChatEditTools } from "../chat/aiChatEdit.js";
 import type { AiChildChatTools } from "../chat/aiChildChat.js";
 import type { AiChatReadTools } from "../chat/aiChatRead.js";
+import type { AiProjectTools } from "../chat/aiProject.js";
 import type { AiOpenTools } from "../chat/aiOpen.js";
 import type { HiddenDbTarget } from "../chat/guard/hiddenDb.js";
 import type { DockerGuard } from "../chat/guard/dockerGuard.js";
@@ -110,6 +111,8 @@ export interface ProviderTurnParams {
   open?: AiOpenTools | null;
   /** 同じプロジェクトのチャットの一覧・会話と使用枠を AI に読ませる口（どのチャットにも渡す。なければそのツールを出さない） */
   chatRead?: AiChatReadTools | null;
+  /** このプロジェクトの定型文に足す・メモの名前を変える／移す口を AI に渡す（どのチャットにも渡す。なければそのツールを出さない） */
+  chatProject?: AiProjectTools | null;
   /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
   hiddenDb?: HiddenDbTarget[];
   /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */

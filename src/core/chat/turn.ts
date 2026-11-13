@@ -20,6 +20,8 @@ import { chatContextNote, chatContextOf } from "./chatContext.js";
 import { createAiChatEditTools } from "./aiChatEdit.js";
 import { createAiOpenTools } from "./aiOpen.js";
 import { createAiChatReadTools } from "./aiChatRead.js";
+import { createAiProjectTools } from "./aiProject.js";
+import type { MemoService } from "../memos/memos.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { canCreateChildChat, createAiChildChatTools, type StartedChild } from "./aiChildChat.js";
 import type { ChildChatInput } from "./children.js";
@@ -53,6 +55,8 @@ export interface ExecutionDeps {
   worktreeEnvs?: WorktreeEnvService;
   /** Claude のプランの使用枠（AI の get_usage が読む。なければ使えないと返す） */
   usage?: UsageMonitor;
+  /** メモ（AI の move_memo が名前を変える・移す。なければそのツールは使えないと返す） */
+  memos?: MemoService;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -205,6 +209,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     open: deps.bus ? createAiOpenTools({ store: deps.store, publish: (e) => deps.bus?.publish(e), memoDirOf: deps.memoDirOf }, chat.id) : null,
     // 同じプロジェクトのチャットの一覧・会話と使用枠を読むツール（どのチャットにも）
     chatRead: createAiChatReadTools({ store: deps.store, approvals: deps.approvals, usage: deps.usage }, chat.id),
+    // このプロジェクトの定型文に足す・メモの名前を変える／移すツール（どのチャットにも）
+    chatProject: createAiProjectTools({ store: deps.store, memos: deps.memos }, chat.id),
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く
