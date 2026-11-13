@@ -80,6 +80,7 @@
 @import "./ui/markdown.css";
 @import "./footer/usage-meter.css";
 @import "./footer/footer.css";
+@import "./footer/ports.css";
 @import "./footer/diagnostics.css";
 @import "./base/mobile.css";
 @import "./board/board.css";

@@ -32,6 +32,8 @@ import { DbSecretVault, migrateInBackground, type SecretCipher } from "./databas
 import { stopAllStreams } from "./system/stream.js";
 import { DockerService } from "./docker/service.js";
 import { WorktreeEnvService } from "./worktreeEnv/service.js";
+import { PortProcessService } from "./ports/service.js";
+import { PortWatch } from "./ports/watch.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -115,6 +117,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const docker = new DockerService(bus);
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる。チャットの AI とターミナルには PORT を渡す）
   const worktreeEnvs = new WorktreeEnvService(store, docker);
+  // ポートを使っているプロセス（AI が残した開発サーバーに気付いて止める。調べるのは窓を開いた・チャットの実行が終わったときだけ）
+  const ports = new PortWatch(bus, new PortProcessService({ store }));
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, docker, worktreeEnvs, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
@@ -151,6 +155,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     ci,
     docker,
     worktreeEnvs,
+    ports,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });
@@ -162,6 +167,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   });
   usage.start();
   prWatch.start();
+  ports.start();
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ）
   const stopAutoArchive = startAutoArchive(store, bus);
 
@@ -180,6 +186,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       voice.downloads.stopAll();
       usage.stop();
       prWatch.stop();
+      ports.close();
       stopAutoArchive();
       memos.close();
       await databases.close();

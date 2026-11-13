@@ -6,6 +6,7 @@ import { chatsApi } from "./chats";
 import { databasesApi } from "./databases";
 import { dockerApi } from "./docker";
 import { ciApi } from "./ci";
+import { portsApi } from "./ports";
 import { filesApi } from "./files";
 import { gitApi } from "./git";
 import { githubApi } from "./github";
@@ -22,7 +23,7 @@ import { usageApi } from "./usage";
 import { voiceApi } from "./voice";
 import { worktreesApi } from "./worktrees";
 
-const groups = { approvalsApi, chatsApi, filesApi, gitApi, groupsApi, projectsApi, providersApi, queueApi, settingsApi, turnsApi, uploadsApi, usageApi, voiceApi, worktreesApi, memosApi, snippetsApi, databasesApi, githubApi, dockerApi, ciApi };
+const groups = { approvalsApi, chatsApi, filesApi, gitApi, groupsApi, projectsApi, providersApi, queueApi, settingsApi, turnsApi, uploadsApi, usageApi, voiceApi, worktreesApi, memosApi, snippetsApi, databasesApi, githubApi, dockerApi, ciApi, portsApi };
 
 test("api: 資源ごとの関数の名前は重ならず、すべて api に入っている（重なると後のもので上書きされる）", () => {
   const owner = new Map<string, string>();

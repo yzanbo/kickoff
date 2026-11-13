@@ -1,4 +1,5 @@
-import { Search, SquarePen } from "lucide-react";
+import { Network, Search, SquarePen } from "lucide-react";
+import { openPortsPopover } from "@/features/footer/ports/portsStore";
 import { busyWithUnread } from "@shared/chat/state";
 import { useChatStates } from "@/app/chatStatesContext";
 import { StatusSlot } from "@/features/chat/StatusSlot";
@@ -79,6 +80,11 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       }
     }
     named.push(...memos);
+    // 操作（何か入力したときだけ。下の帯を隠していても開ける）
+    if (q) {
+      const label = "ポートを使っているプロセス";
+      named.push({ key: "ports", label, text: `${label} port`, hint: "操作", icon: <Network size={15} />, run: openPortsPopover });
+    }
     const filtered = q ? named.filter((i) => `${i.text} ${i.hint}`.toLowerCase().includes(q)) : named;
     // 名前で見つかったものを先に（50 件まで）、続けてチャットの中の文言・メモの中の文言
     return [...filtered.slice(0, 50), ...messages.hits.map((h) => messageItem(h, projectName)), ...memoTexts.hits.map((h) => memoTextItem(h, projectName))];
@@ -88,7 +94,8 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   function go(item: Item | undefined) {
     if (!item) return;
     dialog.close();
-    navigate(item.route);
+    if (item.run) item.run();
+    else if (item.route) navigate(item.route);
   }
   const nav = useListNavigation(items, go);
   useEffect(() => nav.setIndex(0), [query, targetKey]);

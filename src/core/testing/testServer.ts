@@ -19,6 +19,8 @@ import { CiService } from "../github/ci.js";
 import { DockerService } from "../docker/service.js";
 import { DockerCli } from "../docker/cli.js";
 import { WorktreeEnvService } from "../worktreeEnv/service.js";
+import { PortProcessService } from "../ports/service.js";
+import { PortWatch } from "../ports/watch.js";
 import { fakeDocker } from "./fakeDocker.js";
 import type { GraphqlVars, RestResponse, WriteMethod } from "../github/ghApi.js";
 import { readGitHubRemotes, type GitHubTarget } from "../git/githubTarget.js";
@@ -340,7 +342,9 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const dockerFake = Object.assign(fakeDocker(), { missing: false });
   const docker = new DockerService(bus, new DockerCli(() => (dockerFake.missing ? null : dockerFake.bin)));
   // 静かなぶつかりの lsof・brew も偽物（portsFake.lsof に lsof の出力、brewServices に brew services info の JSON を入れる。止めた名前は brewStopped）
-  const portsFake = { lsof: "", brewServices: "[]", brewStopped: [] as string[] };
+  // ポートを使っているプロセスも同じ lsof の出力を読む（ps の出力は ps、作業フォルダの lsof -Fpn の出力は cwds、送ったシグナルは killed、
+  // まだ動いている pid は alive）
+  const portsFake = { lsof: "", brewServices: "[]", brewStopped: [] as string[], ps: "", cwds: "", killed: [] as { pid: number; signal: string }[], alive: new Set<number>() };
   docker.ports.probe = {
     lsof: async () => portsFake.lsof,
     brewServices: async () => portsFake.brewServices,
@@ -349,7 +353,25 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   after(() => docker.close());
   // ワークツリーの実行環境（compose の設定は dockerFake、使用中の番号は portsFake.lsof）
   const worktreeEnvs = new WorktreeEnvService(store, docker);
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const ports = new PortWatch(
+    bus,
+    new PortProcessService({
+      store,
+      selfPid: 1000,
+      stopWaitMs: 50,
+      probe: {
+        lsof: async () => portsFake.lsof,
+        ps: async () => portsFake.ps,
+        cwds: async () => portsFake.cwds,
+        kill: (pid, signal) => void portsFake.killed.push({ pid, signal }),
+        alive: (pid) => portsFake.alive.has(pid),
+      },
+    }),
+    20,
+  );
+  ports.start();
+  after(() => ports.close());
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -361,6 +383,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
 }
 

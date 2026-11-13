@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Route } from "@/app/router";
 
-/** ⌘K の 1 行（押すと route へ移る） */
+/** ⌘K の 1 行（押すと route へ移る。run があれば、移らずにそれを呼ぶ） */
 export interface PaletteItem {
   key: string;
   label: ReactNode;
@@ -13,5 +13,7 @@ export interface PaletteItem {
   /** 名前のすぐ後ろに並べる札（チャットのグループと作業場所） */
   chips?: ReactNode;
   icon: ReactNode;
-  route: Route;
+  route?: Route;
+  /** 移らずにする操作（「ポートを使っているプロセス」を開くなど） */
+  run?: () => void;
 }
