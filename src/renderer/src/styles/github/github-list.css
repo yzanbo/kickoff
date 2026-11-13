@@ -204,6 +204,28 @@
   background: var(--bg-active);
 }
 
+/* 取り直しで新しくなった行（更新された・新しく入った）。少しの間だけアクセントの色で塗って薄れさせる（長さは githubFresh.ts の GITHUB_FRESH_MS と同じ） */
+.github-item.fresh:not(.selected) {
+  animation: github-item-fresh 4s ease-out;
+}
+
+@keyframes github-item-fresh {
+  0%,
+  40% {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .github-item.fresh:not(.selected) {
+    animation: none;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+}
+
 .github-item > .github-state {
   flex: none;
   margin-top: 2px;

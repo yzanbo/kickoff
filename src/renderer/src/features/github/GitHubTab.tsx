@@ -131,7 +131,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
             {!page && !list.error && <p className="muted small github-items-note">読み込み中…</p>}
             {page && page.items.length === 0 && <p className="muted small github-items-note">当てはまる{filter.kind === "pr" ? " PR" : " issue"}はありません。</p>}
             {page?.items.map((item) => (
-              <GitHubItemRow key={item.number} item={item} selected={selected?.number === item.number && selected.kind === item.kind} chats={linked.get(`${item.kind}:${item.number}`)} onOpen={open} />
+              <GitHubItemRow key={item.number} item={item} selected={selected?.number === item.number && selected.kind === item.kind} fresh={list.fresh.has(item.number)} chats={linked.get(`${item.kind}:${item.number}`)} onOpen={open} />
             ))}
             {page?.cursor && (
               <button type="button" className="btn btn-sm github-more" disabled={list.loadingMore} onClick={list.loadMore}>
