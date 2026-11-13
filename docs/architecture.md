@@ -44,7 +44,10 @@
 | AI のブラウザ操作（チャットの AI が Kickoff の埋め込みブラウザのタブを見る・操作する。操作中のタブには「AI 操作中」の印） | 口 `BrowserControl`（`core/browser/`）・ツール `kickoff_browser`（`browserMcpServer`）・実装 `agentBrowser`（`main/browser/`）・IPC `agentBrowser`・印 `useAgentBrowsing` | なし |
 | AI が作る子チャット（チャットの AI が自分の子チャットを作って依頼を送る。毎回聞く / 聞かずに作る / 作らせない） | ツール `kickoff_chat`（`create_child_chat`。`chatMcpServer`・名前は `@shared/chat/aiChildChat` の `AI_CHILD_CHAT_TOOL`）・中身 `AiChildChatTools`（`core/chat/aiChildChat.ts`）・設定 `ai_child_chat`（`AiChildChatMode`: `ask` / `allow` / `off`） | なし |
 | 家系（いちばん上の親チャットから下にぶら下がるチャットの全部。チャットの AI が名前・固定・グループを聞かずに変えられる範囲） | ツール `kickoff_chat` の `list_family_chats` / `update_chat`（名前は `@shared/chat/aiChatEdit` の `AI_LIST_FAMILY_TOOL` / `AI_UPDATE_CHAT_TOOL`・引数 `UpdateChatInput`）・中身 `AiChatEditTools`（`core/chat/aiChatEdit.ts`）・関係の呼び名 `familyRelation`（`core/chat/chatFamily.ts`） | なし |
-| AI が開く（チャットの AI がメモ・家系のチャットを利用者の画面に開く。右の欄 / 別ウィンドウ / 設定どおり） | ツール `kickoff_chat` の `open_memo` / `open_chat`（名前は `@shared/chat/aiOpen` の `AI_OPEN_MEMO_TOOL` / `AI_OPEN_CHAT_TOOL`）・中身 `AiOpenTools`（`core/chat/aiOpen.ts`）・SSE の `open_view`（`OpenViewRequest`・場所 `OpenPlace`: `side` / `window`）・画面の受け口 `useAiOpenRequests`（`renderer/src/app/aiOpenRequests.ts`） | なし |
+| AI が開く（チャットの AI がメモ・家系のチャット・ファイル・差分を利用者の画面に開き、SQL を SQL のタブに入れる。右の欄 / 別ウィンドウ / 設定どおり） | ツール `kickoff_chat` の `open_memo` / `open_chat` / `open_file` / `open_diff` / `open_sql`（`chatOpenTools.ts`。名前は `@shared/chat/aiOpen` の `AI_OPEN_MEMO_TOOL` など）・中身 `AiOpenTools`（`core/chat/aiOpen.ts`）・SSE の `open_view`（`OpenViewRequest`・場所 `OpenPlace`: `side` / `window`）・画面の受け口 `useAiOpenRequests`（`renderer/src/app/aiOpenRequests.ts`） | なし |
+| AI の下書き（チャットの AI が家系のチャットの入力欄の後ろに文を足す。送るのは利用者） | ツール `kickoff_chat` の `add_draft`（`AI_ADD_DRAFT_TOOL`）・SSE の `chat_draft`（`ChatDraftRequest`。親チャットに入れるなら札 `from`）・画面の受け口は同じ `useAiOpenRequests` | なし |
+| AI が読む（チャットの AI が同じプロジェクトのチャットの一覧・会話と使用枠・このプロジェクトのターミナルの出力を読む） | ツール `kickoff_chat` の `list_project_chats` / `read_chat` / `get_usage`（`chatReadTools.ts`・`@shared/chat/aiRead`・中身 `AiChatReadTools`（`core/chat/aiChatRead.ts`）・やり取りへの分け方 `conversationTurns`（`core/chat/conversation.ts`））と `list_terminals` / `read_terminal`（`chatTerminalTools.ts`・`@shared/chat/aiTerminal`・中身 `AiTerminalTools`（`core/chat/aiTerminal.ts`）・読み取りの口 `TerminalControl`（`core/terminal/control.ts`。メインプロセスの `agentTerminals`）） | なし |
+| AI が足す・変える（チャットの AI がこのプロジェクトの定型文に足す・メモの名前を変える／移す） | ツール `kickoff_chat` の `add_snippet` / `move_memo`（`chatProjectTools.ts`・`@shared/chat/aiProject`）・中身 `AiProjectTools`（`core/chat/aiProject.ts`） | なし |
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |
 | タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
 | 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインエージェントとのつながりが見えないのでやめた） |
@@ -460,6 +463,7 @@ src/
     github/            GitHub タブの読み取り（gh api の GraphQL と REST・応答を形にする normalize・一覧の ETag の覚え）
     usage/             使用状況（Claude のプランの枠と、ほかのサービス services/）
     voice/             音声入力の文字起こし（whisper-cli・macOS の音声認識・OpenAI）と、音声モードの読み上げ（OpenAI の声）
+    terminal/          AI に内蔵ターミナルの出力を読ませる口（TerminalControl。中身はメインプロセスが渡す）
     docker/            Docker タブ（一覧・操作・エンジンの状態・見ている間だけの docker events・compose のファイル・ポートの取り合い・ログ・AI の守りが見る様子・「DB で開く」の案。表は持たない）
     memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown・HTML の一覧・読み書き・移動・ゴミ箱・チャットの文から作る・HTML のメモが読むファイルを返す）
     system/            外部コマンド・パス・ログインシェルの環境・期限付きキャッシュ・保存先と名前（appEnv）・開発版のデータの写し
