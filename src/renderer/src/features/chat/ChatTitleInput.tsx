@@ -1,5 +1,5 @@
 import type { Chat } from "@shared/types";
-import { CHAT_TITLE_MAX } from "./chatTitle";
+import { CHAT_TITLE_MAX } from "@shared/types";
 import type { ChatTitleEditor } from "./useChatRename";
 import { InlineName } from "@/ui/InlineName";
 
