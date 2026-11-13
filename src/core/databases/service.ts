@@ -11,6 +11,7 @@ import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SQL_MAX_ROWS, DB_SSH_UNKNOW
 import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
+import { appDataDir } from "../system/appEnv.js";
 import { expandHome, isInside, realPathLoose } from "../system/paths.js";
 import type { DbWorkerClient } from "./client.js";
 import type { DbTarget, DbTargetCommands } from "./protocol.js";
@@ -48,7 +49,7 @@ interface Options {
   client: DbWorkerClient;
   /** パスワードの暗号化・復号（キーチェーンで開けなければ、その場で入れた値をメモリに持つ） */
   vault: DbSecretVault;
-  /** Kickoff 自身の保存先（この中のファイルは登録させない） */
+  /** Kickoff 自身の保存先（この中のファイルは登録させない。製品版・開発版の保存先もいつも断る） */
   dataDir: string;
   /** AI の SQL の結果を書き出す CSV の置き場所（省けば OS の一時フォルダの <保存先の名前>-db。テストは一時フォルダの中） */
   exportRoot?: string;
@@ -126,9 +127,13 @@ export class DatabaseService {
     return [...this.openCounts.keys()].filter((id) => this.opts.store.dbConnections.get(id)?.project_id === projectId);
   }
 
-  /** Kickoff 自身のデータフォルダの中のファイルか（リンクを解いた実体で比べる） */
+  /**
+   * Kickoff のデータフォルダの中のファイルか（リンクを解いた実体で比べる）。動いているアプリの保存先に加えて、製品版と開発版の両方の保存先も断る
+   * （開発版から製品版の kickoff.db を登録して書き換える・AI に読ませることがないように）
+   */
   private insideKickoffData(file: string) {
-    return isInside(realPathLoose(this.opts.dataDir), realPathLoose(file));
+    const real = realPathLoose(file);
+    return [this.opts.dataDir, appDataDir("production"), appDataDir("development")].some((dir) => isInside(realPathLoose(dir), real));
   }
 
   /**
