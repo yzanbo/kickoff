@@ -19,6 +19,8 @@ import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
 import { chatContextNote, chatContextOf } from "./chatContext.js";
 import { createAiChatEditTools } from "./aiChatEdit.js";
 import { createAiOpenTools } from "./aiOpen.js";
+import { createAiChatReadTools } from "./aiChatRead.js";
+import type { UsageMonitor } from "../usage/planUsage.js";
 import { canCreateChildChat, createAiChildChatTools, type StartedChild } from "./aiChildChat.js";
 import type { ChildChatInput } from "./children.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
@@ -49,6 +51,8 @@ export interface ExecutionDeps {
   docker?: DockerService;
   /** ワークツリーの実行環境（作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す。なければ渡さない） */
   worktreeEnvs?: WorktreeEnvService;
+  /** Claude のプランの使用枠（AI の get_usage が読む。なければ使えないと返す） */
+  usage?: UsageMonitor;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -199,6 +203,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     chatEdit: createAiChatEditTools(deps.store, chat.id),
     // このプロジェクトのメモ・同じ家系のチャットを画面に開くツール（どのチャットにも。画面に頼む口（バス）があるときだけ）
     open: deps.bus ? createAiOpenTools({ store: deps.store, publish: (e) => deps.bus?.publish(e), memoDirOf: deps.memoDirOf }, chat.id) : null,
+    // 同じプロジェクトのチャットの一覧・会話と使用枠を読むツール（どのチャットにも）
+    chatRead: createAiChatReadTools({ store: deps.store, approvals: deps.approvals, usage: deps.usage }, chat.id),
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く

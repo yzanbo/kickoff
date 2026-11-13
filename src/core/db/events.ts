@@ -77,6 +77,24 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
     list(chatId: number): ChatEvent[] {
       return (db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? ORDER BY id`).all(chatId) as unknown as EventRow[]).map(toEvent);
     },
+    /**
+     * 会話を読む分の記録（自分の発言・AI の文・失敗・ツールの呼び出し）。AI がほかのチャットの会話を読むツール（read_chat）が使う。
+     * ツールの呼び出しは数えるだけなので、引数（書き込む中身など大きいことがある）は読まずに空にする
+     */
+    conversation(chatId: number): ChatEvent[] {
+      return (
+        db
+          .prepare(
+            `SELECT id, chat_id, type,
+               CASE WHEN type = 'tool_use'
+                 THEN json_patch(json_object('id', json_extract(data, '$.id'), 'name', json_extract(data, '$.name'), 'input', json('{}')), json_object('parent', json_extract(data, '$.parent')))
+                 ELSE data END AS data,
+               created_at
+             FROM chat_events WHERE chat_id = ? AND type IN ('user', 'text', 'error', 'tool_use') ORDER BY id`,
+          )
+          .all(chatId) as unknown as EventRow[]
+      ).map(toEvent);
+    },
     /** いちばん新しい自分の発言（user）の記録の id（なければ null） */
     latestUserId(chatId: number): number | null {
       const row = db.prepare("SELECT MAX(id) AS id FROM chat_events WHERE chat_id = ? AND type = 'user'").get(chatId) as { id: number | null };
