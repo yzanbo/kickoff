@@ -11,6 +11,7 @@ import { AUTH, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import { gitRepo } from "../testing/gitRepo.js";
 import { until } from "../testing/testCore.js";
+import { appDataDir } from "../system/appEnv.js";
 
 /** プロジェクトのフォルダに SQLite のファイルを作る（users と、users を指す posts） */
 function makeSqlite(dir: string, name = "app.db") {
@@ -106,6 +107,12 @@ test("DB の接続: 種類ごとに要る項目・Kickoff 自身のデータは�
   const link = path.join(tempDir(), "link");
   fs.symlinkSync(dbFake.dataDir, link);
   assert.equal((await call("POST", base, sqliteBody({ file_path: path.join(link, "kickoff.db") }))).status, 400);
+  // 動いているアプリのほか、製品版と開発版の両方の保存先も断る（開発版から製品版の DB を登録させない）
+  for (const env of ["production", "development"] as const) {
+    const res = await call("POST", base, sqliteBody({ file_path: path.join(appDataDir(env), "kickoff.db") }));
+    assert.equal(res.status, 400);
+    assert.match(res.body.error, /Kickoff 自身のデータ/);
+  }
 
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const theirs = store.dbConnections.create(other.id, { ...sqliteBody(), password: "p" });
