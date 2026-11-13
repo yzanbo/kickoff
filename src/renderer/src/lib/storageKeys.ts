@@ -463,6 +463,9 @@ export const githubMergeMethod = defineSettingFamily("kickoff:github-merge-metho
 export const githubReviewDraft = defineSettingFamily("kickoff:github-review:", json(parseReviewDraft, EMPTY_REVIEW_DRAFT, isEmptyReviewDraft), { ids: true });
 /** GitHub タブの左の一覧の幅（どのプロジェクトでも同じ） */
 export const GITHUB_LIST_WIDTH = defineSetting("kickoff:github-list-width", number(380));
+/** GitHub タブの PR の「変更」の左のファイルの木を閉じているか（初めは出す）と、その幅（どのプロジェクトでも同じ） */
+export const GITHUB_FILES_TREE_HIDDEN = defineSetting("kickoff:github-files-tree-hidden", flag());
+export const GITHUB_FILES_WIDTH = defineSetting("kickoff:github-files-width", number(240));
 /** CI のタブで開いている実行（プロジェクトごと。「43377548818」、ジョブも指すなら「43377548818:12345」） */
 export const ciSelected = defineSettingFamily("kickoff:ci-selected:", text(), { ids: true });
 /** CI のタブの左の一覧の幅（どのプロジェクトでも同じ） */

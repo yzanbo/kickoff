@@ -122,7 +122,7 @@ test("eventText: 閉じ方・マージ・レビュー依頼・知らない種類
 test("toCheck・checksStateOf・toPullFile", () => {
   assert.deepEqual(
     toCheck({ __typename: "CheckRun", databaseId: 31, name: "test", status: "IN_PROGRESS", conclusion: null, detailsUrl: "d", title: null, checkSuite: { workflowRun: { databaseId: 7, workflow: { name: "CI" } } } }),
-    { name: "test", workflow: "CI", state: "pending", description: null, url: "d", run_id: 7, job_id: 31 },
+    { name: "test", workflow: "CI", state: "pending", description: null, url: "d", run_id: 7, job_id: 31, started_at: null, completed_at: null },
   );
   // 外の CI の check run（workflowRun がない）は、ログを開けないので ID を持たない
   assert.deepEqual(

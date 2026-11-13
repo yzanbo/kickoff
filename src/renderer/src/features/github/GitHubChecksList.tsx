@@ -2,6 +2,7 @@ import { Check, CircleDashed, CircleMinus, ExternalLink, ScrollText, X, type Luc
 import type { GitHubCheck } from "@shared/types";
 import { IconButton } from "@/ui/IconButton";
 import { openCiRun } from "@/features/ci/ciLinks";
+import { checkDuration } from "./githubChecks";
 
 /** チェックの状態の印と名前（GitHub の conclusion を小文字にしたもの） */
 function stateOf(state: string): { icon: LucideIcon; tone: "success" | "failure" | "pending" | "neutral"; label: string } {
@@ -28,7 +29,7 @@ function stateOf(state: string): { icon: LucideIcon; tone: "success" | "failure"
 const ORDER = { failure: 0, pending: 1, success: 2, neutral: 3 };
 
 /**
- * PR のチェックの一覧（CI の成否と GitHub の詳細へのリンク）。GitHub Actions のチェックには「ログを開く」（CI のタブでその実行・ジョブを開く。
+ * PR のチェックの一覧（CI の成否・所要時間と GitHub の詳細へのリンク）。GitHub Actions のチェックには「ログを開く」（CI のタブでその実行・ジョブを開く。
  * ログを読む・AI に渡す・やり直すは CI のタブで）
  */
 export function GitHubChecksList({ projectId, checks }: { projectId: number; checks: GitHubCheck[] }) {
@@ -44,6 +45,11 @@ export function GitHubChecksList({ projectId, checks }: { projectId: number; che
             {c.name}
           </span>
           {c.description && <span className="github-check-desc muted small">{c.description}</span>}
+          {checkDuration(c) && (
+            <span className="github-check-time muted small" data-tip={c.completed_at ? "所要時間" : "始まってから今まで"}>
+              {checkDuration(c)}
+            </span>
+          )}
           {c.run_id !== null && (
             <IconButton icon={ScrollText} size={13} className="github-check-log" label="ログを開く" title="CI のタブでこの実行のログを開く" onClick={() => openCiRun(projectId, c.run_id!, c.job_id)} />
           )}

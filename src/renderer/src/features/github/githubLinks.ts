@@ -1,6 +1,7 @@
-// GitHub の本文の中のリンクを Kickoff の中で開くかの見分けと、GitHub のページの URL（純粋関数）
+// GitHub の本文の中のリンクを Kickoff の中で開くかの見分け・本文の画像を読む先と、GitHub のページの URL（純粋関数）
 import { GITHUB_DEFAULT_HOST, githubWebOrigin, normalizeGitHubHost } from "@shared/github/host";
 import { githubSearchQuery } from "@shared/github/searchQuery";
+import { isFileOfRepo, repoFileOfUrl } from "@shared/github/repoImage";
 import type { GitHubLink, GitHubListFilter } from "@shared/types";
 
 /** issue・PR の URL（https://ホスト/持ち主/名前/issues|pull/番号。後ろの /files・?…・#… は問わない） */
@@ -28,4 +29,20 @@ export const githubRepoUrl = (host: string, repo: string) => `${githubWebOrigin(
 export function githubListUrl(host: string, repo: string, filter: GitHubListFilter): string {
   const q = githubSearchQuery(repo, filter).replace(/^repo:\S+\s*/, "");
   return `${githubRepoUrl(host, repo)}/${filter.kind === "pr" ? "pulls" : "issues"}?q=${encodeURIComponent(q)}`;
+}
+
+/** 本文を描くときの、いま見ている issue・PR のホスト・リポジトリ（「持ち主/名前」。分からなければ null）・プロジェクト */
+export interface GitHubBodyPlace {
+  host: string;
+  repo: string | null;
+  projectId: number | null;
+}
+
+/**
+ * 本文の画像を読む先: 連携先のリポジトリの中のファイルを指すもの（非公開のリポジトリは鍵がないと読めない）はコアの口
+ * （GET /api/projects/:id/github/image。コアが gh api で取る）、ほかはそのまま（貼った画像は署名つきの URL で鍵なしで読める）
+ */
+export function githubImageSource(place: GitHubBodyPlace, url: string): string {
+  const file = place.repo && place.projectId !== null ? repoFileOfUrl(url, place.host) : null;
+  return file && place.repo && isFileOfRepo(file, place.repo) ? `/api/projects/${place.projectId}/github/image?url=${encodeURIComponent(url)}` : url;
 }

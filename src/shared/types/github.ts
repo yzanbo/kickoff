@@ -31,11 +31,11 @@ export interface GitHubListFilter {
   state: GitHubStateFilter;
   mine: GitHubMineFilter | null;
   labels: string[];
-  /** 担当のログイン名 */
-  assignee: string | null;
-  /** マイルストーンの名前 */
-  milestone: string | null;
-  /** 検索の文字（GitHub の検索の書き方も使える: is:draft・author:… など） */
+  /** 担当のログイン名（いくつか選べば、どれかが担当のもの） */
+  assignees: string[];
+  /** マイルストーンの名前（いくつか選べば、どれかに入っているもの） */
+  milestones: string[];
+  /** 札にならない残りの検索の文字（GitHub の検索の書き方も使える: is:draft・author:… など） */
   text: string;
   sort: GitHubSort;
 }
@@ -164,6 +164,17 @@ export interface GitHubCheck {
   /** GitHub Actions の実行とジョブの ID（Kickoff の中でログを開く。外の CI は null） */
   run_id: number | null;
   job_id: number | null;
+  /** 始まった・終わった時刻（ISO。所要時間に使う。外の CI の状態・まだ始まっていなければ null） */
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+/** issue を閉じる PR（本文の「Closes #n」・手で結び付けたもの） */
+export interface GitHubLinkedPull {
+  number: number;
+  title: string;
+  state: GitHubItemState;
+  is_draft: boolean;
 }
 
 /** issue の中身 */
@@ -175,6 +186,8 @@ export interface GitHubIssueDetail {
   timeline: GitHubTimelineEntry[];
   /** 出来事が多くて途中までしか読めなかった */
   timeline_truncated: boolean;
+  /** issue を閉じる PR（PR は空） */
+  linked_pulls: GitHubLinkedPull[];
   /** 自分にできること */
   viewer: GitHubViewerAbilities;
   fetched_at: string;
@@ -194,6 +207,8 @@ export interface GitHubPullDetail extends GitHubIssueDetail {
   merge_methods: GitHubMergeMethod[];
   /** 自分がマージできる（リポジトリへの書き込みの権限がある） */
   can_merge: boolean;
+  /** 承認の数（人ごとのいちばん新しいレビューが承認のもの） */
+  approvals: number;
   review_threads: GitHubReviewThread[];
   checks: GitHubCheck[];
 }
@@ -241,6 +256,17 @@ export const GITHUB_MERGE_METHOD_LABELS: Record<GitHubMergeMethod, string> = { m
  */
 export const GITHUB_MERGE_STATES = ["clean", "behind", "blocked", "dirty", "unstable", "has_hooks", "draft", "unknown"] as const;
 export type GitHubMergeState = (typeof GITHUB_MERGE_STATES)[number];
+/** 中身の見出しに出す、マージできるかの文 */
+export const GITHUB_MERGE_STATE_LABELS: Record<GitHubMergeState, string> = {
+  clean: "マージできる",
+  behind: "base より古い",
+  blocked: "保護ルールで止まっている",
+  dirty: "衝突あり",
+  unstable: "必須でないチェックが落ちている",
+  has_hooks: "マージできる（フックあり）",
+  draft: "下書き",
+  unknown: "マージできるか確かめ中",
+};
 
 /** レビューの送り方 */
 export const GITHUB_REVIEW_EVENTS = ["comment", "approve", "request_changes"] as const;

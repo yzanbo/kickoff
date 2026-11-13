@@ -1,5 +1,5 @@
-import { createContext, useContext } from "react";
-import { GitCommitHorizontal } from "lucide-react";
+import { createContext, useContext, useState } from "react";
+import { ChevronDown, ChevronRight, GitCommitHorizontal } from "lucide-react";
 import type { GitHubReviewThread, GitHubTimelineEntry, GitHubUser } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { agoText, formatFullStamp } from "@/lib/time";
@@ -39,15 +39,32 @@ export const ThreadHandoffContext = createContext<((thread: GitHubReviewThread) 
 
 /**
  * 行のスレッド 1 つ（ファイルと行・解決済み・古い差分の印・差分の終わりの数行・コメント・返信と解決（PR の中身の中だけ））。
+ * 解決済みのものは畳んでおき（見出しとコメントの数だけ）、見出しの ▸ で開く。解決を戻した・解決したら、また既定の開き方に戻す（仕様書 8）。
  * inline は PR の「変更」の差分の行の下に出すとき（ファイルと差分の数行は差分そのものが見えているので出さない）
  */
 export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewThread; inline?: boolean }) {
   const line = thread.line ?? thread.original_line;
   const handoff = useContext(ThreadHandoffContext);
+  // 手で開け閉めした覚え（解決済みかが変わったら捨てる）
+  const [manual, setManual] = useState<{ resolved: boolean; open: boolean } | null>(null);
+  const open = manual && manual.resolved === thread.resolved ? manual.open : !thread.resolved;
+  const Chevron = open ? ChevronDown : ChevronRight;
+  const toggle = thread.resolved && (
+    <button
+      type="button"
+      className="github-thread-toggle"
+      aria-expanded={open}
+      aria-label={open ? "スレッドを畳む" : "スレッドを開く"}
+      onClick={() => setManual({ resolved: thread.resolved, open: !open })}
+    >
+      <Chevron size={13} aria-hidden />
+    </button>
+  );
   const hunk = inline ? "" : (thread.comments[0]?.diff_hunk.split("\n").slice(-4).join("\n") ?? "");
   const badges = (
     <>
       {thread.resolved && <span className="github-thread-badge">解決済み</span>}
+      {!open && <span className="github-thread-count muted">コメント {thread.comments.length} 件</span>}
       {thread.outdated && <span className="github-thread-badge">古い差分</span>}
       {handoff && !thread.resolved && (
         <button
@@ -62,9 +79,10 @@ export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewT
     </>
   );
   return (
-    <div className={cx("github-thread", thread.resolved && "resolved", inline && "inline")}>
+    <div className={cx("github-thread", thread.resolved && "resolved", inline && "inline", !open && "collapsed")}>
       {!inline ? (
         <div className="github-thread-head">
+          {toggle}
           <span className="github-thread-path">
             {thread.path}
             {line !== null && `:${line}`}
@@ -72,10 +90,15 @@ export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewT
           {badges}
         </div>
       ) : (
-        (thread.resolved || thread.outdated || handoff) && <div className="github-thread-head">{badges}</div>
+        (thread.resolved || thread.outdated || handoff) && (
+          <div className="github-thread-head">
+            {toggle}
+            {badges}
+          </div>
+        )
       )}
-      {hunk && <pre className="github-thread-hunk">{hunk}</pre>}
-      {thread.comments.map((c) => (
+      {open && hunk && <pre className="github-thread-hunk">{hunk}</pre>}
+      {open && thread.comments.map((c) => (
         <div key={c.id} className="github-thread-comment">
           <div className="github-entry-head">
             <GitHubAuthor user={c.author} />
@@ -84,7 +107,7 @@ export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewT
           <GitHubHtml html={c.body_html} empty="" />
         </div>
       ))}
-      <GitHubThreadActions thread={thread} />
+      {open && <GitHubThreadActions thread={thread} />}
     </div>
   );
 }

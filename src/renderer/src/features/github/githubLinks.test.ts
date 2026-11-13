@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { defaultGitHubFilter } from "@shared/github/searchQuery";
-import { githubItemRef, githubListUrl, githubRepoUrl } from "./githubLinks";
+import { githubImageSource, githubItemRef, githubListUrl, githubRepoUrl } from "./githubLinks";
 
 test("githubItemRef: 同じリポジトリの issue・PR は種類と番号（後ろの /files・#… は問わない。持ち主/名前の大文字・小文字は区別しない）", () => {
   assert.deepEqual(githubItemRef("https://github.com/o/r/issues/12", "o/r"), { kind: "issue", number: 12 });
@@ -31,4 +31,14 @@ test("githubRepoUrl・githubListUrl: リポジトリのページと、いまの�
   assert.equal(githubListUrl("github.com", "o/r", defaultGitHubFilter("issue")), `https://github.com/o/r/issues?q=${encodeURIComponent("is:issue is:open sort:updated-desc")}`);
   const pr = { ...defaultGitHubFilter("pr"), state: "merged" as const, labels: ["bug fix"], text: "login" };
   assert.equal(githubListUrl("github.com", "o/r", pr), `https://github.com/o/r/pulls?q=${encodeURIComponent('is:pr is:merged label:"bug fix" sort:updated-desc login')}`);
+});
+
+test("githubImageSource: 連携先のリポジトリのファイルの画像だけコアの口から読む", () => {
+  const place = { host: "github.com", repo: "o/r", projectId: 3 };
+  const raw = "https://github.com/O/r/raw/main/a.png";
+  assert.equal(githubImageSource(place, raw), `/api/projects/3/github/image?url=${encodeURIComponent(raw)}`);
+  assert.equal(githubImageSource(place, "https://github.com/x/y/raw/main/a.png"), "https://github.com/x/y/raw/main/a.png");
+  assert.equal(githubImageSource(place, "https://private-user-images.githubusercontent.com/1/a.png?jwt=e"), "https://private-user-images.githubusercontent.com/1/a.png?jwt=e");
+  assert.equal(githubImageSource({ ...place, projectId: null }, raw), raw);
+  assert.equal(githubImageSource({ ...place, repo: null }, raw), raw);
 });

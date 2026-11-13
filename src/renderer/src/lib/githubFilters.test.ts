@@ -15,6 +15,15 @@ test("parseGitHubFilters: 壊れた項目は既定に戻し、種類は issue / 
   assert.equal(parseGitHubFilters({ kind: "discussion" })?.kind, "issue");
 });
 
+test("parseGitHubFilters: 前の形の 1 つだけの担当・マイルストーンも読む", () => {
+  const f = parseGitHubFilters({ kind: "issue", issue: { assignee: "alice", milestone: " v1 " } });
+  assert.deepEqual(f?.issue.assignees, ["alice"]);
+  assert.deepEqual(f?.issue.milestones, ["v1"]);
+  const g = parseGitHubFilters({ kind: "issue", issue: { assignees: ["a", "", 1, "b"], milestones: [] } });
+  assert.deepEqual(g?.issue.assignees, ["a", "b"]);
+  assert.deepEqual(g?.issue.milestones, []);
+});
+
 test("activeFilterCount: 既定から変えた絞り込みの数（並べ方は数えない）", () => {
   assert.equal(activeFilterCount(DEFAULT_GITHUB_FILTERS.issue), 0);
   assert.equal(activeFilterCount({ ...DEFAULT_GITHUB_FILTERS.issue, sort: "created" }), 0);

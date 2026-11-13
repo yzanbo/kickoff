@@ -8,6 +8,7 @@ import { useDragSize } from "@/hooks/useDragSize";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
 import { useNarrowSplit } from "@/hooks/useNarrowSplit";
 import { useSetting } from "@/hooks/useSetting";
+import { useWhenVisible } from "@/hooks/useWhenVisible";
 import { cx } from "@/lib/cx";
 import { GITHUB_LIST_WIDTH, githubFilters, githubSelected } from "@/lib/storageKeys";
 import { useChats } from "@/stores/chats";
@@ -72,6 +73,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const change = (patch: Partial<GitHubListFilter>) => setFilters({ ...filters, [filter.kind]: { ...filter, ...patch } });
   const open = useCallback((item: GitHubItem) => setSelectedText(`${item.kind}:${item.number}`), [setSelectedText]);
   const page = list.page;
+  const moreRef = useWhenVisible<HTMLButtonElement>(list.loadMore, !!page?.cursor && !list.loadingMore && !list.loading, page?.items.length);
   // この一覧のリポジトリの issue・PR に結び付いたチャット（「種類:番号」→ 最近動いた順）
   const { chats } = useChats({ projectId });
   const linked = useMemo(() => {
@@ -124,9 +126,10 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
             {page?.items.map((item) => (
               <GitHubItemRow key={item.number} item={item} selected={selected?.number === item.number && selected.kind === item.kind} fresh={list.fresh.has(item.number)} chats={linked.get(`${item.kind}:${item.number}`)} onOpen={open} />
             ))}
+            {/* 下まで送ったら続きを読む（見えたら読む。押しても読める） */}
             {page?.cursor && (
-              <button type="button" className="btn btn-sm github-more" disabled={list.loadingMore} onClick={list.loadMore}>
-                {list.loadingMore ? "読み込み中…" : `さらに読む（${page.items.length} / ${page.total.toLocaleString()} 件）`}
+              <button ref={moreRef} type="button" className="btn btn-sm github-more" disabled={list.loadingMore} onClick={list.loadMore}>
+                {list.loadingMore ? "読み込み中…" : `続きを読む（${page.items.length} / ${page.total.toLocaleString()} 件）`}
               </button>
             )}
           </div>

@@ -141,3 +141,51 @@
   border-color: var(--accent);
   color: var(--text);
 }
+
+/* PR のマージできるか（衝突・保護ルール）と承認の数、issue を閉じる PR（GitHubDetailBadges） */
+.github-merge-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.github-merge-state-ok {
+  color: var(--ok);
+}
+
+.github-merge-state-warn {
+  color: var(--warn);
+}
+
+.github-merge-state-wait {
+  color: var(--muted);
+}
+
+.github-approvals.has {
+  color: var(--ok);
+}
+
+.github-linked-pulls {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.github-linked-pull {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.github-linked-pull:hover {
+  background: var(--bg-hover);
+}

@@ -34,7 +34,7 @@ export function GitHubChecksMark({ state }: { state: GitHubChecksState | null })
 export const REVIEW_DECISION_LABELS: Record<GitHubReviewDecision, string> = { approved: "承認済み", changes_requested: "変更の依頼あり", review_required: "レビュー待ち" };
 
 /**
- * 一覧の 1 行（状態の印・題名とラベル・番号・作った人・更新・コメントの数・PR は CI とレビュー）。
+ * 一覧の 1 行（状態の印・題名とラベル・番号・作った人・更新・担当・コメントの数・PR は CI とレビュー）。
  * 結び付いたチャットがあれば（chats。最近動いた順）、右上に印を出し、押すといちばん最近動いたチャットを開く。
  * fresh は取り直しで新しくなった行（少しの間だけ色を付ける）
  */
@@ -64,6 +64,7 @@ export const GitHubItemRow = memo(function GitHubItemRow({
           <span>#{item.number}</span>
           {item.author && <span>{item.author.login}</span>}
           <span>更新 {agoText(item.updated_at)}</span>
+          {item.assignees.length > 0 && <span className="github-item-assignees">担当 {item.assignees.map((a) => a.login).join("、")}</span>}
           {item.review_decision && <span className={`github-review github-review-${item.review_decision}`}>{REVIEW_DECISION_LABELS[item.review_decision]}</span>}
           <GitHubChecksMark state={item.checks} />
           {item.comments > 0 && (
