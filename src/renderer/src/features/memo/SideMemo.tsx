@@ -2,13 +2,27 @@ import { useState } from "react";
 import { useMemoList } from "@/stores/memos";
 import { confirmLeaveMemo } from "./memoGuards";
 import { MemoView } from "./MemoView";
+import { openInMemoTab } from "./openMemoFrom";
 
 /**
  * チャットの画面の右の欄・別ウィンドウで開いたメモ（メモのタブの右と同じ。⌘S で保存）。
  * chatId は開いたチャット（見出しのボタン・本文の右クリックで、メモをそのチャットの入力欄に追加する）。
  * 題名で名前を変えた・HTML のメモのリンクで別のメモへ移ったら、そのパスで開き直す（onRenamed で、開いている側（タブ・別ウィンドウの URL）にも知らせる）
  */
-export function SideMemo({ projectId, path: opened, chatId, onRenamed }: { projectId: number; path: string; chatId: number | null; onRenamed?: (path: string) => void }) {
+export function SideMemo({
+  projectId,
+  path: opened,
+  chatId,
+  onRenamed,
+  memoTabButton = false,
+}: {
+  projectId: number;
+  path: string;
+  chatId: number | null;
+  onRenamed?: (path: string) => void;
+  /** 見出しに「メモのタブで開く」を出す（DB クライアントの手順メモのタブ） */
+  memoTabButton?: boolean;
+}) {
   const list = useMemoList(projectId);
   const [path, setPath] = useState(opened);
   if (!list.data) return <div className="page muted">{list.error ?? "読み込み中…"}</div>;
@@ -20,6 +34,7 @@ export function SideMemo({ projectId, path: opened, chatId, onRenamed }: { proje
         path={path}
         dir={list.data.dir}
         attachTo={chatId}
+        onOpenInMemoTab={memoTabButton ? () => openInMemoTab(projectId, path) : undefined}
         onRenamed={(to) => {
           setPath(to);
           onRenamed?.(to);

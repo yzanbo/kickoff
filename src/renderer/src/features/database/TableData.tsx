@@ -1,4 +1,4 @@
-import { Download, PanelRight } from "lucide-react";
+import { PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { previewRowsSql } from "@shared/database/dbFilter";
 import { errorMessage } from "@shared/errors";
@@ -6,16 +6,15 @@ import { DB_EDITS_MAX, DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, typ
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import type { DbTableTab } from "@/lib/dbClientTabs";
-import { downloadText } from "@/lib/download";
 import { CopyButton } from "@/ui/CopyButton";
 import { ErrorText } from "@/ui/ErrorText";
-import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { CsvImportDialog } from "./CsvImportDialog";
 import { DataGrid, type DataGridEdit } from "./DataGrid";
 import { useDbClient } from "./dbClientContext";
 import { durationLabel } from "./dbFormat";
-import { columnKeysOf, DB_EXPORT_FORMATS, DB_EXPORT_TYPES, exportRows, hasLongValue, hasUnreadImage, type DbExportFormat } from "./dbRowTools";
+import { columnKeysOf, hasLongValue, hasUnreadImage } from "./dbRowTools";
+import { RowsExport } from "./RowsExport";
 import { TableCellMenu } from "./TableCellMenu";
 import { TableEditBar } from "./TableEditBar";
 import { addInserts, displayRows, setCell, setInsertCell } from "./tableEdits";
@@ -66,7 +65,6 @@ export function TableData({
   const [pickedRow, setPickedRow] = useState<number | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const menu = useContextMenu<{ row: number; col: number }>();
-  const exportMenu = useContextMenu();
   const [importing, setImporting] = useState(false);
   const [pickRequest, setPickRequest] = useState<{ row: number; col: number } | null>(null);
   const filterKey = JSON.stringify(tab.filter ?? null);
@@ -120,12 +118,11 @@ export function TableData({
   /** 絞り込みに条件を足す（WHERE の文で絞っていたら、条件に切り替える） */
   const addFilter = (f: DbFilter) => onFilter({ filters: [...(tab.filter?.where ? [] : (tab.filter?.filters ?? [])), f], where: null });
   const openLink = (link: RowLink) => client.openTable(connection, linkPath(connection, tab.path, link.schema), link.table, "table", { filters: link.filters, where: null });
-  // 書き出す前に、頭だけの長い文字の残りを読む
-  const exportAs = async (format: DbExportFormat) => {
-    if (!result) return;
+  // 書き出す・コピーする前に、頭だけの長い文字の残りを読む
+  const exportRowsOf = async () => {
+    if (!result) return [];
     const long = result.rows.flatMap((r, i) => (hasLongValue(r) ? [i] : []));
-    const rows = long.length > 0 ? ((await data.fill(long, keyColumns)) ?? result.rows) : result.rows;
-    downloadText(`${tab.name}.${format}`, exportRows(result.columns, rows, format), DB_EXPORT_TYPES[format]);
+    return long.length > 0 ? ((await data.fill(long, keyColumns)) ?? result.rows) : result.rows;
   };
   const quote = connection.engine === "mysql" ? (n: string) => `\`${n.replaceAll("`", "``")}\`` : (n: string) => `"${n.replaceAll('"', '""')}"`;
   const sql = previewRowsSql(tab.name, data.filter, data.sort, quote, DB_TABLE_PAGE_ROWS);
@@ -199,19 +196,8 @@ export function TableData({
         <button type="button" className={cx("btn btn-sm", showDetail && "active")} aria-pressed={showDetail} onClick={() => setShowDetail((v) => !v)} data-tip="選んだセルの行を右に縦に並べる">
           <PanelRight size={12} aria-hidden /> 行の詳細
         </button>
-        <button type="button" className="btn btn-sm" disabled={!result || shown === 0} onClick={(e) => exportMenu.toggle(e, undefined)} aria-haspopup="menu" data-tip="読み込んだ行をファイルに書き出す">
-          <Download size={12} aria-hidden /> 書き出す
-        </button>
+        <RowsExport fileName={tab.name} count={shown} columns={result?.columns ?? []} rows={exportRowsOf} />
       </div>
-      {exportMenu.menu && (
-        <PopupMenu at={exportMenu.menu.at} label="書き出す形" onClose={exportMenu.close}>
-          {DB_EXPORT_FORMATS.map((f) => (
-            <MenuItem key={f} onSelect={() => void exportAs(f)}>
-              {f.toUpperCase()}（読み込んだ {shown.toLocaleString()} 行）
-            </MenuItem>
-          ))}
-        </PopupMenu>
-      )}
       {menu.menu && result && display && (
         <TableCellMenu
           at={menu.menu.at}
