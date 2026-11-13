@@ -78,3 +78,30 @@ export function keepSelectionOnClick(e: MouseEvent) {
     e.stopPropagation();
   }
 }
+
+/** 返答の中で、文でなくても中身として右クリックを受けるもの（コード・表・画像・図・リンク・ボタン・組み立てた文のまとまり） */
+const REPLY_CONTENT_SELECTOR = "pre, code, table, img, svg, video, a, button, .mermaid, [data-quote-text]";
+/** 文の行の箱からこれだけ外れていても、文の上とみなす（px） */
+const TEXT_HIT_SLACK = 2;
+
+/**
+ * 右クリックが AI の返答の行の空いた所（文の行の右・段落の間・行の上下の余白）か。返答の行は横幅いっぱいなので、
+ * 会話の横幅を広げると、見た目は何もないところの大半が返答の行になり、チャットの画面の表示のメニューを開けなかった。
+ * container の中で文を選んでいるときは選んだ文のメニューに任せる（false）
+ */
+export function onReplyBlank(e: MouseEvent, container: Element): boolean {
+  const target = elementOf(e.target as Node | null);
+  const reply = target?.closest(".assistant");
+  if (!target || !reply || !container.contains(reply) || selectionWithin(container, { quotable: true })) return false;
+  if (target.closest(REPLY_CONTENT_SELECTOR)) return false;
+  // 押した要素の中の文字の行の箱のどれかに入っていれば文の上（段落の右の空きは段落の要素が受けるので、要素では決めない）
+  const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.textContent?.trim()) continue;
+    range.selectNodeContents(node);
+    for (const r of range.getClientRects())
+      if (e.clientX >= r.left - TEXT_HIT_SLACK && e.clientX <= r.right + TEXT_HIT_SLACK && e.clientY >= r.top - TEXT_HIT_SLACK && e.clientY <= r.bottom + TEXT_HIT_SLACK) return false;
+  }
+  return true;
+}
