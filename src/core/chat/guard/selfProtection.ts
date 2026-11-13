@@ -19,9 +19,9 @@ export interface SelfInfo {
   appBundle?: string;
 }
 
-/** いま動いているプロセスから、自分の情報を作る */
-export function currentSelf(dataDir: string, port: number): SelfInfo {
-  const bundle = process.execPath.match(/^(.+?\.app)\/Contents\/MacOS\//)?.[1];
+/** いま動いているプロセスから、自分の情報を作る（appBundleDir は OS の口の appBundleOf で取ったアプリの本体。末尾の / はあってもなくてもよい） */
+export function currentSelf(dataDir: string, port: number, appBundleDir: string | null): SelfInfo {
+  const bundle = appBundleDir?.replace(/\/+$/, "");
   return {
     pid: process.pid,
     dataDir: path.resolve(dataDir),

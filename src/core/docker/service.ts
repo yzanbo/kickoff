@@ -21,6 +21,7 @@ import { DOCKER_LOG_TAIL, readLog } from "./logs.js";
 import { PS_FORMAT, parsePs, starterOf, type RawContainer } from "./parse.js";
 import { allocatedPortOf, conflictLabel, hostPortsOf, portConflictsOf } from "./portConflict.js";
 import { DockerPorts } from "./ports.js";
+import type { HostPlatform } from "../platform/types.js";
 
 /** 失敗の文に残す標準エラーの行数 */
 const FAILURE_LINES = 8;
@@ -55,12 +56,15 @@ export class DockerService {
   private readonly reserved = new Set<string>();
   private readonly failures = new Map<string, DockerFailure>();
   /** 静かなぶつかりを調べる口（テストでは probe を差し替える） */
-  readonly ports = new DockerPorts();
+  readonly ports: DockerPorts;
 
   constructor(
     private readonly bus: Bus,
+    /** OS の口のうち、待っているソケット（静かなぶつかり）とアプリを開く（エンジンを起こす） */
+    readonly host: Pick<HostPlatform, "listeningSockets" | "openApp">,
     cli = new DockerCli(),
   ) {
+    this.ports = new DockerPorts(host.listeningSockets);
     this.cli = cli;
     this.configs = new ComposeConfigCache(cli);
     this.events = new DockerEvents(cli, (projectIds) => projectIds.forEach((id) => this.changed(id)));

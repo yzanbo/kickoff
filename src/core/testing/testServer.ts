@@ -21,13 +21,15 @@ import { DockerCli } from "../docker/cli.js";
 import { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { PortProcessService } from "../ports/service.js";
 import { PortWatch } from "../ports/watch.js";
+import { parseCwds, parseLsof } from "../platform/macos/listening.js";
+import { parsePs } from "../platform/macos/processes.js";
 import { fakeDocker } from "./fakeDocker.js";
 import type { GraphqlVars, RestResponse, WriteMethod } from "../github/ghApi.js";
 import { readGitHubRemotes, type GitHubTarget } from "../git/githubTarget.js";
 import { DbSecretVault, type SecretCipher } from "../databases/secrets.js";
 import type { VoiceTools } from "../voice/tools.js";
-import type { MacosSpeech } from "../voice/macos.js";
-import type { AudioInput, LocalOptions, MacosOptions, OpenAiOptions } from "../voice/types.js";
+import type { OsSpeechStatus } from "../platform/types.js";
+import type { AudioInput, LocalOptions, OpenAiOptions } from "../voice/types.js";
 import type { SpeechOptions } from "../voice/speech.js";
 import { FakeProviderBase } from "./fakeProvider.js";
 import "./gitRepo.js";
@@ -239,8 +241,8 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const voiceFake = {
     tools: { whisper: "/fake/whisper-cli", ffmpeg: "/fake/ffmpeg" } as VoiceTools,
     /** macOS の音声認識の様子（確かめで返す） */
-    speech: { helper: true, available: true, locale: "ja-JP", installed: true } as MacosSpeech,
-    calls: [] as { engine: "local" | "macos" | "openai"; audio: AudioInput; opts: LocalOptions | MacosOptions | OpenAiOptions }[],
+    speech: { helper: true, available: true, locale: "ja-JP", installed: true } as OsSpeechStatus,
+    calls: [] as { engine: "local" | "macos" | "openai"; audio: AudioInput; opts: LocalOptions | { language: string } | OpenAiOptions }[],
     /** 読み上げを頼まれた文と値 */
     speeches: [] as { text: string; opts: SpeechOptions }[],
     /** ダウンロードで返す中身（Response を返す関数） */
@@ -249,16 +251,17 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const voice = new VoiceService({
     store,
     modelsDir: tempDir(),
-    speechHelper: "/fake/kickoff-speech",
     publish: (e) => bus.publish(e),
+    speech: {
+      check: async () => voiceFake.speech,
+      transcribe: async (audio, language) => (voiceFake.calls.push({ engine: "macos", audio, opts: { language } }), "macOS の文"),
+    },
     engines: {
       local: async (audio, opts) => (voiceFake.calls.push({ engine: "local", audio, opts }), "ローカルの文"),
-      macos: async (audio, opts) => (voiceFake.calls.push({ engine: "macos", audio, opts }), "macOS の文"),
       openai: async (audio, opts) => (voiceFake.calls.push({ engine: "openai", audio, opts }), "OpenAI の文"),
       speech: async (text, opts) => (voiceFake.speeches.push({ text, opts }), new Uint8Array([9, 8, 7])),
     },
     findTools: async () => voiceFake.tools,
-    checkSpeech: async () => voiceFake.speech,
     fetch: () => voiceFake.download(),
   });
   // メモ: 親フォルダの既定は一時フォルダ。ゴミ箱へ移すのは本物のゴミ箱に入れず、消して覚える
@@ -340,13 +343,13 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const ci = new CiService(github, { remotes: async (repo) => ghFake.remotes ?? (await readGitHubRemotes(repo)).remotes });
   // Docker タブ: 偽の docker（dockerFake.set で答えを決め、dockerFake.calls で呼ばれた引数を見る。docker が入っていない様子は dockerFake.missing）
   const dockerFake = Object.assign(fakeDocker(), { missing: false });
-  const docker = new DockerService(bus, new DockerCli(() => (dockerFake.missing ? null : dockerFake.bin)));
+  const docker = new DockerService(bus, { listeningSockets: async () => parseLsof(portsFake.lsof), openApp: async () => {} }, new DockerCli(() => (dockerFake.missing ? null : dockerFake.bin)));
   // 静かなぶつかりの lsof・brew も偽物（portsFake.lsof に lsof の出力、brewServices に brew services info の JSON を入れる。止めた名前は brewStopped）
   // ポートを使っているプロセスも同じ lsof の出力を読む（ps の出力は ps、作業フォルダの lsof -Fpn の出力は cwds、送ったシグナルは killed、
   // まだ動いている pid は alive）
   const portsFake = { lsof: "", brewServices: "[]", brewStopped: [] as string[], ps: "", cwds: "", killed: [] as { pid: number; signal: string }[], alive: new Set<number>() };
   docker.ports.probe = {
-    lsof: async () => portsFake.lsof,
+    listeningSockets: async () => parseLsof(portsFake.lsof),
     brewServices: async () => portsFake.brewServices,
     brewStop: async (name) => void portsFake.brewStopped.push(name),
   };
@@ -361,9 +364,9 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
       selfBundle: "/dev/Electron.app/",
       stopWaitMs: 50,
       probe: {
-        lsof: async () => portsFake.lsof,
-        ps: async () => portsFake.ps,
-        cwds: async () => portsFake.cwds,
+        listeningSockets: async () => parseLsof(portsFake.lsof),
+        processTable: async () => parsePs(portsFake.ps),
+        processCwds: async () => parseCwds(portsFake.cwds),
         kill: (pid, signal) => void portsFake.killed.push({ pid, signal }),
         alive: (pid) => portsFake.alive.has(pid),
       },

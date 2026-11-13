@@ -1,7 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { createProjectFile, listProjectFiles, readProjectAsset, readProjectFile, readProjectImage, renameProjectFile, replaceInProject, searchProject, trashProjectFile, writeProjectFile } from "../../git/index.js";
-import { moveToTrash } from "../../system/trash.js";
 import type { ServerDeps } from "../server.js";
 import type { ProjectReplaceBody } from "@shared/types";
 import { jsonBody, queryOf } from "../input.js";
@@ -31,7 +30,7 @@ const replaceBodySchema = z.object({
 const ASSET_PREFIX = /^\/api\/projects\/[^/]+\/file\/asset\/([^/]+)\/(.+)$/;
 
 /** 作業場所のファイル（エクスプローラーの一覧・中身・検索・置換・保存・作る・名前の変更・ゴミ箱）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir */
-export function filesRoutes(app: Hono, { store, trash = moveToTrash }: ServerDeps) {
+export function filesRoutes(app: Hono, { store, trash }: ServerDeps) {
   const { withProject, withWorkdir } = lookups(store);
 
   // Git で管理していないフォルダも、中のファイルを同じ形で返す

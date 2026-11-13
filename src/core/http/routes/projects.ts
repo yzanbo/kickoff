@@ -17,7 +17,6 @@ import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 import { projectMemoFolder } from "@shared/memo/names";
 import { collectChatSessions, discardUnusedSessions } from "../../chat/sessionCleanup.js";
-import { moveToTrash } from "../../system/trash.js";
 
 // 新しいプロジェクト・取り込むプロジェクトのメモのフォルダ（省けば初めてメモを使ったときにプロジェクト名から決める）
 const memoDirFields = {
@@ -87,7 +86,7 @@ const projectPatchSchema = z
   .partial() satisfies z.ZodType<ProjectPatch>;
 
 /** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
-export function projectRoutes(app: Hono, { store, runner, prWatch, providers, databases, trash = moveToTrash, githubAccounts = listGitHubAccounts }: ServerDeps) {
+export function projectRoutes(app: Hono, { store, runner, prWatch, providers, databases, trash, githubAccounts = listGitHubAccounts }: ServerDeps) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;
