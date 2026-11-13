@@ -413,3 +413,19 @@ test("GitHub の結び付き: 作るときに付け、PUT で付け替え、DELE
   assert.deepEqual([removed.body.github_repo, removed.body.github_number, removed.body.github_kind], [null, null, null]);
   assert.equal((await call("DELETE", "/api/chats/99999/github")).status, 404);
 });
+
+test("チャットを削除すると、残ったチャットが使っていないエージェントの会話記録をゴミ箱へ移すよう頼む（分岐したチャットが写した元のセッションは残す）", async () => {
+  const { call, project, store, runner, provider } = setup();
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => store.chats.get(chatId)?.status === "completed" && !runner.isBusy(chatId));
+  const result = store.events.list(chatId).find((e) => e.type === "result")!;
+  const forkedId = (await call("POST", `/api/chats/${chatId}/fork`, { event_id: result.id })).body.id;
+  // 分岐したチャットは元の記録（s1）を写して持つので、消すのは自分のセッションだけ
+  assert.equal((await call("DELETE", `/api/chats/${forkedId}`)).status, 204);
+  await until(() => provider.discarded.length === 1);
+  assert.deepEqual(provider.discarded[0], { sessionIds: ["fork-1"], cwds: [project.repo_path] });
+  // 元のチャットを消すと、もう誰も使っていない s1 も
+  assert.equal((await call("DELETE", `/api/chats/${chatId}`)).status, 204);
+  await until(() => provider.discarded.length === 2);
+  assert.deepEqual(provider.discarded[1].sessionIds, ["s1"]);
+});
