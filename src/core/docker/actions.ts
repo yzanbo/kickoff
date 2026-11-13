@@ -34,6 +34,14 @@ const NO_FILE_DIR = "/";
 
 const ids = (list: { id: string }[]) => list.map((c) => c.id);
 
+/**
+ * 操作が起動しようとするサービス: サービスの行ならそのサービス（札付きの行ならその札付き）、すべて起動・作り直し（サービスを指さない）なら札のないサービス。
+ * ポートで失敗したときの相手の探し方と、［相手を止めて起動］で作り直すサービスの選び方で同じ決まりを使う
+ */
+export function startedServices(compose: DockerCompose, service: string | null): DockerCompose["services"] {
+  return compose.services.filter((s) => (service ? s.name === service : s.profiles.length === 0));
+}
+
 /** 操作 → コマンドの並び。できない操作は Invalid（400） */
 export function planDockerAction({ compose, upFiles, action, service, container, retry }: PlanInput): DockerPlan {
   const name = compose.project_name;
@@ -127,9 +135,10 @@ export function planDockerAction({ compose, upFiles, action, service, container,
     case "stop_others_and_start": {
       if (!retry?.conflicts.length) throw new Invalid("止める相手がありません。もう一度起動してください");
       // 相手を止め（データは残る）、ぶつかって起動できなかったサービスは作り直す（ポートで起動に失敗したコンテナは、あとで起動しても Mac にポートを出さない。
-      // 止め直しても戻らず、作り直すまで直らないことを 2026-11-13 に OrbStack で確かめた）。すべて起動なら、残りも同じ起動で
+      // 止め直しても戻らず、作り直すまで直らないことを 2026-11-13 に OrbStack で確かめた）。すべて起動なら、残りも同じ起動で。
+      // 作り直すのは元の操作で起動しようとしたサービスのうち、ぶつかったものだけ（すべて起動から札付きまで起動すると、同じポートの札付き（E2E 用の db など）と今度はそれが取り合う）
       const ports = new Set(retry.conflicts.map((c) => c.port));
-      const blocked = compose.services.filter((s) => (retry.service ? s.name === retry.service : true) && s.published.some((p) => ports.has(p)));
+      const blocked = startedServices(compose, retry.service).filter((s) => s.published.some((p) => ports.has(p)));
       const profiles = [...new Set(blocked.flatMap((s) => s.profiles.slice(0, 1)))];
       const steps = [docker(["stop", ...new Set(retry.conflicts.map((c) => c.container_id))])];
       if (blocked.length) steps.push(up([...profiles.flatMap((p) => ["--profile", p]), "up", "-d", "--no-deps", "--force-recreate", ...blocked.map((s) => s.name)]));

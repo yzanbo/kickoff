@@ -11,7 +11,7 @@ import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { CommandError } from "../system/exec.js";
 import { realPathOrSelf } from "../system/paths.js";
 import type { StreamedCommand } from "../system/stream.js";
-import { planDockerAction, type DockerStep } from "./actions.js";
+import { planDockerAction, startedServices, type DockerStep } from "./actions.js";
 import { DockerCli, shellWord } from "./cli.js";
 import { ComposeConfigCache, findComposeFiles, upFilesFor } from "./compose.js";
 import { dockerDbCandidate, type DockerDbCandidate } from "./dbTarget.js";
@@ -256,7 +256,7 @@ export class DockerService {
     const snap = await this.snapshot(project);
     const compose = snap.list.composes.find((c) => c.key === key);
     if (!compose) return [];
-    const published = compose.services.filter((s) => (service ? s.name === service : s.profiles.length === 0)).flatMap((s) => s.published);
+    const published = startedServices(compose, service).flatMap((s) => s.published);
     const composeOf = (id: string) => snap.list.composes.find((c) => c.key === snap.owner.get(id));
     return portConflictsOf(published, snap.containers, (c) => snap.owner.get(c.id) === key, (c) => conflictLabel(c, composeOf));
   }
