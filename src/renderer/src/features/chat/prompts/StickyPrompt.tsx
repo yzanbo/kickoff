@@ -1,13 +1,14 @@
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, EyeOff, MessageCircleQuestion } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, MessageCircleQuestion } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useSetting } from "@/hooks/useSetting";
-import { STICKY_PROMPT_EXPANDED, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
+import { STICKY_PROMPT_EXPANDED } from "@/lib/storageKeys";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
+import { ChatDisplayItems } from "@/features/chat/pane/ChatDisplayMenu";
 import { COMPACT_PROMPT_KINDS } from "@/features/snippet/compactPromptKinds";
 import type { CompactPromptKind } from "@shared/chat/prompts";
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
@@ -42,7 +43,7 @@ export function samePinned(a: PinnedPrompt | undefined, b: PinnedPrompt | undefi
  * 初めは 1 行にたたみ（長い指示で縦をとらないように）、見出しの右の ↑ / ↓ の隣の矢印で全文を出す（長ければ中でスクロール。開閉はどのチャットでも同じに覚える）。
  * 押して何かが起きるのは、見出しのすぐ右の ↑ / ↓（前・次の指示へ。⌘⌥↑ / ↓ と同じ）とその右の開閉の矢印・添付だけ（見出しと文は押しても何もしない。以前は押すとその発言へ移っていた）。
  * 添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）。
- * 右クリックで、全文の開閉と「指示の帯を隠す」（戻すのは見出しと会話の右クリックの「チャット画面表示」・設定の「表示」）。
+ * 右クリックで、全文の開閉と、見出し・会話の右クリックと同じ「チャット画面表示」（帯を隠すのはその「指示の帯」。タブの列・見出しの行を隠すと帯がいちばん上になるので、ここからも戻せる）。
  * 読んでいるのが AI からの質問への回答なら、「質問への回答」と添えて、たたんでいる間は答えだけを 1 行に、全文では質問ごとに質問の文と答えを出す。
  * 圧縮前指示・圧縮後指示なら「圧縮前指示」「圧縮後指示」と添える
  */
@@ -65,7 +66,6 @@ export function StickyPrompt({
   onNext?: () => void;
 }) {
   const [expanded, setExpanded] = useSetting(STICKY_PROMPT_EXPANDED);
-  const [, setHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const menu = useContextMenu();
   const textRef = useRef<HTMLSpanElement>(null);
   // 1 行に収まらないか（収まるなら開閉の矢印を押せなくする）。欄の幅が変わったら測り直す
@@ -131,9 +131,9 @@ export function StickyPrompt({
               {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {expanded ? "1 行にたたむ" : "指示の全文を表示"}
             </MenuItem>
           )}
-          <MenuItem title="戻すときは、タブの列の「表示」か設定の「表示」から" onSelect={() => setHidden(true)}>
-            <EyeOff size={14} /> 指示の帯を隠す
-          </MenuItem>
+          {/* タブの列・見出しの行を隠すと帯がチャットのいちばん上になるので、ここからも戻せるようにする（帯を隠すのも「指示の帯」のチェック） */}
+          {(expanded || canExpand) && <div className="menu-separator" role="separator" />}
+          <ChatDisplayItems />
         </PopupMenu>
       )}
     </div>
