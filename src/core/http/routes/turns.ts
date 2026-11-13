@@ -29,7 +29,7 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads }: Ser
     return c.json(await runner.send(c.var.chat.id, body.text, body.options, body.attachments, { pauseAfter: body.pause_after, marks: marksOf(body) }));
   });
 
-  // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る。pause_after は続きを送ると同じ）
+  // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ預かり、作業の終わりに送信待ちより先に送る。作業中でなければすぐ送る。pause_after は続きを送ると同じ）
   app.post("/api/chats/:id/tell", withChat, async (c) => {
     const body = messageInputSchema.parse(await jsonBody(c));
     const told: TellResult = { result: await runner.tell(c.var.chat.id, body.text, body.options, body.attachments, { pauseAfter: body.pause_after, marks: marksOf(body) }) };

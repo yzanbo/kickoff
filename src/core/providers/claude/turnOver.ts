@@ -13,7 +13,7 @@ const realTimers: Timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => 
 
 /**
  * Claude Code の入力を閉じる時を決める（閉じると、手が空いた Claude Code は終わり、実行が終わる）。
- * 閉じたあとは作業中の発言を足せない（Runner の「いま」が送信待ちに戻る）ので、Claude Code が本当に手が空いたときだけ閉じる。
+ * 閉じたあとは作業中の発言を足せない（Runner の「いま」は預かって作業の終わりに送る）ので、Claude Code が本当に手が空いたときだけ閉じる。
  * 目印は Claude Code の session_state_changed（CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS。idle = 抱えた指示・裏のサブエージェントを
  * 済ませた区切り）で、idle になった時点で裏の作業（コマンドなど）がなければ閉じる。
  * 返答の終わり（result）だけでは閉じない: 返答の終わりの直前に届いた発言・裏の作業の終わりの知らせがあれば、Claude Code は

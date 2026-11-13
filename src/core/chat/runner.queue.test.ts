@@ -36,7 +36,7 @@ test("待ちの列: 作業中に送った指示は列に入り、終わったら
   gates[3]();
 });
 
-test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送る」は作業を止めない（伝えられなければ列の先頭に移す）", async () => {
+test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送る」は作業を止めない（伝えられなければ預かり、作業の終わりに送信待ちより先に送る）", async () => {
   const { gates, script } = gatedScript();
   const { store, runner, provider, project } = setup(script);
   const chat = await runner.start({ projectId: project.id, prompt: "1" });
@@ -46,22 +46,29 @@ test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送
   runner.cancel(chat.id);
   await until(() => gates.length === 2);
   assert.deepEqual(runner.live(chat.id).queue.messages, []);
-  // 作業中に「すぐ送る」→ 止めずに伝える。この偽のプロバイダーは発言を足せないので、列の先頭に移す（作業は止めない）
+  // 作業中に「すぐ送る」→ 止めずに伝える。この偽のプロバイダーは発言を足せないので、送信待ちに戻さず預かる（作業は止めない）
   await runner.queueMessage(chat.id, "3");
   await runner.queueMessage(chat.id, "4");
   await runner.sendQueuedNow(chat.id, runner.live(chat.id).queue.messages[1].id);
-  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["4", "3"]);
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["3"]);
+  assert.deepEqual(runner.live(chat.id).after_compact.map((m) => m.text), ["4"]);
+  assert.equal(runner.live(chat.id).tells_closed, true);
   assert.equal(gates.length, 2);
-  runner.removeQueued(chat.id, runner.live(chat.id).queue.messages[1].id);
+  // 送信待ちを止めていても、預かった指示は送る
+  await runner.setQueuePaused(chat.id, true);
   // 列にない指示は 404
   assert.throws(() => runner.removeQueued(chat.id, "nope"), NotFound);
   await assert.rejects(runner.sendQueuedNow(chat.id, "nope"), NotFound);
-  // 終わったら、先頭に移した指示を送る
+  // 終わったら、預かった指示を送信待ちより先に送る
   gates[1]();
   await until(() => gates.length === 3);
   assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "2", "4"]);
+  assert.deepEqual(runner.live(chat.id).after_compact, []);
+  assert.equal(runner.live(chat.id).tells_closed, false);
   gates[2]();
   await until(() => store.chats.get(chat.id)?.status === "completed");
+  // 送信待ちは止めたまま残る
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["3"]);
 });
 
 test("待ちの列: アプリを終えるときは送らない", async () => {
@@ -108,7 +115,7 @@ test("送信待ちを送っている途中に「いま」で送っても、同�
   );
 });
 
-test("作業が終わるのと同時に「いま」で送って待ちの列に入ったときも、取り残さずに送る", async () => {
+test("作業が終わるのと同時に「いま」で送って足せなかったときも、預かりに取り残さずに送る", async () => {
   let release: (() => void) | undefined;
   let calls = 0;
   const { store, runner, provider, project } = setup(async (_p, cb) => {
@@ -124,10 +131,60 @@ test("作業が終わるのと同時に「いま」で送って待ちの列に�
   const told = runner.tell(chat.id, "いまの指示");
   // 指示を組み立てている間に作業が終わる
   release!();
-  assert.equal(await told, "queued");
+  assert.equal(await told, "held");
   await until(() => provider.calls.length === 2 && !runner.isBusy(chat.id));
   assert.match(provider.calls[1].prompt, /いまの指示/);
   assert.equal(store.chats.get(chat.id)?.status, "completed");
+});
+
+test("足せなかった「いま」は預かった順に送る: 作業の終わりに 1 件目を新しい作業として送り、その作業にも足せなければ残りは預かりの先頭に残して次の終わりに送る", async () => {
+  const releases: (() => void)[] = [];
+  const { runner, provider, project } = setup(async (_p, cb) => {
+    // どの作業も、作業中に足せる口はあるが閉じている（足せない）
+    cb.control?.({ tell: () => false, stopTask: async () => {} });
+    await new Promise<void>((r) => releases.push(r));
+    cb.control?.(null);
+    return { status: "completed", sessionId: "s1" };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => releases.length === 1);
+  assert.equal(await runner.tell(chat.id, "A"), "held");
+  // 足せないと分かったあとの「いま」は、足そうとせずに後ろへ預かる
+  assert.equal(await runner.tell(chat.id, "B"), "held");
+  assert.deepEqual(runner.live(chat.id).after_compact.map((m) => m.text), ["A", "B"]);
+  assert.deepEqual(runner.live(chat.id).queue.messages, []);
+  releases[0]();
+  // A を新しい作業として送り、B はその作業にも足せないので預かりの先頭に残る
+  await until(() => releases.length === 2 && runner.live(chat.id).tells_closed);
+  await tick();
+  assert.deepEqual(runner.live(chat.id).after_compact.map((m) => m.text), ["B"]);
+  releases[1]();
+  await until(() => releases.length === 3);
+  assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "A", "B"]);
+  assert.deepEqual(runner.live(chat.id).after_compact, []);
+  releases[2]();
+  await until(() => !runner.isBusy(chat.id));
+});
+
+test("動かし始めたばかりで足す口がまだないときの「いま」は、口ができるまで少し待って足す（預かったままにしない）", async () => {
+  const told: string[] = [];
+  let release: (() => void) | undefined;
+  const { runner, project } = setup(async (_p, cb) => {
+    // Claude Code を立ち上げている間（足す口がまだない）
+    await new Promise((r) => setTimeout(r, 20));
+    cb.control?.({ tell: (text) => Boolean(told.push(text)), stopTask: async () => {} });
+    await new Promise<void>((r) => (release = r));
+    cb.control?.(null);
+    return { status: "completed", sessionId: "s1" };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  assert.equal(await runner.tell(chat.id, "すぐあと"), "told");
+  assert.deepEqual(told, ["すぐあと"]);
+  assert.equal(runner.live(chat.id).tells_closed, false);
+  assert.deepEqual(runner.live(chat.id).after_compact, []);
+  await until(() => release !== undefined);
+  release!();
+  await until(() => !runner.isBusy(chat.id));
 });
 
 test("圧縮の予約: 作業中に圧縮を頼むと送信待ちのいちばん上に圧縮の行を入れ、やり取りが終わったら送信待ちより先に圧縮する", async () => {

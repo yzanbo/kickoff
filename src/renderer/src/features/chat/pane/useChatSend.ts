@@ -57,7 +57,7 @@ export function useChatSend({
     await api.sendMessage(chatId, text, options.options, attachments, pauseAfter, marks);
   };
   const queue = async (text: string, attachments: Attachment[], mode: QueueSendMode = queueMode, pauseAfter = false, marks: MessageMarks = {}) => {
-    // 伝える: 止めずに、いまのやり取りに足す（裏のサブエージェント・コマンドも動き続ける。足せなければ待ちの列へ）。
+    // 伝える: 止めずに、いまのやり取りに足す（裏のサブエージェント・コマンドも動き続ける。足せなければコアが預かり、作業の終わりに送信待ちより先に送る）。
     // ⌘Enter / ⌘⇧Enter で送ったときは、切り替えに関係なくそのキーの送り方にする
     // 作業していない（送信待ちを止めている）とき: すぐ送る = 送信待ちより先にいま送る / ためておく = 送信待ちの最後に足す
     if (!busy) {

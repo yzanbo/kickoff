@@ -30,6 +30,11 @@ interface LiveFields {
    * この間の「いま」は預かり、このやり取りが終わってから送る（圧縮後指示のやり取りに混ぜない）
    */
   compactedTurn: boolean;
+  /**
+   * いまの作業に「いま」を足せなくなった（Claude Code の入力を閉じたあと、作業が終わるまで。作業の終わりで外す。ChatLive の tells_closed）。
+   * この間の「いま」は預かり、作業の終わりに送信待ちより先に送る（送信待ちに戻すと、止めている・一時停止の線があるときに送られず、順番も変わるため）
+   */
+  tellsClosed: boolean;
   /** 起動したときの送信待ちの確かめを待っている（答えるまで送信待ちを送らない。ChatLive の queue_resume） */
   resume: { interrupted: boolean } | null;
 }
@@ -60,7 +65,7 @@ export class ChatRuntime {
   readonly afterCompactEdits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, resume: null };
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, tellsClosed: false, resume: null };
   /** 圧縮が終わった（圧縮後指示を伝える。圧縮中・圧縮前指示から圧縮が終わるまで（compactPhase）が外れたとき） */
   private readonly onCompactEnded: () => void;
 
@@ -90,10 +95,15 @@ export class ChatRuntime {
    * 圧縮後指示のやり取りが終わるまで）か、圧縮のあとに預かった指示を送っている途中。
    * 圧縮の前に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため。
    * 圧縮のあとに足すと、圧縮後指示のやり取りに混ざるため。送っている途中に足すと、圧縮後指示・前に預かった指示より先に入りうるため。
-   * 預かった指示を書き直している間も（その指示より先に入らないように）預かる
+   * 預かった指示を書き直している間も（その指示より先に入らないように）、いまの作業に足せなくなったあと（tellsClosed。先に預かった指示より先に入らないように）も預かる
    */
   get holdsTells(): boolean {
-    return this.compactPhase || this.fields.compactedTurn || this.fields.deliveringAfterCompact || this.editingAfterCompact;
+    return this.compactPhase || this.fields.compactedTurn || this.fields.deliveringAfterCompact || this.editingAfterCompact || this.fields.tellsClosed;
+  }
+
+  /** いまの作業に「いま」を足せなくなったか（作業の終わりまで預かる） */
+  get tellsClosed(): boolean {
+    return this.fields.tellsClosed;
   }
 
   /** 預かった指示のどれかを、画面で書き直しているか（書き直しが終わるまで、その指示から後ろは送らない） */
@@ -163,7 +173,7 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn, compactedTurn, resume } = this.fields;
+    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn, compactedTurn, tellsClosed, resume } = this.fields;
     return {
       queue: this.queueState(),
       background,
@@ -175,6 +185,7 @@ export class ChatRuntime {
       awaiting_compact: awaitingCompact,
       compact_after_turn: compactAfterTurn,
       compacted_turn: compactedTurn,
+      tells_closed: tellsClosed,
       queue_resume: resume,
     };
   }
