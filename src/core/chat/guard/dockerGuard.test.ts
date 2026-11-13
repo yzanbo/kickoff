@@ -88,6 +88,25 @@ test("judgeDockerCommand: ボリュームは、その組の名前を使う作業
   assert.match((await judgeDockerCommand("docker compose down -v", shared))?.title ?? "", /共有の組（app）のボリューム app_pgdata/);
 });
 
+test("judgeDockerCommand: 共有の組（同じ組の名前をほかの作業場所の compose も使う）なら、ラベルが自分の作業場所のコンテナを止める・down するときも聞く（本体の側でも）", async () => {
+  // ワークツリーで起動し直したので、共有の組のコンテナのラベルはワークツリー
+  const sharedDb = ctr({ id: "444444444444", name: "app-db-1", project: "app", service: "db", dir: wt });
+  const composeNames = async () => [
+    { path: main, name: "app" },
+    { path: wt, name: "app" },
+  ];
+  const f = facts({ list: [sharedDb], composeNames, composeProject: async () => "app" });
+  assert.equal((await judgeDockerCommand("docker stop app-db-1", f))?.title, "本体（main）と共有の組（app）のコンテナ app-db-1 を止めようとしています。本体（main）も同じコンテナを使っています");
+  assert.equal((await judgeDockerCommand("docker compose down", f))?.title, "本体（main）と共有の組（app）を消そうとしています。本体（main）も同じコンテナを使っています");
+  assert.match((await judgeDockerCommand("docker compose stop", f))?.title ?? "", /共有の組（app）を止めようとしています/);
+  // 本体の側の AI が、本体のラベルの共有の組を止めるときも聞く
+  const mainSide = facts({ workdir: main, list: [{ ...sharedDb, dir: main }], composeNames, composeProject: async () => "app" });
+  assert.equal((await judgeDockerCommand("docker compose down", mainSide))?.title, "WT（feat-x）と共有の組（app）を消そうとしています。WT（feat-x）も同じコンテナを使っています");
+  // 名前が分かれていれば（自分だけが使う組）通す
+  const own = facts({ list: [myDb], composeNames: async () => [{ path: main, name: "app" }, { path: wt, name: "feat-x" }], composeProject: async () => "feat-x" });
+  assert.equal(await judgeDockerCommand("docker stop feat-x-db-1 && docker compose down", own), null);
+});
+
 test("judgeDockerCommand: Docker が答えない（ps が取れない）ときは、まとめてでなければ通す", async () => {
   const f = facts({ containers: async () => null, composeProject: async () => "app" });
   assert.equal(await judgeDockerCommand("docker stop app-db-1 && docker compose down", f), null);

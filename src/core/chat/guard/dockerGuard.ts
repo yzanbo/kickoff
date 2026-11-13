@@ -76,6 +76,8 @@ function findContainer(containers: readonly RawContainer[], ref: string): RawCon
 
 /**
  * Bash のコマンドを判定し、聞くなら承認カードの文を返す（聞かないなら null）。相手の作業場所はコンテナのラベル working_dir で決める（Docker タブと同じ）。
+ * ただし共有の組（その組の名前を、自分のほかの作業場所の compose も使う）のコンテナは、ラベルが自分の作業場所でも止める・消すときに聞く
+ * （共有の組のコンテナは最後に起動した作業場所のラベルになるので、ワークツリーで起動し直したあとの down が本体の DB まで止めるため）。
  * compose のラベルがないコンテナ・ボリュームは通す（AI が自分で立てたものを自分で片付けられるように）。まとめて止める・消すものはいつも聞く
  */
 export async function judgeDockerCommand(command: string, facts: DockerGuardFacts): Promise<DockerAsk | null> {
@@ -101,17 +103,30 @@ export async function judgeDockerCommand(command: string, facts: DockerGuardFact
     for (const c of all) if (c.project === project && c.dir) paths.add(ownerOf(c.dir)?.path ?? c.dir);
     return [...paths];
   };
+  /** 組の名前 P を使う作業場所のうち、このチャットの作業場所でないもの */
+  const otherUsersOf = async (project: string, all: readonly RawContainer[]) => (await usersOf(project, all)).filter((p) => p !== (mine?.path ?? facts.workdir));
+  /** 作業場所のパスの短い呼び名（「本体（main）」・ほかのプロジェクト） */
+  const shortPlaceOfPath = (p: string) => {
+    const w = workplaces.find((x) => x.path === p);
+    return w ? placeOf(w).short : otherPlace(p).short;
+  };
   /** ボリュームを消すときの聞く文（その組の名前を使う作業場所がこのチャットの作業場所だけなら null） */
   const volumeAsk = async (volume: string, project: string, all: readonly RawContainer[]): Promise<string | null> => {
     const users = await usersOf(project, all);
-    const others = users.filter((p) => p !== (mine?.path ?? facts.workdir));
+    const others = await otherUsersOf(project, all);
     if (users.length > 0 && others.length === 0) return null;
     if (others.length > 0) {
-      const w = workplaces.find((x) => x.path === others[0]);
-      const place = w ? placeOf(w).short : otherPlace(others[0]).short;
+      const place = shortPlaceOfPath(others[0]);
       return `${place}と共有の組（${project}）のボリューム ${volume} を消そうとしています。消すと${place}のデータも消え、戻せません`;
     }
     return `ボリューム ${volume} はこのチャットの作業場所の組のものではありません（組 ${project}）。消すと戻せません`;
+  };
+  /** ラベルが自分の作業場所のコンテナを止める・消すときの聞く文（その組の名前をほかの作業場所も使う = 共有の組なら。そうでなければ null） */
+  const sharedAsk = async (project: string, all: readonly RawContainer[], what: string, verb: ContainerVerb | ComposeSub): Promise<string | null> => {
+    const others = await otherUsersOf(project, all);
+    if (others.length === 0) return null;
+    const place = shortPlaceOfPath(others[0]);
+    return `${place}と共有の組（${project}）${what}を${VERB_TEXT[verb]}。${place}も同じコンテナを使っています`;
   };
 
   const asks: string[] = [];
@@ -121,7 +136,12 @@ export async function judgeDockerCommand(command: string, facts: DockerGuardFact
       if (!all) continue;
       for (const ref of intent.names) {
         const c = findContainer(all, ref);
-        if (!c || !c.project || isMine(c.dir)) continue;
+        if (!c || !c.project) continue;
+        if (isMine(c.dir)) {
+          const ask = await sharedAsk(c.project, all, `のコンテナ ${c.name} `, intent.verb);
+          if (ask) asks.push(ask);
+          continue;
+        }
         asks.push(`${c.name} は${c.dir && ownerOf(c.dir) ? `別の作業場所（${placeOfDir(c.dir).long}）` : placeOfDir(c.dir).long}のコンテナです。${VERB_TEXT[intent.verb]}`);
       }
     } else if (intent.kind === "compose") {
@@ -137,6 +157,10 @@ export async function judgeDockerCommand(command: string, facts: DockerGuardFact
             ? `${place.short}と同じ組（${project}）です。起動すると${place.short}のコンテナが作り直されます`
             : `組（${project}）には${ownerOf(others[0].dir) ? `別の作業場所（${place.long}）` : place.long}のコンテナがあります。${VERB_TEXT[intent.sub]}`,
         );
+      } else if (intent.sub !== "up" && intent.sub !== "create" && all.some((c) => c.project === project)) {
+        // コンテナのラベルがどれも自分の作業場所でも、共有の組なら止める・消す前に聞く（本体の側の AI でも同じ）
+        const ask = await sharedAsk(project, all, "", intent.sub);
+        if (ask) asks.push(ask);
       }
       if (intent.removeVolumes) {
         const volumes = (await facts.volumes())?.filter((v) => v.project === project) ?? [];
