@@ -182,11 +182,20 @@ export function busyPreCompactMessage(text: string): string {
 export function autoPreCompactMessage(text: string): string {
   return [
     `${PRE_COMPACT_HEAD}コンテキストが上限に近づいたので、まもなく会話を自動で圧縮します${PRE_COMPACT_LOSS}。圧縮の前に、次のことをしてください。` +
-      `済んだら「${PRE_COMPACT_DONE}」とだけ書いてから、元の作業に戻ってください（その一文を合図に圧縮します）。`,
+      `済んだら「${PRE_COMPACT_DONE}」とだけ書いてから、元の作業に戻ってください（その一文を合図に圧縮します）。` +
+      "作業が残っていれば、合図の一文だけで返答を終えず、同じ返答の中で続けてツールを呼んでください（圧縮は次にツールを呼んだときに始まります）。",
     "---",
     text,
   ].join("\n");
 }
+
+/**
+ * 圧縮前指示の合図のあと、AI がツールを呼ばずに裏の作業（開発サーバー・監視など）の終わりだけを待って止まったときに、コアが足す文。
+ * 圧縮は Claude Code が次に送るときに始まるので、この文を送って圧縮を走らせる（裏の作業が自分では終わらないと、いつまでも始まらないため）
+ */
+export const PRE_COMPACT_NUDGE =
+  "【Kickoff】圧縮前指示の合図を受け取ったので、ここで会話を圧縮します（裏の作業の終わりを待っていると圧縮が始まらないため、Kickoff が送った発言です）。" +
+  "圧縮が終わったら、届く指示に従って、途中の作業（裏で動いている作業の確かめや後片付けも）を続けてください。";
 
 /** 圧縮が終わったら、預かっていた指示より先に送る文（自動の圧縮のときは作業の途中に足すので、済んだら元の作業に戻ってもらう） */
 export function postCompactMessage(text: string): string {

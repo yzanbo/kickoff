@@ -27,6 +27,8 @@ export function createTurnOver(close: () => void, { graceMs = TURN_OVER_GRACE_MS
   let sawState = false;
   let state: "idle" | "running" | "requires_action" = "running";
   let tasks = 0;
+  // メインの返答を書き終えたか（session_state_changed を出さない古い Claude Code で、手が空いたかの代わりに見る）
+  let replied = false;
   // 前に running になってから発言を足したか（足した発言で次の返答が始まりうる）
   let pushedSinceRunning = false;
   let timer: unknown = null;
@@ -57,12 +59,20 @@ export function createTurnOver(close: () => void, { graceMs = TURN_OVER_GRACE_MS
       }
       if (!background) return;
       tasks = background.tasks.length;
+      replied = background.replied;
       if (!sawState) {
         if (background.replied && tasks === 0) close();
         return;
       }
       if (tasks > 0) cancel();
       else if (state === "idle") closeLater();
+    },
+    /**
+     * 手が空いたまま、裏の作業（コマンド・サブエージェント）の終わりだけを待っているか（Claude Code は終わりの知らせが来るまで次を送らない。
+     * 圧縮前指示の合図のあとは、ここで圧縮が始まらずに止まる。preCompact.ts の noteWaiting）
+     */
+    waitingOnBackground(): boolean {
+      return tasks > 0 && (sawState ? state === "idle" : replied);
     },
     /** 発言を足した（作業中の発言・圧縮前指示） */
     pushed() {
