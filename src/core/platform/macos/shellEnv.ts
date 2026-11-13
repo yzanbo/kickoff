@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { searchDirs } from "./exec.js";
+import { searchDirs } from "../../system/exec.js";
 
 /**
  * Finder から起動した macOS アプリはログインシェルの PATH を引き継がない。

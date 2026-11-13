@@ -2,7 +2,6 @@ import type { Store } from "../db/store.js";
 import type { BusEvent, SecretSaved, VoiceStatus } from "@shared/types";
 import { ModelDownloads } from "./downloads.js";
 import { transcribeLocal } from "./local.js";
-import { checkMacosSpeech, transcribeMacos, type MacosSpeech } from "./macos.js";
 import { modelFile, WHISPER_MODELS } from "./models.js";
 import { transcribeOpenAi } from "./openai.js";
 import { synthesizeOpenAi } from "./speech.js";
@@ -10,6 +9,7 @@ import { voiceUnreadyReason } from "./readiness.js";
 import { findVoiceTools, type VoiceTools } from "./tools.js";
 import type { AudioInput, TranscribeEngines } from "./types.js";
 import { Invalid } from "../http/errors.js";
+import type { OsSpeech } from "../platform/types.js";
 
 interface VoiceServiceOptions {
   store: Store;
@@ -17,12 +17,11 @@ interface VoiceServiceOptions {
   modelsDir: string;
   /** モデルのダウンロードの進み具合を画面へ配る */
   publish: (event: BusEvent) => void;
-  /** macOS の音声認識の補助コマンドの場所（デスクトップアプリが渡す。なければ null） */
-  speechHelper: string | null;
-  /** テストで差し替える: 文字起こしの処理・コマンドの探し方・macOS の音声認識の確かめ・ダウンロードの fetch */
+  /** OS の音声認識（設定の provider の macos。OS の口の speech。テストでは偽物） */
+  speech: OsSpeech;
+  /** テストで差し替える: 文字起こしの処理・コマンドの探し方・ダウンロードの fetch */
   engines?: TranscribeEngines;
   findTools?: () => Promise<VoiceTools>;
-  checkSpeech?: (language: string) => Promise<MacosSpeech>;
   fetch?: typeof fetch;
 }
 
@@ -32,17 +31,15 @@ export class VoiceService {
   private readonly modelsDir: string;
   private readonly engines: TranscribeEngines;
   private readonly findTools: () => Promise<VoiceTools>;
-  private readonly speechHelper: string | null;
-  private readonly checkSpeech: (language: string) => Promise<MacosSpeech>;
+  private readonly speech: OsSpeech;
   readonly downloads: ModelDownloads;
 
   constructor(opts: VoiceServiceOptions) {
     this.store = opts.store;
     this.modelsDir = opts.modelsDir;
-    this.engines = opts.engines ?? { local: transcribeLocal, macos: transcribeMacos, openai: (audio, o) => transcribeOpenAi(audio, o), speech: (text, o) => synthesizeOpenAi(text, o) };
+    this.engines = opts.engines ?? { local: transcribeLocal, openai: (audio, o) => transcribeOpenAi(audio, o), speech: (text, o) => synthesizeOpenAi(text, o) };
     this.findTools = opts.findTools ?? findVoiceTools;
-    this.speechHelper = opts.speechHelper;
-    this.checkSpeech = opts.checkSpeech ?? ((language) => checkMacosSpeech(opts.speechHelper, language));
+    this.speech = opts.speech;
     this.downloads = new ModelDownloads(
       opts.modelsDir,
       (id, download) => opts.publish({ type: "voice_model", id, download, downloaded: this.downloads.isDownloaded(id) }),
@@ -55,7 +52,7 @@ export class VoiceService {
   /** 準備の状態（設定の「音声入力」・マイクのボタン） */
   async status(): Promise<VoiceStatus> {
     const settings = this.store.settings.get();
-    const [tools, macos] = await Promise.all([this.findTools(), this.checkSpeech(settings.voice_language)]);
+    const [tools, macos] = await Promise.all([this.findTools(), this.speech.check(settings.voice_language)]);
     const keySaved = this.keySaved();
     const reason = voiceUnreadyReason({ settings, tools, modelDownloaded: this.downloads.isDownloaded(settings.voice_model), keySaved, macos });
     return {
@@ -80,11 +77,11 @@ export class VoiceService {
   async transcribe(audio: AudioInput, language?: string): Promise<string> {
     const settings = this.store.settings.get();
     const lang = language ?? settings.voice_language;
-    const [tools, macos] = await Promise.all([this.findTools(), this.checkSpeech(lang)]);
+    const [tools, macos] = await Promise.all([this.findTools(), this.speech.check(lang)]);
     const key = this.store.secrets.get("openai_transcribe_key") ?? "";
     const reason = voiceUnreadyReason({ settings, tools, modelDownloaded: this.downloads.isDownloaded(settings.voice_model), keySaved: Boolean(key), macos });
     if (reason) throw new Invalid(reason);
-    if (settings.voice_provider === "macos") return this.engines.macos(audio, { helper: this.speechHelper!, language: lang });
+    if (settings.voice_provider === "macos") return this.speech.transcribe(audio, lang);
     if (settings.voice_provider === "openai") {
       return this.engines.openai(audio, { key, baseUrl: settings.voice_openai_base_url, model: settings.voice_openai_model, language: lang });
     }

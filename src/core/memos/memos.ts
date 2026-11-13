@@ -10,7 +10,6 @@ import { assertInside, readProjectFile, writeProjectFile } from "../git/index.js
 import { asInvalid, Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { AgentProvider } from "../providers/types.js";
 import { expandHome, realPathLoose } from "../system/paths.js";
-import { moveToTrash } from "../system/trash.js";
 import { memoMergePrompt, memoPlanPrompt, parseMergedMemo, parseMemoPlan, type PlanFile } from "./memoAi.js";
 import { searchMemoTexts } from "./memoSearch.js";
 import { MemoWatcher } from "./memoWatcher.js";
@@ -30,8 +29,8 @@ interface MemoServiceOptions {
   defaultDir: string;
   providers: Record<ProviderId, AgentProvider>;
   publish: (e: BusEvent) => void;
-  /** ゴミ箱へ移す（テストでは差し替えて、本物のゴミ箱に入れない） */
-  trash?: (file: string) => Promise<void>;
+  /** ゴミ箱へ移す（OS の口の moveToTrash。テストでは差し替えて、本物のゴミ箱に入れない） */
+  trash: (file: string) => Promise<void>;
 }
 
 /** チャットから作る・足すときに、文の前に置く出どころの行（どのチャットの、いつの文か） */
@@ -199,7 +198,7 @@ export class MemoService {
   async trash(project: Project, file: string): Promise<void> {
     const target = await this.pathIn(project, file);
     if (!(await exists(target))) throw new NotFound(`メモが見つかりません: ${file}`);
-    await (this.opts.trash ?? moveToTrash)(target);
+    await this.opts.trash(target);
     // メモのチャットはアーカイブする（作業中のものはそのまま。Finder のゴミ箱から戻しても、アーカイブ済みから戻せる）
     for (const chat of this.opts.store.chats.memoChats(project.id, file)) {
       if (!chat.archived_at && chat.status !== "running") this.opts.store.chats.archive(chat.id, true);

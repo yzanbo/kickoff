@@ -1,14 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { WorktreePortSlot } from "@shared/types";
-import { appBundleOf, bandNotes, originOf, parseCwds, parseEtime, parsePs, selfAndAncestors, selfHelpers, shortCommand, workplaceOf, type Workplace } from "./parse.js";
-
-test("parseEtime: 分:秒・時:分:秒・日-時:分:秒（読めなければ null）", () => {
-  assert.equal(parseEtime("05:07"), 307);
-  assert.equal(parseEtime("02:00:01"), 7201);
-  assert.equal(parseEtime("3-01:00:00"), 3 * 86_400 + 3600);
-  assert.equal(parseEtime("?"), null);
-});
+import { parsePs } from "../platform/macos/processes.js";
+import { bandNotes, originOf, selfAndAncestors, selfHelpers, shortCommand, workplaceOf, type Workplace } from "./parse.js";
 
 const PS = `    1     0 10-00:00:00 /sbin/launchd
   500     1 02:00:00 /Applications/Kickoff.app/Contents/MacOS/Kickoff
@@ -20,15 +14,6 @@ const PS = `    1     0 10-00:00:00 /sbin/launchd
   720   710    40:00 next-server (v15)
   730     1    00:10 python3 -c \\012import http.server\\012s = 1\\012
 `;
-
-test("parsePs: pid・親・動いている時間・コマンド（空白を含むパスもそのまま）", () => {
-  const t = parsePs(PS);
-  assert.equal(t.size, 9);
-  // ps が \012 と書いた改行は空白にする
-  assert.equal(t.get(730)?.command, "python3 -c import http.server s = 1");
-  assert.deepEqual(t.get(520), { pid: 520, ppid: 510, elapsed: 720, command: "node /work/app/node_modules/.bin/vite" });
-  assert.equal(t.get(700)?.command, "/Applications/Visual Studio Code.app/Contents/MacOS/Electron");
-});
 
 test("originOf: Kickoff の子孫は Kickoff の中・親が launchd は切り離されている・ほかはアプリの名前を添える", () => {
   const t = parsePs(PS);
@@ -42,12 +27,6 @@ test("selfAndAncestors: 自分と祖先（launchd は入れない）", () => {
   assert.deepEqual([...selfAndAncestors(510, parsePs(PS))], [510, 500]);
 });
 
-test("appBundleOf: 実行ファイルの .app の束（.app でなければ null）", () => {
-  assert.equal(appBundleOf("/A/Kickoff.app/Contents/MacOS/Kickoff"), "/A/Kickoff.app/");
-  assert.equal(appBundleOf("/w/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"), "/w/node_modules/electron/dist/Electron.app/");
-  assert.equal(appBundleOf("/opt/homebrew/bin/node"), null);
-});
-
 test("selfHelpers: 自分の子孫のうち、自分の .app の束の中のもの（ターミナルのシェル・ほかの Kickoff の Helper は入れない）", () => {
   const t = parsePs(`  500     1 02:00:00 /A/Kickoff.app/Contents/MacOS/Kickoff
   501   500 02:00:00 /A/Kickoff.app/Contents/Frameworks/Kickoff Helper (Renderer).app/Contents/MacOS/Kickoff Helper (Renderer) --type=renderer
@@ -58,14 +37,6 @@ test("selfHelpers: 自分の子孫のうち、自分の .app の束の中のも�
   701   700 01:00:00 /A/Kickoff.app/Contents/Frameworks/Kickoff Helper.app/Contents/MacOS/Kickoff Helper --type=gpu-process`);
   assert.deepEqual([...selfHelpers(500, "/A/Kickoff.app/", t)].sort(), [501, 502]);
   assert.deepEqual([...selfHelpers(500, null, t)], []);
-});
-
-test("parseCwds: lsof -Fpn の p と n の行", () => {
-  const out = "p520\nfcwd\nn/work/app\np600\nfcwd\nn/work/app wt\n";
-  assert.deepEqual([...parseCwds(out)], [
-    [520, "/work/app"],
-    [600, "/work/app wt"],
-  ]);
 });
 
 test("shortCommand: スクリプトの名前・node_modules のパッケージ・サブコマンド・python -m", () => {

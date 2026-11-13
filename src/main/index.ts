@@ -2,7 +2,7 @@
 import { app, BrowserWindow, dialog } from "electron";
 import { errorMessage } from "@shared/errors";
 import { startCore, type Core } from "../core/index.js";
-import { loadLoginShellPath } from "../core/system/shellEnv.js";
+import { macosPlatform } from "../core/platform/macos/index.js";
 import { setAppMenu } from "./app/appMenu.js";
 import { utilityWorker } from "./app/dbWorker.js";
 import { safeStorageCipher } from "./app/secretCipher.js";
@@ -44,7 +44,9 @@ if (!app.requestSingleInstanceLock()) {
 /** 準備ができたら: コア（DB・エージェント・HTTP API）→ 画面のセッション → IPC・メニュー → ウィンドウ */
 async function start() {
   startupLog("whenReady");
-  loadLoginShellPath();
+  // OS ごとに違う処理の口（いまは macOS だけ。音声認識の補助コマンドの場所も渡す）
+  const platform = macosPlatform({ speechHelper: SPEECH_HELPER });
+  platform.loadLoginShellPath();
   startupLog("ログインシェルの PATH を読みました");
   void moveLegacyDiagnostics();
   try {
@@ -57,7 +59,7 @@ async function start() {
       browser: agentBrowser,
       // 内蔵ターミナルの出力も AI に読ませる（読むだけ。terminal/terminals.ts）
       terminals: agentTerminals,
-      speechHelper: SPEECH_HELPER,
+      platform,
       // DB ワーカーは utilityProcess で起動する（製品版は fuses で ELECTRON_RUN_AS_NODE を切るため。app/dbWorker.ts）
       dbWorker: () => utilityWorker(DB_WORKER_FILE),
       // DB のパスワードはキーチェーンの鍵（safeStorage）で暗号化して置く（app/secretCipher.ts）

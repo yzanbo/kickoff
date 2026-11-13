@@ -37,7 +37,6 @@ export interface OpenAiOptions {
 /** 文字起こしの方法ごとの処理と、OpenAI の読み上げ（テストでは偽物に差し替える） */
 export interface TranscribeEngines {
   local: (audio: AudioInput, opts: LocalOptions) => Promise<string>;
-  macos: (audio: AudioInput, opts: MacosOptions) => Promise<string>;
   openai: (audio: AudioInput, opts: OpenAiOptions) => Promise<string>;
   speech: (text: string, opts: SpeechOptions) => Promise<Uint8Array>;
 }

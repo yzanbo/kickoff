@@ -99,7 +99,7 @@ export function dockerRoutes(app: Hono, { store, docker, bus }: ServerDeps) {
   app.post("/api/projects/:id/docker/open-engine", withProject, async (c) => {
     const starter = starterOf(await docker.cli.context());
     if (starter?.kind !== "open") throw new Invalid("開くアプリが分かりません。Docker のアプリを起動してください");
-    await runCommand("open", ["-a", starter.app]);
+    await docker.host.openApp(starter.app);
     // OrbStack はアプリが開いたままエンジンだけ止まっていることがある（open -a では起きない）。orb start は起きるまで待つので待たずに流し、画面が 2 秒ごとに調べ直す
     const orb = starter.app === "OrbStack" ? findOrb() : null;
     if (orb) void runCommand(orb, ["start"], { timeout: 120_000 }).catch(() => {});

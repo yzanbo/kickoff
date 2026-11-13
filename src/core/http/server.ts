@@ -78,8 +78,8 @@ export interface ServerDeps {
   ports: PortWatch;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。テストでは差し替えて、gh を呼ばない。なければ gh auth status） */
   githubAccounts?: () => Promise<GitHubAccount[]>;
-  /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」。テストでは差し替えて、本物のゴミ箱に入れない。なければ macOS のゴミ箱） */
-  trash?: (file: string) => Promise<void>;
+  /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」・使わなくなった会話記録。OS の口の moveToTrash。テストでは差し替えて、本物のゴミ箱に入れない） */
+  trash: (file: string) => Promise<void>;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
   staticDir?: string;
   /** 待ち受けているアドレスとポート（接続の詳細の表示用） */

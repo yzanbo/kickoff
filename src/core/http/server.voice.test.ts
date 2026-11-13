@@ -96,7 +96,7 @@ test("文字起こし（macOS の音声認識）: コマンド・モデル・キ
   assert.equal(ok.status, 200);
   assert.equal(ok.body.text, "macOS の文");
   assert.equal(voiceFake.calls[0].engine, "macos");
-  assert.deepEqual(voiceFake.calls[0].opts, { helper: "/fake/kickoff-speech", language: "ja" });
+  assert.deepEqual(voiceFake.calls[0].opts, { language: "ja" });
   await transcribe(app, { language: "en" });
   assert.equal(voiceFake.calls[1].opts.language, "en");
 

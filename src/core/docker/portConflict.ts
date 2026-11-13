@@ -3,7 +3,7 @@ import { workplaceText } from "@shared/docker/workplace";
 import type { DockerPortConflict, DockerSilentConflict } from "@shared/types";
 import type { RawContainer } from "./parse.js";
 import { parsePorts } from "./parse.js";
-import type { ListeningSocket } from "../system/listening.js";
+import type { ListeningSocket } from "../platform/types.js";
 
 /** Docker のエンジンのプロセスの名前（これらだけがポートを待っているなら、ぶつかりではない） */
 export const DOCKER_ENGINE_PROCESSES = ["OrbStack", "OrbStack Helper", "com.docker.backend", "com.docker.vpnkit", "vpnkit-bridge", "limactl", "gvproxy"] as const;

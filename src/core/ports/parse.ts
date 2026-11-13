@@ -1,50 +1,10 @@
-// ポートを使っているプロセスの純粋な関数: ps・lsof の作業フォルダの読み取り、起動元、コマンドの短縮、作業場所への振り分け、帯の添え書き
+// ポートを使っているプロセスの純粋な関数: 自分と祖先・Helper、起動元、コマンドの短縮、作業場所への振り分け、帯の添え書き
 import path from "node:path";
+import type { ProcessRow } from "../platform/types.js";
 import { WORKTREE_BAND_FIRST, WORKTREE_BAND_LAST, WORKTREE_BAND_SIZE, type PortBandNote, type PortOrigin, type WorktreePortSlot } from "@shared/types";
 
-/** ps の 1 行（`ps -A -o pid=,ppid=,etime=,command=`） */
-export interface PsRow {
-  pid: number;
-  ppid: number;
-  /** 動いている時間（秒。読めなければ null） */
-  elapsed: number | null;
-  command: string;
-}
-
-/** ps の etime（[[日-]時:]分:秒）を秒にする（読めなければ null） */
-export function parseEtime(etime: string): number | null {
-  const m = /^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)$/.exec(etime.trim());
-  if (!m) return null;
-  const [, d, h, min, s] = m;
-  return Number(d ?? 0) * 86_400 + Number(h ?? 0) * 3_600 + Number(min) * 60 + Number(s);
-}
-
-/** `ps -A -o pid=,ppid=,etime=,command=` の出力を pid → 行 にする（読めない行は飛ばす） */
-export function parsePs(out: string): Map<number, PsRow> {
-  const rows = new Map<number, PsRow>();
-  for (const line of out.split("\n")) {
-    const m = /^\s*(\d+)\s+(\d+)\s+(\S+)\s+(.*)$/.exec(line);
-    if (!m) continue;
-    const pid = Number(m[1]);
-    // ps はコマンドの中の改行を \012 と書く（python -c の複数行など）。1 行に読み替える
-    rows.set(pid, { pid, ppid: Number(m[2]), elapsed: parseEtime(m[3]), command: m[4].replace(/\\012/g, " ").replace(/\s+/g, " ").trim() });
-  }
-  return rows;
-}
-
-/** `lsof -a -d cwd -p <pid,…> -Fpn` の出力を pid → 作業フォルダ にする（p の行で pid、続く n の行でフォルダ） */
-export function parseCwds(out: string): Map<number, string> {
-  const cwds = new Map<number, string>();
-  let pid: number | null = null;
-  for (const line of out.split("\n")) {
-    if (line.startsWith("p")) pid = Number(line.slice(1));
-    else if (line.startsWith("n") && pid !== null && Number.isInteger(pid)) cwds.set(pid, line.slice(1));
-  }
-  return cwds;
-}
-
 /** 自分（Kickoff）とその祖先の pid（一覧に出さず、止めさせない。製品版の中で開発版が動いているときの製品版も祖先） */
-export function selfAndAncestors(self: number, table: ReadonlyMap<number, PsRow>): Set<number> {
+export function selfAndAncestors(self: number, table: ReadonlyMap<number, ProcessRow>): Set<number> {
   const out = new Set<number>();
   let pid: number | undefined = self;
   while (pid !== undefined && pid > 1 && !out.has(pid)) {
@@ -54,24 +14,18 @@ export function selfAndAncestors(self: number, table: ReadonlyMap<number, PsRow>
   return out;
 }
 
-/** 実行ファイルのパスから .app の束のフォルダ（末尾の / まで。/A/Kickoff.app/Contents/MacOS/Kickoff → /A/Kickoff.app/。.app でなければ null） */
-export function appBundleOf(execPath: string): string | null {
-  const i = execPath.indexOf(".app/");
-  return i < 0 ? null : execPath.slice(0, i + ".app/".length);
-}
-
 /**
  * 自分（Kickoff）の Helper（子孫のうち、自分の .app の束の中の実行ファイルのもの。描画・GPU・ネットワークなど）。
  * ターミナルのシェルとそこから起動したもの（束の外）は入れない（「Kickoff の中」として出す）
  */
-export function selfHelpers(self: number, bundle: string | null, table: ReadonlyMap<number, PsRow>): Set<number> {
+export function selfHelpers(self: number, bundle: string | null, table: ReadonlyMap<number, ProcessRow>): Set<number> {
   const out = new Set<number>();
   if (!bundle) return out;
   for (const row of table.values()) {
     if (!row.command.startsWith(bundle)) continue;
     // 親をたどって自分に着けば子孫
     const seen = new Set<number>();
-    let cur: PsRow | undefined = table.get(row.ppid);
+    let cur: ProcessRow | undefined = table.get(row.ppid);
     while (cur && !seen.has(cur.pid)) {
       if (cur.pid === self) {
         out.add(row.pid);
@@ -91,13 +45,13 @@ const appNameOf = (command: string) => /(?:^|\/)([^/]+)\.app\//.exec(command)?.[
  * 起動元: 祖先に Kickoff（self）があれば「Kickoff の中」、親が launchd（pid 1）なら「切り離されている」（起動したものが終わって残ったもの）、
  * ほかは「ほかのアプリ」（launchd のすぐ下の祖先の .app の名前を添える）
  */
-export function originOf(pid: number, self: number, table: ReadonlyMap<number, PsRow>): { origin: PortOrigin; app: string | null } {
+export function originOf(pid: number, self: number, table: ReadonlyMap<number, ProcessRow>): { origin: PortOrigin; app: string | null } {
   const row = table.get(pid);
   if (!row) return { origin: "other", app: null };
   if (row.ppid === 1) return { origin: "detached", app: null };
   const seen = new Set<number>([pid]);
-  let top: PsRow = row;
-  let cur: PsRow | undefined = table.get(row.ppid);
+  let top: ProcessRow = row;
+  let cur: ProcessRow | undefined = table.get(row.ppid);
   while (cur && !seen.has(cur.pid)) {
     if (cur.pid === self) return { origin: "kickoff", app: null };
     seen.add(cur.pid);

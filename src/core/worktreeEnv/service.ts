@@ -8,7 +8,6 @@ import type { Store } from "../db/store.js";
 import type { StoredWorktreeEnv } from "../db/worktreeEnvs.js";
 import { findComposeFiles, upFilesFor } from "../docker/compose.js";
 import { STANDARD_COMPOSE_NAMES } from "../docker/parse.js";
-import { parseLsof } from "../system/listening.js";
 import type { DockerService } from "../docker/service.js";
 import { isInside } from "../system/paths.js";
 import { assignSlots, pickBand, type DockerSlotWant } from "./bands.js";
@@ -202,10 +201,10 @@ export class WorktreeEnvService {
     return [...byDir].map(([dir, file]) => ({ dir, files: upFilesFor(file).filter((p) => !p.endsWith(OVERRIDE_FILE)) }));
   }
 
-  /** 空いている帯（ほかのワークツリーに渡してある帯と、いま待ち受けている番号がある帯は飛ばす。lsof が使えなければ DB だけで選ぶ） */
+  /** 空いている帯（ほかのワークツリーに渡してある帯と、いま待ち受けている番号がある帯は飛ばす。待っているソケットを調べられなければ DB だけで選ぶ） */
   private async pickBand(except: string): Promise<number | null> {
-    const listening = await this.docker.ports.probe.lsof().then(
-      (out) => parseLsof(out).map((s) => s.port),
+    const listening = await this.docker.ports.probe.listeningSockets().then(
+      (sockets) => sockets.map((s) => s.port),
       () => [],
     );
     return pickBand(this.store.worktreeEnvs.takenBands(except), listening);

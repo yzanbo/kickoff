@@ -6,6 +6,7 @@ import { Bus } from "./bus.js";
 import { startHttpServer, stopHttpServer } from "./http/httpServer.js";
 import { createProviders } from "./providers/index.js";
 import { currentSelf } from "./chat/guard/selfProtection.js";
+import type { HostPlatform } from "./platform/types.js";
 import { createApp } from "./http/server.js";
 import { Store } from "./db/store.js";
 import { DB_FILE, discardPrereleaseData } from "./db/open.js";
@@ -46,8 +47,8 @@ interface CoreOptions {
   browser?: BrowserControl;
   /** 内蔵ターミナルの読み取り（デスクトップアプリのメインプロセスが渡す。AI がターミナルの出力を読むツールに使う） */
   terminals?: TerminalControl;
-  /** macOS の音声認識の補助コマンド（kickoff-speech）の場所（ビルドで out/native に作る。渡さなければ、音声入力の「macOS の音声認識」は使えない） */
-  speechHelper?: string;
+  /** OS ごとに違う処理（ゴミ箱・ポートを待っているプロセス・音声認識など。いまは platform/macos の macosPlatform。メインプロセス・daemon が作って渡す） */
+  platform: HostPlatform;
   /**
    * DB ワーカーを起動してつなぐ（Electron のアプリはメインプロセスが utilityProcess でビルドの out/main/dbWorker.js を起動する。
    * 渡さなければ、ソースの worker/main.ts を node ＋ tsx で fork する）
@@ -81,7 +82,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
 
   const token = loadOrCreateToken(opts.dataDir);
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
-  const providers = createProviders(currentSelf(opts.dataDir, opts.port));
+  const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform.appBundleOf(process.execPath)));
   // 使用枠は Claude のプランから取得する（Codex 対応時にプロバイダーごとに拡張する）
   const usage = new UsageMonitor(providers.claude, bus);
   // 設定の「使用状況」に並べる、ほかのサービス（Codex・Copilot・Cursor・Gemini）の使用状況
@@ -106,6 +107,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     defaultDir: memosDefaultDir,
     providers,
     publish: (e) => bus.publish(e),
+    trash: opts.platform.moveToTrash,
   });
   // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる）
   // DB のパスワードはキーチェーンの鍵で暗号化して置く（暗号化せずに置いていたものは、起動のときに一度だけ置き換える）
@@ -117,14 +119,14 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
   // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
   // Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く）
-  const docker = new DockerService(bus);
+  const docker = new DockerService(bus, opts.platform);
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる。チャットの AI とターミナルには PORT を渡す）
   const worktreeEnvs = new WorktreeEnvService(store, docker);
   // ポートを使っているプロセス（AI が残した開発サーバーに気付いて止める。調べるのは窓を開いた・チャットの実行が終わったときだけ）
-  const ports = new PortWatch(bus, new PortProcessService({ store }));
+  const ports = new PortWatch(bus, new PortProcessService({ store, probe: opts.platform, selfBundle: opts.platform.appBundleOf(process.execPath) }));
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals: opts.terminals, databases, docker, worktreeEnvs, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
-  const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
+  const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speech: opts.platform.speech, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）
   const github = new GitHubService({ onWorktreeCreated: (project, worktree) => worktreeEnvs.prepare(project, worktree) });
   const ci = new CiService(github);
@@ -159,6 +161,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     docker,
     worktreeEnvs,
     ports,
+    trash: opts.platform.moveToTrash,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });
