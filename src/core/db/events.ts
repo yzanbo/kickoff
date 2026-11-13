@@ -97,6 +97,28 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         "INSERT INTO chat_events (chat_id, type, data, created_at) SELECT ?, type, data, created_at FROM chat_events WHERE chat_id = ? AND id <= ? ORDER BY id",
       ).run(toChatId, fromChatId, upToEventId);
     },
+    /** チャットの記録に出てくる Claude Code などのセッション ID（動かし始めの init と作業の終わり result。分岐で写した記録の分も含む） */
+    sessionIds(chatIds: number[]): string[] {
+      if (chatIds.length === 0) return [];
+      const rows = db
+        .prepare(
+          `SELECT DISTINCT json_extract(data, '$.session_id') AS sid FROM chat_events
+           WHERE chat_id IN (${chatIds.map(() => "?").join(", ")}) AND type IN ('init', 'result') AND json_extract(data, '$.session_id') IS NOT NULL`,
+        )
+        .all(...chatIds) as { sid: string }[];
+      return rows.map((r) => r.sid);
+    },
+    /** このセッション ID を、いまあるチャットのどれかが使っているか（チャットの session_id か、記録の init・result） */
+    sessionInUse(sessionId: string): boolean {
+      return Boolean(
+        db
+          .prepare(
+            `SELECT 1 FROM chats WHERE session_id = $sid
+             UNION ALL SELECT 1 FROM chat_events WHERE type IN ('init', 'result') AND json_extract(data, '$.session_id') = $sid LIMIT 1`,
+          )
+          .get({ sid: sessionId }),
+      );
+    },
     /** 記録を、fromEventId から後ろ（fromEventId を含む）すべて消す（巻き戻し用。全文検索の索引はトリガーで追従する） */
     deleteFrom(chatId: number, fromEventId: number): void {
       db.prepare("DELETE FROM chat_events WHERE chat_id = ? AND id >= ?").run(chatId, fromEventId);

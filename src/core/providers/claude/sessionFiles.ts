@@ -1,5 +1,5 @@
 // Claude Code の会話記録のファイル（<設定のフォルダ>/projects/<作業フォルダの名前>/<セッション ID>.jsonl）を扱う:
-// 探す・分岐する位置の手前の直近の区切り（圧縮の印から次の印まで）だけを切り出す。
+// 探す・分岐する位置の手前の直近の区切り（圧縮の印から次の印まで）だけを切り出す・チャットを消したらゴミ箱へ移す。
 // Claude Code は圧縮しても古いやり取りを消さずに書き足し続けるので、長く続けたチャットの記録は 1GB を超える
 import { randomUUID } from "node:crypto";
 import { open, readdir, rm, stat, writeFile } from "node:fs/promises";
@@ -104,4 +104,18 @@ export async function writeRecentSegments(path: string, sessionId: string, messa
 export async function removeSession(path: string): Promise<void> {
   await rm(path, { force: true });
   await rm(path.replace(/\.jsonl$/, ""), { recursive: true, force: true });
+}
+
+/** セッションの記録（と、サブエージェントの記録などを置く同じ名前のフォルダ）をゴミ箱へ移す。移した記録の数を返す */
+export async function trashSessions(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>, root = claudeProjectsDir()): Promise<number> {
+  let moved = 0;
+  for (const id of sessionIds) {
+    const file = await findSessionFile(id, cwds, root);
+    if (!file) continue;
+    await trash(file);
+    moved++;
+    const dir = file.replace(/\.jsonl$/, "");
+    if (await stat(dir).then((s) => s.isDirectory(), () => false)) await trash(dir);
+  }
+  return moved;
 }

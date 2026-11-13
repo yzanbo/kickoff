@@ -150,6 +150,12 @@ class FakeProvider extends FakeProviderBase {
     if (this.forkError) throw new Error(this.forkError);
     return `fork-${n}`;
   }
+  /** チャットを消したときにゴミ箱へ移すよう頼まれたセッション（頼まれた順。cwds は作業フォルダの候補） */
+  discarded: { sessionIds: string[]; cwds: string[] }[] = [];
+  async discardSessions(sessionIds: string[], cwds: string[]) {
+    this.discarded.push({ sessionIds, cwds });
+    return sessionIds.length;
+  }
   /** 次からの分岐を、返した関数を呼ぶまで返さない */
   holdFork(): () => void {
     let release = () => {};

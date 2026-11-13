@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { tempDir } from "../../testing/tempDir.js";
-import { findSessionFile, recentSegmentsRange, writeRecentSegments } from "./sessionFiles.js";
+import { findSessionFile, recentSegmentsRange, trashSessions, writeRecentSegments } from "./sessionFiles.js";
 
 const SID = "11111111-1111-1111-1111-111111111111";
 const line = (o: object) => JSON.stringify({ sessionId: SID, ...o });
@@ -63,4 +63,13 @@ test("記録のファイルは作業フォルダから決まる場所を先に�
   assert.equal(await findSessionFile(SID, ["/work/app", "/somewhere/else"], root), path);
   assert.equal(await findSessionFile(SID, ["/work/app"], root), path);
   assert.equal(await findSessionFile("22222222-2222-2222-2222-222222222222", ["/work/app"], root), null);
+});
+
+test("ゴミ箱へ移すのは記録と、同じ名前のフォルダ（サブエージェントの記録など）。見つからないセッションは飛ばす", async () => {
+  const { root, path } = sessionFile([msg("a")]);
+  mkdirSync(path.replace(/\.jsonl$/, ""));
+  const trashed: string[] = [];
+  const moved = await trashSessions([SID, "33333333-3333-3333-3333-333333333333"], ["/work/app"], async (p) => void trashed.push(p), root);
+  assert.equal(moved, 1);
+  assert.deepEqual(trashed, [path, path.replace(/\.jsonl$/, "")]);
 });

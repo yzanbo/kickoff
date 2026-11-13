@@ -54,7 +54,7 @@ export async function deleteChat(chatId: number) {
 export async function confirmDeleteChat(chat: Pick<Chat, "id" | "title">): Promise<boolean> {
   const ok = await confirmDialog({
     title: `チャット「${chatTitle(chat.title)}」を削除しますか？`,
-    message: `会話の記録も消えます。${childNote(chat, "delete")}残しておきたいときはアーカイブを使ってください。`,
+    message: `会話の記録も消えます（Claude Code の会話記録はゴミ箱へ移します）。${childNote(chat, "delete")}残しておきたいときはアーカイブを使ってください。`,
     confirmLabel: "削除",
     danger: true,
   });
@@ -100,7 +100,7 @@ export async function confirmArchiveChats(chats: Chat[]): Promise<boolean> {
 export async function confirmDeleteChats(chats: Chat[]): Promise<boolean> {
   const ok = await confirmDialog({
     title: `${chats.length} 件のチャットを削除しますか？`,
-    message: "会話の記録も消えます。子チャット（孫も）も一緒に削除します。残しておきたいときはアーカイブを使ってください。作業中のチャットは削除できません。",
+    message: "会話の記録も消えます（Claude Code の会話記録はゴミ箱へ移します）。子チャット（孫も）も一緒に削除します。残しておきたいときはアーカイブを使ってください。作業中のチャットは削除できません。",
     confirmLabel: "削除",
     danger: true,
   });

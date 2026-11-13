@@ -39,6 +39,8 @@ export interface AgentProvider {
   ask?(prompt: string, options?: { model?: AskModel }): Promise<string>;
   /** 会話を messageId の位置までで分けた、新しいセッションを作る（ここから分岐。対応していなければ未実装） */
   fork?(sessionId: string, messageId: string, cwd: string): Promise<string>;
+  /** チャットを消したとき、そのセッションの記録を trash で移す（cwds は動かした作業フォルダの候補。移した数を返す。記録を持たなければ未実装） */
+  discardSessions?(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>): Promise<number>;
   /**
    * サブエージェントの会話（依頼・発言・ツールと結果）を、記録から読む（「サブエージェントに子チャットで聞く」で添える。読めなければ空）。
    * sessionId はサブエージェントを動かした親のセッション、cwd はそのセッションを動かした作業フォルダ
