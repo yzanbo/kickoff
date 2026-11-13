@@ -1,0 +1,142 @@
+/* 下の帯の「ポート n」と、押すと開く「ポートを使っているプロセス」の窓（features/footer/ports） */
+.footer-ports {
+  position: relative;
+}
+
+/* チャットの実行の間に新しく現れたものがある印 */
+.footer-ports-dot {
+  width: 6px;
+  height: 6px;
+  margin-left: 1px;
+  border-radius: 50%;
+  background: var(--dot-running);
+}
+
+/* 下の帯を隠しているときに ⌘K から開いた窓の置き場所（画面の左下） */
+.ports-fallback-anchor {
+  position: fixed;
+  left: 12px;
+  bottom: 8px;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.ports-popover {
+  width: min(720px, calc(100vw - 24px));
+  padding: 10px 12px 12px;
+  transform-origin: bottom left;
+  animation: popover-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ports-empty {
+  margin: 4px 0 0;
+}
+
+.ports-list {
+  display: grid;
+  max-height: min(420px, 60vh);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.ports-row {
+  display: grid;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 6px;
+}
+
+.ports-row + .ports-row {
+  border-top: 1px solid var(--border);
+}
+
+.ports-main {
+  display: grid;
+  grid-template-columns: auto minmax(60px, 1fr) auto auto auto auto auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.ports-ports {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.ports-port {
+  padding: 0 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent-fg);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ports-port:hover {
+  background: var(--bg-hover);
+}
+
+.ports-command {
+  overflow: hidden;
+  font-family: var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ports-project,
+.ports-place {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ports-place {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.ports-uptime,
+.ports-origin {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ports-origin {
+  color: var(--muted);
+}
+
+/* 起動したものから切り離されて残ったもの（AI が裏で起動して残した開発サーバーなど） */
+.ports-origin.is-detached {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.ports-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* 帯の添え書き・止まらなかったときの知らせ */
+.ports-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding-left: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ports-note.is-warn {
+  color: var(--warn);
+}

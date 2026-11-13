@@ -18,6 +18,7 @@ import { usePopover } from "@/ui/Popover";
 import { UsageMeter } from "@/features/usage/UsageMeter";
 import { UsagePopover } from "@/features/usage/UsagePopover";
 import { QueueResumeFooterButton } from "@/features/chat/queue/QueueResumeDialog";
+import { PortsButton, PortsFallback } from "./ports/PortsButton";
 
 interface Props {
   onOpenSettings: (section: SettingsSection) => void;
@@ -29,7 +30,7 @@ interface Props {
 }
 
 /**
- * 下の帯（左: 設定・サーバーとの接続が切れたときの札・CLI が使えないときの札・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。
+ * 下の帯（左: 設定・サーバーとの接続が切れたときの札・CLI が使えないときの札・ブランチ・ポートを使っているプロセス / 右: 契約プランと使用状況。ターミナルの開閉は右上）。
  * 接続の札は、つながっている間は出さない（デスクトップ版ではサーバーはアプリの中で動き、いつも「接続済み」だったため）。
  * 接続の札と使用状況は押すと、その上に詳細を出す（画面は移らない）。
  * 出し方（表示 / 下端に寄せたときだけ表示 / 非表示。useFooterMode）は、帯の右クリックと設定の「表示」で選ぶ。下端に寄せたときだけ出すときは、
@@ -43,7 +44,8 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
   const usage = planUsage.usage;
   const [mode, setMode] = useFooterMode();
   const menu = useContextMenu();
-  if (mode === "hide") return null;
+  // 隠していても、⌘K から「ポートを使っているプロセス」を開ける
+  if (mode === "hide") return <PortsFallback />;
   return (
     <footer className={cx("app-footer", mode === "hover" && "auto-hide")} onContextMenu={menu.open}>
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
@@ -79,6 +81,8 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       )}
       <ToolNotices onOpen={() => onOpenSettings("connection")} />
       {projectId !== undefined && <FooterBranch projectId={projectId} />}
+      {/* プロジェクトのフォルダでポートを開いているプロセス（0 なら出さない。AI が残した開発サーバーに気付いて止める） */}
+      <PortsButton />
       {/* 起動したときの送信待ちの確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
       <QueueResumeFooterButton />
       <span className="spacer" />

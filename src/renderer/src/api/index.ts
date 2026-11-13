@@ -9,6 +9,7 @@ import { gitApi } from "./git";
 import { githubApi } from "./github";
 import { dockerApi } from "./docker";
 import { ciApi } from "./ci";
+import { portsApi } from "./ports";
 import { groupsApi } from "./groups";
 import { memosApi } from "./memos";
 import { projectsApi } from "./projects";
@@ -43,6 +44,7 @@ export const api = {
   ...githubApi,
   ...dockerApi,
   ...ciApi,
+  ...portsApi,
 };
 
 export { ApiError } from "./http";

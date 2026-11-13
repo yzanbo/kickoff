@@ -20,6 +20,7 @@ import type { DatabaseService } from "../databases/service.js";
 import type { GitHubService } from "../github/service.js";
 import type { CiService } from "../github/ci.js";
 import type { DockerService } from "../docker/service.js";
+import type { PortWatch } from "../ports/watch.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { chatRoutes } from "./routes/chats.js";
@@ -27,6 +28,7 @@ import { databaseRoutes } from "./routes/databases.js";
 import { githubRoutes } from "./routes/github.js";
 import { ciRoutes } from "./routes/ci.js";
 import { dockerRoutes } from "./routes/docker.js";
+import { portsRoutes } from "./routes/ports.js";
 import { filesRoutes } from "./routes/files.js";
 import { gitRoutes } from "./routes/git.js";
 import { groupRoutes } from "./routes/groups.js";
@@ -72,6 +74,8 @@ export interface ServerDeps {
   docker: DockerService;
   /** ワークツリーの実行環境（ポートの帯・組の名前） */
   worktreeEnvs: WorktreeEnvService;
+  /** ポートを使っているプロセス（調べる・止める。実行が終わったときの見張り） */
+  ports: PortWatch;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。テストでは差し替えて、gh を呼ばない。なければ gh auth status） */
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」。テストでは差し替えて、本物のゴミ箱に入れない。なければ macOS のゴミ箱） */
@@ -152,6 +156,7 @@ export function createApp(deps: ServerDeps): Hono {
   githubRoutes(app, deps);
   ciRoutes(app, deps);
   dockerRoutes(app, deps);
+  portsRoutes(app, deps);
 
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>
