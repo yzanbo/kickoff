@@ -5,7 +5,7 @@ import { MenuItem } from "@/ui/PopupMenu";
 import type { HandOffItem } from "@/features/chat/handoff/handOff";
 import { HandOffButton } from "@/features/chat/handoff/HandOffMenu";
 import { fixReviewComments } from "./githubHandoff";
-import { captureNameOf, handOffText, itemDocument, linkOf, sourceOf } from "./githubPrompt";
+import { captureNameOf, handOffText, itemDocument, linkOf, sourceOf, worktreeBranchOf } from "./githubPrompt";
 
 const isPull = (d: GitHubIssueDetail): d is GitHubPullDetail => d.item.kind === "pr";
 
@@ -18,7 +18,7 @@ function handOffItemOf(projectId: number, detail: GitHubIssueDetail | GitHubPull
     text: handOffText(detail),
     capture: () => api.capture({ name: captureNameOf(detail), mime: "text/markdown", text: itemDocument(detail), source: sourceOf(detail) }),
     link: linkOf(detail),
-    branch: `${kind}-${detail.item.number}`,
+    branch: worktreeBranchOf(detail),
   };
 }
 
