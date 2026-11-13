@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { BackgroundState, BackgroundTask } from "@shared/types";
+import { fakeTimers } from "../../testing/fakeTimers.js";
 import { createTurnOver } from "./turnOver.js";
 
 const stateMsg = (state: "idle" | "running" | "requires_action") => ({ type: "system", subtype: "session_state_changed", state }) as unknown as SDKMessage;
@@ -9,29 +10,6 @@ const resultMsg = { type: "result" } as unknown as SDKMessage;
 const tasksMsg = { type: "system", subtype: "background_tasks_changed" } as unknown as SDKMessage;
 const task: BackgroundTask = { task_id: "t1", kind: "command", description: "sleep" };
 const bg = (tasks: BackgroundTask[], replied: boolean): BackgroundState => ({ tasks, replied });
-
-/** 手で進める時計 */
-function fakeTimers() {
-  const pending = new Map<number, () => void>();
-  let next = 1;
-  return {
-    timers: {
-      set: (fn: () => void) => {
-        pending.set(next, fn);
-        return next++;
-      },
-      clear: (h: unknown) => void pending.delete(h as number),
-    },
-    fire() {
-      const fns = [...pending.values()];
-      pending.clear();
-      fns.forEach((fn) => fn());
-    },
-    get size() {
-      return pending.size;
-    },
-  };
-}
 
 function setup() {
   const clock = fakeTimers();
