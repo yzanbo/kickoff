@@ -285,6 +285,39 @@
   display: contents;
 }
 
+/* 親の札・子チャットの名前をダブルクリックで変えている途中（札の枠を外して入力欄を置く。入力欄は .inline-name より後ろで同じ詳細度にして勝たせる） */
+/* 親の札を変えている間は、系譜の欄を縮めない（入力欄と ✓ / ✕ を切らない。代わりに根の側の札と子チャットの名前を縮める） */
+.child-chat-lineage:has(.child-chat-crumb.editing) {
+  flex-shrink: 0;
+}
+
+.child-chat-lineage:has(.child-chat-crumb.editing) .child-chat-crumb:not(.editing) {
+  max-width: 5em;
+}
+
+.child-chat-crumb.editing {
+  flex: 0 0 13em;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: auto;
+}
+
+.child-chat-bar-title.editing {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 12em;
+  overflow: visible;
+}
+
+input[type="text"].child-chat-title-input {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
 @container child-chat-bar (max-width: 560px) {
   .child-chat-lineage-up,
   .child-chat-lineage-lead-text {
