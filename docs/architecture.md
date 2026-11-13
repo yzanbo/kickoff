@@ -473,6 +473,7 @@ src/
     index.ts           起動の順番だけ
     app/               ウィンドウ・メニュー・終了の片付け・子の Electron・権限の問い合わせ・起動の記録
     ipc/               IPC の登録と引数の検査
+    platform/          OS ごとに違う処理の口を 1 か所で選ぶ（コアと共通の hostPlatform・メインだけの desktopPlatform: 外部のターミナル・ブラウザ・内蔵ターミナルのシェル）と macOS の中身（macos/）
     browser/  terminal/  notifications/  diagnostics/
   preload/             画面に出す最小限のネイティブ機能（型は @shared/ipc）
   renderer/src/        画面（React）。import は同じフォルダなら ./、それ以外は @/…

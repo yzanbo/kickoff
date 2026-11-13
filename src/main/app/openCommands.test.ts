@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { existingFolder, externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals, vscodeFileUrl } from "./openCommands.js";
+import { existingFolder, vscodeFileUrl } from "./openCommands.js";
 import { tempDir } from "../../core/testing/tempDir.js";
 
 test("外部のターミナルで開くフォルダ: いまあるフォルダだけ", () => {
@@ -12,22 +12,6 @@ test("外部のターミナルで開くフォルダ: いまあるフォルダだ
   const file = path.join(dir, "a.txt");
   fs.writeFileSync(file, "x");
   assert.throws(() => existingFolder(file), /フォルダが見つかりません/);
-});
-
-test("外部のターミナル: アプリごとの作業フォルダの渡し方、入っているものだけを出す", () => {
-  assert.deepEqual(externalTerminalArgs("terminal", "/w"), ["-a", "Terminal", "/w"]);
-  assert.deepEqual(externalTerminalArgs("ghostty", "/w"), ["-na", "Ghostty", "--args", "--working-directory=/w"]);
-  assert.deepEqual(externalTerminalArgs("iterm", "/w"), ["-a", "iTerm", "/w"]);
-  const present = new Set(["/Applications/Ghostty.app", "/h/Applications/Warp.app"]);
-  assert.deepEqual(installedTerminals("/h", (p) => present.has(p)), ["terminal", "ghostty", "warp"]);
-});
-
-test("外部のブラウザ: ページは http(s) だけ渡し、なければアプリを開くだけ、入っているものだけを出す", () => {
-  assert.deepEqual(externalBrowserArgs("brave", "https://example.com/"), ["-a", "Brave Browser", "https://example.com/"]);
-  assert.deepEqual(externalBrowserArgs("safari", "file:///etc/passwd"), ["-a", "Safari"]);
-  assert.deepEqual(externalBrowserArgs("chrome"), ["-a", "Google Chrome"]);
-  const present = new Set(["/Applications/Google Chrome.app", "/h/Applications/Arc.app"]);
-  assert.deepEqual(installedBrowsers("/h", (p) => present.has(p)), ["chrome", "safari", "arc"]);
 });
 
 test("VS Code で開く URL: パスを区切りごとに符号化し（# と ? も）、行は正の数のときだけ添える", () => {

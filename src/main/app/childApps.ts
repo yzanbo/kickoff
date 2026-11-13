@@ -1,25 +1,18 @@
-import { execFileAsync } from "../../core/system/exec.js";
-
-/** Electron の開発用の実行ファイル（npm run dev で動く Kickoff Dev など。Helper のプロセスは含まない） */
-const ELECTRON_MAIN = /\/Electron\.app\/Contents\/MacOS\/Electron(\s|$)/;
+import type { HostPlatform, ProcessRow } from "../../core/platform/types.js";
+import type { DesktopPlatform } from "../platform/types.js";
 
 /**
- * ps -axo pid=,ppid=,command= の出力から、root の子孫のうち、Electron のメインプロセスの pid を返す。
+ * プロセスの表から、root の子孫のうち、Electron のメインプロセス（isMain。OS の口の isDevElectronMain）の pid を返す。
  * 内蔵ターミナルやエージェントの実行から起動した開発中の Electron アプリが当たる
  */
-export function descendantElectronMains(psOutput: string, root: number): number[] {
-  const children = new Map<number, { pid: number; command: string }[]>();
-  for (const line of psOutput.split("\n")) {
-    const m = line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/);
-    if (!m) continue;
-    const [pid, ppid, command] = [Number(m[1]), Number(m[2]), m[3]];
-    children.set(ppid, [...(children.get(ppid) ?? []), { pid, command }]);
-  }
+export function descendantElectronMains(table: ReadonlyMap<number, ProcessRow>, root: number, isMain: (command: string) => boolean): number[] {
+  const children = new Map<number, ProcessRow[]>();
+  for (const row of table.values()) children.set(row.ppid, [...(children.get(row.ppid) ?? []), row]);
   const found: number[] = [];
   const queue = [root];
   while (queue.length > 0) {
     for (const child of children.get(queue.shift()!) ?? []) {
-      if (ELECTRON_MAIN.test(child.command)) found.push(child.pid);
+      if (isMain(child.command)) found.push(child.pid);
       queue.push(child.pid);
     }
   }
@@ -40,11 +33,10 @@ const isAlive = (pid: number) => {
  * メインプロセスにだけ SIGTERM を送って止め、終わるのを待つ（timeoutMs まで）。
  * ターミナルやエージェントを先に止めると、Helper まで一緒にいきなり止められ、開発版の localStorage が消えることがあるため
  */
-export async function stopChildElectronApps(timeoutMs: number): Promise<void> {
+export async function stopChildElectronApps(timeoutMs: number, host: Pick<HostPlatform, "processTable">, desktop: Pick<DesktopPlatform, "isDevElectronMain">): Promise<void> {
   let pids: number[];
   try {
-    const { stdout } = await execFileAsync("ps", ["-axo", "pid=,ppid=,command="]);
-    pids = descendantElectronMains(stdout, process.pid);
+    pids = descendantElectronMains(await host.processTable(), process.pid, desktop.isDevElectronMain);
   } catch {
     return;
   }
