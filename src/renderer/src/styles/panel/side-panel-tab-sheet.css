@@ -6,7 +6,8 @@
  * 画面の中の色は変えない（白を重ねると、入力欄・カード・吹き出しの明るさとの差が縮むため、外側を暗くする）。暗い地に明るい面を載せる形は
  * サイドバーの選んでいる行・タブのまとまりと同じ。地がつながるので、下線の代わりに上の端に 1px の線（タブの色。なければアクセントの緑）を引く。
  * 右の欄（.agent-panel）のタブの列も同じ形（上の端の線・境目の塗りつぶし）にするが、地は暗くせず画面と同じにする（右の欄は外側の表示中のタブの面の中の部品なので、
- * 外側と同じ暗い帯を入れると面に穴が開いたように見え、隣に並ぶ別のパネルに見えた。利用者の依頼で暗い地だけ戻した）
+ * 外側と同じ暗い帯を入れると面に穴が開いたように見え、隣に並ぶ別のパネルに見えた。利用者の依頼で暗い地だけ戻した）。
+ * 右の欄の表示中でないタブだけは、外側の表示中でないタブと同じ暗い地にする（下の :where(.agent-panel) の規則）
  */
 .panel-tabs {
   /*
@@ -20,7 +21,15 @@
 
 /* 暗い地は外側のパネルだけ（右の欄のタブの列は画面と同じ地のまま） */
 .panel-tabs:not(:where(.agent-panel *)) {
-  background: color-mix(in srgb, #000 35%, var(--bg-sidebar));
+  background: var(--tab-strip-bg);
+}
+
+/*
+ * 右の欄の表示中でないタブ（子・サブ・メモなど）は、列の地は画面と同じのまま、タブだけを外側のパネルの表示中でないタブと同じ暗い地にする
+ * （前は列ごと画面と同じ地で、表示中のタブとの違いが上の端の線だけだった。利用者の依頼。乗せたときは .panel-tab:hover の地）
+ */
+:where(.agent-panel) .panel-tabs .panel-tab:not(.active, :hover) {
+  background: var(--tab-strip-bg);
 }
 
 /*
@@ -36,10 +45,6 @@
 .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
   padding-bottom: 0;
   margin-bottom: 0;
-}
-
-:root[data-theme="light"] .panel-tabs:not(:where(.agent-panel *)) {
-  background: color-mix(in srgb, #000 5%, var(--bg-sidebar));
 }
 
 .panel-tabs .panel-tab.active {
