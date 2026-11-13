@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Trash2 } from "lucide-react";
 import { GITHUB_REVIEW_EVENTS, GITHUB_REVIEW_EVENT_LABELS, type GitHubReviewDraftComment, type GitHubReviewEvent } from "@shared/types";
 import { api } from "@/api";
@@ -21,7 +21,20 @@ export function useReviewDraft(projectId: number, number: number) {
  * 「変更」の上のレビューの帯（要件 5.11 の段階 3）: ためた行のコメントの数と「レビューを書く」。開くと本文（Markdown）と、送り方（コメント / 承認 / 変更依頼）。
  * 行のコメントもまとめて 1 回で送り（GitHub と同じ）、見ていた最新のコミット（head_sha）に付ける。送ったら書きかけを消して onSent（中身を取り直す）
  */
-export function GitHubReviewBar({ projectId, number, headSha, onSent }: { projectId: number; number: number; headSha: string | null; onSent: () => void }) {
+export function GitHubReviewBar({
+  projectId,
+  number,
+  headSha,
+  onSent,
+  lead,
+}: {
+  projectId: number;
+  number: number;
+  headSha: string | null;
+  onSent: () => void;
+  /** 行の頭に置くもの（「変更」のファイルの木の開閉） */
+  lead?: ReactNode;
+}) {
   const [draft, setDraft] = useReviewDraft(projectId, number);
   const [open, setOpen] = useState(false);
   const action = useAction<GitHubReviewEvent>();
@@ -36,6 +49,7 @@ export function GitHubReviewBar({ projectId, number, headSha, onSent }: { projec
   return (
     <section className="github-review-bar" aria-label="レビュー">
       <div className="github-review-bar-row">
+        {lead}
         <span className="muted small">
           {count > 0 ? `行のコメント ${count} 件をためています（まだ送っていません）` : "差分の行を右クリックすると、レビューの行のコメントを書けます"}
         </span>

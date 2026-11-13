@@ -31,7 +31,7 @@ test("issue・PR の札の中身: 題名と URL・本文・コメントとレビ
 test("issue の札の中身: 本文が空なら（本文なし）・コメントがなければ見出しも出さない・途中までなら添える", () => {
   const issue = makePullDetail({ body_markdown: "", timeline_truncated: true });
   issue.item = { ...issue.item, kind: "issue", url: "https://github.com/o/r/issues/5" };
-  const text = itemDocument({ item: issue.item, body_html: "", body_markdown: "", timeline: [], timeline_truncated: true, viewer: issue.viewer, fetched_at: issue.fetched_at });
+  const text = itemDocument({ item: issue.item, body_html: "", body_markdown: "", timeline: [], timeline_truncated: true, linked_pulls: [], viewer: issue.viewer, fetched_at: issue.fetched_at });
   assert.match(text, /issue #5/);
   assert.match(text, /（本文なし）/);
   assert.doesNotMatch(text, /## コメント/);

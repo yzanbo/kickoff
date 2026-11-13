@@ -1,8 +1,12 @@
-import { memo, useCallback, useMemo, useState, type MouseEvent } from "react";
-import { Copy, MessageSquare, MessageSquarePlus } from "lucide-react";
+import { memo, useCallback, useMemo, useRef, useState, type MouseEvent } from "react";
+import { Copy, MessageSquare, MessageSquarePlus, PanelLeft } from "lucide-react";
 import type { GitHubPullFile, GitHubReviewDraftComment, GitHubReviewThread } from "@shared/types";
 import { api } from "@/api";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
+import { useNarrowerThan } from "@/hooks/useNarrowerThan";
+import { useSetting } from "@/hooks/useSetting";
+import { GITHUB_FILES_TREE_HIDDEN } from "@/lib/storageKeys";
+import { IconButton } from "@/ui/IconButton";
 import { Chevron } from "@/ui/Chevron";
 import { ErrorText } from "@/ui/ErrorText";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
@@ -11,12 +15,15 @@ import { FileIcon } from "@/features/editor/FileIcon";
 import { UnifiedDiff, useDiffHighlight } from "@/features/editor/DiffView";
 import { parseDiff } from "@/features/editor/parseDiff";
 import { GitHubThread } from "./GitHubTimeline";
+import { GitHubPullFileTree } from "./GitHubPullFileTree";
 import { GitHubReviewBar, ReviewCommentEditor, ReviewDraftComment, useReviewDraft } from "./GitHubReview";
 import { placeThreads, threadsAt } from "./pullThreads";
 import { isTargetLine, reviewTargetAt, targetLabel, type ReviewTarget } from "./reviewLines";
 
 /** これより多いファイルの PR は、初めはすべて畳んでおく（開いた分だけ差分を描く） */
 const OPEN_ALL_MAX = 20;
+/** これより狭い欄では、左のファイルの木を出さない（差分の幅を残す） */
+const TREE_MIN_WIDTH = 560;
 
 /** ファイルの変わり方の名前（GitHub の status） */
 const FILE_STATUS_LABELS: Record<string, string> = {
@@ -130,7 +137,8 @@ const PullFile = memo(function PullFile({
 });
 
 /**
- * PR の「変更」（変えたファイルごとの差分と、行のスレッド）。差分は 1 列で、スレッドはその行の下に出す（GitHub と同じ）。
+ * PR の「変更」（左に変えたファイルの木、右にファイルごとの差分と行のスレッド）。差分は 1 列で、スレッドはその行の下に出す（GitHub と同じ）。
+ * 木は変更タブと同じ形で、押すとそのファイルの差分へ移る（畳んでいれば開く）。帯の頭のボタンで閉じられ、狭い欄では出さない。
  * 差分の行（選べば行の範囲）を右クリックするとレビューの行のコメントを書け、ためておいて上の帯（GitHubReviewBar）からまとめて送る（段階 3）。
  * version（PR の最新のコミット）が変わったら取り直す。ファイルが多ければ初めは畳んでおく
  */
@@ -165,6 +173,11 @@ export function GitHubPullChanges({
   const [draft, setDraft] = useReviewDraft(projectId, number);
   const [composing, setComposing] = useState<ReviewTarget | null>(null);
   const menu = useContextMenu<{ target: ReviewTarget; copy: string }>();
+  // 左のファイルの木（閉じたかは覚える。狭い欄では出さない）と、木で押したファイル
+  const [treeHidden, setTreeHidden] = useSetting(GITHUB_FILES_TREE_HIDDEN);
+  const layout = useNarrowerThan<HTMLDivElement>(TREE_MIN_WIDTH);
+  const main = useRef<HTMLDivElement>(null);
+  const [picked, setPicked] = useState<string | null>(null);
   const review = useMemo<ReviewHandlers>(
     () => ({
       save: (target, body) => {
@@ -191,11 +204,31 @@ export function GitHubPullChanges({
   if (!data) return <p className="muted small github-detail-loading">読み込み中…</p>;
   if (data.files.length === 0) return <p className="muted small">この PR には変更したファイルがありません。</p>;
   const openByDefault = data.files.length <= OPEN_ALL_MAX;
+  const showTree = !treeHidden && !layout.narrow;
+  // 木で押したファイルの差分へ移る（畳んでいれば開いてから）
+  const goTo = (path: string) => {
+    setPicked(path);
+    if (openByDefault === toggled.has(path)) toggle(path);
+    requestAnimationFrame(() => main.current?.querySelector(`.github-file[data-path="${CSS.escape(path)}"]`)?.scrollIntoView({ block: "start" }));
+  };
 
   return (
     <div className="github-files" onContextMenu={onContextMenu}>
-      <GitHubReviewBar projectId={projectId} number={number} headSha={headSha} onSent={onChanged} />
-      {!openByDefault && <p className="muted small">ファイルが多いので畳んでいます。見出しを押すと差分を開きます。</p>}
+      <GitHubReviewBar
+        projectId={projectId}
+        number={number}
+        headSha={headSha}
+        onSent={onChanged}
+        lead={
+          !layout.narrow && (
+            <IconButton icon={PanelLeft} size={14} label={treeHidden ? "ファイルの木を出す" : "ファイルの木を閉じる"} aria-pressed={!treeHidden} onClick={() => setTreeHidden(!treeHidden)} />
+          )
+        }
+      />
+      <div ref={layout.ref} className="github-files-layout">
+      {showTree && <GitHubPullFileTree files={data.files} selected={picked} onSelect={goTo} />}
+      <div ref={main} className="github-files-main">
+      {!openByDefault && <p className="muted small">ファイルが多いので畳んでいます。見出し・左の木を押すと差分を開きます。</p>}
       {data.files.map((f) => (
         <PullFile
           key={f.path}
@@ -209,6 +242,8 @@ export function GitHubPullChanges({
         />
       ))}
       {data.truncated && <p className="muted small">ファイルが多いので、初めの {data.files.length.toLocaleString()} 件までを出しています。続きは GitHub で見てください。</p>}
+      </div>
+      </div>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="差分の行" onClose={menu.close}>
           <MenuItem onSelect={() => setComposing(menu.menu?.value.target ?? null)}>

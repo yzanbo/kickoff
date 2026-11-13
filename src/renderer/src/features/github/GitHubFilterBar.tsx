@@ -13,7 +13,7 @@ import {
   type GitHubMineFilter,
   type GitHubRepoMeta,
 } from "@shared/types";
-import { defaultGitHubFilter, mineFiltersFor } from "@shared/github/searchQuery";
+import { defaultGitHubFilter, githubSearchText, mineFiltersFor, parseGitHubSearchText } from "@shared/github/searchQuery";
 import { cx } from "@/lib/cx";
 import { activeFilterCount } from "@/lib/githubFilters";
 import { isComposing } from "@/lib/keys";
@@ -23,7 +23,7 @@ import { SearchField } from "@/ui/SearchField";
 import { Segmented } from "@/ui/Segmented";
 import { useContextMenu } from "@/ui/useContextMenu";
 
-type MenuKind = "state" | "mine" | "labels" | "assignee" | "milestone" | "sort";
+type MenuKind = "state" | "mine" | "labels" | "assignees" | "milestones" | "sort";
 
 /** 検索の文を決めるまでの間（打っている間は聞かない） */
 const TEXT_DELAY_MS = 500;
@@ -38,8 +38,22 @@ function FilterChip({ label, active, onOpen }: { label: string; active: boolean;
   );
 }
 
+/** 複数選べる札の名前（なし → 名前・1 つ → その値・2 つ以上 → 名前と数） */
+const chipLabel = (name: string, values: string[], one: (v: string) => string) => (values.length === 0 ? name : values.length === 1 ? one(values[0]) : `${name} ${values.length}`);
+
+/** 複数選べるメニューの 1 行（押しても閉じない） */
+function CheckItem({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
+  return (
+    <MenuItem role="menuitemcheckbox" checked={on} keepOpen onSelect={onToggle}>
+      <span className="project-switch-item">{label}</span>
+      {on && <Check size={14} aria-hidden />}
+    </MenuItem>
+  );
+}
+
 /**
- * GitHub タブの一覧の上（issue｜PR の切り替え・件数・取り直し・新しい issue、検索の欄、状態・自分・ラベル・担当・マイルストーン・並べ方の札）。
+ * GitHub タブの一覧の上（issue｜PR の切り替え・件数・取り直し・新しい issue、検索の欄、状態・自分・ラベル・担当・マイルストーン・並べ方の札。
+ * ラベル・担当・マイルストーンはいくつも選べる。検索の欄は札も含めた検索の文で、書き換えると札も変わる）。
  * 絞り込みの候補（ラベルなど）は meta（なければ札のメニューに「読み込み中…」）
  */
 export function GitHubFilterBar({
@@ -63,15 +77,28 @@ export function GitHubFilterBar({
   onNewIssue: () => void;
 }) {
   const menu = useContextMenu<MenuKind>();
-  const [text, setText] = useState(filter.text);
-  // 種類を切り替えた・外から変えたときは欄もそろえる
-  useEffect(() => setText(filter.text), [filter.text, filter.kind]);
+  // 検索の欄は絞り込みすべてを文にしたもの（札を変えると文も変わり、文を書き換えると札も変わる）
+  const committed = githubSearchText(filter);
+  const [text, setText] = useState(committed);
+  const sameAsFilter = (t: string) => githubSearchText(parseGitHubSearchText(filter.kind, t)) === committed;
+  // 札・種類が変わったら欄もそろえる（同じ意味の書き方なら、打っている途中の文を崩さない）
   useEffect(() => {
-    if (text === filter.text) return;
-    const timer = setTimeout(() => onChange({ text }), TEXT_DELAY_MS);
+    setText((cur) => (githubSearchText(parseGitHubSearchText(filter.kind, cur)) === committed ? cur : committed));
+  }, [committed, filter.kind]);
+  const commitText = (t: string) => {
+    if (!sameAsFilter(t)) onChange(parseGitHubSearchText(filter.kind, t));
+  };
+  useEffect(() => {
+    if (sameAsFilter(text)) return;
+    const timer = setTimeout(() => commitText(text), TEXT_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
+  /** 複数選べる札の 1 つを切り替える */
+  const toggleIn = (key: "labels" | "assignees" | "milestones", value: string) => {
+    const list = filter[key];
+    onChange({ [key]: list.includes(value) ? list.filter((x) => x !== value) : [...list, value] });
+  };
 
   const open = (kind: MenuKind) => (e: MouseEvent<HTMLButtonElement>) => menu.toggle(e, kind);
   const mines = mineFiltersFor(filter.kind);
@@ -101,16 +128,16 @@ export function GitHubFilterBar({
         className="github-search"
         value={text}
         onChange={setText}
-        placeholder="検索（is:draft・author:… も使える）"
+        placeholder="検索（is:draft・author:… など GitHub の書き方も使える）"
         label={`${GITHUB_KIND_LABELS[filter.kind]}を検索`}
-        onKeyDown={(e) => e.key === "Enter" && !isComposing(e) && onChange({ text })}
+        onKeyDown={(e) => e.key === "Enter" && !isComposing(e) && commitText(text)}
       />
       <div className="github-filter-chips">
         <FilterChip label={GITHUB_STATE_FILTER_LABELS[filter.state]} active={filter.state !== "open"} onOpen={open("state")} />
         <FilterChip label={filter.mine ? GITHUB_MINE_FILTER_LABELS[filter.mine] : "自分"} active={filter.mine !== null} onOpen={open("mine")} />
         <FilterChip label={filter.labels.length ? `ラベル ${filter.labels.length}` : "ラベル"} active={filter.labels.length > 0} onOpen={open("labels")} />
-        <FilterChip label={filter.assignee ? `担当: ${filter.assignee}` : "担当"} active={filter.assignee !== null} onOpen={open("assignee")} />
-        <FilterChip label={filter.milestone ?? "マイルストーン"} active={filter.milestone !== null} onOpen={open("milestone")} />
+        <FilterChip label={chipLabel("担当", filter.assignees, (v) => `担当: ${v}`)} active={filter.assignees.length > 0} onOpen={open("assignees")} />
+        <FilterChip label={chipLabel("マイルストーン", filter.milestones, (v) => v)} active={filter.milestones.length > 0} onOpen={open("milestones")} />
         <FilterChip label={GITHUB_SORT_LABELS[filter.sort]} active={filter.sort !== "updated"} onOpen={open("sort")} />
         {activeFilterCount(filter) > 0 && (
           <button type="button" className="github-filter-clear" onClick={() => onChange({ ...defaultGitHubFilter(filter.kind), sort: filter.sort })}>
@@ -151,7 +178,7 @@ export function GitHubFilterBar({
                       role="menuitemcheckbox"
                       checked={on}
                       keepOpen
-                      onSelect={() => onChange({ labels: on ? filter.labels.filter((x) => x !== l.name) : [...filter.labels, l.name] })}
+                      onSelect={() => toggleIn("labels", l.name)}
                     >
                       <span className="github-label-dot" style={{ background: `#${l.color}` }} aria-hidden />
                       <span className="project-switch-item">{l.name}</span>
@@ -160,39 +187,20 @@ export function GitHubFilterBar({
                   );
                 })
               )))}
-          {menu.menu.value === "assignee" &&
-            (loadingItem || (
-              <>
-                <MenuItem role="menuitemradio" checked={filter.assignee === null} onSelect={pick({ assignee: null })}>
-                  <span className="project-switch-item">絞り込まない</span>
+          {menu.menu.value === "assignees" &&
+            (loadingItem ||
+              meta?.assignees.map((u) => (
+                <CheckItem key={u.login} label={u.login} on={filter.assignees.includes(u.login)} onToggle={() => toggleIn("assignees", u.login)} />
+              )))}
+          {menu.menu.value === "milestones" &&
+            (loadingItem ||
+              (meta?.milestones.length === 0 ? (
+                <MenuItem disabled onSelect={() => undefined}>
+                  開いているマイルストーンがありません
                 </MenuItem>
-                {meta?.assignees.map((u) => (
-                  <MenuItem key={u.login} role="menuitemradio" checked={filter.assignee === u.login} onSelect={pick({ assignee: u.login })}>
-                    <span className="project-switch-item">{u.login}</span>
-                    {filter.assignee === u.login && <Check size={14} aria-hidden />}
-                  </MenuItem>
-                ))}
-              </>
-            ))}
-          {menu.menu.value === "milestone" &&
-            (loadingItem || (
-              <>
-                <MenuItem role="menuitemradio" checked={filter.milestone === null} onSelect={pick({ milestone: null })}>
-                  <span className="project-switch-item">絞り込まない</span>
-                </MenuItem>
-                {meta?.milestones.length === 0 && (
-                  <MenuItem disabled onSelect={() => undefined}>
-                    開いているマイルストーンがありません
-                  </MenuItem>
-                )}
-                {meta?.milestones.map((m) => (
-                  <MenuItem key={m} role="menuitemradio" checked={filter.milestone === m} onSelect={pick({ milestone: m })}>
-                    <span className="project-switch-item">{m}</span>
-                    {filter.milestone === m && <Check size={14} aria-hidden />}
-                  </MenuItem>
-                ))}
-              </>
-            ))}
+              ) : (
+                meta?.milestones.map((m) => <CheckItem key={m} label={m} on={filter.milestones.includes(m)} onToggle={() => toggleIn("milestones", m)} />)
+              )))}
           {menu.menu.value === "sort" &&
             GITHUB_SORTS.map((s) => (
               <MenuItem key={s} role="menuitemradio" checked={filter.sort === s} onSelect={pick({ sort: s })}>

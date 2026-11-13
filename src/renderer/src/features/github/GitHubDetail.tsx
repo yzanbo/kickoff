@@ -2,13 +2,15 @@ import { useMemo, useState, type ReactNode } from "react";
 import { ArrowLeft, ExternalLink, TriangleAlert } from "lucide-react";
 import type { GitHubKind, GitHubPullDetail } from "@shared/types";
 import { api } from "@/api";
+import { cx } from "@/lib/cx";
 import { CopyButton } from "@/ui/CopyButton";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { reportFailure } from "@/ui/dialogs";
 import { ErrorText } from "@/ui/ErrorText";
 import { Segmented } from "@/ui/Segmented";
-import { GitHubHostContext, GitHubHtml } from "./GitHubHtml";
+import { GitHubBodyContext, GitHubHtml } from "./GitHubHtml";
 import { GitHubChecksList } from "./GitHubChecksList";
+import { GitHubLinkedPulls, GitHubMergeBadges } from "./GitHubDetailBadges";
 import { GitHubPullChanges } from "./GitHubPullChanges";
 import { GitHubLabels, REVIEW_DECISION_LABELS } from "./GitHubItemRow";
 import { GitHubStateChip } from "./GitHubStateIcon";
@@ -31,7 +33,7 @@ const PR_VIEW_LABELS: Record<PrView, string> = { conversation: "会話", files: 
 const isPull = (d: Detail): d is GitHubPullDetail => d.item.kind === "pr";
 
 /**
- * GitHub タブの右（開いた issue・PR の中身）。見出し（題名・状態・作った人・ラベル・担当、PR はブランチ・増減・レビュー・衝突）と、
+ * GitHub タブの右（開いた issue・PR の中身）。見出し（題名・状態・作った人・ラベル・担当・issue を閉じる PR、PR はブランチ・増減・レビュー・マージできるか・承認の数・衝突）と、
  * issue は本文と会話の流れ、PR は会話・変更（差分と行のスレッド）・チェックの切り替え。取り直している間は前の中身に「更新中」の印を出す。
  * 書く（段階 3）: 会話の下のコメント欄（閉じる・開き直すも）・ラベル・URL のコピー、PR はチェックアウト・マージ・行のスレッドへの返信と解決・「変更」でのレビュー。
  * 書いたら中身を取り直す
@@ -96,6 +98,8 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
                 </span>
               )}
               {data.item.review_decision && <span className={`github-review github-review-${data.item.review_decision}`}>{REVIEW_DECISION_LABELS[data.item.review_decision]}</span>}
+              {isPull(data) && <GitHubMergeBadges detail={data} />}
+              <GitHubLinkedPulls projectId={projectId} pulls={data.linked_pulls} />
             </div>
             {(data.item.labels.length > 0 || data.item.assignees.length > 0 || data.item.milestone || data.viewer.can_label || isPull(data)) && (
               <div className="github-detail-meta">
@@ -128,7 +132,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
       {data && (
         <ThreadHandoffContext.Provider value={isPull(data) ? (thread) => void fixReviewComments(projectId, data, linkOf(data), [thread]) : null}>
         <ThreadActionsContext.Provider value={isPull(data) ? threadActions : null}>
-        <DetailBody projectId={projectId} detail={data}>
+        <DetailBody projectId={projectId} detail={data} files={isPull(data) && view === "files"}>
           {isPull(data) && view === "checks" ? (
             <GitHubChecksList projectId={projectId} checks={data.checks} />
           ) : isPull(data) && view === "files" ? (
@@ -154,15 +158,18 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
   );
 }
 
-/** 中身の本文の入れ物（本文の中のこのリポジトリの #番号 のリンクは Kickoff の中で開き、選んだ文は右クリックでチャットに追加。useGitHubBodyActions） */
-function DetailBody({ projectId, detail, children }: { projectId: number; detail: Detail; children: ReactNode }) {
+/**
+ * 中身の本文の入れ物（本文の中のこのリポジトリの #番号 のリンクは Kickoff の中で開き、選んだ文は右クリックでチャットに追加。useGitHubBodyActions）。
+ * files は PR の「変更」（入れ物は流さず、中のファイルの木と差分がそれぞれ流れる）
+ */
+function DetailBody({ projectId, detail, files = false, children }: { projectId: number; detail: Detail; files?: boolean; children: ReactNode }) {
   const actions = useGitHubBodyActions(projectId, detail);
   return (
-    <GitHubHostContext.Provider value={actions.host}>
-      <div className="github-detail-body" onClick={actions.onClick} onContextMenu={actions.onContextMenu}>
+    <GitHubBodyContext.Provider value={actions.place}>
+      <div className={cx("github-detail-body", files && "files")} onClick={actions.onClick} onContextMenu={actions.onContextMenu}>
         {children}
         {actions.menu}
       </div>
-    </GitHubHostContext.Provider>
+    </GitHubBodyContext.Provider>
   );
 }

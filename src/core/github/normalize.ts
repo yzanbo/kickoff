@@ -5,6 +5,7 @@ import type {
   GitHubItem,
   GitHubItemState,
   GitHubLabel,
+  GitHubLinkedPull,
   GitHubMergeMethod,
   GitHubMergeState,
   GitHubPullFile,
@@ -187,14 +188,34 @@ export function toCheck(raw: Raw): GitHubCheck | null {
     // GitHub Actions のチェックだけ実行とジョブの ID を持つ（Kickoff の中でログを開く。外の CI の check run は workflowRun がない）
     const runId = Number(raw.checkSuite?.workflowRun?.databaseId ?? 0) || null;
     const jobId = runId ? Number(raw.databaseId ?? 0) || null : null;
-    return { name: String(raw.name ?? ""), workflow: raw.checkSuite?.workflowRun?.workflow?.name ?? null, state, description: raw.title ?? null, url: raw.detailsUrl ?? null, run_id: runId, job_id: jobId };
+    return {
+      name: String(raw.name ?? ""),
+      workflow: raw.checkSuite?.workflowRun?.workflow?.name ?? null,
+      state,
+      description: raw.title ?? null,
+      url: raw.detailsUrl ?? null,
+      run_id: runId,
+      job_id: jobId,
+      started_at: typeof raw.startedAt === "string" ? raw.startedAt : null,
+      completed_at: typeof raw.completedAt === "string" ? raw.completedAt : null,
+    };
   }
   if (raw?.__typename === "StatusContext") {
     const s = lower(raw.state) ?? "pending";
-    return { name: String(raw.context ?? ""), workflow: null, state: s === "error" ? "failure" : s === "expected" ? "pending" : s, description: raw.description ?? null, url: raw.targetUrl ?? null, run_id: null, job_id: null };
+    return { name: String(raw.context ?? ""), workflow: null, state: s === "error" ? "failure" : s === "expected" ? "pending" : s, description: raw.description ?? null, url: raw.targetUrl ?? null, run_id: null, job_id: null, started_at: null, completed_at: null };
   }
   return null;
 }
+
+/** issue を閉じる PR（closedByPullRequestsReferences） */
+export function toLinkedPulls(conn: Raw): GitHubLinkedPull[] {
+  return nodes(conn)
+    .filter((p) => typeof p.number === "number")
+    .map((p) => ({ number: p.number, title: String(p.title ?? ""), state: (lower(p.state) ?? "open") as GitHubItemState, is_draft: p.isDraft === true }));
+}
+
+/** 承認の数（人ごとのいちばん新しい賛否のレビュー latestOpinionatedReviews のうち、承認のもの） */
+export const approvalCount = (conn: Raw): number => nodes(conn).filter((r) => r.state === "APPROVED").length;
 
 /** REST の PR の変更したファイル 1 つ */
 export function toPullFile(raw: Raw): GitHubPullFile {

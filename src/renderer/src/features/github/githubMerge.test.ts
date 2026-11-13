@@ -11,9 +11,9 @@ test("マージの注意: 何もなければ空、落ちた・途中のチェッ
     mergeable: "conflicting",
     merge_state: "dirty",
     checks: [
-      { name: "test", workflow: null, state: "failure", description: null, url: null, run_id: null, job_id: null },
-      { name: "lint", workflow: null, state: "pending", description: null, url: null, run_id: null, job_id: null },
-      { name: "build", workflow: null, state: "success", description: null, url: null, run_id: null, job_id: null },
+      { name: "test", workflow: null, state: "failure", description: null, url: null, run_id: null, job_id: null, started_at: null, completed_at: null },
+      { name: "lint", workflow: null, state: "pending", description: null, url: null, run_id: null, job_id: null, started_at: null, completed_at: null },
+      { name: "build", workflow: null, state: "success", description: null, url: null, run_id: null, job_id: null, started_at: null, completed_at: null },
     ],
   });
   const texts = mergeWarnings(bad).map((w) => `${w.level}:${w.text}`);

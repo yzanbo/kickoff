@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import { useMemo, type MouseEvent } from "react";
 import { Copy } from "lucide-react";
 import { GITHUB_DEFAULT_HOST, githubHostOfUrl } from "@shared/github/host";
 import type { GitHubIssueDetail } from "@shared/types";
@@ -71,5 +71,7 @@ export function useGitHubBodyActions(projectId: number, detail: GitHubIssueDetai
     </PopupMenu>
   );
 
-  return { onClick, onContextMenu, menu: element, host };
+  // 本文の相対のリンクと、リポジトリの中のファイルの画像の読み先に使う（描くたびに作り直さない）
+  const place = useMemo(() => ({ host, repo, projectId }), [host, repo, projectId]);
+  return { onClick, onContextMenu, menu: element, place };
 }

@@ -25,19 +25,25 @@ import { idParam, jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { localOnly } from "../thisMac.js";
 
-/** 一覧の絞り込み（クエリ。label は , 区切り） */
+/** 一覧の絞り込み（クエリ。label・assignees は , 区切り、milestones は改行区切り（名前に , を含みうる）） */
 const listQuery = z.object({
   kind: z.enum(GITHUB_KINDS),
   state: z.enum(GITHUB_STATE_FILTERS).default("open"),
   mine: z.enum(GITHUB_MINE_FILTERS).optional(),
   labels: z.string().max(2000).optional(),
-  assignee: z.string().max(100).optional(),
-  milestone: z.string().max(300).optional(),
+  assignees: z.string().max(2000).optional(),
+  milestones: z.string().max(3000).optional(),
   q: z.string().max(500).optional(),
   sort: z.enum(GITHUB_SORTS).default("updated"),
   cursor: z.string().max(500).optional(),
   refresh: z.enum(["1"]).optional(),
 });
+
+const splitList = (v: string | undefined, sep: string) =>
+  (v ?? "")
+    .split(sep)
+    .map((x) => x.trim())
+    .filter(Boolean);
 
 /** クエリ → 絞り込み（純粋な関数） */
 export function filterOfQuery(query: z.infer<typeof listQuery>): GitHubListFilter {
@@ -45,12 +51,9 @@ export function filterOfQuery(query: z.infer<typeof listQuery>): GitHubListFilte
     kind: query.kind,
     state: query.state,
     mine: query.mine ?? null,
-    labels: (query.labels ?? "")
-      .split(",")
-      .map((l) => l.trim())
-      .filter(Boolean),
-    assignee: query.assignee || null,
-    milestone: query.milestone || null,
+    labels: splitList(query.labels, ","),
+    assignees: splitList(query.assignees, ","),
+    milestones: splitList(query.milestones, "\n"),
     text: query.q ?? "",
     sort: query.sort,
   };
@@ -94,7 +97,7 @@ const checkoutBody = z.object({ place: z.enum(GITHUB_CHECKOUT_PLACES) }) satisfi
 /** GraphQL の行のスレッドの ID */
 const threadParam = (c: Context) => z.string().regex(/^[A-Za-z0-9_=-]{1,200}$/, "スレッドの ID が正しくありません").parse(c.req.param("thread"));
 
-const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "labels", "assignee", "milestone", "q", "sort", "cursor", "refresh"].map((k) => [k, queryOf(c, k)]));
+const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "labels", "assignees", "milestones", "q", "sort", "cursor", "refresh"].map((k) => [k, queryOf(c, k)]));
 
 /**
  * GitHub タブ（要件 5.11 の段階 1「読む」・段階 2「AI に渡す」・段階 3「書く」。core/github/service.ts）: 連携の状態・絞り込みの候補・一覧・issue と PR の中身・PR の変更・PR のブランチのワークツリー、
@@ -113,10 +116,27 @@ export function githubRoutes(app: Hono, { store, github, prWatch }: ServerDeps) 
     return c.json(await github.list(c.var.project, filterOfQuery(query), { cursor: query.cursor ?? null, refresh: query.refresh === "1" }));
   });
 
-  app.get("/api/projects/:id/github/issues/:number", withProject, async (c) => c.json(await github.issue(c.var.project, idParam(c, "number"))));
-  app.get("/api/projects/:id/github/pulls/:number", withProject, async (c) => c.json(await github.pull(c.var.project, idParam(c, "number"))));
+  // ?cached=1 は GitHub に聞かずに、最後に取った中身（なければ null）。開き直したときのつなぎの表示
+  app.get("/api/projects/:id/github/issues/:number", withProject, async (c) =>
+    c.json(queryOf(c, "cached") === "1" ? github.cachedDetail(c.var.project, "issue", idParam(c, "number")) : await github.issue(c.var.project, idParam(c, "number"))),
+  );
+  app.get("/api/projects/:id/github/pulls/:number", withProject, async (c) =>
+    c.json(queryOf(c, "cached") === "1" ? github.cachedDetail(c.var.project, "pr", idParam(c, "number")) : await github.pull(c.var.project, idParam(c, "number"))),
+  );
   // レビューコメントで直す: PR のブランチのワークツリー（いまあればそれ、なければ作る）
   app.post("/api/projects/:id/github/pulls/:number/worktree", withProject, async (c) => c.json(await github.pullWorktree(c.var.project, idParam(c, "number"))));
+  // 本文の画像のうち、連携先のリポジトリの中のファイルを指すもの（非公開のリポジトリでも、コアが gh api で取って返す）
+  app.get("/api/projects/:id/github/image", withProject, async (c) => {
+    const url = z.string().min(1).max(4000).parse(queryOf(c, "url"));
+    const { bytes, type } = await github.repoImage(c.var.project, url);
+    return c.body(new Uint8Array(bytes), 200, {
+      "Content-Type": type,
+      "Content-Security-Policy": "sandbox",
+      "X-Content-Type-Options": "nosniff",
+      // 1 分ごとの取り直しで本文を描き直すたびに聞きに行かないよう、少しの間この画面で覚えさせる
+      "Cache-Control": "private, max-age=300",
+    });
+  });
   app.get("/api/projects/:id/github/pulls/:number/files", withProject, async (c) => c.json(await github.pullFiles(c.var.project, idParam(c, "number"))));
 
   // ---- 書き込み（段階 3）。様子が変わるだけのものは 204（画面が中身を取り直す） ----

@@ -16,9 +16,9 @@ export const ITEM_FIELDS = `
   ... on PullRequest { ${ITEM_COMMON} isDraft reviewDecision headRefName baseRefName
     commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } }`;
 
-/** 一覧（GitHub の検索。q は @shared/github/searchQuery で作る） */
+/** 一覧（GitHub の新しい検索。担当・マイルストーンの「どれか」に (… OR …) を使う。q は @shared/github/searchQuery で作る） */
 export const SEARCH_QUERY = `query($q: String!, $first: Int!, $after: String) {
-  search(query: $q, type: ISSUE, first: $first, after: $after) {
+  search(query: $q, type: ISSUE_ADVANCED, first: $first, after: $after) {
     issueCount
     pageInfo { hasNextPage endCursor }
     nodes { ${ITEM_FIELDS} }
@@ -103,15 +103,17 @@ export const DETAIL_QUERY = `query($owner: String!, $name: String!, $number: Int
     mergeCommitAllowed squashMergeAllowed rebaseMergeAllowed viewerPermission
     issueOrPullRequest(number: $number) {
       ${ITEM_FIELDS}
-      ... on Issue { body bodyHTML ${VIEWER_CAN} ${timeline(COMMON_EVENT_TYPES, EVENT_FIELDS)} }
+      ... on Issue { body bodyHTML ${VIEWER_CAN} ${timeline(COMMON_EVENT_TYPES, EVENT_FIELDS)}
+        closedByPullRequestsReferences(first: 10, includeClosedPrs: true) { nodes { number title state isDraft } } }
       ... on PullRequest {
         body bodyHTML ${VIEWER_CAN} additions deletions changedFiles mergeable mergeStateStatus headRefOid headRepositoryOwner { login }
+        latestOpinionatedReviews(first: 100) { nodes { state } }
         ${timeline([...COMMON_EVENT_TYPES, ...PR_EVENT_TYPES], EVENT_FIELDS + PR_EVENT_FIELDS)}
         reviewThreads(first: 100) { nodes { id path line originalLine diffSide isResolved isOutdated viewerCanReply viewerCanResolve viewerCanUnresolve
           comments(first: 50) { nodes { id author { ${USER} } createdAt body bodyHTML diffHunk url pullRequestReview { id } } } } }
         statusCommits: commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
           __typename
-          ... on CheckRun { databaseId name status conclusion detailsUrl title checkSuite { workflowRun { databaseId workflow { name } } } }
+          ... on CheckRun { databaseId name status conclusion detailsUrl title startedAt completedAt checkSuite { workflowRun { databaseId workflow { name } } } }
           ... on StatusContext { context state targetUrl description } } } } } } }
       }
     }

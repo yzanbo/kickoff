@@ -1,5 +1,6 @@
 // GitHub タブ（要件 5.11 の段階 1「読む」・段階 3「書く」）: プロジェクトの連携先のリポジトリの issue・PR の一覧と中身を、プロジェクトのアカウントで GitHub に聞く。
-// 中身は DB に持たない（正しいのはいつも GitHub）。一覧だけ少しの間メモリに覚え、変わっていなければ（ETag で 304 = 使用量に数えない）覚えたものを返す
+// 中身は DB に持たない（正しいのはいつも GitHub）。一覧は少しの間メモリに覚え、変わっていなければ（ETag で 304 = 使用量に数えない）覚えたものを返す。
+// issue・PR の中身も最後に取ったものを少しの間覚え、開き直したときのつなぎに出す（開いたときは必ず GitHub に聞き直す）
 import type {
   GitHubCheckoutPlace,
   GitHubConnection,
@@ -27,6 +28,8 @@ import type {
   Project,
 } from "@shared/types";
 import { githubSearchQuery } from "@shared/github/searchQuery";
+import { isFileOfRepo, repoFileOfUrl } from "@shared/github/repoImage";
+import { imageFileType, isIcnsFile } from "@shared/files/imageFiles";
 import { errorMessage } from "@shared/errors";
 import { Invalid, NotFound } from "../http/errors.js";
 import { runAsGitHubAccount } from "../git/githubAccount.js";
@@ -37,12 +40,17 @@ import { ttlCache } from "../system/ttlCache.js";
 import { ghApi, type GitHubApi, type GitHubContext } from "./ghApi.js";
 import { DETAIL_QUERY, META_QUERY, SEARCH_QUERY, TIMELINE_MAX_PAGES, TIMELINE_MORE_QUERY, VIEWER_QUERY } from "./queries.js";
 import { createIssue, mergePull, postComment, replaceLabels, replyToThread, resolveThread, setState, submitReview } from "./writes.js";
-import { connectionNodes, nextCursor, toCheck, toItem, toMergeAbility, toMergeState, toPullFile, toThreads, toTimeline, toUser, toViewer } from "./normalize.js";
+import { approvalCount, connectionNodes, nextCursor, toCheck, toItem, toLinkedPulls, toMergeAbility, toMergeState, toPullFile, toThreads, toTimeline, toUser, toViewer } from "./normalize.js";
 
 /** 一覧の 1 回の件数 */
 export const GITHUB_PAGE_SIZE = 50;
 /** 覚えた一覧を、変わっていなくても聞き直すまでの間（CI の結果は「変わった」に入らないので、5 分で取り直す） */
 const LIST_KEEP_MS = 5 * 60_000;
+/** 中身を覚えておく間と数（開き直したときのつなぎの表示だけに使う） */
+const DETAIL_KEEP_MS = 10 * 60_000;
+const DETAIL_KEEP_MAX = 50;
+/** 本文の画像（リポジトリの中のファイル）の大きさの上限 */
+export const GITHUB_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 /** PR の変更したファイルを読む上限（100 件ずつ 30 回 = GitHub の 3,000 件） */
 const FILE_PAGES = 30;
 
@@ -69,6 +77,8 @@ export class GitHubService {
   private readonly opts: GitHubServiceOptions;
   private readonly lists = new Map<string, CachedPage>();
   private readonly metas = ttlCache<string, GitHubRepoMeta>(5 * 60_000);
+  /** 最後に取った中身（キーはプロジェクト・アカウント・選んだ remote・種類・番号） */
+  private readonly details = new Map<string, { detail: GitHubIssueDetail | GitHubPullDetail; at: number }>();
 
   constructor(opts: GitHubServiceOptions = {}) {
     this.opts = opts;
@@ -177,7 +187,30 @@ export class GitHubService {
     return this.detail(project, number, "pr") as Promise<GitHubPullDetail>;
   }
 
+  /**
+   * 最後に取った中身（10 分まで。なければ null）。GitHub には聞かないので、画面は開いたときにこれを先に出し、
+   * 同時に頼んだ中身（issue / pull）が届いたら差し替える
+   */
+  cachedDetail(project: Project, kind: GitHubKind, number: number): GitHubIssueDetail | GitHubPullDetail | null {
+    const key = detailKey(project, kind, number);
+    const hit = this.details.get(key);
+    if (!hit) return null;
+    if (this.now() - hit.at < DETAIL_KEEP_MS) return hit.detail;
+    this.details.delete(key);
+    return null;
+  }
+
   private detail(project: Project, number: number, kind: "issue" | "pr"): Promise<GitHubIssueDetail | GitHubPullDetail> {
+    return this.fetchDetail(project, number, kind).then((detail) => {
+      const key = detailKey(project, kind, number);
+      this.details.delete(key);
+      this.details.set(key, { detail, at: this.now() });
+      while (this.details.size > DETAIL_KEEP_MAX) this.details.delete(this.details.keys().next().value as string);
+      return detail;
+    });
+  }
+
+  private fetchDetail(project: Project, number: number, kind: "issue" | "pr"): Promise<GitHubIssueDetail | GitHubPullDetail> {
     return this.within(project, async ({ api, repo, owner, name }) => {
       const vars = { owner, name, number, after: null as string | null };
       const data = await api.graphql<{ repository: ({ issueOrPullRequest: Record<string, unknown> | null } & Record<string, unknown>) | null }>(DETAIL_QUERY, vars);
@@ -194,7 +227,7 @@ export class GitHubService {
         items.push(...connectionNodes(conn));
         cursor = nextCursor(conn);
       }
-      const base = { item, body_html: String(raw.bodyHTML ?? ""), body_markdown: String(raw.body ?? ""), timeline_truncated: cursor !== null, viewer: toViewer(raw), fetched_at: new Date(this.now()).toISOString() };
+      const base = { item, body_html: String(raw.bodyHTML ?? ""), body_markdown: String(raw.body ?? ""), timeline_truncated: cursor !== null, linked_pulls: kind === "issue" ? toLinkedPulls(raw.closedByPullRequestsReferences) : [], viewer: toViewer(raw), fetched_at: new Date(this.now()).toISOString() };
       if (kind === "issue") return { ...base, timeline: toTimeline(items) };
       const { threads, threadReview } = toThreads(raw.reviewThreads);
       const statusCommit = connectionNodes(raw.statusCommits)[0] as { commit?: { statusCheckRollup?: { contexts?: unknown } } } | undefined;
@@ -210,6 +243,7 @@ export class GitHubService {
         mergeable: mergeable === "mergeable" || mergeable === "conflicting" ? mergeable : "unknown",
         merge_state: toMergeState(raw.mergeStateStatus),
         ...toMergeAbility(data.repository),
+        approvals: approvalCount(raw.latestOpinionatedReviews),
         review_threads: threads,
         checks: connectionNodes(statusCommit?.commit?.statusCheckRollup?.contexts)
           .map(toCheck)
@@ -286,6 +320,35 @@ export class GitHubService {
     });
   }
 
+  /**
+   * 本文の画像のうち、連携先のリポジトリの中のファイルを指すもの（非公開のリポジトリは鍵がないと読めないので、プロジェクトのアカウントの gh api で取る。
+   * 鍵は画面に渡さない）。1MB までは contents の答えの base64、それより大きければ blob で読む。ほかのリポジトリ・画像でない・大きすぎるものは 400
+   */
+  repoImage(project: Project, url: string): Promise<{ bytes: Buffer; type: string }> {
+    return this.within(project, async ({ api, host, repo }) => {
+      const file = repoFileOfUrl(url, host);
+      if (!file || !isFileOfRepo(file, repo)) throw new Invalid(`連携先のリポジトリ（${repo}）のファイルの画像だけを読めます`);
+      const type = isIcnsFile(file.path) ? null : imageFileType(file.path);
+      if (!type) throw new Invalid("画像のファイルではありません");
+      const encodedPath = file.path.split("/").map(encodeURIComponent).join("/");
+      const meta = (await api.rest(`repos/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(file.ref)}`)).body as {
+        type?: unknown;
+        size?: unknown;
+        sha?: unknown;
+        content?: unknown;
+        encoding?: unknown;
+      } | null;
+      if (meta?.type !== "file" || typeof meta.sha !== "string") throw new NotFound("画像のファイルが見つかりません");
+      if (Number(meta.size ?? 0) > GITHUB_IMAGE_MAX_BYTES) throw new Invalid("画像が大きすぎます（10MB まで）");
+      let content = meta.encoding === "base64" && typeof meta.content === "string" ? meta.content : "";
+      if (!content) {
+        const blob = (await api.rest(`repos/${repo}/git/blobs/${meta.sha}`)).body as { content?: unknown } | null;
+        content = typeof blob?.content === "string" ? blob.content : "";
+      }
+      return { bytes: Buffer.from(content, "base64"), type };
+    });
+  }
+
   /** PR の変更したファイルと差分（REST。100 件ずつ、3,000 件まで） */
   pullFiles(project: Project, number: number): Promise<GitHubPullFiles> {
     return this.within(project, async ({ api, repo }) => {
@@ -294,5 +357,8 @@ export class GitHubService {
     });
   }
 }
+
+/** 覚えた中身のキー（連携先を聞かずに引けるよう、プロジェクトの選択から作る。アカウント・remote を変えたら別のもの） */
+const detailKey = (project: Project, kind: GitHubKind, number: number) => `${project.id}:${project.github_account ?? ""}:${project.github_remote ?? ""}:${kind}:${number}`;
 
 const NO_REMOTE = "このプロジェクトフォルダの git に GitHub の remote がありません。GitHub のリポジトリを remote に足すと、issue・PR を見られます";
