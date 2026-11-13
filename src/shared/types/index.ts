@@ -19,3 +19,4 @@ export * from "./docker";
 export * from "./ci";
 export * from "./worktreeEnv";
 export * from "./ports";
+export * from "./device";

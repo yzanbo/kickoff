@@ -335,3 +335,32 @@ test("自動のアーカイブ: 親のないチャットだけを見て、子孫
   store.chats.archive(parent.id, false);
   assert.equal(store.chats.get(child.id)!.archived_at, null);
 });
+
+test("端末: トークンの hash で引き、プッシュの宛先は一覧に出さない。最後に使った時刻は間を空けて書く。取り消したら引けない", () => {
+  const store = new Store(":memory:");
+  const pixel = store.devices.create("Pixel 8", "hash-a");
+  assert.deepEqual(pixel, { id: pixel.id, name: "Pixel 8", created_at: pixel.created_at, last_used_at: null, has_push: false });
+  assert.equal(store.devices.byTokenHash("hash-a")?.id, pixel.id);
+  assert.equal(store.devices.byTokenHash("hash-b"), null);
+  // 同じ hash は 2 つ置けない
+  assert.throws(() => store.devices.create("別の端末", "hash-a"));
+
+  store.devices.touch(pixel.id);
+  const used = store.devices.get(pixel.id)!.last_used_at;
+  assert.ok(used);
+  // 続けて呼んでも書き直さない
+  store.devices.touch(pixel.id);
+  assert.equal(store.devices.get(pixel.id)!.last_used_at, used);
+
+  store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[x]" });
+  assert.deepEqual(store.devices.push(pixel.id), { kind: "expo", token: "ExponentPushToken[x]" });
+  assert.equal(store.devices.list()[0].has_push, true);
+  assert.ok(!JSON.stringify(store.devices.list()).includes("ExponentPushToken"));
+  store.devices.setPush(pixel.id, null);
+  assert.equal(store.devices.push(pixel.id), null);
+
+  assert.equal(store.devices.remove(pixel.id), true);
+  assert.equal(store.devices.remove(pixel.id), false);
+  assert.equal(store.devices.byTokenHash("hash-a"), null);
+  store.close();
+});

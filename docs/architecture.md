@@ -88,6 +88,7 @@
 | ログの画面（Docker タブの中、一覧の下に出す compose のログ。サービスの札で絞り込み、時刻の順に並べる。区切りの行 = 見ている間にコンテナが止まった・起動し直したことを示す行。エラー・警告の印は行の文字の決まりで付ける目安） | 画面 `features/docker/DockerLogs`・コア `core/docker/logs.ts`（コンテナごとの `docker logs --timestamps`）・エラーと警告の見分け `@shared/docker/logLevel.ts` | なし |
 | ポートの取り合い（Docker 同士。up が失敗してから相手を出す）・静かなぶつかり（Docker の外のプロセスが同じ番号で待っている。起動は成功し、127.0.0.1 への接続は外のプロセスが受ける） | `core/docker/portConflict.ts`（`lsof -nP +c 0`・エンジンの名前の一覧・`brew services info --all --json`） | なし |
 | AI の Docker の守り（別の作業場所のコンテナを止める・消す・作り直す、ボリュームを消す、まとめて止める・消す AI の Bash を、Auto mode でも承認カードで聞く） | `core/chat/guard/dockerGuard.ts`（待てる PreToolUse。承認は `requestApproval`・`canRemember: false`） | なし |
+| 本体（スマホから見た、Kickoff のコアが動いている PC。いまは Mac）・本体の ID（本体を見分ける ID。スマホが複数の本体を切り替える目印。DB を作ったときに決め、DB を写して開発版を作ったら作り直す）・端末（この Mac の Kickoff を外から使うスマホなど。1 台ずつつなぎ、1 台ずつ取り消す） | `Store.databaseId`（`meta` の `database_id`。`/api/status` の `database_id`）・`Device`（`@shared/types/device.ts`）・表 `devices`（v24。トークンは hash だけ・プッシュの宛先 `push` は外に出さない）・店 `store.devices`・`core/system/devData.ts` の `becomeAnotherHost` | なし |
 
 ### チャットの軸とエージェントの軸
 
@@ -383,6 +384,22 @@ ALTER TABLE chats ADD COLUMN untracked_only INTEGER NOT NULL DEFAULT 0 CHECK (un
 ALTER TABLE db_connections ADD COLUMN worktree_path TEXT CHECK (worktree_path <> '');                       -- どのワークツリーの DB から作った接続か
 ```
 
+### スマホ連携の端末（v24）
+
+スマホからつなぐ構成はメモの「スマホ連携 サーバー構成の比較と案（図）」。端末のトークンは hash（SHA-256）だけを置き、本物は端末にだけある。プッシュの宛先（Expo のトークン・Web Push の購読）も表にだけ置き、API には「登録したか」だけを出す。本体の ID は今の `database_id` を使い（URL・OS のマシン ID・ID だけのファイルは使わない）、DB を写して開発版を作ったら写した先で作り直して端末の表を空にする（写した先は別の本体。製品版につないだ端末のトークンで開発版に入れないように）。
+
+```sql
+-- v24
+CREATE TABLE devices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL CHECK (name <> ''),                     -- 端末が名乗った名前
+  token_hash TEXT NOT NULL UNIQUE CHECK (token_hash <> ''),  -- 端末のトークンの hash
+  push TEXT CHECK (push IS NULL OR (json_valid(push) AND json_type(push) = 'object')),  -- プッシュの宛先（DevicePush）
+  created_at TEXT NOT NULL DEFAULT (…),
+  last_used_at TEXT                                          -- 最後に API を使った時刻（60 秒より細かくは書かない）
+) STRICT;
+```
+
 ### ポートを使っているプロセス
 
 要件定義書の「5.17」。DB には何も持たない（スキーマは変えない）。詳しい仕様はメモの「ポートを使っているプロセス 仕様書」。
@@ -444,7 +461,7 @@ ID 入りの localStorage のキー（グループの開閉・下書き・送信
 ```
 src/
   shared/              どのプロセスからも使う型と純粋な関数（Node・DOM・Electron・React に依存しない）。import は @shared/…
-    types/             API・SSE・DB の形（chat / chatEvent / chatLive / project / approval / settings / provider / git / github / voice / docker / events / api）
+    types/             API・SSE・DB の形（chat / chatEvent / chatLive / project / approval / settings / provider / git / github / voice / docker / device / events / api）
     github/            GitHub タブの絞り込みと GitHub の検索の文の行き来（searchQuery）・本文の画像のリポジトリのファイルの見分け（repoImage）
     chat/              チャットの決まり（状態と列 state・サブエージェントの一覧 subagents・選択の解決 chatOptions・送信待ちの印 queueStops・失敗の見分け・AI への定型文）
     project/           プロジェクトの決まり（タグ・色）
