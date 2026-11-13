@@ -25,8 +25,8 @@ export interface LogRowProps {
   onAsk: (index: number, at: { x: number; y: number }) => void;
 }
 
-/** 色のまとまり 1 つ（16 色は CSS の決まった色、ほかは style） */
-function SpanView({ span }: { span: MarkedSpan }) {
+/** 色のまとまり 1 つ（16 色は CSS の決まった色、ほかは style。CI のタブのログも使う） */
+export function SpanView({ span }: { span: MarkedSpan }) {
   const style: CSSProperties = {};
   if (typeof span.fg === "string") style.color = span.fg;
   if (typeof span.bg === "string") style.backgroundColor = span.bg;

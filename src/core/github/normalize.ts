@@ -184,11 +184,14 @@ export function toThreads(conn: Raw): { threads: GitHubReviewThread[]; threadRev
 export function toCheck(raw: Raw): GitHubCheck | null {
   if (raw?.__typename === "CheckRun") {
     const state = raw.status === "COMPLETED" ? (lower(raw.conclusion) ?? "neutral") : "pending";
-    return { name: String(raw.name ?? ""), workflow: raw.checkSuite?.workflowRun?.workflow?.name ?? null, state, description: raw.title ?? null, url: raw.detailsUrl ?? null };
+    // GitHub Actions のチェックだけ実行とジョブの ID を持つ（Kickoff の中でログを開く。外の CI の check run は workflowRun がない）
+    const runId = Number(raw.checkSuite?.workflowRun?.databaseId ?? 0) || null;
+    const jobId = runId ? Number(raw.databaseId ?? 0) || null : null;
+    return { name: String(raw.name ?? ""), workflow: raw.checkSuite?.workflowRun?.workflow?.name ?? null, state, description: raw.title ?? null, url: raw.detailsUrl ?? null, run_id: runId, job_id: jobId };
   }
   if (raw?.__typename === "StatusContext") {
     const s = lower(raw.state) ?? "pending";
-    return { name: String(raw.context ?? ""), workflow: null, state: s === "error" ? "failure" : s === "expected" ? "pending" : s, description: raw.description ?? null, url: raw.targetUrl ?? null };
+    return { name: String(raw.context ?? ""), workflow: null, state: s === "error" ? "failure" : s === "expected" ? "pending" : s, description: raw.description ?? null, url: raw.targetUrl ?? null, run_id: null, job_id: null };
   }
   return null;
 }

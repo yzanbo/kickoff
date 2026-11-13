@@ -79,6 +79,7 @@ export const IPC_ARGS = defineArgSchemas({
         title: z.string().trim().min(1, { message: "通知のタイトルがありません" }),
         body: z.string(),
         chat: z.object({ projectId: positiveInt, chatId: positiveInt }).optional(),
+        ci: z.object({ projectId: positiveInt, runId: positiveInt }).optional(),
       }),
     ]),
     openSettings: none,

@@ -18,11 +18,13 @@ import type { VoiceService } from "../voice/service.js";
 import type { MemoService } from "../memos/memos.js";
 import type { DatabaseService } from "../databases/service.js";
 import type { GitHubService } from "../github/service.js";
+import type { CiService } from "../github/ci.js";
 import type { DockerService } from "../docker/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { chatRoutes } from "./routes/chats.js";
 import { databaseRoutes } from "./routes/databases.js";
 import { githubRoutes } from "./routes/github.js";
+import { ciRoutes } from "./routes/ci.js";
 import { dockerRoutes } from "./routes/docker.js";
 import { filesRoutes } from "./routes/files.js";
 import { gitRoutes } from "./routes/git.js";
@@ -63,6 +65,8 @@ export interface ServerDeps {
   databases: DatabaseService;
   /** GitHub タブ（連携先のリポジトリの issue・PR を読む） */
   github: GitHubService;
+  /** CI の結果（GitHub Actions の実行・ログ・やり直し） */
+  ci: CiService;
   /** Docker タブ（プロジェクトの compose の一覧・操作・docker events） */
   docker: DockerService;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。テストでは差し替えて、gh を呼ばない。なければ gh auth status） */
@@ -143,6 +147,7 @@ export function createApp(deps: ServerDeps): Hono {
   memoRoutes(app, deps);
   databaseRoutes(app, deps);
   githubRoutes(app, deps);
+  ciRoutes(app, deps);
   dockerRoutes(app, deps);
 
   // ---- リアルタイム配信（SSE） ----

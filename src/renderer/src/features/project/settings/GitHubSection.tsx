@@ -90,6 +90,12 @@ export function GitHubSection({ project }: { project: Project }) {
         checked={project.pr_watch}
         onChange={(checked) => void save({ pr_watch: checked })}
       />
+      <CheckField
+        label="CI の失敗を知らせる"
+        help="作業場所（本体・各ワークツリー）でいま取り出しているブランチと既定のブランチ（main など）で GitHub Actions の実行が落ちたら、Mac の通知で知らせます（PR の見張りと同じく 5 分ごとと、Kickoff の窓に戻ったとき。出し方は設定の「通知」に従います）。ほかの人のブランチは知らせません。"
+        checked={project.ci_watch}
+        onChange={(checked) => void save({ ci_watch: checked })}
+      />
       <ErrorText message={error} />
     </section>
   );

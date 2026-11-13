@@ -5,6 +5,7 @@ import { HistoryTab } from "@/features/history/HistoryTab";
 import { LazyDatabaseClient } from "@/features/database/LazyDatabaseClient";
 import { GitHubTab } from "@/features/github/GitHubTab";
 import { DockerTab } from "@/features/docker/DockerTab";
+import { CiTab } from "@/features/ci/CiTab";
 import { MemoTab } from "@/features/memo/MemoTab";
 import { ChatsTab } from "@/features/panel/board/ChatsTab";
 import { useChatPlacement } from "./chatPlacement";
@@ -51,7 +52,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMem
   // チャットをボードの右で開く置き方では「チャット」タブはないので、そのタブの URL はボードで出す
   const [placement] = useChatPlacement();
   // DB・GitHub・Docker のタブはこの Mac のアプリの中だけ（ブラウザ・スマホから開いたらボード）
-  const macOnly = routeTab === "db" || routeTab === "github" || routeTab === "docker";
+  const macOnly = routeTab === "db" || routeTab === "github" || routeTab === "docker" || routeTab === "ci";
   const tab: ProjectTab = (routeTab === "chats" && placement === "together") || (macOnly && !window.kickoff) ? "board" : routeTab;
   const { data: shown, error, loading: chatsLoading } = useProjectData(id);
   const [editing, setEditing] = useState(false);
@@ -119,6 +120,8 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMem
       {tab === "github" && <GitHubTab key={project.id} projectId={project.id} />}
       {/* Docker（本体とワークツリーの compose のサービス） */}
       {tab === "docker" && <DockerTab key={project.id} projectId={project.id} />}
+      {/* CI（GitHub Actions の実行の一覧・ログ・やり直し） */}
+      {tab === "ci" && <CiTab key={project.id} projectId={project.id} />}
       </div>
       </div>
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}

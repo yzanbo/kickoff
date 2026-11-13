@@ -111,7 +111,7 @@ export const DETAIL_QUERY = `query($owner: String!, $name: String!, $number: Int
           comments(first: 50) { nodes { id author { ${USER} } createdAt body bodyHTML diffHunk url pullRequestReview { id } } } } }
         statusCommits: commits(last: 1) { nodes { commit { statusCheckRollup { contexts(first: 100) { nodes {
           __typename
-          ... on CheckRun { name status conclusion detailsUrl title checkSuite { workflowRun { workflow { name } } } }
+          ... on CheckRun { databaseId name status conclusion detailsUrl title checkSuite { workflowRun { databaseId workflow { name } } } }
           ... on StatusContext { context state targetUrl description } } } } } } }
       }
     }

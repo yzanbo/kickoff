@@ -130,7 +130,7 @@ export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: n
         <ThreadActionsContext.Provider value={isPull(data) ? threadActions : null}>
         <DetailBody projectId={projectId} detail={data}>
           {isPull(data) && view === "checks" ? (
-            <GitHubChecksList checks={data.checks} />
+            <GitHubChecksList projectId={projectId} checks={data.checks} />
           ) : isPull(data) && view === "files" ? (
             <GitHubPullChanges projectId={projectId} number={number} threads={data.review_threads} version={data.head_sha ?? data.fetched_at} headSha={data.head_sha} onChanged={refresh} />
           ) : (

@@ -75,8 +75,8 @@ export class GitHubService {
     return (this.opts.now ?? Date.now)();
   }
 
-  /** プロジェクトのアカウントの中で fn を動かす（連携先がなければ 400） */
-  private async within<T>(project: Project, fn: (ctx: GitHubContext) => Promise<T>): Promise<T> {
+  /** プロジェクトのアカウントの中で fn を動かす（連携先がなければ 400。CI の結果 ci.ts も使う） */
+  async within<T>(project: Project, fn: (ctx: GitHubContext) => Promise<T>): Promise<T> {
     return runAsGitHubAccount(project.github_account, async () => {
       const target = await (this.opts.resolveTarget ?? resolveGitHubTarget)(project.repo_path, project.github_remote);
       if (!target) throw new Invalid(NO_REMOTE);

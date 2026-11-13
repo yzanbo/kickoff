@@ -8,6 +8,7 @@ import { filesApi } from "./files";
 import { gitApi } from "./git";
 import { githubApi } from "./github";
 import { dockerApi } from "./docker";
+import { ciApi } from "./ci";
 import { groupsApi } from "./groups";
 import { memosApi } from "./memos";
 import { projectsApi } from "./projects";
@@ -41,6 +42,7 @@ export const api = {
   ...databasesApi,
   ...githubApi,
   ...dockerApi,
+  ...ciApi,
 };
 
 export { ApiError } from "./http";

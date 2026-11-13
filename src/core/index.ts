@@ -26,6 +26,7 @@ import type { BrowserControl } from "./browser/control.js";
 import { DbWorkerClient, forkWorker, type WorkerChannel } from "./databases/client.js";
 import { DatabaseService } from "./databases/service.js";
 import { GitHubService } from "./github/service.js";
+import { CiService } from "./github/ci.js";
 import { devWorkerEntry } from "./databases/entry.js";
 import { DbSecretVault, migrateInBackground, type SecretCipher } from "./databases/secrets.js";
 import { stopAllStreams } from "./system/stream.js";
@@ -112,8 +113,20 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, docker, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
-  // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）
-  const prWatch = new WorktreePrWatch({ store, publish: (e) => bus.publish(e), listWorktrees, listPullRequests });
+  // GitHub タブと CI の結果（GitHub Actions）
+  const github = new GitHubService();
+  const ci = new CiService(github);
+  // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）。
+  // CI の失敗の見張りも相乗りする（ワークツリーのないプロジェクトでも。落ちたら SSE の ci_failed）
+  const prWatch = new WorktreePrWatch({
+    store,
+    publish: (e) => bus.publish(e),
+    listWorktrees,
+    listPullRequests,
+    alsoCheck: async (project) => {
+      for (const failure of await ci.watch(project, store)) bus.publish({ type: "ci_failed", failure });
+    },
+  });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
@@ -129,7 +142,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     memos,
     prWatch,
     databases,
-    github: new GitHubService(),
+    github,
+    ci,
     docker,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },

@@ -54,7 +54,7 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 ## 通知（notifications/）
 
 - Mac の通知はメインプロセスの `Notification` で出す（画面の通知は、画面を読み込み直す・終えると通知センターから消え、届かなかった理由も分からないため）。参照をなくした通知も通知センターから消えるので、新しいものから 50 件の参照を持つ。
-- 通知の ID にチャットを埋め込み（`notificationIds.ts` の `notificationIdOf` / `chatOfNotificationId`。毎回変える）、起動したら `Notification.getHistory()` で通知センターに残っているものにも押したときの処理を付け直す。押したら Kickoff を前に出し、`notifications.onOpenChat` で画面にそのチャットを開かせる。
+- 通知の ID にチャット（`kickoff-chat:`）か CI の実行（`kickoff-ci:`。CI の失敗の知らせ）を埋め込み（`notificationIds.ts` の `notificationIdOf` / `chatOfNotificationId` / `ciOfNotificationId`。毎回変える）、起動したら `Notification.getHistory()` で通知センターに残っているものにも押したときの処理を付け直す。押したら Kickoff を前に出し、`notifications.onOpenChat` で画面にそのチャットを、`notifications.onOpenCi` で CI のタブのその実行を開かせる。
 - 画面からは `notifications.notify`（結果は `{ ok }` か `{ ok: false, error }`）・`notifications.openSettings`（Mac の「システム設定 → 通知」）・`notifications.setBadge`（Dock のアイコンの赤い数字。`app.setBadgeCount`。0 で消える。数えるのは画面）。
 
 ## 性能の記録（diagnostics/）

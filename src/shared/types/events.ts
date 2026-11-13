@@ -9,6 +9,7 @@ import type { ChatLive } from "./chatLive";
 import type { Snippet } from "./snippet";
 import type { VoiceDownload } from "./voice";
 import type { WorktreePrNotice } from "./git";
+import type { CiFailure } from "./ci";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
 export type BusEvent =
@@ -47,4 +48,6 @@ export type BusEvent =
   /** DB の接続につないだ・切れた（木・テーブル・SQL のタブの接続が 1 つでも開いているか。DB タブの左の一覧の印） */
   | { type: "db_connection_state"; project_id: number; connection_id: number; connected: boolean }
   /** Docker タブ: そのプロジェクトのコンテナ・操作の様子が変わった（受けた画面は一覧を取り直す） */
-  | { type: "docker_changed"; project_id: number };
+  | { type: "docker_changed"; project_id: number }
+  /** 見張っているブランチの CI が落ちた（同じ実行は 1 回だけ。画面は設定の「通知」に合わせて Mac の通知を出し、CI のタブを取り直す） */
+  | { type: "ci_failed"; failure: CiFailure };

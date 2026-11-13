@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { ExternalLink, GitPullRequest } from "lucide-react";
 import { GITHUB_DEFAULT_HOST } from "@shared/github/host";
 import type { Chat, GitHubItem, GitHubKind, GitHubListFilter } from "@shared/types";
@@ -6,6 +6,7 @@ import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
+import { useNarrowSplit } from "@/hooks/useNarrowSplit";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
 import { GITHUB_LIST_WIDTH, githubFilters, githubSelected } from "@/lib/storageKeys";
@@ -20,8 +21,8 @@ import { GitHubItemRow } from "./GitHubItemRow";
 import { githubListUrl, githubRepoUrl } from "./githubLinks";
 import { useGitHubList } from "./useGitHubList";
 
-/** 中身の欄に残したい最小の幅。一覧の幅を足してこれが入らないときは、一覧と中身を切り替えて 1 つずつ出す（チャットの右の欄など） */
-const DETAIL_MIN_WIDTH = 440;
+/** 中身の欄に残したい最小の幅。一覧の幅を足してこれが入らないときは、一覧と中身を切り替えて 1 つずつ出す（チャットの右の欄など。CI のタブも同じ） */
+export const DETAIL_MIN_WIDTH = 440;
 
 /** 開いているもの（「issue:12」「pr:5」）を読む */
 function parseSelected(text: string): { kind: GitHubKind; number: number } | null {
@@ -66,17 +67,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const list = useGitHubList(projectId, filter, true);
   const meta = useKeyedAsync(String(projectId), () => api.githubMeta(projectId));
   const width = useDragSize({ setting: GITHUB_LIST_WIDTH, min: 260, keep: 360 });
-  const root = useRef<HTMLDivElement>(null);
-  const [rootWidth, setRootWidth] = useState<number | null>(null);
-  useEffect(() => {
-    const el = root.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() => setRootWidth(el.clientWidth));
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  // 隠れて幅 0 の間は切り替えない（右の欄の裏のタブなど）
-  const narrow = rootWidth !== null && rootWidth > 0 && rootWidth < width.size + DETAIL_MIN_WIDTH;
+  const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);
 
   const change = (patch: Partial<GitHubListFilter>) => setFilters({ ...filters, [filter.kind]: { ...filter, ...patch } });
   const open = useCallback((item: GitHubItem) => setSelectedText(`${item.kind}:${item.number}`), [setSelectedText]);

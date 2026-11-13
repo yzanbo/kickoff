@@ -9,6 +9,7 @@ import { createEventStore } from "./events.js";
 import { createGroupStore } from "./groups.js";
 import { openDatabase } from "./open.js";
 import { createPrNoticeStore } from "./prNotices.js";
+import { createCiNoticeStore } from "./ciNotices.js";
 import { createProjectStore } from "./projects.js";
 import { createQueueStore } from "./queues.js";
 import { createSecretStore, createSettingsStore, readDatabaseId } from "./settings.js";
@@ -33,6 +34,8 @@ export class Store {
   readonly snippets;
   /** ワークツリーの PR の知らせで、確認を閉じた PR */
   readonly prNotices;
+  /** CI の失敗を知らせた実行（同じ実行を知らせ直さない） */
+  readonly ciNotices;
   /** DB クライアントの接続（プロジェクトごと。パスワードは secrets） */
   readonly dbConnections;
   readonly dbQueryHistory;
@@ -54,6 +57,7 @@ export class Store {
     this.queues = createQueueStore(this.db);
     this.snippets = createSnippetStore(this.db, onChange);
     this.prNotices = createPrNoticeStore(this.db);
+    this.ciNotices = createCiNoticeStore(this.db);
     this.dbConnections = createDbConnectionStore(this.db, onChange, this.secrets);
     this.dbQueryHistory = createDbQueryHistoryStore(this.db);
     this.dbErLayouts = createDbErLayoutStore(this.db);

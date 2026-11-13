@@ -10,6 +10,7 @@ export const ATTACHMENT_SOURCE_LABELS: Record<AttachmentSourceType, string> = {
   browser_screen: "ブラウザの画面",
   terminal: "ターミナルで選んだ文",
   docker_logs: "Docker のログ",
+  ci_log: "CI の失敗ログ",
 };
 
 /**
@@ -26,6 +27,7 @@ const EXTERNAL_SOURCES: Record<AttachmentSourceType, boolean> = {
   browser_screen: true,
   terminal: false,
   docker_logs: false,
+  ci_log: true,
 };
 
 export function isExternalSource(type: AttachmentSourceType): boolean {

@@ -463,6 +463,10 @@ export const githubMergeMethod = defineSettingFamily("kickoff:github-merge-metho
 export const githubReviewDraft = defineSettingFamily("kickoff:github-review:", json(parseReviewDraft, EMPTY_REVIEW_DRAFT, isEmptyReviewDraft), { ids: true });
 /** GitHub タブの左の一覧の幅（どのプロジェクトでも同じ） */
 export const GITHUB_LIST_WIDTH = defineSetting("kickoff:github-list-width", number(380));
+/** CI のタブで開いている実行（プロジェクトごと。「43377548818」、ジョブも指すなら「43377548818:12345」） */
+export const ciSelected = defineSettingFamily("kickoff:ci-selected:", text(), { ids: true });
+/** CI のタブの左の一覧の幅（どのプロジェクトでも同じ） */
+export const CI_LIST_WIDTH = defineSetting("kickoff:ci-list-width", number(380));
 /** DB クライアントの左の一覧の幅（どの置き場所でも同じ） */
 export const DB_LIST_WIDTH = defineSetting("kickoff:db-list-width", number(260));
 /** SQL のタブの入力欄の高さ（タブの中の割合 %。どの SQL のタブでも同じ） */
