@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { makePullDetail, makeReviewThread } from "@shared/testing/factories";
-import { captureNameOf, handOffText, itemDocument, linkOf, quotePrompt, reviewDocument, reviewFixText, sourceOf } from "./githubPrompt";
+import { captureNameOf, handOffText, itemDocument, linkOf, quotePrompt, reviewDocument, reviewFixText, sourceOf, worktreeBranchOf } from "./githubPrompt";
 
 const user = { login: "alice", avatar_url: null };
 
@@ -70,4 +70,13 @@ test("一言と出どころ: 入力欄の一言・札の出どころ（番号付
 
 test("選んだ文の引用: どの issue・PR の文かを頭に、選んだ文を Markdown の引用に", () => {
   assert.equal(quotePrompt(makePullDetail(), "1 行目\n\n2 行目 "), "GitHub の PR #5「直す」（https://github.com/o/r/pull/5）より:\n> 1 行目\n>\n> 2 行目");
+});
+
+test("ワークツリーの名前の案: issue は番号と題名の英数字の語、PR は番号だけ", () => {
+  const issue = (title: string) => makePullDetail({ item: { ...makePullDetail().item, kind: "issue", number: 128, title } });
+  assert.equal(worktreeBranchOf(issue("Login screen crashes on empty email")), "issue-128-login-screen-crashes-on-empty");
+  assert.equal(worktreeBranchOf(issue("ログイン画面で落ちる（iOS 18）")), "issue-128-ios-18");
+  assert.equal(worktreeBranchOf(issue("ログイン画面で落ちる")), "issue-128");
+  assert.equal(worktreeBranchOf(issue("Internationalization localization configuration")), "issue-128-internationalization");
+  assert.equal(worktreeBranchOf(makePullDetail()), "pr-5");
 });

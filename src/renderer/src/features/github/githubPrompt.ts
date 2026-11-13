@@ -37,6 +37,26 @@ export function sourceOf(detail: GitHubIssueDetail, review = false): AttachmentS
 /** 札のファイル名（issue-12.md / pr-12.md。レビューコメントは pr-12-review.md） */
 export const captureNameOf = (detail: GitHubIssueDetail, review = false) => `${detail.item.kind === "pr" ? "pr" : "issue"}-${detail.item.number}${review ? "-review" : ""}.md`;
 
+/** ワークツリーの名前の案に入れる題名の語の数と長さの上限 */
+const BRANCH_TITLE_WORDS = 5;
+const BRANCH_TITLE_MAX = 30;
+
+/**
+ * 新しいワークツリーの名前の案（仕様書 ⑤。直せる）: issue は「issue-128-<題名の短い形>」（題名の英数字の語を小文字にしてハイフンでつなぐ。
+ * 英数字の語がなければ（日本語だけの題名など）「issue-128」）、PR は「pr-5」
+ */
+export function worktreeBranchOf(detail: GitHubIssueDetail): string {
+  if (detail.item.kind === "pr") return `pr-${detail.item.number}`;
+  const words = detail.item.title.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  let slug = "";
+  for (const word of words.slice(0, BRANCH_TITLE_WORDS)) {
+    const next = slug ? `${slug}-${word}` : word;
+    if (next.length > BRANCH_TITLE_MAX) break;
+    slug = next;
+  }
+  return slug ? `issue-${detail.item.number}-${slug}` : `issue-${detail.item.number}`;
+}
+
 /** 入力欄に入れる一言（書き換えられる。中身は札にある） */
 export function handOffText(detail: GitHubIssueDetail): string {
   return `GitHub の ${KIND_NAMES[detail.item.kind]} #${detail.item.number}「${detail.item.title}」に対応してください。`;
