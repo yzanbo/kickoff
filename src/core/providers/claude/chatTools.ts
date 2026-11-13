@@ -3,21 +3,25 @@ import { z } from "zod";
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 import { AI_OPEN_CHAT_TOOL, AI_OPEN_MEMO_TOOL } from "@shared/chat/aiOpen";
-import { errorMessage } from "@shared/errors";
+import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 import { CHAT_TITLE_MAX, OPEN_PLACES } from "@shared/types";
 import type { AiChatEditTools } from "../../chat/aiChatEdit.js";
+import type { AiChatReadTools } from "../../chat/aiChatRead.js";
 import type { AiChildChatDecision, AiChildChatTools } from "../../chat/aiChildChat.js";
 import type { AiOpenTools } from "../../chat/aiOpen.js";
 import type { ProviderCallbacks } from "../types.js";
+import { failure, text } from "./chatToolResult.js";
+import { READ_INSTRUCTIONS, readTools } from "./chatReadTools.js";
 
 /** Kickoff のチャットを AI が操作するツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_chat__…） */
 export const CHAT_SERVER = "kickoff_chat";
 
-/** 1 回の実行に渡すチャットのツールの中身（子チャットを作るのは設定と深さで渡さないことがある。名前・固定・グループと開くのはどのチャットにも渡す） */
+/** 1 回の実行に渡すチャットのツールの中身（子チャットを作るのは設定と深さで渡さないことがある。ほかはどのチャットにも渡す） */
 export interface ChatTools {
   childChat: AiChildChatTools | null;
   chatEdit: AiChatEditTools | null;
   open: AiOpenTools | null;
+  read: AiChatReadTools | null;
 }
 
 /**
@@ -28,6 +32,7 @@ export const chatToolNames = (tools: ChatTools) => [
   ...(tools.childChat ? [AI_CHILD_CHAT_TOOL] : []),
   ...(tools.chatEdit ? [AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL] : []),
   ...(tools.open ? [AI_OPEN_MEMO_TOOL, AI_OPEN_CHAT_TOOL] : []),
+  ...(tools.read ? [AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL] : []),
 ];
 
 /** 子チャットを作るツールの使い方（MCP の instructions として AI に渡す） */
@@ -58,14 +63,12 @@ const OPEN_INSTRUCTIONS = [
 /** 渡すツールに合わせた使い方 */
 const instructionsFor = (tools: ChatTools) =>
   [
-    "Kickoff（このチャットを動かしているアプリ）のチャットを操作するツール。",
+    "Kickoff（このチャットを動かしているアプリ）のチャットなどを操作するツール。",
     ...(tools.childChat ? CHILD_INSTRUCTIONS : []),
     ...(tools.chatEdit ? EDIT_INSTRUCTIONS : []),
     ...(tools.open ? OPEN_INSTRUCTIONS : []),
+    ...(tools.read ? READ_INSTRUCTIONS : []),
   ].join("\n");
-
-const text = (s: string) => ({ content: [{ type: "text" as const, text: s }] });
-const failure = (e: unknown) => ({ content: [{ type: "text" as const, text: errorMessage(e) }], isError: true });
 
 /** 利用者の回答を、子チャットを作るかの答えにする（「常に許可」は次から聞かない） */
 function toDecision(decision: Awaited<ReturnType<ProviderCallbacks["requestApproval"]>>): AiChildChatDecision {
@@ -172,7 +175,7 @@ function openTools(open: AiOpenTools) {
 
 /** 1 回の実行に渡す、チャットを操作するツールの MCP サーバー（渡すツールがなければ null） */
 export function chatMcpServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): McpSdkServerConfigWithInstance | null {
-  if (!tools.childChat && !tools.chatEdit && !tools.open) return null;
+  if (!tools.childChat && !tools.chatEdit && !tools.open && !tools.read) return null;
   return createSdkMcpServer({
     name: CHAT_SERVER,
     version: "1.0.0",
@@ -181,6 +184,7 @@ export function chatMcpServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "req
       ...(tools.childChat ? [childChatTool(tools.childChat, cb, signal)] : []),
       ...(tools.chatEdit ? chatEditTools(tools.chatEdit) : []),
       ...(tools.open ? openTools(tools.open) : []),
+      ...(tools.read ? readTools(tools.read) : []),
     ],
   });
 }

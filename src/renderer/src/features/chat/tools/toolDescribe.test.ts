@@ -4,6 +4,7 @@ import { describeApprovalInput, describeTool, describeToolInput, describeUnknown
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 import { AI_OPEN_CHAT_TOOL, AI_OPEN_MEMO_TOOL } from "@shared/chat/aiOpen";
+import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
   assert.equal(describeTool("TaskCreate", { subject: "確認 1", description: "動作確認用タスク 1" }), "ToDo を追加: 確認 1");
@@ -93,4 +94,11 @@ test("AI がメモ・チャットを開くツール: 何をどこに開いたか
   assert.equal(describeTool(AI_OPEN_MEMO_TOOL, { path: "メモ.md" }), "メモを開く: メモ.md");
   assert.equal(describeTool(AI_OPEN_CHAT_TOOL, { chat_id: 12, place: "side" }), "チャットを開く: チャット 12（右の欄）");
   assert.equal(describeTool(AI_OPEN_CHAT_TOOL, { chat_id: 3, place: "どこか" }), "チャットを開く: チャット 3");
+});
+
+test("AI が読むだけのツール: 一覧・使用枠は名前だけ、会話はどのチャットをどこから読んだか", () => {
+  assert.equal(describeTool(AI_LIST_PROJECT_CHATS_TOOL, {}), "プロジェクトのチャットを確かめる");
+  assert.equal(describeTool(AI_USAGE_TOOL, {}), "使用枠を確かめる");
+  assert.equal(describeTool(AI_READ_CHAT_TOOL, { chat_id: 12 }), "チャットの会話を読む: チャット 12");
+  assert.equal(describeTool(AI_READ_CHAT_TOOL, { chat_id: 12, before: 38, turns: 5 }), "チャットの会話を読む: チャット 12（38 回目より前）");
 });
