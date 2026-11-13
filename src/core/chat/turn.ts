@@ -3,6 +3,7 @@ import { createDbAiTools, hasAiConnections } from "../databases/aiTools.js";
 import { hiddenDbTargets } from "./guard/hiddenDbTargets.js";
 import { createDockerGuard } from "../docker/guardFacts.js";
 import type { DockerService } from "../docker/service.js";
+import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import type { DatabaseService } from "../databases/service.js";
 import { githubEnvForGit, runAsGitHubAccount } from "../git/githubAccount.js";
 import { mkdirSync } from "node:fs";
@@ -45,6 +46,8 @@ export interface ExecutionDeps {
   startChildChat?: (parent: Chat, input: ChildChatInput) => Promise<StartedChild>;
   /** Docker タブ（AI の Docker の守りが docker ps・compose の組の名前を引く。なければ守りを付けない） */
   docker?: DockerService;
+  /** ワークツリーの実行環境（作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す。なければ渡さない） */
+  worktreeEnvs?: WorktreeEnvService;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -102,7 +105,8 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     // 圧縮したら（手で・自動のどちらも）、預かった指示より先に送る圧縮後指示
     const postCompactText = postCompactPromptOf(store, project);
     // プロジェクトで GitHub のアカウントを選んでいれば、AI が動かす gh・git もそのアカウントにする（gh にそのアカウントがなければ、gh で有効なもののまま）
-    const env = project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {};
+    // 作業場所がポートの帯を持つワークツリーなら、開発サーバーの番号（PORT=帯+00）も渡す
+    const env = { ...(deps.worktreeEnvs?.envFor(cwd) ?? {}), ...(project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {}) };
 
     // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）

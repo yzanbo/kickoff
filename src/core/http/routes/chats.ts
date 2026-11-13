@@ -9,7 +9,7 @@ import { chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "./
 import { chatTranscript } from "../../chat/transcript.js";
 import { collectChatSessions, discardUnusedSessions } from "../../chat/sessionCleanup.js";
 import { moveToTrash } from "../../system/trash.js";
-import type { ChatDetail, ChatPatch, ChatTranscript } from "@shared/types";
+import type { ChatDetail, ChatPatch, ChatTranscript, GitWorktree } from "@shared/types";
 
 /**
  * チャットの一覧の絞り込み（並びは最後に動いた順）: ?archived=1 でアーカイブ済みだけ（なければアーカイブしていないものだけ）。
@@ -36,7 +36,7 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-export function chatRoutes(app: Hono, { store, runner, approvals, databases, providers, trash = moveToTrash }: ServerDeps) {
+export function chatRoutes(app: Hono, { store, runner, approvals, databases, providers, worktreeEnvs, trash = moveToTrash }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
@@ -46,7 +46,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
     const { project } = c.var;
     const input = newChatSchema.parse(await jsonBody(c));
     if (input.group_id !== undefined) requireGroupOf(store, input.group_id, project.id);
-    const worktreePath = await resolveWorktree(project.repo_path, input.worktree_path, input.new_worktree_branch);
+    const worktreePath = await resolveWorktree(project.repo_path, input.worktree_path, input.new_worktree_branch, (made) => worktreeEnvs.prepare(project, made));
     const created = await runner.start({
       projectId: project.id,
       prompt: input.text,
@@ -166,12 +166,12 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
 
 /**
  * チャットの作業場所（DB に入れる worktree_path）を決める。新しいブランチ名があればワークツリーを作り（作れなければ 400）、
- * フォルダの指定があればこのプロジェクトのワークツリーか確かめる（requireWorktree）。本体は空
+ * フォルダの指定があればこのプロジェクトのワークツリーか確かめる（requireWorktree）。本体は空。新しく作ったら onCreated（ワークツリーの実行環境）
  */
-async function resolveWorktree(repo: string, worktreePath?: string, newBranch?: string): Promise<string> {
+async function resolveWorktree(repo: string, worktreePath?: string, newBranch?: string, onCreated?: (worktree: GitWorktree) => Promise<void>): Promise<string> {
   if (newBranch) {
     const target = await worktreePathFor(repo, newBranch);
-    await addWorktree(repo, newBranch);
+    await addWorktree(repo, newBranch, onCreated);
     return target;
   }
   const found = await requireWorktree(repo, worktreePath);

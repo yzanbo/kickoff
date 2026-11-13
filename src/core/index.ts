@@ -31,6 +31,7 @@ import { devWorkerEntry } from "./databases/entry.js";
 import { DbSecretVault, migrateInBackground, type SecretCipher } from "./databases/secrets.js";
 import { stopAllStreams } from "./system/stream.js";
 import { DockerService } from "./docker/service.js";
+import { WorktreeEnvService } from "./worktreeEnv/service.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -59,6 +60,8 @@ export interface Core {
   bus: Bus;
   /** 性能の記録（メインプロセスの診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
   databaseStats(): DatabaseStats;
+  /** フォルダがポートの帯を持つワークツリーの中なら、渡す環境変数（PORT。内蔵ターミナル） */
+  worktreeEnvFor(dir: string): Record<string, string>;
   close(): Promise<void>;
 }
 
@@ -110,11 +113,13 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
   // Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く）
   const docker = new DockerService(bus);
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, docker, interrupted: recovered });
+  // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる。チャットの AI とターミナルには PORT を渡す）
+  const worktreeEnvs = new WorktreeEnvService(store, docker);
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), browser: opts.browser, databases, docker, worktreeEnvs, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）
-  const github = new GitHubService();
+  const github = new GitHubService({ onWorktreeCreated: (project, worktree) => worktreeEnvs.prepare(project, worktree) });
   const ci = new CiService(github);
   // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）。
   // CI の失敗の見張りも相乗りする（ワークツリーのないプロジェクトでも。落ちたら SSE の ci_failed）
@@ -145,6 +150,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     github,
     ci,
     docker,
+    worktreeEnvs,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });
@@ -165,6 +171,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     localUrl: `http://127.0.0.1:${opts.port}`,
     bus,
     databaseStats: () => store.stats(),
+    worktreeEnvFor: (dir) => worktreeEnvs.envFor(dir),
     close: async () => {
       runner.shutdown();
       // 流れ続けている外部コマンド（docker events・起動の途中の up -d など）は聞かずに止める

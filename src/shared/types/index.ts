@@ -17,3 +17,4 @@ export * from "./database";
 export * from "./github";
 export * from "./docker";
 export * from "./ci";
+export * from "./worktreeEnv";

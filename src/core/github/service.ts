@@ -23,6 +23,7 @@ import type {
   GitHubStateBody,
   GitHubThreadResolveBody,
   GitHubUser,
+  GitWorktree,
   Project,
 } from "@shared/types";
 import { githubSearchQuery } from "@shared/github/searchQuery";
@@ -59,6 +60,8 @@ interface GitHubServiceOptions {
   api?: (repo: string, host: string) => GitHubApi;
   /** GitHub の remote の一覧（テストでは差し替える） */
   remotes?: (repo: string) => Promise<GitHubRemote[]>;
+  /** PR のブランチのワークツリーを新しく作ったとき（ワークツリーの実行環境を整える） */
+  onWorktreeCreated?: (project: Project, worktree: GitWorktree) => Promise<void>;
   now?: () => number;
 }
 
@@ -69,6 +72,12 @@ export class GitHubService {
 
   constructor(opts: GitHubServiceOptions = {}) {
     this.opts = opts;
+  }
+
+  /** ワークツリーを新しく作ったときに呼ぶもの（CI のタブの「（ブランチ名）で直す」も同じ） */
+  worktreeCreated(project: Project): ((worktree: GitWorktree) => Promise<void>) | undefined {
+    const hook = this.opts.onWorktreeCreated;
+    return hook && ((worktree) => hook(project, worktree));
   }
 
   private now() {
@@ -232,7 +241,7 @@ export class GitHubService {
       if (!target) throw new Invalid(`連携先（${repo}）の remote が見つかりません`);
       const pr = { number, head_ref: head.ref, head_repo: typeof head.repo?.full_name === "string" ? head.repo.full_name : null };
       if (place === "main") return { worktree_path: null, branch: await checkoutPullMain(project.repo_path, pr, remotes, target.name) };
-      const worktree = await checkoutPullWorktree(project.repo_path, pr, remotes, target.name);
+      const worktree = await checkoutPullWorktree(project.repo_path, pr, remotes, target.name, this.worktreeCreated(project));
       return { worktree_path: worktree.main ? null : worktree.path, branch: worktree.branch ?? head.ref };
     });
   }

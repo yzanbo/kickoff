@@ -62,9 +62,10 @@ export async function worktreePathFor(repo: string, branch: string): Promise<str
  * ワークツリーを作る。ブランチがなければいまのコミットから作り、あればそのブランチを取り出す。
  * 置き場所は worktreePathFor で決める。同じリポジトリのほかのプロジェクト（リポジトリの中の別のフォルダ）が、同じブランチでもう作っていれば、それを使う。
  * プロジェクトのフォルダがリポジトリの中のフォルダで、取り出すコミットにそのフォルダがなければ（まだコミットしていない）、ワークツリーの中に出てこないので断る（400）。
- * 作ったら、本体の node_modules などを写してすぐ作業できるようにする（prepareWorktree。リポジトリの一番上の分も）
+ * 作ったら、本体の node_modules などを写してすぐ作業できるようにし（prepareWorktree。リポジトリの一番上の分も）、onCreated に作ったワークツリーを渡す
+ * （ワークツリーの実行環境。もうあるワークツリーを使い回したときは呼ばない）
  */
-export async function addWorktree(repo: string, branch: string): Promise<GitWorktree[]> {
+export async function addWorktree(repo: string, branch: string, onCreated?: (worktree: GitWorktree) => Promise<void>): Promise<GitWorktree[]> {
   await gitOutput(repo, ["check-ref-format", "--branch", branch]).catch(() => {
     throw new Invalid("ブランチの名前に使えない文字があります");
   });
@@ -87,7 +88,10 @@ export async function addWorktree(repo: string, branch: string): Promise<GitWork
   const top = await repoTop(repo);
   if (prefix) await prepareWorktree(path.join(top, prefix), path.join(target, prefix));
   await prepareWorktree(top, target);
-  return listWorktrees(repo);
+  const list = await listWorktrees(repo);
+  const made = list.find((w) => w.root === target);
+  if (made && onCreated) await onCreated(made);
+  return list;
 }
 
 /**

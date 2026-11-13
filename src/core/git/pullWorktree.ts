@@ -34,14 +34,14 @@ export function pullCheckoutOf(pr: PullHead, remotes: GitHubRemote[]): PullCheck
 /**
  * PR のブランチのワークツリー（本体も含む）を返す。そのブランチを取り出している作業場所があればそれを、
  * なければブランチを用意して（手元になければ取ってくる。あれば手元のものをそのまま使い、書き換えない）ワークツリーを作る。
- * targetRemote は連携先の remote の名前（refs/pull/N/head を取ってくる先）
+ * targetRemote は連携先の remote の名前（refs/pull/N/head を取ってくる先）。onCreated は新しく作ったときに呼ぶ（addWorktree と同じ）
  */
-export async function checkoutPullWorktree(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string): Promise<GitWorktree> {
+export async function checkoutPullWorktree(repo: string, pr: PullHead, remotes: GitHubRemote[], targetRemote: string, onCreated?: (worktree: GitWorktree) => Promise<void>): Promise<GitWorktree> {
   const { branch } = pullCheckoutOf(pr, remotes);
   const found = (await listWorktrees(repo)).find((w) => w.branch === branch && !w.prunable);
   if (found) return found;
   await ensurePullBranch(repo, pr, remotes, targetRemote);
-  const list = await addWorktree(repo, branch);
+  const list = await addWorktree(repo, branch, onCreated);
   const made = list.find((w) => w.branch === branch);
   if (!made) throw new Error(`ワークツリーを作れませんでした: ${branch}`);
   return made;
