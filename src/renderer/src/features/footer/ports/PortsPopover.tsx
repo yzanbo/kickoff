@@ -39,11 +39,19 @@ interface Props {
 
 /** 下の帯の「ポート n」を押したときの窓: Kickoff のプロジェクトのフォルダで、ポートを開いているプロセス（全プロジェクト） */
 export function PortsPopover({ anchor, onClose }: Props) {
-  const { data, loading } = usePorts();
+  const { data } = usePorts();
   const [stops, setStops] = useState<Record<number, StopState>>({});
+  // 調べている最中か（開いたとき・↻）
+  const [checking, setChecking] = useState(true);
+  const check = (onError?: (e: unknown) => void) => {
+    setChecking(true);
+    refreshPorts()
+      .catch(onError ?? (() => undefined))
+      .finally(() => setChecking(false));
+  };
   // 開いたら調べ直して、点を消す
-  useEffect(() => void refreshPorts().catch(() => undefined), []);
-  const processes = data?.processes ?? [];
+  useEffect(() => check(), []);
+  const processes = data ?? [];
 
   const stop = async (p: PortProcess, force: boolean, projectName: string) => {
     if (!force) {
@@ -73,13 +81,13 @@ export function PortsPopover({ anchor, onClose }: Props) {
       portal
       escape="pass"
       title="ポートを使っているプロセス"
-      refresh={{ label: "調べ直す", title: "調べ直す", busy: loading, onClick: () => void refreshPorts().catch(reportFailure("調べられませんでした")) }}
+      refresh={{ label: "調べ直す", title: "調べ直す", busy: checking, onClick: () => check(reportFailure("調べられませんでした")) }}
       label="ポートを使っているプロセス"
       className="ports-popover"
       onClose={onClose}
     >
       {processes.length === 0 ? (
-        <p className="muted small ports-empty">{loading && !data ? "調べています…" : "プロジェクトのフォルダでポートを開いているプロセスはありません"}</p>
+        <p className="muted small ports-empty">{checking && !data ? "調べています…" : "プロジェクトのフォルダでポートを開いているプロセスはありません"}</p>
       ) : (
         <ul className="ports-list">
           {processes.map((p) => (

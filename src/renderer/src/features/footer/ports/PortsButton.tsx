@@ -2,7 +2,7 @@ import { Network } from "lucide-react";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { cx } from "@/lib/cx";
 import { usePopover } from "@/ui/Popover";
-import { OPEN_PORTS_EVENT, usePorts } from "./portsStore";
+import { OPEN_PORTS_EVENT, usePorts, usePortsDot } from "./portsStore";
 import { PortsPopover } from "./PortsPopover";
 
 /**
@@ -12,10 +12,11 @@ import { PortsPopover } from "./PortsPopover";
 export function PortsButton() {
   const popover = usePopover();
   const { data } = usePorts();
+  const dot = usePortsDot();
   useWindowEvent(OPEN_PORTS_EVENT, () => popover.setOpen(true));
-  const count = data?.processes.length ?? 0;
+  const count = data?.length ?? 0;
   if (count === 0 && !popover.open) return null;
-  const detached = data?.processes.filter((p) => p.origin === "detached").length ?? 0;
+  const detached = data?.filter((p) => p.origin === "detached").length ?? 0;
   return (
     <>
       <button
@@ -23,11 +24,11 @@ export function PortsButton() {
         type="button"
         className={cx("footer-button footer-ports", popover.open && "active")}
         aria-expanded={popover.open}
-        data-tip={`プロジェクトのフォルダでポートを開いているプロセス ${count} 個${detached ? `（うち切り離されているもの ${detached} 個）` : ""}${data?.dot ? "\nチャットの実行の間に新しく現れたものがあります" : ""}`}
+        data-tip={`プロジェクトのフォルダでポートを開いているプロセス ${count} 個${detached ? `（うち切り離されているもの ${detached} 個）` : ""}${dot ? "\nチャットの実行の間に新しく現れたものがあります" : ""}`}
         onClick={popover.toggle}
       >
         <Network size={13} aria-hidden /> ポート {count}
-        {data?.dot && <span className="footer-ports-dot" aria-label="新しく現れたものがあります" />}
+        {dot && <span className="footer-ports-dot" aria-label="新しく現れたものがあります" />}
       </button>
       {popover.open && <PortsPopover anchor={popover.anchor} onClose={popover.close} />}
     </>

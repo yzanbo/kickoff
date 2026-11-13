@@ -358,6 +358,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     new PortProcessService({
       store,
       selfPid: 1000,
+      selfBundle: "/dev/Electron.app/",
       stopWaitMs: 50,
       probe: {
         lsof: async () => portsFake.lsof,

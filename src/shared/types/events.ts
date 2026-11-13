@@ -10,7 +10,6 @@ import type { Snippet } from "./snippet";
 import type { VoiceDownload } from "./voice";
 import type { WorktreePrNotice } from "./git";
 import type { CiFailure } from "./ci";
-import type { PortProcess } from "./ports";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
 export type BusEvent =
@@ -55,10 +54,11 @@ export type BusEvent =
   /** チャットの AI が、メモ・家系のチャットを開くよう頼んだ（Mac のアプリのメインのウィンドウだけが受けて開く。kickoff_chat の open_memo・open_chat） */
   | { type: "open_view"; request: OpenViewRequest }
   /**
-   * ポートを使っているプロセスを調べ直した（一覧を丸ごと）。fresh は、チャットの実行が終わったあとに調べて新しく現れたものの pid
-   * （画面は下の帯の「ポート n」のボタンに点を付ける。窓を開いた・↻・止めたあとに調べたときは空）
+   * ポートを使っているプロセスを調べ直した（数だけ。一覧はコマンドの全文を含むので SSE に載せず、この Mac の画面が GET /api/ports?cached=1 で読む。
+   * SSE はスマホの画面にも届くため）。fresh は、チャットの実行が終わったあとに調べて新しく現れたものの数
+   * （画面は下の帯の「ポート n」のボタンに点を付ける。窓を開いた・↻・止めたあとに調べたときは 0）
    */
-  | { type: "ports"; processes: PortProcess[]; fresh: number[] };
+  | { type: "ports_changed"; count: number; fresh: number };
 
 /** AI が開くときの場所（side = いちばん上の親チャットの画面の右の欄 / window = 別ウィンドウ） */
 export const OPEN_PLACES = ["side", "window"] as const;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { WorktreePortSlot } from "@shared/types";
-import { bandNotes, originOf, parseCwds, parseEtime, parsePs, selfAndAncestors, shortCommand, workplaceOf, type Workplace } from "./parse.js";
+import { appBundleOf, bandNotes, originOf, parseCwds, parseEtime, parsePs, selfAndAncestors, selfHelpers, shortCommand, workplaceOf, type Workplace } from "./parse.js";
 
 test("parseEtime: 分:秒・時:分:秒・日-時:分:秒（読めなければ null）", () => {
   assert.equal(parseEtime("05:07"), 307);
@@ -40,6 +40,24 @@ test("originOf: Kickoff の子孫は Kickoff の中・親が launchd は切り�
 
 test("selfAndAncestors: 自分と祖先（launchd は入れない）", () => {
   assert.deepEqual([...selfAndAncestors(510, parsePs(PS))], [510, 500]);
+});
+
+test("appBundleOf: 実行ファイルの .app の束（.app でなければ null）", () => {
+  assert.equal(appBundleOf("/A/Kickoff.app/Contents/MacOS/Kickoff"), "/A/Kickoff.app/");
+  assert.equal(appBundleOf("/w/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"), "/w/node_modules/electron/dist/Electron.app/");
+  assert.equal(appBundleOf("/opt/homebrew/bin/node"), null);
+});
+
+test("selfHelpers: 自分の子孫のうち、自分の .app の束の中のもの（ターミナルのシェル・ほかの Kickoff の Helper は入れない）", () => {
+  const t = parsePs(`  500     1 02:00:00 /A/Kickoff.app/Contents/MacOS/Kickoff
+  501   500 02:00:00 /A/Kickoff.app/Contents/Frameworks/Kickoff Helper (Renderer).app/Contents/MacOS/Kickoff Helper (Renderer) --type=renderer
+  502   500 02:00:00 /A/Kickoff.app/Contents/Frameworks/Kickoff Helper.app/Contents/MacOS/Kickoff Helper --type=utility
+  510   500    30:00 /bin/zsh -l
+  520   510    12:00 node /work/app/node_modules/.bin/vite
+  700     1 01:00:00 /A/Kickoff.app/Contents/MacOS/Kickoff
+  701   700 01:00:00 /A/Kickoff.app/Contents/Frameworks/Kickoff Helper.app/Contents/MacOS/Kickoff Helper --type=gpu-process`);
+  assert.deepEqual([...selfHelpers(500, "/A/Kickoff.app/", t)].sort(), [501, 502]);
+  assert.deepEqual([...selfHelpers(500, null, t)], []);
 });
 
 test("parseCwds: lsof -Fpn の p と n の行", () => {

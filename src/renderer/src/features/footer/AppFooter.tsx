@@ -19,6 +19,7 @@ import { UsageMeter } from "@/features/usage/UsageMeter";
 import { UsagePopover } from "@/features/usage/UsagePopover";
 import { QueueResumeFooterButton } from "@/features/chat/queue/QueueResumeDialog";
 import { PortsButton, PortsFallback } from "./ports/PortsButton";
+import { portsAvailable } from "./ports/portsStore";
 
 interface Props {
   onOpenSettings: (section: SettingsSection) => void;
@@ -45,7 +46,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
   const [mode, setMode] = useFooterMode();
   const menu = useContextMenu();
   // 隠していても、⌘K から「ポートを使っているプロセス」を開ける
-  if (mode === "hide") return <PortsFallback />;
+  if (mode === "hide") return portsAvailable() ? <PortsFallback /> : null;
   return (
     <footer className={cx("app-footer", mode === "hover" && "auto-hide")} onContextMenu={menu.open}>
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
@@ -81,8 +82,8 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       )}
       <ToolNotices onOpen={() => onOpenSettings("connection")} />
       {projectId !== undefined && <FooterBranch projectId={projectId} />}
-      {/* プロジェクトのフォルダでポートを開いているプロセス（0 なら出さない。AI が残した開発サーバーに気付いて止める） */}
-      <PortsButton />
+      {/* プロジェクトのフォルダでポートを開いているプロセス（0 なら出さない。AI が残した開発サーバーに気付いて止める。Mac のアプリの中だけ） */}
+      {portsAvailable() && <PortsButton />}
       {/* 起動したときの送信待ちの確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
       <QueueResumeFooterButton />
       <span className="spacer" />

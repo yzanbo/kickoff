@@ -54,6 +54,36 @@ export function selfAndAncestors(self: number, table: ReadonlyMap<number, PsRow>
   return out;
 }
 
+/** 実行ファイルのパスから .app の束のフォルダ（末尾の / まで。/A/Kickoff.app/Contents/MacOS/Kickoff → /A/Kickoff.app/。.app でなければ null） */
+export function appBundleOf(execPath: string): string | null {
+  const i = execPath.indexOf(".app/");
+  return i < 0 ? null : execPath.slice(0, i + ".app/".length);
+}
+
+/**
+ * 自分（Kickoff）の Helper（子孫のうち、自分の .app の束の中の実行ファイルのもの。描画・GPU・ネットワークなど）。
+ * ターミナルのシェルとそこから起動したもの（束の外）は入れない（「Kickoff の中」として出す）
+ */
+export function selfHelpers(self: number, bundle: string | null, table: ReadonlyMap<number, PsRow>): Set<number> {
+  const out = new Set<number>();
+  if (!bundle) return out;
+  for (const row of table.values()) {
+    if (!row.command.startsWith(bundle)) continue;
+    // 親をたどって自分に着けば子孫
+    const seen = new Set<number>();
+    let cur: PsRow | undefined = table.get(row.ppid);
+    while (cur && !seen.has(cur.pid)) {
+      if (cur.pid === self) {
+        out.add(row.pid);
+        break;
+      }
+      seen.add(cur.pid);
+      cur = table.get(cur.ppid);
+    }
+  }
+  return out;
+}
+
 /** .app の名前（/Applications/Visual Studio Code.app/Contents/… → Visual Studio Code。なければ null） */
 const appNameOf = (command: string) => /(?:^|\/)([^/]+)\.app\//.exec(command)?.[1] ?? null;
 
