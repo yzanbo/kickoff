@@ -10,11 +10,13 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useChatsWithChildren } from "@/stores/chats";
 import { useProjects } from "@/stores/projects";
 import { useWorktreePrNotices, worktreePrsStore } from "@/stores/worktreePrs";
-import { worktreesStore } from "@/stores/worktrees";
+import { useWorktreeEnv, worktreesStore } from "@/stores/worktrees";
 import { alertDialog } from "@/ui/dialogs";
 import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
+import { CheckField } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
+import { downVolumesCheck } from "../worktreeEnvText";
 import {
   PR_CHAT_ACTIONS,
   PR_CHAT_ACTION_LABELS,
@@ -92,6 +94,9 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
   const info = useAsync(() => api.worktreeRemovalInfo(projectId, notice.worktree).catch(() => undefined), [projectId, notice.worktree]);
   const [worktreeAction, setWorktreeAction] = useState<PrWorktreeAction>(defaultWorktreeAction(notice));
   const [chatAction, setChatAction] = useState<PrChatAction>("archive");
+  // Kickoff が組の名前を割り当てたワークツリーなら、コンテナとデータも消すか（初めは消す）
+  const volumes = downVolumesCheck(useWorktreeEnv(projectId, notice.worktree));
+  const [downVolumes, setDownVolumes] = useState(true);
   const action = useAction();
   const effectiveChatAction = chats.length > 0 ? chatAction : "keep";
   const warnings = prNoticeWarnings(info.data, running, worktreeAction, effectiveChatAction);
@@ -113,7 +118,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
     const ok = await action.run("submit", async () => {
       if (worktreeAction !== "keep") {
         // コミットしていない変更は、確認の中で知らせたうえで消すので force で消す
-        const list = await api.removeWorktree(projectId, notice.worktree, (info.data?.changes ?? 0) > 0, worktreeAction === "both");
+        const list = await api.removeWorktree(projectId, notice.worktree, (info.data?.changes ?? 0) > 0, worktreeAction === "both", volumes !== null && downVolumes);
         worktreesStore.set(projectId, list);
         worktreesStore.invalidate(projectId);
         // マージされたなら本体を最新にする（手元に変更があってできなければ、あとで伝える）
@@ -169,6 +174,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
           <p className="muted small pr-notice-path" title={notice.worktree}>
             {notice.worktree}
           </p>
+          {volumes && worktreeAction !== "keep" && <CheckField label={volumes.label} help={volumes.help(downVolumes)} checked={downVolumes} onChange={setDownVolumes} />}
         </section>
         {chats.length > 0 && (
           <section className="pr-notice-section">

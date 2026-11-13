@@ -65,6 +65,8 @@ interface ChoiceOptions {
   choices: { value: string; label: string; primary?: boolean; danger?: boolean }[];
   /** 「次からはこれにする」のチェックの文（あれば出す。選んだときにチェックしていたかを返す） */
   remember?: string;
+  /** 選ぶときに一緒に決めてもらうチェック（あれば出す。choiceDialogWithCheck。remember とは一緒に使わない） */
+  check?: DialogCheck;
 }
 
 type Request =
@@ -130,6 +132,16 @@ export function choiceDialog<T extends string>(options: Omit<ChoiceOptions, "cho
   });
 }
 
+/** 選ぶダイアログにチェックを 1 つ添える（「コンテナとデータも消す」など。選んだものと、チェックの状態。やめたら null） */
+export function choiceDialogWithCheck<T extends string>(
+  options: Omit<ChoiceOptions, "choices" | "remember" | "check"> & { choices: { value: T; label: string; primary?: boolean; danger?: boolean }[]; check: DialogCheck },
+): Promise<{ value: T; checked: boolean } | null> {
+  return new Promise((resolve) => {
+    if (!show) return resolve(null);
+    show({ kind: "choice", resolve: (value, checked) => resolve(value === null ? null : { value: value as T, checked }), ...options });
+  });
+}
+
 /** 3 つ以上から選ぶダイアログに「次からはこれにする」のチェックを添える（選んだものと、チェックしていたか。やめたら null） */
 export function choiceDialogWithRemember<T extends string>(
   options: Omit<ChoiceOptions, "choices" | "remember"> & { choices: { value: T; label: string; primary?: boolean; danger?: boolean }[]; remember: string },
@@ -159,7 +171,7 @@ export function DialogHost() {
       setValue(next.kind === "prompt" ? (next.initial ?? "") : "");
       setSelected(next.kind === "prompt" ? (next.select?.initial ?? "") : "");
       // 「次からはこれにする」と、確認に添えるチェックの初めの状態
-      setRemember(next.kind === "confirm" || next.kind === "prompt" ? Boolean(next.check?.initial) : false);
+      setRemember(Boolean(next.check?.initial));
       setReq(next);
     };
     return () => {
@@ -264,7 +276,7 @@ export function DialogHost() {
           </label>
         )}
         {req.kind === "choice" && req.remember && <CheckField className="app-dialog-remember" label={req.remember} checked={remember} onChange={setRemember} />}
-        {(req.kind === "confirm" || req.kind === "prompt") && req.check && (
+        {req.check && (
           <CheckField className="app-dialog-remember" label={req.check.label} help={req.check.help?.(remember)} checked={remember} onChange={setRemember} />
         )}
         <DialogActions className="app-dialog-actions" cancelRef={cancelRef} onCancel={req.kind === "confirm" && req.hideCancel ? undefined : () => finish(false)}>

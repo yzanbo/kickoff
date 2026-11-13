@@ -75,6 +75,7 @@
 | SQL の履歴（接続ごと。AI が流したものに印） | `DbQueryHistoryEntry` / 表 `db_query_history`（v14。`ran_by` = `user` / `ai`、AI なら `chat_id`。接続ごとに新しい `DB_HISTORY_MAX`（500）件だけ残す）・店 `store.dbQueryHistory` | なし |
 | DB ワーカー（DB の接続・SQL の実行・結果の整形・SSH トンネル・準備のコマンドを動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める（準備のコマンドを流している間は止めない）） | `core/databases/worker/`（Electron ではメインプロセスが `utilityProcess` で `out/main/dbWorker.js` を起動する口をコアに渡す（製品版は Electron の fuses で RunAsNode をオフにするので `ELECTRON_RUN_AS_NODE` は使わない）、`npm run daemon`・テストでは `worker/main.ts` を tsx で fork。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
 | Docker タブ（プロジェクトの画面の上のタブ「Docker」（「DB」の隣）。本体とワークツリーの compose のサービスを見て、起動・停止し、ログをタブの中のログの画面で見て、シェルを下のパネルのターミナルで開く。この Mac のアプリの中だけ。要件定義書の「5.14 Docker」。段階 1 と段階 2「DB で開く」を作った） | タブ `docker`（`#/projects/:id/docker`）・画面 `features/docker/`（状態と操作の hook `useDocker`・描く部品 `DockerPane`・ログの画面 `DockerLogs`）・コア `core/docker/`・API `GET /api/projects/:id/docker`（一覧）・`POST …/docker/actions`（操作）・`POST …/docker/watch`（見ています）・`GET …/docker/logs`（ログの流れ・さかのぼり）・`GET …/docker/db`（「DB で開く」の行き先）・SSE `docker_changed`（`project_id`）・共有の型 `@shared/types/docker.ts` | なし |
+| ワークツリーの実行環境（ワークツリーごとにポートの番号と Docker の組の名前を分け、本体と複数のワークツリーのアプリを同時に動かす。要件定義書の「5.16」）と帯（ワークツリーに渡す 100 個ずつの番号のまとまり。20100〜29900 の 99 本。+00 は開発サーバー、+01 から Docker の公開ポート）・対応表（本体の番号 → 帯の番号）・整えきれていない所（手順で分けきれなかった所）・分けられない理由 | `WorktreeEnv`・`WorktreePortSlot`（`@shared/types/worktreeEnv.ts`）・表 `worktree_envs`（v22）・コア `core/worktreeEnv/`（`WorktreeEnvService`）・`GitWorktree.env`・`issues`・`blocked`・ワークツリーの `.env` の Kickoff の区切りと `.kickoff/compose.worktree.yaml` | 「ポートの範囲」「ポートのずらし」 |
 | compose（Docker タブの見出し。compose のファイルごとに 1 つ。プロジェクトフォルダからの場所と作業場所の札を出す）・サービス（compose に書いた 1 つ 1 つ。行）・コンテナ（サービスから作ったもの。「作っていない」サービスもある） | 見つけ方とファイルの選び方 `core/docker/compose.ts`（中身は `docker compose -f … --profile '*' config --format json` に聞く。YAML は読まない） | なし |
 | 組の名前（compose のプロジェクト名。`-p` / `name:` / `COMPOSE_PROJECT_NAME`。Kickoff のプロジェクトと混ざるので、画面でも文書でも「プロジェクト」と呼ばない） | ラベル `com.docker.compose.project`（作ってあるもの）・`config --format json` の `name`（作っていないもの） | なし |
 | 札付きのサービス（compose の `profiles:` の札が付いた、必要なときだけ使うサービス。薄く並べ、「すべて起動」に含めない）・使い捨てのコンテナ（`docker compose run` で作ったもの。サービスの行の下に畳む） | `profiles`・ラベル `com.docker.compose.oneoff=True` | なし |
@@ -344,6 +345,30 @@ CREATE TABLE ci_failure_notices (
 
 - 見張りは PR の見張り（`core/git/prWatch.ts`）に相乗りする（`alsoCheck`。5 分ごとと窓に戻ったとき。ワークツリーのないプロジェクトも見る）。見張るブランチは作業場所（本体・各ワークツリー）で取り出しているブランチと既定のブランチで、ワークフローごとのいちばん新しい実行が落ちていて、まだ知らせておらず、終わってから 24 時間以内なら知らせる（`ciNormalize.ts` の `failuresToNotify`）。
 - 「（ブランチ名）で直す」の作業場所は `POST …/ci/runs/:run/worktree`（既定のブランチなら本体 = `worktree_path: null`。ほかは PR の「レビューコメントで直す」と同じ `checkoutPullWorktree` でワークツリーを使い回すか作る）。
+
+### ワークツリーの実行環境
+
+要件定義書の「5.16」。ワークツリーを作るときだけ決め、起動のたびには調べない（docker の手前に入口を挟む・起動のたびに調べる形は、macOS のログインシェルが PATH を並べ直して素通りされたので使わない）。書くのは Git で管理していないファイルだけ（写した `.env` と `.kickoff/compose.worktree.yaml`。`.kickoff/` は `.git/info/exclude`）。詳しい仕様はメモの「ワークツリーの実行環境 仕様書」。
+
+```sql
+-- v22: 作業するフォルダ（GitWorktree.path）ごとに 1 行。帯は全プロジェクトで 1 つのワークツリーにだけ渡す
+CREATE TABLE worktree_envs (
+  path TEXT PRIMARY KEY CHECK (path <> ''),
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  band INTEGER UNIQUE CHECK (band IS NULL OR band > 0),          -- 帯の先頭（分けていなければ NULL）
+  host TEXT CHECK (host <> ''),                                   -- 埋め込みブラウザの名前（<ブランチ名>.localhost）
+  slots TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(slots) AND json_type(slots) = 'array'),                      -- 対応表
+  compose_names TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(compose_names) AND json_type(compose_names) = 'array'),  -- 割り当てた組の名前
+  rewritten TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(rewritten) AND json_type(rewritten) = 'array'),          -- 書き換えた変数
+  issues TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(issues) AND json_type(issues) = 'array'),                   -- 整えきれていない所
+  blocked TEXT CHECK (blocked <> ''),                             -- 分けられない理由
+  created_at TEXT NOT NULL
+) STRICT;
+```
+
+- 帯は「本体の番号 ＋ 10000 × n」（4 本までしか置けない）・「本体の番号 ＋ 100 × n」（開発サーバーの本体の番号が分からないことがあり、開発の道具の 3000〜9000 番台とぶつかりやすい）を比べて、2 万番台の 100 個ずつの帯にした。帯を選ぶときは、ほかのワークツリーに渡した帯と、いま待ち受けている番号がある帯を飛ばす。
+- DB と `.env` の両方に覚える（DB は空いている帯を選ぶ・画面に出す・消すときに帯を空ける・組の名前を割り当てたかを見分ける）。
+- AI とターミナルには `PORT=帯+00` を渡すだけで、開発サーバーの起動は持たない。手順で整えきれない所を AI に直してもらう［AI で整える］は段階 2（利用者が押したときだけ）。
 
 ### DB クライアントの段階 2・段階 3
 

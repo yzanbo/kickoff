@@ -169,6 +169,11 @@
   gap: 8px;
 }
 
+/* ワークツリーの実行環境の注意（ポートを分けられない・整えきれていない所。押すと中身） */
+.worktree-bar .worktree-env-warn {
+  color: var(--warn);
+}
+
 .pr-chip {
   display: inline-flex;
   align-items: center;

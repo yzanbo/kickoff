@@ -1,8 +1,8 @@
-import { ExternalLink, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2 } from "lucide-react";
+import { ExternalLink, Globe, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2, TriangleAlert } from "lucide-react";
 import type { PullRequestInfo } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
-import { alertDialog, confirmDialog } from "@/ui/dialogs";
+import { alertDialog, confirmDialog, confirmWithCheck } from "@/ui/dialogs";
 import { errorMessage } from "@shared/errors";
 import { useAction } from "@/hooks/useAction";
 import { useAsync } from "@/hooks/useAsync";
@@ -12,7 +12,10 @@ import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { baseName } from "@/lib/format";
 import { confirmRemoveWorktree } from "./removeWorktree";
 import type { GitStatusController } from "@/features/editor/useGitStatus";
-import { worktreesStore } from "@/stores/worktrees";
+import { useWorktreeEnv, worktreesStore } from "@/stores/worktrees";
+import { panelActions } from "@/features/panel/state/panelActions";
+import { panelKey } from "@/features/panel/surfaces";
+import { appAddress, downVolumesCheck } from "./worktreeEnvText";
 import { useWorktreePrLookup } from "@/stores/worktreePrs";
 import { openPrNotice } from "./prNotice/PrNoticeDialog";
 
@@ -21,7 +24,9 @@ const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オ�
 /**
  * ワークツリーの作業の流れ（ファイルタブでワークツリーを選んでいるとき、作業場所の右に出す）。
  * プッシュして GitHub に PR を作る → GitHub でマージ → 「片付ける」でワークツリーとブランチを消し、本体を最新にする。
- * 右端のごみ箱で、PR の状態にかかわらずワークツリーを消せる（ブランチも消すかを選ぶ）
+ * 右端のごみ箱で、PR の状態にかかわらずワークツリーを消せる（ブランチも消すかを選ぶ）。
+ * ワークツリーの実行環境（ポートの帯）があれば［アプリを開く］（埋め込みブラウザで <ブランチ名>.localhost:<帯+00>）と、
+ * 分けられない理由・整えきれていない所を出す（押すと中身）
  */
 export function WorktreeBar({
   projectId,
@@ -36,6 +41,7 @@ export function WorktreeBar({
   onFinished: () => void;
 }) {
   const target = { projectId, worktree };
+  const env = useWorktreeEnv(projectId, worktree);
   const status = git.status?.repo ? git.status : undefined;
 
   // PR の状態は GitHub に聞くので、開いたとき・ウィンドウに戻ったとき・押したときだけ取り直す（null は PR がまだない）
@@ -63,16 +69,19 @@ export function WorktreeBar({
   const prNotice = useWorktreePrLookup()(worktree);
   const finish = async () => {
     if (prNotice) return openPrNotice(prNotice);
-    const ok = await confirmDialog({
+    const confirm = {
       title: "ワークツリーを片付けますか？",
       message: `PR がマージされたので、${worktree} のフォルダと、手元のブランチ「${status?.branch ?? ""}」を消します。そのあと本体を最新にします。このワークツリーで作業していたチャットは、続きを本体で進めます。`,
       confirmLabel: "片付ける",
       danger: true,
-    });
-    if (!ok) return;
+    };
+    // Kickoff が組の名前を割り当てたワークツリーなら、コンテナとデータも消すかを一緒に選ぶ
+    const check = downVolumesCheck(env);
+    const answer = check ? await confirmWithCheck({ ...confirm, check }) : (await confirmDialog(confirm)) && { checked: false };
+    if (!answer) return;
     await action.run("finish", async () => {
       // 片付け = ブランチも消す「消す」（コミットしていない変更があれば、消さずに失敗する）
-      await api.removeWorktree(projectId, worktree, false, true);
+      await api.removeWorktree(projectId, worktree, false, true, answer.checked);
       worktreesStore.invalidate(projectId);
       // 本体を最新にする（手元に変更があってできなければ、そう伝える）
       await api.gitPull(projectId).catch((e: unknown) => void alertDialog("本体を最新にできませんでした", errorMessage(e)));
@@ -114,6 +123,25 @@ export function WorktreeBar({
         )
       )}
       {status.has_origin && <RefreshButton label="PR の状態を取り直す" busy={pr.loading} onClick={pr.reload} />}
+      {env?.app_url && (
+        <button
+          className="btn btn-sm"
+          data-tip={`${appAddress(env)} をチャット欄のブラウザで開く（開発サーバーは、このワークツリーのターミナルで起動すると PORT=${env.band} で動きます）`}
+          onClick={() => panelActions(panelKey("side", projectId)).openBrowser(env.app_url!)}
+        >
+          <Globe size={12} aria-hidden /> アプリを開く
+        </button>
+      )}
+      {env?.blocked && (
+        <button className="btn btn-sm worktree-env-warn" onClick={() => void alertDialog("ポートを分けられません", `${env.blocked}\n\nこのワークツリーは、本体と同じポート・同じ Docker の組の名前のままです。`)}>
+          <TriangleAlert size={12} aria-hidden /> ポートを分けられません
+        </button>
+      )}
+      {env && env.issues.length > 0 && (
+        <button className="btn btn-sm worktree-env-warn" onClick={() => void alertDialog("整えきれていない所があります", env.issues.map((i) => `・${i}`).join("\n"))}>
+          <TriangleAlert size={12} aria-hidden /> 整えきれていない所 {env.issues.length} 件
+        </button>
+      )}
       <IconButton icon={Trash2} label="ワークツリーを消す" title="このワークツリーを消す（ブランチも消すかを選べます）" disabled={busy} onClick={() => void remove()} />
       <ErrorText message={action.error ?? pr.error} />
     </div>
