@@ -9,6 +9,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { createBackgroundTracker } from "./background.js";
+import { createTurnOver } from "./turnOver.js";
 import { createCommandOutputWatcher } from "./commandOutput.js";
 import { createInputChannel } from "./input.js";
 import { createPreCompactGate, preCompactHook, replyText } from "./preCompact.js";
@@ -176,11 +177,18 @@ export class ClaudeProvider implements AgentProvider {
 
     // 入力はストリーミング（作業中に発言を足す・裏の作業を止めるため、返答が終わり裏の作業もなくなるまで開いておく）
     const input = createInputChannel(params.prompt, params.promptId);
+    // 入力を閉じる時（Claude Code が本当に手が空いたとき）。足した発言で次の返答が始まりうるので、足したことも知らせる
+    const turnOver = createTurnOver(() => input.close());
+    const push = (text: string, uuid?: string) => {
+      const ok = input.push(text, uuid);
+      if (ok) turnOver.pushed();
+      return ok;
+    };
     // 実行中のコマンドの出力（Claude Code が書いているファイルを読み続け、終わる前から画面に届ける）
     const commandOutput = createCommandOutputWatcher((output) => cb.commandOutput?.(output));
     // 上限に近づいて自動で圧縮する前に、圧縮前指示を足して済ませてもらう（PreCompact フックで圧縮を止める）
     const preCompact = params.preCompact
-      ? createPreCompactGate({ ...params.preCompact, push: (text, uuid) => input.push(text, uuid), onSent: (uuid) => cb.preCompactSent?.(uuid) })
+      ? createPreCompactGate({ ...params.preCompact, push, onSent: (uuid) => cb.preCompactSent?.(uuid) })
       : null;
     try {
       const q = query({
@@ -224,7 +232,7 @@ export class ClaudeProvider implements AgentProvider {
       });
 
       // 作業中の発言の足し方と、裏の作業の止め方を Runner に渡す
-      cb.control?.({ tell: (text, uuid) => input.push(text, uuid), stopTask: (taskId) => q.stopTask(taskId) });
+      cb.control?.({ tell: push, stopTask: (taskId) => q.stopTask(taskId) });
       // 思考の時間を測る（流れてくる途中経過で始まりと終わりを見る）
       const messageState = createMessageState();
       // 裏で動いている作業と、メインの返答が終わったか（変わったときだけ知らせる）
@@ -247,11 +255,9 @@ export class ClaudeProvider implements AgentProvider {
         commandOutput.handle(msg);
         const sid = emitSdkMessage(msg, cb, messageState);
         const background = trackBackground(msg);
-        if (background) {
-          cb.background?.(background);
-          // 返答を書き終え、裏の作業もなくなった: 入力を閉じて Claude Code を終わらせる（足した発言がまだ渡っていなければ閉じない）
-          if (background.replied && background.tasks.length === 0) input.close();
-        }
+        if (background) cb.background?.(background);
+        // Claude Code の手が空き、裏の作業もなくなった: 入力を閉じて終わらせる（足した発言がまだ渡っていなければ閉じない。turnOver.ts）
+        turnOver.note(msg, background);
         // メインの会話の最後のメッセージ（ここから分岐するときの位置）
         if ((msg.type === "assistant" || msg.type === "user") && msg.parent_tool_use_id === null && msg.uuid) lastMessageId = msg.uuid;
         if (sid) sessionId = sid;
@@ -283,6 +289,7 @@ export class ClaudeProvider implements AgentProvider {
       return { status: "failed", sessionId, error, lastMessageId, network: network(error), ...usageLimit(error) };
     } finally {
       signal.removeEventListener("abort", onAbort);
+      turnOver.stop();
       input.close(true);
       cb.control?.(null);
       commandOutput.stopAll();
