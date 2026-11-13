@@ -3,6 +3,7 @@ import { workplaceText } from "@shared/docker/workplace";
 import type { DockerPortConflict, DockerSilentConflict } from "@shared/types";
 import type { RawContainer } from "./parse.js";
 import { parsePorts } from "./parse.js";
+import type { ListeningSocket } from "../system/listening.js";
 
 /** Docker のエンジンのプロセスの名前（これらだけがポートを待っているなら、ぶつかりではない） */
 export const DOCKER_ENGINE_PROCESSES = ["OrbStack", "OrbStack Helper", "com.docker.backend", "com.docker.vpnkit", "vpnkit-bridge", "limactl", "gvproxy"] as const;
@@ -34,33 +35,6 @@ export function portConflictsOf(
     .filter((c) => c.state === "running" && !isOwn(c))
     .flatMap((c) => hostPortsOf(c).filter((p) => wanted.has(p)).map((port) => ({ port, container_id: c.id, container_name: c.name, label: labelOf(c) })))
     .sort((a, b) => a.port - b.port);
-}
-
-/** lsof の待っているポート 1 つ */
-export interface ListeningSocket {
-  process: string;
-  pid: number;
-  /** 127.0.0.1:5432・*:5432・[::1]:5432 など（lsof に出たまま） */
-  address: string;
-  port: number;
-}
-
-/** lsof の名前の \xNN（空白など）を戻す */
-const unescapeLsof = (s: string) => s.replace(/\\x([0-9a-fA-F]{2})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16)));
-
-/** `lsof -nP +c 0 -iTCP -sTCP:LISTEN` の出力を読む（見出しの行と読めない行は飛ばす） */
-export function parseLsof(out: string): ListeningSocket[] {
-  const sockets: ListeningSocket[] = [];
-  for (const line of out.split("\n")) {
-    const cols = line.trim().split(/\s+/);
-    if (cols.length < 9 || cols[0] === "COMMAND") continue;
-    const pid = Number(cols[1]);
-    const name = cols.slice(8).join(" ").replace(/\s*\(LISTEN\)$/, "");
-    const m = /:(\d+)$/.exec(name);
-    if (!Number.isInteger(pid) || !m) continue;
-    sockets.push({ process: unescapeLsof(cols[0]), pid, address: name, port: Number(m[1]) });
-  }
-  return sockets;
 }
 
 /**

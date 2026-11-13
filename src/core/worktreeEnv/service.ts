@@ -8,7 +8,7 @@ import type { Store } from "../db/store.js";
 import type { StoredWorktreeEnv } from "../db/worktreeEnvs.js";
 import { findComposeFiles, upFilesFor } from "../docker/compose.js";
 import { STANDARD_COMPOSE_NAMES } from "../docker/parse.js";
-import { parseLsof } from "../docker/portConflict.js";
+import { parseLsof } from "../system/listening.js";
 import type { DockerService } from "../docker/service.js";
 import { isInside } from "../system/paths.js";
 import { assignSlots, pickBand, type DockerSlotWant } from "./bands.js";

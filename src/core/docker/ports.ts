@@ -2,7 +2,8 @@
 // lsof・brew は外のコマンドなので、テストでは probe を差し替える
 import type { DockerSilentConflict } from "@shared/types";
 import { findExecutable, runCommand, searchDirs } from "../system/exec.js";
-import { brewServicePids, parseLsof, silentConflictsOf } from "./portConflict.js";
+import { lsofListening, parseLsof } from "../system/listening.js";
+import { brewServicePids, silentConflictsOf } from "./portConflict.js";
 
 /** Homebrew のサービスの一覧を覚える時間（ぶつかりがあるときだけ聞く） */
 const BREW_TTL_MS = 30_000;
@@ -19,7 +20,7 @@ export interface PortProbe {
 const brewBin = () => findExecutable(["brew"], searchDirs());
 
 export const defaultPortProbe: PortProbe = {
-  lsof: () => runCommand("/usr/sbin/lsof", ["-nP", "+c", "0", "-iTCP", "-sTCP:LISTEN"], { okCodes: [1], timeout: 5_000 }),
+  lsof: lsofListening,
   brewServices: async () => {
     const brew = brewBin();
     return brew ? runCommand(brew, ["services", "info", "--all", "--json"], { timeout: 15_000 }) : "[]";
