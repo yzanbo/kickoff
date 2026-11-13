@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { RawContainer } from "./parse.js";
-import { allocatedPortOf, brewServicePids, conflictLabel, parseLsof, portConflictsOf, silentConflictsOf } from "./portConflict.js";
+import { allocatedPortOf, brewServicePids, conflictLabel, portConflictsOf, silentConflictsOf } from "./portConflict.js";
+import { parseLsof } from "../system/listening.js";
 
 const container = (over: Partial<RawContainer>): RawContainer => ({
   id: "c1",
