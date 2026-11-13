@@ -6,7 +6,7 @@ import type { PromptList } from "@/features/chat/prompts/promptHistory";
 import { StickyPrompt } from "@/features/chat/prompts/StickyPrompt";
 import { useStickyPrompt } from "@/features/chat/prompts/useStickyPrompt";
 import { useWorkingStatus } from "@/features/chat/status/useWorkingStatus";
-import { keepSelectionOnClick, onEditable, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
+import { keepSelectionOnClick, onEditable, onReplyBlank, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
 import { useQuoteMenu } from "@/features/chat/messages/useMessageMenu";
 import { ChatDisplayItems } from "@/features/chat/pane/ChatDisplayMenu";
 import { PopupMenu } from "@/ui/PopupMenu";
@@ -102,7 +102,7 @@ export function ChatTimeline({
   const pinned = sticky.pinned;
   // 流れの中の文（質問のカード・ツールの行・サブエージェントのカードなど）の右クリック。発言など自分のメニューを持つ所は、そちらが先に開く
   const quoteMenu = useQuoteMenu();
-  // 何もないところ（発言・まとまりの外）の右クリックは、チャットの画面の表示のメニュー（タブの列・見出しの行など。隠したものをここから戻せる）
+  // 何もないところ（発言・まとまりの外と、返答の行の文の外）の右クリックは、チャットの画面の表示のメニュー（タブの列・見出しの行など。隠したものをここから戻せる）
   const displayMenu = useContextMenu();
 
   return (
@@ -116,6 +116,12 @@ export function ChatTimeline({
         onContextMenu={(e) => {
           if (quoteMenu.openInRegion(e) || e.defaultPrevented || onEditable(e.target)) return;
           if ((e.target as Element).closest("a, button, summary, input, textarea")) return;
+          displayMenu.open(e);
+        }}
+        onContextMenuCapture={(e) => {
+          // 返答の行の文の外（行の右の空き・段落の間）も何もないところと同じに扱い、返答のメニューより先に受ける
+          if (!onReplyBlank(e, e.currentTarget)) return;
+          e.stopPropagation();
           displayMenu.open(e);
         }}
         onClickCapture={keepSelectionOnClick}
