@@ -6,6 +6,7 @@ import { Terminal } from "@xterm/xterm";
 import { RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/errors";
+import type { TerminalTabMeta } from "@shared/ipc";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { terminalFont, terminalTheme } from "./terminalTheme";
 import { useTerminalSelectionMenu } from "./useTerminalSelectionMenu";
@@ -24,6 +25,8 @@ interface Props {
   command?: string;
   /** シェルに足す環境変数（command のタブ） */
   env?: Record<string, string>;
+  /** タブの持ち主（プロジェクト）と名前（つなぐたびにメインプロセスへ知らせる。AI がこのプロジェクトのターミナルの出力を読むときに使う） */
+  meta?: TerminalTabMeta;
   /** パネルで表示しているか（表示したときに大きさを合わせる） */
   visible: boolean;
   /** 入力先か（分割したペインのうち 1 つ。省略なら表示しているとき） */
@@ -38,13 +41,16 @@ interface Props {
  * 内蔵ターミナル（xterm.js）。シェルは Electron のメインプロセスで動いていて、タブを裏に回しても・ボードを切り替えても動き続ける。
  * 表示し直したときは、いまの画面の内容をもらって描き直す。使うときだけ読み込む（Panel から lazy で読む）
  */
-export default function TerminalPane({ termKey, cwd, command, env, visible, focused = visible, onOpenUrl, projectId = null }: Props) {
+export default function TerminalPane({ termKey, cwd, command, env, meta, visible, focused = visible, onOpenUrl, projectId = null }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal>(undefined);
   const fitRef = useRef<FitAddon>(undefined);
   const theme = useAppliedTheme();
   const openUrl = useRef(onOpenUrl);
   openUrl.current = onOpenUrl;
+  // 描き直すたびに作り直される値なので、つなぎ直しの effect の依存に入れず、つなぐときの値を読む
+  const metaRef = useRef(meta);
+  metaRef.current = meta;
   // 決まったコマンドのタブが終わったか（［もう一度流す］を出す）と、流し直す操作
   const [commandDone, setCommandDone] = useState(false);
   const rerun = useRef<() => void>(undefined);
@@ -91,7 +97,7 @@ export default function TerminalPane({ termKey, cwd, command, env, visible, focu
     const connect = async () => {
       ready = false;
       try {
-        const { snapshot } = await native.open(termKey, cwd, term.cols, term.rows, command ? { command, env } : undefined);
+        const { snapshot } = await native.open(termKey, cwd, term.cols, term.rows, command ? { command, env } : undefined, metaRef.current);
         if (!alive) return;
         if (snapshot) term.write(snapshot);
         // つなぎ直したときは、シェルの大きさをこの画面に合わせる

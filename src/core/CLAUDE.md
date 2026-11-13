@@ -20,6 +20,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - `worktreeEnv/`: ワークツリーの実行環境（ワークツリーごとのポートの帯と Docker の組の名前）。→「ワークツリーの実行環境」
 - `ports/`: ポートを使っているプロセス（プロジェクトのフォルダで TCP のポートを待っているもの）。→「ポートを使っているプロセス」
 - `browser/`: AI に埋め込みブラウザを操作させる口 `BrowserControl`（`control.ts`。タブのある欄を開いて表に出す `reveal` と、開くときの表に出す頼み `RevealRequest` も。コアは Electron に依らないので、中身はメインプロセスが `startCore({ browser })` で渡す（`main/browser/agentBrowser.ts`）。単体のコア（`npm run daemon`）では渡されず、AI にブラウザのツールを出さない）と、AI に返す文の組み立て（`format.ts`: タブの一覧 `formatTabs`（このプロジェクトのタブを先に）・ページの読み取り `formatSnapshot`（押せる要素の番号 ref と見えている文。文は `SNAPSHOT_TEXT_MAX` で切る）・URL の補い `normalizeBrowserUrl`（localhost・ポート付きは http、ほかは https。http(s) 以外は開かない））。ツールそのものは `providers/claude/browserTools.ts`。
+- `terminal/`: AI に内蔵ターミナルの出力を読ませる口 `TerminalControl`（`control.ts`。タブの一覧 `list`（タブのキー・プロジェクト・名前・フォルダ・コマンド）と最後の行 `tail`。読むだけで、コマンドの起動・停止・キーの入力は口に入れない。シェルはメインプロセスが動かすので、中身はメインプロセスが `startCore({ terminals })` で渡す（`main/terminal/terminals.ts` の `agentTerminals`）。単体のコアでは渡されず、AI にターミナルのツールを出さない）。ツールの中身は `chat/aiTerminal.ts`。
 - `system/`: 外部コマンド・パス（→「外部コマンドとパス」）・この Mac で TCP のポートを待っているプロセス（`listening.ts` の `lsofListening` と読み取り `parseLsof`。Docker タブの静かなぶつかり・ワークツリーの帯の選び方・ポートを使っているプロセスで共通）・ログインシェルの PATH（`shellEnv.ts` の `loadLoginShellPath`）・期限付きのキャッシュ（`ttlCache.ts`）・名前と保存先とポート（`appEnv.ts` の `APP_ENVS`。製品版 Kickoff = 4317、開発版 Kickoff Dev = 4318。同時に動かせ、開発中の変更で製品版のデータを壊さない）・開発版のデータの写し（`devData.ts` の `seedDevData`。開発の保存先がなければ製品版から一度だけ。DB は `VACUUM INTO`）。
 - `testing/`: テストからだけ使う補助。→「テスト」
 

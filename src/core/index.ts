@@ -23,6 +23,7 @@ import { MemoService } from "./memos/memos.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
 import type { BrowserControl } from "./browser/control.js";
+import type { TerminalControl } from "./terminal/control.js";
 import { DbWorkerClient, forkWorker, type WorkerChannel } from "./databases/client.js";
 import { DatabaseService } from "./databases/service.js";
 import { GitHubService } from "./github/service.js";
@@ -43,6 +44,8 @@ interface CoreOptions {
   staticDir?: string;
   /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。AI がブラウザのタブを見る・操作するツールに使う） */
   browser?: BrowserControl;
+  /** 内蔵ターミナルの読み取り（デスクトップアプリのメインプロセスが渡す。AI がターミナルの出力を読むツールに使う） */
+  terminals?: TerminalControl;
   /** macOS の音声認識の補助コマンド（kickoff-speech）の場所（ビルドで out/native に作る。渡さなければ、音声入力の「macOS の音声認識」は使えない） */
   speechHelper?: string;
   /**
@@ -119,7 +122,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const worktreeEnvs = new WorktreeEnvService(store, docker);
   // ポートを使っているプロセス（AI が残した開発サーバーに気付いて止める。調べるのは窓を開いた・チャットの実行が終わったときだけ）
   const ports = new PortWatch(bus, new PortProcessService({ store }));
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, databases, docker, worktreeEnvs, interrupted: recovered });
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals: opts.terminals, databases, docker, worktreeEnvs, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speechHelper: opts.speechHelper ?? null, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）

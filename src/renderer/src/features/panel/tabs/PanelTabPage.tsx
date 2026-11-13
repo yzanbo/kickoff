@@ -15,7 +15,7 @@ import { GitHubTab } from "@/features/github/GitHubTab";
 import { ProjectFileTab } from "@/features/editor/ProjectFileTab";
 import { SideFileView } from "@/features/editor/SideFileView";
 import { SideProjectView } from "./SideProjectView";
-import { childTab, memoTab } from "./tabKinds";
+import { childTab, memoTab, terminalTitle } from "./tabKinds";
 import { canPopOut, popOutTab } from "./popOutTab";
 import { TabPageContext } from "./tabPageContext";
 import { NewChatPane } from "./NewChatPane";
@@ -140,6 +140,7 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
         cwd={t.cwd}
         command={t.command}
         env={t.env}
+        meta={{ projectId: t.projectId, title: terminalTitle(t) }}
         visible={visible}
         focused={visible && focused}
         onOpenUrl={(url) => panel.openBrowser(url)}

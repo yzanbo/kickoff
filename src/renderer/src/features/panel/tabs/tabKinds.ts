@@ -147,6 +147,9 @@ export const browserTab = (url = ""): TabOf<"browser"> => ({ key: newTabKey("bro
 /** ターミナルのタブ（開く場所のフォルダでシェルを始める。どのプロジェクトの作業場所かも覚える） */
 export const terminalTab = (target: TerminalTarget): TabOf<"terminal"> => ({ key: newTabKey("terminal"), kind: "terminal", ...target });
 
+/** ターミナルのタブの名前（タブの列と、AI が読むタブの一覧で同じ） */
+export const terminalTitle = (t: TerminalTarget) => t.title ?? `ターミナル · ${t.label}`;
+
 /** ブラウザのタブに出すホスト名（URL として読めなければそのまま） */
 export function hostOf(url: string): string {
   try {
@@ -386,7 +389,7 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   terminal: {
     shows: "terminal",
     icon: SquareTerminal,
-    label: (t) => t.title ?? `ターミナル · ${t.label}`,
+    label: terminalTitle,
     hint: (t) => (t.command ? `${t.command}\n${t.cwd}` : t.cwd),
     projectOf: (t) => t.projectId,
     dispose: (t) => void globalThis.window?.kickoff?.terminal.close(t.key),

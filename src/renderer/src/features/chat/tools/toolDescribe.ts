@@ -17,6 +17,7 @@ import {
 } from "@shared/chat/aiOpen";
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL, describeAddSnippet, describeMoveMemo } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL, describeReadChat } from "@shared/chat/aiRead";
+import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL, describeReadTerminal } from "@shared/chat/aiTerminal";
 import { isSubagentTool } from "@shared/chat/subagents";
 
 type Input = Record<string, unknown>;
@@ -71,6 +72,8 @@ const TOOL_LABELS: Record<string, string> = {
   [AI_OPEN_DIFF_TOOL]: "差分を開く",
   [AI_OPEN_SQL_TOOL]: "SQL のタブに入れる",
   [AI_ADD_DRAFT_TOOL]: "下書きを入れる",
+  [AI_LIST_TERMINALS_TOOL]: "ターミナルを確かめる",
+  [AI_READ_TERMINAL_TOOL]: "ターミナルの出力を読む",
 };
 
 /** ToDo の状態の表示名（TaskUpdate の status） */
@@ -255,6 +258,11 @@ function describeKnown(name: string, input: Input): string | null {
       return clip(describeOpenSql(input));
     case AI_ADD_DRAFT_TOOL:
       return clip(describeAddDraft(input));
+    case AI_LIST_TERMINALS_TOOL:
+      return "";
+    case AI_READ_TERMINAL_TOOL:
+      // 読んだ行の数（省いたら既定なので付けない）
+      return clip(describeReadTerminal(input));
   }
   // サブエージェントは、依頼の概要と種類だけ（依頼の全文は「中身を見る」で見られる）
   if (isSubagentTool(name) && typeof input.description === "string") {

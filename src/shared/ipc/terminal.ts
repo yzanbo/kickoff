@@ -19,3 +19,9 @@ export interface TerminalStart {
   command?: string;
   env?: Record<string, string>;
 }
+
+/** タブの持ち主と名前（AI がこのプロジェクトのターミナルの出力を読むときに、タブを見分けて名前で示すため。つなぐたびに知らせる） */
+export interface TerminalTabMeta {
+  projectId: number | null;
+  title: string;
+}

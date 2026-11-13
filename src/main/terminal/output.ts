@@ -23,6 +23,8 @@ export class TerminalOutput {
   /** 取っている途中の snapshot（その間は送らない。止めたときに待たせたままにしない） */
   private readonly snapshots = new Set<(text: string) => void>();
   private disposed = false;
+  /** 書いた分を読み終えるのを待っている読み取り（止めたときに待たせたままにしない） */
+  private readonly waits = new Set<(ok: boolean) => void>();
 
   constructor(
     private readonly send: (data: string) => void,
@@ -75,6 +77,27 @@ export class TerminalOutput {
     }
   }
 
+  /**
+   * 裏の端末に残っている最後の max 行（折り返しをつないだ 1 行ずつ。色などの印は入らない。終わりの空行は落とす）と、残っている行の数。
+   * AI がターミナルの出力を読むときに使う。それまでに書いた出力を読み終えてから数える
+   */
+  async tail(max: number): Promise<{ lines: string[]; total: number }> {
+    if (!(await this.written())) return { lines: [], total: 0 };
+    const buffer = this.screen.buffer.active;
+    const lines: string[] = [];
+    for (let i = 0; i < buffer.length; i++) {
+      const line = buffer.getLine(i);
+      if (!line) continue;
+      // 折り返した続きの行は前の行につなぐ（つなぎ目の空白を落とさないよう、行の右の空白はつないだあとで落とす）
+      const text = line.translateToString(false);
+      if (line.isWrapped && lines.length > 0) lines[lines.length - 1] += text;
+      else lines.push(text);
+    }
+    const trimmed = lines.map((l) => l.trimEnd());
+    while (trimmed.length > 0 && trimmed.at(-1) === "") trimmed.pop();
+    return { lines: trimmed.slice(-Math.max(1, max)), total: trimmed.length };
+  }
+
   resize(cols: number, rows: number) {
     this.screen.resize(cols, rows);
   }
@@ -86,7 +109,21 @@ export class TerminalOutput {
     clearTimeout(this.timer);
     this.timer = undefined;
     for (const done of this.snapshots) done("");
+    for (const done of this.waits) done(false);
     this.screen.dispose();
+  }
+
+  /** それまでに書いた出力を裏の端末が読み終えたら true（止めたら false） */
+  private written(): Promise<boolean> {
+    if (this.disposed) return Promise.resolve(false);
+    return new Promise<boolean>((resolve) => {
+      const done = (ok: boolean) => {
+        this.waits.delete(done);
+        resolve(ok);
+      };
+      this.waits.add(done);
+      this.screen.write("", () => done(!this.disposed));
+    });
   }
 
   private schedule() {

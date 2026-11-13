@@ -50,7 +50,8 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 ## ターミナル（terminal/）
 
 - `terminals.ts`: シェルは node-pty でメインプロセスが動かし、画面とは IPC だけでつなぐ（コアのサーバー、つまりスマホからは通さない）。画面の部品は作り直されるので、シェルはキーごとに動かし続け、つなぎ直したら（`terminal.open`）いまの画面の内容を返す。その画面が消えた・読み込み直したら、その画面のシェルを止める。作業場所のフォルダがなければホームで開き、その注意を画面の先頭に出す。`open` の `start`（`@shared/ipc` の `TerminalStart`）にコマンドがあれば、シェルを `-l -c <コマンド>` で始め（`env` も足す）、終わったら `onExit` で終了コードを知らせる（新しく始めるときだけ使う）。シェルには `KICKOFF_TERMINAL_OF`（製品版 / 開発版）を渡す（`npm run install-app` が、製品版のターミナルから流されたのを見分ける）。作業場所がポートの帯を持つワークツリーの中なら、その開発サーバーの番号 `PORT`（コアの `worktreeEnvFor`。`index.ts` がコアを起動したあと `setTerminalEnvOf` で渡す。`src/core/CLAUDE.md` の「ワークツリーの実行環境」）も渡す。
-- `output.ts` の `TerminalOutput`: 出力は裏の端末（`@xterm/headless`）にも書き、つなぎ直したときの内容（`snapshot`）にする。画面へは細かい出力をまとめて送る。画面は open の返事までの出力を捨てるので、snapshot は書き終えるのを待ってから取り、取っている間の出力は返事のあとに送る（漏れも重なりも出さない）。
+- `output.ts` の `TerminalOutput`: 出力は裏の端末（`@xterm/headless`）にも書き、つなぎ直したときの内容（`snapshot`）にする。画面へは細かい出力をまとめて送る。画面は open の返事までの出力を捨てるので、snapshot は書き終えるのを待ってから取り、取っている間の出力は返事のあとに送る（漏れも重なりも出さない）。AI が読む最後の行は `tail`（書き終えるのを待ってから、裏の端末の行を折り返しをつないだ 1 行ずつにし、色などの印は入れず、終わりの空行を落とす）。
+- AI に渡す読み取り（`terminals.ts` の `agentTerminals`。コアの `TerminalControl`。`index.ts` が `startCore({ terminals })` で渡す）: 動いているシェルのタブの一覧（画面が `terminal.open` の `meta`（`@shared/ipc` の `TerminalTabMeta`。プロジェクトとタブの名前）でつなぐたびに知らせたもの・始めたフォルダ・コマンド）と、`TerminalOutput.tail` の最後の行。読むだけで、書く・止めるは渡さない。
 
 ## 通知（notifications/）
 

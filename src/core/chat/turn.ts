@@ -1,4 +1,5 @@
 import type { BrowserControl } from "../browser/control.js";
+import type { TerminalControl } from "../terminal/control.js";
 import { createDbAiTools, hasAiConnections } from "../databases/aiTools.js";
 import { hiddenDbTargets } from "./guard/hiddenDbTargets.js";
 import { createDockerGuard } from "../docker/guardFacts.js";
@@ -21,6 +22,7 @@ import { createAiChatEditTools } from "./aiChatEdit.js";
 import { createAiOpenTools } from "./aiOpen.js";
 import { createAiChatReadTools } from "./aiChatRead.js";
 import { createAiProjectTools } from "./aiProject.js";
+import { createAiTerminalTools } from "./aiTerminal.js";
 import type { MemoService } from "../memos/memos.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { canCreateChildChat, createAiChildChatTools, type StartedChild } from "./aiChildChat.js";
@@ -45,6 +47,8 @@ export interface ExecutionDeps {
   memoDirOf?: (project: Project) => string;
   /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。なければ AI にブラウザのツールを出さない） */
   browser?: BrowserControl;
+  /** 内蔵ターミナルの読み取り（デスクトップアプリのメインプロセスが渡す。なければ AI にターミナルのツールを出さない） */
+  terminals?: TerminalControl;
   /** DB クライアント（AI に見せる接続があるプロジェクトで、AI に DB のツールを出す。なければ出さない） */
   databases?: DatabaseService;
   /** 子チャットを作る（Runner が渡す。チャットの AI に自分の子チャットを作るツールを出す。なければ出さない） */
@@ -211,6 +215,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     chatRead: createAiChatReadTools({ store: deps.store, approvals: deps.approvals, usage: deps.usage }, chat.id),
     // このプロジェクトの定型文に足す・メモの名前を変える／移すツール（どのチャットにも）
     chatProject: createAiProjectTools({ store: deps.store, memos: deps.memos }, chat.id),
+    // このプロジェクトの内蔵ターミナルの出力を読むツール（どのチャットにも。メインプロセスが口を渡したときだけ）
+    chatTerminal: deps.terminals ? createAiTerminalTools({ store: deps.store, terminals: deps.terminals }, chat.id) : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く

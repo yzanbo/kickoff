@@ -5,28 +5,32 @@ import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_MEMO_TOOL, AI_OPEN_SQL_TOOL } from "@shared/chat/aiOpen";
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
+import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/chat/aiTerminal";
 import { CHAT_TITLE_MAX } from "@shared/types";
 import type { AiChatEditTools } from "../../chat/aiChatEdit.js";
 import type { AiChatReadTools } from "../../chat/aiChatRead.js";
 import type { AiChildChatDecision, AiChildChatTools } from "../../chat/aiChildChat.js";
 import type { AiOpenTools } from "../../chat/aiOpen.js";
 import type { AiProjectTools } from "../../chat/aiProject.js";
+import type { AiTerminalTools } from "../../chat/aiTerminal.js";
 import type { ProviderCallbacks } from "../types.js";
 import { failure, text } from "./chatToolResult.js";
 import { OPEN_INSTRUCTIONS, openTools } from "./chatOpenTools.js";
 import { PROJECT_INSTRUCTIONS, projectTools } from "./chatProjectTools.js";
 import { READ_INSTRUCTIONS, readTools } from "./chatReadTools.js";
+import { TERMINAL_INSTRUCTIONS, terminalTools } from "./chatTerminalTools.js";
 
 /** Kickoff のチャットを AI が操作するツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_chat__…） */
 export const CHAT_SERVER = "kickoff_chat";
 
-/** 1 回の実行に渡すチャットのツールの中身（子チャットを作るのは設定と深さで渡さないことがある。ほかはどのチャットにも渡す） */
+/** 1 回の実行に渡すチャットのツールの中身（子チャットを作るのは設定と深さで、ターミナルはメインプロセスがないと渡さないことがある。ほかはどのチャットにも渡す） */
 export interface ChatTools {
   childChat: AiChildChatTools | null;
   chatEdit: AiChatEditTools | null;
   open: AiOpenTools | null;
   read: AiChatReadTools | null;
   project: AiProjectTools | null;
+  terminal: AiTerminalTools | null;
 }
 
 /**
@@ -39,6 +43,7 @@ export const chatToolNames = (tools: ChatTools) => [
   ...(tools.open ? [AI_OPEN_MEMO_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_SQL_TOOL, AI_ADD_DRAFT_TOOL] : []),
   ...(tools.read ? [AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL] : []),
   ...(tools.project ? [AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL] : []),
+  ...(tools.terminal ? [AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL] : []),
 ];
 
 /** 子チャットを作るツールの使い方（MCP の instructions として AI に渡す） */
@@ -67,6 +72,7 @@ const instructionsFor = (tools: ChatTools) =>
     ...(tools.open ? OPEN_INSTRUCTIONS : []),
     ...(tools.read ? READ_INSTRUCTIONS : []),
     ...(tools.project ? PROJECT_INSTRUCTIONS : []),
+    ...(tools.terminal ? TERMINAL_INSTRUCTIONS : []),
   ].join("\n");
 
 /** 利用者の回答を、子チャットを作るかの答えにする（「常に許可」は次から聞かない） */
@@ -143,7 +149,7 @@ function chatEditTools(chatEdit: AiChatEditTools) {
 
 /** 1 回の実行に渡す、チャットを操作するツールの MCP サーバー（渡すツールがなければ null） */
 export function chatMcpServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): McpSdkServerConfigWithInstance | null {
-  if (!tools.childChat && !tools.chatEdit && !tools.open && !tools.read && !tools.project) return null;
+  if (!tools.childChat && !tools.chatEdit && !tools.open && !tools.read && !tools.project && !tools.terminal) return null;
   return createSdkMcpServer({
     name: CHAT_SERVER,
     version: "1.0.0",
@@ -154,6 +160,7 @@ export function chatMcpServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "req
       ...(tools.open ? openTools(tools.open) : []),
       ...(tools.read ? readTools(tools.read) : []),
       ...(tools.project ? projectTools(tools.project) : []),
+      ...(tools.terminal ? terminalTools(tools.terminal) : []),
     ],
   });
 }
