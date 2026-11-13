@@ -33,7 +33,7 @@
 | メモフォルダ（「メモ」タブのメモを置くフォルダ。プロジェクトフォルダとは別の場所で、プロジェクトフォルダを変えても変わらない） | `MemoService.dirOf(project)`（`memo_path` か、設定の `memos_dir` の下の `memo_folder`） | 「メモの保存先」「メモのフォルダ」 |
 | 送信待ち | `Queue`（`chat_queues`） | `followups` / `run_queues` |
 | 添付（チャットの指示に添えるもの。種類 = ファイル（📎・ドラッグ・貼り付け）/ メモ（付けたときの写し）/ 取ったもの（「AI に渡す」で押したときの中身をファイルにしたもの）。中身は送らず、パスと見出しを書き添えて AI が Read で読む） | `Attachment`（`kind`: `file` / `memo` / `capture`）・取ったものの出どころ `AttachmentSource`（`type` は `ATTACHMENT_SOURCE_TYPES`）・`POST /api/captures`・`POST /api/projects/:id/memo/snapshot`・`UploadStore`（`core/chat/uploads.ts`）・見出し `core/chat/attachmentNotes.ts`・鍵を伏せる `@shared/secrets/redact` | kind のない添付（memo があればメモ。読むときに `normalizeAttachment` で読み替える） |
-| AI に渡す（各タブの 1 つのもの（issue・PR・DB のつながらない様子・ブラウザのタブの画面とコンソール・ターミナルで選んだ長い文など）を、押した時点の中身の札にしてチャットの入力欄に一言と入れる。渡し先 = 新しいチャットで始める / このチャットに追加 / 新しい子チャットで聞く / ほかのチャットに追加。送るのは自分で） | 渡すもの `HandOffItem`・渡し先 `HAND_OFF_TARGETS`（`features/chat/handoff/handOff.ts`）・ボタン `HandOffButton`（「AI に渡す ▾」）・ブラウザの中身はメインプロセスの `agentBrowser.handOffCapture`（`@shared/ipc` の `BrowserHandOffCapture`）・画像の札は `POST /api/captures` の `image_base64` | なし |
+| AI に渡す（各タブの 1 つのもの（issue・PR・CI の落ちたステップのログ・DB のつながらない様子・ブラウザのタブの画面とコンソール・ターミナルで選んだ長い文など）を、押した時点の中身の札にしてチャットの入力欄に一言と入れる。渡し先 = 新しいチャットで始める / このチャットに追加 / 新しい子チャットで聞く / ほかのチャットに追加。送るのは自分で） | 渡すもの `HandOffItem`・渡し先 `HAND_OFF_TARGETS`（`features/chat/handoff/handOff.ts`）・ボタン `HandOffButton`（「AI に渡す ▾」）・ブラウザの中身はメインプロセスの `agentBrowser.handOffCapture`（`@shared/ipc` の `BrowserHandOffCapture`）・画像の札は `POST /api/captures` の `image_base64` | なし |
 | 起動したときの送信待ちの確かめ（前回の終了で、自動で送るまま残った送信待ちを、起動してから送るか聞く。送る / 続けてから送る / 止めておく） | `QueueResume` / `QueueResumeAction`（確かめを待つ印は `ChatLive.queue_resume`。`GET\|POST /api/queue-resumes`・`Runner.queueResumes`・画面の `QueueResumeDialog` / `QueueResumeBanner`・店 `stores/queueResumes.ts`） | なし |
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `Runner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `core/chat/sessionPoints.ts`） | なし |
@@ -53,9 +53,11 @@
 | 子チャット（チャットの発言から「新しい子チャットで聞く」・右の欄の「＋」の「新しい子チャット」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`。作ったときは `CHILD_CHAT_OPEN_ON_CREATE` で、開かないも選べる）。孫・ひ孫も作れる。サブエージェントの「伝える」で「新しい子チャットで聞く」を選ぶと、そのサブエージェントの会話の記録を添えた子チャットになる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`startSubagentChildChat`（`core/chat/subagentChild.ts`）・`features/chat/children/` | なし |
 | 親への依頼文（子チャットの AI に、親チャットの AI へ渡す依頼文だけを書いてもらう頼み。発言の印 = 依頼文の頼み）・親チャットに追加（子チャットの作業の最後の返答を、そのまま直接の親に渡す。渡し方 = 入力欄 / 今すぐ送る / 送信待ち、渡したあと = そのまま / アーカイブ / 削除）・渡したことの印 / 出どころの札 | 頼み方の文 `handoffRequestPrompt`・最後の返答 `lastReplyOfTurn`（`@shared/chat/handoff`）・発言の印 `MessageMarks`（`handoff_request` / `handoff_from`）・渡し方 `HandoffVia`・渡したあと `HandoffAfter`・`POST /api/chats/:id/handoff`（`core/chat/handoff.ts`）・記録 `handoff`・`features/chat/children/handoff.ts` | なし（「最新の答えを引用して渡す」は前からの `handBackText`） |
 | 会話 / 動き（チャットの画面の見え方。動き = メインエージェントとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
-| GitHub タブ（プロジェクトの画面の上のタブで、連携先のリポジトリの issue・PR を「issue｜PR」で切り替えて見る・書く・AI に渡す。チャットの右の欄にも開ける。要件定義書の「5.11 GitHub」。段階 1「読む」・段階 2「AI に渡す」・段階 3「書く」まで作った） | タブ `github`（`#/projects/:id/github`）・右の欄のタブの種類 `github`・画面 `features/github/`・コア `core/github/`（gh api の GraphQL・REST。ワークツリーの PR の見張り・push の `core/git/github.ts` はそのまま）・HTTP `/api/projects/:id/github/…` | なし（push と PR の作成だけ） |
+| GitHub タブ（プロジェクトの画面の上のタブで、連携先のリポジトリの issue・PR を「issue｜PR」で切り替えて見る・書く・AI に渡す。チャットの右の欄にも開ける。要件定義書の「5.11 GitHub」。段階 1「読む」・段階 2「AI に渡す」・段階 3「書く」まで作った。PR のチェックの「ログを開く」は CI のタブへ） | タブ `github`（`#/projects/:id/github`）・右の欄のタブの種類 `github`・画面 `features/github/`・コア `core/github/`（gh api の GraphQL・REST。ワークツリーの PR の見張り・push の `core/git/github.ts` はそのまま）・HTTP `/api/projects/:id/github/…` | なし（push と PR の作成だけ） |
 | 連携先（PR・issue を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`）と、プロジェクトで使う GitHub のアカウント（gh に入っているものから選ぶ。gh の有効なアカウントは切り替えない） | `GitHubRemote`・`GitHubTarget`（`core/git/githubTarget.ts`）・選んだ remote はプロジェクトの `github_remote`・アカウントは `github_account`（`GitHubAccount`・`core/git/githubAccount.ts` の `runAsGitHubAccount`）・ワークツリーの PR を見張るかは `pr_watch`・設定の画面は `ProjectGitHub` | なし |
 | ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたこと。印と 1 つの確認で片付けを聞く） | `WorktreePrNotice`・見張り `WorktreePrWatch`（`core/git/prWatch.ts`）・閉じた確認の表 `pr_notice_dismissals`・画面 `features/worktree/prNotice/` | 「マージの通知」（macOS の通知と紛らわしい） |
+| CI のタブ（プロジェクトの画面の上のタブ「CI」（「GitHub」の隣）。GitHub Actions の実行の一覧・ジョブとステップのログ・AI に渡す・やり直す。外の CI は成否とリンクだけ。この Mac のアプリの中だけ。要件定義書の「5.15 CI の結果」） | タブ `ci`（`#/projects/:id/ci`）・画面 `features/ci/`・コア `core/github/ci.ts` の `CiService`（読み方は純粋な `ciNormalize.ts`）・HTTP `/api/projects/:id/ci/runs/…`（`localOnly`）・共有の型 `@shared/types/ci.ts`（実行 `CiRun`・ジョブ `CiJob`・ステップ `CiStep`・状態 `CiState` / `CI_STATES`・外の CI `CiExternalCheck`） | なし |
+| CI の失敗の知らせ（作業場所のブランチと既定のブランチで落ちた実行を Mac の通知で。同じ実行は 1 回だけ） | プロジェクトの `ci_watch`（v21）・知らせた実行 `ci_failure_notices`（v21。店 `store.ciNotices`）・PR の見張りの `alsoCheck` で `CiService.watch`・SSE `ci_failed`（`CiFailure`）・画面 `app/ciNotifications.ts`・通知の ID `kickoff-ci:`（`notifications.onOpenCi`） | なし |
 | issue・PR の結び付き（どの issue・PR のためのチャットか。カード・見出しに `#番号`。GitHub タブの「AI に渡す」で付く） | `Chat` の `github_repo` / `github_number` / `github_kind`（v19。種類は PR を作るときに「Closes #番号」を足すのを issue だけにするため） | なし |
 | DB クライアント（プロジェクトの画面の上のタブ「DB」・チャットの右の欄の ▾ の「DB ▸」・別ウィンドウで開く。接続の一覧・テーブル・SQL・ER 図。要件定義書の「5.12 DB クライアント」） | タブ `db`（`#/projects/:id/db`）・画面 `features/database/`・コア `core/databases/`・HTTP `/api/projects/:id/db-connections/…`（接続元が 127.0.0.1 の頼みだけ受ける） | なし |
 | DB 接続（プロジェクトごとに登録する接続。ほかのプロジェクトから写せる） | `DbConnection` / 表 `db_connections`（v13）。パスワードは `secrets` の `db_connection:<id>:password`、AI 用のユーザーのパスワードは `:ai_password`（v14。段階 2 で `:ssh_password`）。値はメインプロセスが渡す `safeStorage` で暗号化したもの（暗号化した印を付ける。`safeStorage` のない単体のコア・テストだけ暗号化せずに置く。暗号化を入れた版の最初の起動で、暗号化せずに置いていた値を一度だけ置き換える）。キーチェーンで拒否されて開けないときに利用者が入れたパスワードは、コアのメモリにだけ持つ。接続を消すと、表のトリガー `db_connections_drop_secrets` がその接続の秘密の値も消す（プロジェクトを消したときの連鎖の削除でも効く） | なし |
@@ -322,6 +324,26 @@ github_number INTEGER CHECK (github_number > 0),   -- issue・PR の番号
 github_kind TEXT CHECK (github_kind <> ''),        -- issue / pr（PR を作るとき「Closes #番号」を足すのは issue だけ）
 -- 3 つがそろって NULL か、そろって値があるかは店で守る（ALTER TABLE では表の CHECK を足せないため）
 ```
+
+### CI の結果（作った）
+
+要件定義書の「5.15 CI の結果」。詳しい仕様はメモの「CI の結果 仕様書」。実行・ジョブ・ログは DB に持たない（開くたびに GitHub に聞く。ログは `gh run view <実行> --job <ジョブ> --log` / `--log-failed`、ほかは REST）。覚えるのは、知らせたかどうかとプロジェクトごとの切り替えだけ（v21）。
+
+```sql
+-- v21
+-- projects に足す
+ci_watch INTEGER NOT NULL DEFAULT 1 CHECK (ci_watch IN (0, 1)),  -- CI の失敗を知らせるか
+-- 知らせた実行（同じ実行は 1 回だけ。プロジェクトごとに新しい 500 件を残す）
+CREATE TABLE ci_failure_notices (
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  run_id INTEGER NOT NULL CHECK (run_id > 0),
+  notified_at TEXT NOT NULL,
+  PRIMARY KEY (project_id, run_id)
+) STRICT;
+```
+
+- 見張りは PR の見張り（`core/git/prWatch.ts`）に相乗りする（`alsoCheck`。5 分ごとと窓に戻ったとき。ワークツリーのないプロジェクトも見る）。見張るブランチは作業場所（本体・各ワークツリー）で取り出しているブランチと既定のブランチで、ワークフローごとのいちばん新しい実行が落ちていて、まだ知らせておらず、終わってから 24 時間以内なら知らせる（`ciNormalize.ts` の `failuresToNotify`）。
+- 「（ブランチ名）で直す」の作業場所は `POST …/ci/runs/:run/worktree`（既定のブランチなら本体 = `worktree_path: null`。ほかは PR の「レビューコメントで直す」と同じ `checkoutPullWorktree` でワークツリーを使い回すか作る）。
 
 ### DB クライアントの段階 2・段階 3
 

@@ -3,7 +3,7 @@ import { Notification, app, shell } from "electron";
 import type { NotifyRequest, NotifyResult } from "@shared/ipc";
 import { mainWindow, showMainWindow } from "../app/window.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
-import { chatOfNotificationId, notificationIdOf } from "./notificationIds.js";
+import { chatOfNotificationId, ciOfNotificationId, notificationIdOf } from "./notificationIds.js";
 
 /**
  * 押したときの知らせを受けるために参照を持っておく通知の数。参照をなくした通知は通知センターから消えるので、
@@ -21,7 +21,7 @@ const BODY_MAX = 500;
 /** Mac の「システム設定 → 通知」 */
 const NOTIFICATION_SETTINGS_URL = "x-apple.systempreferences:com.apple.Notifications-Settings.extension";
 
-/** 通知（IPC の notifications）。押したら Kickoff を前に出し、チャットのものなら画面にそのチャットを開かせる */
+/** 通知（IPC の notifications）。押したら Kickoff を前に出し、チャットのものなら画面にそのチャットを、CI のものならその実行を開かせる */
 export function notificationHandlers(): IpcHandlers["notifications"] {
   const live: Notification[] = [];
   const keep = (n: Notification) => {
@@ -31,6 +31,8 @@ export function notificationHandlers(): IpcHandlers["notifications"] {
       showMainWindow();
       const chat = chatOfNotificationId(n.id);
       if (chat) sendEvent(mainWindow()?.webContents, "notifications", "onOpenChat", chat.projectId, chat.chatId);
+      const ci = ciOfNotificationId(n.id);
+      if (ci) sendEvent(mainWindow()?.webContents, "notifications", "onOpenCi", ci.projectId, ci.runId);
     });
   };
   // 前回までに出して、まだ通知センターに残っているものも、押したらそのチャットを開けるようにする
@@ -47,9 +49,9 @@ export function notificationHandlers(): IpcHandlers["notifications"] {
 }
 
 /** 通知を出し、出せたか（Mac の設定で許可していなければ、その理由）を返す */
-function show({ title, body, chat }: NotifyRequest, keep: (n: Notification) => void): Promise<NotifyResult> {
+function show({ title, body, chat, ci }: NotifyRequest, keep: (n: Notification) => void): Promise<NotifyResult> {
   if (!Notification.isSupported()) return Promise.resolve({ ok: false, error: "この環境では通知を使えません" });
-  const n = new Notification({ id: notificationIdOf(chat), title: title.slice(0, TITLE_MAX), body: body.slice(0, BODY_MAX), silent: false });
+  const n = new Notification({ id: notificationIdOf({ chat, ci }), title: title.slice(0, TITLE_MAX), body: body.slice(0, BODY_MAX), silent: false });
   keep(n);
   return new Promise((resolve) => {
     n.once("show", () => resolve({ ok: true }));

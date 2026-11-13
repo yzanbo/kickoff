@@ -1,5 +1,7 @@
-import { Check, CircleDashed, CircleMinus, ExternalLink, X, type LucideIcon } from "lucide-react";
+import { Check, CircleDashed, CircleMinus, ExternalLink, ScrollText, X, type LucideIcon } from "lucide-react";
 import type { GitHubCheck } from "@shared/types";
+import { IconButton } from "@/ui/IconButton";
+import { openCiRun } from "@/features/ci/ciLinks";
 
 /** チェックの状態の印と名前（GitHub の conclusion を小文字にしたもの） */
 function stateOf(state: string): { icon: LucideIcon; tone: "success" | "failure" | "pending" | "neutral"; label: string } {
@@ -25,8 +27,11 @@ function stateOf(state: string): { icon: LucideIcon; tone: "success" | "failure"
 /** 並べる順（落ちた → 途中 → 通った → ほか） */
 const ORDER = { failure: 0, pending: 1, success: 2, neutral: 3 };
 
-/** PR のチェックの一覧（CI の成否と GitHub の詳細へのリンク。ログを読む・AI に渡すは入れない＝要件 5.11） */
-export function GitHubChecksList({ checks }: { checks: GitHubCheck[] }) {
+/**
+ * PR のチェックの一覧（CI の成否と GitHub の詳細へのリンク）。GitHub Actions のチェックには「ログを開く」（CI のタブでその実行・ジョブを開く。
+ * ログを読む・AI に渡す・やり直すは CI のタブで）
+ */
+export function GitHubChecksList({ projectId, checks }: { projectId: number; checks: GitHubCheck[] }) {
   if (checks.length === 0) return <p className="muted small github-checks-empty">この PR の最新のコミットにはチェックがありません。</p>;
   const rows = checks.map((c) => ({ c, s: stateOf(c.state) })).sort((a, b) => ORDER[a.s.tone] - ORDER[b.s.tone]);
   return (
@@ -39,6 +44,9 @@ export function GitHubChecksList({ checks }: { checks: GitHubCheck[] }) {
             {c.name}
           </span>
           {c.description && <span className="github-check-desc muted small">{c.description}</span>}
+          {c.run_id !== null && (
+            <IconButton icon={ScrollText} size={13} className="github-check-log" label="ログを開く" title="CI のタブでこの実行のログを開く" onClick={() => openCiRun(projectId, c.run_id!, c.job_id)} />
+          )}
           {c.url && <a className="github-check-link" href={c.url} target="_blank" rel="noreferrer" aria-label="GitHub で詳細を見る" data-tip="GitHub で詳細を見る">
             <ExternalLink size={13} aria-hidden />
           </a>}

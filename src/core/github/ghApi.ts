@@ -29,6 +29,8 @@ export interface GitHubApi {
   restPages(path: string, maxPages: number): Promise<{ items: unknown[]; truncated: boolean }>;
   /** 書き込み（POST・PATCH・PUT・DELETE と JSON の本文）。GitHub が断ったら、その理由の文で Invalid */
   send(method: WriteMethod, path: string, body?: unknown): Promise<unknown>;
+  /** gh の api 以外のコマンド（CI のログの gh run view。連携先は -R で渡す）。標準出力を返す。失敗は分かる文の Invalid */
+  cli(args: string[]): Promise<string>;
 }
 
 /** プロジェクトの連携先とアカウントで GitHub に聞くための組（GitHubService.within が作る） */
@@ -156,6 +158,17 @@ export function ghApi(repo: string | null, host: string = GITHUB_DEFAULT_HOST): 
         return res.body;
       } finally {
         if (file) await fs.rm(file, { force: true });
+      }
+    },
+    async cli(args) {
+      try {
+        return await runCommand("gh", [...args, "-R", isDefaultGitHubHost(host) ? repo ?? "" : `${host}/${repo ?? ""}`], {
+          timeout: 120_000,
+          env: { ...nonInteractiveEnv(), ...(await githubEnv(host)) },
+          maxBuffer: 64 * 1024 * 1024,
+        });
+      } catch (e) {
+        throw new Invalid(ghFailureMessage(e, repo));
       }
     },
   };

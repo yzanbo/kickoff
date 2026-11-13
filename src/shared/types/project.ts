@@ -40,6 +40,8 @@ export interface Project {
   github_remote: string | null;
   /** ワークツリーの PR がマージされた・閉じられたことを見張るか */
   pr_watch: boolean;
+  /** 作業場所でいま取り出しているブランチと既定のブランチの CI（GitHub Actions）が落ちたら知らせるか */
+  ci_watch: boolean;
   created_at: string;
 }
 

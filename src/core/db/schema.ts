@@ -332,7 +332,20 @@ UPDATE db_connections SET write_check = 'all' WHERE environment = 'staging';
 UPDATE db_connections SET write_check = 'env_name' WHERE environment = 'production';
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20];
+/**
+ * v21: CI の結果（GitHub Actions）の失敗の知らせ。プロジェクトごとに知らせるか（ci_watch）と、知らせた実行（同じ実行を起動のたびに知らせ直さない）
+ */
+const SCHEMA_V21 = `
+ALTER TABLE projects ADD COLUMN ci_watch INTEGER NOT NULL DEFAULT 1 CHECK (ci_watch IN (0, 1));
+CREATE TABLE ci_failure_notices (
+  project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  run_id INTEGER NOT NULL CHECK (run_id > 0),
+  notified_at TEXT NOT NULL DEFAULT (${NOW}),
+  PRIMARY KEY (project_id, run_id)
+) STRICT;
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

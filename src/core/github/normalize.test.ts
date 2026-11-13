@@ -121,8 +121,13 @@ test("eventText: 閉じ方・マージ・レビュー依頼・知らない種類
 
 test("toCheck・checksStateOf・toPullFile", () => {
   assert.deepEqual(
-    toCheck({ __typename: "CheckRun", name: "test", status: "IN_PROGRESS", conclusion: null, detailsUrl: "d", title: null, checkSuite: { workflowRun: { workflow: { name: "CI" } } } }),
-    { name: "test", workflow: "CI", state: "pending", description: null, url: "d" },
+    toCheck({ __typename: "CheckRun", databaseId: 31, name: "test", status: "IN_PROGRESS", conclusion: null, detailsUrl: "d", title: null, checkSuite: { workflowRun: { databaseId: 7, workflow: { name: "CI" } } } }),
+    { name: "test", workflow: "CI", state: "pending", description: null, url: "d", run_id: 7, job_id: 31 },
+  );
+  // 外の CI の check run（workflowRun がない）は、ログを開けないので ID を持たない
+  assert.deepEqual(
+    [toCheck({ __typename: "CheckRun", databaseId: 9, name: "circleci", status: "COMPLETED", conclusion: "SUCCESS", checkSuite: { workflowRun: null } })?.run_id, toCheck({ __typename: "StatusContext", context: "v", state: "SUCCESS" })?.job_id],
+    [null, null],
   );
   assert.equal(toCheck({ __typename: "CheckRun", name: "lint", status: "COMPLETED", conclusion: "FAILURE" })?.state, "failure");
   assert.equal(toCheck({ __typename: "StatusContext", context: "ci/x", state: "ERROR", targetUrl: "t", description: "落ちた" })?.state, "failure");

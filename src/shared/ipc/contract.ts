@@ -156,6 +156,8 @@ export const NATIVE_API = {
     setBadge: send<[count: number]>(),
     /** 通知が押されて、そのチャットを開くとき（Kickoff を起動し直したあとに、前の通知が押されたときも） */
     onOpenChat: event<[projectId: number, chatId: number]>(),
+    /** CI の失敗の通知が押されて、その実行を CI のタブで開くとき */
+    onOpenCi: event<[projectId: number, runId: number]>(),
   },
   /** 性能の記録（重いときに、その場で 10 秒の記録を取って保存する。メニューの「ヘルプ」からも始まる） */
   diagnostics: {

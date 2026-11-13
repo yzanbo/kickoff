@@ -161,6 +161,9 @@ export interface GitHubCheck {
   state: string;
   description: string | null;
   url: string | null;
+  /** GitHub Actions の実行とジョブの ID（Kickoff の中でログを開く。外の CI は null） */
+  run_id: number | null;
+  job_id: number | null;
 }
 
 /** issue の中身 */

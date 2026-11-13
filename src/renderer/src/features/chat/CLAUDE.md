@@ -244,10 +244,10 @@
 
 ## AI に渡す（`handoff/`）
 
-各タブの 1 つのもの（GitHub の issue・PR、DB のつながらない様子、ブラウザのタブの画面とコンソールなど。これから CI のログなどを足す）を、押した時点の中身の札（`CaptureAttachment`。コアが鍵らしい値を伏せ、大きすぎれば頭と終わりだけ残して保存する。`src/core/chat/CLAUDE.md` の添付）にして、選んだチャットの入力欄に一言と一緒に入れる共通の口。どの渡し先でも入力欄で止め、送るのは自分で（仕様書「添付の共通化」の決定 ③）。
+各タブの 1 つのもの（GitHub の issue・PR、CI の落ちたステップのログ、DB のつながらない様子、ブラウザのタブの画面とコンソールなど）を、押した時点の中身の札（`CaptureAttachment`。コアが鍵らしい値を伏せ、大きすぎれば頭と終わりだけ残して保存する。`src/core/chat/CLAUDE.md` の添付）にして、選んだチャットの入力欄に一言と一緒に入れる共通の口。どの渡し先でも入力欄で止め、送るのは自分で（仕様書「添付の共通化」の決定 ③）。
 
 - 渡すものは各タブが作る `HandOffItem`（`handOff.ts`）: `projectId`・何を渡すか `what`（乗せたときの説明）・入力欄の一言 `text`（書き換えられる）・押した時点の中身を札にする `capture`（いくつか返してもよい（ブラウザの画面とコンソール）。なければ一言だけ。選んだ文の引用など）・結び付ける issue・PR `link`・新しいワークツリーの名前の案 `branch`（なければ作業場所を聞かずに本体で始める）・出さない渡し先 `hide`。中身は押した時点に取る（新しいチャットは作業場所を選んでいる間に並べて取る）。取れなければ知らせて何もしない。
-- 「AI に渡す ▾」のボタンは `HandOffMenu.tsx` の `HandOffButton`（`extra` でその種類だけの項目を下に足す（GitHub の「レビューコメントで直す」）・`small` でなければダイアログの下のボタンの大きさ・`onPick` は渡し先を選んだとき（案内のダイアログを閉じる））。中身の項目だけなら `HandOffItems`（GitHub の選んだ文の右クリック）。渡し先（`HAND_OFF_TARGETS`）:
+- 「AI に渡す ▾」のボタンは `HandOffMenu.tsx` の `HandOffButton`（`lead` でその種類だけの項目を上に置く（CI の「（ブランチ名）で直す」。区切り線は渡す側で）・`extra` で下に足す（GitHub の「レビューコメントで直す」）・`small` でなければダイアログの下のボタンの大きさ・`onPick` は渡し先を選んだとき（案内のダイアログを閉じる））。中身の項目だけなら `HandOffItems`（GitHub の選んだ文の右クリック）。渡し先（`HAND_OFF_TARGETS`）:
   - 新しいチャットで始める（`handOffToNewChat`）: `branch` があれば作業場所を選んでもらい（`workplace.ts` の `chooseWorkplace`: 新しいワークツリー（おすすめ）/ 本体 / いまあるワークツリー…）、プロジェクトのチャットのパネルに一言と札を入れた新しいチャットのタブを開く（`openSeededChat`。`panelActions.openNew` の seed に `attachments`・`github`・`newWorktreeBranch`。別ウィンドウの中からはメインのウィンドウに `openSeededChat` の知らせで頼む）。
   - このチャットに追加（`handOffToThisChat`）: 右の欄・別ウィンドウで、足す先のチャット（`MainChatContext`）があるときだけ。
   - 新しい子チャットで聞く（`handOffToChild`）: 足す先のチャットがあり、メモのチャットでもアーカイブ済みでもないとき。いちばん上の親の右の欄に、一言と札を入れた新しい子チャットのタブを開く（`openAskChild` の `text`・`attachments`）。

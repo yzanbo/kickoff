@@ -82,6 +82,7 @@ const projectPatchSchema = z
     github_account: z.string().trim().min(1).max(100).nullable(),
     github_remote: z.string().trim().min(1).max(255).nullable(),
     pr_watch: z.boolean(),
+    ci_watch: z.boolean(),
   })
   .partial() satisfies z.ZodType<ProjectPatch>;
 
@@ -154,7 +155,7 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, providers, da
       ...(archived === undefined ? {} : { archived_at: archived ? (project.archived_at ?? new Date().toISOString()) : null }),
     });
     // GitHub の連携・アーカイブを変えたら、ワークツリーの PR の見張りをそのプロジェクトだけ聞き直す（待たない）
-    if (patch.github_account !== undefined || patch.github_remote !== undefined || patch.pr_watch !== undefined || archived !== undefined) {
+    if (patch.github_account !== undefined || patch.github_remote !== undefined || patch.pr_watch !== undefined || patch.ci_watch !== undefined || archived !== undefined) {
       void prWatch.checkProject(project.id);
     }
     return c.json(updated);

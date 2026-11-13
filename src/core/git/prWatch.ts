@@ -50,6 +50,11 @@ interface WatchOptions {
   resolveTarget?: (repo: string, chosen: string | null) => Promise<GitHubTarget | null>;
   /** フォルダが Git で管理されているか（テストでは差し替える） */
   isGitRepo?: (repo: string) => Promise<boolean>;
+  /**
+   * 同じ間隔で、プロジェクトごとに一緒に確かめるもの（CI の失敗の見張り。ワークツリーの有無・PR の見張りの設定によらず、GitHub に聞くときだけ呼ぶ。
+   * 失敗してもほかの確かめは止めない）
+   */
+  alsoCheck?: (project: Project) => Promise<void>;
 }
 
 /**
@@ -134,8 +139,9 @@ export class WorktreePrWatch {
   }
 
   /** プロジェクトを確かめる（見張らない設定・Git でない・GitHub の remote がなければ知らせなし。gh は選んだアカウントで動かす） */
-  private check(project: Project, ask: boolean): Promise<void> {
-    return runAsGitHubAccount(project.github_account, () => this.checkAs(project, ask));
+  private async check(project: Project, ask: boolean): Promise<void> {
+    await runAsGitHubAccount(project.github_account, () => this.checkAs(project, ask)).catch(() => undefined);
+    if (ask && project.archived_at === null) await this.opts.alsoCheck?.(project).catch(() => undefined);
   }
 
   private async checkAs(project: Project, ask: boolean) {

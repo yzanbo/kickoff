@@ -7,7 +7,7 @@ import { LAST_ROUTE } from "@/lib/storageKeys";
 // （以前の要件定義書・スケジュール・タスク・レポートのタブの URL は、知らないタブとしてボードに戻る）
 // ファイル（files）・検索（search）・変更（changes = ソース管理）は、以前の「エディタ」タブの中の切り替えをタブにしたもの（開いたファイルは 3 つで共有）
 // 以前のグループのボード（groups）の URL は、知らないタブとしてボードに戻る（列の分け方のボタンとグループのボードの画面はなくした）
-const PROJECT_TABS = ["board", "chats", "files", "search", "changes", "history", "memos", "db", "github", "docker"] as const;
+const PROJECT_TABS = ["board", "chats", "files", "search", "changes", "history", "memos", "db", "github", "docker", "ci"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** ファイルタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */

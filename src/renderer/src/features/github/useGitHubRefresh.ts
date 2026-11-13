@@ -8,7 +8,8 @@ export const GITHUB_REFRESH_MS = 60_000;
  * GitHub タブの取り直しの合図（要件 5.11: 開いている間だけ 1 分ごと・Kickoff の窓に戻ったとき）。
  * active でない（表示していない）間は何もしない。窓がほかのアプリの後ろにある間は、1 分ごとの取り直しもしない
  */
-export function useGitHubRefresh(refresh: () => void, active: boolean) {
+/** every: 開いている間の間隔（CI のタブは、動いている実行がある間は短くする） */
+export function useGitHubRefresh(refresh: () => void, active: boolean, every = GITHUB_REFRESH_MS) {
   const focused = useWindowFocused();
   const latest = useRef(refresh);
   latest.current = refresh;
@@ -23,7 +24,7 @@ export function useGitHubRefresh(refresh: () => void, active: boolean) {
   // 開いている間だけ 1 分ごと
   useEffect(() => {
     if (!active || !focused) return;
-    const timer = setInterval(() => latest.current(), GITHUB_REFRESH_MS);
+    const timer = setInterval(() => latest.current(), every);
     return () => clearInterval(timer);
-  }, [active, focused]);
+  }, [active, focused, every]);
 }

@@ -16,9 +16,24 @@ const CHAT_CHOICES = 15;
 
 /**
  * 「AI に渡す ▾」のボタン（各タブの 1 つのもの。issue・PR・DB のつながらない様子など）。押した時点の中身を札にして、選んだチャットの入力欄に入れる（送るのは自分で）。
- * extra はメニューの下に足すその種類だけの項目（GitHub の「レビューコメントで直す」など）。small でなければダイアログの下のボタンの大きさ。onPick は渡し先を選んだとき（ダイアログを閉じるなど）
+ * lead はメニューの上に置くその種類だけの項目（CI の「（ブランチ名）で直す」など。区切り線は呼ぶ側で）、extra は下に足す項目（GitHub の「レビューコメントで直す」など）。
+ * small でなければダイアログの下のボタンの大きさ。onPick は渡し先を選んだとき（ダイアログを閉じるなど）
  */
-export function HandOffButton({ item, extra, className, small = true, onPick }: { item: HandOffItem; extra?: ReactNode; className?: string; small?: boolean; onPick?: () => void }) {
+export function HandOffButton({
+  item,
+  lead,
+  extra,
+  className,
+  small = true,
+  onPick,
+}: {
+  item: HandOffItem;
+  lead?: ReactNode;
+  extra?: ReactNode;
+  className?: string;
+  small?: boolean;
+  onPick?: () => void;
+}) {
   const menu = useContextMenu({ align: "end" });
   return (
     <>
@@ -34,6 +49,7 @@ export function HandOffButton({ item, extra, className, small = true, onPick }: 
       </button>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="AI に渡す" ignore=".hand-off-button" onClose={menu.close}>
+          {lead}
           <HandOffItems item={item} onPick={onPick} />
           {extra}
         </PopupMenu>

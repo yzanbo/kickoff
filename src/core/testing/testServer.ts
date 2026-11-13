@@ -15,6 +15,7 @@ import { DbWorkerClient } from "../databases/client.js";
 import { inProcessWorker } from "../databases/inProcessWorker.js";
 import { DatabaseService } from "../databases/service.js";
 import { GitHubService } from "../github/service.js";
+import { CiService } from "../github/ci.js";
 import { DockerService } from "../docker/service.js";
 import { DockerCli } from "../docker/cli.js";
 import { fakeDocker } from "./fakeDocker.js";
@@ -277,6 +278,10 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
       if (prFake.fail) throw new Error("gh が見つかりません");
       return prFake.prs;
     },
+    // CI の失敗の見張り（GitHub の答えは ghFake。ci は下で作る）
+    alsoCheck: async (project) => {
+      for (const failure of await ci.watch(project, store)) bus.publish({ type: "ci_failed", failure });
+    },
   });
   // DB クライアントは同じプロセスのワーカーで動かす（中身は本物と同じ。dataDir は Kickoff 自身の保存先の代わり）
   const dbFake = { dataDir: tempDir() };
@@ -286,7 +291,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     target: { host: "github.com", repo: "o/r", headOwner: "o" } as GitHubTarget | null,
     /** GitHub の remote の一覧（null なら本物の git remote -v を読む） */
     remotes: null as GitHubRemote[] | null,
-    calls: [] as { kind: "graphql" | "rest" | "pages" | "send"; detail: string; vars?: GraphqlVars; etag?: string | null; method?: WriteMethod; body?: unknown }[],
+    calls: [] as { kind: "graphql" | "rest" | "pages" | "send" | "cli"; detail: string; vars?: GraphqlVars; etag?: string | null; method?: WriteMethod; body?: unknown }[],
     graphql: (_query: string, _vars: GraphqlVars): unknown => {
       throw new Error("GitHub の偽物に答えがありません");
     },
@@ -294,6 +299,8 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     pages: (_path: string): { items: unknown[]; truncated: boolean } => ({ items: [], truncated: false }),
     /** 書き込みの答え（断らせるなら Invalid を投げる） */
     send: (_method: WriteMethod, _path: string, _body: unknown): unknown => ({}),
+    /** gh のコマンド（CI のログの gh run view）の標準出力 */
+    cli: (_args: string[]): string => "",
   };
   const github = new GitHubService({
     resolveTarget: async () => ghFake.target,
@@ -315,8 +322,14 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
         ghFake.calls.push({ kind: "send", detail: path, method, body });
         return ghFake.send(method, path, body);
       },
+      async cli(args) {
+        ghFake.calls.push({ kind: "cli", detail: args.join(" ") });
+        return ghFake.cli(args);
+      },
     }),
   });
+  // CI の結果（GitHub の答えは ghFake の rest・pages・cli。作業場所は本物の git）
+  const ci = new CiService(github, { remotes: async (repo) => ghFake.remotes ?? (await readGitHubRemotes(repo)).remotes });
   // Docker タブ: 偽の docker（dockerFake.set で答えを決め、dockerFake.calls で呼ばれた引数を見る。docker が入っていない様子は dockerFake.missing）
   const dockerFake = Object.assign(fakeDocker(), { missing: false });
   const docker = new DockerService(bus, new DockerCli(() => (dockerFake.missing ? null : dockerFake.bin)));
@@ -328,7 +341,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     brewStop: async (name) => void portsFake.brewStopped.push(name),
   };
   after(() => docker.close());
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, docker, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
