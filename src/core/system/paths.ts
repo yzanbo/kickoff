@@ -18,6 +18,17 @@ export function isInside(dir: string, target: string): boolean {
   return rel === "" || (rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
 }
 
+/**
+ * API・SSE・DB に出す相対パスの形にする（区切りはいつも「/」。OS の区切り sep を置き換える）。
+ * 画面・スマホは区切りを OS で読み分けないので、コアが外に出す相対パスはこれを通す（受けたパスは path.join がどちらの区切りも読む）
+ */
+export function toApiPath(rel: string, sep: string = path.sep): string {
+  return sep === "/" ? rel : rel.split(sep).join("/");
+}
+
+/** from から to への相対パスを、API の形（区切りは「/」）で */
+export const relativeApiPath = (from: string, to: string): string => toApiPath(path.relative(from, to));
+
 /** パスの実体（シンボリックリンクを解いたもの）。見つからなければそのまま */
 export function realPathOrSelf(p: string): string {
   try {

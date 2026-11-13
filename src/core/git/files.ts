@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { isInside } from "../system/paths.js";
+import { isInside, relativeApiPath } from "../system/paths.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { imageFileType, isIcnsFile, MAX_IMAGE_FILE_BYTES } from "@shared/files/imageFiles";
 import type { FileContent, ProjectFiles, RenamedFile, SavedFile } from "@shared/types";
@@ -155,7 +155,7 @@ export async function renameProjectFile(repo: string, file: string, name: string
   if (existing && to.toLowerCase() !== from.toLowerCase()) throw new Conflict(`「${trimmed}」はもうあります`);
   await fs.rename(from, to);
   const root = await fs.realpath(repo);
-  return { path: path.relative(root, to).split(path.sep).join("/") };
+  return { path: relativeApiPath(root, to) };
 }
 
 /** ファイルの中身（リポジトリの外を指すシンボリックリンクは読まない） */

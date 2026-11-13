@@ -2,6 +2,7 @@
 // どれをこのプロジェクトのものとするかは、コンテナの working_dir がいちばん深く入る作業場所（仕様書の 5 章）
 import path from "node:path";
 import { workplaceText } from "@shared/docker/workplace";
+import { relativeApiPath } from "../system/paths.js";
 import type { DockerCompose, DockerContainer, DockerLogSource, DockerOtherContainer, DockerService, DockerShare } from "@shared/types";
 import { dbKindOf, deepestWorkplace, parsePorts, parseStatus, serviceMark, type ComposeConfig, type RawContainer } from "./parse.js";
 
@@ -144,7 +145,7 @@ export function buildDockerList(workplaces: readonly Workplace[], containers: re
       key,
       worktree_path: d.wp.worktree_path,
       branch: d.wp.branch,
-      file: d.file ? path.relative(d.wp.path, d.file) || path.basename(d.file) : null,
+      file: d.file ? relativeApiPath(d.wp.path, d.file) || path.basename(d.file) : null,
       project_name: d.project,
       created,
       services: servicesOf(config, d.list),
