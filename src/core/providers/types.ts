@@ -175,6 +175,8 @@ export interface ProviderCallbacks {
   control?(control: TurnControl | null): void;
   /** 自動の圧縮の前に、圧縮前指示（ProviderTurnParams.preCompact）を足した（uuid: 足した発言の ID。記録はコアが残す） */
   preCompactSent?(uuid: string): void;
+  /** 圧縮前指示の合図のあと、裏の作業の終わりだけを待って止まったので、圧縮を走らせる発言（PRE_COMPACT_NUDGE）を足した（記録はコアが残す） */
+  preCompactNudged?(uuid: string): void;
 }
 
 export interface ProviderTurnResult {

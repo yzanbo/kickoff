@@ -118,3 +118,22 @@ test("createTurnOver: stop で待っている閉じるをやめる", () => {
   // 最初の idle（裏の作業 0 件）で 1 回閉じたあとは、待っていた分では閉じない
   assert.equal(closed(), 1);
 });
+
+test("createTurnOver: 手が空いたまま裏の作業だけを待っているか（古い Claude Code は返答の終わりで見る）", () => {
+  const { turnOver } = setup();
+  turnOver.note(stateMsg("running"), undefined);
+  turnOver.note(tasksMsg, bg([task], false));
+  assert.equal(turnOver.waitingOnBackground(), false);
+  turnOver.note(stateMsg("idle"), undefined);
+  assert.equal(turnOver.waitingOnBackground(), true);
+  turnOver.note(stateMsg("running"), undefined);
+  assert.equal(turnOver.waitingOnBackground(), false);
+  // session_state_changed のない Claude Code
+  const old = setup().turnOver;
+  old.note(tasksMsg, bg([task], false));
+  assert.equal(old.waitingOnBackground(), false);
+  old.note(resultMsg, bg([task], true));
+  assert.equal(old.waitingOnBackground(), true);
+  old.note(tasksMsg, bg([], true));
+  assert.equal(old.waitingOnBackground(), false);
+});

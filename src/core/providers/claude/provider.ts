@@ -189,7 +189,7 @@ export class ClaudeProvider implements AgentProvider {
     const commandOutput = createCommandOutputWatcher((output) => cb.commandOutput?.(output));
     // 上限に近づいて自動で圧縮する前に、圧縮前指示を足して済ませてもらう（PreCompact フックで圧縮を止める）
     const preCompact = params.preCompact
-      ? createPreCompactGate({ ...params.preCompact, push, onSent: (uuid) => cb.preCompactSent?.(uuid) })
+      ? createPreCompactGate({ ...params.preCompact, push, onSent: (uuid) => cb.preCompactSent?.(uuid), onNudged: (uuid) => cb.preCompactNudged?.(uuid) })
       : null;
     try {
       const q = query({
@@ -259,6 +259,8 @@ export class ClaudeProvider implements AgentProvider {
         if (background) cb.background?.(background);
         // Claude Code の手が空き、裏の作業もなくなった: 入力を閉じて終わらせる（足した発言がまだ渡っていなければ閉じない。turnOver.ts）
         turnOver.note(msg, background);
+        // 圧縮前指示の合図のあと、裏の作業の終わりだけを待って止まっていたら、背中を押して圧縮を走らせる（preCompact.ts）
+        preCompact?.noteWaiting(turnOver.waitingOnBackground());
         // メインの会話の最後のメッセージ（ここから分岐するときの位置）
         if ((msg.type === "assistant" || msg.type === "user") && msg.parent_tool_use_id === null && msg.uuid) lastMessageId = msg.uuid;
         if (sid) sessionId = sid;
@@ -291,6 +293,7 @@ export class ClaudeProvider implements AgentProvider {
     } finally {
       signal.removeEventListener("abort", onAbort);
       turnOver.stop();
+      preCompact?.stop();
       input.close(true);
       cb.control?.(null);
       commandOutput.stopAll();

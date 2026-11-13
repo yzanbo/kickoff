@@ -281,6 +281,10 @@ function callbacksFor(
       runtime.update({ awaitingCompact: true });
       store.events.add(chatId, { type: "user", text: preCompactText, pre_compact: true, message_uuid: uuid });
     },
+    // 合図のあと裏の作業を待って止まっていたので、Kickoff が発言を足して圧縮を走らせた: 何が起きたかをお知らせに残す（足した文は AI 向けなので発言にしない）
+    preCompactNudged: () => {
+      store.events.add(chatId, { type: "notice", message: "圧縮前指示が済んだあと、AI が裏の作業の終わりを待って止まっていたので、会話の圧縮を始めるよう Kickoff が促しました" });
+    },
     emit: (event) => {
       if (event.type === "init" && event.session_id !== store.chats.get(chatId)?.session_id) {
         store.chats.update(chatId, { session_id: event.session_id });
