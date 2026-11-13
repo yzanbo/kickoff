@@ -1,8 +1,10 @@
 import { ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPenLine, Inbox, Quote } from "lucide-react";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, type ReactNode } from "react";
 import { childDepthLabel } from "@shared/chat/childDepth";
 import type { Chat, ChatEvent } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
+import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
+import { useChatRename, type ChatTitleEditor } from "@/features/chat/useChatRename";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { useChatStates } from "@/app/chatStatesContext";
@@ -16,6 +18,9 @@ import { requestHandoff } from "./handoff";
 /** 系譜を出す数（これより深ければ、根と親の間を「…」にまとめる） */
 const MAX_CRUMBS = 2;
 
+/** 親の札を 1 回押してから親の会話へ移るまで待つ時間（その間にもう一度押せばダブルクリック = 名前の変更にして、移らない） */
+const REVEAL_DELAY_MS = 300;
+
 /** 親の会話で聞いた位置（押したときに見せる子。送る前の新しい子チャットは ID がないので、親の画面を見せるだけ） */
 type Below = Pick<Chat, "id" | "parent_chat_id" | "parent_event_id">;
 
@@ -23,6 +28,7 @@ type Below = Pick<Chat, "id" | "parent_chat_id" | "parent_event_id">;
  * 子チャットの上の帯（別ウィンドウ・右の欄で共通）: 左に親チャットまでの系譜（根 › … › 親 › この子チャット。親は状態の印と名前の札で、
  * 押すとその親の、聞いた発言へ）と、深さの呼び名（子・孫・ひ孫チャット）・右に「親チャットに渡す ▾」（依頼文を作ってもらう = この子チャットの AI に親への依頼文を
  * 書いてもらう / 最新の答えを引用して渡す = いちばん新しい答えを引用にして親の入力欄へ。送るのは自分で）。
+ * 親の札とこの子チャットの名前は、ダブルクリックでその場で名前を変える。
  * 閉じるのは、右の欄はタブの ×、別ウィンドウは ✕・最小化（子チャットは残り、親の会話の札から開き直せる）
  */
 export function ChildChatBar({
@@ -70,13 +76,16 @@ function ChildBarFrame({
 }: {
   /** 親（親のないチャットは null。帯の系譜を出さない） */
   parentId: number | null;
-  /** この子チャット（送る前は null） */
-  self: Below | null;
+  /** この子チャット（送る前は null。名前は変えられない） */
+  self: Chat | null;
   title: string;
   /** 親チャットに渡す ▾ の項目（できないものは undefined。どちらもなければボタンを押せない） */
   handBack?: HandBack;
   extra?: ReactNode;
 }) {
+  // 親の札・この子チャットの名前は、ダブルクリックでその場で名前を変える（同時に変えるのは 1 つだけ）
+  const rename = useChatRename();
+  const selfEditor = self ? rename.editorFor(self) : undefined;
   // この子の祖先の ID（根 → 親。親の名前・状態は札ごとに引くので、ここでは ID の並びが変わったときだけ描き直す）
   const ancestorKey =
     useChatsValue(() => {
@@ -109,7 +118,7 @@ function ChildBarFrame({
             </button>
           ) : (
             shown.map((crumb, i) => {
-              const item = crumb ? <ParentCrumb id={crumb.id} onReveal={() => reveal(crumb.below, crumb.id)} /> : <span className="muted">…</span>;
+              const item = crumb ? <ParentCrumb id={crumb.id} rename={rename} onReveal={() => reveal(crumb.below, crumb.id)} /> : <span className="muted">…</span>;
               const sep = <ChevronRight size={12} className="child-chat-lineage-sep" aria-hidden />;
               // 親より上（根の側）は、狭い帯では隠して親だけを残す（.child-chat-lineage-up）
               return i < shown.length - 1 ? (
@@ -130,7 +139,19 @@ function ChildBarFrame({
       )}
       {/* 深さで呼び名と色を変える（子・孫・ひ孫） */}
       <span className={`child-chat-bar-label child-depth-${Math.min(depth, 3)}`}>{childDepthLabel(depth)}</span>
-      <span className="child-chat-bar-title">{title}</span>
+      {self && selfEditor ? (
+        <span className="child-chat-bar-title editing">
+          <ChatTitleInput chat={self} editor={selfEditor} className="child-chat-title-input" />
+        </span>
+      ) : (
+        <span
+          className="child-chat-bar-title"
+          data-tip={self ? `${title}（ダブルクリックで名前を変更）` : undefined}
+          onDoubleClick={self ? () => rename.start(self) : undefined}
+        >
+          {title}
+        </span>
+      )}
       <span className="spacer" />
       {handBack && <HandBackMenu handBack={handBack} />}
       {extra}
@@ -140,14 +161,46 @@ function ChildBarFrame({
   );
 }
 
-/** 系譜の親の札（状態の印と名前）。押すと、その親の会話の、すぐ下の子を聞いた位置へ */
-function ParentCrumb({ id, onReveal }: { id: number; onReveal: () => void }) {
+type ChatRename = ReturnType<typeof useChatRename>;
+
+/**
+ * 系譜の親の札（状態の印と名前）。押すと、その親の会話の、すぐ下の子を聞いた位置へ。ダブルクリックでその場で名前を変える
+ * （1 回押したときは少し待ってから移る。すぐ移ると、移った先の流れにピントが移り、開いた名前の入力欄が閉じるため。キーの Enter・Space はすぐ移る）
+ */
+function ParentCrumb({ id, rename, onReveal }: { id: number; rename: ChatRename; onReveal: () => void }) {
   const parent = useKnownChat(id);
   const { stateOf } = useChatStates();
+  const timer = useRef<number | undefined>(undefined);
+  const cancelReveal = () => window.clearTimeout(timer.current);
+  // 待っている間に帯が消えたら移らない
+  useEffect(() => cancelReveal, []);
   if (!parent) return null;
   const name = chatTitle(parent.title);
+  const editor: ChatTitleEditor | undefined = rename.editorFor(parent);
+  if (editor) {
+    return (
+      <span className="child-chat-crumb editing">
+        <StatusSlot state={stateOf(parent)} />
+        <ChatTitleInput chat={parent} editor={editor} className="child-chat-title-input" />
+      </span>
+    );
+  }
   return (
-    <button type="button" className="child-chat-crumb" data-tip={`親のチャット「${name}」の、聞いた位置を見る`} onClick={onReveal}>
+    <button
+      type="button"
+      className="child-chat-crumb"
+      data-tip={`親のチャット「${name}」の、聞いた位置を見る（ダブルクリックで名前を変更）`}
+      onClick={(e) => {
+        cancelReveal();
+        // キーで押したとき（detail が 0）はすぐ移る。2 回目の押下はダブルクリックに任せる
+        if (e.detail === 0) onReveal();
+        else if (e.detail === 1) timer.current = window.setTimeout(onReveal, REVEAL_DELAY_MS);
+      }}
+      onDoubleClick={() => {
+        cancelReveal();
+        rename.start(parent);
+      }}
+    >
       <StatusSlot state={stateOf(parent)} />
       <span className="child-chat-crumb-name">{name}</span>
     </button>
