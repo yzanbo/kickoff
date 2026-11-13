@@ -309,6 +309,19 @@ for (const c of CASES) {
       assert.equal(Number(read.rows[0][0]), 1500);
     });
 
+    test("読み取り専用の接続は DB 側で DDL（表を作る・変える・消す）も通らない", async () => {
+      // MySQL・MariaDB は DDL が暗黙にコミットするので、セッションの READ ONLY が DDL にも効くかを確かめる
+      for (const ddl of ["CREATE TABLE ro_made (id INT)", "ALTER TABLE users ADD COLUMN ro_col INT", "DROP TABLE users", "TRUNCATE TABLE users"]) {
+        await assert.rejects(sql(ddl, "ro", { read_only: true }), /read.only|READ ONLY/i, ddl);
+      }
+      // 何も変わっていない（表も行も列もそのまま）
+      const read = await sql("SELECT COUNT(*) FROM users", "ro", { read_only: true });
+      assert.equal(Number(read.rows[0][0]), 1500);
+      const cols = await sql("SELECT * FROM users LIMIT 1", "ro", { read_only: true });
+      assert.ok(!cols.columns.some((col) => col.name === "ro_col"));
+      await assert.rejects(sql("SELECT * FROM ro_made", "ro", { read_only: true }));
+    });
+
     test("流している文を止められる", async () => {
       const id = nextId++;
       const startedAt = Date.now();
