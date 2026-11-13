@@ -364,6 +364,16 @@
   color: var(--text);
 }
 
+/* 広い幅のテーブルのタブの上のパンくず（押せない） */
+.db-breadcrumb.static {
+  cursor: default;
+}
+
+.db-breadcrumb.static:hover {
+  background: transparent;
+  color: var(--muted);
+}
+
 .db-tab-body {
   position: relative;
   display: flex;

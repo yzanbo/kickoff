@@ -243,6 +243,8 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
               {breadcrumbOf(active, byId.get(active.connection_id))}
             </button>
           )}
+          {/* 広い幅でも、テーブル・関数・列挙型のタブの上には接続から数えたパンくず（どの接続のどの DB か取り違えないように。一覧は横に見えているので押せない） */}
+          {active && !narrow && active.kind === "table" && <div className="db-breadcrumb static small">{breadcrumbOf(active, byId.get(active.connection_id))}</div>}
           <div className="db-tab-body">
             {state.tabs.map((t) => {
               const c = byId.get(t.connection_id);
@@ -254,6 +256,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
                       projectId={projectId}
                       path={t.path}
                       chatId={null}
+                      memoTabButton
                       // 接続の memo_path はコアが付け替えて知らせる
                       onRenamed={(to) => setState(renameMemoTab(readSetting(dbClientTabs(place)), t.key, to))}
                     />

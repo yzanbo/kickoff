@@ -1,4 +1,4 @@
-import { CodeXml, Eye, Save } from "lucide-react";
+import { CodeXml, Eye, Save, StickyNote } from "lucide-react";
 import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
@@ -75,6 +75,7 @@ export function MemoView({
   onRenamed,
   onOpenMemo,
   attachTo = null,
+  onOpenInMemoTab,
 }: {
   projectId: number;
   path: string;
@@ -82,6 +83,8 @@ export function MemoView({
   onRenamed: (path: string) => void;
   onOpenMemo: (path: string) => void;
   attachTo?: number | null;
+  /** あれば見出しに「メモのタブで開く」（DB クライアントの手順メモのタブ） */
+  onOpenInMemoTab?: () => void;
 }) {
   const doc = useMemoDocument(projectId, path);
   const list = useMemoList(projectId);
@@ -248,6 +251,7 @@ export function MemoView({
         {doc.initial !== null && !unreadable && (
           <MemoChatToggle open={chatOpen} quickHidden={quickHidden} onOpenChange={setChatOpen} onQuickHiddenChange={setQuickHidden} />
         )}
+        {onOpenInMemoTab && <IconButton icon={StickyNote} label="メモのタブで開く" title="このメモをプロジェクトの「メモ」タブで開きます" onClick={onOpenInMemoTab} />}
         {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
         <PopOutTabButton />
       </header>

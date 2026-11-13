@@ -35,3 +35,9 @@ export function openMemoFromChat({
   if (from !== null && openInRootSide(from, (rootId, side) => side.openMemo({ chatId: rootId, projectId, path }))) return;
   openMemo(projectId, path);
 }
+
+/** メモのタブでそのメモを開く（DB クライアントの手順メモのタブの「メモのタブで開く」。別ウィンドウの中からはメインのウィンドウに頼む） */
+export function openInMemoTab(projectId: number, path: string) {
+  if (parsePopout(location.hash)) return postToMainWindow({ type: "openMemo", projectId, path, chatId: null });
+  openMemo(projectId, path);
+}
