@@ -1,11 +1,13 @@
 import type { GitWorktree } from "@shared/types";
 import { api } from "@/api";
-import { choiceDialog, confirmDialog } from "@/ui/dialogs";
-import { worktreesStore } from "@/stores/worktrees";
+import { choiceDialog, choiceDialogWithCheck, confirmDialog } from "@/ui/dialogs";
+import { worktreeEnvOf, worktreesStore } from "@/stores/worktrees";
+import { downVolumesCheck } from "./worktreeEnvText";
 
 /**
  * ワークツリーを消す（確かめてから）。消す前に、コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミットを調べて知らせ、
  * 「ワークツリーだけ消す（ブランチは残す）」か「ブランチも消す」かを選んでもらう。このブランチにしかないコミットがあるのにブランチも消すときは、もう一度確かめる。
+ * Kickoff が組の名前を割り当てたワークツリー（ワークツリーの実行環境）なら、「コンテナとデータも消す」を選んだ状態で添える。
  * 消したら一覧を取り直し、消した後の一覧を返す（やめたら null）。失敗は投げる
  */
 export async function confirmRemoveWorktree(projectId: number, worktree: Pick<GitWorktree, "path" | "branch">, label: string): Promise<GitWorktree[] | null> {
@@ -23,17 +25,17 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
   ].join("\n");
   // ブランチを消しても失うものがなければ「ブランチも消す」、あれば「ワークツリーだけ消す」をすすめる
   const safeToDeleteBranch = info.only_here === 0 && info.unpushed === 0;
-  const choice = await choiceDialog({
-    title: `ワークツリー「${label}」を消しますか？`,
-    message,
-    choices: info.branch
-      ? [
-          { value: "keep", label: "ワークツリーだけ消す", primary: !safeToDeleteBranch },
-          { value: "both", label: "ブランチも消す", primary: safeToDeleteBranch },
-        ]
-      : [{ value: "keep", label: "消す", primary: true }],
-  });
-  if (!choice) return null;
+  const choices: { value: "keep" | "both"; label: string; primary: boolean }[] = info.branch
+    ? [
+        { value: "keep", label: "ワークツリーだけ消す", primary: !safeToDeleteBranch },
+        { value: "both", label: "ブランチも消す", primary: safeToDeleteBranch },
+      ]
+    : [{ value: "keep", label: "消す", primary: true }];
+  const title = `ワークツリー「${label}」を消しますか？`;
+  const check = downVolumesCheck(worktreeEnvOf(projectId, worktree.path));
+  const picked = check ? await choiceDialogWithCheck({ title, message, choices, check }) : await choiceDialog({ title, message, choices }).then((value) => value && { value, checked: false });
+  if (!picked) return null;
+  const choice = picked.value;
   const deleteBranch = choice === "both";
   if (deleteBranch && info.only_here > 0) {
     const ok = await confirmDialog({
@@ -45,7 +47,7 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
     if (!ok) return null;
   }
   // コミットしていない変更は、上で知らせたうえで消すので force で消す
-  const list = await api.removeWorktree(projectId, worktree.path, info.changes > 0, deleteBranch);
+  const list = await api.removeWorktree(projectId, worktree.path, info.changes > 0, deleteBranch, picked.checked);
   worktreesStore.set(projectId, list);
   worktreesStore.invalidate(projectId);
   return list;

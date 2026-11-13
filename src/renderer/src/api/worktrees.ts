@@ -5,9 +5,12 @@ import { request, withQuery } from "./http";
 export const worktreesApi = {
   gitWorktrees: (projectId: number) => request<GitWorktree[]>("GET", `/api/projects/${projectId}/git/worktrees`),
   addWorktree: (projectId: number, branch: string) => request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees`, { branch }),
-  /** ワークツリーを消す（force: コミットしていない変更があっても。deleteBranch: ブランチも消す = PR がマージされたあとの片付け） */
-  removeWorktree: (projectId: number, path: string, force = false, deleteBranch = false) =>
-    request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/remove`, { path, force, delete_branch: deleteBranch }),
+  /**
+   * ワークツリーを消す（force: コミットしていない変更があっても。deleteBranch: ブランチも消す = PR がマージされたあとの片付け。
+   * downVolumes: Kickoff が組の名前を割り当てたワークツリーなら、そのコンテナとデータも消す）
+   */
+  removeWorktree: (projectId: number, path: string, force = false, deleteBranch = false, downVolumes = false) =>
+    request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/remove`, { path, force, delete_branch: deleteBranch, down_volumes: downVolumes }),
   /** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット） */
   worktreeRemovalInfo: (projectId: number, path: string) =>
     request<WorktreeRemovalInfo>("GET", withQuery(`/api/projects/${projectId}/git/worktrees/info`, { path })),
