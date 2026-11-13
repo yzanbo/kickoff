@@ -2,6 +2,7 @@
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL, describeUpdateChat } from "@shared/chat/aiChatEdit";
 import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
 import { AI_OPEN_CHAT_TOOL, AI_OPEN_MEMO_TOOL, describeOpenChat, describeOpenMemo } from "@shared/chat/aiOpen";
+import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL, describeAddSnippet, describeMoveMemo } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL, describeReadChat } from "@shared/chat/aiRead";
 import { isSubagentTool } from "@shared/chat/subagents";
 
@@ -51,6 +52,8 @@ const TOOL_LABELS: Record<string, string> = {
   [AI_LIST_PROJECT_CHATS_TOOL]: "プロジェクトのチャットを確かめる",
   [AI_READ_CHAT_TOOL]: "チャットの会話を読む",
   [AI_USAGE_TOOL]: "使用枠を確かめる",
+  [AI_ADD_SNIPPET_TOOL]: "定型文に登録",
+  [AI_MOVE_MEMO_TOOL]: "メモを移動",
 };
 
 /** ToDo の状態の表示名（TaskUpdate の status） */
@@ -223,6 +226,10 @@ function describeKnown(name: string, input: Input): string | null {
     case AI_READ_CHAT_TOOL:
       // どのチャットを、どこからさかのぼって読んだか（「チャット 12（38 回目より前）」）
       return clip(describeReadChat(input));
+    case AI_ADD_SNIPPET_TOOL:
+      return clip(describeAddSnippet(input));
+    case AI_MOVE_MEMO_TOOL:
+      return clip(describeMoveMemo(input));
   }
   // サブエージェントは、依頼の概要と種類だけ（依頼の全文は「中身を見る」で見られる）
   if (isSubagentTool(name) && typeof input.description === "string") {
