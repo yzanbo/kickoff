@@ -4,10 +4,11 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { search, searchKeymap } from "@codemirror/search";
-import { Compartment, EditorState } from "@codemirror/state";
+import { EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useRef, type MutableRefObject } from "react";
 import type { MemoKind } from "@shared/memo/kinds";
+import { useCodeMirror } from "@/hooks/useCodeMirror";
 import { readFindOptions } from "@/hooks/useFindOptions";
 import { cx } from "@/lib/cx";
 import { livePreview } from "./livePreviewExtension";
@@ -93,64 +94,55 @@ const selectionTheme = EditorView.theme({
  * 右クリックは自前のメニュー（onContextMenu。チャットに追加・コピーなど）。
  */
 export default function MemoEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady }: Props) {
-  const host = useRef<HTMLDivElement>(null);
-  const view = useRef<EditorView | null>(null);
-  const [mode] = useState(() => new Compartment());
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const handlers = useRef({ onChange, onSave, onContextMenu });
-  handlers.current = { onChange, onSave, onContextMenu };
+  const handlers = useRef({ onSave, onContextMenu });
+  handlers.current = { onSave, onContextMenu };
 
-  useEffect(() => {
-    if (!host.current) return;
-    const v = new EditorView({
-      parent: host.current,
-      state: EditorState.create({
-        doc: initialValue,
-        extensions: [
-          history(),
-          // 選んだ範囲を、ピントが外れても（右クリックのメニュー・チャットの欄に移っても）見えるように描く。色は CodeMirror の既定（明るい紫）より
-          // 詳細度の高い既定の規則に CSS では勝てないので、テーマで上書きする（アクセントの薄い色。文字が読めるように）
-          drawSelection(),
-          selectionTheme,
-          keymap.of([
-            {
-              key: "Mod-s",
-              preventDefault: true,
-              run: () => {
-                handlers.current.onSave();
-                return true;
-              },
-            },
-            indentWithTab,
-            ...searchKeymap,
-            ...defaultKeymap,
-            ...historyKeymap,
-          ]),
-          // ⌘F でエディタの中を探す（上に検索の欄。見えていない行も探せる）。欄はページ・チャットの検索と同じ見た目と探し方（memoFindPanel）
-          search({ top: true, createPanel: createMemoFindPanel, ...memoSearchConfig(readFindOptions()) }),
-          EditorState.phrases.of(SEARCH_PHRASES),
-          kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage }),
-          EditorView.lineWrapping,
-          EditorView.contentAttributes.of({ "aria-label": kind === "html" ? "メモ（HTML のソース）" : "メモ" }),
-          mode.of(live && kind === "markdown" ? livePreview : []),
-          EditorView.updateListener.of((u) => {
-            if (u.docChanged) handlers.current.onChange(u.state.doc.toString());
-          }),
-          // 右クリックは自前のメニュー（選んだ範囲はそのまま残す）
-          EditorView.domEventHandlers({
-            contextmenu: (e) => {
-              const open = handlers.current.onContextMenu;
-              if (!open) return false;
-              e.preventDefault();
-              open({ x: e.clientX, y: e.clientY });
-              return true;
-            },
-          }),
-        ],
+  const { host } = useCodeMirror({
+    initialValue,
+    onChange,
+    // 表示の切り替え（Markdown の表示 / そのまま）は作り直さずに差し替える
+    dynamic: live && kind === "markdown" ? livePreview : [],
+    dynamicDeps: [live, kind],
+    extensions: () => [
+      history(),
+      // 選んだ範囲を、ピントが外れても（右クリックのメニュー・チャットの欄に移っても）見えるように描く。色は CodeMirror の既定（明るい紫）より
+      // 詳細度の高い既定の規則に CSS では勝てないので、テーマで上書きする（アクセントの薄い色。文字が読めるように）
+      drawSelection(),
+      selectionTheme,
+      keymap.of([
+        {
+          key: "Mod-s",
+          preventDefault: true,
+          run: () => {
+            handlers.current.onSave();
+            return true;
+          },
+        },
+        indentWithTab,
+        ...searchKeymap,
+        ...defaultKeymap,
+        ...historyKeymap,
+      ]),
+      // ⌘F でエディタの中を探す（上に検索の欄。見えていない行も探せる）。欄はページ・チャットの検索と同じ見た目と探し方（memoFindPanel）
+      search({ top: true, createPanel: createMemoFindPanel, ...memoSearchConfig(readFindOptions()) }),
+      EditorState.phrases.of(SEARCH_PHRASES),
+      kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage }),
+      EditorView.lineWrapping,
+      EditorView.contentAttributes.of({ "aria-label": kind === "html" ? "メモ（HTML のソース）" : "メモ" }),
+      // 右クリックは自前のメニュー（選んだ範囲はそのまま残す）
+      EditorView.domEventHandlers({
+        contextmenu: (e) => {
+          const open = handlers.current.onContextMenu;
+          if (!open) return false;
+          e.preventDefault();
+          open({ x: e.clientX, y: e.clientY });
+          return true;
+        },
       }),
-    });
-    view.current = v;
-    if (handleRef) {
+    ],
+    onCreate: (v) => {
+      if (!handleRef) return;
       handleRef.current = {
         selectedText: () => {
           const { from, to } = v.state.selection.main;
@@ -182,19 +174,11 @@ export default function MemoEditor({ initialValue, kind, live, hidden = false, o
         },
       };
       onReady?.();
-    }
-    return () => {
-      v.destroy();
-      view.current = null;
-      if (handleRef) handleRef.current = null;
-    };
-    // 作るのは 1 回だけ（中身を入れ直すときは key を変えて作り直す。表示の切り替えは下の effect）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    view.current?.dispatch({ effects: mode.reconfigure(live && kind === "markdown" ? livePreview : []) });
-  }, [live, kind, mode]);
+      return () => {
+        handleRef.current = null;
+      };
+    },
+  });
 
   return <div ref={host} hidden={hidden} className={cx("md-editor", live && kind === "markdown" ? "live" : "source")} />;
 }
