@@ -21,7 +21,8 @@ export function resolveClaudeExecutable(): string | undefined {
  * KICKOFF_ALLOW_API_KEY=1 のときだけ API キー認証を許可する。
  */
 export function agentEnv(): Record<string, string | undefined> {
-  const env: Record<string, string | undefined> = { ...process.env, CLAUDE_AGENT_SDK_CLIENT_APP: "kickoff/0.1.0" };
+  // 手が空いたこと（session_state_changed の idle）を知らせてもらう（入力を閉じる時を決める。turnOver.ts）
+  const env: Record<string, string | undefined> = { ...process.env, CLAUDE_AGENT_SDK_CLIENT_APP: "kickoff/0.1.0", CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS: "1" };
   if (process.env.KICKOFF_ALLOW_API_KEY !== "1") {
     delete env.ANTHROPIC_API_KEY;
     delete env.ANTHROPIC_AUTH_TOKEN;
