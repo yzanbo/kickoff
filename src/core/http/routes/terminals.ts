@@ -25,7 +25,7 @@ const mayClose = (caller: Caller, owner: string | null) => caller.kind === "host
  * この Mac の画面のタブ（IPC で作ったもの）にもつなげる。キーの入力・出力は WebSocket（細かく行き来するため。この口だけ）。
  * 見るだけの端末は、一覧と WebSocket で見るだけで、シェルを作る・止める（403）・キーを送る（捨てる）はできない
  */
-export function terminalRoutes(app: Hono, { store, terminals }: ServerDeps) {
+export function terminalRoutes(app: Hono, { store, terminals, bus }: ServerDeps) {
   const { withProject } = lookups(store);
 
   // 動いているシェルのタブ（?project_id= でそのプロジェクトのものだけ）
@@ -69,11 +69,22 @@ export function terminalRoutes(app: Hono, { store, terminals }: ServerDeps) {
       const key = c.req.param("key")!;
       const caller = callerOf(c);
       const clientId = `ws:${randomUUID()}`;
-      const canType = caller.kind === "host" || caller.device.access === "full";
+      // 打てるかは送るたびに読み直す（つないだあとで「見るだけ」に変えた・取り消した端末の入力は捨てる）
+      const canType = () => {
+        if (caller.kind === "host") return true;
+        return store.devices.get(caller.device.id)?.access === "full" && store.settings.get().remote_enabled;
+      };
+      let unsubscribe = () => {};
       const cols = Number(c.req.query("cols")) || 80;
       const rows = Number(c.req.query("rows")) || 24;
       return {
         onOpen(_event, ws) {
+          // 端末を取り消した・スマホ連携をオフにしたら、つながったままの WebSocket も切る
+          if (caller.kind === "device") {
+            unsubscribe = bus.subscribe((e) => {
+              if ((e.type === "devices" && !store.devices.get(caller.device.id)) || (e.type === "settings" && !e.settings.remote_enabled)) ws.close();
+            });
+          }
           const send = (message: TerminalServerMessage) => ws.send(JSON.stringify(message));
           const client = {
             id: clientId,
@@ -93,13 +104,14 @@ export function terminalRoutes(app: Hono, { store, terminals }: ServerDeps) {
             return;
           }
           if (parsed.type === "input") {
-            if (canType) terminals.write(key, parsed.data);
+            if (canType()) terminals.write(key, parsed.data);
             return;
           }
           // 大きさを変えるのはシェルの持ち主だけ（この Mac の画面のタブを、スマホの小さな画面に合わせて崩さない）
-          if (terminals.ownerOf(key) === ownerOf(caller)) terminals.resize(key, parsed.cols, parsed.rows);
+          if (canType() && terminals.ownerOf(key) === ownerOf(caller)) terminals.resize(key, parsed.cols, parsed.rows);
         },
         onClose() {
+          unsubscribe();
           terminals.detach(key, clientId);
         },
       };
