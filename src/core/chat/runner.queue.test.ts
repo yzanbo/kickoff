@@ -169,16 +169,25 @@ test("足せなかった「いま」は預かった順に送る: 作業の終わ
 test("動かし始めたばかりで足す口がまだないときの「いま」は、口ができるまで少し待って足す（預かったままにしない）", async () => {
   const told: string[] = [];
   let release: (() => void) | undefined;
-  const { runner, project } = setup(async (_p, cb) => {
-    // Claude Code を立ち上げている間（足す口がまだない）
-    await new Promise((r) => setTimeout(r, 20));
-    cb.control?.({ tell: (text) => Boolean(told.push(text)), stopTask: async () => {} });
-    await new Promise<void>((r) => (release = r));
-    cb.control?.(null);
-    return { status: "completed", sessionId: "s1" };
-  });
+  let openControl: (() => void) | undefined;
+  // 口ができるのは「いま」を頼んだあと（時間では決めない。全部のテストを流して重いときに、待つ時間を過ぎて預かりになっていた）。
+  // 待つ時間はテストの既定（50ms）より長くして、口ができるまでの遅れで落ちないようにする
+  const { runner, project } = setupCore(
+    new ScriptedProvider(async (_p, cb) => {
+      // Claude Code を立ち上げている間（足す口がまだない）
+      await new Promise<void>((r) => (openControl = r));
+      cb.control?.({ tell: (text) => Boolean(told.push(text)), stopTask: async () => {} });
+      await new Promise<void>((r) => (release = r));
+      cb.control?.(null);
+      return { status: "completed", sessionId: "s1" };
+    }),
+    { tellableWaitMs: 10_000 },
+  );
   const chat = await runner.start({ projectId: project.id, prompt: "1" });
-  assert.equal(await runner.tell(chat.id, "すぐあと"), "told");
+  await until(() => openControl !== undefined);
+  const telling = runner.tell(chat.id, "すぐあと");
+  openControl!();
+  assert.equal(await telling, "told");
   assert.deepEqual(told, ["すぐあと"]);
   assert.equal(runner.live(chat.id).tells_closed, false);
   assert.deepEqual(runner.live(chat.id).after_compact, []);
