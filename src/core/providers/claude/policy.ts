@@ -1,6 +1,7 @@
 import type { HookCallbackMatcher, HookEvent, HookInput, SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { ChatPolicy } from "../../chat/policy.js";
 import { DOCKER_GUARD_DENIED, type DockerGuard } from "../../chat/guard/dockerGuard.js";
+import { evaluateDeleteCommand } from "../../chat/guard/deleteGuard.js";
 import { evaluateHiddenDbAccess } from "../../chat/guard/hiddenDb.js";
 import { evaluateReferenceWrite, evaluateUntrackedWrite } from "../../chat/guard/scope.js";
 import { evaluateSelfProtection, type SelfInfo } from "../../chat/guard/selfProtection.js";
@@ -71,6 +72,7 @@ function dockerGuardHook(guard: DockerGuard, cb: Pick<ProviderCallbacks, "reques
  * チャットの実行に付けるフック。エージェントを動かしている Kickoff 自身（プロセス・アプリ本体・保存先・API）を壊す呼び出し
  * （selfProtection.ts）はいつも、参照資料への書き込みは参照資料があるときだけ、「見せない」DB の接続に直接入るのは、そういう接続があるときだけ断る。
  * Git で管理していないファイルだけを書けるチャット（untrackedOnly）は、Git で管理しているファイルの書き込みと Git の中身を変える git のコマンドを断る。
+ * ファイルを消す Bash（rm・git clean など）は、守りを付けたときは断って kickoff-trash を使わせる（deleteGuard）。
  * 別の作業場所・ほかのプロジェクトの Docker に手を出す Bash は、守りがあれば承認カードで聞く（dockerGuardHook）。Auto mode や許可ルールがあっても効く
  */
 export function turnHooks(
@@ -84,6 +86,7 @@ export function turnHooks(
     ...(readOnly.length > 0 ? [denyHook((tool, input) => evaluateReferenceWrite(params.cwd, readOnly, tool, input))] : []),
     ...(params.untrackedOnly ? [denyHook((tool, input) => evaluateUntrackedWrite(params.cwd, tool, input))] : []),
     ...(params.hiddenDb?.length ? [denyHook((tool, input) => evaluateHiddenDbAccess(params.hiddenDb ?? [], tool, input))] : []),
+    ...(params.deleteGuard ? [denyHook((tool, input) => evaluateDeleteCommand(tool, input))] : []),
     ...(params.dockerGuard ? [dockerGuardHook(params.dockerGuard, cb)] : []),
   ];
   return matchers.length > 0 ? { PreToolUse: matchers } : undefined;

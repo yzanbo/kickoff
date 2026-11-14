@@ -73,3 +73,9 @@ test("evaluateSelfProtection: 開発中（アプリ本体なし）は、本体�
   const prodReason = evaluateSelfProtection(prod, "Bash", { command: "curl localhost:4317/" });
   assert.ok(prodReason.decision === "deny" && prodReason.reason.includes("開発版"));
 });
+
+test("evaluateSelfProtection: Kickoff が置いた kickoff-trash（保存先の bin/）を場所で呼ぶのは通す（ほかの保存先の中は断る）", () => {
+  assert.equal(bash(`"${prod.dataDir}/bin/kickoff-trash" dist`), "pass");
+  assert.equal(bash(`~/Library/Application\\ Support/Kickoff/bin/kickoff-trash a.txt`), "pass");
+  assert.equal(bash(`ls "${prod.dataDir}/trash"`), "deny");
+});

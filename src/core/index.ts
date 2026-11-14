@@ -26,7 +26,9 @@ import { WorktreePrWatch } from "./git/prWatch.js";
 import { listPullRequests } from "./git/github.js";
 import { listWorktrees } from "./git/worktrees.js";
 import { MemoService } from "./memos/memos.js";
+import { errorMessage } from "@shared/errors";
 import { TrashService } from "./trash/service.js";
+import { installTrashCommand } from "./trash/command.js";
 import { isInside } from "./system/paths.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
@@ -151,7 +153,12 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const ports = new PortWatch(bus, new PortProcessService({ store, probe: opts.platform, selfBundle: opts.platform.appBundleOf(process.execPath) }));
   // 内蔵ターミナルのシェル（この Mac の画面は IPC、スマホは WebSocket でつなぐ。ワークツリーのシェルには PORT を渡す。AI は出力を読むだけ）
   const terminals = new TerminalSessions({ shell: opts.platform.terminalShell(), env: opts.terminalEnv, envOf: (cwd) => worktreeEnvs.envFor(cwd) });
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, interrupted: recovered });
+  // AI の rm の代わりの kickoff-trash を bin/ に置く（置けなければ守りも付けない。AI が消せなくなって止まらないように）
+  const trashCommand = await installTrashCommand(path.join(opts.dataDir, "bin")).then(
+    (file) => ({ path: file, dir: trashBin.dir }),
+    (e: unknown) => (console.warn(`[core] kickoff-trash を置けませんでした: ${errorMessage(e)}`), undefined),
+  );
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speech: opts.platform.speech, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）

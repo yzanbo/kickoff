@@ -123,6 +123,8 @@ export interface ProviderTurnParams {
   hiddenDb?: HiddenDbTarget[];
   /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */
   dockerGuard?: DockerGuard | null;
+  /** ファイルを消す Bash（rm・find -delete・git clean など）を断り、kickoff-trash を使わせる守り（chat/guard/deleteGuard.ts）を付けるか */
+  deleteGuard?: boolean;
 }
 
 export interface ApprovalRequest {

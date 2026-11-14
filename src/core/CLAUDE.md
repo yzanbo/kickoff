@@ -123,12 +123,12 @@ Kickoff のプロジェクトのフォルダ（本体・ワークツリー）で
 
 - 入口は `service.ts` の `TrashService`（`startCore` が作り `start` / `close`。`ServerDeps` の `trashBin`）。置き場はデータのフォルダの `trash/<id>/item/<元の名前>`（`id` は uuid）、覚え書きは表 `trash_items`（v26。店 `store.trash`。元の場所 `origin`・誰が消したか `by_chat_id`（AI が消したならそのチャット）・出すプロジェクト `project_id`・大きさ `size`（待たずに数えて書く）・種類ごとの覚え書き `details`（API には出さない））。
 - 入れる: `putPath`（ファイル・フォルダを置き場へ移す。同じディスクなら名前の変更、別のディスクなら写してから消す。ファイルタブ・メモの「ゴミ箱に入れる」）・`addRecord`（置き場にファイルを置かないもの = チャット・プロジェクト）。
-- AI の kickoff-trash は自分で置き場に `<id>/origin`（元の絶対パス）・`chat`（`KICKOFF_CHAT_ID`）・`at`（入れた時刻）と `item/` を作る。覚え書きのないフォルダのうち `origin` のあるものを `importInbox` が取り込む（一覧を読むとき・片付けのとき）。出すのは消したチャットのプロジェクト、チャットが分からなければ元の場所を含むプロジェクト（本体・メモのフォルダ。`projectOfPath`）。中身のないまま 1 時間たったフォルダ（途中で止まった）は消す。
+- AI の kickoff-trash（`command.ts`。sh のスクリプト `TRASH_COMMAND_SCRIPT` を起動のときに `installTrashCommand` がデータのフォルダの `bin/` に置き（中身が同じなら書き直さない。置けなければ守りも付けない）、チャットの PATH に足す。`-r`・`-f` などの印は読み飛ばし、`--` のあとは名前。ない・ホーム・置き場の中のものは入れない。入れたら「…[kickoff-trash:<id>]」を出す。守りは `chat/CLAUDE.md` の「書き込みの守り」）は、自分で置き場に `<id>/origin`（元の絶対パス）・`chat`（`KICKOFF_CHAT_ID`）・`at`（入れた時刻）と `item/` を作る。覚え書きのないフォルダのうち `origin` のあるものを `importInbox` が取り込む（一覧を読むとき・片付けのとき）。出すのは消したチャットのプロジェクト、チャットが分からなければ元の場所を含むプロジェクト（本体・メモのフォルダ。`projectOfPath`）。中身のないまま 1 時間たったフォルダ（途中で止まった）は消す。
 - 元に戻す（`restore`。`POST /api/trash/:id/restore`、本文 `TrashRestoreBody`）: ファイルは元の場所へ（途中のフォルダは作る）。同じ名前があれば上書きせずに 409 と `TRASH_RESTORE_EXISTS`、`rename` なら `names.ts` の `restoreName`（「a 2.txt」）で戻す。応答は `TrashRestoreResult`（戻した場所）。
 - 本当に消す: 入れてから `TRASH_KEEP_MS`（3 日）たったものを、起動したときと 1 時間ごとの `sweep` で消す（閉じていた間の分は次の起動で）。容量の上限は持たない（3 日で必ず消えるため）。本当に消す口は置かない。
 - 種類ごとの扱い（`register(kind, { restore, purge })`）: 戻す・本当に消すときに一緒にすること（チャット・プロジェクトなど）。行と置き場のフォルダを消すのはサービス。
 - 一覧は `GET /api/projects/:id/trash`（新しい順。`TrashItem`。消したチャットの名前 `by_chat_title` と消える時刻 `expires_at` も）。変えたら SSE の `trash`（`project_id`）。
-- テストは `http/server.trash.test.ts`（`setup()` の `trashBin`・時計 `trashClock`）・`trash/names.test.ts`。
+- テストは `http/server.trash.test.ts`（`setup()` の `trashBin`・時計 `trashClock`。kickoff-trash を本物の sh で流すものも）・`trash/names.test.ts`・`trash/command.test.ts`。
 
 ## 通知（notifications/）
 
