@@ -4,6 +4,7 @@ import { FlatList, KeyboardAvoidingView, Pressable, Text, View } from "react-nat
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ApprovalCard } from "../../../chat/ApprovalCard";
 import { Composer } from "../../../chat/Composer";
+import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
 import { useHostState } from "../../../state/useHostState";
@@ -29,7 +30,7 @@ export default function ChatScreen() {
         data={items}
         keyExtractor={(item) => `${item.kind}:${item.id}`}
         contentContainerStyle={{ padding: 12, gap: 10 }}
-        renderItem={({ item }) => <Item item={item} />}
+        renderItem={({ item }) => <Item item={item} onPrompt={canWrite && client ? (t) => void (running ? client.tell(chatId, t) : client.send(chatId, t)) : undefined} />}
         ListHeaderComponent={
           <View style={{ gap: 10 }}>
             {streaming ? <Text style={[ui.text, { opacity: 0.8 }]}>{streaming}</Text> : running ? <Text style={ui.muted}>作業中…</Text> : null}
@@ -79,7 +80,8 @@ export default function ChatScreen() {
   );
 }
 
-function Item({ item }: { item: TimelineItem }) {
+/** 1 行。onPrompt: 図の中のボタンから届いた発言を送る（作業中なら伝える。見るだけの端末では送らない） */
+function Item({ item, onPrompt }: { item: TimelineItem; onPrompt?: (text: string) => void }) {
   switch (item.kind) {
     case "user":
       return (
@@ -89,11 +91,15 @@ function Item({ item }: { item: TimelineItem }) {
         </View>
       );
     case "assistant":
+      // 数式を含む返答は WebView で（数式だけを KaTeX で描く）
+      if (item.math) return <MathText text={item.text} />;
       return (
         <Text style={ui.text} selectable>
           {item.text}
         </Text>
       );
+    case "visual":
+      return item.visual ? <VisualView visual={item.visual} onPrompt={onPrompt} /> : <Text style={[ui.muted, { textAlign: "center" }]}>{item.text}</Text>;
     case "tool":
       return (
         <Text style={[ui.muted, { fontFamily: "monospace" }]} numberOfLines={2}>
