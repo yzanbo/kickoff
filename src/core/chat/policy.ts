@@ -81,7 +81,7 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     `- ただし、サブエージェントが 1 回の返答で書ける量の上限（終わりの知らせに max_output_tokens・output token maximum とある）で止まったときは、通信のエラーではありません。同じやり方で続けると同じところでまた止まるので、「報告は短くまとめる」「大きなファイルは何回かに分けて書く」と添えて、SendMessage で 1 回だけ続きを頼んでください。それでも止まったら、利用者に伝えてください。`,
     // rm などは守りが断るので、初めから kickoff-trash を使ってもらう（断られてやり直す手間を省く）
     ...(opts.trash
-      ? [`- ファイル・フォルダを消すときは、rm・unlink・find -delete・git clean ではなく ${TRASH_COMMAND} <パス>… を使ってください（Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます。rm などは Kickoff が断ります）。`]
+      ? [`- ファイル・フォルダを消すときは、rm・unlink・find -delete・git clean ではなく ${TRASH_COMMAND} <パス>… を使ってください（Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます。rm などは Kickoff が断ります。command not found なら "$KICKOFF_TRASH" <パス>… で呼べます）。`]
       : []),
   );
 
