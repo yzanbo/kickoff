@@ -174,7 +174,8 @@ export function BoardLanes({
                 folds.set(lane.key, !open);
               }}
               label={<LaneTitle lane={lane} showProject={showProject} />}
-              count={lane.chats.length}
+              // 送る前の新しいチャット（下書き。New Chat）も 1 つと数える（利用者の依頼。サイドバーのグループの見出しと同じ）
+              count={lane.chats.length + lane.drafts.length}
               actions={actions?.(lane)}
               className={cx(head.className, actions && "board-lane-head-actions")}
               style={head.style}

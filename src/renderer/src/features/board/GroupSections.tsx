@@ -72,7 +72,8 @@ export function GroupSections({
         data-group-id={g?.id}
         {...dropProps(g?.id ?? null)}
       >
-        <GroupColumnHead group={g} count={members.length} board={board} onNewChat={() => onNewChat(g ? { projectId, group: g.id } : { projectId })} />
+        {/* 数は送る前の新しいチャット（下書き。New Chat）も 1 つと数える（利用者の依頼。サイドバーのグループの見出しと同じ） */}
+        <GroupColumnHead group={g} count={members.length + bucket.drafts.length} board={board} onNewChat={() => onNewChat(g ? { projectId, group: g.id } : { projectId })} />
         {list ? body : <div className="column-cards">{body}</div>}
       </section>
     );
