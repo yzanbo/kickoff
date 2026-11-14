@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { PairingClaimBody, ViewingBody } from "@shared/types";
+import type { DevicePush, PairingClaimBody, ViewingBody } from "@shared/types";
+import { Invalid } from "../errors.js";
 import { callerOf } from "../caller.js";
 import { DEVICE_NAME_MAX } from "../../devices/pairing.js";
 import type { ServerDeps } from "../server.js";
@@ -8,6 +9,13 @@ import { idParam, jsonBody } from "../input.js";
 
 const claimSchema = z.object({ code: z.string().trim().min(1).max(20), name: z.string().max(200) }) satisfies z.ZodType<PairingClaimBody>;
 const pollSchema = z.object({ secret: z.string().min(1).max(200) });
+/** プッシュの宛先（Expo のトークン・Web Push の購読） */
+const pushSchema = z.union([
+  z.object({ kind: z.literal("expo"), token: z.string().min(1).max(500) }),
+  z.object({ kind: z.literal("web"), endpoint: z.url({ protocol: /^https$/ }).max(2000), keys: z.object({ p256dh: z.string().min(1).max(500), auth: z.string().min(1).max(500) }) }),
+]) satisfies z.ZodType<DevicePush>;
+const pushBodySchema = z.object({ push: pushSchema.nullable() });
+
 const viewingSchema = z.object({ chat_id: z.number().int().positive().nullable(), ci_project_id: z.number().int().positive().nullable() }) satisfies z.ZodType<ViewingBody>;
 
 /**
@@ -15,6 +23,14 @@ const viewingSchema = z.object({ chat_id: z.number().int().positive().nullable()
  * まだトークンを持たない端末が使う口（/pairing/…。認証の外。番号と、頼んだ端末だけが知る鍵で守る）
  */
 export function deviceRoutes(app: Hono, { pairing, store, viewing }: ServerDeps) {
+  // 端末が自分のプッシュの宛先を登録する・外す（null）。この Mac の画面は端末ではないので 400。宛先は外に出さない（Device は has_push だけ）
+  app.put("/api/devices/self/push", async (c) => {
+    const caller = callerOf(c);
+    if (caller.kind !== "device") throw new Invalid("プッシュの宛先は、つないだ端末が自分で登録します");
+    const { push } = pushBodySchema.parse(await jsonBody(c));
+    store.devices.setPush(caller.device.id, push);
+    return c.body(null, 204);
+  });
   // いま見ているもの（この Mac の画面も端末も。だれかが見ているチャット・CI のタブの知らせは通知しない = notifications/center.ts）
   app.put("/api/viewing", async (c) => {
     viewing.report(callerOf(c), viewingSchema.parse(await jsonBody(c)));
