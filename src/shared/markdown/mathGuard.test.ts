@@ -40,11 +40,18 @@ test("convertTexDelimiters: \\( \\) は文の中の数式、行の頭の \\[ \\]
   assert.equal(convertTexDelimiters("面積は \\(\\pi r^2\\) です"), "面積は $$\\pi r^2$$ です");
   assert.equal(convertTexDelimiters("式:\n\\[\n  E = mc^2\n\\]\n終わり"), "式:\n$$\nE = mc^2\n$$\n終わり");
   assert.equal(convertTexDelimiters("\\[a+b=c\\]"), "$$\na+b=c\n$$");
-  // 数式らしくない \( \) はそのまま（正規表現の説明など）
-  assert.equal(convertTexDelimiters("\\(hello world\\) を探す"), "\\(hello world\\) を探す");
-  // 行の途中の \[ \] は、中身が数式らしいときだけ文の中の数式に
+  // \( \) は 1 つの $ と違い、中身が長くても英単語でもいつも数式（空ならそのまま）
+  assert.equal(convertTexDelimiters("速さは \\(\\frac{distance}{time}\\) で求める"), "速さは $$\\frac{distance}{time}$$ で求める");
+  const long = "a_1 + a_2 + a_3 + a_4 + a_5 + a_6 + a_7 + a_8 + a_9 + a_{10} + a_{11}";
+  assert.equal(convertTexDelimiters(`和 \\(${long}\\)`), `和 $$${long}$$`);
+  assert.equal(convertTexDelimiters("空の \\( \\) はそのまま"), "空の \\( \\) はそのまま");
+  // 行の途中の \[ \] も文の中の数式に
   assert.equal(convertTexDelimiters("和は \\[\\sum i\\] になる"), "和は $$\\sum i$$ になる");
-  assert.equal(convertTexDelimiters("配列 a\\[0\\] の値"), "配列 a\\[0\\] の値");
+});
+
+test("mathRanges: \\( \\) は長い式・英単語でも数式", () => {
+  const text = "式 \\(\\frac{distance}{time}\\) と \\( \\)";
+  assert.deepEqual(mathRanges(text).map((r) => r.tex), ["\\frac{distance}{time}"]);
 });
 
 test("convertTexDelimiters: コードの中は書き換えない", () => {
