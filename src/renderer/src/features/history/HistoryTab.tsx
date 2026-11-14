@@ -79,6 +79,7 @@ export function HistoryTab({
                 log={log}
                 busy={ops.busy}
                 worktreeActions={worktreeActions}
+                selectedHash={commit?.hash}
                 onRefMenu={refMenu.open}
                 onStashMenu={stashMenu.open}
                 onPick={(hash) => {

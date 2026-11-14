@@ -1,6 +1,7 @@
 import { Archive, ArrowDown, ArrowUp, Check, Cloud, ExternalLink, FolderOpen, GitBranch, History, Plus, Tag, Trash2 } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import type { GitRefs, GitWorktree } from "@shared/types";
+import { cx } from "@/lib/cx";
 import { Chevron } from "@/ui/Chevron";
 import { ErrorText } from "@/ui/ErrorText";
 import { GitHubMark } from "@/ui/GitHubMark";
@@ -38,15 +39,21 @@ function SyncNote({ branch }: { branch?: GitRefs["branches"][number] }) {
  * リモート 1 つ（名前の行で開閉。GitHub を指す remote は GitHub のマーク、ほかは雲。初めは閉じておき、絞り込んでいる間は開く）。
  * 中の行はリモートのブランチ（押すとそのコミットを選ぶ・右クリックでメニュー）
  */
+/** 押した行を選ぶ（key は行の印。選んでいるかは isPicked） */
+interface RowPick {
+  pick: (key: string, hash: string) => void;
+  isPicked: (key: string, hash: string) => boolean;
+}
+
 function RemoteGroup({
   remote,
   forceOpen,
-  onPick,
+  rows,
   onRefMenu,
 }: {
   remote: GitRefs["remotes"][number];
   forceOpen: boolean;
-  onPick: (hash: string) => void;
+  rows: RowPick;
   onRefMenu: (e: MouseEvent, target: RefTarget) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -66,7 +73,8 @@ function RemoteGroup({
               icon={<GitBranch size={14} aria-hidden />}
               name={b.name.slice(remote.name.length + 1)}
               depth={1}
-              onClick={() => onPick(b.hash)}
+              selected={rows.isPicked(`remote:${b.name}`, b.hash)}
+              onClick={() => rows.pick(`remote:${b.name}`, b.hash)}
               onContextMenu={(e) => onRefMenu(e, { kind: "remote", name: b.name })}
             />
           ))}
@@ -98,6 +106,7 @@ export function HistorySidebar({
   log,
   busy,
   worktreeActions,
+  selectedHash,
   onPick,
   onRefMenu,
   onStashMenu,
@@ -105,12 +114,24 @@ export function HistorySidebar({
   log: GitLogController;
   busy: string | null;
   worktreeActions: WorktreeActions;
+  /** 表で選んでいるコミット（押した行がまだそのコミットを選んでいる間だけ、その行を選んでいる見た目にする） */
+  selectedHash?: string;
   onPick: (hash: string) => void;
   onRefMenu: (e: MouseEvent, target: RefTarget) => void;
   /** 退避の行の右クリック（戻す・適用・削除。ref は "stash@{0}" の形） */
   onStashMenu: (e: MouseEvent, ref: string) => void;
 }) {
   const [filter, setFilter] = useState("");
+  // 押した行（利用者の依頼: どの行を選んだか見て分かるようにする）。同じコミットを指す行（ブランチとリモート・タグなど）が重なっても、押した 1 行だけを選ぶ。
+  // 表でほかのコミットを選んだら、どの行も選ばない
+  const [pickedKey, setPickedKey] = useState<string | null>(null);
+  const rows: RowPick = {
+    pick: (key, hash) => {
+      setPickedKey(key);
+      onPick(hash);
+    },
+    isPicked: (key, hash) => pickedKey === key && selectedHash === hash,
+  };
   const refs = log.refs;
   const match = (name: string) => name.toLowerCase().includes(filter.trim().toLowerCase());
   const current = refs?.branches.find((b) => b.current);
@@ -132,7 +153,7 @@ export function HistorySidebar({
         <span className="spacer" />
         <RefreshButton label="履歴を取り直す" busy={false} onClick={log.refresh} />
       </header>
-      <button className="ref-all" onClick={() => current && onPick(current.hash)}>
+      <button className={cx("ref-all", current && rows.isPicked("all", current.hash) && "selected")} onClick={() => current && rows.pick("all", current.hash)}>
         <History size={15} aria-hidden /> すべてのコミット
       </button>
       <SearchField value={filter} onChange={setFilter} placeholder="絞り込む" label="ブランチ・タグを絞り込む" />
@@ -145,8 +166,9 @@ export function HistorySidebar({
             name={b.name}
             title={b.name === mainTree?.branch ? `${b.name}（本体で取り出しています）` : b.name}
             active={b.current}
+            selected={rows.isPicked(`branch:${b.name}`, b.hash)}
             note={b.name === mainTree?.branch && !b.current ? "取り出し中" : <SyncNote branch={b} />}
-            onClick={() => onPick(b.hash)}
+            onClick={() => rows.pick(`branch:${b.name}`, b.hash)}
             onContextMenu={(e) => onRefMenu(e, { kind: "branch", name: b.name })}
           />
         ))}
@@ -174,7 +196,8 @@ export function HistorySidebar({
                 </>
               )
             }
-            onClick={() => onPick(w.head)}
+            selected={rows.isPicked(`worktree:${w.path}`, w.head)}
+            onClick={() => rows.pick(`worktree:${w.path}`, w.head)}
             onContextMenu={(e) => worktreeMenu(e, w)}
             actions={
               <>
@@ -188,7 +211,7 @@ export function HistorySidebar({
       <ErrorText message={worktreeActions.error} className="code-search-message" />
       <RefSection title="リモート" count={remotes.length}>
         {remotes.map((r) => (
-          <RemoteGroup key={r.name} remote={r} forceOpen={filter.trim() !== ""} onPick={onPick} onRefMenu={onRefMenu} />
+          <RemoteGroup key={r.name} remote={r} forceOpen={filter.trim() !== ""} rows={rows} onRefMenu={onRefMenu} />
         ))}
       </RefSection>
       <RefSection title="タグ" count={tags.length}>
@@ -197,14 +220,15 @@ export function HistorySidebar({
             key={t.name}
             icon={<Tag size={14} aria-hidden />}
             name={t.name}
-            onClick={() => onPick(t.hash)}
+            selected={rows.isPicked(`tag:${t.name}`, t.hash)}
+            onClick={() => rows.pick(`tag:${t.name}`, t.hash)}
             onContextMenu={(e) => onRefMenu(e, { kind: "tag", name: t.name })}
           />
         ))}
       </RefSection>
       <RefSection title="退避（stash）" count={stashes.length}>
         {stashes.map((s) => (
-          <RefItem key={s.ref} icon={<Archive size={14} aria-hidden />} name={s.message} onClick={() => onPick(s.hash)} onContextMenu={(e) => onStashMenu(e, s.ref)} />
+          <RefItem key={s.ref} icon={<Archive size={14} aria-hidden />} name={s.message} selected={rows.isPicked(`stash:${s.ref}`, s.hash)} onClick={() => rows.pick(`stash:${s.ref}`, s.hash)} onContextMenu={(e) => onStashMenu(e, s.ref)} />
         ))}
       </RefSection>
     </>
