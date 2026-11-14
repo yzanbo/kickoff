@@ -65,7 +65,9 @@ export type BusEvent =
   /** スマホ連携のペアリングの様子が変わった（番号・確かめを待っている頼み。この Mac の画面だけに届ける） */
   | { type: "pairing"; state: PairingState }
   /** つないだ端末の一覧が変わった（中身は送らない。画面は読み直す） */
-  | { type: "devices" };
+  | { type: "devices" }
+  /** Kickoff のゴミ箱の中身が変わった（入れた・戻した・消えた。project_id は出すプロジェクト。画面は「ゴミ箱」タブを読み直す） */
+  | { type: "trash"; project_id: number | null };
 
 /** AI が開くときの場所（side = いちばん上の親チャットの画面の右の欄 / window = 別ウィンドウ） */
 export const OPEN_PLACES = ["side", "window"] as const;

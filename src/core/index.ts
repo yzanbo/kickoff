@@ -26,6 +26,8 @@ import { WorktreePrWatch } from "./git/prWatch.js";
 import { listPullRequests } from "./git/github.js";
 import { listWorktrees } from "./git/worktrees.js";
 import { MemoService } from "./memos/memos.js";
+import { TrashService } from "./trash/service.js";
+import { isInside } from "./system/paths.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
 import type { BrowserControl } from "./browser/control.js";
@@ -122,6 +124,16 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     publish: (e) => bus.publish(e),
     trash: opts.platform.moveToTrash,
   });
+  // Kickoff のゴミ箱（消したものを 3 日取っておく。起動したときと 1 時間ごとに、期限の来たものを本当に消す）。
+  // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体・メモのフォルダ）のゴミ箱に出す
+  const trashBin = new TrashService({
+    store,
+    dir: path.join(opts.dataDir, "trash"),
+    projectOfPath: (origin) => {
+      const owner = store.projects.list().find((p) => isInside(p.repo_path, origin) || ((p.memo_path || p.memo_folder) && isInside(memos.dirOf(p), origin)));
+      return owner?.id ?? null;
+    },
+  });
   // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる）
   // DB のパスワードはキーチェーンの鍵で暗号化して置く（暗号化せずに置いていたものは、起動のときに一度だけ置き換える）
   const vault = new DbSecretVault(store, opts.secretCipher ?? null);
@@ -186,6 +198,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     viewing,
     browserLogin,
     trash: opts.platform.moveToTrash,
+    trashBin,
     tailscaleCli: opts.platform.tailscaleCli,
     terminals,
     staticDir: opts.staticDir,
@@ -200,6 +213,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   usage.start();
   prWatch.start();
   ports.start();
+  trashBin.start();
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ）
   const stopAutoArchive = startAutoArchive(store, bus);
 
@@ -224,6 +238,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       prWatch.stop();
       ports.close();
       stopAutoArchive();
+      trashBin.close();
       memos.close();
       await databases.close();
       terminals.closeAll();

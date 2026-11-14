@@ -25,6 +25,7 @@ import type { CiService } from "../github/ci.js";
 import type { DockerService } from "../docker/service.js";
 import type { PortWatch } from "../ports/watch.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
+import type { TrashService } from "../trash/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { deviceRoutes, pairingClaimRoutes } from "./routes/devices.js";
 import { terminalRoutes } from "./routes/terminals.js";
@@ -42,6 +43,7 @@ import { filesRoutes } from "./routes/files.js";
 import { gitRoutes } from "./routes/git.js";
 import { groupRoutes } from "./routes/groups.js";
 import { snippetRoutes } from "./routes/snippets.js";
+import { trashRoutes } from "./routes/trash.js";
 import { memoRoutes } from "./routes/memos.js";
 import { projectRoutes } from "./routes/projects.js";
 import { providerRoutes } from "./routes/providers.js";
@@ -97,6 +99,8 @@ export interface ServerDeps {
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」・使わなくなった会話記録。OS の口の moveToTrash。テストでは差し替えて、本物のゴミ箱に入れない） */
   trash: (file: string) => Promise<void>;
+  /** Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻せる。trash/service.ts） */
+  trashBin: TrashService;
   /** 内蔵ターミナルのシェル（スマホは WebSocket でつなぐ = routes/terminals.ts） */
   terminals: TerminalSessions;
   /** tailscale のコマンドの場所（OS の口。設定の Tailscale Serve の案内。テストでは偽物） */
@@ -202,6 +206,7 @@ export function createApp(deps: ServerDeps): Hono {
   queueRoutes(app, deps);
   groupRoutes(app, deps);
   snippetRoutes(app, deps);
+  trashRoutes(app, deps);
   uploadRoutes(app, deps);
   approvalRoutes(app, deps);
   providerRoutes(app, deps);

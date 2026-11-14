@@ -395,7 +395,30 @@ const SCHEMA_V25 = `
 ALTER TABLE devices ADD COLUMN access TEXT NOT NULL DEFAULT 'full' CHECK (access <> '');
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25];
+/**
+ * v26: Kickoff のゴミ箱（消したものを 3 日だけ取っておき、元に戻せる。メモの仕様書「ファイル削除」）。
+ * ファイルの中身はデータのフォルダの trash/<id>/ に置き、ここには元の場所・誰が消したかなどを持つ。id は置き場のフォルダ名（AI の kickoff-trash が付けた uuid も使う）。
+ * kind（file / chat / project / session）は値の一覧なので CHECK にしない。chat_id はゴミ箱に入れたチャット（ゴミ箱にある間は行が残る。本当に消すときに一緒に消す）
+ */
+const SCHEMA_V26 = `
+CREATE TABLE trash_items (
+  id TEXT PRIMARY KEY CHECK (id <> ''),
+  project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind <> ''),
+  label TEXT NOT NULL CHECK (label <> ''),
+  origin TEXT CHECK (origin <> ''),
+  is_dir INTEGER NOT NULL DEFAULT 0 CHECK (is_dir IN (0, 1)),
+  size INTEGER CHECK (size IS NULL OR size >= 0),
+  chat_id INTEGER,
+  by_chat_id INTEGER REFERENCES chats(id) ON DELETE SET NULL,
+  details TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(details) AND json_type(details) = 'object'),
+  trashed_at TEXT NOT NULL DEFAULT (${NOW})
+) STRICT;
+CREATE INDEX idx_trash_items_project ON trash_items(project_id, trashed_at);
+CREATE INDEX idx_trash_items_trashed ON trash_items(trashed_at);
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
