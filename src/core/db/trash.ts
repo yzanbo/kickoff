@@ -67,6 +67,10 @@ export function createTrashStore(db: DatabaseSync, onChange: Notify) {
     list(projectId: number): StoredTrashItem[] {
       return (db.prepare(`${SELECT} WHERE t.project_id = ? ORDER BY t.trashed_at DESC, t.id`).all(projectId) as unknown as TrashRow[]).map(toItem);
     },
+    /** その種類のものすべて（ゴミ箱のプロジェクトの一覧。新しい順） */
+    ofKind(kind: TrashKind): StoredTrashItem[] {
+      return (db.prepare(`${SELECT} WHERE t.kind = ? ORDER BY t.trashed_at DESC, t.id`).all(kind) as unknown as TrashRow[]).map(toItem);
+    },
     /** すべて（置き場の片付けで、覚え書きのないフォルダを見分けるのに使う） */
     all(): StoredTrashItem[] {
       return (db.prepare(`${SELECT} ORDER BY t.trashed_at`).all() as unknown as TrashRow[]).map(toItem);

@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { gitRepo } from "../testing/gitRepo.js";
+import { TRASH_KEEP_MS } from "@shared/types";
 import { AUTH, setup, until } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 
@@ -59,8 +60,8 @@ test("設定・プロジェクトの API", async () => {
   assert.deepEqual(ordered.map((p: { id: number }) => p.id), [other.id, project.id]);
   const positions = new Map((await call("GET", "/api/projects")).body.map((p: { id: number; position: number }) => [p.id, p.position]));
   assert.deepEqual([positions.get(other.id), positions.get(project.id)], [1, 2]);
-  // 管理から外すと、返すものはない（204）
-  assert.deepEqual(await call("DELETE", `/api/projects/${other.id}`), { status: 204, body: undefined });
+  // 管理から外す = Kickoff のゴミ箱へ（入れたゴミ箱の ID を返す）
+  assert.equal((await call("DELETE", `/api/projects/${other.id}`)).status, 200);
   assert.equal(store.projects.get(other.id), undefined);
 
   const inspected = await call("GET", `/api/workspace/inspect?path=${encodeURIComponent(project.repo_path)}`);
@@ -222,8 +223,8 @@ test("git で管理しない新しいプロジェクト・取り込み、あと�
   assert.equal(fs.existsSync(path.join(withGit.body.repo_path, ".git")), true);
 });
 
-test("プロジェクトを削除すると、中のチャットのエージェントの会話記録もゴミ箱へ移すよう頼む（作業中のチャットがあれば 409 で消さない）", async () => {
-  const { call, project, store, runner, provider } = setup();
+test("プロジェクトを削除するとゴミ箱に入り、3 日たって本当に消すとき、中のチャットのエージェントの会話記録も消すよう頼む（作業中のチャットがあれば 409 で消さない）", async () => {
+  const { call, project, store, runner, provider, trashBin, trashClock } = setup();
   const release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
@@ -235,9 +236,11 @@ test("プロジェクトを削除すると、中のチャットのエージェ�
   // 分岐したチャット（アーカイブ済み）のセッションも一緒に
   const forkedId: number = (await call("POST", `/api/chats/${chatId}/fork`, { event_id: result.id })).body.id;
   store.chats.archive(forkedId, true);
-  assert.equal((await call("DELETE", `/api/projects/${project.id}`)).status, 204);
-  await until(() => provider.discarded.length === 1);
-  assert.deepEqual([...provider.discarded[0].sessionIds].sort(), ["fork-1", "s1"]);
-  assert.deepEqual(provider.discarded[0].cwds, [project.repo_path]);
+  assert.equal((await call("DELETE", `/api/projects/${project.id}`)).status, 200);
   assert.equal(store.chats.get(chatId), undefined);
+  assert.equal(provider.discarded.length, 0);
+  trashClock.now += TRASH_KEEP_MS + 60_000;
+  await trashBin.sweep();
+  assert.equal(provider.discarded.length, 1);
+  assert.deepEqual([...provider.discarded[0].sessionIds].sort(), ["fork-1", "s1"]);
 });

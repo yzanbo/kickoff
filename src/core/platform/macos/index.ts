@@ -9,7 +9,6 @@ import { macosTailscaleCli } from "./tailscale.js";
 import { listeningSockets, processCwds } from "./listening.js";
 import { alive, appBundleOf, processTable } from "./processes.js";
 import { loadLoginShellPath } from "./shellEnv.js";
-import { moveToTrash } from "./trash.js";
 
 interface MacosPlatformOptions {
   /** macOS の音声認識の補助コマンド（kickoff-speech）の場所（なければ音声認識は使えない扱い） */
@@ -28,7 +27,6 @@ export function macosPlatform({ speechHelper = null }: MacosPlatformOptions = {}
   return {
     appDataRoot: MACOS_APP_DATA_ROOT,
     loadLoginShellPath,
-    moveToTrash,
     openApp,
     listeningSockets,
     processTable,

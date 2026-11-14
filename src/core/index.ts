@@ -29,6 +29,7 @@ import { MemoService } from "./memos/memos.js";
 import { errorMessage } from "@shared/errors";
 import { TrashService } from "./trash/service.js";
 import { installTrashCommand } from "./trash/command.js";
+import { registerProjectTrash } from "./trash/projectTrash.js";
 import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "./trash/chatTrash.js";
 import { isInside, realPathLoose } from "./system/paths.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
@@ -165,6 +166,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, interrupted: recovered });
   // ゴミ箱に入れたチャット（チャットの削除・メモのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
+  registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speech: opts.platform.speech, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）
@@ -210,7 +212,6 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     pairing,
     viewing,
     browserLogin,
-    trash: opts.platform.moveToTrash,
     trashBin,
     tailscaleCli: opts.platform.tailscaleCli,
     terminals,

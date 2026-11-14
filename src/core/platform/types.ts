@@ -77,8 +77,6 @@ export interface HostPlatform {
   loadLoginShellPath: () => void;
   /** アプリを名前で開く（Docker のエンジンが止まっているときの「OrbStack を開く」など） */
   openApp: (name: string) => Promise<void>;
-  /** ゴミ箱へ移す（元に戻せる） */
-  moveToTrash: (file: string) => Promise<void>;
   /** TCP のポートを待っているソケット（自分のユーザーのプロセスだけ） */
   listeningSockets: () => Promise<ListeningSocket[]>;
   /** プロセスの表（pid → 行） */
