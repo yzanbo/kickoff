@@ -93,3 +93,18 @@ test("メモ: どのチャットでも「メモ」が「メモ」タブのメモ
   // メモのフォルダが分からなければ、メモのことは書かない
   assert.ok(!buildSystemPrompt(p).includes("## メモ"));
 });
+
+test("砂場: 書けない場所・外のファイルは Edit で・設定を変えるコマンドは利用者に・直接の通信は通らないことと、外で流すコマンドは単独で流すことを伝える（砂場がないときは書かない）", () => {
+  assert.doesNotMatch(buildSystemPrompt(project([])), /砂場/);
+  const prompt = buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: ["brew install:*", "npm run dev:*", "pnpm dev:*"] } });
+  assert.match(prompt, /砂場の中で動き/);
+  assert.match(prompt, /Edit \/ Write を使って/);
+  assert.match(prompt, /git config --global/);
+  assert.match(prompt, /ssh などの直接の通信は通りません/);
+  // 外で流すコマンドは npm・npx・brew の形だけを見せる
+  assert.match(prompt, /`brew install`・`npm run dev`/);
+  assert.doesNotMatch(prompt, /pnpm dev/);
+  assert.match(prompt, /単独で流して/);
+  // 外で流すコマンドがなければ、その行は書かない
+  assert.doesNotMatch(buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: [] } }), /砂場の外で流れます/);
+});

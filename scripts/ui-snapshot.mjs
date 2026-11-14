@@ -1,4 +1,4 @@
-// 開発版（KICKOFF_REMOTE_DEBUG=9333 npm run dev）の画面の DOM と計算後のスタイルを記録し、変更の前後で比べる。
+// 開発版（npm run dev:cdp = KICKOFF_REMOTE_DEBUG=9333 npm run dev）の画面の DOM と計算後のスタイルを記録し、変更の前後で比べる。
 // 見た目を変えないはずの変更（CSS の分割・部品の分割）の確かめに使う。
 //
 //   node scripts/ui-snapshot.mjs take <名前> [#/hash] [--pre "<先に画面で実行する JS>"] [--wait ms]
@@ -87,7 +87,7 @@ async function connect() {
   const targets = await (await fetch(`http://127.0.0.1:${CDP_PORT}/json`)).json();
   const pages = targets.filter((t) => t.type === "page" && !t.url.startsWith("devtools://"));
   const page = pages.find((t) => /localhost:5173|index\.html/.test(t.url)) ?? pages[0];
-  if (!page) throw new Error(`画面が見つかりません（KICKOFF_REMOTE_DEBUG=${CDP_PORT} npm run dev で起動していますか）`);
+  if (!page) throw new Error(`画面が見つかりません（npm run dev:cdp（KICKOFF_REMOTE_DEBUG=${CDP_PORT} npm run dev）で起動していますか）`);
   const ws = new WebSocket(page.webSocketDebuggerUrl);
   await new Promise((ok, ng) => {
     ws.onopen = ok;

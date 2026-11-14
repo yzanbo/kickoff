@@ -38,6 +38,7 @@ import { canCreateChat, createAiCreateChatTools, type StartedChild } from "./aiC
 import type { ChildChatInput } from "./children.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import { trashCommandEnv, type TrashCommand } from "../trash/command.js";
+import { bashSandboxFor, type BashSandbox, type BashSandboxDeps } from "./sandbox/bashSandbox.js";
 import { switchAfterCompact, type SessionTrash } from "./sessionSwitch.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
@@ -87,6 +88,8 @@ export interface ExecutionDeps {
   userViews?: UserViewRegistry;
   /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat。Runner を作ったあとで useChatRemover が渡す。なければそのツールを出さない） */
   chatRemover?: ChatRemover;
+  /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。メモの仕様書「0020_AI の書き込み先」の段階 2。なければ砂場にかけない（テスト）） */
+  bashSandbox?: BashSandboxDeps;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -152,12 +155,18 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       ...(deps.trashCommand ? trashCommandEnv(deps.trashCommand, chat.id) : {}),
     };
 
+    // Bash の砂場（書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない）
+    const memoDir = deps.memoDirOf ? ensureDir(deps.memoDirOf(project)) : null;
+    const sandbox = deps.bashSandbox
+      ? await bashSandboxFor(deps.bashSandbox, { workdir: cwd, memoDir, readOnlyDirs: [...(deps.uploads ? [deps.uploads.dir] : []), ...readOnlyReferences(project, cwd)] })
+      : null;
+
     // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
     const result: ProviderTurnResult = signal.aborted
       ? { status: "cancelled", sessionId: chat.session_id }
       : await providers[chat.provider].run(
-          { ...buildTurnParams(deps, chat, project, cwd, runtime.writeAllowed, prompt, promptId), preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent), env },
+          { ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId), preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent), env },
           callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText }),
           signal,
         );
@@ -213,15 +222,22 @@ function ensureDir(dir: string): string | null {
 }
 
 /** プロバイダーに渡すもの（作業場所・指示・権限） */
-function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd: string, writeAllowed: Set<string>, prompt: string, promptId?: string): ProviderTurnParams {
-  // メモのフォルダも読み書きできる場所に足し、どのチャットでも「メモ」が「メモ」タブのメモのことだと伝える（入力欄にメモを添付して続きを頼む・「メモに書いて」と頼めるように。
-  // フォルダがまだなければ作る: メモのタブで最初のメモを作るのと同じ場所）。メモのチャットは、どのメモについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
-  const memoDir = deps.memoDirOf ? ensureDir(deps.memoDirOf(project)) : null;
+function buildTurnParams(
+  deps: ExecutionDeps,
+  chat: Chat,
+  project: Project,
+  { cwd, memoDir, sandbox }: { cwd: string; memoDir: string | null; sandbox: BashSandbox | null },
+  writeAllowed: Set<string>,
+  prompt: string,
+  promptId?: string,
+): ProviderTurnParams {
+  // メモのフォルダ（executeTurn がまだなければ作る: メモのタブで最初のメモを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「メモ」が「メモ」タブのメモのことだと伝える
+  // （入力欄にメモを添付して続きを頼む・「メモに書いて」と頼めるように）。メモのチャットは、どのメモについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
   return {
     cwd,
     prompt,
     ...(promptId ? { promptId } : {}),
-    systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, { trash: deps.trashCommand !== undefined }),
+    systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, { trash: deps.trashCommand !== undefined, sandbox: sandbox ? { unsandboxed: sandbox.unsandboxedCommands } : undefined }),
     turnContext: chatContextNote(chatContextOf(deps.store, chat)),
     policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,
@@ -233,7 +249,7 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
     additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(memoDir ? [memoDir] : [])],
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
-    readOnlyPaths: project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p)),
+    readOnlyPaths: readOnlyReferences(project, cwd),
     // ［AI で整える］のチャットは、Git で管理していないファイルだけを書ける（続きの指示でも）
     untrackedOnly: chat.untracked_only,
     // ファイルを書き換えるツールの先は、作業場所・メモのフォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
@@ -277,7 +293,13 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     dockerGuard: deps.docker ? createDockerGuard(deps.docker, project, cwd) : null,
     // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）
     deleteGuard: deps.trashCommand !== undefined,
+    bashSandbox: sandbox,
   };
+}
+
+/** 作業場所の外の参照資料（読むだけ。ワークツリーのチャットからは、本体の中の資料も読むだけ） */
+function readOnlyReferences(project: Project, cwd: string): string[] {
+  return project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p));
 }
 
 /**

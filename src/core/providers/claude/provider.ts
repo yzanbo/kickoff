@@ -32,6 +32,7 @@ import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../types.js";
 import { runCommand } from "../../system/exec.js";
+import { claudeSandbox } from "./sandbox.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
 
 /** Kickoff のチャットでは使わせない Claude Code のツール（Kickoff の利用者に届かない・Kickoff の操作ツールと取り違えるもの） */
@@ -234,6 +235,8 @@ export class ClaudeProvider implements AgentProvider {
           // 編集の前のファイルを取っておく（巻き戻しで、自分の発言の時点のファイルに戻せるように）
           enableFileCheckpointing: true,
           ...(params.fastMode ? { settings: { fastMode: true } } : {}),
+          // Bash を砂場に入れ、書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする（止めるのは OS。メモの仕様書「0020_AI の書き込み先」の段階 2）
+          ...(params.bashSandbox ? { sandbox: claudeSandbox(params.bashSandbox) } : {}),
         },
       });
 

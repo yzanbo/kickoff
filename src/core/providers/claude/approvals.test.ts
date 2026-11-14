@@ -69,3 +69,9 @@ test("質問（AskUserQuestion）: 回答は入力に足して通し、答えな
   assert.deepEqual((await ask({ action: "deny", message: "あとで" }, "AskUserQuestion", input)).result, { behavior: "deny", message: "あとで" });
   assert.deepEqual((await ask({ action: "deny" }, "AskUserQuestion", input)).result, { behavior: "deny", message: "ユーザーは質問への回答をスキップしました" });
 });
+
+test("砂場の中継の承認（SandboxNetworkAccess）は聞かずに許す（ネットワークは絞らない）", async () => {
+  const { request, result } = await ask({ action: "deny" }, "SandboxNetworkAccess", { host: "registry.npmjs.org" });
+  assert.equal(request, undefined);
+  assert.equal(result?.behavior, "allow");
+});

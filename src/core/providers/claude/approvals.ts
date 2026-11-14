@@ -1,6 +1,7 @@
 import type { CanUseTool, PermissionResult, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
 import type { ApprovalDecision } from "@shared/types";
 import type { ApprovalRequest, ProviderCallbacks } from "../types.js";
+import { SANDBOX_NETWORK_TOOL } from "./sandbox.js";
 
 /** canUseTool に渡される指定のうち、承認依頼の組み立てに使うもの */
 type ToolOptions = Pick<Parameters<CanUseTool>[2], "title" | "description" | "decisionReason" | "suggestions" | "suppressAlwaysAllowRule" | "toolUseID" | "agentID">;
@@ -49,6 +50,8 @@ function toPermissionResult(request: ApprovalRequest, decision: ApprovalDecision
 /** Claude Code の canUseTool: 承認依頼を組み立てて Kickoff（画面）に回答を求め、判定にして返す */
 export function createCanUseTool(cb: Pick<ProviderCallbacks, "requestApproval">): CanUseTool {
   return async (toolName, input, opts) => {
+    // 砂場の中継の承認（Kickoff の中継が起こせず Claude Code の中継を使うときだけ来る）は聞かずに許す（ネットワークは絞らない。sandbox.ts）
+    if (toolName === SANDBOX_NETWORK_TOOL) return { behavior: "allow", updatedInput: input };
     const request = approvalRequestFor(toolName, input, opts);
     const decision = await cb.requestApproval(request, opts.signal);
     return toPermissionResult(request, decision, opts.suggestions);

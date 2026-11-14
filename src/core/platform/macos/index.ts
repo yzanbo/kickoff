@@ -9,6 +9,7 @@ import { macosTailscaleCli } from "./tailscale.js";
 import { listeningSockets, processCwds } from "./listening.js";
 import { alive, appBundleOf, processTable } from "./processes.js";
 import { loadLoginShellPath } from "./shellEnv.js";
+import { macosAgentSandbox } from "./sandbox.js";
 
 interface MacosPlatformOptions {
   /** macOS の音声認識の補助コマンド（kickoff-speech）の場所（なければ音声認識は使えない扱い） */
@@ -41,6 +42,7 @@ export function macosPlatform({ speechHelper = null }: MacosPlatformOptions = {}
     selfGuard: MACOS_SELF_GUARD,
     dockerEngine: macosDockerEngine(openApp),
     tailscaleCli: macosTailscaleCli,
+    agentSandbox: macosAgentSandbox(),
     // ログインシェル（$SHELL。なければ zsh）。決まったコマンドのタブは -l -c でそれだけを流す
     terminalShell: () => ({ file: process.env.SHELL || "/bin/zsh", args: (command) => (command ? ["-l", "-c", command] : ["-l"]) }),
   };

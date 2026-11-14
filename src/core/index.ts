@@ -54,6 +54,8 @@ import { DockerService } from "./docker/service.js";
 import { WorktreeEnvService } from "./worktreeEnv/service.js";
 import { PortProcessService } from "./ports/service.js";
 import { PortWatch } from "./ports/watch.js";
+import { startNetworkRelay } from "./chat/sandbox/networkRelay.js";
+import type { BashSandboxDeps } from "./chat/sandbox/bashSandbox.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -170,6 +172,10 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     (file) => ({ path: file, dir: trashBin.dir }),
     (e: unknown) => (console.warn(`[core] kickoff-trash を置けませんでした: ${errorMessage(e)}`), undefined),
   );
+  // AI の Bash の砂場（書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする。メモの仕様書「0020_AI の書き込み先」の段階 2）。
+  // 通信はどこへでも通す中継を通す（ネットワークは絞らない。起こせなければプロバイダーの中継のまま）
+  const relay = await startNetworkRelay().catch((e: unknown) => (console.warn(`[core] Bash の通信の中継を起こせませんでした: ${errorMessage(e)}`), null));
+  const bashSandbox: BashSandboxDeps = { rules: opts.platform.agentSandbox, proxyPort: relay?.port ?? null, trashDir: trashCommand ? trashCommand.dir : null };
   // 製品版と開発版は同じ ~/.claude/projects に会話記録を置く（開発版のデータは製品版から写す）ので、会話記録を片付ける前に、ほかの Kickoff が使っていないか確かめる
   const sessionsElsewhere = siblingSessionCheck(opts.dataDir, opts.platform.appDataRoot);
   // 長いチャットを直近の区切りだけの新しいセッションに乗り換えたら、古い会話記録を Kickoff のゴミ箱（3 日）へ（メモの仕様書「ファイル削除」の Q18）
@@ -179,7 +185,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   };
   // 利用者が見ているもの（この Mac の画面のウィンドウごとの知らせと、チャットごとの送ったときの様子。AI の get_user_view が読む。保存しない）
   const userViews = new UserViewRegistry();
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, interrupted: recovered });
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, interrupted: recovered });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（メモの仕様書「ファイル削除」の Q17）
   trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない。メモの仕様書「ファイル削除」の Q16）
@@ -248,8 +254,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     listen: { host, port: opts.port },
   });
 
-  // ポートが使われているなどで待ち受けられなければ、開いた DB を閉じてから伝える
-  const server = await startHttpServer(app, { port: opts.port, host }).catch((e: unknown) => {
+  // ポートが使われているなどで待ち受けられなければ、開いた DB と中継を閉じてから伝える
+  const server = await startHttpServer(app, { port: opts.port, host }).catch(async (e: unknown) => {
+    await relay?.close();
     store.close();
     throw e;
   });
@@ -287,6 +294,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       memos.close();
       await databases.close();
       terminals.closeAll();
+      await relay?.close();
       await stopHttpServer(server);
       store.close();
     },

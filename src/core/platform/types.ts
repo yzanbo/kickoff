@@ -99,6 +99,19 @@ export interface HostPlatform {
   terminalShell: () => TerminalShell;
   /** tailscale のコマンドの場所（入っていなければ null。設定の「スマホ連携」の Tailscale Serve の案内） */
   tailscaleCli: () => string | null;
+  /** AI の Bash の砂場に OS ごとに足す決まり（メモの仕様書「0020_AI の書き込み先」の段階 2。chat/sandbox/） */
+  agentSandbox: AgentSandboxRules;
+}
+
+/** AI の Bash の砂場に OS ごとに足す決まり */
+export interface AgentSandboxRules {
+  /** 書けるフォルダ（一時フォルダ・キャッシュ・パッケージの置き場など。まだないものを返してもよい） */
+  writableDirs: () => Promise<string[]>;
+  /**
+   * 砂場の外で流すコマンド（Claude Code の許可ルールの書き方 `<コマンド>:*`。中で自分の砂場をかけるので、砂場の中では動かないもの。
+   * macOS は砂場の入れ子を許さないので、brew install など）
+   */
+  unsandboxedCommands: string[];
 }
 
 /** ポートを使っているプロセスを調べる・止めるのに使う口（テストでは偽物に差し替える） */

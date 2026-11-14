@@ -13,6 +13,7 @@ import type { AiOpenTools } from "../chat/aiOpen.js";
 import type { HiddenDbTarget } from "../chat/guard/hiddenDb.js";
 import type { DockerGuard } from "../chat/guard/dockerGuard.js";
 import type { WriteScopeParams } from "../chat/guard/writeScope.js";
+import type { BashSandbox } from "../chat/sandbox/bashSandbox.js";
 import type { DbAiTools } from "../databases/aiTools.js";
 import type { ChatPolicy } from "../chat/policy.js";
 import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, RememberScope, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
@@ -157,6 +158,11 @@ export interface ProviderTurnParams {
   writeScope?: WriteScopeParams | null;
   /** ファイルを消す Bash（rm・find -delete・git clean など）を断り、kickoff-trash を使わせる守り（chat/guard/deleteGuard.ts）を付けるか */
   deleteGuard?: boolean;
+  /**
+   * AI の Bash の砂場（chat/sandbox/bashSandbox.ts。メモの仕様書「0020_AI の書き込み先」の段階 2。Bash が書ける場所を作業場所・メモのフォルダ・決まりの例外だけにし、
+   * 止めるのは OS）。プロバイダーが自分の砂場の設定に直す。なければかけない
+   */
+  bashSandbox?: BashSandbox | null;
 }
 
 export interface ApprovalRequest {
