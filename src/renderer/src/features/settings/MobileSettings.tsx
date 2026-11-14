@@ -9,19 +9,24 @@ import { settingsStore, useAppSettings } from "@/stores/settings";
 import { CommitInput } from "@/ui/CommitInput";
 import { ErrorText } from "@/ui/ErrorText";
 import { Field } from "@/ui/Field";
+import { MobileSwitches } from "./MobileSwitches";
 import { useMobilePairing } from "./useMobilePairing";
+import { useMobileSwitches } from "./useMobileSwitches";
 
-/** 設定: スマホ連携（つなぐ先の URL・端末をつなぐ（番号と QR・Mac で確かめる）・つないだ端末の一覧と取り消し） */
+/** 設定: スマホ連携（スマホからつなぐ・ログイン時に起動・つなぐ先の URL・端末をつなぐ（番号と QR・Mac で確かめる）・つないだ端末の一覧と取り消し） */
 export function MobileSettings() {
   const settings = useAppSettings().data;
   const pairing = useMobilePairing();
+  const switches = useMobileSwitches();
   if (!settings) return null;
+  const off = !settings.remote_enabled;
   return (
     <section className="section">
       <h2>スマホ連携</h2>
       <p className="muted small">
         スマホから、この Mac の Kickoff のチャットを見る・送る・答えるための設定です。つないだ端末は、この Mac の Kickoff を丸ごと動かせる鍵を持ちます（AI に頼めば何でもできます）。なくしたら、すぐ取り消してください。
       </p>
+      <MobileSwitches switches={switches} />
       <div className="form">
         <Field label="つなぐ先の URL" help="スマホから、この Mac の Kickoff に届く URL（Tailscale Serve の https://<Mac の名前>.ts.net など）。QR に入れます。空なら QR を出さず、番号だけを出します。">
           <CommitInput
@@ -33,7 +38,8 @@ export function MobileSettings() {
         </Field>
       </div>
       <h3>端末をつなぐ</h3>
-      {pairing.state && <PairingPanel state={pairing.state} qr={pairing.qr} link={pairing.link} busy={pairing.action.busy !== null} onStart={pairing.start} onCancel={pairing.cancel} onApprove={pairing.approve} onDeny={pairing.deny} />}
+      {off && <p className="muted small">「スマホからつなぐ」をオンにすると、端末をつなげます。</p>}
+      {pairing.state && !off && <PairingPanel state={pairing.state} qr={pairing.qr} link={pairing.link} busy={pairing.action.busy !== null} onStart={pairing.start} onCancel={pairing.cancel} onApprove={pairing.approve} onDeny={pairing.deny} />}
       <ErrorText message={pairing.action.error} />
       <h3>つないだ端末</h3>
       <DeviceList devices={pairing.devices} busy={pairing.action.busy !== null} onRevoke={pairing.revoke} />
