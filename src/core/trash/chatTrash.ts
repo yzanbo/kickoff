@@ -27,6 +27,8 @@ export interface ChatPurgeDeps {
   uploads: Pick<UploadStore, "resolve" | "remove">;
   /** AI の SQL の結果を書き出した CSV を消す */
   forgetChatExports?: (chatIds: number[]) => void;
+  /** ほかの Kickoff（製品版と開発版）のチャットが使っているセッション（その会話記録は消さない。siblingSessions.ts） */
+  sessionsElsewhere?: (ids: string[]) => Set<string>;
 }
 
 /** 子孫も一緒にゴミ箱へ入れる（どれかが作業中なら 409）。入れたゴミ箱の行を返す */
@@ -101,7 +103,7 @@ export async function purgeChatsOf(deps: ChatPurgeDeps, itemId: string): Promise
   const sessions = collectChatSessions(deps.store, chats);
   const uploadIds = deps.store.events.uploadIdsIn(ids);
   deps.store.chats.purgeTrashed(itemId);
-  await discardUnusedSessions(deps.store, deps.providers, sessions, (file) => fs.rm(file, { recursive: true, force: true })).catch((e: unknown) =>
+  await discardUnusedSessions(deps.store, deps.providers, sessions, (file) => fs.rm(file, { recursive: true, force: true }), deps.sessionsElsewhere).catch((e: unknown) =>
     console.warn(`[trash] 会話記録を消せませんでした: ${errorMessage(e)}`),
   );
   for (const id of uploadIds) {

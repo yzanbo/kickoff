@@ -174,8 +174,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   };
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, interrupted: recovered });
   // ゴミ箱に入れたチャット（チャットの削除・メモのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
-  registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
-  registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
+  registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), sessionsElsewhere });
+  registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), sessionsElsewhere });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speech: opts.platform.speech, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）
