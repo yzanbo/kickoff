@@ -71,7 +71,7 @@ function findIn(command: string, depth: number): Found | null {
 
 /** 断るときに AI に返す文（コマンドの書き方と、ゴミ箱に入って 3 日は戻せること） */
 export function deleteDeniedReason(found: Found): string {
-  const how = `代わりに ${TRASH_COMMAND} <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます`;
+  const how = `代わりに ${TRASH_COMMAND} <パス>…（rm と同じく、いくつでも並べられます。-r・-f は要りません。command not found なら "$KICKOFF_TRASH" <パス>… で呼べます）を使ってください。Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます`;
   if (found.kind === "git_clean") {
     return `Kickoff では git clean を使えません（Git にない新しいファイルを、戻せない形で消すため）。git clean -n で消えるものの一覧を見てから、${how}`;
   }
