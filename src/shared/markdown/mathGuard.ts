@@ -1,5 +1,5 @@
 // 数式の書き方の決まり（Markdown の中の $…$・\(…\)・\[…\]）。チャットの返答・メモ・GitHub の表示と、スマホのアプリで同じに読む。
-// $$…$$ はいつも数式。1 つの $ と \( \) は、値段の「$5」やシェルの「$HOME」と取り違えないよう、中身が数式らしいときだけ数式にする
+// $$…$$・\( \)・\[ \] はいつも数式。1 つの $ は、値段の「$5」やシェルの「$HOME」と取り違えないよう、中身が数式らしいときだけ数式にする
 
 /** 1 つの $ の数式の中身の長さの上限（長い文は数式ではなく、$ で挟まれたふつうの文とみなす） */
 export const INLINE_MATH_MAX = 60;
@@ -22,7 +22,7 @@ function withoutCommands(tex: string): string {
 }
 
 /**
- * 中身が数式らしいか（1 つの $ と \( \) で囲んだもの）。
+ * 中身が数式らしいか（1 つの $ で囲んだもの）。
  * 1 文字の英字（x）・英字を含む式（2x+1）・TeX の記号や数学の記号を含むもの（x^2・a_1・\alpha・a \le b）を数式とみなす。
  * 数だけ（5・3.14）・文の言葉らしいもの（4 文字以上の英単語・日本語）は数式にしない
  */
@@ -62,7 +62,7 @@ function splitCode(markdown: string): { text: string; code: boolean }[] {
 /**
  * \(…\) と \[…\] の数式を、Markdown の数式の書き方（$$…$$）に書き換える（Markdown では \( が「(」のエスケープになり、そのままでは数式として読めないため）。
  * 行の頭から始まる \[…\] は、段落の数式（前後に改行を入れた $$）にする。
- * \(…\) と、行の途中の 1 行の \[…\] は、中身が数式らしいときだけ文の中の数式（$$…$$ を文の中に）にする。コードの中は変えない
+ * \(…\) と、行の途中の 1 行の \[…\] は、中身が空でなければいつも文の中の数式（$$…$$ を文の中に）にする（$ と違い、数式のほかに使わない書き方のため）。コードの中は変えない
  */
 export function convertTexDelimiters(markdown: string): string {
   if (!markdown.includes("\\(") && !markdown.includes("\\[")) return markdown;
@@ -73,7 +73,7 @@ export function convertTexDelimiters(markdown: string): string {
         .replace(/^([ \t]*)\\\[([\s\S]+?)\\\][ \t]*$/gm, (_all, indent: string, tex: string) => `${indent}$$\n${tex.trim()}\n$$`)
         .replace(/\\\((.+?)\\\)|\\\[(.+?)\\\]/g, (all, paren: string | undefined, bracket: string | undefined) => {
           const tex = (paren ?? bracket ?? "").trim();
-          return looksLikeMath(tex) ? `$$${tex}$$` : all;
+          return tex ? `$$${tex}$$` : all;
         });
     })
     .join("");
@@ -96,8 +96,8 @@ function fillsLines(text: string, from: number, to: number): boolean {
 }
 
 /**
- * Markdown の文の中の数式の場所を前から探す（Markdown の表示と同じ決まり: $$…$$ と行の頭からの \[…\] はいつも、
- * \(…\)・行の途中の \[…\]・1 つの $ は中身が数式らしいときだけ）。コードの中・\$ は数式にしない。範囲は重ならない
+ * Markdown の文の中の数式の場所を前から探す（Markdown の表示と同じ決まり: $$…$$・\(…\)・\[…\] は中身が空でなければいつも、
+ * 1 つの $ は中身が数式らしいときだけ）。コードの中・\$ は数式にしない。範囲は重ならない
  */
 export function mathRanges(markdown: string): MathRange[] {
   const out: MathRange[] = [];
@@ -122,7 +122,7 @@ function scanMath(full: string, text: string, base: number, out: MathRange[]) {
     } else if (m[3] !== undefined || m[4] !== undefined) {
       // \(…\) と行の途中の \[…\]
       const tex = (m[3] ?? m[4] ?? "").trim();
-      if (looksLikeMath(tex)) out.push({ from, to, tex, display: false });
+      if (tex) out.push({ from, to, tex, display: false });
     } else if (m[5] !== undefined) {
       const before = from > 0 ? full[from - 1] : undefined;
       const after = to < full.length ? full[to] : undefined;
