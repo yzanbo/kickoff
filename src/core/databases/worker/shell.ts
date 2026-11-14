@@ -1,30 +1,35 @@
-// 準備のコマンドの流し方（DB ワーカーの中）: この Mac のログインシェルで流す（AWS のプロファイルなど、ターミナルと同じ設定が要るため）。
-// 止めるときは子孫のプロセスごと止める（aws ssm のように、コマンドが別のプログラムを起動するため）
-import { execFileSync, type ChildProcess } from "node:child_process";
-import path from "node:path";
+// 準備のコマンドの流し方（DB ワーカーの中）: 利用者のログインシェルで流す（AWS のプロファイルなど、ターミナルと同じ設定が要るため）。
+// 止めるときは子孫のプロセスごと止める（aws ssm のように、コマンドが別のプログラムを起動するため）。
+// シェルの起動の仕方とプロセスの親子は OS の口（ShellPlatform）から。ワーカーは口を受け取れないので、入口が setShellPlatform で渡す
+import type { ChildProcess } from "node:child_process";
+import type { ShellPlatform } from "../../platform/types.js";
 import { spawnTracked } from "./children.js";
 
 /** 出力を手元に持つ上限（終わりのほうを残す） */
 const OUTPUT_MAX = 20_000;
 
-/** ログインシェル（$SHELL。なければ zsh） */
-export const loginShell = () => (process.env.SHELL && path.isAbsolute(process.env.SHELL) ? process.env.SHELL : "/bin/zsh");
+let shellPlatform: ShellPlatform | null = null;
+
+/** この OS のシェルの口を決める（ワーカーの入口 worker/main.ts と、同じプロセスで動かす inProcessWorker.ts が呼ぶ） */
+export function setShellPlatform(platform: ShellPlatform) {
+  shellPlatform = platform;
+}
+
+function platformOf(): ShellPlatform {
+  if (!shellPlatform) throw new Error("DB ワーカーのシェルの口が決まっていません（setShellPlatform を呼んでください）");
+  return shellPlatform;
+}
 
 /** ログインシェルでコマンドを起動する（標準入力は渡さない。待たない） */
-export const spawnShell = (command: string): ChildProcess => spawnTracked(loginShell(), ["-l", "-c", command], { stdio: ["ignore", "pipe", "pipe"], env: process.env });
+export const spawnShell = (command: string): ChildProcess => {
+  const { file, args } = platformOf().loginShell(command);
+  return spawnTracked(file, args, { stdio: ["ignore", "pipe", "pipe"], env: process.env });
+};
 
-/** プロセスと、その子孫すべてに SIGTERM を送る（ps で親子をたどる） */
+/** プロセスと、その子孫すべてに SIGTERM を送る（子から先に） */
 export function killTree(pid: number | undefined) {
   if (!pid) return;
-  const children = new Map<number, number[]>();
-  try {
-    for (const line of execFileSync("ps", ["-A", "-o", "pid=,ppid="], { encoding: "utf8" }).split("\n")) {
-      const [p, pp] = line.trim().split(/\s+/).map(Number);
-      if (p && pp) children.set(pp, [...(children.get(pp) ?? []), p]);
-    }
-  } catch {
-    // ps が使えなければ、そのプロセスだけ止める
-  }
+  const children = platformOf().childrenByParent();
   const all: number[] = [];
   const walk = (p: number) => {
     all.push(p);

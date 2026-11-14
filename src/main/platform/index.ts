@@ -1,4 +1,5 @@
-// いま動いている OS の口を 1 か所で選ぶ（いまは macOS だけ。ほかの OS を足すときは、ここで選び分ける）
+// いま動いている OS の口を 1 か所で選ぶ（いまは macOS だけ。ほかの OS を足すときは、ここで選び分ける。
+// DB ワーカーのシェルの口だけは、別のプロセスなので src/core/databases/worker/main.ts で選ぶ）
 import { macosPlatform } from "../../core/platform/macos/index.js";
 import { SPEECH_HELPER } from "../app/environment.js";
 import { macosDesktopPlatform } from "./macos/index.js";

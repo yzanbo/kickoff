@@ -109,7 +109,7 @@ test("DB の接続: 種類ごとに要る項目・Kickoff 自身のデータは�
   assert.equal((await call("POST", base, sqliteBody({ file_path: path.join(link, "kickoff.db") }))).status, 400);
   // 動いているアプリのほか、製品版と開発版の両方の保存先も断る（開発版から製品版の DB を登録させない）
   for (const env of ["production", "development"] as const) {
-    const res = await call("POST", base, sqliteBody({ file_path: path.join(appDataDir(env), "kickoff.db") }));
+    const res = await call("POST", base, sqliteBody({ file_path: path.join(appDataDir(dbFake.appDataRoot, env), "kickoff.db") }));
     assert.equal(res.status, 400);
     assert.match(res.body.error, /Kickoff 自身のデータ/);
   }

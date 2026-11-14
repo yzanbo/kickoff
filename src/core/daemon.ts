@@ -9,10 +9,10 @@ import { startCore } from "./index.js";
 const platform = macosPlatform({ speechHelper: path.resolve("out/native/kickoff-speech") });
 platform.loadLoginShellPath();
 
-const dataDir = process.env.KICKOFF_DATA_DIR ?? appDataDir("development");
+const dataDir = process.env.KICKOFF_DATA_DIR ?? appDataDir(platform.appDataRoot, "development");
 const port = Number(process.env.KICKOFF_PORT ?? APP_ENVS.development.port);
 // 開発のデータがまだなければ、本番のデータから一度だけ写す
-if (!process.env.KICKOFF_DATA_DIR) seedDevData(appDataDir("production"), dataDir);
+if (!process.env.KICKOFF_DATA_DIR) seedDevData(appDataDir(platform.appDataRoot, "production"), dataDir);
 
 const core = await startCore({ dataDir, port, host: process.env.KICKOFF_HOST, platform });
 // ブラウザで開くときは、一度だけ使えるログインの URL（5 分）から入る（本体のトークンを URL に入れない）

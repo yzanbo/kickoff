@@ -18,7 +18,7 @@ import { dockerDbCandidate, type DockerDbCandidate } from "./dbTarget.js";
 import { DockerEvents } from "./events.js";
 import { buildDockerList, headFileOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
 import { DOCKER_LOG_TAIL, readLog } from "./logs.js";
-import { PS_FORMAT, parsePs, starterOf, type RawContainer } from "./parse.js";
+import { PS_FORMAT, parsePs, type RawContainer } from "./parse.js";
 import { allocatedPortOf, conflictLabel, hostPortsOf, portConflictsOf } from "./portConflict.js";
 import { DockerPorts } from "./ports.js";
 import type { HostPlatform } from "../platform/types.js";
@@ -61,7 +61,7 @@ export class DockerService {
   constructor(
     private readonly bus: Bus,
     /** OS の口のうち、待っているソケット（静かなぶつかり）とアプリを開く（エンジンを起こす） */
-    readonly host: Pick<HostPlatform, "listeningSockets" | "openApp">,
+    readonly host: Pick<HostPlatform, "listeningSockets" | "dockerEngine">,
     cli = new DockerCli(),
   ) {
     this.ports = new DockerPorts(host.listeningSockets);
@@ -158,7 +158,7 @@ export class DockerService {
     const empty = { composes: [], others: [], silent: {} };
     if (!this.cli.bin()) return { list: { engine: "missing", context: null, starter: null, ...empty }, containers: [], owner: new Map(), upFiles: new Map() };
     const [up, context] = await Promise.all([this.cli.engineUp(), this.cli.context()]);
-    if (!up) return { list: { engine: "stopped", context, starter: starterOf(context), ...empty }, containers: [], owner: new Map(), upFiles: new Map() };
+    if (!up) return { list: { engine: "stopped", context, starter: this.host.dockerEngine.starterOf(context), ...empty }, containers: [], owner: new Map(), upFiles: new Map() };
 
     const [workplaces, psOut] = await Promise.all([this.workplacesOf(project), this.cli.run(["ps", "-a", "--format", PS_FORMAT], { timeout: 10_000 })]);
     const containers = parsePs(psOut).map((c) => ({ ...c, dir: c.dir ? realPathOrSelf(c.dir) : null, files: c.files.map((f) => realPathOrSelf(f)) }));
@@ -174,7 +174,7 @@ export class DockerService {
     // 静かなぶつかり: このプロジェクトの動いているコンテナが Mac に出しているポートを、Docker の外のプロセスも待っていないか（AI・ターミナルが起動したものも）
     const portsById = new Map(containers.filter((c) => c.state === "running" && built.owner.has(c.id)).map((c) => [c.id, hostPortsOf(c)] as const));
     const silent = await this.ports.silent(portsById);
-    return { list: { engine: "ok", context, starter: starterOf(context), composes, others: built.others, silent }, containers, owner: built.owner, upFiles };
+    return { list: { engine: "ok", context, starter: this.host.dockerEngine.starterOf(context), composes, others: built.others, silent }, containers, owner: built.owner, upFiles };
   }
 
   /** compose のファイルごとの読み取り（見つけたものと、作ったコンテナのラベルにあるもの）。作ってあるものはラベルのファイルで up する */

@@ -7,11 +7,8 @@ import { jsonBody, queryOf } from "../input.js";
 import { lookups } from "../lookups.js";
 import { Invalid } from "../errors.js";
 import { toImportCandidates } from "../../databases/import/index.js";
-import { findOrb } from "../../docker/cli.js";
 import { sameServerConnection } from "../../docker/dbTarget.js";
 import { DockerLogSession } from "../../docker/logs.js";
-import { starterOf } from "../../docker/parse.js";
-import { runCommand } from "../../system/exec.js";
 
 const actionBody = z.object({
   action: z.enum([...DOCKER_ACTIONS, "cancel", "dismiss"]),
@@ -94,12 +91,10 @@ export function dockerRoutes(app: Hono, { store, docker, bus }: ServerDeps) {
 
   // エンジンが止まっているときの「OrbStack を開く」など（開くアプリは context の名前から決める。本文では受けない）
   app.post("/api/projects/:id/docker/open-engine", withProject, async (c) => {
-    const starter = starterOf(await docker.cli.context());
+    const starter = docker.host.dockerEngine.starterOf(await docker.cli.context());
     if (starter?.kind !== "open") throw new Invalid("開くアプリが分かりません。Docker のアプリを起動してください");
-    await docker.host.openApp(starter.app);
-    // OrbStack はアプリが開いたままエンジンだけ止まっていることがある（open -a では起きない）。orb start は起きるまで待つので待たずに流し、画面が 2 秒ごとに調べ直す
-    const orb = starter.app === "OrbStack" ? findOrb() : null;
-    if (orb) void runCommand(orb, ["start"], { timeout: 120_000 }).catch(() => {});
+    // 起きるまでは待たない（画面が 2 秒ごとに調べ直す）
+    await docker.host.dockerEngine.start(starter);
     return c.body(null, 204);
   });
 }

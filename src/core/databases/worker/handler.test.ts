@@ -5,7 +5,12 @@ import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { tempDir } from "../../testing/tempDir.js";
 import type { DbTarget, WorkerRequest } from "../protocol.js";
+import { macosShell } from "../../platform/macos/shell.js";
 import { createWorkerHandler } from "./handler.js";
+import { setShellPlatform } from "./shell.js";
+
+// 準備のコマンドはこの Mac のシェルで流す（ワーカーの入口が決めるものを、テストでも決める）
+setShellPlatform(macosShell);
 
 function sqliteTarget(): DbTarget {
   const file = path.join(tempDir(), "t.db");

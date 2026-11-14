@@ -2,8 +2,10 @@
 // child_process.fork ＋ tsx で起動する）。親とはメッセージだけでやり取りし（utilityProcess は process.parentPort、fork は IPC の process.send）、
 // 親がいなくなったら閉じて終わる（utilityProcess は親が終わると Electron が止める）
 import type { WorkerCancel, WorkerEvent, WorkerRequest, WorkerResponse } from "../protocol.js";
+import { macosShell } from "../../platform/macos/shell.js";
 import { setChildReporter } from "./children.js";
 import { createWorkerHandler, IDLE_SWEEP_MS } from "./handler.js";
+import { setShellPlatform } from "./shell.js";
 
 type Message = WorkerRequest | WorkerCancel;
 /** Electron の utilityProcess の中だけにある、親とのつなぎ（コアは Electron の型を読まないので、使う所だけの形にする） */
@@ -15,6 +17,8 @@ const parentPort = (process as unknown as { parentPort?: ParentPort }).parentPor
 
 const send = (message: WorkerResponse | WorkerEvent) => (parentPort ? parentPort.postMessage(message) : process.send?.(message));
 
+// この OS のシェルの口（ワーカーは口を受け取れないので、ここで選ぶ。いまは macOS だけ。ほかの OS を足すときは、ここと src/main/platform/index.ts で選び分ける）
+setShellPlatform(macosShell);
 // 流したコマンドの結果（準備の記録）と、起動した子のプロセスはコアに知らせる
 setChildReporter(send);
 const handler = createWorkerHandler(send);
