@@ -1,5 +1,6 @@
 // HTTP API の本文と応答の形（コアのルートと画面で同じものを使う）。型のみ
 // 資源そのもの（Project・Chat・ChatGroup など）は各ファイルにあり、ここには API にだけ出てくる形を置く
+import type { UserView } from "./userView";
 import type { Approval } from "./approval";
 import type { Attachment, AttachmentSource, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
@@ -85,6 +86,8 @@ export interface MessageBody {
   text?: string;
   options?: ChatOptionsPatch;
   attachments?: Attachment[];
+  /** 送った時点の画面の様子（この Mac の画面から送ったときだけ。AI の get_user_view が「発言を送ったときの様子」として読む） */
+  user_view?: UserView;
 }
 
 /**

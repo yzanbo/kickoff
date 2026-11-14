@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups, requireProject } from "../lookups.js";
+import { rememberSentView } from "./userView.js";
 import { attachmentsSchema, chatOptionsSchema, childChatSchema, editingIdsSchema, handoffSchema, messageInputSchema, messageText, subagentChildSchema } from "./schemas.js";
 import { forkChat } from "../../chat/fork.js";
 import { startChildChat } from "../../chat/children.js";
@@ -17,7 +18,7 @@ import { marksOf } from "@shared/chat/handoff";
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
  * 作業中にはできない操作は 409（Runner の requireIdle）。様子が変わるだけ（止める・やめる）で返すものがなければ 204（変わった様子は SSE の chat_live で届く）
  */
-export function turnRoutes(app: Hono, { store, runner, providers, uploads }: ServerDeps) {
+export function turnRoutes(app: Hono, { store, runner, providers, uploads, userViews }: ServerDeps) {
   const { withChat } = lookups(store);
   /** 分岐・巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
   const deps = { store, runner, providers };
@@ -26,13 +27,16 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads }: Ser
   app.post("/api/chats/:id/messages", withChat, async (c) => {
     const body = messageInputSchema.parse(await jsonBody(c));
     // 作業中のチャットには送れない（409）
-    return c.json(await runner.send(c.var.chat.id, body.text, body.options, body.attachments, { pauseAfter: body.pause_after, marks: marksOf(body) }));
+    const sent = await runner.send(c.var.chat.id, body.text, body.options, body.attachments, { pauseAfter: body.pause_after, marks: marksOf(body) });
+    rememberSentView(c, userViews, c.var.chat.id, body.user_view);
+    return c.json(sent);
   });
 
   // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ預かり、作業の終わりに送信待ちより先に送る。作業中でなければすぐ送る。pause_after は続きを送ると同じ）
   app.post("/api/chats/:id/tell", withChat, async (c) => {
     const body = messageInputSchema.parse(await jsonBody(c));
     const told: TellResult = { result: await runner.tell(c.var.chat.id, body.text, body.options, body.attachments, { pauseAfter: body.pause_after, marks: marksOf(body) }) };
+    rememberSentView(c, userViews, c.var.chat.id, body.user_view);
     return c.json(told);
   });
 

@@ -1,5 +1,6 @@
 // このファイルは FileView から使うときだけ読み込む（Monaco は大きいので、普段の起動に含めない）
 import * as monaco from "./monacoEditor";
+import type { EditorCursor } from "@/lib/viewDetails";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import { useEffect, useRef, useState } from "react";
 import type { GitBlame } from "@shared/types";
@@ -40,6 +41,8 @@ interface Props {
   onSave: (content: string) => void;
   /** 外から中身を読むための入れ物（保存ボタンで使う） */
   valueRef: React.RefObject<(() => string) | null>;
+  /** カーソルの行と選んでいる範囲を読む口を入れる（利用者が見ているものの知らせ。AI の get_user_view） */
+  cursorRef?: React.RefObject<(() => EditorCursor | null) | null>;
   /**
    * 保存した中身（ここから変えたら未保存）。ほかで変わって読み直したとき（書いている中身が前の値のまま = 未保存の変更がない）は、
    * 書いている中身もこれに差し替える（元に戻すで戻せる編集として入れ、見ている位置は保つ）
@@ -77,6 +80,7 @@ export default function CodeEditor({
   onDirtyChange,
   onSave,
   valueRef,
+  cursorRef,
   savedValue,
   line,
   original,
@@ -154,6 +158,14 @@ export default function CodeEditor({
     }
     editorRef.current = editor;
     valueRef.current = () => editor.getValue();
+    if (cursorRef)
+      cursorRef.current = () => {
+        const position = editor.getPosition();
+        const s = editor.getSelection();
+        if (!position) return null;
+        const selection = s && !s.isEmpty() ? { from_line: s.startLineNumber, from_column: s.startColumn, to_line: s.endLineNumber, to_column: s.endColumn } : null;
+        return { line: position.lineNumber, selection };
+      };
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => latest.current.onSave(editor.getValue()));
     // ⌥Z で折り返しを切り替える（VS Code と同じキー）
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyZ, () => wrapRef.current.setWrap(!wrapRef.current.wrap));

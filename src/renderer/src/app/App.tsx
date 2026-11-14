@@ -38,6 +38,8 @@ import { DbUnlockHost } from "@/features/database/DbUnlockHost";
 import { DropHintHost } from "@/ui/DropHint";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useNotificationTargets, useViewingReport } from "./notifications";
+import { useUserViewReport } from "./userViewReport";
+import { chatIdsOf, collectUserView } from "./userViewCollect";
 import { useDockBadge } from "./dockBadge";
 import { useAgentBrowserBridge } from "./agentBrowser";
 import { useAiOpenRequests } from "./aiOpenRequests";
@@ -78,6 +80,8 @@ export function App() {
   // 通知（完了・失敗・回答待ち・CI の失敗）を出すかはコアが決める。画面は見ているものを知らせ、通知が押されたら開く
   useViewingReport(route);
   useNotificationTargets();
+  // 利用者が見ているもの（このウィンドウのペインごとの前のタブ・選んでいる範囲など。AI の get_user_view が読む）
+  useUserViewReport(() => collectUserView(route), (view) => chatIdsOf(view, route), [route]);
   // 要対応（回答待ち・未読）の数を Dock のアイコンの赤い数字で出す（設定で切り替え。設定が届くまでは出す）
   useDockBadge({ enabled: appSettings?.dock_badge ?? true, projects, pending: chatStates.pending });
   // AI が埋め込みブラウザのタブを開く・操作している印

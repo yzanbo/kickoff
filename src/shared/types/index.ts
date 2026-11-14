@@ -23,3 +23,4 @@ export * from "./device";
 export * from "./tailscale";
 export * from "./terminal";
 export * from "./trash";
+export * from "./userView";

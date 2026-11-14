@@ -1,4 +1,4 @@
-import type { Device, DeviceAccess, DeviceUpdateBody, PairingApproveBody, PairingState, TailscaleStatus, ViewingBody } from "@shared/types";
+import type { Device, DeviceAccess, DeviceUpdateBody, PairingApproveBody, PairingState, TailscaleStatus, ViewingBody, UserViewBody } from "@shared/types";
 import { request } from "./http";
 
 /** スマホ連携の端末とペアリング（コアの routes/devices.ts。この Mac の画面だけが使う口） */
@@ -21,4 +21,9 @@ export const devicesApi = {
   reportViewing: (body: ViewingBody) => request<void>("PUT", "/api/viewing", body),
   /** 窓を閉じる・読み込み直すときに「何も見ていない」を知らせる（ページが消えても届くよう keepalive。返事は待たない） */
   reportLeaving: () => void request<void>("PUT", "/api/viewing", { chat_id: null, ci_project_id: null } satisfies ViewingBody, { keepalive: true }).catch(() => {}),
+  /** 利用者が見ているもの（このウィンドウのペインごとの前のタブなど。AI の get_user_view が読む。この Mac の画面だけ） */
+  reportUserView: (body: UserViewBody) => request<void>("PUT", "/api/user-view", body),
+  /** 窓を閉じる・読み込み直すときに、このウィンドウを忘れてもらう（keepalive。返事は待たない） */
+  reportUserViewClosed: (windowId: string) =>
+    void request<void>("PUT", "/api/user-view", { window_id: windowId, view: null, chat_ids: [], focused: false } satisfies UserViewBody, { keepalive: true }).catch(() => {}),
 };

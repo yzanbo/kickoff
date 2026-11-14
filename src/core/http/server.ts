@@ -27,9 +27,11 @@ import type { PortWatch } from "../ports/watch.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import type { SessionsUsedElsewhere } from "../trash/siblingSessions.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
+import type { UserViewRegistry } from "../userView/registry.js";
 import type { TrashService } from "../trash/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { deviceRoutes, pairingClaimRoutes } from "./routes/devices.js";
+import { userViewRoutes } from "./routes/userView.js";
 import { terminalRoutes } from "./routes/terminals.js";
 import { MOBILE_OFF_MESSAGE, type PairingCenter } from "../devices/pairing.js";
 import type { ViewingRegistry } from "../notifications/viewing.js";
@@ -103,6 +105,8 @@ export interface ServerDeps {
   trashBin: TrashService;
   /** ワークツリーの後始末（画面の「消す」と AI の finish_worktree。確かめ・控え・予約。worktrees/finish.ts） */
   worktreeFinisher: WorktreeFinisher;
+  /** 利用者が見ているもの（この Mac の画面のウィンドウごとと、チャットごとの送ったときの様子。AI の get_user_view。userView/registry.ts） */
+  userViews: UserViewRegistry;
   /** ほかの Kickoff（製品版と開発版）が使っているセッション（どのチャットも使っていない会話記録の一覧から除く。省けば調べない） */
   sessionsElsewhere?: SessionsUsedElsewhere;
   /** 内蔵ターミナルのシェル（スマホは WebSocket でつなぐ = routes/terminals.ts） */
@@ -228,6 +232,7 @@ export function createApp(deps: ServerDeps): Hono {
   portsRoutes(app, deps);
   deviceRoutes(app, deps);
   terminalRoutes(app, deps);
+  userViewRoutes(app, deps);
 
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>

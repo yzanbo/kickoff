@@ -5,6 +5,7 @@ import type { GitFileChange, GitStatus } from "@shared/types";
 import { api, ApiError } from "@/api";
 import { cx } from "@/lib/cx";
 import { registerSavable } from "@/lib/saveAll";
+import { registerEditorCursor, type EditorCursor } from "@/lib/viewDetails";
 import { confirmDialog } from "@/ui/dialogs";
 import { useAction } from "@/hooks/useAction";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
@@ -80,6 +81,9 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
   const saving = useAction<"save">();
   const [editorKey, setEditorKey] = useState(0);
   const getValue = useRef<(() => string) | null>(null);
+  // カーソルと選んでいる範囲（利用者が見ているものの知らせが読む。AI の get_user_view）
+  const cursor = useRef<(() => EditorCursor | null) | null>(null);
+  useEffect(() => registerEditorCursor(projectId, path, () => cursor.current?.() ?? null), [projectId, path]);
   const goToDiff = useRef<((target: "next" | "previous") => void) | null>(null);
   const [layout] = useSetting(DIFF_LAYOUT);
   // 右の欄・別ウィンドウでは、右クリックをチャットに足すメニューに任せる
@@ -268,6 +272,7 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
                   savedValue={base.content}
                   line={line}
                   valueRef={getValue}
+                  cursorRef={cursor}
                   onDirtyChange={changeDirty}
                   onSave={(content) => void save(content)}
                   original={original ?? undefined}

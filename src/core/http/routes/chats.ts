@@ -5,6 +5,7 @@ import type { ServerDeps } from "../server.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups, requireGroupOf, requireProject } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
+import { rememberSentView } from "./userView.js";
 import { chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "./schemas.js";
 import { chatTranscript } from "../../chat/transcript.js";
 import { detachChat } from "../../chat/detach.js";
@@ -48,7 +49,7 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-export function chatRoutes(app: Hono, { store, runner, approvals, databases, providers, worktreeEnvs, trashBin }: ServerDeps) {
+export function chatRoutes(app: Hono, { store, runner, approvals, databases, providers, worktreeEnvs, trashBin, userViews }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
@@ -69,6 +70,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
       worktreePath,
       github: input.github,
     });
+    rememberSentView(c, userViews, created.id, input.user_view);
     return c.json(created, 201);
   });
 

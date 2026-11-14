@@ -1,4 +1,5 @@
 import type { Attachment, Chat, ChatOptionsPatch, ChildChatBody, FileRewindResult, HandoffBody, HandoffResult, HandoffVia, MessageMarks, QueuedMessage, SendMessageBody, SubagentChildBody, TellResult } from "@shared/types";
+import { withUserView } from "@/lib/userViewSnapshot";
 import { request } from "./http";
 
 /** チャットの実行（続きを送る・止めずに伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し。コアの routes/turns.ts） */
@@ -15,13 +16,13 @@ export const turnsApi = {
    * marks: 発言の印（親への依頼文の頼み・子チャットから渡した依頼。記録の発言に残る）
    */
   sendMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], pauseAfter = false, marks: MessageMarks = {}) =>
-    request<Chat>("POST", `/api/chats/${chatId}/messages`, { text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}), ...marks } satisfies SendMessageBody),
+    request<Chat>("POST", `/api/chats/${chatId}/messages`, { text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}), ...marks, ...withUserView() } satisfies SendMessageBody),
   /**
    * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ預かり、作業の終わりに送信待ちより先に送る。作業中でなければすぐ送る）。
    * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った / held = 圧縮中なので預かった。pauseAfter・marks は sendMessage と同じ
    */
   tellChat: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], pauseAfter = false, marks: MessageMarks = {}) =>
-    request<TellResult>("POST", `/api/chats/${chatId}/tell`, { text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}), ...marks } satisfies SendMessageBody),
+    request<TellResult>("POST", `/api/chats/${chatId}/tell`, { text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}), ...marks, ...withUserView() } satisfies SendMessageBody),
   cancelChat: (chatId: number) => request<void>("POST", `/api/chats/${chatId}/cancel`),
   /**
    * 会話を要約して、コンテキストを空ける（作業中なら予約: 送信待ちのいちばん上に「会話を圧縮」の行を入れ、
