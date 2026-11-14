@@ -63,9 +63,10 @@ export async function worktreePathFor(repo: string, branch: string): Promise<str
  * 置き場所は worktreePathFor で決める。同じリポジトリのほかのプロジェクト（リポジトリの中の別のフォルダ）が、同じブランチでもう作っていれば、それを使う。
  * プロジェクトのフォルダがリポジトリの中のフォルダで、取り出すコミットにそのフォルダがなければ（まだコミットしていない）、ワークツリーの中に出てこないので断る（400）。
  * 作ったら、本体の node_modules などを写してすぐ作業できるようにし（prepareWorktree。リポジトリの一番上の分も）、onCreated に作ったワークツリーを渡す
- * （ワークツリーの実行環境。もうあるワークツリーを使い回したときは呼ばない）
+ * （ワークツリーの実行環境。もうあるワークツリーを使い回したときは呼ばない）。
+ * base は新しいブランチの元のコミット（省けば本体の HEAD。AI の create_chat は作る側のチャットの作業場所のいまのコミットを渡す。ブランチがもうあれば使わない）
  */
-export async function addWorktree(repo: string, branch: string, onCreated?: (worktree: GitWorktree) => Promise<void>): Promise<GitWorktree[]> {
+export async function addWorktree(repo: string, branch: string, onCreated?: (worktree: GitWorktree) => Promise<void>, base?: string): Promise<GitWorktree[]> {
   await gitOutput(repo, ["check-ref-format", "--branch", branch]).catch(() => {
     throw new Invalid("ブランチの名前に使えない文字があります");
   });
@@ -75,8 +76,8 @@ export async function addWorktree(repo: string, branch: string, onCreated?: (wor
   if (await fs.stat(target).catch(() => null)) throw new Conflict(`フォルダがすでにあります: ${target}`);
   const exists = await hasRef(repo, `refs/heads/${branch}`);
   if (prefix) {
-    const base = exists ? `refs/heads/${branch}` : "HEAD";
-    const present = await gitOutput(repo, ["cat-file", "-e", `${base}:${prefix}`]).then(
+    const from = exists ? `refs/heads/${branch}` : (base ?? "HEAD");
+    const present = await gitOutput(repo, ["cat-file", "-e", `${from}:${prefix}`]).then(
       () => true,
       () => false,
     );
@@ -84,7 +85,7 @@ export async function addWorktree(repo: string, branch: string, onCreated?: (wor
       throw new Invalid(`プロジェクトフォルダ（${prefix}）が ${exists ? `ブランチ ${branch}` : "いまのコミット"} にまだないため、ワークツリーに出てきません。先にフォルダをコミットしてください`);
     }
   }
-  await gitOutput(repo, exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target]);
+  await gitOutput(repo, exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target, ...(base ? [base] : [])]);
   const top = await repoTop(repo);
   if (prefix) await prepareWorktree(path.join(top, prefix), path.join(target, prefix));
   await prepareWorktree(top, target);
@@ -92,6 +93,22 @@ export async function addWorktree(repo: string, branch: string, onCreated?: (wor
   const made = list.find((w) => w.root === target);
   if (made && onCreated) await onCreated(made);
   return list;
+}
+
+/**
+ * 新しいブランチでワークツリーを作れるかの確かめ（AI の create_chat が、承認を聞く前に断るため）。作れなければ理由の文、作れれば null。
+ * 断るのは、名前に使えない文字・同じ名前のブランチがある・置き場所のフォルダがある（使い回さない。AI には新しいブランチだけを作らせる）
+ */
+export async function newWorktreeProblem(repo: string, branch: string): Promise<string | null> {
+  const valid = await gitOutput(repo, ["check-ref-format", "--branch", branch]).then(
+    () => true,
+    () => false,
+  );
+  if (!valid || branch.startsWith("-")) return `ブランチの名前「${branch}」に使えない文字があります`;
+  if (await hasRef(repo, `refs/heads/${branch}`)) return `同じ名前のブランチ「${branch}」がもうあります。別の名前にしてください`;
+  const target = await worktreeRootFor(repo, branch);
+  if (await fs.stat(target).catch(() => null)) return `ワークツリーを置くフォルダがもうあります: ${target}`;
+  return null;
 }
 
 /**

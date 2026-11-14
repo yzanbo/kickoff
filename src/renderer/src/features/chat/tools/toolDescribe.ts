@@ -1,6 +1,6 @@
 // ツールの呼び出しを人が読める文にする（タイムラインのツールの行・実行中の表示・承認カードで共通）
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL, describeUpdateChat } from "@shared/chat/aiChatEdit";
-import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
+import { AI_CHAT_RELATION_LABELS, AI_CHILD_CHAT_TOOL_LEGACY, AI_CREATE_CHAT_TOOL, isCreateChatTool, relationOf } from "@shared/chat/aiCreateChat";
 import {
   AI_ADD_DRAFT_TOOL,
   AI_OPEN_CHAT_TOOL,
@@ -59,7 +59,8 @@ const TOOL_LABELS: Record<string, string> = {
   EnterPlanMode: "計画モード",
   EnterWorktree: "ワークツリーに入る",
   ExitWorktree: "ワークツリーを出る",
-  [AI_CHILD_CHAT_TOOL]: "子チャットを作る",
+  [AI_CREATE_CHAT_TOOL]: "チャットを作る",
+  [AI_CHILD_CHAT_TOOL_LEGACY]: "子チャットを作る",
   [AI_LIST_FAMILY_TOOL]: "同じ家系のチャットを確かめる",
   [AI_UPDATE_CHAT_TOOL]: "チャットを変更",
   [AI_OPEN_MEMO_TOOL]: "メモを開く",
@@ -231,9 +232,12 @@ function describeKnown(name: string, input: Input): string | null {
       return "";
     case "AskUserQuestion":
       return describeQuestions(input.questions);
-    case AI_CHILD_CHAT_TOOL:
+    case AI_CHILD_CHAT_TOOL_LEGACY:
       // 名前があれば名前、なければ依頼の 1 行目（依頼の全文は開いた中身と承認カードで見る）
       return clip(str(input.title) || str(input.text));
+    case AI_CREATE_CHAT_TOOL:
+      // 何を作ったか・名前（なければ依頼の 1 行目）・ワークツリー（「子チャット「ログの調査」（ワークツリー feat/a）」）
+      return clip(describeCreateChat(input));
     case AI_LIST_FAMILY_TOOL:
       return "";
     case AI_UPDATE_CHAT_TOOL:
@@ -299,11 +303,18 @@ export function describeToolInput(name: string, input: Input): string {
   return describeUnknownInput(input);
 }
 
+/** AI が作ったチャットの行の文（何を作ったか・名前か依頼の 1 行目・ワークツリーのブランチ） */
+function describeCreateChat(input: Input): string {
+  const name = str(input.title) || str(input.text).split("\n")[0];
+  const branch = str(input.worktree_branch);
+  return `${AI_CHAT_RELATION_LABELS[relationOf(input)]}「${name}」${branch ? `（ワークツリー ${branch}）` : ""}`;
+}
+
 /** 承認カードに出す入力（計画の提示は計画の全文。ほかは describeToolInput と同じ） */
 export function describeApprovalInput(name: string, input: Input): string {
   if (name === "ExitPlanMode" && typeof input.plan === "string") return input.plan;
-  // AI が子チャットに送る依頼は、確かめられるよう切らずに全文（名前は見出しにある）
-  if (name === AI_CHILD_CHAT_TOOL && typeof input.text === "string") return input.text;
+  // AI が作るチャットに送る依頼は、確かめられるよう切らずに全文（何を作るか・名前・作業場所は見出しと説明にある）
+  if (isCreateChatTool(name) && typeof input.text === "string") return input.text;
   return describeToolInput(name, input);
 }
 

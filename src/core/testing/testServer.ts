@@ -96,12 +96,12 @@ class FakeProvider extends FakeProviderBase {
   preCompacts: ProviderTurnParams["preCompact"][] = [];
   /** これがあれば実行の初めに、自動の圧縮の前に圧縮前指示を足したと知らせる（値は足した発言の ID） */
   preCompactSentId: string | null = null;
-  /** 最後の実行に渡した、自分の子チャットを作るツールの中身（渡さなければ null） */
-  lastChildChat: ProviderTurnParams["childChat"] = null;
+  /** 最後の実行に渡した、チャットを作るツールの中身（渡さなければ null） */
+  lastCreateChat: ProviderTurnParams["createChat"] = null;
   /** 最後の実行が、Git で管理していないファイルだけを書けるチャットだったか（［AI で整える］の確かめに使う） */
   lastUntrackedOnly = false;
   async run(
-    params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; childChat?: ProviderTurnParams["childChat"]; untrackedOnly?: boolean },
+    params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; createChat?: ProviderTurnParams["createChat"]; untrackedOnly?: boolean },
     cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "context" | "control" | "retry" | "preCompactSent">,
     signal: AbortSignal,
   ): Promise<ProviderTurnResult> {
@@ -111,7 +111,7 @@ class FakeProvider extends FakeProviderBase {
     this.lastDirs = params.additionalDirectories;
     this.lastSystemPrompt = params.systemPrompt;
     this.lastTurnContext = params.turnContext ?? null;
-    this.lastChildChat = params.childChat ?? null;
+    this.lastCreateChat = params.createChat ?? null;
     this.lastUntrackedOnly = params.untrackedOnly ?? false;
     this.prompts.push(params.prompt);
     this.promptIds.push(params.promptId);

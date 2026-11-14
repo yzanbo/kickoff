@@ -3,6 +3,7 @@
 // 聞くことがなければ（文も添付もない）、会話を写した子チャットを作るだけで動かさない（開いてから書いて送る）
 import type { Attachment, Chat, ChatOptionsPatch, ProviderId } from "@shared/types";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
+import type { AiChatRelation } from "@shared/chat/aiCreateChat";
 import type { Store } from "../db/store.js";
 import { asInvalid, Invalid } from "../http/errors.js";
 import { CHILD_FORK_KEEP, type AgentProvider } from "../providers/types.js";
@@ -24,6 +25,13 @@ export interface ChildChatInput {
   attachments?: Attachment[];
   /** 名前（AI が作るときに付けたもの。なければ文から付ける） */
   title?: string;
+  /**
+   * 置き場所（AI の create_chat が兄弟・親のないチャット・新しいワークツリーに作るとき。省けば会話を写す元のチャットの子で、作業場所も同じ）。
+   * parentChatId が null なら親のないチャット（groupId のグループへ）
+   */
+  placement?: { relation: AiChatRelation; parentChatId: number | null; groupId: number | null; worktreePath: string | null };
+  /** AI が作った世代（AI の create_chat が作るときだけ。省けば 0） */
+  aiGeneration?: number;
 }
 
 /** 選んだ文を Markdown の引用にする */
@@ -58,9 +66,15 @@ export async function startChildChat(
   const { store, runner, providers } = deps;
   const project = store.projects.get(parent.project_id);
   const parentName = parent.title || "（名前なし）";
+  // 子でないところ（兄弟・親のないチャット）に作るときは、親ではなく「作ったチャット」として書く（どこから来たか分かるように）
+  const asChild = !input.placement || input.placement.relation === "child";
   // 親の会話を写す手順（写すのは親の記録の大きさに比例して時間がかかる。会話が長いと数十秒）
   let fork: (() => Promise<string>) | undefined;
-  let notice = input.inherit ? `親のチャット「${parentName}」の会話を引き継いで始めました` : `親のチャット「${parentName}」から、会話を引き継がずに始めました`;
+  let notice = asChild
+    ? input.inherit
+      ? `親のチャット「${parentName}」の会話を引き継いで始めました`
+      : `親のチャット「${parentName}」から、会話を引き継がずに始めました`
+    : `チャット「${parentName}」から作りました（${input.inherit ? "会話を引き継いでいます" : "会話は引き継いでいません"}）`;
   if (input.inherit && project) {
     // 親の最後まで終わった作業の終わり（そのあとでコンテキストを消去していれば、引き継げる会話はない）
     const point = resumePointBefore(store.events.list(parent.id));
@@ -72,7 +86,9 @@ export async function startChildChat(
       // 子チャットは最新の区切り（最後の圧縮の要約とそのあと）だけを写す（メモの仕様書「ファイル削除」の Q18）
       fork = () => forkSession(from, at, workdir, { keep: CHILD_FORK_KEEP });
     } else {
-      notice = `親のチャット「${parentName}」には引き継げる会話がまだないので、選択部分だけで始めました`;
+      notice = asChild
+        ? `親のチャット「${parentName}」には引き継げる会話がまだないので、選択部分だけで始めました`
+        : `チャット「${parentName}」から作りました（引き継げる会話がまだないので、依頼の文だけで始めました）`;
     }
   }
   // 聞くことがない: 会話を写した子チャットを作るだけ（動かさない。名前は最初に送った文から付ける runner.send）
@@ -89,9 +105,11 @@ export async function startChildChat(
     titleText: titleSourceOf(input.text),
     options: input.options,
     attachments: input.attachments,
-    worktreePath: parent.worktree_path ?? undefined,
-    parentChatId: parent.id,
+    worktreePath: (input.placement ? input.placement.worktreePath : parent.worktree_path) ?? undefined,
+    parentChatId: (input.placement ? input.placement.parentChatId : parent.id) ?? undefined,
     parentEventId: input.eventId ?? undefined,
+    groupId: input.placement?.groupId ?? undefined,
+    aiGeneration: input.aiGeneration,
     // 会話を写すのは作ったあとで待たずに（写し終えるまで作業中として見せ、終わったら送る Runner.start）
     prepareSession: fork,
     notice,

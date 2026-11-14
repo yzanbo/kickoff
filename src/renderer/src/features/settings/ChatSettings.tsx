@@ -6,7 +6,7 @@ import { CheckField, Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
 import { SaveActions } from "@/ui/SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
-import { AiChildChatField } from "./AiChildChatField";
+import { AiCreateChatField } from "./AiCreateChatField";
 import { AUTO_COMPACT_CHOICES } from "@shared/chat/autoCompact";
 
 /** 自動のアーカイブで選べる日数（null はしない） */
@@ -100,7 +100,7 @@ export function ChatSettings() {
             options={BUSY_WORKPLACE_ACTIONS.map((value) => ({ value, label: BUSY_WORKPLACE_ACTION_LABELS[value] }))}
           />
         </Field>
-        <AiChildChatField />
+        <AiCreateChatField />
       </div>
     </section>
   );

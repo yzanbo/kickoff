@@ -27,7 +27,7 @@ import { createAiTerminalTools } from "./aiTerminal.js";
 import { createAiVisualTools } from "./aiVisual.js";
 import type { MemoService } from "../memos/memos.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
-import { canCreateChildChat, createAiChildChatTools, type StartedChild } from "./aiChildChat.js";
+import { canCreateChat, createAiCreateChatTools, type StartedChild } from "./aiCreateChat.js";
 import type { ChildChatInput } from "./children.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import { trashCommandEnv, type TrashCommand } from "../trash/command.js";
@@ -55,8 +55,8 @@ export interface ExecutionDeps {
   terminals?: TerminalControl;
   /** DB クライアント（AI に見せる接続があるプロジェクトで、AI に DB のツールを出す。なければ出さない） */
   databases?: DatabaseService;
-  /** 子チャットを作る（Runner が渡す。チャットの AI に自分の子チャットを作るツールを出す。なければ出さない） */
-  startChildChat?: (parent: Chat, input: ChildChatInput) => Promise<StartedChild>;
+  /** チャットを作る（Runner が渡す。チャットの AI にチャット（子・兄弟・親のないチャット）を作るツールを出す。なければ出さない） */
+  startChat?: (from: Chat, input: ChildChatInput) => Promise<StartedChild>;
   /** Docker タブ（AI の Docker の守りが docker ps・compose の組の名前を引く。なければ守りを付けない） */
   docker?: DockerService;
   /** ワークツリーの実行環境（作業場所がポートの帯を持つワークツリーなら、AI に PORT を渡す。なければ渡さない） */
@@ -228,9 +228,11 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
       deps.databases && hasAiConnections(deps.store, project.id)
         ? createDbAiTools({ store: deps.store, databases: deps.databases }, { project, workdir: chat.worktree_path, chatId: chat.id })
         : null,
-    // 自分の子チャットを作るツール（設定で止めていない・孫チャットより深くならないときだけ）
-    childChat:
-      deps.startChildChat && canCreateChildChat(deps.store, chat) ? createAiChildChatTools({ store: deps.store, startChild: deps.startChildChat }, chat.id) : null,
+    // チャット（子・兄弟・親のないチャット）を作るツール（設定で止めていない・AI が作った世代の上限に達していないときだけ。1 回の作業で数を数えるので作業ごとに作る）
+    createChat:
+      deps.startChat && canCreateChat(deps.store, chat)
+        ? createAiCreateChatTools({ store: deps.store, startChat: deps.startChat, worktreeEnvs: deps.worktreeEnvs }, chat.id)
+        : null,
     // 同じ家系のチャットの名前・固定・グループを変えるツール（どのチャットにも。孫チャット・子チャットを作らせない設定のときも渡す）
     chatEdit: createAiChatEditTools(deps.store, chat.id, deps.isBusy ?? (() => false)),
     // このプロジェクトのメモ・同じ家系のチャットを画面に開くツール（どのチャットにも。画面に頼む口（バス）があるときだけ）
