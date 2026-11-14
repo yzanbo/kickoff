@@ -86,7 +86,8 @@ export class MemoService {
     if (project.memo_path) return expandHome(project.memo_path);
     let folder = project.memo_folder;
     if (!folder) {
-      folder = projectMemoFolder(project.name, this.opts.store.projects.list(), project.id);
+      // ゴミ箱のプロジェクトのフォルダ名とも重ねない（戻したときに、2 つのプロジェクトが同じメモのフォルダを指さないように）
+      folder = projectMemoFolder(project.name, [...this.opts.store.projects.list(), ...this.opts.store.projects.trashed()], project.id);
       this.opts.store.projects.update(project.id, { memo_folder: folder });
     }
     return path.join(this.rootDir(), folder);
