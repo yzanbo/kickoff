@@ -8,13 +8,14 @@
     "preview": "electron-vite preview",
     "daemon": "tsx src/core/daemon.ts",
     "typecheck": "tsc --noEmit --noUnusedLocals",
-    "test": "node --import tsx --test \"src/**/*.test.ts\" \"scripts/**/*.test.mjs\"",
+    "test": "node --import tsx --test \"src/**/*.test.ts\" \"scripts/**/*.test.mjs\" \"mobile/src/**/*.test.ts\"",
     "dist": "electron-vite build && electron-builder --mac --arm64",
     "install-app": "node scripts/install-app.mjs",
     "icon": "node scripts/build-icon.mjs",
     "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper && node scripts/dev-app-identity.mjs",
     "test:db": "node scripts/test-db.mjs",
-    "knip": "knip"
+    "knip": "knip",
+    "mobile:typecheck": "npm --prefix mobile run typecheck"
   },
   "description": "Claude Agent SDK で要件定義〜実装〜テスト〜デプロイを一元管理するローカルアプリ",
   "dependencies": {
