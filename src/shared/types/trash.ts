@@ -1,8 +1,11 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // Kickoff のゴミ箱（消したものを 3 日だけ取っておき、元に戻せる。メモの仕様書「ファイル削除」）
 
-/** ゴミ箱に入れたものの種類（file = ファイル・フォルダ（メモも）/ chat = チャット（子チャット・会話記録・添付ごと）/ project = プロジェクト / session = 持ち主のいない会話記録） */
-export const TRASH_KINDS = ["file", "chat", "project", "session"] as const;
+/**
+ * ゴミ箱に入れたものの種類（file = ファイル・フォルダ（メモも）/ chat = チャット（子チャット・会話記録・添付ごと）/ project = プロジェクト / session = 持ち主のいない会話記録 /
+ * worktree = 消したワークツリーの控え（取り込んでいないコミット・途中の変更。戻すと同じ名前でワークツリーを作り直す）
+ */
+export const TRASH_KINDS = ["file", "chat", "project", "session", "worktree"] as const;
 export type TrashKind = (typeof TRASH_KINDS)[number];
 
 /** ゴミ箱に入れてから本当に消すまで（3 日。AI の rm も画面から消したものも同じ） */

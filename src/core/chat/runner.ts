@@ -5,6 +5,7 @@ import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input.js";
 import { startChildChat } from "./children.js";
+import type { WorktreeFinisher } from "../worktrees/finish.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type QueueResume, type QueueResumeAction, type TellResult, type MessageMarks } from "@shared/types";
 import { resumeMomentsOf } from "./queueResume.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
@@ -89,6 +90,14 @@ export class Runner extends RunnerQueue {
       reconnect: deps.reconnect,
       usageLimit: deps.usageLimit,
     });
+  }
+
+  /**
+   * ワークツリーの後始末（AI の finish_worktree の中身）を渡す。後始末は作業中か・送信待ちを止めるのに Runner を使うので、Runner を作ったあとで渡す
+   * （渡すまでは AI にそのツールを出さない）
+   */
+  useWorktreeFinisher(finisher: WorktreeFinisher) {
+    this.turnDeps.worktreeFinisher = finisher;
   }
 
   /** 起動すると送り始める送信待ちか（指示があり、自動で送るで、先頭の上に一時停止の線がなく、作業していない） */

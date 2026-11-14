@@ -1,12 +1,10 @@
-import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { BranchSuggestBody, BranchSuggestions, GitWorktree, WorktreeEnvSetupBody, WorktreeEnvSetupResult, WorktreeRemovalInfo } from "@shared/types";
-import { addWorktree, findWorktree, gitRefs, isGitWorkTree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
+import type { BranchSuggestBody, BranchSuggestions, WorktreeEnvSetupBody, WorktreeEnvSetupResult, WorktreeRemovalInfo } from "@shared/types";
+import { addWorktree, gitRefs, isGitWorkTree, listWorktrees, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
 import { branchSuggestPrompt, parseBranchSuggestions } from "../../git/branchSuggest.js";
 import { envSetupPrompt, envSetupTitle } from "../../worktreeEnv/setupPrompt.js";
 import type { ServerDeps } from "../server.js";
-import { realPathOrSelf } from "../../system/paths.js";
 import { asInvalid, Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
@@ -19,7 +17,7 @@ const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(400
  * ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」。
  * 新しいワークツリーのブランチ名の案は branch-suggestions（やりたいことの概要から、プロジェクトの AI に 1 回だけ聞く）
  */
-export function worktreeRoutes(app: Hono, { store, runner, providers, prWatch, worktreeEnvs, databases }: ServerDeps) {
+export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEnvs, worktreeFinisher }: ServerDeps) {
   const { withProject } = lookups(store);
 
   // Git で管理していないフォルダは、ワークツリーのないもの（空）として返す（Git の状態の repo: false と同じ扱い。失敗にすると、画面が取り直し続ける）
@@ -56,32 +54,6 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, prWatch, w
   });
 
   /**
-   * そのワークツリーを作業場所にしているチャットの持ち主（プロジェクトと、そのプロジェクトから見た作業場所）。
-   * 同じリポジトリの中の別のフォルダを本体にしているプロジェクトも、同じワークツリーの中で作業していることがある（ブランチが同じなら使い回す）ので、
-   * リポジトリの一番上（本体の root）の下にあるプロジェクトをすべて見る
-   */
-  const usersOf = (worktree: GitWorktree, list: GitWorktree[]) => {
-    const top = list.find((w) => w.main)?.root;
-    if (!top) return [];
-    // 登録したパスがシンボリックリンクを含むこともある（/var → /private/var）ので、実体で比べる
-    return store.projects
-      .list()
-      .map((p) => ({ id: p.id, real: realPathOrSelf(p.repo_path) }))
-      .filter((p) => p.real === top || p.real.startsWith(`${top}/`))
-      .map((p) => ({ projectId: p.id, path: path.join(worktree.root, path.relative(top, p.real)) }));
-  };
-
-  /** 作業中のチャットがあるうちは消さない（作業中のフォルダが消えてしまう） */
-  const assertIdle = (users: { projectId: number; path: string }[]) => {
-    if (users.some((u) => store.chats.inWorktree(u.projectId, u.path).some((r) => runner.isBusy(r.id)))) {
-      throw new Conflict("このワークツリーで作業中のチャットがあります。終わってから消してください");
-    }
-  };
-  const clearChats = (users: { projectId: number; path: string }[]) => {
-    for (const u of users) store.chats.clearWorktree(u.projectId, u.path);
-  };
-
-  /**
    * ［AI で整える］（ワークツリーの実行環境の段階 2。利用者が押したときだけ）: この機能より前に作ったワークツリーなら先に手順を流し、
    * そのワークツリーで新しいチャット「実行環境を整える（ブランチ）」を始める（Git で管理していないファイルだけを書ける。選択はプロジェクトの既定）。
    * 同じワークツリーの［AI で整える］のチャットが作業中なら 409
@@ -113,8 +85,8 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, prWatch, w
    * ワークツリーを消す（force: コミットしていない変更があっても消す。delete_branch: 取り出していたブランチも消す = PR がマージされたあとの片付け。
    * down_volumes: Kickoff が組の名前を割り当てたワークツリーなら、その組のコンテナとデータも docker compose down -v で消す。
    * drop_db_connections: Docker タブの「DB で開く」でこのワークツリーの DB から作った接続も消す。消さなければ、どのワークツリーのものかだけ外す）。ポートの帯は空ける。
-   * 消えたら、そこで作業していたチャット（同じリポジトリのほかのプロジェクトのものも）の続きを本体で進める（ブランチを消すところで失敗しても、ワークツリーが消えていればチャットは本体に戻す）。
-   * 残ったワークツリーの一覧を返す
+   * 中身は AI の finish_worktree と同じ worktrees/finish.ts（失うもの = force で消すコミットしていない変更・delete_branch で消す取り込んでいないコミットは、
+   * Kickoff のゴミ箱に 3 日残る控えに入れてから消す。そこで作業していたチャットは本体に戻してお知らせを残す）。残ったワークツリーの一覧を返す
    */
   app.post("/api/projects/:id/git/worktrees/remove", withProject, async (c) => {
     const { project } = c.var;
@@ -127,27 +99,14 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, prWatch, w
         drop_db_connections: z.boolean().default(false),
       })
       .parse(await jsonBody(c));
-    const list = await listWorktrees(project.repo_path);
-    const target = list.find((w) => w.path === folder);
-    const users = target ? usersOf(target, list) : [{ projectId: project.id, path: folder }];
-    assertIdle(users);
-    try {
-      const worktrees = await removeWorktree(project.repo_path, folder, { force, deleteBranch: delete_branch });
-      clearChats(users);
-      // 消えたら、コンテナとデータ（選ばれたとき。組の名前で消すのでフォルダがなくてよい）を片付け、帯を空ける。消せなかった組は記録に残す
-      const failed = await worktreeEnvs.release(folder, { downVolumes: down_volumes });
-      if (failed.length) console.warn("[worktree-env] コンテナとデータを消せませんでした", failed);
-      // このワークツリーの DB から作った接続（選ばれたら消す。残すなら結び付きだけ外す）
-      if (drop_db_connections) for (const conn of store.dbConnections.ofWorktree(folder)) databases.removeConnection(conn.id);
-      else store.dbConnections.clearWorktree(folder);
-      // そのワークツリーの PR の知らせ・印を消す（GitHub には聞き直さない）
-      await prWatch.recomputeAll();
-      return c.json(worktreeEnvs.attach(project.id, worktrees));
-    } catch (e) {
-      // 一覧も取れなければ、消えたか分からないので戻さない
-      const gone = await findWorktree(project.repo_path, folder).then((w) => !w, () => false);
-      if (gone) clearChats(users);
-      throw e;
-    }
+    const { worktrees } = await worktreeFinisher.remove(project, folder, {
+      force,
+      deleteBranch: delete_branch,
+      downVolumes: down_volumes,
+      dropDbConnections: drop_db_connections,
+      deleteMergedRemote: false,
+      byChatId: null,
+    });
+    return c.json(worktreeEnvs.attach(project.id, worktrees));
   });
 }

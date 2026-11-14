@@ -87,6 +87,24 @@ export async function listPullRequests(cwd: string, target: GitHubTarget): Promi
   return rows.map((r) => ({ number: r.number, title: r.title, url: r.url, state: r.state, branch: r.headRefName, head_owner: r.headRepositoryOwner?.login ?? "" }));
 }
 
+/** マージ済みの PR（番号・URL・PR に入った最後のコミット） */
+export interface MergedPullRequest {
+  number: number;
+  url: string;
+  head_sha: string;
+}
+
+/**
+ * ブランチのマージ済みの PR（いちばん新しいもの。手元のブランチのプッシュ先の持ち主のものだけ = ほかの fork からの同じ名前は除く。PR の見張りと同じ見方）。
+ * なければ null（ワークツリーの後始末が、GitHub で取り込んだかを見分ける）
+ */
+export async function mergedPullRequestOf(cwd: string, target: GitHubTarget, branch: string): Promise<MergedPullRequest | null> {
+  const out = await gh(cwd, ["pr", "list", ...repoArgs(target), "--state", "merged", "--head", branch, "--limit", "20", "--json", "number,url,headRefOid,headRefName,headRepositoryOwner"], target.host);
+  const rows = JSON.parse(out) as { number: number; url: string; headRefOid: string; headRefName: string; headRepositoryOwner?: { login?: string } | null }[];
+  const own = rows.filter((r) => r.headRefName === branch && (r.headRepositoryOwner?.login ?? "").toLowerCase() === target.headOwner.toLowerCase()).sort((a, b) => b.number - a.number)[0];
+  return own ? { number: own.number, url: own.url, head_sha: own.headRefOid } : null;
+}
+
 /**
  * PR の本文の終わりに「Closes #n」を足す（マージしたら issue が閉じる。もう書いてある番号は足さない。純粋な関数）。
  * 足すものがなければ null

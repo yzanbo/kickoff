@@ -7,6 +7,7 @@ import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_T
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/chat/aiTerminal";
+import { AI_FINISH_WORKTREE_TOOL } from "@shared/chat/aiWorktree";
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
   assert.equal(describeTool("TaskCreate", { subject: "確認 1", description: "動作確認用タスク 1" }), "ToDo を追加: 確認 1");
@@ -127,4 +128,9 @@ test("AI がターミナルを読むツール: 一覧は名前だけ、出力は
   assert.equal(describeTool(AI_LIST_TERMINALS_TOOL, {}), "ターミナルを確かめる");
   assert.equal(describeTool(AI_READ_TERMINAL_TOOL, { terminal: "terminal:1:a" }), "ターミナルの出力を読む");
   assert.equal(describeTool(AI_READ_TERMINAL_TOOL, { terminal: "terminal:1:a", lines: 50 }), "ターミナルの出力を読む: 最後の 50 行");
+});
+
+test("AI がワークツリーを片付けるツール: 行はどのワークツリーか（省いたらこのチャットのワークツリー）", () => {
+  assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, { worktree: "feat/a" }), "ワークツリーを片付ける: feat/a");
+  assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, {}), "ワークツリーを片付ける: このチャットのワークツリー");
 });

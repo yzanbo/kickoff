@@ -26,6 +26,7 @@ import type { DockerService } from "../docker/service.js";
 import type { PortWatch } from "../ports/watch.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import type { SessionsUsedElsewhere } from "../trash/siblingSessions.js";
+import type { WorktreeFinisher } from "../worktrees/finish.js";
 import type { TrashService } from "../trash/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { deviceRoutes, pairingClaimRoutes } from "./routes/devices.js";
@@ -100,6 +101,8 @@ export interface ServerDeps {
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻せる。trash/service.ts） */
   trashBin: TrashService;
+  /** ワークツリーの後始末（画面の「消す」と AI の finish_worktree。確かめ・控え・予約。worktrees/finish.ts） */
+  worktreeFinisher: WorktreeFinisher;
   /** ほかの Kickoff（製品版と開発版）が使っているセッション（どのチャットも使っていない会話記録の一覧から除く。省けば調べない） */
   sessionsElsewhere?: SessionsUsedElsewhere;
   /** 内蔵ターミナルのシェル（スマホは WebSocket でつなぐ = routes/terminals.ts） */
