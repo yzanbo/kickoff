@@ -58,6 +58,7 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
             turnChanges={item.turnChanges}
             turnHandoff={item.turnHandoff}
             turnHandoffs={item.turnHandoffs}
+            createdChats={item.createdChats}
             busy={active}
           />
         );
@@ -201,6 +202,7 @@ function EventItem({
   turnChanges,
   turnHandoff,
   turnHandoffs,
+  createdChats,
   busy,
 }: {
   event: ChatEvent;
@@ -209,11 +211,12 @@ function EventItem({
   turnChanges?: FileChange[];
   turnHandoff?: TurnHandoff;
   turnHandoffs?: ChatEventOf<"handoff">[];
+  createdChats?: string;
   busy: boolean;
 }) {
   switch (event.type) {
     case "user":
-      return <UserMessage event={event} busy={busy} />;
+      return <UserMessage event={event} busy={busy} createdChats={createdChats} />;
     case "text":
       return <AssistantMessage event={event} />;
     case "thinking":

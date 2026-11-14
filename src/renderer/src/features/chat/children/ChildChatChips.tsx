@@ -15,11 +15,11 @@ import { summaryState } from "@/features/chat/chatState";
 import { confirmArchiveChats, confirmDeleteChat, toggleArchiveChat } from "@/features/chat/chatActions";
 import { modelDisplayName } from "@/features/chat/options/models";
 import { DefaultOpenPlace, OpenPlaceButtons } from "@/features/chat/composer/OpenPlaceControls";
-import { useChildChats } from "@/stores/chats";
+import { useChildChats, useKnownChat } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { usePopover } from "@/ui/Popover";
 import { ChipWord, ComposerChip } from "@/features/chat/composer/ComposerChip";
-import { openChildChat } from "./openChild";
+import { openChatOrChild, openChildChat } from "./openChild";
 import { useNewChildFlash } from "./useNewChildFlash";
 
 /** まだ終わっていない様子（まとめてアーカイブしない。作業中はコアが断り、回答待ちは答える必要がある） */
@@ -28,12 +28,16 @@ const UNFINISHED_STATES: ReadonlySet<AgentState> = new Set(["running", "needs_in
 /** ピルに数を添える様子（見てほしい順） */
 const NOTICE_STATES = ["needs_input", "failed", "unread"] as const;
 
-/** 子チャットの札 1 つ（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く） */
+/**
+ * 子チャットの札 1 つ（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く）。AI が作った兄弟チャット・親のないチャットも同じ札で、
+ * 兄弟チャットは子チャットと同じ開き方、親のないチャットはチャットのパネルで開く（openChatOrChild）
+ */
 function ChildChip({ chat }: { chat: Chat }) {
   const { stateOf } = useChatStates();
   const state = stateOf(chat);
+  const kind = chat.parent_chat_id === null ? "チャット" : "子チャット";
   return (
-    <button type="button" className={cx("child-chat-chip", `child-${state}`)} title={`子チャット「${chatTitle(chat.title)}」を開く`} onClick={() => openChildChat(chat)}>
+    <button type="button" className={cx("child-chat-chip", `child-${state}`)} title={`${kind}「${chatTitle(chat.title)}」を開く`} onClick={() => openChatOrChild(chat)}>
       <MessagesSquare size={12} aria-hidden />
       <span className="child-chat-chip-title">{chatTitle(chat.title)}</span>
       <span className="child-chat-chip-state">
@@ -45,14 +49,27 @@ function ChildChip({ chat }: { chat: Chat }) {
   );
 }
 
-/** 親の会話の、聞いた発言・返答の下に並べる子チャットの札（そこから聞いた子チャットだけ） */
-export function ChildChatMarks({ chatId, eventId }: { chatId: number; eventId: number }) {
-  const children = useChildChats().get(chatId)?.filter((c) => c.parent_event_id === eventId);
-  if (!children?.length) return null;
+/** AI が作った兄弟チャット・親のないチャットの札 1 つ（一覧にまだ届いていない・消されたものは出さない） */
+function CreatedChip({ id }: { id: number }) {
+  const chat = useKnownChat(id);
+  return chat ? <ChildChip chat={chat} /> : null;
+}
+
+/**
+ * 親の会話の、聞いた発言・返答の下に並べる子チャットの札（そこから聞いた子チャットだけ）と、その発言の作業で AI が create_chat で作った
+ * 兄弟チャット・親のないチャットの札（created。「,」でつないだ ID。作った側の流れから見つけられるように。メモの仕様書「0019_AI の操作ツールの追加」の E）
+ */
+export function ChildChatMarks({ chatId, eventId, created }: { chatId: number; eventId: number; created?: string }) {
+  const children = useChildChats().get(chatId)?.filter((c) => c.parent_event_id === eventId) ?? [];
+  const others = created ? created.split(",").map(Number).filter((id) => !children.some((c) => c.id === id)) : [];
+  if (children.length === 0 && others.length === 0) return null;
   return (
     <div className="child-chat-marks">
       {children.map((c) => (
         <ChildChip key={c.id} chat={c} />
+      ))}
+      {others.map((id) => (
+        <CreatedChip key={id} id={id} />
       ))}
     </div>
   );
