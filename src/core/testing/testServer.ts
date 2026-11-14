@@ -22,7 +22,7 @@ import { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { PortProcessService } from "../ports/service.js";
 import { PortWatch } from "../ports/watch.js";
 import { PairingCenter } from "../devices/pairing.js";
-import { NotificationCenter } from "../notifications/center.js";
+import { NotificationCenter, type PushResult } from "../notifications/center.js";
 import type { Notice } from "../notifications/notices.js";
 import { ViewingRegistry } from "../notifications/viewing.js";
 import { BrowserLogin } from "../http/browserLogin.js";
@@ -387,13 +387,19 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const pairing = new PairingCenter({ store, publish: (e) => bus.publish(e), now: () => pairingClock.now });
   // 通知: この Mac の通知とプッシュは偽物にして、出したものを覚える（notified / pushed）
   const viewing = new ViewingRegistry();
-  const notifyFake = { notified: [] as Notice[], pushed: [] as { push: DevicePush; title: string; body: string; host_id: string }[] };
+  // 通知: 出した Mac の通知と送ったプッシュを覚える（result で送った結果を差し替える。gone なら宛先を外す）
+  const notifyFake = { notified: [] as Notice[], pushed: [] as { push: DevicePush; title: string; body: string; host_id: string }[], result: "sent" as PushResult };
   const notifications = new NotificationCenter({
     bus,
     store,
     viewing,
     desktop: (n) => void notifyFake.notified.push(n),
-    push: { send: async (push, m) => void notifyFake.pushed.push({ push, title: m.title, body: m.body, host_id: m.host_id }) },
+    push: {
+      send: async (push, m) => {
+        notifyFake.pushed.push({ push, title: m.title, body: m.body, host_id: m.host_id });
+        return notifyFake.result;
+      },
+    },
   });
   after(() => notifications.close());
   const browserLogin = new BrowserLogin();

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Approval } from "@shared/types";
 import { hashToken } from "./caller.js";
+import { until } from "../testing/testCore.js";
 import { setup } from "../testing/testServer.js";
 
 const approval = (chatId: number, projectId: number, patch: Partial<Approval> = {}): Approval => ({
@@ -88,6 +89,16 @@ test("通知: 設定で Mac の通知を切ったら出さない。プッシュ�
   finish("failed");
   assert.deepEqual(notifyFake.notified, []);
   assert.deepEqual(notifyFake.pushed, [{ push: { kind: "expo", token: "ExponentPushToken[a]" }, title: "調査", body: "失敗しました", host_id: store.databaseId }]);
+});
+
+test("通知: Expo が「宛先がもう使えない」と答えたら、その端末のプッシュの宛先を外す（次からは送らない）", async () => {
+  const { finish, store, notifyFake } = withChat();
+  const pixel = store.devices.create("Pixel", hashToken("x".repeat(40)));
+  store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[gone]" });
+  notifyFake.result = "gone";
+  finish("completed");
+  await until(() => store.devices.push(pixel.id) === null);
+  assert.equal(store.devices.get(pixel.id)!.has_push, false);
 });
 
 test("見ているものの知らせ: 形が違えば 400", async () => {

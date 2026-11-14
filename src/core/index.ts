@@ -9,6 +9,7 @@ import { currentSelf } from "./chat/guard/selfProtection.js";
 import type { HostPlatform } from "./platform/types.js";
 import { PairingCenter } from "./devices/pairing.js";
 import { NotificationCenter, type DesktopNotify, type PushSender } from "./notifications/center.js";
+import { expoPushSender } from "./notifications/expoPush.js";
 import { ViewingRegistry } from "./notifications/viewing.js";
 import { BrowserLogin } from "./http/browserLogin.js";
 import { createApp } from "./http/server.js";
@@ -62,7 +63,7 @@ interface CoreOptions {
   secretCipher?: SecretCipher;
   /** この Mac の通知を出す口（Mac のアプリのメインプロセスが渡す。出すかはコアが決める = notifications/center.ts。単体のコアにはない） */
   notify?: DesktopNotify;
-  /** スマホのプッシュを送る口（Expo Push・Web Push。いまはまだ中身がなく、渡さない） */
+  /** スマホのプッシュを送る口（省けば Expo Push = notifications/expoPush.ts。Web Push はまだ送らない） */
   push?: PushSender;
 }
 
@@ -158,7 +159,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // 通知の判断（完了・失敗・回答待ち・CI の失敗を、だれも見ていなければ、この Mac の通知とつないだ端末のプッシュへ）
   const viewing = new ViewingRegistry();
   const browserLogin = new BrowserLogin();
-  const notifications = new NotificationCenter({ bus, store, viewing, desktop: opts.notify, push: opts.push });
+  const notifications = new NotificationCenter({ bus, store, viewing, desktop: opts.notify, push: opts.push ?? expoPushSender() });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
