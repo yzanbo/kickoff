@@ -1,16 +1,29 @@
 /* ==== 添付ファイル（画像を大きく見る・Mermaid の図の全画面は image-viewer.css） ==== */
 
-/* 添付ファイル */
-
+/*
+ * 添付の札（ファイル・メモ・「AI に渡す」で取ったもの。入力欄・発言の吹き出し・送信待ちで同じ形）: 1 枚のカードに、左に角丸のアイコンの地（種類ごとの色）
+ * か画像のサムネイル、右に名前と 2 行目（種類・大きさ・時刻）。押せる札は乗せると枠をアクセントの色にする。
+ * 中の押せる部分（.attachment-link）は button / a / span のどれでも同じ見た目にする（前は button の既定の白地と枠が残り、札の中にもう 1 つ枠が出ていた）
+ */
 .attachment {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  max-width: 260px;
-  padding: 4px 6px 4px 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elev);
+  gap: 2px;
+  max-width: 280px;
+  padding: 5px;
+  /* 入力欄（地が --bg-elev）の中でも枠が見えるよう、地と枠を文字の色で少しだけ持ち上げる（ライト・ダークどちらでも） */
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 4%, var(--bg-elev));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.attachment:has(:is(button, a).attachment-link:hover) {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: 0 2px 10px rgb(0 0 0 / 12%);
 }
 
 .attachment.uploading {
@@ -20,41 +33,66 @@
 .attachment-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   min-width: 0;
+  padding: 0 8px 0 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
   color: var(--text);
+  background: none;
+}
+
+:is(button, a).attachment-link {
+  cursor: pointer;
 }
 
 /* 画像の添付は押すと大きく表示する */
 .attachment-open {
-  padding: 0;
-  border: none;
-  font: inherit;
-  text-align: left;
-  background: none;
   cursor: zoom-in;
 }
 
 .attachment-thumb,
 .attachment-icon {
   flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
+  width: calc(36px * var(--chat-scale, 1));
+  height: calc(36px * var(--chat-scale, 1));
+  border-radius: 8px;
 }
 
 .attachment-thumb {
   object-fit: cover;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
 }
 
+/* アイコンの地（種類ごとの色。ファイルはファイルの種類のアイコンをそのまま、メモはアクセント、「AI に渡す」は青） */
 .attachment-icon {
   display: grid;
   place-items: center;
-  font-size: calc(20px * var(--chat-scale, 1));
+  color: var(--muted);
+  background: var(--bg-hover);
+}
+
+.attachment-icon .file-icon,
+.attachment-icon img {
+  width: 20px;
+  height: 20px;
+}
+
+.memo-attachment .attachment-icon {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.capture-attachment .attachment-icon {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 14%, transparent);
 }
 
 .attachment-meta {
   display: grid;
+  gap: 1px;
   min-width: 0;
   line-height: 1.3;
 }
@@ -62,10 +100,24 @@
 .attachment-name {
   overflow: hidden;
   font-size: calc(13px * var(--chat-scale, 1));
+  font-weight: 500;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+.attachment-sub {
+  overflow: hidden;
+  font-size: calc(11px * var(--chat-scale, 1));
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+/* 外す × は札の右端に寄せる */
+.attachment .chip-remove {
+  flex: none;
+  margin-right: 1px;
+}
 
 /* 添付の一覧のポップオーバー（送信待ちの行の「+n」付きのサムネイルから、その上（入らなければ下）に開く。枠と地は .popover） */
 .attachment-grid-popover {
@@ -223,13 +275,4 @@
   font-size: calc(13px * var(--chat-scale, 1));
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-/* メモの添付: 押すとメモを開く（画像の拡大ではないので、ふつうの指のカーソル）。アイコンはメモの一覧と同じ */
-.memo-attachment .attachment-link {
-  cursor: pointer;
-}
-
-.memo-attachment .attachment-icon {
-  color: var(--muted);
 }

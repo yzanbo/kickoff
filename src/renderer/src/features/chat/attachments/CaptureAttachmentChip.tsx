@@ -41,7 +41,7 @@ export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: Ca
           <img className="attachment-thumb" src={attachmentUrl(attachment)} alt="" />
         ) : (
           <span className="attachment-icon">
-            <Icon size={16} aria-hidden />
+            <Icon size={18} aria-hidden />
           </span>
         )}
         <span className="attachment-meta">
@@ -50,7 +50,7 @@ export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: Ca
             <span className="capture-name-text">{attachment.source.label}</span>
             {external && <ShieldAlert size={12} className="capture-external" aria-label="外から来たデータ" />}
           </span>
-          <span className="muted small">{captureSubline(attachment, formatDayTime)}</span>
+          <span className="attachment-sub">{captureSubline(attachment, formatDayTime)}</span>
         </span>
       </button>
       {onRemove && (

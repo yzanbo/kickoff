@@ -1,18 +1,6 @@
 /* ==== 「AI に渡す」で取ったものの札と、中身を読むだけのダイアログ（ふつうの添付の札は attachments.css） ==== */
 
-/* 「AI に渡す」で取ったもの: 押すと取った中身を読むだけのダイアログで見る。外から来た中身は名前の後ろに盾の印 */
-.capture-attachment .attachment-link {
-  padding: 0;
-  border: none;
-  font: inherit;
-  text-align: left;
-  background: none;
-  cursor: pointer;
-}
-
-.capture-attachment .attachment-icon {
-  color: var(--muted);
-}
+/* 「AI に渡す」で取ったもの: 押すと取った中身を読むだけのダイアログで見る（札の形・アイコンの色は attachments.css）。外から来た中身は名前の後ろに盾の印 */
 
 /* 名前の文字だけを「…」で切り、後ろの盾の印は残す（名前ごと切ると、長い名前で印が隠れた） */
 .capture-attachment .attachment-name {
