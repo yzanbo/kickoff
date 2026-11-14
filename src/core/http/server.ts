@@ -27,6 +27,7 @@ import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { deviceRoutes, pairingClaimRoutes } from "./routes/devices.js";
 import type { PairingCenter } from "../devices/pairing.js";
+import type { ViewingRegistry } from "../notifications/viewing.js";
 import { chatRoutes } from "./routes/chats.js";
 import { databaseRoutes } from "./routes/databases.js";
 import { githubRoutes } from "./routes/github.js";
@@ -84,6 +85,8 @@ export interface ServerDeps {
   ports: PortWatch;
   /** スマホ連携のペアリング（使い捨ての番号・確かめを待っている頼み） */
   pairing: PairingCenter;
+  /** いまだれが何を見ているか（通知を出すかの判断） */
+  viewing: ViewingRegistry;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。テストでは差し替えて、gh を呼ばない。なければ gh auth status） */
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」・使わなくなった会話記録。OS の口の moveToTrash。テストでは差し替えて、本物のゴミ箱に入れない） */

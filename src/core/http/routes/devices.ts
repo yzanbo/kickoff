@@ -1,18 +1,26 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { PairingClaimBody } from "@shared/types";
+import type { PairingClaimBody, ViewingBody } from "@shared/types";
+import { callerOf } from "../caller.js";
 import { DEVICE_NAME_MAX } from "../../devices/pairing.js";
 import type { ServerDeps } from "../server.js";
 import { idParam, jsonBody } from "../input.js";
 
 const claimSchema = z.object({ code: z.string().trim().min(1).max(20), name: z.string().max(200) }) satisfies z.ZodType<PairingClaimBody>;
 const pollSchema = z.object({ secret: z.string().min(1).max(200) });
+const viewingSchema = z.object({ chat_id: z.number().int().positive().nullable(), ci_project_id: z.number().int().positive().nullable() }) satisfies z.ZodType<ViewingBody>;
 
 /**
  * スマホ連携の端末とペアリング。この Mac の画面だけが使う口（/api/pairing・/api/devices。端末には開かない = deviceAccess.ts）と、
  * まだトークンを持たない端末が使う口（/pairing/…。認証の外。番号と、頼んだ端末だけが知る鍵で守る）
  */
-export function deviceRoutes(app: Hono, { pairing, store }: ServerDeps) {
+export function deviceRoutes(app: Hono, { pairing, store, viewing }: ServerDeps) {
+  // いま見ているもの（この Mac の画面も端末も。だれかが見ているチャット・CI のタブの知らせは通知しない = notifications/center.ts）
+  app.put("/api/viewing", async (c) => {
+    viewing.report(callerOf(c), viewingSchema.parse(await jsonBody(c)));
+    return c.body(null, 204);
+  });
+
   // ---- この Mac の画面 ----
   app.get("/api/pairing", (c) => c.json(pairing.state()));
   // 新しい番号を出す（前の番号は捨てる）

@@ -3,7 +3,7 @@ import { after } from "node:test";
 import fs from "node:fs/promises";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../providers/types.js";
 import { createApp } from "../http/server.js";
-import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, GitHubRemote, SlashCommandOption } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, GitHubRemote, SlashCommandOption, DevicePush } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
@@ -22,6 +22,9 @@ import { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { PortProcessService } from "../ports/service.js";
 import { PortWatch } from "../ports/watch.js";
 import { PairingCenter } from "../devices/pairing.js";
+import { NotificationCenter } from "../notifications/center.js";
+import type { Notice } from "../notifications/notices.js";
+import { ViewingRegistry } from "../notifications/viewing.js";
 import { parseCwds, parseLsof } from "../platform/macos/listening.js";
 import { parsePs } from "../platform/macos/processes.js";
 import { fakeDocker } from "./fakeDocker.js";
@@ -379,7 +382,18 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   // スマホ連携のペアリング（番号と頼みはメモリだけ。時計は pairingClock.now を進めて期限を試す）
   const pairingClock = { now: Date.now() };
   const pairing = new PairingCenter({ store, publish: (e) => bus.publish(e), now: () => pairingClock.now });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  // 通知: この Mac の通知とプッシュは偽物にして、出したものを覚える（notified / pushed）
+  const viewing = new ViewingRegistry();
+  const notifyFake = { notified: [] as Notice[], pushed: [] as { push: DevicePush; title: string; body: string; host_id: string }[] };
+  const notifications = new NotificationCenter({
+    bus,
+    store,
+    viewing,
+    desktop: (n) => void notifyFake.notified.push(n),
+    push: { send: async (push, m) => void notifyFake.pushed.push({ push, title: m.title, body: m.body, host_id: m.host_id }) },
+  });
+  after(() => notifications.close());
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -391,6 +405,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, pairing, pairingClock, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
 }
 
