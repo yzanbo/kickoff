@@ -1,9 +1,9 @@
-// 通知の判断（コアの 1 か所）: 変更の知らせ（Bus）から、チャットの完了・失敗・回答待ちと CI の失敗を見つけ、それを見ていない人にだけ送る:
+// 通知の判断（コアの 1 か所）: 変更の知らせ（Bus）から、チャットの完了・失敗・回答待ち・AI からの知らせ（notify_user）と CI の失敗を見つけ、それを見ていない人にだけ送る:
 // この Mac の通知（メインプロセスが startCore({ notify }) で渡す口）と、つないだ端末のプッシュ（PushSender。中身はあとで足す。CI の失敗は送らない）
 import type { BusEvent, ChatStatus, DevicePush } from "@shared/types";
 import type { Bus } from "../bus.js";
 import type { Store } from "../db/store.js";
-import { approvalNotice, chatNotice, ciNotice, type Notice } from "./notices.js";
+import { aiNotice, approvalNotice, chatNotice, ciNotice, type Notice } from "./notices.js";
 import type { Viewer, ViewingRegistry } from "./viewing.js";
 
 /** この Mac の通知を出す口（Mac のアプリのメインプロセス。単体のコアにはない） */
@@ -75,6 +75,10 @@ export class NotificationCenter {
     }
     if (e.type === "approval") return approvalNotice(e.approval, this.opts.store.chats.get(e.approval.chat_id) ?? null, projectName(e.approval.project_id));
     if (e.type === "ci_failed") return ciNotice(e.failure, projectName(e.failure.project_id));
+    if (e.type === "ai_notice") {
+      const chat = this.opts.store.chats.get(e.chat_id);
+      return chat ? aiNotice(chat, e.message, projectName(chat.project_id)) : null;
+    }
     return null;
   }
 

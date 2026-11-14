@@ -34,6 +34,9 @@ import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, Pr
 import { runCommand } from "../../system/exec.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
 
+/** Kickoff のチャットでは使わせない Claude Code のツール（Kickoff の利用者に届かない・Kickoff の操作ツールと取り違えるもの） */
+const KICKOFF_DISALLOWED_TOOLS = ["PushNotification"];
+
 /** 要約に渡す文の上限（文字。haiku のコンテキストと時間に収める） */
 const MAX_SUMMARIZE_CHARS = 60_000;
 
@@ -149,7 +152,7 @@ export class ClaudeProvider implements AgentProvider {
     const canUseTool = createCanUseTool(cb);
     // Kickoff の埋め込みブラウザを操作するツール（デスクトップアプリのときだけ）・プロジェクトの DB を読むツール（AI に見せる接続があるときだけ）・
     // チャットのツール（子チャットを作るのは設定で止めていない・深さの上限に達していないときだけ。家系のチャットの名前・固定・グループを変えるのはいつも）
-    const chatTools = { createChat: params.createChat ?? null, chatEdit: params.chatEdit ?? null, open: params.open ?? null, read: params.chatRead ?? null, project: params.chatProject ?? null, terminal: params.chatTerminal ?? null, visual: params.chatVisual ?? null, worktree: params.chatWorktree ?? null };
+    const chatTools = { createChat: params.createChat ?? null, chatEdit: params.chatEdit ?? null, open: params.open ?? null, read: params.chatRead ?? null, project: params.chatProject ?? null, terminal: params.chatTerminal ?? null, visual: params.chatVisual ?? null, worktree: params.chatWorktree ?? null, notify: params.chatNotify ?? null };
     const chatServer = chatMcpServer(chatTools, cb, abortController.signal);
     const mcpServers = {
       ...(params.browser ? { [BROWSER_SERVER]: browserMcpServer(params.browser.control, params.browser) } : {}),
@@ -212,6 +215,8 @@ export class ClaudeProvider implements AgentProvider {
             ...(params.database ? dbToolNames() : []),
             ...chatToolNames(chatTools),
           ],
+          // Claude Code の PushNotification は Claude のアプリ・端末に送るもので Kickoff の利用者に届かないので外す（知らせるのは kickoff_chat の notify_user）
+          disallowedTools: KICKOFF_DISALLOWED_TOOLS,
           ...(Object.keys(mcpServers).length > 0 ? { mcpServers } : {}),
           canUseTool,
           resume: params.resumeSessionId ?? undefined,

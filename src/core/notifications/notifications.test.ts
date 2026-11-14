@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { VIEWING_TTL_MS } from "@shared/types";
 import { makeChat } from "@shared/testing/factories";
-import { chatNotice, noticeChatName } from "./notices.js";
+import { aiNotice, chatNotice, noticeChatName } from "./notices.js";
 import { ViewingRegistry } from "./viewing.js";
 
 test("noticeChatName: 子チャット・メモのチャットは頭に添え、名前がなければ Untitled Chat", () => {
@@ -29,4 +29,15 @@ test("ViewingRegistry: 呼び主ごとに覚え（ほかの人が見ていても
   assert.equal(views.viewingCi("host", 2), true);
   now += VIEWING_TTL_MS + 1;
   assert.equal(views.viewingCi("host", 2), false);
+});
+
+test("aiNotice: Mac の通知には本文とプロジェクト名、プッシュにはチャットの名前と「AI からの知らせ」だけ", () => {
+  const notice = aiNotice(makeChat(4, { project_id: 2, title: "移行", parent_chat_id: 1 }), "1 段目が済みました", "app");
+  assert.deepEqual(notice, {
+    kind: "ai_notice",
+    target: { kind: "chat", project_id: 2, chat_id: 4 },
+    title: "AI からの知らせ: 子チャット: 移行",
+    body: "app ・ 1 段目が済みました",
+    push: { title: "子チャット: 移行", body: "AI からの知らせ" },
+  });
 });

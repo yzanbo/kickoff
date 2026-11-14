@@ -27,6 +27,7 @@ import { createAiProjectTools } from "./aiProject.js";
 import { createAiTerminalTools } from "./aiTerminal.js";
 import { createAiVisualTools } from "./aiVisual.js";
 import { createAiWorktreeTools } from "./aiWorktree.js";
+import { createAiNotifyTools } from "./aiNotify.js";
 import type { MemoService } from "../memos/memos.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { canCreateChat, createAiCreateChatTools, type StartedChild } from "./aiCreateChat.js";
@@ -251,6 +252,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     chatVisual: createAiVisualTools(deps.store, chat.id),
     // ワークツリーを片付けるツール（どのチャットにも。本体のチャットはどのワークツリーでも、ワークツリーのチャットは自分のものだけ。後始末を渡してあるときだけ）
     chatWorktree: deps.worktreeFinisher ? createAiWorktreeTools(deps.worktreeFinisher, chat.id) : null,
+    // 利用者に知らせるツール（どのチャットにも。送るかは通知の中心が決める。1 回の作業で回数を数えるので作業ごとに作る。バスがあるときだけ）
+    chatNotify: deps.bus ? createAiNotifyTools({ store: deps.store, publish: (e) => deps.bus?.publish(e) }, chat.id) : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く
