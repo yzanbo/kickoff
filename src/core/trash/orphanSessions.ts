@@ -6,7 +6,7 @@ import type { Store } from "../db/store.js";
 import type { AgentProvider, SessionFileInfo } from "../providers/types.js";
 import type { SessionsUsedElsewhere } from "./siblingSessions.js";
 import type { TrashService } from "./service.js";
-import { sessionLabel } from "./sessionTrash.js";
+import { sessionCompanion, sessionLabel } from "./sessionTrash.js";
 
 export interface OrphanSessionDeps {
   store: Store;
@@ -53,7 +53,7 @@ export async function trashOrphanSessions(deps: OrphanSessionDeps, sessionIds: s
   let trashed = 0;
   for (const f of await orphanFiles(deps)) {
     if (!wanted.has(f.sessionId)) continue;
-    await deps.trashBin.putPath(f.file, { projectId: f.cwd ? deps.projectOfPath(f.cwd) : null, kind: "session", label: sessionLabel(f.firstPrompt) });
+    await deps.trashBin.putPath(f.file, { projectId: f.cwd ? deps.projectOfPath(f.cwd) : null, kind: "session", label: sessionLabel(f.firstPrompt), companions: [sessionCompanion(f.file)] });
     trashed++;
   }
   return trashed;

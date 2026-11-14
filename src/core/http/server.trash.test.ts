@@ -10,6 +10,7 @@ import { promisify } from "node:util";
 import { installTrashCommand, trashCommandEnv } from "../trash/command.js";
 import { trashMarksIn } from "@shared/trash/marks";
 import { setup } from "../testing/testServer.js";
+import { until } from "../testing/testCore.js";
 import { tempDir } from "../testing/tempDir.js";
 
 const execFileAsync = promisify(execFile);
@@ -291,4 +292,20 @@ test("どのチャットも使っていない会話記録: 一覧（チャット
   const unassigned = (await call("GET", "/api/trash/unassigned")).body as TrashItem[];
   assert.equal(unassigned.length, 1);
   assert.equal(unassigned[0].origin, path.join(dir, `${ids.outside}.jsonl`));
+});
+
+test("ゴミ箱: 一緒に入れるもの（会話記録と同じ名前のフォルダ）も置き場へ移し、大きさに数え、戻すと元の場所へ戻る", async () => {
+  const { call, project, trashBin, store } = setup();
+  const dir = tempDir();
+  const file = path.join(dir, "s.jsonl");
+  const companion = path.join(dir, "s");
+  fs.writeFileSync(file, "12345");
+  fs.mkdirSync(path.join(companion, "subagents"), { recursive: true });
+  fs.writeFileSync(path.join(companion, "subagents", "a.jsonl"), "1234567890");
+  const put = await trashBin.putPath(file, { projectId: project.id, kind: "session", companions: [companion, path.join(dir, "none")] });
+  assert.equal(fs.existsSync(companion), false);
+  await until(() => (store.trash.get(put.id)?.size ?? 0) >= 15);
+  assert.equal((await call("POST", `/api/trash/${put.id}/restore`, {})).status, 200);
+  assert.equal(fs.readFileSync(path.join(companion, "subagents", "a.jsonl"), "utf8"), "1234567890");
+  assert.equal(fs.readFileSync(file, "utf8"), "12345");
 });
