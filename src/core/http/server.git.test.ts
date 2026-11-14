@@ -198,10 +198,11 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   fs.mkdirSync(path.join(repo, "empty", "inner"));
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/files`)).body.empty_dirs, ["empty", "empty/inner"]);
 
-  // ゴミ箱へ移す（テストでは消して覚える）。ないものは 404、外は 400
-  const { memoFake } = ctx;
-  assert.equal((await call("DELETE", `/api/projects/${project.id}/file?path=empty`)).status, 204);
-  assert.deepEqual(memoFake.trashed, [path.join(fs.realpathSync(repo), "empty")]);
+  // Kickoff のゴミ箱へ入れる（入れたゴミ箱の ID を返す）。ないものは 404、外は 400
+  const trashed = await call("DELETE", `/api/projects/${project.id}/file?path=empty`);
+  assert.equal(trashed.status, 200);
+  assert.equal(ctx.store.trash.get(trashed.body.trash_id)?.origin, path.join(fs.realpathSync(repo), "empty"));
+  assert.equal(ctx.store.trash.get(trashed.body.trash_id)?.project_id, project.id);
   assert.equal((await call("DELETE", `/api/projects/${project.id}/file?path=empty`)).status, 404);
   assert.equal((await call("DELETE", `/api/projects/${project.id}/file?path=../outside.txt`)).status, 400);
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/files`)).body.empty_dirs, []);

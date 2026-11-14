@@ -97,14 +97,14 @@ export async function createProjectFile(repo: string, file: string, dir: boolean
   return { path: file };
 }
 
-/** ファイル・フォルダをゴミ箱へ移す（ファイルタブの右クリックの「ゴミ箱に入れる」。Finder から戻せる。ないものは 404） */
-export async function trashProjectFile(repo: string, file: string, trash: (target: string) => Promise<void>): Promise<void> {
+/** ファイル・フォルダをゴミ箱へ入れる（ファイルタブの右クリックの「ゴミ箱に入れる」。入れ方は trash に任せる。ないものは 404） */
+export async function trashProjectFile<T>(repo: string, file: string, trash: (target: string) => Promise<T>): Promise<T> {
   const target = await assertInside(repo, file);
   await fs.lstat(target).catch((e: unknown) => {
     if ((e as { code?: unknown }).code === "ENOENT") throw new NotFound(`ファイルが見つかりません: ${file}`);
     throw e;
   });
-  await trash(target);
+  return trash(target);
 }
 
 /** 中身の指紋（保存の前に、開いたあとでほかで変わっていないか比べる） */

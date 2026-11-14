@@ -33,6 +33,11 @@ export interface TrashItem {
   expires_at: string;
 }
 
+/** ゴミ箱に入れた結果（画面の「元に戻す」で使うゴミ箱の ID） */
+export interface TrashedResult {
+  trash_id: string;
+}
+
 /** 元に戻す本文（rename: 元の場所に同じ名前があれば、別の名前で戻す） */
 export interface TrashRestoreBody {
   rename?: boolean;

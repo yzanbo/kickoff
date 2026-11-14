@@ -85,8 +85,7 @@ export function memoRoutes(app: Hono, { store, memos, runner, uploads }: ServerD
 
   app.delete("/api/projects/:id/memo", withProject, async (c) => {
     const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
-    await memos.trash(c.var.project, path);
-    return c.body(null, 204);
+    return c.json({ trash_id: await memos.trash(c.var.project, path) });
   });
 
   // メモの写しを添付として保存する（入力欄にメモを添付したとき。送るときは写しと元のメモのパスを AI に伝える）

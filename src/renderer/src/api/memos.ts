@@ -1,4 +1,4 @@
-import type { Chat, FileContent, MemoAttachment, MemoChatBody, MemoDefaults, MemoDirUsers, MemoFromChatBody, MemoList, MemoPlan, MemoRef, MemoSearchResult, SavedFile } from "@shared/types";
+import type { Chat, FileContent, MemoAttachment, MemoChatBody, MemoDefaults, MemoDirUsers, MemoFromChatBody, MemoList, MemoPlan, MemoRef, MemoSearchResult, SavedFile, TrashedResult } from "@shared/types";
 import { request, withQuery } from "./http";
 
 /** プロジェクトのメモ（保存先はプロジェクトの外。パスはメモのフォルダからの相対。コアの routes/memos.ts） */
@@ -20,7 +20,7 @@ export const memosApi = {
     request<MemoRef>("POST", `/api/projects/${projectId}/memos`, { path, ...opts }),
   moveMemo: (projectId: number, from: string, to: string) => request<MemoRef>("POST", `/api/projects/${projectId}/memos/move`, { from, to }),
   /** ゴミ箱へ移す */
-  trashMemo: (projectId: number, path: string) => request<void>("DELETE", withQuery(`/api/projects/${projectId}/memo`, { path })),
+  trashMemo: (projectId: number, path: string) => request<TrashedResult>("DELETE", withQuery(`/api/projects/${projectId}/memo`, { path })),
   /** チャットの文からメモを作る・足す（summarize なら AI で要約してから） */
   memoFromChat: (projectId: number, body: MemoFromChatBody) => request<MemoRef>("POST", `/api/projects/${projectId}/memos/from-chat`, body),
   /** メモのチャットを始める（最初の指示。メモごとに 1 つ。続きはふつうのチャットと同じく sendMessage） */

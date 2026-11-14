@@ -117,13 +117,6 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     }
     console.log(`[core] メモのフォルダを ${memosDefaultDir} に移しました`);
   }
-  const memos = new MemoService({
-    store,
-    defaultDir: memosDefaultDir,
-    providers,
-    publish: (e) => bus.publish(e),
-    trash: opts.platform.moveToTrash,
-  });
   // Kickoff のゴミ箱（消したものを 3 日取っておく。起動したときと 1 時間ごとに、期限の来たものを本当に消す）。
   // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体・メモのフォルダ）のゴミ箱に出す
   const trashBin = new TrashService({
@@ -133,6 +126,13 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       const owner = store.projects.list().find((p) => isInside(p.repo_path, origin) || ((p.memo_path || p.memo_folder) && isInside(memos.dirOf(p), origin)));
       return owner?.id ?? null;
     },
+  });
+  const memos = new MemoService({
+    store,
+    defaultDir: memosDefaultDir,
+    providers,
+    publish: (e) => bus.publish(e),
+    trashBin,
   });
   // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる）
   // DB のパスワードはキーチェーンの鍵で暗号化して置く（暗号化せずに置いていたものは、起動のときに一度だけ置き換える）

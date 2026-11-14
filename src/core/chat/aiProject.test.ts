@@ -13,7 +13,7 @@ function setup() {
   const ctx = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s", turns: 1, result: "" })));
   const base = { project_id: ctx.project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, parent_chat_id: null };
   const chat = ctx.store.chats.create({ ...base, title: "作業", memo_path: null });
-  const memos = new MemoService({ store: ctx.store, defaultDir: tempDir(), providers: ctx.providers, publish: () => {}, trash: async () => {} });
+  const memos = new MemoService({ store: ctx.store, defaultDir: tempDir(), providers: ctx.providers, publish: () => {}, trashBin: { putPath: async () => { throw new Error("使わない"); } } });
   const dir = memos.dirOf(ctx.store.projects.get(ctx.project.id)!);
   fs.mkdirSync(path.join(dir, "済"), { recursive: true });
   fs.writeFileSync(path.join(dir, "案.md"), "# 案");

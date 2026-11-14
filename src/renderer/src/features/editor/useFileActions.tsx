@@ -135,7 +135,7 @@ export function useFileActions(
     const unsaved = selection.dirtyUnder(path) !== null;
     const ok = await confirmDialog({
       title: dir ? `フォルダー「${baseName(path)}」をゴミ箱に入れますか？` : `「${baseName(path)}」をゴミ箱に入れますか？`,
-      message: `${dir ? "中のファイルもすべてゴミ箱に入ります。" : ""}Finder のゴミ箱から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
+      message: `${dir ? "中のファイルもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });
@@ -156,7 +156,7 @@ export function useFileActions(
     const unsaved = targets.some((n) => selection.dirtyUnder(n.path) !== null);
     const ok = await confirmDialog({
       title: `${targets.length} 件をゴミ箱に入れますか？`,
-      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダーの中のファイルもすべてゴミ箱に入ります。" : ""}Finder のゴミ箱から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
+      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダーの中のファイルもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。${unsaved ? "開いているファイルの保存していない変更は消えます。" : ""}`,
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });
