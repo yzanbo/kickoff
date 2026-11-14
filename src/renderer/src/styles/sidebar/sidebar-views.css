@@ -128,6 +128,43 @@
 }
 
 /*
+ * 「ほかのビュー」の ▾ のメニューの項目もドラッグで並べ替える（縦に並ぶので、落とす先の線は項目の上か下に横に引く）。
+ * タブをドラッグして ▾ に重ねると、いちばん後ろへ落とせる印に枠を付ける（重ねたまま待つとメニューが開く）
+ */
+.menu button.sidebar-view-drop-before,
+.menu button.sidebar-view-drop-after {
+  position: relative;
+}
+
+.menu button.sidebar-view-drop-before::after,
+.menu button.sidebar-view-drop-after::after {
+  position: absolute;
+  right: 4px;
+  left: 4px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent-bright);
+  content: "";
+  pointer-events: none;
+}
+
+.menu button.sidebar-view-drop-before::after {
+  top: -1px;
+}
+
+.menu button.sidebar-view-drop-after::after {
+  bottom: -1px;
+}
+
+.menu button.sidebar-view-dragging {
+  opacity: var(--drag-source-opacity);
+}
+
+.sidebar-view-more.sidebar-view-drop-end {
+  box-shadow: inset 0 0 0 2px var(--accent-bright);
+}
+
+/*
  * その場で名前を変える欄（タブの代わりに置く）。欄は ✓ ✕ を含めると列のほぼ 1 行分あるので、名前を変える間は先頭に並べて行いっぱいに出し、
  * ほかのタブは隠れる 2 行目へ送る（前はタブの場所に置いていて、前にタブがあると 2 行目に折り返して欄ごと見えなくなった）
  */

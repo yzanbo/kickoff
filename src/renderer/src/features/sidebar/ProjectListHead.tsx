@@ -7,6 +7,7 @@ import { confirmDialog } from "@/ui/dialogs";
 import { IconButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
 import { Popover } from "@/ui/Popover";
+import { anchorPlacement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useViewTabDrag } from "@/ui/useViewTabDrag";
@@ -44,7 +45,7 @@ interface Props extends TunerProps {
 
 /**
  * プロジェクト一覧の上の見出し（利用者の依頼で、縦の幅を取っていた 3 行（プロジェクト・チャット・要対応のボタン）を、ビューのタブ 1 行にした）。
- * 左からビューのタブ（押すとその見え方を当てる。入らない分は ▾ のメニューに。右クリックで名前の変更・上書き・削除、ドラッグで並べ替え）、
+ * 左からビューのタブ（押すとその見え方を当てる。入らない分は ▾ のメニューに。右クリックで名前の変更・上書き・削除、ドラッグで並べ替え（▾ のメニューの中・タブの行との間も））、
  * すべて閉じる / 開く、要対応の数（一覧に要対応の数が出ていないときだけ）、⚙（いまの 3 行を窓で出して細かく変える・ビューに残す）。
  * その下に、タグがあるときだけタグの絞り込みの行（その場の絞り込みなのでビューに入れない）
  */
@@ -197,9 +198,11 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
           icon={ChevronDown}
           label={`ほかのビュー（${hidden.length} 件）`}
           size={14}
-          className={cx("sidebar-view-icon sidebar-view-more", more.isOpen && "active", hidden.some((id) => id === views.active?.id) && "has-active")}
+          className={cx("sidebar-view-icon sidebar-view-more", more.isOpen && "active", hidden.some((id) => id === views.active?.id) && "has-active", drag.endClass)}
           aria-expanded={more.isOpen}
           onClick={(e) => more.toggle(e, undefined)}
+          // タブをドラッグして重ねると、いちばん後ろへ落とせる。重ねたまま待つとメニューを開き、その中の好きな位置へ落とせる
+          {...drag.endProps((el) => !more.isOpen && more.openAt(anchorPlacement(el, { align: "end", gap: 4 }), undefined))}
         />
       )}
       {more.menu && (
@@ -211,9 +214,11 @@ function SidebarViewTabs({ views }: { views: SidebarViews }) {
                 key={view.id}
                 role="menuitemradio"
                 checked={views.active?.id === view.id}
+                className={drag.tabClass(view.id)}
                 onSelect={() => views.apply(view)}
-                // 右クリックはタブと同じメニュー（▾ のメニューは閉じて、その位置に開く）
+                // ドラッグで並べ替える（メニューの中の上下の半分で前後を決める。タブの行へも落とせる）。右クリックはタブと同じメニュー（▾ のメニューは閉じて、その位置に開く）
                 buttonProps={{
+                  ...drag.tabProps(view.id, "y"),
                   onContextMenu: (e) => {
                     menu.open(e, view);
                     more.close();
