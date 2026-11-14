@@ -178,3 +178,17 @@ test("ペアリングと端末の一覧の口は、端末には開かない", as
     assert.equal((await app.request(url, { method, headers: DEVICE })).status, 403, `${method} ${url}`);
   }
 });
+
+test("プッシュの宛先: 端末が自分の宛先を登録・外す（宛先は一覧に出さない）。この Mac の画面からは 400、形が違えば 400", async () => {
+  const { app, call, store, device } = withDevice();
+  const put = (body: unknown) => app.request("/api/devices/self/push", { method: "PUT", headers: { ...DEVICE, "content-type": "application/json" }, body: JSON.stringify(body) });
+  assert.equal((await put({ push: { kind: "expo", token: "ExponentPushToken[z]" } })).status, 204);
+  assert.deepEqual(store.devices.push(device.id), { kind: "expo", token: "ExponentPushToken[z]" });
+  const listed = (await call("GET", "/api/devices")).body as Device[];
+  assert.equal(listed[0].has_push, true);
+  assert.ok(!JSON.stringify(listed).includes("ExponentPushToken"));
+  assert.equal((await put({ push: { kind: "web", endpoint: "http://insecure.example", keys: { p256dh: "a", auth: "b" } } })).status, 400);
+  assert.equal((await put({ push: null })).status, 204);
+  assert.equal(store.devices.push(device.id), null);
+  assert.equal((await call("PUT", "/api/devices/self/push", { push: null })).status, 400);
+});

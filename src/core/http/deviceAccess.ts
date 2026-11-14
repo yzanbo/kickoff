@@ -13,6 +13,8 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["GET", "/api/events"],
   // いま見ているもの（見ているチャットの知らせは通知しない）
   ["PUT", "/api/viewing"],
+  // 自分のプッシュの宛先を登録する・外す
+  ["PUT", "/api/devices/self/push"],
   // プロジェクト・グループ（見るだけ）
   ["GET", "/api/projects"],
   ["GET", "/api/projects/:id"],
