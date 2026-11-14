@@ -70,8 +70,13 @@ const bridge = (maxHeight: number | null) => `(() => {
   addEventListener("load", report);
   new ResizeObserver(report).observe(document.documentElement);
   addEventListener("DOMContentLoaded", () => { report(); new ResizeObserver(report).observe(document.body); });
+  // スクリプトの失敗と、読み込みの失敗（CDN の script・link・img。要素の error は泡立たないので捕捉で受ける）を知らせる。
   // 大きさが変わった知らせの取りこぼし（ResizeObserver loop …）はブラウザの注意で、描くのには関係ないので知らせない
-  addEventListener("error", (e) => { if (!/ResizeObserver loop/.test(String(e.message))) post({ type: M.error, message: String(e.message || "スクリプトの失敗") }); });
+  addEventListener("error", (e) => {
+    const el = e.target;
+    if (el && el !== window && el.tagName) { post({ type: M.error, message: "読み込めませんでした: " + (el.src || el.href || el.tagName.toLowerCase()) }); return; }
+    if (!/ResizeObserver loop/.test(String(e.message))) post({ type: M.error, message: String(e.message || "スクリプトの失敗") });
+  }, true);
   addEventListener("unhandledrejection", (e) => post({ type: M.error, message: String((e.reason && e.reason.message) || e.reason || "スクリプトの失敗") }));
   addEventListener("securitypolicyviolation", (e) => post({ type: M.error, message: "外への読み込み・通信を止めました: " + (e.blockedURI || e.violatedDirective) }));
   addEventListener("message", (e) => {

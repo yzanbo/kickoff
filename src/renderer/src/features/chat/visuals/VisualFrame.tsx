@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { VISUAL_MESSAGES, visualDocument } from "@shared/chat/visualDocument";
+import { VISUAL_MESSAGES, VISUAL_PROMPT_MAX, visualDocument } from "@shared/chat/visualDocument";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useVisualTheme } from "./visualTheme";
 
 /** 中身が届くまでの高さと、いちばん小さい高さ */
 const INITIAL_HEIGHT = 160;
 const MIN_HEIGHT = 40;
+
+/**
+ * 利用者がいまこの枠の中を押したか。中のページの sendPrompt も押したかを見るが、中のスクリプトは直接 postMessage を
+ * 送れるので、外でも確かめる: 押した操作は先祖の窓にも伝わる（navigator.userActivation）。ほかの所を押した直後に
+ * 送られたものと分けるため、ピントがこの枠にあることも見る（中を押すと、外の画面のピントは iframe になる）
+ */
+function pressedInside(frame: HTMLIFrameElement): boolean {
+  return navigator.userActivation?.isActive === true && document.activeElement === frame;
+}
 
 /**
  * AI が描いた SVG・HTML を閉じた枠に描く。枠のページ（コアの /visual-frame。図だけの CSP）を sandbox="allow-scripts"
@@ -49,8 +58,8 @@ export function VisualFrame({
       setHeight(Math.max(MIN_HEIGHT, Math.ceil(data.height)));
     } else if (data.type === VISUAL_MESSAGES.error && typeof data.message === "string") {
       latest.current.onError?.(data.message);
-    } else if (data.type === VISUAL_MESSAGES.prompt && typeof data.text === "string" && data.text.trim()) {
-      latest.current.onPrompt?.(data.text);
+    } else if (data.type === VISUAL_MESSAGES.prompt && typeof data.text === "string" && data.text.trim() && pressedInside(frame)) {
+      latest.current.onPrompt?.(data.text.slice(0, VISUAL_PROMPT_MAX));
     }
   });
 

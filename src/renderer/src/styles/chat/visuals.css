@@ -83,11 +83,49 @@
   padding: 6px 12px;
   border-top: 1px solid var(--border);
   font-size: 12px;
+}
+
+.visual-failed .visual-card-error {
+  border-top: none;
+}
+
+.visual-card-error-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   color: var(--ng);
   overflow-wrap: anywhere;
 }
 
-/* 描いている途中・描き直した・失敗の 1 行 */
+.visual-card-error-text svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.visual-card-error-source summary {
+  margin-top: 4px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.visual-card-error-source .visual-card-source {
+  max-height: 40vh;
+  margin-top: 4px;
+  padding: 8px 0;
+}
+
+/* 描いている途中の枠（中身を書き終えるまで） */
+.visual-pending-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  font-size: calc(12.5px * var(--chat-scale, 1));
+  color: var(--muted);
+}
+
+/* 描き直している途中・描き直したの 1 行 */
 .visual-note {
   display: flex;
   align-items: center;
@@ -95,10 +133,6 @@
   margin: 6px 0;
   font-size: calc(12.5px * var(--chat-scale, 1));
   color: var(--muted);
-}
-
-.visual-note.failed {
-  color: var(--state-failed);
 }
 
 /* 全画面（ImageViewer の中） */

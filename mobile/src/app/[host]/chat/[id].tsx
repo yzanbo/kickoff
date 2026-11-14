@@ -1,6 +1,6 @@
 // チャット: 会話（メインエージェントの発言・ツールの 1 行・終わり）・回答待ち（承認・質問）・送信待ち・入力欄。見るだけの端末は読むだけ
 import { useMemo } from "react";
-import { FlatList, KeyboardAvoidingView, Pressable, Text, View } from "react-native";
+import { Alert, FlatList, KeyboardAvoidingView, Pressable, Text, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ApprovalCard } from "../../../chat/ApprovalCard";
 import { Composer } from "../../../chat/Composer";
@@ -30,7 +30,7 @@ export default function ChatScreen() {
         data={items}
         keyExtractor={(item) => `${item.kind}:${item.id}`}
         contentContainerStyle={{ padding: 12, gap: 10 }}
-        renderItem={({ item }) => <Item item={item} onPrompt={canWrite && client ? (t) => void (running ? client.tell(chatId, t) : client.send(chatId, t)) : undefined} />}
+        renderItem={({ item }) => <Item item={item} onPrompt={canWrite && client ? (t) => confirmPrompt(t, () => void client.queue(chatId, t)) : undefined} />}
         ListHeaderComponent={
           <View style={{ gap: 10 }}>
             {streaming ? <Text style={[ui.text, { opacity: 0.8 }]}>{streaming}</Text> : running ? <Text style={ui.muted}>作業中…</Text> : null}
@@ -80,7 +80,18 @@ export default function ChatScreen() {
   );
 }
 
-/** 1 行。onPrompt: 図の中のボタンから届いた発言を送る（作業中なら伝える。見るだけの端末では送らない） */
+/**
+ * 図の中のボタンから届いた発言を、確かめてから送る（作業していなければすぐ送り、作業中なら送信待ちに入れる = queue）。
+ * 押したかは中のページも見るが、WebView では外から確かめられないので、送る前に文を見せて聞く
+ */
+function confirmPrompt(text: string, send: () => void) {
+  Alert.alert("図から送る", text.length > 300 ? `${text.slice(0, 300)}…` : text, [
+    { text: "やめる", style: "cancel" },
+    { text: "送る", onPress: send },
+  ]);
+}
+
+/** 1 行。onPrompt: 図の中のボタンから届いた発言を送る（見るだけの端末では送らない） */
 function Item({ item, onPrompt }: { item: TimelineItem; onPrompt?: (text: string) => void }) {
   switch (item.kind) {
     case "user":
