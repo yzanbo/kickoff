@@ -1,5 +1,6 @@
 import os from "node:os";
 import path from "node:path";
+import type { HostPlatform, SelfGuardRules } from "../../platform/types.js";
 import { expandHome, isInside } from "../../system/paths.js";
 
 /**
@@ -17,17 +18,20 @@ export interface SelfInfo {
   appName: string;
   /** インストールしたアプリの本体（/Applications/Kickoff.app など）。開発中（node_modules の Electron）・daemon ではない */
   appBundle?: string;
+  /** OS ごとのプロセスを止める・操作するコマンドの見分け方（OS の口の selfGuard） */
+  guard: SelfGuardRules;
 }
 
-/** いま動いているプロセスから、自分の情報を作る（appBundleDir は OS の口の appBundleOf で取ったアプリの本体。末尾の / はあってもなくてもよい） */
-export function currentSelf(dataDir: string, port: number, appBundleDir: string | null): SelfInfo {
-  const bundle = appBundleDir?.replace(/\/+$/, "");
+/** いま動いているプロセスから、自分の情報を作る（アプリの本体と、止めるコマンドの見分け方は OS の口から） */
+export function currentSelf(dataDir: string, port: number, platform: Pick<HostPlatform, "appBundleOf" | "selfGuard">): SelfInfo {
+  const bundle = platform.appBundleOf(process.execPath)?.replace(/\/+$/, "");
   return {
     pid: process.pid,
     dataDir: path.resolve(dataDir),
     port,
     appName: path.basename(dataDir),
     appBundle: bundle && !bundle.includes("/node_modules/") ? bundle : undefined,
+    guard: platform.selfGuard,
   };
 }
 
@@ -99,11 +103,11 @@ export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: 
   if (new RegExp(`\\bkill\\b[^\\n;&|]*?(?<![\\d.])${self.pid}(?![\\d.])`).test(command)) {
     return { decision: "deny", reason: `${stop}（プロセス ${self.pid}）。開発版を止めるときは、そのプロセスを確かめてから kill -TERM を送ってください` };
   }
-  if (/\b(pkill|killall)\b/.test(command) && mentionsName(command, self.appName)) {
+  if (self.guard.killByName.test(command) && mentionsName(command, self.appName)) {
     return { decision: "deny", reason: `${stop}。名前でまとめて止めないでください` };
   }
-  if (/\bosascript\b/.test(command) && mentionsName(command, self.appName)) {
-    return { decision: "deny", reason: `${stop}。AppleScript で操作しないでください` };
+  if (self.guard.scripting.pattern.test(command) && mentionsName(command, self.appName)) {
+    return { decision: "deny", reason: `${stop}。${self.guard.scripting.label} で操作しないでください` };
   }
   return { decision: "pass" };
 }

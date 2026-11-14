@@ -92,7 +92,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
 
   const token = loadOrCreateToken(opts.dataDir);
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
-  const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform.appBundleOf(process.execPath)));
+  const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform));
   // 使用枠は Claude のプランから取得する（Codex 対応時にプロバイダーごとに拡張する）
   const usage = new UsageMonitor(providers.claude, bus);
   // 設定の「使用状況」に並べる、ほかのサービス（Codex・Copilot・Cursor・Gemini）の使用状況
