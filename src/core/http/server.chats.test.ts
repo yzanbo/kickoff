@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
+import { TRASH_KEEP_MS } from "@shared/types";
 import { AUTH, setup, until } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 
@@ -125,7 +126,8 @@ test("チャット・グループの API", async () => {
   assert.equal(store.chats.get(chatId)?.group_id, null);
   assert.deepEqual(await call("PATCH", "/api/groups/999", { name: "x" }), { status: 404, body: { error: "グループが見つかりません" } });
 
-  assert.deepEqual(await call("DELETE", `/api/chats/${chatId}`), { status: 204, body: undefined });
+  // 削除はゴミ箱へ（入れたゴミ箱の ID を返す）
+  assert.equal((await call("DELETE", `/api/chats/${chatId}`)).status, 200);
   assert.equal(store.chats.get(chatId), undefined);
 });
 
@@ -414,20 +416,63 @@ test("GitHub の結び付き: 作るときに付け、PUT で付け替え、DELE
   assert.equal((await call("DELETE", "/api/chats/99999/github")).status, 404);
 });
 
-test("チャットを削除すると、残ったチャットが使っていないエージェントの会話記録をゴミ箱へ移すよう頼む（分岐したチャットが写した元のセッションは残す）", async () => {
-  const { call, project, store, runner, provider } = setup();
+test("チャットを削除するとゴミ箱に入り（会話記録はまだ消さない）、3 日たって本当に消すとき、残ったチャットが使っていない会話記録を消すよう頼む（分岐したチャットが写した元のセッションは残す）", async () => {
+  const { call, project, store, runner, provider, trashBin, trashClock } = setup();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed" && !runner.isBusy(chatId));
   const result = store.events.list(chatId).find((e) => e.type === "result")!;
   const forkedId = (await call("POST", `/api/chats/${chatId}/fork`, { event_id: result.id })).body.id;
-  // 分岐したチャットは元の記録（s1）を写して持つので、消すのは自分のセッションだけ
-  assert.equal((await call("DELETE", `/api/chats/${forkedId}`)).status, 204);
-  await until(() => provider.discarded.length === 1);
+  const removed = await call("DELETE", `/api/chats/${forkedId}`);
+  assert.equal(removed.status, 200);
+  assert.equal(store.chats.get(forkedId), undefined);
+  assert.equal(store.trash.get(removed.body.trash_id)?.kind, "chat");
+  assert.equal(provider.discarded.length, 0);
+  // 3 日たつと本当に消える。分岐したチャットは元の記録（s1）を写して持つので、消すのは自分のセッションだけ
+  trashClock.now += TRASH_KEEP_MS + 60_000;
+  await trashBin.sweep();
+  assert.equal(provider.discarded.length, 1);
   assert.deepEqual(provider.discarded[0], { sessionIds: ["fork-1"], cwds: [project.repo_path] });
-  // 元のチャットを消すと、もう誰も使っていない s1 も
-  assert.equal((await call("DELETE", `/api/chats/${chatId}`)).status, 204);
-  await until(() => provider.discarded.length === 2);
+  // 元のチャットも消すと、もう誰も使っていない s1 も
+  await call("DELETE", `/api/chats/${chatId}`);
+  trashClock.now += TRASH_KEEP_MS + 60_000;
+  await trashBin.sweep();
   assert.deepEqual(provider.discarded[1].sessionIds, ["s1"]);
+});
+
+test("チャットのゴミ箱: 子チャットごと戻せ、戻したら一覧に戻る。親がもう消えていれば親のないチャットとして戻す。本当に消すとき、ほかで使っていない添付も消す", async () => {
+  const { call, project, store, trashBin, trashClock, uploads } = setup();
+  const parent = store.chats.create({ project_id: project.id, provider: "claude", title: "親", status: "completed" });
+  const child = store.chats.create({ project_id: project.id, provider: "claude", title: "子", status: "completed", parent_chat_id: parent.id });
+  const kept = await uploads.save({ name: "a.png", type: "image/png", bytes: new Uint8Array([1]) });
+  const shared = await uploads.save({ name: "b.png", type: "image/png", bytes: new Uint8Array([2]) });
+  store.events.add(child.id, { type: "user", text: "見て", message_uuid: "m1", attachments: [kept, shared] });
+  const other = store.chats.create({ project_id: project.id, provider: "claude", title: "別", status: "completed" });
+  store.events.add(other.id, { type: "user", text: "同じ画像", message_uuid: "m2", attachments: [shared] });
+
+  // 子だけ消して戻す → 子として戻る
+  const childItem = (await call("DELETE", `/api/chats/${child.id}`)).body.trash_id as string;
+  assert.equal(store.chats.get(child.id), undefined);
+  assert.deepEqual(store.chats.descendants(parent.id), []);
+  await call("POST", `/api/trash/${childItem}/restore`, {});
+  assert.equal(store.chats.get(child.id)?.parent_chat_id, parent.id);
+
+  // 親を消すと子も一緒に入り、戻すと一緒に戻る
+  const parentItem = (await call("DELETE", `/api/chats/${parent.id}`)).body.trash_id as string;
+  assert.equal(store.chats.get(child.id), undefined);
+  assert.deepEqual(
+    (await call("GET", `/api/projects/${project.id}/trash`)).body.map((i: { label: string }) => i.label),
+    ["親"],
+  );
+  await call("POST", `/api/trash/${parentItem}/restore`, {});
+  assert.equal(store.chats.get(child.id)?.parent_chat_id, parent.id);
+
+  // 本当に消すと、ほかのチャットが使っていない添付だけ消える
+  await call("DELETE", `/api/chats/${parent.id}`);
+  trashClock.now += TRASH_KEEP_MS + 60_000;
+  await trashBin.sweep();
+  assert.equal(await uploads.resolve(kept.id), undefined);
+  assert.ok(await uploads.resolve(shared.id));
+  assert.equal(store.trash.list(project.id).length, 0);
 });
 
 test("チャットの詳細の記録: クエリがなければすべて・after でそれより新しい分・limit で終わりから・before と limit でさかのぼる。after の記録が消えていれば after_missing", async () => {

@@ -41,7 +41,7 @@ export function createGroupStore(db: DatabaseSync, onChange: Notify, getChat: (i
     delete(id: number) {
       const group = get(id);
       if (!group) return;
-      const members = db.prepare("SELECT id FROM chats WHERE group_id = ?").all(id) as { id: number }[];
+      const members = db.prepare("SELECT id FROM chats WHERE group_id = ? AND trashed_at IS NULL").all(id) as { id: number }[];
       db.prepare("DELETE FROM chat_groups WHERE id = ?").run(id);
       for (const { id: chatId } of members) onChange({ type: "chat", chat: getChat(chatId)! });
       onChange({ type: "group_deleted", id, project_id: group.project_id });

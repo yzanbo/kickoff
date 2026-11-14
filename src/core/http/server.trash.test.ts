@@ -164,3 +164,22 @@ test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、
   await trashBin.restore(dist.id);
   assert.equal(fs.readFileSync(path.join(work, "dist", "x", "a.js"), "utf8"), "1");
 });
+
+test("ゴミ箱: AI が kickoff-trash でメモを消したら、メモのチャットも同じ行に入り、戻すと一緒に戻る", async () => {
+  const { call, project, trashBin, store, runner } = setup();
+  const base = `/api/projects/${project.id}`;
+  await call("POST", `${base}/memos`, { path: "案.md", content: "# 案" });
+  const memoDir = (await call("GET", `${base}/memos`)).body.dir as string;
+  const memoChat = store.chats.create({ project_id: project.id, provider: "claude", title: "案のチャット", status: "completed", memo_path: "案.md" });
+  const worker = store.chats.create({ project_id: project.id, provider: "claude", title: "片付け", status: "completed" });
+  const bin = await installTrashCommand(tempDir());
+  await execFileAsync("sh", ["-c", `kickoff-trash "${path.join(memoDir, "案.md")}"`], { env: { ...process.env, ...trashCommandEnv({ path: bin, dir: trashBin.dir }, worker.id) } });
+
+  const list = (await call("GET", `${base}/trash`)).body as TrashItem[];
+  assert.equal(list.length, 1);
+  assert.equal(store.chats.get(memoChat.id), undefined);
+  assert.equal(runner.isBusy(memoChat.id), false);
+  await call("POST", `/api/trash/${list[0].id}/restore`, {});
+  assert.equal(store.chats.get(memoChat.id)?.memo_path, "案.md");
+  assert.ok(fs.existsSync(path.join(memoDir, "案.md")));
+});

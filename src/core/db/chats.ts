@@ -34,12 +34,20 @@ const CHAT_COLUMNS = [
 /** チャットの変えられる項目 */
 export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;
 
-/** DB の行（真偽値は 0 / 1。archived_with_parent は店の中だけで使い、Chat には出さない） */
-type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only"> & { fast_mode: number; unread: number; pinned: number; untracked_only: number; archived_with_parent: number };
+/** DB の行（真偽値は 0 / 1。archived_with_parent・trashed_at・trashed_with は店の中だけで使い、Chat には出さない） */
+type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only"> & {
+  fast_mode: number;
+  unread: number;
+  pinned: number;
+  untracked_only: number;
+  archived_with_parent: number;
+  trashed_at: string | null;
+  trashed_with: string | null;
+};
 
 /** DB の行をアプリの型にする（真偽値の列を boolean に） */
 function toChat(row: unknown): Chat {
-  const { archived_with_parent: _withParent, ...r } = row as ChatRow;
+  const { archived_with_parent: _withParent, trashed_at: _trashedAt, trashed_with: _trashedWith, ...r } = row as ChatRow;
   return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1, untracked_only: r.untracked_only === 1 };
 }
 
@@ -48,10 +56,13 @@ function toChatRow({ fast_mode, unread, ...rest }: ChatPatch): Row {
   return { ...rest, fast_mode: bit(fast_mode), unread: bit(unread) } as Row;
 }
 
-/** チャット（chats の表。エージェントとの会話。記録は events.ts） */
+/**
+ * チャット（chats の表。エージェントとの会話。記録は events.ts）。Kickoff のゴミ箱に入れたチャット（trashed_at がある）は、
+ * get・一覧・子孫などのふだんの読み取りから外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashedWith / untrash / purgeTrashed だけ
+ */
 export function createChatStore(db: DatabaseSync, onChange: Notify) {
   const get = (id: number): Chat | undefined => {
-    const row = db.prepare("SELECT * FROM chats WHERE id = ?").get(id);
+    const row = db.prepare("SELECT * FROM chats WHERE id = ? AND trashed_at IS NULL").get(id);
     return row ? toChat(row) : undefined;
   };
   /** 1 列だけ変えて、変更を知らせる（最後に動いた時刻は進めない: 並び順を変えない操作に使う） */
@@ -62,9 +73,10 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     return chat;
   };
   const inWorktree = (projectId: number, worktreePath: string): Chat[] =>
-    db.prepare("SELECT * FROM chats WHERE project_id = ? AND worktree_path = ? ORDER BY id").all(projectId, worktreePath).map(toChat);
+    db.prepare("SELECT * FROM chats WHERE project_id = ? AND worktree_path = ? AND trashed_at IS NULL ORDER BY id").all(projectId, worktreePath).map(toChat);
 
   const replaceWorktree = (projectId: number, from: string, to: string | null): void => {
+    // ゴミ箱にあるチャットも付け替える（戻したときに消えた作業場所を指さないように。知らせるのはふだんのチャットだけ）
     const chats = inWorktree(projectId, from);
     db.prepare("UPDATE chats SET worktree_path = ? WHERE project_id = ? AND worktree_path = ?").run(to, projectId, from);
     for (const chat of chats) onChange({ type: "chat", chat: get(chat.id)! });
@@ -73,7 +85,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
   const descendants = (id: number): Chat[] =>
     db
       .prepare(
-        `WITH RECURSIVE tree(id, depth) AS (SELECT id, 1 FROM chats WHERE parent_chat_id = ? UNION ALL SELECT c.id, t.depth + 1 FROM chats c JOIN tree t ON c.parent_chat_id = t.id)
+        `WITH RECURSIVE tree(id, depth) AS (SELECT id, 1 FROM chats WHERE parent_chat_id = ? AND trashed_at IS NULL UNION ALL SELECT c.id, t.depth + 1 FROM chats c JOIN tree t ON c.parent_chat_id = t.id WHERE c.trashed_at IS NULL)
          SELECT chats.* FROM chats JOIN tree ON chats.id = tree.id ORDER BY tree.depth DESC, chats.id`,
       )
       .all(id)
@@ -84,7 +96,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     db.prepare("UPDATE chats SET archived_at = ?, archived_with_parent = ? WHERE id = ?").run(archivedAt, bit(withParent), id);
     onChange({ type: "chat", chat: get(id)! });
   };
-  const childRows = (id: number): ChatRow[] => db.prepare("SELECT * FROM chats WHERE parent_chat_id = ? ORDER BY id").all(id) as ChatRow[];
+  const childRows = (id: number): ChatRow[] => db.prepare("SELECT * FROM chats WHERE parent_chat_id = ? AND trashed_at IS NULL ORDER BY id").all(id) as ChatRow[];
 
   /**
    * アーカイブする・戻す（子孫も）。しまうときは、まだしまっていない子孫に「親と一緒にしまった」印を付けて一緒にしまう
@@ -113,14 +125,14 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
 
   const memoChats = (projectId: number, memoPath: string): Chat[] =>
     db
-      .prepare("SELECT * FROM chats WHERE project_id = ? AND (memo_path = ? OR substr(memo_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC")
+      .prepare("SELECT * FROM chats WHERE project_id = ? AND trashed_at IS NULL AND (memo_path = ? OR substr(memo_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC")
       .all(projectId, memoPath, memoPath, memoPath)
       .map(toChat);
 
   return {
     get,
     list(filter: ChatFilter = {}): Chat[] {
-      const where: string[] = filter.onlyArchived ? ["archived_at IS NOT NULL"] : filter.includeArchived ? [] : ["archived_at IS NULL"];
+      const where: string[] = ["trashed_at IS NULL", ...(filter.onlyArchived ? ["archived_at IS NOT NULL"] : filter.includeArchived ? [] : ["archived_at IS NULL"])];
       const params: Row = {};
       if (filter.projectId !== undefined) {
         where.push("project_id = $project_id");
@@ -191,6 +203,42 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
         onChange({ type: "chat", chat: get(chat.id)! });
       }
     },
+    /**
+     * Kickoff のゴミ箱に入れる（ids のチャットに入れた時刻と一緒に入れたゴミ箱の行を書く。ふだんの読み取りから外れるので、消したのと同じに知らせる）。
+     * 子孫も入れるなら呼ぶ側が ids に入れる
+     */
+    trash(ids: number[], itemId: string, at = new Date().toISOString()): Chat[] {
+      const chats = ids.map(get).filter((c): c is Chat => c !== undefined);
+      const stmt = db.prepare("UPDATE chats SET trashed_at = ?, trashed_with = ? WHERE id = ?");
+      for (const chat of chats) stmt.run(at, itemId, chat.id);
+      for (const chat of chats) onChange({ type: "chat_deleted", id: chat.id, project_id: chat.project_id });
+      return chats;
+    },
+    /** そのゴミ箱の行と一緒に入れたチャット（深い方から） */
+    trashedWith(itemId: string): Chat[] {
+      return db.prepare("SELECT * FROM chats WHERE trashed_with = ? ORDER BY id DESC").all(itemId).map(toChat);
+    },
+    /**
+     * ゴミ箱から戻す（そのゴミ箱の行と一緒に入れたチャット）。親がもう消えた・ゴミ箱にあるチャットは親のないチャットにする。戻したチャットを知らせて返す
+     */
+    untrash(itemId: string): Chat[] {
+      const rows = db.prepare("SELECT id, parent_chat_id FROM chats WHERE trashed_with = ? ORDER BY id").all(itemId) as { id: number; parent_chat_id: number | null }[];
+      const ids = new Set(rows.map((r) => r.id));
+      db.prepare("UPDATE chats SET trashed_at = NULL, trashed_with = NULL WHERE trashed_with = ?").run(itemId);
+      for (const r of rows) {
+        if (r.parent_chat_id === null || ids.has(r.parent_chat_id) || get(r.parent_chat_id)) continue;
+        db.prepare("UPDATE chats SET parent_chat_id = NULL, parent_event_id = NULL, archived_with_parent = 0 WHERE id = ?").run(r.id);
+      }
+      const chats = rows.map((r) => get(r.id)).filter((c): c is Chat => c !== undefined);
+      for (const chat of chats) onChange({ type: "chat", chat });
+      return chats;
+    },
+    /** ゴミ箱の行と一緒に入れたチャットを本当に消す（会話の記録・送信待ちも。消したチャットを返す。知らせは出さない = もう画面にない） */
+    purgeTrashed(itemId: string): Chat[] {
+      const chats = db.prepare("SELECT * FROM chats WHERE trashed_with = ? ORDER BY id DESC").all(itemId).map(toChat);
+      db.prepare("DELETE FROM chats WHERE trashed_with = ?").run(itemId);
+      return chats;
+    },
     /** チャットを完全に削除する（会話の記録・送信待ち・子孫の子チャットも消える。子孫の分も知らせる） */
     delete(id: number) {
       const chat = get(id);
@@ -245,7 +293,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
       const before = new Date(now.getTime() - days * 86_400_000).toISOString();
       const stale = (c: Pick<Chat, "status" | "unread" | "active_at">) => (c.status === "completed" || c.status === "cancelled") && !c.unread && c.active_at < before;
       const rows = db
-        .prepare("SELECT id FROM chats WHERE archived_at IS NULL AND parent_chat_id IS NULL AND status IN ('completed', 'cancelled') AND unread = 0 AND pinned = 0 AND active_at < ?")
+        .prepare("SELECT id FROM chats WHERE archived_at IS NULL AND trashed_at IS NULL AND parent_chat_id IS NULL AND status IN ('completed', 'cancelled') AND unread = 0 AND pinned = 0 AND active_at < ?")
         .all(before) as { id: number }[];
       let count = 0;
       for (const { id } of rows) {

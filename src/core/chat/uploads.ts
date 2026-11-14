@@ -67,6 +67,11 @@ export class UploadStore {
     return attachment;
   }
 
+  /** 添付を消す（チャットを本当に消したあと・どこからも使われなくなったもの。ID が不正なら何もしない） */
+  async remove(id: string): Promise<void> {
+    if (isUploadId(id)) await fs.rm(path.join(this.dir, id), { recursive: true, force: true });
+  }
+
   /** 保存済みの添付のパス（ID が不正・存在しなければ undefined。添付の記録は数えない） */
   async resolve(id: string): Promise<{ path: string; name: string } | undefined> {
     if (!isUploadId(id)) return undefined;
