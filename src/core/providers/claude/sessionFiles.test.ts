@@ -1,6 +1,6 @@
 // Claude Code の会話記録のファイルを探す・直近の区切りだけ切り出す・ゴミ箱へ移す
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { tempDir } from "../../testing/tempDir.js";
@@ -113,4 +113,15 @@ test("記録の頭から作業フォルダと最初の自分の発言を読む�
   assert.equal(all[0].sessionId, SID);
   assert.equal(all[0].firstPrompt, "ログインの不具合を直して");
   assert.equal((await sessionFileInfo(SID, ["/work/app"], root))?.file, path);
+});
+
+test("乗り換え: 同じ名前のフォルダ（サブエージェントの記録など）は新しいセッションの名前に移す", async () => {
+  const { path } = sessionFile([msg("a"), boundary("b1"), msg("c"), boundary("b2"), msg("d"), boundary("b3"), msg("e")]);
+  const dir = path.replace(/\.jsonl$/, "");
+  mkdirSync(join(dir, "subagents"), { recursive: true });
+  writeFileSync(join(dir, "subagents", "agent-1.jsonl"), "{}\n");
+  const trimmed = await trimToRecentSegments(path, SID);
+  assert.ok(trimmed);
+  assert.equal(existsSync(dir), false);
+  assert.equal(readFileSync(join(trimmed.path.replace(/\.jsonl$/, ""), "subagents", "agent-1.jsonl"), "utf8"), "{}\n");
 });

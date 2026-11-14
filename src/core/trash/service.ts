@@ -18,6 +18,9 @@ const MEASURE_MAX_ENTRIES = 500_000;
 /** 置き場のフォルダの中で、中身を置くフォルダの名前 */
 export const TRASH_ITEM_DIR = "item";
 
+/** 一緒に入れたもの（会話記録と同じ名前のフォルダ = サブエージェントの記録など）を置くフォルダの名前。戻すときは元の場所へ戻す（覚え書きの details.companions） */
+const TRASH_COMPANION_DIR = "with";
+
 /**
  * 種類ごとの扱い（チャット・プロジェクトなど、置き場にファイルを置かないもの・戻すときに一緒に戻すものがある種類）。
  * 行を消す・置き場のフォルダを消すのはサービスがする
@@ -120,7 +123,7 @@ export class TrashService {
   /** ファイル・フォルダを置き場へ移して覚える（なければ 404） */
   async putPath(
     target: string,
-    opts: { projectId: number | null; byChatId?: number | null; details?: Record<string, unknown>; label?: string; kind?: TrashKind },
+    opts: { projectId: number | null; byChatId?: number | null; details?: Record<string, unknown>; label?: string; kind?: TrashKind; companions?: string[] },
   ): Promise<StoredTrashItem> {
     const abs = path.resolve(target);
     const st = await fs.lstat(abs).catch(() => null);
@@ -134,6 +137,15 @@ export class TrashService {
       await fs.rm(path.join(this.deps.dir, id), { recursive: true, force: true });
       throw e;
     }
+    // 一緒に入れるもの（あるものだけ。入れられなくても本体は入れたまま）
+    const companions: string[] = [];
+    for (const extra of opts.companions ?? []) {
+      const abs2 = path.resolve(extra);
+      if (!(await exists(abs2))) continue;
+      const dir = path.join(this.deps.dir, id, TRASH_COMPANION_DIR, String(companions.length));
+      await fs.mkdir(dir, { recursive: true });
+      if (await move(abs2, path.join(dir, path.basename(abs2))).then(() => true, () => false)) companions.push(abs2);
+    }
     const item = this.deps.store.trash.add({
       id,
       project_id: opts.projectId,
@@ -142,7 +154,7 @@ export class TrashService {
       origin: abs,
       is_dir: st.isDirectory(),
       by_chat_id: opts.byChatId ?? null,
-      details: opts.details,
+      details: companions.length > 0 ? { ...opts.details, companions } : opts.details,
     });
     this.measureLater(item.id);
     return item;
@@ -155,8 +167,8 @@ export class TrashService {
 
   /** 中身の大きさを待たずに数えて書く */
   private measureLater(id: string): void {
-    void measure(path.join(this.deps.dir, id, TRASH_ITEM_DIR)).then((size) => {
-      if (size !== null) this.deps.store.trash.setSize(id, size);
+    void Promise.all([measure(path.join(this.deps.dir, id, TRASH_ITEM_DIR)), measure(path.join(this.deps.dir, id, TRASH_COMPANION_DIR))]).then(([size, extra]) => {
+      if (size !== null) this.deps.store.trash.setSize(id, size + (extra ?? 0));
     });
   }
 
@@ -240,10 +252,22 @@ export class TrashService {
     }
     await fs.mkdir(path.dirname(target), { recursive: true });
     await move(stored, target);
+    await this.restoreCompanions(item);
     await fs.rm(path.join(this.deps.dir, id), { recursive: true, force: true });
     this.deps.store.trash.remove(id);
     await handler?.restore?.(item, target);
     return { path: target };
+  }
+
+  /** 一緒に入れたものを元の場所へ戻す（元の場所にもう何かあれば戻さない = 消える） */
+  private async restoreCompanions(item: StoredTrashItem): Promise<void> {
+    const companions = Array.isArray(item.details.companions) ? (item.details.companions as unknown[]).filter((c): c is string => typeof c === "string") : [];
+    for (const [i, origin] of companions.entries()) {
+      const from = path.join(this.deps.dir, item.id, TRASH_COMPANION_DIR, String(i), path.basename(origin));
+      if (!(await exists(from)) || (await exists(origin))) continue;
+      await fs.mkdir(path.dirname(origin), { recursive: true });
+      await move(from, origin).catch(() => {});
+    }
   }
 
   /** 本当に消す（種類ごとの扱い → 置き場のフォルダ → 覚え書き） */

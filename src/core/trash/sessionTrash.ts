@@ -19,6 +19,9 @@ export interface SessionSweepDeps {
   now?: () => number;
 }
 
+/** 会話記録と同じ名前のフォルダ（Claude Code がサブエージェントの記録などを置く。記録と一緒にゴミ箱へ入れる） */
+export const sessionCompanion = (file: string): string => file.replace(/\.jsonl$/, "");
+
 /** ゴミ箱の一覧に出す名前（最初の発言があれば添える） */
 export function sessionLabel(firstPrompt: string | null): string {
   if (!firstPrompt) return "会話記録";
@@ -45,7 +48,7 @@ export async function sweepUnusedSessions(deps: SessionSweepDeps): Promise<numbe
     if (!provider?.sessionInfo) continue;
     const info = await provider.sessionInfo(row.session_id, [row.cwd]);
     if (info) {
-      await deps.trashBin.putPath(info.file, { projectId: row.project_id, kind: "session", label: sessionLabel(info.firstPrompt) });
+      await deps.trashBin.putPath(info.file, { projectId: row.project_id, kind: "session", label: sessionLabel(info.firstPrompt), companions: [sessionCompanion(info.file)] });
       trashed++;
     }
     store.agentSessions.forget(row.session_id);

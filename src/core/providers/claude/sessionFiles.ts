@@ -2,7 +2,7 @@
 // 探す・分岐する位置の手前の直近の区切り（圧縮の印から次の印まで）だけを切り出す・チャットを消したらゴミ箱へ移す。
 // Claude Code は圧縮しても古いやり取りを消さずに書き足し続けるので、長く続けたチャットの記録は 1GB を超える
 import { randomUUID } from "node:crypto";
-import { open, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { open, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { SessionFileInfo } from "../types.js";
@@ -173,6 +173,9 @@ export async function trimToRecentSegments(path: string, sessionId: string, keep
   const newId = randomUUID();
   const newPath = join(path, "..", `${newId}.jsonl`);
   await writeFile(newPath, buf.toString("utf8").split(`"sessionId":"${sessionId}"`).join(`"sessionId":"${newId}"`), { flag: "wx", mode: 0o600 });
+  // 同じ名前のフォルダ（サブエージェントの記録など）は新しいセッションの名前に移す（乗り換えたあとも、前のサブエージェントの会話を読めるように。古い記録だけがゴミ箱へ行く）
+  const oldDir = path.replace(/\.jsonl$/, "");
+  if (await stat(oldDir).then((s) => s.isDirectory(), () => false)) await rename(oldDir, newPath.replace(/\.jsonl$/, "")).catch(() => {});
   return { sessionId: newId, path: newPath, dropped: start };
 }
 

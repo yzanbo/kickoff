@@ -50,7 +50,7 @@
 | AI が足す・変える（チャットの AI がこのプロジェクトの定型文に足す・メモの名前を変える／移す） | ツール `kickoff_chat` の `add_snippet` / `move_memo`（`chatProjectTools.ts`・`@shared/chat/aiProject`）・中身 `AiProjectTools`（`core/chat/aiProject.ts`） | なし |
 | 図（チャットの AI が返答の中に描く SVG・HTML・Mermaid の図。文の間に閉じた枠で出し、その場で描き直せる。図の中のボタンから利用者が押したときだけ発言を送れる） | `Visual`（ツール `kickoff_chat` の `visual_guide` / `show_visual` / `update_visual`（`chatVisualTools.ts`・`@shared/chat/aiVisual`。種類 `VisualKind`・図の ID `visual_id`・記録から組み立てる `collectVisuals` → `ChatVisual`）・中身 `AiVisualTools`（`core/chat/aiVisual.ts`）・枠のページ `/visual-frame`（`@shared/chat/visualDocument`）・`ChatLive.drawing_visual`・画面 `features/chat/visuals/`） | なし |
 | 数式（返答・メモ・GitHub の Markdown の数式を KaTeX で描く。$$…$$・\(…\)・\[…\]・数式らしい $…$） | `@shared/markdown/mathGuard`（`looksLikeMath` / `isSingleDollarMath` / `mathRanges`）・画面 `ui/markdown/math/`・メモ `features/memo/liveRich.ts`（Mermaid の塊も図にする） | なし |
-| ゴミ箱（Kickoff の中のゴミ箱。消したもの（AI の rm の代わりの kickoff-trash・画面の「ゴミ箱に入れる」・チャット・プロジェクトの削除）を 3 日取っておき、元に戻せる。OS のゴミ箱とは別。メモの仕様書「ファイル削除」） | `TrashItem` / 表 `trash_items`（v26。種類 `TrashKind`: `file` / `chat` / `project` / `session`）・置き場はデータのフォルダの `trash/<id>/item/`・`TrashService`（`core/trash/`）・`GET /api/projects/:id/trash`・`POST /api/trash/:id/restore`・SSE `trash` | OS のゴミ箱（`moveToTrash`）へ移していた |
+| ゴミ箱（Kickoff の中のゴミ箱。消したもの（AI の rm の代わりの kickoff-trash・画面の「ゴミ箱に入れる」・チャット・プロジェクトの削除）を 3 日取っておき、元に戻せる。OS のゴミ箱とは別。メモの仕様書「ファイル削除」） | `TrashItem` / 表 `trash_items`（v26。種類 `TrashKind`: `file` / `chat` / `project` / `session`）・置き場はデータのフォルダの `trash/<id>/item/`・`TrashService`（`core/trash/`）・`GET /api/projects/:id/trash`・`POST /api/trash/:id/restore`・SSE `trash`・Kickoff が作ったセッションの覚え（表 `agent_sessions`。v28） | OS のゴミ箱（`moveToTrash`）へ移していた |
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |
 | タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
 | 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインエージェントとのつながりが見えないのでやめた） |
@@ -494,8 +494,9 @@ src/
     terminal/          内蔵ターミナルのシェル（TerminalSessions。この Mac の画面は IPC、スマホは WebSocket でつなぐ）と、AI に出力を読ませる口（TerminalControl）
     docker/            Docker タブ（一覧・操作・エンジンの状態・見ている間だけの docker events・compose のファイル・ポートの取り合い・ログ・AI の守りが見る様子・「DB で開く」の案。表は持たない）
     memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown・HTML の一覧・読み書き・移動・ゴミ箱・チャットの文から作る・HTML のメモが読むファイルを返す）
+    trash/             Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻す・本当に消す。AI の kickoff-trash・チャットとプロジェクトのゴミ箱・アーカイブ済みのチャットの整理・会話記録の片付けと乗り換えの古い記録・ほかの Kickoff が使う会話記録の確かめ）
     notifications/     通知の判断（だれも見ていなければ、この Mac の通知とつないだ端末のプッシュへ）・見ているもの・通知の中身
-    platform/          OS ごとに違う処理の口（HostPlatform: ゴミ箱・アプリを開く・待っているソケット・プロセスの表・ログインシェルの PATH・音声認識など）と macOS の中身（macos/）。メイン・daemon が作って startCore に渡す
+    platform/          OS ごとに違う処理の口（HostPlatform: アプリを開く・待っているソケット・プロセスの表・ログインシェルの PATH・音声認識など）と macOS の中身（macos/）。メイン・daemon が作って startCore に渡す
     system/            外部コマンド・パス・期限付きキャッシュ・保存先と名前（appEnv）・開発版のデータの写し
     testing/           テストの補助（サーバーの準備・偽のプロバイダー・一時フォルダ・Git の作業場所）
   main/                Electron のメインプロセス
