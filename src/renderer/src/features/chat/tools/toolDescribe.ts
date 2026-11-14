@@ -18,6 +18,7 @@ import {
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL, describeAddSnippet, describeMoveMemo } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL, describeReadChat } from "@shared/chat/aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL, describeReadTerminal } from "@shared/chat/aiTerminal";
+import { AI_FINISH_WORKTREE_TOOL, describeFinishWorktree } from "@shared/chat/aiWorktree";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, AI_VISUAL_GUIDE_TOOL, describeVisual } from "@shared/chat/aiVisual";
 import { isSubagentTool } from "@shared/chat/subagents";
 
@@ -76,6 +77,7 @@ const TOOL_LABELS: Record<string, string> = {
   [AI_ADD_DRAFT_TOOL]: "下書きを入れる",
   [AI_LIST_TERMINALS_TOOL]: "ターミナルを確かめる",
   [AI_READ_TERMINAL_TOOL]: "ターミナルの出力を読む",
+  [AI_FINISH_WORKTREE_TOOL]: "ワークツリーを片付ける",
   [AI_VISUAL_GUIDE_TOOL]: "図の書き方を読む",
   [AI_SHOW_VISUAL_TOOL]: "図を描く",
   [AI_UPDATE_VISUAL_TOOL]: "図を描き直す",
@@ -274,6 +276,9 @@ function describeKnown(name: string, input: Input): string | null {
       return clip(describeVisual(input));
     case AI_LIST_TERMINALS_TOOL:
       return "";
+    case AI_FINISH_WORKTREE_TOOL:
+      // どのワークツリーか（省いたらこのチャットのワークツリー。結果（取り込み済みか・控え）は結果の欄とお知らせ）
+      return clip(describeFinishWorktree(input));
     case AI_READ_TERMINAL_TOOL:
       // 読んだ行の数（省いたら既定なので付けない）
       return clip(describeReadTerminal(input));

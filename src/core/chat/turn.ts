@@ -6,6 +6,7 @@ import { createDockerGuard } from "../docker/guardFacts.js";
 import type { DockerService } from "../docker/service.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import type { DatabaseService } from "../databases/service.js";
+import type { WorktreeFinisher } from "../worktrees/finish.js";
 import { githubEnvForGit, runAsGitHubAccount } from "../git/githubAccount.js";
 import { mkdirSync } from "node:fs";
 import fs from "node:fs/promises";
@@ -25,6 +26,7 @@ import { createAiChatReadTools } from "./aiChatRead.js";
 import { createAiProjectTools } from "./aiProject.js";
 import { createAiTerminalTools } from "./aiTerminal.js";
 import { createAiVisualTools } from "./aiVisual.js";
+import { createAiWorktreeTools } from "./aiWorktree.js";
 import type { MemoService } from "../memos/memos.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { canCreateChat, createAiCreateChatTools, type StartedChild } from "./aiCreateChat.js";
@@ -74,6 +76,8 @@ export interface ExecutionDeps {
   trashCommand?: TrashCommand;
   /** 乗り換えた古い会話記録をゴミ箱へ入れる（メモの仕様書「ファイル削除」の Q18。なければ乗り換えても古い記録は残す） */
   sessionTrash?: SessionTrash;
+  /** ワークツリーの後始末（AI の finish_worktree。Runner を作ったあとで useWorktreeFinisher が渡す。なければそのツールを出さない） */
+  worktreeFinisher?: WorktreeFinisher;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -245,6 +249,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     chatTerminal: deps.terminals ? createAiTerminalTools({ store: deps.store, terminals: deps.terminals }, chat.id) : null,
     // 返答の中に図（SVG・HTML・Mermaid）を描くツール（どのチャットにも。画面とスマホが記録から描く）
     chatVisual: createAiVisualTools(deps.store, chat.id),
+    // ワークツリーを片付けるツール（どのチャットにも。本体のチャットはどのワークツリーでも、ワークツリーのチャットは自分のものだけ。後始末を渡してあるときだけ）
+    chatWorktree: deps.worktreeFinisher ? createAiWorktreeTools(deps.worktreeFinisher, chat.id) : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く

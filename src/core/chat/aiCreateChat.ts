@@ -222,7 +222,7 @@ function resultText(chat: Chat, relation: AiChatRelation, inherit: keyof typeof 
           worktree.uncommitted > 0
             ? `このチャットのまだコミットしていない変更（${worktree.uncommitted} ファイル）は、新しいワークツリーに入っていません（要るなら、先にコミットしてから作ってください）。`
             : "このチャットのまだコミットしていない変更は、新しいワークツリーに入りません（いまはありません）。",
-          "本体への取り込み（マージ）は別に行います。ワークツリーは自分の判断で消さないでください（消すのは利用者に頼まれたときだけ）。",
+          "本体への取り込み（マージ）は別に行います。ワークツリーは自分の判断で消さないでください（消すのは利用者に頼まれたときだけ。finish_worktree で）。",
         ]
       : []),
     INHERIT_TEXT[inherit],

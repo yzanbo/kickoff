@@ -7,6 +7,7 @@ import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/chat/aiTerminal";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, AI_VISUAL_GUIDE_TOOL } from "@shared/chat/aiVisual";
+import { AI_FINISH_WORKTREE_TOOL } from "@shared/chat/aiWorktree";
 import { CHAT_TITLE_MAX } from "@shared/types";
 import type { AiChatEditTools } from "../../chat/aiChatEdit.js";
 import type { AiChatReadTools } from "../../chat/aiChatRead.js";
@@ -15,6 +16,7 @@ import type { AiOpenTools } from "../../chat/aiOpen.js";
 import type { AiProjectTools } from "../../chat/aiProject.js";
 import type { AiTerminalTools } from "../../chat/aiTerminal.js";
 import type { AiVisualTools } from "../../chat/aiVisual.js";
+import type { AiWorktreeTools } from "../../chat/aiWorktree.js";
 import type { ProviderCallbacks } from "../types.js";
 import { failure, text } from "./chatToolResult.js";
 import { OPEN_INSTRUCTIONS, openTools } from "./chatOpenTools.js";
@@ -22,6 +24,7 @@ import { PROJECT_INSTRUCTIONS, projectTools } from "./chatProjectTools.js";
 import { READ_INSTRUCTIONS, readTools } from "./chatReadTools.js";
 import { TERMINAL_INSTRUCTIONS, terminalTools } from "./chatTerminalTools.js";
 import { VISUAL_INSTRUCTIONS, visualTools } from "./chatVisualTools.js";
+import { WORKTREE_INSTRUCTIONS, worktreeTools } from "./chatWorktreeTools.js";
 
 /** Kickoff のチャットを AI が操作するツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_chat__…） */
 export const CHAT_SERVER = "kickoff_chat";
@@ -35,6 +38,7 @@ export interface ChatTools {
   project: AiProjectTools | null;
   terminal: AiTerminalTools | null;
   visual: AiVisualTools | null;
+  worktree: AiWorktreeTools | null;
 }
 
 /**
@@ -49,6 +53,7 @@ export const chatToolNames = (tools: ChatTools) => [
   ...(tools.project ? [AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL] : []),
   ...(tools.terminal ? [AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL] : []),
   ...(tools.visual ? [AI_VISUAL_GUIDE_TOOL, AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL] : []),
+  ...(tools.worktree ? [AI_FINISH_WORKTREE_TOOL] : []),
 ];
 
 /** チャットを作るツールの使い方（MCP の instructions として AI に渡す） */
@@ -81,6 +86,7 @@ const instructionsFor = (tools: ChatTools) =>
     ...(tools.project ? PROJECT_INSTRUCTIONS : []),
     ...(tools.terminal ? TERMINAL_INSTRUCTIONS : []),
     ...(tools.visual ? VISUAL_INSTRUCTIONS : []),
+    ...(tools.worktree ? WORKTREE_INSTRUCTIONS : []),
   ].join("\n");
 
 /** 利用者の回答を、チャットを作るかの答えにする（「常に許可」は次から聞かない） */
@@ -169,7 +175,7 @@ function chatEditTools(chatEdit: AiChatEditTools) {
 
 /** 1 回の実行に渡す、チャットを操作するツールの MCP サーバー（渡すツールがなければ null） */
 export function chatMcpServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): McpSdkServerConfigWithInstance | null {
-  if (!tools.createChat && !tools.chatEdit && !tools.open && !tools.read && !tools.project && !tools.terminal && !tools.visual) return null;
+  if (!tools.createChat && !tools.chatEdit && !tools.open && !tools.read && !tools.project && !tools.terminal && !tools.visual && !tools.worktree) return null;
   return createSdkMcpServer({
     name: CHAT_SERVER,
     version: "1.0.0",
@@ -182,6 +188,7 @@ export function chatMcpServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "req
       ...(tools.project ? projectTools(tools.project) : []),
       ...(tools.terminal ? terminalTools(tools.terminal) : []),
       ...(tools.visual ? visualTools(tools.visual) : []),
+      ...(tools.worktree ? worktreeTools(tools.worktree) : []),
     ],
   });
 }

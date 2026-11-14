@@ -7,8 +7,9 @@ import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
 import { WorktreePrWatch } from "../git/prWatch.js";
+import { WorktreeFinisher } from "../worktrees/finish.js";
 import { listWorktrees } from "../git/worktrees.js";
-import type { BranchPullRequest } from "../git/github.js";
+import type { BranchPullRequest, MergedPullRequest } from "../git/github.js";
 import { TrashService } from "../trash/service.js";
 import { registerProjectTrash } from "../trash/projectTrash.js";
 import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "../trash/chatTrash.js";
@@ -299,7 +300,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     trashMemoChats: (projectId, memoPath, itemId) => trashMemoChats({ store, runner }, projectId, memoPath, itemId),
   });
   // ワークツリーの PR の見張り: ワークツリーは本物の git、PR の一覧は偽物（prFake.prs を返し、聞いた回数を覚える。失敗させるなら fail）
-  const prFake = { prs: [] as BranchPullRequest[], asked: 0, fail: false };
+  const prFake = { prs: [] as BranchPullRequest[], asked: 0, fail: false, merged: {} as Record<string, MergedPullRequest> };
   // gh に入っている GitHub のアカウント（設定の「GitHub」。gh を呼ばない）
   const githubFake = { accounts: [{ login: "me", active: true, ok: true }, { login: "work", active: false, ok: true }] as GitHubAccount[] };
   const prWatch = new WorktreePrWatch({
@@ -430,8 +431,22 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const terminals = new TerminalSessions({ shell: { file: "/bin/sh", args: (c) => (c ? ["-c", c] : []) }, spawn: terminalFake.spawn });
   after(() => terminals.closeAll());
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
+  // ワークツリーの後始末: GitHub のマージ済みの PR は偽物（prFake.merged のブランチ → PR）。予約の確かめ直しは短く
+  const worktreeFinisher = new WorktreeFinisher({
+    store,
+    bus,
+    runner,
+    worktreeEnvs,
+    databases,
+    prWatch,
+    trashBin,
+    mergedPr: async (_project, branch) => prFake.merged[branch] ?? null,
+    retryMs: 10,
+  });
+  runner.useWorktreeFinisher(worktreeFinisher);
+  after(() => worktreeFinisher.close());
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, worktreeFinisher, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -443,6 +458,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, worktreeFinisher, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
 }
 

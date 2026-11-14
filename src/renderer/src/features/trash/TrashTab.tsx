@@ -1,4 +1,4 @@
-import { Bot, File, Folder, FolderGit2, History, MessageSquare, RotateCcw, Trash2, User } from "lucide-react";
+import { Bot, File, Folder, FolderGit2, GitBranch, History, MessageSquare, RotateCcw, Trash2, User } from "lucide-react";
 import type { TrashItem } from "@shared/types";
 import { formatSize } from "@shared/attachment/truncate";
 import { useProjectTrash } from "@/stores/trash";
@@ -19,7 +19,8 @@ function originText(origin: string | null, repoPath: string | undefined): string
   return origin;
 }
 
-const kindIcon = (item: TrashItem) => (item.kind === "chat" ? MessageSquare : item.kind === "project" ? FolderGit2 : item.kind === "session" ? History : item.is_dir ? Folder : File);
+const KIND_ICONS = { chat: MessageSquare, project: FolderGit2, session: History, worktree: GitBranch } as const;
+const kindIcon = (item: TrashItem) => (item.kind === "file" ? (item.is_dir ? Folder : File) : KIND_ICONS[item.kind]);
 
 /**
  * プロジェクトの「ゴミ箱」タブ（メモの仕様書「ファイル削除」の Q6・Q10）。Kickoff のゴミ箱に入れたもの（AI の kickoff-trash・ファイル / メモの「ゴミ箱に入れる」・
@@ -42,7 +43,7 @@ export function TrashTab({ projectId }: { projectId: number }) {
       <ErrorText message={error} />
       {loaded && items.length === 0 ? (
         <EmptyState icon={Trash2} title="ゴミ箱は空です">
-          AI が消したファイル（rm の代わりの kickoff-trash）・ファイルタブやメモの「ゴミ箱に入れる」・削除したチャットが、ここに 3 日入ります。
+          AI が消したファイル（rm の代わりの kickoff-trash）・ファイルタブやメモの「ゴミ箱に入れる」・削除したチャット・消したワークツリーの控え（取り込んでいないコミット・途中の変更）が、ここに 3 日入ります。
         </EmptyState>
       ) : (
         <ul className="trash-list">
