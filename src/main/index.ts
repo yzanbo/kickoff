@@ -21,7 +21,7 @@ import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
 import { registerIpc } from "./ipc/ipc.js";
 import { notifyFromCore } from "./notifications/notifications.js";
 import { hostPlatform } from "./platform/index.js";
-import { agentTerminals, setTerminalEnvOf } from "./terminal/terminals.js";
+import { setTerminalSessions } from "./terminal/terminals.js";
 
 // 1. 名前・保存先を決め、起動の記録を始める（~/Library/Logs/<アプリ名>/startup.log。入れ替えた直後だけ画面が出ないことの原因を追うため）
 const { port, devUrl } = setupEnvironment();
@@ -60,8 +60,8 @@ async function start() {
       port,
       staticDir: devUrl ? undefined : RENDERER_DIR,
       browser: agentBrowser,
-      // 内蔵ターミナルの出力も AI に読ませる（読むだけ。terminal/terminals.ts）
-      terminals: agentTerminals,
+      // 内蔵ターミナルのシェルに、どちらの Kickoff のターミナルかを渡す（npm run install-app が、製品版のターミナルから流されたのを見分ける）
+      terminalEnv: { KICKOFF_TERMINAL_OF: app.isPackaged ? "production" : "development" },
       platform: hostPlatform,
       // DB ワーカーは utilityProcess で起動する（製品版は fuses で ELECTRON_RUN_AS_NODE を切るため。app/dbWorker.ts）
       dbWorker: () => utilityWorker(DB_WORKER_FILE),
@@ -73,8 +73,8 @@ async function start() {
     setDiagnosticsCore(core);
     // 作業中と、スマホ連携がオンで電源につないでいる間は、本体を眠らせない（app/keepAwake.ts）
     startKeepAwake(core);
-    // ワークツリーのターミナルには、その帯の開発サーバーの番号（PORT）を渡す
-    setTerminalEnvOf((cwd) => core?.worktreeEnvFor(cwd) ?? {});
+    // 内蔵ターミナルのシェルはコアで動く。この Mac の画面は IPC でつなぐ（terminal/terminals.ts）
+    setTerminalSessions(core.terminals);
     startupLog(`コアを起動しました ${core.localUrl}`);
   } catch (e) {
     startupLog(`コアを起動できません: ${errorMessage(e)}`);

@@ -1,10 +1,13 @@
 import { serve, type ServerType } from "@hono/node-server";
 import type { Hono } from "hono";
+import { WebSocketServer } from "ws";
 
-/** HTTP サーバーを起動する（待ち受けを始めたら返る） */
+/** HTTP サーバーを起動する（待ち受けを始めたら返る）。WebSocket の口（ターミナル）も受ける */
 export function startHttpServer(app: Hono, { port, host }: { port: number; host: string }): Promise<ServerType> {
   return new Promise<ServerType>((resolve, reject) => {
-    const server = serve({ fetch: app.fetch, port, hostname: host }, () => resolve(server));
+    const wss = new WebSocketServer({ noServer: true });
+    const server = serve({ fetch: app.fetch, port, hostname: host, websocket: { server: wss } }, () => resolve(server));
+    server.once("close", () => wss.close());
     server.once("error", reject);
   });
 }

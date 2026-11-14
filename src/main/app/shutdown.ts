@@ -2,24 +2,24 @@ import { app, session } from "electron";
 import type { Core } from "../../core/index.js";
 import { desktopPlatform, hostPlatform } from "../platform/index.js";
 import { stopChildElectronApps } from "./childApps.js";
-import { killAllTerminals } from "../terminal/terminals.js";
 
 /**
- * 終了時の片付け（before-quit）: preventDefault → 自分から起動した Electron のアプリ → ターミナル → コアの順に止めて exitKeepingNotifications。
+ * 終了時の片付け（before-quit）: preventDefault → 自分から起動した Electron のアプリ → コア（ターミナルのシェルも）の順に止めて exitKeepingNotifications。
  * 片付けは 5 秒で打ち切る。app.quit() は呼び直さない（ウィンドウだけ閉じてアプリが残る）
  */
 export function registerShutdown(core: () => Core | undefined) {
   let closing = false;
   app.on("before-quit", (e) => {
     const coreToClose = core();
-    if (!coreToClose) return killAllTerminals();
+    // コアがなければ止めるもの（シェルもコアの中）がない
+    if (!coreToClose) return;
     e.preventDefault();
     if (closing) return;
     closing = true;
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5000));
     const cleanup = async () => {
       await stopChildElectronApps(3000, hostPlatform, desktopPlatform);
-      killAllTerminals();
+      // ターミナルのシェルもコアが止める（core.close）
       await coreToClose.close();
     };
     void Promise.race([cleanup(), timeout])

@@ -26,8 +26,10 @@ import type { PortWatch } from "../ports/watch.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { deviceRoutes, pairingClaimRoutes } from "./routes/devices.js";
+import { terminalRoutes } from "./routes/terminals.js";
 import { MOBILE_OFF_MESSAGE, type PairingCenter } from "../devices/pairing.js";
 import type { ViewingRegistry } from "../notifications/viewing.js";
+import type { TerminalSessions } from "../terminal/sessions.js";
 import type { BrowserLogin } from "./browserLogin.js";
 import { chatRoutes } from "./routes/chats.js";
 import { databaseRoutes } from "./routes/databases.js";
@@ -94,6 +96,8 @@ export interface ServerDeps {
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」・使わなくなった会話記録。OS の口の moveToTrash。テストでは差し替えて、本物のゴミ箱に入れない） */
   trash: (file: string) => Promise<void>;
+  /** 内蔵ターミナルのシェル（スマホは WebSocket でつなぐ = routes/terminals.ts） */
+  terminals: TerminalSessions;
   /** tailscale のコマンドの場所（OS の口。設定の Tailscale Serve の案内。テストでは偽物） */
   tailscaleCli: () => string | null;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
@@ -204,6 +208,7 @@ export function createApp(deps: ServerDeps): Hono {
   dockerRoutes(app, deps);
   portsRoutes(app, deps);
   deviceRoutes(app, deps);
+  terminalRoutes(app, deps);
 
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>

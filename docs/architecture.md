@@ -46,7 +46,7 @@
 | 家系（いちばん上の親チャットから下にぶら下がるチャットの全部。チャットの AI が名前・固定・グループを聞かずに変えられる範囲） | ツール `kickoff_chat` の `list_family_chats` / `update_chat`（名前は `@shared/chat/aiChatEdit` の `AI_LIST_FAMILY_TOOL` / `AI_UPDATE_CHAT_TOOL`・引数 `UpdateChatInput`）・中身 `AiChatEditTools`（`core/chat/aiChatEdit.ts`）・関係の呼び名 `familyRelation`（`core/chat/chatFamily.ts`） | なし |
 | AI が開く（チャットの AI がメモ・家系のチャット・ファイル・差分を利用者の画面に開き、SQL を SQL のタブに入れる。右の欄 / 別ウィンドウ / 設定どおり） | ツール `kickoff_chat` の `open_memo` / `open_chat` / `open_file` / `open_diff` / `open_sql`（`chatOpenTools.ts`。名前は `@shared/chat/aiOpen` の `AI_OPEN_MEMO_TOOL` など）・中身 `AiOpenTools`（`core/chat/aiOpen.ts`）・SSE の `open_view`（`OpenViewRequest`・場所 `OpenPlace`: `side` / `window`）・画面の受け口 `useAiOpenRequests`（`renderer/src/app/aiOpenRequests.ts`） | なし |
 | AI の下書き（チャットの AI が家系のチャットの入力欄の後ろに文を足す。送るのは利用者） | ツール `kickoff_chat` の `add_draft`（`AI_ADD_DRAFT_TOOL`）・SSE の `chat_draft`（`ChatDraftRequest`。親チャットに入れるなら札 `from`）・画面の受け口は同じ `useAiOpenRequests` | なし |
-| AI が読む（チャットの AI が同じプロジェクトのチャットの一覧・会話と使用枠・このプロジェクトのターミナルの出力を読む） | ツール `kickoff_chat` の `list_project_chats` / `read_chat` / `get_usage`（`chatReadTools.ts`・`@shared/chat/aiRead`・中身 `AiChatReadTools`（`core/chat/aiChatRead.ts`）・やり取りへの分け方 `conversationTurns`（`core/chat/conversation.ts`））と `list_terminals` / `read_terminal`（`chatTerminalTools.ts`・`@shared/chat/aiTerminal`・中身 `AiTerminalTools`（`core/chat/aiTerminal.ts`）・読み取りの口 `TerminalControl`（`core/terminal/control.ts`。メインプロセスの `agentTerminals`）） | なし |
+| AI が読む（チャットの AI が同じプロジェクトのチャットの一覧・会話と使用枠・このプロジェクトのターミナルの出力を読む） | ツール `kickoff_chat` の `list_project_chats` / `read_chat` / `get_usage`（`chatReadTools.ts`・`@shared/chat/aiRead`・中身 `AiChatReadTools`（`core/chat/aiChatRead.ts`）・やり取りへの分け方 `conversationTurns`（`core/chat/conversation.ts`））と `list_terminals` / `read_terminal`（`chatTerminalTools.ts`・`@shared/chat/aiTerminal`・中身 `AiTerminalTools`（`core/chat/aiTerminal.ts`）・読み取りの口 `TerminalControl`（`core/terminal/control.ts`。中身はコアの `TerminalSessions`）） | なし |
 | AI が足す・変える（チャットの AI がこのプロジェクトの定型文に足す・メモの名前を変える／移す） | ツール `kickoff_chat` の `add_snippet` / `move_memo`（`chatProjectTools.ts`・`@shared/chat/aiProject`）・中身 `AiProjectTools`（`core/chat/aiProject.ts`） | なし |
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |
 | タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
@@ -486,7 +486,7 @@ src/
     github/            GitHub タブの読み取り（gh api の GraphQL と REST・応答を形にする normalize・一覧の ETag の覚え）
     usage/             使用状況（Claude のプランの枠と、ほかのサービス services/）
     voice/             音声入力の文字起こし（whisper-cli・macOS の音声認識・OpenAI）と、音声モードの読み上げ（OpenAI の声）
-    terminal/          AI に内蔵ターミナルの出力を読ませる口（TerminalControl。中身はメインプロセスが渡す）
+    terminal/          内蔵ターミナルのシェル（TerminalSessions。この Mac の画面は IPC、スマホは WebSocket でつなぐ）と、AI に出力を読ませる口（TerminalControl）
     docker/            Docker タブ（一覧・操作・エンジンの状態・見ている間だけの docker events・compose のファイル・ポートの取り合い・ログ・AI の守りが見る様子・「DB で開く」の案。表は持たない）
     memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown・HTML の一覧・読み書き・移動・ゴミ箱・チャットの文から作る・HTML のメモが読むファイルを返す）
     notifications/     通知の判断（だれも見ていなければ、この Mac の通知とつないだ端末のプッシュへ）・見ているもの・通知の中身
@@ -497,7 +497,7 @@ src/
     index.ts           起動の順番だけ
     app/               ウィンドウ・メニュー・終了の片付け・子の Electron・権限の問い合わせ・起動の記録
     ipc/               IPC の登録と引数の検査
-    platform/          OS ごとに違う処理の口を 1 か所で選ぶ（コアと共通の hostPlatform・メインだけの desktopPlatform: 外部のターミナル・ブラウザ・内蔵ターミナルのシェル）と macOS の中身（macos/）
+    platform/          OS ごとに違う処理の口を 1 か所で選ぶ（コアと共通の hostPlatform（内蔵ターミナルのシェルも）・メインだけの desktopPlatform: 外部のターミナル・ブラウザ）と macOS の中身（macos/）
     browser/  terminal/  notifications/  diagnostics/
   preload/             画面に出す最小限のネイティブ機能（型は @shared/ipc）
   renderer/src/        画面（React）。import は同じフォルダなら ./、それ以外は @/…

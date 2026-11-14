@@ -14,7 +14,6 @@ export function macosDesktopPlatform(): DesktopPlatform {
     installedBrowsers: () => installedBrowsers(),
     openBrowser: async (id, url) => void (await execFileAsync("/usr/bin/open", externalBrowserArgs(id, url))),
     // ログインシェルで動かす（PATH などはふだんのシェルと同じ）
-    terminalShell: () => ({ file: process.env.SHELL || "/bin/zsh", args: (command) => (command ? ["-l", "-c", command] : ["-l"]) }),
     isDevElectronMain: (command) => ELECTRON_MAIN.test(command),
   };
 }

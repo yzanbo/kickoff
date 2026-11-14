@@ -23,6 +23,8 @@ import { PortProcessService } from "../ports/service.js";
 import { PortWatch } from "../ports/watch.js";
 import { PairingCenter } from "../devices/pairing.js";
 import { NotificationCenter, type PushResult } from "../notifications/center.js";
+import { TerminalSessions } from "../terminal/sessions.js";
+import { fakeTerminals } from "./fakeTerminal.js";
 import type { Notice } from "../notifications/notices.js";
 import { ViewingRegistry } from "../notifications/viewing.js";
 import { BrowserLogin } from "../http/browserLogin.js";
@@ -405,7 +407,11 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const browserLogin = new BrowserLogin();
   // Tailscale: コマンドの場所（null なら入っていない。テストは答えを書いた小さなスクリプトを置く）
   const tailscaleFake = { cli: null as string | null };
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trash, tailscaleCli: () => tailscaleFake.cli, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  // 内蔵ターミナル: シェルは偽物（terminalFake.spawned に作ったシェル）
+  const terminalFake = fakeTerminals();
+  const terminals = new TerminalSessions({ shell: { file: "/bin/sh", args: (c) => (c ? ["-c", c] : []) }, spawn: terminalFake.spawn });
+  after(() => terminals.closeAll());
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trash, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -417,6 +423,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, tailscaleFake, browserLogin, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
 }
 

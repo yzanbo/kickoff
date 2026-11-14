@@ -14,7 +14,7 @@ const port = Number(process.env.KICKOFF_PORT ?? APP_ENVS.development.port);
 // 開発のデータがまだなければ、本番のデータから一度だけ写す
 if (!process.env.KICKOFF_DATA_DIR) seedDevData(appDataDir(platform.appDataRoot, "production"), dataDir);
 
-const core = await startCore({ dataDir, port, host: process.env.KICKOFF_HOST, platform });
+const core = await startCore({ dataDir, port, host: process.env.KICKOFF_HOST, platform, terminalEnv: { KICKOFF_TERMINAL_OF: "development" } });
 // ブラウザで開くときは、一度だけ使えるログインの URL（5 分）から入る（本体のトークンを URL に入れない）
 console.log(`Kickoff core: ${core.localUrl}\nブラウザで開く（一度だけ・5 分）: ${core.browserLoginUrl()}`);
 

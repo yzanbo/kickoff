@@ -61,6 +61,14 @@ export interface ShellPlatform {
   childrenByParent: () => Map<number, number[]>;
 }
 
+/** 内蔵ターミナルで動かすシェル */
+export interface TerminalShell {
+  /** 実行ファイル */
+  file: string;
+  /** 引数（command があれば、そのコマンドだけを流す。なければ対話のシェル） */
+  args: (command: string | null) => string[];
+}
+
 /** OS ごとに違う処理 */
 export interface HostPlatform {
   /** アプリの保存先を置く親のフォルダ（Electron の appData と同じ場所。製品版と開発版の保存先はこの下の名前で分ける） */
@@ -89,6 +97,8 @@ export interface HostPlatform {
   selfGuard: SelfGuardRules;
   /** Docker のエンジンの起こし方 */
   dockerEngine: DockerEngineStarters;
+  /** 内蔵ターミナルのシェル（シェルはコアで動かす = terminal/sessions.ts） */
+  terminalShell: () => TerminalShell;
   /** tailscale のコマンドの場所（入っていなければ null。設定の「スマホ連携」の Tailscale Serve の案内） */
   tailscaleCli: () => string | null;
 }
