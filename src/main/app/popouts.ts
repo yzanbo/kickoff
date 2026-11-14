@@ -2,6 +2,7 @@ import { BrowserWindow, type Rectangle } from "electron";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { PRELOAD_FILE } from "./environment.js";
 import { openLinksExternally } from "./externalLinks.js";
+import { watchRendererHang } from "./hangWatch.js";
 import { showMainWindow } from "./window.js";
 
 // 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャットを、メインのウィンドウの外に出して見る。2 枚目の画面に置くなど）
@@ -62,6 +63,7 @@ function openPopout(appUrl: string, route: string, title: string) {
   win.on("page-title-updated", (e) => e.preventDefault());
   // 外部リンクは既定のブラウザで開く（メインのウィンドウと同じ）
   openLinksExternally(win.webContents);
+  watchRendererHang(win, `別ウィンドウ（${title}）`);
   const url = new URL(appUrl);
   url.hash = route;
   void win.loadURL(url.toString());

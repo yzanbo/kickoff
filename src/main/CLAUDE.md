@@ -77,7 +77,8 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 
 ## 起動の記録
 
-- `app/startupLog.ts`: `~/Library/Logs/<アプリ名>/startup.log` に、起動の各段階（whenReady・ログインシェルの PATH・コア・認証の Cookie）と、メインのウィンドウの画面の読み込み（読み込みの各段階・失敗・画面のプロセスの異常終了・応答なし・preload のエラー・画面の console.error・10 秒たっても終わらない）・子プロセスの異常終了を書く。512KB を超えたら 1 世代だけ残す。`npm run install-app` で入れ替えた直後の初回だけ画面が出ないことがあり、macOS の記録では画面の中で何が起きたか分からなかったため。エージェントも読める場所に置く。
+- `app/startupLog.ts`: `~/Library/Logs/<アプリ名>/startup.log` に、起動の各段階（whenReady・ログインシェルの PATH・コア・認証の Cookie）と、メインのウィンドウの画面の読み込み（読み込みの各段階・失敗・画面のプロセスの異常終了・preload のエラー・画面の console.error・10 秒たっても終わらない）・子プロセスの異常終了を書く。512KB を超えたら 1 世代だけ残す。`npm run install-app` で入れ替えた直後の初回だけ画面が出ないことがあり、macOS の記録では画面の中で何が起きたか分からなかったため。エージェントも読める場所に置く。
+- 画面が応答しなくなったとき（`app/hangWatch.ts`。メインのウィンドウと別ウィンドウ。2026-11-14 の利用者の報告: 外部ディスプレイをつなぐ・外したあとなどに、クリックも入力も受けなくなり、アプリごと起動し直すしかなかった。記録には「応答しません」だけが残り、戻った記録はなかった）: `unresponsive` で、止まっている JavaScript の場所（`webFrameMain.collectJavaScriptCallStack`。起動の前に `enableHangStacks` が Chromium の機能を入れ、`allowHangStacks` が Kickoff の画面の応答に `Document-Policy: include-js-call-stacks-in-crash-reports` を足す。3 秒で返らなければ「JavaScript は動いていない（描画・GPU・OS の側）」と書く）を起動の記録に書く。10 秒たっても `responsive` が来なければ「画面が応答しません」の確認（画面を読み込み直す / 待つ）を出し、読み込み直すなら画面のプロセスを止めて（`forcefullyCrashRenderer`）新しいプロセスで読み込み直す（コアは同じプロセスで動き続けるので、AI の作業は止まらない）。戻ったら確認を自動で閉じ、かかった秒数を書く。「待つ」のあとも、止まったまま押して届いたらまた聞く。きっかけを照らし合わせるため、ディスプレイの抜き差し・解像度の変化（変わった項目のある知らせだけ。macOS 27 では変わった項目のない知らせが 0.1 秒ごとに届くことがあった）・スリープ・画面のロックも書く（`logDisplayEvents`）。
 
 ## 製品版の画面の配信
 

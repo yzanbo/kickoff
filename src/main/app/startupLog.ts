@@ -58,8 +58,6 @@ export function watchWindowLoad(contents: WebContents, url: string) {
     if (isMainFrame) startupLog(`did-fail-load code=${code} ${description} ${failedUrl}`);
   });
   contents.on("render-process-gone", (_e, details) => startupLog(`render-process-gone reason=${details.reason} exitCode=${details.exitCode}`));
-  contents.on("unresponsive", () => startupLog("画面が応答しません（unresponsive）"));
-  contents.on("responsive", () => startupLog("画面が応答を戻しました（responsive）"));
   contents.on("preload-error", (_e, preloadPath, error) => startupLog(`preload-error ${preloadPath} ${errorMessage(error)}`));
   // 画面の JavaScript のエラー（描けなかった理由が分かるように。警告は多いので書かない）
   contents.on("console-message", (e) => {
