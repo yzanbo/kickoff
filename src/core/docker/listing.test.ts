@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { DockerContainer, DockerService } from "@shared/types";
-import { buildDockerList, composeKeyOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
+import { buildDockerList, composeKeyOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry } from "./listing.js";
+import type { Workplace } from "../git/worktrees.js";
 import type { ComposeConfig, RawContainer } from "./parse.js";
 
 const main: Workplace = { path: "/r/app", worktree_path: null, branch: "main" };

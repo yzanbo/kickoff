@@ -6,7 +6,7 @@ import type { DockerAction, DockerActionBody, DockerFailure, DockerList, DockerL
 import { DOCKER_SHARED_PROJECT } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import type { Bus } from "../bus.js";
-import { listWorktrees } from "../git/worktrees.js";
+import { workplacesOf, type Workplace } from "../git/worktrees.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { CommandError } from "../system/exec.js";
 import { realPathOrSelf } from "../system/paths.js";
@@ -16,7 +16,7 @@ import { DockerCli, shellWord } from "./cli.js";
 import { ComposeConfigCache, findComposeFiles, upFilesFor, type ComposeRead } from "./compose.js";
 import { dockerDbCandidate, type DockerDbCandidate } from "./dbTarget.js";
 import { DockerEvents } from "./events.js";
-import { buildDockerList, headFileOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry, type Workplace } from "./listing.js";
+import { buildDockerList, headFileOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry } from "./listing.js";
 import { DOCKER_LOG_TAIL, readLog } from "./logs.js";
 import { PS_FORMAT, parsePs, type RawContainer } from "./parse.js";
 import { allocatedPortOf, conflictLabel, hostPortsOf, portConflictsOf } from "./portConflict.js";
@@ -132,14 +132,8 @@ export class DockerService {
   }
 
   /** プロジェクトの本体とワークツリー（パスは realpath。AI の Docker の守りも使う） */
-  async workplacesOf(project: Project): Promise<Workplace[]> {
-    const root = realPathOrSelf(project.repo_path);
-    try {
-      const wts = await listWorktrees(project.repo_path);
-      return wts.filter((w) => !w.prunable).map((w) => ({ path: realPathOrSelf(w.path), worktree_path: w.main ? null : w.path, branch: w.branch }));
-    } catch {
-      return [{ path: root, worktree_path: null, branch: null }];
-    }
+  workplacesOf(project: Project): Promise<Workplace[]> {
+    return workplacesOf(project.repo_path);
   }
 
   /** 作業場所ごとの compose が答える組の名前（覚えた設定を使う。AI の Docker の守りが、ボリュームの持ち主を決めるのに使う） */

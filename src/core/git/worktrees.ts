@@ -6,6 +6,7 @@ import { prepareWorktree } from "./worktreeSetup.js";
 import { gitOutput } from "./exec.js";
 import { gitPrefix, hasRef, listRemotes } from "./status.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
+import { realPathOrSelf } from "../system/paths.js";
 
 /**
  * `git worktree list --porcelain` を読む（空行で区切られた塊ごとに 1 つ。最初が本体）。
@@ -36,6 +37,27 @@ export function parseWorktrees(out: string, prefix = ""): GitWorktree[] {
 export async function listWorktrees(repo: string): Promise<GitWorktree[]> {
   const [out, prefix] = await Promise.all([gitOutput(repo, ["worktree", "list", "--porcelain"]), gitPrefix(repo)]);
   return parseWorktrees(out, prefix ?? "");
+}
+
+/** 作業場所（本体かワークツリー。path は realpath でそろえたもの） */
+export interface Workplace {
+  path: string;
+  /** null = 本体 */
+  worktree_path: string | null;
+  branch: string | null;
+}
+
+/**
+ * プロジェクトの本体とワークツリー（パスは realpath。片付け待ち（prunable）は除く）。Git が答えなければ本体だけ。
+ * Docker タブ・AI の Docker の守り・AI の書き込み先の守りが使う
+ */
+export async function workplacesOf(repo: string): Promise<Workplace[]> {
+  try {
+    const wts = await listWorktrees(repo);
+    return wts.filter((w) => !w.prunable).map((w) => ({ path: realPathOrSelf(w.path), worktree_path: w.main ? null : w.path, branch: w.branch }));
+  } catch {
+    return [{ path: realPathOrSelf(repo), worktree_path: null, branch: null }];
+  }
 }
 
 /** フォルダのパス（作業するフォルダ = path）で、このリポジトリのワークツリーを探す（本体も含む。なければ undefined） */
