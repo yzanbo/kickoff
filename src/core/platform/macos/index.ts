@@ -1,7 +1,7 @@
 // macOS の口（HostPlatform）。OS のコマンド・パスはこのフォルダに置く
 import { runCommand } from "../../system/exec.js";
 import { checkMacosSpeech, transcribeMacos } from "../../voice/macos.js";
-import type { HostPlatform } from "../types.js";
+import type { HostPlatform, SelfGuardRules } from "../types.js";
 import { listeningSockets, processCwds } from "./listening.js";
 import { alive, appBundleOf, processTable } from "./processes.js";
 import { loadLoginShellPath } from "./shellEnv.js";
@@ -11,6 +11,9 @@ interface MacosPlatformOptions {
   /** macOS の音声認識の補助コマンド（kickoff-speech）の場所（なければ音声認識は使えない扱い） */
   speechHelper?: string | null;
 }
+
+/** macOS の、自分を止める・操作するコマンドの見分け方 */
+export const MACOS_SELF_GUARD: SelfGuardRules = { killByName: /\b(pkill|killall)\b/, scripting: { pattern: /\bosascript\b/, label: "AppleScript" } };
 
 /** macOS の口を作る */
 export function macosPlatform({ speechHelper = null }: MacosPlatformOptions = {}): HostPlatform {
@@ -28,5 +31,6 @@ export function macosPlatform({ speechHelper = null }: MacosPlatformOptions = {}
       check: (language) => checkMacosSpeech(speechHelper, language),
       transcribe: (audio, language) => transcribeMacos(audio, { helper: speechHelper ?? "", language }),
     },
+    selfGuard: MACOS_SELF_GUARD,
   };
 }

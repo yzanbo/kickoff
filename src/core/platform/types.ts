@@ -34,6 +34,14 @@ export interface OsSpeech {
   transcribe: (audio: AudioInput, language: string) => Promise<string>;
 }
 
+/** 自分を守る仕組み（chat/guard/selfProtection.ts）が見分ける、OS ごとのプロセスを止める・操作するコマンド */
+export interface SelfGuardRules {
+  /** 名前でまとめて止めるコマンド（macOS は pkill・killall） */
+  killByName: RegExp;
+  /** アプリを外から操作する手段と、断るときの呼び名（macOS は osascript = AppleScript） */
+  scripting: { pattern: RegExp; label: string };
+}
+
 /** OS ごとに違う処理 */
 export interface HostPlatform {
   /** GUI から起動したアプリはログインシェルの PATH を引き継がないので、取り込んで process.env.PATH に足す */
@@ -56,6 +64,8 @@ export interface HostPlatform {
   appBundleOf: (execPath: string) => string | null;
   /** OS の音声認識 */
   speech: OsSpeech;
+  /** 自分（エージェントを動かしている Kickoff）を止めるコマンドの見分け方 */
+  selfGuard: SelfGuardRules;
 }
 
 /** ポートを使っているプロセスを調べる・止めるのに使う口（テストでは偽物に差し替える） */

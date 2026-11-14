@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import os from "node:os";
 import { test } from "node:test";
+import { MACOS_SELF_GUARD } from "../../platform/macos/index.js";
 import { evaluateSelfProtection, type SelfInfo } from "./selfProtection.js";
 
 const home = os.homedir();
@@ -9,6 +10,7 @@ const prod: SelfInfo = {
   dataDir: `${home}/Library/Application Support/Kickoff`,
   port: 4317,
   appName: "Kickoff",
+  guard: MACOS_SELF_GUARD,
   appBundle: "/Applications/Kickoff.app",
 };
 const bash = (command: string) => evaluateSelfProtection(prod, "Bash", { command }).decision;
@@ -59,7 +61,7 @@ test("evaluateSelfProtection: ファイルのツールで保存先を読み書�
 });
 
 test("evaluateSelfProtection: 開発中（アプリ本体なし）は、本体の判定をしない", () => {
-  const dev: SelfInfo = { pid: 7, dataDir: `${home}/Library/Application Support/Kickoff Dev`, port: 4318, appName: "Kickoff Dev" };
+  const dev: SelfInfo = { pid: 7, dataDir: `${home}/Library/Application Support/Kickoff Dev`, port: 4318, appName: "Kickoff Dev", guard: MACOS_SELF_GUARD };
   const run = (command: string) => evaluateSelfProtection(dev, "Bash", { command }).decision;
   assert.equal(run("ls /Applications/Kickoff.app"), "pass");
   assert.equal(run("curl localhost:4318/api/status"), "deny");
