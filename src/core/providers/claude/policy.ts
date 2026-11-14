@@ -7,6 +7,8 @@ import { evaluateHiddenDbAccess } from "../../chat/guard/hiddenDb.js";
 import { evaluateReferenceWrite, evaluateUntrackedWrite, writeTargetOf } from "../../chat/guard/scope.js";
 import { evaluateSelfProtection, type SelfInfo } from "../../chat/guard/selfProtection.js";
 import { judgeFileWrite, WRITE_SCOPE_DENIED, type WriteScopeFacts, type WriteScopeParams } from "../../chat/guard/writeScope.js";
+import type { BashSandbox } from "../../chat/sandbox/bashSandbox.js";
+import { bashOutputText, sandboxDeniedNote } from "../../chat/sandbox/sandboxDenied.js";
 import { realPathLoose, realPathOrSelf } from "../../system/paths.js";
 import type { ProviderCallbacks, ProviderTurnParams } from "../types.js";
 import { claudeProjectsDir } from "./sessionFiles.js";
@@ -164,7 +166,35 @@ export function turnHooks(
     ...(params.dockerGuard ? [dockerGuardHook(params.dockerGuard, cb)] : []),
     ...(params.writeScope ? [writeScopeHook(params, params.writeScope, fileDenials, cb)] : []),
   ];
-  return matchers.length > 0 ? { PreToolUse: matchers } : undefined;
+  // Bash の砂場で書き込みを断られたら、どこを・なぜ・代わりの道を結果に書き添える（成功で終わったコマンドも、失敗したコマンドも）
+  const denied = params.bashSandbox ? sandboxDeniedHook(params, params.bashSandbox) : null;
+  const hooks: Partial<Record<HookEvent, HookCallbackMatcher[]>> = {
+    ...(matchers.length > 0 ? { PreToolUse: matchers } : {}),
+    ...(denied ? { PostToolUse: [denied], PostToolUseFailure: [denied] } : {}),
+  };
+  return Object.keys(hooks).length > 0 ? hooks : undefined;
+}
+
+/**
+ * 砂場で止まったときの文（chat/sandbox/sandboxDenied.ts）を、Bash の結果のあとに AI へ添えるフック（PostToolUse・PostToolUseFailure の additionalContext）。
+ * ほかの作業場所かの見分けは書き込み先の守りの判定を使う（書き込み先の守りがないチャットは、外として案内する）
+ */
+function sandboxDeniedHook(params: ProviderTurnParams, sandbox: BashSandbox): HookCallbackMatcher {
+  const facts = params.writeScope ? writeScopeFacts(params.cwd, params.writeScope) : null;
+  const judge = facts ? (target: string) => judgeFileWrite(target, facts) : null;
+  return {
+    matcher: "Bash",
+    hooks: [
+      async (input: HookInput): Promise<SyncHookJSONOutput> => {
+        const output =
+          input.hook_event_name === "PostToolUse" ? bashOutputText(input.tool_response) : input.hook_event_name === "PostToolUseFailure" ? input.error : null;
+        if (output === null) return {};
+        const note = await sandboxDeniedNote(output, sandbox, judge).catch(() => null);
+        if (note === null) return {};
+        return { hookSpecificOutput: { hookEventName: input.hook_event_name as "PostToolUse" | "PostToolUseFailure", additionalContext: note } };
+      },
+    ],
+  };
 }
 
 /** チャットのポリシーを Claude Code の権限ルールに変換する（ファイルの編集は権限モードに任せる） */
