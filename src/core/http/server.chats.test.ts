@@ -429,3 +429,35 @@ test("チャットを削除すると、残ったチャットが使っていな�
   await until(() => provider.discarded.length === 2);
   assert.deepEqual(provider.discarded[1].sessionIds, ["s1"]);
 });
+
+test("チャットの詳細の記録: クエリがなければすべて・after でそれより新しい分・limit で終わりから・before と limit でさかのぼる。after の記録が消えていれば after_missing", async () => {
+  const { call, project, store } = setup();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "長い", status: "completed" });
+  const ids = Array.from({ length: 6 }, (_, i) => store.events.add(chat.id, { type: "text", text: `返答${i}` }).id);
+  type Detail = { events: { id: number }[]; has_earlier: boolean; after_missing: boolean };
+  const get = async (q = "") => (await call("GET", `/api/chats/${chat.id}${q}`)).body as Detail;
+  const idsOf = (d: Detail) => d.events.map((e) => e.id);
+
+  const all = await get();
+  assert.deepEqual(idsOf(all), ids);
+  assert.deepEqual([all.has_earlier, all.after_missing], [false, false]);
+  assert.deepEqual(idsOf(await get(`?after=${ids[3]}`)), ids.slice(4));
+  const tail = await get("?limit=2");
+  assert.deepEqual([idsOf(tail), tail.has_earlier], [ids.slice(4), true]);
+  const page = await get(`?before=${ids[2]}&limit=5`);
+  assert.deepEqual([idsOf(page), page.has_earlier], [ids.slice(0, 2), false]);
+  assert.deepEqual(idsOf(await get(`?before=${ids[4]}&limit=2`)), ids.slice(2, 4));
+
+  // 巻き戻しで消えた記録を after に渡したら、読み直すよう知らせる
+  store.events.deleteFrom(chat.id, ids[4]);
+  const missing = await get(`?after=${ids[5]}`);
+  assert.deepEqual([idsOf(missing), missing.after_missing], [[], true]);
+  // ほかのチャットの記録も同じ（そのチャットのものではない）
+  const other = store.chats.create({ project_id: project.id, provider: "claude", title: "別", status: "completed" });
+  assert.equal(((await call("GET", `/api/chats/${other.id}?after=${ids[0]}`)).body as Detail).after_missing, true);
+
+  // 組み合わせを間違えたら 400
+  for (const q of [`?after=${ids[0]}&limit=2`, `?after=${ids[0]}&before=${ids[1]}`, `?before=${ids[1]}`, "?limit=0", "?after=abc"]) {
+    assert.equal((await call("GET", `/api/chats/${chat.id}${q}`)).status, 400, q);
+  }
+});

@@ -117,3 +117,12 @@ export function detailFromSnapshot(snapshot: ChatDetail, replay: readonly BusEve
   };
   return replay.reduce((state, event) => reduceChatDetail(state, event, chatId), base);
 }
+
+/**
+ * つなぎ直したときの取り直し（GET /api/chats/:id?after=<持っている最後の記録>）を、持っている記録の後ろに足す。
+ * 記録のほか（チャット・回答待ち・作業中の様子）は読んだもので置き換え、読み込みの最中に届いた知らせは当て直す
+ */
+export function detailFromIncrement(snapshot: ChatDetail, replay: readonly BusEvent[], chatId: number, prev: ChatDetailState): ChatDetailState {
+  const last = prev.events.at(-1)?.id ?? 0;
+  return detailFromSnapshot({ ...snapshot, events: [...prev.events, ...snapshot.events.filter((e) => e.id > last)] }, replay, chatId, prev);
+}

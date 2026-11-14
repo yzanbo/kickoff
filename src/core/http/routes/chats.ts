@@ -8,7 +8,7 @@ import { requireWorktree } from "../workdir.js";
 import { chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "./schemas.js";
 import { chatTranscript } from "../../chat/transcript.js";
 import { collectChatSessions, discardUnusedSessions } from "../../chat/sessionCleanup.js";
-import type { ChatDetail, ChatPatch, ChatTranscript, GitWorktree } from "@shared/types";
+import { CHAT_DETAIL_LIMIT_MAX, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatPatch, type ChatTranscript, type GitWorktree } from "@shared/types";
 
 /**
  * チャットの一覧の絞り込み（並びは最後に動いた順）: ?archived=1 でアーカイブ済みだけ（なければアーカイブしていないものだけ）。
@@ -18,6 +18,12 @@ function chatListFilter(c: Context) {
   const { archived, limit } = z.object({ archived: flag.optional(), limit: optionalId }).parse({ archived: queryOf(c, "archived"), limit: queryOf(c, "limit") });
   return { limit, onlyArchived: archived === "1" };
 }
+
+/** チャットの詳細の記録の読み方（after と before は一緒に使えない。before には limit が要る） */
+const detailQuerySchema = z
+  .object({ after: optionalId, before: optionalId, limit: z.coerce.number().int().min(1).max(CHAT_DETAIL_LIMIT_MAX).optional() })
+  .refine((q) => q.after === undefined || (q.before === undefined && q.limit === undefined), "after は before・limit と一緒に使えません")
+  .refine((q) => q.before === undefined || q.limit !== undefined, "before には limit が要ります") satisfies z.ZodType<ChatDetailQuery>;
 
 /** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
 const chatPatchSchema = z
@@ -87,9 +93,23 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
   app.get("/api/chats", (c) => c.json(store.chats.list(chatListFilter(c))));
 
   // チャットの詳細（作業中の様子 live は SSE の chat_live と同じ形。画面はそれで追いかける）
+  // チャットの詳細。記録はクエリで絞れる（ChatDetail の説明。つなぎ直したときは after、スマホは limit と before で少しずつ）
   app.get("/api/chats/:id", withChat, (c) => {
     const { chat } = c.var;
-    const detail: ChatDetail = { chat, events: store.events.list(chat.id), approvals: approvals.list({ chatId: chat.id }), live: runner.live(chat.id) };
+    const { after, before, limit } = detailQuerySchema.parse({ after: queryOf(c, "after"), before: queryOf(c, "before"), limit: queryOf(c, "limit") });
+    let events: ChatEvent[];
+    let hasEarlier = false;
+    let afterMissing = false;
+    if (after !== undefined) {
+      afterMissing = !store.events.has(chat.id, after);
+      events = afterMissing ? [] : store.events.after(chat.id, after);
+    } else if (limit !== undefined) {
+      events = store.events.before(chat.id, before ?? null, limit);
+      hasEarlier = events.length > 0 && store.events.hasBefore(chat.id, events[0].id);
+    } else {
+      events = store.events.list(chat.id);
+    }
+    const detail: ChatDetail = { chat, events, has_earlier: hasEarlier, after_missing: afterMissing, approvals: approvals.list({ chatId: chat.id }), live: runner.live(chat.id) };
     return c.json(detail);
   });
 

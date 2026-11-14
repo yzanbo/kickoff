@@ -265,10 +265,18 @@ export interface SubagentChildBody {
 
 // ---- 応答 ----
 
-/** チャットの詳細（GET /api/chats/:id）。作業中の様子 live は SSE の chat_live と同じ形（あとはそれで追いかける） */
+/**
+ * チャットの詳細（GET /api/chats/:id）。作業中の様子 live は SSE の chat_live と同じ形（あとはそれで追いかける）。
+ * 記録は、クエリがなければすべて。?after=<記録の ID> ならそれより新しい分だけ（つなぎ直したとき）、?limit=n なら終わりから n 件、
+ * ?before=<記録の ID>&limit=n ならそれより前の n 件（さかのぼるとき。どれも古い順）
+ */
 export interface ChatDetail {
   chat: Chat;
   events: ChatEvent[];
+  /** events より前の記録がまだあるか（limit で切ったとき） */
+  has_earlier: boolean;
+  /** after の記録がもうない（巻き戻しで消えた）。events は空なので、すべて読み直す */
+  after_missing: boolean;
   /** このチャットの回答待ち（ツールの承認・AI からの質問・再開するかの確かめ） */
   approvals: Approval[];
   live: ChatLive;
@@ -516,4 +524,14 @@ export interface DbSqlBody {
   write: boolean;
   /** 「さらに読む」: 頭のこの行数を飛ばして続きを読む（読み取りの文だけ。流し直すので履歴には残さない。省けば 0） */
   offset?: number;
+}
+
+/** チャットの詳細で 1 回に読む記録の数の上限（limit） */
+export const CHAT_DETAIL_LIMIT_MAX = 2000;
+
+/** チャットの詳細の記録の読み方（GET /api/chats/:id のクエリ。after と before は一緒に使えない） */
+export interface ChatDetailQuery {
+  after?: number;
+  before?: number;
+  limit?: number;
 }

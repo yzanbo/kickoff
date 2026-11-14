@@ -1,4 +1,4 @@
-import type { Chat, ChatDetail, ChatPatch, ChatTranscript, FeedItem, NewChatBody, SearchHit } from "@shared/types";
+import type { Chat, ChatDetail, ChatDetailQuery, ChatPatch, ChatTranscript, FeedItem, NewChatBody, SearchHit } from "@shared/types";
 import { request, withQuery } from "./http";
 
 const patchChat = (chatId: number, patch: ChatPatch) => request<Chat>("PATCH", `/api/chats/${chatId}`, patch);
@@ -17,7 +17,8 @@ export const chatsApi = {
   feed: (limit?: number) => request<FeedItem[]>("GET", withQuery("/api/feed", { limit })),
   startChat: (projectId: number, body: NewChatBody) => request<Chat>("POST", `/api/projects/${projectId}/chats`, body),
   /** チャットの詳細（記録・回答待ち・作業中の様子。作業中の様子は SSE の chat_live で追いかける） */
-  chatDetail: (id: number) => request<ChatDetail>("GET", `/api/chats/${id}`),
+  /** チャットの詳細（query を省けば記録はすべて。つなぎ直したときは after で切れていた間の分だけ） */
+  chatDetail: (id: number, query: ChatDetailQuery = {}) => request<ChatDetail>("GET", withQuery(`/api/chats/${id}`, { ...query })),
   /** チャットのやり取りの記録（自分の発言と AI の返答を古い順に並べた Markdown。右クリックの「全部のやり取りをコピー」） */
   chatTranscriptMarkdown: (id: number) => request<ChatTranscript>("GET", `/api/chats/${id}/transcript`),
   // 名前・グループ・固定・アーカイブはどれも PATCH（プロジェクトと同じ形）
