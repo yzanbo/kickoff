@@ -3,16 +3,10 @@
 import path from "node:path";
 import { workplaceText } from "@shared/docker/workplace";
 import { relativeApiPath } from "../system/paths.js";
+import type { Workplace } from "../git/worktrees.js";
 import type { DockerCompose, DockerContainer, DockerLogSource, DockerOtherContainer, DockerService, DockerShare } from "@shared/types";
 import { dbKindOf, deepestWorkplace, parsePorts, parseStatus, serviceMark, type ComposeConfig, type RawContainer } from "./parse.js";
 
-/** 作業場所（path は realpath でそろえたもの） */
-export interface Workplace {
-  path: string;
-  /** null = 本体 */
-  worktree_path: string | null;
-  branch: string | null;
-}
 
 /** compose のファイル 1 つ分の読み取り（見つけたファイルと、作ったコンテナのラベルにあるファイル） */
 export interface ComposeEntry {

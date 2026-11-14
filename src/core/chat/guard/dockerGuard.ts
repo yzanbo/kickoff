@@ -3,7 +3,7 @@
 import path from "node:path";
 import type { RawContainer } from "../../docker/parse.js";
 import { deepestWorkplace } from "../../docker/parse.js";
-import type { Workplace } from "../../docker/listing.js";
+import type { Workplace } from "../../git/worktrees.js";
 import { workplaceText } from "@shared/docker/workplace";
 import { isInside } from "../../system/paths.js";
 import { dockerIntents, type ComposeSub, type ContainerVerb, type DockerIntent } from "./dockerCommand.js";
