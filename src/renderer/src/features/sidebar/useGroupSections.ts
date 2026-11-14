@@ -2,6 +2,10 @@ import { useState, type DragEvent, type MouseEvent, type ReactNode } from "react
 import type { Chat, ChatGroup, Project } from "@shared/types";
 import { moveDroppedChatToProject } from "@/features/chat/chatActions";
 import { busyBlockReason } from "@/features/chat/chatBusy";
+import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
+import { detachBlockReason, detachChild } from "@/features/chat/children/detachChild";
+import { errorMessage } from "@shared/errors";
+import { alertDialog } from "@/ui/dialogs";
 import { api } from "@/api";
 import { openNewChat } from "@/app/router";
 import { cx } from "@/lib/cx";
@@ -68,6 +72,13 @@ export function useGroupSections({ project, groups, chats, menuExtra }: { projec
     },
     // 作業中のチャット（子孫も）は別のプロジェクトへ移せないので、落とせないことを見せる
     foreignBlockedBy: (chat) => busyBlockReason(chat.id, "移動"),
+    // 同じプロジェクトの子チャットは、確かめてから親から外し、落としたグループへ入れる（No Group ならグループなし）
+    onChildChat: (chat, groupId) =>
+      void detachChild(chat, { parentId: null, groupId, groupName: groups.find((g) => g.id === groupId)?.name ?? NO_GROUP_LABEL }).catch((e: unknown) =>
+        alertDialog("親から外せませんでした", errorMessage(e)),
+      ),
+    // 作業中の子チャットは外せないので、落とせないことを見せる
+    childBlockedBy: detachBlockReason,
     onMoveDraft: (draft, groupId) => setDraftGroup(draft, groupId ?? undefined, groups.find((g) => g.id === groupId)?.name),
   });
   return {

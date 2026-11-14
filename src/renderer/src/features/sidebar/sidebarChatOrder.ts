@@ -8,6 +8,7 @@ import { bucketScopes, byManual, moveChatInOrder } from "@/features/chatList/man
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { useChatLayout, type ChatOrder } from "./chatGroupings";
+import { insertNear } from "./childRowDrop";
 
 /** サイドバーの段: まとめ方（グループ・作業場所）の中を、状態順なら状態ごとに分ける（まとめない × 最近動いた順・手動は分けない） */
 export const sidebarLevels = (grouping: ChatGrouping, order: ChatOrder): BucketBy[] => [
@@ -77,5 +78,15 @@ export function useManualChatReorder(order: SidebarChatOrder) {
     },
     [canMove, order, current, setOrder],
   );
-  return { canMove, move };
+  /** 一覧になかったチャット（親から外したばかりの子チャット）を target の前後へ入れて保存する（並び順は手動に切り替える） */
+  const insert = useCallback(
+    (projectId: number, moved: number, target: number, side: "before" | "after") => {
+      const next = insertNear(order.ids, moved, target, side);
+      if (!next) return;
+      if (current !== "manual") setOrder("manual");
+      void api.reorderChats(projectId, next).then(addChats);
+    },
+    [order, current, setOrder],
+  );
+  return { canMove, move, insert };
 }

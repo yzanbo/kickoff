@@ -11,13 +11,14 @@ import { ProjectPickFlyout } from "@/features/project/ProjectPickFlyout";
 import { GroupPickFlyout } from "@/features/group/GroupPickFlyout";
 import { askNewGroupName } from "@/features/group/groups";
 import { openAskChild } from "./children/openChild";
+import { DetachSubmenu } from "./children/DetachSubmenu";
 import { openNewChat } from "@/app/router";
 import { NewChatItem, type NewChatPlace } from "./NewChatItem";
 
 /**
  * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通。どこで右クリックしても同じ並びにする）:
  * 新しいチャット（同じグループ・作業場所。NewChatItem）・子チャットを作成 ｜ 開く・その場所だけの項目（before。分けて開く・動きを見るなど）｜
- * 名前を変更・既読 / 未読・固定・セッション ID をコピー・GitHub との結び付きを外す・グループを変更・プロジェクトを変更 ｜ アーカイブ・削除 ｜ after（タブを閉じるなど）。
+ * 名前を変更・既読 / 未読・固定・セッション ID をコピー・GitHub との結び付きを外す・親から外す（子チャット）/ グループを変更（親のないチャット）・プロジェクトを変更 ｜ アーカイブ・削除 ｜ after（タブを閉じるなど）。
  * 「グループを変更」「プロジェクトを変更」に乗せる・押すと、横にグループ・プロジェクトの一覧（GroupPickFlyout / ProjectPickFlyout）を開く
  */
 export function ChatMenuItems({
@@ -114,6 +115,8 @@ export function ChatMenuItems({
           <Unlink size={14} /> GitHub #{chat.github_number} との結び付きを外す
         </MenuItem>
       )}
+      {/* 子チャットは「親から外す ▸」（親のないチャットにする・先祖の子に上げる。確かめてから。グループの代わりにここに置く） */}
+      {chat.parent_chat_id !== null && <DetachSubmenu chat={chat} onClose={onClose} onError={onError} />}
       {/* 乗せる・押す・→ で横にこのプロジェクトのグループの一覧を開く（メニューは閉じない。子チャットはグループに入らないので出さない） */}
       {chat.parent_chat_id === null && (
         <button {...grouping.trigger}>

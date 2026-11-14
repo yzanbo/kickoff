@@ -1,4 +1,4 @@
-import type { Chat, ChatDetail, ChatDetailQuery, ChatPatch, ChatTranscript, FeedItem, NewChatBody, SearchHit } from "@shared/types";
+import type { Chat, ChatDetachBody, ChatDetail, ChatDetailQuery, ChatPatch, ChatTranscript, FeedItem, NewChatBody, SearchHit } from "@shared/types";
 import { request, withQuery } from "./http";
 
 const patchChat = (chatId: number, patch: ChatPatch) => request<Chat>("PATCH", `/api/chats/${chatId}`, patch);
@@ -32,6 +32,8 @@ export const chatsApi = {
   /** チャットを別のプロジェクトへ移す（グループ・作業場所は外れ、移した先の本体で作業する。会話は続く） */
   /** 手動の並び（サイドバーの並び順「手動順」）を ids の順にする（並べたチャットが並びの順に返る） */
   reorderChats: (projectId: number, ids: number[]) => request<Chat[]>("PUT", `/api/projects/${projectId}/chats/order`, { ids }),
+  /** 子チャットを親から外す（parent_chat_id: null = 親のないチャット（group_id のグループへ）/ 先祖の ID = その子に上げる） */
+  detachChat: (chatId: number, body: ChatDetachBody) => request<Chat>("POST", `/api/chats/${chatId}/detach`, body),
   moveChat: (chatId: number, projectId: number) => request<Chat>("POST", `/api/chats/${chatId}/move`, { project_id: projectId }),
   deleteChat: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}`),
 };

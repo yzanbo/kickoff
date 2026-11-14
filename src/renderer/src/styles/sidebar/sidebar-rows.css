@@ -64,6 +64,13 @@ button.chat-row {
   bottom: -1px;
 }
 
+/* 子チャットの行を先祖の行に重ねたとき（その子に上げる）: 行（子の行を除いた自分の行）を点線の枠で囲む（グループの落とし先と同じ見た目） */
+.chat-row-item.drop-into > .chat-row {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
 /* 隠している間も、Tab でピントを当てられるよう透明にするだけ（display: none だとピントが当たらない） */
 .chat-row-actions {
   position: absolute;
