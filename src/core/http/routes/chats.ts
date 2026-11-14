@@ -8,7 +8,7 @@ import { requireWorktree } from "../workdir.js";
 import { chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "./schemas.js";
 import { chatTranscript } from "../../chat/transcript.js";
 import { detachChat } from "../../chat/detach.js";
-import { collectChatSessions, discardUnusedSessions } from "../../chat/sessionCleanup.js";
+import { trashChat } from "../../trash/chatTrash.js";
 import { CHAT_DETAIL_LIMIT_MAX, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatPatch, type ChatTranscript, type GitWorktree } from "@shared/types";
 
 /**
@@ -48,7 +48,7 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-export function chatRoutes(app: Hono, { store, runner, approvals, databases, providers, worktreeEnvs, trash }: ServerDeps) {
+export function chatRoutes(app: Hono, { store, runner, approvals, databases, providers, worktreeEnvs, trashBin }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
@@ -182,20 +182,11 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
     return c.json(store.chats.move(chat.id, target.id));
   });
 
-  // 削除（会話の記録も消える。エージェントの会話記録のファイルはゴミ箱へ）
+  // 削除 = Kickoff のゴミ箱へ（子チャット（子・孫…）・会話の記録・会話記録のファイル・添付ごと。3 日は戻せ、3 日たったら本当に消す。
+  // 作業中のものがあれば消せない）。入れたゴミ箱の ID を返す（画面の「元に戻す」）
   app.delete("/api/chats/:id", withChat, (c) => {
-    const { chat } = c.var;
-    // 子チャット（子・孫…）も一緒に消える（作業中のものがあれば消せない）
-    const family = store.chats.descendants(chat.id);
-    for (const c of [chat, ...family]) runner.requireIdle(c.id, "削除");
-    // エージェントの会話記録は、消したあとで残ったチャットが使っていないものだけゴミ箱へ（記録はチャットと一緒に消えるので先に集める。待たない）
-    const sessions = collectChatSessions(store, [chat, ...family]);
-    store.chats.delete(chat.id);
-    void discardUnusedSessions(store, providers, sessions, trash);
-    for (const c of [chat, ...family]) runner.forget(c.id);
-    // AI の SQL の結果を書き出した CSV も消す
-    databases.forgetChatExports([chat, ...family].map((c) => c.id));
-    return c.body(null, 204);
+    const item = trashChat({ store, trashBin, runner }, c.var.chat);
+    return c.json({ trash_id: item.id });
   });
 }
 

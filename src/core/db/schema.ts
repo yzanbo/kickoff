@@ -418,7 +418,19 @@ CREATE INDEX idx_trash_items_project ON trash_items(project_id, trashed_at);
 CREATE INDEX idx_trash_items_trashed ON trash_items(trashed_at);
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26];
+/**
+ * v27: チャット・プロジェクトを Kickoff のゴミ箱に入れる（3 日は元に戻せる。メモの仕様書「ファイル削除」の Q11・Q13・Q20）。
+ * ゴミ箱にある間は行を残し、trashed_at（入れた時刻）で一覧・検索などから外す。chats.trashed_with は一緒に入れたゴミ箱の行（trash_items.id。
+ * チャットを消したらそのチャットの行、メモを消したらメモの行、プロジェクトを消したらプロジェクトの行）で、戻す・本当に消すときに同じ行のものをまとめて扱う
+ */
+const SCHEMA_V27 = `
+ALTER TABLE chats ADD COLUMN trashed_at TEXT;
+ALTER TABLE chats ADD COLUMN trashed_with TEXT CHECK (trashed_with <> '');
+CREATE INDEX idx_chats_trashed_with ON chats(trashed_with) WHERE trashed_with IS NOT NULL;
+ALTER TABLE projects ADD COLUMN trashed_at TEXT;
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

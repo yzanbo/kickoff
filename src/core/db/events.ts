@@ -11,6 +11,9 @@ interface EventRow {
   created_at: string;
 }
 
+/** 添付の ID（uuid）の形 */
+const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
+
 /** 記録の列（生成列 text は検索だけに使うので、読み出す形には入れない） */
 const EVENT_COLUMNS = "id, chat_id, type, data, created_at";
 
@@ -156,6 +159,30 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       return rows.map((r) => r.sid);
     },
     /** このセッション ID を、いまあるチャットのどれかが使っているか（チャットの session_id か、記録の init・result） */
+    /**
+     * チャットの記録が指している添付の ID の候補（自分の発言・質問への回答の中の uuid。添付の保存先のフォルダ名と同じ形。
+     * 添付でない uuid も混ざるので、使う側が保存先にあるかで見分ける）
+     */
+    uploadIdsIn(chatIds: number[]): Set<string> {
+      const ids = new Set<string>();
+      if (chatIds.length === 0) return ids;
+      const rows = db
+        .prepare(`SELECT data FROM chat_events WHERE chat_id IN (${chatIds.map(() => "?").join(",")}) AND type IN ('user', 'approval_resolved')`)
+        .all(...chatIds) as { data: string }[];
+      for (const { data } of rows) for (const m of data.matchAll(UUID_PATTERN)) ids.add(m[0]);
+      return ids;
+    },
+    /** その添付をどれかのチャットの記録（自分の発言・質問への回答）か送信待ちが使っているか（ゴミ箱にあるチャットも数える） */
+    uploadInUse(uploadId: string): boolean {
+      return (
+        db
+          .prepare(
+            `SELECT 1 FROM chat_events WHERE type IN ('user', 'approval_resolved') AND instr(data, $id) > 0
+             UNION ALL SELECT 1 FROM chat_queues WHERE instr(messages, $id) > 0 LIMIT 1`,
+          )
+          .get({ id: uploadId }) !== undefined
+      );
+    },
     sessionInUse(sessionId: string): boolean {
       return Boolean(
         db
@@ -186,7 +213,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
              WHERE x.chat_id = c.id AND x.type = 'text' AND json_extract(x.data, '$.parent') IS NULL
              ORDER BY x.id DESC LIMIT 1
            )
-           WHERE c.parent_chat_id IS NULL AND c.memo_path IS NULL
+           WHERE c.parent_chat_id IS NULL AND c.memo_path IS NULL AND c.trashed_at IS NULL
            ORDER BY e.id DESC LIMIT ?`,
         )
         .all(Math.min(limit, 500)) as unknown as (FeedItem & { text: string | null })[];
@@ -212,7 +239,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         .prepare(
           `SELECT e.id AS event_id, e.chat_id, c.project_id, c.title AS chat_title, e.type, e.text, e.created_at
            FROM ${from} JOIN chats c ON c.id = e.chat_id
-           WHERE ${where.join(" AND ")}
+           WHERE c.trashed_at IS NULL AND ${where.join(" AND ")}
            ORDER BY e.id DESC LIMIT ${Math.min(filter.limit ?? 50, 200)}`,
         )
         .all(params) as (Omit<SearchHit, "snippet" | "match_start" | "match_end"> & { text: string })[];

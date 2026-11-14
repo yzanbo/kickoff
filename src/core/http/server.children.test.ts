@@ -214,7 +214,8 @@ test("子チャット: 親をアーカイブ・移動・削除すると、子孫
   await call("POST", `/api/chats/${parentId}/move`, { project_id: other.id });
   assert.deepEqual([child.id, grandchild.id].map((id) => store.chats.get(id)!.project_id), [other.id, other.id]);
 
-  assert.equal((await call("DELETE", `/api/chats/${parentId}`)).status, 204);
+  // 削除は子孫ごとゴミ箱へ（ふだんの読み取りからは消える）
+  assert.equal((await call("DELETE", `/api/chats/${parentId}`)).status, 200);
   assert.deepEqual([parentId, child.id, grandchild.id].map((id) => store.chats.get(id)), [undefined, undefined, undefined]);
 });
 

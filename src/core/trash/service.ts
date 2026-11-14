@@ -23,8 +23,8 @@ export const TRASH_ITEM_DIR = "item";
  * 行を消す・置き場のフォルダを消すのはサービスがする
  */
 export interface TrashKindHandler {
-  /** 元に戻す（ファイルの種類は、ファイルを戻したあとに呼ぶ） */
-  restore?(item: StoredTrashItem): void | Promise<void>;
+  /** 元に戻す（ファイルの種類は、ファイルを戻したあとに呼ぶ。restoredPath は戻した場所 = 同じ名前があって別の名前で戻したなら元の場所と違う） */
+  restore?(item: StoredTrashItem, restoredPath: string | null): void | Promise<void>;
   /** 本当に消す */
   purge?(item: StoredTrashItem): void | Promise<void>;
 }
@@ -35,6 +35,8 @@ export interface TrashServiceDeps {
   dir: string;
   /** AI の kickoff-trash で入れたもののうち、消したチャットが分からないものを、どのプロジェクトのゴミ箱に出すか（元の場所から。分からなければ null） */
   projectOfPath?: (origin: string) => number | null;
+  /** AI の kickoff-trash で入れたものを取り込んだあと（メモならメモのチャットも一緒に入れる） */
+  onImported?: (item: StoredTrashItem) => void;
   /** いまの時刻（テストで差し替える） */
   now?: () => number;
 }
@@ -176,7 +178,7 @@ export class TrashService {
       const at = await readText(path.join(folder, "at"));
       const st = await fs.lstat(stored).catch(() => null);
       const trashedAt = at && !Number.isNaN(Date.parse(at)) ? new Date(at).toISOString() : new Date(this.now()).toISOString();
-      this.deps.store.trash.add({
+      const added = this.deps.store.trash.add({
         id,
         project_id: chat ? chat.project_id : (this.deps.projectOfPath?.(origin) ?? null),
         kind: "file",
@@ -187,6 +189,7 @@ export class TrashService {
         trashed_at: trashedAt,
       });
       this.measureLater(id);
+      this.deps.onImported?.(added);
       imported++;
     }
     return imported;
@@ -207,7 +210,7 @@ export class TrashService {
     if (!item) throw new NotFound("ゴミ箱にありません（もう消えたか、戻したあとです）");
     const handler = this.handlers.get(item.kind);
     if (item.origin === null) {
-      await handler?.restore?.(item);
+      await handler?.restore?.(item, null);
       this.deps.store.trash.remove(id);
       return { path: null };
     }
@@ -224,7 +227,7 @@ export class TrashService {
     await move(stored, target);
     await fs.rm(path.join(this.deps.dir, id), { recursive: true, force: true });
     this.deps.store.trash.remove(id);
-    await handler?.restore?.({ ...item, origin: target });
+    await handler?.restore?.(item, target);
     return { path: target };
   }
 

@@ -212,9 +212,14 @@ test("メモのチャット: メモごとに 1 つのふつうのチャット。
   // フォルダの名前を変えると、中のメモのチャットも付け替える
   await call("POST", `${base}/memos/move`, { from: "設計", to: "仕様" });
   assert.equal(store.chats.get(created.body.id)?.memo_path, "仕様/画面.md");
-  // ゴミ箱に入れたら、そのメモのチャットはアーカイブする
-  await call("DELETE", `${base}/memo?path=${encodeURIComponent("仕様/画面.md")}`);
-  assert.ok(store.chats.get(created.body.id)?.archived_at);
+  // ゴミ箱に入れたら、そのメモのチャットも同じ行でゴミ箱へ（一覧は 1 行）。別の名前で戻すと、チャットも戻って付け替わる
+  const trashed = await call("DELETE", `${base}/memo?path=${encodeURIComponent("仕様/画面.md")}`);
+  assert.equal(store.chats.get(created.body.id), undefined);
+  assert.deepEqual(store.chats.trashedWith(trashed.body.trash_id).map((c) => c.id), [created.body.id]);
+  assert.equal((await call("GET", `/api/projects/${project.id}/trash`)).body.length, 1);
+  await call("POST", `${base}/memos`, { path: "仕様/画面.md", content: "新しい" });
+  await call("POST", `/api/trash/${trashed.body.trash_id}/restore`, { rename: true });
+  assert.equal(store.chats.get(created.body.id)?.memo_path, "仕様/画面 2.md");
   // HTML のメモなら、HTML と CSS で書くことを伝える
   assert.match(provider.lastSystemPrompt, /メモは Markdown のファイルです/);
   await call("POST", `${base}/memos`, { path: "資料.html", content: "<p>x</p>" });

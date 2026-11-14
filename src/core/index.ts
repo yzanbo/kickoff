@@ -29,7 +29,8 @@ import { MemoService } from "./memos/memos.js";
 import { errorMessage } from "@shared/errors";
 import { TrashService } from "./trash/service.js";
 import { installTrashCommand } from "./trash/command.js";
-import { isInside } from "./system/paths.js";
+import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "./trash/chatTrash.js";
+import { isInside, realPathLoose } from "./system/paths.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
 import type { BrowserControl } from "./browser/control.js";
@@ -125,9 +126,11 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     store,
     dir: path.join(opts.dataDir, "trash"),
     projectOfPath: (origin) => {
-      const owner = store.projects.list().find((p) => isInside(p.repo_path, origin) || ((p.memo_path || p.memo_folder) && isInside(memos.dirOf(p), origin)));
+      const owner = store.projects.list().find((p) => isInside(realPathLoose(p.repo_path), origin) || ((p.memo_path || p.memo_folder) && isInside(realPathLoose(memos.dirOf(p)), origin)));
       return owner?.id ?? null;
     },
+    // AI がメモを kickoff-trash で消したら、メモのチャットも同じ行に入れる（画面から消したときと同じ）
+    onImported: (item) => trashMemoChatsOnImport({ store, runner, memoDirOf: (p) => memos.dirOf(p), publish: (e) => bus.publish(e) }, item),
   });
   const memos = new MemoService({
     store,
@@ -135,6 +138,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     providers,
     publish: (e) => bus.publish(e),
     trashBin,
+    trashMemoChats: (projectId, memoPath, itemId) => trashMemoChats({ store, runner }, projectId, memoPath, itemId),
   });
   // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる）
   // DB のパスワードはキーチェーンの鍵で暗号化して置く（暗号化せずに置いていたものは、起動のときに一度だけ置き換える）
@@ -159,6 +163,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     (e: unknown) => (console.warn(`[core] kickoff-trash を置けませんでした: ${errorMessage(e)}`), undefined),
   );
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, interrupted: recovered });
+  // ゴミ箱に入れたチャット（チャットの削除・メモのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
+  registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speech: opts.platform.speech, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）

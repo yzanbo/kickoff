@@ -11,6 +11,7 @@ import { WorktreePrWatch } from "../git/prWatch.js";
 import { listWorktrees } from "../git/worktrees.js";
 import type { BranchPullRequest } from "../git/github.js";
 import { TrashService } from "../trash/service.js";
+import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "../trash/chatTrash.js";
 import { MemoService } from "../memos/memos.js";
 import { DbWorkerClient } from "../databases/client.js";
 import { inProcessWorker } from "../databases/inProcessWorker.js";
@@ -281,8 +282,20 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   };
   // Kickoff のゴミ箱: 置き場は一時フォルダ。時計は trashClock.now で進める（メモ・ファイルタブの「ゴミ箱に入れる」はここへ）
   const trashClock = { now: Date.now() };
-  const trashBin = new TrashService({ store, dir: tempDir(), now: () => trashClock.now });
-  const memos = new MemoService({ store, defaultDir: memoFake.defaultDir, providers, publish: (e) => bus.publish(e), trashBin });
+  const trashBin: TrashService = new TrashService({
+    store,
+    dir: tempDir(),
+    now: () => trashClock.now,
+    onImported: (item) => trashMemoChatsOnImport({ store, runner, memoDirOf: (p) => memos.dirOf(p), publish: (e) => bus.publish(e) }, item),
+  });
+  const memos = new MemoService({
+    store,
+    defaultDir: memoFake.defaultDir,
+    providers,
+    publish: (e) => bus.publish(e),
+    trashBin,
+    trashMemoChats: (projectId, memoPath, itemId) => trashMemoChats({ store, runner }, projectId, memoPath, itemId),
+  });
   // ワークツリーの PR の見張り: ワークツリーは本物の git、PR の一覧は偽物（prFake.prs を返し、聞いた回数を覚える。失敗させるなら fail）
   const prFake = { prs: [] as BranchPullRequest[], asked: 0, fail: false };
   // gh に入っている GitHub のアカウント（設定の「GitHub」。gh を呼ばない）
@@ -414,6 +427,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const terminalFake = fakeTerminals();
   const terminals = new TerminalSessions({ shell: { file: "/bin/sh", args: (c) => (c ? ["-c", c] : []) }, spawn: terminalFake.spawn });
   after(() => terminals.closeAll());
+  registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
   const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trash, trashBin, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */

@@ -1,4 +1,4 @@
-import type { Chat, ChatDetachBody, ChatDetail, ChatDetailQuery, ChatPatch, ChatTranscript, FeedItem, NewChatBody, SearchHit } from "@shared/types";
+import type { Chat, ChatDetachBody, ChatDetail, ChatDetailQuery, ChatPatch, ChatTranscript, FeedItem, NewChatBody, SearchHit, TrashedResult } from "@shared/types";
 import { request, withQuery } from "./http";
 
 const patchChat = (chatId: number, patch: ChatPatch) => request<Chat>("PATCH", `/api/chats/${chatId}`, patch);
@@ -35,5 +35,6 @@ export const chatsApi = {
   /** 子チャットを親から外す（parent_chat_id: null = 親のないチャット（group_id のグループへ）/ 先祖の ID = その子に上げる） */
   detachChat: (chatId: number, body: ChatDetachBody) => request<Chat>("POST", `/api/chats/${chatId}/detach`, body),
   moveChat: (chatId: number, projectId: number) => request<Chat>("POST", `/api/chats/${chatId}/move`, { project_id: projectId }),
-  deleteChat: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}`),
+  /** チャットを Kickoff のゴミ箱へ入れる（子チャットも。3 日は戻せる）。入れたゴミ箱の ID を返す */
+  deleteChat: (chatId: number) => request<TrashedResult>("DELETE", `/api/chats/${chatId}`),
 };

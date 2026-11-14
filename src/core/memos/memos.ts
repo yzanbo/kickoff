@@ -32,6 +32,8 @@ interface MemoServiceOptions {
   publish: (e: BusEvent) => void;
   /** Kickoff のゴミ箱（メモを「ゴミ箱に入れる」と 3 日取っておき、元に戻せる） */
   trashBin: Pick<TrashService, "putPath">;
+  /** メモのチャット（フォルダならその中のメモのもの）を、メモと同じゴミ箱の行に入れる（trash/chatTrash.ts の trashMemoChats。なければ入れない） */
+  trashMemoChats?: (projectId: number, memoPath: string, itemId: string) => void;
 }
 
 /** チャットから作る・足すときに、文の前に置く出どころの行（どのチャットの、いつの文か） */
@@ -200,10 +202,8 @@ export class MemoService {
     const target = await this.pathIn(project, file);
     if (!(await exists(target))) throw new NotFound(`メモが見つかりません: ${file}`);
     const item = await this.opts.trashBin.putPath(target, { projectId: project.id, details: { memo: file } });
-    // メモのチャットはアーカイブする（作業中のものはそのまま。ゴミ箱から戻しても、アーカイブ済みから戻せる）
-    for (const chat of this.opts.store.chats.memoChats(project.id, file)) {
-      if (!chat.archived_at && chat.status !== "running") this.opts.store.chats.archive(chat.id, true);
-    }
+    // メモのチャットもメモと一緒にゴミ箱へ（一覧には 1 行。戻すと一緒に戻り、3 日たてば一緒に消える。作業中のものはそのまま）
+    this.opts.trashMemoChats?.(project.id, file, item.id);
     this.changed(project, null);
     return item.id;
   }
