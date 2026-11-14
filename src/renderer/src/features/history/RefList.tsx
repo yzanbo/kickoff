@@ -20,13 +20,14 @@ export function RefSection({ title, count, action, always = false, children }: {
   );
 }
 
-/** 左の一覧の 1 行（押すとそのコミットを表で選ぶ。actions はマウスを乗せたときに出すボタン、onContextMenu は右クリックのメニュー） */
+/** 左の一覧の 1 行（押すとそのコミットを表で選ぶ。selected は押して選んでいる行（地の色）、active はいまのブランチ（太字）。actions はマウスを乗せたときに出すボタン、onContextMenu は右クリックのメニュー） */
 export function RefItem({
   icon,
   name,
   title,
   note,
   active,
+  selected,
   onClick,
   actions,
   depth = 0,
@@ -37,14 +38,15 @@ export function RefItem({
   title?: string;
   note?: ReactNode;
   active?: boolean;
+  selected?: boolean;
   onClick: () => void;
   actions?: ReactNode;
   depth?: number;
   onContextMenu?: (e: MouseEvent) => void;
 }) {
   return (
-    <li className={actions ? "change-item" : undefined}>
-      <button className={cx("ref-item", active && "current")} style={{ paddingLeft: 22 + depth * 14 }} title={title ?? name} onClick={onClick} onContextMenu={onContextMenu}>
+    <li className={cx(Boolean(actions) && "change-item", selected && "selected")}>
+      <button className={cx("ref-item", active && "current", selected && "selected")} aria-current={selected || undefined} style={{ paddingLeft: 22 + depth * 14 }} title={title ?? name} onClick={onClick} onContextMenu={onContextMenu}>
         {icon}
         <span className="ref-name">{name}</span>
         {note && <span className="ref-note">{note}</span>}

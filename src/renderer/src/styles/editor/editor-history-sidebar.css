@@ -45,6 +45,28 @@
   background: var(--bg-hover);
 }
 
+/*
+ * 押して選んでいる行（利用者の依頼: 前は押しても印がなく、どの行を見ているか分からなかった）。ファイルタブの木の選んだ行と同じ地の色に、
+ * 左端のアクセントの線を添える。乗せても地の色は変えない。いまのブランチ（.current の太字）とは別
+ */
+.ref-item.selected,
+.ref-item.selected:hover,
+.ref-all.selected,
+.ref-all.selected:hover,
+.change-item.selected > .row-actions {
+  background: var(--bg-active);
+}
+
+.ref-item.selected,
+.ref-all.selected {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.ref-item.selected svg,
+.ref-all.selected svg {
+  color: var(--text);
+}
+
 /* いまのブランチ（太字と濃い ✓ で目立たせる。地の色は付けない） */
 .ref-item.current {
   font-weight: 700;
