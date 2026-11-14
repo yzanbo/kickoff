@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk";
 import { turnContextHook, turnHooks } from "./policy.js";
 import type { ApprovalRequest, ProviderTurnParams } from "../types.js";
+import type { ApprovalDecision } from "@shared/types";
+import { tempDir } from "../../testing/tempDir.js";
 
 const signal = new AbortController().signal;
 const submit = { hook_event_name: "UserPromptSubmit", prompt: "質問", session_id: "s", transcript_path: "/tmp/t", cwd: "/tmp" } as HookInput;
@@ -36,4 +40,69 @@ test("AI の Docker の守り: 聞くと決めた Bash は承認カードで聞�
   const denied = await hook(bash("docker stop app-db-1"), undefined, { signal });
   assert.equal((denied as { hookSpecificOutput?: { permissionDecision?: string } }).hookSpecificOutput?.permissionDecision, "deny");
   assert.match(JSON.stringify(denied), /利用者が拒否しました.*だめ/);
+});
+
+test("AI の書き込み先の守り: ほかの作業場所は断り、外は承認カード（このチャットでは許可）で聞き、許したファイルはチャットの間もう聞かない", async () => {
+  const root = tempDir({ real: true });
+  const main = path.join(root, "app");
+  const wt = path.join(root, "app-wt");
+  const outside = path.join(root, "outside");
+  for (const dir of [main, wt, outside]) fs.mkdirSync(dir);
+  const asked: ApprovalRequest[] = [];
+  let answer: ApprovalDecision = { action: "allow_always" };
+  const allowed = new Set<string>();
+  const params = {
+    cwd: main,
+    permissionMode: "auto",
+    writeScope: {
+      writableDirs: [],
+      workplaces: async () => [
+        { path: main, worktree_path: null, branch: "main" },
+        { path: wt, worktree_path: wt, branch: "feat/x" },
+      ],
+      allowed,
+    },
+  } as unknown as ProviderTurnParams;
+  const cb = { requestApproval: async (req: ApprovalRequest) => (asked.push(req), answer) };
+  const matcher = turnHooks(params, undefined, cb)?.PreToolUse?.at(-1);
+  assert.equal(matcher?.matcher, "Write|Edit|MultiEdit|NotebookEdit");
+  assert.ok((matcher?.timeout ?? 0) >= 24 * 60 * 60);
+  const [hook] = matcher?.hooks ?? [];
+  const write = (file: string) => ({ hook_event_name: "PreToolUse", tool_name: "Write", tool_input: { file_path: file, content: "x" }, tool_use_id: "t1", session_id: "s", transcript_path: "/tmp/t", cwd: main }) as HookInput;
+  const decisionOf = (out: unknown) => (out as { hookSpecificOutput?: { permissionDecision?: string } }).hookSpecificOutput?.permissionDecision;
+  // 自分の作業場所は何も言わない（権限モードに任せる）
+  assert.deepEqual(await hook(write(path.join(main, "a.ts")), undefined, { signal }), {});
+  // ほかの作業場所は聞かずに断る
+  const denied = await hook(write(path.join(wt, "a.ts")), undefined, { signal });
+  assert.equal(decisionOf(denied), "deny");
+  assert.match(JSON.stringify(denied), /利用者に「そのワークツリー/);
+  assert.equal(asked.length, 0);
+  // 外は「このチャットでは許可」付きのカードで聞き、許したら流す
+  const file = path.join(outside, "rc");
+  assert.equal(decisionOf(await hook(write(file), undefined, { signal })), "allow");
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0].canRemember, true);
+  assert.equal(asked[0].rememberScope, "chat");
+  assert.ok(allowed.has(file));
+  // 同じファイルはもう聞かない。別のファイルはまた聞き、断られたら理由付きで断る
+  assert.equal(decisionOf(await hook(write(file), undefined, { signal })), "allow");
+  assert.equal(asked.length, 1);
+  answer = { action: "deny", message: "だめ" };
+  const refused = await hook(write(path.join(outside, "other")), undefined, { signal });
+  assert.equal(decisionOf(refused), "deny");
+  assert.match(JSON.stringify(refused), /利用者が拒否しました.*だめ/);
+  assert.equal(asked.length, 2);
+});
+
+test("AI の書き込み先の守り: ほかの守りが断る場所（参照資料など）にはカードを出さない", async () => {
+  const root = tempDir({ real: true });
+  const ref = path.join(root, "ref");
+  fs.mkdirSync(ref);
+  const asked: ApprovalRequest[] = [];
+  const params = { cwd: root, readOnlyPaths: [ref], writeScope: { writableDirs: [], workplaces: async () => [], allowed: new Set() } } as unknown as ProviderTurnParams;
+  const hooks = turnHooks(params, undefined, { requestApproval: async (req) => (asked.push(req), { action: "allow" }) })?.PreToolUse ?? [];
+  const input = { hook_event_name: "PreToolUse", tool_name: "Edit", tool_input: { file_path: path.join(ref, "a.md") }, tool_use_id: "t1", session_id: "s", transcript_path: "/tmp/t", cwd: root } as HookInput;
+  const outs = await Promise.all(hooks.map((m) => m.hooks[0](input, undefined, { signal })));
+  assert.ok(outs.some((o) => JSON.stringify(o).includes("deny")));
+  assert.equal(asked.length, 0);
 });

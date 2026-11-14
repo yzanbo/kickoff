@@ -39,6 +39,7 @@ export class ApprovalCenter {
       title: req.title,
       description: req.description,
       can_remember: req.canRemember,
+      ...(req.rememberScope ? { remember_scope: req.rememberScope } : {}),
       ...(req.toolUseId ? { tool_use_id: req.toolUseId } : {}),
       ...(req.agentId ? { agent_id: req.agentId } : {}),
       created_at: new Date().toISOString(),

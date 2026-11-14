@@ -12,9 +12,10 @@ import type { AiVisualTools } from "../chat/aiVisual.js";
 import type { AiOpenTools } from "../chat/aiOpen.js";
 import type { HiddenDbTarget } from "../chat/guard/hiddenDb.js";
 import type { DockerGuard } from "../chat/guard/dockerGuard.js";
+import type { WriteScopeParams } from "../chat/guard/writeScope.js";
 import type { DbAiTools } from "../databases/aiTools.js";
 import type { ChatPolicy } from "../chat/policy.js";
-import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
+import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, RememberScope, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
 
 /**
  * エージェント実行基盤の抽象化。
@@ -149,6 +150,11 @@ export interface ProviderTurnParams {
   hiddenDb?: HiddenDbTarget[];
   /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */
   dockerGuard?: DockerGuard | null;
+  /**
+   * AI の書き込み先の守り（chat/guard/writeScope.ts。ファイルを書き換えるツールの先を、作業場所・メモのフォルダ・決まりの例外だけにする。
+   * 同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く）。なければ付けない（Git で管理していないファイルだけを書けるチャットは、そちらの守りが絞る）
+   */
+  writeScope?: WriteScopeParams | null;
   /** ファイルを消す Bash（rm・find -delete・git clean など）を断り、kickoff-trash を使わせる守り（chat/guard/deleteGuard.ts）を付けるか */
   deleteGuard?: boolean;
 }
@@ -160,6 +166,8 @@ export interface ApprovalRequest {
   title?: string;
   description?: string;
   canRemember: boolean;
+  /** 「覚える」の範囲（省いたら rule = 許可のルールに足す） */
+  rememberScope?: RememberScope;
   /** 承認を求めているツールの呼び出し ID（Claude Code の toolUseID） */
   toolUseId?: string;
   /** サブエージェントの中で動いているときの、そのサブエージェントの ID（Claude Code の agentID。メインエージェントなら undefined） */

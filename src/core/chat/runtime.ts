@@ -62,6 +62,8 @@ export class ChatRuntime {
   control: TurnControl | null = null;
   /** 前の圧縮（またはコンテキストの消去）のあとで、もう圧縮前指示を送った（次の圧縮まで、自動の圧縮の前にもう足さない。保存しない） */
   preCompactSent = false;
+  /** AI の書き込み先の守りの承認カードで「このチャットでは許可」を選んだファイル（実体のパス。作業をまたいで持ち、保存しない = アプリを終えたら聞き直す） */
+  readonly writeAllowed = new Set<string>();
   /** 預かった指示を送っている途中で、作業が送れない終わり方（通信の切断・使用枠の上限・アプリの終了）をした（送るのをやめて、残りを置く） */
   parkAfterCompact = false;
   /** 作業中に送った次の指示の待ちの列（送信待ち） */
