@@ -127,6 +127,8 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     openWhenEmpty: null,
     closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "right" },
     noSplitButtons: true,
+    // 左の会話を覆って横幅いっぱいに広げる ⇔ 元の幅に戻す（タブの列の左端。利用者の依頼）
+    maximize: "width",
     emptyHint:
       "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
     newChildHint: "「＋」で新しい子チャットを始められます。",
