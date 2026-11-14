@@ -4,17 +4,20 @@ import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { subscribeServerOpen, useServerEvent } from "@/api/events";
 import { useProjects } from "@/stores/projects";
-import { concernsDetail, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail } from "./chatDetail";
+import { concernsDetail, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail } from "./chatDetail";
 
 /**
  * チャットの中身（チャット・プロジェクト・イベント・確認・作業中の様子・書いている途中の返答）を取り、サーバーのイベントで追いかける。
  * 作業中の様子（送信待ち・裏の作業・再試行・再接続待ち・圧縮中・停止中）はコアが持つ形（ChatLive）のまま受け、SSE の chat_live で丸ごと置き換える。
- * SSE がつなぎ直されたら取り直す（切れていた間の知らせは届かないため）。読み込みの最中に届いた知らせは、届いた中身にもう一度当てる。
+ * SSE がつなぎ直されたら取り直す（切れていた間の知らせは届かないため。記録は持っている最後のものより新しい分だけ読み、巻き戻しで消えていたらすべて読み直す）。読み込みの最中に届いた知らせは、届いた中身にもう一度当てる。
  * チャットを切り替えると読み直す（chat が undefined の間は読み込み中。error は読み込みの失敗）。
  * 別のプロジェクトへ移しても読み直さない（中身はそのまま。プロジェクトだけが変わる）
  */
 export function useChatDetail(chatId: number) {
   const [detail, setDetail] = useState(EMPTY_DETAIL);
+  // 取り直すときに、持っている最後の記録を読む（描いたときの中身）
+  const detailRef = useRef(detail);
+  detailRef.current = detail;
   // チャットのプロジェクト（プロジェクトの店から。名前・参照資料などを変えたら、開いている間も直る）。
   // チャット自身のプロジェクトで引く（別のプロジェクトへ移したら、タブが知るのを待たずに移した先のものになる）
   const { projectsById } = useProjects();
@@ -41,8 +44,11 @@ export function useChatDetail(chatId: number) {
     setStreaming("");
   };
 
-  /** 読み込む（fresh: チャットを開いた・切り替えた。前の中身を捨てて読み込み中にする / そうでなければ前の中身を出したまま取り直す） */
-  const load = (fresh: boolean) => {
+  /**
+   * 読み込む（fresh: チャットを開いた・切り替えた。前の中身を捨てて読み込み中にする / そうでなければ前の中身を出したまま取り直す。
+   * all: 取り直しでも記録をすべて読む）
+   */
+  const load = (fresh: boolean, all = false) => {
     const id = ++request.current;
     replay.current = [];
     if (fresh) {
@@ -50,13 +56,17 @@ export function useChatDetail(chatId: number) {
       clearStreaming();
       setError(undefined);
     }
+    // 取り直し（つなぎ直したとき）は、持っている最後の記録より新しい分だけ読む
+    const last = fresh || all || detailRef.current.chat?.id !== chatId ? undefined : detailRef.current.events.at(-1)?.id;
     api
-      .chatDetail(chatId)
+      .chatDetail(chatId, last === undefined ? {} : { after: last })
       .then((d) => {
         if (request.current !== id) return;
+        // 持っていた最後の記録が巻き戻しで消えていたら、すべて読み直す
+        if (d.after_missing) return loadRef.current(false, true);
         const missed = replay.current ?? [];
         replay.current = null;
-        setDetail((prev) => detailFromSnapshot(d, missed, chatId, prev));
+        setDetail((prev) => (last === undefined ? detailFromSnapshot(d, missed, chatId, prev) : detailFromIncrement(d, missed, chatId, prev)));
         setError(undefined);
         if (d.chat.status !== "running") clearStreaming();
       })

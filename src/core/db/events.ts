@@ -77,6 +77,25 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
     list(chatId: number): ChatEvent[] {
       return (db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? ORDER BY id`).all(chatId) as unknown as EventRow[]).map(toEvent);
     },
+    /** afterId より新しい記録（古い順。つなぎ直したときに、切れていた間の分だけ読む） */
+    after(chatId: number, afterId: number): ChatEvent[] {
+      return (db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? AND id > ? ORDER BY id`).all(chatId, afterId) as unknown as EventRow[]).map(toEvent);
+    },
+    /** beforeId より前の記録を新しいほうから limit 件（古い順で返す。null なら終わりから。さかのぼって読む） */
+    before(chatId: number, beforeId: number | null, limit: number): ChatEvent[] {
+      const rows = db
+        .prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? AND id < ? ORDER BY id DESC LIMIT ?`)
+        .all(chatId, beforeId ?? Number.MAX_SAFE_INTEGER, limit) as unknown as EventRow[];
+      return rows.reverse().map(toEvent);
+    },
+    /** そのチャットの、id より前の記録があるか */
+    hasBefore(chatId: number, id: number): boolean {
+      return db.prepare("SELECT 1 FROM chat_events WHERE chat_id = ? AND id < ? LIMIT 1").get(chatId, id) !== undefined;
+    },
+    /** そのチャットの記録か（巻き戻しで消えていれば false。記録の ID は使い回さない） */
+    has(chatId: number, id: number): boolean {
+      return db.prepare("SELECT 1 FROM chat_events WHERE chat_id = ? AND id = ?").get(chatId, id) !== undefined;
+    },
     /**
      * 会話を読む分の記録（自分の発言・AI の文・失敗・ツールの呼び出し）。AI がほかのチャットの会話を読むツール（read_chat）が使う。
      * ツールの呼び出しは数えるだけなので、引数（書き込む中身など大きいことがある）は読まずに空にする
