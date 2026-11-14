@@ -273,6 +273,29 @@ test("スマホ連携がオフなら、つないだ端末からの頼みとペ�
   assert.equal((await app.request("/api/projects", { headers: DEVICE })).status, 200);
 });
 
+test("端末を取り消したら、その端末のつながったままの SSE をそこで切る（ほかの端末・この Mac の画面は切らない）", async () => {
+  const { app, call, device, store } = withDevice();
+  const other = store.devices.create("タブレット", hashToken("o".repeat(43)));
+  const open = async (headers: Record<string, string>) => {
+    const res = await app.request("/api/events", { headers });
+    const reader = res.body!.getReader();
+    await reader.read(); // hello
+    return reader;
+  };
+  const mine = await open(DEVICE);
+  const theirs = await open({ authorization: `Bearer ${"o".repeat(43)}` });
+  const host = await open(AUTH);
+  await call("DELETE", `/api/devices/${device.id}`);
+  assert.equal((await mine.read()).done, true);
+  const pending = (r: ReadableStreamDefaultReader<Uint8Array>) => Promise.race([r.read().then(() => "data"), new Promise((res) => setTimeout(() => res("open"), 200))]);
+  assert.equal(await pending(theirs), "open");
+  // この Mac の画面には、端末の一覧が変わった知らせが届く（切れない）
+  assert.equal(await pending(host), "data");
+  assert.ok(store.devices.get(other.id));
+  await theirs.cancel();
+  await host.cancel();
+});
+
 test("Tailscale の様子: 入っていなければ installed: false と始めるコマンド。入っていれば名前と Serve の URL。端末には開かない", async () => {
   const { call, app, tailscaleFake } = withDevice();
   const missing = (await call("GET", "/api/tailscale")).body as TailscaleStatus;

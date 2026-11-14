@@ -213,8 +213,9 @@ export function createApp(deps: ServerDeps): Hono {
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>
     streamSSE(c, async (stream) => {
-      // 端末には、開いた口の知らせだけを届ける（deviceAccess.ts）。スマホ連携をオフにしたら、端末の知らせはそこで切る
-      const isDevice = callerOf(c).kind === "device";
+      // 端末には、開いた口の知らせだけを届ける（deviceAccess.ts）。スマホ連携をオフにした・その端末を取り消したら、端末の知らせはそこで切る
+      const caller = callerOf(c);
+      const isDevice = caller.kind === "device";
       // 切断の知らせは、待つ前（最初の書き込みの前）に受け取れるようにしておく。こちらから切るときも同じ待ちを終える
       let finish = () => {};
       const closed = new Promise<void>((resolve) => {
@@ -223,6 +224,7 @@ export function createApp(deps: ServerDeps): Hono {
       });
       const unsubscribe = bus.subscribe((event) => {
         if (isDevice && event.type === "settings" && !event.settings.remote_enabled) return finish();
+        if (caller.kind === "device" && event.type === "devices" && !store.devices.get(caller.device.id)) return finish();
         if (!isDevice || deviceMaySee(event)) void stream.writeSSE({ data: JSON.stringify(event) });
       });
       const ping = setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);

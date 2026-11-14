@@ -96,3 +96,26 @@ test("ターミナル: WebSocket でつなぐと画面の内容と出力が届�
   const anonymous = new WebSocket(`ws://127.0.0.1:${port}/api/terminals/tab/ws`);
   assert.equal(await new Promise<number>((resolve) => anonymous.once("unexpected-response", (_req, res) => resolve(res.statusCode ?? 0))), 401);
 });
+
+test("ターミナル: つないだあとで見るだけに変えた端末の入力は捨て、取り消した端末の WebSocket は切る", async (t) => {
+  const { app, project, store, terminals, terminalFake, full, call } = withDevices();
+  const server = await startHttpServer(app, { port: 0, host: "127.0.0.1" });
+  t.after(() => stopHttpServer(server));
+  const port = (server.address() as AddressInfo).port;
+  await terminals.open({ key: "tab", cwd: project.repo_path, cols: 80, rows: 24, client: { id: "wc:1", data: () => {}, exit: () => {} }, owner: "wc:1" });
+  const shell = terminalFake.spawned[0];
+  const ws = new WebSocket(`ws://127.0.0.1:${port}/api/terminals/tab/ws`, { headers: bearer(FULL_TOKEN) });
+  await new Promise((r) => ws.once("open", r));
+  ws.send(JSON.stringify({ type: "input", data: "a" }));
+  await until(() => shell.written.length === 1);
+  // 見るだけに変えたら、開いたままでも打てない
+  await call("PATCH", `/api/devices/${full.id}`, { access: "read" });
+  ws.send(JSON.stringify({ type: "input", data: "b" }));
+  await new Promise((r) => setTimeout(r, 50));
+  assert.deepEqual(shell.written, ["a"]);
+  // 取り消したら、つながったままの WebSocket も切る
+  const closed = new Promise<void>((resolve) => ws.once("close", () => resolve()));
+  await call("DELETE", `/api/devices/${full.id}`);
+  await closed;
+  assert.equal(store.devices.get(full.id), null);
+});
