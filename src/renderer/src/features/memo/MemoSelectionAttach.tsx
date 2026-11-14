@@ -1,16 +1,18 @@
+import { SquarePen } from "lucide-react";
 import type { MutableRefObject } from "react";
 import { SelectionAttachBox } from "@/features/chat/messages/SelectionAttach";
 import { lineLocation } from "@/lib/pathCopy";
 import type { HtmlMemoPageHandle } from "./HtmlMemoPage";
 import { memoQuote } from "./memoAttachment";
 import type { MemoEditorHandle } from "./MemoEditor";
-import type { MemoChatTarget } from "./useMemoEditMenu";
+import type { MemoChatTargets } from "./useMemoEditMenu";
 
 /**
  * メモの本文で文を選ぶと、その上に足す先のボタンを出し、押すとすぐその入力欄に選択部分の引用（ファイルのフルパスと行番号付き。
  * HTML のページは行が分からないのでパスだけ）を足す（AI の返答で選んだときと同じ）。足す先は本文の右クリックと同じ（memoChatTargets）:
  * 右の欄・別ウィンドウのメモでは「「機能開発」に追加」（開いたチャット）と「メモのチャットに追加」の 2 つ（子チャットの中で選んだときと同じ形）、
- * メモのタブでは「メモのチャットに追加」だけ。メモのチャットに足すときは、閉じていればその欄を開く
+ * メモのタブでは「メモのチャットに追加」だけ。メモのチャットに足すときは、閉じていればその欄を開く。
+ * どこでも最後に「新しいチャットで始める」（引用を入力欄に入れた新しいチャットを、メモのプロジェクトのチャットのパネルに開く。送るのは自分で）
  */
 export function MemoSelectionAttach({
   targets,
@@ -18,7 +20,7 @@ export function MemoSelectionAttach({
   editor,
   page,
 }: {
-  targets: { main?: MemoChatTarget; memo: MemoChatTarget };
+  targets: MemoChatTargets;
   /** メモのファイルのフルパス */
   file: string;
   editor: MutableRefObject<MemoEditorHandle | null>;
@@ -39,11 +41,12 @@ export function MemoSelectionAttach({
   return (
     <SelectionAttachBox
       pick={pick}
-      targets={() =>
-        [targets.main, targets.memo].flatMap((target) =>
+      targets={() => [
+        ...[targets.main, targets.memo].flatMap((target) =>
           target ? [{ label: `${target.name}に追加`, title: `選択部分を引用して、${target.name}の入力欄に足します（送るのは自分で）`, onAdd: target.addQuote }] : [],
-        )
-      }
+        ),
+        { label: "新しいチャットで始める", title: "選択部分の引用を入力欄に入れた新しいチャットを開きます（送るのは自分で）", icon: SquarePen, onAdd: targets.newChat.startQuote },
+      ]}
     />
   );
 }
