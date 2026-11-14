@@ -59,6 +59,22 @@ test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果�
   );
 });
 
+test("groupEvents: 図のツール（show_visual・update_visual）はまとまりに入れず、文の間の図の項目にする", () => {
+  const items = groupEvents([
+    makeEvent(1, "tool_use", { id: "a", name: "Read", input: {} }),
+    makeEvent(2, "tool_use", { id: "v", name: "mcp__kickoff_chat__show_visual", input: { kind: "svg", code: "<svg/>" } }),
+    makeEvent(3, "tool_result", { tool_use_id: "v", content: "visual_id: v-abcdefgh" }),
+    makeEvent(4, "tool_use", { id: "b", name: "Bash", input: {} }),
+    makeEvent(5, "tool_use", { id: "u", name: "mcp__kickoff_chat__update_visual", input: { visual_id: "v-abcdefgh", code: "<svg/>" } }),
+  ]);
+  assert.deepEqual(
+    items.map((i) => i.kind + ":" + i.key),
+    ["tools:t1", "visual:v2", "tools:t4", "visual:v5"],
+  );
+  const shown = items[1];
+  assert.ok(shown.kind === "visual" && shown.call.result?.id === 3);
+});
+
 test("groupEvents: parent を渡すとそのサブエージェントの分だけ、渡さなければメインエージェントの分だけ", () => {
   const events = [makeEvent(1, "text", { text: "親" }), makeEvent(2, "text", { text: "子", parent: "sub1" }), makeEvent(3, "tool_use", { id: "x", name: "Read", input: {}, parent: "sub1" })];
   assert.deepEqual(

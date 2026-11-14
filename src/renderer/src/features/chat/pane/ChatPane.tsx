@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
@@ -8,6 +8,7 @@ import { SelectionAttach } from "@/features/chat/messages/SelectionAttach";
 import { ChatTimeline } from "@/features/chat/timeline/ChatTimeline";
 import { ActivityView } from "@/features/chat/activity/ActivityView";
 import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
+import { VisualsContext, chatVisualsOf } from "@/features/chat/visuals/visualsContext";
 import { BackgroundCallsContext, useBackgroundCalls } from "@/features/chat/tools/backgroundCalls";
 import { AgentSplit } from "@/features/panel/agents/AgentSplit";
 import { usePanelHost } from "@/features/panel/panelHost";
@@ -81,10 +82,13 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
   const [pillDock, setPillDock] = useState<HTMLSpanElement | null>(null);
   // 裏でまだ動いている作業を起動した呼び出し（流れの中の裏のコマンドを、終わるまで実行中に見せる）
   const backgroundCalls = useBackgroundCalls(view.live.background);
+  // AI が描いた図（記録から組み立てる。流れの図の項目が読む）
+  const visuals = useMemo(() => chatVisualsOf(events), [events]);
   return (
     <FileLinksProvider value={view.fileLinks}>
       <ChatPaneContext.Provider value={pane}>
         <SubagentsContext.Provider value={view.subagentsView}>
+        <VisualsContext.Provider value={visuals}>
         <BackgroundCallsContext.Provider value={backgroundCalls}>
         <AgentSplit scope={chat.id} handleRef={view.side}>
         {/* data-chat-id・data-chat-role: 右の欄・別ウィンドウで、選んだ所・右クリックした所のチャット（子チャット・メモのチャット）を見分ける */}
@@ -134,6 +138,7 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
         </div>
         </AgentSplit>
         </BackgroundCallsContext.Provider>
+        </VisualsContext.Provider>
         </SubagentsContext.Provider>
       </ChatPaneContext.Provider>
     </FileLinksProvider>

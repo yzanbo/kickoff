@@ -144,4 +144,5 @@
  * 逆に、上の :root の値を getComputedStyle で読んでいるコードもある（名前を変えるときは一緒に直す）:
  *   mermaidConfig.ts（--text --bg --bg-sidebar --bg-hover --bg-elev --bg-active --muted --accent-bright --info --warn --ok --ng --dot-needs-input --sec-*）
  *   terminalTheme.ts・CodeEditor.tsx（--bg --text --mono）
+ *   chat/visuals/visualTheme.ts（--bg --bg-elev --text --muted --border-strong --accent-fg --accent-text --ng --info --warn --child-depth-2 --child-depth-3 --mono --radius。AI が描いた図の --vis-* に渡す）
  */

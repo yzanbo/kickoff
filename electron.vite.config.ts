@@ -35,7 +35,11 @@ export default defineConfig({
     plugins: [react()],
     build: { outDir: resolve("out/renderer") },
     server: {
-      proxy: { "/api": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false } },
+      proxy: {
+        "/api": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false },
+        // AI が返答に描いた図の枠のページ（コアが図だけの CSP で返す）
+        "/visual-frame": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false },
+      },
     },
   },
 });

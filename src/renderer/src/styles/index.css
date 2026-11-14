@@ -80,6 +80,7 @@
 @import "./chat/question-card.css";
 @import "./chat/question-preview.css";
 @import "./ui/markdown.css";
+@import "./chat/visuals.css";
 @import "./footer/usage-meter.css";
 @import "./footer/footer.css";
 @import "./footer/ports.css";

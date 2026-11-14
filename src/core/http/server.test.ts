@@ -21,6 +21,15 @@ test("API はトークン（Bearer・Cookie）がないと 401。本体のトー
   assert.equal(old.headers.get("set-cookie"), null);
 });
 
+test("図の枠のページ（/visual-frame）は認証の外で、図だけの CSP（通信しない）と no-store で返す", async () => {
+  const { app } = setup();
+  const res = await app.request("/visual-frame");
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("content-security-policy") ?? "", /default-src 'none'.*connect-src 'none'/);
+  assert.equal(res.headers.get("cache-control"), "no-store");
+  assert.match(await res.text(), /kickoff-visual-ready/);
+});
+
 test("本文が JSON として読めない・必須の本文が空なら 400（読み取りの失敗を 500 にしない）。省ける項目だけなら本文なしで呼べる", async () => {
   const { app, project } = setup();
   const send = (method: string, url: string, body: string) => app.request(url, { method, headers: { ...AUTH, "content-type": "application/json" }, body });
