@@ -16,6 +16,7 @@ import { createQueueStore } from "./queues.js";
 import { createSecretStore, createSettingsStore, readDatabaseId } from "./settings.js";
 import { createSnippetStore } from "./snippets.js";
 import { databaseStats, type DatabaseStats } from "./stats.js";
+import { createTrashStore } from "./trash.js";
 import { createWorktreeEnvStore } from "./worktreeEnvs.js";
 
 /**
@@ -47,6 +48,8 @@ export class Store {
   readonly worktreeEnvs;
   /** スマホ連携の端末（トークンの hash・最後に使った時刻・プッシュの宛先） */
   readonly devices;
+  /** Kickoff のゴミ箱（消したものを 3 日だけ取っておく。中身のファイルは trash/TrashService が置き場に置く） */
+  readonly trash;
 
   constructor(
     private readonly file: string,
@@ -70,6 +73,7 @@ export class Store {
     this.dbPrepRuns = createDbPrepRunStore(this.db);
     this.worktreeEnvs = createWorktreeEnvStore(this.db);
     this.devices = createDeviceStore(this.db);
+    this.trash = createTrashStore(this.db, onChange);
   }
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */

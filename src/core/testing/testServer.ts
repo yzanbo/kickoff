@@ -10,6 +10,7 @@ import { VoiceService } from "../voice/service.js";
 import { WorktreePrWatch } from "../git/prWatch.js";
 import { listWorktrees } from "../git/worktrees.js";
 import type { BranchPullRequest } from "../git/github.js";
+import { TrashService } from "../trash/service.js";
 import { MemoService } from "../memos/memos.js";
 import { DbWorkerClient } from "../databases/client.js";
 import { inProcessWorker } from "../databases/inProcessWorker.js";
@@ -280,6 +281,9 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     await fs.rm(file, { recursive: true });
   };
   const memos = new MemoService({ store, defaultDir: memoFake.defaultDir, providers, publish: (e) => bus.publish(e), trash });
+  // Kickoff のゴミ箱: 置き場は一時フォルダ。時計は trashClock.now で進める
+  const trashClock = { now: Date.now() };
+  const trashBin = new TrashService({ store, dir: tempDir(), now: () => trashClock.now });
   // ワークツリーの PR の見張り: ワークツリーは本物の git、PR の一覧は偽物（prFake.prs を返し、聞いた回数を覚える。失敗させるなら fail）
   const prFake = { prs: [] as BranchPullRequest[], asked: 0, fail: false };
   // gh に入っている GitHub のアカウント（設定の「GitHub」。gh を呼ばない）
@@ -411,7 +415,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const terminalFake = fakeTerminals();
   const terminals = new TerminalSessions({ shell: { file: "/bin/sh", args: (c) => (c ? ["-c", c] : []) }, spawn: terminalFake.spawn });
   after(() => terminals.closeAll());
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trash, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trash, trashBin, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -423,6 +427,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
 }
 
