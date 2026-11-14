@@ -42,7 +42,7 @@
 
 ## API（`api/`）
 
-- 通信の土台は `api/http.ts`（`request` / `postForm` / クエリの組み立て `withQuery` / 失敗 `ApiError`）だけで、資源ごとの関数は `api/<資源>.ts`（コアの `http/routes/<資源>.ts` と対応）に書き、`api/index.ts` で `api` 1 つにまとめる（名前が重なると後のもので上書きされるので、重ならないことを `index.test.ts` で確かめる）。本文・応答の型は `@shared/types`（`api.ts`）で、画面で書き直さない。
+- 通信の土台は `api/http.ts`（`request`（窓を閉じる間際にも届けたいものは `keepalive`。見ているものの「何も見ていない」）/ `postForm` / クエリの組み立て `withQuery` / 失敗 `ApiError`）だけで、資源ごとの関数は `api/<資源>.ts`（コアの `http/routes/<資源>.ts` と対応）に書き、`api/index.ts` で `api` 1 つにまとめる（名前が重なると後のもので上書きされるので、重ならないことを `index.test.ts` で確かめる）。本文・応答の型は `@shared/types`（`api.ts`）で、画面で書き直さない。
 - SSE は App が `useServerConnection` で 1 回つなぎ、`api/events.ts` で配る（部品は `useServerEvent`、部品の外は `subscribeServerEvent`。つながったときは `subscribeServerOpen`）。
 
 ## hooks と補助

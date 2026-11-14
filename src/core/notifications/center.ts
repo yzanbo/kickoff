@@ -1,10 +1,10 @@
-// 通知の判断（コアの 1 か所）: 変更の知らせ（Bus）から、チャットの完了・失敗・回答待ちと CI の失敗を見つけ、だれも見ていなければ、
-// この Mac の通知（メインプロセスが startCore({ notify }) で渡す口）と、つないだ端末のプッシュ（PushSender。中身はあとで足す）に送る
+// 通知の判断（コアの 1 か所）: 変更の知らせ（Bus）から、チャットの完了・失敗・回答待ちと CI の失敗を見つけ、それを見ていない人にだけ送る:
+// この Mac の通知（メインプロセスが startCore({ notify }) で渡す口）と、つないだ端末のプッシュ（PushSender。中身はあとで足す。CI の失敗は送らない）
 import type { BusEvent, ChatStatus, DevicePush } from "@shared/types";
 import type { Bus } from "../bus.js";
 import type { Store } from "../db/store.js";
 import { approvalNotice, chatNotice, ciNotice, type Notice } from "./notices.js";
-import type { ViewingRegistry } from "./viewing.js";
+import type { Viewer, ViewingRegistry } from "./viewing.js";
 
 /** この Mac の通知を出す口（Mac のアプリのメインプロセス。単体のコアにはない） */
 export type DesktopNotify = (notice: Notice) => void;
@@ -38,11 +38,16 @@ export class NotificationCenter {
   private onEvent(e: BusEvent): void {
     const notice = this.noticeOf(e);
     if (!notice) return;
+    // この Mac の通知は、この Mac の画面で見ていなければ（設定でオンのとき）
+    if (this.opts.store.settings.get().desktop_notifications && !this.viewing("host", notice)) this.opts.desktop?.(notice);
+    // CI の失敗はこの Mac だけ（CI のタブは端末に開いていない）
+    if (notice.kind !== "ci_failed") this.sendPush(notice);
+  }
+
+  /** その人が、その知らせのチャット・CI のタブを見ているか */
+  private viewing(viewer: Viewer, notice: Notice): boolean {
     const { target } = notice;
-    const viewed = target.kind === "chat" ? this.opts.viewing.viewingChat(target.chat_id) : this.opts.viewing.viewingCi(target.project_id);
-    if (viewed) return;
-    if (this.opts.store.settings.get().desktop_notifications) this.opts.desktop?.(notice);
-    this.sendPush(notice);
+    return target.kind === "chat" ? this.opts.viewing.viewingChat(viewer, target.chat_id) : this.opts.viewing.viewingCi(viewer, target.project_id);
   }
 
   private noticeOf(e: BusEvent): Notice | null {
@@ -62,13 +67,13 @@ export class NotificationCenter {
     return null;
   }
 
-  /** プッシュの宛先を登録した端末へ（送れなくても、ほかの端末・この Mac の通知は止めない） */
+  /** プッシュの宛先を登録した端末のうち、そのチャットを見ていない端末へ（送れなくても、ほかの端末・この Mac の通知は止めない） */
   private sendPush(notice: Notice): void {
     const sender = this.opts.push;
     if (!sender) return;
     const { store } = this.opts;
     for (const device of store.devices.list()) {
-      const push = device.has_push ? store.devices.push(device.id) : null;
+      const push = device.has_push && !this.viewing(device.id, notice) ? store.devices.push(device.id) : null;
       if (!push) continue;
       void sender.send(push, { ...notice.push, host_id: store.databaseId, target: notice.target }).catch((e: unknown) => console.warn("[notifications] プッシュを送れません:", e));
     }

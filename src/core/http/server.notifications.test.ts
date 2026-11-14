@@ -47,20 +47,34 @@ test("通知: 作業中から終わった・失敗・回答待ち・CI の失敗
   assert.deepEqual(notifyFake.notified[3].target, { kind: "ci", project_id: project.id, run_id: 9 });
 });
 
-test("通知: だれか（この Mac の画面・端末）が見ているチャット・CI のタブの知らせは出さない。見るのをやめたら出す", async () => {
+test("通知: 見ている人には送らず、見ていない人にだけ送る（この Mac で見ていれば Mac の通知は出さず、見ていない端末にはプッシュ。端末で見ていれば、その端末には送らない）", async () => {
   const { app, call, chat, finish, bus, project, notifyFake, store } = withChat();
+  const token = "d".repeat(40);
+  const pixel = store.devices.create("Pixel", hashToken(token));
+  store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[p]" });
+  // この Mac で見ている: Mac の通知は出さず、見ていない端末にはプッシュ
   assert.equal((await call("PUT", "/api/viewing", { chat_id: chat.id, ci_project_id: project.id })).status, 204);
   finish();
   bus.publish({ type: "ci_failed", failure: { project_id: project.id, run_id: 1, workflow: "w", number: 1, branch: "b", title: "t", url: "u" } });
-  assert.deepEqual(notifyFake.notified, []);
+  assert.equal(notifyFake.notified.length, 0);
+  assert.deepEqual(notifyFake.pushed.map((p) => p.body), ["終わりました"]);
   await call("PUT", "/api/viewing", { chat_id: null, ci_project_id: null });
 
-  // 端末が見ていても出さない（端末からも知らせられる）
-  store.devices.create("Pixel", hashToken("d".repeat(40)));
-  const put = await app.request("/api/viewing", { method: "PUT", headers: { authorization: `Bearer ${"d".repeat(40)}`, "content-type": "application/json" }, body: JSON.stringify({ chat_id: chat.id, ci_project_id: null }) });
+  // 端末で見ている: その端末には送らず、この Mac には出す
+  const put = await app.request("/api/viewing", { method: "PUT", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ chat_id: chat.id, ci_project_id: null }) });
   assert.equal(put.status, 204);
   finish();
-  assert.deepEqual(notifyFake.notified, []);
+  assert.deepEqual(notifyFake.notified.map((n) => n.kind), ["completed"]);
+  assert.equal(notifyFake.pushed.length, 1);
+});
+
+test("通知: CI の失敗はこの Mac だけ（CI のタブは端末に開いていないので、プッシュには送らない）", async () => {
+  const { bus, project, notifyFake, store } = withChat();
+  const pixel = store.devices.create("Pixel", hashToken("z".repeat(40)));
+  store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[q]" });
+  bus.publish({ type: "ci_failed", failure: { project_id: project.id, run_id: 2, workflow: "w", number: 1, branch: "b", title: "t", url: "u" } });
+  assert.deepEqual(notifyFake.notified.map((n) => n.kind), ["ci_failed"]);
+  assert.deepEqual(notifyFake.pushed, []);
 });
 
 test("通知: 設定で Mac の通知を切ったら出さない。プッシュの宛先のある端末には、会話の中身を載せない短い文と本体の ID で送る", async () => {

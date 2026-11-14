@@ -13,4 +13,6 @@ export const devicesApi = {
   revokeDevice: (id: number) => request<void>("DELETE", `/api/devices/${id}`),
   /** いま見ているもの（だれかが見ているチャット・CI のタブの知らせは通知しない。この Mac の画面も端末も使う） */
   reportViewing: (body: ViewingBody) => request<void>("PUT", "/api/viewing", body),
+  /** 窓を閉じる・読み込み直すときに「何も見ていない」を知らせる（ページが消えても届くよう keepalive。返事は待たない） */
+  reportLeaving: () => void request<void>("PUT", "/api/viewing", { chat_id: null, ci_project_id: null } satisfies ViewingBody, { keepalive: true }).catch(() => {}),
 };
