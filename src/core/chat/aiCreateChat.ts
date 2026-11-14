@@ -212,7 +212,7 @@ function resultText(chat: Chat, relation: AiChatRelation, inherit: keyof typeof 
   const where = {
     child: "",
     sibling: "（このチャットと同じ親の子）",
-    root: "（サイドバーの一覧に並びます。このチャットの家系の外なので、open_chat・update_chat では触れません。利用者がツールの行の札から開きます）",
+    root: "（サイドバーの一覧に並びます。このチャットの家系の外なので、open_chat・update_chat では触れません。利用者が、このチャットの発言の下の札から開きます）",
   }[relation];
   return [
     `${AI_CHAT_RELATION_LABELS[relation]}「${name}」${where}を作り、依頼を送りました${createdChatMark(chat.id)}。`,
