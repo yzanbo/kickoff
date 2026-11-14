@@ -132,6 +132,21 @@
   border-top: 1px solid var(--border-strong);
 }
 
+/* 数式（liveMath。KaTeX）。段落の数式は真ん中に置き、欄の幅に収まらなければ横にスクロール */
+.md-editor .cm-md-math .katex {
+  font-size: 1.1em;
+}
+
+.md-editor .cm-md-math-display {
+  padding: 0.4em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.md-editor .cm-md-math-display .katex-display {
+  margin: 0;
+}
+
 /*
  * ⌘F の検索の欄（memoFindPanel。中は ui/FindField で、ほかの検索の欄と同じ見た目）: CodeMirror の上の帯にせず、
  * ページの検索の欄と同じく本文の右上に浮かせる（帯の地・線は消す。本文はずれない）。見つかった文字の印はチャットの検索と同じ色

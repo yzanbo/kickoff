@@ -169,3 +169,15 @@
 .markdown img {
   max-width: 100%;
 }
+
+/* 数式（KaTeX）。段落の数式は欄の幅に収まらなければ横にスクロールし、文の中の数式は文字の大きさに合わせる */
+.markdown .katex {
+  font-size: 1.1em;
+}
+
+.markdown .katex-display {
+  margin: 0.6em 0;
+  padding: 0.2em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}

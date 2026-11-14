@@ -6,6 +6,8 @@ import { MarkdownFileLinksContext } from "./markdownFileLinks";
 import { MermaidDiagram, MermaidPlaceholder } from "@/ui/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/ui/markdown/mermaid/mermaidSource";
 import { CopyButton } from "@/ui/CopyButton";
+import { convertTexDelimiters, mayContainMath } from "@shared/markdown/mathGuard";
+import { useMathPlugins } from "@/ui/markdown/math/useMathPlugins";
 
 /** リンク。ファイルのパス（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、押して開けるチップにする */
 const link: Components["a"] = ({ node, href, children }) => {
@@ -73,17 +75,29 @@ const STREAMING_COMPONENTS: Components = { a: link, pre: codeBlock(true), table 
 
 /**
  * AI の発言などの Markdown 表示（HTML は描画しない）。```mermaid は図にする。
+ * 数式（$$…$$・\(…\)・\[…\]・数式らしい $…$。`@shared/markdown/mathGuard`）は KaTeX で描く（数式の書き方を含むときだけ部品を読み込む）。
  * チャットのパネルの中（MarkdownFileLinksContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
  * streaming: 生成中の返答。tail: 生成中に出たばかりの文字の数（出てからの時間で分けた段。新しい順。終わりの文字を段ごとに薄く出す。`useStreamReveal`）
  */
 export function Markdown({ children, streaming = false, tail }: { children: string; streaming?: boolean; tail?: readonly number[] }) {
   const links = useContext(MarkdownFileLinksContext);
-  const remarkPlugins = useMemo<Options["remarkPlugins"]>(() => (links ? [remarkGfm, links.remarkPlugin] : [remarkGfm]), [links]);
-  const rehypePlugins = useMemo<Options["rehypePlugins"]>(() => (tail?.some((n) => n > 0) ? [rehypeStreamTail(tail)] : []), [tail]);
+  const hasMath = mayContainMath(children);
+  const math = useMathPlugins(hasMath);
+  const withMath = hasMath && math !== null;
+  const remarkPlugins = useMemo<Options["remarkPlugins"]>(
+    () => [remarkGfm, ...(withMath ? math.remark : []), ...(links ? [links.remarkPlugin] : [])],
+    [links, withMath, math],
+  );
+  // 生成中の薄く出す文字を包んでから数式を描く（数式の要素は KaTeX が丸ごと置き換える）
+  const rehypePlugins = useMemo<Options["rehypePlugins"]>(
+    () => [...(tail?.some((n) => n > 0) ? [rehypeStreamTail(tail)] : []), ...(withMath ? math.rehype : [])],
+    [tail, withMath, math],
+  );
+  const text = useMemo(() => (withMath ? convertTexDelimiters(children) : children), [children, withMath]);
   return (
     <div className="markdown">
       <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={streaming ? STREAMING_COMPONENTS : COMPONENTS}>
-        {children}
+        {text}
       </ReactMarkdown>
     </div>
   );

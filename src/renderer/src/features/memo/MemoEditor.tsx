@@ -12,6 +12,7 @@ import { useCodeMirror } from "@/hooks/useCodeMirror";
 import { readFindOptions } from "@/hooks/useFindOptions";
 import { cx } from "@/lib/cx";
 import { livePreview } from "./livePreviewExtension";
+import { liveMath } from "./liveMath";
 import type { MemoLines } from "./memoAttachment";
 import { createMemoFindPanel, memoSearchConfig } from "./memoFindPanel";
 
@@ -102,7 +103,7 @@ export default function MemoEditor({ initialValue, kind, live, hidden = false, o
     initialValue,
     onChange,
     // 表示の切り替え（Markdown の表示 / そのまま）は作り直さずに差し替える
-    dynamic: live && kind === "markdown" ? livePreview : [],
+    dynamic: live && kind === "markdown" ? [liveMath, livePreview] : [],
     dynamicDeps: [live, kind],
     extensions: () => [
       history(),
