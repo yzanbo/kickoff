@@ -6,6 +6,7 @@ import type { BrowserExtensionInfo, KnownExtensionKey } from "./browserExtension
 import type { BrowserHandOffCapture } from "./browserHandOff";
 import type { DiagnosticsFolders, DiagnosticsState } from "./diagnostics";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
+import type { LoginItemState } from "./loginItem";
 import type { NotifyRequest, NotifyResult } from "./notifications";
 import type { TerminalOpenResult, TerminalStart, TerminalTabMeta } from "./terminal";
 
@@ -158,6 +159,12 @@ export const NATIVE_API = {
     onOpenChat: event<[projectId: number, chatId: number]>(),
     /** CI の失敗の通知が押されて、その実行を CI のタブで開くとき */
     onOpenCi: event<[projectId: number, runId: number]>(),
+  },
+  /** ログイン時に起動するか（macOS・Windows とも app.setLoginItemSettings。値は OS の設定をそのまま読む） */
+  loginItem: {
+    get: invoke<[], LoginItemState>(),
+    /** 切り替えて、切り替えたあとの様子を返す（切り替えられない版では変えない） */
+    set: invoke<[openAtLogin: boolean], LoginItemState>(),
   },
   /** 性能の記録（重いときに、その場で 10 秒の記録を取って保存する。メニューの「ヘルプ」からも始まる） */
   diagnostics: {

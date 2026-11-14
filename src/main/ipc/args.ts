@@ -86,6 +86,10 @@ export const IPC_ARGS = defineArgSchemas({
     openSettings: none,
     setBadge: z.tuple([z.number().int().min(0).max(99999)]),
   },
+  loginItem: {
+    get: none,
+    set: z.tuple([z.boolean()]),
+  },
   diagnostics: {
     start: none,
     folders: none,

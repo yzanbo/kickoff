@@ -9,6 +9,7 @@ import { prepareAppSession } from "./app/appSession.js";
 import { DB_WORKER_FILE, RENDERER_DIR, seedDevDataOnce, setupEnvironment } from "./app/environment.js";
 import { registerShutdown } from "./app/shutdown.js";
 import { startKeepAwake } from "./app/keepAwake.js";
+import { openedAtLogin } from "./app/loginItem.js";
 import { logLaunch, startupLog, watchChildProcesses } from "./app/startupLog.js";
 import { openMainWindow, setMainWindowUrl, showMainWindow } from "./app/window.js";
 import { agentBrowser } from "./browser/agentBrowser.js";
@@ -87,7 +88,9 @@ async function start() {
   startupLog("認証の Cookie を設定しました");
   registerIpc(url);
   setAppMenu();
-  openMainWindow(url);
+  // ログイン時に起動したときは窓を出さずに裏で動かす（スマホから届くように本体だけ起こしておく。Dock を押せば activate で出る）
+  if (openedAtLogin()) startupLog("ログイン時に起動したので、窓を出さずに動かします");
+  else openMainWindow(url);
   // 埋め込みブラウザの拡張機能（React DevTools など）を読み込む
   void loadSavedExtensions().then((errors) => errors.forEach((e) => console.warn("[browser] 拡張機能を読み込めません:", e)));
   // Mac では、ウィンドウを閉じたあとに Dock を押したら作り直す

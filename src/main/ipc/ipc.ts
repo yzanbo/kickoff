@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import { dialogHandlers } from "../app/dialogs.js";
 import { externalAppHandlers } from "../app/externalApps.js";
+import { loginItemHandlers } from "../app/loginItem.js";
 import { popoutHandlers } from "../app/popouts.js";
 import { agentBrowserHandlers } from "../browser/agentBrowser.js";
 import { devtoolsHandlers } from "../browser/devtools.js";
@@ -28,6 +29,7 @@ export function registerIpc(appUrl: string) {
       browserExtensions: browserExtensionHandlers,
       terminal: terminalHandlers,
       notifications: notificationHandlers(),
+      loginItem: loginItemHandlers,
       diagnostics: diagnosticsHandlers,
     },
   });
