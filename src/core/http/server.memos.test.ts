@@ -48,7 +48,7 @@ test("メモの保存先: 既定は親フォルダの下のプロジェクト名
 });
 
 test("メモ: 作る・一覧・読む・保存（ほかで変わっていれば 409）・動かす・ゴミ箱。変えるたびに知らせる", async () => {
-  const { call, project, bus, memoFake } = setup();
+  const { call, project, bus, store } = setup();
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
   const base = `/api/projects/${project.id}`;
@@ -78,8 +78,10 @@ test("メモ: 作る・一覧・読む・保存（ほかで変わっていれば
   assert.equal(fs.readFileSync(path.join(list.dir, "DB の方針.md"), "utf8"), "# DB\n本文\n");
 
   // ゴミ箱へ（なければ 404）
-  assert.equal((await call("DELETE", `${base}/memo?path=${encodeURIComponent("DB の方針.md")}`)).status, 204);
-  assert.deepEqual(memoFake.trashed, [path.join(fs.realpathSync(list.dir), "DB の方針.md")]);
+  const trashed = await call("DELETE", `${base}/memo?path=${encodeURIComponent("DB の方針.md")}`);
+  assert.equal(trashed.status, 200);
+  assert.equal(store.trash.get(trashed.body.trash_id)?.origin, path.join(fs.realpathSync(list.dir), "DB の方針.md"));
+  assert.deepEqual(store.trash.get(trashed.body.trash_id)?.details, { memo: "DB の方針.md" });
   assert.equal((await call("DELETE", `${base}/memo?path=${encodeURIComponent("DB の方針.md")}`)).status, 404);
 
   const memoEvents = events.filter((e) => e.type === "memos");

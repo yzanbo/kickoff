@@ -1,4 +1,4 @@
-import type { FileContent, ProjectFiles, ProjectReplaceBody, ProjectReplaceResult, ProjectSearchQuery, ProjectSearchResult, RenamedFile, SavedFile } from "@shared/types";
+import type { FileContent, ProjectFiles, ProjectReplaceBody, ProjectReplaceResult, ProjectSearchQuery, ProjectSearchResult, RenamedFile, SavedFile, TrashedResult } from "@shared/types";
 import { request, requestBlob } from "./http";
 import { workdirPath, type GitTarget } from "./workdir";
 
@@ -15,8 +15,8 @@ export const filesApi = {
   renameProjectFile: (target: GitTarget, path: string, name: string) => request<RenamedFile>("POST", workdirPath(target, "/file/rename"), { path, name }),
   /** 新しいファイル・フォルダを作る（途中のフォルダも作る。同じ名前があれば 409） */
   createProjectFile: (target: GitTarget, path: string, dir: boolean) => request<RenamedFile>("POST", workdirPath(target, "/files"), { path, dir }),
-  /** ファイル・フォルダをゴミ箱へ移す（Finder から戻せる） */
-  trashProjectFile: (target: GitTarget, path: string) => request<void>("DELETE", workdirPath(target, "/file", { path })),
+  /** ファイル・フォルダを Kickoff のゴミ箱へ入れる（3 日は戻せる）。入れたゴミ箱の ID を返す */
+  trashProjectFile: (target: GitTarget, path: string) => request<TrashedResult>("DELETE", workdirPath(target, "/file", { path })),
   searchProject: (target: GitTarget, { query, case_sensitive, whole_word, regex, include, exclude, use_ignore }: ProjectSearchQuery) =>
     request<ProjectSearchResult>("GET", workdirPath(target, "/search", { q: query, case: case_sensitive, word: whole_word, regex, include, exclude, ignore: use_ignore })),
   /** 探した結果の行を置換する（いまの行が結果の行と違えば置換しない。置換する前の中身が返るので、元に戻せる） */

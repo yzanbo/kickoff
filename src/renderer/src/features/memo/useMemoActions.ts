@@ -108,7 +108,7 @@ export function useMemoActions(
   const trash = async (path: string, dir: boolean) => {
     const ok = await confirmDialog({
       title: dir ? `フォルダ「${baseName(path)}」をゴミ箱に入れますか？` : `「${baseName(path)}」をゴミ箱に入れますか？`,
-      message: dir ? "中のメモもすべてゴミ箱に入ります。Finder のゴミ箱から戻せます。" : "Finder のゴミ箱から戻せます。",
+      message: dir ? "中のメモもすべてゴミ箱に入ります。Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。" : "Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。",
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });
@@ -186,7 +186,7 @@ export function useMemoActions(
     if (targets.length > names.length) names.push(`ほか ${targets.length - names.length} 件`);
     const ok = await confirmDialog({
       title: `${targets.length} 件をゴミ箱に入れますか？`,
-      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダの中のメモもすべてゴミ箱に入ります。" : ""}Finder のゴミ箱から戻せます。`,
+      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダの中のメモもすべてゴミ箱に入ります。" : ""}Kickoff のゴミ箱に 3 日入り、その間はプロジェクトの「ゴミ箱」から戻せます。`,
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });

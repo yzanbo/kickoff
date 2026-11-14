@@ -30,7 +30,7 @@ const replaceBodySchema = z.object({
 const ASSET_PREFIX = /^\/api\/projects\/[^/]+\/file\/asset\/([^/]+)\/(.+)$/;
 
 /** 作業場所のファイル（エクスプローラーの一覧・中身・検索・置換・保存・作る・名前の変更・ゴミ箱）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir */
-export function filesRoutes(app: Hono, { store, trash }: ServerDeps) {
+export function filesRoutes(app: Hono, { store, trashBin }: ServerDeps) {
   const { withProject, withWorkdir } = lookups(store);
 
   // Git で管理していないフォルダも、中のファイルを同じ形で返す
@@ -114,10 +114,11 @@ export function filesRoutes(app: Hono, { store, trash }: ServerDeps) {
     return c.json(await createProjectFile(c.var.workdir, body.path, body.dir), 201);
   });
 
-  // ファイル・フォルダをゴミ箱へ移す（Finder から戻せる。外は 400、ない 404）
+  // ファイル・フォルダを Kickoff のゴミ箱へ入れる（3 日は元に戻せる。外は 400、ない 404）。入れたゴミ箱の ID を返す（画面の「元に戻す」）
   app.delete("/api/projects/:id/file", withWorkdir, async (c) => {
     const { path } = z.object({ path: repoPath }).parse({ path: c.req.query("path") });
-    await trashProjectFile(c.var.workdir, path, trash);
-    return c.body(null, 204);
+    const projectId = c.var.project.id;
+    const item = await trashProjectFile(c.var.workdir, path, (target) => trashBin.putPath(target, { projectId }));
+    return c.json({ trash_id: item.id });
   });
 }

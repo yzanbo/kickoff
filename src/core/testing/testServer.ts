@@ -273,17 +273,16 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     findTools: async () => voiceFake.tools,
     fetch: () => voiceFake.download(),
   });
-  // メモ: 親フォルダの既定は一時フォルダ。ゴミ箱へ移すのは本物のゴミ箱に入れず、消して覚える
-  // （ファイルタブの「ゴミ箱に入れる」も同じ。memoFake.trashed に覚える）
+  // メモ: 親フォルダの既定は一時フォルダ。OS のゴミ箱へ移すもの（使わなくなった会話記録）は本物のゴミ箱に入れず、消して memoFake.trashed に覚える
   const memoFake = { defaultDir: tempDir(), trashed: [] as string[] };
   const trash = async (file: string) => {
     memoFake.trashed.push(file);
     await fs.rm(file, { recursive: true });
   };
-  const memos = new MemoService({ store, defaultDir: memoFake.defaultDir, providers, publish: (e) => bus.publish(e), trash });
-  // Kickoff のゴミ箱: 置き場は一時フォルダ。時計は trashClock.now で進める
+  // Kickoff のゴミ箱: 置き場は一時フォルダ。時計は trashClock.now で進める（メモ・ファイルタブの「ゴミ箱に入れる」はここへ）
   const trashClock = { now: Date.now() };
   const trashBin = new TrashService({ store, dir: tempDir(), now: () => trashClock.now });
+  const memos = new MemoService({ store, defaultDir: memoFake.defaultDir, providers, publish: (e) => bus.publish(e), trashBin });
   // ワークツリーの PR の見張り: ワークツリーは本物の git、PR の一覧は偽物（prFake.prs を返し、聞いた回数を覚える。失敗させるなら fail）
   const prFake = { prs: [] as BranchPullRequest[], asked: 0, fail: false };
   // gh に入っている GitHub のアカウント（設定の「GitHub」。gh を呼ばない）

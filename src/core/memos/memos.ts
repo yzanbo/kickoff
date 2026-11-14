@@ -5,6 +5,7 @@ import path from "node:path";
 import { memoKindOf } from "@shared/memo/kinds";
 import { chatMemoName, projectMemoFolder } from "@shared/memo/names";
 import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoPlan, type MemoSearchResult, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
+import type { TrashService } from "../trash/service.js";
 import type { Store } from "../db/store.js";
 import { assertInside, readProjectFile, writeProjectFile } from "../git/index.js";
 import { asInvalid, Conflict, Invalid, NotFound } from "../http/errors.js";
@@ -29,8 +30,8 @@ interface MemoServiceOptions {
   defaultDir: string;
   providers: Record<ProviderId, AgentProvider>;
   publish: (e: BusEvent) => void;
-  /** ゴミ箱へ移す（OS の口の moveToTrash。テストでは差し替えて、本物のゴミ箱に入れない） */
-  trash: (file: string) => Promise<void>;
+  /** Kickoff のゴミ箱（メモを「ゴミ箱に入れる」と 3 日取っておき、元に戻せる） */
+  trashBin: Pick<TrashService, "putPath">;
 }
 
 /** チャットから作る・足すときに、文の前に置く出どころの行（どのチャットの、いつの文か） */
@@ -194,16 +195,17 @@ export class MemoService {
     return { path: to };
   }
 
-  /** ゴミ箱へ移す（Finder から戻せる） */
-  async trash(project: Project, file: string): Promise<void> {
+  /** Kickoff のゴミ箱へ入れる（3 日は元に戻せる）。入れたゴミ箱の ID を返す（画面の「元に戻す」） */
+  async trash(project: Project, file: string): Promise<string> {
     const target = await this.pathIn(project, file);
     if (!(await exists(target))) throw new NotFound(`メモが見つかりません: ${file}`);
-    await this.opts.trash(target);
-    // メモのチャットはアーカイブする（作業中のものはそのまま。Finder のゴミ箱から戻しても、アーカイブ済みから戻せる）
+    const item = await this.opts.trashBin.putPath(target, { projectId: project.id, details: { memo: file } });
+    // メモのチャットはアーカイブする（作業中のものはそのまま。ゴミ箱から戻しても、アーカイブ済みから戻せる）
     for (const chat of this.opts.store.chats.memoChats(project.id, file)) {
       if (!chat.archived_at && chat.status !== "running") this.opts.store.chats.archive(chat.id, true);
     }
     this.changed(project, null);
+    return item.id;
   }
 
   /**
