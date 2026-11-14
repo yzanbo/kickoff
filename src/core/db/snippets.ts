@@ -11,7 +11,11 @@ const COLUMNS = ["project_id", "label", "text"] as const;
  */
 export function createSnippetStore(db: DatabaseSync, onChange: Notify) {
   const get = (id: number): Snippet | undefined => db.prepare("SELECT * FROM snippets WHERE id = ?").get(id) as unknown as Snippet | undefined;
-  const list = (): Snippet[] => db.prepare("SELECT * FROM snippets ORDER BY position, id").all() as unknown as Snippet[];
+  // ゴミ箱のプロジェクトだけの定型文は出さない（プロジェクトごとゴミ箱にある間は、ふだんの画面から外す。戻すとまた出る）
+  const list = (): Snippet[] =>
+    db
+      .prepare("SELECT s.* FROM snippets s LEFT JOIN projects p ON p.id = s.project_id WHERE s.project_id IS NULL OR p.trashed_at IS NULL ORDER BY s.position, s.id")
+      .all() as unknown as Snippet[];
   return {
     get,
     list,

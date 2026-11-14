@@ -114,7 +114,8 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
   const withMemoDir = (project: Project, input: { memo_folder?: string; memo_path?: string }): Project => {
     if (input.memo_path) return store.projects.update(project.id, { memo_path: input.memo_path });
     if (!input.memo_folder) return project;
-    return store.projects.update(project.id, { memo_folder: projectMemoFolder(input.memo_folder, store.projects.list(), project.id) });
+    // ゴミ箱のプロジェクトのフォルダ名とも重ねない（戻したときに同じメモのフォルダを指さないように）
+    return store.projects.update(project.id, { memo_folder: projectMemoFolder(input.memo_folder, [...store.projects.list(), ...store.projects.trashed()], project.id) });
   };
 
   app.get("/api/projects", (c) => c.json(store.projects.list()));
