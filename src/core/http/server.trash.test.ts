@@ -5,8 +5,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type BusEvent, type TrashItem } from "@shared/types";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { installTrashCommand, trashCommandEnv } from "../trash/command.js";
 import { setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
+
+const execFileAsync = promisify(execFile);
 
 test("ゴミ箱: ファイルを入れると一覧に出て、元の場所に戻せる。入れた・戻したら知らせる", async () => {
   const { call, project, trashBin, bus } = setup();
@@ -122,4 +127,40 @@ test("ゴミ箱: 3 日たったものは片付けで本当に消え、種類ご�
   assert.equal(store.trash.get(record.id), null);
   assert.equal(fs.existsSync(path.join(trashBin.dir, put.id)), false);
   assert.deepEqual(purged, ["古いチャット"]);
+});
+
+test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、消したチャットのプロジェクトのゴミ箱に出て、元に戻せる", async () => {
+  const { call, project, trashBin, store } = setup();
+  const chat = store.chats.create({ project_id: project.id, title: "片付け", provider: "claude", status: "completed" });
+  const bin = await installTrashCommand(tempDir());
+  // 中身が同じなら書き直さない
+  assert.equal(await installTrashCommand(path.dirname(bin)), bin);
+  const work = tempDir();
+  fs.mkdirSync(path.join(work, "dist", "x"), { recursive: true });
+  fs.writeFileSync(path.join(work, "dist", "x", "a.js"), "1");
+  fs.writeFileSync(path.join(work, "-odd.txt"), "2");
+  const env = { ...process.env, ...trashCommandEnv({ path: bin, dir: trashBin.dir }, chat.id) };
+  const run = (args: string[]) => execFileAsync("sh", ["-c", `kickoff-trash ${args.join(" ")}`], { cwd: work, env }).then(
+    (r) => ({ code: 0, ...r }),
+    (e: { code: number; stdout: string; stderr: string }) => e,
+  );
+
+  const ok = await run(["-rf", "dist", "--", "-odd.txt"]);
+  assert.equal(ok.code, 0);
+  assert.match(ok.stdout, /Kickoff のゴミ箱に入れました.*\[kickoff-trash:[0-9a-f-]{36}\]/);
+  assert.equal(fs.existsSync(path.join(work, "dist")), false);
+  assert.equal(fs.existsSync(path.join(work, "-odd.txt")), false);
+  // ないもの・ホームは入れない（終わり値 1）
+  const missing = await run(["nothing.txt"]);
+  assert.equal(missing.code, 1);
+  assert.match(missing.stderr, /ありません/);
+
+  const list = (await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[];
+  assert.deepEqual(list.map((i) => i.label).sort(), ["-odd.txt", "dist"]);
+  const dist = list.find((i) => i.label === "dist")!;
+  assert.equal(dist.is_dir, true);
+  assert.equal(dist.by_chat_id, chat.id);
+  assert.equal(dist.origin, path.join(fs.realpathSync(work), "dist"));
+  await trashBin.restore(dist.id);
+  assert.equal(fs.readFileSync(path.join(work, "dist", "x", "a.js"), "utf8"), "1");
 });

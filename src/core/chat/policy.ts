@@ -1,4 +1,5 @@
 import { memoKindOf } from "@shared/memo/kinds";
+import { TRASH_COMMAND } from "./guard/deleteGuard.js";
 import type { Project } from "@shared/types";
 
 /**
@@ -54,7 +55,7 @@ const PROJECT_FOLDER_WORDS = [
  * 言葉は画面とそろえる: プロジェクトフォルダ（プロジェクトの repo_path。呼び名は PROJECT_FOLDER_WORDS）・作業フォルダ（workdir。ワークツリーで作業するチャットはそのフォルダ）・メモフォルダ（memo.dir）。
  * git で管理していないフォルダ・git のリポジトリの中のフォルダもあるので「リポジトリ」とは呼ばない。送るたびに作り直すので、フォルダを変えたら次の指示から新しい場所が伝わる
  */
-export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string | null }): string {
+export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string | null }, opts: { trash?: boolean } = {}): string {
   const lines = [
     `# Kickoff からの指示`,
     `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
@@ -78,6 +79,10 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     `- 急がない作業のサブエージェントは、終わるまで待つ形（run_in_background: false）で動かしてください。`,
     `- サブエージェントが API・通信のエラー（終わりの知らせに API Error・Connection などとある）で途中で止まったときは、SendMessage でそのサブエージェントに止まったところから続けるよう伝えて、1 回だけ再開してください（記録が見つからず再開できないときだけ、同じ依頼で立ち上げ直してください）。それでも止まったとき、通信以外の理由で失敗したとき、利用者が止めたもの（中断）は、再開も立ち上げ直しもせず、何が止まったかを利用者に伝えてください。`,
     `- ただし、サブエージェントが 1 回の返答で書ける量の上限（終わりの知らせに max_output_tokens・output token maximum とある）で止まったときは、通信のエラーではありません。同じやり方で続けると同じところでまた止まるので、「報告は短くまとめる」「大きなファイルは何回かに分けて書く」と添えて、SendMessage で 1 回だけ続きを頼んでください。それでも止まったら、利用者に伝えてください。`,
+    // rm などは守りが断るので、初めから kickoff-trash を使ってもらう（断られてやり直す手間を省く）
+    ...(opts.trash
+      ? [`- ファイル・フォルダを消すときは、rm・unlink・find -delete・git clean ではなく ${TRASH_COMMAND} <パス>… を使ってください（Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます。rm などは Kickoff が断ります）。`]
+      : []),
   );
 
   // 図と数式: 書き方の細かい決まりは、描く前に visual_guide で読ませる（いつもの指示を長くしない）

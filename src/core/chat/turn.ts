@@ -30,6 +30,7 @@ import type { UsageMonitor } from "../usage/planUsage.js";
 import { canCreateChildChat, createAiChildChatTools, type StartedChild } from "./aiChildChat.js";
 import type { ChildChatInput } from "./children.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
+import { trashCommandEnv, type TrashCommand } from "../trash/command.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
 import type { Project, ProviderId, Chat, CompactTrigger, Question } from "@shared/types";
@@ -65,6 +66,11 @@ export interface ExecutionDeps {
   memos?: MemoService;
   /** チャットが作業中か（AI の update_chat が、作業中の子チャットを親から外すのを断る。Runner が渡す。なければ作業中とみなさない） */
   isBusy?: (chatId: number) => boolean;
+  /**
+   * AI に渡す kickoff-trash（rm の代わりに Kickoff のゴミ箱へ入れる。trash/command.ts）。あれば PATH などを渡し、rm・git clean などを断る守りを付ける。
+   * なければ（置けなかった・テスト）付けない
+   */
+  trashCommand?: TrashCommand;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -123,7 +129,12 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     const postCompactText = postCompactPromptOf(store, project);
     // プロジェクトで GitHub のアカウントを選んでいれば、AI が動かす gh・git もそのアカウントにする（gh にそのアカウントがなければ、gh で有効なもののまま）
     // 作業場所がポートの帯を持つワークツリーなら、開発サーバーの番号（PORT=帯+00）も渡す
-    const env = { ...(deps.worktreeEnvs?.envFor(cwd) ?? {}), ...(project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {}) };
+    // rm の代わりに Kickoff のゴミ箱へ入れる kickoff-trash を PATH に足す（どこで消しても、どのチャットが消したか分かるようにチャットの ID も）
+    const env = {
+      ...(deps.worktreeEnvs?.envFor(cwd) ?? {}),
+      ...(project.github_account ? await runAsGitHubAccount(project.github_account, githubEnvForGit) : {}),
+      ...(deps.trashCommand ? trashCommandEnv(deps.trashCommand, chat.id) : {}),
+    };
 
     // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
@@ -188,7 +199,7 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     cwd,
     prompt,
     ...(promptId ? { promptId } : {}),
-    systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined),
+    systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, { trash: deps.trashCommand !== undefined }),
     turnContext: chatContextNote(chatContextOf(deps.store, chat)),
     policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,
@@ -227,6 +238,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く
     dockerGuard: deps.docker ? createDockerGuard(deps.docker, project, cwd) : null,
+    // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）
+    deleteGuard: deps.trashCommand !== undefined,
   };
 }
 

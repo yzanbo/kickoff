@@ -2,6 +2,7 @@ import os from "node:os";
 import path from "node:path";
 import type { HostPlatform, SelfGuardRules } from "../../platform/types.js";
 import { expandHome, isInside } from "../../system/paths.js";
+import { TRASH_COMMAND } from "./deleteGuard.js";
 
 /**
  * エージェントを動かしている Kickoff 自身（製品版で Kickoff を作るときは製品版）。
@@ -89,7 +90,8 @@ export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: 
   }
   if (toolName !== "Bash" || typeof input.command !== "string") return { decision: "pass" };
 
-  const command = normalizeCommand(input.command);
+  // Kickoff が置いた kickoff-trash（保存先の bin/）を場所で呼ぶのは通す（PATH に入れてあるが、場所で書かれることもある）
+  const command = normalizeCommand(input.command).split(path.join(self.dataDir, "bin", TRASH_COMMAND)).join(TRASH_COMMAND);
   if (mentionsPath(command, self.dataDir)) {
     return { decision: "deny", reason: join(who, `その保存先（${self.dataDir}）にはコマンドでも触れません`, dev) };
   }

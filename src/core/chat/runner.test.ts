@@ -318,3 +318,21 @@ test("手で圧縮すると /compact を送り、要約したことだけを残�
   assert.equal(after.num_turns, before.num_turns);
   assert.equal(after.context_tokens, 18_000);
 });
+
+test("kickoff-trash があれば、PATH・置き場・チャットの ID を渡し、ファイルを消すコマンドの守りを付ける（なければ付けない）", async () => {
+  const trashCommand = { path: "/data/bin/kickoff-trash", dir: "/data/trash" };
+  const withCommand = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" })), { trashCommand });
+  const chat = await withCommand.runner.start({ projectId: withCommand.project.id, prompt: "x" });
+  await until(() => withCommand.store.chats.get(chat.id)?.status === "completed");
+  const params = withCommand.provider.calls[0];
+  assert.equal(params.deleteGuard, true);
+  assert.ok(params.env?.PATH?.startsWith("/data/bin:"));
+  assert.equal(params.env?.KICKOFF_TRASH_DIR, "/data/trash");
+  assert.equal(params.env?.KICKOFF_CHAT_ID, String(chat.id));
+
+  const plain = setup(async () => ({ status: "completed", sessionId: "s" }));
+  const other = await plain.runner.start({ projectId: plain.project.id, prompt: "x" });
+  await until(() => plain.store.chats.get(other.id)?.status === "completed");
+  assert.equal(plain.provider.calls[0].deleteGuard, false);
+  assert.equal(plain.provider.calls[0].env?.KICKOFF_TRASH_DIR, undefined);
+});
