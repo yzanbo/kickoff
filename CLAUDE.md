@@ -14,6 +14,7 @@
 | 画面全体（置き場所・データ・保存・API の窓口・共有部品・表示・性能） | `src/renderer/src/CLAUDE.md` |
 | 画面の領域 | `src/renderer/src/features/<領域>/CLAUDE.md`（chat・chatList・sidebar・board・panel・project・palette・editor・worktree・settings・terminal・popout・memo・snippet・database・github・ci・docker。小さな領域がどこに書いてあるかは画面全体の `CLAUDE.md` の表） |
 | CSS | `src/renderer/src/styles/CLAUDE.md` |
+| スマホのアプリ（Android。Expo） | `mobile/CLAUDE.md` |
 
 新しい領域を作ったら、そのフォルダに `CLAUDE.md` を足し、この表と画面全体の表に 1 行足す。振る舞いを変えたら、その領域の `CLAUDE.md` も同じコミットで直す。
 
@@ -54,7 +55,7 @@
 
 ## 確かめ方
 
-- 型は `npm run typecheck`（使っていない import・変数も残さない）、テストは `npm test`、使っていない export・ファイル・依存は `npm run knip`、ビルドは `npm run build`。区切りごとに 4 つとも通してからコミットする。
+- 型は `npm run typecheck`（使っていない import・変数も残さない）、テストは `npm test`、使っていない export・ファイル・依存は `npm run knip`、ビルドは `npm run build`。区切りごとに 4 つとも通してからコミットする。スマホのアプリ（`mobile/`）を触ったら `npm run mobile:typecheck` も通す（テストは `npm test` に入っている）。
 - 純粋な関数にはテストを書く（`*.test.ts` を対象の隣に。`node:test`）。テストのデータは `@shared/testing/factories`、一時フォルダ・Git の作業場所・コアの準備は `src/core/testing` の補助を使い、テストごとに書き直さない。API を変えたら、その領域の `src/core/http/server.<領域>.test.ts` にテストを足す。
 - 画面の変更は、開発版（`KICKOFF_REMOTE_DEBUG=9333 npm run dev`。CDP のポートは 9333）で実際に動かして確かめる。ボタンの見た目を変えたら `node scripts/ui-audit-buttons.mjs [#/hash ...]`、見た目を変えないはずの変更は `node scripts/ui-snapshot.mjs take <名前> [#/hash]` で前後を記録して `diff` で比べる。
 - 利用者の localStorage を書き換えて確かめたら、元の値に戻す。
