@@ -60,6 +60,7 @@ const EDIT_INSTRUCTIONS = [
   "list_family_chats は、このチャットと同じ家系のチャット（いちばん上の親チャットから下にぶら下がるチャット: 自分・親・祖父母・兄弟・子・孫など）の一覧（ID・名前・関係・固定・グループ）と、同じプロジェクトのグループの一覧を返す。",
   "update_chat は、同じ家系のチャットの名前（title）・固定（pinned）・グループ（group_id）を、利用者に聞かずに変える（利用者はいつでも戻せる）。chat_id は必ず書く（自分のチャットでも。自分の ID は指示に添えた文脈にある）。兄弟などの ID が分からなければ、先に list_family_chats で確かめる。",
   "省いた項目は変わらない。頼まれた項目だけを渡す。group_id: null はグループから外す。グループは作れず、選べるのは list_family_chats の groups だけ。子チャットはグループに入らない。家系の外のチャットは変えられない。",
+  "parent_id は子チャットを親から外す: null で親のないチャット（サイドバーの一覧・グループに並ぶチャット。group_id を一緒に渡せばそのグループへ）、自分の先祖（親の親より上）の ID でその子に上げる。ほかのチャットの下へは付け替えられない。外したら親の下へは戻せないので、利用者に「親から外して」「親のないチャットにして」などと頼まれたときだけ使う。作業中のチャットは外せない。",
   "利用者が「タイトルに【済】を付けて」「このチャットを固定して」のように頼んだときに使う。頼まれていないのに名前などを変えない。",
 ];
 
@@ -129,12 +130,18 @@ function chatEditTools(chatEdit: AiChatEditTools) {
     }),
     tool(
       "update_chat",
-      "同じ家系のチャットの名前・固定・グループを変える（聞かずに変える。省いた項目は変えない）",
+      "同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外す（聞かずに変える。省いた項目は変えない。親から外すのは利用者に頼まれたときだけ）",
       {
         chat_id: z.number().int().describe("変えるチャットの ID（必須。自分のチャットでも書く。分からなければ list_family_chats で確かめる）"),
         title: z.string().min(1).max(CHAT_TITLE_MAX).optional().describe("新しい名前（省くと変えない）"),
         pinned: z.boolean().optional().describe("固定する（true）・外す（false）。省くと変えない"),
         group_id: z.number().int().nullable().optional().describe("入れるグループの ID（list_family_chats の groups から）。null でグループから外す。省くと変えない"),
+        parent_id: z
+          .number()
+          .int()
+          .nullable()
+          .optional()
+          .describe("子チャットを親から外す: null で親のないチャットにする、自分の先祖の ID でその子に上げる。外したら戻せないので、利用者に頼まれたときだけ。省くと変えない"),
       },
       async (args) => {
         try {

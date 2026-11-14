@@ -62,6 +62,8 @@ export interface ExecutionDeps {
   usage?: UsageMonitor;
   /** メモ（AI の move_memo が名前を変える・移す。なければそのツールは使えないと返す） */
   memos?: MemoService;
+  /** チャットが作業中か（AI の update_chat が、作業中の子チャットを親から外すのを断る。Runner が渡す。なければ作業中とみなさない） */
+  isBusy?: (chatId: number) => boolean;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -209,7 +211,7 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     childChat:
       deps.startChildChat && canCreateChildChat(deps.store, chat) ? createAiChildChatTools({ store: deps.store, startChild: deps.startChildChat }, chat.id) : null,
     // 同じ家系のチャットの名前・固定・グループを変えるツール（どのチャットにも。孫チャット・子チャットを作らせない設定のときも渡す）
-    chatEdit: createAiChatEditTools(deps.store, chat.id),
+    chatEdit: createAiChatEditTools(deps.store, chat.id, deps.isBusy ?? (() => false)),
     // このプロジェクトのメモ・同じ家系のチャットを画面に開くツール（どのチャットにも。画面に頼む口（バス）があるときだけ）
     open: deps.bus ? createAiOpenTools({ store: deps.store, publish: (e) => deps.bus?.publish(e), memoDirOf: deps.memoDirOf }, chat.id) : null,
     // 同じプロジェクトのチャットの一覧・会話と使用枠を読むツール（どのチャットにも）

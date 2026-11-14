@@ -193,6 +193,15 @@ export interface SendMessageBody extends MessageBody {
   handoff_from?: HandoffFrom;
 }
 
+/**
+ * 子チャットを親から外す（POST /api/chats/:id/detach）。parent_chat_id: null なら親のないチャット（group_id のグループへ。省く・null ならグループなし）、
+ * 自分の先祖（親の親より上）の ID ならその子にする（group_id は渡さない）
+ */
+export interface ChatDetachBody {
+  parent_chat_id: number | null;
+  group_id?: number | null;
+}
+
 /** 送信待ちに送る指示（POST /api/chats/:id/queue）。hold なら、作業していなくても送らずに列の最後に足す。pause_after は SendMessageBody と同じ（列に入れたら、その指示のすぐあとに一時停止の印を付ける） */
 export interface QueueMessageBody extends SendMessageBody {
   hold?: boolean;

@@ -213,6 +213,17 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
       for (const id of changed) onChange({ type: "chat", chat: get(id)! });
       return ids.map(get).filter((c): c is Chat => c?.project_id === projectId);
     },
+    /**
+     * 子チャットを親から外す（parentId が null なら親のないチャットにして groupId のグループへ、先祖の ID ならその子に）。親のどの発言から聞いたか
+     * （parent_event_id）と「親と一緒にアーカイブした」印を消す（アーカイブ済みならそのまま。親を戻しても一緒には戻らない）。子孫の親子のつながりはそのまま。
+     * 確かめ（先祖か・グループ・作業中）は呼ぶ側（chat/detach.ts）。最後に動いた時刻は進めない
+     */
+    detach(id: number, parentId: number | null, groupId: number | null): Chat {
+      db.prepare("UPDATE chats SET parent_chat_id = ?, parent_event_id = NULL, archived_with_parent = 0, group_id = ? WHERE id = ?").run(parentId, parentId === null ? groupId : null, id);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
+    },
     /** チャットをグループへ移す（null でグループから外す。同じプロジェクトのグループだけ: トリガーで守る） */
     setGroup: (id: number, groupId: number | null) => setColumn(id, "group_id", groupId),
     /**
