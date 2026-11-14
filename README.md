@@ -36,6 +36,7 @@
 ```sh
 npm install
 npm run dev        # Electron アプリを開発モードで起動
+npm run dev:cdp    # 同じく、CDP のポート 9333 を開いて起動（画面の確かめ。scripts/ui-*.mjs が使う）
 npm test           # コアの単体テスト
 npm run test:db    # DB クライアントのドライバ（PostgreSQL・MySQL・MariaDB）を Docker で立てた本物の DB で確かめる（Docker が要る。終わったらコンテナを消す）
 npm run typecheck  # 型チェック（使っていない import・変数も見る）

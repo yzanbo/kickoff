@@ -4,6 +4,7 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:cdp": "KICKOFF_REMOTE_DEBUG=9333 electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "daemon": "tsx src/core/daemon.ts",
