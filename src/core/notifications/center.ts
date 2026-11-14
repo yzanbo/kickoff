@@ -9,9 +9,20 @@ import type { Viewer, ViewingRegistry } from "./viewing.js";
 /** この Mac の通知を出す口（Mac のアプリのメインプロセス。単体のコアにはない） */
 export type DesktopNotify = (notice: Notice) => void;
 
-/** スマホのプッシュ（Expo Push・Web Push）。送る中身は短い文と、本体の ID・押したときに開くもの（会話の中身は載せない） */
+/** プッシュで送る中身（短い文と、本体の ID・押したときに開くもの。会話の中身は載せない） */
+export interface PushMessage {
+  title: string;
+  body: string;
+  host_id: string;
+  target: Notice["target"];
+}
+
+/** 送った結果（sent: 送った / gone: 宛先がもう使えない（表から外す）/ skipped: この種類の宛先にはまだ送らない） */
+export type PushResult = "sent" | "gone" | "skipped";
+
+/** スマホのプッシュ（Expo Push は notifications/expoPush.ts。Web Push はまだ） */
 export interface PushSender {
-  send(push: DevicePush, message: { title: string; body: string; host_id: string; target: Notice["target"] }): Promise<void>;
+  send(push: DevicePush, message: PushMessage): Promise<PushResult>;
 }
 
 interface CenterOptions {
@@ -75,7 +86,11 @@ export class NotificationCenter {
     for (const device of store.devices.list()) {
       const push = device.has_push && !this.viewing(device.id, notice) ? store.devices.push(device.id) : null;
       if (!push) continue;
-      void sender.send(push, { ...notice.push, host_id: store.databaseId, target: notice.target }).catch((e: unknown) => console.warn("[notifications] プッシュを送れません:", e));
+      void sender.send(push, { ...notice.push, host_id: store.databaseId, target: notice.target }).then(
+        // 宛先がもう使えなければ表から外す（その間に端末が登録し直していれば、新しい宛先は残す）
+        (result) => result === "gone" && JSON.stringify(store.devices.push(device.id)) === JSON.stringify(push) && store.devices.setPush(device.id, null),
+        (e: unknown) => console.warn("[notifications] プッシュを送れません:", e),
+      );
     }
   }
 }
