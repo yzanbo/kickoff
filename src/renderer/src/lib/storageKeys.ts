@@ -306,6 +306,8 @@ export const PROJECT_CHAT_WIDTH = defineSetting("kickoff:project-chat-width", nu
 export const BOTTOM_PANEL_HEIGHT = defineSetting("kickoff:bottom-panel-height", number(198));
 /** チャットの画面の右の欄（サブエージェントの欄）の幅（px。左端のつまみのドラッグで変える。どのチャットでも同じ） */
 export const SUBAGENT_PANEL_WIDTH = defineSetting("kickoff:subagent-panel-width", number(520));
+/** チャットの画面の右の欄を横幅いっぱい（左の会話を覆う）にしているか（タブの列の左端のボタンで切り替える。どのチャットでも同じ） */
+export const SUBAGENT_PANEL_MAXIMIZED = defineSetting("kickoff:subagent-panel-maximized", flag());
 /** 送る前の新しいチャット（下書きのタブ）。パネルごとのタブ（{ [パネル]: タブ[] }。中身は panel/state/draftPersistence.ts が確かめる）。送った・閉じたら消える */
 export const NEW_CHAT_DRAFTS = defineSetting("kickoff:new-chat-drafts", record(), { ids: true });
 
