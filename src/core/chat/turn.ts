@@ -31,6 +31,7 @@ import { canCreateChildChat, createAiChildChatTools, type StartedChild } from ".
 import type { ChildChatInput } from "./children.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import { trashCommandEnv, type TrashCommand } from "../trash/command.js";
+import { switchAfterCompact, type SessionTrash } from "./sessionSwitch.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
 import type { Project, ProviderId, Chat, CompactTrigger, Question } from "@shared/types";
@@ -71,6 +72,8 @@ export interface ExecutionDeps {
    * なければ（置けなかった・テスト）付けない
    */
   trashCommand?: TrashCommand;
+  /** 乗り換えた古い会話記録をゴミ箱へ入れる（メモの仕様書「ファイル削除」の Q18。なければ乗り換えても古い記録は残す） */
+  sessionTrash?: SessionTrash;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -147,6 +150,12 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         );
     const network = result.status === "failed" && Boolean(result.network);
     applyResult(store, chatId, result, compact, since, network);
+    // 圧縮した作業が最後まで終わったら、直近の区切りだけの新しいセッションに乗り換える（会話記録が大きくなり続けないように。失敗しても作業は止めない）
+    if (result.status === "completed") {
+      await switchAfterCompact({ store, provider: providers[chat.provider], trash: deps.sessionTrash }, chatId, cwd, since).catch((e: unknown) =>
+        console.warn(`[session] 会話記録を乗り換えられませんでした: ${errorMessage(e)}`),
+      );
+    }
     const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
     if (!network) return { status: result.status, network, ...(usageLimit ? { usageLimit } : {}) };
     const stoppedAgents = networkStoppedSubagents(store.events.list(chatId), since).map((s) => ({ agentId: s.agentId!, description: s.description }));

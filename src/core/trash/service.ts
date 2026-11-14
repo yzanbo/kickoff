@@ -107,7 +107,7 @@ export class TrashService {
   /** ファイル・フォルダを置き場へ移して覚える（なければ 404） */
   async putPath(
     target: string,
-    opts: { projectId: number | null; byChatId?: number | null; details?: Record<string, unknown>; label?: string },
+    opts: { projectId: number | null; byChatId?: number | null; details?: Record<string, unknown>; label?: string; kind?: TrashKind },
   ): Promise<StoredTrashItem> {
     const abs = path.resolve(target);
     const st = await fs.lstat(abs).catch(() => null);
@@ -124,7 +124,7 @@ export class TrashService {
     const item = this.deps.store.trash.add({
       id,
       project_id: opts.projectId,
-      kind: "file",
+      kind: opts.kind ?? "file",
       label: opts.label ?? path.basename(abs),
       origin: abs,
       is_dir: st.isDirectory(),

@@ -9,7 +9,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { createBackgroundTracker } from "./background.js";
-import { findSessionFile, removeSession, sessionFilesSize, trashSessions, writeRecentSegments } from "./sessionFiles.js";
+import { findSessionFile, removeSession, sessionFilesSize, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
 import { createTurnOver } from "./turnOver.js";
 import { createCommandOutputWatcher } from "./commandOutput.js";
 import { createInputChannel } from "./input.js";
@@ -327,13 +327,13 @@ export class ClaudeProvider implements AgentProvider {
   /**
    * 会話を messageId の位置までで分け、新しいセッションにする（元のセッションは変えない）。
    * cwd はそのセッションを動かした作業フォルダ（消えていれば、すべてのプロジェクトから探す）。
-   * 写すのは位置の手前の直近 2 区切り（圧縮の印から後ろ）だけ: Claude Code は圧縮しても古いやり取りを消さないので、長く続けた会話を丸ごと写すと
-   * 1GB を超え、本体が数秒ずつ止まっていた（1.6GB の親で約 18 秒 → 直近 2 区切りで約 0.2 秒・約 6MB。利用者と決めた）。
+   * 写すのは位置の手前の直近 keep 区切り（圧縮の印から後ろ。既定 FORK_KEEP_SEGMENTS = 3、子チャットは 1）だけ: Claude Code は圧縮しても古いやり取りを消さないので、
+   * 長く続けた会話を丸ごと写すと 1GB を超え、本体が数秒ずつ止まっていた（1.6GB の親で約 18 秒 → 直近 2 区切りで約 0.2 秒・約 6MB。利用者と決めた）。
    * 続きで Claude Code が読むのは最後の圧縮の要約から後ろなので、会話の中身は変わらない。切り出せなければ丸ごと写す
    */
-  async fork(sessionId: string, messageId: string, cwd: string): Promise<string> {
+  async fork(sessionId: string, messageId: string, cwd: string, opts: { keep?: number } = {}): Promise<string> {
     const file = await findSessionFile(sessionId, [cwd]).catch(() => null);
-    const recent = file ? await writeRecentSegments(file, sessionId, messageId).catch(() => null) : null;
+    const recent = file ? await writeRecentSegments(file, sessionId, messageId, opts.keep).catch(() => null) : null;
     if (recent) {
       try {
         return (await forkSession(recent.sessionId, { upToMessageId: messageId })).sessionId;
@@ -353,6 +353,14 @@ export class ClaudeProvider implements AgentProvider {
   /** チャットを消したとき、そのセッションの記録をゴミ箱へ移す（cwds は動かした作業フォルダの候補。見つからなければすべてのプロジェクトから探す） */
   async discardSessions(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>): Promise<number> {
     return trashSessions(sessionIds, cwds, trash);
+  }
+
+  /** 長く続けたセッションを、終わりの直近 3 区切りだけの新しいセッションにする（sessionFiles.ts の trimToRecentSegments。切るものがなければ null） */
+  async trimSession(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null> {
+    const file = await findSessionFile(sessionId, [cwd]).catch(() => null);
+    if (!file) return null;
+    const trimmed = await trimToRecentSegments(file, sessionId);
+    return trimmed ? { sessionId: trimmed.sessionId, previousFile: file } : null;
   }
 
   /** セッションの記録のファイルの大きさの合計（作業フォルダから決まる場所だけを見る。アーカイブ済みのチャットの整理の見込み） */

@@ -77,6 +77,11 @@ function TrashRow({ item, projectId, repoPath }: { item: TrashItem; projectId: n
               <Bot size={12} aria-hidden />
               {item.by_chat_title ?? "チャット"} の AI
             </button>
+          ) : item.kind === "session" ? (
+            <span className="trash-row-by" title="長いチャットを直近の区切りだけの会話記録に乗り換えたので、古い会話記録を Kickoff が入れました">
+              <History size={12} aria-hidden />
+              Kickoff の片付け
+            </span>
           ) : (
             <span className="trash-row-by">
               <User size={12} aria-hidden />

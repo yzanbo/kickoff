@@ -9,8 +9,12 @@ import { join } from "node:path";
 /** Claude Code が会話記録を置くフォルダ（CLAUDE_CONFIG_DIR があればその中） */
 export const claudeProjectsDir = (env: NodeJS.ProcessEnv = process.env): string => join(env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "projects");
 
-/** 分岐するとき写す区切りの数（最後の圧縮の要約と、その直前の区切りに残されたやり取りまで入るよう 2 つ） */
-export const FORK_KEEP_SEGMENTS = 2;
+/**
+ * 会話を写すとき残す区切り（圧縮の印から次の印まで）の数（メモの仕様書「ファイル削除」の Q18。2026-11-14 に利用者と決めた。11-13 の「どれも 2」を改めた）:
+ * 同じ会話を続けるもの（分岐・巻き戻し・長いチャットの乗り換え）は 3（いまの区切りとその前の 2 つ。1 つ前の圧縮より前まで巻き戻せる）、
+ * 子チャットは 1（最新の要約とそのあとのやり取りだけ。寄り道に使い、AI が読むのも最新の区切りだけのため。呼ぶ側が providers/types.ts の CHILD_FORK_KEEP を渡す）
+ */
+export const FORK_KEEP_SEGMENTS = 3;
 
 /** 作業フォルダから、記録を置くフォルダの名前（英数字以外を - に。長いものは Claude Code がハッシュを付けるので、見つからなければ全体を探す） */
 const projectDirName = (cwd: string) => cwd.replace(/[^a-zA-Z0-9]/g, "-");
@@ -138,4 +142,35 @@ export async function sessionFilesSize(sessionIds: string[], cwds: string[], roo
     }
   }
   return total;
+}
+
+/**
+ * 長く続けたセッションの記録を、終わりの直近 keep 個の区切り（圧縮の印から次の印まで）だけにした新しいセッションとして同じフォルダに書く
+ * （メモの仕様書「ファイル削除」の Q18。圧縮した作業が終わったら乗り換える）。分岐（forkSession）と違い、発言の ID とファイルの控え（file-history-snapshot）を
+ * そのまま残すので、残した区切りの中の発言へは巻き戻し・「ファイルを戻す」ができる。Claude Code は続きのセッションでは最後の印から後ろだけを読むので、
+ * 会話の中身は変わらない。区切りが keep 個に足りない（切るものがない）ときは null
+ */
+export async function trimToRecentSegments(path: string, sessionId: string, keep = FORK_KEEP_SEGMENTS): Promise<{ sessionId: string; path: string; dropped: number } | null> {
+  let start: number | null = null;
+  let boundaries = 0;
+  for await (const { line, offset } of linesBackward(path)) {
+    if (isBoundary(line) && ++boundaries === keep) {
+      start = offset;
+      break;
+    }
+  }
+  if (start === null || start === 0) return null;
+  const fh = await open(path, "r");
+  let buf: Buffer;
+  try {
+    const size = (await fh.stat()).size;
+    buf = Buffer.alloc(size - start);
+    await fh.read(buf, 0, buf.length, start);
+  } finally {
+    await fh.close();
+  }
+  const newId = randomUUID();
+  const newPath = join(path, "..", `${newId}.jsonl`);
+  await writeFile(newPath, buf.toString("utf8").split(`"sessionId":"${sessionId}"`).join(`"sessionId":"${newId}"`), { flag: "wx", mode: 0o600 });
+  return { sessionId: newId, path: newPath, dropped: start };
 }

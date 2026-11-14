@@ -29,6 +29,8 @@ import { MemoService } from "./memos/memos.js";
 import { errorMessage } from "@shared/errors";
 import { TrashService } from "./trash/service.js";
 import { installTrashCommand } from "./trash/command.js";
+import { siblingSessionCheck } from "./trash/siblingSessions.js";
+import type { SessionTrash } from "./chat/sessionSwitch.js";
 import { registerProjectTrash } from "./trash/projectTrash.js";
 import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "./trash/chatTrash.js";
 import { isInside, realPathLoose } from "./system/paths.js";
@@ -163,7 +165,14 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     (file) => ({ path: file, dir: trashBin.dir }),
     (e: unknown) => (console.warn(`[core] kickoff-trash を置けませんでした: ${errorMessage(e)}`), undefined),
   );
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, interrupted: recovered });
+  // 製品版と開発版は同じ ~/.claude/projects に会話記録を置く（開発版のデータは製品版から写す）ので、会話記録を片付ける前に、ほかの Kickoff が使っていないか確かめる
+  const sessionsElsewhere = siblingSessionCheck(opts.dataDir, opts.platform.appDataRoot);
+  // 長いチャットを直近の区切りだけの新しいセッションに乗り換えたら、古い会話記録を Kickoff のゴミ箱（3 日）へ（メモの仕様書「ファイル削除」の Q18）
+  const sessionTrash: SessionTrash = async (sessionId, file, { projectId, label }) => {
+    if (sessionsElsewhere([sessionId]).size > 0) return;
+    await trashBin.putPath(file, { projectId, label, kind: "session" });
+  };
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, interrupted: recovered });
   // ゴミ箱に入れたチャット（チャットの削除・メモのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
