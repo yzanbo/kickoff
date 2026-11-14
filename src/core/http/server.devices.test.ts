@@ -1,9 +1,9 @@
 // API のテスト: 呼び主（この Mac / 端末）と、端末に開く口・届ける知らせ（既定で閉じる）
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEVICE_FORBIDDEN, MOBILE_OFF, type Device, type PairingClaimResult, type PairingPollResult, type PairingState } from "@shared/types";
+import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, type Device, type PairingClaimResult, type PairingPollResult, type PairingState } from "@shared/types";
 import { hashToken } from "./caller.js";
-import { DEVICE_ROUTES } from "./deviceAccess.js";
+import { DEVICE_ROUTES, READ_ONLY_DEVICE_ROUTES } from "./deviceAccess.js";
 import { AUTH, setup } from "../testing/testServer.js";
 
 const DEVICE_TOKEN = "d".repeat(43);
@@ -73,6 +73,45 @@ test("端末に開く口は、どれもいまあるルート（名前を変え�
   for (const [method, path] of DEVICE_ROUTES) assert.ok(routes.has(`${method} ${path}`), `${method} ${path} がありません`);
 });
 
+test("端末: 見るだけの端末は、見る口・見ているものの知らせ・既読だけ使え、送る・答える・止めるは 403 と印で断る", async () => {
+  const { app, store, project, device, call } = withDevice();
+  store.devices.setAccess(device.id, "read");
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const req = (method: string, url: string, body?: unknown) =>
+    app.request(url, { method, headers: { ...DEVICE, "content-type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  assert.equal((await req("GET", `/api/chats/${chat.id}`)).status, 200);
+  assert.equal((await req("PUT", "/api/viewing", { chat_id: chat.id, ci_project_id: null })).status, 204);
+  assert.equal((await req("POST", `/api/chats/${chat.id}/seen`)).status, 200);
+  for (const [method, url] of [
+    ["POST", `/api/chats/${chat.id}/messages`],
+    ["POST", `/api/chats/${chat.id}/cancel`],
+    ["POST", "/api/approvals/x"],
+    ["POST", `/api/projects/${project.id}/chats`],
+    ["PUT", `/api/projects/${project.id}/memo`],
+  ] as const) {
+    const res = await req(method, url, {});
+    assert.equal(res.status, 403, url);
+    assert.equal(((await res.json()) as { code: string }).code, DEVICE_READ_ONLY, url);
+  }
+  // 閉じた口は、見るだけでも端末に開いていない印のまま
+  assert.equal(((await (await req("GET", "/api/settings")).json()) as { code: string }).code, DEVICE_FORBIDDEN);
+  // 自分を読める（できることが分かる）。この Mac の画面からは 400
+  const self = (await (await req("GET", "/api/devices/self")).json()) as Device;
+  assert.equal(self.access, "read");
+  assert.equal((await call("GET", "/api/devices/self")).status, 400);
+  // この Mac の画面で「使える」に戻すと、次の頼みから送れる（送る口そのものの答えは 403 以外）
+  const updated = await call("PATCH", `/api/devices/${device.id}`, { access: "full" });
+  assert.equal((updated.body as Device).access, "full");
+  assert.notEqual((await req("POST", `/api/chats/${chat.id}/messages`, {})).status, 403);
+  assert.equal((await call("PATCH", "/api/devices/999", { access: "read" })).status, 404);
+  assert.equal((await call("PATCH", `/api/devices/${device.id}`, { access: "admin" })).status, 400);
+});
+
+test("端末: 見るだけの端末にも使わせる口は、どれも端末に開いた口の中にある", () => {
+  const open = new Set(DEVICE_ROUTES.map(([m, p]) => `${m} ${p}`));
+  for (const [method, path] of READ_ONLY_DEVICE_ROUTES) assert.ok(open.has(`${method} ${path}`), `${method} ${path}`);
+});
+
 test("SSE: 端末には開いた口の知らせだけを届け、この Mac の画面への頼み・閉じた口の知らせは届けない", async () => {
   const { app, bus, project } = withDevice();
   const read = async (headers: Record<string, string>) => {
@@ -122,7 +161,7 @@ test("ペアリング: Mac が番号を出し、端末が頼み、Mac で「つ�
   const waiting = (await call("GET", "/api/pairing")).body as PairingState;
   assert.equal(waiting.request?.name, "Pixel 8");
 
-  const approved = (await call("POST", `/api/pairing/requests/${claimed.body.request_id}/approve`)).body as PairingState;
+  const approved = (await call("POST", `/api/pairing/requests/${claimed.body.request_id}/approve`, { access: "read" })).body as PairingState;
   // 番号は使い終える
   assert.equal(approved.code, null);
   const result = await poll(app, claimed.body.request_id, claimed.body.secret);
@@ -134,7 +173,7 @@ test("ペアリング: Mac が番号を出し、端末が頼み、Mac で「つ�
   assert.equal((await app.request("/api/settings", { headers: { authorization: `Bearer ${result.token}` } })).status, 403);
   // 一覧に出し、トークンは出さない
   const devices = (await call("GET", "/api/devices")).body as Device[];
-  assert.deepEqual(devices.map((d) => d.name), ["Pixel 8"]);
+  assert.deepEqual(devices.map((d) => [d.name, d.access]), [["Pixel 8", "read"]]);
   assert.ok(!JSON.stringify(devices).includes(result.token));
   assert.ok(events.includes("pairing") && events.includes("devices"));
 

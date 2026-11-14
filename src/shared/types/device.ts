@@ -1,5 +1,14 @@
 // スマホ連携の端末（この Mac の Kickoff を外から使うスマホなど）。トークンとプッシュの宛先は API に出さない
 
+/** 端末ができること（full: 送る・答える・止めるなども / read: 見るだけ。つなぐときに Mac の画面で選び、あとで変えられる） */
+export const DEVICE_ACCESSES = ["full", "read"] as const;
+export type DeviceAccess = (typeof DEVICE_ACCESSES)[number];
+
+export const DEVICE_ACCESS_LABELS: Record<DeviceAccess, string> = {
+  full: "使える（送る・答える・止める）",
+  read: "見るだけ",
+};
+
 /** つないだ端末（設定の「スマホ連携」の一覧） */
 export interface Device {
   id: number;
@@ -10,6 +19,18 @@ export interface Device {
   last_used_at: string | null;
   /** プッシュの宛先を登録したか（宛先そのものは出さない） */
   has_push: boolean;
+  /** できること */
+  access: DeviceAccess;
+}
+
+/** 端末のできることを変える本文（PATCH /api/devices/:id。この Mac の画面だけ） */
+export interface DeviceUpdateBody {
+  access: DeviceAccess;
+}
+
+/** つなぐときの本文（POST /api/pairing/requests/:id/approve。省けば full） */
+export interface PairingApproveBody {
+  access?: DeviceAccess;
 }
 
 /** プッシュの宛先（端末の表にだけ置く。Android のアプリは Expo Push、iPhone の Web は Web Push） */
@@ -17,6 +38,9 @@ export type DevicePush = { kind: "expo"; token: string } | { kind: "web"; endpoi
 
 /** 端末に開いていない口を端末から呼んだときの 403 の印（スマホの画面が「Mac で操作してください」と出す） */
 export const DEVICE_FORBIDDEN = "device_forbidden";
+
+/** 「見るだけ」の端末が、見る以外の口を呼んだときの 403 の印 */
+export const DEVICE_READ_ONLY = "device_read_only";
 
 /** ペアリングの使い捨ての番号の有効な時間（5 分） */
 export const PAIRING_CODE_TTL_MS = 5 * 60_000;

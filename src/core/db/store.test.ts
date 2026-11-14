@@ -339,7 +339,11 @@ test("自動のアーカイブ: 親のないチャットだけを見て、子孫
 test("端末: トークンの hash で引き、プッシュの宛先は一覧に出さない。最後に使った時刻は間を空けて書く。取り消したら引けない", () => {
   const store = new Store(":memory:");
   const pixel = store.devices.create("Pixel 8", "hash-a");
-  assert.deepEqual(pixel, { id: pixel.id, name: "Pixel 8", created_at: pixel.created_at, last_used_at: null, has_push: false });
+  assert.deepEqual(pixel, { id: pixel.id, name: "Pixel 8", created_at: pixel.created_at, last_used_at: null, has_push: false, access: "full" });
+  // できることは選べ、あとで変えられる
+  assert.equal(store.devices.create("タブレット", "hash-t", "read").access, "read");
+  assert.equal(store.devices.setAccess(pixel.id, "read")?.access, "read");
+  store.devices.setAccess(pixel.id, "full");
   assert.equal(store.devices.byTokenHash("hash-a")?.id, pixel.id);
   assert.equal(store.devices.byTokenHash("hash-b"), null);
   // 同じ hash は 2 つ置けない

@@ -51,7 +51,7 @@ import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
 import { worktreePrRoutes } from "./routes/worktreePrs.js";
 import type { WorktreePrWatch } from "../git/prWatch.js";
-import { DEVICE_FORBIDDEN, MOBILE_OFF, type GitHubAccount, type ProviderId, type ServerHello, type ServerStatus } from "@shared/types";
+import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, type GitHubAccount, type ProviderId, type ServerHello, type ServerStatus } from "@shared/types";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION, type ApiMismatch } from "@shared/api/version";
 import { createMiddleware } from "hono/factory";
 
@@ -146,7 +146,9 @@ export function createApp(deps: ServerDeps): Hono {
     if (!store.settings.get().remote_enabled) return c.json({ error: MOBILE_OFF_MESSAGE, code: MOBILE_OFF }, 403);
     store.devices.touch(device.id);
     setCaller(c, { kind: "device", device });
-    if (!deviceMayUse(c.req.method, c.req.path)) return c.json({ error: "この操作は、この Mac の Kickoff からだけ使えます", code: DEVICE_FORBIDDEN }, 403);
+    const use = deviceMayUse(c.req.method, c.req.path, device.access);
+    if (use === "forbidden") return c.json({ error: "この操作は、この Mac の Kickoff からだけ使えます", code: DEVICE_FORBIDDEN }, 403);
+    if (use === "read_only") return c.json({ error: "この端末は「見るだけ」です（Mac の Kickoff の設定の「スマホ連携」で変えられます）", code: DEVICE_READ_ONLY }, 403);
     return next();
   });
 

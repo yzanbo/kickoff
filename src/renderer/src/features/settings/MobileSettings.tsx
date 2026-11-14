@@ -1,5 +1,5 @@
 import { Smartphone } from "lucide-react";
-import type { Device, PairingState } from "@shared/types";
+import { DEVICE_ACCESS_LABELS, DEVICE_ACCESSES, type Device, type DeviceAccess, type PairingState } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { formatPairingCode } from "@shared/devices/pairing";
 import { api } from "@/api";
@@ -9,6 +9,7 @@ import { settingsStore, useAppSettings } from "@/stores/settings";
 import { CommitInput } from "@/ui/CommitInput";
 import { ErrorText } from "@/ui/ErrorText";
 import { Field } from "@/ui/Field";
+import { Segmented } from "@/ui/Segmented";
 import { MobileSwitches } from "./MobileSwitches";
 import { useMobilePairing } from "./useMobilePairing";
 import { useMobileSwitches } from "./useMobileSwitches";
@@ -42,7 +43,7 @@ export function MobileSettings() {
       {pairing.state && !off && <PairingPanel state={pairing.state} qr={pairing.qr} link={pairing.link} busy={pairing.action.busy !== null} onStart={pairing.start} onCancel={pairing.cancel} onApprove={pairing.approve} onDeny={pairing.deny} />}
       <ErrorText message={pairing.action.error} />
       <h3>つないだ端末</h3>
-      <DeviceList devices={pairing.devices} busy={pairing.action.busy !== null} onRevoke={pairing.revoke} />
+      <DeviceList devices={pairing.devices} busy={pairing.action.busy !== null} onRevoke={pairing.revoke} onAccess={pairing.setAccess} />
     </section>
   );
 }
@@ -54,7 +55,7 @@ interface PairingPanelProps {
   busy: boolean;
   onStart: () => void;
   onCancel: () => void;
-  onApprove: (id: string) => void;
+  onApprove: (id: string, access: DeviceAccess) => void;
   onDeny: (id: string) => void;
 }
 
@@ -67,12 +68,17 @@ function PairingPanel({ state, qr, link, busy, onStart, onCancel, onApprove, onD
         <Smartphone size={18} aria-hidden />
         <div className="pairing-request-text">
           <strong>「{state.request.name}」をつなぎますか？</strong>
-          <span className="muted small">いま QR・番号を読んだ端末か確かめてください。心当たりがなければ断ってください。</span>
+          <span className="muted small">
+            いま QR・番号を読んだ端末か確かめてください。心当たりがなければ断ってください。家族・共用の端末なら「見るだけでつなぐ」（チャットを読めますが、送る・答える・止めるはできません。あとで変えられます）。
+          </span>
         </div>
         <button type="button" className="btn" disabled={busy} onClick={() => onDeny(state.request!.id)}>
           断る
         </button>
-        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => onApprove(state.request!.id)}>
+        <button type="button" className="btn" disabled={busy} onClick={() => onApprove(state.request!.id, "read")}>
+          見るだけでつなぐ
+        </button>
+        <button type="button" className="btn btn-primary" disabled={busy} onClick={() => onApprove(state.request!.id, "full")}>
           つなぐ
         </button>
       </div>
@@ -112,8 +118,17 @@ function PairingPanel({ state, qr, link, busy, onStart, onCancel, onApprove, onD
   );
 }
 
-/** つないだ端末の一覧 */
-function DeviceList({ devices, busy, onRevoke }: { devices: Device[]; busy: boolean; onRevoke: (device: Device) => void }) {
+const ACCESS_OPTIONS = DEVICE_ACCESSES.map((value) => ({ value, label: DEVICE_ACCESS_LABELS[value] }));
+
+interface DeviceListProps {
+  devices: Device[];
+  busy: boolean;
+  onRevoke: (device: Device) => void;
+  onAccess: (device: Device, access: DeviceAccess) => void;
+}
+
+/** つないだ端末の一覧（できること（使える / 見るだけ）はここで変えられ、次の頼みから効く） */
+function DeviceList({ devices, busy, onRevoke, onAccess }: DeviceListProps) {
   if (devices.length === 0) return <p className="muted small">まだ端末をつないでいません。</p>;
   return (
     <ul className="device-list">
@@ -127,6 +142,7 @@ function DeviceList({ devices, busy, onRevoke }: { devices: Device[]; busy: bool
               {d.has_push && "・通知あり"}
             </span>
           </div>
+          <Segmented<DeviceAccess> className="segmented" label={`「${d.name}」ができること`} value={d.access} options={ACCESS_OPTIONS} onChange={(access) => onAccess(d, access)} />
           <button type="button" className="btn btn-danger" disabled={busy} onClick={() => onRevoke(d)}>
             取り消す
           </button>
