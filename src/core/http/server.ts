@@ -26,7 +26,7 @@ import type { PortWatch } from "../ports/watch.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { deviceRoutes, pairingClaimRoutes } from "./routes/devices.js";
-import type { PairingCenter } from "../devices/pairing.js";
+import { MOBILE_OFF_MESSAGE, type PairingCenter } from "../devices/pairing.js";
 import type { ViewingRegistry } from "../notifications/viewing.js";
 import type { BrowserLogin } from "./browserLogin.js";
 import { chatRoutes } from "./routes/chats.js";
@@ -51,7 +51,7 @@ import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
 import { worktreePrRoutes } from "./routes/worktreePrs.js";
 import type { WorktreePrWatch } from "../git/prWatch.js";
-import { DEVICE_FORBIDDEN, type GitHubAccount, type ProviderId, type ServerHello, type ServerStatus } from "@shared/types";
+import { DEVICE_FORBIDDEN, MOBILE_OFF, type GitHubAccount, type ProviderId, type ServerHello, type ServerStatus } from "@shared/types";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION, type ApiMismatch } from "@shared/api/version";
 import { createMiddleware } from "hono/factory";
 
@@ -142,6 +142,8 @@ export function createApp(deps: ServerDeps): Hono {
     }
     const device = given.map((t) => store.devices.byTokenHash(hashToken(t))).find((d) => d !== null);
     if (!device) return c.json({ error: "unauthorized" }, 401);
+    // スマホ連携がオフなら、つないだ端末からの頼みも断る（登録は残す。オンに戻せばそのまま使える）
+    if (!store.settings.get().remote_enabled) return c.json({ error: MOBILE_OFF_MESSAGE, code: MOBILE_OFF }, 403);
     store.devices.touch(device.id);
     setCaller(c, { kind: "device", device });
     if (!deviceMayUse(c.req.method, c.req.path)) return c.json({ error: "この操作は、この Mac の Kickoff からだけ使えます", code: DEVICE_FORBIDDEN }, 403);
@@ -202,14 +204,19 @@ export function createApp(deps: ServerDeps): Hono {
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>
     streamSSE(c, async (stream) => {
-      // 端末には、開いた口の知らせだけを届ける（deviceAccess.ts）
-      const visible = callerOf(c).kind === "device" ? deviceMaySee : () => true;
+      // 端末には、開いた口の知らせだけを届ける（deviceAccess.ts）。スマホ連携をオフにしたら、端末の知らせはそこで切る
+      const isDevice = callerOf(c).kind === "device";
+      // 切断の知らせは、待つ前（最初の書き込みの前）に受け取れるようにしておく。こちらから切るときも同じ待ちを終える
+      let finish = () => {};
+      const closed = new Promise<void>((resolve) => {
+        finish = resolve;
+        stream.onAbort(resolve);
+      });
       const unsubscribe = bus.subscribe((event) => {
-        if (visible(event)) void stream.writeSSE({ data: JSON.stringify(event) });
+        if (isDevice && event.type === "settings" && !event.settings.remote_enabled) return finish();
+        if (!isDevice || deviceMaySee(event)) void stream.writeSSE({ data: JSON.stringify(event) });
       });
       const ping = setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);
-      // 切断の知らせは、待つ前（最初の書き込みの前）に受け取れるようにしておく
-      const closed = new Promise<void>((resolve) => stream.onAbort(resolve));
       // つないだらすぐ hello（本体の版・API の版・本体の ID）を送る。何か書くまで応答ヘッダーが届かず、画面が「接続中」のままになるのも防ぐ
       const hello: ServerHello = { core_version: VERSION, api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: store.databaseId };
       await stream.writeSSE({ event: "hello", data: JSON.stringify(hello) });
