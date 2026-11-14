@@ -4,6 +4,7 @@ import { api } from "@/api";
 import { subscribeServerOpen } from "@/api/events";
 import { openChatOrChild } from "@/features/chat/children/openChild";
 import { openCiRun } from "@/features/ci/ciLinks";
+import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useWindowFocused } from "@/hooks/useWindowFocused";
 import { openChat, openMemo, type Route } from "./router";
 
@@ -26,9 +27,11 @@ function viewingOf(route: Route, focused: boolean): ViewingBody {
   };
 }
 
-/** いま見ているチャット・CI のタブをコアに知らせる（変わったとき・見ている間は少しずつ・SSE がつながり直したとき） */
+/** いま見ているチャット・CI のタブをコアに知らせる（変わったとき・見ている間は少しずつ・SSE がつながり直したとき・窓を閉じたとき） */
 export function useViewingReport(route: Route) {
   const focused = useWindowFocused();
+  // 窓を閉じた・読み込み直したら、見ていないことをすぐ知らせる（知らせないと、古くなるまでの間そのチャットの通知が止まる）
+  useWindowEvent("pagehide", () => api.reportLeaving());
   const { chat_id: chatId, ci_project_id: ciProjectId } = viewingOf(route, focused);
   useEffect(() => {
     const body: ViewingBody = { chat_id: chatId, ci_project_id: ciProjectId };

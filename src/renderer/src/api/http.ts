@@ -42,13 +42,14 @@ async function bodyOf<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
-/** API を呼ぶ（body は JSON で送る。失敗は ApiError） */
-export async function request<T>(method: Method, url: string, body?: unknown): Promise<T> {
+/** API を呼ぶ（body は JSON で送る。失敗は ApiError。keepalive は窓を閉じる・読み込み直す間際にも届けたいとき） */
+export async function request<T>(method: Method, url: string, body?: unknown, { keepalive = false }: { keepalive?: boolean } = {}): Promise<T> {
   const res = await fetch(url, {
     method,
     headers: body === undefined ? undefined : { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "same-origin",
+    keepalive,
   });
   return bodyOf<T>(res);
 }

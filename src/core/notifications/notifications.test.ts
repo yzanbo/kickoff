@@ -18,14 +18,15 @@ test("chatNotice: 終わった・失敗だけ。プッシュの文はチャッ�
   assert.deepEqual(failed.push, { title: "調査", body: "失敗しました" });
 });
 
-test("ViewingRegistry: 呼び主ごとに覚え、古い知らせは数えない", () => {
+test("ViewingRegistry: 呼び主ごとに覚え（ほかの人が見ていても自分は見ていない）、古い知らせは数えない", () => {
   let now = 0;
   const views = new ViewingRegistry(() => now);
   views.report({ kind: "host" }, { chat_id: 5, ci_project_id: null });
-  assert.equal(views.viewingChat(5), true);
+  assert.equal(views.viewingChat("host", 5), true);
+  assert.equal(views.viewingChat(7, 5), false);
   views.report({ kind: "host" }, { chat_id: null, ci_project_id: 2 });
-  assert.equal(views.viewingChat(5), false);
-  assert.equal(views.viewingCi(2), true);
+  assert.equal(views.viewingChat("host", 5), false);
+  assert.equal(views.viewingCi("host", 2), true);
   now += VIEWING_TTL_MS + 1;
-  assert.equal(views.viewingCi(2), false);
+  assert.equal(views.viewingCi("host", 2), false);
 });

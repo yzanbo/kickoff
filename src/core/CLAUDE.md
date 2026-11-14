@@ -108,11 +108,11 @@ Kickoff のプロジェクトのフォルダ（本体・ワークツリー）で
 
 ## 通知（notifications/）
 
-チャットの完了・失敗・回答待ちと CI の失敗を、だれも見ていなければ知らせる判断はコアの 1 か所（2026-11-14 に画面から移した。スマホへのプッシュも同じ判断で送るため）。
+チャットの完了・失敗・回答待ちと CI の失敗を、それを見ていない人にだけ知らせる判断はコアの 1 か所（2026-11-14 に画面から移した。スマホへのプッシュも同じ判断で送るため）。
 
-- `center.ts` の `NotificationCenter`（`startCore` が作り `close` で止める）: Bus の知らせから見つける（`chat` の状態が作業中から完了・失敗に変わった（直前の状態はメモリに持つ）・`approval`・`ci_failed`）。だれか（この Mac の画面・端末）がそのチャット・そのプロジェクトの CI のタブを見ていれば出さない。出すなら、設定の `desktop_notifications` がオンのとき、この Mac の通知の口（`startCore({ notify })`。Mac のアプリのメインプロセスの `notifyFromCore`。単体のコアにはない）へ、そしてプッシュの宛先を登録した端末へ `PushSender`（`startCore({ push })`。Expo Push・Web Push の中身はまだなく、口だけ）で送る（送れなくても、ほかは止めない）。
+- `center.ts` の `NotificationCenter`（`startCore` が作り `close` で止める）: Bus の知らせから見つける（`chat` の状態が作業中から完了・失敗に変わった（直前の状態はメモリに持つ）・`approval`・`ci_failed`）。送り先ごとに、その人が見ているかで決める（`ViewingRegistry` の `viewingChat` / `viewingCi`。人 = `Viewer` は `"host"` か端末の ID）: この Mac の通知の口（`startCore({ notify })`。Mac のアプリのメインプロセスの `notifyFromCore`。単体のコアにはない）へは、設定の `desktop_notifications` がオンで、この Mac の画面がそのチャット・そのプロジェクトの CI のタブを見ていないとき。プッシュの宛先を登録した端末へは `PushSender`（`startCore({ push })`。Expo Push・Web Push の中身はまだなく、口だけ）で、その端末が見ていないときだけ（この Mac で見ていても、見ていないスマホには送る。CI の失敗は CI のタブを端末に開いていないので送らない）。送れなくても、ほかは止めない。
 - 中身は純粋な関数の `notices.ts`（`chatNotice` / `approvalNotice` / `ciNotice` → `Notice`: 押したときに開くもの `target`・この Mac の通知の文（チャットの名前は子チャット・メモのチャットなら頭に添える `noticeChatName`。プロジェクト名・失敗の理由も）・プッシュの短い文 `push`（チャットの名前と状態だけ。会話の中身・失敗の理由は載せない。本体の ID は送るときに添える））。
-- 見ているもの（`viewing.ts` の `ViewingRegistry`）: 呼び主ごとに `PUT /api/viewing`（本文 `ViewingBody`: 前に出しているチャット・CI のタブのプロジェクト。前に出していなければ両方 null。端末にも開く口）で覚え、`VIEWING_TTL_MS`（90 秒）より古い知らせは数えない（画面は見ている間、その 1/3 ごとに知らせ直す）。
+- 見ているもの（`viewing.ts` の `ViewingRegistry`）: 呼び主ごとに `PUT /api/viewing`（本文 `ViewingBody`: 前に出しているチャット・CI のタブのプロジェクト。前に出していなければ両方 null。端末にも開く口）で覚え、`VIEWING_TTL_MS`（90 秒）より古い知らせは数えない（画面は見ている間、その 1/3 ごとに知らせ直し、窓を閉じる・読み込み直すときは `pagehide` で「何も見ていない」を keepalive で送る）。
 - テストは `http/server.notifications.test.ts`（`setup()` の `notifyFake` が出した通知 `notified` と送ったプッシュ `pushed` を覚える）・`notifications/notifications.test.ts`。
 
 ## 使用状況（usage/）
