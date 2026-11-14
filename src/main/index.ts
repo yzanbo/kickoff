@@ -8,6 +8,7 @@ import { safeStorageCipher } from "./app/secretCipher.js";
 import { prepareAppSession } from "./app/appSession.js";
 import { DB_WORKER_FILE, RENDERER_DIR, seedDevDataOnce, setupEnvironment } from "./app/environment.js";
 import { registerShutdown } from "./app/shutdown.js";
+import { startKeepAwake } from "./app/keepAwake.js";
 import { logLaunch, startupLog, watchChildProcesses } from "./app/startupLog.js";
 import { openMainWindow, showMainWindow } from "./app/window.js";
 import { agentBrowser } from "./browser/agentBrowser.js";
@@ -68,6 +69,8 @@ async function start() {
       notify: notifyFromCore,
     });
     setDiagnosticsCore(core);
+    // 作業中と、スマホ連携がオンで電源につないでいる間は、本体を眠らせない（app/keepAwake.ts）
+    startKeepAwake(core);
     // ワークツリーのターミナルには、その帯の開発サーバーの番号（PORT）を渡す
     setTerminalEnvOf((cwd) => core?.worktreeEnvFor(cwd) ?? {});
     startupLog(`コアを起動しました ${core.localUrl}`);

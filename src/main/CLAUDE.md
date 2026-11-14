@@ -54,6 +54,12 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 - `output.ts` の `TerminalOutput`: 出力は裏の端末（`@xterm/headless`）にも書き、つなぎ直したときの内容（`snapshot`）にする。画面へは細かい出力をまとめて送る。画面は open の返事までの出力を捨てるので、snapshot は書き終えるのを待ってから取り、取っている間の出力は返事のあとに送る（漏れも重なりも出さない）。AI が読む最後の行は `tail`（書き終えるのを待ってから、裏の端末の行を折り返しをつないだ 1 行ずつにし、色などの印は入れず、終わりの空行を落とす）。
 - AI に渡す読み取り（`terminals.ts` の `agentTerminals`。コアの `TerminalControl`。`index.ts` が `startCore({ terminals })` で渡す）: 動いているシェルのタブの一覧（画面が `terminal.open` の `meta`（`@shared/ipc` の `TerminalTabMeta`。プロジェクトとタブの名前）でつなぐたびに知らせたもの・始めたフォルダ・コマンド）と、`TerminalOutput.tail` の最後の行。読むだけで、書く・止めるは渡さない。
 
+## 眠らせない（app/keepAwake.ts）
+
+- 本体（コアが動くこのプロセス）を眠らせないのは、作業中のチャットがある間と、スマホ連携がオン（設定の `remote_enabled`）で電源につないでいる間（`keepAwakeRules.ts` の `keepAwakeReason`。2026-11-14 に決めた。スマホから新しい指示を送るには、待っている間も本体が起きている必要があるため。バッテリーのときは、作業中でなければ眠ってよい）。`powerSaveBlocker` の `prevent-app-suspension`（画面は消えてよく、本体だけ起こしておく。`pmset -g assertions` に `NoIdleSleepAssertion` が出る）。
+- 作業中の数とスマホ連携のオン・オフはコアの `Core.awakeNeeds`、電源は `powerMonitor`（`isOnBatteryPower`・`on-ac` / `on-battery`）から読み、Bus の `chat`・`settings` と電源の知らせのたびに付け外しする（`index.ts` がコアを起動したあと `startKeepAwake`）。変わったら起動の記録に「眠らせない: working / mobile / なし」を残す。
+- MacBook のふたを閉じたときの眠り（外部ディスプレイと電源をつないでいるときを除く）は、これでは防げない。
+
 ## 通知（notifications/）
 
 - Mac の通知はメインプロセスの `Notification` で出す（画面の通知は、画面を読み込み直す・終えると通知センターから消え、届かなかった理由も分からないため）。チャットの完了・失敗・回答待ち・CI の失敗は、出すか（だれも見ていないか・設定）と文をコアが決め（`src/core/CLAUDE.md` の「通知」）、`startCore({ notify })` に渡した `notifyFromCore` が出す。押したときの処理を付けておくため、新しいものから 50 件の参照を持つ。Kickoff を終えても通知センターに残る（終わり方は「終了」）。
