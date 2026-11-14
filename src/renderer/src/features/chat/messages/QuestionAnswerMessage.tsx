@@ -5,7 +5,8 @@ import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 
 /**
  * AI からの質問に答えた内容（記録の approval_resolved の answers / attachments）。自分の発言と同じ吹き出しで右に出し、
- * 上に「質問への回答」と添えて、ふつうの指示と見分けられるようにする。質問ごとに、質問の文と選んだ答え（「その他」の文・添付も）を並べる
+ * 上に「質問への回答」と添えて、ふつうの指示と見分けられるようにする。質問ごとに、質問の文と選んだ答え（「その他」の文・添付も）を並べる。
+ * 選んだ選択肢に図（preview）があれば、「選んだ図」を開いて見られる（記録の previews）
  */
 export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"approval_resolved">; data: Extract<ChatEventOf<"approval_resolved">["data"], { action: "answer" }> }) {
   const entries = Object.entries(data.answers);
@@ -29,6 +30,14 @@ export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"app
               <div key={question} className="question-answer-item">
                 <dt>{question}</dt>
                 <dd>{Array.isArray(answer) ? answer.join("、") : answer}</dd>
+                {data.previews?.[question] && (
+                  <dd>
+                    <details className="question-answer-preview">
+                      <summary>選んだ図</summary>
+                      <pre>{data.previews[question]}</pre>
+                    </details>
+                  </dd>
+                )}
                 {files.length > 0 && (
                   <dd className="bubble-attachments">
                     <AttachmentChips attachments={files} />

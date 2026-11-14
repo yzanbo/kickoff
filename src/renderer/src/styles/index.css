@@ -78,6 +78,7 @@
 @import "./ui/image-viewer.css";
 @import "./chat/approval.css";
 @import "./chat/question-card.css";
+@import "./chat/question-preview.css";
 @import "./ui/markdown.css";
 @import "./footer/usage-meter.css";
 @import "./footer/footer.css";

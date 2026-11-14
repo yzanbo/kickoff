@@ -46,6 +46,8 @@ export type ChatEventData =
       action: "answer";
       answers: Record<string, string | string[]>;
       attachments?: Record<string, Attachment[]>;
+      /** 答えた選択肢の図（AskUserQuestion の preview。質問の文 → 図。図のある選択肢を選んだ質問だけ。画面の「質問への回答」で開いて見る） */
+      previews?: Record<string, string>;
     }
   /**
    * 作業の終わり。session_id と message_id: その時点の会話の位置（ここから分岐するときに使う。分岐したチャットに写しても元の会話を指す）。

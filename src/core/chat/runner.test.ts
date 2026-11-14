@@ -208,6 +208,24 @@ test("質問の「その他」に添付して答えたら、記録には選ん�
   });
 });
 
+test("質問の選択肢に図（preview）があれば、選んだ選択肢の図も記録に残す（画面の「質問への回答」で開いて見る）", async () => {
+  const questions = [
+    { question: "形は？", header: "", multiSelect: false, options: [{ label: "四角", description: "", preview: "┌─┐\n└─┘" }, { label: "丸", description: "" }] },
+    { question: "色は？", header: "", multiSelect: false, options: [{ label: "赤", description: "" }] },
+  ];
+  const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {
+    await cb.requestApproval({ kind: "question", toolName: "AskUserQuestion", input: { questions }, canRemember: false }, signal);
+    return { status: "completed", sessionId: "s" };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "q" });
+  await until(() => approvals.list({ chatId: chat.id }).length === 1);
+  const [pending] = approvals.list({ chatId: chat.id });
+  approvals.resolve(pending.id, { action: "answer", answers: { "形は？": "四角", "色は？": "赤" } });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  const resolved = store.events.list(chat.id).find((e) => e.type === "approval_resolved");
+  assert.deepEqual((resolved?.data as { previews?: unknown }).previews, { "形は？": "┌─┐\n└─┘" });
+});
+
 test("送った指示は数に関係なくすぐ動き、中断すると承認待ちも片付く", async () => {
   const { runner, approvals, project, store } = setup(async (_p, cb, signal) => {
     const d = await cb.requestApproval({ kind: "permission", toolName: "Bash", input: { command: "ls" }, canRemember: false }, signal);
