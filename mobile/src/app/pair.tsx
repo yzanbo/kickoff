@@ -104,6 +104,8 @@ export default function PairScreen() {
               scanned.current
                 ? undefined
                 : ({ data }) => {
+                    // 同じ QR を続けて読んでも、頼むのは 1 回だけ
+                    if (scanned.current) return;
                     const target = parsePairingLink(data);
                     if (!target) return setError("Kickoff の QR ではありません");
                     scanned.current = true;

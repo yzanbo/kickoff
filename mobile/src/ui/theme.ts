@@ -46,7 +46,9 @@ export function sessionStateText(state: SessionState): string | null {
     case "mobile_off":
       return "Mac の Kickoff の「スマホからつなぐ」がオフです";
     case "revoked":
-      return "この端末の登録が取り消されました。Mac の設定でつなぎ直してください";
+      return "この端末の登録が取り消されました。外してから、Mac の設定でつなぎ直してください";
+    case "other_host":
+      return "この URL の先は、つないだときと別の本体です（Mac の Kickoff のデータを作り直したなど）。外してから、つなぎ直してください";
     case "stopped":
       return "止まっています";
   }
