@@ -41,6 +41,8 @@ export interface StartChatInput {
   untrackedOnly?: boolean;
   /** 結び付ける GitHub の issue・PR */
   github?: GitHubLink;
+  /** AI が作った世代（AI の create_chat が作るときだけ。省けば 0 = 利用者が作った） */
+  aiGeneration?: number;
 }
 
 /**
@@ -71,6 +73,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
     github_repo: input.github?.repo ?? null,
     github_number: input.github?.number ?? null,
     github_kind: input.github?.kind ?? null,
+    ai_generation: input.aiGeneration ?? 0,
   });
   // 親の会話を引き継ぐ子チャットは、親の会話を写したセッションの続きから始める
   const chat = input.sessionId ? store.chats.update(created.id, { session_id: input.sessionId }) : created;

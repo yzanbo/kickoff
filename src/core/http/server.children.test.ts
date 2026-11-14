@@ -433,20 +433,21 @@ test("親から外す: 作業中なら 409（その下の孫が作業中でも�
   await until(() => !runner.isBusy(grandchild));
 });
 
-test("設定: AI が子チャットを作るとき（既定は毎回聞く。毎回聞く / 聞かずに作る / 作らせない のほかは 400）", async () => {
+test("設定: AI がチャットを作るとき（既定は毎回聞く。毎回聞く / 聞かずに作る / 作らせない のほかは 400。前の名前 ai_child_chat は受けない）", async () => {
   const { call } = setup();
-  assert.equal((await call("GET", "/api/settings")).body.ai_child_chat, "ask");
-  assert.equal((await call("PUT", "/api/settings", { ai_child_chat: "allow" })).body.ai_child_chat, "allow");
-  assert.equal((await call("PUT", "/api/settings", { ai_child_chat: "off" })).body.ai_child_chat, "off");
-  assert.equal((await call("PUT", "/api/settings", { ai_child_chat: "always" })).status, 400);
+  assert.equal((await call("GET", "/api/settings")).body.ai_create_chat, "ask");
+  assert.equal((await call("PUT", "/api/settings", { ai_create_chat: "allow" })).body.ai_create_chat, "allow");
+  assert.equal((await call("PUT", "/api/settings", { ai_create_chat: "off" })).body.ai_create_chat, "off");
+  assert.equal((await call("PUT", "/api/settings", { ai_create_chat: "always" })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { ai_child_chat: "allow" })).status, 400);
 });
 
 test("AI が作る子チャット: 親の会話を引き継げたら、親の最後まで終わった作業から写して始め、引き継いだことを AI に返す", async () => {
   const ctx = setup();
   const parentId = await finishedChat(ctx);
-  const tools = ctx.provider.lastChildChat;
-  assert.ok(tools, "親のないチャットには子チャットのツールを渡す");
-  const result = await tools.create({ text: "ここを調べて" }, async () => ({ action: "allow" }));
+  const tools = ctx.provider.lastCreateChat;
+  assert.ok(tools, "親のないチャットにはチャットを作るツールを渡す");
+  const result = await tools.create({ relation: "child", text: "ここを調べて" }, async () => ({ action: "allow" }));
   assert.match(result, /いまの作業より前に終わったところまでを引き継いでいます/);
   const child = ctx.store.chats.descendants(parentId)[0];
   assert.equal(child.parent_chat_id, parentId);

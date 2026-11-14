@@ -35,7 +35,7 @@ const CHAT_COLUMNS = [
 /** チャットの変えられる項目 */
 export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;
 
-/** DB の行（真偽値は 0 / 1。archived_with_parent・trashed_at・trashed_with は店の中だけで使い、Chat には出さない） */
+/** DB の行（真偽値は 0 / 1。archived_with_parent・trashed_at・trashed_with・ai_generation は店の中だけで使い、Chat には出さない） */
 type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only"> & {
   fast_mode: number;
   unread: number;
@@ -44,11 +44,12 @@ type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only"> 
   archived_with_parent: number;
   trashed_at: string | null;
   trashed_with: string | null;
+  ai_generation: number;
 };
 
 /** DB の行をアプリの型にする（真偽値の列を boolean に） */
 function toChat(row: unknown): Chat {
-  const { archived_with_parent: _withParent, trashed_at: _trashedAt, trashed_with: _trashedWith, ...r } = row as ChatRow;
+  const { archived_with_parent: _withParent, trashed_at: _trashedAt, trashed_with: _trashedWith, ai_generation: _generation, ...r } = row as ChatRow;
   return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1, untracked_only: r.untracked_only === 1 };
 }
 
@@ -149,8 +150,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     create(input: NewChat): Chat {
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path, untracked_only, github_repo, github_number, github_kind)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path, untracked_only, github_repo, github_number, github_kind, ai_generation)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           input.project_id,
@@ -169,6 +170,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
           bit(input.untracked_only ?? false),
           // repo・番号・種類はそろって入れる（どれかがなければ結び付けない）
           ...(input.github_repo && input.github_number && input.github_kind ? [input.github_repo, input.github_number, input.github_kind] : [null, null, null]),
+          input.ai_generation ?? 0,
         );
       const chat = get(Number(lastInsertRowid))!;
       onChange({ type: "chat", chat });
@@ -192,6 +194,11 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
       const chat = get(id)!;
       onChange({ type: "chat", chat });
       return chat;
+    },
+    /** AI が作った世代（利用者が作ったチャット = 0。AI の create_chat が作るたびに作った側 ＋ 1。ないチャットは 0） */
+    aiGeneration(id: number): number {
+      const row = db.prepare("SELECT ai_generation FROM chats WHERE id = ?").get(id) as { ai_generation: number } | undefined;
+      return row?.ai_generation ?? 0;
     },
     /** 子孫の子チャット（子・孫・ひ孫…。深い方から順に。自分は含まない） */
     descendants,

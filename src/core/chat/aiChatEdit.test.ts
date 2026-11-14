@@ -131,9 +131,9 @@ test("update_chat: 親から外せないとき（親のないチャット・先�
   assert.equal(ctx.store.chats.get(childA.id)?.parent_chat_id, root.id);
 });
 
-test("渡し方: 名前・固定・グループのツールは、子チャットを作らせない設定のときも孫チャットにも渡す", async () => {
+test("渡し方: 名前・固定・グループのツールは、チャットを作らせない設定のときも孫チャットにも渡す", async () => {
   const ctx = setup();
-  ctx.store.settings.update({ ai_child_chat: "off" });
+  ctx.store.settings.update({ ai_create_chat: "off" });
   const parent = await ctx.runner.start({ projectId: ctx.project.id, prompt: "親" });
   await until(() => ctx.store.chats.get(parent.id)?.status === "completed");
   const child = await ctx.runner.start({ projectId: ctx.project.id, prompt: "子", parentChatId: parent.id });
@@ -141,7 +141,7 @@ test("渡し方: 名前・固定・グループのツールは、子チャット
   const grandchild = await ctx.runner.start({ projectId: ctx.project.id, prompt: "孫", parentChatId: child.id });
   await until(() => ctx.store.chats.get(grandchild.id)?.status === "completed");
   const params = ctx.provider.calls.at(-1)!;
-  assert.equal(params.childChat, null, "子チャットを作るツールは渡さない");
+  assert.equal(params.createChat, null, "チャットを作るツールは渡さない");
   assert.ok(params.chatEdit, "名前・固定・グループのツールは渡す");
   // 渡したツールは、そのチャット（孫）から見た家系を返す
   const listed = JSON.parse(params.chatEdit.listFamily());

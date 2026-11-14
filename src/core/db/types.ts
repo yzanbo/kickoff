@@ -28,4 +28,6 @@ export interface NewChat extends ChatOptionsPatch {
   github_repo?: string | null;
   github_number?: number | null;
   github_kind?: GitHubKind | null;
+  /** AI が作った世代（AI の create_chat が作ったチャットだけ。省けば 0 = 利用者が作った） */
+  ai_generation?: number;
 }

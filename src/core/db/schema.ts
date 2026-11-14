@@ -445,7 +445,17 @@ CREATE TABLE agent_sessions (
 ) STRICT;
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28];
+/**
+ * v29: AI が作ったチャットの世代（メモの仕様書「0019_AI の操作ツールの追加」の Q7）。利用者が作ったチャットを 0 とし、AI が create_chat で作るたびに
+ * 作った側の世代 ＋ 1 を覚える（子・兄弟・親のないチャットのどれでも同じ。2 世代目からは作れない）。あわせて、設定「AI が子チャットを作るとき」を
+ * 「AI がチャットを作るとき」に広げたので、キーを ai_child_chat から ai_create_chat に付け替える（選んだ値は引き継ぐ）
+ */
+const SCHEMA_V29 = `
+ALTER TABLE chats ADD COLUMN ai_generation INTEGER NOT NULL DEFAULT 0 CHECK (ai_generation >= 0);
+UPDATE settings SET key = 'ai_create_chat' WHERE key = 'ai_child_chat';
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

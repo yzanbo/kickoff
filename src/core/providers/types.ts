@@ -1,6 +1,6 @@
 import type { BrowserControl } from "../browser/control.js";
 import type { AiChatEditTools } from "../chat/aiChatEdit.js";
-import type { AiChildChatTools } from "../chat/aiChildChat.js";
+import type { AiCreateChatTools } from "../chat/aiCreateChat.js";
 import type { AiChatReadTools } from "../chat/aiChatRead.js";
 import type { AiProjectTools } from "../chat/aiProject.js";
 import type { AiTerminalTools } from "../chat/aiTerminal.js";
@@ -119,8 +119,8 @@ export interface ProviderTurnParams {
   browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
   /** プロジェクトの DB を AI に読ませる口（AI に見せる接続があるときだけ。なければ DB のツールを出さない） */
   database?: DbAiTools | null;
-  /** このチャットの子チャットを AI に作らせる口（設定で止めていない・深さの上限に達していないときだけ。なければ子チャットのツールを出さない） */
-  childChat?: AiChildChatTools | null;
+  /** チャット（子・兄弟・親のないチャット）を AI に作らせる口（設定で止めていない・AI が作った世代の上限に達していないときだけ。なければ create_chat を出さない） */
+  createChat?: AiCreateChatTools | null;
   /** 同じ家系のチャットの名前・固定・グループを AI に変えさせる口（どのチャットにも渡す。なければそのツールを出さない） */
   chatEdit?: AiChatEditTools | null;
   /** このプロジェクトのメモ・同じ家系のチャットを AI に画面へ開かせる口（どのチャットにも渡す。なければそのツールを出さない） */

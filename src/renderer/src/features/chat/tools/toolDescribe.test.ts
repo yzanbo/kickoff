@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { describeApprovalInput, describeTool, describeToolInput, describeUnknownInput, toolLabel, visibleToolResult } from "./toolDescribe";
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
-import { AI_CHILD_CHAT_TOOL } from "@shared/chat/aiChildChat";
+import { AI_CHILD_CHAT_TOOL_LEGACY, AI_CREATE_CHAT_TOOL } from "@shared/chat/aiCreateChat";
 import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_MEMO_TOOL, AI_OPEN_SQL_TOOL } from "@shared/chat/aiOpen";
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
@@ -79,10 +79,14 @@ test("ツールの結果: ツール検索の [tool_reference] は出さない", 
   assert.equal(visibleToolResult("見つかった\n[tool_reference]"), "見つかった");
 });
 
-test("AI が子チャットを作るツール: 行は名前（なければ依頼の 1 行目）、承認カードは依頼の全文", () => {
-  assert.equal(describeTool(AI_CHILD_CHAT_TOOL, { title: "ログの調査", text: "ログの形式を調べて" }), "子チャットを作る: ログの調査");
-  assert.equal(describeTool(AI_CHILD_CHAT_TOOL, { text: "1 行目\n2 行目" }), "子チャットを作る: 1 行目");
-  assert.equal(describeApprovalInput(AI_CHILD_CHAT_TOOL, { title: "ログの調査", text: "1 行目\n2 行目" }), "1 行目\n2 行目");
+test("AI がチャットを作るツール: 行は何を作ったかと名前（なければ依頼の 1 行目）・ワークツリー、承認カードは依頼の全文", () => {
+  assert.equal(describeTool(AI_CREATE_CHAT_TOOL, { relation: "child", title: "ログの調査", text: "ログの形式を調べて" }), "チャットを作る: 子チャット「ログの調査」");
+  assert.equal(describeTool(AI_CREATE_CHAT_TOOL, { relation: "root", text: "1 行目\n2 行目", worktree_branch: "feat/a" }), "チャットを作る: 親のないチャット「1 行目」（ワークツリー feat/a）");
+  assert.equal(describeTool(AI_CREATE_CHAT_TOOL, { relation: "sibling", text: "別の観点" }), "チャットを作る: 兄弟チャット「別の観点」");
+  assert.equal(describeApprovalInput(AI_CREATE_CHAT_TOOL, { relation: "child", title: "ログの調査", text: "1 行目\n2 行目" }), "1 行目\n2 行目");
+  // 前の版の記録（create_child_chat）も同じに出す
+  assert.equal(describeTool(AI_CHILD_CHAT_TOOL_LEGACY, { text: "1 行目\n2 行目" }), "子チャットを作る: 1 行目");
+  assert.equal(describeApprovalInput(AI_CHILD_CHAT_TOOL_LEGACY, { text: "1 行目\n2 行目" }), "1 行目\n2 行目");
 });
 
 test("AI がチャットの名前・固定・グループを変えるツール: 行は引数から作った「どのチャットの何を変えたか」", () => {
