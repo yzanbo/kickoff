@@ -10,11 +10,20 @@ import { colors, sessionStateText, ui } from "../ui/theme";
 
 export default function HostsScreen() {
   const router = useRouter();
-  const { hosts, loaded, registry, reload } = useHosts();
+  const { hosts, loaded, registry, reload, session } = useHosts();
   const remove = (h: HostRecord) =>
     Alert.alert(`「${h.name}」を外しますか？`, "この端末から、この本体の登録とトークンを消します。本体の側の登録は、Mac の設定の「スマホ連携」で取り消してください。", [
       { text: "やめる", style: "cancel" },
-      { text: "外す", style: "destructive", onPress: () => void registry.remove(h.host_id).then(reload) },
+      {
+        text: "外す",
+        style: "destructive",
+        onPress: async () => {
+          // 外した本体から通知が届かないよう、届くうちにプッシュの宛先を消してもらう（届かなくても外す）
+          await session(h.host_id)?.client.setPush(null).catch(() => {});
+          await registry.remove(h.host_id);
+          await reload();
+        },
+      },
     ]);
   return (
     <View style={ui.screen}>
