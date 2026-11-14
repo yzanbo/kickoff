@@ -89,3 +89,16 @@
   gap: 2px;
   min-width: 0;
 }
+
+/* スマホからつなぐ・ログイン時に起動（いちばん上の 2 つ）と、バッテリーのときの 1 行 */
+.mobile-switches {
+  margin-bottom: 12px;
+}
+
+.mobile-battery-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 4px 26px;
+  color: var(--warn);
+}
