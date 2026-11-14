@@ -90,6 +90,7 @@
 | AI の Docker の守り（別の作業場所のコンテナを止める・消す・作り直す、ボリュームを消す、まとめて止める・消す AI の Bash を、Auto mode でも承認カードで聞く） | `core/chat/guard/dockerGuard.ts`（待てる PreToolUse。承認は `requestApproval`・`canRemember: false`） | なし |
 | 本体（スマホから見た、Kickoff のコアが動いている PC。いまは Mac）・本体の ID（本体を見分ける ID。スマホが複数の本体を切り替える目印。DB を作ったときに決め、DB を写して開発版を作ったら作り直す）・端末（この Mac の Kickoff を外から使うスマホなど。1 台ずつつなぎ、1 台ずつ取り消す） | `Store.databaseId`（`meta` の `database_id`。`/api/status` の `database_id`）・`Device`（`@shared/types/device.ts`）・表 `devices`（v24。トークンは hash だけ・プッシュの宛先 `push` は外に出さない）・店 `store.devices`・`core/system/devData.ts` の `becomeAnotherHost` | なし |
 | 呼び主（API を呼んだのが、この Mac の画面か、つないだ端末か。どのトークンで来たかだけで決める）・端末に開く口（端末から使える API。既定は閉じていて、書いたものだけ開く） | `Caller`（`core/http/caller.ts`。`host` / `device`）・`DEVICE_ROUTES` / `deviceMayUse` / `deviceMaySee`（`core/http/deviceAccess.ts`）・403 の印 `DEVICE_FORBIDDEN` | `localOnly`（接続の相手のアドレスで見分けていた） |
+| ペアリング（端末をつなぐこと。Mac の画面が使い捨ての番号と QR を出し、端末が番号で頼み、Mac の画面で「この端末をつなぎますか」と確かめてから端末のトークンを 1 回だけ渡す）・つなぐ先の URL（端末から Mac の Kickoff に届く URL。QR に入れる） | `PairingCenter`（`core/devices/pairing.ts`）・`PairingState` / `PairingRequest` / `PairingClaimBody` / `PairingPollResult`（`@shared/types/device.ts`）・`pairingLink`（`@shared/devices/pairing.ts`）・設定の `mobile_url`・画面の `features/settings/MobileSettings.tsx` | `/pair?token=`（本体のトークンを QR に入れていた） |
 
 ### チャットの軸とエージェントの軸
 

@@ -11,6 +11,8 @@ const settingsSchema = z
   .object({
     default_provider: z.enum(PROVIDER_IDS),
     remote_enabled: z.boolean(),
+    // スマホ連携で端末がつなぐ先（http(s) の URL。null ならなし）
+    mobile_url: z.url({ protocol: /^https?$/ }).max(500).nullable(),
     ntfy_url: z.union([z.literal(""), z.url()]),
     desktop_notifications: z.boolean(),
     dock_badge: z.boolean(),

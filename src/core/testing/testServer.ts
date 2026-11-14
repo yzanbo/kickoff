@@ -21,6 +21,7 @@ import { DockerCli } from "../docker/cli.js";
 import { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { PortProcessService } from "../ports/service.js";
 import { PortWatch } from "../ports/watch.js";
+import { PairingCenter } from "../devices/pairing.js";
 import { parseCwds, parseLsof } from "../platform/macos/listening.js";
 import { parsePs } from "../platform/macos/processes.js";
 import { fakeDocker } from "./fakeDocker.js";
@@ -375,7 +376,10 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   );
   ports.start();
   after(() => ports.close());
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  // スマホ連携のペアリング（番号と頼みはメモリだけ。時計は pairingClock.now を進めて期限を試す）
+  const pairingClock = { now: Date.now() };
+  const pairing = new PairingCenter({ store, publish: (e) => bus.publish(e), now: () => pairingClock.now });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -387,6 +391,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, pairing, pairingClock, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
 }
 

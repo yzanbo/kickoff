@@ -8,17 +8,15 @@ import { startHttpServer, stopHttpServer } from "./httpServer.js";
 import { AUTH, TOKEN, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 
-test("API はトークン（Bearer・Cookie）がないと 401。ペアリングで Cookie を渡す", async () => {
+test("API はトークン（Bearer・Cookie）がないと 401。本体のトークンを URL で渡す口（前の /pair?token=）はない", async () => {
   const { app } = setup();
   assert.equal((await app.request("/api/health")).status, 401);
   const ok = await app.request("/api/health", { headers: AUTH });
   assert.deepEqual(await ok.json(), { ok: true, version: "0.1.0" });
   assert.equal((await app.request("/api/health", { headers: { cookie: `kickoff_token=${TOKEN}` } })).status, 200);
 
-  assert.equal((await app.request("/pair?token=wrong")).status, 401);
-  const paired = await app.request(`/pair?token=${TOKEN}`);
-  assert.equal(paired.status, 302);
-  assert.match(paired.headers.get("set-cookie") ?? "", /^kickoff_token=t+;/);
+  const old = await app.request(`/pair?token=${TOKEN}`);
+  assert.equal(old.headers.get("set-cookie"), null);
 });
 
 test("本文が JSON として読めない・必須の本文が空なら 400（読み取りの失敗を 500 にしない）。省ける項目だけなら本文なしで呼べる", async () => {

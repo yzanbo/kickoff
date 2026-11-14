@@ -23,6 +23,7 @@ import { HandoffAfterField, HandoffViaField } from "./HandoffFields";
 import { ConnectionSettings } from "./ConnectionSettings";
 import { DiagnosticsSettings } from "./DiagnosticsSettings";
 import { MemoSettings } from "./MemoSettings";
+import { MobileSettings } from "./MobileSettings";
 import { NotificationSettings } from "./NotificationSettings";
 import { TerminalSettings } from "./TerminalSettings";
 import { VoiceSettings } from "./VoiceSettings";
@@ -72,12 +73,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
             </section>
           )}
           {section === "diagnostics" && <DiagnosticsSettings onClose={onClose} />}
-          {section === "mobile" && (
-            <section className="section">
-              <h2>スマホ連携</h2>
-              <div className="empty">LAN / Tailscale 経由のアクセスと QR ペアリングは M5 で対応します。</div>
-            </section>
-          )}
+          {section === "mobile" && <MobileSettings />}
         </>
       )}
     </TabbedDialog>
