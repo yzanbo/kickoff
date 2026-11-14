@@ -39,7 +39,7 @@ npm run dev        # Electron アプリを開発モードで起動
 npm test           # コアの単体テスト
 npm run test:db    # DB クライアントのドライバ（PostgreSQL・MySQL・MariaDB）を Docker で立てた本物の DB で確かめる（Docker が要る。終わったらコンテナを消す）
 npm run typecheck  # 型チェック（使っていない import・変数も見る）
-npm run daemon     # Electron なしでコア（API サーバー）だけを起動
+npm run daemon     # Electron なしでコア（API サーバー）だけを起動（ブラウザで開くときは、出した一度だけのログインの URL から）
 npm run dist       # .app / .dmg を作成
 npm run install-app  # ビルドして /Applications/Kickoff.app（本番）を入れ替える（動いていれば終了して開き直す。実行中のチャットがあればやめる）
 npm run icon       # build/icon.svg・icon-dev.svg からアプリのアイコン（本番・開発版の .png / .icns）を作り直す

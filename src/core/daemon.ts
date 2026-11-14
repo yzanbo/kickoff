@@ -15,7 +15,8 @@ const port = Number(process.env.KICKOFF_PORT ?? APP_ENVS.development.port);
 if (!process.env.KICKOFF_DATA_DIR) seedDevData(appDataDir("production"), dataDir);
 
 const core = await startCore({ dataDir, port, host: process.env.KICKOFF_HOST, platform });
-console.log(`Kickoff core: ${core.localUrl}`);
+// ブラウザで開くときは、一度だけ使えるログインの URL（5 分）から入る（本体のトークンを URL に入れない）
+console.log(`Kickoff core: ${core.localUrl}\nブラウザで開く（一度だけ・5 分）: ${core.browserLoginUrl()}`);
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, () => void core.close().then(() => process.exit(0)));

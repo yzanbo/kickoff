@@ -25,6 +25,7 @@ import { PairingCenter } from "../devices/pairing.js";
 import { NotificationCenter } from "../notifications/center.js";
 import type { Notice } from "../notifications/notices.js";
 import { ViewingRegistry } from "../notifications/viewing.js";
+import { BrowserLogin } from "../http/browserLogin.js";
 import { parseCwds, parseLsof } from "../platform/macos/listening.js";
 import { parsePs } from "../platform/macos/processes.js";
 import { fakeDocker } from "./fakeDocker.js";
@@ -393,7 +394,8 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     push: { send: async (push, m) => void notifyFake.pushed.push({ push, title: m.title, body: m.body, host_id: m.host_id }) },
   });
   after(() => notifications.close());
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const browserLogin = new BrowserLogin();
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trash, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -405,6 +407,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, browserLogin, provider, uploads, voiceFake, memoFake, prFake, githubFake, ghFake, prWatch, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
 }
 

@@ -10,6 +10,7 @@ import type { HostPlatform } from "./platform/types.js";
 import { PairingCenter } from "./devices/pairing.js";
 import { NotificationCenter, type DesktopNotify, type PushSender } from "./notifications/center.js";
 import { ViewingRegistry } from "./notifications/viewing.js";
+import { BrowserLogin } from "./http/browserLogin.js";
 import { createApp } from "./http/server.js";
 import { Store } from "./db/store.js";
 import { DB_FILE, discardPrereleaseData } from "./db/open.js";
@@ -73,6 +74,8 @@ export interface Core {
   bus: Bus;
   /** 性能の記録（メインプロセスの診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
   databaseStats(): DatabaseStats;
+  /** ブラウザからこの Mac の画面として入る、一度だけ使える URL（npm run daemon が端末に出す） */
+  browserLoginUrl(): string;
   /** フォルダがポートの帯を持つワークツリーの中なら、渡す環境変数（PORT。内蔵ターミナル） */
   worktreeEnvFor(dir: string): Record<string, string>;
   close(): Promise<void>;
@@ -152,6 +155,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const pairing = new PairingCenter({ store, publish: (e) => bus.publish(e) });
   // 通知の判断（完了・失敗・回答待ち・CI の失敗を、だれも見ていなければ、この Mac の通知とつないだ端末のプッシュへ）
   const viewing = new ViewingRegistry();
+  const browserLogin = new BrowserLogin();
   const notifications = new NotificationCenter({ bus, store, viewing, desktop: opts.notify, push: opts.push });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
@@ -175,6 +179,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     ports,
     pairing,
     viewing,
+    browserLogin,
     trash: opts.platform.moveToTrash,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
@@ -197,6 +202,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     localUrl: `http://127.0.0.1:${opts.port}`,
     bus,
     databaseStats: () => store.stats(),
+    browserLoginUrl: () => `http://127.0.0.1:${opts.port}/login?code=${browserLogin.issue()}`,
     worktreeEnvFor: (dir) => worktreeEnvs.envFor(dir),
     close: async () => {
       // 止める途中の知らせで通知を出さない
