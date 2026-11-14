@@ -138,6 +138,11 @@
   gap: 6px;
 }
 
+/* 「ステージされている変更」「変更」を包む要素（選んだものを Esc・行の外を押して外すための入れ物。並びは変えない） */
+.change-groups {
+  display: contents;
+}
+
 /* 「ステージされている変更」「変更」の見出しの行（開閉・操作のボタン・数） */
 .change-group-row {
   display: flex;

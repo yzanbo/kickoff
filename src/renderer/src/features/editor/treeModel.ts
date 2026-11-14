@@ -95,6 +95,29 @@ export function openableFolders(nodes: TreeNode[], out: string[] = []): string[]
   return out;
 }
 
+/** いくつかのパスのうち、ほかのフォルダの中に入っていないものだけ（まとめて動かす・ゴミ箱に入れるときに、フォルダと中身を重ねて扱わない。並びは元のまま） */
+export function topLevelPaths(paths: readonly string[]): string[] {
+  return paths.filter((p) => !paths.some((q) => q !== p && p.startsWith(`${q}/`)));
+}
+
+/** 木で見えている行のパス（開いているフォルダの中だけ。上から順。Shift ＋クリックの範囲に使う） */
+export function visibleTreePaths(nodes: readonly TreeNode[], open: ReadonlySet<string>, out: string[] = []): string[] {
+  for (const node of nodes) {
+    out.push(node.path);
+    if (node.dir && open.has(node.path)) visibleTreePaths(node.children, open, out);
+  }
+  return out;
+}
+
+/** 木のすべての行のパス（フォルダもファイルも。上から順） */
+export function treePaths(nodes: readonly TreeNode[], out: string[] = []): string[] {
+  for (const node of nodes) {
+    out.push(node.path);
+    treePaths(node.children, out);
+  }
+  return out;
+}
+
 /** 入ったフォルダのパス（いちばん外側なら空。"a/b/c.ts" → "a/b"） */
 export const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 

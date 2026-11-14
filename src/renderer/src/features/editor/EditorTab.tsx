@@ -12,7 +12,7 @@ import { ChangesPane } from "./ChangesPane";
 import { FilesPane } from "./FilesPane";
 import { SearchView } from "./SearchView";
 import { changeKinds, openableFolders, parentFolders } from "./treeModel";
-import { changeSelection, type ChangesView } from "./fileSelection";
+import { changeSelection, groupsOf, type ChangesView } from "./fileSelection";
 import { FileTabsContext, type FileTabsEnv } from "./ProjectFileTab";
 import { useFileTabs } from "./useFileTabs";
 import { fileDragProps } from "./fileTabs";
@@ -71,6 +71,8 @@ export function EditorTab({
   const files = useProjectFiles(projectId, view === "files" && Boolean(status), git.version);
   const kinds = useMemo(() => changeKinds(status), [status]);
   const search = useProjectSearch(projectId);
+  // 変更の一覧の操作（ステージ・コミット・プッシュなど）の実行中と失敗（表示を切り替えても残す）
+  const gitAction = useAction<CommitBusy>();
   // ファイル・フォルダの操作（ファイルタブ・変更タブの Enter・右クリック。新しいファイル・ゴミ箱はファイルタブだけ）。フォルダの名前を変えたら、開いていたフォルダも付け替える
   const { rename, create, menuElement: fileMenu } = useFileActions(projectId, {
     root: worktree ?? repoPath,
@@ -86,11 +88,12 @@ export function EditorTab({
       search.findInFolder(folder);
       navigate({ name: "project", id: projectId, tab: "search" });
     },
+    // 右クリックの「新しいタブで開く」（変更の一覧からなら、そのまとまりの差分）
+    openTab: (path, staged) => void setSelected(staged === undefined ? { path } : changeSelection({ path, staged }, groupsOf(git.status)), true),
+    gitRun: (action, paths) => void gitAction.guard(() => git.act(action, paths)),
   });
   // 検索の結果の置換（すべて・ファイルごと・行ごと。元に戻す）
   const replacer = useSearchReplace(projectId, { search, selection, git });
-  // 変更の一覧の操作（ステージ・コミット・プッシュなど）の実行中と失敗（表示を切り替えても残す）
-  const gitAction = useAction<CommitBusy>();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
   const list = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
   // チャットの返答のファイルのチップから来たとき（ファイルタブ）: エクスプローラーでそのファイルを選び（行があればその行へ）、
@@ -109,7 +112,7 @@ export function EditorTab({
   }
   if (!status.repo && view === "changes") return <GitInitNotice projectId={projectId} onStarted={git.refresh} />;
 
-  const groups = status.repo ? { staged: status.staged, unstaged: [...status.conflicts, ...status.unstaged] } : { staged: [], unstaged: [] };
+  const groups = groupsOf(status);
   const empty = groups.staged.length === 0 && groups.unstaged.length === 0;
   const env: FileTabsEnv = { projectId, repoPath, git, groups, open: (next) => void setSelected(next) };
   const folders = {

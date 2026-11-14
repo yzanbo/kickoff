@@ -6,7 +6,8 @@ import { memosStore } from "@/stores/memos";
 import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { memoOpenFolders, memoSelected } from "@/lib/storageKeys";
-import { ancestorsOf, baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, topLevelPaths, untitledPath } from "./memoPaths";
+import { ancestorsOf, baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./memoPaths";
+import { topLevelPaths } from "@/features/editor/treeModel";
 import { remapMemoTabs } from "./memoPanel";
 
 /** 新しく作るメモ・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ）。メモは頭に作った日の日付を付ける（datedMemoName） */

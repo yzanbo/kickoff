@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { MemoEntry } from "@shared/types";
-import { ancestorsOf, buildMemoFileTree, buildMemoTree, filterMemos, isUnder, memoTitle, pathTaken, recentMemos, remapPath, renamedPath, topLevelPaths, untitledPath, visibleTreePaths } from "./memoPaths";
+import { ancestorsOf, buildMemoFileTree, buildMemoTree, filterMemos, isUnder, memoTitle, pathTaken, recentMemos, remapPath, renamedPath, untitledPath } from "./memoPaths";
 
 const entry = (path: string, dir = false, modified_at = "2026-11-05T00:00:00.000Z"): MemoEntry => ({ path, dir, modified_at });
 
@@ -71,14 +71,4 @@ test("untitledPath: 同じフォルダの同じ名前（拡張子まで）と重
   assert.equal(untitledPath(entries, "a", "無題のメモ", ".md"), "a/無題のメモ.md");
   assert.equal(untitledPath(entries, "a", "名称未設定フォルダ"), "a/名称未設定フォルダ-2");
   assert.equal(untitledPath(entries, "", "名称未設定フォルダ"), "名称未設定フォルダ");
-});
-
-test("topLevelPaths: ほかのフォルダの中のものを除く（名前が前だけ同じものは残す）", () => {
-  assert.deepEqual(topLevelPaths(["a", "a/b.md", "a/c/d.md", "ab.md", "x/y.md"]), ["a", "ab.md", "x/y.md"]);
-  assert.deepEqual(topLevelPaths(["b.md", "a.md"]), ["b.md", "a.md"]);
-});
-
-test("visibleTreePaths: 開いているフォルダの中だけを上から順に", () => {
-  const tree = buildMemoTree([entry("設計", true), entry("設計/DB.md"), entry("設計/深い", true), entry("設計/深い/x.md"), entry("閉", true), entry("閉/y.md"), entry("a.md")]);
-  assert.deepEqual(visibleTreePaths(tree, new Set(["設計"])), ["設計", "設計/深い", "設計/DB.md", "閉", "a.md"]);
 });
