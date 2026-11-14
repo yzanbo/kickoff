@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildTree, changeKinds, folderPaths, joinTreePath, newEntryNameError, openableFolders, parentFolders, parentPath, type TreeNode } from "./treeModel";
+import { buildTree, changeKinds, folderPaths, joinTreePath, newEntryNameError, openableFolders, parentFolders, parentPath, topLevelPaths, treePaths, visibleTreePaths, type TreeNode } from "./treeModel";
 
 const names = (nodes: TreeNode[]): unknown => nodes.map((n) => (n.dir ? { [n.name + (n.ignored ? "（無視）" : "")]: names(n.children) } : n.name + (n.ignored ? "（無視）" : "")));
 
@@ -79,4 +79,19 @@ test("新しいファイル・フォルダの名前: 同じ名前・空の段・
   assert.equal(joinTreePath("src", "a.ts"), "src/a.ts");
   assert.equal(parentPath("src/lib/a.ts"), "src/lib");
   assert.equal(parentPath("a.ts"), "");
+});
+
+test("topLevelPaths: ほかのフォルダの中のものを除く（名前が前だけ同じものは残す）", () => {
+  assert.deepEqual(topLevelPaths(["a", "a/b.md", "a/c/d.md", "ab.md", "x/y.md"]), ["a", "ab.md", "x/y.md"]);
+  assert.deepEqual(topLevelPaths(["b.md", "a.md"]), ["b.md", "a.md"]);
+});
+
+test("visibleTreePaths: 開いているフォルダの中だけを上から順に", () => {
+  const tree = buildTree({ files: ["設計/DB.md", "設計/深い/x.md", "閉/y.md", "a.md"], ignored: [] });
+  assert.deepEqual(visibleTreePaths(tree, new Set(["設計"])), ["設計", "設計/深い", "設計/DB.md", "閉", "a.md"]);
+});
+
+test("treePaths: 閉じているフォルダの中も含めて、すべての行を上から順に", () => {
+  const tree = buildTree({ files: ["b/c.ts", "a.ts"], ignored: [] });
+  assert.deepEqual(treePaths(tree), ["b", "b/c.ts", "a.ts"]);
 });

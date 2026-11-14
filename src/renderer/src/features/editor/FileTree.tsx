@@ -1,4 +1,4 @@
-import type { CSSProperties, DragEvent, ReactNode } from "react";
+import type { CSSProperties, DragEvent, MouseEvent, ReactNode } from "react";
 import type { GitChangeKind } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { isRenameKey } from "@/lib/keys";
@@ -9,14 +9,34 @@ import { FileIcon } from "./FileIcon";
 import { newEntryNameError, type TreeNode } from "./treeModel";
 import type { FileCreate, FileRename } from "./useFileActions";
 
+/** 選んだいくつかの行の 1 つ（右クリックのメニューに渡す。staged は変更の一覧のどちらのまとまりか。ファイルタブでは持たない） */
+export interface PickedEntry {
+  path: string;
+  dir: boolean;
+  staged?: boolean;
+}
+
+/** ⌘ / Shift ＋クリックの複数選択（持ち主が useMultiSelect で持つ。ファイルタブの木・変更の一覧） */
+export interface TreeMulti {
+  /** 何か選んでいるか（選んでいる間は、ふだんの選んでいる行 = 開いているファイルの色を出さない） */
+  any: boolean;
+  has: (path: string) => boolean;
+  /** 行のクリック。⌘ / Shift なら選んで true（ふだんの動きをしない）、修飾キーがなければ選んだものを外して false */
+  click: (e: MouseEvent, path: string) => boolean;
+  /** 右クリックした行が選んだ 2 つ以上の 1 つなら、選んでいるものすべて。ほかの行なら選んだものを外して null */
+  manyFor: (path: string) => PickedEntry[] | null;
+}
+
 interface Props {
   nodes: TreeNode[];
   /** 開いているフォルダ */
   open: Set<string>;
   onToggle: (path: string) => void;
   selected?: string;
-  /** ファイルを押した（newTab = ⌘クリック・Ctrl クリック。新しいタブに開く） */
+  /** ファイルを押した（newTab = ⌘クリック・Ctrl クリック。新しいタブに開く。複数選択（multi）があれば ⌘ は選ぶのに使う） */
   onSelect: (path: string, newTab?: boolean) => void;
+  /** ⌘ / Shift ＋クリックの複数選択（ファイルタブの木・変更の一覧。なければ ⌘クリックは新しいタブ） */
+  multi?: TreeMulti;
   /** 変更の記号（ファイルとフォルダ。VS Code と同じく、変更のあるものだけ色を変える） */
   kinds: { files: Map<string, GitChangeKind>; folders: Map<string, GitChangeKind> };
   /** 行の右に出す操作（ステージ・元に戻すなど。マウスを乗せたときに出す） */
@@ -38,7 +58,7 @@ export const siblingNameError = (siblings: readonly { name: string; path: string
   /[/\\]/.test(name) ? "「/」は名前に使えません" : siblings.some((n) => n.path !== self && n.name === name) ? `「${name}」はもうあります` : null;
 
 /** エクスプローラーのフォルダの木（開いているフォルダの中だけ描く） */
-export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, actions, rename, canRename, create, fileDrag, parent = "", depth = 0 }: Props) {
+export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kinds, actions, rename, canRename, create, fileDrag, parent = "", depth = 0 }: Props) {
   const creating = create?.creating;
   return (
     // 入れ子の段は、親のフォルダの開閉の矢印の下に縦の線（.file-tree[role="group"]::before。--guide-depth は親のフォルダの段）
@@ -66,12 +86,13 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
         // 無視しているフォルダは中を開かない（node_modules などを全部たどらないように）
         const expandable = node.dir && !node.ignored;
         const renamable = rename && (canRename?.(node) ?? true);
+        const isSelected = multi?.any ? multi.has(node.path) : selected === node.path;
         return (
           <li
             key={node.path}
             role="treeitem"
             aria-expanded={expandable ? isOpen : undefined}
-            aria-selected={selected === node.path}
+            aria-selected={isSelected}
             className="tree-item"
             // 中身のある開いたフォルダ（選んだ・ピントがあるとき、縦の線を濃くするのは親の段ではなくこの中身の段。VS Code と同じ）
             data-open-group={(isOpen && node.children.length > 0) || undefined}
@@ -92,11 +113,16 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
               </div>
             ) : (
               <button
-                className={cx("tree-row", node.ignored && "ignored", selected === node.path && "selected")}
+                className={cx("tree-row", node.ignored && "ignored", isSelected && "selected")}
                 style={{ "--depth": depth } as CSSProperties}
                 data-kind={kind}
                 title={kind ? `${node.path}（${CHANGE_LABELS[kind]}）` : node.path}
-                onClick={(e) => (node.dir ? expandable && onToggle(node.path) : onSelect(node.path, e.metaKey || e.ctrlKey))}
+                onClick={(e) => {
+                  if (multi?.click(e, node.path)) return;
+                  if (node.dir) {
+                    if (expandable) onToggle(node.path);
+                  } else onSelect(node.path, !multi && (e.metaKey || e.ctrlKey));
+                }}
                 {...(!node.dir && fileDrag ? fileDrag(node.path) : {})}
                 // 行にピントがあるときの Enter で名前を変える（Finder・メモの木と同じ。開くのは押す・Space）
                 onKeyDown={(e) => {
@@ -108,7 +134,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
                   renamable
                     ? (e) => {
                         e.preventDefault();
-                        rename.openMenu(e, node.path, node);
+                        rename.openMenu(e, node.path, node, multi?.manyFor(node.path) ?? null);
                       }
                     : undefined
                 }
@@ -128,6 +154,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, act
                 onToggle={onToggle}
                 selected={selected}
                 onSelect={onSelect}
+                multi={multi}
                 kinds={kinds}
                 actions={actions}
                 rename={rename}

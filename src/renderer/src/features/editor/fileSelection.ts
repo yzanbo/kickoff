@@ -1,4 +1,4 @@
-import type { GitFileChange } from "@shared/types";
+import type { GitFileChange, GitStatus } from "@shared/types";
 
 /**
  * 選んでいるファイル。変更の一覧から選んだときは、ステージ済み・未ステージのどちらか（同じファイルが両方にあることもある）。
@@ -19,6 +19,11 @@ export interface Selection {
 export interface ChangeGroups {
   staged: GitFileChange[];
   unstaged: GitFileChange[];
+}
+
+/** Git の状態から変更の一覧を作る（Git で管理していない・まだ読んでいなければ空） */
+export function groupsOf(status: GitStatus | null | undefined): ChangeGroups {
+  return status?.repo ? { staged: status.staged, unstaged: [...status.conflicts, ...status.unstaged] } : { staged: [], unstaged: [] };
 }
 
 /** そのファイルの差分（staged がなければ、未ステージ → ステージ済みの順に探す） */
