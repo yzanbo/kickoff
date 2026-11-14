@@ -126,3 +126,13 @@ test("版の互換: アプリが伝えた API の版が下限より古ければ�
   assert.deepEqual([status.api_version, status.min_client_api_version], [API_VERSION, MIN_CLIENT_API_VERSION]);
   assert.equal((await app.request("/api/status", { headers: AUTH })).status, 200);
 });
+
+test("ブラウザのログイン: 一度だけの番号で本体のトークンの Cookie を置いて画面へ。使った番号・知らない番号は 401", async () => {
+  const { app, browserLogin } = setup();
+  const code = browserLogin.issue();
+  const ok = await app.request(`/login?code=${code}`);
+  assert.equal(ok.status, 302);
+  assert.match(ok.headers.get("set-cookie") ?? "", /^kickoff_token=t+;.*HttpOnly/i);
+  assert.equal((await app.request(`/login?code=${code}`)).status, 401);
+  assert.equal((await app.request("/login?code=nope")).status, 401);
+});
