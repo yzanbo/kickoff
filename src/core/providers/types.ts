@@ -4,6 +4,7 @@ import type { AiChildChatTools } from "../chat/aiChildChat.js";
 import type { AiChatReadTools } from "../chat/aiChatRead.js";
 import type { AiProjectTools } from "../chat/aiProject.js";
 import type { AiTerminalTools } from "../chat/aiTerminal.js";
+import type { AiVisualTools } from "../chat/aiVisual.js";
 import type { AiOpenTools } from "../chat/aiOpen.js";
 import type { HiddenDbTarget } from "../chat/guard/hiddenDb.js";
 import type { DockerGuard } from "../chat/guard/dockerGuard.js";
@@ -116,6 +117,8 @@ export interface ProviderTurnParams {
   chatProject?: AiProjectTools | null;
   /** このプロジェクトの内蔵ターミナルの出力を AI に読ませる口（デスクトップアプリのときだけ。なければそのツールを出さない） */
   chatTerminal?: AiTerminalTools | null;
+  /** 返答の中に図を描かせる口（どのチャットにも渡す。なければ図のツールを出さない） */
+  chatVisual?: AiVisualTools | null;
   /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
   hiddenDb?: HiddenDbTarget[];
   /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */
@@ -161,6 +164,8 @@ export interface ProviderCallbacks {
   background?(state: BackgroundState): void;
   /** 会話を圧縮（要約）し始めた・終わった（手で圧縮したときも、上限に近づいて自動で圧縮されたときも。保存しない） */
   compacting?(active: boolean): void;
+  /** 図のツール（show_visual・update_visual）の中身を書いている途中か（書き始めた・書き終えた。保存しない） */
+  drawingVisual?(active: boolean): void;
   /**
    * 会話の圧縮に失敗した（理由。分からなければ null）。知らせるかはコアが決める（手で圧縮したときだけお知らせに残す。
    * 自動の圧縮の失敗は、要約するものがない（too_few_groups）なども含むので Claude Code も知らせない）

@@ -1,4 +1,5 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/chat/aiVisual";
 import type { ProviderCallbacks } from "../types.js";
 
 const TOOL_RESULT_LIMIT = 4000;
@@ -18,9 +19,11 @@ export interface MessageState {
   durations: number[];
   /** 会話を圧縮している最中か（Claude Code の status の知らせ） */
   compacting: boolean;
+  /** 中身を書いている途中の図のツールの呼び出し（ブロックの番号） */
+  drawing: Set<number>;
 }
 
-export const createMessageState = (): MessageState => ({ otherTasks: new Set(), starts: new Map(), durations: [], compacting: false });
+export const createMessageState = (): MessageState => ({ otherTasks: new Set(), starts: new Map(), durations: [], compacting: false, drawing: new Set() });
 
 /** 圧縮している最中かが変わったときだけ知らせる */
 function setCompacting(state: MessageState, cb: ProviderCallbacks, active: boolean) {
@@ -167,6 +170,12 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
         cb.stream?.(event.delta.text);
       } else if (event.type === "content_block_start" && (event.content_block.type === "thinking" || event.content_block.type === "redacted_thinking")) {
         state.starts.set(event.index, now);
+      } else if (event.type === "content_block_start" && isVisualToolBlock(event.content_block)) {
+        // 図の中身は長いので、書き終えるまで画面に「図を描いています…」を出す
+        state.drawing.add(event.index);
+        if (state.drawing.size === 1) cb.drawingVisual?.(true);
+      } else if (event.type === "content_block_stop" && state.drawing.delete(event.index)) {
+        if (state.drawing.size === 0) cb.drawingVisual?.(false);
       } else if (event.type === "content_block_stop" && state.starts.has(event.index)) {
         state.durations.push(now - state.starts.get(event.index)!);
         state.starts.delete(event.index);
@@ -177,4 +186,9 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
     default:
       return undefined;
   }
+}
+
+/** 図のツール（show_visual・update_visual）を呼ぶブロックか */
+function isVisualToolBlock(block: { type: string; name?: string }): boolean {
+  return block.type === "tool_use" && (block.name === AI_SHOW_VISUAL_TOOL || block.name === AI_UPDATE_VISUAL_TOOL);
 }

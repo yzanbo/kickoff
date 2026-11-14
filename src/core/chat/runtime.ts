@@ -12,6 +12,8 @@ interface LiveFields {
   retry: ApiRetryInfo | null;
   compacting: CompactingState | null;
   stopping: boolean;
+  /** AI が図のツールの中身を書いている途中（ChatLive の drawing_visual） */
+  drawingVisual: boolean;
   /** 次の指示を書き直していたので、送らずに書き直しが終わるのを待っている（QueueState の waiting_edit） */
   waitingEdit: boolean;
   /**
@@ -70,7 +72,7 @@ export class ChatRuntime {
   readonly afterCompactEdits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, tellsClosed: false, inheriting: false, resume: null };
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, drawingVisual: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, tellsClosed: false, inheriting: false, resume: null };
   /** 圧縮が終わった（圧縮後指示を伝える。圧縮中・圧縮前指示から圧縮が終わるまで（compactPhase）が外れたとき） */
   private readonly onCompactEnded: () => void;
 
@@ -188,7 +190,7 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping, afterCompact, awaitingCompact, compactAfterTurn, compactedTurn, tellsClosed, inheriting, resume } = this.fields;
+    const { background, retry, compacting, stopping, drawingVisual, afterCompact, awaitingCompact, compactAfterTurn, compactedTurn, tellsClosed, inheriting, resume } = this.fields;
     return {
       queue: this.queueState(),
       background,
@@ -196,6 +198,7 @@ export class ChatRuntime {
       reconnect: reconnectStateOf(this.recovery),
       compacting,
       stopping,
+      drawing_visual: drawingVisual,
       after_compact: afterCompact,
       awaiting_compact: awaitingCompact,
       compact_after_turn: compactAfterTurn,
