@@ -183,3 +183,36 @@ test("ゴミ箱: AI が kickoff-trash でメモを消したら、メモのチャ
   assert.equal(store.chats.get(memoChat.id)?.memo_path, "案.md");
   assert.ok(fs.existsSync(path.join(memoDir, "案.md")));
 });
+
+test("プロジェクトのゴミ箱: 消すとチャットごと一覧から外れ、同じフォルダの登録は戻すよう断る。戻すとチャットも戻り、3 日たてば本当に消える", async () => {
+  const { call, store, trashBin, trashClock, provider } = setup();
+  const repo = tempDir();
+  const project = (await call("POST", "/api/projects/import", { path: repo, name: "消す", provider: "claude" })).body;
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "中のチャット", status: "completed" });
+  store.events.add(chat.id, { type: "init", session_id: "sess-p" });
+
+  const removed = await call("DELETE", `/api/projects/${project.id}`);
+  assert.equal(removed.status, 200);
+  assert.equal(store.projects.get(project.id), undefined);
+  assert.equal(store.chats.get(chat.id), undefined);
+  assert.equal((await call("GET", `/api/projects/${project.id}`)).status, 404);
+  const listed = (await call("GET", "/api/trash/projects")).body as TrashItem[];
+  assert.deepEqual(listed.map((i) => [i.id, i.label]), [[removed.body.trash_id, "消す"]]);
+  // 同じフォルダをもう一度取り込もうとしたら、ゴミ箱から戻すよう断る
+  const again = await call("POST", "/api/projects/import", { path: repo, name: "もう一度", provider: "claude" });
+  assert.equal(again.status, 409);
+  assert.match(again.body.error, /ゴミ箱/);
+
+  await call("POST", `/api/trash/${removed.body.trash_id}/restore`, {});
+  assert.equal(store.projects.get(project.id)?.name, "消す");
+  assert.equal(store.chats.get(chat.id)?.title, "中のチャット");
+
+  await call("DELETE", `/api/projects/${project.id}`);
+  trashClock.now += TRASH_KEEP_MS + 60_000;
+  await trashBin.sweep();
+  assert.equal(store.projects.trashed().length, 0);
+  assert.deepEqual(provider.discarded.at(-1)?.sessionIds, ["sess-p"]);
+  assert.deepEqual((await call("GET", "/api/trash/projects")).body, []);
+  // 本当に消えたら、同じフォルダをまた取り込める
+  assert.equal((await call("POST", "/api/projects/import", { path: repo, name: "新しく", provider: "claude" })).status, 201);
+});

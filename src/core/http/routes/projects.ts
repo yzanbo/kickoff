@@ -16,7 +16,7 @@ import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, p
 import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 import { projectMemoFolder } from "@shared/memo/names";
-import { collectChatSessions, discardUnusedSessions } from "../../chat/sessionCleanup.js";
+import { trashedProjectAt, trashProject } from "../../trash/projectTrash.js";
 
 // 新しいプロジェクト・取り込むプロジェクトのメモのフォルダ（省けば初めてメモを使ったときにプロジェクト名から決める）
 const memoDirFields = {
@@ -86,7 +86,7 @@ const projectPatchSchema = z
   .partial() satisfies z.ZodType<ProjectPatch>;
 
 /** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
-export function projectRoutes(app: Hono, { store, runner, prWatch, providers, databases, trash, githubAccounts = listGitHubAccounts }: ServerDeps) {
+export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, githubAccounts = listGitHubAccounts }: ServerDeps) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;
@@ -100,8 +100,13 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, providers, da
       throw new Conflict(`作業中のチャットがあるので、${refusal}。終わってから（または中断してから）行ってください`);
     }
   };
-  const projectAt = (realPath: string, except?: number) =>
-    store.projects.list().find((p) => p.id !== except && (p.repo_path === realPath || realPathOrSelf(p.repo_path) === realPath));
+  const projectAt = (realPath: string, except?: number) => {
+    const same = (p: Project) => p.id !== except && (p.repo_path === realPath || realPathOrSelf(p.repo_path) === realPath);
+    // 同じフォルダのプロジェクトがゴミ箱にあれば、新しく登録せず戻してもらう（フォルダは 1 つのプロジェクトにだけ登録できる）
+    const trashed = trashedProjectAt(store, same);
+    if (trashed) throw new Conflict(`このフォルダのプロジェクト「${trashed.name}」は Kickoff のゴミ箱にあります（3 日で消えます）。ゴミ箱から戻してください`);
+    return store.projects.list().find(same);
+  };
   /**
    * 作ったプロジェクトにメモのフォルダを決める（画面の新しいプロジェクトのダイアログの「メモの保存先」）。memo_path（別の場所）が先、
    * なければ memo_folder（設定の親フォルダの下の名前。使える名前にし、ほかのプロジェクトのフォルダ名と重なれば「名前-2」）。どちらもなければ今までどおり、初めてメモを使ったときに決める
@@ -216,19 +221,13 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, providers, da
     return c.json(store.projects.reorder(ids));
   });
 
-  // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない。中のチャットは消え、エージェントの会話記録のファイルはゴミ箱へ
-  // （チャットの削除と同じ。作業中のチャットがあれば消せない = 書いている途中の会話記録を動かさない）
+  // Kickoff の管理から外す（フォルダやリポジトリは削除しない）= Kickoff のゴミ箱へ入れる（チャット・DB の接続・定型文・設定などを丸ごと 3 日残し、
+  // 戻せる。3 日たったら会話記録のファイル・添付ごと本当に消す）。作業中のチャットがあれば消せない。入れたゴミ箱の ID を返す
   app.delete("/api/projects/:id", withProject, (c) => {
     const { project } = c.var;
     requireNoBusyChat(project.id, "プロジェクトを削除できません");
-    const chats = store.chats.list({ projectId: project.id, includeArchived: true });
-    // 記録はプロジェクトと一緒に消えるので先に集め、消したあとで残ったチャットが使っていないものだけ移す（待たない）
-    const sessions = collectChatSessions(store, chats);
-    store.projects.delete(project.id);
-    void discardUnusedSessions(store, providers, sessions, trash);
-    for (const chat of chats) runner.forget(chat.id);
-    databases.forgetChatExports(chats.map((chat) => chat.id));
-    return c.body(null, 204);
+    const item = trashProject({ store, trashBin, runner }, project);
+    return c.json({ trash_id: item.id });
   });
 }
 

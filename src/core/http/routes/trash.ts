@@ -20,6 +20,9 @@ export function trashRoutes(app: Hono, { store, trashBin }: ServerDeps) {
 
   app.get("/api/projects/:id/trash", withProject, async (c) => c.json((await trashBin.list(c.var.project.id)).map(toApi)));
 
+  // ゴミ箱のプロジェクト（プロジェクトそのものを消したもの。プロジェクトの「ゴミ箱」タブには出せないので別に読む）
+  app.get("/api/trash/projects", (c) => c.json(store.trash.ofKind("project").map(toApi)));
+
   app.post("/api/trash/:itemId/restore", async (c) => {
     const body = restoreSchema.parse(await jsonBody(c));
     return c.json(await trashBin.restore(c.req.param("itemId"), body));

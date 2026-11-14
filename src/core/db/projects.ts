@@ -21,11 +21,13 @@ type ProjectRow = Omit<Project, "pinned" | "tags" | "chat_defaults" | "reference
   tags: string;
   chat_defaults: string;
   reference_paths: string;
+  /** ゴミ箱に入れた時刻（店の中だけで使い、Project には出さない） */
+  trashed_at: string | null;
 };
 
 /** DB の行をアプリの型にする（JSON の列の形は CHECK で守ってある） */
 function toProject(row: unknown): Project {
-  const r = row as ProjectRow;
+  const { trashed_at: _trashedAt, ...r } = row as ProjectRow;
   return {
     ...r,
     pinned: r.pinned === 1,
@@ -54,13 +56,16 @@ function toProjectRow({ pinned, pre_compact_enabled, post_compact_enabled, pr_wa
   } as Row;
 }
 
-/** プロジェクト（projects の表。色・並び順・固定・アーカイブもここ） */
+/**
+ * プロジェクト（projects の表。色・並び順・固定・アーカイブもここ）。Kickoff のゴミ箱に入れたプロジェクト（trashed_at がある）は
+ * get・一覧から外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashed / setTrashed だけ
+ */
 export function createProjectStore(db: DatabaseSync, onChange: Notify) {
   const get = (id: number): Project | undefined => {
-    const row = db.prepare("SELECT * FROM projects WHERE id = ?").get(id);
+    const row = db.prepare("SELECT * FROM projects WHERE id = ? AND trashed_at IS NULL").get(id);
     return row ? toProject(row) : undefined;
   };
-  const list = (): Project[] => db.prepare("SELECT * FROM projects ORDER BY position, id").all().map(toProject);
+  const list = (): Project[] => db.prepare("SELECT * FROM projects WHERE trashed_at IS NULL ORDER BY position, id").all().map(toProject);
   return {
     get,
     /** すべて（サイドバーの並び順） */
@@ -102,6 +107,19 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
         if (project) onChange({ type: "project", project });
       }
       return list();
+    },
+    /** ゴミ箱にあるプロジェクト（同じフォルダをもう一度登録しようとしたときに知らせる・本当に消す） */
+    trashed(): Project[] {
+      return db.prepare("SELECT * FROM projects WHERE trashed_at IS NOT NULL ORDER BY id").all().map(toProject);
+    },
+    /** ゴミ箱に入れる（at）・戻す（null）。入れたら消したのと同じに、戻したらプロジェクトとして知らせる */
+    setTrashed(id: number, at: string | null): void {
+      db.prepare("UPDATE projects SET trashed_at = ? WHERE id = ?").run(at, id);
+      if (at !== null) onChange({ type: "project_deleted", id });
+      else {
+        const project = get(id);
+        if (project) onChange({ type: "project", project });
+      }
     },
     delete(id: number) {
       db.prepare("DELETE FROM projects WHERE id = ?").run(id);

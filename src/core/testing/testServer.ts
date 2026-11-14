@@ -1,6 +1,5 @@
 // API のテスト（server.*.test.ts）の共通の準備: 偽のプロバイダーでアプリを組み立て、トークン付きで呼ぶ補助を返す。テストからだけ使う
 import { after } from "node:test";
-import fs from "node:fs/promises";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../providers/types.js";
 import { createApp } from "../http/server.js";
 import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, GitHubRemote, SlashCommandOption, DevicePush } from "@shared/types";
@@ -11,6 +10,7 @@ import { WorktreePrWatch } from "../git/prWatch.js";
 import { listWorktrees } from "../git/worktrees.js";
 import type { BranchPullRequest } from "../git/github.js";
 import { TrashService } from "../trash/service.js";
+import { registerProjectTrash } from "../trash/projectTrash.js";
 import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "../trash/chatTrash.js";
 import { MemoService } from "../memos/memos.js";
 import { DbWorkerClient } from "../databases/client.js";
@@ -274,12 +274,8 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     findTools: async () => voiceFake.tools,
     fetch: () => voiceFake.download(),
   });
-  // メモ: 親フォルダの既定は一時フォルダ。OS のゴミ箱へ移すもの（使わなくなった会話記録）は本物のゴミ箱に入れず、消して memoFake.trashed に覚える
-  const memoFake = { defaultDir: tempDir(), trashed: [] as string[] };
-  const trash = async (file: string) => {
-    memoFake.trashed.push(file);
-    await fs.rm(file, { recursive: true });
-  };
+  // メモ: 親フォルダの既定は一時フォルダ
+  const memoFake = { defaultDir: tempDir() };
   // Kickoff のゴミ箱: 置き場は一時フォルダ。時計は trashClock.now で進める（メモ・ファイルタブの「ゴミ箱に入れる」はここへ）
   const trashClock = { now: Date.now() };
   const trashBin: TrashService = new TrashService({
@@ -428,7 +424,8 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const terminals = new TerminalSessions({ shell: { file: "/bin/sh", args: (c) => (c ? ["-c", c] : []) }, spawn: terminalFake.spawn });
   after(() => terminals.closeAll());
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trash, trashBin, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
