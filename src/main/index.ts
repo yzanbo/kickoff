@@ -11,6 +11,7 @@ import { registerShutdown } from "./app/shutdown.js";
 import { startKeepAwake } from "./app/keepAwake.js";
 import { openedAtLogin } from "./app/loginItem.js";
 import { logLaunch, startupLog, watchChildProcesses } from "./app/startupLog.js";
+import { allowHangStacks, enableHangStacks, logDisplayEvents } from "./app/hangWatch.js";
 import { openMainWindow, setMainWindowUrl, showMainWindow } from "./app/window.js";
 import { agentBrowser } from "./browser/agentBrowser.js";
 import { hardenWebviews } from "./browser/browser.js";
@@ -27,6 +28,8 @@ import { setTerminalSessions } from "./terminal/terminals.js";
 const { port, devUrl } = setupEnvironment();
 logLaunch();
 watchChildProcesses();
+// 画面が応答しなくなったとき、止まっている JavaScript の場所を取れるようにする（app/hangWatch.ts）
+enableHangStacks();
 // 2. 開発のデータがまだなければ、本番のデータから一度だけ写す（起動中の印を作る前に）
 seedDevDataOnce();
 // 3. 埋め込みブラウザの安全設定は、ウィンドウを作る前に登録しておく
@@ -51,6 +54,8 @@ async function start() {
   // OS ごとに違う処理の口（platform/index.ts で選ぶ。いまは macOS だけ）
   hostPlatform.loadLoginShellPath();
   startupLog("ログインシェルの PATH を読みました");
+  // ディスプレイの抜き差し・スリープを起動の記録に書く（画面が応答しなくなったきっかけを照らし合わせるため）
+  logDisplayEvents();
   void moveLegacyDiagnostics();
   try {
     // 開発時は electron-vite の dev サーバーが画面を配り、本番はコアが配る
@@ -85,6 +90,7 @@ async function start() {
   const url = devUrl ?? core.localUrl;
   setMainWindowUrl(url);
   await prepareAppSession(url, core.token);
+  allowHangStacks(url);
   startupLog("認証の Cookie を設定しました");
   registerIpc(url);
   setAppMenu();

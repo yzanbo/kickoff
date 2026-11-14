@@ -2,6 +2,7 @@ import { app, BrowserWindow } from "electron";
 import { PRELOAD_FILE } from "./environment.js";
 import { openLinksExternally } from "./externalLinks.js";
 import { watchWindowLoad } from "./startupLog.js";
+import { watchRendererHang } from "./hangWatch.js";
 
 // メインのウィンドウ（Kickoff の画面）。Mac ではウィンドウを閉じてもアプリは残り、Dock を押すと作り直す
 
@@ -47,6 +48,8 @@ export function openMainWindow(url: string) {
   // 外部リンク（PR の URL など）は既定のブラウザで開く
   openLinksExternally(win.webContents);
   watchWindowLoad(win.webContents, url);
+  // 応答しなくなったら、止まった場所を書き、戻らなければ画面を読み込み直すかを聞く
+  watchRendererHang(win, "メインのウィンドウ");
   void win.loadURL(url);
   win.on("closed", () => {
     if (current === win) current = undefined;
