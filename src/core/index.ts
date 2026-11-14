@@ -184,6 +184,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     viewing,
     browserLogin,
     trash: opts.platform.moveToTrash,
+    tailscaleCli: opts.platform.tailscaleCli,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });

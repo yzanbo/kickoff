@@ -102,3 +102,8 @@
   margin: -4px 0 4px 26px;
   color: var(--warn);
 }
+
+/* Tailscale Serve の案内（手順の見た目は音声入力の .voice-steps）: 確かめ直すの下に、つなぐ先の URL との間を空ける */
+.tailscale-steps + .voice-step-actions {
+  margin: 8px 0 16px;
+}

@@ -1,4 +1,4 @@
-import type { Device, DeviceAccess, DeviceUpdateBody, PairingApproveBody, PairingState, ViewingBody } from "@shared/types";
+import type { Device, DeviceAccess, DeviceUpdateBody, PairingApproveBody, PairingState, TailscaleStatus, ViewingBody } from "@shared/types";
 import { request } from "./http";
 
 /** スマホ連携の端末とペアリング（コアの routes/devices.ts。この Mac の画面だけが使う口） */
@@ -15,6 +15,8 @@ export const devicesApi = {
   revokeDevice: (id: number) => request<void>("DELETE", `/api/devices/${id}`),
   /** 端末ができることを変える（次の頼みから効く） */
   setDeviceAccess: (id: number, access: DeviceAccess) => request<Device>("PATCH", `/api/devices/${id}`, { access } satisfies DeviceUpdateBody),
+  /** この Mac の Tailscale の様子（Serve の案内） */
+  tailscaleStatus: () => request<TailscaleStatus>("GET", "/api/tailscale"),
   /** いま見ているもの（だれかが見ているチャット・CI のタブの知らせは通知しない。この Mac の画面も端末も使う） */
   reportViewing: (body: ViewingBody) => request<void>("PUT", "/api/viewing", body),
   /** 窓を閉じる・読み込み直すときに「何も見ていない」を知らせる（ページが消えても届くよう keepalive。返事は待たない） */

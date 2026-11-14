@@ -89,6 +89,8 @@ export interface HostPlatform {
   selfGuard: SelfGuardRules;
   /** Docker のエンジンの起こし方 */
   dockerEngine: DockerEngineStarters;
+  /** tailscale のコマンドの場所（入っていなければ null。設定の「スマホ連携」の Tailscale Serve の案内） */
+  tailscaleCli: () => string | null;
 }
 
 /** ポートを使っているプロセスを調べる・止めるのに使う口（テストでは偽物に差し替える） */

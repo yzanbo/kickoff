@@ -1,9 +1,21 @@
 // API のテスト: 呼び主（この Mac / 端末）と、端末に開く口・届ける知らせ（既定で閉じる）
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
-import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, type Device, type PairingClaimResult, type PairingPollResult, type PairingState } from "@shared/types";
+import {
+  DEVICE_FORBIDDEN,
+  DEVICE_READ_ONLY,
+  MOBILE_OFF,
+  type Device,
+  type PairingClaimResult,
+  type PairingPollResult,
+  type PairingState,
+  type TailscaleStatus,
+} from "@shared/types";
 import { hashToken } from "./caller.js";
 import { DEVICE_ROUTES, READ_ONLY_DEVICE_ROUTES } from "./deviceAccess.js";
+import { tempDir } from "../testing/tempDir.js";
 import { AUTH, setup } from "../testing/testServer.js";
 
 const DEVICE_TOKEN = "d".repeat(43);
@@ -259,4 +271,26 @@ test("スマホ連携がオフなら、つないだ端末からの頼みとペ�
   assert.equal(store.devices.get(device.id)?.name, "Pixel 8");
   await call("PUT", "/api/settings", { remote_enabled: true });
   assert.equal((await app.request("/api/projects", { headers: DEVICE })).status, 200);
+});
+
+test("Tailscale の様子: 入っていなければ installed: false と始めるコマンド。入っていれば名前と Serve の URL。端末には開かない", async () => {
+  const { call, app, tailscaleFake } = withDevice();
+  const missing = (await call("GET", "/api/tailscale")).body as TailscaleStatus;
+  assert.equal(missing.installed, false);
+  assert.match(missing.command, /^tailscale serve --bg --https=443 http:\/\/127\.0\.0\.1:\d+$/);
+  // 答えを書いた小さなスクリプトを tailscale として置く（status と serve status）
+  const cli = path.join(tempDir(), "tailscale");
+  const serveJson = JSON.stringify({ Web: { "mac.tailnet.ts.net:443": { Handlers: { "/": { Proxy: "http://127.0.0.1:1" } } } } });
+  const statusJson = JSON.stringify({ BackendState: "Running", Self: { DNSName: "mac.tailnet.ts.net." } });
+  fs.writeFileSync(cli, `#!/bin/sh\nif [ "$1" = "serve" ]; then echo '${serveJson}'; else echo '${statusJson}'; fi\n`, { mode: 0o755 });
+  tailscaleFake.cli = cli;
+  const running = (await call("GET", "/api/tailscale")).body as TailscaleStatus;
+  assert.equal(running.installed, true);
+  assert.equal(running.running, true);
+  assert.equal(running.dns_name, "mac.tailnet.ts.net");
+  // ほかのポートへ渡している Serve は、この本体の URL にしない
+  assert.equal(running.serve_url, null);
+  assert.deepEqual(running.other_serves, ["https://mac.tailnet.ts.net → http://127.0.0.1:1"]);
+  assert.equal(running.error, null);
+  assert.equal((await app.request("/api/tailscale", { headers: DEVICE })).status, 403);
 });
