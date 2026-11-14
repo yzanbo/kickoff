@@ -156,6 +156,8 @@ test("AI の後始末（ワークツリー自身のチャットから）: 予約
   release();
   await until(() => store.chats.get(chatId)?.worktree_path === null);
   assert.equal(fs.existsSync(wt), false);
+  // 頼んだチャット自身にも「次からは本体で動きます」を残し、そのあとに結果のお知らせ
+  assert.equal(notices(ctx, chatId).at(-2), "ワークツリー（feat/self）を片付けました。次からは本体で動きます");
   assert.match(notices(ctx, chatId).at(-1) ?? "", /ワークツリー（ブランチ feat\/self）を片付けました/);
   // 送信待ちは止めたまま（本体で勝手に動かない）
   const queue = (await call("GET", `/api/chats/${chatId}`)).body.live.queue;

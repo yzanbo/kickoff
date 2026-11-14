@@ -37,7 +37,7 @@ export interface FinishOptions {
   dropDbConnections: boolean;
   /** GitHub で PR がマージ済みなら、リモートのブランチも消す（AI の後始末。Q12） */
   deleteMergedRemote: boolean;
-  /** 頼んだチャット（AI。ゴミ箱の「誰が消したか」と、お知らせを重ねないため。画面からなら null） */
+  /** 頼んだチャット（AI。ゴミ箱の「誰が消したか」。画面からなら null） */
   byChatId: number | null;
 }
 
@@ -246,7 +246,8 @@ export class WorktreeFinisher {
       throw e;
     }
     clearChats();
-    for (const chat of moved) if (chat.id !== opts.byChatId) store.events.add(chat.id, { type: "notice", message: movedToMainNotice(facts.branch) });
+    // 本体に戻したチャットには、頼んだチャット自身（ワークツリー自身から予約したとき）も含めて「次からは本体で動きます」を残す（結果のお知らせはこのあと頼んだチャットに別に残す）
+    for (const chat of moved) store.events.add(chat.id, { type: "notice", message: movedToMainNotice(facts.branch) });
     // コンテナとデータ（選ばれたとき。Kickoff が割り当てた組だけ。組の名前で消すのでフォルダがなくてよい）を片付け、帯を空ける。消せなかった組は記録に残す
     const failed = await worktreeEnvs.release(folder, { downVolumes: opts.downVolumes });
     if (failed.length) console.warn("[worktree-env] コンテナとデータを消せませんでした", failed);
