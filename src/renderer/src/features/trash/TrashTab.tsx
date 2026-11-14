@@ -47,7 +47,7 @@ export function TrashTab({ projectId }: { projectId: number }) {
       ) : (
         <ul className="trash-list">
           {items.map((item) => (
-            <TrashRow key={item.id} item={item} projectId={projectId} repoPath={repoPath} />
+            <TrashRow key={item.id} item={item} repoPath={repoPath} />
           ))}
         </ul>
       )}
@@ -55,7 +55,8 @@ export function TrashTab({ projectId }: { projectId: number }) {
   );
 }
 
-function TrashRow({ item, projectId, repoPath }: { item: TrashItem; projectId: number; repoPath: string | undefined }) {
+/** ゴミ箱の 1 行（プロジェクトの「ゴミ箱」タブと、設定の「ゴミ箱と整理」のプロジェクトのないもの） */
+export function TrashRow({ item, repoPath }: { item: TrashItem; repoPath?: string }) {
   const { busy, run } = useAction();
   const Icon = kindIcon(item);
   const where = originText(item.origin, repoPath);
@@ -72,8 +73,8 @@ function TrashRow({ item, projectId, repoPath }: { item: TrashItem; projectId: n
           )}
         </div>
         <div className="trash-row-meta muted small">
-          {item.by_chat_id !== null ? (
-            <button type="button" className="link-button hover-bg trash-row-by" onClick={() => openChat(projectId, item.by_chat_id!)} title="消したチャットを開く">
+          {item.by_chat_id !== null && item.project_id !== null ? (
+            <button type="button" className="link-button hover-bg trash-row-by" onClick={() => openChat(item.project_id!, item.by_chat_id!)} title="消したチャットを開く">
               <Bot size={12} aria-hidden />
               {item.by_chat_title ?? "チャット"} の AI
             </button>

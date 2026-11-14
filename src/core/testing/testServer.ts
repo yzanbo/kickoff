@@ -1,6 +1,6 @@
 // API のテスト（server.*.test.ts）の共通の準備: 偽のプロバイダーでアプリを組み立て、トークン付きで呼ぶ補助を返す。テストからだけ使う
 import { after } from "node:test";
-import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../providers/types.js";
+import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../providers/types.js";
 import { createApp } from "../http/server.js";
 import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, GitHubRemote, SlashCommandOption, DevicePush } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
@@ -169,6 +169,11 @@ class FakeProvider extends FakeProviderBase {
     if (this.forkError) throw new Error(this.forkError);
     return `fork-${n}`;
   }
+  /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧の元。テストで入れる） */
+  sessionFiles: SessionFileInfo[] = [];
+  async listSessionFiles() {
+    return this.sessionFiles;
+  }
   /** チャットを消したときにゴミ箱へ移すよう頼まれたセッション（頼まれた順。cwds は作業フォルダの候補） */
   discarded: { sessionIds: string[]; cwds: string[] }[] = [];
   async discardSessions(sessionIds: string[], cwds: string[]) {
@@ -282,6 +287,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     store,
     dir: tempDir(),
     now: () => trashClock.now,
+    projectOfPath: (origin) => store.projects.list().find((p) => origin === p.repo_path || origin.startsWith(`${p.repo_path}/`))?.id ?? null,
     onImported: (item) => trashMemoChatsOnImport({ store, runner, memoDirOf: (p) => memos.dirOf(p), publish: (e) => bus.publish(e) }, item),
   });
   const memos = new MemoService({

@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { tempDir } from "../../testing/tempDir.js";
-import { findSessionFile, recentSegmentsRange, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
+import { findSessionFile, listSessionFiles, readSessionHead, recentSegmentsRange, sessionFileInfo, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
 
 const SID = "11111111-1111-1111-1111-111111111111";
 const line = (o: object) => JSON.stringify({ sessionId: SID, ...o });
@@ -97,4 +97,20 @@ test("乗り換え: 終わりの直近 3 区切りだけを、発言の ID は�
   // 区切りが 2 つだけなら切るものがない
   const short = sessionFile([msg("a"), boundary("b1"), msg("c"), boundary("b2"), msg("d")]);
   assert.equal(await trimToRecentSegments(short.path, SID), null);
+});
+
+test("記録の頭から作業フォルダと最初の自分の発言を読む（< で始まる知らせ・メタの行は飛ばす）。すべての記録の一覧", async () => {
+  const lines = [
+    line({ type: "system", cwd: "/work/app" }),
+    line({ type: "user", isMeta: true, message: { content: "メタ" } }),
+    line({ type: "user", message: { content: "<command-name>/clear</command-name>" } }),
+    line({ type: "user", message: { content: [{ type: "text", text: "  ログインの不具合を直して  " }] } }),
+  ];
+  const { root, path } = sessionFile(lines);
+  assert.deepEqual(await readSessionHead(path), { cwd: "/work/app", firstPrompt: "ログインの不具合を直して" });
+  const all = await listSessionFiles(root);
+  assert.equal(all.length, 1);
+  assert.equal(all[0].sessionId, SID);
+  assert.equal(all[0].firstPrompt, "ログインの不具合を直して");
+  assert.equal((await sessionFileInfo(SID, ["/work/app"], root))?.file, path);
 });

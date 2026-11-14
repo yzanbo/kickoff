@@ -183,6 +183,16 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
           .get({ id: uploadId }) !== undefined
       );
     },
+    /** いまあるチャット（ゴミ箱のものも）が使っているセッションの ID すべて（チャットの session_id と、記録の init・result） */
+    usedSessionIds(): Set<string> {
+      const rows = db
+        .prepare(
+          `SELECT session_id AS sid FROM chats WHERE session_id IS NOT NULL
+           UNION SELECT json_extract(data, '$.session_id') FROM chat_events WHERE type IN ('init', 'result') AND json_extract(data, '$.session_id') IS NOT NULL`,
+        )
+        .all() as { sid: string }[];
+      return new Set(rows.map((r) => r.sid));
+    },
     sessionInUse(sessionId: string): boolean {
       return Boolean(
         db

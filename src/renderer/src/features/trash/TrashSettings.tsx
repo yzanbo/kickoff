@@ -3,7 +3,7 @@ import { FolderGit2, RotateCcw } from "lucide-react";
 import { ARCHIVE_CLEANUP_DAYS, ARCHIVE_CLEANUP_DAYS_LABELS, type ArchiveCleanupDays, type TrashItem } from "@shared/types";
 import { formatSize } from "@shared/attachment/truncate";
 import { api } from "@/api";
-import { useTrashedProjects } from "@/stores/trash";
+import { useTrashedProjects, useUnassignedTrash } from "@/stores/trash";
 import { useAsync } from "@/hooks/useAsync";
 import { useAction } from "@/hooks/useAction";
 import { useTicker } from "@/hooks/useTicker";
@@ -14,16 +14,21 @@ import { showToast } from "@/ui/toast";
 import { formatDayTime } from "@/lib/time";
 import { restoreFromTrash } from "./trashActions";
 import { remainingText } from "./trashText";
+import { TrashRow } from "./TrashTab";
+import { OrphanSessions } from "./OrphanSessions";
 
 /**
- * 設定の「ゴミ箱と整理」（メモの仕様書「ファイル削除」の Q19・Q20）: ゴミ箱に入れたプロジェクト（プロジェクトの「ゴミ箱」タブには出せない）を戻す口と、
- * アーカイブ済みのチャットの整理（日数を選んで、それより動いていないものをまとめてゴミ箱へ）
+ * 設定の「ゴミ箱と整理」（メモの仕様書「ファイル削除」の Q17・Q19・Q20）: ゴミ箱に入れたプロジェクト（プロジェクトの「ゴミ箱」タブには出せない）を戻す口・
+ * アーカイブ済みのチャットの整理（日数を選んで、それより動いていないものをまとめてゴミ箱へ）・どのチャットも使っていない会話記録の一覧・
+ * どのプロジェクトにも出ないゴミ箱のもの（プロジェクトの外の会話記録など）
  */
 export function TrashSettings() {
   return (
     <>
       <TrashedProjects />
       <ArchiveCleanup />
+      <OrphanSessions />
+      <UnassignedTrash />
     </>
   );
 }
@@ -118,6 +123,24 @@ function ArchiveCleanup() {
         </div>
         <ErrorText message={preview.error ?? error} />
       </div>
+    </section>
+  );
+}
+
+/** どのプロジェクトにも出ないゴミ箱のもの（プロジェクトの外の会話記録など。あるときだけ出す） */
+function UnassignedTrash() {
+  const { data } = useUnassignedTrash();
+  useTicker(60_000);
+  if (!data?.length) return null;
+  return (
+    <section className="section">
+      <h2>ゴミ箱（プロジェクトのないもの）</h2>
+      <p className="muted small">どのプロジェクトのフォルダにも入らない場所のものです。3 日たつと本当に消えます。</p>
+      <ul className="trash-list">
+        {data.map((item) => (
+          <TrashRow key={item.id} item={item} />
+        ))}
+      </ul>
     </section>
   );
 }

@@ -100,3 +100,57 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* 設定の「ゴミ箱と整理」のどのチャットも使っていない会話記録（features/trash/OrphanSessions）。上の操作の行と、選べる一覧 */
+.orphan-sessions-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.orphan-sessions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.orphan-sessions li + li {
+  border-top: 1px solid var(--border);
+}
+.orphan-session {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.orphan-session input {
+  margin-top: 3px;
+}
+.orphan-session-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.orphan-session-prompt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.orphan-session-meta {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+.orphan-session-cwd {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+}

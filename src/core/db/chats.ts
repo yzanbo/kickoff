@@ -2,6 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { Chat, ChatStatus, GitHubLink } from "@shared/types";
 import { bit, updateRow, type Notify, type Row } from "./common.js";
 import type { NewChat } from "./types.js";
+import { rememberChatSession } from "./agentSessions.js";
 
 /** チャットの一覧の絞り込み（並びは最後に動いた順） */
 export interface ChatFilter {
@@ -179,6 +180,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
      */
     update(id: number, patch: ChatPatch): Chat {
       updateRow(db, "chats", id, toChatRow(patch), CHAT_COLUMNS, patch.status !== undefined);
+      // チャットに入れたセッションは Kickoff が使ったものとして覚える（使われなくなったら会話記録をゴミ箱へ。メモの仕様書「ファイル削除」の Q17）
+      if (typeof patch.session_id === "string") rememberChatSession(db, id, patch.session_id);
       const chat = get(id)!;
       onChange({ type: "chat", chat });
       return chat;

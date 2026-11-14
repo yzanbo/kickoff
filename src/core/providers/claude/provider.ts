@@ -9,7 +9,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { createBackgroundTracker } from "./background.js";
-import { findSessionFile, removeSession, sessionFilesSize, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
+import { findSessionFile, listSessionFiles, removeSession, sessionFileInfo, sessionFilesSize, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
 import { createTurnOver } from "./turnOver.js";
 import { createCommandOutputWatcher } from "./commandOutput.js";
 import { createInputChannel } from "./input.js";
@@ -30,7 +30,7 @@ import { subagentLogOf } from "./subagentLog.js";
 import { turnContextHook, turnHooks, toAllowedTools } from "./policy.js";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
-import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../types.js";
+import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../types.js";
 import { runCommand } from "../../system/exec.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
 
@@ -361,6 +361,16 @@ export class ClaudeProvider implements AgentProvider {
     if (!file) return null;
     const trimmed = await trimToRecentSegments(file, sessionId);
     return trimmed ? { sessionId: trimmed.sessionId, previousFile: file } : null;
+  }
+
+  /** セッションの記録のファイルの様子（Kickoff が作ったセッションの片付け） */
+  async sessionInfo(sessionId: string, cwds: string[]): Promise<SessionFileInfo | null> {
+    return sessionFileInfo(sessionId, cwds);
+  }
+
+  /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧） */
+  async listSessionFiles(): Promise<SessionFileInfo[]> {
+    return listSessionFiles();
   }
 
   /** セッションの記録のファイルの大きさの合計（作業フォルダから決まる場所だけを見る。アーカイブ済みのチャットの整理の見込み） */
