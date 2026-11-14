@@ -76,6 +76,8 @@ export interface Core {
   databaseStats(): DatabaseStats;
   /** ブラウザからこの Mac の画面として入る、一度だけ使える URL（npm run daemon が端末に出す） */
   browserLoginUrl(): string;
+  /** 作業中のチャットの数と、スマホ連携がオンか（メインプロセスが本体を眠らせないかを決める。変わったら bus の chat / settings が届く） */
+  awakeNeeds(): { running: number; mobileEnabled: boolean };
   /** フォルダがポートの帯を持つワークツリーの中なら、渡す環境変数（PORT。内蔵ターミナル） */
   worktreeEnvFor(dir: string): Record<string, string>;
   close(): Promise<void>;
@@ -202,6 +204,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     localUrl: `http://127.0.0.1:${opts.port}`,
     bus,
     databaseStats: () => store.stats(),
+    awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: store.settings.get().remote_enabled }),
     browserLoginUrl: () => `http://127.0.0.1:${opts.port}/login?code=${browserLogin.issue()}`,
     worktreeEnvFor: (dir) => worktreeEnvs.envFor(dir),
     close: async () => {
