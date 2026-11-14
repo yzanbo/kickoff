@@ -80,18 +80,21 @@ export function mathPage(text: string): string {
   return `<!doctype html><html><head>${pageHead(render)}</head><body>${body}</body></html>`;
 }
 
-/** Mermaid の図のページ（読めない・書き方の誤りなら、書いたとおりの文のまま） */
+/** Mermaid の図のページ（読めない・書き方の誤りなら、書いたとおりの文のまま、理由を React Native へ知らせる） */
 export function mermaidPage(code: string): string {
   const render = `<script src="${MERMAID}"></script>
 <script>addEventListener("DOMContentLoaded", async () => {
-  if (!window.mermaid) return;
+  const fail = (message) => window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: ${JSON.stringify(VISUAL_MESSAGES.error)}, message }));
+  if (!window.mermaid) return fail("Mermaid を読み込めませんでした（ネットワークを確かめてください）");
   mermaid.initialize({ startOnLoad: false, theme: "dark", securityLevel: "strict" });
   const el = document.getElementById("src");
-  try { const { svg } = await mermaid.render("m1", el.textContent); el.outerHTML = '<div class="diagram">' + svg + '</div>'; } catch {}
+  try { const { svg } = await mermaid.render("m1", el.textContent); el.outerHTML = '<div class="diagram">' + svg + '</div>'; }
+  catch (e) { fail("図を描けませんでした: " + String((e && e.message) || e)); }
 });</script>
 <style>body { white-space: normal; } #src { white-space: pre; font-family: var(--vis-mono); font-size: 12px; } .diagram svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }</style>`;
   return `<!doctype html><html><head>${pageHead(render)}</head><body><div id="src">${escapeHtml(code)}</div></body></html>`;
 }
 
-/** SVG・HTML の図のページ（パソコンと同じページに、CSP の meta とスマホの配色） */
-export const visualPage = (kind: "svg" | "html", code: string) => visualDocument({ kind, code, vars: MOBILE_VISUAL_THEME, csp: true });
+/** SVG・HTML の図のページ（パソコンと同じページに、CSP の meta とスマホの配色）。maxHeight: 高さの上限（超えたら中でスクロール） */
+export const visualPage = (kind: "svg" | "html", code: string, maxHeight?: number) =>
+  visualDocument({ kind, code, vars: MOBILE_VISUAL_THEME, csp: true, ...(maxHeight !== undefined ? { maxHeight } : {}) });

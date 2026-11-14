@@ -1,5 +1,6 @@
 import { CodeXml, Eye, Maximize2, SquareDashed, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { errorMessage } from "@shared/errors";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { IconButton } from "@/ui/IconButton";
 import { ImageViewer } from "@/ui/imageViewer/ImageViewer";
@@ -52,9 +53,10 @@ function ZoomButtons({ zoom }: { zoom: DiagramZoom }) {
 
 /**
  * Markdown の ```mermaid を図にする。
- * 図はチャットの中に SVG で入れ、Shadow DOM で囲む。描けないとき（書き方の誤り・大きすぎる図）はコードのまま出す
+ * 図はチャットの中に SVG で入れ、Shadow DOM で囲む。描けないとき（書き方の誤り・大きすぎる図）はコードのまま出す。
+ * onError: 描けなかった理由を受け取る（AI が描いた図のカードが、理由を添えて出す）
  */
-export function MermaidDiagram({ code }: { code: string }) {
+export function MermaidDiagram({ code, onError }: { code: string; onError?: (message: string) => void }) {
   const theme = useAppliedTheme();
   const key = `${theme}\n${code}`;
   const [result, setResult] = useState<{ key: string; svg?: string; failed?: boolean }>();
@@ -69,12 +71,19 @@ export function MermaidDiagram({ code }: { code: string }) {
     return Math.min(inner, naturalSize(svg ?? "").width);
   });
 
+  const errorRef = useRef(onError);
+  errorRef.current = onError;
+
   useEffect(() => {
     if (cachedMermaid(code, theme) !== undefined) return;
     let alive = true;
     renderMermaid(code, theme).then(
       (svg) => alive && setResult({ key: `${theme}\n${code}`, svg }),
-      () => alive && setResult({ key: `${theme}\n${code}`, failed: true }),
+      (e: unknown) => {
+        if (!alive) return;
+        setResult({ key: `${theme}\n${code}`, failed: true });
+        errorRef.current?.(errorMessage(e));
+      },
     );
     return () => {
       alive = false;
