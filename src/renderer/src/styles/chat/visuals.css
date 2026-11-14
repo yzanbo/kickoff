@@ -1,0 +1,111 @@
+/*
+ * AI が返答の中に描いた図（features/chat/visuals。show_visual / update_visual）。コードブロックと同じ枠に、上の帯（題名・種類・ソース・コピー・全画面・メモに保存）。
+ * ui/markdown の Mermaid の枠より後ろに置き、カードの中の Mermaid の図は枠を外す
+ */
+.visual-card {
+  margin: 1em 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sidebar);
+}
+
+.visual-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 4px 0 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: calc(12px * var(--chat-scale, 1));
+}
+
+.visual-card-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visual-card-kind {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: calc(10.5px * var(--chat-scale, 1));
+  color: var(--muted);
+}
+
+.visual-card-note {
+  flex: none;
+  color: var(--muted);
+}
+
+.visual-card-tools {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.visual-card-tools .icon-button {
+  width: 22px;
+  height: 22px;
+}
+
+/* 閉じた枠（iframe）。高さは中から知らせた中身の高さ（上限を超えたら枠の中でスクロール） */
+.visual-frame {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+
+.visual-card .mermaid-diagram {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.visual-card-source {
+  max-height: 60vh;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: calc(12px * var(--chat-scale, 1));
+  white-space: pre;
+}
+
+.visual-card-error {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--ng);
+  overflow-wrap: anywhere;
+}
+
+/* 描いている途中・描き直した・失敗の 1 行 */
+.visual-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+  font-size: calc(12.5px * var(--chat-scale, 1));
+  color: var(--muted);
+}
+
+.visual-note.failed {
+  color: var(--state-failed);
+}
+
+/* 全画面（ImageViewer の中） */
+.visual-fullscreen {
+  width: min(1200px, calc(100vw - 96px));
+  height: calc(100vh - 160px);
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: var(--bg);
+}

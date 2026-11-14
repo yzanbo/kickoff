@@ -26,8 +26,10 @@ export function workingLabel(chat: Chat, last: TimelineItem | undefined, streami
   if (live.compacting !== null) return compactingLabel(live.compacting.trigger);
   // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる
   if (activity.stalled.length > 0) return <StalledAgentsLabel agents={activity.stalled} />;
-  const pendingTool = last?.kind === "tools" ? last.tools[last.tools.length - 1] : last?.kind === "subagent" ? last.call : undefined;
+  const pendingTool = last?.kind === "tools" ? last.tools[last.tools.length - 1] : last?.kind === "subagent" || last?.kind === "visual" ? last.call : undefined;
   const base = (() => {
+    // 図（show_visual / update_visual）の中身を書いている（長いので、書き終えるまで図の項目は出ない）
+    if (live.drawing_visual) return "図を描いています";
     if (streaming) return "返答を書いています";
     // 起動したサブエージェントの終わりを待っている（待つ形で結果がまだ・並べて起動したほかのものが実行中。その様子はカードに出る）
     if (last?.kind === "subagent" && (!last.call.result || runningAgents > 0)) return "サブエージェントの終わりを待っています";

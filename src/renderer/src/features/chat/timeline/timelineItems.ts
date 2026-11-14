@@ -2,6 +2,7 @@
 import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { isBackgroundLaunch } from "@shared/chat/backgroundTasks";
 import { isSubagentTool } from "@shared/chat/subagents";
+import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/chat/aiVisual";
 import { lastReplyBefore } from "@shared/chat/handoff";
 import { changesOf, type EditCall, type FileChange } from "@/features/chat/tools/turnFileChanges";
 
@@ -29,6 +30,8 @@ export type TimelineItem =
   | { kind: "tools"; key: string; tools: ToolCall[] }
   /** サブエージェントの起動（Agent / Task の呼び出し。ツールのまとまりに入れず、流れの中のカードにする） */
   | { kind: "subagent"; key: string; call: ToolCall }
+  /** AI が返答の中に描いた図・描き直し（show_visual / update_visual。ツールのまとまりに入れず、文の間に図として出す） */
+  | { kind: "visual"; key: string; call: ToolCall }
   /** 裏で動かしたサブエージェントが終わった（その時刻の位置に 1 行。agentKey は一覧の行のキー = 起動した呼び出し ID） */
   | { kind: "subagentEnd"; key: string; event: ChatEventOf<"subagent">; agentKey: string };
 
@@ -126,6 +129,10 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
       if (isSubagentTool(e.data.name)) {
         launchedHere.add(e.data.id);
         items.push({ kind: "subagent", key: `s${e.id}`, call });
+        continue;
+      }
+      if (e.data.name === AI_SHOW_VISUAL_TOOL || e.data.name === AI_UPDATE_VISUAL_TOOL) {
+        items.push({ kind: "visual", key: `v${e.id}`, call });
         continue;
       }
       const last = items[items.length - 1];

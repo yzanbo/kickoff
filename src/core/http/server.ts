@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { streamSSE } from "hono/streaming";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { VISUAL_FRAME_CSP, VISUAL_FRAME_SHELL } from "@shared/chat/visualDocument";
 import { AUTH_COOKIE, tokenMatches } from "./auth.js";
 import { callerOf, hashToken, setCaller } from "./caller.js";
 import { deviceMaySee, deviceMayUse } from "./deviceAccess.js";
@@ -136,6 +137,15 @@ export function createApp(deps: ServerDeps): Hono {
     if (!deps.browserLogin.consume(c.req.query("code") ?? "")) return c.text("ログインの番号が正しくないか、期限が切れています。npm run daemon を起動し直すと、新しい URL を出します", 401);
     setCookie(c, AUTH_COOKIE, token, { httpOnly: true, sameSite: "Strict", path: "/", maxAge: 60 * 60 * 24 * 365 });
     return c.redirect("/");
+  });
+
+  // AI が返答に描いた図（SVG・HTML）を入れる枠のページ（認証の外。中身は画面が postMessage で渡すので、秘密は何も持たない）。
+  // 画面の CSP を引き継がないよう別のページにし、図だけの CSP（決めた CDN のほかへは通信しない）を見出しで付ける。画面は sandbox="allow-scripts" の iframe で開く
+  app.get("/visual-frame", (c) => {
+    c.header("Content-Security-Policy", VISUAL_FRAME_CSP);
+    c.header("Cache-Control", "no-store");
+    c.header("X-Content-Type-Options", "nosniff");
+    return c.html(VISUAL_FRAME_SHELL);
   });
 
   // 認証と呼び主: 本体のトークン（この Mac の画面の Cookie）ならこの Mac、端末のトークンならその端末（http/caller.ts）。

@@ -116,6 +116,8 @@ interface RowContext {
 
 /** 流れの項目 1 つを、動きの 1 行にする（考えた行・裏のサブエージェントの終わりの 1 行など、出さないものは null） */
 function rowOf(item: TimelineItem, agent: string | null, owner: SubagentEntry | undefined, ctx: RowContext): ActivityRow | null {
+  // 図（show_visual / update_visual）は、動きではツールの 1 行と同じ（「図を描く: 構成図（SVG）」）
+  if (item.kind === "visual") return rowOf({ kind: "tools", key: item.key, tools: [item.call] }, agent, owner, ctx);
   if (item.kind === "tools") {
     const { tools } = item;
     const span = toolSpan(tools);

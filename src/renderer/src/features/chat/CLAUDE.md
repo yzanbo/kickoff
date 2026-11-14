@@ -20,6 +20,7 @@
 | `prompts/` | 自分の指示の一覧（指示の履歴・上に貼り付ける指示・前後の指示へ） |
 | `find/` | チャットの中の検索 |
 | `rewind/` | 巻き戻し・ファイルを戻す・失敗した作業の直す操作 |
+| `visuals/` | AI が返答の中に描いた図（流れの図の項目 `VisualItem`・閉じた枠 `VisualFrame`・テーマの変数 `visualTheme.ts`・記録から組み立てた図 `visualsContext.ts`・メモに保存 `saveVisual.ts`） |
 | `children/` | 子チャット（右の欄の「新しい子チャット」のボタン・「子チャットを作成」・「新しい子チャットで聞く」で開く入力欄だけのタブ `NewChildPane`・会話を引き継ぐかの切り替え `InheritChoice`・会話の中と入力欄の上の札 `ChildChatChips`・開き方と親への受け渡し `openChild.ts`・純粋な部分 `childChats.ts`・上の帯（親までの系譜と深さの呼び名）`ChildChatBar`・右の欄の画面 `SideChildChat`・タブの深さの札 `ChildTabBadge`・一覧の行の深さの札 `ChildDepthMark`・タブの子チャットの印 `ChildActivityMark` と押して開く一覧 `TabChildChatsPopover`・親から外す `detachChild.ts` と「親から外す ▸」`DetachSubmenu`） |
 
 ## 状態と未読
@@ -64,6 +65,16 @@
 - 検索結果から開いた発言・指示の履歴から移る先が窓の外なら、その前後を描く範囲にしてから移る（`revealRange`。最新まで `MAX_TAIL`（400）件以内なら最新まで、遠ければ途中の一部分だけを描き、下の端・「以降の発言を表示」で後ろを足し、一番下へ戻るボタン・⌘↓ で最新の窓に戻す `latest`）。途中を描いている間は、書いている途中の返答・確認のカード・作業中の行を出さない。
 - スクロールの持ち主は `useTimelineScrollHandle`（`following` = 一番下に付いていくか。送った・一番下へ戻ったら付き、上へスクロールした・発言へ移ったら離れる。`BOTTOM_SLACK_PX`）。発言へ移って強調するのは `jumpToEvent`（`#ev-<記録の ID>` の要素か、その呼び出しを含むツールのまとまり（`data-tool-ids`）。`scrollIntoView` なのでサブエージェントのカードの窓の中にも届く。指示へ移る `ChatPaneActions.jumpTo`（指示の履歴・⌘⌥↑ / ↓・上に貼り付けた指示の ↑ / ↓）は `smooth` でなめらかにスクロールし（流れの高さの 1.5 倍より遠ければ、流れの高さほど手前まで一気に寄せてから。動きを減らす設定では一気に）、流れが行き先に着いた scrollend で強調を始める（動いている間に強調が薄れて見落とさないように。動かす前の一瞬の位置合わせの scrollend は、行き先に着いたかで見分ける）。強調は `styles/chat/jump-flash.css` の `.flash`: 中身は塗らず、少し外側から輪が寄ってきて発言の形（角の丸み）に余白を空けて合い、まわりがふわっと光ってから消える（地のない返答・行・ツールのまとまりは輪の角を丸める）。色はアクセントの緑。黄は検索で見つかった文字と注意の色なので使わない）。移ったら流れにピントを置く。
 - 一番下へ戻るボタン（`ScrollBottomPill`。⌘↓ でも戻る）: 上を読んでいる間だけ出し、いまの状態を添える（決め方は純粋関数の `scrollPill.ts` の `scrollPillOf`: 答えを待っている → つながるのを待っている（黄）→ 上を読んでいる間に返答が届いた・失敗した → 作業中（作業中の行と同じ文。再試行中は黄）→ 終わっている）。待っているとき・返答が届いたときは目立たせる。枠はサイドバー・カンバンの状態の点と同じ色そのもの（作業中 `--dot-running`・回答待ち `--dot-needs-input`・未読 `--dot-unread`。終わっているときだけ控えめな灰色）。置き場所はチャット欄の上のピルの列（`.composer-chips`）の右端の `.composer-chips-dock`（`ChatPane` が `pillDock` で渡し、`createPortal` で置く。高さはピルと同じ 26px）で、ピルがない・ピルの幅の合計とボタンの幅が列に入らないときは流れの右下に浮かせる（列を 1 行増やすと流れの高さが変わって画面が動くため。入るかは置き場所によらない幅で決めるので行き来しない。幅は `ResizeObserver`、ピルの増減は `MutationObserver` で測り直す。置き場所が空のときは `:has()` で列ごと隠す）。
+
+## 図（`visuals/`）
+
+AI が kickoff_chat の `show_visual` で返答の中に描いた図（SVG・HTML・Mermaid。コアの決まりは `src/core/chat/CLAUDE.md` の「AI が返答の中に描く図」。2026-11-14 に利用者と決めた。メモの仕様書「チャットの図と数式」）。
+
+- 流れの組み立て（`groupEvents`）は、図のツール（`show_visual` / `update_visual`）をツールのまとまりに入れず、呼んだ位置（文の間）の項目 `visual` にする（サブエージェントの起動と同じ形。動きでは 1 行のツールとして出す）。中身は記録から組み立てる（`ChatPane` が `chatVisualsOf(events)` を `VisualsContext` で配る。`@shared/chat/aiVisual` の `collectVisuals`）: 描いた位置には、いちばん新しい中身の図のカード、描き直した位置には「「題名」を描き直しました」の 1 行（押すと元の図へ移る `jumpTo`。カードは `id="ev-<記録の ID>"`）。結果が届くまでは「図を描いています…」、失敗はその理由の 1 行。図の中身を書いている間（`ChatLive.drawing_visual`）は、作業中の行も「図を描いています」。
+- カード（`VisualItem.tsx` の `VisualCard`）: コードブロックと同じ枠に、上の帯（題名・種類・描き直した回数・ソースを表示（`CodeXml`）・ソースをコピー・全画面（`ImageViewer` の中に枠を広げる）・メモに保存（`StickyNote`））。Mermaid はアプリの中の `MermaidDiagram` で描き（ソース・全画面はその図の道具）、SVG・HTML は閉じた枠。中から届いた失敗（スクリプトの失敗・CSP で止めた読み込み）は枠の下に出す（描き直したら消す）。
+- 閉じた枠（`VisualFrame`）: コアの枠のページ `/visual-frame`（図だけの CSP）を `sandbox="allow-scripts"`（`allow-same-origin` なし = 中は別のオリジン。画面・API・Cookie・localStorage に触れない）の iframe で開き、届いたら（`ready`）中身のページ（`@shared/chat/visualDocument` の `visualDocument`: テーマの変数・地のスタイル・補助のスクリプト・中身）を postMessage で渡す。中からは送り主の窓で見分けて、高さ・失敗・発言だけを受ける。高さは中身に合わせ、画面の高さの 8 割を超えたら枠の中でスクロール（上限より低い中身では中のページが縦のスクロールバーを出さない。出すと横幅が縮んで SVG が低くなり、消すと戻る、を繰り返してスクロールバーが残ったため）。テーマを変えたら、SVG は変数だけを送ってその場で、HTML は読み直す（Chart.js などは描いた時点の色を canvas に焼き付けるため）。テーマの値は画面の CSS の変数から読む（`visualTheme.ts`。`styles/base/tokens.css` の末尾の一覧）。
+- 図から発言を送る（`sendPrompt`）: 中のボタンを利用者が押したとき（`navigator.userActivation`）だけ届き、`ChatPaneActions.resend` で送る（チャット欄の送信と同じ送り方。作業中なら いま / あとで）。読み込んだだけ・タイマーからは送れない。
+- メモに保存（`saveVisual.ts` の `saveVisualToMemo`）: メモのフォルダのいちばん外側に「日付 題名」で作って開く（同じ名前があれば -2 から番号）。SVG・HTML は明るいテーマの値を置いた HTML のメモ（`visualMemoHtml`。HTML のメモはスクリプトを動かさないので、スクリプトで描くグラフは描かれない）、Mermaid は ```mermaid の Markdown のメモ。開く場所はチャットからメモを開く設定（`openMemoFromChat`）。
 
 ## 発言（`messages/`）
 

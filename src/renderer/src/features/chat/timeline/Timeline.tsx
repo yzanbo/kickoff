@@ -21,6 +21,7 @@ import { FailedTurnActions } from "@/features/chat/rewind/FailedTurnActions";
 import { SubagentCard } from "@/features/chat/subagents/SubagentCard";
 import type { RenderItems } from "@/features/chat/subagents/subagentParts";
 import { SubagentEndNote } from "@/features/chat/subagents/SubagentEndNote";
+import { MemoVisualItem } from "@/features/chat/visuals/VisualItem";
 import { CompactedRow } from "@/features/chat/status/CompactingRow";
 import { requestHandoff } from "@/features/chat/children/handoff";
 import { AddToParentButton } from "@/features/chat/children/AddToParentButton";
@@ -45,6 +46,8 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
         return <SubagentCard key={item.key} call={item.call} rel={rel} renderItems={renderItems} />;
       case "subagentEnd":
         return <SubagentEndNote key={item.key} event={item.event} agentKey={item.agentKey} />;
+      case "visual":
+        return <MemoVisualItem key={item.key} call={item.call} />;
       default:
         return (
           <MemoEventItem
