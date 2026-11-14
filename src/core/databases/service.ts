@@ -51,6 +51,8 @@ interface Options {
   vault: DbSecretVault;
   /** Kickoff 自身の保存先（この中のファイルは登録させない。製品版・開発版の保存先もいつも断る） */
   dataDir: string;
+  /** 製品版・開発版の保存先の親のフォルダ（OS の口の appDataRoot） */
+  appDataRoot: string;
   /** AI の SQL の結果を書き出す CSV の置き場所（省けば OS の一時フォルダの <保存先の名前>-db。テストは一時フォルダの中） */
   exportRoot?: string;
   /** 接続の状態の知らせ（SSE の db_connection_state。省けば知らせない） */
@@ -133,7 +135,7 @@ export class DatabaseService {
    */
   private insideKickoffData(file: string) {
     const real = realPathLoose(file);
-    return [this.opts.dataDir, appDataDir("production"), appDataDir("development")].some((dir) => isInside(realPathLoose(dir), real));
+    return [this.opts.dataDir, appDataDir(this.opts.appDataRoot, "production"), appDataDir(this.opts.appDataRoot, "development")].some((dir) => isInside(realPathLoose(dir), real));
   }
 
   /**

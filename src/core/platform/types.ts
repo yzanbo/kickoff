@@ -1,5 +1,5 @@
 // OS ごとに違う処理の口。コアはここを通して OS に触れ、OS ごとのコマンド・パスを散らさない（いまは macOS だけ。ほかの OS は同じ形で足す）
-import type { VoiceStatus } from "@shared/types";
+import type { DockerEngineStarter, VoiceStatus } from "@shared/types";
 import type { AudioInput } from "../voice/types.js";
 
 /** TCP のポートを待っているソケット 1 つ */
@@ -42,8 +42,29 @@ export interface SelfGuardRules {
   scripting: { pattern: RegExp; label: string };
 }
 
+/** Docker のエンジンが止まっているときの起こし方（ボタンで開くアプリ・コピーするコマンド） */
+export interface DockerEngineStarters {
+  /** いまの context の名前から、画面に出す起こし方（分からなければ null） */
+  starterOf: (context: string | null) => DockerEngineStarter;
+  /** 起こし方が「アプリを開く」のとき、エンジンを起こす（起きるまでは待たない。画面が調べ直す） */
+  start: (starter: Extract<DockerEngineStarter, { kind: "open" }>) => Promise<void>;
+}
+
+/**
+ * DB ワーカー（別のプロセス）が使う OS の口。ワーカーは関数を受け取れないので、HostPlatform には入れず、
+ * ワーカーの入口（databases/worker/main.ts）が自分で選ぶ（ほかの OS を足すときは、そこと src/main/platform/index.ts で選び分ける）
+ */
+export interface ShellPlatform {
+  /** コマンドの文を、利用者のログインシェルで流す起動の仕方（ターミナルと同じ設定で動かすため） */
+  loginShell: (command: string) => { file: string; args: string[] };
+  /** いま動いているプロセスの親子（親の pid → 子の pid の並び。読めなければ空） */
+  childrenByParent: () => Map<number, number[]>;
+}
+
 /** OS ごとに違う処理 */
 export interface HostPlatform {
+  /** アプリの保存先を置く親のフォルダ（Electron の appData と同じ場所。製品版と開発版の保存先はこの下の名前で分ける） */
+  appDataRoot: string;
   /** GUI から起動したアプリはログインシェルの PATH を引き継がないので、取り込んで process.env.PATH に足す */
   loadLoginShellPath: () => void;
   /** アプリを名前で開く（Docker のエンジンが止まっているときの「OrbStack を開く」など） */
@@ -66,6 +87,8 @@ export interface HostPlatform {
   speech: OsSpeech;
   /** 自分（エージェントを動かしている Kickoff）を止めるコマンドの見分け方 */
   selfGuard: SelfGuardRules;
+  /** Docker のエンジンの起こし方 */
+  dockerEngine: DockerEngineStarters;
 }
 
 /** ポートを使っているプロセスを調べる・止めるのに使う口（テストでは偽物に差し替える） */

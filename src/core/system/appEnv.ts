@@ -1,4 +1,3 @@
-import os from "node:os";
 import path from "node:path";
 
 /**
@@ -12,7 +11,7 @@ export const APP_ENVS = {
 
 export type AppEnv = keyof typeof APP_ENVS;
 
-/** 保存先のフォルダ（~/Library/Application Support/<名前>。Electron の appData と同じ場所） */
-export function appDataDir(env: AppEnv): string {
-  return path.join(os.homedir(), "Library", "Application Support", APP_ENVS[env].name);
+/** 保存先のフォルダ（親のフォルダ root は OS の口の appDataRoot = Electron の appData と同じ場所。その下の名前で分ける） */
+export function appDataDir(root: string, env: AppEnv): string {
+  return path.join(root, APP_ENVS[env].name);
 }

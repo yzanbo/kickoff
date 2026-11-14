@@ -1,7 +1,7 @@
 // Docker タブの純粋な読み取り: docker ps の 1 行 1 JSON・Ports・Status・compose の config・設定の指紋・印・エンジンを開くボタン・
 // 作業場所への振り分け・override と COMPOSE_FILE の選び方（テストは parse.test.ts）
 import path from "node:path";
-import type { DockerContainerState, DockerEngineStarter, DockerMark, DockerPort } from "@shared/types";
+import type { DockerContainerState, DockerMark, DockerPort } from "@shared/types";
 
 /** docker ps の 1 行（必要なラベルだけをテンプレートで取り出したもの） */
 export interface RawContainer {
@@ -151,14 +151,6 @@ export function serviceMark(containers: { state: DockerContainerState; exitCode:
   if (containers.some((c) => c.state === "exited" && c.exitCode !== null && c.exitCode !== 0)) return "failed";
   if (containers.every((c) => c.state === "created")) return "created";
   return "stopped";
-}
-
-/** エンジンが止まっているときのボタン（context の名前から。分からない名前は出さない） */
-export function starterOf(context: string | null): DockerEngineStarter {
-  if (context === "orbstack") return { kind: "open", app: "OrbStack", label: "OrbStack を開く" };
-  if (context === "desktop-linux") return { kind: "open", app: "Docker", label: "Docker Desktop を開く" };
-  if (context === "colima" || context?.startsWith("colima-")) return { kind: "copy", command: context === "colima" ? "colima start" : `colima start --profile ${context.slice(7)}` };
-  return null;
 }
 
 /** フォルダ dir を、いちばん深く含む作業場所（パスはどちらも realpath でそろえたもの。なければ undefined） */

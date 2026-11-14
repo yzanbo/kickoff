@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { macosDockerStarterOf } from "./docker.js";
 import { parseCwds } from "./listening.js";
 import { appBundleOf, parseEtime, parsePs } from "./processes.js";
+import { parseChildren } from "./shell.js";
 
 const PS = `    1     0 10-00:00:00 /sbin/launchd
   500     1 02:00:00 /Applications/Kickoff.app/Contents/MacOS/Kickoff
@@ -42,4 +44,20 @@ test("parseCwds: lsof -Fpn の p と n の行", () => {
     [520, "/work/app"],
     [600, "/work/app wt"],
   ]);
+});
+
+test("macosDockerStarterOf: context の名前から開くアプリ・コピーするコマンド", () => {
+  assert.deepEqual(macosDockerStarterOf("orbstack"), { kind: "open", app: "OrbStack", label: "OrbStack を開く" });
+  assert.deepEqual(macosDockerStarterOf("desktop-linux"), { kind: "open", app: "Docker", label: "Docker Desktop を開く" });
+  assert.deepEqual(macosDockerStarterOf("colima"), { kind: "copy", command: "colima start" });
+  assert.deepEqual(macosDockerStarterOf("colima-dev"), { kind: "copy", command: "colima start --profile dev" });
+  assert.equal(macosDockerStarterOf("default"), null);
+  assert.equal(macosDockerStarterOf(null), null);
+});
+
+test("parseChildren: ps の pid・ppid の行を、親 → 子の並びにする（読めない行は飛ばす）", () => {
+  const children = parseChildren("  10     1\n  11    10\n  12    10\n  13    11\n\n  x  y\n");
+  assert.deepEqual(children.get(10), [11, 12]);
+  assert.deepEqual(children.get(11), [13]);
+  assert.equal(children.get(12), undefined);
 });

@@ -27,6 +27,7 @@ import type { Notice } from "../notifications/notices.js";
 import { ViewingRegistry } from "../notifications/viewing.js";
 import { BrowserLogin } from "../http/browserLogin.js";
 import { parseCwds, parseLsof } from "../platform/macos/listening.js";
+import { macosDockerEngine } from "../platform/macos/docker.js";
 import { parsePs } from "../platform/macos/processes.js";
 import { fakeDocker } from "./fakeDocker.js";
 import type { GraphqlVars, RestResponse, WriteMethod } from "../github/ghApi.js";
@@ -298,8 +299,9 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     },
   });
   // DB クライアントは同じプロセスのワーカーで動かす（中身は本物と同じ。dataDir は Kickoff 自身の保存先の代わり）
-  const dbFake = { dataDir: tempDir() };
-  const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), vault: new DbSecretVault(store, opts.secretCipher ?? null), dataDir: dbFake.dataDir, exportRoot: tempDir(), publish: (e) => bus.publish(e) });
+  // DB クライアント: Kickoff 自身の保存先と、製品版・開発版の保存先の親（OS の口の appDataRoot の代わり）
+  const dbFake = { dataDir: tempDir(), appDataRoot: tempDir() };
+  const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), vault: new DbSecretVault(store, opts.secretCipher ?? null), dataDir: dbFake.dataDir, appDataRoot: dbFake.appDataRoot, exportRoot: tempDir(), publish: (e) => bus.publish(e) });
   // GitHub タブ: 連携先と GitHub の答えは偽物（graphql / rest / pages を差し替える。聞いたものは calls に残る）
   const ghFake = {
     target: { host: "github.com", repo: "o/r", headOwner: "o" } as GitHubTarget | null,
@@ -348,7 +350,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const ci = new CiService(github, { remotes: async (repo) => ghFake.remotes ?? (await readGitHubRemotes(repo)).remotes });
   // Docker タブ: 偽の docker（dockerFake.set で答えを決め、dockerFake.calls で呼ばれた引数を見る。docker が入っていない様子は dockerFake.missing）
   const dockerFake = Object.assign(fakeDocker(), { missing: false });
-  const docker = new DockerService(bus, { listeningSockets: async () => parseLsof(portsFake.lsof), openApp: async () => {} }, new DockerCli(() => (dockerFake.missing ? null : dockerFake.bin)));
+  const docker = new DockerService(bus, { listeningSockets: async () => parseLsof(portsFake.lsof), dockerEngine: macosDockerEngine(async () => {}) }, new DockerCli(() => (dockerFake.missing ? null : dockerFake.bin)));
   // 静かなぶつかりの lsof・brew も偽物（portsFake.lsof に lsof の出力、brewServices に brew services info の JSON を入れる。止めた名前は brewStopped）
   // ポートを使っているプロセスも同じ lsof の出力を読む（ps の出力は ps、作業フォルダの lsof -Fpn の出力は cwds、送ったシグナルは killed、
   // まだ動いている pid は alive）

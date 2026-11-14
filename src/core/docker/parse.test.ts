@@ -13,7 +13,6 @@ import {
   parsePs,
   parseStatus,
   serviceMark,
-  starterOf,
 } from "./parse.js";
 
 test("parsePs: 1 行 1 JSON を読み、ラベルのないもの・読めない行も扱う", () => {
@@ -100,15 +99,6 @@ test("serviceMark: 一時停止 → 起動中 → unhealthy → 動いている 
   assert.equal(serviceMark([c("exited", 0), c("exited", 1)]), "failed");
   assert.equal(serviceMark([c("created")]), "created");
   assert.equal(serviceMark([c("exited", 0)]), "stopped");
-});
-
-test("starterOf: context の名前から開くアプリ・コピーするコマンド", () => {
-  assert.deepEqual(starterOf("orbstack"), { kind: "open", app: "OrbStack", label: "OrbStack を開く" });
-  assert.deepEqual(starterOf("desktop-linux"), { kind: "open", app: "Docker", label: "Docker Desktop を開く" });
-  assert.deepEqual(starterOf("colima"), { kind: "copy", command: "colima start" });
-  assert.deepEqual(starterOf("colima-dev"), { kind: "copy", command: "colima start --profile dev" });
-  assert.equal(starterOf("default"), null);
-  assert.equal(starterOf(null), null);
 });
 
 test("deepestWorkplace: いちばん深い作業場所。末尾の / や似た名前のフォルダで間違えない", () => {
