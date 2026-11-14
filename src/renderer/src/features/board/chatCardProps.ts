@@ -6,7 +6,7 @@ import { isOpenKey, isRenameKey } from "@/lib/keys";
 
 /**
  * ボードのカード（リストの行も同じ）の操作をカード全体でそろえる:
- * クリック・Space = チャットを開く / Enter = 名前を変え始める（Finder と同じ。利用者の依頼で、前は Enter でも開いていた）/ 右クリック = メニュー / ドラッグ = 移す（全プロジェクトのボードのグループの列）。
+ * クリック・Space = チャットを開く / ⌘ / Shift ＋クリック = 選ぶ（onPick）/ Enter = 名前を変え始める（Finder と同じ。利用者の依頼で、前は Enter でも開いていた）/ 右クリック = メニュー / ドラッグ = 移す（全プロジェクトのボードのグループの列）。
  * カードの中のボタンを押したときは開かない
  */
 export function chatCardProps(
@@ -14,6 +14,7 @@ export function chatCardProps(
   {
     dragHint,
     onOpen,
+    onPick,
     onRename,
     onMenu,
     onDragStart,
@@ -23,6 +24,8 @@ export function chatCardProps(
     /** 読み上げる説明の「（ドラッグで…）」の部分（ドラッグできるボードだけ） */
     dragHint?: string;
     onOpen: () => void;
+    /** クリック（⌘ / Shift なら選んで true = 開かない。修飾キーがなければ選んだものを外して false） */
+    onPick?: (e: MouseEvent) => boolean;
     /** 名前を変え始める（カードにピントがあるときの Enter） */
     onRename: () => void;
     onMenu: (at: Placement) => void;
@@ -35,13 +38,16 @@ export function chatCardProps(
 ) {
   return {
     role: "button",
+    // 画面の並び（Shift ＋クリックの範囲）を読む印
+    "data-chat-id": chat.id,
     tabIndex: 0,
     "aria-label": `チャット「${chatTitle(chat.title)}」を開く${dragHint ? `（${dragHint}）` : ""}`,
     draggable: Boolean(onDragStart) && !editing,
     onDragStart,
     onDragEnd,
     onClick: (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest("button")) onOpen();
+      if ((e.target as HTMLElement).closest("button")) return;
+      if (!onPick?.(e)) onOpen();
     },
     onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
       // カードの中の入力欄・ボタンのキーは見ない

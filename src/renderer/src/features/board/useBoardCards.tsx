@@ -10,6 +10,7 @@ import { FeedCardContent } from "./FeedList";
 import { chatCardProps } from "./chatCardProps";
 import { useCardFields } from "./CardFieldsMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
+import type { ChatSelection } from "@/features/sidebar/chatSelection";
 
 /** カードの右クリックメニュー（どこに・どのチャットの。開いている間はパネルを Esc で閉じない: usePanel の holdEsc に isOpen を渡す） */
 export const useCardMenu = () => useContextMenu<Chat>();
@@ -30,15 +31,18 @@ interface Options {
   style?: (chat: Chat) => CSSProperties | undefined;
   /** 全プロジェクトのボードでは、カードにプロジェクト名を出す */
   projectName?: (chat: Chat) => string | undefined;
+  /** ⌘ / Shift ＋クリックで選んだカード（サイドバーと同じ決まり。ボードごとに 1 つ） */
+  selection?: ChatSelection;
 }
 
 /**
  * ボードのカード（ボードの表示）と行（リストの表示）・フィードのカードの描き方（出す項目はツールバーの「表示項目」 useCardFields）。すべてのボードで共通:
  * クリック・Space で開く / Enter で名前を変える / 右クリックでメニュー / ドラッグで移す（全プロジェクトのボードのグループの列だけ）/ 名前をその場で変える。
  * どのボードでも、アーカイブ済みのカードは archived（ArchivedFold の中で薄く出す）、カード・行には回答待ちの依頼の数（「回答 n件」）を付ける。
- * パネルで表示中なら selected（チャットはどれもサイドバーと連動してタブにあるので、タブで開いているかの印は付けない）
+ * パネルで表示中なら selected（チャットはどれもサイドバーと連動してタブにあるので、タブで開いているかの印は付けない）。
+ * ⌘ / Shift ＋クリックで選んだカードは multi-selected で、その 1 つを右クリックすると選んだものすべてのメニュー（selection.openMenu。中身はサイドバーと同じ SelectionBar）
  */
-export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, classFor, style, projectName }: Options) {
+export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, classFor, style, projectName, selection }: Options) {
   const { pendingCount, stateOf } = useChatStates();
   // 出す項目（ツールバーの「表示項目」。すべてのボードで共通）
   const show = useCardFields();
@@ -48,8 +52,14 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
     ...chatCardProps(chat, {
       dragHint: drag?.hint,
       onOpen: () => onOpen(chat),
+      onPick: selection && ((e) => selection.click(e, chat.id)),
       onRename: () => rename.start(chat),
-      onMenu: (at) => menu.openAt(at, chat),
+      onMenu: (at) => {
+        // 選んだいくつかのカードの 1 つなら、まとめて操作するメニュー。ほかのカードなら選んだものを外して、そのカードのメニュー
+        if (selection?.has(chat.id) && selection.ids.size > 1) return selection.openMenu(at);
+        selection?.clear();
+        menu.openAt(at, chat);
+      },
       onDragStart: drag
         ? (e: DragEvent) => {
             // 薄く出す（dragging）のは、ドラッグの絵を写したあと
@@ -62,7 +72,7 @@ export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, cl
     title: openTitle?.(chat),
     style: style?.(chat),
   });
-  const cardClass = (chat: Chat) => cx(chat.archived_at && "archived", classFor?.(chat), dragChat === chat.id && "dragging", panel?.isShowing(chat.id) && "selected");
+  const cardClass = (chat: Chat) => cx(chat.archived_at && "archived", classFor?.(chat), dragChat === chat.id && "dragging", panel?.isShowing(chat.id) && "selected", selection?.has(chat.id) && "multi-selected");
   return {
     cardProps,
     cardClass,

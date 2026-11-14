@@ -4,7 +4,7 @@ import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useContextMenu } from "@/ui/useContextMenu";
 
 /**
- * サイドバーで選んだチャット（決まりは useMultiSelect: ⌘ を押しながらクリックで足す・外す、Shift で前に選んだものからの範囲を足す。
+ * サイドバー・ボードで選んだチャット（それぞれ 1 つずつ持つ。決まりは useMultiSelect: ⌘ を押しながらクリックで足す・外す、Shift で前に選んだものからの範囲を足す。
  * ふつうのクリックで解く。範囲は画面の並び順）。
  * 選んだものは、下のまとめて操作する欄（SelectionBar）と右クリックのメニューで、まとめてアーカイブ・移動・既読・削除する
  */
@@ -32,9 +32,15 @@ export const visibleRows = () =>
   [...document.querySelectorAll<HTMLElement>(CHAT_ROW_SELECTOR)].filter((el) => !el.closest("[inert]") && !el.closest(".collapse:not(.open)"));
 const rowIds = () => visibleRows().map((el) => Number(el.dataset.chatId));
 
-/** 選んでいる状態（existing: いまあるチャット。消えたものは選択から外す） */
-export function useChatSelectionState(existing: readonly number[]): ChatSelection {
-  const select = useMultiSelect(existing, rowIds);
+/** ボードのカード・リストの行の、画面に出ている上からの並び（閉じている段・まとまりの中は除く。ボードで選ぶときの範囲） */
+export const boardCardIds = () =>
+  [...document.querySelectorAll<HTMLElement>(".board-main [data-chat-id]")]
+    .filter((el) => !el.closest("[inert]") && !el.closest(".collapse:not(.open)"))
+    .map((el) => Number(el.dataset.chatId));
+
+/** 選んでいる状態（existing: いまあるチャット。消えたものは選択から外す。order: 範囲を決める画面の並び。省けばサイドバーの行。ボードは boardCardIds） */
+export function useChatSelectionState(existing: readonly number[], order: () => readonly number[] = rowIds): ChatSelection {
+  const select = useMultiSelect(existing, order);
   // 選んだチャットをまとめて操作する右クリックのメニュー
   const menu = useContextMenu();
   return {

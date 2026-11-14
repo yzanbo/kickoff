@@ -32,6 +32,9 @@ import { useKanbanChats } from "./useKanbanChats";
 import { useKanbanFilters, useKanbanLanes, useWorktreeChoices } from "./useKanbanFilters";
 import { BoardShell } from "./BoardShell";
 import { useBoardCards, useCardMenu } from "./useBoardCards";
+import { boardCardIds, useChatSelectionState } from "@/features/sidebar/chatSelection";
+import { SelectionBar } from "@/features/sidebar/SelectionBar";
+import { useGroupsOf } from "@/stores/groups";
 import { useChats } from "@/stores/chats";
 
 /** 状態の列は、チャットがなくてもすべて出す（段・グループはチャットか下書きのあるものだけ） */
@@ -161,6 +164,22 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   const laneReorder = useProjectLaneReorder(allProjects);
   // 並び順（ツールバーの「並び順」。列・まとまりの中もこの順）
   const { sort, setSort, compare } = useChatSort(projectIds ? [...projectIds] : projectId !== undefined ? [projectId] : []);
+  // ⌘ / Shift ＋クリックで選んだカード（利用者の依頼。サイドバーと同じ決まりで、まとめて操作する欄とメニューもサイドバーと同じ SelectionBar。範囲はボードの画面の並び）
+  const selection = useChatSelectionState(
+    shown.map((c) => c.id),
+    boardCardIds,
+  );
+  const shownProjects = [...new Set(shown.map((c) => c.project_id))];
+  const groupsOf = useGroupsOf(shownProjects);
+  const selectionBar = selection.ids.size > 0 && (
+    <div className="board-selection">
+      <SelectionBar
+        selection={selection}
+        chats={Object.fromEntries(shownProjects.map((id) => [id, shown.filter((c) => c.project_id === id)]))}
+        groups={Object.fromEntries(shownProjects.map((id) => [id, groupsOf(id)]))}
+      />
+    </div>
+  );
 
   /**
    * カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える）。全プロジェクトのボードではプロジェクトのバッジ（印と名前）を付け、
@@ -171,6 +190,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
     rename,
     menu,
     onOpen,
+    selection,
     openTitle: allProjects ? (chat) => `プロジェクト「${projectName(chat.project_id)}」で開く（そのプロジェクトの画面へ移ります）` : undefined,
     projectName: (chat) => (allProjects ? projectName(chat.project_id) : undefined),
     // グループの列・グループの段では、カードをドラッグしてグループを移す（全プロジェクトのボードで、ほかのプロジェクトのグループへ落とすと、確かめてからプロジェクトも移す）
@@ -245,7 +265,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   );
 
   return (
-    <BoardShell views={<SavedViewTabs projectId={projectId} />} header={header} error={error ?? loadError ?? (feed ? feedData.error : undefined)} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError}>
+    <BoardShell views={<SavedViewTabs projectId={projectId} />} header={header} error={error ?? loadError ?? (feed ? feedData.error : undefined)} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError} after={selectionBar}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : feed ? (

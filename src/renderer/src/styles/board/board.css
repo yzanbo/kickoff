@@ -46,3 +46,26 @@
   /* 見出しの並びを、ボードの幅に合わせて変える（下の @container） */
   container-type: inline-size;
 }
+
+/* ⌘ / Shift ＋クリックで選んだカード・リストの行（サイドバーの選んだ行と同じ色） */
+.board-card.multi-selected,
+.list-row.multi-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-elev));
+}
+
+/* 選んだカードをまとめて操作する欄（サイドバーと同じ SelectionBar を、ボードの下の真ん中に浮かせる。.board はレイアウトの封じ込め（container-type）で位置の基準になる） */
+.board-selection {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  z-index: 5;
+  width: min(360px, calc(100% - 32px));
+  transform: translateX(-50%);
+}
+
+.board-selection .selection-bar {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
