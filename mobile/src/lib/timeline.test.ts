@@ -19,8 +19,25 @@ test("timelineOf: 自分の発言・メインの返答・ツールの 1 行（�
   assert.deepEqual(timelineOf(events), [
     { kind: "user", id: 1, text: "直して", note: null },
     { kind: "tool", id: 3, name: "Bash", summary: "npm test", state: "error" },
-    { kind: "assistant", id: 6, text: "直しました" },
+    { kind: "assistant", id: 6, text: "直しました", math: false },
     { kind: "end", id: 8, status: "終わりました", text: null },
+  ]);
+});
+
+test("timelineOf: AI が描いた図は描いた位置にいちばん新しい中身で、描き直しの位置は 1 行。数式を含む返答には印", () => {
+  const items = timelineOf([
+    ev(1, "tool_use", { type: "tool_use", id: "v1", name: "mcp__kickoff_chat__show_visual", input: { kind: "svg", code: "<svg>1</svg>", title: "構成" } }),
+    ev(2, "tool_result", { type: "tool_result", tool_use_id: "v1", content: "visual_id: v-abcdefgh", is_error: false }),
+    ev(3, "tool_use", { type: "tool_use", id: "v2", name: "mcp__kickoff_chat__update_visual", input: { visual_id: "v-abcdefgh", code: "<svg>2</svg>" } }),
+    ev(4, "tool_result", { type: "tool_result", tool_use_id: "v2", content: "visual_id: v-abcdefgh", is_error: false }),
+    ev(5, "tool_use", { type: "tool_use", id: "v3", name: "mcp__kickoff_chat__show_visual", input: { kind: "html", code: "<p/>" } }),
+    ev(6, "text", { type: "text", text: "面積は $\\pi r^2$ です" }),
+  ]);
+  assert.deepEqual(items, [
+    { kind: "visual", id: 1, visual: { id: "v-abcdefgh", kind: "svg", code: "<svg>2</svg>", title: "構成", shownBy: "v1", updatedBy: ["v2"] }, text: "図を描いています…" },
+    { kind: "notice", id: 3, text: "「構成」を描き直しました" },
+    { kind: "visual", id: 5, visual: null, text: "図を描いています…" },
+    { kind: "assistant", id: 6, text: "面積は $\\pi r^2$ です", math: true },
   ]);
 });
 

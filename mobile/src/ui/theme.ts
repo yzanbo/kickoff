@@ -2,20 +2,9 @@
 import { StyleSheet } from "react-native";
 import type { SessionState } from "../state/hostSession";
 import { mismatchLabel } from "../lib/version";
+import { colors } from "./colors";
 
-export const colors = {
-  bg: "#1b1f20",
-  elev: "#232829",
-  hover: "#2c3234",
-  border: "#363d40",
-  text: "#e6e8e9",
-  muted: "#9aa3a7",
-  accent: "#4aa3df",
-  ok: "#4cbb7f",
-  ng: "#e0655f",
-  warn: "#d9a64a",
-  running: "#4aa3df",
-};
+export { colors };
 
 export const ui = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },

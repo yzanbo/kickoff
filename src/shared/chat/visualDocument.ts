@@ -56,7 +56,8 @@ export function visualThemeCss(vars: VisualThemeValues): string {
 const bridge = (maxHeight: number | null) => `(() => {
   const M = ${JSON.stringify(VISUAL_MESSAGES)};
   const MAX = ${maxHeight === null ? "Infinity" : Math.round(maxHeight)};
-  const post = (data) => parent.postMessage(data, "*");
+  // スマホの WebView の中では React Native へ、パソコンの iframe の中では外の画面へ知らせる
+  const post = (data) => (window.ReactNativeWebView ? window.ReactNativeWebView.postMessage(JSON.stringify(data)) : parent.postMessage(data, "*"));
   let last = -1;
   const report = () => {
     const body = document.body;
