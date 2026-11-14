@@ -81,14 +81,36 @@ test("update_chat: group_id は入れる・null で外す。もともとの値�
   assert.match(tools.update({ chat_id: root.id, group_id: null, pinned: false }), /変えていません/);
 });
 
-test("update_chat: 家系の外・ほかのプロジェクトのグループ・子チャットのグループ・空の名前・項目なしは断り、何も変えない", () => {
+test("update_chat: 家系の外のチャットは、同じプロジェクトなら名前だけ変えられる（固定・グループ・親から外す・ほかのプロジェクト・ないチャットは断る）", () => {
+  const ctx = setup();
+  const { childA, other } = family(ctx);
+  const otherProject = ctx.store.projects.create({ name: "q", repo_path: "/tmp/kickoff-test-other", provider: "claude" });
+  const base = { provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, memo_path: null, parent_chat_id: null };
+  const foreignChat = ctx.store.chats.create({ ...base, project_id: otherProject.id, title: "よそのプロジェクト" });
+  const tools = createAiChatEditTools(ctx.store, childA.id, idle);
+  assert.match(tools.update({ chat_id: other.id, title: " 【済】よそ " }), /ほかの家系.*「よそ」から「【済】よそ」/);
+  assert.equal(ctx.store.chats.get(other.id)?.title, "【済】よそ");
+  assert.match(tools.update({ chat_id: other.id, title: "【済】よそ" }), /変えていません/);
+  // 名前と一緒でも、家系の外の固定・グループ・親から外すは断り、名前も変えない
+  assert.throws(() => tools.update({ chat_id: other.id, title: "x", pinned: true }), /家系.*名前（title）だけ/);
+  assert.throws(() => tools.update({ chat_id: other.id, group_id: null }), /名前（title）だけ/);
+  assert.throws(() => tools.update({ chat_id: other.id, parent_id: null }), /名前（title）だけ/);
+  assert.throws(() => tools.update({ chat_id: other.id, title: "   " }), /空/);
+  assert.equal(ctx.store.chats.get(other.id)?.title, "【済】よそ");
+  assert.equal(ctx.store.chats.get(other.id)?.pinned, false);
+  assert.throws(() => tools.update({ chat_id: foreignChat.id, title: "x" }), /このプロジェクトにありません/);
+  assert.throws(() => tools.update({ chat_id: 99999, title: "x" }), /このプロジェクトにありません/);
+  assert.equal(ctx.store.chats.get(foreignChat.id)?.title, "よそのプロジェクト");
+});
+
+test("update_chat: ほかのプロジェクトのグループ・子チャットのグループ・空の名前・項目なしは断り、何も変えない", () => {
   const ctx = setup();
   const { root, childA, other } = family(ctx);
   const otherProject = ctx.store.projects.create({ name: "q", repo_path: "/tmp/kickoff-test-other", provider: "claude" });
   const foreign = ctx.store.groups.create(otherProject.id, "よその");
   const tools = createAiChatEditTools(ctx.store, childA.id, idle);
-  assert.throws(() => tools.update({ chat_id: other.id, title: "x" }), /家系.*ありません.*list_family_chats/);
-  assert.throws(() => tools.update({ chat_id: 99999, pinned: true }), /家系/);
+  assert.throws(() => tools.update({ chat_id: other.id, pinned: true }), /家系.*ありません/);
+  assert.throws(() => tools.update({ chat_id: 99999, pinned: true }), /このプロジェクトにありません/);
   // 名前は正しくても、グループが通らなければ名前も変えない（先にすべて確かめる）
   assert.throws(() => tools.update({ chat_id: root.id, title: "新しい名前", group_id: foreign.id }), /このプロジェクトにありません/);
   assert.throws(() => tools.update({ chat_id: root.id, group_id: 99999 }), /このプロジェクトにありません/);
@@ -96,7 +118,7 @@ test("update_chat: 家系の外・ほかのプロジェクトのグループ・�
   assert.throws(() => tools.update({ chat_id: root.id, title: "   " }), /空/);
   assert.throws(() => tools.update({ chat_id: root.id }), /変える項目がありません/);
   assert.equal(ctx.store.chats.get(root.id)?.title, "根");
-  assert.equal(ctx.store.chats.get(other.id)?.title, "よそ");
+  assert.equal(ctx.store.chats.get(other.id)?.pinned, false);
 });
 
 test("update_chat: parent_id で子チャットを親から外す（null = 親なしで、group_id を一緒に渡せばグループへ / 先祖の ID = その子に上げる）", () => {
