@@ -59,7 +59,9 @@ export function TrashTab({ projectId }: { projectId: number }) {
 export function TrashRow({ item, repoPath }: { item: TrashItem; repoPath?: string }) {
   const { busy, run } = useAction();
   const Icon = kindIcon(item);
-  const where = originText(item.origin, repoPath);
+  // 元の場所（名前だけと同じ = プロジェクトフォルダのいちばん上なら出さない）
+  const shown = originText(item.origin, repoPath);
+  const where = shown === item.label ? null : shown;
   return (
     <li className="trash-row">
       <Icon size={16} className="trash-row-icon" aria-hidden />
