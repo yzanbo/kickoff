@@ -6,6 +6,7 @@ import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input.js";
 import { startChildChat } from "./children.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
+import type { ChatRemover } from "./aiChatRemove.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type QueueResume, type QueueResumeAction, type TellResult, type MessageMarks } from "@shared/types";
 import { resumeMomentsOf } from "./queueResume.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
@@ -98,6 +99,11 @@ export class Runner extends RunnerQueue {
    */
   useWorktreeFinisher(finisher: WorktreeFinisher) {
     this.turnDeps.worktreeFinisher = finisher;
+  }
+
+  /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat の中身）を渡す。作業中か・送信待ちを止めるのに Runner を使うので、Runner を作ったあとで渡す */
+  useChatRemover(remover: ChatRemover) {
+    this.turnDeps.chatRemover = remover;
   }
 
   /** 起動すると送り始める送信待ちか（指示があり、自動で送るで、先頭の上に一時停止の線がなく、作業していない） */

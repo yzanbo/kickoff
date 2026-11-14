@@ -8,6 +8,7 @@ import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/chat/aiTerminal";
 import { AI_FINISH_WORKTREE_TOOL } from "@shared/chat/aiWorktree";
+import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL } from "@shared/chat/aiChatRemove";
 import { AI_NOTIFY_USER_TOOL } from "@shared/chat/aiNotify";
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
@@ -134,6 +135,11 @@ test("AI がターミナルを読むツール: 一覧は名前だけ、出力は
 test("AI がワークツリーを片付けるツール: 行はどのワークツリーか（省いたらこのチャットのワークツリー）", () => {
   assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, { worktree: "feat/a" }), "ワークツリーを片付ける: feat/a");
   assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, {}), "ワークツリーを片付ける: このチャットのワークツリー");
+});
+
+test("AI がチャットをアーカイブする・消すツール: 行はどのチャットか", () => {
+  assert.equal(describeTool(AI_ARCHIVE_CHAT_TOOL, { chat_id: 7 }), "チャットをアーカイブ: チャット 7");
+  assert.equal(describeTool(AI_DELETE_CHAT_TOOL, { chat_id: 8 }), "チャットをゴミ箱へ: チャット 8");
 });
 
 test("AI が利用者に知らせるツール: 行は知らせた文", () => {

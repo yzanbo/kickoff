@@ -29,6 +29,7 @@ import { createAiTerminalTools } from "./aiTerminal.js";
 import { createAiVisualTools } from "./aiVisual.js";
 import { createAiWorktreeTools } from "./aiWorktree.js";
 import { createAiNotifyTools } from "./aiNotify.js";
+import { createAiChatRemoveTools, type ChatRemover } from "./aiChatRemove.js";
 import { createAiUserViewTools } from "./aiUserView.js";
 import type { MemoService } from "../memos/memos.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
@@ -83,6 +84,8 @@ export interface ExecutionDeps {
   worktreeFinisher?: WorktreeFinisher;
   /** 利用者が見ているもの（AI の get_user_view が読む。なければそのツールを出さない） */
   userViews?: UserViewRegistry;
+  /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat。Runner を作ったあとで useChatRemover が渡す。なければそのツールを出さない） */
+  chatRemover?: ChatRemover;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -260,6 +263,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     chatNotify: deps.bus ? createAiNotifyTools({ store: deps.store, publish: (e) => deps.bus?.publish(e) }, chat.id) : null,
     // 利用者が見ているものを読むツール（どのチャットにも。画面の知らせを覚える所があるときだけ）
     chatUserView: deps.userViews ? createAiUserViewTools({ store: deps.store, userViews: deps.userViews }, chat.id) : null,
+    // チャットをアーカイブする・消すツール（どのチャットにも。同じプロジェクトのチャットを子孫ごと。自分・自分の祖先は作業の終わりに行う予約）
+    chatRemove: deps.chatRemover ? createAiChatRemoveTools(deps.chatRemover, chat.id) : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く

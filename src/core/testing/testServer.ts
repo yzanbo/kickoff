@@ -8,6 +8,7 @@ import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
 import { WorktreePrWatch } from "../git/prWatch.js";
 import { WorktreeFinisher } from "../worktrees/finish.js";
+import { ChatRemover } from "../chat/aiChatRemove.js";
 import { UserViewRegistry } from "../userView/registry.js";
 import { listWorktrees } from "../git/worktrees.js";
 import type { BranchPullRequest, MergedPullRequest } from "../git/github.js";
@@ -449,6 +450,10 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   });
   runner.useWorktreeFinisher(worktreeFinisher);
   after(() => worktreeFinisher.close());
+  // チャットのアーカイブ・削除（AI の archive_chat・delete_chat）。予約の確かめ直しは短く
+  const chatRemover = new ChatRemover({ store, bus, runner, trashBin, retryMs: 10 });
+  runner.useChatRemover(chatRemover);
+  after(() => chatRemover.close());
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
   const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
@@ -462,6 +467,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, worktreeFinisher, userViews, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, worktreeFinisher, chatRemover, userViews, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
 }
 
