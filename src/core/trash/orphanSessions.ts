@@ -7,8 +7,11 @@ import type { AgentProvider, SessionFileInfo } from "../providers/types.js";
 import type { SessionsUsedElsewhere } from "./siblingSessions.js";
 import type { TrashService } from "./service.js";
 import { sessionCompanion, sessionLabel } from "./sessionTrash.js";
+import { realPathLoose } from "../system/paths.js";
 
 export interface OrphanSessionDeps {
+  /** Kickoff の 1 回だけの問い合わせを動かす一時フォルダ（実体のパス。その作業フォルダの記録に kickoff_ask の印を付ける） */
+  askDir?: string | null;
   store: Store;
   providers: Record<ProviderId, AgentProvider>;
   trashBin: Pick<TrashService, "putPath">;
@@ -44,6 +47,7 @@ export async function listOrphanSessions(deps: OrphanSessionDeps): Promise<Orpha
     cwd: f.cwd,
     first_prompt: f.firstPrompt,
     project_id: f.cwd ? deps.projectOfPath(f.cwd) : null,
+    kickoff_ask: Boolean(deps.askDir && f.cwd && realPathLoose(f.cwd) === deps.askDir),
   }));
 }
 

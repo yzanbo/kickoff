@@ -2,6 +2,7 @@
 // （共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type BusEvent, type TrashItem } from "@shared/types";
@@ -276,7 +277,8 @@ test("どのチャットも使っていない会話記録: 一覧（チャット
   const info = (id: string, cwd: string) => ({ sessionId: id, file: file(id), size: 3, modifiedAt: new Date().toISOString(), cwd, firstPrompt: "前のチャット" });
   provider.sessionFiles = [info(ids.used, project.repo_path), info(ids.mine, project.repo_path), info(ids.orphan, project.repo_path), info(ids.outside, "/somewhere/else")];
 
-  const list = (await call("GET", "/api/orphan-sessions")).body as { session_id: string; project_id: number | null }[];
+  const list = (await call("GET", "/api/orphan-sessions")).body as { session_id: string; project_id: number | null; kickoff_ask: boolean }[];
+  assert.ok(list.every((s) => s.kickoff_ask === false));
   assert.deepEqual(
     list.map((s) => [s.session_id, s.project_id]),
     [
@@ -284,6 +286,12 @@ test("どのチャットも使っていない会話記録: 一覧（チャット
       [ids.outside, null],
     ],
   );
+  // Kickoff の 1 回だけの問い合わせ（OS の一時フォルダで動かしたもの）には印を付ける
+  const askId = "55555555-5555-4555-8555-555555555555";
+  provider.sessionFiles = [...provider.sessionFiles, info(askId, os.tmpdir())];
+  const withAsk = (await call("GET", "/api/orphan-sessions")).body as { session_id: string; kickoff_ask: boolean }[];
+  assert.equal(withAsk.find((s) => s.session_id === askId)?.kickoff_ask, true);
+  provider.sessionFiles = provider.sessionFiles.filter((f) => f.sessionId !== askId);
   const done = await call("POST", "/api/orphan-sessions/trash", { session_ids: [ids.orphan, ids.outside, ids.used] });
   assert.deepEqual(done.body, { trashed: 2 });
   assert.equal(fs.existsSync(path.join(dir, `${ids.orphan}.jsonl`)), false);

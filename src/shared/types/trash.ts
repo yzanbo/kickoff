@@ -88,6 +88,8 @@ export interface OrphanSession {
   first_prompt: string | null;
   /** 作業フォルダを含むプロジェクト（ゴミ箱に入れたらそのプロジェクトの「ゴミ箱」に出る。なければ null） */
   project_id: number | null;
+  /** Kickoff の 1 回だけの問い合わせ（チャットの名前付け・要約など。一時フォルダで動かしたもの）の記録か。いまは残さないが、前の版が残したもの */
+  kickoff_ask: boolean;
 }
 
 /** 選んだ会話記録をゴミ箱へ入れる（POST /api/orphan-sessions/trash） */

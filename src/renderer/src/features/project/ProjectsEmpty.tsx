@@ -1,6 +1,8 @@
-import { FolderGit2, FolderInput, FolderSearch, Inbox, LayoutGrid, MessageSquare, Plus } from "lucide-react";
+import { FolderGit2, FolderInput, FolderSearch, Inbox, LayoutGrid, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { href } from "@/app/router";
 import { EmptyState } from "@/ui/EmptyState";
+import { useTrashedProjects } from "@/stores/trash";
+import { openSettings } from "@/features/settings/openSettings";
 import { useVisibleProjects } from "./useVisibleProjects";
 import { ProjectMark } from "./ProjectMark";
 import { openNewProject } from "./new/openNewProject";
@@ -42,9 +44,10 @@ const STEPS = [
  * プロジェクトがまだないときの案内（全プロジェクトの画面・見つからないプロジェクトの画面・新しいチャットを始めようとしたときの案内のダイアログで共通）。
  * Kickoff で何をするか・始め方の 3 段・作る / 取り込むのボタン。archived: しまったプロジェクトの数（あれば「まだない」とは言わず、その旨を添える）。
  * forNewChat: 新しいチャットを始めようとしたとき（すべてのチャットはプロジェクトの中で行うことを先に伝え、作るとそこで新しいチャットが開くと添える）。
- * onPick: 作る・取り込むを押したとき（ダイアログを閉じる）
+ * onPick: 作る・取り込むを押したとき（ダイアログを閉じる）。ゴミ箱に入れたプロジェクトがあれば、その数と設定の「ゴミ箱と整理」（戻す口）を開くボタンを添える
  */
 export function NoProjectsWelcome({ archived = 0, forNewChat = false, onPick }: { archived?: number; forNewChat?: boolean; onPick?: () => void }) {
+  const trashed = useTrashedProjects().data?.length ?? 0;
   return (
     <EmptyState
       icon={forNewChat ? MessageSquare : FolderGit2}
@@ -78,6 +81,21 @@ export function NoProjectsWelcome({ archived = 0, forNewChat = false, onPick }: 
         "Kickoff では、フォルダ 1 つが 1 つのプロジェクトです。プロジェクトを作ると、その中で AI とのチャットを始められます。"
       )}
       {archived > 0 && <p className="empty-state-note">アーカイブしたプロジェクトが {archived} 件あります（サイドバーの見出しの「アーカイブ」で表示して戻せます）。</p>}
+      {trashed > 0 && (
+        <p className="empty-state-note">
+          ゴミ箱にプロジェクトが {trashed} 件あります（削除してから 3 日は戻せます）。{" "}
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => {
+              onPick?.();
+              openSettings("trash");
+            }}
+          >
+            <Trash2 size={13} aria-hidden /> ゴミ箱と整理を開く
+          </button>
+        </p>
+      )}
     </EmptyState>
   );
 }

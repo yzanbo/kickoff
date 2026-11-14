@@ -154,3 +154,13 @@
   white-space: nowrap;
   font-family: var(--mono);
 }
+/* Kickoff の 1 回だけの問い合わせ（名前付け・要約など）の記録の札 */
+.orphan-session-tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
