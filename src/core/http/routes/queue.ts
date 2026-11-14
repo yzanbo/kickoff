@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
+import { rememberSentView } from "./userView.js";
 import { attachmentsSchema, editingIdsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "./schemas.js";
 import { QUEUE_ACTIONS, QUEUE_RESUME_ACTIONS, type QueueAddResult, type QueueMergeResult, type QueueResumeBody } from "@shared/types";
 import { marksOf } from "@shared/chat/handoff";
@@ -12,7 +13,7 @@ import { marksOf } from "@shared/chat/handoff";
  * 止めておく・「ここまで送ったら止めます」の印。応答はどれも、変えたあとの送信待ち（QueueState。SSE の chat_live の queue と同じ形）。
  * 列にない指示は 404、送るものがないなどの状態は 409（Runner が投げる）
  */
-export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
+export function queueRoutes(app: Hono, { store, runner, userViews }: ServerDeps) {
   const { withChat } = lookups(store);
 
   // 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）
@@ -33,6 +34,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     const { chat } = c.var;
     const body = queueMessageSchema.parse(await jsonBody(c));
     const added = await runner.queueMessage(chat.id, body.text, body.options, body.attachments, { hold: body.hold, pauseAfter: body.pause_after, marks: marksOf(body) });
+    rememberSentView(c, userViews, chat.id, body.user_view);
     const result: QueueAddResult = { ...runner.queueState(chat.id), ...added };
     return c.json(result);
   });

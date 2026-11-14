@@ -35,6 +35,7 @@ import { sweepUnusedUploads } from "./chat/uploadCleanup.js";
 import type { SessionTrash } from "./chat/sessionSwitch.js";
 import { registerProjectTrash } from "./trash/projectTrash.js";
 import { WorktreeFinisher } from "./worktrees/finish.js";
+import { UserViewRegistry } from "./userView/registry.js";
 import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "./trash/chatTrash.js";
 import { isInside, realPathLoose } from "./system/paths.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
@@ -175,7 +176,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     if (sessionsElsewhere([sessionId]).size > 0) return;
     await trashBin.putPath(file, { projectId, label, kind: "session" });
   };
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, interrupted: recovered });
+  // 利用者が見ているもの（この Mac の画面のウィンドウごとの知らせと、チャットごとの送ったときの様子。AI の get_user_view が読む。保存しない）
+  const userViews = new UserViewRegistry();
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, interrupted: recovered });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（メモの仕様書「ファイル削除」の Q17）
   trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない。メモの仕様書「ファイル削除」の Q16）
@@ -233,6 +236,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     browserLogin,
     trashBin,
     worktreeFinisher,
+    userViews,
     sessionsElsewhere,
     tailscaleCli: opts.platform.tailscaleCli,
     terminals,

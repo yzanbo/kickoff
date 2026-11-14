@@ -16,6 +16,7 @@ import { ReadImage } from "./ReadImage";
 import { DB_QUERY_TOOL, DbQueryToolDetail } from "@/features/database/DbQueryToolDetail";
 import { CreatedChatToolDetail } from "@/features/chat/children/CreatedChatToolDetail";
 import { isCreateChatTool } from "@shared/chat/aiCreateChat";
+import { AI_GET_USER_VIEW_TOOL, userViewSummaryOf } from "@shared/chat/aiUserView";
 import { toolImageType } from "@shared/chat/toolImage";
 import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkContext";
 
@@ -126,6 +127,9 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
             <ToolFileArg path={input.file_path} label={rel(describeToolInput(name, input))} />
           ) : name === "Read" && typeof input.file_path === "string" ? (
             <ToolPath path={rel(input.file_path)} />
+          ) : name === AI_GET_USER_VIEW_TOOL ? (
+            // 画面を見たか・読めなかった事情は、結果の 1 行目から（引数がないので、ツールの名前だけでは何が起きたか分からない）
+            (userViewSummaryOf(r?.content) ?? "")
           ) : (
             rel(describeToolInput(name, input))
           )}

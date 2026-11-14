@@ -1,4 +1,6 @@
 import { useMemo, useRef } from "react";
+import { useUserViewReport } from "./userViewReport";
+import { collectPopoutView, popoutChatIds } from "./userViewCollect";
 import { publishServerEvent } from "@/api/events";
 import { useServerConnection } from "@/api/useServerConnection";
 import { useApprovals } from "@/stores/approvals";
@@ -45,6 +47,8 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   const approvals = useApprovals();
   const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
   useApplyChatFontSize();
+  // 利用者が見ているもの（このウィンドウの中身。AI の get_user_view が読む）
+  useUserViewReport(() => collectPopoutView(route), (view) => popoutChatIds(view, route), [route]);
   const rootRef = useRef<HTMLDivElement>(null);
   const find = usePageFind(rootRef, { native: openEditorFind, placeholder: "このウィンドウを検索", className: "page-find" });
   useWindowEvent("keydown", (e) => {

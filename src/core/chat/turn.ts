@@ -7,6 +7,7 @@ import type { DockerService } from "../docker/service.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import type { DatabaseService } from "../databases/service.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
+import type { UserViewRegistry } from "../userView/registry.js";
 import { githubEnvForGit, runAsGitHubAccount } from "../git/githubAccount.js";
 import { mkdirSync } from "node:fs";
 import fs from "node:fs/promises";
@@ -28,6 +29,7 @@ import { createAiTerminalTools } from "./aiTerminal.js";
 import { createAiVisualTools } from "./aiVisual.js";
 import { createAiWorktreeTools } from "./aiWorktree.js";
 import { createAiNotifyTools } from "./aiNotify.js";
+import { createAiUserViewTools } from "./aiUserView.js";
 import type { MemoService } from "../memos/memos.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { canCreateChat, createAiCreateChatTools, type StartedChild } from "./aiCreateChat.js";
@@ -79,6 +81,8 @@ export interface ExecutionDeps {
   sessionTrash?: SessionTrash;
   /** ワークツリーの後始末（AI の finish_worktree。Runner を作ったあとで useWorktreeFinisher が渡す。なければそのツールを出さない） */
   worktreeFinisher?: WorktreeFinisher;
+  /** 利用者が見ているもの（AI の get_user_view が読む。なければそのツールを出さない） */
+  userViews?: UserViewRegistry;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -254,6 +258,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     chatWorktree: deps.worktreeFinisher ? createAiWorktreeTools(deps.worktreeFinisher, chat.id) : null,
     // 利用者に知らせるツール（どのチャットにも。送るかは通知の中心が決める。1 回の作業で回数を数えるので作業ごとに作る。バスがあるときだけ）
     chatNotify: deps.bus ? createAiNotifyTools({ store: deps.store, publish: (e) => deps.bus?.publish(e) }, chat.id) : null,
+    // 利用者が見ているものを読むツール（どのチャットにも。画面の知らせを覚える所があるときだけ）
+    chatUserView: deps.userViews ? createAiUserViewTools({ store: deps.store, userViews: deps.userViews }, chat.id) : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く
