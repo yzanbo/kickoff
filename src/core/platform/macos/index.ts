@@ -43,5 +43,7 @@ export function macosPlatform({ speechHelper = null }: MacosPlatformOptions = {}
     selfGuard: MACOS_SELF_GUARD,
     dockerEngine: macosDockerEngine(openApp),
     tailscaleCli: macosTailscaleCli,
+    // ログインシェル（$SHELL。なければ zsh）。決まったコマンドのタブは -l -c でそれだけを流す
+    terminalShell: () => ({ file: process.env.SHELL || "/bin/zsh", args: (command) => (command ? ["-l", "-c", command] : ["-l"]) }),
   };
 }

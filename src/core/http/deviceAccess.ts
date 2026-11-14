@@ -62,6 +62,11 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/chats/:id/queue/send-in-order"],
   ["POST", "/api/chats/:id/queue/remove-many"],
   ["POST", "/api/chats/:id/queue/move-many"],
+  // ターミナル（一覧・始める・止める・WebSocket でつなぐ。2026-11-14 に利用者と決めた。見るだけの端末は見るだけ）
+  ["GET", "/api/terminals"],
+  ["POST", "/api/projects/:id/terminals"],
+  ["DELETE", "/api/terminals/:key"],
+  ["GET", "/api/terminals/:key/ws"],
   // 承認・質問への回答
   ["GET", "/api/approvals"],
   ["POST", "/api/approvals/:id"],

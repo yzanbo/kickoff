@@ -29,7 +29,7 @@ import { MemoService } from "./memos/memos.js";
 import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
 import type { BrowserControl } from "./browser/control.js";
-import type { TerminalControl } from "./terminal/control.js";
+import { TerminalSessions } from "./terminal/sessions.js";
 import { DbWorkerClient, forkWorker, type WorkerChannel } from "./databases/client.js";
 import { DatabaseService } from "./databases/service.js";
 import { GitHubService } from "./github/service.js";
@@ -50,8 +50,8 @@ interface CoreOptions {
   staticDir?: string;
   /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。AI がブラウザのタブを見る・操作するツールに使う） */
   browser?: BrowserControl;
-  /** 内蔵ターミナルの読み取り（デスクトップアプリのメインプロセスが渡す。AI がターミナルの出力を読むツールに使う） */
-  terminals?: TerminalControl;
+  /** 内蔵ターミナルのシェルに足す環境変数（どちらの Kickoff のターミナルか = KICKOFF_TERMINAL_OF。メインプロセス・daemon が渡す） */
+  terminalEnv?: Record<string, string>;
   /** OS ごとに違う処理（ゴミ箱・ポートを待っているプロセス・音声認識など。いまは platform/macos の macosPlatform。メインプロセス・daemon が作って渡す） */
   platform: HostPlatform;
   /**
@@ -79,8 +79,8 @@ export interface Core {
   browserLoginUrl(): string;
   /** 作業中のチャットの数と、スマホ連携がオンか（メインプロセスが本体を眠らせないかを決める。変わったら bus の chat / settings が届く） */
   awakeNeeds(): { running: number; mobileEnabled: boolean };
-  /** フォルダがポートの帯を持つワークツリーの中なら、渡す環境変数（PORT。内蔵ターミナル） */
-  worktreeEnvFor(dir: string): Record<string, string>;
+  /** 内蔵ターミナルのシェル（メインプロセスが、この Mac の画面の IPC をここへつなぐ） */
+  terminals: TerminalSessions;
   close(): Promise<void>;
 }
 
@@ -137,7 +137,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const worktreeEnvs = new WorktreeEnvService(store, docker);
   // ポートを使っているプロセス（AI が残した開発サーバーに気付いて止める。調べるのは窓を開いた・チャットの実行が終わったときだけ）
   const ports = new PortWatch(bus, new PortProcessService({ store, probe: opts.platform, selfBundle: opts.platform.appBundleOf(process.execPath) }));
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals: opts.terminals, databases, docker, worktreeEnvs, interrupted: recovered });
+  // 内蔵ターミナルのシェル（この Mac の画面は IPC、スマホは WebSocket でつなぐ。ワークツリーのシェルには PORT を渡す。AI は出力を読むだけ）
+  const terminals = new TerminalSessions({ shell: opts.platform.terminalShell(), env: opts.terminalEnv, envOf: (cwd) => worktreeEnvs.envFor(cwd) });
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speech: opts.platform.speech, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）
@@ -185,6 +187,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     browserLogin,
     trash: opts.platform.moveToTrash,
     tailscaleCli: opts.platform.tailscaleCli,
+    terminals,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });
@@ -208,7 +211,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     databaseStats: () => store.stats(),
     awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: store.settings.get().remote_enabled }),
     browserLoginUrl: () => `http://127.0.0.1:${opts.port}/login?code=${browserLogin.issue()}`,
-    worktreeEnvFor: (dir) => worktreeEnvs.envFor(dir),
+    terminals,
     close: async () => {
       // 止める途中の知らせで通知を出さない
       notifications.close();
@@ -223,6 +226,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       stopAutoArchive();
       memos.close();
       await databases.close();
+      terminals.closeAll();
       await stopHttpServer(server);
       store.close();
     },
