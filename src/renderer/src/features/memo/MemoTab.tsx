@@ -1,26 +1,29 @@
 import { FileCode2, FilePlus, FolderOpen, PanelLeftOpen, StickyNote } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import type { TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { navigate } from "@/app/router";
 import { cx } from "@/lib/cx";
+import { isCancelKey } from "@/lib/keys";
+import { readSetting } from "@/lib/storage";
 import { CHANGES_LIST_WIDTH, MEMO_LIST_HIDDEN, memoOpenFolders, memoSelected } from "@/lib/storageKeys";
 import { useDragSize } from "@/hooks/useDragSize";
+import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useSetting } from "@/hooks/useSetting";
 import { memosStore, useMemoList } from "@/stores/memos";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
-import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { SearchField } from "@/ui/SearchField";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { folderPaths, type TreeNode } from "@/features/editor/treeModel";
-import { FileIcon } from "@/features/editor/FileIcon";
 import { focusedPane } from "@/features/panel/layout/paneTree";
 import { Panel } from "@/features/panel/Panel";
 import type { PanelFrame } from "@/features/panel/PanelTools";
 import { usePanel } from "@/features/panel/usePanel";
-import { ancestorsOf, baseName, buildMemoTree, filterMemos, isUnder, parentOf } from "./memoPaths";
+import { ancestorsOf, buildMemoTree, filterMemos, isUnder, parentOf, topLevelPaths, visibleTreePaths } from "./memoPaths";
+import { MemoFoundList } from "./MemoFoundList";
 import { MemoListHead } from "./MemoListHead";
+import { MemoListMenu, type MemoMenuTarget } from "./MemoListMenu";
 import { memoListDropProps } from "./memoDrag";
 import { MemoTree, type MemoRenaming } from "./MemoTree";
 import { confirmLeaveMemosUnder } from "./memoGuards";
@@ -37,7 +40,8 @@ const NO_TERMINALS: readonly TerminalTarget[] = [];
  * プロジェクトの「メモ」タブ（左にメモのフォルダの木、右に開いたメモ）。左の一覧は隠せる（MEMO_LIST_HIDDEN。隠している間は左端の細い帯に「一覧を表示」）。メモはプロジェクトの外（設定の親フォルダの下の、
  * プロジェクトごとのフォルダ）の Markdown。openMemo は URL の ?memo= で来たメモ（チャットの「メモに追加」・⌘K から。開いたら URL から外す）、openMemoLine はそのメモで移る行（⌘K の「メモ内の文言」）。
  * 右は開いたメモをタブで並べるパネル（memos。チャットのパネルと同じく、タブのドラッグで上下・左右に分けられる）。一覧のメモを押すと、ピントのあるペインで表示中のメモを入れ替え、
- * ⌘クリックで新しいタブに開く（openMemoInPanel）。一覧の選んでいる行は、ピントのあるペインで表示中のメモ。最後に表示したメモは memoSelected に覚え、次に開いたときに開き直す
+ * 右クリックの「新しいタブで開く」で新しいタブに開く（openMemoInPanel）。一覧の選んでいる行は、ピントのあるペインで表示中のメモ。⌘ / Shift ＋クリックでいくつも選べ（useMultiSelect）、
+ * まとめてドラッグで動かす・右クリックで開く・パスをコピー・ゴミ箱に入れる。最後に表示したメモは memoSelected に覚え、次に開いたときに開き直す
  */
 export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: number; openMemo?: string; openMemoLine?: number }) {
   const list = useMemoList(projectId);
@@ -59,7 +63,7 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   const [openList, setOpenList] = useSetting(memoOpenFolders(projectId));
   const open = useMemo(() => new Set(openList), [openList]);
   const [query, setQuery] = useState("");
-  const menu = useContextMenu<TreeNode | null>();
+  const menu = useContextMenu<MemoMenuTarget>();
   // 左の一覧の幅（エディタ・履歴タブと同じ幅を覚える）
   const width = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
   const [listHidden, setListHidden] = useSetting(MEMO_LIST_HIDDEN);
@@ -75,6 +79,11 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   const dirs = useMemo(() => folderPaths(tree), [tree]);
   const found = useMemo(() => (query.trim() ? filterMemos(entries ?? [], query) : null), [entries, query]);
   const dir = list.data?.dir ?? "";
+  // ⌘ / Shift ＋クリックで選んだいくつかの行（利用者の依頼。Finder と同じ。範囲は見えている並び = 探していれば見つかった順、ふだんは開いているフォルダの中までの木の順）
+  const allPaths = useMemo(() => (entries ?? []).map((e) => e.path), [entries]);
+  const multi = useMultiSelect(allPaths, () => (found ? found.map((e) => e.path) : visibleTreePaths(tree, open)));
+  const isSelected = (path: string) => (multi.selected.length > 0 ? multi.has(path) : highlighted === path);
+  const nodesOf = (paths: readonly string[]) => paths.map((path) => ({ path, dir: entries?.find((e) => e.path === path)?.dir ?? false }));
 
   const openFolders = (paths: string[]) => setOpenList([...new Set([...openList, ...paths])]);
   // メモを開く（newTab = 新しいタブ。ふだんはピントのあるペインで表示中のメモを入れ替える。そのときは書きかけをどうするか聞く）
@@ -125,7 +134,8 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
     onMoved: (from, to) => moved(from, to),
     onTrashed: (path) => {
       closeMemoTabsUnder(projectId, path);
-      setOpenList(openList.filter((p) => !isUnder(p, path)));
+      // まとめてゴミ箱に入れると続けて呼ばれるので、いま覚えている値から外す
+      setOpenList(readSetting(memoOpenFolders(projectId)).filter((p) => !isUnder(p, path)));
     },
   });
 
@@ -149,6 +159,31 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   };
   const reveal = (path: string) => window.kickoff?.externalApps.revealPath(path ? `${dir}/${path}` : dir);
 
+  // 行を押した: ⌘ / Shift なら選ぶだけ（まだ何も選んでいなければ、いま選んでいる行も入れる）。ふつうのクリックは選んだものを外し、メモは開き、フォルダは開閉して選ぶ
+  const rowClick = (path: string, isDir: boolean, e: MouseEvent) => {
+    if (multi.click(e, path, highlighted || null)) return;
+    if (isDir) {
+      setPicked(path);
+      toggle(path);
+    } else {
+      setPicked(null);
+      void select(path);
+    }
+  };
+  // 右クリック: 選んだいくつかの行の 1 つなら、選んでいるものすべてのメニュー。ほかの行なら選んだものを外して、その行のメニュー
+  const rowMenu = (e: MouseEvent, node: TreeNode) => {
+    e.stopPropagation();
+    if (multi.has(node.path) && multi.selected.length > 1) return menu.open(e, { node, many: nodesOf(multi.selected) });
+    multi.clear();
+    menu.open(e, { node, many: null });
+  };
+  // 選んだ行をつかめば、選んでいるものすべてを運ぶ（フォルダとその中を両方選んでいれば、フォルダだけ）
+  const dragPaths = (node: TreeNode) => (multi.has(node.path) && multi.selected.length > 1 ? topLevelPaths(multi.selected) : [node.path]);
+  const dropInto = (paths: string[], folder: string) => void actions.moveAllInto(paths, folder);
+  const openInNewTabs = async (paths: string[]) => {
+    for (const path of paths) await openMemoInPanel(projectId, path, true);
+  };
+
   return (
     <div className={cx("changes", "memo-tab", width.resizing && "resizing")}>
       {listHidden ? (
@@ -166,14 +201,23 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
           // 空いている所の右クリックも、選んでいる行を外す（メニューの「新しいメモ」などは、いちばん外側に作る）
           onContextMenu={(e) => {
             setPicked("");
-            menu.open(e, null);
+            multi.clear();
+            menu.open(e, { node: null, many: null });
           }}
           // 行・見出し・探す欄の外（一覧の下の空いている所など）を押したら、選んでいる行を外す（そのまま作ると、いちばん外側に作る）
           onClick={(e) => {
-            if (!(e.target instanceof Element) || !e.target.closest(".tree-row, .memo-list-head, .memo-search, button, input")) setPicked("");
+            if (e.target instanceof Element && e.target.closest(".tree-row, .memo-list-head, .memo-search, button, input")) return;
+            setPicked("");
+            multi.clear();
+          }}
+          // Esc で、⌘ / Shift ＋クリックで選んだものを外す
+          onKeyDown={(e) => {
+            if (!isCancelKey(e) || multi.selected.length === 0) return;
+            e.preventDefault();
+            multi.clear();
           }}
           // 一覧の空いている所へ落とすと、いちばん上（直下）へ動かす
-          {...memoListDropProps({ onDropInto: (path, folder) => void actions.moveInto(path, folder), onDropTarget: setDropTarget })}
+          {...memoListDropProps({ onDropInto: dropInto, onDropTarget: setDropTarget })}
         >
           <MemoListHead
             dir={dir}
@@ -199,25 +243,7 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
             found.length === 0 ? (
               <p className="muted small changes-empty">「{query.trim()}」に合うメモはありません。</p>
             ) : (
-              <ul className="memo-found" role="listbox" aria-label="見つかったメモ">
-                {found.map((e) => (
-                  <li key={e.path}>
-                    <button
-                      role="option"
-                      aria-selected={highlighted === e.path}
-                      className={cx("tree-row", highlighted === e.path && "selected")}
-                      onClick={(ev) => {
-                        setPicked(null);
-                        void select(e.path, ev.metaKey || ev.ctrlKey);
-                      }}
-                    >
-                      <FileIcon name={baseName(e.path)} dir={false} />
-                      <span className="tree-name">{baseName(e.path)}</span>
-                      {parentOf(e.path) && <span className="memo-found-folder">{parentOf(e.path)}</span>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <MemoFoundList found={found} isSelected={isSelected} onRowClick={(path, e) => rowClick(path, false, e)} onMenu={rowMenu} />
             )
           ) : tree.length === 0 ? (
             <p className="muted small changes-empty">まだメモはありません。上の ＋ から作るか、チャットの文を右クリックして「メモに追加」で作れます。</p>
@@ -225,19 +251,12 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
             <MemoTree
               nodes={tree}
               open={open}
-              onToggle={(path) => {
-                // フォルダを押したら開閉して、そのフォルダを選ぶ
-                setPicked(path);
-                toggle(path);
-              }}
-              selected={highlighted || undefined}
-              onSelect={(path, newTab) => {
-                setPicked(null);
-                void select(path, newTab);
-              }}
-              onMenu={(e, node) => menu.open(e, node)}
+              isSelected={isSelected}
+              onRowClick={(node, e) => rowClick(node.path, node.dir, e)}
+              onMenu={rowMenu}
               onExpand={(path) => openFolders([path])}
-              onDropInto={(path, folder) => void actions.moveInto(path, folder)}
+              onDropInto={dropInto}
+              dragPaths={dragPaths}
               dropTarget={dropTarget}
               onDropTarget={setDropTarget}
               renaming={renaming}
@@ -284,27 +303,20 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
         )}
       </div>
       {menu.menu && (
-        <PopupMenu at={menu.menu.at} label="メモの操作" onClose={menu.close}>
-          {(menu.menu.value === null || menu.menu.value.dir) && (
-            <>
-              <MenuItem onSelect={() => void actions.createMemo(folderForNew(menu.menu?.value ?? null))}>新しいメモ</MenuItem>
-              <MenuItem onSelect={() => void actions.createMemo(folderForNew(menu.menu?.value ?? null), "html")}>新しい HTML メモ</MenuItem>
-              <MenuItem onSelect={() => void actions.createFolder(folderForNew(menu.menu?.value ?? null))}>新しいフォルダ</MenuItem>
-            </>
-          )}
-          {menu.menu.value && (
-            <MenuItem onSelect={() => menu.menu?.value && startRename(menu.menu.value.path)}>名前を変更</MenuItem>
-          )}
-          {window.kickoff && <MenuItem onSelect={() => void reveal(menu.menu?.value?.path ?? "")}>Finder で表示</MenuItem>}
-          {menu.menu.value && (
-            <MenuItem onSelect={() => void navigator.clipboard.writeText(`${dir}/${menu.menu?.value?.path ?? ""}`)}>パスをコピー</MenuItem>
-          )}
-          {menu.menu.value && (
-            <MenuItem danger onSelect={() => menu.menu?.value && void actions.trash(menu.menu.value.path, menu.menu.value.dir)}>
-              ゴミ箱に入れる…
-            </MenuItem>
-          )}
-        </PopupMenu>
+        <MemoListMenu
+          at={menu.menu.at}
+          target={menu.menu.value}
+          dir={dir}
+          onClose={menu.close}
+          onCreate={(node, kind) => void (kind === "folder" ? actions.createFolder(folderForNew(node)) : actions.createMemo(folderForNew(node), kind))}
+          onRename={startRename}
+          onReveal={window.kickoff ? (path) => void reveal(path) : null}
+          onOpenInNewTabs={(paths) => void openInNewTabs(paths)}
+          onTrash={(nodes) => {
+            multi.clear();
+            void actions.trashMany(nodes);
+          }}
+        />
       )}
       {planning && <MemoPlanDialog projectId={projectId} onApply={actions.moveMany} onClose={() => setPlanning(false)} />}
     </div>

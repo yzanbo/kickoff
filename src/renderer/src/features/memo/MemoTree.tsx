@@ -21,16 +21,18 @@ export interface MemoRenaming {
 interface Props {
   nodes: TreeNode[];
   open: Set<string>;
-  onToggle: (path: string) => void;
   /** 閉じたフォルダを開く（ドラッグを重ねて待ったとき） */
   onExpand: (path: string) => void;
-  selected?: string;
-  /** メモの行を押した（newTab = ⌘クリック。新しいタブで開く） */
-  onSelect: (path: string, newTab: boolean) => void;
+  /** 選んでいる行か（背景の色。⌘ / Shift ＋クリックで選んだいくつかの行も） */
+  isSelected: (path: string) => boolean;
+  /** 行を押した（修飾キーを見て、選ぶ・開く・開閉するかは一覧（MemoTab）が決める） */
+  onRowClick: (node: TreeNode, e: MouseEvent) => void;
   /** 行の右クリック（行のメニュー） */
   onMenu: (e: MouseEvent, node: TreeNode) => void;
-  /** メモ・フォルダを、フォルダ（"" は直下）へ落とした */
-  onDropInto: (path: string, folder: string) => void;
+  /** メモ・フォルダ（まとめて運んだらいくつも）を、フォルダ（"" は直下）へ落とした */
+  onDropInto: (paths: string[], folder: string) => void;
+  /** その行をつかんだときに運ぶもの（選んだ行をつかめば、選んだものすべて） */
+  dragPaths: (node: TreeNode) => string[];
   /** ドラッグを重ねている落とす先のフォルダ（"" は直下。null は重ねていない）。木の段をまたいで 1 つなので、一覧（MemoTab）が持つ */
   dropTarget: string | null;
   onDropTarget: (folder: string | null) => void;
@@ -51,9 +53,9 @@ interface Props {
  * ダブルクリック・行にピントがあるときの Enter（と右クリックの「名前を変更」・新しく作ったとき）で、行の名前の所がそのまま入力欄になる（メモは拡張子を除いた部分を書く）
  */
 export function MemoTree(props: Props) {
-  const { nodes, open, onToggle, onExpand, selected, onSelect, onMenu, onDropInto, dropTarget, onDropTarget, renaming, onStartRename, onRename, onRenameEnd, depth = 0 } = props;
+  const { nodes, open, onExpand, isSelected, onRowClick, onMenu, onDropInto, dragPaths, dropTarget, onDropTarget, renaming, onStartRename, onRename, onRenameEnd, depth = 0 } = props;
   // 行のドラッグ（落とす先の印・閉じたフォルダに重ねて待つと開く。入力欄の上の「メモ」の木と共通）
-  const { rowProps } = useMemoRowDrag({ isOpen: (path) => open.has(path), onExpand, onDropInto, onDropTarget });
+  const { rowProps } = useMemoRowDrag({ isOpen: (path) => open.has(path), onExpand, onDropInto, onDropTarget, dragPaths });
 
   return (
     // 入れ子の段は、親のフォルダの開閉の矢印の下に縦の線（エディタの木と同じ。--guide-depth は親のフォルダの段）
@@ -65,6 +67,7 @@ export function MemoTree(props: Props) {
         const editing = renaming?.path === node.path;
         const renamingName = editing ? (renaming.initial ?? (node.dir ? node.name : memoTitle(node.path))) : "";
         const style = { "--depth": depth } as CSSProperties;
+        const selected = isSelected(node.path);
         const head = (
           <>
             <span className="tree-chevron">{node.dir && <Chevron open={isOpen} />}</span>
@@ -76,14 +79,14 @@ export function MemoTree(props: Props) {
             key={node.path}
             role="treeitem"
             aria-expanded={node.dir ? isOpen : undefined}
-            aria-selected={selected === node.path}
+            aria-selected={selected}
             className={cx("tree-item", isDropTarget && "drop-target")}
             // 中身のある開いたフォルダ（縦の線を濃くするのはこの中身の段。エディタの木と同じ）
             data-open-group={(isOpen && node.children.length > 0) || undefined}
           >
             {editing ? (
               // 名前の所を入力欄に（Enter・ピントを外すと決め、Esc でやめる。メモの拡張子は欄の右に添えて、書き換えさせない）
-              <div className={cx("tree-row", "renaming", selected === node.path && "selected")} style={style}>
+              <div className={cx("tree-row", "renaming", selected && "selected")} style={style}>
                 {head}
                 <InlineName
                   key={renaming.round}
@@ -99,11 +102,11 @@ export function MemoTree(props: Props) {
               </div>
             ) : (
               <button
-                className={cx("tree-row", selected === node.path && "selected", isDraggingMemo(node.path) && "dragging")}
+                className={cx("tree-row", selected && "selected", isDraggingMemo(node.path) && "dragging")}
                 style={style}
                 title={node.path}
                 {...rowProps(node)}
-                onClick={(e) => (node.dir ? onToggle(node.path) : onSelect(node.path, e.metaKey || e.ctrlKey))}
+                onClick={(e) => onRowClick(node, e)}
                 onDoubleClick={() => onStartRename(node)}
                 // 行にピントがあるときの Enter は名前の変更（Finder と同じ。開く・開閉は押す・Space）
                 onKeyDown={(e) => {

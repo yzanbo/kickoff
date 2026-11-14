@@ -17,7 +17,7 @@ interface Props {
   /** 閉じたフォルダを開く（ドラッグを重ねて待ったとき） */
   onExpand: (path: string) => void;
   /** メモ・フォルダを、フォルダ（"" は直下）へ落とした */
-  onDropInto: (path: string, folder: string) => void;
+  onDropInto: (paths: string[], folder: string) => void;
   /** ドラッグを重ねている落とす先のフォルダ（"" は直下。null は重ねていない）。木の段をまたいで 1 つなので、MemoChip が持つ */
   dropTarget: string | null;
   onDropTarget: (folder: string | null) => void;

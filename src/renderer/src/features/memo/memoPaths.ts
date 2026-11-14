@@ -105,6 +105,20 @@ export function isUnder(path: string, folder: string): boolean {
   return folder === "" || path === folder || path.startsWith(`${folder}/`);
 }
 
+/** いくつかのパスのうち、ほかのフォルダの中に入っていないものだけ（まとめて動かす・ゴミ箱に入れるときに、フォルダと中身を重ねて扱わない。並びは元のまま） */
+export function topLevelPaths(paths: readonly string[]): string[] {
+  return paths.filter((p) => !paths.some((q) => q !== p && p.startsWith(`${q}/`)));
+}
+
+/** 木で見えている行のパス（開いているフォルダの中だけ。上から順。Shift ＋クリックの範囲に使う） */
+export function visibleTreePaths(nodes: readonly TreeNode[], open: ReadonlySet<string>, out: string[] = []): string[] {
+  for (const node of nodes) {
+    out.push(node.path);
+    if (node.dir && open.has(node.path)) visibleTreePaths(node.children, open, out);
+  }
+  return out;
+}
+
 /** path を見せるために開くフォルダ（親をたどったもの。直下なら空） */
 export function ancestorsOf(path: string): string[] {
   const out: string[] = [];
