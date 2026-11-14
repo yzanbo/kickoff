@@ -85,12 +85,22 @@ export async function rewindFiles(
   const messageId = target.data.message_uuid;
   // 本当に戻したときの結果には、変わったファイルが付かないので、先に量を測っておく
   const preview = await provider.rewindFiles(sessionId, messageId, input.cwd, true).catch(asInvalid);
-  if (!preview.can_rewind) throw new Invalid(`ファイルを戻せませんでした${preview.error ? `: ${preview.error}` : ""}`);
+  if (!preview.can_rewind) throw new Invalid(rewindFailure(preview.error));
   if (input.dryRun) return preview;
   const done = await provider.rewindFiles(sessionId, messageId, input.cwd, false).catch(asInvalid);
-  if (!done.can_rewind) throw new Invalid(`ファイルを戻せませんでした${done.error ? `: ${done.error}` : ""}`);
+  if (!done.can_rewind) throw new Invalid(rewindFailure(done.error));
   const result = { ...preview, ...done, filesChanged: preview.files_changed, insertions: preview.insertions, deletions: preview.deletions };
   store.events.add(chat.id, { type: "notice", message: `ファイルを、この発言を送る前の状態に戻しました（${restoredSummary(result)}。会話はそのまま）` });
   return result;
 }
 
+/**
+ * ファイルを戻せなかったときの文。その発言のファイルの控えが会話記録にない（Claude Code の「No file checkpoint」）ときは、
+ * 長いチャットを直近の区切りだけに乗り換えたあと（メモの仕様書「ファイル削除」の Q18）の古い発言かもしれないことを添える
+ */
+export function rewindFailure(error: string | undefined): string {
+  const base = `ファイルを戻せませんでした${error ? `: ${error}` : ""}`;
+  return error && /no file checkpoint/i.test(error)
+    ? `${base}（この発言のファイルの控えが会話記録にありません。長いチャットは圧縮のあと直近 3 区切りの会話記録に乗り換えるので、それより前の発言へはファイルを戻せません）`
+    : base;
+}
