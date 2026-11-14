@@ -67,6 +67,17 @@ export class UploadStore {
     return attachment;
   }
 
+  /** before より前に保存した添付の ID（フォルダを作った時刻で見る。送らなかった添付の片付け） */
+  async savedBefore(before: number): Promise<string[]> {
+    const ids: string[] = [];
+    for (const id of await fs.readdir(this.dir).catch(() => [] as string[])) {
+      if (!isUploadId(id)) continue;
+      const st = await fs.stat(path.join(this.dir, id)).catch(() => null);
+      if (st?.isDirectory() && Math.min(st.birthtimeMs || st.mtimeMs, st.mtimeMs) < before) ids.push(id);
+    }
+    return ids;
+  }
+
   /** 添付を消す（チャットを本当に消したあと・どこからも使われなくなったもの。ID が不正なら何もしない） */
   async remove(id: string): Promise<void> {
     if (isUploadId(id)) await fs.rm(path.join(this.dir, id), { recursive: true, force: true });
