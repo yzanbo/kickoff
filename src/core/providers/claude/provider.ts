@@ -419,12 +419,14 @@ export class ClaudeProvider implements AgentProvider {
 
   /**
    * ツールを使わずに 1 回だけ聞く（名前を付ける・要約する・メモの整理。チャットの記録には残さない。既定は haiku）。
-   * 空の一時フォルダで動かす（Kickoff を起動したフォルダで動かすと、そこの CLAUDE.md・自動のメモリーを読み込み、答えに混ざる）
+   * 空の一時フォルダで動かす（Kickoff を起動したフォルダで動かすと、そこの CLAUDE.md・自動のメモリーを読み込み、答えに混ざる）。
+   * 会話記録は残さない（persistSession: false。続けることはなく、残すとチャットを作るたびに ~/.claude/projects に使わない記録が 1 つずつ増えていた）
    */
   private async askOnce(prompt: string, model: AskModel = "haiku"): Promise<string> {
     const q = query({
       prompt,
       options: {
+        persistSession: false,
         cwd: os.tmpdir(),
         model,
         effort: "low",
