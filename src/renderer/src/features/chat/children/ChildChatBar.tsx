@@ -11,9 +11,11 @@ import { useChatStates } from "@/app/chatStatesContext";
 import { knownChat, useChatsValue, useKnownChat } from "@/stores/chats";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
+import { alertDialog } from "@/ui/dialogs";
 import { ancestorsOf, handBackText } from "./childChats";
 import { handBackToParent, revealInParent } from "./openChild";
 import { requestHandoff } from "./handoff";
+import { DetachSubmenu } from "./DetachSubmenu";
 
 /** 系譜を出す数（これより深ければ、根と親の間を「…」にまとめる） */
 const MAX_CRUMBS = 2;
@@ -28,7 +30,7 @@ type Below = Pick<Chat, "id" | "parent_chat_id" | "parent_event_id">;
  * 子チャットの上の帯（別ウィンドウ・右の欄で共通）: 左に親チャットまでの系譜（根 › … › 親 › この子チャット。親は状態の印と名前の札で、
  * 押すとその親の、聞いた発言へ）と、深さの呼び名（子・孫・ひ孫チャット）・右に「親チャットに渡す ▾」（依頼文を作ってもらう = この子チャットの AI に親への依頼文を
  * 書いてもらう / 最新の答えを引用して渡す = いちばん新しい答えを引用にして親の入力欄へ。送るのは自分で）。
- * 親の札とこの子チャットの名前は、ダブルクリックでその場で名前を変える。
+ * 親の札とこの子チャットの名前は、ダブルクリックでその場で名前を変える。帯を右クリックすると「親から外す ▸」（DetachSubmenu）。
  * 閉じるのは、右の欄はタブの ×、別ウィンドウは ✕・最小化（子チャットは残り、親の会話の札から開き直せる）
  */
 export function ChildChatBar({
@@ -85,6 +87,8 @@ function ChildBarFrame({
 }) {
   // 親の札・この子チャットの名前は、ダブルクリックでその場で名前を変える（同時に変えるのは 1 つだけ）
   const rename = useChatRename();
+  // 帯の右クリック: 子チャットなら「親から外す ▸」（名前の入力欄では文字の既定のメニューのまま）
+  const detachMenu = useContextMenu();
   const selfEditor = self ? rename.editorFor(self) : undefined;
   // この子の祖先の ID（根 → 親。親の名前・状態は札ごとに引くので、ここでは ID の並びが変わったときだけ描き直す）
   const ancestorKey =
@@ -104,7 +108,16 @@ function ChildBarFrame({
     if (below) revealInParent(below);
   };
   return (
-    <div className="child-chat-bar">
+    <div
+      className="child-chat-bar"
+      onContextMenu={
+        self && self.parent_chat_id !== null
+          ? (e) => {
+              if (!(e.target instanceof HTMLInputElement)) detachMenu.open(e);
+            }
+          : undefined
+      }
+    >
       {parentId !== null && (
         <nav className="child-chat-lineage" aria-label="親チャット">
           <span className="child-chat-lineage-lead" aria-hidden>
@@ -157,6 +170,11 @@ function ChildBarFrame({
       {extra}
       {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
       <PopOutTabButton />
+      {detachMenu.menu && self && (
+        <PopupMenu at={detachMenu.menu.at} label="子チャットの操作" onClose={detachMenu.close}>
+          <DetachSubmenu chat={self} onClose={detachMenu.close} onError={(message) => void alertDialog("親から外せませんでした", message)} />
+        </PopupMenu>
+      )}
     </div>
   );
 }

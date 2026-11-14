@@ -247,7 +247,8 @@ export function confirmDeleteGroup(group: Pick<ChatGroup, "name">): Promise<bool
  * onMoveDraft があれば、送る前の新しいチャット（下書き）も受け取り、作成先のグループを変える（サイドバー）。
  * ungroupedAt（グループの並びの中の「No Group」の位置）を渡すと、「No Group」も並べ替えの並びに入れ（ID は UNGROUPED_SORT_ID）、
  * onReorder にグループの並びと動かしたあとの「No Group」の位置を渡す（全プロジェクトのボードのグループの列・サイドバー）。
- * onRestoreChat があれば、アーカイブ済みのチャットを落としたときは、移す代わりにそれを呼ぶ（サイドバー: 確かめて戻し、そのグループへ移す）
+ * onRestoreChat があれば、アーカイブ済みのチャットを落としたときは、移す代わりにそれを呼ぶ（サイドバー: 確かめて戻し、そのグループへ移す）。
+ * 同じプロジェクトの子チャットは onChildChat があるときだけ受ける（サイドバー: 確かめて親から外し、そのグループへ入れる。なければ受けない）
  */
 export function useGroupDrop({
   projectId,
@@ -260,6 +261,8 @@ export function useGroupDrop({
   onRestoreChat,
   onForeignChat,
   foreignBlockedBy,
+  onChildChat,
+  childBlockedBy,
 }: {
   projectId: number;
   groups: ChatGroup[];
@@ -273,6 +276,10 @@ export function useGroupDrop({
   onForeignChat?: (chat: Chat, groupId: number | null) => void;
   /** ほかのプロジェクトのチャットを、いまは移せない理由（作業中など）。あれば落とせなくし、赤い枠とカーソルの横の理由で見せる */
   foreignBlockedBy?: (chat: Chat) => string | null;
+  /** 同じプロジェクトの子チャットを落としたとき（なければ受けない） */
+  onChildChat?: (chat: Chat, groupId: number | null) => void;
+  /** 子チャットを、いまは落とせない理由（作業中など） */
+  childBlockedBy?: (chat: Chat) => string | null;
 }) {
   const sortable = ungroupedAt !== undefined;
   const ids = groups.map((g) => g.id);
@@ -289,13 +296,16 @@ export function useGroupDrop({
 
   /** ほかのプロジェクトのチャットか（分からない = このプロジェクトの外の一覧にないものは、ほかのプロジェクトとみなさない） */
   const foreign = (chat: Chat | undefined) => chat !== undefined && chat.project_id !== projectId;
+  /** 同じプロジェクトの子チャットか */
+  const child = (chat: Chat | undefined): chat is Chat => chat !== undefined && !foreign(chat) && chat.parent_chat_id !== null;
   const dropProps = (groupId: number | null) => ({
     onDragOver: (e: DragEvent) => {
       if (reorder.over(e, sortId(groupId))) return;
       if (!isChatDrag(e) && !(onMoveDraft && e.dataTransfer.types.includes(DRAFT_DRAG_TYPE))) return;
       // ほかのプロジェクトのチャットは、受ける（onForeignChat）ときだけ。受けなければ外側（プロジェクトのまとまり）へ渡す
       const other = isChatDrag(e) && draggingChatId !== undefined ? knownChat(draggingChatId) : undefined;
-      const reason = foreign(other) ? (foreignBlockedBy?.(other!) ?? null) : null;
+      if (child(other) && !onChildChat) return;
+      const reason = foreign(other) ? (foreignBlockedBy?.(other!) ?? null) : child(other) ? (childBlockedBy?.(other) ?? null) : null;
       if (foreign(other)) {
         if (!onForeignChat) return;
         e.stopPropagation();
@@ -329,6 +339,10 @@ export function useGroupDrop({
         e.stopPropagation();
         if (foreignBlockedBy?.(other!)) return;
         return onForeignChat(other!, groupId);
+      }
+      if (child(other)) {
+        if (onChildChat && !childBlockedBy?.(other)) onChildChat(other, groupId);
+        return;
       }
       const chat = chats.find((r) => r.id === id);
       if (chat?.archived_at && onRestoreChat) return onRestoreChat(chat, groupId);
