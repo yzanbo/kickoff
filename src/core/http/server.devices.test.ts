@@ -1,7 +1,7 @@
 // API のテスト: 呼び主（この Mac / 端末）と、端末に開く口・届ける知らせ（既定で閉じる）
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEVICE_FORBIDDEN } from "@shared/types";
+import { DEVICE_FORBIDDEN, type Device, type PairingClaimResult, type PairingPollResult, type PairingState } from "@shared/types";
 import { hashToken } from "./caller.js";
 import { DEVICE_ROUTES } from "./deviceAccess.js";
 import { AUTH, setup } from "../testing/testServer.js";
@@ -84,4 +84,97 @@ test("SSE: 端末には開いた口の知らせだけを届け、この Mac の�
   assert.doesNotMatch(deviceText, /ports_changed|docker_changed/);
   // この Mac の画面にはすべて届く
   assert.match(await read(AUTH), /ports_changed/);
+});
+
+/** 番号で頼み、Mac で答え、結果を聞くまで（認証の外の口） */
+async function claim(app: ReturnType<typeof setup>["app"], code: string, name = "Pixel 8") {
+  const res = await app.request("/pairing/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code, name }) });
+  return { status: res.status, body: (await res.json()) as PairingClaimResult & { error?: string } };
+}
+async function poll(app: ReturnType<typeof setup>["app"], id: string, secret: string) {
+  const res = await app.request(`/pairing/requests/${id}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ secret }) });
+  return (await res.json()) as PairingPollResult;
+}
+
+test("ペアリング: Mac が番号を出し、端末が頼み、Mac で「つなぐ」を押したら端末のトークンを 1 回だけ渡す。そのトークンで開いた口を使える", async () => {
+  const { app, call, store, bus } = setup();
+  const events: string[] = [];
+  bus.subscribe((e) => events.push(e.type));
+  await call("PUT", "/api/settings", { mobile_url: "https://mac.example.ts.net" });
+  const started = (await call("POST", "/api/pairing")).body as PairingState;
+  assert.match(started.code!, /^\d{6}$/);
+  assert.equal(started.url, "https://mac.example.ts.net");
+  assert.equal(started.host_id, store.databaseId);
+
+  const claimed = await claim(app, started.code!);
+  assert.equal(claimed.status, 201);
+  assert.equal(claimed.body.host_id, store.databaseId);
+  assert.deepEqual(await poll(app, claimed.body.request_id, claimed.body.secret), { status: "pending" });
+  // 鍵が違えば何も分からない
+  assert.deepEqual(await poll(app, claimed.body.request_id, "wrong"), { status: "expired" });
+  const waiting = (await call("GET", "/api/pairing")).body as PairingState;
+  assert.equal(waiting.request?.name, "Pixel 8");
+
+  const approved = (await call("POST", `/api/pairing/requests/${claimed.body.request_id}/approve`)).body as PairingState;
+  // 番号は使い終える
+  assert.equal(approved.code, null);
+  const result = await poll(app, claimed.body.request_id, claimed.body.secret);
+  assert.equal(result.status, "approved");
+  if (result.status !== "approved") return;
+  // 2 回目は渡さない
+  assert.deepEqual(await poll(app, claimed.body.request_id, claimed.body.secret), { status: "expired" });
+  assert.equal((await app.request("/api/projects", { headers: { authorization: `Bearer ${result.token}` } })).status, 200);
+  assert.equal((await app.request("/api/settings", { headers: { authorization: `Bearer ${result.token}` } })).status, 403);
+  // 一覧に出し、トークンは出さない
+  const devices = (await call("GET", "/api/devices")).body as Device[];
+  assert.deepEqual(devices.map((d) => d.name), ["Pixel 8"]);
+  assert.ok(!JSON.stringify(devices).includes(result.token));
+  assert.ok(events.includes("pairing") && events.includes("devices"));
+
+  // 取り消したら、そのトークンは使えない
+  assert.equal((await call("DELETE", `/api/devices/${result.device_id}`)).status, 204);
+  assert.equal((await app.request("/api/projects", { headers: { authorization: `Bearer ${result.token}` } })).status, 401);
+  assert.equal((await call("DELETE", `/api/devices/${result.device_id}`)).status, 404);
+});
+
+test("ペアリング: 番号が違う・期限切れは断り、5 回続けて間違えたら番号を捨てる。断ったら端末には denied。ペアリングの口は端末には開かない", async () => {
+  const { app, call, pairingClock } = setup();
+  assert.equal((await claim(app, "123456")).status, 404);
+  const { code } = (await call("POST", "/api/pairing")).body as PairingState;
+  const wrong = code === "000000" ? "111111" : "000000";
+  for (let i = 0; i < 4; i++) assert.equal((await claim(app, wrong)).status, 400);
+  assert.equal((await claim(app, wrong)).status, 400);
+  // 5 回目で捨てたので、正しい番号でも頼めない
+  assert.equal((await claim(app, code!)).status, 404);
+
+  const second = (await call("POST", "/api/pairing")).body as PairingState;
+  const req = await claim(app, second.code!.replace(/(\d{3})/, "$1-"));
+  assert.equal(req.status, 201, "区切りの - は読み飛ばす");
+  // 確かめを待っている間は、ほかの端末は頼めない
+  assert.equal((await claim(app, second.code!, "別の端末")).status, 409);
+  await call("POST", `/api/pairing/requests/${req.body.request_id}/deny`);
+  assert.deepEqual(await poll(app, req.body.request_id, req.body.secret), { status: "denied" });
+
+  // 期限（5 分）を過ぎたら番号は消える
+  pairingClock.now += 5 * 60_000 + 1;
+  assert.equal(((await call("GET", "/api/pairing")).body as PairingState).code, null);
+  assert.equal((await claim(app, second.code!)).status, 404);
+});
+
+test("ペアリング: つないだのに結果を聞かれないまま期限を過ぎたら、作った端末を消す", async () => {
+  const { app, call, store, pairingClock } = setup();
+  const { code } = (await call("POST", "/api/pairing")).body as PairingState;
+  const req = await claim(app, code!);
+  await call("POST", `/api/pairing/requests/${req.body.request_id}/approve`);
+  assert.equal(store.devices.list().length, 1);
+  pairingClock.now += 5 * 60_000 + 1;
+  await call("GET", "/api/pairing");
+  assert.equal(store.devices.list().length, 0);
+});
+
+test("ペアリングと端末の一覧の口は、端末には開かない", async () => {
+  const { app } = withDevice();
+  for (const [method, url] of [["GET", "/api/pairing"], ["POST", "/api/pairing"], ["GET", "/api/devices"], ["DELETE", "/api/devices/1"]] as const) {
+    assert.equal((await app.request(url, { method, headers: DEVICE })).status, 403, `${method} ${url}`);
+  }
 });

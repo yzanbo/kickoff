@@ -1,0 +1,91 @@
+/* ==== 設定の「スマホ連携」: 端末をつなぐ（番号と QR・確かめを待っている頼み）・つないだ端末の一覧 ==== */
+
+.pairing-start,
+.pairing-code,
+.pairing-request {
+  margin: 8px 0 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+}
+
+.pairing-start p {
+  margin: 0 0 10px;
+}
+
+/* 番号と QR を横に並べる */
+.pairing-code {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* QR は白い地に黒（ダークのテーマでも読めるように）。読み込む間も同じ大きさを取る */
+.pairing-qr {
+  flex: none;
+  width: 180px;
+  height: 180px;
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.pairing-code-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pairing-number {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.pairing-code-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 「この端末をつなぎますか」: 名前と説明・断る・つなぐ */
+.pairing-request {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-color: var(--warn);
+}
+
+.pairing-request-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.device-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.device-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.device-row + .device-row {
+  border-top: 1px solid var(--border);
+}
+
+.device-row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}

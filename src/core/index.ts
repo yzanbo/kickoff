@@ -7,6 +7,7 @@ import { startHttpServer, stopHttpServer } from "./http/httpServer.js";
 import { createProviders } from "./providers/index.js";
 import { currentSelf } from "./chat/guard/selfProtection.js";
 import type { HostPlatform } from "./platform/types.js";
+import { PairingCenter } from "./devices/pairing.js";
 import { createApp } from "./http/server.js";
 import { Store } from "./db/store.js";
 import { DB_FILE, discardPrereleaseData } from "./db/open.js";
@@ -141,6 +142,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       for (const failure of await ci.watch(project, store)) bus.publish({ type: "ci_failed", failure });
     },
   });
+  // スマホ連携のペアリング（番号と頼みはメモリだけ）
+  const pairing = new PairingCenter({ store, publish: (e) => bus.publish(e) });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
@@ -161,6 +164,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     docker,
     worktreeEnvs,
     ports,
+    pairing,
     trash: opts.platform.moveToTrash,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },

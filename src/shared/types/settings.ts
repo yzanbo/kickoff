@@ -45,6 +45,8 @@ export interface AppSettings {
   chat_defaults: ChatOptions;
   /** スマホなど他端末からのアクセスを許可（LAN に公開） */
   remote_enabled: boolean;
+  /** スマホ連携で端末がつなぐ先の URL（Tailscale Serve の https://<Mac の名前>.ts.net など。ペアリングの QR に入れる。null なら QR を出さず番号だけ） */
+  mobile_url: string | null;
   /** ntfy のトピック URL（空なら通知しない） */
   ntfy_url: string;
   /** チャットの完了・失敗・回答待ちを Mac の通知で知らせる */
@@ -97,6 +99,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   default_provider: "claude",
   chat_defaults: { model: "opus", effort: null, permission_mode: "default", fast_mode: false },
   remote_enabled: false,
+  mobile_url: null,
   ntfy_url: "",
   desktop_notifications: true,
   dock_badge: true,

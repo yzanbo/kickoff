@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Hono, type Context } from "hono";
-import { getCookie, setCookie } from "hono/cookie";
+import { Hono } from "hono";
+import { getCookie } from "hono/cookie";
 import { streamSSE } from "hono/streaming";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { AUTH_COOKIE, tokenMatches } from "./auth.js";
@@ -25,6 +25,8 @@ import type { DockerService } from "../docker/service.js";
 import type { PortWatch } from "../ports/watch.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
+import { deviceRoutes, pairingClaimRoutes } from "./routes/devices.js";
+import type { PairingCenter } from "../devices/pairing.js";
 import { chatRoutes } from "./routes/chats.js";
 import { databaseRoutes } from "./routes/databases.js";
 import { githubRoutes } from "./routes/github.js";
@@ -78,6 +80,8 @@ export interface ServerDeps {
   worktreeEnvs: WorktreeEnvService;
   /** ポートを使っているプロセス（調べる・止める。実行が終わったときの見張り） */
   ports: PortWatch;
+  /** スマホ連携のペアリング（使い捨ての番号・確かめを待っている頼み） */
+  pairing: PairingCenter;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。テストでは差し替えて、gh を呼ばない。なければ gh auth status） */
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」・使わなくなった会話記録。OS の口の moveToTrash。テストでは差し替えて、本物のゴミ箱に入れない） */
@@ -99,12 +103,8 @@ export function createApp(deps: ServerDeps): Hono {
   const { store, bus, token, runner } = deps;
   const app = new Hono();
 
-  // スマホなどのペアリング: QR の URL に含めたトークンを Cookie に移してから画面へ
-  app.get("/pair", (c) => {
-    if (!tokenMatches(token, c.req.query("token"))) return c.text("トークンが正しくありません", 401);
-    setAuthCookie(c, token);
-    return c.redirect("/");
-  });
+  // スマホ連携のペアリング: まだトークンを持たない端末が、番号で頼んで結果を聞く口（認証の外。routes/devices.ts）
+  pairingClaimRoutes(app, deps);
 
   // 認証と呼び主: 本体のトークン（この Mac の画面の Cookie）ならこの Mac、端末のトークンならその端末（http/caller.ts）。
   // 端末は deviceAccess.ts に書いた口だけ使える（既定で閉じる。ほかは 403）
@@ -169,6 +169,7 @@ export function createApp(deps: ServerDeps): Hono {
   ciRoutes(app, deps);
   dockerRoutes(app, deps);
   portsRoutes(app, deps);
+  deviceRoutes(app, deps);
 
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>
@@ -212,11 +213,3 @@ export function createApp(deps: ServerDeps): Hono {
   return app;
 }
 
-function setAuthCookie(c: Context, token: string) {
-  setCookie(c, AUTH_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "Strict",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
-}

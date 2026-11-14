@@ -4,6 +4,7 @@
 import { approvalsApi } from "./approvals";
 import { chatsApi } from "./chats";
 import { databasesApi } from "./databases";
+import { devicesApi } from "./devices";
 import { filesApi } from "./files";
 import { gitApi } from "./git";
 import { githubApi } from "./github";
@@ -25,6 +26,7 @@ import { worktreesApi } from "./worktrees";
 
 export const api = {
   ...settingsApi,
+  ...devicesApi,
   ...projectsApi,
   ...chatsApi,
   ...turnsApi,
