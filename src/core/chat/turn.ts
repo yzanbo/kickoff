@@ -18,7 +18,8 @@ import { isUnreadEvent } from "@shared/chat/state";
 import type { Bus } from "../bus.js";
 import { errorMessage } from "@shared/errors";
 import { currentBranch } from "../git/index.js";
-import { isInside } from "../system/paths.js";
+import { isInside, realPathOrSelf } from "../system/paths.js";
+import { workplacesOf } from "../git/worktrees.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
 import { chatContextNote, chatContextOf } from "./chatContext.js";
 import { createAiChatEditTools } from "./aiChatEdit.js";
@@ -156,7 +157,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     const result: ProviderTurnResult = signal.aborted
       ? { status: "cancelled", sessionId: chat.session_id }
       : await providers[chat.provider].run(
-          { ...buildTurnParams(deps, chat, project, cwd, prompt, promptId), preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent), env },
+          { ...buildTurnParams(deps, chat, project, cwd, runtime.writeAllowed, prompt, promptId), preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent), env },
           callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText }),
           signal,
         );
@@ -212,7 +213,7 @@ function ensureDir(dir: string): string | null {
 }
 
 /** プロバイダーに渡すもの（作業場所・指示・権限） */
-function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd: string, prompt: string, promptId?: string): ProviderTurnParams {
+function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd: string, writeAllowed: Set<string>, prompt: string, promptId?: string): ProviderTurnParams {
   // メモのフォルダも読み書きできる場所に足し、どのチャットでも「メモ」が「メモ」タブのメモのことだと伝える（入力欄にメモを添付して続きを頼む・「メモに書いて」と頼めるように。
   // フォルダがまだなければ作る: メモのタブで最初のメモを作るのと同じ場所）。メモのチャットは、どのメモについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
   const memoDir = deps.memoDirOf ? ensureDir(deps.memoDirOf(project)) : null;
@@ -235,6 +236,11 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     readOnlyPaths: project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p)),
     // ［AI で整える］のチャットは、Git で管理していないファイルだけを書ける（続きの指示でも）
     untrackedOnly: chat.untracked_only,
+    // ファイルを書き換えるツールの先は、作業場所・メモのフォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
+    // ［AI で整える］のチャットは上の守りがもっと狭く絞るので付けない）
+    writeScope: chat.untracked_only
+      ? null
+      : { writableDirs: memoDir ? [realPathOrSelf(memoDir)] : [], workplaces: () => workplacesOf(project.repo_path), allowed: writeAllowed },
     browser: deps.browser ? { control: deps.browser, projectId: chat.project_id, chatId: chat.id } : null,
     database:
       deps.databases && hasAiConnections(deps.store, project.id)

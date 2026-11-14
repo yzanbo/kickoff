@@ -17,16 +17,23 @@ const WRITE_TOOLS: Record<string, string> = {
 
 type ToolDecision = { decision: "deny"; reason: string } | { decision: "pass" };
 
+/** ファイルを書き換えるツールなら、書く先の実体のパス（リンクを解き、まだないファイルはあるところまでの親を解いたもの）。ほかのツールは null */
+export function writeTargetOf(cwd: string, toolName: string, input: Record<string, unknown>): string | null {
+  const pathKey = WRITE_TOOLS[toolName];
+  if (!pathKey) return null;
+  const filePath = input[pathKey];
+  if (typeof filePath !== "string") return null;
+  return realPathLoose(path.resolve(cwd, filePath));
+}
+
 /**
  * 参照資料への書き込みを止める。どの権限モードでも効く。
  * readOnly は作業場所の外にある参照資料の絶対パス（作業場所の中のものは、ふつうの書き込みの判定に任せる）
  */
 export function evaluateReferenceWrite(cwd: string, readOnly: string[], toolName: string, input: Record<string, unknown>): ToolDecision {
-  const pathKey = WRITE_TOOLS[toolName];
-  if (!pathKey || readOnly.length === 0) return { decision: "pass" };
-  const filePath = input[pathKey];
-  if (typeof filePath !== "string") return { decision: "pass" };
-  const target = realPathLoose(path.resolve(cwd, filePath));
+  if (readOnly.length === 0) return { decision: "pass" };
+  const target = writeTargetOf(cwd, toolName, input);
+  if (target === null) return { decision: "pass" };
   const hit = readOnly.find((ref) => isInside(realPathLoose(ref), target));
   if (!hit) return { decision: "pass" };
   return { decision: "deny", reason: `参照資料（${hit}）は読むだけで、書き込めません` };
@@ -62,12 +69,9 @@ export async function evaluateUntrackedWrite(
     if (typeof command === "string" && GIT_WRITE.test(command)) return { decision: "deny", reason: "このチャットでは、Git の中身を変える git のコマンドは使えません（Git で管理していないファイルだけを直します）" };
     return { decision: "pass" };
   }
-  const pathKey = WRITE_TOOLS[toolName];
-  if (!pathKey) return { decision: "pass" };
-  const filePath = input[pathKey];
-  if (typeof filePath !== "string") return { decision: "pass" };
+  const target = writeTargetOf(cwd, toolName, input);
+  if (target === null) return { decision: "pass" };
   const root = realPathLoose(cwd);
-  const target = realPathLoose(path.resolve(cwd, filePath));
   if (!isInside(root, target) || target === root) return { decision: "deny", reason: `このチャットは作業場所（${cwd}）の中の、Git で管理していないファイルだけを書けます` };
   if (path.relative(root, target).split(path.sep).includes(".git")) return { decision: "deny", reason: "このチャットでは .git の中は書けません" };
   if (await tracked(root, target)) return { decision: "deny", reason: `${path.relative(root, target)} は Git で管理しているファイルなので、このチャットでは書けません（Git で管理していないファイルだけを直します）` };

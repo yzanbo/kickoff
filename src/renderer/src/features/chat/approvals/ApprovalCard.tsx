@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Approval } from "@shared/types";
+import { REMEMBER_SCOPE_LABELS, type Approval } from "@shared/types";
 import { describeApprovalInput } from "@/features/chat/tools/toolDescribe";
 import { QuestionCard } from "./QuestionCard";
 import { useResolve } from "./useResolveApproval";
@@ -122,8 +122,8 @@ function PermissionCard({ approval }: { approval: Approval }) {
             許可
           </button>
           {approval.can_remember && (
-            <button className="btn" disabled={sending} onClick={() => void resolve({ action: "allow_always" })} title="同じ種類の操作を今後は確認しない">
-              常に許可
+            <button className="btn" disabled={sending} onClick={() => void resolve({ action: "allow_always" })} title={REMEMBER_SCOPE_LABELS[approval.remember_scope ?? "rule"].title}>
+              {REMEMBER_SCOPE_LABELS[approval.remember_scope ?? "rule"].label}
             </button>
           )}
           <button className="btn" disabled={sending} onClick={() => setDenying(true)}>

@@ -257,6 +257,17 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
   assert.deepEqual(decision.action === "answer" ? decision.plain : undefined, { Q: "この画像のように" });
   assert.equal(decision.action === "answer" ? decision.attachments?.Q.length : 0, 2);
 
+  // 「覚える」の範囲（書き込み先の守りの「このチャットでは許可」）を一覧に出す。省いたら出さない（画面は「常に許可」）
+  const scoped = approvals.request(
+    { chatId: 1, projectId: project.id },
+    { kind: "permission", toolName: "Write", input: { file_path: "/tmp/x" }, canRemember: true, rememberScope: "chat" },
+    new AbortController().signal,
+  );
+  const scopedListed = (await call("GET", "/api/approvals")).body as { id: string; remember_scope?: string }[];
+  assert.equal(scopedListed.find((a) => a.id === scoped.approval.id)?.remember_scope, "chat");
+  assert.equal((await call("POST", `/api/approvals/${scoped.approval.id}`, { action: "allow_always" })).status, 204);
+  assert.equal((await scoped.decision).action, "allow_always");
+
   assert.equal((await call("GET", "/api/providers")).body.length, 3);
   assert.deepEqual((await call("GET", "/api/providers/claude/models")).body, []);
   assert.equal((await call("GET", "/api/providers/unknown/models")).status, 400);
