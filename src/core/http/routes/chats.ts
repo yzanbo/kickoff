@@ -7,8 +7,9 @@ import { lookups, requireGroupOf, requireProject } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
 import { chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "./schemas.js";
 import { chatTranscript } from "../../chat/transcript.js";
+import { detachChat } from "../../chat/detach.js";
 import { collectChatSessions, discardUnusedSessions } from "../../chat/sessionCleanup.js";
-import { CHAT_DETAIL_LIMIT_MAX, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatPatch, type ChatTranscript, type GitWorktree } from "@shared/types";
+import { CHAT_DETAIL_LIMIT_MAX, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatPatch, type ChatTranscript, type GitWorktree } from "@shared/types";
 
 /**
  * チャットの一覧の絞り込み（並びは最後に動いた順）: ?archived=1 でアーカイブ済みだけ（なければアーカイブしていないものだけ）。
@@ -26,6 +27,12 @@ const detailQuerySchema = z
   .refine((q) => q.before === undefined || q.limit !== undefined, "before には limit が要ります") satisfies z.ZodType<ChatDetailQuery>;
 
 /** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
+/** 子チャットを親から外す（parent_chat_id: null = 親なし / 先祖の ID = その子に。group_id は親なしにするときだけ） */
+const chatDetachSchema = z.object({
+  parent_chat_id: z.number().int().positive().nullable(),
+  group_id: z.number().int().positive().nullable().optional(),
+}) satisfies z.ZodType<ChatDetachBody>;
+
 const chatPatchSchema = z
   .object({
     title: chatTitle,
@@ -148,6 +155,15 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
   app.post("/api/chats/:id/unseen", withChat, (c) => {
     const { chat } = c.var;
     return c.json(chat.unread ? chat : store.chats.setUnread(chat.id, true));
+  });
+
+  /**
+   * 子チャットを親から外す（親のないチャットにする・自分の先祖の子に上げる。chat/detach.ts）。先祖でない ID・親なしでないときのグループ・
+   * ほかのプロジェクトのグループ・親のないチャットは 400、作業中は 409。外したあとのチャットを返す（知らせは店から）
+   */
+  app.post("/api/chats/:id/detach", withChat, async (c) => {
+    const body = chatDetachSchema.parse(await jsonBody(c));
+    return c.json(detachChat(store, (id) => runner.isBusy(id), c.var.chat, { parentId: body.parent_chat_id, groupId: body.group_id ?? null }));
   });
 
   /**

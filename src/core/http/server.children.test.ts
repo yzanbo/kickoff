@@ -352,6 +352,86 @@ test("親チャットに渡す: 親のないチャット・作業の終わりで
   assert.equal(store.events.list(child.id).filter((e) => e.type === "handoff").length, 0);
 });
 
+/** 親 → 子 → 孫 → ひ孫 の家系を作る（どれも 1 回送って終わったもの。子は親の最後の返答から聞いた形） */
+async function family(ctx: ReturnType<typeof setup>) {
+  const { call, runner } = ctx;
+  const root = await finishedChat(ctx);
+  const event = ctx.store.events.list(root).find((e) => e.type === "result")!;
+  const child = (await call("POST", `/api/chats/${root}/children`, { text: "子", inherit: false, event_id: event.id })).body;
+  await until(() => !runner.isBusy(child.id));
+  const grandchild = (await call("POST", `/api/chats/${child.id}/children`, { text: "孫", inherit: false })).body;
+  await until(() => !runner.isBusy(grandchild.id));
+  const great = (await call("POST", `/api/chats/${grandchild.id}/children`, { text: "ひ孫", inherit: false })).body;
+  await until(() => !runner.isBusy(great.id));
+  return { root, child: child.id as number, grandchild: grandchild.id as number, great: great.id as number };
+}
+
+test("親から外す: 親のないチャットにしてグループへ入れる。聞いた発言・一緒にアーカイブした印を消し、お知らせを残す。子孫はついていく", async () => {
+  const ctx = setup();
+  const { call, store, project } = ctx;
+  const { root, child, grandchild, great } = await family(ctx);
+  const group = store.groups.create(project.id, "本筋");
+  // 親と一緒にアーカイブしたあとで外すと、アーカイブ済みのまま親のないチャットになり、親を戻しても一緒には戻らない
+  await call("PATCH", `/api/chats/${root}`, { archived: true });
+  const res = await call("POST", `/api/chats/${child}/detach`, { parent_chat_id: null, group_id: group.id });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.parent_chat_id, null);
+  assert.equal(res.body.parent_event_id, null);
+  assert.equal(res.body.group_id, group.id);
+  assert.ok(res.body.archived_at);
+  await call("PATCH", `/api/chats/${root}`, { archived: false });
+  assert.ok(store.chats.get(child)!.archived_at, "親を戻しても、外したチャットは戻らない");
+  assert.deepEqual(store.chats.descendants(root), []);
+  assert.deepEqual(store.chats.descendants(child).map((c) => c.id), [great, grandchild]);
+  assert.equal(store.chats.get(grandchild)!.parent_chat_id, child);
+  const notice = store.events.list(child).at(-1);
+  assert.deepEqual(notice?.type === "notice" && notice.data.message, `「${store.chats.get(root)!.title}」から外しました`);
+});
+
+test("親から外す: 孫・ひ孫は自分の先祖の子に上げられる（いまの親・先祖でないチャット・親のないチャットは 400）", async () => {
+  const ctx = setup();
+  const { call, store } = ctx;
+  const { root, child, grandchild, great } = await family(ctx);
+  const other = await finishedChat(ctx, "ほか");
+  // ひ孫を、いちばん上の親の子に上げる（孫の下にいたひ孫はついていかず、ひ孫自身の子孫だけがついていく）
+  const raised = await call("POST", `/api/chats/${great}/detach`, { parent_chat_id: root });
+  assert.equal(raised.status, 200);
+  assert.equal(raised.body.parent_chat_id, root);
+  assert.equal(raised.body.group_id, null);
+  const notice = store.events.list(great).at(-1);
+  assert.equal(notice?.type === "notice" && notice.data.message, `「${store.chats.get(grandchild)!.title}」から「${store.chats.get(root)!.title}」の子にしました`);
+  // いまの親・自分の子孫・関係のないチャット・グループを付けての上げ・親のないチャットは断る
+  assert.equal((await call("POST", `/api/chats/${grandchild}/detach`, { parent_chat_id: child })).status, 400);
+  assert.equal((await call("POST", `/api/chats/${grandchild}/detach`, { parent_chat_id: other })).status, 400);
+  assert.equal((await call("POST", `/api/chats/${grandchild}/detach`, { parent_chat_id: grandchild })).status, 400);
+  const group = store.groups.create(ctx.project.id, "g");
+  assert.equal((await call("POST", `/api/chats/${grandchild}/detach`, { parent_chat_id: root, group_id: group.id })).status, 400);
+  assert.equal((await call("POST", `/api/chats/${root}/detach`, { parent_chat_id: null })).status, 400);
+  assert.equal(store.chats.get(grandchild)!.parent_chat_id, child);
+});
+
+test("親から外す: 作業中なら 409（その下の孫が作業中でも、外すのは子だけなので外せる）。ほかのプロジェクトのグループは 400", async () => {
+  const ctx = setup();
+  const { call, store, provider, runner } = ctx;
+  const { child, grandchild } = await family(ctx);
+  const elsewhere = store.projects.create({ name: "別", repo_path: tempDir(), provider: "claude" });
+  const foreignGroup = store.groups.create(elsewhere.id, "よそ");
+  assert.equal((await call("POST", `/api/chats/${child}/detach`, { parent_chat_id: null, group_id: foreignGroup.id })).status, 400);
+  const release = provider.hold();
+  await call("POST", `/api/chats/${child}/messages`, { text: "続き" });
+  await until(() => runner.isBusy(child));
+  assert.equal((await call("POST", `/api/chats/${child}/detach`, { parent_chat_id: null })).status, 409);
+  release();
+  await until(() => !runner.isBusy(child));
+  // 孫を作業中にしても、子は外せる
+  const release2 = provider.hold();
+  await call("POST", `/api/chats/${grandchild}/messages`, { text: "続き" });
+  await until(() => runner.isBusy(grandchild));
+  assert.equal((await call("POST", `/api/chats/${child}/detach`, { parent_chat_id: null })).status, 200);
+  release2();
+  await until(() => !runner.isBusy(grandchild));
+});
+
 test("設定: AI が子チャットを作るとき（既定は毎回聞く。毎回聞く / 聞かずに作る / 作らせない のほかは 400）", async () => {
   const { call } = setup();
   assert.equal((await call("GET", "/api/settings")).body.ai_child_chat, "ask");

@@ -1,11 +1,14 @@
-// チャットの AI が、同じ家系のチャット（いちばん上の親チャットから下にぶら下がるチャットの全部）の名前・固定・グループを変える
+// チャットの AI が、同じ家系のチャット（いちばん上の親チャットから下にぶら下がるチャットの全部）の名前・固定・グループを変え、子チャットを親から外す
 // （kickoff_chat の list_family_chats・update_chat の中身。プロバイダーに依らない）。
-// 名前・固定・グループは利用者がいつでも戻せるので、聞かずに変える（権限モード・Auto mode によらず承認カードを出さない）。
+// 名前・固定・グループは利用者がいつでも戻せるので、聞かずに変える（権限モード・Auto mode によらず承認カードを出さない）。親から外すのも聞かないが、
+// 戻せないので、ツールの説明で利用者に頼まれたときだけ使うよう伝える（2026-11-14 に利用者と決めた）。
 // 家系の外のチャットは変えられない。読み書きは店（store.chats・store.groups）を通し、変えたら店の知らせで画面に届く
 import type { UpdateChatInput } from "@shared/chat/aiChatEdit";
+import { errorMessage } from "@shared/errors";
 import { CHAT_TITLE_MAX, type Chat } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { familyOrder, familyRelation } from "./chatFamily.js";
+import { detachChat } from "./detach.js";
 
 /** 名前・固定・グループを変えるツールの中身（AI に返す文。変えられなければ理由の文で throw） */
 export interface AiChatEditTools {
@@ -52,7 +55,7 @@ export function familyOf(store: Store, self: Chat) {
  * chatId のチャットの AI に渡す、家系のチャットの名前・固定・グループを変えるツールの中身。家系は呼ぶたびに引き直す
  * （作業の途中で子チャットが増えた・消えたら次の呼び出しから効く）
  */
-export function createAiChatEditTools(store: Store, chatId: number): AiChatEditTools {
+export function createAiChatEditTools(store: Store, chatId: number, isBusy: (chatId: number) => boolean): AiChatEditTools {
   const requireSelf = () => {
     const chat = store.chats.get(chatId);
     if (!chat) throw new Error("このチャットが見つかりません（消された可能性があります）");
@@ -80,7 +83,7 @@ export function createAiChatEditTools(store: Store, chatId: number): AiChatEditT
             archived: c.archived_at !== null,
           })),
           groups: store.groups.list(self.project_id).map((g) => ({ id: g.id, name: g.name })),
-          note: "update_chat で変えられるのは、この一覧のチャットだけ。グループに入れられるのは親のないチャット（parent_id が null）だけで、groups から選ぶ（グループは作れない）。",
+          note: "update_chat で変えられるのは、この一覧のチャットだけ。グループに入れられるのは親のないチャット（parent_id が null）だけで、groups から選ぶ（グループは作れない）。子チャットは parent_id で親から外せる（null = 親のないチャット、自分の先祖の ID = その子に上げる。利用者に頼まれたときだけ）。",
         },
         null,
         2,
@@ -95,8 +98,14 @@ export function createAiChatEditTools(store: Store, chatId: number): AiChatEditT
           `チャット ID ${input.chat_id} は、このチャットの家系（いちばん上の親チャットから下にぶら下がるチャット）にありません。変えられるのは同じ家系のチャットだけです。list_family_chats で ID を確かめてください`,
         );
       }
-      if (input.title === undefined && input.pinned === undefined && input.group_id === undefined) {
-        throw new Error("変える項目がありません。title・pinned・group_id のどれかを渡してください（省いた項目は変えません）");
+      if (input.title === undefined && input.pinned === undefined && input.group_id === undefined && input.parent_id === undefined) {
+        throw new Error("変える項目がありません。title・pinned・group_id・parent_id のどれかを渡してください（省いた項目は変えません）");
+      }
+      // 親から外す（parent_id）。グループは親のないチャットにするときだけ一緒に渡せる
+      const detaching = input.parent_id !== undefined;
+      if (detaching && target.parent_chat_id === null) throw new Error("親のないチャットです（parent_id で外せるのは子チャットだけです）");
+      if (detaching && input.parent_id !== null && input.group_id !== undefined && input.group_id !== null) {
+        throw new Error("グループに入れられるのは親のないチャットだけです（先祖の子に上げるときは group_id を渡さないでください）");
       }
       // 先にすべて確かめてから変える（途中で断って一部だけ変わらないように）
       const title = input.title?.trim();
@@ -104,8 +113,8 @@ export function createAiChatEditTools(store: Store, chatId: number): AiChatEditT
       if (title !== undefined && title.length > CHAT_TITLE_MAX) throw new Error(`名前（title）は ${CHAT_TITLE_MAX} 文字までです`);
       const group = input.group_id === undefined || input.group_id === null ? null : store.groups.get(input.group_id);
       if (input.group_id !== undefined) {
-        if (target.parent_chat_id !== null) {
-          throw new Error("子チャットはグループに入りません（グループを変えられるのは親のないチャットだけです）");
+        if (target.parent_chat_id !== null && !(detaching && input.parent_id === null)) {
+          throw new Error("子チャットはグループに入りません（グループを変えられるのは親のないチャットだけです。parent_id: null で親から外すなら、一緒にグループへ入れられます）");
         }
         if (input.group_id !== null && (!group || group.project_id !== target.project_id)) {
           throw new Error(
@@ -115,6 +124,18 @@ export function createAiChatEditTools(store: Store, chatId: number): AiChatEditT
       }
 
       const changes: string[] = [];
+      // 親から外すのを先にする（先祖でない ID・作業中などで断るときは、ほかの項目も変えないように）
+      if (detaching) {
+        const parentId = input.parent_id ?? null;
+        const before = target.parent_chat_id === null ? null : store.chats.get(target.parent_chat_id);
+        try {
+          detachChat(store, isBusy, target, { parentId, groupId: parentId === null ? (input.group_id ?? null) : null });
+        } catch (e) {
+          throw new Error(`親から外せませんでした: ${errorMessage(e)}`, { cause: e });
+        }
+        const to = parentId === null ? null : store.chats.get(parentId);
+        changes.push(to ? `「${nameOf(before?.title ?? "")}」から「${nameOf(to.title)}」の子に上げた` : `「${nameOf(before?.title ?? "")}」から外して親のないチャットにした${group ? `（グループ「${group.name}」）` : ""}`);
+      }
       if (title !== undefined && title !== target.title) {
         store.chats.update(target.id, { title });
         changes.push(`名前を「${nameOf(target.title)}」から「${title}」に変えた`);
@@ -123,7 +144,7 @@ export function createAiChatEditTools(store: Store, chatId: number): AiChatEditT
         store.chats.setPinned(target.id, input.pinned);
         changes.push(input.pinned ? "固定した" : "固定を外した");
       }
-      if (input.group_id !== undefined && input.group_id !== target.group_id) {
+      if (!detaching && input.group_id !== undefined && input.group_id !== target.group_id) {
         store.chats.setGroup(target.id, input.group_id);
         changes.push(group ? `グループ「${group.name}」に入れた` : "グループから外した");
       }

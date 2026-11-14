@@ -57,6 +57,7 @@ export class Runner extends RunnerQueue {
     super();
     this.turnDeps = {
       ...deps,
+      isBusy: (chatId) => this.isBusy(chatId),
       startChildChat: async (parent, input) => {
         const chat = await startChildChat({ store: deps.store, runner: this, providers: deps.providers }, parent, input);
         // 親の会話を写し終えた・いま写している（写すのは作ったあとで待たずに進める inheritThenExecute。もう写し終えていることもあるので店から引き直す）

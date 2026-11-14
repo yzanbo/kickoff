@@ -1,9 +1,12 @@
-// チャットの AI が同じ家系のチャットの名前・固定・グループを変えるツールの中身（家系の範囲・断る場合・省いた項目・渡し方）
+// チャットの AI が同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外すツールの中身（家系の範囲・断る場合・省いた項目・渡し方）
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ScriptedProvider } from "../testing/fakeProvider.js";
 import { setupCore, until } from "../testing/testCore.js";
 import { createAiChatEditTools } from "./aiChatEdit.js";
+
+/** どのチャットも作業中でない */
+const idle = () => false;
 
 /** すぐ終わる偽のプロバイダーで組み立てる */
 function setup() {
@@ -33,7 +36,7 @@ test("list_family_chats: 兄弟・親の兄弟まで、同じ家系のチャッ�
   const group = ctx.store.groups.create(ctx.project.id, "調査");
   ctx.store.chats.setGroup(root.id, group.id);
   ctx.store.chats.setPinned(childB.id, true);
-  const listed = JSON.parse(createAiChatEditTools(ctx.store, grandchild.id).listFamily());
+  const listed = JSON.parse(createAiChatEditTools(ctx.store, grandchild.id, idle).listFamily());
   assert.equal(listed.self_id, grandchild.id);
   assert.deepEqual(
     listed.chats.map((c: { id: number; relation: string; is_self: boolean }) => [c.id, c.relation, c.is_self]),
@@ -55,7 +58,7 @@ test("update_chat: 兄弟の名前を変え、省いた項目（固定・グル�
   const group = ctx.store.groups.create(ctx.project.id, "調査");
   ctx.store.chats.setGroup(root.id, group.id);
   ctx.store.chats.setPinned(root.id, true);
-  const tools = createAiChatEditTools(ctx.store, childA.id);
+  const tools = createAiChatEditTools(ctx.store, childA.id, idle);
   const result = tools.update({ chat_id: childB.id, title: "  【済】子B  " });
   assert.match(result, /兄弟/);
   assert.match(result, /名前を「子B」から「【済】子B」に変えた/);
@@ -70,7 +73,7 @@ test("update_chat: group_id は入れる・null で外す。もともとの値�
   const ctx = setup();
   const { root, grandchild } = family(ctx);
   const group = ctx.store.groups.create(ctx.project.id, "調査");
-  const tools = createAiChatEditTools(ctx.store, grandchild.id);
+  const tools = createAiChatEditTools(ctx.store, grandchild.id, idle);
   assert.match(tools.update({ chat_id: root.id, group_id: group.id }), /グループ「調査」に入れた/);
   assert.equal(ctx.store.chats.get(root.id)?.group_id, group.id);
   assert.match(tools.update({ chat_id: root.id, group_id: null }), /グループから外した/);
@@ -83,7 +86,7 @@ test("update_chat: 家系の外・ほかのプロジェクトのグループ・�
   const { root, childA, other } = family(ctx);
   const otherProject = ctx.store.projects.create({ name: "q", repo_path: "/tmp/kickoff-test-other", provider: "claude" });
   const foreign = ctx.store.groups.create(otherProject.id, "よその");
-  const tools = createAiChatEditTools(ctx.store, childA.id);
+  const tools = createAiChatEditTools(ctx.store, childA.id, idle);
   assert.throws(() => tools.update({ chat_id: other.id, title: "x" }), /家系.*ありません.*list_family_chats/);
   assert.throws(() => tools.update({ chat_id: 99999, pinned: true }), /家系/);
   // 名前は正しくても、グループが通らなければ名前も変えない（先にすべて確かめる）
@@ -94,6 +97,38 @@ test("update_chat: 家系の外・ほかのプロジェクトのグループ・�
   assert.throws(() => tools.update({ chat_id: root.id }), /変える項目がありません/);
   assert.equal(ctx.store.chats.get(root.id)?.title, "根");
   assert.equal(ctx.store.chats.get(other.id)?.title, "よそ");
+});
+
+test("update_chat: parent_id で子チャットを親から外す（null = 親なしで、group_id を一緒に渡せばグループへ / 先祖の ID = その子に上げる）", () => {
+  const ctx = setup();
+  const { root, childA, childB, grandchild } = family(ctx);
+  const group = ctx.store.groups.create(ctx.project.id, "本筋");
+  const tools = createAiChatEditTools(ctx.store, root.id, idle);
+  assert.match(tools.update({ chat_id: grandchild.id, parent_id: root.id }), /「子A」から「根」の子に上げた/);
+  assert.equal(ctx.store.chats.get(grandchild.id)?.parent_chat_id, root.id);
+  assert.match(tools.update({ chat_id: childB.id, parent_id: null, group_id: group.id }), /「根」から外して親のないチャットにした（グループ「本筋」）/);
+  const detached = ctx.store.chats.get(childB.id)!;
+  assert.deepEqual([detached.parent_chat_id, detached.group_id], [null, group.id]);
+  // 記録にお知らせを残す
+  const notice = ctx.store.events.list(childB.id).at(-1);
+  assert.equal(notice?.type === "notice" && notice.data.message, "「根」から外しました");
+  assert.equal(ctx.store.chats.get(childA.id)?.parent_chat_id, root.id);
+});
+
+test("update_chat: 親から外せないとき（親のないチャット・先祖でない ID・先祖の子に上げながらグループ・作業中）は断り、ほかの項目も変えない", () => {
+  const ctx = setup();
+  const { root, childA, childB, grandchild, other } = family(ctx);
+  const group = ctx.store.groups.create(ctx.project.id, "本筋");
+  const tools = createAiChatEditTools(ctx.store, root.id, idle);
+  assert.throws(() => tools.update({ chat_id: root.id, parent_id: null }), /親のないチャットです/);
+  assert.throws(() => tools.update({ chat_id: grandchild.id, title: "新しい", parent_id: childB.id }), /親から外せませんでした: 上げられるのは、自分の先祖/);
+  assert.throws(() => tools.update({ chat_id: grandchild.id, parent_id: other.id }), /先祖/);
+  assert.throws(() => tools.update({ chat_id: grandchild.id, parent_id: root.id, group_id: group.id }), /グループに入れられるのは親のないチャットだけ/);
+  const busyTools = createAiChatEditTools(ctx.store, root.id, (id) => id === childA.id);
+  assert.throws(() => busyTools.update({ chat_id: childA.id, parent_id: null }), /作業中/);
+  assert.equal(ctx.store.chats.get(grandchild.id)?.title, "孫");
+  assert.equal(ctx.store.chats.get(grandchild.id)?.parent_chat_id, childA.id);
+  assert.equal(ctx.store.chats.get(childA.id)?.parent_chat_id, root.id);
 });
 
 test("渡し方: 名前・固定・グループのツールは、子チャットを作らせない設定のときも孫チャットにも渡す", async () => {
