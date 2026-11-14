@@ -5,9 +5,11 @@ import { knownChat } from "@/stores/chats";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { openMemoFromChat } from "@/features/memo/openMemoFrom";
 import type { ViewerImage } from "@/ui/imageViewer/ImageViewer";
-import { formatBytes } from "@/lib/format";
+import { baseName, formatBytes } from "@/lib/format";
+import { FileIcon } from "@/features/editor/FileIcon";
 import { formatDayTime } from "@/lib/time";
 import { CaptureAttachmentChip } from "./CaptureAttachmentChip";
+import { fileKindLabel, memoSubline } from "./chipLabels";
 import { useAttachmentViewer } from "./useAttachmentViewer";
 
 const PREVIEWABLE = /^image\/(png|jpeg|gif|webp)$/;
@@ -24,7 +26,8 @@ export function viewerImagesOf(attachments: Attachment[]): ViewerImage[] {
 export type ChipAttachment = Attachment | { kind?: undefined; id?: string; name: string; mime: string; size: number };
 
 /**
- * 添付の表示（種類ごと: ファイル = 画像はサムネイル、それ以外はファイル名とサイズ / メモ / 「AI に渡す」で取ったもの）。
+ * 添付の表示（種類ごと: ファイル = 画像はサムネイル、それ以外はファイルの種類のアイコンと名前・種類・大きさ / メモ / 「AI に渡す」で取ったもの）。
+ * どれも同じ形の札（左に角丸のアイコンの地、右に名前と 2 行目。styles/chat/attachments.css）。
  * 画像は押すとアプリの中で大きく表示し（右クリックでコピー・保存も）、送ったファイルはアプリの中でダウンロードする（外のブラウザは使わない）
  */
 export function AttachmentChip({
@@ -67,17 +70,24 @@ function FileAttachmentChip({
   const at = siblingImages.findIndex((image) => image.src === src);
   const viewer = useAttachmentViewer(at >= 0 ? siblingImages : src ? [{ src, name: attachment.name }] : []);
   const index = Math.max(0, at);
+  const kind = fileKindLabel(attachment.name);
   const body = (
     <>
-      {isImage && src ? <img className="attachment-thumb" src={src} alt="" /> : <span className="attachment-icon">📄</span>}
+      {isImage && src ? (
+        <img className="attachment-thumb" src={src} alt="" />
+      ) : (
+        <span className="attachment-icon">
+          <FileIcon name={attachment.name} />
+        </span>
+      )}
       <span className="attachment-meta">
         <span className="attachment-name">{attachment.name}</span>
-        <span className="muted small">{uploading ? "アップロード中…" : formatBytes(attachment.size)}</span>
+        <span className="attachment-sub">{uploading ? "アップロード中…" : [kind, formatBytes(attachment.size)].filter(Boolean).join(" · ")}</span>
       </span>
     </>
   );
   return (
-    <span className={`attachment ${uploading ? "uploading" : ""}`}>
+    <span className={`attachment file-attachment ${uploading ? "uploading" : ""}`} title={attachment.name}>
       {isImage && src ? (
         <button type="button" className="attachment-link attachment-open" title="大きく表示" aria-label={`${attachment.name} を大きく表示`}
           onClick={() => viewer.open(index)}
@@ -90,7 +100,7 @@ function FileAttachmentChip({
           {body}
         </a>
       ) : (
-        body
+        <span className="attachment-link">{body}</span>
       )}
       {onRemove && (
         <button type="button" className="chip-remove" aria-label={`${attachment.name} を外す`} onClick={onRemove}>
@@ -129,11 +139,11 @@ function MemoAttachmentChip({ attachment, onRemove }: { attachment: MemoAttachme
   const body = (
     <>
       <span className="attachment-icon">
-        <StickyNote size={16} aria-hidden />
+        <StickyNote size={18} aria-hidden />
       </span>
       <span className="attachment-meta">
-        <span className="attachment-name">{memo}</span>
-        <span className="muted small">{taken_at ? `メモ · ${formatDayTime(taken_at)} の中身` : "メモ"}</span>
+        <span className="attachment-name">{baseName(memo)}</span>
+        <span className="attachment-sub">{memoSubline(memo, taken_at, formatDayTime)}</span>
       </span>
     </>
   );
@@ -144,7 +154,7 @@ function MemoAttachmentChip({ attachment, onRemove }: { attachment: MemoAttachme
           {body}
         </button>
       ) : (
-        body
+        <span className="attachment-link">{body}</span>
       )}
       {onRemove && (
         <button type="button" className="chip-remove" aria-label={`メモ「${memo}」を外す`} onClick={onRemove}>
