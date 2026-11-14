@@ -50,7 +50,7 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
     beforeChange: (path) => confirmLeaveMemosUnder(projectId, path),
     onMoved: (from, to) => followMovedMemo(projectId, from, to),
   });
-  const dropInto = (path: string, folder: string) => void actions.moveInto(path, folder);
+  const dropInto = (paths: string[], folder: string) => void actions.moveAllInto(paths, folder);
   // 木のフォルダ（メモの入ったものだけ）。すべて開く・すべて閉じるに使う
   const dirs = useMemo(() => folderPaths(tree), [tree]);
   if (tree.length === 0) return null;

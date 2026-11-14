@@ -6,7 +6,7 @@ import { memosStore } from "@/stores/memos";
 import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { memoOpenFolders, memoSelected } from "@/lib/storageKeys";
-import { ancestorsOf, baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./memoPaths";
+import { ancestorsOf, baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, topLevelPaths, untitledPath } from "./memoPaths";
 import { remapMemoTabs } from "./memoPanel";
 
 /** 新しく作るメモ・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ）。メモは頭に作った日の日付を付ける（datedMemoName） */
@@ -139,7 +139,72 @@ export function useMemoActions(
     return { moved, failed };
   };
 
-  return { createMemo, createFolder, renameTo, moveInto, moveMany, trash };
+  /** 失敗したものを最後にまとめて知らせる（まとめて動かす・ゴミ箱に入れる） */
+  const reportMany = async (title: string, failed: readonly string[]) => {
+    if (failed.length > 0) await alertDialog(title, failed.join("\n"));
+  };
+
+  /**
+   * 一覧で選んだいくつかのメモ・フォルダを、フォルダ（"" は直下）へまとめて動かす（ドラッグ）。1 つなら moveInto と同じ。
+   * 同じ場所・自分の中へは動かさず、同じ名前があるものは飛ばして最後にまとめて知らせる
+   */
+  const moveAllInto = async (paths: readonly string[], folder: string) => {
+    const targets = topLevelPaths(paths).filter((p) => parentOf(p) !== folder && folder !== p && !folder.startsWith(`${p}/`));
+    if (targets.length <= 1) {
+      if (targets[0] !== undefined) await moveInto(targets[0], folder);
+      return;
+    }
+    const failed: string[] = [];
+    for (const from of targets) {
+      const to = joinMemoPath(folder, baseName(from));
+      if (pathTaken(entries(), to, from)) {
+        failed.push(`${baseName(from)}: 「${folder || "いちばん上"}」に同じ名前があります`);
+        continue;
+      }
+      if (!(await beforeChange(from))) continue;
+      try {
+        await api.moveMemo(projectId, from, to);
+        onMoved(from, to);
+      } catch (e) {
+        failed.push(`${baseName(from)}: ${errorMessage(e)}`);
+      }
+    }
+    refresh();
+    await reportMany("動かせなかったものがあります", failed);
+  };
+
+  /** 一覧で選んだいくつかのメモ・フォルダを、1 回だけ確かめてからまとめてゴミ箱に入れる（1 つなら trash と同じ） */
+  const trashMany = async (nodes: readonly { path: string; dir: boolean }[]) => {
+    const tops = new Set(topLevelPaths(nodes.map((n) => n.path)));
+    const targets = nodes.filter((n) => tops.has(n.path));
+    if (targets.length <= 1) {
+      if (targets[0]) await trash(targets[0].path, targets[0].dir);
+      return;
+    }
+    const names = targets.slice(0, 10).map((n) => `・${baseName(n.path)}${n.dir ? "（フォルダ）" : ""}`);
+    if (targets.length > names.length) names.push(`ほか ${targets.length - names.length} 件`);
+    const ok = await confirmDialog({
+      title: `${targets.length} 件をゴミ箱に入れますか？`,
+      message: `${names.join("\n")}\n\n${targets.some((n) => n.dir) ? "フォルダの中のメモもすべてゴミ箱に入ります。" : ""}Finder のゴミ箱から戻せます。`,
+      confirmLabel: "ゴミ箱に入れる",
+      danger: true,
+    });
+    if (!ok) return;
+    const failed: string[] = [];
+    for (const { path } of targets) {
+      if (!(await beforeChange(path))) continue;
+      try {
+        await api.trashMemo(projectId, path);
+        onTrashed?.(path);
+      } catch (e) {
+        failed.push(`${baseName(path)}: ${errorMessage(e)}`);
+      }
+    }
+    refresh();
+    await reportMany("ゴミ箱に入れられなかったものがあります", failed);
+  };
+
+  return { createMemo, createFolder, renameTo, moveInto, moveAllInto, moveMany, trash, trashMany };
 }
 
 /**

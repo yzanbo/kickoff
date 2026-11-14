@@ -21,7 +21,7 @@ export function addKeys<K>(picked: readonly K[], keys: readonly K[]): K[] {
 }
 
 /**
- * 一覧の複数選択（サイドバーのチャット・送信待ちの指示で共通）。決まりは 1 つ:
+ * 一覧の複数選択（サイドバーのチャット・送信待ちの指示・メモの一覧で共通）。決まりは 1 つ:
  * ⌘ / Ctrl ＋クリックで 1 つずつ足す・外す（起点にする）、Shift ＋クリックで起点から押したものまでの範囲を、いま選んでいるものに足す
  * （選んだものは減らさない。起点がなければ押したものから）。ふつうのクリックは選ぶのをやめる（呼ぶ側はふだんの動きをする）。
  * order は範囲を決める並び（サイドバーは画面の並び、送信待ちは列の順）。existing はいまある項目で、消えたものは選択から外す。
@@ -66,15 +66,24 @@ export function useMultiSelect<K>(existing: readonly K[], order: () => readonly 
     clear,
     /**
      * 行のクリック: ⌘ / Ctrl なら足す・外す、Shift なら範囲を足して true（選ぶ操作をした）。
-     * 修飾キーがなければ選ぶのをやめて false（呼ぶ側は開くなどのふだんの動きをする）
+     * 修飾キーがなければ選ぶのをやめて false（呼ぶ側は開くなどのふだんの動きをする）。
+     * current は、まだ何も選んでいないときに、ふだんの選び方で選んでいる行（メモの一覧の開いているメモなど）。
+     * あれば Finder と同じく、それも選んだものに入れて起点にする（⌘ で 2 つ目を押せば 2 つ、Shift ならそこからの範囲）
      */
-    click: (e: Modifiers, key: K): boolean => {
-      if (e.shiftKey) extend(key);
-      else if (e.metaKey || e.ctrlKey) toggle(key);
-      else {
+    click: (e: Modifiers, key: K, current?: K | null): boolean => {
+      if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
         clear();
         return false;
       }
+      const start = picked.length === 0 && current != null && alive.has(current) ? current : null;
+      if (e.shiftKey) {
+        const from = anchor ?? start;
+        update((now) => addKeys(now, rangeOf(order(), from, key)));
+        if (anchor === null) setAnchor(from ?? key);
+        return true;
+      }
+      if (start !== null && start !== key) update((now) => addKeys(now, [start]));
+      toggle(key);
       return true;
     },
   };
