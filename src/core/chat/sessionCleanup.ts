@@ -27,17 +27,21 @@ export function collectChatSessions(store: Store, chats: Chat[]): ChatSessions {
   return { byProvider, cwds: [...cwds] };
 }
 
-/** チャットを消したあとで、残ったチャットが使っていないセッションの記録を trash で移す（失敗しても削除は止めない。移した数を返す） */
+/** チャットを消したあとで、残ったチャット（とほかの Kickoff のチャット = usedElsewhere）が使っていないセッションの記録を trash で移す（失敗しても削除は止めない。移した数を返す） */
 export async function discardUnusedSessions(
   store: Store,
   providers: Record<ProviderId, AgentProvider>,
   sessions: ChatSessions,
   trash: (path: string) => Promise<void>,
+  usedElsewhere: (ids: string[]) => Set<string> = () => new Set(),
 ): Promise<number> {
   let moved = 0;
   for (const [providerId, ids] of sessions.byProvider) {
     const provider = providers[providerId];
-    const unused = [...ids].filter((id) => !store.events.sessionInUse(id));
+    const candidates = [...ids].filter((id) => !store.events.sessionInUse(id));
+    // ほかの Kickoff（製品版と開発版。同じ ~/.claude/projects に置き、開発版のデータは製品版から写す）のチャットが使っているものは残す
+    const elsewhere = usedElsewhere(candidates);
+    const unused = candidates.filter((id) => !elsewhere.has(id));
     if (!provider?.discardSessions || unused.length === 0) continue;
     try {
       moved += await provider.discardSessions(unused, sessions.cwds, trash);
