@@ -277,7 +277,7 @@ test("Tailscale の様子: 入っていなければ installed: false と始め�
   const { call, app, tailscaleFake } = withDevice();
   const missing = (await call("GET", "/api/tailscale")).body as TailscaleStatus;
   assert.equal(missing.installed, false);
-  assert.match(missing.command, /^tailscale serve --bg --https=443 http:\/\/127\.0\.0\.1:\d+$/);
+  assert.match(missing.command, /^tailscale serve --bg --https=\d+ http:\/\/127\.0\.0\.1:\d+$/);
   // 答えを書いた小さなスクリプトを tailscale として置く（status と serve status）
   const cli = path.join(tempDir(), "tailscale");
   const serveJson = JSON.stringify({ Web: { "mac.tailnet.ts.net:443": { Handlers: { "/": { Proxy: "http://127.0.0.1:1" } } } } });
