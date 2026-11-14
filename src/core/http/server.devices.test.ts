@@ -1,7 +1,7 @@
 // API のテスト: 呼び主（この Mac / 端末）と、端末に開く口・届ける知らせ（既定で閉じる）
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEVICE_FORBIDDEN, type Device, type PairingClaimResult, type PairingPollResult, type PairingState } from "@shared/types";
+import { DEVICE_FORBIDDEN, MOBILE_OFF, type Device, type PairingClaimResult, type PairingPollResult, type PairingState } from "@shared/types";
 import { hashToken } from "./caller.js";
 import { DEVICE_ROUTES } from "./deviceAccess.js";
 import { AUTH, setup } from "../testing/testServer.js";
@@ -9,8 +9,15 @@ import { AUTH, setup } from "../testing/testServer.js";
 const DEVICE_TOKEN = "d".repeat(43);
 const DEVICE = { authorization: `Bearer ${DEVICE_TOKEN}` };
 
-function withDevice() {
+/** スマホ連携をオンにした準備（オフの既定では、端末からの頼みもペアリングも断る） */
+function mobileSetup() {
   const ctx = setup();
+  ctx.store.settings.update({ remote_enabled: true });
+  return ctx;
+}
+
+function withDevice() {
+  const ctx = mobileSetup();
   const device = ctx.store.devices.create("Pixel 8", hashToken(DEVICE_TOKEN));
   return { ...ctx, device };
 }
@@ -97,7 +104,7 @@ async function poll(app: ReturnType<typeof setup>["app"], id: string, secret: st
 }
 
 test("ペアリング: Mac が番号を出し、端末が頼み、Mac で「つなぐ」を押したら端末のトークンを 1 回だけ渡す。そのトークンで開いた口を使える", async () => {
-  const { app, call, store, bus } = setup();
+  const { app, call, store, bus } = mobileSetup();
   const events: string[] = [];
   bus.subscribe((e) => events.push(e.type));
   await call("PUT", "/api/settings", { mobile_url: "https://mac.example.ts.net" });
@@ -138,7 +145,7 @@ test("ペアリング: Mac が番号を出し、端末が頼み、Mac で「つ�
 });
 
 test("ペアリング: 番号が違う・期限切れは断り、5 回続けて間違えたら番号を捨てる。断ったら端末には denied。ペアリングの口は端末には開かない", async () => {
-  const { app, call, pairingClock } = setup();
+  const { app, call, pairingClock } = mobileSetup();
   assert.equal((await claim(app, "123456")).status, 404);
   const { code } = (await call("POST", "/api/pairing")).body as PairingState;
   const wrong = code === "000000" ? "111111" : "000000";
@@ -162,7 +169,7 @@ test("ペアリング: 番号が違う・期限切れは断り、5 回続けて�
 });
 
 test("ペアリング: つないだのに結果を聞かれないまま期限を過ぎたら、作った端末を消す", async () => {
-  const { app, call, store, pairingClock } = setup();
+  const { app, call, store, pairingClock } = mobileSetup();
   const { code } = (await call("POST", "/api/pairing")).body as PairingState;
   const req = await claim(app, code!);
   await call("POST", `/api/pairing/requests/${req.body.request_id}/approve`);
@@ -191,4 +198,26 @@ test("プッシュの宛先: 端末が自分の宛先を登録・外す（宛先
   assert.equal((await put({ push: null })).status, 204);
   assert.equal(store.devices.push(device.id), null);
   assert.equal((await call("PUT", "/api/devices/self/push", { push: null })).status, 400);
+});
+
+test("スマホ連携がオフなら、つないだ端末からの頼みとペアリングを断る（登録は残し、オンに戻せばそのまま使える）。オフにしたら端末の SSE を切る", async () => {
+  const { app, call, store, device } = withDevice();
+  const res = await app.request("/api/projects", { headers: DEVICE });
+  assert.equal(res.status, 200);
+  const sse = await app.request("/api/events", { headers: DEVICE });
+  const reader = sse.body!.getReader();
+  await reader.read(); // hello
+  await call("PUT", "/api/settings", { remote_enabled: false });
+  const end = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
+  assert.notEqual(end, "timeout");
+  if (end !== "timeout") assert.equal(end.done, true);
+  const off = await app.request("/api/projects", { headers: DEVICE });
+  assert.equal(off.status, 403);
+  assert.equal(((await off.json()) as { code: string }).code, MOBILE_OFF);
+  const start = await call("POST", "/api/pairing");
+  assert.equal(start.status, 409);
+  assert.equal((start.body as { code: string }).code, MOBILE_OFF);
+  assert.equal(store.devices.get(device.id)?.name, "Pixel 8");
+  await call("PUT", "/api/settings", { remote_enabled: true });
+  assert.equal((await app.request("/api/projects", { headers: DEVICE })).status, 200);
 });

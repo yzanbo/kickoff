@@ -1,13 +1,15 @@
 // スマホ連携のペアリング: この Mac の画面が使い捨ての番号を出し、端末が番号で頼み、Mac の画面で確かめてから端末のトークンを 1 回だけ渡す。
 // 番号・頼みはメモリにだけ持つ（アプリを終えたら消える）。端末は store.devices に hash で残る
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { PAIRING_CODE_TTL_MS, type BusEvent, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/types";
+import { MOBILE_OFF, PAIRING_CODE_TTL_MS, type BusEvent, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { hashToken } from "../http/caller.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 
 /** 番号を続けて間違えたら、その番号を捨てる回数（当てずっぽうで頼み続けさせない） */
 const MAX_WRONG_CLAIMS = 5;
+/** スマホ連携がオフのときの断りの文 */
+export const MOBILE_OFF_MESSAGE = "スマホ連携がオフです。Mac の Kickoff の設定「スマホ連携」でオンにしてください";
 /** 名前の長さの上限 */
 export const DEVICE_NAME_MAX = 60;
 
@@ -57,8 +59,9 @@ export class PairingCenter {
     };
   }
 
-  /** 新しい番号を出す（前の番号と、確かめを待っている頼みは捨てる） */
+  /** 新しい番号を出す（前の番号と、確かめを待っている頼みは捨てる。スマホ連携がオフなら断る） */
   start(): PairingState {
+    this.requireMobile();
     this.code = { value: String(randomInt(0, 1_000_000)).padStart(6, "0"), expiresAt: this.now() + PAIRING_CODE_TTL_MS, wrong: 0 };
     for (const [id, r] of this.requests) if (r.status === "pending") this.requests.delete(id);
     return this.changed();
@@ -73,6 +76,7 @@ export class PairingCenter {
 
   /** 端末が番号で頼む（認証なし。番号が違う・期限切れなら断る。続けて間違えたら番号を捨てる） */
   claim(code: string, name: string): PairingClaimResult {
+    this.requireMobile();
     this.sweep();
     const current = this.code;
     if (!current) throw new NotFound("つなぐための番号がありません。Mac の Kickoff の設定「スマホ連携」で「端末をつなぐ」を押してください");
@@ -133,6 +137,11 @@ export class PairingCenter {
   revoke(deviceId: number): void {
     if (!this.store.devices.remove(deviceId)) throw new NotFound("端末が見つかりません");
     this.publish({ type: "devices" });
+  }
+
+  /** スマホ連携がオンか（オフなら 409。端末の登録を受け付けない） */
+  private requireMobile(): void {
+    if (!this.store.settings.get().remote_enabled) throw new Conflict(MOBILE_OFF_MESSAGE, MOBILE_OFF);
   }
 
   private pendingRequest(id: string): PendingRequest {

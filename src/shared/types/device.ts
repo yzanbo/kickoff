@@ -75,3 +75,6 @@ export interface ViewingBody {
 
 /** 見ているものの知らせを覚えておく時間（画面は前に出している間、これより短い間隔で知らせ直す） */
 export const VIEWING_TTL_MS = 90_000;
+
+/** スマホ連携がオフのときに、端末からの頼み・ペアリングを断る印 */
+export const MOBILE_OFF = "mobile_off";
