@@ -75,3 +75,22 @@ export interface ArchiveCleanupResult {
   /** ゴミ箱に入れたチャットの数（子チャットも数える） */
   trashed: number;
 }
+
+/** どのチャットも使っていない会話記録（GET /api/orphan-sessions。メモの仕様書「ファイル削除」の Q17 の「いまある分」） */
+export interface OrphanSession {
+  session_id: string;
+  provider: string;
+  size: number;
+  modified_at: string;
+  /** 動かした作業フォルダ（分からなければ null） */
+  cwd: string | null;
+  /** 最初の自分の発言（頭の 200 文字。なければ null） */
+  first_prompt: string | null;
+  /** 作業フォルダを含むプロジェクト（ゴミ箱に入れたらそのプロジェクトの「ゴミ箱」に出る。なければ null） */
+  project_id: number | null;
+}
+
+/** 選んだ会話記録をゴミ箱へ入れる（POST /api/orphan-sessions/trash） */
+export interface OrphanSessionsTrashBody {
+  session_ids: string[];
+}

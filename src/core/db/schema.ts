@@ -430,7 +430,22 @@ CREATE INDEX idx_chats_trashed_with ON chats(trashed_with) WHERE trashed_with IS
 ALTER TABLE projects ADD COLUMN trashed_at TEXT;
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27];
+/**
+ * v28: Kickoff が作ったセッション（Claude Code の会話記録）の覚え（メモの仕様書「ファイル削除」の Q17）。チャットの session_id に入れたときに足し、
+ * どのチャットからも使われなくなったら会話記録を Kickoff のゴミ箱へ入れて消す。前からある会話記録は覚えない（ターミナルで直接使った Claude Code の記録と
+ * 見分けられないため。片付けるのは利用者が選ぶ一覧から）。project_id はゴミ箱に出すプロジェクト、cwd は動かした作業フォルダ（記録の場所の手がかり）
+ */
+const SCHEMA_V28 = `
+CREATE TABLE agent_sessions (
+  session_id TEXT PRIMARY KEY CHECK (session_id <> ''),
+  provider TEXT NOT NULL CHECK (provider <> ''),
+  project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+  cwd TEXT NOT NULL CHECK (cwd <> ''),
+  created_at TEXT NOT NULL DEFAULT (${NOW})
+) STRICT;
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

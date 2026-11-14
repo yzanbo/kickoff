@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { open, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import type { SessionFileInfo } from "../types.js";
 
 /** Claude Code が会話記録を置くフォルダ（CLAUDE_CONFIG_DIR があればその中） */
 export const claudeProjectsDir = (env: NodeJS.ProcessEnv = process.env): string => join(env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "projects");
@@ -173,4 +174,70 @@ export async function trimToRecentSegments(path: string, sessionId: string, keep
   const newPath = join(path, "..", `${newId}.jsonl`);
   await writeFile(newPath, buf.toString("utf8").split(`"sessionId":"${sessionId}"`).join(`"sessionId":"${newId}"`), { flag: "wx", mode: 0o600 });
   return { sessionId: newId, path: newPath, dropped: start };
+}
+
+/** 頭だけ読む大きさ（最初の発言と作業フォルダを探す。大きなファイルを全部読まない） */
+const HEAD_BYTES = 256 << 10;
+
+/** 記録の頭から、作業フォルダと最初の自分の発言を読む（Kickoff・Claude Code が足す < で始まる知らせ・メタの行は飛ばす） */
+export async function readSessionHead(path: string): Promise<{ cwd: string | null; firstPrompt: string | null }> {
+  const fh = await open(path, "r");
+  let text: string;
+  try {
+    const buf = Buffer.alloc(HEAD_BYTES);
+    const { bytesRead } = await fh.read(buf, 0, HEAD_BYTES, 0);
+    text = buf.toString("utf8", 0, bytesRead);
+  } finally {
+    await fh.close();
+  }
+  let cwd: string | null = null;
+  let firstPrompt: string | null = null;
+  // 最後の行は途中で切れているかもしれないので読まない
+  for (const line of text.split("\n").slice(0, -1)) {
+    let entry: { cwd?: unknown; type?: unknown; isMeta?: unknown; message?: { content?: unknown } };
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (!cwd && typeof entry.cwd === "string") cwd = entry.cwd;
+    if (!firstPrompt && entry.type === "user" && !entry.isMeta) {
+      const content = entry.message?.content;
+      const textOf = typeof content === "string" ? content : Array.isArray(content) ? content.map((c: { type?: string; text?: string }) => (c.type === "text" ? (c.text ?? "") : "")).join("") : "";
+      const trimmed = textOf.trim();
+      if (trimmed && !trimmed.startsWith("<")) firstPrompt = trimmed.slice(0, 200);
+    }
+    if (cwd && firstPrompt) break;
+  }
+  return { cwd, firstPrompt };
+}
+
+/** 1 つの記録のファイルの様子 */
+async function infoOf(sessionId: string, file: string): Promise<SessionFileInfo | null> {
+  const st = await stat(file).catch(() => null);
+  if (!st?.isFile()) return null;
+  const head = await readSessionHead(file).catch(() => ({ cwd: null, firstPrompt: null }));
+  return { sessionId, file, size: st.size, modifiedAt: st.mtime.toISOString(), ...head };
+}
+
+/** セッションの記録のファイルの様子（作業フォルダから決まる場所 → すべてのプロジェクトのフォルダ。なければ null） */
+export async function sessionFileInfo(sessionId: string, cwds: string[], root = claudeProjectsDir()): Promise<SessionFileInfo | null> {
+  const file = await findSessionFile(sessionId, cwds, root);
+  return file ? infoOf(sessionId, file) : null;
+}
+
+const SESSION_FILE = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/;
+
+/** すべての会話記録のファイル（どのチャットも使っていない記録の一覧の元。新しい順） */
+export async function listSessionFiles(root = claudeProjectsDir()): Promise<SessionFileInfo[]> {
+  const out: SessionFileInfo[] = [];
+  for (const dir of await readdir(root).catch(() => [] as string[])) {
+    for (const name of await readdir(join(root, dir)).catch(() => [] as string[])) {
+      const m = SESSION_FILE.exec(name);
+      if (!m) continue;
+      const info = await infoOf(m[1], join(root, dir, name));
+      if (info) out.push(info);
+    }
+  }
+  return out.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
 }

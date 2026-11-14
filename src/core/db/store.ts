@@ -17,6 +17,7 @@ import { createSecretStore, createSettingsStore, readDatabaseId } from "./settin
 import { createSnippetStore } from "./snippets.js";
 import { databaseStats, type DatabaseStats } from "./stats.js";
 import { createTrashStore } from "./trash.js";
+import { createAgentSessionStore } from "./agentSessions.js";
 import { createWorktreeEnvStore } from "./worktreeEnvs.js";
 
 /**
@@ -50,6 +51,8 @@ export class Store {
   readonly devices;
   /** Kickoff のゴミ箱（消したものを 3 日だけ取っておく。中身のファイルは trash/TrashService が置き場に置く） */
   readonly trash;
+  /** Kickoff が作ったセッション（Claude Code の会話記録）の覚え（使われなくなったらゴミ箱へ。trash/sessionTrash.ts） */
+  readonly agentSessions;
 
   constructor(
     private readonly file: string,
@@ -74,6 +77,7 @@ export class Store {
     this.worktreeEnvs = createWorktreeEnvStore(this.db);
     this.devices = createDeviceStore(this.db);
     this.trash = createTrashStore(this.db, onChange);
+    this.agentSessions = createAgentSessionStore(this.db);
   }
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */

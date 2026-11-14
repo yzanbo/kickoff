@@ -30,6 +30,7 @@ import { errorMessage } from "@shared/errors";
 import { TrashService } from "./trash/service.js";
 import { installTrashCommand } from "./trash/command.js";
 import { siblingSessionCheck } from "./trash/siblingSessions.js";
+import { sweepUnusedSessions } from "./trash/sessionTrash.js";
 import type { SessionTrash } from "./chat/sessionSwitch.js";
 import { registerProjectTrash } from "./trash/projectTrash.js";
 import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "./trash/chatTrash.js";
@@ -173,6 +174,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     await trashBin.putPath(file, { projectId, label, kind: "session" });
   };
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, interrupted: recovered });
+  // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（メモの仕様書「ファイル削除」の Q17）
+  trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・メモのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), sessionsElsewhere });
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), sessionsElsewhere });
@@ -222,6 +225,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     viewing,
     browserLogin,
     trashBin,
+    sessionsElsewhere,
     tailscaleCli: opts.platform.tailscaleCli,
     terminals,
     staticDir: opts.staticDir,

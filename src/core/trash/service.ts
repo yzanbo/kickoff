@@ -99,6 +99,19 @@ export class TrashService {
     return this.deps.now?.() ?? Date.now();
   }
 
+  /** 片付けのたびに一緒に流すもの（Kickoff が作ったセッションのうち、使われなくなったものの会話記録をゴミ箱へ入れるなど） */
+  private readonly sweepSteps: (() => Promise<unknown>)[] = [];
+
+  /** 元の場所を含むプロジェクト（本体・メモのフォルダ。なければ null） */
+  projectOf(origin: string): number | null {
+    return this.deps.projectOfPath?.(origin) ?? null;
+  }
+
+  /** 片付け（起動したとき・1 時間ごと）に一緒に流すものを足す（失敗しても片付けは止めない） */
+  addSweepStep(step: () => Promise<unknown>): void {
+    this.sweepSteps.push(step);
+  }
+
   /** 種類ごとの扱いを登録する（チャット・プロジェクトなど） */
   register(kind: TrashKind, handler: TrashKindHandler): void {
     this.handlers.set(kind, handler);
@@ -245,6 +258,7 @@ export class TrashService {
     this.sweeping ??= (async () => {
       try {
         await this.importInbox();
+        for (const step of this.sweepSteps) await step().catch((e: unknown) => console.warn(`[trash] 片付けの途中で失敗しました: ${errorMessage(e)}`));
         const before = new Date(this.now() - TRASH_KEEP_MS).toISOString();
         for (const item of this.deps.store.trash.expiredBefore(before)) {
           await this.purge(item).catch((e: unknown) => console.warn(`[trash] ${item.label} を消せませんでした: ${errorMessage(e)}`));

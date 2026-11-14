@@ -1,4 +1,4 @@
-import type { ArchiveCleanupPreview, ArchiveCleanupResult, TrashItem, TrashRestoreResult } from "@shared/types";
+import type { ArchiveCleanupPreview, ArchiveCleanupResult, OrphanSession, TrashItem, TrashRestoreResult } from "@shared/types";
 import { request, withQuery } from "./http";
 
 /** Kickoff のゴミ箱（コアの http/routes/trash.ts） */
@@ -7,6 +7,12 @@ export const trashApi = {
   projectTrash: (projectId: number) => request<TrashItem[]>("GET", `/api/projects/${projectId}/trash`),
   /** ゴミ箱のプロジェクト（プロジェクトそのものを消したもの） */
   trashedProjects: () => request<TrashItem[]>("GET", "/api/trash/projects"),
+  /** どのプロジェクトにも出ないもの（プロジェクトの外の会話記録など） */
+  unassignedTrash: () => request<TrashItem[]>("GET", "/api/trash/unassigned"),
+  /** どのチャットも使っていない会話記録 */
+  orphanSessions: () => request<OrphanSession[]>("GET", "/api/orphan-sessions"),
+  /** 選んだ会話記録をゴミ箱へ入れる */
+  trashOrphanSessions: (sessionIds: string[]) => request<{ trashed: number }>("POST", "/api/orphan-sessions/trash", { session_ids: sessionIds }),
   /** 1 件（もう消えた・戻したあとなら 404） */
   trashItem: (id: string) => request<TrashItem>("GET", `/api/trash/${id}`),
   /** 元に戻す（同じ名前があれば 409 と TRASH_RESTORE_EXISTS。rename なら「名前 2」で戻す） */

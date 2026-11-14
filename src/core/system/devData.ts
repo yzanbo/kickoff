@@ -43,7 +43,7 @@ export function seedDevData(prodDir: string, devDir: string): boolean {
 }
 
 /**
- * 写した DB を別の本体にする: 本体の ID（meta の database_id）を作り直し、端末の表を空にする
+ * 写した DB を別の本体にする: 本体の ID（meta の database_id）を作り直し、端末の表と Kickoff が作ったセッションの覚えを空にする
  * （そのままだと、スマホが製品版と開発版を同じ本体と見なし、製品版につないだ端末のトークンで開発版にも入れるため）。
  * 写したのが端末の表より前の版の DB なら、表は開いたときの migrate が空で作る
  */
@@ -52,6 +52,8 @@ function becomeAnotherHost(file: string): void {
   try {
     db.exec("UPDATE meta SET value = lower(hex(randomblob(16))) WHERE key = 'database_id'");
     if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'devices'").get()) db.exec("DELETE FROM devices");
+    // Kickoff が作ったセッションの覚えも空にする（写した先が製品版のセッションを自分のものとして片付けないように）
+    if (db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'agent_sessions'").get()) db.exec("DELETE FROM agent_sessions");
   } finally {
     db.close();
   }

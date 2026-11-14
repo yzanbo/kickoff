@@ -54,6 +54,10 @@ export interface AgentProvider {
    * 発言の ID はそのまま。新しいセッションの ID と、元の記録のファイル（呼ぶ側がゴミ箱へ入れる）を返す。切るものがない・見つからなければ null。対応していなければ未実装
    */
   trimSession?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
+  /** セッションの記録のファイルの様子（cwds は動かした作業フォルダの候補。なければ null。Kickoff が作ったセッションの片付け） */
+  sessionInfo?(sessionId: string, cwds: string[]): Promise<SessionFileInfo | null>;
+  /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧。新しい順） */
+  listSessionFiles?(): Promise<SessionFileInfo[]>;
   /** セッションの記録のファイルの大きさの合計（cwds は動かした作業フォルダの候補。アーカイブ済みのチャットの整理の見込み。記録を持たなければ未実装） */
   sessionsSize?(sessionIds: string[], cwds: string[]): Promise<number>;
   /**
@@ -216,3 +220,15 @@ export interface ProviderTurnResult {
 
 /** 子チャットが親の会話を写すときに残す区切りの数（最新の要約とそのあとのやり取りだけ。メモの仕様書「ファイル削除」の Q18） */
 export const CHILD_FORK_KEEP = 1;
+
+/** 会話記録のファイルの様子（Kickoff が作ったセッションの片付け・どのチャットも使っていない記録の一覧） */
+export interface SessionFileInfo {
+  sessionId: string;
+  file: string;
+  size: number;
+  modifiedAt: string;
+  /** 動かした作業フォルダ（記録の頭の cwd。なければ null） */
+  cwd: string | null;
+  /** 最初の自分の発言（頭の 200 文字。なければ null） */
+  firstPrompt: string | null;
+}

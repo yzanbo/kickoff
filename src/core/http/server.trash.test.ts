@@ -258,3 +258,37 @@ test("アーカイブ済みのチャットの整理: 日数より前から動い
   assert.deepEqual(list.map((i) => i.label), ["古い"]);
   assert.equal((await call("GET", "/api/archive-cleanup?days=30")).body.count, 0);
 });
+
+test("どのチャットも使っていない会話記録: 一覧（チャットが使うもの・Kickoff が覚えたものは除く）と、選んだものをゴミ箱へ（作業フォルダのプロジェクトに出る。外のものはプロジェクトのない一覧へ）", async () => {
+  const { call, project, store, provider } = setup();
+  const dir = tempDir();
+  const file = (id: string) => {
+    const p = path.join(dir, `${id}.jsonl`);
+    fs.writeFileSync(p, "{}\n");
+    return p;
+  };
+  const ids = { used: "11111111-1111-4111-8111-111111111111", mine: "22222222-2222-4222-8222-222222222222", orphan: "33333333-3333-4333-8333-333333333333", outside: "44444444-4444-4444-8444-444444444444" };
+  const chat = store.chats.create({ project_id: project.id, title: "c", provider: "claude", status: "completed" });
+  store.chats.update(chat.id, { session_id: ids.mine });
+  store.chats.update(chat.id, { session_id: ids.used });
+  const info = (id: string, cwd: string) => ({ sessionId: id, file: file(id), size: 3, modifiedAt: new Date().toISOString(), cwd, firstPrompt: "前のチャット" });
+  provider.sessionFiles = [info(ids.used, project.repo_path), info(ids.mine, project.repo_path), info(ids.orphan, project.repo_path), info(ids.outside, "/somewhere/else")];
+
+  const list = (await call("GET", "/api/orphan-sessions")).body as { session_id: string; project_id: number | null }[];
+  assert.deepEqual(
+    list.map((s) => [s.session_id, s.project_id]),
+    [
+      [ids.orphan, project.id],
+      [ids.outside, null],
+    ],
+  );
+  const done = await call("POST", "/api/orphan-sessions/trash", { session_ids: [ids.orphan, ids.outside, ids.used] });
+  assert.deepEqual(done.body, { trashed: 2 });
+  assert.equal(fs.existsSync(path.join(dir, `${ids.orphan}.jsonl`)), false);
+  assert.ok(fs.existsSync(path.join(dir, `${ids.used}.jsonl`)));
+  const inProject = (await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[];
+  assert.deepEqual(inProject.map((i) => [i.kind, i.label]), [["session", "会話記録「前のチャット」"]]);
+  const unassigned = (await call("GET", "/api/trash/unassigned")).body as TrashItem[];
+  assert.equal(unassigned.length, 1);
+  assert.equal(unassigned[0].origin, path.join(dir, `${ids.outside}.jsonl`));
+});
