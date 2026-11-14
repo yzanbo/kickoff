@@ -29,9 +29,22 @@ export interface MemoChatTarget {
   addPath: () => void;
 }
 
+/** 選んだ文の引用を入れた新しいチャットを開く口（start: 選んだ文と行から引用を作る / startQuote: 作った引用をそのまま入れる） */
+export interface MemoNewChat {
+  start: (selection: string, lines: MemoLines | null) => void;
+  startQuote: (quote: string) => void;
+}
+
+/** メモから足す先（開いたチャットはあるときだけ）と、新しいチャットで始める口 */
+export interface MemoChatTargets {
+  main?: MemoChatTarget;
+  memo: MemoChatTarget;
+  newChat: MemoNewChat;
+}
+
 /**
  * メモの本文の右クリックのメニュー。足すもので組に分け（利用者の依頼。前は足す先のチャットごとの組だった）、それぞれの組に足す先を並べる:
- * 「選択部分をチャットに追加」（選んでいるときだけ）/「メモすべてをチャットに追加」（メモ全体の写しの札）/「パスをチャットに追加」（メモのファイルのフルパス）。
+ * 「選択部分をチャットに追加」（選んでいるときだけ。組のいちばん下に「新しいチャットで始める」= 選んだ文の引用を入れた新しいチャットを開く）/「メモすべてをチャットに追加」（メモ全体の写しの札）/「パスをチャットに追加」（メモのファイルのフルパス）。
  * 足す先は、開いたチャット（main を渡したとき。「「機能開発」に追加」。チャットの右の欄・別ウィンドウのメモ）とメモのチャット（「メモのチャットに追加」）。送るのは自分で。
  * その下に「クリップボード」の組（ClipboardItems: 切り取り・コピー・パスを含めてコピー・パスをコピー・貼り付け。file = メモのファイルのフルパス）と、
  * 「issue にする」（選んだ文、なければメモ全体を本文にした GitHub の新しい issue。issue を渡したとき）、いちばん下に「Finder で表示」（Mac のアプリのとき）。
@@ -41,7 +54,7 @@ export interface MemoChatTarget {
  */
 export function useMemoEditMenu(
   editor: MutableRefObject<MemoEditorHandle | null>,
-  targets: { main?: MemoChatTarget; memo: MemoChatTarget },
+  targets: MemoChatTargets,
   file: string,
   /** 「issue にする」（選んでいなければメモ全体を本文に。projectId はメモのプロジェクト、body はいまの本文（書きかけも）） */
   issue?: { projectId: number; body: () => string },
@@ -96,6 +109,11 @@ export function useMemoEditMenu(
                 {target.name}に追加
               </MenuItem>
             ))}
+            {group.key === "selection" && (
+              <MenuItem title="選択部分を、ファイルのパスと行番号付きの引用にして、新しいチャットの入力欄に入れて開きます（送るのは自分で）" onSelect={() => targets.newChat.start(selected, shown?.value.lines ?? null)}>
+                新しいチャットで始める
+              </MenuItem>
+            )}
             <div className="menu-separator" role="separator" />
           </Fragment>
         ))}
