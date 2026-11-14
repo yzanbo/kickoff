@@ -1,0 +1,70 @@
+/* ==== AI からの質問の選択肢の図（preview）。質問のカードの右（狭ければ下）と、「質問への回答」の「選んだ図」（質問のカードそのものは question-card.css） ==== */
+
+/* 図のある質問は、選択肢と図を左右に並べる（カードの幅が狭ければ縦に） */
+.question-card {
+  container: question-card / inline-size;
+}
+
+.question-body.with-preview {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: start;
+}
+
+@container question-card (max-width: 620px) {
+  .question-body.with-preview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 図を見ている選択肢（乗せた・ピントのある・選んだ）を、図の見出しと結び付けて分かるように薄く地を付ける */
+.question-card .question-option.previewing:not(.checked) {
+  background: var(--bg-hover);
+}
+
+.question-preview {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.question-preview-label {
+  overflow: hidden;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+/* 図は等幅の文字のまま（罫線の図・コードの見本）。長い図は欄の中でスクロールする */
+.question-preview-body,
+.question-answer-preview pre {
+  max-height: 360px;
+  margin: 0;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  /* 罫線の図の縦の線がつながるよう、行の間を詰める */
+  line-height: 1.2;
+  white-space: pre;
+}
+
+/* 「質問への回答」の「選んだ図」（初めはたたむ） */
+.question-answer-preview summary {
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.question-answer-preview pre {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+}

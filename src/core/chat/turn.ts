@@ -11,6 +11,7 @@ import { mkdirSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { ApprovalCenter } from "./approvals.js";
+import { chosenPreviews } from "@shared/chat/questionPreviews";
 import { isUnreadEvent } from "@shared/chat/state";
 import type { Bus } from "../bus.js";
 import { errorMessage } from "@shared/errors";
@@ -30,7 +31,7 @@ import type { ChildChatInput } from "./children.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
-import type { Project, ProviderId, Chat, CompactTrigger } from "@shared/types";
+import type { Project, ProviderId, Chat, CompactTrigger, Question } from "@shared/types";
 import type { UploadStore } from "./uploads.js";
 import type { ChatRuntime } from "./runtime.js";
 import { workdirOf } from "./workdir.js";
@@ -315,7 +316,8 @@ function callbacksFor(
         title: approval.title,
       });
       const answer = await decision;
-      // AI からの質問に答えたときは、何と答えたか（選んだままの回答と添付）も残す（画面は「質問への回答」の吹き出しで出す）
+      // AI からの質問に答えたときは、何と答えたか（選んだままの回答と添付・選んだ選択肢の図）も残す（画面は「質問への回答」の吹き出しで出す）
+      const previews = answer.action === "answer" ? chosenPreviews((approval.input.questions as Question[] | undefined) ?? [], answer.plain ?? answer.answers) : undefined;
       store.events.add(
         chatId,
         answer.action === "answer"
@@ -326,6 +328,7 @@ function callbacksFor(
               action: "answer",
               answers: answer.plain ?? answer.answers,
               ...(answer.attachments ? { attachments: answer.attachments } : {}),
+              ...(previews ? { previews } : {}),
             }
           : { type: "approval_resolved", approval_id: approval.id, kind: approval.kind, action: answer.action },
       );

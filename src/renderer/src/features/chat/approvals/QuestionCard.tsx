@@ -1,5 +1,6 @@
 import { Check, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
+import { hasPreviews } from "@shared/chat/questionPreviews";
 import type { Approval, Attachment, Question } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useSetting } from "@/hooks/useSetting";
@@ -18,7 +19,9 @@ type QuestionLayout = SettingValue<typeof QUESTION_LAYOUT>;
 
 /**
  * AI からの質問（AskUserQuestion）。選択肢と「その他」（複数行・画像などの添付）で答える。
- * 質問が 2 つ以上なら、1 問ずつ（上に質問の見出しを並べて、いまの位置と答えたものを示す。戻る・次へ）と、すべて並べるを切り替えられる（初めは 1 問ずつ）
+ * 質問が 2 つ以上なら、1 問ずつ（上に質問の見出しを並べて、いまの位置と答えたものを示す。戻る・次へ）と、すべて並べるを切り替えられる（初めは 1 問ずつ）。
+ * 選択肢に図（preview。AskUserQuestion の、選択肢ごとの見本・図）があれば、選択肢の右（狭ければ下）に、乗せた・ピントのある選択肢、なければ選んだ選択肢、
+ * どちらもなければ図のある最初の選択肢の図を出す（利用者の依頼。前は図を出しておらず、AI が「右の図のとおり」と聞いても見えなかった）
  */
 export function QuestionCard({ approval }: { approval: Approval }) {
   const questions = (approval.input.questions as Question[] | undefined) ?? [];
@@ -31,6 +34,8 @@ export function QuestionCard({ approval }: { approval: Approval }) {
   const [selected, setSelected] = useState<Record<string, string[]>>({});
   const [other, setOther] = useState<Record<string, string>>({});
   const [otherFiles, setOtherFiles] = useState<Record<string, OtherFiles>>({});
+  // 質問ごとに、図を見ている選択肢（乗せた・ピントのある選択肢のラベル）
+  const [peek, setPeek] = useState<Record<string, string | null>>({});
 
   const answers: Record<string, string | string[]> = {};
   const attachments: Record<string, Attachment[]> = {};
@@ -135,6 +140,9 @@ export function QuestionCard({ approval }: { approval: Approval }) {
       {/* 1 問ずつ・たたんだときも欄は作り直さずに隠す（「その他」の文・添付を残すため） */}
       {questions.map((q, index) => {
         const picked = selected[q.question] ?? [];
+        const withPreview = hasPreviews(q);
+        const shown = withPreview ? shownPreview(q, peek[q.question] ?? null, picked) : null;
+        const look = (label: string | null) => setPeek((prev) => (prev[q.question] === label ? prev : { ...prev, [q.question]: label }));
         return (
           <div
             key={q.question}
@@ -152,9 +160,15 @@ export function QuestionCard({ approval }: { approval: Approval }) {
               {questions.length === 1 && q.header && <span className="question-header">{q.header}</span>}
               <span className="question-text">{q.question}</span>
             </div>
-            <div className="question-options">
+            <div className={cx("question-body", withPreview && "with-preview")}>
+            <div className="question-options" onMouseLeave={() => look(null)}>
               {q.options.map((o, i) => (
-                <label key={o.label} className={cx("question-option", picked.includes(o.label) && "checked")}>
+                <label
+                  key={o.label}
+                  className={cx("question-option", picked.includes(o.label) && "checked", shown?.label === o.label && "previewing")}
+                  onMouseEnter={() => look(o.label)}
+                  onFocus={() => look(o.label)}
+                >
                   {/* 丸の代わりに番号の箱（選ぶと色が付き、複数選ぶ質問ではチェック）。キーの 1〜9 でも選べる */}
                   <input
                     className="question-input"
@@ -195,6 +209,14 @@ export function QuestionCard({ approval }: { approval: Approval }) {
                 />
               </div>
             </div>
+            {shown && (
+              // 選択肢の図（等幅の文字のまま。罫線の図・コードの見本が多いため）
+              <figure className="question-preview">
+                <figcaption className="question-preview-label">{shown.label}</figcaption>
+                <pre className="question-preview-body">{shown.preview}</pre>
+              </figure>
+            )}
+            </div>
           </div>
         );
       })}
@@ -226,6 +248,15 @@ export function QuestionCard({ approval }: { approval: Approval }) {
       <ErrorText message={error} />
     </div>
   );
+}
+
+/** 図の欄に出す選択肢の図（乗せた・ピントのある選択肢 → 選んだ選択肢 → 図のある最初の選択肢。図のない選択肢に乗せている間は、選んだもの・最初のものの図のまま） */
+function shownPreview(q: Question, peeked: string | null, picked: readonly string[]): { label: string; preview: string } | null {
+  const withPreview = (label: string | null | undefined) => {
+    const o = q.options.find((x) => x.label === label);
+    return o?.preview?.trim() ? { label: o.label, preview: o.preview } : null;
+  };
+  return withPreview(peeked) ?? picked.map(withPreview).find(Boolean) ?? withPreview(q.options.find((o) => o.preview?.trim())?.label);
 }
 
 /** 質問の丸ごとの文（質問と、番号付きの選択肢と説明）。右クリックの「質問をチャットに追加」「質問全体をコピー」に使う */
