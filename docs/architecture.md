@@ -92,7 +92,7 @@
 | 呼び主（API を呼んだのが、この Mac の画面か、つないだ端末か。どのトークンで来たかだけで決める）・端末に開く口（端末から使える API。既定は閉じていて、書いたものだけ開く） | `Caller`（`core/http/caller.ts`。`host` / `device`）・`DEVICE_ROUTES` / `deviceMayUse` / `deviceMaySee`（`core/http/deviceAccess.ts`）・403 の印 `DEVICE_FORBIDDEN` | `localOnly`（接続の相手のアドレスで見分けていた） |
 | ペアリング（端末をつなぐこと。Mac の画面が使い捨ての番号と QR を出し、端末が番号で頼み、Mac の画面で「この端末をつなぎますか」と確かめてから端末のトークンを 1 回だけ渡す）・つなぐ先の URL（端末から Mac の Kickoff に届く URL。QR に入れる） | `PairingCenter`（`core/devices/pairing.ts`）・`PairingState` / `PairingRequest` / `PairingClaimBody` / `PairingPollResult`（`@shared/types/device.ts`）・`pairingLink`（`@shared/devices/pairing.ts`）・設定の `mobile_url`・画面の `features/settings/MobileSettings.tsx` | `/pair?token=`（本体のトークンを QR に入れていた） |
 | 通知の判断（チャットの完了・失敗・回答待ち・CI の失敗を、それを見ていない人（この Mac の画面・端末）にだけ知らせる）・見ているもの（前に出しているチャット・CI のタブ。呼び主ごと） | `core/notifications/`（`NotificationCenter` / `Notice` / `PushSender` / `ViewingRegistry`）・`PUT /api/viewing`（`ViewingBody`）・`startCore({ notify, push })` | 画面の `useChatNotifications` / `useCiFailureNotifications`（画面が判断していた） |
-| API の版（Mac の Kickoff とスマホのアプリのやり取りの形の番号。Kickoff の版とは別に持ち、形を壊す変更をしたときだけ 1 つ上げる）・話が通じない（アプリが古すぎる / Mac の Kickoff が古すぎる） | `@shared/api/version.ts`（`API_VERSION` / `MIN_CLIENT_API_VERSION` / 見出し `x-kickoff-api` / `client_too_old`・`host_too_old` / `apiMismatch`）・SSE の最初の行 `ServerHello`・`ServerStatus.api_version` | なし |
+| API の版（Mac の Kickoff とスマホのアプリのやり取りの形の番号。Kickoff の版とは別に持ち、形を壊す変更をしたときだけ 1 つ上げる。1.0 からは変更を「足すだけ」（項目を消さない・名前を変えない）にし、壊すなら版を上げる。0.x の間は壊してよい）・話が通じない（アプリが古すぎる / Mac の Kickoff が古すぎる） | `@shared/api/version.ts`（`API_VERSION` / `MIN_CLIENT_API_VERSION` / 見出し `x-kickoff-api` / `client_too_old`・`host_too_old` / `apiMismatch`）・SSE の最初の行 `ServerHello`・`ServerStatus.api_version` | なし |
 
 ### チャットの軸とエージェントの軸
 
