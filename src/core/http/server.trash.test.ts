@@ -76,7 +76,8 @@ test("ゴミ箱: フォルダも入れて戻せ、大きさを数える", async 
   const put = await trashBin.putPath(dir, { projectId: project.id });
   assert.equal(put.is_dir, true);
   for (let i = 0; i < 50 && store.trash.get(put.id)?.size == null; i++) await new Promise((r) => setTimeout(r, 10));
-  assert.ok((store.trash.get(put.id)?.size ?? 0) >= 5);
+  // 中のファイルの大きさの合計（フォルダの項目の表の大きさは数えない）
+  assert.equal(store.trash.get(put.id)?.size, 5);
   await trashBin.restore(put.id);
   assert.equal(fs.readFileSync(path.join(dir, "x", "b.js"), "utf8"), "12345");
 });

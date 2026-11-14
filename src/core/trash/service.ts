@@ -70,7 +70,8 @@ async function measure(target: string): Promise<number | null> {
     const st = await fs.lstat(p).catch(() => null);
     if (!st) continue;
     if (++seen > MEASURE_MAX_ENTRIES) return null;
-    total += st.size;
+    // フォルダそのものの大きさ（項目の表）は数えない（中のファイルの大きさの合計にする）
+    if (!st.isDirectory()) total += st.size;
     if (st.isDirectory()) for (const name of await fs.readdir(p).catch(() => [] as string[])) stack.push(path.join(p, name));
   }
   return total;
