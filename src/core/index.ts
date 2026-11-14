@@ -35,6 +35,7 @@ import { sweepUnusedUploads } from "./chat/uploadCleanup.js";
 import type { SessionTrash } from "./chat/sessionSwitch.js";
 import { registerProjectTrash } from "./trash/projectTrash.js";
 import { WorktreeFinisher } from "./worktrees/finish.js";
+import { ChatRemover } from "./chat/aiChatRemove.js";
 import { UserViewRegistry } from "./userView/registry.js";
 import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "./trash/chatTrash.js";
 import { isInside, realPathLoose } from "./system/paths.js";
@@ -205,6 +206,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // ワークツリーの後始末（画面の「消す」と AI の finish_worktree。消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
   const worktreeFinisher = new WorktreeFinisher({ store, bus, runner, worktreeEnvs, databases, prWatch, trashBin });
   runner.useWorktreeFinisher(worktreeFinisher);
+  // チャットのアーカイブ・削除（AI の archive_chat・delete_chat。自分・自分の祖先を頼まれたら作業の終わりに行う予約）
+  const chatRemover = new ChatRemover({ store, bus, runner, trashBin });
+  runner.useChatRemover(chatRemover);
   // スマホ連携のペアリング（番号と頼みはメモリだけ）
   const pairing = new PairingCenter({ store, publish: (e) => bus.publish(e) });
   // 通知の判断（完了・失敗・回答待ち・CI の失敗を、だれも見ていなければ、この Mac の通知とつないだ端末のプッシュへ）
@@ -276,6 +280,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       usage.stop();
       prWatch.stop();
       worktreeFinisher.close();
+      chatRemover.close();
       ports.close();
       stopAutoArchive();
       trashBin.close();

@@ -3,6 +3,7 @@ import type { AiChatEditTools } from "../chat/aiChatEdit.js";
 import type { AiCreateChatTools } from "../chat/aiCreateChat.js";
 import type { AiWorktreeTools } from "../chat/aiWorktree.js";
 import type { AiNotifyTools } from "../chat/aiNotify.js";
+import type { AiChatRemoveTools } from "../chat/aiChatRemove.js";
 import type { AiUserViewTools } from "../chat/aiUserView.js";
 import type { AiChatReadTools } from "../chat/aiChatRead.js";
 import type { AiProjectTools } from "../chat/aiProject.js";
@@ -142,6 +143,8 @@ export interface ProviderTurnParams {
   chatNotify?: AiNotifyTools | null;
   /** 利用者が見ているものを AI に読ませる口（get_user_view。どのチャットにも渡す。なければそのツールを出さない） */
   chatUserView?: AiUserViewTools | null;
+  /** チャットをアーカイブする・消す口を AI に渡す（archive_chat・delete_chat。どのチャットにも渡す。なければそのツールを出さない） */
+  chatRemove?: AiChatRemoveTools | null;
   /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
   hiddenDb?: HiddenDbTarget[];
   /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */
