@@ -1,7 +1,7 @@
 // スマホ連携のペアリング: この Mac の画面が使い捨ての番号を出し、端末が番号で頼み、Mac の画面で確かめてから端末のトークンを 1 回だけ渡す。
 // 番号・頼みはメモリにだけ持つ（アプリを終えたら消える）。端末は store.devices に hash で残る
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { MOBILE_OFF, PAIRING_CODE_TTL_MS, type BusEvent, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/types";
+import { MOBILE_OFF, PAIRING_CODE_TTL_MS, type BusEvent, type DeviceAccess, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { hashToken } from "../http/caller.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
@@ -106,10 +106,10 @@ export class PairingCenter {
   }
 
   /** Mac の画面で「つなぐ」を押した: 端末を作り、トークンを結果を聞かれるまで預かる。番号は使い終える */
-  approve(id: string): PairingState {
+  approve(id: string, access: DeviceAccess = "full"): PairingState {
     const request = this.pendingRequest(id);
     const token = randomBytes(32).toString("base64url");
-    const device = this.store.devices.create(request.name, hashToken(token));
+    const device = this.store.devices.create(request.name, hashToken(token), access);
     Object.assign(request, { status: "approved", token, deviceId: device.id, expiresAt: this.now() + PAIRING_CODE_TTL_MS });
     this.code = null;
     this.publish({ type: "devices" });

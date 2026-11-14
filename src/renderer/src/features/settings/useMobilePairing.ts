@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Device, PairingState } from "@shared/types";
+import type { Device, DeviceAccess, PairingState } from "@shared/types";
 import { pairingLink } from "@shared/devices/pairing";
 import { api } from "@/api";
 import { useServerEvent } from "@/api/events";
@@ -28,7 +28,7 @@ function useQrImage(text: string | null): string | null {
 export function useMobilePairing() {
   const pairing = useAsync(() => api.pairingState());
   const devices = useAsync(() => api.devices());
-  const action = useAction<"start" | "cancel" | "approve" | "deny" | "revoke">();
+  const action = useAction<"start" | "cancel" | "approve" | "deny" | "revoke" | "access">();
   const state = pairing.data;
 
   useServerEvent((e) => {
@@ -48,7 +48,8 @@ export function useMobilePairing() {
     action,
     start: () => action.run("start", async () => set(await api.startPairing())),
     cancel: () => action.run("cancel", async () => set(await api.cancelPairing())),
-    approve: (id: string) => action.run("approve", async () => set(await api.approvePairing(id))),
+    approve: (id: string, access: DeviceAccess) => action.run("approve", async () => set(await api.approvePairing(id, access))),
+    setAccess: (device: Device, access: DeviceAccess) => action.run("access", () => api.setDeviceAccess(device.id, access)),
     deny: (id: string) => action.run("deny", async () => set(await api.denyPairing(id))),
     revoke: async (device: Device) => {
       const ok = await confirmDialog({

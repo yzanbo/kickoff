@@ -1,7 +1,7 @@
 // 端末（スマホ）から使える口と、届ける知らせ。既定は「この Mac だけ」で、ここに書いたものだけを端末に開く
 // （新しい口・知らせの種類は、書き足すまで端末からは使えない。口の名前を変えたら、ここも直す = server.devices.test.ts が確かめる）
 import { TrieRouter } from "hono/router/trie-router";
-import type { BusEvent } from "@shared/types";
+import type { BusEvent, DeviceAccess } from "@shared/types";
 
 type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -13,7 +13,8 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["GET", "/api/events"],
   // いま見ているもの（見ているチャットの知らせは通知しない）
   ["PUT", "/api/viewing"],
-  // 自分のプッシュの宛先を登録する・外す
+  // 自分（名前・できること）と、自分のプッシュの宛先を登録する・外す
+  ["GET", "/api/devices/self"],
   ["PUT", "/api/devices/self/push"],
   // プロジェクト・グループ（見るだけ）
   ["GET", "/api/projects"],
@@ -85,13 +86,31 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/projects/:id/memos/from-chat"],
 ];
 
-const router = new TrieRouter<true>();
-for (const [method, path] of DEVICE_ROUTES) router.add(method, path, true);
+/**
+ * 「見るだけ」の端末も使える、GET のほかの口（見ているものの知らせ・自分のプッシュの宛先・既読と未読の印）。
+ * どれも DEVICE_ROUTES にあるもので、チャット・送信待ち・承認などの中身は変えない
+ */
+export const READ_ONLY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
+  ["PUT", "/api/viewing"],
+  ["PUT", "/api/devices/self/push"],
+  ["POST", "/api/chats/:id/seen"],
+  ["POST", "/api/chats/:id/unseen"],
+];
 
-/** 端末が使ってよい口か（HEAD は GET として見る） */
-export function deviceMayUse(method: string, path: string): boolean {
-  const [matches] = router.match(method === "HEAD" ? "GET" : method, path);
-  return matches.length > 0;
+const routerOf = (routes: readonly (readonly [Method, string])[]) => {
+  const router = new TrieRouter<true>();
+  for (const [method, path] of routes) router.add(method, path, true);
+  return router;
+};
+const deviceRouter = routerOf(DEVICE_ROUTES);
+const readOnlyRouter = routerOf(READ_ONLY_DEVICE_ROUTES);
+
+/** 端末がその口を使えるか（ok / 端末に開いていない forbidden / 見るだけの端末なので使えない read_only。HEAD は GET として見る） */
+export function deviceMayUse(method: string, path: string, access: DeviceAccess = "full"): "ok" | "forbidden" | "read_only" {
+  const m = method === "HEAD" ? "GET" : method;
+  if (deviceRouter.match(m, path)[0].length === 0) return "forbidden";
+  if (access === "full" || m === "GET" || readOnlyRouter.match(m, path)[0].length > 0) return "ok";
+  return "read_only";
 }
 
 /** 端末に届ける知らせの種類（開いた口の中身が変わったもの。この Mac の画面への頼み・閉じた口の知らせは届けない） */
