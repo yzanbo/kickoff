@@ -94,6 +94,8 @@ export interface ServerDeps {
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** ゴミ箱へ移す（ファイルタブの「ゴミ箱に入れる」・使わなくなった会話記録。OS の口の moveToTrash。テストでは差し替えて、本物のゴミ箱に入れない） */
   trash: (file: string) => Promise<void>;
+  /** tailscale のコマンドの場所（OS の口。設定の Tailscale Serve の案内。テストでは偽物） */
+  tailscaleCli: () => string | null;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
   staticDir?: string;
   /** 待ち受けているアドレスとポート（接続の詳細の表示用） */

@@ -5,6 +5,7 @@ import { runCommand } from "../../system/exec.js";
 import { checkMacosSpeech, transcribeMacos } from "../../voice/macos.js";
 import type { HostPlatform, SelfGuardRules } from "../types.js";
 import { macosDockerEngine } from "./docker.js";
+import { macosTailscaleCli } from "./tailscale.js";
 import { listeningSockets, processCwds } from "./listening.js";
 import { alive, appBundleOf, processTable } from "./processes.js";
 import { loadLoginShellPath } from "./shellEnv.js";
@@ -41,5 +42,6 @@ export function macosPlatform({ speechHelper = null }: MacosPlatformOptions = {}
     },
     selfGuard: MACOS_SELF_GUARD,
     dockerEngine: macosDockerEngine(openApp),
+    tailscaleCli: macosTailscaleCli,
   };
 }

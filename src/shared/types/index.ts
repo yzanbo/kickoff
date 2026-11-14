@@ -20,3 +20,4 @@ export * from "./ci";
 export * from "./worktreeEnv";
 export * from "./ports";
 export * from "./device";
+export * from "./tailscale";

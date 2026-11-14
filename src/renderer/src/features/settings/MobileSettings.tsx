@@ -1,8 +1,9 @@
 import { Smartphone } from "lucide-react";
-import { DEVICE_ACCESS_LABELS, DEVICE_ACCESSES, type Device, type DeviceAccess, type PairingState } from "@shared/types";
+import { DEVICE_ACCESS_HELP, DEVICE_ACCESS_LABELS, DEVICE_ACCESSES, type Device, type DeviceAccess, type PairingState } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { formatPairingCode } from "@shared/devices/pairing";
 import { api } from "@/api";
+import { useAsync } from "@/hooks/useAsync";
 import { useTicker } from "@/hooks/useTicker";
 import { agoText, formatDayTime } from "@/lib/time";
 import { settingsStore, useAppSettings } from "@/stores/settings";
@@ -11,6 +12,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
 import { MobileSwitches } from "./MobileSwitches";
+import { TailscaleGuide } from "./TailscaleGuide";
 import { useMobilePairing } from "./useMobilePairing";
 import { useMobileSwitches } from "./useMobileSwitches";
 
@@ -19,8 +21,14 @@ export function MobileSettings() {
   const settings = useAppSettings().data;
   const pairing = useMobilePairing();
   const switches = useMobileSwitches();
+  const tailscale = useAsync(() => api.tailscaleStatus());
   if (!settings) return null;
   const off = !settings.remote_enabled;
+  const saveUrl = (url: string | null) =>
+    void api.updateSettings({ mobile_url: url }).then(
+      (saved) => settingsStore.set(saved),
+      (e: unknown) => pairing.action.setError(errorMessage(e)),
+    );
   return (
     <section className="section">
       <h2>スマホ連携</h2>
@@ -28,14 +36,11 @@ export function MobileSettings() {
         スマホから、この Mac の Kickoff のチャットを見る・送る・答えるための設定です。つないだ端末は、この Mac の Kickoff を丸ごと動かせる鍵を持ちます（AI に頼めば何でもできます）。なくしたら、すぐ取り消してください。
       </p>
       <MobileSwitches switches={switches} />
+      <h3>家の外からつなぐ（Tailscale Serve）</h3>
+      <TailscaleGuide status={tailscale.data ?? null} loading={tailscale.loading} error={tailscale.error} mobileUrl={settings.mobile_url} onRecheck={tailscale.reload} onUseUrl={saveUrl} />
       <div className="form">
         <Field label="つなぐ先の URL" help="スマホから、この Mac の Kickoff に届く URL（Tailscale Serve の https://<Mac の名前>.ts.net など）。QR に入れます。空なら QR を出さず、番号だけを出します。">
-          <CommitInput
-            type="url"
-            value={settings.mobile_url ?? ""}
-            placeholder="https://mac.example.ts.net"
-            onCommit={(v) => void api.updateSettings({ mobile_url: v || null }).then((saved) => settingsStore.set(saved), (e: unknown) => pairing.action.setError(errorMessage(e)))}
-          />
+          <CommitInput type="url" value={settings.mobile_url ?? ""} placeholder="https://mac.example.ts.net" onCommit={(v) => saveUrl(v || null)} />
         </Field>
       </div>
       <h3>端末をつなぐ</h3>
@@ -118,7 +123,7 @@ function PairingPanel({ state, qr, link, busy, onStart, onCancel, onApprove, onD
   );
 }
 
-const ACCESS_OPTIONS = DEVICE_ACCESSES.map((value) => ({ value, label: DEVICE_ACCESS_LABELS[value] }));
+const ACCESS_OPTIONS = DEVICE_ACCESSES.map((value) => ({ value, label: DEVICE_ACCESS_LABELS[value], tip: DEVICE_ACCESS_HELP[value] }));
 
 interface DeviceListProps {
   devices: Device[];
@@ -142,7 +147,7 @@ function DeviceList({ devices, busy, onRevoke, onAccess }: DeviceListProps) {
               {d.has_push && "・通知あり"}
             </span>
           </div>
-          <Segmented<DeviceAccess> className="segmented" label={`「${d.name}」ができること`} value={d.access} options={ACCESS_OPTIONS} onChange={(access) => onAccess(d, access)} />
+          <Segmented<DeviceAccess> className="segmented theme-switch" label={`「${d.name}」ができること`} value={d.access} options={ACCESS_OPTIONS} onChange={(access) => onAccess(d, access)} />
           <button type="button" className="btn btn-danger" disabled={busy} onClick={() => onRevoke(d)}>
             取り消す
           </button>

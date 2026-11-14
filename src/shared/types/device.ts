@@ -5,8 +5,14 @@ export const DEVICE_ACCESSES = ["full", "read"] as const;
 export type DeviceAccess = (typeof DEVICE_ACCESSES)[number];
 
 export const DEVICE_ACCESS_LABELS: Record<DeviceAccess, string> = {
-  full: "使える（送る・答える・止める）",
+  full: "使える",
   read: "見るだけ",
+};
+
+/** できることの説明（マウスを乗せたとき） */
+export const DEVICE_ACCESS_HELP: Record<DeviceAccess, string> = {
+  full: "チャットを読む・送る・質問に答える・止めるができます",
+  read: "チャットを読めますが、送る・答える・止めるはできません",
 };
 
 /** つないだ端末（設定の「スマホ連携」の一覧） */
