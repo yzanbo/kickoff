@@ -20,7 +20,7 @@ const closingQuietly = new WeakSet<BrowserWindow>();
 export function popoutHandlers(appUrl: string): IpcHandlers["windows"] {
   return {
     openPopout: (_e, route, title) => openPopout(appUrl, route, title),
-    focusMain: () => showMainWindow(),
+    focusMain: () => void showMainWindow(),
     closeSelf: (e) => {
       const win = BrowserWindow.fromWebContents(e.sender);
       if (!win || !isPopout(win)) return;

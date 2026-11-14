@@ -30,10 +30,12 @@ function keep(n: Notification) {
   live.push(n);
   if (live.length > KEEP) live.shift();
   n.on("click", () => {
-    showMainWindow();
     const chat = chatOfNotificationId(n.id);
-    if (chat) sendEvent(mainWindow()?.webContents, "notifications", "onOpenChat", chat.projectId, chat.chatId);
     const ci = ciOfNotificationId(n.id);
+    // 窓がなければ（閉じた・ログイン時に窓を出さずに起動した）、そのチャット・CI のタブの画面で窓を作る（画面はまだ知らせを受けられない）
+    const hash = chat ? `#/projects/${chat.projectId}/chats/${chat.chatId}` : ci ? `#/projects/${ci.projectId}/ci` : "";
+    if (!showMainWindow(hash)) return;
+    if (chat) sendEvent(mainWindow()?.webContents, "notifications", "onOpenChat", chat.projectId, chat.chatId);
     if (ci) sendEvent(mainWindow()?.webContents, "notifications", "onOpenCi", ci.projectId, ci.runId);
   });
 }
