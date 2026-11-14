@@ -4,5 +4,6 @@ export * from "./browserExtensions";
 export * from "./browserHandOff";
 export * from "./diagnostics";
 export * from "./externalApps";
+export * from "./loginItem";
 export * from "./notifications";
 export * from "./terminal";

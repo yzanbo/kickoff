@@ -20,7 +20,7 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 ## IPC
 
 - 取り決めは `@shared/ipc` の `NATIVE_API` 1 か所（まとまり → 名前 → 種類と引数・戻り値の型。`src/shared/CLAUDE.md`）。チャンネル名は `channelOf` で作り、手書きしない。preload（`src/preload/nativeApi.ts` の `createNativeApi`）はこの表から `window.kickoff` を作る。
-- メインは `ipc/ipc.ts` の `registerIpc` で、まとまりごとの処理（`IpcHandlers["terminal"]` の型で、その機能のフォルダに置く: `dialogHandlers`・`externalAppHandlers`・`devtoolsHandlers`・`agentBrowserHandlers`・`browserExtensionHandlers`・`terminalHandlers`・`notificationHandlers()`・`diagnosticsHandlers`）を `ipc/register.ts` の `registerIpcHandlers` に渡す。登録の補助がすべて同じ扱いにする: 送り手が Kickoff の画面か（`fromApp(appUrl)`。画面を読み込んだ URL と同じ出どころの枠か）を確かめ、引数を zod（`ipc/args.ts` の `IPC_ARGS`）で確かめ、通したものだけを処理に渡す。断ったら書き残し、invoke は `IpcRejected` で失敗させ、send は捨てる（送り手と形の確かめはここだけで、処理では繰り返さない）。
+- メインは `ipc/ipc.ts` の `registerIpc` で、まとまりごとの処理（`IpcHandlers["terminal"]` の型で、その機能のフォルダに置く: `dialogHandlers`・`externalAppHandlers`・`devtoolsHandlers`・`agentBrowserHandlers`・`browserExtensionHandlers`・`terminalHandlers`・`notificationHandlers()`・`loginItemHandlers`・`diagnosticsHandlers`）を `ipc/register.ts` の `registerIpcHandlers` に渡す。登録の補助がすべて同じ扱いにする: 送り手が Kickoff の画面か（`fromApp(appUrl)`。画面を読み込んだ URL と同じ出どころの枠か）を確かめ、引数を zod（`ipc/args.ts` の `IPC_ARGS`）で確かめ、通したものだけを処理に渡す。断ったら書き残し、invoke は `IpcRejected` で失敗させ、send は捨てる（送り手と形の確かめはここだけで、処理では繰り返さない）。
 - 引数の形は `defineArgSchemas` で定め、取り決めの引数と形が違えば typecheck で分かる。形だけを確かめる（ファイルがあるか・範囲に丸めるなどは処理で行う）。画面から届いたパスは信じない（消すフォルダなどは解決してから比べる）。
 - メインから画面への知らせは `sendEvent(webContents, group, method, ...args)`（画面がない・閉じていれば何もしない）。
 - 足すときは `NATIVE_API` → `IPC_ARGS` → 処理の順（どれかが欠ければ typecheck で分かる）。
@@ -59,6 +59,11 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 - 本体（コアが動くこのプロセス）を眠らせないのは、作業中のチャットがある間と、スマホ連携がオン（設定の `remote_enabled`）で電源につないでいる間（`keepAwakeRules.ts` の `keepAwakeReason`。2026-11-14 に決めた。スマホから新しい指示を送るには、待っている間も本体が起きている必要があるため。バッテリーのときは、作業中でなければ眠ってよい）。`powerSaveBlocker` の `prevent-app-suspension`（画面は消えてよく、本体だけ起こしておく。`pmset -g assertions` に `NoIdleSleepAssertion` が出る）。
 - 作業中の数とスマホ連携のオン・オフはコアの `Core.awakeNeeds`、電源は `powerMonitor`（`isOnBatteryPower`・`on-ac` / `on-battery`）から読み、Bus の `chat`・`settings` と電源の知らせのたびに付け外しする（`index.ts` がコアを起動したあと `startKeepAwake`）。変わったら起動の記録に「眠らせない: working / mobile / なし」を残す。
 - MacBook のふたを閉じたときの眠り（外部ディスプレイと電源をつないでいるときを除く）は、これでは防げない。
+
+## ログイン時に起動（app/loginItem.ts）
+
+- 設定の「スマホ連携」で選ぶ（既定はオフ。2026-11-14 に決めた。オフのままだと、Mac を再起動したあとは Kickoff を開くまでスマホから届かない）。IPC の `loginItem.get` / `set`（`@shared/ipc` の `LoginItemState`）で、値は OS の設定（`app.getLoginItemSettings` / `setLoginItemSettings`。macOS・Windows とも）をそのまま読み、DB には持たない。開発版（`app.isPackaged` でない）は Electron 本体が登録されてしまうので切り替えず、`available: false` と理由を返す。
+- ログイン時に起動したとき（`openedAtLogin`。macOS の `wasOpenedAtLogin`）は、窓を出さずに裏で動かす（本体だけ起こしておく）。Dock を押す・もう一度開く・通知を押すと窓を作る（`showMainWindow`）。
 
 ## 通知（notifications/）
 
