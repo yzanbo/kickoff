@@ -197,11 +197,6 @@
   color: var(--accent-fg);
 }
 
-/* 要対応の数（一覧に数が出ていないときだけ、⚙ の左） */
-.sidebar-view-count {
-  flex: none;
-}
-
 /* ⚙ の窓: いまの 3 行と、ビューに残す操作 */
 .sidebar-view-popover {
   width: max-content;

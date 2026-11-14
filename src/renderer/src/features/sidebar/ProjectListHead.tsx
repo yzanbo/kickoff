@@ -14,7 +14,6 @@ import { useViewTabDrag } from "@/ui/useViewTabDrag";
 import { sameSidebarViewState, type SidebarView } from "./sidebarViews";
 import { SidebarViewTuner, type TunerProps } from "./SidebarViewTuner";
 import { TagFilterRow } from "./TagFilterRow";
-import { waitingAxes } from "./waitingAxes";
 import { useSidebarViews, type SidebarViews } from "./useSidebarViews";
 
 /**
@@ -46,7 +45,7 @@ interface Props extends TunerProps {
 /**
  * プロジェクト一覧の上の見出し（利用者の依頼で、縦の幅を取っていた 3 行（プロジェクト・チャット・要対応のボタン）を、ビューのタブ 1 行にした）。
  * 左からビューのタブ（押すとその見え方を当てる。入らない分は ▾ のメニューに。右クリックで名前の変更・上書き・削除、ドラッグで並べ替え（▾ のメニューの中・タブの行との間も））、
- * すべて閉じる / 開く、要対応の数（一覧に要対応の数が出ていないときだけ）、⚙（いまの 3 行を窓で出して細かく変える・ビューに残す）。
+ * すべて閉じる / 開く、⚙（いまの 3 行を窓で出して細かく変える・ビューに残す）。要対応の数は出さない（利用者の依頼。数は一覧の「要対応」の見出しと ⚙ の窓の「要対応」の行にある）。
  * その下に、タグがあるときだけタグの絞り込みの行（その場の絞り込みなのでビューに入れない）
  */
 export function ProjectListHead({ fold, ...tuner }: Props) {
@@ -54,10 +53,6 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
   const tunerOpen = useTunerOpen();
   const tunerAnchor = useRef<HTMLButtonElement>(null);
   const closeTuner = () => setTunerOpen(false);
-  const count = tuner.waiting.count;
-  // 要対応の数は 1 か所だけに出す（利用者の依頼。前は要対応の入ったビューのタブごとに同じ数を出し、一覧の「要対応 n」とも重なっていた）。
-  // 一覧の上・プロジェクト内にまとめているときは、そのまとまりの見出しに数があるので、見出しの行には出さない
-  const listShowsCount = tuner.waiting.on && waitingAxes(tuner.waiting.view).scope !== "only";
 
   // まだ一度もビューを選んでいなければ、最初のビュー（初めは標準）を当てて選んだ状態にする（利用者の依頼。前はいまの見え方に合うビューを選んでいて、初めの見え方の標準になった）
   useEffect(() => {
@@ -80,11 +75,6 @@ export function ProjectListHead({ fold, ...tuner }: Props) {
           className="sidebar-view-icon"
           onClick={() => fold.set(!fold.allCollapsed)}
         />
-        {!listShowsCount && count > 0 && (
-          <span className="count-badge sidebar-view-count" title={`要対応のチャット ${count} 件`}>
-            {count}
-          </span>
-        )}
         <IconButton
           ref={tunerAnchor}
           icon={SlidersHorizontal}
