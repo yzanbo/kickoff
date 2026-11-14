@@ -44,6 +44,23 @@ test("思考: サブエージェントの思考は測らず、中身があれば
   assert.deepEqual(events, [{ type: "thinking", text: "考え", parent: "tu1" }]);
 });
 
+test("図: メインエージェントが図のツールの中身を書いている間だけ drawingVisual を立てる（ほかのツール・サブエージェントは数えない）", () => {
+  const { cb } = recorder();
+  const drawing: boolean[] = [];
+  cb.drawingVisual = (active) => drawing.push(active);
+  const state = createMessageState();
+  const toolStart = (index: number, name: string, parent: string | null = null) =>
+    emitSdkMessage(stream({ type: "content_block_start", index, content_block: { type: "tool_use", id: `t${index}`, name, input: {} } }, parent), cb, state, 0);
+  toolStart(0, "Bash");
+  toolStart(1, "mcp__kickoff_chat__show_visual", "tu1");
+  toolStart(2, "mcp__kickoff_chat__show_visual");
+  toolStart(3, "mcp__kickoff_chat__update_visual");
+  emitSdkMessage(stream({ type: "content_block_stop", index: 2 }), cb, state, 0);
+  emitSdkMessage(stream({ type: "content_block_stop", index: 0 }), cb, state, 0);
+  emitSdkMessage(stream({ type: "content_block_stop", index: 3 }), cb, state, 0);
+  assert.deepEqual(drawing, [true, false]);
+});
+
 test("タスク: サブエージェント（local_agent・種類のない古い CLI）だけを記録し、裏のコマンドなどの開始・途中経過・終了は除く", () => {
   const { events, cb } = recorder();
   const progress: unknown[] = [];

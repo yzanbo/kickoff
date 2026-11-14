@@ -18,6 +18,7 @@ import {
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL, describeAddSnippet, describeMoveMemo } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL, describeReadChat } from "@shared/chat/aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL, describeReadTerminal } from "@shared/chat/aiTerminal";
+import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, AI_VISUAL_GUIDE_TOOL, describeVisual } from "@shared/chat/aiVisual";
 import { isSubagentTool } from "@shared/chat/subagents";
 
 type Input = Record<string, unknown>;
@@ -74,6 +75,9 @@ const TOOL_LABELS: Record<string, string> = {
   [AI_ADD_DRAFT_TOOL]: "下書きを入れる",
   [AI_LIST_TERMINALS_TOOL]: "ターミナルを確かめる",
   [AI_READ_TERMINAL_TOOL]: "ターミナルの出力を読む",
+  [AI_VISUAL_GUIDE_TOOL]: "図の書き方を読む",
+  [AI_SHOW_VISUAL_TOOL]: "図を描く",
+  [AI_UPDATE_VISUAL_TOOL]: "図を描き直す",
 };
 
 /** ToDo の状態の表示名（TaskUpdate の status） */
@@ -258,6 +262,12 @@ function describeKnown(name: string, input: Input): string | null {
       return clip(describeOpenSql(input));
     case AI_ADD_DRAFT_TOOL:
       return clip(describeAddDraft(input));
+    case AI_VISUAL_GUIDE_TOOL:
+      return Array.isArray(input.topics) ? input.topics.filter((t) => typeof t === "string").join("・") : "";
+    case AI_SHOW_VISUAL_TOOL:
+    case AI_UPDATE_VISUAL_TOOL:
+      // 題名と種類（「構成図（SVG）」）。中身は図として出す
+      return clip(describeVisual(input));
     case AI_LIST_TERMINALS_TOOL:
       return "";
     case AI_READ_TERMINAL_TOOL:

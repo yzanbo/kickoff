@@ -10,6 +10,7 @@ const live = (over: Partial<ChatLive>): ChatLive => ({
   reconnect: null,
   compacting: null,
   stopping: false,
+  drawing_visual: false,
   after_compact: [],
   awaiting_compact: false,
   compact_after_turn: false,

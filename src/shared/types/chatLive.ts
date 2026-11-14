@@ -73,6 +73,8 @@ export interface ChatLive {
   compacting: CompactingState | null;
   /** 停止を頼んで、作業が終わるのを待っているか（サブエージェント・裏のコマンドごと終わるまで数秒かかる） */
   stopping: boolean;
+  /** AI が返答の図（kickoff_chat の show_visual・update_visual）の中身を書いている途中か（書き終えると図の行が出る。画面は「図を描いています…」） */
+  drawing_visual: boolean;
   /**
    * 圧縮後指示（post_compact。圧縮が終わったら、いまのやり取りに最初に伝える）と、圧縮前指示から圧縮後指示のやり取りが終わるまで
    * （どちらもなければ、圧縮からそのあとのやり取りが終わるまで）に「いま」で送った指示（送った順）。自分の指示はいまのやり取りに足さず、

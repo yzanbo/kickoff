@@ -96,6 +96,16 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
     has(chatId: number, id: number): boolean {
       return db.prepare("SELECT 1 FROM chat_events WHERE chat_id = ? AND id = ?").get(chatId, id) !== undefined;
     },
+    /** そのチャットに、結果の文に text を含む失敗でないツールの結果があるか（AI が描いた図の ID を確かめる。`@shared/chat/aiVisual` の visualIdLine） */
+    hasToolResultWith(chatId: number, text: string): boolean {
+      return (
+        db
+          .prepare(
+            "SELECT 1 FROM chat_events WHERE chat_id = ? AND type = 'tool_result' AND json_extract(data, '$.is_error') = 0 AND instr(json_extract(data, '$.content'), ?) > 0 LIMIT 1",
+          )
+          .get(chatId, text) !== undefined
+      );
+    },
     /**
      * 会話を読む分の記録（自分の発言・AI の文・失敗・ツールの呼び出し）。AI がほかのチャットの会話を読むツール（read_chat）が使う。
      * ツールの呼び出しは数えるだけなので、引数（書き込む中身など大きいことがある）は読まずに空にする

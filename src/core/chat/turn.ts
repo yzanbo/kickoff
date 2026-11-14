@@ -24,6 +24,7 @@ import { createAiOpenTools } from "./aiOpen.js";
 import { createAiChatReadTools } from "./aiChatRead.js";
 import { createAiProjectTools } from "./aiProject.js";
 import { createAiTerminalTools } from "./aiTerminal.js";
+import { createAiVisualTools } from "./aiVisual.js";
 import type { MemoService } from "../memos/memos.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { canCreateChildChat, createAiChildChatTools, type StartedChild } from "./aiChildChat.js";
@@ -148,7 +149,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
   } finally {
     // 再試行・裏の作業・圧縮中の表示を消す（終わったので。Claude Code が終わると裏の作業も残らない）
     runtime.control = null;
-    runtime.update({ retry: null, background: null, compacting: null });
+    runtime.update({ retry: null, background: null, compacting: null, drawingVisual: false });
   }
 }
 
@@ -220,6 +221,8 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     chatProject: createAiProjectTools({ store: deps.store, memos: deps.memos }, chat.id),
     // このプロジェクトの内蔵ターミナルの出力を読むツール（どのチャットにも。メインプロセスが口を渡したときだけ）
     chatTerminal: deps.terminals ? createAiTerminalTools({ store: deps.store, terminals: deps.terminals }, chat.id) : null,
+    // 返答の中に図（SVG・HTML・Mermaid）を描くツール（どのチャットにも。画面とスマホが記録から描く）
+    chatVisual: createAiVisualTools(deps.store, chat.id),
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く
@@ -257,6 +260,7 @@ function callbacksFor(
       runtime.control = compact ? null : control;
     },
     background: (background) => runtime.update({ background }),
+    drawingVisual: (drawingVisual) => runtime.update({ drawingVisual }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
     // 圧縮が始まったら、この作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない。作業の終わりで Runner が外す）
     compacting: (active) =>

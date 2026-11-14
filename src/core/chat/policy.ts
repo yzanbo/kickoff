@@ -80,6 +80,14 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     `- ただし、サブエージェントが 1 回の返答で書ける量の上限（終わりの知らせに max_output_tokens・output token maximum とある）で止まったときは、通信のエラーではありません。同じやり方で続けると同じところでまた止まるので、「報告は短くまとめる」「大きなファイルは何回かに分けて書く」と添えて、SendMessage で 1 回だけ続きを頼んでください。それでも止まったら、利用者に伝えてください。`,
   );
 
+  // 図と数式: 書き方の細かい決まりは、描く前に visual_guide で読ませる（いつもの指示を長くしない）
+  lines.push(
+    ``,
+    `## 図と数式`,
+    `- 利用者の画面は返答の Markdown を描きます。図（流れ・構成・関係・グラフ・画面のラフ・動く部品）は、kickoff_chat の show_visual で返答の中に描いてください（構造の図は Mermaid、ほかは SVG か HTML）。このチャットで初めて描く前に visual_guide を読んでください。利用者がアスキーなど別の書き方を頼んだら、そちらに従ってください。`,
+    `- 数式は返答の文の中に、段落なら $$ … $$、文の中なら \\( … \\) で書いてください（KaTeX で描きます）。`,
+  );
+
   if (memo && !memo.file) {
     lines.push(
       ``,
