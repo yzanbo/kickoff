@@ -34,8 +34,9 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const shownSeeds = showChat && home ? seeds : [];
   // チャットを隠している欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
   const all = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, shownSeeds, projectOrder);
-  // そのまとまりに入るサイドバーのチャットの数（サイドバーの見出しと同じ数え方）
-  const chatCount = (c: TabCluster) => panel.chats.filter((r) => clusterOfChat(r).key === c.key).length;
+  // そのまとまりに入るサイドバーのチャットの数（サイドバーの見出しと同じ数え方。送る前の新しいチャット（下書き。New Chat）のタブも 1 つと数える。利用者の依頼）
+  const isNewTab = (key: string) => panel.tabs.some((t) => t.key === key && t.kind === "new");
+  const chatCount = (c: TabCluster) => panel.chats.filter((r) => clusterOfChat(r).key === c.key).length + c.tabs.filter(isNewTab).length;
   // グループ別では、隠したグループ・チャットのないグループ（設定）を外す。隠したグループでも表示中のタブがあれば、畳んだ形で残す（forced）
   const hiddenGroups = useHiddenTabGroups();
   const shown =
