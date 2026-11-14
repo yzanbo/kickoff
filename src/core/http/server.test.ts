@@ -7,6 +7,8 @@ import { test } from "node:test";
 import { startHttpServer, stopHttpServer } from "./httpServer.js";
 import { AUTH, TOKEN, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
+import type { ServerHello } from "@shared/types";
+import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION } from "@shared/api/version";
 
 test("API はトークン（Bearer・Cookie）がないと 401。本体のトークンを URL で渡す口（前の /pair?token=）はない", async () => {
   const { app } = setup();
@@ -47,14 +49,19 @@ test("URL の :id は正の整数でなければ 400（クエリの ID と同じ
   assert.equal((await call("GET", `/api/projects/${project.id}`)).status, 200);
 });
 
-test("リアルタイム配信（SSE）は、つないだらすぐ最初の行を送る", async () => {
-  const { app } = setup();
+test("リアルタイム配信（SSE）は、つないだらすぐ最初の行 hello（本体の版・API の版・本体の ID）を送る", async () => {
+  const { app, store } = setup();
   const res = await app.request("/api/events", { headers: AUTH });
   assert.equal(res.headers.get("content-type"), "text/event-stream");
   const reader = res.body!.getReader();
   const first = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
   assert.notEqual(first, "timeout", "最初の行が届きませんでした");
-  if (first !== "timeout") assert.equal(new TextDecoder().decode(first.value), "event: ping\ndata: \n\n");
+  if (first !== "timeout") {
+    const text = new TextDecoder().decode(first.value);
+    assert.match(text, /^event: hello\ndata: /);
+    const hello = JSON.parse(text.split("data: ")[1]) as ServerHello;
+    assert.deepEqual(hello, { core_version: "0.1.0", api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: store.databaseId });
+  }
   await reader.cancel();
 });
 
@@ -103,4 +110,19 @@ test("知らない API は JSON の 404（画面を配信していないとき�
   assert.equal(res.status, 404);
   assert.deepEqual(await res.json(), { error: "API が見つかりません" });
   assert.equal((await app.request("/api/no-such-api")).status, 401);
+});
+
+test("版の互換: アプリが伝えた API の版が下限より古ければ、認証より前に 426 と client_too_old で断る。見出しがなければ断らない。状態にも API の版", async () => {
+  const { app } = setup();
+  const old = await app.request("/api/status", { headers: { ...AUTH, [API_VERSION_HEADER]: String(MIN_CLIENT_API_VERSION - 1) } });
+  assert.equal(old.status, 426);
+  assert.deepEqual(await old.json(), { error: API_MISMATCH_LABELS.client_too_old, code: "client_too_old", api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION });
+  // トークンがなくても同じ印（ペアリングの前のアプリにも分かるように）
+  assert.equal((await app.request("/pairing/claim", { method: "POST", headers: { [API_VERSION_HEADER]: "0" } })).status, 426);
+  assert.equal((await app.request("/api/status", { headers: { ...AUTH, [API_VERSION_HEADER]: "abc" } })).status, 426);
+  const ok = await app.request("/api/status", { headers: { ...AUTH, [API_VERSION_HEADER]: String(API_VERSION) } });
+  assert.equal(ok.status, 200);
+  const status = (await ok.json()) as { api_version: number; min_client_api_version: number };
+  assert.deepEqual([status.api_version, status.min_client_api_version], [API_VERSION, MIN_CLIENT_API_VERSION]);
+  assert.equal((await app.request("/api/status", { headers: AUTH })).status, 200);
 });

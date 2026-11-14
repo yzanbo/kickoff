@@ -49,7 +49,9 @@ import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
 import { worktreePrRoutes } from "./routes/worktreePrs.js";
 import type { WorktreePrWatch } from "../git/prWatch.js";
-import { DEVICE_FORBIDDEN, type GitHubAccount, type ProviderId, type ServerStatus } from "@shared/types";
+import { DEVICE_FORBIDDEN, type GitHubAccount, type ProviderId, type ServerHello, type ServerStatus } from "@shared/types";
+import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION, type ApiMismatch } from "@shared/api/version";
+import { createMiddleware } from "hono/factory";
 
 export interface ServerDeps {
   store: Store;
@@ -103,6 +105,17 @@ export function createApp(deps: ServerDeps): Hono {
   const { store, bus, token, runner } = deps;
   const app = new Hono();
 
+  // 版の互換: アプリが見出しで伝えた API の版が、本体の受ける下限より古ければ、決まった印で断る（認証より前。ペアリングの口も同じ）
+  const checkClientVersion = createMiddleware(async (c, next) => {
+    const given = c.req.header(API_VERSION_HEADER);
+    if (given !== undefined && !(Number(given) >= MIN_CLIENT_API_VERSION)) {
+      return c.json({ error: API_MISMATCH_LABELS.client_too_old, code: "client_too_old" satisfies ApiMismatch, api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION }, 426);
+    }
+    await next();
+  });
+  app.use("/api/*", checkClientVersion);
+  app.use("/pairing/*", checkClientVersion);
+
   // スマホ連携のペアリング: まだトークンを持たない端末が、番号で頼んで結果を聞く口（認証の外。routes/devices.ts）
   pairingClaimRoutes(app, deps);
 
@@ -142,6 +155,8 @@ export function createApp(deps: ServerDeps): Hono {
       remote_enabled: settings.remote_enabled,
       agents: runner.stats(),
       database_id: store.databaseId,
+      api_version: API_VERSION,
+      min_client_api_version: MIN_CLIENT_API_VERSION,
     };
     return c.json(status);
   });
@@ -182,8 +197,9 @@ export function createApp(deps: ServerDeps): Hono {
       const ping = setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);
       // 切断の知らせは、待つ前（最初の書き込みの前）に受け取れるようにしておく
       const closed = new Promise<void>((resolve) => stream.onAbort(resolve));
-      // 何か書くまで応答ヘッダーが届かず、画面が「接続中」のままになるので、つないだらすぐ 1 回送る
-      await stream.writeSSE({ event: "ping", data: "" });
+      // つないだらすぐ hello（本体の版・API の版・本体の ID）を送る。何か書くまで応答ヘッダーが届かず、画面が「接続中」のままになるのも防ぐ
+      const hello: ServerHello = { core_version: VERSION, api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: store.databaseId };
+      await stream.writeSSE({ event: "hello", data: JSON.stringify(hello) });
       await closed;
       clearInterval(ping);
       unsubscribe();
