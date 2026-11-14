@@ -2,6 +2,8 @@ import { Copy, ExternalLink, FilePlus, FolderOpen, FolderPlus, FolderSearch, Min
 import { useState, type MouseEvent } from "react";
 import { api } from "@/api";
 import { baseName } from "@/lib/format";
+import { showToast } from "@/ui/toast";
+import { showTrashedToast } from "@/features/trash/trashActions";
 import { errorMessage } from "@shared/errors";
 import type { Placement } from "@/lib/floating";
 import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
@@ -140,9 +142,10 @@ export function useFileActions(
       danger: true,
     });
     if (!ok) return;
-    await api.trashProjectFile(target, path).then(() => {
+    await api.trashProjectFile(target, path).then(({ trash_id }) => {
       selection.forget(path);
       void git.refresh();
+      showTrashedToast(trash_id, baseName(path));
     }, reportFailure("ゴミ箱に入れられませんでした"));
   };
 
@@ -171,6 +174,7 @@ export function useFileActions(
       }
     }
     void git.refresh();
+    if (failed.length < targets.length) showToast(`${targets.length - failed.length} 件をゴミ箱に入れました（3 日はプロジェクトの「ゴミ箱」から戻せます）`);
     if (failed.length > 0) await alertDialog("ゴミ箱に入れられなかったものがあります", failed.join("\n"));
   };
 

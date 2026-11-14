@@ -1,4 +1,4 @@
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Trash2 } from "lucide-react";
 import type { Project } from "@shared/types";
 import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder";
 import { projectHueStyle } from "@/features/project/projectColor";
@@ -8,6 +8,8 @@ import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ProjectMark } from "@/features/project/ProjectMark";
+import { useTrashedProjects } from "@/stores/trash";
+import { openSettings } from "@/features/settings/openSettings";
 
 /** 全プロジェクトの画面の名前（サイドバーの項目と同じ） */
 const ALL_PROJECTS = "全プロジェクト";
@@ -15,11 +17,13 @@ const ALL_PROJECTS = "全プロジェクト";
 /**
  * 画面の見出しの名前（プロジェクトの画面と全プロジェクトの画面）。プロジェクトの印（ProjectMark）＋ 名前 ＋ プロジェクトの色の薄い地（サイドバー・バッジと同じ出し方。全プロジェクトは灰色）。
  * project がなければ全プロジェクト。押すと全プロジェクト・ほかのプロジェクトを選べ、プロジェクトどうしはいまのタブ（ボード・グループなど）のまま切り替わる
- * （全プロジェクトから選んだときはカンバン）。しまった（アーカイブした）プロジェクトは下の「アーカイブ済み」に分けて出す。プロジェクトがなければ押せない
+ * （全プロジェクトから選んだときはカンバン）。しまった（アーカイブした）プロジェクトは下の「アーカイブ済み」に分けて出す。
+ * ゴミ箱に入れたプロジェクトがあれば、いちばん下に設定の「ゴミ箱と整理」（戻す口）への 1 行を出す。プロジェクトがなければ押せない
  */
 export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: number; name: string }; tab?: ProjectTab }) {
   const { projects } = useProjects();
   const menu = useContextMenu();
+  const trashed = useTrashedProjects(menu.isOpen).data?.length ?? 0;
   const className = project ? "project-switch" : "project-switch all-projects";
   const hue = project ? projectHueStyle(project.id) : undefined;
   const identity = (
@@ -55,6 +59,7 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
           at={menu.menu.at}
           projects={ordered}
           archived={archived}
+          trashed={trashed}
           currentId={project?.id}
           ignore=".project-switch"
           onPick={(id) => navigate(id === undefined ? { name: "allProjects" } : { name: "project", id, tab: project ? tab : "board" })}
@@ -69,6 +74,7 @@ function ProjectSwitchMenu({
   at,
   projects,
   archived,
+  trashed,
   currentId,
   ignore,
   onPick,
@@ -80,6 +86,8 @@ function ProjectSwitchMenu({
   ignore: string;
   /** しまった（アーカイブした）プロジェクト */
   archived: Project[];
+  /** ゴミ箱に入れたプロジェクトの数 */
+  trashed: number;
   /** いまのプロジェクト（なければ全プロジェクト） */
   currentId?: number;
   /** 選んだプロジェクト（undefined は全プロジェクト） */
@@ -103,6 +111,15 @@ function ProjectSwitchMenu({
           <div className="menu-separator" role="separator" />
           <div className="menu-label">アーカイブ済み</div>
           {archived.map((p) => item(p.id, p.name))}
+        </>
+      )}
+      {trashed > 0 && (
+        <>
+          <div className="menu-separator" role="separator" />
+          <MenuItem onSelect={() => openSettings("trash")}>
+            <Trash2 size={14} aria-hidden />
+            <span className="project-switch-item">ゴミ箱のプロジェクト {trashed} 件…</span>
+          </MenuItem>
         </>
       )}
     </PopupMenu>

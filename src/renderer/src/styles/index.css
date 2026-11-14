@@ -27,6 +27,7 @@
 @import "./palette/search.css";
 @import "./project/project-page.css";
 @import "./project/project-tabs.css";
+@import "./project/trash.css";
 @import "./ui/cards.css";
 @import "./ui/mobile-settings.css";
 @import "./ui/tone-chip.css";

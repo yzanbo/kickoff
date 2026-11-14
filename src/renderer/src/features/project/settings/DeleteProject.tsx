@@ -4,6 +4,7 @@ import { confirmDialog } from "@/ui/dialogs";
 import { useAction } from "@/hooks/useAction";
 import { navigate } from "@/app/router";
 import { ErrorText } from "@/ui/ErrorText";
+import { showTrashedToast } from "@/features/trash/trashActions";
 
 export function DeleteProject({ project }: { project: Project }) {
   const { error, guard } = useAction();
@@ -16,8 +17,9 @@ export function DeleteProject({ project }: { project: Project }) {
     });
     if (!ok) return;
     await guard(async () => {
-      await api.deleteProject(project.id);
+      const { trash_id } = await api.deleteProject(project.id);
       navigate({ name: "allProjects" });
+      showTrashedToast(trash_id, project.name);
     });
   };
   return (

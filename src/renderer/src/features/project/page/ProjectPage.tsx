@@ -6,6 +6,7 @@ import { LazyDatabaseClient } from "@/features/database/LazyDatabaseClient";
 import { GitHubTab } from "@/features/github/GitHubTab";
 import { DockerTab } from "@/features/docker/DockerTab";
 import { CiTab } from "@/features/ci/CiTab";
+import { TrashTab } from "@/features/trash/TrashTab";
 import { MemoTab } from "@/features/memo/MemoTab";
 import { ChatsTab } from "@/features/panel/board/ChatsTab";
 import { useChatPlacement } from "./chatPlacement";
@@ -122,6 +123,8 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMem
       {tab === "docker" && <DockerTab key={project.id} projectId={project.id} />}
       {/* CI（GitHub Actions の実行の一覧・ログ・やり直し） */}
       {tab === "ci" && <CiTab key={project.id} projectId={project.id} />}
+      {/* ゴミ箱（消したものを 3 日取っておき、元に戻せる） */}
+      {tab === "trash" && <TrashTab key={project.id} projectId={project.id} />}
       </div>
       </div>
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}

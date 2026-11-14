@@ -50,3 +50,28 @@ export interface TrashRestoreResult {
 
 /** 元に戻せないとき（元の場所に同じ名前がある）の印。画面が「別の名前で戻す」を聞く */
 export const TRASH_RESTORE_EXISTS = "trash_restore_exists";
+
+/** アーカイブ済みのチャットの整理（メモの仕様書「ファイル削除」の Q19）で選べる日数（それより動いていないものをまとめてゴミ箱へ） */
+export const ARCHIVE_CLEANUP_DAYS = [7, 30, 90, 180, 365] as const;
+export type ArchiveCleanupDays = (typeof ARCHIVE_CLEANUP_DAYS)[number];
+export const ARCHIVE_CLEANUP_DAYS_LABELS: Record<ArchiveCleanupDays, string> = { 7: "1 週間", 30: "30 日", 90: "90 日", 180: "180 日", 365: "1 年" };
+
+/** 整理の見込み（GET /api/archive-cleanup?days=） */
+export interface ArchiveCleanupPreview {
+  days: number;
+  /** ゴミ箱に入れるチャットの数（一緒に入る子チャットも数える） */
+  count: number;
+  /** 会話記録のファイルの大きさの合計（バイト。数えられなければ null） */
+  size: number | null;
+}
+
+/** 整理する（POST /api/archive-cleanup） */
+export interface ArchiveCleanupBody {
+  days: number;
+}
+
+/** 整理した結果 */
+export interface ArchiveCleanupResult {
+  /** ゴミ箱に入れたチャットの数（子チャットも数える） */
+  trashed: number;
+}

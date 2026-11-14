@@ -119,3 +119,23 @@ export async function trashSessions(sessionIds: string[], cwds: string[], trash:
   }
   return moved;
 }
+
+/**
+ * セッションの記録のファイルの大きさの合計（アーカイブ済みのチャットの整理の見込み）。作業フォルダから決まる場所だけを見る
+ * （すべてのプロジェクトのフォルダを探すと、件数が多いと遅いため。見つからないものは数えない）
+ */
+export async function sessionFilesSize(sessionIds: string[], cwds: string[], root = claudeProjectsDir()): Promise<number> {
+  let total = 0;
+  for (const id of new Set(sessionIds)) {
+    for (const cwd of cwds) {
+      const size = await stat(join(root, projectDirName(cwd), `${id}.jsonl`)).then(
+        (s) => (s.isFile() ? s.size : null),
+        () => null,
+      );
+      if (size === null) continue;
+      total += size;
+      break;
+    }
+  }
+  return total;
+}

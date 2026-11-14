@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { trashMarksIn } from "@shared/trash/marks";
 import { HighlightedCode } from "@/ui/HighlightedCode";
+import { TrashMarkRows } from "@/features/trash/TrashMarkRows";
 import { clipLines, parseBashResult } from "./bashResult";
 import { outputLanguage } from "./toolResultParse";
 
@@ -11,7 +13,8 @@ const SHOWN_LINES = 30;
  * （長いコマンド・heredoc と出力の境目が分かるように。それぞれの欄の中でスクロールする）。
  * コマンドはシェルの文法で色を付け（heredoc の本文は、分かればその言語で）、出力も中身に合わせて色を付ける
  * （JSON・差分・ファイルの中身を出すだけのコマンドはその言語、ほかはログの形。決め方は toolResultParse の outputLanguage）。
- * 出力がなければ「出力なし」、失敗したら終了コード（取れなければ「失敗」）を出力の見出しの右に赤で出す。結果が届くまでは出力の欄を出さない
+ * 出力がなければ「出力なし」、失敗したら終了コード（取れなければ「失敗」）を出力の見出しの右に赤で出す。結果が届くまでは出力の欄を出さない。
+ * 出力に kickoff-trash の印（Kickoff のゴミ箱に入れたもの）があれば、出力の下にその場で戻すボタンの行を並べる
  */
 export function BashOutput({
   command,
@@ -45,6 +48,7 @@ export function BashOutput({
               … ほか {hidden} 行
             </button>
           )}
+          <TrashMarkRows marks={trashMarksIn(parsed.output)} active={highlight} rel={rel} />
         </section>
       )}
     </div>
