@@ -36,10 +36,11 @@
 }
 
 /*
- * 2 行のタブのとき（利用者の依頼）: 新しいタブのボタンを、高くしたタブの縦幅の真ん中に置く（ふだんは 1 行のタブに合わせて上から 2px）。
+ * 2 行のタブのとき（利用者の依頼）: 新しいタブのボタン・右端のペインを分ける・閉じるボタン・左端の道具を、高くしたタブの縦幅の真ん中に置く
+ * （ふだんは 1 行のタブに合わせて上から 2px。前は新しいタブのボタンだけを真ん中にしていて、分けるボタンと左端の道具は上に寄っていた）。
  * 上の段にタブ・下の段に道具を並べる 2 段のタブの列（チャット欄）では、道具はタブと別の段なので変えない
  */
-.panel-tabs:has(> .panel-tab-strip .panel-tab.two-line):not(:where(.board-panel.as-sidebar:not(.in-footer) *)) > .panel-tab-adds {
+.panel-tabs:has(> .panel-tab-strip .panel-tab.two-line):not(:where(.board-panel.as-sidebar:not(.in-footer) *)) > :is(.panel-tab-adds, .panel-pane-tools, .panel-controls) {
   align-items: center;
   margin-top: 0;
 }
