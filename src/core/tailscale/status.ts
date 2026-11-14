@@ -2,13 +2,20 @@
 // コマンドの場所だけが OS ごとに違う（OS の口の tailscaleCli）。答えの JSON の読み方は OS に依らない純粋な関数
 import type { TailscaleStatus } from "@shared/types";
 import { errorMessage } from "@shared/errors";
+import { APP_ENVS } from "../system/appEnv.js";
 import { runCommand } from "../system/exec.js";
 
 /** 調べるのを待つ時間（つながっていないと遅いことがある） */
 const TAILSCALE_TIMEOUT_MS = 5_000;
 
+/**
+ * Serve で出す HTTPS のポート: 製品版は 443（URL にポートが付かない）、開発版などほかのポートは 8443
+ * （同じ Mac で製品版を 443 で出していても上書きしない。Serve は HTTPS のポートごとに 1 つの行き先）
+ */
+export const serveHttpsPort = (port: number) => (port === APP_ENVS.production.port ? 443 : 8443);
+
 /** Serve を始めるコマンド（この本体のポートへ。--bg で裏に残し、Mac を起動し直しても続く） */
-export const serveCommand = (cli: string, port: number) => `${cli.includes(" ") ? `"${cli}"` : cli} serve --bg --https=443 http://127.0.0.1:${port}`;
+export const serveCommand = (cli: string, port: number) => `${cli.includes(" ") ? `"${cli}"` : cli} serve --bg --https=${serveHttpsPort(port)} http://127.0.0.1:${port}`;
 
 /** tailscale status --json から、つながっているかと、この Mac の名前（末尾の . は落とす） */
 export function parseTailscaleStatus(json: unknown): { running: boolean; dns_name: string | null } {

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { APP_ENVS } from "../system/appEnv.js";
 import { parseTailscaleStatus, serveCommand, serveUrlsFor } from "./status.js";
 
 test("parseTailscaleStatus: つながっていればこの Mac の名前（末尾の . は落とす）。止まっている・ログインしていなければ名前は出さない", () => {
@@ -27,7 +28,10 @@ test("serveUrlsFor: このポートへ渡している / の Serve の URL。ほ�
   assert.equal(serveUrlsFor({ Web: { "m.ts.net:443": { Handlers: { "/": { Proxy: "http://192.168.1.2:5317" } } } } }, 5317).serve_url, null);
 });
 
-test("serveCommand: 本体のポートへ HTTPS で渡す。空白のある場所のコマンドは囲む", () => {
-  assert.equal(serveCommand("tailscale", 5318), "tailscale serve --bg --https=443 http://127.0.0.1:5318");
-  assert.equal(serveCommand("/Applications/My Tools/tailscale", 5317), '"/Applications/My Tools/tailscale" serve --bg --https=443 http://127.0.0.1:5317');
+test("serveCommand: 本体のポートへ HTTPS で渡す。製品版は 443、ほか（開発版など）は製品版の Serve を上書きしないよう 8443。空白のある場所のコマンドは囲む", () => {
+  const prod = APP_ENVS.production.port;
+  const dev = APP_ENVS.development.port;
+  assert.equal(serveCommand("tailscale", prod), `tailscale serve --bg --https=443 http://127.0.0.1:${prod}`);
+  assert.equal(serveCommand("tailscale", dev), `tailscale serve --bg --https=8443 http://127.0.0.1:${dev}`);
+  assert.equal(serveCommand("/Applications/My Tools/tailscale", 5317), '"/Applications/My Tools/tailscale" serve --bg --https=8443 http://127.0.0.1:5317');
 });
