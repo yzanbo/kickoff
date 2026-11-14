@@ -4,6 +4,7 @@ import { isBackgroundLaunch } from "@shared/chat/backgroundTasks";
 import { isSubagentTool } from "@shared/chat/subagents";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/chat/aiVisual";
 import { lastReplyBefore } from "@shared/chat/handoff";
+import { createdChatIdOf, isCreateChatTool, relationOf } from "@shared/chat/aiCreateChat";
 import { changesOf, type EditCall, type FileChange } from "@/features/chat/tools/turnFileChanges";
 
 export interface ToolCall {
@@ -14,7 +15,9 @@ export interface ToolCall {
 /**
  * 作業の終わり（result）に付けるもの。turnStart: その作業を始めた時刻（直前の自分の発言の時刻。作業時間を出すため）、
  * turnText: その作業での AI の返答をつないだ文（コピーのボタンに使う）、turnChanges: その作業で変えたファイル（ターンの変更カード）、
- * turnHandoff: 親チャットに渡すもの（子チャットの「親チャットに追加」）、turnHandoffs: その作業の返答を親チャットに渡した記録（渡した順。渡したことの印）
+ * turnHandoff: 親チャットに渡すもの（子チャットの「親チャットに追加」）、turnHandoffs: その作業の返答を親チャットに渡した記録（渡した順。渡したことの印）。
+ * 自分の発言に付けるもの。createdChats: その発言の作業で AI が create_chat で作った兄弟チャット・親のないチャットの ID（「,」でつなぐ。発言の下に子チャットと同じ札を出す。
+ * 子チャットは parent_event_id で札が出るので入れない。文字にするのは、記録が増えるたびの組み立て直しでも値で比べて memo が効くように）
  */
 export type TimelineItem =
   | {
@@ -26,6 +29,7 @@ export type TimelineItem =
       turnChanges?: FileChange[];
       turnHandoff?: TurnHandoff;
       turnHandoffs?: ChatEventOf<"handoff">[];
+      createdChats?: string;
     }
   | { kind: "tools"; key: string; tools: ToolCall[] }
   /** サブエージェントの起動（Agent / Task の呼び出し。ツールのまとまりに入れず、流れの中のカードにする） */
@@ -88,6 +92,28 @@ const THINKING_MIN_MS = 2000;
  * scope を渡すとそのサブエージェントの中身だけ（行のキーと、再開した回の呼び出し ID。SubagentEntry の key と aliases）、
  * 渡さなければメインエージェントの分だけを並べる
  */
+/**
+ * 自分の発言ごとの、その作業で AI が create_chat で作った兄弟チャット・親のないチャット（メインの流れの呼び出しで、作れたものだけ。発言の記録の ID → チャットの ID の列）。
+ * 子チャットは聞いた位置（parent_event_id）で発言の下に札が出るので除く
+ */
+export function createdChatsByUser(events: ChatEvent[]): Map<number, number[]> {
+  const created = new Map<number, number[]>();
+  const callOwner = new Map<string, number>();
+  let lastUser: number | null = null;
+  for (const e of events) {
+    if (e.type === "user") lastUser = e.id;
+    else if (e.type === "tool_use" && e.data.parent === undefined && lastUser !== null && isCreateChatTool(e.data.name)) {
+      const input = e.data.input && typeof e.data.input === "object" ? (e.data.input as Record<string, unknown>) : {};
+      if (relationOf(input) !== "child") callOwner.set(e.data.id, lastUser);
+    } else if (e.type === "tool_result" && !e.data.is_error && callOwner.has(e.data.tool_use_id)) {
+      const id = createdChatIdOf(e.data.content);
+      const owner = callOwner.get(e.data.tool_use_id)!;
+      if (id !== null) created.set(owner, [...(created.get(owner) ?? []), id]);
+    }
+  }
+  return created;
+}
+
 export function groupEvents(events: ChatEvent[], scope?: readonly string[]): TimelineItem[] {
   const items: TimelineItem[] = [];
   const byId = new Map<string, ToolCall>();
@@ -104,6 +130,8 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
   let turnEdits = new Map<string, EditCall>();
   // 親チャットに渡した記録（メインの流れのときだけ。作業の終わりの行に印を出す）
   const handoffs = scope === undefined ? handoffsByTurn(events) : new Map<number, ChatEventOf<"handoff">[]>();
+  // AI が作った兄弟チャット・親のないチャット（メインの流れのときだけ。発言の下に札を出す）
+  const created = scope === undefined ? createdChatsByUser(events) : new Map<number, number[]>();
   for (const [index, e] of events.entries()) {
     if (scope === undefined) {
       if (e.type === "tool_use" && EDIT_TOOLS.has(e.data.name)) turnEdits.set(e.data.id, { use: e });
@@ -182,7 +210,8 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
         if (e.data.handoff_request) turnRequested = true;
       }
       if (e.type === "text") turnTexts.push(e.data.text);
-      items.push({ kind: "event", key: `e${e.id}`, event: e });
+      const createdChats = e.type === "user" ? created.get(e.id)?.join(",") : undefined;
+      items.push({ kind: "event", key: `e${e.id}`, event: e, ...(createdChats ? { createdChats } : {}) });
     }
   }
   return items;

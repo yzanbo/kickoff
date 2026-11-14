@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { eventSequence, makeEvent } from "@shared/testing/factories";
-import { groupEvents, relativize, summarizeTools, type ToolCall } from "./timelineItems";
+import { AI_CREATE_CHAT_TOOL, createdChatMark } from "@shared/chat/aiCreateChat";
+import { createdChatsByUser, groupEvents, relativize, summarizeTools, type ToolCall } from "./timelineItems";
 
 const use = eventSequence();
 let tools = 0;
@@ -241,4 +242,27 @@ test("groupEvents: 裏で動かしたサブエージェントが終わったら�
     groupEvents(events, ["a2"]).map((i) => i.kind + ":" + i.key),
     ["subagent:s5", "subagentEnd:x7"],
   );
+});
+
+test("AI が作ったチャットの札: 発言の作業で create_chat が作った兄弟・親のないチャットを、その発言に付ける（子チャット・失敗・サブエージェントの中は付けない）", () => {
+  const ev = eventSequence();
+  const first = ev("user", { text: "作って", message_uuid: "u1" });
+  const events = [
+    first,
+    ev("tool_use", { id: "c1", name: AI_CREATE_CHAT_TOOL, input: { relation: "root", text: "x" } }),
+    ev("tool_result", { tool_use_id: "c1", content: `親のないチャット「x」を作り、依頼を送りました${createdChatMark(31)}。`, is_error: false }),
+    ev("tool_use", { id: "c2", name: AI_CREATE_CHAT_TOOL, input: { relation: "child", text: "y" } }),
+    ev("tool_result", { tool_use_id: "c2", content: `子チャット「y」を作り、依頼を送りました${createdChatMark(32)}。`, is_error: false }),
+    ev("tool_use", { id: "c3", name: AI_CREATE_CHAT_TOOL, input: { relation: "sibling", text: "z" } }),
+    ev("tool_result", { tool_use_id: "c3", content: "利用者が断りました", is_error: true }),
+    ev("tool_use", { id: "c4", name: AI_CREATE_CHAT_TOOL, input: { relation: "sibling", text: "w" }, parent: "agent" }),
+    ev("tool_result", { tool_use_id: "c4", content: `兄弟チャット「w」${createdChatMark(34)}`, is_error: false, parent: "agent" }),
+  ];
+  const second = ev("user", { text: "もう 1 つ", message_uuid: "u2" });
+  events.push(second, ev("tool_use", { id: "c5", name: AI_CREATE_CHAT_TOOL, input: { relation: "sibling", text: "v" } }), ev("tool_result", { tool_use_id: "c5", content: `兄弟チャット「v」${createdChatMark(35)}`, is_error: false }));
+  assert.deepEqual([...createdChatsByUser(events)], [[first.id, [31]], [second.id, [35]]]);
+  // 流れの組み立てでは、発言の項目に「,」でつないだ ID が付く
+  const items = groupEvents(events);
+  const userItems = items.filter((i) => i.kind === "event" && i.event.type === "user");
+  assert.deepEqual(userItems.map((i) => (i.kind === "event" ? i.createdChats : null)), ["31", "35"]);
 });

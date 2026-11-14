@@ -32,7 +32,8 @@ const COLLAPSE_PX = 240;
  * 追加の指示を添えて頼んだときは、たたんだ行の下にその指示だけを出す（全文を開かなくても、何を頼んだか分かるように）。
  * 子チャットから渡した依頼（記録の handoff_from）は、吹き出しの下に出どころの札「子チャット『…』から」
  */
-export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy: boolean }) {
+/** createdChats: この発言の作業で AI が作った兄弟チャット・親のないチャットの ID（「,」でつなぐ。timelineItems の createdChatsByUser） */
+export function UserMessage({ event, busy, createdChats }: { event: ChatEventOf<"user">; busy: boolean; createdChats?: string }) {
   const data = event.data;
   const subagentAsk = subagentAskOf(data.text);
   const text = subagentAsk?.text ?? data.text;
@@ -185,8 +186,8 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
           <HandoffFromChip from={data.handoff_from} />
         </div>
       )}
-      {/* この発言から聞いた子チャットの札 */}
-      {pane && <ChildChatMarks chatId={pane.chatId} eventId={event.id} />}
+      {/* この発言から聞いた子チャットと、この発言の作業で AI が作った兄弟チャット・親のないチャットの札 */}
+      {pane && <ChildChatMarks chatId={pane.chatId} eventId={event.id} created={createdChats} />}
       {menu.element}
     </div>
   );
