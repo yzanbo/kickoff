@@ -1,84 +1,68 @@
-import { useEffect, useRef } from "react";
-import type { Chat, ChatStatus } from "@shared/types";
-import { chatTitle } from "@/features/chat/chatTitle";
-import { useServerEvent } from "@/api/events";
+import { useEffect } from "react";
+import { VIEWING_TTL_MS, type ViewingBody } from "@shared/types";
+import { api } from "@/api";
+import { subscribeServerOpen } from "@/api/events";
+import { openChatOrChild } from "@/features/chat/children/openChild";
+import { openCiRun } from "@/features/ci/ciLinks";
+import { useWindowFocused } from "@/hooks/useWindowFocused";
 import { openChat, openMemo, type Route } from "./router";
-import { openChildChat } from "@/features/chat/children/openChild";
 
 /**
- * チャットの完了・失敗・回答待ちを、Mac の通知で知らせる。押すと Kickoff が前面に出て、そのチャットを開く。
- * Kickoff を見ていて、そのチャットを開いているときは知らせない。
- * デスクトップアプリではメインプロセスの通知で出す（画面を読み込み直しても・Kickoff を終えても通知センターに残り、
- * 起動し直したあとに押されてもそのチャットを開ける）。スマホのブラウザなどでは、ブラウザの通知で出す
+ * 通知（チャットの完了・失敗・回答待ち・CI の失敗）を出すかはコアが決める（src/core/notifications/center.ts。だれも見ていなければ、
+ * この Mac の通知とつないだ端末のプッシュへ）。画面がするのは 2 つだけ: いま見ているものをコアに知らせる（useViewingReport）と、
+ * Mac の通知が押されたら、そのチャット・CI の実行を開く（useNotificationTargets）。
+ * ブラウザで開いた画面の通知は、Web Push を作るまで出さない（2026-11-14 に利用者と決めた）
  */
-/** projectName: プロジェクト名の引き当て（ProjectsContext の projectName） */
-export function useChatNotifications({ enabled, projectName, route }: { enabled: boolean; projectName: (id: number) => string; route: Route }) {
-  // チャットごとの直前の状態（作業中 → 完了 に変わったときだけ知らせる）
-  const last = useRef(new Map<number, ChatStatus>());
-  const titles = useRef(new Map<number, string>());
-  // 子チャット（押したら、パネルではなく別ウィンドウで開く）
-  const children = useRef(new Set<number>());
-  // メモのチャット（押したら、そのメモをメモのタブで開く。チャットはメモの右の欄にある）
-  const memos = useRef(new Map<number, string>());
-  const open = (projectId: number, chatId: number) => {
-    const memo = memos.current.get(chatId);
-    if (memo !== undefined) return openMemo(projectId, memo);
-    if (children.current.has(chatId)) return openChildChat({ id: chatId, project_id: projectId, title: titles.current.get(chatId) ?? "" });
-    openChat(projectId, chatId);
-  };
-  /** 知らせに出す名前（子チャットは名前の前に「子チャット: 」、メモのチャットは「メモ: 」。完了・失敗・回答待ちで同じ） */
-  const nameOf = (chatId: number) => {
-    const title = titles.current.get(chatId);
-    const kind = children.current.has(chatId) ? "子チャット: " : memos.current.has(chatId) ? "メモ: " : "";
-    return `${kind}${title === undefined ? "チャット" : chatTitle(title)}`;
-  };
-  const state = useRef({ enabled, projectName, route });
-  state.current = { enabled, projectName, route };
 
-  const notify = (chat: Pick<Chat, "id" | "project_id">, title: string, body: string) => {
-    const { enabled: on, route: current } = state.current;
-    if (!on || (!window.kickoff && typeof Notification === "undefined")) return;
-    const viewing = document.hasFocus() && current.name === "chat" && current.chatId === chat.id;
-    if (viewing) return;
-    if (window.kickoff) {
-      void window.kickoff.notifications.notify({ title, body, chat: { projectId: chat.project_id, chatId: chat.id } });
-      return;
-    }
-    const n = new Notification(title, { body, silent: false });
-    n.onclick = () => {
-      window.focus();
-      open(chat.project_id, chat.id);
+/** 見ているものの知らせを送り直す間隔（コアは VIEWING_TTL_MS で忘れるので、それより短く） */
+const VIEWING_REFRESH_MS = VIEWING_TTL_MS / 3;
+
+/** いま見ているもの（前に出していなければ何も見ていない） */
+function viewingOf(route: Route, focused: boolean): ViewingBody {
+  if (!focused) return { chat_id: null, ci_project_id: null };
+  return {
+    chat_id: route.name === "chat" ? route.chatId : null,
+    ci_project_id: route.name === "project" && route.tab === "ci" ? route.id : null,
+  };
+}
+
+/** いま見ているチャット・CI のタブをコアに知らせる（変わったとき・見ている間は少しずつ・SSE がつながり直したとき） */
+export function useViewingReport(route: Route) {
+  const focused = useWindowFocused();
+  const { chat_id: chatId, ci_project_id: ciProjectId } = viewingOf(route, focused);
+  useEffect(() => {
+    const body: ViewingBody = { chat_id: chatId, ci_project_id: ciProjectId };
+    const send = () => void api.reportViewing(body).catch(() => {});
+    send();
+    const off = subscribeServerOpen(send);
+    // 何も見ていないなら送り直さない（コアは古い知らせを忘れる）
+    const timer = chatId === null && ciProjectId === null ? undefined : setInterval(send, VIEWING_REFRESH_MS);
+    return () => {
+      off();
+      clearInterval(timer);
     };
-  };
-  // メインプロセスの通知が押されたら、そのチャットを開く
-  useEffect(() => window.kickoff?.notifications.onOpenChat((projectId, chatId) => open(projectId, chatId)), []);
+  }, [chatId, ciProjectId]);
+}
 
-  useServerEvent((e) => {
-    if (e.type === "chat") {
-      const chat = e.chat;
-      titles.current.set(chat.id, chat.title);
-      if (chat.parent_chat_id !== null) children.current.add(chat.id);
-      if (chat.memo_path !== null) memos.current.set(chat.id, chat.memo_path);
-      const prev = last.current.get(chat.id);
-      last.current.set(chat.id, chat.status);
-      if (!prev || prev !== "running" || chat.status === "running") return;
-      const project = state.current.projectName(chat.project_id);
-      const name = nameOf(chat.id);
-      if (chat.status === "completed") notify(chat, `✓ 完了: ${name}`, `${project} ・ AI の作業が終わりました`);
-      else if (chat.status === "failed") notify(chat, `✕ 失敗: ${name}`, `${project} ・ ${chat.error?.slice(0, 120) ?? "エラーで止まりました"}`);
-    } else if (e.type === "approval") {
-      const a = e.approval;
-      const project = state.current.projectName(a.project_id);
-      const name = nameOf(a.chat_id);
-      const body =
-        a.kind === "reconnect"
-          ? "通信が切れて止まりました。再開するか選んでください"
-          : a.kind === "usage_limit"
-            ? "使用枠が戻りました。続きから再開するか選んでください"
-            : a.agent_id
-              ? "サブエージェントが確認を待っています"
-              : "AI が確認を待っています";
-      notify({ id: a.chat_id, project_id: a.project_id }, `回答待ち: ${name}`, `${project} ・ ${body}`);
-    }
-  });
+/** Mac の通知が押されたら開く（チャットは子チャット・メモのチャットならその開き方で。Kickoff を起動し直したあとに前の通知が押されたときも） */
+export function useNotificationTargets() {
+  useEffect(() => {
+    const offChat = window.kickoff?.notifications.onOpenChat((projectId, chatId) => void openNotifiedChat(projectId, chatId));
+    const offCi = window.kickoff?.notifications.onOpenCi((projectId, runId) => openCiRun(projectId, runId));
+    return () => {
+      offChat?.();
+      offCi?.();
+    };
+  }, []);
+}
+
+/** 通知のチャットを開く（子チャットなら設定の開き方、メモのチャットならそのメモ。読めなければいちばん上のチャットとして） */
+async function openNotifiedChat(projectId: number, chatId: number) {
+  const chat = await api.chatDetail(chatId, { limit: 1 }).then(
+    (d) => d.chat,
+    () => null,
+  );
+  if (!chat) return openChat(projectId, chatId);
+  if (chat.memo_path !== null) return openMemo(chat.project_id, chat.memo_path);
+  openChatOrChild(chat);
 }

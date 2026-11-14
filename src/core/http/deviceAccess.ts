@@ -11,6 +11,8 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["GET", "/api/health"],
   ["GET", "/api/status"],
   ["GET", "/api/events"],
+  // いま見ているもの（見ているチャットの知らせは通知しない）
+  ["PUT", "/api/viewing"],
   // プロジェクト・グループ（見るだけ）
   ["GET", "/api/projects"],
   ["GET", "/api/projects/:id"],

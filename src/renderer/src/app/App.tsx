@@ -37,8 +37,7 @@ import { DialogHost } from "@/ui/dialogs";
 import { DbUnlockHost } from "@/features/database/DbUnlockHost";
 import { DropHintHost } from "@/ui/DropHint";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { useChatNotifications } from "./notifications";
-import { useCiFailureNotifications } from "./ciNotifications";
+import { useNotificationTargets, useViewingReport } from "./notifications";
 import { useDockBadge } from "./dockBadge";
 import { useAgentBrowserBridge } from "./agentBrowser";
 import { useAiOpenRequests } from "./aiOpenRequests";
@@ -65,7 +64,7 @@ export function App() {
   // サーバーとつなぎ、届いた知らせを各画面と店（stores/）に配る（ここで 1 回だけ）
   const connection = useServerConnection(publishServerEvent);
   // アプリ全体で使うデータ（プロジェクト・回答待ち・設定）は店から読む（要る部品も、props で中継せずに店から読む）
-  const { projects, projectName, missing: missingProject, loaded: projectsLoaded } = useProjects();
+  const { projects, missing: missingProject, loaded: projectsLoaded } = useProjects();
   const approvals = useApprovals();
   const appSettings = useAppSettings().data;
   // プロジェクトの色（DB に覚えた色）を、色を使う部品が読めるようにする（描く前に入れる）
@@ -76,10 +75,9 @@ export function App() {
   }, [projects, projectsLoaded]);
   // 回答待ちの依頼からチャットの状態を引く（approvals を中継せず、要る部品が useChatStates で読む）
   const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
-  // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え。設定が届くまでは知らせる）
-  useChatNotifications({ enabled: appSettings?.desktop_notifications ?? true, projectName, route });
-  // 作業場所のブランチ・既定のブランチで CI が落ちたら Mac の通知で知らせる（同じ設定。プロジェクトごとの切り替えは設定の「GitHub」）
-  useCiFailureNotifications({ enabled: appSettings?.desktop_notifications ?? true, projectName, route });
+  // 通知（完了・失敗・回答待ち・CI の失敗）を出すかはコアが決める。画面は見ているものを知らせ、通知が押されたら開く
+  useViewingReport(route);
+  useNotificationTargets();
   // 要対応（回答待ち・未読）の数を Dock のアイコンの赤い数字で出す（設定で切り替え。設定が届くまでは出す）
   useDockBadge({ enabled: appSettings?.dock_badge ?? true, projects, pending: chatStates.pending });
   // AI が埋め込みブラウザのタブを開く・操作している印

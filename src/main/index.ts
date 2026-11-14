@@ -17,6 +17,7 @@ import { watchWebviewConsoles } from "./browser/webviewConsole.js";
 import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
 import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
 import { registerIpc } from "./ipc/ipc.js";
+import { notifyFromCore } from "./notifications/notifications.js";
 import { hostPlatform } from "./platform/index.js";
 import { agentTerminals, setTerminalEnvOf } from "./terminal/terminals.js";
 
@@ -63,6 +64,8 @@ async function start() {
       dbWorker: () => utilityWorker(DB_WORKER_FILE),
       // DB のパスワードはキーチェーンの鍵（safeStorage）で暗号化して置く（app/secretCipher.ts）
       secretCipher: safeStorageCipher,
+      // 通知を出すかはコアが決め、Mac の通知はここで出す（notifications/notifications.ts）
+      notify: notifyFromCore,
     });
     setDiagnosticsCore(core);
     // ワークツリーのターミナルには、その帯の開発サーバーの番号（PORT）を渡す

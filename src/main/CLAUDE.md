@@ -56,9 +56,9 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 
 ## 通知（notifications/）
 
-- Mac の通知はメインプロセスの `Notification` で出す（画面の通知は、画面を読み込み直す・終えると通知センターから消え、届かなかった理由も分からないため）。押したときの処理を付けておくため、新しいものから 50 件の参照を持つ。Kickoff を終えても通知センターに残る（終わり方は「終了」）。
+- Mac の通知はメインプロセスの `Notification` で出す（画面の通知は、画面を読み込み直す・終えると通知センターから消え、届かなかった理由も分からないため）。チャットの完了・失敗・回答待ち・CI の失敗は、出すか（だれも見ていないか・設定）と文をコアが決め（`src/core/CLAUDE.md` の「通知」）、`startCore({ notify })` に渡した `notifyFromCore` が出す。押したときの処理を付けておくため、新しいものから 50 件の参照を持つ。Kickoff を終えても通知センターに残る（終わり方は「終了」）。
 - 通知の ID にチャット（`kickoff-chat:`）か CI の実行（`kickoff-ci:`。CI の失敗の知らせ）を埋め込み（`notificationIds.ts` の `notificationIdOf` / `chatOfNotificationId` / `ciOfNotificationId`。毎回変える）、起動したら `Notification.getHistory()` で通知センターに残っているものにも押したときの処理を付け直す。押したら Kickoff を前に出し、`notifications.onOpenChat` で画面にそのチャットを、`notifications.onOpenCi` で CI のタブのその実行を開かせる。
-- 画面からは `notifications.notify`（結果は `{ ok }` か `{ ok: false, error }`）・`notifications.openSettings`（Mac の「システム設定 → 通知」）・`notifications.setBadge`（Dock のアイコンの赤い数字。`app.setBadgeCount`。0 で消える。数えるのは画面）。
+- 画面からは `notifications.notify`（設定の「テスト通知を送る」。結果は `{ ok }` か `{ ok: false, error }`）・`notifications.openSettings`（Mac の「システム設定 → 通知」）・`notifications.setBadge`（Dock のアイコンの赤い数字。`app.setBadgeCount`。0 で消える。数えるのは画面）。
 
 ## 性能の記録（diagnostics/）
 

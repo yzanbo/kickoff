@@ -8,6 +8,8 @@ import { createProviders } from "./providers/index.js";
 import { currentSelf } from "./chat/guard/selfProtection.js";
 import type { HostPlatform } from "./platform/types.js";
 import { PairingCenter } from "./devices/pairing.js";
+import { NotificationCenter, type DesktopNotify, type PushSender } from "./notifications/center.js";
+import { ViewingRegistry } from "./notifications/viewing.js";
 import { createApp } from "./http/server.js";
 import { Store } from "./db/store.js";
 import { DB_FILE, discardPrereleaseData } from "./db/open.js";
@@ -57,6 +59,10 @@ interface CoreOptions {
   dbWorker?: () => WorkerChannel;
   /** DB のパスワードの暗号化（Electron の safeStorage。渡さなければ、暗号化せずに置く） */
   secretCipher?: SecretCipher;
+  /** この Mac の通知を出す口（Mac のアプリのメインプロセスが渡す。出すかはコアが決める = notifications/center.ts。単体のコアにはない） */
+  notify?: DesktopNotify;
+  /** スマホのプッシュを送る口（Expo Push・Web Push。いまはまだ中身がなく、渡さない） */
+  push?: PushSender;
 }
 
 export interface Core {
@@ -144,6 +150,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   });
   // スマホ連携のペアリング（番号と頼みはメモリだけ）
   const pairing = new PairingCenter({ store, publish: (e) => bus.publish(e) });
+  // 通知の判断（完了・失敗・回答待ち・CI の失敗を、だれも見ていなければ、この Mac の通知とつないだ端末のプッシュへ）
+  const viewing = new ViewingRegistry();
+  const notifications = new NotificationCenter({ bus, store, viewing, desktop: opts.notify, push: opts.push });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
@@ -165,6 +174,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     worktreeEnvs,
     ports,
     pairing,
+    viewing,
     trash: opts.platform.moveToTrash,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
@@ -189,6 +199,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     databaseStats: () => store.stats(),
     worktreeEnvFor: (dir) => worktreeEnvs.envFor(dir),
     close: async () => {
+      // 止める途中の知らせで通知を出さない
+      notifications.close();
       runner.shutdown();
       // 流れ続けている外部コマンド（docker events・起動の途中の up -d など）は聞かずに止める
       stopAllStreams();
