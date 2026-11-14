@@ -12,6 +12,7 @@ import { tempDir } from "../testing/tempDir.js";
 import { gitRepo } from "../testing/gitRepo.js";
 import { until } from "../testing/testCore.js";
 import { appDataDir } from "../system/appEnv.js";
+import "../testing/quietShell.js";
 
 /** プロジェクトのフォルダに SQLite のファイルを作る（users と、users を指す posts） */
 function makeSqlite(dir: string, name = "app.db") {

@@ -8,6 +8,7 @@ import { tempDir } from "../testing/tempDir.js";
 import { DbWorkerClient, forkWorker, killGroup, type WorkerChannel } from "./client.js";
 import { devWorkerEntry } from "./entry.js";
 import type { DbTarget } from "./protocol.js";
+import "../testing/quietShell.js";
 
 function sqliteTarget(readOnly = false): DbTarget {
   const file = path.join(tempDir(), "t.db");
