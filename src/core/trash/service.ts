@@ -206,6 +206,8 @@ export class TrashService {
    * 途中のフォルダがなければ作る）。チャット・プロジェクトは種類ごとの扱いで戻す
    */
   async restore(id: string, opts: { rename?: boolean } = {}): Promise<TrashRestoreResult> {
+    // AI が kickoff-trash で入れたばかりで、まだ取り込んでいないもの（会話の中の「戻す」）も戻せるように
+    if (!this.deps.store.trash.get(id)) await this.importInbox().catch(() => 0);
     const item = this.deps.store.trash.get(id);
     if (!item) throw new NotFound("ゴミ箱にありません（もう消えたか、戻したあとです）");
     const handler = this.handlers.get(item.kind);

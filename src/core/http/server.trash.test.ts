@@ -8,6 +8,7 @@ import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type BusEvent, type TrashItem } fr
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { installTrashCommand, trashCommandEnv } from "../trash/command.js";
+import { trashMarksIn } from "@shared/trash/marks";
 import { setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 
@@ -30,6 +31,7 @@ test("ゴミ箱: ファイルを入れると一覧に出て、元の場所に戻
   const list = (await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[];
   assert.equal(list.length, 1);
   assert.equal(list[0].label, "a.txt");
+  assert.equal((await call("GET", `/api/trash/${put.id}`)).body.label, "a.txt");
   assert.equal(list[0].kind, "file");
   assert.equal(list[0].by_chat_id, null);
   assert.equal(Date.parse(list[0].expires_at) - Date.parse(list[0].trashed_at), TRASH_KEEP_MS);
@@ -43,6 +45,7 @@ test("ゴミ箱: ファイルを入れると一覧に出て、元の場所に戻
   assert.equal(fs.readFileSync(file, "utf8"), "中身");
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/trash`)).body, []);
   assert.equal((await call("POST", `/api/trash/${put.id}/restore`, {})).status, 404);
+  assert.equal((await call("GET", `/api/trash/${put.id}`)).status, 404);
 });
 
 test("ゴミ箱: 元の場所に同じ名前があれば上書きせずに断り、rename なら「名前 2」で戻す", async () => {
@@ -145,9 +148,20 @@ test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、
     (e: { code: number; stdout: string; stderr: string }) => e,
   );
 
+  // 一覧を読む前でも、出力の印の ID で戻せる（会話の中の「戻す」。取り込んでから戻す）
+  fs.writeFileSync(path.join(work, "early.txt"), "0");
+  const early = await run(["early.txt"]);
+  const [mark] = trashMarksIn(early.stdout);
+  assert.equal(mark.origin, path.join(fs.realpathSync(work), "early.txt"));
+  const restored = await call("POST", `/api/trash/${mark.id}/restore`, {});
+  assert.equal(restored.status, 200);
+  assert.equal(fs.readFileSync(path.join(work, "early.txt"), "utf8"), "0");
+  fs.rmSync(path.join(work, "early.txt"));
+
   const ok = await run(["-rf", "dist", "--", "-odd.txt"]);
   assert.equal(ok.code, 0);
   assert.match(ok.stdout, /Kickoff のゴミ箱に入れました.*\[kickoff-trash:[0-9a-f-]{36}\]/);
+  assert.equal(trashMarksIn(ok.stdout).length, 2);
   assert.equal(fs.existsSync(path.join(work, "dist")), false);
   assert.equal(fs.existsSync(path.join(work, "-odd.txt")), false);
   // ないもの・ホームは入れない（終わり値 1）
@@ -215,4 +229,32 @@ test("プロジェクトのゴミ箱: 消すとチャットごと一覧から外
   assert.deepEqual((await call("GET", "/api/trash/projects")).body, []);
   // 本当に消えたら、同じフォルダをまた取り込める
   assert.equal((await call("POST", "/api/projects/import", { path: repo, name: "新しく", provider: "claude" })).status, 201);
+});
+
+test("アーカイブ済みのチャットの整理: 日数より前から動いていないものの数と、まとめてゴミ箱へ入れる（子チャットも一緒。新しいもの・アーカイブしていないものは残す）", async () => {
+  const { call, project, store } = setup();
+  const make = (title: string, parent: number | null = null) => store.chats.create({ project_id: project.id, title, provider: "claude", status: "completed", parent_chat_id: parent });
+  const old = make("古い");
+  const child = make("古い子", old.id);
+  const fresh = make("新しい");
+  const kept = make("アーカイブしていない");
+  store.chats.archive(old.id, true);
+  store.chats.archive(fresh.id, true);
+  const longAgo = new Date(Date.now() - 40 * 86_400_000).toISOString();
+  store.db.prepare("UPDATE chats SET active_at = ? WHERE id IN (?, ?, ?)").run(longAgo, old.id, child.id, kept.id);
+
+  const preview = await call("GET", "/api/archive-cleanup?days=30");
+  assert.equal(preview.status, 200);
+  assert.equal(preview.body.count, 2);
+  assert.equal((await call("GET", "/api/archive-cleanup?days=0")).status, 400);
+
+  const done = await call("POST", "/api/archive-cleanup", { days: 30 });
+  assert.deepEqual(done.body, { trashed: 2 });
+  assert.equal(store.chats.get(old.id), undefined);
+  assert.equal(store.chats.get(child.id), undefined);
+  assert.ok(store.chats.get(fresh.id));
+  assert.ok(store.chats.get(kept.id));
+  const list = (await call("GET", `/api/projects/${project.id}/trash`)).body as TrashItem[];
+  assert.deepEqual(list.map((i) => i.label), ["古い"]);
+  assert.equal((await call("GET", "/api/archive-cleanup?days=30")).body.count, 0);
 });

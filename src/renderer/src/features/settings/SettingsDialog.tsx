@@ -1,4 +1,4 @@
-import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, PanelLeft, Palette, PlugZap, Puzzle, Shrink, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
+import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, PanelLeft, Palette, PlugZap, Puzzle, Shrink, Smartphone, SquareTerminal, StickyNote, Trash2 } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, PANEL_VIEW_BUTTON_HIDDEN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
@@ -16,6 +16,7 @@ import { SnippetBarField } from "@/features/snippet/SnippetBarField";
 import { CompactPromptSettings } from "@/features/snippet/CompactPromptSettings";
 import { SnippetSettings } from "@/features/snippet/SnippetSettings";
 import { SidebarViewSettings } from "@/features/sidebar/SidebarViewSettings";
+import { TrashSettings } from "@/features/trash/TrashSettings";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 import { ChatSettings } from "./ChatSettings";
 import { ChildChatCreateField } from "./ChildChatCreateField";
@@ -28,7 +29,7 @@ import { NotificationSettings } from "./NotificationSettings";
 import { TerminalSettings } from "./TerminalSettings";
 import { VoiceSettings } from "./VoiceSettings";
 
-export type SettingsSection = "usage" | "display" | "sidebar" | "connection" | "ai" | "chats" | "snippets" | "compact" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
+export type SettingsSection = "usage" | "display" | "sidebar" | "connection" | "ai" | "chats" | "snippets" | "compact" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "trash" | "diagnostics";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
@@ -45,6 +46,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "terminal", label: "ターミナル", icon: SquareTerminal },
   { key: "browser", label: "ブラウザの拡張機能", icon: Puzzle },
   { key: "mobile", label: "スマホ連携", icon: Smartphone },
+  { key: "trash", label: "ゴミ箱と整理", icon: Trash2 },
   { key: "diagnostics", label: "診断", icon: Activity },
 ];
 
@@ -74,6 +76,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
           )}
           {section === "diagnostics" && <DiagnosticsSettings onClose={onClose} />}
           {section === "mobile" && <MobileSettings />}
+          {section === "trash" && <TrashSettings />}
         </>
       )}
     </TabbedDialog>

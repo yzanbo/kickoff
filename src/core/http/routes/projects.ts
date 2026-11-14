@@ -104,7 +104,7 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
     const same = (p: Project) => p.id !== except && (p.repo_path === realPath || realPathOrSelf(p.repo_path) === realPath);
     // 同じフォルダのプロジェクトがゴミ箱にあれば、新しく登録せず戻してもらう（フォルダは 1 つのプロジェクトにだけ登録できる）
     const trashed = trashedProjectAt(store, same);
-    if (trashed) throw new Conflict(`このフォルダのプロジェクト「${trashed.name}」は Kickoff のゴミ箱にあります（3 日で消えます）。ゴミ箱から戻してください`);
+    if (trashed) throw new Conflict(`このフォルダのプロジェクト「${trashed.name}」は Kickoff のゴミ箱にあります（3 日で消えます）。設定の「ゴミ箱と整理」から戻してください`);
     return store.projects.list().find(same);
   };
   /**

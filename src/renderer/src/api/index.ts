@@ -18,6 +18,7 @@ import { providersApi } from "./providers";
 import { queueApi } from "./queue";
 import { settingsApi } from "./settings";
 import { snippetsApi } from "./snippets";
+import { trashApi } from "./trash";
 import { turnsApi } from "./turns";
 import { uploadsApi } from "./uploads";
 import { usageApi } from "./usage";
@@ -47,6 +48,7 @@ export const api = {
   ...dockerApi,
   ...ciApi,
   ...portsApi,
+  ...trashApi,
 };
 
 export { ApiError } from "./http";

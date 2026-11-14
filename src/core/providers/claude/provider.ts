@@ -9,7 +9,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { createBackgroundTracker } from "./background.js";
-import { findSessionFile, removeSession, trashSessions, writeRecentSegments } from "./sessionFiles.js";
+import { findSessionFile, removeSession, sessionFilesSize, trashSessions, writeRecentSegments } from "./sessionFiles.js";
 import { createTurnOver } from "./turnOver.js";
 import { createCommandOutputWatcher } from "./commandOutput.js";
 import { createInputChannel } from "./input.js";
@@ -353,6 +353,11 @@ export class ClaudeProvider implements AgentProvider {
   /** チャットを消したとき、そのセッションの記録をゴミ箱へ移す（cwds は動かした作業フォルダの候補。見つからなければすべてのプロジェクトから探す） */
   async discardSessions(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>): Promise<number> {
     return trashSessions(sessionIds, cwds, trash);
+  }
+
+  /** セッションの記録のファイルの大きさの合計（作業フォルダから決まる場所だけを見る。アーカイブ済みのチャットの整理の見込み） */
+  async sessionsSize(sessionIds: string[], cwds: string[]): Promise<number> {
+    return sessionFilesSize(sessionIds, cwds);
   }
 
   /** サブエージェントの会話を記録から読む（cwd のプロジェクトで見つからなければ、すべてのプロジェクトから探す。なければ空） */

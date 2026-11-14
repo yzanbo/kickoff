@@ -7,6 +7,7 @@ import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { memoOpenFolders, memoSelected } from "@/lib/storageKeys";
 import { ancestorsOf, baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./memoPaths";
+import { showTrashedToast } from "@/features/trash/trashActions";
 import { topLevelPaths } from "@/features/editor/treeModel";
 import { remapMemoTabs } from "./memoPanel";
 
@@ -113,9 +114,10 @@ export function useMemoActions(
       danger: true,
     });
     if (!ok || !(await beforeChange(path))) return;
-    await api.trashMemo(projectId, path).then(() => {
+    await api.trashMemo(projectId, path).then(({ trash_id }) => {
       refresh();
       onTrashed?.(path);
+      showTrashedToast(trash_id, baseName(path));
     }, reportFailure("ゴミ箱に入れられませんでした"));
   };
 

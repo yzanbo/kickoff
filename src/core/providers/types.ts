@@ -46,6 +46,8 @@ export interface AgentProvider {
   fork?(sessionId: string, messageId: string, cwd: string): Promise<string>;
   /** チャットを消したとき、そのセッションの記録を trash で移す（cwds は動かした作業フォルダの候補。移した数を返す。記録を持たなければ未実装） */
   discardSessions?(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>): Promise<number>;
+  /** セッションの記録のファイルの大きさの合計（cwds は動かした作業フォルダの候補。アーカイブ済みのチャットの整理の見込み。記録を持たなければ未実装） */
+  sessionsSize?(sessionIds: string[], cwds: string[]): Promise<number>;
   /**
    * サブエージェントの会話（依頼・発言・ツールと結果）を、記録から読む（「サブエージェントに子チャットで聞く」で添える。読めなければ空）。
    * sessionId はサブエージェントを動かした親のセッション、cwd はそのセッションを動かした作業フォルダ

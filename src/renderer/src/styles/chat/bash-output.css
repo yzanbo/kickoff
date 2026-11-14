@@ -60,3 +60,53 @@
   font-weight: 400;
   color: var(--ng);
 }
+
+/* 出力に出た kickoff-trash の印（Kickoff のゴミ箱に入れたもの）の行と「元に戻す」（features/trash/TrashMarkRows） */
+.trash-marks {
+  list-style: none;
+  margin: 0;
+  padding: 6px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--border);
+  font-size: calc(12px * var(--chat-scale, 1));
+}
+.trash-mark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.trash-mark-icon {
+  flex: none;
+  color: var(--muted);
+}
+.trash-mark-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trash-mark-path {
+  font-family: var(--mono);
+}
+.trash-mark-note {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.trash-mark-done {
+  color: var(--ok);
+}
+.trash-mark .btn {
+  flex: none;
+  margin-left: auto;
+}
+.trash-mark-note + .btn {
+  margin-left: 8px;
+}
+.trash-mark-text + .trash-mark-note {
+  margin-left: auto;
+}

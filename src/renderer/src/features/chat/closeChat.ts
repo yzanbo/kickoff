@@ -57,7 +57,7 @@ export async function closeChatWithChoice(
         else if (!(await toggleArchiveChat({ id: chat.id, title: chat.title, archived_at: null }))) return;
       }
     } else if (action === "delete") {
-      if (confirmed) await deleteChat(chat.id);
+      if (confirmed) await deleteChat(chat.id, chatTitle(chat.title));
       else if (!(await confirmDeleteChat(chat))) return;
     }
   } catch (e) {

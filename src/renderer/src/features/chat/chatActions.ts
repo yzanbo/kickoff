@@ -7,6 +7,8 @@ import { writeSetting } from "@/lib/storage";
 import { chatAttachmentsDraft, chatDraft } from "@/lib/storageKeys";
 import { knownDescendantCount } from "@/stores/chats";
 import { openChat, parse } from "@/app/router";
+import { showToast } from "@/ui/toast";
+import { showTrashedToast } from "@/features/trash/trashActions";
 
 /** 子チャットがあれば、アーカイブ・戻す・削除の確かめに添える文（子孫も一緒に扱う） */
 function childNote(chat: Pick<Chat, "id">, action: "archive" | "restore" | "delete"): string {
@@ -43,11 +45,15 @@ export async function toggleArchiveChat(chat: Pick<Chat, "id" | "title" | "archi
 /** チャットをサイドバーのプロジェクトの上に固定する（固定していればやめる） */
 export const togglePinChat = (chat: Pick<Chat, "id" | "pinned">) => api.pinChat(chat.id, !chat.pinned);
 
-/** チャットを削除する（消したチャットの入力欄の書きかけの文・添付も残さない） */
-export async function deleteChat(chatId: number) {
-  await api.deleteChat(chatId);
+/**
+ * チャットを削除する = Kickoff のゴミ箱へ（消したチャットの入力欄の書きかけの文・添付も残さない）。label を渡すと、
+ * 入れた直後に「元に戻す」の知らせを出す（まとめて消すときは出さない）
+ */
+export async function deleteChat(chatId: number, label?: string) {
+  const { trash_id } = await api.deleteChat(chatId);
   writeSetting(chatDraft(chatId), "");
   writeSetting(chatAttachmentsDraft(chatId), []);
+  if (label !== undefined) showTrashedToast(trash_id, label);
 }
 
 /** 確かめてから、チャットを削除する（やめたら false） */
@@ -58,7 +64,7 @@ export async function confirmDeleteChat(chat: Pick<Chat, "id" | "title">): Promi
     confirmLabel: "削除",
     danger: true,
   });
-  if (ok) await deleteChat(chat.id);
+  if (ok) await deleteChat(chat.id, chatTitle(chat.title));
   return ok;
 }
 
@@ -104,7 +110,10 @@ export async function confirmDeleteChats(chats: Chat[]): Promise<boolean> {
     confirmLabel: "削除",
     danger: true,
   });
-  if (ok) await eachChat(chats, "削除", (r) => deleteChat(r.id));
+  if (ok) {
+    await eachChat(chats, "削除", (r) => deleteChat(r.id));
+    showToast(`${chats.length} 件のチャットをゴミ箱に入れました（3 日はプロジェクトの「ゴミ箱」から戻せます）`);
+  }
   return ok;
 }
 

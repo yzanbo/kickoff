@@ -1,4 +1,4 @@
-import { Container, Database, FileDiff, Files, GitPullRequest, GripHorizontal, GripVertical, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote, Workflow } from "lucide-react";
+import { Container, Database, FileDiff, Files, GitPullRequest, GripHorizontal, GripVertical, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote, Trash2, Workflow } from "lucide-react";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { stateCounts } from "@/features/chat/chatState";
@@ -74,6 +74,8 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
   ...(window.kickoff ? [{ key: "github", label: "GitHub", tabs: [{ tab: "github" as const, label: "GitHub", icon: GitPullRequest }] }] : []),
   // CI（GitHub Actions などの実行の結果。GitHub の隣。GitHub と同じく、この Mac のアプリの中だけ）
   ...(window.kickoff ? [{ key: "ci", label: "CI", tabs: [{ tab: "ci" as const, label: "CI", icon: Workflow, tip: "CI の結果" }] }] : []),
+  // ゴミ箱（Kickoff のゴミ箱。消したものを 3 日取っておき、元に戻せる。いちばん後ろ）
+  { key: "trash", label: "ゴミ箱", tabs: [{ tab: "trash", label: "ゴミ箱", icon: Trash2, tip: "ゴミ箱（3 日で消えます）" }] },
 ];
 
 /**
