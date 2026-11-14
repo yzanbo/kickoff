@@ -2,6 +2,7 @@ import type { BrowserControl } from "../browser/control.js";
 import type { AiChatEditTools } from "../chat/aiChatEdit.js";
 import type { AiCreateChatTools } from "../chat/aiCreateChat.js";
 import type { AiWorktreeTools } from "../chat/aiWorktree.js";
+import type { AiNotifyTools } from "../chat/aiNotify.js";
 import type { AiChatReadTools } from "../chat/aiChatRead.js";
 import type { AiProjectTools } from "../chat/aiProject.js";
 import type { AiTerminalTools } from "../chat/aiTerminal.js";
@@ -136,6 +137,8 @@ export interface ProviderTurnParams {
   chatVisual?: AiVisualTools | null;
   /** ワークツリーを AI に片付けさせる口（finish_worktree。どのチャットにも渡し、消せないチャットからは理由の文で断る。なければそのツールを出さない） */
   chatWorktree?: AiWorktreeTools | null;
+  /** 利用者に知らせる口を AI に渡す（notify_user。どのチャットにも渡す。なければそのツールを出さない） */
+  chatNotify?: AiNotifyTools | null;
   /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
   hiddenDb?: HiddenDbTarget[];
   /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */

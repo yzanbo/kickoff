@@ -17,6 +17,8 @@ export type BusEvent =
   | { type: "project"; project: Project }
   | { type: "project_deleted"; id: number }
   | { type: "chat"; chat: Chat }
+  /** AI からの知らせ（AI の notify_user。通知の中心が、そのチャットを見ていない人に Mac の通知・プッシュを送る。端末の SSE には届けない） */
+  | { type: "ai_notice"; project_id: number; chat_id: number; message: string }
   | { type: "chat_deleted"; id: number; project_id: number }
   | { type: "group"; group: ChatGroup }
   | { type: "group_deleted"; id: number; project_id: number }

@@ -1,4 +1,4 @@
-// 通知の中身（純粋な関数）: チャットの完了・失敗・回答待ちと CI の失敗を、この Mac の通知の文と、スマホのプッシュの短い文にする。
+// 通知の中身（純粋な関数）: チャットの完了・失敗・回答待ち・AI からの知らせと CI の失敗を、この Mac の通知の文と、スマホのプッシュの短い文にする。
 // スマホのプッシュには会話の中身を載せない（チャットの名前と状態・本体の ID とチャットの ID だけ。押したら本体から読む）
 import { UNTITLED_CHAT_TITLE, type Approval, type Chat, type CiFailure } from "@shared/types";
 
@@ -6,7 +6,7 @@ import { UNTITLED_CHAT_TITLE, type Approval, type Chat, type CiFailure } from "@
 export type NoticeTarget = { kind: "chat"; project_id: number; chat_id: number } | { kind: "ci"; project_id: number; run_id: number };
 
 /** 何が起きたか */
-export type NoticeKind = "completed" | "failed" | "approval" | "ci_failed";
+export type NoticeKind = "completed" | "failed" | "approval" | "ci_failed" | "ai_notice";
 
 /** この Mac の通知（Mac のアプリのメインプロセスが出す）とスマホのプッシュの両方の元 */
 export interface Notice {
@@ -30,6 +30,7 @@ const PUSH_STATUS: Record<NoticeKind, string> = {
   failed: "失敗しました",
   approval: "回答を待っています",
   ci_failed: "CI が落ちました",
+  ai_notice: "AI からの知らせ",
 };
 
 /** 作業が終わった・失敗した（作業中から変わったときだけ呼ぶ） */
@@ -60,6 +61,21 @@ export function approvalNotice(approval: Approval, chat: Chat | null, projectNam
     title: `回答待ち: ${name}`,
     body: `${projectName} ・ ${why}`,
     push: { title: name, body: PUSH_STATUS.approval },
+  };
+}
+
+/**
+ * AI からの知らせ（AI の notify_user。メモの仕様書「0019_AI の操作ツールの追加」の C）: この Mac の通知には本文を出し、
+ * スマホのプッシュには本文を載せない（外のサーバーを通るため。チャットの名前と「AI からの知らせ」だけ。押すと Kickoff の中で読む）
+ */
+export function aiNotice(chat: Chat, message: string, projectName: string): Notice {
+  const name = noticeChatName(chat);
+  return {
+    kind: "ai_notice",
+    target: { kind: "chat", project_id: chat.project_id, chat_id: chat.id },
+    title: `AI からの知らせ: ${name}`,
+    body: `${projectName} ・ ${message}`,
+    push: { title: name, body: PUSH_STATUS.ai_notice },
   };
 }
 

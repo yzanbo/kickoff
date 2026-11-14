@@ -8,6 +8,7 @@ import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/chat/aiTerminal";
 import { AI_FINISH_WORKTREE_TOOL } from "@shared/chat/aiWorktree";
+import { AI_NOTIFY_USER_TOOL } from "@shared/chat/aiNotify";
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
   assert.equal(describeTool("TaskCreate", { subject: "確認 1", description: "動作確認用タスク 1" }), "ToDo を追加: 確認 1");
@@ -133,4 +134,8 @@ test("AI がターミナルを読むツール: 一覧は名前だけ、出力は
 test("AI がワークツリーを片付けるツール: 行はどのワークツリーか（省いたらこのチャットのワークツリー）", () => {
   assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, { worktree: "feat/a" }), "ワークツリーを片付ける: feat/a");
   assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, {}), "ワークツリーを片付ける: このチャットのワークツリー");
+});
+
+test("AI が利用者に知らせるツール: 行は知らせた文", () => {
+  assert.equal(describeTool(AI_NOTIFY_USER_TOOL, { message: "1 段目が済みました" }), "利用者に知らせる: 1 段目が済みました");
 });

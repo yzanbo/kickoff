@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Approval } from "@shared/types";
 import { hashToken } from "./caller.js";
+import { createAiNotifyTools } from "../chat/aiNotify.js";
 import { until } from "../testing/testCore.js";
 import { setup } from "../testing/testServer.js";
 
@@ -105,4 +106,31 @@ test("見ているものの知らせ: 形が違えば 400", async () => {
   const { call } = setup();
   assert.equal((await call("PUT", "/api/viewing", { chat_id: "1", ci_project_id: null })).status, 400);
   assert.equal((await call("PUT", "/api/viewing", {})).status, 400);
+});
+
+test("AI からの知らせ（notify_user）: 見ていなければ Mac の通知に本文を出し、スマホのプッシュには本文を載せない。流れに記録を残し、1 回の作業で 3 回まで", async () => {
+  const { chat, bus, store, notifyFake, call } = withChat();
+  const token = "e".repeat(40);
+  const pixel = store.devices.create("Pixel", hashToken(token));
+  store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[q]" });
+  const tools = createAiNotifyTools({ store, publish: (e) => bus.publish(e) }, chat.id);
+  assert.match(tools.notify({ message: "  移行の 1 段目が済みました  " }), /あと 2 回/);
+  assert.deepEqual(
+    notifyFake.notified.map((n) => [n.kind, n.title, n.body]),
+    [["ai_notice", "AI からの知らせ: 調査", "p ・ 移行の 1 段目が済みました"]],
+  );
+  await until(() => notifyFake.pushed.length === 1);
+  assert.deepEqual([notifyFake.pushed[0].title, notifyFake.pushed[0].body], ["調査", "AI からの知らせ"]);
+  const notices = store.events.list(chat.id).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
+  assert.deepEqual(notices, ["AI からの知らせ: 移行の 1 段目が済みました"]);
+  // この Mac でそのチャットを見ていれば、Mac の通知は出さない
+  assert.equal((await call("PUT", "/api/viewing", { chat_id: chat.id, ci_project_id: null })).status, 204);
+  tools.notify({ message: "2 回目" });
+  assert.equal(notifyFake.notified.length, 1);
+  tools.notify({ message: "3 回目" });
+  assert.throws(() => tools.notify({ message: "4 回目" }), /3 回まで/);
+  assert.throws(() => tools.notify({ message: "あ".repeat(121) }), /120 文字まで/);
+  assert.throws(() => tools.notify({ message: "  " }), /空です/);
+  // 次の作業（作り直したツール）ではまた送れる
+  assert.match(createAiNotifyTools({ store, publish: (e) => bus.publish(e) }, chat.id).notify({ message: "次の作業" }), /あと 2 回/);
 });
