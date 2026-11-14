@@ -193,6 +193,16 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
           .get({ sid: sessionId }),
       );
     },
+    /**
+     * このチャットの記録の init・result が指すセッション from を to に付け替える（長いチャットを直近の区切りだけの新しいセッションに乗り換えたとき。
+     * 発言の ID は新しいセッションでも同じなので、残した区切りの中の起点からは分岐・巻き戻しができる）
+     */
+    remapSession(chatId: number, from: string, to: string): void {
+      db.prepare(
+        `UPDATE chat_events SET data = json_set(data, '$.session_id', ?)
+         WHERE chat_id = ? AND type IN ('init', 'result') AND json_extract(data, '$.session_id') = ?`,
+      ).run(to, chatId, from);
+    },
     /** 記録を、fromEventId から後ろ（fromEventId を含む）すべて消す（巻き戻し用。全文検索の索引はトリガーで追従する） */
     deleteFrom(chatId: number, fromEventId: number): void {
       db.prepare("DELETE FROM chat_events WHERE chat_id = ? AND id >= ?").run(chatId, fromEventId);

@@ -5,7 +5,7 @@ import type { Attachment, Chat, ChatOptionsPatch, ProviderId } from "@shared/typ
 import { resolveChatOptions } from "@shared/chat/chatOptions";
 import type { Store } from "../db/store.js";
 import { asInvalid, Invalid } from "../http/errors.js";
-import type { AgentProvider } from "../providers/types.js";
+import { CHILD_FORK_KEEP, type AgentProvider } from "../providers/types.js";
 import type { Runner } from "./runner.js";
 import { resumePointBefore } from "./sessionPoints.js";
 import { workdirOf } from "./workdir.js";
@@ -69,7 +69,8 @@ export async function startChildChat(
     if (from && at && provider.fork) {
       const forkSession = provider.fork.bind(provider);
       const workdir = workdirOf(parent, project);
-      fork = () => forkSession(from, at, workdir);
+      // 子チャットは最新の区切り（最後の圧縮の要約とそのあと）だけを写す（メモの仕様書「ファイル削除」の Q18）
+      fork = () => forkSession(from, at, workdir, { keep: CHILD_FORK_KEEP });
     } else {
       notice = `親のチャット「${parentName}」には引き継げる会話がまだないので、選択部分だけで始めました`;
     }

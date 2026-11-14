@@ -42,10 +42,18 @@ export interface AgentProvider {
    * model: 軽い問い合わせは haiku（既定）、文を書き直すなど質が要るものは sonnet
    */
   ask?(prompt: string, options?: { model?: AskModel }): Promise<string>;
-  /** 会話を messageId の位置までで分けた、新しいセッションを作る（ここから分岐。対応していなければ未実装） */
-  fork?(sessionId: string, messageId: string, cwd: string): Promise<string>;
+  /**
+   * 会話を messageId の位置までで分けた、新しいセッションを作る（ここから分岐。対応していなければ未実装）。
+   * keep は写す区切り（圧縮の印から次の印まで）の数: 同じ会話を続けるもの（分岐・巻き戻し）は既定の 3、子チャットは 1（メモの仕様書「ファイル削除」の Q18）
+   */
+  fork?(sessionId: string, messageId: string, cwd: string, opts?: { keep?: number }): Promise<string>;
   /** チャットを消したとき、そのセッションの記録を trash で移す（cwds は動かした作業フォルダの候補。移した数を返す。記録を持たなければ未実装） */
   discardSessions?(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>): Promise<number>;
+  /**
+   * 長く続けたセッションを、終わりの直近の区切り（既定 3）だけにした新しいセッションにする（メモの仕様書「ファイル削除」の Q18。元のセッションは変えない）。
+   * 発言の ID はそのまま。新しいセッションの ID と、元の記録のファイル（呼ぶ側がゴミ箱へ入れる）を返す。切るものがない・見つからなければ null。対応していなければ未実装
+   */
+  trimSession?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
   /** セッションの記録のファイルの大きさの合計（cwds は動かした作業フォルダの候補。アーカイブ済みのチャットの整理の見込み。記録を持たなければ未実装） */
   sessionsSize?(sessionIds: string[], cwds: string[]): Promise<number>;
   /**
@@ -205,3 +213,6 @@ export interface ProviderTurnResult {
   /** 使用枠の上限で止まった（resetsAt: 枠が戻る時刻。Claude Code が知らせたときだけ） */
   usageLimit?: { resetsAt: string | null };
 }
+
+/** 子チャットが親の会話を写すときに残す区切りの数（最新の要約とそのあとのやり取りだけ。メモの仕様書「ファイル削除」の Q18） */
+export const CHILD_FORK_KEEP = 1;
