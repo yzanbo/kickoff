@@ -10,7 +10,7 @@ import { DB_WORKER_FILE, RENDERER_DIR, seedDevDataOnce, setupEnvironment } from 
 import { registerShutdown } from "./app/shutdown.js";
 import { startKeepAwake } from "./app/keepAwake.js";
 import { logLaunch, startupLog, watchChildProcesses } from "./app/startupLog.js";
-import { openMainWindow, showMainWindow } from "./app/window.js";
+import { openMainWindow, setMainWindowUrl, showMainWindow } from "./app/window.js";
 import { agentBrowser } from "./browser/agentBrowser.js";
 import { hardenWebviews } from "./browser/browser.js";
 import { loadSavedExtensions } from "./browser/extensions.js";
@@ -39,7 +39,8 @@ let core: Core | undefined;
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on("second-instance", showMainWindow);
+  // 2 つ目は、いまのウィンドウを前に出して終わる（窓がなければ作る）
+  app.on("second-instance", () => showMainWindow());
   app.whenReady().then(start);
 }
 
@@ -80,17 +81,18 @@ async function start() {
     app.quit();
     return;
   }
-  const uiUrl = devUrl ?? core.localUrl;
-  await prepareAppSession(uiUrl, core.token);
+  const url = devUrl ?? core.localUrl;
+  setMainWindowUrl(url);
+  await prepareAppSession(url, core.token);
   startupLog("認証の Cookie を設定しました");
-  registerIpc(uiUrl);
+  registerIpc(url);
   setAppMenu();
-  openMainWindow(uiUrl);
+  openMainWindow(url);
   // 埋め込みブラウザの拡張機能（React DevTools など）を読み込む
   void loadSavedExtensions().then((errors) => errors.forEach((e) => console.warn("[browser] 拡張機能を読み込めません:", e)));
   // Mac では、ウィンドウを閉じたあとに Dock を押したら作り直す
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) openMainWindow(uiUrl);
+    if (BrowserWindow.getAllWindows().length === 0) openMainWindow(url);
   });
 }
 

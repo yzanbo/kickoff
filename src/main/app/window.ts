@@ -12,6 +12,13 @@ import { watchWindowLoad } from "./startupLog.js";
 const BACKGROUND = "#141818";
 
 let current: BrowserWindow | undefined;
+/** 画面の URL（窓がないときに作り直すため。index.ts が準備のあとに渡す） */
+let mainUrl: string | undefined;
+
+/** 画面の URL を覚える（窓を出さずに起動したとき・窓を閉じたあとに、通知・2 つ目の起動から窓を作るため） */
+export function setMainWindowUrl(url: string) {
+  mainUrl = url;
+}
 
 /** いまのメインのウィンドウ（閉じていれば undefined） */
 export const mainWindow = (): BrowserWindow | undefined => current;
@@ -48,9 +55,14 @@ export function openMainWindow(url: string) {
 }
 
 /** メインのウィンドウを前に出す（2 つ目を起動しようとしたとき・通知を押したとき） */
-export function showMainWindow() {
-  if (!current) return;
+export function showMainWindow(hash = ""): boolean {
+  // 窓がなければ（閉じた・ログイン時に窓を出さずに起動した）、その画面（hash）で作る。作ったときは false（中身の画面はまだ読み込んでいない）
+  if (!current) {
+    if (mainUrl) openMainWindow(mainUrl + hash);
+    return false;
+  }
   if (current.isMinimized()) current.restore();
   current.show();
   app.focus({ steal: true });
+  return true;
 }
