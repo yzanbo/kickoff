@@ -31,6 +31,7 @@ import { TrashService } from "./trash/service.js";
 import { installTrashCommand } from "./trash/command.js";
 import { siblingSessionCheck } from "./trash/siblingSessions.js";
 import { sweepUnusedSessions } from "./trash/sessionTrash.js";
+import { sweepUnusedUploads } from "./chat/uploadCleanup.js";
 import type { SessionTrash } from "./chat/sessionSwitch.js";
 import { registerProjectTrash } from "./trash/projectTrash.js";
 import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "./trash/chatTrash.js";
@@ -176,6 +177,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, interrupted: recovered });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（メモの仕様書「ファイル削除」の Q17）
   trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
+  // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない。メモの仕様書「ファイル削除」の Q16）
+  trashBin.addSweepStep(() => sweepUnusedUploads({ store, uploads }));
   // ゴミ箱に入れたチャット（チャットの削除・メモのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), sessionsElsewhere });
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), sessionsElsewhere });
