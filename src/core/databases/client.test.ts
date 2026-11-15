@@ -5,6 +5,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { tempDir } from "../testing/tempDir.js";
+import { until } from "../testing/testCore.js";
 import { DbWorkerClient, forkWorker, killGroup, type WorkerChannel } from "./client.js";
 import { devWorkerEntry } from "./entry.js";
 import type { DbTarget } from "./protocol.js";
@@ -61,9 +62,8 @@ test("DB ワーカー: 何もしない状態が続いたら止まる（トラン
   const client = new DbWorkerClient(() => (channel = forkWorker(devWorkerEntry())), 300);
   const target = sqliteTarget();
   await client.request("query", { session: "s", target, sql: "select 1", max_rows: 1 });
-  // 何もしないと止まる
-  await new Promise((r) => setTimeout(r, 600));
-  assert.equal(client.running, false);
+  // 何もしないと止まる（止まるのを待つ。決め打ちで待つと、負荷が高いときに止まる前に比べて落ちた）
+  await until(() => !client.running, 15_000);
 
   // トランザクションの途中なら止めない
   await client.request("query", { session: "s", target, sql: "begin", max_rows: 1 });
@@ -77,8 +77,7 @@ test("DB ワーカー: 何もしない状態が続いたら止まる（トラン
   await client.request("prepare", { connection_id: 1, commands: ["sleep 1"], cleanup: [], vars: {}, my_ip_url: null });
   await new Promise((r) => setTimeout(r, 700));
   assert.equal(client.running, true);
-  await new Promise((r) => setTimeout(r, 1200));
-  assert.equal(client.running, false);
+  await until(() => !client.running, 15_000);
 });
 
 test("DB ワーカー: 止めると、ワーカーが起動したシェル（準備のコマンド）も止める", async () => {
@@ -92,7 +91,8 @@ test("DB ワーカー: 止めると、ワーカーが起動したシェル（準
     },
   );
   const running = client.request("prepare", { connection_id: 1, commands: ["sleep 30"], cleanup: [], vars: {}, my_ip_url: null }).catch(() => null);
-  await new Promise((r) => setTimeout(r, 800));
+  // シェルが動き始めたという知らせを待つ（決め打ちで待つと、負荷が高いときにワーカーの起動が遅れ、止める相手がまだいなかった）
+  await until(() => client.childCount > 0, 15_000);
   client.stop();
   await running;
   assert.equal(killed.length, 1);
