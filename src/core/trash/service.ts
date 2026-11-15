@@ -158,6 +158,7 @@ export class TrashService {
       is_dir: st.isDirectory(),
       by_chat_id: opts.byChatId ?? null,
       details: companions.length > 0 ? { ...opts.details, companions } : opts.details,
+      trashed_at: this.stamp(),
     });
     this.measureLater(item.id);
     return item;
@@ -165,7 +166,15 @@ export class TrashService {
 
   /** 置き場にファイルを置かないもの（チャット・プロジェクト）を覚える */
   addRecord(item: Omit<NewTrashItem, "id">): StoredTrashItem {
-    return this.deps.store.trash.add({ ...item, id: randomUUID() });
+    return this.deps.store.trash.add({ ...item, id: randomUUID(), trashed_at: item.trashed_at ?? this.stamp() });
+  }
+
+  /**
+   * 入れた時刻（片付けが 3 日たったかを数えるのと同じ時計 now で付ける。DB の時計で付けると、時計を差し替えたテストで、
+   * 準備から入れるまでにかかった分だけ境目がずれて消えなかった）
+   */
+  private stamp(): string {
+    return new Date(this.now()).toISOString();
   }
 
   /** 中身の大きさを待たずに数えて書く */

@@ -354,3 +354,18 @@ test("ゴミ箱: 片付けの途中に頼んだ片付けは、終わるのを待
   await Promise.all([running, asked, askedAgain]);
   assert.equal(store.trash.get(b.id), null);
 });
+
+test("ゴミ箱: 入れた時刻は片付けと同じ時計で付ける（本物の時計とずれていても、入れてから 3 日たてば消える）", async () => {
+  const { project, trashBin, store, trashClock } = setup();
+  // 片付けの時計を本物より 10 分遅らせる（テストの準備から入れるまでに時間がかかったのと同じ）
+  trashClock.now = Date.now() - 10 * 60_000;
+  const file = path.join(tempDir(), "a.txt");
+  fs.writeFileSync(file, "x");
+  const put = await trashBin.putPath(file, { projectId: project.id });
+  const record = trashBin.addRecord({ project_id: project.id, kind: "chat", label: "チャット", chat_id: 1 });
+  assert.equal(put.trashed_at, new Date(trashClock.now).toISOString());
+  trashClock.now += TRASH_KEEP_MS + 1000;
+  await trashBin.sweep();
+  assert.equal(store.trash.get(put.id), null);
+  assert.equal(store.trash.get(record.id), null);
+});
