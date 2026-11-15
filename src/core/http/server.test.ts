@@ -8,6 +8,7 @@ import { startHttpServer, stopHttpServer } from "./httpServer.js";
 import { AUTH, TOKEN, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import type { ServerHello } from "@shared/types";
+import { makeEvent } from "@shared/testing/factories";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION } from "@shared/api/version";
 
 test("API はトークン（Bearer・Cookie）がないと 401。本体のトークンを URL で渡す口（前の /pair?token=）はない", async () => {
@@ -72,6 +73,34 @@ test("リアルタイム配信（SSE）は、つないだらすぐ最初の行 h
     assert.deepEqual(hello, { core_version: "0.1.0", api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: store.databaseId });
   }
   await reader.cancel();
+});
+
+test("SSE: 書いている途中の返答を続けて流すと 1 通（つないだ文）で届き、そのあとの記録の知らせより前に来る（バスでまとめる。窓がいくつでも同じ）", async () => {
+  const { app, bus, project } = setup();
+  const open = async () => {
+    const res = await app.request("/api/events", { headers: AUTH });
+    const reader = res.body!.getReader();
+    await reader.read(); // hello
+    return reader;
+  };
+  const windows = [await open(), await open()];
+  for (const text of ["こん", "にち", "は"]) bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text });
+  bus.publish({ type: "chat_event", project_id: project.id, event: makeEvent(1, "text", { text: "こんにちは" }, { chat_id: 7 }) });
+  for (const reader of windows) {
+    let text = "";
+    const deadline = Date.now() + 1000;
+    while (!text.includes('"chat_event"') && Date.now() < deadline) {
+      const chunk = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
+      if (chunk === "timeout" || chunk.done) break;
+      text += new TextDecoder().decode(chunk.value);
+    }
+    await reader.cancel();
+    const types = [...text.matchAll(/^data: (.*)$/gm)].map((m) => JSON.parse(m[1]) as { type: string; text?: string });
+    assert.deepEqual(
+      types.map((e) => (e.type === "chat_delta" ? `delta:${e.text}` : e.type)),
+      ["delta:こんにちは", "chat_event"],
+    );
+  }
 });
 
 test("サーバーを止めるときは、開いたままのリアルタイム配信の接続も切る（終了が止まらない）", async () => {
