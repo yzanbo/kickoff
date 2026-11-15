@@ -234,6 +234,8 @@
 /* ボードの本体（パネルの横に残る部分）の幅で、列の並べ方を変える（下の @container board-main） */
 .board-main {
   container: board-main / inline-size;
+  /* 開いた直後にまだ作っていないカードの空の箱の 1 枚分（カード 62px ＋ 間の 8px。案 23。board-cards.css） */
+  --progressive-row: 70px;
 }
 
 /* 列が 2 本並ばないほど狭いとき: 1 列ずつ横にめくる（次の列の端を少し見せ、横にスクロールできるとわかるように） */
@@ -269,6 +271,11 @@
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   align-items: start;
   gap: 8px;
+}
+
+/* まだ作っていないカードの空の箱は、折り返す並びの幅いっぱいに置く（高さはカードの数 × 1 枚分の見積もりで、多めに取る） */
+.flat-tasks-grid > .progressive-spacer {
+  grid-column: 1 / -1;
 }
 
 /* アーカイブ済みのまとまりは、カードの並びの下に横幅いっぱいで */

@@ -4,6 +4,8 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* まだ作っていないカードの空の箱の 1 枚分（案 23） */
+  --progressive-row: 118px;
 }
 
 /* 画面の横幅いっぱいの 1 列（利用者の依頼。前は読みやすい幅 880px までにしていた）。アーカイブ済みのまとまりの中も同じ並び */
@@ -16,6 +18,11 @@
 .board-card.feed-card {
   display: grid;
   gap: 6px;
+}
+
+/* フィードのカードの高さ 110px（見出しの行と返答の初めの数行。画面の外の見積もりは余白と枠の 22px を引いた中身の高さ。board-cards.css） */
+.board-card.feed-card {
+  contain-intrinsic-block-size: auto 88px;
 }
 
 .feed-card-head {

@@ -36,11 +36,14 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* まだ作っていない行の空の箱の 1 行分（案 23） */
+  --progressive-row: 31px;
 }
 
 /* リストを段に分けたときの段の中（スクロールは段の並び .board-lanes に任せる） */
 .lane-list {
   flex: none;
+  --progressive-row: 31px;
 }
 
 .list-group {
@@ -137,6 +140,11 @@
   padding: 0 6px 0 14px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
+}
+
+/* 1 行の行の高さ 31px（画面の外の見積もりは下の線 1px を引いた中身の高さ。board-cards.css） */
+.list-row {
+  contain-intrinsic-block-size: auto 30px;
 }
 
 .list-row:hover {

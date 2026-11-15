@@ -3,6 +3,7 @@ import type { Chat } from "@shared/types";
 import { ArchivedFold, splitArchived } from "@/ui/ArchivedFold";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { DraftCards } from "./DraftCards";
+import { ProgressiveItems } from "@/ui/ProgressiveRows";
 
 /**
  * 状態で分けない並び（全プロジェクトのボードの「列: 分けない」。段に分けたときは段ごと）。
@@ -38,11 +39,11 @@ export function FlatTasks({
       ) : (
         <div className={items}>
           <DraftCards drafts={drafts} showProject={showDraftProject} />
-          {active.map(render)}
+          <ProgressiveItems items={active} render={render} />
         </div>
       )}
       <ArchivedFold place={foldPlace} foldKey={archivedKey} count={archived.length} bodyClassName={`archived-fold ${items}`}>
-        {archived.map(render)}
+        <ProgressiveItems items={archived} render={render} />
       </ArchivedFold>
     </section>
   );
