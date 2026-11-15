@@ -31,6 +31,7 @@ import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../types.js";
 import { runCommand } from "../../system/exec.js";
 import { claudeSandbox } from "./sandbox.js";
+import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
 
 /** Kickoff のチャットでは使わせない Claude Code のツール（Kickoff の利用者に届かない・Kickoff の操作ツールと取り違えるもの） */
@@ -38,9 +39,6 @@ const KICKOFF_DISALLOWED_TOOLS = ["PushNotification"];
 
 /** 1 回だけ聞くときの段ごとのモデル（AskModel。軽い = haiku・ふつう = sonnet） */
 const ASK_MODELS: Record<AskModel, string> = { light: "haiku", standard: "sonnet" };
-
-/** 要約に渡す文の上限（文字。haiku のコンテキストと時間に収める） */
-const MAX_SUMMARIZE_CHARS = 60_000;
 
 export class ClaudeProvider implements AgentProvider {
   readonly id = "claude" as const;
@@ -398,18 +396,11 @@ export class ClaudeProvider implements AgentProvider {
 
   /** 最初のメッセージから短いチャット名を作る（軽いモデルで 1 回だけ問い合わせる） */
   async title(text: string): Promise<string> {
-    const result = await this.askOnce(`次の依頼内容に、20 文字以内の日本語のタイトルを付けてください。タイトルだけを出力し、記号や引用符は付けないでください。\n\n---\n${text.slice(0, 2000)}`);
-    return result.trim().replace(/^["'「『]|["'」』]$/g, "").split("\n")[0].slice(0, 40);
+    return cleanTitle(await this.askOnce(titlePrompt(text)));
   }
 
   async summarize(text: string): Promise<string> {
-    const result = await this.askOnce(
-      `次の「---」より後ろの文を、あとで読み返すためのメモとして、日本語の Markdown で要点を短くまとめてください。` +
-        `文に書いてあることだけを使い、書いていないこと（推測・助言・次にやること・ほかで知っている決まり）は足さないでください。` +
-        `大事な決定・理由・手順・名前（ファイル名・コマンドなど）は残してください。短い文なら、ほぼそのままでかまいません。` +
-        `前置きや「以下は要約です」などの文は書かず、まとめた本文だけを出力してください。見出し（#）は使わないでください。\n\n---\n${text.slice(0, MAX_SUMMARIZE_CHARS)}`,
-    );
-    return result.trim();
+    return (await this.askOnce(summarizePrompt(text))).trim();
   }
 
   async ask(prompt: string, options?: { model?: AskModel }): Promise<string> {
