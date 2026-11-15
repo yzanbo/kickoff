@@ -1,7 +1,7 @@
 // API のテスト: 送信待ちの列（入れる・並べ替え・消す・すぐ送る・止めておく・書き直し・まとめる・順に送る・「ここまで」の印・再起動したとき）（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { test } from "node:test";
+import { test } from "vitest";
 import { ApprovalCenter } from "../chat/approvals.js";
 import { Bus } from "../bus.js";
 import { Runner } from "../chat/runner.js";

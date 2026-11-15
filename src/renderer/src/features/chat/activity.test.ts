@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { describeActivity, workingFor } from "./activity";
 
 const tool = (name: string, input: Record<string, unknown>, sub = false) => ({ type: "tool_use" as const, data: { id: "t", name, input, ...(sub ? { parent: "agent1" } : {}) } });

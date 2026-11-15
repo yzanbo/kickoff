@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { cellKind, cellText, connectionPlace, durationLabel, estimatedRowsLabel, nextSort, objectPathLabel } from "./dbFormat";
 
 test("cellText / cellKind: NULL・バイナリの札・数・文字", () => {

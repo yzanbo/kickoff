@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { summarizeFrames, summarizeInteractions, type FrameEntry, type InteractionEntry } from "./rendererTiming.js";
 
 const event = (name: string, duration: number, target = "textarea"): InteractionEntry => ({ name, duration, inputDelay: 0, processing: duration, presentation: 0, target });

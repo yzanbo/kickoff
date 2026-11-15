@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DockerContainer, DockerService } from "@shared/types";
 import { conflictText, conflictsByService, oneoffSummary, othersTip, servicePorts, serviceStatusText, shareText, shellCommand, silentText, stopOthersLabel, unpublishedPorts } from "./dockerView";
 

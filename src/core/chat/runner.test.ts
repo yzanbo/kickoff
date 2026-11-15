@@ -1,6 +1,6 @@
 // 実行の受付（Runner）のテスト: 送る・続き・既定の選択・添付・途中経過・未読・止める・承認・圧縮。送信待ちの列は runner.queue.test.ts
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { ScriptedProvider, type Script } from "../testing/fakeProvider.js";
 import { tempDir } from "../testing/tempDir.js";
 import { setupCore, until } from "../testing/testCore.js";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { appendDbMemoFix, dbFailureDocument, dbFailureKind, dbFixText, dbMemoFixEntry, dbMemoTemplate, suggestDbMemoName } from "./dbFailure";
 
 test("dbFailureKind: ドライバの失敗の文から種類を見分ける", () => {

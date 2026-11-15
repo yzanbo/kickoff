@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { describeUpdateChat, updateChatChanges } from "./aiChatEdit.js";
 
 test("updateChatChanges: 渡した項目だけを言葉にし、省いた項目は入れない", () => {

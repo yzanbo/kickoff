@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { draftScope, panelKey, panelScreen, parsePanelKey } from "./surfaces";
 
 test("欄の覚える名前: 欄と画面から作り、読み戻せる（下書きの保存のキーと同じ形）", () => {

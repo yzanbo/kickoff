@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { familyOrder, familyRelation } from "./chatFamily.js";
 
 // 家系: 1 ─┬─ 2 ─┬─ 4

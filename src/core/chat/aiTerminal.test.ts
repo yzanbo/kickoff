@@ -1,6 +1,6 @@
 // チャットの AI が内蔵ターミナルの出力を読むツールの中身（このプロジェクトのタブだけ・鍵らしい値は伏せる・長ければ古い行から落とす）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { TerminalControl, TerminalTabInfo } from "../terminal/control.js";
 import { ScriptedProvider } from "../testing/fakeProvider.js";
 import { setupCore } from "../testing/testCore.js";

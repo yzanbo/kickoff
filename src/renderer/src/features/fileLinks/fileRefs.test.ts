@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { buildFileIndex, linkFilePaths, parseFileRef, splitAbsolutePaths, type MdNode } from "./fileRefs";
 
 const ROOT = "/Users/me/app";

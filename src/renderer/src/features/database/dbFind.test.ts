@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { findDbItems, openTreePaths, type DbFindSource } from "./dbFind";
 
 const main = { database: "main", schema: null };

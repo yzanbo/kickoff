@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { DEFAULT_GITHUB_FILTERS, activeFilterCount, parseGitHubFilters } from "./githubFilters";
 
 test("parseGitHubFilters: 壊れた項目は既定に戻し、種類は issue / PR のどちらか", () => {

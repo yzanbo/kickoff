@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, test } from "node:test";
+import { beforeEach, test, vi } from "vitest";
 import { installMemoryStorage } from "@/lib/memoryStorage";
 import { readSetting } from "@/lib/storage";
 import { DATABASE_ID } from "@/lib/storageKeys";
@@ -22,11 +22,11 @@ const ID_KEYS = ["kickoff:fold:sidebar:p1/g3", "kickoff:new-chat-drafts", "kicko
 
 /** /api/status の答え（gate を渡せば、それが済むまで答えない。null ならつながらない） */
 function serveStatus(databaseId: string | null, gate: Promise<void> = Promise.resolve()) {
-  globalThis.fetch = (async () => {
+  vi.stubGlobal("fetch", (async () => {
     await gate;
     if (databaseId === null) throw new TypeError("fetch failed");
     return new Response(JSON.stringify({ database_id: databaseId }), { status: 200, headers: { "content-type": "application/json" } });
-  }) as typeof fetch;
+  }) as typeof fetch);
 }
 
 beforeEach(() => {
@@ -76,7 +76,7 @@ test("prepareStorage: つながらなければ、ID を含むものは捨てな�
 
 test("prepareStorage: 答えが遅ければ待たずに進め、あとで届いた答えで捨てたら読み込み直す", async () => {
   let reloaded = 0;
-  Object.assign(globalThis, { location: { reload: () => reloaded++ } });
+  vi.stubGlobal("location", { reload: () => reloaded++ });
   rememberSome();
   local.setItem(DATABASE_ID.key, "db-old");
   // 答えを返す時はテストが決める（決め打ちの時間で遅らせると、負荷が高いときに待つ長さの前後が入れ替わる）

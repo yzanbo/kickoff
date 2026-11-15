@@ -1,5 +1,5 @@
 // Codex の形に直す純粋関数（メモの仕様書「0021」の段階 3）
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ProviderTurnParams } from "../types.js";
 import { appServerLaunch, codexEffort, codexSandboxPolicy, mcpServerOverrides, threadOverrides, turnInput, CODEX_MCP_TOOL_TIMEOUT_S } from "./config.js";

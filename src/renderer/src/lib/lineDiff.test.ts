@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { lineCounts, lineDiff } from "./lineDiff";
 
 const show = (before: string, after: string) => lineDiff(before, after).map((d) => `${d.kind === "same" ? " " : d.kind === "add" ? "+" : "-"}${d.text}`);

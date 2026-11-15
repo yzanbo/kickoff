@@ -1,6 +1,6 @@
 // API のテスト: ワークツリーの PR の知らせ（見張り・確認を閉じる・片付けたら消える。共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { execFileSync } from "node:child_process";
 import type { BusEvent, GitWorktree, Project, ProjectGitHub, WorktreePrNotice } from "@shared/types";
 import { setup } from "../testing/testServer.js";

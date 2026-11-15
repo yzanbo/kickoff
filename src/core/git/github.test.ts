@@ -1,6 +1,6 @@
 // gh の応答の読み方
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { toPullRequestInfo, withClosingRefs } from "./github.js";
 
 test("PR の JSON: gh の camelCase（isDraft）を API の is_draft にする（ないときは下書きでない）", () => {

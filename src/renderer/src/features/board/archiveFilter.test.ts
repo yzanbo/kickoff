@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { archiveMatches } from "./archiveFilter";
 
 test("archiveMatches: すべて = どちらも出す / 未アーカイブ = アーカイブ済みを出さない / アーカイブ済み = 未アーカイブを出さない", () => {

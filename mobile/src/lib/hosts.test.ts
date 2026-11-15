@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { HostRegistry, hostNameOf, type HostRecord, type SecretStore } from "./hosts";
 
 function memoryStore(): SecretStore & { data: Map<string, string> } {

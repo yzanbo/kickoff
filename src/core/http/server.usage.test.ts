@@ -1,6 +1,6 @@
 // API のテスト: サービスごとの使用状況（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { setup } from "../testing/testServer.js";
 
 test("サービスごとの使用状況: Claude と各サービスを並べ、失敗したサービスは error にしてほかは出す。取り直しは更新のときだけ", async () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { Approval, BusEvent, Chat, ChatDetail, ChatEvent, ChatLive } from "@shared/types";
 import { makeChat, makeEvent } from "@shared/testing/factories";
 import { detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";

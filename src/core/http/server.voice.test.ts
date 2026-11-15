@@ -1,6 +1,6 @@
 // API のテスト: 音声入力（文字起こし・準備の状態・モデル・OpenAI の API キー。共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { AUTH, setup, until } from "../testing/testServer.js";
 import type { BusEvent, VoiceStatus } from "@shared/types";
 

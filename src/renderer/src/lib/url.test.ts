@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { normalizeUrl } from "./url";
 
 test("アドレス欄: URL らしければ開き、それ以外は Google で検索する", () => {

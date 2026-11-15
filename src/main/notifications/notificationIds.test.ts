@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { chatOfNotificationId, ciOfNotificationId, notificationIdOf } from "./notificationIds.js";
 
 test("通知の ID: チャットを埋め込み、起動し直したあとに押されても読み戻せる（毎回変える）", () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { subagentLogOf } from "./subagentLog.js";
 
 test("サブエージェントの会話: 依頼・発言・ツールの呼び出しと結果を組にして古い順に並べ、注意書きと考えている途中は入れない", () => {

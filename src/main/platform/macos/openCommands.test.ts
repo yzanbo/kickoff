@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals } from "./openCommands.js";
 
 test("外部のターミナル: アプリごとの作業フォルダの渡し方、入っているものだけを出す", () => {

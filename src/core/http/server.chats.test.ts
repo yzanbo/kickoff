@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { PROVIDER_IDS, TRASH_KEEP_MS } from "@shared/types";
 import { AUTH, setup, until } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";

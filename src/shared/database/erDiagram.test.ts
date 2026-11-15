@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DbErTable, DbForeignKey, DbTableDetail } from "../types";
 import { erMermaid, erNeighborhood, erRelations, erTableOf } from "./erDiagram";
 

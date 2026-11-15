@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { scrollPillOf } from "./scrollPill";
 
 const base = { waiting: false, reconnecting: false, finishedWhileAway: false, busy: false, retrying: false, failed: false, working: "考えています", statusLabel: "完了" };

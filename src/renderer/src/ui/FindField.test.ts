@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { findCountText } from "./FindField";
 
 test("findCountText: 誤り・空・見つからない・何番目か・まだ移っていない・数えるのをやめた", () => {

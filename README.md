@@ -37,7 +37,10 @@
 npm install
 npm run dev        # Electron アプリを開発モードで起動
 npm run dev:cdp    # 同じく、CDP のポート 9333 を開いて起動（画面の確かめ。scripts/ui-*.mjs が使う）
-npm test           # コアの単体テスト（同時に流すファイルは 6 つまで。複数のチャットが同時に流してもマシンを使い切らないように）
+npm run test:changed           # 変えたファイルに関係するテストだけを 1 プロセスで（作業中。ファイルを渡せばそのファイルに関係するもの）
+npm run test:changed:isolated  # 同じ範囲を、ファイルごとに新しいプロセスで（ほかのファイルが残した値に頼るテストを見つける）
+npm test                       # 全体を 1 プロセスで、ファイルの順番を毎回入れ替えて（Vitest。同時に流すファイルは 6 つまで）
+npm run test:isolated          # 全体を、ファイルごとに新しいプロセスで（npm test で落ちたときの切り分け）
 npm run test:db    # DB クライアントのドライバ（PostgreSQL・MySQL・MariaDB）を Docker で立てた本物の DB で確かめる（Docker が要る。終わったらコンテナを消す）
 npm run typecheck  # 型チェック（使っていない import・変数も見る）
 npm run daemon     # Electron なしでコア（API サーバー）だけを起動（ブラウザで開くときは、出した一度だけのログインの URL から）

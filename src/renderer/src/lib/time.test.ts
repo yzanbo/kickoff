@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { agoText, formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatRunTime, relativeTime, resetInShort, shortRelativeTime } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {

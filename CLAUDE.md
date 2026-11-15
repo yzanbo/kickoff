@@ -56,7 +56,9 @@
 ## 確かめ方
 
 - 型は `npm run typecheck`（使っていない import・変数も残さない）、テストは `npm test`、使っていない export・ファイル・依存は `npm run knip`、ビルドは `npm run build`。区切りごとに 4 つとも通してからコミットする。スマホのアプリ（`mobile/`）を触ったら `npm run mobile:typecheck` も通す（テストは `npm test` に入っている）。
-- 純粋な関数にはテストを書く（`*.test.ts` を対象の隣に。`node:test`）。テストのデータは `@shared/testing/factories`、一時フォルダ・Git の作業場所・コアの準備は `src/core/testing` の補助を使い、テストごとに書き直さない。API を変えたら、その領域の `src/core/http/server.<領域>.test.ts` にテストを足す。
+- テストは Vitest で、4 つのコマンドがある（範囲 × 流し方。メモの方針「0022_テストを軽くする」）: `npm run test:changed`（変えたファイルに関係するテストを 1 プロセスで。作業中に何度でも）・`npm run test:changed:isolated`（同じ範囲をファイルごとに新しいプロセスで）・`npm test`（全体を 1 プロセスで、ファイルの順番を毎回入れ替える）・`npm run test:isolated`（全体をファイルごとに。`npm test` で落ちて原因が分からないとき、ほかのファイルの影響かを切り分ける）。
+- 純粋な関数にはテストを書く（`*.test.ts` を対象の隣に。`import { test } from "vitest"` と `node:assert/strict`）。テストのデータは `@shared/testing/factories`、一時フォルダ・Git の作業場所・コアの準備は `src/core/testing` の補助を使い、テストごとに書き直さない。API を変えたら、その領域の `src/core/http/server.<領域>.test.ts` にテストを足す。
+- テストは同じプロセスで続けて流れる（`npm test`）ので、前のテストの値をほかのファイルに残さない: グローバル（`window`・`fetch`・`location` など）は `vi.stubGlobal`、環境変数は `vi.stubEnv` で変え（テストごとに自動で戻る。`globalThis.x = …`・`process.env.X = …` と直接書かない）、localStorage・sessionStorage は `@/lib/memoryStorage` の `installMemoryStorage`、偽の時計は `vi.useFakeTimers`（テストのあとに本物へ戻す）、作ったもの（見張り・サーバー・一時フォルダ）の後片付けは `onTestFinished` か、テストの中でも外でも使える `src/core/testing/afterTest.ts` の `afterTest`。共通の準備は `vitest.setup.ts`、組（軽い組 `light` と、コア・メインの重い組 `heavy`）と設定は `vitest.config.ts`。
 - 画面の変更は、開発版（`npm run dev:cdp`。`KICKOFF_REMOTE_DEBUG=9333 npm run dev` と同じで、CDP のポートは 9333。チャットの AI は Bash の砂場の外で起動するよう、前に VAR=値・後ろにパイプ・リダイレクトを付けずに単独で流す）で実際に動かして確かめる。ボタンの見た目を変えたら `node scripts/ui-audit-buttons.mjs [#/hash ...]`、見た目を変えないはずの変更は `node scripts/ui-snapshot.mjs take <名前> [#/hash]` で前後を記録して `diff` で比べる。
 - 利用者の localStorage を書き換えて確かめたら、元の値に戻す。
 - コミットは区切りごとに日本語で「種類: 内容」（`feat` / `fix` / `refactor` / `test` / `docs`）。不具合の修正は、リファクタとは別のコミットにする。

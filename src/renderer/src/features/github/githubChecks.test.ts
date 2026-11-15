@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { checkDuration } from "./githubChecks";
 
 test("checkDuration: 終わったものは所要時間・動いているものは今まで・時刻がなければ null", () => {

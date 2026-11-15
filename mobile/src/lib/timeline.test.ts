@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { ChatEvent } from "@shared/types";
 import { applyEventToLog, lastEventId, mergeEvents, timelineOf, toolSummary } from "./timeline";
 
