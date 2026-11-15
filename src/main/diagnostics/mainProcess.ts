@@ -1,6 +1,7 @@
 import inspector from "node:inspector";
 import { monitorEventLoopDelay } from "node:perf_hooks";
 import { errorMessage } from "@shared/errors";
+import { sseDataOf } from "../../core/http/sseData.js";
 import type { Core } from "../../core/index.js";
 import { startCpuProfile, topSelfTime, type CpuProfile } from "./profileSummary.js";
 
@@ -46,7 +47,8 @@ export async function startMainRecording() {
   const unsubscribe = core?.bus.subscribe((e) => {
     const entry = sent.get(e.type) ?? { count: 0, bytes: 0 };
     entry.count++;
-    entry.bytes += JSON.stringify(e).length;
+    // SSE で送る文と同じもの（同じ知らせを 2 度文字にしない）
+    entry.bytes += sseDataOf(e).length;
     sent.set(e.type, entry);
   });
   const cpuBefore = process.cpuUsage();

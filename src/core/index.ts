@@ -303,6 +303,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       await databases.close();
       terminals.closeAll();
       await relay?.close();
+      // ためている途中の返答を、SSE を切る前に流す
+      bus.flushDeltas();
       await stopHttpServer(server);
       store.close();
     },

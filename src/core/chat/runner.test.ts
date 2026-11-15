@@ -88,12 +88,17 @@ test("返答の途中経過は配信だけされ、チャット名は AI が付�
     return { status: "completed", sessionId: "s" };
   });
   (provider as unknown as { title: (t: string) => Promise<string> }).title = async () => "挨拶";
-  const deltas: string[] = [];
-  bus.subscribe((e) => e.type === "chat_delta" && deltas.push(e.text));
+  // バスの知らせの順（途中の文と、記録の text）
+  const order: string[] = [];
+  bus.subscribe((e) => {
+    if (e.type === "chat_delta") order.push(`delta:${e.text}`);
+    else if (e.type === "chat_event" && e.event.type === "text") order.push("text");
+  });
 
   const chat = await runner.start({ projectId: project.id, prompt: "とても長い依頼文" });
   await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.title === "挨拶");
-  assert.deepEqual(deltas, ["こん", "にちは"]);
+  // 続けて届いた途中の文は 1 通にまとまり、確定した記録より前に届く（バスでまとめる。案 13）
+  assert.deepEqual(order, ["delta:こんにちは", "text"]);
   // 途中経過は保存しない
   assert.deepEqual(
     store.events.list(chat.id).map((e) => e.type),

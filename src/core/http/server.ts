@@ -66,6 +66,7 @@ import { createMiddleware } from "hono/factory";
 import { MCP_PATH, type McpToolHost } from "../mcp/host.js";
 import type { ProviderKeyVault } from "../providers/keys.js";
 import { noteSyncSince, syncStart } from "../system/stallWatch.js";
+import { sseDataOf } from "./sseData.js";
 
 export interface ServerDeps {
   store: Store;
@@ -270,7 +271,7 @@ export function createApp(deps: ServerDeps): Hono {
         if (caller.kind === "device" && event.type === "devices" && !store.devices.get(caller.device.id)) return finish();
         if (!isDevice || deviceMaySee(event)) {
           const start = syncStart();
-          const data = JSON.stringify(event);
+          const data = sseDataOf(event);
           noteSyncSince(start, () => `sse:${event.type}`);
           void stream.writeSSE({ data });
         }
