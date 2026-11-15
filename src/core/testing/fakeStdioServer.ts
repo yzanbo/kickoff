@@ -1,18 +1,21 @@
-import type { CodexProcess, CodexSpawn } from "../providers/codex/rpc.js";
+import type { StdioProcess, StdioSpawn } from "../providers/stdioRpc.js";
 
 /**
- * 台本どおりに答える偽の Codex の app-server（テスト用。本物の codex・アカウントは使わない）。
- * handle(method, fn) で頼みへの答えを決め、notify / request でサーバーからの知らせ・頼みを送る。届いた頼みは requests に残る
+ * 台本どおりに答える偽の JSON-RPC の CLI（テスト用。本物の CLI・アカウントは使わない）。Codex の app-server（fakeCodexServer）と
+ * ACP のエージェント（fakeAcpAgent）で共有する。handle(method, fn) で頼みへの答えを決め、notify / request でサーバーからの知らせ・頼みを送る。
+ * 届いた頼みは requests に残る
  */
 
-type Handler = (params: any, server: FakeCodexServer) => unknown | Promise<unknown>;
+type Handler = (params: any, server: FakeStdioServer) => unknown | Promise<unknown>;
 
-export interface FakeCodexServer {
-  spawn: CodexSpawn;
+export interface FakeStdioServer {
+  spawn: StdioSpawn;
   /** 起動した回（引数・環境変数・作業フォルダ） */
   spawned: { args: string[]; env: Record<string, string | undefined>; cwd: string }[];
   /** 届いた頼みと知らせ（method と params） */
   requests: { method: string; params: any }[];
+  /** 送られてきた行（"jsonrpc" の欄があるかを見る） */
+  lines: any[];
   /** 頼みへの答えを決める（投げたら JSON-RPC の失敗で答える） */
   handle(method: string, fn: Handler): void;
   /** サーバーからの知らせを送る（いちばん新しい起動へ） */
@@ -27,15 +30,9 @@ export interface FakeCodexServer {
   waitFor(method: string): Promise<any>;
 }
 
-export function fakeCodexServer(): FakeCodexServer {
-  const handlers = new Map<string, Handler>([
-    ["initialize", () => ({ userAgent: "fake" })],
-    ["thread/start", () => ({ thread: { id: "thr-1" }, model: "gpt-fake" })],
-    ["thread/resume", (p) => ({ thread: { id: p.threadId }, model: "gpt-fake" })],
-    ["turn/start", () => ({ turn: { id: "turn-1", status: "inProgress", error: null } })],
-    ["turn/steer", () => ({})],
-    ["turn/interrupt", () => ({})],
-  ]);
+/** 偽の CLI を作る（defaults: はじめから答える頼み） */
+export function fakeStdioServer(defaults: [string, Handler][] = []): FakeStdioServer {
+  const handlers = new Map<string, Handler>(defaults);
   const waiters: { method: string; resolve: (p: any) => void }[] = [];
   let lineListener: ((line: string) => void) | null = null;
   let exitListener: ((code: number | null, tail: string) => void) | null = null;
@@ -44,9 +41,10 @@ export function fakeCodexServer(): FakeCodexServer {
 
   const send = (msg: unknown) => setImmediate(() => lineListener?.(JSON.stringify(msg)));
 
-  const server: FakeCodexServer = {
+  const server: FakeStdioServer = {
     spawned: [],
     requests: [],
+    lines: [],
     killed: 0,
     handle: (method, fn) => handlers.set(method, fn),
     notify: (method, params) => send({ method, params }),
@@ -65,9 +63,10 @@ export function fakeCodexServer(): FakeCodexServer {
     },
     spawn: (args, opts) => {
       server.spawned.push({ args, env: opts.env, cwd: opts.cwd });
-      const proc: CodexProcess = {
+      const proc: StdioProcess = {
         write: (line) => {
           const msg = JSON.parse(line) as { id?: number; method?: string; params?: unknown; result?: unknown; error?: unknown };
+          server.lines.push(msg);
           if (msg.method === undefined && msg.id !== undefined) {
             pending.get(msg.id)?.(msg.error ? { error: msg.error } : msg.result);
             pending.delete(msg.id);
@@ -103,4 +102,17 @@ export function fakeCodexServer(): FakeCodexServer {
     },
   };
   return server;
+}
+
+/** 偽の Codex の app-server（はじめから答える頼み: initialize・スレッド・ターン） */
+export type FakeCodexServer = FakeStdioServer;
+export function fakeCodexServer(): FakeCodexServer {
+  return fakeStdioServer([
+    ["initialize", () => ({ userAgent: "fake" })],
+    ["thread/start", () => ({ thread: { id: "thr-1" }, model: "gpt-fake" })],
+    ["thread/resume", (p) => ({ thread: { id: p.threadId }, model: "gpt-fake" })],
+    ["turn/start", () => ({ turn: { id: "turn-1", status: "inProgress", error: null } })],
+    ["turn/steer", () => ({})],
+    ["turn/interrupt", () => ({})],
+  ]);
 }

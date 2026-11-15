@@ -9,7 +9,7 @@ import { askModelOf, toModelOptions, toPlanUsage } from "./catalog.js";
 import { appServerLaunch } from "./config.js";
 import { startChatgptLogin, type ChatgptLogin } from "./login.js";
 import type { AccountResponse, CodexModel, ModelListResponse, RateLimitsResponse, ThreadForkParams, ThreadItem, ThreadResponse, Turn } from "./protocol.js";
-import { spawnCodex, type CodexSpawn } from "./rpc.js";
+import { spawnStdio, type StdioSpawn } from "../stdioRpc.js";
 import { withSession } from "./session.js";
 import { runCodexTurn } from "./turn.js";
 
@@ -21,7 +21,7 @@ const ASK_TIMEOUT_MS = 120_000;
 export interface CodexProviderOpts {
   self?: SelfInfo;
   /** app-server の起動（テストは偽物。省けば PATH の codex） */
-  spawn?: CodexSpawn;
+  spawn?: StdioSpawn;
   /** app-server に渡す環境変数の元（省けば process.env） */
   env?: Record<string, string | undefined>;
 }
@@ -37,12 +37,12 @@ export class CodexProvider implements AgentProvider {
   readonly label = "Codex";
   readonly implemented = true;
   private readonly executable: string | null;
-  private readonly spawn: CodexSpawn | null;
+  private readonly spawn: StdioSpawn | null;
   private readonly baseEnv: Record<string, string | undefined>;
 
   constructor(private readonly opts: CodexProviderOpts = {}) {
     this.executable = opts.spawn ? "codex" : findExecutable(["codex"]);
-    this.spawn = opts.spawn ?? (this.executable ? spawnCodex(this.executable) : null);
+    this.spawn = opts.spawn ?? (this.executable ? spawnStdio(this.executable) : null);
     this.baseEnv = opts.env ?? process.env;
   }
 
