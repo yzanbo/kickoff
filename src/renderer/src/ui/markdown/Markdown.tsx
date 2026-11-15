@@ -1,4 +1,4 @@
-import { useContext, useMemo, type ReactNode } from "react";
+import { memo, useContext, useMemo, type ReactNode } from "react";
 import ReactMarkdown, { type Components, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { rehypeStreamTail } from "@/lib/streamReveal";
@@ -73,13 +73,22 @@ const table: Components["table"] = ({ node: _node, ...props }) => (
 const COMPONENTS: Components = { a: link, pre: codeBlock(false), table };
 const STREAMING_COMPONENTS: Components = { a: link, pre: codeBlock(true), table };
 
+type MarkdownProps = { children: string; streaming?: boolean; tail?: readonly number[] };
+
+/** 出たばかりの文字の段が同じか（段の配列は描くたびに作られるので中身で比べる） */
+const sameTail = (a: readonly number[] | undefined, b: readonly number[] | undefined): boolean =>
+  a === b || (a !== undefined && b !== undefined && a.length === b.length && a.every((n, i) => n === b[i]));
+
 /**
- * AI の発言などの Markdown 表示（HTML は描画しない）。```mermaid は図にする。
+ * AI の発言などの Markdown 表示（HTML は描画しない）。本文と設定（streaming・tail）が同じなら描き直さない
+ * （親が描き直るたびに全文を解析し直さないため。ファイルのリンクなど context の値が変わったときは描き直る）。```mermaid は図にする。
  * 数式（$$…$$・\(…\)・\[…\]・数式らしい $…$。`@shared/markdown/mathGuard`）は KaTeX で描く（数式の書き方を含むときだけ部品を読み込む）。
  * チャットのパネルの中（MarkdownFileLinksContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
  * streaming: 生成中の返答。tail: 生成中に出たばかりの文字の数（出てからの時間で分けた段。新しい順。終わりの文字を段ごとに薄く出す。`useStreamReveal`）
  */
-export function Markdown({ children, streaming = false, tail }: { children: string; streaming?: boolean; tail?: readonly number[] }) {
+export const Markdown = memo(MarkdownBody, (a, b) => a.children === b.children && a.streaming === b.streaming && sameTail(a.tail, b.tail));
+
+function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
   const links = useContext(MarkdownFileLinksContext);
   const hasMath = mayContainMath(children);
   const math = useMathPlugins(hasMath);
