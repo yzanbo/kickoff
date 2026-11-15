@@ -21,7 +21,9 @@ function pressedInside(frame: HTMLIFrameElement): boolean {
  * （allow-same-origin なし = 中は別のオリジン）で開き、届いたら中身のページを postMessage で渡す。中からは高さ・失敗・
  * 利用者が押したときの発言だけを受け取る（送り主の窓で見分ける）。テーマを変えたら、SVG は作り直さずに変数だけを送り、
  * HTML は読み直す（Chart.js などは描いた時点の色を canvas に焼き付けるので、変数を変えても色が変わらないため）。
- * maxHeight: 高さの上限（超えたら枠の中でスクロール）。fill: 高さを親に合わせる（全画面）
+ * maxHeight: 高さの上限（超えたら枠の中でスクロール）。fill: 高さを親に合わせる（全画面）。
+ * initialHeight: 中から高さが届くまでの高さ（前に描いたときの高さ。届いた高さに替わるときに上下が動かないように）。onHeight: 届いた高さ。
+ * onReady: 枠のページを読み込んだ（同時に読み込む数を数えるため）。onTouch: 利用者が枠の中を触った（中にピントが入った）
  */
 export function VisualFrame({
   kind,
@@ -29,23 +31,31 @@ export function VisualFrame({
   title,
   maxHeight,
   fill = false,
+  initialHeight,
   onError,
   onPrompt,
+  onHeight,
+  onReady,
+  onTouch,
 }: {
   kind: "svg" | "html";
   code: string;
   title: string;
   maxHeight?: number;
   fill?: boolean;
+  initialHeight?: number;
   onError?: (message: string) => void;
   onPrompt?: (text: string) => void;
+  onHeight?: (height: number) => void;
+  onReady?: () => void;
+  onTouch?: () => void;
 }) {
   const ref = useRef<HTMLIFrameElement>(null);
   const theme = useVisualTheme();
-  const [height, setHeight] = useState(INITIAL_HEIGHT);
+  const [height, setHeight] = useState(initialHeight ?? INITIAL_HEIGHT);
   // 渡す中身（描き直すたびに最新の関数・テーマを使う）
-  const latest = useRef({ kind, code, theme, maxHeight, onError, onPrompt });
-  latest.current = { kind, code, theme, maxHeight, onError, onPrompt };
+  const latest = useRef({ kind, code, theme, maxHeight, onError, onPrompt, onHeight, onReady });
+  latest.current = { kind, code, theme, maxHeight, onError, onPrompt, onHeight, onReady };
   // 枠のページ（下の key ごと）を読み込んだか・中身を渡したか。隠した会話の欄（Activity）の中で枠ができると、ready の知らせを
   // 受ける購読がないので、表に戻して購読し直したときに、読み込み済みでまだ渡していなければ渡す
   const frameKey = `${kind}\n${code}${kind === "html" ? `\n${theme["--vis-bg"]}` : ""}`;
@@ -71,8 +81,11 @@ export function VisualFrame({
     const data = e.data as { type?: unknown; height?: unknown; message?: unknown; text?: unknown };
     if (data.type === VISUAL_MESSAGES.ready) {
       deliver(frame);
+      latest.current.onReady?.();
     } else if (data.type === VISUAL_MESSAGES.size && typeof data.height === "number") {
-      setHeight(Math.max(MIN_HEIGHT, Math.ceil(data.height)));
+      const next = Math.max(MIN_HEIGHT, Math.ceil(data.height));
+      setHeight(next);
+      latest.current.onHeight?.(next);
     } else if (data.type === VISUAL_MESSAGES.error && typeof data.message === "string") {
       latest.current.onError?.(data.message);
     } else if (data.type === VISUAL_MESSAGES.prompt && typeof data.text === "string" && data.text.trim() && pressedInside(frame)) {
@@ -92,6 +105,7 @@ export function VisualFrame({
       key={frameKey}
       ref={ref}
       onLoad={() => (loadedKey.current = frameKey)}
+      onFocus={onTouch}
       className="visual-frame"
       src="/visual-frame"
       sandbox="allow-scripts"

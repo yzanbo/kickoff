@@ -143,3 +143,9 @@
   border-radius: var(--radius);
   background: var(--bg);
 }
+
+/* 画面の手前まで来るのを待つ間・同時に読み込む数の空きを待つ間の枠（文は出さない。高さは前に描いたときの高さ、なければ 160px） */
+.visual-frame-wait {
+  background: linear-gradient(90deg, var(--bg-sidebar) 0%, var(--bg-hover) 50%, var(--bg-sidebar) 100%) 0 0 / 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
