@@ -28,6 +28,8 @@ export interface CoreHostDeps {
   onTerminate?: (fn: () => void) => void;
   /** 詰まりの見張りを始める（テストでは渡さない = 見張らない） */
   watchStalls?: (onStall: (record: StallRecord) => void) => () => void;
+  /** ready を返したあとに 1 回（コンパイルキャッシュを書き出す。テストでは渡さない） */
+  onReady?: () => void;
   /** 作業中の間、眠らせない理由を読み直す間隔（ms。既定 AWAKE_RECHECK_MS） */
   awakeRecheckMs?: number;
 }
@@ -183,6 +185,7 @@ export async function runCoreHost(parent: RpcPort, deps: CoreHostDeps): Promise<
     },
   });
   reportAwake();
+  deps.onReady?.();
   deps.onTerminate?.(() => void closeAndExit());
   // メインが消えた（つなぎが切れた）ら、自分も片付けて終わる
   parent.onClose(() => void closeAndExit());

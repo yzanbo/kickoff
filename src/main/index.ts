@@ -2,6 +2,7 @@
 import { app, BrowserWindow, dialog } from "electron";
 import { errorMessage } from "@shared/errors";
 import { setAppMenu } from "./app/appMenu.js";
+import { dropCompileCacheEnv } from "./app/compileCache.js";
 import { prepareAppSession } from "./app/appSession.js";
 import { coreIpcHandlers, createCoreProcess } from "./app/coreHost.js";
 import type { CoreProcess } from "./app/coreProcess.js";
@@ -27,6 +28,9 @@ markMain("mainLoaded");
 // 1. 名前・保存先を決め、起動の記録を始める（~/Library/Logs/<アプリ名>/startup.log。入れ替えた直後だけ画面が出ないことの原因を追うため）
 const { port, devUrl } = setupEnvironment();
 logLaunch();
+// 環境変数 NODE_COMPILE_CACHE で起動されたら記録に残し、子のプロセスには受け継がせない（メインでは Node が起動の初めに読むので止められない。app/compileCache.ts）
+const envCompileCache = dropCompileCacheEnv();
+if (envCompileCache) startupLog(`環境変数 NODE_COMPILE_CACHE を付けて起動されました（${envCompileCache}）。コアのプロセスには渡しません`);
 // イベントループの詰まりをいつも見張る（~/Library/Logs/<アプリ名>/stalls.jsonl。diagnostics/stalls.ts）
 watchMainStalls();
 watchChildProcesses();

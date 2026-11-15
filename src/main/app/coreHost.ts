@@ -1,5 +1,6 @@
 // コアのプロセスを組み立てる: 起動の値（init）・コアから呼ばれるメインの口（埋め込みブラウザ・キーチェーンの鍵）・コアからの知らせの行き先
 // （通知・ブラウザの操作の印・詰まり）・様子の配り先（画面の帯の IPC core.onState）。メモの仕様書「0023_表示を軽くする」の案 16（分冊 4 の 1-3・1-4）
+import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import type { CoreState } from "@shared/ipc";
 import { agentBrowser } from "../browser/agentBrowser.js";
@@ -8,6 +9,8 @@ import type { IpcHandlers } from "../ipc/register.js";
 import { sendEvent } from "../ipc/register.js";
 import { notifyFromCore } from "../notifications/notifications.js";
 import { hostPlatform } from "../platform/index.js";
+import { COMPILE_CACHE_ARG } from "../../core/system/compileCache.js";
+import { prepareCoreCompileCache } from "./compileCache.js";
 import { CoreProcess, type HostHandlers } from "./coreProcess.js";
 import { CORE_FILE, DB_WORKER_FILE, RENDERER_DIR, SPEECH_HELPER } from "./environment.js";
 import { logsDir } from "./logs.js";
@@ -38,10 +41,18 @@ function broadcastState(state: CoreState) {
   for (const win of BrowserWindow.getAllWindows()) sendEvent(win.webContents, "core", "onState", { state });
 }
 
+/** コアのプロセスの起動の引数（コンパイルキャッシュの場所。保存先の compile-cache の下の、いまの版・ビルドのフォルダ） */
+function coreCacheArgs(): string[] {
+  const dir = prepareCoreCompileCache({ userData: app.getPath("userData"), chunksDir: path.join(path.dirname(CORE_FILE), "chunks"), appVersion: app.getVersion() });
+  return [`${COMPILE_CACHE_ARG}${dir}`];
+}
+
 /** コアのプロセスを作る（まだ起動しない。start で fork する） */
 export function createCoreProcess(opts: { port: number; devUrl: string | undefined }): CoreProcess {
   const core = new CoreProcess({
     file: CORE_FILE,
+    // コアのコンパイルキャッシュの場所（init は本体を読んだあとに届くので、起動の引数で渡す。案 24）
+    args: coreCacheArgs(),
     dbWorkerFile: DB_WORKER_FILE,
     init: (recoveredReason) => ({
       dataDir: app.getPath("userData"),
