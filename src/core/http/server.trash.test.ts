@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { TRASH_KEEP_MS, TRASH_RESTORE_EXISTS, type BusEvent, type TrashItem } from "@shared/types";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";

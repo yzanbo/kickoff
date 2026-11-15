@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { expandBraces, splitGlobList, toPathspecs } from "./pathGlobs";
 
 test("splitGlobList: カンマで分ける（{} の中は分けない）", () => {

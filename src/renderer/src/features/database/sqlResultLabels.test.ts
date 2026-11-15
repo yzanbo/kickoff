@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DbQueryResult } from "@shared/types";
 import { envSentence, runOutcome, runTabLabel } from "./sqlResultLabels";
 

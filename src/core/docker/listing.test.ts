@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DockerContainer, DockerService } from "@shared/types";
 import { buildDockerList, composeKeyOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry } from "./listing.js";
 import type { Workplace } from "../git/worktrees.js";

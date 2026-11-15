@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { createInputChannel } from "./input.js";
 
 test("入力: 最初の指示のあとも開いたままで発言を足せ、渡していない発言があるうちは閉じない", async () => {

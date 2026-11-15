@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { permissionAllowed, permissionCheckAllowed } from "./mediaPermission.js";
 
 const appUrl = "http://127.0.0.1:4318";

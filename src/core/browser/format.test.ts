@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { formatSnapshot, formatTabs, normalizeBrowserUrl, SNAPSHOT_TEXT_MAX } from "./format.js";
 
 test("ブラウザの URL: 書いてあればそのまま、ローカルとポート付きは http、ほかは https。http(s) 以外は開かない", () => {

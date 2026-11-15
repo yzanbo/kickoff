@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { visibleChangePaths } from "./useChangeSelection";
 
 const paths = ["src/b.ts", "src/a/x.ts", "README.md"];

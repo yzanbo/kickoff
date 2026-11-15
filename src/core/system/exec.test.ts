@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { CommandError, findExecutable, nonInteractiveEnv, runCommand, searchDirs, stderrOf } from "./exec.js";
 
 test("runCommand: 標準出力を返し、失敗は標準エラーを文にした CommandError（終了コード付き）。okCodes の終了コードは失敗にしない", async () => {

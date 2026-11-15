@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, test } from "node:test";
+import { beforeEach, test, vi } from "vitest";
 import { makeChat } from "@shared/testing/factories";
 import { publishServerEvent } from "@/api/events";
 import { installMemoryStorage } from "@/lib/memoryStorage";
@@ -14,11 +14,7 @@ beforeEach(() => local.clear());
 
 // 閉じたターミナルのシェルを止めたか（メインプロセスの代わり）
 const closedShells: string[] = [];
-Object.defineProperty(globalThis, "window", {
-  value: { kickoff: { terminal: { close: async (key: string) => void closedShells.push(key) } } },
-  configurable: true,
-  writable: true,
-});
+beforeEach(() => vi.stubGlobal("window", { kickoff: { terminal: { close: async (key: string) => void closedShells.push(key) } } }));
 
 const keys = (panel: string) => panelStateOf(panel).tabs.map((t) => t.key);
 const target = (projectId: number) => ({ cwd: `/repo/${projectId}`, label: `p${projectId}`, projectId });

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { DOCKER_DB_NO_PORT, type DbConnection } from "@shared/types";
 import { dockerDbCandidate, dockerDbKey, parseDockerDbKey, sameServerConnection } from "./dbTarget.js";
 

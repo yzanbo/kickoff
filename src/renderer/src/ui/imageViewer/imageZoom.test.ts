@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { canPan, clampView, fitScale, panBy, zoomTo } from "./imageZoom";
 
 const stage = { width: 800, height: 600 };

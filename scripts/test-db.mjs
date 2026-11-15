@@ -44,7 +44,7 @@ try {
   }
   for (const s of SERVERS) await waitPort(Number(env[`KICKOFF_DBTEST_${s.key}_PORT`]), 120_000);
   // ポートが開いても初期化の途中のことがあるので、テストの側でつながるまで待つ
-  const r = spawnSync(process.execPath, ["--import", "tsx", "--test", "--test-concurrency=1", "src/**/*.dbtest.ts"], { stdio: "inherit", env });
+  const r = spawnSync("npx", ["vitest", "run", "--project", "db"], { stdio: "inherit", env: { ...env, KICKOFF_DBTEST: "1" } });
   status = r.status ?? 1;
 } catch (e) {
   console.error(e instanceof Error ? e.message : e);

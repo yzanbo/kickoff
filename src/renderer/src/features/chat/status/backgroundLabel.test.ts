@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { backgroundWaitLabel, countBackground } from "./backgroundLabel";
 
 test("裏の作業を待っている行: 返答を書き終えたときだけ、種類ごとに数と名前を出す", () => {

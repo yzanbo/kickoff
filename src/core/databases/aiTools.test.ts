@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { NewDbConnectionBody } from "@shared/types";
 import { setup } from "../testing/testServer.js";
 import { DbWorkerClient } from "./client.js";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { reorderIds } from "./groups";
 
 test("グループの並べ替え: ドロップした先のグループがいた位置に収まる", () => {

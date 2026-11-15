@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { dbImageType, isDbBinary, isDbLongText } from "./dbValue";
 
 test("セルの値の見分け: バイナリ・頭だけの長い文字", () => {

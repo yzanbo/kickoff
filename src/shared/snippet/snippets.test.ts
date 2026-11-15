@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { Snippet } from "@shared/types";
 import { moveWithin, snippetLabel, snippetsFor } from "./snippets";

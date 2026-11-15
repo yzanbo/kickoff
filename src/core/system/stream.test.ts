@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { lineSplitter, stopAllStreams, streamCommand } from "./stream.js";
 
 test("lineSplitter: 塊の途中で切れた行をつなぎ、\\r を落とし、終わりに残りを出す", () => {

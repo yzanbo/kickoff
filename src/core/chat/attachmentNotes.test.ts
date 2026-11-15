@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { CaptureAttachment, MemoAttachment } from "@shared/types";
 import { appendNote, captureLine, formatTakenAt, memoSnapshotLine } from "./attachmentNotes.js";
 

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { imageFileType, isIcnsFile, isSvgFile } from "./imageFiles";
 
 test("画像として見せるファイル: 拡張子で決め、大文字・小文字は問わない（icns は PNG にして返す）", () => {

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DockerList, DockerLogEvent } from "@shared/types";
 import { DockerLogSession } from "../docker/logs.js";
 import { psOutput } from "../testing/fakeDocker.js";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { insertDictation, joinTranscripts, micErrorMessage, transcribeParts } from "./dictationText";
 
 test("起こした文を入れる: 空の入力欄・キャレットの位置・選んだ範囲の置き換え", () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { fileTabKeyOf, fileTabOf, selectionOf } from "./fileTabs";
 
 test("fileTabKeyOf: 中身はファイルごとに 1 つ（検索の行も同じタブ）、差分はステージ済み・未ステージごとに別のタブ", () => {

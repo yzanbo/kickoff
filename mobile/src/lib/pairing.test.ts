@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { pairingLink } from "@shared/devices/pairing";
 import { API_VERSION_HEADER } from "@shared/api/version";
 import { ApiError, HostClient, withQuery } from "./client";

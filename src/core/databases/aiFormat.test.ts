@@ -1,6 +1,6 @@
 // AI の DB のツールが返す文: 値の切り方・データの印・CSV に書き出したことの知らせ・見せる接続の一覧
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DbExportResult } from "./protocol.js";
 import { aiCell, DB_AI_RESULT_CHARS, DB_AI_VALUE_CHARS, formatAiObjects, formatAiQueryResult } from "./aiFormat.js";
 

@@ -1,5 +1,5 @@
 // コアの MCP サーバー（/mcp/<サーバーの名前>）: 実行ごとの鍵・その実行のツールだけ・鍵を捨てたら使えない・承認を待つツール
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { z } from "zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";

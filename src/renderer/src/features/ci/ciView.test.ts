@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { CiJob, CiRun } from "@shared/types";
 import { ciCaptureName, ciFailedDocument, ciLinkOf, ciLogLine, ciSelectedText, hasPending, jobToOpen, parseCiSelected, stepsWithLogs, stepToOpen } from "./ciView";
 

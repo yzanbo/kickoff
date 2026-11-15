@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { tempDir } from "../../testing/tempDir.js";
 import { findSessionFile, listSessionFiles, readSessionHead, recentSegmentsRange, sessionFileInfo, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
 

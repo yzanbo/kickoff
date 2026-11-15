@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { diagnosticsFolderName, perSecond, startCpuProfile, topSelfTime, type CpuProfile } from "./profileSummary.js";
 
 test("性能の記録: 自分の中で時間を使った関数を、同じ関数ごとにまとめて多い順に並べる（空き時間は数えない）", () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { relayMessage } from "@shared/chat/prompts";
 import { nextQueuedText, queuedHint, reservedAction } from "./queuedHint";
 import type { QueuedMessage } from "@shared/types";

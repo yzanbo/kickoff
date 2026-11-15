@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makeEvent } from "@shared/testing/factories";
 import { collectSubagents, networkStoppedSubagents } from "./subagents";
 import { textSimilarity } from "./subagentSupersede";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { resolveChatOptions } from "./chatOptions";
 import { DEFAULT_SETTINGS } from "@shared/types";
 

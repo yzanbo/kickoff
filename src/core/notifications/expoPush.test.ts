@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { EXPO_PUSH_URL, expoPushBody, expoPushResult, expoPushSender } from "./expoPush.js";
 
 const MESSAGE = { title: "調査", body: "終わりました", host_id: "host-1", target: { kind: "chat" as const, project_id: 1, chat_id: 2 } };

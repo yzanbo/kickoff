@@ -1,6 +1,6 @@
 // MySQL の列の型の名前（mysql2 の型の番号と文字コードから）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import mysql from "mysql2";
 import { mysqlTypeName } from "./mysql.js";
 

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { memoAssetBase, memoLinkPath, withBaseHref } from "./htmlPage";
 
 test("memoAssetBase: メモのフォルダを段ごとに URL の形にする（直下ならフォルダなし）", () => {

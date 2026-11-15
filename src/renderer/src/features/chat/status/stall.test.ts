@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { activityOf, activityText, latestOf, STALL_MS, stalledAgents } from "./stall";
 
 const now = new Date("2026-11-03T12:00:00Z").getTime();

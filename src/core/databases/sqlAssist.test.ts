@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { parseSqlAnswer, SQL_ASSIST_SCHEMA_CHARS, sqlAssistPrompt } from "./sqlAssist.js";
 
 test("sqlAssistPrompt: テーブルと列の名前・いまの SQL・頼みを入れ、長すぎるテーブルは省いて数を書く", () => {

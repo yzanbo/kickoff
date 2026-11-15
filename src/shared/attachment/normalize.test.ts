@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { normalizeAttachment } from "./normalize";
 
 const base = { id: "00000000-0000-4000-8000-000000000000", name: "a.md", mime: "text/markdown", size: 3 };

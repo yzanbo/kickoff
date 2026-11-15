@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { test } from "node:test";
+import { test } from "vitest";
 import { tempDir } from "../testing/tempDir.js";
 import { until } from "../testing/testCore.js";
 import { DbWorkerClient, forkWorker, killGroup, type WorkerChannel } from "./client.js";
@@ -21,7 +21,7 @@ function sqliteTarget(readOnly = false): DbTarget {
 
 test("DB ワーカー: 別のプロセスで起動して流し、DB 側の読み取り専用は書く文を断る", async (t) => {
   const client = new DbWorkerClient(() => forkWorker(devWorkerEntry()));
-  t.after(() => client.stop());
+  t.onTestFinished(() => client.stop());
   const target = sqliteTarget();
   const result = await client.request("query", { session: "s", target, sql: "select a from t order by a", max_rows: 2 });
   assert.deepEqual(result.rows, [[1], [2]]);
@@ -40,7 +40,7 @@ test("DB ワーカー: 別のプロセスで起動して流し、DB 側の読み
 
 test("DB ワーカー: SQLite の文を止めるとワーカーごと止め、次の頼みで起動し直す", async (t) => {
   const client = new DbWorkerClient(() => forkWorker(devWorkerEntry()));
-  t.after(() => client.stop());
+  t.onTestFinished(() => client.stop());
   const target = sqliteTarget();
   await client.request("query", { session: "s", target, sql: "select 1", max_rows: 1 });
   const controller = new AbortController();

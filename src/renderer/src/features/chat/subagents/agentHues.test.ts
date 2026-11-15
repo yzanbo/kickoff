@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { agentHues } from "./agentHues";
 
 const keys = (n: number) => Array.from({ length: n }, (_, i) => ({ key: `t${i}` }));

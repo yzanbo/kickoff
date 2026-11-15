@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { folderOverlapLines, folderOverlaps, memoOverlapLines } from "./folderOverlaps";
 
 const p = (id: number, repo_path: string) => ({ id, name: `p${id}`, repo_path });

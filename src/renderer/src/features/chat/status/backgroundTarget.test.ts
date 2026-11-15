@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import type { BackgroundTask } from "@shared/types";
 import { eventSequence } from "@shared/testing/factories";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { cleanSelection, isLongSelection, LONG_SELECTION_CHARS, LONG_SELECTION_LINES, selectionButtonPoint, terminalCaptureLabel, terminalQuote } from "./terminalSelection";
 
 test("cleanSelection: 改行をそろえ、行末の空白と頭と終わりの空行を落とす（字下げは残す）", () => {

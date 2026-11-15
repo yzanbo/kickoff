@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { CODE_NOTE, TABLE_NOTE, speakableText, splitSpeech } from "./speechText";
 
 test("読み上げる文: 見出し・箇条書き・強調・インラインコードの印を外し、リンクは文字だけ・URL は「（リンク）」", () => {

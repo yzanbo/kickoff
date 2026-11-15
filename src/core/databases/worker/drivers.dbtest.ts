@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { after, before, describe, test } from "node:test";
+import { afterAll, beforeAll, describe, test } from "vitest";
 import { editStatements } from "@shared/database/dbEdit";
 import type { DbEngine, DbObjectPath, DbQueryResult, DbRowEdit } from "@shared/types";
 import type { DbTarget, WorkerMethod, WorkerMethods } from "../protocol.js";
@@ -73,7 +73,8 @@ function fixture(engine: DbEngine): string[] {
 
 for (const c of CASES) {
   const port = Number(process.env[`KICKOFF_DBTEST_${c.key}_PORT`] ?? 0);
-  describe(c.label, { skip: port ? false : "npm run test:db で流す" }, () => {
+  // ポートがなければ流さない（npm run test:db で流す）
+  describe.skipIf(!port)(c.label, () => {
     const handler = createWorkerHandler();
     let nextId = 1;
     const target = (extra: Partial<DbTarget> = {}): DbTarget => ({
@@ -96,7 +97,7 @@ for (const c of CASES) {
     };
     const sql = (text: string, session = "main", extra: Partial<DbTarget> = {}) => call("query", { session, target: target(extra), sql: text, max_rows: 1000 });
 
-    before(async () => {
+    beforeAll(async () => {
       // ポートが開いても初期化の途中のことがあるので、つながるまで待つ
       const end = Date.now() + 120_000;
       for (;;) {
@@ -111,7 +112,7 @@ for (const c of CASES) {
       for (const statement of fixture(c.engine)) await sql(statement, "setup");
       await call("close", { session: "setup" });
     });
-    after(() => handler.closeAll());
+    afterAll(() => handler.closeAll());
 
     test("つながるか試すと版を返す", async () => {
       const { server_version } = await call("test", { target: target() });

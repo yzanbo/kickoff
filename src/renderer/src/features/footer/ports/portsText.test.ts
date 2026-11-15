@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { bandText, originText, stopTargetText, uptimeText } from "./portsText";
 
 test("uptimeText: 秒・分・時間・日（分からなければ空）", () => {

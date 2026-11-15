@@ -1,6 +1,6 @@
 // 止まったあとの再開の段取り（ChatRecovery）の単体のテスト。API を通した流れは http/server.recovery.test.ts
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { ApprovalCenter } from "../approvals.js";
 import { Bus } from "../../bus.js";
 import { Store } from "../../db/store.js";

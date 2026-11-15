@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { ansiSpans, markSpans, stripAnsi } from "./ansi";
 
 test("ansiSpans: 色のない行は 1 つ", () => {

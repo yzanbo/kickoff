@@ -1,6 +1,6 @@
 // 本文の画像のうち、リポジトリの中のファイルを指すものの見分け
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { isFileOfRepo, repoFileOfUrl } from "./repoImage";
 
 test("repoFileOfUrl: raw・blob?raw=true・raw.githubusercontent.com を読む", () => {

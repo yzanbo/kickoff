@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { compareVersions, hookOutput, needsFetch, shouldNotify } from "./check-claude-update.mjs";
 
 const at = (s) => Date.parse(s);

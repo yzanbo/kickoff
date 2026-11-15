@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { dropZoneAt, insertIndexAt, insertSlotAt, layoutRects, resizeAt, splitOfZone } from "./paneGeometry";
 import type { PaneNode } from "./paneTree";
 

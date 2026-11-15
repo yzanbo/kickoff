@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { leavesNarrowRest } from "./useCoverableWidth";
 
 test("leavesNarrowRest: 欄の横に残す側が決めた幅より狭くなるなら覆う（間隔の分も引く。欄が全体より広ければ残りは 0）", () => {
