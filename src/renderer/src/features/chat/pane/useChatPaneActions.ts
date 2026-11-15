@@ -19,6 +19,7 @@ import { confirmRewindSend, restoreFilesBefore } from "@/features/chat/rewind/re
 import { retryTurn } from "@/features/chat/rewind/useRetryChoices";
 import { pathOf, type SubagentTree } from "@/features/chat/subagents/subagentTree";
 import { jumpToEvent } from "@/features/chat/timeline/jumpToEvent";
+import { openAll, setOpen, timelineView } from "@/features/chat/timeline/timelineView";
 import { useTimelineScrollHandle, type TimelineScroll } from "@/features/chat/timeline/timelineScroll";
 import type { TimelineWindow } from "@/features/chat/timeline/useTimelineWindow";
 import type { ChatPaneActions, ChatPaneState } from "./chatPaneContext";
@@ -92,8 +93,6 @@ export function useChatPaneActions({
     const now = () => latest.current!;
     const state = createValueCell<ChatPaneState>({
       retry: null,
-      openSubagents: new Set(),
-      fullSubagents: new Set(),
       showing: "conversation",
       activityFilter: { kind: "all" },
       activityFocus: null,
@@ -138,7 +137,8 @@ export function useChatPaneActions({
         // 右の欄がメインの会話を覆っていれば、並べる形に戻してから移る
         side.current?.uncover();
         // 外側のカードから自分まで開き、いちばん外側のカードを窓に入れてから移る（動きを見せていれば会話に戻す）
-        patch({ openSubagents: new Set([...state.get().openSubagents, ...path.map((s) => s.key)]), showing: "conversation" });
+        openAll(timelineView(chatId), path.map((s) => `sa:${s.key}`));
+        patch({ showing: "conversation" });
         scroll.release();
         const root = path[0].toolUseEventId;
         const go = () => {
@@ -177,11 +177,9 @@ export function useChatPaneActions({
       },
       canOpenSide,
       toggleSubagent: (key, open) => {
-        const current = state.get().openSubagents;
-        const next = new Set(current);
-        if (open ?? !current.has(key)) next.add(key);
-        else next.delete(key);
-        patch({ openSubagents: next });
+        // 開閉は流れの見え方の店（行が窓から外れて戻っても・画面を作り直しても開いたまま）
+        const view = timelineView(chatId);
+        setOpen(view, `sa:${key}`, open ?? !view.open.get().has(`sa:${key}`));
       },
       show: (showing, filter) => {
         now().reveal?.();
@@ -210,9 +208,8 @@ export function useChatPaneActions({
         });
       },
       toggleSubagentFull: (key) => {
-        const next = new Set(state.get().fullSubagents);
-        if (!next.delete(key)) next.add(key);
-        patch({ fullSubagents: next });
+        const view = timelineView(chatId);
+        setOpen(view, `sf:${key}`, !view.open.get().has(`sf:${key}`));
       },
       tellSubagent: (key) => {
         if (!now().tree.byKey.get(key)?.agentId) return;

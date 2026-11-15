@@ -1,5 +1,6 @@
 import { ChevronRight, ClipboardPenLine, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 import { flushSync } from "react-dom";
 import type { ChatEventOf } from "@shared/types";
 import { subagentAskOf } from "@shared/chat/prompts";
@@ -46,14 +47,15 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
   // 依頼文の頼みに添えた追加の指示（なければ null）
   const handoffExtra = handoffRequest ? handoffRequestExtra(data.text) : null;
   // 依頼文の頼みの全文を開いているか
-  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useTimelineOpen(event.chat_id, `hr:${event.id}`);
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
   const handover = data.handover?.length ?? 0;
   const attachments = data.attachments ?? [];
   // 折りたたむほど長いか（描いてから測る）と、開いているか
   const [long, setLong] = useState(false);
   const longRef = useRef(false);
-  const [expanded, setExpanded] = useState(false);
+  // 開閉は流れの見え方の店（行が窓から外れて戻っても・画面を作り直しても開いたまま）
+  const [expanded, setExpanded] = useTimelineOpen(event.chat_id, `um:${event.id}`);
   // 文の高さは、畳むための max-height の内側の要素で測る（畳んでも文の高さは変わらないので、畳む・開くで行き来しない）。
   // 大きさの知らせで測るので、幅・文字の大きさが変わったら測り直し、画面の外で描くのを省いている間は読まない。
   // 知らせは描く前に届くので、変わったときだけその場で描き直し、畳む前の全文が一瞬見えないようにする（依頼文の頼みは、開いてから測る）

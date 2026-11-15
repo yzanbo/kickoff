@@ -29,6 +29,7 @@ import { AddToParentButton } from "@/features/chat/children/AddToParentButton";
 import { HandoffMarks } from "@/features/chat/children/HandoffMarks";
 import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
 import { useTimelineBusy } from "./timelineBusy";
+import { useTimelineOpen } from "./timelineView";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -97,7 +98,11 @@ const MemoToolGroup = memo(
  * 思考の行（「8秒間思考しました」。中身があれば開いて読める）。後ろに考え始めた時刻
  * （記録は考え終えたときに残るので、かかった時間を引く。乗せると年月日と考え終えた時刻）
  */
-function Thinking({ text, durationMs, at }: { text: string; durationMs?: number; at: string }) {
+function Thinking({ event }: { event: ChatEventOf<"thinking"> }) {
+  const { text, duration_ms: durationMs } = event.data;
+  const at = event.created_at;
+  // 開閉は流れの見え方の店（画面を作り直しても開いたまま）
+  const [open, setOpen] = useTimelineOpen(event.chat_id, `th:${event.id}`);
   const label =
     durationMs === undefined ? "思考しました" : `${formatElapsed(durationMs)}${durationMs < 3_600_000 ? "間" : ""}思考しました`;
   const start = new Date(Date.parse(at) - (durationMs ?? 0)).toISOString();
@@ -117,6 +122,8 @@ function Thinking({ text, durationMs, at }: { text: string; durationMs?: number;
   return (
     <LazyDetails
       className="event-note thinking"
+      open={open}
+      onOpenChange={setOpen}
       summary={
         <summary>
           <ChevronRight size={13} className="tool-chevron" />
@@ -134,7 +141,7 @@ function Thinking({ text, durationMs, at }: { text: string; durationMs?: number;
 function TurnEnd(props: TurnFooterProps & { turnChanges?: FileChange[] }) {
   return (
     <>
-      {props.turnChanges && <TurnChanges files={props.turnChanges} />}
+      {props.turnChanges && <TurnChanges files={props.turnChanges} chatId={props.event.chat_id} resultId={props.event.id} />}
       <TurnFooter {...props} />
       <FailedTurnActions resultId={props.event.id} />
     </>
@@ -244,7 +251,7 @@ function EventItem({
     case "text":
       return <AssistantMessage event={event} />;
     case "thinking":
-      return <Thinking text={event.data.text} durationMs={event.data.duration_ms} at={event.created_at} />;
+      return <Thinking event={event} />;
     case "approval_resolved": {
       // AI からの質問に答えた内容は、自分の発言と同じ吹き出しで「質問への回答」として出す
       const data = event.data;

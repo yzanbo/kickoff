@@ -20,6 +20,7 @@ import { isCreateChatTool } from "@shared/chat/aiCreateChat";
 import { AI_GET_USER_VIEW_TOOL, userViewSummaryOf } from "@shared/chat/aiUserView";
 import { toolImageType } from "@shared/chat/toolImage";
 import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkContext";
+import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 
 /**
  * ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約し、後ろに時刻を出す）。
@@ -40,12 +41,16 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
   const status = groupStatus(tools.map((t) => callStatus(t, isRunning(t))));
   // 実行中のコマンドの出力（まとまりを閉じていても、下に最後の行を流す）
   const live = useCommandOutput(current?.use.data.name === "Bash" ? current.use.data.id : undefined);
+  // 開閉は流れの見え方の店（窓から外れて戻っても・画面を作り直しても開いたまま）
+  const [open, setOpen] = useTimelineOpen(tools[0].use.chat_id, `tg:${tools[0].use.id}`);
 
   return (
     <>
     {/* 呼び出しの一覧は、まとまりを初めて開いたときに作る（一覧の行のコマンドの色付けも、そこから始める） */}
     <LazyDetails
       className={cx("tool-group", failed > 0 && "has-error", running && "active")}
+      open={open}
+      onOpenChange={setOpen}
       // 動きの行などから、その呼び出しを含むまとまりへ移れるようにする（jumpToEvent）
       data-tool-ids={tools.map((t) => t.use.id).join(" ")}
       summary={
@@ -92,6 +97,7 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
   const isDbQuery = name === DB_QUERY_TOOL && typeof input.sql === "string";
   // チャットの AI が作ったチャット（送った依頼の全文と、作ったチャットの札。結果の文も下に出す）
   const isCreatedChat = isCreateChatTool(name) && typeof input.text === "string";
+  const [open, setOpen] = useTimelineOpen(call.use.chat_id, `tc:${call.use.id}`);
   /** 開いた中身（中身を作るのは開いてからなので、色付けはいつも始める） */
   const renderDetail = () => {
     let detail: ReactNode = null;
@@ -123,6 +129,8 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
   return (
     <LazyDetails
       className={cx("tool-call", r?.is_error && "error")}
+      open={open}
+      onOpenChange={setOpen}
       summary={
         <summary>
           <ToolStatusIcon status={callStatus(call, running)} />

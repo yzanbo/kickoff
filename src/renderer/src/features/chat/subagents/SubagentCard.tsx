@@ -10,6 +10,7 @@ import { useShownInAgentPanel } from "@/features/panel/agents/agentTabs";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { IconButton } from "@/ui/IconButton";
 import { useChatPaneState, useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 import type { ToolCall } from "@/features/chat/timeline/timelineItems";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentTellBox } from "./SubagentTell";
@@ -54,7 +55,8 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
   const view = useSubagentsView();
   const pane = useOptionalChatPane();
   const key = call.use.data.id;
-  const open = useChatPaneState((s) => s.openSubagents.has(key)) ?? false;
+  // 開閉は流れの見え方の店（行が窓から外れて戻っても・画面を作り直しても開いたまま）
+  const [open] = useTimelineOpen(call.use.chat_id, `sa:${key}`);
   // 「伝える」の入力欄を開いているか（カードのいちばん下に開く）
   const telling = useChatPaneState((s) => s.tellOpen.has(key)) ?? false;
   const entry = view?.tree.byKey.get(key);
@@ -209,9 +211,9 @@ function SubagentCardBody({ entry, view, renderItems, windowed }: { entry: Subag
   const steps = <SubagentSteps entry={entry} view={view} items={items} renderItems={renderItems} />;
   return (
     <div className="subagent-card-body">
-      {entry.prompt && <SubagentPrompt text={entry.prompt} />}
+      {entry.prompt && <SubagentPrompt text={entry.prompt} chatId={view.chatId} agentKey={entry.key} />}
       {windowed ? (
-        <SubagentWindow cardKey={entry.key} running={entry.status === "running"}>
+        <SubagentWindow chatId={view.chatId} cardKey={entry.key} running={entry.status === "running"}>
           {steps}
         </SubagentWindow>
       ) : (

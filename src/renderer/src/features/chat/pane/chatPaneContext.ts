@@ -28,10 +28,6 @@ export type ChatShowing = "conversation" | "activity";
 export interface ChatPaneState {
   /** 失敗した作業の直し方（作業中・失敗していなければ null） */
   retry: RetryChoices | null;
-  /** 開いているサブエージェントのカード（行のキー） */
-  openSubagents: ReadonlySet<string>;
-  /** 高さの制限を外して、中身をすべて流れに出しているカード（「全体を表示」。行のキー） */
-  fullSubagents: ReadonlySet<string>;
   /** 会話と動きのどちらを見せているか（見出しの「会話 / 動き」） */
   showing: ChatShowing;
   /** 動きの絞り込み（すべて・メインだけ・そのサブエージェントと配下） */

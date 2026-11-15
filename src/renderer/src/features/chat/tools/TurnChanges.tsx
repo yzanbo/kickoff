@@ -5,6 +5,7 @@ import { LazyDetails } from "@/ui/LazyDetails";
 import { PathParts } from "@/ui/PathParts";
 import { FileIcon } from "@/features/editor/FileIcon";
 import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkContext";
+import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 import type { FileChange } from "./turnFileChanges";
 
 /** 足した行・消した行（＋12 −3）。書き直しは消した行が分からないので足した行だけ（メモの AI の案の差分でも使う） */
@@ -22,7 +23,9 @@ export function ChangeCounts({ added, removed }: { added: number; removed: numbe
  * 押すと右の欄でそのファイルを開く（コミットしていない変更があれば変更のタブのその位置、なければ中身。⌘クリックはファイルタブ・右クリックでほかの開き方）。
  * 見出しの「差分を見る」は、右の欄の変更のタブを、この作業で変えた最初のファイルの位置で開く。作業場所の外のファイル・一覧が読めないときは、押せない行にする
  */
-export function TurnChanges({ files }: { files: FileChange[] }) {
+export function TurnChanges({ files, chatId, resultId }: { files: FileChange[]; chatId: number; resultId: number }) {
+  // 開閉は流れの見え方の店（キーは作業の終わりの記録 ID）
+  const [open, setOpen] = useTimelineOpen(chatId, `ch:${resultId}`);
   const links = useContext(FileLinkContext);
   const added = files.reduce((n, f) => n + f.added, 0);
   const removed = files.reduce((n, f) => n + f.removed, 0);
@@ -34,6 +37,8 @@ export function TurnChanges({ files }: { files: FileChange[] }) {
     // ファイルの一覧は、初めて開いたときに作る
     <LazyDetails
       className="turn-changes"
+      open={open}
+      onOpenChange={setOpen}
       summary={
         <summary>
           <ChevronRight size={13} className="tool-chevron" />
