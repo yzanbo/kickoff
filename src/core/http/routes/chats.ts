@@ -49,7 +49,7 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-export function chatRoutes(app: Hono, { store, runner, approvals, databases, providers, worktreeEnvs, trashBin, userViews }: ServerDeps) {
+export function chatRoutes(app: Hono, { store, bus, runner, approvals, databases, providers, worktreeEnvs, trashBin, userViews }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
@@ -119,7 +119,18 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
     } else {
       events = store.events.list(chat.id);
     }
-    const detail: ChatDetail = { chat, events, has_earlier: hasEarlier, after_missing: afterMissing, approvals: approvals.list({ chatId: chat.id }), live: runner.live(chat.id) };
+    // 書きかけの返答（返答の途中で開いても文の頭から出せる。このあとに届く chat_delta は offset で重なりを捨てる）
+    const streaming = bus.streamingText(chat.id);
+    const detail: ChatDetail = {
+      chat,
+      events,
+      has_earlier: hasEarlier,
+      after_missing: afterMissing,
+      approvals: approvals.list({ chatId: chat.id }),
+      live: runner.live(chat.id),
+      streaming_text: streaming,
+      streaming_length: streaming?.length ?? 0,
+    };
     return c.json(detail);
   });
 

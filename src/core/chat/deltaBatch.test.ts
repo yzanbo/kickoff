@@ -38,9 +38,11 @@ test("ほかの知らせの前に、ためた途中の文を必ず先に流す�
   bus.publish(delta(7, "にちは"));
   bus.publish(other);
   bus.publish(delta(7, "!"));
-  assert.deepEqual(seen, [delta(7, "こんにちは"), other]);
+  // バスが流す途中の文には、書きかけの返答の中の位置 offset が付く（chat/streamingTexts.ts）
+  assert.deepEqual(seen, [{ ...delta(7, "こんにちは"), offset: 0 }, other]);
   bus.flushDeltas();
-  assert.deepEqual(seen, [delta(7, "こんにちは"), other, delta(7, "!")]);
+  assert.deepEqual(seen, [{ ...delta(7, "こんにちは"), offset: 0 }, other, { ...delta(7, "!"), offset: 5 }]);
+  assert.equal(bus.streamingText(7), "こんにちは!");
 });
 
 test("flush でタイマーが止まり、ためた分がないときは何も流さない", () => {
