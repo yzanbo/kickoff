@@ -55,7 +55,8 @@ export default defineConfig({
     worker: { format: "es" },
     server: {
       proxy: {
-        "/api": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false },
+        // ws: 内蔵ターミナルの WebSocket（/api/terminals/:key/ws）も転送する
+        "/api": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false, ws: true },
         // AI が返答に描いた図の枠のページ（コアが図だけの CSP で返す）
         "/visual-frame": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false },
       },

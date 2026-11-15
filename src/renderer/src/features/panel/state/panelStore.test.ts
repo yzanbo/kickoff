@@ -12,9 +12,16 @@ import { panelStateOf } from "./panelStore";
 const { local } = installMemoryStorage();
 beforeEach(() => local.clear());
 
-// 閉じたターミナルのシェルを止めたか（メインプロセスの代わり）
+// 閉じたターミナルのシェルを止めたか（コアの DELETE /api/terminals/:key の代わり）
 const closedShells: string[] = [];
-beforeEach(() => vi.stubGlobal("window", { kickoff: { terminal: { close: async (key: string) => void closedShells.push(key) } } }));
+beforeEach(() => {
+  vi.stubGlobal("window", { kickoff: { terminal: { owner: async () => "wc:1" } } });
+  vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+    const key = /^\/api\/terminals\/([^/]+)$/.exec(url)?.[1];
+    if (init?.method === "DELETE" && key) closedShells.push(decodeURIComponent(key));
+    return new Response(null, { status: 204 });
+  });
+});
 
 const keys = (panel: string) => panelStateOf(panel).tabs.map((t) => t.key);
 const target = (projectId: number) => ({ cwd: `/repo/${projectId}`, label: `p${projectId}`, projectId });

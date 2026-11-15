@@ -24,7 +24,7 @@ import { markMain, startMetricsLog } from "./diagnostics/bootRecorder.js";
 import { registerIpc } from "./ipc/ipc.js";
 import { notifyFromCore } from "./notifications/notifications.js";
 import { hostPlatform } from "./platform/index.js";
-import { setTerminalSessions } from "./terminal/terminals.js";
+import { setTerminalCloser } from "./terminal/terminals.js";
 import { timed } from "../core/system/stallWatch.js";
 
 // メインのコードを読み終えた時刻（起動の時刻の記録。diagnostics/bootRecorder.ts）
@@ -90,8 +90,9 @@ async function start() {
     startMetricsLog();
     // 作業中と、スマホ連携がオンで電源につないでいる間は、本体を眠らせない（app/keepAwake.ts）
     startKeepAwake(core);
-    // 内蔵ターミナルのシェルはコアで動く。この Mac の画面は IPC でつなぐ（terminal/terminals.ts）
-    setTerminalSessions(core.terminals);
+    // 内蔵ターミナルのシェルはコアで動き、画面はコアの WebSocket でつなぐ。画面が消えたら、その画面のシェルを止める（terminal/terminals.ts）
+    const terminals = core.terminals;
+    setTerminalCloser((owner) => terminals.closeOwnedBy(owner));
     startupLog(`コアを起動しました ${core.localUrl}`);
   } catch (e) {
     startupLog(`コアを起動できません: ${errorMessage(e)}`);

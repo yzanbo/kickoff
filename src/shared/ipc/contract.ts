@@ -8,7 +8,6 @@ import type { BootReport, DiagnosticsFolders, DiagnosticsState, RendererMemory }
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { LoginItemState } from "./loginItem";
 import type { NotifyRequest, NotifyResult } from "./notifications";
-import type { TerminalOpenResult, TerminalStart, TerminalTabMeta } from "./terminal";
 
 /** 呼び方の種類: invoke = 画面から呼んで返事を待つ / send = 画面から送るだけ（返事なし） / event = メインから画面への知らせ */
 export type IpcKind = "invoke" | "send" | "event";
@@ -133,19 +132,13 @@ export const NATIVE_API = {
     /** 外す（取得・写したものはフォルダも消す） */
     remove: invoke<[path: string], BrowserExtensionInfo[]>(),
   },
-  /** 内蔵ターミナル（パネルのタブ）。key はタブごとのキー */
+  /**
+   * 内蔵ターミナル（パネルのタブ）。シェルはコアで動き、画面はコアの API（POST /api/terminals・WebSocket）で直接つなぐ。
+   * メインプロセスは画面の生き死にだけを見る（このまとまりがあることが、Mac のアプリでターミナルを使える印）
+   */
   terminal: {
-    /** シェルにつなぐ（なければ cwd で始める。start があれば、そのコマンドを流すタブとして始める。meta はタブの持ち主と名前で、つなぐたびに覚え直す） */
-    open: invoke<[key: string, cwd: string, cols: number, rows: number, start?: TerminalStart, meta?: TerminalTabMeta], TerminalOpenResult>(),
-    /** キー入力 */
-    write: send<[key: string, data: string]>(),
-    resize: send<[key: string, cols: number, rows: number]>(),
-    /** シェルを止める（タブを閉じたとき） */
-    close: invoke<[key: string]>(),
-    /** シェルの出力 */
-    onData: event<[key: string, data: string]>(),
-    /** シェルが終わった */
-    onExit: event<[key: string, exitCode: number]>(),
+    /** この画面の持ち主の印（wc:<WebContents の ID>）。呼んだ画面が消えた・読み込み直したら、メインがその持ち主のシェルを止める */
+    owner: invoke<[], string>(),
   },
   /** Mac の通知 */
   notifications: {
@@ -218,7 +211,7 @@ export interface IpcEntry {
 
 const table = NATIVE_API as Record<string, Record<string, Spec>>;
 
-/** チャンネル名の作り方: 「種類:まとまり.名前」（invoke:terminal.open・send:terminal.write・event:terminal.onData） */
+/** チャンネル名の作り方: 「種類:まとまり.名前」（invoke:terminal.owner・send:notifications.setBadge・event:notifications.onOpenChat） */
 const channelName = (kind: IpcKind, group: string, method: string) => `${kind}:${group}.${method}`;
 
 /** 表の項目のチャンネル名（ほかで手書きしない） */
