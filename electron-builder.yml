@@ -26,6 +26,10 @@ files:
 asarUnpack:
   # Agent SDK が起動する Claude Code のネイティブバイナリは asar の外に置く必要がある
   - node_modules/@anthropic-ai/claude-agent-sdk-*/**
+  # Copilot SDK に同梱の Copilot のランタイム（起動する実行ファイルと runtime.node）と、SDK が読む FFI の koffi も asar の外に置く
+  # （製品版で動くかは、Copilot を使い始める前に確かめる。メモの仕様書「0021」）
+  - node_modules/@github/copilot-sdk-*/**
+  - node_modules/koffi/**
   # 内蔵ターミナルの node-pty（ネイティブのモジュールと spawn-helper）
   - node_modules/node-pty/**
   # 音声入力の「macOS の音声認識」の補助コマンド（native/kickoff-speech をビルドが作る実行ファイル）
