@@ -271,7 +271,7 @@ AI が kickoff_chat の `show_visual` で返答の中に描いた図（SVG・HTM
 - 押したとき（チップ・ターンの変更カード・ツールの行で共通の `open`）: 会話を残したまま、チャットの画面の右の欄（サブエージェントと同じ欄。`panelActions(panelKey("agents", チャット))`）に開く。行の番号があればファイルのタブ（`openFile`。中身でその行を目立たせる）、作業場所にコミットしていない変更があれば変更のタブのそのファイルの位置（`openChanges`。押した時に `api.gitStatus` で `changeOf` を見る）、なければファイルのタブ。右の欄を置けない所ではファイルタブ（`openProjectFile`）。差分はコミットしていない変更すべて（そのターンの分だけではない。ファイルタブの差分と同じ）。
 - ⌘クリックはファイルタブへ直接（`openByClick`）。右クリックはファイルのメニュー `FileMenu`（右の欄で開く・ファイルタブで開く・VS Code / 既定のアプリで開く・Finder で表示（IPC の `externalApps.revealPath`）・パスのコピー（相対・絶対）。`FileLinksProvider` が 1 つだけ描く。チップの右クリックは返答のメニューより先に受け取る）。開く関数は同じものにして、返答の Markdown を描き直させない。
 - 右の欄の中身は `features/editor/CLAUDE.md` の「右の欄の変更とファイル」。
-判定と Markdown の木の書き換え（`remarkFileLinks`）は純粋関数の `fileRefs.ts`（作業場所のファイルの一覧にあるものだけ。インラインコード・リンク先・地の文の絶対パス）。
+判定と Markdown の木の書き換え（`remarkFileLinks`）は純粋関数の `fileRefs.ts`（インラインコード・リンク先・地の文の絶対パス）。remark の差し込みは一覧を受け取らず、作業場所のフォルダだけでパスらしい文字に印を付け（`markFilePaths`・`parsePathCandidate`。設定は作業場所が同じ間は同じ物）、開けるか（一覧にあるか・フォルダを省いた形がどのファイルか）は Markdown のリンクの部品が一覧の小さな店（`fileIndexStore.ts`。`FileLinksProvider` が 1 つ持つ）から自分のパスの結果だけを選んで読む（`resolveFileRef`）。一覧を取り直しても返答の Markdown は解析し直さず、結果の変わったリンクだけが描き直る（新しくできたファイルのパスも、一覧に入ればあとから押せる）。開けないものは元のまま（リンクはふつうのリンク、インラインコードはコード、地の文の絶対パスは元の文字）。メモの仕様書「0023_表示を軽くする」の案 28。
 
 ## AI に渡す（`handoff/`）
 
