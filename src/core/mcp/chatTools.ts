@@ -11,7 +11,7 @@ import { AI_FINISH_WORKTREE_TOOL } from "@shared/chat/aiWorktree";
 import { AI_NOTIFY_USER_TOOL } from "@shared/chat/aiNotify";
 import { AI_GET_USER_VIEW_TOOL } from "@shared/chat/aiUserView";
 import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL } from "@shared/chat/aiChatRemove";
-import { CHAT_TITLE_MAX } from "@shared/types";
+import { CHAT_TITLE_MAX, PROVIDER_IDS, PROVIDER_LABELS } from "@shared/types";
 import type { AiChatEditTools } from "../chat/aiChatEdit.js";
 import type { AiChatReadTools } from "../chat/aiChatRead.js";
 import type { AiCreateChatDecision, AiCreateChatRequest, AiCreateChatTools } from "../chat/aiCreateChat.js";
@@ -78,6 +78,7 @@ const CREATE_INSTRUCTIONS = [
   "worktree_branch を渡すと、その名前の新しいブランチのワークツリーを、このチャットの作業場所のいまのコミットから作り、作ったチャットはそこで動く（書き換える作業を並行して頼めるように）。このチャットのまだコミットしていない変更は入らない（要るなら先にコミットする）。省けば、child と sibling はこのチャットと同じ作業場所、root はプロジェクトの本体。",
   "作ったチャットの答えはこのツールには返らない（作るだけ）。利用者がそのチャットを開いて見る。答えを待たずに、いまの作業を続ける。",
   "inherit は、このチャットの会話を引き継ぐか（既定は child が引き継ぐ、sibling・root は引き継がない）。引き継げるのは、いまの作業より前に終わったところまで。引き継がないときや、いまの作業で分かったこと・頼む理由は text に書く。",
+  "provider は、利用者が別の AI（Codex・Copilot・Cursor など）で頼んだときだけ渡す。違う AI には会話を引き継げないので、経緯と頼む理由は text に書く。",
   "利用者の設定によっては、作る前に利用者に承認を聞く。断られたら、同じ依頼で何度も頼まない。root で作ったチャットはこのチャットの家系の外なので、作ったあと open_chat では開けず、update_chat では名前だけ変えられる。",
 ];
 
@@ -117,9 +118,10 @@ function toDecision(decision: Awaited<ReturnType<ProviderCallbacks["requestAppro
 function approvalText(request: AiCreateChatRequest) {
   const label = AI_CHAT_RELATION_LABELS[request.relation];
   const place = request.group ? `グループ「${request.group}」に入れ、` : "";
+  const ai = request.provider ? `AI は ${PROVIDER_LABELS[request.provider]} で、` : "";
   return {
     title: request.title ? `${label}「${request.title}」を作ろうとしています` : `${label}を作ろうとしています`,
-    description: `作業場所は${request.workplace}です。${place}${request.inherit ? "このチャットの会話を引き継いで" : "会話を引き継がずに"}、下の依頼を送ります。「常に許可」にすると、次からは聞かずに作ります（設定の「チャット」の「AI がチャットを作るとき」で戻せます）。`,
+    description: `作業場所は${request.workplace}です。${ai}${place}${request.inherit ? "このチャットの会話を引き継いで" : "会話を引き継がずに"}、下の依頼を送ります。「常に許可」にすると、次からは聞かずに作ります（設定の「チャット」の「AI がチャットを作るとき」で戻せます）。`,
   };
 }
 
@@ -135,6 +137,7 @@ function createChatTool(createChat: AiCreateChatTools, cb: Pick<ProviderCallback
       group_id: z.number().int().optional().describe("入れるグループの ID（root のときだけ。list_family_chats の groups から）"),
       worktree_branch: z.string().min(1).max(200).optional().describe("新しく作るワークツリーのブランチの名前（省くと、child・sibling はこのチャットと同じ作業場所、root は本体）"),
       inherit: z.boolean().optional().describe("このチャットの会話を引き継ぐか（既定: child は true、sibling・root は false）"),
+      provider: z.enum(PROVIDER_IDS).optional().describe("動かす AI（利用者が「Codex で」「Copilot の子チャットで」などと頼んだときだけ。省くとこのチャットと同じ AI。違う AI には会話を引き継げない）"),
     },
     async (args) => {
       try {

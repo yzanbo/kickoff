@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import type { ProviderId } from "@shared/types";
+import { PROVIDER_IDS, type ProviderId } from "@shared/types";
 import { Bus } from "../bus.js";
 import { ApprovalCenter } from "../chat/approvals.js";
 import { Runner } from "../chat/runner.js";
@@ -23,7 +23,7 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const bus = new Bus();
   const store = new Store(":memory:", (e) => bus.publish(e));
   const approvals = new ApprovalCenter(bus);
-  const providers = { claude: provider, codex: provider, gemini: provider } as Record<ProviderId, AgentProvider>;
+  const providers = Object.fromEntries(PROVIDER_IDS.map((id) => [id, provider])) as unknown as Record<ProviderId, AgentProvider>;
   // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない
   const runner = new Runner({ store, approvals, providers, usage: offlineUsage, bus, tellableWaitMs: 50, ...runnerOptions });
   // プロジェクトのフォルダは一時フォルダの中に作る（隣に作るワークツリーの <repo>-worktrees/ も、テストのあとに一緒に消える）

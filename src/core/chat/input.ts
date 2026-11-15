@@ -5,7 +5,7 @@ import { resolveChatOptions } from "@shared/chat/chatOptions";
 import type { ExecutionDeps } from "./turn.js";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { Attachment, ChatOptionsPatch, GitHubLink, Project } from "@shared/types";
+import type { Attachment, ChatOptionsPatch, GitHubLink, Project, ProviderId } from "@shared/types";
 import { withAttachmentNote } from "./uploads.js";
 import { appendNote, CAPTURE_HEADING, captureLine, MEMO_ATTACHMENT_HEADING, MEMO_SNAPSHOT_HEADING, memoSnapshotLine } from "./attachmentNotes.js";
 import { Invalid, NotFound } from "../http/errors.js";
@@ -43,6 +43,8 @@ export interface StartChatInput {
   github?: GitHubLink;
   /** AI が作った世代（AI の create_chat が作るときだけ。省けば 0 = 利用者が作った） */
   aiGeneration?: number;
+  /** 動かす AI（省けばプロジェクトの AI。メモの仕様書「0021」の Q1。チャットを作ったあとは変えない） */
+  provider?: ProviderId;
 }
 
 /**
@@ -53,14 +55,16 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
   const { store, providers } = deps;
   const project = store.projects.get(input.projectId);
   if (!project) throw new NotFound("プロジェクトが見つかりません");
-  if (!providers[project.provider].implemented) throw new Invalid(`${providers[project.provider].label} はまだ使えません`);
+  // 動かす AI は、指定がなければプロジェクトの AI（チャットごとに選べる。途中では変えない）
+  const providerId = input.provider ?? project.provider;
+  if (!providers[providerId].implemented) throw new Invalid(`${providers[providerId].label} はまだ使えません`);
 
   // チャット欄で指定がなければ、プロジェクトの既定 → アプリ全体の設定の順に使う
   const options = resolveChatOptions(store.settings.get(), project.chat_defaults, input.options);
   const titleText = input.titleText ?? input.prompt;
   const created = store.chats.create({
     project_id: project.id,
-    provider: project.provider,
+    provider: providerId,
     title: input.title ?? firstLine(titleText),
     status: "running",
     ...options,

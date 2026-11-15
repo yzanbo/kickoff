@@ -91,7 +91,7 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
   // 子チャットで聞く（親の作業中でも始められる。inherit なら親の最後まで終わった作業の時点から会話を引き継ぐ）
   app.post("/api/chats/:id/children", withChat, async (c) => {
     const body = childChatSchema.parse(await jsonBody(c));
-    const child = await startChildChat(deps, c.var.chat, { text: body.text, quote: body.quote, inherit: body.inherit, eventId: body.event_id, options: body.options, attachments: body.attachments });
+    const child = await startChildChat(deps, c.var.chat, { text: body.text, quote: body.quote, inherit: body.inherit, eventId: body.event_id, options: body.options, attachments: body.attachments, provider: body.provider });
     return c.json(child, 201);
   });
 

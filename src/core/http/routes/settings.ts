@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { WHISPER_MODEL_IDS } from "../../voice/models.js";
-import { AI_CREATE_CHAT_MODES, OPENAI_TTS_VOICES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
+import { AI_CREATE_CHAT_MODES, OPENAI_TTS_VOICES, PROVIDER_AUTH_MODES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
 import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/chat/autoCompact";
 import { jsonBody } from "../input.js";
 import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, voiceLanguage } from "./schemas.js";
@@ -10,6 +10,7 @@ import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, v
 const settingsSchema = z
   .object({
     default_provider: z.enum(PROVIDER_IDS),
+    provider_auth: z.partialRecord(z.enum(PROVIDER_IDS), z.enum(PROVIDER_AUTH_MODES)),
     remote_enabled: z.boolean(),
     // スマホ連携で端末がつなぐ先（http(s) の URL。null ならなし）
     mobile_url: z.url({ protocol: /^https?$/ }).max(500).nullable(),

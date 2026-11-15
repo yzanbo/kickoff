@@ -14,6 +14,7 @@ import { ViewingRegistry } from "./notifications/viewing.js";
 import { BrowserLogin } from "./http/browserLogin.js";
 import { createApp } from "./http/server.js";
 import { McpToolHost } from "./mcp/host.js";
+import { ProviderKeyVault } from "./providers/keys.js";
 import { Store } from "./db/store.js";
 import { DB_FILE, discardPrereleaseData } from "./db/open.js";
 import { ServiceUsageMonitor } from "./usage/services/index.js";
@@ -188,7 +189,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const userViews = new UserViewRegistry();
   // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ。メモの仕様書「0021」の Q7）
   const mcpTools = new McpToolHost(() => `http://127.0.0.1:${opts.port}`);
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, toolHost: mcpTools, interrupted: recovered });
+  // AI の API キー（DB のパスワードと同じくキーチェーンの鍵で暗号化して置く。メモの仕様書「0021」の Q13）
+  const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, toolHost: mcpTools, providerKeys, interrupted: recovered });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（メモの仕様書「ファイル削除」の Q17）
   trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない。メモの仕様書「ファイル削除」の Q16）
@@ -227,6 +230,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     mcpTools,
+    providerKeys,
     store,
     bus,
     token,

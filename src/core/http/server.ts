@@ -64,6 +64,7 @@ import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, type GitHubAccount, typ
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION, type ApiMismatch } from "@shared/api/version";
 import { createMiddleware } from "hono/factory";
 import { MCP_PATH, type McpToolHost } from "../mcp/host.js";
+import type { ProviderKeyVault } from "../providers/keys.js";
 
 export interface ServerDeps {
   store: Store;
@@ -114,6 +115,8 @@ export interface ServerDeps {
   terminals: TerminalSessions;
   /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。/mcp/<サーバーの名前>） */
   mcpTools: McpToolHost;
+  /** AI の API キー（暗号化して置く。置いたかだけを返す） */
+  providerKeys: ProviderKeyVault;
   /** tailscale のコマンドの場所（OS の口。設定の Tailscale Serve の案内。テストでは偽物） */
   tailscaleCli: () => string | null;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
