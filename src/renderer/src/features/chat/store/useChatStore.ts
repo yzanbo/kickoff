@@ -130,14 +130,18 @@ function useChatOf(chatId: number): Chat | undefined {
 }
 
 /**
- * 1 つのチャットの画面を描くのに要るもの（チャット・プロジェクト・記録の口 log・回答待ち・作業中の様子・読み込みの失敗）を、口ごとの hook から集める。
- * チャットの画面を描く 5 か所（パネルのタブ・右の欄の子チャット・メモのチャット・子チャットとサブエージェントの別ウィンドウ）が使う。
- * 書いている途中の返答は含めない（読む部品だけが口を読む）。中身を描けたら（rAF 2 回）、開いた直後にためていた知らせを 1 回で当てる（案 21）
+ * チャットを開く（チャットの画面を描く 5 か所: パネルのタブ・右の欄の子チャット・メモのチャット・子チャットとサブエージェントの別ウィンドウ）。
+ * 店に見ることを頼み（retain）、チャット・プロジェクト・読み込みの失敗だけを返す（記録・回答待ち・作業中の様子は読まない。
+ * 会話の欄が自分で読むので、隠した会話の欄（Activity）の外の殻は、記録が届くたびに描き直さない。メモの仕様書「0023_表示を軽くする」の M5）。
+ * 中身を描けたら（rAF 2 回）、開いた直後にためていた知らせを 1 回で当てる（案 21）
  */
-export function useChatContent(chatId: number, visible: boolean) {
+export function useOpenChat(chatId: number, visible: boolean) {
   useChatRetain(chatId, visible);
-  const { chat, approvals, live, error } = useChatDetailView(chatId);
-  const log = useChatLog(chatId);
+  const chat = useChatOf(chatId);
+  const error = useSyncExternalStore(
+    (l) => chatStore.subscribe(chatId, "detail", l),
+    () => chatStore.detail(chatId).error,
+  );
   // チャットのプロジェクト（プロジェクトの店から。名前・参照資料などを変えたら、開いている間も直る）。
   // チャット自身のプロジェクトで引く（別のプロジェクトへ移したら、タブが知るのを待たずに移した先のものになる）
   const { projectsById } = useProjects();
@@ -154,7 +158,22 @@ export function useChatContent(chatId: number, visible: boolean) {
       cancelAnimationFrame(second);
     };
   }, [chatId, loaded]);
-  return { chat, project, log, approvals, live, error };
+  return { chat, project, error };
+}
+
+/** いちばん新しいメインの AI の返答の文（サブエージェントの文は除く。なければ ""。文が変わったときだけ描き直す。子チャットの上の帯の「最新の答えを引用して渡す」） */
+export function useLatestAnswer(chatId: number): string {
+  return useSyncExternalStore(
+    (l) => chatStore.subscribe(chatId, "log", l),
+    () => {
+      const { tail } = chatStore.log(chatId);
+      for (let i = tail.length - 1; i >= 0; i--) {
+        const e = tail[i];
+        if (e.type === "text" && !e.data.parent) return e.data.text;
+      }
+      return "";
+    },
+  );
 }
 
 /** いくつかの口のどれかが変わったら読み直す（取り出し口の値は、入力が同じなら同じ物） */

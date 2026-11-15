@@ -2,7 +2,7 @@ import { useMemo, useRef, type MutableRefObject, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { useCoverableWidth } from "@/hooks/useCoverableWidth";
 import { SUBAGENT_PANEL_MAXIMIZED, SUBAGENT_PANEL_WIDTH } from "@/lib/storageKeys";
-import type { SidePanelHandle } from "@/features/chat/pane/useChatView";
+import type { SidePanelHandle } from "@/features/chat/pane/useChatPaneActions";
 import { usePanelHost } from "@/features/panel/panelHost";
 import type { PanelFrame } from "@/features/panel/PanelTools";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";

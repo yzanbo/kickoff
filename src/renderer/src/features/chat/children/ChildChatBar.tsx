@@ -1,7 +1,8 @@
 import { ArrowUpLeft, ChevronDown, ChevronRight, ClipboardPenLine, Inbox, Quote } from "lucide-react";
 import { Fragment, useEffect, useRef, type ReactNode } from "react";
 import { childDepthLabel } from "@shared/chat/childDepth";
-import type { Chat, ChatEvent } from "@shared/types";
+import type { Chat } from "@shared/types";
+import { useLatestAnswer } from "@/features/chat/store/useChatStore";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import { useChatRename, type ChatTitleEditor } from "@/features/chat/useChatRename";
@@ -35,17 +36,14 @@ type Below = Pick<Chat, "id" | "parent_chat_id" | "parent_event_id">;
  */
 export function ChildChatBar({
   chat,
-  events,
   extra,
 }: {
   chat: Chat;
-  events: readonly ChatEvent[];
   /** 右の端に足すボタン（別ウィンドウの「右の欄に戻す」） */
   extra?: ReactNode;
 }) {
-  // いちばん新しいメインの AI の返答（サブエージェントの文は除く）
-  const answer = [...events].reverse().find((e) => e.type === "text" && !e.data.parent);
-  const answerText = answer?.type === "text" ? answer.data.text : "";
+  // いちばん新しいメインの AI の返答（サブエージェントの文は除く。文が変わったときだけ描き直す = 会話の欄を隠していても、記録のたびには描き直さない）
+  const answerText = useLatestAnswer(chat.id);
   if (chat.parent_chat_id === null) return <ChildBarFrame parentId={null} self={chat} title={chatTitle(chat.title)} extra={extra} />;
   return (
     <ChildBarFrame
