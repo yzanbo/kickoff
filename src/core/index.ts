@@ -112,7 +112,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
 
   const token = loadOrCreateToken(opts.dataDir);
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
-  const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform));
+  // AI の API キー（DB のパスワードと同じくキーチェーンの鍵で暗号化して置く。メモの仕様書「0021」の Q13）
+  const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
+  const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform), (id) => providerKeys.authFor(id));
   // 使用枠は Claude のプランから取得する（Codex 対応時にプロバイダーごとに拡張する）
   const usage = new UsageMonitor(providers.claude, bus);
   // 設定の「使用状況」に並べる、ほかのサービス（Codex・Copilot・Cursor・Gemini）の使用状況
@@ -189,8 +191,6 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const userViews = new UserViewRegistry();
   // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ。メモの仕様書「0021」の Q7）
   const mcpTools = new McpToolHost(() => `http://127.0.0.1:${opts.port}`);
-  // AI の API キー（DB のパスワードと同じくキーチェーンの鍵で暗号化して置く。メモの仕様書「0021」の Q13）
-  const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, toolHost: mcpTools, providerKeys, interrupted: recovered });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（メモの仕様書「ファイル削除」の Q17）
   trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
