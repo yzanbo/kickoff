@@ -20,12 +20,15 @@ import { watchWebviewConsoles } from "./browser/webviewConsole.js";
 import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
 import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
 import { watchMainStalls } from "./diagnostics/stalls.js";
+import { markMain, startMetricsLog } from "./diagnostics/bootRecorder.js";
 import { registerIpc } from "./ipc/ipc.js";
 import { notifyFromCore } from "./notifications/notifications.js";
 import { hostPlatform } from "./platform/index.js";
 import { setTerminalSessions } from "./terminal/terminals.js";
 import { timed } from "../core/system/stallWatch.js";
 
+// メインのコードを読み終えた時刻（起動の時刻の記録。diagnostics/bootRecorder.ts）
+markMain("mainLoaded");
 // 1. 名前・保存先を決め、起動の記録を始める（~/Library/Logs/<アプリ名>/startup.log。入れ替えた直後だけ画面が出ないことの原因を追うため）
 const { port, devUrl } = setupEnvironment();
 logLaunch();
@@ -54,6 +57,7 @@ if (!app.requestSingleInstanceLock()) {
 
 /** 準備ができたら: コア（DB・エージェント・HTTP API）→ 画面のセッション → IPC・メニュー → ウィンドウ */
 async function start() {
+  markMain("whenReady");
   startupLog("whenReady");
   // OS ごとに違う処理の口（platform/index.ts で選ぶ。いまは macOS だけ）
   timed("boot:loadLoginShellPath", () => hostPlatform.loadLoginShellPath())();
@@ -64,6 +68,7 @@ async function start() {
   try {
     // 開発時は electron-vite の dev サーバーが画面を配り、本番はコアが配る
     // AI には埋め込みブラウザの操作も渡す（browser/agentBrowser.ts）
+    markMain("coreStart");
     core = await startCore({
       dataDir: app.getPath("userData"),
       port,
@@ -79,7 +84,10 @@ async function start() {
       // 通知を出すかはコアが決め、Mac の通知はここで出す（notifications/notifications.ts）
       notify: notifyFromCore,
     });
+    markMain("coreReady");
     setDiagnosticsCore(core);
+    // 60 秒ごとにプロセスと画面のメモリを metrics.jsonl に書く
+    startMetricsLog();
     // 作業中と、スマホ連携がオンで電源につないでいる間は、本体を眠らせない（app/keepAwake.ts）
     startKeepAwake(core);
     // 内蔵ターミナルのシェルはコアで動く。この Mac の画面は IPC でつなぐ（terminal/terminals.ts）
