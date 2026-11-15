@@ -32,6 +32,12 @@ export interface BashSandboxDeps {
 /** OS によらないキャッシュ（ホームフォルダからの場所。npm・pnpm・yarn・bun と XDG のキャッシュ） */
 export const HOME_CACHE_DIRS = [".npm", ".cache", ".pnpm-store", ".yarn", ".bun"];
 
+/**
+ * 道具が自分の状態を書くフォルダ（ホームフォルダからの場所）。docker build（buildx）はビルダーの一覧・ビルドの記録を書く（2026-11-15 に砂場で止まるのを確かめた）。
+ * 認証の情報の入る ~/.docker/config.json（docker login）は利用者の設定なので、~/.docker 全体は入れない
+ */
+export const HOME_STATE_DIRS = [path.join(".docker", "buildx")];
+
 /** Electron を起動する（Electron のアプリを動かす）スクリプトの見分け方（electron . / electron-vite dev・preview / electron-forge start） */
 const ELECTRON_LAUNCH = /(^|[\s;&|(])(electron(\s|$)|electron-vite\s+(dev|preview)\b|electron-forge\s+start\b)/;
 
@@ -88,7 +94,7 @@ function realDirs(dirs: (string | null)[]): string[] {
 
 /**
  * このチャットの実行の砂場を作る。書ける = 作業場所・メモのフォルダ・決まりの例外（共有の .git・Claude Code のサブエージェントのワークツリー・ゴミ箱・
- * 一時フォルダ・キャッシュ・パッケージの置き場）。利用者の設定ファイル（~/.gitconfig・~/.zshrc・~/.claude.json など）は入れない
+ * 一時フォルダ・キャッシュ・道具の状態（docker の buildx）・パッケージの置き場）。利用者の設定ファイル（~/.gitconfig・~/.zshrc・~/.claude.json など）は入れない
  */
 export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, memoDir, readOnlyDirs }: { workdir: string; memoDir: string | null; readOnlyDirs: string[] }): Promise<BashSandbox> {
   const home = os.homedir();
@@ -96,7 +102,7 @@ export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, memoDir, 
   // Claude Code のサブエージェントのワークツリー（isolation: "worktree"。<リポジトリ>/.claude/worktrees/<名前>）。共有の .git が <リポジトリ>/.git のときだけ分かる
   const subagentWorktrees = commonDir && path.basename(commonDir) === ".git" ? path.join(path.dirname(commonDir), ".claude", "worktrees") : null;
   return {
-    writableDirs: realDirs([workdir, memoDir, commonDir, subagentWorktrees, deps.trashDir, ...HOME_CACHE_DIRS.map((d) => path.join(home, d)), ...platformDirs]),
+    writableDirs: realDirs([workdir, memoDir, commonDir, subagentWorktrees, deps.trashDir, ...[...HOME_CACHE_DIRS, ...HOME_STATE_DIRS].map((d) => path.join(home, d)), ...platformDirs]),
     readOnlyDirs: realDirs(readOnlyDirs),
     unsandboxedCommands: [...new Set([...deps.rules.unsandboxedCommands, ...electronCommands])],
     proxyPort: deps.proxyPort,

@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { gitRepo } from "../../testing/gitRepo.js";
 import { tempDir } from "../../testing/tempDir.js";
-import { bashSandboxFor, electronLaunchScripts, ELECTRON_DIRECT_COMMANDS, HOME_CACHE_DIRS, scriptRunCommands } from "./bashSandbox.js";
+import { bashSandboxFor, electronLaunchScripts, ELECTRON_DIRECT_COMMANDS, HOME_CACHE_DIRS, HOME_STATE_DIRS, scriptRunCommands } from "./bashSandbox.js";
 
 const rules = (dirs: string[] = [], commands: string[] = []) => ({ writableDirs: async () => dirs, unsandboxedCommands: commands });
 
@@ -44,7 +44,9 @@ test("書ける場所: 作業場所・メモのフォルダ・共有の .git・�
   for (const dir of [wt, memo, path.join(repo.dir, ".git"), path.join(repo.dir, ".claude", "worktrees"), trash, "/opt/somewhere"]) {
     assert.ok(sandbox.writableDirs.includes(dir), `${dir} が書ける場所にない: ${sandbox.writableDirs.join(", ")}`);
   }
-  for (const d of HOME_CACHE_DIRS) assert.ok(sandbox.writableDirs.some((w) => w.endsWith(path.sep + d)), `${d} がない`);
+  for (const d of [...HOME_CACHE_DIRS, ...HOME_STATE_DIRS]) assert.ok(sandbox.writableDirs.some((w) => w.endsWith(path.sep + d)), `${d} がない`);
+  // docker の buildx は書けるが、認証の情報の入る ~/.docker 全体は書けない
+  assert.ok(!sandbox.writableDirs.some((w) => w.endsWith(`${path.sep}.docker`)));
   // 本体の作業ファイル・ホームそのものは書けない
   assert.ok(!sandbox.writableDirs.includes(repo.dir));
   assert.ok(!sandbox.writableDirs.includes(fs.realpathSync(home)));
