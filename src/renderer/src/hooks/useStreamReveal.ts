@@ -6,11 +6,13 @@ const IDLE = { text: "", bands: [] as number[] };
 /**
  * 伸びていく文（生成中の返答）を、届いた塊のまま一度に出さず、フレームごとに少しずつ出す（遅れが大きいほど速く追いつく）。
  * 返すのは、いま出す文と、出たばかりの文字を出てからの時間で分けた段の数（新しい順。`Markdown` の `tail` に渡して薄く出す）。
- * 前の文の続きでなければ（別の返答・空になった）初めから。動きを減らす設定のときは、そのまま出す
+ * 前の文の続きでなければ（別の返答・空になった）初めから。動きを減らす設定のときは、そのまま出す。
+ * visible が false の間（見えていないチャット）は rAF を回さず描き直さない。表に出たら、そのときの最新の文を一度に出す
+ * （裏で溜まった分を少しずつ流し直さない。メモの仕様書「0023_表示を軽くする」の案 6a）
  */
-export function useStreamReveal(target: string): { text: string; bands: number[] } {
+export function useStreamReveal(target: string, visible = true): { text: string; bands: number[] } {
   const [view, setView] = useState(IDLE);
-  const state = useRef({ source: "", shown: 0, marks: [] as RevealMark[], frame: 0, last: 0 });
+  const state = useRef({ source: "", shown: 0, marks: [] as RevealMark[], frame: 0, last: 0, paused: false });
 
   useEffect(() => {
     const s = state.current;
@@ -19,6 +21,22 @@ export function useStreamReveal(target: string): { text: string; bands: number[]
       s.marks = [];
     }
     s.source = target;
+    if (!visible) {
+      // 見えていない: 止めて、表に出るまで描き直さない
+      cancelAnimationFrame(s.frame);
+      s.frame = 0;
+      s.last = 0;
+      s.paused = true;
+      return;
+    }
+    if (s.paused) {
+      // 表に出た: 最新の文を一度に出す（ここから先に届いた分は、また少しずつ）
+      s.paused = false;
+      s.shown = target.length;
+      s.marks = [];
+      setView(target ? { text: target, bands: [] } : IDLE);
+      return;
+    }
     if (!target || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       cancelAnimationFrame(s.frame);
       s.frame = 0;
@@ -43,7 +61,7 @@ export function useStreamReveal(target: string): { text: string; bands: number[]
       }
     };
     if (!s.frame) s.frame = requestAnimationFrame(tick);
-  }, [target]);
+  }, [target, visible]);
 
   // 外したら止める（予約の印も戻す。StrictMode などで付け直したとき、予約済みと思い込んで動かなくならないように）
   useEffect(() => {

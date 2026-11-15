@@ -148,7 +148,7 @@ export function ChatTimeline({
               以降の発言を表示（あと {w.hiddenAfter} 件）
             </button>
           ) : (
-            <TimelineEnd chat={chat} busy={busy} streaming={streaming} approvals={approvals} working={working} live={live} agents={agents} events={events} scroll={scroll} />
+            <TimelineEnd chat={chat} busy={busy} streaming={streaming} visible={visible} approvals={approvals} working={working} live={live} agents={agents} events={events} scroll={scroll} />
           )}
         </div>
       </div>
