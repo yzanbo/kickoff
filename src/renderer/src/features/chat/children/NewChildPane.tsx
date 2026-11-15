@@ -1,6 +1,6 @@
 import { MessageSquarePlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { Attachment, Chat } from "@shared/types";
+import { PROVIDER_LABELS, type Attachment, type Chat, type ProviderId } from "@shared/types";
 import { api } from "@/api";
 import { useKnownChat, addChat } from "@/stores/chats";
 import { Composer } from "@/features/chat/composer/Composer";
@@ -19,6 +19,8 @@ import { reportFailure } from "@/ui/dialogs";
 import { quoteComment } from "@/features/chat/messages/quoteComment";
 import { NewChildBar } from "./ChildChatBar";
 import { InheritChoice } from "./InheritChoice";
+import { ChatProviderContext } from "@/features/chat/provider/chatProvider";
+import { ProviderPicker } from "@/features/chat/provider/ProviderChips";
 
 /** 作ったときに渡すもの（always: 聞かずに「引き継いで開く」で作ったとき。設定が「開かない」でも開く） */
 type OnCreated = (child: Chat, opts: { always: boolean }) => void;
@@ -54,8 +56,12 @@ export function NewChildPane({ parentId, ...rest }: Props) {
 
 function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachments, eventId, onCreated }: Omit<Props, "parentId"> & { parent: Chat }) {
   // 選択（モデルなど）は親から引き継がず、新しいチャットと同じく設定どおり（プロジェクトの既定 → 設定の既定）から始める。このタブで変えたものだけ効かせる
-  const options = useChatOptions(undefined, parent.project_id, parent.worktree_path ?? undefined);
-  const [inherit, setInherit] = useState(true);
+  // 使う AI（初めは親と同じ。選び直せ、親と違う AI なら会話は引き継がない。メモの仕様書「0021」の Q8）
+  const [provider, setProvider] = useState<ProviderId>(parent.provider);
+  const otherAi = provider !== parent.provider;
+  const options = useChatOptions(undefined, parent.project_id, parent.worktree_path ?? undefined, provider);
+  const [inheritChoice, setInherit] = useState(true);
+  const inherit = inheritChoice && !otherAi;
   const project = useProjects().projectsById.get(parent.project_id);
   const shows = useChatHeaderItems();
   const composer = useRef<ComposerHandle | null>(null);
@@ -69,7 +75,7 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
   // 最初の文を送って子チャットを作る（チャット欄の送信と、定型文の帯の ⌘クリック・「すぐ送る」で共通）
   const start = async (prompt: string, attachments: Attachment[]) => {
     // 選んだ文は入力欄の文に入れて送るので、quote は送らない
-    const child = await api.createChildChat(parent.id, { text: prompt, attachments, quote: null, inherit, event_id: eventId ?? null, options: options.options });
+    const child = await api.createChildChat(parent.id, { text: prompt, attachments, quote: null, inherit, event_id: eventId ?? null, provider, options: options.options });
     // 作った知らせより先に一覧へ入れる（入力欄の上の札・タブの状態の印にすぐ出す）
     addChat(child);
     onCreated(child, { always: false });
@@ -98,6 +104,7 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
             <>
               {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
               {shows("worktree") && <WorktreeChip chat={parent} />}
+              <ProviderPicker value={provider} onChange={setProvider} tipPrefix="この AI で子チャットを始めます" />
             </>
           }
           hero={
@@ -111,11 +118,16 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
           }
         >
           {/* 会話を引き継ぐか（初めは引き継ぐ。書きながら目に入るよう、入力欄のすぐ上に置く） */}
-          <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" onOpen={() => void openOnly()} opening={opening} />
+          {otherAi ? (
+            <p className="muted small">{PROVIDER_LABELS[provider]} は親のチャットと違う AI なので、会話は引き継がずに新しく始めます</p>
+          ) : (
+            <InheritChoice inherit={inheritChoice} onChange={setInherit} parentLabel="親のチャット" onOpen={() => void openOnly()} opening={opening} />
+          )}
           {/* 会話が始まったあとのチャット欄と同じピルの列（いまはメモだけ。中身のないピルは出さない） */}
           <div className="composer-chips">
             <MemoChip projectId={parent.project_id} chatId={null} onAttach={(path) => void api.memoSnapshot(parent.project_id, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("メモを添付できませんでした"))} />
           </div>
+          <ChatProviderContext.Provider value={provider}>
           <Composer
             chatContext={{ projectId: parent.project_id }}
             options={options}
@@ -130,6 +142,7 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
             trailing={<ContextMeter chat={null} projectId={parent.project_id} compacting={null} reserved={null} afterTurn={false} />}
             onSend={start}
           />
+          </ChatProviderContext.Provider>
         </DraftChatPage>
       </div>
     </div>

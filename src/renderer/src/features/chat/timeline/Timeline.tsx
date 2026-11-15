@@ -26,6 +26,7 @@ import { CompactedRow } from "@/features/chat/status/CompactingRow";
 import { requestHandoff } from "@/features/chat/children/handoff";
 import { AddToParentButton } from "@/features/chat/children/AddToParentButton";
 import { HandoffMarks } from "@/features/chat/children/HandoffMarks";
+import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -138,6 +139,8 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs, bus
   const data = event.data;
   const chat = useKnownChat(event.chat_id);
   const child = chat && chat.parent_chat_id !== null && !chat.archived_at ? chat : undefined;
+  // そのチャットの AI で分岐できなければ、押せない形にして理由を出す（メモの仕様書「0021」の Q4）
+  const forkBlock = useFeatureBlock("fork");
   const status = data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${data.text ?? ""}` : null;
   const worked = turnStart && formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
   if (!status && !worked && !turnText) return null;
@@ -154,10 +157,11 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs, bus
         <IconButton
           icon={GitBranch}
           label="ここから分岐"
-          title="ここから分岐（この時点までの会話で新しいチャットを始める。ファイルの変更は戻さない）"
+          title={forkBlock ?? "ここから分岐（この時点までの会話で新しいチャットを始める。ファイルの変更は戻さない）"}
           size={13}
           type="button"
           className="turn-action"
+          disabled={forkBlock !== null}
           onClick={() =>
             void api
               .forkChat(event.chat_id, event.id)

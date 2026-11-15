@@ -260,7 +260,7 @@ export class MemoService {
   private async ask(project: Project, prompt: string): Promise<string> {
     const provider = this.opts.providers[project.provider];
     if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、メモの整理・まとめに対応していません");
-    const answer = await provider.ask(prompt, { model: "sonnet" }).catch(asInvalid);
+    const answer = await provider.ask(prompt, { model: "standard" }).catch(asInvalid);
     if (!answer.trim()) throw new Invalid("AI から答えがありませんでした");
     return answer;
   }

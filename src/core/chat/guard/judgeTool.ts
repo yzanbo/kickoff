@@ -1,0 +1,94 @@
+import type { ProviderTurnParams } from "../../providers/types.js";
+import { realPathOrSelf } from "../../system/paths.js";
+import { evaluateDeleteCommand } from "./deleteGuard.js";
+import { DOCKER_GUARD_DENIED } from "./dockerGuard.js";
+import { evaluateHiddenDbAccess } from "./hiddenDb.js";
+import { evaluateReferenceWrite, evaluateUntrackedWrite, writeTargetOf } from "./scope.js";
+import { evaluateSelfProtection, type SelfInfo } from "./selfProtection.js";
+import { judgeFileWrite, WRITE_SCOPE_DENIED } from "./writeScope.js";
+
+/**
+ * Kickoff の守りを、ツールの呼び出しの形によらずまとめて当てる（プロバイダー非依存。メモの仕様書「0021」の Q3）。
+ * Claude Code は PreToolUse のフックで 1 つずつ当てる（providers/claude/policy.ts）。フックを持たず、承認の頼みで聞いてくる CLI
+ * （Codex の app-server・ACP など）は、聞かれたコマンド・書く先をここで判定する。
+ * deny = 断る（理由を AI に伝える）/ ask = 承認カードで聞く（断られたら deniedReason を AI に伝える）/ pass = 守りは何も言わない（権限モードに任せる）
+ */
+export type GuardVerdict =
+  | { kind: "pass" }
+  | { kind: "deny"; reason: string }
+  | { kind: "ask"; title: string; description: string; deniedReason: string; /** 「このチャットでは許可」で覚える書く先（書き込み先の守りのときだけ） */ rememberTarget?: string };
+
+/** 判定に使うもの（実行に渡されたものと、CLI ごとの書ける場所の例外） */
+export interface GuardContext {
+  params: Pick<ProviderTurnParams, "cwd" | "readOnlyPaths" | "untrackedOnly" | "hiddenDb" | "deleteGuard" | "dockerGuard" | "writeScope">;
+  self?: SelfInfo;
+  /** CLI の決まりの例外で、いつも書けるフォルダ（Claude Code の計画のフォルダなど。なければ空） */
+  extraWritableDirs?: string[];
+}
+
+type Decision = { decision: "pass" } | { decision: "deny"; reason: string };
+const firstDeny = (decisions: Decision[]): GuardVerdict | null => {
+  const denied = decisions.find((d): d is { decision: "deny"; reason: string } => d.decision === "deny");
+  return denied ? { kind: "deny", reason: denied.reason } : null;
+};
+
+/** シェルのコマンドを流す前の判定（自分を守る・［AI で整える］・見せない DB・消すコマンドは断り、ほかの作業場所の Docker は聞く） */
+export async function judgeCommand(ctx: GuardContext, command: string): Promise<GuardVerdict> {
+  const { params, self } = ctx;
+  const input = { command };
+  const denied = firstDeny([
+    ...(self ? [evaluateSelfProtection(self, "Bash", input)] : []),
+    ...(params.untrackedOnly ? [await evaluateUntrackedWrite(params.cwd, "Bash", input)] : []),
+    ...(params.hiddenDb?.length ? [evaluateHiddenDbAccess(params.hiddenDb, "Bash", input)] : []),
+    ...(params.deleteGuard ? [evaluateDeleteCommand("Bash", input)] : []),
+  ]);
+  if (denied) return denied;
+  if (params.dockerGuard) {
+    // 判定に失敗したら（docker が答えないなど）通す（守りはうっかりを防ぐもので、AI の作業を止めない）
+    const ask = await params.dockerGuard.check(command).catch(() => null);
+    if (ask) return { kind: "ask", title: ask.title, description: ask.description, deniedReason: DOCKER_GUARD_DENIED };
+  }
+  return { kind: "pass" };
+}
+
+/** ファイルを書く前の判定（自分を守る・参照資料・［AI で整える］・見せない DB は断り、書き込み先の守りはほかの作業場所を断り外を聞く） */
+export async function judgeWritePath(ctx: GuardContext, filePath: string): Promise<GuardVerdict> {
+  const { params, self } = ctx;
+  const input = { file_path: filePath };
+  const denied = firstDeny([
+    ...(self ? [evaluateSelfProtection(self, "Write", input)] : []),
+    ...(params.readOnlyPaths?.length ? [evaluateReferenceWrite(params.cwd, params.readOnlyPaths, "Write", input)] : []),
+    ...(params.untrackedOnly ? [await evaluateUntrackedWrite(params.cwd, "Write", input)] : []),
+    ...(params.hiddenDb?.length ? [evaluateHiddenDbAccess(params.hiddenDb, "Write", input)] : []),
+  ]);
+  if (denied) return denied;
+  const scope = params.writeScope;
+  if (!scope) return { kind: "pass" };
+  const target = writeTargetOf(params.cwd, "Write", input);
+  if (target === null || scope.allowed.has(target)) return { kind: "pass" };
+  const judged = await judgeFileWrite(target, {
+    workdir: realPathOrSelf(params.cwd),
+    writableDirs: [...scope.writableDirs, ...(ctx.extraWritableDirs ?? [])],
+    memoryParents: [],
+    workplaces: scope.workplaces,
+  });
+  if (judged.kind === "ask") return { kind: "ask", title: judged.title, description: judged.description, deniedReason: WRITE_SCOPE_DENIED, rememberTarget: target };
+  return judged;
+}
+
+/** ファイルを読む前の判定（自分の保存先・見せない DB の SQLite のファイルは断る。読むことはほかに絞らない）。聞いてくる CLI（Copilot の read の承認）だけが使う */
+export function judgeReadPath(ctx: GuardContext, filePath: string): GuardVerdict {
+  const { params, self } = ctx;
+  const input = { file_path: filePath };
+  return (
+    firstDeny([
+      ...(self ? [evaluateSelfProtection(self, "Read", input)] : []),
+      ...(params.hiddenDb?.length ? [evaluateHiddenDbAccess(params.hiddenDb, "Read", input)] : []),
+    ]) ?? { kind: "pass" }
+  );
+}
+
+/** 断られたときに AI に返す文（利用者の言葉があれば添える） */
+export function deniedWithWords(reason: string, words: string | undefined): string {
+  return words ? `${reason}（利用者の言葉: ${words}）` : reason;
+}

@@ -5,6 +5,7 @@ import { ServerInfoRows } from "@/features/footer/ServerInfo";
 import { ErrorText } from "@/ui/ErrorText";
 import { GitHubStatusCard, StatusCard } from "@/ui/StatusCard";
 import { PLANNED_BADGE, usePlannedProviders } from "./plannedProviders";
+import { ProviderAuthSettings } from "./ProviderAuthSettings";
 
 /**
  * 設定: Kickoff サーバー（アドレス・起動した時刻・実行中のエージェント・スマホ連携）と、AI エージェントと GitHub の CLI のログイン状態。
@@ -31,7 +32,7 @@ export function ConnectionSettings() {
           再確認
         </button>
       </div>
-      <p className="muted small">AI エージェントと GitHub は、Mac にインストールされた各 CLI のログインをそのまま使います（API キーは不要です）。</p>
+      <p className="muted small">AI エージェントと GitHub は、Mac にインストールされた各 CLI のログインをそのまま使います（AI は下の「AI のログインの仕方」で API キーにも切り替えられます）。</p>
       {planned.note && <p className="muted small">{planned.note}いまは CLI が入っているかだけを確かめます。</p>}
       <div className="card-grid">
         <StatusCard
@@ -67,6 +68,7 @@ export function ConnectionSettings() {
         )}
         <GitHubStatusCard github={github} />
       </div>
+      {providers.data && <ProviderAuthSettings providers={providers.data} />}
       <ErrorText message={providers.error} />
     </section>
   );

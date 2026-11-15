@@ -4,9 +4,7 @@ import { runCommand } from "../system/exec.js";
 
 /**
  * まだ Kickoff から使えない（対応予定の）プロバイダー。状態の表示のため、CLI が入っているかだけ確かめる。
- * - Codex: @openai/codex-sdk 経由で `codex` CLI を起動し、`codex login` の認証をそのまま使う想定。
- * - Gemini: `gemini` CLI（Gemini CLI）のログインを使う想定。
- * どちらも Kickoff のツールは MCP サーバーとして渡す。
+ * 本物の実装（codex/・copilot/・acp/）は、本物の CLI・アカウントで確かめるまで開発用の環境変数のときだけ使う（index.ts の experimentalProviders）
  */
 export class PlannedProvider implements AgentProvider {
   readonly implemented = false;

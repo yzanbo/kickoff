@@ -17,6 +17,7 @@ import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import { openCreatedChild } from "@/features/chat/children/openChild";
 import type { SubagentsView } from "./subagentsContext";
+import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
 
 type AskMode = "relay" | "child";
 
@@ -45,6 +46,7 @@ const ASK_MODE_HELP: Record<AskMode, string> = {
 export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry: SubagentEntry; view: SubagentsView; autoFocus?: boolean; onSent?: () => void }) {
   const { agentId, description } = entry;
   const [mode, setMode] = useSetting(SUBAGENT_ASK_MODE);
+  const logBlock = useFeatureBlock("subagent_log");
   const [queueMode, setQueueMode] = useQueueMode();
   // 子チャットで聞くときの選択（新しいチャットと同じく、プロジェクトの既定 → 設定の既定から）
   const options = useChatOptions(undefined, view.projectId, view.worktree ?? undefined);
@@ -62,7 +64,8 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
     onSent?.();
     openCreatedChild(child);
   };
-  const child = mode === "child";
+  // そのチャットの AI がサブエージェントの会話の記録を読めなければ、子チャットで聞けない（メモの仕様書「0021」の Q4）
+  const child = mode === "child" && !logBlock;
   const send = (text: string, attachments: Attachment[], sendMode?: QueueSendMode) => (child ? ask(text, attachments) : relay(text, attachments, sendMode));
   const later = !child && view.busy && queueMode === "queue";
   const placeholder = child
@@ -78,10 +81,10 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
         <Segmented<AskMode>
           className="segmented inherit-choice-switch"
           label="サブエージェントへの送り先"
-          value={mode}
+          value={child ? "child" : "relay"}
           options={[
             { value: "relay", label: ASK_MODE_LABELS.relay, tip: `${ASK_MODE_LABELS.relay}（${ASK_MODE_HELP.relay}。終わっていれば、終わったところから再開します）` },
-            { value: "child", label: ASK_MODE_LABELS.child, tip: `${ASK_MODE_LABELS.child}（${ASK_MODE_HELP.child}）` },
+            { value: "child", label: ASK_MODE_LABELS.child, tip: logBlock ?? `${ASK_MODE_LABELS.child}（${ASK_MODE_HELP.child}）`, disabled: logBlock !== null },
           ]}
           onChange={setMode}
         />

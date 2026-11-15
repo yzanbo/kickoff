@@ -1,6 +1,6 @@
 import type { AgentProvider } from "../providers/types.js";
 import type { Store } from "../db/store.js";
-import type { ProviderId, Chat } from "@shared/types";
+import { providerFeatureMissing, type ProviderId, type Chat } from "@shared/types";
 import { asInvalid, Invalid } from "../http/errors.js";
 
 /**
@@ -15,7 +15,7 @@ export async function forkChat(deps: { store: Store; providers: Record<ProviderI
   // 最後まで終わった作業の終わりからだけ分岐できる（止めた・失敗した作業の最後のメッセージはセッションに残らないことがある）
   if (point?.status !== "completed" || !point.session_id || !point.message_id) throw new Invalid("この時点からは分岐できません");
   const provider = providers[chat.provider];
-  if (!provider.fork) throw new Invalid(`${provider.label} は分岐に対応していません`);
+  if (!provider.fork) throw new Invalid(providerFeatureMissing(provider.label, "fork"));
   const sessionId = await provider.fork(point.session_id, point.message_id, cwd).catch(asInvalid);
 
   const forked = store.chats.create({

@@ -1,0 +1,41 @@
+// チャットの AI（メモの仕様書「0021_Codex・Copilot・Cursor 対応」の Q1・Q4・Q8・Q13）の、画面で使う純粋な決まり:
+// 選べるか（対応予定は選べない）・その AI にない機能の理由・API キーで動かすか（使った分の支払い）
+import { PROVIDER_LABELS, providerFeatureMissing, type ProviderFeature, type ProviderId, type ProviderStatus } from "@shared/types";
+
+/** API キーで動かす AI に添える印（設定・チャットの AI の札） */
+export const PAY_PER_USE_LABEL = "使った分の支払い";
+
+/** サブスクでは使わず、API キーでだけ動かす AI（Gemini（Antigravity）は定額のプランとしては扱わない。Q11） */
+export const API_KEY_ONLY_PROVIDERS: ReadonlySet<ProviderId> = new Set<ProviderId>(["gemini"]);
+
+/** AI の名前（状態がまだ届いていなくても出せるように、共有の名前から） */
+export const providerLabel = (id: ProviderId, status?: ProviderStatus): string => status?.label ?? PROVIDER_LABELS[id];
+
+/** 一覧からその AI の状態 */
+export const statusOf = (statuses: readonly ProviderStatus[] | undefined, id: ProviderId): ProviderStatus | undefined => statuses?.find((s) => s.id === id);
+
+/**
+ * 新しいチャット・子チャットでその AI を選べない理由（選べるなら null）。
+ * 状態がまだ届いていなければ選ばせない（届くまでは既定のまま）。対応予定（implemented でない）は理由を出す
+ */
+export function providerPickBlock(id: ProviderId, status: ProviderStatus | undefined): string | null {
+  if (!status) return "確認中…";
+  if (!status.implemented) return `${providerLabel(id, status)} は今後の対応予定です（まだ Kickoff のチャットでは使えません）`;
+  if (API_KEY_ONLY_PROVIDERS.has(id) && (status.auth_mode !== "api_key" || !status.has_api_key)) return `${providerLabel(id, status)} は API キーでだけ動きます（設定の「接続」で API キーを置いてください）`;
+  return null;
+}
+
+/**
+ * そのチャットの AI でその機能を使えない理由（使えるなら null）。
+ * 状態がまだ届いていない・コアが できること を返さない（古いコア）ときは止めない（Claude Code のチャットで押せなくならないように）
+ */
+export function featureBlock(status: ProviderStatus | undefined, feature: ProviderFeature): string | null {
+  if (!status?.features) return null;
+  return status.features.includes(feature) ? null : providerFeatureMissing(status.label, feature);
+}
+
+/** API キーで動かすか（使った分の支払い。設定の provider_auth が api_key） */
+export const paysPerUse = (status: ProviderStatus | undefined): boolean => status?.auth_mode === "api_key";
+
+/** AI の札に出す名前（API キーで動かすなら「· API キー」を添える） */
+export const providerChipName = (id: ProviderId, status: ProviderStatus | undefined): string => `${providerLabel(id, status)}${paysPerUse(status) ? " · API キー" : ""}`;

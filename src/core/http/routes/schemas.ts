@@ -3,7 +3,7 @@ import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
 import { normalizeAttachment } from "@shared/attachment/normalize";
 import type { Attachment, AttachmentSource, ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
-import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, PERMISSION_MODES, USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/types";
+import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, PERMISSION_MODES, PROVIDER_IDS, USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 
 // ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
@@ -179,6 +179,7 @@ export const newChatSchema = z
     worktree_path: folderPath.optional(),
     new_worktree_branch: branchName.optional(),
     github: githubLinkSchema.optional(),
+    provider: z.enum(PROVIDER_IDS).optional(),
   })
   .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<NewChatBody>;
 
@@ -192,6 +193,7 @@ export const childChatSchema = z
     quote: z.string().max(20_000).nullable().default(null),
     inherit: z.boolean().default(true),
     event_id: z.number().int().positive().nullable().default(null),
+    provider: z.enum(PROVIDER_IDS).optional(),
   })
   // 会話を引き継ぐときは、文も添付もなくてよい（聞かずに、親の会話を写した子チャットを開くだけ）
   .refine((v) => v.inherit || hasContent(v), CONTENT_REQUIRED) satisfies z.ZodType<ChildChatBody, unknown>;

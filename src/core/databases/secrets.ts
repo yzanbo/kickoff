@@ -6,18 +6,10 @@ import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
 import type { DbSecretKey } from "../db/settings.js";
 import { dbAiPasswordKey, dbPasswordKey, dbSshPasswordKey } from "../db/dbConnections.js";
-import { Conflict, Invalid } from "../http/errors.js";
+import { Conflict } from "../http/errors.js";
+import { openSecret, SEALED, sealSecret, type SecretCipher } from "../system/sealedSecret.js";
 
-/** 暗号化と復号（Electron の safeStorage の非同期の口。キーチェーンの許可を待つ間もメインプロセスを止めない） */
-export interface SecretCipher {
-  /** 暗号化した値（base64） */
-  encrypt(plain: string): Promise<string>;
-  /** 暗号化した値（base64）から元の値。キーチェーンで拒否されたら失敗 */
-  decrypt(sealed: string): Promise<string>;
-}
-
-/** 暗号化した値の頭の印（印のない値は、暗号化せずに置いたもの） */
-const SEALED = "safe:v1:";
+export type { SecretCipher } from "../system/sealedSecret.js";
 
 export const DB_SECRET_KINDS = ["password", "ai_password", "ssh_password"] as const;
 export type DbSecretKind = (typeof DB_SECRET_KINDS)[number];
@@ -64,13 +56,8 @@ export class DbSecretVault {
     return out;
   }
 
-  private async sealOne(plain: string) {
-    if (!this.cipher) return plain;
-    try {
-      return SEALED + (await this.cipher.encrypt(plain));
-    } catch (error) {
-      throw new Invalid(`パスワードを暗号化できませんでした（${errorMessage(error)}）`);
-    }
+  private sealOne(plain: string) {
+    return sealSecret(this.cipher, plain, "パスワード");
   }
 
   /**
@@ -90,8 +77,7 @@ export class DbSecretVault {
   private open(stored: string): Promise<string> {
     const known = this.opened.get(stored);
     if (known) return known;
-    const cipher = this.cipher;
-    const opening = cipher ? cipher.decrypt(stored.slice(SEALED.length)) : Promise.reject(new Error("暗号化の口がありません"));
+    const opening = openSecret(this.cipher, stored);
     // 開けなかったものは覚えない（次の頼みでもう一度キーチェーンに聞く）
     opening.catch(() => this.opened.delete(stored));
     this.opened.set(stored, opening);

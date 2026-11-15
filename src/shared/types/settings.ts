@@ -3,8 +3,22 @@
 import type { ChatOptions } from "./chat";
 import type { VoiceProvider, VoiceTtsProvider } from "./voice";
 
-export const PROVIDER_IDS = ["claude", "codex", "gemini"] as const;
+export const PROVIDER_IDS = ["claude", "codex", "copilot", "cursor", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
+
+/** AI のログインの仕方（メモの仕様書「0021」の Q13）: subscription = 定額のプラン（各 CLI のログイン・Codex は Sign in with ChatGPT）/ api_key = API キー（使った分の支払い） */
+export const PROVIDER_AUTH_MODES = ["subscription", "api_key"] as const;
+export type ProviderAuthMode = (typeof PROVIDER_AUTH_MODES)[number];
+export const PROVIDER_AUTH_MODE_LABELS: Record<ProviderAuthMode, string> = { subscription: "サブスク", api_key: "API キー" };
+
+/** AI の名前（画面・承認カード・AI に返す文） */
+export const PROVIDER_LABELS: Record<ProviderId, string> = {
+  claude: "Claude Code",
+  codex: "Codex",
+  copilot: "GitHub Copilot",
+  cursor: "Cursor",
+  gemini: "Gemini（Antigravity）",
+};
 
 export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
 export type EffortLevel = (typeof EFFORT_LEVELS)[number];
@@ -41,6 +55,8 @@ export const AI_CREATE_CHAT_MODE_LABELS: Record<AiCreateChatMode, string> = {
 export interface AppSettings {
   /** 新規プロジェクトの既定プロバイダー */
   default_provider: ProviderId;
+  /** AI ごとのログインの仕方（書いていない AI はサブスク。API キーそのものは secrets に暗号化して置き、ここには出さない） */
+  provider_auth: Partial<Record<ProviderId, ProviderAuthMode>>;
   /** 新しいチャットの既定の選択（モデルは既定のプロバイダーのもの。推論の深さの null は指定しない＝モデルの既定） */
   chat_defaults: ChatOptions;
   /**
@@ -100,6 +116,7 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   default_provider: "claude",
+  provider_auth: {},
   chat_defaults: { model: "opus", effort: null, permission_mode: "default", fast_mode: false },
   remote_enabled: false,
   mobile_url: null,
