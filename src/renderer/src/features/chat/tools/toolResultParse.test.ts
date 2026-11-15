@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { outputLanguage, parseNumberedLines, parseSearchLines, searchRuns } from "./toolResultParse";
 
 test("parseNumberedLines: 「番号\\t中身」と以前の「番号→中身」を読み、番号のない行があれば null", () => {

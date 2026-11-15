@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
 import { toAllowedTools } from "../providers/claude/policy.js";
 import { Store } from "../db/store.js";

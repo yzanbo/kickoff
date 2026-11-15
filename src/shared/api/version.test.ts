@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { apiMismatch } from "./version";
 
 test("apiMismatch: アプリが本体の下限より古ければ client_too_old、本体がアプリの下限より古ければ host_too_old", () => {

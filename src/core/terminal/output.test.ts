@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { TerminalOutput } from "./output.js";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

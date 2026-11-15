@@ -1,7 +1,7 @@
 // API のテスト: 分岐・巻き戻し・ファイルを戻す（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { test } from "node:test";
+import { test } from "vitest";
 import { setup, until } from "../testing/testServer.js";
 
 test("分岐の API: 作業の終わりの時点までの会話を新しいチャットに写す（元のチャットは変えない）", async () => {

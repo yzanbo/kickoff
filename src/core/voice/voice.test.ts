@@ -1,6 +1,6 @@
 // 文字起こしの純粋関数（コマンドの引数・出力の整形・OpenAI の応答とエラー・macOS の音声認識の確かめ・準備の確かめ。コマンドの探し方は system/exec.test.ts。録音の詰め替えは webmToOgg.test.ts）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { audioExtension, commandFailure, ffmpegArgs, joinSegments, whisperArgs } from "./local.js";
 import { macosAudioFile, macosUnreadyReason, parseSpeechCheck } from "./macos.js";
 import { modelFile, modelUrl, WHISPER_MODELS } from "./models.js";

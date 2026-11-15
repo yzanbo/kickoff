@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import os from "node:os";
-import { test } from "node:test";
+import { test } from "vitest";
 import { MACOS_SELF_GUARD } from "../../platform/macos/index.js";
 import { evaluateSelfProtection, type SelfInfo } from "./selfProtection.js";
 

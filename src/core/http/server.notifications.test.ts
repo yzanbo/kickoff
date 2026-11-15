@@ -1,6 +1,6 @@
 // API のテスト: 通知の判断（だれも見ていなければ、この Mac の通知とつないだ端末のプッシュへ）と、見ているものの知らせ
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { Approval } from "@shared/types";
 import { hashToken } from "./caller.js";
 import { createAiNotifyTools } from "../chat/aiNotify.js";

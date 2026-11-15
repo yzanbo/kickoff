@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { redactSecrets } from "./redact";
 
 test("redactSecrets: 8 つの形を名前つきで伏せ、数を返す", () => {

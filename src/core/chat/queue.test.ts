@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { ChatQueue } from "./queue.js";
 import { ChatRuntimes } from "./runtime.js";
 import { Store } from "../db/store.js";

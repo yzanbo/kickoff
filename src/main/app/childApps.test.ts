@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { parsePs } from "../../core/platform/macos/processes.js";
 import { macosDesktopPlatform } from "../platform/macos/index.js";
 import { descendantElectronMains } from "./childApps.js";

@@ -1,5 +1,5 @@
 // GitHub Copilot のプロバイダーを偽の SDK のクライアントで確かめる（本物のランタイム・アカウントは使わない。メモの仕様書「0021」の段階 4）
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/types";
 import { fakeCopilotClient, type FakeCopilotSession } from "../../testing/fakeCopilotClient.js";

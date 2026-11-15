@@ -1,6 +1,6 @@
 // GitHub タブの絞り込み → 検索の文
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { GitHubListFilter } from "../types/github";
 import { defaultGitHubFilter, githubSearchQuery, githubSearchText, mineFiltersFor, parseGitHubSearchText, searchValue } from "./searchQuery";
 

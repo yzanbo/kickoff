@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { placeFloating } from "./floating";
 
 const viewport = { width: 1000, height: 800 };

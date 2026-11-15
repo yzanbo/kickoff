@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { isBackgroundLaunch } from "./backgroundTasks";
 
 test("裏で動かしたサブエージェントの起動の知らせを見分ける", () => {

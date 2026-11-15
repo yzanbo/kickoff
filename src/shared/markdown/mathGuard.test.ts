@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { convertTexDelimiters, isSingleDollarMath, looksLikeMath, mathRanges, mayContainMath } from "./mathGuard";
 
 test("looksLikeMath: 1 文字の英字・英字を含む式・TeX の記号を含むものは数式", () => {

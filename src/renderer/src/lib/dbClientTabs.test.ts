@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, openMemoTab, openPreviewTab, setSqlConnection, openTableTab, parseDbClientTabs, pinDbTab, renameMemoTab, setTableFilter, tableTabKey, type DbClientTab, updateErTab } from "./dbClientTabs";
 
 const path = { database: "main", schema: null };

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { Store } from "../db/store.js";
 import type { AgentProvider } from "../providers/types.js";
 import { switchAfterCompact } from "./sessionSwitch.js";

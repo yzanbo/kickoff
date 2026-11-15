@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { test } from "node:test";
+import { test } from "vitest";
 import { EDGE_MAX_STEP_PX, edgeScrollStep } from "./edgeScroll";
 
 test("ドラッグ中の端のスクロール: 真ん中では動かず、上の端の帯では戻し、下の端の帯では進める", () => {

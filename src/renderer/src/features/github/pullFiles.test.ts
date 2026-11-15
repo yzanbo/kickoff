@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { pullFileChanges, pullFileKind } from "./pullFiles";
 
 test("pullFileKind: GitHub の変わり方を変更タブの記号に", () => {

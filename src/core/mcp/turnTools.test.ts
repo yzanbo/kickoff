@@ -1,5 +1,5 @@
 // 実行ごとに AI の操作ツールの口を渡し、終わったら鍵を捨てる（turn.ts と mcp/host.ts）
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";

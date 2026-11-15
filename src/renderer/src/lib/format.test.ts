@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { baseName, formatTokens, splitPath } from "./format";
 
 test("baseName: パスの最後の名前（split(\"/\").pop() と同じ結果）", () => {

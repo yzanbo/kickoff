@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { hiddenHeaderItems, isDefaultHeaderOrder, isNoopHeaderMove, moveHeaderItem, orderedHeaderSections, sameHiddenItems, sortHeaderItems, toggleHeaderItem } from "./chatHeaderItems";
 
 test("hiddenHeaderItems: 知らない名前は無視する", () => {

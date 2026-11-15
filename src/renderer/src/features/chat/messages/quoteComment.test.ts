@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { appendBlock, quoteCode, quoteComment } from "./quoteComment";
 
 test("選んだ範囲へのコメント: 引用にしてコメントを添え、チャット欄の文の後ろに足す", () => {

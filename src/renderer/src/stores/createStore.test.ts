@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test, vi } from "vitest";
 import type { BusEvent, ChatGroup } from "@shared/types";
 import { makeGroup } from "@shared/testing/factories";
 import { publishServerEvent, publishServerOpen } from "@/api/events";
@@ -74,23 +74,23 @@ test("店: 失敗は覚えず（前の値は残す）、取り直すまでの間
   assert.deepEqual(store.get(), { data: 2, error: undefined, loading: false, loaded: true });
 });
 
-test("店: 使っている値の読み込みに失敗したら、間隔を伸ばしながら自動で取り直す（読めたら間隔を戻す）", async (t) => {
-  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+test("店: 使っている値の読み込みに失敗したら、間隔を伸ばしながら自動で取り直す（読めたら間隔を戻す）", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "Date"] });
   const { calls, load } = loader<number>();
   const store = createStore({ load });
   const release = store.retain();
   calls[0].reject(new Error("失敗"));
   await flush();
-  t.mock.timers.tick(1999);
+  vi.advanceTimersByTime(1999);
   assert.equal(calls.length, 1);
-  t.mock.timers.tick(1);
+  vi.advanceTimersByTime(1);
   assert.equal(calls.length, 2);
   calls[1].reject(new Error("失敗"));
   await flush();
   // 2 回続けて失敗したら 4 秒
-  t.mock.timers.tick(2000);
+  vi.advanceTimersByTime(2000);
   assert.equal(calls.length, 2);
-  t.mock.timers.tick(2000);
+  vi.advanceTimersByTime(2000);
   assert.equal(calls.length, 3);
   calls[2].resolve(1);
   await flush();
@@ -99,7 +99,7 @@ test("店: 使っている値の読み込みに失敗したら、間隔を伸ば
   void store.reload();
   calls[3].reject(new Error("失敗"));
   await flush();
-  t.mock.timers.tick(60_000);
+  vi.advanceTimersByTime(60_000);
   assert.equal(calls.length, 4);
   store.retain()();
   assert.equal(calls.length, 5);

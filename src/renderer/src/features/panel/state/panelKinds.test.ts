@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { decodeKinds, shownActiveOf, toggleKind, withoutChat } from "./panelKinds";
 
 test("表示するタブ: 未保存なら欄ごとの既定（ボード = チャット / チャット欄 = ブラウザ・ターミナル / フッター = ターミナル・ブラウザ）", () => {

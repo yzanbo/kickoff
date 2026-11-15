@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { ipcEntries, type IpcKind } from "@shared/ipc";
 import { createNativeApi, type RendererIpc } from "../../preload/nativeApi.js";
 import { IPC_ARGS } from "./args.js";

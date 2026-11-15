@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { createValueCell } from "./valueCell";
 
 test("createValueCell: 入れた値を返し、変わったときだけ知らせる。やめたら知らせない", () => {

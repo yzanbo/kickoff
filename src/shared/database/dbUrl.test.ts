@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { parseDbUrl } from "./dbUrl";
 
 test("parseDbUrl: PostgreSQL・MySQL の URL から欄を埋める（符号化を解き、ポートがなければ既定）", () => {

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { GitHubConnection, GitHubIssueDetail, GitHubItemPage, GitHubPullDetail, GitHubPullFiles, GitHubPullWorktree } from "@shared/types";
 import { Invalid } from "./errors.js";
 import { setup, TOKEN } from "../testing/testServer.js";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { WorktreePortSlot } from "@shared/types";
 import { parsePs } from "../platform/macos/processes.js";
 import { bandNotes, originOf, selfAndAncestors, selfHelpers, shortCommand, workplaceOf, type Workplace } from "./parse.js";

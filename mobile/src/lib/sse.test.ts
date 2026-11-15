@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { createSseParser, readSse, type SseMessage } from "./sse";
 
 test("createSseParser: 空行で区切り、名前付きの知らせ（hello・ping）と名前のない知らせを分ける。途中で切れた行もつなぐ", () => {

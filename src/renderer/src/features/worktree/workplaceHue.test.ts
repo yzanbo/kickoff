@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { PROJECT_HUES } from "@shared/project/colors";
 import type { GitWorktree } from "@shared/types";
 import { workplaceOf } from "./workplace";

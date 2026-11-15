@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { armVoiceHandoff, claimVoiceHandoff, disarmVoiceHandoff, returnVoiceHandoff, takeVoiceHandoff } from "./voiceHandoff";
 
 test("音声モードの引き継ぎ: 印を付けて送ったときだけ、できたチャットが一度だけ受け取る", () => {

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { test } from "node:test";
+import { test } from "vitest";
 import { tempDir } from "../../testing/tempDir.js";
 import { csvCell, exportQuery } from "./csvExport.js";
 import { openSqlite } from "./sqlite.js";

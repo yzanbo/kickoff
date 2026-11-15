@@ -1,7 +1,7 @@
 // チャットの AI がチャットをアーカイブする・消す（archive_chat・delete_chat の中身 ChatRemover）: 同じプロジェクトのチャットを子孫ごと・
 // 作業中のものがあれば断る・自分（自分の祖先）は作業の終わりに行う予約（送信待ちは止める）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { setup, until } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 

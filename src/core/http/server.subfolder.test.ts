@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { setup, until } from "../testing/testServer.js";
 import { gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";

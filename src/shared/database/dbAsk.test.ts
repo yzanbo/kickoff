@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { dbAskPrompt } from "./dbAsk";
 
 test("dbAskPrompt: 接続の名前・場所・テーブルと問いを入れ、kickoff_db のツールで確かめるよう頼む", () => {

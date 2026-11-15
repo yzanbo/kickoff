@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { Chat } from "@shared/types";
 import { makeChat } from "@shared/testing/factories";
 import { approvalIndex, chatStateOf, stateCounts, summaryState } from "./chatState";

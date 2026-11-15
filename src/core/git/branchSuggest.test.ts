@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { branchSuggestPrompt, parseBranchSuggestions, toBranchName } from "./branchSuggest.js";
 
 test("ブランチ名の案の頼み: やりたいことといまあるブランチを入れ、1 行に 1 つ名前だけを頼む", () => {

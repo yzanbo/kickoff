@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DbColumnInfo, DbValue } from "@shared/types";
 import { columnKeysOf, detailText, exportRows, foreignKeysByColumn, hasLongValue, linkFilters, rowKeyFilters, valueFilter } from "./dbRowTools";
 

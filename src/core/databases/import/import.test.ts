@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { test } from "node:test";
+import { test } from "vitest";
 import { tempDir } from "../../testing/tempDir.js";
 import { interpolate, parseEnvFile } from "./envFile.js";
 import { candidatesFromCompose, publishedPort, type ComposeHosts } from "./fromCompose.js";

@@ -1,6 +1,6 @@
 // 録音の詰め替え（WebM の Opus → Ogg の Opus）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { oggCrc, opusPacketSamples, readWebmOpus, webmToOgg } from "./webmToOgg.js";
 
 /** WebM の要素 1 つ（size を省けば中身の長さ。"unknown" なら、MediaRecorder が書く「大きさ不明」） */

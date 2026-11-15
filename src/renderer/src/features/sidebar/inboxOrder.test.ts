@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { AgentState } from "@shared/types";
 import { makeChat } from "@shared/testing/factories";
 import { inboxByProject, inboxSections, waitingSince } from "./inboxOrder";

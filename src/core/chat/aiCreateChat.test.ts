@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { createdChatIdOf } from "@shared/chat/aiCreateChat";
 import type { Chat } from "@shared/types";
 import type { ProviderTurnParams } from "../providers/types.js";

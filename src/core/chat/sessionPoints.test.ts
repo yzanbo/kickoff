@@ -1,6 +1,6 @@
 // 会話を引き継げる作業の終わり・発言を送ったときのセッションのテスト（コンテキストの消去を境にする）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { eventSequence } from "@shared/testing/factories";
 import type { ChatEvent } from "@shared/types";
 import { resumePointBefore, sessionAt } from "./sessionPoints.js";

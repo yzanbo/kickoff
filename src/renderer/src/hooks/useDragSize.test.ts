@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { draggedSize } from "./useDragSize";
 
 test("draggedSize: つまみが右・下の端（end）なら、右・下へ動かすほど大きく", () => {

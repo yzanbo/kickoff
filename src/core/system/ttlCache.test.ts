@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { ttlCache } from "./ttlCache.js";
 
 test("ttlCache: 覚えた値は期限まで返し、過ぎたら返さない。キーごとに別", () => {

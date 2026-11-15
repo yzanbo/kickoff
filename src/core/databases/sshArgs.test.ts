@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { DB_SSH_UNKNOWN_HOST } from "@shared/types";
 import { isChangedHostKey, isUnknownHostKey, knownHostsName, parseKeyscan, parseSshConfigDump, parseSshConfigHosts, sshFingerprint, sshTargetArgs } from "./sshArgs.js";
 import { tunnelError } from "./worker/tunnel.js";
