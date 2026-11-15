@@ -102,7 +102,9 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, mu
           {files.length}
         </span>
       </div>
+      {/* 中身がなければ一覧を置かない（空の一覧の余白で、開閉のたびに高さが変わらないように） */}
       {open &&
+        files.length > 0 &&
         (tree ? (
           <FileTree
             nodes={nodes}
