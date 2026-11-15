@@ -21,7 +21,7 @@ export interface SubagentsView {
   loaded: ChatEvent[];
   /** 末尾の始まりの記録の ID（0 = 最初から読んでいる） */
   tailStart: number;
-  /** 末尾より前に読んでいない記録があるか（動きの「以前の動きを表示」） */
+  /** 末尾より前に読んでいない記録があるか（動きの下の端に近づいたら読み足す） */
   hasEarlier: boolean;
   tree: SubagentTree;
   /** サブエージェントの色相（起動した順。カードの縦線・目次の点・動きの線で同じ色。agentHues） */
