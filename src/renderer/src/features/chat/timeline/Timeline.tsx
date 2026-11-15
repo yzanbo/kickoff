@@ -27,10 +27,11 @@ import { requestHandoff } from "@/features/chat/children/handoff";
 import { AddToParentButton } from "@/features/chat/children/AddToParentButton";
 import { HandoffMarks } from "@/features/chat/children/HandoffMarks";
 import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
+import { useTimelineBusy } from "./timelineBusy";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
- * active（作業中）なら、いまの作業（最後の作業の終わりより後）の結果の届いていないツールを実行中として見せる
+ * active（作業中で、いまの作業まで描いている）なら、いまの作業（最後の作業の終わりより後）の結果の届いていないツールを実行中として見せる
  * （前の作業で中断したまま結果のない呼び出しは、実行中にしない）
  */
 export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; rel: (s: string) => string; active: boolean }) {
@@ -60,7 +61,6 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
             turnHandoff={item.turnHandoff}
             turnHandoffs={item.turnHandoffs}
             createdChats={item.createdChats}
-            busy={active}
           />
         );
     }
@@ -126,7 +126,6 @@ type TurnFooterProps = {
   turnText?: string;
   turnHandoff?: TurnHandoff;
   turnHandoffs?: ChatEventOf<"handoff">[];
-  busy: boolean;
 };
 
 /**
@@ -135,8 +134,10 @@ type TurnFooterProps = {
  * 子チャットでは「親チャットに追加 ▾」（最後まで終わった作業の最後の返答を、そのまま親に渡す。依頼文の頼みに答えた作業では文字のボタンで目立たせる）と
  * 「親への依頼文を作ってもらう」（作業中なら、いまの作業に伝える）
  */
-function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs, busy }: TurnFooterProps) {
+function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: TurnFooterProps) {
   const data = event.data;
+  // 作業中か（作業の始まりと終わりで、この行だけが描き直る）
+  const busy = useTimelineBusy();
   const chat = useKnownChat(event.chat_id);
   const child = chat && chat.parent_chat_id !== null && !chat.archived_at ? chat : undefined;
   // そのチャットの AI で分岐できなければ、押せない形にして理由を出す（メモの仕様書「0021」の Q4）
@@ -207,7 +208,6 @@ function EventItem({
   turnHandoff,
   turnHandoffs,
   createdChats,
-  busy,
 }: {
   event: ChatEvent;
   turnStart?: string;
@@ -216,11 +216,10 @@ function EventItem({
   turnHandoff?: TurnHandoff;
   turnHandoffs?: ChatEventOf<"handoff">[];
   createdChats?: string;
-  busy: boolean;
 }) {
   switch (event.type) {
     case "user":
-      return <UserMessage event={event} busy={busy} createdChats={createdChats} />;
+      return <UserMessage event={event} createdChats={createdChats} />;
     case "text":
       return <AssistantMessage event={event} />;
     case "thinking":
@@ -233,7 +232,7 @@ function EventItem({
       return <div className="event-note">{RESOLVED_LABELS[data.action] ?? "回答済み"}</div>;
     }
     case "result":
-      return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} turnHandoff={turnHandoff} turnHandoffs={turnHandoffs} busy={busy} />;
+      return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} turnHandoff={turnHandoff} turnHandoffs={turnHandoffs} />;
     case "error":
       return (
         <div className="event-note error" id={`ev-${event.id}`}>
