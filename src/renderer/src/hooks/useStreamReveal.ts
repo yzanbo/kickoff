@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useRef, useState } from "react";
-import { nextRevealLength, REVEAL_FADE_MS, revealBands, type RevealMark } from "@/lib/streamReveal";
+import { nextRevealLength, REVEAL_FADE_MS, revealBands, type RevealLimit, type RevealMark } from "@/lib/streamReveal";
 
 const IDLE = { text: "", bands: [] as number[] };
 type View = typeof IDLE;
@@ -16,14 +16,22 @@ function show(set: (view: View) => void, view: View) {
  * visible が false の間（見えていないチャット）は rAF を回さず描き直さない。表に出たら、そのときの最新の文を一度に出す
  * （裏で溜まった分を少しずつ流し直さない。メモの仕様書「0023_表示を軽くする」の案 6a）。
  * 出す文の描き直しは急がない更新（startTransition）で当てる。キー入力などの急ぐ更新が来たら、React は途中の文の描き直しを後回しにして入力を先に描く
- * （入力していなければ、ほかに待つものがないのですぐ描く。メモの仕様書「0023_表示を軽くする」の案 5）
+ * （入力していなければ、ほかに待つものがないのですぐ描く。メモの仕様書「0023_表示を軽くする」の案 5）。
+ * createLimit を渡すと、出す文はその決まりで切る（Markdown の書きかけの記号を補う・手前で止める `createMarkdownRevealLimit`。案 6c）。
+ * 裏で伸びる長さはいまの速さのまま進め、薄く出す段は実際に出した長さで数える（止めていた所は、書き終えたときにまとめて出て薄い字から濃くなる）。
+ * 決まりは最初に 1 回だけ作って持つ（中に書きかけの文の読み取りを持つため）
  */
-export function useStreamReveal(target: string, visible = true): { text: string; bands: number[] } {
+export function useStreamReveal(target: string, visible = true, createLimit?: () => RevealLimit): { text: string; bands: number[] } {
   const [view, setView] = useState(IDLE);
-  const state = useRef({ source: "", shown: 0, marks: [] as RevealMark[], frame: 0, last: 0, paused: false });
+  const state = useRef({ source: "", shown: 0, marks: [] as RevealMark[], frame: 0, last: 0, paused: false, limit: null as RevealLimit | null });
 
   useEffect(() => {
     const s = state.current;
+    // shown 文字目まで出したいときに出す長さと描く文
+    const cut = (shown: number) => {
+      s.limit ??= createLimit?.() ?? null;
+      return s.limit ? s.limit(s.source, shown) : { length: shown, render: s.source.slice(0, shown) };
+    };
     if (!target.startsWith(s.source.slice(0, s.shown))) {
       s.shown = 0;
       s.marks = [];
@@ -42,25 +50,26 @@ export function useStreamReveal(target: string, visible = true): { text: string;
       s.paused = false;
       s.shown = target.length;
       s.marks = [];
-      show(setView, target ? { text: target, bands: [] } : IDLE);
+      show(setView, target ? { text: cut(s.shown).render, bands: [] } : IDLE);
       return;
     }
     if (!target || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       cancelAnimationFrame(s.frame);
       s.frame = 0;
       s.shown = target.length;
-      show(setView, target ? { text: target, bands: [] } : IDLE);
+      show(setView, target ? { text: cut(s.shown).render, bands: [] } : IDLE);
       return;
     }
     const tick = (now: number) => {
       const dt = s.last ? now - s.last : 16;
       s.last = now;
       s.shown = nextRevealLength(s.source, s.shown, dt);
-      s.marks.push({ at: now, length: s.shown });
+      const { length, render } = cut(s.shown);
+      s.marks.push({ at: now, length });
       // 薄く出す時間より古い記録は、境にする 1 つだけ残す
       while (s.marks.length > 1 && s.marks[1].at <= now - REVEAL_FADE_MS) s.marks.shift();
       const bands = revealBands(s.marks, now);
-      show(setView, { text: s.source.slice(0, s.shown), bands });
+      show(setView, { text: render, bands });
       // 出し切って、薄い文字もなくなったら止める（次に文が伸びたら、また動かす）
       if (s.shown < s.source.length || bands.some((n) => n > 0)) s.frame = requestAnimationFrame(tick);
       else {

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useStreamReveal } from "@/hooks/useStreamReveal";
+import { createMarkdownRevealLimit } from "@/lib/markdownReveal";
 import { Markdown } from "@/ui/markdown/Markdown";
 
 /**
@@ -7,10 +8,11 @@ import { Markdown } from "@/ui/markdown/Markdown";
  * （`useStreamReveal`。後ろにカーソルの印は付けない）。
  * 出す文はフレームごとに伸びる。一番下への付いていきは、流れの中身の大きさの知らせで行う（useFollowBottom。ここでは scrollHeight を読まない）。
  * Markdown は出す文で作り置く（届いた文・親の描き直しでは解析し直さない）。
- * 見えていない間（パネルの裏のタブ・閉じたパネル・動きに切り替えた会話。visible が false）は少しずつ出さず、表に出たら最新の文から出す
+ * 見えていない間（パネルの裏のタブ・閉じたパネル・動きに切り替えた会話。visible が false）は少しずつ出さず、表に出たら最新の文から出す。
+ * 書きかけの記号は生の文字で出さない（強調・コードは閉じの記号を補い、リンクの行き先・表・数式などは手前で止める。`createMarkdownRevealLimit`）
  */
 export function StreamingReply({ text, visible }: { text: string; visible: boolean }) {
-  const reveal = useStreamReveal(text, visible);
+  const reveal = useStreamReveal(text, visible, createMarkdownRevealLimit);
   // 出す文（reveal は少しずつ出すたびに新しい物になる）が同じなら作り直さない。届いた文・親の描き直しで同じ文を解析し直さない
   const body = useMemo(
     () => (
