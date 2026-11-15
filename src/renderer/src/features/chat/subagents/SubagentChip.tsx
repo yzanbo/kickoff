@@ -64,8 +64,8 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   if (entries.length === 0) return null;
   // 新しいものを上に（入れ子は親のすぐ下に、起動した順で）
   const visible = entries.filter((s) => !archived.has(s.key)).reverse();
-  const rows = flattenTree(subagentTree(entries.filter((s) => !archived.has(s.key))));
-  const hidden = entries.filter((s) => archived.has(s.key)).reverse();
+  // アーカイブしたものの数（すべてアーカイブ済みならピルにこの数を出す。一覧の行は開いているときだけ作る）
+  const hiddenCount = entries.length - visible.length;
   // 状態（チャットと同じ 5 つと細かい様子。印・数はすべてこれから決める）
   const states = visible.map((s) => subagentState(s, waiting?.has(s.key)));
   const count = (match: (st: SubagentState) => boolean) => states.filter(match).length;
@@ -80,7 +80,6 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   // 報告が親に届いたか（受け取り待ち・届いていない）。届いていないものは「報告を親に渡す」で渡し直せる
   const awaiting = count((st) => st.detail === "awaiting");
   const undelivered = count((st) => st.detail === "undelivered");
-  const finished = visible.filter((s) => s.status !== "running");
 
   // アーカイブ・戻すは、どこから押しても必ず確かめる（チャットのアーカイブと同じ）
   const archive = async (keys: string[]) => {
@@ -177,7 +176,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
           <Bot size={14} className="chip-icon chip-short-icon" aria-hidden />
           <span>
             <ChipWord>{visible.length > 0 ? "サブエージェント " : "アーカイブ済みのサブエージェント "}</ChipWord>
-            {visible.length > 0 ? visible.length : hidden.length}
+            {visible.length > 0 ? visible.length : hiddenCount}
             <ChipWord> 件</ChipWord>
           </span>
           {needsInput > 0 && <span className="chip-needs-input chip-detail"> · {needsInput} 件回答待ち</span>}
@@ -192,17 +191,27 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
       label="サブエージェント"
       ignore="dialog"
     >
-      {places.length > 1 && <DefaultOpenPlace places={places} value={places.includes(openIn) ? openIn : places[0]} onChange={setOpenIn} />}
-      <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void archive(finished.map((s) => s.key))}>
-        <Archive size={15} aria-hidden />
-        完了したサブエージェントをアーカイブ
-        {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
-      </button>
-      {visible.length === 0 && <p className="muted small subagent-empty">表示中のサブエージェントはありません</p>}
-      {rows.map((r) => renderRow(r.entry, false, r.depth))}
-      <ArchivedFold place="composer" foldKey="subagents" count={hidden.length} className="composer-archived">
-        {hidden.map((s) => renderRow(s, true))}
-      </ArchivedFold>
+      {() => {
+        // 一覧の行（木・アーカイブ済み・完了したもの）は開いているときだけ作る
+        const rows = flattenTree(subagentTree(entries.filter((s) => !archived.has(s.key))));
+        const hidden = entries.filter((s) => archived.has(s.key)).reverse();
+        const finished = visible.filter((s) => s.status !== "running");
+        return (
+          <>
+            {places.length > 1 && <DefaultOpenPlace places={places} value={places.includes(openIn) ? openIn : places[0]} onChange={setOpenIn} />}
+            <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void archive(finished.map((s) => s.key))}>
+              <Archive size={15} aria-hidden />
+              完了したサブエージェントをアーカイブ
+              {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
+            </button>
+            {visible.length === 0 && <p className="muted small subagent-empty">表示中のサブエージェントはありません</p>}
+            {rows.map((r) => renderRow(r.entry, false, r.depth))}
+            <ArchivedFold place="composer" foldKey="subagents" count={hidden.length} className="composer-archived">
+              {hidden.map((s) => renderRow(s, true))}
+            </ArchivedFold>
+          </>
+        );
+      }}
     </ComposerChip>
   );
 }
