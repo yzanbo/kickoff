@@ -22,6 +22,7 @@ export function ChipPicker<T extends string>({
   values,
   labels,
   value,
+  disabled,
   onPick,
 }: {
   className: string;
@@ -37,6 +38,8 @@ export function ChipPicker<T extends string>({
   values: readonly T[];
   labels: Record<T, string>;
   value: T;
+  /** 選べない選択肢と、その理由（ChoiceMenu の disabled） */
+  disabled?: Partial<Record<T, string>>;
   onPick: (value: T) => void;
 }) {
   const menu = useContextMenu();
@@ -66,6 +69,7 @@ export function ChipPicker<T extends string>({
           values={values}
           labels={labels}
           value={value}
+          disabled={disabled}
           ignore={`[data-chip-picker="${id}"]`}
           onPick={onPick}
           onClose={menu.close}

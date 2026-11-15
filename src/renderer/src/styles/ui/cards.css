@@ -91,3 +91,34 @@
   color: var(--muted);
 }
 
+
+/* 設定の「接続」の AI のログインの仕方（`ProviderAuthSettings`: AI ごとにサブスク / API キーの切り替えと API キーの欄。メモの仕様書「0021」の Q13） */
+.provider-auth h3 {
+  margin: 16px 0 4px;
+  font-size: 14px;
+}
+
+.provider-auth-row {
+  padding: 10px 0;
+}
+
+.provider-auth-row + .provider-auth-row {
+  border-top: 1px solid var(--border);
+}
+
+.provider-auth-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.provider-auth-head .segmented {
+  margin-left: auto;
+}
+
+/* 使った分の支払い（API キーで動かす AI）。注意の色で、定額のプランと見分ける */
+.provider-pay-badge {
+  color: var(--warn);
+}

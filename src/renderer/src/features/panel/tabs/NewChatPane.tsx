@@ -1,6 +1,6 @@
 import { SquarePen } from "lucide-react";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
-import type { Attachment, Chat } from "@shared/types";
+import type { Attachment, Chat, ProviderId } from "@shared/types";
 import { api } from "@/api";
 import { useProjects } from "@/stores/projects";
 import { Composer } from "@/features/chat/composer/Composer";
@@ -30,6 +30,8 @@ import { claimVoiceHandoff } from "@/features/dictation/voiceHandoff";
 import type { VoiceReply } from "@/features/dictation/voiceSession";
 import { draftScope } from "@/features/panel/surfaces";
 import type { SidePanelHandle } from "@/features/chat/pane/useChatView";
+import { ChatProviderContext } from "@/features/chat/provider/chatProvider";
+import { ProviderPicker } from "@/features/chat/provider/ProviderChips";
 
 /** 送る前の新しいチャットには、読み上げる返答がまだない */
 const NO_REPLIES: VoiceReply[] = [];
@@ -87,8 +89,11 @@ export function NewChatPane({
   const { projectsById, loaded: projectsLoaded } = useProjects();
   // 右の欄の操作（流れの中のカードへ移ることがないので、受け取るだけ）
   const side: MutableRefObject<SidePanelHandle | null> = useRef(null);
-  const options = useChatOptions(undefined, projectId);
   const project = projectsById.get(projectId);
+  // 使う AI（初めはプロジェクトの AI。見出しの札で選び直せ、送ったあとは変えない。メモの仕様書「0021」の Q1）
+  const [pickedProvider, setPickedProvider] = useState<ProviderId | null>(null);
+  const provider: ProviderId = pickedProvider ?? project?.provider ?? "claude";
+  const options = useChatOptions(undefined, projectId, undefined, provider);
   const chats = useChats({ projectId });
   // 作業場所（初めは本体か、作業場所別のまとまりから始めたときはそのワークツリー。並行して進めたいときにワークツリーを選ぶ）
   // GitHub の issue から「新しいワークツリー」で始めたときは、そのブランチ名の新しいワークツリー（送ったときに作る）
@@ -158,6 +163,7 @@ export function NewChatPane({
     const chat = await api.startChat(projectId, {
       text: prompt,
       title,
+      provider,
       options: options.options,
       attachments,
       group_id: group,
@@ -181,6 +187,7 @@ export function NewChatPane({
           {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
           {groupBadge && <GroupPicker groups={groups} value={group} onChange={(next) => onGroupChange(next, groupNameIn(groups, next))} />}
           {shows("worktree") && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
+          <ProviderPicker value={provider} onChange={setPickedProvider} />
         </>
       }
       hero={
@@ -204,6 +211,7 @@ export function NewChatPane({
         <MemoChip projectId={projectId} chatId={null} onAttach={(path) => void api.memoSnapshot(projectId, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("メモを添付できませんでした"))} />
       </div>
       {ready && (
+        <ChatProviderContext.Provider value={provider}>
         <Composer
           key={projectId}
           chatContext={{ projectId }}
@@ -231,6 +239,7 @@ export function NewChatPane({
               }),
           }}
         />
+        </ChatProviderContext.Provider>
       )}
     </DraftChatPage>
     </AgentSplit>

@@ -16,6 +16,7 @@ import { ChildChatMarks } from "@/features/chat/children/ChildChatChips";
 import { HandoffFromChip } from "@/features/chat/children/HandoffFromChip";
 import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/snippet/compactPromptKinds";
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
+import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
 
 /** 自分の発言を折りたたむ高さ（これより高い発言は、ここまで出して下を薄くする） */
 const COLLAPSE_PX = 240;
@@ -60,11 +61,14 @@ export function UserMessage({ event, busy, createdChats }: { event: ChatEventOf<
   const pane = useOptionalChatPane();
   // 書き直している文（undefined なら書き直していない）
   const [draft, setDraft] = useState<string>();
-  const startEdit = pane && !busy ? () => setDraft(text) : undefined;
+  // そのチャットの AI でできないこと（書き直しは分岐・巻き戻しを、ファイルを戻すは控えを使う。メモの仕様書「0021」の Q4）
+  const rewindBlock = useFeatureBlock("fork");
+  const filesBlock = useFeatureBlock("rewind_files");
+  const startEdit = pane && !busy && !rewindBlock ? () => setDraft(text) : undefined;
   // ファイルだけを、この発言を送る前の状態に戻す（ファイルの記録を取り始めてからの発言だけ）
   // 同じ文と添付を、新しい指示としてもう一度送る（文も添付もない発言では出さない）
   const resend = pane && (text || attachments.length > 0) ? () => void pane.resend(withHead(text), attachments) : undefined;
-  const restoreFiles = pane && data.message_uuid ? () => void pane.restoreFiles(event.id) : undefined;
+  const restoreFiles = pane && data.message_uuid && !filesBlock ? () => void pane.restoreFiles(event.id) : undefined;
   const menu = useMessageMenu(
     text,
     <>
@@ -162,7 +166,7 @@ export function UserMessage({ event, busy, createdChats }: { event: ChatEventOf<
             icon={Pencil}
             size={13}
             label="書き直して送り直す"
-            title={busy ? "作業中は書き直せません（止めてから書き直せます）" : "書き直して送り直す（この発言から後ろのやり取りは消えます）"}
+            title={rewindBlock ?? (busy ? "作業中は書き直せません（止めてから書き直せます）" : "書き直して送り直す（この発言から後ろのやり取りは消えます）")}
             className="message-action"
             disabled={!startEdit}
             onClick={startEdit}

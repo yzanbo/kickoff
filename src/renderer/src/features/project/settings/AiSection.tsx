@@ -30,7 +30,7 @@ export function AiSection({ project, app }: { project: Project; app: AppSettings
   return (
     <section className="section">
       <h2>AI</h2>
-      <p className="muted small">このプロジェクトのチャットで使う AI です。どれも Mac にインストールした CLI のログインをそのまま使います（API キーは不要）。</p>
+      <p className="muted small">このプロジェクトのチャットで初めに使う AI です（新しいチャットごとに選び直せます）。どれも Mac にインストールした CLI のログインをそのまま使います（API キーで動かすときは設定の「接続」）。</p>
       <div className="provider-cards" role="radiogroup" aria-label="使う AI">
         {PROVIDER_IDS.map((id) => (
           <ProviderCard

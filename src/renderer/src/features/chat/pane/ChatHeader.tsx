@@ -5,6 +5,7 @@ import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
+import { ProviderChip } from "@/features/chat/provider/ProviderChips";
 import { GitHubLinkChip } from "@/features/github/GitHubLinkChip";
 import { ChatFind } from "@/features/chat/find/ChatFind";
 import { AgentPanelToggle } from "@/features/panel/agents/AgentPanelToggle";
@@ -75,6 +76,8 @@ export function ChatHeader({
           {ordered(["project", "group", "worktree"] as const).map((k) => (
             <Fragment key={k}>{badges[k]}</Fragment>
           ))}
+          {/* チャットの AI（Claude Code をサブスクで使うふだんのチャットには出さない。メモの仕様書「0021」の Q1・Q13） */}
+          <ProviderChip provider={chat.provider} />
           {/* 結び付いた GitHub の issue・PR（押すと GitHub タブでそれを開く） */}
           <GitHubLinkChip chat={chat} />
         </span>
