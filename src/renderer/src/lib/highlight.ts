@@ -1,6 +1,7 @@
 import type { HighlighterCore, LanguageRegistration } from "shiki/core";
 import type { AppliedTheme } from "@/lib/appliedTheme";
 import { findHeredocs } from "@/lib/heredoc";
+import { createLruMap } from "@/lib/lruMap";
 
 /** 色付きの断片（fontStyle は 1: 斜体 / 2: 太字 / 4: 下線 の足し算） */
 export interface CodeToken {
@@ -66,7 +67,7 @@ const loadHighlighter = () =>
 /** 色付けの結果を覚えておく短いコードの長さの上限と、覚える数（コマンドなど。ファイルの中身のような長いものは覚えない） */
 const CACHE_MAX_CHARS = 20_000;
 const CACHE_LIMIT = 200;
-const cache = new Map<string, Promise<CodeToken[][] | null>>();
+const cache = createLruMap<string, Promise<CodeToken[][] | null>>(CACHE_LIMIT);
 
 /**
  * コードを行ごとの色付きの断片にする（lang は languageOf などで決めた言語）。色を付けない言語・長すぎるコードは null。
@@ -77,16 +78,11 @@ export function highlightLines(code: string, lang: string | undefined, theme: Ap
   if (!lang || !(lang in LANGUAGES) || code.length > MAX_CHARS) return Promise.resolve(null);
   if (code.length > CACHE_MAX_CHARS) return computeLines(code, lang, theme);
   const key = `${theme}\u0000${lang}\u0000${code}`;
+  // 使ったものは新しい側へ（上限を超えたら、いちばん長く使っていないものから捨てる）
   const cached = cache.get(key);
-  if (cached) {
-    // 使ったものを新しい側へ（古いものから捨てる）
-    cache.delete(key);
-    cache.set(key, cached);
-    return cached;
-  }
+  if (cached) return cached;
   const result = computeLines(code, lang, theme);
   cache.set(key, result);
-  if (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value!);
   // 失敗したものは覚えない
   result.catch(() => cache.delete(key));
   return result;
