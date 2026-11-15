@@ -49,7 +49,7 @@
 
 ## hooks と補助
 
-- window のイベントは `useWindowEvent`（effect の中で `addEventListener` しない。ほかより先に受け取るなら `capture`）。いまのテーマ（ダーク・ライト）は `hooks/useAppliedTheme.ts` の `useAppliedTheme`（React の外は `lib/appliedTheme.ts`。テーマを決めて出すのは `app/theme.ts`。デスクトップアプリでは、選んでいるテーマを IPC の `appearance.setTheme` でメインにも知らせる = 窓の地の色）。Kickoff が前にあるかは `useWindowFocused`、ネットワークは `useOnline`。
+- window のイベントは `useWindowEvent`（effect の中で `addEventListener` しない。ほかより先に受け取るなら `capture`）。押したとき・外の仕組みから最新の値を読む ref は `useLatest`（描く中で ref に書かない。下の「性能」の React Compiler）。いまのテーマ（ダーク・ライト）は `hooks/useAppliedTheme.ts` の `useAppliedTheme`（React の外は `lib/appliedTheme.ts`。テーマを決めて出すのは `app/theme.ts`。デスクトップアプリでは、選んでいるテーマを IPC の `appearance.setTheme` でメインにも知らせる = 窓の地の色）。Kickoff が前にあるかは `useWindowFocused`、ネットワークは `useOnline`。
 - CodeMirror 6 の編集の部品は `hooks/useCodeMirror`（作るのは 1 回・書き換わったら `onChange`・途中で変える拡張は `dynamic` と `dynamicDeps` で差し替える・外から動かす口は `onCreate`。SQL のタブの `SqlEditor` とメモの `MemoEditor`）。部品ごとに `new EditorView` を組み立てない。
 - 一覧を下まで送ったら続きを読むのは `hooks/useWhenVisible`（返した ref を付けた要素が見えたら呼ぶ。読み足しても見えたままなら `again` を変えて呼び直す。GitHub タブの一覧）。重いもの（コードの色付け・Mermaid の図・AI が描いた図）を画面の手前 1200px まで来てから描くのは `hooks/useNearViewport`（一度来たら true のまま）。どちらも見張りは画面で共有する IntersectionObserver（`watchViewport`。枠と余白の組ごとに 1 つ。要素ごとに `new IntersectionObserver` しない）で、枠は要素のいちばん外側の `data-near-root` の先祖（チャットの流れ・サブエージェントのカードの窓・右の欄の画面。入れ子の枠は `scrollMargin` で広げる。枠を省くと途中のスクロールする枠の切り取りに余白が効かず、手前で動かない）。
 - サーバーから読む: 店にないもの 1 つは `useAsync`、key（ファイル・コミット・作業場所など）ごとは `useKeyedAsync`（key が変わるまで前の表示を残す。`loaded`）。
@@ -126,3 +126,9 @@
 - memo した部品へ、描くたびに新しいオブジェクト（その場で書いた `{…}`・毎回作る操作の束）を渡さない。`useMemo` で作り置き、中の操作が描くたびに作られるなら押したときにいまのものを呼ぶ形にする（右の欄の `AgentSplit` の `frame`・パネルの `usePanel` の `pageOps`。案 29）。
 - 時計（`useTicker`）で描き直すのは、時間で変わる値を出す部品だけにする。App・画面全体の hook に置かない（使用枠の残り時間は `UsageMeter`。前は App が持ち、60 秒ごとにアプリ全体が描き直っていた。案 30）。
 - 店の値・まとまりの結果は、中身が同じなら同じ配列・オブジェクトを返す（`useChats` の見え方ごとの配列、`useSetting` の値など）。memo の依存に使えるようにするため。
+- 画面のビルドは React Compiler（`babel-plugin-react-compiler`。`electron.vite.config.ts` の `reactCompilerPreset`）を通し、部品と hooks の値・描いた結果を入力が同じなら使い回す（手で memo していない所にも効く。手で書いた `memo` / `useMemo` / `useCallback` は残してよい。メモの仕様書「0023_表示を軽くする」の案 17）。Vitest には入れない。コンパイラが最適化できなかった部品・hooks は、ビルドの終わりに `scripts/react-compiler-report.mjs` が数と理由を出して `out/react-compiler-report.json` に書き、許した一覧 `src/renderer/react-compiler-skips.json`（「ファイル:関数名」と理由）にないものがあればビルドを失敗にする（`npm run build`・push 時のフックで分かる）。外れないための書き方:
+  - effect の依存を抑止コメント（`eslint-disable-next-line react-hooks/exhaustive-deps`）で減らさない（その関数ごと外れる）。最新の値を読みたいが変わっても effect をやり直したくないなら、読む処理を `useEffectEvent` に入れる。
+  - 描く中で ref に書かない・読まない（`x.current = 値` を本体に書かない）。押したとき・外の仕組み（CodeMirror・ターミナル）から最新の値を読むなら `hooks/useLatest`（書くのは useInsertionEffect）、effect の中だけなら `useEffectEvent`。描き分けに要る値は state にする。
+  - hook が返したオブジェクトの中の ref を `ref={x.ref}` と渡さない（オブジェクト全体を ref とみなして外れる）。`const { ref, ...rest } = useModalDialog()` のように分けて受ける。
+  - 描く中で外の値（`readSetting`・モジュールの変数）を読まない（入力が同じなら覚えた結果を使い、読み直さない）。設定は `useSetting`、時間は `useTicker` で描き直す。押したとき・effect の中で読むのはよい。
+  - 外すのは、外の仕組みに渡していて覚えると壊れると確かめた所だけ: 本体の先頭に `"use no memo"` と、その上に理由のコメントを書き、許した一覧にも足す。コンパイラの未対応の書き方（try / finally など）で外れたものは、直すと読みにくくなるなら一覧に理由を書いて残す。
