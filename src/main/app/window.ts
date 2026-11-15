@@ -25,8 +25,11 @@ export function setMainWindowUrl(url: string) {
 /** いまのメインのウィンドウ（閉じていれば undefined） */
 export const mainWindow = (): BrowserWindow | undefined => current;
 
-/** メインのウィンドウを作り、画面（url）を読み込む */
-export function openMainWindow(url: string) {
+/**
+ * メインのウィンドウを作り、画面（url）を読み込む。before を渡せば、窓だけ先に作って（画面のプロセスの準備をコアの起動と重ねる）、
+ * それが済んでから読み込む（起動のとき: コアの ready と画面のセッションの Cookie。失敗したら読み込まない = アプリは終わる）
+ */
+export function openMainWindow(url: string, before?: Promise<unknown>) {
   const win = new BrowserWindow({
     width: 1360,
     height: 880,
@@ -53,10 +56,15 @@ export function openMainWindow(url: string) {
   win.webContents.on("did-finish-load", () => markMain("loaded"));
   // 外部リンク（PR の URL など）は既定のブラウザで開く
   openLinksExternally(win.webContents);
-  watchWindowLoad(win.webContents, url);
   // 応答しなくなったら、止まった場所を書き、戻らなければ画面を読み込み直すかを聞く
   watchRendererHang(win, "メインのウィンドウ");
-  void win.loadURL(url);
+  const load = () => {
+    if (win.isDestroyed()) return;
+    watchWindowLoad(win.webContents, url);
+    void win.loadURL(url);
+  };
+  if (before) before.then(load, () => {});
+  else load();
   win.on("closed", () => {
     if (current === win) current = undefined;
   });

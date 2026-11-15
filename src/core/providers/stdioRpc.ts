@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { errorMessage } from "@shared/errors";
 import { timed } from "../system/stallWatch.js";
+import { reportChildProcess } from "../system/childProcesses.js";
 
 /**
  * CLI と標準入出力の JSON-RPC で話す口（1 行に 1 つの JSON）。Codex の app-server（"jsonrpc" の欄なし）と ACP のエージェント（JSON-RPC 2.0）で共有する。
@@ -26,6 +27,12 @@ const STDERR_TAIL = 2000;
 export function spawnStdio(executable: string): StdioSpawn {
   return (args, { env, cwd }) => {
     const child = spawn(executable, args, { env, cwd, stdio: ["pipe", "pipe", "pipe"] });
+    // コアのプロセスが落ちたときにメインが止められるよう、pid を知らせる（system/childProcesses.ts）
+    const pid = child.pid;
+    if (pid !== undefined) {
+      reportChildProcess({ pid, group: false, kind: "agent", state: "started" });
+      child.once("exit", () => reportChildProcess({ pid, group: false, kind: "agent", state: "exited" }));
+    }
     let stderr = "";
     child.stderr.on("data", (chunk: Buffer) => {
       stderr = (stderr + chunk.toString("utf8")).slice(-STDERR_TAIL);

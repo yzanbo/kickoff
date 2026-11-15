@@ -58,8 +58,10 @@ import { PortProcessService } from "./ports/service.js";
 import { PortWatch } from "./ports/watch.js";
 import { startNetworkRelay } from "./chat/sandbox/networkRelay.js";
 import type { BashSandboxDeps } from "./chat/sandbox/bashSandbox.js";
+import { setChildProcessReporter } from "./system/childProcesses.js";
+import type { ChildProcessNote, RecoveredReason } from "./host/protocol.js";
 
-interface CoreOptions {
+export interface CoreOptions {
   dataDir: string;
   port: number;
   /** 127.0.0.1 なら Mac 内からのみ、0.0.0.0 なら LAN にも公開 */
@@ -82,7 +84,24 @@ interface CoreOptions {
   notify?: DesktopNotify;
   /** スマホのプッシュを送る口（省けば Expo Push = notifications/expoPush.ts。Web Push はまだ送らない） */
   push?: PushSender;
+  /**
+   * Electron のメインプロセスの pid（コアのプロセスで動くとき。自分を守る仕組みとポートの一覧が、メインも自分として扱う。
+   * 省けば process.pid = 単体のコア・テスト）
+   */
+  hostPid?: number;
+  /** 前のコアの終わり方（作業中のまま残ったチャットを中断にする文を選ぶ。省けばアプリの終了） */
+  recoveredReason?: RecoveredReason;
+  /** 起こした子プロセス（エージェントの CLI・DB ワーカーの子）の知らせ（コアのプロセスがメインへ送る。system/childProcesses.ts） */
+  onChildProcess?: (note: ChildProcessNote) => void;
+  /** 起動の段階（DB を開いた・待ち受けを始めた）の時刻を受ける（起動の時刻の記録） */
+  onStage?: (stage: "dbOpened" | "listening") => void;
 }
+
+/** 前のコアの終わり方ごとの、中断したチャットに残す文 */
+const RECOVERED_MESSAGES: Record<RecoveredReason, string> = {
+  quit: "アプリの終了により中断しました。メッセージを送ると続きから再開できます。",
+  crash: "Kickoff のコアが止まったため中断しました。メッセージを送ると続きから再開できます。",
+};
 
 export interface Core {
   port: number;
@@ -96,7 +115,7 @@ export interface Core {
   browserLoginUrl(): string;
   /** 作業中のチャットの数と、スマホ連携がオンか（メインプロセスが本体を眠らせないかを決める。変わったら bus の chat / settings が届く） */
   awakeNeeds(): { running: number; mobileEnabled: boolean };
-  /** 内蔵ターミナルのシェル（メインプロセスが、この Mac の画面の IPC をここへつなぐ） */
+  /** 内蔵ターミナルのシェル（この Mac の画面が消えたら、その持ち主のシェルを止める。コアのプロセスの入口が RPC から呼ぶ） */
   terminals: TerminalSessions;
   close(): Promise<void>;
 }
@@ -106,15 +125,17 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   fs.mkdirSync(opts.dataDir, { recursive: true });
   const bus = new Bus();
   if (discardPrereleaseData(opts.dataDir)) console.log("[core] リリース前の版の保存データ（データベース・backups・uploads）を消し、新しく作り直しました");
+  if (opts.onChildProcess) setChildProcessReporter(opts.onChildProcess);
   const store = new Store(path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
-  const recovered = store.chats.recoverInterrupted("アプリの終了により中断しました。メッセージを送ると続きから再開できます。");
+  opts.onStage?.("dbOpened");
+  const recovered = store.chats.recoverInterrupted(RECOVERED_MESSAGES[opts.recoveredReason ?? "quit"]);
   if (recovered.length > 0) console.log(`[core] 中断された実行を ${recovered.length} 件復旧しました`);
 
   const token = loadOrCreateToken(opts.dataDir);
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
   // AI の API キー（DB のパスワードと同じくキーチェーンの鍵で暗号化して置く。メモの仕様書「0021」の Q13）
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
-  const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform), (id) => providerKeys.authFor(id));
+  const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform, opts.hostPid), (id) => providerKeys.authFor(id));
   // 使用枠は Claude のプランから取得する（Codex 対応時にプロバイダーごとに拡張する）
   const usage = new UsageMonitor(providers.claude, bus);
   // 設定の「使用状況」に並べる、ほかのサービス（Codex・Copilot・Cursor・Gemini）の使用状況
@@ -168,7 +189,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる。チャットの AI とターミナルには PORT を渡す）
   const worktreeEnvs = new WorktreeEnvService(store, docker);
   // ポートを使っているプロセス（AI が残した開発サーバーに気付いて止める。調べるのは窓を開いた・チャットの実行が終わったときだけ）
-  const ports = new PortWatch(bus, new PortProcessService({ store, probe: opts.platform, selfBundle: opts.platform.appBundleOf(process.execPath) }));
+  const ports = new PortWatch(bus, new PortProcessService({ store, probe: opts.platform, selfPid: opts.hostPid, selfBundle: opts.platform.appBundleOf(process.execPath) }));
   // 内蔵ターミナルのシェル（この Mac の画面は IPC、スマホは WebSocket でつなぐ。ワークツリーのシェルには PORT を渡す。AI は出力を読むだけ）
   const terminals = new TerminalSessions({ shell: opts.platform.terminalShell(), env: opts.terminalEnv, envOf: (cwd) => worktreeEnvs.envFor(cwd) });
   // AI の rm の代わりの kickoff-trash を bin/ に置く（置けなければ守りも付けない。AI が消せなくなって止まらないように）
@@ -266,8 +287,10 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const server = await startHttpServer(app, { port: opts.port, host }).catch(async (e: unknown) => {
     await relay?.close();
     store.close();
+    if (opts.onChildProcess) setChildProcessReporter(null);
     throw e;
   });
+  opts.onStage?.("listening");
   usage.start();
   prWatch.start();
   ports.start();
@@ -307,6 +330,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       bus.flushDeltas();
       await stopHttpServer(server);
       store.close();
+      if (opts.onChildProcess) setChildProcessReporter(null);
     },
   };
 }

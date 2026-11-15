@@ -9,8 +9,11 @@ import { TRASH_COMMAND } from "./deleteGuard.js";
  * エージェントがうっかり自分を止めたり、自分のデータ・API を触ったりしないよう、PreToolUse フックで断るのに使う
  */
 export interface SelfInfo {
-  /** Kickoff のプロセス（コアは Electron のメインプロセス・daemon の中で動く） */
-  pid: number;
+  /**
+   * Kickoff のプロセス（コアのプロセスと Electron のメインプロセス。単体のコアは自分だけ）。どれを止めてもチャットが止まる
+   * （コアを止めるとチャットが止まり、メインを止めると全部が止まる。メモの仕様書「0023_表示を軽くする」の案 16）
+   */
+  pids: number[];
   /** 保存先（~/Library/Application Support/Kickoff など） */
   dataDir: string;
   /** コアの API のポート */
@@ -23,11 +26,11 @@ export interface SelfInfo {
   guard: SelfGuardRules;
 }
 
-/** いま動いているプロセスから、自分の情報を作る（アプリの本体と、止めるコマンドの見分け方は OS の口から） */
-export function currentSelf(dataDir: string, port: number, platform: Pick<HostPlatform, "appBundleOf" | "selfGuard">): SelfInfo {
+/** いま動いているプロセスから、自分の情報を作る（アプリの本体と、止めるコマンドの見分け方は OS の口から。hostPid はメインプロセス） */
+export function currentSelf(dataDir: string, port: number, platform: Pick<HostPlatform, "appBundleOf" | "selfGuard">, hostPid?: number): SelfInfo {
   const bundle = platform.appBundleOf(process.execPath)?.replace(/\/+$/, "");
   return {
-    pid: process.pid,
+    pids: [...new Set([process.pid, hostPid ?? process.pid])],
     dataDir: path.resolve(dataDir),
     port,
     appName: path.basename(dataDir),
@@ -102,8 +105,9 @@ export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: 
     return { decision: "deny", reason: join(who, `その API（ポート ${self.port}）は叩けません`, dev) };
   }
   const stop = `${who}。止めると、このチャットも止まります`;
-  if (new RegExp(`\\bkill\\b[^\\n;&|]*?(?<![\\d.])${self.pid}(?![\\d.])`).test(command)) {
-    return { decision: "deny", reason: `${stop}（プロセス ${self.pid}）。開発版を止めるときは、そのプロセスを確かめてから kill -TERM を送ってください` };
+  const hit = self.pids.find((pid) => new RegExp(`\\bkill\\b[^\\n;&|]*?(?<![\\d.])${pid}(?![\\d.])`).test(command));
+  if (hit !== undefined) {
+    return { decision: "deny", reason: `${stop}（プロセス ${hit}）。開発版を止めるときは、そのプロセスを確かめてから kill -TERM を送ってください` };
   }
   if (self.guard.killByName.test(command) && mentionsName(command, self.appName)) {
     return { decision: "deny", reason: `${stop}。名前でまとめて止めないでください` };

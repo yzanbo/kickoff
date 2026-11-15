@@ -34,8 +34,11 @@ export default defineConfig({
     plugins: [speechHelper()],
     build: {
       outDir: "out/main",
-      // DB クライアントの DB ワーカー（コアが別のプロセスで起動する。out/main/dbWorker.js）もメインプロセスと一緒に作る
-      rolldownOptions: { input: { index: resolve("src/main/index.ts"), dbWorker: resolve("src/core/databases/worker/main.ts") } },
+      // コアのプロセス（out/main/core.js。メインが utilityProcess で起動する。メモの仕様書「0023_表示を軽くする」の案 16）と
+      // DB クライアントの DB ワーカー（out/main/dbWorker.js。メインが作り、コアと直結する）もメインプロセスと一緒に作る
+      rolldownOptions: {
+        input: { index: resolve("src/main/index.ts"), core: resolve("src/core/host/main.ts"), dbWorker: resolve("src/core/databases/worker/main.ts") },
+      },
     },
   },
   preload: {

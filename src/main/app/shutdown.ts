@@ -1,26 +1,33 @@
 import { app, session } from "electron";
-import type { Core } from "../../core/index.js";
+import type { CoreProcess } from "./coreProcess.js";
 import { desktopPlatform, hostPlatform } from "../platform/index.js";
 import { stopChildElectronApps } from "./childApps.js";
 
+/** 片付けの上限（この中にコアの終わりも収める） */
+const SHUTDOWN_MS = 5000;
+/** コアに残す最後の余り（終わりを待ち切れなければ SIGTERM を送って先へ進む） */
+const CORE_CLOSE_MARGIN_MS = 300;
+
 /**
- * 終了時の片付け（before-quit）: preventDefault → 自分から起動した Electron のアプリ → コア（ターミナルのシェルも）の順に止めて exitKeepingNotifications。
- * 片付けは 5 秒で打ち切る。app.quit() は呼び直さない（ウィンドウだけ閉じてアプリが残る）
+ * 終了時の片付け（before-quit）: preventDefault → 自分から起動した Electron のアプリ → コアのプロセス（close を頼み、終わるのを待つ。
+ * ターミナルのシェル・DB も）の順に止めて exitKeepingNotifications。片付けは 5 秒で打ち切る。app.quit() は呼び直さない（ウィンドウだけ閉じてアプリが残る）。
+ * reallyExit はメインの後片付けを飛ばすので、コアは必ず先に終わらせる（メインが先に消えると、コアは片付けの途中で止まる）
  */
-export function registerShutdown(core: () => Core | undefined) {
+export function registerShutdown(core: () => CoreProcess | undefined) {
   let closing = false;
   app.on("before-quit", (e) => {
     const coreToClose = core();
-    // コアがなければ止めるもの（シェルもコアの中）がない
+    // コアがなければ止めるもの（シェルもコアの子）がない
     if (!coreToClose) return;
     e.preventDefault();
     if (closing) return;
     closing = true;
-    const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5000));
+    const deadline = Date.now() + SHUTDOWN_MS;
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, SHUTDOWN_MS));
     const cleanup = async () => {
       await stopChildElectronApps(3000, hostPlatform, desktopPlatform);
-      // ターミナルのシェルもコアが止める（core.close）
-      await coreToClose.close();
+      // ターミナルのシェルもコアが止める（core.close）。残りの時間で終わらなければ SIGTERM
+      await coreToClose.close(Math.max(500, deadline - Date.now() - CORE_CLOSE_MARGIN_MS));
     };
     void Promise.race([cleanup(), timeout])
       .catch((err) => console.error("[main] 終了の片付けに失敗しました", err))
