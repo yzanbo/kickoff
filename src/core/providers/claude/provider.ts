@@ -22,7 +22,7 @@ import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./label
 import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";
 import { mcpServersOf, toolAllowList } from "./mcpServers.js";
-import { agentEnv, resolveClaudeExecutable } from "./env.js";
+import { agentEnv, claudeAuthEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
 import { turnContextHook, turnHooks, toAllowedTools } from "./policy.js";
@@ -35,6 +35,9 @@ import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
 
 /** Kickoff のチャットでは使わせない Claude Code のツール（Kickoff の利用者に届かない・Kickoff の操作ツールと取り違えるもの） */
 const KICKOFF_DISALLOWED_TOOLS = ["PushNotification"];
+
+/** 1 回だけ聞くときの段ごとのモデル（AskModel。軽い = haiku・ふつう = sonnet） */
+const ASK_MODELS: Record<AskModel, string> = { light: "haiku", standard: "sonnet" };
 
 /** 要約に渡す文の上限（文字。haiku のコンテキストと時間に収める） */
 const MAX_SUMMARIZE_CHARS = 60_000;
@@ -210,7 +213,8 @@ export class ClaudeProvider implements AgentProvider {
           resume: params.resumeSessionId ?? undefined,
           abortController,
           // 自動圧縮を始める使用率を決めていれば渡す（決めていなければ Claude Code の既定）
-          env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct), ...params.env },
+          // API キーで動かす設定なら、キーを渡す（agentEnv はプランで動かすため鍵の環境変数を外すので、そのあとに重ねる）
+          env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct), ...params.env, ...claudeAuthEnv(params.auth) },
           pathToClaudeCodeExecutable: this.executable,
           hooks: {
             ...turnHooks(params, this.self, cb),
@@ -413,17 +417,17 @@ export class ClaudeProvider implements AgentProvider {
   }
 
   /**
-   * ツールを使わずに 1 回だけ聞く（名前を付ける・要約する・メモの整理。チャットの記録には残さない。既定は haiku）。
+   * ツールを使わずに 1 回だけ聞く（名前を付ける・要約する・メモの整理。チャットの記録には残さない。既定は軽い段 = haiku）。
    * 空の一時フォルダで動かす（Kickoff を起動したフォルダで動かすと、そこの CLAUDE.md・自動のメモリーを読み込み、答えに混ざる）。
    * 会話記録は残さない（persistSession: false。続けることはなく、残すとチャットを作るたびに ~/.claude/projects に使わない記録が 1 つずつ増えていた）
    */
-  private async askOnce(prompt: string, model: AskModel = "haiku"): Promise<string> {
+  private async askOnce(prompt: string, tier: AskModel = "light"): Promise<string> {
     const q = query({
       prompt,
       options: {
         persistSession: false,
         cwd: os.tmpdir(),
-        model,
+        model: ASK_MODELS[tier],
         effort: "low",
         maxTurns: 1,
         tools: [],

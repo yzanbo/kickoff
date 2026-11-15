@@ -669,7 +669,7 @@ test("SQL の「AI に頼む」: テーブルと列の名前と頼みを AI に�
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, { sql: "SELECT count(*) FROM users;" });
   const asked = provider.asked.at(-1);
-  assert.equal(asked?.model, "sonnet");
+  assert.equal(asked?.model, "standard");
   assert.match(asked?.prompt ?? "", /- users\(id, name, avatar\)/);
   assert.match(asked?.prompt ?? "", /<頼み>\nユーザーの数\n<\/頼み>/);
   // 中身の値は渡さない

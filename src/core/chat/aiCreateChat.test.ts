@@ -48,7 +48,7 @@ test("チャットを作るツール: 子チャットは、承認されたら呼
   const { asked, approve } = approver({ action: "allow" });
   const result = await params.createChat.create({ relation: "child", text: "  ログの形式を調べて  ", title: "ログの調査" }, approve);
   // 既定は「毎回聞く」。聞く中身は、前後の空白を除いた依頼・名前・引き継ぐか（子は既定で引き継ぐ）・作業場所
-  assert.deepEqual(asked, [{ relation: "child", text: "ログの形式を調べて", title: "ログの調査", inherit: true, group: null, worktree_branch: null, workplace: "このチャットと同じ作業場所（本体）" }]);
+  assert.deepEqual(asked, [{ relation: "child", text: "ログの形式を調べて", title: "ログの調査", inherit: true, group: null, worktree_branch: null, workplace: "このチャットと同じ作業場所（本体）", provider: null }]);
   // 偽のプロバイダーは会話を写せない（fork がない）ので、引き継げなかったことを伝える
   assert.match(result, /引き継げなかった/);
   const child = await created(ctx, result);

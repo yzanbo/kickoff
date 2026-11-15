@@ -49,6 +49,7 @@ import "./gitRepo.js";
 import { tempDir } from "./tempDir.js";
 import { setupCore } from "./testCore.js";
 import { McpToolHost } from "../mcp/host.js";
+import { ProviderKeyVault } from "../providers/keys.js";
 
 export { until } from "./testCore.js";
 
@@ -459,7 +460,9 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   runner.useChatRemover(chatRemover);
   after(() => chatRemover.close());
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
-  const app = createApp({ store, bus, token: TOKEN, mcpTools, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  // AI の API キー（暗号化の口を渡されたテストはそれで置く。実行の側には渡さない = いつもサブスク）
+  const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
+  const app = createApp({ store, bus, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {

@@ -39,7 +39,7 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEn
     const provider = providers[project.provider];
     if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、ブランチ名の提案に対応していません");
     const taken = (await isGitWorkTree(project.repo_path)) ? (await gitRefs(project.repo_path)).branches.map((b) => b.name) : [];
-    const answer = await provider.ask(branchSuggestPrompt(summary, taken), { model: "haiku" }).catch(asInvalid);
+    const answer = await provider.ask(branchSuggestPrompt(summary, taken), { model: "light" }).catch(asInvalid);
     const branches = parseBranchSuggestions(answer, taken);
     if (branches.length === 0) throw new Invalid("ブランチ名の案を作れませんでした。やりたいことを少し詳しく書いて、もう一度試してください");
     return c.json({ branches } satisfies BranchSuggestions);

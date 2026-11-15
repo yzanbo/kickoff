@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import { TRASH_KEEP_MS } from "@shared/types";
+import { PROVIDER_IDS, TRASH_KEEP_MS } from "@shared/types";
 import { AUTH, setup, until } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 
@@ -268,7 +268,7 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
   assert.equal((await call("POST", `/api/approvals/${scoped.approval.id}`, { action: "allow_always" })).status, 204);
   assert.equal((await scoped.decision).action, "allow_always");
 
-  assert.equal((await call("GET", "/api/providers")).body.length, 3);
+  assert.equal((await call("GET", "/api/providers")).body.length, PROVIDER_IDS.length);
   assert.deepEqual((await call("GET", "/api/providers/claude/models")).body, []);
   assert.equal((await call("GET", "/api/providers/unknown/models")).status, 400);
   assert.deepEqual((await call("GET", "/api/usage")).body, { available: false });

@@ -190,7 +190,7 @@ test("巻き戻しの API: 分岐に対応していないプロバイダーな�
   const [firstUser, secondUser] = store.events.list(chatId).filter((e) => e.type === "user");
   Object.assign(provider, { fork: undefined });
   const res = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: secondUser.id, text: "x" });
-  assert.deepEqual(res, { status: 400, body: { error: "Fake は巻き戻しに対応していません" } });
+  assert.deepEqual(res, { status: 400, body: { error: "Fake のチャットでは分岐・巻き戻しは使えません" } });
   assert.equal(store.events.list(chatId).length, 4);
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: firstUser.id, text: "y" })).status, 200);
   await until(() => !runner.isBusy(chatId));

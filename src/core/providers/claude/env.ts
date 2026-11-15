@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import path from "node:path";
+import type { ProviderAuth } from "../keys.js";
 
 /**
  * Agent SDK に同梱される Claude Code のネイティブバイナリを解決する。
@@ -14,6 +15,15 @@ export function resolveClaudeExecutable(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * API キーで動かすときの環境変数（メモの仕様書「0021」の Q13）。CLAUDE_CODE_SUBPROCESS_ENV_SCRUB で、Claude Code が Bash などの
+ * 子プロセスから Anthropic の鍵の環境変数を外す（AI が Bash で読めないように。本物で効くかは使い始める前に確かめる）。サブスクなら何も足さない
+ */
+export function claudeAuthEnv(auth: ProviderAuth | undefined): Record<string, string> {
+  if (auth?.mode !== "api_key" || !auth.apiKey) return {};
+  return { ANTHROPIC_API_KEY: auth.apiKey, CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1" };
 }
 
 /** MCP のツールの待ち時間（7 日。ミリ秒） */

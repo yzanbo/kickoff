@@ -412,7 +412,7 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
     const provider = providers[project.provider];
     if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、SQL を書くのに対応していません");
     const tables = await databases.outline(connection, project, await workdirOf(c, project), body.path);
-    const answer = await provider.ask(sqlAssistPrompt({ engine: connection.engine, tables, request: body.request, current: body.sql }), { model: "sonnet" }).catch(asInvalid);
+    const answer = await provider.ask(sqlAssistPrompt({ engine: connection.engine, tables, request: body.request, current: body.sql }), { model: "standard" }).catch(asInvalid);
     const sql = parseSqlAnswer(answer);
     if (!sql) throw new Invalid("AI から答えがありませんでした");
     return c.json({ sql } satisfies DbSqlAssistResult);

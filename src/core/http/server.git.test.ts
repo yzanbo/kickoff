@@ -464,7 +464,7 @@ test("ブランチ名の案: やりたいことの概要から AI に 1 回だ�
   assert.deepEqual(res.body, { branches: ["feature/login-page", "fix/session-timeout"] });
   // 軽いモデルに、概要といまあるブランチを見せて聞く
   const asked = provider.asked.at(-1);
-  assert.equal(asked?.model, "haiku");
+  assert.equal(asked?.model, "light");
   assert.match(asked?.prompt ?? "", /feature\/login/);
   assert.match(asked?.prompt ?? "", /<やりたいこと>\nログイン画面を作る\n<\/やりたいこと>/);
   assert.equal((await call("POST", url, { summary: "  " })).status, 400);

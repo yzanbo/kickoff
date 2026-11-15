@@ -42,12 +42,13 @@ import { bashSandboxFor, type BashSandbox, type BashSandboxDeps } from "./sandbo
 import { switchAfterCompact, type SessionTrash } from "./sessionSwitch.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
-import type { Project, ProviderId, Chat, CompactTrigger, Question } from "@shared/types";
+import { PROVIDER_AUTH_MODE_LABELS, type Project, type ProviderId, type Chat, type CompactTrigger, type Question } from "@shared/types";
 import type { UploadStore } from "./uploads.js";
 import type { ChatRuntime } from "./runtime.js";
 import { workdirOf } from "./workdir.js";
 import { autoPreCompactParams, postCompactItem, postCompactPromptOf, preCompactPromptOf } from "./preCompact.js";
 import type { McpToolHost } from "../mcp/host.js";
+import type { ProviderKeyVault } from "../providers/keys.js";
 import { turnToolServers } from "../mcp/turnTools.js";
 
 /** 実行に使うもの（Runner から受け取る） */
@@ -94,6 +95,8 @@ export interface ExecutionDeps {
   bashSandbox?: BashSandboxDeps;
   /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。メモの仕様書「0021」の Q7。なければツールを出さない（テスト）） */
   toolHost?: McpToolHost;
+  /** AI の API キー（設定でログインの仕方を API キーにした AI に渡す。メモの仕様書「0021」の Q13。なければいつもサブスク） */
+  providerKeys?: ProviderKeyVault;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -169,10 +172,14 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
     const result: ProviderTurnResult = signal.aborted ? { status: "cancelled", sessionId: chat.session_id } : await runProvider();
     async function runProvider(): Promise<ProviderTurnResult> {
+      // ログインの仕方（API キーにしたのに置いていない・開けなければ、動かさずに分かる文で止める）
+      const auth = (await deps.providerKeys?.authFor(chat.provider)) ?? { mode: "subscription" as const, apiKey: null };
+      if (auth.mode === "api_key" && !auth.apiKey) throw new Error(`${providers[chat.provider].label} のログインの仕方が「${PROVIDER_AUTH_MODE_LABELS.api_key}」ですが、API キーを読めませんでした。設定の AI の欄で API キーを置き直してください`);
       const params: ProviderTurnParams = {
         ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId),
         preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent),
         env,
+        auth,
       };
       const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
       // AI の操作ツールは、この実行の鍵でコアの MCP サーバーに出し、プロバイダーにはその口だけを渡す（どの CLI でも同じツール。終わったら鍵を捨てる）
