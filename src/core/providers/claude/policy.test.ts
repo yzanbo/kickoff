@@ -3,13 +3,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk";
-import { turnContextHook, turnHooks } from "./policy.js";
+import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks } from "./policy.js";
 import type { ApprovalRequest, ProviderTurnParams } from "../types.js";
 import type { ApprovalDecision } from "@shared/types";
 import { tempDir } from "../../testing/tempDir.js";
 
 const signal = new AbortController().signal;
 const submit = { hook_event_name: "UserPromptSubmit", prompt: "質問", session_id: "s", transcript_path: "/tmp/t", cwd: "/tmp" } as HookInput;
+
+test("使わせないツール: Kickoff の利用者に届かない PushNotification と、会話ごと作業場所を移す EnterWorktree / ExitWorktree を外す", () => {
+  assert.deepEqual([...KICKOFF_DISALLOWED_TOOLS].sort(), ["EnterWorktree", "ExitWorktree", "PushNotification"]);
+});
 
 test("指示に添える文脈: 実行の初めの指示にだけ additionalContext で添え、作業中に足した発言・ほかのフックには添えない", async () => {
   const [hook] = turnContextHook("親チャット: 「メイン」").hooks;

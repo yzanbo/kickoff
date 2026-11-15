@@ -197,6 +197,15 @@ function sandboxDeniedHook(params: ProviderTurnParams, sandbox: BashSandbox): Ho
   };
 }
 
+/**
+ * Kickoff のチャットでは使わせない Claude Code のツール（`disallowedTools`）。
+ * - PushNotification: Claude のアプリ・端末に送るもので Kickoff の利用者に届かない（知らせるのは kickoff_chat の notify_user）
+ * - EnterWorktree / ExitWorktree: 会話ごと別のフォルダへ移る。チャットの作業場所は Kickoff が決めて覚えるもので、
+ *   途中で移ると画面の表示・Git と差分・書き込み先の守りと Bash の砂場・ポートの帯・ワークツリーの片付けがすべてずれるため
+ *   （書き換えを分けるときは Kickoff のワークツリーで。サブエージェントの isolation: "worktree" はメインエージェントの作業場所を変えないので使える）
+ */
+export const KICKOFF_DISALLOWED_TOOLS = ["PushNotification", "EnterWorktree", "ExitWorktree"];
+
 /** チャットのポリシーを Claude Code の権限ルールに変換する（ファイルの編集は権限モードに任せる） */
 export function toAllowedTools(policy: ChatPolicy): string[] {
   return [
