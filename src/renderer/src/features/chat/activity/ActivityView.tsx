@@ -1,7 +1,9 @@
 import { MessageSquare, PanelRight } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type UIEvent } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type RefObject, type UIEvent } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/lib/cx";
+import { createLruMap } from "@/lib/lruMap";
+import { useRowWindow, type RowLayoutContext } from "@/hooks/useRowWindow";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { formatStamp } from "@/lib/time";
@@ -16,8 +18,8 @@ import { ActivityLine } from "./ActivityLine";
 import { ActivityFocusBar } from "./ActivityFocusBar";
 import { useActivityFocus } from "./useActivityFocus";
 
-/** 一度に描く行の数（下の「以前の動きを表示」で、この数ずつ前を足す。長いチャットでも全部は描かない） */
-const ACTIVITY_WINDOW = 300;
+/** 覚える行の高さの数（動きを開いている間だけ） */
+const ACTIVITY_SIZES = 5000;
 /** 一番上を見ているとみなす、上端からの距離（ここにいる間は新しい行に付いていく） */
 const FOLLOW_SLACK_PX = 40;
 const ALL: ActivityFilter = { kind: "all" };
@@ -28,6 +30,8 @@ const ALL: ActivityFilter = { kind: "all" };
  * 左の線は、メインの線から起動した時刻でサブエージェントの線が枝分かれし（上へ伸びる）、終わった時刻で閉じる（配下であること・いつ始まりいつ終わったか・
  * どこが並行していたかを 1 枚で見せる）。上のチップでエージェントを絞り込み（その配下ごと）、行を押すと会話のその場所へ移る。
  * カードの「動きで見る」では、絞り込まずにそのサブエージェントと配下の行をすべて強調し、いちばん上（最新）の行へ移る（useActivityFocus。↑↓ で順に）
+ * 描くのは見えている所の近くの行だけ（画素で決める窓 useRowWindow。新しい側は上。外は測った高さ・見積もりの箱）。下の端（いちばん古い行）に
+ * 近づいたら、前の記録を読む（読んでいる間は下に「読み込み中…」。メモの仕様書「0023_表示を軽くする」の 22d・案 4）
  */
 export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const view = useSubagentsView();
@@ -35,9 +39,8 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const filter = useChatPaneState((s) => s.activityFilter) ?? ALL;
   // サブエージェントの行の右クリック: 開き方を選ぶ（流れの中のカード / 右の欄）
   const menu = useContextMenu<{ key: string; eventId?: number }>();
-  const [limit, setLimit] = useState(ACTIVITY_WINDOW);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-  // 中身のまま読んだ記録から（末尾より前は「以前の動きを表示」で読み足す。メモの仕様書「0023_表示を軽くする」の案 4）
+  // 中身のまま読んだ記録から（末尾より前は、下の端に近づいたら読み足す。メモの仕様書「0023_表示を軽くする」の案 4）
   const events = view?.loaded;
   const tree = view?.tree;
   const busy = view?.busy ?? false;
@@ -56,7 +59,9 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
 
   // 一番上を見ている間は、新しい行に付いていく（初めと、絞り込みを変えたときは一番上から）
   const scrollRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const following = useRef(true);
+  const w = useActivityWindow({ rows: ordered, expanded, scrollRef, innerRef, chatId: view?.chatId ?? 0, filter, hasEarlier: view?.hasEarlier ?? false });
   const newestKey = ordered[0]?.key;
   useLayoutEffect(() => {
     following.current = true;
@@ -65,15 +70,10 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
     const el = scrollRef.current;
     if (el && following.current) el.scrollTop = 0;
   }, [newestKey, ordered.length, filter]);
-  const focus = useActivityFocus(ordered, tree, scrollRef, following);
-  // 上から limit 行を描く。強調している行がその先なら、そこまで描く（描き足した分は、次からも描いたまま）
-  const end = Math.max(Math.min(ordered.length, limit), (focus.currentIndex ?? -1) + 1);
-  useLayoutEffect(() => {
-    if (focus.currentIndex !== undefined) setLimit((n) => Math.max(n, focus.currentIndex! + 1));
-  }, [focus.currentIndex]);
-  const rest = ordered.length - end;
+  const focus = useActivityFocus(ordered, tree, scrollRef, following, w.reveal);
   const onScroll = (e: UIEvent<HTMLDivElement>) => {
     following.current = e.currentTarget.scrollTop < FOLLOW_SLACK_PX;
+    w.onScroll();
   };
 
   if (!view || !tree) return null;
@@ -112,36 +112,36 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
       <Filters tree={tree} hues={view.hues} filter={filter} running={running} onChange={(f) => pane.show("activity", f)} />
       {focus.key !== null && <ActivityFocusBar focus={focus} name={name(focus.key)} hue={view.hues.get(focus.key)} onClear={pane.clearActivityFocus} />}
       <div ref={scrollRef} className="activity" tabIndex={-1} onScroll={onScroll}>
-        <div className="activity-inner" style={timeWidth}>
+        <div className="activity-inner" style={timeWidth} ref={innerRef}>
           {shown.length === 0 && <p className="muted small activity-empty">まだ動きがありません</p>}
-          {ordered.slice(0, end).map((row, i) => (
-            <ActivityLine
-              key={row.key}
-              row={row}
-              rail={rails.rows[i]}
-              width={rails.width}
-              name={name(row.agent)}
-              hues={view.hues}
-              rel={rel}
-              expanded={expanded.has(row.key)}
-              highlighted={focus.keys.has(row.key)}
-              current={focus.currentKey === row.key}
-              onToggle={toggle}
-              onOpen={open}
-              onMenu={openMenu}
-              onPick={pane.canOpenSide ? pick : undefined}
-            />
-          ))}
-          {rest > 0 ? (
-            <button type="button" className="link-button activity-more" onClick={() => setLimit((n) => n + ACTIVITY_WINDOW)}>
-              以前の動きを表示（あと {rest} 件）
-            </button>
-          ) : (
-            view.hasEarlier && (
-              <button type="button" className="link-button activity-more" onClick={() => void chatLog.loadEarlier(view.chatId)}>
-                以前の動きを表示
-              </button>
-            )
+          {/* 行と箱は 1 つの並びにする（入れ子の配列にすると、箱が増えたときに後ろの行がすべて作り直される） */}
+          {w.runs.flatMap((run) =>
+            run.kind === "box"
+              ? [<div key={`box-${ordered[run.start].key}`} className="activity-box" style={{ height: run.height }} aria-hidden />]
+              : ordered.slice(run.start, run.end).map((row, j) => (
+                  <ActivityLine
+                    key={row.key}
+                    row={row}
+                    rail={rails.rows[run.start + j]}
+                    width={rails.width}
+                    name={name(row.agent)}
+                    hues={view.hues}
+                    rel={rel}
+                    expanded={expanded.has(row.key)}
+                    highlighted={focus.keys.has(row.key)}
+                    current={focus.currentKey === row.key}
+                    onToggle={toggle}
+                    onOpen={open}
+                    onMenu={openMenu}
+                    onPick={pane.canOpenSide ? pick : undefined}
+                    rowRef={w.measureRef(row.key)}
+                  />
+                )),
+          )}
+          {w.loading && (
+            <div className="timeline-loading" role="status">
+              読み込み中…
+            </div>
           )}
         </div>
       </div>
@@ -158,6 +158,74 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
     </div>
   );
 }
+
+/**
+ * 動きの窓（useRowWindow を新しい側が上で使う）: 行の高さは開いている間だけ覚え、見積もりは 1 行（広げたまとまりは呼び出しの数だけ足す）。
+ * 絞り込みを変えたら作り直して一番上から。下の端に近づいたら前の記録を読む（同時に 1 つ。読んでも行が増えなければ、増えるまで頼み直さない）
+ */
+function useActivityWindow({
+  rows,
+  expanded,
+  scrollRef,
+  innerRef,
+  chatId,
+  filter,
+  hasEarlier,
+}: {
+  rows: ActivityRow[];
+  expanded: ReadonlySet<string>;
+  scrollRef: RefObject<HTMLDivElement | null>;
+  innerRef: RefObject<HTMLDivElement | null>;
+  chatId: number;
+  filter: ActivityFilter;
+  hasEarlier: boolean;
+}) {
+  const [sizes] = useState(() => createLruMap<string, number>(ACTIVITY_SIZES));
+  const estimate = useCallback(
+    (row: ActivityRow, layout: RowLayoutContext) => Math.round((ROW_EST_PX + (expanded.has(row.key) ? (row.tools?.length ?? 0) * CALL_EST_PX : 0)) * layout.scale),
+    [expanded],
+  );
+  const [loading, setLoading] = useState(false);
+  const inflight = useRef(false);
+  const lastAsk = useRef<string | null>(null);
+  const shape = `${rows.length}:${rows.at(-1)?.key}`;
+  const shapeRef = useRef(shape);
+  shapeRef.current = shape;
+  const onNearEnd = useMemo(
+    () =>
+      hasEarlier
+        ? () => {
+            if (inflight.current || lastAsk.current === shapeRef.current) return;
+            inflight.current = true;
+            lastAsk.current = shapeRef.current;
+            setLoading(true);
+            void chatLog.loadEarlier(chatId).finally(() => {
+              inflight.current = false;
+              setLoading(false);
+            });
+          }
+        : undefined,
+    [hasEarlier, chatId],
+  );
+  const w = useRowWindow({
+    items: rows,
+    keyOf: rowKey,
+    estimate,
+    sizes,
+    scroller: scrollRef,
+    list: innerRef,
+    newest: "start",
+    initial: null,
+    resetKey: `${chatId}:${filter.kind === "agent" ? filter.key : filter.kind}`,
+    onNearEnd,
+  });
+  return { ...w, loading };
+}
+
+const rowKey = (row: ActivityRow) => row.key;
+/** 1 行と、広げたまとまりの呼び出し 1 回の見積もりの高さ（px。文字の倍率 1 のとき） */
+const ROW_EST_PX = 26;
+const CALL_EST_PX = 22;
 
 /** 絞り込みのチップ（すべて・メイン・サブエージェントを起動した順に。入れ子は道筋を説明に。押すとその配下ごとに絞る） */
 function Filters({

@@ -173,9 +173,10 @@
   font-size: calc(15px * var(--chat-scale, 1));
 }
 
-/* 前・後ろの記録を読んでいる間だけ出す 1 行（流れの上・途中の一部分の下。高さを決めておき、出し入れで読んでいる所がずれる量を一定にする） */
+/* 前・後ろの記録を読んでいる間だけ出す 1 行（流れの上・途中の一部分の下・動きの下。高さを決めておき、出し入れで読んでいる所がずれる量を一定にする） */
 .timeline-loading {
   align-self: center;
+  text-align: center;
   height: calc(20px * var(--chat-scale, 1));
   line-height: calc(20px * var(--chat-scale, 1));
   font-size: calc(12px * var(--chat-scale, 1));
