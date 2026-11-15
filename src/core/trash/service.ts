@@ -92,6 +92,8 @@ export class TrashService {
   private readonly handlers = new Map<TrashKind, TrashKindHandler>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private sweeping: Promise<void> | null = null;
+  /** 動いている片付けのあとに、もう一度流す片付け（待っている頼みは 1 つにまとめる） */
+  private sweepAgain: Promise<void> | null = null;
 
   constructor(private readonly deps: TrashServiceDeps) {}
 
@@ -278,9 +280,20 @@ export class TrashService {
     this.deps.store.trash.remove(item.id);
   }
 
-  /** 片付け（AI が入れたものを取り込み、3 日たったものを本当に消す）。重ねて呼ばれたら 1 つにまとめる */
+  /**
+   * 片付け（AI が入れたものを取り込み、3 日たったものを本当に消す）。動いている片付けがあれば、それが終わってからもう一度流す
+   * （動いている片付けは頼まれる前の時計と中身で数えているので、その結果で済ませると、頼んだときに 3 日たっていたものが残る。起動のときの片付けが長引くと起きた）。
+   * 待っている頼みは 1 つにまとめる
+   */
   sweep(): Promise<void> {
-    this.sweeping ??= (async () => {
+    if (this.sweeping) {
+      this.sweepAgain ??= this.sweeping.then(() => {
+        this.sweepAgain = null;
+        return this.sweep();
+      });
+      return this.sweepAgain;
+    }
+    this.sweeping = (async () => {
       try {
         await this.importInbox();
         for (const step of this.sweepSteps) await step().catch((e: unknown) => console.warn(`[trash] 片付けの途中で失敗しました: ${errorMessage(e)}`));
