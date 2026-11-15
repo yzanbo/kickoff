@@ -26,7 +26,30 @@
   display: none;
 }
 
-/* カードの中身は右（深い入れ子は左も）の余白が 0 なので、包みをはみ出させない（カードの中のカードは自分の線を中に持ち、外へ描く飾りがない） */
+/*
+ * 画面から離れた行は、レイアウトと描画を省く（content-visibility は描くのを省くとき箱の外を切るので、項目ではなく包みに当てる。
+ * 包みの余白に飾りが収まる）。大きさは一度描いた大きさを覚え（auto）、まだ描いていない行は見積もりの 120px（行ごとの見積もり・測った高さはまだ入れない）
+ */
+.timeline-row {
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 120px;
+}
+
+/* いまの作業の行（実行中のツール・流れ続けるコマンドの出力・動いているサブエージェントのカード。data-live）は省かない（頻繁に変わり、いつも見えているため） */
+.timeline-row[data-live] {
+  content-visibility: visible;
+}
+
+/* 移ったときの輪（外側 28px の光）は包みの余白からもはみ出すので、光っている間だけ省くのをやめる（省くと箱の外が切れる） */
+.timeline-row:has(.flash) {
+  content-visibility: visible;
+}
+
+/*
+ * カードの中身は右（深い入れ子は左も）の余白が 0 なので、包みをはみ出させない（カードの中のカードは自分の線を中に持ち、外へ描く飾りがない）。
+ * 余白がないので描くのも省かない（省くと、中の項目のピントの枠が包みの箱で切れる）
+ */
 .subagent-card-body > .timeline-row {
   --row-ink: 0px;
+  content-visibility: visible;
 }
