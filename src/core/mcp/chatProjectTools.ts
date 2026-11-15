@@ -1,8 +1,8 @@
 // kickoff_chat のプロジェクトに足す・変えるツール（add_snippet・move_memo）。中身は core/chat/aiProject.ts、ここは引数の形と使い方だけ
-import { tool } from "@anthropic-ai/claude-agent-sdk";
+import { defineTool as tool } from "./tool.js";
 import { z } from "zod";
 import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX } from "@shared/types";
-import type { AiProjectTools } from "../../chat/aiProject.js";
+import type { AiProjectTools } from "../chat/aiProject.js";
 import { run } from "./chatToolResult.js";
 
 /** プロジェクトに足す・変えるツールの使い方（MCP の instructions として AI に渡す） */

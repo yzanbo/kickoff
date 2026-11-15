@@ -1,5 +1,5 @@
-import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
+import { defineTool as tool, type ToolServer } from "./tool.js";
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "@shared/chat/aiChatEdit";
 import { AI_CHAT_RELATION_LABELS, AI_CHAT_RELATIONS, AI_CREATE_CHAT_TOOL } from "@shared/chat/aiCreateChat";
 import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_MEMO_TOOL, AI_OPEN_SQL_TOOL } from "@shared/chat/aiOpen";
@@ -12,18 +12,18 @@ import { AI_NOTIFY_USER_TOOL } from "@shared/chat/aiNotify";
 import { AI_GET_USER_VIEW_TOOL } from "@shared/chat/aiUserView";
 import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL } from "@shared/chat/aiChatRemove";
 import { CHAT_TITLE_MAX } from "@shared/types";
-import type { AiChatEditTools } from "../../chat/aiChatEdit.js";
-import type { AiChatReadTools } from "../../chat/aiChatRead.js";
-import type { AiCreateChatDecision, AiCreateChatRequest, AiCreateChatTools } from "../../chat/aiCreateChat.js";
-import type { AiOpenTools } from "../../chat/aiOpen.js";
-import type { AiProjectTools } from "../../chat/aiProject.js";
-import type { AiTerminalTools } from "../../chat/aiTerminal.js";
-import type { AiVisualTools } from "../../chat/aiVisual.js";
-import type { AiWorktreeTools } from "../../chat/aiWorktree.js";
-import type { AiNotifyTools } from "../../chat/aiNotify.js";
-import type { AiUserViewTools } from "../../chat/aiUserView.js";
-import type { AiChatRemoveTools } from "../../chat/aiChatRemove.js";
-import type { ProviderCallbacks } from "../types.js";
+import type { AiChatEditTools } from "../chat/aiChatEdit.js";
+import type { AiChatReadTools } from "../chat/aiChatRead.js";
+import type { AiCreateChatDecision, AiCreateChatRequest, AiCreateChatTools } from "../chat/aiCreateChat.js";
+import type { AiOpenTools } from "../chat/aiOpen.js";
+import type { AiProjectTools } from "../chat/aiProject.js";
+import type { AiTerminalTools } from "../chat/aiTerminal.js";
+import type { AiVisualTools } from "../chat/aiVisual.js";
+import type { AiWorktreeTools } from "../chat/aiWorktree.js";
+import type { AiNotifyTools } from "../chat/aiNotify.js";
+import type { AiUserViewTools } from "../chat/aiUserView.js";
+import type { AiChatRemoveTools } from "../chat/aiChatRemove.js";
+import type { ProviderCallbacks } from "../providers/types.js";
 import { failure, text } from "./chatToolResult.js";
 import { OPEN_INSTRUCTIONS, openTools } from "./chatOpenTools.js";
 import { PROJECT_INSTRUCTIONS, projectTools } from "./chatProjectTools.js";
@@ -54,10 +54,10 @@ export interface ChatTools {
 }
 
 /**
- * allowedTools に足す名前（渡すツールだけ）。チャットを作る承認（設定が「毎回聞く」のとき）はツールの中で行うので、
+ * 聞かずに使わせるツールの名前（渡すツールだけ）。チャットを作る承認（設定が「毎回聞く」のとき）はツールの中で行うので、
  * 権限モードにかかわらず同じに効く（Auto mode でも承認を飛ばさない）。名前・固定・グループは聞かずに変える
  */
-export const chatToolNames = (tools: ChatTools) => [
+const chatToolNames = (tools: ChatTools) => [
   ...(tools.createChat ? [AI_CREATE_CHAT_TOOL] : []),
   ...(tools.chatEdit ? [AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL] : []),
   ...(tools.open ? [AI_OPEN_MEMO_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_SQL_TOOL, AI_ADD_DRAFT_TOOL] : []),
@@ -192,11 +192,12 @@ function chatEditTools(chatEdit: AiChatEditTools) {
 }
 
 /** 1 回の実行に渡す、チャットを操作するツールの MCP サーバー（渡すツールがなければ null） */
-export function chatMcpServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): McpSdkServerConfigWithInstance | null {
+export function chatToolServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): ToolServer | null {
   if (!tools.createChat && !tools.chatEdit && !tools.open && !tools.read && !tools.project && !tools.terminal && !tools.visual && !tools.worktree && !tools.notify && !tools.userView && !tools.remove) return null;
-  return createSdkMcpServer({
+  return {
     name: CHAT_SERVER,
-    version: "1.0.0",
+    // 画面と記録が見分けに使う名前は Claude Code の見え方（mcp__kickoff_chat__…）なので、頭を外してツールの名前にする
+    autoAllow: chatToolNames(tools).map((name) => name.replace(`mcp__${CHAT_SERVER}__`, "")),
     instructions: instructionsFor(tools),
     tools: [
       ...(tools.createChat ? [createChatTool(tools.createChat, cb, signal)] : []),
@@ -211,5 +212,5 @@ export function chatMcpServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "req
       ...(tools.userView ? userViewTools(tools.userView) : []),
       ...(tools.remove ? removeTools(tools.remove) : []),
     ],
-  });
+  };
 }

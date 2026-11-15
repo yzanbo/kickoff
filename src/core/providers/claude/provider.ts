@@ -21,9 +21,7 @@ import { autoCompactEnv } from "@shared/chat/autoCompact";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./labels.js";
 import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";
-import { BROWSER_SERVER, browserMcpServer, browserReadOnlyTools } from "./browserTools.js";
-import { DB_SERVER, dbMcpServer, dbToolNames } from "./dbTools.js";
-import { CHAT_SERVER, chatMcpServer, chatToolNames } from "./chatTools.js";
+import { mcpServersOf, toolAllowList } from "./mcpServers.js";
 import { agentEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
@@ -151,15 +149,9 @@ export class ClaudeProvider implements AgentProvider {
     if (signal.aborted) onAbort();
 
     const canUseTool = createCanUseTool(cb);
-    // Kickoff の埋め込みブラウザを操作するツール（デスクトップアプリのときだけ）・プロジェクトの DB を読むツール（AI に見せる接続があるときだけ）・
-    // チャットのツール（子チャットを作るのは設定で止めていない・深さの上限に達していないときだけ。家系のチャットの名前・固定・グループを変えるのはいつも）
-    const chatTools = { createChat: params.createChat ?? null, chatEdit: params.chatEdit ?? null, open: params.open ?? null, read: params.chatRead ?? null, project: params.chatProject ?? null, terminal: params.chatTerminal ?? null, visual: params.chatVisual ?? null, worktree: params.chatWorktree ?? null, notify: params.chatNotify ?? null, userView: params.chatUserView ?? null, remove: params.chatRemove ?? null };
-    const chatServer = chatMcpServer(chatTools, cb, abortController.signal);
-    const mcpServers = {
-      ...(params.browser ? { [BROWSER_SERVER]: browserMcpServer(params.browser.control, params.browser) } : {}),
-      ...(params.database ? { [DB_SERVER]: dbMcpServer(params.database, cb, abortController.signal) } : {}),
-      ...(chatServer ? { [CHAT_SERVER]: chatServer } : {}),
-    };
+    // AI の操作ツール（埋め込みブラウザ・DB・チャット）は、コアの MCP サーバーの口を HTTP でつなぐ（中身と承認はコアが持つ）
+    const tools = params.tools ?? [];
+    const mcpServers = mcpServersOf(tools);
 
     let sessionId = params.resumeSessionId;
     let final: SDKResultMessage | undefined;
@@ -208,14 +200,9 @@ export class ClaudeProvider implements AgentProvider {
           // ユーザーの ~/.claude（CLAUDE.md・スキル等）とリポジトリの設定を Claude Code と同様に読み込む
           settingSources: ["user", "project", "local"],
           permissionMode: params.permissionMode,
-          // 埋め込みブラウザのツールのうち、見るだけのものは聞かずに使わせる（開く・押す・打つ・JS は権限モードと承認に従う）
-          // DB のツール・チャットのツールはすべて（承認と断りはツールの中で行う）
-          allowedTools: [
-            ...toAllowedTools(params.policy),
-            ...(params.browser ? browserReadOnlyTools() : []),
-            ...(params.database ? dbToolNames() : []),
-            ...chatToolNames(chatTools),
-          ],
+          // AI の操作ツールのうち、聞かずに使わせるもの（埋め込みブラウザの見るだけのもの・DB とチャットのツールのすべて = 承認と断りはツールの中で行う）。
+          // 埋め込みブラウザの開く・押す・打つ・JS は権限モードと承認に従う
+          allowedTools: [...toAllowedTools(params.policy), ...toolAllowList(tools)],
           // Claude Code の PushNotification は Claude のアプリ・端末に送るもので Kickoff の利用者に届かないので外す（知らせるのは kickoff_chat の notify_user）
           disallowedTools: KICKOFF_DISALLOWED_TOOLS,
           ...(Object.keys(mcpServers).length > 0 ? { mcpServers } : {}),

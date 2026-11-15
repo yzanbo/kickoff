@@ -47,6 +47,8 @@ import type { UploadStore } from "./uploads.js";
 import type { ChatRuntime } from "./runtime.js";
 import { workdirOf } from "./workdir.js";
 import { autoPreCompactParams, postCompactItem, postCompactPromptOf, preCompactPromptOf } from "./preCompact.js";
+import type { McpToolHost } from "../mcp/host.js";
+import { turnToolServers } from "../mcp/turnTools.js";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
@@ -90,6 +92,8 @@ export interface ExecutionDeps {
   chatRemover?: ChatRemover;
   /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。メモの仕様書「0020_AI の書き込み先」の段階 2。なければ砂場にかけない（テスト）） */
   bashSandbox?: BashSandboxDeps;
+  /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。メモの仕様書「0021」の Q7。なければツールを出さない（テスト）） */
+  toolHost?: McpToolHost;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -163,13 +167,22 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
 
     // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
-    const result: ProviderTurnResult = signal.aborted
-      ? { status: "cancelled", sessionId: chat.session_id }
-      : await providers[chat.provider].run(
-          { ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId), preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent), env },
-          callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText }),
-          signal,
-        );
+    const result: ProviderTurnResult = signal.aborted ? { status: "cancelled", sessionId: chat.session_id } : await runProvider();
+    async function runProvider(): Promise<ProviderTurnResult> {
+      const params: ProviderTurnParams = {
+        ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId),
+        preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent),
+        env,
+      };
+      const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
+      // AI の操作ツールは、この実行の鍵でコアの MCP サーバーに出し、プロバイダーにはその口だけを渡す（どの CLI でも同じツール。終わったら鍵を捨てる）
+      const tools = deps.toolHost?.open(turnToolServers(params, callbacks, signal)) ?? null;
+      try {
+        return await providers[chat.provider].run({ ...params, tools: tools?.endpoints ?? [] }, callbacks, signal);
+      } finally {
+        tools?.close();
+      }
+    }
     const network = result.status === "failed" && Boolean(result.network);
     applyResult(store, chatId, result, compact, since, network);
     // 圧縮した作業が最後まで終わったら、直近の区切りだけの新しいセッションに乗り換える（会話記録が大きくなり続けないように。失敗しても作業は止めない）

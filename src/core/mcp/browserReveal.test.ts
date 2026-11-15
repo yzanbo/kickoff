@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RevealRequest } from "../../browser/control.js";
+import type { RevealRequest } from "../browser/control.js";
 import { turnReveal } from "./browserReveal.js";
 
 /** 表に出す頼みを覚え、answer の返事を返す偽物 */

@@ -1,8 +1,8 @@
 // kickoff_chat のターミナルを読むツール（list_terminals・read_terminal）。中身は core/chat/aiTerminal.ts、ここは引数の形と使い方だけ
-import { tool } from "@anthropic-ai/claude-agent-sdk";
+import { defineTool as tool } from "./tool.js";
 import { z } from "zod";
 import { READ_TERMINAL_DEFAULT_LINES, READ_TERMINAL_MAX_LINES } from "@shared/chat/aiTerminal";
-import type { AiTerminalTools } from "../../chat/aiTerminal.js";
+import type { AiTerminalTools } from "../chat/aiTerminal.js";
 import { run } from "./chatToolResult.js";
 
 /** ターミナルを読むツールの使い方（MCP の instructions として AI に渡す） */

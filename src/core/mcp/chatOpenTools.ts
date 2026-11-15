@@ -1,8 +1,8 @@
 // kickoff_chat の画面に頼むツール（open_memo・open_chat・open_file・open_diff・open_sql・add_draft）。中身は core/chat/aiOpen.ts、ここは引数の形と使い方だけ
-import { tool } from "@anthropic-ai/claude-agent-sdk";
+import { defineTool as tool } from "./tool.js";
 import { z } from "zod";
 import { OPEN_PLACES } from "@shared/types";
-import type { AiOpenTools } from "../../chat/aiOpen.js";
+import type { AiOpenTools } from "../chat/aiOpen.js";
 import { run } from "./chatToolResult.js";
 
 /** 画面に頼むツールの使い方（MCP の instructions として AI に渡す） */

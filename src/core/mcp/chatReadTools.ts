@@ -1,8 +1,8 @@
 // kickoff_chat の読むだけのツール（list_project_chats・read_chat・get_usage）。中身は core/chat/aiChatRead.ts、ここは引数の形と使い方だけ
-import { tool } from "@anthropic-ai/claude-agent-sdk";
+import { defineTool as tool } from "./tool.js";
 import { z } from "zod";
 import { READ_CHAT_DEFAULT_TURNS, READ_CHAT_MAX_TURNS } from "@shared/chat/aiRead";
-import type { AiChatReadTools } from "../../chat/aiChatRead.js";
+import type { AiChatReadTools } from "../chat/aiChatRead.js";
 import { run } from "./chatToolResult.js";
 
 /** 読むだけのツールの使い方（MCP の instructions として AI に渡す） */

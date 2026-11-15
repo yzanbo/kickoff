@@ -48,6 +48,7 @@ import { FakeProviderBase } from "./fakeProvider.js";
 import "./gitRepo.js";
 import { tempDir } from "./tempDir.js";
 import { setupCore } from "./testCore.js";
+import { McpToolHost } from "../mcp/host.js";
 
 export { until } from "./testCore.js";
 
@@ -235,9 +236,12 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const network = { online: true };
   // 利用者が見ているもの（AI の get_user_view。画面の知らせは PUT /api/user-view で入れる）
   const userViews = new UserViewRegistry();
+  // AI の操作ツールのコアの MCP サーバー（テストは app.request で /mcp/<名前> を呼ぶので、URL の頭は使わない）
+  const mcpTools = new McpToolHost(() => "http://127.0.0.1");
   const { bus, store, approvals, providers, usage, runner, provider, project } = setupCore(new FakeProvider(), {
     uploads,
     userViews,
+    toolHost: mcpTools,
     reconnect: { check: async () => network.online, intervalMs: 5 },
     usageLimit: { checkMs: 5 },
     // 書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
@@ -455,7 +459,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   runner.useChatRemover(chatRemover);
   after(() => chatRemover.close());
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const app = createApp({ store, bus, token: TOKEN, mcpTools, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -467,6 +471,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, worktreeFinisher, chatRemover, userViews, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, mcpTools, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, worktreeFinisher, chatRemover, userViews, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
 }
 

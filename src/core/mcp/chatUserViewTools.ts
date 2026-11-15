@@ -1,6 +1,6 @@
 // kickoff_chat の利用者が見ているものを読むツール（get_user_view）。中身は core/chat/aiUserView.ts、ここは引数の形と使い方だけ
-import { tool } from "@anthropic-ai/claude-agent-sdk";
-import type { AiUserViewTools } from "../../chat/aiUserView.js";
+import { defineTool as tool } from "./tool.js";
+import type { AiUserViewTools } from "../chat/aiUserView.js";
 import { run } from "./chatToolResult.js";
 
 /** 利用者が見ているものを読むツールの使い方（MCP の instructions として AI に渡す） */

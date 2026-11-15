@@ -63,6 +63,7 @@ import type { WorktreePrWatch } from "../git/prWatch.js";
 import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, type GitHubAccount, type ProviderId, type ServerHello, type ServerStatus } from "@shared/types";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION, type ApiMismatch } from "@shared/api/version";
 import { createMiddleware } from "hono/factory";
+import { MCP_PATH, type McpToolHost } from "../mcp/host.js";
 
 export interface ServerDeps {
   store: Store;
@@ -111,6 +112,8 @@ export interface ServerDeps {
   sessionsElsewhere?: SessionsUsedElsewhere;
   /** 内蔵ターミナルのシェル（スマホは WebSocket でつなぐ = routes/terminals.ts） */
   terminals: TerminalSessions;
+  /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。/mcp/<サーバーの名前>） */
+  mcpTools: McpToolHost;
   /** tailscale のコマンドの場所（OS の口。設定の Tailscale Serve の案内。テストでは偽物） */
   tailscaleCli: () => string | null;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
@@ -159,6 +162,9 @@ export function createApp(deps: ServerDeps): Hono {
     c.header("X-Content-Type-Options", "nosniff");
     return c.html(VISUAL_FRAME_SHELL);
   });
+
+  // AI の操作ツールの MCP の口（コアの MCP サーバー。mcp/host.ts）。本体・端末のトークンではなく、1 回の実行ごとの鍵で受ける（その実行に決めたツールだけ）
+  app.all(`${MCP_PATH}/:server`, (c) => deps.mcpTools.handle(c.req.param("server"), c.req.raw));
 
   // 認証と呼び主: 本体のトークン（この Mac の画面の Cookie）ならこの Mac、端末のトークンならその端末（http/caller.ts）。
   // 端末は deviceAccess.ts に書いた口だけ使える（既定で閉じる。ほかは 403）
