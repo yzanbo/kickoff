@@ -4,13 +4,14 @@ import { hiddenItemsOf, sameHiddenItemsOf, toggleHiddenItem } from "@/lib/hidden
  * チャットの見出しの行に出す項目（チャットの見出しの右クリックの「チャット画面表示」→「見出しに出す項目」で、項目ごとに表示・非表示を選ぶ）。
  * 覚えるのは隠した項目だけ（CHAT_HEADER_HIDDEN）なので、項目を増やしても初めは表示になる
  */
-export const CHAT_HEADER_ITEMS = ["project", "group", "worktree", "showing", "textWidth", "fontSize", "sticky", "find", "turns", "cost", "agents"] as const;
+export const CHAT_HEADER_ITEMS = ["project", "group", "worktree", "title", "showing", "textWidth", "fontSize", "sticky", "find", "turns", "cost", "agents"] as const;
 export type ChatHeaderItem = (typeof CHAT_HEADER_ITEMS)[number];
 
 export const CHAT_HEADER_ITEM_LABELS: Record<ChatHeaderItem, string> = {
   project: "プロジェクト",
   worktree: "作業場所（ブランチ）",
   group: "グループ",
+  title: "チャットの名前",
   showing: "会話 / 動きの切り替え",
   textWidth: "会話の横幅",
   fontSize: "会話の文字の大きさ",
@@ -25,11 +26,13 @@ export const CHAT_HEADER_ITEM_LABELS: Record<ChatHeaderItem, string> = {
 export const CHAT_HEADER_ITEM_NOTES: Partial<Record<ChatHeaderItem, string>> = {
   showing: "隠しても、動きを見ている間は出します（会話へ戻れるように）",
   find: "隠しても、⌘F でチャットの右上に検索欄が出ます（文を消すと隠れます）",
+  title: "親のないチャットだけに出します（子チャットは上の帯に名前があります）。隠しても、タブのダブルクリックで名前を変えられます",
 };
 
 /** メニューのまとまり（見出しの行の左から。まとまりの中の順は初めの並びで、ドラッグで並べ替えたら CHAT_HEADER_ORDER に覚える） */
 export const CHAT_HEADER_SECTIONS: readonly { title: string; items: readonly ChatHeaderItem[] }[] = [
   { title: "バッジ", items: ["project", "group", "worktree"] },
+  { title: "名前", items: ["title"] },
   { title: "道具", items: ["showing", "textWidth", "fontSize", "sticky", "find"] },
   { title: "数", items: ["turns", "cost"] },
   { title: "右の欄", items: ["agents"] },
