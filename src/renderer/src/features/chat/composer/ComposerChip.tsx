@@ -18,7 +18,7 @@ export function ChipWord({ children }: { children: ReactNode }) {
 }
 
 export function ComposerChip({
-  popover,
+  popover: { anchor: popoverAnchor, ...popover },
   chip,
   title,
   label,
@@ -54,12 +54,12 @@ export function ComposerChip({
 }) {
   return (
     <div ref={ref} className="chip-wrap">
-      <button ref={popover.anchor} type="button" className={cx("composer-chip", popover.open && "open", chipClassName)} aria-expanded={popover.open} title={title} onClick={onToggle ?? popover.toggle}>
+      <button ref={popoverAnchor} type="button" className={cx("composer-chip", popover.open && "open", chipClassName)} aria-expanded={popover.open} title={title} onClick={onToggle ?? popover.toggle}>
         {chip}
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>
       {popover.open && (
-        <Popover anchor={popover.anchor} side="above" gap={8} label={label} className={cx("chip-popover", className)} ignore={ignore} onClose={onClose ?? popover.close}>
+        <Popover anchor={popoverAnchor} side="above" gap={8} label={label} className={cx("chip-popover", className)} ignore={ignore} onClose={onClose ?? popover.close}>
           {children()}
         </Popover>
       )}

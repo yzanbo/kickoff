@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 
 /**
  * window のイベント（キー操作・アプリ内のイベント）を受け取る。
@@ -8,11 +8,10 @@ import { useEffect, useRef } from "react";
 export function useWindowEvent<K extends keyof WindowEventMap>(type: K, handler: (e: WindowEventMap[K]) => void, enabled?: boolean, capture?: boolean): void;
 export function useWindowEvent(type: string, handler: (e: Event) => void, enabled?: boolean, capture?: boolean): void;
 export function useWindowEvent(type: string, handler: (e: Event) => void, enabled = true, capture = false) {
-  const ref = useRef(handler);
-  ref.current = handler;
+  const onEvent = useEffectEvent(handler);
   useEffect(() => {
     if (!enabled) return;
-    const listener = (e: Event) => ref.current(e);
+    const listener = (e: Event) => onEvent(e);
     window.addEventListener(type, listener, capture);
     return () => window.removeEventListener(type, listener, capture);
   }, [type, enabled, capture]);

@@ -1,5 +1,5 @@
 import { Columns3, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import type { DbConnection, DbObjectPath } from "@shared/types";
 import { api } from "@/api";
 import { useListNavigation } from "@/hooks/useListNavigation";
@@ -23,16 +23,15 @@ const MAX_PLACES = 10;
  */
 export function DbFindPalette({ connections, activeTab, onClose }: { connections: DbConnection[]; activeTab: DbClientTab | null; onClose: () => void }) {
   const client = useDbClient();
-  const dialog = useModalDialog();
+  const { ref: dialogRef, ...dialog } = useModalDialog();
   const [treeOpen] = useSetting(dbTreeOpen(client.place));
   const connected = useDbConnectedIds(client.projectId).data;
   const [query, setQuery] = useState("");
   const [loaded, setLoaded] = useState<{ sources: DbFindSource[]; failed: number } | null>(null);
   const byId = useMemo(() => new Map(connections.map((c) => [c.id, c])), [connections]);
 
-  // 開いたときに 1 回だけ読む
-  useEffect(() => {
-    let alive = true;
+  // 開いたときに 1 回だけ読む（開いたときの接続・木の開き方で。あとで変わっても読み直さない）
+  const loadSources = useEffectEvent((isAlive: () => boolean) => {
     const targets = connections.filter((c) => treeOpen.includes(`c:${c.id}`) || connected?.includes(c.id) || activeTab?.connection_id === c.id);
     void (async () => {
       const places: { c: DbConnection; path: DbObjectPath }[] = [];
@@ -42,13 +41,9 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
         if (activeTab && activeTab.connection_id === c.id && (activeTab.kind === "table" || activeTab.kind === "er")) paths.unshift(activeTab.path);
         if (paths.length === 0) {
           // 木で場所を開いていなければ既定の DB（PostgreSQL は public のスキーマ）
-          try {
-            const dbs = await api.dbDatabases(client.projectId, c.id, client.worktreeOf(c.id));
-            const database = dbs.current ?? dbs.databases[0] ?? null;
-            paths.push({ database, schema: dbs.has_schemas ? "public" : null });
-          } catch {
-            failed += 1;
-          }
+          const dbs = await api.dbDatabases(client.projectId, c.id, client.worktreeOf(c.id)).catch(() => null);
+          if (dbs) paths.push({ database: dbs.current ?? dbs.databases[0] ?? null, schema: dbs.has_schemas ? "public" : null });
+          else failed += 1;
         }
         const seen = new Set<string>();
         for (const path of paths) {
@@ -69,12 +64,15 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
           }
         }),
       );
-      if (alive) setLoaded({ sources: sources.filter((s): s is DbFindSource => s !== null), failed });
+      if (isAlive()) setLoaded({ sources: sources.filter((s): s is DbFindSource => s !== null), failed });
     })();
+  });
+  useEffect(() => {
+    let alive = true;
+    loadSources(() => alive);
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const items = useMemo(() => findDbItems(loaded?.sources ?? [], query), [loaded, query]);
@@ -87,14 +85,14 @@ export function DbFindPalette({ connections, activeTab, onClose }: { connections
   const nav = useListNavigation(items, go);
   useEffect(() => nav.setIndex(0), [query, loaded]);
   useEffect(() => {
-    dialog.ref.current?.querySelector(".palette-item.active")?.scrollIntoView({ block: "nearest" });
-  }, [nav.index, dialog.ref]);
+    dialogRef.current?.querySelector(".palette-item.active")?.scrollIntoView({ block: "nearest" });
+  }, [nav.index, dialogRef]);
   // 接続の名前・場所は、探す元に 2 つ以上あるときだけ添える
   const manyConnections = new Set(loaded?.sources.map((s) => s.connection_id)).size > 1;
   const manyPlaces = (loaded?.sources.length ?? 0) > 1;
 
   return (
-    <dialog ref={dialog.ref} className="palette" aria-label="テーブル・列を探す" onClose={onClose} {...dialog.backdropProps}>
+    <dialog ref={dialogRef} className="palette" aria-label="テーブル・列を探す" onClose={onClose} {...dialog.backdropProps}>
       <div className="palette-input">
         <Search size={16} className="muted" aria-hidden />
         <input autoFocus value={query} placeholder="テーブル・列の名前（「表.列」で列を絞る）" aria-label="テーブル・列の名前" onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} />

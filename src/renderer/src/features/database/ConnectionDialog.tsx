@@ -50,7 +50,7 @@ export function ConnectionDialog({
   worktree: string | null;
   onClose: () => void;
 }) {
-  const dialog = useModalDialog({ closeOnBackdrop: false });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   const editing = connection !== null;
   const [form, setForm] = useState<ConnectionForm>(() => formOf(connection));
   const [url, setUrl] = useState("");
@@ -93,14 +93,10 @@ export function ConnectionDialog({
     // 手順メモ・次に確かめる日はつながるかに関係しないので送らない
     const { memo_path: _memo, check_on: _on, check_note: _note, ...body } = bodyOf(form, editing);
     void [_memo, _on, _note];
+    // 送る中身は try の外で組む（React Compiler は try の中の条件式を扱えない）
+    const request = { ...body, ...(editing ? { connection_id: connection.id } : {}), password: form.clearPassword ? null : form.password || undefined };
     try {
-      setTest(
-        await api.testDbConnection(
-          projectId,
-          { ...body, ...(editing ? { connection_id: connection.id } : {}), password: form.clearPassword ? null : form.password || undefined },
-          worktree,
-        ),
-      );
+      setTest(await api.testDbConnection(projectId, request, worktree));
     } catch (e) {
       setTest({ ok: false, server_version: null, error: errorMessage(e), duration_ms: null });
     }
@@ -123,7 +119,7 @@ export function ConnectionDialog({
   };
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog db-connection-dialog" aria-label={editing ? "DB の接続を編集" : "DB の接続を追加"} onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog db-connection-dialog" aria-label={editing ? "DB の接続を編集" : "DB の接続を追加"} onClose={onClose}>
       <form className="app-dialog-body" onSubmit={(e) => void submit(e)}>
         <h2 className="app-dialog-title">{editing ? "DB の接続を編集" : "DB の接続を追加"}</h2>
         {!editing && (

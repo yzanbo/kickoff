@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { errorMessage } from "@shared/errors";
 
 /** key ごとに覚えている結果（成功なら data、失敗なら error） */
@@ -36,18 +36,25 @@ export function currentKeyed<T>(state: KeyedResult<T> | undefined, key: string):
 export function useKeyedAsync<T>(key: string, load: () => Promise<T>, { deps = [], active = true, same }: Options<T> = {}) {
   const [state, setState] = useState<KeyedResult<T>>();
   const [nonce, setNonce] = useState(0);
+  // 取り直すきっかけは key・active・deps・reload だけ（load と same は描くたびに作られるので、依存に入れず最新のものを使う）
+  const startLoad = useEffectEvent(() => load());
+  // setState に渡す更新の関数は描く中で呼ばれることがあるので、effect event はその外で呼んで比べ方を取り出しておく
+  const currentSame = useEffectEvent(() => same);
 
   useEffect(() => {
     if (!active) return;
     let alive = true;
-    load().then(
-      (data) => alive && setState((prev) => mergeKeyed(prev, key, data, same)),
+    startLoad().then(
+      (data) => {
+        if (!alive) return;
+        const isSame = currentSame();
+        setState((prev) => mergeKeyed(prev, key, data, isSame));
+      },
       (e: unknown) => alive && setState({ key, error: errorMessage(e) }),
     );
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, active, nonce, ...deps]);
 
   const current = currentKeyed(state, key);

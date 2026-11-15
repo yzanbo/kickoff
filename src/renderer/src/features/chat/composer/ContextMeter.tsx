@@ -44,7 +44,7 @@ export function ContextMeter({
 }) {
   const compactingText = compacting ? compactingLabel(compacting.trigger) : null;
   // 押すとメーターの上に開く詳細（もう一度押す・外を押す・Esc で閉じる。右端をメーターにそろえる）
-  const popover = usePopover<HTMLDivElement>();
+  const { anchor: popoverAnchor, ...popover } = usePopover<HTMLDivElement>();
   const open = popover.open;
   // 圧縮・消去の実行中と失敗の文（押すとポップオーバーを閉じるので、閉じても消えないここで持つ）
   const freeAction: FreeContextAction = useAction<QueueAction | "cancel">();
@@ -60,7 +60,7 @@ export function ContextMeter({
   const markText = compactAt !== null && markPct !== null ? `${Math.round(markPct)}%（${formatTokens(compactAt)} トークン）で自動圧縮` : null;
 
   return (
-    <div ref={popover.anchor} className="context-meter">
+    <div ref={popoverAnchor} className="context-meter">
       <button
         type="button"
         className="context-ring-button"
@@ -73,7 +73,7 @@ export function ContextMeter({
         <Ring pct={pct} mark={markPct} compacting={compacting !== null} />
       </button>
       {open && (
-        <Popover anchor={popover.anchor} side="above" align="end" gap={8} label="コンテキストウィンドウ" className="context-popover" onClose={popover.close}>
+        <Popover anchor={popoverAnchor} side="above" align="end" gap={8} label="コンテキストウィンドウ" className="context-popover" onClose={popover.close}>
           {/* 使っている量: 大きな % と トークン数、棒（自動圧縮が始まる位置に縦線）、ターン数と API 換算 */}
           <section className="context-section">
             <div className="context-title">コンテキストウィンドウ</div>

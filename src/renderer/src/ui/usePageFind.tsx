@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useEffectEvent, useState, type ReactNode, type RefObject } from "react";
 import { FindBar } from "./FindBar";
 import { registerPageFind } from "./pageFind";
 
@@ -14,14 +14,13 @@ export function usePageFind(
   // 検索の欄を出しているページ（閉じていれば null）と、⌘F を押した回（押すたびに欄にピントを置き直す）
   const [page, setPage] = useState<HTMLElement | null>(null);
   const [signal, setSignal] = useState(0);
-  const nativeRef = useRef(native);
-  nativeRef.current = native;
+  const nativeFind = useEffectEvent((el: HTMLElement) => native?.(el) ?? false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el || !enabled) return;
     return registerPageFind(el, () => {
-      if (nativeRef.current?.(el)) {
+      if (nativeFind(el)) {
         setPage(null);
         return;
       }

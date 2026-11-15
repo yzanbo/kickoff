@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { openPopout } from "@/app/popout";
 import { postToMainWindow } from "@/app/windowBus";
+import { useLatest } from "@/hooks/useLatest";
 import { ChatPaneContext, type ChatPaneActions } from "@/features/chat/pane/chatPaneContext";
 import { useOpenChat } from "@/features/chat/store/useChatStore";
 import { useChatView, type ChatViewInput } from "@/features/chat/pane/useChatView";
@@ -30,10 +31,12 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
   const shell = useChatPaneActions({ chatId: chat.id, canOpenSide: false });
   const view = useChatView(input, shell);
   const fileLinks = useFileLinks(chat, input.project?.repo_path, false);
+  // 開いたときの名前は、押したときの一覧から引く
+  const viewRef = useLatest(view);
   const pane = useMemo<ChatPaneActions>(() => {
     const base = shell.pane;
     const openScreen = (key: string) => {
-      const entry = view.subagentsView?.tree.byKey.get(key);
+      const entry = viewRef.current.subagentsView?.tree.byKey.get(key);
       openPopout({ kind: "subagent", chatId: chat.id, agentKey: key }, `${entry?.description ?? "サブエージェント"} — サブエージェント`);
     };
     const reveal = (eventId: number | undefined, agent: string | null) => postToMainWindow({ type: "reveal", chatId: chat.id, eventId, agent });
@@ -48,8 +51,7 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
       fillComposer: (text) => postToMainWindow({ type: "fillComposer", chatId: chat.id, text }),
     };
     // チャットの画面の操作はチャットごとに 1 回だけ作る（shell.pane と同じ）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shell.pane]);
+  }, [shell.pane, chat.id, viewRef]);
   const links = usePopoutFileLinks(fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
   return (
     <FileLinksProvider value={links}>

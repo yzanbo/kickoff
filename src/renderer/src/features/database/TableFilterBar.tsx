@@ -1,5 +1,5 @@
 import { Filter, Plus, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { DB_FILTER_OP_LABELS, DB_FILTER_OPS, type DbFilter, type DbFilterOp, type DbRowFilter } from "@shared/types";
 import { activeFilters, filterNeedsValue } from "@shared/database/dbFilter";
 import { isSubmitKey } from "@/lib/keys";
@@ -24,11 +24,13 @@ export function TableFilterBar({ columns, applied, onApply }: { columns: string[
   const [where, setWhere] = useState(applied?.where ?? "");
   // ほかから絞り込みが変わったら（セルの「この値で絞る」・外部キーで移った）下書きを合わせる
   const appliedKey = JSON.stringify(applied ?? null);
-  useEffect(() => {
+  const syncDraft = useEffectEvent(() => {
     setMode(applied?.where ? "where" : "conditions");
     setRows(applied?.filters.length ? applied.filters : [blank(columns[0] ?? "")]);
     setWhere(applied?.where ?? "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    syncDraft();
   }, [appliedKey]);
   // 列が届いたら、まだ列を選んでいない行に最初の列を入れる
   useEffect(() => {

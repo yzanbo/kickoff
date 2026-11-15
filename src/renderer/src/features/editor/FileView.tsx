@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, ExternalLink, Save } from "lucide-react";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from "react";
 import { imageFileType, isSvgFile } from "@shared/files/imageFiles";
 import type { GitFileChange, GitStatus } from "@shared/types";
 import { api, ApiError } from "@/api";
@@ -9,6 +9,7 @@ import { registerEditorCursor, type EditorCursor } from "@/lib/viewDetails";
 import { confirmDialog } from "@/ui/dialogs";
 import { useAction } from "@/hooks/useAction";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
+import { useLatest } from "@/hooks/useLatest";
 import { useSetting } from "@/hooks/useSetting";
 import { DIFF_LAYOUT, EDITOR_PAGE_PREVIEW, EDITOR_WORD_WRAP } from "@/lib/storageKeys";
 import { IconButton } from "@/ui/IconButton";
@@ -92,18 +93,20 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
   // undefined = 読み込み中、null = 差分なしで編集する（差分から来ていない・元がバイナリ・大きすぎる・読めない）
   const [diffOf] = useState(diffBase);
   const [original, setOriginal] = useState<string | null | undefined>(diffOf ? undefined : null);
-  useEffect(() => {
+  // 開いたときだけ（同じファイル・同じ作業場所の間は FileView が作り直されない）
+  const readOriginal = useEffectEvent((isAlive: () => boolean) => {
     if (!diffOf) return;
-    let alive = true;
     api.gitOriginal(target, diffOf.file, diffOf.staged).then(
-      (o) => alive && setOriginal(o.binary || o.truncated ? null : o.content),
-      () => alive && setOriginal(null),
+      (o) => isAlive() && setOriginal(o.binary || o.truncated ? null : o.content),
+      () => isAlive() && setOriginal(null),
     );
+  });
+  useEffect(() => {
+    let alive = true;
+    readOriginal(() => alive);
     return () => {
       alive = false;
     };
-    // 開いたときだけ（同じファイル・同じ作業場所の間は FileView が作り直されない）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const diffing = typeof original === "string";
   // 画像: SVG 以外はプレビューだけ。SVG・Markdown・HTML はプレビューとコードを切り替える（コードの編集の部品は、初めてコードを出すまで作らない）
@@ -144,14 +147,13 @@ export function FileView({ projectId, repoPath, path, line, gitStatus, diffBase,
   };
 
   // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（⌘S と同じ。lib/saveAll）
-  const savable = useRef({ dirty, saveCurrent: async () => false });
-  savable.current = {
+  const savable = useLatest({
     dirty,
     saveCurrent: async () => {
       const value = getValue.current?.();
       return value !== undefined && Boolean(await save(value));
     },
-  };
+  });
   useEffect(() => registerSavable({ dirty: () => savable.current.dirty, save: () => savable.current.saveCurrent() }), []);
   useEffect(() => registerSave?.(() => savable.current.saveCurrent()), [registerSave]);
 

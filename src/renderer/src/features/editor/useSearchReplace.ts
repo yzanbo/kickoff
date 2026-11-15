@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ProjectReplaceResult } from "@shared/types";
+import type { ProjectReplaceResult, ProjectSearchQuery } from "@shared/types";
 import { api, ApiError } from "@/api";
 import { baseName } from "@/lib/format";
 import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
@@ -49,42 +49,38 @@ export function useSearchReplace(projectId: number, { search, selection, git }: 
       if (!ok) return;
     }
     setBusy(true);
-    try {
-      const r = await api.replaceInProject(target, { query: result.query, replace: search.replace, preserve_case: search.preserveCase, files: replaceTargets(files) });
-      const undo = r.files.length > 0 && r.files.every((f) => f.before !== null) ? r.files.map((f) => ({ path: f.path, before: f.before ?? "", hash: f.hash })) : null;
-      setLast({ message: replaceMessage(r), undo });
-      search.rerun();
-      void git.refresh();
-    } catch (e) {
-      reportFailure("置換できませんでした")(e);
-    } finally {
-      setBusy(false);
-    }
+    await replaceFiles(result.query, files).catch((e: unknown) => void reportFailure("置換できませんでした")(e));
+    setBusy(false);
+  };
+  /** 置換して、探し直し・Git の状態を取り直す（失敗は投げる） */
+  const replaceFiles = async (query: ProjectSearchQuery, files: readonly SearchFileResult[]) => {
+    const r = await api.replaceInProject(target, { query, replace: search.replace, preserve_case: search.preserveCase, files: replaceTargets(files) });
+    const undo = r.files.length > 0 && r.files.every((f) => f.before !== null) ? r.files.map((f) => ({ path: f.path, before: f.before ?? "", hash: f.hash })) : null;
+    setLast({ message: replaceMessage(r), undo });
+    search.rerun();
+    void git.refresh();
   };
 
   // 置換する前の中身に戻す（置換したあとの指紋と違う = ほかで変わったファイルは戻さず、知らせる）
   const undo = async () => {
     if (!last?.undo || busy) return;
     setBusy(true);
+    await restoreFiles(last.undo).catch((e: unknown) => void reportFailure("元に戻せませんでした")(e));
+    setBusy(false);
+  };
+  /** 置換する前の中身を書き戻す（ほかで変わった・なくなったファイルは飛ばして知らせる。ほかの失敗は投げる） */
+  const restoreFiles = async (list: NonNullable<LastReplace["undo"]>) => {
     const kept: string[] = [];
-    try {
-      for (const f of last.undo) {
-        try {
-          await api.saveProjectFile(target, f.path, f.before, f.hash);
-        } catch (e) {
-          if (e instanceof ApiError && (e.status === 409 || e.status === 404)) kept.push(f.path);
-          else throw e;
-        }
-      }
-      setLast(null);
-      search.rerun();
-      void git.refresh();
-      if (kept.length > 0) void alertDialog("戻せなかったファイルがあります", `置換したあとで変わったため、次のファイルは戻していません: ${kept.join("、")}`);
-    } catch (e) {
-      reportFailure("元に戻せませんでした")(e);
-    } finally {
-      setBusy(false);
+    for (const f of list) {
+      await api.saveProjectFile(target, f.path, f.before, f.hash).catch((e: unknown) => {
+        if (e instanceof ApiError && (e.status === 409 || e.status === 404)) kept.push(f.path);
+        else throw e;
+      });
     }
+    setLast(null);
+    search.rerun();
+    void git.refresh();
+    if (kept.length > 0) void alertDialog("戻せなかったファイルがあります", `置換したあとで変わったため、次のファイルは戻していません: ${kept.join("、")}`);
   };
 
   return {

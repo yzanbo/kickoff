@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffectEvent, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
 import { subscribeServerEvent, subscribeServerOpen } from "@/api/events";
@@ -42,10 +42,10 @@ document.addEventListener("visibilitychange", () => {
  */
 function useChatRetain(chatId: number, visible: boolean) {
   const handle = useRef<ReturnType<typeof chatStore.retain> | null>(null);
-  const visibleRef = useRef(visible);
-  visibleRef.current = visible;
+  // 頼むときの見え方（変わっても頼み直さない。見え方の変化は下の effect で伝える）
+  const visibility = useEffectEvent(() => (visible ? "visible" : "hidden"));
   useLayoutEffect(() => {
-    const h = chatStore.retain(chatId, visibleRef.current ? "visible" : "hidden");
+    const h = chatStore.retain(chatId, visibility());
     handle.current = h;
     return () => {
       h.release();
@@ -178,11 +178,14 @@ export function useLatestAnswer(chatId: number): string {
 
 /** いくつかの口のどれかが変わったら読み直す（取り出し口の値は、入力が同じなら同じ物） */
 function useSelected<T>(chatId: number, channels: readonly Channel[], read: () => T): T {
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- 口の組は呼ぶ所ごとに決まっている
-  const subscribe = useCallback((l: () => void) => {
-    const offs = channels.map((c) => chatStore.subscribe(chatId, c, l));
-    return () => offs.forEach((off) => off());
-  }, [chatId]);
+  // 口の組は呼ぶ所ごとに決まった定数（モジュールの配列）なので、依存に入れても作り直さない
+  const subscribe = useCallback(
+    (l: () => void) => {
+      const offs = channels.map((c) => chatStore.subscribe(chatId, c, l));
+      return () => offs.forEach((off) => off());
+    },
+    [chatId, channels],
+  );
   return useSyncExternalStore(subscribe, read);
 }
 

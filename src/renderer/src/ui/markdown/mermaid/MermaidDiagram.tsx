@@ -1,5 +1,5 @@
 import { CodeXml, Eye, Maximize2, SquareDashed, ZoomIn, ZoomOut } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from "react";
 import { errorMessage } from "@shared/errors";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { IconButton } from "@/ui/IconButton";
@@ -75,6 +75,8 @@ export function MermaidDiagram({ code, onError }: { code: string; onError?: (mes
     boxRef.current = el;
     return sizeRef(el);
   };
+  // 配色を変えた直後は、描き終わるまで前の図を出しておく（ちらつかないように）
+  const svg = cached ?? result?.svg;
   // 枠に合わせた幅（欄の幅か、元の幅の小さいほう）を基準に、拡大・縮小する
   const zoom = useDiagramZoom(() => {
     const box = boxRef.current;
@@ -82,8 +84,7 @@ export function MermaidDiagram({ code, onError }: { code: string; onError?: (mes
     return Math.min(inner, naturalSize(svg ?? "").width);
   });
 
-  const errorRef = useRef(onError);
-  errorRef.current = onError;
+  const reportError = useEffectEvent((message: string) => onError?.(message));
 
   useEffect(() => {
     if (!near || cachedMermaid(code, theme) !== undefined) return;
@@ -93,7 +94,7 @@ export function MermaidDiagram({ code, onError }: { code: string; onError?: (mes
       (e: unknown) => {
         if (!alive) return;
         setResult({ key: `${theme}\n${code}`, failed: true });
-        errorRef.current?.(errorMessage(e));
+        reportError(errorMessage(e));
       },
     );
     return () => {
@@ -101,8 +102,6 @@ export function MermaidDiagram({ code, onError }: { code: string; onError?: (mes
     };
   }, [code, theme, near]);
 
-  // 配色を変えた直後は、描き終わるまで前の図を出しておく（ちらつかないように）
-  const svg = cached ?? result?.svg;
   if (!cached && result?.key === key && result.failed) {
     return (
       <pre>

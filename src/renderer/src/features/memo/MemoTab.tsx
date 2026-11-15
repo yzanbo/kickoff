@@ -1,5 +1,5 @@
 import { FileCode2, FilePlus, FolderOpen, PanelLeftOpen, StickyNote } from "lucide-react";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useEffectEvent, useMemo, useState, type MouseEvent } from "react";
 import type { TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { navigate } from "@/app/router";
 import { cx } from "@/lib/cx";
@@ -65,7 +65,7 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   const [query, setQuery] = useState("");
   const menu = useContextMenu<MemoMenuTarget>();
   // 左の一覧の幅（エディタ・履歴タブと同じ幅を覚える）
-  const width = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
+  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
   const [listHidden, setListHidden] = useSetting(MEMO_LIST_HIDDEN);
   // ドラッグを重ねている落とす先のフォルダ（"" は直下 = 一覧ごと示す。null は重ねていない）
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -93,26 +93,32 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   };
 
   // 最後に表示したメモを覚え、タブがないまま開いたら（アプリを開き直したとき）そのメモを開き直す
+  // （覚え直すのは表示したメモが変わったときだけ。開き直すのは一覧が届いたときだけ）
+  const rememberShown = useEffectEvent((path: string) => {
+    if (path !== remembered) setRemembered(path);
+  });
   useEffect(() => {
-    if (selected && selected !== remembered) setRemembered(selected);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (selected) rememberShown(selected);
   }, [selected]);
   const entriesLoaded = list.data !== undefined;
-  useEffect(() => {
-    if (!entriesLoaded || openMemo || panel.tabs.length > 0 || !remembered) return;
+  const reopenRemembered = useEffectEvent(() => {
+    if (openMemo || panel.tabs.length > 0 || !remembered) return;
     if (list.data?.entries.some((e) => e.path === remembered && !e.dir)) void openMemoInPanel(projectId, remembered, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (entriesLoaded) reopenRemembered();
   }, [entriesLoaded]);
 
   // URL で来たメモを新しいタブで開いて（開いていればそのタブ）、URL から外す（チャットの「メモに追加」のあと）。
   // 行があれば（⌘K の「メモ内の文言」）、開いたメモでその行へ移る
-  useEffect(() => {
-    if (!openMemo) return;
-    if (openMemoLine) requestMemoReveal(projectId, openMemo, openMemoLine);
-    void select(openMemo, true);
+  const openFromUrl = useEffectEvent((path: string, line: number | undefined) => {
+    if (line) requestMemoReveal(projectId, path, line);
+    void select(path, true);
     memosStore.invalidate(projectId);
     navigate({ name: "project", id: projectId, tab: "memos" }, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (openMemo) openFromUrl(openMemo, openMemoLine);
   }, [openMemo, openMemoLine]);
 
   /** 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える。一覧の操作と、題名での名前の変更・AI の整理案のまとめての移動で共通） */
@@ -194,7 +200,7 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
       ) : (
         <>
         <aside
-          ref={width.paneRef}
+          ref={widthPaneRef}
           className={cx("changes-list", "memo-list", dropTarget === "" && "drop-target")}
           style={{ width: width.size }}
           aria-label="メモ"

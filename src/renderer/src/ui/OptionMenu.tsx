@@ -1,5 +1,5 @@
 import { Check, ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { stepIndex } from "@/hooks/useListNavigation";
 import { Popover } from "./Popover";
 
@@ -41,12 +41,13 @@ export function OptionMenu<T extends string>({ value, display, icon, groups, ari
   const items = groups.flatMap((g) => g.items).filter((i) => !i.disabled);
   const selected = groups.flatMap((g) => g.items).find((i) => i.value === value);
 
-  useEffect(() => {
-    if (!open) return;
+  // 開いたとき: いま選んでいるものから動かし始め、見えるところまでスクロールする（開いている間に value が変わっても動かさない）
+  const onOpened = useEffectEvent(() => {
     setCursor(value);
-    // 選んでいる項目が見えるところまでスクロールする
     ref.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (open) onOpened();
   }, [open]);
 
   const choose = (v: T) => {

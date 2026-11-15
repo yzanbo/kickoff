@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { matchesTags } from "@shared/project/tags";
+import type { Project } from "@shared/types";
 import { useSetting } from "@/hooks/useSetting";
 import { SIDEBAR_PROJECT_ORDER } from "@/lib/storageKeys";
 import { useChatsValue } from "@/stores/chats";
@@ -25,15 +27,16 @@ export function useVisibleProjects() {
     order === "recent",
   );
   const { selected, active: tagged } = tagFilter;
+  // 絞り込みは tagFilter.matches と同じ決まり（matches は描くたびに作られるので、selected から引く）
   const lists = useMemo(() => {
     const byId = new Map(projects.map((p) => [p.id, p]));
     const active = recentIds === undefined ? sidebarOrder(projects) : recentIds.split(",").flatMap((id) => byId.get(Number(id)) ?? []);
+    const matches = (project: Pick<Project, "tags">) => matchesTags(project.tags, selected);
     return {
       active,
-      visible: tagged ? active.filter(tagFilter.matches) : active,
-      archived: archivedProjects(projects).filter(tagFilter.matches),
+      visible: tagged ? active.filter(matches) : active,
+      archived: archivedProjects(projects).filter(matches),
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
   }, [projects, recentIds, selected, tagged]);
   return { ...lists, tagFilter };
 }

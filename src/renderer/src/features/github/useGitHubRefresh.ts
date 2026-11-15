@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { useWindowFocused } from "@/hooks/useWindowFocused";
 
 /** 開いている間に GitHub から取り直す間隔（1 分） */
@@ -11,20 +11,19 @@ export const GITHUB_REFRESH_MS = 60_000;
 /** every: 開いている間の間隔（CI のタブは、動いている実行がある間は短くする） */
 export function useGitHubRefresh(refresh: () => void, active: boolean, every = GITHUB_REFRESH_MS) {
   const focused = useWindowFocused();
-  const latest = useRef(refresh);
-  latest.current = refresh;
+  const latest = useEffectEvent(refresh);
   const wasFocused = useRef(focused);
 
   // 窓に戻ったら取り直す
   useEffect(() => {
-    if (active && focused && !wasFocused.current) latest.current();
+    if (active && focused && !wasFocused.current) latest();
     wasFocused.current = focused;
   }, [focused, active]);
 
   // 開いている間だけ 1 分ごと
   useEffect(() => {
     if (!active || !focused) return;
-    const timer = setInterval(() => latest.current(), every);
+    const timer = setInterval(() => latest(), every);
     return () => clearInterval(timer);
   }, [active, focused, every]);
 }

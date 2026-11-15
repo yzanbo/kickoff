@@ -2,7 +2,7 @@ import { AppWindow, Columns2, PanelRight, Rows2 } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { canPopout } from "@/app/popout";
 import type { Placement } from "@/lib/floating";
-import { readSetting } from "@/lib/storage";
+import { useSetting } from "@/hooks/useSetting";
 import { CHILD_CHAT_OPEN_IN } from "@/lib/storageKeys";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { openChatSplit } from "@/features/panel/board/openChatSplit";
@@ -67,8 +67,10 @@ export function ChatMenu({
 
 /** 子チャットを、設定の開き方（「開く」）でないもう一方で開く項目。別ウィンドウを開けない（スマホのブラウザ）なら出さない */
 function ChildOpenElsewhere({ chat }: { chat: Chat }) {
+  // 描く中で読む設定は購読して読む（readSetting だと React Compiler が覚えた結果を使い、設定を変えても読み直さない）
+  const [openIn] = useSetting(CHILD_CHAT_OPEN_IN);
   if (!canPopout()) return null;
-  return readSetting(CHILD_CHAT_OPEN_IN) === "window" ? (
+  return openIn === "window" ? (
     <MenuItem onSelect={() => openChildChat(chat, "side")}>
       <PanelRight size={14} /> 右の欄で開く
     </MenuItem>

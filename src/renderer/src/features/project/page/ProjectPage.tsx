@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { KanbanBoard } from "@/features/board/KanbanBoard";
 import { EditorTab } from "@/features/editor/EditorTab";
 import { HistoryTab } from "@/features/history/HistoryTab";
@@ -70,9 +70,11 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMem
   // タブの置き方（見出しの下に横並び / 左に縦並び。設定の「表示」）
   const [tabsLayout] = useProjectTabsLayout();
   // 開くファイルが別の作業場所のものなら、先にその作業場所へ切り替える（切り替わってから EditorTab に渡す）
-  useEffect(() => {
+  const followOpenFile = useEffectEvent(() => {
     if (openFile && openFile.worktree !== worktree) setWorktree(openFile.worktree);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    followOpenFile();
   }, [openFile]);
 
   if (error && !shown) return <div className="page error">{error}</div>;

@@ -30,12 +30,10 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
 
   const loadMore = async () => {
     setLoadingMore(true);
-    try {
-      const page = await api.gitLog(target, loaded);
-      log.setData((prev) => ({ ...prev, commits: [...prev.commits, ...page.commits], more: page.more }));
-    } finally {
-      setLoadingMore(false);
-    }
+    await api
+      .gitLog(target, loaded)
+      .then((page) => log.setData((prev) => ({ ...prev, commits: [...prev.commits, ...page.commits], more: page.more })))
+      .finally(() => setLoadingMore(false));
   };
 
   // 失敗したときは空の一覧（読み込み中とは区別する）

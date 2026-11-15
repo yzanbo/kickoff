@@ -1,4 +1,5 @@
 import { useRef, type RefObject } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import { isKey } from "@/lib/keys";
 import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
 import { adjacentPrompt, promptAround, promptTops } from "./promptNav";
@@ -31,8 +32,7 @@ export function usePromptKeys({
   onJump: (eventId: number) => void;
 }) {
   const lastJump = useRef<number>(undefined);
-  const now = useRef({ ids: promptIds, locate, loaded });
-  now.current = { ids: promptIds, locate, loaded };
+  const now = useLatest({ ids: promptIds, locate, loaded });
   /** dir の向きの指示へ移る（from: 貼り付けた指示か質問への回答。その前後へ移る。省けば位置で決める） */
   const go = (dir: -1 | 1, from?: number) => {
     const el = timeline.current;

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import type { Attachment } from "@shared/types";
 import { useSetting } from "@/hooks/useSetting";
 import { STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
@@ -31,8 +31,11 @@ export function useStickyPrompt(timeline: RefObject<HTMLElement | null>, prompts
     hold.current = el && next ? { id: next.id, line: readingLine(el) } : undefined;
     setPinned(next);
   };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useLayoutEffect(update, [drawn, lastKey, hidden]);
+  // 描き直したとき（描いた行・最後の行・出すかが変わったとき）に読み直す
+  const updateOnDraw = useEffectEvent(update);
+  useLayoutEffect(() => {
+    updateOnDraw();
+  }, [drawn, lastKey, hidden]);
   // 帯の ↑ / ↓ を押せるか（貼り付けたのが質問への回答なら、その前後に指示があるか）と、貼り付けた指示の添付
   return {
     /** 帯に出す指示（出さない・まだ流れていないときは undefined） */

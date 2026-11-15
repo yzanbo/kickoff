@@ -79,6 +79,8 @@ export function ChatTimeline({
   hidden?: boolean;
 }) {
   const pane = useChatPane();
+  // 要素に付ける ref は先に取り出す（scroll.ref を JSX の ref に渡すと、React Compiler が scroll 全体を ref とみなして最適化から外す）
+  const { ref: timelineRef, inner: timelineInnerRef } = scroll;
   // 書いている途中の返答があるか（文はチャットの店の口から StreamingReply が読む。書き始め・消したときだけ描き直す）
   const streaming = useStreamingActive(chat.id);
   const s = useTimelineScroll({ chatId: chat.id, scroll, root: pane.root, window: w, focus, focused: log.focused, backToTail: () => chatLog.backToTail(chat.id) });
@@ -114,7 +116,7 @@ export function ChatTimeline({
       {/* 押すとピントが入り、↑↓・PageUp / PageDown・End でもスクロールできる（枠は出さない） */}
       <div
         className="timeline"
-        ref={scroll.ref}
+        ref={timelineRef}
         // 重いもの（図・コードの色付け）を手前で描き始める見張りの枠（hooks/useNearViewport）
         data-near-root=""
         tabIndex={-1}
@@ -136,7 +138,7 @@ export function ChatTimeline({
           sticky.update();
         }}
       >
-        <div className="timeline-inner" ref={scroll.inner}>
+        <div className="timeline-inner" ref={timelineInnerRef}>
           {/* 前の記録を読んでいる間だけ、上に 1 行（窓の外は箱なので、スクロールすれば描かれる。ボタンは置かない。U1） */}
           {w.loadingEarlier && <TimelineLoading />}
           {/* 作業中かは項目の props で渡さず、書き直し・分岐のボタンだけが読む（timelineBusy） */}

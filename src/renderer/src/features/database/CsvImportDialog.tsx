@@ -31,7 +31,7 @@ export function CsvImportDialog({
   onImport: (rows: Record<string, DbEditValue>[]) => void;
   onClose: () => void;
 }) {
-  const dialog = useModalDialog({ closeOnBackdrop: false });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   const file = useRef<HTMLInputElement>(null);
   const [text, setText] = useState("");
   const [source, setSource] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export function CsvImportDialog({
   };
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog db-csv-dialog" aria-label="CSV を取り込む" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog db-csv-dialog" aria-label="CSV を取り込む" onClose={onClose}>
       <form className="app-dialog-body" onSubmit={submit}>
         <h2 className="app-dialog-title">{table} に CSV を取り込む</h2>
         <p className="muted small">読み込んだ行は、足す行として表に並びます。中身を確かめてから「保存」で DB に入れます。入れない列は DB の既定値になります。</p>

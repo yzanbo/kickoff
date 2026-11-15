@@ -57,7 +57,7 @@ export function QueueResumeHost() {
  */
 function QueueResumeDialog({ resumes, onClose }: { resumes: QueueResume[]; onClose: () => void }) {
   // 選んでいる途中で、背景を押して閉じない
-  const dialog = useModalDialog({ closeOnBackdrop: false, focusSelf: true });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false, focusSelf: true });
   const [choices, setChoices] = useState<Record<number, QueueResumeChoice>>({});
   const [opened, setOpened] = useState<Record<number, boolean>>({});
   const action = useAction();
@@ -74,7 +74,7 @@ function QueueResumeDialog({ resumes, onClose }: { resumes: QueueResume[]; onClo
   };
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog queue-resume-dialog" aria-label="送信待ちが残っています" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog queue-resume-dialog" aria-label="送信待ちが残っています" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {

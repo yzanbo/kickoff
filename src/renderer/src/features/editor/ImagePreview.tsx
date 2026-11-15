@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { errorMessage } from "@shared/errors";
 import { api } from "@/api";
 import { ErrorText } from "@/ui/ErrorText";
@@ -20,12 +20,14 @@ export function ImagePreview({ projectId, path, version, source }: { projectId: 
   const [viewing, setViewing] = useState(false);
   const name = path.slice(path.lastIndexOf("/") + 1);
 
+  // 読み直すのは、作業場所（key で表す）・ファイル・版・書きかけの中身が変わったときだけ
+  const readImage = useEffectEvent(() => (source !== undefined ? Promise.resolve(new Blob([source], { type: "image/svg+xml" })) : api.projectImage(target, path)));
   useEffect(() => {
     let alive = true;
     let url: string | undefined;
     // 読み直している間も前の画像を出したまま（ちらつかせない）
     setError(undefined);
-    const blob = source !== undefined ? Promise.resolve(new Blob([source], { type: "image/svg+xml" })) : api.projectImage(target, path);
+    const blob = readImage();
     blob.then(
       (b) => {
         if (!alive) return;
@@ -42,8 +44,6 @@ export function ImagePreview({ projectId, path, version, source }: { projectId: 
         setTimeout(() => URL.revokeObjectURL(old), 1000);
       }
     };
-    // target は key で表す
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, path, version, source]);
 
   if (error) return <ErrorText message={error} className="diff-message" />;

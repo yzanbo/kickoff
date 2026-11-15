@@ -15,7 +15,7 @@ import { GitHubMarkdownField } from "./GitHubMarkdownField";
  * 作ったら onCreated（GitHub タブはその issue を開く）。連携先が使えなければ、その理由を出して作らせない
  */
 export function NewIssueDialog({ projectId, initialBody, onCreated, onClose }: { projectId: number; initialBody: string; onCreated?: (number: number) => void; onClose: () => void }) {
-  const dialog = useModalDialog({ closeOnBackdrop: false });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   const connection = useAsync(() => api.githubConnection(projectId), [projectId]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState(initialBody);
@@ -49,7 +49,7 @@ export function NewIssueDialog({ projectId, initialBody, onCreated, onClose }: {
     ));
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog github-new-issue" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog github-new-issue" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {

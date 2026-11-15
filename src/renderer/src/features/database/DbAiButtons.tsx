@@ -92,15 +92,14 @@ export function SqlAssistButton({ connection, editor }: { connection: DbConnecti
     });
     if (!request?.trim()) return;
     setBusy(true);
-    try {
-      const path = { database: connection.database, schema: null };
-      const { sql } = await api.dbSqlAssist(client.projectId, connection.id, { path, request, sql: editor.current?.text() ?? "" }, client.worktreeOf(connection.id));
-      editor.current?.append(sql);
-    } catch (e) {
-      void reportFailure("AI に頼めませんでした")(e);
-    } finally {
-      setBusy(false);
-    }
+    await askAi(request).catch((e: unknown) => void reportFailure("AI に頼めませんでした")(e));
+    setBusy(false);
+  };
+  /** AI に書いてもらった SQL を入力欄の終わりに足す（失敗は投げる） */
+  const askAi = async (request: string) => {
+    const path = { database: connection.database, schema: null };
+    const { sql } = await api.dbSqlAssist(client.projectId, connection.id, { path, request, sql: editor.current?.text() ?? "" }, client.worktreeOf(connection.id));
+    editor.current?.append(sql);
   };
   return (
     <button type="button" className="btn btn-sm" disabled={hidden || busy} onClick={() => void run()} data-tip={hidden ? AI_HIDDEN_TIP : "やりたいことを書くと、AI が SQL を書いて入力欄に足す"}>

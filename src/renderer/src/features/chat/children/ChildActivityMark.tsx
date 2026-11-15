@@ -16,7 +16,7 @@ import { TabChildChatsPopover } from "./TabChildChatsPopover";
 export function ChildActivityMark({ chatId, moving, always }: { chatId: number; moving: boolean; always: boolean }) {
   const childrenOf = useChildChats();
   const { stateOf } = useChatStates();
-  const popover = usePopover<HTMLSpanElement>();
+  const { anchor: popoverAnchor, ...popover } = usePopover<HTMLSpanElement>();
   const activity = childActivityOf(chatId, childrenOf, stateOf);
   if (!activity) return null;
   const { state, count, total } = activity;
@@ -43,7 +43,7 @@ export function ChildActivityMark({ chatId, moving, always }: { chatId: number; 
   return (
     <>
       <span
-        ref={popover.anchor}
+        ref={popoverAnchor}
         className={`tab-child-activity state-${busy ? state : "idle"}`}
         title={`${label}。押すと子チャットを一覧する`}
         aria-label={`${label}。子チャットを一覧する`}
@@ -68,7 +68,7 @@ export function ChildActivityMark({ chatId, moving, always }: { chatId: number; 
           onMouseDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.key !== "Escape" && e.stopPropagation()}
         >
-          <TabChildChatsPopover chatId={chatId} anchor={popover.anchor} onClose={popover.close} />
+          <TabChildChatsPopover chatId={chatId} anchor={popoverAnchor} onClose={popover.close} />
         </span>
       )}
     </>

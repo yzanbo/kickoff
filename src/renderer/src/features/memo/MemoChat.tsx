@@ -1,5 +1,5 @@
 import { MessageSquare, Minimize2, PanelBottom, PanelRight } from "lucide-react";
-import { useRef, useState, type MutableRefObject } from "react";
+import { useImperativeHandle, useRef, useState, type MutableRefObject } from "react";
 import type { Attachment, ChatOptions } from "@shared/types";
 import { api } from "@/api";
 import { useMemoChatOf } from "@/stores/chats";
@@ -64,12 +64,13 @@ export function MemoChat({
   const [created, setCreated] = useState<{ path: string; id: number } | null>(null);
   const chatId = stored?.id ?? (created?.path === path ? created.id : undefined);
   const composer = useRef<ComposerHandle | null>(null);
-  handleRef.current = {
+  // 外から読む口（描く中で ref に書かない）
+  useImperativeHandle(handleRef, () => ({
     add: (text, attachments) => {
       if (chatId === undefined) composer.current?.fill(text, { append: true, attachments });
       else chatPaneOf(chatId)?.fillComposer(text, { append: true, attachments });
     },
-  };
+  }));
   return (
     <aside className="memo-chat" aria-label="メモのチャット">
       <header className="memo-chat-head">

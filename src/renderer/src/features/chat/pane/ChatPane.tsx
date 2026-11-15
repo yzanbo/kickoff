@@ -1,4 +1,4 @@
-import { Activity, useEffect, useRef } from "react";
+import { Activity, useEffect, useEffectEvent } from "react";
 import type { Chat, Project } from "@shared/types";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import { useFileLinks } from "@/features/fileLinks/useFileLinks";
@@ -36,10 +36,9 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
   const { chat, project, error } = useOpenChat(chatId, visible);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる。会話の欄の外なので、裏のタブでも届く）
-  const notifyChat = useRef(onChatChange);
-  notifyChat.current = onChatChange;
+  const notifyChat = useEffectEvent((current: Chat) => onChatChange?.(current));
   useEffect(() => {
-    if (chat) notifyChat.current?.(chat);
+    if (chat) notifyChat(chat);
   }, [chat]);
 
   if (error) return <div className="page error">{error}</div>;

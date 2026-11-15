@@ -1,5 +1,5 @@
 import { ArrowDown } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { Chat, ChatEvent, ChatLive } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -33,10 +33,11 @@ export function useScrollPill({
 }): { label: ReactNode; tone: ScrollPillTone } {
   // 上を読んでいる間に作業が終わったか（離れたときのいちばん新しい作業の終わりと比べる。一番下へ戻ったら消す）
   const lastResultId = lastResultIdOf(events);
-  const awayFromResult = useRef<number | null>(null);
-  if (!away) awayFromResult.current = null;
-  else awayFromResult.current ??= lastResultId;
-  const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
+  const [awayFromResult, setAwayFromResult] = useState<number | null>(null);
+  const from = away ? (awayFromResult ?? lastResultId) : null;
+  // 離れた・戻ったときだけ覚え直す（描いている間に合わせる）
+  if (from !== awayFromResult) setAwayFromResult(from);
+  const finishedWhileAway = away && from !== null && lastResultId > from;
   return scrollPillOf({
     waiting,
     reconnecting: Boolean(live.reconnect),

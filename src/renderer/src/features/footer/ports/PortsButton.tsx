@@ -10,7 +10,7 @@ import { PortsPopover } from "./PortsPopover";
  * チャットの実行の間に新しく現れたものがあれば点を付ける（窓を開くと消える）。⌘K から開いたときは、0 でも窓を開いている間は出す
  */
 export function PortsButton() {
-  const popover = usePopover();
+  const { anchor: popoverAnchor, ...popover } = usePopover();
   const { data } = usePorts();
   const dot = usePortsDot();
   useWindowEvent(OPEN_PORTS_EVENT, () => popover.setOpen(true));
@@ -20,7 +20,7 @@ export function PortsButton() {
   return (
     <>
       <button
-        ref={popover.anchor}
+        ref={popoverAnchor}
         type="button"
         className={cx("footer-button footer-ports", popover.open && "active")}
         aria-expanded={popover.open}
@@ -30,20 +30,20 @@ export function PortsButton() {
         <Network size={13} aria-hidden /> ポート {count}
         {dot && <span className="footer-ports-dot" aria-label="新しく現れたものがあります" />}
       </button>
-      {popover.open && <PortsPopover anchor={popover.anchor} onClose={popover.close} />}
+      {popover.open && <PortsPopover anchor={popoverAnchor} onClose={popover.close} />}
     </>
   );
 }
 
 /** 下の帯を隠しているときの置き場所（⌘K から開いたら、画面の左下から窓を出す） */
 export function PortsFallback() {
-  const popover = usePopover<HTMLSpanElement>();
+  const { anchor: popoverAnchor, ...popover } = usePopover<HTMLSpanElement>();
   useWindowEvent(OPEN_PORTS_EVENT, () => popover.setOpen(true));
   if (!popover.open) return null;
   return (
     <>
-      <span ref={popover.anchor} className="ports-fallback-anchor" aria-hidden />
-      <PortsPopover anchor={popover.anchor} onClose={popover.close} />
+      <span ref={popoverAnchor} className="ports-fallback-anchor" aria-hidden />
+      <PortsPopover anchor={popoverAnchor} onClose={popover.close} />
     </>
   );
 }

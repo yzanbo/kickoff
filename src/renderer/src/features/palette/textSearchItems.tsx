@@ -1,5 +1,5 @@
 import { Bot, FileCode2, StickyNote, User } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { memoKindOf } from "@shared/memo/kinds";
 import type { MemoSearchHit, SearchHit } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -52,8 +52,7 @@ export function useDebouncedSearch<T>(query: string, enabled: boolean, search: (
   const [hits, setHits] = useState<T[]>([]);
   const [searching, setSearching] = useState(false);
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const latest = useRef(search);
-  latest.current = search;
+  const latest = useEffectEvent(search);
   useEffect(() => {
     const q = query.trim();
     if (!enabled || !q) {
@@ -64,8 +63,7 @@ export function useDebouncedSearch<T>(query: string, enabled: boolean, search: (
     let alive = true;
     setSearching(true);
     const timer = setTimeout(() => {
-      latest
-        .current(q)
+      latest(q)
         .then((r) => alive && setHits(r))
         .catch(() => alive && setHits([]))
         .finally(() => alive && setSearching(false));

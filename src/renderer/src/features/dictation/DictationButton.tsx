@@ -1,5 +1,5 @@
 import { ChevronDown, Mic } from "lucide-react";
-import { useEffect, useRef, type PointerEvent } from "react";
+import { useEffect, useEffectEvent, useRef, type PointerEvent } from "react";
 import { cx } from "@/lib/cx";
 import { useTicker } from "@/hooks/useTicker";
 import { ErrorText } from "@/ui/ErrorText";
@@ -30,7 +30,8 @@ const LEVEL_DECAY = 0.8;
  */
 function useMicLevel(dictation: Dictation) {
   const ref = useRef<HTMLSpanElement>(null);
-  const { subscribeLevel } = dictation;
+  // 受け取る先は useDictation が持つ 1 つの入れ物なので、描き直しのたびに付け直さない
+  const subscribeLevel = useEffectEvent((listener: (level: number) => void) => dictation.subscribeLevel(listener));
   useEffect(() => {
     let shown = 0;
     return subscribeLevel((level) => {
@@ -38,8 +39,6 @@ function useMicLevel(dictation: Dictation) {
       shown = Math.max(Math.min(1, level * 8), shown * LEVEL_DECAY);
       ref.current?.style.setProperty("--mic-level", shown.toFixed(3));
     });
-    // 受け取る先は useDictation が持つ 1 つの入れ物なので、描き直しのたびに付け直さない
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return ref;
 }

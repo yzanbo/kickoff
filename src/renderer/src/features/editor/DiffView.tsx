@@ -79,7 +79,8 @@ export function DiffView({
   const shown = layout === "split" && narrow ? "unified" : layout;
   const own = useFileDiff({ projectId, file, staged, version, commit, active: source === undefined });
   const current = source ?? own;
-  const lines = useMemo(() => (current?.diff ? parseDiff(current.diff.diff) : []), [current?.diff]);
+  const diff = current?.diff;
+  const lines = useMemo(() => (diff ? parseDiff(diff.diff) : []), [diff]);
   const tokensOf = useDiffHighlight(lines, file.path, file.old_path);
 
   return (

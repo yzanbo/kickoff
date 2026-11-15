@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { QueuedMessage } from "@shared/types";
 import { isQueueAction } from "@shared/chat/queueActions";
 import { removedHere } from "@/api/queueRemovals";
@@ -29,19 +29,15 @@ export function sentShownKey(lastUserEventId: number, held: { id: string }[]): s
 export function useSendingQueued(chatId: number, messages: QueuedMessage[], shown: string): QueuedMessage[] {
   const [sending, setSending] = useState<Sending[]>([]);
   // 前に描いたときの送信待ちと、そのときの印（送信待ちの知らせと発言の知らせが一緒に届いても見分けられるように）
-  const [prev, setPrev] = useState(messages);
-  const seen = useRef(shown);
-  if (prev !== messages) {
-    setPrev(messages);
-    const gone = prev.filter((m) => !isQueueAction(m) && !messages.some((x) => x.id === m.id) && !removedHere(chatId, m.id));
+  const [prev, setPrev] = useState({ messages, shown });
+  if (prev.messages !== messages || prev.shown !== shown) {
+    setPrev({ messages, shown });
+    const gone = prev.messages === messages ? [] : prev.messages.filter((m) => !isQueueAction(m) && !messages.some((x) => x.id === m.id) && !removedHere(chatId, m.id));
     // 消えたのと同じ描き直しで、もうほかの所に出ていれば残さない
-    if (gone.length > 0 && shown === seen.current) {
-      setSending((list) => [...gone.map((message) => ({ message, shown: seen.current })), ...list]);
+    if (gone.length > 0 && shown === prev.shown) {
+      setSending((list) => [...gone.map((message) => ({ message, shown: prev.shown })), ...list]);
     }
   }
-  useLayoutEffect(() => {
-    seen.current = shown;
-  });
   // 出し終えたもの（ほかの所に出た）を片付け、出ないものも少し待ってやめる
   useEffect(() => {
     if (sending.length === 0) return;

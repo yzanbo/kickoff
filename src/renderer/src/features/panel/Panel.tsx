@@ -87,7 +87,10 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   // 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ。タブの列の「＋」と空の欄のボタン）
   const newChild = useNewChild(panel);
   // 一度表示したタブ（中身を作ったもの。チャットのタブは、ここにあるか表示中のときだけ中身を作る）
-  const mountedTabs = useRef(new Set<string>());
+  // （描く中で ref に書かず state に持つ。表示中なのにまだ入っていないタブがあれば、描いている間に足す）
+  const [mountedTabs, setMountedTabs] = useState<ReadonlySet<string>>(() => new Set());
+  const shownNow = tabs.filter((t) => panel.shownTabOf(leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0]) === t.key && !mountedTabs.has(t.key));
+  if (shownNow.length > 0) setMountedTabs(new Set([...mountedTabs, ...shownNow.map((t) => t.key)]));
   /** ペインのタブの列（タブの列の左の道具は左上のペインに、右端の閉じるボタンは右上のペインにだけ置く） */
   const bar = (pane: PaneLeaf) => (
     <PaneTabBar
@@ -176,8 +179,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
           const pane = leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0];
           const rect = rectOf.get(pane.id);
           const active = panel.shownTabOf(pane) === t.key;
-          if (active) mountedTabs.current.add(t.key);
-          else if (specOf(t).lazy && !mountedTabs.current.has(t.key)) return null;
+          if (!active && specOf(t).lazy && !mountedTabs.has(t.key)) return null;
           return (
             <PanelTabPage
               key={t.key}
