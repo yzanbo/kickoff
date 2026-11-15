@@ -1,9 +1,11 @@
 // 実行の受付（Runner）のテスト: 送る・続き・既定の選択・添付・途中経過・未読・止める・承認・圧縮。送信待ちの列は runner.queue.test.ts
 import assert from "node:assert/strict";
+import path from "node:path";
 import { test } from "vitest";
 import { ScriptedProvider, type Script } from "../testing/fakeProvider.js";
 import { tempDir } from "../testing/tempDir.js";
 import { setupCore, until } from "../testing/testCore.js";
+import { judgeFileWrite } from "./guard/writeScope.js";
 import { UploadStore } from "./uploads.js";
 import type { CompactingState } from "@shared/types";
 
@@ -78,6 +80,20 @@ test("添付ファイルはパスがメッセージに書き添えられ、会�
   const { message_uuid, ...data } = store.events.list(chat.id)[0].data as { message_uuid?: string };
   assert.deepEqual(data, { text: "読んで", attachments: [attachment] });
   assert.equal(message_uuid, provider.calls[0].promptId);
+});
+
+test("書き込み先の守り: OS の一時フォルダは Bash の砂場と同じく、Write・Edit でも聞かずに書ける（外のほかの場所は聞く）", async () => {
+  const tmp = tempDir({ real: true });
+  const rules = { tempDirs: [tmp], writableDirs: async () => [tmp], unsandboxedCommands: [] };
+  const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
+  const { store, runner, project } = setupCore(provider, { bashSandbox: { rules, proxyPort: null, trashDir: null } });
+  const chat = await runner.start({ projectId: project.id, prompt: "x" });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  const scope = provider.calls[0].writeScope;
+  assert.ok(scope);
+  const facts = { workdir: project.repo_path, writableDirs: scope.writableDirs, memoryParents: [], workplaces: scope.workplaces };
+  assert.equal((await judgeFileWrite(path.join(tmp, "perf", "check.ts"), facts)).kind, "pass");
+  assert.equal((await judgeFileWrite(path.join(tempDir({ real: true }), "a.ts"), facts)).kind, "ask");
 });
 
 test("返答の途中経過は配信だけされ、チャット名は AI が付ける（ユーザーが変えていなければ）", async () => {

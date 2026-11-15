@@ -275,11 +275,15 @@ function buildTurnParams(
     readOnlyPaths: readOnlyReferences(project, cwd),
     // ［AI で整える］のチャットは、Git で管理していないファイルだけを書ける（続きの指示でも）
     untrackedOnly: chat.untracked_only,
-    // ファイルを書き換えるツールの先は、作業場所・メモのフォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
-    // ［AI で整える］のチャットは上の守りがもっと狭く絞るので付けない）
+    // ファイルを書き換えるツールの先は、作業場所・メモのフォルダ・OS の一時フォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
+    // 一時フォルダは Bash の砂場でも書けるので、Write で一時ファイルを置くたびに聞かない。［AI で整える］のチャットは上の守りがもっと狭く絞るので付けない）
     writeScope: chat.untracked_only
       ? null
-      : { writableDirs: memoDir ? [realPathOrSelf(memoDir)] : [], workplaces: () => workplacesOf(project.repo_path), allowed: writeAllowed },
+      : {
+          writableDirs: [...(memoDir ? [realPathOrSelf(memoDir)] : []), ...(deps.bashSandbox?.rules.tempDirs ?? [])],
+          workplaces: () => workplacesOf(project.repo_path),
+          allowed: writeAllowed,
+        },
     browser: deps.browser ? { control: deps.browser, projectId: chat.project_id, chatId: chat.id } : null,
     database:
       deps.databases && hasAiConnections(deps.store, project.id)

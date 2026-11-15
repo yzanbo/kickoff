@@ -23,14 +23,15 @@ async function firstLine(names: string[], args: string[]): Promise<string | null
 export function macosAgentSandbox(): AgentSandboxRules {
   let packagePlaces: Promise<string[]> | null = null;
   const home = os.homedir();
+  // 一時フォルダ（/tmp は /private/tmp へのリンク。TMPDIR は /private/var/folders の下）
+  const tempDirs = ["/private/tmp", realPathOrSelf(os.tmpdir())];
   return {
+    tempDirs,
     writableDirs: async () => {
       // パッケージの置き場（O1: brew・npm i -g を AI に頼めるように）。Homebrew の置き場と、npm の全体の置き場（nvm などでは別の場所）
       packagePlaces ??= Promise.all([firstLine(["brew"], ["--prefix"]), firstLine(["npm"], ["prefix", "-g"])]).then((dirs) => dirs.filter((d): d is string => d !== null));
       return [
-        // 一時フォルダ（/tmp は /private/tmp へのリンク。TMPDIR は /private/var/folders の下）
-        "/private/tmp",
-        realPathOrSelf(os.tmpdir()),
+        ...tempDirs,
         // キャッシュ（pnpm の macOS の置き場も）・Homebrew の記録
         path.join(home, "Library", "Caches"),
         path.join(home, "Library", "pnpm"),
