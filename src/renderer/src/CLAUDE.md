@@ -44,6 +44,7 @@
 ## API（`api/`）
 
 - 通信の土台は `api/http.ts`（`request`（窓を閉じる間際にも届けたいものは `keepalive`。見ているものの「何も見ていない」）/ `postForm` / クエリの組み立て `withQuery` / 失敗 `ApiError`）だけで、資源ごとの関数は `api/<資源>.ts`（コアの `http/routes/<資源>.ts` と対応）に書き、`api/index.ts` で `api` 1 つにまとめる（名前が重なると後のもので上書きされるので、重ならないことを `index.test.ts` で確かめる）。本文・応答の型は `@shared/types`（`api.ts`）で、画面で書き直さない。
+- コアにつながらなかった頼み（fetch がつながらない・開発時の転送の JSON でない 5xx）は `ApiError` の `code: "core_down"` にし、Mac のアプリでは帯と同じ言葉「コアを起動し直しています。戻ったらもう一度送ってください」（`CORE_DOWN_SEND_MESSAGE`）を文にする（入力欄は失敗の文を出して書いた文を残す。読み取りは SSE のつなぎ直しで取り直す。メモの仕様書「0023_表示を軽くする」の案 16・U8）。
 - SSE は App が `useServerConnection` で 1 回つなぎ、`api/events.ts` で配る（部品は `useServerEvent`、部品の外は `subscribeServerEvent`。つながったときは `subscribeServerOpen`）。
 
 ## hooks と補助
