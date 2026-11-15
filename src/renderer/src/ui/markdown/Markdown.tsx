@@ -1,7 +1,8 @@
-import { memo, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
-import ReactMarkdown, { type Components, type Options } from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { rehypeStreamTail } from "@/lib/streamReveal";
+import { createContext, Fragment, memo, useContext, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import type { Components } from "react-markdown";
+import { createBlockSplitter, splitBlocks } from "@/lib/markdownBlocks";
+import { splitTail } from "@/lib/streamReveal";
+import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } from "./markdownProcessor";
 import { MarkdownFileLinksContext } from "./markdownFileLinks";
 import { MermaidDiagram, MermaidPlaceholder } from "@/ui/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/ui/markdown/mermaid/mermaidSource";
@@ -56,26 +57,28 @@ function FileLink({ path: candidate, line, text, fallback, children }: { path: s
   );
 }
 
+/** 書いている途中の返答の中か（コードブロックの部品が読む。途中と確定で同じ要素を使い回すため、部品に閉じ込めない） */
+const StreamingFlag = createContext(false);
+
 /**
  * コードブロック。上の帯に言語名とコピーのボタンを出す（ボタンはいつも出す）。
  * ```mermaid は図にする（生成中は、書きかけの図を描かずに枠だけ出す）
  */
-function codeBlock(streaming: boolean): Components["pre"] {
-  return function CodeBlock({ node, ...props }) {
-    const block = codeBlockOf(node);
-    if (block?.language === "mermaid") return streaming ? <MermaidPlaceholder /> : <MermaidDiagram code={block.text} />;
-    if (!block) return <pre {...props} />;
-    return (
-      <div className="code-block">
-        <div className="code-block-head">
-          <span className="code-block-lang">{block.language}</span>
-          <CopyButton text={block.text} label="コードをコピー" className="code-block-copy" />
-        </div>
-        <pre {...props} />
+const codeBlock: Components["pre"] = function CodeBlock({ node, ...props }) {
+  const streaming = useContext(StreamingFlag);
+  const block = codeBlockOf(node);
+  if (block?.language === "mermaid") return streaming ? <MermaidPlaceholder /> : <MermaidDiagram code={block.text} />;
+  if (!block) return <pre {...props} />;
+  return (
+    <div className="code-block">
+      <div className="code-block-head">
+        <span className="code-block-lang">{block.language}</span>
+        <CopyButton text={block.text} label="コードをコピー" className="code-block-copy" />
       </div>
-    );
-  };
-}
+      <pre {...props} />
+    </div>
+  );
+};
 
 /** 表。幅が広いときは外枠を横スクロールにして、欄からはみ出さないようにする */
 const table: Components["table"] = ({ node: _node, ...props }) => (
@@ -85,8 +88,10 @@ const table: Components["table"] = ({ node: _node, ...props }) => (
 );
 
 // 描くたびに部品が作り直されないよう（図の状態が消えないよう）、外で作っておく
-const COMPONENTS: Components = { a: link, pre: codeBlock(false), table };
-const STREAMING_COMPONENTS: Components = { a: link, pre: codeBlock(true), table };
+const COMPONENTS: Components = { a: link, pre: codeBlock, table };
+
+/** 描いたブロックの覚え（書きかけの返答から確定した返答に替わったとき・流れの窓で行を外して戻したときに解析し直さない） */
+const blockCache = createBlockCache();
 
 type MarkdownProps = { children: string; streaming?: boolean; tail?: readonly number[] };
 
@@ -99,7 +104,9 @@ const sameTail = (a: readonly number[] | undefined, b: readonly number[] | undef
  * （親が描き直るたびに全文を解析し直さないため。ファイルのリンクなど context の値が変わったときは描き直る）。```mermaid は図にする。
  * 数式（$$…$$・\(…\)・\[…\]・数式らしい $…$。`@shared/markdown/mathGuard`）は KaTeX で描く（数式の書き方を含むときだけ部品を読み込む）。
  * チャットのパネルの中（MarkdownFileLinksContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
- * streaming: 生成中の返答。tail: 生成中に出たばかりの文字の数（出てからの時間で分けた段。新しい順。終わりの文字を段ごとに薄く出す。`useStreamReveal`）
+ * streaming: 生成中の返答。tail: 生成中に出たばかりの文字の数（出てからの時間で分けた段。新しい順。終わりの文字を段ごとに薄く出す。`useStreamReveal`）。
+ * 文は空行で区切ったブロック（`lib/markdownBlocks.ts`）に分け、ブロックごとに memo する。書いている途中は伸びる最後のブロックだけを解析し直し、
+ * 書き終えたブロックは描いた要素を覚えから使い回す（作り置きの処理 `markdownProcessor.ts`。メモの仕様書「0023_表示を軽くする」の案 15）
  */
 export const Markdown = memo(MarkdownBody, (a, b) => a.children === b.children && a.streaming === b.streaming && sameTail(a.tail, b.tail));
 
@@ -108,21 +115,34 @@ function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
   const hasMath = mayContainMath(children);
   const math = useMathPlugins(hasMath);
   const withMath = hasMath && math !== null;
-  const remarkPlugins = useMemo<Options["remarkPlugins"]>(
-    () => [remarkGfm, ...(withMath ? math.remark : []), ...(links ? [links.remarkPlugin] : [])],
-    [links, withMath, math],
-  );
-  // 生成中の薄く出す文字を包んでから数式を描く（数式の要素は KaTeX が丸ごと置き換える）
-  const rehypePlugins = useMemo<Options["rehypePlugins"]>(
-    () => [...(tail?.some((n) => n > 0) ? [rehypeStreamTail(tail)] : []), ...(withMath ? math.rehype : [])],
-    [tail, withMath, math],
-  );
+  const pipeline = pipelineOf(links?.remarkPlugin, withMath ? math : null);
+  // 書いている途中は、前の文の続きなら増えた行だけ読む読み取りを持つ
+  const [splitter] = useState(createBlockSplitter);
   const text = useMemo(() => (withMath ? convertTexDelimiters(children) : children), [children, withMath]);
+  const blocks = useMemo(() => (streaming ? splitter.split(text).blocks : splitBlocks(text)), [text, streaming, splitter]);
+  const tails = splitTail(
+    blocks.map((b) => b.length),
+    tail,
+  );
   return (
     <div className="markdown">
-      <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={streaming ? STREAMING_COMPONENTS : COMPONENTS}>
-        {text}
-      </ReactMarkdown>
+      <StreamingFlag.Provider value={streaming}>
+        {/* ブロックの間には、全文を 1 度に描いたときと同じく改行の文字を置く（HTML を文字で出す所の間の空白・選んでコピーした文を変えない） */}
+        {blocks.map((b, i) => (
+          <Fragment key={i}>
+            {i > 0 && "\n"}
+            <MarkdownBlock pipeline={pipeline} text={b} tail={tails[i]} />
+          </Fragment>
+        ))}
+      </StreamingFlag.Provider>
     </div>
   );
 }
+
+/** 1 つのブロック。文・処理の組・薄く出す段が同じなら描き直さない。薄く出す段がなければ、描いた要素を覚えから引く */
+const MarkdownBlock = memo(
+  function MarkdownBlock({ pipeline, text, tail }: { pipeline: MarkdownPipeline; text: string; tail: readonly number[] | undefined }) {
+    return tail ? renderMarkdown(pipeline, text, COMPONENTS, tail) : blockCache.render(pipeline, text, COMPONENTS);
+  },
+  (a, b) => a.pipeline === b.pipeline && a.text === b.text && sameTail(a.tail, b.tail),
+);
