@@ -8,6 +8,7 @@ import { openChat } from "@/app/router";
 import { reportFailure } from "@/ui/dialogs";
 import { CopyButton } from "@/ui/CopyButton";
 import { IconButton } from "@/ui/IconButton";
+import { LazyDetails } from "@/ui/LazyDetails";
 import { useKnownChat } from "@/stores/chats";
 import type { TimelineItem, TurnHandoff } from "./timelineItems";
 import { TurnChanges } from "@/features/chat/tools/TurnChanges";
@@ -112,15 +113,20 @@ function Thinking({ text, durationMs, at }: { text: string; durationMs?: number;
         {time}
       </div>
     );
+  // 思考の全文は、初めて開いたときに作る
   return (
-    <details className="event-note thinking">
-      <summary>
-        <ChevronRight size={13} className="tool-chevron" />
-        {label}
-        {time}
-      </summary>
-      <div className="thinking-body">{text}</div>
-    </details>
+    <LazyDetails
+      className="event-note thinking"
+      summary={
+        <summary>
+          <ChevronRight size={13} className="tool-chevron" />
+          {label}
+          {time}
+        </summary>
+      }
+    >
+      {() => <div className="thinking-body">{text}</div>}
+    </LazyDetails>
   );
 }
 

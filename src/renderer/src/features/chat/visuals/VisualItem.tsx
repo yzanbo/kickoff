@@ -7,6 +7,7 @@ import { CopyButton } from "@/ui/CopyButton";
 import { HighlightedCode } from "@/ui/HighlightedCode";
 import { IconButton } from "@/ui/IconButton";
 import { ImageViewer } from "@/ui/imageViewer/ImageViewer";
+import { LazyDetails } from "@/ui/LazyDetails";
 import { MermaidDiagram } from "@/ui/markdown/mermaid/MermaidDiagram";
 import { reportFailure } from "@/ui/dialogs";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
@@ -88,14 +89,16 @@ function VisualError({ text, source }: { text: string; source: { code: string; l
         <span>{text}</span>
       </div>
       {source && (
-        <details className="visual-card-error-source">
-          <summary>ソース</summary>
-          <pre className="visual-card-source">
-            <code>
-              <HighlightedCode code={source.code} lang={source.lang} />
-            </code>
-          </pre>
-        </details>
+        // ソース（と色付け）は、初めて開いたときに作る
+        <LazyDetails className="visual-card-error-source" summary={<summary>ソース</summary>}>
+          {() => (
+            <pre className="visual-card-source">
+              <code>
+                <HighlightedCode code={source.code} lang={source.lang} />
+              </code>
+            </pre>
+          )}
+        </LazyDetails>
       )}
     </div>
   );
