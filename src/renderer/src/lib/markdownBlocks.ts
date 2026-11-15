@@ -1,7 +1,8 @@
 /**
  * Markdown の文を、空行で区切ったまとまり（ブロック）に分けるための読み取り。続きの文なら、増えた行だけを読む。
- * いまは、書きかけの返答を少しずつ出す決まり（`markdownReveal.ts`）が、最後のブロックの頭と、開いたままのコードブロック・数式ブロックを知るのに使う
- * （メモの仕様書「0023_表示を軽くする」の案 6c。ブロックごとの memo（案 15）も同じ分け方を使う）。
+ * - `createBlockScanner`: 書きかけの返答を少しずつ出す決まり（`markdownReveal.ts`）が、最後のブロックの頭と、開いたままのコードブロック・数式ブロックを知るのに使う
+ *   （メモの仕様書「0023_表示を軽くする」の案 6c）
+ * - `splitBlocks` / `createBlockSplitter`: Markdown の部品がブロックごとに memo して描くための分け方（案 15。下）
  * 空行でも分けないところ: コードブロック（``` / ~~~ の開きから閉じまで）と数式ブロック（$$ だけの行から $$ だけの行まで）の中
  */
 
@@ -128,4 +129,159 @@ export function createBlockScanner(): BlockScanner {
       return tailOf(state, text.slice(pos, end), pos);
     },
   };
+}
+
+/*
+ * ブロックに分ける（メモの仕様書「0023_表示を軽くする」の案 15。書き終えたブロックは描いたものを使い回し、描き直すのは最後のブロックだけにする）。
+ * 分けると描き方が変わる所では分けない（分けないのはいつも安全なので、迷う所は分けない側に倒す）:
+ * - コードブロック・数式ブロック（$$ で始まる行から $$ だけの行まで）・空行をまたぐ HTML ブロック（<script・<pre・<style・<textarea・<!--・<?・<!X・<![CDATA[）の中
+ * - 空行のあとの行が字下げで始まる（箇条書きの続き・字下げのコード）か、箇条書きのあるブロックで次の行も箇条書きの印（空行をはさんだ項目は 1 つのゆるいリスト）
+ * - リンクの参照の定義・脚注の定義（[x]: …）が 1 つでもあれば、全体を 1 つのブロックにする（文全体で引き当てるため）
+ */
+
+/** ブロックに分けた結果 */
+export interface MarkdownBlocks {
+  /** ブロックの文（末尾の空行は落とす。前と同じ範囲のブロックは前と同じ文字列を返す） */
+  blocks: string[];
+  /** 最後のブロックで、閉じていないコードブロックの開きの行の頭（最後のブロックの中の位置。なければ null） */
+  openFence: number | null;
+}
+
+export interface BlockSplitter {
+  /** text をブロックに分ける（前に分けた文の続きなら、増えた行だけ読む） */
+  split(text: string): MarkdownBlocks;
+}
+
+interface SplitState {
+  fence: { char: "`" | "~"; length: number; start: number } | null;
+  math: boolean;
+  /** 空行をまたぐ HTML ブロックの終わりの印 */
+  html: RegExp | null;
+  afterBlank: boolean;
+  /** いまのブロックに箇条書きの印の行がある */
+  list: boolean;
+  /** 参照・脚注の定義があった（全体を 1 つにする） */
+  whole: boolean;
+  /** ブロックの頭（文の中の位置） */
+  starts: number[];
+}
+
+const LIST_ITEM = /^ {0,3}([-+*]|\d{1,9}[.)])([ \t]|$)/;
+const REFERENCE_DEFINITION = /^ {0,3}\[[^\]]+\]:/;
+const MATH_OPEN = /^ {0,3}\$\$/;
+/** 空行をまたぐ HTML ブロックの始まりと終わりの印 */
+const HTML_BLOCKS: [RegExp, RegExp][] = [
+  [/^ {0,3}<(script|pre|style|textarea)([\s>]|$)/i, /<\/(script|pre|style|textarea)>/i],
+  [/^ {0,3}<!--/, /-->/],
+  [/^ {0,3}<\?/, /\?>/],
+  [/^ {0,3}<![A-Za-z]/, />/],
+  [/^ {0,3}<!\[CDATA\[/, /\]\]>/],
+];
+
+const initialSplit = (): SplitState => ({ fence: null, math: false, html: null, afterBlank: false, list: false, whole: false, starts: [0] });
+const copySplit = (st: SplitState): SplitState => ({ ...st, starts: st.starts.slice() });
+
+/** 1 行を読む（start は行の頭） */
+function splitLine(st: SplitState, line: string, start: number) {
+  if (st.fence) {
+    const m = FENCE_CLOSE.exec(line);
+    if (m && m[1][0] === st.fence.char && m[1].length >= st.fence.length) st.fence = null;
+    return;
+  }
+  if (st.math) {
+    if (line.trim() === "$$") st.math = false;
+    return;
+  }
+  if (st.html) {
+    if (st.html.test(line)) st.html = null;
+    return;
+  }
+  if (line.trim() === "") {
+    st.afterBlank = true;
+    return;
+  }
+  if (st.afterBlank) {
+    st.afterBlank = false;
+    // 字下げで始まる行（箇条書きの続き・字下げのコード）と、箇条書きのあとの箇条書きは、前のブロックに続ける
+    if (!/^[ \t]/.test(line) && !(st.list && LIST_ITEM.test(line))) {
+      st.starts.push(start);
+      st.list = false;
+    }
+  }
+  if (REFERENCE_DEFINITION.test(line)) st.whole = true;
+  if (LIST_ITEM.test(line)) st.list = true;
+  const open = fenceOpenOf(line);
+  if (open) {
+    st.fence = { ...open, start };
+    return;
+  }
+  if (MATH_OPEN.test(line)) {
+    // 同じ行で閉じていなければ数式ブロック（閉じの $$ だけの行まで）
+    const rest = line.trim().slice(2);
+    if (!rest.includes("$$")) st.math = true;
+    return;
+  }
+  for (const [begin, end] of HTML_BLOCKS) {
+    const m = begin.exec(line);
+    if (m) {
+      if (!end.test(line.slice(m[0].length))) st.html = end;
+      return;
+    }
+  }
+}
+
+/** 末尾の空行を落とした終わりの位置 */
+function trimmedEnd(text: string, start: number, end: number): number {
+  let e = end;
+  while (e > start) {
+    const lineStart = Math.max(start, text.lastIndexOf("\n", e - 1) + 1);
+    if (text.slice(lineStart, e).trim() !== "") break;
+    e = lineStart > start ? lineStart - 1 : start;
+  }
+  return e;
+}
+
+/** 分ける読み取りを作る（書きかけの返答 1 つごとに 1 つ。続きでない文が来たら初めから読み直す） */
+export function createBlockSplitter(): BlockSplitter {
+  let done = "";
+  let state = initialSplit();
+  let prev: { start: number; end: number; text: string }[] = [];
+  return {
+    split(text) {
+      if (!text.startsWith(done)) {
+        done = "";
+        state = initialSplit();
+        prev = [];
+      }
+      let pos = done.length;
+      const lastNewline = text.lastIndexOf("\n");
+      if (lastNewline >= pos) {
+        while (pos <= lastNewline) {
+          const nl = text.indexOf("\n", pos);
+          splitLine(state, text.slice(pos, nl), pos);
+          pos = nl + 1;
+        }
+        done = text.slice(0, pos);
+      }
+      // 改行がまだの最後の行は、読んだ様子の写しに足す（次に読むときは改行まで来てから）
+      const st = pos < text.length ? copySplit(state) : state;
+      if (pos < text.length) splitLine(st, text.slice(pos), pos);
+      const starts = st.whole ? [0] : st.starts;
+      const open = st.whole ? false : st.fence !== null || st.math || st.html !== null;
+      const ranges = starts.map((start, i) => {
+        const last = i === starts.length - 1;
+        const end = last ? text.length : starts[i + 1];
+        return { start, end: last && open ? end : trimmedEnd(text, start, end) };
+      });
+      const next = ranges.map((r, i) => (prev[i]?.start === r.start && prev[i].end === r.end ? prev[i] : { ...r, text: text.slice(r.start, r.end) }));
+      prev = next;
+      const lastStart = starts[starts.length - 1];
+      return { blocks: next.map((b) => b.text), openFence: st.fence && !st.whole ? st.fence.start - lastStart : null };
+    },
+  };
+}
+
+/** 文を一度にブロックに分ける（確定した文） */
+export function splitBlocks(text: string): string[] {
+  return createBlockSplitter().split(text).blocks;
 }
