@@ -1,9 +1,8 @@
 import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
-import type { ChatEvent } from "@shared/types";
 import { api } from "@/api";
 import { subscribeServerEvent, subscribeServerOpen } from "@/api/events";
 import { useProjects } from "@/stores/projects";
-import { createChatStore, type ChatDetailView, type ChatProgressView } from "./chatStore";
+import { createChatStore, type ChatDetailView, type ChatLogView, type ChatProgressView } from "./chatStore";
 
 /*
  * アプリで使うチャットの店（1 つだけ）と、口ごとの React の hook。店はモジュールを読んだときにサーバーの知らせを購読し、
@@ -21,6 +20,7 @@ const chatStore = createChatStore({
   now: () => Date.now(),
   windowHidden: () => document.visibilityState === "hidden",
   load: (chatId, query) => api.chatDetail(chatId, query),
+  page: (chatId, query) => api.chatEvents(chatId, query),
 });
 subscribeServerEvent((event) => chatStore.apply(event));
 subscribeServerOpen(() => chatStore.reconnected());
@@ -56,13 +56,26 @@ function useChatEntry(chatId: number): ChatDetailView {
   );
 }
 
-/** 口 log の記録 */
-function useChatEvents(chatId: number): ChatEvent[] {
+/** 口 log（流れに出す記録・末尾・記録全体から作るものに渡す digest・読み込んだ範囲） */
+export function useChatLog(chatId: number): ChatLogView {
   return useSyncExternalStore(
     (l) => chatStore.subscribe(chatId, "log", l),
-    () => chatStore.log(chatId).events,
+    () => chatStore.log(chatId),
   );
 }
+
+/**
+ * 記録の読み足し（メモの仕様書「0023_表示を軽くする」の案 4）: 前を読む・途中の一部分の後ろを読む・遠い記録を読む・末尾に戻る・
+ * サブエージェントの中を読む・その記録を流れに出しているか
+ */
+export const chatLog = {
+  loadEarlier: (chatId: number) => chatStore.loadEarlier(chatId),
+  loadLater: (chatId: number) => chatStore.loadLater(chatId),
+  openAround: (chatId: number, eventId: number) => chatStore.openAround(chatId, eventId),
+  backToTail: (chatId: number) => chatStore.backToTail(chatId),
+  loadScope: (chatId: number, parents: readonly string[], ids?: readonly number[]) => chatStore.loadScope(chatId, parents, ids),
+  shows: (chatId: number, eventId: number) => chatStore.shows(chatId, eventId),
+};
 
 /** 書いている途中の返答の世代（記録の口から選んで読む。消したときだけ変わり、確定した返答が記録に入る描き直しと同じ 1 回で進む） */
 export function useChatStreamGen(chatId: number): number {
@@ -110,14 +123,14 @@ export function useChatProgress(chatId: number): ChatProgressView {
 }
 
 /**
- * 1 つのチャットの画面を描くのに要るもの（チャット・プロジェクト・記録・回答待ち・作業中の様子・読み込みの失敗）を、口ごとの hook から集める。
+ * 1 つのチャットの画面を描くのに要るもの（チャット・プロジェクト・記録の口 log・回答待ち・作業中の様子・読み込みの失敗）を、口ごとの hook から集める。
  * チャットの画面を描く 5 か所（パネルのタブ・右の欄の子チャット・メモのチャット・子チャットとサブエージェントの別ウィンドウ）が使う。
  * 書いている途中の返答は含めない（読む部品だけが口を読む）。中身を描けたら（rAF 2 回）、開いた直後にためていた知らせを 1 回で当てる（案 21）
  */
 export function useChatContent(chatId: number, visible: boolean) {
   useChatRetain(chatId, visible);
   const { chat, approvals, live, error } = useChatEntry(chatId);
-  const events = useChatEvents(chatId);
+  const log = useChatLog(chatId);
   // チャットのプロジェクト（プロジェクトの店から。名前・参照資料などを変えたら、開いている間も直る）。
   // チャット自身のプロジェクトで引く（別のプロジェクトへ移したら、タブが知るのを待たずに移した先のものになる）
   const { projectsById } = useProjects();
@@ -134,5 +147,5 @@ export function useChatContent(chatId: number, visible: boolean) {
       cancelAnimationFrame(second);
     };
   }, [chatId, loaded]);
-  return { chat, project, events, approvals, live, error };
+  return { chat, project, log, approvals, live, error };
 }

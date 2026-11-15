@@ -37,7 +37,9 @@ export function useTimelineScroll({
   focus?: number;
 }) {
   const [away, setAway] = useState(false);
-  const { hidden, hiddenAfter: after } = w;
+  // 途中の一部分を出しているときは、窓の下の端まで描いていても最新ではない
+  const { more } = w;
+  const after = w.later ? Math.max(1, w.hiddenAfter) : 0;
   // 窓の最初と最後の項目（前を足した・新しい発言が届いたを見分ける）
   const firstKey = w.visible[0]?.key;
   const lastKey = w.visible.at(-1)?.key;
@@ -65,7 +67,9 @@ export function useTimelineScroll({
     const el = scroll.ref.current;
     if (!el || beforeMore.current) return;
     beforeMore.current = { height: el.scrollHeight, top: el.scrollTop };
-    w.showMore();
+    // 前の記録を読むときは、届いて足したあと（足した分の位置合わせのあと）に印を外す。何も届かなくても、次にまた読めるように
+    const loading = w.showMore();
+    if (loading) void loading.finally(() => setTimeout(() => (beforeMore.current = null), 500));
   };
 
   // 途中の一部分を描いているときに一番下へ戻る: 最新の窓に戻して、描いてから一番下へ
@@ -123,7 +127,7 @@ export function useTimelineScroll({
     // 上の端に近づいたら（着く前に）、窓の外の前の項目を足す
     const ahead = Math.max(LOAD_AHEAD_MIN_PX, el.clientHeight * LOAD_AHEAD_VIEWPORTS);
     // （一番下にいるときは足さない。窓が短いと、一番下で窓を戻す処理と行き来するため）
-    if (hidden > 0 && !atBottom && el.scrollTop < ahead) showMore();
+    if (more && !atBottom && el.scrollTop < ahead) showMore();
     // 下の端に近づいたら、窓の外の後ろの項目を足す（下に足すので、読んでいた位置は動かない）
     if (after > 0 && fromBottom < ahead) w.showLater();
   };

@@ -15,7 +15,14 @@ export interface SubagentsView {
   rel: (s: string) => string;
   /** メインエージェントが作業中か */
   busy: boolean;
+  /** 記録全体から作るものに渡す記録（末尾と索引を重ねた digest。報告・一覧） */
   events: ChatEvent[];
+  /** 中身のまま読んだ記録（カードの手順・動き。末尾より前に始まったサブエージェントの中は loadScope で読む） */
+  loaded: ChatEvent[];
+  /** 末尾の始まりの記録の ID（0 = 最初から読んでいる） */
+  tailStart: number;
+  /** 末尾より前に読んでいない記録があるか（動きの「以前の動きを表示」） */
+  hasEarlier: boolean;
   tree: SubagentTree;
   /** サブエージェントの色相（起動した順。カードの縦線・目次の点・動きの線で同じ色。agentHues） */
   hues: ReadonlyMap<string, number>;

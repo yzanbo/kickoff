@@ -37,7 +37,7 @@ interface ChatPaneProps {
 
 /** エージェントとのチャット（パネルのタブに出す）。中身をチャットの店から読み（読み込みと SSE は店で 1 回）、読めたら ChatView を描く（チャットごとに作り直す） */
 export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNew, slot }: ChatPaneProps) {
-  const { chat, project, events, approvals, live, error } = useChatContent(chatId, visible);
+  const { chat, project, log, approvals, live, error } = useChatContent(chatId, visible);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
   const notifyChat = useRef(onChatChange);
@@ -53,7 +53,7 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
       key={chat.id}
       chat={chat}
       project={project}
-      events={events}
+      log={log}
       approvals={approvals}
       live={live}
       focus={focus}
@@ -70,7 +70,7 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
  * パネルの中では、右にサブエージェントの画面を並べる右の欄（AgentSplit）を置く（同じ context の中なので、記録・操作をそのまま使う）
  */
 export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible: boolean; slot?: string }) {
-  const { chat, project, events, approvals, focus } = input;
+  const { chat, project, log, approvals, focus } = input;
   const view = useChatView(input, usePanelHost() !== null);
   const { pane } = view;
   useChatPaneSlot(slot, pane);
@@ -83,7 +83,7 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
   // 裏でまだ動いている作業を起動した呼び出し（流れの中の裏のコマンドを、終わるまで実行中に見せる）
   const backgroundCalls = useBackgroundCalls(view.live.background);
   // AI が描いた図（記録から組み立てる。流れの図の項目が読む）
-  const visuals = useMemo(() => chatVisualsOf(events), [events]);
+  const visuals = useMemo(() => chatVisualsOf(log.digest), [log.digest]);
   // そのチャットの AI の状態（できること・ログインの仕方。中の部品は読み込みを頼まずに読むので、ここで 1 回頼む）
   useProviderStatus(chat.provider, { load: true });
   // 表に出したチャットの AI を、下の帯の使用状況に出す（触ったときも。分けたペインで隣のチャットへ移ったとき）
@@ -106,7 +106,7 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
           data-chat-role={chat.memo_path ? "memo" : chat.parent_chat_id !== null ? "child" : "chat"}
           onPointerDownCapture={() => noteForegroundProvider(chat.provider)}
         >
-          <ChatHeader chat={chat} project={project} items={view.items} version={view.timeline.visible} />
+          <ChatHeader chat={chat} project={project} tail={log.tail} version={view.timeline.visible} />
           {/* 返答の一部を選んで、チャット欄に引用を足す（右の欄・別ウィンドウの中では SideSelectionAttach が出す） */}
           <SelectionAttach />
           <ChatBody
@@ -122,7 +122,8 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
                 approvals={approvals}
                 focus={focus}
                 scroll={view.scroll}
-                events={events}
+                events={log.tail}
+                log={log}
                 prompts={view.prompts}
                 visible={visible && shown}
                 pillDock={pillDock}
@@ -132,7 +133,7 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
           />
           <ChatComposerArea
             chat={chat}
-            events={events}
+            events={log.digest}
             prompts={view.prompts}
             live={view.live}
             busy={view.busy}

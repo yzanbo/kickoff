@@ -58,6 +58,7 @@ export function ChatComposerArea({
   onDock,
 }: {
   chat: Chat;
+  /** 記録全体から作るものに渡す記録（末尾と索引を重ねた digest） */
   events: ChatEvent[];
   prompts: PromptList;
   live: ChatLive;
@@ -92,7 +93,8 @@ export function ChatComposerArea({
   // 定型文の帯の「すぐ送る」: 入力欄の文はそのままにして、定型文だけを送る（作業中・送信待ちがあれば、入力欄から送るのと同じく送信待ちの送り方に従う）
   const sendSnippet = (text: string) => send.onSendOther(text, []);
   // 音声モードで読み上げる候補（メインエージェントの文章の返答）。起こした文は定型文の「すぐ送る」と同じ送り方で送る（入力欄の文は残す）
-  const voiceReplies = useMemo(() => events.flatMap((e) => (e.type === "text" && !e.data.parent ? [{ id: e.id, text: e.data.text }] : [])), [events]);
+  // （events は末尾と索引を重ねたもの。索引の返答は文を空にした軽い形なので除く）
+  const voiceReplies = useMemo(() => events.flatMap((e) => (e.type === "text" && !e.data.parent && e.data.text ? [{ id: e.id, text: e.data.text }] : [])), [events]);
   // メモのチャットの欄を閉じている間は、ピルの列と送信待ちをメモの下の入力欄の上に描く（chipsPortal）
   const portal = useChipsPortal();
   // チャット欄のコンパクト表示は、上のピルの列にも効かせる（ピルを低く・小さな文字に。composer-compact.css）

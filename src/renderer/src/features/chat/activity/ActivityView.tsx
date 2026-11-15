@@ -7,6 +7,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { formatStamp } from "@/lib/time";
 import { useChatPane, useChatPaneState } from "@/features/chat/pane/chatPaneContext";
 import { useSubagentsView } from "@/features/chat/subagents/subagentsContext";
+import { chatLog } from "@/features/chat/store/useChatStore";
 import { childrenOf, type SubagentTree } from "@/features/chat/subagents/subagentTree";
 import { agentHueStyle } from "@/features/chat/subagents/agentHues";
 import { activityRows, agentTargetOf, filterActivity, type ActivityFilter, type ActivityRow } from "./activityRows";
@@ -36,7 +37,8 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const menu = useContextMenu<{ key: string; eventId?: number }>();
   const [limit, setLimit] = useState(ACTIVITY_WINDOW);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-  const events = view?.events;
+  // 中身のまま読んだ記録から（末尾より前は「以前の動きを表示」で読み足す。メモの仕様書「0023_表示を軽くする」の案 4）
+  const events = view?.loaded;
   const tree = view?.tree;
   const busy = view?.busy ?? false;
   const rows = useMemo(() => (events && tree ? activityRows(events, tree, busy) : []), [events, tree, busy]);
@@ -130,10 +132,16 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
               onPick={pane.canOpenSide ? pick : undefined}
             />
           ))}
-          {rest > 0 && (
+          {rest > 0 ? (
             <button type="button" className="link-button activity-more" onClick={() => setLimit((n) => n + ACTIVITY_WINDOW)}>
               以前の動きを表示（あと {rest} 件）
             </button>
+          ) : (
+            view.hasEarlier && (
+              <button type="button" className="link-button activity-more" onClick={() => void chatLog.loadEarlier(view.chatId)}>
+                以前の動きを表示
+              </button>
+            )
           )}
         </div>
       </div>

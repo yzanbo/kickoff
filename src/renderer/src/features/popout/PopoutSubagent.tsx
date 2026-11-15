@@ -15,10 +15,10 @@ import { usePopoutFileLinks } from "./PopoutFiles";
  * （メインエージェントの書いている途中の返答は出さないので、途中の文の口は読まない = 返答中に描き直さない）
  */
 export function PopoutSubagent({ chatId, agentKey }: { chatId: number; agentKey: string }) {
-  const { chat, project, events, approvals, live, error } = useChatContent(chatId, true);
+  const { chat, project, log, approvals, live, error } = useChatContent(chatId, true);
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;
-  return <PopoutSubagentView key={chat.id} agentKey={agentKey} chat={chat} project={project} events={events} approvals={approvals} live={live} />;
+  return <PopoutSubagentView key={chat.id} agentKey={agentKey} chat={chat} project={project} log={log} approvals={approvals} live={live} />;
 }
 
 /**
