@@ -326,3 +326,31 @@ test("ゴミ箱: 一緒に入れるもの（会話記録と同じ名前のフォ
   assert.equal(fs.readFileSync(path.join(companion, "subagents", "a.jsonl"), "utf8"), "1234567890");
   assert.equal(fs.readFileSync(file, "utf8"), "12345");
 });
+
+test("ゴミ箱: 片付けの途中に頼んだ片付けは、終わるのを待ってからもう一度流す（頼んだときに 3 日たっていたものを残さない）", async () => {
+  const { project, trashBin, store, trashClock } = setup();
+  // A は 1 つ目の片付けで消える古いもの。消している途中で止めておく
+  let started = () => {};
+  const purging = new Promise<void>((resolve) => (started = resolve));
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  trashBin.register("chat", {
+    purge: async () => {
+      started();
+      await held;
+    },
+  });
+  trashBin.addRecord({ project_id: project.id, kind: "chat", label: "古いチャット", chat_id: 1 });
+  trashClock.now += TRASH_KEEP_MS + 60_000;
+  // B は 1 つ目の片付けが数えた時点ではまだ 3 日たっていない（入れた時刻をいまの時計にする）
+  const b = trashBin.addRecord({ project_id: project.id, kind: "chat", label: "新しいチャット", chat_id: 2, trashed_at: new Date(trashClock.now).toISOString() });
+  const running = trashBin.sweep();
+  await purging;
+  // 1 つ目が数え終えてから時計を進めて頼む
+  trashClock.now += TRASH_KEEP_MS + 60_000;
+  const asked = trashBin.sweep();
+  const askedAgain = trashBin.sweep();
+  release();
+  await Promise.all([running, asked, askedAgain]);
+  assert.equal(store.trash.get(b.id), null);
+});
