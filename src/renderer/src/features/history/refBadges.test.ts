@@ -26,6 +26,11 @@ test("refBadgesOf: 手元のブランチは、同じコミットの追いかけ�
   assert.deepEqual(summary(["feature/x", "origin/feature/x"]), ["branch:feature/x[origin(gh)]"]);
   // 追いかけ先があれば、それだけをまとめる（同じ名前でも、追いかけていないリモートは別の札）
   assert.deepEqual(summary(["dev", "origin/dev", "upstream/develop"]), ["branch:dev[upstream]", "remote:origin/dev[origin(gh)]"]);
+  // まとめたリモートは、右クリックでそのリモートのブランチのメニューを開けるよう、ブランチの名前も持つ
+  assert.deepEqual(
+    refBadgesOf(["dev", "upstream/develop"], known)[0].remotes.map((r) => r.branch),
+    ["upstream/develop"],
+  );
 });
 
 test("refBadgesOf: 手元のブランチがないリモートのブランチは、それだけで札にする。HEAD そのものは札にしない", () => {
@@ -33,6 +38,6 @@ test("refBadgesOf: 手元のブランチがないリモートのブランチは�
   // 一覧がまだなければ、「/」の前を remote にして GitHub かは分からない（雲のマーク）
   assert.deepEqual(
     refBadgesOf(["origin/main"], undefined).map((b) => b.remotes),
-    [[{ name: "origin", github: false }]],
+    [[{ name: "origin", branch: "origin/main", github: false }]],
   );
 });
