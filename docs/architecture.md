@@ -38,6 +38,8 @@
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `Runner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `core/chat/sessionPoints.ts`） | なし |
 | 作業中の様子（保存しない） | `ChatLive` | 詳細と SSE で別々の形 |
+| チャットの店（開いているチャットの中身を、部品の外にチャットごとに 1 つ持つ画面の店。同じチャットを何か所で開いても読み込みと SSE は 1 回）と口（部品が購読する用途ごとの入口: 詳細・記録・途中の文・サブエージェントの途中経過） | `features/chat/store/`（`createChatStore`・口 `detail` / `log` / `streaming` / `progress`・hook `useChatContent` / `useStreamingActive` / `useChatStreamGen` / `useChatProgress`） | `useChatDetail`（タブごとの state） |
+| 書きかけの返答（作業中に、確定する前の AI の文。画面では「書いている途中の返答」）と、その世代（消すたびに進む。確定した返答と同じ描き直しで入れ替える） | コアの `StreamingTexts`（`Bus.streamingText`・詳細の `streaming_text` / `streaming_length`・`chat_delta` の `offset`）・画面の店の `streamGen` / `streamText` | 画面の `streaming`（state） |
 | フィード（全プロジェクトの画面の、チャットごとのメインエージェントの最新の返答 1 件を新しい順に並べたもの） | `FeedItem`（`GET /api/feed`・`store.events.feed`・画面の `FeedList` / `useFeed`） | なし |
 | チャットの選択（モデル・深さ・権限・ファスト） | `ChatOptions`（`model` / `effort` / `permission_mode` / `fast_mode`） | `RunOptions`・`ProjectDefaults`（`permission` / `fastMode`）・設定（`claudeModel` / `defaultPermission`）・`ProviderRunParams`（`permissionMode`）の 4 通り |
 | 権限モード | `PermissionMode` | `PermissionChoice` |

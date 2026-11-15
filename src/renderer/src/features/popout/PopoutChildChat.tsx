@@ -3,7 +3,7 @@ import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { ChildChatBar } from "@/features/chat/children/ChildChatBar";
 import { PopoutDockButton } from "./PopoutDockButton";
 import { ChatView } from "@/features/chat/pane/ChatPane";
-import { useChatDetail } from "@/features/chat/pane/useChatDetail";
+import { useChatContent } from "@/features/chat/store/useChatStore";
 import { rootChatOf } from "@/features/chat/children/childChats";
 import { knownChat } from "@/stores/chats";
 import { SideScope } from "./SideScope";
@@ -16,7 +16,7 @@ import { reportFailure } from "@/ui/dialogs";
  * 「メインのチャット」（右クリックの組・選んだときの「メインに追加」）は、右の欄に開いたときと同じく、いちばん上の親
  */
 export function PopoutChildChat({ chatId }: { chatId: number }) {
-  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
+  const { chat, project, events, approvals, live, error } = useChatContent(chatId, true);
   // 閉じ方を聞いている間に、もう一度 ✕ を押されても重ねて聞かない
   const asking = useRef(false);
   const chatRef = useRef(chat);
@@ -47,7 +47,7 @@ export function PopoutChildChat({ chatId }: { chatId: number }) {
     <SideScope mainChatId={mainChatId}>
       <ChildChatBar chat={chat} events={events} extra={<PopoutDockButton route={{ kind: "chat", chatId }} />} />
       <div className="popout-body">
-        <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} visible />
+        <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} visible />
       </div>
     </SideScope>
   );

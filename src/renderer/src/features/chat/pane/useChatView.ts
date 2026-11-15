@@ -39,8 +39,6 @@ export interface ChatViewInput {
   approvals: Approval[];
   /** 作業中の様子（コアが持つ形のまま。停止中はほかの画面から止めたときも） */
   live: ChatLive;
-  /** 書いている途中の返答 */
-  streaming: string;
   /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   focus?: number;
   /** 新しいチャットのタブを開く（送信待ちの指示・選んだ文を新しいチャットで聞くとき。パネルの外では渡さない） */
@@ -65,7 +63,7 @@ const sideScroller = (chatId: number, key: string) =>
  * ChatView は描くだけ（ChatView はチャットごとに作り直す = key がチャットの ID）
  */
 export function useChatView(
-  { chat, project, events, approvals, live: coreLive, streaming, focus, onOpenNew, beforeSend }: ChatViewInput,
+  { chat, project, events, approvals, live: coreLive, focus, onOpenNew, beforeSend }: ChatViewInput,
   /** 右の欄（サブエージェントの欄）を置けるか（パネルの中のチャット） */
   canOpenSide = false,
 ) {

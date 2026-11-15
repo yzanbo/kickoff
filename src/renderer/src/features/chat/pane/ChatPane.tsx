@@ -17,7 +17,7 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatPaneContext, useChatPaneSlot, useChatPaneState } from "./chatPaneContext";
 import { useWideText } from "./TextWidthToggle";
 import { useWindowMessagesFor } from "./windowMessages";
-import { useChatDetail } from "./useChatDetail";
+import { useChatContent } from "@/features/chat/store/useChatStore";
 import { useChatView, type ChatViewInput } from "./useChatView";
 import { ChatProviderContext, noteForegroundProvider, useProviderStatus } from "@/features/chat/provider/chatProvider";
 
@@ -35,9 +35,9 @@ interface ChatPaneProps {
   slot?: string;
 }
 
-/** エージェントとのチャット（パネルのタブに出す）。中身を読み込み、読めたら ChatView を描く（チャットごとに作り直す） */
+/** エージェントとのチャット（パネルのタブに出す）。中身をチャットの店から読み（読み込みと SSE は店で 1 回）、読めたら ChatView を描く（チャットごとに作り直す） */
 export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNew, slot }: ChatPaneProps) {
-  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
+  const { chat, project, events, approvals, live, error } = useChatContent(chatId, visible);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
   const notifyChat = useRef(onChatChange);
@@ -56,7 +56,6 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
       events={events}
       approvals={approvals}
       live={live}
-      streaming={streaming}
       focus={focus}
       visible={visible}
       onOpenNew={onOpenNew}
@@ -71,7 +70,7 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
  * パネルの中では、右にサブエージェントの画面を並べる右の欄（AgentSplit）を置く（同じ context の中なので、記録・操作をそのまま使う）
  */
 export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible: boolean; slot?: string }) {
-  const { chat, project, events, approvals, streaming, focus } = input;
+  const { chat, project, events, approvals, focus } = input;
   const view = useChatView(input, usePanelHost() !== null);
   const { pane } = view;
   useChatPaneSlot(slot, pane);
@@ -120,7 +119,6 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
                 busy={view.busy}
                 agents={view.subagents}
                 live={view.live}
-                streaming={streaming}
                 approvals={approvals}
                 focus={focus}
                 scroll={view.scroll}
