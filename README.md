@@ -51,6 +51,8 @@ npm run knip       # 使っていない export・ファイル・依存を調べ�
 node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）の画面の DOM と計算後のスタイルを記録する。diff <前> <後> で比べ、css <名前> で CSS の規則の順を記録する
 ```
 
+コミットと push のたびに git のフック（`.githooks/`。`npm install` が `git config core.hooksPath .githooks` を設定する）が確かめを流し、落ちたら止める。コミット時はコミットするファイルについて型・knip・テストの書き方の見張り（`scripts/check-test-rules.mjs`）・関係するテスト（`npm run test:changed:isolated`）、push 時は `npm test` とビルド（一時フォルダに出す）。コミットしない変更が混ざっていると、コミット時のフックは確かめずに止まる（コミットする中身だけにしてから）。
+
 インストールしたアプリ（本番）と開発（`npm run dev` / `npm run daemon`）は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/core/system/appEnv.ts`）。
 
 | | 本番（`/Applications/Kickoff.app`） | 開発 |
