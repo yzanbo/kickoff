@@ -58,6 +58,8 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   const archived = useMemo(() => new Set(archivedKeys), [archivedKeys]);
   // 色はカード・動きと同じ（隠したものも含めた一覧全体の、起動した順）
   const hues = useMemo(() => agentHues(entries), [entries]);
+  // 回答待ちの依頼を出しているサブエージェント（hook なので早期 return より前に呼ぶ）
+  const waiting = useSubagentsView()?.waiting;
 
   if (entries.length === 0) return null;
   // 新しいものを上に（入れ子は親のすぐ下に、起動した順で）
@@ -65,7 +67,6 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   const rows = flattenTree(subagentTree(entries.filter((s) => !archived.has(s.key))));
   const hidden = entries.filter((s) => archived.has(s.key)).reverse();
   // 状態（チャットと同じ 5 つと細かい様子。印・数はすべてこれから決める）
-  const waiting = useSubagentsView()?.waiting;
   const states = visible.map((s) => subagentState(s, waiting?.has(s.key)));
   const count = (match: (st: SubagentState) => boolean) => states.filter(match).length;
   const running = count((st) => st.state === "running");
