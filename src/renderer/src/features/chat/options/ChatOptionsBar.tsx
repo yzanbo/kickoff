@@ -1,7 +1,7 @@
 import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
-import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type PermissionMode, type ChatOptions } from "@shared/types";
+import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type PermissionMode, type ChatOptions, type ProviderId } from "@shared/types";
 import { api } from "@/api";
 import { useProjects } from "@/stores/projects";
 import { useModels } from "@/stores/providers";
@@ -10,16 +10,18 @@ import { effortsFor, groupModels, modelDisplayName, permissionChoices, withDefau
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { OptionMenu } from "@/ui/OptionMenu";
 import { IconButton } from "@/ui/IconButton";
+import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
 
 /**
  * チャット欄で選ぶモデル・推論の深さ・権限モード・ファストモード。
  * 新しいチャットはプロジェクトの既定（なければ設定画面の既定）から始まり、ここでの変更はそのチャットだけに効く。
  * 新しいチャットでプロジェクトを替えたら（全プロジェクトのボード）、そのプロジェクトの既定に当て直す。
  * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始め、既定は当てない（別のプロジェクトへ移しても、チャットの選択のまま）。
+ * provider はそのチャットの AI（モデルの一覧をその AI から読む）。
  */
-export function useChatOptions(initial: ChatOptions | undefined, projectId?: number, worktree?: string) {
-  // モデルの一覧（アプリ全体で 1 回だけ取る）
-  const models = useModels("claude");
+export function useChatOptions(initial: ChatOptions | undefined, projectId?: number, worktree?: string, provider: ProviderId = "claude") {
+  // モデルの一覧（AI ごとにアプリ全体で 1 回だけ取る）
+  const models = useModels(provider);
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
   const [permission, setPermission] = useState<PermissionMode>(initial?.permission_mode ?? "default");
@@ -133,6 +135,8 @@ export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; d
   const { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode, effortDefault } = state;
   const efforts = effortsFor(current);
   const fastSupported = !current || current.supports_fast_mode;
+  // そのチャットの AI でモデルを選べなければ、押せない形にして理由を出す（メモの仕様書「0021」の Q4）
+  const modelBlock = useFeatureBlock("models");
 
   return (
     <div className="chat-options">
@@ -141,8 +145,8 @@ export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; d
         display={modelDisplayName(models, model)}
         icon={<ClaudeMark />}
         ariaLabel="モデル"
-        title={current?.description ?? "モデル"}
-        disabled={disabled}
+        title={modelBlock ?? current?.description ?? "モデル"}
+        disabled={disabled || modelBlock !== null}
         className="model-menu"
         groups={groupModels(models).map((g) => ({
           label: g.family,

@@ -102,6 +102,8 @@ export interface NewChatBody extends MessageBody {
   new_worktree_branch?: string;
   /** 結び付ける GitHub の issue・PR（issue から始めた・レビューコメントで直すチャット） */
   github?: GitHubLink;
+  /** 動かす AI（省けばプロジェクトの AI。作ったあとは変えない） */
+  provider?: ProviderId;
 }
 
 /** チャットと GitHub の issue・PR の結び付き（PUT /api/chats/:id/github の本文にも使う） */
@@ -266,6 +268,8 @@ export interface ChildChatBody {
   options?: ChatOptionsPatch;
   /** 添付（チャット欄から子チャットに送るとき。文が空でも添付があれば送れる） */
   attachments?: Attachment[];
+  /** 動かす AI（省けば親と同じ。違う AI なら会話は引き継がない） */
+  provider?: ProviderId;
 }
 
 /** サブエージェントに子チャットで聞く（POST /api/chats/:id/subagents/:agentId/children。サブエージェントの会話の記録を添付にして始める） */

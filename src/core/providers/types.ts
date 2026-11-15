@@ -15,16 +15,21 @@ import type { DockerGuard } from "../chat/guard/dockerGuard.js";
 import type { WriteScopeParams } from "../chat/guard/writeScope.js";
 import type { BashSandbox } from "../chat/sandbox/bashSandbox.js";
 import type { DbAiTools } from "../databases/aiTools.js";
+import type { ToolEndpoint } from "../mcp/host.js";
+import type { ProviderAuth } from "./keys.js";
 import type { ChatPolicy } from "../chat/policy.js";
 import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, RememberScope, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
 
 /**
  * エージェント実行基盤の抽象化。
- * Claude Code（Agent SDK）を最初の実装とし、Codex / Gemini などは同じインターフェースで追加する。
- * 認証は各 CLI のログイン（claude / codex login など）をそのまま使い、アプリは資格情報を保持しない。
+ * Claude Code（Agent SDK）を最初の実装とし、Codex / Copilot / Cursor などは同じインターフェースで追加する（メモの仕様書「0021_Codex・Copilot・Cursor 対応」）。
+ * AI の操作ツールはコアの MCP サーバー（ProviderTurnParams.tools）で渡し、プロバイダーごとに作らない。
  */
-/** 1 回だけ聞くときのモデル（ask） */
-export type AskModel = "haiku" | "sonnet";
+/**
+ * 1 回だけ聞くときのモデルの段（ask。プロバイダーに依らない。メモの仕様書「0021」の Q5）: light = 軽い問い合わせ（名前・ブランチ名の案）/ standard = 文を書き直すなど質が要るもの。
+ * どのモデルに当てるかはプロバイダーが決める（Claude は light = haiku・standard = sonnet）
+ */
+export type AskModel = "light" | "standard";
 
 export interface AgentProvider {
   readonly id: ProviderId;
@@ -45,7 +50,7 @@ export interface AgentProvider {
   summarize?(text: string): Promise<string>;
   /**
    * ツールを使わずに 1 回だけ聞いて、答えの文を返す（メモの AI の整理。チャットの記録には残さない）。
-   * model: 軽い問い合わせは haiku（既定）、文を書き直すなど質が要るものは sonnet
+   * model: 軽い問い合わせは light（既定）、文を書き直すなど質が要るものは standard
    */
   ask?(prompt: string, options?: { model?: AskModel }): Promise<string>;
   /**
@@ -121,6 +126,13 @@ export interface ProviderTurnParams {
   untrackedOnly?: boolean;
   /** 子プロセスに足す環境変数（プロジェクトで選んだ GitHub のアカウントのトークン GH_TOKEN。省略なら足さない） */
   env?: Record<string, string>;
+  /**
+   * この実行の AI の操作ツールの口（コアの MCP サーバー。mcp/host.ts）。turn.ts が下のツールの中身（browser・database・createChat など）から作って登録し、
+   * プロバイダーはそれぞれの CLI の書き方で MCP サーバーとして渡すだけ（中身を自分で作らない）。省略・空なら渡さない
+   */
+  tools?: ToolEndpoint[];
+  /** ログインの仕方（メモの仕様書「0021」の Q13。api_key ならそのキー。省略ならサブスク = 各 CLI のログイン。キーを AI の Bash から読めない渡し方にするのはプロバイダー） */
+  auth?: ProviderAuth;
   /** Kickoff の埋め込みブラウザを AI に操作させる口と、このチャット（デスクトップアプリのときだけ。なければブラウザのツールを出さない） */
   browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
   /** プロジェクトの DB を AI に読ませる口（AI に見せる接続があるときだけ。なければ DB のツールを出さない） */

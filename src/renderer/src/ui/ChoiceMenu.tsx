@@ -14,6 +14,7 @@ export function ChoiceMenu<T extends string>({
   labels,
   icons,
   value,
+  disabled,
   ignore,
   onPick,
   onClose,
@@ -28,6 +29,8 @@ export function ChoiceMenu<T extends string>({
   /** 選択肢の前に出すアイコン */
   icons?: Partial<Record<T, LucideIcon>>;
   value: T;
+  /** 選べない選択肢と、その理由（押せない形にして、乗せると理由） */
+  disabled?: Partial<Record<T, string>>;
   /** 外側クリックで閉じない要素（開いたボタンなど） */
   ignore?: string;
   onPick: (value: T) => void;
@@ -41,7 +44,7 @@ export function ChoiceMenu<T extends string>({
       {values.map((v) => {
         const Icon: LucideIcon | undefined = icons?.[v];
         return (
-          <MenuItem key={v} role="menuitemradio" checked={v === value} onSelect={() => onPick(v)}>
+          <MenuItem key={v} role="menuitemradio" checked={v === value} disabled={disabled?.[v] !== undefined} title={disabled?.[v]} onSelect={() => onPick(v)}>
             {Icon && <Icon size={14} aria-hidden />}
             <span className="project-switch-item">{labels[v]}</span>
             {v === value && <Check size={14} aria-hidden />}

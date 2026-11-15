@@ -32,6 +32,8 @@ export interface ChildChatInput {
   placement?: { relation: AiChatRelation; parentChatId: number | null; groupId: number | null; worktreePath: string | null };
   /** AI が作った世代（AI の create_chat が作るときだけ。省けば 0） */
   aiGeneration?: number;
+  /** 動かす AI（省けば会話を写す元のチャットの AI。メモの仕様書「0021」の Q8。違う AI なら会話は引き継げない） */
+  provider?: ProviderId;
 }
 
 /** 選んだ文を Markdown の引用にする */
@@ -68,6 +70,9 @@ export async function startChildChat(
   const parentName = parent.title || "（名前なし）";
   // 子でないところ（兄弟・親のないチャット）に作るときは、親ではなく「作ったチャット」として書く（どこから来たか分かるように）
   const asChild = !input.placement || input.placement.relation === "child";
+  // 動かす AI（既定は親と同じ）。違う AI には会話を写せない（会話の記録は AI ごと）ので、引き継がずに依頼の文で始める
+  const providerId = input.provider ?? parent.provider;
+  const otherAi = providerId !== parent.provider;
   // 親の会話を写す手順（写すのは親の記録の大きさに比例して時間がかかる。会話が長いと数十秒）
   let fork: (() => Promise<string>) | undefined;
   let notice = asChild
@@ -75,7 +80,11 @@ export async function startChildChat(
       ? `親のチャット「${parentName}」の会話を引き継いで始めました`
       : `親のチャット「${parentName}」から、会話を引き継がずに始めました`
     : `チャット「${parentName}」から作りました（${input.inherit ? "会話を引き継いでいます" : "会話は引き継いでいません"}）`;
-  if (input.inherit && project) {
+  if (input.inherit && otherAi) {
+    notice = asChild
+      ? `親のチャット「${parentName}」とは AI が違うので、会話を引き継がずに始めました`
+      : `チャット「${parentName}」から作りました（AI が違うので、会話は引き継がず依頼の文だけで始めました）`;
+  } else if (input.inherit && project) {
     // 親の最後まで終わった作業の終わり（そのあとでコンテキストを消去していれば、引き継げる会話はない）
     const point = resumePointBefore(store.events.list(parent.id));
     const provider = providers[parent.provider];
@@ -104,6 +113,7 @@ export async function startChildChat(
     ...(input.title ? { title: input.title } : {}),
     titleText: titleSourceOf(input.text),
     options: input.options,
+    provider: providerId,
     attachments: input.attachments,
     worktreePath: (input.placement ? input.placement.worktreePath : parent.worktree_path) ?? undefined,
     parentChatId: (input.placement ? input.placement.parentChatId : parent.id) ?? undefined,

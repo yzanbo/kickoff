@@ -155,7 +155,7 @@ test("チャットの文を既存のメモと AI でまとめる: メモ全体�
   assert.equal(await memo("設計.md"), "# 設計\n\n- 認証は Cookie\n- セッションは 30 日\n");
   // AI にはいまのメモと足す文（要約しないそのままの文）を、sonnet で聞く
   const asked = provider.asked.at(-1);
-  assert.equal(asked?.model, "sonnet");
+  assert.equal(asked?.model, "standard");
   assert.match(asked?.prompt ?? "", /<いまのメモ>\n# 設計\n\n認証は Cookie\n<\/いまのメモ>/);
   assert.match(asked?.prompt ?? "", /<足す文 出どころ="チャット「ログイン画面」から（.+）">\nセッションは 30 日\n<\/足す文>$/);
   assert.deepEqual(provider.summarized, []);

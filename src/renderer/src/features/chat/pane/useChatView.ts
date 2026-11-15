@@ -73,6 +73,7 @@ export function useChatView(
     { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode },
     chat.project_id,
     chat.worktree_path ?? undefined,
+    chat.provider,
   );
   const busy = chat.status === "running";
   // 停止を押して、止まるのを待っている（押してからコアの知らせが届くまでの間も含める。止まったら戻す）

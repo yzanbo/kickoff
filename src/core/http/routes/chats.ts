@@ -69,6 +69,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
       groupId: input.group_id,
       worktreePath,
       github: input.github,
+      provider: input.provider,
     });
     rememberSentView(c, userViews, created.id, input.user_view);
     return c.json(created, 201);

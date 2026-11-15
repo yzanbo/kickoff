@@ -6,12 +6,31 @@ import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ModelOption, type ProviderId, type SlashCommandOption } from "@shared/types";
 import { ttlCache } from "../../system/ttlCache.js";
 import { lookups } from "../lookups.js";
+import { providerFeatures } from "../../providers/features.js";
+import { jsonBody } from "../input.js";
 
 /** 外部 CLI（Claude などのプロバイダー・gh）の状態、チャット欄のモデルの一覧・/ のコマンド・既定の推論の深さ */
-export function providerRoutes(app: Hono, { store, providers }: ServerDeps) {
+export function providerRoutes(app: Hono, { store, providers, providerKeys }: ServerDeps) {
   const { withWorkdir } = lookups(store);
 
-  app.get("/api/providers", async (c) => c.json(await Promise.all(PROVIDER_IDS.map((id) => providers[id].status()))));
+  // 状態に、その AI でできること（features）を添える（画面がないものを押せない形にする）
+  // ログインの仕方と、API キーを置いたか（キーそのものは出さない）も添える
+  app.get("/api/providers", async (c) => {
+    const auth = store.settings.get().provider_auth;
+    return c.json(
+      await Promise.all(
+        PROVIDER_IDS.map(async (id) => ({ ...(await providers[id].status()), features: providerFeatures(providers[id]), auth_mode: auth[id] ?? "subscription", has_api_key: providerKeys.has(id) })),
+      ),
+    );
+  });
+
+  // AI の API キーを置く・消す（キーチェーンの鍵で暗号化して secrets に。応答は 204。キーは返さない）
+  app.put("/api/providers/:id/api-key", async (c) => {
+    const id = z.enum(PROVIDER_IDS).parse(c.req.param("id"));
+    const { key } = z.object({ key: z.string().max(4000).nullable() }).parse(await jsonBody(c));
+    await providerKeys.set(id, key);
+    return c.body(null, 204);
+  });
   app.get("/api/github", async (c) => c.json(await githubStatus()));
 
   // チャット欄のモデル一覧（取得に 1 秒ほどかかるので 1 時間はとっておく。空の結果は覚えない）

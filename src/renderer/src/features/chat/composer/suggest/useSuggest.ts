@@ -6,6 +6,7 @@ import { isComposing } from "@/lib/keys";
 import { createKeyedStore } from "@/stores/keyedStore";
 import { useKeyedStore } from "@/stores/useStore";
 import { findTrigger, matchCommands, matchFiles } from "./suggestMatch";
+import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
 
 export type SuggestItem =
   | { kind: "slash"; key: string; command: SlashCommandOption }
@@ -54,7 +55,9 @@ export function useSuggest({
   const targetKey = target === undefined ? "" : keyOf(target);
 
   // 候補を出すときに、はじめて一覧を取ってくる（出している間は読み込みを頼む。取れなければ候補なし）
-  const commandsState = useKeyedStore(commandsStore, targetKey && trigger?.kind === "slash" ? targetKey : undefined, { active: open });
+  // そのチャットの AI に / のコマンドがなければ取りに行かない（一覧はプロジェクトの AI のものなので、違う AI のチャットで出さない。メモの仕様書「0021」の Q4）
+  const commandsBlocked = useFeatureBlock("commands") !== null;
+  const commandsState = useKeyedStore(commandsStore, targetKey && trigger?.kind === "slash" && !commandsBlocked ? targetKey : undefined, { active: open });
   const filesState = useKeyedStore(filesStore, targetKey && trigger?.kind === "file" ? targetKey : undefined, { active: open });
   const commands = commandsState.data;
   const files = filesState.data;

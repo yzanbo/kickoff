@@ -12,7 +12,7 @@ import {
 } from "@shared/chat/aiCreateChat";
 import { childDepthLabel } from "@shared/chat/childDepth";
 import { errorMessage } from "@shared/errors";
-import type { Chat, Project } from "@shared/types";
+import type { Chat, Project, ProviderId } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { gitOutput } from "../git/exec.js";
 import { addWorktree, isGitWorkTree, newWorktreeProblem } from "../git/index.js";
@@ -38,6 +38,8 @@ export interface AiCreateChatRequest {
   worktree_branch: string | null;
   /** 作業場所の説明（「このチャットと同じ作業場所（本体）」「新しいワークツリー feat/a」など） */
   workplace: string;
+  /** 動かす AI（このチャットと違う AI を頼まれたときだけ。同じなら null） */
+  provider: ProviderId | null;
 }
 
 /** 利用者の答え（allow_always は「次から聞かない」= 設定を「聞かずに作る」にする） */
@@ -51,6 +53,8 @@ export interface AiCreateChatInput {
   group_id?: number;
   worktree_branch?: string;
   inherit?: boolean;
+  /** 動かす AI（利用者が頼んだときだけ。省けばこのチャットと同じ AI。違う AI には会話を引き継げない） */
+  provider?: ProviderId;
 }
 
 /** チャットを作るツールの中身（作れたら AI に返す文。作れなければ理由の文で throw） */
@@ -163,9 +167,11 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
       }
       const branch = input.worktree_branch?.trim() || null;
       if (branch) await assertNewWorktree(project, branch);
-      const inherit = input.inherit ?? relation === "child";
+      // 違う AI には会話を写せない（会話の記録は AI ごと）ので、引き継がない
+      const otherAi = input.provider !== undefined && input.provider !== self.provider ? input.provider : null;
+      const inherit = (input.inherit ?? relation === "child") && !otherAi;
       const workplace = branch ? `新しいワークツリー（ブランチ ${branch}。このチャットの作業場所のいまのコミットから作る）` : relation === "root" ? "プロジェクトの本体" : `このチャットと同じ作業場所（${self.worktree_path ? `ワークツリー ${self.branch ?? self.worktree_path}` : "本体"}）`;
-      const request: AiCreateChatRequest = { relation, text, title: input.title?.trim() || null, inherit, group: group?.name ?? null, worktree_branch: branch, workplace };
+      const request: AiCreateChatRequest = { relation, text, title: input.title?.trim() || null, inherit, group: group?.name ?? null, worktree_branch: branch, workplace, provider: otherAi };
       if (mode === "ask") {
         const decision = await approve(request);
         if (decision.action === "deny") throw new Error(decision.message ? `利用者が断りました: ${decision.message}` : "利用者が断りました");
@@ -192,6 +198,7 @@ export function createAiCreateChatTools(deps: AiCreateChatDeps, chatId: number):
         ...(request.title ? { title: request.title } : {}),
         placement: { relation, parentChatId, groupId: group?.id ?? null, worktreePath },
         aiGeneration: generation,
+        ...(otherAi ? { provider: otherAi } : {}),
       });
       createdThisTurn++;
       return resultText(chat, relation, inherit ? (inherited ? "inherited" : "failed") : "fresh", made && branch ? { ...made, branch } : null);

@@ -1,7 +1,7 @@
 import type { AgentProvider } from "../providers/types.js";
 import type { Runner } from "./runner.js";
 import type { Store } from "../db/store.js";
-import type { FileRewindResult, ProviderId, Chat, ChatOptionsPatch } from "@shared/types";
+import { providerFeatureMissing, type FileRewindResult, type ProviderId, type Chat, type ChatOptionsPatch } from "@shared/types";
 import { asInvalid, Invalid } from "../http/errors.js";
 import { resumePointBefore, sessionAt } from "./sessionPoints.js";
 
@@ -34,7 +34,7 @@ export async function rewindChat(
   let sessionId: string | null = null;
   if (point) {
     const provider = providers[chat.provider];
-    if (!provider.fork) throw new Invalid(`${provider.label} は巻き戻しに対応していません`);
+    if (!provider.fork) throw new Invalid(providerFeatureMissing(provider.label, "fork"));
     sessionId = await provider.fork(point.session_id!, point.message_id!, input.cwd).catch(asInvalid);
   }
   // 分岐している間に送られていたら、記録を消さずにやめる
@@ -78,7 +78,7 @@ export async function rewindFiles(
   const target = events[index];
   if (target?.type !== "user") throw new Invalid("自分の発言のところからだけ戻せます");
   const provider = providers[chat.provider];
-  if (!provider.rewindFiles) throw new Invalid(`${provider.label} はファイルを戻すのに対応していません`);
+  if (!provider.rewindFiles) throw new Invalid(providerFeatureMissing(provider.label, "rewind_files"));
   // ファイルの記録は、その発言を送ったセッションにある（あとでコンテキストを消去していれば、消去の前のセッション）
   const sessionId = sessionAt(events, index, chat.session_id);
   if (!sessionId) throw new Invalid("この発言のときのファイルの記録がないため、ファイルは戻せません");

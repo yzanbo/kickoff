@@ -1,4 +1,4 @@
-import { Check, Sparkles, SquareTerminal } from "lucide-react";
+import { Bot, Check, MousePointer2, Sparkles, SquareTerminal } from "lucide-react";
 import { type ReactNode } from "react";
 import { PROVIDER_IDS, type AppSettings, type Project, type ProviderId, type ProviderStatus } from "@shared/types";
 import { api } from "@/api";
@@ -15,7 +15,9 @@ import { PLANNED_BADGE, usePlannedProviders } from "@/features/settings/plannedP
 const PROVIDER_META: Record<ProviderId, { icon: ReactNode; cli: string }> = {
   claude: { icon: <ClaudeMark size={20} />, cli: "claude" },
   codex: { icon: <SquareTerminal size={20} />, cli: "codex" },
-  gemini: { icon: <Sparkles size={20} />, cli: "gemini" },
+  copilot: { icon: <Bot size={20} />, cli: "copilot" },
+  cursor: { icon: <MousePointer2 size={20} />, cli: "agent" },
+  gemini: { icon: <Sparkles size={20} />, cli: "agy" },
 };
 
 /** AI: どの AI を使うか（カード）と、その AI の既定 */
@@ -28,7 +30,7 @@ export function AiSection({ project, app }: { project: Project; app: AppSettings
   return (
     <section className="section">
       <h2>AI</h2>
-      <p className="muted small">このプロジェクトのチャットで使う AI です。どれも Mac にインストールした CLI のログインをそのまま使います（API キーは不要）。</p>
+      <p className="muted small">このプロジェクトのチャットで初めに使う AI です（新しいチャットごとに選び直せます）。どれも Mac にインストールした CLI のログインをそのまま使います（API キーで動かすときは設定の「接続」）。</p>
       <div className="provider-cards" role="radiogroup" aria-label="使う AI">
         {PROVIDER_IDS.map((id) => (
           <ProviderCard

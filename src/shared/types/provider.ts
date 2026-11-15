@@ -1,5 +1,5 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { ProviderId } from "./settings";
+import type { ProviderAuthMode, ProviderId } from "./settings";
 
 // 外部 CLI（Claude Code など）の状態・コマンド・使用枠
 export interface ProviderStatus {
@@ -11,7 +11,31 @@ export interface ProviderStatus {
   account?: string;
   plan?: string;
   detail: string;
+  /** その AI でできること（ないものは画面で押せない形にして理由を添える。メモの仕様書「0021」の Q4。コアの /api/providers が付ける） */
+  features?: ProviderFeature[];
+  /** ログインの仕方（設定の provider_auth。Q13。コアの /api/providers が付ける） */
+  auth_mode?: ProviderAuthMode;
+  /** API キーを置いたか（キーそのものは出さない） */
+  has_api_key?: boolean;
 }
+
+/** AI によってできたりできなかったりすること（プロバイダーが対応するものだけを持つ） */
+export const PROVIDER_FEATURES = ["fork", "rewind_files", "subagent_log", "usage", "commands", "models", "summarize"] as const;
+export type ProviderFeature = (typeof PROVIDER_FEATURES)[number];
+
+/** できることの名前（押せない理由の文に使う） */
+export const PROVIDER_FEATURE_LABELS: Record<ProviderFeature, string> = {
+  fork: "分岐・巻き戻し",
+  rewind_files: "ファイルを戻す",
+  subagent_log: "サブエージェントの会話の記録",
+  usage: "使用枠の表示",
+  commands: "/ のコマンド",
+  models: "モデルの選択",
+  summarize: "AI で要約",
+};
+
+/** できないことの理由の文（「Codex のチャットでは分岐・巻き戻しは使えません」） */
+export const providerFeatureMissing = (label: string, feature: ProviderFeature) => `${label} のチャットでは${PROVIDER_FEATURE_LABELS[feature]}は使えません`;
 
 /** チャット欄の / で出すコマンド（Claude Code のスラッシュコマンド・スキル） */
 export interface SlashCommandOption {

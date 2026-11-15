@@ -21,10 +21,8 @@ import { autoCompactEnv } from "@shared/chat/autoCompact";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./labels.js";
 import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";
-import { BROWSER_SERVER, browserMcpServer, browserReadOnlyTools } from "./browserTools.js";
-import { DB_SERVER, dbMcpServer, dbToolNames } from "./dbTools.js";
-import { CHAT_SERVER, chatMcpServer, chatToolNames } from "./chatTools.js";
-import { agentEnv, resolveClaudeExecutable } from "./env.js";
+import { mcpServersOf, toolAllowList } from "./mcpServers.js";
+import { agentEnv, claudeAuthEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
 import { turnContextHook, turnHooks, toAllowedTools } from "./policy.js";
@@ -33,13 +31,14 @@ import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../types.js";
 import { runCommand } from "../../system/exec.js";
 import { claudeSandbox } from "./sandbox.js";
+import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
 
 /** Kickoff のチャットでは使わせない Claude Code のツール（Kickoff の利用者に届かない・Kickoff の操作ツールと取り違えるもの） */
 const KICKOFF_DISALLOWED_TOOLS = ["PushNotification"];
 
-/** 要約に渡す文の上限（文字。haiku のコンテキストと時間に収める） */
-const MAX_SUMMARIZE_CHARS = 60_000;
+/** 1 回だけ聞くときの段ごとのモデル（AskModel。軽い = haiku・ふつう = sonnet） */
+const ASK_MODELS: Record<AskModel, string> = { light: "haiku", standard: "sonnet" };
 
 export class ClaudeProvider implements AgentProvider {
   readonly id = "claude" as const;
@@ -151,15 +150,9 @@ export class ClaudeProvider implements AgentProvider {
     if (signal.aborted) onAbort();
 
     const canUseTool = createCanUseTool(cb);
-    // Kickoff の埋め込みブラウザを操作するツール（デスクトップアプリのときだけ）・プロジェクトの DB を読むツール（AI に見せる接続があるときだけ）・
-    // チャットのツール（子チャットを作るのは設定で止めていない・深さの上限に達していないときだけ。家系のチャットの名前・固定・グループを変えるのはいつも）
-    const chatTools = { createChat: params.createChat ?? null, chatEdit: params.chatEdit ?? null, open: params.open ?? null, read: params.chatRead ?? null, project: params.chatProject ?? null, terminal: params.chatTerminal ?? null, visual: params.chatVisual ?? null, worktree: params.chatWorktree ?? null, notify: params.chatNotify ?? null, userView: params.chatUserView ?? null, remove: params.chatRemove ?? null };
-    const chatServer = chatMcpServer(chatTools, cb, abortController.signal);
-    const mcpServers = {
-      ...(params.browser ? { [BROWSER_SERVER]: browserMcpServer(params.browser.control, params.browser) } : {}),
-      ...(params.database ? { [DB_SERVER]: dbMcpServer(params.database, cb, abortController.signal) } : {}),
-      ...(chatServer ? { [CHAT_SERVER]: chatServer } : {}),
-    };
+    // AI の操作ツール（埋め込みブラウザ・DB・チャット）は、コアの MCP サーバーの口を HTTP でつなぐ（中身と承認はコアが持つ）
+    const tools = params.tools ?? [];
+    const mcpServers = mcpServersOf(tools);
 
     let sessionId = params.resumeSessionId;
     let final: SDKResultMessage | undefined;
@@ -208,14 +201,9 @@ export class ClaudeProvider implements AgentProvider {
           // ユーザーの ~/.claude（CLAUDE.md・スキル等）とリポジトリの設定を Claude Code と同様に読み込む
           settingSources: ["user", "project", "local"],
           permissionMode: params.permissionMode,
-          // 埋め込みブラウザのツールのうち、見るだけのものは聞かずに使わせる（開く・押す・打つ・JS は権限モードと承認に従う）
-          // DB のツール・チャットのツールはすべて（承認と断りはツールの中で行う）
-          allowedTools: [
-            ...toAllowedTools(params.policy),
-            ...(params.browser ? browserReadOnlyTools() : []),
-            ...(params.database ? dbToolNames() : []),
-            ...chatToolNames(chatTools),
-          ],
+          // AI の操作ツールのうち、聞かずに使わせるもの（埋め込みブラウザの見るだけのもの・DB とチャットのツールのすべて = 承認と断りはツールの中で行う）。
+          // 埋め込みブラウザの開く・押す・打つ・JS は権限モードと承認に従う
+          allowedTools: [...toAllowedTools(params.policy), ...toolAllowList(tools)],
           // Claude Code の PushNotification は Claude のアプリ・端末に送るもので Kickoff の利用者に届かないので外す（知らせるのは kickoff_chat の notify_user）
           disallowedTools: KICKOFF_DISALLOWED_TOOLS,
           ...(Object.keys(mcpServers).length > 0 ? { mcpServers } : {}),
@@ -223,7 +211,8 @@ export class ClaudeProvider implements AgentProvider {
           resume: params.resumeSessionId ?? undefined,
           abortController,
           // 自動圧縮を始める使用率を決めていれば渡す（決めていなければ Claude Code の既定）
-          env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct), ...params.env },
+          // API キーで動かす設定なら、キーを渡す（agentEnv はプランで動かすため鍵の環境変数を外すので、そのあとに重ねる）
+          env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct), ...params.env, ...claudeAuthEnv(params.auth) },
           pathToClaudeCodeExecutable: this.executable,
           hooks: {
             ...turnHooks(params, this.self, cb),
@@ -407,18 +396,11 @@ export class ClaudeProvider implements AgentProvider {
 
   /** 最初のメッセージから短いチャット名を作る（軽いモデルで 1 回だけ問い合わせる） */
   async title(text: string): Promise<string> {
-    const result = await this.askOnce(`次の依頼内容に、20 文字以内の日本語のタイトルを付けてください。タイトルだけを出力し、記号や引用符は付けないでください。\n\n---\n${text.slice(0, 2000)}`);
-    return result.trim().replace(/^["'「『]|["'」』]$/g, "").split("\n")[0].slice(0, 40);
+    return cleanTitle(await this.askOnce(titlePrompt(text)));
   }
 
   async summarize(text: string): Promise<string> {
-    const result = await this.askOnce(
-      `次の「---」より後ろの文を、あとで読み返すためのメモとして、日本語の Markdown で要点を短くまとめてください。` +
-        `文に書いてあることだけを使い、書いていないこと（推測・助言・次にやること・ほかで知っている決まり）は足さないでください。` +
-        `大事な決定・理由・手順・名前（ファイル名・コマンドなど）は残してください。短い文なら、ほぼそのままでかまいません。` +
-        `前置きや「以下は要約です」などの文は書かず、まとめた本文だけを出力してください。見出し（#）は使わないでください。\n\n---\n${text.slice(0, MAX_SUMMARIZE_CHARS)}`,
-    );
-    return result.trim();
+    return (await this.askOnce(summarizePrompt(text))).trim();
   }
 
   async ask(prompt: string, options?: { model?: AskModel }): Promise<string> {
@@ -426,17 +408,17 @@ export class ClaudeProvider implements AgentProvider {
   }
 
   /**
-   * ツールを使わずに 1 回だけ聞く（名前を付ける・要約する・メモの整理。チャットの記録には残さない。既定は haiku）。
+   * ツールを使わずに 1 回だけ聞く（名前を付ける・要約する・メモの整理。チャットの記録には残さない。既定は軽い段 = haiku）。
    * 空の一時フォルダで動かす（Kickoff を起動したフォルダで動かすと、そこの CLAUDE.md・自動のメモリーを読み込み、答えに混ざる）。
    * 会話記録は残さない（persistSession: false。続けることはなく、残すとチャットを作るたびに ~/.claude/projects に使わない記録が 1 つずつ増えていた）
    */
-  private async askOnce(prompt: string, model: AskModel = "haiku"): Promise<string> {
+  private async askOnce(prompt: string, tier: AskModel = "light"): Promise<string> {
     const q = query({
       prompt,
       options: {
         persistSession: false,
         cwd: os.tmpdir(),
-        model,
+        model: ASK_MODELS[tier],
         effort: "low",
         maxTurns: 1,
         tools: [],

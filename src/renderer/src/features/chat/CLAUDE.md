@@ -21,7 +21,17 @@
 | `find/` | チャットの中の検索 |
 | `rewind/` | 巻き戻し・ファイルを戻す・失敗した作業の直す操作 |
 | `visuals/` | AI が返答の中に描いた図（流れの図の項目 `VisualItem`・閉じた枠 `VisualFrame`・テーマの変数 `visualTheme.ts`・記録から組み立てた図 `visualsContext.ts`・メモに保存 `saveVisual.ts`） |
+| `provider/` | チャットの AI（純粋な決まり `providerChoice.ts`・画面に配る `chatProvider.ts`・選ぶ札と見せる札 `ProviderChips.tsx`。下の「チャットの AI」） |
 | `children/` | 子チャット（右の欄の「新しい子チャット」のボタン・「子チャットを作成」・「新しい子チャットで聞く」で開く入力欄だけのタブ `NewChildPane`・会話を引き継ぐかの切り替え `InheritChoice`・会話の中と入力欄の上の札 `ChildChatChips`・開き方と親への受け渡し `openChild.ts`・純粋な部分 `childChats.ts`・上の帯（親までの系譜と深さの呼び名）`ChildChatBar`・右の欄の画面 `SideChildChat`・タブの深さの札 `ChildTabBadge`・一覧の行の深さの札 `ChildDepthMark`・タブの子チャットの印 `ChildActivityMark` と押して開く一覧 `TabChildChatsPopover`・親から外す `detachChild.ts` と「親から外す ▸」`DetachSubmenu`） |
+
+## チャットの AI（`provider/`）
+
+チャットごとの AI（メモの仕様書「0021_Codex・Copilot・Cursor 対応」の Q1・Q4・Q6・Q8・Q13。コアは `src/core/providers/CLAUDE.md`）。
+
+- 選ぶ: 送る前の新しいチャット（`NewChatPane`）・新しい子チャット（`NewChildPane`）の見出しの札 `ProviderPicker`（`ui/ChipPicker` に、押せない選択肢と理由 `disabled` を足した。初めはプロジェクトの AI、子チャットは親の AI）。選べないもの（対応予定 = `implemented` でない・API キーでだけ動く AI（Gemini（Antigravity）。`API_KEY_ONLY_PROVIDERS`）でキーを置いていない）は押せない形で理由（`providerPickBlock`）。選んだ AI は送るときの本文の `provider`。送ったあとは変えない。子チャットで親と違う AI を選ぶと、会話を引き継ぐかの切り替えの代わりに「…親のチャットと違う AI なので、会話は引き継がずに新しく始めます」を出し、`inherit: false` で作る。
+- 見せる: チャットの見出しのバッジの後ろに `ProviderChip`（Claude Code をサブスクで使うふだんのチャットには出さない。API キーで動かす AI は「· API キー」と、乗せると使った分の支払いであること。札の形はグループの札 `.chat-group-chip` に AI ごとの色）。
+- できないこと（Q4）: `ChatView`・送る前の 2 つの画面が `ChatProviderContext` にチャットの AI を入れ、中の部品は `useFeatureBlock(機能)` でその AI にない機能の理由（`featureBlock` = コアの `providerFeatureMissing` と同じ文。状態が届いていない・できることを返さないコアなら止めない）を読む: 作業の終わりの「ここから分岐」（押せない・理由）・発言の「書き直して送り直す」（分岐・巻き戻し）・「ファイルをこの発言の前に戻す」（出さない）・サブエージェントの入力欄の「新しい子チャットで聞く」（押せない。サブエージェントの会話の記録）・`/` の候補（取りに行かない。一覧はプロジェクトの AI のものなので）・モデルの選択（押せない。モデルの一覧はその AI から `useModels(provider)`。`useChatOptions` の 4 つ目の引数）。メモの「AI で要約」はプロジェクトの AI が動かすので、チャットの AI では止めない。AI の状態の店は使い始めるたびに取り直すので、読み込みを頼むのは入れる側（`useProviderStatus` の `load`）だけにし、中の部品は頼まずに読む。
+- 前に出しているチャットの AI（Q6 B）: `ChatView` が表に出た・触られたときに `noteForegroundProvider` で覚え、下の帯が `useForegroundProvider` で読む（`features/settings/CLAUDE.md` の「下の帯」）。純粋な決まりのテストは `providerChoice.test.ts`。
 
 ## 状態と未読
 
