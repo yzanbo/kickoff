@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { SDKControlGetUsageResponse } from "@anthropic-ai/claude-agent-sdk";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import { tempDir } from "../../testing/tempDir.js";

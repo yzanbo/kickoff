@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { MemoEntry } from "@shared/types";
 import { ancestorsOf, buildMemoFileTree, buildMemoTree, filterMemos, isUnder, memoTitle, pathTaken, recentMemos, remapPath, renamedPath, untitledPath } from "./memoPaths";
 

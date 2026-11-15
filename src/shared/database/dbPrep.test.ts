@@ -1,6 +1,6 @@
 // つなぐ前の準備のコマンド: {名前} の埋め方（シェルの 1 語に）・使う名前・空の整理・確かめた中身の写し・次に確かめる日
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DbPrep } from "../types/database";
 import { allPrepCommands, expandPrepCommand, hasConnectCommands, isCheckDue, localToday, normalizePrep, prepConfirmKey, prepPlaceholders, shellQuote, usesMyIp } from "./dbPrep";
 

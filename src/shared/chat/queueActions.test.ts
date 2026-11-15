@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { isClearCommand } from "./queueActions";
 
 test("isClearCommand: 前後の空白を除いた /clear だけ（添付があれば・続きの文があれば・ほかのコマンドは違う）", () => {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { test } from "node:test";
+import { test } from "vitest";
 import { MAX_UPLOAD_BYTES, UploadStore, safeFileName, withAttachmentNote } from "./uploads.js";
 import { tempDir } from "../testing/tempDir.js";
 

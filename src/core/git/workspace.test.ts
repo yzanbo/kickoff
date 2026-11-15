@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { createWorkspace, initGitRepo, inspectWorkspace, prepareImportedWorkspace, toFolderName } from "./workspace.js";
 import { gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";

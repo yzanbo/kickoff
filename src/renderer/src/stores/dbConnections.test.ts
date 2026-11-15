@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { reduceConnectedIds } from "./dbConnections";
 
 test("つないでいる接続: 知らせで足す・外す。変わらない・ほかのプロジェクトの知らせでは同じ配列", () => {

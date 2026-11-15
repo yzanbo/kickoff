@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { activeTabOf, FIRST_PANE, focusedPane, homePane, isTabVisible, leavesOf, nextActiveTab, normalize, paneOfTab, singlePane, topRightPane, type PaneLayout, type PaneNode } from "./paneTree";
 import { addTabBehind, closeLayoutTabs, closePane, focusPane, moveTab, placeTab, reconcileLayout, renameTab, returnToHome, splitPane } from "./paneLayout";
 import { equalizeSplit, setSplitSizes } from "./paneSizes";

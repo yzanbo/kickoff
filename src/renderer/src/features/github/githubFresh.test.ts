@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { GitHubItem } from "@shared/types";
 import { makePullDetail } from "@shared/testing/factories";
 import { freshItemNumbers } from "./githubFresh";

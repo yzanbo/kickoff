@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { autoCompactEnv, autoCompactThreshold } from "./autoCompact";
 
 test("autoCompactThreshold: 窓 × 割合。窓の終わりの余白より先には行かない。窓が分からなければ null", () => {

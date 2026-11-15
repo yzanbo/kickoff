@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { VIEWING_TTL_MS } from "@shared/types";
 import { makeChat } from "@shared/testing/factories";
 import { aiNotice, chatNotice, noticeChatName } from "./notices.js";

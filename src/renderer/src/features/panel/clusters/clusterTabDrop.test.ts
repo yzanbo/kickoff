@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makeChat, makeGroup } from "@shared/testing/factories";
 import type { BucketHead } from "@/features/chatList/buckets";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";

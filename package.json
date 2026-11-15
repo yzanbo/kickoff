@@ -9,7 +9,10 @@
     "preview": "electron-vite preview",
     "daemon": "tsx src/core/daemon.ts",
     "typecheck": "tsc --noEmit --noUnusedLocals",
-    "test": "node --import tsx --test --test-concurrency=6 \"src/**/*.test.ts\" \"scripts/**/*.test.mjs\" \"mobile/src/**/*.test.ts\"",
+    "test": "vitest run --no-isolate --sequence.shuffle.files",
+    "test:isolated": "vitest run --isolate",
+    "test:changed": "node scripts/test-changed.mjs",
+    "test:changed:isolated": "node scripts/test-changed.mjs --isolated",
     "dist": "electron-vite build && electron-builder --mac --arm64",
     "install-app": "node scripts/install-app.mjs",
     "icon": "node scripts/build-icon.mjs",
@@ -90,7 +93,8 @@
     "shiki": "^4.5.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
   },
   "private": true,
   "type": "module",

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DbColumnInfo, DbValue } from "@shared/types";
 import { addInserts, buildEdits, displayRows, editableText, editCounts, NO_EDITS, removeInsert, revertCell, rowKey, setCell, setInsertCell, toggleDelete } from "./tableEdits";
 

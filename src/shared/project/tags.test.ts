@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { collectTags, matchesTags, normalizeTags, orderTags, removeTagFrom, renameTagIn, UNTAGGED } from "./tags";
 
 test("normalizeTags: 前後の空白・空・重複を除き、最初に出てきた順のまま", () => {

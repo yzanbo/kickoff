@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { splitArchived } from "./ArchivedFold";
 
 test("splitArchived: アーカイブしていないものと、アーカイブ済みに分ける（それぞれ元の順のまま）", () => {

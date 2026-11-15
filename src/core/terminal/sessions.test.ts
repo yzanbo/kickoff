@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { fakeTerminals } from "../testing/fakeTerminal.js";
 import { tempDir } from "../testing/tempDir.js";
 import { TerminalSessions } from "./sessions.js";

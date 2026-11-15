@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { ChatOptions, ModelOption } from "@shared/types";
 import { groupModels, modelDisplayName, splitModelLabel, withDefaults } from "./models";
 

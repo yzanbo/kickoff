@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { isPinned, parsePin, pinId, pinsOf, togglePin, type DbPin } from "./dbPins";
 
 const users: DbPin = { connection_id: 1, path: { database: "app", schema: "public" }, name: "users", kind: "table" };

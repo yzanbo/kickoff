@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { eventSequence, makeEvent } from "@shared/testing/factories";
 import { AI_CREATE_CHAT_TOOL, createdChatMark } from "@shared/chat/aiCreateChat";
 import { createdChatsByUser, groupEvents, relativize, summarizeTools, type ToolCall } from "./timelineItems";

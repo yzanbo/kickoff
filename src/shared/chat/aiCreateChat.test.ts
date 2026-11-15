@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { AI_CHILD_CHAT_TOOL_LEGACY, AI_CREATE_CHAT_TOOL, createdChatIdOf, createdChatMark, isCreateChatTool, relationOf } from "./aiCreateChat";
 
 test("createdChatIdOf: 結果の印から作ったチャットの ID を読む", () => {

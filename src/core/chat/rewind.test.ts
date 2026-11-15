@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { rewindFailure } from "./rewind.js";
 
 test("ファイルを戻せなかったときの文: 控えがないときは、長いチャットの乗り換えより前の発言かもしれないことを添える", () => {

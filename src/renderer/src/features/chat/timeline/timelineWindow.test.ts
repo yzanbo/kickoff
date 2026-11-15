@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makeEvent } from "@shared/testing/factories";
 import { itemIndexOfEvent, MAX_TAIL, revealRange, TIMELINE_WINDOW, windowStart } from "./timelineWindow";
 import type { TimelineItem } from "./timelineItems";

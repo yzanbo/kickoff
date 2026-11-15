@@ -1,5 +1,5 @@
 // 守りをツールの形によらず当てる（承認の頼みで聞いてくる CLI 向け。メモの仕様書「0021」の Q3）
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { tempDir } from "../../testing/tempDir.js";

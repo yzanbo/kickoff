@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { chatMemoName, datedMemoName, defaultMemosFolderName, memoDatePrefixLength, projectMemoFolder, safeMemoName, uniqueMemoName } from "./names";
 
 test("safeMemoName: ファイル名に使えない文字を置き換え、隠しファイルにしない", () => {

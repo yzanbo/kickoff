@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { formatSize, truncateText } from "./truncate";
 
 const size = (s: string) => new TextEncoder().encode(s).byteLength;

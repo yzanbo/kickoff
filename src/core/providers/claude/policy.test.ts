@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { HookInput } from "@anthropic-ai/claude-agent-sdk";
 import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks } from "./policy.js";
 import type { ApprovalRequest, ProviderTurnParams } from "../types.js";

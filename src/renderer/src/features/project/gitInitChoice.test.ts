@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { FolderInspection } from "@shared/types";
 import { gitInitChoice, gitManagedNote } from "./gitInitChoice";
 

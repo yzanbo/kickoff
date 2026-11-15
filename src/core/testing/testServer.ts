@@ -1,5 +1,5 @@
 // API のテスト（server.*.test.ts）の共通の準備: 偽のプロバイダーでアプリを組み立て、トークン付きで呼ぶ補助を返す。テストからだけ使う
-import { after } from "node:test";
+import { afterTest } from "./afterTest.js";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../providers/types.js";
 import { createApp } from "../http/server.js";
 import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, GitHubRemote, SlashCommandOption, DevicePush } from "@shared/types";
@@ -391,7 +391,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     brewServices: async () => portsFake.brewServices,
     brewStop: async (name) => void portsFake.brewStopped.push(name),
   };
-  after(() => docker.close());
+  afterTest(() => docker.close());
   // ワークツリーの実行環境（compose の設定は dockerFake、使用中の番号は portsFake.lsof）
   const worktreeEnvs = new WorktreeEnvService(store, docker);
   const ports = new PortWatch(
@@ -412,7 +412,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     20,
   );
   ports.start();
-  after(() => ports.close());
+  afterTest(() => ports.close());
   // スマホ連携のペアリング（番号と頼みはメモリだけ。時計は pairingClock.now を進めて期限を試す）
   const pairingClock = { now: Date.now() };
   const pairing = new PairingCenter({ store, publish: (e) => bus.publish(e), now: () => pairingClock.now });
@@ -432,14 +432,14 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
       },
     },
   });
-  after(() => notifications.close());
+  afterTest(() => notifications.close());
   const browserLogin = new BrowserLogin();
   // Tailscale: コマンドの場所（null なら入っていない。テストは答えを書いた小さなスクリプトを置く）
   const tailscaleFake = { cli: null as string | null };
   // 内蔵ターミナル: シェルは偽物（terminalFake.spawned に作ったシェル）
   const terminalFake = fakeTerminals();
   const terminals = new TerminalSessions({ shell: { file: "/bin/sh", args: (c) => (c ? ["-c", c] : []) }, spawn: terminalFake.spawn });
-  after(() => terminals.closeAll());
+  afterTest(() => terminals.closeAll());
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
   // ワークツリーの後始末: GitHub のマージ済みの PR は偽物（prFake.merged のブランチ → PR）。予約の確かめ直しは短く
   const worktreeFinisher = new WorktreeFinisher({
@@ -454,11 +454,14 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
     retryMs: 10,
   });
   runner.useWorktreeFinisher(worktreeFinisher);
-  after(() => worktreeFinisher.close());
+  afterTest(() => worktreeFinisher.close());
   // チャットのアーカイブ・削除（AI の archive_chat・delete_chat）。予約の確かめ直しは短く
   const chatRemover = new ChatRemover({ store, bus, runner, trashBin, retryMs: 10 });
   runner.useChatRemover(chatRemover);
-  after(() => chatRemover.close());
+  afterTest(() => chatRemover.close());
+  // メモのフォルダの見張り（FSEvents）と DB ワーカーの接続も止める（同じプロセスで続けて流すと、ほかのファイルのテストまで残り続ける）
+  afterTest(() => memos.close());
+  afterTest(() => databases.close());
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
   // AI の API キー（暗号化の口を渡されたテストはそれで置く。実行の側には渡さない = いつもサブスク）
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);

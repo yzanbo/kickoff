@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, test } from "node:test";
+import { beforeEach, test } from "vitest";
 import { installMemoryStorage } from "@/lib/memoryStorage";
 import { NEW_CHAT_DRAFTS } from "@/lib/storageKeys";
 import { moveAllProjectsDrafts, readSavedDrafts, writeDrafts, type DraftTab } from "./draftPersistence";

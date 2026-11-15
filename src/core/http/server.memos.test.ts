@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { BusEvent, MemoList } from "@shared/types";
 import { tempDir } from "../testing/tempDir.js";
 import { AUTH, setup } from "../testing/testServer.js";

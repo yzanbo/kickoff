@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makeChat, makeEvent, makeProject } from "@shared/testing/factories";
 import { chatTranscript, transcriptFileName } from "./transcript.js";
 

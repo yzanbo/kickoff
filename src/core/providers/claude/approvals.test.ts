@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { CanUseTool, PermissionUpdate } from "@anthropic-ai/claude-agent-sdk";
 import type { ApprovalDecision } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { Store } from "../db/store.js";
 import { tempDir } from "../testing/tempDir.js";
 import { UNUSED_UPLOAD_KEEP_MS, sweepUnusedUploads } from "./uploadCleanup.js";

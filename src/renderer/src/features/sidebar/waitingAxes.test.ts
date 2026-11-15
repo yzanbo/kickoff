@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { canChooseOrder, WAITING_ORDERS, WAITING_SCOPES, waitingAxes, waitingViewOf } from "./waitingAxes";
 
 test("waitingAxes: 今までの値はそのままの意味（絞る = 要対応だけ × プロジェクト別、1 列 = 要対応だけ × 状態順、上にまとめる = 上 × 状態順）", () => {

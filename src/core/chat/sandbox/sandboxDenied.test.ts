@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { tempDir } from "../../testing/tempDir.js";
 import { bashOutputText, deniedWritePaths, sandboxDeniedNote } from "./sandboxDenied.js";
 import type { BashSandbox } from "./bashSandbox.js";

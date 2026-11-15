@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { BusEvent, PortProcess } from "@shared/types";
 import { makeChat } from "@shared/testing/factories";
 import { setup, until } from "../testing/testServer.js";

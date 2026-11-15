@@ -1,6 +1,6 @@
 // DB のパスワードの暗号化（偽の暗号化の口で）: 保存の形・復号の覚え・拒否されたとき・その場で入れた値・暗号化していない値の置き換え
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { NewDbConnectionBody } from "@shared/types";
 import { DB_PASSWORD_LOCKED } from "@shared/types";
 import { setup } from "../testing/testServer.js";

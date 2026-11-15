@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { matchCase, replaceInLine, searchPattern, splitMatches, splitReplacements } from "./searchMatch";
 
 const q = (query: string, opts: Partial<{ case_sensitive: boolean; whole_word: boolean; regex: boolean }> = {}) =>

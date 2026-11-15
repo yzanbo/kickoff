@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { clipLines, parseBashResult } from "./bashResult";
 
 test("コマンドの結果: 成功は出力だけ、失敗は先頭の「Exit code n」から終了コードを取り出す", () => {
