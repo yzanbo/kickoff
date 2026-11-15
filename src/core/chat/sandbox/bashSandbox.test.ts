@@ -7,7 +7,7 @@ import { gitRepo } from "../../testing/gitRepo.js";
 import { tempDir } from "../../testing/tempDir.js";
 import { bashSandboxFor, electronLaunchScripts, ELECTRON_DIRECT_COMMANDS, HOME_CACHE_DIRS, HOME_STATE_DIRS, scriptRunCommands } from "./bashSandbox.js";
 
-const rules = (dirs: string[] = [], commands: string[] = []) => ({ writableDirs: async () => dirs, unsandboxedCommands: commands });
+const rules = (dirs: string[] = [], commands: string[] = []) => ({ tempDirs: [], writableDirs: async () => dirs, unsandboxedCommands: commands });
 
 test("Electron を起動するスクリプトだけを見分ける（ビルド・パッケージ作りは入れない）", () => {
   const scripts = {
