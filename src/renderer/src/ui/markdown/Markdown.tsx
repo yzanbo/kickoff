@@ -1,4 +1,4 @@
-import { memo, useContext, useMemo, type ReactNode } from "react";
+import { memo, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import ReactMarkdown, { type Components, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { rehypeStreamTail } from "@/lib/streamReveal";
@@ -9,21 +9,36 @@ import { CopyButton } from "@/ui/CopyButton";
 import { convertTexDelimiters, mayContainMath } from "@shared/markdown/mathGuard";
 import { useMathPlugins } from "@/ui/markdown/math/useMathPlugins";
 
-/** リンク。ファイルのパス（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、押して開けるチップにする */
+/** リンク。ファイルのパスらしいもの（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、開けるファイルなら押して開けるチップにする */
 const link: Components["a"] = ({ node, href, children }) => {
   const path = node?.properties.dataFilePath;
-  if (typeof path === "string") return <FileLink path={path} line={Number(node?.properties.dataFileLine) || undefined}>{children}</FileLink>;
-  return (
+  const plain = (
     <a href={href} target="_blank" rel="noreferrer">
       {children}
     </a>
   );
+  if (typeof path !== "string") return plain;
+  const text = node?.properties.dataFileText;
+  return (
+    <FileLink path={path} line={Number(node?.properties.dataFileLine) || undefined} text={typeof text === "string" ? text : undefined} fallback={href ? plain : children}>
+      {children}
+    </FileLink>
+  );
 };
 
-/** 押すとファイルを開くチップ（中はインラインコードかリンクの文字。開き方・右クリックのメニューは渡す側が決める） */
-function FileLink({ path, line, children }: { path: string; line?: number; children: ReactNode }) {
+const noSubscribe = () => () => {};
+
+/**
+ * 押すとファイルを開くチップ（中はインラインコードかリンクの文字。開き方・右クリックのメニューは渡す側が決める）。
+ * 開けるか（一覧にあるか・どのファイルか）は、一覧の店から自分のパスの結果だけを選んで読む（一覧が変わっても、結果の変わったチップだけが描き直る）。
+ * 開けなければ元のまま（fallback。地の文の絶対パスは元の文字 text）
+ */
+function FileLink({ path: candidate, line, text, fallback, children }: { path: string; line?: number; text?: string; fallback: ReactNode; children: ReactNode }) {
   const links = useContext(MarkdownFileLinksContext);
-  if (!links) return <>{children}</>;
+  const path = useSyncExternalStore(links?.subscribe ?? noSubscribe, () => links?.resolve(candidate));
+  if (!links || path === undefined) return <>{text ?? fallback}</>;
+  // 地の文の絶対パスは、引き当てたパスをコードの見た目で出す
+  const label = text !== undefined ? <code>{line ? `${path}:${line}` : path}</code> : children;
   return (
     <button
       type="button"
@@ -36,7 +51,7 @@ function FileLink({ path, line, children }: { path: string; line?: number; child
         links.menu(e, path, line);
       }}
     >
-      {children}
+      {label}
     </button>
   );
 }
