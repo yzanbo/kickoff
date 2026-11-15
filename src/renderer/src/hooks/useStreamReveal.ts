@@ -19,9 +19,16 @@ function show(set: (view: View) => void, view: View) {
  * （入力していなければ、ほかに待つものがないのですぐ描く。メモの仕様書「0023_表示を軽くする」の案 5）。
  * createLimit を渡すと、出す文はその決まりで切る（Markdown の書きかけの記号を補う・手前で止める `createMarkdownRevealLimit`。案 6c）。
  * 裏で伸びる長さはいまの速さのまま進め、薄く出す段は実際に出した長さで数える（止めていた所は、書き終えたときにまとめて出て薄い字から濃くなる）。
- * 決まりは最初に 1 回だけ作って持つ（中に書きかけの文の読み取りを持つため）
+ * 決まりは最初に 1 回だけ作って持つ（中に書きかけの文の読み取りを持つため）。
+ * 伸びていく文は React の state に入れず、read で読む（subscribe で知らせを受けたら読み直し、止まっていれば rAF を予約するだけ。
+ * 描き直しを起こすのは出す文の setView の 1 つだけ。メモの仕様書「0023_表示を軽くする」の M1・案 2）。read・subscribe が替わったら（別の文）読み直す
  */
-export function useStreamReveal(target: string, visible = true, createLimit?: () => RevealLimit): { text: string; bands: number[] } {
+export function useStreamReveal(
+  read: () => string,
+  subscribe: (listener: () => void) => () => void,
+  visible = true,
+  createLimit?: () => RevealLimit,
+): { text: string; bands: number[] } {
   const [view, setView] = useState(IDLE);
   const state = useRef({ source: "", shown: 0, marks: [] as RevealMark[], frame: 0, last: 0, paused: false, limit: null as RevealLimit | null });
 
@@ -32,53 +39,61 @@ export function useStreamReveal(target: string, visible = true, createLimit?: ()
       s.limit ??= createLimit?.() ?? null;
       return s.limit ? s.limit(s.source, shown) : { length: shown, render: s.source.slice(0, shown) };
     };
-    if (!target.startsWith(s.source.slice(0, s.shown))) {
-      s.shown = 0;
-      s.marks = [];
-    }
-    s.source = target;
-    if (!visible) {
-      // 見えていない: 止めて、表に出るまで描き直さない
-      cancelAnimationFrame(s.frame);
-      s.frame = 0;
-      s.last = 0;
-      s.paused = true;
-      return;
-    }
-    if (s.paused) {
-      // 表に出た: 最新の文を一度に出す（ここから先に届いた分は、また少しずつ）
-      s.paused = false;
-      s.shown = target.length;
-      s.marks = [];
-      show(setView, target ? { text: cut(s.shown).render, bands: [] } : IDLE);
-      return;
-    }
-    if (!target || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      cancelAnimationFrame(s.frame);
-      s.frame = 0;
-      s.shown = target.length;
-      show(setView, target ? { text: cut(s.shown).render, bands: [] } : IDLE);
-      return;
-    }
-    const tick = (now: number) => {
-      const dt = s.last ? now - s.last : 16;
-      s.last = now;
-      s.shown = nextRevealLength(s.source, s.shown, dt);
-      const { length, render } = cut(s.shown);
-      s.marks.push({ at: now, length });
-      // 薄く出す時間より古い記録は、境にする 1 つだけ残す
-      while (s.marks.length > 1 && s.marks[1].at <= now - REVEAL_FADE_MS) s.marks.shift();
-      const bands = revealBands(s.marks, now);
-      show(setView, { text: render, bands });
-      // 出し切って、薄い文字もなくなったら止める（次に文が伸びたら、また動かす）
-      if (s.shown < s.source.length || bands.some((n) => n > 0)) s.frame = requestAnimationFrame(tick);
-      else {
+    const sync = () => syncTarget(read());
+    const syncTarget = (target: string) => {
+      if (!target.startsWith(s.source.slice(0, s.shown))) {
+        s.shown = 0;
+        s.marks = [];
+      }
+      s.source = target;
+      if (!visible) {
+        // 見えていない: 止めて、表に出るまで描き直さない
+        cancelAnimationFrame(s.frame);
         s.frame = 0;
         s.last = 0;
+        s.paused = true;
+        return;
       }
+      if (s.paused) {
+        // 表に出た: 最新の文を一度に出す（ここから先に届いた分は、また少しずつ）
+        s.paused = false;
+        s.shown = target.length;
+        s.marks = [];
+        show(setView, target ? { text: cut(s.shown).render, bands: [] } : IDLE);
+        return;
+      }
+      if (!target || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        cancelAnimationFrame(s.frame);
+        s.frame = 0;
+        s.shown = target.length;
+        show(setView, target ? { text: cut(s.shown).render, bands: [] } : IDLE);
+        return;
+      }
+      const tick = (now: number) => {
+        const dt = s.last ? now - s.last : 16;
+        s.last = now;
+        s.shown = nextRevealLength(s.source, s.shown, dt);
+        const { length, render } = cut(s.shown);
+        s.marks.push({ at: now, length });
+        // 薄く出す時間より古い記録は、境にする 1 つだけ残す
+        while (s.marks.length > 1 && s.marks[1].at <= now - REVEAL_FADE_MS) s.marks.shift();
+        const bands = revealBands(s.marks, now);
+        show(setView, { text: render, bands });
+        // 出し切って、薄い文字もなくなったら止める（次に文が伸びたら、また動かす）
+        if (s.shown < s.source.length || bands.some((n) => n > 0)) s.frame = requestAnimationFrame(tick);
+        else {
+          s.frame = 0;
+          s.last = 0;
+        }
+      };
+      if (!s.frame) s.frame = requestAnimationFrame(tick);
     };
-    if (!s.frame) s.frame = requestAnimationFrame(tick);
-  }, [target, visible]);
+    sync();
+    // 見えていない間は購読しない（表に出たら、そのときの文を読み直す）
+    return visible ? subscribe(sync) : undefined;
+    // createLimit は最初に 1 回だけ使う（作った決まりを持ち続ける）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [read, subscribe, visible]);
 
   // 外したら止める（予約の印も戻す。StrictMode などで付け直したとき、予約済みと思い込んで動かなくならないように）
   useEffect(() => {

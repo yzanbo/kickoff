@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ChatView } from "@/features/chat/pane/ChatPane";
-import { useChatDetail } from "@/features/chat/pane/useChatDetail";
+import { useChatContent } from "@/features/chat/store/useChatStore";
 import { PanelHostContext } from "@/features/panel/panelHost";
 import { ChildChatBar } from "./ChildChatBar";
 
@@ -20,7 +20,7 @@ export function SideChildChat({
   /** パネルのタブの置き場所（chatPaneSlot。タブの右クリックから会話 / 動きを切り替える） */
   slot?: string;
 }) {
-  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
+  const { chat, project, events, approvals, live, error } = useChatContent(chatId, visible);
   const title = chat?.title;
   // タブの名前を最新に（名前の自動生成・変更。渡される関数は描くたびに変わるので、名前が変わったときだけ呼ぶ）
   const setTitle = useRef(onTitle);
@@ -35,7 +35,7 @@ export function SideChildChat({
       <ChildChatBar chat={chat} events={events} />
       <div className="side-child-chat-body">
         <PanelHostContext.Provider value={null}>
-          <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} visible={visible} slot={slot} />
+          <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} visible={visible} slot={slot} />
         </PanelHostContext.Provider>
       </div>
     </div>

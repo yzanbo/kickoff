@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useStreamingActive } from "@/features/chat/store/useChatStore";
 import type { PromptList } from "@/features/chat/prompts/promptHistory";
 import { StickyPrompt } from "@/features/chat/prompts/StickyPrompt";
 import { useStickyPrompt } from "@/features/chat/prompts/useStickyPrompt";
@@ -37,7 +38,6 @@ export function ChatTimeline({
   busy,
   agents = [],
   live,
-  streaming,
   approvals,
   focus,
   scroll,
@@ -59,8 +59,6 @@ export function ChatTimeline({
    * 停止中は押してからコアの知らせが届くまでの間も含め、圧縮中は作業中だけ（ChatView が決める）
    */
   live: ChatLive;
-  /** 書いている途中の返答 */
-  streaming: string;
   approvals: Approval[];
   focus?: number;
   /** 流れのスクロールの持ち主（流れの要素と、一番下に付いていくか） */
@@ -77,6 +75,8 @@ export function ChatTimeline({
   hidden?: boolean;
 }) {
   const pane = useChatPane();
+  // 書いている途中の返答があるか（文はチャットの店の口から StreamingReply が読む。書き始め・消したときだけ描き直す）
+  const streaming = useStreamingActive(chat.id);
   const s = useTimelineScroll({ scroll, root: pane.root, window: w, focus });
   // 一番下に付いていく間は、流れの枠か中身の大きさが変わったら一番下へ寄せる（書いている途中の文・新しい項目・確認のカード・作業中の行も、すべて中身の大きさの知らせで）
   const inner = useRef<HTMLDivElement>(null);

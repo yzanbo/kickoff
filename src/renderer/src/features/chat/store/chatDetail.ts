@@ -1,4 +1,4 @@
-// 1 つのチャットの中身（チャット・記録・回答待ち・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。useChatDetail が使う）
+// 1 つのチャットの中身（チャット・記録・回答待ち・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。チャットの店 chatStore.ts が使う）
 import type { Approval, BusEvent, Chat, ChatDetail, ChatEvent, ChatLive } from "@shared/types";
 
 /** 画面が持つチャットの中身（読み込む前は chat が undefined） */
@@ -54,21 +54,21 @@ export function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
   };
 }
 
-/** このチャットの中身を変える知らせか（書いている途中の返答 chat_delta は別に扱うので含めない） */
-export function concernsDetail(event: BusEvent, chatId: number): boolean {
+/** 中身を変える知らせなら、そのチャットの ID（ほかの知らせは null。書いている途中の返答 chat_delta は別に扱うので含めない） */
+export function detailChatIdOf(event: BusEvent): number | null {
   switch (event.type) {
     case "chat":
-      return event.chat.id === chatId;
+      return event.chat.id;
     case "chat_event":
-      return event.event.chat_id === chatId;
+      return event.event.chat_id;
     case "approval":
-      return event.approval.chat_id === chatId;
+      return event.approval.chat_id;
     case "chat_events_deleted":
     case "chat_live":
     case "approval_resolved":
-      return event.chat_id === chatId;
+      return event.chat_id;
     default:
-      return false;
+      return null;
   }
 }
 
@@ -77,7 +77,7 @@ export function concernsDetail(event: BusEvent, chatId: number): boolean {
  * （記録・回答待ちは ID で重ねない）ので、読み込みの最中に届いた知らせを、届いた中身にもう一度当てられる
  */
 export function reduceChatDetail(state: ChatDetailState, event: BusEvent, chatId: number): ChatDetailState {
-  if (!concernsDetail(event, chatId)) return state;
+  if (detailChatIdOf(event) !== chatId) return state;
   switch (event.type) {
     case "chat":
       return { ...state, chat: event.chat };

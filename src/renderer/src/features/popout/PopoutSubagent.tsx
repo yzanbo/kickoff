@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { openPopout } from "@/app/popout";
 import { postToMainWindow } from "@/app/windowBus";
 import { ChatPaneContext, type ChatPaneActions } from "@/features/chat/pane/chatPaneContext";
-import { useChatDetail } from "@/features/chat/pane/useChatDetail";
+import { useChatContent } from "@/features/chat/store/useChatStore";
 import { useChatView, type ChatViewInput } from "@/features/chat/pane/useChatView";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
@@ -10,12 +10,15 @@ import { BackgroundCallsContext, useBackgroundCalls } from "@/features/chat/tool
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import { usePopoutFileLinks } from "./PopoutFiles";
 
-/** 別ウィンドウのサブエージェントの画面: チャットの中身を読み、右の欄と同じ SubagentScreen を描く */
+/**
+ * 別ウィンドウのサブエージェントの画面: チャットの中身をチャットの店から読み、右の欄と同じ SubagentScreen を描く
+ * （メインエージェントの書いている途中の返答は出さないので、途中の文の口は読まない = 返答中に描き直さない）
+ */
 export function PopoutSubagent({ chatId, agentKey }: { chatId: number; agentKey: string }) {
-  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
+  const { chat, project, events, approvals, live, error } = useChatContent(chatId, true);
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;
-  return <PopoutSubagentView key={chat.id} agentKey={agentKey} chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} />;
+  return <PopoutSubagentView key={chat.id} agentKey={agentKey} chat={chat} project={project} events={events} approvals={approvals} live={live} />;
 }
 
 /**
