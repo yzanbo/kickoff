@@ -14,8 +14,10 @@ export const PRELOAD_FILE = path.join(outDir, "preload", "index.cjs");
  * 実行ファイルは asar の中からは動かせないので、製品版では asar の外（app.asar.unpacked）に置いたものを指す
  */
 export const SPEECH_HELPER = path.join(outDir, "native", "kickoff-speech").replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
-/** DB クライアントの DB ワーカー（ビルドが out/main/dbWorker.js に作る。コアが自分の実行ファイルを Node として fork する） */
+/** DB クライアントの DB ワーカー（ビルドが out/main/dbWorker.js に作る。作るのはメイン（utilityProcess）、話すのはコアのプロセス） */
 export const DB_WORKER_FILE = path.join(outDir, "main", "dbWorker.js");
+/** コアのプロセス（ビルドが out/main/core.js に作る。メインが utilityProcess で起動する。src/core/host/main.ts） */
+export const CORE_FILE = path.join(outDir, "main", "core.js");
 /** 本番の画面のファイル（コアが配る） */
 export const RENDERER_DIR = path.join(outDir, "renderer");
 

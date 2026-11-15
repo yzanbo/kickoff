@@ -5,6 +5,7 @@
 import type { BrowserExtensionInfo, KnownExtensionKey } from "./browserExtensions";
 import type { BrowserHandOffCapture } from "./browserHandOff";
 import type { BootReport, DiagnosticsFolders, DiagnosticsState, RendererMemory } from "./diagnostics";
+import type { CoreStatus } from "./core";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { LoginItemState } from "./loginItem";
 import type { NotifyRequest, NotifyResult } from "./notifications";
@@ -158,6 +159,17 @@ export const NATIVE_API = {
     get: invoke<[], LoginItemState>(),
     /** 切り替えて、切り替えたあとの様子を返す（切り替えられない版では変えない） */
     set: invoke<[openAtLogin: boolean], LoginItemState>(),
+  },
+  /** Kickoff のコア（別のプロセス）の様子と、落ちた・応答しないときの操作（画面の上の帯。U8・U9） */
+  core: {
+    /** いまの様子（画面を読み込んだとき） */
+    state: invoke<[], CoreStatus>(),
+    /** 起動し直す（止まった・応答しないとき。応答しないコアは止めて、終わったのを確かめてから作り直す） */
+    restart: invoke<[]>(),
+    /** 応答しないまま待つ（帯を閉じ、また 30 秒応答しなければ聞く） */
+    wait: invoke<[]>(),
+    /** 様子が変わった */
+    onState: event<[status: CoreStatus]>(),
   },
   /** 性能の記録（重いときに、その場で 10 秒の記録を取って保存する。メニューの「ヘルプ」からも始まる） */
   diagnostics: {

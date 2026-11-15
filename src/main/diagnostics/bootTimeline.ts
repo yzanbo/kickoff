@@ -3,8 +3,25 @@ import { BOOT_MARKS, type BootReport, type BootWindow, type RendererMemory } fro
 // 起動の時刻と画面のメモリの記録の組み立て（メモの仕様書「0023_表示を軽くする」の案 18c）。Electron に依らない（つなぐのは bootRecorder.ts）。
 // 時刻はすべて epoch ms（performance.timeOrigin + performance.now()）でそろえ、プロセスをまたいで引き算する
 
-/** メインプロセスの段階（起きる順） */
-export const MAIN_STAGES = ["mainStart", "mainLoaded", "whenReady", "coreStart", "coreReady", "windowCreated", "loadStart", "domReady", "loaded"] as const;
+/**
+ * メインプロセスの段階（起きる順）。core.* はコアのプロセスの段階（CoreReady.timings。プロセスの始まり・モジュールを読み終えた・DB を開いた・
+ * 待ち受けを始めた）で、coreForked はメインがコアのプロセスを起動した時刻（メモの仕様書「0023_表示を軽くする」の案 16）
+ */
+export const MAIN_STAGES = [
+  "mainStart",
+  "mainLoaded",
+  "whenReady",
+  "coreForked",
+  "core.processStart",
+  "core.modulesLoaded",
+  "core.dbOpened",
+  "core.listening",
+  "coreReady",
+  "windowCreated",
+  "loadStart",
+  "domReady",
+  "loaded",
+] as const;
 export type MainStage = (typeof MAIN_STAGES)[number];
 export type MainMarks = Partial<Record<MainStage, number>>;
 
@@ -58,7 +75,8 @@ export function bootLogLine(record: BootRecord): string {
     return stage ? `${stage.ms}ms` : "-";
   };
   const head = record.origin === "mainStart" ? "起動の時刻" : record.window === "main" ? "画面を読み込み直した時刻" : "別ウィンドウの起動の時刻";
-  const main = record.origin === "mainStart" ? ` core=${ms("coreReady")} window=${ms("windowCreated")}` : "";
+  const core = `(fork=${ms("coreForked")} process=${ms("core.processStart")} modules=${ms("core.modulesLoaded")} db=${ms("core.dbOpened")} listen=${ms("core.listening")})`;
+  const main = record.origin === "mainStart" ? ` core=${ms("coreReady")}${core} window=${ms("windowCreated")}` : "";
   const assets = record.assets ? `${record.assets.refetched}/${record.assets.count}` : "-";
   return `${head}${main} 最初の描画=${ms("firstPaint")} 入力できる=${record.timedOut ? "10 秒でそろわず" : ms("interactive")} 取り直した画面の JS=${assets}`;
 }
@@ -75,15 +93,18 @@ export interface AppProcessMetric {
 /** metrics.jsonl の 1 行 */
 export interface MetricsRow {
   at: string;
-  /** プロセスごと（Browser = メイン・Tab = 画面・GPU・Utility = DB ワーカーなど）のメモリ（MB）と CPU（%） */
+  /** コアのプロセスの V8 のメモリ（MB。聞けなければ null） */
+  core: { heapUsedMB: number; rssMB: number } | null;
+  /** プロセスごと（Browser = メイン・Tab = 画面・GPU・Utility = コア（Kickoff Core）と DB ワーカー（名前で分ける））のメモリ（MB）と CPU（%） */
   processes: { type: string; name: string | null; pid: number; memoryMB: number; cpuPercent: number }[];
   /** この間に画面から届いたメモリ（窓ごとに最後のもの） */
   renderers: (RendererMemory & { pid: number })[];
 }
 
-export function metricsRow(at: Date, processes: readonly AppProcessMetric[], renderers: readonly (RendererMemory & { pid: number })[]): MetricsRow {
+export function metricsRow(at: Date, processes: readonly AppProcessMetric[], renderers: readonly (RendererMemory & { pid: number })[], core: MetricsRow["core"] = null): MetricsRow {
   return {
     at: at.toISOString(),
+    core,
     processes: processes.map((p) => ({
       type: p.type,
       name: p.name || null,

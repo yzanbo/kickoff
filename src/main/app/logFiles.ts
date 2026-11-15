@@ -30,6 +30,8 @@ export function rotatingLog(name: string, maxBytes: number) {
   };
   return {
     append,
+    /** 大きすぎれば、いま回しておく（ほかのプロセスも書き足すファイルを、そのプロセスより先に回すため） */
+    prepare: () => void target(),
     /** 1 行 1 件の JSON で書き足す */
     appendJson: (record: unknown) => append(`${JSON.stringify(record)}\n`),
   };

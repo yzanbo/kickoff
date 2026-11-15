@@ -10,13 +10,13 @@ import { diagnosticsHandlers } from "../diagnostics/diagnostics.js";
 import { notificationHandlers } from "../notifications/notifications.js";
 import { terminalHandlers } from "../terminal/terminals.js";
 import { IPC_ARGS } from "./args.js";
-import { fromApp, registerIpcHandlers } from "./register.js";
+import { fromApp, registerIpcHandlers, type IpcHandlers } from "./register.js";
 
 /**
  * 画面（preload）から届く IPC をすべて登録する。処理はまとまりごとに、その機能のフォルダにある（取り決めは shared/ipc/contract.ts）。
- * appUrl: Kickoff の画面の URL（ほかの出どころから届いたものは断る）
+ * appUrl: Kickoff の画面の URL（ほかの出どころから届いたものは断る）。core: コアのプロセスの帯の操作（index.ts がコアを作ってから渡す）
  */
-export function registerIpc(appUrl: string) {
+export function registerIpc(appUrl: string, parts: Pick<IpcHandlers, "core">) {
   registerIpcHandlers(ipcMain, {
     schemas: IPC_ARGS,
     trusted: fromApp(appUrl),
@@ -31,6 +31,7 @@ export function registerIpc(appUrl: string) {
       notifications: notificationHandlers(),
       loginItem: loginItemHandlers,
       diagnostics: diagnosticsHandlers,
+      core: parts.core,
     },
   });
 }

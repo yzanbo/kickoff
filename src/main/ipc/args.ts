@@ -76,6 +76,11 @@ export const IPC_ARGS = defineArgSchemas({
     get: none,
     set: z.tuple([z.boolean()]),
   },
+  core: {
+    state: none,
+    restart: none,
+    wait: none,
+  },
   diagnostics: {
     start: none,
     folders: none,

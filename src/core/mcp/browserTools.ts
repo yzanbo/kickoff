@@ -39,7 +39,7 @@ export function browserToolServer(control: BrowserControl, { projectId, chatId }
   const reveal = turnReveal((id, request) => control.reveal(id, request));
   /** 操作するタブを決め、使ったことを覚えて画面に印を出す。作業の初めに使うタブなら、表に出し終えるまで待つ（background なら出さない） */
   const tabOf = async (tabId?: number, background?: boolean): Promise<number> => {
-    const tabs = control.tabs();
+    const tabs = await control.tabs();
     const known = (id: number | undefined) => id !== undefined && tabs.some((t) => t.id === id);
     const last = lastTabs.get(chatId);
     const id = tabId ?? (known(last) ? last : tabs.filter((t) => t.project_id === projectId).at(-1)?.id);
@@ -69,7 +69,7 @@ export function browserToolServer(control: BrowserControl, { projectId, chatId }
     autoAllow: [...READ_TOOLS],
     instructions: INSTRUCTIONS,
     tools: [
-      tool("browser_tabs", "Kickoff の埋め込みブラウザで開いているタブの一覧（tab_id・題・URL）", {}, run(async () => text(formatTabs(control.tabs(), projectId, lastTabs.get(chatId) ?? null))), {
+      tool("browser_tabs", "Kickoff の埋め込みブラウザで開いているタブの一覧（tab_id・題・URL）", {}, run(async () => text(formatTabs(await control.tabs(), projectId, lastTabs.get(chatId) ?? null))), {
         annotations: { readOnlyHint: true },
       }),
       tool(
@@ -155,7 +155,7 @@ export function browserToolServer(control: BrowserControl, { projectId, chatId }
         "ページのコンソールの出力（新しいものから最大 200 件）",
         { tab_id: tabId, background },
         run(async ({ tab_id, background: behind }) => {
-          const logs = control.consoleLogs(await tabOf(tab_id, behind));
+          const logs = await control.consoleLogs(await tabOf(tab_id, behind));
           return text(logs.length > 0 ? logs.join("\n") : "(コンソールの出力はありません)");
         }),
         { annotations: { readOnlyHint: true } },

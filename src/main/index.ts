@@ -1,29 +1,24 @@
 // Electron のメインプロセスの入口。起動の順番だけを書く（中身は app/ ipc/ browser/ terminal/ notifications/ diagnostics/）
 import { app, BrowserWindow, dialog } from "electron";
 import { errorMessage } from "@shared/errors";
-import { startCore, type Core } from "../core/index.js";
 import { setAppMenu } from "./app/appMenu.js";
-import { utilityWorker } from "./app/dbWorker.js";
-import { safeStorageCipher } from "./app/secretCipher.js";
 import { prepareAppSession } from "./app/appSession.js";
-import { DB_WORKER_FILE, RENDERER_DIR, seedDevDataOnce, setupEnvironment } from "./app/environment.js";
+import { coreIpcHandlers, createCoreProcess } from "./app/coreHost.js";
+import type { CoreProcess } from "./app/coreProcess.js";
+import { seedDevDataOnce, setupEnvironment } from "./app/environment.js";
 import { registerShutdown } from "./app/shutdown.js";
 import { startKeepAwake } from "./app/keepAwake.js";
 import { openedAtLogin } from "./app/loginItem.js";
 import { logLaunch, startupLog, watchChildProcesses } from "./app/startupLog.js";
 import { allowHangStacks, enableHangStacks, logDisplayEvents } from "./app/hangWatch.js";
 import { openMainWindow, setMainWindowUrl, showMainWindow } from "./app/window.js";
-import { agentBrowser } from "./browser/agentBrowser.js";
 import { hardenWebviews } from "./browser/browser.js";
 import { loadSavedExtensions } from "./browser/extensions.js";
 import { watchWebviewConsoles } from "./browser/webviewConsole.js";
-import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
-import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
+import { moveLegacyDiagnostics, setDiagnosticsCore } from "./diagnostics/diagnostics.js";
 import { watchMainStalls } from "./diagnostics/stalls.js";
 import { markMain, startMetricsLog } from "./diagnostics/bootRecorder.js";
 import { registerIpc } from "./ipc/ipc.js";
-import { notifyFromCore } from "./notifications/notifications.js";
-import { hostPlatform } from "./platform/index.js";
 import { setTerminalCloser } from "./terminal/terminals.js";
 import { timed } from "../core/system/stallWatch.js";
 
@@ -44,7 +39,7 @@ hardenWebviews();
 // AI が読む埋め込みブラウザのコンソールの出力は、webview ができたときから覚える
 watchWebviewConsoles();
 
-let core: Core | undefined;
+let core: CoreProcess | undefined;
 
 // 4. 1 つだけ起動する（2 つ目は、いまのウィンドウを前に出して終わる）
 if (!app.requestSingleInstanceLock()) {
@@ -55,61 +50,57 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(start);
 }
 
-/** 準備ができたら: コア（DB・エージェント・HTTP API）→ 画面のセッション → IPC・メニュー → ウィンドウ */
+/**
+ * 準備ができたら: コアのプロセスを fork（ログインシェルの PATH・DB・HTTP はコアの中で進む）→ IPC・メニュー → 窓を先に作る
+ * → コアの ready を待って画面のセッション → 画面を読み込む（分冊 4 の 1-4）
+ */
 async function start() {
   markMain("whenReady");
   startupLog("whenReady");
-  // OS ごとに違う処理の口（platform/index.ts で選ぶ。いまは macOS だけ）
-  timed("boot:loadLoginShellPath", () => hostPlatform.loadLoginShellPath())();
-  startupLog("ログインシェルの PATH を読みました");
+  // 開発時は electron-vite の dev サーバーが画面を配り、製品版はコアが配る（URL はポートから先に分かる）
+  const url = devUrl ?? `http://127.0.0.1:${port}`;
+  const coreProcess = createCoreProcess({ port, devUrl });
+  core = coreProcess;
+  markMain("coreForked");
+  const ready = coreProcess.start();
   // ディスプレイの抜き差し・スリープを起動の記録に書く（画面が応答しなくなったきっかけを照らし合わせるため）
   logDisplayEvents();
   void moveLegacyDiagnostics();
+  setMainWindowUrl(url);
+  registerIpc(url, { core: coreIpcHandlers(coreProcess) });
+  setAppMenu();
+  // 画面のセッション（認証の Cookie）はコアの ready のあと。窓はその前に作り、読み込みだけ待たせる
+  const session = ready.then(async (r) => {
+    await prepareAppSession(url, r.token);
+    allowHangStacks(url);
+    startupLog("認証の Cookie を設定しました");
+  });
+  // ログイン時に起動したときは窓を出さずに裏で動かす（スマホから届くように本体だけ起こしておく。Dock を押せば activate で出る）
+  if (openedAtLogin()) startupLog("ログイン時に起動したので、窓を出さずに動かします");
+  else openMainWindow(url, session);
   try {
-    // 開発時は electron-vite の dev サーバーが画面を配り、本番はコアが配る
-    // AI には埋め込みブラウザの操作も渡す（browser/agentBrowser.ts）
-    markMain("coreStart");
-    core = await startCore({
-      dataDir: app.getPath("userData"),
-      port,
-      staticDir: devUrl ? undefined : RENDERER_DIR,
-      browser: agentBrowser,
-      // 内蔵ターミナルのシェルに、どちらの Kickoff のターミナルかを渡す（npm run install-app が、製品版のターミナルから流されたのを見分ける）
-      terminalEnv: { KICKOFF_TERMINAL_OF: app.isPackaged ? "production" : "development" },
-      platform: hostPlatform,
-      // DB ワーカーは utilityProcess で起動する（製品版は fuses で ELECTRON_RUN_AS_NODE を切るため。app/dbWorker.ts）
-      dbWorker: () => utilityWorker(DB_WORKER_FILE),
-      // DB のパスワードはキーチェーンの鍵（safeStorage）で暗号化して置く（app/secretCipher.ts）
-      secretCipher: safeStorageCipher,
-      // 通知を出すかはコアが決め、Mac の通知はここで出す（notifications/notifications.ts）
-      notify: notifyFromCore,
-    });
+    const r = await ready;
+    // コアのプロセスの段階（epoch ms。起動の時刻の 1 行に出す）
+    markMain("core.processStart", r.timings.processStart);
+    markMain("core.modulesLoaded", r.timings.modulesLoaded);
+    markMain("core.dbOpened", r.timings.dbOpened);
+    markMain("core.listening", r.timings.listening);
     markMain("coreReady");
-    setDiagnosticsCore(core);
-    // 60 秒ごとにプロセスと画面のメモリを metrics.jsonl に書く
-    startMetricsLog();
-    // 作業中と、スマホ連携がオンで電源につないでいる間は、本体を眠らせない（app/keepAwake.ts）
-    startKeepAwake(core);
-    // 内蔵ターミナルのシェルはコアで動き、画面はコアの WebSocket でつなぐ。画面が消えたら、その画面のシェルを止める（terminal/terminals.ts）
-    const terminals = core.terminals;
-    setTerminalCloser((owner) => terminals.closeOwnedBy(owner));
-    startupLog(`コアを起動しました ${core.localUrl}`);
+    startupLog(`コアを起動しました ${r.localUrl} pid=${r.pid}`);
   } catch (e) {
     startupLog(`コアを起動できません: ${errorMessage(e)}`);
     dialog.showErrorBox("Kickoff を起動できません", `コアの起動に失敗しました（ポート ${port}）。\n${errorMessage(e)}`);
     app.quit();
     return;
   }
-  const url = devUrl ?? core.localUrl;
-  setMainWindowUrl(url);
-  await prepareAppSession(url, core.token);
-  allowHangStacks(url);
-  startupLog("認証の Cookie を設定しました");
-  registerIpc(url);
-  setAppMenu();
-  // ログイン時に起動したときは窓を出さずに裏で動かす（スマホから届くように本体だけ起こしておく。Dock を押せば activate で出る）
-  if (openedAtLogin()) startupLog("ログイン時に起動したので、窓を出さずに動かします");
-  else openMainWindow(url);
+  await session;
+  setDiagnosticsCore(coreProcess);
+  // 60 秒ごとにプロセスと画面とコアのメモリを metrics.jsonl に書く
+  startMetricsLog(() => coreProcess.call("metrics"));
+  // 作業中と、スマホ連携がオンで電源につないでいる間は、本体を眠らせない（app/keepAwake.ts）
+  startKeepAwake(coreProcess, (fn) => coreProcess.onState(fn));
+  // 内蔵ターミナルのシェルはコアで動き、画面はコアの WebSocket でつなぐ。画面が消えたら、その画面のシェルを止める（terminal/terminals.ts）
+  setTerminalCloser((owner) => void coreProcess.call("terminal.closeOwnedBy", owner).catch(() => {}));
   // 埋め込みブラウザの拡張機能（React DevTools など）を読み込む
   void loadSavedExtensions().then((errors) => errors.forEach((e) => console.warn("[browser] 拡張機能を読み込めません:", e)));
   // Mac では、ウィンドウを閉じたあとに Dock を押したら作り直す

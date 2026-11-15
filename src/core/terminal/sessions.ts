@@ -8,6 +8,7 @@ import type { TerminalStart, TerminalTabMeta } from "@shared/types";
 import type { TerminalShell } from "../platform/types.js";
 import type { TerminalControl, TerminalTabInfo, TerminalTail } from "./control.js";
 import { TerminalOutput } from "./output.js";
+import { shellPathSettled } from "../system/exec.js";
 
 /** シェルにつないでいる人（出力と終わりを受け取る） */
 export interface TerminalClient {
@@ -127,6 +128,9 @@ export class TerminalSessions implements TerminalControl {
       existing.clients.set(client.id, client);
       return { snapshot, created: false };
     }
+    // 新しいシェルは、ログインシェルの PATH を読み直し終えてから起こす（起動の直後だけ。待つ間に同じキーで始まっていればつなぎ直す）
+    await shellPathSettled();
+    if (this.sessions.has(key)) return this.open({ key, cwd, cols, rows, client, owner, start, meta });
     const found = isDirectory(cwd);
     const session = this.start(key, found ? cwd : os.homedir(), clampSize(cols), clampSize(rows), owner ?? client.id, start);
     session.meta = meta ?? null;

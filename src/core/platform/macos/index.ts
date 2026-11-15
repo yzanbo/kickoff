@@ -9,6 +9,7 @@ import { macosTailscaleCli } from "./tailscale.js";
 import { listeningSockets, processCwds } from "./listening.js";
 import { alive, appBundleOf, processTable } from "./processes.js";
 import { loadLoginShellPath } from "./shellEnv.js";
+import { startShellPath } from "./shellPath.js";
 import { macosAgentSandbox } from "./sandbox.js";
 
 interface MacosPlatformOptions {
@@ -28,6 +29,7 @@ export function macosPlatform({ speechHelper = null }: MacosPlatformOptions = {}
   return {
     appDataRoot: MACOS_APP_DATA_ROOT,
     loadLoginShellPath,
+    startShellPath: (dataDir) => startShellPath({ dataDir }),
     openApp,
     listeningSockets,
     processTable,

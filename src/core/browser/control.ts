@@ -41,8 +41,8 @@ export interface RevealRequest {
 
 /** メインプロセスが実装する、埋め込みブラウザの操作。失敗は理由の文の Error で投げる */
 export interface BrowserControl {
-  /** いま開いているブラウザのタブ */
-  tabs(): BrowserTabInfo[];
+  /** いま開いているブラウザのタブ（メインプロセスにあるので、コアのプロセスからは RPC で聞く） */
+  tabs(): Promise<BrowserTabInfo[]>;
   /**
    * プロジェクトのチャット欄に新しいブラウザのタブを開き、読み込み終えたら返す。reveal があれば欄を開いて表に出し（キーボードのピントは動かさない）、
    * なければ表に出さずに足す。revealed は表に出したか
@@ -60,7 +60,7 @@ export interface BrowserControl {
   scroll(tabId: number, direction: "up" | "down" | "top" | "bottom"): Promise<string>;
   evaluate(tabId: number, script: string): Promise<string>;
   /** ページのコンソールの出力（新しいものから最大 200 件を古い順に） */
-  consoleLogs(tabId: number): string[];
+  consoleLogs(tabId: number): Promise<string[]>;
   /** AI がこのタブを操作した（画面のタブに「AI 操作中」の印を出す。しばらく操作がなければ消える） */
   touch(tabId: number): void;
 }
