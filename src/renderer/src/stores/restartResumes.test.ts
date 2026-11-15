@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ChatLive, QueueResume } from "@shared/types";
-import { reduceQueueResumes } from "./queueResumes";
+import type { ChatLive, RestartResume } from "@shared/types";
+import { reduceRestartResumes } from "./restartResumes";
 
 const row = (id: string) => ({ id, text: id, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
-const resume = (chatId: number): QueueResume => ({
+const resume = (chatId: number): RestartResume => ({
   chat_id: chatId,
   project_id: 1,
   title: "A",
@@ -30,22 +30,22 @@ const live = (over: Partial<ChatLive>): ChatLive => ({
   compacted_turn: false,
   tells_closed: false,
   inheriting: false,
-  queue_resume: { interrupted: false },
+  restart_resume: { interrupted: false },
   ...over,
 });
 
 test("起動したときの送信待ちの確かめの一覧: 答えた・空になった・消したら外し、送信待ちが変わったら中身を直す", () => {
   const list = [resume(1), resume(2)];
   // 関係のない知らせ・ほかのチャットでは同じ一覧
-  assert.equal(reduceQueueResumes(list, { type: "memos", project_id: 1, path: null }), list);
-  assert.equal(reduceQueueResumes(list, { type: "chat_live", project_id: 1, chat_id: 9, live: live({}) }), list);
-  // 答えた（queue_resume が null）
+  assert.equal(reduceRestartResumes(list, { type: "memos", project_id: 1, path: null }), list);
+  assert.equal(reduceRestartResumes(list, { type: "chat_live", project_id: 1, chat_id: 9, live: live({}) }), list);
+  // 答えた（restart_resume が null）
   assert.deepEqual(
-    reduceQueueResumes(list, { type: "chat_live", project_id: 1, chat_id: 1, live: live({ queue_resume: null }) }).map((r) => r.chat_id),
+    reduceRestartResumes(list, { type: "chat_live", project_id: 1, chat_id: 1, live: live({ restart_resume: null }) }).map((r) => r.chat_id),
     [2],
   );
   // 送信待ちを直した
-  const edited = reduceQueueResumes(list, {
+  const edited = reduceRestartResumes(list, {
     type: "chat_live",
     project_id: 1,
     chat_id: 2,
@@ -53,5 +53,5 @@ test("起動したときの送信待ちの確かめの一覧: 答えた・空に
   });
   assert.deepEqual([edited[1].messages.map((m) => m.id), edited[1].stops], [["b", "c"], [1]]);
   // チャットを消した
-  assert.deepEqual(reduceQueueResumes(list, { type: "chat_deleted", id: 2, project_id: 1 }).map((r) => r.chat_id), [1]);
+  assert.deepEqual(reduceRestartResumes(list, { type: "chat_deleted", id: 2, project_id: 1 }).map((r) => r.chat_id), [1]);
 });

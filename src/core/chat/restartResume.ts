@@ -1,5 +1,5 @@
 // 起動したときの送信待ちの確かめに添える「止まったところ」（最後の自分の指示・メインエージェントの最後の返答・最後に動かしたツール）
-import type { ChatEvent, QueueResumeMoment } from "@shared/types";
+import type { ChatEvent, RestartResumeMoment } from "@shared/types";
 
 /** 返答の頭だけを見せる長さ（文字） */
 const REPLY_MAX = 600;
@@ -28,14 +28,14 @@ export function toolLine(name: string, input: unknown): string {
  * 最後の自分の指示より前の返答・ツールは、前の作業のものなので拾わない
  */
 export function resumeMomentsOf(recent: ChatEvent[]): {
-  last_prompt: QueueResumeMoment | null;
-  last_reply: QueueResumeMoment | null;
-  last_tool: QueueResumeMoment | null;
+  last_prompt: RestartResumeMoment | null;
+  last_reply: RestartResumeMoment | null;
+  last_tool: RestartResumeMoment | null;
   stopped_at: string | null;
 } {
-  let lastPrompt: QueueResumeMoment | null = null;
-  let lastReply: QueueResumeMoment | null = null;
-  let lastTool: QueueResumeMoment | null = null;
+  let lastPrompt: RestartResumeMoment | null = null;
+  let lastReply: RestartResumeMoment | null = null;
+  let lastTool: RestartResumeMoment | null = null;
   for (const e of recent) {
     if (e.type === "user") {
       lastPrompt = { text: clip(e.data.text, PROMPT_MAX), at: e.created_at };

@@ -25,7 +25,7 @@ import { HoverTip } from "@/ui/HoverTip";
 import { MemoProgress } from "@/features/memo/MemoProgress";
 import { ToastHost } from "@/ui/toast";
 import { GitHubDialogHost } from "@/features/github/GitHubDialogHost";
-import { QueueResumeHost } from "@/features/chat/queue/QueueResumeDialog";
+import { RestartResumeHost } from "@/features/chat/queue/RestartResumeDialog";
 import { PrNoticeHost } from "@/features/worktree/prNotice/PrNoticeDialog";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/openSettings";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/Sidebar";
@@ -212,7 +212,7 @@ export function App() {
         {/* GitHub の新しい issue・マージの確認（GitHub タブとメモ・チャットの「issue にする」から） */}
         <GitHubDialogHost />
         {/* 起動したときの送信待ちの確かめ（前回の終了で、自動で送るまま送信待ちが残ったチャットを、送るか聞く） */}
-        <QueueResumeHost />
+        <RestartResumeHost />
         {/* ワークツリーの PR がマージされた・閉じられた知らせ（片付けとチャットの扱いを 1 つの確認で聞く） */}
         <PrNoticeHost />
         {/* 開くボタンは、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く */}

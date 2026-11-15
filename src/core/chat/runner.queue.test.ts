@@ -363,7 +363,7 @@ test("起動したときの送信待ちの確かめ: 止めておくか・線は
   assert.equal(restarted.live(pausedChat.id).queue.paused, true);
   assert.deepEqual([restarted.live(stoppedChat.id).queue.paused, restarted.live(stoppedChat.id).queue.stops], [false, [0]]);
   assert.deepEqual(
-    restarted.queueResumes().map((r) => [r.chat_id, r.messages.length, r.messages[0].text, r.interrupted]),
+    restarted.restartResumes().map((r) => [r.chat_id, r.messages.length, r.messages[0].text, r.interrupted]),
     [
       [sendChat.id, 2, "送る 1", false],
       [continueChat.id, 1, "続けてから 1", true],
@@ -374,7 +374,7 @@ test("起動したときの送信待ちの確かめ: 止めておくか・線は
   await tick();
   assert.equal(provider.calls.length, before);
 
-  await restarted.resolveQueueResumes([
+  await restarted.resolveRestartResumes([
     { chatId: sendChat.id, action: "send" },
     { chatId: continueChat.id, action: "continue" },
     { chatId: pauseChat.id, action: "pause" },
@@ -392,7 +392,7 @@ test("起動したときの送信待ちの確かめ: 止めておくか・線は
   assert.equal(restarted.live(pauseChat.id).queue.paused, true);
   assert.ok(!prompts.includes("止める 1"));
   // 答えたものは、もう聞かない
-  assert.deepEqual(restarted.queueResumes(), []);
+  assert.deepEqual(restarted.restartResumes(), []);
 });
 
 test("起動したときの送信待ちの確かめ: 答えるまでは、線を外す・並べ替えても送らず、自動で送る / 止めていますを押したら答えたことにする。止まったところを添える", async () => {
@@ -408,8 +408,8 @@ test("起動したときの送信待ちの確かめ: 答えるまでは、線を
   const before = provider.calls.length;
 
   // 画面に配る様子にも、確かめを待っていることが出る
-  assert.deepEqual(restarted.live(chat.id).queue_resume, { interrupted: true });
-  const [resume] = restarted.queueResumes();
+  assert.deepEqual(restarted.live(chat.id).restart_resume, { interrupted: true });
+  const [resume] = restarted.restartResumes();
   assert.deepEqual(
     [resume.messages.map((m) => m.id), resume.stops, resume.last_prompt?.text, resume.last_reply?.text, resume.last_tool?.text],
     [["a", "b"], [1], "テストを直して", "直しています。", "Bash: npm test"],
@@ -422,6 +422,6 @@ test("起動したときの送信待ちの確かめ: 答えるまでは、線を
   assert.deepEqual(restarted.live(chat.id).queue.messages.map((m) => m.id), ["b", "a"]);
   // 見出しの「止めています」を押したら、答えたことにする
   await restarted.setQueuePaused(chat.id, true);
-  assert.equal(restarted.live(chat.id).queue_resume, null);
-  assert.deepEqual(restarted.queueResumes(), []);
+  assert.equal(restarted.live(chat.id).restart_resume, null);
+  assert.deepEqual(restarted.restartResumes(), []);
 });
