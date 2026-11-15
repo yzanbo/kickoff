@@ -94,13 +94,19 @@ test("メモ: Kickoff の外（Finder・ほかのアプリ）での変更も、�
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/memos`, { path: "初め.md" });
   const list = (await call("GET", `${base}/memos`)).body as MemoList;
-  // 作ったときの変更の知らせが遅れて届いても混ざらないよう、少し待ってから見る
-  await new Promise((r) => setTimeout(r, 300));
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
+  const memoEvents = () => events.filter((e): e is Extract<BusEvent, { type: "memos" }> => e.type === "memos" && e.project_id === project.id);
   fs.writeFileSync(path.join(list.dir, ".隠し.md"), "x");
-  fs.writeFileSync(path.join(list.dir, "外から.md"), "# 外から\n");
-  await until(() => events.some((e) => e.type === "memos" && e.project_id === project.id && e.path === "外から.md"));
+  // 作ったときの変更の知らせが遅れて届くと、外からの変更とまとめて「どれか分からない」（path null）や作ったファイルの知らせになる。
+  // そのときは書き直して、もう一度待つ（決め打ちで待ってから見ると、負荷が高いときに遅れた知らせが待つ長さを超えて混ざった）
+  const seen = () => memoEvents().some((e) => e.path === "外から.md");
+  for (let i = 0; i < 5 && !seen(); i++) {
+    const before = memoEvents().length;
+    fs.writeFileSync(path.join(list.dir, "外から.md"), `# 外から ${i}\n`);
+    await until(() => memoEvents().length > before, 10_000);
+  }
+  assert.ok(seen());
   assert.ok(!events.some((e) => e.type === "memos" && e.path === ".隠し.md"));
 });
 

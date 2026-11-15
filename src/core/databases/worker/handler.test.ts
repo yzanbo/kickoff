@@ -71,12 +71,13 @@ test("DB ワーカー: 何もしないで閉じたとき、その接続の接続
   let id = 0;
   const call = (method: string, params: unknown) => handler.handle({ id: ++id, method, params } as WorkerRequest);
   assert.ok((await call("prepare", { connection_id: 7, commands: [], cleanup: ["true"], vars: {}, my_ip_url: null })).ok);
-  // 準備が済むのを待つ
-  for (let i = 0; i < 100; i++) {
+  // 準備が済むのを待つ（負荷が高いとシェルの起動が遅れるので、長めに待ち、済んだことを確かめる）
+  const prepDone = async () => {
     const s = await call("prepState", { connection_id: 7 });
-    if (s.ok && !(s.result as { running: boolean }).running) break;
-    await new Promise((r) => setTimeout(r, 20));
-  }
+    return s.ok && !(s.result as { running: boolean }).running;
+  };
+  for (let i = 0; i < 750 && !(await prepDone()); i++) await new Promise((r) => setTimeout(r, 20));
+  assert.ok(await prepDone(), "準備が済みませんでした");
   const query = (session: string) => call("query", { session, target, sql: "select 1", max_rows: 10 });
   assert.ok((await query("shared:7:-:-")).ok);
   assert.ok((await query("sql:7:tab")).ok);

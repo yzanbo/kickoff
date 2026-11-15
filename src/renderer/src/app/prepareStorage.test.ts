@@ -20,10 +20,10 @@ function rememberSome() {
 
 const ID_KEYS = ["kickoff:fold:sidebar:p1/g3", "kickoff:new-chat-drafts", "kickoff:chat-draft:7", "kickoff:fold:panel:p1/g2"];
 
-/** /api/status の答え（ms だけ遅らせる。null ならつながらない） */
-function serveStatus(databaseId: string | null, ms = 0) {
+/** /api/status の答え（gate を渡せば、それが済むまで答えない。null ならつながらない） */
+function serveStatus(databaseId: string | null, gate: Promise<void> = Promise.resolve()) {
   globalThis.fetch = (async () => {
-    await new Promise((resolve) => setTimeout(resolve, ms));
+    await gate;
     if (databaseId === null) throw new TypeError("fetch failed");
     return new Response(JSON.stringify({ database_id: databaseId }), { status: 200, headers: { "content-type": "application/json" } });
   }) as typeof fetch;
@@ -79,11 +79,14 @@ test("prepareStorage: 答えが遅ければ待たずに進め、あとで届い�
   Object.assign(globalThis, { location: { reload: () => reloaded++ } });
   rememberSome();
   local.setItem(DATABASE_ID.key, "db-old");
-  serveStatus("db-new", 30);
+  // 答えを返す時はテストが決める（決め打ちの時間で遅らせると、負荷が高いときに待つ長さの前後が入れ替わる）
+  let answer = () => {};
+  serveStatus("db-new", new Promise<void>((resolve) => (answer = resolve)));
   await prepareStorage(5);
   // まだ届いていないので、捨てていない
   assert.notEqual(local.getItem("kickoff:chat-draft:7"), null);
-  await new Promise((resolve) => setTimeout(resolve, 60));
+  answer();
+  for (let i = 0; i < 500 && reloaded === 0; i++) await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(local.getItem("kickoff:chat-draft:7"), null);
   assert.equal(reloaded, 1);
 });
