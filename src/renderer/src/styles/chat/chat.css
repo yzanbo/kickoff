@@ -173,11 +173,18 @@
   font-size: calc(15px * var(--chat-scale, 1));
 }
 
-/* 長いチャットで、窓の外（上）の前の発言を足すボタン（上の端まで戻っても足す） */
-.timeline-more {
+/* 前・後ろの記録を読んでいる間だけ出す 1 行（流れの上・途中の一部分の下。高さを決めておき、出し入れで読んでいる所がずれる量を一定にする） */
+.timeline-loading {
   align-self: center;
-  margin-bottom: 8px;
+  height: calc(20px * var(--chat-scale, 1));
+  line-height: calc(20px * var(--chat-scale, 1));
   font-size: calc(12px * var(--chat-scale, 1));
+  color: var(--muted);
+}
+
+/* 窓の外の行の代わりの箱（高さだけ。測った高さか見積もり。features/chat/timeline の TimelineRows） */
+.timeline-box {
+  flex: none;
 }
 
 .chat-composer {

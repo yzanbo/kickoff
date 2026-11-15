@@ -52,8 +52,6 @@ export interface PaneLatest {
   reveal?: () => void;
   /** 遠い記録を読んだあと、流れに出たら then */
   showAfter: (eventId: number, then: () => void) => void;
-  /** 窓を広げて描いてから、その記録へ移る */
-  jumpLater: (eventId: number) => void;
 }
 
 /** チャットの画面の殻（ChatView）が持つもの: 操作・いまの値の入れ物・流れのスクロール・チャット欄・右の欄の口（チャットごとに 1 回だけ作る） */
@@ -113,8 +111,13 @@ export function useChatPaneActions({
         now().showAfter(eventId, then);
       });
     };
-    /** 描いたあとに、その記録の要素へ移る（開いたカードの中身が描かれるまで、数フレーム待つ） */
-    const jumpWhenDrawn = (eventId: number, frames = 20) => {
+    /**
+     * その記録を読んで流れに出し、窓でその前後を描いて測り終えたら解決する（移る処理はどれもこれを待ってから jumpToEvent。
+     * メモの仕様書「0023_表示を軽くする」の M3 の await reveal()）
+     */
+    const drawn = (eventId: number) => new Promise<void>((resolve) => whenShown(eventId, () => void now().timeline.revealEvent(eventId).then(resolve)));
+    /** 描いたあとに、その記録の要素へ移る（開いたカードの中の行は、カードの中身が描かれるまで数フレーム待つ） */
+    const jumpWhenDrawn = (eventId: number, frames = 10) => {
       const el = scroll.ref.current;
       if (el && jumpToEvent(el, eventId)) return;
       if (frames > 0) requestAnimationFrame(() => jumpWhenDrawn(eventId, frames - 1));
@@ -141,13 +144,10 @@ export function useChatPaneActions({
         patch({ showing: "conversation" });
         scroll.release();
         const root = path[0].toolUseEventId;
-        const go = () => {
-          if (root !== undefined) now().timeline.reveal(root);
-          // 開いた状態が描かれてから移る（先に移ると、描き直しで強調の印が消える）
-          const eventId = inside ?? target.toolUseEventId;
-          if (eventId !== undefined) requestAnimationFrame(() => jumpWhenDrawn(eventId));
-        };
-        if (root !== undefined) whenShown(root, go);
+        // いちばん外側のカードの前後を描き、開いた状態が描かれてから移る（先に移ると、描き直しで強調の印が消える）
+        const eventId = inside ?? target.toolUseEventId;
+        const go = () => eventId !== undefined && jumpWhenDrawn(eventId);
+        if (root !== undefined) void drawn(root).then(go);
         else go();
       },
       openSubagent: (key, eventId) => {
@@ -201,11 +201,8 @@ export function useChatPaneActions({
         patch({ showing: "conversation" });
         if (eventId === undefined) return;
         scroll.release();
-        // 会話を描き直してから移る（隠している間の流れの中では、移っても見えない）
-        whenShown(eventId, () => {
-          if (now().timeline.reveal(eventId)) requestAnimationFrame(() => jumpWhenDrawn(eventId));
-          else now().jumpLater(eventId);
-        });
+        // 会話を描き直し、その前後を描いてから移る（隠している間の流れの中では、移っても見えない）
+        void drawn(eventId).then(() => jumpWhenDrawn(eventId));
       },
       toggleSubagentFull: (key) => {
         const view = timelineView(chatId);
@@ -246,14 +243,13 @@ export function useChatPaneActions({
         const el = scroll.ref.current;
         // 移ったら流れにピントを置く（続けて ⌘⌥↑ / ↓・↑↓ のスクロールが効くように。一覧を閉じてピントが外れたままにしない）
         el?.focus({ preventScroll: true });
-        whenShown(eventId, () => {
-          if (!now().timeline.reveal(eventId)) now().jumpLater(eventId);
-          else if (el) jumpToEvent(el, eventId, { smooth: true });
+        void drawn(eventId).then(() => {
+          if (el) jumpToEvent(el, eventId, { smooth: true });
         });
       },
       reveal: (eventId) => {
         scroll.release();
-        whenShown(eventId, () => now().timeline.reveal(eventId));
+        return drawn(eventId);
       },
       searchTexts: async () => {
         const { tailStart } = now().log;
@@ -265,6 +261,7 @@ export function useChatPaneActions({
       // 作成先は、いまのチャットのプロジェクト・グループ（移したあとも、いまのもの）
       askInNewChat: onOpenNew && ((seed) => now().onOpenNew?.({ projectId: now().chat.project_id, group: now().chat.group_id ?? undefined }, seed)),
       state,
+      drawn: createValueCell(0),
     };
     return actions;
   });
