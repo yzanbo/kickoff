@@ -23,10 +23,16 @@ export interface ActivityFocus {
 /**
  * 動きの強調（カードの「動きで見る」）: 絞り込まない行のうち、そのサブエージェントと配下の行（その起動の行も）を強調し、並びの初めの行
  * （上を最新に並べるので、いちばん新しい行）へ移る。shown は画面に並ぶ順で渡す。
- * ↑↓ で順に移る。移るときは一番上への付いていきをやめる（新しい行が来ても、見ている場所を動かさない）。
+ * ↑↓ で順に移る。移るときは一番上への付いていきをやめる（新しい行が来ても、見ている場所を動かさない）。移る先が窓の外なら、reveal で描いてから移る。
  * 一番上への付いていきの layout effect より後ろで呼ぶ（同じ描き直しで、上へ送ったあとに強調の行へ移すため）
  */
-export function useActivityFocus(shown: readonly ActivityRow[], tree: SubagentTree | undefined, scrollRef: RefObject<HTMLDivElement | null>, following: RefObject<boolean>): ActivityFocus {
+export function useActivityFocus(
+  shown: readonly ActivityRow[],
+  tree: SubagentTree | undefined,
+  scrollRef: RefObject<HTMLDivElement | null>,
+  following: RefObject<boolean>,
+  reveal: (index: number) => Promise<void>,
+): ActivityFocus {
   const focus = useChatPaneState((s) => s.activityFocus) ?? null;
   const focusKey = focus?.key ?? null;
   const hits = useMemo(() => (focusKey !== null && tree ? focusedRowIndexes(shown, agentScope(tree, focusKey)) : []), [focusKey, tree, shown]);
@@ -41,11 +47,17 @@ export function useActivityFocus(shown: readonly ActivityRow[], tree: SubagentTr
   const nonce = focus?.nonce;
   const missing = currentKey === undefined;
   useLayoutEffect(() => {
-    if (nonce === undefined || currentKey === undefined) return;
-    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(currentKey)}"]`);
-    if (!el) return;
+    if (nonce === undefined || currentKey === undefined || currentIndex === undefined) return;
     following.current = false;
-    el.scrollIntoView({ block: "center" });
+    let alive = true;
+    void reveal(currentIndex).then(() => {
+      const el = scrollRef.current?.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(currentKey)}"]`);
+      if (alive) el?.scrollIntoView({ block: "center" });
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nonce, position, missing]);
 
   return {

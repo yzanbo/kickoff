@@ -37,13 +37,15 @@ interface LineProps {
    * 行が多いので、マウスを乗せた行・ピントのある行にだけ出す（右クリックのメニューにも同じ操作）
    */
   onPick?: (row: ActivityRow, where: "inline" | "side") => void;
+  /** 行の要素を窓に知らせる（高さを測る。useRowWindow の measureRef） */
+  rowRef?: (el: HTMLElement | null) => void | (() => void);
 }
 
 /**
  * 動きの 1 行: 時刻・線（メインの線から枝分かれするサブエージェントの線）・誰が・何を・かかった時間（実行中は回る印と経過）。
  * 押すと会話のその場所へ移る。いくつものツールをまとめた行は、左の矢印で 1 回ずつに広げる
  */
-function ActivityLineView({ row, rail, width, name, hues, rel, expanded, highlighted, current, onToggle, onOpen, onMenu, onPick }: LineProps) {
+function ActivityLineView({ row, rail, width, name, hues, rel, expanded, highlighted, current, onToggle, onOpen, onMenu, onPick, rowRef }: LineProps) {
   const expandable = row.kind === "tools" && (row.tools?.length ?? 0) > 1;
   const pickable = onPick !== undefined && agentTargetOf(row) !== null;
   return (
@@ -51,6 +53,7 @@ function ActivityLineView({ row, rail, width, name, hues, rel, expanded, highlig
       className={cx("activity-row", `kind-${row.kind}`, row.agent === null && "main", row.running && "running", row.failed && "failed", highlighted && "focused", current && "focus-current")}
       style={agentHueStyle(hueOf(hues, row.agent))}
       data-row-key={row.key}
+      ref={rowRef}
     >
       <span className="activity-time" title={formatFullStamp(row.at)}>
         {formatStamp(row.at)}
@@ -120,6 +123,7 @@ export const ActivityLine = memo(
     a.expanded === b.expanded &&
     a.highlighted === b.highlighted &&
     a.current === b.current &&
+    a.rowRef === b.rowRef &&
     (a.onPick === undefined) === (b.onPick === undefined),
 );
 

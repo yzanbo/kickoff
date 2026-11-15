@@ -86,9 +86,9 @@ export interface RowWindow {
   onScroll: () => void;
 }
 
-/** 行の包みの重ねた余白（--row-ink。包みの上下の padding）。測った高さからこの分を引く */
+/** 行の包みの重ねた余白（CSS の --row-ink。包みの上下に同じだけ取って外へ戻す余白）。測った高さからこの分を引く。なければ 0 */
 function inkOf(el: HTMLElement): number {
-  return parseFloat(getComputedStyle(el).paddingTop) || 0;
+  return parseFloat(getComputedStyle(el).getPropertyValue("--row-ink")) || 0;
 }
 
 /** 描くのを省いているか（content-visibility: auto で省かれている行は、中の要素が見えないと答える） */
