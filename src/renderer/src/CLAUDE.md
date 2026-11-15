@@ -107,6 +107,7 @@
 ## 性能
 
 - 作業中は返答が細切れに届くたびにチャットの流れが描き直されるので、流れの項目は memo する（`Timeline.tsx` の `MemoEventItem` / `MemoToolGroup`）。項目に渡す関数は `useCallback` で同じものにし、記録をたどる計算（`collectSubagents` など）は `useMemo` に入れる。context の値は描き直しのたびに作り直さない（チャットの画面の操作 `ChatPaneActions` はチャットごとに 1 回だけ作る。作り直すと memo した項目がすべて描き直される）。
+- 流れ全体に効く値（作業中かなど）を流れの項目の props で渡さない（変わった瞬間に memo した項目がすべて描き直り、返答の Markdown を解析し直す）。使う小さな部品だけが context で読む（作業中かは `features/chat/timeline/timelineBusy.ts` の `useTimelineBusy`。発言の書き直し・ファイルを戻す・作業の終わりの行の分岐・依頼文のボタン。メモの仕様書「0023_表示を軽くする」の案 26）。
 - 書いている途中の返答（SSE の `chat_delta`）は 1 フレームの分をまとめて足す（`useChatDetail`）。出すのは `StreamingReply` の中だけで少しずつ伸ばす（`useStreamReveal`。流れの項目は描き直さない）。
 - 長い一覧は描く範囲を絞る（チャットの流れは最近の項目だけを描く窓 `timelineWindow.ts`。流れをすべて描かない。数千ターンのチャットで画面の要素が 10 万個を超え、画面が真っ黒になったことがある）。
 - 入力欄の高さは CSS の `field-sizing: content` で伸ばす。JS で高さを auto に戻して `scrollHeight` を測らない（キーを押すたびにページ全体のレイアウトをやり直させ、長いチャットで文字入力が遅くなった）。

@@ -13,6 +13,7 @@ import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
 import { TimelineItems } from "./Timeline";
+import { TimelineBusyContext } from "./timelineBusy";
 import { TimelineEnd } from "./TimelineEnd";
 import type { TimelineScroll } from "./timelineScroll";
 import { useMarkSeen } from "./useMarkSeen";
@@ -137,7 +138,10 @@ export function ChatTimeline({
             </button>
           )}
           {/* 途中の一部分（過去）を描いているときは、実行中のツールはない */}
-          <TimelineItems items={w.visible} rel={rel} active={busy && w.hiddenAfter === 0} />
+          {/* 作業中かは項目の props で渡さず、書き直し・分岐のボタンだけが読む（timelineBusy） */}
+          <TimelineBusyContext.Provider value={busy}>
+            <TimelineItems items={w.visible} rel={rel} active={busy && w.hiddenAfter === 0} />
+          </TimelineBusyContext.Provider>
           {/* 途中の一部分を描いているときは、最新の分（書いている途中の返答・確認のカード・作業中の行）は出さない（一番下へ戻るボタンで最新へ） */}
           {w.hiddenAfter > 0 ? (
             <button type="button" className="link-button timeline-more" onClick={w.showLater}>
