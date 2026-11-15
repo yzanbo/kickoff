@@ -85,6 +85,23 @@
   font-weight: 500;
 }
 
+/* 同じコミットにある手元のブランチとリモートのブランチ: リモートはマークだけの札にして、手元の札の前に詰めて並べる */
+.ref-badge-group {
+  display: inline-flex;
+  gap: 2px;
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+
+.ref-badge-group > .ref-badge {
+  margin-right: 0;
+  vertical-align: 0;
+}
+
+.ref-badge-group > .ref-badge.remote {
+  padding: 0 4px;
+}
+
 .ref-badge.tag {
   border-color: color-mix(in srgb, var(--warn) 60%, transparent);
   background: color-mix(in srgb, var(--warn) 14%, transparent);

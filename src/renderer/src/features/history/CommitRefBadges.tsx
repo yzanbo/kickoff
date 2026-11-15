@@ -3,40 +3,69 @@ import type { CSSProperties, MouseEvent } from "react";
 import type { GitRefs } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { GitHubMark } from "@/ui/GitHubMark";
-import { refBadgesOf } from "./refBadges";
+import { refBadgesOf, type BadgeRemote } from "./refBadges";
 import type { RefTarget } from "./refTarget";
+
+type OnMenu = (e: MouseEvent, target: RefTarget) => void;
+
+/** remote のマーク（GitHub なら GitHub のマーク、ほかは雲） */
+function RemoteMark({ remote }: { remote: BadgeRemote }) {
+  return remote.github ? <GitHubMark size={11} /> : <Cloud size={11} aria-hidden />;
+}
+
+/** 札の右クリックで、そのブランチ・タグのメニューを開く */
+function menuHandler(onMenu: OnMenu | undefined, target: RefTarget) {
+  return (
+    onMenu &&
+    ((e: MouseEvent) => {
+      e.stopPropagation();
+      onMenu(e, target);
+    })
+  );
+}
 
 /**
  * ブランチ・タグの札（その行の線の色で塗る。いまのブランチは ✓ と濃い色、タグはタグのマーク）。
- * リモートのブランチには remote のマーク（GitHub なら GitHub のマーク、ほかは雲）を付け、同じコミットにある手元のブランチの札にはまとめてマークだけを添える。
- * 右クリックでそのブランチ・タグのメニュー
+ * リモートのブランチには remote のマーク（GitHub なら GitHub のマーク、ほかは雲）を付ける。
+ * 手元のブランチと同じコミットにあるリモートのブランチは、名前を省いたマークだけの札にして手元の札の前にくっつける
+ * （手元とリモートを別々の札で見せ、それぞれ右クリックでそのブランチのメニュー）
  */
-export function RefBadges({ refs, known, color, onMenu }: { refs: string[]; known: GitRefs | undefined; color: string; onMenu?: (e: MouseEvent, target: RefTarget) => void }) {
+export function RefBadges({ refs, known, color, onMenu }: { refs: string[]; known: GitRefs | undefined; color: string; onMenu?: OnMenu }) {
+  const style = { "--ref-color": color } as CSSProperties;
   return (
     <>
       {refBadgesOf(refs, known).map(({ target, ref, head, remotes }) => {
         const remoteOnly = target.kind === "remote";
-        const marks = remotes.map((r) => (r.github ? <GitHubMark key={r.name} size={11} /> : <Cloud key={r.name} size={11} aria-hidden />));
-        const pushed = !remoteOnly && remotes.length > 0 ? `（${remotes.map((r) => r.name).join("・")} にもある）` : "";
-        return (
+        const badge = (
           <span
             key={ref}
             className={cx("ref-badge", head && "head", target.kind === "tag" && "tag", remoteOnly && "remote")}
-            style={{ "--ref-color": color } as CSSProperties}
-            title={`${ref}${pushed}（右クリックでメニュー）`}
-            onContextMenu={
-              onMenu &&
-              ((e) => {
-                e.stopPropagation();
-                onMenu(e, target);
-              })
-            }
+            style={style}
+            title={`${ref}（右クリックでメニュー）`}
+            onContextMenu={menuHandler(onMenu, target)}
           >
             {head && <Check size={11} strokeWidth={3} aria-hidden />}
             {target.kind === "tag" && <Tag size={11} aria-hidden />}
-            {remoteOnly && marks}
+            {remoteOnly && remotes.map((r) => <RemoteMark key={r.branch} remote={r} />)}
             <span className="ref-badge-name">{target.name}</span>
-            {!remoteOnly && marks}
+          </span>
+        );
+        if (remoteOnly || remotes.length === 0) return badge;
+        return (
+          <span key={ref} className="ref-badge-group">
+            {remotes.map((r) => (
+              <span
+                key={r.branch}
+                className="ref-badge remote"
+                style={style}
+                title={`${r.branch}（右クリックでメニュー）`}
+                aria-label={r.branch}
+                onContextMenu={menuHandler(onMenu, { kind: "remote", name: r.branch })}
+              >
+                <RemoteMark remote={r} />
+              </span>
+            ))}
+            {badge}
           </span>
         );
       })}
