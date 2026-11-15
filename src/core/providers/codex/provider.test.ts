@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/types";
-import { fakeCodexServer, type FakeCodexServer } from "../../testing/fakeCodexServer.js";
+import { fakeCodexServer, type FakeCodexServer } from "../../testing/fakeStdioServer.js";
 import { until } from "../../testing/testCore.js";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "../types.js";
 import { CodexProvider } from "./provider.js";

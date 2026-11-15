@@ -3,12 +3,12 @@ import { createInterface } from "node:readline";
 import { errorMessage } from "@shared/errors";
 
 /**
- * Codex の app-server と話す JSON-RPC の口（標準入出力。1 行に 1 つの JSON。"jsonrpc" の欄は付けない）。
- * 起動は差し替えられる口（CodexSpawn）にして、テストでは台本どおりに答える偽物を使う（src/core/testing/fakeCodexServer.ts）
+ * CLI と標準入出力の JSON-RPC で話す口（1 行に 1 つの JSON）。Codex の app-server（"jsonrpc" の欄なし）と ACP のエージェント（JSON-RPC 2.0）で共有する。
+ * 起動は差し替えられる口（StdioSpawn）にして、テストでは台本どおりに答える偽物を使う（src/core/testing/fakeStdioServer.ts）
  */
 
-/** 起動した app-server（標準入出力と終わり） */
-export interface CodexProcess {
+/** 起動した CLI（標準入出力と終わり） */
+export interface StdioProcess {
   write(line: string): void;
   onLine(listener: (line: string) => void): void;
   /** 終わったとき（code: 終了コード。標準エラーの終わりの部分を添える） */
@@ -16,13 +16,13 @@ export interface CodexProcess {
   kill(): void;
 }
 
-export type CodexSpawn = (args: string[], opts: { env: Record<string, string | undefined>; cwd: string }) => CodexProcess;
+export type StdioSpawn = (args: string[], opts: { env: Record<string, string | undefined>; cwd: string }) => StdioProcess;
 
 /** 標準エラーの覚える長さ（落ちたときの理由の文に添える分） */
 const STDERR_TAIL = 2000;
 
-/** 本物の起動（executable は codex の実行ファイル） */
-export function spawnCodex(executable: string): CodexSpawn {
+/** 本物の起動（executable は CLI の実行ファイル） */
+export function spawnStdio(executable: string): StdioSpawn {
   return (args, { env, cwd }) => {
     const child = spawn(executable, args, { env, cwd, stdio: ["pipe", "pipe", "pipe"] });
     let stderr = "";
@@ -55,8 +55,8 @@ export function spawnCodex(executable: string): CodexSpawn {
   };
 }
 
-/** app-server が JSON-RPC の失敗で答えた */
-export class CodexRpcError extends Error {
+/** CLI が JSON-RPC の失敗で答えた */
+export class StdioRpcError extends Error {
   constructor(
     readonly method: string,
     message: string,
@@ -71,20 +71,30 @@ type Pending = { method: string; resolve: (value: unknown) => void; reject: (err
 /** サーバーからの頼みへの答え（投げたら JSON-RPC の失敗で答える） */
 export type ServerRequestHandler = (method: string, params: unknown) => Promise<unknown>;
 
-export class CodexRpc {
+export interface StdioRpcOpts {
+  /** 失敗の文に出す相手の名前（「Codex の app-server」など） */
+  label: string;
+  /** 送る行に "jsonrpc": "2.0" を付けるか（ACP は付ける。Codex の app-server は付けない）。受ける行はどちらでも読む */
+  jsonrpc?: boolean;
+}
+
+export class StdioRpc {
   private nextId = 1;
   private readonly pending = new Map<number, Pending>();
   private closedReason: string | null = null;
+  private readonly envelope: Record<string, string>;
 
   constructor(
-    private readonly proc: CodexProcess,
+    private readonly proc: StdioProcess,
     private readonly onNotification: (method: string, params: unknown) => void,
     private readonly onServerRequest: ServerRequestHandler,
     /** 終わったとき（落ちた・止めた。理由の文） */
-    private readonly onClosed?: (reason: string) => void,
+    private readonly onClosed: ((reason: string) => void) | undefined,
+    private readonly opts: StdioRpcOpts,
   ) {
+    this.envelope = opts.jsonrpc ? { jsonrpc: "2.0" } : {};
     proc.onLine((line) => this.receive(line));
-    proc.onExit((code, tail) => this.fail(`Codex の app-server が終わりました（終了コード ${code ?? "不明"}）${tail.trim() ? `: ${tail.trim().split("\n").slice(-3).join(" / ")}` : ""}`));
+    proc.onExit((code, tail) => this.fail(`${opts.label}が終わりました（終了コード ${code ?? "不明"}）${tail.trim() ? `: ${tail.trim().split("\n").slice(-3).join(" / ")}` : ""}`));
   }
 
   /** 終わっていたら、その理由（終わっていなければ null） */
@@ -93,29 +103,33 @@ export class CodexRpc {
   }
 
   request<T>(method: string, params: unknown): Promise<T> {
-    if (this.closedReason) return Promise.reject(new CodexRpcError(method, this.closedReason));
+    if (this.closedReason) return Promise.reject(new StdioRpcError(method, this.closedReason));
     const id = this.nextId++;
     return new Promise<T>((resolve, reject) => {
       this.pending.set(id, { method, resolve: resolve as (value: unknown) => void, reject });
-      this.proc.write(JSON.stringify({ id, method, params }));
+      this.write({ id, method, params });
     });
   }
 
   notify(method: string, params?: unknown): void {
     if (this.closedReason) return;
-    this.proc.write(JSON.stringify(params === undefined ? { method } : { method, params }));
+    this.write(params === undefined ? { method } : { method, params });
   }
 
-  /** app-server を止める（待っている頼みは失敗にする） */
+  /** CLI を止める（待っている頼みは失敗にする） */
   close(): void {
-    this.fail("Codex の app-server を止めました");
+    this.fail(`${this.opts.label}を止めました`);
     this.proc.kill();
+  }
+
+  private write(msg: Record<string, unknown>) {
+    this.proc.write(JSON.stringify({ ...this.envelope, ...msg }));
   }
 
   private fail(reason: string) {
     if (this.closedReason) return;
     this.closedReason = reason;
-    for (const [, pending] of this.pending) pending.reject(new CodexRpcError(pending.method, reason));
+    for (const [, pending] of this.pending) pending.reject(new StdioRpcError(pending.method, reason));
     this.pending.clear();
     this.onClosed?.(reason);
   }
@@ -128,7 +142,7 @@ export class CodexRpc {
       return; // JSON でない行（起動の案内など）は読み飛ばす
     }
     if (typeof msg !== "object" || msg === null) return;
-    if (typeof msg.method === "string" && msg.id !== undefined) {
+    if (typeof msg.method === "string" && msg.id !== undefined && msg.id !== null) {
       void this.answer(msg.id, msg.method, msg.params);
       return;
     }
@@ -140,16 +154,16 @@ export class CodexRpc {
     const pending = this.pending.get(msg.id);
     if (!pending) return;
     this.pending.delete(msg.id);
-    if (msg.error) pending.reject(new CodexRpcError(pending.method, msg.error.message ?? "Codex が失敗を返しました", msg.error.code));
+    if (msg.error) pending.reject(new StdioRpcError(pending.method, msg.error.message ?? `${this.opts.label}が失敗を返しました`, msg.error.code));
     else pending.resolve(msg.result);
   }
 
   private async answer(id: number | string, method: string, params: unknown) {
     try {
       const result = await this.onServerRequest(method, params);
-      if (!this.closedReason) this.proc.write(JSON.stringify({ id, result }));
+      if (!this.closedReason) this.write({ id, result: result ?? null });
     } catch (e) {
-      if (!this.closedReason) this.proc.write(JSON.stringify({ id, error: { code: -32000, message: errorMessage(e) } }));
+      if (!this.closedReason) this.write({ id, error: { code: -32000, message: errorMessage(e) } });
     }
   }
 }

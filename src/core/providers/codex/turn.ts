@@ -7,14 +7,14 @@ import { createApprovalHandler } from "./approvals.js";
 import { appServerLaunch, codexEffort, codexSandboxPolicy, threadOverrides, turnInput } from "./config.js";
 import { commandOutputDelta, createItemState, itemCompleted, itemStarted } from "./items.js";
 import type { CodexErrorInfo, ThreadItem, ThreadResponse, ThreadResumeParams, ThreadStartParams, ThreadTokenUsage, Turn, TurnError, TurnStartParams, TurnSteerParams } from "./protocol.js";
-import type { CodexRpc, CodexSpawn } from "./rpc.js";
+import type { StdioRpc, StdioSpawn } from "../stdioRpc.js";
 import { openSession } from "./session.js";
 
 /** 止めたあと、Codex がターンの終わりを返すまで待つ長さ（過ぎたら app-server ごと止める） */
 const INTERRUPT_GRACE_MS = 5000;
 
 export interface TurnDeps {
-  spawn: CodexSpawn;
+  spawn: StdioSpawn;
   /** app-server に渡す環境変数の元（process.env） */
   baseEnv: Record<string, string | undefined>;
   self?: SelfInfo;
@@ -58,7 +58,7 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
   let lastText = "";
   let lastError: TurnError | null = null;
   let retries = 0;
-  let rpc: CodexRpc | null = null;
+  let rpc: StdioRpc | null = null;
   const pendingSteers: string[] = [];
   const compactOnly = params.prompt.trim() === "/compact";
 

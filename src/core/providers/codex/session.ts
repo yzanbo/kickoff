@@ -1,10 +1,10 @@
-import { CodexRpc, type CodexSpawn, type ServerRequestHandler } from "./rpc.js";
+import { StdioRpc, type StdioSpawn, type ServerRequestHandler } from "../stdioRpc.js";
 
 /** Kickoff の名乗り（initialize の clientInfo） */
 const CLIENT_INFO = { name: "kickoff", title: "Kickoff", version: "0.1.0" };
 
 export interface SessionOpts {
-  spawn: CodexSpawn;
+  spawn: StdioSpawn;
   args: string[];
   env: Record<string, string | undefined>;
   cwd: string;
@@ -22,9 +22,9 @@ const refuseAll: ServerRequestHandler = async (method) => {
  * app-server を起動して話し始める（initialize → initialized）。
  * experimentalApi は AI からの質問（item/tool/requestUserInput）などを受けるため
  */
-export async function openSession(opts: SessionOpts): Promise<CodexRpc> {
+export async function openSession(opts: SessionOpts): Promise<StdioRpc> {
   const proc = opts.spawn(opts.args, { env: opts.env, cwd: opts.cwd });
-  const rpc = new CodexRpc(proc, opts.onNotification ?? (() => {}), opts.onServerRequest ?? refuseAll, opts.onClosed);
+  const rpc = new StdioRpc(proc, opts.onNotification ?? (() => {}), opts.onServerRequest ?? refuseAll, opts.onClosed, { label: "Codex の app-server" });
   try {
     await rpc.request("initialize", { clientInfo: CLIENT_INFO, capabilities: { experimentalApi: true, requestAttestation: false } });
     rpc.notify("initialized");
@@ -36,7 +36,7 @@ export async function openSession(opts: SessionOpts): Promise<CodexRpc> {
 }
 
 /** 用事を 1 つ済ませるだけの短い会話（終わったら止める） */
-export async function withSession<T>(opts: SessionOpts, fn: (rpc: CodexRpc) => Promise<T>): Promise<T> {
+export async function withSession<T>(opts: SessionOpts, fn: (rpc: StdioRpc) => Promise<T>): Promise<T> {
   const rpc = await openSession(opts);
   try {
     return await fn(rpc);
