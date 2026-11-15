@@ -1,7 +1,7 @@
 // kickoff_chat のチャットをアーカイブする・消すツール（archive_chat・delete_chat）。中身は core/chat/aiChatRemove.ts、ここは引数の形と使い方だけ
-import { tool } from "@anthropic-ai/claude-agent-sdk";
+import { defineTool as tool } from "./tool.js";
 import { z } from "zod";
-import type { AiChatRemoveTools } from "../../chat/aiChatRemove.js";
+import type { AiChatRemoveTools } from "../chat/aiChatRemove.js";
 import { run } from "./chatToolResult.js";
 
 /** チャットをアーカイブする・消すツールの使い方（MCP の instructions として AI に渡す） */

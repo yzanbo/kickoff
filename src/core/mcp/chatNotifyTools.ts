@@ -1,8 +1,8 @@
 // kickoff_chat の利用者に知らせるツール（notify_user）。中身は core/chat/aiNotify.ts、ここは引数の形と使い方だけ
-import { tool } from "@anthropic-ai/claude-agent-sdk";
+import { defineTool as tool } from "./tool.js";
 import { z } from "zod";
 import { AI_NOTIFY_MESSAGE_MAX, AI_NOTIFY_PER_TURN } from "@shared/chat/aiNotify";
-import type { AiNotifyTools } from "../../chat/aiNotify.js";
+import type { AiNotifyTools } from "../chat/aiNotify.js";
 import { run } from "./chatToolResult.js";
 
 /** 利用者に知らせるツールの使い方（MCP の instructions として AI に渡す） */

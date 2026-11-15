@@ -1,4 +1,4 @@
-import type { RevealRequest } from "../../browser/control.js";
+import type { RevealRequest } from "../browser/control.js";
 
 /**
  * 1 回の作業（Turn）の間に、AI が使うブラウザのタブを表に出すかを決める（browserTools.ts の MCP サーバーは作業ごとに作るので、作業ごとに 1 つ）。

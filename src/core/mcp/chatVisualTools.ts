@@ -1,8 +1,8 @@
 // kickoff_chat の図のツール（visual_guide・show_visual・update_visual）。中身は core/chat/aiVisual.ts、ここは引数の形と使い方だけ
-import { tool } from "@anthropic-ai/claude-agent-sdk";
+import { defineTool as tool } from "./tool.js";
 import { z } from "zod";
 import { VISUAL_CODE_MAX, VISUAL_GUIDE_TOPICS, VISUAL_KINDS, VISUAL_TITLE_MAX } from "@shared/chat/aiVisual";
-import type { AiVisualTools } from "../../chat/aiVisual.js";
+import type { AiVisualTools } from "../chat/aiVisual.js";
 import { run } from "./chatToolResult.js";
 
 /** 図のツールの使い方（MCP の instructions として AI に渡す） */

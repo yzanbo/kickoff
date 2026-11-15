@@ -1,7 +1,7 @@
 // kickoff_chat のワークツリーを片付けるツール（finish_worktree）。中身は core/worktrees/finish.ts、ここは引数の形と使い方だけ
-import { tool } from "@anthropic-ai/claude-agent-sdk";
+import { defineTool as tool } from "./tool.js";
 import { z } from "zod";
-import type { AiWorktreeTools } from "../../chat/aiWorktree.js";
+import type { AiWorktreeTools } from "../chat/aiWorktree.js";
 import { run } from "./chatToolResult.js";
 
 /** ワークツリーを片付けるツールの使い方（MCP の instructions として AI に渡す） */

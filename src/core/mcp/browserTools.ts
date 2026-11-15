@@ -1,8 +1,8 @@
-import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
+import { defineTool as tool, type ToolServer } from "./tool.js";
 import { errorMessage } from "@shared/errors";
-import type { BrowserControl } from "../../browser/control.js";
-import { formatSnapshot, formatTab, formatTabs, normalizeBrowserUrl } from "../../browser/format.js";
+import type { BrowserControl } from "../browser/control.js";
+import { formatSnapshot, formatTab, formatTabs, normalizeBrowserUrl } from "../browser/format.js";
 import { turnReveal } from "./browserReveal.js";
 
 /** Kickoff の埋め込みブラウザのツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_browser__browser_…） */
@@ -10,9 +10,6 @@ export const BROWSER_SERVER = "kickoff_browser";
 
 /** 見るだけのツール（権限モードにかかわらず聞かずに使わせる。開く・押す・打つ・JS は、ほかのツールと同じく権限モードと承認に従う） */
 const READ_TOOLS = ["browser_tabs", "browser_read", "browser_screenshot", "browser_scroll", "browser_console"] as const;
-
-/** allowedTools に足す名前（見るだけのツール） */
-export const browserReadOnlyTools = () => READ_TOOLS.map((name) => `mcp__${BROWSER_SERVER}__${name}`);
 
 /** このツールの使い方（MCP の instructions として AI に渡す） */
 const INSTRUCTIONS = [
@@ -34,10 +31,10 @@ const failure = (e: unknown) => ({ content: [{ type: "text" as const, text: erro
 const lastTabs = new Map<number, number>();
 
 /**
- * 1 回の実行に渡す、埋め込みブラウザのツールの MCP サーバー（Claude Agent SDK のプロセス内のサーバー）。
+ * 1 回の実行に渡す、埋め込みブラウザのツールの MCP サーバー（コアの MCP サーバーがどの CLI にも出す）。
  * tab_id を省くと、このチャットで前に使ったタブ → このプロジェクトのタブ（いちばん新しいもの）の順で選ぶ
  */
-export function browserMcpServer(control: BrowserControl, { projectId, chatId }: { projectId: number; chatId: number }): McpSdkServerConfigWithInstance {
+export function browserToolServer(control: BrowserControl, { projectId, chatId }: { projectId: number; chatId: number }): ToolServer {
   /** この作業で表に出したタブ（サーバーは作業ごとに作るので、作業ごとの覚え） */
   const reveal = turnReveal((id, request) => control.reveal(id, request));
   /** 操作するタブを決め、使ったことを覚えて画面に印を出す。作業の初めに使うタブなら、表に出し終えるまで待つ（background なら出さない） */
@@ -67,9 +64,9 @@ export function browserMcpServer(control: BrowserControl, { projectId, chatId }:
   const ref = z.number().int().positive().describe("browser_read で付いた要素の番号");
   const background = z.boolean().optional().describe("true なら表に出さない（この作業の間、以後も）。利用者が「裏で」と言ったときだけ付ける");
 
-  return createSdkMcpServer({
+  return {
     name: BROWSER_SERVER,
-    version: "1.0.0",
+    autoAllow: [...READ_TOOLS],
     instructions: INSTRUCTIONS,
     tools: [
       tool("browser_tabs", "Kickoff の埋め込みブラウザで開いているタブの一覧（tab_id・題・URL）", {}, run(async () => text(formatTabs(control.tabs(), projectId, lastTabs.get(chatId) ?? null))), {
@@ -164,5 +161,5 @@ export function browserMcpServer(control: BrowserControl, { projectId, chatId }:
         { annotations: { readOnlyHint: true } },
       ),
     ],
-  });
+  };
 }

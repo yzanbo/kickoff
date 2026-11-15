@@ -1,19 +1,13 @@
-import { createSdkMcpServer, tool, type McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
+import { defineTool as tool, type ToolServer } from "./tool.js";
 import { errorMessage } from "@shared/errors";
-import type { DbAiTools } from "../../databases/aiTools.js";
-import type { ProviderCallbacks } from "../types.js";
+import type { DbAiTools } from "../databases/aiTools.js";
+import type { ProviderCallbacks } from "../providers/types.js";
 
 /** プロジェクトの DB を AI が読むツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_db__db_…） */
 export const DB_SERVER = "kickoff_db";
 
 const TOOLS = ["db_connections", "db_objects", "db_describe", "db_query"] as const;
-
-/**
- * allowedTools に足す名前（すべて）。「承認して見せる」の承認と「見せない」の断りはツールの中で行うので、
- * 権限モードにかかわらず同じに効く（Auto mode でも承認を飛ばさない）
- */
-export const dbToolNames = () => TOOLS.map((name) => `mcp__${DB_SERVER}__${name}`);
 
 /** このツールの使い方（MCP の instructions として AI に渡す） */
 const INSTRUCTIONS = [
@@ -41,13 +35,14 @@ const run =
   };
 
 /** 1 回の実行に渡す、DB のツールの MCP サーバー（「承認して見せる」の db_query は requestApproval で利用者に聞く） */
-export function dbMcpServer(tools: DbAiTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): McpSdkServerConfigWithInstance {
+export function dbToolServer(tools: DbAiTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): ToolServer {
   const connection = z.string().optional().describe("接続の名前（db_connections の名前。接続が 1 つだけなら省いてよい）");
   const database = z.string().optional().describe("DB の名前（省くと接続のいまの DB）");
   const schema = z.string().optional().describe("スキーマ（PostgreSQL だけ。省くと public）");
-  return createSdkMcpServer({
+  return {
     name: DB_SERVER,
-    version: "1.0.0",
+    // すべて聞かずに使わせる（「承認して見せる」の承認と「見せない」の断りはツールの中で行うので、権限モードにかかわらず同じに効く）
+    autoAllow: [...TOOLS],
     instructions: INSTRUCTIONS,
     tools: [
       tool("db_connections", "このプロジェクトの、AI に見せる DB の接続の一覧（名前・種類・環境・許可）", {}, run(() => tools.connections()), {
@@ -101,5 +96,5 @@ export function dbMcpServer(tools: DbAiTools, cb: Pick<ProviderCallbacks, "reque
         { annotations: { readOnlyHint: true } },
       ),
     ],
-  });
+  };
 }

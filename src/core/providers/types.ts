@@ -15,13 +15,14 @@ import type { DockerGuard } from "../chat/guard/dockerGuard.js";
 import type { WriteScopeParams } from "../chat/guard/writeScope.js";
 import type { BashSandbox } from "../chat/sandbox/bashSandbox.js";
 import type { DbAiTools } from "../databases/aiTools.js";
+import type { ToolEndpoint } from "../mcp/host.js";
 import type { ChatPolicy } from "../chat/policy.js";
 import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, RememberScope, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
 
 /**
  * エージェント実行基盤の抽象化。
- * Claude Code（Agent SDK）を最初の実装とし、Codex / Gemini などは同じインターフェースで追加する。
- * 認証は各 CLI のログイン（claude / codex login など）をそのまま使い、アプリは資格情報を保持しない。
+ * Claude Code（Agent SDK）を最初の実装とし、Codex / Copilot / Cursor などは同じインターフェースで追加する（メモの仕様書「0021_Codex・Copilot・Cursor 対応」）。
+ * AI の操作ツールはコアの MCP サーバー（ProviderTurnParams.tools）で渡し、プロバイダーごとに作らない。
  */
 /** 1 回だけ聞くときのモデル（ask） */
 export type AskModel = "haiku" | "sonnet";
@@ -121,6 +122,11 @@ export interface ProviderTurnParams {
   untrackedOnly?: boolean;
   /** 子プロセスに足す環境変数（プロジェクトで選んだ GitHub のアカウントのトークン GH_TOKEN。省略なら足さない） */
   env?: Record<string, string>;
+  /**
+   * この実行の AI の操作ツールの口（コアの MCP サーバー。mcp/host.ts）。turn.ts が下のツールの中身（browser・database・createChat など）から作って登録し、
+   * プロバイダーはそれぞれの CLI の書き方で MCP サーバーとして渡すだけ（中身を自分で作らない）。省略・空なら渡さない
+   */
+  tools?: ToolEndpoint[];
   /** Kickoff の埋め込みブラウザを AI に操作させる口と、このチャット（デスクトップアプリのときだけ。なければブラウザのツールを出さない） */
   browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
   /** プロジェクトの DB を AI に読ませる口（AI に見せる接続があるときだけ。なければ DB のツールを出さない） */

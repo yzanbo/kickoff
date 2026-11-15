@@ -16,13 +16,22 @@ export function resolveClaudeExecutable(): string | undefined {
   }
 }
 
+/** MCP のツールの待ち時間（7 日。ミリ秒） */
+const MCP_TOOL_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000;
+
 /**
  * Claude のプラン（claude.ai ログイン）で動かすため、API キーの環境変数は子プロセスに渡さない。
  * KICKOFF_ALLOW_API_KEY=1 のときだけ API キー認証を許可する。
  */
 export function agentEnv(): Record<string, string | undefined> {
   // 手が空いたこと（session_state_changed の idle）を知らせてもらう（入力を閉じる時を決める。turnOver.ts）
-  const env: Record<string, string | undefined> = { ...process.env, CLAUDE_AGENT_SDK_CLIENT_APP: "kickoff/0.1.0", CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS: "1" };
+  // MCP のツールの待ち時間は 7 日（コアの MCP サーバーのツールは、承認カードの答えを待つ間は返らないため。フックの待ち時間と同じ）
+  const env: Record<string, string | undefined> = {
+    ...process.env,
+    CLAUDE_AGENT_SDK_CLIENT_APP: "kickoff/0.1.0",
+    CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS: "1",
+    MCP_TOOL_TIMEOUT: String(MCP_TOOL_TIMEOUT_MS),
+  };
   if (process.env.KICKOFF_ALLOW_API_KEY !== "1") {
     delete env.ANTHROPIC_API_KEY;
     delete env.ANTHROPIC_AUTH_TOKEN;
