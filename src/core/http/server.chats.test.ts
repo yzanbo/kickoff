@@ -517,3 +517,26 @@ test("チャットの詳細の記録: クエリがなければすべて・after 
     assert.equal((await call("GET", `/api/chats/${chat.id}${q}`)).status, 400, q);
   }
 });
+
+test("チャットの詳細に書きかけの返答（SSE で流した途中の文をつないだもの）と長さが入り、確定したら null になる", async () => {
+  const { call, project, store, bus, runner } = setup();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "こんにちは" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.streaming_text, null);
+  // 返答の途中で開いた: それまでに流した途中の文が頭から入る（流す chat_delta には書きかけの文の中の位置が付く）
+  const seen: number[] = [];
+  bus.subscribe((e) => e.type === "chat_delta" && e.chat_id === chatId && seen.push(e.offset ?? -1));
+  bus.publish({ type: "chat_delta", project_id: project.id, chat_id: chatId, text: "返答の" });
+  bus.flushDeltas();
+  bus.publish({ type: "chat_delta", project_id: project.id, chat_id: chatId, text: "途中" });
+  bus.flushDeltas();
+  assert.deepEqual(seen, [0, 3]);
+  const middle = (await call("GET", `/api/chats/${chatId}`)).body;
+  assert.equal(middle.streaming_text, "返答の途中");
+  assert.equal(middle.streaming_length, 5);
+  // メインエージェントの確定した文の記録で消える（記録に全文がある）
+  store.events.add(chatId, { type: "text", text: "返答の途中です" });
+  const done = (await call("GET", `/api/chats/${chatId}`)).body;
+  assert.equal(done.streaming_text, null);
+  assert.equal(done.streaming_length, 0);
+});

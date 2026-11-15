@@ -296,6 +296,13 @@ export interface ChatDetail {
   /** このチャットの回答待ち（ツールの承認・AI からの質問・再開するかの確かめ） */
   approvals: Approval[];
   live: ChatLive;
+  /**
+   * 書きかけの返答（作業中に、確定する前の文。SSE の chat_delta で流した分をつないだもの。なければ null）。
+   * 返答の途中で開いても、文の頭から出せるように。このあとに届く chat_delta の offset と比べ、持っている分は足さない
+   */
+  streaming_text: string | null;
+  /** streaming_text の長さ（UTF-16。なければ 0。chat_delta の offset と同じ数え方） */
+  streaming_length: number;
 }
 
 /**
