@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
-import type { Approval, Chat, ChatEvent, ChatLive, Project } from "@shared/types";
+import type { Approval, Chat, ChatLive, Project } from "@shared/types";
+import { chatLog } from "@/features/chat/store/useChatStore";
+import type { ChatLogView } from "@/features/chat/store/chatStore";
 import { api } from "@/api";
 import { createValueCell } from "@/lib/valueCell";
 import { readSetting } from "@/lib/storage";
@@ -35,7 +37,8 @@ import { useChatSend } from "./useChatSend";
 export interface ChatViewInput {
   chat: Chat;
   project?: Project;
-  events: ChatEvent[];
+  /** 記録の口（流れに出す記録・末尾・記録全体から作るものに渡す digest。useChatContent） */
+  log: ChatLogView;
   approvals: Approval[];
   /** 作業中の様子（コアが持つ形のまま。停止中はほかの画面から止めたときも） */
   live: ChatLive;
@@ -53,6 +56,9 @@ export interface SidePanelHandle {
   uncover: () => void;
 }
 
+/** 遠い記録を読んでいるとき、押した所に回る印を出すまでの時間（メモの仕様書「0023_表示を軽くする」の Q1 A） */
+const JUMP_PENDING_MS = 150;
+
 /** 右の欄の中のサブエージェントの画面（data-agent-screen）の、スクロールする欄 */
 const sideScroller = (chatId: number, key: string) =>
   document.querySelector<HTMLElement>(`[data-agent-screen="${chatId}:${key}"] .subagent-screen-scroll`);
@@ -63,7 +69,7 @@ const sideScroller = (chatId: number, key: string) =>
  * ChatView は描くだけ（ChatView はチャットごとに作り直す = key がチャットの ID）
  */
 export function useChatView(
-  { chat, project, events, approvals, live: coreLive, focus, onOpenNew, beforeSend }: ChatViewInput,
+  { chat, project, log, approvals, live: coreLive, focus, onOpenNew, beforeSend }: ChatViewInput,
   /** 右の欄（サブエージェントの欄）を置けるか（パネルの中のチャット） */
   canOpenSide = false,
 ) {
@@ -93,6 +99,8 @@ export function useChatView(
     }),
     [coreLive, busy, stopClicked],
   );
+  // 記録全体から作るもの（サブエージェント・指示の一覧・失敗した作業など）は、末尾と索引を重ねた digest から作る（案 4）
+  const events = log.digest;
   const subagents = useSubagents(chat.id, events, busy, live.background);
   // サブエージェントの入れ子（流れの中のカード・ピルの一覧・カードへ移るとき）と、カードが読むもの（変わったときだけ新しい値にし、カードだけが描き直る）
   const tree = useMemo(() => subagentTree(subagents), [subagents]);
@@ -103,13 +111,15 @@ export function useChatView(
   const worktree = chat.worktree_path;
   // 回答待ちの依頼を出しているサブエージェント（依頼の呼び出しの記録から引く。カード・ピル・タブの「回答待ち」）
   const waiting = useMemo(() => waitingSubagentKeys(approvals, events, subagents), [approvals, events, subagents]);
+  const { loaded, tailStart, hasEarlier } = log;
   const subagentsView = useMemo<SubagentsView>(
-    () => ({ chatId: chat.id, projectId: chat.project_id, worktree, rel, busy, events, tree, hues, waiting }),
-    [chat.id, chat.project_id, worktree, rel, busy, events, tree, hues, waiting],
+    () => ({ chatId: chat.id, projectId: chat.project_id, worktree, rel, busy, events, loaded, tailStart, hasEarlier, tree, hues, waiting }),
+    [chat.id, chat.project_id, worktree, rel, busy, events, loaded, tailStart, hasEarlier, tree, hues, waiting],
   );
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
-  const items = useMemo(() => groupEvents(events), [events]);
+  // 流れに出すのは末尾（遠い発言へ移ったときは途中の一部分）。前に起動したサブエージェントは preface で数える
+  const items = useMemo(() => groupEvents(log.events, undefined, { preface: log.preface, partialHead: log.headPartial }), [log.events, log.preface, log.headPartial]);
   // 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・チャット欄の ↑ の呼び出し。記録が変わったときだけ作り直す）
   const prompts = promptListOf(events);
   // 返答の中のファイルのパス・変更カード・ツールの行のファイルを、押して右の欄（置けなければファイルタブ）で開けるようにする（作業場所のファイルだけ）
@@ -122,7 +132,30 @@ export function useChatView(
   // 検索結果から開いたときは、初めから一番下へ付いていかない（移り先へ跳ぶ前に一番下へ寄せない）
   const scroll = useTimelineScrollHandle(!focus);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
-  const timeline = useTimelineWindow({ items, chatId: chat.id, focus, scroll });
+  const chatId = chat.id;
+  const paging = useMemo(
+    () => ({
+      loadEarlier: () => chatLog.loadEarlier(chatId),
+      loadLater: () => chatLog.loadLater(chatId),
+      backToTail: () => chatLog.backToTail(chatId),
+    }),
+    [chatId],
+  );
+  const timeline = useTimelineWindow({ items, chatId, focus, scroll, log: { hasEarlier: log.hasEarlier, focused: log.focused, ...paging } });
+  // 検索結果から開いた発言を読んでいなければ、その前後を読む（読めたら窓がその前後を描く）
+  useEffect(() => {
+    if (focus !== undefined && !chatLog.shows(chatId, focus)) void chatLog.openAround(chatId, focus);
+  }, [chatId, focus]);
+  // 遠い記録を読んだあと、流れに出たら続きをする（openAround のあとに移る・描く）
+  const [afterShow, setAfterShow] = useState<{ eventId: number; then: () => void } | null>(null);
+  useEffect(() => {
+    if (!afterShow) return;
+    const first = log.events[0]?.id;
+    const shown = first !== undefined && (log.focused ? afterShow.eventId >= first && afterShow.eventId <= log.events.at(-1)!.id : afterShow.eventId >= log.tailStart);
+    if (!shown) return;
+    setAfterShow(null);
+    afterShow.then();
+  }, [afterShow, log]);
   // 移り先が窓の外なら、窓を広げて描いてから移る
   const [jumpTarget, setJumpTarget] = useState<number | null>(null);
   useEffect(() => {
@@ -138,13 +171,12 @@ export function useChatView(
   // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
   // ピルの列を画面の外に描いているとき（メモのチャットの欄を閉じている）は、会話へ移る前に画面を見せる
   const chipsPortal = useChipsPortal();
-  const fresh = { chat, options, tree, timeline, onOpenNew, stepPrompt: promptKeys.go, send, reveal: chipsPortal?.reveal };
+  const fresh = { chat, log, options, tree, timeline, onOpenNew, stepPrompt: promptKeys.go, send, reveal: chipsPortal?.reveal };
   const latest = useRef(fresh);
   latest.current = fresh;
 
   const [pane] = useState<ChatPaneActions>(() => {
     const now = () => latest.current;
-    const chatId = chat.id;
     const state = createValueCell<ChatPaneState>({
       retry,
       openSubagents: new Set(),
@@ -153,8 +185,22 @@ export function useChatView(
       activityFilter: { kind: "all" },
       activityFocus: null,
       tellOpen: new Set(),
+      jumping: null,
     });
     const patch = (next: Partial<ChatPaneState>) => state.set({ ...state.get(), ...next });
+    /**
+     * その記録を流れに出してから then（読んでいなければ読み、読めて流れに出たら。Q1 A: いまの位置で待ち、JUMP_PENDING_MS を超えたら
+     * 押した所に回る印 jumping を出す）
+     */
+    const whenShown = (eventId: number, then: () => void) => {
+      if (chatLog.shows(chatId, eventId)) return then();
+      const slow = setTimeout(() => patch({ jumping: eventId }), JUMP_PENDING_MS);
+      void chatLog.openAround(chatId, eventId).finally(() => {
+        clearTimeout(slow);
+        if (state.get().jumping !== null) patch({ jumping: null });
+        setAfterShow({ eventId, then });
+      });
+    };
     /** 描いたあとに、その記録の要素へ移る（開いたカードの中身が描かれるまで、数フレーム待つ） */
     const jumpWhenDrawn = (eventId: number, frames = 20) => {
       const el = scroll.ref.current;
@@ -182,10 +228,14 @@ export function useChatView(
         patch({ openSubagents: new Set([...state.get().openSubagents, ...path.map((s) => s.key)]), showing: "conversation" });
         scroll.release();
         const root = path[0].toolUseEventId;
-        if (root !== undefined) now().timeline.reveal(root);
-        // 開いた状態が描かれてから移る（先に移ると、描き直しで強調の印が消える）
-        const eventId = inside ?? target.toolUseEventId;
-        if (eventId !== undefined) requestAnimationFrame(() => jumpWhenDrawn(eventId));
+        const go = () => {
+          if (root !== undefined) now().timeline.reveal(root);
+          // 開いた状態が描かれてから移る（先に移ると、描き直しで強調の印が消える）
+          const eventId = inside ?? target.toolUseEventId;
+          if (eventId !== undefined) requestAnimationFrame(() => jumpWhenDrawn(eventId));
+        };
+        if (root !== undefined) whenShown(root, go);
+        else go();
       },
       openSubagent: (key, eventId) => {
         const place = readSetting(SUBAGENT_OPEN_IN);
@@ -241,8 +291,10 @@ export function useChatView(
         if (eventId === undefined) return;
         scroll.release();
         // 会話を描き直してから移る（隠している間の流れの中では、移っても見えない）
-        if (now().timeline.reveal(eventId)) requestAnimationFrame(() => jumpWhenDrawn(eventId));
-        else setJumpTarget(eventId);
+        whenShown(eventId, () => {
+          if (now().timeline.reveal(eventId)) requestAnimationFrame(() => jumpWhenDrawn(eventId));
+          else setJumpTarget(eventId);
+        });
       },
       toggleSubagentFull: (key) => {
         const next = new Set(state.get().fullSubagents);
@@ -284,12 +336,18 @@ export function useChatView(
         const el = scroll.ref.current;
         // 移ったら流れにピントを置く（続けて ⌘⌥↑ / ↓・↑↓ のスクロールが効くように。一覧を閉じてピントが外れたままにしない）
         el?.focus({ preventScroll: true });
-        if (!now().timeline.reveal(eventId)) setJumpTarget(eventId);
-        else if (el) jumpToEvent(el, eventId, { smooth: true });
+        whenShown(eventId, () => {
+          if (!now().timeline.reveal(eventId)) setJumpTarget(eventId);
+          else if (el) jumpToEvent(el, eventId, { smooth: true });
+        });
       },
       reveal: (eventId) => {
         scroll.release();
-        now().timeline.reveal(eventId);
+        whenShown(eventId, () => now().timeline.reveal(eventId));
+      },
+      searchTexts: async () => {
+        const { tailStart } = now().log;
+        return tailStart > 0 ? (await api.chatTexts(chatId, tailStart)).events : [];
       },
       stepPrompt: (dir, from) => now().stepPrompt(dir, from),
       fillComposer: (text, opts) => composer.current?.fill(text, opts),

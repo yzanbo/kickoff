@@ -20,7 +20,7 @@ export function SideChildChat({
   /** パネルのタブの置き場所（chatPaneSlot。タブの右クリックから会話 / 動きを切り替える） */
   slot?: string;
 }) {
-  const { chat, project, events, approvals, live, error } = useChatContent(chatId, visible);
+  const { chat, project, log, approvals, live, error } = useChatContent(chatId, visible);
   const title = chat?.title;
   // タブの名前を最新に（名前の自動生成・変更。渡される関数は描くたびに変わるので、名前が変わったときだけ呼ぶ）
   const setTitle = useRef(onTitle);
@@ -32,10 +32,10 @@ export function SideChildChat({
   if (!chat) return <div className="page muted">読み込み中…</div>;
   return (
     <div className="side-child-chat">
-      <ChildChatBar chat={chat} events={events} />
+      <ChildChatBar chat={chat} events={log.digest} />
       <div className="side-child-chat-body">
         <PanelHostContext.Provider value={null}>
-          <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} visible={visible} slot={slot} />
+          <ChatView key={chat.id} chat={chat} project={project} log={log} approvals={approvals} live={live} visible={visible} slot={slot} />
         </PanelHostContext.Provider>
       </div>
     </div>

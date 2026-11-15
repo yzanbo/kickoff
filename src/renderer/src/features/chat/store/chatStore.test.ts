@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { BusEvent, Chat, ChatDetail, ChatDetailQuery, ChatEvent } from "@shared/types";
+import { CHAT_TAIL_TURNS, type BusEvent, type Chat, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatEventPage, type ChatEventsQuery } from "@shared/types";
 import { makeChat, makeEvent } from "@shared/testing/factories";
 import { EMPTY_DETAIL } from "./chatDetail";
-import { createChatStore, OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, STREAM_FLUSH_MS, WARM_CHATS } from "./chatStore";
+import { createChatStore, OPEN_HOLD_MAX_MS, PUBLISH_FALLBACK_MS, SHRINK_AFTER_MS, STREAM_FLUSH_MS, WARM_CHATS } from "./chatStore";
 
 /** 偽の rAF・タイマー・時計・読み込みで作った店（テストごとに新しく作る） */
 function setup() {
@@ -12,6 +12,7 @@ function setup() {
   const frames = new Set<() => void>();
   let timers: { at: number; fn: () => void }[] = [];
   const loads: { chatId: number; query: ChatDetailQuery; resolve: (d: ChatDetail) => void; reject: (e: Error) => void }[] = [];
+  const pages: { chatId: number; query: ChatEventsQuery; resolve: (p: ChatEventPage) => void }[] = [];
   const store = createChatStore({
     frame: (fn) => {
       const f = () => fn();
@@ -26,6 +27,7 @@ function setup() {
     now: () => now,
     windowHidden: () => hidden,
     load: (chatId, query) => new Promise((resolve, reject) => loads.push({ chatId, query, resolve, reject })),
+    page: (chatId, query) => new Promise((resolve) => pages.push({ chatId, query, resolve })),
   });
   /** 次のフレームを描く（予約された rAF を呼ぶ） */
   const frame = () => {
@@ -51,7 +53,7 @@ function setup() {
     for (const channel of ["detail", "log", "progress", "streaming"] as const) store.subscribe(chatId, channel, () => c[channel]++);
     return c;
   };
-  return { store, frame, advance, loads, counts, setHidden: (h: boolean) => (hidden = h) };
+  return { store, frame, advance, loads, pages, counts, setHidden: (h: boolean) => (hidden = h) };
 }
 
 /** 読み込みの応答を返し終えるまで待つ */
@@ -87,7 +89,7 @@ test("同じチャットを何か所で開いても読み込みは 1 回で、�
   const a = store.retain(1, "visible");
   const b = store.retain(1, "hidden");
   assert.equal(loads.length, 1);
-  assert.deepEqual(loads[0].query, {});
+  assert.deepEqual(loads[0].query, { tail_turns: CHAT_TAIL_TURNS });
   loads[0].resolve(detail(chatOf(1), [text(1)]));
   await settle();
   assert.equal(store.detail(1).chat?.id, 1);
@@ -254,7 +256,7 @@ test("持っていた最後の記録が巻き戻しで消えていたら、す�
   store.reconnected();
   loads[1].resolve({ ...detail(chatOf(1)), after_missing: true });
   await settle();
-  assert.deepEqual(loads[2].query, {});
+  assert.deepEqual(loads[2].query, { tail_turns: CHAT_TAIL_TURNS });
   loads[2].resolve(detail(chatOf(1), [text(1)]));
   await settle();
   frame();
@@ -297,4 +299,83 @@ test("サブエージェントの途中経過を作業 ID ごとに覚え、届�
   assert.deepEqual(Object.keys(store.progress(1).progress), ["t1"]);
   assert.equal(typeof store.progress(1).progressAt.t1, "string");
   assert.deepEqual(store.progress(9).progress, {});
+});
+
+/** 末尾（5 から 7）と索引（作業の終わり 2・4）で開いた店（記録 1〜7。作業の終わりは 2・4・6） */
+async function openedTail() {
+  const s = setup();
+  const handle = s.store.retain(1, "visible");
+  const result = (id: number) => makeEvent(id, "result", { status: "completed" }, { chat_id: 1 });
+  s.loads[0].resolve({ ...detail(chatOf(1, "completed"), [text(5), result(6), text(7)]), has_earlier: true, index: [result(2), result(4)], head_partial: false });
+  await settle();
+  s.store.markPainted(1);
+  return { ...s, handle, result };
+}
+
+test("末尾で開き、前を読み足す・遠い記録を途中の一部分として読む・末尾に戻る（メモの仕様書「0023_表示を軽くする」の案 4）", async () => {
+  const { store, pages, frame, result } = await openedTail();
+  assert.deepEqual([store.log(1).tailStart, store.log(1).hasEarlier], [5, true]);
+  assert.deepEqual(store.log(1).digest.map((e) => e.id), [2, 4, 5, 6, 7]);
+  // 前を読み足す
+  const earlier = store.loadEarlier(1);
+  assert.deepEqual(pages[0].query, { before: 5, turns: CHAT_TAIL_TURNS });
+  assert.equal(store.loadEarlier(1), earlier);
+  pages[0].resolve({ events: [text(3), result(4)], has_earlier: true, has_later: false, head_partial: false });
+  await earlier;
+  frame();
+  assert.deepEqual(store.log(1).events.map((e) => e.id), [3, 4, 5, 6, 7]);
+  assert.deepEqual(store.log(1).digest.map((e) => e.id), [2, 3, 4, 5, 6, 7]);
+  // 近い記録は末尾を伸ばす（頭のターンの頭から）
+  const near = store.openAround(1, 1);
+  assert.deepEqual(pages[1].query, { before: 3, since: 0 });
+  pages[1].resolve({ events: [text(1), result(2)], has_earlier: false, has_later: false, head_partial: false });
+  await near;
+  frame();
+  assert.equal(store.shows(1, 1), true);
+  assert.equal(store.log(1).focused, false);
+});
+
+test("遠い記録は途中の一部分にし、一番下へ戻ると末尾に戻る。末尾より前で巻き戻したら末尾から読み直す", async () => {
+  const { store, pages, loads, frame, result } = await openedTail();
+  // 遠い（読み足しの 2 回分のターンより前）とみなすよう、索引の作業の終わりを増やす
+  const many = Array.from({ length: CHAT_TAIL_TURNS * 2 + 2 }, (_, i) => result(1000 + i));
+  loads.length = 0;
+  store.reconnected();
+  loads[0].resolve({ ...detail(chatOf(1, "completed"), []), after_missing: true });
+  await settle();
+  loads[1].resolve({ ...detail(chatOf(1, "completed"), [text(5000)]), has_earlier: true, index: many });
+  await settle();
+  frame();
+  const far = store.openAround(1, 999);
+  assert.deepEqual(pages[0].query, { around: 999, turns: CHAT_TAIL_TURNS, until: 5000 });
+  pages[0].resolve({ events: [text(998), text(999)], has_earlier: true, has_later: true, head_partial: false });
+  await far;
+  frame();
+  assert.deepEqual([store.log(1).focused, store.log(1).events.map((e) => e.id)], [true, [998, 999]]);
+  assert.deepEqual(store.log(1).tail.map((e) => e.id), [5000]);
+  store.backToTail(1);
+  frame();
+  assert.equal(store.log(1).focused, false);
+  // 末尾より前で巻き戻した
+  store.apply({ type: "chat_events_deleted", project_id: 1, chat_id: 1, from_event_id: 999 });
+  assert.deepEqual(loads[2].query, { tail_turns: CHAT_TAIL_TURNS });
+});
+
+test("見る部品がなくなって 10 分たったら、末尾を最新のターンに縮め、その前を索引に移す（U7）", async () => {
+  const s = setup();
+  const handle = s.store.retain(1, "visible");
+  const turns = Array.from({ length: CHAT_TAIL_TURNS + 5 }, (_, t) => [text(t * 2 + 1), makeEvent(t * 2 + 2, "result", { status: "completed" }, { chat_id: 1 })]).flat();
+  s.loads[0].resolve(detail(chatOf(1, "completed"), turns));
+  await settle();
+  s.store.markPainted(1);
+  handle.release();
+  s.advance(SHRINK_AFTER_MS);
+  s.frame();
+  const log = s.store.log(1);
+  assert.equal(log.tail.filter((e) => e.type === "result").length, CHAT_TAIL_TURNS);
+  assert.equal(log.hasEarlier, true);
+  assert.deepEqual(log.digest.filter((e) => e.type === "result").length, CHAT_TAIL_TURNS + 5);
+  // また見たら縮めたまま出す（読み直さない）
+  s.store.retain(1, "visible");
+  assert.equal(s.loads.length, 1);
 });

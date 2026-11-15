@@ -114,12 +114,12 @@ export function MemoChat({
 
 /** メモのチャットの会話（ふつうのチャットの画面。右の欄は重ねない） */
 function MemoChatView({ chatId, visible, beforeSend }: { chatId: number; visible: boolean; beforeSend: () => Promise<void> }) {
-  const { chat, project, events, approvals, live, error } = useChatContent(chatId, visible);
+  const { chat, project, log, approvals, live, error } = useChatContent(chatId, visible);
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;
   return (
     <PanelHostContext.Provider value={null}>
-      <ChatView chat={chat} project={project} events={events} approvals={approvals} live={live} visible={visible} beforeSend={beforeSend} />
+      <ChatView chat={chat} project={project} log={log} approvals={approvals} live={live} visible={visible} beforeSend={beforeSend} />
     </PanelHostContext.Provider>
   );
 }

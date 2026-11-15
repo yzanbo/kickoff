@@ -16,7 +16,7 @@ import { reportFailure } from "@/ui/dialogs";
  * 「メインのチャット」（右クリックの組・選んだときの「メインに追加」）は、右の欄に開いたときと同じく、いちばん上の親
  */
 export function PopoutChildChat({ chatId }: { chatId: number }) {
-  const { chat, project, events, approvals, live, error } = useChatContent(chatId, true);
+  const { chat, project, log, approvals, live, error } = useChatContent(chatId, true);
   // 閉じ方を聞いている間に、もう一度 ✕ を押されても重ねて聞かない
   const asking = useRef(false);
   const chatRef = useRef(chat);
@@ -45,9 +45,9 @@ export function PopoutChildChat({ chatId }: { chatId: number }) {
   const mainChatId = root.id !== chat.id ? root.id : chat.parent_chat_id;
   return (
     <SideScope mainChatId={mainChatId}>
-      <ChildChatBar chat={chat} events={events} extra={<PopoutDockButton route={{ kind: "chat", chatId }} />} />
+      <ChildChatBar chat={chat} events={log.digest} extra={<PopoutDockButton route={{ kind: "chat", chatId }} />} />
       <div className="popout-body">
-        <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} visible />
+        <ChatView key={chat.id} chat={chat} project={project} log={log} approvals={approvals} live={live} visible />
       </div>
     </SideScope>
   );

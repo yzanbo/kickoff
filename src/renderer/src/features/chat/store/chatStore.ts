@@ -1,125 +1,53 @@
-import type { Approval, BusEvent, Chat, ChatDetail, ChatDetailQuery, ChatEvent, ChatLive, SubagentInfo } from "@shared/types";
+import { CHAT_TAIL_TURNS, type BusEvent } from "@shared/types";
 import { errorMessage } from "@shared/errors";
-import { streamingAppendOf, streamingEffectOf, type StreamingEffect } from "@shared/chat/streamingRules";
+import { streamingEffectOf } from "@shared/chat/streamingRules";
 import { detailChatIdOf, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
+import { digestOf, loadedOf, prefaceOf, type LogRange } from "./chatLog";
+import { createPaging } from "./chatPaging";
+import { createStreamOps } from "./chatStream";
+import {
+  EMPTY_LOG,
+  EMPTY_PROGRESS,
+  EMPTY_VIEW,
+  OPEN_HOLD_MAX_MS,
+  PUBLISH_FALLBACK_MS,
+  SHRINK_AFTER_MS,
+  WARM_CHATS,
+  type Channel,
+  type ChatDetailView,
+  type ChatLogView,
+  type ChatProgressView,
+  type ChatStoreDeps,
+  type ChatVisibility,
+  type Entry,
+  type Published,
+} from "./chatStoreTypes";
+
+export { STREAM_FLUSH_MS, PUBLISH_FALLBACK_MS, OPEN_HOLD_MAX_MS, WARM_CHATS, SHRINK_AFTER_MS } from "./chatStoreTypes";
+export type { ChatVisibility, ChatStoreDeps, ChatDetailView, ChatLogView, ChatProgressView } from "./chatStoreTypes";
 
 /*
- * チャットの店（メモの仕様書「0023_表示を軽くする」の M1・分冊 3 の 0-2）。開いているチャットの中身（チャット・記録・回答待ち・作業中の様子・
+ * チャットの店（メモの仕様書「0023_表示を軽くする」の M1・案 4・分冊 3 の 0-2 / 1-4）。開いているチャットの中身（チャット・記録・回答待ち・作業中の様子・
  * 書いている途中の返答・サブエージェントの途中経過）を、部品の外にチャットごとに 1 つ持つ。同じチャットを何か所（パネルのタブ・右の欄・メモの欄）で
  * 開いても、読み込みと SSE の当て方はここで 1 回。React には依存しない（hook は useChatStore.ts）。
  *
  * 口は用途ごとに分け、部品は要る口だけを購読する:
  * - detail: チャット・回答待ち・作業中の様子・読み込みの失敗（変わることが少ない）
- * - log: 記録と、書いている途中の返答の世代 streamGen（案 4 で末尾・索引・途中の一部分をここに足す）
- * - streaming: 書いている途中の返答（React の state に入れない。少しずつ出す部品が rAF の中で streamText で読む）
+ * - log: 記録（流れに出す記録・末尾・記録全体から作るものに渡す digest など。chatLog.ts）と、書いている途中の返答の世代 streamGen
+ * - streaming: 書いている途中の返答（React の state に入れない。少しずつ出す部品が rAF の中で streamText で読む。chatStream.ts）
  * - progress: サブエージェントの途中経過（SSE の chat_subagent。記録に残らない）
+ *
+ * 記録は開くとき末尾（最新 CHAT_TAIL_TURNS ターン）だけを読み、その前は索引で受ける（案 4）。前を読み足す・遠い所を読む（途中の一部分）・
+ * サブエージェントの中を読むのは loadEarlier / loadLater / openAround / loadScope（chatPaging.ts）。末尾より前で巻き戻したら読み直す。
  *
  * 当てた値（working）と部品に見せる値（published）を分ける: 知らせはいつも working に当て、見せる値の差し替えだけを 1 フレームに 1 回にまとめる
  * （rAF。隠れたウィンドウでは rAF が止まるので PUBLISH_FALLBACK_MS で当てる）。開いた直後（中身を初めて見せた・残っていた中身をまた見せた）は、
  * 待たずに 1 回見せてから描き終えるまで（markPainted か OPEN_HOLD_MAX_MS）ためて 1 回で当てる（案 21）。
  *
- * 書いている途中の返答（案 2・6a）: 届いた分はためて、見え方ごとの間隔（STREAM_FLUSH_MS）で当てる。消すとき（確定した返答が記録に入った・
- * 巻き戻し・作業中でなくなった）は途中の文の購読者に知らせず、世代 gen を進めて前の文を retired に残すだけにし、記録の口の差し替えで streamGen を
- * 進める。部品は記録の口から選んだ世代の文を読むので、確定した返答が入る描き直しと途中の文が消える描き直しが同じ 1 回になる
- * （1 フレームだけ二重に見える・両方消えるが起きない）。
- *
- * 見る部品がなくなったチャット（retain が 0）も、WARM_CHATS 件まで中身を残して知らせを当て続ける（戻ったときにすぐ出る。U7 の 10 分で縮めるのは案 4 で作る）。
- * SSE をつなぎ直したら、見ているチャットは持っている最後の記録より後を ?after= で取り直し（巻き戻しで消えていればすべて）、見ていないチャットは
- * 次に見るときに取り直す（stale）
+ * 見る部品がなくなったチャット（retain が 0）も、WARM_CHATS 件まで中身を残して知らせを当て続け、SHRINK_AFTER_MS たったら末尾を最新
+ * CHAT_TAIL_TURNS ターンに縮める（U7）。SSE をつなぎ直したら、見ているチャットは持っている最後の記録より後を ?after= で取り直し
+ * （巻き戻しで消えていれば末尾から読み直す）、見ていないチャットは次に見るときに取り直す（stale）
  */
-
-/** 見え方（hidden = パネルの裏のタブ・閉じたパネル） */
-export type ChatVisibility = "visible" | "hidden";
-
-/** 書いている途中の返答を当てる間隔（ms）: 見えている所がある / 見えている所がない / ウィンドウが隠れている（メモの仕様書の案 6a） */
-export const STREAM_FLUSH_MS = { visible: 33, hidden: 100, windowHidden: 200 } as const;
-/** rAF が来ないとき（隠れたウィンドウ）に、見せる値を差し替えるまでの時間 */
-export const PUBLISH_FALLBACK_MS = 100;
-/** 開いた直後に描き終えの知らせを待つ長さ（来なくても当てる。描けなかったときに止まったままにしない） */
-export const OPEN_HOLD_MAX_MS = 3000;
-/** 見る部品がなくなっても中身を残すチャットの数（古く見なくなったものから捨てる） */
-export const WARM_CHATS = 20;
-
-export interface ChatStoreDeps {
-  /** 次の描画の前に呼ぶ（requestAnimationFrame）。返り値で取り消す */
-  frame: (fn: () => void) => () => void;
-  /** ms のあとに呼ぶ（setTimeout）。返り値で取り消す */
-  timer: (fn: () => void, ms: number) => () => void;
-  /** いまの時刻（ms） */
-  now: () => number;
-  /** ウィンドウが隠れているか */
-  windowHidden: () => boolean;
-  /** チャットの詳細を読む（GET /api/chats/:id） */
-  load: (chatId: number, query: ChatDetailQuery) => Promise<ChatDetail>;
-}
-
-/** 口 detail の値 */
-export interface ChatDetailView {
-  /** undefined の間は読み込み中 */
-  chat: Chat | undefined;
-  approvals: Approval[];
-  live: ChatLive;
-  /** 読み込みの失敗（中身を一度も読めていないときだけ） */
-  error: string | null;
-}
-
-/** 口 log の値（記録。案 4 で、読み込んだ範囲（末尾・途中の一部分）と索引をここに足す） */
-export interface ChatLogView {
-  events: ChatEvent[];
-  /** 書いている途中の返答の世代（消すたびに進む。この世代の文を streamText で読む） */
-  streamGen: number;
-}
-
-/** 口 progress の値（サブエージェントの途中経過と、届いた時刻。作業 ID ごと） */
-export interface ChatProgressView {
-  progress: Record<string, SubagentInfo>;
-  progressAt: Record<string, string>;
-}
-
-type Channel = "detail" | "log" | "progress" | "streaming";
-type Published = Exclude<Channel, "streaming">;
-
-interface StreamState {
-  gen: number;
-  /** いまの世代の文（当てた分） */
-  text: string;
-  /** まだ当てていない分（次の間隔で足す） */
-  pending: string;
-  /** 部品に見せている世代の、消す前の文（記録の口が差し替わるまで同じ文を返す） */
-  retired: { gen: number; text: string } | null;
-  /** 最後に届いた時刻（作業中の行の「動きがない」の目安） */
-  lastAt: string | null;
-  cancel: (() => void) | null;
-}
-
-interface Entry {
-  chatId: number;
-  detail: ChatDetailState;
-  error: string | null;
-  progress: ChatProgressView;
-  stream: StreamState;
-  /** 読み込みの最中に届いた知らせ（読み込み中でなければ null。届いた中身に当て直す） */
-  replay: BusEvent[] | null;
-  /** 読み込みの番号（違う応答は捨てる） */
-  request: number;
-  /** 見ている部品と見え方 */
-  viewers: Map<symbol, ChatVisibility>;
-  /** 見る部品がなくなった時刻（捨てる順） */
-  releasedAt: number;
-  /** 見ていない間に SSE をつなぎ直した（次に見るときに取り直す） */
-  stale: boolean;
-  /** 中身を部品に見せたか */
-  shown: boolean;
-  published: { detail: ChatDetailView; log: ChatLogView; progress: ChatProgressView };
-  dirty: Set<Published>;
-  cancelPublish: (() => void) | null;
-  /** 開いた直後で、描き終えるまでためている（取り消すと待つのをやめる） */
-  hold: (() => void) | null;
-}
-
-const EMPTY_VIEW: ChatDetailView = { chat: undefined, approvals: [], live: EMPTY_DETAIL.live, error: null };
-const EMPTY_LOG: ChatLogView = { events: [], streamGen: 0 };
-const EMPTY_PROGRESS: ChatProgressView = { progress: {}, progressAt: {} };
 
 /** チャットの店を作る（アプリでは useChatStore.ts の 1 つだけ。テストは偽の frame・timer・時計・読み込みで作る） */
 export function createChatStore(deps: ChatStoreDeps) {
@@ -139,8 +67,11 @@ export function createChatStore(deps: ChatStoreDeps) {
       stream: { gen: 0, text: "", pending: "", retired: null, lastAt: null, cancel: null },
       replay: null,
       request: 0,
+      epoch: 0,
+      paging: null,
       viewers: new Map(),
       releasedAt: deps.now(),
+      cancelShrink: null,
       stale: false,
       shown: false,
       published: { detail: EMPTY_VIEW, log: EMPTY_LOG, progress: EMPTY_PROGRESS },
@@ -154,6 +85,29 @@ export function createChatStore(deps: ChatStoreDeps) {
 
   // ---- 見せる値の差し替え（1 フレームに 1 回・開いた直後はためる） ----
 
+  /** 口 log の値（前の値と範囲・頭が同じなら、流れの項目に渡す preface は同じものを使う） */
+  const logView = (e: Entry): ChatLogView => {
+    const { events: tail, range } = e.detail;
+    const prev = e.published.log;
+    const events = range.focus?.events ?? tail;
+    const sameRange = prevRange.get(e) === range;
+    prevRange.set(e, range);
+    return {
+      events,
+      tail,
+      digest: digestOf(range, tail),
+      loaded: loadedOf(range, tail),
+      preface: sameRange && prev.events[0]?.id === events[0]?.id ? prev.preface : prefaceOf(range, tail),
+      tailStart: range.tailStart,
+      hasEarlier: range.focus ? range.focus.hasEarlier : range.hasEarlier,
+      focused: range.focus !== null,
+      headPartial: range.focus === null && range.headPartial,
+      paging: e.paging !== null,
+      streamGen: e.stream.gen,
+    };
+  };
+  const prevRange = new WeakMap<Entry, LogRange>();
+
   const publish = (e: Entry) => {
     e.cancelPublish?.();
     e.cancelPublish = null;
@@ -161,7 +115,7 @@ export function createChatStore(deps: ChatStoreDeps) {
     e.dirty.clear();
     for (const channel of dirty) {
       if (channel === "detail") e.published.detail = { chat: e.detail.chat, approvals: e.detail.approvals, live: e.detail.live, error: e.error };
-      else if (channel === "log") e.published.log = { events: e.detail.events, streamGen: e.stream.gen };
+      else if (channel === "log") e.published.log = logView(e);
       else e.published.progress = e.progress;
     }
     for (const channel of dirty) notify(e.chatId, channel);
@@ -199,71 +153,21 @@ export function createChatStore(deps: ChatStoreDeps) {
     };
   };
 
-  // ---- 書いている途中の返答 ----
-
-  const flushInterval = (e: Entry) =>
-    deps.windowHidden() ? STREAM_FLUSH_MS.windowHidden : [...e.viewers.values()].includes("visible") ? STREAM_FLUSH_MS.visible : STREAM_FLUSH_MS.hidden;
-
-  const flushStream = (e: Entry) => {
-    const s = e.stream;
-    s.cancel?.();
-    s.cancel = null;
-    if (!s.pending) return;
-    s.text += s.pending;
-    s.pending = "";
-    notify(e.chatId, "streaming");
-  };
-
-  /** 消す（世代を進める）。部品に見せている世代の文は retired に残し、記録の口の差し替えで streamGen を進める */
-  const clearStream = (e: Entry) => {
-    const s = e.stream;
-    s.cancel?.();
-    s.cancel = null;
-    s.pending = "";
-    if (!s.text) return;
-    if (e.published.log.streamGen === s.gen) s.retired = { gen: s.gen, text: s.text };
-    s.gen++;
-    s.text = "";
-    mark(e, "log");
-  };
-
-  const applyStream = (e: Entry, effect: StreamingEffect) => {
-    if (effect.effect === "clear") return clearStream(e);
-    const s = e.stream;
-    const add = streamingAppendOf(s.text.length + s.pending.length, effect.text, effect.offset);
-    if (!add) return;
-    s.pending += add;
-    s.lastAt = new Date(deps.now()).toISOString();
-    s.cancel ??= deps.timer(() => flushStream(e), flushInterval(e));
-  };
-
-  /** 詳細の書きかけの返答から始め、読み込みの最中に届いた知らせを当て直す（詳細の文に入っている分は offset で捨てる） */
-  const seedStream = (e: Entry, text: string | null, missed: readonly BusEvent[]) => {
-    const s = e.stream;
-    if (text === null || !text.startsWith(s.text)) clearStream(e);
-    if (text) {
-      s.cancel?.();
-      s.cancel = null;
-      s.text = text;
-      s.pending = "";
-    }
-    for (const event of missed) {
-      const effect = streamingEffectOf(event);
-      if (effect?.chatId === e.chatId) applyStream(e, effect);
-    }
-    flushStream(e);
-    notify(e.chatId, "streaming");
-  };
+  const stream = createStreamOps(
+    deps,
+    (e) => notify(e.chatId, "streaming"),
+    (e) => mark(e, "log"),
+  );
 
   // ---- 読み込み ----
 
   /** 当てたあとの中身と前の中身を比べ、変わった口を差し替えの予約に入れる */
   const changed = (e: Entry, prev: ChatDetailState) => {
     if (prev.chat !== e.detail.chat || prev.approvals !== e.detail.approvals || prev.live !== e.detail.live) mark(e, "detail");
-    if (prev.events !== e.detail.events) mark(e, "log");
+    if (prev.events !== e.detail.events || prev.range !== e.detail.range) mark(e, "log");
   };
 
-  /** 読む（all: 持っている記録があっても、すべて読み直す） */
+  /** 読む（all: 持っている記録があっても、末尾から読み直す） */
   const load = (e: Entry, all = false) => {
     const id = ++e.request;
     e.replay = [];
@@ -271,19 +175,20 @@ export function createChatStore(deps: ChatStoreDeps) {
     const last = all || !e.detail.chat ? undefined : e.detail.events.at(-1)?.id;
     const alive = () => e.request === id && entries.get(e.chatId) === e;
     deps
-      .load(e.chatId, last === undefined ? {} : { after: last })
+      .load(e.chatId, last === undefined ? { tail_turns: CHAT_TAIL_TURNS } : { after: last })
       .then((d) => {
         if (!alive()) return;
-        // 持っていた最後の記録が巻き戻しで消えていたら、すべて読み直す
+        // 持っていた最後の記録が巻き戻しで消えていたら、末尾から読み直す
         if (d.after_missing) return load(e, true);
         const missed = e.replay ?? [];
         e.replay = null;
         const prev = e.detail;
+        if (last === undefined) e.epoch++;
         e.detail = last === undefined ? detailFromSnapshot(d, missed, e.chatId, prev) : detailFromIncrement(d, missed, e.chatId, prev);
         if (e.error !== null) mark(e, "detail");
         e.error = null;
         // 書きかけの返答を持たない前の版のコア（起動したままのコア）は streaming_text を返さない
-        seedStream(e, d.chat.status === "running" ? (d.streaming_text ?? null) : null, missed);
+        stream.seed(e, d.chat.status === "running" ? (d.streaming_text ?? null) : null, missed);
         changed(e, prev);
         if (!e.shown) showNow(e);
       })
@@ -303,11 +208,15 @@ export function createChatStore(deps: ChatStoreDeps) {
     const idle = [...entries.values()].filter((e) => e.viewers.size === 0).sort((a, b) => b.releasedAt - a.releasedAt);
     for (const e of idle.slice(WARM_CHATS)) {
       e.cancelPublish?.();
+      e.cancelShrink?.();
       e.stream.cancel?.();
       e.hold?.();
       entries.delete(e.chatId);
     }
   };
+
+  // 記録の読み足し（前を読む・途中の一部分・サブエージェントの中）と、見ていない間に縮める shrink
+  const { shrink, ...paging } = createPaging({ entries, page: deps.page, mark: (e) => mark(e, "log") });
 
   return {
     /**
@@ -319,18 +228,21 @@ export function createChatStore(deps: ChatStoreDeps) {
       const key = Symbol(chatId);
       const first = e.viewers.size === 0;
       e.viewers.set(key, visibility);
+      e.cancelShrink?.();
+      e.cancelShrink = null;
       if (e.replay === null && (!e.detail.chat || e.stale)) load(e);
       if (first && e.shown) showNow(e);
-      if (visibility === "visible") flushStream(e);
+      if (visibility === "visible") stream.flush(e);
       return {
         setVisibility(next: ChatVisibility) {
           if (!e.viewers.has(key)) return;
           e.viewers.set(key, next);
-          if (next === "visible") flushStream(e);
+          if (next === "visible") stream.flush(e);
         },
         release() {
           if (!e.viewers.delete(key) || e.viewers.size > 0) return;
           e.releasedAt = deps.now();
+          e.cancelShrink = deps.timer(() => shrink(e), SHRINK_AFTER_MS);
           trim();
         },
       };
@@ -355,8 +267,13 @@ export function createChatStore(deps: ChatStoreDeps) {
       e.replay?.push(event);
       if (!e.detail.chat) return;
       // 途中の文を先に消してから記録を足す（同じ差し替えで、確定した返答が入り途中の文が消える）
-      if (effect) applyStream(e, effect);
+      if (effect) stream.apply(e, effect);
       if (event.type === "chat_delta") return;
+      // 末尾より前で巻き戻した: 索引が作り直しになるので、末尾から読み直す
+      if (event.type === "chat_events_deleted" && e.detail.range.tailStart > 0 && event.from_event_id < e.detail.range.tailStart && e.replay === null) {
+        load(e, true);
+        return;
+      }
       const prev = e.detail;
       e.detail = reduceChatDetail(prev, event, e.chatId);
       changed(e, prev);
@@ -372,7 +289,7 @@ export function createChatStore(deps: ChatStoreDeps) {
 
     /** ウィンドウが表に出た: ためた途中の文をすぐ当てる */
     windowShown() {
-      for (const e of entries.values()) flushStream(e);
+      for (const e of entries.values()) stream.flush(e);
     },
 
     /** チャットの画面が描き終えた: 開いた直後にためていた知らせを 1 回で当てる */
@@ -382,6 +299,8 @@ export function createChatStore(deps: ChatStoreDeps) {
       e.hold();
       if (e.dirty.size > 0) publish(e);
     },
+
+    ...paging,
 
     detail: (chatId: number): ChatDetailView => entries.get(chatId)?.published.detail ?? EMPTY_VIEW,
     log: (chatId: number): ChatLogView => entries.get(chatId)?.published.log ?? EMPTY_LOG,
@@ -418,4 +337,3 @@ export function createChatStore(deps: ChatStoreDeps) {
     size: () => entries.size,
   };
 }
-
