@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
-import { agoText, formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatRunTime, relativeTime, resetInShort, shortRelativeTime } from "./time";
+import { onTestFinished, test, vi } from "vitest";
+import { agoText, formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatRunTime, formatReset, relativeTime, resetDateFormats, resetInShort, shortRelativeTime, ZONE_CHECK_MS } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {
   const now = new Date(2026, 10, 1, 23, 0);
@@ -118,4 +118,57 @@ test("agoText: GitLens と同じく、日付にせずに何日前・何か月前
   assert.equal(agoText(ago(5 * 86400), now), "5日前");
   assert.equal(agoText(ago(65 * 86400), now), "2か月前");
   assert.equal(agoText(ago(800 * 86400), now), "2年前");
+});
+
+/** 1 年分を 259 分（37 分 × 7）おき（日・時・分がずれていく間隔。テストを軽くするため 37 分おきから広げた）と、月末・年末・0 時・12 時・23:59 の日時 */
+function sampleDates(year: number): Date[] {
+  const out: Date[] = [];
+  for (let t = new Date(year, 0, 1).getTime(); t < new Date(year + 1, 0, 1).getTime(); t += 259 * 60_000) out.push(new Date(t));
+  for (const [m, d, h, min] of [[0, 31, 0, 0], [1, 28, 12, 0], [5, 30, 23, 59], [11, 31, 23, 59], [11, 31, 0, 0], [2, 1, 12, 30]]) out.push(new Date(year, m, d, h, min, 7));
+  return out;
+}
+
+/** 作り置きの書式で出した文字が、元の toLocale*String と 1 文字も変わらない */
+function assertSameAsToLocale(dates: Date[]) {
+  const longBefore = Date.parse("2000-01-01T00:00:00Z");
+  for (const d of dates) {
+    const iso = d.toISOString();
+    assert.equal(formatClock(iso), d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }), iso);
+    const seconds = d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    assert.equal(formatFullStamp(iso), `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${seconds}`, iso);
+    const weekday = d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
+    assert.equal(formatReset(iso, longBefore), `${weekday} ${d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })} にリセット`, iso);
+  }
+}
+
+test("時刻の整形の作り置き: 書式ごとに、元の toLocale*String と同じ文字になる", () => {
+  assertSameAsToLocale(sampleDates(2026));
+  // 1 日より前は月日（relativeTime・shortRelativeTime）
+  for (const d of sampleDates(2025)) {
+    const monthDay = d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+    assert.equal(relativeTime(d.toISOString()), monthDay);
+    assert.equal(shortRelativeTime(d.toISOString()), monthDay);
+  }
+});
+
+test("時刻の整形の作り置き: 不正な日時は toLocale*String と同じく Invalid Date", () => {
+  assert.equal(formatClock("x"), new Date("x").toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }));
+  assert.equal(formatClock("x"), "Invalid Date");
+});
+
+test("時刻の整形の作り置き: 時間帯が変わったら作り直し、夏時間のある時間帯でも同じ文字になる", () => {
+  // 作り置きはモジュールに残るので、ほかのファイルのテストに New York の書式を残さない
+  onTestFinished(resetDateFormats);
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-06-01T00:00:00Z"));
+  formatClock(new Date().toISOString()); // いまの時間帯で作り置く
+  vi.stubEnv("TZ", "America/New_York");
+  vi.advanceTimersByTime(ZONE_CHECK_MS);
+  // 夏時間の切り替え（3 月・11 月）の前後
+  const around = (iso: string) => Array.from({ length: 48 }, (_, i) => new Date(Date.parse(iso) + (i - 24) * 30 * 60_000));
+  assertSameAsToLocale([...around("2026-03-08T07:00:00Z"), ...around("2026-11-01T06:00:00Z")]);
+  assert.equal(formatClock("2026-03-08T07:30:00Z"), "03:30");
 });
