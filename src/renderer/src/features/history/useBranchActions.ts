@@ -10,6 +10,7 @@ import { alertDialog, choiceDialog, confirmDialog, confirmWithCheck, promptDialo
 import { countBusyAt } from "@/features/worktree/workplace";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
 import type { GitStatusController } from "@/features/editor/useGitStatus";
+import { runGitOperation } from "@/features/editor/gitAutoFetch";
 import type { GitLogController } from "./useGitLog";
 
 /** 衝突したファイルを、ダイアログに出す数まで並べる */
@@ -67,7 +68,8 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
   const run = async (name: string, body: GitBranchAction, operation?: GitOperation | ((conflicts: string[]) => Promise<void>)): Promise<GitBranchActionResult | null> => {
     setBusy(name);
     try {
-      const result = await api.gitBranchAction(target, body);
+      // プル・プッシュなどはリモートの参照も書き換えるので、自動のフェッチの途中なら終わるのを待つ
+      const result = await runGitOperation(projectId, () => api.gitBranchAction(target, body));
       git.applyStatus(result.status);
       log.refresh();
       const stopped = result.status.repo ? result.status.operation : null;
@@ -240,7 +242,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
       try {
         let result;
         try {
-          result = await api.gitBranchAction(target, { action: "delete_branch", branch, force: false, remote: picked.checked });
+          result = await runGitOperation(projectId, () => api.gitBranchAction(target, { action: "delete_branch", branch, force: false, remote: picked.checked }));
         } catch (e) {
           // マージしていないコミットがあると -d では消せないので、消えてもよいか確かめ直す
           if (!/not fully merged/.test(errorMessage(e))) throw e;
@@ -251,7 +253,7 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
             danger: true,
           });
           if (!force) return;
-          result = await api.gitBranchAction(target, { action: "delete_branch", branch, force: true, remote: picked.checked });
+          result = await runGitOperation(projectId, () => api.gitBranchAction(target, { action: "delete_branch", branch, force: true, remote: picked.checked }));
         }
         git.applyStatus(result.status);
         log.refresh();

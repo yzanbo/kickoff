@@ -5,17 +5,19 @@ import { errorMessage } from "@shared/errors";
 import { useServerEvent } from "@/api/events";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
+import { gitAutoFetch, runGitOperation } from "./gitAutoFetch";
 
 /** 変更のタブを開いている間に取り直す間隔（エディタなど、Kickoff の外での変更にも追いつくため） */
 const POLL_MS = 5000;
-/** 変更のタブを開いている間に、リモートの情報を取ってくる間隔（VS Code の自動フェッチと同じ考え方） */
+/** 変更・履歴のタブを開いている間に、リモートの情報を取ってくる間隔（VS Code の自動フェッチと同じ考え方。開いたとき・窓に戻ったときにも取ってくる） */
 const FETCH_MS = 3 * 60_000;
 /** チャットが動いたあと、取り直すまで待つ時間（続けて届く知らせをまとめる） */
 const CHAT_ACTIVITY_DELAY_MS = 1500;
 
 /**
  * プロジェクトのフォルダの Git の状態。開いたとき・ウィンドウに戻ってきたとき・このプロジェクトのチャットが動いたとき（作業中のツールの結果も）に取り直す。
- * active（変更のタブを開いている）の間は、一定の間隔でも取り直す。count はタブのバッジに出す変更のあるファイルの数。
+ * active（変更・履歴のタブを開いている）の間は、一定の間隔でも取り直す。リモートの情報も、開いたとき・窓に戻ったとき・一定の間隔で
+ * 裏で取ってくる（自動のフェッチ。間を空ける・押した操作とぶつけないのは gitAutoFetch。失敗は知らせない）。count はタブのバッジに出す変更のあるファイルの数。
  * worktree は作業場所（ワークツリーのフォルダ。省略なら本体）
  */
 export function useGitStatus(projectId: number, active: boolean, worktree?: string) {
@@ -29,6 +31,8 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   // 取り直すたびに増やす（差分も取り直すため）。古い応答で上書きしないためにも使う
   const [version, setVersion] = useState(0);
   const latest = useRef(0);
+  // 自動のフェッチの途中（帯の「フェッチ」のボタンに回る印を出す）
+  const [autoFetching, setAutoFetching] = useState(false);
 
   const refresh = useCallback(async (quiet = false) => {
     const request = ++latest.current;
@@ -61,7 +65,33 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
     return () => clearInterval(timer);
   }, [active, refresh]);
 
-  useWindowEvent("focus", () => void refresh());
+  /** 裏でリモートの情報を取ってきて、取ってきたら取り直す（変わった参照が履歴にも出る） */
+  const autoFetch = () => {
+    void gitAutoFetch
+      .fetch(String(projectId), async () => {
+        setAutoFetching(true);
+        try {
+          await api.gitFetch(target);
+        } finally {
+          setAutoFetching(false);
+        }
+      })
+      .then((ran) => {
+        if (ran) void refresh(true);
+      });
+  };
+  useEffect(() => {
+    if (!active) return;
+    autoFetch();
+    const timer = setInterval(autoFetch, FETCH_MS);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, key]);
+
+  useWindowEvent("focus", () => {
+    void refresh();
+    if (active) autoFetch();
+  });
 
   const chatActivityTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useServerEvent((e) => {
@@ -93,16 +123,11 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   const act = (action: "stage" | "unstage" | "discard", paths: string[]) => apply(api.gitAction(target, action, paths));
   /** コミット（amend は直前のコミットに足して書き直す「コミット (修正)」） */
   const commit = (message: string, amend = false) => apply(api.gitCommit(target, message, amend));
-  const push = () => apply(api.gitPush(target));
-  const pull = () => apply(api.gitPull(target));
+  // リモートとやり取りする操作は、自動のフェッチの途中なら終わるのを待ってから（runGitOperation）
+  const push = () => apply(runGitOperation(projectId, () => api.gitPush(target)));
+  const pull = () => apply(runGitOperation(projectId, () => api.gitPull(target)));
   /** リモートの情報を取ってきてから取り直す（遅れている数を出すため。取り直しのボタンで使う） */
-  const fetchRemote = () => apply(api.gitFetch(target)).catch((e: unknown) => setError(errorMessage(e)));
-  useEffect(() => {
-    if (!active) return;
-    const timer = setInterval(() => void api.gitFetch(target).then(() => refresh(true), () => undefined), FETCH_MS);
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, key]);
+  const fetchRemote = () => apply(runGitOperation(projectId, () => api.gitFetch(target))).catch((e: unknown) => setError(errorMessage(e)));
 
   // 別のプロジェクトに切り替えた直後は、前のプロジェクトの状態を出さない
   const value = status?.key === key ? status.value : undefined;
@@ -117,7 +142,7 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   };
   /** 衝突したファイルを解く（こちらの版・取り込む側の版・いまの中身で解決済み） */
   const resolve = (path: string, how: GitConflictResolution) => apply(api.gitResolve(target, path, how));
-  return { status: value, error, loading, refreshing, version, refresh: () => refresh(), act, commit, push, pull, fetchRemote, applyStatus, operate, resolve, count };
+  return { status: value, error, loading, refreshing, autoFetching, version, refresh: () => refresh(), autoFetch, act, commit, push, pull, fetchRemote, applyStatus, operate, resolve, count };
 }
 
 export type GitStatusController = ReturnType<typeof useGitStatus>;
