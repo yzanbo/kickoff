@@ -96,9 +96,16 @@ test("DB ワーカー: 止めると、ワーカーが起動したシェル（準
   client.stop();
   await running;
   assert.equal(killed.length, 1);
-  await new Promise((r) => setTimeout(r, 200));
-  // シェルのプロセスグループはもういない
-  assert.throws(() => process.kill(-killed[0], 0));
+  // シェルのプロセスグループはもういない（止まるまで待つ。決め打ちで待つと、負荷が高いときにまだ残っていた）
+  const groupGone = () => {
+    try {
+      process.kill(-killed[0]!, 0);
+      return false;
+    } catch {
+      return true;
+    }
+  };
+  await until(groupGone, 15_000);
 });
 
 test("DB ワーカー: 開いた接続の知らせを覚え、ワーカーが落ちたら開いていた接続をすべて閉じたと知らせる", () => {
