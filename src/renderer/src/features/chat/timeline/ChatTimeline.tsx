@@ -115,6 +115,8 @@ export function ChatTimeline({
       <div
         className="timeline"
         ref={scroll.ref}
+        // 重いもの（図・コードの色付け）を手前で描き始める見張りの枠（hooks/useNearViewport）
+        data-near-root=""
         tabIndex={-1}
         {...{ [QUOTABLE_ATTR]: "" }}
         onContextMenu={(e) => {

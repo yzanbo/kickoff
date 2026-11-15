@@ -86,7 +86,7 @@ function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
       data-agent-screen={`${view.chatId}:${entry.key}`}
     >
       <ScreenHead entry={entry} view={view} pane={pane} />
-      <div ref={scrollRef} className="subagent-screen-scroll" onScroll={onScroll} tabIndex={-1}>
+      <div ref={scrollRef} className="subagent-screen-scroll" onScroll={onScroll} tabIndex={-1} data-near-root="">
         <div ref={contentRef} className="subagent-screen-content" {...{ [QUOTABLE_ATTR]: "" }} onContextMenu={quoteMenu.openInRegion} onClickCapture={keepSelectionOnClick}>
           {entry.prompt && <SubagentPrompt text={entry.prompt} chatId={view.chatId} agentKey={entry.key} />}
           {/* 作業中か（作業の終わりの行の分岐などが読む。timelineBusy） */}

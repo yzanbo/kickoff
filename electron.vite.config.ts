@@ -51,6 +51,8 @@ export default defineConfig({
     resolve: { alias: { ...shared, "@": resolve("src/renderer/src") } },
     plugins: [react(), hashedAssetsOnly()],
     build: { outDir: resolve("out/renderer") },
+    // Worker（コードの色付け・Monaco）を ES モジュールで作る（色付けの言語の定義を使うときだけ読む別のファイルに分けるため。iife では 1 つに入り約 3MB になる）
+    worker: { format: "es" },
     server: {
       proxy: {
         "/api": { target: `http://127.0.0.1:${corePort}`, changeOrigin: false },

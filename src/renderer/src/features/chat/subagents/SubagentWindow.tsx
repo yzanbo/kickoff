@@ -16,7 +16,7 @@ export function SubagentWindow({ chatId, cardKey, running, children }: { chatId:
   const { scrollRef, contentRef, overflowing, onScroll } = useFollowScroll(running, full);
   return (
     <div className={cx("subagent-window", full && "full")}>
-      <div ref={scrollRef} className="subagent-window-scroll" onScroll={onScroll}>
+      <div ref={scrollRef} className="subagent-window-scroll" onScroll={onScroll} data-near-root="">
         <div ref={contentRef} className="subagent-window-content">
           {children}
         </div>
