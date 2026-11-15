@@ -42,7 +42,7 @@ interface LiveFields {
    * この間の「いま」は預かり、動かし始めたらその作業に伝える
    */
   inheriting: boolean;
-  /** 起動したときの送信待ちの確かめを待っている（答えるまで送信待ちを送らない。ChatLive の queue_resume） */
+  /** 起動したときの送信待ちの確かめを待っている（答えるまで送信待ちを送らない。ChatLive の restart_resume） */
   resume: { interrupted: boolean } | null;
 }
 
@@ -207,7 +207,7 @@ export class ChatRuntime {
       compacted_turn: compactedTurn,
       tells_closed: tellsClosed,
       inheriting,
-      queue_resume: resume,
+      restart_resume: resume,
     };
   }
 

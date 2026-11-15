@@ -108,7 +108,7 @@ export function ChatComposerArea({
       {!portal?.target && <span ref={onDock} className="composer-chips-dock" />}
     </div>
   );
-  const queuedList = <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={live.queue_resume} sentShown={sentShown} />;
+  const queuedList = <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={live.restart_resume} sentShown={sentShown} />;
   // 外の入力欄（メモの下）にも、送信待ちがあるかを知らせる（あれば、チャット欄と同じく送るものを送信待ちに足す）
   useEffect(() => portal?.onQueued(queued), [portal, queued]);
   return (

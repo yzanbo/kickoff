@@ -308,7 +308,7 @@
   }
 }
 
-/* 起動したときの送信待ちの確かめ（QueueResumeDialog）: チャットごとのカードに、見出し・送信待ちの 1 行（開くと止まったところと送信待ちのすべて）・選ぶ切り替え */
+/* 起動したときの送信待ちの確かめ（RestartResumeDialog）: チャットごとのカードに、見出し・送信待ちの 1 行（開くと止まったところと送信待ちのすべて）・選ぶ切り替え */
 .dialog.app-dialog.queue-resume-dialog {
   width: min(640px, calc(100vw - 32px));
 }
@@ -561,7 +561,7 @@
   margin-right: auto;
 }
 
-/* 送信待ちの上の帯（QueueResumeBanner）: 決めるまで送らないことと、その場で決めるボタン。注意の色の薄い地 */
+/* 送信待ちの上の帯（RestartResumeBanner）: 決めるまで送らないことと、その場で決めるボタン。注意の色の薄い地 */
 .queue-resume-banner {
   display: flex;
   flex-wrap: wrap;

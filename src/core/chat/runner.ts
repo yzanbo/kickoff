@@ -7,8 +7,8 @@ import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } f
 import { startChildChat } from "./children.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
 import type { ChatRemover } from "./aiChatRemove.js";
-import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type QueueResume, type QueueResumeAction, type TellResult, type MessageMarks } from "@shared/types";
-import { resumeMomentsOf } from "./queueResume.js";
+import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type RestartResume, type RestartResumeAction, type TellResult, type MessageMarks } from "@shared/types";
+import { resumeMomentsOf } from "./restartResume.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { errorMessage } from "@shared/errors";
@@ -76,7 +76,7 @@ export class Runner extends RunnerQueue {
       onAfterCompactEditsChanged: (chatId) => this.afterCompactEditsChanged(chatId),
       onCompactEnded: (chatId) => this.deliverAfterCompact(chatId),
     });
-    // 自動で送るまま送信待ちが残ったチャットは、起動しただけでは送らず、利用者に聞く（queueResumes / resolveQueueResumes）
+    // 自動で送るまま送信待ちが残ったチャットは、起動しただけでは送らず、利用者に聞く（restartResumes / resolveRestartResumes）
     const interrupted = new Set(deps.interrupted ?? []);
     for (const saved of deps.store.queues.list()) {
       if (this.waitsForResume(saved.chatId)) this.runtimes.get(saved.chatId).update({ resume: { interrupted: interrupted.has(saved.chatId) } });
@@ -116,8 +116,8 @@ export class Runner extends RunnerQueue {
    * 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）。
    * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところを添える。送信待ちが空になったものは外す
    */
-  queueResumes(): QueueResume[] {
-    const out: QueueResume[] = [];
+  restartResumes(): RestartResume[] {
+    const out: RestartResume[] = [];
     for (const { chatId } of this.deps.store.queues.list()) {
       const runtime = this.runtimes.get(chatId);
       const chat = this.deps.store.chats.get(chatId);
@@ -145,7 +145,7 @@ export class Runner extends RunnerQueue {
    * 続けてから送る: 中断した作業を続けるよう頼み、その作業が終わってから送信待ちを送る（中断していなければ、送ると同じ）/ 止めておく: 止めています にする。
    * 自分で送って作業中なら、送るも続けてから送るも、その作業が終わってから送信待ちを送る。確かめを待っていないチャットは飛ばす
    */
-  async resolveQueueResumes(decisions: { chatId: number; action: QueueResumeAction }[]): Promise<void> {
+  async resolveRestartResumes(decisions: { chatId: number; action: RestartResumeAction }[]): Promise<void> {
     for (const { chatId, action } of decisions) {
       const runtime = this.runtimes.get(chatId);
       const resume = runtime.resume;

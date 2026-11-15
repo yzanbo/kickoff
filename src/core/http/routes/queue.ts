@@ -5,7 +5,7 @@ import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
 import { rememberSentView } from "./userView.js";
 import { attachmentsSchema, editingIdsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "./schemas.js";
-import { QUEUE_ACTIONS, QUEUE_RESUME_ACTIONS, type QueueAddResult, type QueueMergeResult, type QueueResumeBody } from "@shared/types";
+import { QUEUE_ACTIONS, RESTART_RESUME_ACTIONS, type QueueAddResult, type QueueMergeResult, type RestartResumeBody } from "@shared/types";
 import { marksOf } from "@shared/chat/handoff";
 
 /**
@@ -17,15 +17,15 @@ export function queueRoutes(app: Hono, { store, runner, userViews }: ServerDeps)
   const { withChat } = lookups(store);
 
   // 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）
-  app.get("/api/queue-resumes", (c) => c.json(runner.queueResumes()));
+  app.get("/api/restart-resumes", (c) => c.json(runner.restartResumes()));
 
   // 起動したときの送信待ちの確かめに答える（チャットごとに 送る / 中断した作業を続けてから送る / 止めておく）。答えたあとの残りを返す
-  app.post("/api/queue-resumes", async (c) => {
+  app.post("/api/restart-resumes", async (c) => {
     const { decisions } = z
-      .object({ decisions: z.array(z.object({ chat_id: z.number().int().positive(), action: z.enum(QUEUE_RESUME_ACTIONS) })).max(500) })
-      .parse(await jsonBody(c)) satisfies QueueResumeBody;
-    await runner.resolveQueueResumes(decisions.map((d) => ({ chatId: d.chat_id, action: d.action })));
-    return c.json(runner.queueResumes());
+      .object({ decisions: z.array(z.object({ chat_id: z.number().int().positive(), action: z.enum(RESTART_RESUME_ACTIONS) })).max(500) })
+      .parse(await jsonBody(c)) satisfies RestartResumeBody;
+    await runner.resolveRestartResumes(decisions.map((d) => ({ chatId: d.chat_id, action: d.action })));
+    return c.json(runner.restartResumes());
   });
 
     // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す。

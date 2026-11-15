@@ -1,4 +1,4 @@
-import type { Attachment, ChatOptionsPatch, MessageMarks, QueueAddResult, QueueMergeResult, QueueAction, QueueMessageBody, QueueResume, QueueResumeBody, QueueState } from "@shared/types";
+import type { Attachment, ChatOptionsPatch, MessageMarks, QueueAddResult, QueueMergeResult, QueueAction, QueueMessageBody, RestartResume, RestartResumeBody, QueueState } from "@shared/types";
 import { withUserView } from "@/lib/userViewSnapshot";
 import { request } from "./http";
 import { noteQueuedRemoved } from "./queueRemovals";
@@ -11,9 +11,9 @@ const queuePath = (chatId: number, path = "") => `/api/chats/${chatId}/queue${pa
  */
 export const queueApi = {
   /** 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまでコアは送らない） */
-  queueResumes: () => request<QueueResume[]>("GET", "/api/queue-resumes"),
+  restartResumes: () => request<RestartResume[]>("GET", "/api/restart-resumes"),
   /** 起動したときの送信待ちの確かめに答える（チャットごと。答えたあとの残りを返す） */
-  resolveQueueResumes: (decisions: QueueResumeBody["decisions"]) => request<QueueResume[]>("POST", "/api/queue-resumes", { decisions } satisfies QueueResumeBody),
+  resolveRestartResumes: (decisions: RestartResumeBody["decisions"]) => request<RestartResume[]>("POST", "/api/restart-resumes", { decisions } satisfies RestartResumeBody),
   /**
    * 作業中なら送信待ちに入れる（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す。
    * pauseAfter なら、入れたその指示のすぐあとに一時停止の印を付ける = 質問として送る。marks は発言の印（送るときに記録の発言に残る））

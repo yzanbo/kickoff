@@ -108,23 +108,23 @@ export interface ChatLive {
    * 起動したときの送信待ちの確かめを待っている（前回の終了で、自動で送るまま送信待ちが残った。答えるまで送らない。なければ null）。
    * interrupted: 前回の終了で、作業の途中で止まったか（「続けてから送る」を選べる）
    */
-  queue_resume: { interrupted: boolean } | null;
+  restart_resume: { interrupted: boolean } | null;
 }
 
 /**
  * 起動したときの送信待ちの確かめの答え（自動で送るまま残った送信待ちを、起動してからどうするか）: 送る / 中断した作業を続けてから送る / 止めておく。
- * 画面の文言は QUEUE_RESUME_ACTION_LABELS
+ * 画面の文言は RESTART_RESUME_ACTION_LABELS
  */
-export const QUEUE_RESUME_ACTIONS = ["send", "continue", "pause"] as const;
-export type QueueResumeAction = (typeof QUEUE_RESUME_ACTIONS)[number];
-export const QUEUE_RESUME_ACTION_LABELS: Record<QueueResumeAction, string> = {
+export const RESTART_RESUME_ACTIONS = ["send", "continue", "pause"] as const;
+export type RestartResumeAction = (typeof RESTART_RESUME_ACTIONS)[number];
+export const RESTART_RESUME_ACTION_LABELS: Record<RestartResumeAction, string> = {
   send: "送る",
   continue: "続けてから送る",
   pause: "止めておく",
 };
 
 /** 起動したときの送信待ちの確かめの、止まったところの 1 つ（文と、その時刻） */
-export interface QueueResumeMoment {
+export interface RestartResumeMoment {
   text: string;
   at: string;
 }
@@ -133,7 +133,7 @@ export interface QueueResumeMoment {
  * 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）。
  * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところ（最後の指示・AI の最後の返答・最後のツール）を添える
  */
-export interface QueueResume {
+export interface RestartResume {
   chat_id: number;
   project_id: number;
   /** チャットの名前（なければ null） */
@@ -144,9 +144,9 @@ export interface QueueResume {
   messages: QueuedMessage[];
   stops: number[];
   /** 止まったところ: 最後の自分の指示・メインエージェントの最後の返答（長ければ頭だけ）・最後に動かしたツール（なければ null） */
-  last_prompt: QueueResumeMoment | null;
-  last_reply: QueueResumeMoment | null;
-  last_tool: QueueResumeMoment | null;
+  last_prompt: RestartResumeMoment | null;
+  last_reply: RestartResumeMoment | null;
+  last_tool: RestartResumeMoment | null;
   /** 最後の記録の時刻（止まった時刻の目安。記録がなければ null） */
   stopped_at: string | null;
 }

@@ -23,7 +23,7 @@ export function queuedHint({
   /** 起動したときの送信待ちの確かめを待っている（前回の終了で残った。決めるまでコアは送らない） */
   held?: boolean;
 }): string {
-  // 詳しくは上の帯（QueueResumeBanner）に出すので、見出しは短く
+  // 詳しくは上の帯（RestartResumeBanner）に出すので、見出しは短く
   if (held) return "決めるまで送りません";
   if (readyForEdit) return "次の指示の送信準備ができています。書き直しを保存すると送ります";
   if (paused) return collapsed ? "止めています" : busy ? "終わっても送らずに止めておきます" : "止めています。行の「すぐ送る」で 1 件ずつ送れます";
