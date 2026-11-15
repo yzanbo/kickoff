@@ -3,6 +3,7 @@ import { PRELOAD_FILE } from "./environment.js";
 import { openLinksExternally } from "./externalLinks.js";
 import { watchWindowLoad } from "./startupLog.js";
 import { watchRendererHang } from "./hangWatch.js";
+import { markMain } from "../diagnostics/bootRecorder.js";
 
 // メインのウィンドウ（Kickoff の画面）。Mac ではウィンドウを閉じてもアプリは残り、Dock を押すと作り直す
 
@@ -45,6 +46,11 @@ export function openMainWindow(url: string) {
       webviewTag: true,
     },
   });
+  // 起動の時刻（diagnostics/bootRecorder.ts。最初の 1 回だけ覚える）
+  markMain("windowCreated");
+  win.webContents.on("did-start-loading", () => markMain("loadStart"));
+  win.webContents.on("dom-ready", () => markMain("domReady"));
+  win.webContents.on("did-finish-load", () => markMain("loaded"));
   // 外部リンク（PR の URL など）は既定のブラウザで開く
   openLinksExternally(win.webContents);
   watchWindowLoad(win.webContents, url);

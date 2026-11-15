@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { bootMark } from "./bootMarks";
 import { publishServerEvent } from "@/api/events";
 import { useServerConnection } from "@/api/useServerConnection";
 import { useApprovals } from "@/stores/approvals";
@@ -58,6 +59,8 @@ import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 
 export function App() {
+  // 最初の描き終わり（起動の時刻の記録。いちばん外の部品なので、中の部品の layout effect のあと）
+  useLayoutEffect(() => bootMark("firstCommit"), []);
   // URL（ハッシュ）はここで 1 回だけ購読し、部品は useRoute()（RouteContext）で読む
   const route = useHashRoute();
   // ⌘[ / ⌘] で、前に開いたチャット・次のチャットへ

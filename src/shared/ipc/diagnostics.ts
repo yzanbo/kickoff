@@ -23,3 +23,31 @@ export interface DiagnosticsFolders {
   root: string;
   records: string[];
 }
+
+/** 起動の記録の画面の段階（メモの仕様書「0023_表示を軽くする」の案 18c。画面の app/bootMarks.ts が付ける） */
+export const BOOT_MARKS = ["entry", "storageReady", "appImported", "firstCommit", "firstPaint", "firstContentfulPaint", "interactive"] as const;
+export type BootMarkName = (typeof BOOT_MARKS)[number];
+
+/** 画面の窓の種類（メインのウィンドウ / 別ウィンドウ） */
+export const BOOT_WINDOWS = ["main", "popout"] as const;
+export type BootWindow = (typeof BOOT_WINDOWS)[number];
+
+/** 画面の起動の時刻（diagnostics.reportBoot。1 回の読み込みで 1 回だけ送る） */
+export interface BootReport {
+  window: BootWindow;
+  /** 画面のプロセスが読み込みを始めた時刻（performance.timeOrigin。epoch ms） */
+  timeOrigin: number;
+  /** 段階ごとの時刻（epoch ms。interactive が 10 秒でそろわなければ null。ほかは取れなければない） */
+  marks: Partial<Record<BootMarkName, number | null>>;
+  /** 読み込んだ画面の JS・CSS（/assets/ の下）: 数・キャッシュから出ずに取り直した数・合計の大きさ（KB） */
+  assets: { count: number; refetched: number; encodedKB: number } | null;
+}
+
+/** 画面のメモリ（diagnostics.reportMemory。60 秒ごと） */
+export interface RendererMemory {
+  window: BootWindow;
+  /** JavaScript のメモリ（MB。取れなければ null） */
+  jsHeapMB: number | null;
+  /** 画面の要素の数 */
+  domNodes: number;
+}

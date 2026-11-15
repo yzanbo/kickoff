@@ -1,4 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
+import { bootMark } from "./bootMarks";
 import { useUserViewReport } from "./userViewReport";
 import { collectPopoutView, popoutChatIds } from "./userViewCollect";
 import { publishServerEvent } from "@/api/events";
@@ -40,6 +41,8 @@ const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", 
  * ⌘F は、ウィンドウの中を探す（ファイル・メモはエディタの検索、ほかは右上の検索の欄。子チャットはチャットの中の検索が先に受け取る）
  */
 export function PopoutApp({ route }: { route: PopoutRoute }) {
+  // 最初の描き終わり（起動の時刻の記録。app/bootMarks.ts）
+  useLayoutEffect(() => bootMark("firstCommit"), []);
   const hashRoute = useHashRoute();
   useServerConnection(publishServerEvent);
   const { projects } = useProjects();
