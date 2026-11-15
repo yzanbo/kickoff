@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject, type UIEvent } from "react";
+import { SNAP_PX } from "@/lib/followScroll";
 import { isKey } from "@/lib/keys";
 import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
 import { jumpToEvent } from "./jumpToEvent";
@@ -17,8 +18,7 @@ export const BOTTOM_SLACK_PX = 80;
 
 /**
  * 流れのスクロール（ChatTimeline）:
- * - 一番下を見ているときだけ、新しい発言・確認のカード・書いている途中の返答・流れの終わりの様子（作業中の行が出た・圧縮中の行に替わった）に合わせて下へ
- *   （窓は数が変わらないまま進むので、最後の項目で見分ける）
+ * - 一番下に付いていくかを、スクロールの位置で決める（付いていくのは useFollowBottom。上へ戻している途中（held）は、一番下の近くでも付き直さない）
  * - 上の端に近づいたら（着く前に）前の項目を足し、読んでいた位置を動かさない。下の端に近づいたら後ろの項目を足す（途中の一部分を描いているとき）
  * - 一番下へ戻る（途中の一部分を描いているときは、最新の窓に戻して描いてから）。⌘↓ でも（このチャットにピントがあり、上を読んでいるとき）
  * - 検索結果から開いた発言（focus）へ移って一瞬強調する
@@ -29,22 +29,12 @@ export function useTimelineScroll({
   root,
   window: w,
   focus,
-  approvalsCount,
-  streaming,
-  endKey,
 }: {
   scroll: TimelineScroll;
   /** チャットの画面の要素（⌘↓ をこのチャットで受け取るか） */
   root: RefObject<HTMLElement | null>;
   window: TimelineWindow;
   focus?: number;
-  approvalsCount: number;
-  streaming: string;
-  /**
-   * 流れの終わりの様子（作業中の行を出しているか・圧縮中の行か）。項目が増えなくても終わりの高さが変わるので、変わったら付いていく
-   * （手で圧縮を始めたときの作業中の行・作業の途中で圧縮中の行に替わったときに、下が切れたままになっていた）
-   */
-  endKey: string;
 }) {
   const [away, setAway] = useState(false);
   const { hidden, hiddenAfter: after } = w;
@@ -78,13 +68,6 @@ export function useTimelineScroll({
     w.showMore();
   };
 
-  // 一番下を見ているときだけ、新しい発言に合わせてスクロールする
-  useEffect(() => {
-    const el = scroll.ref.current;
-    if (el && scroll.following() && !focus) el.scrollTop = el.scrollHeight;
-    // 窓（最近の項目だけ描く）は数が変わらないまま進むので、最後の項目で新しい発言を見分ける
-  }, [lastKey, approvalsCount, streaming, endKey, focus, scroll]);
-
   // 途中の一部分を描いているときに一番下へ戻る: 最新の窓に戻して、描いてから一番下へ
   const toLatest = useRef(false);
   useLayoutEffect(() => {
@@ -116,14 +99,26 @@ export function useTimelineScroll({
     { enabled: away },
   );
 
-  const onScroll = (e: UIEvent<HTMLElement>) => {
-    const el = e.currentTarget;
+  // 一番下を見ているか（付いていくか・一番下へ戻るボタンを出すか）を、いまの位置で決める
+  const place = (el: HTMLElement) => {
     const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     // 途中の一部分を描いているときは、下の端まで来ても最新ではない
     const atBottom = after === 0 && fromBottom < BOTTOM_SLACK_PX;
-    if (atBottom) scroll.follow();
-    else scroll.release();
+    // 上へ戻している途中は、一番下まで戻らない限り付き直さない（書いている途中に引き戻さない）
+    if (atBottom && (!scroll.held() || fromBottom <= SNAP_PX)) scroll.follow();
+    else if (!atBottom) scroll.release();
     setAway(!atBottom);
+    return { atBottom, fromBottom };
+  };
+  // スクロールし終えた: 上へ戻している途中の印を外して、もう一度決める（一番下の近くで止まったら、また付いていく）
+  const settle = (el: HTMLElement) => {
+    scroll.settle();
+    place(el);
+  };
+
+  const onScroll = (e: UIEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    const { atBottom, fromBottom } = place(el);
     if (atBottom) w.atBottom();
     // 上の端に近づいたら（着く前に）、窓の外の前の項目を足す
     const ahead = Math.max(LOAD_AHEAD_MIN_PX, el.clientHeight * LOAD_AHEAD_VIEWPORTS);
@@ -133,5 +128,5 @@ export function useTimelineScroll({
     if (after > 0 && fromBottom < ahead) w.showLater();
   };
 
-  return { away, firstKey, lastKey, onScroll, showMore, scrollToBottom };
+  return { away, firstKey, lastKey, onScroll, settle, showMore, scrollToBottom };
 }
