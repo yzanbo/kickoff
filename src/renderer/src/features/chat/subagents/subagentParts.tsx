@@ -1,9 +1,11 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, CornerDownRight } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import type { ChatEvent } from "@shared/types";
 import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat/subagents";
 import { relayedText } from "@shared/chat/prompts";
 import { cx } from "@/lib/cx";
+import { useSizeObserver } from "@/hooks/useSizeObserver";
 import { formatTokens } from "@/lib/format";
 import { formatElapsed, formatFullStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/lib/time";
 import { ClaudeMark } from "@/ui/ClaudeMark";
@@ -228,19 +230,17 @@ export function SubagentSteps({ entry, view, items, renderItems }: { entry: Suba
  */
 export function SubagentReport({ entry, view, limited = false }: { entry: SubagentEntry; view: SubagentsView; limited?: boolean }) {
   const report = subagentReport(entry, view.events);
-  const bodyRef = useRef<HTMLDivElement>(null);
-  // 高さの上限を超えるほど長いか（描いてから測る。コードの色付け・図などで後から伸びるので、大きさが変わるたびに測り直す）と、全文を出しているか
+  // 高さの上限を超えるほど長いか（描いてから測る。コードの色付け・図などで後から伸びるので、大きさが変わるたびに測り直す）と、全文を出しているか。
+  // 高さは、高さを抑える枠の内側の要素の大きさの知らせで測る（scrollHeight を読まない。知らせは描く前に届くので、変わったときだけその場で描き直す）
   const [long, setLong] = useState(false);
+  const longRef = useRef(false);
   const [full, setFull] = useState(false);
-  useLayoutEffect(() => {
-    const el = bodyRef.current;
-    if (!el || !limited) return;
-    const measure = () => setLong(el.scrollHeight > REPORT_LIMIT_PX + 40);
-    measure();
-    const observer = new ResizeObserver(measure);
-    for (const child of el.children) observer.observe(child);
-    return () => observer.disconnect();
-  }, [report, limited]);
+  const measureRef = useSizeObserver<HTMLDivElement>(({ height }) => {
+    const next = height > REPORT_LIMIT_PX + 40;
+    if (!limited || next === longRef.current) return;
+    longRef.current = next;
+    flushSync(() => setLong(next));
+  });
   if (!report) return null;
   const clamped = limited && long && !full;
   return (
@@ -260,8 +260,10 @@ export function SubagentReport({ entry, view, limited = false }: { entry: Subage
           </button>
         )}
       </div>
-      <div ref={bodyRef} className={cx("subagent-result-body", clamped && "limited")} style={clamped ? { maxHeight: REPORT_LIMIT_PX } : undefined}>
-        <Markdown>{report}</Markdown>
+      <div className={cx("subagent-result-body", clamped && "limited")} style={clamped ? { maxHeight: REPORT_LIMIT_PX } : undefined}>
+        <div ref={measureRef}>
+          <Markdown>{report}</Markdown>
+        </div>
       </div>
     </div>
   );
