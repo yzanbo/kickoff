@@ -26,6 +26,11 @@
   list-style: none;
 }
 
+/* 中身がない（ワークツリーがない・絞り込みで消えた）ときは、開いても閉じても同じ高さ（下の余白も出さない） */
+.ref-items:empty {
+  display: none;
+}
+
 .ref-item {
   display: flex;
   align-items: center;
