@@ -478,7 +478,7 @@ test("チャット欄の /clear: Claude Code に送らず、作業していな�
   assert.deepEqual(provider.prompts.includes("/clear"), false);
 });
 
-test("起動したときの送信待ちの確かめの API: 一覧と答え（チャットごと。答えたあとの残りを返す）", async () => {
+test("起動したときの再開の確かめの API: 一覧と答え（チャットごと。答えたあとの残りを返す）", async () => {
   const { call } = setup();
   assert.deepEqual((await call("GET", "/api/restart-resumes")).body, []);
   assert.equal((await call("POST", "/api/restart-resumes", {})).status, 400);

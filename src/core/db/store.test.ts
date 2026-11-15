@@ -28,6 +28,27 @@ test("中断された実行は起動時に失敗扱いになる", () => {
   assert.deepEqual([recovered.status, recovered.error, recovered.unread], ["failed", "中断しました", true]);
   // 起動時の復旧は「動いた」ではないので、並び順の時刻は変えない
   assert.equal(recovered.active_at, before);
+  // 印は Chat に出さない
+  assert.equal("resume_pending" in recovered, false);
+});
+
+test("起動したときの再開の確かめの印: 付けたものと落ちて残ったものを返し、外す・アーカイブ・ゴミ箱で消える", () => {
+  const { store, project } = setup();
+  const create = (title: string, status: "running" | "cancelled") => store.chats.create({ project_id: project.id, provider: "claude", title, status, model: null });
+  const crashed = create("落ちた", "running");
+  const quit = create("終えた", "cancelled");
+  const archived = create("しまう", "cancelled");
+  const trashed = create("捨てる", "cancelled");
+  const answered = create("答えた", "cancelled");
+  store.chats.setResumePending([quit.id, archived.id, trashed.id, answered.id], true);
+  store.chats.setResumePending([answered.id], false);
+  store.chats.archive(archived.id, true);
+  store.chats.trash([trashed.id], "item");
+  // しまったものを戻しても聞かない
+  store.chats.archive(archived.id, false);
+  assert.deepEqual(store.chats.recoverInterrupted("中断しました"), [crashed.id, quit.id]);
+  // 答えるまでは次の起動でも返す
+  assert.deepEqual(store.chats.recoverInterrupted("中断しました"), [crashed.id, quit.id]);
 });
 
 test("実行イベントは JSON で保存され、順番どおりに読み出せる", () => {
@@ -231,7 +252,9 @@ test("索引: チャットの一覧（プロジェクトごと）・作業場所
   };
   assert.match(plansOf(() => store.chats.list({ projectId: project.id }))[0], /^SEARCH chats USING INDEX idx_chats_project \(project_id=\? AND archived_at=\?\)$/);
   assert.match(plansOf(() => store.chats.inWorktree(project.id, "/tmp/demo-worktrees/a"))[0], /^SEARCH chats USING INDEX idx_chats_worktree \(project_id=\? AND worktree_path=\?\)$/);
-  assert.match(plansOf(() => store.chats.recoverInterrupted("x"))[0], /SEARCH chats USING (COVERING )?INDEX idx_chats_running \(status=\?\)/);
+  const recover = plansOf(() => store.chats.recoverInterrupted("x"));
+  assert.match(recover[0], /SEARCH chats USING (COVERING )?INDEX idx_chats_running \(status=\?\)/);
+  assert.match(recover[1], /SEARCH chats USING INDEX idx_chats_resume_pending \(resume_pending=\?\)/);
 });
 
 

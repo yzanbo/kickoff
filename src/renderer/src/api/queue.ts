@@ -10,9 +10,9 @@ const queuePath = (chatId: number, path = "") => `/api/chats/${chatId}/queue${pa
  * id は送信待ちの指示の ID
  */
 export const queueApi = {
-  /** 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまでコアは送らない） */
+  /** 起動したときの再開の確かめ: 前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット（答えるまでコアは続けず・送らない） */
   restartResumes: () => request<RestartResume[]>("GET", "/api/restart-resumes"),
-  /** 起動したときの送信待ちの確かめに答える（チャットごと。答えたあとの残りを返す） */
+  /** 起動したときの再開の確かめに答える（チャットごと。答えたあとの残りを返す） */
   resolveRestartResumes: (decisions: RestartResumeBody["decisions"]) => request<RestartResume[]>("POST", "/api/restart-resumes", { decisions } satisfies RestartResumeBody),
   /**
    * 作業中なら送信待ちに入れる（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す。
