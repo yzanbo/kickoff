@@ -7,6 +7,7 @@ import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
 import { formatElapsed, formatFullStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/lib/time";
 import { ClaudeMark } from "@/ui/ClaudeMark";
+import { LazyDetails } from "@/ui/LazyDetails";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { activityOf, activityText } from "@/features/chat/status/stall";
 import { Working } from "@/features/chat/status/Working";
@@ -290,15 +291,22 @@ function workingText(entry: SubagentEntry): string {
 export function SubagentPrompt({ text }: { text: string }) {
   const first = text.split("\n").find((line) => line.trim()) ?? "";
   return (
-    <details className="subagent-prompt">
-      <summary>
-        <ChevronRight size={13} className="tool-chevron" />
-        <span className="subagent-label">起動したエージェントからの依頼</span>
-        <span className="subagent-prompt-first">{first}</span>
-      </summary>
-      <div className="subagent-prompt-body">
-        <Markdown>{text}</Markdown>
-      </div>
-    </details>
+    // 全文の Markdown は、初めて開いたときに解析する
+    <LazyDetails
+      className="subagent-prompt"
+      summary={
+        <summary>
+          <ChevronRight size={13} className="tool-chevron" />
+          <span className="subagent-label">起動したエージェントからの依頼</span>
+          <span className="subagent-prompt-first">{first}</span>
+        </summary>
+      }
+    >
+      {() => (
+        <div className="subagent-prompt-body">
+          <Markdown>{text}</Markdown>
+        </div>
+      )}
+    </LazyDetails>
   );
 }
