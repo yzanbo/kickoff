@@ -1,6 +1,7 @@
 import type { UsageWindow } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { formatReset, resetInShort } from "@/lib/time";
+import { useTicker } from "@/hooks/useTicker";
 import { usageLevel, usageWindowLabel } from "./usage";
 
 /** 使用率の段階（色。idle = 枠が始まっていない・数値がない） */
@@ -67,6 +68,8 @@ interface Props {
 
 /** 使用枠のメーター（使用率に応じて 通常 → 注意 → 上限間近 と色とラベルが変わる。名前の付け方は usageWindowLabel） */
 export function UsageMeter({ window: w, compact, inline, idleText }: Props) {
+  // リセットまでの残り時間の表示を進める（時計で描き直すのは、この値を出すメーターだけ。メモの仕様書「0023_表示を軽くする」の案 30）
+  useTicker(60_000);
   const severity = severityOf(w.utilization);
   const label = usageWindowLabel(w, inline);
   const reset = formatReset(w.resets_at);

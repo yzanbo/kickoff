@@ -1,16 +1,16 @@
 import { useCallback, useState } from "react";
 import type { PlanUsage, UsageWindow } from "@shared/types";
 import { api } from "@/api";
-import { useTicker } from "@/hooks/useTicker";
 import { usageStore } from "@/stores/usage";
 import { useStore } from "@/stores/useStore";
 
-/** プランの使用枠（使用枠の店 stores/usage.ts。初回は API から取得し、以降はサーバーからのイベントで更新する）と、手で取り直す操作 */
+/**
+ * プランの使用枠（使用枠の店 stores/usage.ts。初回は API から取得し、以降はサーバーからのイベントで更新する）と、手で取り直す操作。
+ * リセットまでの残り時間を進める時計はここに置かない（App が読むので、アプリ全体が描き直る）。残り時間を出す UsageMeter が持つ
+ */
 export function usePlanUsage() {
   const usage = useStore(usageStore).data;
   const [refreshing, setRefreshing] = useState(false);
-  // リセットまでの残り時間の表示を進めるための再描画
-  useTicker(60_000);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
