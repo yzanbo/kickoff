@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "re
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
 import type { Attachment, QueuedMessage } from "@shared/types";
 import { api } from "@/api";
+import { useKeepAliveHold } from "@/features/panel/tabs/tabKeepAlive";
 
 /** 書き直している途中の 1 件（文と添付） */
 interface QueuedDraft {
@@ -31,8 +32,11 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
   // 書き直している指示をコアに知らせる（開いている間は知らせ直す。一度も開いていなければ知らせない）
   const editingKey = [...ids].sort().join(",");
   const told = useRef(false);
+  const hold = useKeepAliveHold("queueEdit");
   useEffect(() => {
     const list = editingKey ? editingKey.split(",") : [];
+    // 書き直している間は、タブを裏に回しても会話の欄を止めない（止めると、知らせ直しが切れて書き直しの途中で送られる）
+    hold(list.length > 0);
     if (list.length === 0 && !told.current) return;
     told.current = list.length > 0;
     const tell = () => void api.setQueueEditing(chatId, list).catch(() => undefined);
@@ -40,7 +44,7 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
     if (list.length === 0) return;
     const timer = setInterval(tell, EDIT_HOLD_TTL_MS / 4);
     return () => clearInterval(timer);
-  }, [chatId, editingKey]);
+  }, [chatId, editingKey, hold]);
   // 欄ごと消えた（チャットを閉じた・切り替えた）: 書き直しは終わったとして外す（欄の中身も残らない）
   useEffect(
     () => () => {

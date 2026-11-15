@@ -12,7 +12,7 @@ import { ContextMeter } from "@/features/chat/composer/ContextMeter";
 import { useWideText } from "@/features/chat/pane/TextWidthToggle";
 import { cx } from "@/lib/cx";
 import { ChatView } from "@/features/chat/pane/ChatPane";
-import { useChatContent } from "@/features/chat/store/useChatStore";
+import { useOpenChat } from "@/features/chat/store/useChatStore";
 import { chatPaneOf } from "@/features/chat/pane/windowMessages";
 import { PanelHostContext } from "@/features/panel/panelHost";
 import { ChipsPortalContext, type ChipsPortal } from "@/features/chat/pane/chipsPortal";
@@ -114,12 +114,12 @@ export function MemoChat({
 
 /** メモのチャットの会話（ふつうのチャットの画面。右の欄は重ねない） */
 function MemoChatView({ chatId, visible, beforeSend }: { chatId: number; visible: boolean; beforeSend: () => Promise<void> }) {
-  const { chat, project, log, approvals, live, error } = useChatContent(chatId, visible);
+  const { chat, project, error } = useOpenChat(chatId, visible);
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;
   return (
     <PanelHostContext.Provider value={null}>
-      <ChatView chat={chat} project={project} log={log} approvals={approvals} live={live} visible={visible} beforeSend={beforeSend} />
+      <ChatView chat={chat} project={project} visible={visible} beforeSend={beforeSend} />
     </PanelHostContext.Provider>
   );
 }
