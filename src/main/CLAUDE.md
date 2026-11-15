@@ -55,7 +55,7 @@ Electron のメインプロセス。窓・OS の口・仲立ちだけを持ち�
 ## 眠らせない（app/keepAwake.ts）
 
 - 本体（コアが動くこのプロセス）を眠らせないのは、作業中のチャットがある間と、スマホ連携がオン（設定の `remote_enabled`）で電源につないでいる間（`keepAwakeRules.ts` の `keepAwakeReason`。2026-11-14 に決めた。スマホから新しい指示を送るには、待っている間も本体が起きている必要があるため。バッテリーのときは、作業中でなければ眠ってよい）。`powerSaveBlocker` の `prevent-app-suspension`（画面は消えてよく、本体だけ起こしておく。`pmset -g assertions` に `NoIdleSleepAssertion` が出る）。
-- 作業中の数とスマホ連携のオン・オフはコアのプロセスの知らせ `awake`（コアが Bus の `chat`・`settings` のたびに `Core.awakeNeeds` を読み、変わったときだけ送る）、電源は `powerMonitor`（`isOnBatteryPower`・`on-ac` / `on-battery`）から読み、そのたびに付け外しする（`index.ts` がコアを起動したあと `startKeepAwake`）。コアが落ちた・作り直している間は外し、作り直したコアの最初の知らせで付け直す。変わったら起動の記録に「眠らせない: working / mobile / なし」を残す。
+- 作業中の数とスマホ連携のオン・オフはコアのプロセスの知らせ `awake`（コアが Bus の `chat`・`settings` のたびと作業中の間は 2 秒ごとに `Core.awakeNeeds` を読み、変わったときだけ送る。前は知らせのたびに読むだけで、作業が終わっても次に何か起きるまで「作業中」のまま本体を眠らせなかった）、電源は `powerMonitor`（`isOnBatteryPower`・`on-ac` / `on-battery`）から読み、そのたびに付け外しする（`index.ts` がコアを起動したあと `startKeepAwake`）。コアが落ちた・作り直している間は外し、作り直したコアの最初の知らせで付け直す。変わったら起動の記録に「眠らせない: working / mobile / なし」を残す。
 - MacBook のふたを閉じたときの眠り（外部ディスプレイと電源をつないでいるときを除く）は、これでは防げない。
 
 ## ログイン時に起動（app/loginItem.ts）

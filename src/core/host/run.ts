@@ -28,7 +28,15 @@ export interface CoreHostDeps {
   onTerminate?: (fn: () => void) => void;
   /** 詰まりの見張りを始める（テストでは渡さない = 見張らない） */
   watchStalls?: (onStall: (record: StallRecord) => void) => () => void;
+  /** 作業中の間、眠らせない理由を読み直す間隔（ms。既定 AWAKE_RECHECK_MS） */
+  awakeRecheckMs?: number;
 }
+
+/**
+ * 作業中の間、眠らせない理由を読み直す間隔。作業の終わりの知らせ（chat）は、実行の後片付け（作業中の数が減る）より先に流れるので、
+ * 知らせのたびに読むだけでは、次に何か起きるまで「作業中」のまま残り、本体を眠らせなかった
+ */
+const AWAKE_RECHECK_MS = 2000;
 
 /** 最初の init を待つ */
 function nextInit(parent: RpcPort): Promise<CoreInit> {
@@ -63,6 +71,7 @@ export async function runCoreHost(parent: RpcPort, deps: CoreHostDeps): Promise<
   let core: Core | null = null;
   let closing: Promise<void> | null = null;
   let stopStalls = () => {};
+  let awakeTimer: ReturnType<typeof setInterval> | null = null;
   let recording: Awaited<ReturnType<typeof startProcessRecording>> | null = null;
   const requireCore = () => {
     if (!core) throw new Error("Kickoff のコアはまだ準備中です");
@@ -72,6 +81,7 @@ export async function runCoreHost(parent: RpcPort, deps: CoreHostDeps): Promise<
   const closeAndExit = () =>
     (closing ??= (async () => {
       stopStalls();
+      if (awakeTimer) clearInterval(awakeTimer);
       try {
         await core?.close();
       } catch (e) {
@@ -132,10 +142,20 @@ export async function runCoreHost(parent: RpcPort, deps: CoreHostDeps): Promise<
   }
   const started = core;
 
-  // 眠らせない理由（作業中の数・スマホ連携）が変わったときだけメインへ（メインはバスを購読しない）
+  // 眠らせない理由（作業中の数・スマホ連携）が変わったときだけメインへ（メインはバスを購読しない）。
+  // 作業中の間は AWAKE_RECHECK_MS ごとにも読み直す（作業の終わりの知らせは、作業中の数が減るより先に流れるため）
   let lastAwake: AwakeNeeds | null = null;
   const reportAwake = () => {
+    if (closing) return;
     const next = started.awakeNeeds();
+    const running = next.running > 0;
+    if (running && !awakeTimer) {
+      awakeTimer = setInterval(reportAwake, deps.awakeRecheckMs ?? AWAKE_RECHECK_MS);
+      awakeTimer.unref();
+    } else if (!running && awakeTimer) {
+      clearInterval(awakeTimer);
+      awakeTimer = null;
+    }
     if (lastAwake && lastAwake.running === next.running && lastAwake.mobileEnabled === next.mobileEnabled) return;
     lastAwake = next;
     rpc.emit("awake", next);
