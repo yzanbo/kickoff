@@ -17,6 +17,7 @@ import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode } from "./footerMode";
 import { usePopover } from "@/ui/Popover";
 import { UsageMeter } from "@/features/usage/UsageMeter";
 import { UsagePopover } from "@/features/usage/UsagePopover";
+import { ForegroundUsage, useForegroundUsage } from "@/features/usage/ForegroundUsage";
 import { QueueResumeFooterButton } from "@/features/chat/queue/QueueResumeDialog";
 import { PortsButton, PortsFallback } from "./ports/PortsButton";
 import { portsAvailable } from "./ports/portsStore";
@@ -45,6 +46,8 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
   const usage = planUsage.usage;
   const [mode, setMode] = useFooterMode();
   const menu = useContextMenu();
+  // 前に出しているチャットが Claude Code 以外の AI・API キーで動かす AI なら、その AI の使用状況を出す（メモの仕様書「0021」の Q6 B）
+  const foregroundAi = useForegroundUsage();
   // 隠していても、⌘K から「ポートを使っているプロセス」を開ける
   if (mode === "hide") return portsAvailable() ? <PortsFallback /> : null;
   return (
@@ -87,12 +90,13 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       {/* 起動したときの送信待ちの確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
       <QueueResumeFooterButton />
       <span className="spacer" />
-      {usage?.plan && (
+      {foregroundAi !== null && <ForegroundUsage provider={foregroundAi} />}
+      {foregroundAi === null && usage?.plan && (
         <span className="plan-chip" title={`${usage.provider_label} でログインしているアカウントの契約プラン`}>
           {planName(usage)}
         </span>
       )}
-      {usage?.available ? (
+      {foregroundAi !== null ? null : usage?.available ? (
         <button
           ref={usagePopover.anchor}
           className={`footer-usage ${usagePopover.open ? "active" : ""}`}

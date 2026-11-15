@@ -19,6 +19,7 @@ import { useWideText } from "./TextWidthToggle";
 import { useWindowMessagesFor } from "./windowMessages";
 import { useChatDetail } from "./useChatDetail";
 import { useChatView, type ChatViewInput } from "./useChatView";
+import { ChatProviderContext, noteForegroundProvider, useProviderStatus } from "@/features/chat/provider/chatProvider";
 
 interface ChatPaneProps {
   chatId: number;
@@ -84,7 +85,14 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
   const backgroundCalls = useBackgroundCalls(view.live.background);
   // AI が描いた図（記録から組み立てる。流れの図の項目が読む）
   const visuals = useMemo(() => chatVisualsOf(events), [events]);
+  // そのチャットの AI の状態（できること・ログインの仕方。中の部品は読み込みを頼まずに読むので、ここで 1 回頼む）
+  useProviderStatus(chat.provider, { load: true });
+  // 表に出したチャットの AI を、下の帯の使用状況に出す（触ったときも。分けたペインで隣のチャットへ移ったとき）
+  useEffect(() => {
+    if (visible) noteForegroundProvider(chat.provider);
+  }, [visible, chat.provider]);
   return (
+    <ChatProviderContext.Provider value={chat.provider}>
     <FileLinksProvider value={view.fileLinks}>
       <ChatPaneContext.Provider value={pane}>
         <SubagentsContext.Provider value={view.subagentsView}>
@@ -97,6 +105,7 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
           className={cx("chat-page chat-panel", wide && "wide")}
           data-chat-id={chat.id}
           data-chat-role={chat.memo_path ? "memo" : chat.parent_chat_id !== null ? "child" : "chat"}
+          onPointerDownCapture={() => noteForegroundProvider(chat.provider)}
         >
           <ChatHeader chat={chat} project={project} items={view.items} version={view.timeline.visible} />
           {/* 返答の一部を選んで、チャット欄に引用を足す（右の欄・別ウィンドウの中では SideSelectionAttach が出す） */}
@@ -142,6 +151,7 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
         </SubagentsContext.Provider>
       </ChatPaneContext.Provider>
     </FileLinksProvider>
+    </ChatProviderContext.Provider>
   );
 }
 
