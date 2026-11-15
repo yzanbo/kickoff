@@ -105,6 +105,8 @@ export interface HostPlatform {
 
 /** AI の Bash の砂場に OS ごとに足す決まり */
 export interface AgentSandboxRules {
+  /** OS の一時フォルダ（実体のパス）。Bash の砂場に加えて、ファイルを書き換えるツール（Write・Edit）の書き込み先の守りでも聞かずに書かせる */
+  tempDirs: string[];
   /** 書けるフォルダ（一時フォルダ・キャッシュ・パッケージの置き場など。まだないものを返してもよい） */
   writableDirs: () => Promise<string[]>;
   /**
