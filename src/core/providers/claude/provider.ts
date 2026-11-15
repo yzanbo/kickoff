@@ -25,7 +25,7 @@ import { mcpServersOf, toolAllowList } from "./mcpServers.js";
 import { agentEnv, claudeAuthEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
-import { turnContextHook, turnHooks, toAllowedTools } from "./policy.js";
+import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks, toAllowedTools } from "./policy.js";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../types.js";
@@ -33,9 +33,6 @@ import { runCommand } from "../../system/exec.js";
 import { claudeSandbox } from "./sandbox.js";
 import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
-
-/** Kickoff のチャットでは使わせない Claude Code のツール（Kickoff の利用者に届かない・Kickoff の操作ツールと取り違えるもの） */
-const KICKOFF_DISALLOWED_TOOLS = ["PushNotification"];
 
 /** 1 回だけ聞くときの段ごとのモデル（AskModel。軽い = haiku・ふつう = sonnet） */
 const ASK_MODELS: Record<AskModel, string> = { light: "haiku", standard: "sonnet" };
@@ -204,7 +201,7 @@ export class ClaudeProvider implements AgentProvider {
           // AI の操作ツールのうち、聞かずに使わせるもの（埋め込みブラウザの見るだけのもの・DB とチャットのツールのすべて = 承認と断りはツールの中で行う）。
           // 埋め込みブラウザの開く・押す・打つ・JS は権限モードと承認に従う
           allowedTools: [...toAllowedTools(params.policy), ...toolAllowList(tools)],
-          // Claude Code の PushNotification は Claude のアプリ・端末に送るもので Kickoff の利用者に届かないので外す（知らせるのは kickoff_chat の notify_user）
+          // Kickoff のチャットでは使わせないツール（PushNotification・EnterWorktree / ExitWorktree。理由は KICKOFF_DISALLOWED_TOOLS）
           disallowedTools: KICKOFF_DISALLOWED_TOOLS,
           ...(Object.keys(mcpServers).length > 0 ? { mcpServers } : {}),
           canUseTool,

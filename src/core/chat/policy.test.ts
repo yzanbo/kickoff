@@ -72,6 +72,14 @@ test("指示: 出力の上限（max_output_tokens）で止まったサブエー�
   assert.match(prompt, /大きなファイルは何回かに分けて書く/);
 });
 
+test("指示: 会話ごと別のフォルダへ移る EnterWorktree は使えず、書き換えを分けるなら Kickoff のワークツリーを利用者に提案する（サブエージェントのワークツリーは使える）", () => {
+  const prompt = buildSystemPrompt(project([]));
+  assert.match(prompt, /EnterWorktree \/ ExitWorktree）は使えません/);
+  assert.match(prompt, /自分でチャットもワークツリーも作らずに/);
+  assert.match(prompt, /［ワークツリーを作る］で作ったワークツリーのチャットで行うか、ワークツリーの子チャットを作るか/);
+  assert.match(prompt, /isolation: "worktree" はこれまでどおり使えます/);
+});
+
 test("図と数式: 図はツールで描き、初めに書き方を読むこと・数式の書き方を伝える（細かい書き方はツールの説明に任せて短く）", () => {
   const prompt = buildSystemPrompt(project([]));
   assert.ok(prompt.includes("## 図と数式"));

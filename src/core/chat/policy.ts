@@ -79,6 +79,8 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     `- 急がない作業のサブエージェントは、終わるまで待つ形（run_in_background: false）で動かしてください。`,
     `- サブエージェントが API・通信のエラー（終わりの知らせに API Error・Connection などとある）で途中で止まったときは、SendMessage でそのサブエージェントに止まったところから続けるよう伝えて、1 回だけ再開してください（記録が見つからず再開できないときだけ、同じ依頼で立ち上げ直してください）。それでも止まったとき、通信以外の理由で失敗したとき、利用者が止めたもの（中断）は、再開も立ち上げ直しもせず、何が止まったかを利用者に伝えてください。`,
     `- ただし、サブエージェントが 1 回の返答で書ける量の上限（終わりの知らせに max_output_tokens・output token maximum とある）で止まったときは、通信のエラーではありません。同じやり方で続けると同じところでまた止まるので、「報告は短くまとめる」「大きなファイルは何回かに分けて書く」と添えて、SendMessage で 1 回だけ続きを頼んでください。それでも止まったら、利用者に伝えてください。`,
+    // 作業場所は Kickoff が決めて覚えるので、会話ごと別のフォルダへ移らせない（Claude Code の EnterWorktree は外してある。代わりの道を伝える）
+    `- 会話ごと別のフォルダへ移る機能（Claude Code の EnterWorktree / ExitWorktree）は使えません。書き換えを分けたいときは、自分でチャットもワークツリーも作らずに、利用者に「画面の［ワークツリーを作る］で作ったワークツリーのチャットで行うか、ワークツリーの子チャットを作るか」を提案してください（サブエージェントの isolation: "worktree" はこれまでどおり使えます）。`,
     // rm などは守りが断るので、初めから kickoff-trash を使ってもらう（断られてやり直す手間を省く）
     ...(opts.trash
       ? [`- ファイル・フォルダを消すときは、rm・unlink・find -delete・git clean ではなく ${TRASH_COMMAND} <パス>… を使ってください（Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます。rm などは Kickoff が断ります。command not found なら "$KICKOFF_TRASH" <パス>… で呼べます）。`]
