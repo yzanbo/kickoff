@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { convertTexDelimiters, isSingleDollarMath, looksLikeMath, mathRanges, mayContainMath } from "./mathGuard";
+import { convertTexDelimiters, INLINE_MATH_MAX, isSingleDollarMath, looksLikeMath, mathRanges, mayBecomeSingleDollarMath, mayContainMath } from "./mathGuard";
 
 test("looksLikeMath: 1 文字の英字・英字を含む式・TeX の記号を含むものは数式", () => {
   for (const tex of ["x", "2x+1", "a-b", "n*(n+1)", "x^2", "a_1", "\\alpha", "\\frac{a}{b}", "a \\le b", "E = mc^2", "π r²", "x ≤ y"]) {
@@ -79,4 +79,9 @@ test("mayContainMath: 数式の書き方を含みうるか", () => {
   assert.ok(mayContainMath("$x$"));
   assert.ok(mayContainMath("\\(x\\)"));
   assert.ok(!mayContainMath("ふつうの文"));
+});
+
+test("mayBecomeSingleDollarMath: 閉じの $ がまだの中身が、続きで数式になりうるか", () => {
+  for (const content of ["x", "x^", "\\frac{a", "2x+", "5", "a_1 \\le"]) assert.ok(mayBecomeSingleDollarMath(content), content);
+  for (const content of ["5 です", "HOME", " x", "x\ny", "a$b", "`x", "x".repeat(INLINE_MATH_MAX + 1), "20%"]) assert.ok(!mayBecomeSingleDollarMath(content), content);
 });
