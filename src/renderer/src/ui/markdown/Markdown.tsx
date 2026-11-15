@@ -63,15 +63,23 @@ function FileLink({ path: candidate, line, text, fallback, children }: { path: s
 
 /** 書いている途中の返答の中か（コードブロックの部品が読む。途中と確定で同じ要素を使い回すため、部品に閉じ込めない） */
 const StreamingFlag = createContext(false);
+/** 書いている途中の最後のブロックで、閉じていないコードブロックの開きの行の頭（ブロックの中の位置。なければ null） */
+const OpenFence = createContext<number | null>(null);
 
 /**
  * コードブロック。上の帯に言語名とコピーのボタンを出す（ボタンはいつも出す）。
- * ```mermaid は図にする（生成中は、書きかけの図を描かずに枠だけ出す）
+ * ```mermaid は図にする（書いている途中は、閉じていない書きかけの図だけを枠にし、書き終えた（閉じた）図は返答の途中でも描く。
+ * 一番下に付いていっているときは付いていき、上を読んでいるときは読んでいる位置をブラウザのスクロールアンカーが保つ。メモの仕様書「0023_表示を軽くする」の U4）
  */
 const codeBlock: Components["pre"] = function CodeBlock({ node, ...props }) {
   const streaming = useContext(StreamingFlag);
+  const openFence = useContext(OpenFence);
   const block = codeBlockOf(node);
-  if (block?.language === "mermaid") return streaming ? <MermaidPlaceholder /> : <MermaidDiagram code={block.text} />;
+  if (block?.language === "mermaid") {
+    // 閉じていないコードブロックは最後のブロックの最後にしかない（その開きより後ろから始まるコードブロックが、それ）
+    const open = streaming && openFence !== null && (node?.position?.start.offset ?? -1) >= openFence;
+    return open ? <MermaidPlaceholder /> : <MermaidDiagram code={block.text} />;
+  }
   if (!block) return <pre {...props} />;
   return <CodeBlockBody block={block} streaming={streaming} pre={props} />;
 };
@@ -119,8 +127,11 @@ const table: Components["table"] = ({ node: _node, ...props }) => (
   </div>
 );
 
+/** 画像。画面の手前まで来てからブラウザが読む（遠くの画像を、開いたときにまとめて読まない。案 14a） */
+const image: Components["img"] = ({ node: _node, ...props }) => <img loading="lazy" decoding="async" {...props} />;
+
 // 描くたびに部品が作り直されないよう（図の状態が消えないよう）、外で作っておく
-const COMPONENTS: Components = { a: link, pre: codeBlock, table };
+const COMPONENTS: Components = { a: link, pre: codeBlock, table, img: image };
 
 /** 描いたブロックの覚え（書きかけの返答から確定した返答に替わったとき・流れの窓で行を外して戻したときに解析し直さない） */
 const blockCache = createBlockCache();
@@ -151,11 +162,12 @@ function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
   // 書いている途中は、前の文の続きなら増えた行だけ読む読み取りを持つ
   const [splitter] = useState(createBlockSplitter);
   const text = useMemo(() => (withMath ? convertTexDelimiters(children) : children), [children, withMath]);
-  const blocks = useMemo(() => (streaming ? splitter.split(text).blocks : splitBlocks(text)), [text, streaming, splitter]);
+  const { blocks, openFence } = useMemo(() => (streaming ? splitter.split(text) : { blocks: splitBlocks(text), openFence: null }), [text, streaming, splitter]);
   const tails = splitTail(
     blocks.map((b) => b.length),
     tail,
   );
+  const last = blocks.length - 1;
   return (
     <div className="markdown">
       <StreamingFlag.Provider value={streaming}>
@@ -163,7 +175,10 @@ function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
         {blocks.map((b, i) => (
           <Fragment key={i}>
             {i > 0 && "\n"}
-            <MarkdownBlock pipeline={pipeline} text={b} tail={tails[i]} />
+            {/* 形をそろえて包む（最後のブロックが前のブロックになっても作り直さない） */}
+            <OpenFence.Provider value={i === last ? openFence : null}>
+              <MarkdownBlock pipeline={pipeline} text={b} tail={tails[i]} />
+            </OpenFence.Provider>
           </Fragment>
         ))}
       </StreamingFlag.Provider>

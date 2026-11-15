@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { convertTexDelimiters } from "@shared/markdown/mathGuard";
-import { splitBlocks } from "@/lib/markdownBlocks";
+import { createBlockSplitter, splitBlocks } from "@/lib/markdownBlocks";
 import { remarkMathGuard } from "./math/remarkMathGuard";
 import { createBlockCache, createPipeline, pipelineOf, renderMarkdown } from "./markdownProcessor";
 
@@ -125,4 +125,23 @@ test("createBlockCache: 同じ処理の組と文なら同じ要素を返し、�
   const small = createBlockCache({ count: 10, chars: 5 });
   const long = small.render(pipeline, "長い文字列です", components);
   assert.notEqual(small.render(pipeline, "長い文字列です", components), long);
+});
+
+test("書いている途中の閉じていないコードブロックは、その開きより後ろから始まる pre だけ（閉じた図は返答の途中でも描く U4 の見分け）", () => {
+  const text = "前\n\n```mermaid\nA-->B\n```\n後ろの文\n```mermaid\ngraph TD\n  C-->";
+  const { blocks, openFence } = createBlockSplitter().split(text);
+  assert.equal(blocks.length, 2);
+  assert.ok(openFence !== null);
+  const starts: number[] = [];
+  const probe: Components = {
+    pre: ({ node }) => {
+      starts.push(node?.position?.start.offset ?? -1);
+      return null;
+    },
+  };
+  renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), blocks[1], probe));
+  assert.deepEqual(
+    starts.map((s) => s >= openFence),
+    [false, true],
+  );
 });
