@@ -1,10 +1,12 @@
 import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig } from "electron-vite";
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { APP_ENVS } from "./src/core/system/appEnv";
 import { speechHelper } from "./scripts/speech-helper";
 import { unhashedAssets } from "./src/core/http/rendererCache";
+import { reactCompilerReport } from "./scripts/react-compiler-report.mjs";
 
 // コアの API サーバーのポート（開発時は Vite から /api をここへ転送する。開発用のポート: appEnv.ts）
 const corePort = Number(process.env.KICKOFF_PORT ?? APP_ENVS.development.port);
@@ -26,6 +28,11 @@ function hashedAssetsOnly() {
     },
   };
 }
+
+// React Compiler（部品・hooks の値と描いた結果を自動で覚え、変わっていない所を描き直さない。メモの仕様書「0023_表示を軽くする」の案 17）。
+// 最適化できなかった部品・hooks は報告にまとめ、許した一覧にないものが増えたらビルドを止める（scripts/react-compiler-report.mjs）。
+// Vitest（vitest.config.ts）には入れない（画面のテストは純粋な関数だけで、通しても確かめるものが増えず遅くなるだけのため）
+const compilerReport = reactCompilerReport({ allowList: "src/renderer/react-compiler-skips.json" });
 
 export default defineConfig({
   main: {
@@ -52,7 +59,7 @@ export default defineConfig({
   renderer: {
     root: resolve("src/renderer"),
     resolve: { alias: { ...shared, "@": resolve("src/renderer/src") } },
-    plugins: [react(), hashedAssetsOnly()],
+    plugins: [react(), babel({ presets: [reactCompilerPreset({ logger: compilerReport.logger })] }), compilerReport.plugin, hashedAssetsOnly()],
     build: { outDir: resolve("out/renderer") },
     // Worker（コードの色付け・Monaco）を ES モジュールで作る（色付けの言語の定義を使うときだけ読む別のファイルに分けるため。iife では 1 つに入り約 3MB になる）
     worker: { format: "es" },
