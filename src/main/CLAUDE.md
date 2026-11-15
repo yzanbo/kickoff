@@ -75,6 +75,11 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 - 保存先はログの場所（`app/logs.ts` の `logsDir()`）の `diagnostics/<日時>/` で、`summary.json`・`profile.cpuprofile`（画面）・`main.cpuprofile`（どちらも Chrome の開発者ツールで開ける）。データの保存先（Application Support）はエージェントから読めない（`chat/guard/selfProtection.ts`）ので、場所を貼っても読めるようログの場所に置く。以前の保存先の記録は、起動のときに `moveLegacyDiagnostics` で移す。
 - 様子は `diagnostics.onState` で画面に知らせる（記録の間も操作を続けられるよう、ダイアログにしない）。保存先と最近の記録は `diagnostics.folders`、Finder で開くのは `diagnostics.openRoot`（メニューの「保存先を開く」と共通）。集計は `profileSummary.ts` / `rendererTiming.ts` でテストする。
 
+## 詰まりの記録（diagnostics/stalls.ts）
+
+- 診断の 10 秒の外でも重さの原因を追えるよう、メインプロセスのイベントループの詰まりをいつも見張る（メモの仕様書「0023_表示を軽くする」の案 12。仕組みはコアの `system/stallWatch.ts`）。`index.ts` が起動の初めに `watchMainStalls` を 1 回だけ動かす（いまはコアも同じプロセスなので、コアの名前もここで付く）。名前はコアの所のほか、IPC の登録の補助（`ipc/register.ts`。`ipc:<まとまり>.<名前>`）・画面の知らせ（`startupLog.ts`・`hangWatch.ts`。`wc:<知らせ>`）・起動の同期の処理（`boot:seedDevData`・`boot:loadLoginShellPath`）で付ける。
+- 書き先はログの場所の `stalls.jsonl`（1 行 1 件の `StallRecord`。256KB で 1 世代。回すのはメインだけ。ログのファイルの口は `app/logFiles.ts` の `rotatingLog`）。最近の 50 件をメモリに持ち、診断の `summary.json` の `stalls.main` に入れる。2 秒を超えた `blocked` は startup.log にも 1 行書く。外へは送らない。
+
 ## 起動の記録
 
 - `app/startupLog.ts`: `~/Library/Logs/<アプリ名>/startup.log` に、起動の各段階（whenReady・ログインシェルの PATH・コア・認証の Cookie）と、メインのウィンドウの画面の読み込み（読み込みの各段階・失敗・画面のプロセスの異常終了・preload のエラー・画面の console.error・10 秒たっても終わらない）・子プロセスの異常終了を書く。512KB を超えたら 1 世代だけ残す。`npm run install-app` で入れ替えた直後の初回だけ画面が出ないことがあり、macOS の記録では画面の中で何が起きたか分からなかったため。エージェントも読める場所に置く。

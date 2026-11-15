@@ -4,6 +4,7 @@
 // 止まったままなら「画面を読み込み直す」を聞く（コアは同じプロセスで動き続けるので、AI の作業は止まらない）
 import { app, dialog, powerMonitor, screen, session, type BrowserWindow } from "electron";
 import { errorMessage } from "@shared/errors";
+import { timed } from "../../core/system/stallWatch.js";
 import { startupLog } from "./startupLog.js";
 
 /** 応答しなくなってから、まだ戻らなければ聞くまでの時間 */
@@ -94,19 +95,19 @@ export function watchRendererHang(win: BrowserWindow, label: string) {
   };
 
   // 止まったままなら、押すたびに届く（「待つ」を選んだあとも、また押して届いたら聞き直す）
-  contents.on("unresponsive", () => {
+  contents.on("unresponsive", timed("wc:unresponsive", () => {
     const first = hungAt === undefined;
     hungAt ??= Date.now();
     startupLog(`${label}: 画面が応答しません（unresponsive）`);
     if (first) void collectStack(win).then((stack) => startupLog(`${label}: 止まっている JavaScript: ${stack}`));
     if (!timer && !asking) timer = setTimeout(() => void ask().catch((e: unknown) => startupLog(`${label}: 聞けませんでした ${errorMessage(e)}`)), ASK_AFTER_MS);
-  });
-  contents.on("responsive", () => {
+  }));
+  contents.on("responsive", timed("wc:responsive", () => {
     const took = hungAt === undefined ? "" : `（${Math.round((Date.now() - hungAt) / 1000)} 秒）`;
     hungAt = undefined;
     recover();
     startupLog(`${label}: 画面が応答を戻しました（responsive）${took}`);
-  });
+  }));
   contents.on("render-process-gone", recover);
   win.on("closed", recover);
 }

@@ -33,6 +33,7 @@ import { runCommand } from "../../system/exec.js";
 import { claudeSandbox } from "./sandbox.js";
 import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
+import { noteSyncSince, syncStart } from "../../system/stallWatch.js";
 
 /** 1 回だけ聞くときの段ごとのモデル（AskModel。軽い = haiku・ふつう = sonnet） */
 const ASK_MODELS: Record<AskModel, string> = { light: "haiku", standard: "sonnet" };
@@ -233,6 +234,8 @@ export class ClaudeProvider implements AgentProvider {
       // 裏で動いている作業と、メインの返答が終わったか（変わったときだけ知らせる）
       const trackBackground = createBackgroundTracker();
       for await (const msg of q) {
+        // 1 件の処理に名前を付けて詰まりの見張りに知らせる（system/stallWatch.ts）
+        const handleStart = syncStart();
         // 通信の再試行: 画面に回数と次に送り直すまでの時間を知らせる（応答がない = 通信が切れている）
         if (msg.type === "system" && msg.subtype === "api_retry") {
           retrying = true;
@@ -279,6 +282,7 @@ export class ClaudeProvider implements AgentProvider {
             cb.context?.(post);
           } else contextAfterCompact = true;
         }
+        noteSyncSince(handleStart, () => `provider:claude:${msg.type}`);
       }
     } catch (e) {
       if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };

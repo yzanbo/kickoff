@@ -7,6 +7,7 @@ import { logsDir } from "../app/logs.js";
 import { mainWindow } from "../app/window.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { startMainRecording } from "./mainProcess.js";
+import { recentStalls } from "./stalls.js";
 import { diagnosticsFolderName, perSecond, RENDERER_PROBE, startCpuProfile, topSelfTime, type Metrics } from "./profileSummary.js";
 import { RENDERER_COLLECT, RENDERER_OBSERVE, summarizeFrames, summarizeInteractions, type RendererTimings } from "./rendererTiming.js";
 
@@ -163,6 +164,8 @@ async function capture(wc: WebContents, seconds: number) {
       longTasks: { count: timings.longTasks ?? 0, totalMs: timings.longTaskMs ?? 0 },
       /** メインプロセス（コアのサーバー・DB も同じ）。CPU プロファイルは main.cpuprofile */
       main: main.summary,
+      /** 最近の詰まり（500ms を超えてイベントループが止まったもの。diagnostics/stalls.ts）。いまはコアもメインの中なので main だけ */
+      stalls: { main: recentStalls() },
       // 記録した間のプロセスごとの CPU（%）とメモリ（MB）。Tab が画面、Browser がメインプロセス（コアのサーバーも同じプロセス）
       processes: appMetrics.map((p) => ({
         type: p.type,
