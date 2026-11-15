@@ -3,6 +3,7 @@ import type { ChatEventOf } from "@shared/types";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
 import { LazyDetails } from "@/ui/LazyDetails";
 import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
+import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 
 /**
  * AI からの質問に答えた内容（記録の approval_resolved の answers / attachments）。自分の発言と同じ吹き出しで右に出し、
@@ -25,7 +26,7 @@ export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"app
           質問への回答
         </div>
         <dl className="question-answer-list">
-          {entries.map(([question, answer]) => {
+          {entries.map(([question, answer], i) => {
             const files = data.attachments?.[question] ?? [];
             return (
               <div key={question} className="question-answer-item">
@@ -33,9 +34,7 @@ export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"app
                 <dd>{Array.isArray(answer) ? answer.join("、") : answer}</dd>
                 {data.previews?.[question] && (
                   <dd>
-                    <LazyDetails className="question-answer-preview" summary={<summary>選んだ図</summary>}>
-                      {() => <pre>{data.previews?.[question]}</pre>}
-                    </LazyDetails>
+                    <PreviewDetails event={event} index={i} text={data.previews[question]} />
                   </dd>
                 )}
                 {files.length > 0 && (
@@ -54,5 +53,15 @@ export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"app
         </time>
       </div>
     </div>
+  );
+}
+
+/** 選んだ図（開閉は流れの見え方の店。キーは記録 ID と問いの番号） */
+function PreviewDetails({ event, index, text }: { event: ChatEventOf<"approval_resolved">; index: number; text: string }) {
+  const [open, setOpen] = useTimelineOpen(event.chat_id, `qa:${event.id}:${index}`);
+  return (
+    <LazyDetails className="question-answer-preview" open={open} onOpenChange={setOpen} summary={<summary>選んだ図</summary>}>
+      {() => <pre>{text}</pre>}
+    </LazyDetails>
   );
 }

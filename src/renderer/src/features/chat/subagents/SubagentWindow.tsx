@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { useFollowScroll } from "@/hooks/useFollowScroll";
-import { useChatPaneState, useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 
 /**
  * いちばん外側のサブエージェントのカードの、手順を入れる高さを決めた窓（流れの見えている高さの半分ほど。中だけスクロールする）。
@@ -9,9 +10,9 @@ import { useChatPaneState, useOptionalChatPane } from "@/features/chat/pane/chat
  * 実行中は最新（いちばん下）に付いていき、中で上へ戻したら止まる（ターミナルと同じ。いちばん下へ戻せばまた付いていく。useFollowScroll）。
  * 終わったものは初めから読めるよう、開いたときは上から。「全体を表示」で高さの制限を外す（チャットの画面の状態で覚える）
  */
-export function SubagentWindow({ cardKey, running, children }: { cardKey: string; running: boolean; children: ReactNode }) {
+export function SubagentWindow({ chatId, cardKey, running, children }: { chatId: number; cardKey: string; running: boolean; children: ReactNode }) {
   const pane = useOptionalChatPane();
-  const full = useChatPaneState((s) => s.fullSubagents.has(cardKey)) ?? false;
+  const [full] = useTimelineOpen(chatId, `sf:${cardKey}`);
   const { scrollRef, contentRef, overflowing, onScroll } = useFollowScroll(running, full);
   return (
     <div className={cx("subagent-window", full && "full")}>
