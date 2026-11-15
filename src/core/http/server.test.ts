@@ -117,19 +117,41 @@ test("サーバーを止めるときは、開いたままのリアルタイム�
   await reader.cancel().catch(() => {});
 });
 
-test("画面のファイルは no-cache で返し（入れ替えたあとに古い画面を使わせない）、ない JS・CSS は 404、ほかのパスは index.html", async () => {
+test("画面のファイル: /assets/ の下は 1 年・変わらない（ETag なし）、index.html と SPA のパスは no-cache と ETag で、同じ ETag なら 304。ない JS・CSS は 404、ほかのパスは index.html", async () => {
   const dir = tempDir();
   fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>Kickoff</title>");
   fs.mkdirSync(path.join(dir, "assets"));
   fs.writeFileSync(path.join(dir, "assets", "index-abc.js"), "console.log(1)");
   const { app } = setup({ staticDir: dir });
-  for (const url of ["/", "/assets/index-abc.js", "/projects/1"]) {
+  const asset = await app.request("/assets/index-abc.js");
+  assert.equal(asset.status, 200);
+  assert.equal(asset.headers.get("cache-control"), "public, max-age=31536000, immutable");
+  assert.equal(asset.headers.get("etag"), null);
+  const etags = new Set<string>();
+  for (const url of ["/", "/projects/1"]) {
     const res = await app.request(url);
     assert.equal(res.status, 200, url);
     assert.equal(res.headers.get("cache-control"), "no-cache", url);
+    const tag = res.headers.get("etag");
+    assert.ok(tag, url);
+    etags.add(tag);
+    // 同じ ETag で問い合わせたら 304（本文なし・毎回確かめる）
+    const again = await app.request(url, { headers: { "if-none-match": tag } });
+    assert.equal(again.status, 304, url);
+    assert.equal(await again.text(), "", url);
+    assert.equal(again.headers.get("cache-control"), "no-cache", url);
   }
   assert.match(await (await app.request("/projects/1")).text(), /<title>Kickoff<\/title>/);
   assert.equal((await app.request("/assets/index-old.js")).status, 404);
+  // 入れ替えて index.html の中身が変わったら、前の ETag では 304 にならず、新しい中身と別の ETag
+  fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>Kickoff 2</title>");
+  const replaced = setup({ staticDir: dir }).app;
+  for (const url of ["/", "/projects/1"]) {
+    const res = await replaced.request(url, { headers: { "if-none-match": [...etags].join(", ") } });
+    assert.equal(res.status, 200, url);
+    assert.ok(!etags.has(res.headers.get("etag") ?? ""), url);
+    assert.match(await res.text(), /Kickoff 2/, url);
+  }
   // API の応答は変えない
   const api = await app.request("/api/status", { headers: AUTH });
   assert.equal(api.status, 200);
