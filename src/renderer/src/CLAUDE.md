@@ -112,4 +112,5 @@
 - `Markdown`（`ui/markdown/Markdown.tsx`）は本文と設定（`streaming`・`tail`）で memo してあり、同じなら親が描き直っても解析し直さない。書きかけの返答（`StreamingReply`）は出す文（`useStreamReveal` の返す値）で Markdown を作り置く（案 27）。Markdown に毎回新しい値（その場で作った配列など）を渡さない。
 - 長い一覧は描く範囲を絞る（チャットの流れは最近の項目だけを描く窓 `timelineWindow.ts`。流れをすべて描かない。数千ターンのチャットで画面の要素が 10 万個を超え、画面が真っ黒になったことがある）。
 - 入力欄の高さは CSS の `field-sizing: content` で伸ばす。JS で高さを auto に戻して `scrollHeight` を測らない（キーを押すたびにページ全体のレイアウトをやり直させ、長いチャットで文字入力が遅くなった）。
+- memo した部品へ、描くたびに新しいオブジェクト（その場で書いた `{…}`・毎回作る操作の束）を渡さない。`useMemo` で作り置き、中の操作が描くたびに作られるなら押したときにいまのものを呼ぶ形にする（右の欄の `AgentSplit` の `frame`・パネルの `usePanel` の `pageOps`。案 29）。
 - 店の値・まとまりの結果は、中身が同じなら同じ配列・オブジェクトを返す（`useChats` の見え方ごとの配列、`useSetting` の値など）。memo の依存に使えるようにするため。
