@@ -76,6 +76,18 @@ export async function judgeWritePath(ctx: GuardContext, filePath: string): Promi
   return judged;
 }
 
+/** ファイルを読む前の判定（自分の保存先・見せない DB の SQLite のファイルは断る。読むことはほかに絞らない）。聞いてくる CLI（Copilot の read の承認）だけが使う */
+export function judgeReadPath(ctx: GuardContext, filePath: string): GuardVerdict {
+  const { params, self } = ctx;
+  const input = { file_path: filePath };
+  return (
+    firstDeny([
+      ...(self ? [evaluateSelfProtection(self, "Read", input)] : []),
+      ...(params.hiddenDb?.length ? [evaluateHiddenDbAccess(params.hiddenDb, "Read", input)] : []),
+    ]) ?? { kind: "pass" }
+  );
+}
+
 /** 断られたときに AI に返す文（利用者の言葉があれば添える） */
 export function deniedWithWords(reason: string, words: string | undefined): string {
   return words ? `${reason}（利用者の言葉: ${words}）` : reason;

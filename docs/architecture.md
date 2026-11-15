@@ -43,8 +43,9 @@
 | 権限モード | `PermissionMode` | `PermissionChoice` |
 | AI（チャットを動かす CLI。チャットごとに決め、途中では変えない） | `ProviderId`（`PROVIDER_IDS`・名前 `PROVIDER_LABELS`）・`AgentProvider`・チャットの `provider` | なし |
 | AI によってできること・できないこと（できないものは理由付きで押せない） | `ProviderFeature`（`PROVIDER_FEATURES`・`providerFeatureMissing`。`ProviderStatus.features`） | なし |
-| Kickoff の守りをツールの形によらず当てる（承認の頼みで聞いてくる CLI 向け） | `judgeCommand` / `judgeWritePath`（`core/chat/guard/judgeTool.ts`。`GuardVerdict`） | なし |
+| Kickoff の守りをツールの形によらず当てる（承認の頼みで聞いてくる CLI 向け） | `judgeCommand` / `judgeWritePath` / `judgeReadPath`（`core/chat/guard/judgeTool.ts`。`GuardVerdict`）・承認の決まり `guardOutcome` / `modeOutcome`（`core/providers/guardedApproval.ts`。`ApprovalOutcome`） | なし |
 | Codex の会話と 1 回の実行 | スレッド（= セッション ID）・ターン（= 分岐の起点）・`CodexProvider`（`core/providers/codex/`。`codex app-server`） | なし |
+| GitHub Copilot の会話と 1 回の実行 | セッション（= セッション ID）・最後の記録のイベント（= 分岐の起点）・`CopilotProvider`（`core/providers/copilot/`。`@github/copilot-sdk`） | なし |
 | AI のログインの仕方（サブスク / API キー）と API キーの置き場 | 設定の `provider_auth`（`ProviderAuthMode`）・`ProviderKeyVault`（`core/providers/keys.ts`）・`ProviderTurnParams.auth` | なし |
 | AI の操作ツール（埋め込みブラウザ・DB・チャットのツールを、どの AI の CLI にも同じに出す。1 回の実行ごとの鍵で、その実行に決めたツールだけ） | コアの MCP サーバー `McpToolHost`（`core/mcp/host.ts`。口 `/mcp/<名前>`）・サーバー `ToolServer`・ツール `ToolDef`（`defineTool`）・CLI に渡す口 `ToolEndpoint`（`ProviderTurnParams.tools`） | Claude Agent SDK のプロセス内の MCP サーバー（`createSdkMcpServer`） |
 | AI のブラウザ操作（チャットの AI が Kickoff の埋め込みブラウザのタブを見る・操作する。操作中のタブには「AI 操作中」の印） | 口 `BrowserControl`（`core/browser/`）・ツール `kickoff_browser`（`browserToolServer`。コアの MCP サーバー `core/mcp/`）・実装 `agentBrowser`（`main/browser/`）・IPC `agentBrowser`・印 `useAgentBrowsing` | なし |
