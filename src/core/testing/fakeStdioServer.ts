@@ -116,3 +116,19 @@ export function fakeCodexServer(): FakeCodexServer {
     ["turn/interrupt", () => ({})],
   ]);
 }
+
+/** 偽の ACP のエージェント（はじめから答える頼み: initialize・authenticate・セッション・指示。capabilities は初期化の答えの agentCapabilities） */
+export type FakeAcpAgent = FakeStdioServer;
+export function fakeAcpAgent(capabilities: Record<string, unknown> = {}, authMethods: { id: string; name: string }[] = []): FakeAcpAgent {
+  const session = (id: string) => ({ sessionId: id, modes: { currentModeId: "auto", availableModes: [{ id: "default", name: "Default" }, { id: "plan", name: "Plan" }, { id: "auto", name: "Auto" }] } });
+  return fakeStdioServer([
+    ["initialize", () => ({ protocolVersion: 1, agentCapabilities: capabilities, authMethods })],
+    ["authenticate", () => ({})],
+    ["session/new", () => session("ses-1")],
+    ["session/resume", (p) => session(p.sessionId)],
+    ["session/load", (p) => session(p.sessionId)],
+    ["session/set_mode", () => ({})],
+    ["session/set_config_option", () => ({ configOptions: [] })],
+    ["session/prompt", () => ({ stopReason: "end_turn" })],
+  ]);
+}
