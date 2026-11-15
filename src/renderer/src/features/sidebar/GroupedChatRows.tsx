@@ -5,12 +5,14 @@ import { newChatPlaceOf, type ChatBucket } from "@/features/chatList/buckets";
 import { openNewChat } from "@/app/router";
 import { NewChatItem } from "@/features/chat/NewChatItem";
 import { COLUMN_TONE } from "@/features/chat/tones";
-import { useFold } from "@/hooks/useFold";
+import { useFold, useFolds } from "@/hooks/useFold";
+import { RowBudgetScope, useRowBudgets } from "@/hooks/useProgressiveRows";
 import { cx } from "@/lib/cx";
 import { WORKPLACE_KIND_LABELS } from "@/features/worktree/workplace";
 import { FoldSection } from "@/ui/FoldHead";
 import type { MouseEvent } from "react";
 import { huedHeadProps } from "./bucketColor";
+import { ChatRowList } from "./ChatRowList";
 
 /** まとまりの見出しの印（状態 = 列の色の点 / 作業場所 = ブランチ。ワークツリーは色付き、フォルダなし・以前のブランチは薄く） */
 function BucketMark({ bucket }: { bucket: ChatBucket }) {
@@ -60,7 +62,7 @@ function Section({ bucket, renderRow, forceOpen, hue, onContextMenu, renderArchi
           <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={forceOpen} />
         </div>
       ) : bucket.chats.length === 0 ? null : (
-        <ul className="chat-rows">{bucket.chats.map(renderRow)}</ul>
+        <ChatRowList chats={bucket.chats} renderRow={renderRow} />
       )}
       {bucket.archived && renderArchived?.(bucket.archived)}
     </FoldSection>
@@ -86,16 +88,23 @@ export function GroupedChatRows({
   /** 見出しの色（作業場所別で「まとまりを色付きで表示」のとき。タブの列のまとまりと同じ色）。中の段（状態）には付けない */
   hueOf?: (bucket: ChatBucket) => number | null;
 }) {
-  return buckets.map((bucket) => (
-    <Section
-      key={bucket.key}
-      bucket={bucket}
-      renderRow={renderRow}
-      forceOpen={forceOpen}
-      hue={hueOf?.(bucket) ?? null}
-      onContextMenu={onContextMenu}
-      renderArchived={renderArchived}
-    />
+  // 最初に描く行の上限（hooks/useProgressiveRows.ts）を、上のまとまりから順に配る（閉じているまとまりは描かないので 0）
+  const folds = useFolds(
+    "sidebar",
+    buckets.map((b) => b.key),
+  );
+  const budgets = useRowBudgets(buckets.map((b) => (forceOpen || folds.isOpen(b.key) ? b.chats.length : 0)));
+  return buckets.map((bucket, i) => (
+    <RowBudgetScope key={bucket.key} value={budgets[i]}>
+      <Section
+        bucket={bucket}
+        renderRow={renderRow}
+        forceOpen={forceOpen}
+        hue={hueOf?.(bucket) ?? null}
+        onContextMenu={onContextMenu}
+        renderArchived={renderArchived}
+      />
+    </RowBudgetScope>
   ));
 }
 

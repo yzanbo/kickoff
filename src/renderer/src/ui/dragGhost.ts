@@ -1,4 +1,5 @@
 import type { DragEvent } from "react";
+import { ensureAllRows } from "@/hooks/useProgressiveRows";
 
 /**
  * 透明な 4 × 4 px の PNG。1 px だと Retina（2 倍）の画面では 0.5 pt になり、OS に渡すときに 0 × 0 に切り捨てられて「絵なし」とみなされ、
@@ -103,6 +104,8 @@ export function startDragGhost(e: DragEvent<Element>, { source, count = 1, after
   setTimeout(() => {
     // すぐに落とした（end が先に済んだ）ときは印を付けない
     if (ghost.isConnected) el.setAttribute(SOURCE_ATTR, "");
+    // 落とす先は並んだ行・カードの位置で決めるので、開いた直後でまだ描いていない一覧があればすべて描く（dragstart の中では描き直さない。案 23）
+    ensureAllRows();
     after?.();
   }, 0);
 }
