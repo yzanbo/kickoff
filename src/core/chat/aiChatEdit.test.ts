@@ -1,6 +1,6 @@
 // チャットの AI が同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外すツールの中身（家系の範囲・断る場合・省いた項目・渡し方）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { ScriptedProvider } from "../testing/fakeProvider.js";
 import { setupCore, until } from "../testing/testCore.js";
 import { createAiChatEditTools } from "./aiChatEdit.js";

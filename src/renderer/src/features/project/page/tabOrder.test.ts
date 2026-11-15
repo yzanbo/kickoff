@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { applyTabOrder, flatTabOrder, isNoopDrop, moveGroup, moveTabInGroup, orderAfterDrop } from "./tabOrder";
 
 const t = (tab: string) => ({ tab });

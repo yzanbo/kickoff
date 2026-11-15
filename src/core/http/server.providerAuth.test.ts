@@ -1,5 +1,5 @@
 // AI の一覧・できること・ログインの仕方と API キー・チャットごとの AI（メモの仕様書「0021」の段階 2: Q1・Q4・Q8・Q13）
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { PROVIDER_IDS, type Chat, type ProviderStatus } from "@shared/types";
 import { setup } from "../testing/testServer.js";

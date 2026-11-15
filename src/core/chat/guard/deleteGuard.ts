@@ -4,7 +4,7 @@
 // rmdir（空のフォルダしか消せない）・git rm（コミット済みなら Git から戻せる）は断らない。抜け道（完全に消す例外）は作らない。
 // うっかりを防ぐもので、スクリプトのファイル・Python の os.remove など、わざと避ける書き方までは見抜けない
 import path from "node:path";
-import { commandWords, splitCommands, type Word } from "./shellWords.js";
+import { commandWords, gitParts, shellScriptOf, splitCommands, type Word } from "./shellWords.js";
 
 /** Kickoff のゴミ箱に入れるコマンドの名前（PATH に入れて AI に渡す。trash/command.ts が置く） */
 export const TRASH_COMMAND = "kickoff-trash";
@@ -13,10 +13,6 @@ export const TRASH_COMMAND = "kickoff-trash";
 const DELETE_COMMANDS = new Set(["rm", "unlink", "shred", "srm"]);
 /** find の、後ろのコマンドを流すオプション */
 const FIND_EXEC = new Set(["-exec", "-execdir", "-ok", "-okdir"]);
-/** git のサブコマンドより前の、値を取るオプション */
-const GIT_GLOBAL_WITH_VALUE = new Set(["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--config-env"]);
-/** 文字列をシェルの文として流すもの（中の文も見る） */
-const SHELLS = new Set(["sh", "bash", "zsh", "dash", "ksh"]);
 
 type Found = { kind: "delete"; what: string } | { kind: "git_clean" };
 
@@ -46,19 +42,11 @@ function findInWords(segment: Word[], depth: number): Found | null {
     }
     return null;
   }
-  if (head === "git") {
-    let i = 1;
-    while (i < words.length && words[i].text.startsWith("-")) i += GIT_GLOBAL_WITH_VALUE.has(words[i].text) ? 2 : 1;
-    if (words[i]?.text === "clean" && !isDryRun(words.slice(i + 1))) return { kind: "git_clean" };
-    return null;
-  }
+  const git = gitParts(words);
+  if (git) return git.sub === "clean" && !isDryRun(git.args) ? { kind: "git_clean" } : null;
   // sh -c '…' / bash -c "…" の中の文も見る（入れ子は 3 段まで）
-  if (SHELLS.has(head) && depth < 3) {
-    const at = words.findIndex((w) => w.text === "-c" || /^-[a-z]*c$/.test(w.text));
-    const script = at > 0 ? words[at + 1] : undefined;
-    if (script) return findIn(script.text, depth + 1);
-  }
-  return null;
+  const script = depth < 3 ? shellScriptOf(words) : null;
+  return script === null ? null : findIn(script, depth + 1);
 }
 
 function findIn(command: string, depth: number): Found | null {

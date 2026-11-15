@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { macosDockerStarterOf } from "./docker.js";
 import { parseCwds } from "./listening.js";
 import { appBundleOf, parseEtime, parsePs } from "./processes.js";

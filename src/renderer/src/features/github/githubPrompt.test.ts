@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makePullDetail, makeReviewThread } from "@shared/testing/factories";
 import { captureNameOf, handOffText, itemDocument, linkOf, quotePrompt, reviewDocument, reviewFixText, sourceOf, worktreeBranchOf } from "./githubPrompt";
 

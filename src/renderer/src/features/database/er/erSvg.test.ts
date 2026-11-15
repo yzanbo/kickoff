@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { erSvg, type ErSvgBox, type ErSvgColors } from "./erSvg";
 
 const colors: ErSvgColors = { background: "#fff", box: "#fafafa", head: "#eee", border: "#ccc", text: "#111", muted: "#777", edge: "#888", key: "#c80" };

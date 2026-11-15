@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makeGroup } from "@shared/testing/factories";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { OTHER_CLUSTER, clusterInitial, clusterTabs, orderLikeSidebar, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";

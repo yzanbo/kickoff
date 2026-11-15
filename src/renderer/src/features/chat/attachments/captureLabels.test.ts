@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { CaptureAttachment } from "@shared/types";
 import { captureSubline, captureTitle } from "./captureLabels";
 

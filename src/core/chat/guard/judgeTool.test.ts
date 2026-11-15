@@ -1,5 +1,5 @@
 // 守りをツールの形によらず当てる（承認の頼みで聞いてくる CLI 向け。メモの仕様書「0021」の Q3）
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { tempDir } from "../../testing/tempDir.js";
@@ -7,11 +7,13 @@ import { deniedWithWords, judgeCommand, judgeReadPath, judgeWritePath } from "./
 import { DOCKER_GUARD_DENIED } from "./dockerGuard.js";
 import { WRITE_SCOPE_DENIED } from "./writeScope.js";
 
-test("コマンド: 消すコマンドは断り、ほかの作業場所の Docker は聞き、何もなければ通す", async () => {
+test("コマンド: 消すコマンド・git のフックを飛ばすコマンドは断り、ほかの作業場所の Docker は聞き、何もなければ通す", async () => {
   const params = { cwd: "/w", deleteGuard: true, dockerGuard: { check: async (c: string) => (c.includes("down") ? { title: "止めます", description: "本体の db" } : null) } };
   assert.equal((await judgeCommand({ params }, "rm -rf dist")).kind, "deny");
   assert.deepEqual(await judgeCommand({ params }, "docker compose down"), { kind: "ask", title: "止めます", description: "本体の db", deniedReason: DOCKER_GUARD_DENIED });
   assert.deepEqual(await judgeCommand({ params }, "npm test"), { kind: "pass" });
+  // git のフックを飛ばすコマンドは、守りの設定によらず断る
+  assert.equal((await judgeCommand({ params: { cwd: "/w" } }, "git push --no-verify")).kind, "deny");
   // Docker の判定が失敗したら通す
   assert.deepEqual(await judgeCommand({ params: { cwd: "/w", dockerGuard: { check: async () => Promise.reject(new Error("x")) } } }, "docker ps"), { kind: "pass" });
 });

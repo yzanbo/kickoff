@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { buildTree, changeKinds, folderPaths, joinTreePath, newEntryNameError, openableFolders, parentFolders, parentPath, topLevelPaths, treePaths, visibleTreePaths, type TreeNode } from "./treeModel";
 
 const names = (nodes: TreeNode[]): unknown => nodes.map((n) => (n.dir ? { [n.name + (n.ignored ? "（無視）" : "")]: names(n.children) } : n.name + (n.ignored ? "（無視）" : "")));

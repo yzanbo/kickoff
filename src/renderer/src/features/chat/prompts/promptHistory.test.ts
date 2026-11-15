@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { eventSequence } from "@shared/testing/factories";
 import { CONTEXT_CLEARED_LABEL, historyMove, promptBefore, promptListOf, type HistoryInput } from "./promptHistory";
 

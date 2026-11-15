@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { stepIndex } from "./useListNavigation";
 
 test("stepIndex: ↑↓ で 1 つずつ動き、端では回り込む", () => {

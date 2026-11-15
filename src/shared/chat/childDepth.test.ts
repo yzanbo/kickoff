@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { childDepthLabel, childDepthShort } from "./childDepth";
 
 test("子チャットの深さの呼び名: 子・孫・ひ孫、それより深ければ段の数", () => {

@@ -1,6 +1,6 @@
 // GitHub のホストの決まり（github.com か・Web のページの頭・URL のホスト。純粋な関数）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { githubHostOfUrl, githubWebOrigin, isDefaultGitHubHost } from "./host";
 
 test("GitHub のホスト: github.com かは大文字・小文字を問わず、Web の頭は https://ホスト（小文字）", () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { browserKeyCode } from "./keys.js";
 
 test("browserKeyCode: Web のキーの名前を Electron の名前にし、大文字・小文字を問わない。1 文字と知らない名前はそのまま", () => {

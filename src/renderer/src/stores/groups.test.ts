@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { ChatGroup } from "@shared/types";
 import { makeGroup } from "@shared/testing/factories";
 import { groupNameIn, reduceGroups } from "./groups";

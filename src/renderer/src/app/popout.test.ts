@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { parsePopout, popoutKey, popoutPath, type PopoutRoute } from "./popout";
 
 test("popoutPath / parsePopout: 変更・ファイル・サブエージェント・子チャット・メモ・DB を行き来できる", () => {

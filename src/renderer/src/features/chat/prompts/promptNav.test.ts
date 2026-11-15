@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { adjacentPrompt, promptAround } from "./promptNav";
 
 test("指示のあいだを移る: 前は上端より上のいちばん下（描いていない前の発言も上）、次は上端より下のいちばん上", () => {

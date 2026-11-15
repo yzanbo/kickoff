@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { changedPath } from "./memoWatcher.js";
 
 test("changedPath: 1 つのファイルだけならそのパス、いくつも・分からなければ null", () => {

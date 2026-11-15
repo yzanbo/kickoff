@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
 import { fakeTimers } from "../../testing/fakeTimers.js";
 import { createPreCompactGate, replyText } from "./preCompact.js";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { memoExtensionOf, memoKindOf, newHtmlMemo } from "./kinds";
 
 test("memoKindOf: .html・.htm は HTML、ほかは Markdown（大文字も）", () => {

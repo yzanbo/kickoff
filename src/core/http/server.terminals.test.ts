@@ -1,7 +1,7 @@
 // API のテスト: 内蔵ターミナルを API から使う口（一覧・始める・止める・WebSocket でつなぐ。スマホのターミナル）
 import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
-import { test } from "node:test";
+import { test } from "vitest";
 import WebSocket from "ws";
 import type { TerminalCreated, TerminalServerMessage, TerminalTab } from "@shared/types";
 import { hashToken } from "./caller.js";
@@ -49,7 +49,7 @@ test("ターミナル: 端末はプロジェクトの作業場所でシェルを
 test("ターミナル: WebSocket でつなぐと画面の内容と出力が届き、打った文字はシェルへ。見るだけの端末の入力は捨て、持ち主でない人は大きさを変えられない", async (t) => {
   const { app, project, terminals, terminalFake } = withDevices();
   const server = await startHttpServer(app, { port: 0, host: "127.0.0.1" });
-  t.after(() => stopHttpServer(server));
+  t.onTestFinished(() => stopHttpServer(server));
   const port = (server.address() as AddressInfo).port;
   await terminals.open({ key: "tab", cwd: project.repo_path, cols: 80, rows: 24, client: { id: "wc:1", data: () => {}, exit: () => {} }, owner: "wc:1" });
   const shell = terminalFake.spawned[0];
@@ -100,7 +100,7 @@ test("ターミナル: WebSocket でつなぐと画面の内容と出力が届�
 test("ターミナル: つないだあとで見るだけに変えた端末の入力は捨て、取り消した端末の WebSocket は切る", async (t) => {
   const { app, project, store, terminals, terminalFake, full, call } = withDevices();
   const server = await startHttpServer(app, { port: 0, host: "127.0.0.1" });
-  t.after(() => stopHttpServer(server));
+  t.onTestFinished(() => stopHttpServer(server));
   const port = (server.address() as AddressInfo).port;
   await terminals.open({ key: "tab", cwd: project.repo_path, cols: 80, rows: 24, client: { id: "wc:1", data: () => {}, exit: () => {} }, owner: "wc:1" });
   const shell = terminalFake.spawned[0];

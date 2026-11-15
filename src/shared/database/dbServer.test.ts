@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { isLocalHost, sameLocalServer } from "./dbServer";
 
 test("isLocalHost: 書いていない・localhost・127.x・Docker から見た Mac はこの Mac の中", () => {

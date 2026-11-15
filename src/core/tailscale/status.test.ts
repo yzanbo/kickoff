@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { APP_ENVS } from "../system/appEnv.js";
 import { parseTailscaleStatus, serveCommand, serveUrlsFor } from "./status.js";
 

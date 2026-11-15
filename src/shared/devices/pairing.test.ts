@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { formatPairingCode, pairingLink } from "./pairing";
 
 test("pairingLink: つなぐ先の後ろに /pair と番号・本体の ID。つなぐ先がなければ null", () => {

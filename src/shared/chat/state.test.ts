@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { agentStateOf, boardColumnOf } from "./state";
 import { Store } from "../../core/db/store.js";
 

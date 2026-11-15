@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makeChat, makeProject } from "@shared/testing/factories";
 import { dockBadgeCount } from "./dockBadge";
 

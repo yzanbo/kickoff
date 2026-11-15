@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { detectDelimiter, mapCsvRows, parseDelimited } from "./csvImport";
 
 test("detectDelimiter: 1 行目に多い区切り（囲みの中は数えない）", () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { isManagedExtensionDir } from "./extensionDirs.js";
 
 test("消してよい拡張機能のフォルダ: 保存先のすぐ下だけ。.. を含むパス・保存先そのもの・隣のフォルダ・中のフォルダは消さない", () => {

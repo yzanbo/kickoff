@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { dangerReason, isReadOnlyStatement, splitStatements, statementAt, writeConfirmation } from "./sqlStatements";
 
 const texts = (sql: string, engine: Parameters<typeof splitStatements>[1] = "postgres") => splitStatements(sql, engine).map((s) => s.text);

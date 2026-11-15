@@ -1,6 +1,6 @@
 // チャットの AI が返答の中に描く図のツールの中身（図の ID を返す・描き直すのは同じチャットの図だけ・書き方の説明）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { collectVisuals, visualIdOf } from "@shared/chat/aiVisual";
 import { ScriptedProvider } from "../testing/fakeProvider.js";
 import { setupCore } from "../testing/testCore.js";

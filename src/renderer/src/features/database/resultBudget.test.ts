@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { estimateRowsBytes, pickEvictions } from "./resultBudget";
 
 test("estimateRowsBytes: 文字は 2 バイト・ほかは決まった大きさで数える", () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { fileKindLabel, memoSubline } from "./chipLabels";
 
 test("fileKindLabel: 拡張子を大文字に。拡張子がない・隠しファイルの頭の点だけなら null", () => {

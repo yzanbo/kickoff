@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { fakeDocker } from "../testing/fakeDocker.js";
 import { tempDir } from "../testing/tempDir.js";
 import { DockerCli } from "./cli.js";

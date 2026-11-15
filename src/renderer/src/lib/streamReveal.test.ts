@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { Element, Root } from "hast";
 import { nextRevealLength, revealBands, wrapStreamTail, REVEAL_FADE_MS } from "./streamReveal";
 

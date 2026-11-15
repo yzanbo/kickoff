@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makeChat } from "@shared/testing/factories";
 import { FIRST_PANE, leavesOf, type PaneNode } from "@/features/panel/layout/paneTree";
 import { splitPane } from "@/features/panel/layout/paneLayout";

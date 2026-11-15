@@ -1,5 +1,6 @@
 // Bash の文をコマンドの並びに分ける（AI の守りが、Docker の操作・ファイルを消すコマンドを見つけるのに使う）。
 // うっかりを防ぐためのもので、eval・スクリプトのファイルなど、わざと避ける書き方までは見抜けない
+import path from "node:path";
 
 /** シェルの 1 語（$・`…` を含むものは中身が流すまで分からない） */
 export interface Word {
@@ -118,4 +119,25 @@ export function commandWords(segment: Word[]): { words: Word[]; env: Record<stri
     else break;
   }
   return { words, env };
+}
+
+/** git のサブコマンドより前の、値を取るオプション */
+const GIT_GLOBAL_WITH_VALUE = new Set(["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--config-env"]);
+
+/** git のコマンドの語（commandWords のあと）を、サブコマンドより前のオプション・サブコマンド・その後ろに分ける（git でなければ null） */
+export function gitParts(words: Word[]): { globals: Word[]; sub: string | undefined; args: Word[] } | null {
+  if (!words[0] || path.basename(words[0].text) !== "git") return null;
+  let i = 1;
+  while (i < words.length && words[i].text.startsWith("-")) i += GIT_GLOBAL_WITH_VALUE.has(words[i].text) ? 2 : 1;
+  return { globals: words.slice(1, i), sub: words[i]?.text, args: words.slice(i + 1) };
+}
+
+/** 文字列をシェルの文として流すもの */
+const SHELLS = new Set(["sh", "bash", "zsh", "dash", "ksh"]);
+
+/** sh -c '…' / bash -c "…" の中の文（シェルでない・-c がなければ null） */
+export function shellScriptOf(words: Word[]): string | null {
+  if (!words[0] || !SHELLS.has(path.basename(words[0].text))) return null;
+  const at = words.findIndex((w) => w.text === "-c" || /^-[a-z]*c$/.test(w.text));
+  return at > 0 ? (words[at + 1]?.text ?? null) : null;
 }

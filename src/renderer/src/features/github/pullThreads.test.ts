@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makeReviewThread } from "@shared/testing/factories";
 import { parseDiff } from "@/features/editor/parseDiff";
 import { placeThreads, threadsAt } from "./pullThreads";

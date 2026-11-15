@@ -1,5 +1,5 @@
 // Codex のプロバイダーを偽の app-server で確かめる（本物の codex・アカウントは使わない。メモの仕様書「0021」の段階 3）
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/types";
 import { fakeCodexServer, type FakeCodexServer } from "../../testing/fakeStdioServer.js";

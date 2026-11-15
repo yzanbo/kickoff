@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { findTrigger, matchCommands, matchFiles } from "./suggestMatch";
 
 test("/ は文の先頭だけ、@ はどこでも（カーソルの前で打っているものを探す）", () => {

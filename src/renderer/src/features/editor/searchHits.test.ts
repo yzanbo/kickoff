@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { lineKey, pushHistory, replaceTargets, resultCounts, visibleResults, type SearchFileResult } from "./searchHits";
 
 const m = (line: number, text = `t${line}`) => ({ line, column: 1, text });

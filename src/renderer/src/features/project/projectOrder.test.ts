@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { Project } from "@shared/types";
 import { makeChat, makeProject } from "@shared/testing/factories";
 import { archivedProjects, recentOrder, sidebarOrder } from "./projectOrder";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { markdownToHtml } from "./richCopy";
 
 test("書式付きコピー: 見出し・表・コード・リストを HTML にし、文中の HTML は文字として書く", () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { makeChat } from "@shared/testing/factories";
 import { closedLinks, NO_LINKS, openedLinks, syncLinkedTabs, type LinkState } from "./linkedTabs";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
