@@ -49,7 +49,8 @@ export function useHistoryOps({
     ahead: status?.ahead ?? 0,
     behind: status?.behind ?? 0,
     folder,
-    fetching,
+    /** フェッチの途中（押した分と、開いた・窓に戻ったときの自動の分。帯のボタンに回る印） */
+    fetching: fetching || git.autoFetching,
     busy: branch.busy ?? (fetching ? "フェッチ" : null),
     branches: log.refs?.branches ?? [],
     listHidden,

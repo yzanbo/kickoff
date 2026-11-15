@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GitCommit } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -57,6 +57,12 @@ export function HistoryTab({
   const stashMenu = useContextMenu<string>();
   const ops = useHistoryOps({ projectId, worktree, git, log, branch: branchActions, stash: stashActions, worktreeActions });
   const { projectName } = useProjects();
+  // 履歴を開いたら、裏でリモートの情報を取ってくる（ほかの人の push もすぐ札に出す。変更のタブから移ってきたときも。
+  // 前の自動のフェッチから間がなければ飛ばす）。取ってきたら Git の状態と一緒に履歴も読み直す
+  useEffect(() => {
+    git.autoFetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
