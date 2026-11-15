@@ -38,7 +38,7 @@ export function useHorizontalScroller(deps: unknown) {
       el.removeEventListener("wheel", onWheel);
     };
   }, [measure]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // 中身が変わったら（deps）測り直す
   useLayoutEffect(measure, [deps, measure]);
   return { ref, edges, onScroll: measure };
 }

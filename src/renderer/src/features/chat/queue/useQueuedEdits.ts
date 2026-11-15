@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
 import type { Attachment, QueuedMessage } from "@shared/types";
 import { api } from "@/api";
@@ -24,9 +24,12 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
   const ids = Object.keys(edits);
 
   // 列から消えた指示の欄を閉じる
-  useEffect(() => {
+  // （見直すのは列が変わったときだけ。開いている欄はそのときの一覧を読む）
+  const closeGone = useEffectEvent(() => {
     if (ids.some((id) => !queue.some((m) => m.id === id))) setEdits((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => queue.some((m) => m.id === id))));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    closeGone();
   }, [queue]);
 
   // 書き直している指示をコアに知らせる（開いている間は知らせ直す。一度も開いていなければ知らせない）
@@ -55,13 +58,14 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
   );
 
   const [editHeight, setEditHeight] = useState(0);
+  // 開いている欄と、その文が変わったら測り直す
+  const editKey = JSON.stringify(ids.map((id) => [id, edits[id].text]));
   useLayoutEffect(() => {
     const rows = [...(listRef.current?.querySelectorAll<HTMLElement>(".queued-row.editing") ?? [])];
     const total = rows.reduce((sum, row) => sum + row.offsetHeight + 2, 0);
     setEditHeight(rows.length ? Math.min(total + 8, window.innerHeight * 0.6) : 0);
     listRef.current?.querySelector<HTMLElement>(`.queued-row.editing[data-id="${last}"]`)?.scrollIntoView({ block: "nearest" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ids.join(","), last, ...ids.map((id) => edits[id].text)]);
+  }, [editKey, last, listRef]);
 
   const close = (id: string) =>
     setEdits((prev) => {

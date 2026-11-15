@@ -1,6 +1,6 @@
 import type { WebviewTag } from "electron";
 import { ArrowLeft, ArrowRight, ChevronDown, ExternalLink, Globe, RefreshCw, Wrench, X } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
 import { cx } from "@/lib/cx";
 import { useExternalBrowser } from "@/features/openWith/externalApps";
 import { normalizeUrl } from "@/lib/url";
@@ -26,6 +26,12 @@ interface Props {
  */
 export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
   const ref = useRef<WebviewTag | null>(null);
+  // 「AI に渡す」が押したときに読む webview（描く中で ref を読む関数を作らないよう、state にも持つ）
+  const [view, setView] = useState<WebviewTag | null>(null);
+  const attachView = useCallback((el: WebviewTag | null) => {
+    ref.current = el;
+    setView(el);
+  }, []);
   const [address, setAddress] = useState(initialUrl);
   const [current, setCurrent] = useState(initialUrl);
   // 外のブラウザ（パネルのブラウザの ▾ で選ぶ。初めは Chrome）
@@ -34,10 +40,9 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
   const [nav, setNav] = useState({ back: false, forward: false });
   const [error, setError] = useState<string>();
   // 開発者ツール（右・下・別のウィンドウ）と、出す場所を選ぶメニュー
-  const devtools = useDevtools(ref);
+  const { paneRef: devtoolsPaneRef, devtoolsRef, ...devtools } = useDevtools(ref);
   const dockMenu = useContextMenu({ align: "end" });
-  const changeRef = useRef(onChange);
-  changeRef.current = onChange;
+  const notifyChange = useEffectEvent((page: { url: string; title: string }) => onChange?.(page));
 
   useEffect(() => {
     const view = ref.current;
@@ -48,7 +53,7 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
       // 空のページでは、アドレス欄も空のままにする
       setAddress(url === "about:blank" ? "" : url);
       setNav({ back: view.canGoBack(), forward: view.canGoForward() });
-      changeRef.current?.({ url, title: view.getTitle() });
+      notifyChange({ url, title: view.getTitle() });
     };
     const onStart = () => {
       setLoading(true);
@@ -102,14 +107,15 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
       : browserHandOffItem(
           projectId,
           () => {
+            if (!view) return null;
             try {
-              return ref.current?.getWebContentsId() ?? null;
+              return view.getWebContentsId();
             } catch {
               // 読み込みの準備ができる前は ID がない
               return null;
             }
           },
-          () => ({ url: ref.current?.getURL() ?? current, title: ref.current?.getTitle() ?? "" }),
+          () => ({ url: view?.getURL() ?? current, title: view?.getTitle() ?? "" }),
         );
 
   function go(e: FormEvent) {
@@ -179,7 +185,7 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
       {error && <p className="browser-error">{error}</p>}
       <div className={cx("browser-body", devtools.embed && `dock-${devtools.embed.dock}`, devtools.resizing && "resizing")}>
         {/* partition は main プロセスでも専用のセッションに強制している */}
-        <webview ref={ref} className="browser-view" src={normalizeUrl(initialUrl)} partition="persist:kickoff-browser" />
+        <webview ref={attachView} className="browser-view" src={normalizeUrl(initialUrl)} partition="persist:kickoff-browser" />
         {/* 右と下で同じ要素を使い、並べ方と大きさだけを変える（場所を変えても開発者ツールを開き直さない） */}
         {devtools.embed && (
           <>
@@ -189,11 +195,11 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
               <div className="browser-devtools-resizer" aria-label="開発者ツールの高さを変える" {...devtools.heightHandle} />
             )}
             <div
-              ref={devtools.paneRef}
+              ref={devtoolsPaneRef}
               className="browser-devtools"
               style={devtools.embed.dock === "right" ? { width: devtools.width } : { height: devtools.height }}
             >
-              <webview key={devtools.embed.key} ref={devtools.devtoolsRef} className="browser-devtools-view" src="about:blank" partition="persist:kickoff-browser" />
+              <webview key={devtools.embed.key} ref={devtoolsRef} className="browser-devtools-view" src="about:blank" partition="persist:kickoff-browser" />
             </div>
           </>
         )}

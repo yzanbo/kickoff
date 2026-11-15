@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent, type MutableRefObject } from "react";
+import { useEffect, useEffectEvent, useRef, type KeyboardEvent, type MutableRefObject } from "react";
 import { Pencil } from "lucide-react";
 import type { Attachment, Chat } from "@shared/types";
 import { EDIT_HOLD_TTL_MS } from "@shared/chat/queueEditHolds";
@@ -21,9 +21,9 @@ import { endHeldEdit, type HeldEdit } from "./heldEdit";
 export function HeldEditComposer({ chat, edit, gone, composer }: { chat: Chat; edit: HeldEdit; gone: boolean; composer: MutableRefObject<ComposerHandle | null> }) {
   const handle = useRef<ComposerHandle | null>(null);
   // 書き直す文と添付を入れる（描いたあと、指示が替わったときだけ）
+  const fillEdit = useEffectEvent(() => handle.current?.fill(edit.text, { attachments: edit.attachments }));
   useEffect(() => {
-    handle.current?.fill(edit.text, { attachments: edit.attachments });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fillEdit();
   }, [edit.id]);
   // 書き直している間は送らずに待つよう知らせ続け、終えたら外す
   useEffect(() => {

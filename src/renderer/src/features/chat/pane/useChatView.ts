@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Chat, ChatLive, Project } from "@shared/types";
 import { chatLog, useChatDetailView, useChatLog, useChatSubagents, useChatSubagentsView } from "@/features/chat/store/useChatStore";
 import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
@@ -13,7 +13,7 @@ import { useTimelineWindow } from "@/features/chat/timeline/useTimelineWindow";
 import { timelineView } from "@/features/chat/timeline/timelineView";
 import { compactHoldOf } from "./compactHold";
 import { useChatSend } from "./useChatSend";
-import type { ChatShellHandles } from "./useChatPaneActions";
+import type { ChatShellHandles, PaneLatest } from "./useChatPaneActions";
 
 export interface ChatViewInput {
   chat: Chat;
@@ -33,7 +33,7 @@ export interface ChatViewInput {
  * 操作が読むいまの値はここで描くたびに shell.latest に入れる（メモの仕様書「0023_表示を軽くする」の M5）
  */
 export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: ChatViewInput, shell: ChatShellHandles) {
-  const { pane, scroll } = shell;
+  const { pane, scroll, latest: latestRef } = shell;
   const { approvals, live: coreLive } = useChatDetailView(chat.id);
   const log = useChatLog(chat.id);
   const options = useChatOptions(
@@ -138,7 +138,7 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
   // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
   // ピルの列を画面の外に描いているとき（メモのチャットの欄を閉じている）は、会話へ移る前に画面を見せる
   const chipsPortal = useChipsPortal();
-  shell.latest.current = {
+  const latest: PaneLatest = {
     chat,
     log,
     options,
@@ -150,6 +150,10 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     reveal: chipsPortal?.reveal,
     showAfter: (eventId, then) => setAfterShow({ eventId, then }),
   };
+  // 描く中で ref に書かない（React Compiler の決まり）。描いた結果を当てる段で、どの effect よりも先に入れる
+  useInsertionEffect(() => {
+    latestRef.current = latest;
+  });
 
   // 変わる様子を配る（変わったときだけ。読んでいる部品だけが描き直る）
   useLayoutEffect(() => {

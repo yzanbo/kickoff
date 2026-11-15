@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { navigate, REOPEN_EVENT, type ReopenRoute } from "@/app/router";
 
@@ -8,17 +8,18 @@ import { navigate, REOPEN_EVENT, type ReopenRoute } from "@/app/router";
  * 新しいチャットは開いたら URL からボード（tab。開いたボード・チャットタブ）に戻す（新しいチャットは押すたびに増えるので、ボードを開き直したときにもう 1 つ開かないように）
  */
 export function useBoardFocus(focus: ReopenRoute | undefined, open: (target: ReopenRoute) => void, tab: "board" | "chats") {
-  const openRef = useRef(open);
-  openRef.current = open;
+  // 開き直すのは行き先（focus の中身）が変わったときだけ（focus は描くたびに作られるので文字にして比べる）
   const focusKey = focus ? JSON.stringify(focus) : "";
-
-  useEffect(() => {
+  const openFocus = useEffectEvent(() => {
     if (!focus) return;
-    openRef.current(focus);
+    open(focus);
     if (focus.name === "newChat") {
       navigate({ name: "project", id: focus.projectId, tab }, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+
+  useEffect(() => {
+    openFocus();
   }, [focusKey]);
 
   useWindowEvent(REOPEN_EVENT, (e) => open((e as CustomEvent<ReopenRoute>).detail));

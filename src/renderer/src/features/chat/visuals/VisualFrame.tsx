@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { VISUAL_MESSAGES, VISUAL_PROMPT_MAX, visualDocument } from "@shared/chat/visualDocument";
+import { useLatest } from "@/hooks/useLatest";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useVisualTheme } from "./visualTheme";
 
@@ -54,13 +55,11 @@ export function VisualFrame({
   const theme = useVisualTheme();
   const [height, setHeight] = useState(initialHeight ?? INITIAL_HEIGHT);
   // 渡す中身（描き直すたびに最新の関数・テーマを使う）
-  const latest = useRef({ kind, code, theme, maxHeight, onError, onPrompt, onHeight, onReady });
-  latest.current = { kind, code, theme, maxHeight, onError, onPrompt, onHeight, onReady };
+  const latest = useLatest({ kind, code, theme, maxHeight, onError, onPrompt, onHeight, onReady });
   // 枠のページ（下の key ごと）を読み込んだか・中身を渡したか。隠した会話の欄（Activity）の中で枠ができると、ready の知らせを
   // 受ける購読がないので、表に戻して購読し直したときに、読み込み済みでまだ渡していなければ渡す
   const frameKey = `${kind}\n${code}${kind === "html" ? `\n${theme["--vis-bg"]}` : ""}`;
-  const frameKeyRef = useRef(frameKey);
-  frameKeyRef.current = frameKey;
+  const frameKeyRef = useLatest(frameKey);
   const loadedKey = useRef<string | null>(null);
   const deliveredKey = useRef<string | null>(null);
   const deliver = (frame: HTMLIFrameElement) => {
@@ -68,11 +67,13 @@ export function VisualFrame({
     deliveredKey.current = frameKeyRef.current;
     frame.contentWindow?.postMessage({ type: VISUAL_MESSAGES.render, html: visualDocument({ kind: k, code: c, vars: t, ...(max !== undefined && !fill ? { maxHeight: max } : {}) }) }, "*");
   };
-  useEffect(() => {
+  const deliverPending = useEffectEvent(() => {
     const frame = ref.current;
-    if (frame && loadedKey.current === frameKeyRef.current && deliveredKey.current !== frameKeyRef.current) deliver(frame);
-    // 描いたとき・表に戻して購読し直したときだけ
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (frame && loadedKey.current === frameKey && deliveredKey.current !== frameKey) deliver(frame);
+  });
+  // 描いたとき・表に戻して購読し直したときだけ
+  useEffect(() => {
+    deliverPending();
   }, []);
 
   useWindowEvent("message", (e) => {

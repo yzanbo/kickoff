@@ -175,7 +175,7 @@ export function GitHubPullChanges({
   const menu = useContextMenu<{ target: ReviewTarget; copy: string }>();
   // 左のファイルの木（閉じたかは覚える。狭い欄では出さない）と、木で押したファイル
   const [treeHidden, setTreeHidden] = useSetting(GITHUB_FILES_TREE_HIDDEN);
-  const layout = useNarrowerThan<HTMLDivElement>(TREE_MIN_WIDTH);
+  const { ref: layoutRef, ...layout } = useNarrowerThan<HTMLDivElement>(TREE_MIN_WIDTH);
   const main = useRef<HTMLDivElement>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const review = useMemo<ReviewHandlers>(
@@ -225,7 +225,7 @@ export function GitHubPullChanges({
           )
         }
       />
-      <div ref={layout.ref} className="github-files-layout">
+      <div ref={layoutRef} className="github-files-layout">
       {showTree && <GitHubPullFileTree files={data.files} selected={picked} onSelect={goTo} />}
       <div ref={main} className="github-files-main">
       {!openByDefault && <p className="muted small">ファイルが多いので畳んでいます。見出し・左の木を押すと差分を開きます。</p>}

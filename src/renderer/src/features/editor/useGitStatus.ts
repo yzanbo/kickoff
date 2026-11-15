@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { GitConflictResolution, GitOperationAction, GitStatus } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
@@ -34,26 +34,30 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   // 自動のフェッチの途中（帯の「フェッチ」のボタンに回る印を出す）
   const [autoFetching, setAutoFetching] = useState(false);
 
-  const refresh = useCallback(async (quiet = false) => {
-    const request = ++latest.current;
-    setLoading(true);
-    if (!quiet) setRefreshing(true);
-    try {
-      const value = await api.gitStatus(target);
-      if (request !== latest.current) return;
-      setStatus({ key, value });
-      setVersion((v) => v + 1);
-      setError(undefined);
-    } catch (e) {
-      if (request === latest.current) setError(errorMessage(e));
-    } finally {
+  // 取り直す関数は作業場所が変わったときだけ作り直す（target は作業場所ごとに同じもの）
+  const refresh = useCallback(
+    async (quiet = false) => {
+      const request = ++latest.current;
+      setLoading(true);
+      if (!quiet) setRefreshing(true);
+      await api.gitStatus(target).then(
+        (value) => {
+          if (request !== latest.current) return;
+          setStatus({ key, value });
+          setVersion((v) => v + 1);
+          setError(undefined);
+        },
+        (e: unknown) => {
+          if (request === latest.current) setError(errorMessage(e));
+        },
+      );
       if (request === latest.current) {
         setLoading(false);
         setRefreshing(false);
       }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+    },
+    [key, target],
+  );
 
   useEffect(() => {
     void refresh();
@@ -70,22 +74,19 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
     void gitAutoFetch
       .fetch(String(projectId), async () => {
         setAutoFetching(true);
-        try {
-          await api.gitFetch(target);
-        } finally {
-          setAutoFetching(false);
-        }
+        await api.gitFetch(target).finally(() => setAutoFetching(false));
       })
       .then((ran) => {
         if (ran) void refresh(true);
       });
   };
+  // 開いている間（と作業場所を替えたとき）に始め、一定の間隔で取ってくる
+  const autoFetchNow = useEffectEvent(() => autoFetch());
   useEffect(() => {
     if (!active) return;
-    autoFetch();
-    const timer = setInterval(autoFetch, FETCH_MS);
+    autoFetchNow();
+    const timer = setInterval(() => autoFetchNow(), FETCH_MS);
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, key]);
 
   useWindowEvent("focus", () => {

@@ -43,12 +43,9 @@ export function SnippetForm({
     if (!canSave) return;
     setBusy(true);
     setError(undefined);
+    const body = { label: label.trim() || null, text, project_id: scopeOf(scope) };
     try {
-      await onSave({
-        label: label.trim() || null,
-        text,
-        project_id: scopeOf(scope),
-      });
+      await onSave(body);
     } catch (e) {
       setError(errorMessage(e));
       setBusy(false);

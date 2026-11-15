@@ -1,4 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import type { Chat } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { isTabVisible, type PaneLeaf } from "@/features/panel/layout/paneTree";
@@ -70,8 +71,7 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
   const chats = useLinkedTabs(key, scope, kinds.has("chat"));
   const actions = useMemo(() => panelActions(key), [key]);
   // 新しいチャットができたときの知らせは、いま渡されているものを呼ぶ（タブの中身に渡す操作を作り直さないため）
-  const created = useRef(onCreated);
-  created.current = onCreated;
+  const created = useLatest(onCreated);
   const pageOps = useMemo<PanelPageOps>(
     () => ({
       ...actions,
@@ -81,7 +81,7 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
         created.current?.(chat);
       },
     }),
-    [actions, key],
+    [actions, key, created],
   );
 
   // Esc で閉じる（Esc で閉じる欄だけ。メニューやダイアログが開いていればそちらを優先。日本語入力の変換をやめる Esc では閉じない）。

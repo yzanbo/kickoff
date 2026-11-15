@@ -1,4 +1,5 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import { MarkdownFileLinksContext, type MarkdownFileLinks } from "@/ui/markdown/markdownFileLinks";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { FileLinkContext, openByClick, type FileLinks } from "./fileLinkContext";
@@ -17,9 +18,8 @@ import type { ChatFileLinks } from "./useFileLinks";
 export function FileLinksProvider({ value, children }: { value: ChatFileLinks | undefined; children: ReactNode }) {
   const menu = useContextMenu<FileRef>();
   // 返答の Markdown を描き直させないよう、メニューを開く関数は同じものにする（中身はいつも最新）
-  const openMenu = useRef(menu.open);
-  openMenu.current = menu.open;
-  const showMenu = useCallback((e: MouseEvent, ref: FileRef) => openMenu.current(e, ref), []);
+  const openMenu = useLatest(menu.open);
+  const showMenu = useCallback((e: MouseEvent, ref: FileRef) => openMenu.current(e, ref), [openMenu]);
   const links = useMemo<FileLinks | undefined>(() => (value ? { ...value, showMenu } : undefined), [value, showMenu]);
   // ファイルの一覧の店。一覧はこの描き直しのうちに入れ（同じ描き直しで描くリンクが読む）、知らせは描いたあとに出す（memo して描き直らないリンクのため）
   const [store] = useState(createFileIndexStore);
@@ -27,8 +27,7 @@ export function FileLinksProvider({ value, children }: { value: ChatFileLinks | 
   store.replace(index);
   useLayoutEffect(() => store.notify(), [store, index]);
   // 押したときは、いまの開き方を使う（下の値を一覧の取り直しで作り直さないため）
-  const latest = useRef(links);
-  latest.current = links;
+  const latest = useLatest(links);
   const root = index?.root;
   const side = links?.side ?? false;
   const markdown = useMemo<MarkdownFileLinks | undefined>(
@@ -45,7 +44,7 @@ export function FileLinksProvider({ value, children }: { value: ChatFileLinks | 
             menu: (e, path, line) => latest.current?.showMenu(e, { path, ...(line ? { line } : {}) }),
             title: (path, line) => `${path}${line ? `（${line} 行目）` : ""} を${side ? "右の欄" : "ファイルタブ"}で開く（⌘クリックでファイルタブ・右クリックでほかの開き方）`,
           },
-    [root, side, store],
+    [root, side, store, latest],
   );
   return (
     <FileLinkContext.Provider value={links}>

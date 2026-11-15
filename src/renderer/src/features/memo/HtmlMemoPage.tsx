@@ -1,4 +1,5 @@
-import { useMemo, useRef, type MutableRefObject } from "react";
+import { useImperativeHandle, useMemo, useRef, type MutableRefObject } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import { useServerEvent } from "@/api/events";
 import { runPageFind } from "@/ui/pageFind";
 import { memoAssetBase, memoLinkPath, withBaseHref } from "./htmlPage";
@@ -39,8 +40,7 @@ export function HtmlMemoPage({
   const frame = useRef<HTMLIFrameElement>(null);
   const scroll = useRef({ x: 0, y: 0 });
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const handlers = useRef({ onContextMenu, onSave, onOpenLink });
-  handlers.current = { onContextMenu, onSave, onOpenLink };
+  const handlers = useLatest({ onContextMenu, onSave, onOpenLink });
   const srcDoc = useMemo(() => withBaseHref(html, memoAssetBase(location.origin, projectId, parentOf(path))), [html, projectId, path]);
 
   // メモのフォルダのほかのファイル（ページが読む CSS・画像など）が変わったら、描き直して読み直す（ファイルの口は no-cache なので、変わったものを取り直す）。
@@ -108,20 +108,19 @@ export function HtmlMemoPage({
     });
   };
 
-  if (handleRef) {
-    handleRef.current = {
-      selected: () => {
-        const el = frame.current;
-        const selection = el?.contentWindow?.getSelection();
-        const text = selection?.toString().trim();
-        // ページにピントがあるときだけ（ほかの所で選び直したあとに、ページに残った選択で出さない）
-        if (!el || document.activeElement !== el || !selection || !text || selection.rangeCount === 0) return null;
-        const box = selection.getRangeAt(0).getBoundingClientRect();
-        const offset = el.getBoundingClientRect();
-        return { text, rect: { left: offset.left + box.left, top: offset.top + box.top, width: box.width } };
-      },
-    };
-  }
+  // 外から読む口（描く中で ref に書かない）
+  useImperativeHandle(handleRef, () => ({
+    selected: () => {
+      const el = frame.current;
+      const selection = el?.contentWindow?.getSelection();
+      const text = selection?.toString().trim();
+      // ページにピントがあるときだけ（ほかの所で選び直したあとに、ページに残った選択で出さない）
+      if (!el || document.activeElement !== el || !selection || !text || selection.rangeCount === 0) return null;
+      const box = selection.getRangeAt(0).getBoundingClientRect();
+      const offset = el.getBoundingClientRect();
+      return { text, rect: { left: offset.left + box.left, top: offset.top + box.top, width: box.width } };
+    },
+  }));
 
   return <iframe ref={frame} className="memo-html-page" title="メモのページ" sandbox="allow-same-origin" srcDoc={srcDoc} onLoad={attach} />;
 }

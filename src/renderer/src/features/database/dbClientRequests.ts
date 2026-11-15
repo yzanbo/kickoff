@@ -1,6 +1,6 @@
 // DB クライアントの外（右の欄の ▾ の「DB ▸」・Docker タブの「DB で開く」）から、開いた DB クライアントに頼むこと（接続を選ぶ・接続を足す・取り込みの案を選んで取り込みの画面を開く）。
 // DB クライアントは開いたときに読む（React.lazy）ので、まだ描いていなければ置き場所ごとに預け、描いたときに受け取る
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import type { DbImportCandidate } from "@shared/types";
 
 export type DbClientRequest = { kind: "focus"; connectionId: number } | { kind: "add" } | { kind: "import"; candidate: DbImportCandidate };
@@ -17,10 +17,9 @@ export function requestDbClient(place: string, request: DbClientRequest): void {
 
 /** place の DB クライアントが頼みを受ける（預けてあったものも受け取る） */
 export function useDbClientRequests(place: string, onRequest: (request: DbClientRequest) => void): void {
-  const handler = useRef(onRequest);
-  handler.current = onRequest;
+  const handler = useEffectEvent(onRequest);
   useEffect(() => {
-    const listener = (request: DbClientRequest) => handler.current(request);
+    const listener = (request: DbClientRequest) => handler(request);
     listeners.set(place, listener);
     const waiting = pending.get(place);
     if (waiting) {

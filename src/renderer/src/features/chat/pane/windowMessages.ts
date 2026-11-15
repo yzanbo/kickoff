@@ -51,7 +51,7 @@ export function useWindowMessagesFor(pane: ChatPaneActions) {
     let set = panes.get(pane.chatId);
     if (!set) panes.set(pane.chatId, (set = new Set()));
     set.add(pane);
-    unsubscribe ??= subscribeWindowMessages(handle);
+    if (!unsubscribe) unsubscribe = subscribeWindowMessages(handle);
     return () => {
       set.delete(pane);
       if (set.size === 0) panes.delete(pane.chatId);

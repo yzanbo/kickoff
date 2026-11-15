@@ -17,7 +17,7 @@ export function DbList({
   loaded,
   error,
   narrow,
-  width,
+  width: { paneRef: widthPaneRef, ...width },
   onAdd,
   onImport,
   onCopy,
@@ -39,7 +39,7 @@ export function DbList({
   onConnectionMenu: (e: React.MouseEvent, connection: DbConnection) => void;
 }) {
   return (
-    <aside ref={width.paneRef} className={cx("db-list", narrow && "overlay")} style={narrow ? undefined : { width: width.size }}>
+    <aside ref={widthPaneRef} className={cx("db-list", narrow && "overlay")} style={narrow ? undefined : { width: width.size }}>
       <div className="db-list-head">
         <span className="db-list-title">接続</span>
         <IconButton icon={Search} label="テーブル・列を探す（⌘⇧O）" onClick={onFind} disabled={connections.length === 0} />

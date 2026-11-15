@@ -14,11 +14,10 @@ export function usePlanUsage() {
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      usageStore.set(await api.refreshUsage());
-    } finally {
-      setRefreshing(false);
-    }
+    await api
+      .refreshUsage()
+      .then((usage) => usageStore.set(usage))
+      .finally(() => setRefreshing(false));
   }, []);
 
   return { usage, refresh, refreshing };

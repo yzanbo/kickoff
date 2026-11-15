@@ -41,8 +41,8 @@ export function SnippetBar({
 }) {
   const snippets = useProjectSnippets(projectId);
   const [hidden, setHidden] = useSetting(SNIPPET_BAR_HIDDEN);
-  const scroller = useHorizontalScroller(snippets);
-  const picker = usePopover();
+  const { ref: scrollerRef, ...scroller } = useHorizontalScroller(snippets);
+  const { anchor: pickerAnchor, ...picker } = usePopover();
   const menu = useContextMenu<Snippet | null>();
   // 管理のダイアログ（開いていなければ false。開いた直後に編集する行・新しく作るなら "new"）
   const [managing, setManaging] = useState<SnippetEditing | false>(false);
@@ -60,7 +60,7 @@ export function SnippetBar({
     <>
       <div className="snippet-bar" role="toolbar" aria-label="定型文" onContextMenu={(e) => menu.open(e, null)}>
         <div
-          ref={scroller.ref}
+          ref={scrollerRef}
           className={cx("snippet-bar-scroll", scroller.edges.start && "fade-start", scroller.edges.end && "fade-end")}
           onScroll={scroller.onScroll}
         >
@@ -89,7 +89,7 @@ export function SnippetBar({
         </div>
         <div className="snippet-bar-tools">
           <IconButton
-            ref={picker.anchor}
+            ref={pickerAnchor}
             icon={List}
             size={14}
             label="定型文の一覧"
@@ -111,7 +111,7 @@ export function SnippetBar({
       {/* 一覧・メニュー・ダイアログは帯の外に置く（中の右クリック・クリックが帯に伝わらないように） */}
       {picker.open && (
         <SnippetPicker
-          anchor={picker.anchor}
+          anchor={pickerAnchor}
           projectId={projectId}
           snippets={snippets}
           onInsert={insert}

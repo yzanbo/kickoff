@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { ChatView } from "@/features/chat/pane/ChatPane";
 import { useOpenChat } from "@/features/chat/store/useChatStore";
 import { PanelHostContext } from "@/features/panel/panelHost";
@@ -23,10 +23,9 @@ export function SideChildChat({
   const { chat, project, error } = useOpenChat(chatId, visible);
   const title = chat?.title;
   // タブの名前を最新に（名前の自動生成・変更。渡される関数は描くたびに変わるので、名前が変わったときだけ呼ぶ）
-  const setTitle = useRef(onTitle);
-  setTitle.current = onTitle;
+  const setTitle = useEffectEvent(onTitle);
   useEffect(() => {
-    if (title !== undefined) setTitle.current(title);
+    if (title !== undefined) setTitle(title);
   }, [title]);
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;

@@ -1,5 +1,5 @@
 import { Brain, Shield, Zap } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
 import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type PermissionMode, type ChatOptions, type ProviderId } from "@shared/types";
 import { api } from "@/api";
@@ -52,9 +52,10 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
   const settings = useAppSettings().data;
   const { projectsById, loaded: projectsLoaded } = useProjects();
   const project = projectId === undefined ? undefined : projectsById.get(projectId);
-  const fresh = useRef(!initial).current;
+  const [fresh] = useState(!initial);
   const defaultedFor = useRef<number | "app" | null>(null);
-  useEffect(() => {
+  // 選んでいる値が変わっても当て直さない（プロジェクトと既定が届いたときだけ）
+  const applyDefaults = useEffectEvent(() => {
     const target = projectId ?? "app";
     if (!fresh || defaultedFor.current === target || !settings || (projectId !== undefined && !projectsLoaded)) return;
     // 開いて初めて当てるときは、既定が届く前に選んだモデルを残す
@@ -65,8 +66,9 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
     setEffort(next.effort);
     setPermission(next.permission_mode);
     setFastMode(next.fast_mode);
-    // 選んでいる値が変わっても当て直さない（プロジェクトと既定が届いたときだけ）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    applyDefaults();
   }, [settings, projectId, projectsLoaded, project]);
 
   const current = models.find((m) => m.value === model);

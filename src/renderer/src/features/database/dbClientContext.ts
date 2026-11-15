@@ -11,7 +11,7 @@ export interface DbClientActions {
   /** その接続を開く作業場所（SQLite のファイルをワークツリーで開く。本体を選び直した接続は null） */
   worktreeOf(connectionId: number): string | null;
   /** ワークツリーにファイルがない接続を、本体のファイルで開き直す */
-  useMain(connectionId: number): void;
+  openMain(connectionId: number): void;
   /** テーブルのタブを開く（filter を渡せばその絞り込みで。外部キーで移るとき。preview なら仮のタブ（木で 1 回押したとき）） */
   openTable(connection: DbConnection, path: DbObjectPath, name: string, object: DbObjectKind, filter?: DbRowFilter, preview?: boolean): void;
   /** 新しい SQL のタブを開く（sql を渡せば、入力欄にそれを書いて） */

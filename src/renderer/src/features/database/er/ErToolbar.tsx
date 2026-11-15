@@ -49,22 +49,20 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   };
-  const exportMemo = async () => {
-    try {
-      const list = await api.memos(client.projectId);
-      const taken = list.entries.filter((e) => !e.dir && !e.path.includes("/")).map((e) => e.path.replace(/\.md$/i, ""));
-      const name = uniqueMemoName(safeMemoName(title), taken);
-      const where = [connection.name, tab.path.database, tab.path.schema].filter(Boolean).join(" / ");
-      const content = `# ER 図: ${where}${tab.focus ? `（${tab.focus} のまわり）` : ""}\n\n\`\`\`mermaid\n${mermaid()}\n\`\`\`\n`;
-      const path = `${name}.md`;
-      await api.createMemo(client.projectId, path, { content });
-      if (await confirmDialog({ title: "メモに書き出しました", message: `メモ「${path}」に Mermaid の ER 図を書き出しました。メモのタブで開きますか？`, confirmLabel: "開く" })) {
-        openMemo(client.projectId, path);
-      }
-    } catch (e) {
-      reportFailure("メモに書き出せませんでした")(e);
+  /** 見えているものを Mermaid の文にしてメモに書き出す（失敗は投げる） */
+  const writeMemo = async () => {
+    const list = await api.memos(client.projectId);
+    const taken = list.entries.filter((e) => !e.dir && !e.path.includes("/")).map((e) => e.path.replace(/\.md$/i, ""));
+    const name = uniqueMemoName(safeMemoName(title), taken);
+    const where = [connection.name, tab.path.database, tab.path.schema].filter(Boolean).join(" / ");
+    const content = `# ER 図: ${where}${tab.focus ? `（${tab.focus} のまわり）` : ""}\n\n\`\`\`mermaid\n${mermaid()}\n\`\`\`\n`;
+    const path = `${name}.md`;
+    await api.createMemo(client.projectId, path, { content });
+    if (await confirmDialog({ title: "メモに書き出しました", message: `メモ「${path}」に Mermaid の ER 図を書き出しました。メモのタブで開きますか？`, confirmLabel: "開く" })) {
+      openMemo(client.projectId, path);
     }
   };
+  const exportMemo = () => writeMemo().catch((e: unknown) => void reportFailure("メモに書き出せませんでした")(e));
 
   return (
     <div className="db-er-toolbar">

@@ -32,10 +32,10 @@ export function TabbedDialog<K extends string>({
   children: (section: K, select: (section: K) => void) => ReactNode;
 }) {
   // 開いた直後に ✕ ボタンへピントが当たって枠が出ないよう、ダイアログ自体にピントを置く
-  const dialog = useModalDialog({ focusSelf: true });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ focusSelf: true });
   const [section, setSection] = useState<K>(initial ?? sections[0].key);
   return (
-    <dialog ref={dialog.ref} className="dialog tabbed-dialog" tabIndex={-1} onClose={onClose} {...dialog.backdropProps}>
+    <dialog ref={dialogRef} className="dialog tabbed-dialog" tabIndex={-1} onClose={onClose} {...dialog.backdropProps}>
       <header className="tabbed-dialog-head">
         <h2>{title}</h2>
         <CloseButton title="閉じる（Esc）" size={16} onClick={dialog.close} />

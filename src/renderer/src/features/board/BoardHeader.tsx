@@ -55,11 +55,11 @@ interface Props {
 export function BoardHeader({ query, onQuery, filters, organize, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
   // 狭いときは、まずまとまりごと次の行へ折り返し（2 段までは文字のまま）、3 段目が要るときだけボタンの文字を隠してアイコンにする
   // （入るかは実際の段の数で決める。利用者の依頼で、前は見出しの幅 1120px 以下ですぐアイコンにしていた）
-  const fit = useWrapCompact<HTMLDivElement>(2, "icon-only");
+  const { ref: fitRef, ...fit } = useWrapCompact<HTMLDivElement>(2, "icon-only");
   return (
     <div className="board-header">
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
-      <div ref={fit.ref} className={cx("board-tools", fit.compact && "icon-only")}>
+      <div ref={fitRef} className={cx("board-tools", fit.compact && "icon-only")}>
         {organize && (
           <div className="board-tool-group" role="group" aria-label="整える">
             {organize}

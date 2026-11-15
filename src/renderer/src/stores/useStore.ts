@@ -1,5 +1,5 @@
 // 店（createStore.ts・keyedStore.ts。形は storeTypes.ts）を React から読む hooks。描いている間はその値を購読し、使っている間は読み込みを頼む（retain）
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { EMPTY_STATE, type KeyedStore, type Store, type StoreState } from "./storeTypes";
 
 interface UseOptions {
@@ -44,35 +44,43 @@ export function useKeyedStore<K extends string | number, T>(store: KeyedStore<K,
   return shown(state, active && key !== undefined, store.loads);
 }
 
+/** いくつかの key の様子の組を読む関数（どれかが変わったときだけ別の配列を返す。useSyncExternalStore の getSnapshot） */
+function statesReader<K extends string | number, T>(store: KeyedStore<K, T>, keys: readonly K[]): () => StoreState<T>[] {
+  let last: StoreState<T>[] = [];
+  return () => {
+    const next = keys.map((key) => store.get(key));
+    if (next.length === last.length && next.every((s, i) => s === last[i])) return last;
+    return (last = next);
+  };
+}
+
 /**
  * key ごとの店の、いくつかの key の様子を引く関数（グループ名を引くタブの列・作業場所で段に分けるボードなど）。
  * 渡した key のどれかの様子が変わったときだけ描き直し、返す関数も新しくなる（memo の deps に入れてよい）。
  * ほかの key が変わっても描き直さない（返す関数はほかの key も引けるが、変わっても知らせない。読み込みも頼まない）
  */
 export function useKeyedStores<K extends string | number, T>(store: KeyedStore<K, T>, keys: readonly K[], { active = true }: UseOptions = {}): (key: K) => StoreState<T> {
-  const unique = [...new Set(keys)];
-  const id = unique.map(String).sort().join("\n");
+  // 渡す配列は描くたびに作られることがあるので、key の組を文字にして、組が変わったときだけ数え直す（JSON なので数の key は数のまま戻る）
+  const id = JSON.stringify([...new Set(keys)].sort());
+  const unique = useMemo(() => JSON.parse(id) as K[], [id]);
   const subscribe = useCallback(
     (listener: () => void) => {
       const offs = unique.map((key) => store.subscribe(key, listener));
       return () => offs.forEach((off) => off());
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 読む key は id が変わったときだけ数え直す
-    [store, id],
+    [store, unique],
   );
   // 渡した key の様子の組（どれかが変わったときだけ別のものになる）
-  const last = useRef<StoreState<T>[]>([]);
-  const states = useSyncExternalStore(subscribe, () => {
-    const next = unique.map((key) => store.get(key));
-    if (next.length === last.current.length && next.every((s, i) => s === last.current[i])) return last.current;
-    return (last.current = next);
-  });
+  const getStates = useMemo(() => statesReader(store, unique), [store, unique]);
+  const states = useSyncExternalStore(subscribe, getStates);
   useEffect(() => {
-    if (!active || !id) return;
+    if (!active || unique.length === 0) return;
     const releases = unique.map((key) => store.retain(key));
     return () => releases.forEach((release) => release());
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 読む key は id が変わったときだけ数え直す
-  }, [store, id, active]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- 渡した key の様子が変わるたびに（states）新しい関数にする
-  return useMemo(() => (key: K) => store.get(key), [store, states]);
+  }, [store, unique, active]);
+  // 渡した key の様子が変わるたびに（states）新しい関数にする。渡した key は描いた時点の様子を、ほかの key は店のいまの値を返す
+  return useMemo(() => {
+    const byKey = new Map(unique.map((key, i) => [key, states[i]]));
+    return (key: K) => byKey.get(key) ?? store.get(key);
+  }, [store, unique, states]);
 }

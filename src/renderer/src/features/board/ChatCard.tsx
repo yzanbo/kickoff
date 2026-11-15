@@ -66,7 +66,8 @@ export function CardStats({ chat, pending = 0, show }: Pick<Props, "chat" | "pen
 }
 
 /** 日時（作成日・最終更新。active は最終更新に出す日時で、フィードは返答の時刻） */
-export function CardTimes({ chat, show, active = chat.active_at }: Pick<Props, "chat" | "show"> & { active?: string }) {
+export function CardTimes({ chat, show, active: givenActive }: Pick<Props, "chat" | "show"> & { active?: string }) {
+  const active = givenActive ?? chat.active_at;
   return (
     <>
       {show("created") && (

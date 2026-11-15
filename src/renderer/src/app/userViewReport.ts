@@ -1,10 +1,11 @@
 // このウィンドウで利用者が見ているものをコアに知らせる（AI の get_user_view。メモの仕様書「0019_AI の操作ツールの追加」の D）:
 // 見ているものが変わったら（欄のタブ・画面・選んでいる範囲・押したもの。少しまとめて）と、見ている間は USER_VIEW_REPORT_MS ごとに知らせ直し、
 // 窓を閉じる・読み込み直すときは「閉じた」を知らせる。送る指示にも、送った時点の様子を添える（lib/userViewSnapshot）
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { USER_VIEW_REPORT_MS, type UserView } from "@shared/types";
 import { api } from "@/api";
 import { subscribeServerOpen } from "@/api/events";
+import { useLatest } from "@/hooks/useLatest";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { setUserViewProvider } from "@/lib/userViewSnapshot";
 import { subscribePanels } from "@/features/panel/state/panelStore";
@@ -20,8 +21,8 @@ const WINDOW_ID = typeof crypto !== "undefined" && "randomUUID" in crypto ? cryp
  * deps が変わったら（画面が変わった）知らせ直す
  */
 export function useUserViewReport(collect: () => UserView, chatIds: (view: UserView) => number[], deps: unknown[]) {
-  const latest = useRef({ collect, chatIds });
-  latest.current = { collect, chatIds };
+  // 送る指示・時計・知らせから、いつも最新の集め方を呼ぶ
+  const latest = useLatest({ collect, chatIds });
   // 送る指示に添える様子
   useEffect(() => setUserViewProvider(() => latest.current.collect()), []);
   // 窓を閉じた・読み込み直したら、このウィンドウを忘れてもらう（ページが消えても届くよう keepalive）
@@ -55,6 +56,5 @@ export function useUserViewReport(collect: () => UserView, chatIds: (view: UserV
       window.removeEventListener("blur", schedule);
       clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }

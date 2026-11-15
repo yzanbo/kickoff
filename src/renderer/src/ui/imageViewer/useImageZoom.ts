@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type SyntheticEvent } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent, type SyntheticEvent } from "react";
 import { canPan, clampView, fitView, panBy, zoomTo, ZOOM_STEP, type Size, type View } from "./imageZoom";
 
 /** ピンチ・Ctrl ＋ ホイールの 1 回で動かす量の上限（ホイールの 1 目盛りで倍率が跳ばないように） */
@@ -64,12 +64,11 @@ export function useImageZoom() {
       setZoomed((z) => z && panBy(z, -e.deltaX, -e.deltaY, natural, stage));
     }
   };
-  const wheelRef = useRef(onWheel);
-  wheelRef.current = onWheel;
+  const wheel = useEffectEvent(onWheel);
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
-    const listener = (e: WheelEvent) => wheelRef.current(e);
+    const listener = (e: WheelEvent) => wheel(e);
     el.addEventListener("wheel", listener, { passive: false });
     return () => el.removeEventListener("wheel", listener);
   }, []);

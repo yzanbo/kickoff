@@ -1,5 +1,6 @@
 import { chatTitle } from "@/features/chat/chatTitle";
-import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import { useKeepAliveHold } from "@/features/panel/tabs/tabKeepAlive";
 import type { Attachment } from "@shared/types";
 import { api } from "@/api";
@@ -53,8 +54,7 @@ const uploadedOf = (files: readonly PendingFile[]) => files.flatMap((f) => (f.at
 export function useComposerFiles(saved?: AttachmentDraft) {
   const [files, setFiles] = useState<PendingFile[]>(() => restore(saved?.read() ?? []));
   const [dragging, setDragging] = useState(false);
-  const savedRef = useRef(saved);
-  savedRef.current = saved;
+  const savedRef = useLatest(saved);
   /** 最後に残した（読んだ）添付の JSON（同じものを書き直さない・自分の書き換えの知らせを読み直さない） */
   const written = useRef(JSON.stringify(uploadedOf(files)));
   const mounted = useRef(true);
@@ -67,12 +67,17 @@ export function useComposerFiles(saved?: AttachmentDraft) {
 
   // 残す先が変わったら（同じ入力欄で別のチャットへ）、その先に残した添付に入れ替える（描いている間に合わせる）
   const [savedId, setSavedId] = useState(saved?.id);
+  const [restored, setRestored] = useState<{ json: string } | null>(null);
   if (saved?.id !== savedId) {
     setSavedId(saved?.id);
     const next = restore(saved?.read() ?? []);
-    written.current = JSON.stringify(uploadedOf(next));
+    setRestored({ json: JSON.stringify(uploadedOf(next)) });
     setFiles(next);
   }
+  // 入れ替えた添付は、その先に残してあるもの（書き直さない）。下の「残す」より先に覚え直す（描く中では ref に書かない）
+  useEffect(() => {
+    if (restored) written.current = restored.json;
+  }, [restored]);
 
   // アップロードできた添付が変わったら残す（外した・送ったときは空にする）
   const uploadedJson = JSON.stringify(uploadedOf(files));
@@ -83,16 +88,17 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   }, [uploadedJson]);
 
   // ほかの入力欄（同じチャットのメモの下の入力欄など）が書き換えたら、アップロードの途中のものは残したまま合わせる
+  // 見張り直すのは残す先（id）が変わったときだけ（saved は描くたびに作られることがある）
+  const subscribeSaved = useEffectEvent((listener: () => void) => saved?.subscribe?.(listener));
   useEffect(
     () =>
-      saved?.subscribe?.(() => {
+      subscribeSaved(() => {
         const list = savedRef.current?.read() ?? [];
         const json = JSON.stringify(list);
         if (json === written.current) return;
         written.current = json;
         setFiles((prev) => [...restore(list, prev), ...prev.filter((f) => !f.attachment && !f.error)]);
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [saved?.id],
   );
 
@@ -102,7 +108,7 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   useEffect(() => hold(uploading), [uploading, hold]);
 
   // 画像のプレビュー用 URL は不要になったら解放する
-  useEffect(() => () => files.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => files.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl)), []);
 
   /** アップロードが終わったとき（入力欄がもうなければ、残す先へじかに足す。移っている間に終わっても添付を失わない） */
   function uploaded(key: string, attachment: Attachment) {

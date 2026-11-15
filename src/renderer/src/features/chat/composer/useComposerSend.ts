@@ -6,6 +6,17 @@ import type { QueueSendMode } from "./composerKeys";
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
 export class SendCancelled extends Error {}
 
+/** run を流し、失敗は onError で受け止め、最後に onDone（try / finally を hook の外に置く。React Compiler は hook の中の finally を扱えないため） */
+async function settle(run: () => Promise<void>, onError: (e: unknown) => void, onDone: () => void) {
+  try {
+    await run();
+  } catch (e) {
+    onError(e);
+  } finally {
+    onDone();
+  }
+}
+
 /**
  * チャット欄の送る処理（Composer）。作業中は、待ちの列に入れられるとき（onQueue）だけ送れる
  * （送信待ちがあるときは、作業していなくても送り方を選ぶ = queueWhileIdle）。アップロードの途中・送っている途中は送らない。
@@ -42,14 +53,16 @@ export function useComposerSend({
   async function deliver(message: string, action: (text: string, attachments: Attachment[]) => Promise<void>) {
     setSending(true);
     setError(undefined);
-    try {
-      await action(message, files.attachments);
-      onSent();
-    } catch (e) {
-      if (!(e instanceof SendCancelled)) setError(errorMessage(e));
-    } finally {
-      setSending(false);
-    }
+    await settle(
+      async () => {
+        await action(message, files.attachments);
+        onSent();
+      },
+      (e) => {
+        if (!(e instanceof SendCancelled)) setError(errorMessage(e));
+      },
+      () => setSending(false),
+    );
   }
 
   /** 送る（body を渡せば、いまの文の代わりにそれを送る。音声入力で入れてそのまま送るとき。mode は作業中の送り方をキーで決めたとき） */

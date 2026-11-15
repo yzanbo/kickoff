@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useKeepAliveHold } from "@/features/panel/tabs/tabKeepAlive";
 import { DEFAULT_SETTINGS } from "@shared/types";
 import { api } from "@/api";
+import { useLatest } from "@/hooks/useLatest";
 import { useSetting } from "@/hooks/useSetting";
 import { VOICE_MODE_DELIVERY } from "@/lib/storageKeys";
 import { useAppSettings } from "@/stores/settings";
@@ -51,29 +52,13 @@ export function useVoiceMode({
   const [delivery, setDelivery] = useSetting(VOICE_MODE_DELIVERY);
   const session = useRef<VoiceSession | null>(null);
   const levelListeners = useRef(new Set<LevelListener>());
-  const latest = useRef({ replies, busy, send, fill, settings, delivery });
-  latest.current = { replies, busy, send, fill, settings, delivery };
+  const latest = useLatest({ replies, busy, send, fill, settings, delivery });
   // 音声モードの間は、タブを裏に回しても会話の欄を止めない（裏でも聞き続け、届いた返答を読み上げる。止めると下の片付けで終わる）
   const hold = useKeepAliveHold("voice");
 
   useEffect(() => {
     session.current?.update(replies, busy);
   }, [replies, busy]);
-
-  useEffect(() => {
-    // 新しいチャットから引き継いだ音声モードを続ける（そのチャットの返答は、まだ届いていないものも含めてはじめから読む）
-    const resumedAt = chatId !== undefined && takeVoiceHandoff(chatId) ? Date.now() : null;
-    if (resumedAt !== null) void start({ readAll: true });
-    return () => {
-      // 受け取ってすぐ作り直された（StrictMode など）なら、作り直したチャット欄に引き継ぎ直す
-      if (resumedAt !== null && chatId !== undefined && Date.now() - resumedAt < RETURN_MS) returnVoiceHandoff(chatId);
-      session.current?.stop();
-      session.current = null;
-      // 新しいチャットを閉じた（送ってチャットができたときは、閉じる前に引き継ぎ先を決めている）
-      if (draft) disarmVoiceHandoff();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function start({ readAll = false }: { readAll?: boolean } = {}) {
     if (session.current) return;
@@ -121,6 +106,25 @@ export function useVoiceMode({
     hold(false);
     setState({ kind: "off" });
   }
+
+  // 描いたときに 1 回だけ。片付けは描いたときのチャット・下書きかで行う
+  const resumeHandoff = useEffectEvent(() => {
+    // 新しいチャットから引き継いだ音声モードを続ける（そのチャットの返答は、まだ届いていないものも含めてはじめから読む）
+    const resumedAt = chatId !== undefined && takeVoiceHandoff(chatId) ? Date.now() : null;
+    if (resumedAt !== null) void start({ readAll: true });
+    return { resumedAt, chatId, draft };
+  });
+  useEffect(() => {
+    const mounted = resumeHandoff();
+    return () => {
+      // 受け取ってすぐ作り直された（StrictMode など）なら、作り直したチャット欄に引き継ぎ直す
+      if (mounted.resumedAt !== null && mounted.chatId !== undefined && Date.now() - mounted.resumedAt < RETURN_MS) returnVoiceHandoff(mounted.chatId);
+      session.current?.stop();
+      session.current = null;
+      // 新しいチャットを閉じた（送ってチャットができたときは、閉じる前に引き継ぎ先を決めている）
+      if (mounted.draft) disarmVoiceHandoff();
+    };
+  }, []);
 
   return {
     state,

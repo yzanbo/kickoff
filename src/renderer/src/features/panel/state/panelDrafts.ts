@@ -83,9 +83,12 @@ export function useAllDrafts(): PanelDraft[] {
 /** 渡した欄のパネルの下書き（ボード: そのボードのパネルと、同じプロジェクトのチャット欄。下書きが変わるまでは同じ配列） */
 export function usePanelDrafts(panels: readonly string[]): PanelDraft[] {
   const all = useAllDrafts();
-  const sig = panels.join("\n");
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- panels は中身（sig）が変わったときだけ
-  return useMemo(() => all.filter((d) => panels.includes(d.panel)), [all, sig]);
+  // panels は中身（sig）が変わったときだけ選び直す（配列を毎回作って渡しても、同じ配列を返す）
+  const sig = JSON.stringify(panels);
+  return useMemo(() => {
+    const wanted = JSON.parse(sig) as string[];
+    return all.filter((d) => wanted.includes(d.panel));
+  }, [all, sig]);
 }
 
 /**

@@ -3,7 +3,7 @@
 // 途中で変える拡張（言語の補完・表示の切り替え）は dynamic に渡せば、dynamicDeps が変わったときに差し替える
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { useEffect, useRef, useState, type MutableRefObject, type RefObject } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type MutableRefObject, type RefObject } from "react";
 
 interface Options {
   initialValue: string;
@@ -27,40 +27,42 @@ export function useCodeMirror({ initialValue, extensions, dynamic = [], dynamicD
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const [compartment] = useState(() => new Compartment());
-  // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const latest = useRef({ onChange, dynamic });
-  latest.current = { onChange, dynamic };
-
-  useEffect(() => {
-    if (!host.current) return;
+  // 渡される関数・拡張は描くたびに変わるので、effect と CodeMirror の知らせからいつも最新を読む
+  const changed = useEffectEvent((text: string) => onChange(text));
+  const create = useEffectEvent((parent: HTMLDivElement) => {
     const v = new EditorView({
-      parent: host.current,
+      parent,
       state: EditorState.create({
         doc: initialValue,
         extensions: [
           extensions(),
-          compartment.of(latest.current.dynamic),
+          compartment.of(dynamic),
           EditorView.updateListener.of((u) => {
-            if (u.docChanged) latest.current.onChange(u.state.doc.toString());
+            if (u.docChanged) changed(u.state.doc.toString());
           }),
         ],
       }),
     });
+    // onCreate より先に置く（onCreate の中から view を読めるように）
     view.current = v;
-    const cleanup = onCreate?.(v);
+    return { v, cleanup: onCreate?.(v) };
+  });
+  const reconfigure = useEffectEvent(() => view.current?.dispatch({ effects: compartment.reconfigure(dynamic) }));
+
+  // 作るのは 1 回だけ（差し替えは下の effect）
+  useEffect(() => {
+    if (!host.current) return;
+    const { v, cleanup } = create(host.current);
     return () => {
       cleanup?.();
       v.destroy();
       view.current = null;
     };
-    // 作るのは 1 回だけ（差し替えは下の effect）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // dynamicDeps が変わったときだけ差し替える（dynamic は描くたびに作り直される値なので依存に入れない）
   useEffect(() => {
-    view.current?.dispatch({ effects: compartment.reconfigure(latest.current.dynamic) });
-    // dynamicDeps が変わったときだけ差し替える（dynamic は描くたびに作り直される値なので依存に入れない）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    reconfigure();
   }, [compartment, ...dynamicDeps]);
 
   return { host, view };

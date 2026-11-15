@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { GitBlame } from "@shared/types";
 import { api, type GitTarget } from "@/api";
 
@@ -8,18 +8,20 @@ import { api, type GitTarget } from "@/api";
  */
 export function useGitBlame({ target, key, path, hash, version, enabled }: { target: GitTarget; key: string; path: string; hash: string | null; version: number; enabled: boolean }): GitBlame | null {
   const [state, setState] = useState<{ key: string; blame: GitBlame | null }>();
+  // ファイル・作業場所（どちらも key で表す）・保存した中身・取り直した回で読み直す
+  const readBlame = useEffectEvent((isAlive: () => boolean) => {
+    api.gitBlame(target, path).then(
+      (blame) => isAlive() && setState({ key, blame }),
+      () => isAlive() && setState({ key, blame: null }),
+    );
+  });
   useEffect(() => {
     if (!enabled || hash === null) return;
     let alive = true;
-    api.gitBlame(target, path).then(
-      (blame) => alive && setState({ key, blame }),
-      () => alive && setState({ key, blame: null }),
-    );
+    readBlame(() => alive);
     return () => {
       alive = false;
     };
-    // ファイル・作業場所・保存した中身・取り直した回で読み直す
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, hash, version, enabled]);
   return enabled && state?.key === key ? state.blame : null;
 }

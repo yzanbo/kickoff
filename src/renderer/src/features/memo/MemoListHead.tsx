@@ -34,14 +34,14 @@ export function MemoListHead({
   onRefresh: () => void;
   onHide: () => void;
 }) {
-  const fit = useOverflowCompact<HTMLElement>(null);
+  const { ref: fitRef, ...fit } = useOverflowCompact<HTMLElement>(null);
   const newMenu = useContextMenu({ align: "end" });
   const moreMenu = useContextMenu({ align: "end" });
   const planLabel = "AI でフォルダを整理（案を見て、選んだものだけ動かす）";
   const foldIcon = folds.anyOpen ? ChevronsDownUp : ChevronsUpDown;
   const foldLabel = folds.anyOpen ? "フォルダをすべて閉じる" : "フォルダをすべて開く";
   return (
-    <header ref={fit.ref} className={cx("changes-head", "memo-list-head", fit.compact && "compact")}>
+    <header ref={fitRef} className={cx("changes-head", "memo-list-head", fit.compact && "compact")}>
       {!fit.compact && (
         <span className="changes-branch" title={dir}>
           メモ

@@ -35,7 +35,7 @@ export function ImageView({
   /** 前後の画像へ移る操作と、何枚目か（何枚もあるとき） */
   nav?: ReactNode;
 }) {
-  const zoom = useImageZoom();
+  const { stageRef: zoomStageRef, ...zoom } = useImageZoom();
   const menu = useImageMenu();
 
   useWindowEvent(
@@ -79,7 +79,7 @@ export function ImageView({
         {actions}
       </ViewerHead>
       <div
-        ref={zoom.stageRef}
+        ref={zoomStageRef}
         className={cx("image-viewer-stage", zoom.pannable && "pannable", zoom.dragging && "dragging")}
         {...zoom.stageProps}
         // 画像の外を押すと閉じる（ドラッグで動かしたあとは閉じない）
