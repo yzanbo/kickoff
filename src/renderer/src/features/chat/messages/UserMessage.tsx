@@ -1,16 +1,19 @@
 import { ChevronRight, ClipboardPenLine, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { ChatEventOf } from "@shared/types";
 import { subagentAskOf } from "@shared/chat/prompts";
 import { handoffRequestExtra } from "@shared/chat/handoff";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
+import { useSizeObserver } from "@/hooks/useSizeObserver";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
 import { CopyButton } from "@/ui/CopyButton";
 import { MenuItem } from "@/ui/PopupMenu";
 import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { BubbleEditor } from "./BubbleEditor";
+import { shouldCollapse } from "./collapse";
 import { useMessageMenu } from "./useMessageMenu";
 import { ChildChatMarks } from "@/features/chat/children/ChildChatChips";
 import { HandoffFromChip } from "@/features/chat/children/HandoffFromChip";
@@ -18,9 +21,6 @@ import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/snippet/compactP
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
 import { useTimelineBusy } from "@/features/chat/timeline/timelineBusy";
-
-/** 自分の発言を折りたたむ高さ（これより高い発言は、ここまで出して下を薄くする） */
-const COLLAPSE_PX = 240;
 
 /**
  * 自分の発言（吹き出し）。長い発言は途中まで出して「もっと見る / たたむ」で開閉する。
@@ -50,15 +50,19 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
   const handover = data.handover?.length ?? 0;
   const attachments = data.attachments ?? [];
-  const bodyRef = useRef<HTMLDivElement>(null);
   // 折りたたむほど長いか（描いてから測る）と、開いているか
   const [long, setLong] = useState(false);
+  const longRef = useRef(false);
   const [expanded, setExpanded] = useState(false);
-  useLayoutEffect(() => {
-    const el = bodyRef.current;
-    if (el) setLong(el.scrollHeight > COLLAPSE_PX + 40);
-    // 依頼文の頼みは、開いてから測る
-  }, [text, requestOpen]);
+  // 文の高さは、畳むための max-height の内側の要素で測る（畳んでも文の高さは変わらないので、畳む・開くで行き来しない）。
+  // 大きさの知らせで測るので、幅・文字の大きさが変わったら測り直し、画面の外で描くのを省いている間は読まない。
+  // 知らせは描く前に届くので、変わったときだけその場で描き直し、畳む前の全文が一瞬見えないようにする（依頼文の頼みは、開いてから測る）
+  const measureRef = useSizeObserver<HTMLDivElement>(({ height }) => {
+    const next = shouldCollapse(height);
+    if (next === longRef.current) return;
+    longRef.current = next;
+    flushSync(() => setLong(next));
+  });
   const pane = useOptionalChatPane();
   // 書き直している文（undefined なら書き直していない）
   const [draft, setDraft] = useState<string>();
@@ -119,8 +123,10 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
           />
         ) : (
           (!handoffRequest || requestOpen) && (
-            <div ref={bodyRef} className={cx("bubble-text", long && !expanded && "clamped")}>
-              {text}
+            <div className={cx("bubble-text", long && !expanded && "clamped")}>
+              <div ref={measureRef} className="bubble-text-body">
+                {text}
+              </div>
             </div>
           )
         )}

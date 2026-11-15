@@ -1,3 +1,5 @@
+import { useCallback, useLayoutEffect, useRef } from "react";
+
 /** 要素の大きさ（枠を含む。ResizeObserver の borderBoxSize） */
 export interface ElementSize {
   width: number;
@@ -89,3 +91,15 @@ const shared = createSizeObservers();
 
 /** 画面全体で 1 つの ResizeObserver で、el の大きさが変わったら listener を呼ぶ（付けた直後にも 1 回）。返す関数でやめる */
 export const observeSize = shared.observeSize;
+
+/**
+ * 要素の大きさが変わったら listener を呼ぶ（共有の ResizeObserver。observeSize）。返すのは要素に付けるコールバックの ref
+ * （要素が替わったら見張り直す）。listener は描くたびに替わってよい（いつも最新のものを呼ぶ）
+ */
+export function useSizeObserver<E extends Element>(listener: SizeListener): (el: E | null) => (() => void) | undefined {
+  const latest = useRef(listener);
+  useLayoutEffect(() => {
+    latest.current = listener;
+  });
+  return useCallback((el: E | null) => (el ? observeSize(el, (size, target) => latest.current(size, target)) : undefined), []);
+}
