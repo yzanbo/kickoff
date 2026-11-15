@@ -4,7 +4,7 @@ import type { TurnControl } from "../providers/types.js";
 import { ChatQueue, splitLegacyPostCompact, type QueuePersistence } from "./queue.js";
 import { QueueEdits } from "./queueEdits.js";
 import { createRecoveryState, reconnectStateOf, type RecoveryState } from "./recovery/state.js";
-import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueuedMessage, QueueState } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueuedMessage, QueueState, RestartResumeState } from "@shared/types";
 
 /** ChatRuntime がそのまま持つ、画面に配る様子（送信待ちの列は queue、再接続待ちは recovery から組み立てる） */
 interface LiveFields {
@@ -42,8 +42,8 @@ interface LiveFields {
    * この間の「いま」は預かり、動かし始めたらその作業に伝える
    */
   inheriting: boolean;
-  /** 起動したときの送信待ちの確かめを待っている（答えるまで送信待ちを送らない。ChatLive の restart_resume） */
-  resume: { interrupted: boolean } | null;
+  /** 起動したときの再開の確かめを待っている（答えるまで続けない・送信待ちを送らない。ChatLive の restart_resume） */
+  resume: RestartResumeState | null;
 }
 
 /**
@@ -145,8 +145,8 @@ export class ChatRuntime {
     return this.fields.awaitingCompact;
   }
 
-  /** 起動したときの送信待ちの確かめを待っているか（待っていれば、前回の終了で作業の途中で止まったか） */
-  get resume(): { interrupted: boolean } | null {
+  /** 起動したときの再開の確かめを待っているか（待っていれば、前回の終了で作業の途中で止まったか・起動すると送り始める送信待ちがあるか） */
+  get resume(): RestartResumeState | null {
     return this.fields.resume;
   }
 

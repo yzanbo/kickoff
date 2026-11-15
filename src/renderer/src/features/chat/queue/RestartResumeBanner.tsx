@@ -1,39 +1,45 @@
 import { History } from "lucide-react";
-import { RESTART_RESUME_ACTION_LABELS, type ChatLive, type RestartResumeAction } from "@shared/types";
+import type { RestartResumeAction, RestartResumeState } from "@shared/types";
 import { api } from "@/api";
 import { useAction } from "@/hooks/useAction";
 import { cx } from "@/lib/cx";
 import { restartResumesStore } from "@/stores/restartResumes";
 import { ErrorText } from "@/ui/ErrorText";
-import { RESTART_RESUME_TIPS } from "./restartResumeChoices";
+import { defaultResumeChoice, resumeActionsFor, resumeChoiceLabel, resumeChoiceTip } from "./restartResumeChoices";
 
 /**
- * 送信待ちの上の帯（起動したときの送信待ちの確かめを待っている間）: 前回の終了で残った送信待ちで、決めるまで送らないことと、その場で決めるボタン。
- * 会話を見ながら、送信待ちを直す・消す・並べ替えてから決められる（その間もコアは送らない）
+ * 起動したときの再開の確かめを待っている間の帯と、その場で決めるボタン。送信待ちがあれば送信待ちの上（決めるまで送らない。
+ * 会話を見ながら、送信待ちを直す・消す・並べ替えてから決められる）、なければ入力欄の上（standalone。作業の途中で止まったことと、続けるか）
  */
-export function RestartResumeBanner({ chatId, resume }: { chatId: number; resume: NonNullable<ChatLive["restart_resume"]> }) {
+export function RestartResumeBanner({ chatId, resume, standalone = false }: { chatId: number; resume: RestartResumeState; standalone?: boolean }) {
   const action = useAction<RestartResumeAction>();
   const answer = (a: RestartResumeAction) =>
     void action.run(a, async () => restartResumesStore.set(await api.resolveRestartResumes([{ chat_id: chatId, action: a }])));
-  const actions = (["send", "continue", "pause"] as const).filter((a) => a !== "continue" || resume.interrupted);
+  const primary = defaultResumeChoice(resume);
   return (
-    <div className="queue-resume-banner" role="status">
+    <div className={cx("queue-resume-banner", standalone && "standalone")} role="status">
       <History size={14} className="queue-resume-banner-icon" aria-hidden />
       <span className="queue-resume-banner-text">
-        前回の終了で残った送信待ちです。決めるまで送りません。
-        {resume.interrupted && <span className="queue-resume-banner-note">アプリの終了で、作業の途中で止まりました。</span>}
+        {resume.queued ? (
+          <>
+            前回の終了で残った送信待ちです。決めるまで送りません。
+            {resume.interrupted && <span className="queue-resume-banner-note">アプリの終了で、作業の途中で止まりました。</span>}
+          </>
+        ) : (
+          "前回の終了で、作業の途中で止まりました。"
+        )}
       </span>
       <span className="queue-resume-banner-actions">
-        {actions.map((a) => (
+        {resumeActionsFor(resume).map((a) => (
           <button
             key={a}
             type="button"
-            className={cx("btn btn-sm", a === (resume.interrupted ? "continue" : "send") && "btn-primary")}
+            className={cx("btn btn-sm", a === primary && "btn-primary")}
             disabled={action.busy !== null}
-            title={RESTART_RESUME_TIPS[a]}
+            title={resumeChoiceTip(a, resume.queued)}
             onClick={() => answer(a)}
           >
-            {RESTART_RESUME_ACTION_LABELS[a]}
+            {resumeChoiceLabel(a, resume.queued)}
           </button>
         ))}
       </span>

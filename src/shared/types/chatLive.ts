@@ -105,41 +105,51 @@ export interface ChatLive {
   /** 子チャットで親の会話を写している（動かし始める前。親の記録が大きいと数十秒かかる。作業中の行に「親の会話を引き継いでいます」） */
   inheriting: boolean;
   /**
-   * 起動したときの送信待ちの確かめを待っている（前回の終了で、自動で送るまま送信待ちが残った。答えるまで送らない。なければ null）。
-   * interrupted: 前回の終了で、作業の途中で止まったか（「続けてから送る」を選べる）
+   * 起動したときの再開の確かめを待っている（前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残った。答えるまで続けない・送らない。なければ null）。
+   * interrupted: 前回の終了で、作業の途中で止まったか（「続ける」を選べる）。queued: 起動すると送り始める送信待ちがあるか（「送る」を選べる）
    */
-  restart_resume: { interrupted: boolean } | null;
+  restart_resume: RestartResumeState | null;
+}
+
+/** 起動したときの再開の確かめを待っているチャットの様子（ChatLive の restart_resume） */
+export interface RestartResumeState {
+  interrupted: boolean;
+  queued: boolean;
 }
 
 /**
- * 起動したときの送信待ちの確かめの答え（自動で送るまま残った送信待ちを、起動してからどうするか）: 送る / 中断した作業を続けてから送る / 止めておく。
- * 画面の文言は RESTART_RESUME_ACTION_LABELS
+ * 起動したときの再開の確かめの答え: 送る（送信待ちだけを送る）/ 続ける（中断した作業を続け、送信待ちはその作業が終わってから送る）/
+ * 止めておく（送信待ちは止めています、作業は止めたまま）。送信待ちのないチャットに「送る」は選べない。画面の文言は restartResumeActionLabel
  */
 export const RESTART_RESUME_ACTIONS = ["send", "continue", "pause"] as const;
 export type RestartResumeAction = (typeof RESTART_RESUME_ACTIONS)[number];
-export const RESTART_RESUME_ACTION_LABELS: Record<RestartResumeAction, string> = {
-  send: "送る",
-  continue: "続けてから送る",
-  pause: "止めておく",
-};
 
-/** 起動したときの送信待ちの確かめの、止まったところの 1 つ（文と、その時刻） */
+/** 答えの文言（送信待ちがあるかで変える。送信待ちのないチャットの「止めておく」は「止めたまま」） */
+export function restartResumeActionLabel(action: RestartResumeAction, queued: boolean): string {
+  if (action === "send") return "送る";
+  if (action === "continue") return queued ? "続けてから送る" : "続ける";
+  return queued ? "止めておく" : "止めたまま";
+}
+
+/** 起動したときの再開の確かめの、止まったところの 1 つ（文と、その時刻） */
 export interface RestartResumeMoment {
   text: string;
   at: string;
 }
 
 /**
- * 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）。
- * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところ（最後の指示・AI の最後の返答・最後のツール）を添える
+ * 起動したときの再開の確かめ: 前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット（答えるまで続けない・送らない）。
+ * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところ（最後の指示・AI の最後の返答・最後のツール）・止まったサブエージェントを添える
  */
 export interface RestartResume {
   chat_id: number;
   project_id: number;
   /** チャットの名前（なければ null） */
   title: string | null;
-  /** 前回の終了で、作業の途中で止まったか（「続けてから送る」を選べる） */
+  /** 前回の終了で、作業の途中で止まったか（「続ける」を選べる） */
   interrupted: boolean;
+  /** 起動すると送り始める送信待ちがあるか（「送る」を選べる。なければ messages は空） */
+  queued: boolean;
   /** 送信待ち（並び・一時停止の印は送信待ちの見た目と同じ） */
   messages: QueuedMessage[];
   stops: number[];
@@ -149,4 +159,12 @@ export interface RestartResume {
   last_tool: RestartResumeMoment | null;
   /** 最後の記録の時刻（止まった時刻の目安。記録がなければ null） */
   stopped_at: string | null;
+  /** 作業の途中で止まったサブエージェント（最後の自分の指示より後に始めて、終わっていないもの。「続ける」で再開を頼む） */
+  subagents: RestartResumeSubagent[];
+}
+
+/** 起動したときの再開の確かめの、止まったサブエージェント（説明と、Claude Code の ID。ID が分からなければ null） */
+export interface RestartResumeSubagent {
+  description: string;
+  agent_id: string | null;
 }

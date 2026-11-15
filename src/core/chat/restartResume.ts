@@ -1,5 +1,6 @@
-// 起動したときの送信待ちの確かめに添える「止まったところ」（最後の自分の指示・メインエージェントの最後の返答・最後に動かしたツール）
-import type { ChatEvent, RestartResumeMoment } from "@shared/types";
+// 起動したときの再開の確かめに添える「止まったところ」（最後の自分の指示・メインエージェントの最後の返答・最後に動かしたツール）と、止まったサブエージェント
+import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
+import type { ChatEvent, RestartResumeMoment, RestartResumeSubagent } from "@shared/types";
 
 /** 返答の頭だけを見せる長さ（文字） */
 const REPLY_MAX = 600;
@@ -45,4 +46,19 @@ export function resumeMomentsOf(recent: ChatEvent[]): {
     if (e.type === "tool_use" && !e.data.parent && !lastTool) lastTool = { text: toolLine(e.data.name, e.data.input), at: e.created_at };
   }
   return { last_prompt: lastPrompt, last_reply: lastReply, last_tool: lastTool, stopped_at: recent[0]?.created_at ?? null };
+}
+
+/**
+ * 前回の終了で作業の途中で止まったサブエージェント（記録の ID が sinceEventId より後のもの）: 終わりの知らせがないまま実行が終わったもの
+ * （アプリを終えた・落ちた）と、通信の切断で止まってまだ再開していないもの（つながるのを待っている間に終えた）。やり直したものは除く
+ */
+export function stoppedSubagentsOf(events: ChatEvent[], sinceEventId: number): RestartResumeSubagent[] {
+  const seen = new Set<string>();
+  const out: RestartResumeSubagent[] = [];
+  for (const s of [...unfinishedSubagents(events, sinceEventId), ...networkStoppedSubagents(events, sinceEventId)]) {
+    if (s.supersededBy || seen.has(s.key)) continue;
+    seen.add(s.key);
+    out.push({ description: s.description, agent_id: s.agentId ?? null });
+  }
+  return out;
 }

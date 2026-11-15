@@ -8,11 +8,11 @@ import { startChildChat } from "./children.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
 import type { ChatRemover } from "./aiChatRemove.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type RestartResume, type RestartResumeAction, type TellResult, type MessageMarks } from "@shared/types";
-import { resumeMomentsOf } from "./restartResume.js";
+import { resumeMomentsOf, stoppedSubagentsOf } from "./restartResume.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { errorMessage } from "@shared/errors";
-import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, RESTART_RESUME_PROMPT } from "@shared/chat/prompts";
+import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, restartResumePrompt } from "@shared/chat/prompts";
 import { postCompactItem, preCompactPromptOf } from "./preCompact.js";
 import { isClearCommand } from "@shared/chat/queueActions";
 import { marksOf } from "@shared/chat/handoff";
@@ -26,7 +26,7 @@ import { marksOf } from "@shared/chat/handoff";
  * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は turn.ts、
  * 通信の切断・使用枠の上限で止まったときの再開の段取り（送信待ちを止める・待つ・聞く・再開する）は recovery/
  */
-/** 起動したときの送信待ちの確かめで、止まったところを探す記録の数（新しいほうから） */
+/** 起動したときの再開の確かめで、止まったところを探す記録の数（新しいほうから） */
 const RESUME_EVENTS = 300;
 
 export class Runner extends RunnerQueue {
@@ -52,7 +52,7 @@ export class Runner extends RunnerQueue {
       editHoldTtlMs?: number;
       /** 動かし始めたばかりの作業に「いま」を足すとき、足す口（作業中の操作）ができるのを待つ上限（テストで差し替える） */
       tellableWaitMs?: number;
-      /** 前回の終了で作業の途中で止まったチャット（起動したときの確かめで「中断した作業を続けてから送る」を選べる） */
+      /** 前回の終了で作業の途中で止まったチャット（store.chats.recoverInterrupted が返す印のあるもの。起動したときの再開の確かめで「続ける」を選べる） */
       interrupted?: number[];
     },
   ) {
@@ -76,10 +76,12 @@ export class Runner extends RunnerQueue {
       onAfterCompactEditsChanged: (chatId) => this.afterCompactEditsChanged(chatId),
       onCompactEnded: (chatId) => this.deliverAfterCompact(chatId),
     });
-    // 自動で送るまま送信待ちが残ったチャットは、起動しただけでは送らず、利用者に聞く（restartResumes / resolveRestartResumes）
+    // 前回の終了で作業の途中で止まったチャットと、自動で送るまま送信待ちが残ったチャットは、起動しただけでは続けず・送らず、
+    // 利用者に聞く（restartResumes / resolveRestartResumes）
     const interrupted = new Set(deps.interrupted ?? []);
-    for (const saved of deps.store.queues.list()) {
-      if (this.waitsForResume(saved.chatId)) this.runtimes.get(saved.chatId).update({ resume: { interrupted: interrupted.has(saved.chatId) } });
+    const queued = new Set(deps.store.queues.list().map((saved) => saved.chatId).filter((chatId) => this.waitsForResume(chatId)));
+    for (const chatId of new Set([...interrupted, ...queued])) {
+      this.runtimes.get(chatId).update({ resume: { interrupted: interrupted.has(chatId), queued: queued.has(chatId) } });
     }
     this.recovery = new ChatRecovery({
       store: deps.store,
@@ -113,54 +115,98 @@ export class Runner extends RunnerQueue {
   }
 
   /**
-   * 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）。
-   * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところを添える。送信待ちが空になったものは外す
+   * 起動したときの再開の確かめ: 前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット（答えるまで続けない・送らない）。
+   * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところ・止まったサブエージェントを添える。
+   * 聞くことがなくなったもの（送信待ちが空になった・アーカイブした・消した）は外す
    */
   restartResumes(): RestartResume[] {
+    const { store } = this.deps;
     const out: RestartResume[] = [];
-    for (const { chatId } of this.deps.store.queues.list()) {
-      const runtime = this.runtimes.get(chatId);
-      const chat = this.deps.store.chats.get(chatId);
-      if (!runtime.resume || !chat) continue;
+    for (const runtime of this.runtimes.all()) {
+      const { chatId, resume } = runtime;
+      if (!resume) continue;
+      const chat = store.chats.get(chatId);
+      if (!chat || chat.archived_at !== null) {
+        this.settleResume(chatId);
+        continue;
+      }
       const { messages, stops } = runtime.queue.snapshot();
-      if (messages.length === 0) {
+      const queued = resume.queued && messages.length > 0;
+      if (!queued && !resume.interrupted) {
         runtime.update({ resume: null });
         continue;
       }
+      if (queued !== resume.queued) runtime.update({ resume: { interrupted: resume.interrupted, queued } });
       out.push({
         chat_id: chatId,
         project_id: chat.project_id,
         title: chat.title,
-        interrupted: runtime.resume.interrupted,
-        messages,
-        stops,
-        ...resumeMomentsOf(this.deps.store.events.recent(chatId, RESUME_EVENTS)),
+        interrupted: resume.interrupted,
+        queued,
+        messages: queued ? messages : [],
+        stops: queued ? stops : [],
+        ...resumeMomentsOf(store.events.recent(chatId, RESUME_EVENTS)),
+        subagents: resume.interrupted ? this.stoppedSubagents(chatId) : [],
       });
     }
-    return out;
+    return out.sort((a, b) => a.chat_id - b.chat_id);
   }
 
   /**
-   * 起動したときの送信待ちの確かめに答える（チャットごと。答えなかったチャットは待ったまま）。送る: 自動で送るのまま先頭を送る /
-   * 続けてから送る: 中断した作業を続けるよう頼み、その作業が終わってから送信待ちを送る（中断していなければ、送ると同じ）/ 止めておく: 止めています にする。
-   * 自分で送って作業中なら、送るも続けてから送るも、その作業が終わってから送信待ちを送る。確かめを待っていないチャットは飛ばす
+   * 起動したときの再開の確かめに答える（チャットごと。答えなかったチャットは待ったまま = 「あとで」）。
+   * 送る: 送信待ちだけを送る（自動で送るのまま先頭を送る）/ 続ける: 中断した作業を続けるよう頼み（止まったサブエージェントの再開も）、
+   * 送信待ちはその作業が終わってから送る（中断していなければ、送ると同じ）/ 止めておく: 送信待ちは止めています、作業は止めたまま。
+   * 送信待ちのないチャットに「送る」は 400（どれも変えない）。自分で送って作業中なら、続けるは頼まず、送信待ちはその作業の終わりで送る。
+   * 確かめを待っていないチャットは飛ばす
    */
   async resolveRestartResumes(decisions: { chatId: number; action: RestartResumeAction }[]): Promise<void> {
+    for (const { chatId, action } of decisions) {
+      if (action === "send" && this.runtimes.peek(chatId)?.resume?.queued === false) throw new Invalid("送信待ちのないチャットには「送る」を選べません");
+    }
     for (const { chatId, action } of decisions) {
       const runtime = this.runtimes.get(chatId);
       const resume = runtime.resume;
       if (!resume) continue;
-      runtime.update({ resume: null });
+      // 続けるなら、止まったサブエージェントは答えを消す前に探す
+      const agents = action === "continue" && resume.interrupted ? this.stoppedSubagents(chatId) : [];
+      this.settleResume(chatId);
       if (action === "pause") {
-        runtime.queue.setPaused(true);
+        if (resume.queued) runtime.queue.setPaused(true);
       } else if (this.isBusy(chatId)) {
         continue;
       } else if (action === "continue" && resume.interrupted) {
-        await this.send(chatId, RESTART_RESUME_PROMPT);
-      } else {
+        await this.send(chatId, restartResumePrompt(agents.map((a) => ({ agentId: a.agent_id, description: a.description }))));
+      } else if (resume.queued) {
         await this.sendNextQueued(chatId);
       }
     }
+  }
+
+  /** 起動したときの再開の確かめに答えた・聞くことがなくなった: 印を外す（次の起動でも聞かない） */
+  private settleResume(chatId: number) {
+    const runtime = this.runtimes.peek(chatId);
+    const interrupted = runtime?.resume?.interrupted ?? false;
+    runtime?.update({ resume: null });
+    if (interrupted) this.deps.store.chats.setResumePending([chatId], false);
+  }
+
+  /**
+   * 自分で送った: 前回の終了で止まった作業を続けるかは、もう聞かない（印も外す）。送信待ちを聞いていれば、それは聞き続ける
+   * （作業が終わっても、答えるまで送信待ちは送らない）
+   */
+  private forgetInterrupted(chatId: number) {
+    const runtime = this.runtimes.peek(chatId);
+    const resume = runtime?.resume;
+    if (!runtime || !resume?.interrupted) return;
+    runtime.update({ resume: resume.queued ? { interrupted: false, queued: true } : null });
+    this.deps.store.chats.setResumePending([chatId], false);
+  }
+
+  /** 前回の終了で作業の途中で止まったサブエージェント（最後の自分の指示より後の記録から） */
+  private stoppedSubagents(chatId: number) {
+    const { events } = this.deps.store;
+    const since = events.latestUserId(chatId) ?? 0;
+    return stoppedSubagentsOf(events.after(chatId, since), since);
   }
 
   /** 作業中の様子（チャットの詳細の live。SSE の chat_live と同じ形） */
@@ -237,8 +283,10 @@ export class Runner extends RunnerQueue {
       void this.sendNextQueued(chatId);
       throw e;
     }
-    // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）
+    // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）。
+    // 起動したときの再開の確かめで、作業を続けるかも聞かない
     this.forgetRecovery(chatId);
+    this.forgetInterrupted(chatId);
     const { prompt, handover } = prepared;
     const messageUuid = randomUUID();
     // 聞かずに開いた子チャット（名前も発言もない）は、最初に送った文から名前を付ける
@@ -304,8 +352,9 @@ export class Runner extends RunnerQueue {
     if (runtime.holdsTells && !(draining && !runtime.compacting && !runtime.awaitingCompact)) return hold();
     // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す
     if (runtime.control?.tell(prompt, messageUuid)) {
-      // 自分で送った: つながったら再開する・再開するかを聞くのをやめる
+      // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（起動したときの再開の確かめで、作業を続けるかも聞かない）
       this.forgetRecovery(chatId);
+      this.forgetInterrupted(chatId);
       store.events.add(chatId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), ...marks, message_uuid: messageUuid });
       if (chat.unread) store.chats.setUnread(chatId, false);
       if (pauseAfter) this.pauseAfterTurn(chatId);
@@ -652,6 +701,17 @@ export class Runner extends RunnerQueue {
   }
 
   /** 実行中のエージェントの数（接続の詳細の表示用） */
+  /** 作業中のチャット（送る準備・親の会話を写している途中も。ID の順） */
+  busyChats(): { id: number; title: string | null }[] {
+    return this.runtimes
+      .all()
+      .filter((r) => r.busy)
+      .map((r) => this.deps.store.chats.get(r.chatId))
+      .filter((c): c is Chat => c !== undefined)
+      .map((c) => ({ id: c.id, title: c.title }))
+      .sort((a, b) => a.id - b.id);
+  }
+
   stats(): { running: number } {
     return { running: this.runtimes.running().length };
   }
@@ -676,9 +736,15 @@ export class Runner extends RunnerQueue {
     if (this.isBusy(chatId)) throw new Conflict(`作業中のチャットは${action}できません。終わってから（または中断してから）行ってください`);
   }
 
-  /** アプリ終了時: 実行中のエージェントをすべて止める */
+  /**
+   * アプリ終了時: 実行中のエージェントをすべて止める。止める前に、作業中（送る準備・親の会話を写している途中も）と、
+   * 通信の切断でつながるのを待っていたチャットに起動したときの再開の確かめの印を付ける（止めると中断で終わり、作業中のまま残らないため。
+   * 使用枠の上限を待っていたものは付けない = 戻る時刻が分かれば、そのとき聞く）
+   */
   shutdown() {
     this.shuttingDown = true;
+    const stopped = this.runtimes.all().filter((r) => r.busy).map((r) => r.chatId);
+    this.deps.store.chats.setResumePending([...new Set([...stopped, ...this.recovery.waitingForReconnect()])], true);
     this.recovery.shutdown();
     for (const runtime of this.runtimes.running()) runtime.turn?.abort();
   }

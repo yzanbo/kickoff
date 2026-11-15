@@ -16,10 +16,10 @@ import { marksOf } from "@shared/chat/handoff";
 export function queueRoutes(app: Hono, { store, runner, userViews }: ServerDeps) {
   const { withChat } = lookups(store);
 
-  // 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）
+  // 起動したときの再開の確かめ: 前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット（答えるまで続けない・送らない）
   app.get("/api/restart-resumes", (c) => c.json(runner.restartResumes()));
 
-  // 起動したときの送信待ちの確かめに答える（チャットごとに 送る / 中断した作業を続けてから送る / 止めておく）。答えたあとの残りを返す
+  // 起動したときの再開の確かめに答える（チャットごとに 送る / 中断した作業を続ける（送信待ちはそのあと）/ 止めておく。送信待ちのないチャットに送るは 400）。答えたあとの残りを返す
   app.post("/api/restart-resumes", async (c) => {
     const { decisions } = z
       .object({ decisions: z.array(z.object({ chat_id: z.number().int().positive(), action: z.enum(RESTART_RESUME_ACTIONS) })).max(500) })

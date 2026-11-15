@@ -35,7 +35,7 @@ const CHAT_COLUMNS = [
 /** チャットの変えられる項目 */
 export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;
 
-/** DB の行（真偽値は 0 / 1。archived_with_parent・trashed_at・trashed_with・ai_generation は店の中だけで使い、Chat には出さない） */
+/** DB の行（真偽値は 0 / 1。archived_with_parent・trashed_at・trashed_with・ai_generation・resume_pending は店の中だけで使い、Chat には出さない） */
 type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only"> & {
   fast_mode: number;
   unread: number;
@@ -45,11 +45,12 @@ type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only"> 
   trashed_at: string | null;
   trashed_with: string | null;
   ai_generation: number;
+  resume_pending: number;
 };
 
 /** DB の行をアプリの型にする（真偽値の列を boolean に） */
 function toChat(row: unknown): Chat {
-  const { archived_with_parent: _withParent, trashed_at: _trashedAt, trashed_with: _trashedWith, ai_generation: _generation, ...r } = row as ChatRow;
+  const { archived_with_parent: _withParent, trashed_at: _trashedAt, trashed_with: _trashedWith, ai_generation: _generation, resume_pending: _resume, ...r } = row as ChatRow;
   return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1, untracked_only: r.untracked_only === 1 };
 }
 
@@ -95,7 +96,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
 
   /** アーカイブの列を書いて、変更を知らせる（最後に動いた時刻は進めない） */
   const setArchived = (id: number, archivedAt: string | null, withParent: boolean) => {
-    db.prepare("UPDATE chats SET archived_at = ?, archived_with_parent = ? WHERE id = ?").run(archivedAt, bit(withParent), id);
+    // しまったら、起動したときの再開の確かめでもう聞かない（戻しても聞かない）
+    db.prepare(`UPDATE chats SET archived_at = ?, archived_with_parent = ?${archivedAt !== null ? ", resume_pending = 0" : ""} WHERE id = ?`).run(archivedAt, bit(withParent), id);
     onChange({ type: "chat", chat: get(id)! });
   };
   const childRows = (id: number): ChatRow[] => db.prepare("SELECT * FROM chats WHERE parent_chat_id = ? AND trashed_at IS NULL ORDER BY id").all(id) as ChatRow[];
@@ -219,7 +221,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
      */
     trash(ids: number[], itemId: string, at = new Date().toISOString()): Chat[] {
       const chats = ids.map(get).filter((c): c is Chat => c !== undefined);
-      const stmt = db.prepare("UPDATE chats SET trashed_at = ?, trashed_with = ? WHERE id = ?");
+      // ゴミ箱に入れたら、起動したときの再開の確かめでもう聞かない（戻しても聞かない）
+      const stmt = db.prepare("UPDATE chats SET trashed_at = ?, trashed_with = ?, resume_pending = 0 WHERE id = ?");
       for (const chat of chats) stmt.run(at, itemId, chat.id);
       for (const chat of chats) onChange({ type: "chat_deleted", id: chat.id, project_id: chat.project_id });
       return chats;
@@ -321,11 +324,20 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     },
     /** その作業場所のチャットを、別の作業場所（null なら本体）に付け替える（プロジェクトのフォルダを変えたとき。並び順は変えない） */
     replaceWorktree,
-    /** 起動時の復旧: 前回終了時に作業中だったチャットを、未読の失敗にする（最後に動いた時刻は変えない）。直した数を返す */
-    /** 前回の終了で作業中のまま残ったチャットを未読の失敗にする（そのチャットの ID を返す） */
+    /**
+     * 起動時の復旧: 前回の終了で作業中のまま残ったチャット（落ちた・強制終了した）を未読の失敗にし（最後に動いた時刻は変えない）、
+     * 起動したときの再開の確かめの印を付ける。印のあるチャット（アプリを終えるときに Runner.shutdown が付けたもの・前回答えなかったものも。
+     * アーカイブ・ゴミ箱のものは除く）の ID を返す
+     */
     recoverInterrupted(error: string): number[] {
-      const rows = db.prepare("UPDATE chats SET status = 'failed', error = ?, unread = 1 WHERE status = 'running' RETURNING id").all(error) as { id: number }[];
+      db.prepare("UPDATE chats SET status = 'failed', error = ?, unread = 1, resume_pending = 1 WHERE status = 'running'").run(error);
+      const rows = db.prepare("SELECT id FROM chats WHERE resume_pending = 1 AND archived_at IS NULL AND trashed_at IS NULL ORDER BY id").all() as { id: number }[];
       return rows.map((r) => r.id);
+    },
+    /** 起動したときの再開の確かめの印を付ける・外す（店の中だけの印なので知らせない） */
+    setResumePending(ids: number[], pending: boolean): void {
+      const stmt = db.prepare("UPDATE chats SET resume_pending = ? WHERE id = ?");
+      for (const id of ids) stmt.run(bit(pending), id);
     },
   };
 }

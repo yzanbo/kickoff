@@ -62,7 +62,7 @@ export function QueuedMessages({
   busy: boolean;
   /** 右クリックの「子チャットで開く / 移す」を出すか（メモのチャット・アーカイブ済みでは子チャットを作れない） */
   childChats: boolean;
-  /** 起動したときの送信待ちの確かめを待っている（前回の終了で残った。決めるまでコアは送らない。上に帯を出す） */
+  /** 起動したときの再開の確かめで送信待ちを聞いている（前回の終了で残った。決めるまでコアは送らない。上に帯を出す。送信待ちを聞いていなければ null） */
   resume: ChatLive["restart_resume"];
   /** 送った指示が出る所（流れの自分の発言・預かりの吹き出し）の印（sentShownKey）。送った指示を、どこかに出るまで「送信中」で残すのに使う */
   sentShown: string;
@@ -172,7 +172,7 @@ export function QueuedMessages({
       {!collapsed && (
         <div className="queued-resizer" aria-label="送信待ちの一覧の高さ" {...resize.handle} />
       )}
-      {/* 起動したときの送信待ちの確かめを待っている間は、畳んでいても上に帯を出し、その場で決められるようにする */}
+      {/* 起動したときの再開の確かめで送信待ちを聞いている間は、畳んでいても上に帯を出し、その場で決められるようにする */}
       {resume && <RestartResumeBanner chatId={chatId} resume={resume} />}
       {/* 見出しの行にドラッグして落とすと、いちばん上へ（1 件目の上の一時停止よりも上） */}
       <div className="queued-head-row" onDragOver={dnd.overTop} onDrop={dnd.drop}>
