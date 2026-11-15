@@ -455,7 +455,19 @@ ALTER TABLE chats ADD COLUMN ai_generation INTEGER NOT NULL DEFAULT 0 CHECK (ai_
 UPDATE settings SET key = 'ai_create_chat' WHERE key = 'ai_child_chat';
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29];
+/**
+ * v30: 記録ごとの軽い形（`@shared/chat/chatIndex` の ChatEventMeta）と大きさを、data の JSON を解かずに索引だけで読む覆う索引
+ * （メモの仕様書「0023_表示を軽くする」の案 4。チャットを開くときに末尾の前の記録から索引を選ぶ・末尾の大きさを数える。選ぶ決まりは JS の selectIndexIds だけ）
+ */
+const SCHEMA_V30 = `
+CREATE INDEX idx_chat_events_meta ON chat_events(
+  chat_id, id, type,
+  json_extract(data, '$.id'), json_extract(data, '$.name'), json_extract(data, '$.parent'), json_extract(data, '$.tool_use_id'),
+  json_extract(data, '$.task_id'), json_extract(data, '$.status'), length(data)
+);
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
