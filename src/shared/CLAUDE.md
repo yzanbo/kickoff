@@ -28,6 +28,7 @@
 - `api/`: API の版（`version.ts`。やり取りの形の番号 `API_VERSION`（Kickoff の版とは別。形を壊す変更のときだけ上げる）・受けるアプリの下限 `MIN_CLIENT_API_VERSION`・アプリが版を伝える見出し `API_VERSION_HEADER`・話が通じないときの印 `API_MISMATCHES` と文 `API_MISMATCH_LABELS`・比べる `apiMismatch`）。
 - `devices/`: スマホ連携の決まり（ペアリングの QR に入れる URL `pairing.ts` の `pairingLink`（`<つなぐ先>/pair?code=…&host=<本体の ID>`。つなぐ先がなければ null）・番号の区切り `formatPairingCode`）。
 - `ipc/`: Electron の IPC の取り決め（→「IPC の取り決め」）。
+- `testing/chatScenarios.ts`: 長いチャットの記録を種から組み立てる `scenarioChat`（サブエージェント・ToDo・図・質問への回答・圧縮などを混ぜる。乱数は `seededRandom`）。索引 ＋ 末尾 = 全件の同値のテストに使う。
 - `testing/factories.ts`: テストのデータを作る関数（`makeChat` / `makeProject` / `makeGroup` / `makeEvent` / `eventSequence`。省いた項目はそれらしい既定値で埋める）。コアと画面のテストで共通にし、テストごとに作る関数を書かない。
 - `errors.ts`: `errorMessage`（例外を画面に出す文にする。`e instanceof Error ? e.message : String(e)` を書かない）。
 
@@ -57,6 +58,12 @@
 - やり直し済み（`subagentSupersede.ts` の `markSuperseded`）: 止まった行のあとに始まり、種類が同じで、説明（短い方に対する重なり）と依頼文（Dice 係数）の 2 文字の組がどちらも半分以上重なるもの。同時に始めた似た依頼は止まる前に始まっているので数えない。
 - 報告の本文（`subagentReport`）は、SubagentHandback の本文 → 終わりの知らせの要約 → ツールの結果の順に探す。
 - コアの作業の終わりのお知らせ（`unfinishedSubagents`）・通信が戻ったときの再開（`networkStoppedSubagents`）・届かなかった報告の受け渡し（`core/chat/reportHandover.ts`）も、画面の一覧と同じこの数え方を使う。数え方を変えるときは両方に効く。
+
+## 末尾と索引（chatIndex.ts）
+
+- パソコンの画面はチャットを開くとき、記録の末尾（最新のターン）だけを読み、その前は索引（記録全体から作るもの = サブエージェントの一覧・ToDo・図・指示の履歴・作業の終わりの印などが要る記録だけ）で受ける（メモの仕様書「0023_表示を軽くする」の案 4）。記録全体から作る関数には、索引・途中の一部分・末尾を `mergeById` で ID の順に重ねたもの（digest）を渡す。
+- 選ぶ規則は `selectIndexIds(metas, start, ctx)` の 1 か所だけ（コアの `buildIndex` も画面の `indexOfEvents` もこれを通す）。軽い形 `ChatEventMeta`（`metaOfEvent`。種類・呼び出し ID `callId`（data の `id`）・ツールの名前・`parent`・`tool_use_id`・`task_id`・`status`）だけで選び、`full`（中身のまま）か `slim`（`slimIndexEvent` が文・入力・結果を空にする）を返す: R1 種類 `INDEX_TYPES` は full（成功した作業の終わりは写しの文を外す）/ R2 名前 `INDEX_TOOLS` の呼び出しとその結果は full / R3 サブエージェントの知らせが指す呼び出し・回答待ちと裏の作業の呼び出し（`IndexContext`）は slim / R4 サブエージェントの流れ（parent）ごとに最後の文・思考・呼び出し・結果を slim、最後の呼び出しは full / R5 サブエージェントが終わった・報告したあと、次の作業の終わりまでの最初のメインの文・思考・呼び出しを slim（報告が届いたかの見分け）。full が勝つ。
+- 規則を変えたら、`chatIndex.test.ts` の「どの切れ目の索引 ＋ 末尾でも全件と同じ」を通す（`scenarioChat` の種は固定）。記録全体から作る関数を足したら、その関数もこのテストに足し、要る記録が索引に入るよう規則を足す。
 
 ## そのほかのチャットの決まり
 

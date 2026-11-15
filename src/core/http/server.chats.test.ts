@@ -518,6 +518,63 @@ test("チャットの詳細の記録: クエリがなければすべて・after 
   }
 });
 
+test("チャットの詳細の tail_turns: 末尾をターン（作業の終わりを境目）で数えて読み、その前は索引で返す。ほかのクエリと一緒なら 400", async () => {
+  const { call, project, store } = setup();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "長い", status: "completed" });
+  const ends: number[] = [];
+  const firsts: number[] = [];
+  for (let n = 0; n < 4; n++) {
+    firsts.push(store.events.add(chat.id, { type: "user", text: `指示${n}`, message_uuid: `u${n}` }).id);
+    store.events.add(chat.id, { type: "tool_use", id: `c${n}`, name: n === 0 ? "TodoWrite" : "Bash", input: { todos: [] } });
+    store.events.add(chat.id, { type: "text", text: `返答${n}` });
+    ends.push(store.events.add(chat.id, { type: "result", status: "completed", text: `写し${n}` }).id);
+  }
+  type Detail = { events: { id: number }[]; index: { id: number; type: string; data: Record<string, unknown> }[]; has_earlier: boolean; head_partial: boolean };
+  const d = (await call("GET", `/api/chats/${chat.id}?tail_turns=2`)).body as Detail;
+  assert.equal(d.events[0].id, firsts[2]);
+  assert.deepEqual([d.has_earlier, d.head_partial], [true, false]);
+  // 索引: 自分の発言・作業の終わり（成功した返答の写しは外す）・TodoWrite。メインの Bash と返答の文は入れない
+  assert.deepEqual(d.index.map((e) => e.type), ["user", "tool_use", "result", "user", "result"]);
+  assert.equal("text" in d.index[2].data, false);
+  // 短いチャットは索引が空
+  const short = (await call("GET", `/api/chats/${chat.id}?tail_turns=10`)).body as Detail;
+  assert.deepEqual([short.events.length, short.index, short.has_earlier], [16, [], false]);
+  // クエリなし・limit・after はいまのまま（スマホの互換。索引は返さない）
+  assert.equal(((await call("GET", `/api/chats/${chat.id}?limit=2`)).body as Detail).index, undefined);
+  for (const q of ["?tail_turns=2&limit=2", `?tail_turns=2&after=${ends[0]}`, "?tail_turns=0"]) {
+    assert.equal((await call("GET", `/api/chats/${chat.id}${q}`)).status, 400, q);
+  }
+});
+
+test("記録の一部分（/events）の 5 つの形と、検索の本文（/texts）。誤った組み合わせは 400", async () => {
+  const { call, project, store } = setup();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "長い", status: "completed" });
+  const ends: number[] = [];
+  for (let n = 0; n < 5; n++) {
+    store.events.add(chat.id, { type: "user", text: `指示${n}`, message_uuid: `u${n}` });
+    store.events.add(chat.id, { type: "text", text: `返答${n}` });
+    store.events.add(chat.id, { type: "text", text: `中${n}`, parent: "agent" });
+    ends.push(store.events.add(chat.id, { type: "result", status: "completed" }).id);
+  }
+  type Page = { events: { id: number }[]; has_earlier: boolean; has_later: boolean; head_partial: boolean };
+  const get = async (q: string) => (await call("GET", `/api/chats/${chat.id}/events${q}`)).body as Page;
+  const before = await get(`?before=${ends[3] + 1}&turns=2`);
+  assert.deepEqual([before.events[0].id, before.events.at(-1)!.id, before.has_earlier], [ends[1] + 1, ends[3], true]);
+  assert.deepEqual((await get(`?before=${ends[1] + 1}&since=${ends[0] + 1}`)).events.map((e) => e.id), [ends[0] + 1, ends[0] + 2, ends[0] + 3, ends[1]]);
+  const around = await get(`?around=${ends[2] - 1}&turns=2&until=${ends[4]}`);
+  assert.deepEqual([around.events[0].id, around.events.at(-1)!.id, around.has_later], [ends[0] + 1, ends[2], true]);
+  const after = await get(`?after=${ends[2]}&turns=3&until=${ends[4] - 3}`);
+  assert.deepEqual([after.events.at(-1)!.id, after.has_later], [ends[3], false]);
+  assert.equal((await get(`?parents=agent&before=${ends[2]}`)).events.length, 3);
+  for (const q of ["", `?before=${ends[2]}`, `?before=${ends[2]}&turns=2&since=1`, "?around=abc&turns=2", `?parents=agent`]) {
+    assert.equal((await call("GET", `/api/chats/${chat.id}/events${q}`)).status, 400, q);
+  }
+  // 検索の本文: before より前の自分の発言とメインの返答だけ（サブエージェントの文は入れない）
+  const texts = (await call("GET", `/api/chats/${chat.id}/texts?before=${ends[1]}`)).body as { events: { type: string; data: { text: string } }[] };
+  assert.deepEqual(texts.events.map((e) => e.data.text), ["指示0", "返答0", "指示1", "返答1"]);
+  assert.equal((await call("GET", `/api/chats/${chat.id}/texts`)).status, 400);
+});
+
 test("チャットの詳細に書きかけの返答（SSE で流した途中の文をつないだもの）と長さが入り、確定したら null になる", async () => {
   const { call, project, store, bus, runner } = setup();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "こんにちは" })).body.id;
