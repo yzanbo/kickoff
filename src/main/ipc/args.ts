@@ -1,6 +1,7 @@
 import path from "node:path";
 import { z } from "zod";
 import { BOOT_MARKS, BOOT_WINDOWS, EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, KNOWN_EXTENSIONS, type KnownExtensionKey } from "@shared/ipc";
+import { THEME_CHOICES } from "@shared/theme/backgrounds";
 import { defineArgSchemas } from "./register.js";
 
 // 画面から届く IPC の引数の形（zod）。取り決め（shared/ipc/contract.ts）の引数と同じ形にし、違えば typecheck で分かる。
@@ -75,6 +76,9 @@ export const IPC_ARGS = defineArgSchemas({
   loginItem: {
     get: none,
     set: z.tuple([z.boolean()]),
+  },
+  appearance: {
+    setTheme: z.tuple([z.enum(THEME_CHOICES)]),
   },
   core: {
     state: none,

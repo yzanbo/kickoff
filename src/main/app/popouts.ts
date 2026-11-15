@@ -1,14 +1,12 @@
 import { BrowserWindow, type Rectangle } from "electron";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
+import { followAppearance, windowBackground } from "./appearance.js";
 import { PRELOAD_FILE } from "./environment.js";
 import { openLinksExternally } from "./externalLinks.js";
 import { watchRendererHang } from "./hangWatch.js";
 import { showMainWindow } from "./window.js";
 
 // 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャットを、メインのウィンドウの外に出して見る。2 枚目の画面に置くなど）
-
-/** 画面を読み込む前に見える地の色（メインのウィンドウと同じ） */
-const BACKGROUND = "#141818";
 
 /** 開いている別ウィンドウ（画面の route ごとに 1 つ。同じものを開こうとしたら前に出す） */
 const popouts = new Map<string, BrowserWindow>();
@@ -51,7 +49,8 @@ function openPopout(appUrl: string, route: string, title: string) {
     minWidth: 420,
     minHeight: 320,
     title,
-    backgroundColor: BACKGROUND,
+    // 画面を読み込む前に見える地の色（メインのウィンドウと同じく、選んでいるテーマ。app/appearance.ts）
+    backgroundColor: windowBackground(),
     webPreferences: {
       preload: PRELOAD_FILE,
       contextIsolation: true,
@@ -59,6 +58,7 @@ function openPopout(appUrl: string, route: string, title: string) {
       nodeIntegration: false,
     },
   });
+  followAppearance(win);
   // ウィンドウの名前は開いたときのもの（画面の <title> で書き換えない）
   win.on("page-title-updated", (e) => e.preventDefault());
   // 外部リンクは既定のブラウザで開く（メインのウィンドウと同じ）

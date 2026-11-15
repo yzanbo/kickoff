@@ -9,6 +9,7 @@ import type { CoreStatus } from "./core";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { LoginItemState } from "./loginItem";
 import type { NotifyRequest, NotifyResult } from "./notifications";
+import type { ThemeChoice } from "../theme/backgrounds";
 
 /** 呼び方の種類: invoke = 画面から呼んで返事を待つ / send = 画面から送るだけ（返事なし） / event = メインから画面への知らせ */
 export type IpcKind = "invoke" | "send" | "event";
@@ -159,6 +160,11 @@ export const NATIVE_API = {
     get: invoke<[], LoginItemState>(),
     /** 切り替えて、切り替えたあとの様子を返す（切り替えられない版では変えない） */
     set: invoke<[openAtLogin: boolean], LoginItemState>(),
+  },
+  /** 見た目（窓の地の色。メモの仕様書「0023_表示を軽くする」の案 18a） */
+  appearance: {
+    /** 選んでいるテーマ（起動したとき・選び直したとき）。メインが覚えて、次の起動の窓の地の色と、開いている窓の地の色に使う */
+    setTheme: send<[theme: ThemeChoice]>(),
   },
   /** Kickoff のコア（別のプロセス）の様子と、落ちた・応答しないときの操作（画面の上の帯。U8・U9） */
   core: {
