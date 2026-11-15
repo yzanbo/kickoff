@@ -64,7 +64,7 @@ function start(startCore: (opts: CoreOptions) => Promise<Core>) {
     platformInit = i;
     return { startShellPath: () => ({ ready: Promise.resolve() }) } as unknown as HostPlatform;
   };
-  const done = runCoreHost(nodeRpcPort(port2), { startCore, platform, now: () => 5000, exit: (code) => void exits.push(code), timings: { processStart: 1100, modulesLoaded: 1200 } });
+  const done = runCoreHost(nodeRpcPort(port2), { startCore, platform, now: () => 5000, exit: (code) => void exits.push(code), timings: { processStart: 1100, modulesLoaded: 1200 }, awakeRecheckMs: 20 });
   return { hostPort, host, port1, exits, messages, events, done, platformInit: () => platformInit };
 }
 
@@ -99,6 +99,10 @@ test("runCoreHost: init を受けて startCore に渡し、ready で token・URL
   fake.bus.publish({ type: "settings" } as never);
   fake.bus.publish({ type: "settings" } as never);
   await until(() => run.events.filter((e) => e.name === "awake").length === 2);
+  // 作業の終わりの知らせのあとで作業中の数が減っても（知らせがなくても）、作業中の間は読み直して知らせる
+  fake.state.running = 0;
+  await until(() => run.events.filter((e) => e.name === "awake").length === 3);
+  assert.deepEqual(run.events.filter((e) => e.name === "awake")[2]?.payload, { running: 0, mobileEnabled: false });
   // メインからの呼び出し
   assert.equal(await run.host.call("ping"), 5000);
   await run.host.call("terminal.closeOwnedBy", "wc:3");
