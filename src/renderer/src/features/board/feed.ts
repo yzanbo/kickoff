@@ -17,6 +17,11 @@ export function upsertFeedItem(items: readonly FeedItem[], item: FeedItem): read
   return [item, ...items.filter((i) => i.chat_id !== item.chat_id)];
 }
 
+/** 届いた順の返答をまとめて当てる（1 フレームの分をまとめて 1 回で描き直すため。1 件ずつ upsertFeedItem したのと同じ結果。何も変わらなければ同じ配列） */
+export function upsertFeedItems(items: readonly FeedItem[], added: readonly FeedItem[]): readonly FeedItem[] {
+  return added.reduce(upsertFeedItem, items);
+}
+
 /**
  * 返答の初めの部分を、カードで読みやすい地の文にする（Markdown の印を外す: コードの囲み・見出しの #・強調・リンク・表の区切り）。
  * 段落の切れ目は 1 つの改行にまとめる
