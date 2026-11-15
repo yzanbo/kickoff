@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { StreamResult } from "../system/stream.js";
 import { until } from "../testing/testCore.js";
 import { DockerEvents } from "./events.js";

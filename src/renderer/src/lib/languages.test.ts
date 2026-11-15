@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { languageOf } from "./languages";
 
 test("languageOf: 拡張子（大文字・小文字を問わない）と Dockerfile から言語を決め、知らない種類・拡張子だけの名前は undefined", () => {

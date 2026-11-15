@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { Store } from "../db/store.js";
 import { chatContextNote, chatContextOf } from "./chatContext.js";
 import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { flattenOnWhite } from "./flatten.js";
 
 test("flattenOnWhite: 透明は白、不透明はそのまま、半透明は白と混ぜる（色に透明度を掛けた形）", () => {

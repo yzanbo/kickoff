@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { isTargetLine, targetLabel } from "./reviewLines";
 
 test("コメントを付けた行の見分け: RIGHT は変更後の行番号、LEFT は消した行の変更前の行番号", () => {

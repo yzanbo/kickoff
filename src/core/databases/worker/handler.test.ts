@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { test } from "node:test";
+import { test } from "vitest";
 import { tempDir } from "../../testing/tempDir.js";
 import type { DbTarget, WorkerRequest } from "../protocol.js";
 import { macosShell } from "../../platform/macos/shell.js";
@@ -23,7 +23,7 @@ function sqliteTarget(): DbTarget {
 
 test("DB ワーカー: まだない接続に同時に頼んでも 1 本だけ開き、同じ接続で順に流す", async (t) => {
   const handler = createWorkerHandler();
-  t.after(() => handler.closeAll());
+  t.onTestFinished(() => handler.closeAll());
   const target = sqliteTarget();
   let id = 0;
   const query = (sql: string) => handler.handle({ id: ++id, method: "query", params: { session: "s", target, sql, max_rows: 10 } } as WorkerRequest);
@@ -38,7 +38,7 @@ test("DB ワーカー: まだない接続に同時に頼んでも 1 本だけ開
 test("DB ワーカー: 10 分使わなかった接続は閉じ、トランザクションの途中の接続は残す。使えば数え直す", async (t) => {
   let clock = 0;
   const handler = createWorkerHandler(undefined, { sessionIdleMs: 1000, now: () => clock });
-  t.after(() => handler.closeAll());
+  t.onTestFinished(() => handler.closeAll());
   const target = sqliteTarget();
   let id = 0;
   const query = (session: string, sql: string) => handler.handle({ id: ++id, method: "query", params: { session, target, sql, max_rows: 10 } } as WorkerRequest);
@@ -66,7 +66,7 @@ test("DB ワーカー: 何もしないで閉じたとき、その接続の接続
   let clock = 0;
   const runs: string[] = [];
   const handler = createWorkerHandler((e) => e.event === "prep_run" && runs.push(`${e.connection_id}:${e.kind}`), { sessionIdleMs: 1000, now: () => clock });
-  t.after(() => handler.closeAll());
+  t.onTestFinished(() => handler.closeAll());
   const target = sqliteTarget();
   let id = 0;
   const call = (method: string, params: unknown) => handler.handle({ id: ++id, method, params } as WorkerRequest);
@@ -95,7 +95,7 @@ test("DB ワーカー: 何もしないで閉じたとき、その接続の接続
 
 test("DB ワーカー: 読み取り専用の SQLite は ATTACH を DB の側でも断る（書ける接続では使える）", async (t) => {
   const handler = createWorkerHandler();
-  t.after(() => handler.closeAll());
+  t.onTestFinished(() => handler.closeAll());
   const target = sqliteTarget();
   const other = sqliteTarget().file!;
   let id = 0;

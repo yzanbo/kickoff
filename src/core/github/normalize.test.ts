@@ -1,6 +1,6 @@
 // GitHub の答え → GitHub タブの API の形
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { CommandError } from "../system/exec.js";
 import { GH_LOGGED_OUT, GH_MISSING, ghApiHostArgs, ghFailureMessage, githubWriteError, parseIncludeOutput } from "./ghApi.js";
 import { reviewPayload } from "./writes.js";

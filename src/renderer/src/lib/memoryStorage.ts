@@ -1,4 +1,6 @@
-/** Map で代わりにする Web Storage（テスト用。Node には localStorage・sessionStorage がない） */
+// Map で代わりにする Web Storage（テストからだけ使う。Node には使える localStorage・sessionStorage がない）
+import { beforeEach, vi } from "vitest";
+
 class MemoryStorage implements Storage {
   private readonly items = new Map<string, string>();
   get length() {
@@ -21,13 +23,18 @@ class MemoryStorage implements Storage {
   }
 }
 
-/** テストの初めに呼ぶ: globalThis に空の localStorage・sessionStorage を置き、それを返す（テストごとに clear() で空にする） */
+/**
+ * テストのファイルの上で呼ぶ: テストごとに空の localStorage・sessionStorage を globalThis に置き、それを返す。
+ * 置くのは vi.stubGlobal なので、テストが終われば元に戻る（同じプロセスで続けて流すほかのファイルに残さない）
+ */
 export function installMemoryStorage(): { local: Storage; session: Storage } {
   const local = new MemoryStorage();
   const session = new MemoryStorage();
-  // 代入ではなく定義し直す（Web Storage を持つ Node では、読むだけのプロパティになっていることがある）
-  for (const [name, value] of [["localStorage", local], ["sessionStorage", session]] as const) {
-    Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
-  }
+  beforeEach(() => {
+    local.clear();
+    session.clear();
+    vi.stubGlobal("localStorage", local);
+    vi.stubGlobal("sessionStorage", session);
+  });
   return { local, session };
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { isNetworkError } from "./networkErrors";
 
 test("isNetworkError: 通信の切断・名前の引けない・時間切れを見分け、ほかの失敗は通信のせいにしない", () => {

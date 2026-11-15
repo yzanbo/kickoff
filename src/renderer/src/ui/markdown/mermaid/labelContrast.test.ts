@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { blend, colorBehind, contrastRatio, LABEL_TEXT_DARK, LABEL_TEXT_LIGHT, onLayer, parseColor, readableLabelColor, readableStrokeColor, type Layer, type Rgb } from "./labelContrast";
 
 const WHITE: Rgb = [250, 250, 250];

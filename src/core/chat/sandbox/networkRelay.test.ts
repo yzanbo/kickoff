@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import net from "node:net";
 import type { AddressInfo } from "node:net";
-import { after, test } from "node:test";
+import { onTestFinished, test } from "vitest";
 import { connectTarget, startNetworkRelay } from "./networkRelay.js";
 
 /** 相手になる HTTP のサーバー（中身は「ok <パス>」） */
 async function target(): Promise<number> {
   const server = http.createServer((req, res) => res.end(`ok ${req.url}`));
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
-  after(() => new Promise<void>((resolve) => server.close(() => resolve())));
+  onTestFinished(() => new Promise<void>((resolve) => server.close(() => resolve())));
   return (server.address() as AddressInfo).port;
 }
 
@@ -24,7 +24,7 @@ test("CONNECT の宛先を読む（IPv6 も。読めないものは null）", ()
 test("中継は CONNECT のトンネルとふつうの HTTP の両方をどこへでも通す", async () => {
   const port = await target();
   const relay = await startNetworkRelay();
-  after(() => relay.close());
+  onTestFinished(() => relay.close());
 
   // ふつうの HTTP（絶対 URL の頼み）
   const plain = await new Promise<string>((resolve, reject) => {
@@ -60,7 +60,7 @@ test("中継は CONNECT のトンネルとふつうの HTTP の両方をどこ�
 
 test("つなげない宛先は 502 を返す", async () => {
   const relay = await startNetworkRelay();
-  after(() => relay.close());
+  onTestFinished(() => relay.close());
   // 使っていないポート（一度開いて閉じたもの）
   const free = await new Promise<number>((resolve) => {
     const s = net.createServer().listen(0, "127.0.0.1", () => {

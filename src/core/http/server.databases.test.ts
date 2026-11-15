@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { test } from "node:test";
+import { test } from "vitest";
 import { DB_SQL_MAX_ROWS, DB_VALUE_HEAD_CHARS } from "@shared/types";
 import type { BusEvent, DbConnection, DbErSchema, DbFullRow, DbImportCandidate, DbPrepRun, DbPrepState, DbQueryHistoryEntry, DbQueryResult, DbTableDetail, NewDbConnectionBody } from "@shared/types";
 import { setup } from "../testing/testServer.js";

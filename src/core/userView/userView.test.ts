@@ -1,6 +1,6 @@
 // 利用者が見ているもの: どのウィンドウを読むか（registry）と、AI に返す文（format）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { userViewSummaryOf } from "@shared/chat/aiUserView";
 import { USER_VIEW_REPORT_MS, USER_VIEW_TEXT_MAX, type UserView } from "@shared/types";
 import { userViewText, type UserViewTextInput } from "./format.js";

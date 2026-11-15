@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { testResultText } from "./connectionForm";
 
 test("testResultText: つながった（版・SSL・時間）・SQLite は SSL を出さない・失敗は時間を後ろに", () => {

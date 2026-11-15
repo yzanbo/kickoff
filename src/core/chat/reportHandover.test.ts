@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { collectSubagents } from "@shared/chat/subagents";
 import { makeEvent } from "@shared/testing/factories";
 import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";

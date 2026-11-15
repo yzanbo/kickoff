@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { parseCommit, parseGitStatus, parseNameStatus, parseWorktrees, toGitDiff } from "./index.js";
 import { parseAheadBehind, scopeChanges } from "./status.js";
 

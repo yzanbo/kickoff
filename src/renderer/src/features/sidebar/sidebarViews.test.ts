@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { SIDEBAR_SAVED_VIEWS } from "@/lib/storageKeys";
 import { activeSidebarView, newSidebarViewName, parseSidebarViews, parseSidebarViewState, sameSidebarViewState, type SidebarView, type SidebarViewState } from "./sidebarViews";
 

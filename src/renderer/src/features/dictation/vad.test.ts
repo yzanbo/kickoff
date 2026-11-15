@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { initialVad, LISTEN_VAD, vadStep, vadThreshold, type VadEvent, type VadOptions, type VadState } from "./vad";
 
 /** 50ms ごとの音量を順に渡し、起きたことを時刻と一緒に返す */

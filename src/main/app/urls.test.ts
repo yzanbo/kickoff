@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { isEmbeddableUrl, isWebUrl, sameOrigin } from "./urls.js";
 
 test("外で開いてよいページ: http(s) だけ。埋め込みブラウザは空のページも", () => {

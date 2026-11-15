@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { test } from "node:test";
+import { test } from "vitest";
 import { gitRepo } from "../../testing/gitRepo.js";
 import { tempDir } from "../../testing/tempDir.js";
 import { bashSandboxFor, electronLaunchScripts, ELECTRON_DIRECT_COMMANDS, HOME_CACHE_DIRS, HOME_STATE_DIRS, scriptRunCommands } from "./bashSandbox.js";

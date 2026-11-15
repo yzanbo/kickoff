@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { layoutGraph } from "./commitGraph";
 
 test("一本道の履歴は、すべて 1 列目に並ぶ", () => {

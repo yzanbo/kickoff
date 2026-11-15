@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { filterSql, isEmptyFilter, plainLike, previewRowsSql, type FilterDialect } from "./dbFilter";
 
 const q = (n: string) => `"${n.replaceAll('"', '""')}"`;

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { hasAppModifier, hasModifiers, heldMetaOf, isCancelKey, isComposing, isFocusRingKey, isKey, isOpenKey, isRenameKey, isSubmitKey, type KeyInput } from "./keys";
 
 const key = (k: string, mods: Partial<KeyInput> = {}): KeyInput => ({ key: k, metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, ...mods });

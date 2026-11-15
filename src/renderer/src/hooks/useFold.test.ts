@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test, vi } from "vitest";
 import { installMemoryStorage } from "@/lib/memoryStorage";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { FOLDS } from "@/lib/storageKeys";
@@ -11,7 +11,7 @@ test("foldAll: その場所で覚えているまとまり（描いていない�
   const events: unknown[] = [];
   const target = new EventTarget();
   target.addEventListener("kickoff:fold-all", (e) => events.push((e as CustomEvent).detail));
-  Object.assign(globalThis, { window: target });
+  vi.stubGlobal("window", target);
 
   writeSetting(FOLDS("sidebar:p1"), true);
   writeSetting(FOLDS("sidebar:p1/g2/status:read"), true);

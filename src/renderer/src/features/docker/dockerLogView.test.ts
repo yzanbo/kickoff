@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DockerCompose, DockerLogSource } from "@shared/types";
 import { aroundRow, chipOf, fillTs, logChips, logLevelOf, logQuote, mergeRows, normTs, prettyJson, separatorText, type LogContainerInfo, type LogRow } from "./dockerLogView";
 

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { ALL_PROJECTS_SAVED_VIEWS, PROJECT_SAVED_VIEWS } from "@/lib/storageKeys";
 import { activeView, parseSavedViews, parseViewState, projectViewState, sameViewState, type BoardViewState, type SavedView } from "./savedViews";
 

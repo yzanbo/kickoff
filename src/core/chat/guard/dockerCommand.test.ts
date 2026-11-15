@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { dockerIntents } from "./dockerCommand.js";
 
 const wt = "/r/app-worktrees/feat-x";

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { lineLocation, textWithPath } from "./pathCopy";
 
 test("lineLocation: フルパスに行番号を付ける（1 行なら 1 つ、行が分からなければパスだけ）", () => {

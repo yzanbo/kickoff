@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { registerSavable, saveAll } from "./saveAll";
 
 test("saveAll: 書きかけのある文書だけを順に保存し、失敗しても残りを保存して数を返す", async () => {

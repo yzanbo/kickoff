@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { VISUAL_FRAME_CSP, VISUAL_LIGHT_THEME, visualDocument, visualMemoHtml, visualThemeCss } from "./visualDocument";
 
 test("visualThemeCss: 決めた変数だけを :root に置き、値の中の ; { } < は捨てる", () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { eventSequence } from "@shared/testing/factories";
 import type { ToolCall } from "@/features/chat/timeline/timelineItems";
 import { callDuration, toolSpan } from "./toolTimes";

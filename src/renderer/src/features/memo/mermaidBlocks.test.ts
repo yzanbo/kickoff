@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { mermaidBlocks } from "./mermaidBlocks";
 
 test("mermaidBlocks: ```mermaid と ~~~mermaid の塊を、開きの行の頭から閉じの行の終わりまで探す", () => {

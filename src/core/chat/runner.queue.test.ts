@@ -1,6 +1,6 @@
 // 実行の受付（Runner）のテスト: 作業中に送った指示の待ちの列（終わったら順に送る・止めた・失敗した・アプリを終える・「いま」と重なったとき）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { NotFound } from "../http/errors.js";
 import { Runner } from "./runner.js";
 import { gatedScript, ScriptedProvider, type Script } from "../testing/fakeProvider.js";

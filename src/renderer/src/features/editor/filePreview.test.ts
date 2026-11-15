@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { pagePreviewKind, projectAssetBase } from "./filePreview";
 
 test("pagePreviewKind: Markdown と HTML の拡張子だけ（大文字も）。ほかは null", () => {

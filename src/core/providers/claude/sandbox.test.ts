@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { claudeSandbox } from "./sandbox.js";
 
 test("Claude Code の砂場: 書く場所だけを絞り、外で流し直す道は切る。この Mac の中の接続・ソケット・システムのサービスは通し、通信は Kickoff の中継へ", () => {

@@ -1,6 +1,6 @@
 // API のテスト: 作業中のチャット（未読・作業中の様子 live・裏の作業・圧縮・再試行・停止・止めずに伝える・作業の終わり・サブエージェントの報告の受け渡し）（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { setup, until } from "../testing/testServer.js";
 import type { ChatLive, CompactingState } from "@shared/types";
 import { autoPreCompactMessage, busyPreCompactMessage, manualPreCompactMessage, postCompactMessage } from "@shared/chat/prompts";

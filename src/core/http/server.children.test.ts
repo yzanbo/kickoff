@@ -1,7 +1,7 @@
 // API のテスト: 子チャット（作る・親の会話を引き継ぐ / 引き継がない・子孫ごとのアーカイブ・移動・削除・AI が子チャットを作るときの設定。共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { test } from "node:test";
+import { test } from "vitest";
 import { tempDir } from "../testing/tempDir.js";
 import { setup, until } from "../testing/testServer.js";
 

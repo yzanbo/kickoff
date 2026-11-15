@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { API_VERSION, MIN_CLIENT_API_VERSION } from "@shared/api/version";
 import { failureStateOf, helloStateOf, isFinal } from "./connection";
 

@@ -1,7 +1,7 @@
 // 「見せない」DB の接続に、AI が Bash・ファイルのツールで直接入るのを断る判定
 import assert from "node:assert/strict";
 import os from "node:os";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { DbConnection } from "@shared/types";
 import { evaluateHiddenDbAccess } from "./hiddenDb.js";
 import { hiddenDbTargets } from "./hiddenDbTargets.js";

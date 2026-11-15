@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import type { ChatEventType } from "@shared/types";
 import { makeEvent, type EventInput } from "@shared/testing/factories";
 import { DEFAULT_FIND_OPTIONS, findPattern } from "@/lib/textFind";

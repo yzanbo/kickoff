@@ -1,6 +1,6 @@
 // AI がほかのチャットの会話を読むツール（read_chat）のやり取りの分け方と、読む範囲の選び方
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { eventSequence } from "@shared/testing/factories";
 import { conversationTurns, formatConversation } from "./conversation.js";
 

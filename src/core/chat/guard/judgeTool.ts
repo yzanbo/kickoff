@@ -2,6 +2,7 @@ import type { ProviderTurnParams } from "../../providers/types.js";
 import { realPathOrSelf } from "../../system/paths.js";
 import { evaluateDeleteCommand } from "./deleteGuard.js";
 import { DOCKER_GUARD_DENIED } from "./dockerGuard.js";
+import { evaluateGitHookBypass } from "./gitHookGuard.js";
 import { evaluateHiddenDbAccess } from "./hiddenDb.js";
 import { evaluateReferenceWrite, evaluateUntrackedWrite, writeTargetOf } from "./scope.js";
 import { evaluateSelfProtection, type SelfInfo } from "./selfProtection.js";
@@ -32,7 +33,7 @@ const firstDeny = (decisions: Decision[]): GuardVerdict | null => {
   return denied ? { kind: "deny", reason: denied.reason } : null;
 };
 
-/** シェルのコマンドを流す前の判定（自分を守る・［AI で整える］・見せない DB・消すコマンドは断り、ほかの作業場所の Docker は聞く） */
+/** シェルのコマンドを流す前の判定（自分を守る・［AI で整える］・見せない DB・消すコマンド・git のフックを飛ばすコマンドは断り、ほかの作業場所の Docker は聞く） */
 export async function judgeCommand(ctx: GuardContext, command: string): Promise<GuardVerdict> {
   const { params, self } = ctx;
   const input = { command };
@@ -41,6 +42,7 @@ export async function judgeCommand(ctx: GuardContext, command: string): Promise<
     ...(params.untrackedOnly ? [await evaluateUntrackedWrite(params.cwd, "Bash", input)] : []),
     ...(params.hiddenDb?.length ? [evaluateHiddenDbAccess(params.hiddenDb, "Bash", input)] : []),
     ...(params.deleteGuard ? [evaluateDeleteCommand("Bash", input)] : []),
+    evaluateGitHookBypass("Bash", input),
   ]);
   if (denied) return denied;
   if (params.dockerGuard) {
