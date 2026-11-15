@@ -3,6 +3,38 @@ import { test } from "node:test";
 import { makeEvent } from "@shared/testing/factories";
 import { cleanSubagentReport, collectSubagents, isOutputLimitError, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "./subagents";
 
+test("fork のサブエージェント: 自分の中の頭に届く起動の呼び出しへの仮の結果では完了にせず、起動した流れに結果が返るまで作業中", () => {
+  const events = [
+    makeEvent(1, "tool_use", { id: "f1", name: "Agent", input: { description: "分身の作業", subagent_type: "fork" } }),
+    makeEvent(2, "subagent", { task_id: "t1", tool_use_id: "f1", description: "分身の作業", subagent_type: "fork", status: "running" }),
+    // Claude Code が fork の中の頭に置く仮の結果（parent = 起動した呼び出し自身）
+    makeEvent(3, "tool_result", { tool_use_id: "f1", content: "Fork started — that fork is you.", is_error: false, parent: "f1" }),
+    makeEvent(4, "tool_use", { id: "b1", name: "Bash", input: { command: "sleep 8" }, parent: "f1" }),
+  ];
+  const [running] = collectSubagents(events, {}, true);
+  assert.equal(running.status, "running");
+  assert.equal(running.endEventId, undefined);
+
+  const done = [
+    ...events,
+    makeEvent(5, "subagent", { task_id: "t1", tool_use_id: "f1", description: "", status: "completed" }),
+    makeEvent(6, "tool_result", { tool_use_id: "f1", content: "報告", is_error: false }),
+  ];
+  const [finished] = collectSubagents(done, {}, false);
+  assert.equal(finished.status, "completed");
+  assert.equal(finished.endEventId, 6);
+});
+
+test("入れ子のサブエージェントの結果は、起動したサブエージェントの流れに返ったものだけを終わりとして数える", () => {
+  const events = [
+    makeEvent(1, "tool_use", { id: "outer", name: "Agent", input: { description: "外" } }),
+    makeEvent(2, "tool_use", { id: "inner", name: "Agent", input: { description: "中", subagent_type: "fork" }, parent: "outer" }),
+    makeEvent(3, "tool_result", { tool_use_id: "inner", content: "Fork started — that fork is you.", is_error: false, parent: "inner" }),
+  ];
+  assert.equal(collectSubagents(events, {}, true).find((s) => s.key === "inner")?.status, "running");
+  const finished = collectSubagents([...events, makeEvent(4, "tool_result", { tool_use_id: "inner", content: "報告", is_error: false, parent: "outer" })], {}, true);
+  assert.equal(finished.find((s) => s.key === "inner")?.status, "completed");
+});
 
 test("サブエージェント: 呼び出し・通知・途中経過をまとめ、止まったものは中断にする", () => {
   const events = [
