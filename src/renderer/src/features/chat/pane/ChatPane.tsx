@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
@@ -8,8 +8,8 @@ import { SelectionAttach } from "@/features/chat/messages/SelectionAttach";
 import { ChatTimeline } from "@/features/chat/timeline/ChatTimeline";
 import { ActivityView } from "@/features/chat/activity/ActivityView";
 import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
-import { VisualsContext, chatVisualsOf } from "@/features/chat/visuals/visualsContext";
-import { BackgroundCallsContext, useBackgroundCalls } from "@/features/chat/tools/backgroundCalls";
+import { VisualsContext } from "@/features/chat/visuals/visualsContext";
+import { BackgroundCallsContext } from "@/features/chat/tools/backgroundCalls";
 import { AgentSplit } from "@/features/panel/agents/AgentSplit";
 import { usePanelHost } from "@/features/panel/panelHost";
 import { ChatComposerArea } from "./ChatComposerArea";
@@ -17,7 +17,7 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatPaneContext, useChatPaneSlot, useChatPaneState } from "./chatPaneContext";
 import { useWideText } from "./TextWidthToggle";
 import { useWindowMessagesFor } from "./windowMessages";
-import { useChatContent } from "@/features/chat/store/useChatStore";
+import { useChatBackgroundCalls, useChatContent, useChatVisuals } from "@/features/chat/store/useChatStore";
 import { useChatView, type ChatViewInput } from "./useChatView";
 import { ChatProviderContext, noteForegroundProvider, useProviderStatus } from "@/features/chat/provider/chatProvider";
 
@@ -81,9 +81,9 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
   const [pillDock, setPillDock] = useState<HTMLSpanElement | null>(null);
   // 裏でまだ動いている作業を起動した呼び出し（流れの中の裏のコマンドを、終わるまで実行中に見せる）
-  const backgroundCalls = useBackgroundCalls(view.live.background);
+  const backgroundCalls = useChatBackgroundCalls(chat.id);
   // AI が描いた図（記録から組み立てる。流れの図の項目が読む）
-  const visuals = useMemo(() => chatVisualsOf(log.digest), [log.digest]);
+  const visuals = useChatVisuals(chat.id);
   // そのチャットの AI の状態（できること・ログインの仕方。中の部品は読み込みを頼まずに読むので、ここで 1 回頼む）
   useProviderStatus(chat.provider, { load: true });
   // 表に出したチャットの AI を、下の帯の使用状況に出す（触ったときも。分けたペインで隣のチャットへ移ったとき）

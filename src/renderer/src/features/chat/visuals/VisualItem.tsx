@@ -14,7 +14,7 @@ import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import type { ToolCall } from "@/features/chat/timeline/timelineItems";
 import { saveVisualToMemo } from "./saveVisual";
 import { VisualFrame } from "./VisualFrame";
-import { useChatVisuals } from "./visualsContext";
+import { useVisuals } from "./visualsContext";
 
 /** 図の高さの上限（画面の高さに対する割合。超えたら枠の中でスクロール） */
 const MAX_HEIGHT_RATIO = 0.8;
@@ -38,7 +38,7 @@ const sourceOf = (input: unknown) => {
  * 描き直しの呼び出しの位置には 1 行だけ（押すと元の図へ移る）。中身を書き終えるまでは「図を描いています…」、失敗は理由
  */
 function VisualItem({ call }: { call: ToolCall }) {
-  const visuals = useChatVisuals();
+  const visuals = useVisuals();
   const { use, result } = call;
   const update = use.data.name === AI_UPDATE_VISUAL_TOOL;
   if (!result) return update ? <VisualNote busy text="図を描き直しています…" /> : <VisualPending title={titleOf(use.data.input)} />;
@@ -116,7 +116,7 @@ function VisualFailed({ text, source }: { text: string; source: { code: string; 
 /** 描き直した位置の 1 行（押すと元の図へ移る） */
 function UpdatedRow({ visual }: { visual: ChatVisual }) {
   const pane = useOptionalChatPane();
-  const { shownEvent } = useChatVisuals();
+  const { shownEvent } = useVisuals();
   const target = shownEvent.get(visual.id);
   const name = visual.title ? `「${visual.title}」` : "図";
   return (

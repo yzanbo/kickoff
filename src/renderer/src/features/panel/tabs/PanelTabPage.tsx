@@ -93,8 +93,8 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       onDraftChange={(text) => panel.patchTab(t.key, { kind: "new", fields: { draftText: text || undefined } })}
     />
   ),
-  // チャットの画面の右の欄（サブエージェントの欄）だけに開く。中身はそのチャットの画面の中にあり、チャットの記録・操作をそのまま使う
-  subagent: ({ tab: t }) => <SubagentScreen agentKey={t.agentKey} />,
+  // チャットの画面の右の欄（サブエージェントの欄）だけに開く。記録から作るものはチャットの店から読み、操作はそのチャットの画面のものを使う
+  subagent: ({ tab: t }) => <SubagentScreen chatId={t.chatId} agentKey={t.agentKey} />,
   // チャットの画面の右の欄だけに開く。作業場所のコミットしていない変更（押したファイルの位置へ移る）と、ファイルの中身
   changes: ({ tab: t }) => <SideChanges projectId={t.projectId} worktree={t.worktree} focus={t.focus} focusAt={t.focusAt} />,
   // チャットの画面の右の欄だけに開く。プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面

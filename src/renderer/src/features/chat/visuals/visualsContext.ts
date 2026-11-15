@@ -34,4 +34,5 @@ const EMPTY: ChatVisuals = { byId: new Map(), byCall: new Map(), shownEvent: new
 /** チャットの画面が配る（外では空） */
 export const VisualsContext = createContext<ChatVisuals>(EMPTY);
 
-export const useChatVisuals = () => useContext(VisualsContext);
+/** 流れの図の項目が読む（会話の欄・右の欄のサブエージェントの画面が配る） */
+export const useVisuals = () => useContext(VisualsContext);
