@@ -30,7 +30,8 @@ test("AI の Docker の守り: 聞くと決めた Bash は承認カードで聞�
   let answer: "allow" | "deny" = "allow";
   const params = { dockerGuard: { check: async (cmd: string) => (cmd.includes("app-db-1") ? { title: "止めようとしています", description: "補い" } : null) } } as unknown as ProviderTurnParams;
   const cb = { requestApproval: async (req: ApprovalRequest) => (asked.push(req), answer === "allow" ? { action: "allow" as const } : { action: "deny" as const, message: "だめ" }) };
-  const matcher = turnHooks(params, undefined, cb)?.PreToolUse?.[0];
+  // Docker の守りは、書き込み先の守りがなければ最後のフック
+  const matcher = turnHooks(params, undefined, cb)?.PreToolUse?.at(-1);
   assert.equal(matcher?.matcher, "Bash");
   // 既定の待ち時間で承認カードが閉じないよう、1 日より長く待つ
   assert.ok((matcher?.timeout ?? 0) >= 24 * 60 * 60);
@@ -125,4 +126,12 @@ test("砂場で止まったときの文: Bash の結果（成功・失敗とも�
   const quiet = await hooks?.PostToolUse?.[0]?.hooks[0]({ ...base, hook_event_name: "PostToolUse", tool_response: { stdout: "ok", stderr: "" } } as HookInput, undefined, { signal });
   assert.deepEqual(quiet, {});
   assert.equal(turnHooks({ cwd: root } as unknown as ProviderTurnParams, undefined, { requestApproval: async () => ({ action: "allow" }) })?.PostToolUse, undefined);
+});
+
+test("git のフックを飛ばす Bash は、ほかの守りがなくてもいつも断る", async () => {
+  const hooks = turnHooks({ cwd: "/w" } as unknown as ProviderTurnParams, undefined, { requestApproval: async () => ({ action: "allow" }) })?.PreToolUse ?? [];
+  const bash = (command: string) => ({ hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, tool_use_id: "t1", session_id: "s", transcript_path: "/tmp/t", cwd: "/w" }) as HookInput;
+  const run = (command: string) => Promise.all(hooks.map((m) => m.hooks[0](bash(command), undefined, { signal })));
+  assert.match(JSON.stringify(await run('git commit --no-verify -m "x"')), /"permissionDecision":"deny".*フック/);
+  assert.doesNotMatch(JSON.stringify(await run('git commit -m "x"')), /deny/);
 });

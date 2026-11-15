@@ -8,7 +8,8 @@
     "src/**/*.dbtest.ts",
     "electron.vite.config.ts",
     "scripts/*.mjs",
-    "scripts/*.cjs"
+    "scripts/*.cjs",
+    "scripts/hooks/pre*.mjs"
   ],
   "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}"],
   "ignoreExportsUsedInFile": true,
