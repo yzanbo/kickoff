@@ -4,7 +4,7 @@
 import { parseArgs } from "node:util";
 import { api, connectPage, metrics, metricsDelta, sleep, waitTimelineExpr } from "./cdp.mjs";
 import { summarize, summarizeProfile } from "./stats.mjs";
-import { startStreaming, stopStreaming, waitLiveText } from "./streaming.mjs";
+import { startStreamingLive, stopStreaming } from "./streaming.mjs";
 
 /** チャットの画面を開き、入力欄にピントを置く */
 export async function openChat(page, chatId) {
@@ -47,9 +47,8 @@ export async function measureTyping({ chatId = 224, keys = 40, streaming = false
   try {
     await openChat(page, chatId);
     if (!streaming) return { mode: "idle", ...(await typeKeys(page, keys)) };
-    await startStreaming(chatId);
     try {
-      const startChars = await waitLiveText(page);
+      const startChars = await startStreamingLive(page, chatId);
       const result = await typeKeys(page, keys);
       const endChars = await page.evaluate(`document.querySelector(".assistant.live")?.textContent.length ?? 0`);
       // 打っている間に文字が増えていなければ、待機中を測ったことになる
