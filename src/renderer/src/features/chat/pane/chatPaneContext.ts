@@ -109,8 +109,8 @@ export interface ChatPaneActions {
   retry: (change?: RetryChange) => void;
   /** その発言へ移って一瞬強調する（一番下への追従をやめ、窓の外なら描いてから。流れにピントを置く） */
   jumpTo: (eventId: number) => void;
-  /** その発言を描くようにする（一番下への追従をやめ、読んでいなければ読み、窓の外なら窓を動かす。移るのは呼ぶ側。チャットの中の検索） */
-  reveal: (eventId: number) => void;
+  /** その発言を描く（一番下への追従をやめ、読んでいなければ読み、窓の外なら前後を描く）。描いて測り終えたら解決する。移るのは呼ぶ側（チャットの中の検索） */
+  reveal: (eventId: number) => Promise<void>;
   /** チャットの中の検索で探す、末尾より前の本文（自分の発言とメインの返答。末尾から読んでいれば空） */
   searchTexts: () => Promise<ChatEvent[]>;
   /** 前（-1）・次（1）の自分の指示へ移る（from: 上に貼り付けた指示。その前後へ。省けば位置で決める） */
@@ -123,6 +123,8 @@ export interface ChatPaneActions {
   readonly askInNewChat?: (seed: NewChatSeed) => void;
   /** 変わる様子 */
   readonly state: ValueCell<ChatPaneState>;
+  /** 流れの窓が描く行を変えて描き終えた回数（チャットの中の検索が、見出しを通さずに購読して印を付け直す） */
+  readonly drawn: ValueCell<number>;
 }
 
 /** 1 つのチャットの画面の操作（ChatView が配る。チャットの画面の外では null） */

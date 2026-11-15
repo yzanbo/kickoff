@@ -28,11 +28,19 @@
 
 /*
  * 画面から離れた行は、レイアウトと描画を省く（content-visibility は描くのを省くとき箱の外を切るので、項目ではなく包みに当てる。
- * 包みの余白に飾りが収まる）。大きさは一度描いた大きさを覚え（auto）、まだ描いていない行は見積もりの 120px（行ごとの見積もり・測った高さはまだ入れない）
+ * 包みの余白に飾りが収まる）。大きさは一度描いた大きさを覚え（auto）、まだ描いていない行は窓（hooks/useRowWindow.ts）が置いた --row-est
+ * （見え方の店の測った高さ、なければ rowEstimate の見積もり。中身の高さで、包みの余白は含まない）。--row-est のない所（カードの中身など）は初めの値の 120px
  */
+@property --row-est {
+  /* 中の行（サブエージェントのカードの手順）へ外の行の値を受け継がせない */
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 120px;
+}
+
 .timeline-row {
   content-visibility: auto;
-  contain-intrinsic-block-size: auto 120px;
+  contain-intrinsic-block-size: auto var(--row-est);
 }
 
 /* いまの作業の行（実行中のツール・流れ続けるコマンドの出力・動いているサブエージェントのカード。data-live）は省かない（頻繁に変わり、いつも見えているため） */

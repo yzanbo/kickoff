@@ -9,6 +9,8 @@ import { useState, type RefObject } from "react";
  */
 export interface TimelineScroll {
   readonly ref: RefObject<HTMLDivElement | null>;
+  /** 流れの行の並び（.timeline-inner。窓が gap・本文の幅・文字の倍率を測る） */
+  readonly inner: RefObject<HTMLDivElement | null>;
   following: () => boolean;
   /** 一番下に付いていく（送った・一番下へ戻った）。上へ戻している途中の印も外す */
   follow: () => void;
@@ -29,6 +31,7 @@ export function useTimelineScrollHandle(initialFollow: boolean): TimelineScroll 
     let held = false;
     return {
       ref: { current: null },
+      inner: { current: null },
       following: () => following,
       follow: () => {
         following = true;

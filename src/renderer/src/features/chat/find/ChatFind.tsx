@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cx } from "@/lib/cx";
 import { consumeKey, isKey } from "@/lib/keys";
 import { findPattern, spansIn, type FindPattern } from "@/lib/textFind";
@@ -25,7 +25,6 @@ const CURRENT = "chat-find-current";
  */
 export function ChatFind({
   tail,
-  version,
   floating = false,
 }: {
   /**
@@ -35,11 +34,11 @@ export function ChatFind({
   floating?: boolean;
   /** 記録の末尾（その前の本文は searchTexts で読む） */
   tail: ChatEvent[];
-  /** 描いている項目（変わったら印を付け直す） */
-  version: unknown;
 }) {
   // 印を付ける範囲（チャットの画面）・移るとき（その発言を描くよう窓を動かす）・やめたあと（チャット欄にピントを戻す）
-  const { root, reveal, focusComposer, searchTexts } = useChatPane();
+  const { root, reveal, focusComposer, searchTexts, drawn } = useChatPane();
+  // 流れの窓が描く行を変えたら印を付け直す（見出しを通さずに直接購読する。スクロールで描く行が変わっても見出しは描き直さない）
+  const version = useSyncExternalStore(drawn.subscribe, drawn.get);
   // 遠い一致へ移るために読んでいる（150ms を超えたら件数のところに出す。Q1 A）
   const jumping = useChatPaneState((s) => s.jumping) ?? null;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -88,9 +87,6 @@ export function ChatFind({
     setIndex(null);
   }
   const current = index !== null ? matches[index] : undefined;
-  // 移ったら、その発言を描いてからスクロールする
-  const scrollPending = useRef(false);
-
   // 描いている範囲の一致すべてに印を付ける（閉じたら外す）
   useEffect(() => {
     const highlights = CSS.highlights;
@@ -102,7 +98,7 @@ export function ChatFind({
     };
   }, [pattern, version, root]);
 
-  // いま選んでいる一致に印を付け、移ったばかりならそこまでスクロールする（その発言の中の nth 番目。描いた文と記録がずれたら最初）
+  // いま選んでいる一致に印を付ける（その発言の中の nth 番目。描いた文と記録がずれたら最初。描かれたら付け直す）
   useEffect(() => {
     const highlights = CSS.highlights;
     const el = current && root.current?.querySelector<HTMLElement>(`#ev-${current.eventId}`);
@@ -114,10 +110,6 @@ export function ChatFind({
     const range = ranges[current.nth] ?? ranges[0];
     if (range) highlights?.set(CURRENT, new Highlight(range));
     else highlights?.delete(CURRENT);
-    if (scrollPending.current) {
-      scrollPending.current = false;
-      (range?.startContainer.parentElement ?? el).scrollIntoView({ block: "center" });
-    }
     return () => {
       highlights?.delete(CURRENT);
     };
@@ -127,8 +119,14 @@ export function ChatFind({
     if (matches.length === 0) return;
     const i = index === null ? matches.length - 1 : (index + step + matches.length) % matches.length;
     setIndex(i);
-    scrollPending.current = true;
-    reveal(matches[i].eventId);
+    // 描いて測り終えてから、その一致へスクロールする（読んでいなければ読んでから）
+    const target = matches[i];
+    void reveal(target.eventId).then(() => {
+      const el = root.current?.querySelector<HTMLElement>(`#ev-${target.eventId}`);
+      if (!el || !pattern) return;
+      const ranges = findRanges(el, pattern);
+      ((ranges[target.nth] ?? ranges[0])?.startContainer.parentElement ?? el).scrollIntoView({ block: "center" });
+    });
   };
 
   // ⌘F: 見出しの行の検索欄にピントを移し、前に打った文を選んで打ち直せるようにする（アプリ全体の ⌘F より先に、捕捉で受け取る）
