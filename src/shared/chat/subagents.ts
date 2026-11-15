@@ -166,6 +166,9 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       const d = e.data;
       const entry = map.get(d.tool_use_id);
       if (!entry) continue;
+      // 結果は起動した流れ（呼び出しと同じ parent）に返ったものだけを数える。fork のサブエージェントは親の会話を引き継ぐので、
+      // 自分の中の頭に起動の呼び出しへの仮の結果（「Fork started — that fork is you.」）が parent = 自分で届き、それで完了にすると作業中に見えなかった
+      if ((d.parent === undefined ? undefined : keyOf(d.parent)) !== entry.parentKey) continue;
       entry.agentId ??= agentIdIn(d.content);
       // 裏で動かしたサブエージェントは、結果が「起動した」という知らせなので、まだ終わっていない（終わりは通知で届く）
       if (isBackgroundLaunch(d.content)) backgrounded.add(entry.key);
