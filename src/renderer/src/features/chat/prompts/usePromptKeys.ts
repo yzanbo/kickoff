@@ -26,7 +26,7 @@ export function usePromptKeys({
   const go = (dir: -1 | 1, from?: number) => {
     const el = timeline.current;
     if (!el) return;
-    const tops = promptTops(el);
+    const tops = promptTops(el, lastJump.current);
     const ids = idsRef.current;
     // 前に移った先が、まだ画面に見えているならその前後へ
     const top = lastJump.current === undefined ? undefined : tops.get(lastJump.current);

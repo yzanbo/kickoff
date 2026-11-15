@@ -33,6 +33,7 @@
 @import "./ui/tone-chip.css";
 @import "./ui/empty-state.css";
 @import "./chat/chat.css";
+@import "./chat/timeline-row.css";
 @import "./chat/streaming.css";
 @import "./chat/chat-tools.css";
 @import "./chat/bash-output.css";

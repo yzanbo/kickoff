@@ -4,14 +4,21 @@
 const SLACK = 8;
 
 /**
- * 流れの中の自分の発言の上端の位置（流れの上端からの px。描いていないもの（窓の外の前の発言）は入れない）
+ * 流れの中の自分の発言の上端の位置（流れの上端からの px。描いていないもの（窓の外の前の発言）は入れない）。
+ * 位置は行の包み（data-prompt-id）で読み、流れの上端の遊びに掛かる行と exact の指示（前に移った先）だけ、中の吹き出しの位置を読む
+ * （画面の外の行は描くのを省いているので、中の要素の位置を読むとその行のレイアウトを強いる。前後の決め方は上端の遊びとの上下だけなので、
+ * 遊びに掛からない行は行の上端で同じ答えになる）
  */
-export function promptTops(timeline: HTMLElement): Map<number, number> {
+export function promptTops(timeline: HTMLElement, exact?: number): Map<number, number> {
   const top = timeline.getBoundingClientRect().top;
   const tops = new Map<number, number>();
-  for (const bubble of timeline.querySelectorAll<HTMLElement>(".bubble.user[id^='ev-']")) {
-    const id = Number(bubble.id.slice(3));
-    if (Number.isFinite(id)) tops.set(id, bubble.getBoundingClientRect().top - top);
+  for (const row of timeline.querySelectorAll<HTMLElement>(":scope > .timeline-inner > .timeline-row[data-prompt-id]")) {
+    const id = Number(row.dataset.promptId);
+    if (!Number.isFinite(id)) continue;
+    const box = row.getBoundingClientRect();
+    const near = box.top - top <= SLACK && box.bottom - top >= -SLACK;
+    const bubble = near || id === exact ? row.querySelector<HTMLElement>(".bubble.user") : null;
+    tops.set(id, (bubble ? bubble.getBoundingClientRect().top : box.top) - top);
   }
   return tops;
 }

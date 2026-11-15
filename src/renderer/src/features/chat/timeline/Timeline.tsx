@@ -40,31 +40,46 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
   // 長いチャットで Markdown を毎回解析し直すと、そのたびに 100ms ほどかかり、入力が重くなる）
   // サブエージェントのカードの中身も、同じ部品で描く（入れ子のカードもこの中で描かれる）
   const renderItems: RenderItems = (inner, innerActive) => <TimelineItems items={inner} rel={rel} active={innerActive} />;
-  return items.map((item, i) => {
-    switch (item.kind) {
-      case "tools":
-        return <MemoToolGroup key={item.key} tools={item.tools} rel={rel} active={i > floor} />;
-      case "subagent":
-        return <SubagentCard key={item.key} call={item.call} rel={rel} renderItems={renderItems} />;
-      case "subagentEnd":
-        return <SubagentEndNote key={item.key} event={item.event} agentKey={item.agentKey} />;
-      case "visual":
-        return <MemoVisualItem key={item.key} call={item.call} />;
-      default:
-        return (
-          <MemoEventItem
-            key={item.key}
-            event={item.event}
-            turnStart={item.turnStart}
-            turnText={item.turnText}
-            turnChanges={item.turnChanges}
-            turnHandoff={item.turnHandoff}
-            turnHandoffs={item.turnHandoffs}
-            createdChats={item.createdChats}
-          />
-        );
-    }
-  });
+  return items.map((item, i) => (
+    // 行の包み（.timeline-row）: 測る・content-visibility を当てる単位。作業中のいまの作業の行には data-live（画面の外でも描くのを省かない）、
+    // 自分の発言・質問への回答の行には data-prompt-id（上に貼り付ける指示が、行の位置だけで探す）
+    <div key={item.key} className="timeline-row" data-live={i > floor ? "" : undefined} data-prompt-id={promptIdOf(item)}>
+      {renderItem(item, i > floor, rel, renderItems)}
+    </div>
+  ));
+}
+
+/** 自分の発言・質問への回答の行なら、その記録の ID（上に貼り付ける指示の候補。ほかの行は undefined） */
+function promptIdOf(item: TimelineItem): number | undefined {
+  if (item.kind !== "event") return undefined;
+  const e = item.event;
+  return e.type === "user" || (e.type === "approval_resolved" && e.data.action === "answer") ? e.id : undefined;
+}
+
+/** 項目 1 つ（live: いまの作業の中の項目。結果の届いていないツールを実行中として見せる） */
+function renderItem(item: TimelineItem, live: boolean, rel: (s: string) => string, renderItems: RenderItems) {
+  switch (item.kind) {
+    case "tools":
+      return <MemoToolGroup tools={item.tools} rel={rel} active={live} />;
+    case "subagent":
+      return <SubagentCard call={item.call} rel={rel} renderItems={renderItems} />;
+    case "subagentEnd":
+      return <SubagentEndNote event={item.event} agentKey={item.agentKey} />;
+    case "visual":
+      return <MemoVisualItem call={item.call} />;
+    default:
+      return (
+        <MemoEventItem
+          event={item.event}
+          turnStart={item.turnStart}
+          turnText={item.turnText}
+          turnChanges={item.turnChanges}
+          turnHandoff={item.turnHandoff}
+          turnHandoffs={item.turnHandoffs}
+          createdChats={item.createdChats}
+        />
+      );
+  }
 }
 
 /** ツールのまとまり: 呼び出しと結果の記録が同じなら描き直さない（まとまりの配列は記録が増えるたびに作り直されるため、中身で比べる） */
