@@ -27,6 +27,8 @@ export type HostHandlers = Omit<HostMethods, "dbWorker.spawn" | "dbWorker.kill">
 interface CoreProcessOptions {
   /** ビルドの out/main/core.js */
   file: string;
+  /** 起動の引数（コンパイルキャッシュの場所） */
+  args: string[];
   /** DB ワーカー（out/main/dbWorker.js。作るのはメイン、話すのはコア） */
   dbWorkerFile: string;
   /** 起動の値（作り直すたびに作る。recoveredReason は前のコアの終わり方） */
@@ -136,7 +138,7 @@ export class CoreProcess {
 
   /** fork → init → ready / failed / exit を待つ */
   private spawn(recoveredReason: RecoveredReason): Promise<CoreReady> {
-    const child = utilityProcess.fork(this.opts.file, [], {
+    const child = utilityProcess.fork(this.opts.file, this.opts.args, {
       serviceName: "Kickoff Core",
       stdio: "inherit",
       env: process.env,
