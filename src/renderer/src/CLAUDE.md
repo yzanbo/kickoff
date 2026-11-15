@@ -109,7 +109,7 @@
 
 - 作業中は返答が細切れに届くたびにチャットの流れが描き直されるので、流れの項目は memo する（`Timeline.tsx` の `MemoEventItem` / `MemoToolGroup`）。項目に渡す関数は `useCallback` で同じものにし、記録をたどる計算（`collectSubagents` など）は `useMemo` に入れる。context の値は描き直しのたびに作り直さない（チャットの画面の操作 `ChatPaneActions` はチャットごとに 1 回だけ作る。作り直すと memo した項目がすべて描き直される）。
 - 流れ全体に効く値（作業中かなど）を流れの項目の props で渡さない（変わった瞬間に memo した項目がすべて描き直り、返答の Markdown を解析し直す）。使う小さな部品だけが context で読む（作業中かは `features/chat/timeline/timelineBusy.ts` の `useTimelineBusy`。発言の書き直し・ファイルを戻す・作業の終わりの行の分岐・依頼文のボタン。メモの仕様書「0023_表示を軽くする」の案 26）。
-- 書いている途中の返答（SSE の `chat_delta`）は 1 フレームの分をまとめて足す（`useChatDetail`）。出すのは `StreamingReply` の中だけで少しずつ伸ばす（`useStreamReveal`。流れの項目は描き直さない）。
+- 書いている途中の返答（SSE の `chat_delta`）は 1 フレームの分をまとめて足す（`useChatDetail`）。出すのは `StreamingReply` の中だけで少しずつ伸ばす（`useStreamReveal`。流れの項目は描き直さない）。少しずつ出す描き直しは `startTransition` で当て、キー入力を先に描かせる（案 5。効き目は Markdown のブロックごとの memo（案 15）のあとに測る。1 つの部品の描画の途中では止められないため）。
 - `Markdown`（`ui/markdown/Markdown.tsx`）は本文と設定（`streaming`・`tail`）で memo してあり、同じなら親が描き直っても解析し直さない。書きかけの返答（`StreamingReply`）は出す文（`useStreamReveal` の返す値）で Markdown を作り置く（案 27）。Markdown に毎回新しい値（その場で作った配列など）を渡さない。
 - 長い一覧は描く範囲を絞る（チャットの流れは最近の項目だけを描く窓 `timelineWindow.ts`。流れをすべて描かない。数千ターンのチャットで画面の要素が 10 万個を超え、画面が真っ黒になったことがある）。
 - 一番下への付いていきは、中身・枠の大きさの知らせ（ResizeObserver。レイアウトのあと・描く前に届く）の中で、ずれているときだけ寄せる（`lib/followScroll.ts` の `snapTarget`）。中身が伸びるたびに effect・`useLayoutEffect` で `scrollTop = scrollHeight` を書かない（読むたびに流れ全体のレイアウトを強い、書いている最中の入力 1 文字が 50ms ほどかかっていた。案 7a）。会話の流れの枠（`.timeline-wrap > .timeline`）は `contain: strict` で、中の変化を流れの外（見出し・チャット欄・ピル）のレイアウトに及ぼさない（大きさは格子で決まる。中身で高さが決まる置き場所の `.timeline` には付けない）。
