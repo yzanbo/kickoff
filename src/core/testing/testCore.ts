@@ -36,8 +36,8 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
 /** 少し待つ（ほかの非同期の処理を進める） */
 export const tick = () => new Promise((r) => setTimeout(r, 10));
 
-/** cond が満たされるまで待つ（2 秒で失敗） */
-export async function until(cond: () => boolean) {
-  for (let i = 0; i < 200 && !cond(); i++) await tick();
+/** cond が満たされるまで待つ（既定 2 秒で失敗。別のプロセスの起動を待つなど、負荷で遅れうるものは ms を長くする） */
+export async function until(cond: () => boolean, ms = 2000) {
+  for (let i = 0; i < ms / 10 && !cond(); i++) await tick();
   assert.ok(cond(), "条件を満たしませんでした");
 }

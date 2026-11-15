@@ -98,6 +98,11 @@ export class DbWorkerClient {
     return this.channel !== null;
   }
 
+  /** ワーカーが起動して、まだ動いているシェル・ssh の数（ワーカーの知らせから。止めるときにグループごと止める相手） */
+  get childCount() {
+    return this.children.size;
+  }
+
   /** 名前が prefix で始まる、トランザクションの途中の接続（接続を切る前の確かめ） */
   transactionsOf(prefix: string) {
     return [...this.inTransaction].filter((s) => s.startsWith(prefix));
