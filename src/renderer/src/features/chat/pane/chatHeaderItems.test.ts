@@ -24,9 +24,9 @@ test("orderedHeaderSections: 覚えた並びでまとまりの中を並べ、覚
   assert.deepEqual(orderedHeaderSections([])[0].items, ["project", "group", "worktree"]);
   const saved = ["worktree", "project", "old-item", "cost"];
   const sections = orderedHeaderSections(saved);
-  assert.deepEqual(sections.map((s) => s.title), ["バッジ", "道具", "数", "右の欄"]);
+  assert.deepEqual(sections.map((s) => s.title), ["バッジ", "名前", "道具", "数", "右の欄"]);
   assert.deepEqual(sections[0].items, ["worktree", "project", "group"]);
-  assert.deepEqual(sections[2].items, ["cost", "turns"]);
+  assert.deepEqual(sections[3].items, ["cost", "turns"]);
   assert.deepEqual(sortHeaderItems(saved, ["project", "group", "worktree"]), ["worktree", "project", "group"]);
 });
 
