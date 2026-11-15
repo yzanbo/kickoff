@@ -19,19 +19,23 @@ import { loadSavedExtensions } from "./browser/extensions.js";
 import { watchWebviewConsoles } from "./browser/webviewConsole.js";
 import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
 import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
+import { watchMainStalls } from "./diagnostics/stalls.js";
 import { registerIpc } from "./ipc/ipc.js";
 import { notifyFromCore } from "./notifications/notifications.js";
 import { hostPlatform } from "./platform/index.js";
 import { setTerminalSessions } from "./terminal/terminals.js";
+import { timed } from "../core/system/stallWatch.js";
 
 // 1. 名前・保存先を決め、起動の記録を始める（~/Library/Logs/<アプリ名>/startup.log。入れ替えた直後だけ画面が出ないことの原因を追うため）
 const { port, devUrl } = setupEnvironment();
 logLaunch();
+// イベントループの詰まりをいつも見張る（~/Library/Logs/<アプリ名>/stalls.jsonl。diagnostics/stalls.ts）
+watchMainStalls();
 watchChildProcesses();
 // 画面が応答しなくなったとき、止まっている JavaScript の場所を取れるようにする（app/hangWatch.ts）
 enableHangStacks();
 // 2. 開発のデータがまだなければ、本番のデータから一度だけ写す（起動中の印を作る前に）
-seedDevDataOnce();
+timed("boot:seedDevData", seedDevDataOnce)();
 // 3. 埋め込みブラウザの安全設定は、ウィンドウを作る前に登録しておく
 hardenWebviews();
 // AI が読む埋め込みブラウザのコンソールの出力は、webview ができたときから覚える
@@ -52,7 +56,7 @@ if (!app.requestSingleInstanceLock()) {
 async function start() {
   startupLog("whenReady");
   // OS ごとに違う処理の口（platform/index.ts で選ぶ。いまは macOS だけ）
-  hostPlatform.loadLoginShellPath();
+  timed("boot:loadLoginShellPath", () => hostPlatform.loadLoginShellPath())();
   startupLog("ログインシェルの PATH を読みました");
   // ディスプレイの抜き差し・スリープを起動の記録に書く（画面が応答しなくなったきっかけを照らし合わせるため）
   logDisplayEvents();

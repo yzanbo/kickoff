@@ -65,6 +65,7 @@ import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VE
 import { createMiddleware } from "hono/factory";
 import { MCP_PATH, type McpToolHost } from "../mcp/host.js";
 import type { ProviderKeyVault } from "../providers/keys.js";
+import { noteSyncSince, syncStart } from "../system/stallWatch.js";
 
 export interface ServerDeps {
   store: Store;
@@ -135,6 +136,15 @@ const VERSION = "0.1.0";
 export function createApp(deps: ServerDeps): Hono {
   const { store, bus, token, runner } = deps;
   const app = new Hono();
+
+  // 詰まりの見張り（system/stallWatch.ts）: 頼みの最初の await までの同期の分に「http:<メソッド> <パス>」の名前を付ける（数字の段は :id）。
+  // 中の SQL は別に名前が付く
+  app.use("*", async (c, next) => {
+    const start = syncStart();
+    const done = next();
+    noteSyncSince(start, () => `http:${c.req.method} ${c.req.path.replace(/\/\d+(?=\/|$)/g, "/:id")}`);
+    await done;
+  });
 
   // 版の互換: アプリが見出しで伝えた API の版が、本体の受ける下限より古ければ、決まった印で断る（認証より前。ペアリングの口も同じ）
   const checkClientVersion = createMiddleware(async (c, next) => {
@@ -258,7 +268,12 @@ export function createApp(deps: ServerDeps): Hono {
       const unsubscribe = bus.subscribe((event) => {
         if (isDevice && event.type === "settings" && !event.settings.remote_enabled) return finish();
         if (caller.kind === "device" && event.type === "devices" && !store.devices.get(caller.device.id)) return finish();
-        if (!isDevice || deviceMaySee(event)) void stream.writeSSE({ data: JSON.stringify(event) });
+        if (!isDevice || deviceMaySee(event)) {
+          const start = syncStart();
+          const data = JSON.stringify(event);
+          noteSyncSince(start, () => `sse:${event.type}`);
+          void stream.writeSSE({ data });
+        }
       });
       const ping = setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);
       // つないだらすぐ hello（本体の版・API の版・本体の ID）を送る。何か書くまで応答ヘッダーが届かず、画面が「接続中」のままになるのも防ぐ
