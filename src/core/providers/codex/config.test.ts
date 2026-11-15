@@ -125,3 +125,9 @@ test("結果: 終わったらターンの ID を分岐の起点に、通信の�
   assert.deepEqual(limit.usageLimit, { resetsAt: null });
   assert.equal(limit.network, undefined);
 });
+
+test("GitHub のアカウントのトークン: Codex が名前で外す変数は set で AI のコマンドに渡し、ほかの環境変数は足さない", () => {
+  assert.equal(threadOverrides(params({})).config?.["shell_environment_policy.set"], undefined);
+  const over = threadOverrides(params({ env: { GH_TOKEN: "gho_x", PORT: "20100" } }));
+  assert.deepEqual(over.config?.["shell_environment_policy.set"], { GH_TOKEN: "gho_x" });
+});

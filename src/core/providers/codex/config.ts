@@ -48,6 +48,16 @@ export function codexSandboxPolicy(params: ProviderTurnParams): SandboxPolicy {
 }
 
 /**
+ * Kickoff が AI のコマンドに渡すつもりの環境変数のうち、Codex の既定（shell_environment_policy）が名前（KEY・SECRET・TOKEN を含む）でコマンドから外すもの。
+ * プロジェクトで選んだ GitHub のアカウントのトークン（turn.ts が params.env に入れる）は AI の gh・git に届ける約束なので、set で明示して渡す
+ */
+const DELIVERED_SECRET_VARS = ["GH_TOKEN", "GH_ENTERPRISE_TOKEN"];
+
+function shellEnvSet(env: Record<string, string> | undefined): Record<string, string> {
+  return Object.fromEntries(DELIVERED_SECRET_VARS.flatMap((name) => (env?.[name] ? [[name, env[name]]] : [])));
+}
+
+/**
  * thread/start・thread/resume の上書き。承認はいつも untrusted にして Codex に聞かせ、来た承認に Kickoff の守りを当てる（approvals.ts）。
  * システムプロンプトに足す文は developer_instructions（Codex の既定の指示は残す）。API キーで動かすときは、子プロセスから鍵の環境変数を外す既定を強める
  */
@@ -64,6 +74,7 @@ export function threadOverrides(params: ProviderTurnParams): ThreadOverrides {
       "sandbox_workspace_write.writable_roots": writableRootsOf(params),
       "sandbox_workspace_write.network_access": true,
       ...(apiKey ? { "shell_environment_policy.ignore_default_excludes": false } : {}),
+      ...(Object.keys(shellEnvSet(params.env)).length > 0 ? { "shell_environment_policy.set": shellEnvSet(params.env) } : {}),
     },
   };
 }
