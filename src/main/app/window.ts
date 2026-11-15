@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from "electron";
+import { followAppearance, windowBackground } from "./appearance.js";
 import { PRELOAD_FILE } from "./environment.js";
 import { openLinksExternally } from "./externalLinks.js";
 import { watchWindowLoad } from "./startupLog.js";
@@ -6,12 +7,6 @@ import { watchRendererHang } from "./hangWatch.js";
 import { markMain } from "../diagnostics/bootRecorder.js";
 
 // メインのウィンドウ（Kickoff の画面）。Mac ではウィンドウを閉じてもアプリは残り、Dock を押すと作り直す
-
-/**
- * 画面を読み込む前・大きさを変えている間に見える地の色。画面の --bg（styles/base/tokens.css の既定のダーク）と同じにする
- * （以前は #0f1115 で、読み込む間だけ画面と違う色が見えていた）
- */
-const BACKGROUND = "#141818";
 
 let current: BrowserWindow | undefined;
 /** 画面の URL（窓がないときに作り直すため。index.ts が準備のあとに渡す） */
@@ -39,7 +34,8 @@ export function openMainWindow(url: string, before?: Promise<unknown>) {
     titleBarStyle: "hiddenInset",
     // 信号機ボタンの位置を固定し、画面側の開閉ボタンと高さをそろえる（画面の .titlebar-toggle と対応）
     trafficLightPosition: { x: 14, y: 14 },
-    backgroundColor: BACKGROUND,
+    // 画面を読み込む前・大きさを変えている間に見える地の色。選んでいるテーマの --bg と同じにする（app/appearance.ts）
+    backgroundColor: windowBackground(),
     webPreferences: {
       preload: PRELOAD_FILE,
       contextIsolation: true,
@@ -49,6 +45,7 @@ export function openMainWindow(url: string, before?: Promise<unknown>) {
       webviewTag: true,
     },
   });
+  followAppearance(win);
   // 起動の時刻（diagnostics/bootRecorder.ts。最初の 1 回だけ覚える）
   markMain("windowCreated");
   win.webContents.on("did-start-loading", () => markMain("loadStart"));
