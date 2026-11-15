@@ -1,10 +1,10 @@
 // 内蔵ターミナルのシェル（パネルのタブ・スマホのターミナル）。シェルはコアで動かし、つなぐ人（クライアント）は何人でもよい:
-// この Mac の画面はメインプロセスの IPC から（main/terminal/terminals.ts）、スマホは WebSocket から（http/routes/terminals.ts）。
+// この Mac の画面もスマホも WebSocket から（http/routes/terminals.ts）。
 // 画面の内容は裏の端末（output.ts）にも書いておき、つなぎ直した・あとからつないだ人には、いまの画面の内容（snapshot）を渡す
 import { statSync } from "node:fs";
 import os from "node:os";
 import * as pty from "node-pty";
-import type { TerminalStart, TerminalTabMeta } from "@shared/ipc";
+import type { TerminalStart, TerminalTabMeta } from "@shared/types";
 import type { TerminalShell } from "../platform/types.js";
 import type { TerminalControl, TerminalTabInfo, TerminalTail } from "./control.js";
 import { TerminalOutput } from "./output.js";

@@ -50,7 +50,7 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 
 ## ターミナル（terminal/）
 
-- シェルはコアで動く（`src/core/CLAUDE.md` の「ターミナル」。2026-11-14 にスマホからも使えるよう移した）。`terminals.ts` は、この Mac の画面のパネルのタブを IPC でコアの `TerminalSessions` につなぐだけ（`index.ts` がコアを起動したあと `setTerminalSessions(core.terminals)`）: `terminal.open` は、つないだ画面（`WebContents`）を持ち主（`wc:<ID>`）とつないでいる人にして、出力を `onData`、終わりを `onExit` で送る。その画面が消えた・読み込み直したら、その画面が持ち主のシェルを止める（タブの記録は画面と一緒に消えるので）。シェルに渡す `KICKOFF_TERMINAL_OF`（製品版 / 開発版。`npm run install-app` が、製品版のターミナルから流されたのを見分ける）は `startCore({ terminalEnv })` で渡す。終わるときのシェルの片付けもコア（`core.close`）。
+- シェルはコアで動き（`src/core/CLAUDE.md` の「ターミナル」。2026-11-14 にスマホからも使えるよう移した）、この Mac の画面のパネルのタブもスマホと同じくコアの API（`POST /api/terminals`・WebSocket の `GET /api/terminals/:key/ws`）で直接つなぐ（出力をメインプロセスに通さない。メモの仕様書「0023_表示を軽くする」の案 16）。`terminals.ts` は画面の生き死にだけを見る: IPC の `terminal.owner` で画面に持ち主の印（`wc:<WebContents の ID>`）を返してその画面を見張り、その画面が消えた・読み込み直したら、コアにその持ち主のシェルを止めさせる（`setTerminalCloser` で渡した口。タブの記録は画面と一緒に消えるので）。IPC の `terminal` のまとまりがあることが、Mac のアプリでターミナルを使える印。シェルに渡す `KICKOFF_TERMINAL_OF`（製品版 / 開発版。`npm run install-app` が、製品版のターミナルから流されたのを見分ける）は `startCore({ terminalEnv })` で渡す。終わるときのシェルの片付けもコア（`core.close`）。
 
 ## 眠らせない（app/keepAwake.ts）
 

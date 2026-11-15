@@ -119,3 +119,65 @@ test("ターミナル: つないだあとで見るだけに変えた端末の入
   await closed;
   assert.equal(store.devices.get(full.id), null);
 });
+
+test("ターミナル: この Mac の画面は POST /api/terminals でキー・フォルダ・コマンド・名前・持ち主を渡してシェルを用意し、同じキーでつなぎ直すと画面の内容が届く", async (t) => {
+  const { app, project, terminals, terminalFake } = withDevices();
+  const server = await startHttpServer(app, { port: 0, host: "127.0.0.1" });
+  t.onTestFinished(() => stopHttpServer(server));
+  const port = (server.address() as AddressInfo).port;
+  const open = (body: Record<string, unknown>, headers: Record<string, string> = AUTH) =>
+    app.request("/api/terminals", { method: "POST", headers: json(headers), body: JSON.stringify({ key: "side:1:t1", cwd: project.repo_path, cols: 80, rows: 24, owner: "wc:7", start: null, meta: null, ...body }) });
+
+  const created = await open({ start: { command: "docker compose exec web sh", env: { A: "1" } }, meta: { project_id: project.id, title: "web" } });
+  assert.equal(created.status, 201);
+  assert.deepEqual(await created.json(), { created: true });
+  const shell = terminalFake.spawned[0];
+  assert.equal(shell.cwd, project.repo_path);
+  assert.deepEqual(shell.args, ["-c", "docker compose exec web sh"]);
+  assert.equal(shell.env.A, "1");
+  assert.deepEqual(terminals.list(), [{ key: "side:1:t1", project_id: project.id, title: "web", cwd: project.repo_path, command: "docker compose exec web sh" }]);
+  assert.equal(terminals.ownerOf("side:1:t1"), "wc:7");
+  shell.emit("hello\r\n");
+
+  // 同じキーはつなぎ直し（流し直さない。名前と持ち主だけ覚え直す）
+  const again = await open({ owner: "wc:8", start: { command: "rm -rf /", env: null }, meta: { project_id: project.id, title: "web 2" } });
+  assert.equal(again.status, 200);
+  assert.deepEqual(await again.json(), { created: false });
+  assert.equal(terminalFake.spawned.length, 1);
+  assert.equal(terminals.ownerOf("side:1:t1"), "wc:8");
+  assert.equal(terminals.list()[0].title, "web 2");
+
+  // つなぐと、それまでの出力が画面の内容で届く。この Mac は持ち主の印が違っても大きさを変えられる
+  const messages: TerminalServerMessage[] = [];
+  const ws = new WebSocket(`ws://127.0.0.1:${port}/api/terminals/side:1:t1/ws?cols=80&rows=24`, { headers: AUTH });
+  ws.on("message", (raw) => messages.push(JSON.parse(String(raw)) as TerminalServerMessage));
+  await new Promise((r) => ws.once("open", r));
+  await until(() => messages.length > 0);
+  assert.equal(messages[0].type, "snapshot");
+  assert.match((messages[0] as { data: string }).data, /hello/);
+  ws.send(JSON.stringify({ type: "resize", cols: 100, rows: 30 }));
+  await until(() => shell.cols === 100);
+  ws.close();
+
+  // 端末は使えない・持ち主に端末の印は名乗れない
+  assert.equal((await open({ key: "x" }, bearer(FULL_TOKEN))).status, 403);
+  assert.equal((await open({ key: "y", owner: "device:1" })).status, 400);
+  assert.equal(terminalFake.spawned.length, 1);
+});
+
+test("ターミナル: 画面が消えた・読み込み直したときの closeOwnedBy は、その持ち主のシェルだけを止める", async () => {
+  const { app, project, terminals, terminalFake } = withDevices();
+  for (const [key, owner] of [["a", "wc:1"], ["b", "wc:2"]]) {
+    const res = await app.request("/api/terminals", { method: "POST", headers: json(AUTH), body: JSON.stringify({ key, cwd: project.repo_path, cols: 80, rows: 24, owner, start: null, meta: null }) });
+    assert.equal(res.status, 201);
+  }
+  terminals.closeOwnedBy("wc:1");
+  assert.deepEqual(
+    terminalFake.spawned.map((s) => s.killed),
+    [true, false],
+  );
+  assert.deepEqual(
+    terminals.list().map((tab) => tab.key),
+    ["b"],
+  );
+});

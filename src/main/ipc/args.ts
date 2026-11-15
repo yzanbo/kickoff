@@ -11,10 +11,6 @@ const none = z.tuple([]);
 const absolutePath = z.string().refine((p) => path.isAbsolute(p), { message: "絶対パスではありません" });
 /** 埋め込みブラウザ（WebContents）の ID */
 const webContentsId = z.number().int().nonnegative();
-/** ターミナルのタブのキー */
-const terminalKey = z.string().min(1);
-/** ターミナルの桁数・行数（範囲には受け取ってから丸める） */
-const terminalSize = z.number();
 const positiveInt = z.number().int().positive();
 const terminalId = z.enum(EXTERNAL_TERMINALS.map((t) => t.id));
 const browserId = z.enum(EXTERNAL_BROWSERS.map((b) => b.id));
@@ -62,17 +58,7 @@ export const IPC_ARGS = defineArgSchemas({
     remove: z.tuple([absolutePath]),
   },
   terminal: {
-    open: z.tuple([
-      terminalKey,
-      z.string(),
-      terminalSize,
-      terminalSize,
-      z.object({ command: z.string().max(20_000).optional(), env: z.record(z.string(), z.string()).optional() }).optional(),
-      z.object({ projectId: z.number().int().nullable(), title: z.string().max(500) }).optional(),
-    ]),
-    write: z.tuple([terminalKey, z.string()]),
-    resize: z.tuple([terminalKey, terminalSize, terminalSize]),
-    close: z.tuple([terminalKey]),
+    owner: none,
   },
   notifications: {
     notify: z.tuple([

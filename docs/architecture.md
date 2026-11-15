@@ -512,7 +512,7 @@ src/
     github/            GitHub タブの読み取り（gh api の GraphQL と REST・応答を形にする normalize・一覧の ETag の覚え）
     usage/             使用状況（Claude のプランの枠と、ほかのサービス services/）
     voice/             音声入力の文字起こし（whisper-cli・macOS の音声認識・OpenAI）と、音声モードの読み上げ（OpenAI の声）
-    terminal/          内蔵ターミナルのシェル（TerminalSessions。この Mac の画面は IPC、スマホは WebSocket でつなぐ）と、AI に出力を読ませる口（TerminalControl）
+    terminal/          内蔵ターミナルのシェル（TerminalSessions。この Mac の画面もスマホも WebSocket でつなぐ）と、AI に出力を読ませる口（TerminalControl）
     docker/            Docker タブ（一覧・操作・エンジンの状態・見ている間だけの docker events・compose のファイル・ポートの取り合い・ログ・AI の守りが見る様子・「DB で開く」の案。表は持たない）
     memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown・HTML の一覧・読み書き・移動・ゴミ箱・チャットの文から作る・HTML のメモが読むファイルを返す）
     trash/             Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻す・本当に消す。AI の kickoff-trash・チャットとプロジェクトのゴミ箱・アーカイブ済みのチャットの整理・会話記録の片付けと乗り換えの古い記録・ほかの Kickoff が使う会話記録の確かめ）
