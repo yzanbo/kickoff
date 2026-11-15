@@ -54,8 +54,10 @@ export function ChatFind({
   const active = query !== "";
   const [earlier, setEarlier] = useState<ChatEvent[] | null>(null);
   const [loadingTexts, setLoadingTexts] = useState(false);
+  // 文を消したら捨てる（描いている間に決める。隠したタブを表に戻して effect が流れ直しても、読んだ本文を捨てて読み直さない）
+  if (!active && earlier !== null) setEarlier(null);
   useEffect(() => {
-    if (!active) return;
+    if (!active || earlier !== null) return;
     let alive = true;
     setLoadingTexts(true);
     void searchTexts()
@@ -68,10 +70,9 @@ export function ChatFind({
       });
     return () => {
       alive = false;
-      setEarlier(null);
       setLoadingTexts(false);
     };
-  }, [active, searchTexts]);
+  }, [active, earlier, searchTexts]);
   const searchable = useMemo(() => {
     if (!earlier?.length) return tail;
     const first = tail[0]?.id ?? Number.MAX_SAFE_INTEGER;
@@ -80,7 +81,12 @@ export function ChatFind({
   const matches = useMemo(() => findMatches(searchable, pattern), [searchable, pattern]);
   // いま選んでいる一致（null = まだ移っていない）
   const [index, setIndex] = useState<number | null>(null);
-  useEffect(() => setIndex(null), [pattern]);
+  // 探す形が変わったときだけ外す（前の形と比べて描いている間に決める。隠したタブを表に戻しても、選んでいた一致を残す）
+  const [indexFor, setIndexFor] = useState(pattern);
+  if (indexFor !== pattern) {
+    setIndexFor(pattern);
+    setIndex(null);
+  }
   const current = index !== null ? matches[index] : undefined;
   // 移ったら、その発言を描いてからスクロールする
   const scrollPending = useRef(false);

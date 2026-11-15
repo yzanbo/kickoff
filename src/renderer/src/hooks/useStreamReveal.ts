@@ -95,13 +95,15 @@ export function useStreamReveal(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [read, subscribe, visible]);
 
-  // 外したら止める（予約の印も戻す。StrictMode などで付け直したとき、予約済みと思い込んで動かなくならないように）
+  // 外したら止める（予約の印も戻す。StrictMode などで付け直したとき、予約済みと思い込んで動かなくならないように）。
+  // 隠した会話の欄（Activity の hidden）もここを通るので、止めた印を付け、表に戻したら最新の文を一度に出す（隠れていた間の分を早送りで見せない）
   useEffect(() => {
     const s = state.current;
     return () => {
       cancelAnimationFrame(s.frame);
       s.frame = 0;
       s.last = 0;
+      s.paused = true;
     };
   }, []);
   return view;

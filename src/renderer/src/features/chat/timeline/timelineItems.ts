@@ -310,3 +310,13 @@ export function relativize(text: string, repo: string): string {
   const escaped = repo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return text.replace(new RegExp(`${escaped}/|${escaped}(?![\\w.-])`, "g"), (m) => (m.endsWith("/") ? "" : "."));
 }
+
+/** 作業場所ごとの、絶対パスを相対パスにする関数（同じ作業場所なら同じ関数。流れの各項目の memo が効くように） */
+const relatives = new Map<string, (s: string) => string>();
+const asIs = (s: string) => s;
+export function relativeOf(repo: string | undefined): (s: string) => string {
+  if (!repo) return asIs;
+  let fn = relatives.get(repo);
+  if (!fn) relatives.set(repo, (fn = (s: string) => relativize(s, repo)));
+  return fn;
+}

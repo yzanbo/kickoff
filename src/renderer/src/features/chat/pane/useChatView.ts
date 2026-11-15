@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import type { Approval, Chat, ChatLive, Project } from "@shared/types";
-import { chatLog } from "@/features/chat/store/useChatStore";
+import { chatLog, useChatSubagents, useChatSubagentsView } from "@/features/chat/store/useChatStore";
 import type { ChatLogView } from "@/features/chat/store/chatStore";
 import { api } from "@/api";
 import { createValueCell } from "@/lib/valueCell";
@@ -20,14 +20,10 @@ import { usePromptKeys } from "@/features/chat/prompts/usePromptKeys";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { confirmRewindSend, restoreFilesBefore } from "@/features/chat/rewind/rewindActions";
 import { retryTurn, useRetryChoices } from "@/features/chat/rewind/useRetryChoices";
-import { useSubagents } from "@/features/chat/subagents/useSubagents";
-import type { SubagentsView } from "@/features/chat/subagents/subagentsContext";
-import { waitingSubagentKeys } from "@shared/chat/subagentState";
-import { pathOf, subagentTree } from "@/features/chat/subagents/subagentTree";
-import { agentHues } from "@/features/chat/subagents/agentHues";
+import { pathOf } from "@/features/chat/subagents/subagentTree";
 import { jumpToEvent } from "@/features/chat/timeline/jumpToEvent";
 import { useChipsPortal } from "./chipsPortal";
-import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems";
+import { groupEvents, relativeOf } from "@/features/chat/timeline/timelineItems";
 import { useTimelineScrollHandle } from "@/features/chat/timeline/timelineScroll";
 import { useTimelineWindow } from "@/features/chat/timeline/useTimelineWindow";
 import type { ChatPaneActions, ChatPaneState } from "./chatPaneContext";
@@ -69,7 +65,7 @@ const sideScroller = (chatId: number, key: string) =>
  * ChatView は描くだけ（ChatView はチャットごとに作り直す = key がチャットの ID）
  */
 export function useChatView(
-  { chat, project, log, approvals, live: coreLive, focus, onOpenNew, beforeSend }: ChatViewInput,
+  { chat, project, log, live: coreLive, focus, onOpenNew, beforeSend }: ChatViewInput,
   /** 右の欄（サブエージェントの欄）を置けるか（パネルの中のチャット） */
   canOpenSide = false,
 ) {
@@ -101,21 +97,12 @@ export function useChatView(
   );
   // 記録全体から作るもの（サブエージェント・指示の一覧・失敗した作業など）は、末尾と索引を重ねた digest から作る（案 4）
   const events = log.digest;
-  const subagents = useSubagents(chat.id, events, busy, live.background);
-  // サブエージェントの入れ子（流れの中のカード・ピルの一覧・カードへ移るとき）と、カードが読むもの（変わったときだけ新しい値にし、カードだけが描き直る）
-  const tree = useMemo(() => subagentTree(subagents), [subagents]);
-  const hues = useMemo(() => agentHues(subagents), [subagents]);
+  // サブエージェントの一覧・入れ子・色・回答待ち（店の取り出し口 chatSelectors。右の欄のタブの印・サブエージェントの画面と同じ値を 1 回だけ作る）
+  const { entries: subagents, tree } = useChatSubagents(chat.id);
+  // カードが読むもの（変わったときだけ新しい値にし、カードだけが描き直る）
+  const subagentsView = useChatSubagentsView(chat.id);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
-  const repoPath = project?.repo_path;
-  const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
-  const worktree = chat.worktree_path;
-  // 回答待ちの依頼を出しているサブエージェント（依頼の呼び出しの記録から引く。カード・ピル・タブの「回答待ち」）
-  const waiting = useMemo(() => waitingSubagentKeys(approvals, events, subagents), [approvals, events, subagents]);
-  const { loaded, tailStart, hasEarlier } = log;
-  const subagentsView = useMemo<SubagentsView>(
-    () => ({ chatId: chat.id, projectId: chat.project_id, worktree, rel, busy, events, loaded, tailStart, hasEarlier, tree, hues, waiting }),
-    [chat.id, chat.project_id, worktree, rel, busy, events, loaded, tailStart, hasEarlier, tree, hues, waiting],
-  );
+  const rel = relativeOf(project?.repo_path);
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
   // 流れに出すのは末尾（遠い発言へ移ったときは途中の一部分）。前に起動したサブエージェントは preface で数える

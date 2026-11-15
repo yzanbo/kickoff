@@ -5,8 +5,6 @@ import { ChatPaneContext, type ChatPaneActions } from "@/features/chat/pane/chat
 import { useChatContent } from "@/features/chat/store/useChatStore";
 import { useChatView, type ChatViewInput } from "@/features/chat/pane/useChatView";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
-import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
-import { BackgroundCallsContext, useBackgroundCalls } from "@/features/chat/tools/backgroundCalls";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import { usePopoutFileLinks } from "./PopoutFiles";
 
@@ -31,7 +29,7 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
   const pane = useMemo<ChatPaneActions>(() => {
     const base = view.pane;
     const openScreen = (key: string) => {
-      const entry = view.subagentsView.tree.byKey.get(key);
+      const entry = view.subagentsView?.tree.byKey.get(key);
       openPopout({ kind: "subagent", chatId: chat.id, agentKey: key }, `${entry?.description ?? "サブエージェント"} — サブエージェント`);
     };
     const reveal = (eventId: number | undefined, agent: string | null) => postToMainWindow({ type: "reveal", chatId: chat.id, eventId, agent });
@@ -48,18 +46,13 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
     // チャットの画面の操作はチャットごとに 1 回だけ作る（view.pane と同じ）
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.pane]);
-  const backgroundCalls = useBackgroundCalls(view.live.background);
   const links = usePopoutFileLinks(view.fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
   return (
     <FileLinksProvider value={links}>
       <ChatPaneContext.Provider value={pane}>
-        <SubagentsContext.Provider value={view.subagentsView}>
-          <BackgroundCallsContext.Provider value={backgroundCalls}>
-            <div className="popout-body">
-              <SubagentScreen agentKey={agentKey} />
-            </div>
-          </BackgroundCallsContext.Provider>
-        </SubagentsContext.Provider>
+        <div className="popout-body">
+          <SubagentScreen chatId={chat.id} agentKey={agentKey} />
+        </div>
       </ChatPaneContext.Provider>
     </FileLinksProvider>
   );

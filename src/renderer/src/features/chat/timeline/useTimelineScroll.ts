@@ -45,9 +45,12 @@ export function useTimelineScroll({
   const lastKey = w.visible.at(-1)?.key;
 
   // 検索結果から開いたときは、その発言までスクロールして一瞬強調する
+  // 移れたら覚え、同じ発言へは移り直さない（隠したタブを表に戻すと effect が流れ直し、読んでいた所から引き戻していた）
+  const jumpedTo = useRef<number | undefined>(undefined);
   useEffect(() => {
     const el = scroll.ref.current;
-    if (!focus || !el || !jumpToEvent(el, focus)) return;
+    if (!focus || focus === jumpedTo.current || !el || !jumpToEvent(el, focus)) return;
+    jumpedTo.current = focus;
     scroll.release();
   }, [focus, lastKey, scroll]);
 

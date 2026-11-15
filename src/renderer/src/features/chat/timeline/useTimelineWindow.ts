@@ -41,10 +41,14 @@ export function useTimelineWindow({
   const [shown, setShown] = useState(TIMELINE_WINDOW);
   // 移り先の前後を描いているとき（null = 最新から shown 件）
   const [range, setRange] = useState<WindowRange | null>(null);
-  useEffect(() => {
+  // チャットが替わったときだけ最新に戻す（前の ID と比べて描いている間に決める。effect にすると、隠したタブを表に戻すたびに
+  // 流れ直して、途中を読んでいた位置が消える。メモの仕様書「0023_表示を軽くする」の分冊 3 の 3-3-3）
+  const [windowChat, setWindowChat] = useState(chatId);
+  if (windowChat !== chatId) {
+    setWindowChat(chatId);
     setShown(TIMELINE_WINDOW);
     setRange(null);
-  }, [chatId]);
+  }
   useEffect(() => {
     if (scroll.following()) setShown((s) => Math.min(s, TIMELINE_WINDOW));
   }, [items.length, scroll]);

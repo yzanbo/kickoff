@@ -36,7 +36,7 @@ export const EMPTY_DETAIL: ChatDetailState = { chat: undefined, events: [], rang
 
 /**
  * 届いた作業中の様子のうち、中身の変わっていないものは前のものを使う（chat_live はどれかが変わるたびに丸ごと届くので、
- * 裏の作業などを見て記録をたどる計算（useSubagents など）を、変わっていないのにやり直さないため）
+ * 裏の作業などを見て記録をたどる計算（サブエージェントの一覧 chatSelectors など）を、変わっていないのにやり直さないため）
  */
 export function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
   const keep = <T,>(a: T, b: T): T => (JSON.stringify(a) === JSON.stringify(b) ? a : b);
