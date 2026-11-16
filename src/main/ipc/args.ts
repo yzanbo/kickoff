@@ -89,6 +89,8 @@ export const IPC_ARGS = defineArgSchemas({
     start: none,
     folders: none,
     openRoot: none,
+    overview: none,
+    openLogs: none,
     reportBoot: z.tuple([
       z.object({
         window: z.enum(BOOT_WINDOWS),
