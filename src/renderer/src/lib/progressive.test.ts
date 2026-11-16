@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { allocateRows, createProgressive, firstRowLimit, progressiveSlice } from "./progressive";
+import { allocateColumns, allocateRows, columnsInView, COLUMN_MIN_PX, createProgressive, firstRowLimit, progressiveSlice } from "./progressive";
 
 /** 手で進める frame と、呼ばれた transition・flushSync の記録 */
 function harness() {
@@ -116,4 +116,12 @@ test("取り消した予約（開き直した古いもの）は、あとから�
   cancelOld();
   progressive.ensureAll();
   assert.deepEqual(revealed, ["new"]);
+});
+
+test("横に並ぶ列は、窓の幅に入りうる左の列にだけ同じ上限を配り、見えない列は 0（上限なしならすべて）", () => {
+  assert.equal(columnsInView(1440), Math.ceil(1440 / COLUMN_MIN_PX));
+  assert.equal(columnsInView(0), 1);
+  assert.deepEqual(allocateColumns(5, 45, 3), [45, 45, 45, 0, 0]);
+  assert.deepEqual(allocateColumns(2, 45, 3), [45, 45]);
+  assert.deepEqual(allocateColumns(3, Number.POSITIVE_INFINITY, 1), [Infinity, Infinity, Infinity]);
 });
