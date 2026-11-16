@@ -92,7 +92,7 @@ export const NATIVE_API = {
     openTerminal: invoke<[dir: string, terminal?: ExternalTerminalId]>(),
     /** この Mac に入っている外部のブラウザ */
     browsers: invoke<[], ExternalBrowserId[]>(),
-    /** 外部のブラウザ（省くと Chrome）でページを開く（url がない・http(s) でなければアプリを開くだけ） */
+    /** 外部のブラウザ（省くと Chrome）でページを開く（url がない・http(s) でなければ空の新しいタブ） */
     openBrowser: invoke<[url?: string, browser?: ExternalBrowserId]>(),
   },
   /** 埋め込みブラウザ（<webview>）の開発者ツール。targetId・devtoolsId は埋め込みブラウザの WebContents の ID */
