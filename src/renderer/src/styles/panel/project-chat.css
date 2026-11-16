@@ -67,7 +67,7 @@
 /*
  * 中身はボードの右のパネルと同じもの。欄いっぱいに広げ、浮いたパネルの見た目（枠・影・動き）はなくす。
  * 下のタブの列の規則は、チャットのタブの中に入れ子で置く右の欄（.agent-panel。サブエージェントの欄）のタブの列には効かせない
- * （:not(:where(.agent-panel *)) で外す。:where なので詳細度は変わらない。効かせると、内側のタブの列までウィンドウのドラッグ領域・2 段になる）
+ * （:not(:where(.agent-panel *)) で外す。:where なので詳細度は変わらない。効かせると、内側のタブの列までウィンドウのドラッグ領域になる）
  */
 .board-panel.as-sidebar {
   flex: 1;
@@ -78,7 +78,11 @@
   transform: none;
 }
 
-/* タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域。右端は右上のレイアウトの開閉のために空ける */
+/*
+ * タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域。右端は右上のレイアウトの開閉のために空ける。
+ * 右サイドバー（ブラウザだけ）も 1 段で、左からタブ・すぐ右に新しいブラウザのタブのボタン（利用者の依頼。前は上の段にタブ・下の段に道具の 2 段で、
+ * 道具が新しいタブのボタンだけになり、タブと離れて見えた）
+ */
 .board-panel.as-sidebar .panel-tabs:not(:where(.agent-panel *)) {
   min-height: 40px;
   padding-right: 100px;
@@ -111,86 +115,12 @@
 }
 
 /*
- * 右端のチャット欄は幅が狭いので、タブの列を 2 段に分ける: 上の段（信号機ボタン・右上のレイアウトの開閉と同じ行）にタブ、
- * 下の段にタブの列の道具（まとめ方・表示するタブ・アーカイブ・新しいタブ・ペインの分割）。1 段に並べるとタブの入る幅がほとんど残らなかった。
- * 並びは DOM を変えず order で入れ替え、間の改行は幅いっぱいの ::before で入れる。フッター（.in-footer）は横に広いので 1 段のまま
+ * 右サイドバーの別ウィンドウ（PopoutSideChat）: ウィンドウの枠に信号機ボタン・右上のレイアウトの開閉はないので、タブの列をドラッグ領域にせず、右端も空けない
  */
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) {
-  flex-wrap: wrap;
-  align-content: flex-start;
-  row-gap: 4px;
+.popout-side-chat .board-panel.as-sidebar .panel-tabs:not(:where(.agent-panel *)),
+.popout-side-chat .board-panel.as-sidebar .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
   padding-right: var(--gutter);
-  /* 4px ＋ 境目の線の 1px（外側のパネルのタブの列は枠を使わず、線は内側の影。side-panel-tab-sheet.css） */
-  padding-bottom: 5px;
-}
-
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *))::before {
-  content: "";
-  order: 0;
-  flex-basis: 100%;
-  height: 0;
-}
-
-/* 上の段: 「チャット」の札とタブの並び。右端は右上のレイアウトの開閉のために空ける（右上のペインだけ。下の段は欄の端まで使う） */
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-cluster.all,
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
-  order: -1;
-}
-
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
-  flex: 1 1 0;
-  min-height: 30px;
-}
-
-.board-panel.as-sidebar:not(.in-footer) > .panel-tabs > .panel-tab-strip,
-.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tab-strip:not(:where(.agent-panel *)) {
-  margin-right: calc(100px - var(--gutter));
-}
-
-/* 下の段: 道具（左から、タブの列の道具・新しいタブ。ペインの分割は右端） */
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > :is(.panel-controls, .panel-tab-adds, .panel-pane-tools) {
-  order: 1;
-}
-
-.board-panel.as-sidebar:not(.in-footer) .split-view:not(:where(.agent-panel *)) {
-  --split-tabs-h: 77px;
-}
-
-.board-panel.as-sidebar:not(.in-footer) .split-pane .panel-tabs:not(:where(.agent-panel *)),
-.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
-  padding-right: var(--gutter);
-}
-
-/*
- * チャット欄の別ウィンドウ（PopoutSideChat）: ウィンドウの枠に信号機ボタン・右上のレイアウトの開閉はないので、タブの列をドラッグ領域にせず、右端も空けない。
- * タブの列は 2 段にせず、下のパネルと同じく 1 段に並べる（左から、道具・タブ・新しいタブ・ペインの分割。利用者の依頼。2 段は上の段を信号機ボタンの行と
- * 分け合うためで、別ウィンドウでは要らない）。上の 2 段の規則より詳細度を上げて戻す
- */
-.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) {
-  flex-wrap: nowrap;
-  row-gap: 0;
-  padding-right: var(--gutter);
-  padding-bottom: 1px;
   -webkit-app-region: no-drag;
-}
-
-.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *))::before {
-  display: none;
-}
-
-.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > * {
-  order: 0;
-}
-
-/* タブの並びは境目の線まで伸ばし、表示中のタブを下の画面とつなげる（1 段のタブの列と同じ。side-panel-tab-sheet.css） */
-.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
-  margin-right: 0;
-  padding-bottom: 1px;
-  margin-bottom: -1px;
-}
-
-.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .split-view:not(:where(.agent-panel *)) {
-  --split-tabs-h: 40px;
 }
 
 /* スマホ（縦 1 列）ではプロジェクトのチャット欄は出さない（ボードの右のパネルを使う）。上の基底（display: flex）と同じ詳細度なので、必ず基底より後ろに置く */

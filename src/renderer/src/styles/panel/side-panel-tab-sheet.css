@@ -41,12 +41,6 @@
   margin-bottom: -1px;
 }
 
-/* 2 段のタブの列（サイドバー型のパネル。上の段がタブ・下の段が道具）では、タブが境目に届かないので並びは伸ばさない（下の余白は project-chat.css） */
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
-  padding-bottom: 0;
-  margin-bottom: 0;
-}
-
 .panel-tabs .panel-tab.active {
   background: var(--bg);
   box-shadow: 0 1px 0 var(--bg);
