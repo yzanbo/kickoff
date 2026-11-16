@@ -27,6 +27,8 @@ async function mainChat(ctx: Ctx) {
 }
 
 const notices = (ctx: Ctx, chatId: number) => ctx.store.events.list(chatId).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
+/** 作業場所を移した区切り（片付けて本体に戻した。メモの仕様書「0025」の G1・J6） */
+const moves = (ctx: Ctx, chatId: number) => ctx.store.events.list(chatId).flatMap((e) => (e.type === "workplace_moved" ? [e.data] : []));
 const refs = (repo: string) => execFileSync("git", ["for-each-ref", "--format=%(refname)", "refs/kickoff/"], { cwd: repo }).toString().trim();
 
 test("画面の「消す」: 失うもの（force の変更・delete_branch の取り込んでいないコミット）は控えに入れてゴミ箱に 3 日残り、戻すと同じ名前で作り直して変更も戻る", async () => {
@@ -44,7 +46,9 @@ test("画面の「消す」: 失うもの（force の変更・delete_branch の�
   assert.equal(removed.status, 200);
   assert.equal(fs.existsSync(wt), false);
   assert.equal(store.chats.get(chatId)?.worktree_path, null);
-  assert.deepEqual(notices(ctx, chatId).at(-1), "ワークツリー（feat/d）を片付けました。次からは本体で動きます");
+  // 本体に戻した区切りを置く（片付けた理由・コミットしていない変更は控えに入れたこと）
+  const [moved] = moves(ctx, chatId);
+  assert.deepEqual([moved.reason, moved.from.worktree_path, moved.from.branch, moved.to.worktree_path, moved.backed_up], ["worktree_finished", wt, "feat/d", null, true]);
   const [item] = (await call("GET", `/api/projects/${project.id}/trash`)).body;
   assert.equal(item.kind, "worktree");
   assert.equal(item.label, "ワークツリー feat/d（取り込んでいないコミット 1 個・変更 3 ファイル）");
@@ -156,8 +160,8 @@ test("AI の後始末（ワークツリー自身のチャットから）: 予約
   release();
   await until(() => store.chats.get(chatId)?.worktree_path === null);
   assert.equal(fs.existsSync(wt), false);
-  // 頼んだチャット自身にも「次からは本体で動きます」を残し、そのあとに結果のお知らせ
-  assert.equal(notices(ctx, chatId).at(-2), "ワークツリー（feat/self）を片付けました。次からは本体で動きます");
+  // 頼んだチャット自身にも本体に戻した区切りを置き、そのあとに結果のお知らせ
+  assert.deepEqual(moves(ctx, chatId).map((m) => [m.reason, m.backed_up]), [["worktree_finished", undefined]]);
   assert.match(notices(ctx, chatId).at(-1) ?? "", /ワークツリー（ブランチ feat\/self）を片付けました/);
   // 送信待ちは止めたまま（本体で勝手に動かない）
   const queue = (await call("GET", `/api/chats/${chatId}`)).body.live.queue;

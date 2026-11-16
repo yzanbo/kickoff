@@ -3,6 +3,7 @@ import type { Chat, Project } from "@shared/types";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import { ChatImagesProvider } from "@/features/chat/images/ChatImage";
 import { useFileLinks } from "@/features/fileLinks/useFileLinks";
+import { PastWorkplacesProvider } from "@/features/chat/timeline/PastWorkplace";
 import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { AgentSplit } from "@/features/panel/agents/AgentSplit";
@@ -99,17 +100,19 @@ export function ChatView({ chat, project, focus, visible, slot, onOpenNew, befor
   return (
     <ChatProviderContext.Provider value={chat.provider}>
       <FileLinksProvider value={fileLinks}>
-        <ChatImagesProvider chatId={chat.id}>
-          <ChatPaneContext.Provider value={pane}>
-            <KeepAliveContext.Provider value={chat.id}>
-              <AgentSplit scope={chat.id} handleRef={shell.side}>
-                <Activity mode={mode}>
-                  <ChatColumn chat={chat} project={project} focus={focus} visible={visible} onOpenNew={onOpenNew} beforeSend={beforeSend} shell={shell} />
-                </Activity>
-              </AgentSplit>
-            </KeepAliveContext.Provider>
-          </ChatPaneContext.Provider>
-        </ChatImagesProvider>
+        <PastWorkplacesProvider chatId={chat.id} current={fileLinks} side={canOpenSide}>
+          <ChatImagesProvider chatId={chat.id}>
+            <ChatPaneContext.Provider value={pane}>
+              <KeepAliveContext.Provider value={chat.id}>
+                <AgentSplit scope={chat.id} handleRef={shell.side}>
+                  <Activity mode={mode}>
+                    <ChatColumn chat={chat} project={project} focus={focus} visible={visible} onOpenNew={onOpenNew} beforeSend={beforeSend} shell={shell} />
+                  </Activity>
+                </AgentSplit>
+              </KeepAliveContext.Provider>
+            </ChatPaneContext.Provider>
+          </ChatImagesProvider>
+        </PastWorkplacesProvider>
       </FileLinksProvider>
     </ChatProviderContext.Provider>
   );

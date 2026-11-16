@@ -23,6 +23,7 @@ import { isInside, realPathOrSelf } from "../system/paths.js";
 import { workplacesOf } from "../git/worktrees.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
 import { chatContextNote, chatContextOf } from "./chatContext.js";
+import { joinContexts, workplaceMoveContext } from "./workplaceMove.js";
 import { createAiChatEditTools } from "./aiChatEdit.js";
 import { createAiOpenTools } from "./aiOpen.js";
 import { createAiChatReadTools } from "./aiChatRead.js";
@@ -32,6 +33,7 @@ import { createAiVisualTools } from "./aiVisual.js";
 import { createAiWorktreeTools } from "./aiWorktree.js";
 import { createAiNotifyTools } from "./aiNotify.js";
 import { createAiChatRemoveTools, type ChatRemover } from "./aiChatRemove.js";
+import { createAiWorkplaceTools, type AiWorkplaceDeps } from "./aiWorkplace.js";
 import { createAiUserViewTools } from "./aiUserView.js";
 import type { MemoService } from "../memos/memos.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
@@ -93,6 +95,8 @@ export interface ExecutionDeps {
   userViews?: UserViewRegistry;
   /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat。Runner を作ったあとで useChatRemover が渡す。なければそのツールを出さない） */
   chatRemover?: ChatRemover;
+  /** AI が作業場所を移す予約（Runner が渡す。なければ AI に move_workplace を出さない。メモの仕様書「0025」の段階 ③） */
+  workplaceMoves?: AiWorkplaceDeps["reservations"];
   /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。メモの仕様書「0020_AI の書き込み先」の段階 2。なければ砂場にかけない（テスト）） */
   bashSandbox?: BashSandboxDeps;
   /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。メモの仕様書「0021」の Q7。なければツールを出さない（テスト）） */
@@ -180,7 +184,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       const auth = (await deps.providerKeys?.authFor(chat.provider)) ?? { mode: "subscription" as const, apiKey: null };
       if (auth.mode === "api_key" && !auth.apiKey) throw new Error(`${providers[chat.provider].label} のログインの仕方が「${PROVIDER_AUTH_MODE_LABELS.api_key}」ですが、API キーを読めませんでした。設定の AI の欄で API キーを置き直してください`);
       const params: ProviderTurnParams = {
-        ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId),
+        ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId, compact ? null : takePendingNote(runtime)),
         preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent),
         env,
         auth,
@@ -245,6 +249,13 @@ function ensureDir(dir: string): string | null {
   }
 }
 
+/** 次に送るものに一度だけ添える知らせを取り出す（取り出したら外す。利用者が作業場所を移す予約を取り消したときなど） */
+export function takePendingNote(runtime: ChatRuntime): string | null {
+  const note = runtime.pendingNote;
+  runtime.pendingNote = null;
+  return note;
+}
+
 /** プロバイダーに渡すもの（作業場所・指示・権限） */
 function buildTurnParams(
   deps: ExecutionDeps,
@@ -254,6 +265,7 @@ function buildTurnParams(
   writeAllowed: Set<string>,
   prompt: string,
   promptId?: string,
+  note: string | null = null,
 ): ProviderTurnParams {
   // メモのフォルダ（executeTurn がまだなければ作る: メモのタブで最初のメモを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「メモ」が「メモ」タブのメモのことだと伝える
   // （入力欄にメモを添付して続きを頼む・「メモに書いて」と頼めるように）。メモのチャットは、どのメモについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
@@ -262,7 +274,7 @@ function buildTurnParams(
     prompt,
     ...(promptId ? { promptId } : {}),
     systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, { trash: deps.trashCommand !== undefined, sandbox: sandbox ? { unsandboxed: sandbox.unsandboxedCommands } : undefined }),
-    turnContext: chatContextNote(chatContextOf(deps.store, chat)),
+    turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id)), note),
     policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,
     model: chat.model,
@@ -315,6 +327,10 @@ function buildTurnParams(
     chatUserView: deps.userViews ? createAiUserViewTools({ store: deps.store, userViews: deps.userViews }, chat.id) : null,
     // チャットをアーカイブする・消すツール（どのチャットにも。同じプロジェクトのチャットを子孫ごと。自分・自分の祖先は作業の終わりに行う予約）
     chatRemove: deps.chatRemover ? createAiChatRemoveTools(deps.chatRemover, chat.id) : null,
+    // 自分のチャットの作業場所を移す予約・取り消しのツール（どのチャットにも。移せないチャットからは理由の文で断る。Runner が予約の口を渡したときだけ）
+    chatWorkplace: deps.workplaceMoves
+      ? createAiWorkplaceTools({ store: deps.store, reservations: deps.workplaceMoves, isBusy: deps.isBusy ?? (() => false), worktreeFinisher: deps.worktreeFinisher, terminals: deps.terminals }, chat.id)
+      : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.store.dbConnections.list(project.id), [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く

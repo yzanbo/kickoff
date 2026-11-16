@@ -46,22 +46,41 @@ export function useFileLinks(
     deps: [chat.status],
     same: sameFiles,
   });
-  return useMemo(() => {
-    if (!data || !root) return undefined;
-    const place = { projectId, ...(worktree ? { worktree } : {}) };
-    const openInEditor = (ref: FileRef) => openProjectFile(projectId, { ...ref, ...(worktree ? { worktree } : {}) });
-    const actions = () => panelActions(panelKey("agents", chatId));
-    const openChanges = (focus?: string) => {
-      if (!side) return focus ? openInEditor({ path: focus }) : undefined;
-      actions().openChanges({ chatId, ...place, ...(focus ? { focus } : {}) });
-    };
-    const openFile = (ref: FileRef) => actions().openFile({ chatId, ...place, ...ref });
-    return {
-      index: buildFileIndex(data.files, root, data.truncated),
-      side,
-      openInEditor,
-      openChanges,
-      open: (ref: FileRef) => (side ? openFileRef(ref, place, { file: openFile, changes: openChanges }) : openInEditor(ref)),
-    };
-  }, [data, root, projectId, worktree, chatId, side]);
+  return useMemo(() => (data && root ? fileLinksFor({ files: data, root, projectId, worktree, chatId, side }) : undefined), [data, root, projectId, worktree, chatId, side]);
+}
+
+/**
+ * 作業場所のファイルの一覧から、押して開くための情報を作る（いまの作業場所と、作業場所を移す前の作業場所（pastWorkplaces.tsx）で同じ形）。
+ * 開くのはその作業場所（worktree。本体なら undefined）のファイル・変更
+ */
+export function fileLinksFor({
+  files,
+  root,
+  projectId,
+  worktree,
+  chatId,
+  side,
+}: {
+  files: ProjectFiles;
+  root: string;
+  projectId: number;
+  worktree: string | undefined;
+  chatId: number;
+  side: boolean;
+}): ChatFileLinks {
+  const place = { projectId, ...(worktree ? { worktree } : {}) };
+  const openInEditor = (ref: FileRef) => openProjectFile(projectId, { ...ref, ...(worktree ? { worktree } : {}) });
+  const actions = () => panelActions(panelKey("agents", chatId));
+  const openChanges = (focus?: string) => {
+    if (!side) return focus ? openInEditor({ path: focus }) : undefined;
+    actions().openChanges({ chatId, ...place, ...(focus ? { focus } : {}) });
+  };
+  const openFile = (ref: FileRef) => actions().openFile({ chatId, ...place, ...ref });
+  return {
+    index: buildFileIndex(files.files, root, files.truncated),
+    side,
+    openInEditor,
+    openChanges,
+    open: (ref: FileRef) => (side ? openFileRef(ref, place, { file: openFile, changes: openChanges }) : openInEditor(ref)),
+  };
 }

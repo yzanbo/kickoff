@@ -149,6 +149,16 @@ export class ChatQueue {
   }
 
   /**
+   * 指示を見た目の並びの位置 at に入れる（belowStop: その位置に一時停止の線があれば線の下 = 止まったあと）。
+   * AI が作業場所を移す予約の続きの指示を、先頭の予約した圧縮・消去のすぐあとに入れる（メモの仕様書「0025」の H8・G5）
+   */
+  insertAt(text: string, marks: MessageMarks, at: number, belowStop: boolean): QueuedMessage {
+    const message: QueuedMessage = { id: randomUUID(), text, options: {}, attachments: [], created_at: new Date().toISOString(), ...marks };
+    this.insert(message, { at, belowStop });
+    return message;
+  }
+
+  /**
    * 指示の代わりに挟む行（会話の圧縮・コンテキストの消去）を足す。after を渡すとその指示のすぐあと（すぐあとに一時停止の線があれば線の上 =
    * 止まる前に行う）、省けばいちばん下（指示を足したときと同じく、すべて送ったあとの線の下）。after が列になければ undefined
    */

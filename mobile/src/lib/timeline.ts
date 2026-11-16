@@ -2,6 +2,7 @@
 // 記録（ChatEvent）を持ち、本体の知らせ（chat_event・chat_events_deleted・chat_delta）でその場で直す。純粋な関数でテストする
 import type { BusEvent, ChatEvent, TurnEndStatus } from "@shared/types";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, collectVisuals, visualIdOf, type ChatVisual } from "@shared/chat/aiVisual";
+import { workplaceMoveLine } from "@shared/chat/workplaceMoves";
 import { hasMath } from "./richPages";
 
 export type TimelineItem =
@@ -51,7 +52,7 @@ export function timelineOf(events: readonly ChatEvent[]): TimelineItem[] {
     switch (e.type) {
       case "user": {
         const d = e.data;
-        const note = d.pre_compact ? "圧縮前指示" : d.post_compact ? "圧縮後指示" : d.handoff_from ? `「${d.handoff_from.title}」から` : null;
+        const note = d.pre_compact ? "圧縮前指示" : d.post_compact ? "圧縮後指示" : d.handoff_from ? `「${d.handoff_from.title}」から` : d.workplace_continuation ? "作業場所を移したあとの続き（AI の予約）" : null;
         items.push({ kind: "user", id: e.id, text: d.text, note });
         break;
       }
@@ -106,6 +107,10 @@ export function timelineOf(events: readonly ChatEvent[]): TimelineItem[] {
         break;
       case "context_cleared":
         items.push({ kind: "notice", id: e.id, text: "コンテキストを消去しました" });
+        break;
+      case "workplace_moved":
+        // 作業場所を移した区切り（メモの仕様書「0025」の I1）
+        items.push({ kind: "notice", id: e.id, text: workplaceMoveLine(e.data) });
         break;
       default:
         break;

@@ -5,6 +5,7 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useChatPaneState, useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useBeforeWorkplaceMove } from "@/features/chat/store/useChatStore";
 
 /**
  * 失敗した作業の終わりの行の下に出す直す操作（いちばん新しい作業が失敗で終わったときだけ）:
@@ -16,11 +17,13 @@ export function FailedTurnActions({ resultId }: { resultId: number }) {
   const choices = useChatPaneState((s) => s.retry);
   // 別のモデルの一覧（終わりの行はチャット欄の近く（画面の下のほう）にあるので、下に収まらなければボタンの上に開く）
   const menu = useContextMenu();
+  // 作業を始めた発言が作業場所を移した区切りより前なら、巻き戻して再試行は出さない（メモの仕様書「0025」の H2）
+  const beforeMove = useBeforeWorkplaceMove(pane?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
   if (!pane || !choices || choices.failed.resultId !== resultId) return null;
   const { lower, models, failed } = choices;
   const retry = pane.retry;
   const prompt = failed.prompt;
-  const rewind = prompt && (() => void pane.rewind(prompt.eventId, prompt.text).catch(reportFailure("巻き戻せませんでした")));
+  const rewind = prompt && !beforeMove && (() => void pane.rewind(prompt.eventId, prompt.text).catch(reportFailure("巻き戻せませんでした")));
   return (
     <div className="turn-retry" role="group" aria-label="失敗した作業を直す">
       <button type="button" className="btn" title="同じ設定のまま、止まったところから続けるよう頼みます" onClick={() => retry()}>

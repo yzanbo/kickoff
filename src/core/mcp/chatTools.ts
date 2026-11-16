@@ -11,6 +11,7 @@ import { AI_FINISH_WORKTREE_TOOL } from "@shared/chat/aiWorktree";
 import { AI_NOTIFY_USER_TOOL } from "@shared/chat/aiNotify";
 import { AI_GET_USER_VIEW_TOOL } from "@shared/chat/aiUserView";
 import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL } from "@shared/chat/aiChatRemove";
+import { AI_CANCEL_WORKPLACE_MOVE_TOOL, AI_MOVE_WORKPLACE_TOOL } from "@shared/chat/aiWorkplace";
 import { CHAT_TITLE_MAX, PROVIDER_IDS, PROVIDER_LABELS } from "@shared/types";
 import type { AiChatEditTools } from "../chat/aiChatEdit.js";
 import type { AiChatReadTools } from "../chat/aiChatRead.js";
@@ -23,6 +24,7 @@ import type { AiWorktreeTools } from "../chat/aiWorktree.js";
 import type { AiNotifyTools } from "../chat/aiNotify.js";
 import type { AiUserViewTools } from "../chat/aiUserView.js";
 import type { AiChatRemoveTools } from "../chat/aiChatRemove.js";
+import type { AiWorkplaceTools } from "../chat/aiWorkplace.js";
 import type { ProviderCallbacks } from "../providers/types.js";
 import { failure, text } from "./chatToolResult.js";
 import { OPEN_INSTRUCTIONS, openTools } from "./chatOpenTools.js";
@@ -34,6 +36,7 @@ import { WORKTREE_INSTRUCTIONS, worktreeTools } from "./chatWorktreeTools.js";
 import { NOTIFY_INSTRUCTIONS, notifyTools } from "./chatNotifyTools.js";
 import { USER_VIEW_INSTRUCTIONS, userViewTools } from "./chatUserViewTools.js";
 import { REMOVE_INSTRUCTIONS, removeTools } from "./chatRemoveTools.js";
+import { WORKPLACE_INSTRUCTIONS, workplaceTools } from "./chatWorkplaceTools.js";
 
 /** Kickoff のチャットを AI が操作するツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_chat__…） */
 export const CHAT_SERVER = "kickoff_chat";
@@ -51,6 +54,7 @@ export interface ChatTools {
   notify: AiNotifyTools | null;
   userView: AiUserViewTools | null;
   remove: AiChatRemoveTools | null;
+  workplace: AiWorkplaceTools | null;
 }
 
 /**
@@ -69,6 +73,7 @@ const chatToolNames = (tools: ChatTools) => [
   ...(tools.notify ? [AI_NOTIFY_USER_TOOL] : []),
   ...(tools.userView ? [AI_GET_USER_VIEW_TOOL] : []),
   ...(tools.remove ? [AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL] : []),
+  ...(tools.workplace ? [AI_MOVE_WORKPLACE_TOOL, AI_CANCEL_WORKPLACE_MOVE_TOOL] : []),
 ];
 
 /** チャットを作るツールの使い方（MCP の instructions として AI に渡す） */
@@ -106,6 +111,7 @@ const instructionsFor = (tools: ChatTools) =>
     ...(tools.notify ? NOTIFY_INSTRUCTIONS : []),
     ...(tools.userView ? USER_VIEW_INSTRUCTIONS : []),
     ...(tools.remove ? REMOVE_INSTRUCTIONS : []),
+    ...(tools.workplace ? WORKPLACE_INSTRUCTIONS : []),
   ].join("\n");
 
 /** 利用者の回答を、チャットを作るかの答えにする（「常に許可」は次から聞かない） */
@@ -196,7 +202,7 @@ function chatEditTools(chatEdit: AiChatEditTools) {
 
 /** 1 回の実行に渡す、チャットを操作するツールの MCP サーバー（渡すツールがなければ null） */
 export function chatToolServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): ToolServer | null {
-  if (!tools.createChat && !tools.chatEdit && !tools.open && !tools.read && !tools.project && !tools.terminal && !tools.visual && !tools.worktree && !tools.notify && !tools.userView && !tools.remove) return null;
+  if (!tools.createChat && !tools.chatEdit && !tools.open && !tools.read && !tools.project && !tools.terminal && !tools.visual && !tools.worktree && !tools.notify && !tools.userView && !tools.remove && !tools.workplace) return null;
   return {
     name: CHAT_SERVER,
     // 画面と記録が見分けに使う名前は Claude Code の見え方（mcp__kickoff_chat__…）なので、頭を外してツールの名前にする
@@ -214,6 +220,7 @@ export function chatToolServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "re
       ...(tools.notify ? notifyTools(tools.notify) : []),
       ...(tools.userView ? userViewTools(tools.userView) : []),
       ...(tools.remove ? removeTools(tools.remove) : []),
+      ...(tools.workplace ? workplaceTools(tools.workplace, cb, signal) : []),
     ],
   };
 }

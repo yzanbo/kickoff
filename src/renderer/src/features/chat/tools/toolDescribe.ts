@@ -19,6 +19,7 @@ import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL, describeAddSnippet, describeMov
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL, describeReadChat } from "@shared/chat/aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL, describeReadTerminal } from "@shared/chat/aiTerminal";
 import { AI_FINISH_WORKTREE_TOOL, describeFinishWorktree } from "@shared/chat/aiWorktree";
+import { AI_CANCEL_WORKPLACE_MOVE_TOOL, AI_MOVE_WORKPLACE_TOOL, describeMoveWorkplace } from "@shared/chat/aiWorkplace";
 import { AI_NOTIFY_USER_TOOL, describeNotifyUser } from "@shared/chat/aiNotify";
 import { AI_GET_USER_VIEW_TOOL } from "@shared/chat/aiUserView";
 import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL, describeRemoveChat } from "@shared/chat/aiChatRemove";
@@ -81,6 +82,8 @@ const TOOL_LABELS: Record<string, string> = {
   [AI_LIST_TERMINALS_TOOL]: "ターミナルを確かめる",
   [AI_READ_TERMINAL_TOOL]: "ターミナルの出力を読む",
   [AI_FINISH_WORKTREE_TOOL]: "ワークツリーを片付ける",
+  [AI_MOVE_WORKPLACE_TOOL]: "作業場所を移す予約",
+  [AI_CANCEL_WORKPLACE_MOVE_TOOL]: "作業場所を移す予約を取り消す",
   [AI_NOTIFY_USER_TOOL]: "利用者に知らせる",
   [AI_GET_USER_VIEW_TOOL]: "画面を見る",
   [AI_ARCHIVE_CHAT_TOOL]: "チャットをアーカイブ",
@@ -292,6 +295,11 @@ function describeKnown(name: string, input: Input): string | null {
     case AI_FINISH_WORKTREE_TOOL:
       // どのワークツリーか（省いたらこのチャットのワークツリー。結果（取り込み済みか・控え）は結果の欄とお知らせ）
       return clip(describeFinishWorktree(input));
+    case AI_MOVE_WORKPLACE_TOOL:
+      // どこへ移すか（変更を持っていくなら添える。予約の様子は流れのいちばん下の行、移したら区切りの 1 行）
+      return clip(describeMoveWorkplace(input));
+    case AI_CANCEL_WORKPLACE_MOVE_TOOL:
+      return "";
     case AI_ARCHIVE_CHAT_TOOL:
     case AI_DELETE_CHAT_TOOL:
       // どのチャットか（予約したか・一緒に扱った子チャットの数は結果の欄）

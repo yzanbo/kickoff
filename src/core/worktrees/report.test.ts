@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { finishedText, lossText, movedToMainNotice, plannedText, type FinishOutcome } from "./report.js";
+import { finishedText, lossText, plannedText, type FinishOutcome } from "./report.js";
 
 const base: FinishOutcome = { branch: "feat-x", changes: 0, merged: null, unmerged: 0, trashId: null, docker: "none", remote: null, chats: 0 };
 
@@ -25,8 +25,7 @@ test("finishedText: 失うものがあれば、控えに入れたこととゴミ
   assert.match(finishedText({ ...base, remote: { name: "origin/feat-x", error: "権限がありません" } }), /消せませんでした（権限がありません）/);
 });
 
-test("plannedText・movedToMainNotice: 予約したときの確かめの文と、本体に戻したチャットのお知らせ", () => {
+test("plannedText: 予約したときの確かめの文", () => {
   assert.equal(plannedText({ ...base, merged: { via: "github", pr: 3 } }), "ブランチ feat-x は取り込み済み（GitHub の PR #3）です。失うものはありません。");
   assert.match(plannedText({ ...base, changes: 1 }), /まだ本体に取り込まれていません。変更 1 ファイルは控えに入れてから消し/);
-  assert.equal(movedToMainNotice("feat-x"), "ワークツリー（feat-x）を片付けました。次からは本体で動きます");
 });

@@ -4,6 +4,7 @@ import type { AiCreateChatTools } from "../chat/aiCreateChat.js";
 import type { AiWorktreeTools } from "../chat/aiWorktree.js";
 import type { AiNotifyTools } from "../chat/aiNotify.js";
 import type { AiChatRemoveTools } from "../chat/aiChatRemove.js";
+import type { AiWorkplaceTools } from "../chat/aiWorkplace.js";
 import type { AiUserViewTools } from "../chat/aiUserView.js";
 import type { AiChatReadTools } from "../chat/aiChatRead.js";
 import type { AiProjectTools } from "../chat/aiProject.js";
@@ -65,6 +66,12 @@ export interface AgentProvider {
    * 発言の ID はそのまま。新しいセッションの ID と、元の記録のファイル（呼ぶ側がゴミ箱へ入れる）を返す。切るものがない・見つからなければ null。対応していなければ未実装
    */
   trimSession?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
+  /**
+   * 作業場所を移すとき（メモの仕様書「0025_チャットの作業場所を変える」の H1・J1）、会話を新しいセッションに写す（直近の区切り、足りなければ丸ごと。
+   * 発言の ID は保つ。ファイルの控えは写さない。元のセッションは変えない）。新しいセッションの ID と、元の記録のファイル（呼ぶ側がゴミ箱へ入れる）を返す。
+   * 元の記録が見つからなければ null。写せないプロバイダーは未実装（そのセッションのまま移す。G7）
+   */
+  copySessionForMove?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
   /** セッションの記録のファイルの様子（cwds は動かした作業フォルダの候補。なければ null。Kickoff が作ったセッションの片付け） */
   sessionInfo?(sessionId: string, cwds: string[]): Promise<SessionFileInfo | null>;
   /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧。新しい順） */
@@ -159,6 +166,8 @@ export interface ProviderTurnParams {
   chatUserView?: AiUserViewTools | null;
   /** チャットをアーカイブする・消す口を AI に渡す（archive_chat・delete_chat。どのチャットにも渡す。なければそのツールを出さない） */
   chatRemove?: AiChatRemoveTools | null;
+  /** 自分のチャットの作業場所を移す予約・取り消しの口を AI に渡す（move_workplace・cancel_workplace_move。メモの仕様書「0025」の段階 ③。なければそのツールを出さない） */
+  chatWorkplace?: AiWorkplaceTools | null;
   /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
   hiddenDb?: HiddenDbTarget[];
   /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */

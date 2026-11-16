@@ -23,6 +23,8 @@ export function ChipPicker<T extends string>({
   labels,
   value,
   disabled,
+  inactive,
+  onOpen,
   onPick,
 }: {
   className: string;
@@ -40,6 +42,10 @@ export function ChipPicker<T extends string>({
   value: T;
   /** 選べない選択肢と、その理由（ChoiceMenu の disabled） */
   disabled?: Partial<Record<T, string>>;
+  /** 札ごと押せないときの理由（押せなくして、乗せたときの説明にする） */
+  inactive?: string | null;
+  /** メニューを開いたとき（選べない選択肢を、開いたときに読み直す） */
+  onOpen?: () => void;
   onPick: (value: T) => void;
 }) {
   const menu = useContextMenu();
@@ -52,10 +58,14 @@ export function ChipPicker<T extends string>({
         className={cx(className, "chip-picker", empty && "is-empty")}
         style={hue === undefined ? undefined : ({ "--group-hue": hue } as CSSProperties)}
         data-chip-picker={id}
-        data-tip={tip}
+        data-tip={inactive ?? tip}
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
-        onClick={(e) => menu.toggle(e)}
+        disabled={Boolean(inactive)}
+        onClick={(e) => {
+          if (!menu.isOpen) onOpen?.();
+          menu.toggle(e);
+        }}
       >
         {Icon && <Icon size={11} aria-hidden />}
         {kind && <span className="chip-kind">{kind}</span>}

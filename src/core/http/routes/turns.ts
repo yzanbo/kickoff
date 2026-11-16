@@ -73,6 +73,12 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
     return c.body(null, 204);
   });
 
+  // AI が予約した作業場所の移動を取り消す（作業中の様子の予約の取り消し。スマホからも。予約がなければ 409。メモの仕様書「0025」の I2・J7）
+  app.delete("/api/chats/:id/workplace-move", withChat, (c) => {
+    runner.cancelWorkplaceMove(c.var.chat.id);
+    return c.body(null, 204);
+  });
+
   // 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ 409）
   app.post("/api/chats/:id/background/:taskId/stop", withChat, async (c) => {
     await runner.stopBackgroundTask(c.var.chat.id, c.req.param("taskId"));

@@ -55,7 +55,7 @@ export interface SurfaceRules {
    * focused は、ピントが欄の中にあるときだけ閉じる（サブエージェントの欄。外のメインのチャットで押した Esc では閉じない）
    */
   closeOnEsc: boolean | "focused";
-  /** 見せている最後のタブを閉じたら、欄も閉じるか（チャット欄は開いたまま、新しいタブのボタンを出す） */
+  /** 見せている最後のタブを閉じたら、欄も閉じるか（右サイドバーも下のパネルと同じく閉じる。利用者の依頼） */
   closeWhenEmpty: boolean;
   /** 見せるタブがないまま開いたときに始めるもの（フッター = ターミナル（開く場所が 1 つのとき））。newChat は新しいチャット（いま使う欄はない） */
   openWhenEmpty: "newChat" | "terminal" | null;
@@ -125,7 +125,8 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     defaultKinds: ["browser"],
     fixedKinds: true,
     closeOnEsc: false,
-    closeWhenEmpty: false,
+    // 最後のブラウザのタブを閉じたら閉じる（下のパネルの最後のターミナルと同じ。利用者の依頼。前は空のまま開いていた）
+    closeWhenEmpty: true,
     openWhenEmpty: null,
     openSetting: projectChatOpen,
     // 横幅いっぱい ⇔ 元の幅（タブの列の左端。チャットの画面の右の欄と同じ。利用者の依頼）

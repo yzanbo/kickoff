@@ -9,7 +9,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { createBackgroundTracker } from "./background.js";
-import { findSessionFile, listSessionFiles, removeSession, sessionFileInfo, sessionFilesSize, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
+import { copyForWorkplaceMove, findSessionFile, listSessionFiles, removeSession, sessionFileInfo, sessionFilesSize, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
 import { createTurnOver } from "./turnOver.js";
 import { createCommandOutputWatcher } from "./commandOutput.js";
 import { createInputChannel } from "./input.js";
@@ -364,6 +364,14 @@ export class ClaudeProvider implements AgentProvider {
     if (!file) return null;
     const trimmed = await trimToRecentSegments(file, sessionId);
     return trimmed ? { sessionId: trimmed.sessionId, previousFile: file } : null;
+  }
+
+  /** 作業場所を移すとき、会話を新しいセッションに写す（sessionFiles.ts の copyForWorkplaceMove。元の記録が見つからなければ null） */
+  async copySessionForMove(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null> {
+    const file = await findSessionFile(sessionId, [cwd]).catch(() => null);
+    if (!file) return null;
+    const copied = await copyForWorkplaceMove(file, sessionId);
+    return { sessionId: copied.sessionId, previousFile: file };
   }
 
   /** セッションの記録のファイルの様子（Kickoff が作ったセッションの片付け） */

@@ -1,10 +1,11 @@
 import { FileDiff, SquareArrowOutUpRight } from "lucide-react";
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { openProjectFile } from "@/app/router";
 import { useProjects } from "@/stores/projects";
 import { FileLinkContext } from "@/features/fileLinks/fileLinkContext";
 import { WorktreeContext } from "@/features/worktree/worktreeContext";
 import { FileView } from "./FileView";
+import { setFileTabDirty } from "./fileTabs";
 import { changeOf } from "./sideFile";
 import { useCodeQuoteMenu } from "./useCodeQuoteMenu";
 import { useGitStatus } from "./useGitStatus";
@@ -18,6 +19,8 @@ interface Props {
   path: string;
   /** 目立たせる行 */
   line?: number;
+  /** 右の欄のタブ（書きかけの印を覚える。作業場所を移したとき、書きかけのタブは付け替えずに残すため。別ウィンドウにはない） */
+  tabOf?: { panelKey: string; tabKey: string };
 }
 
 /**
@@ -33,7 +36,10 @@ export function SideFileView(props: Props) {
   );
 }
 
-function SideFileBody({ projectId, worktree, path, line }: Props) {
+function SideFileBody({ projectId, worktree, path, line, tabOf }: Props) {
+  const panelKey = tabOf?.panelKey;
+  const tabKey = tabOf?.tabKey;
+  useEffect(() => (panelKey && tabKey ? () => setFileTabDirty(panelKey, tabKey, false) : undefined), [panelKey, tabKey]);
   const { projectsById } = useProjects();
   const git = useGitStatus(projectId, false, worktree);
   const links = useContext(FileLinkContext);
@@ -68,6 +74,7 @@ function SideFileBody({ projectId, worktree, path, line }: Props) {
         gitStatus={git.status}
         version={git.version}
         onSaved={() => void git.refresh()}
+        onDirtyChange={panelKey && tabKey ? (dirty) => setFileTabDirty(panelKey, tabKey, dirty) : undefined}
       />
       {codeMenu.element}
     </div>

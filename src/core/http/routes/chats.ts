@@ -6,11 +6,12 @@ import { jsonBody, queryOf } from "../input.js";
 import { lookups, requireGroupOf, requireProject } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
 import { rememberSentView } from "./userView.js";
-import { chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "./schemas.js";
+import { branchName, chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "./schemas.js";
 import { chatTranscript } from "../../chat/transcript.js";
 import { detachChat } from "../../chat/detach.js";
 import { trashChat } from "../../trash/chatTrash.js";
-import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript, type GitWorktree } from "@shared/types";
+import { planUserWorkplaceMove, workplaceMoveCheck } from "../../chat/workplaceUserMove.js";
+import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript, type GitWorktree, type WorkplaceMoveBody } from "@shared/types";
 import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, tailStart } from "../../chat/chatLogQuery.js";
 
 /**
@@ -66,7 +67,7 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-export function chatRoutes(app: Hono, { store, bus, runner, approvals, databases, providers, worktreeEnvs, trashBin, userViews }: ServerDeps) {
+export function chatRoutes(app: Hono, { store, bus, runner, approvals, databases, providers, worktreeEnvs, trashBin, userViews, worktreeFinisher, terminals }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
@@ -238,7 +239,8 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, databases
 
   /**
    * 別のプロジェクトへ移す（右クリックの「プロジェクトを移動」）。グループ・作業場所（ワークツリー）は元のプロジェクトのものなので外し、
-   * 作業場所は移った先の本体にする。会話（Claude Code のセッション）は作業フォルダが変わっても続けられる。作業中は断る
+   * 作業場所は移った先の本体にする。会話（Claude Code のセッション）は作業フォルダが変わっても続けられる。作業中は断る。
+   * 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（メモの仕様書「0025」の G1・J4。子チャットもそれぞれ）
    */
   app.post("/api/chats/:id/move", withChat, async (c) => {
     const { chat } = c.var;
@@ -248,8 +250,25 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, databases
     // 子チャット（子・孫…）も一緒に移す
     const family = store.chats.descendants(chat.id);
     for (const c of [chat, ...family]) runner.requireIdle(c.id, "移動");
-    for (const c of family) store.chats.move(c.id, target.id);
-    return c.json(store.chats.move(chat.id, target.id));
+    for (const c of family) await runner.moveWorkplace(c.id, { worktreePath: null, projectId: target.id, reason: "project_moved" });
+    return c.json(await runner.moveWorkplace(chat.id, { worktreePath: null, projectId: target.id, reason: "project_moved" }));
+  });
+
+  // 作業場所を移す（メモの仕様書「0025」の段階 ②。画面の見出しの札・右クリックの「作業場所を変更」）。子チャットは移さない（Q6）
+  const moveDeps = { reservedFolders: () => worktreeFinisher.reservedFolders(), terminals, worktreeEnvs };
+  // 移す前の確かめの中身（元の場所に残る変更・そこで動いているターミナル・移す先にできないワークツリー。Q2・Q5・H7）
+  app.get("/api/chats/:id/workplace", withChat, async (c) => {
+    const { chat } = c.var;
+    return c.json(await workplaceMoveCheck(moveDeps, chat, requireProject(store, chat.project_id)));
+  });
+  app.post("/api/chats/:id/workplace", withChat, async (c) => {
+    const { chat } = c.var;
+    const body = z
+      .object({ worktree_path: z.string().min(1).nullable(), new_worktree_branch: branchName.optional(), carry: z.boolean().optional() })
+      .parse(await jsonBody(c)) satisfies WorkplaceMoveBody;
+    runner.requireIdle(chat.id, "作業場所の変更");
+    const { input, steps } = await planUserWorkplaceMove(moveDeps, chat, requireProject(store, chat.project_id), body);
+    return c.json(await runner.moveWorkplace(chat.id, input, steps));
   });
 
   // 削除 = Kickoff のゴミ箱へ（子チャット（子・孫…）・会話の記録・会話記録のファイル・添付ごと。3 日は戻せ、3 日たったら本当に消す。

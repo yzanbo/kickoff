@@ -1,6 +1,7 @@
-import { ChevronRight, Eraser } from "lucide-react";
+import { ChevronRight, Eraser, FolderInput } from "lucide-react";
 import { memo, type CSSProperties } from "react";
 import type { ChatEvent, ChatEventOf } from "@shared/types";
+import { workplaceMoveLine } from "@shared/chat/workplaceMoves";
 import { formatElapsed, formatFullStamp, formatStamp } from "@/lib/time";
 import { LazyDetails } from "@/ui/LazyDetails";
 import type { TimelineItem, TurnHandoff } from "./timelineItems";
@@ -17,6 +18,7 @@ import { MemoVisualItem } from "@/features/chat/visuals/VisualItem";
 import { CompactedRow } from "@/features/chat/status/CompactingRow";
 import type { RowWindow } from "@/hooks/useRowWindow";
 import { useTimelineOpen } from "./timelineView";
+import { PastWorkplace } from "./PastWorkplace";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -81,9 +83,22 @@ function TimelineRow({
 }) {
   return (
     <div ref={rowRef} className="timeline-row" data-live={live ? "" : undefined} data-prompt-id={promptIdOf(item)} data-row-key={item.key} style={style}>
-      {renderItem(item, live, rel, renderItems)}
+      <PastWorkplace eventId={eventIdOf(item)}>{renderItem(item, live, rel, renderItems)}</PastWorkplace>
     </div>
   );
+}
+
+/** 行の最初の記録の ID（作業場所を移した区切りより前の行かを見分ける） */
+function eventIdOf(item: TimelineItem): number | undefined {
+  switch (item.kind) {
+    case "tools":
+      return item.tools[0]?.use.id;
+    case "subagent":
+    case "visual":
+      return item.call.use.id;
+    default:
+      return item.event.id;
+  }
 }
 
 /** 自分の発言・質問への回答の行なら、その記録の ID（上に貼り付ける指示の候補。ほかの行は undefined） */
@@ -236,6 +251,14 @@ function EventItem({
         <div className="context-cleared-divider" id={`ev-${event.id}`} role="separator" aria-label="コンテキストを消去しました">
           <Eraser size={12} aria-hidden />
           <span>コンテキストを消去しました（ここから新しい会話）</span>
+        </div>
+      );
+    case "workplace_moved":
+      // 作業場所を移した区切り（メモの仕様書「0025」）。これより上の発言は巻き戻せず、分岐の起点にもできない
+      return (
+        <div className="workplace-moved-divider" id={`ev-${event.id}`} role="separator" aria-label="作業場所を移しました">
+          <FolderInput size={12} aria-hidden />
+          <span>{workplaceMoveLine(event.data)}</span>
         </div>
       );
     default:

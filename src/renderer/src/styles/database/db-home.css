@@ -1,18 +1,29 @@
 /* ==== 接続のホーム（DbHome。タブを開いていないときの接続のカードと、未登録の DB の候補） ==== */
 
 .db-home {
-  display: grid;
-  align-content: start;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  padding: 20px;
-  overflow: auto;
+  min-height: 0;
 }
 
+/* 見出し（接続の数と「接続を足す」）は残し、その下（.db-home-body）だけを流す（利用者の依頼） */
 .db-home-head {
+  flex: none;
+  padding: 20px 20px 0;
   display: flex;
   align-items: baseline;
   gap: 10px;
+}
+
+.db-home-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 16px 20px 20px;
 }
 
 .db-home-title {
