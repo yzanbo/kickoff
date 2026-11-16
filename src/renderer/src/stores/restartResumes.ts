@@ -27,6 +27,15 @@ export function reduceRestartResumes(list: RestartResume[], event: BusEvent): Re
   return list.map((r, i) => (i === index ? { ...r, ...next } : r));
 }
 
+/**
+ * 確かめのダイアログを自動で開くか（窓ごと）。shown は前に見せた一覧のチャット。まだ見せていないチャットが届いたら開く
+ * （起動のときと、コアのプロセスを作り直したあとに新しく止まったチャットが届いたとき。メモの仕様書「0026」の D7）。
+ * 返す shown はいまの一覧のチャットだけにする（答えて一覧から外れたチャットが、あとでまた止まったときも開く）
+ */
+export function autoOpenRestartResumes(shown: ReadonlySet<number>, list: readonly RestartResume[]): { open: boolean; shown: ReadonlySet<number> } {
+  return { open: list.some((r) => !shown.has(r.chat_id)), shown: new Set(list.map((r) => r.chat_id)) };
+}
+
 export const restartResumesStore = createStore<RestartResume[]>({ load: () => api.restartResumes(), reduce: reduceRestartResumes });
 
 /** 起動したときの再開の確かめを待っているチャット（届くまでは空） */

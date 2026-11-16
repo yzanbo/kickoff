@@ -9,7 +9,7 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { cx } from "@/lib/cx";
 import { formatMessageTime } from "@/lib/time";
 import { useProjects } from "@/stores/projects";
-import { restartResumesStore, useRestartResumes } from "@/stores/restartResumes";
+import { autoOpenRestartResumes, restartResumesStore, useRestartResumes } from "@/stores/restartResumes";
 import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
 import { Segmented } from "@/ui/Segmented";
@@ -32,19 +32,19 @@ const SUMMARY_LABELS: Record<RestartResumeChoice, string> = { send: "送る", co
 
 /**
  * 起動したときの再開の確かめ（App がメインウィンドウにだけ置く）。前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャットがあれば、
- * 開いたときに 1 回ダイアログを出す。閉じても決めていないものは残り（コアは続けず・送らない）、下の帯の「決めていない再開」から開き直せる
+ * ダイアログを出す（まだ見せていないチャットが届いたときだけ。コアのプロセスを作り直したあとに新しく止まったチャットでも開く）。
+ * 閉じても決めていないものは残り（コアは続けず・送らない）、下の帯の「決めていない再開」から開き直せる
  */
 export function RestartResumeHost() {
   const resumes = useRestartResumes();
   const [open, setOpen] = useState(false);
-  const shown = useRef(false);
+  // 前に見せた一覧のチャット（見せたものは、閉じたあとは下の帯から開き直す）
+  const shown = useRef<ReadonlySet<number>>(new Set());
   useEffect(() => {
-    // 届いたら 1 回だけ自動で開く（閉じたあとは、下の帯から開き直す）
-    if (resumes.length > 0 && !shown.current) {
-      shown.current = true;
-      setOpen(true);
-    }
-  }, [resumes.length]);
+    const next = autoOpenRestartResumes(shown.current, resumes);
+    shown.current = next.shown;
+    if (next.open) setOpen(true);
+  }, [resumes]);
   useWindowEvent(OPEN_RESTART_RESUMES_EVENT, () => setOpen(true));
   if (!open || resumes.length === 0) return null;
   return <RestartResumeDialog resumes={resumes} onClose={() => setOpen(false)} />;
