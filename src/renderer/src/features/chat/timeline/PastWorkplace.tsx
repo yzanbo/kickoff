@@ -53,7 +53,20 @@ function goneLinks(current: ChatFileLinks, root: string, label: string): ChatFil
  * チャットの画面に、作業場所を移した区切りより前の区間ごとの開き方を配る（区切りがなければ何もしない）。
  * 移す前の作業場所のファイルの一覧は、区間ごとではなく作業場所ごとに 1 回だけ読む。current はいまの作業場所の開き方
  */
-export function PastWorkplacesProvider({ chatId, current, side, children }: { chatId: number; current: ChatFileLinks | undefined; side: boolean; children: ReactNode }) {
+export function PastWorkplacesProvider({
+  chatId,
+  current,
+  side,
+  adapt,
+  children,
+}: {
+  chatId: number;
+  current: ChatFileLinks | undefined;
+  side: boolean;
+  /** 開き方を直す（別ウィンドウ: そのときの作業場所の別ウィンドウで開く） */
+  adapt?: (links: ChatFileLinks, place: { projectId: number; worktree?: string }) => ChatFileLinks;
+  children: ReactNode;
+}) {
   const boundaries = useWorkplaceBoundaries(chatId);
   const { projectsById } = useProjects();
   const stateOf = useKeyedStores(
@@ -64,6 +77,7 @@ export function PastWorkplacesProvider({ chatId, current, side, children }: { ch
   const value = useMemo(() => {
     if (boundaries.length === 0) return null;
     const map = new Map<number, PastPlace>();
+    const adaptLinks = (links: ChatFileLinks, place: { projectId: number; worktree?: string }) => (adapt ? adapt(links, place) : links);
     for (const b of boundaries) {
       const state = stateOf(placeKey(b.from));
       const worktree = b.from.worktree_path ?? undefined;
@@ -71,14 +85,14 @@ export function PastWorkplacesProvider({ chatId, current, side, children }: { ch
       const gone = state.data === undefined && state.error !== undefined;
       const links =
         state.data && root
-          ? fileLinksFor({ files: state.data, root, projectId: b.from.project_id, worktree, chatId, side })
+          ? adaptLinks(fileLinksFor({ files: state.data, root, projectId: b.from.project_id, worktree, chatId, side }), { projectId: b.from.project_id, ...(worktree ? { worktree } : {}) })
           : gone && current
             ? goneLinks(current, root ?? current.index.root, b.fromLabel)
             : undefined;
       map.set(b.id, { at: b.id - 1, links, gone });
     }
     return map;
-  }, [boundaries, stateOf, projectsById, chatId, side, current]);
+  }, [boundaries, stateOf, projectsById, chatId, side, current, adapt]);
   return <PastWorkplacesContext.Provider value={value}>{children}</PastWorkplacesContext.Provider>;
 }
 
