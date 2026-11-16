@@ -8,6 +8,7 @@ import { startHttpServer, stopHttpServer } from "./httpServer.js";
 import { AUTH, TOKEN, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import type { ServerHello } from "@shared/types";
+import { makeEvent } from "@shared/testing/factories";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION } from "@shared/api/version";
 
 test("API はトークン（Bearer・Cookie）がないと 401。本体のトークンを URL で渡す口（前の /pair?token=）はない", async () => {
@@ -74,6 +75,34 @@ test("リアルタイム配信（SSE）は、つないだらすぐ最初の行 h
   await reader.cancel();
 });
 
+test("SSE: 書いている途中の返答を続けて流すと 1 通（つないだ文）で届き、そのあとの記録の知らせより前に来る（バスでまとめる。窓がいくつでも同じ）", async () => {
+  const { app, bus, project } = setup();
+  const open = async () => {
+    const res = await app.request("/api/events", { headers: AUTH });
+    const reader = res.body!.getReader();
+    await reader.read(); // hello
+    return reader;
+  };
+  const windows = [await open(), await open()];
+  for (const text of ["こん", "にち", "は"]) bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text });
+  bus.publish({ type: "chat_event", project_id: project.id, event: makeEvent(1, "text", { text: "こんにちは" }, { chat_id: 7 }) });
+  for (const reader of windows) {
+    let text = "";
+    const deadline = Date.now() + 1000;
+    while (!text.includes('"chat_event"') && Date.now() < deadline) {
+      const chunk = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
+      if (chunk === "timeout" || chunk.done) break;
+      text += new TextDecoder().decode(chunk.value);
+    }
+    await reader.cancel();
+    const types = [...text.matchAll(/^data: (.*)$/gm)].map((m) => JSON.parse(m[1]) as { type: string; text?: string });
+    assert.deepEqual(
+      types.map((e) => (e.type === "chat_delta" ? `delta:${e.text}` : e.type)),
+      ["delta:こんにちは", "chat_event"],
+    );
+  }
+});
+
 test("サーバーを止めるときは、開いたままのリアルタイム配信の接続も切る（終了が止まらない）", async () => {
   const { app } = setup();
   const server = await startHttpServer(app, { port: 0, host: "127.0.0.1" });
@@ -88,19 +117,41 @@ test("サーバーを止めるときは、開いたままのリアルタイム�
   await reader.cancel().catch(() => {});
 });
 
-test("画面のファイルは no-cache で返し（入れ替えたあとに古い画面を使わせない）、ない JS・CSS は 404、ほかのパスは index.html", async () => {
+test("画面のファイル: /assets/ の下は 1 年・変わらない（ETag なし）、index.html と SPA のパスは no-cache と ETag で、同じ ETag なら 304。ない JS・CSS は 404、ほかのパスは index.html", async () => {
   const dir = tempDir();
   fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>Kickoff</title>");
   fs.mkdirSync(path.join(dir, "assets"));
   fs.writeFileSync(path.join(dir, "assets", "index-abc.js"), "console.log(1)");
   const { app } = setup({ staticDir: dir });
-  for (const url of ["/", "/assets/index-abc.js", "/projects/1"]) {
+  const asset = await app.request("/assets/index-abc.js");
+  assert.equal(asset.status, 200);
+  assert.equal(asset.headers.get("cache-control"), "public, max-age=31536000, immutable");
+  assert.equal(asset.headers.get("etag"), null);
+  const etags = new Set<string>();
+  for (const url of ["/", "/projects/1"]) {
     const res = await app.request(url);
     assert.equal(res.status, 200, url);
     assert.equal(res.headers.get("cache-control"), "no-cache", url);
+    const tag = res.headers.get("etag");
+    assert.ok(tag, url);
+    etags.add(tag);
+    // 同じ ETag で問い合わせたら 304（本文なし・毎回確かめる）
+    const again = await app.request(url, { headers: { "if-none-match": tag } });
+    assert.equal(again.status, 304, url);
+    assert.equal(await again.text(), "", url);
+    assert.equal(again.headers.get("cache-control"), "no-cache", url);
   }
   assert.match(await (await app.request("/projects/1")).text(), /<title>Kickoff<\/title>/);
   assert.equal((await app.request("/assets/index-old.js")).status, 404);
+  // 入れ替えて index.html の中身が変わったら、前の ETag では 304 にならず、新しい中身と別の ETag
+  fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>Kickoff 2</title>");
+  const replaced = setup({ staticDir: dir }).app;
+  for (const url of ["/", "/projects/1"]) {
+    const res = await replaced.request(url, { headers: { "if-none-match": [...etags].join(", ") } });
+    assert.equal(res.status, 200, url);
+    assert.ok(!etags.has(res.headers.get("etag") ?? ""), url);
+    assert.match(await res.text(), /Kickoff 2/, url);
+  }
   // API の応答は変えない
   const api = await app.request("/api/status", { headers: AUTH });
   assert.equal(api.status, 200);

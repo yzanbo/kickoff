@@ -251,6 +251,28 @@ test("プッシュの宛先: 端末が自分の宛先を登録・外す（宛先
   assert.equal((await call("PUT", "/api/devices/self/push", { push: null })).status, 400);
 });
 
+test("SSE: 端末にも、続けて流した途中の返答は 1 通（つないだ文）で、そのあとの知らせより前に届く", async () => {
+  const { app, bus, project } = withDevice();
+  const res = await app.request("/api/events", { headers: DEVICE });
+  const reader = res.body!.getReader();
+  await reader.read(); // hello
+  bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text: "途中" });
+  bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text: "の文" });
+  bus.publish({ type: "memos", project_id: project.id, path: null });
+  let text = "";
+  while (!text.includes('"memos"')) {
+    const chunk = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
+    if (chunk === "timeout" || chunk.done) break;
+    text += new TextDecoder().decode(chunk.value);
+  }
+  await reader.cancel();
+  const events = [...text.matchAll(/^data: (.*)$/gm)].map((m) => JSON.parse(m[1]) as { type: string; text?: string });
+  assert.deepEqual(
+    events.map((e) => (e.type === "chat_delta" ? `delta:${e.text}` : e.type)),
+    ["delta:途中の文", "memos"],
+  );
+});
+
 test("スマホ連携がオフなら、つないだ端末からの頼みとペアリングを断る（登録は残し、オンに戻せばそのまま使える）。オフにしたら端末の SSE を切る", async () => {
   const { app, call, store, device } = withDevice();
   const res = await app.request("/api/projects", { headers: DEVICE });

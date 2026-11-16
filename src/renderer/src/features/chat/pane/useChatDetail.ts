@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { BusEvent } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
+import { streamingEffectOf } from "@shared/chat/streamingRules";
 import { subscribeServerOpen, useServerEvent } from "@/api/events";
 import { useProjects } from "@/stores/projects";
 import { concernsDetail, detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail } from "./chatDetail";
@@ -93,9 +94,11 @@ export function useChatDetail(chatId: number) {
   useEffect(() => subscribeServerOpen(() => loadRef.current(false)), []);
 
   useServerEvent((e) => {
-    if (e.type === "chat_delta") {
-      if (e.chat_id !== chatId) return;
-      pendingDelta.current += e.text;
+    // 書いている途中の返答を足す・消すかは、スマホと同じ決まり（streamingEffectOf。サブエージェントの記録・お知らせなどでは消さない）
+    const effect = streamingEffectOf(e);
+    if (effect?.effect === "append") {
+      if (effect.chatId !== chatId) return;
+      pendingDelta.current += effect.text;
       deltaFrame.current ??= requestAnimationFrame(() => {
         const text = pendingDelta.current;
         deltaFrame.current = null;
@@ -108,9 +111,7 @@ export function useChatDetail(chatId: number) {
     // 読み込みの最中なら、届いた中身にもう一度当てる。まだ一度も届いていなければ、届いてから当てる（中身のないチャットを描かない）
     replay.current?.push(e);
     setDetail((prev) => (prev.chat === undefined ? prev : reduceChatDetail(prev, e, chatId)));
-    if (e.type === "chat_event" && e.event.type !== "user") clearStreaming();
-    else if (e.type === "chat_events_deleted") clearStreaming();
-    else if (e.type === "chat" && e.chat.status !== "running") clearStreaming();
+    if (effect?.effect === "clear" && effect.chatId === chatId) clearStreaming();
   });
 
   return { chat: detail.chat, project, events: detail.events, approvals: detail.approvals, live: detail.live, streaming, error };

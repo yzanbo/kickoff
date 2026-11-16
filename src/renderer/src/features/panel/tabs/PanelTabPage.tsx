@@ -1,4 +1,4 @@
-import { lazy, Suspense, type CSSProperties, type ReactNode } from "react";
+import { lazy, memo, Suspense, useMemo, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BrowserPane } from "@/features/browser/BrowserPane";
 import { useAgentBrowsing } from "@/features/browser/agentBrowsing";
@@ -24,7 +24,7 @@ import { panelStateOf } from "@/features/panel/state/panelStore";
 import { parsePanelKey } from "@/features/panel/surfaces";
 import { api } from "@/api";
 import { reportFailure } from "@/ui/dialogs";
-import type { PanelTab, PanelController } from "@/features/panel/usePanel";
+import type { PanelTab, PanelPageOps } from "@/features/panel/usePanel";
 
 // xterm.js は、ターミナルのタブを開いたときだけ読み込む
 const TerminalPane = lazy(() => import("@/features/terminal/TerminalPane"));
@@ -33,7 +33,8 @@ type TabKind = PanelTab["kind"];
 
 interface PageProps<T extends PanelTab> {
   tab: T;
-  panel: PanelController;
+  /** 欄の操作（欄の状態が変わっても同じ物） */
+  panel: PanelPageOps;
   /** 欄を開いていて、自分のペインで表示中か */
   visible: boolean;
   /** 自分のペインにピントがあるか（ターミナルの入力先） */
@@ -168,24 +169,10 @@ function projectOfPanel(panelKey: string): number | null {
 /** タブの種類の中身を描く（種類と中身の型を結びつけて引く） */
 const pageOf = <T extends PanelTab>(tab: T) => PAGES[tab.kind] as unknown as (props: PageProps<T>) => ReactNode;
 
-/**
- * パネルの 1 つのタブの中身（チャット・新しいチャット・サブエージェント・ターミナル・ブラウザ。PAGES）。
- * タブを切り替えても入力中の文章やスクロール位置が残るよう、表示していないタブも hidden で残す。
- * ペインを分けても作り直さない（webview・ターミナル・入力中の文を保つ）よう、どのタブもパネルの中身の直下に置き、
- * 分けているときは style でそのペインの位置に重ねる。押す・ピントが入るとそのペインにピントを移す
- */
-export function PanelTabPage({
-  tab,
-  panel,
-  panelOpen,
-  paneId,
-  active,
-  focused,
-  style,
-  split = false,
-}: {
+type TabPageProps = {
   tab: PanelTab;
-  panel: PanelController;
+  /** 欄の操作（usePanel の pageOps。欄の状態が変わっても同じ物） */
+  panel: PanelPageOps;
   panelOpen: boolean;
   /** タブが入っているペイン */
   paneId: string;
@@ -196,11 +183,51 @@ export function PanelTabPage({
   style?: CSSProperties;
   /** ペインを分けているか（分けているときだけ、ピントのあるペインをチャット欄の枠の色で示す） */
   split?: boolean;
-}) {
+};
+
+/** 置き場所の style が同じか（分けているときの位置は描くたびに作られるので中身で比べる） */
+function sameStyle(a: CSSProperties | undefined, b: CSSProperties | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const keys = Object.keys(a) as (keyof CSSProperties)[];
+  return keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k]);
+}
+
+/**
+ * パネルの 1 つのタブの中身（チャット・新しいチャット・サブエージェント・ターミナル・ブラウザ。PAGES）。
+ * タブを切り替えても入力中の文章やスクロール位置が残るよう、表示していないタブも hidden で残す。
+ * ペインを分けても作り直さない（webview・ターミナル・入力中の文を保つ）よう、どのタブもパネルの中身の直下に置き、
+ * 分けているときは style でそのペインの位置に重ねる。押す・ピントが入るとそのペインにピントを移す。
+ * タブ・欄の操作・置き場所が変わらなければ描き直さない（ほかのタブのチャットが変わってパネルの店が変わっても、ほかのタブは描き直らない）
+ */
+export const PanelTabPage = memo(
+  PanelTabPageBody,
+  (a, b) =>
+    a.tab === b.tab &&
+    a.panel === b.panel &&
+    a.panelOpen === b.panelOpen &&
+    a.paneId === b.paneId &&
+    a.active === b.active &&
+    a.focused === b.focused &&
+    a.split === b.split &&
+    sameStyle(a.style, b.style),
+);
+
+function PanelTabPageBody({
+  tab,
+  panel,
+  panelOpen,
+  paneId,
+  active,
+  focused,
+  style,
+  split = false,
+}: TabPageProps) {
   const focus = () => panel.focusPane(paneId);
   const Page = pageOf(tab);
   // 中身の見出しの右端の「別ウィンドウで開く」（PopOutTabButton）に渡す
-  const actions = { popOut: canPopOut(tab) ? () => popOutTab(panel, tab.key) : null };
+  const popOutable = canPopOut(tab);
+  const actions = useMemo(() => ({ popOut: popOutable ? () => popOutTab(panel, tab.key) : null }), [popOutable, panel, tab.key]);
   // AI が操作しているブラウザのタブは、表に出ていなくても見えない形で並べる（撮る・押すため。browser.css）
   const agentBrowsing = useAgentBrowsing(tab.kind === "browser" ? tab.key : null);
   return (

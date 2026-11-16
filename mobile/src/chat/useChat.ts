@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { VIEWING_TTL_MS, type Approval, type Chat, type ChatEvent, type ChatLive } from "@shared/types";
+import { streamingEffectOf } from "@shared/chat/streamingRules";
 import { applyEventToLog, lastEventId, mergeEvents } from "../lib/timeline";
 import type { HostSession } from "../state/hostSession";
 
@@ -58,11 +59,16 @@ export function useChat(session: HostSession | null, chatId: number) {
     const offOpen = session.onOpen(() => void load());
     const offEvent = session.onEvent((e) => {
       setEvents((current) => applyEventToLog(current, chatId, e));
-      if (e.type === "chat_event" && e.event.chat_id === chatId && e.event.type === "text") setStreaming("");
-      if (e.type === "chat_delta" && e.chat_id === chatId) setStreaming((s) => s + e.text);
+      // 書いている途中の返答を足す・消す（パソコンと同じ決まり。サブエージェントの記録・お知らせなどでは消さない）
+      const effect = streamingEffectOf(e);
+      if (effect?.chatId === chatId) {
+        if (effect.effect === "append") {
+          const text = effect.text;
+          setStreaming((s) => s + text);
+        } else setStreaming("");
+      }
       if (e.type === "chat" && e.chat.id === chatId) {
         setChat(e.chat);
-        if (e.chat.status !== "running") setStreaming("");
         // 見ている間に終わったら既読にする
         if (e.chat.unread && AppState.currentState === "active") void session.client.markSeen(chatId).catch(() => {});
       }

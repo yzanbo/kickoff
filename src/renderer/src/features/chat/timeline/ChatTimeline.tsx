@@ -1,4 +1,4 @@
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useRef } from "react";
 import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
@@ -9,12 +9,15 @@ import { useWorkingStatus } from "@/features/chat/status/useWorkingStatus";
 import { keepSelectionOnClick, onEditable, onReplyBlank, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
 import { useQuoteMenu } from "@/features/chat/messages/useMessageMenu";
 import { ChatDisplayItems } from "@/features/chat/pane/ChatDisplayMenu";
+import { observeSize } from "@/hooks/useSizeObserver";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
 import { TimelineItems } from "./Timeline";
+import { TimelineBusyContext } from "./timelineBusy";
 import { TimelineEnd } from "./TimelineEnd";
 import type { TimelineScroll } from "./timelineScroll";
+import { useFollowBottom } from "./useFollowBottom";
 import { useMarkSeen } from "./useMarkSeen";
 import { BOTTOM_SLACK_PX, useTimelineScroll } from "./useTimelineScroll";
 import type { TimelineWindow } from "./useTimelineWindow";
@@ -74,25 +77,17 @@ export function ChatTimeline({
   hidden?: boolean;
 }) {
   const pane = useChatPane();
-  const s = useTimelineScroll({
-    scroll,
-    root: pane.root,
-    window: w,
-    focus,
-    approvalsCount: approvals.length,
-    streaming,
-    endKey: busy ? (live.compacting !== null ? "compacting" : "working") : "idle",
-  });
+  const s = useTimelineScroll({ scroll, root: pane.root, window: w, focus });
+  // 一番下に付いていく間は、流れの枠か中身の大きさが変わったら一番下へ寄せる（書いている途中の文・新しい項目・確認のカード・作業中の行も、すべて中身の大きさの知らせで）
+  const inner = useRef<HTMLDivElement>(null);
+  useFollowBottom(scroll, inner, s.settle);
   const sticky = useStickyPrompt(scroll.ref, prompts, s.firstKey, s.lastKey);
   // 流れの見えている高さを CSS の --timeline-h に入れる（サブエージェントのカードの窓を、その半分ほどの高さにする）
   useLayoutEffect(() => {
     const el = scroll.ref.current;
     if (!el) return;
-    const measure = () => el.style.setProperty("--timeline-h", `${el.clientHeight}px`);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
+    el.style.setProperty("--timeline-h", `${el.clientHeight}px`);
+    return observeSize(el, ({ height }) => el.style.setProperty("--timeline-h", `${height}px`));
   }, [scroll]);
   // 作業中の行と一番下へ戻るボタンの文（1 回だけ組み立てる）
   const working = useWorkingStatus({ chat, events, last: w.last, streaming, live, agents, busy });
@@ -130,21 +125,24 @@ export function ChatTimeline({
           sticky.update();
         }}
       >
-        <div className="timeline-inner">
+        <div className="timeline-inner" ref={inner}>
           {w.hidden > 0 && (
             <button type="button" className="link-button timeline-more" onClick={s.showMore}>
               以前の発言を表示（あと {w.hidden} 件）
             </button>
           )}
           {/* 途中の一部分（過去）を描いているときは、実行中のツールはない */}
-          <TimelineItems items={w.visible} rel={rel} active={busy && w.hiddenAfter === 0} />
+          {/* 作業中かは項目の props で渡さず、書き直し・分岐のボタンだけが読む（timelineBusy） */}
+          <TimelineBusyContext.Provider value={busy}>
+            <TimelineItems items={w.visible} rel={rel} active={busy && w.hiddenAfter === 0} />
+          </TimelineBusyContext.Provider>
           {/* 途中の一部分を描いているときは、最新の分（書いている途中の返答・確認のカード・作業中の行）は出さない（一番下へ戻るボタンで最新へ） */}
           {w.hiddenAfter > 0 ? (
             <button type="button" className="link-button timeline-more" onClick={w.showLater}>
               以降の発言を表示（あと {w.hiddenAfter} 件）
             </button>
           ) : (
-            <TimelineEnd chat={chat} busy={busy} streaming={streaming} approvals={approvals} working={working} live={live} agents={agents} events={events} scroll={scroll} />
+            <TimelineEnd chat={chat} busy={busy} streaming={streaming} visible={visible} approvals={approvals} working={working} live={live} agents={agents} events={events} />
           )}
         </div>
       </div>

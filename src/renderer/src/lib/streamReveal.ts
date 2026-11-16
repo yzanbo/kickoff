@@ -29,6 +29,12 @@ export function nextRevealLength(text: string, shown: number, dtMs: number): num
   return next;
 }
 
+/**
+ * 少しずつ出すときに描く文の決まり（text の shown 文字目まで出したいとき、実際に出す長さ length と描く文 render）。
+ * Markdown の書きかけの記号を補う・手前で止める決まりは `markdownReveal.ts` の `createMarkdownRevealLimit`
+ */
+export type RevealLimit = (text: string, shown: number) => { length: number; render: string };
+
 /** 出した長さの記録（時刻と、その時に出していた文字数。古い順） */
 export interface RevealMark {
   at: number;

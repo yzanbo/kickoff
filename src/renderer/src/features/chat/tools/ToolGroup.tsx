@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import { useContext, useState, type ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BashOutput } from "./BashOutput";
 import { CommandLive } from "./CommandLive";
@@ -11,6 +11,7 @@ import { BackgroundCallsContext } from "./backgroundCalls";
 import { callStatus, groupStatus, isCallRunning } from "./toolStatus";
 import { ToolStatusIcon } from "./ToolStatusIcon";
 import { HighlightedCode } from "@/ui/HighlightedCode";
+import { LazyDetails } from "@/ui/LazyDetails";
 import { ReadResult, SearchResult, SearchTitle, ToolPath } from "./ToolResultCode";
 import { ReadImage } from "./ReadImage";
 import { DB_QUERY_TOOL, DbQueryToolDetail } from "@/features/database/DbQueryToolDetail";
@@ -37,36 +38,38 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
   const currentData = current && { name: current.use.data.name, input: current.use.data.input as Record<string, unknown> | undefined };
   const running = currentData !== undefined;
   const status = groupStatus(tools.map((t) => callStatus(t, isRunning(t))));
-  // 一度でも開いたか（一覧の行のコマンドの色付けは、まとまりを開いてから始める）
-  const [opened, setOpened] = useState(false);
   // 実行中のコマンドの出力（まとまりを閉じていても、下に最後の行を流す）
   const live = useCommandOutput(current?.use.data.name === "Bash" ? current.use.data.id : undefined);
 
   return (
     <>
-    <details
+    {/* 呼び出しの一覧は、まとまりを初めて開いたときに作る（一覧の行のコマンドの色付けも、そこから始める） */}
+    <LazyDetails
       className={cx("tool-group", failed > 0 && "has-error", running && "active")}
-      onToggle={(e) => e.currentTarget.open && setOpened(true)}
       // 動きの行などから、その呼び出しを含むまとまりへ移れるようにする（jumpToEvent）
       data-tool-ids={tools.map((t) => t.use.id).join(" ")}
+      summary={
+        <summary>
+          <ChevronRight size={14} className="tool-chevron" />
+          <ToolStatusIcon status={status} />
+          <span className="tool-summary">{summary}</span>
+          {currentData ? (
+            <span className="tool-current">{rel(describeTool(currentData.name, currentData.input ?? {}))}</span>
+          ) : (
+            failed > 0 && <span className="tool-failed">{failed} 件失敗</span>
+          )}
+          <GroupTime tools={tools} running={running} />
+        </summary>
+      }
     >
-      <summary>
-        <ChevronRight size={14} className="tool-chevron" />
-        <ToolStatusIcon status={status} />
-        <span className="tool-summary">{summary}</span>
-        {currentData ? (
-          <span className="tool-current">{rel(describeTool(currentData.name, currentData.input ?? {}))}</span>
-        ) : (
-          failed > 0 && <span className="tool-failed">{failed} 件失敗</span>
-        )}
-        <GroupTime tools={tools} running={running} />
-      </summary>
-      <div className="tool-calls">
-        {tools.map((t) => (
-          <ToolItem key={t.use.id} call={t} rel={rel} running={isRunning(t)} listed={opened} />
-        ))}
-      </div>
-    </details>
+      {() => (
+        <div className="tool-calls">
+          {tools.map((t) => (
+            <ToolItem key={t.use.id} call={t} rel={rel} running={isRunning(t)} />
+          ))}
+        </div>
+      )}
+    </LazyDetails>
     {live !== null && <CommandLive command={typeof currentData?.input?.command === "string" ? currentData.input.command : ""} text={live} rel={rel} />}
     </>
   );
@@ -74,17 +77,14 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
 
 /**
  * ツールの呼び出し 1 件（左端に状態のアイコン、右に始めた時刻とかかった時間。開くと編集内容・結果を出す）。running: まだ動いている（作業中のチャットのいまの作業で結果を待っている・裏で動かしたコマンドが終わっていない）。
- * listed: まとまりを開いて一覧が見えている（コマンドの行は、1 行の表示にもシェルの文法で色を付ける）
+ * まとまりを開いて一覧が見えてから作るので、コマンドの行は 1 行の表示にもシェルの文法で色を付ける。開いた中身（編集内容・結果）は、初めて開いたときに作る（色付けもそこから）
  */
-function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: string) => string; running: boolean; listed: boolean }) {
+function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => string; running: boolean }) {
   const { name } = call.use.data;
   const input = (call.use.data.input ?? {}) as Record<string, unknown>;
-  // 一度でも開いたか（コマンドの色付けは、開いてから始める。閉じたままの呼び出しが多くても重くしない）
-  const [opened, setOpened] = useState(false);
   const r = call.result?.data;
   // ツール検索の `[tool_reference]` のような意味のない結果は出さない
   const content = r?.content ? visibleToolResult(r.content) : "";
-  let detail: ReactNode = null;
   // コマンドは、コマンドと出力（失敗の知らせも）を 1 つの枠で出すので、下の結果の欄は使わない
   const isCommand = name === "Bash" && typeof input.command === "string";
   const isSearch = (name === "Grep" || name === "Glob") && typeof input.pattern === "string";
@@ -92,57 +92,64 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
   const isDbQuery = name === DB_QUERY_TOOL && typeof input.sql === "string";
   // チャットの AI が作ったチャット（送った依頼の全文と、作ったチャットの札。結果の文も下に出す）
   const isCreatedChat = isCreateChatTool(name) && typeof input.text === "string";
-  // 見出しの行の色付けは、まとまりを開いて一覧が見えてから（コマンドと同じ）
-  const highlightTitle = listed || opened;
-  if (isCommand) {
-    detail = <BashOutput command={String(input.command)} result={r} rel={rel} highlight={opened} />;
-  } else if (isDbQuery) {
-    detail = <DbQueryToolDetail chatId={call.use.chat_id} sql={String(input.sql)} connectionName={strOf(input.connection)} result={r?.content} highlight={opened} />;
-  } else if (isCreatedChat) {
-    detail = <CreatedChatToolDetail text={String(input.text)} result={r?.content} />;
-  } else if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
-    detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
-  } else if (name === "Write" && typeof input.content === "string") {
-    detail = <Diff before="" after={input.content} maxLines={40} />;
-  } else if (r && !r.is_error && name === "Read" && typeof input.file_path === "string" && toolImageType(input.file_path)) {
-    // 読んだ画像は記録に残らない（結果は「[image]」の文字だけ）ので、開いてから入力のパスで、いまのファイルを読んで出す
-    detail = opened ? <ReadImage chatId={call.use.chat_id} path={input.file_path} readAt={call.result?.created_at} /> : <></>;
-  } else if (content && !r?.is_error && name === "Read" && typeof input.file_path === "string") {
-    detail = <ReadResult content={rel(content)} path={input.file_path} highlight={opened} />;
-  } else if (content && !r?.is_error && isSearch) {
-    detail = <SearchResult content={rel(content)} mode={name === "Grep" ? strOf(input.output_mode) ?? "files_with_matches" : undefined} path={strOf(input.path)} highlight={opened} />;
-  }
+  /** 開いた中身（中身を作るのは開いてからなので、色付けはいつも始める） */
+  const renderDetail = () => {
+    let detail: ReactNode = null;
+    if (isCommand) {
+      detail = <BashOutput command={String(input.command)} result={r} rel={rel} highlight />;
+    } else if (isDbQuery) {
+      detail = <DbQueryToolDetail chatId={call.use.chat_id} sql={String(input.sql)} connectionName={strOf(input.connection)} result={r?.content} highlight />;
+    } else if (isCreatedChat) {
+      detail = <CreatedChatToolDetail text={String(input.text)} result={r?.content} />;
+    } else if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
+      detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
+    } else if (name === "Write" && typeof input.content === "string") {
+      detail = <Diff before="" after={input.content} maxLines={40} />;
+    } else if (r && !r.is_error && name === "Read" && typeof input.file_path === "string" && toolImageType(input.file_path)) {
+      // 読んだ画像は記録に残らない（結果は「[image]」の文字だけ）ので、開いてから入力のパスで、いまのファイルを読んで出す
+      detail = <ReadImage chatId={call.use.chat_id} path={input.file_path} readAt={call.result?.created_at} />;
+    } else if (content && !r?.is_error && name === "Read" && typeof input.file_path === "string") {
+      detail = <ReadResult content={rel(content)} path={input.file_path} highlight />;
+    } else if (content && !r?.is_error && isSearch) {
+      detail = <SearchResult content={rel(content)} mode={name === "Grep" ? strOf(input.output_mode) ?? "files_with_matches" : undefined} path={strOf(input.path)} highlight />;
+    }
+    return (
+      <>
+        {detail}
+        {content && !isCommand && (r?.is_error || !detail || isDbQuery || isCreatedChat) && <pre className={cx("tool-output", r?.is_error && "error")}>{rel(content)}</pre>}
+      </>
+    );
+  };
   return (
-    <details className={cx("tool-call", r?.is_error && "error")} onToggle={(e) => e.currentTarget.open && setOpened(true)}>
-      <summary>
-        <ToolStatusIcon status={callStatus(call, running)} />
-        <span className="tool-name">{toolLabel(name)}</span>
-        <span className="tool-arg">
-          {/* コマンドは 1 行に収めた表示にも色を付ける（改行は空白に見える。色付けの結果は開いた欄と共有） */}
-          {isCommand ? (
-            <HighlightedCode code={rel(String(input.command))} lang={highlightTitle ? "shellscript" : undefined} />
-          ) : isSearch ? (
-            <SearchTitle glob={name === "Glob"} pattern={String(input.pattern)} path={rel(strOf(input.path) ?? "")} highlight={highlightTitle} />
-          ) : FILE_TOOLS.has(name) && typeof input.file_path === "string" ? (
-            <ToolFileArg path={input.file_path} label={rel(describeToolInput(name, input))} />
-          ) : name === "Read" && typeof input.file_path === "string" ? (
-            <ToolPath path={rel(input.file_path)} />
-          ) : name === AI_GET_USER_VIEW_TOOL ? (
-            // 画面を見たか・読めなかった事情は、結果の 1 行目から（引数がないので、ツールの名前だけでは何が起きたか分からない）
-            (userViewSummaryOf(r?.content) ?? "")
-          ) : (
-            rel(describeToolInput(name, input))
-          )}
-        </span>
-        <CallTime call={call} running={running} />
-      </summary>
-      {detail}
-      {content && !isCommand && (r?.is_error || !detail || isDbQuery || isCreatedChat) && (
-        <pre className={cx("tool-output", r?.is_error && "error")}>
-          {rel(content)}
-        </pre>
-      )}
-    </details>
+    <LazyDetails
+      className={cx("tool-call", r?.is_error && "error")}
+      summary={
+        <summary>
+          <ToolStatusIcon status={callStatus(call, running)} />
+          <span className="tool-name">{toolLabel(name)}</span>
+          <span className="tool-arg">
+            {/* コマンドは 1 行に収めた表示にも色を付ける（改行は空白に見える。色付けの結果は開いた欄と共有） */}
+            {isCommand ? (
+              <HighlightedCode code={rel(String(input.command))} lang="shellscript" />
+            ) : isSearch ? (
+              <SearchTitle glob={name === "Glob"} pattern={String(input.pattern)} path={rel(strOf(input.path) ?? "")} highlight />
+            ) : FILE_TOOLS.has(name) && typeof input.file_path === "string" ? (
+              <ToolFileArg path={input.file_path} label={rel(describeToolInput(name, input))} />
+            ) : name === "Read" && typeof input.file_path === "string" ? (
+              <ToolPath path={rel(input.file_path)} />
+            ) : name === AI_GET_USER_VIEW_TOOL ? (
+              // 画面を見たか・読めなかった事情は、結果の 1 行目から（引数がないので、ツールの名前だけでは何が起きたか分からない）
+              (userViewSummaryOf(r?.content) ?? "")
+            ) : (
+              rel(describeToolInput(name, input))
+            )}
+          </span>
+          <CallTime call={call} running={running} />
+        </summary>
+      }
+    >
+      {renderDetail}
+    </LazyDetails>
   );
 }
 

@@ -193,18 +193,22 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
       // アーカイブ・戻す・削除の確かめのダイアログを押しても、一覧は閉じない
       ignore="dialog"
     >
-      {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
-      {/* 確かめてから、まとめてアーカイブする（その子チャットの子も一緒に。チャットのまとめてアーカイブと同じ） */}
-      <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void confirmArchiveChats(finished)}>
-        <Archive size={15} aria-hidden />
-        完了した子チャットをアーカイブ
-        {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
-      </button>
-      {visible.length === 0 && <p className="muted small subagent-empty">表示中の子チャットはありません</p>}
-      {visible.map(renderRow)}
-      <ArchivedFold place="composer" foldKey="children" count={hidden.length} className="composer-archived">
-        {hidden.map(renderRow)}
-      </ArchivedFold>
+      {() => (
+        <>
+            {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
+            {/* 確かめてから、まとめてアーカイブする（その子チャットの子も一緒に。チャットのまとめてアーカイブと同じ） */}
+            <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void confirmArchiveChats(finished)}>
+              <Archive size={15} aria-hidden />
+              完了した子チャットをアーカイブ
+              {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
+            </button>
+            {visible.length === 0 && <p className="muted small subagent-empty">表示中の子チャットはありません</p>}
+            {visible.map(renderRow)}
+            <ArchivedFold place="composer" foldKey="children" count={hidden.length} className="composer-archived">
+              {hidden.map(renderRow)}
+            </ArchivedFold>
+        </>
+      )}
     </ComposerChip>
   );
 }

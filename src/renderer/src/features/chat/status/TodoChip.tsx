@@ -48,8 +48,6 @@ export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent
   const done = todos.filter((t) => t.status === "completed").length;
   const current = todos.find((t) => t.status === "in_progress");
   const finished = visibility === "done";
-  const historyCount = list.history.reduce((n, g) => n + g.items.length, 0);
-  const sections = list.stale.length > 0 || historyCount > 0;
   return (
     <ComposerChip
       popover={popover}
@@ -66,56 +64,65 @@ export function TodoChip({ chatId, events }: { chatId: number; events: ChatEvent
       title={finished ? "ToDo の一覧（いまの作業はすべて完了）" : "ToDo の一覧"}
       label="ToDo"
     >
-      {sections && <div className="todo-section-label">いまの作業</div>}
-      {todos.map((t) => (
-        <TodoRow key={t.key} todo={t} />
-      ))}
-      {list.stale.length > 0 && (
-        <FoldSection
-          look="row"
-          icon={CircleDashed}
-          label="前の作業から残っているもの"
-          count={list.stale.length}
-          open={staleFold.open}
-          onToggle={staleFold.toggle}
-          indent={false}
-          wrapClassName="composer-archived todo-fold"
-          title="完了にならないまま、しばらく触られていない ToDo（AI が完了にし忘れたものが多い）。数には入れません"
-        >
-          {list.stale.map((t) => (
-            <TodoRow key={t.key} todo={t} />
-          ))}
-        </FoldSection>
-      )}
-      {historyCount > 0 && (
-        <FoldSection
-          look="row"
-          icon={ListChecks}
-          label="これまでの ToDo"
-          count={list.history.length}
-          title={`これまでに完了した ToDo ${historyCount} 件を、付けたときの指示ごとにまとめています（件数は指示の数）`}
-          open={historyFold.open}
-          onToggle={historyFold.toggle}
-          indent={false}
-          wrapClassName="composer-archived todo-fold"
-        >
-          <TodoHistory groups={list.history} events={events} onJump={popover.close} />
-        </FoldSection>
-      )}
-      <div className="todo-actions">
-        <button
-          type="button"
-          className="link-button"
-          title="この ToDo の一覧をチャット欄の上に出さない（エージェントがいまの作業の一覧を書き換えたら、また出します）"
-          onClick={() => {
-            setHidden(todoSignature(todos));
-            popover.close();
-          }}
-        >
-          <EyeOff size={13} aria-hidden />
-          この一覧を隠す
-        </button>
-      </div>
+      {() => {
+        // 一覧の中身は開いているときだけ作る
+        const historyCount = list.history.reduce((n, g) => n + g.items.length, 0);
+        const sections = list.stale.length > 0 || historyCount > 0;
+        return (
+          <>
+            {sections && <div className="todo-section-label">いまの作業</div>}
+            {todos.map((t) => (
+              <TodoRow key={t.key} todo={t} />
+            ))}
+            {list.stale.length > 0 && (
+              <FoldSection
+                look="row"
+                icon={CircleDashed}
+                label="前の作業から残っているもの"
+                count={list.stale.length}
+                open={staleFold.open}
+                onToggle={staleFold.toggle}
+                indent={false}
+                wrapClassName="composer-archived todo-fold"
+                title="完了にならないまま、しばらく触られていない ToDo（AI が完了にし忘れたものが多い）。数には入れません"
+              >
+                {list.stale.map((t) => (
+                  <TodoRow key={t.key} todo={t} />
+                ))}
+              </FoldSection>
+            )}
+            {historyCount > 0 && (
+              <FoldSection
+                look="row"
+                icon={ListChecks}
+                label="これまでの ToDo"
+                count={list.history.length}
+                title={`これまでに完了した ToDo ${historyCount} 件を、付けたときの指示ごとにまとめています（件数は指示の数）`}
+                open={historyFold.open}
+                onToggle={historyFold.toggle}
+                indent={false}
+                wrapClassName="composer-archived todo-fold"
+              >
+                <TodoHistory groups={list.history} events={events} onJump={popover.close} />
+              </FoldSection>
+            )}
+            <div className="todo-actions">
+              <button
+                type="button"
+                className="link-button"
+                title="この ToDo の一覧をチャット欄の上に出さない（エージェントがいまの作業の一覧を書き換えたら、また出します）"
+                onClick={() => {
+                  setHidden(todoSignature(todos));
+                  popover.close();
+                }}
+              >
+                <EyeOff size={13} aria-hidden />
+                この一覧を隠す
+              </button>
+            </div>
+          </>
+        );
+      }}
     </ComposerChip>
   );
 }

@@ -10,7 +10,6 @@ import { AfterCompactMessages, type AfterCompactUntil } from "@/features/chat/st
 import { VisualPending } from "@/features/chat/visuals/VisualItem";
 import { useSentCompactPrompt } from "@/features/snippet/useCompactPrompt";
 import { StreamingReply } from "./StreamingReply";
-import type { TimelineScroll } from "./timelineScroll";
 
 /**
  * 流れの終わり（最新の分）: 書いている途中の返答・書いている途中の図の枠・確認のカード・作業中の行（返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える。
@@ -22,24 +21,24 @@ export function TimelineEnd({
   chat,
   busy,
   streaming,
+  visible,
   approvals,
   working,
   live,
   agents,
   events,
-  scroll,
 }: {
   chat: Chat;
   busy: boolean;
   streaming: string;
+  /** チャットが見えているか（見えていない間は書いている途中の返答を少しずつ出さない） */
+  visible: boolean;
   approvals: Approval[];
   working: ReactNode | null;
   live: ChatLive;
   agents: SubagentEntry[];
   /** 会話の記録（裏の作業の一覧の行から、流れの中のその呼び出しへ移る） */
   events: ChatEvent[];
-  /** 流れのスクロール（書いている途中の返答が伸びたら、一番下を見ているときだけ付いていく） */
-  scroll: TimelineScroll;
 }) {
   const post = useSentCompactPrompt("post", chat.project_id);
   // 圧縮を待つ間（圧縮前指示の作業中・圧縮中）は、コアが圧縮の記録を受け取って預かりの先頭に入れる前から、圧縮後指示を送る順で見せる
@@ -49,7 +48,7 @@ export function TimelineEnd({
   const until: AfterCompactUntil = waitingCompact ? "compact" : busy && live.tells_closed ? "closed" : busy && live.compacted_turn ? "exchange" : busy ? "turn" : "next";
   return (
     <>
-      {streaming && <StreamingReply text={streaming} scroll={scroll} />}
+      {streaming && <StreamingReply text={streaming} visible={visible} />}
       {/* AI が図の中身を書いている間（呼び出しの記録はまだない）は、描く位置に枠だけ */}
       {busy && live.drawing_visual && <VisualPending />}
       {approvals.map((a) => (

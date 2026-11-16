@@ -32,7 +32,15 @@ const STATUS_TEXTS: Record<Exclude<AgentState, "read">, string> = {
 const PLACEHOLDER = "このページの直し方を AI に頼む（例: 表を日付順に / 見出しの色を青に）。Enter で送る、Shift+Enter で改行";
 
 /** 流れを持たないので、送っても付いていくものがない（useChatSend に渡すスクロールの代わり） */
-const NO_SCROLL: TimelineScroll = { ref: { current: null }, following: () => false, follow: () => {}, release: () => {} };
+const NO_SCROLL: TimelineScroll = {
+  ref: { current: null },
+  following: () => false,
+  follow: () => {},
+  release: () => {},
+  holdUp: () => {},
+  held: () => false,
+  settle: () => {},
+};
 
 /**
  * メモのページの下の、そのメモを AI に直してもらう入力欄（メモのチャットの欄を閉じている間だけ出す）。
