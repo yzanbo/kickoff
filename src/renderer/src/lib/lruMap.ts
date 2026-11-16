@@ -1,7 +1,8 @@
 /**
  * 数に上限のある Map。上限を超えたら、いちばん長く使っていないものから捨てる（LRU）。
  * get で読んだもの・set で入れ直したものは新しい側へ動かし、peek は順を変えない（覚えにあるかを見るだけのとき）。
- * コードの色付けの覚え（lib/highlight.ts）・Mermaid の図の覚え（ui/markdown/mermaid/renderMermaid.ts）で使う
+ * 重さ（weigh。文字数など）を渡すと、重さの合計が maxWeight を超えないようにも捨てる（1 つで maxWeight を超えるものは入れない）。
+ * コードの色付けの覚え（lib/highlightPool.ts）・Mermaid の図の覚え（ui/markdown/mermaid/renderMermaid.ts）・Markdown のブロックの覚え（ui/markdown/markdownProcessor.ts）で使う
  */
 export interface LruMap<K, V> {
   /** 読む（新しい側へ動かす）。なければ undefined */
@@ -14,9 +15,22 @@ export interface LruMap<K, V> {
   readonly size: number;
 }
 
-export function createLruMap<K, V>(limit: number): LruMap<K, V> {
+/** 重さの上限（weigh で 1 つの重さを決める） */
+export interface LruWeight<K, V> {
+  maxWeight: number;
+  weigh: (value: V, key: K) => number;
+}
+
+export function createLruMap<K, V>(limit: number, weight?: LruWeight<K, V>): LruMap<K, V> {
   // Map は入れた順に並ぶので、先頭がいちばん長く使っていないもの
   const map = new Map<K, V>();
+  const weights = new Map<K, number>();
+  let total = 0;
+  const remove = (key: K) => {
+    total -= weights.get(key) ?? 0;
+    weights.delete(key);
+    return map.delete(key);
+  };
   return {
     get(key) {
       if (!map.has(key)) return undefined;
@@ -27,11 +41,17 @@ export function createLruMap<K, V>(limit: number): LruMap<K, V> {
     },
     peek: (key) => map.get(key),
     set(key, value) {
-      map.delete(key);
+      remove(key);
+      if (weight) {
+        const w = weight.weigh(value, key);
+        if (w > weight.maxWeight) return;
+        weights.set(key, w);
+        total += w;
+      }
       map.set(key, value);
-      while (map.size > limit) map.delete(map.keys().next().value as K);
+      while (map.size > limit || (weight && total > weight.maxWeight)) remove(map.keys().next().value as K);
     },
-    delete: (key) => map.delete(key),
+    delete: remove,
     get size() {
       return map.size;
     },

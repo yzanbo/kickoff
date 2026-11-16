@@ -209,6 +209,12 @@ export function readingPrompt(timeline: HTMLElement, prompts?: PromptList, hold?
     if (box.bottom > limit && bubble.getBoundingClientRect().top >= limit) break;
     found = bubble;
   }
+  // 見つけた吹き出しと線の間に窓の箱（描いていない行）があれば、その中に新しい指示があるかもしれないので記録から決める
+  if (found && boxBetween(timeline, found, line)) {
+    const first = firstVisibleEventId(timeline, line);
+    const before = first !== undefined && prompts ? promptBefore(prompts, first) : undefined;
+    if (before && before.id > Number(found.id.replace("ev-", ""))) return before.compactKind ? { id: before.id, text: before.text, compactKind: before.compactKind } : { id: before.id, text: before.text };
+  }
   if (!found) {
     // 読んでいる位置より上に描いている吹き出しがない（窓の外にある・最初の吹き出しより上を見ている）: 見えている最初の項目より前の指示を記録から
     const first = firstVisibleEventId(timeline, line);
@@ -227,6 +233,16 @@ export function readingPrompt(timeline: HTMLElement, prompts?: PromptList, hold?
   const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
   const compactKind = found.closest(".pre-compact") ? "pre" : found.closest(".post-compact") ? "post" : undefined;
   return compactKind ? { id, text, compactKind } : { id, text };
+}
+
+/** 吹き出しより下・線より上に、流れの窓の箱（描いていない行の代わり）があるか */
+function boxBetween(timeline: HTMLElement, bubble: HTMLElement, line: number): boolean {
+  const from = bubble.getBoundingClientRect().top;
+  for (const box of timeline.querySelectorAll<HTMLElement>(":scope > .timeline-inner > .timeline-box")) {
+    const top = box.getBoundingClientRect().top;
+    if (top > from && top < line) return true;
+  }
+  return false;
 }
 
 /** 会話の流れの行の包み（入れ子のカードの中の行は含めない）のうち、自分の発言・質問への回答の行 */

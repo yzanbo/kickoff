@@ -74,7 +74,7 @@ function FileAttachmentChip({
   const body = (
     <>
       {isImage && src ? (
-        <img className="attachment-thumb" src={src} alt="" />
+        <img className="attachment-thumb" src={src} alt="" loading="lazy" />
       ) : (
         <span className="attachment-icon">
           <FileIcon name={attachment.name} />

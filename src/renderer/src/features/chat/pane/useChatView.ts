@@ -7,10 +7,10 @@ import { promptListOf } from "@/features/chat/prompts/promptHistory";
 import { usePromptKeys } from "@/features/chat/prompts/usePromptKeys";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { useRetryChoices } from "@/features/chat/rewind/useRetryChoices";
-import { jumpToEvent } from "@/features/chat/timeline/jumpToEvent";
 import { useChipsPortal } from "./chipsPortal";
 import { groupEvents, relativeOf } from "@/features/chat/timeline/timelineItems";
 import { useTimelineWindow } from "@/features/chat/timeline/useTimelineWindow";
+import { timelineView } from "@/features/chat/timeline/timelineView";
 import { compactHoldOf } from "./compactHold";
 import { useChatSend } from "./useChatSend";
 import type { ChatShellHandles } from "./useChatPaneActions";
@@ -86,7 +86,22 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     }),
     [chatId],
   );
-  const timeline = useTimelineWindow({ items, chatId, focus, scroll, log: { hasEarlier: log.hasEarlier, focused: log.focused, ...paging } });
+  // 開き直したとき: 前に読んでいた位置があり、そのあと新しい項目が届いていなければ、その位置から（届いていれば一番下。検索から開いたらその発言。U2）
+  const [initial] = useState(() => {
+    const saved = timelineView(chatId).position;
+    if (focus !== undefined || !saved || items.at(-1)?.key !== saved.last) return null;
+    // 一番下へ付いていかないところから始める（付いていくと、最初の大きさの知らせで一番下へ寄せる）
+    scroll.release();
+    return { key: saved.key, offset: saved.offset };
+  });
+  const timeline = useTimelineWindow({
+    items,
+    chatId,
+    scroll,
+    log: { hasEarlier: log.hasEarlier, focused: log.focused, paging: log.paging, ...paging },
+    initial,
+    onDrawn: () => pane.drawn.set(pane.drawn.get() + 1),
+  });
   // 検索結果から開いた発言を読んでいなければ、その前後を読む（読めたら窓がその前後を描く）。発言ごとに 1 回だけ
   // （隠したタブを表に戻すと effect が流れ直すので、末尾に戻ったあとに引き戻さない）
   const openedFocus = useRef<number | undefined>(undefined);
@@ -105,18 +120,21 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     setAfterShow(null);
     afterShow.then();
   }, [afterShow, log]);
-  // 移り先が窓の外なら、窓を広げて描いてから移る
-  const [jumpTarget, setJumpTarget] = useState<number | null>(null);
-  useEffect(() => {
-    const el = scroll.ref.current;
-    if (jumpTarget !== null && el && jumpToEvent(el, jumpTarget, { smooth: true })) setJumpTarget(null);
-  }, [jumpTarget, timeline.visible, scroll]);
   // 失敗した作業の直し方（変わる様子として配り、失敗した作業の終わりの行だけが描き直る）
   const retry = useRetryChoices(events, busy, options);
   const send = useChatSend({ chatId: chat.id, busy, queued: live.queue.messages.length > 0, compactHold: compactHoldOf(live), options, scroll, background: live.background, runningAgents, onStopping: setStopClicked, beforeSend });
 
   // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
-  const promptKeys = usePromptKeys({ root: pane.root, timeline: scroll.ref, promptIds: prompts.ids, onJump: (id) => pane.jumpTo(id) });
+  // 指示の位置は、描いていない行も窓の前からの和で（箱の中の指示を見落とさない）。読み込んでいない範囲の指示は記録の順で前後を決める
+  const loaded = log.events.length > 0 ? { first: log.events[0].id, last: log.focused ? log.events.at(-1)!.id : Number.MAX_SAFE_INTEGER } : null;
+  const promptKeys = usePromptKeys({
+    root: pane.root,
+    timeline: scroll.ref,
+    promptIds: prompts.ids,
+    locate: (id) => timeline.topOf(`e${id}`),
+    loaded,
+    onJump: (id) => pane.jumpTo(id),
+  });
   // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
   // ピルの列を画面の外に描いているとき（メモのチャットの欄を閉じている）は、会話へ移る前に画面を見せる
   const chipsPortal = useChipsPortal();
@@ -131,7 +149,6 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     send,
     reveal: chipsPortal?.reveal,
     showAfter: (eventId, then) => setAfterShow({ eventId, then }),
-    jumpLater: setJumpTarget,
   };
 
   // 変わる様子を配る（変わったときだけ。読んでいる部品だけが描き直る）

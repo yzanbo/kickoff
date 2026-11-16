@@ -28,14 +28,11 @@ export function ChatHeader({
   chat,
   project,
   tail,
-  version,
 }: {
   chat: Chat;
   project?: Project;
   /** 記録の末尾（チャットの中の検索で探す。その前は検索がコアから読む） */
   tail: ChatEvent[];
-  /** 描いている項目（変わったら検索の印を付け直す） */
-  version: unknown;
 }) {
   const shows = useChatHeaderItems();
   const ordered = useChatHeaderOrder();
@@ -47,7 +44,7 @@ export function ChatHeader({
   const collapsed = rowHidden && showing === "conversation" && !chat.archived_at;
   // 検索は会話だけに効く。見出しに出さないときは、浮かせた欄を ⌘F・文が残っている間だけ出す
   const findInline = !collapsed && shows("find");
-  const find = showing === "conversation" && <ChatFind tail={tail} version={version} floating={!findInline} />;
+  const find = showing === "conversation" && <ChatFind tail={tail} floating={!findInline} />;
   if (collapsed) return <header className="chat-header collapsed">{find}</header>;
 
   const turns = shows("turns") && chat.num_turns > 0;
