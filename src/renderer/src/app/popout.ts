@@ -1,4 +1,6 @@
-// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアントと左のサイドバーを、メインのウィンドウの外に出して見る）の行き先
+// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアント、左のサイドバー、
+// 右端のチャット欄とそのブラウザ・ターミナルのタブを、メインのウィンドウの外に出して見る）の行き先
+import type { TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { postWindowMessage } from "./windowBus";
 
 /** 別ウィンドウで開くもの（メモのほかは、開いたチャットに結びつく。chatId はメインのウィンドウのそのチャットへ知らせるのに使う） */
@@ -19,14 +21,42 @@ export type PopoutRoute =
   /** DB クライアント（右の欄の DB のタブ。worktree は SQLite のファイルを開く作業場所） */
   | { kind: "database"; chatId: number; projectId: number; worktree?: string }
   /** 左のサイドバー（アプリに 1 つ。行を押すと、メインのウィンドウで開く） */
-  | { kind: "sidebar" };
+  | { kind: "sidebar" }
+  /** 右端のチャット欄（アプリに 1 つ。メインのウィンドウで開いているプロジェクトの欄を出す） */
+  | { kind: "side" }
+  /**
+   * パネルのブラウザのタブ（panel は移す元の欄 = 戻す先。key はタブのキー。ページは url で開き直す）。
+   * projectId はどのプロジェクトの欄か（AI の操作に使う。プロジェクトの欄でなければ null）
+   */
+  | { kind: "browser"; panel: string; key: string; url: string; title: string; projectId: number | null }
+  /** パネルのターミナルのタブ（key は裏のシェルのキー。移した先で同じシェルにつなぎ直す） */
+  | ({ kind: "terminal"; panel: string; key: string } & TerminalTarget);
 
 const PREFIX = "/popout/";
 
 /** 別ウィンドウの URL のハッシュ（"/popout/<種類>?…"。同じものは同じ文字になり、メインプロセスが同じウィンドウを前に出す） */
 export function popoutPath(route: PopoutRoute): string {
-  if (route.kind === "sidebar") return `${PREFIX}sidebar`;
+  if (route.kind === "sidebar" || route.kind === "side") return `${PREFIX}${route.kind}`;
   const params = new URLSearchParams();
+  if (route.kind === "browser") {
+    params.set("panel", route.panel);
+    params.set("key", route.key);
+    if (route.projectId !== null) params.set("project", String(route.projectId));
+    params.set("title", route.title);
+    params.set("url", route.url);
+    return `${PREFIX}${route.kind}?${params.toString()}`;
+  }
+  if (route.kind === "terminal") {
+    params.set("panel", route.panel);
+    params.set("key", route.key);
+    params.set("project", String(route.projectId));
+    params.set("cwd", route.cwd);
+    params.set("label", route.label);
+    if (route.command) params.set("command", route.command);
+    if (route.title) params.set("title", route.title);
+    if (route.env) params.set("env", JSON.stringify(route.env));
+    return `${PREFIX}${route.kind}?${params.toString()}`;
+  }
   if (route.kind === "memo") {
     params.set("project", String(route.projectId));
     params.set("path", route.path);
@@ -59,7 +89,8 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
   if (!path.startsWith(PREFIX)) return undefined;
   const [kind, query = ""] = path.slice(PREFIX.length).split("?");
   const params = new URLSearchParams(query);
-  if (kind === "sidebar") return { kind };
+  if (kind === "sidebar" || kind === "side") return { kind };
+  if (kind === "browser" || kind === "terminal") return parseTabPopout(kind, params);
   if (kind === "memo") {
     const projectId = positive(params.get("project"));
     const memoPath = params.get("path");
@@ -88,6 +119,37 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
     return path ? { kind, ...place, path, ...(line ? { line } : {}) } : undefined;
   }
   return undefined;
+}
+
+/** パネルのブラウザ・ターミナルのタブの別ウィンドウの行き先を読む（欠けていれば undefined） */
+function parseTabPopout(kind: "browser" | "terminal", params: URLSearchParams): PopoutRoute | undefined {
+  const panel = params.get("panel");
+  const key = params.get("key");
+  if (!panel || !key) return undefined;
+  const projectId = positive(params.get("project"));
+  if (kind === "browser") {
+    const url = params.get("url");
+    return url === null ? undefined : { kind, panel, key, url, title: params.get("title") ?? "", projectId: projectId ?? null };
+  }
+  const cwd = params.get("cwd");
+  const label = params.get("label");
+  if (cwd === null || label === null || projectId === undefined) return undefined;
+  const command = params.get("command");
+  const title = params.get("title");
+  const env = parseEnv(params.get("env"));
+  return { kind, panel, key, cwd, label, projectId, ...(command ? { command } : {}), ...(title ? { title } : {}), ...(env ? { env } : {}) };
+}
+
+/** シェルに足す環境変数（JSON の文字の表。読めなければ undefined） */
+function parseEnv(text: string | null): Record<string, string> | undefined {
+  if (!text) return undefined;
+  try {
+    const value: unknown = JSON.parse(text);
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+    return Object.values(value).every((v) => typeof v === "string") ? (value as Record<string, string>) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** 別ウィンドウを開けるか（Mac のアプリのときだけ） */

@@ -113,7 +113,8 @@ export function panelActions(key: string) {
      * タブを閉じる（表示中のタブならそのペインの隣のタブへ。空になったペインは消す）。dismiss: false はアーカイブ・削除のあと
      * （サイドバーに出ている間は連動でまた出る）。ふだんは表示だけ消したことにして、連動で出し直さない
      */
-    closeTab: (tabKey: string, { dismiss = true }: { dismiss?: boolean } = {}) => dispatch({ type: "close", keys: [tabKey], dismiss }),
+    /** タブを閉じる（keep: 後始末をしない。別ウィンドウへ移すとき） */
+    closeTab: (tabKey: string, { dismiss = true, keep = false }: { dismiss?: boolean; keep?: boolean } = {}) => dispatch({ type: "close", keys: [tabKey], dismiss, keep }),
     /** タブを一覧のペインへ戻す（分けたペインで、サイドバーと連動したチャットのタブを閉じたとき。表示だけ消したことにはしない） */
     returnToHome: (tabKey: string) => changeLayout((l) => returnToHome(l, tabKey)),
     setOpen,

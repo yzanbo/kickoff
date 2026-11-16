@@ -68,6 +68,12 @@ export interface TerminalOpenBody {
   meta: { project_id: number | null; title: string } | null;
 }
 
+/** シェルの持ち主だけを替える本文（この Mac の画面のタブを別ウィンドウへ移す・戻すとき。PUT /api/terminals/:key/owner） */
+export interface TerminalOwnerBody {
+  /** 新しい持ち主（その画面 = wc:<WebContents の ID>） */
+  owner: string;
+}
+
 /** 用意したシェル（created: 新しく始めたか） */
 export interface TerminalOpened {
   created: boolean;

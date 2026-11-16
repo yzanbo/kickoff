@@ -22,6 +22,11 @@ let version = 0;
  * 変える操作はメインのウィンドウに頼む。panelMirror.ts）
  */
 let replica = false;
+/** このウィンドウが持つ欄か（下書きの保存で、ほかのウィンドウが持つ欄 = 別ウィンドウへ移したチャット欄の分は書き換えない。panelHandOff.ts） */
+let owns: (key: string) => boolean = () => true;
+
+/** 下書きのタブを残す（このウィンドウが持つ欄の分だけ） */
+const persistDrafts = () => writeDrafts([...states].map(([k, s]) => [k, s.tabs] as const), owns);
 
 /** 開いているかを覚える欄（チャット欄）の、その画面の設定 */
 function openSettingOf(key: string) {
@@ -89,8 +94,9 @@ export function dispatchPanel(key: string, action: PanelAction): void {
   states.set(key, next);
   if (next.tabs !== prev.tabs) {
     const kept = new Set(next.tabs.map((t) => t.key));
-    prev.tabs.filter((t) => !kept.has(t.key)).forEach(dispose);
-    writeDrafts([...states].map(([k, s]) => [k, s.tabs] as const));
+    // 別ウィンドウへ移したタブは後始末をしない（keep。ターミナルのシェルは移した先がつなぐ）
+    if (!(action.type === "close" && action.keep)) prev.tabs.filter((t) => !kept.has(t.key)).forEach(dispose);
+    persistDrafts();
   }
   const setting = next.open !== prev.open ? openSettingOf(key) : undefined;
   if (setting) writeSetting(setting, next.open);
@@ -123,6 +129,30 @@ export function replacePanels(entries: readonly (readonly [string, PanelState])[
   states.clear();
   for (const [key, state] of entries) states.set(key, state);
   version++;
+  for (const listener of [...listeners]) listener();
+}
+
+/** このウィンドウが持つ欄を決める（チャット欄を別ウィンドウへ移す・戻すとき） */
+export function setPanelOwnership(fn: (key: string) => boolean): void {
+  owns = fn;
+}
+
+/** 合う欄の状態を取り出して、このウィンドウから外す（閉じたタブの後始末はしない。別ウィンドウへ移すとき） */
+export function takePanels(match: (key: string) => boolean): [string, PanelState][] {
+  const taken = [...states].filter(([key]) => match(key));
+  if (taken.length === 0) return taken;
+  for (const [key] of taken) states.delete(key);
+  version++;
+  for (const listener of [...listeners]) listener();
+  return taken;
+}
+
+/** 合う欄の状態を、届いたものに置き換える（後始末はしない。別ウィンドウから移されたとき・戻されたとき）。下書きも残し直す */
+export function putPanels(match: (key: string) => boolean, entries: readonly (readonly [string, PanelState])[]): void {
+  for (const key of [...states.keys()]) if (match(key)) states.delete(key);
+  for (const [key, state] of entries) states.set(key, state);
+  version++;
+  persistDrafts();
   for (const listener of [...listeners]) listener();
 }
 

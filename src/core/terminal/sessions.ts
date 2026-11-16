@@ -151,6 +151,14 @@ export class TerminalSessions implements TerminalControl {
     return this.sessions.get(key)?.owner ?? null;
   }
 
+  /** 持ち主だけを替える（この Mac の画面のタブを別ウィンドウへ移す・戻す。シェルがなければ false で、始めない） */
+  setOwner(key: string, owner: string): boolean {
+    const session = this.sessions.get(key);
+    if (!session) return false;
+    session.owner = owner;
+    return true;
+  }
+
   write(key: string, data: string): void {
     this.sessions.get(key)?.proc.write(data);
   }

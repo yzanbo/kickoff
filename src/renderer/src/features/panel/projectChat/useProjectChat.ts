@@ -1,3 +1,4 @@
+import { openPopout } from "@/app/popout";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { PROJECT_CHAT_WIDTH } from "@/lib/storageKeys";
@@ -14,14 +15,16 @@ export type ProjectChatController = ReturnType<typeof useProjectChat>;
  * 画面の右端に、下のパネル（ターミナル）より下まで置く（App）。全プロジェクトの画面では、App がサイドバーで最後に選んでいたプロジェクト（もうなければ先頭）を渡し、
  * チャットは出さない（noChat。ターミナルとブラウザだけ。チャットのタブは閉じずに隠し、そのプロジェクトの画面ではそのまま出る）。projectId がない（プロジェクトが 1 つもない）ときは出さない
  */
-export function useProjectChat(projectId: number | undefined, { noChat = false }: { noChat?: boolean } = {}) {
+export function useProjectChat(projectId: number | undefined, { noChat = false, inWindow = false }: { noChat?: boolean; inWindow?: boolean } = {}) {
   const key = projectId === undefined ? undefined : panelKey("side", projectId);
-  const open = usePanelOpen(key);
+  // 別ウィンドウへ移している間は、開いているものとして見せる（開閉の操作はそのウィンドウを前に出す）
+  const open = usePanelOpen(key) || inWindow;
   // 幅（左端のつまみのドラッグ。真ん中に 480px は残す）
   const width = useDragSize({ setting: PROJECT_CHAT_WIDTH, edge: "start", min: 320, keep: 480, write: "--chat-w" });
 
   /** 開閉（開くときに見せているタブがなく、チャットを表示する欄なら、新しいチャットを開く。初めはブラウザ・ターミナルだけなので開かない） */
   const toggle = () => {
+    if (inWindow) return openSideWindow();
     if (key) panelActions(key).toggle({ noChat });
   };
 
@@ -36,5 +39,8 @@ export function useProjectChat(projectId: number | undefined, { noChat = false }
     projectId !== undefined,
   );
 
-  return { projectId, open, toggle, width, noChat };
+  return { projectId, open, toggle, width, noChat, inWindow };
 }
+
+/** チャット欄の別ウィンドウを開く（もう開いていれば前に出す。チャット欄の状態は、開いた別ウィンドウにメインのウィンドウが渡す。app/popoutHosts.ts） */
+export const openSideWindow = () => openPopout({ kind: "side" }, "チャット欄");

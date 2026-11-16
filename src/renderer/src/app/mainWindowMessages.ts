@@ -7,10 +7,12 @@ import { openSeededChat } from "@/features/chat/handoff/workplace";
 import { openMemoFromChat } from "@/features/memo/openMemoFrom";
 import { dockPopout } from "@/features/popout/dockPopout";
 import { openChatSplit } from "@/features/panel/board/openChatSplit";
+import { panelActions } from "@/features/panel/state/panelActions";
 import { discardDraft, moveDraftToProject, openDraft, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft } from "@/features/panel/state/panelDrafts";
 import { handleForwarded } from "./popoutNavigation";
+import { popoutKey } from "./popout";
 import { openChat, openProjectFile } from "./router";
-import type { PanelOp, WindowMessage } from "./windowBus";
+import { postWindowMessage, type PanelOp, type WindowMessage } from "./windowBus";
 
 /** サイドバーの別ウィンドウから頼まれた、このウィンドウのパネルを変える操作 */
 function runPanelOp(o: PanelOp) {
@@ -21,6 +23,7 @@ function runPanelOp(o: PanelOp) {
   else if (o.op === "setDraftGroup") setDraftGroup(o.draft, o.group, o.groupName);
   else if (o.op === "togglePinDraft") togglePinDraft({ ...o.draft, pinned: o.pinned });
   else if (o.op === "discardDraft") discardDraft(o.draft);
+  else if (o.op === "openBrowser") panelActions(o.panel).openBrowser(o.url);
   else openChatSplit(o.chat, o.dir);
 }
 
@@ -30,7 +33,13 @@ export function handleMainWindowMessage(m: WindowMessage) {
   else if (m.type === "openProjectFile") openProjectFile(m.projectId, m.file);
   else if (m.type === "openChat") openChat(m.projectId, m.chatId);
   else if (m.type === "openMemo") openMemoFromChat(m);
-  else if (m.type === "dockPopout") dockPopout(m.route);
+  else if (m.type === "dockPopout") {
+    const { route } = m;
+    // 開き直し終えたら別ウィンドウに知らせる（失敗しても閉じさせる）
+    void dockPopout(route)
+      .catch((e: unknown) => console.error("[popout] 欄に戻せませんでした", e))
+      .finally(() => postWindowMessage({ type: "docked", key: popoutKey(route) }));
+  }
   else if (m.type === "askChild") openAskChild(m);
   else if (m.type === "openSeededChat") openSeededChat(m.projectId, m.place, m);
   else if (m.type === "openChild") {

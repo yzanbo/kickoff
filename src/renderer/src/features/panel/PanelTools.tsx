@@ -1,4 +1,4 @@
-import { FoldHorizontal, Maximize2, Minimize2, UnfoldHorizontal } from "lucide-react";
+import { AppWindow, FoldHorizontal, Maximize2, Minimize2, UnfoldHorizontal } from "lucide-react";
 import type { HTMLAttributes, RefObject } from "react";
 import { IconButton } from "@/ui/IconButton";
 import { SURFACES } from "./surfaces";
@@ -15,6 +15,8 @@ export interface PanelFrame {
   maximize?: { on: boolean; disabled?: boolean; toggle: () => void };
   /** 欄が画面そのもの（ボードと分けた「チャット」タブ）で、閉じるボタンを出さない */
   fixed?: boolean;
+  /** 欄ごと別ウィンドウへ移す（チャット欄。Mac のアプリのときだけ渡す） */
+  popOut?: () => void;
 }
 
 /** 欄の閉じるボタン（欄の決まり SURFACES の closeButton。欄が画面そのもののときは出さない） */
@@ -67,6 +69,9 @@ export function PanelTools({ panel, frame, view }: { panel: PanelController; fra
         />
       )}
       <PanelViewButton view={view} />
+      {frame?.popOut && (
+        <IconButton type="button" icon={AppWindow} size={15} className="panel-control" label="別ウィンドウで開く" title="この欄をタブごと別ウィンドウに移す（ブラウザのページは開き直す）" onClick={frame.popOut} />
+      )}
       {closeButton?.at === "end" && close}
     </div>
   );

@@ -1,9 +1,11 @@
-import type { CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
+import { canPopout } from "@/app/popout";
 import { cx } from "@/lib/cx";
 import { useProjects } from "@/stores/projects";
 import { Panel } from "@/features/panel/Panel";
 import { terminalTargets, usePanel } from "@/features/panel/usePanel";
-import type { ProjectChatController } from "./useProjectChat";
+import type { PanelFrame } from "@/features/panel/PanelTools";
+import { openSideWindow, type ProjectChatController } from "./useProjectChat";
 
 /**
  * プロジェクトのチャット欄（画面の右端。下のパネルより下まで）。中身はボードの右のパネルと同じタブ（Panel）で、
@@ -24,15 +26,19 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
     >
       <div className="pane-resizer project-chat-resizer" aria-label="チャット欄の幅を変える" {...width.handle} />
       <div className="project-chat-inner">
-        <ProjectChatPanel projectId={projectId} noChat={noChat} />
+        <ProjectChatPanel projectId={projectId} noChat={noChat} popOut={canPopout() ? openSideWindow : undefined} />
       </div>
     </aside>
   );
 }
 
-/** チャット欄の中身（プロジェクトのタブ。開いているかは欄の殻 useProjectChat と同じ店から読む） */
-function ProjectChatPanel({ projectId, noChat }: { projectId: number; noChat: boolean }) {
+/**
+ * チャット欄の中身（プロジェクトのタブ。開いているかは欄の殻 useProjectChat と同じ店から読む）。チャット欄の別ウィンドウ（PopoutSideChat）も同じものを描く。
+ * popOut: 欄ごと別ウィンドウへ移すボタン（タブの列の道具。メインのウィンドウだけ）
+ */
+export function ProjectChatPanel({ projectId, noChat, popOut }: { projectId: number; noChat: boolean; popOut?: () => void }) {
   const { projects } = useProjects();
   const panel = usePanel({ surface: "side", scope: projectId, noChat, newChat: noChat ? undefined : { projectId }, terminals: terminalTargets(projects, projectId) });
-  return <Panel panel={panel} />;
+  const frame = useMemo<PanelFrame | undefined>(() => (popOut ? { popOut } : undefined), [popOut]);
+  return <Panel panel={panel} frame={frame} />;
 }

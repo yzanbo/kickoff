@@ -11,6 +11,7 @@ import { api } from "@/api";
 import { terminalSocketUrl } from "@/api/terminals";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { useLatest } from "@/hooks/useLatest";
+import { windowOwner } from "./terminalOwner";
 import { terminalFont, terminalTheme } from "./terminalTheme";
 import { useTerminalSelectionMenu } from "./useTerminalSelectionMenu";
 
@@ -21,9 +22,6 @@ const commandExited = (code: number) => `\r\n\x1b[2m[終了しました${code ==
 /** コアとのつなぎが切れたとき（コアが落ちた・起動し直した。シェルはコアと一緒に終わる）に出す文 */
 const disconnected = (command: boolean) => `\r\n\x1b[2m[Kickoff のコアとのつなぎが切れました。${command ? "［もう一度流す］で始め直します" : "キーを押すと新しいシェルを開きます"}]\x1b[0m\r\n`;
 
-/** この画面の持ち主の印（メインプロセスがこの画面の生き死にを見て、消えたらシェルを止める。画面ごとに 1 回だけ聞く） */
-let ownerPromise: Promise<string> | undefined;
-const windowOwner = (native: NonNullable<Window["kickoff"]>["terminal"]) => (ownerPromise ??= native.owner());
 
 interface Props {
   /** タブのキー（裏のシェルのキー） */
