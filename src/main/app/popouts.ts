@@ -33,6 +33,7 @@ export function popoutHandlers(appUrl: string): IpcHandlers["windows"] {
   return {
     openPopout: (_e, route, title, at) => openPopout(appUrl, route, title, at),
     focusMain: () => void showMainWindow(),
+    captureRegion: (e, rect) => captureThumbnail(e.sender, rect),
     closeSelf: (e) => {
       const win = BrowserWindow.fromWebContents(e.sender);
       if (!win || !isPopout(win)) return;
@@ -59,6 +60,18 @@ function placeAtDrop(drop: { x: number; y: number }, width: number, height: numb
 
 /** min〜max に収める（入りきらなければ min） */
 const clampInto = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
+
+/** タブのドラッグのサムネイルの幅（px。Retina で 220pt に見せるため 2 倍） */
+const THUMBNAIL_WIDTH = 440;
+
+/** 画面のその範囲を撮って、サムネイルの幅に縮めた JPEG の data URL にする（撮れなければ null） */
+async function captureThumbnail(wc: Electron.WebContents, rect: Rectangle): Promise<string | null> {
+  const area = { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.max(1, Math.round(rect.width)), height: Math.max(1, Math.round(rect.height)) };
+  const image = await wc.capturePage(area).catch(() => null);
+  if (!image || image.isEmpty()) return null;
+  const small = image.getSize().width > THUMBNAIL_WIDTH ? image.resize({ width: THUMBNAIL_WIDTH, quality: "good" }) : image;
+  return `data:image/jpeg;base64,${small.toJPEG(80).toString("base64")}`;
+}
 
 /** 開いている別ウィンドウか（メインのウィンドウから closeSelf を呼ばれても閉じない） */
 function isPopout(win: BrowserWindow): boolean {

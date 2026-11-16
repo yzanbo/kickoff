@@ -71,6 +71,10 @@ export const NATIVE_API = {
     closeSelf: invoke<[]>(),
     /** ✕・⌘W で閉じようとした（子チャット・チャット欄のウィンドウ。メインプロセスが閉じるのを止めて知らせ、画面が閉じ方を聞く・状態を戻す） */
     onCloseRequested: event<[]>(),
+    /**
+     * 呼んだ画面のその範囲（CSS の px）を撮って、縮めた画像の data URL を返す（タブをドラッグするときに付いて動く小さなサムネイル。撮れなければ null）
+     */
+    captureRegion: invoke<[rect: { x: number; y: number; width: number; height: number }], string | null>(),
     /** 別ウィンドウが閉じた（メインのウィンドウへ。route は開いたときの行き先。落ちた・スクリプトで閉じたなど、画面が知らせられずに閉じたときも届く） */
     onPopoutClosed: event<[route: string]>(),
   },

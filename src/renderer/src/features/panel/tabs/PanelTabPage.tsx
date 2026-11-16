@@ -241,7 +241,15 @@ function PanelTabPageBody({
   // 表示中か（外のタブ（右の欄を持つチャットのタブ）が裏に回っていれば、自分のペインで選んでいても表示していない）
   const visible = useContext(TabVisibleContext) && panelOpen && active;
   return (
-    <div className={cx("panel-tab-page", split && focused && "pane-focused", agentBrowsing && "agent-browsing")} hidden={!active} style={style} onPointerDownCapture={focus} onFocusCapture={focus}>
+    <div
+      className={cx("panel-tab-page", split && focused && "pane-focused", agentBrowsing && "agent-browsing")}
+      // タブのドラッグのサムネイルを撮る範囲を見つける印（layout/tabThumbnail.ts）
+      data-tab-key={tab.key}
+      hidden={!active}
+      style={style}
+      onPointerDownCapture={focus}
+      onFocusCapture={focus}
+    >
       <TabPageContext.Provider value={actions}>
         <TabVisibleContext.Provider value={visible}>
           <Page tab={tab} panel={panel} visible={visible} focused={focused} />
