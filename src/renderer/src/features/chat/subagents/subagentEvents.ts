@@ -15,8 +15,6 @@ interface LoadedIndex {
    * （groupEvents が流れによらず数える）
    */
   shared: number[];
-  /** チャット欄・右の欄から伝えた追加の指示（自分の発言。伝えた先のサブエージェントの流れに混ぜる） */
-  relays: number[];
 }
 
 const RELAY_MARK = "【サブエージェントへの追加の指示】";
@@ -29,17 +27,13 @@ function indexOf(loaded: readonly ChatEvent[]): LoadedIndex {
   if (cached) return cached;
   const byParent = new Map<string, number[]>();
   const shared: number[] = [];
-  const relays: number[] = [];
   for (let i = 0; i < loaded.length; i++) {
     const e = loaded[i];
     if (e.type === "subagent") {
       shared.push(i);
       continue;
     }
-    if (e.type === "user") {
-      if (e.data.text.startsWith(RELAY_MARK)) relays.push(i);
-      continue;
-    }
+    if (e.type === "user") continue;
     const parent = "parent" in e.data ? e.data.parent : undefined;
     if (e.type === "tool_result" && isBackgroundLaunch(e.data.content)) {
       // 流れの中の記録でもあるものは、流れの位置の列に入れるので重ねない
@@ -50,9 +44,21 @@ function indexOf(loaded: readonly ChatEvent[]): LoadedIndex {
     if (list) list.push(i);
     else byParent.set(parent, [i]);
   }
-  const index = { byParent, shared, relays };
+  const index = { byParent, shared };
   indexes.set(loaded, index);
   return index;
+}
+
+/**
+ * チャット欄・右の欄から伝えた追加の指示（自分の発言）。末尾より前のものも要る（末尾より前に起動したサブエージェントの画面に、そのころ伝えた指示を出す）ので、
+ * 読み込んだ記録ではなく digest（索引は自分の発言を中身のまま持つ）から、配列ごとに 1 回だけ拾う
+ */
+const relayLists = new WeakMap<readonly ChatEvent[], ChatEvent[]>();
+
+function relaysOf(digest: readonly ChatEvent[]): ChatEvent[] {
+  let list = relayLists.get(digest);
+  if (!list) relayLists.set(digest, (list = digest.filter((e) => e.type === "user" && e.data.text.startsWith(RELAY_MARK))));
+  return list;
 }
 
 /** 伝えた指示を、伝えた先のサブエージェントの流れの自分の発言にしたもの（同じ記録・同じ行なら同じ物。カードの memo が効くように） */
@@ -77,10 +83,10 @@ const lastResults = createLruMap<string, ChatEvent[]>(500);
 
 /**
  * そのサブエージェントの手順に使う記録（ID の順）。scope は流れ（行のキーと、再開した回の呼び出し ID）、agentId があれば
- * そのサブエージェントへ伝えた指示を key の流れの自分の発言として混ぜる。groupEvents(結果, scope) は、読み込んだ記録の全体を
- * 渡したときと同じ項目になる（subagentEvents.test.ts）。中身が前と同じなら前と同じ配列を返す
+ * そのサブエージェントへ伝えた指示（digest から。末尾より前のものも）を key の流れの自分の発言として混ぜる。groupEvents(結果, scope) は、
+ * 読み込んだ記録の全体を渡したときと同じ項目になる（subagentEvents.test.ts）。中身が前と同じなら前と同じ配列を返す
  */
-export function subagentEvents(loaded: readonly ChatEvent[], scope: readonly string[], key: string, agentId: string | undefined): ChatEvent[] {
+export function subagentEvents(loaded: readonly ChatEvent[], digest: readonly ChatEvent[], scope: readonly string[], key: string, agentId: string | undefined): ChatEvent[] {
   const index = indexOf(loaded);
   const lists: number[][] = [index.shared];
   for (const parent of scope) {
@@ -90,12 +96,13 @@ export function subagentEvents(loaded: readonly ChatEvent[], scope: readonly str
   const positions = mergeSorted(lists);
   const picked: ChatEvent[] = [];
   let r = 0;
-  const relays = agentId ? index.relays : [];
+  const relays = agentId ? relaysOf(digest) : [];
   for (const p of positions) {
-    for (; r < relays.length && relays[r] < p; r++) pushRelay(picked, loaded[relays[r]], agentId!, key);
-    picked.push(loaded[p]);
+    const e = loaded[p];
+    for (; r < relays.length && relays[r].id < e.id; r++) pushRelay(picked, relays[r], agentId!, key);
+    picked.push(e);
   }
-  for (; r < relays.length; r++) pushRelay(picked, loaded[relays[r]], agentId!, key);
+  for (; r < relays.length; r++) pushRelay(picked, relays[r], agentId!, key);
   const memoKey = `${scope.join(" ")}|${key}|${agentId ?? ""}`;
   const prev = lastResults.get(memoKey);
   if (prev && prev.length === picked.length && prev.every((e, i) => e === picked[i])) return prev;

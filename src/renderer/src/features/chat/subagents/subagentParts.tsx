@@ -207,7 +207,7 @@ export function useSubagentItems(entry: SubagentEntry, view: SubagentsView): Tim
     if (before) void chatLog.loadScope(chatId, scopeKey.split(" "), toolUseEventId === undefined ? [] : [toolUseEventId]);
   }, [before, chatId, scopeKey, toolUseEventId]);
   // そのサブエージェントの流れの記録だけを選んでから組み立てる（カードごとに読み込んだ記録の全体をたどらない。メモの仕様書「0023_表示を軽くする」の M4）
-  const events = useMemo(() => subagentEvents(view.loaded, scopeKey.split(" "), key, agentId), [view.loaded, scopeKey, key, agentId]);
+  const events = useMemo(() => subagentEvents(view.loaded, view.events, scopeKey.split(" "), key, agentId), [view.loaded, view.events, scopeKey, key, agentId]);
   return useMemo(() => groupEvents(events, scopeKey.split(" ")), [events, scopeKey]);
 }
 
