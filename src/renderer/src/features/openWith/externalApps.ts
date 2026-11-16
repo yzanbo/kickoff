@@ -45,7 +45,7 @@ export function useExternalTerminal() {
 
 /**
  * 選んでいる外部のブラウザ（パネルのブラウザの ▾ で選ぶ。初めは Chrome）と、そのアプリでページを開く関数・選べるアプリ。
- * url がなければアプリを開くだけ。開けなければお知らせで出す
+ * url がなければ空の新しいタブ。開けなければお知らせで出す
  */
 export function useExternalBrowser() {
   const [browser, setBrowser] = useSetting(EXTERNAL_BROWSER);

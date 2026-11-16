@@ -10,10 +10,10 @@ test("外部のターミナル: アプリごとの作業フォルダの渡し方
   assert.deepEqual(installedTerminals("/h", (p) => present.has(p)), ["terminal", "ghostty", "warp"]);
 });
 
-test("外部のブラウザ: ページは http(s) だけ渡し、なければアプリを開くだけ、入っているものだけを出す", () => {
+test("外部のブラウザ: ページは http(s) だけ渡し、なければ空の新しいタブ、入っているものだけを出す", () => {
   assert.deepEqual(externalBrowserArgs("brave", "https://example.com/"), ["-a", "Brave Browser", "https://example.com/"]);
-  assert.deepEqual(externalBrowserArgs("safari", "file:///etc/passwd"), ["-a", "Safari"]);
-  assert.deepEqual(externalBrowserArgs("chrome"), ["-a", "Google Chrome"]);
+  assert.deepEqual(externalBrowserArgs("safari", "file:///etc/passwd"), ["-a", "Safari", "about:blank"]);
+  assert.deepEqual(externalBrowserArgs("chrome"), ["-a", "Google Chrome", "about:blank"]);
   const present = new Set(["/Applications/Google Chrome.app", "/h/Applications/Arc.app"]);
   assert.deepEqual(installedBrowsers("/h", (p) => present.has(p)), ["chrome", "safari", "arc"]);
 });

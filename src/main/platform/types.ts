@@ -9,7 +9,7 @@ export interface DesktopPlatform {
   openTerminal: (id: ExternalTerminalId, dir: string) => Promise<void>;
   /** 入っている外部のブラウザ */
   installedBrowsers: () => ExternalBrowserId[];
-  /** 外部のブラウザでページを開く（url がなければアプリを開くだけ。開けなければ失敗） */
+  /** 外部のブラウザでページを開く（url がなければ空の新しいタブ。開けなければ失敗） */
   openBrowser: (id: ExternalBrowserId, url?: string) => Promise<void>;
   /** コマンドが、開発中の Electron のアプリのメインプロセスか（終わるときに子の Electron を先に止めるため。Helper は含まない） */
   isDevElectronMain: (command: string) => boolean;

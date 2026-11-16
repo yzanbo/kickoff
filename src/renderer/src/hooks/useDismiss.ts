@@ -33,6 +33,9 @@ function holdDragRegions(): () => void {
   };
 }
 
+/** 埋め込みのページ（埋め込みブラウザの webview・HTML のメモの iframe）か。中を押してもこのページには mousedown が届かない */
+const isEmbeddedPage = (el: Element | null): el is HTMLElement => el instanceof HTMLElement && (el.tagName === "WEBVIEW" || el.tagName === "IFRAME");
+
 /** 開いている層（useDismiss を使うポップオーバー・メニュー）の要素。開いた順 */
 type Layer = () => (HTMLElement | null)[];
 const layers: Layer[] = [];
@@ -48,7 +51,9 @@ function insideLaterLayer(layer: Layer, target: Node): boolean {
  * ref の要素（いくつか渡せば、そのどれか。ポップオーバーと開いたボタンなど）の中のクリックでは閉じない
  * （ウィンドウのドラッグ領域のクリックでも閉じるよう、開いている間はドラッグ領域を止める）。
  * 後から開いた層（ポップオーバーの中から開いたメニュー。body に出すので要素の上では外にある）の中のクリックも、外側とみなさない
- * （前は ⚙ の窓の中のメニューの項目を押すと、押した時点で窓が閉じてメニューごと消え、選んだものが届かなかった）
+ * （前は ⚙ の窓の中のメニューの項目を押すと、押した時点で窓が閉じてメニューごと消え、選んだものが届かなかった）。
+ * 埋め込みのページ（webview・iframe）の中を押したときも、外側のクリックとして閉じる（mousedown が届かないので、ピントがそこへ移ったことで見る。
+ * 利用者の指摘。前は右サイドバーのブラウザの ▾ のメニューが、ページを押しても閉じなかった）
  */
 export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObject<HTMLElement | null>[], onDismiss: () => void, options: DismissOptions = {}) {
   const { enabled = true, outside = true, ignore, escape = "stop" } = options;
@@ -67,6 +72,16 @@ export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObje
       if (insideLaterLayer(elements, target)) return;
       dismiss();
     };
+    /** 外側の要素へ移ったか（中・後から開いた層の中なら閉じない） */
+    const outsideOf = (target: Node) => !elements().some((el) => el?.contains(target)) && !insideLaterLayer(elements, target);
+    // 埋め込みのページを押した: ピントがその要素へ移る（webview は focusin、iframe はこのウィンドウの blur のときに activeElement が iframe になる）
+    const onFocusIn = (e: FocusEvent) => {
+      if (isEmbeddedPage(e.target as Element | null) && outsideOf(e.target as Node)) dismiss();
+    };
+    const onBlur = () => {
+      const active = document.activeElement;
+      if (isEmbeddedPage(active) && outsideOf(active)) dismiss();
+    };
     const onKey = (e: KeyboardEvent) => {
       // 日本語入力の変換をやめる Esc では閉じない（検索欄で変換をやめただけで、一覧が閉じないように）
       if (e.key !== "Escape" || isComposing(e)) return;
@@ -78,7 +93,11 @@ export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObje
       }
       dismiss();
     };
-    if (outside) window.addEventListener("mousedown", onDown);
+    if (outside) {
+      window.addEventListener("mousedown", onDown);
+      window.addEventListener("focusin", onFocusIn);
+      window.addEventListener("blur", onBlur);
+    }
     const release = outside ? holdDragRegions() : undefined;
     // "stop" はほかより先に受け取るため、捕捉フェーズで聞く
     const capture = escape === "stop";
@@ -86,6 +105,8 @@ export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObje
     return () => {
       layers.splice(layers.indexOf(elements), 1);
       window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("focusin", onFocusIn);
+      window.removeEventListener("blur", onBlur);
       window.removeEventListener("keydown", onKey, capture);
       release?.();
     };

@@ -117,8 +117,18 @@
  */
 .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)),
 .board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
+  /*
+   * 高さはほかのパネルと同じくタブに合わせる（信号機ボタンの行の高さ 40px にそろえると、タブの下に 3px の隙間ができ、
+   * 表示中のタブが下のページとつながって見えなかった。利用者の指摘）
+   */
+  min-height: 0;
   padding-right: var(--gutter);
   -webkit-app-region: no-drag;
+}
+
+/* 分けたペインのタブの中身を下げる高さも、ほかのパネルと同じ（side-panel-split.css の 37px） */
+.board-panel.as-sidebar:not(.in-footer) .split-view:not(:where(.agent-panel *)) {
+  --split-tabs-h: 37px;
 }
 
 /* 上の行（右上のレイアウトの開閉の行）。右サイドバーのメインのウィンドウだけに置く */

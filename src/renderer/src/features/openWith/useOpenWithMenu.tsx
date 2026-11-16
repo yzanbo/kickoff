@@ -21,7 +21,6 @@ interface OpenWithChoice {
   icon: LucideIcon;
   title: string;
   apps: { id: string; label: string; missing?: boolean }[];
-  current: string;
   onNewTab: () => void;
   /** そのアプリで開く（次からの既定にもする） */
   onOpenIn: (app: string) => void;
@@ -31,7 +30,7 @@ interface OpenWithChoice {
  * パネルのタブの列のブラウザ・ターミナルを開く操作と、▾ のメニュー（新しいタブで開く・「外部で開く」のアプリを押すとそのアプリで開く。次からの既定にもする）。
  * ターミナルを開く場所はアイコン・タブがないときのボタン・▾ のどれも同じ決め方（openTargets の terminalTargetOf: 押したペインでチャットを表示していればその作業場所 →
  * 開く場所が 1 つならそこ）で、決まらなければ開く場所を選ぶメニューを出す（1 つのメニューを、新しいタブ・外のターミナルで共通に使う）。
- * 外のブラウザでは、押したペインで見せている表示中のブラウザのタブのページを開く（なければアプリを開くだけ。browserPageOf）。
+ * 外のブラウザでは、押したペインで見せている表示中のブラウザのタブのページを、そのブラウザの新しいタブで開く（なければ空の新しいタブ。browserPageOf）。
  * openTerminal をターミナルのアイコンに、open を ▾ に渡し、menu を描く
  */
 export function useOpenWithMenu(panel: PanelController) {
@@ -85,7 +84,6 @@ export function useOpenWithMenu(panel: PanelController) {
         icon: Globe,
         title: "ブラウザの開き方",
         apps: browser.choices,
-        current: browser.browser,
         onNewTab: () => panel.openBrowser(),
         onOpenIn: (app) => {
           browser.setBrowser(app as ExternalBrowserId);
@@ -97,7 +95,6 @@ export function useOpenWithMenu(panel: PanelController) {
       icon: SquareTerminal,
       title: "ターミナルの開き方",
       apps: terminal.choices,
-      current: terminal.terminal,
       onNewTab: () => openTerminalIn(paneId, "tab", at),
       onOpenIn: (app) => {
         terminal.setTerminal(app as ExternalTerminalId);
@@ -118,7 +115,6 @@ export function useOpenWithMenu(panel: PanelController) {
           title={shown.title}
           newTab="新しいタブで開く"
           apps={shown.apps}
-          current={shown.current}
           onNewTab={shown.onNewTab}
           onOpenIn={shown.onOpenIn}
           onClose={caret.close}
