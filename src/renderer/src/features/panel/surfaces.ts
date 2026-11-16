@@ -189,6 +189,12 @@ export function parsePanelKey(key: string): { surface: PanelSurface; scope: Pane
   return Number.isInteger(id) && id > 0 ? { surface, scope: id } : undefined;
 }
 
+/** 欄のプロジェクト（プロジェクトごとの欄でなければ null。チャットの右の欄の範囲はチャットの ID なので取り違えない） */
+export function projectOfPanel(key: string): number | null {
+  const at = parsePanelKey(key);
+  return at && at.surface !== "agents" && typeof at.scope === "number" ? at.scope : null;
+}
+
 /**
  * その欄が出る画面（画面に出ていない欄の下書きを開くとき、ここへ移ってから開く）: 全プロジェクトの欄は全プロジェクトの画面、
  * プロジェクトの欄（チャット欄・フッター）はそのプロジェクトのボード。ボードの右のパネルは、チャットをボードと分けていれば

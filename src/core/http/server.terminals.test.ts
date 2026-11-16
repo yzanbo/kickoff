@@ -181,3 +181,22 @@ test("ターミナル: 画面が消えた・読み込み直したときの close
     ["b"],
   );
 });
+
+test("ターミナル: PUT /api/terminals/:key/owner は持ち主だけを替え（つなぎ直さない・流し直さない）、ないシェルは始めずに 404。端末からは使えない", async () => {
+  const { app, project, terminals, terminalFake } = withDevices();
+  const res = await app.request("/api/terminals", { method: "POST", headers: json(AUTH), body: JSON.stringify({ key: "t", cwd: project.repo_path, cols: 80, rows: 24, owner: "wc:1", start: null, meta: null }) });
+  assert.equal(res.status, 201);
+  const put = (key: string, owner: string, headers: Record<string, string> = AUTH) =>
+    app.request(`/api/terminals/${key}/owner`, { method: "PUT", headers: json(headers), body: JSON.stringify({ owner }) });
+  assert.equal((await put("t", "wc:2")).status, 204);
+  assert.equal(terminals.ownerOf("t"), "wc:2");
+  // 前の持ち主の画面が消えても止まらない
+  terminals.closeOwnedBy("wc:1");
+  assert.equal(terminals.has("t"), true);
+  assert.equal((await put("gone", "wc:2")).status, 404);
+  assert.equal(terminals.has("gone"), false);
+  assert.equal(terminalFake.spawned.length, 1);
+  assert.equal((await put("t", "device:1")).status, 400);
+  assert.equal((await put("t", "wc:3", bearer(FULL_TOKEN))).status, 403);
+  assert.equal(terminals.ownerOf("t"), "wc:2");
+});

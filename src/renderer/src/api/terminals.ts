@@ -1,4 +1,4 @@
-import type { TerminalOpenBody, TerminalOpened } from "@shared/types";
+import type { TerminalOpenBody, TerminalOpened, TerminalOwnerBody } from "@shared/types";
 import { request, withQuery } from "./http";
 
 /**
@@ -9,6 +9,8 @@ export const terminalsApi = {
   /** タブのシェルを用意する（あればつなぎ直し = 名前と持ち主を覚え直すだけ。なければ cwd で始める） */
   openTerminal: (body: TerminalOpenBody) => request<TerminalOpened>("POST", "/api/terminals", body),
   /** シェルを止める（タブを閉じたとき） */
+  /** シェルの持ち主だけを替える（タブを別ウィンドウへ移す・戻すとき。なければ 404 で、始めない） */
+  setTerminalOwner: (key: string, body: TerminalOwnerBody) => request<void>("PUT", `/api/terminals/${encodeURIComponent(key)}/owner`, body),
   closeTerminal: (key: string) => request<void>("DELETE", `/api/terminals/${encodeURIComponent(key)}`),
 };
 

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Hono } from "hono";
 import { upgradeWebSocket } from "@hono/node-server";
 import { z } from "zod";
-import type { TerminalClientMessage, TerminalCreateBody, TerminalCreated, TerminalOpenBody, TerminalOpened, TerminalServerMessage, TerminalTab } from "@shared/types";
+import type { TerminalClientMessage, TerminalCreateBody, TerminalCreated, TerminalOpenBody, TerminalOpened, TerminalOwnerBody, TerminalServerMessage, TerminalTab } from "@shared/types";
 import { callerOf, type Caller } from "../caller.js";
 import { Invalid, NotFound } from "../errors.js";
 import { jsonBody } from "../input.js";
@@ -22,6 +22,7 @@ const openSchema = z.object({
   start: z.object({ command: z.string().max(20_000).nullable(), env: z.record(z.string(), z.string()).nullable() }).nullable(),
   meta: z.object({ project_id: z.number().int().nullable(), title: z.string().max(500) }).nullable(),
 }) satisfies z.ZodType<TerminalOpenBody>;
+const ownerSchema = z.object({ owner: z.string().regex(/^wc:\d+$/) }) satisfies z.ZodType<TerminalOwnerBody>;
 const clientMessage = z.union([z.object({ type: z.literal("input"), data: z.string().max(100_000) }), z.object({ type: z.literal("resize"), cols: size, rows: size })]) satisfies z.ZodType<TerminalClientMessage>;
 
 /** シェルの持ち主の印（この Mac の画面のタブは、POST /api/terminals で渡したその画面の印 wc:<ID>） */
@@ -70,6 +71,15 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: ServerDeps)
     const { created } = await terminals.open({ key: body.key, cwd: body.cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: body.owner, start, meta });
     terminals.detach(body.key, placeholder.id);
     return c.json({ created } satisfies TerminalOpened, created ? 201 : 200);
+  });
+
+  // この Mac の画面のタブのシェルの持ち主だけを替える（タブを別ウィンドウへ移す・戻すとき。移す元の画面が閉じても止めさせない）。
+  // シェルがなければ 404 で、始めない（終わったコマンドのタブを流し直さないため）。端末からは使えない（DEVICE_ROUTES に入れない）
+  app.put("/api/terminals/:key/owner", async (c) => {
+    const key = c.req.param("key");
+    const body = ownerSchema.parse(await jsonBody(c));
+    if (!terminals.setOwner(key, body.owner)) throw new NotFound("ターミナルが見つかりません（もう終わったかもしれません）");
+    return c.body(null, 204);
   });
 
   // シェルを止める（端末は自分が作ったものだけ）

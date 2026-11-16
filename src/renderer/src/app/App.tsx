@@ -51,7 +51,7 @@ import { ProjectPage } from "@/features/project/page/ProjectPage";
 import { boardTabOf, openNewChat, openProjectSearch, RouteContext, routeProjectId, useHashRoute } from "./router";
 import { handleMainWindowMessage } from "./mainWindowMessages";
 import { OPEN_COMMAND_PALETTE_EVENT, START_NEW_CHAT_EVENT } from "./popoutNavigation";
-import { useSidebarWindowHost } from "./sidebarWindowHost";
+import { usePopoutHosts } from "./popoutHosts";
 import { subscribeWindowMessages } from "./windowBus";
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useChatHistory } from "./useChatHistory";
@@ -116,7 +116,9 @@ export function App() {
   // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
   // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。全プロジェクトの画面では、サイドバーで選んでいるプロジェクトのもの）
   // 全プロジェクトの画面ではチャットを出さない（ターミナルとブラウザだけ。チャットはそのプロジェクトへ移って開く）
-  const chat = useProjectChat(projectId ?? fallbackProject, { noChat: projectId === undefined });
+  // サイドバー・チャット欄の別ウィンドウが開いている間、いまの画面とパネルの状態を送る（チャット欄は状態ごと渡し、このウィンドウでは描かない）
+  const { sideHeld } = usePopoutHosts(route);
+  const chat = useProjectChat(projectId ?? fallbackProject, { noChat: projectId === undefined, inWindow: sideHeld });
   const bottomPanel = useBottomPanel(projectId ?? "all", terminalTargets(projects, projectId));
   // チャット・新しいチャットの URL では、プロジェクトのボードのパネルで開く
   // チャットを開く場所（ボードと分けた「チャット」タブ / ボードの右のパネル）
@@ -164,8 +166,6 @@ export function App() {
   useWindowEvent(OPEN_COMMAND_PALETTE_EVENT, () => setPalette(true));
   // 別ウィンドウからの「ファイルタブで開く」・メモ・子チャットを開く・子チャットから親へ・画面を移る操作は、このウィンドウで
   useEffect(() => subscribeWindowMessages(handleMainWindowMessage), []);
-  // サイドバーの別ウィンドウが開いている間、いまの画面とパネルの状態を写して送る
-  useSidebarWindowHost(route);
 
   return (
     <RouteContext.Provider value={route}>
@@ -197,7 +197,7 @@ export function App() {
         </main>
         <BottomPanel bottom={bottomPanel} />
         </div>
-        <ProjectChat chat={chat} />
+        {!sideHeld && <ProjectChat chat={chat} />}
         <AppFooter onOpenSettings={setSettings} connection={connection} planUsage={planUsage} projectId={projectId} />
         {creating && (
           <NewProjectDialog

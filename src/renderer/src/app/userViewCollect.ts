@@ -11,6 +11,7 @@ import { allPanels, isPanelMounted } from "@/features/panel/state/panelStore";
 import { leavesOf } from "@/features/panel/layout/paneTree";
 import { parsePanelKey, type PanelSurface } from "@/features/panel/surfaces";
 import { PROJECT_VIEW_LABELS, type PanelTab } from "@/features/panel/tabs/panelTypes";
+import { terminalTitle } from "@/features/panel/tabs/tabKinds";
 import type { PopoutRoute } from "./popout";
 import type { ProjectTab, Route } from "./router";
 
@@ -156,7 +157,13 @@ export function collectPopoutView(route: PopoutRoute): UserView {
               ? databaseTab(route.projectId, `chat-${route.chatId}`)
               : route.kind === "sidebar"
                 ? { kind: "page", label: "サイドバー" }
-                : { kind: "subagent", title: "サブエージェント" };
+                : route.kind === "side"
+                  ? { kind: "page", label: "チャット欄" }
+                  : route.kind === "browser"
+                    ? { kind: "browser", url: route.url, title: route.title, ...(route.projectId !== null ? { project_id: route.projectId } : {}) }
+                    : route.kind === "terminal"
+                      ? { kind: "terminal", label: terminalTitle(route), project_id: route.projectId }
+                      : { kind: "subagent", title: "サブエージェント" };
   const panes: UserViewPane[] = [{ area: "別ウィンドウ", tab }];
   const side: UserViewTab[] = [];
   panelPanes(panes, side);

@@ -22,7 +22,7 @@ import { useKeepAlive } from "./tabKeepAlive";
 import { NewChatPane } from "./NewChatPane";
 import { moveDraftSidePanel } from "@/features/panel/agents/draftSide";
 import { panelStateOf } from "@/features/panel/state/panelStore";
-import { parsePanelKey } from "@/features/panel/surfaces";
+import { projectOfPanel } from "@/features/panel/surfaces";
 import { api } from "@/api";
 import { reportFailure } from "@/ui/dialogs";
 import type { PanelTab, PanelPageOps } from "@/features/panel/usePanel";
@@ -170,12 +170,6 @@ function SubagentTabPage({ chatId, agentKey, visible }: { chatId: number; agentK
       <SubagentScreen chatId={chatId} agentKey={agentKey} />
     </Activity>
   );
-}
-
-/** パネルのプロジェクト（プロジェクトごとの欄でなければ null。チャットの右の欄の範囲はチャットの ID なので取り違えない） */
-function projectOfPanel(panelKey: string): number | null {
-  const at = parsePanelKey(panelKey);
-  return at && at.surface !== "agents" && typeof at.scope === "number" ? at.scope : null;
 }
 
 /** タブの種類の中身を描く（種類と中身の型を結びつけて引く） */

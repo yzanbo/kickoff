@@ -45,10 +45,15 @@ export function moveAllProjectsDrafts(saved: ReadonlyMap<string, DraftTab[]>): R
   return out;
 }
 
-/** いまの下書き（パネルごと）を残す（打つたびに呼ばれるが、中身が変わらなければ書かない。下書きがなくなればキーごと消す） */
-export function writeDrafts(entries: Iterable<readonly [string, readonly PanelTab[]]>) {
+/**
+ * いまの下書き（パネルごと）を残す（打つたびに呼ばれるが、中身が変わらなければ書かない。下書きがなくなればキーごと消す）。
+ * owns はこのウィンドウが持つ欄か（チャット欄を別ウィンドウへ移している間は、その欄はほかのウィンドウが書く）。持たない欄の分は、残っているものをそのまま残す
+ */
+export function writeDrafts(entries: Iterable<readonly [string, readonly PanelTab[]]>, owns: (panel: string) => boolean = () => true) {
   const data: Record<string, DraftTab[]> = {};
+  for (const [panel, tabs] of readSavedDrafts()) if (!owns(panel)) data[panel] = tabs;
   for (const [panel, tabs] of entries) {
+    if (!owns(panel)) continue;
     const drafts = tabs.filter(isDraftTab);
     if (drafts.length > 0) data[panel] = drafts;
   }

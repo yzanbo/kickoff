@@ -13,6 +13,7 @@ import { ProjectViewTabLead } from "./ProjectViewTabLead";
 import { BrowserTabLead } from "@/features/browser/BrowserTabLead";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
+import { projectOfPanel } from "@/features/panel/surfaces";
 import type { PopoutRoute } from "@/app/popout";
 import { PROJECT_VIEW_LABELS, type NewChatTarget, type PanelTab, type ProjectView, type TerminalTarget } from "./panelTypes";
 
@@ -212,8 +213,11 @@ interface TabKindSpec<T extends PanelTab> {
   dispose?: (tab: T) => void;
   /** どのまとまりに入るか（グループ別・作業場所別にまとめるとき） */
   cluster: (tab: T, resolve: ClusterResolver) => BucketHead;
-  /** 別ウィンドウで開けるタブ（チャットの画面の右の欄のサブエージェント・変更・ファイル・メモ・子チャット）の行き先とウィンドウの名前 */
-  popout?: (tab: T) => { route: PopoutRoute; title: string };
+  /**
+   * 別ウィンドウで開けるタブ（チャットの画面の右の欄のサブエージェント・変更・ファイル・メモ・子チャット、パネルのブラウザ・ターミナル）の行き先とウィンドウの名前。
+   * panel はタブのある欄（戻す先）
+   */
+  popout?: (tab: T, panel: string) => { route: PopoutRoute; title: string };
 }
 
 export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
@@ -386,6 +390,11 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     hint: (t) => t.url,
     projectOf: () => undefined,
     cluster: () => OTHER_CLUSTER,
+    // いまのページを別ウィンドウで開き直す（webview はウィンドウをまたげないので、戻る・進むの履歴は引き継がない）
+    popout: (t, panel) => ({
+      route: { kind: "browser", panel, key: t.key, url: t.current ?? t.url, title: t.title, projectId: projectOfPanel(panel) },
+      title: `${t.title || (t.url ? hostOf(t.url) : "新しいタブ")} — ブラウザ`,
+    }),
   },
   terminal: {
     shows: "terminal",
@@ -396,6 +405,11 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     // シェルを止める（コアの API。もう終わっていれば 404 なので、失敗は捨てる）
     dispose: (t) => void (globalThis.window?.kickoff?.terminal && api.closeTerminal(t.key).catch(() => {})),
     cluster: (t, r) => r.ofFolder(t.projectId, t.cwd),
+    // 同じシェルに別ウィンドウからつなぎ直す（移すときはシェルを止めない。popOutTab の keep）
+    popout: (t, panel) => {
+      const { key, kind: _kind, ...target } = t;
+      return { route: { kind: "terminal", panel, key, ...target }, title: `${terminalTitle(t)} — ターミナル` };
+    },
   },
 };
 

@@ -1,10 +1,11 @@
 import { nativeImage, webContents, type IpcMainEvent, type WebContents } from "electron";
 import type { BrowserHandOffCapture } from "@shared/ipc";
 import type { BrowserControl, BrowserTabInfo, HistoryAction, PageSnapshot, RevealRequest } from "../../core/browser/control.js";
-import { mainWindow } from "../app/window.js";
+import { appWindows } from "../app/popouts.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { isOurWebview } from "./devtools.js";
 import { flattenOnWhite } from "./flatten.js";
+import { gatherReplies } from "./gatherReplies.js";
 import { browserKeyCode } from "./keys.js";
 import { webviewConsoleOf, webviewProblemsOf } from "./webviewConsole.js";
 import { clickScript, pointScript, scrollScript, SNAPSHOT_SCRIPT, typeScript, VIEWPORT_SCRIPT } from "./pageScripts.js";
@@ -153,14 +154,17 @@ export const agentBrowser: BrowserControl = {
   tabs: async () => [...entries.values()].filter((e) => !e.wc.isDestroyed()).map(infoOf),
 
   async open(projectId, url, reveal) {
-    const win = mainWindow();
-    if (!win) throw new Error("Kickoff の画面が開いていません");
+    // チャット欄はメインのウィンドウか別ウィンドウにあるので、どちらにも頼み、そのプロジェクトのチャット欄を出している画面が答える
+    const wins = appWindows();
+    if (wins.length === 0) throw new Error("Kickoff の画面が開いていません");
     const requestId = nextRequest++;
-    const reply = new Promise<{ tabKey: string; revealed: boolean } | { error: string }>((resolve) => pendingOpens.set(requestId, resolve));
+    const reply = new Promise<{ tabKey: string; revealed: boolean } | { error: string }>((resolve) =>
+      pendingOpens.set(requestId, gatherReplies<{ tabKey: string; revealed: boolean } | { error: string }>(wins.length, (r) => !("error" in r), resolve)),
+    );
     const after = reveal ? afterKeyOf(reveal) : undefined;
     // 前に表に出したタブがもう閉じていれば、利用者は見ていないので表に出さない
     const show = reveal !== null && after !== undefined;
-    sendEvent(win.webContents, "agentBrowser", "onOpenRequest", requestId, projectId, url, show, after ?? null);
+    for (const win of wins) sendEvent(win.webContents, "agentBrowser", "onOpenRequest", requestId, projectId, url, show, after ?? null);
     const result = await withTimeout(reply, 5000, "Kickoff の画面が応答しません").finally(() => pendingOpens.delete(requestId));
     if ("error" in result) throw new Error(result.error);
     const registered = [...entries.values()].find((e) => e.tabKey === result.tabKey);
@@ -176,12 +180,13 @@ export const agentBrowser: BrowserControl = {
 
   async reveal(tabId, request) {
     const entry = entries.get(tabId);
-    const win = mainWindow();
+    const wins = appWindows();
     const after = afterKeyOf(request);
-    if (!entry || entry.wc.isDestroyed() || !win || after === undefined) return false;
+    if (!entry || entry.wc.isDestroyed() || wins.length === 0 || after === undefined) return false;
     const requestId = nextRequest++;
-    const reply = new Promise<boolean>((resolve) => pendingReveals.set(requestId, resolve));
-    sendEvent(win.webContents, "agentBrowser", "onRevealRequest", requestId, entry.tabKey, after);
+    // タブのある画面が答える（ほかの画面は出さなかったと答える）
+    const reply = new Promise<boolean>((resolve) => pendingReveals.set(requestId, gatherReplies<boolean>(wins.length, (shown) => shown, resolve)));
+    for (const win of wins) sendEvent(win.webContents, "agentBrowser", "onRevealRequest", requestId, entry.tabKey, after);
     const shown = await withTimeout(reply, REVEAL_TIMEOUT_MS, "Kickoff の画面が応答しません")
       .catch(() => false)
       .finally(() => pendingReveals.delete(requestId));
@@ -280,16 +285,16 @@ export const agentBrowser: BrowserControl = {
 
   touch(tabId) {
     const entry = entries.get(tabId);
-    const win = mainWindow();
-    if (!entry || !win) return;
+    if (!entry) return;
     const { tabKey } = entry;
     clearTimeout(activity.get(tabKey));
-    sendEvent(win.webContents, "agentBrowser", "onActivity", tabKey, true);
+    // タブのある画面がどれか分からないので、すべての画面に知らせる（タブのない画面は何もしない）
+    for (const win of appWindows()) sendEvent(win.webContents, "agentBrowser", "onActivity", tabKey, true);
     activity.set(
       tabKey,
       setTimeout(() => {
         activity.delete(tabKey);
-        sendEvent(mainWindow()?.webContents, "agentBrowser", "onActivity", tabKey, false);
+        for (const win of appWindows()) sendEvent(win.webContents, "agentBrowser", "onActivity", tabKey, false);
       }, ACTIVITY_MS),
     );
   },

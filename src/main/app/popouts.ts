@@ -4,7 +4,7 @@ import { followAppearance, windowBackground } from "./appearance.js";
 import { PRELOAD_FILE } from "./environment.js";
 import { openLinksExternally } from "./externalLinks.js";
 import { watchRendererHang } from "./hangWatch.js";
-import { showMainWindow } from "./window.js";
+import { mainWindow, showMainWindow } from "./window.js";
 
 // 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャットと左のサイドバーを、メインのウィンドウの外に出して見る。2 枚目の画面に置くなど）
 
@@ -12,9 +12,19 @@ import { showMainWindow } from "./window.js";
 const popouts = new Map<string, BrowserWindow>();
 /** 最後に閉じた（動かした）別ウィンドウの位置と大きさ（次に開くとき、少しずらして同じ大きさで開く。アプリを閉じるまで覚える） */
 let lastBounds: Rectangle | undefined;
-/** サイドバーの別ウィンドウの行き先と、最後の位置と大きさ（ほかの別ウィンドウより細いので、別に覚える。ほかの別ウィンドウにも細さを写さない） */
-const SIDEBAR_ROUTE = "/popout/sidebar";
-let sidebarBounds: Rectangle | undefined;
+/**
+ * 欄ごとの別ウィンドウ（サイドバー・チャット欄。アプリに 1 つ）の初めの大きさと最小の幅。最後の位置と大きさは欄ごとに別に覚える
+ * （ほかの別ウィンドウより細いので、ほかの別ウィンドウに細さを写さない）
+ */
+const PANE_WINDOWS: Record<string, { width: number; height: number; minWidth: number }> = {
+  "/popout/sidebar": { width: 300, height: 820, minWidth: 220 },
+  "/popout/side": { width: 480, height: 820, minWidth: 320 },
+};
+const paneBounds = new Map<string, Rectangle>();
+/** ✕・⌘W で閉じるのを止めて画面に知らせる別ウィンドウ（子チャット = 閉じ方を聞く・チャット欄 = 状態をメインのウィンドウに戻してから閉じる） */
+const asksBeforeClose = (route: string) => route.startsWith("/popout/chat?") || route === "/popout/side";
+/** 埋め込みブラウザ（webview）を置く別ウィンドウか（チャット欄・ブラウザのタブ） */
+const usesWebview = (route: string) => route.startsWith("/popout/side?") || route === "/popout/side" || route.startsWith("/popout/browser?");
 /** 閉じ方を聞かずに閉じてよい別ウィンドウ（closeSelf で閉じるもの） */
 const closingQuietly = new WeakSet<BrowserWindow>();
 
@@ -32,6 +42,12 @@ export function popoutHandlers(appUrl: string): IpcHandlers["windows"] {
   };
 }
 
+/** 画面のウィンドウ（メインのウィンドウと開いている別ウィンドウ。AI の埋め込みブラウザの頼みを送る先。チャット欄・ブラウザのタブは別ウィンドウにもある） */
+export function appWindows(): BrowserWindow[] {
+  const main = mainWindow();
+  return [...(main ? [main] : []), ...popouts.values()].filter((w) => !w.isDestroyed());
+}
+
 /** 開いている別ウィンドウか（メインのウィンドウから closeSelf を呼ばれても閉じない） */
 function isPopout(win: BrowserWindow): boolean {
   for (const w of popouts.values()) if (w === win) return true;
@@ -46,15 +62,15 @@ function openPopout(appUrl: string, route: string, title: string) {
     existing.focus();
     return;
   }
-  const sidebar = route === SIDEBAR_ROUTE;
-  const at = sidebar
-    ? (sidebarBounds ?? { width: 300, height: 820 })
+  const pane = PANE_WINDOWS[route];
+  const at = pane
+    ? (paneBounds.get(route) ?? { width: pane.width, height: pane.height })
     : lastBounds
       ? { x: lastBounds.x + 24, y: lastBounds.y + 24, width: lastBounds.width, height: lastBounds.height }
       : { width: 920, height: 820 };
   const win = new BrowserWindow({
     ...at,
-    minWidth: sidebar ? 220 : 420,
+    minWidth: pane?.minWidth ?? 420,
     minHeight: 320,
     title,
     // 画面を読み込む前に見える地の色（メインのウィンドウと同じく、選んでいるテーマ。app/appearance.ts）
@@ -64,6 +80,8 @@ function openPopout(appUrl: string, route: string, title: string) {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      // 埋め込みブラウザ（webview）を置く別ウィンドウ（チャット欄・ブラウザのタブ）。ページの安全設定は browser.ts の hardenWebviews がすべての webview に効かせる
+      webviewTag: usesWebview(route),
     },
   });
   followAppearance(win);
@@ -77,7 +95,7 @@ function openPopout(appUrl: string, route: string, title: string) {
   void win.loadURL(url.toString());
   const remember = () => {
     if (win.isDestroyed()) return;
-    if (sidebar) sidebarBounds = win.getBounds();
+    if (pane) paneBounds.set(route, win.getBounds());
     else lastBounds = win.getBounds();
   };
   win.on("moved", remember);
@@ -85,11 +103,14 @@ function openPopout(appUrl: string, route: string, title: string) {
   win.on("close", remember);
   win.on("closed", () => {
     if (popouts.get(route) === win) popouts.delete(route);
+    // メインのウィンドウに知らせる（サイドバー・チャット欄を移したままにしない。画面が知らせられずに閉じたときも）
+    sendEvent(mainWindow()?.webContents, "windows", "onPopoutClosed", route);
   });
-  if (route.startsWith("/popout/chat?")) {
-    // 子チャットのウィンドウは、最小化（黄色）で Dock に入れず閉じる（、メインの会話の札に戻す。✕ と違い、閉じ方を聞かない）
-    win.on("minimize", () => win.destroy());
-    // ✕・⌘W は閉じるのを止めて画面に知らせ、閉じ方（表示だけ消す / アーカイブ / 削除）を聞く。選んだら画面が closeSelf で閉じる。
+  // 子チャットのウィンドウは、最小化（黄色）で Dock に入れず閉じる（、メインの会話の札に戻す。✕ と違い、閉じ方を聞かない）
+  if (route.startsWith("/popout/chat?")) win.on("minimize", () => win.destroy());
+  if (asksBeforeClose(route)) {
+    // ✕・⌘W は閉じるのを止めて画面に知らせ、子チャットは閉じ方（表示だけ消す / アーカイブ / 削除）を聞き、チャット欄は状態をメインのウィンドウに戻す。
+    // 済んだら画面が closeSelf で閉じる。
     // 画面の beforeunload では止められない（利用者の操作がないページの beforeunload は Chromium が無視する）。
     // アプリの終了は app.exit で閉じる（close が来ない）ので、ここで止めても終われる
     win.on("close", (e) => {

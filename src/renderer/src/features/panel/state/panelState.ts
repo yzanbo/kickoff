@@ -40,8 +40,11 @@ export type PanelAction =
   | ({ type: "patch"; key: string } & TabPatch)
   /** タブを置き換える（送った新しいチャットを、できたチャットのタブにする。置き場所と表示中かはそのまま） */
   | { type: "replace"; key: string; tab: PanelTab }
-  /** タブを閉じる（dismiss: 利用者が閉じたチャットを、連動で出し直さないよう覚える。アーカイブ・削除のあとは false） */
-  | { type: "close"; keys: readonly string[]; dismiss: boolean }
+  /**
+   * タブを閉じる（dismiss: 利用者が閉じたチャットを、連動で出し直さないよう覚える。アーカイブ・削除のあとは false。
+   * keep: 閉じたタブの後始末をしない（別ウィンドウへ移すとき。ターミナルのシェルを止めない）
+   */
+  | { type: "close"; keys: readonly string[]; dismiss: boolean; keep?: boolean }
   /** ペインを閉じる（サイドバーと連動したチャットは一覧のペインへ戻し、ほかのタブは閉じる。最後の 1 つは閉じない） */
   | { type: "closePane"; paneId: string }
   /** 配置を変える（分ける・移す・ピント・境目・一覧のペインへ戻す。paneLayout・paneSizes の関数を渡す） */

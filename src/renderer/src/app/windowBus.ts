@@ -26,8 +26,10 @@ export type WindowMessage =
   | { type: "openChild"; chatId: number }
   /** メインのウィンドウで、そのチャットの新しい子チャットのタブを開く（別ウィンドウの「新しい子チャットで聞く」「子チャットを作成」。openAskChild） */
   | { type: "askChild"; parentId: number; eventId: number | null; quote: string; text?: string; attachments?: Attachment[] }
-  /** 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（別ウィンドウの「右の欄に戻す」。別ウィンドウは閉じる） */
+  /** 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄（チャット欄・パネルのタブは元の欄）で開き直す（別ウィンドウの「右の欄に戻す」。開き直したら docked） */
   | { type: "dockPopout"; route: PopoutRoute }
+  /** dockPopout で開き直し終えた（key は popoutKey。別ウィンドウはこれを待ってから閉じる。ターミナルの持ち主をメインのウィンドウに移してから閉じるため） */
+  | { type: "docked"; key: string }
   /** 別ウィンドウの子チャットから親へ: 親の聞いた位置を見る（reveal）/ 答えを親の入力欄に入れる（handBack） */
   | { type: "childToParent"; childId: number; action: "reveal" | "handBack"; text?: string }
   /** もう開いている別ウィンドウの「変更」を、そのファイルの位置へ移す（key は popoutKey） */
@@ -44,10 +46,19 @@ export type WindowMessage =
   | { type: "mainRoute"; hash: string }
   /** メインのウィンドウのパネルの状態の写し（サイドバーの別ウィンドウの下書きの行・子チャットの行の「開いている」見た目） */
   | { type: "mainPanels"; panels: [string, PanelState][] }
+  /**
+   * チャット欄の別ウィンドウを開いた / 閉じた（開いたら、メインのウィンドウはチャット欄の状態を取り出して sidePanels で渡し、自分のチャット欄を隠す。
+   * holding: 別ウィンドウがもう状態を持っている（メインのウィンドウを読み込み直したとき。渡さずに、メインのウィンドウに戻した下書きの写しを捨てる））
+   */
+  | { type: "sideWindow"; open: boolean; holding: boolean }
+  /** メインのウィンドウから渡したチャット欄の状態（すべてのプロジェクトの分。タブの後始末はしていない） */
+  | { type: "sidePanels"; panels: [string, PanelState][] }
+  /** チャット欄の別ウィンドウから戻すチャット欄の状態（open: メインのウィンドウのチャット欄を開くか。戻し終えたら docked） */
+  | { type: "returnSidePanels"; panels: [string, PanelState][]; open: boolean }
   /** サイドバーの別ウィンドウからの、メインのウィンドウのパネルを変える操作（下書き・チャットを分けて開く） */
   | { type: "panelOp"; op: PanelOp };
 
-/** サイドバーの別ウィンドウから頼む、メインのウィンドウのパネルを変える操作（features/panel/state/panelOps.ts が受ける） */
+/** 別ウィンドウ（サイドバーなど）から頼む、メインのウィンドウのパネルを変える操作（app/mainWindowMessages.ts が受ける） */
 export type PanelOp =
   | { op: "openDraft"; draft: DraftRef }
   | { op: "openDraftSplit"; draft: DraftRef; dir: SplitDir }
@@ -56,7 +67,9 @@ export type PanelOp =
   | { op: "setDraftGroup"; draft: DraftRef; group: number | undefined; groupName: string | undefined }
   | { op: "togglePinDraft"; draft: DraftRef; pinned: boolean }
   | { op: "discardDraft"; draft: DraftRef }
-  | { op: "openChatSplit"; chat: { id: number; project_id: number }; dir: SplitDir };
+  | { op: "openChatSplit"; chat: { id: number; project_id: number }; dir: SplitDir }
+  /** その欄にブラウザのタブを開く（別ウィンドウのターミナルで ⌘ を押しながら押した URL） */
+  | { op: "openBrowser"; panel: string; url: string };
 
 // 画面（ブラウザ）の中だけで作る（テストの Node で作ると、開いたままで終わらなくなる）
 const channel = typeof window === "undefined" || typeof BroadcastChannel === "undefined" ? undefined : new BroadcastChannel("kickoff-windows");

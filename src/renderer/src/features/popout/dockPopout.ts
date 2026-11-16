@@ -1,14 +1,20 @@
 // 別ウィンドウの「右の欄に戻す」: 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（メインのウィンドウで呼ぶ）。
 // 子チャット・変更・ファイル・DB クライアントは結びついたチャット（子チャットなら、いちばん上の親）の右の欄、サブエージェントはそのチャットの右の欄、
-// メモは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければメモのタブ）。サイドバーはこのウィンドウのサイドバーを開く
+// メモは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければメモのタブ）。サイドバーはこのウィンドウのサイドバーを開く。
+// パネルのブラウザ・ターミナルのタブは元の欄に開き直す（ターミナルはシェルの持ち主をこのウィンドウにしてから。別ウィンドウが閉じてもシェルを止めさせない）
 import type { PopoutRoute } from "@/app/popout";
-import { openMemo } from "@/app/router";
+import { navigate, openMemo } from "@/app/router";
 import { writeSetting } from "@/lib/storage";
 import { SIDEBAR_OPEN } from "@/lib/storageKeys";
 import { knownChat } from "@/stores/chats";
 import { openChildSide, openInRootSide } from "@/features/chat/children/openChild";
 import { rootChatOf } from "@/features/chat/children/childChats";
 import { chatPaneOf, shownChatIds } from "@/features/chat/pane/windowMessages";
+import { panelActions } from "@/features/panel/state/panelActions";
+import { isPanelMounted } from "@/features/panel/state/panelStore";
+import { panelScreen } from "@/features/panel/surfaces";
+import type { PanelTab } from "@/features/panel/tabs/panelTypes";
+import { claimTerminal } from "@/features/terminal/terminalOwner";
 
 /** 描かれるまで待ってから（開いたばかりのチャットの画面は、次の描画のあとにできる。2 秒まで） */
 function whenDrawn(chatId: number, run: () => void, tries = 120) {
@@ -16,8 +22,24 @@ function whenDrawn(chatId: number, run: () => void, tries = 120) {
   if (tries > 0) requestAnimationFrame(() => whenDrawn(chatId, run, tries - 1));
 }
 
-export function dockPopout(route: PopoutRoute) {
+/** 欄にタブを開き直す（その欄が画面になければ、その画面へ移ってから） */
+function reopenInPanel(panel: string, tab: PanelTab) {
+  const screen = isPanelMounted(panel) ? undefined : panelScreen(panel);
+  if (screen) navigate(screen);
+  panelActions(panel).openPanelTab(tab);
+}
+
+export async function dockPopout(route: PopoutRoute): Promise<void> {
   switch (route.kind) {
+    case "browser":
+      reopenInPanel(route.panel, { key: route.key, kind: "browser", url: route.url, title: route.title });
+      return;
+    case "terminal": {
+      const { kind: _kind, panel, ...tab } = route;
+      await claimTerminal(tab.key);
+      reopenInPanel(panel, { kind: "terminal", ...tab });
+      return;
+    }
     case "sidebar":
       writeSetting(SIDEBAR_OPEN, true);
       return;
