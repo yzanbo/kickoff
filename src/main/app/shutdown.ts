@@ -18,7 +18,7 @@ const CORE_CLOSE_MARGIN_MS = 300;
  */
 export function registerShutdown(core: () => CoreProcess | undefined) {
   let closing = false;
-  /** 終了してよいかを聞いているところ（続けての ⌘Q では、もう 1 つ出さない） */
+  /** 終了してよいかを聞いているところ（聞いている間にもう一度 ⌘Q を押したら、そのまま終える） */
   let asking = false;
   /** 聞かずに終える（Mac を終える・シグナル） */
   let skipConfirm = false;
@@ -52,9 +52,8 @@ export function registerShutdown(core: () => CoreProcess | undefined) {
     if (!coreToClose) return;
     e.preventDefault();
     if (closing) return;
-    // 聞いている間のシグナル・Mac の終了でも、待たずに終える
-    if (skipConfirm) return closeAndExit(coreToClose);
-    if (asking) return;
+    // 聞いている間にもう一度 ⌘Q を押した・シグナル・Mac の終了なら、待たずに終える
+    if (skipConfirm || asking) return closeAndExit(coreToClose);
     asking = true;
     void (async () => {
       // 聞けない（コアが止まっている・応答しない）なら、聞かずに終える

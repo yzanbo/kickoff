@@ -127,10 +127,10 @@ export interface HostEvents {
   "dbWorker.exit": { workerId: number; reason: string };
 }
 
-/** 呼び出しの時間の上限（ms。null は上限なし）。ping は見張り・runningChats は ⌘Q のダイアログを待たせない・close は終了の 5 秒に収める・browser は中の待ちの外側の安全網・secret と diagnostics はキーチェーンの許可の画面と記録の 10 秒を待つ */
+/** 呼び出しの時間の上限（ms。null は上限なし）。ping は見張り・runningChats はコアが詰まっていても終えられるように・close は終了の 5 秒に収める・browser は中の待ちの外側の安全網・secret と diagnostics はキーチェーンの許可の画面と記録の 10 秒を待つ */
 export function rpcTimeoutOf(method: string): number | null {
   if (method === "ping") return 5_000;
-  if (method === "runningChats") return 2_000;
+  if (method === "runningChats") return 1_000;
   if (method === "close") return 4_500;
   if (method.startsWith("browser.")) return 120_000;
   if (method.startsWith("dbWorker.")) return 10_000;
