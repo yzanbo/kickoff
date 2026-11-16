@@ -12,7 +12,7 @@ import { rootChatOf } from "@/features/chat/children/childChats";
 import { chatPaneOf, shownChatIds } from "@/features/chat/pane/windowMessages";
 import { panelActions } from "@/features/panel/state/panelActions";
 import { isPanelMounted } from "@/features/panel/state/panelStore";
-import { panelScreen } from "@/features/panel/surfaces";
+import { panelKey, panelScreen } from "@/features/panel/surfaces";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { claimTerminal } from "@/features/terminal/terminalOwner";
 
@@ -32,7 +32,8 @@ function reopenInPanel(panel: string, tab: PanelTab) {
 export async function dockPopout(route: PopoutRoute): Promise<void> {
   switch (route.kind) {
     case "browser":
-      reopenInPanel(route.panel, { key: route.key, kind: "browser", url: route.url, title: route.title });
+      // ブラウザは右サイドバーだけに置く（ブラウザの別ウィンドウから、さらに移したタブも）
+      reopenInPanel(route.projectId !== null ? panelKey("side", route.projectId) : route.panel, { key: route.key, kind: "browser", url: route.url, title: route.title });
       return;
     case "terminal": {
       const { kind: _kind, panel, ...tab } = route;

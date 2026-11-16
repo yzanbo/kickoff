@@ -26,6 +26,8 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
     >
       <div className="pane-resizer project-chat-resizer" aria-label="右サイドバーの幅を変える" {...width.handle} />
       <div className="project-chat-inner">
+        {/* 上の行は信号機ボタン・右上のレイアウトの開閉と同じ行のウィンドウのドラッグ領域。タブの列はその下の行（利用者の依頼） */}
+        <div className="project-chat-titlebar" aria-hidden />
         <ProjectChatPanel projectId={projectId} noChat={noChat} />
       </div>
     </aside>

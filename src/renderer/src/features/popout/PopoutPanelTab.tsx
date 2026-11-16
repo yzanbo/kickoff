@@ -1,29 +1,41 @@
-import { lazy, Suspense } from "react";
-import { popoutPath, type PopoutRoute } from "@/app/popout";
+import { lazy, Suspense, useEffect, useState } from "react";
+import type { PopoutRoute } from "@/app/popout";
 import { postToMainWindow } from "@/app/windowBus";
-import { BrowserPane } from "@/features/browser/BrowserPane";
-import { panelKey } from "@/features/panel/surfaces";
+import { Panel } from "@/features/panel/Panel";
+import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
+import { panelKey, windowScope } from "@/features/panel/surfaces";
 import { terminalTitle } from "@/features/panel/tabs/tabKinds";
+import { startBrowserWindow } from "./browserWindow";
 
 const TerminalPane = lazy(() => import("@/features/terminal/TerminalPane"));
 
 type BrowserRoute = Extract<PopoutRoute, { kind: "browser" }>;
 type TerminalRoute = Extract<PopoutRoute, { kind: "terminal" }>;
 
+/** ブラウザの別ウィンドウはブラウザだけなので、ターミナルを開く場所はない */
+const NO_TERMINALS: TerminalTarget[] = [];
+
 /**
- * パネルのブラウザのタブの別ウィンドウ（同じ BrowserPane。ページは URL で開き直す）。ページを移ったら URL のハッシュも移った先にし、
- * 読み込み直しても・欄に戻しても、いまのページを開く
+ * ブラウザの別ウィンドウ（Chrome のウィンドウと同じく、タブの列を持ち、新しいタブを足せる。右サイドバーと同じ Panel。殻は browserWindow.ts）。
+ * 移したタブはページを URL で開き直す（webview はウィンドウをまたげない）
  */
 export function PopoutBrowser({ route }: { route: BrowserRoute }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    startBrowserWindow(route);
+    setReady(true);
+  }, [route]);
+  if (!ready) return <div className="popout-body page muted">読み込み中…</div>;
   return (
-    <div className="popout-body">
-      <BrowserPane
-        url={route.url}
-        agentTarget={{ tabKey: route.key, projectId: route.projectId }}
-        onChange={({ url, title }) => history.replaceState(null, "", `#${popoutPath({ ...route, url, title: url === "about:blank" ? "" : title })}`)}
-      />
+    <div className="popout-body popout-browser-window">
+      <BrowserWindowPanel route={route} />
     </div>
   );
+}
+
+function BrowserWindowPanel({ route }: { route: BrowserRoute }) {
+  const panel = usePanel({ surface: "window", scope: windowScope(route.projectId, route.key), noChat: true, newChat: undefined, terminals: NO_TERMINALS });
+  return <Panel panel={panel} />;
 }
 
 /** パネルのターミナルのタブの別ウィンドウ（同じシェルにつなぎ直す。持ち主はこのウィンドウになり、閉じるとシェルも止まる） */

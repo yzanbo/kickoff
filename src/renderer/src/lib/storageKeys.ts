@@ -125,6 +125,20 @@ export const SIDEBAR_PROJECT_COMPACT = defineSetting("kickoff:sidebar-project-co
 export const LAST_ROUTE = defineSetting("kickoff:last-route", text(), { ids: true });
 /** プロジェクトごとに最後に見ていた画面（URL のハッシュ。横スライドで戻ってきたときに開く。アプリを閉じるまで） */
 export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project", record(isString), { ids: true, session: true });
+/** ブラウザの別ウィンドウのタブ（ウィンドウごと。読み込み直しても同じタブを開き直す。features/popout/browserWindow.ts） */
+export interface PopoutBrowserTab {
+  key: string;
+  url: string;
+  title: string;
+}
+const isPopoutBrowserTab = (v: unknown): v is PopoutBrowserTab =>
+  typeof v === "object" && v !== null && typeof (v as PopoutBrowserTab).key === "string" && typeof (v as PopoutBrowserTab).url === "string" && typeof (v as PopoutBrowserTab).title === "string";
+const NO_POPOUT_BROWSER_TABS: readonly PopoutBrowserTab[] = [];
+export const POPOUT_BROWSER_TABS = defineSetting(
+  "kickoff:popout-browser-tabs",
+  json((value) => (Array.isArray(value) ? value.filter(isPopoutBrowserTab) : undefined), NO_POPOUT_BROWSER_TABS, (tabs) => tabs.length === 0),
+  { session: true },
+);
 /** プロジェクトのタグでの絞り込み（選んだタグ。"" はタグのないプロジェクト。空なら絞り込まない。サイドバー・全プロジェクトの画面・⌘⇧A で共通） */
 export const PROJECT_TAG_FILTER = defineSetting("kickoff:project-tag-filter", list());
 // サイドバーのタグの行の並び（ドラッグで並べた順のタグの名前。並べていないタグは後ろに名前順。メニューのタグも同じ順）

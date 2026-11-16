@@ -8,6 +8,7 @@ import { specOf } from "@/features/panel/tabs/tabKinds";
 import { endExternalTabDrag, EXTERNAL_TAB_MIME, useExternalTabDrag } from "./externalTabDrag";
 import { endedOutsideWindow } from "./tabDragOut";
 import { discardTabThumbnail, prepareTabThumbnail, tabThumbnailOf } from "./tabThumbnail";
+import { BROWSER_TAB_MIME, parseMovingBrowserTab, takeMovingBrowserTab, useMovedOutTabs, writeMovingBrowserTab } from "./browserTabTransfer";
 
 /** 右のパネルのタブをドラッグするときの dataTransfer の型（ファイルのドロップ（チャット欄への添付）と取り違えないよう独自の型にする） */
 const TAB_MIME = "application/x-kickoff-panel-tab";
@@ -21,7 +22,8 @@ const samePaneIndex = (index: number) => index;
  * ドラッグ中だけ中身の上に透明の覆い（cover）を置き、webview やターミナルの上でも落とす場所を出す。
  * パネルの外からタブにして落とすもの（externalTabDrag。ファイルタブの木の行）も同じ形で受け、落としたらタブを開いてから移す・分ける。
  * ウィンドウの外で離したら、そのタブを別ウィンドウで開き、離した所に置く（別ウィンドウで開けるタブだけ。tabDragOut.ts）。
- * 別ウィンドウで開けるタブは、ドラッグの絵をタブの中身の小さなサムネイルにする（Zen Browser と同じ。ウィンドウの外でも見える OS のドラッグの絵。tabThumbnail.ts）
+ * 別ウィンドウで開けるタブは、ドラッグの絵をタブの中身の小さなサムネイルにする（Zen Browser と同じ。ウィンドウの外でも見える OS のドラッグの絵。tabThumbnail.ts）。
+ * ブラウザのタブは、ほかのウィンドウのブラウザを出す欄のタブの列に落としても移る（右サイドバー ⇔ ブラウザの別ウィンドウ。browserTabTransfer.ts）
  */
 export function useTabDrag(panel: PanelController) {
   // ドラッグ中のタブ（このパネルのタブだけを受け付ける）
@@ -39,7 +41,11 @@ export function useTabDrag(panel: PanelController) {
     setZone(null);
     endExternalTabDrag();
   };
+  // ほかのウィンドウへドラッグで移したタブを閉じる
+  useMovedOutTabs(panel.key);
   const accepts = (e: DragEvent) => dragging !== null && (e.dataTransfer.types.includes(TAB_MIME) || e.dataTransfer.types.includes(EXTERNAL_TAB_MIME));
+  /** ほかのウィンドウ（同じウィンドウのほかの欄も）からドラッグしてきたブラウザのタブか（ブラウザを出す欄のタブの列だけで受ける） */
+  const acceptsMoving = (e: DragEvent) => dragging === null && panel.kinds.has("browser") && e.dataTransfer.types.includes(BROWSER_TAB_MIME);
   /** 落としたタブのキー（外から来たものは、ここでタブを開く） */
   const dropped = () => {
     if (!own && external) panel.openPanelTab(external);
@@ -67,6 +73,8 @@ export function useTabDrag(panel: PanelController) {
       onDragStart: (e: DragEvent<HTMLElement>) => {
         e.dataTransfer.setData(TAB_MIME, key);
         e.dataTransfer.effectAllowed = "move";
+        const tab = panelStateOf(panel.key).tabs.find((t) => t.key === key);
+        if (tab?.kind === "browser") writeMovingBrowserTab(e.dataTransfer, panel.key, tab);
         const thumbnail = tabThumbnailOf(key);
         if (thumbnail) {
           // タブの中身の小さなサムネイルがカーソルに付いて動く（ウィンドウの外でも）。覆いは次の回に出す
@@ -94,7 +102,7 @@ export function useTabDrag(panel: PanelController) {
      */
     barProps: (paneId: string, toPaneIndex: (index: number) => number = samePaneIndex, reorderInPlace?: (key: string, index: number, after: boolean) => boolean) => ({
       onDragOver: (e: DragEvent<HTMLElement>) => {
-        if (!accepts(e)) return;
+        if (!accepts(e) && !acceptsMoving(e)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
         // まとまりに分けて並べているときは、タブの入った枠（.panel-tab-group）も渡し、境目で前のまとまりの最後に入れられるようにする
@@ -112,6 +120,15 @@ export function useTabDrag(panel: PanelController) {
         if (leaving(e) && insert?.paneId === paneId) setInsert(null);
       },
       onDrop: (e: DragEvent<HTMLElement>) => {
+        // ほかのウィンドウ・ほかの欄から来たブラウザのタブ: ここに開き直して、落とした位置へ置く
+        if (acceptsMoving(e)) {
+          const moving = parseMovingBrowserTab(e.dataTransfer.getData(BROWSER_TAB_MIME));
+          e.preventDefault();
+          const slot = insert?.paneId === paneId ? insert : undefined;
+          if (moving) panel.moveTab(takeMovingBrowserTab(panel.key, moving), paneId, slot ? toPaneIndex(slot.index) : undefined);
+          reset();
+          return;
+        }
         if (!accepts(e) || !dragging) return;
         e.preventDefault();
         const key = dropped() ?? dragging;

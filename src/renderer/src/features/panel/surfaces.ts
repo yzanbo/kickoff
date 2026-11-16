@@ -9,15 +9,16 @@ import type { PanelKind } from "./state/panelKinds";
  * bottom = フッター（下のパネル。ターミナルだけ）/
  * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く） /
  * memos = プロジェクトの「メモ」タブの右（開いたメモをタブで並べる。左の一覧から開く） /
- * files = プロジェクトの「ファイル」「検索」「変更」タブの右（開いたファイル・差分をタブで並べる。左の一覧から開く））
+ * files = プロジェクトの「ファイル」「検索」「変更」タブの右（開いたファイル・差分をタブで並べる。左の一覧から開く） /
+ * window = ブラウザの別ウィンドウ（右サイドバーのタブをウィンドウの外へ出した先。Chrome のウィンドウと同じく、中でもタブを足せる。ウィンドウごとに 1 つ））
  */
-export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos" | "files";
+export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos" | "files" | "window";
 
 /**
  * どの画面の欄か（プロジェクトの ID・全プロジェクトの画面 "all"。サブエージェントの欄はチャットの ID）。
  * 覚えておく状態と、サイドバーと連動する範囲がこれで決まる
  */
-export type PanelScope = number | "all" | DraftScope | ViewScope;
+export type PanelScope = number | "all" | DraftScope | ViewScope | WindowScope;
 
 /**
  * 送る前の新しいチャット（下書きのタブ）の右の欄の範囲（draft-<タブの key>）。送ってチャットができたら、そのチャットの右の欄へ中身を移す（moveDraftSidePanel）
@@ -29,6 +30,15 @@ export type DraftScope = `draft-${string}`;
  * プロジェクトの画面の欄とは別に持ち、アプリを閉じるまで覚える）
  */
 export type ViewScope = `view-${string}`;
+
+/**
+ * ブラウザの別ウィンドウの欄の範囲（win-<プロジェクト>-<開いたタブのキー>。プロジェクトのないものは 0）。
+ * どのプロジェクトのブラウザか（AI の操作の対象・右サイドバーに戻す先）を、欄の名前から読めるように入れておく
+ */
+export type WindowScope = `win-${number}-${string}`;
+
+/** ブラウザの別ウィンドウの欄の範囲 */
+export const windowScope = (projectId: number | null, tabKey: string): WindowScope => `win-${projectId ?? 0}-${tabKey}`;
 
 /** 下書きのタブの右の欄の範囲 */
 export const draftScope = (tabKey: string): DraftScope => `draft-${tabKey}`;
@@ -145,6 +155,17 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     newChild: true,
     rootClass: "agent-panel",
   },
+  // ブラウザの別ウィンドウ: ブラウザだけ。最後のタブを閉じたらウィンドウごと閉じる（Chrome と同じ。ウィンドウの殻 features/popout/browserWindow.ts）
+  window: {
+    memoryPrefix: "win",
+    defaultKinds: ["browser"],
+    fixedKinds: true,
+    closeOnEsc: false,
+    closeWhenEmpty: false,
+    openWhenEmpty: null,
+    noSplitButtons: true,
+    className: "as-sidebar",
+  },
   memos: {
     memoryPrefix: "memos",
     // メモのタブは「ファイル」の種類に入る（出す種類は決まっている）
@@ -197,12 +218,15 @@ export function parsePanelKey(key: string): { surface: PanelSurface; scope: Pane
   if (rest === "all") return { surface, scope: "all" };
   if (rest.startsWith("draft-") && rest.length > 6) return { surface, scope: rest as DraftScope };
   if (rest.startsWith("view-") && rest.length > 5) return { surface, scope: rest as ViewScope };
+  if (/^win-\d+-./.test(rest)) return { surface, scope: rest as WindowScope };
   return Number.isInteger(id) && id > 0 ? { surface, scope: id } : undefined;
 }
 
 /** 欄のプロジェクト（プロジェクトごとの欄でなければ null。チャットの右の欄の範囲はチャットの ID なので取り違えない） */
 export function projectOfPanel(key: string): number | null {
   const at = parsePanelKey(key);
+  // ブラウザの別ウィンドウは、範囲に入れたプロジェクト（0 はプロジェクトなし）
+  if (at && typeof at.scope === "string" && at.scope.startsWith("win-")) return Number(at.scope.split("-")[1]) || null;
   return at && at.surface !== "agents" && typeof at.scope === "number" ? at.scope : null;
 }
 

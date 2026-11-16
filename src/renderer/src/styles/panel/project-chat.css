@@ -78,11 +78,7 @@
   transform: none;
 }
 
-/*
- * タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域。右端は右上のレイアウトの開閉のために空ける。
- * 右サイドバー（ブラウザだけ）も 1 段で、左からタブ・すぐ右に新しいブラウザのタブのボタン（利用者の依頼。前は上の段にタブ・下の段に道具の 2 段で、
- * 道具が新しいタブのボタンだけになり、タブと離れて見えた）
- */
+/* タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域（下のパネル）。右端は右上のレイアウトの開閉のために空ける */
 .board-panel.as-sidebar .panel-tabs:not(:where(.agent-panel *)) {
   min-height: 40px;
   padding-right: 100px;
@@ -115,12 +111,21 @@
 }
 
 /*
- * 右サイドバーの別ウィンドウ（PopoutSideChat）: ウィンドウの枠に信号機ボタン・右上のレイアウトの開閉はないので、タブの列をドラッグ領域にせず、右端も空けない
+ * 右サイドバー（ブラウザだけ）とブラウザの別ウィンドウ: タブの列は上の行（信号機ボタン・右上のレイアウトの開閉と同じ行。.project-chat-titlebar）の下に 1 段で、
+ * 左からタブ・すぐ右に新しいブラウザのタブのボタン（利用者の依頼。前はタブを上の行に置き、右端を開閉のボタンのために空けていた）。
+ * 上の行ではないので、ウィンドウのドラッグ領域にせず、右端も空けない
  */
-.popout-side-chat .board-panel.as-sidebar .panel-tabs:not(:where(.agent-panel *)),
-.popout-side-chat .board-panel.as-sidebar .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)),
+.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
   padding-right: var(--gutter);
   -webkit-app-region: no-drag;
+}
+
+/* 上の行（右上のレイアウトの開閉の行）。右サイドバーのメインのウィンドウだけに置く */
+.project-chat-titlebar {
+  flex: none;
+  height: 40px;
+  -webkit-app-region: drag;
 }
 
 /* スマホ（縦 1 列）ではプロジェクトのチャット欄は出さない（ボードの右のパネルを使う）。上の基底（display: flex）と同じ詳細度なので、必ず基底より後ろに置く */
