@@ -301,6 +301,17 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
       return chat;
     },
     /**
+     * チャットの作業場所を変える（メモの仕様書「0025_チャットの作業場所を変える」。null なら本体）。branch を渡せば最後に作業したブランチも書き替える
+     * （利用者・AI が移したときは移した先のいまのブランチ。H3）。並び順は変えない
+     */
+    setWorkplace(id: number, worktreePath: string | null, branch?: string | null): Chat {
+      if (branch === undefined) db.prepare("UPDATE chats SET worktree_path = ? WHERE id = ?").run(worktreePath, id);
+      else db.prepare("UPDATE chats SET worktree_path = ?, branch = ? WHERE id = ?").run(worktreePath, branch, id);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
+    },
+    /**
      * 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数（子孫は数えない）を返す。
      * 完了 = 終わっていて（完了・中断）、未読の印がなく、固定していないもの（失敗・作業中・固定したものはしない）。
      * 子チャットは親と一緒にしまうので、見るのは親のないチャットだけ。しまっていない子孫も、どれも同じく完了したまま days 日たっていなければしまわない

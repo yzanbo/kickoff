@@ -17,19 +17,21 @@ type FilesRoute = Extract<PopoutRoute, { kind: "changes" | "file" }>;
  */
 export function usePopoutFileLinks(base: ChatFileLinks | undefined, place: { chatId: number; projectId: number; worktree?: string }): ChatFileLinks | undefined {
   const { chatId, projectId, worktree } = place;
-  return useMemo(() => {
-    if (!base) return undefined;
-    const at = { projectId, ...(worktree ? { worktree } : {}) };
-    const openChanges = (focus?: string) => openPopout({ kind: "changes", chatId, ...at, ...(focus ? { focus } : {}) }, `変更 — ${worktree ? `ワークツリー ${baseName(worktree)}` : "本体"}`);
-    const openFile = (ref: FileRef) => openPopout({ kind: "file", chatId, ...at, ...ref }, ref.path);
-    return {
-      ...base,
-      side: false,
-      openChanges,
-      openInEditor: (ref) => postToMainWindow({ type: "openProjectFile", projectId, file: { ...ref, ...(worktree ? { worktree } : {}) } }),
-      open: (ref) => openFileRef(ref, at, { file: openFile, changes: openChanges }),
-    };
-  }, [base, chatId, projectId, worktree]);
+  return useMemo(() => (base ? popoutFileLinks(base, { chatId, projectId, worktree }) : undefined), [base, chatId, projectId, worktree]);
+}
+
+/** 別ウィンドウの開き方に直す（作業場所を移す前の区間の開き方にも使う。PastWorkplacesProvider の adapt） */
+export function popoutFileLinks(base: ChatFileLinks, { chatId, projectId, worktree }: { chatId: number; projectId: number; worktree?: string }): ChatFileLinks {
+  const at = { projectId, ...(worktree ? { worktree } : {}) };
+  const openChanges = (focus?: string) => openPopout({ kind: "changes", chatId, ...at, ...(focus ? { focus } : {}) }, `変更 — ${worktree ? `ワークツリー ${baseName(worktree)}` : "本体"}`);
+  const openFile = (ref: FileRef) => openPopout({ kind: "file", chatId, ...at, ...ref }, ref.path);
+  return {
+    ...base,
+    side: false,
+    openChanges,
+    openInEditor: (ref) => postToMainWindow({ type: "openProjectFile", projectId, file: { ...ref, ...(worktree ? { worktree } : {}) } }),
+    open: (ref) => openFileRef(ref, at, { file: openFile, changes: openChanges }),
+  };
 }
 
 /**

@@ -242,36 +242,39 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
             onHide={() => setListHidden(true)}
           />
           <SearchField className="memo-search" value={query} onChange={setQuery} placeholder="メモを名前で探す" label="メモを名前で探す" />
-          <ErrorText message={list.error} />
-          {!list.data ? (
-            !list.error && <p className="muted small changes-empty">読み込み中…</p>
-          ) : found ? (
-            found.length === 0 ? (
-              <p className="muted small changes-empty">「{query.trim()}」に合うメモはありません。</p>
+          {/* 見出しと探す欄は残し、メモの一覧だけを流す */}
+          <div className="changes-scroll">
+            <ErrorText message={list.error} />
+            {!list.data ? (
+              !list.error && <p className="muted small changes-empty">読み込み中…</p>
+            ) : found ? (
+              found.length === 0 ? (
+                <p className="muted small changes-empty">「{query.trim()}」に合うメモはありません。</p>
+              ) : (
+                <MemoFoundList found={found} isSelected={isSelected} onRowClick={(path, e) => rowClick(path, false, e)} onMenu={rowMenu} />
+              )
+            ) : tree.length === 0 ? (
+              <p className="muted small changes-empty">まだメモはありません。上の ＋ から作るか、チャットの文を右クリックして「メモに追加」で作れます。</p>
             ) : (
-              <MemoFoundList found={found} isSelected={isSelected} onRowClick={(path, e) => rowClick(path, false, e)} onMenu={rowMenu} />
-            )
-          ) : tree.length === 0 ? (
-            <p className="muted small changes-empty">まだメモはありません。上の ＋ から作るか、チャットの文を右クリックして「メモに追加」で作れます。</p>
-          ) : (
-            <MemoTree
-              nodes={tree}
-              open={open}
-              isSelected={isSelected}
-              onRowClick={(node, e) => rowClick(node.path, node.dir, e)}
-              onMenu={rowMenu}
-              onExpand={(path) => openFolders([path])}
-              onDropInto={dropInto}
-              dragPaths={dragPaths}
-              dropTarget={dropTarget}
-              onDropTarget={setDropTarget}
-              renaming={renaming}
-              onStartRename={(node) => startRename(node.path)}
-              onRename={(node, name) => void rename(node, name)}
-              onRenameEnd={() => setRenaming(null)}
-            />
-          )}
-          {list.data?.truncated && <p className="muted small changes-empty">メモが多いため、途中までを表示しています。</p>}
+              <MemoTree
+                nodes={tree}
+                open={open}
+                isSelected={isSelected}
+                onRowClick={(node, e) => rowClick(node.path, node.dir, e)}
+                onMenu={rowMenu}
+                onExpand={(path) => openFolders([path])}
+                onDropInto={dropInto}
+                dragPaths={dragPaths}
+                dropTarget={dropTarget}
+                onDropTarget={setDropTarget}
+                renaming={renaming}
+                onStartRename={(node) => startRename(node.path)}
+                onRename={(node, name) => void rename(node, name)}
+                onRenameEnd={() => setRenaming(null)}
+              />
+            )}
+            {list.data?.truncated && <p className="muted small changes-empty">メモが多いため、途中までを表示しています。</p>}
+          </div>
         </aside>
         <div className="pane-resizer" aria-label="一覧の幅を変える" {...width.handle} />
         </>

@@ -10,7 +10,8 @@ import { useFileLinks } from "@/features/fileLinks/useFileLinks";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import { ChatImagesProvider } from "@/features/chat/images/ChatImage";
-import { usePopoutFileLinks } from "./PopoutFiles";
+import { PastWorkplacesProvider } from "@/features/chat/timeline/PastWorkplace";
+import { popoutFileLinks, usePopoutFileLinks } from "./PopoutFiles";
 
 /**
  * 別ウィンドウのサブエージェントの画面: チャットの中身をチャットの店から読み、右の欄と同じ SubagentScreen を描く
@@ -56,13 +57,16 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
   const links = usePopoutFileLinks(fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
   return (
     <FileLinksProvider value={links}>
-      <ChatImagesProvider chatId={chat.id}>
-        <ChatPaneContext.Provider value={pane}>
-          <div className="popout-body">
-            <SubagentScreen chatId={chat.id} agentKey={agentKey} />
-          </div>
-        </ChatPaneContext.Provider>
-      </ChatImagesProvider>
+      {/* 作業場所を移す前の行は、そのときの作業場所の別ウィンドウで開く（メモの仕様書「0025」の H5） */}
+      <PastWorkplacesProvider chatId={chat.id} current={links} side={false} adapt={(l, place) => popoutFileLinks(l, { chatId: chat.id, ...place })}>
+        <ChatImagesProvider chatId={chat.id}>
+          <ChatPaneContext.Provider value={pane}>
+            <div className="popout-body">
+              <SubagentScreen chatId={chat.id} agentKey={agentKey} />
+            </div>
+          </ChatPaneContext.Provider>
+        </ChatImagesProvider>
+      </PastWorkplacesProvider>
     </FileLinksProvider>
   );
 }

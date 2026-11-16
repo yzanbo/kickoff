@@ -37,6 +37,7 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/chats/:id/compact"],
   ["POST", "/api/chats/:id/clear"],
   ["DELETE", "/api/chats/:id/reconnect"],
+  ["DELETE", "/api/chats/:id/workplace-move"],
   ["POST", "/api/chats/:id/background/:taskId/stop"],
   ["DELETE", "/api/chats/:id/after-compact/:messageId"],
   ["PATCH", "/api/chats/:id/after-compact/:messageId"],

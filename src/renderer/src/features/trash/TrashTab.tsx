@@ -43,18 +43,20 @@ export function TrashTab({ projectId }: { projectId: number }) {
         <span className="spacer" />
         <EmptyTrashButton items={items} label="ゴミ箱を空にする" title={`ゴミ箱の ${items.length} 件を完全に消しますか？`} />
       </header>
-      <ErrorText message={error} />
-      {loaded && items.length === 0 ? (
-        <EmptyState icon={Trash2} title="ゴミ箱は空です">
-          AI が消したファイル（rm の代わりの kickoff-trash）・ファイルタブやメモの「ゴミ箱に入れる」・削除したチャット・消したワークツリーの控え（取り込んでいないコミット・途中の変更）が、ここに 3 日入ります。
-        </EmptyState>
-      ) : (
-        <ul className="trash-list">
-          {items.map((item) => (
-            <TrashRow key={item.id} item={item} repoPath={repoPath} />
-          ))}
-        </ul>
-      )}
+      <div className="trash-body">
+        <ErrorText message={error} />
+        {loaded && items.length === 0 ? (
+          <EmptyState icon={Trash2} title="ゴミ箱は空です">
+            AI が消したファイル（rm の代わりの kickoff-trash）・ファイルタブやメモの「ゴミ箱に入れる」・削除したチャット・消したワークツリーの控え（取り込んでいないコミット・途中の変更）が、ここに 3 日入ります。
+          </EmptyState>
+        ) : (
+          <ul className="trash-list">
+            {items.map((item) => (
+              <TrashRow key={item.id} item={item} repoPath={repoPath} />
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

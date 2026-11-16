@@ -2,19 +2,29 @@
 .trash-tab {
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  padding: 12px var(--gutter);
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
+/* 見出し（説明と「ゴミ箱を空にする」）は残し、その下（.trash-body）だけを流す（利用者の依頼） */
 .trash-head {
+  flex: none;
+  padding: 12px var(--gutter) 10px;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
+.trash-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 var(--gutter) 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .trash-head h2 {
   margin: 0;
   font-size: 15px;

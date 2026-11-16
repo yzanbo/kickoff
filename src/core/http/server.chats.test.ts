@@ -208,6 +208,50 @@ test("チャットを別のプロジェクトへ移す: グループ・作業場
   await until(() => !runner.isBusy(chatId));
 });
 
+test("作業フォルダが変わると（別のプロジェクトへ移す）: 会話を新しいセッションに写して区切りを置く。区切りより前へは巻き戻し・分岐・ファイルを戻すができず、移したあと最初の実行にだけ知らせを添える（0025）", async () => {
+  const { call, project, store, runner, provider } = setup();
+  const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "こんにちは" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  const firstUser = store.events.list(chatId).find((e) => e.type === "user")!;
+  const firstResult = store.events.list(chatId).find((e) => e.type === "result")!;
+
+  const moved = await call("POST", `/api/chats/${chatId}/move`, { project_id: other.id });
+  assert.equal(moved.body.session_id, "moved-1");
+  assert.deepEqual(provider.copies, [["s1", project.repo_path]]);
+  const boundary = store.events.list(chatId).find((e) => e.type === "workplace_moved");
+  assert.ok(boundary?.type === "workplace_moved");
+  assert.deepEqual(
+    [boundary.data.reason, boundary.data.from.project_id, boundary.data.to.project_id, boundary.data.to.dir, boundary.data.session_id, boundary.data.message_id],
+    ["project_moved", project.id, other.id, other.repo_path, "moved-1", "m1"],
+  );
+  // 記録の作業の終わりも新しいセッションを指す（古い会話記録はどのチャットも使わない）
+  const remapped = store.events.list(chatId).find((e) => e.id === firstResult.id);
+  assert.equal(remapped?.type === "result" ? remapped.data.session_id : null, "moved-1");
+  assert.equal(store.events.sessionInUse("s1"), false);
+
+  // 区切りより前へは巻き戻せない・分岐できない・ファイルを戻せない（Q3・H2）
+  assert.deepEqual(await call("POST", `/api/chats/${chatId}/rewind`, { event_id: firstUser.id, text: "やり直し" }), { status: 400, body: { error: "作業場所を移す前の発言なので巻き戻せません（会話もファイルも）" } });
+  assert.equal((await call("POST", `/api/chats/${chatId}/fork`, { event_id: firstResult.id })).status, 400);
+  assert.equal((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: firstUser.id, dry_run: true })).status, 400);
+
+  // 移したあと最初の実行にだけ、移動の知らせを添える（Q7）。続きは写した会話から
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "続き" });
+  await until(() => !runner.isBusy(chatId));
+  assert.match(provider.lastTurnContext ?? "", /作業場所が変わりました（チャットを別のプロジェクトへ移しました）/);
+  assert.equal(provider.resumes.at(-1), "moved-1");
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "さらに続き" });
+  await until(() => !runner.isBusy(chatId));
+  assert.equal(provider.lastTurnContext, null);
+
+  // Kickoff が自動で変えるときは、写せなくても移す（会話はいまのセッションのまま）
+  provider.copyError = "壊れた記録";
+  const back = await call("POST", `/api/chats/${chatId}/move`, { project_id: project.id });
+  assert.equal(back.status, 200);
+  assert.equal(back.body.project_id, project.id);
+  assert.equal(store.events.list(chatId).filter((e) => e.type === "workplace_moved").length, 2);
+});
+
 test("添付・承認依頼・プロバイダー・使用枠の API", async () => {
   const { app, call, approvals, project } = setup();
   assert.deepEqual(await call("POST", "/api/uploads"), { status: 400, body: { error: "ファイルがありません" } });

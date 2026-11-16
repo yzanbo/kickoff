@@ -1,4 +1,4 @@
-// チャット: 会話（メインエージェントの発言・ツールの 1 行・終わり）・回答待ち（承認・質問）・送信待ち・入力欄。見るだけの端末は読むだけ
+// チャット: 会話（メインエージェントの発言・ツールの 1 行・終わり）・回答待ち（承認・質問）・AI が作業場所を移す予約・送信待ち・入力欄。見るだけの端末は読むだけ
 import { useMemo } from "react";
 import { Alert, FlatList, KeyboardAvoidingView, Pressable, Text, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
@@ -6,6 +6,7 @@ import { ApprovalCard } from "../../../chat/ApprovalCard";
 import { Composer } from "../../../chat/Composer";
 import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
+import { workplaceMoveReservationText } from "@shared/chat/aiWorkplace";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
 import { useHostState } from "../../../state/useHostState";
 import { ConnectionBanner } from "../../../ui/ConnectionBanner";
@@ -37,6 +38,17 @@ export default function ChatScreen() {
             {approvals.map((a) => (
               <ApprovalCard key={a.id} approval={a} canAnswer={canWrite} onResolve={(d) => (client ? client.resolveApproval(a.id, d) : Promise.resolve())} />
             ))}
+            {/* AI が作業場所を移す予約（取り消すと移らない。見るだけの端末は見えるだけ。J7） */}
+            {live?.workplace_move && (
+              <View style={[ui.card, ui.row]}>
+                <Text style={[ui.text, { flex: 1 }]}>{workplaceMoveReservationText(live.workplace_move)}</Text>
+                {canWrite && (
+                  <Pressable onPress={() => void client?.cancelWorkplaceMove(chatId).catch((e: unknown) => Alert.alert("取り消せませんでした", e instanceof Error ? e.message : String(e)))} hitSlop={8}>
+                    <Text style={{ color: colors.ng }}>移らない</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
             {live && live.queue.messages.length > 0 && (
               <View style={ui.card}>
                 <Text style={ui.muted}>送信待ち {live.queue.messages.length} 件{live.queue.paused ? "（一時停止中）" : ""}</Text>

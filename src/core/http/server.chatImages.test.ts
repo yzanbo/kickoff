@@ -5,6 +5,7 @@ import path from "node:path";
 import { test } from "vitest";
 import type { BusEvent } from "@shared/types";
 import { AUTH, setup, until } from "../testing/testServer.js";
+import { tempDir } from "../testing/tempDir.js";
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
 
@@ -126,4 +127,32 @@ test("手元の画像（返答の `![](docs/a.png)`）は、相対パスなら�
   assert.deepEqual(Buffer.from(await res.arrayBuffer()), PNG);
   const outside = await app.request(`/api/chats/${chatId}/tool-image?path=${encodeURIComponent("../../outside.png")}`, { headers: AUTH });
   assert.equal(outside.status, 400);
+});
+
+test("作業場所を移したチャットでは、区切りより前の記録（at）の画像は、そのときの作業場所から読む（メモの仕様書「0025」の H5）", async () => {
+  const ctx = setup();
+  const { app, project, store } = ctx;
+  const chatId = await chatOf(ctx);
+  const before = store.events.list(chatId).at(-1)!.id;
+  // 移す前の作業場所（もう店のチャットからは引けない場所）に画像を置き、区切りを残す
+  const old = tempDir();
+  fs.mkdirSync(path.join(old, "docs"), { recursive: true });
+  fs.writeFileSync(path.join(old, "docs", "b.png"), PNG);
+  const place = { project_id: project.id, branch: "feat/old" };
+  store.events.add(chatId, {
+    type: "workplace_moved",
+    from: { ...place, worktree_path: old, dir: old },
+    to: { ...place, worktree_path: null, branch: "main", dir: project.repo_path },
+    reason: "user",
+  });
+  const get = (p: string, at?: number) =>
+    app.request(`/api/chats/${chatId}/tool-image?path=${encodeURIComponent(p)}${at === undefined ? "" : `&at=${at}`}`, { headers: AUTH });
+  // 区切りより前の記録なら、相対パスは移す前の作業場所から
+  const res = await get("docs/b.png", before);
+  assert.equal(res.status, 200);
+  assert.deepEqual(Buffer.from(await res.arrayBuffer()), PNG);
+  // 区切りより後ろ（at なし）は、いまの作業場所から読むのでない
+  assert.equal((await get("docs/b.png")).status, 404);
+  // 移す前の作業場所の絶対パスも読める場所に入る（読んだ画像の呼び出しは絶対パス）
+  assert.equal((await get(path.join(old, "docs", "b.png"))).status, 200);
 });

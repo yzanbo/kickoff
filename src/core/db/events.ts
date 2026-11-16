@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { FEED_TEXT_LIMIT, type Chat, type ChatEvent, type ChatEventData, type FeedItem, type SearchHit } from "@shared/types";
+import { FEED_TEXT_LIMIT, type Chat, type ChatEvent, type ChatEventData, type ChatEventDataOf, type FeedItem, type SearchHit } from "@shared/types";
 import { normalizeAttachment } from "@shared/attachment/normalize";
 import type { ChatEventMeta } from "@shared/chat/chatIndex";
 import type { Notify, Row } from "./common.js";
@@ -257,7 +257,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       const rows = db
         .prepare(
           `SELECT DISTINCT json_extract(data, '$.session_id') AS sid FROM chat_events
-           WHERE chat_id IN (${chatIds.map(() => "?").join(", ")}) AND type IN ('init', 'result') AND json_extract(data, '$.session_id') IS NOT NULL`,
+           WHERE chat_id IN (${chatIds.map(() => "?").join(", ")}) AND type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') IS NOT NULL`,
         )
         .all(...chatIds) as { sid: string }[];
       return rows.map((r) => r.sid);
@@ -292,7 +292,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       const rows = db
         .prepare(
           `SELECT session_id AS sid FROM chats WHERE session_id IS NOT NULL
-           UNION SELECT json_extract(data, '$.session_id') FROM chat_events WHERE type IN ('init', 'result') AND json_extract(data, '$.session_id') IS NOT NULL`,
+           UNION SELECT json_extract(data, '$.session_id') FROM chat_events WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') IS NOT NULL`,
         )
         .all() as { sid: string }[];
       return new Set(rows.map((r) => r.sid));
@@ -302,7 +302,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         db
           .prepare(
             `SELECT 1 FROM chats WHERE session_id = $sid
-             UNION ALL SELECT 1 FROM chat_events WHERE type IN ('init', 'result') AND json_extract(data, '$.session_id') = $sid LIMIT 1`,
+             UNION ALL SELECT 1 FROM chat_events WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') = $sid LIMIT 1`,
           )
           .get({ sid: sessionId }),
       );
@@ -311,10 +311,29 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
      * このチャットの記録の init・result が指すセッション from を to に付け替える（長いチャットを直近の区切りだけの新しいセッションに乗り換えたとき。
      * 発言の ID は新しいセッションでも同じなので、残した区切りの中の起点からは分岐・巻き戻しができる）
      */
+    /**
+     * 移したあとまだ AI に知らせていない、作業場所を移した区切りの中身（いちばん新しい区切りのあとに作業の終わり result がない。なければ null）。
+     * 移したあと最初に送るものに 1 回だけ移動の知らせを添えるため（メモの仕様書「0025」の Q7）
+     */
+    pendingWorkplaceMove(chatId: number): ChatEventDataOf<"workplace_moved"> | null {
+      const row = db
+        .prepare(
+          `SELECT m.data AS data FROM chat_events m WHERE m.chat_id = $chat AND m.type = 'workplace_moved'
+             AND NOT EXISTS (SELECT 1 FROM chat_events r WHERE r.chat_id = $chat AND r.type = 'result' AND r.id > m.id)
+           ORDER BY m.id DESC LIMIT 1`,
+        )
+        .get({ chat: chatId }) as { data: string } | undefined;
+      return row ? (JSON.parse(row.data) as ChatEventDataOf<"workplace_moved">) : null;
+    },
+    /** 作業場所を移した区切り（古い順。ID と中身。区切りより前の発言の画像・ファイルを、そのときの作業場所から読むため。メモの仕様書「0025」の H5） */
+    workplaceMoves(chatId: number): { id: number; data: ChatEventDataOf<"workplace_moved"> }[] {
+      const rows = db.prepare("SELECT id, data FROM chat_events WHERE chat_id = ? AND type = 'workplace_moved' ORDER BY id").all(chatId) as { id: number; data: string }[];
+      return rows.map((r) => ({ id: r.id, data: JSON.parse(r.data) as ChatEventDataOf<"workplace_moved"> }));
+    },
     remapSession(chatId: number, from: string, to: string): void {
       db.prepare(
         `UPDATE chat_events SET data = json_set(data, '$.session_id', ?)
-         WHERE chat_id = ? AND type IN ('init', 'result') AND json_extract(data, '$.session_id') = ?`,
+         WHERE chat_id = ? AND type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') = ?`,
       ).run(to, chatId, from);
       revisions?.changed(chatId);
     },

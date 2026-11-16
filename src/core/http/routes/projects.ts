@@ -185,7 +185,8 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
    * プロジェクトのフォルダ（本体）を変える（フォルダを移した・別の場所に置き直したとき）。取り込みと同じ決まりで確かめ、
    * ほかのプロジェクトのフォルダなら 409、作業中のチャットがあれば 409。チャット・設定はそのまま引き継ぎ、本体で作業するチャットは次から新しいフォルダで動く
    * （Claude Code の会話は作業フォルダが変わっても続く）。選んだフォルダをそのまま本体にする（git のリポジトリの中のフォルダでもよい）。
-   * ワークツリーで作業していたチャットは、同じリポジトリの中で変えたなら同じワークツリーの中の新しいフォルダへ、そうでなければ本体へ付け替える（worktreeMoves）
+   * ワークツリーで作業していたチャットは、同じリポジトリの中で変えたなら同じワークツリーの中の新しいフォルダへ、そうでなければ本体へ付け替える（worktreeMoves）。
+   * どのチャットも作業フォルダが変わるので、区切り（作業場所を移した区切り）を置いて会話を新しいセッションに写す
    */
   app.put("/api/projects/:id/repo-path", withProject, async (c) => {
     const { project } = c.var;
@@ -199,8 +200,15 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
     const repoPath = await prepareImportedWorkspace(input.path, input.init_git);
     // ワークツリーで作業していたチャットの付け替え（同じリポジトリなら同じワークツリーの中の新しいフォルダ、そうでなければ本体）
     const moves = await worktreeMoves(project.repo_path, repoPath);
+    const chats = store.chats.list({ projectId: project.id, includeArchived: true });
     const updated = store.projects.update(project.id, { repo_path: repoPath });
-    const used = new Set(store.chats.list({ projectId: project.id, includeArchived: true }).flatMap((chat) => (chat.worktree_path ? [chat.worktree_path] : [])));
+    // 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（メモの仕様書「0025」の G1。本体のチャットも）
+    for (const chat of chats) {
+      const to = chat.worktree_path ? (moves.get(chat.worktree_path) ?? null) : null;
+      await runner.moveWorkplace(chat.id, { worktreePath: to, reason: "folder_moved", fromDir: chat.worktree_path ?? project.repo_path });
+    }
+    // ゴミ箱にあるチャットも付け替える（戻したときに消えた作業場所を指さないように）
+    const used = new Set(chats.flatMap((chat) => (chat.worktree_path ? [chat.worktree_path] : [])));
     for (const from of used) store.chats.replaceWorktree(project.id, from, moves.get(from) ?? null);
     return c.json(updated);
   });

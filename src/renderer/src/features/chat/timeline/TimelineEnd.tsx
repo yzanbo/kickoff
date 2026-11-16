@@ -8,13 +8,15 @@ import { Working } from "@/features/chat/status/Working";
 import { CompactingRow } from "@/features/chat/status/CompactingRow";
 import { AfterCompactMessages, type AfterCompactUntil } from "@/features/chat/status/AfterCompactMessages";
 import { VisualPending } from "@/features/chat/visuals/VisualItem";
+import { WorkplaceMoveRow } from "@/features/chat/status/WorkplaceMoveRow";
 import { useSentCompactPrompt } from "@/features/snippet/useCompactPrompt";
 import { StreamingReply } from "./StreamingReply";
 
 /**
  * 流れの終わり（最新の分）: 書いている途中の返答・書いている途中の図の枠・確認のカード・作業中の行（返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える。
  * 会話を圧縮している間は、見分けのつく圧縮中の行と、その下に圧縮のあとに送る圧縮後指示と、圧縮前指示から圧縮のあとのやり取りが終わるまでに「いま」で送った指示をその順に。
- * 圧縮後指示を送ったあとも、預かった指示はそのやり取りが終わるまで作業中の行の下に残す）・裏で動いている作業（1 件ずつ止められる）・通信が切れて止まり、つながるのを待っている行。
+ * 圧縮後指示を送ったあとも、預かった指示はそのやり取りが終わるまで作業中の行の下に残す）・裏で動いている作業（1 件ずつ止められる）・AI が作業場所を移す予約（取り消せる）・
+ * 通信が切れて止まり、つながるのを待っている行。
  * working は作業中の行の文（useWorkingStatus。作業中でなければ null）
  */
 export function TimelineEnd({
@@ -61,6 +63,7 @@ export function TimelineEnd({
       {/* 圧縮後指示と、預かった「いま」の指示は、圧縮の行・作業中の行の下に送る順で */}
       {(live.after_compact.length > 0 || pendingPost !== null) && <AfterCompactMessages messages={live.after_compact} pendingPost={pendingPost} until={until} />}
       {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} events={events} />}
+      {live.workplace_move && <WorkplaceMoveRow chatId={chat.id} reservation={live.workplace_move} />}
       {!busy && live.reconnect && <ReconnectRow chatId={chat.id} reconnect={live.reconnect} />}
     </>
   );

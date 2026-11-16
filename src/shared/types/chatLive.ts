@@ -109,6 +109,21 @@ export interface ChatLive {
    * interrupted: 前回の終了で、作業の途中で止まったか（「続ける」を選べる）。queued: 起動すると送り始める送信待ちがあるか（「送る」を選べる）
    */
   restart_resume: RestartResumeState | null;
+  /**
+   * AI が予約した作業場所の移動（kickoff_chat の move_workplace。この作業が最後まで終わったら Kickoff が移し、続きを送る。なければ null）。
+   * 画面とスマホに「作業が終わったら … へ移ります」と出し、取り消せる（DELETE /api/chats/:id/workplace-move。メモの仕様書「0025」の I2・J7）
+   */
+  workplace_move: WorkplaceMoveReservation | null;
+}
+
+/** AI が予約した作業場所の移動の様子（ChatLive の workplace_move） */
+export interface WorkplaceMoveReservation {
+  /** 移す先の呼び名（「本体」「ワークツリー（feat/x）」「新しいワークツリー（feat/x）」） */
+  label: string;
+  /** コミットしていない変更も持っていく（利用者が承認したもの） */
+  carry: boolean;
+  /** 移したあとに続きの指示を送るか */
+  continuation: boolean;
 }
 
 /** 起動したときの再開の確かめを待っているチャットの様子（ChatLive の restart_resume） */

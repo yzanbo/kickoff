@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { executeTurn, type ExecutionDeps, type TurnRequest, type TurnOutcome } from "./turn.js";
+import { executeTurn, takePendingNote, type ExecutionDeps, type TurnRequest, type TurnOutcome } from "./turn.js";
 import { RunnerQueue, type SendOpts } from "./runnerQueue.js";
 import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input.js";
 import { startChildChat } from "./children.js";
+import { moveChatWorkplace, type WorkplaceMoveSteps, type WorkplaceMoveInput } from "./workplaceMove.js";
+import { cancelledNote, notMovedNotice, runReservedMove, WorkplaceReservations, type WorkplaceMovePlan } from "./workplaceReservation.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
 import type { ChatRemover } from "./aiChatRemove.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type RestartResume, type RestartResumeAction, type TellResult, type MessageMarks } from "@shared/types";
@@ -39,6 +41,9 @@ export class Runner extends RunnerQueue {
 
   /** 1 回の実行に渡すもの（AI が自分の子チャットを作るツールのために、子チャットの作り方を足す） */
   private readonly turnDeps: ExecutionDeps;
+
+  /** AI が作業場所を移す予約（作業が最後まで終わったら移す。メモの仕様書「0025」の段階 ③） */
+  private readonly workplaceMoves: WorkplaceReservations;
 
 
   constructor(
@@ -83,6 +88,11 @@ export class Runner extends RunnerQueue {
     for (const chatId of new Set([...interrupted, ...queued])) {
       this.runtimes.get(chatId).update({ resume: { interrupted: interrupted.has(chatId), queued: queued.has(chatId) } });
     }
+    this.workplaceMoves = new WorkplaceReservations(this.runtimes);
+    this.turnDeps.workplaceMoves = {
+      reserve: (chatId, plan) => this.workplaceMoves.reserve(chatId, plan),
+      cancel: (chatId) => this.workplaceMoves.cancel(chatId) !== null,
+    };
     this.recovery = new ChatRecovery({
       store: deps.store,
       approvals: deps.approvals,
@@ -350,8 +360,11 @@ export class Runner extends RunnerQueue {
     const messageUuid = randomUUID();
     // 組み立てている間に圧縮が始まったら、預かる（届いた報告の添え書きは、伝えるときに組み立て直す）
     if (runtime.holdsTells && !(draining && !runtime.compacting && !runtime.awaitingCompact)) return hold();
-    // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す
-    if (runtime.control?.tell(prompt, messageUuid)) {
+    // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す。
+    // まだ AI に伝えていない Kickoff からの知らせ（作業場所を移す予約の取り消しなど）があれば、頭に一度だけ添える（足せなければ残す）
+    const note = runtime.pendingNote;
+    if (runtime.control?.tell(note ? `${note}\n\n${prompt}` : prompt, messageUuid)) {
+      if (note && runtime.pendingNote === note) takePendingNote(runtime);
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（起動したときの再開の確かめで、作業を続けるかも聞かない）
       this.forgetRecovery(chatId);
       this.forgetInterrupted(chatId);
@@ -589,6 +602,66 @@ export class Runner extends RunnerQueue {
     this.runtimes.forget(chatId);
   }
 
+  /**
+   * チャットの作業場所を移す（メモの仕様書「0025_チャットの作業場所を変える」。中身は workplaceMove.ts の moveChatWorkplace）。
+   * 利用者・AI が移すときは作業中なら 409。移している間（会話を写す間）も作業中として数え（preparing）、その間に送られないようにする。
+   * 止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま。G3）
+   */
+  async moveWorkplace(chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat> {
+    // AI の予約は作業の終わりに Runner が移す（作業中として数えたまま呼ぶ）ので、確かめるのは利用者が移すときだけ
+    if (input.reason === "user") this.requireIdle(chatId, "作業場所の変更");
+    const runtime = this.runtimes.get(chatId);
+    runtime.preparing = true;
+    try {
+      this.forgetRecovery(chatId);
+      // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す（G6）
+      const prepared = { ...input, ...(await steps?.before?.()) };
+      try {
+        const chat = await moveChatWorkplace({ store: this.deps.store, providers: this.deps.providers, sessionTrash: this.deps.sessionTrash }, chatId, prepared);
+        await steps?.after?.();
+        return chat;
+      } catch (e) {
+        await steps?.undo?.().catch(() => {});
+        throw e;
+      }
+    } finally {
+      runtime.preparing = false;
+    }
+  }
+
+  /**
+   * AI が予約した作業場所の移動を利用者が取り消す（画面・スマホの取り消し。会話にお知らせを残す。予約がなければ 409。I2・J7）。
+   * 取り消したことは AI にも伝える: 作業中で足せるなら、いまの作業にその場で足す（次の切れ目で読む）。足せない（作業していない・圧縮の間・入力を閉じた）なら、
+   * 知らせのためだけに動かさず、次に送るもの（新しい実行の文脈か、次に伝える発言の頭）に一度だけ添える
+   */
+  cancelWorkplaceMove(chatId: number) {
+    const plan = this.workplaceMoves.cancel(chatId);
+    if (!plan) throw new Conflict("取り消す予約はありません（もう移したか、取り消しました）");
+    this.deps.store.events.add(chatId, { type: "notice", message: `AI が予約した「${plan.label}へ移る」を取り消しました` });
+    const runtime = this.runtimes.get(chatId);
+    const note = cancelledNote(plan);
+    const told = this.isBusy(chatId) && !runtime.holdsTells && !runtime.tellsClosed && Boolean(runtime.control?.tell(note, randomUUID()));
+    if (!told) runtime.pendingNote = note;
+  }
+
+  /** 作業の終わりに、AI が予約した作業場所の移動を行ってから、いつもの作業の終わりの処理を続ける（H8） */
+  private async moveThenContinue(chatId: number, plan: WorkplaceMovePlan, next: () => void) {
+    await runReservedMove(
+      {
+        store: this.deps.store,
+        runtimes: this.runtimes,
+        isBusy: (id) => this.isBusy(id),
+        moveWorkplace: (id, input, steps) => this.moveWorkplace(id, input, steps),
+        worktreeFinisher: this.turnDeps.worktreeFinisher,
+        terminals: this.deps.terminals,
+        worktreeEnvs: this.deps.worktreeEnvs,
+      },
+      chatId,
+      plan,
+    );
+    next();
+  }
+
   /** 自分で送った・チャットを消した: 通信・使用枠の上限で止まったあとの再開の段取り（待つ・聞く）をやめる（再開の段取りが送ったものなら続ける） */
   private forgetRecovery(chatId: number) {
     this.recovery.forget(chatId);
@@ -773,15 +846,24 @@ export class Runner extends RunnerQueue {
       // 作業が終わったので、足せなかった「いま」を預かるのも終わる（このあとの deliverHeld で送る）
       runtime.update({ stopping: false, compactAfterTurn: false, compactedTurn: false, tellsClosed: false, ...(compactNext ? {} : { awaitingCompact: false }) });
       void this.deps.usage.refresh();
-      if (compactNext) {
-        this.compactNow(item.chatId, manual ? "manual" : "auto");
-      } else if (runtime.afterCompact.length > 0) {
-        // 圧縮が終わるまで預かった「いま」を、送信待ちより先に送る
-        this.deliverHeld(item.chatId, finished);
-      } else if (finished) {
-        // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る）。
-        // 次が圧縮の行（作業中に予約した圧縮も）なら圧縮し、圧縮が終わったら、その終わりで送信待ちの次を送る
-        void this.sendNextQueued(item.chatId);
+      const next = () => {
+        if (compactNext) {
+          this.compactNow(item.chatId, manual ? "manual" : "auto");
+        } else if (runtime.afterCompact.length > 0) {
+          // 圧縮が終わるまで預かった「いま」を、送信待ちより先に送る
+          this.deliverHeld(item.chatId, finished);
+        } else if (finished) {
+          // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る）。
+          // 次が圧縮の行（作業中に予約した圧縮も）なら圧縮し、圧縮が終わったら、その終わりで送信待ちの次を送る
+          void this.sendNextQueued(item.chatId);
+        }
+      };
+      // AI が作業場所を移す予約: 最後まで終わったら、いつもの処理より先に移す（H8）。止めた・失敗したら移さずに予約を消す
+      const move = this.workplaceMoves.take(item.chatId);
+      if (move && finished && outcome.status === "completed") void this.moveThenContinue(item.chatId, move, next);
+      else {
+        if (move && !this.shuttingDown) this.deps.store.events.add(item.chatId, { type: "notice", message: notMovedNotice(move) });
+        next();
       }
     }
   }

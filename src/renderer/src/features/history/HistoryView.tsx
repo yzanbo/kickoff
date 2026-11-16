@@ -157,80 +157,83 @@ export function HistorySidebar({
         <History size={15} aria-hidden /> すべてのコミット
       </button>
       <SearchField value={filter} onChange={setFilter} placeholder="絞り込む" label="ブランチ・タグを絞り込む" />
-      <ErrorText message={log.error} className="code-search-message" />
-      <RefSection title="本体" count={groups.main.length} action={mainTree && <FolderButtons path={mainTree.path} />}>
-        {groups.main.map((b) => (
-          <RefItem
-            key={b.name}
-            icon={b.current ? <Check size={14} aria-hidden /> : <GitBranch size={14} aria-hidden />}
-            name={b.name}
-            title={b.name === mainTree?.branch ? `${b.name}（本体で取り出しています）` : b.name}
-            active={b.current}
-            selected={rows.isPicked(`branch:${b.name}`, b.hash)}
-            note={b.name === mainTree?.branch && !b.current ? "取り出し中" : <SyncNote branch={b} />}
-            onClick={() => rows.pick(`branch:${b.name}`, b.hash)}
-            onContextMenu={(e) => onRefMenu(e, { kind: "branch", name: b.name })}
-          />
-        ))}
-      </RefSection>
-      <RefSection
-        title="ワークツリー"
-        count={groups.worktrees.length}
-        always
-        action={<IconButton icon={Plus} label="ワークツリーを作る" size={14} onClick={() => void worktreeActions.createWorktree()} />}
-      >
-        {groups.worktrees.map(({ worktree: w, branch }) => (
-          <RefItem
-            key={w.path}
-            icon={branch?.current ? <Check size={14} aria-hidden /> : <GitBranch size={14} aria-hidden />}
-            name={w.branch ?? "（ブランチなし）"}
-            title={w.path}
-            active={branch?.current}
-            note={
-              w.prunable ? (
-                "なくなっています"
-              ) : (
+      {/* 見出し・すべてのコミット・絞り込む欄は残し、ブランチなどの一覧だけを流す */}
+      <div className="changes-scroll">
+        <ErrorText message={log.error} className="code-search-message" />
+        <RefSection title="本体" count={groups.main.length} action={mainTree && <FolderButtons path={mainTree.path} />}>
+          {groups.main.map((b) => (
+            <RefItem
+              key={b.name}
+              icon={b.current ? <Check size={14} aria-hidden /> : <GitBranch size={14} aria-hidden />}
+              name={b.name}
+              title={b.name === mainTree?.branch ? `${b.name}（本体で取り出しています）` : b.name}
+              active={b.current}
+              selected={rows.isPicked(`branch:${b.name}`, b.hash)}
+              note={b.name === mainTree?.branch && !b.current ? "取り出し中" : <SyncNote branch={b} />}
+              onClick={() => rows.pick(`branch:${b.name}`, b.hash)}
+              onContextMenu={(e) => onRefMenu(e, { kind: "branch", name: b.name })}
+            />
+          ))}
+        </RefSection>
+        <RefSection
+          title="ワークツリー"
+          count={groups.worktrees.length}
+          always
+          action={<IconButton icon={Plus} label="ワークツリーを作る" size={14} onClick={() => void worktreeActions.createWorktree()} />}
+        >
+          {groups.worktrees.map(({ worktree: w, branch }) => (
+            <RefItem
+              key={w.path}
+              icon={branch?.current ? <Check size={14} aria-hidden /> : <GitBranch size={14} aria-hidden />}
+              name={w.branch ?? "（ブランチなし）"}
+              title={w.path}
+              active={branch?.current}
+              note={
+                w.prunable ? (
+                  "なくなっています"
+                ) : (
+                  <>
+                    <WorktreePrMark worktree={w.path} iconOnly />
+                    <SyncNote branch={branch} />
+                  </>
+                )
+              }
+              selected={rows.isPicked(`worktree:${w.path}`, w.head)}
+              onClick={() => rows.pick(`worktree:${w.path}`, w.head)}
+              onContextMenu={(e) => worktreeMenu(e, w)}
+              actions={
                 <>
-                  <WorktreePrMark worktree={w.path} iconOnly />
-                  <SyncNote branch={branch} />
+                  <FolderButtons path={w.path} />
+                  <IconButton icon={Trash2} label="ワークツリーを消す" size={14} onClick={() => void worktreeActions.removeWorktree(w)} />
                 </>
-              )
-            }
-            selected={rows.isPicked(`worktree:${w.path}`, w.head)}
-            onClick={() => rows.pick(`worktree:${w.path}`, w.head)}
-            onContextMenu={(e) => worktreeMenu(e, w)}
-            actions={
-              <>
-                <FolderButtons path={w.path} />
-                <IconButton icon={Trash2} label="ワークツリーを消す" size={14} onClick={() => void worktreeActions.removeWorktree(w)} />
-              </>
-            }
-          />
-        ))}
-      </RefSection>
-      <ErrorText message={worktreeActions.error} className="code-search-message" />
-      <RefSection title="リモート" count={remotes.length}>
-        {remotes.map((r) => (
-          <RemoteGroup key={r.name} remote={r} forceOpen={filter.trim() !== ""} rows={rows} onRefMenu={onRefMenu} />
-        ))}
-      </RefSection>
-      <RefSection title="タグ" count={tags.length}>
-        {tags.map((t) => (
-          <RefItem
-            key={t.name}
-            icon={<Tag size={14} aria-hidden />}
-            name={t.name}
-            selected={rows.isPicked(`tag:${t.name}`, t.hash)}
-            onClick={() => rows.pick(`tag:${t.name}`, t.hash)}
-            onContextMenu={(e) => onRefMenu(e, { kind: "tag", name: t.name })}
-          />
-        ))}
-      </RefSection>
-      <RefSection title="退避（stash）" count={stashes.length}>
-        {stashes.map((s) => (
-          <RefItem key={s.ref} icon={<Archive size={14} aria-hidden />} name={s.message} selected={rows.isPicked(`stash:${s.ref}`, s.hash)} onClick={() => rows.pick(`stash:${s.ref}`, s.hash)} onContextMenu={(e) => onStashMenu(e, s.ref)} />
-        ))}
-      </RefSection>
+              }
+            />
+          ))}
+        </RefSection>
+        <ErrorText message={worktreeActions.error} className="code-search-message" />
+        <RefSection title="リモート" count={remotes.length}>
+          {remotes.map((r) => (
+            <RemoteGroup key={r.name} remote={r} forceOpen={filter.trim() !== ""} rows={rows} onRefMenu={onRefMenu} />
+          ))}
+        </RefSection>
+        <RefSection title="タグ" count={tags.length}>
+          {tags.map((t) => (
+            <RefItem
+              key={t.name}
+              icon={<Tag size={14} aria-hidden />}
+              name={t.name}
+              selected={rows.isPicked(`tag:${t.name}`, t.hash)}
+              onClick={() => rows.pick(`tag:${t.name}`, t.hash)}
+              onContextMenu={(e) => onRefMenu(e, { kind: "tag", name: t.name })}
+            />
+          ))}
+        </RefSection>
+        <RefSection title="退避（stash）" count={stashes.length}>
+          {stashes.map((s) => (
+            <RefItem key={s.ref} icon={<Archive size={14} aria-hidden />} name={s.message} selected={rows.isPicked(`stash:${s.ref}`, s.hash)} onClick={() => rows.pick(`stash:${s.ref}`, s.hash)} onContextMenu={(e) => onStashMenu(e, s.ref)} />
+          ))}
+        </RefSection>
+      </div>
     </>
   );
 }

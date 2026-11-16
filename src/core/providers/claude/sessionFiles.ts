@@ -2,9 +2,12 @@
 // 探す・分岐する位置の手前の直近の区切り（圧縮の印から次の印まで）だけを切り出す・チャットを消したらゴミ箱へ移す。
 // Claude Code は圧縮しても古いやり取りを消さずに書き足し続けるので、長く続けたチャットの記録は 1GB を超える
 import { randomUUID } from "node:crypto";
+import { once } from "node:events";
+import { createReadStream, createWriteStream } from "node:fs";
 import { open, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 import type { SessionFileInfo } from "../types.js";
 
 /** Claude Code が会話記録を置くフォルダ（CLAUDE_CONFIG_DIR があればその中） */
@@ -177,6 +180,43 @@ export async function trimToRecentSegments(path: string, sessionId: string, keep
   const oldDir = path.replace(/\.jsonl$/, "");
   if (await stat(oldDir).then((s) => s.isDirectory(), () => false)) await rename(oldDir, newPath.replace(/\.jsonl$/, "")).catch(() => {});
   return { sessionId: newId, path: newPath, dropped: start };
+}
+
+/** ファイルの控えの行（Claude Code が編集の前のファイルを覚えた記録。ファイルを絶対パスで指す） */
+const isFileHistoryLine = (line: string) => line.includes('"type":"file-history-snapshot"') || line.includes('"type":"file-history-delta"');
+
+/**
+ * 作業場所を移すとき（メモの仕様書「0025_チャットの作業場所を変える」の H1・J1）、会話を新しい ID のセッションに写して同じフォルダに書く。
+ * 終わりの直近 keep 個の区切り（圧縮の印から次の印まで）があればそこから、足りなければ丸ごと写す（短い会話なので小さい）。発言の ID は保つ
+ * （移したあとの起点 = 区切りの直前の作業の終わりのメッセージを、新しいセッションでも同じ ID で指せるように）。
+ * ファイルの控えの行（file-history-snapshot・file-history-delta）は写さない: 控えは元の作業場所のファイルを指していて、残すと移したあとに
+ * 同じ名前のファイルを書き換えた発言の「ファイルを戻す」が、戻したと答えるのに戻らなかった（2026-11-15 に本物で確かめた。分岐の forkSession も控えを写さない）。
+ * 区切りより前の発言へは巻き戻せない決まり（Q3）なので、控えは要らない。同じ名前のフォルダ（サブエージェントの記録など）は新しいセッションの名前に移す
+ */
+export async function copyForWorkplaceMove(path: string, sessionId: string, keep = FORK_KEEP_SEGMENTS): Promise<{ sessionId: string; path: string }> {
+  let start = 0;
+  let boundaries = 0;
+  for await (const { line, offset } of linesBackward(path)) {
+    if (isBoundary(line) && ++boundaries === keep) {
+      start = offset;
+      break;
+    }
+  }
+  const newId = randomUUID();
+  const newPath = join(path, "..", `${newId}.jsonl`);
+  const out = createWriteStream(newPath, { flags: "wx", mode: 0o600 });
+  try {
+    const lines = createInterface({ input: createReadStream(path, { start }), crlfDelay: Infinity });
+    for await (const line of lines) {
+      if (!line || isFileHistoryLine(line)) continue;
+      if (!out.write(`${line.split(`"sessionId":"${sessionId}"`).join(`"sessionId":"${newId}"`)}\n`)) await once(out, "drain");
+    }
+  } finally {
+    await new Promise<void>((resolve, reject) => out.end((e?: Error | null) => (e ? reject(e) : resolve())));
+  }
+  const oldDir = path.replace(/\.jsonl$/, "");
+  if (await stat(oldDir).then((s) => s.isDirectory(), () => false)) await rename(oldDir, newPath.replace(/\.jsonl$/, "")).catch(() => {});
+  return { sessionId: newId, path: newPath };
 }
 
 /** 頭だけ読む大きさ（最初の発言と作業フォルダを探す。大きなファイルを全部読まない） */

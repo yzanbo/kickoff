@@ -1,10 +1,11 @@
-import { ChevronRight, ClipboardPenLine, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
+import { ChevronRight, ClipboardPenLine, GitBranch, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 import { flushSync } from "react-dom";
 import type { ChatEventOf } from "@shared/types";
 import { subagentAskOf } from "@shared/chat/prompts";
 import { handoffRequestExtra } from "@shared/chat/handoff";
+import { WORKPLACE_FILES_LOCKED, WORKPLACE_REWIND_LOCKED } from "@shared/chat/workplaceMoves";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import { useSizeObserver } from "@/hooks/useSizeObserver";
@@ -22,6 +23,7 @@ import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/snippet/compactP
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
 import { useTimelineBusy } from "@/features/chat/timeline/timelineBusy";
+import { useBeforeWorkplaceMove } from "@/features/chat/store/useChatStore";
 
 /**
  * 自分の発言（吹き出し）。長い発言は途中まで出して「もっと見る / たたむ」で開閉する。
@@ -33,7 +35,8 @@ import { useTimelineBusy } from "@/features/chat/timeline/timelineBusy";
  * サブエージェントについて子チャットで聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』について聞く」と添える（コピー・書き直しは書いた文で）。
  * 子チャットに親への依頼文を頼んだ発言（記録の handoff_request。頼み方の文は決まった長い文なので）は、1 行「親への依頼文を頼みました」にたたみ、押すと全文を出す。
  * 追加の指示を添えて頼んだときは、たたんだ行の下にその指示だけを出す（全文を開かなくても、何を頼んだか分かるように）。
- * 子チャットから渡した依頼（記録の handoff_from）は、吹き出しの下に出どころの札「子チャット『…』から」
+ * 子チャットから渡した依頼（記録の handoff_from）は、吹き出しの下に出どころの札「子チャット『…』から」。
+ * AI が作業場所を移す予約に書いた続きの指示（記録の workplace_continuation。Kickoff が移したあとに送った）は、上に「作業場所を移したあとの続き（AI の予約）」と添える
  */
 /** createdChats: この発言の作業で AI が作った兄弟チャット・親のないチャットの ID（「,」でつなぐ。timelineItems の createdChatsByUser） */
 export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user">; createdChats?: string }) {
@@ -69,8 +72,10 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
   // 書き直している文（undefined なら書き直していない）
   const [draft, setDraft] = useState<string>();
   // そのチャットの AI でできないこと（書き直しは分岐・巻き戻しを、ファイルを戻すは控えを使う。メモの仕様書「0021」の Q4）
-  const rewindBlock = useFeatureBlock("fork");
-  const filesBlock = useFeatureBlock("rewind_files");
+  // 作業場所を移した区切りより前の発言は、会話もファイルも巻き戻せない（メモの仕様書「0025」の Q3・H2）
+  const beforeMove = useBeforeWorkplaceMove(event.chat_id, event.id);
+  const rewindBlock = useFeatureBlock("fork") ?? (beforeMove ? WORKPLACE_REWIND_LOCKED : null);
+  const filesBlock = useFeatureBlock("rewind_files") ?? (beforeMove ? WORKPLACE_FILES_LOCKED : null);
   // 書き直しを始める（作業中かは操作の部品が見る）
   const onEdit = pane && !rewindBlock ? () => setDraft(text) : undefined;
   // ファイルだけを、この発言を送る前の状態に戻す（ファイルの記録を取り始めてからの発言だけ）
@@ -91,6 +96,12 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
     >
       <div className="bubble user" id={`ev-${event.id}`} onContextMenu={menu.open}>
         {compactKind && <CompactPromptMark kind={compactKind} className="message-kind-label" title={COMPACT_PROMPT_KINDS[compactKind].sentTitle} />}
+        {data.workplace_continuation && (
+          <div className="message-kind-label" title="AI が作業場所を移す予約に書いた続きの指示です。作業が終わったあと、Kickoff が作業場所を移してから送りました">
+            <GitBranch size={12} aria-hidden />
+            作業場所を移したあとの続き（AI の予約）
+          </div>
+        )}
         {subagentAsk && (
           <div className="message-kind-label" title="親のチャットのサブエージェントの会話の記録（添付）を読んでから答えるよう、AI に頼んで始めました">
             <MessageSquarePlus size={12} aria-hidden />

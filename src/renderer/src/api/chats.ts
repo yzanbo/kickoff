@@ -1,4 +1,4 @@
-import type { Chat, ChatDetachBody, ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatPatch, ChatTexts, ChatTranscript, FeedItem, NewChatBody, SearchHit, TrashedResult } from "@shared/types";
+import type { Chat, ChatDetachBody, ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatPatch, ChatTexts, ChatTranscript, FeedItem, NewChatBody, SearchHit, TrashedResult, WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/types";
 import { withUserView } from "@/lib/userViewSnapshot";
 import { request, withQuery } from "./http";
 
@@ -40,6 +40,10 @@ export const chatsApi = {
   /** 子チャットを親から外す（parent_chat_id: null = 親のないチャット（group_id のグループへ）/ 先祖の ID = その子に上げる） */
   detachChat: (chatId: number, body: ChatDetachBody) => request<Chat>("POST", `/api/chats/${chatId}/detach`, body),
   moveChat: (chatId: number, projectId: number) => request<Chat>("POST", `/api/chats/${chatId}/move`, { project_id: projectId }),
+  /** 作業場所を移す前の確かめの中身（元の場所に残る変更・動いているターミナル・移す先にできないワークツリー。メモの仕様書「0025」） */
+  workplaceCheck: (chatId: number) => request<WorkplaceMoveCheck>("GET", `/api/chats/${chatId}/workplace`),
+  /** チャットの作業場所を移す（本体・いまあるワークツリー・新しいワークツリー。子チャットは移さない） */
+  moveWorkplace: (chatId: number, body: WorkplaceMoveBody) => request<Chat>("POST", `/api/chats/${chatId}/workplace`, body),
   /** チャットを Kickoff のゴミ箱へ入れる（子チャットも。3 日は戻せる）。入れたゴミ箱の ID を返す */
   deleteChat: (chatId: number) => request<TrashedResult>("DELETE", `/api/chats/${chatId}`),
 };

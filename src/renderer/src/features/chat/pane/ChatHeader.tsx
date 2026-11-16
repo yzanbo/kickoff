@@ -4,7 +4,7 @@ import { GroupChip } from "@/features/group/GroupChip";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ProjectChip } from "@/features/project/ProjectChip";
-import { WorktreeChip } from "@/features/worktree/WorktreeChip";
+import { WorkplaceMoveChip } from "@/features/worktree/WorkplaceMoveChip";
 import { ProviderChip } from "@/features/chat/provider/ProviderChips";
 import { GitHubLinkChip } from "@/features/github/GitHubLinkChip";
 import { ChatFind } from "@/features/chat/find/ChatFind";
@@ -54,7 +54,7 @@ export function ChatHeader({
   const badges: Record<"project" | "group" | "worktree", ReactNode> = {
     project: project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />,
     group: shows("group") && <GroupChip chat={chat} />,
-    worktree: shows("worktree") && <WorktreeChip chat={chat} />,
+    worktree: shows("worktree") && <WorkplaceMoveChip chat={chat} />,
   };
   const meta: Record<"turns" | "cost", ReactNode> = {
     turns: turns && <span>{chat.num_turns} ターン</span>,
