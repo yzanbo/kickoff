@@ -10,9 +10,10 @@ import type { PanelKind } from "./state/panelKinds";
  * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く） /
  * memos = プロジェクトの「メモ」タブの右（開いたメモをタブで並べる。左の一覧から開く） /
  * files = プロジェクトの「ファイル」「検索」「変更」タブの右（開いたファイル・差分をタブで並べる。左の一覧から開く） /
- * window = ブラウザの別ウィンドウ（右サイドバーのタブをウィンドウの外へ出した先。Chrome のウィンドウと同じく、中でもタブを足せる。ウィンドウごとに 1 つ））
+ * window = ブラウザの別ウィンドウ（右サイドバーのタブをウィンドウの外へ出した先。Chrome のウィンドウと同じく、中でもタブを足せる。ウィンドウごとに 1 つ） /
+ * chatWindow = チャットの別ウィンドウ（チャットのパネルのチャットのタブを外へ出した先。ほかのチャットのタブもドラッグで足せる。ウィンドウごとに 1 つ））
  */
-export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos" | "files" | "window";
+export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos" | "files" | "window" | "chatWindow";
 
 /**
  * どの画面の欄か（プロジェクトの ID・全プロジェクトの画面 "all"。サブエージェントの欄はチャットの ID）。
@@ -78,6 +79,11 @@ export interface SurfaceRules {
   fixedKinds?: boolean;
   /** タブの列の新しいタブのボタンを出さない（中身は外から開くタブと、newChild の新しい子チャットだけの欄。サブエージェントの欄・メモとファイルのタブの右） */
   noTabAdds?: boolean;
+  /**
+   * サイドバーの一覧とチャットのタブをそろえない欄（チャットの別ウィンドウ。移したチャットだけを並べる。タブのチャットの状態のために、
+   * そのプロジェクトのチャットの一覧は読む）
+   */
+  unlinkedChats?: boolean;
   /** タブの列を隠せる欄か（チャットのパネル。設定の CHAT_TAB_ROW_HIDDEN で隠す。隠すとタブの列の道具も出ない） */
   hideableTabs?: boolean;
   /**
@@ -164,6 +170,19 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeWhenEmpty: false,
     openWhenEmpty: null,
     noSplitButtons: true,
+    className: "as-sidebar",
+  },
+  // チャットの別ウィンドウ: チャットだけ。サイドバーとそろえず、移した・ドラッグで足したチャットだけ。最後のタブがなくなればウィンドウごと閉じる（features/popout/tabWindow.ts）
+  chatWindow: {
+    memoryPrefix: "cwin",
+    defaultKinds: ["chat"],
+    fixedKinds: true,
+    closeOnEsc: false,
+    closeWhenEmpty: false,
+    openWhenEmpty: null,
+    noSplitButtons: true,
+    noTabAdds: true,
+    unlinkedChats: true,
     className: "as-sidebar",
   },
   memos: {

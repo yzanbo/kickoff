@@ -49,12 +49,24 @@ export function appWindows(): BrowserWindow[] {
   return [...(main ? [main] : []), ...popouts.values()].filter((w) => !w.isDestroyed());
 }
 
-/** 離した所（画面の座標）にウィンドウを置く位置（カーソルが上の帯の左寄りに来るように。その画面の作業領域の中に収める） */
-function placeAtDrop(drop: { x: number; y: number }, width: number, height: number): { x: number; y: number } {
-  const area = screen.getDisplayNearestPoint({ x: Math.round(drop.x), y: Math.round(drop.y) }).workArea;
+/**
+ * 別ウィンドウの中身の左上から見た、最初のタブの左上の位置（上の帯 .popout-bar の 36px ＋ タブの列の上の余白 6px。左はタブの列の余白 8px、
+ * チャットはその後ろに「表示」のボタンと「チャット」の札がある）。開発版で測った値で、画面（styles の .popout-bar・.panel-tabs）を変えたら直す
+ */
+const firstTabInContent = (route: string) => ({ x: route.startsWith("/popout/chats?") ? 106 : 8, y: 42 });
+
+/**
+ * 離した所にウィンドウを置く位置（tab = 最初のタブの左上を置く画面の位置。新しいウィンドウのタブが、離したときのタブとぴったり重なるように。
+ * 利用者の依頼。titleBar = ウィンドウの枠の上の帯の高さ。その画面の作業領域の中に収める）
+ */
+function placeAtDrop(route: string, tab: { x: number; y: number }, width: number, height: number, titleBar: number): { x: number; y: number } {
+  const first = firstTabInContent(route);
+  const x = tab.x - first.x;
+  const y = tab.y - first.y - titleBar;
+  const area = screen.getDisplayNearestPoint({ x: Math.round(tab.x), y: Math.round(tab.y) }).workArea;
   return {
-    x: Math.round(clampInto(drop.x - 80, area.x, area.x + area.width - width)),
-    y: Math.round(clampInto(drop.y - 16, area.y, area.y + area.height - height)),
+    x: Math.round(clampInto(x, area.x, area.x + area.width - width)),
+    y: Math.round(clampInto(y, area.y, area.y + area.height - height)),
   };
 }
 
@@ -94,7 +106,8 @@ function openPopout(appUrl: string, route: string, title: string, dropAt: { x: n
       ? { x: lastBounds.x + 24, y: lastBounds.y + 24, width: lastBounds.width, height: lastBounds.height }
       : { width: 920, height: 820 };
   // タブをウィンドウの外へドラッグして離したときは、離した所にウィンドウの上の端が来るように置く（Chrome のタブと同じ。大きさはいつもの大きさ）
-  const at = dropAt ? { ...usual, ...placeAtDrop(dropAt, usual.width, usual.height) } : usual;
+  // 枠の上の帯の高さは、作ってから中身の位置と比べて決める（作るときは帯の分をずらさずに置き、作ってから置き直す）
+  const at = dropAt ? { ...usual, ...placeAtDrop(route, dropAt, usual.width, usual.height, 0) } : usual;
   const win = new BrowserWindow({
     ...at,
     minWidth: pane?.minWidth ?? 420,
@@ -111,6 +124,11 @@ function openPopout(appUrl: string, route: string, title: string, dropAt: { x: n
       webviewTag: usesWebview(route),
     },
   });
+  if (dropAt) {
+    const titleBar = win.getContentBounds().y - win.getBounds().y;
+    const placed = placeAtDrop(route, dropAt, usual.width, usual.height, titleBar);
+    win.setPosition(placed.x, placed.y);
+  }
   followAppearance(win);
   // ウィンドウの名前は開いたときのもの（画面の <title> で書き換えない）
   win.on("page-title-updated", (e) => e.preventDefault());

@@ -8,7 +8,7 @@ import { shownActiveOf, usePanelKinds } from "@/features/panel/state/panelKinds"
 import { isLinkedTab } from "@/features/panel/state/panelState";
 import { useMountedPanel, usePanelState } from "@/features/panel/state/panelStore";
 import { useLinkedTabs } from "@/features/panel/state/useLinkedChats";
-import { panelKey, SURFACES, type PanelScope, type PanelSurface } from "@/features/panel/surfaces";
+import { panelKey, projectOfPanel, SURFACES, type PanelScope, type PanelSurface } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { chatKey, kindOfTab, tabChat } from "@/features/panel/tabs/tabKinds";
 import { openNoProjectsGuide } from "@/features/project/new/openNewProject";
@@ -67,8 +67,10 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
   useMountedPanel(key);
   // 欄で表示するタブの種類（隠した種類のタブは閉じずに残す。隠している種類のタブを自分で開いたら、その種類を出す）
   const kinds = usePanelKinds(surface, noChat);
-  // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える。チャットを隠している欄では読まず、タブもそろえない）
-  const chats = useLinkedTabs(key, scope, kinds.has("chat"));
+  // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える。チャットを隠している欄では読まず、タブもそろえない）。
+  // チャットの別ウィンドウは、そのプロジェクトのチャットを読むだけで、タブはそろえない（移したチャットだけを並べる）
+  const unlinked = SURFACES[surface].unlinkedChats === true;
+  const chats = useLinkedTabs(key, unlinked ? (projectOfPanel(key) ?? scope) : scope, kinds.has("chat"), !unlinked);
   const actions = useMemo(() => panelActions(key), [key]);
   // 新しいチャットができたときの知らせは、いま渡されているものを呼ぶ（タブの中身に渡す操作を作り直さないため）
   const created = useLatest(onCreated);

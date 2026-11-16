@@ -5,36 +5,41 @@ import { Panel } from "@/features/panel/Panel";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
 import { panelKey, windowScope } from "@/features/panel/surfaces";
 import { terminalTitle } from "@/features/panel/tabs/tabKinds";
-import { startBrowserWindow } from "./browserWindow";
+import { startTabWindow, type TabWindowRoute } from "./tabWindow";
 
 const TerminalPane = lazy(() => import("@/features/terminal/TerminalPane"));
 
-type BrowserRoute = Extract<PopoutRoute, { kind: "browser" }>;
 type TerminalRoute = Extract<PopoutRoute, { kind: "terminal" }>;
 
-/** ブラウザの別ウィンドウはブラウザだけなので、ターミナルを開く場所はない */
+/** タブの列のある別ウィンドウ（ブラウザ・チャット）はターミナルを開かない */
 const NO_TERMINALS: TerminalTarget[] = [];
 
 /**
- * ブラウザの別ウィンドウ（Chrome のウィンドウと同じく、タブの列を持ち、新しいタブを足せる。右サイドバーと同じ Panel。殻は browserWindow.ts）。
- * 移したタブはページを URL で開き直す（webview はウィンドウをまたげない）
+ * タブの列のある別ウィンドウ（ブラウザ・チャット。Chrome のウィンドウと同じく、タブの列を持ち、ほかのタブを足せる。右サイドバー・チャットのパネルと同じ Panel。
+ * 殻は tabWindow.ts）。移したブラウザのタブはページを URL で開き直す（webview はウィンドウをまたげない）
  */
-export function PopoutBrowser({ route }: { route: BrowserRoute }) {
+export function PopoutTabWindow({ route }: { route: TabWindowRoute }) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    startBrowserWindow(route);
+    startTabWindow(route);
     setReady(true);
   }, [route]);
   if (!ready) return <div className="popout-body page muted">読み込み中…</div>;
   return (
-    <div className="popout-body popout-browser-window">
-      <BrowserWindowPanel route={route} />
+    <div className="popout-body popout-tab-window">
+      <TabWindowPanel route={route} />
     </div>
   );
 }
 
-function BrowserWindowPanel({ route }: { route: BrowserRoute }) {
-  const panel = usePanel({ surface: "window", scope: windowScope(route.projectId, route.key), noChat: true, newChat: undefined, terminals: NO_TERMINALS });
+function TabWindowPanel({ route }: { route: TabWindowRoute }) {
+  const panel = usePanel({
+    surface: route.kind === "browser" ? "window" : "chatWindow",
+    scope: windowScope(route.projectId, route.key),
+    noChat: route.kind === "browser",
+    newChat: undefined,
+    terminals: NO_TERMINALS,
+  });
   return <Panel panel={panel} />;
 }
 
