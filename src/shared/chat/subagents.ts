@@ -74,7 +74,8 @@ export function isSubagentTool(name: string): boolean {
 
 /**
  * チャットのサブエージェントの一覧を組み立てる。保存されたイベント（Task / Agent の呼び出しと結果、開始・終了の通知）と、
- * 画面にだけ届く途中経過（progress: トークン数・直近のツール）を合わせる。busy でなければ、終わっていないものは中断とみなす
+ * 画面にだけ届く途中経過（progress: トークン数・直近のツール）を合わせる。作業の終わりの記録（result）の時点で動いていたものと、
+ * busy でないときの終わっていないものは、止まったとみなす（報告を渡していれば完了、なければ中断）
  */
 export function collectSubagents(events: ChatEvent[], progress: Record<string, SubagentInfo>, busy: boolean, live?: Set<string>): SubagentEntry[] {
   const map = new Map<string, SubagentEntry>();
@@ -240,17 +241,19 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
     } else if (e.type === "result") {
       // 報告を送ったのに、親が動かないまま作業が終わった: 報告は親に届いていない
       settleAwaiting("lost");
-      // 実行の終わり。通信の切断で失敗したら、そのとき動いていたものは通信で止まった。
-      // それ以外の終わり方（自分で止めた・最後まで終わった）なら、動いていたものの通信の印は外す
+      // 実行の終わり。Kickoff では作業の終わりで Claude Code のプロセスも終わるので、そのとき動いていたものはここで止まった
+      // （報告を渡していれば完了、なければ中断。次の作業中に、前の作業で止まったものを動いていると数えない）。
+      // 通信の切断で失敗したら、動いていたものは通信で止まった（止まった記録はこの終わり）。
+      // それ以外の終わり方（自分で止めた・最後まで終わった）なら、動いていたものの通信の印は外す。
+      // 止まった記録の ID（endEventId）は通信のときだけ付ける（終わりの知らせがないまま止まったものを unfinishedSubagents が見分けるため）
       const d = e.data;
       const byNetwork = d.status === "failed" && (d.network === true || isNetworkError(d.text));
       for (const entry of map.values()) {
         if (entry.status !== "running") continue;
         markNetwork(entry.key, byNetwork);
-        if (byNetwork) {
-          entry.endEventId = e.id;
-          entry.endedAt = e.created_at;
-        }
+        if (byNetwork) entry.endEventId = e.id;
+        entry.endedAt ??= e.created_at;
+        entry.status = handedBack.has(entry.key) ? "completed" : "stopped";
       }
     }
   }

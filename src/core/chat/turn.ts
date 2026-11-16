@@ -41,6 +41,7 @@ import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurn
 import { trashCommandEnv, type TrashCommand } from "../trash/command.js";
 import { bashSandboxFor, type BashSandbox, type BashSandboxDeps } from "./sandbox/bashSandbox.js";
 import { switchAfterCompact, type SessionTrash } from "./sessionSwitch.js";
+import { stoppedSubagentsNotice } from "./interruptedTurnEnd.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
 import { PROVIDER_AUTH_MODE_LABELS, type Project, type ProviderId, type Chat, type CompactTrigger, type Question } from "@shared/types";
@@ -464,13 +465,8 @@ function applyResult(store: Store, chatId: number, result: ProviderTurnResult, c
   // この実行で始めたサブエージェントが終わっていなければ、作業の終わりとともに止まったことを知らせる
   // （Claude Code のプロセスが終わるため。見た目は進んでいるようで、実は止まっているのを防ぐ）。
   // 通信の切断のときは、つながってから再開する段取り（reconnect）が知らせる
-  const stopped = compact || network ? [] : unfinishedSubagents(store.events.list(chatId), since).map((s) => s.description);
-  if (stopped.length > 0) {
-    store.events.add(chatId, {
-      type: "notice",
-      message: `サブエージェント ${stopped.length} 件（${stopped.join("、")}）は、作業の終わりとともに止まりました。続けるときは、サブエージェントの一覧の「再開」を押してください。`,
-    });
-  }
+  const notice = compact || network ? null : stoppedSubagentsNotice(unfinishedSubagents(store.events.list(chatId), since).map((s) => s.description));
+  if (notice) store.events.add(chatId, { type: "notice", message: notice });
   // 要約は compact イベントだけを残す（失敗したときは理由を残す）
   if (!compact || result.status !== "completed") {
     store.events.add(chatId, {
