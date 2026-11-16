@@ -487,3 +487,62 @@ test("起動したときの再開の確かめの API: 一覧と答え（チャ�
   const answered = await call("POST", "/api/restart-resumes", { decisions: [{ chat_id: 999, action: "send" }] });
   assert.deepEqual([answered.status, answered.body], [200, []]);
 });
+
+test("起動したときの再開の確かめの API: 途中で止まったチャットを送信待ちがなくても一覧に出し、送信待ちのないチャットへの「送る」は 400（どれも変えない）", async () => {
+  const ids: Record<string, number> = {};
+  const { call, store, runner, provider } = setup({
+    // 前回の起動: 作業中のまま落ちたチャットが 2 つと、自動で送るまま送信待ちが残ったチャット
+    beforeStart: (store, project) => {
+      const make = (title: string, status: "running" | "completed") => store.chats.create({ project_id: project.id, provider: "claude", title, status, model: null }).id;
+      ids.crashed = make("落ちた", "running");
+      ids.later = make("あとで", "running");
+      ids.queued = make("送信待ち", "completed");
+      store.events.add(ids.crashed, { type: "user", text: "調べて", message_uuid: randomUUID() });
+      store.queues.save({ chatId: ids.queued, messages: [{ id: "q1", text: "次", options: {}, attachments: [], created_at: "2026-11-16T00:00:00.000Z" }], paused: false, stops: [] });
+      return store.chats.recoverInterrupted("アプリの終了により中断しました");
+    },
+  });
+  type Listed = { chat_id: number; interrupted: boolean; queued: boolean; messages: unknown[]; last_prompt: { text: string } | null };
+  const listed = (await call("GET", "/api/restart-resumes")).body as Listed[];
+  assert.deepEqual(
+    listed.map((r) => [r.chat_id, r.interrupted, r.queued, r.messages.length]),
+    [
+      [ids.crashed, true, false, 0],
+      [ids.later, true, false, 0],
+      [ids.queued, false, true, 1],
+    ],
+  );
+  assert.equal(listed[0].last_prompt?.text, "調べて");
+  assert.deepEqual((await call("GET", `/api/chats/${ids.crashed}`)).body.live.restart_resume, { interrupted: true, queued: false });
+
+  // 送信待ちのないチャットに「送る」は 400。一緒に送ったほかの答えも変えない
+  const refused = await call("POST", "/api/restart-resumes", {
+    decisions: [
+      { chat_id: ids.queued, action: "pause" },
+      { chat_id: ids.crashed, action: "send" },
+    ],
+  });
+  assert.equal(refused.status, 400);
+  assert.match(refused.body.error, /送信待ちのないチャットには/);
+  assert.equal((await call("GET", "/api/restart-resumes")).body.length, 3);
+  assert.equal(runner.live(ids.queued).queue.paused, false);
+
+  // 続ける / 送る: 答えたチャットは外れ、答えなかった（あとで）チャットだけが残る
+  const answered = await call("POST", "/api/restart-resumes", {
+    decisions: [
+      { chat_id: ids.crashed, action: "continue" },
+      { chat_id: ids.queued, action: "send" },
+    ],
+  });
+  assert.equal(answered.status, 200);
+  assert.deepEqual(
+    (answered.body as Listed[]).map((r) => r.chat_id),
+    [ids.later],
+  );
+  await until(() => provider.prompts.length === 2);
+  assert.ok(provider.prompts.some((p) => /アプリの終了で止まったところから/.test(p)));
+  assert.ok(provider.prompts.includes("次"));
+  await until(() => !runner.isBusy(ids.crashed) && !runner.isBusy(ids.queued));
+  // 次に起動しても、答えなかったチャットだけを聞く
+  assert.deepEqual(store.chats.recoverInterrupted("アプリの終了により中断しました"), [ids.later]);
+});
