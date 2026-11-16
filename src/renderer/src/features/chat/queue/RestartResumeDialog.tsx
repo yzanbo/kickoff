@@ -9,7 +9,7 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { cx } from "@/lib/cx";
 import { formatMessageTime } from "@/lib/time";
 import { useProjects } from "@/stores/projects";
-import { restartResumesStore, useRestartResumes } from "@/stores/restartResumes";
+import { autoOpenRestartResumes, restartResumesStore, useRestartResumes } from "@/stores/restartResumes";
 import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
 import { Segmented } from "@/ui/Segmented";
@@ -32,19 +32,19 @@ const SUMMARY_LABELS: Record<RestartResumeChoice, string> = { send: "送る", co
 
 /**
  * 起動したときの再開の確かめ（App がメインウィンドウにだけ置く）。前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャットがあれば、
- * 開いたときに 1 回ダイアログを出す。閉じても決めていないものは残り（コアは続けず・送らない）、下の帯の「決めていない再開」から開き直せる
+ * ダイアログを出す（まだ見せていないチャットが届いたときだけ。コアのプロセスを作り直したあとに新しく止まったチャットでも開く）。
+ * 閉じても決めていないものは残り（コアは続けず・送らない）、下の帯の「決めていない再開」から開き直せる
  */
 export function RestartResumeHost() {
   const resumes = useRestartResumes();
   const [open, setOpen] = useState(false);
-  const shown = useRef(false);
+  // 前に見せた一覧のチャット（見せたものは、閉じたあとは下の帯から開き直す）
+  const shown = useRef<ReadonlySet<number>>(new Set());
   useEffect(() => {
-    // 届いたら 1 回だけ自動で開く（閉じたあとは、下の帯から開き直す）
-    if (resumes.length > 0 && !shown.current) {
-      shown.current = true;
-      setOpen(true);
-    }
-  }, [resumes.length]);
+    const next = autoOpenRestartResumes(shown.current, resumes);
+    shown.current = next.shown;
+    if (next.open) setOpen(true);
+  }, [resumes]);
   useWindowEvent(OPEN_RESTART_RESUMES_EVENT, () => setOpen(true));
   if (!open || resumes.length === 0) return null;
   return <RestartResumeDialog resumes={resumes} onClose={() => setOpen(false)} />;
@@ -75,7 +75,7 @@ function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; o
   };
 
   return (
-    <dialog ref={dialogRef} className="dialog app-dialog queue-resume-dialog" aria-label="前回の終了で止まったチャットがあります" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog restart-resume-dialog" aria-label="前回の終了で止まったチャットがあります" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {
@@ -83,13 +83,13 @@ function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; o
           void decide();
         }}
       >
-        <div className="queue-resume-intro">
+        <div className="restart-resume-intro">
           <h2 className="app-dialog-title">前回の終了で止まったチャットがあります</h2>
           <p className="app-dialog-message">
             前回アプリを終えたとき、作業の途中だった・自動で送る送信待ちが残っていたチャットです。決めるまでは続けず、送りません。中身を見て、チャットごとに選んでください。
           </p>
         </div>
-        <ul className="queue-resume-list">
+        <ul className="restart-resume-list">
           {resumes.map((r) => (
             <RestartResumeCard
               key={r.chat_id}
@@ -106,8 +106,8 @@ function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; o
           ))}
         </ul>
         <ErrorText message={action.error} />
-        <DialogActions className="app-dialog-actions queue-resume-actions">
-          <span className="queue-resume-summary muted small">{summaryOf(resumes.map(choiceOf))}</span>
+        <DialogActions className="app-dialog-actions restart-resume-actions">
+          <span className="restart-resume-summary muted small">{summaryOf(resumes.map(choiceOf))}</span>
           <button type="button" className="btn" disabled={action.busy !== null} onClick={() => dialog.close()} title="何も送らずに閉じます。下の帯の「決めていない再開」から、また開けます">
             あとで決める
           </button>
@@ -154,16 +154,16 @@ function RestartResumeCard({
   const title = chatTitle(r.title);
   const options: RestartResumeChoice[] = [...resumeActionsFor(r), "later"];
   return (
-    <li className={cx("queue-resume-row", choice === "later" && "later")}>
-      <div className="queue-resume-head">
+    <li className={cx("restart-resume-row", choice === "later" && "later")}>
+      <div className="restart-resume-head">
         {project && <ProjectMark project={project} />}
-        <span className="queue-resume-title" title={project ? `${project.name} / ${title}` : title}>
+        <span className="restart-resume-title" title={project ? `${project.name} / ${title}` : title}>
           {title}
         </span>
-        {r.stopped_at && <span className="queue-resume-time muted small">{formatMessageTime(r.stopped_at)} に停止</span>}
+        {r.stopped_at && <span className="restart-resume-time muted small">{formatMessageTime(r.stopped_at)} に停止</span>}
         <button
           type="button"
-          className="link-button small queue-resume-open"
+          className="link-button small restart-resume-open"
           onClick={onOpenChat}
           title="このチャットを開いて、会話を見ながら決めます（入力欄の上の帯で決められます）。ほかのチャットの選択は送らずに閉じます"
         >
@@ -171,21 +171,21 @@ function RestartResumeCard({
         </button>
       </div>
       {r.interrupted && (
-        <div className="queue-resume-note small">
+        <div className="restart-resume-note small">
           アプリの終了で、作業の途中で止まりました{r.subagents.length > 0 && `（サブエージェント ${r.subagents.length} 件も途中）`}
         </div>
       )}
-      <button type="button" className="queue-resume-toggle" aria-expanded={open} onClick={onToggle}>
-        <ChevronRight size={13} className="queue-resume-chevron" aria-hidden />
-        <span className="queue-resume-count">{r.queued ? `送信待ち ${r.messages.length} 件` : "止まったときの様子"}</span>
-        {!open && r.queued && <span className="queue-resume-next">次: {nextQueuedText(r.messages[0])}</span>}
-        {!open && !r.queued && r.last_prompt && <span className="queue-resume-next">指示: {r.last_prompt.text.split("\n")[0]}</span>}
-        <span className="queue-resume-toggle-label muted small">{open ? "閉じる" : "詳しく見る"}</span>
+      <button type="button" className="restart-resume-toggle" aria-expanded={open} onClick={onToggle}>
+        <ChevronRight size={13} className="restart-resume-chevron" aria-hidden />
+        <span className="restart-resume-count">{r.queued ? `送信待ち ${r.messages.length} 件` : "止まったときの様子"}</span>
+        {!open && r.queued && <span className="restart-resume-next">次: {nextQueuedText(r.messages[0])}</span>}
+        {!open && !r.queued && r.last_prompt && <span className="restart-resume-next">指示: {r.last_prompt.text.split("\n")[0]}</span>}
+        <span className="restart-resume-toggle-label muted small">{open ? "閉じる" : "詳しく見る"}</span>
       </button>
       {open && <RestartResumeDetails resume={r} />}
-      <div className="queue-resume-foot">
+      <div className="restart-resume-foot">
         <Segmented<RestartResumeChoice>
-          className="segmented queue-resume-choice"
+          className="segmented restart-resume-choice"
           label={`${title} をどうするか`}
           value={choice}
           options={options.map((c) => ({ value: c, label: resumeChoiceLabel(c, r.queued), tip: resumeChoiceTip(c, r.queued) }))}
@@ -204,34 +204,34 @@ function RestartResumeDetails({ resume: r }: { resume: RestartResume }) {
     { label: "最後のツール", moment: r.last_tool, className: "tool" },
   ].filter((m) => m.moment !== null);
   const stopLine = (key: string) => (
-    <li key={key} className="queue-resume-stop small">
+    <li key={key} className="restart-resume-stop small">
       <OctagonPause size={12} aria-hidden /> 一時停止
     </li>
   );
   return (
-    <div className="queue-resume-details">
+    <div className="restart-resume-details">
       {moments.length > 0 && (
-        <section className="queue-resume-section">
-          <h3 className="queue-resume-section-title">止まったところ</h3>
-          <dl className="queue-resume-moments">
+        <section className="restart-resume-section">
+          <h3 className="restart-resume-section-title">止まったところ</h3>
+          <dl className="restart-resume-moments">
             {moments.map(({ label, moment, className }) => (
               <Fragment key={label}>
                 <dt className="muted small">
                   {label}
-                  <span className="queue-resume-moment-time"> {formatMessageTime(moment!.at)}</span>
+                  <span className="restart-resume-moment-time"> {formatMessageTime(moment!.at)}</span>
                 </dt>
-                <dd className={cx("queue-resume-moment", className)}>{moment!.text}</dd>
+                <dd className={cx("restart-resume-moment", className)}>{moment!.text}</dd>
               </Fragment>
             ))}
           </dl>
         </section>
       )}
       {r.subagents.length > 0 && (
-        <section className="queue-resume-section">
-          <h3 className="queue-resume-section-title">途中で止まったサブエージェント {r.subagents.length} 件</h3>
-          <ul className="queue-resume-subagents">
+        <section className="restart-resume-section">
+          <h3 className="restart-resume-section-title">途中で止まったサブエージェント {r.subagents.length} 件</h3>
+          <ul className="restart-resume-subagents">
             {r.subagents.map((a, i) => (
-              <li key={a.agent_id ?? `i${i}`} className="queue-resume-subagent">
+              <li key={a.agent_id ?? `i${i}`} className="restart-resume-subagent">
                 {a.description || "（説明なし）"}
               </li>
             ))}
@@ -239,15 +239,15 @@ function RestartResumeDetails({ resume: r }: { resume: RestartResume }) {
         </section>
       )}
       {r.queued && (
-        <section className="queue-resume-section">
-          <h3 className="queue-resume-section-title">送信待ち {r.messages.length} 件</h3>
-          <ol className="queue-resume-queue">
+        <section className="restart-resume-section">
+          <h3 className="restart-resume-section-title">送信待ち {r.messages.length} 件</h3>
+          <ol className="restart-resume-queue">
             {r.messages.map((m, i) => (
               <Fragment key={m.id}>
                 {r.stops.filter((k) => k === i).map((_, n) => stopLine(`stop-${i}-${n}`))}
-                <li className="queue-resume-item">
-                  <span className="queue-resume-index muted small">{i + 1}</span>
-                  <span className={cx("queue-resume-item-text", queueActionOf(m) && "action")}>{queueActionOf(m) ? nextQueuedText(m) : m.text.trim() || nextQueuedText(m)}</span>
+                <li className="restart-resume-item">
+                  <span className="restart-resume-index muted small">{i + 1}</span>
+                  <span className={cx("restart-resume-item-text", queueActionOf(m) && "action")}>{queueActionOf(m) ? nextQueuedText(m) : m.text.trim() || nextQueuedText(m)}</span>
                   {m.attachments.length > 0 && <span className="muted small">添付 {m.attachments.length}</span>}
                 </li>
               </Fragment>
@@ -267,7 +267,7 @@ export function RestartResumeFooterButton() {
   return (
     <button
       type="button"
-      className="footer-button queue-resume-footer"
+      className="footer-button restart-resume-footer"
       title="前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャットです。決めるまで続けず、送りません。押すと、中身を見て決めるダイアログを開きます"
       onClick={openRestartResumes}
     >
