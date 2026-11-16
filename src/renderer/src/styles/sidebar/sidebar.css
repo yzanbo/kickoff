@@ -21,6 +21,30 @@
   left: auto;
 }
 
+/* 「別ウィンドウで開く」は開閉ボタンのすぐ左 */
+.sidebar-header .titlebar-toggle.sidebar-popout-button {
+  right: calc(var(--gutter) + 26px);
+}
+
+/*
+ * サイドバーの別ウィンドウ（PopoutSidebar）: ウィンドウいっぱいに出す。信号機ボタンはウィンドウの枠の行にあるので、その行は置かない。
+ * 中身の幅はメインのウィンドウの幅（--sidebar-w）に縛らず、ウィンドウの幅に合わせる
+ */
+.sidebar.sidebar-window {
+  /* 細いウィンドウでも、スマホの縦 1 列の規則（base/mobile.css の max-height・下の線）は効かせない */
+  max-height: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.sidebar.sidebar-window > * {
+  min-width: 0;
+}
+
+.sidebar.sidebar-window .nav-rows {
+  padding-top: 8px;
+}
+
 .sidebar-section {
   display: flex;
   flex: 1;

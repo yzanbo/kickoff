@@ -150,7 +150,7 @@ export function ChatMenuItems({
           onCreate={(name) => {
             onClose();
             // 作ったら、そのプロジェクトへこのチャットを移す（確かめてから）
-            openNewProject({ name, onCreated: (project) => void confirmMoveChatToProject(chat, project).catch((e: unknown) => onError(errorMessage(e))) });
+            openNewProject({ name, after: { kind: "moveChat", chatId: chat.id } });
           }}
           onBack={moving.back}
         />

@@ -1,4 +1,4 @@
-// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアントを、メインのウィンドウの外に出して見る）の行き先
+// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアントと左のサイドバーを、メインのウィンドウの外に出して見る）の行き先
 import { postWindowMessage } from "./windowBus";
 
 /** 別ウィンドウで開くもの（メモのほかは、開いたチャットに結びつく。chatId はメインのウィンドウのそのチャットへ知らせるのに使う） */
@@ -17,12 +17,15 @@ export type PopoutRoute =
    */
   | { kind: "memo"; projectId: number; path: string; chatId?: number }
   /** DB クライアント（右の欄の DB のタブ。worktree は SQLite のファイルを開く作業場所） */
-  | { kind: "database"; chatId: number; projectId: number; worktree?: string };
+  | { kind: "database"; chatId: number; projectId: number; worktree?: string }
+  /** 左のサイドバー（アプリに 1 つ。行を押すと、メインのウィンドウで開く） */
+  | { kind: "sidebar" };
 
 const PREFIX = "/popout/";
 
 /** 別ウィンドウの URL のハッシュ（"/popout/<種類>?…"。同じものは同じ文字になり、メインプロセスが同じウィンドウを前に出す） */
 export function popoutPath(route: PopoutRoute): string {
+  if (route.kind === "sidebar") return `${PREFIX}sidebar`;
   const params = new URLSearchParams();
   if (route.kind === "memo") {
     params.set("project", String(route.projectId));
@@ -56,6 +59,7 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
   if (!path.startsWith(PREFIX)) return undefined;
   const [kind, query = ""] = path.slice(PREFIX.length).split("?");
   const params = new URLSearchParams(query);
+  if (kind === "sidebar") return { kind };
   if (kind === "memo") {
     const projectId = positive(params.get("project"));
     const memoPath = params.get("path");
@@ -88,6 +92,9 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
 
 /** 別ウィンドウを開けるか（Mac のアプリのときだけ） */
 export const canPopout = (): boolean => Boolean(globalThis.window?.kickoff?.windows);
+
+/** サイドバーの別ウィンドウの中か（下書き・パネルの状態はメインのウィンドウのものを写して読み、変えるのはメインに頼む） */
+export const isSidebarWindow = (): boolean => globalThis.location !== undefined && parsePopout(location.hash)?.kind === "sidebar";
 
 /** 同じ別ウィンドウかの見分け（変更の移るファイルを除いた URL のハッシュ） */
 export const popoutKey = (route: PopoutRoute): string => popoutPath(route.kind === "changes" ? { ...route, focus: undefined } : route);

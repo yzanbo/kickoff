@@ -23,6 +23,7 @@ import { setProjectHues } from "@/features/project/projectColor";
 import { PopoutFiles } from "@/features/popout/PopoutFiles";
 import { PopoutSubagent } from "@/features/popout/PopoutSubagent";
 import { PopoutChildChat } from "@/features/popout/PopoutChildChat";
+import { PopoutSidebar } from "@/features/popout/PopoutSidebar";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { LazyDatabaseClient } from "@/features/database/LazyDatabaseClient";
 import { SideScope } from "@/features/popout/SideScope";
@@ -30,12 +31,13 @@ import { PopoutDockButton } from "@/features/popout/PopoutDockButton";
 import { GitHubDialogHost } from "@/features/github/GitHubDialogHost";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 import { popoutPath, type PopoutRoute } from "./popout";
+import { usePopoutForwarding } from "./popoutNavigation";
 
 /** 上の帯の、何のウィンドウかの札 */
-const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ", database: "DB" };
+const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ", database: "DB", sidebar: "サイドバー" };
 
 /**
- * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアント）の画面。メインのウィンドウの App は使わない
+ * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアントと左のサイドバー）の画面。メインのウィンドウの App は使わない
  * （サイドバー・通知・ショートカット・下の帯などを 2 つ動かさないため）。サーバーとのつながり・回答待ち・プロジェクトの色・会話の文字の大きさだけを持つ。
  * 表示の設定は localStorage をメインのウィンドウと共有し、書き換えは storage の知らせでそろう（lib/storage）。
  * ⌘F は、ウィンドウの中を探す（ファイル・メモはエディタの検索、ほかは右上の検索の欄。子チャットはチャットの中の検索が先に受け取る）
@@ -49,6 +51,8 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   const approvals = useApprovals();
   const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
   useApplyChatFontSize();
+  // 中で画面を移る操作（リンク・サイドバーの行）と、設定・⌘⇧A などのダイアログは、メインのウィンドウで開く
+  usePopoutForwarding(route);
   // 利用者が見ているもの（このウィンドウの中身。AI の get_user_view が読む）
   useUserViewReport(() => collectPopoutView(route), (view) => popoutChatIds(view, route), [route]);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -82,6 +86,10 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
           {route.kind === "chat" ? (
             // 子チャットは、いちばん上の親を「メインのチャット」にする（自分で SideScope を置く）
             <PopoutChildChat chatId={route.chatId} />
+          ) : route.kind === "sidebar" ? (
+            <div className="popout-body">
+              <PopoutSidebar />
+            </div>
           ) : (
             // 右の欄と同じく、開いたチャットを「メインのチャット」に（右クリックの組・選んだときの「チャットに追加」）
             <SideScope mainChatId={route.chatId ?? null}>

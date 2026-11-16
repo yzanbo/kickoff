@@ -104,7 +104,7 @@ export function DraftMenuItems({
           anchor={moving.anchor}
           current={draft.projectId}
           onPick={(project) => close(() => moveDraftToProject(draft, project.id))}
-          onCreate={(name) => close(() => openNewProject({ name, onCreated: (project) => moveDraftToProject(draft, project.id) }))}
+          onCreate={(name) => close(() => openNewProject({ name, after: { kind: "moveDraft", draft: { panel: draft.panel, key: draft.key } } }))}
           onBack={moving.back}
         />
       )}

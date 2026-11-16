@@ -7,6 +7,7 @@ import { homePane, isTabVisible, paneOfTab, type SplitDir } from "@/features/pan
 import { panelKey, panelScreen } from "@/features/panel/surfaces";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { panelActions } from "./panelActions";
+import { forwardPanelOp } from "./panelMirror";
 import { allPanels, dispatchPanel, isPanelMounted, panelStateOf, panelsVersion, subscribePanels } from "./panelStore";
 
 /**
@@ -33,6 +34,9 @@ export const draftTitleOf = (draft: Pick<PanelDraft, "title">) => draft.title ??
 
 /** 下書きを指す値（ドラッグで渡す。どの欄のパネルの、どのタブか） */
 export type DraftRef = Pick<PanelDraft, "panel" | "key">;
+
+/** 下書きを指す値だけを取り出す（サイドバーの別ウィンドウからメインのウィンドウに頼むとき） */
+const refOf = (draft: DraftRef): DraftRef => ({ panel: draft.panel, key: draft.key });
 
 const NO_DRAFTS: PanelDraft[] = [];
 let snapshot: { version: number; list: PanelDraft[] } | undefined;
@@ -111,6 +115,7 @@ export function draftTabSpot(draft: DraftRef): DraftTabSpot | null {
 
 /** 下書きを開く。その欄が画面になければ、その画面（ボード・チャット欄ならそのプロジェクト）へ移ってから開く */
 export function openDraft(draft: DraftRef) {
+  if (forwardPanelOp({ op: "openDraft", draft: refOf(draft) }, { focusMain: true })) return;
   const screen = isPanelMounted(draft.panel) ? undefined : panelScreen(draft.panel);
   if (screen) navigate(screen);
   panelActions(draft.panel).showTab(draft.key);
@@ -121,6 +126,7 @@ export function openDraft(draft: DraftRef) {
  * タブの右クリックは、そのタブのペインを分ける）
  */
 export function openDraftSplit(draft: DraftRef, dir: SplitDir) {
+  if (forwardPanelOp({ op: "openDraftSplit", draft: refOf(draft), dir }, { focusMain: true })) return;
   openDraft(draft);
   const pane = paneOfTab(panelStateOf(draft.panel).layout, draft.key);
   if (pane) panelActions(draft.panel).splitPane(pane.id, dir, "after", draft.key);
@@ -128,6 +134,7 @@ export function openDraftSplit(draft: DraftRef, dir: SplitDir) {
 
 /** 下書きに名前を付ける（空なら外して「New Chat」に戻す） */
 export function setDraftTitle(draft: DraftRef, title: string) {
+  if (forwardPanelOp({ op: "setDraftTitle", draft: refOf(draft), title })) return;
   dispatchPanel(draft.panel, { type: "patch", key: draft.key, kind: "new", fields: { title: title.trim() || undefined } });
 }
 
@@ -136,6 +143,7 @@ export function setDraftTitle(draft: DraftRef, title: string) {
  * 移す先のプロジェクトのチャットのパネルで新しいチャットとして開き直し、元の下書きは消す（グループ・作業場所はプロジェクトごとなので、移す先の本体・グループなしから）
  */
 export function moveDraftToProject(draft: DraftRef, projectId: number) {
+  if (forwardPanelOp({ op: "moveDraftToProject", draft: refOf(draft), projectId }, { focusMain: true })) return;
   const tab = allPanels().get(draft.panel)?.tabs.find((t) => t.key === draft.key);
   if (tab?.kind !== "new" || tab.projectId === projectId) return;
   const panel = panelKey("board", projectId);
@@ -149,16 +157,19 @@ export function moveDraftToProject(draft: DraftRef, projectId: number) {
 
 /** 下書きの作成先のグループを変える（サイドバーでグループへドラッグしたとき。undefined ならグループなし） */
 export function setDraftGroup(draft: DraftRef, group: number | undefined, groupName: string | undefined) {
+  if (forwardPanelOp({ op: "setDraftGroup", draft: refOf(draft), group, groupName })) return;
   dispatchPanel(draft.panel, { type: "patch", key: draft.key, kind: "new", fields: { group, groupName } });
 }
 
 /** 下書きの固定を付け外しする（サイドバーの「固定」に出す。外したら pinned を残さない） */
 export function togglePinDraft(draft: DraftRef & Pick<PanelDraft, "pinned">) {
+  if (forwardPanelOp({ op: "togglePinDraft", draft: refOf(draft), pinned: draft.pinned })) return;
   dispatchPanel(draft.panel, { type: "patch", key: draft.key, kind: "new", fields: { pinned: draft.pinned ? undefined : true } });
 }
 
 /** 下書きを消す */
 export function discardDraft(draft: DraftRef) {
+  if (forwardPanelOp({ op: "discardDraft", draft: refOf(draft) })) return;
   dispatchPanel(draft.panel, { type: "close", keys: [draft.key], dismiss: false });
 }
 

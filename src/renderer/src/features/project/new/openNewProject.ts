@@ -1,4 +1,4 @@
-import type { Project } from "@shared/types";
+import type { DraftRef } from "@/features/panel/state/panelDrafts";
 
 /** 新しいプロジェクトのダイアログを開く（App が受け取る。チャットのメニューの「プロジェクトを変更」→「新規プロジェクト」など） */
 export const OPEN_NEW_PROJECT_EVENT = "kickoff:open-new-project";
@@ -6,11 +6,21 @@ export const OPEN_NEW_PROJECT_EVENT = "kickoff:open-new-project";
 export interface NewProjectRequest {
   /** 名前の欄に初めから入れておく（検索欄に書いた名前） */
   name?: string;
-  /** 作ったあとの処理（省けば、そのプロジェクトで新しいチャットを開く） */
-  onCreated?: (project: Project) => void;
+  /** 作ったあとの処理（省けば、そのプロジェクトで新しいチャットを開く。afterNewProject.ts） */
+  after?: NewProjectAfter;
   /** 初めに開く作り方（新しく作る / 既存のフォルダを取り込む。省けば新しく作る） */
   mode?: NewProjectMode;
 }
+
+/**
+ * 新しいプロジェクトを作ったあとの処理。関数ではなく値で持つ（別ウィンドウ（サイドバーなど）の中から頼んだときも、
+ * メインのウィンドウの App に知らせとして渡せるように。関数は渡せない）
+ */
+export type NewProjectAfter =
+  /** そのチャットを作ったプロジェクトへ移す（確かめてから。チャットのメニューの「プロジェクトを変更」→「新規プロジェクト」） */
+  | { kind: "moveChat"; chatId: number }
+  /** その下書きを作ったプロジェクトへ移す（下書きのメニューの「プロジェクトを変更」→「新規プロジェクト」） */
+  | { kind: "moveDraft"; draft: DraftRef };
 
 /** 新しいプロジェクトの作り方 */
 export type NewProjectMode = "create" | "import";
