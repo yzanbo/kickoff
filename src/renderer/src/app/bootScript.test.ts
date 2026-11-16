@@ -90,6 +90,13 @@ test("窓の地の色（THEME_BACKGROUNDS）は tokens.css の --bg と同じ", 
   assert.equal(THEME_BACKGROUNDS.light, cssVar(tokensCss, ':root[data-theme="light"]', "--bg"));
 });
 
+test("上の帯（信号機ボタンの行）は描かない: 本物の画面ではどの画面でもその場所は地と同じ色で、区切りの線もない", () => {
+  // 前は地と少し違う色の面で描き、React が描いた瞬間に帯の色だけが消えてちらついた（メモの仕様書「0023_表示を軽くする」の 7 章）
+  assert.ok(!indexHtml.includes("boot-band"));
+  const shell = indexHtml.match(/<div class="boot-shell"[^>]*>(.*?)<\/div><\/div>/)?.[1];
+  assert.equal(shell, '<div class="boot-sidebar">');
+});
+
 test("骨組みの縦 1 列の境目は mobile.css と同じ 720px", () => {
   const width = (css: string) => css.match(/@media \(max-width: (\d+)px\)/)?.[1];
   assert.equal(width(indexHtml), "720");

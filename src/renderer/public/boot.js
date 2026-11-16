@@ -8,7 +8,7 @@
     var theme = localStorage.getItem("kickoff:theme");
     var dark = theme === "light" ? false : theme === "system" ? matchMedia("(prefers-color-scheme: dark)").matches : true;
     root.setAttribute("data-theme", dark ? "dark" : "light");
-    // 別ウィンドウは地の色だけ（中身の形が種類ごとに違う）。サイドバーを閉じていれば上の帯だけ
+    // 別ウィンドウは地の色だけ（中身の形が種類ごとに違う）。サイドバーを閉じていても地の色だけ（上の帯は本物でも地と同じ色なので描かない）
     var popout = location.hash.indexOf("#/popout/") === 0;
     var sidebarOpen = localStorage.getItem("kickoff:sidebar") !== "closed";
     root.setAttribute("data-boot-shell", popout ? "plain" : sidebarOpen ? "sidebar" : "main");
