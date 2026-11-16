@@ -114,14 +114,15 @@
 
 ## 作業場所を移す（workplaceMove.ts）
 
-メモの仕様書「0025_チャットの作業場所を変える」。チャットの作業場所（本体 / ワークツリー・プロジェクト・作業フォルダ）が変わるときは、どの道でも `Runner.moveWorkplace` → `moveChatWorkplace` を通す（いまの道: ワークツリーを片付けた `worktree_finished`・別のプロジェクトへ移した `project_moved`・プロジェクトのフォルダを変えた `folder_moved`。利用者・AI が移す `user` / `ai` は段階 ②・③ で足す）。
+メモの仕様書「0025_チャットの作業場所を変える」。チャットの作業場所（本体 / ワークツリー・プロジェクト・作業フォルダ）が変わるときは、どの道でも `Runner.moveWorkplace` → `moveChatWorkplace` を通す（いまの道: ワークツリーを片付けた `worktree_finished`・別のプロジェクトへ移した `project_moved`・プロジェクトのフォルダを変えた `folder_moved`・利用者が画面から移した `user`。AI が移す `ai` は段階 ③ で足す）。
 
 - 手順: 移す先がいまと同じなら何もしない → 利用者・AI が移すときだけ `requireIdle`（自動の道は呼ぶ側が作業中を断っている）→ 送る準備中として数え、止まったあとの再開の段取りをやめる（`forgetRecovery`。G3）→ 移す前・後の作業場所（`WorkplaceRef`。ブランチは `currentBranch` で読む）→ 会話を新しいセッションに写す（プロバイダーの `copySessionForMove`。直近 3 区切り（少なければ丸ごと）・発言の ID はそのまま・ファイルの控えの行は落とす = 移したあとの発言のファイルの控えが新しいセッションで始まり、移す前の作業場所のファイルを指す控えを持ち込まない。H1・J1）→ 記録のセッションを付け替え（`store.events.remapSession`）、ほかのチャットが使っていなければ古い会話記録をゴミ箱へ（J2）→ 作業場所とブランチを書く（`store.chats.setWorkplace`。利用者・AI が移したら移した先のブランチ、自動の道は最後に作業したブランチを残す。別のプロジェクトへは `store.chats.move`。H3）→ 区切りの記録 `workplace_moved`（移したあとの起点 = 区切りの直前の最後まで終わった作業の発言 ID と新しいセッション）。
 - 写せないとき: 利用者・AI が移すなら移さずに 400（G6）。自動の道は元の作業場所がもうないので、写さずに移す。写す口のないプロバイダー・まだ会話のないチャットは写さずに移す（G7）。
 - 区切りより前: 巻き戻し・分岐・ファイルを戻すは断り（`fork.ts`・`rewind.ts`）、起点（`resumePointBefore`）は区切りで止まって区切りが持つ起点を使う（子チャットの引き継ぎも同じ。H2）。
 - AI への知らせ（Q7）: 区切りのあと最初の実行の指示に添える文脈に `workplaceMoveContext`（`@shared/chat/workplaceMoves` の `workplaceMoveNote`: どこからどこへ・理由・コミットしていない変更がどうなったか）を足す。知らせたかは保存せず、いちばん新しい区切りのあとに作業の終わり `result` がないかで決める（`store.events.pendingWorkplaceMove`）。システムプロンプトには、作業フォルダが途中で変わることがあるので書いた場所を使うよう書く（`policy.ts`）。
 - 画像: ツールの結果の画像の口（`GET /api/chats/:id/tool-image`）は、`at`（記録の ID）が区切りより前ならそのときの作業場所から相対パスを解き、移す前の作業場所（`store.events.workplaceMoves`）も読める場所に入れる（H5）。
-- テストは `http/server.chats.test.ts`（別のプロジェクトへ移す）・`server.projects.test.ts`（フォルダを変える）・`server.worktreeFinish.test.ts`（片付け）・`server.chatImages.test.ts`（画像）・`sessionPoints.test.ts`・`providers/claude/sessionFiles.test.ts`・`@shared/chat/workplaceMoves.test.ts`。
+- 利用者が画面から移す（`workplaceUserMove.ts`。`GET|POST /api/chats/:id/workplace`。本文 `WorkplaceMoveBody`。子チャットは移さない = Q6）: 移す前の確かめの中身 `workplaceMoveCheck`（元の作業場所のコミットしていない変更 = プロジェクトのフォルダの中だけ（I3）・そこで動いている内蔵ターミナル（Q5。止めずに残す）・片付けを予約したワークツリー（`WorktreeFinisher.reservedFolders`。H7）・移せない理由 = 実行環境を整えるチャット（G2）・Git でないプロジェクト（I4）・元のフォルダがないか）。移す先と前後の段は `planUserWorkplaceMove`: いまある作業場所（本体は `worktree_path: null`）か、新しいワークツリー（`new_worktree_branch`。いまの作業場所のいまのコミットから `addWorktree` の `base` で作る。Q1。ポートの帯なども `worktreeEnvs.prepare`）。同じ場所・予約したワークツリー・名前の使えない新しいブランチは 400。コミットしていない変更を持っていく（`carry`。新しいワークツリーのときだけ。Q2）のは `git/carry.ts`（`git stash push --include-untracked -- .` に印のメッセージを付けて入れ、新しいワークツリーで `stash apply --index`（ステージしたかも保つ）、移せたら印で探し直して自分の項目だけ消す。stash の一覧は作業場所の間で共有なので位置を決め打ちしない）。`Runner.moveWorkplace` の `steps`（`WorkplaceMoveSteps`: `before` = ワークツリーを作る・持っていく、`after` = stash を消す、`undo` = 移せなかったら変更を元の場所に戻してワークツリーとブランチを消す = G6）を、作業中として数える間に流す。
+- テストは `http/server.workplace.test.ts`（画面から移す）・`http/server.chats.test.ts`（別のプロジェクトへ移す）・`server.projects.test.ts`（フォルダを変える）・`server.worktreeFinish.test.ts`（片付け）・`server.chatImages.test.ts`（画像）・`sessionPoints.test.ts`・`providers/claude/sessionFiles.test.ts`・`@shared/chat/workplaceMoves.test.ts`。
 
 ## サブエージェントの報告の受け渡し
 

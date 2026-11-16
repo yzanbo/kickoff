@@ -5,7 +5,7 @@ import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input.js";
 import { startChildChat } from "./children.js";
-import { moveChatWorkplace, type WorkplaceMoveInput } from "./workplaceMove.js";
+import { moveChatWorkplace, type WorkplaceMoveSteps, type WorkplaceMoveInput } from "./workplaceMove.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
 import type { ChatRemover } from "./aiChatRemove.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type RestartResume, type RestartResumeAction, type TellResult, type MessageMarks } from "@shared/types";
@@ -595,13 +595,22 @@ export class Runner extends RunnerQueue {
    * 利用者・AI が移すときは作業中なら 409。移している間（会話を写す間）も作業中として数え（preparing）、その間に送られないようにする。
    * 止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま。G3）
    */
-  async moveWorkplace(chatId: number, input: WorkplaceMoveInput): Promise<Chat> {
+  async moveWorkplace(chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat> {
     if (input.reason === "user" || input.reason === "ai") this.requireIdle(chatId, "作業場所の変更");
     const runtime = this.runtimes.get(chatId);
     runtime.preparing = true;
     try {
       this.forgetRecovery(chatId);
-      return await moveChatWorkplace({ store: this.deps.store, providers: this.deps.providers, sessionTrash: this.deps.sessionTrash }, chatId, input);
+      // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す（G6）
+      const prepared = { ...input, ...(await steps?.before?.()) };
+      try {
+        const chat = await moveChatWorkplace({ store: this.deps.store, providers: this.deps.providers, sessionTrash: this.deps.sessionTrash }, chatId, prepared);
+        await steps?.after?.();
+        return chat;
+      } catch (e) {
+        await steps?.undo?.().catch(() => {});
+        throw e;
+      }
     } finally {
       runtime.preparing = false;
     }

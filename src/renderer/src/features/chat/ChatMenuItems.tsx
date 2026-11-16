@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ChevronRight, Copy, Folder, FolderInput, Image as ImageIcon, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronRight, Copy, Folder, FolderInput, GitBranch, Image as ImageIcon, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
@@ -8,6 +8,9 @@ import { openNewProject } from "@/features/project/new/openNewProject";
 import { MenuItem } from "@/ui/PopupMenu";
 import { useSubmenu } from "@/ui/MenuFlyout";
 import { ProjectPickFlyout } from "@/features/project/ProjectPickFlyout";
+import { WorkplacePickFlyout } from "@/features/worktree/WorkplacePickFlyout";
+import { workplaceMoveBlock } from "@/features/worktree/moveWorkplace";
+import { useWorktrees } from "@/stores/worktrees";
 import { GroupPickFlyout } from "@/features/group/GroupPickFlyout";
 import { askNewGroupName } from "@/features/group/groups";
 import { openAskChild } from "./children/openChild";
@@ -50,6 +53,10 @@ export function ChatMenuItems({
   // 「グループを変更」「プロジェクトを変更」の横に開く一覧
   const grouping = useSubmenu();
   const moving = useSubmenu();
+  const relocating = useSubmenu();
+  // 作業場所を変更（メモの仕様書「0025」の Q8。ワークツリーの一覧がある = Git のプロジェクトだけ。作業中・実行環境を整えるチャットは押せない）
+  const canRelocate = (useWorktrees(chat.project_id)?.length ?? 0) > 0;
+  const relocateBlock = workplaceMoveBlock(chat);
   // 新しいグループの名前を聞いて作り、このチャットをそこへ移す
   const createGroupAndMove = async () => {
     const name = await askNewGroupName("作成して移す");
@@ -142,6 +149,14 @@ export function ChatMenuItems({
           onBack={grouping.back}
         />
       )}
+      {/* 乗せる・押す・→ で横に移す先の作業場所の一覧を開く（「プロジェクトを変更」の隣。子チャットは移らない） */}
+      {canRelocate && (
+        <button {...relocating.trigger} disabled={relocateBlock !== null} data-tip={relocateBlock ?? undefined}>
+          <GitBranch size={14} /> 作業場所を変更
+          <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
+        </button>
+      )}
+      {relocating.anchor && <WorkplacePickFlyout anchor={relocating.anchor} chat={chat} onDone={onClose} onBack={relocating.back} />}
       {/* 乗せる・押す・→ で横にプロジェクトの一覧を開く（メニューは閉じない） */}
       <button {...moving.trigger}>
         <FolderInput size={14} /> プロジェクトを変更

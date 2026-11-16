@@ -47,6 +47,7 @@ import { chatIdsOf, collectUserView } from "./userViewCollect";
 import { useDockBadge } from "./dockBadge";
 import { useAgentBrowserBridge } from "./agentBrowser";
 import { useAiOpenRequests } from "./aiOpenRequests";
+import { useWorkplaceMoveTabs } from "@/features/worktree/repointTabs";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
 import { boardTabOf, openNewChat, openProjectSearch, RouteContext, routeProjectId, useHashRoute } from "./router";
@@ -96,6 +97,8 @@ export function App() {
   useAgentBrowserBridge();
   // チャットの AI が頼んだメモ・家系のチャットを開く（kickoff_chat の open_memo・open_chat）
   useAiOpenRequests();
+  // 作業場所を移したチャットの右の欄のタブを、新しい作業場所に付け替える（メモの仕様書「0025」の H4）
+  useWorkplaceMoveTabs();
   const sidebar = useSidebar();
   // 新しいプロジェクトのダイアログ（null = 閉じている。名前の初めの値・作ったあとの処理を持てる）
   const [creating, setCreating] = useState<NewProjectRequest | null>(null);
