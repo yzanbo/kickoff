@@ -52,7 +52,7 @@ export function timelineOf(events: readonly ChatEvent[]): TimelineItem[] {
     switch (e.type) {
       case "user": {
         const d = e.data;
-        const note = d.pre_compact ? "圧縮前指示" : d.post_compact ? "圧縮後指示" : d.handoff_from ? `「${d.handoff_from.title}」から` : null;
+        const note = d.pre_compact ? "圧縮前指示" : d.post_compact ? "圧縮後指示" : d.handoff_from ? `「${d.handoff_from.title}」から` : d.workplace_continuation ? "作業場所を移したあとの続き（AI の予約）" : null;
         items.push({ kind: "user", id: e.id, text: d.text, note });
         break;
       }

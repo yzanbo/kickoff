@@ -8,6 +8,7 @@ import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/chat/aiTerminal";
 import { AI_FINISH_WORKTREE_TOOL } from "@shared/chat/aiWorktree";
+import { AI_CANCEL_WORKPLACE_MOVE_TOOL, AI_MOVE_WORKPLACE_TOOL } from "@shared/chat/aiWorkplace";
 import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL } from "@shared/chat/aiChatRemove";
 import { AI_NOTIFY_USER_TOOL } from "@shared/chat/aiNotify";
 
@@ -135,6 +136,8 @@ test("AI がターミナルを読むツール: 一覧は名前だけ、出力は
 test("AI がワークツリーを片付けるツール: 行はどのワークツリーか（省いたらこのチャットのワークツリー）", () => {
   assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, { worktree: "feat/a" }), "ワークツリーを片付ける: feat/a");
   assert.equal(describeTool(AI_FINISH_WORKTREE_TOOL, {}), "ワークツリーを片付ける: このチャットのワークツリー");
+  assert.equal(describeTool(AI_MOVE_WORKPLACE_TOOL, { to: "new_worktree", branch: "feat/a", carry: true }), "作業場所を移す予約: 新しいワークツリー（feat/a）（変更を持っていく）");
+  assert.equal(describeTool(AI_CANCEL_WORKPLACE_MOVE_TOOL, {}), "作業場所を移す予約を取り消す");
 });
 
 test("AI がチャットをアーカイブする・消すツール: 行はどのチャットか", () => {

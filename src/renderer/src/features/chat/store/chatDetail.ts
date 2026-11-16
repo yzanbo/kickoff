@@ -28,6 +28,7 @@ const IDLE_LIVE: ChatLive = {
   compacted_turn: false,
   tells_closed: false,
   inheriting: false,
+  workplace_move: null,
   restart_resume: null,
 };
 
@@ -55,6 +56,8 @@ export function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
     tells_closed: next.tells_closed,
     inheriting: next.inheriting,
     restart_resume: keep(prev.restart_resume, next.restart_resume),
+    // 前の版のコアは送らない
+    workplace_move: keep(prev.workplace_move, next.workplace_move ?? null),
   };
 }
 

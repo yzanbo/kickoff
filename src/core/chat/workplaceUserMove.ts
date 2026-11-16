@@ -20,21 +20,26 @@ export interface WorkplaceUserMoveDeps {
 }
 
 /** 移せない理由（実行環境を整えるチャット・Git でないプロジェクト。移せれば null） */
-async function blockedReason(chat: Chat, project: Project): Promise<string | null> {
+export async function workplaceMoveBlocked(chat: Chat, project: Project): Promise<string | null> {
   if (chat.untracked_only) return "実行環境を整えるチャットは、そのワークツリーのためのものなので作業場所を移せません";
   if (!(await isGitWorkTree(project.repo_path))) return "Git で管理していないプロジェクトにはワークツリーがないので、作業場所を移せません";
   return null;
+}
+
+/** 元の作業場所で動いている内蔵ターミナル（Q5。名前とコマンド） */
+export function runningTerminals(deps: Pick<WorkplaceUserMoveDeps, "terminals">, dir: string, projectId: number): { title: string; command: string | null }[] {
+  return (deps.terminals?.list() ?? [])
+    .filter((t) => (t.project_id === null || t.project_id === projectId) && (t.cwd === dir || isInside(dir, t.cwd)))
+    .map((t) => ({ title: t.title, command: t.command }));
 }
 
 /** 移す前の確かめの中身: 元の作業場所に残るコミットしていない変更・そこで動いているターミナル・移す先にできないワークツリー */
 export async function workplaceMoveCheck(deps: WorkplaceUserMoveDeps, chat: Chat, project: Project): Promise<WorkplaceMoveCheck> {
   const dir = workdirOf(chat, project);
   const missing = !fs.existsSync(dir);
-  const blocked = await blockedReason(chat, project);
+  const blocked = await workplaceMoveBlocked(chat, project);
   const changes = missing || blocked ? [] : await carryFiles(dir).catch((): string[] => []);
-  const terminals = (deps.terminals?.list() ?? [])
-    .filter((t) => (t.project_id === null || t.project_id === project.id) && (t.cwd === dir || isInside(dir, t.cwd)))
-    .map((t) => ({ title: t.title, command: t.command }));
+  const terminals = runningTerminals(deps, dir, project.id);
   return { changes, terminals, reserved: [...deps.reservedFolders()], blocked, missing };
 }
 
@@ -47,8 +52,9 @@ export async function planUserWorkplaceMove(
   chat: Chat,
   project: Project,
   body: WorkplaceMoveBody,
+  reason: "user" | "ai" = "user",
 ): Promise<{ input: WorkplaceMoveInput; steps?: WorkplaceMoveSteps }> {
-  const blocked = await blockedReason(chat, project);
+  const blocked = await workplaceMoveBlocked(chat, project);
   if (blocked) throw new Invalid(blocked);
   const fromDir = workdirOf(chat, project);
   const fromExists = fs.existsSync(fromDir);
@@ -63,7 +69,7 @@ export async function planUserWorkplaceMove(
     const worktreePath = target && !target.main ? target.path : null;
     if (worktreePath === chat.worktree_path) throw new Invalid("いまと同じ作業場所です");
     if (worktreePath && deps.reservedFolders().has(worktreePath)) throw new Invalid("このワークツリーは片付けを予約しているので、移す先にできません（片付けが済むと、そこのチャットは本体に戻ります）");
-    return { input: { worktreePath, reason: "user" } };
+    return { input: { worktreePath, reason } };
   }
 
   const problem = await newWorktreeProblem(project.repo_path, branch);
@@ -78,7 +84,7 @@ export async function planUserWorkplaceMove(
     if (carried) await dropCarry(fromDir, carried).catch(() => {});
   };
   return {
-    input: { worktreePath, reason: "user" },
+    input: { worktreePath, reason },
     steps: {
       before: async () => {
         // いまの作業場所のいまのコミットから（その作業場所でのコミットも入る）。フォルダがなければ本体の HEAD から

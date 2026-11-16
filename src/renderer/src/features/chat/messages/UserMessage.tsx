@@ -1,4 +1,4 @@
-import { ChevronRight, ClipboardPenLine, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
+import { ChevronRight, ClipboardPenLine, GitBranch, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 import { flushSync } from "react-dom";
@@ -35,7 +35,8 @@ import { useBeforeWorkplaceMove } from "@/features/chat/store/useChatStore";
  * サブエージェントについて子チャットで聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』について聞く」と添える（コピー・書き直しは書いた文で）。
  * 子チャットに親への依頼文を頼んだ発言（記録の handoff_request。頼み方の文は決まった長い文なので）は、1 行「親への依頼文を頼みました」にたたみ、押すと全文を出す。
  * 追加の指示を添えて頼んだときは、たたんだ行の下にその指示だけを出す（全文を開かなくても、何を頼んだか分かるように）。
- * 子チャットから渡した依頼（記録の handoff_from）は、吹き出しの下に出どころの札「子チャット『…』から」
+ * 子チャットから渡した依頼（記録の handoff_from）は、吹き出しの下に出どころの札「子チャット『…』から」。
+ * AI が作業場所を移す予約に書いた続きの指示（記録の workplace_continuation。Kickoff が移したあとに送った）は、上に「作業場所を移したあとの続き（AI の予約）」と添える
  */
 /** createdChats: この発言の作業で AI が作った兄弟チャット・親のないチャットの ID（「,」でつなぐ。timelineItems の createdChatsByUser） */
 export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user">; createdChats?: string }) {
@@ -95,6 +96,12 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
     >
       <div className="bubble user" id={`ev-${event.id}`} onContextMenu={menu.open}>
         {compactKind && <CompactPromptMark kind={compactKind} className="message-kind-label" title={COMPACT_PROMPT_KINDS[compactKind].sentTitle} />}
+        {data.workplace_continuation && (
+          <div className="message-kind-label" title="AI が作業場所を移す予約に書いた続きの指示です。作業が終わったあと、Kickoff が作業場所を移してから送りました">
+            <GitBranch size={12} aria-hidden />
+            作業場所を移したあとの続き（AI の予約）
+          </div>
+        )}
         {subagentAsk && (
           <div className="message-kind-label" title="親のチャットのサブエージェントの会話の記録（添付）を読んでから答えるよう、AI に頼んで始めました">
             <MessageSquarePlus size={12} aria-hidden />

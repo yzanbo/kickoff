@@ -95,7 +95,17 @@ export function workplaceMoveLine(data: MoveData): string {
   const notes: string[] = [];
   if (data.carried) notes.push("コミットしていない変更も持っていきました");
   if (data.backed_up) notes.push("コミットしていない変更は控えに入れました。3 日はゴミ箱から戻せます");
+  notes.push(...situationNotes(data));
   return `${REASON_HEADS[data.reason]}: ${fromTo(data)}${notes.length ? `（${notes.join("。")}）` : ""}`;
+}
+
+/** 移したときのまわりの様子（片付けを先にした・元の場所で動いているもの・移した先で作業中のチャット。会話の 1 行と AI への知らせで同じ） */
+function situationNotes(data: MoveData): string[] {
+  const notes: string[] = [];
+  if (data.after_finish) notes.push("先にワークツリーを片付けてから移しました");
+  if (data.running?.length) notes.push(`元の作業場所で動いているもの（${data.running.join("、")}）は止めずに残しました`);
+  if (data.busy) notes.push(`移した先では、ほかのチャット ${data.busy} 件が作業中です（同じファイルを書き換えるとぶつかることがあります）`);
+  return notes;
 }
 
 /** 理由の言葉（AI への知らせ） */
@@ -124,6 +134,7 @@ export function workplaceMoveNote(data: MoveData): string {
     `作業場所が変わりました（${REASON_WORDS[data.reason]}）: ${workplaceLabel(data.from)}（${data.from.dir}）→ ${workplaceLabel(data.to)}（${data.to.dir}）。`,
     `これより前の会話に出てきたパス・ファイルの中身は元の作業場所のものです。ファイルの読み書きとコマンドは、いまの作業フォルダ（${data.to.dir}）で行ってください。`,
     changesNote(data),
+    ...situationNotes(data).map((n) => `${n}。`),
   ]
     .filter(Boolean)
     .join("\n");

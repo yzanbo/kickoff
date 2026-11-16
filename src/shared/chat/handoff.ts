@@ -81,6 +81,10 @@ export function lastReplyBefore(events: readonly ChatEvent[], end: number): stri
 }
 
 /** 発言の印だけを取り出す（付いていないものは入れない。送信待ちの行・API の本文から、送る・伝えるへ渡すとき） */
-export function marksOf(src: { handoff_request?: boolean; handoff_from?: HandoffFrom }): MessageMarks {
-  return { ...(src.handoff_request ? { handoff_request: true as const } : {}), ...(src.handoff_from ? { handoff_from: src.handoff_from } : {}) };
+export function marksOf(src: { handoff_request?: boolean; handoff_from?: HandoffFrom; workplace_continuation?: boolean }): MessageMarks {
+  return {
+    ...(src.handoff_request ? { handoff_request: true as const } : {}),
+    ...(src.handoff_from ? { handoff_from: src.handoff_from } : {}),
+    ...(src.workplace_continuation ? { workplace_continuation: true as const } : {}),
+  };
 }

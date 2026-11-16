@@ -83,6 +83,8 @@ export class HostClient {
   cancel = (chatId: number) => this.request<void>("POST", `/api/chats/${chatId}/cancel`);
   queue = (chatId: number, text: string) => this.request<QueueState>("POST", `/api/chats/${chatId}/queue`, { text });
   removeQueued = (chatId: number, queueId: string) => this.request<QueueState>("DELETE", `/api/chats/${chatId}/queue/${encodeURIComponent(queueId)}`);
+  /** AI が予約した作業場所の移動を取り消す（メモの仕様書「0025」の J7） */
+  cancelWorkplaceMove = (chatId: number) => this.request<void>("DELETE", `/api/chats/${chatId}/workplace-move`);
 
   approvals = () => this.request<Approval[]>("GET", "/api/approvals");
   resolveApproval = (id: string, decision: ApprovalDecision) => this.request<void>("POST", `/api/approvals/${encodeURIComponent(id)}`, decision);

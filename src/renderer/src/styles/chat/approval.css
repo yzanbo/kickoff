@@ -155,6 +155,25 @@
   color: var(--warn);
 }
 
+/* AI が作業場所を移す予約の行（流れのいちばん下。作業が終わったら移る。取り消せる） */
+.workplace-move-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: var(--radius-sm);
+  font-size: calc(13px * var(--chat-scale, 1));
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.workplace-move-row svg {
+  flex: none;
+  color: var(--accent-fg);
+}
+
 /* 再開するかを聞くカードのバッジ */
 .approval-badge.reconnect-badge {
   background: var(--warn);

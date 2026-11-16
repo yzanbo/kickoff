@@ -83,6 +83,7 @@
 | 連携先（PR・issue を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`）と、プロジェクトで使う GitHub のアカウント（gh に入っているものから選ぶ。gh の有効なアカウントは切り替えない） | `GitHubRemote`・`GitHubTarget`（`core/git/githubTarget.ts`）・選んだ remote はプロジェクトの `github_remote`・アカウントは `github_account`（`GitHubAccount`・`core/git/githubAccount.ts` の `runAsGitHubAccount`）・ワークツリーの PR を見張るかは `pr_watch`・設定の画面は `ProjectGitHub` | なし |
 | 利用者が見ているもの（AI が読む、この Mac の画面のウィンドウの見えているペインごとの前のタブ・右の欄・選んでいる範囲と、発言を送った時点の様子。スマホは入れない） | `UserView` / `UserViewPane` / `UserViewTab`（`@shared/types/userView.ts`）・`PUT /api/user-view`・送る本文の `user_view`・`UserViewRegistry`（`core/userView/`）・ツール `get_user_view`（`AI_GET_USER_VIEW_TOOL`）・画面 `app/userViewCollect.ts`・`app/userViewReport.ts` | 「前に出ているもの」（話しかけるときは入力欄にいるので、ほぼチャット自身になる） |
 | AI からの知らせ（AI が長い作業の途中で区切り・あとで見てほしい判断を利用者に届ける。この Mac の通知は本文、スマホのプッシュは本文なし） | ツール `notify_user`（`@shared/chat/aiNotify` の `AI_NOTIFY_USER_TOOL`）・中身 `core/chat/aiNotify.ts`・SSE（バス）の `ai_notice`・通知の種類 `NoticeKind` の `ai_notice`（`aiNotice`） | Claude Code の PushNotification（Kickoff の利用者に届かないので外した） |
+| 作業場所を移す予約（AI が自分のチャットの作業場所を移すよう頼む。作業が最後まで終わったら Kickoff が移し、続きの指示を送る。作業中の様子に出て取り消せる） | ツール `move_workplace` / `cancel_workplace_move`（`@shared/chat/aiWorkplace` の `AI_MOVE_WORKPLACE_TOOL` / `AI_CANCEL_WORKPLACE_MOVE_TOOL`）・中身 `core/chat/aiWorkplace.ts`・予約 `WorkplaceReservations`（`core/chat/workplaceReservation.ts`）・作業中の様子 `ChatLive.workplace_move`（`WorkplaceMoveReservation`）・取り消し `DELETE /api/chats/:id/workplace-move`・続きの発言の印 `workplace_continuation` | Claude Code の EnterWorktree（会話ごと別のフォルダへ移る。使わせない） |
 | AI のアーカイブ・削除（AI が同じプロジェクトのチャットを子孫ごとアーカイブする・Kickoff のゴミ箱に入れる。頼まれたときだけ。自分・自分の祖先は作業の終わりに行う予約） | ツール `archive_chat` / `delete_chat`（`@shared/chat/aiChatRemove` の `AI_ARCHIVE_CHAT_TOOL` / `AI_DELETE_CHAT_TOOL`）・中身 `ChatRemover`（`core/chat/aiChatRemove.ts`） | なし |
 | ワークツリーの後始末（ワークツリーを消す。画面の「消す」と AI の finish_worktree。消す前の確かめ・失うものの控え（3 日）・ワークツリー自身のチャットからの予約）・取り込み済み（ローカルで本体のブランチに入っている / GitHub で PR がマージ済み）・控え（消す前に失うものを入れておく Git の参照） | `WorktreeFinisher`（`core/worktrees/finish.ts`）・控え `core/worktrees/backup.ts`・結果の文 `core/worktrees/report.ts`（`MergeState`）・ツール `finish_worktree`（`@shared/chat/aiWorktree` の `AI_FINISH_WORKTREE_TOOL`） | 「cleanup」「discard」（消し方を 1 つにまとめた） |
 | ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられたこと。印と 1 つの確認で片付けを聞く） | `WorktreePrNotice`・見張り `WorktreePrWatch`（`core/git/prWatch.ts`）・閉じた確認の表 `pr_notice_dismissals`・画面 `features/worktree/prNotice/` | 「マージの通知」（macOS の通知と紛らわしい） |
@@ -480,7 +481,7 @@ CREATE TABLE devices (
 
 | type | data | 以前からの変更 |
 |---|---|---|
-| `user` | `text` `attachments` `message_uuid` `handover?` `pre_compact?`（圧縮前指示。text は指示の文だけで、AI には前置きを付けて渡す）`post_compact?`（圧縮後指示。同じく前置き `postCompactMessage` を付けて渡す）`handoff_request?`（子チャットに親への依頼文を頼んだ発言）`handoff_from?`（子チャットから渡した依頼の出どころ `{ chat_id, title }`） | `message_uuid` を必須に |
+| `user` | `text` `attachments` `message_uuid` `handover?` `pre_compact?`（圧縮前指示。text は指示の文だけで、AI には前置きを付けて渡す）`post_compact?`（圧縮後指示。同じく前置き `postCompactMessage` を付けて渡す）`handoff_request?`（子チャットに親への依頼文を頼んだ発言）`handoff_from?`（子チャットから渡した依頼の出どころ `{ chat_id, title }`）`workplace_continuation?`（AI が作業場所を移す予約に書いた続きの指示。Kickoff が移したあとに送った） | `message_uuid` を必須に |
 | `init` | `session_id` `model?` `permission_mode?` `effort?` | |
 | `text` / `thinking` / `tool_use` / `tool_result` | 以前どおり＋`parent?`（サブエージェントのもの） | `sub` をなくす（`parent` があればサブエージェント） |
 | `approval` | `approval_id` `kind` `tool_name` `title?` | |
@@ -490,7 +491,7 @@ CREATE TABLE devices (
 | `compact` | `trigger` `pre_tokens` `post_tokens?` | |
 | `subagent` | `SubagentInfo` | |
 | `handoff` | `via`（composer / send / queue）`parent_chat_id` `turn_event_id`（子チャットの作業の返答を親に渡した。渡すたびに 1 件。流れには出さず、渡した作業の終わりの行の印にする） | 新しく足した |
-| `workplace_moved` | `from` `to`（`WorkplaceRef`: `project_id` `worktree_path` `branch` `dir`）`reason`（user / ai / worktree_finished / project_moved / folder_moved）`carried?`（コミットしていない変更を持っていった）`backed_up?`（片付けで控えに入れた）`session_id?` `message_id?`（移したあとの起点 = 新しいセッションに写した会話の同じ発言） | 新しく足した（メモの仕様書「0025」）。前はワークツリーを片付けたら `notice` のお知らせだけで、会話の起点は区切られなかった |
+| `workplace_moved` | `from` `to`（`WorkplaceRef`: `project_id` `worktree_path` `branch` `dir`）`reason`（user / ai / worktree_finished / project_moved / folder_moved）`carried?`（コミットしていない変更を持っていった）`backed_up?`（片付けで控えに入れた）`running?`（AI が移したとき、元の場所で動いていたターミナル）`busy?`（AI が移したとき、移した先で作業中だったほかのチャットの数）`after_finish?`（先にワークツリーを片付けてから移した）`session_id?` `message_id?`（移したあとの起点 = 新しいセッションに写した会話の同じ発言） | 新しく足した（メモの仕様書「0025」）。前はワークツリーを片付けたら `notice` のお知らせだけで、会話の起点は区切られなかった |
 
 ### 設定（AppSettings）
 
