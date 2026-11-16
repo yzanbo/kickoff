@@ -112,6 +112,8 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeWhenEmpty: false,
     openWhenEmpty: null,
     openSetting: projectChatOpen,
+    // 狭い欄なので、右・下に分けるボタンは置かない（利用者の依頼。分けるのはタブのドラッグ・右クリック・⌘\）
+    noSplitButtons: true,
     className: "as-sidebar",
   },
   bottom: {

@@ -1,13 +1,11 @@
-import { useMemo, type CSSProperties } from "react";
-import { canPopout } from "@/app/popout";
+import type { CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { Panel } from "@/features/panel/Panel";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
+import type { ProjectChatController } from "./useProjectChat";
 
 /** 右サイドバーはブラウザだけなので、ターミナルを開く場所はない */
 const NO_TERMINALS: TerminalTarget[] = [];
-import type { PanelFrame } from "@/features/panel/PanelTools";
-import { openSideWindow, type ProjectChatController } from "./useProjectChat";
 
 /**
  * プロジェクトのチャット欄（画面の右端。下のパネルより下まで）。中身はボードの右のパネルと同じタブ（Panel）で、
@@ -28,7 +26,7 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
     >
       <div className="pane-resizer project-chat-resizer" aria-label="右サイドバーの幅を変える" {...width.handle} />
       <div className="project-chat-inner">
-        <ProjectChatPanel projectId={projectId} noChat={noChat} popOut={canPopout() ? openSideWindow : undefined} />
+        <ProjectChatPanel projectId={projectId} noChat={noChat} />
       </div>
     </aside>
   );
@@ -36,11 +34,10 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
 
 /**
  * チャット欄の中身（プロジェクトのタブ。開いているかは欄の殻 useProjectChat と同じ店から読む）。チャット欄の別ウィンドウ（PopoutSideChat）も同じものを描く。
- * popOut: 欄ごと別ウィンドウへ移すボタン（タブの列の道具。メインのウィンドウだけ）
+ * 欄ごと別ウィンドウへ移すボタンは置かない（利用者の依頼で隠した。タブは右クリック・ウィンドウの外へのドラッグで 1 つずつ別ウィンドウで開ける）
  */
-export function ProjectChatPanel({ projectId, noChat, popOut }: { projectId: number; noChat: boolean; popOut?: () => void }) {
+export function ProjectChatPanel({ projectId, noChat }: { projectId: number; noChat: boolean }) {
   // ブラウザだけの欄（利用者の依頼）なので、新しいチャット・ターミナルの開く場所は渡さない
   const panel = usePanel({ surface: "side", scope: projectId, noChat, newChat: undefined, terminals: NO_TERMINALS });
-  const frame = useMemo<PanelFrame | undefined>(() => (popOut ? { popOut } : undefined), [popOut]);
-  return <Panel panel={panel} frame={frame} />;
+  return <Panel panel={panel} />;
 }
