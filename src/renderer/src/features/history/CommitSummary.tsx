@@ -115,7 +115,7 @@ export function CommitSummary({
       )}
 
       <hr className="commit-summary-rule" />
-      <div className="commit-message">
+      <div className="commit-summary-message">
         <h3 className="commit-subject">{commit.subject}</h3>
         {body && <pre className="commit-body">{body}</pre>}
       </div>

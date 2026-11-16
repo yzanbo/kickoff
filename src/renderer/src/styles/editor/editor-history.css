@@ -228,7 +228,7 @@
   border-top: 1px solid var(--border);
 }
 
-.commit-message {
+.commit-summary-message {
   grid-column: 2;
   min-width: 0;
 }
