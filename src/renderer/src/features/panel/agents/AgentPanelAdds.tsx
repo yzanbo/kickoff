@@ -2,8 +2,8 @@ import { Bot, ChevronDown, ChevronRight, Database, FileDiff, GitPullRequest, Mes
 import type { ReactNode } from "react";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { openChildChat } from "@/features/chat/children/openChild";
+import { useChatSubagents } from "@/features/chat/store/useChatStore";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
-import { useSubagentsView } from "@/features/chat/subagents/subagentsContext";
 import { flattenTree } from "@/features/chat/subagents/subagentTree";
 import { DbMenuItems } from "@/features/database/DbMenuItems";
 import { RecentMemoItems } from "@/features/memo/MemoMenuItems";
@@ -57,11 +57,12 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const chatId = at && typeof at.scope === "number" ? at.scope : 0;
   const chat = useKnownChat(chatId);
   const pane = useOptionalChatPane();
-  const view = useSubagentsView();
+  // チャットの店の取り出し口を直接読む（会話の欄が配る context は、右の欄の外にある）
+  const { tree } = useChatSubagents(chatId);
   const [archivedKeys] = useSetting(subagentsArchived(chatId));
   const children = (useChildChats().get(chatId) ?? []).filter((c) => c.archived_at === null);
   // サブエージェントは入れ子を親のすぐ下に（入力欄の上の一覧と同じ並び）。アーカイブしたものは出さない
-  const subagents = view ? flattenTree(view.tree).filter(({ entry }) => !archivedKeys.includes(entry.key)) : [];
+  const subagents = flattenTree(tree).filter(({ entry }) => !archivedKeys.includes(entry.key));
   const childMenu = useSubmenu();
   const agentMenu = useSubmenu();
   const memoMenu = useSubmenu();

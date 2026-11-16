@@ -3,7 +3,7 @@ import { subagentState } from "@shared/chat/subagentState";
 import type { AgentState } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { useKnownChat } from "@/stores/chats";
-import { useSubagentsView } from "@/features/chat/subagents/subagentsContext";
+import { useChatSubagents } from "@/features/chat/store/useChatStore";
 import { subagentStatusLabel } from "@/features/chat/subagents/subagentList";
 import type { PanelController } from "@/features/panel/usePanel";
 import type { PanelTab } from "./panelTypes";
@@ -26,16 +26,17 @@ export function useTabAgentState(panel: PanelController, tab: PanelTab): TabAgen
   const { stateOf } = useChatStates();
   // hooks は種類によらず呼ぶ（子チャットでなければ ID 0 = いつも分からない）
   const child = useKnownChat(tab.kind === "child" ? tab.childId : 0);
-  const view = useSubagentsView();
+  // サブエージェントのタブは、チャットの店の取り出し口を直接読む（チャットの会話の欄が隠れて止まっていても、印は変わる。ほかの種類は ID 0 = いつも空）
+  const view = useChatSubagents(tab.kind === "subagent" ? tab.chatId : 0);
   const chat = tab.kind === "chat" ? panel.chatOf(tab) : tab.kind === "child" ? child : undefined;
   if (chat) {
     const state = stateOf(chat);
     return { state, unread: busyWithUnread(chat, state) };
   }
   if (tab.kind !== "subagent") return undefined;
-  const entry = view?.tree.byKey.get(tab.agentKey);
+  const entry = view.tree.byKey.get(tab.agentKey);
   if (!entry) return undefined;
   // 回答待ちの依頼を出していれば回答待ち（チャットのタブと同じ ！ の印）
-  const waiting = view?.waiting.has(entry.key) ?? false;
+  const waiting = view.waiting.has(entry.key);
   return { state: subagentState(entry, waiting).state, unread: false, label: subagentStatusLabel(entry, waiting) };
 }

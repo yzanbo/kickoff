@@ -8,6 +8,7 @@ import { APPLICATION_ID, SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "
 import { tempDir } from "../testing/tempDir.js";
 import { afterTest } from "../testing/afterTest.js";
 import { startStallWatch, type StallRecord } from "../system/stallWatch.js";
+import { Store } from "./store.js";
 
 const applicationId = (db: DatabaseSync) => (db.prepare("PRAGMA application_id").get() as { application_id: number }).application_id;
 
@@ -127,4 +128,21 @@ test("openDatabase: 詰まりの見張りのために包んだ prepare・exec �
   assert.equal(records.length, 1);
   assert.equal(records[0].task, "sqlite:select t");
   assert.equal(records[0].taskMs, 600);
+});
+
+test("v30 の移行: v29 の DB を開くと、記録の軽い形を読む覆う索引（idx_chat_events_meta）を既存の行に作る", () => {
+  const file = path.join(tempDir(), DB_FILE);
+  const store = new Store(file);
+  const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed", model: null });
+  store.events.add(chat.id, { type: "tool_use", id: "c1", name: "Bash", input: {} });
+  // v29 に戻す（索引を外して版を下げる）
+  store.db.exec(`DROP INDEX idx_chat_events_meta; PRAGMA user_version = ${USER_VERSION_BASE + 29};`);
+  store.db.close();
+  const again = openDatabase(file);
+  assert.equal(userVersion(again), USER_VERSION_BASE + SCHEMA_VERSION);
+  assert.ok(again.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_chat_events_meta'").get());
+  const row = again.prepare("SELECT json_extract(data, '$.name') AS name FROM chat_events INDEXED BY idx_chat_events_meta WHERE chat_id = ?").get(chat.id) as { name: string };
+  assert.equal(row.name, "Bash");
+  again.close();
 });

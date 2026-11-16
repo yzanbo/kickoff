@@ -57,9 +57,13 @@ export function useMarkSeen({
     void api.markSeen(n.chatId, n.lastEventId).catch(() => {});
   };
 
-  // 表示した・一番下まで来た・チャットが替わったとき
+  // 表示した・一番下まで来た・チャットが替わったとき。裏のタブを表に戻した直後は、裏の間に増えた分へ一番下を寄せる前に
+  // 流れることがあるので、落ち着いてからもう一度確かめる（会話の欄は Activity で止めるので、表に戻すと effect が流れ直す）
   useEffect(() => {
-    if (!away) check();
+    if (away) return;
+    check();
+    const timer = setTimeout(check, SETTLE_MS);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, away, chat.id]);
 

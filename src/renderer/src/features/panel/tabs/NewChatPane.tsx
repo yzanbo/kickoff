@@ -29,7 +29,7 @@ import { AgentSplit } from "@/features/panel/agents/AgentSplit";
 import { claimVoiceHandoff } from "@/features/dictation/voiceHandoff";
 import type { VoiceReply } from "@/features/dictation/voiceSession";
 import { draftScope } from "@/features/panel/surfaces";
-import type { SidePanelHandle } from "@/features/chat/pane/useChatView";
+import type { SidePanelHandle } from "@/features/chat/pane/useChatPaneActions";
 import { ChatProviderContext } from "@/features/chat/provider/chatProvider";
 import { ProviderPicker } from "@/features/chat/provider/ProviderChips";
 

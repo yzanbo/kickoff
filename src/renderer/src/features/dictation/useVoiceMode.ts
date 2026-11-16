@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useKeepAliveHold } from "@/features/panel/tabs/tabKeepAlive";
 import { DEFAULT_SETTINGS } from "@shared/types";
 import { api } from "@/api";
 import { useSetting } from "@/hooks/useSetting";
@@ -52,6 +53,8 @@ export function useVoiceMode({
   const levelListeners = useRef(new Set<LevelListener>());
   const latest = useRef({ replies, busy, send, fill, settings, delivery });
   latest.current = { replies, busy, send, fill, settings, delivery };
+  // 音声モードの間は、タブを裏に回しても会話の欄を止めない（裏でも聞き続け、届いた返答を読み上げる。止めると下の片付けで終わる）
+  const hold = useKeepAliveHold("voice");
 
   useEffect(() => {
     session.current?.update(replies, busy);
@@ -74,10 +77,15 @@ export function useVoiceMode({
 
   async function start({ readAll = false }: { readAll?: boolean } = {}) {
     if (session.current) return;
+    // 準備を確かめている間にタブを裏に回しても止めないよう、待つ前に立てる
+    hold(true);
     // 準備ができていなければ（取ってある状態が古いこともあるので取り直して確かめ）、設定を開いて案内する
     const fresh = status?.ready ? status : await voiceStatusStore.reload().catch(() => undefined);
     const ttsReady = latest.current.settings?.voice_tts_provider !== "openai" || fresh?.openai.key_saved;
-    if (!fresh?.ready || !ttsReady) return openSettings("voice");
+    if (!fresh?.ready || !ttsReady) {
+      hold(false);
+      return openSettings("voice");
+    }
     setError(null);
     setHeard(null);
     setMuted(false);
@@ -97,7 +105,9 @@ export function useVoiceMode({
       onLevel: (level) => levelListeners.current.forEach((f) => f(level)),
       onMuted: setMuted,
       onEnd: () => {
-        if (session.current === s) session.current = null;
+        if (session.current !== s) return;
+        session.current = null;
+        hold(false);
       },
     });
     session.current = s;
@@ -108,6 +118,7 @@ export function useVoiceMode({
     if (draft) disarmVoiceHandoff();
     session.current?.stop();
     session.current = null;
+    hold(false);
     setState({ kind: "off" });
   }
 

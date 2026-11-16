@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { FEED_TEXT_LIMIT, type Chat, type ChatEvent, type ChatEventData, type FeedItem, type SearchHit } from "@shared/types";
 import { normalizeAttachment } from "@shared/attachment/normalize";
+import type { ChatEventMeta } from "@shared/chat/chatIndex";
 import type { Notify, Row } from "./common.js";
 
 interface EventRow {
@@ -10,6 +11,26 @@ interface EventRow {
   data: string;
   created_at: string;
 }
+
+interface MetaRow {
+  id: number;
+  type: ChatEvent["type"];
+  call_id: unknown;
+  name: unknown;
+  parent: unknown;
+  tool_use_id: unknown;
+  task_id: unknown;
+  status: unknown;
+  size: number;
+}
+
+/** 記録の軽い形と大きさ（data の長さ） */
+export interface EventMetaRow {
+  meta: ChatEventMeta;
+  size: number;
+}
+
+const textOrNull = (v: unknown): string | null => (typeof v === "string" ? v : null);
 
 /** 添付の ID（uuid）の形 */
 const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
@@ -90,6 +111,78 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         .prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? AND id < ? ORDER BY id DESC LIMIT ?`)
         .all(chatId, beforeId ?? Number.MAX_SAFE_INTEGER, limit) as unknown as EventRow[];
       return rows.reverse().map(toEvent);
+    },
+    /** id が from 以上 to 未満の記録（古い順） */
+    range(chatId: number, from: number, to: number): ChatEvent[] {
+      return (db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? AND id >= ? AND id < ? ORDER BY id`).all(chatId, from, to) as unknown as EventRow[]).map(toEvent);
+    },
+    /** ID を選んだ記録（古い順。索引に入れる行だけを読む） */
+    byIds(chatId: number, ids: readonly number[]): ChatEvent[] {
+      const out: ChatEvent[] = [];
+      // 引数の数の上限を超えないよう、分けて読む
+      for (let i = 0; i < ids.length; i += 500) {
+        const part = ids.slice(i, i + 500);
+        const rows = db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? AND id IN (${part.map(() => "?").join(",")}) ORDER BY id`).all(chatId, ...part) as unknown as EventRow[];
+        out.push(...rows.map(toEvent));
+      }
+      return out.sort((a, b) => a.id - b.id);
+    },
+    /**
+     * id が from 以上 to 未満の記録の軽い形（ChatEventMeta）と大きさ（data の長さ）。覆う索引 idx_chat_events_meta（v30）だけを読み、data の JSON を解かない
+     * （式は索引と同じ書き方にする。違うと索引を使わずに全行の JSON を解く）
+     */
+    metas(chatId: number, from: number, to: number): EventMetaRow[] {
+      const rows = db
+        .prepare(
+          `SELECT id, type, json_extract(data, '$.id') AS call_id, json_extract(data, '$.name') AS name, json_extract(data, '$.parent') AS parent,
+             json_extract(data, '$.tool_use_id') AS tool_use_id, json_extract(data, '$.task_id') AS task_id, json_extract(data, '$.status') AS status,
+             length(data) AS size
+           FROM chat_events INDEXED BY idx_chat_events_meta WHERE chat_id = ? AND id >= ? AND id < ? ORDER BY id`,
+        )
+        .all(chatId, from, to) as unknown as MetaRow[];
+      return rows.map((r) => ({
+        meta: { id: r.id, type: r.type, callId: textOrNull(r.call_id), name: textOrNull(r.name), parent: textOrNull(r.parent), toolUseId: textOrNull(r.tool_use_id), taskId: textOrNull(r.task_id), status: textOrNull(r.status) },
+        size: r.size,
+      }));
+    },
+    /** 作業の終わり（result）の記録の ID を、before より前から新しい順に limit 件 */
+    resultIdsBefore(chatId: number, before: number, limit: number): number[] {
+      const rows = db
+        .prepare("SELECT id FROM chat_events INDEXED BY idx_chat_events_meta WHERE chat_id = ? AND id < ? AND type = 'result' ORDER BY id DESC LIMIT ?")
+        .all(chatId, before, limit) as { id: number }[];
+      return rows.map((r) => r.id);
+    },
+    /** 作業の終わり（result）の記録の ID を、from 以上（to 未満）から古い順に limit 件 */
+    resultIdsFrom(chatId: number, from: number, to: number, limit: number): number[] {
+      const rows = db
+        .prepare("SELECT id FROM chat_events INDEXED BY idx_chat_events_meta WHERE chat_id = ? AND id >= ? AND id < ? AND type = 'result' ORDER BY id LIMIT ?")
+        .all(chatId, from, to, limit) as { id: number }[];
+      return rows.map((r) => r.id);
+    },
+    /** いちばん新しいメインエージェントの返答（parent のない text）の記録の ID（なければ null） */
+    latestMainTextId(chatId: number): number | null {
+      const row = db
+        .prepare("SELECT MAX(id) AS id FROM chat_events INDEXED BY idx_chat_events_meta WHERE chat_id = ? AND type = 'text' AND json_extract(data, '$.parent') IS NULL")
+        .get(chatId) as { id: number | null };
+      return row.id;
+    },
+    /** そのチャットの、from 以上 to 未満に記録があるか */
+    hasBetween(chatId: number, from: number, to: number): boolean {
+      return db.prepare("SELECT 1 FROM chat_events WHERE chat_id = ? AND id >= ? AND id < ? LIMIT 1").get(chatId, from, to) !== undefined;
+    },
+    /**
+     * チャットの中の検索で読む本文: before より前の、自分の発言（user）とメインエージェントの返答（parent のない text）だけ（古い順）。
+     * 種類で先に絞る（生成列 text は VIRTUAL なので、種類で絞らずに text IS NOT NULL で探すと全行の JSON を解く）
+     */
+    mainTexts(chatId: number, before: number): ChatEvent[] {
+      return (
+        db
+          .prepare(
+            `SELECT ${EVENT_COLUMNS} FROM chat_events INDEXED BY idx_chat_events_meta
+             WHERE chat_id = ? AND id < ? AND type IN ('user', 'text') AND (type = 'user' OR json_extract(data, '$.parent') IS NULL) ORDER BY id`,
+          )
+          .all(chatId, before) as unknown as EventRow[]
+      ).map(toEvent);
     },
     /** そのチャットの、id より前の記録があるか */
     hasBefore(chatId: number, id: number): boolean {

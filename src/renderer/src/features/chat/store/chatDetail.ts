@@ -1,10 +1,14 @@
-// 1 つのチャットの中身（チャット・記録・回答待ち・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。useChatDetail が使う）
+// 1 つのチャットの中身（チャット・記録・回答待ち・作業中の様子）を、サーバーの知らせで直す決まり（純粋関数。チャットの店 chatStore.ts が使う）
 import type { Approval, BusEvent, Chat, ChatDetail, ChatEvent, ChatLive } from "@shared/types";
+import { deleteFrom, EMPTY_RANGE, rangeFromDetail, type LogRange } from "./chatLog";
 
 /** 画面が持つチャットの中身（読み込む前は chat が undefined） */
 export interface ChatDetailState {
   chat: Chat | undefined;
+  /** 記録の末尾（開いたときに読んだ最新のターンから終わりまで。SSE の記録はここに足す） */
   events: ChatEvent[];
+  /** 末尾のほかに読んだもの（索引・途中の一部分・サブエージェントの中。chatLog.ts） */
+  range: LogRange;
   approvals: Approval[];
   live: ChatLive;
 }
@@ -28,11 +32,11 @@ const IDLE_LIVE: ChatLive = {
 };
 
 /** 読み込む前の中身 */
-export const EMPTY_DETAIL: ChatDetailState = { chat: undefined, events: [], approvals: [], live: IDLE_LIVE };
+export const EMPTY_DETAIL: ChatDetailState = { chat: undefined, events: [], range: EMPTY_RANGE, approvals: [], live: IDLE_LIVE };
 
 /**
  * 届いた作業中の様子のうち、中身の変わっていないものは前のものを使う（chat_live はどれかが変わるたびに丸ごと届くので、
- * 裏の作業などを見て記録をたどる計算（useSubagents など）を、変わっていないのにやり直さないため）
+ * 裏の作業などを見て記録をたどる計算（サブエージェントの一覧 chatSelectors など）を、変わっていないのにやり直さないため）
  */
 export function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
   const keep = <T,>(a: T, b: T): T => (JSON.stringify(a) === JSON.stringify(b) ? a : b);
@@ -54,21 +58,21 @@ export function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
   };
 }
 
-/** このチャットの中身を変える知らせか（書いている途中の返答 chat_delta は別に扱うので含めない） */
-export function concernsDetail(event: BusEvent, chatId: number): boolean {
+/** 中身を変える知らせなら、そのチャットの ID（ほかの知らせは null。書いている途中の返答 chat_delta は別に扱うので含めない） */
+export function detailChatIdOf(event: BusEvent): number | null {
   switch (event.type) {
     case "chat":
-      return event.chat.id === chatId;
+      return event.chat.id;
     case "chat_event":
-      return event.event.chat_id === chatId;
+      return event.event.chat_id;
     case "approval":
-      return event.approval.chat_id === chatId;
+      return event.approval.chat_id;
     case "chat_events_deleted":
     case "chat_live":
     case "approval_resolved":
-      return event.chat_id === chatId;
+      return event.chat_id;
     default:
-      return false;
+      return null;
   }
 }
 
@@ -77,7 +81,7 @@ export function concernsDetail(event: BusEvent, chatId: number): boolean {
  * （記録・回答待ちは ID で重ねない）ので、読み込みの最中に届いた知らせを、届いた中身にもう一度当てられる
  */
 export function reduceChatDetail(state: ChatDetailState, event: BusEvent, chatId: number): ChatDetailState {
-  if (!concernsDetail(event, chatId)) return state;
+  if (detailChatIdOf(event) !== chatId) return state;
   switch (event.type) {
     case "chat":
       return { ...state, chat: event.chat };
@@ -88,9 +92,10 @@ export function reduceChatDetail(state: ChatDetailState, event: BusEvent, chatId
       return { ...state, events: [...state.events, event.event] };
     }
     case "chat_events_deleted": {
-      // 巻き戻した: その発言から後ろを画面の記録からも消す
+      // 巻き戻した: その発言から後ろを画面の記録からも消す（末尾より前で消したときは、店が読み直す）
       const events = state.events.filter((x) => x.id < event.from_event_id);
-      return events.length === state.events.length ? state : { ...state, events };
+      const range = deleteFrom(state.range, event.from_event_id);
+      return events.length === state.events.length && range.focus === state.range.focus && range.index.length === state.range.index.length ? state : { ...state, events, range };
     }
     case "chat_live":
       return { ...state, live: keepUnchanged(state.live, event.live) };
@@ -114,6 +119,7 @@ export function detailFromSnapshot(snapshot: ChatDetail, replay: readonly BusEve
   const base: ChatDetailState = {
     chat: snapshot.chat,
     events: snapshot.events,
+    range: rangeFromDetail(snapshot),
     approvals: snapshot.approvals,
     live: keepUnchanged(prev.live, snapshot.live),
   };
@@ -126,5 +132,7 @@ export function detailFromSnapshot(snapshot: ChatDetail, replay: readonly BusEve
  */
 export function detailFromIncrement(snapshot: ChatDetail, replay: readonly BusEvent[], chatId: number, prev: ChatDetailState): ChatDetailState {
   const last = prev.events.at(-1)?.id ?? 0;
-  return detailFromSnapshot({ ...snapshot, events: [...prev.events, ...snapshot.events.filter((e) => e.id > last)] }, replay, chatId, prev);
+  const next = detailFromSnapshot({ ...snapshot, events: [...prev.events, ...snapshot.events.filter((e) => e.id > last)] }, replay, chatId, prev);
+  // 末尾の前に読んだもの（索引など）はそのまま（after で読んだ詳細は索引を返さない）
+  return { ...next, range: prev.range };
 }

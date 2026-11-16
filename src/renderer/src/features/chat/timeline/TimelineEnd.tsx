@@ -30,7 +30,8 @@ export function TimelineEnd({
 }: {
   chat: Chat;
   busy: boolean;
-  streaming: string;
+  /** 書いている途中の返答があるか（文はチャットの店の口から StreamingReply が読む） */
+  streaming: boolean;
   /** チャットが見えているか（見えていない間は書いている途中の返答を少しずつ出さない） */
   visible: boolean;
   approvals: Approval[];
@@ -48,7 +49,7 @@ export function TimelineEnd({
   const until: AfterCompactUntil = waitingCompact ? "compact" : busy && live.tells_closed ? "closed" : busy && live.compacted_turn ? "exchange" : busy ? "turn" : "next";
   return (
     <>
-      {streaming && <StreamingReply text={streaming} visible={visible} />}
+      {streaming && <StreamingReply chatId={chat.id} visible={visible} />}
       {/* AI が図の中身を書いている間（呼び出しの記録はまだない）は、描く位置に枠だけ */}
       {busy && live.drawing_visual && <VisualPending />}
       {approvals.map((a) => (

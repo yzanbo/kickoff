@@ -1,16 +1,19 @@
 import { EventEmitter } from "node:events";
 import type { BusEvent } from "@shared/types";
 import { DeltaBatch, type DeltaTimers } from "./chat/deltaBatch.js";
+import { StreamingTexts } from "./chat/streamingTexts.js";
 import { noteSyncSince, syncStart } from "./system/stallWatch.js";
 
 /**
  * コア内の変更をクライアント（SSE）へ配信するためのイベントバス。
  * 書いている途中の返答（chat_delta）はチャットごとに 16ms ためて 1 通にまとめ、ほかの知らせを流す前に必ず先に流す（`chat/deltaBatch.ts`。
- * 知らせはすべてここを通るので、どの購読者から見ても順は変わらない。メモの仕様書「0023_表示を軽くする」の案 13）
+ * 知らせはすべてここを通るので、どの購読者から見ても順は変わらない。メモの仕様書「0023_表示を軽くする」の案 13）。
+ * 流した途中の返答はチャットごとにつないで持ち（`chat/streamingTexts.ts`。チャットの詳細の streaming_text）、chat_delta に書きかけの文の中の位置 offset を付けて流す
  */
 export class Bus {
   private readonly emitter = new EventEmitter();
   private readonly deltas: DeltaBatch;
+  private readonly streaming = new StreamingTexts();
 
   /** timers はテストで差し替える（ためた途中の返答を流すタイマー） */
   constructor(timers?: DeltaTimers) {
@@ -29,10 +32,15 @@ export class Bus {
     this.deltas.flush();
   }
 
+  /** いまの書きかけの返答（SSE で流した分をつないだもの。なければ null） */
+  streamingText(chatId: number): string | null {
+    return this.streaming.textOf(chatId);
+  }
+
   private emit(event: BusEvent) {
     // 配る相手（SSE・通知など）の処理の合計を、詰まりの見張りに知らせる（system/stallWatch.ts）
     const start = syncStart();
-    this.emitter.emit("event", event);
+    this.emitter.emit("event", this.streaming.track(event));
     noteSyncSince(start, () => `bus:${event.type}`);
   }
 

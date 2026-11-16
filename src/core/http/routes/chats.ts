@@ -10,7 +10,8 @@ import { chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "./
 import { chatTranscript } from "../../chat/transcript.js";
 import { detachChat } from "../../chat/detach.js";
 import { trashChat } from "../../trash/chatTrash.js";
-import { CHAT_DETAIL_LIMIT_MAX, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatPatch, type ChatTranscript, type GitWorktree } from "@shared/types";
+import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript, type GitWorktree } from "@shared/types";
+import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, tailStart } from "../../chat/chatLogQuery.js";
 
 /**
  * チャットの一覧の絞り込み（並びは最後に動いた順）: ?archived=1 でアーカイブ済みだけ（なければアーカイブしていないものだけ）。
@@ -21,11 +22,27 @@ function chatListFilter(c: Context) {
   return { limit, onlyArchived: archived === "1" };
 }
 
-/** チャットの詳細の記録の読み方（after と before は一緒に使えない。before には limit が要る） */
+/** ターンの数（末尾・ページ） */
+const turnsSchema = z.coerce.number().int().min(1).max(200);
+
+/** チャットの詳細の記録の読み方（after と before は一緒に使えない。before には limit が要る。tail_turns はほかと一緒に使えない） */
 const detailQuerySchema = z
-  .object({ after: optionalId, before: optionalId, limit: z.coerce.number().int().min(1).max(CHAT_DETAIL_LIMIT_MAX).optional() })
+  .object({ after: optionalId, before: optionalId, limit: z.coerce.number().int().min(1).max(CHAT_DETAIL_LIMIT_MAX).optional(), tail_turns: turnsSchema.optional() })
   .refine((q) => q.after === undefined || (q.before === undefined && q.limit === undefined), "after は before・limit と一緒に使えません")
-  .refine((q) => q.before === undefined || q.limit !== undefined, "before には limit が要ります") satisfies z.ZodType<ChatDetailQuery>;
+  .refine((q) => q.before === undefined || q.limit !== undefined, "before には limit が要ります")
+  .refine((q) => q.tail_turns === undefined || (q.after === undefined && q.before === undefined && q.limit === undefined), "tail_turns は after・before・limit と一緒に使えません") satisfies z.ZodType<ChatDetailQuery>;
+
+/** , 区切りの呼び出し ID・記録の ID */
+const csvIds = z.string().min(1).max(20_000);
+
+/** 記録の一部分の読み方（GET /api/chats/:id/events。ChatEventsQuery のどれか 1 つの形。余計な組み合わせは 400） */
+const eventsQuerySchema = z.union([
+  z.object({ before: optionalId.unwrap(), turns: turnsSchema }).strict(),
+  z.object({ before: optionalId.unwrap(), since: z.coerce.number().int().min(0) }).strict(),
+  z.object({ around: optionalId.unwrap(), turns: turnsSchema, until: optionalId }).strict(),
+  z.object({ after: z.coerce.number().int().min(0), turns: turnsSchema, until: optionalId }).strict(),
+  z.object({ parents: csvIds, ids: csvIds.optional(), before: optionalId.unwrap() }).strict(),
+]) satisfies z.ZodType<ChatEventsQuery>;
 
 /** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
 /** 子チャットを親から外す（parent_chat_id: null = 親なし / 先祖の ID = その子に。group_id は親なしにするときだけ） */
@@ -49,7 +66,7 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-export function chatRoutes(app: Hono, { store, runner, approvals, databases, providers, worktreeEnvs, trashBin, userViews }: ServerDeps) {
+export function chatRoutes(app: Hono, { store, bus, runner, approvals, databases, providers, worktreeEnvs, trashBin, userViews }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
@@ -106,11 +123,25 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
   // チャットの詳細。記録はクエリで絞れる（ChatDetail の説明。つなぎ直したときは after、スマホは limit と before で少しずつ）
   app.get("/api/chats/:id", withChat, (c) => {
     const { chat } = c.var;
-    const { after, before, limit } = detailQuerySchema.parse({ after: queryOf(c, "after"), before: queryOf(c, "before"), limit: queryOf(c, "limit") });
+    const { after, before, limit, tail_turns } = detailQuerySchema.parse({ after: queryOf(c, "after"), before: queryOf(c, "before"), limit: queryOf(c, "limit"), tail_turns: queryOf(c, "tail_turns") });
     let events: ChatEvent[];
     let hasEarlier = false;
     let afterMissing = false;
-    if (after !== undefined) {
+    let tail: Pick<ChatDetail, "index" | "head_partial"> = {};
+    const approvalList = approvals.list({ chatId: chat.id });
+    const live = runner.live(chat.id);
+    if (tail_turns !== undefined) {
+      // 末尾をターンで数えて読み、その前は索引（いまの回答待ち・裏の作業が指す呼び出しも入れる）
+      const { start, headPartial } = tailStart(store, chat.id, { turns: tail_turns, maxBytes: CHAT_TAIL_MAX_BYTES });
+      events = store.events.range(chat.id, start, Number.MAX_SAFE_INTEGER);
+      const first = events[0]?.id ?? Number.MAX_SAFE_INTEGER;
+      hasEarlier = store.events.hasBefore(chat.id, first);
+      const ctx = {
+        approvalCallIds: approvalList.flatMap((a) => (a.tool_use_id ? [a.tool_use_id] : [])),
+        backgroundCallIds: (live.background?.tasks ?? []).flatMap((t) => (t.tool_use_id ? [t.tool_use_id] : [])),
+      };
+      tail = { index: hasEarlier ? buildIndex(store, chat.id, first, ctx) : [], head_partial: headPartial };
+    } else if (after !== undefined) {
       afterMissing = !store.events.has(chat.id, after);
       events = afterMissing ? [] : store.events.after(chat.id, after);
     } else if (limit !== undefined) {
@@ -119,8 +150,44 @@ export function chatRoutes(app: Hono, { store, runner, approvals, databases, pro
     } else {
       events = store.events.list(chat.id);
     }
-    const detail: ChatDetail = { chat, events, has_earlier: hasEarlier, after_missing: afterMissing, approvals: approvals.list({ chatId: chat.id }), live: runner.live(chat.id) };
+    // 書きかけの返答（返答の途中で開いても文の頭から出せる。このあとに届く chat_delta は offset で重なりを捨てる）
+    const streaming = bus.streamingText(chat.id);
+    const detail: ChatDetail = {
+      chat,
+      events,
+      has_earlier: hasEarlier,
+      after_missing: afterMissing,
+      approvals: approvalList,
+      live,
+      streaming_text: streaming,
+      streaming_length: streaming?.length ?? 0,
+      ...tail,
+    };
     return c.json(detail);
+  });
+
+  // 記録の一部分（パソコンの画面が末尾の前を読み足す・遠い所の前後を読む・サブエージェントの中を読む。ChatEventsQuery）
+  app.get("/api/chats/:id/events", withChat, (c) => {
+    const { chat } = c.var;
+    const raw = Object.fromEntries(["before", "turns", "since", "around", "until", "after", "parents", "ids"].flatMap((k) => (queryOf(c, k) === undefined ? [] : [[k, queryOf(c, k)]])));
+    const q = eventsQuerySchema.parse(raw);
+    let page: ChatEventPage;
+    if ("parents" in q) {
+      const ids = (q.ids ?? "").split(",").filter(Boolean).map(Number).filter(Number.isInteger);
+      const events = scopeEvents(store, chat.id, q.parents.split(",").filter(Boolean), ids, q.before);
+      page = { events, has_earlier: false, has_later: false, head_partial: false };
+    } else if ("since" in q) page = pageSince(store, chat.id, q.before, q.since);
+    else if ("around" in q) page = pageAround(store, chat.id, q.around, q.turns, q.until);
+    else if ("after" in q) page = pageAfter(store, chat.id, q.after, q.turns, q.until);
+    else page = pageBefore(store, chat.id, q.before, q.turns);
+    return c.json(page);
+  });
+
+  // チャットの中の検索で読む本文（before より前の自分の発言とメインエージェントの返答だけ。照らし合わせは画面。コアで利用者の正規表現を流さない）
+  app.get("/api/chats/:id/texts", withChat, (c) => {
+    const { before } = z.object({ before: optionalId.unwrap() }).parse({ before: queryOf(c, "before") });
+    const texts: ChatTexts = { events: store.events.mainTexts(c.var.chat.id, before) };
+    return c.json(texts);
   });
 
   // チャットのやり取りの記録（Markdown。右クリックの「全部のやり取りをコピー」。画面が描いている範囲に関係なく、初めからすべて）

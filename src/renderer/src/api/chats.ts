@@ -1,4 +1,4 @@
-import type { Chat, ChatDetachBody, ChatDetail, ChatDetailQuery, ChatPatch, ChatTranscript, FeedItem, NewChatBody, SearchHit, TrashedResult } from "@shared/types";
+import type { Chat, ChatDetachBody, ChatDetail, ChatDetailQuery, ChatEventPage, ChatEventsQuery, ChatPatch, ChatTexts, ChatTranscript, FeedItem, NewChatBody, SearchHit, TrashedResult } from "@shared/types";
 import { withUserView } from "@/lib/userViewSnapshot";
 import { request, withQuery } from "./http";
 
@@ -20,6 +20,10 @@ export const chatsApi = {
   /** チャットの詳細（記録・回答待ち・作業中の様子。作業中の様子は SSE の chat_live で追いかける） */
   /** チャットの詳細（query を省けば記録はすべて。つなぎ直したときは after で切れていた間の分だけ） */
   chatDetail: (id: number, query: ChatDetailQuery = {}) => request<ChatDetail>("GET", withQuery(`/api/chats/${id}`, { ...query })),
+  /** チャットの記録の一部分（さかのぼる・間をすべて・遠い所の前後・下へ伸ばす・サブエージェントの中。開いたときに末尾だけを読んだあと） */
+  chatEvents: (id: number, query: ChatEventsQuery) => request<ChatEventPage>("GET", withQuery(`/api/chats/${id}/events`, { ...query })),
+  /** チャットの中の検索で探す本文（before より前の自分の発言とメインの返答だけ） */
+  chatTexts: (id: number, before: number) => request<ChatTexts>("GET", withQuery(`/api/chats/${id}/texts`, { before })),
   /** チャットのやり取りの記録（自分の発言と AI の返答を古い順に並べた Markdown。右クリックの「全部のやり取りをコピー」） */
   chatTranscriptMarkdown: (id: number) => request<ChatTranscript>("GET", `/api/chats/${id}/transcript`),
   // 名前・グループ・固定・アーカイブはどれも PATCH（プロジェクトと同じ形）
