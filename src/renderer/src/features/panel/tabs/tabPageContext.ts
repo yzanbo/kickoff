@@ -4,6 +4,8 @@ import { createContext, useContext } from "react";
 export interface TabPageActions {
   /** このタブを別ウィンドウへ移す（別ウィンドウで開けないタブ・ブラウザでは null） */
   popOut: (() => void) | null;
+  /** このタブを表に出す（閉じた欄なら開く。入れ子の欄なら外のタブも表に出す） */
+  show: () => void;
 }
 
 export const TabPageContext = createContext<TabPageActions | null>(null);

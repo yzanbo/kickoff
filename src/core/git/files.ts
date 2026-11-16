@@ -10,6 +10,7 @@ import { gitOutput, nulList } from "./exec.js";
 import { largestIcnsPng } from "./icns.js";
 import { plainLsFiles } from "./plainFolder.js";
 import { isGitWorkTree } from "./status.js";
+import { timed } from "../system/stallWatch.js";
 
 /** ファイルの一覧の上限（大きなリポジトリでも重くならないように） */
 const MAX_FILES = 20_000;
@@ -39,9 +40,7 @@ export async function listProjectFiles(repo: string): Promise<ProjectFiles> {
     lsFiles(["--deleted", "-z"]),
     lsFiles(["--others", "--ignored", "--exclude-standard", "--directory", "-z"]),
   ]);
-  const gone = new Set(nulList(deleted));
-  const files = [...new Set(nulList(all))].filter((f) => !gone.has(f)).sort();
-  const ignoredEntries = nulList(ignored).map((p) => (p.endsWith("/") ? { path: p.slice(0, -1), dir: true } : { path: p, dir: false }));
+  const { files, ignoredEntries } = readLsFiles(all, deleted, ignored);
   return {
     files: files.slice(0, MAX_FILES),
     ignored: ignoredEntries,
@@ -49,6 +48,14 @@ export async function listProjectFiles(repo: string): Promise<ProjectFiles> {
     truncated: files.length > MAX_FILES,
   };
 }
+
+/** ls-files の出力を一覧にする（大きなリポジトリでは数万行。同期の処理なので詰まりの見張りに名前を付ける） */
+const readLsFiles = timed("git:ls-files", (all: string, deleted: string, ignored: string) => {
+  const gone = new Set(nulList(deleted));
+  const files = [...new Set(nulList(all))].filter((f) => !gone.has(f)).sort();
+  const ignoredEntries = nulList(ignored).map((p) => (p.endsWith("/") ? { path: p.slice(0, -1), dir: true } : { path: p, dir: false }));
+  return { files, ignoredEntries };
+});
 
 /**
  * ファイルの一覧に出てこないフォルダ（空のフォルダ。Git はフォルダを覚えないので ls-files には出ない）。

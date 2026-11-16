@@ -1,9 +1,7 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, CornerDownRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import type { ChatEvent } from "@shared/types";
 import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat/subagents";
-import { relayedText } from "@shared/chat/prompts";
 import { cx } from "@/lib/cx";
 import { useSizeObserver } from "@/hooks/useSizeObserver";
 import { formatTokens } from "@/lib/format";
@@ -18,6 +16,7 @@ import { describeTool } from "@/features/chat/tools/toolDescribe";
 import { chatLog } from "@/features/chat/store/useChatStore";
 import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 import { agentHueStyle } from "./agentHues";
+import { subagentEvents } from "./subagentEvents";
 import { showsSubagentStatus, subagentStatusLabel } from "./subagentList";
 import type { SubagentsView } from "./subagentsContext";
 import { childrenOf, latestActivity, scopeOf } from "./subagentTree";
@@ -207,16 +206,9 @@ export function useSubagentItems(entry: SubagentEntry, view: SubagentsView): Tim
   useEffect(() => {
     if (before) void chatLog.loadScope(chatId, scopeKey.split(" "), toolUseEventId === undefined ? [] : [toolUseEventId]);
   }, [before, chatId, scopeKey, toolUseEventId]);
-  return useMemo(() => {
-    const mixed = agentId
-      ? view.loaded.map((e) => {
-          if (e.type !== "user") return e;
-          const text = relayedText(e.data.text, agentId);
-          return text === undefined ? e : ({ ...e, data: { ...e.data, text, parent: key } } as ChatEvent);
-        })
-      : view.loaded;
-    return groupEvents(mixed, scopeKey.split(" "));
-  }, [view.loaded, key, agentId, scopeKey]);
+  // そのサブエージェントの流れの記録だけを選んでから組み立てる（カードごとに読み込んだ記録の全体をたどらない。メモの仕様書「0023_表示を軽くする」の M4）
+  const events = useMemo(() => subagentEvents(view.loaded, view.events, scopeKey.split(" "), key, agentId), [view.loaded, view.events, scopeKey, key, agentId]);
+  return useMemo(() => groupEvents(events, scopeKey.split(" ")), [events, scopeKey]);
 }
 
 /** 手順（発言・ツール・入れ子のカード）と、実行中なら作業中の行。中身の記録がなければ、その理由 */

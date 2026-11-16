@@ -8,6 +8,7 @@ import { gitOutput } from "./exec.js";
 import { hashOf, MAX_FILE_BYTES, resolveInside } from "./files.js";
 import { plainSearchExcludes } from "./plainFolder.js";
 import { isGitWorkTree } from "./status.js";
+import { timed } from "../system/stallWatch.js";
 
 /** 検索で返す行の上限・1 ファイルあたりの上限・1 行の長さの上限 */
 const MAX_MATCHES = 2000;
@@ -41,6 +42,15 @@ export async function searchProject(repo: string, q: ProjectSearchQuery): Promis
   const out = await gitOutput(repo, args, [1]).catch(() => {
     throw new Invalid(q.regex ? "正規表現の書き方が正しくありません" : "検索できませんでした（含める・除外するファイルの書き方を確かめてください）");
   });
+  readGrep(out, result);
+  return result;
+}
+
+/**
+ * git grep -z の出力を、ファイルごとの見つかった行にする（上限を超えたら打ち切る）。出力を読むのは同期の処理なので、
+ * 詰まりの見張りに名前を付ける（system/stallWatch.ts の timed。ほかの Git の出力の読み取りも git:<何> で同じ）
+ */
+const readGrep = timed("git:grep", (out: string, result: ProjectSearchResult) => {
   for (const record of out.split("\n")) {
     if (!record) continue;
     const [file, line, column, ...rest] = record.split("\0");
@@ -53,8 +63,7 @@ export async function searchProject(repo: string, q: ProjectSearchQuery): Promis
     entry.matches.push({ line: Number(line), column: Number(column), text: lineText(rest.join("\0")) });
     result.total++;
   }
-  return result;
-}
+});
 
 /**
  * 探した結果の行を置換する（VS Code の検索の置換）。行ごとに、いまの行が結果の行の文と同じときだけ、その行の中の見つかる部分をすべて置き換える

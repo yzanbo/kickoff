@@ -8,29 +8,42 @@ import type { ChatVisuals } from "@/features/chat/visuals/visualsContext";
 import { relativeOf } from "@/features/chat/timeline/timelineItems";
 import { createChatStore, type ChatDetailView, type ChatLogView } from "./chatStore";
 import { createChatSelectors, type ChatSubagents } from "./chatSelectors";
+import { createPrefetchQueue } from "./prefetch";
+import { createHoverPrefetch } from "./hoverPrefetch";
 import type { Channel } from "./chatStoreTypes";
 
 /*
  * アプリで使うチャットの店（1 つだけ）と、口ごとの React の hook。店はモジュールを読んだときにサーバーの知らせを購読し、
  * 部品の hook より先に知らせを受ける。テストはこのモジュールを使わず、createChatStore で作った店を試す
  */
+function idle(fn: () => void, timeout: number) {
+  const id = requestIdleCallback(fn, { timeout });
+  return () => cancelIdleCallback(id);
+}
+function timer(fn: () => void, ms: number) {
+  const id = setTimeout(fn, ms);
+  return () => clearTimeout(id);
+}
+
 const chatStore = createChatStore({
   frame: (fn) => {
     const id = requestAnimationFrame(fn);
     return () => cancelAnimationFrame(id);
   },
-  timer: (fn, ms) => {
-    const id = setTimeout(fn, ms);
-    return () => clearTimeout(id);
-  },
+  idle,
+  timer,
   now: () => Date.now(),
   windowHidden: () => document.visibilityState === "hidden",
   load: (chatId, query) => api.chatDetail(chatId, query),
   page: (chatId, query) => api.chatEvents(chatId, query),
 });
 const selectors = createChatSelectors(chatStore);
+const prefetchQueue = createPrefetchQueue({ prefetch: (chatId) => chatStore.prefetch(chatId), busy: () => chatStore.busy(), idle, timer });
 subscribeServerEvent((event) => chatStore.apply(event));
 subscribeServerOpen(() => chatStore.reconnected());
+// チャットを開く所（サイドバーの行・ボードのカード・パネルのタブ）に乗せて少し待ったら先読みする（hoverPrefetch.ts）
+const hover = createHoverPrefetch({ timer, prefetch: (chatId) => prefetchQueue.request([chatId]) });
+document.addEventListener("pointerover", (e) => hover.over(e.target instanceof Element ? e.target : null), { passive: true });
 // ウィンドウが表に出たら、ためていた途中の文をすぐ当てる
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") chatStore.windowShown();
@@ -83,6 +96,12 @@ export const chatLog = {
   loadScope: (chatId: number, parents: readonly string[], ids?: readonly number[]) => chatStore.loadScope(chatId, parents, ids),
   shows: (chatId: number, eventId: number) => chatStore.shows(chatId, eventId),
 };
+
+/**
+ * チャットを先読みする（末尾と索引だけ。見る部品は増やさない。メモの仕様書「0023_表示を軽くする」の案 4・分冊 3 の 1-4-7）。
+ * 手すきのときに 1 件ずつ、見ているチャットの読み込み中は待つ。先に書いたものほど先に読む
+ */
+export const prefetchChats = (chatIds: readonly number[]) => prefetchQueue.request(chatIds);
 
 /** 書いている途中の返答の世代（記録の口から選んで読む。消したときだけ変わり、確定した返答が記録に入る描き直しと同じ 1 回で進む） */
 export function useChatStreamGen(chatId: number): number {

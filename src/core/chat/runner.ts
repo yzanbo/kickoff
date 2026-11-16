@@ -700,7 +700,6 @@ export class Runner extends RunnerQueue {
     runtime.turn.abort();
   }
 
-  /** 実行中のエージェントの数（接続の詳細の表示用） */
   /** 作業中のチャット（送る準備・親の会話を写している途中も。ID の順） */
   busyChats(): { id: number; title: string | null }[] {
     return this.runtimes
@@ -712,6 +711,7 @@ export class Runner extends RunnerQueue {
       .sort((a, b) => a.id - b.id);
   }
 
+  /** 実行中のエージェントの数（接続の詳細の表示用） */
   stats(): { running: number } {
     return { running: this.runtimes.running().length };
   }

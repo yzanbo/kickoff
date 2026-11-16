@@ -132,6 +132,18 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
       return page(e, query, (p, d) => ({ range: withScopes(d.range, wanted, p.events) }));
     },
 
+    /**
+     * 頭のターンを途中から読んだ末尾（U5。1 ターンが大きすぎて終わりから上限まで読んだ）の、そのターンの頭までを読んで末尾につなぐ。
+     * 読み終えるまで、その作業の終わりの行に作業全体から作るもの（変更カード・返答のコピー・依頼文）を出さない。店が描いたあとの手すきに呼ぶ
+     */
+    fillHead(chatId: number): Promise<void> {
+      const e = loadedEntry(chatId);
+      if (!e) return resolved;
+      const { range } = e.detail;
+      if (range.focus || !range.headPartial || range.tailStart === 0) return resolved;
+      return page(e, { before: range.tailStart, since: turnHeadOf(range, range.tailStart) }, (p, d) => joinSince(d.range, d.events, p));
+    },
+
     /** その記録をいま流れに出しているか */
     shows(chatId: number, eventId: number): boolean {
       const e = loadedEntry(chatId);

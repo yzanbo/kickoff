@@ -45,12 +45,11 @@ function countMatches(state: EditorState): { total: number; current: number | nu
  * 本文の右上に浮かせる（.memo-find）。VS Code と同じく左の ▸ で置き換えの行を開く（Enter で 1 つ、⌘Enter ですべて置き換える）。
  * 検索の欄の中のキー（Esc で閉じる・⌘G で次へなど）は CodeMirror の検索の欄と同じ（searchKeymap の search-panel）
  */
-function MemoFindPanel({ view, initialFocus }: { view: EditorView; initialFocus: boolean }) {
-  // CodeMirror の view.state（同じ view のまま書き換わる外の値）を描く中で読むので、React Compiler に覚えさせない
-  // （覚えると view が同じ間は検索の形・件数を読み直さない。描き直しは CodeMirror の更新ごとに root.render で頼まれる）
-  "use no memo";
+function MemoFindPanel({ view, state, initialFocus }: { view: EditorView; state: EditorState; initialFocus: boolean }) {
+  // 描く中では view.state（同じ view のまま書き換わる外の値）ではなく、渡された state（CodeMirror の更新ごとに新しい物）を読む
+  // （React Compiler が view が同じ間の結果を使い回しても、state が替われば読み直す。メモの仕様書「0023_表示を軽くする」の案 17）
   const { options, toggle } = useFindOptions();
-  const query = getSearchQuery(view.state);
+  const query = getSearchQuery(state);
   const [text, setText] = useState(query.search);
   const remembered = replaceMemory.get(view);
   const [replace, setReplaceState] = useState(remembered?.text ?? query.replace);
@@ -64,15 +63,15 @@ function MemoFindPanel({ view, initialFocus }: { view: EditorView; initialFocus:
     replaceMemory.set(view, { open, text: replace });
   };
   const searchRef = useRef<HTMLInputElement>(null);
-  // 最後に CodeMirror へ渡した文（ほかから変わった（⌘F で選んでいる文を入れた）ときだけ、欄を合わせる）
-  const pushed = useRef(query.search);
-  if (query.search !== pushed.current) {
-    pushed.current = query.search;
+  // CodeMirror の検索の文が変わったら欄を合わせる（ほかから変わった = ⌘F で選んでいる文を入れたとき。欄で打った文を渡したときは同じ文なので変わらない）。
+  // 前の値は描いている間に比べる（ref に書かない）
+  const [seen, setSeen] = useState(query.search);
+  if (query.search !== seen) {
+    setSeen(query.search);
     setText(query.search);
   }
 
   const push = (search: string, replaceText: string, opts: FindOptions) => {
-    pushed.current = search;
     view.dispatch({ effects: setSearchQuery.of(memoSearchQuery(search, replaceText, opts)) });
   };
 
@@ -92,7 +91,7 @@ function MemoFindPanel({ view, initialFocus }: { view: EditorView; initialFocus:
     searchRef.current?.select();
   }, [initialFocus]);
 
-  const { total, current, capped } = countMatches(view.state);
+  const { total, current, capped } = countMatches(state);
   const invalid = Boolean(text) && !query.valid;
 
   // 検索の欄の中のキー（Esc で閉じる・⌘G で次へなど）は CodeMirror の検索の欄と同じ（searchKeymap の search-panel）
@@ -144,7 +143,7 @@ export function createMemoFindPanel(view: EditorView): Panel {
   const dom = document.createElement("div");
   dom.className = "find-panel-host";
   const root = createRoot(dom);
-  const render = (initialFocus: boolean) => root.render(<MemoFindPanel view={view} initialFocus={initialFocus} />);
+  const render = (initialFocus: boolean) => root.render(<MemoFindPanel view={view} state={view.state} initialFocus={initialFocus} />);
   return {
     dom,
     top: true,
