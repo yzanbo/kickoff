@@ -107,6 +107,11 @@ export class ChatRecovery {
     return true;
   }
 
+  /** 通信の切断で止まり、つながったら自動で再開するのを待っているチャット（アプリを終えるとき、起動したときの再開の確かめの印を付ける） */
+  waitingForReconnect(): number[] {
+    return this.deps.runtimes.all().filter((r) => r.recovery.waiting?.rule.reason === "reconnect").map((r) => r.chatId);
+  }
+
   /** アプリを終えるとき（もう待たない） */
   shutdown() {
     this.online.stop();

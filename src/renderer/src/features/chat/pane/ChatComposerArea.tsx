@@ -18,6 +18,7 @@ import { QueueModeToggle } from "@/features/chat/composer/QueueModeToggle";
 import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 import type { PromptList } from "@/features/chat/prompts/promptHistory";
 import { PromptsChip } from "@/features/chat/prompts/PromptsChip";
+import { RestartResumeBanner } from "@/features/chat/queue/RestartResumeBanner";
 import { QueuedMessages } from "@/features/chat/queue/QueuedMessages";
 import { sentShownKey } from "@/features/chat/queue/useSendingQueued";
 import { TodoChip } from "@/features/chat/status/TodoChip";
@@ -110,7 +111,9 @@ export function ChatComposerArea({
       {!portal?.target && <span ref={onDock} className="composer-chips-dock" />}
     </div>
   );
-  const queuedList = <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={live.queue_resume} sentShown={sentShown} />;
+  // 起動したときの再開の確かめ: 送信待ちを聞いていれば送信待ちの上に、作業の途中で止まったことだけなら入力欄の上に帯を出す
+  const resume = live.restart_resume;
+  const queuedList = <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={resume?.queued ? resume : null} sentShown={sentShown} />;
   // 外の入力欄（メモの下）にも、送信待ちがあるかを知らせる（あれば、チャット欄と同じく送るものを送信待ちに足す）
   useEffect(() => portal?.onQueued(queued), [portal, queued]);
   return (
@@ -123,6 +126,8 @@ export function ChatComposerArea({
       {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる（外に描く先があればそこへ。一番下へ戻るボタンは流れの側に残す） */}
       {portal?.target ? createPortal(chips, portal.target) : chips}
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順。外に描く先があれば、そこの入力欄の上へ） */}
+      {/* 作業の途中で止まったことだけを聞いているときの帯は、送信待ち・入力欄の上（送信待ちと入力欄の 1 枚の枠を切らない） */}
+      {resume && !resume.queued && <RestartResumeBanner chatId={chat.id} resume={resume} standalone />}
       {portal?.queueTarget ? createPortal(queuedList, portal.queueTarget) : queuedList}
       {heldEdit && <HeldEditComposer chat={chat} edit={heldEdit} gone={!live.after_compact.some((m) => m.id === heldEdit.id)} composer={composer} />}
       {/* 預かった指示を書き直している間は、ふつうのチャット欄を隠して残す（書きかけの文・添付はそのまま。chat.css の .chat-composer:has(> .held-edit)） */}

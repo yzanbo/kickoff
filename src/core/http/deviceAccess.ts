@@ -45,8 +45,8 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/chats/:id/subagents/:agentId/children"],
   ["POST", "/api/chats/:id/handoff"],
   // 送信待ち
-  ["GET", "/api/queue-resumes"],
-  ["POST", "/api/queue-resumes"],
+  ["GET", "/api/restart-resumes"],
+  ["POST", "/api/restart-resumes"],
   ["POST", "/api/chats/:id/queue"],
   ["DELETE", "/api/chats/:id/queue"],
   ["PUT", "/api/chats/:id/queue/stop-after"],

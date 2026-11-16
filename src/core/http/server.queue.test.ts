@@ -79,7 +79,7 @@ test("待ちの列は再起動しても残る: 自動で送るのまま読み戻
   assert.deepEqual(restarted.live(chatId).queue.messages.map((m) => m.text), ["2", "3"]);
   assert.equal(restarted.live(chatId).queue.paused, false);
   assert.deepEqual(
-    restarted.queueResumes().map((r) => [r.chat_id, r.messages.length, r.messages[0].text]),
+    restarted.restartResumes().map((r) => [r.chat_id, r.messages.length, r.messages[0].text]),
     [[chatId, 2, "2"]],
   );
   release();
@@ -478,12 +478,12 @@ test("チャット欄の /clear: Claude Code に送らず、作業していな�
   assert.deepEqual(provider.prompts.includes("/clear"), false);
 });
 
-test("起動したときの送信待ちの確かめの API: 一覧と答え（チャットごと。答えたあとの残りを返す）", async () => {
+test("起動したときの再開の確かめの API: 一覧と答え（チャットごと。答えたあとの残りを返す）", async () => {
   const { call } = setup();
-  assert.deepEqual((await call("GET", "/api/queue-resumes")).body, []);
-  assert.equal((await call("POST", "/api/queue-resumes", {})).status, 400);
-  assert.equal((await call("POST", "/api/queue-resumes", { decisions: [{ chat_id: 1, action: "later" }] })).status, 400);
+  assert.deepEqual((await call("GET", "/api/restart-resumes")).body, []);
+  assert.equal((await call("POST", "/api/restart-resumes", {})).status, 400);
+  assert.equal((await call("POST", "/api/restart-resumes", { decisions: [{ chat_id: 1, action: "later" }] })).status, 400);
   // 確かめを待っていないチャットへの答えは飛ばす
-  const answered = await call("POST", "/api/queue-resumes", { decisions: [{ chat_id: 999, action: "send" }] });
+  const answered = await call("POST", "/api/restart-resumes", { decisions: [{ chat_id: 999, action: "send" }] });
   assert.deepEqual([answered.status, answered.body], [200, []]);
 });

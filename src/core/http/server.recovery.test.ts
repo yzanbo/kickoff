@@ -33,6 +33,19 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
   assert.equal(runner.live(chatId).reconnect, null);
 });
 
+test("通信の切断: つながるのを待っている間にアプリを終えたら、起動したときの再開の確かめの印を付ける（使用枠の上限を待つものは付けない）", async () => {
+  const { call, project, runner, provider, network, store } = setup();
+  const release = provider.hold();
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  provider.networkFailures = 1;
+  network.online = false;
+  release();
+  await until(() => runner.live(chatId).reconnect !== null);
+  runner.shutdown();
+  assert.deepEqual(store.chats.recoverInterrupted("中断しました"), [chatId]);
+});
+
 test("通信の切断: 通信で止まったサブエージェントは、自動で再開するときに名前と ID を添えて続きから再開を頼む（自分で止めたものは頼まない）", async () => {
   const { call, project, runner, provider, network, store } = setup();
   network.online = false;

@@ -4,7 +4,7 @@ import type { UserView } from "./userView";
 import type { Approval } from "./approval";
 import type { Attachment, AttachmentSource, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent, HandoffFrom, HandoffVia } from "./chatEvent";
-import type { ChatLive, QueueResumeAction, QueueState } from "./chatLive";
+import type { ChatLive, RestartResumeAction, QueueState } from "./chatLive";
 import type { DbAiAccess, DbColumnInfo, DbEngine, DbEnvironment, DbErPositions, DbFilter, DbObjectPath, DbPrep, DbRowEdit, DbRowFilter, DbSort, DbSsh, DbSsl, DbValue, DbWriteCheck } from "./database";
 import type { GitHubCheckoutPlace, GitHubCloseReason, GitHubKind, GitHubMergeMethod, GitHubReviewDraftComment, GitHubReviewEvent } from "./github";
 import type { Project, ProjectReference } from "./project";
@@ -382,9 +382,9 @@ export interface NewSnippetBody {
 /** 定型文を変える（PATCH /api/snippets/:id。書いた項目だけ変える。project_id を null にすると共通に、番号にするとそのプロジェクトだけに） */
 export type SnippetPatch = Partial<NewSnippetBody>;
 
-/** 起動したときの送信待ちの確かめに答える（POST /api/queue-resumes。チャットごと） */
-export interface QueueResumeBody {
-  decisions: { chat_id: number; action: QueueResumeAction }[];
+/** 起動したときの再開の確かめに答える（POST /api/restart-resumes。チャットごと） */
+export interface RestartResumeBody {
+  decisions: { chat_id: number; action: RestartResumeAction }[];
 }
 
 /**

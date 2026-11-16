@@ -467,7 +467,17 @@ CREATE INDEX idx_chat_events_meta ON chat_events(
 );
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30];
+/**
+ * v31: 起動したときの再開の確かめの印（メモの仕様書「0026_起動したときの再開の確かめ」の D3・D8）。前回の終了で作業の途中で止まったチャット
+ * （アプリを終えるときに作業中・つながるのを待っていた、落ちて作業中のまま残った）に 1 を書き、答える・自分で送る・アーカイブする・ゴミ箱に入れるまで残す
+ * （「あとで」を選んだら、次の起動でも聞く）。店の中だけで使い、Chat には出さない
+ */
+const SCHEMA_V31 = `
+ALTER TABLE chats ADD COLUMN resume_pending INTEGER NOT NULL DEFAULT 0 CHECK (resume_pending IN (0, 1));
+CREATE INDEX idx_chats_resume_pending ON chats(resume_pending) WHERE resume_pending = 1;
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
