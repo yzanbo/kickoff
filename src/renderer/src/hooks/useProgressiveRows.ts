@@ -1,6 +1,6 @@
 import { createContext, startTransition, useContext, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
-import { allocateRows, createProgressive, firstRowLimit, progressiveSlice } from "@/lib/progressive";
+import { allocateColumns, allocateRows, columnsInView, createProgressive, firstRowLimit, progressiveSlice } from "@/lib/progressive";
 
 // 長い一覧（サイドバーのプロジェクトのチャットの一覧・ボード）を段階に分けて描く（決まりは lib/progressive.ts。メモの仕様書「0023_表示を軽くする」の案 23）。
 // ページの入口の useProgressivePage が、開いた直後は画面に入る数（ページ全体で 1 つの上限）を、最初の描画のあとは上限なし（Infinity）を返し、
@@ -44,11 +44,12 @@ export function useProgressivePage(key: string, hidden = false): number {
 
 /**
  * まとまり（counts はまとまりごとの行の数。閉じているものは 0）に、いまの上限を配る。縦に並ぶ（stacked）なら上から順に分け、
- * 横に並ぶ（カンバンの列。どれも上から見える）ならそれぞれに同じ上限
+ * 横に並ぶ（カンバンの列。どれも上から見える）なら、窓の幅に入りうる左の列にそれぞれ同じ上限、横にはみ出して見えない列は 0
+ * （最初の描画のあと、上限なしですべて描く）
  */
 export function useRowBudgets(counts: readonly number[], stacked = true): number[] {
   const budget = useContext(RowBudget);
-  return stacked ? allocateRows(counts, budget) : counts.map(() => budget);
+  return stacked ? allocateRows(counts, budget) : allocateColumns(counts.length, budget, columnsInView(window.innerWidth));
 }
 
 /** 行を描く一覧: いまの上限の数だけ頭から（収まれば同じ配列のまま）と、省いた行の数（ui/ProgressiveRows.tsx の ProgressiveSpacer で場所を取る） */
