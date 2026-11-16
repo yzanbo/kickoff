@@ -303,6 +303,11 @@ export class WorktreeFinisher {
     }
   }
 
+  /** 片付けを予約したワークツリーのフォルダ（利用者が作業場所を移す先にできない。メモの仕様書「0025」の H7） */
+  reservedFolders(): Set<string> {
+    return new Set([...this.reserved.values()].map((r) => r.folder));
+  }
+
   /** 予約を確かめる（少し待ってから。頼んだチャットの作業の後始末が済むまで） */
   private schedule(delay = 0) {
     if (this.timer) return;
@@ -334,7 +339,9 @@ export class WorktreeFinisher {
       this.reserved.delete(chatId);
       try {
         const result = await this.remove(project, r.folder, { ...AI_FINISH, byChatId: chatId });
-        store.events.add(chatId, { type: "notice", message: result.text });
+        // 予約したチャットが、待つ間によそへ作業場所を移していても予約は残す（H7）。そのことを結果に添える
+        const movedAway = chat.worktree_path !== r.folder;
+        store.events.add(chatId, { type: "notice", message: movedAway ? `${result.text}\n（このチャットは予約のあとで作業場所を移していたので、移した先のまま続きます）` : result.text });
       } catch (e) {
         store.events.add(chatId, { type: "notice", message: `ワークツリーを片付けられませんでした（${errorMessage(e)}）` });
       }

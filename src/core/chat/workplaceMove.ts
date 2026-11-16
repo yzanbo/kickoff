@@ -33,6 +33,16 @@ export interface WorkplaceMoveInput {
   backedUp?: boolean;
 }
 
+/**
+ * 移す前後の段（利用者・AI が新しいワークツリーへ移すとき）: before = ワークツリーを作る・変更を持っていく（決まった作業場所などを返す）、
+ * after = 移せたあとの片付け（持っていった変更の stash を消す）、undo = 移せなかったときに元へ戻す（G6）
+ */
+export interface WorkplaceMoveSteps {
+  before?: () => Promise<Partial<WorkplaceMoveInput>>;
+  after?: () => Promise<void>;
+  undo?: () => Promise<void>;
+}
+
 /** 利用者・AI が移すとき（写せなければ移さない。G6）か、Kickoff が自動で変えるとき（作業場所はもうないので、写せなくても移す） */
 const isManual = (reason: WorkplaceMoveReason) => reason === "user" || reason === "ai";
 

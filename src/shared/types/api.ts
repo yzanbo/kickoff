@@ -604,3 +604,26 @@ export const CHAT_TAIL_MAX_BYTES = 2_000_000;
 /** 1 ターンの記録の数と大きさの上限（超えたら終わりからこの分だけ読み、head_partial にする） */
 export const CHAT_TURN_MAX_EVENTS = 2000;
 export const CHAT_TURN_MAX_BYTES = 4_000_000;
+
+/** チャットの作業場所を移す（POST /api/chats/:id/workplace。メモの仕様書「0025」）。worktree_path: 移す先のワークツリー（本体なら null） */
+export interface WorkplaceMoveBody {
+  worktree_path: string | null;
+  /** 新しいワークツリーへ移すときのブランチの名前（このチャットのいまの作業場所のいまのコミットから作る。Q1。あれば worktree_path は見ない） */
+  new_worktree_branch?: string;
+  /** コミットしていない変更も持っていく（新しいワークツリーのときだけ。Q2） */
+  carry?: boolean;
+}
+
+/** 移す前の確かめの中身（GET /api/chats/:id/workplace。Q2・Q5・H7） */
+export interface WorkplaceMoveCheck {
+  /** 元の作業場所のコミットしていない変更（プロジェクトのフォルダの中から見たパス。I3。フォルダがなければ空） */
+  changes: string[];
+  /** 元の作業場所で動いている内蔵ターミナル（Q5。止めずに残す） */
+  terminals: { title: string; command: string | null }[];
+  /** 片付けを予約したワークツリー（移す先にできない。H7） */
+  reserved: string[];
+  /** 移せない理由（実行環境を整えるチャット・Git でないプロジェクト。G2・I4。移せれば null） */
+  blocked: string | null;
+  /** 元の作業場所のフォルダがない（変更の確かめは飛ばす。G2） */
+  missing: boolean;
+}
