@@ -1,4 +1,5 @@
 import type { BrowserControl } from "../browser/control.js";
+import { shellPathSettled } from "../system/exec.js";
 import type { TerminalControl } from "../terminal/control.js";
 import { createDbAiTools, hasAiConnections } from "../databases/aiTools.js";
 import { hiddenDbTargets } from "./guard/hiddenDbTargets.js";
@@ -141,6 +142,8 @@ export interface StoppedAgent {
 export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false, compactTrigger }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
   const { store, providers } = deps;
   try {
+    // エージェントの CLI は、ログインシェルの PATH を読み直し終えてから起こす（コアのプロセスの起動の直後だけ待つ。system/exec.ts）
+    await shellPathSettled();
     const chat = store.chats.get(chatId)!;
     const project = store.projects.get(chat.project_id)!;
     const cwd = await resolveWorkdir(chat, project);

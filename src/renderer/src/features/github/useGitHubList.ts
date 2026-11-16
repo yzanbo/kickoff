@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { GitHubItem, GitHubItemPage, GitHubListFilter } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { api } from "@/api";
+import { useLatest } from "@/hooks/useLatest";
 import { freshItemNumbers, GITHUB_FRESH_MS } from "./githubFresh";
 import { useGitHubRefresh } from "./useGitHubRefresh";
 
@@ -25,8 +26,8 @@ export function useGitHubList(projectId: number, filter: GitHubListFilter, activ
   const [state, setState] = useState<ListState>({ page: null, error: null, loading: true, loadingMore: false });
   const seq = useRef(0);
   const filterKey = JSON.stringify(filter);
-  const current = useRef({ projectId, filter });
-  current.current = { projectId, filter };
+  // 読むときのいまのプロジェクト・絞り込み（load は作り直さない）
+  const currentRef = useLatest({ projectId, filter });
   // 前に読んだ一覧（同じプロジェクト・絞り込みのときだけ比べる）
   const shown = useRef<{ key: string; items: GitHubItem[] } | null>(null);
   const [fresh, setFresh] = useState<ReadonlySet<number>>(NO_FRESH);
@@ -39,7 +40,7 @@ export function useGitHubList(projectId: number, filter: GitHubListFilter, activ
 
   const load = useCallback((refresh: boolean) => {
     const id = ++seq.current;
-    const { projectId: p, filter: f } = current.current;
+    const { projectId: p, filter: f } = currentRef.current;
     const key = `${p}:${JSON.stringify(f)}`;
     setState((s) => ({ ...s, loading: true }));
     api.githubItems(p, f, { refresh }).then(
@@ -52,12 +53,12 @@ export function useGitHubList(projectId: number, filter: GitHubListFilter, activ
       },
       (e: unknown) => id === seq.current && setState((s) => ({ ...s, error: errorMessage(e), loading: false, loadingMore: false })),
     );
-  }, []);
+  }, [currentRef]);
 
+  // 開いた・プロジェクトか絞り込みの中身が変わったら読む
   useEffect(() => {
     if (active) load(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, filterKey, active]);
+  }, [projectId, filterKey, active, load]);
 
   useGitHubRefresh(() => load(false), active);
 

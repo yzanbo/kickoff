@@ -150,7 +150,7 @@ function sendKey(wc: WebContents, key: string) {
 }
 
 export const agentBrowser: BrowserControl = {
-  tabs: () => [...entries.values()].filter((e) => !e.wc.isDestroyed()).map(infoOf),
+  tabs: async () => [...entries.values()].filter((e) => !e.wc.isDestroyed()).map(infoOf),
 
   async open(projectId, url, reveal) {
     const win = mainWindow();
@@ -276,7 +276,7 @@ export const agentBrowser: BrowserControl = {
     return truncate(typeof value === "string" ? value : (JSON.stringify(value, null, 2) ?? String(value)));
   },
 
-  consoleLogs: (tabId) => webviewConsoleOf(entryOf(tabId).wc.id),
+  consoleLogs: async (tabId) => webviewConsoleOf(entryOf(tabId).wc.id),
 
   touch(tabId) {
     const entry = entries.get(tabId);

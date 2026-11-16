@@ -4,7 +4,7 @@ import { macosPlatform } from "../../core/platform/macos/index.js";
 import { SPEECH_HELPER } from "../app/environment.js";
 import { macosDesktopPlatform } from "./macos/index.js";
 
-/** コアと共通の OS の口（startCore に渡す。音声認識の補助コマンドの場所も） */
+/** コアと共通の OS の口（メインではプロセスの表・子の Electron に使う。コアのプロセスは自分で作る） */
 export const hostPlatform = macosPlatform({ speechHelper: SPEECH_HELPER });
 
 /** メインプロセスだけで使う OS の口 */

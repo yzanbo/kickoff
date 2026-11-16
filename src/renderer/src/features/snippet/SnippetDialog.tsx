@@ -9,9 +9,9 @@ import { SnippetManager, type SnippetEditing } from "./SnippetManager";
  */
 export function SnippetDialog({ projectId, initialEditing, onClose }: { projectId: number; initialEditing?: SnippetEditing; onClose: () => void }) {
   // 書きかけのフォームを、背景を押して消さない
-  const dialog = useModalDialog({ closeOnBackdrop: false });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog snippet-dialog" aria-label="定型文" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog snippet-dialog" aria-label="定型文" onClose={onClose}>
       <div className="app-dialog-body">
         <div className="snippet-dialog-head">
           <h2 className="app-dialog-title">定型文</h2>

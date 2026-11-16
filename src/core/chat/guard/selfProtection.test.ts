@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import os from "node:os";
 import { test } from "vitest";
 import { MACOS_SELF_GUARD } from "../../platform/macos/index.js";
-import { evaluateSelfProtection, type SelfInfo } from "./selfProtection.js";
+import { currentSelf, evaluateSelfProtection, type SelfInfo } from "./selfProtection.js";
 
 const home = os.homedir();
 const prod: SelfInfo = {
-  pid: 4242,
+  // コアのプロセス（4242）と Electron のメインプロセス（4100）
+  pids: [4242, 4100],
   dataDir: `${home}/Library/Application Support/Kickoff`,
   port: 4317,
   appName: "Kickoff",
@@ -18,6 +19,10 @@ const bash = (command: string) => evaluateSelfProtection(prod, "Bash", { command
 test("evaluateSelfProtection: 自分のプロセスを止めるコマンドを断る", () => {
   assert.equal(bash("kill -TERM 4242"), "deny");
   assert.equal(bash("kill 4242 && echo done"), "deny");
+  // メインプロセスも自分（止めると全部が止まる）。断る文には当たった pid を出す
+  const main = evaluateSelfProtection(prod, "Bash", { command: "kill -9 4100" });
+  assert.ok(main.decision === "deny" && main.reason.includes("プロセス 4100"));
+  assert.equal(bash("kill -TERM 41000"), "pass");
   assert.equal(bash("pkill -f Kickoff"), "deny");
   assert.equal(bash("killall Kickoff"), "deny");
   assert.equal(bash(`osascript -e 'tell application "Kickoff" to quit'`), "deny");
@@ -61,7 +66,7 @@ test("evaluateSelfProtection: ファイルのツールで保存先を読み書�
 });
 
 test("evaluateSelfProtection: 開発中（アプリ本体なし）は、本体の判定をしない", () => {
-  const dev: SelfInfo = { pid: 7, dataDir: `${home}/Library/Application Support/Kickoff Dev`, port: 4318, appName: "Kickoff Dev", guard: MACOS_SELF_GUARD };
+  const dev: SelfInfo = { pids: [7], dataDir: `${home}/Library/Application Support/Kickoff Dev`, port: 4318, appName: "Kickoff Dev", guard: MACOS_SELF_GUARD };
   const run = (command: string) => evaluateSelfProtection(dev, "Bash", { command }).decision;
   assert.equal(run("ls /Applications/Kickoff.app"), "pass");
   assert.equal(run("curl localhost:4318/api/status"), "deny");
@@ -78,4 +83,10 @@ test("evaluateSelfProtection: Kickoff が置いた kickoff-trash（保存先の 
   assert.equal(bash(`"${prod.dataDir}/bin/kickoff-trash" dist`), "pass");
   assert.equal(bash(`~/Library/Application\\ Support/Kickoff/bin/kickoff-trash a.txt`), "pass");
   assert.equal(bash(`ls "${prod.dataDir}/trash"`), "deny");
+});
+
+test("currentSelf: メインプロセスの pid を渡せば、コアのプロセスと両方を自分にする（単体のコアは自分だけ）", () => {
+  const platform = { appBundleOf: () => null, selfGuard: MACOS_SELF_GUARD };
+  assert.deepEqual(currentSelf("/tmp/Kickoff Dev", 4318, platform, 1).pids, [process.pid, 1]);
+  assert.deepEqual(currentSelf("/tmp/Kickoff Dev", 4318, platform).pids, [process.pid]);
 });

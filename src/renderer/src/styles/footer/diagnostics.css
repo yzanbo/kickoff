@@ -55,3 +55,44 @@
   white-space: nowrap;
   color: var(--muted);
 }
+
+/* Kickoff のコアが落ちた・応答しないときの帯（CoreStatusBand。画面の上の真ん中に浮かせる。押せるようドラッグ領域から外す） */
+.core-status-band {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(640px, calc(100vw - 2 * var(--gutter)));
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  background: var(--bg-elev);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+  transform: translateX(-50%);
+  -webkit-app-region: no-drag;
+}
+
+.core-status-band.core-failed,
+.core-status-band.core-unresponsive {
+  border-color: var(--ng);
+}
+
+.core-status-error {
+  color: var(--ng);
+  font-size: 12px;
+}
+
+/* 設定の「診断」の、いつも取っている記録のまとめ（最近 24 時間の詰まり・最後の起動の時刻。1〜3 行） */
+.diagnostics-overview {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 8px;
+  padding: 0;
+  font-size: 12px;
+  list-style: none;
+  overflow-wrap: anywhere;
+}

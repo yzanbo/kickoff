@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Clock, Search, TriangleAlert, WrapText } from "lucide-react";
 import type { DockerCompose } from "@shared/types";
 import { useSetting } from "@/hooks/useSetting";
@@ -76,7 +76,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
   const rootRef = useRef<HTMLElement>(null);
   const menu = useDockerLogMenu({ projectId, compose, rows: shown, infos, labelOf, body: bodyRef });
   const [following, setFollowing] = useState(true);
-  const seen = useRef({ id: 0, ts: "" });
+  const [seen, setSeen] = useState({ id: 0, ts: "" });
   const onScroll = () => {
     const el = bodyRef.current;
     if (!el) return;
@@ -84,7 +84,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
     if (bottom !== following) {
       setFollowing(bottom);
       logs.setHold(!bottom);
-      if (!bottom) seen.current = { id: Math.max(0, ...logs.rows.map((r) => r.id)), ts: shown[shown.length - 1]?.ts ?? "" };
+      if (!bottom) setSeen({ id: Math.max(0, ...logs.rows.map((r) => r.id)), ts: shown[shown.length - 1]?.ts ?? "" });
     }
     menu.handlers.onScroll();
   };
@@ -92,7 +92,7 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
     if (following && bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
   }, [shown, following, wrap, showTime]);
   // 新しい行 = 止めたあとに届いた、止めたときの最後の行より新しい行（さかのぼって読んだ行は数えない）
-  const newCount = following ? 0 : shown.filter((r) => r.id > seen.current.id && r.ts >= seen.current.ts).length;
+  const newCount = following ? 0 : shown.filter((r) => r.id > seen.id && r.ts >= seen.ts).length;
   const toLatest = () => {
     setFollowing(true);
     logs.setHold(false);
@@ -113,12 +113,11 @@ export function DockerLogs({ projectId, compose, request, onClose }: { projectId
   }, [find.open]);
   // ↑↓ で移った一致を真ん中に（新しい行が届いても動かさない）
   const current = find.current;
-  const shownRef = useRef(shown);
-  shownRef.current = shown;
+  const indexOfShown = useEffectEvent((id: number) => shown.findIndex((r) => r.id === id));
   const { setHold } = logs;
   useEffect(() => {
     if (!current) return;
-    const index = shownRef.current.findIndex((r) => r.id === current.id);
+    const index = indexOfShown(current.id);
     if (index < 0) return;
     setFollowing(false);
     setHold(true);

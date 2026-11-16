@@ -59,12 +59,10 @@ export function useHistoryOps({
     fetch: async () => {
       if (fetching) return;
       setFetching(true);
-      try {
-        await git.fetchRemote();
-        log.refresh();
-      } finally {
-        setFetching(false);
-      }
+      await git
+        .fetchRemote()
+        .then(() => log.refresh())
+        .finally(() => setFetching(false));
     },
     /** プルできない理由（できれば null） */
     pullBlocked: noBranch ?? (upstream ? null : "追いかけているリモートのブランチがありません"),

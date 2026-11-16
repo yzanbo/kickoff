@@ -1,5 +1,5 @@
 import { ExternalLink, GitMerge, GitPullRequestClosed } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { WorktreePrNotice } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { api } from "@/api";
@@ -87,7 +87,7 @@ export function PrNoticeHost() {
  * （作業中のチャットがあれば、消す・アーカイブはできない）。マージされたときは、片付けたあと本体を最新にする（プル）
  */
 function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; gone: boolean; onClose: () => void }) {
-  const dialog = useModalDialog({ closeOnBackdrop: false, focusSelf: true });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false, focusSelf: true });
   const projectId = notice.project_id;
   const { projectName } = useProjects();
   const chats = useChatsWithChildren().filter((c) => c.project_id === projectId && c.worktree_path === notice.worktree);
@@ -110,9 +110,9 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
   const Icon = merged ? GitMerge : GitPullRequestClosed;
 
   // ほかの窓などで片付いて知らせが消えたら閉じる（自分で片付けている途中は、終わってから閉じる）
+  const closeDialog = useEffectEvent(() => dialog.close());
   useEffect(() => {
-    if (gone && action.busy === null) dialog.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (gone && action.busy === null) closeDialog();
   }, [gone, action.busy]);
 
   const submit = async () => {
@@ -142,7 +142,7 @@ function PrNoticeDialog({ notice, gone, onClose }: { notice: WorktreePrNotice; g
 
   return (
     <dialog
-      ref={dialog.ref}
+      ref={dialogRef}
       className="dialog app-dialog pr-notice-dialog"
       aria-label={prNoticeTitle(notice)}
       onClose={() => {

@@ -45,7 +45,7 @@ export function useDockerLogs(projectId: number, composeKey: string) {
   const enqueue = useCallback(
     (added: LogRow[]) => {
       pending.current.push(...added);
-      frame.current ||= requestAnimationFrame(flush);
+      if (!frame.current) frame.current = requestAnimationFrame(flush);
     },
     [flush],
   );
@@ -67,10 +67,11 @@ export function useDockerLogs(projectId: number, composeKey: string) {
     };
     reset();
     setSources([]);
-    let opens = 0;
+    let opened = false;
     const source = new EventSource(api.dockerLogsUrl(projectId, composeKey));
     source.onopen = () => {
-      if (opens++ > 0) reset();
+      if (opened) reset();
+      opened = true;
       setConnected(true);
     };
     source.onerror = () => setConnected(false);
@@ -96,25 +97,21 @@ export function useDockerLogs(projectId: number, composeKey: string) {
   const readBefore = useCallback(
     async (containers: string[]) => {
       setReadingBefore(true);
-      try {
-        const added: LogRow[] = [];
-        await Promise.all(
-          containers
-            .filter((c) => !exhausted.current.has(c))
-            .map(async (container) => {
-              const until = rowsRef.current.find((r) => r.container === container && r.kind === "line")?.ts ?? rowsRef.current[0]?.ts;
-              if (!until) return exhausted.current.add(container);
-              const { lines } = await api.dockerLogsBefore(projectId, composeKey, container, until);
-              if (lines.length < BEFORE_LINES) exhausted.current.add(container);
-              added.push(...fillTs(lines, until).map((l): LogRow => ({ id: nextId.current++, kind: "line", container, ts: l.ts, text: l.text })));
-            }),
-        );
-        commit(added, Math.min(HOLD_LIMIT, Math.max(LOG_ROW_LIMIT, rowsRef.current.length + added.length)));
-      } catch (e) {
-        setError(errorMessage(e));
-      } finally {
-        setReadingBefore(false);
-      }
+      const added: LogRow[] = [];
+      await Promise.all(
+        containers
+          .filter((c) => !exhausted.current.has(c))
+          .map(async (container) => {
+            const until = rowsRef.current.find((r) => r.container === container && r.kind === "line")?.ts ?? rowsRef.current[0]?.ts;
+            if (!until) return exhausted.current.add(container);
+            const { lines } = await api.dockerLogsBefore(projectId, composeKey, container, until);
+            if (lines.length < BEFORE_LINES) exhausted.current.add(container);
+            added.push(...fillTs(lines, until).map((l): LogRow => ({ id: nextId.current++, kind: "line", container, ts: l.ts, text: l.text })));
+          }),
+      )
+        .then(() => commit(added, Math.min(HOLD_LIMIT, Math.max(LOG_ROW_LIMIT, rowsRef.current.length + added.length))))
+        .catch((e: unknown) => setError(errorMessage(e)));
+      setReadingBefore(false);
     },
     [projectId, composeKey, commit],
   );

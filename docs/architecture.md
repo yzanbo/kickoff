@@ -22,6 +22,7 @@
 |---|---|---|
 | チャット | `Chat` / 表 `chats` / `chat_id` | `Run` / `runs` / `run_id` |
 | 1 回の実行（送ってから終わるまで） | `Turn`（`executeTurn` / `TurnOutcome` / `TurnControl`） | `executeRun` / `RunOutcome` / `RunControl` |
+| Kickoff のコア（別のプロセス）とその様子（起動中・動いている・起動し直している・止まった・応答しない。画面の上の帯） | コアのプロセスの見張り役 `CoreProcess`（`main/app/coreProcess.ts`）・様子 `CoreState`（`CORE_STATES`）・やり取りの形 `core/host/protocol.ts`（`CoreInit` / `CoreReady` / `CoreMethods` / `HostMethods`） | （コアはメインプロセスの中） |
 | チャットの記録 | `ChatEvent` / 表 `chat_events` | `RunEvent` / `run_events` |
 | グループ | `ChatGroup` / 表 `chat_groups` | `RunGroup` / `run_groups` |
 | 定型文（チャット欄の中の上の帯から入れる・送る、よく使う指示。共通かプロジェクトだけ） | `Snippet` / 表 `snippets`（`project_id` が NULL = 共通）・`features/snippet/` | なし |
@@ -100,7 +101,7 @@
 | テーブルの行の変更（段階 3 のセルの編集・行の追加と削除・CSV の取り込み。保存するまで画面に持つ） | 変更 `DbRowEdit`（`update` / `insert` / `delete`。行はキー `DbKeyValue` で指し、値は `DbEditValue`）・本文 `DbEditsBody` / 結果 `DbEditsResult`（`POST …/db-connections/:cid/edits`。1 回に `DB_EDITS_MAX` 件まで）・SQL の組み立て `@shared/database/dbEdit.ts`（`editStatements`・行を指す列 `editKeyColumns`）・ワーカーの `apply`・画面の保存していない変更 `TableEdits`（`features/database/tableEdits.ts`）・`useTableEdits` | なし |
 | SSH トンネル（踏み台を通して DB につなぐ。初めての踏み台は鍵の指紋を確かめる） | 接続の `ssh`（`DbSsh`: `host` / `port` / `user` / `identity_file`。v17）・パスワード `db_connection:<ID>:ssh_password`（`has_ssh_password`）・ワーカーの `worker/tunnel.ts`（`createTunnels`。同じ踏み台と DB へのトンネルは使い回す）・初めての踏み台の印 `DB_SSH_UNKNOWN_HOST`（409）・鍵 `DbSshHostKey`（`sshHostKey.ts`）・画面の `SshHostKeyDialog` | なし |
 | SQL の履歴（接続ごと。AI が流したものに印） | `DbQueryHistoryEntry` / 表 `db_query_history`（v14。`ran_by` = `user` / `ai`、AI なら `chat_id`。接続ごとに新しい `DB_HISTORY_MAX`（500）件だけ残す）・店 `store.dbQueryHistory` | なし |
-| DB ワーカー（DB の接続・SQL の実行・結果の整形・SSH トンネル・準備のコマンドを動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める（準備のコマンドを流している間は止めない）） | `core/databases/worker/`（Electron ではメインプロセスが `utilityProcess` で `out/main/dbWorker.js` を起動する口をコアに渡す（製品版は Electron の fuses で RunAsNode をオフにするので `ELECTRON_RUN_AS_NODE` は使わない）、`npm run daemon`・テストでは `worker/main.ts` を tsx で fork。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
+| DB ワーカー（DB の接続・SQL の実行・結果の整形・SSH トンネル・準備のコマンドを動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める（準備のコマンドを流している間は止めない）） | `core/databases/worker/`（Electron ではコアのプロセスの頼み（RPC の `dbWorker.spawn`）でメインプロセスが `utilityProcess` で `out/main/dbWorker.js` を起動し、コアと MessagePort で直結する（製品版は Electron の fuses で RunAsNode をオフにするので `ELECTRON_RUN_AS_NODE` は使わない）、`npm run daemon`・テストでは `worker/main.ts` を tsx で fork。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
 | Docker タブ（プロジェクトの画面の上のタブ「Docker」（「DB」の隣）。本体とワークツリーの compose のサービスを見て、起動・停止し、ログをタブの中のログの画面で見て、シェルを下のパネルのターミナルで開く。この Mac のアプリの中だけ。要件定義書の「5.14 Docker」。段階 1 と段階 2「DB で開く」を作った） | タブ `docker`（`#/projects/:id/docker`）・画面 `features/docker/`（状態と操作の hook `useDocker`・描く部品 `DockerPane`・ログの画面 `DockerLogs`）・コア `core/docker/`・API `GET /api/projects/:id/docker`（一覧）・`POST …/docker/actions`（操作）・`POST …/docker/watch`（見ています）・`GET …/docker/logs`（ログの流れ・さかのぼり）・`GET …/docker/db`（「DB で開く」の行き先）・SSE `docker_changed`（`project_id`）・共有の型 `@shared/types/docker.ts` | なし |
 | ワークツリーの実行環境（ワークツリーごとにポートの番号と Docker の組の名前を分け、本体と複数のワークツリーのアプリを同時に動かす。要件定義書の「5.16」）と帯（ワークツリーに渡す 100 個ずつの番号のまとまり。20100〜29900 の 99 本。+00 は開発サーバー、+01 から Docker の公開ポート）・対応表（本体の番号 → 帯の番号）・整えきれていない所（手順で分けきれなかった所）・分けられない理由 | `WorktreeEnv`・`WorktreePortSlot`（`@shared/types/worktreeEnv.ts`）・表 `worktree_envs`（v22）・コア `core/worktreeEnv/`（`WorktreeEnvService`）・`GitWorktree.env`・`issues`・`blocked`・ワークツリーの `.env` の Kickoff の区切りと `.kickoff/compose.worktree.yaml`・［AI で整える］のチャット（Git で管理していないファイルだけを書ける）= `Chat.untracked_only`（v23） | 「ポートの範囲」「ポートのずらし」 |
 | ポートを使っているプロセス（Kickoff のプロジェクトのフォルダで TCP のポートを待っているもの。要件定義書の「5.17」）・起動元（Kickoff の中 / 切り離されている / ほかのアプリ）・帯の添え書き | `PortProcess`・`PortOrigin`（`PORT_ORIGINS`）・`PortBandNote`（`@shared/types/ports.ts`）・コア `core/ports/`（`PortProcessService`・`PortWatch`）・SSE の `ports_changed` | 「開発サーバーの一覧」「サービス」 |
@@ -500,9 +501,10 @@ src/
     ipc/               Electron の IPC の取り決め（チャンネル名・画面に出す API の型・中身の型）
     testing/           テストのデータを作る関数（コアと画面のテストで共通）
     errors.ts          errorMessage
-  core/                Electron に依存しないサーバー（HTTP API・SQLite・エージェントの実行）
+  core/                Electron に依存しないサーバー（HTTP API・SQLite・エージェントの実行）。Mac のアプリではメインが起動する別のプロセス（utilityProcess）で動く
     index.ts           組み立てと終了（startCore）
     daemon.ts          Electron なしで起動
+    host/              Mac のアプリのコアのプロセスの入口（main.ts → out/main/core.js）・メインとの RPC（protocol・rpc・ports）・メインにしかない口の写し（remote: ブラウザ・キーチェーン・通知・DB ワーカー）
     bus.ts             変更の知らせ（SSE へ）
     db/                schema・open（開く・版・リリース前の後片付け）・store（表ごとの店をまとめるだけ）・chats・events（記録と全文検索）・projects・groups・queues・snippets（定型文）・settings（設定・秘密・meta）
     http/              server（組み立て・認証・失敗の変換・SSE・画面の配信）・httpServer・auth・errors（NotFound など）・routes/（領域ごとに xxxRoutes）
@@ -512,17 +514,17 @@ src/
     github/            GitHub タブの読み取り（gh api の GraphQL と REST・応答を形にする normalize・一覧の ETag の覚え）
     usage/             使用状況（Claude のプランの枠と、ほかのサービス services/）
     voice/             音声入力の文字起こし（whisper-cli・macOS の音声認識・OpenAI）と、音声モードの読み上げ（OpenAI の声）
-    terminal/          内蔵ターミナルのシェル（TerminalSessions。この Mac の画面は IPC、スマホは WebSocket でつなぐ）と、AI に出力を読ませる口（TerminalControl）
+    terminal/          内蔵ターミナルのシェル（TerminalSessions。この Mac の画面もスマホも WebSocket でつなぐ）と、AI に出力を読ませる口（TerminalControl）
     docker/            Docker タブ（一覧・操作・エンジンの状態・見ている間だけの docker events・compose のファイル・ポートの取り合い・ログ・AI の守りが見る様子・「DB で開く」の案。表は持たない）
     memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown・HTML の一覧・読み書き・移動・ゴミ箱・チャットの文から作る・HTML のメモが読むファイルを返す）
     trash/             Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻す・本当に消す。AI の kickoff-trash・チャットとプロジェクトのゴミ箱・アーカイブ済みのチャットの整理・会話記録の片付けと乗り換えの古い記録・ほかの Kickoff が使う会話記録の確かめ）
     notifications/     通知の判断（だれも見ていなければ、この Mac の通知とつないだ端末のプッシュへ）・見ているもの・通知の中身
-    platform/          OS ごとに違う処理の口（HostPlatform: アプリを開く・待っているソケット・プロセスの表・ログインシェルの PATH・音声認識など）と macOS の中身（macos/）。メイン・daemon が作って startCore に渡す
+    platform/          OS ごとに違う処理の口（HostPlatform: アプリを開く・待っているソケット・プロセスの表・ログインシェルの PATH・音声認識など）と macOS の中身（macos/）。コアのプロセス・daemon が作って startCore に渡す（メインも childApps などで使う）
     system/            外部コマンド・パス・期限付きキャッシュ・保存先と名前（appEnv）・開発版のデータの写し
     testing/           テストの補助（サーバーの準備・偽のプロバイダー・一時フォルダ・Git の作業場所）
-  main/                Electron のメインプロセス
+  main/                Electron のメインプロセス（窓・OS の口・仲立ちだけ。コアは別のプロセス）
     index.ts           起動の順番だけ
-    app/               ウィンドウ・メニュー・終了の片付け・子の Electron・権限の問い合わせ・起動の記録
+    app/               コアのプロセスの見張り役（起動・RPC・落ちたら作り直す・応答の見張り・DB ワーカーを作る）・ウィンドウ・メニュー・終了の片付け・子の Electron・権限の問い合わせ・起動の記録
     ipc/               IPC の登録と引数の検査
     platform/          OS ごとに違う処理の口を 1 か所で選ぶ（コアと共通の hostPlatform（内蔵ターミナルのシェルも）・メインだけの desktopPlatform: 外部のターミナル・ブラウザ）と macOS の中身（macos/）
     browser/  terminal/  notifications/  diagnostics/

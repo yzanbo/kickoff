@@ -40,7 +40,8 @@ export interface FoldHeadProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
  * 名前（押しても開閉）・件数・右の操作。見た目は look で選ぶ。ほかの props（ドロップ先・ドラッグ・右クリック・title など）は見出しの要素に付ける。
  * 開閉の記憶は hooks/useFold
  */
-export function FoldHead({ look, open, onToggle, icon, iconSize = look === "row" ? 12 : undefined, label, count, name, actions, className, ...rest }: FoldHeadProps) {
+export function FoldHead({ look, open, onToggle, icon, iconSize: givenIconSize, label, count, name, actions, className, ...rest }: FoldHeadProps) {
+  const iconSize = givenIconSize ?? (look === "row" ? 12 : undefined);
   const l = LOOKS[look];
   const countText = count !== undefined && <span className={l.count}>{count}</span>;
   return (

@@ -4,6 +4,7 @@ import { fork } from "node:child_process";
 import { errorMessage } from "@shared/errors";
 import type { DbEngine } from "@shared/types";
 import type { WorkerCancel, WorkerEvent, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "./protocol.js";
+import { reportChildProcess } from "../system/childProcesses.js";
 
 /** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス `inProcessWorker.ts`） */
 export interface WorkerChannel {
@@ -126,6 +127,8 @@ export class DbWorkerClient {
       if (m.event !== "child") return this.onEvent(m);
       if (m.alive) this.children.add(m.pid);
       else this.children.delete(m.pid);
+      // ssh・シェルは別のプロセスグループなので、コアが落ちるとワーカーを止めても残る。メインにも知らせて覚えてもらう（system/childProcesses.ts）
+      reportChildProcess({ pid: m.pid, group: true, kind: "dbWorkerChild", state: m.alive ? "started" : "exited" });
     });
     channel.onExit((reason) => {
       if (this.channel !== channel) return;
@@ -248,7 +251,10 @@ export class DbWorkerClient {
 
   /** ワーカーが残した子のプロセスを止める（ワーカーが落ちた・止めたとき） */
   private killChildren() {
-    for (const pid of this.children) this.killChild(pid);
+    for (const pid of this.children) {
+      this.killChild(pid);
+      reportChildProcess({ pid, group: true, kind: "dbWorkerChild", state: "exited" });
+    }
     this.children.clear();
   }
 }

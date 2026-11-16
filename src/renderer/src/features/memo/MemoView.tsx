@@ -7,6 +7,7 @@ import { registerMemoSelection } from "@/lib/viewDetails";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
 import { MEMO_CHAT_HEIGHT, MEMO_CHAT_OPEN, MEMO_CHAT_PLACE, MEMO_CHAT_WIDTH, MEMO_QUICK_CHAT_HIDDEN, MEMO_VIEW } from "@/lib/storageKeys";
 import { useDragSize } from "@/hooks/useDragSize";
+import { useLatest } from "@/hooks/useLatest";
 import { useSetting } from "@/hooks/useSetting";
 import { useMemoList } from "@/stores/memos";
 import { ErrorText } from "@/ui/ErrorText";
@@ -22,7 +23,7 @@ import type { MemoEditorHandle } from "./MemoEditor";
 import { MemoChat, type MemoChatHandle } from "./MemoChat";
 import { MemoQuickChat } from "./MemoQuickChat";
 import { MemoChatToggle } from "./MemoChatToggle";
-import { memoChatTargets } from "./memoChatTargets";
+import { useMemoChatTargets } from "./memoChatTargets";
 import { MemoSelectionAttach } from "./MemoSelectionAttach";
 import { memoTitle, parentOf } from "./memoPaths";
 import { subscribeMemoReveal, takeMemoReveal } from "./memoReveal";
@@ -108,7 +109,7 @@ export function MemoView({
   );
   // 足す先のチャット（開いたチャット・メモのチャット）。本文の右クリック・本文で選んだときの上のボタン・見出しの「…に追加」のボタンから
   const file = `${dir}/${path}`;
-  const targets = memoChatTargets({ projectId, file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
+  const targets = useMemoChatTargets({ projectId, file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
   const editMenu = useMemoEditMenu(editor, targets, file, { projectId, body: () => doc.text() ?? "" });
   // 頼まれた行へ移る（⌘K の「メモ内の文言」から。開いているときは知らせで、これから開くときは編集の部品ができたときに）
   const reveal = () => {
@@ -132,7 +133,7 @@ export function MemoView({
   const chatHeight = useDragSize({ setting: MEMO_CHAT_HEIGHT, axis: "y", edge: "start", unit: "%", min: 20, max: 85, write: "--memo-chat-h", pane: chatPane, target: () => body.current });
   const chatSize = chatPlace === "bottom" ? chatHeight : chatWidth;
   // 下に置いたときの開け閉めは、入力欄を下に止めたまま会話の部分だけを伸び縮みさせる（メモの下の入力欄の高さを測る）
-  const motion = useBottomChatMotion(chatOpen, chatPlace === "bottom");
+  const { quickRef: motionQuickRef, ...motion } = useBottomChatMotion(chatOpen, chatPlace === "bottom");
   const savedTitle = memoTitle(path);
   // 書いている題名（別のメモへ移った・名前を変えたら、そのメモの題名に入れ直す）
   const [title, setTitle] = useState(savedTitle);
@@ -172,8 +173,7 @@ export function MemoView({
   const unreadable = doc.file && (doc.file.binary || doc.file.truncated);
   const unsaved = doc.state === "dirty" || doc.state === "conflict" || doc.state === "error" || titleChanged;
   // ⌘⇧S（すべて保存）で、まだ保存していなければ保存する（本文・題名。lib/saveAll）
-  const savable = useRef({ unsaved, saveDoc });
-  savable.current = { unsaved, saveDoc };
+  const savable = useLatest({ unsaved, saveDoc });
   useEffect(() => registerSavable({ dirty: () => savable.current.unsaved, save: () => savable.current.saveDoc() }), []);
   // 選んでいる文（利用者が見ているものの知らせが読む。AI の get_user_view）
   useEffect(() => registerMemoSelection(projectId, path, () => editor.current?.selectedText() ?? ""), [projectId, path]);
@@ -345,7 +345,7 @@ export function MemoView({
       {doc.initial !== null && !unreadable && (
         <div className={cx("memo-quick-slot", quickFolded && "folded", chatPlace === "bottom" && "chat-bottom", motion.moved && "chat-moved")} aria-hidden={quickFolded} inert={quickFolded}>
           <div className="memo-quick-clip">
-            <div ref={motion.quickRef}>
+            <div ref={motionQuickRef}>
               <MemoQuickChat
                 projectId={projectId}
                 path={path}

@@ -38,7 +38,7 @@ interface ChatColumnProps {
  */
 export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visible, onOpenNew, beforeSend, shell }: ChatColumnProps) {
   const view = useChatView({ chat, project, focus, onOpenNew, beforeSend }, shell);
-  const { pane } = shell;
+  const { pane: { root: paneRoot } } = shell;
   const { log, approvals } = view;
   // 会話の横幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
   const [wide] = useWideText();
@@ -54,7 +54,7 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
         <BackgroundCallsContext.Provider value={backgroundCalls}>
           {/* data-chat-id・data-chat-role: 右の欄・別ウィンドウで、選んだ所・右クリックした所のチャット（子チャット・メモのチャット）を見分ける */}
           <div
-            ref={pane.root}
+            ref={paneRoot}
             className={cx("chat-page chat-panel", wide && "wide")}
             data-chat-id={chat.id}
             data-chat-role={chat.memo_path ? "memo" : chat.parent_chat_id !== null ? "child" : "chat"}

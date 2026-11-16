@@ -6,10 +6,11 @@ import { tags } from "@lezer/highlight";
 import { search, searchKeymap } from "@codemirror/search";
 import { EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
-import { useRef, type MutableRefObject } from "react";
+import type { MutableRefObject } from "react";
 import type { MemoKind } from "@shared/memo/kinds";
 import { useCodeMirror } from "@/hooks/useCodeMirror";
 import { readFindOptions } from "@/hooks/useFindOptions";
+import { useLatest } from "@/hooks/useLatest";
 import { cx } from "@/lib/cx";
 import { livePreview } from "./livePreviewExtension";
 import { liveRich } from "./liveRich";
@@ -96,8 +97,7 @@ const selectionTheme = EditorView.theme({
  */
 export default function MemoEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu, onReady }: Props) {
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const handlers = useRef({ onSave, onContextMenu });
-  handlers.current = { onSave, onContextMenu };
+  const handlers = useLatest({ onSave, onContextMenu });
 
   const { host } = useCodeMirror({
     initialValue,

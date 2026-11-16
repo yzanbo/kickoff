@@ -67,7 +67,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   const filter = filters[filters.kind];
   const list = useGitHubList(projectId, filter, true);
   const meta = useKeyedAsync(String(projectId), () => api.githubMeta(projectId));
-  const width = useDragSize({ setting: GITHUB_LIST_WIDTH, min: 260, keep: 360 });
+  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: GITHUB_LIST_WIDTH, min: 260, keep: 360 });
   const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);
 
   const change = (patch: Partial<GitHubListFilter>) => setFilters({ ...filters, [filter.kind]: { ...filter, ...patch } });
@@ -91,7 +91,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
   return (
     <div ref={root} className={cx("github-tab github-browser", narrow && "narrow")}>
       {showList && (
-        <aside ref={width.paneRef} className="github-list" style={narrow ? undefined : { width: width.size }}>
+        <aside ref={widthPaneRef} className="github-list" style={narrow ? undefined : { width: width.size }}>
           {/* リポジトリの名前は GitHub のリポジトリのページへ、右の印はいまの絞り込みの一覧を GitHub で開く（外のブラウザ） */}
           <div className="github-list-repo small">
             <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">

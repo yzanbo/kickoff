@@ -46,7 +46,8 @@ export function useFeed(active: boolean) {
     const item = feedItemOf(e.event);
     if (!item) return;
     pending.current.push(item);
-    frame.current ??= requestAnimationFrame(() => {
+    if (frame.current !== null) return;
+    frame.current = requestAnimationFrame(() => {
       const added = pending.current;
       pending.current = [];
       frame.current = null;

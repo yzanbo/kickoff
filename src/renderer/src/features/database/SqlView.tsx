@@ -46,7 +46,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
   const pending = useSqlPending(tab.key);
   const [finishing, setFinishing] = useState(false);
   const write = useSqlWrite(connection, pending);
-  const height = useDragSize<HTMLDivElement>({ setting: DB_SQL_EDITOR_HEIGHT, axis: "y", unit: "%", min: 15, max: 85 });
+  const { paneRef: heightPaneRef, ...height } = useDragSize<HTMLDivElement>({ setting: DB_SQL_EDITOR_HEIGHT, axis: "y", unit: "%", min: 15, max: 85 });
 
   // 補完に使うテーブルと列（接続の既定の DB・スキーマ）
   const outline = useAsync(
@@ -163,15 +163,14 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
 
   const finish = async (how: "commit" | "rollback") => {
     setFinishing(true);
-    try {
-      const st = how === "commit" ? await api.commitDbSession(client.projectId, connection.id, tab.key) : await api.rollbackDbSession(client.projectId, connection.id, tab.key);
+    const request = how === "commit" ? api.commitDbSession(client.projectId, connection.id, tab.key) : api.rollbackDbSession(client.projectId, connection.id, tab.key);
+    const failTitle = how === "commit" ? "コミットできませんでした" : "取り消せませんでした";
+    await request.then(
       // 何かした（10 分を数え直す）に数えない。時間が来てトランザクションの終わりを待っていたら、ここで読み取り専用に戻す
-      setSqlPending(tab.key, st.in_transaction);
-    } catch (e) {
-      await alertDialog(how === "commit" ? "コミットできませんでした" : "取り消せませんでした", errorMessage(e));
-    } finally {
-      setFinishing(false);
-    }
+      (st) => setSqlPending(tab.key, st.in_transaction),
+      (e: unknown) => alertDialog(failTitle, errorMessage(e)),
+    );
+    setFinishing(false);
   };
 
   // 裏のタブの結果が多すぎれば捨て、戻ったら読み取りの文だけ流し直す
@@ -189,7 +188,7 @@ export function SqlView({ tab, connection, active }: { tab: DbSqlTab; connection
           onRevert={write.revert}
         />
       )}
-      <div ref={height.paneRef} className="db-sql-top" style={{ height: `${height.size}%` }}>
+      <div ref={heightPaneRef} className="db-sql-top" style={{ height: `${height.size}%` }}>
         <div className="db-sql-toolbar">
           <SqlConnectionPill connection={connection} tabKey={tab.key} disabled={running || write.on} />
           <button type="button" className="btn btn-sm" disabled={running} onClick={() => void execute(false)} data-tip="カーソルの文か、選んだ範囲を流す" data-tip-keys="⌘↵">

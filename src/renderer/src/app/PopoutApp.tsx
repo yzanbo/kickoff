@@ -15,6 +15,7 @@ import { saveAll } from "@/lib/saveAll";
 import { openEditorFind } from "@/features/editor/editorFind";
 import { MemoProgress } from "@/features/memo/MemoProgress";
 import { ToastHost } from "@/ui/toast";
+import { CoreStatusBand } from "@/features/diagnostics/CoreStatusBand";
 import { DialogHost } from "@/ui/dialogs";
 import { DbUnlockHost } from "@/features/database/DbUnlockHost";
 import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
@@ -109,6 +110,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
         <HoverTip />
         <MemoProgress />
         <ToastHost />
+        <CoreStatusBand />
         {/* GitHub の新しい issue・マージの確認（GitHub タブとメモ・チャットの「issue にする」から） */}
         <GitHubDialogHost />
         <DbUnlockHost />

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { errorMessage } from "@shared/errors";
 import type { DbConnection, DbQueryResult, DbRowFilter, DbSort, DbValue } from "@shared/types";
 import { api } from "@/api";
+import { useLatest } from "@/hooks/useLatest";
 import type { DbTableTab } from "@/lib/dbClientTabs";
 import { useDbClient } from "./dbClientContext";
 import { nextSort } from "./dbFormat";
@@ -25,24 +26,26 @@ export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree
   const filter = tab.filter ?? NO_FILTER;
   const filterKey = JSON.stringify(filter);
   // fill が読むいちばん新しい結果（読み直している間に取り直したら、差し替えない）
-  const latest = useRef(result);
-  latest.current = result;
+  const latestRef = useLatest(result);
   const load = async (offset: number, base: DbQueryResult | null) => {
     setLoading(true);
     setError(undefined);
+    let page: DbQueryResult;
     try {
-      const page = await api.dbRows(client.projectId, connection.id, { path: tab.path, table: tab.name, sort, offset, filter }, worktree);
-      setResult(base ? { ...page, rows: [...base.rows, ...page.rows] } : page);
+      page = await api.dbRows(client.projectId, connection.id, { path: tab.path, table: tab.name, sort, offset, filter }, worktree);
     } catch (e) {
       setError(errorMessage(e));
       if (!base) setResult(null);
-    } finally {
       setLoading(false);
+      return;
     }
+    setResult(base ? { ...page, rows: [...base.rows, ...page.rows] } : page);
+    setLoading(false);
   };
+  // 読み直すのは、タブ・接続・作業場所・並べ替え・絞り込みの中身が変わったときと、頼まれたとき（nonce）だけ
+  const loadFirst = useEffectEvent(() => void load(0, null));
   useEffect(() => {
-    void load(0, null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadFirst();
   }, [tab.key, connection.id, worktree, sort, nonce, filterKey]);
 
   /**
@@ -50,7 +53,7 @@ export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree
    * （キーの列がない・読めなかった行は頭のまま。読み直している間に取り直したら null）
    */
   const fill = async (indexes: number[], keyColumns: string[] | null): Promise<DbValue[][] | null> => {
-    const base = latest.current;
+    const base = latestRef.current;
     if (!base) return null;
     const rows = [...base.rows];
     let changed = false;
@@ -68,10 +71,10 @@ export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree
         setError(`長い値の残りを読めませんでした: ${errorMessage(e)}`);
       }
     }
-    if (latest.current !== base) return null;
+    if (latestRef.current !== base) return null;
     if (changed) {
       const next = { ...base, rows };
-      latest.current = next;
+      latestRef.current = next;
       setResult(next);
     }
     return rows;
@@ -92,7 +95,7 @@ export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree
     evicted,
     /** 結果を捨てる（裏のタブの量が多すぎるとき） */
     evict: () => {
-      latest.current = null;
+      latestRef.current = null;
       setResult(null);
       setEvicted(true);
     },

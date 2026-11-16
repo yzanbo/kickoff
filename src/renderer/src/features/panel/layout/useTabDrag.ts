@@ -7,6 +7,9 @@ import { endExternalTabDrag, EXTERNAL_TAB_MIME, useExternalTabDrag } from "./ext
 /** 右のパネルのタブをドラッグするときの dataTransfer の型（ファイルのドロップ（チャット欄への添付）と取り違えないよう独自の型にする） */
 const TAB_MIME = "application/x-kickoff-panel-tab";
 
+/** 見た目の並びの位置がそのままペインの並びの位置（まとめて並べ替えていないとき） */
+const samePaneIndex = (index: number) => index;
+
 /**
  * 右のパネルのタブのドラッグ（HTML5）。ほかのペインのタブの列に落とすとそのペインへ移し（同じペインなら並べ替え）、
  * ペインの中身の端に落とすとその側に分けて置き、真ん中ならそのペインへ移す。
@@ -61,7 +64,7 @@ export function useTabDrag(panel: PanelController) {
      * （タブをまとめて並べ替えて見せているとき。印の位置 insertAt は見た目の並びのまま）。reorderInPlace: 同じペインの中で
      * 並びを別に決めているタブを落としたとき、その並びを変える（変えたら true で、ペインの並びは変えない。after: 前のタブの後ろに落とした）
      */
-    barProps: (paneId: string, toPaneIndex: (index: number) => number = (i) => i, reorderInPlace?: (key: string, index: number, after: boolean) => boolean) => ({
+    barProps: (paneId: string, toPaneIndex: (index: number) => number = samePaneIndex, reorderInPlace?: (key: string, index: number, after: boolean) => boolean) => ({
       onDragOver: (e: DragEvent<HTMLElement>) => {
         if (!accepts(e)) return;
         e.preventDefault();

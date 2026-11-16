@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
 import { useAction } from "@/hooks/useAction";
@@ -95,16 +95,16 @@ export function EditorTab({
   // 検索の結果の置換（すべて・ファイルごと・行ごと。元に戻す）
   const replacer = useSearchReplace(projectId, { search, selection, git });
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
-  const list = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
+  const { paneRef: listPaneRef, ...list } = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
   // チャットの返答のファイルのチップから来たとき（ファイルタブ）: エクスプローラーでそのファイルを選び（行があればその行へ）、
   // 上のフォルダを開いて、URL からは外す（同じファイルをもう一度押しても開けるように）
-  useEffect(() => {
-    if (!openFile) return;
-    const { path, line } = openFile;
+  const revealOpenFile = useEffectEvent((path: string, line: number | undefined) => {
     setOpenFolders((prev) => new Set([...prev, ...parentFolders(path)]));
     void setSelected(line ? { path, line } : { path }, true);
     navigate({ name: "project", id: projectId, tab: "files" }, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (openFile) revealOpenFile(openFile.path, openFile.line);
   }, [openFile]);
 
   if (!status) {
@@ -138,7 +138,7 @@ export function EditorTab({
     </div>
     <div className={cx("changes", list.resizing && "resizing")}>
       <aside
-        ref={list.paneRef}
+        ref={listPaneRef}
         className="changes-list"
         style={{ width: list.size }}
         aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}

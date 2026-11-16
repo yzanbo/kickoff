@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import type { BusEvent } from "@shared/types";
 
 type Listener = (event: BusEvent) => void;
@@ -10,10 +10,10 @@ export function publishServerEvent(event: BusEvent) {
 }
 
 export function useServerEvent(handler: Listener) {
-  const ref = useRef(handler);
-  ref.current = handler;
+  // 登録は 1 回だけで、呼ぶのはいつも最新の handler
+  const onEvent = useEffectEvent(handler);
   useEffect(() => {
-    const listener: Listener = (e) => ref.current(e);
+    const listener: Listener = (e) => onEvent(e);
     listeners.add(listener);
     return () => {
       listeners.delete(listener);

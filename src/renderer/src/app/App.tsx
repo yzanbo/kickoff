@@ -21,6 +21,7 @@ import { NoProjectsGuide } from "@/features/project/NoProjectsGuide";
 import { ProjectChat } from "@/features/panel/projectChat/ProjectChat";
 import { useProjectChat } from "@/features/panel/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "@/features/settings/SettingsDialog";
+import { CoreStatusBand } from "@/features/diagnostics/CoreStatusBand";
 import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicator";
 import { HoverTip } from "@/ui/HoverTip";
 import { MemoProgress } from "@/features/memo/MemoProgress";
@@ -208,6 +209,8 @@ export function App() {
         {settings && <SettingsDialog key={settings} initial={settings} onClose={() => setSettings(null)} />}
         {/* 性能の記録の様子（メニューの「ヘルプ」・設定の「診断」から始まる） */}
         <DiagnosticsIndicator />
+        {/* Kickoff のコア（別のプロセス）が落ちた・応答しないときの帯（メインプロセスが知らせる） */}
+        <CoreStatusBand />
         {/* マウスを乗せたときの説明（data-tip を付けた要素。アプリ全体で 1 つ） */}
         <HoverTip />
         <MemoProgress />

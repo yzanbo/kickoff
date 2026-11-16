@@ -10,10 +10,10 @@ import { NoProjectsWelcome } from "./ProjectsEmpty";
  */
 export function NoProjectsGuide({ onClose }: { onClose: () => void }) {
   // 開いた直後に ✕ ボタンへピントが当たって枠が出ないよう、ダイアログ自体にピントを置く
-  const dialog = useModalDialog({ focusSelf: true });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ focusSelf: true });
   const { archived } = useVisibleProjects();
   return (
-    <dialog ref={dialog.ref} className="dialog no-projects-guide" tabIndex={-1} aria-label="チャットはプロジェクトの中で始めます" onClose={onClose} {...dialog.backdropProps}>
+    <dialog ref={dialogRef} className="dialog no-projects-guide" tabIndex={-1} aria-label="チャットはプロジェクトの中で始めます" onClose={onClose} {...dialog.backdropProps}>
       <CloseButton title="閉じる（Esc）" size={16} className="no-projects-guide-close" onClick={dialog.close} />
       <NoProjectsWelcome archived={archived.length} forNewChat onPick={dialog.close} />
     </dialog>

@@ -15,6 +15,9 @@ import { CHAT_TITLE_MAX } from "@shared/types";
 import { NEW_CHAT_TITLE } from "./chatTitle";
 import { NewChatItem, type NewChatPlace } from "./NewChatItem";
 
+/** 新しいチャットの既定の開き方（そのプロジェクトのチャットのパネルで、同じグループ・作業場所） */
+const openNewChatAt = (place: NewChatPlace) => openNewChat(place.projectId, { group: place.group, worktree: place.worktree });
+
 /**
  * 送る前の新しいチャット（下書き）の右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのタブで共通）。
  * チャットの右クリック（ChatMenuItems）と同じ並び・同じ文とアイコンにし、下書きでもできるものだけを置く（利用者の依頼）:
@@ -24,7 +27,7 @@ import { NewChatItem, type NewChatPlace } from "./NewChatItem";
 export function DraftMenuItems({
   draft,
   onOpen,
-  onNewChat = (place) => openNewChat(place.projectId, { group: place.group, worktree: place.worktree }),
+  onNewChat = openNewChatAt,
   onRename,
   onClose,
   before,

@@ -1,5 +1,6 @@
 import { MessageSquare, PanelRight } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type RefObject, type UIEvent } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/lib/cx";
 import { createLruMap } from "@/lib/lruMap";
@@ -86,13 +87,16 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
     });
   // 行を押したら会話のその場所へ。サブエージェントの行は設定の開き方で（流れの中 = そのカードの中へ / 右の欄 = 右の欄のその画面の中へ。
   // 起動・終わり・いまの動きの行は、そのサブエージェントを開く）
-  const open = (row: ActivityRow, eventId = row.eventId) => {
+  // 省いた eventId は行のもの（既定の引数に行の値を書くと、React Compiler が最適化できない）
+  const open = (row: ActivityRow, at?: number) => {
+    const eventId = at === undefined ? row.eventId : at;
     const target = agentTargetOf(row, eventId);
     if (target) pane.openSubagent(target.key, target.eventId);
     else pane.revealInConversation(eventId, null);
   };
   // 右クリック（サブエージェントの行で、右の欄を置ける画面だけ）: 設定によらず、どちらで開くかを選ぶ
-  const openMenu = (row: ActivityRow, e: MouseEvent, eventId = row.eventId) => {
+  const openMenu = (row: ActivityRow, e: MouseEvent, at?: number) => {
+    const eventId = at === undefined ? row.eventId : at;
     const target = agentTargetOf(row, eventId);
     if (target && pane.canOpenSide) menu.open(e, target);
   };
@@ -189,8 +193,7 @@ function useActivityWindow({
   const inflight = useRef(false);
   const lastAsk = useRef<string | null>(null);
   const shape = `${rows.length}:${rows.at(-1)?.key}`;
-  const shapeRef = useRef(shape);
-  shapeRef.current = shape;
+  const shapeRef = useLatest(shape);
   const onNearEnd = useMemo(
     () =>
       hasEarlier
@@ -205,7 +208,7 @@ function useActivityWindow({
             });
           }
         : undefined,
-    [hasEarlier, chatId],
+    [hasEarlier, chatId, shapeRef],
   );
   const w = useRowWindow({
     items: rows,

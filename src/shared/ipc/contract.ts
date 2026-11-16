@@ -4,11 +4,12 @@
 // 値は種類だけ（zod・Electron・Node に依存しない。サンドボックスの preload にも束ねるため）
 import type { BrowserExtensionInfo, KnownExtensionKey } from "./browserExtensions";
 import type { BrowserHandOffCapture } from "./browserHandOff";
-import type { BootReport, DiagnosticsFolders, DiagnosticsState, RendererMemory } from "./diagnostics";
+import type { BootReport, DiagnosticsFolders, DiagnosticsOverview, DiagnosticsState, RendererMemory } from "./diagnostics";
+import type { CoreStatus } from "./core";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { LoginItemState } from "./loginItem";
 import type { NotifyRequest, NotifyResult } from "./notifications";
-import type { TerminalOpenResult, TerminalStart, TerminalTabMeta } from "./terminal";
+import type { ThemeChoice } from "../theme/backgrounds";
 
 /** 呼び方の種類: invoke = 画面から呼んで返事を待つ / send = 画面から送るだけ（返事なし） / event = メインから画面への知らせ */
 export type IpcKind = "invoke" | "send" | "event";
@@ -133,19 +134,13 @@ export const NATIVE_API = {
     /** 外す（取得・写したものはフォルダも消す） */
     remove: invoke<[path: string], BrowserExtensionInfo[]>(),
   },
-  /** 内蔵ターミナル（パネルのタブ）。key はタブごとのキー */
+  /**
+   * 内蔵ターミナル（パネルのタブ）。シェルはコアで動き、画面はコアの API（POST /api/terminals・WebSocket）で直接つなぐ。
+   * メインプロセスは画面の生き死にだけを見る（このまとまりがあることが、Mac のアプリでターミナルを使える印）
+   */
   terminal: {
-    /** シェルにつなぐ（なければ cwd で始める。start があれば、そのコマンドを流すタブとして始める。meta はタブの持ち主と名前で、つなぐたびに覚え直す） */
-    open: invoke<[key: string, cwd: string, cols: number, rows: number, start?: TerminalStart, meta?: TerminalTabMeta], TerminalOpenResult>(),
-    /** キー入力 */
-    write: send<[key: string, data: string]>(),
-    resize: send<[key: string, cols: number, rows: number]>(),
-    /** シェルを止める（タブを閉じたとき） */
-    close: invoke<[key: string]>(),
-    /** シェルの出力 */
-    onData: event<[key: string, data: string]>(),
-    /** シェルが終わった */
-    onExit: event<[key: string, exitCode: number]>(),
+    /** この画面の持ち主の印（wc:<WebContents の ID>）。呼んだ画面が消えた・読み込み直したら、メインがその持ち主のシェルを止める */
+    owner: invoke<[], string>(),
   },
   /** Mac の通知 */
   notifications: {
@@ -166,6 +161,22 @@ export const NATIVE_API = {
     /** 切り替えて、切り替えたあとの様子を返す（切り替えられない版では変えない） */
     set: invoke<[openAtLogin: boolean], LoginItemState>(),
   },
+  /** 見た目（窓の地の色。メモの仕様書「0023_表示を軽くする」の案 18a） */
+  appearance: {
+    /** 選んでいるテーマ（起動したとき・選び直したとき）。メインが覚えて、次の起動の窓の地の色と、開いている窓の地の色に使う */
+    setTheme: send<[theme: ThemeChoice]>(),
+  },
+  /** Kickoff のコア（別のプロセス）の様子と、落ちた・応答しないときの操作（画面の上の帯。U8・U9） */
+  core: {
+    /** いまの様子（画面を読み込んだとき） */
+    state: invoke<[], CoreStatus>(),
+    /** 起動し直す（止まった・応答しないとき。応答しないコアは止めて、終わったのを確かめてから作り直す） */
+    restart: invoke<[]>(),
+    /** 応答しないまま待つ（帯を閉じ、また 30 秒応答しなければ聞く） */
+    wait: invoke<[]>(),
+    /** 様子が変わった */
+    onState: event<[status: CoreStatus]>(),
+  },
   /** 性能の記録（重いときに、その場で 10 秒の記録を取って保存する。メニューの「ヘルプ」からも始まる） */
   diagnostics: {
     start: invoke<[]>(),
@@ -173,6 +184,10 @@ export const NATIVE_API = {
     folders: invoke<[], DiagnosticsFolders>(),
     /** 保存先を Finder で開く（まだなければ作る） */
     openRoot: invoke<[]>(),
+    /** いつも取っている記録のまとめ（最近 24 時間の詰まり・最後の起動の時刻。設定の「診断」に出す） */
+    overview: invoke<[], DiagnosticsOverview>(),
+    /** ログの場所（~/Library/Logs/<アプリ名>）を Finder で開く（まだなければ作る） */
+    openLogs: invoke<[]>(),
     /** 記録の様子（記録中・保存中・保存した・失敗） */
     onState: event<[state: DiagnosticsState]>(),
     /** 画面の起動の時刻（読み込みごとに 1 回。メインが startup.log・boot.jsonl に書く） */
@@ -218,7 +233,7 @@ export interface IpcEntry {
 
 const table = NATIVE_API as Record<string, Record<string, Spec>>;
 
-/** チャンネル名の作り方: 「種類:まとまり.名前」（invoke:terminal.open・send:terminal.write・event:terminal.onData） */
+/** チャンネル名の作り方: 「種類:まとまり.名前」（invoke:terminal.owner・send:notifications.setBadge・event:notifications.onOpenChat） */
 const channelName = (kind: IpcKind, group: string, method: string) => `${kind}:${group}.${method}`;
 
 /** 表の項目のチャンネル名（ほかで手書きしない） */

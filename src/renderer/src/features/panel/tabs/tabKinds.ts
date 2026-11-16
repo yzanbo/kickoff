@@ -4,6 +4,7 @@ import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { BucketHead } from "@/features/chatList/buckets";
+import { api } from "@/api";
 import { baseName } from "@/lib/format";
 import { normalizeUrl } from "@/lib/url";
 import { ChildTabBadge } from "@/features/chat/children/ChildTabBadge";
@@ -392,7 +393,8 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     label: terminalTitle,
     hint: (t) => (t.command ? `${t.command}\n${t.cwd}` : t.cwd),
     projectOf: (t) => t.projectId,
-    dispose: (t) => void globalThis.window?.kickoff?.terminal.close(t.key),
+    // シェルを止める（コアの API。もう終わっていれば 404 なので、失敗は捨てる）
+    dispose: (t) => void (globalThis.window?.kickoff?.terminal && api.closeTerminal(t.key).catch(() => {})),
     cluster: (t, r) => r.ofFolder(t.projectId, t.cwd),
   },
 };

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import { useRowWindow, type RowLayoutContext, type RowWindow } from "@/hooks/useRowWindow";
 import { estimateItem, estimateKind, estimateRaw, nextCorrection, type EstimateContext } from "./rowEstimate";
 import { noteEstimateItems } from "./estimateReport";
@@ -68,11 +69,10 @@ export function useTimelineWindow({
   // 前・後ろを読み足しているか（頼んでから、その読み込みが終わるまで。流れの上・下に「読み込み中…」）。同時に頼むのは 1 つ
   const [asked, setAsked] = useState<"earlier" | "later" | null>(null);
   const inflight = useRef(false);
-  const shapeRef = useRef("");
   const { hasEarlier, focused, paging, loadEarlier, loadLater } = log;
   // 読み足しても流れの項目が変わらなかったら（もう読めない・失敗した）、項目が変わるまで同じ側を頼み直さない
   const lastAsk = useRef<string | null>(null);
-  shapeRef.current = `${items[0]?.key}:${items.length}`;
+  const shapeRef = useLatest(`${items[0]?.key}:${items.length}`);
   const ask = useCallback((side: "earlier" | "later", load: () => Promise<void>) => {
     if (inflight.current || lastAsk.current === `${side}:${shapeRef.current}`) return;
     inflight.current = true;
@@ -82,7 +82,7 @@ export function useTimelineWindow({
       inflight.current = false;
       setAsked(null);
     });
-  }, []);
+  }, [shapeRef]);
   const onNearStart = useMemo(() => (hasEarlier && !paging ? () => ask("earlier", loadEarlier) : undefined), [hasEarlier, paging, loadEarlier, ask]);
   const onNearEnd = useMemo(() => (focused && !paging ? () => ask("later", loadLater) : undefined), [focused, paging, loadLater, ask]);
   const w: RowWindow = useRowWindow({
