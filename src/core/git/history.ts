@@ -6,6 +6,7 @@ import { assertInside } from "./files.js";
 import { readGitHubRemotes } from "./githubTarget.js";
 import { gitPrefix, hasRef, kindOf, parseAheadBehind } from "./status.js";
 import { Invalid } from "../http/errors.js";
+import { timed } from "../system/stallWatch.js";
 
 /** 履歴の区切り（コミットの間は RS、項目の間は NUL） */
 const LOG_FORMAT = "%H%x00%P%x00%an%x00%ae%x00%aI%x00%D%x00%s%x1e";
@@ -34,9 +35,13 @@ export async function gitLog(repo: string, skip = 0, limit = 200): Promise<GitLo
   if (!(await hasRef(repo, "HEAD"))) return { commits: [], more: false };
   const scope = (await gitPrefix(repo)) ? ["--", "."] : [];
   const out = await gitOutput(repo, ["log", "--all", "--topo-order", `--format=${LOG_FORMAT}`, `--skip=${skip}`, `-n`, String(limit + 1), ...scope]);
-  const commits = out.split("\x1e").filter((r) => r.trim()).map(parseCommit);
+  const commits = readLog(out);
   return { commits: commits.slice(0, limit), more: commits.length > limit };
 }
+
+/** git log の出力を読む（同期の処理なので詰まりの見張りに名前を付ける。system/stallWatch.ts） */
+const readLog = timed("git:log", (out: string) => out.split("\x1e").filter((r) => r.trim()).map(parseCommit));
+const readNameStatus = timed("git:name-status", parseNameStatus);
 
 /** 名前の変わったファイルなども含めた、変わったファイルの一覧（git diff --name-status -z の出力を読む） */
 export function parseNameStatus(out: string): GitFileChange[] {
@@ -66,7 +71,7 @@ export async function gitCommitDetail(repo: string, hash: string): Promise<GitCo
   const changes = parent
     ? await gitOutput(repo, ["diff", "--name-status", "--relative", "-M", "-z", parent, commit.hash])
     : await gitOutput(repo, ["diff-tree", "--root", "--no-commit-id", "-r", "--relative", "-M", "--name-status", "-z", commit.hash]);
-  return { ...commit, body: body.join("\0").trim(), committer, committed_at: committedAt, files: parseNameStatus(changes) };
+  return { ...commit, body: body.join("\0").trim(), committer, committed_at: committedAt, files: readNameStatus(changes) };
 }
 
 /** コミットでの 1 つのファイルの差分（1 つ目の親との差。最初のコミットは空との差） */
