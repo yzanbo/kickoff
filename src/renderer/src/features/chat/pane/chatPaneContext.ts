@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useSyncExternalStore, type RefObject } from "react";
-import type { Attachment, EffortLevel } from "@shared/types";
+import type { Attachment, ChatEvent, EffortLevel } from "@shared/types";
 import type { ValueCell } from "@/lib/valueCell";
 import type { ComposerFill } from "@/features/chat/composer/composerHandle";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
@@ -43,6 +43,8 @@ export interface ChatPaneState {
   activityFocus: { key: string; nonce: number } | null;
   /** 「伝える」の入力欄を開いているサブエージェントのカード（行のキー。カードのいちばん下に開く） */
   tellOpen: ReadonlySet<string>;
+  /** 遠い記録へ移るために読んでいる記録の ID（読むのが 150ms を超えたときだけ。押した所に回る印を出す。Q1 A） */
+  jumping: number | null;
 }
 
 /**
@@ -111,8 +113,10 @@ export interface ChatPaneActions {
   retry: (change?: RetryChange) => void;
   /** その発言へ移って一瞬強調する（一番下への追従をやめ、窓の外なら描いてから。流れにピントを置く） */
   jumpTo: (eventId: number) => void;
-  /** その発言を描くようにする（一番下への追従をやめ、窓の外なら窓を動かす。移るのは呼ぶ側。チャットの中の検索） */
+  /** その発言を描くようにする（一番下への追従をやめ、読んでいなければ読み、窓の外なら窓を動かす。移るのは呼ぶ側。チャットの中の検索） */
   reveal: (eventId: number) => void;
+  /** チャットの中の検索で探す、末尾より前の本文（自分の発言とメインの返答。末尾から読んでいれば空） */
+  searchTexts: () => Promise<ChatEvent[]>;
   /** 前（-1）・次（1）の自分の指示へ移る（from: 上に貼り付けた指示。その前後へ。省けば位置で決める） */
   stepPrompt: (dir: -1 | 1, from?: number) => void;
   /** チャット欄に文を入れる（append なら書いている文の後ろに足す） */

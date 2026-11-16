@@ -46,14 +46,31 @@ export function VisualFrame({
   // 渡す中身（描き直すたびに最新の関数・テーマを使う）
   const latest = useRef({ kind, code, theme, maxHeight, onError, onPrompt });
   latest.current = { kind, code, theme, maxHeight, onError, onPrompt };
+  // 枠のページ（下の key ごと）を読み込んだか・中身を渡したか。隠した会話の欄（Activity）の中で枠ができると、ready の知らせを
+  // 受ける購読がないので、表に戻して購読し直したときに、読み込み済みでまだ渡していなければ渡す
+  const frameKey = `${kind}\n${code}${kind === "html" ? `\n${theme["--vis-bg"]}` : ""}`;
+  const frameKeyRef = useRef(frameKey);
+  frameKeyRef.current = frameKey;
+  const loadedKey = useRef<string | null>(null);
+  const deliveredKey = useRef<string | null>(null);
+  const deliver = (frame: HTMLIFrameElement) => {
+    const { kind: k, code: c, theme: t, maxHeight: max } = latest.current;
+    deliveredKey.current = frameKeyRef.current;
+    frame.contentWindow?.postMessage({ type: VISUAL_MESSAGES.render, html: visualDocument({ kind: k, code: c, vars: t, ...(max !== undefined && !fill ? { maxHeight: max } : {}) }) }, "*");
+  };
+  useEffect(() => {
+    const frame = ref.current;
+    if (frame && loadedKey.current === frameKeyRef.current && deliveredKey.current !== frameKeyRef.current) deliver(frame);
+    // 描いたとき・表に戻して購読し直したときだけ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useWindowEvent("message", (e) => {
     const frame = ref.current;
     if (!frame || e.source !== frame.contentWindow || !e.data || typeof e.data !== "object") return;
     const data = e.data as { type?: unknown; height?: unknown; message?: unknown; text?: unknown };
     if (data.type === VISUAL_MESSAGES.ready) {
-      const { kind: k, code: c, theme: t, maxHeight: max } = latest.current;
-      frame.contentWindow?.postMessage({ type: VISUAL_MESSAGES.render, html: visualDocument({ kind: k, code: c, vars: t, ...(max !== undefined && !fill ? { maxHeight: max } : {}) }) }, "*");
+      deliver(frame);
     } else if (data.type === VISUAL_MESSAGES.size && typeof data.height === "number") {
       setHeight(Math.max(MIN_HEIGHT, Math.ceil(data.height)));
     } else if (data.type === VISUAL_MESSAGES.error && typeof data.message === "string") {
@@ -72,8 +89,9 @@ export function VisualFrame({
   return (
     <iframe
       // 中身が変わったら枠のページから読み直す（中のスクリプトの状態を引き継がない）。HTML はテーマを変えたときも
-      key={`${kind}\n${code}${kind === "html" ? `\n${theme["--vis-bg"]}` : ""}`}
+      key={frameKey}
       ref={ref}
+      onLoad={() => (loadedKey.current = frameKey)}
       className="visual-frame"
       src="/visual-frame"
       sandbox="allow-scripts"

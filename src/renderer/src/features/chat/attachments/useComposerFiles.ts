@@ -1,5 +1,6 @@
 import { chatTitle } from "@/features/chat/chatTitle";
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from "react";
+import { useKeepAliveHold } from "@/features/panel/tabs/tabKeepAlive";
 import type { Attachment } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
@@ -95,6 +96,11 @@ export function useComposerFiles(saved?: AttachmentDraft) {
     [saved?.id],
   );
 
+  // アップロードの途中は、タブを裏に回しても会話の欄を止めない（終わった添付を入力欄に入れるまで）
+  const uploading = files.some((f) => !f.attachment && !f.error);
+  const hold = useKeepAliveHold("upload");
+  useEffect(() => hold(uploading), [uploading, hold]);
+
   // 画像のプレビュー用 URL は不要になったら解放する
   useEffect(() => () => files.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl)), []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -189,7 +195,7 @@ export function useComposerFiles(saved?: AttachmentDraft) {
     onPaste,
     dropProps,
     /** アップロードの途中のものがあるか */
-    uploading: files.some((f) => !f.attachment && !f.error),
+    uploading,
     /** アップロードできた添付 */
     attachments: files.flatMap((f) => (f.attachment ? [f.attachment] : [])),
   };

@@ -1,5 +1,5 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, CornerDownRight } from "lucide-react";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import type { ChatEvent } from "@shared/types";
 import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat/subagents";
@@ -15,6 +15,7 @@ import { activityOf, activityText } from "@/features/chat/status/stall";
 import { Working } from "@/features/chat/status/Working";
 import { groupEvents, type TimelineItem } from "@/features/chat/timeline/timelineItems";
 import { describeTool } from "@/features/chat/tools/toolDescribe";
+import { chatLog } from "@/features/chat/store/useChatStore";
 import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusLabel } from "./subagentList";
 import type { SubagentsView } from "./subagentsContext";
@@ -197,18 +198,24 @@ export function Summary({ entry, childCount }: { entry: SubagentEntry; childCoun
  * 追加の指示（メインのチャットの自分の発言）は、このサブエージェントの流れに自分の発言として混ぜる
  */
 export function useSubagentItems(entry: SubagentEntry, view: SubagentsView): TimelineItem[] {
-  const { key, agentId } = entry;
+  const { key, agentId, toolUseEventId } = entry;
   const scopeKey = scopeOf(entry).join(" ");
+  // 末尾より前に始まったサブエージェントは、中の記録を読む（索引には中の最後の動きしかない。メモの仕様書「0023_表示を軽くする」の案 4）
+  const before = view.tailStart > 0 && toolUseEventId !== undefined && toolUseEventId < view.tailStart;
+  const { chatId } = view;
+  useEffect(() => {
+    if (before) void chatLog.loadScope(chatId, scopeKey.split(" "), toolUseEventId === undefined ? [] : [toolUseEventId]);
+  }, [before, chatId, scopeKey, toolUseEventId]);
   return useMemo(() => {
     const mixed = agentId
-      ? view.events.map((e) => {
+      ? view.loaded.map((e) => {
           if (e.type !== "user") return e;
           const text = relayedText(e.data.text, agentId);
           return text === undefined ? e : ({ ...e, data: { ...e.data, text, parent: key } } as ChatEvent);
         })
-      : view.events;
+      : view.loaded;
     return groupEvents(mixed, scopeKey.split(" "));
-  }, [view.events, key, agentId, scopeKey]);
+  }, [view.loaded, key, agentId, scopeKey]);
 }
 
 /** 手順（発言・ツール・入れ子のカード）と、実行中なら作業中の行。中身の記録がなければ、その理由 */

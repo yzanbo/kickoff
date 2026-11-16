@@ -15,9 +15,9 @@ export interface ChatActivity {
 
 /**
  * 作業中の行の文（止めている・通信を再試行している・会話を圧縮している・返答を書いている・ツールを実行中・考えている）と、動きの様子。
- * streaming: 書いている途中の返答、live: 作業中の様子（停止中・再試行・圧縮中・裏の作業）
+ * streaming: 書いている途中の返答があるか、live: 作業中の様子（停止中・再試行・圧縮中・裏の作業）
  */
-export function workingLabel(chat: Chat, last: TimelineItem | undefined, streaming: string, live: ChatLive, runningAgents: number, activity: ChatActivity): ReactNode {
+export function workingLabel(chat: Chat, last: TimelineItem | undefined, streaming: boolean, live: ChatLive, runningAgents: number, activity: ChatActivity): ReactNode {
   if (live.stopping) return "停止中…";
   // 子チャットで親の会話を写している（写し終えたら送る。親の会話が長いと数十秒かかる）
   if (live.inheriting) return "親の会話を引き継いでいます（会話が長いと数十秒かかります）";

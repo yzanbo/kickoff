@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
 import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type PermissionMode, type ChatOptions, type ProviderId } from "@shared/types";
 import { api } from "@/api";
+import { createKeyedStore } from "@/stores/keyedStore";
+import { useKeyedStore } from "@/stores/useStore";
 import { useProjects } from "@/stores/projects";
 import { useModels } from "@/stores/providers";
 import { useAppSettings } from "@/stores/settings";
@@ -11,6 +13,24 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { OptionMenu } from "@/ui/OptionMenu";
 import { IconButton } from "@/ui/IconButton";
 import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
+
+/** 既定の深さを取り直すまでの間（Claude Code の設定を書き換えたら、しばらくして直る） */
+const EFFORT_DEFAULT_MAX_AGE_MS = 60_000;
+
+/** プロジェクト・モデル・作業場所の key（本体は作業場所が空） */
+const effortKeyOf = (projectId: number, model: string | null, worktree: string | undefined) => `${projectId}\n${model ?? ""}\n${worktree ?? ""}`;
+
+/**
+ * 深さを指定しないときに使われる深さ（プロジェクト・モデル・作業場所ごと。チャット欄がいくつあっても、取りに行くのは key ごとに 1 回。
+ * 前は描いたときの effect で取っていて、隠したタブを表に戻すたびに同じ値を取り直していた。メモの仕様書「0023_表示を軽くする」の分冊 3 の 3-3-3）
+ */
+const effortDefaults = createKeyedStore<string, EffortDefault>({
+  load: (key) => {
+    const [projectId, model, worktree] = key.split("\n");
+    return api.effortDefault(Number(projectId), model || null, worktree || undefined);
+  },
+  maxAge: EFFORT_DEFAULT_MAX_AGE_MS,
+});
 
 /**
  * チャット欄で選ぶモデル・推論の深さ・権限モード・ファストモード。
@@ -60,18 +80,7 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
 
   // 深さを指定しないとき（既定）に、実際に使われる深さ（Claude Code の設定から。モデルを変えたら取り直す）
   const modelId = current?.resolved_model ?? model;
-  const [effortDefault, setEffortDefault] = useState<EffortDefault>();
-  useEffect(() => {
-    if (projectId === undefined) return;
-    let alive = true;
-    api
-      .effortDefault(projectId, modelId, worktree)
-      .then((d) => alive && setEffortDefault(d))
-      .catch(() => alive && setEffortDefault(undefined));
-    return () => {
-      alive = false;
-    };
-  }, [projectId, modelId, worktree]);
+  const effortDefault = useKeyedStore(effortDefaults, projectId === undefined ? undefined : effortKeyOf(projectId, modelId, worktree)).data;
 
   // 推論の深さの null は「指定しない」（モデルの既定に任せる）
   const options: ChatOptions = { model, effort, permission_mode: permission, fast_mode: fastMode };

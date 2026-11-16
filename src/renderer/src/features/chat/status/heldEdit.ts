@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { Attachment } from "@shared/types";
+import { setKeepAlive } from "@/features/panel/tabs/tabKeepAlive";
 
 /** 入力欄で書き直している預かった指示（チャットごとに 1 つ。画面の中だけで持ち、保存しない） */
 export interface HeldEdit {
@@ -23,12 +24,15 @@ const subscribe = (l: () => void) => {
 /** 預かった指示の書き直しを始める（吹き出しの鉛筆。チャット欄が書き直しの欄に入れ替わる） */
 export function startHeldEdit(chatId: number, edit: HeldEdit) {
   edits.set(chatId, edit);
+  // 書き直している間は、タブを裏に回しても会話の欄を止めない（書き直しの欄と、送る順を止めておく知らせを続ける）
+  setKeepAlive(chatId, "heldEdit", true);
   notify();
 }
 
 /** 書き直しを終える（保存した・やめた） */
 export function endHeldEdit(chatId: number) {
   if (!edits.delete(chatId)) return;
+  setKeepAlive(chatId, "heldEdit", false);
   notify();
 }
 

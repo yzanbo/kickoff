@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, useMemo, type CSSProperties, type ReactNode } from "react";
+import { Activity, lazy, memo, Suspense, useContext, useMemo, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BrowserPane } from "@/features/browser/BrowserPane";
 import { useAgentBrowsing } from "@/features/browser/agentBrowsing";
@@ -17,7 +17,8 @@ import { SideFileView } from "@/features/editor/SideFileView";
 import { SideProjectView } from "./SideProjectView";
 import { childTab, memoTab, terminalTitle } from "./tabKinds";
 import { canPopOut, popOutTab } from "./popOutTab";
-import { TabPageContext } from "./tabPageContext";
+import { TabPageContext, TabVisibleContext } from "./tabPageContext";
+import { useKeepAlive } from "./tabKeepAlive";
 import { NewChatPane } from "./NewChatPane";
 import { moveDraftSidePanel } from "@/features/panel/agents/draftSide";
 import { panelStateOf } from "@/features/panel/state/panelStore";
@@ -93,8 +94,9 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       onDraftChange={(text) => panel.patchTab(t.key, { kind: "new", fields: { draftText: text || undefined } })}
     />
   ),
-  // チャットの画面の右の欄（サブエージェントの欄）だけに開く。中身はそのチャットの画面の中にあり、チャットの記録・操作をそのまま使う
-  subagent: ({ tab: t }) => <SubagentScreen agentKey={t.agentKey} />,
+  // チャットの画面の右の欄（サブエージェントの欄）だけに開く。記録から作るものはチャットの店から読み、操作はそのチャットの画面のものを使う。
+  // 表示していない間は Activity で止める（伝える入力欄の音声入力など、チャットに止めない理由があれば止めない）
+  subagent: ({ tab: t, visible }) => <SubagentTabPage chatId={t.chatId} agentKey={t.agentKey} visible={visible} />,
   // チャットの画面の右の欄だけに開く。作業場所のコミットしていない変更（押したファイルの位置へ移る）と、ファイルの中身
   changes: ({ tab: t }) => <SideChanges projectId={t.projectId} worktree={t.worktree} focus={t.focus} focusAt={t.focusAt} />,
   // チャットの画面の右の欄だけに開く。プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面
@@ -159,6 +161,16 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
     />
   ),
 };
+
+/** 右の欄のサブエージェントのタブ: 裏に回したら（外のチャットのタブが裏に回ったときも）止め、記録が届いても描き直さない */
+function SubagentTabPage({ chatId, agentKey, visible }: { chatId: number; agentKey: string; visible: boolean }) {
+  const keepAlive = useKeepAlive(chatId);
+  return (
+    <Activity mode={visible || keepAlive ? "visible" : "hidden"}>
+      <SubagentScreen chatId={chatId} agentKey={agentKey} />
+    </Activity>
+  );
+}
 
 /** パネルのプロジェクト（プロジェクトごとの欄でなければ null。チャットの右の欄の範囲はチャットの ID なので取り違えない） */
 function projectOfPanel(panelKey: string): number | null {
@@ -230,10 +242,14 @@ function PanelTabPageBody({
   const actions = useMemo(() => ({ popOut: popOutable ? () => popOutTab(panel, tab.key) : null }), [popOutable, panel, tab.key]);
   // AI が操作しているブラウザのタブは、表に出ていなくても見えない形で並べる（撮る・押すため。browser.css）
   const agentBrowsing = useAgentBrowsing(tab.kind === "browser" ? tab.key : null);
+  // 表示中か（外のタブ（右の欄を持つチャットのタブ）が裏に回っていれば、自分のペインで選んでいても表示していない）
+  const visible = useContext(TabVisibleContext) && panelOpen && active;
   return (
     <div className={cx("panel-tab-page", split && focused && "pane-focused", agentBrowsing && "agent-browsing")} hidden={!active} style={style} onPointerDownCapture={focus} onFocusCapture={focus}>
       <TabPageContext.Provider value={actions}>
-        <Page tab={tab} panel={panel} visible={panelOpen && active} focused={focused} />
+        <TabVisibleContext.Provider value={visible}>
+          <Page tab={tab} panel={panel} visible={visible} focused={focused} />
+        </TabVisibleContext.Provider>
       </TabPageContext.Provider>
     </div>
   );

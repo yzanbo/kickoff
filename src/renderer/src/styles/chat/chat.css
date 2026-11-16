@@ -143,6 +143,26 @@
   transform: translateX(-50%);
 }
 
+/* 遠い記録を読むのが長引いているときの印（流れの上の真ん中に重ねる。いまの位置のまま待ち、読めたらなめらかに移る。メモの仕様書「0023_表示を軽くする」の Q1 A） */
+.timeline-jumping {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  color: var(--muted);
+  font-size: 12px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .timeline-inner {
   display: flex;
   flex-direction: column;

@@ -29,7 +29,14 @@ export type BusEvent =
   /** 会話の記録の from_event_id から後ろ（それを含む）を消した（巻き戻し。画面の記録からも消す） */
   | { type: "chat_events_deleted"; project_id: number; chat_id: number; from_event_id: number }
   /** AI の返答の途中経過（保存しない。確定した文は chat_event の text で届く） */
-  | { type: "chat_delta"; project_id: number; chat_id: number; text: string }
+  | {
+      type: "chat_delta";
+      project_id: number;
+      chat_id: number;
+      text: string;
+      /** 書きかけの返答の中で text が始まる位置（UTF-16 の長さ。コアのバスが流すときに付ける。チャットの詳細の streaming_length と同じ数え方） */
+      offset?: number;
+    }
   /** サブエージェントの途中経過（トークン数・直近のツール。保存しない） */
   | { type: "chat_subagent"; project_id: number; chat_id: number; subagent: SubagentInfo }
   /** 実行中のコマンドの出力の終わりの部分（増えるたびに丸ごと。保存しない。結果はツールの結果の記録で届く） */

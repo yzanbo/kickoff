@@ -7,7 +7,7 @@ import type { BusEvent, ChatEvent } from "@shared/types";
 const CLEARING_TYPES: ReadonlySet<ChatEvent["type"]> = new Set(["text", "thinking", "tool_use", "tool_result", "result", "error"]);
 
 /** 知らせが、そのチャットの書いている途中の返答に何をするか */
-export type StreamingEffect = { chatId: number; effect: "append"; text: string } | { chatId: number; effect: "clear" };
+export type StreamingEffect = { chatId: number; effect: "append"; text: string; offset?: number } | { chatId: number; effect: "clear" };
 
 /**
  * 知らせが、書いている途中の返答に何をするか（足す / 消す / 何もしない = null）。パソコンの画面とスマホのアプリで同じ決まりにする。
@@ -18,7 +18,7 @@ export type StreamingEffect = { chatId: number; effect: "append"; text: string }
 export function streamingEffectOf(event: BusEvent): StreamingEffect | null {
   switch (event.type) {
     case "chat_delta":
-      return { chatId: event.chat_id, effect: "append", text: event.text };
+      return { chatId: event.chat_id, effect: "append", text: event.text, ...(event.offset !== undefined && { offset: event.offset }) };
     case "chat_event": {
       const e = event.event;
       if (!CLEARING_TYPES.has(e.type) || ("parent" in e.data && e.data.parent)) return null;
@@ -31,4 +31,14 @@ export function streamingEffectOf(event: BusEvent): StreamingEffect | null {
     default:
       return null;
   }
+}
+
+/**
+ * 書きかけの返答（いまの長さ length）に、位置 offset から始まる途中の文 text を当てるときに、後ろに足す分（もう持っている所は捨てる）。
+ * チャットの詳細の streaming_text から始めたあと、行き違いで届いた途中の文を二重にしない。
+ * offset がない（古い本体）・持っている分より先から始まる（間が抜けた）ときは、text をそのまま足す
+ */
+export function streamingAppendOf(length: number, text: string, offset: number | undefined): string {
+  if (offset === undefined || offset >= length) return text;
+  return text.slice(length - offset);
 }
