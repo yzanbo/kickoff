@@ -4,6 +4,7 @@ import type { ChatPolicy } from "../../chat/policy.js";
 import { DOCKER_GUARD_DENIED, type DockerGuard } from "../../chat/guard/dockerGuard.js";
 import { evaluateDeleteCommand } from "../../chat/guard/deleteGuard.js";
 import { evaluateGitHookBypass } from "../../chat/guard/gitHookGuard.js";
+import { evaluateCompileCacheEnv } from "../../chat/guard/compileCacheGuard.js";
 import { evaluateHiddenDbAccess } from "../../chat/guard/hiddenDb.js";
 import { evaluateReferenceWrite, evaluateUntrackedWrite, writeTargetOf } from "../../chat/guard/scope.js";
 import { evaluateSelfProtection, type SelfInfo } from "../../chat/guard/selfProtection.js";
@@ -145,6 +146,7 @@ function writeScopeHook(params: ProviderTurnParams, scope: WriteScopeParams, den
  * Git で管理していないファイルだけを書けるチャット（untrackedOnly）は、Git で管理しているファイルの書き込みと Git の中身を変える git のコマンドを断る。
  * ファイルを消す Bash（rm・git clean など）は、守りを付けたときは断って kickoff-trash を使わせる（deleteGuard）。
  * git のフック（コミット時・push 時の確かめ）を飛ばす Bash（--no-verify・commit -n・core.hooksPath を変える）は、いつも断る（gitHookGuard）。
+ * 環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定する Bash（Kickoff の起動に別のコードを差し込める穴）も、いつも断る（compileCacheGuard）。
  * 別の作業場所・ほかのプロジェクトの Docker に手を出す Bash は、守りがあれば承認カードで聞く（dockerGuardHook）。
  * ファイルを書き換えるツールの先は、守りがあれば作業場所・メモのフォルダ・例外だけにし、同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く（writeScopeHook）。
  * Auto mode や許可ルールがあっても効く
@@ -166,6 +168,7 @@ export function turnHooks(
     ...fileDenials.map(denyHook),
     ...(params.deleteGuard ? [denyHook((tool, input) => evaluateDeleteCommand(tool, input))] : []),
     denyHook((tool, input) => evaluateGitHookBypass(tool, input)),
+    denyHook((tool, input) => evaluateCompileCacheEnv(tool, input)),
     ...(params.dockerGuard ? [dockerGuardHook(params.dockerGuard, cb)] : []),
     ...(params.writeScope ? [writeScopeHook(params, params.writeScope, fileDenials, cb)] : []),
   ];

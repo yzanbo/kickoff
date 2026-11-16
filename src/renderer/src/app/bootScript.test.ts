@@ -12,6 +12,7 @@ const bootScript = read("../../public/boot.js");
 const indexHtml = read("../../index.html");
 const tokensCss = read("../styles/base/tokens.css");
 const mobileCss = read("../styles/base/mobile.css");
+const footerCss = read("../styles/footer/footer.css");
 
 interface Run {
   stored?: Record<string, string>;
@@ -36,7 +37,7 @@ function runBoot({ stored = {}, osDark = false, hash = "", broken = false }: Run
     document: { documentElement: { setAttribute: (k: string, v: string) => (attrs[k] = v), style: { setProperty: (k: string, v: string) => (vars[k] = v) } } },
   };
   vm.runInNewContext(bootScript, context);
-  return { theme: attrs["data-theme"], shell: attrs["data-boot-shell"], width: vars["--boot-sidebar-w"] };
+  return { theme: attrs["data-theme"], shell: attrs["data-boot-shell"], width: vars["--boot-sidebar-w"], footer: attrs["data-boot-footer"] };
 }
 
 test("テーマ: light・dark・system（OS に合わせる）・未保存と知らない値はダーク（app/theme.ts と同じ）", () => {
@@ -66,7 +67,7 @@ test("サイドバーの幅: 未保存・壊れた値は 294、範囲の外は 2
 });
 
 test("localStorage が読めなくても投げない（既定の骨組みのまま）", () => {
-  assert.deepEqual(runBoot({ broken: true }), { theme: undefined, shell: undefined, width: undefined });
+  assert.deepEqual(runBoot({ broken: true }), { theme: undefined, shell: undefined, width: undefined, footer: undefined });
 });
 
 /** CSS の文字から、そのセレクタの塊の中の変数の値を読む */
@@ -88,6 +89,29 @@ test("骨組みの色は tokens.css の --bg・--bg-sidebar・--border と同じ
 test("窓の地の色（THEME_BACKGROUNDS）は tokens.css の --bg と同じ", () => {
   assert.equal(THEME_BACKGROUNDS.dark, cssVar(tokensCss, ":root", "--bg"));
   assert.equal(THEME_BACKGROUNDS.light, cssVar(tokensCss, ':root[data-theme="light"]', "--bg"));
+});
+
+test("上の帯（信号機ボタンの行）は描かない: 本物の画面ではどの画面でもその場所は地と同じ色で、区切りの線もない", () => {
+  // 前は地と少し違う色の面で描き、React が描いた瞬間に帯の色だけが消えてちらついた（メモの仕様書「0023_表示を軽くする」の 7 章）
+  assert.ok(!indexHtml.includes("boot-band"));
+  // 中身はサイドバーの欄と下の帯だけ
+  assert.ok(indexHtml.includes('<div id="root"><div class="boot-shell" aria-hidden="true"><div class="boot-sidebar"></div><div class="boot-footer"></div></div></div>'));
+});
+
+test("下の帯の出し方: show・hover・hide をそのまま、未保存と知らない値は show（footerMode.ts の既定と同じ）", () => {
+  assert.equal(runBoot({}).footer, "show");
+  assert.equal(runBoot({ stored: { "kickoff:footer-mode": "hover" } }).footer, "hover");
+  assert.equal(runBoot({ stored: { "kickoff:footer-mode": "hide" } }).footer, "hide");
+  assert.equal(runBoot({ stored: { "kickoff:footer-mode": "big" } }).footer, "show");
+});
+
+test("骨組みの大きさは本物と同じ: 下の帯は footer.css の 28px で横幅いっぱい、その分サイドバーが短い。幅 720px 以下のサイドバーは mobile.css の上限 40dvh", () => {
+  assert.match(footerCss, /\.app-footer \{[^}]*grid-column: 1 \/ -1;[^}]*height: 28px/);
+  assert.match(indexHtml, /\.boot-footer \{[^}]*left: 0;[^}]*height: 28px/);
+  assert.match(indexHtml, /\.boot-sidebar \{ height: calc\(100% - 28px\); \}/);
+  const media = indexHtml.slice(indexHtml.indexOf("@media (max-width: 720px)"));
+  assert.match(media, /\.boot-sidebar \{[^}]*height: 40dvh/);
+  assert.match(mobileCss, /\.sidebar \{[^}]*max-height: 40dvh/);
 });
 
 test("骨組みの縦 1 列の境目は mobile.css と同じ 720px", () => {

@@ -1,5 +1,6 @@
 import type { ProviderTurnParams } from "../../providers/types.js";
 import { realPathOrSelf } from "../../system/paths.js";
+import { evaluateCompileCacheEnv } from "./compileCacheGuard.js";
 import { evaluateDeleteCommand } from "./deleteGuard.js";
 import { DOCKER_GUARD_DENIED } from "./dockerGuard.js";
 import { evaluateGitHookBypass } from "./gitHookGuard.js";
@@ -33,7 +34,7 @@ const firstDeny = (decisions: Decision[]): GuardVerdict | null => {
   return denied ? { kind: "deny", reason: denied.reason } : null;
 };
 
-/** シェルのコマンドを流す前の判定（自分を守る・［AI で整える］・見せない DB・消すコマンド・git のフックを飛ばすコマンドは断り、ほかの作業場所の Docker は聞く） */
+/** シェルのコマンドを流す前の判定（自分を守る・［AI で整える］・見せない DB・消すコマンド・git のフックを飛ばすコマンド・NODE_COMPILE_CACHE を設定するコマンドは断り、ほかの作業場所の Docker は聞く） */
 export async function judgeCommand(ctx: GuardContext, command: string): Promise<GuardVerdict> {
   const { params, self } = ctx;
   const input = { command };
@@ -43,6 +44,7 @@ export async function judgeCommand(ctx: GuardContext, command: string): Promise<
     ...(params.hiddenDb?.length ? [evaluateHiddenDbAccess(params.hiddenDb, "Bash", input)] : []),
     ...(params.deleteGuard ? [evaluateDeleteCommand("Bash", input)] : []),
     evaluateGitHookBypass("Bash", input),
+    evaluateCompileCacheEnv("Bash", input),
   ]);
   if (denied) return denied;
   if (params.dockerGuard) {
