@@ -3,6 +3,7 @@ import { FEED_TEXT_LIMIT, type Chat, type ChatEvent, type ChatEventData, type Fe
 import { normalizeAttachment } from "@shared/attachment/normalize";
 import type { ChatEventMeta } from "@shared/chat/chatIndex";
 import type { Notify, Row } from "./common.js";
+import type { LogRevisions } from "./logRevisions.js";
 
 interface EventRow {
   id: number;
@@ -79,7 +80,7 @@ function keywordMatch(keyword: string): { from: string; where: string[]; params:
 }
 
 /** チャットの記録（chat_events の表）と、やり取りの全文検索。getChat は、知らせにプロジェクトを添えるのに使う */
-export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (id: number) => Chat | undefined) {
+export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (id: number) => Chat | undefined, revisions?: LogRevisions) {
   return {
     add(chatId: number, event: ChatEventData): ChatEvent {
       const { type, ...data } = event;
@@ -165,6 +166,11 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         .prepare("SELECT MAX(id) AS id FROM chat_events INDEXED BY idx_chat_events_meta WHERE chat_id = ? AND type = 'text' AND json_extract(data, '$.parent') IS NULL")
         .get(chatId) as { id: number | null };
       return row.id;
+    },
+    /** すべてのチャットの記録で、いちばん大きい ID（なければ 0。これから足す記録の ID はこれより大きい） */
+    maxId(): number {
+      const row = db.prepare("SELECT MAX(id) AS id FROM chat_events").get() as { id: number | null };
+      return row.id ?? 0;
     },
     /** そのチャットの、from 以上 to 未満に記録があるか */
     hasBetween(chatId: number, from: number, to: number): boolean {
@@ -305,10 +311,12 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         `UPDATE chat_events SET data = json_set(data, '$.session_id', ?)
          WHERE chat_id = ? AND type IN ('init', 'result') AND json_extract(data, '$.session_id') = ?`,
       ).run(to, chatId, from);
+      revisions?.changed(chatId);
     },
     /** 記録を、fromEventId から後ろ（fromEventId を含む）すべて消す（巻き戻し用。全文検索の索引はトリガーで追従する） */
     deleteFrom(chatId: number, fromEventId: number): void {
       db.prepare("DELETE FROM chat_events WHERE chat_id = ? AND id >= ?").run(chatId, fromEventId);
+      revisions?.changed(chatId);
       const chat = getChat(chatId);
       if (chat) onChange({ type: "chat_events_deleted", project_id: chat.project_id, chat_id: chatId, from_event_id: fromEventId });
     },

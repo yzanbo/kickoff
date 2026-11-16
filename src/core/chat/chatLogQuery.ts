@@ -6,8 +6,9 @@ import {
   type ChatEvent,
   type ChatEventPage,
 } from "@shared/types";
-import { selectIndexIds, slimIndexEvent, type IndexContext } from "@shared/chat/chatIndex";
+import type { IndexContext } from "@shared/chat/chatIndex";
 import type { Store } from "../db/store.js";
+import { indexCacheOf } from "./chatIndexCache.js";
 
 /*
  * チャットの記録を末尾・ページ・索引で読む（メモの仕様書「0023_表示を軽くする」の案 4・分冊 3 の 1-4-2。読むだけ。ルートは薄く保つ）。
@@ -99,11 +100,12 @@ export function tailStart(store: Store, chatId: number, limits: TurnLimits = { t
   return { start: capped.start, headPartial: capped.partial };
 }
 
-/** 末尾より前の記録の索引（覆う索引だけから軽い形を読んで JS の selectIndexIds で選び、選んだ行だけを読んで軽くする） */
+/**
+ * 末尾より前の記録の索引（覆う索引だけから軽い形を読んで JS の selectIndexIds で選び、選んだ行だけを読んで軽くする）。
+ * 読んだ軽い形と選んだ行はチャットごとに覚え、次からは増えた分だけを読む（chatIndexCache.ts）
+ */
 export function buildIndex(store: Store, chatId: number, start: number, ctx: IndexContext): ChatEvent[] {
-  const metas = store.events.metas(chatId, 0, start).map((r) => r.meta);
-  const picked = selectIndexIds(metas, start, ctx);
-  return store.events.byIds(chatId, [...picked.keys()]).map((e) => slimIndexEvent(e, picked.get(e.id)!));
+  return indexCacheOf(store).index(chatId, start, ctx);
 }
 
 /** before の手前を turns ターン（tailStart と同じ決まり） */

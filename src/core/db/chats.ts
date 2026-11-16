@@ -3,6 +3,7 @@ import type { Chat, ChatStatus, GitHubLink } from "@shared/types";
 import { bit, updateRow, type Notify, type Row } from "./common.js";
 import type { NewChat } from "./types.js";
 import { rememberChatSession } from "./agentSessions.js";
+import type { LogRevisions } from "./logRevisions.js";
 
 /** チャットの一覧の絞り込み（並びは最後に動いた順） */
 export interface ChatFilter {
@@ -63,7 +64,7 @@ function toChatRow({ fast_mode, unread, ...rest }: ChatPatch): Row {
  * チャット（chats の表。エージェントとの会話。記録は events.ts）。Kickoff のゴミ箱に入れたチャット（trashed_at がある）は、
  * get・一覧・子孫などのふだんの読み取りから外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashedWith / untrash / purgeTrashed だけ
  */
-export function createChatStore(db: DatabaseSync, onChange: Notify) {
+export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: LogRevisions) {
   const get = (id: number): Chat | undefined => {
     const row = db.prepare("SELECT * FROM chats WHERE id = ? AND trashed_at IS NULL").get(id);
     return row ? toChat(row) : undefined;
@@ -250,6 +251,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     purgeTrashed(itemId: string): Chat[] {
       const chats = db.prepare("SELECT * FROM chats WHERE trashed_with = ? ORDER BY id DESC").all(itemId).map(toChat);
       db.prepare("DELETE FROM chats WHERE trashed_with = ?").run(itemId);
+      for (const c of chats) revisions?.changed(c.id);
       return chats;
     },
     /** チャットを完全に削除する（会話の記録・送信待ち・子孫の子チャットも消える。子孫の分も知らせる） */
@@ -258,6 +260,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
       if (!chat) return;
       const gone = [...descendants(id), chat];
       db.prepare("DELETE FROM chats WHERE id = ?").run(id);
+      for (const c of gone) revisions?.changed(c.id);
       for (const c of gone) onChange({ type: "chat_deleted", id: c.id, project_id: c.project_id });
     },
     /** 未読の印を付ける・外す */
