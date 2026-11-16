@@ -177,7 +177,7 @@ function RestartResumeCard({
       )}
       <button type="button" className="queue-resume-toggle" aria-expanded={open} onClick={onToggle}>
         <ChevronRight size={13} className="queue-resume-chevron" aria-hidden />
-        <span className="queue-resume-count">{r.queued ? `送信待ち ${r.messages.length} 件` : "止まったところ"}</span>
+        <span className="queue-resume-count">{r.queued ? `送信待ち ${r.messages.length} 件` : "止まったときの様子"}</span>
         {!open && r.queued && <span className="queue-resume-next">次: {nextQueuedText(r.messages[0])}</span>}
         {!open && !r.queued && r.last_prompt && <span className="queue-resume-next">指示: {r.last_prompt.text.split("\n")[0]}</span>}
         <span className="queue-resume-toggle-label muted small">{open ? "閉じる" : "詳しく見る"}</span>
