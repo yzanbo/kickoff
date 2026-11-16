@@ -7,6 +7,7 @@
     "dev:cdp": "KICKOFF_REMOTE_DEBUG=9333 electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "preview:measure": "KICKOFF_REMOTE_DEBUG=9334 KICKOFF_PORT=4396 KICKOFF_USER_DATA_DIR=\"${TMPDIR:-/tmp}/kickoff-measure\" electron-vite preview",
     "daemon": "tsx src/core/daemon.ts",
     "typecheck": "tsc --noEmit --noUnusedLocals",
     "test": "vitest run --no-isolate --sequence.shuffle.files",

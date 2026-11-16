@@ -15,10 +15,14 @@ export const OPEN_HOLD_MAX_MS = 3000;
 export const WARM_CHATS = 20;
 /** 見る部品がなくなってから、末尾を縮めるまでの時間（U7） */
 export const SHRINK_AFTER_MS = 10 * 60_000;
+/** 頭のターンを途中から読んだとき（U5）、描いたあとの手すきを待つ長さの上限（来なければこの時間で読む） */
+export const HEAD_FILL_IDLE_MS = 1000;
 
 export interface ChatStoreDeps {
   /** 次の描画の前に呼ぶ（requestAnimationFrame）。返り値で取り消す */
   frame: (fn: () => void) => () => void;
+  /** 手すきのときに呼ぶ（requestIdleCallback。来なくても timeout ms で呼ぶ）。返り値で取り消す */
+  idle: (fn: () => void, timeout: number) => () => void;
   /** ms のあとに呼ぶ（setTimeout）。返り値で取り消す */
   timer: (fn: () => void, ms: number) => () => void;
   /** いまの時刻（ms） */
@@ -118,6 +122,10 @@ export interface Entry {
   cancelPublish: (() => void) | null;
   /** 開いた直後で、描き終えるまでためている（取り消すと待つのをやめる） */
   hold: (() => void) | null;
+  /** 頭のターンを埋める読み込みの予約（手すきのとき。U5） */
+  cancelFill: (() => void) | null;
+  /** 頭のターンを埋めようとした末尾の始まり（読めなかったとき、同じ所で何度も読み直さない） */
+  fillTriedAt: number | null;
 }
 
 export const EMPTY_VIEW: ChatDetailView = { chat: undefined, approvals: [], live: EMPTY_DETAIL.live, error: null };

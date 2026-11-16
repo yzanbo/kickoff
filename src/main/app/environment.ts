@@ -28,7 +28,7 @@ export const RENDERER_DIR = path.join(outDir, "renderer");
 export function setupEnvironment(): { port: number; devUrl: string | undefined } {
   const env = APP_ENVS[app.isPackaged ? "production" : "development"];
   app.setName(env.name);
-  app.setPath("userData", path.join(app.getPath("appData"), env.name));
+  app.setPath("userData", measureDataDir() ?? path.join(app.getPath("appData"), env.name));
   if (process.env.KICKOFF_REMOTE_DEBUG && !app.isPackaged) {
     app.commandLine.appendSwitch("remote-debugging-port", process.env.KICKOFF_REMOTE_DEBUG);
     // 確かめるときは開発版の窓を前に出さない（利用者の入力が入る）ので、隠れた窓でもタイマー・描画・アニメーションを止めない
@@ -42,7 +42,16 @@ export function setupEnvironment(): { port: number; devUrl: string | undefined }
   return { port: Number(process.env.KICKOFF_PORT ?? env.port), devUrl: process.env.ELECTRON_RENDERER_URL };
 }
 
-/** 開発のデータがまだなければ、本番のデータから一度だけ写す（起動中の印を保存先に作る前に呼ぶ） */
+/**
+ * 測るための一時の保存先（開発時の環境変数 KICKOFF_USER_DATA_DIR。製品版では見ない）。ビルドしたものを、開発版の保存先・製品版に触らずに
+ * 起動して測るとき（npm run preview:measure → scripts/measure-code-cache.mjs）
+ */
+function measureDataDir(): string | null {
+  const dir = process.env.KICKOFF_USER_DATA_DIR;
+  return dir && !app.isPackaged ? path.resolve(dir) : null;
+}
+
+/** 開発のデータがまだなければ、本番のデータから一度だけ写す（起動中の印を保存先に作る前に呼ぶ。測るための一時の保存先には写さない = 製品版の DB を読まない） */
 export function seedDevDataOnce() {
-  if (!app.isPackaged) seedDevData(path.join(app.getPath("appData"), APP_ENVS.production.name), app.getPath("userData"));
+  if (!app.isPackaged && !measureDataDir()) seedDevData(path.join(app.getPath("appData"), APP_ENVS.production.name), app.getPath("userData"));
 }

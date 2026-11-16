@@ -2,10 +2,11 @@
 import * as monaco from "./monacoEditor";
 import type { EditorCursor } from "@/lib/viewDetails";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { GitBlame } from "@shared/types";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { useSetting } from "@/hooks/useSetting";
+import { useLatest } from "@/hooks/useLatest";
 import { EDITOR_WORD_WRAP } from "@/lib/storageKeys";
 import type { AppliedTheme } from "@/lib/appliedTheme";
 import { registerCodeSelection } from "./codeSelection";
@@ -94,25 +95,22 @@ export default function CodeEditor({
   const hostRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const diffRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
-  const saved = useRef(savedValue);
-  saved.current = savedValue;
-  const latest = useRef({ onDirtyChange, onSave });
-  latest.current = { onDirtyChange, onSave };
+  // Monaco から呼ばれる処理が読むいまの値（描く中では書かない。useLatest）
+  const saved = useLatest(savedValue);
+  const latest = useLatest({ onDirtyChange, onSave });
   // Git との違いの帯: 元の中身と、付け直す関数（部品を作ったときに入る）
-  const quickBase = useRef(quickDiffBase);
-  quickBase.current = quickDiffBase;
+  const quickBase = useLatest(quickDiffBase);
   const refreshQuickDiff = useRef<(() => void) | null>(null);
   // 行の変更の記録: 記録と、いまの行に付け直す関数（部品を作ったときに入る）
-  const blameRef = useRef(blame);
-  blameRef.current = blame;
+  const blameRef = useLatest(blame);
   const refreshBlame = useRef<(() => void) | null>(null);
   const theme = useAppliedTheme();
   // 横幅に入らない行を折り返すか（ファイルの見出しのボタンと、エディタの中の ⌥Z で切り替える。どのファイルでも共通）
   const [wrap, setWrap] = useSetting(EDITOR_WORD_WRAP);
-  const wrapRef = useRef({ wrap, setWrap });
-  wrapRef.current = { wrap, setWrap };
+  const wrapRef = useLatest({ wrap, setWrap });
   // ⌘F の検索の欄に渡すエディタ（作ったら入れる。差分の編集では右の編集する側）
-  const [findEditor, setFindEditor] = useState<monaco.editor.IStandaloneCodeEditor | null>(null);
+  // （入れ物の要素も一緒に持つ。描く中で hostRef を読まない）
+  const [findEditor, setFindEditor] = useState<{ editor: monaco.editor.IStandaloneCodeEditor; host: HTMLDivElement } | null>(null);
 
   useEffect(() => {
     applyTheme(theme);
@@ -120,9 +118,8 @@ export default function CodeEditor({
     refreshQuickDiff.current?.();
   }, [theme]);
 
-  useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
+  // エディタを作る（作るときの中身・設定は、作る時点の値を読む。同じファイルの間は作り直さないので、effect の依存にしない）
+  const create = useEffectEvent((host: HTMLDivElement) => {
     // ファイル名から言語を決める（拡張子ごとの色付けの定義は、使うときに読み込まれる）
     const model = monaco.editor.createModel(initialValue, undefined, monaco.Uri.file(path));
     const options = {
@@ -208,7 +205,7 @@ export default function CodeEditor({
     const blameContentSub = model.onDidChangeContent(paintBlame);
     const unregister = registerCodeSelection(host, () => readSelection(editor));
     // ⌘F の検索の欄（ほかの検索の欄と同じ部品。エディタの中の ⌘F・ページの ⌘F は MonacoFindBar が受け取る）
-    setFindEditor(editor);
+    setFindEditor({ editor, host });
     // 検索の欄の「Aa」「ab」「.*」は、ほかの検索の欄と同じ値にそろえる
     const unsyncFind = syncMonacoFindOptions(editor);
     if (autoFocus) editor.focus();
@@ -231,8 +228,12 @@ export default function CodeEditor({
       editorRef.current = null;
       diffRef.current = null;
     };
-    // 同じファイルを開いている間は作り直さない（元の中身は開いたときのまま）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  // 同じファイルを開いている間は作り直さない（元の中身は開いたときのまま）
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    return create(host);
   }, [path]);
 
   // 差分の表示のしかたを変えたら、作り直さずに切り替える
@@ -289,7 +290,7 @@ export default function CodeEditor({
   return (
     <>
       <div ref={hostRef} className="code-editor" data-quote-path={path} />
-      {findEditor && hostRef.current && <MonacoFindBar editor={findEditor} host={hostRef.current} />}
+      {findEditor && <MonacoFindBar editor={findEditor.editor} host={findEditor.host} />}
     </>
   );
 }

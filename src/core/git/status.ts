@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { GitChangeKind, GitFileChange, GitOperation, GitStatus } from "@shared/types";
 import { gitOutput } from "./exec.js";
+import { timed } from "../system/stallWatch.js";
 
 const KINDS = new Set<GitChangeKind>(["M", "A", "D", "R", "C", "T"]);
 export const kindOf = (code: string): GitChangeKind => (KINDS.has(code as GitChangeKind) ? (code as GitChangeKind) : "M");
@@ -109,6 +110,9 @@ export async function gitOperation(repo: string): Promise<GitOperation | null> {
 }
 
 /** プロジェクトのフォルダの Git の状態（Git で管理されていなければ repo: false）。リポジトリの中のフォルダなら、その中の変更だけ */
+/** git status の出力を読む（変更の多い作業場所では数万行。同期の処理なので詰まりの見張りに名前を付ける。system/stallWatch.ts） */
+const readStatus = timed("git:status", (raw: string) => parseGitStatus(raw));
+
 export async function gitStatus(repo: string): Promise<GitStatus> {
   const prefix = await gitPrefix(repo);
   if (prefix === null) return { repo: false };
@@ -117,7 +121,7 @@ export async function gitStatus(repo: string): Promise<GitStatus> {
     listRemotes(repo),
     gitOperation(repo),
   ]);
-  const status = parseGitStatus(raw);
+  const status = readStatus(raw);
   return {
     ...status,
     staged: scopeChanges(status.staged, prefix),

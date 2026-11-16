@@ -10,14 +10,20 @@ function setup() {
   let now = 0;
   let hidden = false;
   const frames = new Set<() => void>();
+  const idles = new Set<() => void>();
   let timers: { at: number; fn: () => void }[] = [];
   const loads: { chatId: number; query: ChatDetailQuery; resolve: (d: ChatDetail) => void; reject: (e: Error) => void }[] = [];
-  const pages: { chatId: number; query: ChatEventsQuery; resolve: (p: ChatEventPage) => void }[] = [];
+  const pages: { chatId: number; query: ChatEventsQuery; resolve: (p: ChatEventPage) => void; reject: (e: Error) => void }[] = [];
   const store = createChatStore({
     frame: (fn) => {
       const f = () => fn();
       frames.add(f);
       return () => frames.delete(f);
+    },
+    idle: (fn) => {
+      const f = () => fn();
+      idles.add(f);
+      return () => idles.delete(f);
     },
     timer: (fn, ms) => {
       const t = { at: now + ms, fn };
@@ -27,12 +33,18 @@ function setup() {
     now: () => now,
     windowHidden: () => hidden,
     load: (chatId, query) => new Promise((resolve, reject) => loads.push({ chatId, query, resolve, reject })),
-    page: (chatId, query) => new Promise((resolve) => pages.push({ chatId, query, resolve })),
+    page: (chatId, query) => new Promise((resolve, reject) => pages.push({ chatId, query, resolve, reject })),
   });
   /** 次のフレームを描く（予約された rAF を呼ぶ） */
   const frame = () => {
     const all = [...frames];
     frames.clear();
+    for (const f of all) f();
+  };
+  /** 手すきの予約を呼ぶ */
+  const idle = () => {
+    const all = [...idles];
+    idles.clear();
     for (const f of all) f();
   };
   /** 時計を進め、時刻の来たタイマーを順に呼ぶ */
@@ -53,7 +65,7 @@ function setup() {
     for (const channel of ["detail", "log", "progress", "streaming"] as const) store.subscribe(chatId, channel, () => c[channel]++);
     return c;
   };
-  return { store, frame, advance, loads, pages, counts, setHidden: (h: boolean) => (hidden = h) };
+  return { store, frame, idle, idles, advance, loads, pages, counts, setHidden: (h: boolean) => (hidden = h) };
 }
 
 /** 読み込みの応答を返し終えるまで待つ */
@@ -378,4 +390,79 @@ test("見る部品がなくなって 10 分たったら、末尾を最新のタ�
   // また見たら縮めたまま出す（読み直さない）
   s.store.retain(1, "visible");
   assert.equal(s.loads.length, 1);
+});
+
+test("頭のターンを途中から読んだら、描いたあとの手すきにそのターンの頭まで読んで末尾につなぐ（U5）", async () => {
+  const s = setup();
+  s.store.retain(1, "visible");
+  const result = (id: number) => makeEvent(id, "result", { status: "completed" }, { chat_id: 1 });
+  // 作業の終わり 4 のあとのターン（5 から）が大きすぎて、8 から読んだ
+  s.loads[0].resolve({ ...detail(chatOf(1, "completed"), [text(8), text(9), result(10)]), has_earlier: true, index: [result(2), result(4), text(6)], head_partial: true });
+  await settle();
+  s.store.markPainted(1);
+  assert.equal(s.store.log(1).headPartial, true);
+  assert.equal(s.pages.length, 0);
+  // 描き終えるまで（手すきまで）読まない
+  s.idle();
+  assert.deepEqual(s.pages[0].query, { before: 8, since: 5 });
+  s.pages[0].resolve({ events: [text(5), text(6), text(7)], has_earlier: true, has_later: false, head_partial: false });
+  await settle();
+  s.frame();
+  assert.equal(s.store.log(1).headPartial, false);
+  assert.deepEqual(s.store.log(1).events.map((e) => e.id), [5, 6, 7, 8, 9, 10]);
+  s.idle();
+  assert.equal(s.pages.length, 1);
+});
+
+test("頭のターンを読めなかったら、同じ末尾では読み直さない。見る部品がいなければ読まない", async () => {
+  const s = setup();
+  const handle = s.store.retain(1, "visible");
+  const result = (id: number) => makeEvent(id, "result", { status: "completed" }, { chat_id: 1 });
+  s.loads[0].resolve({ ...detail(chatOf(1, "completed"), [text(8), result(9)]), has_earlier: true, index: [result(4)], head_partial: true });
+  await settle();
+  handle.release();
+  s.idle();
+  assert.equal(s.pages.length, 0);
+  s.store.retain(1, "visible");
+  s.idle();
+  assert.equal(s.pages.length, 1);
+  s.pages[0].reject(new Error("読めない"));
+  await settle();
+  s.frame();
+  s.idle();
+  assert.equal(s.pages.length, 1);
+  assert.equal(s.store.log(1).headPartial, true);
+});
+
+test("先読みは見る部品を増やさずに読み、開いたときは読み直さずにすぐ見せる（案 4 の先読み）", async () => {
+  const s = setup();
+  const done = s.store.prefetch(3);
+  assert.deepEqual(s.loads[0].query, { tail_turns: CHAT_TAIL_TURNS });
+  // 読み込み中にもう一度頼んでも 1 回
+  void s.store.prefetch(3);
+  assert.equal(s.loads.length, 1);
+  s.loads[0].resolve(detail(chatOf(3, "completed"), [text(1, 3)]));
+  await done;
+  assert.deepEqual(s.store.log(3).events.map((e) => e.id), [1]);
+  s.store.retain(3, "visible");
+  assert.equal(s.loads.length, 1);
+  assert.deepEqual(s.store.log(3).events.map((e) => e.id), [1]);
+});
+
+test("先読みしただけのチャットは、見なくなったチャットより先に上限で捨てる。見ているチャットの読み込み中は busy", async () => {
+  const s = setup();
+  void s.store.prefetch(500);
+  s.loads[0].resolve(detail(chatOf(500, "completed")));
+  await settle();
+  for (let id = 1; id <= WARM_CHATS; id++) {
+    const h = s.store.retain(id, "visible");
+    assert.equal(s.store.busy(), true);
+    s.loads.at(-1)!.resolve(detail(chatOf(id, "completed")));
+    await settle();
+    s.advance(1);
+    h.release();
+  }
+  assert.equal(s.store.busy(), false);
+  assert.equal(s.store.size(), WARM_CHATS);
+  assert.equal(s.store.log(500).events.length, 0);
 });
