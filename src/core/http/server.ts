@@ -8,6 +8,7 @@ import { VISUAL_FRAME_CSP, VISUAL_FRAME_SHELL } from "@shared/chat/visualDocumen
 import { AUTH_COOKIE, tokenMatches } from "./auth.js";
 import { callerOf, hashToken, setCaller } from "./caller.js";
 import { deviceMaySee, deviceMayUse } from "./deviceAccess.js";
+import { errorMessage } from "@shared/errors";
 import { errorResponse } from "./errors.js";
 import type { Bus } from "../bus.js";
 import type { AgentProvider } from "../providers/index.js";
@@ -292,7 +293,9 @@ export function createApp(deps: ServerDeps): Hono {
   app.all("/api/*", (c) => c.json({ error: "API が見つかりません" }, 404));
 
   // ---- 画面（本番時） ----
-  if (deps.staticDir && fs.existsSync(deps.staticDir)) {
+  if (deps.staticDir) {
+    // 画面のファイルを読めなければ起動を失敗にする（黙って画面を配らないと、窓が真っ暗のまま理由が分からない）
+    const indexHtml = readIndexHtml(deps.staticDir);
     const root = path.relative(process.cwd(), deps.staticDir);
     // /assets/ の下（名前に中身のハッシュが付く）は 1 年・変わらないとしてキャッシュさせ（起動・別ウィンドウのたびに JS を取り直してコンパイルし直さない）、
     // ほかは毎回問い合わせさせる（no-cache）。no-cache を外すと、serveStatic は Last-Modified だけを付けるので Chromium が経験則でキャッシュを
@@ -308,10 +311,18 @@ export function createApp(deps: ServerDeps): Hono {
     app.use("/*", serveStatic({ root }));
     // SPA のため、未知のパスは index.html を返す。ただし拡張子のあるパス（/assets/… の JS・CSS など）は 404 にする
     // （HTML を JS として読み込ませて、原因の分からない失敗にしない）
-    const indexHtml = fs.readFileSync(path.join(deps.staticDir, "index.html"), "utf8");
     app.get("*", (c) => (path.extname(c.req.path) ? c.notFound() : c.html(indexHtml)));
   }
 
   return app;
 }
 
+/** 画面の index.html を読む（読めなければ、場所と理由の分かる文で投げる。コアの起動の失敗として画面の外に出る） */
+export function readIndexHtml(staticDir: string): string {
+  const file = path.join(staticDir, "index.html");
+  try {
+    return fs.readFileSync(file, "utf8");
+  } catch (e) {
+    throw new Error(`画面のファイル（${file}）を読めません: ${errorMessage(e)}`);
+  }
+}
