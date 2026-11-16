@@ -329,6 +329,55 @@ test("サブエージェント: SendMessage で再開した回の記録（parent
   assert.deepEqual([entry.startedAt, entry.endedAt], ["2026-11-05T12:00:00Z", undefined]);
 });
 
+test("前の作業で結果のないまま止まった Agent の行は、次の作業中（busy = true）でも stopped", () => {
+  const at = (min: number) => `2026-11-16T09:${String(min).padStart(2, "0")}:00Z`;
+  const events = [
+    makeEvent(1, "user", { text: "0023 の残りを" }, { created_at: at(0) }),
+    makeEvent(2, "tool_use", { id: "old", name: "Agent", input: { description: "0023 の残りを実装する" } }, { created_at: at(1) }),
+    makeEvent(3, "subagent", { task_id: "a-old", tool_use_id: "old", description: "0023 の残りを実装する", status: "running" }, { created_at: at(1) }),
+    makeEvent(4, "tool_use", { id: "hb", name: "Agent", input: { description: "報告済み" } }, { created_at: at(2) }),
+    makeEvent(5, "tool_result", { tool_use_id: "hb", is_error: false, content: "Async agent launched successfully.\nagentId: a-hb" }, { created_at: at(2) }),
+    makeEvent(6, "tool_use", { id: "h", name: "SubagentHandback", parent: "hb", input: { message: "渡した報告" } }, { created_at: at(3) }),
+    // アプリの終了で作業が終わった（Agent の結果も終わりの知らせもない）
+    makeEvent(7, "result", { status: "failed", text: "アプリの終了により中断しました。" }, { created_at: at(5) }),
+    makeEvent(8, "user", { text: "次の作業" }, { created_at: at(30) }),
+    makeEvent(9, "tool_use", { id: "now", name: "Agent", input: { description: "いまの作業" } }, { created_at: at(31) }),
+  ];
+  const rows = collectSubagents(events, {}, true);
+  const byKey = (key: string) => rows.find((s) => s.key === key)!;
+  // 前の作業の行は、終わりの記録の時点で止まった（止まった記録の ID は付けない）
+  assert.deepEqual([byKey("old").status, byKey("old").endEventId, byKey("old").endedAt], ["stopped", undefined, at(5)]);
+  // 報告を渡していれば完了（親が動かないまま終わったので届いていない）
+  assert.deepEqual([byKey("hb").status, byKey("hb").delivery, byKey("hb").undeliveredReport], ["completed", "lost", "渡した報告"]);
+  // いまの作業のサブエージェント（まだ終わりの記録がない）は作業中のまま
+  assert.deepEqual([byKey("now").status, byKey("now").endedAt], ["running", undefined]);
+  // 作業の終わりのお知らせ・起動したときの再開の確かめが数えるもの（その作業で始めた、終わりの知らせのないもの）は変わらない
+  assert.deepEqual(unfinishedSubagents(events.slice(0, 7), 0).map((s) => s.key), ["old"]);
+  assert.deepEqual(unfinishedSubagents(events, 7).map((s) => s.key), ["now"]);
+  assert.deepEqual(networkStoppedSubagents(events, 0), []);
+  // SendMessage で再開したら、始まり直す
+  const resumed = [
+    ...events,
+    makeEvent(10, "tool_use", { id: "sm", name: "SendMessage", input: { to: "a-old" } }, { created_at: at(32) }),
+    makeEvent(11, "subagent", { task_id: "a-old", tool_use_id: "sm", description: "0023 の残りを実装する", status: "running" }, { created_at: at(32) }),
+  ];
+  const again = collectSubagents(resumed, {}, true).find((s) => s.key === "old")!;
+  assert.deepEqual([again.status, again.startEventId, again.endedAt], ["running", 11, undefined]);
+});
+
+test("通信の切断で親ごと終わったときに動いていたものは、次の作業中でも通信の切断で止まったまま", () => {
+  const events = [
+    makeEvent(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "裏" } }),
+    makeEvent(2, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "裏", status: "running" }),
+    makeEvent(3, "result", { status: "failed", text: "API Error: Connection error.", network: true }),
+    makeEvent(4, "user", { text: "続けて" }),
+  ];
+  const [stopped] = collectSubagents(events, {}, true);
+  assert.deepEqual([stopped.status, stopped.network, stopped.endEventId], ["stopped", true, 3]);
+  assert.deepEqual(networkStoppedSubagents(events, 0).map((s) => s.agentId), ["a1"]);
+  assert.deepEqual(unfinishedSubagents(events, 0), []);
+});
+
 test("サブエージェント: 止まった時刻は、ツールの結果・終わりの知らせ・通信で親が失敗した結果", () => {
   const events = [
     makeEvent(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "A" } }, { created_at: "2026-11-05T12:00:00Z" }),
