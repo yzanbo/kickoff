@@ -125,19 +125,20 @@ export const SIDEBAR_PROJECT_COMPACT = defineSetting("kickoff:sidebar-project-co
 export const LAST_ROUTE = defineSetting("kickoff:last-route", text(), { ids: true });
 /** プロジェクトごとに最後に見ていた画面（URL のハッシュ。横スライドで戻ってきたときに開く。アプリを閉じるまで） */
 export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project", record(isString), { ids: true, session: true });
-/** ブラウザの別ウィンドウのタブ（ウィンドウごと。読み込み直しても同じタブを開き直す。features/popout/browserWindow.ts） */
-export interface PopoutBrowserTab {
-  key: string;
-  url: string;
-  title: string;
-}
-const isPopoutBrowserTab = (v: unknown): v is PopoutBrowserTab =>
-  typeof v === "object" && v !== null && typeof (v as PopoutBrowserTab).key === "string" && typeof (v as PopoutBrowserTab).url === "string" && typeof (v as PopoutBrowserTab).title === "string";
-const NO_POPOUT_BROWSER_TABS: readonly PopoutBrowserTab[] = [];
-export const POPOUT_BROWSER_TABS = defineSetting(
-  "kickoff:popout-browser-tabs",
-  json((value) => (Array.isArray(value) ? value.filter(isPopoutBrowserTab) : undefined), NO_POPOUT_BROWSER_TABS, (tabs) => tabs.length === 0),
-  { session: true },
+/** タブの列のある別ウィンドウ（ブラウザ・チャット）のタブ（ウィンドウごと。読み込み直しても同じタブを開き直す。features/popout/tabWindow.ts） */
+export type PopoutWindowTab = { kind: "browser"; key: string; url: string; title: string } | { kind: "chat"; key: string; id: number; projectId: number };
+const isPopoutWindowTab = (v: unknown): v is PopoutWindowTab => {
+  if (typeof v !== "object" || v === null) return false;
+  const t = v as Record<string, unknown>;
+  if (typeof t.key !== "string") return false;
+  if (t.kind === "browser") return typeof t.url === "string" && typeof t.title === "string";
+  return t.kind === "chat" && typeof t.id === "number" && typeof t.projectId === "number";
+};
+const NO_POPOUT_WINDOW_TABS: readonly PopoutWindowTab[] = [];
+export const POPOUT_WINDOW_TABS = defineSetting(
+  "kickoff:popout-window-tabs",
+  json((value) => (Array.isArray(value) ? value.filter(isPopoutWindowTab) : undefined), NO_POPOUT_WINDOW_TABS, (tabs) => tabs.length === 0),
+  { ids: true, session: true },
 );
 /** プロジェクトのタグでの絞り込み（選んだタグ。"" はタグのないプロジェクト。空なら絞り込まない。サイドバー・全プロジェクトの画面・⌘⇧A で共通） */
 export const PROJECT_TAG_FILTER = defineSetting("kickoff:project-tag-filter", list());

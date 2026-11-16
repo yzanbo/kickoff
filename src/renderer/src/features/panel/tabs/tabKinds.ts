@@ -239,6 +239,11 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
       const chat = r.chatById(t.id) ?? t.chat;
       return chat ? r.ofChat(chat) : r.ofTarget(t.projectId);
     },
+    // チャット（いちばん上の親）をタブの列のある別ウィンドウへ移す（利用者の依頼。features/popout/tabWindow.ts）
+    popout: (t, panel) => ({
+      route: { kind: "chats", panel, key: t.key, chatId: t.id, projectId: t.projectId },
+      title: `${t.chat?.title ?? t.title ?? "チャット"} — チャット`,
+    }),
   },
   new: {
     shows: "chat",

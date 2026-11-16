@@ -3,7 +3,7 @@
 // メモは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければメモのタブ）。サイドバーはこのウィンドウのサイドバーを開く。
 // パネルのブラウザ・ターミナルのタブは元の欄に開き直す（ターミナルはシェルの持ち主をこのウィンドウにしてから。別ウィンドウが閉じてもシェルを止めさせない）
 import type { PopoutRoute } from "@/app/popout";
-import { navigate, openMemo } from "@/app/router";
+import { navigate, openChat, openMemo } from "@/app/router";
 import { writeSetting } from "@/lib/storage";
 import { SIDEBAR_OPEN } from "@/lib/storageKeys";
 import { knownChat } from "@/stores/chats";
@@ -34,6 +34,10 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
     case "browser":
       // ブラウザは右サイドバーだけに置く（ブラウザの別ウィンドウから、さらに移したタブも）
       reopenInPanel(route.projectId !== null ? panelKey("side", route.projectId) : route.panel, { key: route.key, kind: "browser", url: route.url, title: route.title });
+      return;
+    case "chats":
+      // チャットのパネルで開く（移すときに「表示だけ消した」ことにしたのを、開くことで戻す）
+      openChat(route.projectId, route.chatId);
       return;
     case "terminal": {
       const { kind: _kind, panel, ...tab } = route;

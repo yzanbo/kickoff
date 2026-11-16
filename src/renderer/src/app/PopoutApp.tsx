@@ -25,7 +25,7 @@ import { PopoutSubagent } from "@/features/popout/PopoutSubagent";
 import { PopoutChildChat } from "@/features/popout/PopoutChildChat";
 import { PopoutSidebar } from "@/features/popout/PopoutSidebar";
 import { PopoutSideChat } from "@/features/popout/PopoutSideChat";
-import { PopoutBrowser, PopoutTerminal } from "@/features/popout/PopoutPanelTab";
+import { PopoutTabWindow, PopoutTerminal } from "@/features/popout/PopoutPanelTab";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { LazyDatabaseClient } from "@/features/database/LazyDatabaseClient";
 import { SideScope } from "@/features/popout/SideScope";
@@ -37,7 +37,7 @@ import { usePopoutForwarding } from "./popoutNavigation";
 import { useAgentBrowserBridge } from "./agentBrowser";
 
 /** 上の帯の、何のウィンドウかの札 */
-const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ", database: "DB", sidebar: "サイドバー", side: "右サイドバー", browser: "ブラウザ", terminal: "ターミナル" };
+const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ", database: "DB", sidebar: "サイドバー", side: "右サイドバー", browser: "ブラウザ", chats: "チャット", terminal: "ターミナル" };
 
 /**
  * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアントと左のサイドバー）の画面。メインのウィンドウの App は使わない
@@ -97,8 +97,8 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
             </div>
           ) : route.kind === "side" ? (
             <PopoutSideChat />
-          ) : route.kind === "browser" ? (
-            <PopoutBrowser route={route} />
+          ) : route.kind === "browser" || route.kind === "chats" ? (
+            <PopoutTabWindow route={route} />
           ) : route.kind === "terminal" ? (
             <PopoutTerminal route={route} />
           ) : (

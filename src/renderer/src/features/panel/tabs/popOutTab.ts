@@ -16,5 +16,6 @@ export function popOutTab(panel: Pick<PanelPageOps, "key" | "closeTab">, tabKey:
   const target = canPopout() && tab ? specOf(tab).popout?.(tab, panel.key) : undefined;
   if (!target) return;
   openPopout(target.route, target.title, at);
-  panel.closeTab(tabKey, { dismiss: false, keep: true });
+  // チャットのタブは、サイドバーとの連動で足し直されないよう「表示だけ消した」ことにする（チャットのパネルに戻せば、また出る）
+  panel.closeTab(tabKey, { dismiss: tab?.kind === "chat", keep: true });
 }

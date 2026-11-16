@@ -24,6 +24,7 @@ const AREA_LABELS: Record<PanelSurface, string> = {
   memos: "メモのタブ",
   files: "ファイルのタブ",
   window: "ブラウザの別ウィンドウ",
+  chatWindow: "チャットの別ウィンドウ",
 };
 
 /** プロジェクトのタブの名前（中身はパネル・設定から読むものを除く） */
