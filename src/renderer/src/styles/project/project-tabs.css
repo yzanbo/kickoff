@@ -14,17 +14,11 @@
   flex-direction: column;
   gap: 4px;
   /*
-   * 左の端（サイドバーの線・窓の端）との間は、タブと中身の間と同じ半分の余白にし、アイコンの列を端と中身の真ん中に置く（VS Code の帯と同じ余白の感じ。利用者の依頼。
-   * 前は左右に 8px ずつ空いて広く、次に端にぴったり付けたら窮屈だった）。ページの左の余白の分を戻してから、半分だけ空ける
+   * 左の端（サイドバーの線・窓の端）との間（ページの左右の余白 --page-x）と、中身との間（.project-main の間）は、どちらもほかの欄と同じ --gutter。
+   * アイコンの列が端と中身の真ん中に来る（利用者の依頼。縦並びのタブのまわりだけ狭くすると、ほかの余白と合わずに浮いた）
    */
-  margin-left: calc(var(--gutter) / 2 - var(--page-x));
   overflow: visible;
   border-bottom: none;
-}
-
-/* 縦並びのタブと中身の間も半分に詰める */
-.project-main:has(> .project-side-tabs) {
-  gap: calc(var(--gutter) / 2);
 }
 
 .project-side-tabs .tab {
