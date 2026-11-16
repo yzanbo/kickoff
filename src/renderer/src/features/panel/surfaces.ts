@@ -128,6 +128,8 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeWhenEmpty: false,
     openWhenEmpty: null,
     openSetting: projectChatOpen,
+    // 横幅いっぱい ⇔ 元の幅（タブの列の左端。チャットの画面の右の欄と同じ。利用者の依頼）
+    maximize: "width",
     // 狭い欄なので、右・下に分けるボタンは置かない（利用者の依頼。分けるのはタブのドラッグ・右クリック・⌘\）
     noSplitButtons: true,
     className: "as-sidebar",
