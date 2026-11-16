@@ -23,6 +23,7 @@ import { NewChatPane } from "./NewChatPane";
 import { moveDraftSidePanel } from "@/features/panel/agents/draftSide";
 import { panelStateOf } from "@/features/panel/state/panelStore";
 import { projectOfPanel } from "@/features/panel/surfaces";
+import { openSideBrowser } from "@/features/panel/state/openBrowserTab";
 import { api } from "@/api";
 import { reportFailure } from "@/ui/dialogs";
 import type { PanelTab, PanelPageOps } from "@/features/panel/usePanel";
@@ -146,7 +147,8 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
         meta={{ projectId: t.projectId, title: terminalTitle(t) }}
         visible={visible}
         focused={visible && focused}
-        onOpenUrl={(url) => panel.openBrowser(url)}
+        // ブラウザは右サイドバー（チャット欄）だけに置くので、そのターミナルのプロジェクトの右サイドバーで開く
+        onOpenUrl={(url) => openSideBrowser(t.projectId, url)}
         projectId={projectOfPanel(panel.key)}
       />
     </Suspense>

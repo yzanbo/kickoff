@@ -1,9 +1,11 @@
 import { useMemo, type CSSProperties } from "react";
 import { canPopout } from "@/app/popout";
 import { cx } from "@/lib/cx";
-import { useProjects } from "@/stores/projects";
 import { Panel } from "@/features/panel/Panel";
-import { terminalTargets, usePanel } from "@/features/panel/usePanel";
+import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
+
+/** 右サイドバーはブラウザだけなので、ターミナルを開く場所はない */
+const NO_TERMINALS: TerminalTarget[] = [];
 import type { PanelFrame } from "@/features/panel/PanelTools";
 import { openSideWindow, type ProjectChatController } from "./useProjectChat";
 
@@ -22,9 +24,9 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
       style={{ "--chat-w": `${width.size}px` } as CSSProperties}
       inert={!chat.open}
       aria-hidden={!chat.open}
-      aria-label="プロジェクトのチャット"
+      aria-label="右サイドバー"
     >
-      <div className="pane-resizer project-chat-resizer" aria-label="チャット欄の幅を変える" {...width.handle} />
+      <div className="pane-resizer project-chat-resizer" aria-label="右サイドバーの幅を変える" {...width.handle} />
       <div className="project-chat-inner">
         <ProjectChatPanel projectId={projectId} noChat={noChat} popOut={canPopout() ? openSideWindow : undefined} />
       </div>
@@ -37,8 +39,8 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
  * popOut: 欄ごと別ウィンドウへ移すボタン（タブの列の道具。メインのウィンドウだけ）
  */
 export function ProjectChatPanel({ projectId, noChat, popOut }: { projectId: number; noChat: boolean; popOut?: () => void }) {
-  const { projects } = useProjects();
-  const panel = usePanel({ surface: "side", scope: projectId, noChat, newChat: noChat ? undefined : { projectId }, terminals: terminalTargets(projects, projectId) });
+  // ブラウザだけの欄（利用者の依頼）なので、新しいチャット・ターミナルの開く場所は渡さない
+  const panel = usePanel({ surface: "side", scope: projectId, noChat, newChat: undefined, terminals: NO_TERMINALS });
   const frame = useMemo<PanelFrame | undefined>(() => (popOut ? { popOut } : undefined), [popOut]);
   return <Panel panel={panel} frame={frame} />;
 }

@@ -64,14 +64,15 @@ test("閉じたターミナルのタブは、シェルも止める（ペイン�
   assert.deepEqual(keys("bottom:3"), []);
 });
 
-test("開閉: 見せるタブがないまま開くと、チャット欄はチャットを出す欄なら新しいチャット、フッターはターミナルを始める", () => {
+test("開閉: 見せるタブがないまま開くと、右サイドバー（チャット欄）は空のまま開き、フッターはターミナルを始める", () => {
   panelActions("side:4").toggle();
   assert.deepEqual(keys("side:4"), []);
   assert.equal(panelStateOf("side:4").open, true);
+  // 前にチャットを出すよう選んでいても、新しいチャットは始めない（ブラウザだけの欄）
   panelActions("side:4").toggle();
   writeSetting(panelTabKinds("side"), ["chat", "browser"]);
   panelActions("side:4").toggle();
-  assert.deepEqual(panelStateOf("side:4").tabs.map((t) => [t.kind, "projectId" in t && t.projectId]), [["new", 4]]);
+  assert.deepEqual(keys("side:4"), []);
   panelActions("bottom:4").toggle({ terminal: target(4) });
   assert.deepEqual(panelStateOf("bottom:4").tabs.map((t) => t.kind), ["terminal"]);
   // 見せるタブがあれば、開け閉めするだけ

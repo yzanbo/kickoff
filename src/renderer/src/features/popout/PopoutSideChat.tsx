@@ -53,6 +53,8 @@ export function PopoutSideChat() {
     // 届かなければ、空のまま描く（あとから届いたら受け取る）
     const timer = setTimeout(() => setReady(true), ADOPT_WAIT_MS);
     const off = subscribeWindowMessages((m) => {
+      // メインのウィンドウから頼まれたブラウザのタブ（このウィンドウがチャット欄を持っている間）
+      if (m.type === "sideOpenBrowser" && isSidePanel(m.panel)) return void panelActions(m.panel).openBrowser(m.url);
       // 受け取るのは 1 回だけ（同じ知らせが重ねて届いても、受け取ったあとのタブを消さない）
       if (m.type !== "sidePanels" || holding) return;
       clearTimeout(timer);

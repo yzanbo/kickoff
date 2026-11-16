@@ -5,7 +5,8 @@ import { CHAT_PLACEMENT, projectChatOpen } from "@/lib/storageKeys";
 import type { PanelKind } from "./state/panelKinds";
 
 /**
- * タブの欄（board = ボードの右のパネル / side = 画面の右端のチャット欄 / bottom = フッター（下のパネル） /
+ * タブの欄（board = チャットのパネル（ボードの右・「チャット」タブ。チャットだけ）/ side = 画面の右端のチャット欄（画面の文言では「右サイドバー」。ブラウザだけ）/
+ * bottom = フッター（下のパネル。ターミナルだけ）/
  * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く） /
  * memos = プロジェクトの「メモ」タブの右（開いたメモをタブで並べる。左の一覧から開く） /
  * files = プロジェクトの「ファイル」「検索」「変更」タブの右（開いたファイル・差分をタブで並べる。左の一覧から開く））
@@ -39,13 +40,13 @@ export interface SurfaceRules {
   /** 初めに見せるタブの種類（タブの列の「表示するタブ」で変えるまで） */
   defaultKinds: readonly PanelKind[];
   /**
-   * Esc で閉じるか（ボードの右のパネル。チャット欄は文字を打つ欄なので、フッターはターミナルの中で使うので閉じない）。
+   * Esc で閉じるか（ボードの右のパネル。チャット欄はページの中で Esc を使うので、フッターはターミナルの中で使うので閉じない）。
    * focused は、ピントが欄の中にあるときだけ閉じる（サブエージェントの欄。外のメインのチャットで押した Esc では閉じない）
    */
   closeOnEsc: boolean | "focused";
   /** 見せている最後のタブを閉じたら、欄も閉じるか（チャット欄は開いたまま、新しいタブのボタンを出す） */
   closeWhenEmpty: boolean;
-  /** 見せるタブがないまま開いたときに始めるもの（チャット欄 = 新しいチャット / フッター = ターミナル（開く場所が 1 つのとき）） */
+  /** 見せるタブがないまま開いたときに始めるもの（フッター = ターミナル（開く場所が 1 つのとき））。newChat は新しいチャット（いま使う欄はない） */
   openWhenEmpty: "newChat" | "terminal" | null;
   /** 開いているかを覚える設定（プロジェクトごと）。なければアプリを閉じるまで覚える */
   openSetting?: SettingFamily<boolean>;
@@ -61,10 +62,12 @@ export interface SurfaceRules {
   /** 大きくする切り替えの名前（なければ「横幅いっぱいに広げる / 元の幅に戻す」など。on = 大きくしているときの名前） */
   maximizeLabels?: { on: string; off: string };
   /**
-   * 出すタブの種類が決まっている欄か（サブエージェントの欄）。表示するタブの種類のメニュー・新しいタブのボタンを出さない
-   * （中身は外から開くタブと、newChild の新しい子チャットだけ）
+   * 出すタブの種類が決まっている欄か（defaultKinds のまま。表示するタブの種類のメニューを出さない）。チャットのパネルはチャットだけ・
+   * チャット欄（右サイドバー）はブラウザだけ・下のパネルはターミナルだけ（利用者の依頼）・サブエージェントの欄・メモとファイルのタブの右
    */
   fixedKinds?: boolean;
+  /** タブの列の新しいタブのボタンを出さない（中身は外から開くタブと、newChild の新しい子チャットだけの欄。サブエージェントの欄・メモとファイルのタブの右） */
+  noTabAdds?: boolean;
   /** タブの列を隠せる欄か（チャットのパネル。設定の CHAT_TAB_ROW_HIDDEN で隠す。隠すとタブの列の道具も出ない） */
   hideableTabs?: boolean;
   /**
@@ -99,19 +102,22 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     maximize: "width",
     hideableTabs: true,
     emptyHint: "カードを押すと、ここにチャットが開きます。",
+    fixedKinds: true,
   },
   side: {
     memoryPrefix: "side",
-    defaultKinds: ["browser", "terminal"],
+    defaultKinds: ["browser"],
+    fixedKinds: true,
     closeOnEsc: false,
     closeWhenEmpty: false,
-    openWhenEmpty: "newChat",
+    openWhenEmpty: null,
     openSetting: projectChatOpen,
     className: "as-sidebar",
   },
   bottom: {
     memoryPrefix: "bottom",
-    defaultKinds: ["terminal", "browser"],
+    defaultKinds: ["terminal"],
+    fixedKinds: true,
     closeOnEsc: false,
     closeWhenEmpty: true,
     openWhenEmpty: "terminal",
@@ -133,6 +139,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
       "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
     newChildHint: "「＋」で新しい子チャットを始められます。",
     fixedKinds: true,
+    noTabAdds: true,
     newChild: true,
     rootClass: "agent-panel",
   },
@@ -145,6 +152,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     openWhenEmpty: null,
     emptyHint: "左の一覧でメモを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
     fixedKinds: true,
+    noTabAdds: true,
     noKindBadges: true,
     className: "memo-panel",
   },
@@ -157,6 +165,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     openWhenEmpty: null,
     emptyHint: "左の一覧でファイルを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
     fixedKinds: true,
+    noTabAdds: true,
     noKindBadges: true,
     className: "file-panel",
   },

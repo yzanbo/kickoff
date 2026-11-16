@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { decodeKinds, shownActiveOf, toggleKind, withoutChat } from "./panelKinds";
 
-test("表示するタブ: 未保存なら欄ごとの既定（ボード = チャット / チャット欄 = ブラウザ・ターミナル / フッター = ターミナル・ブラウザ）", () => {
+test("表示するタブ: チャットのパネル = チャットだけ / 右サイドバー（チャット欄）= ブラウザだけ / フッター = ターミナルだけ（覚えた選び方によらない）", () => {
   assert.deepEqual(decodeKinds([], "board"), ["chat"]);
-  assert.deepEqual(decodeKinds([], "side"), ["browser", "terminal"]);
-  assert.deepEqual(decodeKinds([], "bottom"), ["terminal", "browser"]);
-  // 知らない値は捨て、並びはチャット → ブラウザ → ターミナル
-  assert.deepEqual(decodeKinds(["terminal", "bogus", "chat"], "side"), ["chat", "terminal"]);
-  assert.deepEqual(decodeKinds(["bogus"], "board"), ["chat"]);
+  assert.deepEqual(decodeKinds([], "side"), ["browser"]);
+  assert.deepEqual(decodeKinds([], "bottom"), ["terminal"]);
+  // 前に選んでいた種類は読まない
+  assert.deepEqual(decodeKinds(["terminal", "bogus", "chat"], "side"), ["browser"]);
+  assert.deepEqual(decodeKinds(["browser", "terminal"], "bottom"), ["terminal"]);
+  assert.deepEqual(decodeKinds(["browser"], "board"), ["chat"]);
 });
 
 test("表示するタブ: 付け外しする。最後の 1 つは外さない", () => {

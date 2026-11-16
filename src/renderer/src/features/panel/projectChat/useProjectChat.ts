@@ -43,4 +43,4 @@ export function useProjectChat(projectId: number | undefined, { noChat = false, 
 }
 
 /** チャット欄の別ウィンドウを開く（もう開いていれば前に出す。チャット欄の状態は、開いた別ウィンドウにメインのウィンドウが渡す。app/popoutHosts.ts） */
-export const openSideWindow = () => openPopout({ kind: "side" }, "チャット欄");
+export const openSideWindow = () => openPopout({ kind: "side" }, "右サイドバー");

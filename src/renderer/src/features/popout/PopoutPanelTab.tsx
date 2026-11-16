@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { popoutPath, type PopoutRoute } from "@/app/popout";
 import { postToMainWindow } from "@/app/windowBus";
 import { BrowserPane } from "@/features/browser/BrowserPane";
+import { panelKey } from "@/features/panel/surfaces";
 import { terminalTitle } from "@/features/panel/tabs/tabKinds";
 
 const TerminalPane = lazy(() => import("@/features/terminal/TerminalPane"));
@@ -38,8 +39,8 @@ export function PopoutTerminal({ route }: { route: TerminalRoute }) {
           meta={{ projectId: route.projectId, title: terminalTitle(route) }}
           visible
           focused
-          // ⌘ を押しながら押した URL は、移す元の欄のブラウザのタブで開く（メインのウィンドウ）
-          onOpenUrl={(url) => postToMainWindow({ type: "panelOp", op: { op: "openBrowser", panel: route.panel, url } })}
+          // ⌘ を押しながら押した URL は、そのプロジェクトの右サイドバー（チャット欄）のブラウザのタブで開く（メインのウィンドウに頼む）
+          onOpenUrl={(url) => postToMainWindow({ type: "panelOp", op: { op: "openBrowser", panel: panelKey("side", route.projectId), url } })}
           projectId={route.projectId}
         />
       </Suspense>

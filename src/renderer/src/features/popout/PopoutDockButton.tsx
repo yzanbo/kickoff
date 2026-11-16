@@ -12,7 +12,7 @@ const DOCK_WAIT_MS = 3000;
 function dockLabel(route: PopoutRoute): { label: string; tip: string; left: boolean } {
   if (route.kind === "sidebar") return { label: "左の欄に戻す", tip: "メインのウィンドウのサイドバーを開いて、このウィンドウを閉じる", left: true };
   const surface = route.kind === "side" ? "side" : route.kind === "browser" || route.kind === "terminal" ? parsePanelKey(route.panel)?.surface : "agents";
-  if (surface === "side") return { label: "チャット欄に戻す", tip: "メインのウィンドウの右端のチャット欄で開き直して、このウィンドウを閉じる", left: false };
+  if (surface === "side") return { label: "右サイドバーに戻す", tip: "メインのウィンドウの右サイドバーで開き直して、このウィンドウを閉じる", left: false };
   if (surface === "bottom") return { label: "下のパネルに戻す", tip: "メインのウィンドウの下のパネルで開き直して、このウィンドウを閉じる", left: false };
   if (surface === "agents") return { label: "右の欄に戻す", tip: "メインのウィンドウの、チャットの画面の右の欄で開き直して、このウィンドウを閉じる", left: false };
   return { label: "元の欄に戻す", tip: "メインのウィンドウの元の欄で開き直して、このウィンドウを閉じる", left: false };

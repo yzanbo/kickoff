@@ -1,6 +1,6 @@
 import { readSetting, writeSetting } from "@/lib/storage";
 import { NEW_CHAT_DRAFTS } from "@/lib/storageKeys";
-import { panelKey } from "@/features/panel/surfaces";
+import { panelKey, parsePanelKey } from "@/features/panel/surfaces";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 
 /** 送る前の新しいチャットのタブ */
@@ -25,12 +25,15 @@ export function readSavedDrafts(): Map<string, DraftTab[]> {
 }
 
 /**
- * 全プロジェクトの画面の、チャットを出さない欄（ボードの右のパネル（いまは持たない）・フッター）に残っていた下書きを、
- * 作成先のプロジェクトのボードのパネルへ移す（そのパネルの下書きの後ろに足す。同じタブがすでにあれば重ねない）。
+ * チャットを出さない欄（全プロジェクトの画面のボードの右のパネル（いまは持たない）・右サイドバー（チャット欄。ブラウザだけ）・フッター（ターミナルだけ））に
+ * 残っていた下書きを、作成先のプロジェクトのチャットのパネルへ移す（そのパネルの下書きの後ろに足す。同じタブがすでにあれば重ねない）。
  * 開けない欄に下書きが残り続けないように、読み戻すときに 1 度だけ行う。移すものがなければ同じ Map を返す
  */
-export function moveAllProjectsDrafts(saved: ReadonlyMap<string, DraftTab[]>): ReadonlyMap<string, DraftTab[]> {
-  const froms = [panelKey("board", "all"), panelKey("bottom", "all")].filter((key) => saved.has(key));
+export function moveDraftsToChatPanels(saved: ReadonlyMap<string, DraftTab[]>): ReadonlyMap<string, DraftTab[]> {
+  const froms = [...saved.keys()].filter((key) => {
+    const at = parsePanelKey(key);
+    return at !== undefined && ((at.surface === "board" && at.scope === "all") || at.surface === "side" || at.surface === "bottom");
+  });
   if (froms.length === 0) return saved;
   const out = new Map(saved);
   for (const from of froms) {

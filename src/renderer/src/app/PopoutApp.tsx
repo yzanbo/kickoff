@@ -37,7 +37,7 @@ import { usePopoutForwarding } from "./popoutNavigation";
 import { useAgentBrowserBridge } from "./agentBrowser";
 
 /** 上の帯の、何のウィンドウかの札 */
-const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ", database: "DB", sidebar: "サイドバー", side: "チャット欄", browser: "ブラウザ", terminal: "ターミナル" };
+const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ", database: "DB", sidebar: "サイドバー", side: "右サイドバー", browser: "ブラウザ", terminal: "ターミナル" };
 
 /**
  * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアントと左のサイドバー）の画面。メインのウィンドウの App は使わない
