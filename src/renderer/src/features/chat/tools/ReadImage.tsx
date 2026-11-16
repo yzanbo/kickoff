@@ -4,6 +4,7 @@ import { api } from "@/api";
 import { formatBytes } from "@/lib/format";
 import { useSizeObserver } from "@/hooks/useSizeObserver";
 import { useAttachmentViewer } from "@/features/chat/attachments/useAttachmentViewer";
+import { usePastWorkplaceAt } from "@/features/chat/timeline/PastWorkplace";
 import { readImageHeight, readImageKey, rememberReadImageHeight } from "./readImageHeights";
 
 /** 読み込んだ画像（画面で使う URL・大きさ・最後に変えた時刻） */
@@ -26,12 +27,14 @@ const RELEASE_MS = 10 * 60_000;
  */
 export function ReadImage({ chatId, path, readAt }: { chatId: number; path: string; readAt: string | undefined }) {
   const [loaded, setLoaded] = useState<Loaded>();
+  // 作業場所を移した区切りより前の呼び出しなら、そのときの作業場所から読む
+  const at = usePastWorkplaceAt();
   const [error, setError] = useState<string>();
   const [dims, setDims] = useState<{ width: number; height: number }>();
   const name = path.slice(path.lastIndexOf("/") + 1);
   const viewer = useAttachmentViewer(loaded ? [{ src: loaded.url, name }] : []);
   // 前に描いたときの高さ（読み込み中・画像を解くまでの間、この高さで場所を取る。案 14a・20）と、描けたあとの高さを覚える
-  const key = readImageKey(chatId, path);
+  const key = readImageKey(chatId, at === undefined ? path : `${at}:${path}`);
   const known = readImageHeight(key);
   const sizeRef = useSizeObserver<HTMLDivElement>(({ height }) => {
     if (dims) rememberReadImageHeight(key, height);
@@ -41,7 +44,7 @@ export function ReadImage({ chatId, path, readAt }: { chatId: number; path: stri
   // 片付けでは RELEASE_MS 待ってから捨て、その間に戻れば使い続ける。捨てたら、次に描いたときに読み直す）
   const held = useRef<{ key: string; url: string; timer?: number } | null>(null);
   useEffect(() => {
-    const id = readImageKey(chatId, path);
+    const id = readImageKey(chatId, at === undefined ? path : `${at}:${path}`);
     let alive = true;
     const release = () => {
       alive = false;
@@ -63,7 +66,7 @@ export function ReadImage({ chatId, path, readAt }: { chatId: number; path: stri
     setLoaded(undefined);
     setError(undefined);
     api
-      .toolImage(chatId, path)
+      .toolImage(chatId, path, at)
       .then(({ blob, mtime }) => {
         if (!alive) return;
         const url = URL.createObjectURL(blob);
@@ -72,7 +75,7 @@ export function ReadImage({ chatId, path, readAt }: { chatId: number; path: stri
       })
       .catch((e: unknown) => alive && setError(errorMessage(e)));
     return release;
-  }, [chatId, path]);
+  }, [chatId, path, at]);
 
   if (error) return <p className="tool-image-note muted small">{error}</p>;
   if (!loaded) {

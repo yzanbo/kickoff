@@ -23,6 +23,7 @@ import { isInside, realPathOrSelf } from "../system/paths.js";
 import { workplacesOf } from "../git/worktrees.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
 import { chatContextNote, chatContextOf } from "./chatContext.js";
+import { joinContexts, workplaceMoveContext } from "./workplaceMove.js";
 import { createAiChatEditTools } from "./aiChatEdit.js";
 import { createAiOpenTools } from "./aiOpen.js";
 import { createAiChatReadTools } from "./aiChatRead.js";
@@ -262,7 +263,7 @@ function buildTurnParams(
     prompt,
     ...(promptId ? { promptId } : {}),
     systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, { trash: deps.trashCommand !== undefined, sandbox: sandbox ? { unsandboxed: sandbox.unsandboxedCommands } : undefined }),
-    turnContext: chatContextNote(chatContextOf(deps.store, chat)),
+    turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id))),
     policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,
     model: chat.model,

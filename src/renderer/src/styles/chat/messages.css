@@ -262,8 +262,10 @@
   background: var(--bg-hover);
 }
 
-/* 送信待ちの「コンテキストを消去」で新しい会話にした境目（Timeline の context_cleared）: 送信待ちの消去の行と同じ青の線と文 */
-.context-cleared-divider {
+/* 送信待ちの「コンテキストを消去」で新しい会話にした境目（Timeline の context_cleared）: 送信待ちの消去の行と同じ青の線と文。
+   作業場所を移した区切り（workplace_moved）も同じ形で、色だけアクセントにする */
+.context-cleared-divider,
+.workplace-moved-divider {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -273,12 +275,39 @@
 }
 
 .context-cleared-divider::before,
-.context-cleared-divider::after {
+.context-cleared-divider::after,
+.workplace-moved-divider::before,
+.workplace-moved-divider::after {
   flex: 1;
   border-top: 1px dashed color-mix(in srgb, var(--info) 55%, transparent);
   content: "";
 }
 
-.context-cleared-divider svg {
+.context-cleared-divider svg,
+.workplace-moved-divider svg {
   flex: none;
+}
+
+.workplace-moved-divider {
+  color: var(--accent-fg);
+}
+
+.workplace-moved-divider::before,
+.workplace-moved-divider::after {
+  border-top-color: color-mix(in srgb, var(--accent-fg) 55%, transparent);
+}
+
+.workplace-moved-divider span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+/* 作業場所を移した区切りより前の行で、そのときの作業場所がもうないとき（Timeline の PastWorkplace）: 行の形は変えず、ファイルのチップ・変更カードのファイル・ツールの行のファイルを薄くする（押すと開けないと知らせる） */
+.past-workplace-gone {
+  display: contents;
+}
+
+.past-workplace-gone :is(.file-link, .tool-file-link, .turn-change-file) {
+  opacity: 0.55;
 }

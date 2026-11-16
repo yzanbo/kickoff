@@ -37,3 +37,22 @@ test("sessionAt: あとでコンテキストを消去していれば、消去の
   assert.equal(sessionAt(events.slice(0, 6), 0, null), "s1");
   assert.equal(sessionAt([events[0], events[5]], 0, null), null);
 });
+
+test("resumePointBefore: 作業場所を移した区切りより前の起点は使わず、区切りの移したあとの起点にする（なければ最初から。0025 の H2）", () => {
+  const seq = eventSequence();
+  const here = { project_id: 1, worktree_path: null, branch: "main", dir: "/repo" };
+  const there = { project_id: 1, worktree_path: "/wt", branch: "feat", dir: "/wt" };
+  const moved: ChatEvent[] = [
+    seq("user", { text: "1" }),
+    seq("result", { status: "completed", session_id: "s1", message_id: "m1" }),
+    seq("workplace_moved", { from: here, to: there, reason: "user", session_id: "s2", message_id: "m1" }),
+    seq("user", { text: "2" }),
+    seq("result", { status: "failed", session_id: "s2" }),
+  ];
+  // 移したあとの最初の発言・失敗した作業のあと: 区切りの起点（新しいセッション s2 の同じ発言）
+  assert.deepEqual([resumePointBefore(moved, 4)?.session_id, resumePointBefore(moved, 4)?.message_id], ["s2", "m1"]);
+  assert.equal(resumePointBefore(moved)?.session_id, "s2");
+  // 起点のない区切り（まだ会話がなかった）なら、それより前は使わず最初から
+  const bare: ChatEvent[] = [moved[0], moved[1], seq("workplace_moved", { from: here, to: there, reason: "ai" })];
+  assert.equal(resumePointBefore(bare), undefined);
+});

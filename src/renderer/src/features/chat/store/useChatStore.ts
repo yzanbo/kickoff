@@ -1,5 +1,6 @@
 import { useCallback, useEffectEvent, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import type { Chat } from "@shared/types";
+import type { WorkplaceBoundary } from "@shared/chat/workplaceMoves";
 import { api } from "@/api";
 import { subscribeServerEvent, subscribeServerOpen } from "@/api/events";
 import { useProjects } from "@/stores/projects";
@@ -219,6 +220,10 @@ const DETAIL_CHANNELS: readonly Channel[] = ["detail"];
 export const useChatSubagents = (chatId: number): ChatSubagents => useSelected(chatId, SUBAGENT_CHANNELS, () => selectors.subagents(chatId));
 /** AI が描いた図（記録から組み立てたもの） */
 export const useChatVisuals = (chatId: number): ChatVisuals => useSelected(chatId, LOG_CHANNELS, () => selectors.visuals(chatId));
+/** 作業場所を移した区切り（区切りより前の発言の書き直し・分岐を止め、ファイルをそのときの作業場所から開く。メモの仕様書「0025」） */
+export const useWorkplaceBoundaries = (chatId: number): readonly WorkplaceBoundary[] => useSelected(chatId, LOG_CHANNELS, () => selectors.workplaceBoundaries(chatId));
+/** その記録が、作業場所を移した区切りより前か（区切りが変わったときだけ描き直す） */
+export const useBeforeWorkplaceMove = (chatId: number, eventId: number): boolean => useWorkplaceBoundaries(chatId).some((b) => b.id > eventId);
 /** 裏でまだ動いている作業を起動した呼び出しの ID */
 export const useChatBackgroundCalls = (chatId: number): ReadonlySet<string> => useSelected(chatId, DETAIL_CHANNELS, () => selectors.backgroundCalls(chatId));
 

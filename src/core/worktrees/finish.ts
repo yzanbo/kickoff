@@ -23,7 +23,7 @@ import { realPathOrSelf } from "../system/paths.js";
 import type { TrashService } from "../trash/service.js";
 import type { WorktreeEnvService } from "../worktreeEnv/service.js";
 import { applySnapshot, dropTrashRefs, saveTrashRefs, snapshotWorkingTree, trashRef } from "./backup.js";
-import { finishedText, lossText, movedToMainNotice, plannedText, type FinishFacts, type FinishOutcome } from "./report.js";
+import { finishedText, lossText, plannedText, type FinishFacts, type FinishOutcome } from "./report.js";
 
 /** 消し方（画面の「消す」の選択と、AI の後始末の決まった選び方） */
 export interface FinishOptions {
@@ -229,7 +229,10 @@ export class WorktreeFinisher {
     const ownCompose = (envBefore?.compose_names.length ?? 0) > 0;
     const hasCompose = !target.prunable && findComposeFiles(target.path).length > 0;
     const moved = users.flatMap((u) => store.chats.inWorktree(u.projectId, u.path));
-    const clearChats = () => {
+    // そこで作業していたチャットを本体に戻す。作業フォルダが変わるので、作業場所を移すのと同じく会話を新しいセッションに写して区切りを置く
+    // （メモの仕様書「0025」の G1・J6。区切りの 1 行と AI への知らせに、片付けたことと控えに入れたかを書く）。ゴミ箱のチャットは付け替えるだけ
+    const clearChats = async () => {
+      for (const chat of moved) await this.deps.runner.moveWorkplace(chat.id, { worktreePath: null, reason: "worktree_finished", backedUp: loseChanges }).catch(() => {});
       for (const u of users) store.chats.clearWorktree(u.projectId, u.path);
     };
     let worktrees: GitWorktree[];
@@ -238,16 +241,14 @@ export class WorktreeFinisher {
     } catch (e) {
       // 一覧も取れなければ、消えたか分からないので戻さない。消えていなければ控えも取り消す
       const gone = await findWorktree(repo, folder).then((w) => !w, () => false);
-      if (gone) clearChats();
+      if (gone) await clearChats();
       else if (trashId) {
         await dropTrashRefs(repo, trashId);
         store.trash.remove(trashId);
       }
       throw e;
     }
-    clearChats();
-    // 本体に戻したチャットには、頼んだチャット自身（ワークツリー自身から予約したとき）も含めて「次からは本体で動きます」を残す（結果のお知らせはこのあと頼んだチャットに別に残す）
-    for (const chat of moved) store.events.add(chat.id, { type: "notice", message: movedToMainNotice(facts.branch) });
+    await clearChats();
     // コンテナとデータ（選ばれたとき。Kickoff が割り当てた組だけ。組の名前で消すのでフォルダがなくてよい）を片付け、帯を空ける。消せなかった組は記録に残す
     const failed = await worktreeEnvs.release(folder, { downVolumes: opts.downVolumes });
     if (failed.length) console.warn("[worktree-env] コンテナとデータを消せませんでした", failed);

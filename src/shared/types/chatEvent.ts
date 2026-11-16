@@ -78,7 +78,41 @@ export type ChatEventData =
   /** サブエージェントの開始・終了（途中経過は保存せず、chat_subagent で届く） */
   | ({ type: "subagent" } & SubagentInfo)
   /** 子チャットの答えを親チャットに渡した（子チャットの記録。turn_event_id: どの作業の終わりの答えか。via: 渡し方。parent_chat_id: 渡した先） */
-  | { type: "handoff"; via: HandoffVia; parent_chat_id: number; turn_event_id: number };
+  | { type: "handoff"; via: HandoffVia; parent_chat_id: number; turn_event_id: number }
+  /**
+   * 作業場所を移した区切り（メモの仕様書「0025_チャットの作業場所を変える」）。from / to: 移す前と後の作業場所。reason: なぜ移ったか。
+   * carried: コミットしていない変更を持っていった（Q2）。backed_up: ワークツリーを片付けたとき、コミットしていない変更を控えに入れた（J6）。
+   * session_id / message_id: 移したあとの会話の起点（新しいセッションに写した、写せなければいまのセッションの、区切りの直前の最後まで終わった作業の終わり。
+   * なければ省く）。区切りより前の発言へは巻き戻し・分岐ができず、起点を探すとき区切りを境目にする（H2）
+   */
+  | {
+      type: "workplace_moved";
+      from: WorkplaceRef;
+      to: WorkplaceRef;
+      reason: WorkplaceMoveReason;
+      carried?: true;
+      backed_up?: true;
+      session_id?: string;
+      message_id?: string;
+    };
+
+/**
+ * 作業場所（チャットの、ある時点の）。project_id: どのプロジェクトか / worktree_path: ワークツリーのフォルダ（本体なら null）/
+ * branch: そのときのブランチ（分からなければ null）/ dir: 作業フォルダの絶対パス
+ */
+export interface WorkplaceRef {
+  project_id: number;
+  worktree_path: string | null;
+  branch: string | null;
+  dir: string;
+}
+
+/**
+ * 作業場所が移った理由: 利用者が移した / AI が移した（操作ツール）/ ワークツリーを片付けて本体に戻った / 別のプロジェクトへ移した /
+ * プロジェクトのフォルダを変えた（G1）
+ */
+export const WORKPLACE_MOVE_REASONS = ["user", "ai", "worktree_finished", "project_moved", "folder_moved"] as const;
+export type WorkplaceMoveReason = (typeof WORKPLACE_MOVE_REASONS)[number];
 
 /** 子チャットから親チャットへの渡し方: 親の入力欄に入れる（送るのは自分で）/ 今すぐ送る（作業中ならいまの作業に伝える）/ 親の送信待ちの最後に足す */
 export const HANDOFF_VIAS = ["composer", "send", "queue"] as const;

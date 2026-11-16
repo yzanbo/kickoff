@@ -2,6 +2,7 @@
 // 記録（ChatEvent）を持ち、本体の知らせ（chat_event・chat_events_deleted・chat_delta）でその場で直す。純粋な関数でテストする
 import type { BusEvent, ChatEvent, TurnEndStatus } from "@shared/types";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, collectVisuals, visualIdOf, type ChatVisual } from "@shared/chat/aiVisual";
+import { workplaceMoveLine } from "@shared/chat/workplaceMoves";
 import { hasMath } from "./richPages";
 
 export type TimelineItem =
@@ -106,6 +107,10 @@ export function timelineOf(events: readonly ChatEvent[]): TimelineItem[] {
         break;
       case "context_cleared":
         items.push({ kind: "notice", id: e.id, text: "コンテキストを消去しました" });
+        break;
+      case "workplace_moved":
+        // 作業場所を移した区切り（メモの仕様書「0025」の I1）
+        items.push({ kind: "notice", id: e.id, text: workplaceMoveLine(e.data) });
         break;
       default:
         break;

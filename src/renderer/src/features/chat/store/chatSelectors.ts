@@ -2,6 +2,7 @@
 import type { BackgroundState, ChatEvent, SubagentInfo } from "@shared/types";
 import { collectSubagents, type SubagentEntry } from "@shared/chat/subagents";
 import { waitingSubagentKeys } from "@shared/chat/subagentState";
+import { workplaceBoundaries, type WorkplaceBoundary } from "@shared/chat/workplaceMoves";
 import { createLruMap } from "@/lib/lruMap";
 import { latestOf } from "@/features/chat/status/stall";
 import { subagentTree, type SubagentTree } from "@/features/chat/subagents/subagentTree";
@@ -32,6 +33,7 @@ export interface SelectorSource {
 /** 中身を覚えておくチャットの数（店に残すチャットより少し多く） */
 const MEMO_CHATS = 40;
 const NO_CALLS: ReadonlySet<string> = new Set();
+const NO_BOUNDARIES: readonly WorkplaceBoundary[] = [];
 
 /** 引数がすべて前と同じ物なら、前の結果を返す（1 つだけ覚える） */
 function memoLast<A extends readonly unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
@@ -82,12 +84,20 @@ function createMemo() {
   const waiting = memoLast(waitingSubagentKeys);
   const data = memoLast((list: SubagentEntry[], t: SubagentTree, h: ReadonlyMap<string, number>, w: ReadonlySet<string>): ChatSubagents => ({ entries: list, tree: t, hues: h, waiting: w }));
   const visuals = memoLast(chatVisualsOf);
+  // 作業場所を移した区切り（記録が増えても区切りが同じなら同じ配列。読む発言・カードを描き直さない）
+  let moves: { key: string; list: readonly WorkplaceBoundary[] } = { key: "", list: NO_BOUNDARIES };
+  const boundaries = memoLast((digest: ChatEvent[]): readonly WorkplaceBoundary[] => {
+    const list = workplaceBoundaries(digest);
+    const key = list.map((b) => b.id).join(" ");
+    if (key !== moves.key) moves = { key, list: list.length ? list : NO_BOUNDARIES };
+    return moves.list;
+  });
   const background = memoLast((state: BackgroundState | null): ReadonlySet<string> => {
     const key = backgroundCallIds(state).join(" ");
     if (key !== calls.key) calls = { key, set: key ? new Set(key.split(" ")) : NO_CALLS };
     return calls.set;
   });
-  return { entries, tree, hues, waiting, data, visuals, background };
+  return { entries, tree, hues, waiting, data, visuals, background, boundaries };
 }
 
 /**
@@ -115,6 +125,8 @@ export function createChatSelectors(source: SelectorSource) {
     },
     /** AI が描いた図（流れの図の項目が読む） */
     visuals: (chatId: number): ChatVisuals => memoOf(chatId).visuals(source.log(chatId).digest),
+    /** 作業場所を移した区切り（ID の順。索引にいつも入るので、末尾より前のものも。区切りが同じなら同じ配列） */
+    workplaceBoundaries: (chatId: number): readonly WorkplaceBoundary[] => memoOf(chatId).boundaries(source.log(chatId).digest),
     /** 裏でまだ動いている作業を起動した呼び出しの ID（中身が同じなら同じ Set） */
     backgroundCalls: (chatId: number): ReadonlySet<string> => memoOf(chatId).background(source.detail(chatId).live.background),
   };

@@ -3,6 +3,7 @@ import type { Chat, Project } from "@shared/types";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import { ChatImagesProvider } from "@/features/chat/images/ChatImage";
 import { useFileLinks } from "@/features/fileLinks/useFileLinks";
+import { PastWorkplacesProvider } from "@/features/chat/timeline/PastWorkplace";
 import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { AgentSplit } from "@/features/panel/agents/AgentSplit";
@@ -99,6 +100,7 @@ export function ChatView({ chat, project, focus, visible, slot, onOpenNew, befor
   return (
     <ChatProviderContext.Provider value={chat.provider}>
       <FileLinksProvider value={fileLinks}>
+        <PastWorkplacesProvider chatId={chat.id} current={fileLinks} side={canOpenSide}>
         <ChatImagesProvider chatId={chat.id}>
           <ChatPaneContext.Provider value={pane}>
             <KeepAliveContext.Provider value={chat.id}>
@@ -110,6 +112,7 @@ export function ChatView({ chat, project, focus, visible, slot, onOpenNew, befor
             </KeepAliveContext.Provider>
           </ChatPaneContext.Provider>
         </ChatImagesProvider>
+        </PastWorkplacesProvider>
       </FileLinksProvider>
     </ChatProviderContext.Provider>
   );
