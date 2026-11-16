@@ -41,6 +41,18 @@
     visibility 0s;
 }
 
+/*
+ * 横幅いっぱい（タブの列の左端の切り替え。利用者の依頼）: 左のサイドバーの右から画面の右端まで広げ、真ん中の画面を覆う（真ん中の列は幅 0 に縮む）。
+ * 幅は同じ動きでなめらかに変える。左端のつまみは使わない
+ */
+.project-chat.maximized {
+  --chat-shown: calc(100vw - var(--sidebar-shown, 0px));
+}
+
+.project-chat.maximized .project-chat-resizer {
+  display: none;
+}
+
 .project-chat.resizing {
   user-select: none;
   transition: none;

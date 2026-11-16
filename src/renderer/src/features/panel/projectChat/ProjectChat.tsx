@@ -1,7 +1,8 @@
-import type { CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { Panel } from "@/features/panel/Panel";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
+import type { PanelFrame } from "@/features/panel/PanelTools";
 import type { ProjectChatController } from "./useProjectChat";
 
 /** 右サイドバーはブラウザだけなので、ターミナルを開く場所はない */
@@ -12,12 +13,14 @@ const NO_TERMINALS: TerminalTarget[] = [];
  * ＋からチャット・ブラウザ・ターミナルを開ける。左端のつまみで幅を変える。閉じても要素は残し（幅 0）、書きかけの文章をなくさない
  */
 export function ProjectChat({ chat }: { chat: ProjectChatController }) {
-  const { width: { paneRef: widthPaneRef, ...width }, projectId, noChat } = chat;
+  const { width: { paneRef: widthPaneRef, ...width }, projectId, noChat, maximized, setMaximized } = chat;
+  // タブの列の左端の「横幅いっぱいに広げる ⇔ 元の幅に戻す」
+  const frame = useMemo<PanelFrame>(() => ({ maximize: { on: maximized, toggle: () => setMaximized(!maximized) } }), [maximized, setMaximized]);
   if (projectId === undefined) return null;
   return (
     <aside
       ref={widthPaneRef}
-      className={cx("project-chat", chat.open && "open", width.resizing && "resizing")}
+      className={cx("project-chat", chat.open && "open", maximized && "maximized", width.resizing && "resizing")}
       // 開閉は幅の動きで見せる（中身は開いたときの幅のまま。動いている間に中身の並びが崩れないように）
       style={{ "--chat-w": `${width.size}px` } as CSSProperties}
       inert={!chat.open}
@@ -28,7 +31,7 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
       <div className="project-chat-inner">
         {/* 上の行は信号機ボタン・右上のレイアウトの開閉と同じ行のウィンドウのドラッグ領域。タブの列はその下の行（利用者の依頼） */}
         <div className="project-chat-titlebar" aria-hidden />
-        <ProjectChatPanel projectId={projectId} noChat={noChat} />
+        <ProjectChatPanel projectId={projectId} noChat={noChat} frame={frame} />
       </div>
     </aside>
   );
@@ -36,10 +39,11 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
 
 /**
  * チャット欄の中身（プロジェクトのタブ。開いているかは欄の殻 useProjectChat と同じ店から読む）。チャット欄の別ウィンドウ（PopoutSideChat）も同じものを描く。
- * 欄ごと別ウィンドウへ移すボタンは置かない（利用者の依頼で隠した。タブは右クリック・ウィンドウの外へのドラッグで 1 つずつ別ウィンドウで開ける）
+ * 欄ごと別ウィンドウへ移すボタンは置かない（利用者の依頼で隠した。タブは右クリック・ウィンドウの外へのドラッグで 1 つずつ別ウィンドウで開ける）。
+ * frame: 横幅いっぱいの切り替え（メインのウィンドウだけ。別ウィンドウはウィンドウの大きさで決まるので渡さない）
  */
-export function ProjectChatPanel({ projectId, noChat }: { projectId: number; noChat: boolean }) {
+export function ProjectChatPanel({ projectId, noChat, frame }: { projectId: number; noChat: boolean; frame?: PanelFrame }) {
   // ブラウザだけの欄（利用者の依頼）なので、新しいチャット・ターミナルの開く場所は渡さない
   const panel = usePanel({ surface: "side", scope: projectId, noChat, newChat: undefined, terminals: NO_TERMINALS });
-  return <Panel panel={panel} />;
+  return <Panel panel={panel} frame={frame} />;
 }

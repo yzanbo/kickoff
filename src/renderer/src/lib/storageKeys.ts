@@ -319,6 +319,8 @@ export const panelTabKinds = defineSettingFamily("kickoff:panel-tab-kinds:", lis
 /** プロジェクトごとの、右のチャット欄を開いているか */
 export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag(), { ids: true });
 export const PROJECT_CHAT_WIDTH = defineSetting("kickoff:project-chat-width", number(367));
+/** 右サイドバーを横幅いっぱい（左のサイドバーの右から画面の右端まで）に広げているか（タブの列の左端の切り替え。アプリ全体） */
+export const PROJECT_CHAT_MAXIMIZED = defineSetting("kickoff:project-chat-maximized", flag());
 export const BOTTOM_PANEL_HEIGHT = defineSetting("kickoff:bottom-panel-height", number(198));
 /** チャットの画面の右の欄（サブエージェントの欄）の幅（px。左端のつまみのドラッグで変える。どのチャットでも同じ） */
 export const SUBAGENT_PANEL_WIDTH = defineSetting("kickoff:subagent-panel-width", number(520));
