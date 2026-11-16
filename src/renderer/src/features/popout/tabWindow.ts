@@ -11,6 +11,7 @@ import { panelActions } from "@/features/panel/state/panelActions";
 import { panelStateOf, setPanelOwnership, subscribePanels } from "@/features/panel/state/panelStore";
 import { panelKey, windowScope } from "@/features/panel/surfaces";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
+import { handOffTab, takeHandedTab } from "@/features/panel/tabs/tabHandoff";
 
 /** タブの列のある別ウィンドウの行き先（ブラウザ・チャット） */
 export type TabWindowRoute = Extract<PopoutRoute, { kind: "browser" | "chats" }>;
@@ -27,21 +28,26 @@ const closeSelf = () => void (window.kickoff ? window.kickoff.windows.closeSelf(
 /** 移したタブ（行き先）から、このウィンドウの欄の名前 */
 export const tabWindowPanel = (route: TabWindowRoute): string => panelKey(route.kind === "browser" ? "window" : "chatWindow", windowScope(route.projectId, route.key));
 
-/** 移したタブ（行き先）のタブ */
-function firstTab(route: TabWindowRoute): PopoutWindowTab {
-  return route.kind === "browser"
-    ? { kind: "browser", key: route.key, url: route.url, title: route.title }
-    : { kind: "chat", key: route.key, id: route.chatId, projectId: route.projectId };
+/** 移したタブ（行き先）のタブ（送る前の新しいチャットは、移す元が置いた中身を取り出す。なければ作成先だけの空の新しいチャット） */
+function firstTab(route: TabWindowRoute): PanelTab {
+  if (route.kind === "browser") return { kind: "browser", key: route.key, url: route.url, title: route.title };
+  if (route.chatId !== undefined) return { kind: "chat", key: route.key, id: route.chatId, projectId: route.projectId };
+  return takeHandedTab(route.key) ?? { kind: "new", key: route.key, projectId: route.projectId };
 }
 
-/** 覚えたタブを欄のタブに（チャットの中身・名前は開いてから届く） */
-const toPanelTab = (t: PopoutWindowTab): PanelTab => (t.kind === "browser" ? t : { kind: "chat", key: t.key, id: t.id, projectId: t.projectId });
+/** 覚えたタブを欄のタブに（チャットの中身・名前は開いてから届く。送る前の新しいチャットは覚えた中身のまま） */
+function toPanelTab(t: PopoutWindowTab): PanelTab {
+  if (t.kind === "browser") return { kind: "browser", key: t.key, url: t.url, title: t.title };
+  if (t.kind === "chat") return { kind: "chat", key: t.key, id: t.id, projectId: t.projectId };
+  return t as unknown as PanelTab;
+}
 
 /** 欄のいまのタブを、覚える形で（ブラウザは表示しているページ。空のページ（新しいタブ）は開いたときの URL のまま） */
 function currentTabs(panel: string): PopoutWindowTab[] {
   return panelStateOf(panel).tabs.flatMap((t): PopoutWindowTab[] => {
     if (t.kind === "browser") return [{ kind: "browser", key: t.key, url: t.current && t.current !== "about:blank" ? t.current : t.url, title: t.title }];
     if (t.kind === "chat") return [{ kind: "chat", key: t.key, id: t.id, projectId: t.projectId }];
+    if (t.kind === "new") return [{ ...t }];
     return [];
   });
 }
@@ -56,9 +62,9 @@ export function startTabWindow(route: TabWindowRoute): void {
   started = panel;
   setPanelOwnership((key) => key === panel);
   const saved = readSetting(POPOUT_WINDOW_TABS);
-  const tabs = saved.length > 0 ? saved : [firstTab(route)];
+  const tabs = saved.length > 0 ? saved.map(toPanelTab) : [firstTab(route)];
   const actions = panelActions(panel);
-  for (const t of tabs) actions.openPanelTab(toPanelTab(t));
+  for (const t of tabs) actions.openPanelTab(t);
   actions.showTab(tabs[0].key);
   actions.setOpen(true);
   let had = true;
@@ -70,11 +76,12 @@ export function startTabWindow(route: TabWindowRoute): void {
   });
 }
 
-/** 覚えたタブを、メインのウィンドウに戻す行き先に（ブラウザは右サイドバー、チャットはチャットのパネル。dockPopout） */
+/** 覚えたタブを、メインのウィンドウに戻す行き先に（ブラウザは右サイドバー、チャットはチャットのパネル。送る前の新しいチャットは中身を渡す。dockPopout） */
 function returnRoute(route: TabWindowRoute, t: PopoutWindowTab): PopoutRoute {
-  return t.kind === "browser"
-    ? { kind: "browser", panel: route.panel, key: t.key, url: t.url, title: t.title, projectId: route.projectId }
-    : { kind: "chats", panel: route.panel, key: t.key, chatId: t.id, projectId: t.projectId };
+  if (t.kind === "browser") return { kind: "browser", panel: route.panel, key: t.key, url: t.url, title: t.title, projectId: route.projectId };
+  if (t.kind === "chat") return { kind: "chats", panel: route.panel, key: t.key, chatId: t.id, projectId: t.projectId };
+  handOffTab(toPanelTab(t) as Extract<PanelTab, { kind: "new" }>);
+  return { kind: "chats", panel: route.panel, key: t.key, projectId: t.projectId };
 }
 
 /**

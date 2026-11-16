@@ -30,10 +30,11 @@ export type PopoutRoute =
    */
   | { kind: "browser"; panel: string; key: string; url: string; title: string; projectId: number | null }
   /**
-   * チャットのパネルのチャット（いちばん上の親）のタブ（panel は移す元の欄、key はタブのキー）。開いた別ウィンドウはタブの列を持ち、
-   * ほかのチャットのタブもドラッグで足せる（features/popout/tabWindow.ts）
+   * チャットのパネルのチャット（いちばん上の親）・送る前の新しいチャットのタブ（panel は移す元の欄、key はタブのキー。chatId がなければ新しいチャットで、
+   * 中身（書きかけの文・添付など）は localStorage の POPOUT_TAB_HANDOFF で渡す）。開いた別ウィンドウはタブの列を持ち、ほかのチャットのタブもドラッグで足せる
+   * （features/popout/tabWindow.ts）
    */
-  | { kind: "chats"; panel: string; key: string; chatId: number; projectId: number }
+  | { kind: "chats"; panel: string; key: string; chatId?: number; projectId: number }
   /** パネルのターミナルのタブ（key は裏のシェルのキー。移した先で同じシェルにつなぎ直す） */
   | ({ kind: "terminal"; panel: string; key: string } & TerminalTarget);
 
@@ -55,7 +56,7 @@ export function popoutPath(route: PopoutRoute): string {
     params.set("panel", route.panel);
     params.set("key", route.key);
     params.set("project", String(route.projectId));
-    params.set("chat", String(route.chatId));
+    if (route.chatId !== undefined) params.set("chat", String(route.chatId));
     return `${PREFIX}${route.kind}?${params.toString()}`;
   }
   if (route.kind === "terminal") {
@@ -108,7 +109,7 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
     const key = params.get("key");
     const projectId = positive(params.get("project"));
     const chatId = positive(params.get("chat"));
-    return panel && key && projectId !== undefined && chatId !== undefined ? { kind, panel, key, chatId, projectId } : undefined;
+    return panel && key && projectId !== undefined ? { kind, panel, key, ...(chatId !== undefined ? { chatId } : {}), projectId } : undefined;
   }
   if (kind === "memo") {
     const projectId = positive(params.get("project"));

@@ -126,15 +126,25 @@ export const LAST_ROUTE = defineSetting("kickoff:last-route", text(), { ids: tru
 /** プロジェクトごとに最後に見ていた画面（URL のハッシュ。横スライドで戻ってきたときに開く。アプリを閉じるまで） */
 export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project", record(isString), { ids: true, session: true });
 /** タブの列のある別ウィンドウ（ブラウザ・チャット）のタブ（ウィンドウごと。読み込み直しても同じタブを開き直す。features/popout/tabWindow.ts） */
-export type PopoutWindowTab = { kind: "browser"; key: string; url: string; title: string } | { kind: "chat"; key: string; id: number; projectId: number };
+export type PopoutWindowTab =
+  | { kind: "browser"; key: string; url: string; title: string }
+  | { kind: "chat"; key: string; id: number; projectId: number }
+  // 送る前の新しいチャット（タブの中身をそのまま。書きかけの文・添付・作成先など）
+  | ({ kind: "new"; key: string; projectId: number } & Record<string, unknown>);
 const isPopoutWindowTab = (v: unknown): v is PopoutWindowTab => {
   if (typeof v !== "object" || v === null) return false;
   const t = v as Record<string, unknown>;
   if (typeof t.key !== "string") return false;
   if (t.kind === "browser") return typeof t.url === "string" && typeof t.title === "string";
+  if (t.kind === "new") return typeof t.projectId === "number";
   return t.kind === "chat" && typeof t.id === "number" && typeof t.projectId === "number";
 };
 const NO_POPOUT_WINDOW_TABS: readonly PopoutWindowTab[] = [];
+/**
+ * 別ウィンドウへ・別ウィンドウから移す送る前の新しいチャットのタブの中身（タブのキーごと。書きかけの文・添付は URL に入らないので、ここで渡し、受け取った側が消す。
+ * features/panel/tabs/popOutTab.ts・features/popout/tabWindow.ts・dockPopout.ts）
+ */
+export const POPOUT_TAB_HANDOFF = defineSetting("kickoff:popout-tab-handoff", record(), { ids: true });
 export const POPOUT_WINDOW_TABS = defineSetting(
   "kickoff:popout-window-tabs",
   json((value) => (Array.isArray(value) ? value.filter(isPopoutWindowTab) : undefined), NO_POPOUT_WINDOW_TABS, (tabs) => tabs.length === 0),

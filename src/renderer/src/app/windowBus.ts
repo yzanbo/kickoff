@@ -56,7 +56,7 @@ export type WindowMessage =
   /** メインのウィンドウから、チャット欄の別ウィンドウにブラウザのタブを開くよう頼む（ターミナルの ⌘ クリック・ポート・Docker などの「ブラウザで開く」） */
   | { type: "sideOpenBrowser"; panel: string; url: string }
   /** タブ（ブラウザ・チャット）をほかのウィンドウへドラッグで移した（元の欄はそのタブを後始末なしで閉じる。features/panel/layout/tabTransfer.ts） */
-  | { type: "tabMovedOut"; panel: string; key: string; kind: "browser" | "chat" }
+  | { type: "tabMovedOut"; panel: string; key: string; kind: "browser" | "chat" | "new" }
   /** チャット欄の別ウィンドウから戻すチャット欄の状態（open: メインのウィンドウのチャット欄を開くか。戻し終えたら docked） */
   | { type: "returnSidePanels"; panels: [string, PanelState][]; open: boolean }
   /** サイドバーの別ウィンドウからの、メインのウィンドウのパネルを変える操作（下書き・チャットを分けて開く） */

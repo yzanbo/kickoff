@@ -32,7 +32,8 @@ export function readSavedDrafts(): Map<string, DraftTab[]> {
 export function moveDraftsToChatPanels(saved: ReadonlyMap<string, DraftTab[]>): ReadonlyMap<string, DraftTab[]> {
   const froms = [...saved.keys()].filter((key) => {
     const at = parsePanelKey(key);
-    return at !== undefined && ((at.surface === "board" && at.scope === "all") || at.surface === "side" || at.surface === "bottom");
+    // チャットの別ウィンドウに残った下書きも、起動したときはチャットのパネルへ（別ウィンドウはアプリを閉じると閉じる）
+    return at !== undefined && ((at.surface === "board" && at.scope === "all") || at.surface === "side" || at.surface === "bottom" || at.surface === "chatWindow");
   });
   if (froms.length === 0) return saved;
   const out = new Map(saved);

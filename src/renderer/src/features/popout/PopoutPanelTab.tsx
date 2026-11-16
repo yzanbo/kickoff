@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import type { PopoutRoute } from "@/app/popout";
-import { postToMainWindow } from "@/app/windowBus";
+import { postToMainWindow, postWindowMessage } from "@/app/windowBus";
+import { chatKey } from "@/features/panel/tabs/tabKinds";
 import { Panel } from "@/features/panel/Panel";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
 import { panelKey, windowScope } from "@/features/panel/surfaces";
@@ -39,6 +40,8 @@ function TabWindowPanel({ route }: { route: TabWindowRoute }) {
     noChat: route.kind === "browser",
     newChat: undefined,
     terminals: NO_TERMINALS,
+    // このウィンドウで送ってできたチャットは、メインのウィンドウのチャットのパネルには出さない（サイドバーとの連動で足されたら、表示だけ消してもらう）
+    onCreated: (chat) => postWindowMessage({ type: "tabMovedOut", panel: panelKey("board", chat.project_id), key: chatKey(chat.id), kind: "chat" }),
   });
   return <Panel panel={panel} />;
 }

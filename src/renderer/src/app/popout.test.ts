@@ -19,6 +19,7 @@ test("popoutPath / parsePopout: 変更・ファイル・サブエージェント
     { kind: "browser", panel: "side:1", key: "browser:1", url: "https://example.com/a?b=1#c", title: "例", projectId: 1 },
     { kind: "browser", panel: "bottom:all", key: "browser:2", url: "about:blank", title: "", projectId: null },
     { kind: "chats", panel: "kanban:1", key: "chat:7", chatId: 7, projectId: 1 },
+    { kind: "chats", panel: "kanban:1", key: "new:1:abc", projectId: 1 },
     { kind: "terminal", panel: "side:1", key: "term:1", cwd: "/repo/a b", label: "p1", projectId: 1 },
     { kind: "terminal", panel: "bottom:1", key: "term:2", cwd: "/repo", label: "p1", projectId: 1, command: "docker compose exec web sh", title: "web", env: { A: "1" } },
   ];
