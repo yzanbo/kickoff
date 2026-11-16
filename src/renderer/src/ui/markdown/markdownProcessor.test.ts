@@ -9,7 +9,7 @@ import rehypeKatex from "rehype-katex";
 import { convertTexDelimiters } from "@shared/markdown/mathGuard";
 import { createBlockSplitter, splitBlocks } from "@/lib/markdownBlocks";
 import { remarkMathGuard } from "./math/remarkMathGuard";
-import { createBlockCache, createPipeline, pipelineOf, renderMarkdown } from "./markdownProcessor";
+import { createBlockCache, createPipeline, isHtmlComment, pipelineOf, renderMarkdown } from "./markdownProcessor";
 
 /*
  * 等しいことのテスト（メモの仕様書「0023_表示を軽くする」の案 15）: react-markdown そのもので全文を描いた結果と、
@@ -40,9 +40,22 @@ const math = {
   rehype: [[rehypeKatex, { throwOnError: false, errorColor: "inherit", strict: false }]] as PluggableList,
 };
 
-/** react-markdown で全文を描く */
+/** HTML のコメントだけの raw を消す（作り置きの処理がわざと react-markdown と変えた所。比べる前に同じにそろえる） */
+const dropHtmlComments = () => (tree: { children?: unknown[] }) => {
+  const walk = (node: { type?: string; value?: string; children?: unknown[] }) => {
+    if (!node.children) return;
+    node.children = node.children.filter((c) => {
+      const child = c as typeof node;
+      return !(child.type === "raw" && isHtmlComment(child.value ?? ""));
+    });
+    node.children.forEach((c) => walk(c as typeof node));
+  };
+  walk(tree);
+};
+
+/** react-markdown で全文を描く（HTML のコメントは、作り置きの処理と同じく消す） */
 function whole(text: string, remarkPlugins: PluggableList, rehypePlugins: PluggableList): string {
-  return renderToStaticMarkup(createElement(ReactMarkdown, { remarkPlugins, rehypePlugins, components }, text));
+  return renderToStaticMarkup(createElement(ReactMarkdown, { remarkPlugins, rehypePlugins: [...rehypePlugins, dropHtmlComments], components }, text));
 }
 
 /** ブロックに分けて描く（ブロックの間には、全文で描いたときと同じく改行の文字を置く） */
@@ -57,6 +70,7 @@ const SAMPLES = [
   "- [ ] まだ\n- [x] 済み\n\n- a\n  - 入れ子\n\n    字下げの段落\n\n段落\n\n    字下げのコード\n\n    続き",
   "https://example.com と <https://example.org> と www.example.net\n\n[リンク](https://example.com \"題\") と [危ない](javascript:alert(1)) と ![画像](x.png)",
   "<div>HTML の\n\nブロック</div>\n\n<!--\nコメント\n\n続き\n-->\n\n<pre>\na\n\nb</pre>\n\n後ろ",
+  "図の前\n\n<!-- visual: v-s1xidvm4 -->\n\n文の中 <!-- 目印 --> の続き\n\n<!-- a --> 同じ行の文\n\n<!-- 閉じていない",
   "参照のリンク [これ][r] と脚注[^1]。\n\n別の段落\n\n[r]: https://example.com\n[^1]: 脚注の本文",
   "````md\n```\n中\n\n```\n````\n\n~~~\nチルダ\n\n~~~\n\n```mermaid\ngraph TD\n  A-->B\n```\n\n閉じていない\n\n```py\nprint(1)\n\n",
   "見出し\n===\n\n下線の見出し\n---\n\n* 星\n\n+ 足す\n\n1) かっこ\n2) かっこ",
@@ -97,6 +111,20 @@ test("ファイルのチップの差し込み・数式（KaTeX）があっても
       JSON.stringify(text),
     );
   }
+});
+
+test("生の HTML: コメントだけのものは出さず、ほかはこれまでどおり文字で出す（動かさない）", () => {
+  const render = (text: string) => renderToStaticMarkup(renderMarkdown(pipelineOf(undefined, null), text, components));
+  assert.equal(render("前\n\n<!-- visual: v-s1xidvm4 -->\n\n後ろ"), "<p>前</p>\n\n<p>後ろ</p>");
+  assert.equal(render("文の中 <!-- 目印 --> の続き"), "<p>文の中  の続き</p>");
+  assert.equal(render("<!--\n複数行の\n\nコメント\n--> <!-- 続けて -->"), "");
+  // コメント以外の生の HTML・コメントと文が混ざったもの・閉じていないコメントは文字のまま
+  assert.match(render("<div onclick=\"x()\">中</div>"), /&lt;div onclick=&quot;x\(\)&quot;&gt;中&lt;\/div&gt;/);
+  assert.match(render("文 <b>太</b>"), /<p>文 &lt;b&gt;太&lt;\/b&gt;<\/p>/);
+  assert.match(render("<!-- a --> 同じ行の文"), /&lt;!-- a --&gt; 同じ行の文/);
+  assert.match(render("<!-- 閉じていない"), /&lt;!-- 閉じていない/);
+  assert.ok(isHtmlComment("  <!-- a -->\n<!-- b -->  "));
+  assert.ok(!isHtmlComment("<!-- a --> b <!-- c -->"));
 });
 
 test("pipelineOf: 差し込み・数式の組ごとに 1 つだけ作る", () => {

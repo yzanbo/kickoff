@@ -24,6 +24,8 @@ test("show_visual: 図の ID を返し、空・長すぎる中身・知らない
   const ctx = setup();
   const shown = ctx.tools.show({ kind: "svg", code: "<svg viewBox='0 0 10 10'></svg>", title: "構成" });
   assert.match(shown, /「構成」を返答のこの位置に描きました/);
+  // 本文に図の目印を書かせない
+  assert.match(shown, /本文に visual_id や図の目印（<!-- … --> の HTML のコメント・\[図: …\] など）を書かないでください/);
   assert.match(visualIdOf(shown) ?? "", /^v-[a-z0-9]{8}$/);
   assert.notEqual(visualIdOf(ctx.tools.show({ kind: "mermaid", code: "flowchart LR\nA-->B" })), visualIdOf(shown));
   assert.throws(() => ctx.tools.show({ kind: "svg", code: "  " }), /code が空です/);
@@ -60,6 +62,7 @@ test("visual_guide: 共通の決まりと、頼んだ種類の書き方を返す
   const ctx = setup();
   const chart = ctx.tools.guide(["chart"]);
   assert.match(chart, /共通の決まり/);
+  assert.match(chart, /本文に visual_id や図の目印（<!-- … --> の HTML のコメント/);
   assert.match(chart, /--vis-chart-1/);
   assert.match(chart, /cdn\.jsdelivr\.net/);
   assert.match(chart, /# グラフ/);
