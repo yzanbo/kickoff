@@ -4,7 +4,7 @@
 // 値は種類だけ（zod・Electron・Node に依存しない。サンドボックスの preload にも束ねるため）
 import type { BrowserExtensionInfo, KnownExtensionKey } from "./browserExtensions";
 import type { BrowserHandOffCapture } from "./browserHandOff";
-import type { DiagnosticsFolders, DiagnosticsState } from "./diagnostics";
+import type { BootReport, DiagnosticsFolders, DiagnosticsState, RendererMemory } from "./diagnostics";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { LoginItemState } from "./loginItem";
 import type { NotifyRequest, NotifyResult } from "./notifications";
@@ -175,6 +175,10 @@ export const NATIVE_API = {
     openRoot: invoke<[]>(),
     /** 記録の様子（記録中・保存中・保存した・失敗） */
     onState: event<[state: DiagnosticsState]>(),
+    /** 画面の起動の時刻（読み込みごとに 1 回。メインが startup.log・boot.jsonl に書く） */
+    reportBoot: send<[report: BootReport]>(),
+    /** 画面のメモリ（60 秒ごと。メインが metrics.jsonl に書く） */
+    reportMemory: send<[memory: RendererMemory]>(),
   },
 } satisfies Record<string, Record<string, Spec>>;
 

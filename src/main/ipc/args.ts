@@ -1,6 +1,6 @@
 import path from "node:path";
 import { z } from "zod";
-import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, KNOWN_EXTENSIONS, type KnownExtensionKey } from "@shared/ipc";
+import { BOOT_MARKS, BOOT_WINDOWS, EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, KNOWN_EXTENSIONS, type KnownExtensionKey } from "@shared/ipc";
 import { defineArgSchemas } from "./register.js";
 
 // 画面から届く IPC の引数の形（zod）。取り決め（shared/ipc/contract.ts）の引数と同じ形にし、違えば typecheck で分かる。
@@ -94,5 +94,14 @@ export const IPC_ARGS = defineArgSchemas({
     start: none,
     folders: none,
     openRoot: none,
+    reportBoot: z.tuple([
+      z.object({
+        window: z.enum(BOOT_WINDOWS),
+        timeOrigin: z.number(),
+        marks: z.partialRecord(z.enum(BOOT_MARKS), z.number().nullable()),
+        assets: z.object({ count: z.number(), refetched: z.number(), encodedKB: z.number() }).nullable(),
+      }),
+    ]),
+    reportMemory: z.tuple([z.object({ window: z.enum(BOOT_WINDOWS), jsHeapMB: z.number().nullable(), domNodes: z.number() })]),
   },
 });

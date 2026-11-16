@@ -1,9 +1,11 @@
 import { LayoutGrid, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { useLayoutEffect } from "react";
 import { useProjects } from "@/stores/projects";
+import { markInteractive } from "@/app/bootMarks";
 import { href, useRoute } from "@/app/router";
 import { ProjectNav } from "./ProjectNav";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
-import { useChatsByProject } from "@/stores/chats";
+import { useChatsByProject, useChatsLoaded } from "@/stores/chats";
 import { useGroupsOf } from "@/stores/groups";
 import type { SidebarController } from "./useSidebar";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
@@ -26,7 +28,12 @@ interface Props {
  */
 export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
   const route = useRoute();
-  const { projects } = useProjects();
+  const { projects, loaded: projectsLoaded } = useProjects();
+  // プロジェクトとチャットの一覧が初めて届いて描けたら、起動の時刻の記録に知らせる（app/bootMarks.ts）
+  const chatsLoaded = useChatsLoaded();
+  useLayoutEffect(() => {
+    if (projectsLoaded && chatsLoaded) markInteractive("sidebar");
+  }, [projectsLoaded, chatsLoaded]);
   // すべてのプロジェクトのチャット（アーカイブ済みは、一覧の下に出すときだけ）とグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
   const [showArchivedChats] = useShowArchivedChats();
   const chats = useChatsByProject({ archived: showArchivedChats });

@@ -5,6 +5,7 @@ import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { StdioRpc, type StdioSpawn } from "../stdioRpc.js";
 import type { ApprovalContext } from "../guardedApproval.js";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
+import type { ProviderId } from "@shared/types";
 import { configChoices, launchEnv, modeFor, promptBlocks, sessionRequest } from "./config.js";
 import { answerPermission } from "./permissions.js";
 import { ACP_PROTOCOL_VERSION, type ContentBlock, type InitializeResponse, type RequestPermissionRequest, type SessionNotification, type SessionResponse, type StopReason } from "./protocol.js";
@@ -17,6 +18,8 @@ const MAX_DENIAL_FOLLOWUPS = 3;
 
 /** CLI ごとの違い（cursor/・gemini/ が決める） */
 export interface AcpAgentSpec {
+  /** AI の ID（詰まりの見張りの名前にも使う） */
+  id: ProviderId;
   label: string;
   /** 起動の引数（"acp" など） */
   args(params: Pick<ProviderTurnParams, "auth">): string[];
@@ -50,7 +53,7 @@ export async function openAgent(
   const refuse = async (method: string) => {
     throw new Error(`Kickoff は ${method} に答えません`);
   };
-  const rpc = new StdioRpc(proc, opts.onNotification ?? (() => {}), opts.onServerRequest ?? refuse, opts.onClosed, { label: deps.spec.label, jsonrpc: true });
+  const rpc = new StdioRpc(proc, opts.onNotification ?? (() => {}), opts.onServerRequest ?? refuse, opts.onClosed, { label: deps.spec.label, provider: deps.spec.id, jsonrpc: true });
   try {
     const init = await rpc.request<InitializeResponse>("initialize", { protocolVersion: ACP_PROTOCOL_VERSION, clientCapabilities: CLIENT_CAPABILITIES, clientInfo: CLIENT_INFO });
     const method = deps.spec.authMethod(opts.params);

@@ -9,7 +9,8 @@
     "electron.vite.config.ts",
     "scripts/*.mjs",
     "scripts/*.cjs",
-    "scripts/hooks/pre*.mjs"
+    "scripts/hooks/pre*.mjs",
+    "scripts/perf/*.mjs"
   ],
   "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}"],
   "ignoreExportsUsedInFile": true,

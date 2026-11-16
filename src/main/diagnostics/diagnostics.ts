@@ -7,6 +7,8 @@ import { logsDir } from "../app/logs.js";
 import { mainWindow } from "../app/window.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { startMainRecording } from "./mainProcess.js";
+import { recentStalls } from "./stalls.js";
+import { bootSummary, recordBoot, recordRendererMemory } from "./bootRecorder.js";
 import { diagnosticsFolderName, perSecond, RENDERER_PROBE, startCpuProfile, topSelfTime, type Metrics } from "./profileSummary.js";
 import { RENDERER_COLLECT, RENDERER_OBSERVE, summarizeFrames, summarizeInteractions, type RendererTimings } from "./rendererTiming.js";
 
@@ -64,6 +66,8 @@ export const diagnosticsHandlers: IpcHandlers["diagnostics"] = {
   start: (e) => void startDiagnostics(BrowserWindow.fromWebContents(e.sender) ?? mainWindow()),
   folders: () => diagnosticsFolders(),
   openRoot: () => openDiagnosticsRoot(),
+  reportBoot: (_e, report) => recordBoot(report),
+  reportMemory: (e, memory) => recordRendererMemory(e.sender, memory),
 };
 
 let running = false;
@@ -163,6 +167,10 @@ async function capture(wc: WebContents, seconds: number) {
       longTasks: { count: timings.longTasks ?? 0, totalMs: timings.longTaskMs ?? 0 },
       /** メインプロセス（コアのサーバー・DB も同じ）。CPU プロファイルは main.cpuprofile */
       main: main.summary,
+      /** 最近の詰まり（500ms を超えてイベントループが止まったもの。diagnostics/stalls.ts）。いまはコアもメインの中なので main だけ */
+      stalls: { main: recentStalls() },
+      /** 最後の起動の時刻（boot.jsonl の最後のメインのウィンドウの行）と最近 60 分のメモリ（metrics.jsonl。diagnostics/bootRecorder.ts） */
+      boot: bootSummary(),
       // 記録した間のプロセスごとの CPU（%）とメモリ（MB）。Tab が画面、Browser がメインプロセス（コアのサーバーも同じプロセス）
       processes: appMetrics.map((p) => ({
         type: p.type,
