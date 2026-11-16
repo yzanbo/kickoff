@@ -226,16 +226,12 @@ button.project-switch {
   background: var(--bg-elev);
 }
 
-/* 開いているタブ: 地の色と、明るい色の下線でひと目でわかるようにする */
+/* 開いているタブ: 地の色と、アクセントの色の下線でひと目でわかるようにする（色はダークは明るい緑・ライトは地に負けない濃い緑の --accent-fg。左の縦並びの線も同じ） */
 .tab.active {
-  border-bottom-color: var(--accent-bright);
+  border-bottom-color: var(--accent-fg);
   color: var(--text);
   font-weight: 600;
   background: var(--bg-hover);
-}
-
-:root[data-theme="light"] .tab.active {
-  border-bottom-color: var(--accent);
 }
 
 

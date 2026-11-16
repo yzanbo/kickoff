@@ -29,13 +29,25 @@
   padding: 0;
   margin-bottom: 0;
   border-bottom: none;
-  border-left: 2px solid transparent;
   border-radius: var(--radius-sm);
 }
 
 .project-side-tabs .tab.active {
-  border-left-color: var(--accent-bright);
   background: var(--bg-elev);
+}
+
+/*
+ * 選んでいるタブの左の線: 地の角丸に沿って曲がらない直線にする（利用者の依頼。前は枠の左の線で、角丸に沿って曲がっていた）。
+ * 地の角丸の分だけ上下を空けて、まっすぐな所にだけ引く。色は横並びの下線と同じ --accent-fg
+ */
+.project-side-tabs .tab.active::before {
+  position: absolute;
+  top: var(--radius-sm);
+  bottom: var(--radius-sm);
+  left: 0;
+  width: 2px;
+  background: var(--accent-fg);
+  content: "";
 }
 
 .project-side-tabs .change-count {
