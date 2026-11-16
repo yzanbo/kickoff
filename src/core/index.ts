@@ -21,6 +21,7 @@ import { ServiceUsageMonitor } from "./usage/services/index.js";
 import { UsageMonitor } from "./usage/planUsage.js";
 import { ApprovalCenter } from "./chat/approvals.js";
 import { Runner } from "./chat/runner.js";
+import { endInterruptedTurns } from "./chat/interruptedTurnEnd.js";
 import { UploadStore } from "./chat/uploads.js";
 import { startAutoArchive } from "./chat/autoArchive.js";
 import { VoiceService } from "./voice/service.js";
@@ -133,6 +134,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // 前回の終了で作業の途中で止まったチャット（落ちて作業中のまま残ったものを失敗にし、終えるときに印を付けたものと一緒に返す）は、起動したときの再開の確かめで聞く
   const recovered = store.chats.recoverInterrupted(RECOVERED_MESSAGES[opts.recoveredReason ?? "quit"]);
   if (recovered.length > 0) console.log(`[core] 前回の終了で作業の途中で止まったチャットが ${recovered.length} 件あります（起動したときの再開の確かめで聞きます）`);
+  // そのうち最後の作業に終わりの記録がないもの（終える・落ちるときに書けなかった）に、終わりの記録と止まったサブエージェントのお知らせを足す
+  endInterruptedTurns(store, recovered);
 
   const token = loadOrCreateToken(opts.dataDir);
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
