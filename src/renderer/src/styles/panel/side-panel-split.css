@@ -96,6 +96,22 @@
   box-shadow: inset -2px 0 0 var(--accent);
 }
 
+/*
+ * 表示中のタブの横でも線を出す（表示中のタブは下の画面と面をつなぐ影 0 1px 0 --bg を持ち、詳細度の高いその指定に負けて線が消えていた。
+ * 別ウィンドウはタブが 1 つ = 表示中のことが多く、ウィンドウをまたいで落とすときに線がまったく出なかった。利用者の指摘）
+ */
+.panel-tabs .panel-tab.active.split-insert-before {
+  box-shadow:
+    inset 2px 0 0 var(--accent),
+    0 1px 0 var(--bg);
+}
+
+.panel-tabs .panel-tab.active.split-insert-after {
+  box-shadow:
+    inset -2px 0 0 var(--accent),
+    0 1px 0 var(--bg);
+}
+
 .panel-tabs.split-insert-bar {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
