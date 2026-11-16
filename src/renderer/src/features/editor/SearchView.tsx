@@ -148,42 +148,45 @@ export function SearchView({ search, replacer, selected, onSelect }: Props) {
           </label>
         </div>
       )}
-      <ErrorText message={search.error} className="code-search-message" />
-      {replacer.last && (
-        <p className="muted small code-search-message code-search-replaced" role="status">
-          {replacer.last.message}
-          {replacer.last.undo && (
-            <button type="button" className="link-button" disabled={replacer.busy} onClick={replacer.undo}>
-              元に戻す
-            </button>
-          )}
-        </p>
-      )}
-      {result && search.query && (
-        <p className="muted small code-search-message">
-          {counts.lines === 0
-            ? result.value.total === 0
-              ? "見つかりませんでした。"
-              : "すべて結果から外しました。"
-            : `${counts.files} 個のファイルで ${counts.lines} 件${result.value.truncated ? "（多いため、途中までを表示しています）" : ""}`}
-        </p>
-      )}
-      {search.query && result && (
-        <SearchResults
-          search={search}
-          replacer={replacer}
-          collapsed={collapsed}
-          onToggleFile={(path) =>
-            setCollapsed((prev) => {
-              const next = new Set(prev);
-              if (!next.delete(path)) next.add(path);
-              return next;
-            })
-          }
-          selected={selected}
-          onSelect={onSelect}
-        />
-      )}
+      {/* 見出しと探す欄は残し、結果だけを流す */}
+      <div className="changes-scroll">
+        <ErrorText message={search.error} className="code-search-message" />
+        {replacer.last && (
+          <p className="muted small code-search-message code-search-replaced" role="status">
+            {replacer.last.message}
+            {replacer.last.undo && (
+              <button type="button" className="link-button" disabled={replacer.busy} onClick={replacer.undo}>
+                元に戻す
+              </button>
+            )}
+          </p>
+        )}
+        {result && search.query && (
+          <p className="muted small code-search-message">
+            {counts.lines === 0
+              ? result.value.total === 0
+                ? "見つかりませんでした。"
+                : "すべて結果から外しました。"
+              : `${counts.files} 個のファイルで ${counts.lines} 件${result.value.truncated ? "（多いため、途中までを表示しています）" : ""}`}
+          </p>
+        )}
+        {search.query && result && (
+          <SearchResults
+            search={search}
+            replacer={replacer}
+            collapsed={collapsed}
+            onToggleFile={(path) =>
+              setCollapsed((prev) => {
+                const next = new Set(prev);
+                if (!next.delete(path)) next.add(path);
+                return next;
+              })
+            }
+            selected={selected}
+            onSelect={onSelect}
+          />
+        )}
+      </div>
     </>
   );
 }

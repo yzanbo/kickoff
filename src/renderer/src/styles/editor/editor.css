@@ -16,19 +16,33 @@
   width: 300px;
   /* 狭いとき（チャット欄を広げた）も、右の差分・中身を残す（覚えた幅より優先） */
   max-width: 50%;
-  overflow-y: auto;
+  /* 見出し（.changes-head）と探す欄は残し、その下（.changes-scroll・ファイルの木の .files-pane）だけを流す（利用者の依頼。VS Code のビューと同じ） */
+  overflow: hidden;
   border-right: 1px solid var(--border);
   background: var(--bg-sidebar);
 }
 
+/* 左の一覧の、見出しと探す欄の下の流れる部分（変更・検索・履歴・メモ。ファイルの木は .files-pane） */
+.changes-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 .changes-head {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 6px;
   padding: 6px 6px 6px 12px;
   border-bottom: 1px solid var(--border);
   font-size: 12px;
   color: var(--muted);
+}
+
+/* 見出しの先頭のアイコン（ブランチ）は、名前が長くても縮めない（前は名前に押されて小さくなっていた） */
+.changes-head > svg {
+  flex: none;
 }
 
 /* 見出しのアイコンのボタン（VS Code のビューの見出しと同じ 22px の枠に 16px のアイコン。ファイル・変更で共通） */
