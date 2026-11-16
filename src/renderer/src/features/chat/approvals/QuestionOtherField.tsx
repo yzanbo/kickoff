@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { useEditKeys } from "@/hooks/useEditKeys";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -38,7 +38,8 @@ export function QuestionOtherField({
   const files = useComposerFiles();
   // 添付が変わったら知らせる（ID の並びとアップロードの途中かで比べ、描き直しのたびには知らせない）
   const key = `${files.attachments.map((a) => a.id).join(",")}|${files.uploading}`;
-  useEffect(() => onFiles({ attachments: files.attachments, uploading: files.uploading }), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const reportFiles = useEffectEvent(() => onFiles({ attachments: files.attachments, uploading: files.uploading }));
+  useEffect(() => reportFiles(), [key]);
 
   // Enter で回答する（変換中の Enter は確定に使い、送らない）・Shift+Enter で改行
   const keys = useEditKeys({ onSubmit });
