@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { executeTurn, type ExecutionDeps, type TurnRequest, type TurnOutcome } from "./turn.js";
+import { executeTurn, takePendingNote, type ExecutionDeps, type TurnRequest, type TurnOutcome } from "./turn.js";
 import { RunnerQueue, type SendOpts } from "./runnerQueue.js";
 import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input.js";
 import { startChildChat } from "./children.js";
 import { moveChatWorkplace, type WorkplaceMoveSteps, type WorkplaceMoveInput } from "./workplaceMove.js";
-import { notMovedNotice, runReservedMove, WorkplaceReservations, type WorkplaceMovePlan } from "./workplaceReservation.js";
+import { cancelledNote, notMovedNotice, runReservedMove, WorkplaceReservations, type WorkplaceMovePlan } from "./workplaceReservation.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
 import type { ChatRemover } from "./aiChatRemove.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type RestartResume, type RestartResumeAction, type TellResult, type MessageMarks } from "@shared/types";
@@ -360,8 +360,11 @@ export class Runner extends RunnerQueue {
     const messageUuid = randomUUID();
     // 組み立てている間に圧縮が始まったら、預かる（届いた報告の添え書きは、伝えるときに組み立て直す）
     if (runtime.holdsTells && !(draining && !runtime.compacting && !runtime.awaitingCompact)) return hold();
-    // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す
-    if (runtime.control?.tell(prompt, messageUuid)) {
+    // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す。
+    // まだ AI に伝えていない Kickoff からの知らせ（作業場所を移す予約の取り消しなど）があれば、頭に一度だけ添える（足せなければ残す）
+    const note = runtime.pendingNote;
+    if (runtime.control?.tell(note ? `${note}\n\n${prompt}` : prompt, messageUuid)) {
+      if (note && runtime.pendingNote === note) takePendingNote(runtime);
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（起動したときの再開の確かめで、作業を続けるかも聞かない）
       this.forgetRecovery(chatId);
       this.forgetInterrupted(chatId);
@@ -626,11 +629,19 @@ export class Runner extends RunnerQueue {
     }
   }
 
-  /** AI が予約した作業場所の移動を利用者が取り消す（画面・スマホの取り消し。会話にお知らせを残す。予約がなければ 409。I2・J7） */
+  /**
+   * AI が予約した作業場所の移動を利用者が取り消す（画面・スマホの取り消し。会話にお知らせを残す。予約がなければ 409。I2・J7）。
+   * 取り消したことは AI にも伝える: 作業中で足せるなら、いまの作業にその場で足す（次の切れ目で読む）。足せない（作業していない・圧縮の間・入力を閉じた）なら、
+   * 知らせのためだけに動かさず、次に送るもの（新しい実行の文脈か、次に伝える発言の頭）に一度だけ添える
+   */
   cancelWorkplaceMove(chatId: number) {
     const plan = this.workplaceMoves.cancel(chatId);
     if (!plan) throw new Conflict("取り消す予約はありません（もう移したか、取り消しました）");
     this.deps.store.events.add(chatId, { type: "notice", message: `AI が予約した「${plan.label}へ移る」を取り消しました` });
+    const runtime = this.runtimes.get(chatId);
+    const note = cancelledNote(plan);
+    const told = this.isBusy(chatId) && !runtime.holdsTells && !runtime.tellsClosed && Boolean(runtime.control?.tell(note, randomUUID()));
+    if (!told) runtime.pendingNote = note;
   }
 
   /** 作業の終わりに、AI が予約した作業場所の移動を行ってから、いつもの作業の終わりの処理を続ける（H8） */

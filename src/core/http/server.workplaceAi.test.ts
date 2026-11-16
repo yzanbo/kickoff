@@ -163,3 +163,54 @@ test("ツールの確かめ: 持っていくのは新しいワークツリーだ
   assert.equal((await live(ctx, chatId)).workplace_move.carry, false);
   release();
 });
+
+test("利用者が取り消したことは AI にも伝える: 作業中で足せればその場で、足せなければ次の指示に一度だけ添える", async () => {
+  const ctx = setup();
+  const { call, provider, runner } = ctx;
+  const chatId = await mainChat(ctx);
+  // 足せる: いまの作業にその場で足す（次の指示には添えない）
+  const first = await busyTurn(ctx, chatId);
+  await first.tools.move({ to: "new_worktree", branch: "feat/told" }, allow);
+  assert.equal((await call("DELETE", `/api/chats/${chatId}/workplace-move`)).status, 204);
+  assert.ok(provider.told.some((t) => t.includes("利用者が、あなたが予約した作業場所の移動（新しいワークツリー（feat/told）へ）を取り消しました")));
+  first.release();
+  await until(() => !runner.isBusy(chatId));
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "次" });
+  await until(() => !runner.isBusy(chatId) && provider.prompts.at(-1) === "次");
+  assert.doesNotMatch(provider.lastTurnContext ?? "", /取り消しました/);
+
+  // 足せない（入力を閉じた）: 新しく動かさず、次の指示の文脈に一度だけ添える
+  const second = await busyTurn(ctx, chatId);
+  await second.tools.move({ to: "new_worktree", branch: "feat/later" }, allow);
+  provider.acceptTell = false;
+  const told = provider.told.length;
+  assert.equal((await call("DELETE", `/api/chats/${chatId}/workplace-move`)).status, 204);
+  assert.equal(provider.told.length, told);
+  second.release();
+  await until(() => !runner.isBusy(chatId));
+  const sent = provider.prompts.length;
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "その次" });
+  await until(() => !runner.isBusy(chatId) && provider.prompts.length === sent + 1);
+  assert.match(provider.lastTurnContext ?? "", /新しいワークツリー（feat\/later）へ）を取り消しました/);
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "さらに次" });
+  await until(() => !runner.isBusy(chatId) && provider.prompts.at(-1) === "さらに次");
+  assert.doesNotMatch(provider.lastTurnContext ?? "", /取り消しました/);
+});
+
+test("足せなかった取り消しの知らせは、次に伝えた発言の頭にも一度だけ添える", async () => {
+  const ctx = setup();
+  const { call, provider, runner } = ctx;
+  const chatId = await mainChat(ctx);
+  const { tools, release } = await busyTurn(ctx, chatId);
+  await tools.move({ to: "new_worktree", branch: "feat/tell" }, allow);
+  provider.acceptTell = false;
+  await call("DELETE", `/api/chats/${chatId}/workplace-move`);
+  // 入力がまた受け付けるようになってから、利用者が伝えた発言に添わる
+  provider.acceptTell = true;
+  assert.equal((await call("POST", `/api/chats/${chatId}/tell`, { text: "ついでに" })).body.result, "told");
+  assert.match(provider.told.at(-1) ?? "", /取り消しました。[\s\S]*\n\nついでに$/);
+  assert.equal((await call("POST", `/api/chats/${chatId}/tell`, { text: "もう一つ" })).body.result, "told");
+  assert.equal(provider.told.at(-1), "もう一つ");
+  release();
+  await until(() => !runner.isBusy(chatId));
+});

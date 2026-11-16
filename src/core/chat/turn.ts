@@ -184,7 +184,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       const auth = (await deps.providerKeys?.authFor(chat.provider)) ?? { mode: "subscription" as const, apiKey: null };
       if (auth.mode === "api_key" && !auth.apiKey) throw new Error(`${providers[chat.provider].label} のログインの仕方が「${PROVIDER_AUTH_MODE_LABELS.api_key}」ですが、API キーを読めませんでした。設定の AI の欄で API キーを置き直してください`);
       const params: ProviderTurnParams = {
-        ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId),
+        ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId, compact ? null : takePendingNote(runtime)),
         preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent),
         env,
         auth,
@@ -249,6 +249,13 @@ function ensureDir(dir: string): string | null {
   }
 }
 
+/** 次に送るものに一度だけ添える知らせを取り出す（取り出したら外す。利用者が作業場所を移す予約を取り消したときなど） */
+export function takePendingNote(runtime: ChatRuntime): string | null {
+  const note = runtime.pendingNote;
+  runtime.pendingNote = null;
+  return note;
+}
+
 /** プロバイダーに渡すもの（作業場所・指示・権限） */
 function buildTurnParams(
   deps: ExecutionDeps,
@@ -258,6 +265,7 @@ function buildTurnParams(
   writeAllowed: Set<string>,
   prompt: string,
   promptId?: string,
+  note: string | null = null,
 ): ProviderTurnParams {
   // メモのフォルダ（executeTurn がまだなければ作る: メモのタブで最初のメモを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「メモ」が「メモ」タブのメモのことだと伝える
   // （入力欄にメモを添付して続きを頼む・「メモに書いて」と頼めるように）。メモのチャットは、どのメモについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
@@ -266,7 +274,7 @@ function buildTurnParams(
     prompt,
     ...(promptId ? { promptId } : {}),
     systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, { trash: deps.trashCommand !== undefined, sandbox: sandbox ? { unsandboxed: sandbox.unsandboxedCommands } : undefined }),
-    turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id))),
+    turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id)), note),
     policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,
     model: chat.model,
