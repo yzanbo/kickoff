@@ -17,6 +17,11 @@ import { emptyPanel, panelReducer, type PanelAction, type PanelRules, type Panel
 const states = new Map<string, PanelState>();
 const listeners = new Set<() => void>();
 let version = 0;
+/**
+ * 写しか（サイドバーの別ウィンドウ。メインのウィンドウのパネルの状態を replacePanels で受け取って読むだけで、自分では変えない。
+ * 変える操作はメインのウィンドウに頼む。panelMirror.ts）
+ */
+let replica = false;
 
 /** 開いているかを覚える欄（チャット欄）の、その画面の設定 */
 function openSettingOf(key: string) {
@@ -77,6 +82,7 @@ function dispose(tab: PanelTab): void {
  * 変わらなければ何もしない
  */
 export function dispatchPanel(key: string, action: PanelAction): void {
+  if (replica) return;
   const prev = panelStateOf(key);
   const next = panelReducer(prev, action, rulesOf(key));
   if (next === prev) return;
@@ -97,11 +103,25 @@ export function dispatchPanel(key: string, action: PanelAction): void {
  * mapTab でタブを書き換える。移す先にもうタブがあれば、移す元のタブは閉じて捨てる（重ねない）
  */
 export function movePanel(from: string, to: string, mapTab: (tab: PanelTab) => PanelTab = (tab) => tab): void {
+  if (replica) return;
   const prev = states.get(from);
   if (!prev) return;
   states.delete(from);
   if (panelStateOf(to).tabs.length > 0) prev.tabs.forEach(dispose);
   else states.set(to, { ...prev, tabs: prev.tabs.map(mapTab) });
+  version++;
+  for (const listener of [...listeners]) listener();
+}
+
+/** 写しの店にする / やめる（サイドバーの別ウィンドウ。写しの間は dispatchPanel・movePanel は何もしない。閉じたタブの後始末・下書きの保存はメインのウィンドウが行う） */
+export function setPanelReplica(on: boolean): void {
+  replica = on;
+}
+
+/** すべての欄の状態を置き換える（サイドバーの別ウィンドウが、メインのウィンドウから届いた写しを入れる） */
+export function replacePanels(entries: readonly (readonly [string, PanelState])[]): void {
+  states.clear();
+  for (const [key, state] of entries) states.set(key, state);
   version++;
   for (const listener of [...listeners]) listener();
 }

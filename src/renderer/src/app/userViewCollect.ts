@@ -154,7 +154,9 @@ export function collectPopoutView(route: PopoutRoute): UserView {
             ? { kind: "changes", worktree: route.worktree ?? null, focus: route.focus ?? null, project_id: route.projectId }
             : route.kind === "database"
               ? databaseTab(route.projectId, `chat-${route.chatId}`)
-              : { kind: "subagent", title: "サブエージェント" };
+              : route.kind === "sidebar"
+                ? { kind: "page", label: "サイドバー" }
+                : { kind: "subagent", title: "サブエージェント" };
   const panes: UserViewPane[] = [{ area: "別ウィンドウ", tab }];
   const side: UserViewTab[] = [];
   panelPanes(panes, side);

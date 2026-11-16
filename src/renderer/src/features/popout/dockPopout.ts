@@ -1,8 +1,10 @@
 // 別ウィンドウの「右の欄に戻す」: 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（メインのウィンドウで呼ぶ）。
 // 子チャット・変更・ファイル・DB クライアントは結びついたチャット（子チャットなら、いちばん上の親）の右の欄、サブエージェントはそのチャットの右の欄、
-// メモは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければメモのタブ）
+// メモは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければメモのタブ）。サイドバーはこのウィンドウのサイドバーを開く
 import type { PopoutRoute } from "@/app/popout";
 import { openMemo } from "@/app/router";
+import { writeSetting } from "@/lib/storage";
+import { SIDEBAR_OPEN } from "@/lib/storageKeys";
 import { knownChat } from "@/stores/chats";
 import { openChildSide, openInRootSide } from "@/features/chat/children/openChild";
 import { rootChatOf } from "@/features/chat/children/childChats";
@@ -16,6 +18,9 @@ function whenDrawn(chatId: number, run: () => void, tries = 120) {
 
 export function dockPopout(route: PopoutRoute) {
   switch (route.kind) {
+    case "sidebar":
+      writeSetting(SIDEBAR_OPEN, true);
+      return;
     case "chat": {
       const chat = knownChat(route.chatId);
       if (chat) openChildSide(chat);

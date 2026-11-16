@@ -7,7 +7,7 @@ import { foldAll, useFolds } from "@/hooks/useFold";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useProjects } from "@/stores/projects";
 import { useVisibleProjects } from "@/features/project/useVisibleProjects";
-import { navigate, routeProjectId, useRoute } from "@/app/router";
+import { href, navigate, routeProjectId, useRoute } from "@/app/router";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { SIDEBAR_LAST_HASHES, SIDEBAR_LAYOUT, SIDEBAR_PROJECT_ORDER, SIDEBAR_SHOW_ARCHIVED_PROJECTS, SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
 import { projectKey } from "@/features/chatList/bucketHeads";
@@ -89,7 +89,8 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     if (routeProject === undefined) return;
     // 新しいチャットの画面は覚えない（戻るたびに新しいチャットが開かないように）
     if (route.name === "newChat") return;
-    writeSetting(SIDEBAR_LAST_HASHES, { ...readSetting(SIDEBAR_LAST_HASHES), [routeProject]: location.hash });
+    // URL ではなく画面から作る（サイドバーの別ウィンドウの URL は別ウィンドウの行き先で、画面はメインのウィンドウのもの）
+    writeSetting(SIDEBAR_LAST_HASHES, { ...readSetting(SIDEBAR_LAST_HASHES), [routeProject]: href(route) });
   }, [route, routeProject]);
 
   /** 横スライドで切り替えたプロジェクトを、右側にも表示する（Arc・Zen Browser のスペースと同じ） */

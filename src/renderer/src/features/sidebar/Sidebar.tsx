@@ -1,7 +1,9 @@
-import { LayoutGrid, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { AppWindow, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { useLayoutEffect } from "react";
 import { useProjects } from "@/stores/projects";
 import { markInteractive } from "@/app/bootMarks";
+import { canPopout, openPopout } from "@/app/popout";
+import { cx } from "@/lib/cx";
 import { href, useRoute } from "@/app/router";
 import { ProjectNav } from "./ProjectNav";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
@@ -15,7 +17,8 @@ import { NewChatButton } from "./NewChatButton";
 import { ensureAllRows } from "@/hooks/useProgressiveRows";
 
 interface Props {
-  sidebar: SidebarController;
+  /** 開閉と幅（メインのウィンドウ）。なければ別ウィンドウのサイドバー（ウィンドウいっぱいに出し、開閉・幅のつまみ・信号機ボタンの行を置かない） */
+  sidebar?: SidebarController;
   onNewChat: () => void;
   /** ⌘N の新しいチャットを始めるプロジェクト（開いているもの。なければサイドバーで選んでいるもの。プロジェクトがひとつもなければ undefined） */
   newChatProject: number | undefined;
@@ -27,7 +30,7 @@ interface Props {
  * 左のサイドバー（新しいチャット・全プロジェクト・検索、プロジェクトごとのチャット一覧、設定）。要対応のオン / オフは一覧の上の見出しの「要対応」の行
  * （利用者の依頼で、上の段から移した。上の段は押すと開く・作るものだけにする）
  */
-export function Sidebar({ sidebar: { paneRef: sidebarPaneRef, ...sidebar }, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
+export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
   const route = useRoute();
   const { projects, loaded: projectsLoaded } = useProjects();
   // プロジェクトとチャットの一覧が初めて届いて描けたら、起動の時刻の記録に知らせる（app/bootMarks.ts）
@@ -62,13 +65,28 @@ export function Sidebar({ sidebar: { paneRef: sidebarPaneRef, ...sidebar }, onNe
       selection.add(Number(next.dataset.chatId));
     }
   });
+  const hidden = sidebar ? !sidebar.open : undefined;
   return (
-    <aside ref={sidebarPaneRef} className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
-      <div className="sidebar-resizer" aria-label="サイドバーの幅を変える" {...sidebar.resizeHandle} />
-      {/* 一番上の行は macOS の信号機ボタンの行。右端に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
-      <div className="sidebar-header">
-        <IconButton icon={PanelLeftClose} className="titlebar-toggle" label="サイドバーを閉じる" keys="⌘B" onClick={sidebar.toggle} />
-      </div>
+    <aside ref={sidebar?.paneRef} className={cx("sidebar", !sidebar && "sidebar-window")} aria-hidden={hidden} inert={hidden}>
+      {sidebar && <div className="sidebar-resizer" aria-label="サイドバーの幅を変える" {...sidebar.resizeHandle} />}
+      {/* 一番上の行は macOS の信号機ボタンの行。右端に別ウィンドウで開く・開閉のボタンを置き、残りはウィンドウのドラッグ領域 */}
+      {sidebar && (
+        <div className="sidebar-header">
+          {canPopout() && (
+            <IconButton
+              icon={AppWindow}
+              className="titlebar-toggle sidebar-popout-button"
+              label="サイドバーを別ウィンドウで開く"
+              title="サイドバーを別ウィンドウに移す（このウィンドウのサイドバーは閉じる。別ウィンドウの「左の欄に戻す」で戻せる）"
+              onClick={() => {
+                openPopout({ kind: "sidebar" }, "サイドバー");
+                if (sidebar.open) sidebar.toggle();
+              }}
+            />
+          )}
+          <IconButton icon={PanelLeftClose} className="titlebar-toggle" label="サイドバーを閉じる" keys="⌘B" onClick={sidebar.toggle} />
+        </div>
+      )}
       <div className="nav-rows">
         <NewChatButton projectId={newChatProject} onClick={onNewChat} />
         <a className={`nav-row ${route.name === "allProjects" ? "active" : ""}`} href={href({ name: "allProjects" })}>

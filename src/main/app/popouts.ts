@@ -6,12 +6,15 @@ import { openLinksExternally } from "./externalLinks.js";
 import { watchRendererHang } from "./hangWatch.js";
 import { showMainWindow } from "./window.js";
 
-// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャットを、メインのウィンドウの外に出して見る。2 枚目の画面に置くなど）
+// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャットと左のサイドバーを、メインのウィンドウの外に出して見る。2 枚目の画面に置くなど）
 
 /** 開いている別ウィンドウ（画面の route ごとに 1 つ。同じものを開こうとしたら前に出す） */
 const popouts = new Map<string, BrowserWindow>();
 /** 最後に閉じた（動かした）別ウィンドウの位置と大きさ（次に開くとき、少しずらして同じ大きさで開く。アプリを閉じるまで覚える） */
 let lastBounds: Rectangle | undefined;
+/** サイドバーの別ウィンドウの行き先と、最後の位置と大きさ（ほかの別ウィンドウより細いので、別に覚える。ほかの別ウィンドウにも細さを写さない） */
+const SIDEBAR_ROUTE = "/popout/sidebar";
+let sidebarBounds: Rectangle | undefined;
 /** 閉じ方を聞かずに閉じてよい別ウィンドウ（closeSelf で閉じるもの） */
 const closingQuietly = new WeakSet<BrowserWindow>();
 
@@ -43,10 +46,15 @@ function openPopout(appUrl: string, route: string, title: string) {
     existing.focus();
     return;
   }
-  const at = lastBounds ? { x: lastBounds.x + 24, y: lastBounds.y + 24, width: lastBounds.width, height: lastBounds.height } : { width: 920, height: 820 };
+  const sidebar = route === SIDEBAR_ROUTE;
+  const at = sidebar
+    ? (sidebarBounds ?? { width: 300, height: 820 })
+    : lastBounds
+      ? { x: lastBounds.x + 24, y: lastBounds.y + 24, width: lastBounds.width, height: lastBounds.height }
+      : { width: 920, height: 820 };
   const win = new BrowserWindow({
     ...at,
-    minWidth: 420,
+    minWidth: sidebar ? 220 : 420,
     minHeight: 320,
     title,
     // 画面を読み込む前に見える地の色（メインのウィンドウと同じく、選んでいるテーマ。app/appearance.ts）
@@ -68,7 +76,9 @@ function openPopout(appUrl: string, route: string, title: string) {
   url.hash = route;
   void win.loadURL(url.toString());
   const remember = () => {
-    if (!win.isDestroyed()) lastBounds = win.getBounds();
+    if (win.isDestroyed()) return;
+    if (sidebar) sidebarBounds = win.getBounds();
+    else lastBounds = win.getBounds();
   };
   win.on("moved", remember);
   win.on("resized", remember);

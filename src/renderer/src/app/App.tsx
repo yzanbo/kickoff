@@ -18,6 +18,7 @@ import { SearchPanel } from "@/features/palette/SearchPanel";
 import { NewProjectDialog } from "@/features/project/new/NewProjectDialog";
 import { OPEN_NEW_PROJECT_EVENT, OPEN_NO_PROJECTS_GUIDE_EVENT, type NewProjectRequest } from "@/features/project/new/openNewProject";
 import { NoProjectsGuide } from "@/features/project/NoProjectsGuide";
+import { runAfterNewProject } from "@/features/project/new/afterNewProject";
 import { ProjectChat } from "@/features/panel/projectChat/ProjectChat";
 import { useProjectChat } from "@/features/panel/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "@/features/settings/SettingsDialog";
@@ -49,6 +50,8 @@ import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
 import { boardTabOf, openNewChat, openProjectSearch, RouteContext, routeProjectId, useHashRoute } from "./router";
 import { handleMainWindowMessage } from "./mainWindowMessages";
+import { OPEN_COMMAND_PALETTE_EVENT, START_NEW_CHAT_EVENT } from "./popoutNavigation";
+import { useSidebarWindowHost } from "./sidebarWindowHost";
 import { subscribeWindowMessages } from "./windowBus";
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useChatHistory } from "./useChatHistory";
@@ -156,8 +159,13 @@ export function App() {
   // プロジェクトのボタン・右クリックから、そのプロジェクトで絞り込んだ ⌘⇧A の一覧を開く
   useWindowEvent(OPEN_ACTIVE_CHATS_EVENT, (e) => setActiveChats((e as CustomEvent<ActiveChatsRequest>).detail));
   useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
-  // 別ウィンドウからの「ファイルタブで開く」・メモ・子チャットを開く・子チャットから親へは、このウィンドウで
+  // サイドバーの別ウィンドウの「新しいチャット」「検索」（別ウィンドウで起きたものは app/popoutNavigation.ts が渡してくる）
+  useWindowEvent(START_NEW_CHAT_EVENT, startNewChat);
+  useWindowEvent(OPEN_COMMAND_PALETTE_EVENT, () => setPalette(true));
+  // 別ウィンドウからの「ファイルタブで開く」・メモ・子チャットを開く・子チャットから親へ・画面を移る操作は、このウィンドウで
   useEffect(() => subscribeWindowMessages(handleMainWindowMessage), []);
+  // サイドバーの別ウィンドウが開いている間、いまの画面とパネルの状態を写して送る
+  useSidebarWindowHost(route);
 
   return (
     <RouteContext.Provider value={route}>
@@ -200,8 +208,7 @@ export function App() {
             onCreated={(project) => {
               setCreating(null);
               addProject(project);
-              if (creating.onCreated) creating.onCreated(project);
-              else openNewChat(project.id);
+              runAfterNewProject(creating.after, project);
             }}
           />
         )}

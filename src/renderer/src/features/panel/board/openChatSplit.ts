@@ -2,6 +2,7 @@ import type { Chat } from "@shared/types";
 import { openChat } from "@/app/router";
 import { paneOfTab, type SplitDir } from "@/features/panel/layout/paneTree";
 import { panelActions } from "@/features/panel/state/panelActions";
+import { forwardPanelOp } from "@/features/panel/state/panelMirror";
 import { panelStateOf } from "@/features/panel/state/panelStore";
 import { panelKey } from "@/features/panel/surfaces";
 import { chatKey } from "@/features/panel/tabs/tabKinds";
@@ -11,6 +12,8 @@ import { chatKey } from "@/features/panel/tabs/tabKinds";
  * タブで開いてから（開いていればそのタブ）、そのタブを新しいペインへ移し、チャットの画面へ移る
  */
 export function openChatSplit(chat: Pick<Chat, "id" | "project_id">, dir: SplitDir) {
+  // サイドバーの別ウィンドウからは、メインのウィンドウのパネルで
+  if (forwardPanelOp({ op: "openChatSplit", chat: { id: chat.id, project_id: chat.project_id }, dir }, { focusMain: true })) return;
   const key = panelKey("board", chat.project_id);
   const actions = panelActions(key);
   actions.open(chat);

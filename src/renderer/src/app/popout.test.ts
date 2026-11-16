@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { parsePopout, popoutKey, popoutPath, type PopoutRoute } from "./popout";
 
-test("popoutPath / parsePopout: 変更・ファイル・サブエージェント・子チャット・メモ・DB を行き来できる", () => {
+test("popoutPath / parsePopout: 変更・ファイル・サブエージェント・子チャット・メモ・DB・サイドバーを行き来できる", () => {
   const routes: PopoutRoute[] = [
     { kind: "changes", chatId: 3, projectId: 1 },
     { kind: "changes", chatId: 3, projectId: 1, worktree: "/tmp/wt a", focus: "src/a.ts" },
@@ -14,8 +14,11 @@ test("popoutPath / parsePopout: 変更・ファイル・サブエージェント
     { kind: "memo", projectId: 2, path: "設計/メモ 1.md", chatId: 5 },
     { kind: "database", chatId: 3, projectId: 1 },
     { kind: "database", chatId: 3, projectId: 1, worktree: "/tmp/wt" },
+    { kind: "sidebar" },
   ];
   for (const route of routes) assert.deepEqual(parsePopout(`#${popoutPath(route)}`), route);
+  // サイドバーはアプリに 1 つ（同じ文字になり、もう開いていれば前に出す）
+  assert.equal(popoutPath({ kind: "sidebar" }), "/popout/sidebar");
 });
 
 test("parsePopout: 別ウィンドウでない・欠けているものは undefined", () => {
