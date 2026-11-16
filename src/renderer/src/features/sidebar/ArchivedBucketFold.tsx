@@ -11,6 +11,7 @@ import { FoldSection } from "@/ui/FoldHead";
 import { reportFailure } from "@/ui/dialogs";
 import { isForeignChat } from "./projectChatDrop";
 import { busyBlockReason } from "@/features/chat/chatBusy";
+import { ChatRowList } from "./ChatRowList";
 
 /**
  * ドラッグで落としたチャットをアーカイブする（確かめてから。toggleArchiveChat）。groupId を渡すと、そのグループへも移す
@@ -106,7 +107,7 @@ export function ArchivedBucketFold({
   return (
     <div className={cx("archive-drop nested-archive", drop.over && (drop.blocked ? "drop-blocked" : "drop-target"))} {...drop.props}>
       <FoldSection look="row" icon={Archive} label="アーカイブ済み" count={bucket.chats.length} open={fold.open} onToggle={fold.toggle} title="ここへチャットをドラッグすると、確かめてからアーカイブします">
-        <ul className="chat-rows archived-rows">{bucket.chats.map(renderRow)}</ul>
+        <ChatRowList chats={bucket.chats} renderRow={renderRow} className="archived-rows" />
       </FoldSection>
     </div>
   );

@@ -12,6 +12,7 @@ import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chat
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { IconButton } from "@/ui/IconButton";
 import { NewChatButton } from "./NewChatButton";
+import { ensureAllRows } from "@/hooks/useProgressiveRows";
 
 interface Props {
   sidebar: SidebarController;
@@ -46,6 +47,8 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
     if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.metaKey || e.altKey || e.ctrlKey) return;
     const target = e.target as HTMLElement | null;
     if (!target?.closest(".sidebar-section") || target.closest("input, textarea, select, [role=menu]")) return;
+    // 開いた直後でまだ描いていない行があれば、先にすべて描く（最後の行まで移れるように。案 23）
+    ensureAllRows();
     const rows = visibleRows();
     if (rows.length === 0) return;
     const current = rows.indexOf(target.closest<HTMLElement>("a.chat-row") as HTMLElement);

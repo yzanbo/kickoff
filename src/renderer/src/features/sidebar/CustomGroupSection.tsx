@@ -15,6 +15,7 @@ import { DraftRows } from "./DraftRows";
 import type { GroupSectionProps } from "./useGroupSections";
 import { huedHeadProps } from "./bucketColor";
 import { ArchivedBucketFold } from "./ArchivedBucketFold";
+import { ChatRowList } from "./ChatRowList";
 
 /**
  * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身。bucket は bucketChats のグループのまとまりで、中の段があれば状態ごとに分ける）。
@@ -128,7 +129,7 @@ export function CustomGroupSection({
             <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={filtering} />
           </div>
         ) : (
-          <ul className="chat-rows">{members.map(renderRow)}</ul>
+          <ChatRowList chats={members} renderRow={renderRow} />
         )}
         {/* このグループのアーカイブ済み（アーカイブ済みを出しているとき。落とすとアーカイブ、中の行をグループへ落とすと戻す） */}
         {bucket.archived && <ArchivedBucketFold projectId={projectId} bucket={bucket.archived} chats={allChats} groupId={group.id} renderRow={renderRow} forceOpen={filtering} />}

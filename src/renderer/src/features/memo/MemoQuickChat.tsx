@@ -34,6 +34,7 @@ const PLACEHOLDER = "このページの直し方を AI に頼む（例: 表を�
 /** 流れを持たないので、送っても付いていくものがない（useChatSend に渡すスクロールの代わり） */
 const NO_SCROLL: TimelineScroll = {
   ref: { current: null },
+  inner: { current: null },
   following: () => false,
   follow: () => {},
   release: () => {},

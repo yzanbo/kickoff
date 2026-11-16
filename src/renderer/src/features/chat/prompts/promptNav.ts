@@ -1,24 +1,19 @@
-// 自分の指示（発言）のあいだを移る（⌘⌥↑ / ↓）ための判定（位置は画面から測り、決めるのは純粋関数）
+// 自分の指示（発言）のあいだを移る（⌘⌥↑ / ↓）ための判定（位置は窓から読み、決めるのは純粋関数）
 
 /** 上下の遊び（px）。吹き出しの上端がちょうど流れの上端にあるときに、前後を取り違えないように */
 const SLACK = 8;
 
 /**
- * 流れの中の自分の発言の上端の位置（流れの上端からの px。描いていないもの（窓の外の前の発言）は入れない）。
- * 位置は行の包み（data-prompt-id）で読み、流れの上端の遊びに掛かる行と exact の指示（前に移った先）だけ、中の吹き出しの位置を読む
- * （画面の外の行は描くのを省いているので、中の要素の位置を読むとその行のレイアウトを強いる。前後の決め方は上端の遊びとの上下だけなので、
- * 遊びに掛からない行は行の上端で同じ答えになる）
+ * 自分の指示の上端の、流れの見えている上端からの距離（px）。位置は窓（描いていない行も前からの和で）から locate で読み、
+ * 窓の中にない指示は読み込んだ範囲（loaded）の前なら上（-∞）、後ろなら下（+∞）とみなす（読み込んでいない範囲の指示は記録の順で前後を決める）。
+ * 描いていない指示を「上にある」とみなすと、箱の窓で下の箱に入った指示へ ⌘⌥↑ で跳ぶため、位置はいつも数で持つ（メモの仕様書「0023_表示を軽くする」の分冊 2 の 1-6）
  */
-export function promptTops(timeline: HTMLElement, exact?: number): Map<number, number> {
-  const top = timeline.getBoundingClientRect().top;
+export function promptTops(ids: number[], locate: (id: number) => number | undefined, loaded: { first: number; last: number } | null): Map<number, number> {
   const tops = new Map<number, number>();
-  for (const row of timeline.querySelectorAll<HTMLElement>(":scope > .timeline-inner > .timeline-row[data-prompt-id]")) {
-    const id = Number(row.dataset.promptId);
-    if (!Number.isFinite(id)) continue;
-    const box = row.getBoundingClientRect();
-    const near = box.top - top <= SLACK && box.bottom - top >= -SLACK;
-    const bubble = near || id === exact ? row.querySelector<HTMLElement>(".bubble.user") : null;
-    tops.set(id, (bubble ? bubble.getBoundingClientRect().top : box.top) - top);
+  for (const id of ids) {
+    const top = locate(id);
+    if (top !== undefined) tops.set(id, top);
+    else if (loaded) tops.set(id, id < loaded.first ? -Infinity : Infinity);
   }
   return tops;
 }
@@ -26,8 +21,8 @@ export function promptTops(timeline: HTMLElement, exact?: number): Map<number, n
 /**
  * 前（dir = -1）・次（dir = 1）の指示（なければ undefined）。
  * anchor（前に移った先で、まだ画面に見えているもの）があれば、その前後。なければ位置で決める:
- * 前は、流れの上端より上から始まるもの（描いていない前の発言も上にあるとみなす）のうちいちばん下（読んでいる返答の元の指示）、
- * 次は、上端より下から始まるもののうちいちばん上
+ * 前は、流れの上端より上から始まるもののうちいちばん下（読んでいる返答の元の指示）、次は、上端より下から始まるもののうちいちばん上。
+ * 位置の分からない指示（tops にない）は選ばない
  */
 export function adjacentPrompt(ids: number[], tops: Map<number, number>, dir: -1 | 1, anchor?: number): number | undefined {
   const at = anchor === undefined ? -1 : ids.indexOf(anchor);
@@ -35,7 +30,7 @@ export function adjacentPrompt(ids: number[], tops: Map<number, number>, dir: -1
   if (dir < 0) {
     for (let i = ids.length - 1; i >= 0; i--) {
       const top = tops.get(ids[i]);
-      if (top === undefined || top < -SLACK) return ids[i];
+      if (top !== undefined && top < -SLACK) return ids[i];
     }
     return undefined;
   }

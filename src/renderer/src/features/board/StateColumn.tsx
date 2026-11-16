@@ -9,6 +9,8 @@ import { ArchivedFold, splitArchived } from "@/ui/ArchivedFold";
 import { ColumnHead } from "./ColumnHead";
 import { DraftCards } from "./DraftCards";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
+import { RowBudgetScope, useRowBudgets } from "@/hooks/useProgressiveRows";
+import { ProgressiveItems } from "@/ui/ProgressiveRows";
 
 /** カード（ボード）・行（リスト）の描き方 */
 type RenderChat = (chat: Chat) => ReactNode;
@@ -37,10 +39,10 @@ export function StateColumn({
   const body = (
     <>
       {active.length === 0 && <p className="column-empty">なし</p>}
-      {active.map(render)}
+      <ProgressiveItems items={active} render={render} />
       {foldArchived && foldPlace && (
         <ArchivedFold place={foldPlace} foldKey={`${column.key}/archived`} count={archived.length} bodyClassName="archived-fold">
-          {archived.map(render)}
+          <ProgressiveItems items={archived} render={render} />
         </ArchivedFold>
       )}
     </>
@@ -119,11 +121,15 @@ export function ListSections({
   archivedKey: string;
   render: RenderChat;
 }) {
+  // 最初に描く行の上限（hooks/useProgressiveRows.ts）を、縦に並ぶまとまりの上から順に配る
+  const budgets = useRowBudgets(columns.map((c) => splitArchived(c.chats)[0].length));
   return (
     <>
       <DraftColumn drafts={drafts} list showProject={showDraftProject} />
-      {columns.map((c) => (
-        <StateColumn key={c.key} column={c} render={render} list foldArchived={false} />
+      {columns.map((c, i) => (
+        <RowBudgetScope key={c.key} value={budgets[i]}>
+          <StateColumn column={c} render={render} list foldArchived={false} />
+        </RowBudgetScope>
       ))}
       <ArchivedListSection columns={columns} foldPlace={foldPlace} foldKey={archivedKey} render={render} />
     </>
@@ -146,7 +152,7 @@ function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns:
           return (
             <div key={c.key} className="archived-list-state">
               <ColumnHead label={c.label} tone={bucketTone(c)} mark={bucketMark(c)} count={list.length} />
-              {list.length === 0 ? <p className="column-empty">なし</p> : list.map(render)}
+              {list.length === 0 ? <p className="column-empty">なし</p> : <ProgressiveItems items={list} render={render} />}
             </div>
           );
         })}

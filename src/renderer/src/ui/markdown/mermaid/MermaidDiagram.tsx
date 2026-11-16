@@ -1,10 +1,12 @@
 import { CodeXml, Eye, Maximize2, SquareDashed, ZoomIn, ZoomOut } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from "react";
 import { errorMessage } from "@shared/errors";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { IconButton } from "@/ui/IconButton";
 import { ImageViewer } from "@/ui/imageViewer/ImageViewer";
-import { cachedMermaid, renderMermaid } from "./renderMermaid";
+import { useNearViewport } from "@/hooks/useNearViewport";
+import { useSizeObserver } from "@/hooks/useSizeObserver";
+import { cachedMermaid, mermaidBoxHeight, rememberMermaidHeight, renderMermaid } from "./renderMermaid";
 
 /** チャットの中: 欄の幅に収める（元の大きさより大きくはしない） */
 const FIT_CSS = ":host > svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }";
@@ -54,6 +56,8 @@ function ZoomButtons({ zoom }: { zoom: DiagramZoom }) {
 /**
  * Markdown の ```mermaid を図にする。
  * 図はチャットの中に SVG で入れ、Shadow DOM で囲む。描けないとき（書き方の誤り・大きすぎる図）はコードのまま出す。
+ * 描いたことのない図は、画面の手前 1200px まで来てから描く（`useNearViewport`。それまでは前に描いたときの高さ・なければ見積もりの枠で場所を取り、
+ * 描いても上下の位置がなるべく動かないようにする。覚えた図はすぐ出す。メモの仕様書「0023_表示を軽くする」の案 14a）。
  * onError: 描けなかった理由を受け取る（AI が描いた図のカードが、理由を添えて出す）
  */
 export function MermaidDiagram({ code, onError }: { code: string; onError?: (message: string) => void }) {
@@ -63,7 +67,14 @@ export function MermaidDiagram({ code, onError }: { code: string; onError?: (mes
   const [showSource, setShowSource] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const cached = cachedMermaid(code, theme);
+  const [nearRef, near] = useNearViewport<HTMLDivElement>({ enabled: cached === undefined });
   const boxRef = useRef<HTMLDivElement>(null);
+  // 描いた図の高さを覚え、次に同じ図を描くまでの枠の高さにする
+  const sizeRef = useSizeObserver<HTMLDivElement>(({ height }) => rememberMermaidHeight(code, height));
+  const setBox = (el: HTMLDivElement | null) => {
+    boxRef.current = el;
+    return sizeRef(el);
+  };
   // 枠に合わせた幅（欄の幅か、元の幅の小さいほう）を基準に、拡大・縮小する
   const zoom = useDiagramZoom(() => {
     const box = boxRef.current;
@@ -75,7 +86,7 @@ export function MermaidDiagram({ code, onError }: { code: string; onError?: (mes
   errorRef.current = onError;
 
   useEffect(() => {
-    if (cachedMermaid(code, theme) !== undefined) return;
+    if (!near || cachedMermaid(code, theme) !== undefined) return;
     let alive = true;
     renderMermaid(code, theme).then(
       (svg) => alive && setResult({ key: `${theme}\n${code}`, svg }),
@@ -88,7 +99,7 @@ export function MermaidDiagram({ code, onError }: { code: string; onError?: (mes
     return () => {
       alive = false;
     };
-  }, [code, theme]);
+  }, [code, theme, near]);
 
   // 配色を変えた直後は、描き終わるまで前の図を出しておく（ちらつかないように）
   const svg = cached ?? result?.svg;
@@ -99,9 +110,9 @@ export function MermaidDiagram({ code, onError }: { code: string; onError?: (mes
       </pre>
     );
   }
-  if (svg === undefined) return <MermaidPlaceholder />;
+  if (svg === undefined) return <MermaidPlaceholder ref={nearRef} height={mermaidBoxHeight(code)} />;
   return (
-    <div ref={boxRef} className="mermaid-diagram">
+    <div ref={setBox} className="mermaid-diagram">
       {/* 図の上の行に右寄せで並べる（拡大・縮小・元の大きさ・ソース・全画面） */}
       <div className="mermaid-tools">
         {!showSource && <ZoomButtons zoom={zoom} />}
@@ -142,9 +153,9 @@ function FullscreenDiagram({ svg, onClose }: { svg: string; onClose: () => void 
   );
 }
 
-/** 返答の生成中・図を描いている間に出す枠（書き終わってから図にする） */
-export function MermaidPlaceholder() {
-  return <div className="mermaid-diagram mermaid-placeholder" role="img" aria-label="Mermaid の図（準備中）" aria-busy="true" />;
+/** 返答の生成中・図を描いている間・画面の手前まで来るのを待つ間に出す枠（height: 枠の高さ。省けば CSS の最小の高さ） */
+export function MermaidPlaceholder({ ref, height }: { ref?: Ref<HTMLDivElement>; height?: number }) {
+  return <div ref={ref} className="mermaid-diagram mermaid-placeholder" role="img" aria-label="Mermaid の図（準備中）" aria-busy="true" style={height === undefined ? undefined : { height }} />;
 }
 
 /**

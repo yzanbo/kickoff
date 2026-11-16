@@ -4,7 +4,7 @@ import type { Element, ElementContent, Root, RootContent } from "hast";
  * 生成中の返答を、届いた塊のまま一度に出さず、少しずつ流れるように出すための純粋な部分。
  * - `nextRevealLength`: 次のフレームで何文字まで出すか（遅れが大きいほど速く追いつく）
  * - `revealBands`: 出たばかりの文字を、出てからの時間で何段かに分けた数（新しい順）
- * - `rehypeStreamTail`: 描く木の終わりの文字を、その段ごとに薄く出す span で包む（CSS の `.stream-fade-1` など）
+ * - `wrapStreamTail`: 描く木の終わりの文字を、その段ごとに薄く出す span で包む（CSS の `.stream-fade-1` など）。ブロックへの割り振りは `splitTail`
  */
 
 /** 遅れ（まだ出していない文字）を、おおよそこの時間で出し切る */
@@ -66,11 +66,27 @@ export function revealBands(marks: readonly RevealMark[], now: number): number[]
   return bands;
 }
 
-/** 描く木の終わりの文字を段ごとに包む rehype のプラグイン（bands は新しい順の文字数。すべて 0 なら何もしない） */
-export function rehypeStreamTail(bands: readonly number[]) {
-  return () => (tree: Root) => {
-    wrapStreamTail(tree, bands);
-  };
+/**
+ * 出たばかりの文字の段（新しい順の文字数）を、ブロックごとに割り振る（Markdown をブロックに分けて描くため。メモの仕様書「0023_表示を軽くする」の案 15）。
+ * 後ろのブロックから、ブロックの文の長さ（記号を含む見積もり）まで割り当て、あふれた分を 1 つ前のブロックに渡す。
+ * 段の位置（何段目か）は保つ。段のないブロックは undefined（memo が効くように）
+ */
+export function splitTail(lengths: readonly number[], bands: readonly number[] | undefined): (number[] | undefined)[] {
+  const out: (number[] | undefined)[] = lengths.map(() => undefined);
+  if (!bands?.some((n) => n > 0)) return out;
+  const left = bands.slice();
+  for (let i = lengths.length - 1; i >= 0 && left.some((n) => n > 0); i--) {
+    let room = lengths[i];
+    const mine = left.map(() => 0);
+    for (let b = 0; b < left.length && room > 0; b++) {
+      const take = Math.min(left[b], room);
+      mine[b] = take;
+      left[b] -= take;
+      room -= take;
+    }
+    if (mine.some((n) => n > 0)) out[i] = mine;
+  }
+  return out;
 }
 
 type Parent = Root | Element;

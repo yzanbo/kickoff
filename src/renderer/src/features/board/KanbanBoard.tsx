@@ -36,6 +36,7 @@ import { boardCardIds, useChatSelectionState } from "@/features/sidebar/chatSele
 import { SelectionBar } from "@/features/sidebar/SelectionBar";
 import { useGroupsOf } from "@/stores/groups";
 import { useChats } from "@/stores/chats";
+import { RowBudgetScope, useProgressivePage } from "@/hooks/useProgressiveRows";
 
 /** 状態の列は、チャットがなくてもすべて出す（段・グループはチャットか下書きのあるものだけ） */
 const keepColumns = (head: BucketHead) => head.kind === "status";
@@ -218,6 +219,10 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
    * 全プロジェクトのボードも、パネルがあったときと同じ名前のまま）
    */
   const foldPlace = `board:${panelKey("board", projectId ?? "all")}`;
+  // ボードを開いた直後（見え方を変えた・チャットが届いたときも）は画面に入る数のカードだけを描き、最初の描画のあとに残りを描く（メモの仕様書「0023_表示を軽くする」の案 23）
+  const rowBudget = useProgressivePage(
+    `${projectId ?? "all"}/${feed ? `feed/${feedData.loaded ? 1 : 0}` : view}/${laneSplit ? lanes : "none"}/${columns}/${filters.archive}/${loaded ? 1 : 0}`,
+  );
 
   const header = (
     <BoardHeader
@@ -266,6 +271,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
 
   return (
     <BoardShell views={<SavedViewTabs projectId={projectId} />} header={header} error={error ?? loadError ?? (feed ? feedData.error : undefined)} rightPanel={rightPanel} menu={menu} onOpenChat={onOpen} rename={rename} onError={setError} after={selectionBar}>
+      <RowBudgetScope value={rowBudget}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : feed ? (
@@ -288,6 +294,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
           projectId={projectId}
         />
       )}
+      </RowBudgetScope>
     </BoardShell>
   );
 }

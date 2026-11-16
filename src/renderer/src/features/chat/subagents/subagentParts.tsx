@@ -16,6 +16,7 @@ import { Working } from "@/features/chat/status/Working";
 import { groupEvents, type TimelineItem } from "@/features/chat/timeline/timelineItems";
 import { describeTool } from "@/features/chat/tools/toolDescribe";
 import { chatLog } from "@/features/chat/store/useChatStore";
+import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusLabel } from "./subagentList";
 import type { SubagentsView } from "./subagentsContext";
@@ -241,7 +242,7 @@ export function SubagentReport({ entry, view, limited = false }: { entry: Subage
   // 高さは、高さを抑える枠の内側の要素の大きさの知らせで測る（scrollHeight を読まない。知らせは描く前に届くので、変わったときだけその場で描き直す）
   const [long, setLong] = useState(false);
   const longRef = useRef(false);
-  const [full, setFull] = useState(false);
+  const [full, setFull] = useTimelineOpen(view.chatId, `rp:${entry.key}`);
   const measureRef = useSizeObserver<HTMLDivElement>(({ height }) => {
     const next = height > REPORT_LIMIT_PX + 40;
     if (!limited || next === longRef.current) return;
@@ -297,12 +298,16 @@ function workingText(entry: SubagentEntry): string {
 }
 
 /** 起動したエージェントからの依頼（初めは 1 行にたたみ、開くと全文） */
-export function SubagentPrompt({ text }: { text: string }) {
+export function SubagentPrompt({ text, chatId, agentKey }: { text: string; chatId: number; agentKey: string }) {
+  // 開閉は流れの見え方の店（流れの中のカードと右の欄の画面で同じ）
+  const [open, setOpen] = useTimelineOpen(chatId, `sp:${agentKey}`);
   const first = text.split("\n").find((line) => line.trim()) ?? "";
   return (
     // 全文の Markdown は、初めて開いたときに解析する
     <LazyDetails
       className="subagent-prompt"
+      open={open}
+      onOpenChange={setOpen}
       summary={
         <summary>
           <ChevronRight size={13} className="tool-chevron" />
