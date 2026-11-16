@@ -42,6 +42,9 @@ import { waitingAxes } from "./waitingAxes";
 import { useWaitingView } from "./waitingView";
 import { huedHeadProps, useSidebarBucketColors } from "./bucketColor";
 import { useShownChildChats } from "./useShownChildChats";
+import { ChatRowList } from "./ChatRowList";
+import { RowBudgetScope, useProgressivePage } from "@/hooks/useProgressiveRows";
+import { allocateRows } from "@/lib/progressive";
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -70,7 +73,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 右の欄で見えている子チャットも、開いている行にする（タブと同じく、どれを開いているか分かるように）
   const shownChildren = useShownChildChats();
   // まとめ方（まとめない / グループ / 作業場所）。グループの見出しは「グループ」のときだけ出す
-  const { grouping, setGrouping } = useChatLayout();
+  const { grouping, setGrouping, order } = useChatLayout();
   // 見出しのクリックでチャット一覧を開閉する
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
   // 選んでいる = いまの画面がこのプロジェクト（カンバン・チャットなど）
@@ -84,6 +87,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 子チャット（親ごと。サイドバーの一覧には並べず、親の行の中に開閉で出す。アーカイブ済みはサイドバーの表示の切り替えに従う）
   const [showArchivedChats] = useShowArchivedChats();
   const childChats = useChildChats({ archived: showArchivedChats });
+  // 一覧を開いた直後（まとめ方・並び順・開閉・アーカイブ済みを出すか・チャットが届いたかが変わったとき）は画面に入る数の行だけを描き、
+  // 最初の描画のあとに残りを描く（見えていない裏のページは初めは描かない。メモの仕様書「0023_表示を軽くする」の案 23）
+  const rowBudget = useProgressivePage(`${grouping}/${order}/${collapsed ? 1 : 0}/${showArchivedChats ? 1 : 0}/${chats.length > 0 ? 1 : 0}`, hidden);
   // 要対応の「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す）。
   // 検索・状態で絞っている間は出さない
   const [waitingOn] = useSetting(SIDEBAR_WAITING_ONLY);
@@ -172,8 +178,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   const renderGroup = (bucket: (typeof list.groups)[number]) => {
     const group = bucket.group!;
     return (
+      <RowBudgetScope key={group.id} value={budgets.groups.get(bucket.key) ?? 0}>
       <CustomGroupSection
-        key={group.id}
         projectId={project.id}
         group={group}
         bucket={bucket}
@@ -186,12 +192,32 @@ export const WorkspacePage = memo(function WorkspacePage({
         allChats={chats}
         draftCount={list.draftCounts.get(bucket.key) ?? 0}
       />
+      </RowBudgetScope>
     );
   };
   // 「No Group」より前と後ろのグループ（グループの並びの中の位置で分ける。グループの見出しを出していなければすべて前）
   const { before: groupsBeforeUngrouped, after: groupsAfterUngrouped } = showGroups
     ? splitAtUngrouped(list.groups, (b) => b.group!.id, groups.map((g) => g.id), sections.ungroupedAt)
     : { before: list.groups, after: [] };
+  // 最初に描く行の上限を、上から並ぶ順（要対応 → 固定 → グループ → No Group → グループ → アーカイブ済み）に配る（閉じているまとまりは描かないので 0）
+  const budgets = (() => {
+    const groupRows = (b: (typeof list.groups)[number]) => (filtering || groupFolds.isOpen(b.key) ? b.chats.length : 0);
+    const counts = [
+      waitingFold.open ? waitingTop.length : 0,
+      pinned && pinnedFold.open ? pinned.chats.length : 0,
+      ...groupsBeforeUngrouped.map(groupRows),
+      ungroupedHidden ? 0 : mainRows.length,
+      ...groupsAfterUngrouped.map(groupRows),
+      archived && archivedFold.open ? archived.chats.length : 0,
+    ];
+    const given = allocateRows(counts, rowBudget);
+    const [waiting, pinnedRows] = given;
+    const ungroupedRows = given[2 + groupsBeforeUngrouped.length];
+    const groupBudgets = new Map<string, number>();
+    groupsBeforeUngrouped.forEach((b, i) => groupBudgets.set(b.key, given[2 + i]));
+    groupsAfterUngrouped.forEach((b, i) => groupBudgets.set(b.key, given[3 + groupsBeforeUngrouped.length + i]));
+    return { waiting, pinned: pinnedRows, groups: groupBudgets, ungrouped: ungroupedRows, archived: given.at(-1) ?? 0 };
+  })();
   // 「No Group」の見出しと中身（グループなしの下書き・チャット。グループの見出しがなければ、ふつうの一覧）
   const ungroupedBlock = (
     <>
@@ -228,7 +254,7 @@ export const WorkspacePage = memo(function WorkspacePage({
               renderArchived={(bucket) => <ArchivedBucketFold projectId={project.id} bucket={bucket} chats={chats} renderRow={renderRow} forceOpen={filtering} />}
             />
           ) : mainRows.length === 0 ? null : (
-            <ul className="chat-rows">{mainRows.map(renderRow)}</ul>
+            <ChatRowList chats={mainRows} renderRow={renderRow} />
           )}
           {/* グループなしのアーカイブ済み（グループ別のとき。落としたチャットはグループから外す） */}
           {ungrouped?.archived && <ArchivedBucketFold projectId={project.id} bucket={ungrouped.archived} chats={chats} groupId={null} renderRow={renderRow} forceOpen={filtering} />}
@@ -284,7 +310,9 @@ export const WorkspacePage = memo(function WorkspacePage({
         {/* 要対応の「プロジェクト内の上に」: プロジェクトの中のいちばん上（下書き・固定より上） */}
         {waitingTop.length > 0 && (
           <FoldSection look="row" icon={Inbox} label="要対応" count={waitingTop.length} open={waitingFold.open} onToggle={waitingFold.toggle}>
-            <ul className="chat-rows">{waitingTop.map((chat) => renderChatRow(chat, false, false))}</ul>
+            <RowBudgetScope value={budgets.waiting}>
+              <ChatRowList chats={waitingTop} renderRow={(chat) => renderChatRow(chat, false, false)} />
+            </RowBudgetScope>
           </FoldSection>
         )}
         {/* グループの見出しを出していないときの下書き（グループでまとめていないときは、グループに入れたものも含めていちばん上に） */}
@@ -303,25 +331,32 @@ export const WorkspacePage = memo(function WorkspacePage({
             onContextMenu={colors.onContextMenu}
           >
             <DraftRows drafts={list.pinnedDrafts} />
-            {pinned && <ul className="chat-rows">{pinned.chats.map((chat) => renderChatRow(chat, true, false))}</ul>}
+            {pinned && (
+              <RowBudgetScope value={budgets.pinned}>
+                <ChatRowList chats={pinned.chats} renderRow={(chat) => renderChatRow(chat, true, false)} />
+              </RowBudgetScope>
+            )}
           </FoldSection>
         )}
         {/* 自分で作ったグループ（検索・要対応などで絞り込んでいる間は、一致するチャットか下書きのあるものだけ）と、
             その間の覚えた位置（ungroupedAt）に「No Group」（見出しのドラッグで並べ替える） */}
         {groupsBeforeUngrouped.map(renderGroup)}
-        {showGroups ? (
-          <div className={sections.ungrouped.className} {...sections.ungrouped.dropProps}>
-            {ungroupedBlock}
-          </div>
-        ) : (
-          <div className={cx("restore-drop", restoreDrop.over && "drop-target")} {...restoreDrop.props}>
-            {ungroupedBlock}
-          </div>
-        )}
+        <RowBudgetScope value={budgets.ungrouped}>
+          {showGroups ? (
+            <div className={sections.ungrouped.className} {...sections.ungrouped.dropProps}>
+              {ungroupedBlock}
+            </div>
+          ) : (
+            <div className={cx("restore-drop", restoreDrop.over && "drop-target")} {...restoreDrop.props}>
+              {ungroupedBlock}
+            </div>
+          )}
+        </RowBudgetScope>
         {groupsAfterUngrouped.map(renderGroup)}
         {archived && (
           // チャットの行をここへドラッグすると、確かめてからアーカイブする（右クリックの「アーカイブ」と同じ確認のダイアログ）
           <div className={cx("archive-drop", archiveDrop.over && (archiveDrop.blocked ? "drop-blocked" : "drop-target"))} {...archiveDrop.props}>
+          <RowBudgetScope value={budgets.archived}>
           <FoldSection
             look="row"
             icon={Archive}
@@ -338,9 +373,10 @@ export const WorkspacePage = memo(function WorkspacePage({
                 <GroupedChatRows buckets={archived.children} renderRow={renderRow} forceOpen={Boolean(keyword)} />
               </div>
             ) : (
-              <ul className="chat-rows archived-rows">{archived.chats.map(renderRow)}</ul>
+              <ChatRowList chats={archived.chats} renderRow={renderRow} className="archived-rows" />
             )}
           </FoldSection>
+          </RowBudgetScope>
           </div>
         )}
         {/* アーカイブ済みのまとまりがない（まだない・隠している）ときも、チャットをドラッグしている間だけ同じ場所に落とし先を出す */}

@@ -22,7 +22,7 @@ export function MemoPlanDialog({
   onApply: (moves: { from: string; to: string }[]) => Promise<{ moved: number; failed: string[] }>;
   onClose: () => void;
 }) {
-  const dialog = useModalDialog({ closeOnBackdrop: false });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   const [instruction, setInstruction] = useState("");
   const [plan, setPlan] = useState<MemoPlan | null>(null);
   const [chosen, setChosen] = useState<ReadonlySet<number>>(new Set());
@@ -33,15 +33,15 @@ export function MemoPlanDialog({
     if (busy) return;
     setBusy(true);
     setError(undefined);
-    try {
-      const next = await api.aiPlanMemos(projectId, instruction.trim() || null);
-      setPlan(next);
-      setChosen(new Set(next.moves.map((_, i) => i)));
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
+    const request = api.aiPlanMemos(projectId, instruction.trim() || null);
+    await request.then(
+      (next) => {
+        setPlan(next);
+        setChosen(new Set(next.moves.map((_, i) => i)));
+      },
+      (e: unknown) => setError(errorMessage(e)),
+    );
+    setBusy(false);
   };
 
   const apply = async () => {
@@ -64,7 +64,7 @@ export function MemoPlanDialog({
   const hasMoves = moves.length > 0;
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog memo-plan-dialog" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog memo-plan-dialog" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {

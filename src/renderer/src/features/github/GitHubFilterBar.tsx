@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useEffectEvent, useState, type MouseEvent } from "react";
 import { Check, ChevronDown, Plus, X } from "lucide-react";
 import {
   GITHUB_KIND_LABELS,
@@ -88,11 +88,13 @@ export function GitHubFilterBar({
   const commitText = (t: string) => {
     if (!sameAsFilter(t)) onChange(parseGitHubSearchText(filter.kind, t));
   };
+  // 打つのが止まったら当てる（待つのは文が変わったときだけ。札が変わっても待ち直さない）
+  const isSameAsFilter = useEffectEvent((t: string) => sameAsFilter(t));
+  const commitTyped = useEffectEvent((t: string) => commitText(t));
   useEffect(() => {
-    if (sameAsFilter(text)) return;
-    const timer = setTimeout(() => commitText(text), TEXT_DELAY_MS);
+    if (isSameAsFilter(text)) return;
+    const timer = setTimeout(() => commitTyped(text), TEXT_DELAY_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
   /** 複数選べる札の 1 つを切り替える */
   const toggleIn = (key: "labels" | "assignees" | "milestones", value: string) => {

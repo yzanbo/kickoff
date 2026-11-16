@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useSetting } from "@/hooks/useSetting";
@@ -29,9 +29,13 @@ import { useNewChild } from "@/features/panel/agents/useNewChild";
  * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
  * 「新しいチャット」の作成先・開けるターミナル（Mac のアプリでだけ）は欄の hook が usePanel に渡す。チャットを開いているペインでは、ターミナルはそのチャットの作業場所で開く。
  * 表示するタブの種類（panel.kinds）で隠している種類のタブは、タブの列にも中身にも出さない（閉じずに残す）。
- * タブの列を隠せる欄（チャットのパネル）で隠しているときは、どのペインのタブの列（と左の道具）も出さない
+ * タブの列を隠せる欄（チャットのパネル）で隠しているときは、どのペインのタブの列（と左の道具）も出さない。
+ * panel（usePanel）と frame が同じなら描き直さない（チャットの画面の右の欄が、返答のたびに描き直らないように）。
+ * タブの中身（PanelTabPage）も memo で、変わったタブだけが描き直る
  */
-export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
+export const Panel = memo(PanelBody);
+
+function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
   const { tabs, layout, panelOpen, terminals } = panel;
   const rules = SURFACES[panel.surface];
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
@@ -83,7 +87,10 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   // 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ。タブの列の「＋」と空の欄のボタン）
   const newChild = useNewChild(panel);
   // 一度表示したタブ（中身を作ったもの。チャットのタブは、ここにあるか表示中のときだけ中身を作る）
-  const mountedTabs = useRef(new Set<string>());
+  // （描く中で ref に書かず state に持つ。表示中なのにまだ入っていないタブがあれば、描いている間に足す）
+  const [mountedTabs, setMountedTabs] = useState<ReadonlySet<string>>(() => new Set());
+  const shownNow = tabs.filter((t) => panel.shownTabOf(leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0]) === t.key && !mountedTabs.has(t.key));
+  if (shownNow.length > 0) setMountedTabs(new Set([...mountedTabs, ...shownNow.map((t) => t.key)]));
   /** ペインのタブの列（タブの列の左の道具は左上のペインに、右端の閉じるボタンは右上のペインにだけ置く） */
   const bar = (pane: PaneLeaf) => (
     <PaneTabBar
@@ -172,13 +179,12 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
           const pane = leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0];
           const rect = rectOf.get(pane.id);
           const active = panel.shownTabOf(pane) === t.key;
-          if (active) mountedTabs.current.add(t.key);
-          else if (specOf(t).lazy && !mountedTabs.current.has(t.key)) return null;
+          if (!active && specOf(t).lazy && !mountedTabs.has(t.key)) return null;
           return (
             <PanelTabPage
               key={t.key}
               tab={t}
-              panel={panel}
+              panel={panel.pageOps}
               panelOpen={panelOpen}
               paneId={pane.id}
               active={active}

@@ -1,17 +1,22 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, CornerDownRight } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import type { ChatEvent } from "@shared/types";
 import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat/subagents";
 import { relayedText } from "@shared/chat/prompts";
 import { cx } from "@/lib/cx";
+import { useSizeObserver } from "@/hooks/useSizeObserver";
 import { formatTokens } from "@/lib/format";
 import { formatElapsed, formatFullStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/lib/time";
 import { ClaudeMark } from "@/ui/ClaudeMark";
+import { LazyDetails } from "@/ui/LazyDetails";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { activityOf, activityText } from "@/features/chat/status/stall";
 import { Working } from "@/features/chat/status/Working";
 import { groupEvents, type TimelineItem } from "@/features/chat/timeline/timelineItems";
 import { describeTool } from "@/features/chat/tools/toolDescribe";
+import { chatLog } from "@/features/chat/store/useChatStore";
+import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusLabel } from "./subagentList";
 import type { SubagentsView } from "./subagentsContext";
@@ -194,18 +199,24 @@ export function Summary({ entry, childCount }: { entry: SubagentEntry; childCoun
  * 追加の指示（メインのチャットの自分の発言）は、このサブエージェントの流れに自分の発言として混ぜる
  */
 export function useSubagentItems(entry: SubagentEntry, view: SubagentsView): TimelineItem[] {
-  const { key, agentId } = entry;
+  const { key, agentId, toolUseEventId } = entry;
   const scopeKey = scopeOf(entry).join(" ");
+  // 末尾より前に始まったサブエージェントは、中の記録を読む（索引には中の最後の動きしかない。メモの仕様書「0023_表示を軽くする」の案 4）
+  const before = view.tailStart > 0 && toolUseEventId !== undefined && toolUseEventId < view.tailStart;
+  const { chatId } = view;
+  useEffect(() => {
+    if (before) void chatLog.loadScope(chatId, scopeKey.split(" "), toolUseEventId === undefined ? [] : [toolUseEventId]);
+  }, [before, chatId, scopeKey, toolUseEventId]);
   return useMemo(() => {
     const mixed = agentId
-      ? view.events.map((e) => {
+      ? view.loaded.map((e) => {
           if (e.type !== "user") return e;
           const text = relayedText(e.data.text, agentId);
           return text === undefined ? e : ({ ...e, data: { ...e.data, text, parent: key } } as ChatEvent);
         })
-      : view.events;
+      : view.loaded;
     return groupEvents(mixed, scopeKey.split(" "));
-  }, [view.events, key, agentId, scopeKey]);
+  }, [view.loaded, key, agentId, scopeKey]);
 }
 
 /** 手順（発言・ツール・入れ子のカード）と、実行中なら作業中の行。中身の記録がなければ、その理由 */
@@ -227,19 +238,17 @@ export function SubagentSteps({ entry, view, items, renderItems }: { entry: Suba
  */
 export function SubagentReport({ entry, view, limited = false }: { entry: SubagentEntry; view: SubagentsView; limited?: boolean }) {
   const report = subagentReport(entry, view.events);
-  const bodyRef = useRef<HTMLDivElement>(null);
-  // 高さの上限を超えるほど長いか（描いてから測る。コードの色付け・図などで後から伸びるので、大きさが変わるたびに測り直す）と、全文を出しているか
+  // 高さの上限を超えるほど長いか（描いてから測る。コードの色付け・図などで後から伸びるので、大きさが変わるたびに測り直す）と、全文を出しているか。
+  // 高さは、高さを抑える枠の内側の要素の大きさの知らせで測る（scrollHeight を読まない。知らせは描く前に届くので、変わったときだけその場で描き直す）
   const [long, setLong] = useState(false);
-  const [full, setFull] = useState(false);
-  useLayoutEffect(() => {
-    const el = bodyRef.current;
-    if (!el || !limited) return;
-    const measure = () => setLong(el.scrollHeight > REPORT_LIMIT_PX + 40);
-    measure();
-    const observer = new ResizeObserver(measure);
-    for (const child of el.children) observer.observe(child);
-    return () => observer.disconnect();
-  }, [report, limited]);
+  const longRef = useRef(false);
+  const [full, setFull] = useTimelineOpen(view.chatId, `rp:${entry.key}`);
+  const measureRef = useSizeObserver<HTMLDivElement>(({ height }) => {
+    const next = height > REPORT_LIMIT_PX + 40;
+    if (!limited || next === longRef.current) return;
+    longRef.current = next;
+    flushSync(() => setLong(next));
+  });
   if (!report) return null;
   const clamped = limited && long && !full;
   return (
@@ -259,8 +268,10 @@ export function SubagentReport({ entry, view, limited = false }: { entry: Subage
           </button>
         )}
       </div>
-      <div ref={bodyRef} className={cx("subagent-result-body", clamped && "limited")} style={clamped ? { maxHeight: REPORT_LIMIT_PX } : undefined}>
-        <Markdown>{report}</Markdown>
+      <div className={cx("subagent-result-body", clamped && "limited")} style={clamped ? { maxHeight: REPORT_LIMIT_PX } : undefined}>
+        <div ref={measureRef}>
+          <Markdown>{report}</Markdown>
+        </div>
       </div>
     </div>
   );
@@ -287,18 +298,29 @@ function workingText(entry: SubagentEntry): string {
 }
 
 /** 起動したエージェントからの依頼（初めは 1 行にたたみ、開くと全文） */
-export function SubagentPrompt({ text }: { text: string }) {
+export function SubagentPrompt({ text, chatId, agentKey }: { text: string; chatId: number; agentKey: string }) {
+  // 開閉は流れの見え方の店（流れの中のカードと右の欄の画面で同じ）
+  const [open, setOpen] = useTimelineOpen(chatId, `sp:${agentKey}`);
   const first = text.split("\n").find((line) => line.trim()) ?? "";
   return (
-    <details className="subagent-prompt">
-      <summary>
-        <ChevronRight size={13} className="tool-chevron" />
-        <span className="subagent-label">起動したエージェントからの依頼</span>
-        <span className="subagent-prompt-first">{first}</span>
-      </summary>
-      <div className="subagent-prompt-body">
-        <Markdown>{text}</Markdown>
-      </div>
-    </details>
+    // 全文の Markdown は、初めて開いたときに解析する
+    <LazyDetails
+      className="subagent-prompt"
+      open={open}
+      onOpenChange={setOpen}
+      summary={
+        <summary>
+          <ChevronRight size={13} className="tool-chevron" />
+          <span className="subagent-label">起動したエージェントからの依頼</span>
+          <span className="subagent-prompt-first">{first}</span>
+        </summary>
+      }
+    >
+      {() => (
+        <div className="subagent-prompt-body">
+          <Markdown>{text}</Markdown>
+        </div>
+      )}
+    </LazyDetails>
   );
 }

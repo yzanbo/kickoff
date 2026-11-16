@@ -54,7 +54,7 @@ export function DbUnlockHost() {
 }
 
 function UnlockDialog({ request, onFinish }: { request: UnlockRequest; onFinish: (entered: boolean) => void }) {
-  const dialog = useModalDialog({ closeOnBackdrop: false });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   const connections = useDbConnections(request.projectId);
   const connection = connections.data?.find((c) => c.id === request.connectionId);
   const fields = connection ? FIELDS.filter((f) => f.has(connection)) : [];
@@ -80,7 +80,7 @@ function UnlockDialog({ request, onFinish }: { request: UnlockRequest; onFinish:
   };
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog db-unlock-dialog" aria-label="DB のパスワード" onClose={() => onFinish(entered)}>
+    <dialog ref={dialogRef} className="dialog app-dialog db-unlock-dialog" aria-label="DB のパスワード" onClose={() => onFinish(entered)}>
       <form className="app-dialog-body" onSubmit={(e) => void submit(e)}>
         <h2 className="app-dialog-title">{connection ? `「${connection.name}」に接続` : "DB に接続"}</h2>
         <p className="app-dialog-message">保存したパスワードを読めませんでした（キーチェーンで許可されませんでした）。</p>

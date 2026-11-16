@@ -40,8 +40,20 @@ interface RunOptions {
   okCodes?: number[];
 }
 
+/** ログインシェルの PATH の読み直し（コアのプロセスが起動のときに渡す。外部コマンドを起こす前に待つ。単体のコア・テストでは待たない） */
+let shellPathReady: Promise<void> = Promise.resolve();
+
+/** PATH の読み直しを待たせる（platform の startShellPath の ready。読み終わるか打ち切ったら解ける） */
+export function waitForShellPath(ready: Promise<void>): void {
+  shellPathReady = ready;
+}
+
+/** 外部コマンドを起こす前に、PATH の読み直しを待つ（読み終えていればすぐ） */
+export const shellPathSettled = (): Promise<void> => shellPathReady;
+
 /** コマンドを実行して標準出力を返す。失敗したら CommandError（標準エラーを文にする） */
 export async function runCommand(file: string, args: string[], { okCodes = [], maxBuffer = 20 * 1024 * 1024, ...opts }: RunOptions = {}): Promise<string> {
+  await shellPathReady;
   try {
     const { stdout } = await execFileAsync(file, args, { ...opts, maxBuffer, encoding: "utf8" });
     return stdout;

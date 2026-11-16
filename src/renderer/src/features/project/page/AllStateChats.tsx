@@ -19,7 +19,7 @@ type Scope = "all" | "project";
  */
 export function AllStateChats({ project, waiting }: { project: Pick<Project, "id" | "name">; waiting: WaitingBadge }) {
   const { pending } = useChatStates();
-  const popover = usePopover<HTMLSpanElement>();
+  const { anchor: popoverAnchor, ...popover } = usePopover<HTMLSpanElement>();
   const [scope, setScope] = useState<Scope>("all");
   const allChats = useAllProjectChats();
   const chats = scope === "all" ? allChats : allChats.filter((c) => c.project_id === project.id);
@@ -27,7 +27,7 @@ export function AllStateChats({ project, waiting }: { project: Pick<Project, "id
   const note = waiting.count > 0 ? `（要対応 ${waiting.count} 件）` : "";
   const label = `すべてのプロジェクトの状態ごとのチャット${note}`;
   return (
-    <span ref={popover.anchor} className="active-chats-button">
+    <span ref={popoverAnchor} className="active-chats-button">
       <IconButton
         icon={Activity}
         label={label}
@@ -44,7 +44,7 @@ export function AllStateChats({ project, waiting }: { project: Pick<Project, "id
       {popover.open && (
         <StateChatsPopover
           title="状態ごとのチャット"
-          anchor={popover.anchor}
+          anchor={popoverAnchor}
           sections={sections}
           showProject={scope === "all"}
           emptyText={scope === "all" ? "どのプロジェクトにも、作業中・回答待ち・未読のチャットはありません" : undefined}

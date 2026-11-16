@@ -25,7 +25,7 @@ export function HistoryMain({
   onRefMenu: (e: MouseEvent, target: RefTarget) => void;
 }) {
   // 上のコミットの表の高さ（全体の高さに対する割合 %。下はコミットの詳細）。ドラッグ中は描き直さず、高さだけを書き換えて指に追従させる
-  const split = useDragSize<HTMLDivElement>({ setting: HISTORY_SPLIT, axis: "y", unit: "%", min: 15, max: 85, write: "flexBasis" });
+  const { paneRef: splitPaneRef, ...split } = useDragSize<HTMLDivElement>({ setting: HISTORY_SPLIT, axis: "y", unit: "%", min: 15, max: 85, write: "flexBasis" });
 
   const detailRef = useRef<HTMLDivElement>(null);
   // 表に読み込んであるコミット（親を押したとき選ぶ）と、その行の線の色（詳細の札も同じ色で塗る）
@@ -38,7 +38,7 @@ export function HistoryMain({
 
   return (
     <div className={cx("history-main", split.resizing && "resizing")}>
-      <div ref={split.paneRef} className="history-table" style={{ flexBasis: `${split.size}%` }}>
+      <div ref={splitPaneRef} className="history-table" style={{ flexBasis: `${split.size}%` }}>
         <CommitTable log={log} selected={commit?.hash} onSelect={onSelect} onRefMenu={onRefMenu} />
       </div>
       <div className="history-resizer" aria-label="コミットの表の高さを変える" {...split.handle} />

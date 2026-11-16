@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import type { Chat } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { isTabVisible, type PaneLeaf } from "@/features/panel/layout/paneTree";
@@ -43,6 +44,16 @@ interface Options {
 export type PanelController = ReturnType<typeof usePanel>;
 
 /**
+ * タブの中身（PanelTabPage）に渡す操作。欄の状態（タブ・配置）が変わっても同じ物なので、memo したタブの中身を描き直させない
+ * （ほかのタブのチャットが変わってパネルの店が変わっても、そのタブだけが描き直る）
+ */
+export type PanelPageOps = ReturnType<typeof panelActions> & {
+  key: string;
+  /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
+  replaceWithChat: (tabKey: string, chat: Chat) => void;
+};
+
+/**
  * 欄のパネル（チャット・新しいチャット・サブエージェント・ブラウザ・ターミナルのタブ）の状態と操作。ボードの右のパネル・右端のチャット欄・フッターで共通。
  * 状態は欄・画面ごとに店（panelStore）が覚え、変え方は純粋関数（panelState の panelReducer）。ここでは読む・そろえる・束ねるだけ。
  * タブは上下・左右のペインに分けて並べられる（配置は paneLayout の木。自分で開くタブはピントのあるペインに、
@@ -59,6 +70,19 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
   // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える。チャットを隠している欄では読まず、タブもそろえない）
   const chats = useLinkedTabs(key, scope, kinds.has("chat"));
   const actions = useMemo(() => panelActions(key), [key]);
+  // 新しいチャットができたときの知らせは、いま渡されているものを呼ぶ（タブの中身に渡す操作を作り直さないため）
+  const created = useLatest(onCreated);
+  const pageOps = useMemo<PanelPageOps>(
+    () => ({
+      ...actions,
+      key,
+      replaceWithChat: (tabKey, chat) => {
+        actions.replaceWithChat(tabKey, chat);
+        created.current?.(chat);
+      },
+    }),
+    [actions, key, created],
+  );
 
   // Esc で閉じる（Esc で閉じる欄だけ。メニューやダイアログが開いていればそちらを優先。日本語入力の変換をやめる Esc では閉じない）。
   // ピントがこの欄の中の入れ子の欄（チャットの中の右の欄）にあるときは、そちらに任せる。focused の欄は、ピントが中にあるときだけ閉じる
@@ -73,49 +97,49 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
     panelOpen && escRule !== false && !holdEsc,
   );
 
-  /** 欄でこのタブを見せているか（分割していれば、どれかのペインで表示中） */
-  const isShowingTab = (tabKey: string) => panelOpen && isTabVisible(layout, tabKey);
-  /** そのタブの種類をこの欄で見せているか */
-  const isKindShown = (tabKey: string) => {
-    const t = tabs.find((x) => x.key === tabKey);
-    return t !== undefined && kinds.has(kindOfTab(t));
-  };
+  // 欄の状態・設定が同じ間は同じ物を返す（チャットの画面が描き直っても、右の欄のパネル（memo）を描き直させない）
+  return useMemo(() => {
+    /** 欄でこのタブを見せているか（分割していれば、どれかのペインで表示中） */
+    const isShowingTab = (tabKey: string) => panelOpen && isTabVisible(layout, tabKey);
+    /** そのタブの種類をこの欄で見せているか */
+    const isKindShown = (tabKey: string) => {
+      const t = tabs.find((x) => x.key === tabKey);
+      return t !== undefined && kinds.has(kindOfTab(t));
+    };
 
-  return {
-    ...actions,
-    /** 覚えておく名前（欄・画面ごと。panelKey） */
-    key,
-    tabs,
-    surface,
-    /** 表示するタブの種類（タブの列の「表示するタブ」） */
-    kinds,
-    isKindShown,
-    /** ペインで見せる表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ。なければ null = 空のペイン） */
-    shownTabOf: (pane: PaneLeaf) => shownActiveOf(pane, isKindShown),
-    /** 分割の配置 */
-    layout,
-    panelOpen,
-    chats,
-    /** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの） */
-    chatOf: (tab: PanelTab | undefined) => tabChat(tab, chats),
-    /** 開けるターミナルの場所（Mac のアプリでなければ空） */
-    terminals: window.kickoff?.terminal ? terminals : NO_TERMINALS,
-    /** 「新しいチャット」（欄が決めた作成先で始める。作成先がない = 出せるプロジェクトがなければ、チャットはプロジェクトの中で始めることを案内する） */
-    startNewChat: () => {
-      if (newChat) actions.openNew(newChat);
-      else openNoProjectsGuide();
-    },
-    /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
-    replaceWithChat: (tabKey: string, chat: Chat) => {
-      actions.replaceWithChat(tabKey, chat);
-      onCreated?.(chat);
-    },
-    /** サイドバーに出ているチャットのタブか（ペインを閉じても一覧のペインへ戻すもの） */
-    isLinkedTab: (tabKey: string) => isLinkedTab(state, tabKey),
-    isShowingTab,
-    /** 欄でこのチャットを表示しているか（カードを選択中として見せる。分割していれば、どれかのペインで） */
-    isShowing: (chatId: number) => isShowingTab(chatKey(chatId)),
-  };
+    return {
+      ...pageOps,
+      /** タブの中身に渡す操作（欄の状態が変わっても同じ物） */
+      pageOps,
+      /** 覚えておく名前（欄・画面ごと。panelKey） */
+      key,
+      tabs,
+      surface,
+      /** 表示するタブの種類（タブの列の「表示するタブ」） */
+      kinds,
+      isKindShown,
+      /** ペインで見せる表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ。なければ null = 空のペイン） */
+      shownTabOf: (pane: PaneLeaf) => shownActiveOf(pane, isKindShown),
+      /** 分割の配置 */
+      layout,
+      panelOpen,
+      chats,
+      /** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの） */
+      chatOf: (tab: PanelTab | undefined) => tabChat(tab, chats),
+      /** 開けるターミナルの場所（Mac のアプリでなければ空） */
+      terminals: window.kickoff?.terminal ? terminals : NO_TERMINALS,
+      /** 「新しいチャット」（欄が決めた作成先で始める。作成先がない = 出せるプロジェクトがなければ、チャットはプロジェクトの中で始めることを案内する） */
+      startNewChat: () => {
+        if (newChat) actions.openNew(newChat);
+        else openNoProjectsGuide();
+      },
+      /** サイドバーに出ているチャットのタブか（ペインを閉じても一覧のペインへ戻すもの） */
+      isLinkedTab: (tabKey: string) => isLinkedTab(state, tabKey),
+      isShowingTab,
+      /** 欄でこのチャットを表示しているか（カードを選択中として見せる。分割していれば、どれかのペインで） */
+      isShowing: (chatId: number) => isShowingTab(chatKey(chatId)),
+    };
+  }, [pageOps, actions, key, state, tabs, layout, panelOpen, surface, kinds, chats, terminals, newChat]);
 }
 
 const NO_TERMINALS: readonly TerminalTarget[] = [];

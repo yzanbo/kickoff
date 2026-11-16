@@ -58,7 +58,7 @@ export function RestartResumeHost() {
  */
 function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; onClose: () => void }) {
   // 選んでいる途中で、背景を押して閉じない
-  const dialog = useModalDialog({ closeOnBackdrop: false, focusSelf: true });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false, focusSelf: true });
   const [choices, setChoices] = useState<Record<number, RestartResumeChoice>>({});
   const [opened, setOpened] = useState<Record<number, boolean>>({});
   const action = useAction();
@@ -75,7 +75,7 @@ function RestartResumeDialog({ resumes, onClose }: { resumes: RestartResume[]; o
   };
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog queue-resume-dialog" aria-label="前回の終了で止まったチャットがあります" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog queue-resume-dialog" aria-label="前回の終了で止まったチャットがあります" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {

@@ -15,11 +15,11 @@ export function GitHubPullFileTree({ files, selected, onSelect }: { files: GitHu
   // 閉じたフォルダ（初めは全部開いておく）
   const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set());
   const open = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
-  const width = useDragSize({ setting: GITHUB_FILES_WIDTH, min: 160, keep: 360 });
+  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: GITHUB_FILES_WIDTH, min: 160, keep: 360 });
 
   return (
     <>
-      <aside ref={width.paneRef} className="github-files-tree" style={{ width: width.size }} aria-label="変更したファイル">
+      <aside ref={widthPaneRef} className="github-files-tree" style={{ width: width.size }} aria-label="変更したファイル">
         <FileTree
           nodes={nodes}
           open={open}

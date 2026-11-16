@@ -16,7 +16,7 @@ import { connectionPlace } from "./dbFormat";
  * パスワードは「パスワードも写す」を選んだときだけ（初めはオフ）
  */
 export function CopyConnectionDialog({ projectId, onClose }: { projectId: number; onClose: () => void }) {
-  const dialog = useModalDialog();
+  const { ref: dialogRef, ...dialog } = useModalDialog();
   const { projects } = useProjects();
   const others = projects.filter((p) => p.id !== projectId && !p.archived_at);
   const lists = useAsync(
@@ -45,7 +45,7 @@ export function CopyConnectionDialog({ projectId, onClose }: { projectId: number
   };
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog db-copy-dialog" aria-label="ほかのプロジェクトの接続を写す" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog db-copy-dialog" aria-label="ほかのプロジェクトの接続を写す" onClose={onClose}>
       <form className="app-dialog-body" onSubmit={(e) => void submit(e)}>
         <h2 className="app-dialog-title">ほかのプロジェクトの接続を写す</h2>
         {lists.loading && <p className="muted small">読み込み中…</p>}

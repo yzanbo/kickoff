@@ -1,5 +1,5 @@
 import { Columns3, FileCode, Info, Link2, Table2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { DB_OBJECT_KIND_LABELS, type DbConnection, type DbForeignKey, type DbRowFilter, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
@@ -58,9 +58,9 @@ export function TableView({
   // 保存していない変更があるタブの結果は捨てない（変更は読んだ行に重ねて見せるため）
   const bytes = useMemo(() => (data.result && edit.counts.total === 0 ? estimateRowsBytes(data.result.rows) : 0), [data.result, edit.counts.total]);
   useResultBudget(`${client.place}:${tab.key}`, bytes, active, data.evict);
+  const reloadRows = useEffectEvent(() => data.reload());
   useEffect(() => {
-    if (active && data.evicted) data.reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (active && data.evicted) reloadRows();
   }, [active, data.evicted]);
   const label = objectPathLabel(tab.path, tab.name);
 

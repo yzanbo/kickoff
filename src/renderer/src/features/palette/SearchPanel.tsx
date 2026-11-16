@@ -40,7 +40,9 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [loading, setLoading] = useState(false);
-  const dialog = useModalDialog();
+  const { ref: dialogRef, ...dialog } = useModalDialog();
+
+  const nav = useListNavigation(hits, open);
 
   // 入力が止まったら検索する
   useEffect(() => {
@@ -69,11 +71,10 @@ export function SearchPanel({ chatId, projectId, onClose }: Props) {
     dialog.close();
     openChat(hit.project_id, hit.chat_id, hit.event_id);
   }
-  const nav = useListNavigation(hits, open);
 
   return (
     <dialog
-      ref={dialog.ref}
+      ref={dialogRef}
       className="palette search-panel"
       onClose={onClose}
       {...dialog.backdropProps}

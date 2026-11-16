@@ -8,6 +8,7 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { EmptyState } from "@/ui/EmptyState";
 import { useOptionalChatPane, type ChatPaneActions } from "@/features/chat/pane/chatPaneContext";
 import { TimelineItems } from "@/features/chat/timeline/Timeline";
+import { TimelineBusyContext } from "@/features/chat/timeline/timelineBusy";
 import { keepSelectionOnClick, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
 import { useQuoteMenu } from "@/features/chat/messages/useMessageMenu";
 import { SubagentActions } from "./SubagentActions";
@@ -26,7 +27,10 @@ import {
   useSubagentItems,
   type RenderItems,
 } from "./subagentParts";
-import { useSubagentsView, type SubagentsView } from "./subagentsContext";
+import { SubagentsContext, type SubagentsView } from "./subagentsContext";
+import { useChatBackgroundCalls, useChatSubagentsView, useChatVisuals } from "@/features/chat/store/useChatStore";
+import { VisualsContext } from "@/features/chat/visuals/visualsContext";
+import { BackgroundCallsContext } from "@/features/chat/tools/backgroundCalls";
 import { childrenOf, pathOf } from "./subagentTree";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 
@@ -37,8 +41,12 @@ import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
  * 手順は画面いっぱいにスクロールし、実行中は最新に付いていく（中で上へ戻したら止まる。useFollowScroll）。
  * 入力欄から送ると、Kickoff から直接は送れないので、メインエージェントに SendMessage でそのまま渡してもらう（カードの「伝える」と同じ）
  */
-export function SubagentScreen({ agentKey }: { agentKey: string }) {
-  const view = useSubagentsView();
+export function SubagentScreen({ chatId, agentKey }: { chatId: number; agentKey: string }) {
+  // 記録から作るもの（サブエージェント・図・裏で動かしている呼び出し）は、チャットの店の取り出し口を直接読む（会話の欄が隠れて止まっていても、
+  // この画面は動く。会話の欄と同じ世代なら同じ値。メモの仕様書「0023_表示を軽くする」の M5）。中の部品にはこの画面が配る
+  const view = useChatSubagentsView(chatId);
+  const visuals = useChatVisuals(chatId);
+  const background = useChatBackgroundCalls(chatId);
   const pane = useOptionalChatPane();
   const entry = view?.tree.byKey.get(agentKey);
   if (!view || !entry || !pane) {
@@ -50,7 +58,15 @@ export function SubagentScreen({ agentKey }: { agentKey: string }) {
       </div>
     );
   }
-  return <ScreenView entry={entry} view={view} pane={pane} />;
+  return (
+    <SubagentsContext.Provider value={view}>
+      <VisualsContext.Provider value={visuals}>
+        <BackgroundCallsContext.Provider value={background}>
+          <ScreenView entry={entry} view={view} pane={pane} />
+        </BackgroundCallsContext.Provider>
+      </VisualsContext.Provider>
+    </SubagentsContext.Provider>
+  );
 }
 
 function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: SubagentsView; pane: ChatPaneActions }) {
@@ -70,10 +86,13 @@ function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
       data-agent-screen={`${view.chatId}:${entry.key}`}
     >
       <ScreenHead entry={entry} view={view} pane={pane} />
-      <div ref={scrollRef} className="subagent-screen-scroll" onScroll={onScroll} tabIndex={-1}>
+      <div ref={scrollRef} className="subagent-screen-scroll" onScroll={onScroll} tabIndex={-1} data-near-root="">
         <div ref={contentRef} className="subagent-screen-content" {...{ [QUOTABLE_ATTR]: "" }} onContextMenu={quoteMenu.openInRegion} onClickCapture={keepSelectionOnClick}>
-          {entry.prompt && <SubagentPrompt text={entry.prompt} />}
-          <SubagentSteps entry={entry} view={view} items={items} renderItems={renderItems} />
+          {entry.prompt && <SubagentPrompt text={entry.prompt} chatId={view.chatId} agentKey={entry.key} />}
+          {/* 作業中か（作業の終わりの行の分岐などが読む。timelineBusy） */}
+          <TimelineBusyContext.Provider value={view.busy}>
+            <SubagentSteps entry={entry} view={view} items={items} renderItems={renderItems} />
+          </TimelineBusyContext.Provider>
           <SubagentReport entry={entry} view={view} />
         </div>
       </div>

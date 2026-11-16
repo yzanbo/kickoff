@@ -12,6 +12,7 @@ import { feedPlainText } from "./feed";
 import { CardBadges, CardStats, CardTimes } from "./ChatCard";
 import { StateChip } from "@/features/chatList/StateChip";
 import type { ShowCardField } from "./CardFieldsMenu";
+import { ProgressiveItems } from "@/ui/ProgressiveRows";
 
 /**
  * フィード（全プロジェクトの画面）: チャットごとのメインエージェントの最新の返答を、返答の新しい順に 1 列に並べる。
@@ -48,9 +49,13 @@ export function FeedList({
         </EmptyState>
       ) : (
         <>
-          {active.length > 0 && <div className="board-feed-list">{active.map(({ item, chat }) => render(chat, item))}</div>}
+          {active.length > 0 && (
+            <div className="board-feed-list">
+              <ProgressiveItems items={active} render={({ item, chat }) => render(chat, item)} />
+            </div>
+          )}
           <ArchivedFold place={foldPlace} foldKey="feed/archived" count={archived.length} bodyClassName="archived-fold board-feed-list">
-            {archived.map(({ item, chat }) => render(chat, item))}
+            <ProgressiveItems items={archived} render={({ item, chat }) => render(chat, item)} />
           </ArchivedFold>
         </>
       )}

@@ -78,54 +78,58 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
       label="メモ"
       className="memo-chip-popover"
     >
-      {(places.length > 1 || dirs.length > 0) && (
-        <div className="memo-chip-head">
-          {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
-          {dirs.length > 0 && (
-            <span className="memo-chip-folds">
-              <IconButton
-                type="button"
-                icon={ChevronsUpDown}
-                size={14}
-                label="フォルダをすべて開く"
-                disabled={allOpen}
-                onClick={() => setOpenList([...new Set([...openList, ...dirs])])}
-              />
-              {/* メモのタブの「フォルダをすべて閉じる」と同じく、メモのタブの木だけにあるフォルダ（メモの入っていないもの）も閉じる */}
-              <IconButton type="button" icon={ChevronsDownUp} size={14} label="フォルダをすべて閉じる" disabled={!anyOpen} onClick={() => setOpenList([])} />
-            </span>
-          )}
-        </div>
+      {() => (
+        <>
+            {(places.length > 1 || dirs.length > 0) && (
+              <div className="memo-chip-head">
+                {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
+                {dirs.length > 0 && (
+                  <span className="memo-chip-folds">
+                    <IconButton
+                      type="button"
+                      icon={ChevronsUpDown}
+                      size={14}
+                      label="フォルダをすべて開く"
+                      disabled={allOpen}
+                      onClick={() => setOpenList([...new Set([...openList, ...dirs])])}
+                    />
+                    {/* メモのタブの「フォルダをすべて閉じる」と同じく、メモのタブの木だけにあるフォルダ（メモの入っていないもの）も閉じる */}
+                    <IconButton type="button" icon={ChevronsDownUp} size={14} label="フォルダをすべて閉じる" disabled={!anyOpen} onClick={() => setOpenList([])} />
+                  </span>
+                )}
+              </div>
+            )}
+            {/* 一覧の空いている所へ落とすと、いちばん上（直下）へ動かす */}
+            <div className={cx("memo-chip-list", dropTarget === "" && "drop-target")} {...memoListDropProps({ onDropInto: dropInto, onDropTarget: setDropTarget })}>
+            <MemoChipTree
+              nodes={tree}
+              open={openFolders}
+              onToggle={toggleFolder}
+              onExpand={(path) => !openFolders.has(path) && setOpenList([...openList, path])}
+              onDropInto={dropInto}
+              dropTarget={dropTarget}
+              onDropTarget={setDropTarget}
+              onOpen={open}
+              onAttach={(path) => {
+                // 続けていくつも足せるよう、一覧は閉じない（利用者の依頼）
+                if (chatId !== null) attachMemoToChat(chatId, projectId, path);
+                else onAttach?.(path);
+              }}
+              places={places}
+            />
+            </div>
+            <button
+              type="button"
+              className="memo-chip-row more"
+              onClick={() => {
+                popover.close();
+                openMemo(projectId);
+              }}
+            >
+              メモのタブを開く
+            </button>
+        </>
       )}
-      {/* 一覧の空いている所へ落とすと、いちばん上（直下）へ動かす */}
-      <div className={cx("memo-chip-list", dropTarget === "" && "drop-target")} {...memoListDropProps({ onDropInto: dropInto, onDropTarget: setDropTarget })}>
-      <MemoChipTree
-        nodes={tree}
-        open={openFolders}
-        onToggle={toggleFolder}
-        onExpand={(path) => !openFolders.has(path) && setOpenList([...openList, path])}
-        onDropInto={dropInto}
-        dropTarget={dropTarget}
-        onDropTarget={setDropTarget}
-        onOpen={open}
-        onAttach={(path) => {
-          // 続けていくつも足せるよう、一覧は閉じない（利用者の依頼）
-          if (chatId !== null) attachMemoToChat(chatId, projectId, path);
-          else onAttach?.(path);
-        }}
-        places={places}
-      />
-      </div>
-      <button
-        type="button"
-        className="memo-chip-row more"
-        onClick={() => {
-          popover.close();
-          openMemo(projectId);
-        }}
-      >
-        メモのタブを開く
-      </button>
     </ComposerChip>
   );
 }

@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, ArrowUpRight, KeyRound } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { DbColumnInfo, DbSort, DbValue } from "@shared/types";
+import { useLatest } from "@/hooks/useLatest";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey, isSubmitKey } from "@/lib/keys";
 import { cellKind, cellText } from "./dbFormat";
@@ -82,8 +83,7 @@ export function DataGrid({
   }, []);
   const [editing, setEditing] = useState<{ row: number; col: number; text: string; initial: string } | null>(null);
   // 決めるのを 1 回にする（Enter で決めたあと、欄が消えるときの blur で二度決めない）
-  const editingRef = useRef(editing);
-  editingRef.current = editing;
+  const editingRef = useLatest(editing);
   // 結果が変わったら選んだセルを外す（書き直しで行が描き直されても、列が同じなら残す）
   useEffect(() => {
     setPicked(null);
@@ -93,15 +93,6 @@ export function DataGrid({
     if (picked && picked.row >= rows.length) setPicked(null);
   }, [rows.length, picked]);
   useEffect(() => onPickRow?.(picked?.row ?? null), [picked?.row, onPickRow]);
-
-  useEffect(() => {
-    if (!pickRequest || pickRequest.row >= rows.length) return;
-    setPicked(pickRequest);
-    reveal(pickRequest.row, pickRequest.col);
-    scroller.current?.focus();
-    // 頼まれたときだけ（行が増えたあとに描かれる）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pickRequest]);
 
   const first = Math.max(0, Math.floor(view.top / ROW_HEIGHT) - OVERSCAN);
   const last = Math.min(rows.length, Math.ceil((view.top + view.height) / ROW_HEIGHT) + OVERSCAN);
@@ -122,6 +113,17 @@ export function DataGrid({
     if (left < el.scrollLeft) el.scrollLeft = left;
     else if (INDEX_WIDTH + left + COLUMN_WIDTH > el.scrollLeft + el.clientWidth) el.scrollLeft = INDEX_WIDTH + left + COLUMN_WIDTH - el.clientWidth;
   };
+
+  // 頼まれたときだけ（行が増えたあとに描かれる）
+  const applyPickRequest = useEffectEvent((request: NonNullable<typeof pickRequest>) => {
+    if (request.row >= rows.length) return;
+    setPicked(request);
+    reveal(request.row, request.col);
+    scroller.current?.focus();
+  });
+  useEffect(() => {
+    if (pickRequest) applyPickRequest(pickRequest);
+  }, [pickRequest]);
 
   /** セルの書き直しを始める（書き換えられないセルなら何もしない） */
   const startEdit = (row: number, col: number) => {

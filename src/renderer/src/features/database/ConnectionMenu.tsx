@@ -17,13 +17,11 @@ export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; 
 
   /** 「ER 図」: つないでいる DB（PostgreSQL は public のスキーマ）で開く */
   const openEr = async () => {
-    try {
-      const dbs = await api.dbDatabases(client.projectId, c.id, client.worktreeOf(c.id));
-      const database = dbs.current ?? dbs.databases[0] ?? null;
-      client.openEr(c, { database, schema: dbs.has_schemas ? "public" : null }, null);
-    } catch (e) {
+    const dbs = await api.dbDatabases(client.projectId, c.id, client.worktreeOf(c.id)).catch(async (e: unknown) => {
       await alertDialog("ER 図を開けませんでした", errorMessage(e));
-    }
+      return null;
+    });
+    if (dbs) client.openEr(c, { database: dbs.current ?? dbs.databases[0] ?? null, schema: dbs.has_schemas ? "public" : null }, null);
   };
 
   /** 「接続する」: 左の木で開き（閉じていた段を読むとつながる）、開いたままの木でもつなぎ直す（失敗は木の行に出る） */

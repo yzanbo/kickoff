@@ -1,4 +1,5 @@
-import { useEffect, useRef, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useInsertionEffect, useLayoutEffect, useRef, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
+import { markInteractive } from "@/app/bootMarks";
 import type { Attachment } from "@shared/types";
 import type { GitTarget } from "@/api";
 import { cx } from "@/lib/cx";
@@ -96,20 +97,26 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
+  // 入力欄が置かれた（起動の時刻の記録。app/bootMarks.ts）
+  useLayoutEffect(() => markInteractive("composer"), []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attach = useComposerFiles(savedAttachments);
   /** 文を入れて、キャレットを caret に置く（描き直して高さが合ってから） */
-  const fill = (value: string, caret = value.length, focus = true) => {
+  const fill = (value: string, caret?: number, focus = true) => {
     setText(value);
     if (!focus) return;
+    const at = caret ?? value.length;
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (!el) return;
       el.focus();
-      el.setSelectionRange(caret, caret);
+      el.setSelectionRange(at, at);
     });
   };
-  if (handleRef)
+  // 外から動かす口は、描いた結果を当てる段で置き直す（描く中で ref に書かない。会話の欄を Activity で隠している間も外さない
+  // = 片付けを返さない。裏のタブのチャットにも下書きを入れられるように）
+  useInsertionEffect(() => {
+    if (!handleRef) return;
     handleRef.current = {
       fill: (value, opts) => {
         // 添付だけを足すとき（文が空で append）は、書いている文をそのままにする
@@ -128,6 +135,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
       },
       focus: () => textareaRef.current?.focus(),
     };
+  });
   // 文を書く欄の右クリック（切り取り・コピー・貼り付けと、呼ぶ側の項目）
   const textMenu = useComposerTextMenu({ textareaRef, setText, items: menuItems });
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
@@ -136,11 +144,12 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
   const promptHistory = usePromptHistory({ prompts: history, text, setText, textareaRef });
   // / と @ の候補（Claude Code の VS Code 拡張と同じ）。呼び出した発言を出している間は出さない
   const suggest = useSuggest({ target: suggestTarget, text, setText, textareaRef, paused: promptHistory.recalled });
-  const textChange = useRef(onTextChange);
-  textChange.current = onTextChange;
+  // 書いた文を少し待ってから知らせる（onTextChange は描くたびに替わってよい。いつも最新を呼ぶ）
+  const listensText = useEffectEvent(() => onTextChange !== undefined);
+  const textChanged = useEffectEvent((value: string) => onTextChange?.(value));
   useEffect(() => {
-    if (!textChange.current) return;
-    const timer = setTimeout(() => textChange.current?.(text), TEXT_CHANGE_DELAY_MS);
+    if (!listensText()) return;
+    const timer = setTimeout(() => textChanged(text), TEXT_CHANGE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [text]);
   // 書いた分だけ高さを伸ばすのは CSS（composer.css の field-sizing: content と max-height）に任せる。
@@ -229,7 +238,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
   // 停止中の Esc は何もしない（パネルを閉じる Esc にも渡さない）
   const keys = useComposerKeys({ busy, onStop: stopping ? ignoreStop : onStop, options });
   // 下の行を 1 行に収める段階（入らなくなったらアイコンだけにする。中身の幅が変わるものが変わったら測り直す）
-  const barFit = useComposerBarFit(
+  const { ref: barRef, className: barClass } = useComposerBarFit(
     [busy, stopping, keys.stopArmed, sender.queueing, queueWhileIdle, plainActions, compact, sendLabel, options?.model, options?.effort, options?.permission, options?.fastMode].join("|"),
   );
 
@@ -281,7 +290,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
         onContextMenu={textMenu.onContextMenu}
       />
       {textMenu.element}
-      <div ref={barFit.ref} className={cx("composer-bar", barFit.className)} onContextMenu={textMenu.onBarContextMenu}>
+      <div ref={barRef} className={cx("composer-bar", barClass)} onContextMenu={textMenu.onBarContextMenu}>
         <div className="composer-tools">
           <AttachButton size={16} className="attach-button" onFiles={attach.addFiles} />
           {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}

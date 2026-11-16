@@ -31,19 +31,23 @@ export function useDocker(projectId: number) {
         return;
       }
       loading.current = true;
-      try {
-        const next = opts.watch ? await api.dockerWatch(projectId) : await api.dockerList(projectId, opts.refresh);
-        setList(next);
-        setError(null);
-      } catch (e) {
-        setError(errorMessage(e));
-      } finally {
-        loading.current = false;
-        if (again.current) {
-          again.current = false;
-          void reload();
-        }
+      // 読んでいる間に頼まれていたら、終わってからもう 1 回（ふつうの取り直しで）読む
+      let current = opts;
+      let more = true;
+      while (more) {
+        const request = current.watch ? api.dockerWatch(projectId) : api.dockerList(projectId, current.refresh);
+        await request.then(
+          (next) => {
+            setList(next);
+            setError(null);
+          },
+          (e: unknown) => setError(errorMessage(e)),
+        );
+        more = again.current;
+        again.current = false;
+        current = {};
       }
+      loading.current = false;
     },
     [projectId],
   );

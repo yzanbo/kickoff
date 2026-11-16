@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { GitFileChange, GitStatus } from "@shared/types";
 import { api, type GitTarget } from "@/api";
 
@@ -28,27 +28,30 @@ export function useQuickDiffBase({
 }): string | null {
   const unstaged = change && !change.staged && change.file.kind !== "U" ? change.file : null;
   const [fetched, setFetched] = useState<{ key: string; text: string | null }>();
+  // 変更のあるファイル・作業場所・取り直した回で読み直す
+  const readOriginal = useEffectEvent((file: GitFileChange, isAlive: () => boolean) => {
+    api.gitOriginal(target, file, false).then(
+      (o) => isAlive() && setFetched({ key, text: o.binary || o.truncated ? null : o.content }),
+      () => isAlive() && setFetched({ key, text: null }),
+    );
+  });
   useEffect(() => {
     if (!unstaged) return;
     let alive = true;
-    api.gitOriginal(target, unstaged, false).then(
-      (o) => alive && setFetched({ key, text: o.binary || o.truncated ? null : o.content }),
-      () => alive && setFetched({ key, text: null }),
-    );
+    readOriginal(unstaged, () => alive);
     return () => {
       alive = false;
     };
-    // 変更のあるファイル・作業場所・取り直した回で読み直す
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, unstaged?.path, unstaged?.old_path, version]);
 
-  const last = useRef<{ key: string; text: string | null } | null>(null);
+  // 最後に出した値（描く中で ref を読み書きしない。変わったときだけ覚え直す）
+  const [last, setLast] = useState<{ key: string; text: string | null } | null>(null);
   let value: string | null | undefined;
   if (!gitStatus?.repo || change?.file.kind === "U") value = null;
   else if (unstaged) value = fetched?.key === key ? fetched.text : undefined;
   else value = content;
   // まだ読めていなければ、同じファイルの前の値のまま
-  if (value === undefined) return last.current?.key === key ? last.current.text : null;
-  last.current = { key, text: value };
+  if (value === undefined) return last?.key === key ? last.text : null;
+  if (last?.key !== key || last.text !== value) setLast({ key, text: value });
   return value;
 }

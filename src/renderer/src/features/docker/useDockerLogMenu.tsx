@@ -1,7 +1,8 @@
 import { ChevronDown, Copy } from "lucide-react";
-import { useCallback, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
+import { useCallback, useState, type MouseEvent, type ReactNode, type RefObject } from "react";
 import type { DockerCompose } from "@shared/types";
 import { api } from "@/api";
+import { useLatest } from "@/hooks/useLatest";
 import { reportFailure } from "@/ui/dialogs";
 import { AddToChat } from "@/ui/icons";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
@@ -90,11 +91,9 @@ export function useDockerLogMenu({
   };
   const hide = () => setAnchor(null);
   // 「AI に聞く」は行ごとに渡すので、いつも同じ関数にする（行の memo を崩さない）
-  const latest = useRef(aroundValue);
-  latest.current = aroundValue;
-  const openAt = useRef(menu.openAt);
-  openAt.current = menu.openAt;
-  const ask = useCallback((index: number, at: { x: number; y: number }) => openAt.current(at, latest.current(index, false)), []);
+  const latest = useLatest(aroundValue);
+  const openAt = useLatest(menu.openAt);
+  const ask = useCallback((index: number, at: { x: number; y: number }) => openAt.current(at, latest.current(index, false)), [latest, openAt]);
 
   const shown = menu.menu;
   return {

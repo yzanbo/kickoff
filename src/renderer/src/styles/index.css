@@ -2,6 +2,7 @@
 @import "./base/base.css";
 @import "./base/layout.css";
 @import "./ui/popover.css";
+@import "./ui/progressive.css";
 @import "./sidebar/sidebar.css";
 @import "./sidebar/sidebar-rows.css";
 @import "./sidebar/sidebar-search.css";
@@ -33,6 +34,7 @@
 @import "./ui/tone-chip.css";
 @import "./ui/empty-state.css";
 @import "./chat/chat.css";
+@import "./chat/timeline-row.css";
 @import "./chat/streaming.css";
 @import "./chat/chat-tools.css";
 @import "./chat/bash-output.css";

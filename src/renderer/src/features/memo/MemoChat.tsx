@@ -1,5 +1,5 @@
 import { MessageSquare, Minimize2, PanelBottom, PanelRight } from "lucide-react";
-import { useRef, useState, type MutableRefObject } from "react";
+import { useImperativeHandle, useRef, useState, type MutableRefObject } from "react";
 import type { Attachment, ChatOptions } from "@shared/types";
 import { api } from "@/api";
 import { useMemoChatOf } from "@/stores/chats";
@@ -12,7 +12,7 @@ import { ContextMeter } from "@/features/chat/composer/ContextMeter";
 import { useWideText } from "@/features/chat/pane/TextWidthToggle";
 import { cx } from "@/lib/cx";
 import { ChatView } from "@/features/chat/pane/ChatPane";
-import { useChatDetail } from "@/features/chat/pane/useChatDetail";
+import { useOpenChat } from "@/features/chat/store/useChatStore";
 import { chatPaneOf } from "@/features/chat/pane/windowMessages";
 import { PanelHostContext } from "@/features/panel/panelHost";
 import { ChipsPortalContext, type ChipsPortal } from "@/features/chat/pane/chipsPortal";
@@ -64,12 +64,13 @@ export function MemoChat({
   const [created, setCreated] = useState<{ path: string; id: number } | null>(null);
   const chatId = stored?.id ?? (created?.path === path ? created.id : undefined);
   const composer = useRef<ComposerHandle | null>(null);
-  handleRef.current = {
+  // 外から読む口（描く中で ref に書かない）
+  useImperativeHandle(handleRef, () => ({
     add: (text, attachments) => {
       if (chatId === undefined) composer.current?.fill(text, { append: true, attachments });
       else chatPaneOf(chatId)?.fillComposer(text, { append: true, attachments });
     },
-  };
+  }));
   return (
     <aside className="memo-chat" aria-label="メモのチャット">
       <header className="memo-chat-head">
@@ -114,12 +115,12 @@ export function MemoChat({
 
 /** メモのチャットの会話（ふつうのチャットの画面。右の欄は重ねない） */
 function MemoChatView({ chatId, visible, beforeSend }: { chatId: number; visible: boolean; beforeSend: () => Promise<void> }) {
-  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
+  const { chat, project, error } = useOpenChat(chatId, visible);
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;
   return (
     <PanelHostContext.Provider value={null}>
-      <ChatView chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} visible={visible} beforeSend={beforeSend} />
+      <ChatView chat={chat} project={project} visible={visible} beforeSend={beforeSend} />
     </PanelHostContext.Provider>
   );
 }

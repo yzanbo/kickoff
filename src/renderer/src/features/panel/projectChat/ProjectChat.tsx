@@ -10,11 +10,11 @@ import type { ProjectChatController } from "./useProjectChat";
  * ＋からチャット・ブラウザ・ターミナルを開ける。左端のつまみで幅を変える。閉じても要素は残し（幅 0）、書きかけの文章をなくさない
  */
 export function ProjectChat({ chat }: { chat: ProjectChatController }) {
-  const { width, projectId, noChat } = chat;
+  const { width: { paneRef: widthPaneRef, ...width }, projectId, noChat } = chat;
   if (projectId === undefined) return null;
   return (
     <aside
-      ref={width.paneRef}
+      ref={widthPaneRef}
       className={cx("project-chat", chat.open && "open", width.resizing && "resizing")}
       // 開閉は幅の動きで見せる（中身は開いたときの幅のまま。動いている間に中身の並びが崩れないように）
       style={{ "--chat-w": `${width.size}px` } as CSSProperties}

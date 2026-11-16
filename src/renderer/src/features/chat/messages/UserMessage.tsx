@@ -1,32 +1,34 @@
 import { ChevronRight, ClipboardPenLine, History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
+import { flushSync } from "react-dom";
 import type { ChatEventOf } from "@shared/types";
 import { subagentAskOf } from "@shared/chat/prompts";
 import { handoffRequestExtra } from "@shared/chat/handoff";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
+import { useSizeObserver } from "@/hooks/useSizeObserver";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
 import { CopyButton } from "@/ui/CopyButton";
 import { MenuItem } from "@/ui/PopupMenu";
 import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { BubbleEditor } from "./BubbleEditor";
+import { shouldCollapse } from "./collapse";
 import { useMessageMenu } from "./useMessageMenu";
 import { ChildChatMarks } from "@/features/chat/children/ChildChatChips";
 import { HandoffFromChip } from "@/features/chat/children/HandoffFromChip";
 import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/snippet/compactPromptKinds";
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
-
-/** 自分の発言を折りたたむ高さ（これより高い発言は、ここまで出して下を薄くする） */
-const COLLAPSE_PX = 240;
+import { useTimelineBusy } from "@/features/chat/timeline/timelineBusy";
 
 /**
  * 自分の発言（吹き出し）。長い発言は途中まで出して「もっと見る / たたむ」で開閉する。
  * 吹き出しの下に、時刻（今日は時刻・7 日以内は曜日・それより前は日付）・コピー・書き直しのボタンを出す。右クリックでも同じ操作。
  * 書き直すと、吹き出しの中で文を直して送り直す（その発言から後ろのやり取りを消して巻き戻す）。
  * 「もう一度送る」は、同じ文と添付を新しい指示として送る（前のやり取りは消さない。途中で圧縮が入って依頼が薄れたときに、すぐ頼み直せるように）。作業中でも送れる。
- * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。busy（作業中）の間はできない。
+ * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。作業中はできない（作業中かは下の操作の部品だけが timelineBusy で読み、発言全体は作業の始まりと終わりで描き直さない）。
  * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact）は、上に「圧縮前指示」「圧縮後指示」と添えて、自分で書いた指示と見分けられるようにする。
  * サブエージェントについて子チャットで聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』について聞く」と添える（コピー・書き直しは書いた文で）。
  * 子チャットに親への依頼文を頼んだ発言（記録の handoff_request。頼み方の文は決まった長い文なので）は、1 行「親への依頼文を頼みました」にたたみ、押すと全文を出す。
@@ -34,7 +36,7 @@ const COLLAPSE_PX = 240;
  * 子チャットから渡した依頼（記録の handoff_from）は、吹き出しの下に出どころの札「子チャット『…』から」
  */
 /** createdChats: この発言の作業で AI が作った兄弟チャット・親のないチャットの ID（「,」でつなぐ。timelineItems の createdChatsByUser） */
-export function UserMessage({ event, busy, createdChats }: { event: ChatEventOf<"user">; busy: boolean; createdChats?: string }) {
+export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user">; createdChats?: string }) {
   const data = event.data;
   const subagentAsk = subagentAskOf(data.text);
   const text = subagentAsk?.text ?? data.text;
@@ -45,39 +47,37 @@ export function UserMessage({ event, busy, createdChats }: { event: ChatEventOf<
   // 依頼文の頼みに添えた追加の指示（なければ null）
   const handoffExtra = handoffRequest ? handoffRequestExtra(data.text) : null;
   // 依頼文の頼みの全文を開いているか
-  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useTimelineOpen(event.chat_id, `hr:${event.id}`);
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
   const handover = data.handover?.length ?? 0;
   const attachments = data.attachments ?? [];
-  const bodyRef = useRef<HTMLDivElement>(null);
   // 折りたたむほど長いか（描いてから測る）と、開いているか
   const [long, setLong] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  useLayoutEffect(() => {
-    const el = bodyRef.current;
-    if (el) setLong(el.scrollHeight > COLLAPSE_PX + 40);
-    // 依頼文の頼みは、開いてから測る
-  }, [text, requestOpen]);
+  const longRef = useRef(false);
+  // 開閉は流れの見え方の店（行が窓から外れて戻っても・画面を作り直しても開いたまま）
+  const [expanded, setExpanded] = useTimelineOpen(event.chat_id, `um:${event.id}`);
+  // 文の高さは、畳むための max-height の内側の要素で測る（畳んでも文の高さは変わらないので、畳む・開くで行き来しない）。
+  // 大きさの知らせで測るので、幅・文字の大きさが変わったら測り直し、画面の外で描くのを省いている間は読まない。
+  // 知らせは描く前に届くので、変わったときだけその場で描き直し、畳む前の全文が一瞬見えないようにする（依頼文の頼みは、開いてから測る）
+  const measureRef = useSizeObserver<HTMLDivElement>(({ height }) => {
+    const next = shouldCollapse(height);
+    if (next === longRef.current) return;
+    longRef.current = next;
+    flushSync(() => setLong(next));
+  });
   const pane = useOptionalChatPane();
   // 書き直している文（undefined なら書き直していない）
   const [draft, setDraft] = useState<string>();
   // そのチャットの AI でできないこと（書き直しは分岐・巻き戻しを、ファイルを戻すは控えを使う。メモの仕様書「0021」の Q4）
   const rewindBlock = useFeatureBlock("fork");
   const filesBlock = useFeatureBlock("rewind_files");
-  const startEdit = pane && !busy && !rewindBlock ? () => setDraft(text) : undefined;
+  // 書き直しを始める（作業中かは操作の部品が見る）
+  const onEdit = pane && !rewindBlock ? () => setDraft(text) : undefined;
   // ファイルだけを、この発言を送る前の状態に戻す（ファイルの記録を取り始めてからの発言だけ）
   // 同じ文と添付を、新しい指示としてもう一度送る（文も添付もない発言では出さない）
   const resend = pane && (text || attachments.length > 0) ? () => void pane.resend(withHead(text), attachments) : undefined;
   const restoreFiles = pane && data.message_uuid && !filesBlock ? () => void pane.restoreFiles(event.id) : undefined;
-  const menu = useMessageMenu(
-    text,
-    <>
-      {resend && <MenuItem onSelect={resend}>もう一度送る</MenuItem>}
-      {startEdit && <MenuItem onSelect={startEdit}>書き直して送り直す</MenuItem>}
-      {restoreFiles && !busy && <MenuItem onSelect={restoreFiles}>ファイルをこの発言の前に戻す</MenuItem>}
-    </>,
-    { eventId: event.id },
-  );
+  const menu = useMessageMenu(text, <UserMessageMenuItems resend={resend} onEdit={onEdit} restoreFiles={restoreFiles} />, { eventId: event.id });
   return (
     <div
       className={cx(
@@ -125,8 +125,10 @@ export function UserMessage({ event, busy, createdChats }: { event: ChatEventOf<
           />
         ) : (
           (!handoffRequest || requestOpen) && (
-            <div ref={bodyRef} className={cx("bubble-text", long && !expanded && "clamped")}>
-              {text}
+            <div className={cx("bubble-text", long && !expanded && "clamped")}>
+              <div ref={measureRef} className="bubble-text-body">
+                {text}
+              </div>
             </div>
           )
         )}
@@ -147,42 +149,7 @@ export function UserMessage({ event, busy, createdChats }: { event: ChatEventOf<
           </span>
         )}
         {text && <CopyButton text={text} label="メッセージをコピー" className="message-action" />}
-        {resend && (
-          <IconButton
-            icon={RotateCcw}
-            size={13}
-            label="もう一度送る"
-            title={
-              busy
-                ? "この発言を新しい指示としてもう一度送る（作業中なので、チャット欄の送り方（いま / あとで）で送ります）"
-                : "この発言を新しい指示としてもう一度送る（添付も同じ。前のやり取りは残ります）"
-            }
-            className="message-action"
-            onClick={resend}
-          />
-        )}
-        {pane && (
-          <IconButton
-            icon={Pencil}
-            size={13}
-            label="書き直して送り直す"
-            title={rewindBlock ?? (busy ? "作業中は書き直せません（止めてから書き直せます）" : "書き直して送り直す（この発言から後ろのやり取りは消えます）")}
-            className="message-action"
-            disabled={!startEdit}
-            onClick={startEdit}
-          />
-        )}
-        {restoreFiles && (
-          <IconButton
-            icon={History}
-            size={13}
-            label="ファイルをこの発言の前に戻す"
-            title={busy ? "作業中はファイルを戻せません" : "ファイルだけを、この発言を送る前の状態に戻す（会話はそのまま）"}
-            className="message-action"
-            disabled={busy}
-            onClick={restoreFiles}
-          />
-        )}
+        <UserMessageActions resend={resend} onEdit={onEdit} restoreFiles={restoreFiles} canEdit={pane !== null} rewindBlock={rewindBlock} />
       </div>
       {/* 子チャットから渡した依頼（「親チャットに追加」）の出どころ。押すとその子チャットを開く */}
       {data.handoff_from && (
@@ -194,5 +161,68 @@ export function UserMessage({ event, busy, createdChats }: { event: ChatEventOf<
       {pane && <ChildChatMarks chatId={pane.chatId} eventId={event.id} created={createdChats} />}
       {menu.element}
     </div>
+  );
+}
+
+type ActionProps = { resend?: () => void; onEdit?: () => void; restoreFiles?: () => void };
+
+/** 発言の右クリックの、送り直す・書き直す・ファイルを戻す（作業中は書き直し・ファイルを戻すを出さない） */
+function UserMessageMenuItems({ resend, onEdit, restoreFiles }: ActionProps) {
+  const busy = useTimelineBusy();
+  return (
+    <>
+      {resend && <MenuItem onSelect={resend}>もう一度送る</MenuItem>}
+      {onEdit && !busy && <MenuItem onSelect={onEdit}>書き直して送り直す</MenuItem>}
+      {restoreFiles && !busy && <MenuItem onSelect={restoreFiles}>ファイルをこの発言の前に戻す</MenuItem>}
+    </>
+  );
+}
+
+/**
+ * 吹き出しの下の、もう一度送る・書き直す・ファイルを戻すのボタン。作業中かはここだけが読む
+ * （作業の始まりと終わりで、発言全体ではなくこのボタンだけが描き直る）
+ */
+function UserMessageActions({ resend, onEdit, restoreFiles, canEdit, rewindBlock }: ActionProps & { canEdit: boolean; rewindBlock: string | null }) {
+  const busy = useTimelineBusy();
+  const startEdit = onEdit && !busy ? onEdit : undefined;
+  return (
+    <>
+      {resend && (
+        <IconButton
+          icon={RotateCcw}
+          size={13}
+          label="もう一度送る"
+          title={
+            busy
+              ? "この発言を新しい指示としてもう一度送る（作業中なので、チャット欄の送り方（いま / あとで）で送ります）"
+              : "この発言を新しい指示としてもう一度送る（添付も同じ。前のやり取りは残ります）"
+          }
+          className="message-action"
+          onClick={resend}
+        />
+      )}
+      {canEdit && (
+        <IconButton
+          icon={Pencil}
+          size={13}
+          label="書き直して送り直す"
+          title={rewindBlock ?? (busy ? "作業中は書き直せません（止めてから書き直せます）" : "書き直して送り直す（この発言から後ろのやり取りは消えます）")}
+          className="message-action"
+          disabled={!startEdit}
+          onClick={startEdit}
+        />
+      )}
+      {restoreFiles && (
+        <IconButton
+          icon={History}
+          size={13}
+          label="ファイルをこの発言の前に戻す"
+          title={busy ? "作業中はファイルを戻せません" : "ファイルだけを、この発言を送る前の状態に戻す（会話はそのまま）"}
+          className="message-action"
+          disabled={busy}
+          onClick={restoreFiles}
+        />
+      )}
+    </>
   );
 }

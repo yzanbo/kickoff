@@ -22,6 +22,7 @@ import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./label
 import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";
 import { mcpServersOf, toolAllowList } from "./mcpServers.js";
+import { agentSpawnNotes } from "./spawnNotes.js";
 import { agentEnv, claudeAuthEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
@@ -33,6 +34,7 @@ import { runCommand } from "../../system/exec.js";
 import { claudeSandbox } from "./sandbox.js";
 import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
+import { noteSyncSince, syncStart } from "../../system/stallWatch.js";
 
 /** 1 回だけ聞くときの段ごとのモデル（AskModel。軽い = haiku・ふつう = sonnet） */
 const ASK_MODELS: Record<AskModel, string> = { light: "haiku", standard: "sonnet" };
@@ -185,10 +187,13 @@ export class ClaudeProvider implements AgentProvider {
     const preCompact = params.preCompact
       ? createPreCompactGate({ ...params.preCompact, push, onSent: (uuid) => cb.preCompactSent?.(uuid), onNudged: (uuid) => cb.preCompactNudged?.(uuid) })
       : null;
+    // Claude Code のプロセスの pid を知らせる（コアのプロセスが落ちたときに、メインが作り直す前に止める）
+    const spawnNotes = agentSpawnNotes();
     try {
       const q = query({
         prompt: input.messages,
         options: {
+          ...spawnNotes.options,
           cwd: params.cwd,
           additionalDirectories: params.additionalDirectories,
           model: params.model || undefined,
@@ -233,6 +238,8 @@ export class ClaudeProvider implements AgentProvider {
       // 裏で動いている作業と、メインの返答が終わったか（変わったときだけ知らせる）
       const trackBackground = createBackgroundTracker();
       for await (const msg of q) {
+        // 1 件の処理に名前を付けて詰まりの見張りに知らせる（system/stallWatch.ts）
+        const handleStart = syncStart();
         // 通信の再試行: 画面に回数と次に送り直すまでの時間を知らせる（応答がない = 通信が切れている）
         if (msg.type === "system" && msg.subtype === "api_retry") {
           retrying = true;
@@ -279,6 +286,7 @@ export class ClaudeProvider implements AgentProvider {
             cb.context?.(post);
           } else contextAfterCompact = true;
         }
+        noteSyncSince(handleStart, () => `provider:claude:${msg.type}`);
       }
     } catch (e) {
       if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };
@@ -291,6 +299,7 @@ export class ClaudeProvider implements AgentProvider {
       input.close(true);
       cb.control?.(null);
       commandOutput.stopAll();
+      spawnNotes.release();
     }
 
     if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };

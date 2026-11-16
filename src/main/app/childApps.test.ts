@@ -23,3 +23,15 @@ test("descendantElectronMains: 子孫のうち Electron のメインプロセス
   assert.deepEqual(descendantElectronMains(parsePs(ps), 100, isMain).sort(), [203, 302]);
   assert.deepEqual(descendantElectronMains(parsePs(ps), 999, isMain), []);
 });
+
+test("descendantElectronMains: コアのプロセス（utilityProcess の Helper）の下のシェルから起動した開発版も見つける", () => {
+  const ps = `
+    100     1 00:10 /Applications/Kickoff.app/Contents/MacOS/Kickoff
+    110   100 00:10 /Applications/Kickoff.app/Contents/Frameworks/Kickoff Helper.app/Contents/MacOS/Kickoff Helper --type=utility --service-name=Kickoff Core
+    200   110 00:10 /bin/zsh -l
+    201   200 00:10 npm run dev
+    203   201 00:10 /repo/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .
+    204   203 00:10 /repo/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Helper.app/Contents/MacOS/Electron Helper --type=utility --service-name=Kickoff Core
+  `;
+  assert.deepEqual(descendantElectronMains(parsePs(ps), 100, isMain), [203]);
+});

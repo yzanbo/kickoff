@@ -5,9 +5,10 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { Prec } from "@codemirror/state";
 import { drawSelection, EditorView, keymap, placeholder } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { useRef, type MutableRefObject } from "react";
+import type { MutableRefObject } from "react";
 import type { DbEngine } from "@shared/types";
 import { useCodeMirror } from "@/hooks/useCodeMirror";
+import { useLatest } from "@/hooks/useLatest";
 import { runTargetMark } from "./sqlRunMark";
 
 /** SQL の色分け（アプリの色の変数で、ダークでもライトでも読める色に） */
@@ -54,8 +55,7 @@ export function SqlEditor({
   handleRef: MutableRefObject<SqlEditorHandle | null>;
 }) {
   // 押したときの処理は最新のものを呼ぶ（作り直さない）
-  const handlers = useRef({ onRun, onRunAll });
-  handlers.current = { onRun, onRunAll };
+  const handlers = useLatest({ onRun, onRunAll });
   const language = sql({ dialect: DIALECTS[engine], schema, upperCaseKeywords: false });
 
   const { host } = useCodeMirror({

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/api";
+import { useLatest } from "@/hooks/useLatest";
 import { errorMessage } from "@shared/errors";
 import { openSettings } from "@/features/settings/openSettings";
 import { micErrorMessage, transcribeParts } from "./dictationText";
 import { openMic, recordStream, watchLevel, type Recording } from "./recorder";
 import { useVoiceStatus, voiceStatusStore } from "@/stores/voice";
+import { useKeepAliveHold } from "@/features/panel/tabs/tabKeepAlive";
 
 /** これより長く押していたら長押し（離したところで止めて起こす）。短ければ 1 回押し（もう一度押すまで録る） */
 export const HOLD_MS = 400;
@@ -39,8 +41,12 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
   const pressed = useRef<{ at: number; wasRecording: boolean } | null>(null);
   // 始める・やめる・閉じるたびに進める（マイクや文字起こしを待つ間にやめた・閉じたら、届いたものを捨てる）
   const attempt = useRef(0);
-  const textRef = useRef(onText);
-  textRef.current = onText;
+  const textRef = useLatest(onText);
+
+  // 録音の準備・録音・文字起こしの間は、タブを裏に回しても会話の欄を止めない（止めると下の片付けで録音が切れる）
+  const hold = useKeepAliveHold("dictation");
+  const busy = state.kind === "starting" || state.kind === "recording" || state.kind === "transcribing";
+  useEffect(() => hold(busy), [busy, hold]);
 
   // チャット欄を閉じたら、録音をやめてマイクを放す
   useEffect(

@@ -41,12 +41,12 @@ export function TabClusterHead({
   chats,
   onOpen,
   all = false,
-  popoverTitle = `${cluster.label}のチャット`,
+  popoverTitle: givenPopoverTitle,
   collapsed = false,
   onToggleCollapsed,
   dragProps,
-  count = cluster.tabs.length,
-  tabCount = cluster.tabs.length,
+  count: givenCount,
+  tabCount: givenTabCount,
   hidden = false,
   onToggleHidden,
   menuExtra,
@@ -78,9 +78,12 @@ export function TabClusterHead({
   /** 右クリックのいちばん上の「新しいチャット」（そのまとまりで始める。フォルダのない作業場所など、始められないまとまりでは出さない） */
   onNewChat?: (place: NewChatPlace) => void;
 }) {
+  const popoverTitle = givenPopoverTitle ?? `${cluster.label}のチャット`;
+  const count = givenCount ?? cluster.tabs.length;
+  const tabCount = givenTabCount ?? cluster.tabs.length;
   const { pending } = useChatStates();
   // 札を押すと開く、まとまりのチャットの一覧（札の下に出す。タブの列に切り取られないよう top layer に出る）
-  const popover = usePopover<HTMLSpanElement>();
+  const { anchor: popoverAnchor, ...popover } = usePopover<HTMLSpanElement>();
   // 札の右クリックのメニュー（プロジェクトの分かるまとまりだけ。「その他」「チャット」の札では出さない）
   const menu = useContextMenu();
   const projectId = cluster.projectId;
@@ -114,7 +117,7 @@ export function TabClusterHead({
   const short = shortSetting && !all;
   const nameText = <span className="panel-tab-cluster-text">{short ? clusterInitial(cluster) : cluster.label}</span>;
   return (
-    <span ref={popover.anchor} className={cx("panel-tab-cluster", all && "all", dragProps && "draggable")} onContextMenu={openMenu} {...dragProps}>
+    <span ref={popoverAnchor} className={cx("panel-tab-cluster", all && "all", dragProps && "draggable")} onContextMenu={openMenu} {...dragProps}>
       {/* 1 つの丸い札を左右に区切る: 左 = 名前（押すと一覧）・右 = 畳む / 開く。角の状態ごとの数は札全体の角に重ねる */}
       <span className={cx("panel-tab-cluster-pill", collapsed && "collapsed", short && "short")}>
         {chats ? (
@@ -192,7 +195,7 @@ export function TabClusterHead({
       {popover.open && chats && (
         <StateChatsPopover
           title={popoverTitle}
-          anchor={popover.anchor}
+          anchor={popoverAnchor}
           // まとまりのチャットをすべて（既読・アーカイブ済みも）状態ごとに並べる
           sections={chatsByState(chats, pending, { all: true })}
           emptyText="チャットはありません"

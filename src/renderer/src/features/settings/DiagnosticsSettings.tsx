@@ -1,6 +1,7 @@
-import { Activity } from "lucide-react";
+import { Activity, FolderOpen } from "lucide-react";
 import { useAsync } from "@/hooks/useAsync";
 import { DiagnosticsPath } from "@/features/diagnostics/DiagnosticsPath";
+import { overviewLines } from "@/features/diagnostics/overviewLines";
 import { Field } from "@/ui/Field";
 
 /**
@@ -11,6 +12,8 @@ export function DiagnosticsSettings({ onClose }: { onClose: () => void }) {
   const available = Boolean(window.kickoff);
   // 保存先と最近の記録（新しい順）。デスクトップアプリでだけ取れる
   const folders = useAsync(async () => (await window.kickoff?.diagnostics.folders()) ?? null);
+  // いつも取っている記録のまとめ（最近 24 時間の詰まり・最後の起動の時刻。メモの仕様書「0023_表示を軽くする」の U10）
+  const overview = useAsync(async () => (await window.kickoff?.diagnostics.overview()) ?? null);
   return (
     <section className="section">
       <h2>診断</h2>
@@ -34,6 +37,25 @@ export function DiagnosticsSettings({ onClose }: { onClose: () => void }) {
           </button>
           {!available && <p className="muted small">デスクトップアプリでだけ使えます</p>}
         </div>
+        {overview.data && (
+          <Field
+            as="div"
+            label="いつも取っている記録"
+            help="500ms を超えて止まった処理（詰まり）と起動の時刻を、記録の場所の stalls.jsonl・boot.jsonl に残しています（エージェントも読める場所です）。"
+          >
+            <ul className="diagnostics-overview">
+              {overviewLines(overview.data).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <div>
+              <button type="button" className="btn" onClick={() => void window.kickoff?.diagnostics.openLogs()}>
+                <FolderOpen size={14} aria-hidden />
+                記録の場所を開く
+              </button>
+            </div>
+          </Field>
+        )}
         {folders.data && (
           <Field
             as="div"

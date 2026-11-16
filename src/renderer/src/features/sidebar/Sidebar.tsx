@@ -1,15 +1,18 @@
 import { LayoutGrid, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { useLayoutEffect } from "react";
 import { useProjects } from "@/stores/projects";
+import { markInteractive } from "@/app/bootMarks";
 import { href, useRoute } from "@/app/router";
 import { ProjectNav } from "./ProjectNav";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
-import { useChatsByProject } from "@/stores/chats";
+import { useChatsByProject, useChatsLoaded } from "@/stores/chats";
 import { useGroupsOf } from "@/stores/groups";
 import type { SidebarController } from "./useSidebar";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { IconButton } from "@/ui/IconButton";
 import { NewChatButton } from "./NewChatButton";
+import { ensureAllRows } from "@/hooks/useProgressiveRows";
 
 interface Props {
   sidebar: SidebarController;
@@ -24,9 +27,14 @@ interface Props {
  * 左のサイドバー（新しいチャット・全プロジェクト・検索、プロジェクトごとのチャット一覧、設定）。要対応のオン / オフは一覧の上の見出しの「要対応」の行
  * （利用者の依頼で、上の段から移した。上の段は押すと開く・作るものだけにする）
  */
-export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
+export function Sidebar({ sidebar: { paneRef: sidebarPaneRef, ...sidebar }, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
   const route = useRoute();
-  const { projects } = useProjects();
+  const { projects, loaded: projectsLoaded } = useProjects();
+  // プロジェクトとチャットの一覧が初めて届いて描けたら、起動の時刻の記録に知らせる（app/bootMarks.ts）
+  const chatsLoaded = useChatsLoaded();
+  useLayoutEffect(() => {
+    if (projectsLoaded && chatsLoaded) markInteractive("sidebar");
+  }, [projectsLoaded, chatsLoaded]);
   // すべてのプロジェクトのチャット（アーカイブ済みは、一覧の下に出すときだけ）とグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
   const [showArchivedChats] = useShowArchivedChats();
   const chats = useChatsByProject({ archived: showArchivedChats });
@@ -39,6 +47,8 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
     if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.metaKey || e.altKey || e.ctrlKey) return;
     const target = e.target as HTMLElement | null;
     if (!target?.closest(".sidebar-section") || target.closest("input, textarea, select, [role=menu]")) return;
+    // 開いた直後でまだ描いていない行があれば、先にすべて描く（最後の行まで移れるように。案 23）
+    ensureAllRows();
     const rows = visibleRows();
     if (rows.length === 0) return;
     const current = rows.indexOf(target.closest<HTMLElement>("a.chat-row") as HTMLElement);
@@ -53,7 +63,7 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
     }
   });
   return (
-    <aside ref={sidebar.paneRef} className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
+    <aside ref={sidebarPaneRef} className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
       <div className="sidebar-resizer" aria-label="サイドバーの幅を変える" {...sidebar.resizeHandle} />
       {/* 一番上の行は macOS の信号機ボタンの行。右端に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
       <div className="sidebar-header">

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Hono } from "hono";
 import { upgradeWebSocket } from "@hono/node-server";
 import { z } from "zod";
-import type { TerminalClientMessage, TerminalCreateBody, TerminalCreated, TerminalServerMessage, TerminalTab } from "@shared/types";
+import type { TerminalClientMessage, TerminalCreateBody, TerminalCreated, TerminalOpenBody, TerminalOpened, TerminalServerMessage, TerminalTab } from "@shared/types";
 import { callerOf, type Caller } from "../caller.js";
 import { Invalid, NotFound } from "../errors.js";
 import { jsonBody } from "../input.js";
@@ -12,17 +12,28 @@ import type { ServerDeps } from "../server.js";
 
 const size = z.number().int().min(2).max(1000);
 const createSchema = z.object({ worktree_path: z.string().min(1).nullable(), cols: size, rows: size }) satisfies z.ZodType<TerminalCreateBody>;
+/** この Mac の画面のタブのシェル（持ち主は画面の印 wc:<WebContents の ID>。端末の印 device: は名乗れない） */
+const openSchema = z.object({
+  key: z.string().min(1).max(200),
+  cwd: z.string().max(4000),
+  cols: size,
+  rows: size,
+  owner: z.string().regex(/^wc:\d+$/),
+  start: z.object({ command: z.string().max(20_000).nullable(), env: z.record(z.string(), z.string()).nullable() }).nullable(),
+  meta: z.object({ project_id: z.number().int().nullable(), title: z.string().max(500) }).nullable(),
+}) satisfies z.ZodType<TerminalOpenBody>;
 const clientMessage = z.union([z.object({ type: z.literal("input"), data: z.string().max(100_000) }), z.object({ type: z.literal("resize"), cols: size, rows: size })]) satisfies z.ZodType<TerminalClientMessage>;
 
-/** シェルの持ち主の印（この Mac の画面がメインプロセスの IPC から作ったものは、その画面の印） */
+/** シェルの持ち主の印（この Mac の画面のタブは、POST /api/terminals で渡したその画面の印 wc:<ID>） */
 export const ownerOf = (caller: Caller) => (caller.kind === "device" ? `device:${caller.device.id}` : "host");
 
 /** その呼び主が、そのシェルを止めてよいか（この Mac は何でも。端末は自分が作ったものだけ） */
 const mayClose = (caller: Caller, owner: string | null) => caller.kind === "host" || owner === ownerOf(caller);
 
 /**
- * 内蔵ターミナルを API から使う口（スマホのターミナル。2026-11-14 に利用者と決めた）。シェルはコアの TerminalSessions で動き、
- * この Mac の画面のタブ（IPC で作ったもの）にもつなげる。キーの入力・出力は WebSocket（細かく行き来するため。この口だけ）。
+ * 内蔵ターミナルを API から使う口（この Mac の画面のパネルのタブと、スマホのターミナル。スマホは 2026-11-14 に利用者と決めた。
+ * この Mac の画面も、コアを別のプロセスにしたとき（メモの仕様書「0023_表示を軽くする」の案 16）にメインプロセスの IPC からここへ移した）。
+ * シェルはコアの TerminalSessions で動く。キーの入力・出力は WebSocket（細かく行き来するため。この口だけ）。
  * 見るだけの端末は、一覧と WebSocket で見るだけで、シェルを作る・止める（403）・キーを送る（捨てる）はできない
  */
 export function terminalRoutes(app: Hono, { store, terminals, bus }: ServerDeps) {
@@ -47,6 +58,18 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: ServerDeps)
     await terminals.open({ key, cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: ownerOf(caller), meta: { projectId: project.id, title: caller.kind === "device" ? `ターミナル（${caller.device.name}）` : "ターミナル" } });
     terminals.detach(key, placeholder.id);
     return c.json({ key } satisfies TerminalCreated, 201);
+  });
+
+  // この Mac の画面のタブのシェルを用意する（あればつなぎ直し = meta・持ち主を覚え直す。なければ cwd で始める）。出力はこのあと WebSocket で受ける。
+  // 端末からは使えない（DEVICE_ROUTES に入れない。好きなフォルダ・コマンドで始められるため）
+  app.post("/api/terminals", async (c) => {
+    const body = openSchema.parse(await jsonBody(c));
+    const placeholder = { id: `open:${body.key}`, data: () => {}, exit: () => {} };
+    const start = body.start ? { command: body.start.command ?? undefined, env: body.start.env ?? undefined } : undefined;
+    const meta = body.meta ? { projectId: body.meta.project_id, title: body.meta.title } : undefined;
+    const { created } = await terminals.open({ key: body.key, cwd: body.cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: body.owner, start, meta });
+    terminals.detach(body.key, placeholder.id);
+    return c.json({ created } satisfies TerminalOpened, created ? 201 : 200);
   });
 
   // シェルを止める（端末は自分が作ったものだけ）
@@ -107,8 +130,8 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: ServerDeps)
             if (canType()) terminals.write(key, parsed.data);
             return;
           }
-          // 大きさを変えるのはシェルの持ち主だけ（この Mac の画面のタブを、スマホの小さな画面に合わせて崩さない）
-          if (canType() && terminals.ownerOf(key) === ownerOf(caller)) terminals.resize(key, parsed.cols, parsed.rows);
+          // 大きさを変えるのは、この Mac の画面と、シェルの持ち主の端末だけ（この Mac の画面のタブを、スマホの小さな画面に合わせて崩さない）
+          if (canType() && (caller.kind === "host" || terminals.ownerOf(key) === ownerOf(caller))) terminals.resize(key, parsed.cols, parsed.rows);
         },
         onClose() {
           unsubscribe();

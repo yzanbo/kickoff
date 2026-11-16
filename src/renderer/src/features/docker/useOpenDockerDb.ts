@@ -1,6 +1,6 @@
 // Docker タブの「DB で開く」（段階 2）: DB のサービスを DB タブで開く。登録済みの同じ DB ならその接続を選び、なければ取り込みの画面をその案を選んだ形で開く。
 // 動いていなければ確かめてから起動し、動き出したら開く（起動に失敗したら開かない。失敗は見出しに出る）
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { DockerCompose, DockerService } from "@shared/types";
 import { api } from "@/api";
 import { navigate } from "@/app/router";
@@ -38,6 +38,8 @@ export function useOpenDockerDb(projectId: number, compose: DockerCompose, servi
     start();
   };
 
+  // 起動を待っている間、動き出したら開く（開くのはそのときの作業場所・サービスで）
+  const openStarted = useEffectEvent(() => void open());
   useEffect(() => {
     if (!waiting) return;
     if (compose.operation) {
@@ -46,11 +48,10 @@ export function useOpenDockerDb(projectId: number, compose: DockerCompose, servi
     }
     if (service.running > 0) {
       setWaiting(false);
-      void open();
+      openStarted();
     } else if (sawOperation.current || (compose.failure && compose.failure.at !== failureAtStart.current)) {
       setWaiting(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [waiting, compose.operation, compose.failure, service.running]);
 
   return { request: () => void request(), waiting };

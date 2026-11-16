@@ -3,9 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
-import { DB_FILE, discardPrereleaseData, openDatabase } from "./open.js";
+import { DB_FILE, discardPrereleaseData, openDatabase, sqliteLabel } from "./open.js";
 import { APPLICATION_ID, SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "./schema.js";
 import { tempDir } from "../testing/tempDir.js";
+import { afterTest } from "../testing/afterTest.js";
+import { startStallWatch, type StallRecord } from "../system/stallWatch.js";
+import { Store } from "./store.js";
 
 const applicationId = (db: DatabaseSync) => (db.prepare("PRAGMA application_id").get() as { application_id: number }).application_id;
 
@@ -81,4 +84,81 @@ test("discardPrereleaseData: DB がなければ何もしない", () => {
   fs.mkdirSync(path.join(dir, "uploads"));
   assert.equal(discardPrereleaseData(dir), false);
   assert.deepEqual(fs.readdirSync(dir), ["uploads"]);
+});
+
+test("sqliteLabel: SQL の頭から動詞と表を読む（表が読めなければ動詞だけ）", () => {
+  assert.equal(sqliteLabel("SELECT * FROM chat_events WHERE chat_id = ?"), "sqlite:select chat_events");
+  assert.equal(sqliteLabel("\n  select c.id from \"chats\" c"), "sqlite:select chats");
+  assert.equal(sqliteLabel("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)"), "sqlite:insert settings");
+  assert.equal(sqliteLabel("UPDATE OR IGNORE projects SET name = ?"), "sqlite:update projects");
+  assert.equal(sqliteLabel("DELETE FROM queues WHERE id = ?"), "sqlite:delete queues");
+  assert.equal(sqliteLabel("PRAGMA user_version"), "sqlite:pragma");
+});
+
+test("openDatabase: 詰まりの見張りのために包んだ prepare・exec は、結果を変えず、遅い文に名前を付ける", () => {
+  // 時計は偽物にする（本物の時間は待たない）
+  let now = 0;
+  let tick = () => {};
+  const records: StallRecord[] = [];
+  const stop = startStallWatch({
+    process: "main",
+    onStall: (r) => records.push(r),
+    clock: { now: () => now, every: (_ms, fn) => ((tick = fn), () => {}), cpuMs: () => now, gcMs: () => 0, rssMB: () => 0 },
+  });
+  afterTest(stop);
+  const db = openDatabase(path.join(tempDir(), DB_FILE));
+  afterTest(() => db.close());
+  db.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT) STRICT");
+  const insert = db.prepare("INSERT INTO t (v) VALUES (?)");
+  assert.equal(insert.run("a").changes, 1);
+  insert.run("b");
+  assert.deepEqual(db.prepare("SELECT v FROM t ORDER BY id").all().map((r) => r.v), ["a", "b"]);
+  assert.deepEqual({ ...db.prepare("SELECT count(*) AS n FROM t").get() }, { n: 2 });
+  assert.deepEqual([...db.prepare("SELECT id FROM t ORDER BY id").iterate()].map((r) => r.id), [1, 2]);
+  tick();
+  assert.equal(records.length, 0);
+  // 遅い文のふりをする（SQL の関数の中で偽の時計を 600ms 進める）
+  db.function("slow", () => {
+    now += 600;
+    return 1;
+  });
+  assert.deepEqual({ ...db.prepare("SELECT slow() AS s FROM t WHERE id = 1").get() }, { s: 1 });
+  now += 200;
+  tick();
+  assert.equal(records.length, 1);
+  assert.equal(records[0].task, "sqlite:select t");
+  assert.equal(records[0].taskMs, 600);
+});
+
+test("v30 の移行: v29 の DB を開くと、記録の軽い形を読む覆う索引（idx_chat_events_meta）を既存の行に作る", () => {
+  const file = path.join(tempDir(), DB_FILE);
+  const store = new Store(file);
+  const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed", model: null });
+  store.events.add(chat.id, { type: "tool_use", id: "c1", name: "Bash", input: {} });
+  // v29 に戻す（索引を外して版を下げる。後の版の v31 の列と索引も外す）
+  store.db.exec(`DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending;`);
+  store.db.exec(`DROP INDEX idx_chat_events_meta; PRAGMA user_version = ${USER_VERSION_BASE + 29};`);
+  store.db.close();
+  const again = openDatabase(file);
+  assert.equal(userVersion(again), USER_VERSION_BASE + SCHEMA_VERSION);
+  assert.ok(again.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_chat_events_meta'").get());
+  const row = again.prepare("SELECT json_extract(data, '$.name') AS name FROM chat_events INDEXED BY idx_chat_events_meta WHERE chat_id = ?").get(chat.id) as { name: string };
+  assert.equal(row.name, "Bash");
+  again.close();
+});
+
+test("v31 の移行: v30 の DB を開くと、既存のチャットに再開の確かめの印（resume_pending = 0）と索引を足す", () => {
+  const file = path.join(tempDir(), DB_FILE);
+  const store = new Store(file);
+  const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "running", model: null });
+  // v30 に戻す（列と索引を外して版を下げる）
+  store.db.exec(`DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending; PRAGMA user_version = ${USER_VERSION_BASE + 30};`);
+  store.db.close();
+  const again = openDatabase(file);
+  assert.equal(userVersion(again), USER_VERSION_BASE + SCHEMA_VERSION);
+  assert.ok(again.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_chats_resume_pending'").get());
+  assert.deepEqual({ ...again.prepare("SELECT resume_pending FROM chats WHERE id = ?").get(chat.id) }, { resume_pending: 0 });
+  again.close();
 });

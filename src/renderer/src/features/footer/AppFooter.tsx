@@ -40,9 +40,9 @@ interface Props {
  */
 export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: Props) {
   const online = useOnline();
-  const conn = usePopover();
+  const { anchor: connAnchor, ...conn } = usePopover();
   const notice = useConnectionNotice(connection.state);
-  const usagePopover = usePopover();
+  const { anchor: usagePopoverAnchor, ...usagePopover } = usePopover();
   const usage = planUsage.usage;
   const [mode, setMode] = useFooterMode();
   const menu = useContextMenu();
@@ -58,7 +58,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
           詳細を開いている間につながったら、閉じるまで残す */}
       {(notice || conn.open) && (
         <button
-          ref={conn.anchor}
+          ref={connAnchor}
           className={cx("footer-button conn", connection.state !== "open" && "conn-down", conn.open && "active")}
           title={connection.state === "open" ? "接続の詳細" : "Kickoff サーバーとの接続が切れています。返答・状態の知らせが止まり、操作も失敗します。押すと詳細を開きます"}
           aria-expanded={conn.open}
@@ -70,7 +70,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       )}
       {conn.open && (
         <ConnectionPopover
-          anchor={conn.anchor}
+          anchor={connAnchor}
           state={connection.state}
           since={connection.since}
           onClose={conn.close}
@@ -98,7 +98,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       )}
       {foregroundAi !== null ? null : usage?.available ? (
         <button
-          ref={usagePopover.anchor}
+          ref={usagePopoverAnchor}
           className={`footer-usage ${usagePopover.open ? "active" : ""}`}
           title="使用状況の詳細"
           aria-expanded={usagePopover.open}
@@ -114,7 +114,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       ) : (
         usage && <span className="muted">使用状況を取得できません</span>
       )}
-      {usagePopover.open && <UsagePopover anchor={usagePopover.anchor} planUsage={planUsage} onClose={usagePopover.close} />}
+      {usagePopover.open && <UsagePopover anchor={usagePopoverAnchor} planUsage={planUsage} onClose={usagePopover.close} />}
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="下の帯の出し方" onClose={menu.close}>
           <div className="menu-label">下の帯</div>

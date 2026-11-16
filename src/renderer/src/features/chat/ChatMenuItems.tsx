@@ -15,6 +15,9 @@ import { DetachSubmenu } from "./children/DetachSubmenu";
 import { openNewChat } from "@/app/router";
 import { NewChatItem, type NewChatPlace } from "./NewChatItem";
 
+/** 新しいチャットの既定の開き方（そのプロジェクトのチャットのパネルで、同じグループ・作業場所） */
+const openNewChatAt = (place: NewChatPlace) => openNewChat(place.projectId, { group: place.group, worktree: place.worktree });
+
 /**
  * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通。どこで右クリックしても同じ並びにする）:
  * 新しいチャット（同じグループ・作業場所。NewChatItem）・子チャットを作成 ｜ 開く・その場所だけの項目（before。分けて開く・動きを見るなど）｜
@@ -24,7 +27,7 @@ import { NewChatItem, type NewChatPlace } from "./NewChatItem";
 export function ChatMenuItems({
   chat,
   onOpen,
-  onNewChat = (place) => openNewChat(place.projectId, { group: place.group, worktree: place.worktree }),
+  onNewChat = openNewChatAt,
   onRename,
   onClose,
   onError,

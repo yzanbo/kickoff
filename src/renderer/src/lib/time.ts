@@ -1,12 +1,58 @@
 // 時刻の表示（相対時刻・使用枠のリセットまでの時間）
 
+/**
+ * 日時を文字にする書式（toLocale*String と同じ選択肢。どれも時・日付の項目を持つので、Intl.DateTimeFormat の format と同じ文字になる）。
+ * toLocale*String は呼ぶたびに Intl の準備をやり直して重いので、書式ごとに作り置いて使い回す（流れの項目・一覧の行ごとに呼ぶため。メモの仕様書「0023_表示を軽くする」の案 1）
+ */
+const DATE_FORMATS = {
+  clock: { hour: "2-digit", minute: "2-digit" },
+  clockSeconds: { hour: "2-digit", minute: "2-digit", second: "2-digit" },
+  monthDay: { month: "numeric", day: "numeric" },
+  monthDayWeekday: { month: "numeric", day: "numeric", weekday: "short" },
+} as const satisfies Record<string, Intl.DateTimeFormatOptions>;
+type DateFormatName = keyof typeof DATE_FORMATS;
+
+/**
+ * 時間帯（タイムゾーン）を見直す間隔。Intl.DateTimeFormat は作ったときの時間帯を覚えるので、Mac の時間帯を変えたらこの間に作り直す
+ * （毎回見直すと、それ自体が Intl の準備になる。夏時間の切り替えは時間帯が同じなので format が正しく扱う）
+ */
+export const ZONE_CHECK_MS = 60_000;
+let formatters: Partial<Record<DateFormatName, Intl.DateTimeFormat>> = {};
+let zone: string | undefined;
+let zoneCheckedAt = -Infinity;
+
+function formatterOf(name: DateFormatName): Intl.DateTimeFormat {
+  const now = Date.now();
+  if (now - zoneCheckedAt >= ZONE_CHECK_MS || now < zoneCheckedAt) {
+    zoneCheckedAt = now;
+    const current = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (current !== zone) {
+      zone = current;
+      formatters = {};
+    }
+  }
+  return (formatters[name] ??= new Intl.DateTimeFormat("ja-JP", DATE_FORMATS[name]));
+}
+
+/** 日時を書式で文字にする（toLocale*String と同じ文字。不正な日時は toLocale*String と同じく "Invalid Date"。format は投げるので先に見る） */
+function formatDate(date: Date, name: DateFormatName): string {
+  return Number.isNaN(date.getTime()) ? "Invalid Date" : formatterOf(name).format(date);
+}
+
+/** 作り置きの書式を捨てる（時間帯を替えるテストのあとに呼ぶ。テストは同じプロセスで続けて流れるので、ほかのファイルに残さない） */
+export function resetDateFormats() {
+  formatters = {};
+  zone = undefined;
+  zoneCheckedAt = -Infinity;
+}
+
 /** 「たった今」「5分前」「3時間前」、1 日より前は日付 */
 export function relativeTime(iso: string): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
   if (diff < 60) return "たった今";
   if (diff < 3600) return `${Math.floor(diff / 60)}分前`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}時間前`;
-  return new Date(iso).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+  return formatDate(new Date(iso), "monthDay");
 }
 
 /** どれだけ前か（VS Code の GitLens と同じ形: たった今・5分前・3時間前・5日前・2か月前・1年前。日付にしない） */
@@ -28,7 +74,7 @@ export function shortRelativeTime(iso: string): string {
   if (diff < 3600) return `${Math.floor(diff / 60)}分`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}時間`;
   if (diff < 7 * 86400) return `${Math.floor(diff / 86400)}日`;
-  return new Date(iso).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+  return formatDate(new Date(iso), "monthDay");
 }
 
 /** リセットまでの表示（5 時間枠は残り時間、週枠は日時） */
@@ -41,8 +87,8 @@ export function formatReset(resetsAt: string | null, now = Date.now()): string |
     const m = diffMin % 60;
     return `あと ${h > 0 ? `${h}時間` : ""}${m}分でリセット`;
   }
-  const date = at.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
-  const time = at.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+  const date = formatDate(at, "monthDayWeekday");
+  const time = formatDate(at, "clock");
   return `${date} ${time} にリセット`;
 }
 
@@ -57,7 +103,7 @@ export function resetInShort(resetsAt: string | null, now = Date.now()): string 
 
 /** 時刻だけ（"14:05"） */
 export function formatClock(iso: string): string {
-  return new Date(iso).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+  return formatDate(new Date(iso), "clock");
 }
 
 /** 日時を、今日・昨日は時刻つきの短い形で（"今日 22:06" / "昨日 21:25" / "10月25日 22:01" / "2025/3/1"）。履歴の表に使う */
@@ -102,7 +148,7 @@ export function formatElapsed(ms: number): string {
 }
 
 /** 秒まで出す時刻（"08:34:12"） */
-const clockWithSeconds = (date: Date) => date.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const clockWithSeconds = (date: Date) => formatDate(date, "clockSeconds");
 const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 /** 日付の部分（今年なら "11/4"、ほかの年は "2025/11/4"） */
 const shortDay = (date: Date, now: Date) =>

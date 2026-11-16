@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useRef, type ReactNode } from "react";
 import { AudioLines, SendHorizontal, SkipForward, TextCursorInput, X } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { ErrorText } from "@/ui/ErrorText";
@@ -59,15 +59,14 @@ export function VoiceModeButton({ voice }: { voice: VoiceMode }) {
  */
 export function VoiceModePanel({ voice, queueToggle }: { voice: VoiceMode; queueToggle?: ReactNode }) {
   const orb = useRef<HTMLSpanElement>(null);
-  const { subscribeLevel } = voice;
+  // 受け取る先はチャット欄が持つ 1 つの入れ物なので、描き直しのたびに付け直さない
+  const subscribeLevel = useEffectEvent((listener: (level: number) => void) => voice.subscribeLevel(listener));
   useEffect(
     () =>
       subscribeLevel((level) => {
         // 話し声の RMS はおよそ 0.02〜0.2。0〜1 に広げて丸の大きさにする
         orb.current?.style.setProperty("--voice-level", String(Math.min(1, level * 8)));
       }),
-    // 受け取る先はチャット欄が持つ 1 つの入れ物なので、描き直しのたびに付け直さない
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
   const { state } = voice;

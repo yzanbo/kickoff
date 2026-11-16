@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { ServiceUsage } from "@shared/types";
 import { api } from "@/api";
 import { useAction } from "@/hooks/useAction";
@@ -23,12 +23,11 @@ export function UsagePanel() {
   // Kickoff のチャットでまだ使えない AI（Codex・Gemini）は、使用状況は見られるが今後の対応予定であることを添える
   const planned = usePlannedProviders();
 
+  const load = useEffectEvent(() => void action.guard(async () => setServices(await api.usageServices())));
   useEffect(() => {
-    const load = () => void action.guard(async () => setServices(await api.usageServices()));
     load();
-    const timer = setInterval(load, POLL_MS);
+    const timer = setInterval(() => load(), POLL_MS);
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refresh = () => action.run("refresh", async () => setServices(await api.refreshUsageServices()));

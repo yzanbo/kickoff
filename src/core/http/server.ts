@@ -65,6 +65,10 @@ import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VE
 import { createMiddleware } from "hono/factory";
 import { MCP_PATH, type McpToolHost } from "../mcp/host.js";
 import type { ProviderKeyVault } from "../providers/keys.js";
+import { noteSyncSince, syncStart } from "../system/stallWatch.js";
+import { sseDataOf } from "./sseData.js";
+import { isHashedAsset, rendererCacheControl } from "./rendererCache.js";
+import { etag } from "hono/etag";
 
 export interface ServerDeps {
   store: Store;
@@ -135,6 +139,15 @@ const VERSION = "0.1.0";
 export function createApp(deps: ServerDeps): Hono {
   const { store, bus, token, runner } = deps;
   const app = new Hono();
+
+  // 詰まりの見張り（system/stallWatch.ts）: 頼みの最初の await までの同期の分に「http:<メソッド> <パス>」の名前を付ける（数字の段は :id）。
+  // 中の SQL は別に名前が付く
+  app.use("*", async (c, next) => {
+    const start = syncStart();
+    const done = next();
+    noteSyncSince(start, () => `http:${c.req.method} ${c.req.path.replace(/\/\d+(?=\/|$)/g, "/:id")}`);
+    await done;
+  });
 
   // 版の互換: アプリが見出しで伝えた API の版が、本体の受ける下限より古ければ、決まった印で断る（認証より前。ペアリングの口も同じ）
   const checkClientVersion = createMiddleware(async (c, next) => {
@@ -258,7 +271,12 @@ export function createApp(deps: ServerDeps): Hono {
       const unsubscribe = bus.subscribe((event) => {
         if (isDevice && event.type === "settings" && !event.settings.remote_enabled) return finish();
         if (caller.kind === "device" && event.type === "devices" && !store.devices.get(caller.device.id)) return finish();
-        if (!isDevice || deviceMaySee(event)) void stream.writeSSE({ data: JSON.stringify(event) });
+        if (!isDevice || deviceMaySee(event)) {
+          const start = syncStart();
+          const data = sseDataOf(event);
+          noteSyncSince(start, () => `sse:${event.type}`);
+          void stream.writeSSE({ data });
+        }
       });
       const ping = setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);
       // つないだらすぐ hello（本体の版・API の版・本体の ID）を送る。何か書くまで応答ヘッダーが届かず、画面が「接続中」のままになるのも防ぐ
@@ -276,13 +294,17 @@ export function createApp(deps: ServerDeps): Hono {
   // ---- 画面（本番時） ----
   if (deps.staticDir && fs.existsSync(deps.staticDir)) {
     const root = path.relative(process.cwd(), deps.staticDir);
-    // 画面のファイルは毎回問い合わせさせる（no-cache）。serveStatic は Last-Modified だけを付けるので、そのままだと
-    // Chromium が経験則でキャッシュを新しいとみなし、アプリを入れ替えたあとの起動で古い index.html と古い JS を
-    // サーバーに問い合わせずに使う（新しいコアとかみ合わず、画面が真っ暗になることがあった）
+    // /assets/ の下（名前に中身のハッシュが付く）は 1 年・変わらないとしてキャッシュさせ（起動・別ウィンドウのたびに JS を取り直してコンパイルし直さない）、
+    // ほかは毎回問い合わせさせる（no-cache）。no-cache を外すと、serveStatic は Last-Modified だけを付けるので Chromium が経験則でキャッシュを
+    // 新しいとみなし、アプリを入れ替えたあとの起動で古い index.html を問い合わせずに使う（新しいコアとかみ合わず、画面が真っ暗になることがあった）。
+    // index.html には中身から作る ETag を付け、変わっていなければ 304（変われば新しい index.html が新しいハッシュの JS を読む。rendererCache.ts）
     app.use("/*", async (c, next) => {
       await next();
-      c.res.headers.set("Cache-Control", "no-cache");
+      if (c.res.ok || c.res.status === 304) c.res.headers.set("Cache-Control", rendererCacheControl(c.req.path));
     });
+    // ETag は /assets/ の外だけ（大きな JS を読み直してハッシュを計算しない。asar の中のファイルの更新時刻はファイルごとでないので If-Modified-Since は使わない）
+    const withEtag = etag();
+    app.use("/*", (c, next) => (isHashedAsset(c.req.path) ? next() : withEtag(c, next)));
     app.use("/*", serveStatic({ root }));
     // SPA のため、未知のパスは index.html を返す。ただし拡張子のあるパス（/assets/… の JS・CSS など）は 404 にする
     // （HTML を JS として読み込ませて、原因の分からない失敗にしない）

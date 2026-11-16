@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useEffectEvent, useRef, type RefObject } from "react";
 import { isUnreadEvent } from "@shared/chat/state";
 import type { Chat, ChatEvent } from "@shared/types";
 import { api } from "@/api";
@@ -40,27 +40,29 @@ export function useMarkSeen({
   const lastUnreadId = events.findLast(isUnreadEvent)?.id ?? 0;
   // 見たと送った「新しい結果」の id（同じ結果で何度も送らない）。チャットが替われば数え直す
   const sent = useRef({ chatId: chat.id, upTo: 0 });
-  if (sent.current.chatId !== chat.id) sent.current = { chatId: chat.id, upTo: 0 };
-  // 確かめるときに読むいまの値（新しい結果が届いたことは、確かめるきっかけにしない）
-  const now = useRef({ chatId: chat.id, unread: chat.unread, visible, focused, lastEventId, lastUnreadId });
-  now.current = { chatId: chat.id, unread: chat.unread, visible, focused, lastEventId, lastUnreadId };
 
-  /** いま一番下が見えていて、まだ見たと送っていない結果があれば既読にする */
-  const check = () => {
+  /**
+   * いま一番下が見えていて、まだ見たと送っていない結果があれば既読にする。
+   * 確かめるときにいまの値を読む（effect event。新しい結果が届いたことは、確かめるきっかけにしない）
+   */
+  const check = useEffectEvent(() => {
     const el = timelineRef.current;
-    const n = now.current;
-    if (!n.visible || !n.focused || !el) return;
+    if (!visible || !focused || !el) return;
     // スクロールの知らせより先に動くことがある（開いた発言へ移った直後など）ので、いまの位置で確かめる
     if (el.scrollHeight - el.scrollTop - el.clientHeight >= slackPx) return;
-    if (!n.unread && n.lastUnreadId <= sent.current.upTo) return;
-    sent.current.upTo = n.lastUnreadId;
-    void api.markSeen(n.chatId, n.lastEventId).catch(() => {});
-  };
+    if (sent.current.chatId !== chat.id) sent.current = { chatId: chat.id, upTo: 0 };
+    if (!chat.unread && lastUnreadId <= sent.current.upTo) return;
+    sent.current.upTo = lastUnreadId;
+    void api.markSeen(chat.id, lastEventId).catch(() => {});
+  });
 
-  // 表示した・一番下まで来た・チャットが替わったとき
+  // 表示した・一番下まで来た・チャットが替わったとき。裏のタブを表に戻した直後は、裏の間に増えた分へ一番下を寄せる前に
+  // 流れることがあるので、落ち着いてからもう一度確かめる（会話の欄は Activity で止めるので、表に戻すと effect が流れ直す）
   useEffect(() => {
-    if (!away) check();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (away) return;
+    check();
+    const timer = setTimeout(() => check(), SETTLE_MS);
+    return () => clearTimeout(timer);
   }, [visible, away, chat.id]);
 
   // チャットの画面の中で自分でスクロール・クリック・キー入力したとき（一番下に付いたまま見ている間も、操作すれば見たことにする）
@@ -73,13 +75,12 @@ export function useMarkSeen({
       // 右の欄に入れ子で開いた子チャットなど、中のほかのチャットの画面での操作は数えない
       if (e.target instanceof Element && e.target.closest(".chat-page") !== root && root !== el) return;
       clearTimeout(timer);
-      timer = setTimeout(check, SETTLE_MS);
+      timer = setTimeout(() => check(), SETTLE_MS);
     };
     for (const type of ACTIVITY_EVENTS) root.addEventListener(type, onActivity, { capture: true, passive: true });
     return () => {
       clearTimeout(timer);
       for (const type of ACTIVITY_EVENTS) root.removeEventListener(type, onActivity, { capture: true });
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, chat.id]);
+  }, [visible, chat.id, timelineRef]);
 }

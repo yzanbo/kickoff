@@ -32,7 +32,16 @@ const STATUS_TEXTS: Record<Exclude<AgentState, "read">, string> = {
 const PLACEHOLDER = "このページの直し方を AI に頼む（例: 表を日付順に / 見出しの色を青に）。Enter で送る、Shift+Enter で改行";
 
 /** 流れを持たないので、送っても付いていくものがない（useChatSend に渡すスクロールの代わり） */
-const NO_SCROLL: TimelineScroll = { ref: { current: null }, following: () => false, follow: () => {}, release: () => {} };
+const NO_SCROLL: TimelineScroll = {
+  ref: { current: null },
+  inner: { current: null },
+  following: () => false,
+  follow: () => {},
+  release: () => {},
+  holdUp: () => {},
+  held: () => false,
+  settle: () => {},
+};
 
 /**
  * メモのページの下の、そのメモを AI に直してもらう入力欄（メモのチャットの欄を閉じている間だけ出す）。
@@ -74,10 +83,10 @@ export function MemoQuickChat({
   const state = chat ? stateOf(chat) : "read";
   // 幅はメモのチャットの欄（チャットの画面）と同じ「会話の横幅」に従う（標準なら上限 820px で真ん中、広げるなら幅いっぱい。開け閉めで幅が変わらないように）
   const [wide] = useWideText();
-  const fit = useQuickStatusFit();
+  const { ref: fitRef, ...fit } = useQuickStatusFit();
   return (
     <div className={cx("memo-quick-chat", wide && "wide")}>
-      <div ref={fit.ref} className={cx("memo-quick-status", fit.className)}>
+      <div ref={fitRef} className={cx("memo-quick-status", fit.className)}>
         <span className="memo-quick-name" title="メモのチャット">
           <MessageSquare size={13} aria-hidden />
           <span className="memo-quick-name-text">メモのチャット</span>

@@ -2,6 +2,7 @@ import { createContext, useContext } from "react";
 import type { Placement } from "@/lib/floating";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useContextMenu } from "@/ui/useContextMenu";
+import { ensureAllRows } from "@/hooks/useProgressiveRows";
 
 /**
  * サイドバー・ボードで選んだチャット（それぞれ 1 つずつ持つ。決まりは useMultiSelect: ⌘ を押しながらクリックで足す・外す、Shift で前に選んだものからの範囲を足す。
@@ -46,7 +47,11 @@ export function useChatSelectionState(existing: readonly number[], order: () => 
   return {
     ids: select.ids,
     has: select.has,
-    click: select.click,
+    click: (e, id) => {
+      // Shift の範囲は画面に並ぶ行から決めるので、開いた直後でまだ描いていない行があれば先にすべて描く（案 23）
+      if (e.shiftKey) ensureAllRows();
+      return select.click(e, id);
+    },
     add: select.add,
     clear: () => {
       select.clear();

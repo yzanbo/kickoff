@@ -1,5 +1,5 @@
 import { PanelLeftOpen } from "lucide-react";
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { DbConnection, DbImportCandidate } from "@shared/types";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
@@ -104,12 +104,13 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     focusConnection(r.connectionId);
   });
 
-  // 消した接続のタブは閉じる（一覧が届いてから）
-  useEffect(() => {
-    if (!connections.data) return;
+  // 消した接続のタブは閉じる（一覧が届いてから。タブが変わっても見直さない）
+  const closeGoneTabs = useEffectEvent(() => {
     const gone = state.tabs.filter((t) => !byId.has(t.connection_id)).map((t) => t.connection_id);
     if (gone.length > 0) setState(gone.reduce(closeConnectionTabs, state));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (connections.data) closeGoneTabs();
   }, [connections.data]);
 
   const actions: DbClientActions = {
@@ -117,7 +118,7 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
     place,
     narrow,
     worktreeOf: (id) => (mainOnly.has(id) ? null : worktree),
-    useMain: (id) => setMainOnly((s) => new Set([...s, id])),
+    openMain: (id) => setMainOnly((s) => new Set([...s, id])),
     openTable: (c, path, name, object, filter, preview) => {
       const tab = { key: tableTabKey(c.id, path, name, object), kind: "table" as const, connection_id: c.id, path, name, object, ...(filter ? { filter } : {}) };
       // 仮のタブは、保存していない変更があれば置き換えずに残す

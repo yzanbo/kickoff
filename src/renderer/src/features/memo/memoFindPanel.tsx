@@ -46,6 +46,9 @@ function countMatches(state: EditorState): { total: number; current: number | nu
  * 検索の欄の中のキー（Esc で閉じる・⌘G で次へなど）は CodeMirror の検索の欄と同じ（searchKeymap の search-panel）
  */
 function MemoFindPanel({ view, initialFocus }: { view: EditorView; initialFocus: boolean }) {
+  // CodeMirror の view.state（同じ view のまま書き換わる外の値）を描く中で読むので、React Compiler に覚えさせない
+  // （覚えると view が同じ間は検索の形・件数を読み直さない。描き直しは CodeMirror の更新ごとに root.render で頼まれる）
+  "use no memo";
   const { options, toggle } = useFindOptions();
   const query = getSearchQuery(view.state);
   const [text, setText] = useState(query.search);

@@ -66,9 +66,9 @@ export function PortsPopover({ anchor, onClose }: Props) {
     setStops((s) => ({ ...s, [p.pid]: "stopping" }));
     try {
       const { stopped } = await api.stopPortProcess({ pid: p.pid, command: p.command_full, force });
-      setStops(({ [p.pid]: _, ...rest }) => (stopped ? rest : { ...rest, [p.pid]: "stuck" }));
+      setStops((s) => (stopped ? withoutPid(s, p.pid) : { ...s, [p.pid]: "stuck" }));
     } catch (e) {
-      setStops(({ [p.pid]: _, ...rest }) => rest);
+      setStops((s) => withoutPid(s, p.pid));
       reportFailure("止められませんでした")(e);
     }
   };
@@ -97,6 +97,13 @@ export function PortsPopover({ anchor, onClose }: Props) {
       )}
     </Popover>
   );
+}
+
+/** pid の止め方の様子を外した写し */
+function withoutPid(stops: Record<number, StopState>, pid: number): Record<number, StopState> {
+  const rest = { ...stops };
+  delete rest[pid];
+  return rest;
 }
 
 function PortRow({

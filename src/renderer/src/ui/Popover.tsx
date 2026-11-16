@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ComponentProps, type HTMLAttributes, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffectEvent, useRef, useState, type ComponentProps, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/lib/cx";
 import { anchorPlacement, type FloatingAlign, type FloatingSide } from "@/lib/floating";
@@ -57,8 +57,7 @@ export function Popover({
   ...rest
 }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const close = useRef(onClose);
-  close.current = onClose;
+  const close = useEffectEvent(onClose);
   useDismiss([ref, anchor], onClose, { enabled: dismissable, escape, ignore });
   useFloating(
     ref,
@@ -66,7 +65,7 @@ export function Popover({
       const el = anchor.current;
       // 基準の要素が消えた・隠れた（表示していないタブになった）・押せなくなった（パネルを閉じた）ら閉じる
       if (!el?.isConnected || el.getClientRects().length === 0 || el.closest("[inert]")) {
-        close.current();
+        close();
         return null;
       }
       return anchorPlacement(el, { side, align, gap });

@@ -43,16 +43,19 @@ export function PromptAssist({
     const mine = ++seq.current;
     setBusy(true);
     setError(undefined);
-    try {
-      const next = await assist.suggest(text.trim());
-      if (mine !== seq.current) return;
-      setOptions(next);
-      if (!value.trim() && next[0]) onPick(next[0]);
-    } catch (e) {
-      if (mine === seq.current) setError(errorMessage(e));
-    } finally {
-      if (mine === seq.current) setBusy(false);
-    }
+    await assist
+      .suggest(text.trim())
+      .then((next) => {
+        if (mine !== seq.current) return;
+        setOptions(next);
+        if (!value.trim() && next[0]) onPick(next[0]);
+      })
+      .catch((e: unknown) => {
+        if (mine === seq.current) setError(errorMessage(e));
+      })
+      .finally(() => {
+        if (mine === seq.current) setBusy(false);
+      });
   };
 
   return (

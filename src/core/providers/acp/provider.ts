@@ -25,7 +25,6 @@ export interface AcpProviderOpts {
 
 /** CLI ごとに決めるもの（ACP の決まりのほか） */
 export interface AcpProviderSpec extends AcpAgentSpec {
-  id: ProviderId;
   /** CLI のコマンド名 */
   command: string;
   /** 入っていないときの案内 */

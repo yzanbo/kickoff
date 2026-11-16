@@ -1,7 +1,8 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { useTicker } from "@/hooks/useTicker";
+import { streamingLastAt } from "@/features/chat/store/useChatStore";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 import { activityOf, latestOf, stalledAgents } from "./stall";
 import { workingLabel } from "./workingLabel";
@@ -24,20 +25,19 @@ export function useWorkingStatus({
   events: ChatEvent[];
   /** 流れ全体の最後の項目（窓で途中を描いていても、いまの状態で決める） */
   last: TimelineItem | undefined;
-  streaming: string;
+  /** 書いている途中の返答があるか */
+  streaming: boolean;
   live: ChatLive;
   agents: SubagentEntry[];
   busy: boolean;
 }): ReactNode | null {
   useTicker(busy ? 15_000 : 3_600_000);
-  const streamedAt = useRef<string>(undefined);
-  useEffect(() => {
-    if (streaming) streamedAt.current = new Date().toISOString();
-  }, [streaming]);
   if (!busy) return null;
+  // 書いている途中の返答が最後に届いた時刻は、描くときにチャットの店から読む（作業中は 15 秒ごとに描き直す）
+  const streamedAt = streamingLastAt(chat.id);
   const running = agents.filter((s) => s.status === "running");
   const activity = {
-    parent: activityOf(latestOf(events.at(-1)?.created_at, streamedAt.current, chat.turn_started_at, ...running.map((s) => s.lastActivityAt))),
+    parent: activityOf(latestOf(events.at(-1)?.created_at, streamedAt, chat.turn_started_at, ...running.map((s) => s.lastActivityAt))),
     stalled: stalledAgents(agents),
   };
   return workingLabel(chat, last, streaming, live, running.length, activity);

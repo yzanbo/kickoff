@@ -1,3 +1,4 @@
+import { isDarkTheme } from "@shared/theme/backgrounds";
 import { useSetting } from "@/hooks/useSetting";
 import { readSetting, subscribeSetting, type SettingValue } from "@/lib/storage";
 import { THEME } from "@/lib/storageKeys";
@@ -6,11 +7,15 @@ export type Theme = SettingValue<typeof THEME>;
 
 const darkScheme = () => matchMedia("(prefers-color-scheme: dark)");
 
-/** いまのテーマを <html data-theme> に出す（既定はダーク。system は OS のダーク・ライトに合わせる） */
+/**
+ * いまのテーマを <html data-theme> に出す（既定はダーク。system は OS のダーク・ライトに合わせる）。起動直後は public/boot.js が
+ * 同じ値で先に出している。デスクトップアプリなら、選んでいるテーマをメインにも知らせる（窓の地の色。メモの仕様書「0023_表示を軽くする」の案 18a）
+ */
 function applyTheme() {
   const theme = readSetting(THEME);
-  const dark = theme === "dark" || (theme === "system" && darkScheme().matches);
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.documentElement.dataset.theme = isDarkTheme(theme, darkScheme().matches) ? "dark" : "light";
+  // ?. は、開発中に画面だけ新しくなり preload が古いままのとき（口がまだない）に投げないため
+  window.kickoff?.appearance?.setTheme?.(theme);
 }
 
 /**

@@ -12,7 +12,7 @@ import { ErrorText } from "@/ui/ErrorText";
  * 鍵の指紋を見せ、「受け入れてつなぐ」で ~/.ssh/known_hosts に足して（ターミナルの ssh と同じ場所）つなぎ直す
  */
 export function SshHostKeyDialog({ projectId, ssh, onAccepted, onClose }: { projectId: number; ssh: DbSsh; onAccepted: () => void; onClose: () => void }) {
-  const dialog = useModalDialog({ closeOnBackdrop: false });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   const scan = useAsync(() => api.dbSshHostKey(projectId, ssh), [projectId, ssh.host, ssh.port, ssh.user, ssh.identity_file]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -38,7 +38,7 @@ export function SshHostKeyDialog({ projectId, ssh, onAccepted, onClose }: { proj
 
   return (
     <dialog
-      ref={dialog.ref}
+      ref={dialogRef}
       className="dialog app-dialog db-ssh-key-dialog"
       aria-label="踏み台のサーバーの鍵を確かめる"
       // 接続のダイアログの中に開くので、閉じた知らせを外のダイアログに伝えない（React は close を部品の木で親へ伝え、親のダイアログも閉じてしまう）
