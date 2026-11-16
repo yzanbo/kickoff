@@ -15,9 +15,12 @@ export function firstRowLimit(viewportHeight: number): number {
 
 /**
  * 縦に並ぶまとまり（counts はまとまりごとの行の数・閉じているまとまりは 0）に、上から順に上限を配る。
- * 行の少ないまとまりの余りは次のまとまりへ回り、合計は limit を超えない（limit が Infinity ならそのまま）
+ * 行の少ないまとまりの余りは次のまとまりへ回り、合計は limit を超えない。
+ * limit が Infinity（最初の描画のあと）なら、どのまとまりも上限なし（Infinity）。行の数で切ると、counts に入れていない一覧
+ * （まとまりの中のアーカイブ済みなど、同じ上限を読む別の一覧）が、そのまとまりの行の数までしか描かれず、残りが空の箱のままになった
  */
 export function allocateRows(counts: readonly number[], limit: number): number[] {
+  if (limit === Number.POSITIVE_INFINITY) return counts.map(() => Number.POSITIVE_INFINITY);
   let rest = limit;
   return counts.map((count) => {
     const given = Math.min(Math.max(0, count), Math.max(0, rest));

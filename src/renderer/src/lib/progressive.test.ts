@@ -40,7 +40,8 @@ test("縦に並ぶまとまりには上から順に配り、少ないまとま�
   assert.deepEqual(allocateRows([0, 3, 100], 45), [0, 3, 42]);
   assert.deepEqual(allocateRows([5, 5], 45), [5, 5]);
   assert.deepEqual(allocateRows([5, 5], 0), [0, 0]);
-  assert.deepEqual(allocateRows([7, 900], Infinity), [7, 900]);
+  // 最初の描画のあとは、まとまりの行の数で切らない（同じ上限を読む、数に入れていない一覧も残りまで描く）
+  assert.deepEqual(allocateRows([7, 900, 0], Infinity), [Infinity, Infinity, Infinity]);
 });
 
 test("上限に収まる一覧は同じ配列のまま、超えれば頭から上限の数と省いた数", () => {
