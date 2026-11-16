@@ -220,6 +220,8 @@
 .hover-tip-text {
   color: var(--muted);
   white-space: pre-line;
+  /* 長い URL（画像の URL の一覧など）も幅の中で折り返す */
+  overflow-wrap: anywhere;
 }
 
 /*

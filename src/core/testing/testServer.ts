@@ -47,6 +47,9 @@ import type { SpeechOptions } from "../voice/speech.js";
 import { FakeProviderBase } from "./fakeProvider.js";
 import "./gitRepo.js";
 import { tempDir } from "./tempDir.js";
+import { Invalid } from "../http/errors.js";
+import { RemoteImageService } from "../remoteImages/service.js";
+import type { FetchedImage } from "../remoteImages/fetchImage.js";
 import { setupCore, type BeforeStart } from "./testCore.js";
 import { McpToolHost } from "../mcp/host.js";
 import { ProviderKeyVault } from "../providers/keys.js";
@@ -445,7 +448,21 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
   const terminalFake = fakeTerminals();
   const terminals = new TerminalSessions({ shell: { file: "/bin/sh", args: (c) => (c ? ["-c", c] : []) }, spawn: terminalFake.spawn });
   afterTest(() => terminals.closeAll());
-  registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
+  // チャット欄の外の画像: 外へは取りに行かず、imageFake.images の URL → 画像を返す（なければ 400 の文。取った URL は imageFake.fetched）
+  const imageFake = { images: {} as Record<string, FetchedImage>, fetched: [] as string[] };
+  const remoteImages = new RemoteImageService({
+    store,
+    dir: tempDir(),
+    publish: (e) => bus.publish(e),
+    fetcher: async (url) => {
+      imageFake.fetched.push(url);
+      const image = imageFake.images[url];
+      if (!image) throw new Invalid("画像を読み込めませんでした（HTTP 404）");
+      return image;
+    },
+  });
+  const forgetChatImages = (ids: number[]) => remoteImages.forgetChats(ids);
+  registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages });
   // ワークツリーの後始末: GitHub のマージ済みの PR は偽物（prFake.merged のブランチ → PR）。予約の確かめ直しは短く
   const worktreeFinisher = new WorktreeFinisher({
     store,
@@ -467,10 +484,10 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
   // メモのフォルダの見張り（FSEvents）と DB ワーカーの接続も止める（同じプロセスで続けて流すと、ほかのファイルのテストまで残り続ける）
   afterTest(() => memos.close());
   afterTest(() => databases.close());
-  registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids) });
+  registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages });
   // AI の API キー（暗号化の口を渡されたテストはそれで置く。実行の側には渡さない = いつもサブスク）
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
-  const app = createApp({ store, bus, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const app = createApp({ store, bus, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, remoteImages, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -482,6 +499,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, mcpTools, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, worktreeFinisher, chatRemover, userViews, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, mcpTools, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, worktreeFinisher, chatRemover, userViews, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, remoteImages, imageFake, codexCalls: () => codexCalls };
 }
 

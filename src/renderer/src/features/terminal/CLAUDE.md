@@ -19,6 +19,13 @@
 - 拡張機能は設定の「ブラウザの拡張機能」（`BrowserExtensions`）。
 - AI（チャットのエージェント）もブラウザのタブを見る・操作する（ツールは `core/mcp/browserTools.ts`、操作はメインプロセスの `browser/agentBrowser.ts`）。`BrowserPane` は `agentTarget`（タブのキーとパネルのプロジェクト）を受け、webview の準備ができたら `useAgentRegistration` でメインプロセスに登録する。AI が新しいタブを開くときは、App の `useAgentBrowserBridge`（`app/agentBrowser.ts`）がそのプロジェクトのチャット欄（`side:<プロジェクト>`）に足す（チャット欄はいま出ているプロジェクトの分だけ描くので、ほかのプロジェクトなら断って AI に理由を返す）。AI が作業の初めに使うタブ（新しく開いた・その作業で初めて操作する既存のタブ）は、そのタブのある欄（チャット欄・下のパネル・ボードの右のパネル）を開いて表示中にする（新しいタブは `panelActions.openBrowser`、既存のタブは `showTab`。利用者が別のチャットを見ていても開く。キーボードのピントは動かさないので、入力欄で書いている途中の文字はブラウザに入らない。利用者が AI の操作に気づけるように。Auto mode では承認カードが出ないので、目で見えることを守りにする。利用者と決めた）。表に出すのは作業ごとに初めの 1 回だけ（`core/mcp/browserReveal.ts`）で、そのあと AI が別のタブに移ったときは、利用者がまだ前に表に出したタブを見ている（欄が開いていて表示中。`features/panel/state/tabPlace.ts` の `isTabShown`）ときだけ切り替える。利用者がほかのタブに切り替えた・欄を閉じたら、その作業の間はもう表に戻さない。AI が「裏で」と頼まれた（ツールの `background`）ときは、表に出さずに足す（`panelActions.addBrowserBehind`。見ているタブ・欄の開閉は変えない）。AI が操作している間はタブの名前の前を「AI 操作中」のロボット（`BrowserTabLead`。`agentBrowsing.ts` の `useAgentBrowsing`）にし、そのタブのページに `.agent-browsing` を付けて、表に出ていない・欄を閉じていても透明のまま欄の大きさで並べる（`browser.css`。閉じたチャット欄は、開いたときと同じ幅・高さ・タブの列で見えないまま並べ、AI が撮る画面の大きさを利用者が欄を開いて見る大きさとそろえる。前はページだけをウィンドウの高さいっぱいに置き、タブの列の分だけ縦長に撮れていた）。
 
+## 外部リンクを開く（`features/browser/linkOpen.ts`・`LinkOpenerProvider`）
+
+返答などの Markdown の外部リンク（http・https）は、開く前に毎回確かめる（メモの仕様書「0027_チャット欄の外の画像とリンク」）。App と別ウィンドウが `LinkOpenerProvider` で Markdown に開き方を入れ、Kickoff の画面全体の Markdown に効く（ふつうの `<a target="_blank">` はメインプロセスが既定のブラウザで開く）。
+
+- 確認の画面「外部リンクを開く」（`openWebLink`）: 行き先の URL と、当たった警告（`@shared/links/linkWarnings` の `linkWarnings`: リンクの文字に見えるサイトと行き先が違う・URL にユーザー名・国際化ドメイン名（実際の表記を添える）・IP アドレス）。警告がなければ「{ドメイン} へのリンクは今後確認しない」を選べ、選んだドメインは設定の `trusted_link_domains`（アプリ全体）に足して次から確かめない。警告に当たるリンクは覚えていても毎回確かめ、「今後確認しない」も出さない。
+- 開き先は設定の `link_open_in`（Kickoff のブラウザ（初め）/ 既定のブラウザ）。⌘（Ctrl）を押しながら押すと反対の方。Kickoff のブラウザは AI の browser_open と同じ所（見ているプロジェクトのチャット欄の新しいタブ `openSideBrowser`）。プロジェクトを開いていない画面・別ウィンドウでは既定のブラウザ。
+
 ## 外のアプリで開く（`features/openWith`）
 
 - パネルのタブの列のブラウザ・ターミナルは、アイコンで新しいタブ、横の細い ▾ でメニュー `OpenWithMenu`（新しいタブで開く・区切り線・「外部で開く」の見出しの下にこの Mac に入っているアプリの一覧。アプリを押すとそのアプリの新しいタブ・窓でそのまま開き、次からの既定にもなる。チェックは付けない（利用者の依頼））。アイコンと ▾ は 1 つのボタンに見せ、どちらに乗せても・メニューを開いている間も、2 つをつなげた 1 つの地で光らせる（`.panel-split-button` の `.panel-open-with`）。

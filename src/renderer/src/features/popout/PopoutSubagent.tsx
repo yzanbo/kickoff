@@ -9,6 +9,7 @@ import { useChatPaneActions } from "@/features/chat/pane/useChatPaneActions";
 import { useFileLinks } from "@/features/fileLinks/useFileLinks";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
+import { ChatImagesProvider } from "@/features/chat/images/ChatImage";
 import { usePopoutFileLinks } from "./PopoutFiles";
 
 /**
@@ -55,11 +56,13 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
   const links = usePopoutFileLinks(fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
   return (
     <FileLinksProvider value={links}>
-      <ChatPaneContext.Provider value={pane}>
-        <div className="popout-body">
-          <SubagentScreen chatId={chat.id} agentKey={agentKey} />
-        </div>
-      </ChatPaneContext.Provider>
+      <ChatImagesProvider chatId={chat.id}>
+        <ChatPaneContext.Provider value={pane}>
+          <div className="popout-body">
+            <SubagentScreen chatId={chat.id} agentKey={agentKey} />
+          </div>
+        </ChatPaneContext.Provider>
+      </ChatImagesProvider>
     </FileLinksProvider>
   );
 }

@@ -1,0 +1,50 @@
+// 外部リンクを開く（メモの仕様書「0027_チャット欄の外の画像とリンク」）: 開く前に確認の画面（URL と警告）を出し、設定の開き先（Kickoff のブラウザ / 既定のブラウザ）で開く。
+// 「今後確認しない」はドメインごとにアプリ全体で覚える（設定の trusted_link_domains）。警告に当たるリンクは覚えていても毎回確かめる
+import { LINK_WARNING_LABELS, linkDomainOf, linkWarnings, webUrlOf } from "@shared/links/linkWarnings";
+import type { AppSettings } from "@shared/types";
+import { api } from "@/api";
+import { settingsStore } from "@/stores/settings";
+import { confirmDialog, confirmWithCheck, reportFailure } from "@/ui/dialogs";
+import { openSideBrowser } from "@/features/panel/state/openBrowserTab";
+
+const TITLE = "外部リンクを開く";
+
+/** 確認の画面の本文（行き先の URL と、当たった警告。国際化ドメイン名は実際の表記を添える） */
+export function linkConfirmMessage(href: string, text: string): string {
+  const url = webUrlOf(href);
+  const warnings = linkWarnings(href, text);
+  const lines = ["Kickoff の外のサイトを開きます:", href];
+  for (const w of warnings) lines.push("", `⚠ ${LINK_WARNING_LABELS[w]}${w === "idn" && url ? `: ${url.hostname}` : ""}`);
+  return lines.join("\n");
+}
+
+/** 開くかを確かめる（確かめずに開いてよければ true。「今後確認しない」を選んだらドメインを覚える） */
+async function confirmOpen(href: string, text: string, settings: AppSettings): Promise<boolean> {
+  const domain = linkDomainOf(href);
+  const warned = linkWarnings(href, text).length > 0;
+  if (!warned && domain !== null && settings.trusted_link_domains.includes(domain)) return true;
+  const message = linkConfirmMessage(href, text);
+  if (warned || domain === null) return confirmDialog({ title: TITLE, message, confirmLabel: "開く" });
+  const answer = await confirmWithCheck({ title: TITLE, message, confirmLabel: "開く", check: { label: `${domain} へのリンクは今後確認しない` } });
+  if (!answer) return false;
+  if (answer.checked) {
+    void api
+      .updateSettings({ trusted_link_domains: [...settings.trusted_link_domains, domain] })
+      .then((saved) => settingsStore.set(saved))
+      .catch(reportFailure("設定を保存できませんでした"));
+  }
+  return true;
+}
+
+/**
+ * 外部リンクを開く。invert（⌘ を押しながら）なら設定と反対の方で開く。Kickoff のブラウザで開くのは、そのプロジェクトのチャット欄に新しいタブ
+ * （AI の browser_open と同じ所）。プロジェクトが分からない画面（全プロジェクト・別ウィンドウ）では既定のブラウザ
+ */
+export async function openWebLink(href: string, text: string, opts: { invert: boolean; projectId: number | undefined }): Promise<void> {
+  const settings = settingsStore.get().data ?? (await settingsStore.reload());
+  if (!(await confirmOpen(href, text, settings))) return;
+  const kickoff = (settings.link_open_in === "kickoff") !== opts.invert;
+  if (kickoff && opts.projectId !== undefined) openSideBrowser(opts.projectId, href);
+  // 新しいウィンドウを開こうとすると、メインプロセスが既定のブラウザで開く（app/externalLinks.ts）
+  else window.open(href, "_blank", "noopener,noreferrer");
+}

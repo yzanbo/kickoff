@@ -17,6 +17,7 @@ import { MemoProgress } from "@/features/memo/MemoProgress";
 import { ToastHost } from "@/ui/toast";
 import { CoreStatusBand } from "@/features/diagnostics/CoreStatusBand";
 import { DialogHost } from "@/ui/dialogs";
+import { LinkOpenerProvider } from "@/features/browser/LinkOpenerProvider";
 import { DbUnlockHost } from "@/features/database/DbUnlockHost";
 import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { setProjectHues } from "@/features/project/projectColor";
@@ -78,6 +79,8 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
     // 別ウィンドウを開くたびに「最後に見ていた画面」が全プロジェクトに上書きされていた）。useRoute() は初めの値（全プロジェクト）
     <>
       <ChatStatesContext.Provider value={chatStates}>
+        {/* 外部リンクは確かめてから開く。別ウィンドウには Kickoff のブラウザのタブの置き場がないので、開き先は既定のブラウザ */}
+        <LinkOpenerProvider projectId={undefined}>
         <div ref={rootRef} className="popout">
           {find}
           {route.kind !== "chat" && (
@@ -126,6 +129,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
             </SideScope>
           )}
         </div>
+        </LinkOpenerProvider>
         <HoverTip />
         <MemoProgress />
         <ToastHost />
