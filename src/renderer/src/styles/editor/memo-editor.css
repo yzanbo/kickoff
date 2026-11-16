@@ -92,7 +92,7 @@
 
 .md-editor .cm-md-code {
   padding: 0 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-family: var(--mono);
   font-size: 0.9em;
   background: var(--bg-elev);

@@ -22,7 +22,7 @@
 
 .ci-branch {
   padding: 0 4px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--bg-hover);
   font-size: 11px;
 }

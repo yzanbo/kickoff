@@ -34,7 +34,7 @@
 
 .markdown code {
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-family: var(--mono);
   font-size: 0.9em;
   background: var(--bg-hover);

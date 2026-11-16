@@ -10,7 +10,7 @@
   width: 26px;
   height: 26px;
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: hsl(var(--ws-hue) 45% 45%);
   cursor: pointer;
 }

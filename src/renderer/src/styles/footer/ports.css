@@ -46,7 +46,7 @@
   display: grid;
   gap: 2px;
   padding: 6px 4px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .ports-row + .ports-row {
@@ -70,7 +70,7 @@
 .ports-port {
   padding: 0 4px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--accent-fg);
   font-family: var(--mono);
@@ -101,7 +101,7 @@
 .ports-place {
   padding: 0 5px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
 }
 

@@ -6,7 +6,7 @@
   display: inline-grid;
   flex: none;
   place-items: center;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   font-weight: 700;
   line-height: 1;
   color: hsl(var(--ws-hue, 150) 60% 72%);

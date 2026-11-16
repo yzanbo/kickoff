@@ -26,7 +26,7 @@
   max-width: 100%;
   min-height: 30px;
   padding: 3px 10px 3px 4px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   font-size: calc(14px * var(--chat-scale, 1));
   color: var(--muted);
 }
@@ -101,14 +101,14 @@
   margin: 4px 0 8px;
   padding: 8px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   background: var(--bg);
 }
 
 .tool-call {
   min-width: 0;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--bg-elev);
 }
 

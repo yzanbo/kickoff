@@ -121,7 +121,7 @@
   max-height: 180px;
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 
 .db-csv-table table {

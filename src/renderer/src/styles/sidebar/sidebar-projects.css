@@ -57,7 +57,7 @@
   margin-bottom: 8px;
   padding: 6px 4px 6px 4px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--radius);
   /* 外枠の中を押すとカンバンを開く */
   cursor: pointer;
 }

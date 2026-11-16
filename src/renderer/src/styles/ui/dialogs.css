@@ -75,7 +75,7 @@ dialog[open] {
   height: 34px;
   padding: 0 10px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   font: inherit;
   font-size: 13px;
   text-align: left;

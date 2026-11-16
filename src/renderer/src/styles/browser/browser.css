@@ -71,8 +71,8 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  border-radius: 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px);
-  clip-path: inset(0 round 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px));
+  border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px);
+  clip-path: inset(0 round 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px));
 }
 
 .browser-body.dock-bottom {

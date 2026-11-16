@@ -43,7 +43,7 @@
   height: 15px;
   padding: 0 3px;
   border: 2px solid var(--corner-ring, var(--bg));
-  border-radius: 8px;
+  border-radius: 999px;
   font-size: 9px;
   font-weight: 700;
   line-height: 1;

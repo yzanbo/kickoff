@@ -30,7 +30,7 @@
   gap: 4px;
   min-height: var(--row);
   padding: 6px 8px 6px 4px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   color: var(--text);
 }
 

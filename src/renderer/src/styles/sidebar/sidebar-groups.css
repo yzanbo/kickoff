@@ -81,7 +81,7 @@
   min-width: 0;
   height: var(--row-tight);
   padding: 0 4px 0 2px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   font-size: 13px;
   color: var(--muted);
   transition: background 0.12s;
@@ -92,7 +92,7 @@
 }
 
 .custom-group-head.ungrouped {
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
 }
 
 /* 「No Group」は自分で作ったグループより控えめに */
@@ -158,7 +158,7 @@
 }
 
 .custom-group-head.active {
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 

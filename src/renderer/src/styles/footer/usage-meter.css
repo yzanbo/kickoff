@@ -49,14 +49,14 @@
   display: block;
   height: 8px;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 999px;
   background: color-mix(in srgb, var(--meter-fill) 20%, var(--bg-elev));
 }
 
 .meter-fill {
   display: block;
   height: 100%;
-  border-radius: 4px;
+  border-radius: 999px;
   background: var(--meter-fill);
   transition: width 0.4s ease;
 }

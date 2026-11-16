@@ -38,7 +38,7 @@
   max-height: calc(100vh - 16px);
   overflow-y: auto;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   color: inherit;
   background: var(--bg-elev);
   box-shadow: 0 12px 32px rgb(0 0 0 / 35%);

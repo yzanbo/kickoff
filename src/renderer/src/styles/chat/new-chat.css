@@ -54,7 +54,7 @@
   place-items: center;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 15%, transparent);
 }

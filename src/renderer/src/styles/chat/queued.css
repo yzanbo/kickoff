@@ -7,7 +7,7 @@
   padding: 4px 8px 3px;
   border: 1px solid var(--border-strong);
   border-bottom: none;
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   background: var(--bg-elev);
 }
 
@@ -63,7 +63,7 @@
   align-items: center;
   gap: 2px;
   padding: 1px 0 1px 6px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
 }
 
 .queued-row:hover {
@@ -159,7 +159,7 @@
   justify-content: center;
   width: 17px;
   margin-left: -6px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   color: var(--extra-muted);
   cursor: grab;
 }
@@ -338,7 +338,7 @@
   gap: 6px;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--bg);
   transition: opacity 0.15s;
 }
@@ -608,7 +608,7 @@
 .restart-resume-banner.standalone {
   margin-bottom: 6px;
   border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--border));
-  border-radius: 10px;
+  border-radius: var(--radius);
 }
 
 /* 下の帯の入口（決めていない再開）。注意の色 */

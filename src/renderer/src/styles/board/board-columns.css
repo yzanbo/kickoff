@@ -18,7 +18,7 @@
   min-height: 0;
   padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--bg);
   transition:
     border-color 0.12s,
@@ -121,7 +121,7 @@
   height: 34px;
   padding: 0 6px 0 4px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--bg-elev);
   box-shadow: 0 0 0 4px var(--bg);
   /* 空いているところを押しても開閉する（BoardLanes） */
@@ -192,7 +192,7 @@
   height: 22px;
   padding: 0 8px;
   border: 1px dashed var(--border-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   font: inherit;
   font-size: 12px;
   color: var(--muted);
