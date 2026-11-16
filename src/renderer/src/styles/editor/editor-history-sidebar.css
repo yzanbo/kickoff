@@ -169,16 +169,26 @@
   min-height: 0;
 }
 
+/* 上の見出し（ファイルの数と表示の切り替え）はいつも出し、その下の一覧（.commit-files-body）だけを流す */
 .commit-files {
+  display: flex;
   flex: none;
-  overflow-y: auto;
+  flex-direction: column;
+  min-height: 0;
   border-right: 1px solid var(--border);
 }
 
 .commit-files-head {
   display: flex;
+  flex: none;
   align-items: center;
   padding: 4px 6px 4px 10px;
+}
+
+.commit-files-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .commit-files .change-file {

@@ -117,44 +117,47 @@ export function CommitView({
               <span className="spacer" />
               <IconButton icon={list ? ListTree : List} label={list ? "ツリーで表示" : "一覧で表示"} size={14} onClick={() => setList(!list)} />
             </div>
-            {list ? (
-              <ul className="change-files">
-                {files.map((f) => {
-                  const selected = file?.path === f.path;
-                  return (
-                    <li key={f.path}>
-                      <button
-                        className={cx("change-file", selected && "selected")}
-                        aria-current={selected || undefined}
-                        title={`${f.path}（${CHANGE_LABELS[f.kind]}）`}
-                        onClick={() => setFile(f)}
-                      >
-                        <FileIcon name={baseName(f.path)} />
-                        <PathParts path={f.path} nameClass={cx("change-name", f.kind === "D" && "deleted")} dirClass="change-dir" />
-                        <span className="change-kind" data-kind={f.kind}>
-                          {f.kind}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <FileTree
-                nodes={nodes}
-                open={openFolders}
-                onToggle={(path) =>
-                  setClosed((prev) => {
-                    const next = new Set(prev);
-                    if (!next.delete(path)) next.add(path);
-                    return next;
-                  })
-                }
-                selected={file?.path}
-                onSelect={(path) => setFile(files.find((f) => f.path === path))}
-                kinds={kinds}
-              />
-            )}
+            {/* 見出し（ファイルの数と表示の切り替え）は止めたまま、一覧だけを流す */}
+            <div className="commit-files-body">
+              {list ? (
+                <ul className="change-files">
+                  {files.map((f) => {
+                    const selected = file?.path === f.path;
+                    return (
+                      <li key={f.path}>
+                        <button
+                          className={cx("change-file", selected && "selected")}
+                          aria-current={selected || undefined}
+                          title={`${f.path}（${CHANGE_LABELS[f.kind]}）`}
+                          onClick={() => setFile(f)}
+                        >
+                          <FileIcon name={baseName(f.path)} />
+                          <PathParts path={f.path} nameClass={cx("change-name", f.kind === "D" && "deleted")} dirClass="change-dir" />
+                          <span className="change-kind" data-kind={f.kind}>
+                            {f.kind}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <FileTree
+                  nodes={nodes}
+                  open={openFolders}
+                  onToggle={(path) =>
+                    setClosed((prev) => {
+                      const next = new Set(prev);
+                      if (!next.delete(path)) next.add(path);
+                      return next;
+                    })
+                  }
+                  selected={file?.path}
+                  onSelect={(path) => setFile(files.find((f) => f.path === path))}
+                  kinds={kinds}
+                />
+              )}
+            </div>
           </aside>
           <div className="pane-resizer" aria-label="ファイルの一覧の幅を変える" {...filesPane.handle} />
           {file ? (
