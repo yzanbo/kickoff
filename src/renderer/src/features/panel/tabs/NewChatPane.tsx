@@ -1,5 +1,5 @@
 import { SquarePen } from "lucide-react";
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type MutableRefObject } from "react";
 import type { Attachment, Chat, ProviderId } from "@shared/types";
 import { api } from "@/api";
 import { useProjects } from "@/stores/projects";
@@ -116,9 +116,9 @@ export function NewChatPane({
   const groups = useGroups(projectId);
   const groupName = groupNameIn(groups, group);
   // グループ名が分かったら、タブにも出す
+  const tellGroupName = useEffectEvent((name: string) => onGroupChange?.(group, name));
   useEffect(() => {
-    if (groupName) onGroupChange?.(group, groupName);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (groupName) tellGroupName(groupName);
   }, [groupName]);
 
   // 見出しに出す項目（チャットの見出しと同じ設定）
@@ -133,14 +133,16 @@ export function NewChatPane({
   // seed の添付は、タブに添付をまだ残していないときだけ入れる（残していれば入力欄がそれを戻す。外した添付を戻さない）
   const seedAttachments = useRef(draftAttachments === undefined ? seed?.attachments : undefined);
   const seeded = useRef(false);
-  const visibleRef = useRef(visible);
-  visibleRef.current = visible;
-  useEffect(() => {
+  // ピントを移すかは、入れるときに表示しているかで決める
+  const seedComposer = useEffectEvent(() => {
     if (!ready || seeded.current) return;
     const text = initialText.current ?? seed?.text;
     if (!text && !seed) return;
     seeded.current = true;
-    composer.current?.fill(text ?? "", { attachments: seedAttachments.current, focus: visibleRef.current });
+    composer.current?.fill(text ?? "", { attachments: seedAttachments.current, focus: visible });
+  });
+  useEffect(() => {
+    seedComposer();
   }, [ready, seed]);
 
   // 最初の指示を送ってチャットを作る（チャット欄の送信と、定型文の帯の ⌘クリック・「すぐ送る」で共通）

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MouseEvent } from "react";
+import { useEffect, useEffectEvent, useRef, type MouseEvent } from "react";
 
 /**
  * 開いたらすぐモーダルで出す <dialog>。Esc や close() で閉じると、<dialog> の onClose が呼ばれる。
@@ -6,10 +6,13 @@ import { useEffect, useRef, type MouseEvent } from "react";
  */
 export function useModalDialog({ closeOnBackdrop = true, focusSelf = false } = {}) {
   const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
+  // 開くのは描いたときの 1 回だけ（focusSelf はそのときの値を読む）
+  const open = useEffectEvent(() => {
     ref.current?.showModal();
     if (focusSelf) ref.current?.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    open();
   }, []);
   const close = () => ref.current?.close();
   return {

@@ -1,6 +1,6 @@
 // 裏のタブ（いま見ていない DB クライアントのタブ）が持つ結果の量。合わせて DB_BACKGROUND_RESULT_BYTES を超えたら、
 // 裏に回った時刻の古いタブから結果を捨て（evict）、そのタブに戻ったら取り直す（タブごとの部品が受ける）
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import type { DbValue } from "@shared/types";
 
 /** 裏のタブの結果を合わせてこれだけ持つ（50MB ほど） */
@@ -57,12 +57,12 @@ function enforce() {
  * 裏の結果が多すぎれば evict が呼ばれる（結果を捨て、戻ったら取り直すのは呼ぶ側）
  */
 export function useResultBudget(key: string, bytes: number, active: boolean, evict: () => void) {
-  const evictRef = useRef(evict);
-  evictRef.current = evict;
+  // ほかのタブの effect の中からも呼ばれる（描く中では呼ばない）
+  const evictNow = useEffectEvent(evict);
   useEffect(() => {
     const prev = entries.get(key);
     const hiddenAt = active ? null : (prev?.hiddenAt ?? Date.now());
-    entries.set(key, { key, bytes, hiddenAt, evict: () => evictRef.current() });
+    entries.set(key, { key, bytes, hiddenAt, evict: () => evictNow() });
     enforce();
   }, [key, bytes, active]);
   useEffect(() => () => void entries.delete(key), [key]);

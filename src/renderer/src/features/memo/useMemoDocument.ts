@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { FileContent } from "@shared/types";
 import { api, ApiError } from "@/api";
 import { subscribeServerOpen, useServerEvent } from "@/api/events";
@@ -78,16 +78,17 @@ export function useMemoDocument(projectId: number, path: string) {
 
   const file = loaded.data;
   // 読み込んだら、そこから書き始める（まだ保存していない書きかけがあれば、それを未保存のまま戻す。開いたあとでほかで変わっていれば conflict）
-  useEffect(() => {
-    if (!file || base?.key === key) return;
-    const b = { key, projectId, path, content: file.content, hash: file.hash };
+  const startLoaded = useEffectEvent((f: FileContent) => {
+    const b = { key, projectId, path, content: f.content, hash: f.hash };
     const draft = readSetting(memoDraft(key));
-    if (draft && draft.text !== file.content) startFrom(b, draft.text, draft.hash === file.hash ? "dirty" : "conflict");
+    if (draft && draft.text !== f.content) startFrom(b, draft.text, draft.hash === f.hash ? "dirty" : "conflict");
     else {
       writeSetting(memoDraft(key), null);
-      startFrom(b, file.content, "saved");
+      startFrom(b, f.content, "saved");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (file && base?.key !== key) startLoaded(file);
   }, [file, key, base?.key]);
 
   /** いま書いてある中身を保存する（変わっていなければ何もしない）。保存できた（する必要がなかった）か */
@@ -98,26 +99,29 @@ export function useMemoDocument(projectId: number, path: string) {
       if (!b || content === null) return true;
       if (content === b.content && !force) return true;
       setState("saving");
-      try {
-        const saved = await api.saveMemo(b.projectId, b.path, content, force ? null : b.hash);
-        const next = { ...b, content, hash: saved.hash };
-        writeDraft(next);
-        // 保存している間に別のメモへ移っていれば、前のメモの指紋は入れない
-        if (current.current.base?.key !== b.key) return true;
-        changeBase(next);
-        setState(text.current === content ? "saved" : "dirty");
-        setError(null);
-        return true;
-      } catch (e) {
-        if (current.current.base?.key !== b.key) return false;
-        if (e instanceof ApiError && e.status === 409) {
-          setState("conflict");
-        } else {
-          setState("error");
-          setError(errorMessage(e));
-        }
-        return false;
-      }
+      const expectedHash = force ? null : b.hash;
+      return api
+        .saveMemo(b.projectId, b.path, content, expectedHash)
+        .then((saved) => {
+          const next = { ...b, content, hash: saved.hash };
+          writeDraft(next);
+          // 保存している間に別のメモへ移っていれば、前のメモの指紋は入れない
+          if (current.current.base?.key !== b.key) return true;
+          changeBase(next);
+          setState(text.current === content ? "saved" : "dirty");
+          setError(null);
+          return true;
+        })
+        .catch((e: unknown) => {
+          if (current.current.base?.key !== b.key) return false;
+          if (e instanceof ApiError && e.status === 409) {
+            setState("conflict");
+          } else {
+            setState("error");
+            setError(errorMessage(e));
+          }
+          return false;
+        });
     },
     [writeDraft, changeBase],
   );
@@ -210,15 +214,14 @@ export function useMemoDocument(projectId: number, path: string) {
       () => {},
     );
   };
-  const checkRef = useRef(checkFresh);
-  checkRef.current = checkFresh;
   // このメモが変わった（チャットからの追記・Finder・ほかのアプリ・ほかの場所で開いた同じメモの保存など）
   useServerEvent((e) => {
     if (e.type === "memos" && e.project_id === projectId && (e.path === null || e.path === path)) checkFresh();
   });
   // 知らせを取りこぼしたときのために: ウィンドウに戻ったとき・サーバーにつなぎ直したとき（切れている間の知らせは届かない）
   useWindowEvent("focus", checkFresh);
-  useEffect(() => subscribeServerOpen(() => checkRef.current()), []);
+  const checkOnOpen = useEffectEvent(() => checkFresh());
+  useEffect(() => subscribeServerOpen(() => checkOnOpen()), []);
 
   return {
     file,

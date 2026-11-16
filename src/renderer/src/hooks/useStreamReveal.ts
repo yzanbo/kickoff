@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useEffectEvent, useRef, useState } from "react";
 import { nextRevealLength, REVEAL_FADE_MS, revealBands, type RevealLimit, type RevealMark } from "@/lib/streamReveal";
 
 const IDLE = { text: "", bands: [] as number[] };
@@ -32,11 +32,14 @@ export function useStreamReveal(
   const [view, setView] = useState(IDLE);
   const state = useRef({ source: "", shown: 0, marks: [] as RevealMark[], frame: 0, last: 0, paused: false, limit: null as RevealLimit | null });
 
+  // 決まりは最初に 1 回だけ作る（createLimit が描くたびに替わっても、作った決まりを持ち続ける）
+  const makeLimit = useEffectEvent(() => createLimit?.() ?? null);
+
   useEffect(() => {
     const s = state.current;
     // shown 文字目まで出したいときに出す長さと描く文
     const cut = (shown: number) => {
-      s.limit ??= createLimit?.() ?? null;
+      if (s.limit == null) s.limit = makeLimit();
       return s.limit ? s.limit(s.source, shown) : { length: shown, render: s.source.slice(0, shown) };
     };
     const sync = () => syncTarget(read());
@@ -91,8 +94,6 @@ export function useStreamReveal(
     sync();
     // 見えていない間は購読しない（表に出たら、そのときの文を読み直す）
     return visible ? subscribe(sync) : undefined;
-    // createLimit は最初に 1 回だけ使う（作った決まりを持ち続ける）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [read, subscribe, visible]);
 
   // 外したら止める（予約の印も戻す。StrictMode などで付け直したとき、予約済みと思い込んで動かなくならないように）。

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { GitCommit } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useDragSize } from "@/hooks/useDragSize";
@@ -45,7 +45,7 @@ export function HistoryTab({
   const commit = picked?.projectId === projectId ? picked.commit : undefined;
   const setCommit = (next: GitCommit) => setPicked({ projectId, commit: next });
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。ファイルタブの一覧と同じ幅を覚える）
-  const list = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
+  const { paneRef: listPaneRef, ...list } = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
   // ブランチ・タグの右クリック（左の一覧とコミットの札で同じメニュー）
   const branchActions = useBranchActions(projectId, log, git, onWorktreeChange);
   const refMenu = useContextMenu<RefTarget>();
@@ -59,9 +59,9 @@ export function HistoryTab({
   const { projectName } = useProjects();
   // 履歴を開いたら、裏でリモートの情報を取ってくる（ほかの人の push もすぐ札に出す。変更のタブから移ってきたときも。
   // 前の自動のフェッチから間がなければ飛ばす）。取ってきたら Git の状態と一緒に履歴も読み直す
+  const autoFetchOnOpen = useEffectEvent(() => git.autoFetch());
   useEffect(() => {
-    git.autoFetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    autoFetchOnOpen();
   }, []);
 
   if (!status) {
@@ -80,7 +80,7 @@ export function HistoryTab({
       <div className={cx("changes", list.resizing && "resizing")}>
         {!ops.listHidden && (
           <>
-            <aside ref={list.paneRef} className="changes-list" style={{ width: list.size }} aria-label="履歴">
+            <aside ref={listPaneRef} className="changes-list" style={{ width: list.size }} aria-label="履歴">
               <HistorySidebar
                 log={log}
                 busy={ops.busy}

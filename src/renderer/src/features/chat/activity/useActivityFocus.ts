@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState, type RefObject } from "react";
+import { useEffectEvent, useLayoutEffect, useMemo, useState, type RefObject } from "react";
 import { stepIndex } from "@/hooks/useListNavigation";
 import { useChatPaneState } from "@/features/chat/pane/chatPaneContext";
 import type { SubagentTree } from "@/features/chat/subagents/subagentTree";
@@ -30,7 +30,7 @@ export function useActivityFocus(
   shown: readonly ActivityRow[],
   tree: SubagentTree | undefined,
   scrollRef: RefObject<HTMLDivElement | null>,
-  following: RefObject<boolean>,
+  followingRef: RefObject<boolean>,
   reveal: (index: number) => Promise<void>,
 ): ActivityFocus {
   const focus = useChatPaneState((s) => s.activityFocus) ?? null;
@@ -46,18 +46,21 @@ export function useActivityFocus(
   // 押したとき・↑↓ のときだけ移る（行が増えても、いまの行は動かさない）
   const nonce = focus?.nonce;
   const missing = currentKey === undefined;
-  useLayoutEffect(() => {
-    if (nonce === undefined || currentKey === undefined || currentIndex === undefined) return;
-    following.current = false;
-    let alive = true;
+  const revealCurrent = useEffectEvent((isAlive: () => boolean) => {
+    if (currentKey === undefined || currentIndex === undefined) return;
+    followingRef.current = false;
     void reveal(currentIndex).then(() => {
       const el = scrollRef.current?.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(currentKey)}"]`);
-      if (alive) el?.scrollIntoView({ block: "center" });
+      if (isAlive()) el?.scrollIntoView({ block: "center" });
     });
+  });
+  useLayoutEffect(() => {
+    if (nonce === undefined) return;
+    let alive = true;
+    revealCurrent(() => alive);
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nonce, position, missing]);
 
   return {

@@ -43,11 +43,14 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const { chats } = useChats();
   // チャットの行の左は、サイドバーの行と同じ状態の印（作業中は回るリング・作業中のまま未読なら緑の点）
   const { stateOf } = useChatStates();
-  const dialog = useModalDialog();
+  const { ref: dialogRef, ...dialog } = useModalDialog();
   // 探す対象（複数選べる。開き直しても覚えておく。1 つは必ず残す）
   const [stored, setStored] = useSetting(COMMAND_PALETTE_TARGETS);
-  const valid = stored.filter(isTarget);
-  const targets = valid.length > 0 ? valid : DEFAULT_TARGETS;
+  // 保存した値が変わったときだけ作り直す（下の一覧は、探す対象が変わったときだけ作り直す）
+  const targets = useMemo(() => {
+    const valid = stored.filter(isTarget);
+    return valid.length > 0 ? valid : DEFAULT_TARGETS;
+  }, [stored]);
   const targetKey = targets.join(",");
   const toggleTarget = (t: Target) => {
     const next = TARGETS.map((x) => x.value).filter((x) => (x === t ? !targets.includes(t) : targets.includes(x)));
@@ -88,8 +91,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     const filtered = q ? named.filter((i) => `${i.text} ${i.hint}`.toLowerCase().includes(q)) : named;
     // 名前で見つかったものを先に（50 件まで）、続けてチャットの中の文言・メモの中の文言
     return [...filtered.slice(0, 50), ...messages.hits.map((h) => messageItem(h, projectName)), ...memoTexts.hits.map((h) => memoTextItem(h, projectName))];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, chats, memos, query, messages.hits, memoTexts.hits, targetKey, projectName, stateOf]);
+  }, [projects, chats, memos, query, messages.hits, memoTexts.hits, targets, projectName, stateOf]);
 
   function go(item: Item | undefined) {
     if (!item) return;
@@ -104,7 +106,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     .map((t) => t.label)
     .join("・")}を検索`;
   return (
-    <dialog ref={dialog.ref} className="palette" onClose={onClose} {...dialog.backdropProps}>
+    <dialog ref={dialogRef} className="palette" onClose={onClose} {...dialog.backdropProps}>
       <div className="palette-input">
         <Search size={16} className="muted" />
         <input autoFocus value={query} placeholder={placeholder} onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} />

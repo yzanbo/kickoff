@@ -39,6 +39,16 @@ test("selfHelpers: 自分の子孫のうち、自分の .app の束の中のも�
   assert.deepEqual([...selfHelpers(500, null, t)], []);
 });
 
+test("selfHelpers・originOf: コアが別のプロセス（Helper）のとき、メインの pid を起点にすれば、コアは自分に入り、コアの下のシェルから起動したものは Kickoff の中", () => {
+  const t = parsePs(`  500     1 02:00:00 /A/Kickoff.app/Contents/MacOS/Kickoff
+  502   500 02:00:00 /A/Kickoff.app/Contents/Frameworks/Kickoff Helper.app/Contents/MacOS/Kickoff Helper --type=utility --utility-sub-type=node.mojom.NodeService
+  510   502    30:00 /bin/zsh -l
+  520   510    12:00 node /work/app/node_modules/.bin/vite`);
+  assert.deepEqual([...selfHelpers(500, "/A/Kickoff.app/", t)], [502]);
+  assert.deepEqual([...selfAndAncestors(500, t)], [500]);
+  assert.deepEqual(originOf(520, 500, t), { origin: "kickoff", app: null });
+});
+
 test("shortCommand: スクリプトの名前・node_modules のパッケージ・サブコマンド・python -m", () => {
   assert.equal(shortCommand("node /work/app/node_modules/.bin/vite"), "vite");
   assert.equal(shortCommand("node /work/app/node_modules/.bin/vite --port 5174"), "vite");

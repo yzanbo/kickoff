@@ -62,11 +62,14 @@ export function useSuggest({
   const commands = commandsState.data;
   const files = filesState.data;
 
+  // 候補は打った種類と文だけで決める（trigger は打つたびに新しい物なので、中の値で作り直す）
+  const triggerKind = trigger?.kind;
+  const triggerQuery = trigger?.query;
   const items: SuggestItem[] = useMemo(() => {
-    if (!open || !trigger) return [];
-    if (trigger.kind === "slash") return matchCommands(commands ?? [], trigger.query).map((command) => ({ kind: "slash", key: command.name, command }));
-    return matchFiles(files ?? [], trigger.query).map((path) => ({ kind: "file", key: path, path }));
-  }, [open, trigger?.kind, trigger?.query, commands, files]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!open || triggerKind === undefined || triggerQuery === undefined) return [];
+    if (triggerKind === "slash") return matchCommands(commands ?? [], triggerQuery).map((command) => ({ kind: "slash", key: command.name, command }));
+    return matchFiles(files ?? [], triggerQuery).map((path) => ({ kind: "file", key: path, path }));
+  }, [open, triggerKind, triggerQuery, commands, files]);
   const shown = trigger?.kind === "slash" ? commandsState : filesState;
   const loading = open && !shown.loaded && shown.error === undefined;
 

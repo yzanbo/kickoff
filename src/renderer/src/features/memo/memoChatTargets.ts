@@ -16,9 +16,10 @@ import { openSeededChat } from "@/features/chat/handoff/workplace";
  * 足す先ごとの口: 選んでいれば、ファイルのフルパスと行番号付きの引用を足し、なければメモ全体の写しを札で足す（AI は保存したファイルを読むので、
  * 書きかけは先に保存する）。addPath はメモのファイルのフルパスを足す。main は attachTo（開いたチャット）があるときだけ。
  * メモのチャットに足すときは、その欄を開く（openMemoChat）。newChat は選んだ文の引用を入れた新しいチャットを、メモのプロジェクトのチャットのパネルに開く
- * （本体・グループなしから。作業場所・グループは新しいチャットの見出しで選び直せる。送るのは自分で）
+ * （本体・グループなしから。作業場所・グループは新しいチャットの見出しで選び直せる。送るのは自分で）。
+ * 中で hook は使わないが、メモのチャットの欄の ref を受け取るので hook の名前にする（React Compiler は、ふつうの関数に ref を渡すと描く中で読むとみなして部品を最適化から外す）
  */
-export function memoChatTargets({
+export function useMemoChatTargets({
   projectId,
   file,
   path,

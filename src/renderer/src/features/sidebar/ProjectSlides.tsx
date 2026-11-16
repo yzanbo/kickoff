@@ -32,7 +32,7 @@ export function ProjectSlides({
   topInbox: ReactNode;
   selectionBar: ReactNode;
 }) {
-  const { ordered, index, swipe, collapsedMap, filterByWaiting, isArchived, reorder, go, projectMenu, pending, compact, compactProjects } = nav;
+  const { ordered, index, swipe: { viewportRef: swipeViewportRef, trackRef: swipeTrackRef, ...swipe }, collapsedMap, filterByWaiting, isArchived, reorder, go, projectMenu, pending, compact, compactProjects } = nav;
   const rail = nav.layout === "rail";
   // 丸の角の状態ごとの数は、子チャットも数える（見出しの数・要対応と同じ）
   const counted = useChatsWithChildrenByProject();
@@ -58,11 +58,11 @@ export function ProjectSlides({
       {rail && switcher}
       <div
         className="workspace-viewport"
-        ref={swipe.viewportRef}
+        ref={swipeViewportRef}
         {...swipe.handlers}
       >
         {waitingEmpty}
-        <div className="workspace-track" ref={swipe.trackRef}>
+        <div className="workspace-track" ref={swipeTrackRef}>
           {ordered.map((p, i) => (
             <WorkspacePage
               key={p.id}

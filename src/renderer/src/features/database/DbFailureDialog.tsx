@@ -80,7 +80,7 @@ export function DbFailureDialog({
   onPrep: () => void;
   onClose: () => void;
 }) {
-  const dialog = useModalDialog();
+  const { ref: dialogRef, ...dialog } = useModalDialog();
   // つながった時刻はつなぐたびには知らせない（一覧を取り直させない）ので、開いたときに一覧を読み直して「最後につながった」を新しくする
   useEffect(() => dbConnectionsStore.invalidate(projectId), [projectId]);
   const memo = useAsync(() => (c.memo_path ? api.memo(projectId, c.memo_path) : Promise.resolve(null)), [projectId, c.memo_path]);
@@ -101,7 +101,7 @@ export function DbFailureDialog({
   };
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog db-failure-dialog" aria-label="つながらないときの案内" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog db-failure-dialog" aria-label="つながらないときの案内" onClose={onClose}>
       <div className="app-dialog-body">
         <h2 className="app-dialog-title">
           「{c.name}」につながりません<span className={`db-failure-env db-env-${c.environment}`}>{DB_ENVIRONMENT_LABELS[c.environment]}</span>

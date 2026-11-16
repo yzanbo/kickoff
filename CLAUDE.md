@@ -46,10 +46,10 @@
 
 このリポジトリのチャットは、製品版の Kickoff（`/Applications/Kickoff.app`。プロセス名 `Kickoff`、データ `~/Library/Application Support/Kickoff`、ポート 4317）の中で動いていることがある。作って確かめるのは開発版（Kickoff Dev。プロセスは `node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .`、データ `Kickoff Dev`、ポート 4318）だけで、製品版は自分を動かしているアプリなので触らない。
 
-- エージェントは、自分を動かしている Kickoff（プロセス・アプリ本体・保存先・API のポート）を壊すツールの呼び出しを、`PreToolUse` フックで断られる（`src/core/chat/guard/selfProtection.ts`。権限モードに関係なく効く）。うっかりを防ぐもので、わざと避ける書き方までは見抜けないので、下の決まりも守る。
-- 製品版を止めない・入れ替えない。`pkill` / `killall` は `.claude/settings.json` で禁止してある。開発版を止めるときは `pgrep -f "Electron.app/Contents/MacOS/Electron \."` でメインプロセスを特定して `kill -TERM` だけを送る（まとめて止めると、書きかけの localStorage が消える）。その前に `/api/status` で作業中のチャットがないことを確かめる。
+- Kickoff は 2 つのプロセスで動く: メインプロセス（窓・OS の口）と、その子のコアのプロセス（`utilityProcess` の Helper。`--service-name=Kickoff Core`。HTTP・DB・エージェント・ターミナル。チャットの AI・内蔵ターミナルのシェルはコアの子）。エージェントは、自分を動かしている Kickoff（両方のプロセス・アプリ本体・保存先・API のポート）を壊すツールの呼び出しを、`PreToolUse` フックで断られる（`src/core/chat/guard/selfProtection.ts`。権限モードに関係なく効く）。うっかりを防ぐもので、わざと避ける書き方までは見抜けないので、下の決まりも守る。
+- 製品版を止めない・入れ替えない。`pkill` / `killall` は `.claude/settings.json` で禁止してある。開発版を止めるときは `pgrep -f "Electron.app/Contents/MacOS/Electron \."` でメインプロセスを特定して `kill -TERM` だけを送る（まとめて止めると、書きかけの localStorage が消える。コアのプロセスはメインが終わるときに片付けて止めるので、直接止めない。直接止めると、落ちたとみなして作り直す）。その前に `/api/status` で作業中のチャットがないことを確かめる。
 - `npm run install-app`（製品版の入れ替え）は、製品版の中のチャット・ターミナルから流さない（実行中のチャット・`KICKOFF_TERMINAL_OF` を見て止まる）。必要なら、利用者に macOS のターミナルで流すよう頼む。
-- 製品版の中から起動した開発版は、製品版の子どものプロセスになる。製品版は終わるとき、先に子の Electron のアプリを止める（`src/main/app/childApps.ts`）。
+- 製品版の中から起動した開発版は、製品版の子孫のプロセスになる（メイン → コアのプロセス → シェル → 開発版）。製品版は終わるとき、先に子の Electron のアプリを止める（`src/main/app/childApps.ts`）。
 - 同じ作業場所（本体のフォルダ）を、複数のチャットで同時に書き換えない。並行して進めるときは、チャットごとにワークツリーを使う。
 - 開発版などの終わらないコマンドを裏で動かしたまま返答を終えない（チャットが作業中のまま終わらない）。確かめが済んだら止める。
 

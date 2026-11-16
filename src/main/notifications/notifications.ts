@@ -42,7 +42,7 @@ function keep(n: Notification) {
 
 /**
  * コアが決めた通知（チャットの完了・失敗・回答待ち・CI の失敗。出すか = だれも見ていないか・設定は、コアの notifications/center.ts が決める）を
- * Mac の通知で出す。startCore({ notify }) で渡す
+ * Mac の通知で出す。コアのプロセスの知らせ notify で呼ぶ（app/coreHost.ts）
  */
 export function notifyFromCore(notice: Notice): void {
   const target = notice.target.kind === "chat" ? { chat: { projectId: notice.target.project_id, chatId: notice.target.chat_id } } : { ci: { projectId: notice.target.project_id, runId: notice.target.run_id } };

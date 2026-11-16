@@ -63,7 +63,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
   useServerEvent((e) => {
     if (e.type === "ci_failed" && e.failure.project_id === projectId) list.reload();
   });
-  const width = useDragSize({ setting: CI_LIST_WIDTH, min: 260, keep: 360 });
+  const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: CI_LIST_WIDTH, min: 260, keep: 360 });
   const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);
   const open = useCallback((run: CiRun) => setSelectedText(ciSelectedText(run.id)), [setSelectedText]);
   const watched = useMemo(() => new Set([...(data?.workplace_branches ?? []), ...(data?.default_branch ? [data.default_branch] : [])]), [data]);
@@ -74,7 +74,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
   return (
     <div ref={root} className={cx("github-tab github-browser ci-tab", narrow && "narrow")}>
       {showList && (
-        <aside ref={width.paneRef} className="github-list" style={narrow ? undefined : { width: width.size }}>
+        <aside ref={widthPaneRef} className="github-list" style={narrow ? undefined : { width: width.size }}>
           <div className="github-list-repo small">
             <a className="github-repo-link" href={githubRepoUrl(host, repo)} target="_blank" rel="noreferrer" data-tip="GitHub でリポジトリを開く">
               {repo}

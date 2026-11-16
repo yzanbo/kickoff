@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import type { Chat } from "@shared/types";
 import { navigate, openChat, type ReopenRoute } from "@/app/router";
 import { focusedPane } from "@/features/panel/layout/paneTree";
@@ -58,15 +58,17 @@ function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number
   // タブが覚えているチャットの ID とプロジェクト（一覧にまだ届いていないチャットでも引ける）
   const chat = shownTab?.kind === "chat" ? { id: shownTab.id, project_id: shownTab.projectId } : undefined;
   const prev = useRef<string | null | undefined>(undefined);
-  useEffect(() => {
+  const showShown = useEffectEvent(() => {
     const first = prev.current === undefined;
     if (prev.current === shown) return;
     prev.current = shown;
     if (first || shown === null) return;
     if (chat) showInUrl(chat);
     else navigate({ name: "project", id: projectId, tab }, { replace: true });
-    // 表示中のタブが変わったときだけ（チャットの中身が変わっても URL は変えない）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  // 表示中のタブが変わったときだけ（チャットの中身が変わっても URL は変えない）
+  useEffect(() => {
+    showShown();
   }, [shown]);
 }
 

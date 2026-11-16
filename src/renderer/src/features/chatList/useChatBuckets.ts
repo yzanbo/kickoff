@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { useGroupsOf } from "@/stores/groups";
@@ -37,12 +37,12 @@ export function useChatBuckets<D extends DraftTarget = DraftTarget>(
   const used = project !== undefined ? [project] : [...new Set([...chats.map((c) => c.project_id), ...(drafts ?? []).map((d) => d.projectId)])];
   const groupIds = project !== undefined ? used : [...new Set([...used, ...(projects ?? []).map((p) => p.id)])];
   const ctx = useBucketContext(by, idle ? NO_IDS : groupIds, idle ? NO_IDS : used);
-  const levels = typeof by === "string" ? by : by.join(",");
+  // by は段の並びが変わったときだけ分け直す（配列を毎回作って渡しても、分け直さない）
+  const levels = JSON.stringify(by);
+  const stableBy = useMemo(() => JSON.parse(levels) as typeof by, [levels]);
   return useMemo(
-    () => bucketChats(chats, { ...ctx, projects, by, project, columns, pinned, archived, drafts, keepEmpty, sort }),
-    // by は段の並び（levels）が変わったときだけ分け直す（配列を毎回作って渡しても、分け直さない）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chats, ctx, projects, levels, project, columns, pinned, archived, drafts, keepEmpty, sort],
+    () => bucketChats(chats, { ...ctx, projects, by: stableBy, project, columns, pinned, archived, drafts, keepEmpty, sort }),
+    [chats, ctx, projects, stableBy, project, columns, pinned, archived, drafts, keepEmpty, sort],
   );
 }
 
@@ -53,12 +53,8 @@ export function useChatBuckets<D extends DraftTarget = DraftTarget>(
 export function useBucketHueOf(grouping: ChatGrouping, projectIds: readonly number[], on: boolean): (head: Pick<BucketHead, "key" | "kind" | "group" | "hue">) => number | null {
   const by = on && grouping !== "none" ? grouping : null;
   const ctx = useBucketContext(by ?? [], by ? projectIds : NO_IDS);
-  const ids = projectIds.join();
-  return useMemo(() => {
-    if (!by) return () => null;
-    const hues = bucketHuesOf(by, projectIds, ctx);
-    return (head: Pick<BucketHead, "key" | "kind" | "group" | "hue">) => bucketHueOf(head, hues);
-    // projectIds は中身（ids）が変わったときだけ決め直す
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [by, ids, ctx]);
+  // projectIds は中身が変わったときだけ決め直す
+  const ids = JSON.stringify(projectIds);
+  const hues = useMemo(() => (by ? bucketHuesOf(by, JSON.parse(ids) as number[], ctx) : null), [by, ids, ctx]);
+  return useCallback((head: Pick<BucketHead, "key" | "kind" | "group" | "hue">) => (hues ? bucketHueOf(head, hues) : null), [hues]);
 }

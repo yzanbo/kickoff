@@ -83,10 +83,10 @@ export function MemoQuickChat({
   const state = chat ? stateOf(chat) : "read";
   // 幅はメモのチャットの欄（チャットの画面）と同じ「会話の横幅」に従う（標準なら上限 820px で真ん中、広げるなら幅いっぱい。開け閉めで幅が変わらないように）
   const [wide] = useWideText();
-  const fit = useQuickStatusFit();
+  const { ref: fitRef, ...fit } = useQuickStatusFit();
   return (
     <div className={cx("memo-quick-chat", wide && "wide")}>
-      <div ref={fit.ref} className={cx("memo-quick-status", fit.className)}>
+      <div ref={fitRef} className={cx("memo-quick-status", fit.className)}>
         <span className="memo-quick-name" title="メモのチャット">
           <MessageSquare size={13} aria-hidden />
           <span className="memo-quick-name-text">メモのチャット</span>

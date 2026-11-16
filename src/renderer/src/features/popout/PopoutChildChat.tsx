@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { ChildChatBar } from "@/features/chat/children/ChildChatBar";
 import { PopoutDockButton } from "./PopoutDockButton";
@@ -19,24 +19,18 @@ export function PopoutChildChat({ chatId }: { chatId: number }) {
   const { chat, project, error } = useOpenChat(chatId, true);
   // 閉じ方を聞いている間に、もう一度 ✕ を押されても重ねて聞かない
   const asking = useRef(false);
-  const chatRef = useRef(chat);
-  chatRef.current = chat;
   // 閉じ方を聞かずに閉じる（メインプロセスに頼む。デスクトップアプリでなければ、ふつうに閉じる）
   const closeWindow = () => void (window.kickoff ? window.kickoff.windows.closeSelf() : window.close());
   // ✕・⌘W はメインプロセスが止めて知らせてくる。閉じ方を聞いてから閉じる（チャットが消えていれば、そのまま閉じる）
-  useEffect(
-    () =>
-      window.kickoff?.windows.onCloseRequested(() => {
-        const current = chatRef.current;
-        if (!current) return closeWindow();
-        if (asking.current) return;
-        asking.current = true;
-        closeChatWithChoice(current, closeWindow)
-          .catch(reportFailure("閉じられませんでした"))
-          .finally(() => (asking.current = false));
-      }),
-    [],
-  );
+  const onCloseRequested = useEffectEvent(() => {
+    if (!chat) return closeWindow();
+    if (asking.current) return;
+    asking.current = true;
+    closeChatWithChoice(chat, closeWindow)
+      .catch(reportFailure("閉じられませんでした"))
+      .finally(() => (asking.current = false));
+  });
+  useEffect(() => window.kickoff?.windows.onCloseRequested(() => onCloseRequested()), []);
 
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;

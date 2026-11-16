@@ -1,5 +1,5 @@
 import { Play, RotateCcw, ShieldAlert, Square } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { errorMessage } from "@shared/errors";
 import { DB_PREP_KIND_LABELS, type DbConnection, type DbPrepKind, type DbPrepState } from "@shared/types";
 import { api } from "@/api";
@@ -34,7 +34,7 @@ export function DbPrepDialog({
   onRetry?: () => void;
   onClose: () => void;
 }) {
-  const dialog = useModalDialog({ closeOnBackdrop: false });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   const [state, setState] = useState<DbPrepState | null>(null);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -43,26 +43,28 @@ export function DbPrepDialog({
   const hasPrepare = (prep?.prepare.length ?? 0) > 0;
   const running = state?.running ?? false;
 
-  // 開いたら前の様子を読み（流している途中なら続きを見せる）、流している間は読み直す
+  // 開いたら前の様子を読み（流している途中なら続きを見せる）、流している間は読み直す（読んだ様子が変わっても流し直さない）
+  const notRead = useEffectEvent(() => state === null);
   useEffect(() => {
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
+      let next: DbPrepState | null;
       try {
-        const next = await api.dbPrepState(projectId, c.id);
-        if (!alive) return;
-        setState(next);
-        if (next?.running) timer = setTimeout(() => void poll(), POLL_MS);
+        next = await api.dbPrepState(projectId, c.id);
       } catch (e) {
         if (alive) setError(errorMessage(e));
+        return;
       }
+      if (!alive) return;
+      setState(next);
+      if (next?.running) timer = setTimeout(() => void poll(), POLL_MS);
     };
-    if (running || state === null) void poll();
+    if (running || notRead()) void poll();
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, c.id, running]);
 
   /** 確かめていなければ確かめてから（then: 確かめたあとにすること） */
@@ -77,9 +79,8 @@ export function DbPrepDialog({
       await then();
     } catch (e) {
       setError(errorMessage(e));
-    } finally {
-      setBusy(false);
     }
+    setBusy(false);
   };
 
   const start = () =>
@@ -105,7 +106,7 @@ export function DbPrepDialog({
     : [];
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog db-prep-dialog" aria-label="つなぐ前の準備" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog db-prep-dialog" aria-label="つなぐ前の準備" onClose={onClose}>
       <div className="app-dialog-body">
         <h2 className="app-dialog-title">「{c.name}」のつなぐ前の準備</h2>
         {groups.length === 0 && <p className="small muted">この接続には準備のコマンドがありません。接続の編集の「つなぐ前にコマンドを流す」で登録できます。</p>}

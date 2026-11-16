@@ -22,6 +22,7 @@ import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./label
 import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";
 import { mcpServersOf, toolAllowList } from "./mcpServers.js";
+import { agentSpawnNotes } from "./spawnNotes.js";
 import { agentEnv, claudeAuthEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
@@ -186,10 +187,13 @@ export class ClaudeProvider implements AgentProvider {
     const preCompact = params.preCompact
       ? createPreCompactGate({ ...params.preCompact, push, onSent: (uuid) => cb.preCompactSent?.(uuid), onNudged: (uuid) => cb.preCompactNudged?.(uuid) })
       : null;
+    // Claude Code のプロセスの pid を知らせる（コアのプロセスが落ちたときに、メインが作り直す前に止める）
+    const spawnNotes = agentSpawnNotes();
     try {
       const q = query({
         prompt: input.messages,
         options: {
+          ...spawnNotes.options,
           cwd: params.cwd,
           additionalDirectories: params.additionalDirectories,
           model: params.model || undefined,
@@ -295,6 +299,7 @@ export class ClaudeProvider implements AgentProvider {
       input.close(true);
       cb.control?.(null);
       commandOutput.stopAll();
+      spawnNotes.release();
     }
 
     if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };

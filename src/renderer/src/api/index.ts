@@ -18,6 +18,7 @@ import { providersApi } from "./providers";
 import { queueApi } from "./queue";
 import { settingsApi } from "./settings";
 import { snippetsApi } from "./snippets";
+import { terminalsApi } from "./terminals";
 import { trashApi } from "./trash";
 import { turnsApi } from "./turns";
 import { uploadsApi } from "./uploads";
@@ -27,6 +28,7 @@ import { worktreesApi } from "./worktrees";
 
 export const api = {
   ...settingsApi,
+  ...terminalsApi,
   ...devicesApi,
   ...projectsApi,
   ...chatsApi,

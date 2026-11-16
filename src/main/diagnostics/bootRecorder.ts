@@ -27,9 +27,9 @@ const recentMetrics: MetricsRow[] = [];
 /** 前の行から届いた画面のメモリ（画面ごとに最後のもの） */
 const rendererMemory = new Map<number, RendererMemory & { pid: number }>();
 
-/** メインの段階に印を付ける（最初の 1 回だけ。画面の読み込み直しでは付け直さない） */
-export function markMain(stage: MainStage) {
-  mainMarks[stage] ??= performance.timeOrigin + performance.now();
+/** メインの段階に印を付ける（最初の 1 回だけ。画面の読み込み直しでは付け直さない。at を渡せばその時刻 = コアのプロセスの段階） */
+export function markMain(stage: MainStage, at = performance.timeOrigin + performance.now()) {
+  mainMarks[stage] ??= at;
 }
 
 /** 画面から届いた起動の時刻を書く（メインのウィンドウの最初の 1 回だけメインの段階も入れる） */
@@ -56,12 +56,18 @@ export function recordRendererMemory(sender: WebContents, memory: RendererMemory
   rendererMemory.set(sender.id, { ...memory, pid: sender.getOSProcessId() });
 }
 
-/** 60 秒ごとに、プロセスごとのメモリ・CPU と画面から届いたメモリを metrics.jsonl に書く（コアを起動したあとに 1 回） */
-export function startMetricsLog() {
+/**
+ * 60 秒ごとに、プロセスごとのメモリ・CPU と画面から届いたメモリ・コアの V8 のメモリ（coreMetrics。聞けなければ null）を metrics.jsonl に書く
+ * （コアを起動したあとに 1 回）
+ */
+export function startMetricsLog(coreMetrics: () => Promise<MetricsRow["core"]>) {
   // CPU は「前に測ってからの使用率」なので、始めに一度測っておく
   app.getAppMetrics();
-  const timer = setInterval(() => {
-    const row = metricsRow(new Date(), app.getAppMetrics(), [...rendererMemory.values()]);
+  const timer = setInterval(async () => {
+    const processes = app.getAppMetrics();
+    const renderers = [...rendererMemory.values()];
+    const core = await coreMetrics().catch(() => null);
+    const row = metricsRow(new Date(), processes, renderers, core);
     rendererMemory.clear();
     metricsLog.appendJson(row);
     recentMetrics.push(row);

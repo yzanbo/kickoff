@@ -27,6 +27,7 @@
 - `github/`: GitHub の決まり（一覧の絞り込みと GitHub の検索の文の行き来 `searchQuery.ts`（GitHub に聞く文 `githubSearchQuery`・検索の欄に出す文 `githubSearchText`・欄の文を札に戻す `parseGitHubSearchText`。担当・マイルストーンの複数は `(… OR …)` の「どれか」、ラベルの複数は「すべて」）・本文の画像のうちリポジトリの中のファイルを指すものの見分け `repoImage.ts`（`repoFileOfUrl`: `/raw/`・`/blob/…?raw=true`・`raw.githubusercontent.com`。`isFileOfRepo`）・ホスト（github.com か GitHub Enterprise か）の `host.ts`（既定のホスト `GITHUB_DEFAULT_HOST`・比べる形 `normalizeGitHubHost`・`isDefaultGitHubHost`・Web のページの頭 `githubWebOrigin`・URL のホスト `githubHostOfUrl`））。コアの gh と画面の URL で同じものを使う。
 - `api/`: API の版（`version.ts`。やり取りの形の番号 `API_VERSION`（Kickoff の版とは別。形を壊す変更のときだけ上げる）・受けるアプリの下限 `MIN_CLIENT_API_VERSION`・アプリが版を伝える見出し `API_VERSION_HEADER`・話が通じないときの印 `API_MISMATCHES` と文 `API_MISMATCH_LABELS`・比べる `apiMismatch`）。
 - `devices/`: スマホ連携の決まり（ペアリングの QR に入れる URL `pairing.ts` の `pairingLink`（`<つなぐ先>/pair?code=…&host=<本体の ID>`。つなぐ先がなければ null）・番号の区切り `formatPairingCode`）。
+- `theme/`: テーマの選び方 `THEME_CHOICES`（画面の設定 `THEME` の値）と地の色 `THEME_BACKGROUNDS`（`tokens.css` の `--bg` と同じ。テストで確かめる）・ダークか `isDarkTheme`・窓の地の色 `backgroundFor`・覚えたテーマを読む `parseThemeChoice`（`backgrounds.ts`。画面の `app/theme.ts` とメインの `app/appearance.ts` で同じ決め方にする。メモの仕様書「0023_表示を軽くする」の案 18a）。
 - `ipc/`: Electron の IPC の取り決め（→「IPC の取り決め」）。
 - `testing/chatScenarios.ts`: 長いチャットの記録を種から組み立てる `scenarioChat`（サブエージェント・ToDo・図・質問への回答・圧縮などを混ぜる。乱数は `seededRandom`）。索引 ＋ 末尾 = 全件の同値のテストに使う。
 - `testing/factories.ts`: テストのデータを作る関数（`makeChat` / `makeProject` / `makeGroup` / `makeEvent` / `eventSequence`。省いた項目はそれらしい既定値で埋める）。コアと画面のテストで共通にし、テストごとに作る関数を書かない。

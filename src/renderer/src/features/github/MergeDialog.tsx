@@ -22,7 +22,7 @@ import { mergeWarnings, pickMergeMethod } from "./githubMerge";
  * 見張りを切っていれば、そのブランチのワークツリーを消す確認（confirmRemoveWorktree）をここから出す
  */
 export function MergeDialog({ projectId, detail, onMerged, onClose }: { projectId: number; detail: GitHubPullDetail; onMerged: () => void; onClose: () => void }) {
-  const dialog = useModalDialog({ closeOnBackdrop: false });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ closeOnBackdrop: false });
   const [remembered, setRemembered] = useSetting(githubMergeMethod(projectId));
   const [method, setMethod] = useState<GitHubMergeMethod | null>(() => pickMergeMethod(remembered, detail.merge_methods));
   const action = useAction();
@@ -45,7 +45,7 @@ export function MergeDialog({ projectId, detail, onMerged, onClose }: { projectI
     );
 
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog github-merge" onClose={onClose}>
+    <dialog ref={dialogRef} className="dialog app-dialog github-merge" onClose={onClose}>
       <form
         className="app-dialog-body"
         onSubmit={(e) => {

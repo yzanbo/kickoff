@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/lib/cx";
 import { useFindOptions } from "@/hooks/useFindOptions";
@@ -45,7 +45,7 @@ export function FindBar({
   const ranges = useRef<Range[]>([]);
   const indexRef = useRef<number | null>(null);
   // 印（iframe の中は、その文書に付ける）
-  const marks = useRef(createFindMarks()).current;
+  const [marks] = useState(createFindMarks);
 
   /** 探し直す（文字・中身が変わったとき）。合った数を返す */
   const research = (text: string) => {
@@ -86,11 +86,20 @@ export function FindBar({
   }, [focusSignal]);
 
   // 文字を変えたら探し直して、最初の一致へ
-  useEffect(() => {
+  const researchFirst = useEffectEvent(() => {
     const n = research(query);
     show(n > 0 ? 0 : null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    researchFirst();
   }, [query, target, options]);
+
+  // 中身が変わったとき: 探し直して、いまの位置は数の中にあればそのまま（スクロールはしない）
+  const researchKeep = useEffectEvent(() => {
+    const n = research(query);
+    const i = indexRef.current;
+    show(i !== null && i < n ? i : n > 0 ? 0 : null, false);
+  });
 
   // 中身が変わったら探し直す（いまの位置は、数の中にあればそのまま。スクロールはしない）
   useEffect(() => {
@@ -98,11 +107,7 @@ export function FindBar({
     let timer: ReturnType<typeof setTimeout> | undefined;
     const researchSoon = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => {
-        const n = research(query);
-        const i = indexRef.current;
-        show(i !== null && i < n ? i : n > 0 ? 0 : null, false);
-      }, RESEARCH_DELAY_MS);
+      timer = setTimeout(() => researchKeep(), RESEARCH_DELAY_MS);
     };
     const observer = new MutationObserver(researchSoon);
     observer.observe(target, { childList: true, subtree: true, characterData: true });
@@ -114,7 +119,6 @@ export function FindBar({
       observer.disconnect();
       for (const f of frames) f.removeEventListener("load", researchSoon);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, target, options]);
 
   // 閉じたら・消えたら印を外す

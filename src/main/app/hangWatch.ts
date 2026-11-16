@@ -1,7 +1,7 @@
 // 画面（レンダラー）が応答しなくなったときの記録と立て直し。外部ディスプレイをつなぐ・外したあとなどに画面がクリックも入力も受けなくなり、
 // アプリごと起動し直すしかなかった（起動の記録には「応答しません」だけが残り、戻った記録はなかった。2026-11-14 の利用者の報告）。
 // 原因をその場で突き止められるよう、止まっている JavaScript の場所と、そのころのディスプレイ・スリープの出来事を起動の記録に書き、
-// 止まったままなら「画面を読み込み直す」を聞く（コアは同じプロセスで動き続けるので、AI の作業は止まらない）
+// 止まったままなら「画面を読み込み直す」を聞く（コアは別のプロセスで動き続けるので、AI の作業は止まらない）
 import { app, dialog, powerMonitor, screen, session, type BrowserWindow } from "electron";
 import { errorMessage } from "@shared/errors";
 import { timed } from "../../core/system/stallWatch.js";

@@ -17,7 +17,8 @@ export function DbQueryToolDetail({ chatId, sql, connectionName, result, highlig
   const chat = useKnownChat(chatId);
   // DB の API はこの Mac からだけ受けるので、ブラウザ（スマホ）では接続を読まない
   const local = Boolean(window.kickoff);
-  const connections = useDbConnections(chat?.project_id ?? 0, local && chat !== undefined).data ?? [];
+  const enabled = local && chat !== undefined;
+  const connections = useDbConnections(chat?.project_id ?? 0, enabled).data ?? [];
   const connection = aiQueryConnection(connections, connectionName, result);
   return (
     <>

@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject, type UIEvent } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type RefObject, type UIEvent } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import { SNAP_PX } from "@/lib/followScroll";
 import { isKey } from "@/lib/keys";
 import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
@@ -44,7 +45,8 @@ export function useTimelineScroll({
   // 検索結果から開いたときは、その発言を描いてから移り、一瞬強調する（読んでいなければ、読めて流れに出たら）。
   // 移れたら覚え、同じ発言へは移り直さない（隠したタブを表に戻すと effect が流れ直し、読んでいた所から引き戻していた）
   const jumpedTo = useRef<number | undefined>(undefined);
-  const { revealEvent, items } = w;
+  const { items } = w;
+  const revealEvent = useEffectEvent((eventId: number) => w.revealEvent(eventId));
   useEffect(() => {
     if (!focus || focus === jumpedTo.current) return;
     let alive = true;
@@ -58,16 +60,15 @@ export function useTimelineScroll({
       alive = false;
     };
     // 流れの項目が変わるたびに試す（読み込んでから流れに出る）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus, items, scroll]);
 
   // 途中の一部分から一番下へ戻る: 末尾に戻して、流れの項目が替わったら一番下へ
   const toTail = useRef(false);
+  const toNewest = useEffectEvent(() => w.toNewest(false));
   useEffect(() => {
     if (!toTail.current || focused) return;
     toTail.current = false;
-    void w.toNewest(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void toNewest();
   }, [items, focused]);
   const scrollToBottom = () => {
     scroll.follow();
@@ -112,9 +113,9 @@ export function useTimelineScroll({
     const at = w.position();
     if (at) view.position = { ...at, last };
   };
-  const rememberRef = useRef(remember);
-  rememberRef.current = remember;
-  useLayoutEffect(() => () => rememberRef.current(), []);
+  // 外したとき・隠したとき（Activity）は、最後に描いたときの値で覚える
+  const rememberRef = useLatest(remember);
+  useLayoutEffect(() => () => rememberRef.current(), [rememberRef]);
 
   // スクロールし終えた: 上へ戻している途中の印を外して、もう一度決める（一番下の近くで止まったら、また付いていく）
   const settle = (el: HTMLElement) => {

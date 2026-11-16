@@ -67,23 +67,25 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
    */
   const run = async (name: string, body: GitBranchAction, operation?: GitOperation | ((conflicts: string[]) => Promise<void>)): Promise<GitBranchActionResult | null> => {
     setBusy(name);
-    try {
-      // プル・プッシュなどはリモートの参照も書き換えるので、自動のフェッチの途中なら終わるのを待つ
-      const result = await runGitOperation(projectId, () => api.gitBranchAction(target, body));
-      git.applyStatus(result.status);
-      log.refresh();
-      const stopped = result.status.repo ? result.status.operation : null;
-      if (result.conflicts.length > 0) {
-        if (typeof operation === "function") await operation(result.conflicts);
-        else await handleConflicts(result.conflicts, stopped ?? operation ?? "merge");
-      }
-      return result;
-    } catch (e) {
+    const result = await sendAction(body, operation).catch(async (e: unknown) => {
       await alertDialog(`${name}できませんでした`, errorMessage(e));
       return null;
-    } finally {
-      setBusy(null);
+    });
+    setBusy(null);
+    return result;
+  };
+  /** 操作を送り、Git の状態と履歴を取り直し、衝突したら選んでもらう（失敗は投げる） */
+  const sendAction = async (body: GitBranchAction, operation?: GitOperation | ((conflicts: string[]) => Promise<void>)): Promise<GitBranchActionResult> => {
+    // プル・プッシュなどはリモートの参照も書き換えるので、自動のフェッチの途中なら終わるのを待つ
+    const result = await runGitOperation(projectId, () => api.gitBranchAction(target, body));
+    git.applyStatus(result.status);
+    log.refresh();
+    const stopped = result.status.repo ? result.status.operation : null;
+    if (result.conflicts.length > 0) {
+      if (typeof operation === "function") await operation(result.conflicts);
+      else await handleConflicts(result.conflicts, stopped ?? operation ?? "merge");
     }
+    return result;
   };
 
   /** マージ・リベースの前に見込みを見せて確かめる（取り込むものがなければ知らせるだけ） */
@@ -113,6 +115,35 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
   };
 
   const branchOf = (name: string) => refs?.branches.find((b) => b.name === name);
+
+  /** ブランチをワークツリーとして取り出し、作ったら見ている作業場所をそこへ切り替えるか聞く（失敗は投げる） */
+  const addBranchWorktree = async (branch: string) => {
+    const list = await api.addWorktree(projectId, branch);
+    worktreesStore.set(projectId, list);
+    worktreesStore.invalidate(projectId);
+    log.refresh();
+    const made = list.find((w) => w.branch === branch);
+    if (made && (await confirmDialog({ title: "ワークツリーを作りました", message: made.path, confirmLabel: "この作業場所に切り替える" }))) onWorktreeChange(made.path);
+  };
+
+  /** ブランチを消す（マージしていなければ確かめ直して強制で消す。やめたら何もしない。失敗は投げる） */
+  const deleteLocalBranch = async (branch: string, remote: boolean) => {
+    const request = (force: boolean) => runGitOperation(projectId, () => api.gitBranchAction(target, { action: "delete_branch", branch, force, remote }));
+    const result = await request(false).catch(async (e: unknown) => {
+      // マージしていないコミットがあると -d では消せないので、消えてもよいか確かめ直す
+      if (!/not fully merged/.test(errorMessage(e))) throw e;
+      const force = await confirmDialog({
+        title: `「${branch}」はマージしていません`,
+        message: "ほかのブランチに入っていないコミットがあります。消すと、そのコミットはたどれなくなります。",
+        confirmLabel: "それでも削除",
+        danger: true,
+      });
+      return force ? request(true) : null;
+    });
+    if (!result) return;
+    git.applyStatus(result.status);
+    log.refresh();
+  };
 
   return {
     busy,
@@ -160,18 +191,8 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
     /** ブランチをワークツリーとして取り出す（作ったら、見ている作業場所をそこへ切り替えるか聞く） */
     checkoutAsWorktree: async (branch: string) => {
       setBusy("ワークツリーの作成");
-      try {
-        const list = await api.addWorktree(projectId, branch);
-        worktreesStore.set(projectId, list);
-        worktreesStore.invalidate(projectId);
-        log.refresh();
-        const made = list.find((w) => w.branch === branch);
-        if (made && (await confirmDialog({ title: "ワークツリーを作りました", message: made.path, confirmLabel: "この作業場所に切り替える" }))) onWorktreeChange(made.path);
-      } catch (e) {
-        await alertDialog("ワークツリーを作れませんでした", errorMessage(e));
-      } finally {
-        setBusy(null);
-      }
+      await addBranchWorktree(branch).catch((e: unknown) => alertDialog("ワークツリーを作れませんでした", errorMessage(e)));
+      setBusy(null);
     },
     fastForward: (branch: string) => run("早送り", { action: "fast_forward", branch }),
     pull: async (branch: string) => {
@@ -239,29 +260,8 @@ export function useBranchActions(projectId: number, log: GitLogController, git: 
           : null;
       if (!picked) return;
       setBusy("ブランチの削除");
-      try {
-        let result;
-        try {
-          result = await runGitOperation(projectId, () => api.gitBranchAction(target, { action: "delete_branch", branch, force: false, remote: picked.checked }));
-        } catch (e) {
-          // マージしていないコミットがあると -d では消せないので、消えてもよいか確かめ直す
-          if (!/not fully merged/.test(errorMessage(e))) throw e;
-          const force = await confirmDialog({
-            title: `「${branch}」はマージしていません`,
-            message: "ほかのブランチに入っていないコミットがあります。消すと、そのコミットはたどれなくなります。",
-            confirmLabel: "それでも削除",
-            danger: true,
-          });
-          if (!force) return;
-          result = await runGitOperation(projectId, () => api.gitBranchAction(target, { action: "delete_branch", branch, force: true, remote: picked.checked }));
-        }
-        git.applyStatus(result.status);
-        log.refresh();
-      } catch (e) {
-        await alertDialog("削除できませんでした", errorMessage(e));
-      } finally {
-        setBusy(null);
-      }
+      await deleteLocalBranch(branch, picked.checked).catch((e: unknown) => alertDialog("削除できませんでした", errorMessage(e)));
+      setBusy(null);
     },
     deleteRemoteBranch: async (remoteBranch: string) => {
       const ok = await confirmDialog({ title: `リモートのブランチ「${remoteBranch}」を削除`, message: "リモートからブランチを消します（ほかの人の手元のブランチは残ります）。", confirmLabel: "削除", danger: true });

@@ -2,8 +2,9 @@ import { startStallWatch, type StallRecord } from "../../core/system/stallWatch.
 import { rotatingLog } from "../app/logFiles.js";
 import { startupLog } from "../app/startupLog.js";
 
-// メインプロセスの詰まりの記録（メモの仕様書「0023_表示を軽くする」の案 12）。いまはコアも同じプロセスで動くので、コアの名前もここで付く。
-// ~/Library/Logs/<アプリ名>/stalls.jsonl に 1 行 1 件で書き（エージェントも読める場所）、最近の分を診断の summary.json に入れる
+// メインプロセスの詰まりの記録（メモの仕様書「0023_表示を軽くする」の案 12）。コアのプロセスの詰まりはコアが同じファイルに書き足し、
+// RPC の stall でメインにも届く（recordCoreStall）。~/Library/Logs/<アプリ名>/stalls.jsonl に 1 行 1 件で書き（エージェントも読める場所）、
+// 最近の分をプロセスごとに診断の summary.json に入れる。ファイルを回すのはメインだけ（2 つのプロセスが同じ名前で回して消し合わないように）
 
 /** これを超えたら 1 世代だけ残して新しく書き始める（1 行 300 字ほどで、およそ 800 件） */
 const STALLS_MAX_BYTES = 256 * 1024;
@@ -14,18 +15,26 @@ const STARTUP_LOG_STALL_MS = 2000;
 
 const log = rotatingLog("stalls.jsonl", STALLS_MAX_BYTES);
 const recent: StallRecord[] = [];
+const recentCore: StallRecord[] = [];
+
+/** 最近の分に足し、長く止まったものは起動の記録にも書く */
+function remember(list: StallRecord[], record: StallRecord, who: string) {
+  list.push(record);
+  if (list.length > RECENT_STALLS) list.shift();
+  if (record.kind === "blocked" && record.blockedMs > STARTUP_LOG_STALL_MS) {
+    startupLog(`${who}が ${record.blockedMs}ms 止まりました task=${record.task ?? "-"}${record.taskMs === null ? "" : `(${record.taskMs}ms)`} cpu=${record.cpuMs}ms gc=${record.gcMs}ms`);
+  }
+}
 
 /** 詰まりの見張りを始める（起動の初めに 1 回。止める関数を返す） */
 export function watchMainStalls(): () => void {
+  // コアのプロセスが書き足し始める前に回しておく
+  log.prepare();
   return startStallWatch({
     process: "main",
     onStall: (record) => {
       log.appendJson(record);
-      recent.push(record);
-      if (recent.length > RECENT_STALLS) recent.shift();
-      if (record.kind === "blocked" && record.blockedMs > STARTUP_LOG_STALL_MS) {
-        startupLog(`メインプロセスが ${record.blockedMs}ms 止まりました task=${record.task ?? "-"}${record.taskMs === null ? "" : `(${record.taskMs}ms)`} cpu=${record.cpuMs}ms gc=${record.gcMs}ms`);
-      }
+      remember(recent, record, "メインプロセス");
     },
   });
 }
@@ -33,4 +42,14 @@ export function watchMainStalls(): () => void {
 /** 最近の詰まり（古い順） */
 export function recentStalls(): StallRecord[] {
   return [...recent];
+}
+
+/** コアのプロセスから届いた詰まり（ファイルにはコアが書いたので、覚えるだけ） */
+export function recordCoreStall(record: StallRecord) {
+  remember(recentCore, record, "コアのプロセス");
+}
+
+/** コアのプロセスの最近の詰まり（古い順。作り直したコアの分も続けて） */
+export function recentCoreStalls(): StallRecord[] {
+  return [...recentCore];
 }

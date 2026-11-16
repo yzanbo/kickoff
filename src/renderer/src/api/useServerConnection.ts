@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { BusEvent } from "@shared/types";
 import { publishServerOpen } from "./events";
 
@@ -13,8 +13,7 @@ export type ConnectionState = "connecting" | "open" | "closed";
 export function useServerConnection(onEvent: (event: BusEvent) => void): { state: ConnectionState; since: number | null } {
   const [state, setState] = useState<ConnectionState>("connecting");
   const [since, setSince] = useState<number | null>(null);
-  const handler = useRef(onEvent);
-  handler.current = onEvent;
+  const handler = useEffectEvent(onEvent);
 
   useEffect(() => {
     let source: EventSource | undefined;
@@ -35,7 +34,7 @@ export function useServerConnection(onEvent: (event: BusEvent) => void): { state
       };
       source.onmessage = (e) => {
         try {
-          handler.current(JSON.parse(e.data) as BusEvent);
+          handler(JSON.parse(e.data) as BusEvent);
         } catch {
           // 不正なイベントは無視
         }

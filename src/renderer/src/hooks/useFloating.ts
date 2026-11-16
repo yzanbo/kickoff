@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type RefObject } from "react";
+import { useEffectEvent, useLayoutEffect, useRef, type RefObject } from "react";
 import { placeFloating, type Placement } from "@/lib/floating";
 
 /** 置いた位置を決めた値（同じなら置き直さない） */
@@ -14,8 +14,7 @@ function keyOf(at: Placement, width: number, height: number): string {
  * track なら、開いている間は毎フレーム基準の要素の位置を確かめ、動いたら追う（送信待ちが増えてピルが上へ動いた、など）
  */
 export function useFloating(ref: RefObject<HTMLElement | null>, place: () => Placement | null, { track = false }: { track?: boolean } = {}) {
-  const placeRef = useRef(place);
-  placeRef.current = place;
+  const placeNow = useEffectEvent(place);
   const apply = useRef<() => void>(() => {});
 
   useLayoutEffect(() => {
@@ -24,7 +23,7 @@ export function useFloating(ref: RefObject<HTMLElement | null>, place: () => Pla
     if (el.popover && !el.matches(":popover-open")) el.showPopover();
     let last = "";
     apply.current = () => {
-      const at = placeRef.current();
+      const at = placeNow();
       if (!at) return;
       // 大きさは変形（開くときの動き）を含まない、並べたときの大きさで測る
       const width = el.offsetWidth;

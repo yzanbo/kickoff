@@ -50,7 +50,7 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
   const [query, setQuery] = useState("");
   // すべてのプロジェクトのチャット（子チャットも入れる。開いている間も、状態の変化・削除に追いつく）
   const chats = useChatsWithChildren();
-  const dialog = useModalDialog();
+  const { ref: dialogRef, ...dialog } = useModalDialog();
   const drafts = useAllDrafts();
   const [project, setProject] = useState<ProjectFilterValue>(initialProject ?? "all");
   const [showArchived, setShowArchived] = useSetting(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS);
@@ -139,11 +139,11 @@ export function ActiveChatsPalette({ initialProject, onClose }: { initialProject
   };
   // ↑↓ で選んだ行が見えるようにスクロールする
   useEffect(() => {
-    dialog.ref.current?.querySelector(".palette-item.active")?.scrollIntoView({ block: "nearest" });
-  }, [nav.index, dialog.ref]);
+    dialogRef.current?.querySelector(".palette-item.active")?.scrollIntoView({ block: "nearest" });
+  }, [nav.index, dialogRef]);
 
   return (
-    <dialog ref={dialog.ref} className="palette" aria-label="作業中・待ちのチャット" onClose={onClose} {...dialog.backdropProps}>
+    <dialog ref={dialogRef} className="palette" aria-label="作業中・待ちのチャット" onClose={onClose} {...dialog.backdropProps}>
       <div className="palette-input">
         <Activity size={16} className="muted" aria-hidden />
         <input

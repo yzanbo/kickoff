@@ -24,6 +24,41 @@ export interface DiagnosticsFolders {
   records: string[];
 }
 
+/** 詰まり（イベントループが 500ms を超えて止まったもの）の 1 件の要点 */
+export interface StallDigest {
+  /** 止まり終えた時刻（ISO） */
+  at: string;
+  /** 止まった長さ（ms） */
+  blockedMs: number;
+  /** その間にいちばん長かった名前付きの処理（分からなければ null） */
+  task: string | null;
+}
+
+/**
+ * 設定の「診断」に出す、いつも取っている記録のまとめ（メモの仕様書「0023_表示を軽くする」の U10。ログの場所の stalls.jsonl・boot.jsonl から
+ * メインが集める）
+ */
+export interface DiagnosticsOverview {
+  /** ログの場所（~/Library/Logs/<アプリ名>） */
+  logsDir: string;
+  /** 最近 24 時間の詰まり（タイマーが間引かれただけの throttled は数えない。まとめた行は repeat の数で数える） */
+  stalls: {
+    count: number;
+    /** いちばん長かったもの（プロセスごと。なければ null） */
+    longest: { main: StallDigest | null; core: StallDigest | null };
+  };
+  /** 最後の起動（メインのウィンドウの最初の読み込み。記録がなければ null） */
+  lastBoot: {
+    /** 起動した時刻（メインプロセスの始まり。ISO） */
+    startedAt: string;
+    /** 起動から最初の描画・入力できるまでの経過（ms。取れなければ null） */
+    firstPaintMs: number | null;
+    interactiveMs: number | null;
+    /** 入力できるまでが 10 秒でそろわなかった */
+    timedOut: boolean;
+  } | null;
+}
+
 /** 起動の記録の画面の段階（メモの仕様書「0023_表示を軽くする」の案 18c。画面の app/bootMarks.ts が付ける） */
 export const BOOT_MARKS = ["entry", "storageReady", "appImported", "firstCommit", "firstPaint", "firstContentfulPaint", "interactive"] as const;
 export type BootMarkName = (typeof BOOT_MARKS)[number];

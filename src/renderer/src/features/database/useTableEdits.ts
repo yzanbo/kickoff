@@ -4,6 +4,7 @@ import { errorMessage } from "@shared/errors";
 import { DB_EDITS_MAX, DB_ENVIRONMENT_LABELS, type DbConnection, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
 import type { DbTableTab } from "@/lib/dbClientTabs";
+import { useLatest } from "@/hooks/useLatest";
 import { registerSavable } from "@/lib/saveAll";
 import { confirmDialog } from "@/ui/dialogs";
 import { useDbClient } from "./dbClientContext";
@@ -40,6 +41,29 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
     write.touch();
   };
 
+  /** 流す SQL を見せて確かめてから保存する（保存の本体。失敗は投げる。やめたら false） */
+  const saveConfirmed = async (current: TableEdits, n: number): Promise<boolean> => {
+    const list = buildEdits(current, keyColumns);
+    const sql = editStatements(connection.engine, tab.path, tab.name, list)
+      .map((s) => `${s.preview};`)
+      .join("\n");
+    const title = `「${connection.name}」（${DB_ENVIRONMENT_LABELS[connection.environment]}）の ${tab.name} に ${n.toLocaleString()} 件の変更を保存しますか？`;
+    const message = `${clipSql(sql)}\n\n1 つのトランザクションで流し、1 つでも失敗したらすべて取り消します。`;
+    // 保存はいつも SQL を見せて確かめる。読み取り専用でなく「環境の名前を打たないと流せない」の接続は、名前も打たせる
+    const ok =
+      !write.on && connection.write_check === "env_name"
+        ? await confirmByEnvName(connection, title, message, "保存")
+        : await confirmDialog({ title, message, confirmLabel: "保存", danger: write.on || connection.environment === "production" });
+    if (!ok) return false;
+    setSaving(true);
+    await api.saveDbEdits(client.projectId, connection.id, { path: tab.path, table: tab.name, edits: list, write: write.on }, worktree);
+    latest.current = NO_EDITS;
+    setEdits(NO_EDITS);
+    write.touch();
+    onSaved();
+    return true;
+  };
+
   const save = async (): Promise<boolean> => {
     // 書き直している欄があれば、先に決める（欄の blur で変更に入る）
     const active = document.activeElement;
@@ -55,32 +79,12 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
       setError(`1 回に保存できる変更は ${DB_EDITS_MAX.toLocaleString()} 件までです（いま ${n.toLocaleString()} 件）`);
       return false;
     }
-    try {
-      const list = buildEdits(current, keyColumns);
-      const sql = editStatements(connection.engine, tab.path, tab.name, list)
-        .map((s) => `${s.preview};`)
-        .join("\n");
-      const title = `「${connection.name}」（${DB_ENVIRONMENT_LABELS[connection.environment]}）の ${tab.name} に ${n.toLocaleString()} 件の変更を保存しますか？`;
-      const message = `${clipSql(sql)}\n\n1 つのトランザクションで流し、1 つでも失敗したらすべて取り消します。`;
-      // 保存はいつも SQL を見せて確かめる。読み取り専用でなく「環境の名前を打たないと流せない」の接続は、名前も打たせる
-      const ok =
-        !write.on && connection.write_check === "env_name"
-          ? await confirmByEnvName(connection, title, message, "保存")
-          : await confirmDialog({ title, message, confirmLabel: "保存", danger: write.on || connection.environment === "production" });
-      if (!ok) return false;
-      setSaving(true);
-      await api.saveDbEdits(client.projectId, connection.id, { path: tab.path, table: tab.name, edits: list, write: write.on }, worktree);
-      latest.current = NO_EDITS;
-      setEdits(NO_EDITS);
-      write.touch();
-      onSaved();
-      return true;
-    } catch (e) {
+    const saved = await saveConfirmed(current, n).catch((e: unknown) => {
       setError(errorMessage(e));
       return false;
-    } finally {
-      setSaving(false);
-    }
+    });
+    setSaving(false);
+    return saved;
   };
 
   /** 変更をすべて捨てる（確かめてから） */
@@ -94,8 +98,7 @@ export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail:
   };
 
   // ⌘⇧S のすべて保存にも知らせる
-  const saveRef = useRef(save);
-  saveRef.current = save;
+  const saveRef = useLatest(save);
   useEffect(() => registerSavable({ dirty: () => editCounts(latest.current).total > 0, save: () => saveRef.current() }), []);
 
   const isTable = detail?.kind === "table";

@@ -38,7 +38,7 @@ export function ImageViewer({
   children?: ReactNode;
 }) {
   // 開いた直後はダイアログ自体にピントを置く（最初のボタンにピントの枠が出て、そこだけずれて見えないように）
-  const dialog = useModalDialog({ focusSelf: true });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ focusSelf: true });
   const list = children !== undefined ? [] : (images ?? (src ? [{ src, name }] : []));
   const [current, setCurrent] = useState(() => Math.min(Math.max(0, index), Math.max(0, list.length - 1)));
   const image = list[current];
@@ -61,7 +61,7 @@ export function ImageViewer({
 
   return (
     <dialog
-      ref={dialog.ref}
+      ref={dialogRef}
       className="image-viewer"
       tabIndex={-1}
       aria-label={image?.name ?? name}

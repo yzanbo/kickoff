@@ -27,7 +27,7 @@ interface Props {
  * 左のサイドバー（新しいチャット・全プロジェクト・検索、プロジェクトごとのチャット一覧、設定）。要対応のオン / オフは一覧の上の見出しの「要対応」の行
  * （利用者の依頼で、上の段から移した。上の段は押すと開く・作るものだけにする）
  */
-export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
+export function Sidebar({ sidebar: { paneRef: sidebarPaneRef, ...sidebar }, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
   const route = useRoute();
   const { projects, loaded: projectsLoaded } = useProjects();
   // プロジェクトとチャットの一覧が初めて届いて描けたら、起動の時刻の記録に知らせる（app/bootMarks.ts）
@@ -63,7 +63,7 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
     }
   });
   return (
-    <aside ref={sidebar.paneRef} className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
+    <aside ref={sidebarPaneRef} className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
       <div className="sidebar-resizer" aria-label="サイドバーの幅を変える" {...sidebar.resizeHandle} />
       {/* 一番上の行は macOS の信号機ボタンの行。右端に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
       <div className="sidebar-header">

@@ -21,7 +21,7 @@ const MAX_ROWS = 50;
  * いまのチャット（exclude）は出さない。同じプロジェクトのものを先に、最近動いた順に並べ、名前で絞り込める（↑↓・Enter で選ぶ）
  */
 export function ChatContextButton({ projectId, exclude, onPick }: { projectId?: number; exclude?: number; onPick: (chat: Chat) => void }) {
-  const popover = usePopover();
+  const { anchor: popoverAnchor, ...popover } = usePopover();
   const { open, setOpen } = popover;
   const [query, setQuery] = useState("");
   const { projectName } = useProjects();
@@ -46,7 +46,7 @@ export function ChatContextButton({ projectId, exclude, onPick }: { projectId?: 
   return (
     <span className="chip-wrap">
       <IconButton
-        ref={popover.anchor}
+        ref={popoverAnchor}
         icon={MessageSquare}
         label="ほかのチャットを参照"
         title="ほかのチャットを参照（そのやり取りを AI に読ませて、前の話の続きや参考にします）"
@@ -55,7 +55,7 @@ export function ChatContextButton({ projectId, exclude, onPick }: { projectId?: 
         onClick={popover.toggle}
       />
       {open && (
-        <Popover anchor={popover.anchor} side="above" gap={8} title="参照するチャット" label="参照するチャット" className="chip-popover chat-context-popover" onClose={popover.close}>
+        <Popover anchor={popoverAnchor} side="above" gap={8} title="参照するチャット" label="参照するチャット" className="chip-popover chat-context-popover" onClose={popover.close}>
           <SearchField autoFocus value={query} onChange={setQuery} onKeyDown={nav.onKeyDown} placeholder="チャット名で探す" label="参照するチャットを探す" />
           {!loaded ? (
             error ? <ErrorText message={error} /> : <p className="muted small">読み込み中…</p>

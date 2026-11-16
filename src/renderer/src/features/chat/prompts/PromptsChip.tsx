@@ -1,5 +1,5 @@
 import { CornerDownLeft, Eraser, History, MessageCircleQuestion } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { isKey } from "@/lib/keys";
 import { useListNavigation } from "@/hooks/useListNavigation";
@@ -60,9 +60,9 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
   };
   const nav = useListNavigation(items, reuse);
   // 開いた・絞り込んだら、いちばん新しい（下の）指示を選ぶ
+  const selectNewest = useEffectEvent(() => nav.setIndex(items.length - 1));
   useLayoutEffect(() => {
-    if (open) nav.setIndex(items.length - 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (open) selectNewest();
   }, [open, items]);
 
   // ⌃R（このチャットにピントがあるとき）: 開いて絞り込みの欄にピントを置く（開いていれば 1 つ前の一致へ）
