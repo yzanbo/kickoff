@@ -94,7 +94,7 @@ test("窓の地の色（THEME_BACKGROUNDS）は tokens.css の --bg と同じ", 
 test("上の帯（信号機ボタンの行）は描かない: 本物の画面ではどの画面でもその場所は地と同じ色で、区切りの線もない", () => {
   // 前は地と少し違う色の面で描き、React が描いた瞬間に帯の色だけが消えてちらついた（メモの仕様書「0023_表示を軽くする」の 7 章）
   assert.ok(!indexHtml.includes("boot-band"));
-  // 中身はサイドバーの欄と、幅 720px 以下で使う下の帯だけ
+  // 中身はサイドバーの欄と下の帯だけ
   assert.ok(indexHtml.includes('<div id="root"><div class="boot-shell" aria-hidden="true"><div class="boot-sidebar"></div><div class="boot-footer"></div></div></div>'));
 });
 
@@ -105,12 +105,13 @@ test("下の帯の出し方: show・hover・hide をそのまま、未保存と�
   assert.equal(runBoot({ stored: { "kickoff:footer-mode": "big" } }).footer, "show");
 });
 
-test("幅 720px 以下の骨組みの大きさは本物と同じ: サイドバーの高さは mobile.css の上限 40dvh、下の帯は footer.css の 28px", () => {
+test("骨組みの大きさは本物と同じ: 下の帯は footer.css の 28px で横幅いっぱい、その分サイドバーが短い。幅 720px 以下のサイドバーは mobile.css の上限 40dvh", () => {
+  assert.match(footerCss, /\.app-footer \{[^}]*grid-column: 1 \/ -1;[^}]*height: 28px/);
+  assert.match(indexHtml, /\.boot-footer \{[^}]*left: 0;[^}]*height: 28px/);
+  assert.match(indexHtml, /\.boot-sidebar \{ height: calc\(100% - 28px\); \}/);
   const media = indexHtml.slice(indexHtml.indexOf("@media (max-width: 720px)"));
   assert.match(media, /\.boot-sidebar \{[^}]*height: 40dvh/);
   assert.match(mobileCss, /\.sidebar \{[^}]*max-height: 40dvh/);
-  assert.match(media, /\.boot-footer \{[^}]*height: 28px/);
-  assert.match(footerCss, /\.app-footer \{[^}]*height: 28px/);
 });
 
 test("骨組みの縦 1 列の境目は mobile.css と同じ 720px", () => {

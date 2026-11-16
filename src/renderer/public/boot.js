@@ -15,7 +15,7 @@
     // 保存した幅を、画面と同じ 200〜480 に丸める（範囲の外の値で、骨組みと本物の幅がずれないように。未保存・壊れた値は既定の 294）
     var width = Math.round(Math.min(480, Math.max(200, Number(localStorage.getItem("kickoff:sidebar-width")) || 294)));
     root.style.setProperty("--boot-sidebar-w", width + "px");
-    // 下の帯の出し方（features/footer/footerMode.ts の kickoff:footer-mode。知らない値は既定の show）。幅 720px 以下の骨組みだけが使う
+    // 下の帯の出し方（features/footer/footerMode.ts の kickoff:footer-mode。知らない値は既定の show）。show のときだけ骨組みに下の帯を描く
     var footer = localStorage.getItem("kickoff:footer-mode");
     root.setAttribute("data-boot-footer", footer === "hover" || footer === "hide" ? footer : "show");
   } catch (e) {
