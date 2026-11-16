@@ -134,4 +134,7 @@ test("git のフックを飛ばす Bash は、ほかの守りがなくてもい�
   const run = (command: string) => Promise.all(hooks.map((m) => m.hooks[0](bash(command), undefined, { signal })));
   assert.match(JSON.stringify(await run('git commit --no-verify -m "x"')), /"permissionDecision":"deny".*フック/);
   assert.doesNotMatch(JSON.stringify(await run('git commit -m "x"')), /deny/);
+  // NODE_COMPILE_CACHE を設定するコマンドも、ほかの守りがなくても断る
+  assert.match(JSON.stringify(await run("open -a Kickoff --env NODE_COMPILE_CACHE=/tmp/c")), /"permissionDecision":"deny".*NODE_COMPILE_CACHE/);
+  assert.doesNotMatch(JSON.stringify(await run("echo $NODE_COMPILE_CACHE")), /deny/);
 });
