@@ -1,10 +1,13 @@
-import { useState, type DragEvent } from "react";
+import { useState, type DragEvent, type PointerEvent } from "react";
 import { dropZoneAt, insertSlotAt, splitOfZone, type DropZone, type InsertSlot } from "./paneGeometry";
 import type { PanelController } from "@/features/panel/usePanel";
 import { startDragGhost } from "@/ui/dragGhost";
-import { popOutTab } from "@/features/panel/tabs/popOutTab";
+import { panelStateOf } from "@/features/panel/state/panelStore";
+import { canPopOut, popOutTab } from "@/features/panel/tabs/popOutTab";
+import { specOf } from "@/features/panel/tabs/tabKinds";
 import { endExternalTabDrag, EXTERNAL_TAB_MIME, useExternalTabDrag } from "./externalTabDrag";
 import { endedOutsideWindow } from "./tabDragOut";
+import { discardTabThumbnail, prepareTabThumbnail, tabThumbnailOf } from "./tabThumbnail";
 
 /** 右のパネルのタブをドラッグするときの dataTransfer の型（ファイルのドロップ（チャット欄への添付）と取り違えないよう独自の型にする） */
 const TAB_MIME = "application/x-kickoff-panel-tab";
@@ -17,7 +20,8 @@ const samePaneIndex = (index: number) => index;
  * ペインの中身の端に落とすとその側に分けて置き、真ん中ならそのペインへ移す。
  * ドラッグ中だけ中身の上に透明の覆い（cover）を置き、webview やターミナルの上でも落とす場所を出す。
  * パネルの外からタブにして落とすもの（externalTabDrag。ファイルタブの木の行）も同じ形で受け、落としたらタブを開いてから移す・分ける。
- * ウィンドウの外で離したら、そのタブを別ウィンドウで開き、離した所に置く（別ウィンドウで開けるタブだけ。tabDragOut.ts）
+ * ウィンドウの外で離したら、そのタブを別ウィンドウで開き、離した所に置く（別ウィンドウで開けるタブだけ。tabDragOut.ts）。
+ * 別ウィンドウで開けるタブは、ドラッグの絵をタブの中身の小さなサムネイルにする（Zen Browser と同じ。ウィンドウの外でも見える OS のドラッグの絵。tabThumbnail.ts）
  */
 export function useTabDrag(panel: PanelController) {
   // ドラッグ中のタブ（このパネルのタブだけを受け付ける）
@@ -53,15 +57,30 @@ export function useTabDrag(panel: PanelController) {
     /** タブ（PanelTab の root）に付ける */
     tabProps: (key: string) => ({
       draggable: true,
+      // 別ウィンドウで開けるタブは、押した時点でドラッグのサムネイルを用意する（OS のドラッグの絵は dragstart で決まるので、中身はその前に撮る）
+      onPointerDown: (e: PointerEvent<HTMLElement>) => {
+        if (e.button !== 0) return;
+        const tab = panelStateOf(panel.key).tabs.find((t) => t.key === key);
+        if (tab && canPopOut(tab)) prepareTabThumbnail(key, specOf(tab).label(tab, undefined));
+      },
+      onPointerUp: () => discardTabThumbnail(),
       onDragStart: (e: DragEvent<HTMLElement>) => {
         e.dataTransfer.setData(TAB_MIME, key);
         e.dataTransfer.effectAllowed = "move";
+        const thumbnail = tabThumbnailOf(key);
+        if (thumbnail) {
+          // タブの中身の小さなサムネイルがカーソルに付いて動く（ウィンドウの外でも）。覆いは次の回に出す
+          e.dataTransfer.setDragImage(thumbnail, 24, 14);
+          setTimeout(() => setDragging(key), 0);
+          return;
+        }
         // 半透明の写しがカーソルに付いて動く。dragstart の中で覆いを足すとドラッグが取り消されることがあるので、覆いは次の回に出す
         startDragGhost(e, { after: () => setDragging(key) });
       },
       onDragEnd: (e: DragEvent<HTMLElement>) => {
         // dragstart の次の回に出す覆いより後に片付ける
         setTimeout(reset, 0);
+        discardTabThumbnail();
         // ウィンドウの外で離した: 別ウィンドウで開く（開けないタブは何もしない）
         const end = { clientX: e.clientX, clientY: e.clientY, dropEffect: e.dataTransfer.dropEffect };
         if (endedOutsideWindow(end, { width: window.innerWidth, height: window.innerHeight }))

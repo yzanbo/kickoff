@@ -101,6 +101,7 @@
 @import "./panel/side-panel-tab-kinds.css";
 @import "./panel/side-panel-split.css";
 @import "./panel/chats-tab.css";
+@import "./panel/tab-drag-thumb.css";
 @import "./browser/browser.css";
 @import "./board/board-list.css";
 @import "./board/board-feed.css";

@@ -1,0 +1,44 @@
+/* ==== タブをドラッグするときの小さなサムネイル（features/panel/layout/tabThumbnail.ts。Zen Browser のタブと同じ見せ方） ==== */
+
+/*
+ * OS のドラッグの絵にするカード。画面の外に置いて描いておき、dragstart で setDragImage に渡す（ブラウザがその場で写す）。
+ * カードの外の影は写らないので、枠と地だけで形を見せる
+ */
+.tab-drag-thumb {
+  position: fixed;
+  top: -2000px;
+  left: 0;
+  z-index: -1;
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg-elev);
+  pointer-events: none;
+}
+
+.tab-drag-thumb-title {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 撮った画像の枠（高さはタブの中身の縦横の比。細長いものは上から 140px まで） */
+.tab-drag-thumb-frame {
+  max-height: 140px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.tab-drag-thumb-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}

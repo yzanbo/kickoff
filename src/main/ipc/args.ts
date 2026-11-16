@@ -27,6 +27,9 @@ export const IPC_ARGS = defineArgSchemas({
   },
   windows: {
     openPopout: z.tuple([z.string().startsWith("/popout/").max(4000), z.string().max(300), z.object({ x: z.number().finite(), y: z.number().finite() }).nullable()]),
+    captureRegion: z.tuple([
+      z.object({ x: z.number().finite().min(0), y: z.number().finite().min(0), width: z.number().finite().positive().max(20_000), height: z.number().finite().positive().max(20_000) }),
+    ]),
     focusMain: none,
     closeSelf: none,
   },
