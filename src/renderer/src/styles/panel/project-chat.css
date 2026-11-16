@@ -162,15 +162,35 @@
 }
 
 /*
- * チャット欄の別ウィンドウ（PopoutSideChat）: ウィンドウの枠に信号機ボタン・右上のレイアウトの開閉はないので、タブの列をドラッグ領域にせず、右端も空けない
+ * チャット欄の別ウィンドウ（PopoutSideChat）: ウィンドウの枠に信号機ボタン・右上のレイアウトの開閉はないので、タブの列をドラッグ領域にせず、右端も空けない。
+ * タブの列は 2 段にせず、下のパネルと同じく 1 段に並べる（左から、道具・タブ・新しいタブ・ペインの分割。利用者の依頼。2 段は上の段を信号機ボタンの行と
+ * 分け合うためで、別ウィンドウでは要らない）。上の 2 段の規則より詳細度を上げて戻す
  */
-.popout-side-chat .board-panel.as-sidebar .panel-tabs:not(:where(.agent-panel *)) {
+.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) {
+  flex-wrap: nowrap;
+  row-gap: 0;
   padding-right: var(--gutter);
+  padding-bottom: 1px;
   -webkit-app-region: no-drag;
 }
 
-.popout-side-chat .board-panel.as-sidebar .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
+.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *))::before {
+  display: none;
+}
+
+.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > * {
+  order: 0;
+}
+
+/* タブの並びは境目の線まで伸ばし、表示中のタブを下の画面とつなげる（1 段のタブの列と同じ。side-panel-tab-sheet.css） */
+.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
   margin-right: 0;
+  padding-bottom: 1px;
+  margin-bottom: -1px;
+}
+
+.popout-side-chat .board-panel.as-sidebar:not(.in-footer) .split-view:not(:where(.agent-panel *)) {
+  --split-tabs-h: 40px;
 }
 
 /* スマホ（縦 1 列）ではプロジェクトのチャット欄は出さない（ボードの右のパネルを使う）。上の基底（display: flex）と同じ詳細度なので、必ず基底より後ろに置く */
