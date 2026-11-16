@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { WHISPER_MODEL_IDS } from "../../voice/models.js";
-import { AI_CREATE_CHAT_MODES, OPENAI_TTS_VOICES, PROVIDER_AUTH_MODES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
+import { AI_CREATE_CHAT_MODES, LINK_OPEN_TARGETS, OPENAI_TTS_VOICES, TRUSTED_LINK_DOMAINS_MAX, PROVIDER_AUTH_MODES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
 import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/chat/autoCompact";
 import { jsonBody } from "../input.js";
 import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, voiceLanguage } from "./schemas.js";
@@ -45,6 +45,12 @@ const settingsSchema = z
     post_compact_enabled: z.boolean(),
     // チャットの AI がチャット（子・兄弟・親のないチャット）を作るとき（毎回聞く / 聞かずに作る / 作らせない）
     ai_create_chat: z.enum(AI_CREATE_CHAT_MODES),
+    // Markdown のリンクを開く先と、確認を省くドメイン（小文字にそろえ、重ねない）
+    link_open_in: z.enum(LINK_OPEN_TARGETS),
+    trusted_link_domains: z
+      .array(z.string().trim().toLowerCase().min(1).max(253).regex(/^[a-z0-9.-]+$/))
+      .max(TRUSTED_LINK_DOMAINS_MAX)
+      .transform((list) => [...new Set(list)]),
   })
   .partial()
   .strict() satisfies z.ZodType<Partial<AppSettings>>;

@@ -251,3 +251,13 @@ export interface CaptureAttachment extends AttachmentBase {
  * `@shared/attachment/normalize` の normalizeAttachment で読み替える（表は作り直さない）
  */
 export type Attachment = FileAttachment | MemoAttachment | CaptureAttachment;
+
+/**
+ * チャットで外の画像の表示を許可したホスト（メモの仕様書「0027_チャット欄の外の画像とリンク」）。返答の外の画像は「ホストから画像を n 件表示」を押すまで読み込まず、
+ * 押したホストはそのチャットの中だけ覚えて、以後は押さずに表示する（分岐では写し、子チャットには引き継がない）
+ */
+export interface ChatImageHost {
+  /** ホスト名（小文字。ポートがあれば「:ポート」付き） */
+  host: string;
+  allowed_at: string;
+}

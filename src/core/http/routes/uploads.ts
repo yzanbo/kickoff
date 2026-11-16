@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import nodePath from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
@@ -84,7 +85,10 @@ export function uploadRoutes(app: Hono, { uploads, store, memos }: ServerDeps) {
     const { chat } = c.var;
     const { path } = z.object({ path: z.string().min(1).max(4096) }).parse({ path: c.req.query("path") });
     const project = requireProject(store, chat.project_id);
-    const image = await readToolImage(path, [workdirOf(chat, project), project.repo_path, uploads.dir, memos.dirOf(project)]);
+    const workdir = workdirOf(chat, project);
+    // 返答の Markdown の画像（`![](docs/a.png)`）は相対パスで来るので、チャットの作業場所から読む（メモの仕様書「0027_チャット欄の外の画像とリンク」）
+    const file = nodePath.isAbsolute(path) ? path : nodePath.resolve(workdir, path);
+    const image = await readToolImage(file, [workdir, project.repo_path, uploads.dir, memos.dirOf(project)]);
     return c.body(new Uint8Array(image.data), 200, {
       "content-type": image.type,
       "content-security-policy": "sandbox",

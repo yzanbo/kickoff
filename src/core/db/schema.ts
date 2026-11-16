@@ -477,7 +477,32 @@ ALTER TABLE chats ADD COLUMN resume_pending INTEGER NOT NULL DEFAULT 0 CHECK (re
 CREATE INDEX idx_chats_resume_pending ON chats(resume_pending) WHERE resume_pending = 1;
 `;
 
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31];
+/**
+ * v32: チャット欄の外の画像（メモの仕様書「0027_チャット欄の外の画像とリンク」）。chat_image_hosts は、チャットで表示を許可したホスト
+ * （返答の外の画像は押すまで読み込まない。押したホストはそのチャットの中だけ覚える）。chat_image_cache は、コアが取ってきた画像の覚え書き
+ * （中身はデータのフォルダの image-cache/<チャット>/<key> のファイル。key は URL の SHA-256。合計の大きさで古いものから消す）。
+ * どちらもチャットを本当に消したら一緒に消える（ファイルはゴミ箱の片付けが消す）
+ */
+const SCHEMA_V32 = `
+CREATE TABLE chat_image_hosts (
+  chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  host TEXT NOT NULL CHECK (host <> ''),
+  allowed_at TEXT NOT NULL DEFAULT (${NOW}),
+  PRIMARY KEY (chat_id, host)
+) STRICT;
+CREATE TABLE chat_image_cache (
+  chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+  key TEXT NOT NULL CHECK (key <> ''),
+  host TEXT NOT NULL CHECK (host <> ''),
+  content_type TEXT NOT NULL CHECK (content_type <> ''),
+  size INTEGER NOT NULL CHECK (size >= 0),
+  fetched_at TEXT NOT NULL DEFAULT (${NOW}),
+  PRIMARY KEY (chat_id, key)
+) STRICT;
+CREATE INDEX idx_chat_image_cache_fetched ON chat_image_cache(fetched_at);
+`;
+
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, SCHEMA_V10, SCHEMA_V11, SCHEMA_V12, SCHEMA_V13, SCHEMA_V14, SCHEMA_V15, SCHEMA_V16, SCHEMA_V17, SCHEMA_V18, SCHEMA_V19, SCHEMA_V20, SCHEMA_V21, SCHEMA_V22, SCHEMA_V23, SCHEMA_V24, SCHEMA_V25, SCHEMA_V26, SCHEMA_V27, SCHEMA_V28, SCHEMA_V29, SCHEMA_V30, SCHEMA_V31, SCHEMA_V32];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

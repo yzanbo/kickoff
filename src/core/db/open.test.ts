@@ -136,8 +136,8 @@ test("v30 の移行: v29 の DB を開くと、記録の軽い形を読む覆う
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed", model: null });
   store.events.add(chat.id, { type: "tool_use", id: "c1", name: "Bash", input: {} });
-  // v29 に戻す（索引を外して版を下げる。後の版の v31 の列と索引も外す）
-  store.db.exec(`DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending;`);
+  // v29 に戻す（索引を外して版を下げる。後の版の v31 の列と索引・v32 の表も外す）
+  store.db.exec(`DROP TABLE chat_image_cache; DROP TABLE chat_image_hosts; DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending;`);
   store.db.exec(`DROP INDEX idx_chat_events_meta; PRAGMA user_version = ${USER_VERSION_BASE + 29};`);
   store.db.close();
   const again = openDatabase(file);
@@ -153,12 +153,27 @@ test("v31 の移行: v30 の DB を開くと、既存のチャットに再開の
   const store = new Store(file);
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "running", model: null });
-  // v30 に戻す（列と索引を外して版を下げる）
-  store.db.exec(`DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending; PRAGMA user_version = ${USER_VERSION_BASE + 30};`);
+  // v30 に戻す（列と索引を外して版を下げる。後の版の v32 の表も外す）
+  store.db.exec(`DROP TABLE chat_image_cache; DROP TABLE chat_image_hosts; DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending; PRAGMA user_version = ${USER_VERSION_BASE + 30};`);
   store.db.close();
   const again = openDatabase(file);
   assert.equal(userVersion(again), USER_VERSION_BASE + SCHEMA_VERSION);
   assert.ok(again.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_chats_resume_pending'").get());
   assert.deepEqual({ ...again.prepare("SELECT resume_pending FROM chats WHERE id = ?").get(chat.id) }, { resume_pending: 0 });
+  again.close();
+});
+
+test("v32 の移行: v31 の DB を開くと、外の画像の表示を許可したホストと取った画像の表を足す（既存のチャットはどのホストも許可していない）", () => {
+  const file = path.join(tempDir(), DB_FILE);
+  const store = new Store(file);
+  const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed", model: null });
+  // v31 に戻す（表を外して版を下げる）
+  store.db.exec(`DROP TABLE chat_image_cache; DROP TABLE chat_image_hosts; PRAGMA user_version = ${USER_VERSION_BASE + 31};`);
+  store.db.close();
+  const again = openDatabase(file);
+  assert.equal(userVersion(again), USER_VERSION_BASE + SCHEMA_VERSION);
+  for (const name of ["chat_image_hosts", "chat_image_cache"]) assert.ok(again.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name), name);
+  assert.deepEqual(again.prepare("SELECT host FROM chat_image_hosts WHERE chat_id = ?").all(chat.id), []);
   again.close();
 });

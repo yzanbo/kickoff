@@ -18,7 +18,7 @@ import { marksOf } from "@shared/chat/handoff";
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
  * 作業中にはできない操作は 409（Runner の requireIdle）。様子が変わるだけ（止める・やめる）で返すものがなければ 204（変わった様子は SSE の chat_live で届く）
  */
-export function turnRoutes(app: Hono, { store, runner, providers, uploads, userViews }: ServerDeps) {
+export function turnRoutes(app: Hono, { store, runner, providers, uploads, userViews, remoteImages }: ServerDeps) {
   const { withChat } = lookups(store);
   /** 分岐・巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
   const deps = { store, runner, providers };
@@ -85,7 +85,10 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
     const { event_id } = z.object({ event_id: z.number().int() }).parse(await jsonBody(c));
     runner.requireIdle(chat.id, "分岐");
     const cwd = workdirOf(chat, requireProject(store, chat.project_id));
-    return c.json(await forkChat(deps, chat, event_id, cwd), 201);
+    const forked = await forkChat(deps, chat, event_id, cwd);
+    // 分岐したチャットには元の返答がそのまま並ぶので、外の画像の表示の許可と覚えた画像も写す（メモの仕様書「0027_チャット欄の外の画像とリンク」）
+    await remoteImages.copyChat(chat.id, forked.id);
+    return c.json(forked, 201);
   });
 
   // 子チャットで聞く（親の作業中でも始められる。inherit なら親の最後まで終わった作業の時点から会話を引き継ぐ）

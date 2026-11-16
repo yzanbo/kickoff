@@ -8,6 +8,18 @@ import { TRASH_KEEP_MS } from "@shared/types";
 import { AUTH, setup, until } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 
+test("設定: リンクの開き先（既定は Kickoff のブラウザ）と、確認を省くドメイン（小文字にそろえ、重ねない・使えない名前は 400）", async () => {
+  const { call } = setup();
+  const initial = (await call("GET", "/api/settings")).body;
+  assert.equal(initial.link_open_in, "kickoff");
+  assert.deepEqual(initial.trusted_link_domains, []);
+  const updated = await call("PUT", "/api/settings", { link_open_in: "browser", trusted_link_domains: ["Example.com", "example.com", "docs.example.com"] });
+  assert.equal(updated.body.link_open_in, "browser");
+  assert.deepEqual(updated.body.trusted_link_domains, ["example.com", "docs.example.com"]);
+  assert.equal((await call("PUT", "/api/settings", { trusted_link_domains: ["a b"] })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { link_open_in: "safari" })).status, 400);
+});
+
 test("設定・プロジェクトの API", async () => {
   const { app, call, project, store } = setup();
   assert.equal((await call("PUT", "/api/settings", { auto_archive_days: 3 })).body.auto_archive_days, 3);

@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ChevronRight, Copy, Folder, FolderInput, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronRight, Copy, Folder, FolderInput, Image as ImageIcon, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2, Unlink } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
@@ -12,6 +12,7 @@ import { GroupPickFlyout } from "@/features/group/GroupPickFlyout";
 import { askNewGroupName } from "@/features/group/groups";
 import { openAskChild } from "./children/openChild";
 import { DetachSubmenu } from "./children/DetachSubmenu";
+import { manageImageHosts } from "./images/manageImageHosts";
 import { openNewChat } from "@/app/router";
 import { NewChatItem, type NewChatPlace } from "./NewChatItem";
 
@@ -21,7 +22,7 @@ const openNewChatAt = (place: NewChatPlace) => openNewChat(place.projectId, { gr
 /**
  * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通。どこで右クリックしても同じ並びにする）:
  * 新しいチャット（同じグループ・作業場所。NewChatItem）・子チャットを作成 ｜ 開く・その場所だけの項目（before。分けて開く・動きを見るなど）｜
- * 名前を変更・既読 / 未読・固定・セッション ID をコピー・GitHub との結び付きを外す・親から外す（子チャット）/ グループを変更（親のないチャット）・プロジェクトを変更 ｜ アーカイブ・削除 ｜ after（タブを閉じるなど）。
+ * 名前を変更・既読 / 未読・固定・セッション ID をコピー・画像の表示を許可したサイト・GitHub との結び付きを外す・親から外す（子チャット）/ グループを変更（親のないチャット）・プロジェクトを変更 ｜ アーカイブ・削除 ｜ after（タブを閉じるなど）。
  * 「グループを変更」「プロジェクトを変更」に乗せる・押すと、横にグループ・プロジェクトの一覧（GroupPickFlyout / ProjectPickFlyout）を開く
  */
 export function ChatMenuItems({
@@ -112,6 +113,10 @@ export function ChatMenuItems({
           <Copy size={14} /> セッション ID をコピー
         </MenuItem>
       )}
+      {/* 返答の外の画像で、押さずに出すようにしたサイト（このチャットだけ。外せる。メモの仕様書「0027_チャット欄の外の画像とリンク」） */}
+      <MenuItem onSelect={() => act(() => manageImageHosts(chat.id))}>
+        <ImageIcon size={14} /> 画像の表示を許可したサイト…
+      </MenuItem>
       {/* GitHub の issue・PR との結び付き（GitHub タブの「AI に渡す」で付く。外すと PR を作るときの「Closes #n」・札・一覧の印からも外れる） */}
       {chat.github_number !== null && (
         <MenuItem onSelect={() => act(() => api.clearChatGitHub(chat.id))}>
