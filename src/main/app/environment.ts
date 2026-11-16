@@ -35,6 +35,10 @@ export function setupEnvironment(): { port: number; devUrl: string | undefined }
     // （止まると、なめらかなスクロールや「スクロールし終えたら」の動きを外から確かめられない）
     for (const flag of ["disable-background-timer-throttling", "disable-backgrounding-occluded-windows", "disable-renderer-backgrounding"]) app.commandLine.appendSwitch(flag);
   }
+  // 画面の V8 に、しばらく呼ばれていない関数のバイトコードを捨てさせない（長く放っておいたあとの最初の操作で、コンパイルし直さない）。
+  // 30 分放っておいたあと、長いチャットを開き直す JS が 115 → 71ms（コンパイルし直し 43 → 0ms）、画面のメモリの増えは約 5MB だった
+  // （メモの仕様書「0023_表示を軽くする」の案 18b）。起動のあとに足すので、画面（埋め込みブラウザの webview も）にだけ効き、メインには効かない
+  app.commandLine.appendSwitch("js-flags", "--no-flush-bytecode");
   return { port: Number(process.env.KICKOFF_PORT ?? env.port), devUrl: process.env.ELECTRON_RENDERER_URL };
 }
 
