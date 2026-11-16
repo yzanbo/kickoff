@@ -86,11 +86,17 @@
 .trash-row-remaining {
   color: var(--warn);
 }
-.trash-row > .btn {
+.trash-row > .btn,
+.trash-empty {
   flex: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* 並んでいるものをまとめて完全に消すボタン（タブの見出しの右の「ゴミ箱を空にする」・設定の各まとまりの「すべて完全に消す」は一覧の上） */
+.section > .trash-empty {
+  margin-bottom: 8px;
 }
 
 /* 設定の「ゴミ箱と整理」のアーカイブ済みのチャットの整理（features/trash/TrashSettings）。見込みの数と「ゴミ箱に入れる」 */

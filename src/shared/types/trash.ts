@@ -51,6 +51,16 @@ export interface TrashRestoreResult {
   path: string | null;
 }
 
+/** 3 日を待たずにまとめて完全に消す本文（POST /api/trash/purge。画面に出していたものの ID。もうないものは飛ばす） */
+export interface TrashPurgeBody {
+  ids: string[];
+}
+
+/** まとめて完全に消した結果（消した数） */
+export interface TrashPurgeResult {
+  purged: number;
+}
+
 /** 元に戻せないとき（元の場所に同じ名前がある）の印。画面が「別の名前で戻す」を聞く */
 export const TRASH_RESTORE_EXISTS = "trash_restore_exists";
 

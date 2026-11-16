@@ -84,7 +84,7 @@ const readText = (p: string) => fs.readFile(p, "utf8").then(
 
 /**
  * Kickoff のゴミ箱（メモの仕様書「ファイル削除」）。消したものを置き場（データのフォルダの trash/<id>/item/<名前>）に移して 3 日取っておき、
- * 元の場所に戻せる。期限の来たものは、起動したときと 1 時間ごとの片付けで本当に消す（閉じていた間の分は次の起動で）。
+ * 元の場所に戻せる。期限の来たものは、起動したときと 1 時間ごとの片付けで本当に消す（閉じていた間の分は次の起動で。利用者は待たずに完全に消すこともできる `purgeNow`）。
  * AI の kickoff-trash は自分で置き場にフォルダ（<id>/origin・chat・at と item/）を作るので、片付け・一覧を読むときに覚え書き（表）へ取り込む
  * （出すのは消したチャットのプロジェクトのゴミ箱。チャットが分からなければ元の場所を含むプロジェクト）
  */
@@ -94,6 +94,8 @@ export class TrashService {
   private sweeping: Promise<void> | null = null;
   /** 動いている片付けのあとに、もう一度流す片付け（待っている頼みは 1 つにまとめる） */
   private sweepAgain: Promise<void> | null = null;
+  /** いま本当に消している途中のもの */
+  private readonly purging = new Set<string>();
 
   constructor(private readonly deps: TrashServiceDeps) {}
 
@@ -282,11 +284,41 @@ export class TrashService {
     }
   }
 
-  /** 本当に消す（種類ごとの扱い → 置き場のフォルダ → 覚え書き） */
+  /**
+   * 本当に消す（種類ごとの扱い → 置き場のフォルダ → 覚え書き）。同じものをいま消している途中なら何もしない
+   * （片付けと、利用者の「完全に消す」が重なったとき、種類ごとの扱いを 2 回流さないため）
+   */
   async purge(item: StoredTrashItem): Promise<void> {
-    await this.handlers.get(item.kind)?.purge?.(item);
-    await fs.rm(path.join(this.deps.dir, item.id), { recursive: true, force: true });
-    this.deps.store.trash.remove(item.id);
+    if (this.purging.has(item.id)) return;
+    this.purging.add(item.id);
+    try {
+      await this.handlers.get(item.kind)?.purge?.(item);
+      await fs.rm(path.join(this.deps.dir, item.id), { recursive: true, force: true });
+      this.deps.store.trash.remove(item.id);
+    } finally {
+      this.purging.delete(item.id);
+    }
+  }
+
+  /**
+   * 3 日を待たずに、利用者が選んだものを完全に消す（ゴミ箱の行の「完全に消す」・「ゴミ箱を空にする」）。もうないもの（戻した・消えた）は飛ばし、
+   * 消した数を返す。1 つ消せなくても残りは消し、最後に最初の失敗を投げる
+   */
+  async purgeNow(ids: string[]): Promise<number> {
+    let purged = 0;
+    let failure: unknown = null;
+    for (const id of new Set(ids)) {
+      const item = this.deps.store.trash.get(id);
+      if (!item) continue;
+      try {
+        await this.purge(item);
+        if (!this.deps.store.trash.get(id)) purged++;
+      } catch (e) {
+        failure ??= e;
+      }
+    }
+    if (failure) throw failure;
+    return purged;
   }
 
   /**
