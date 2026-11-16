@@ -30,7 +30,6 @@ import { PopoutDockButton } from "@/features/popout/PopoutDockButton";
 import { GitHubDialogHost } from "@/features/github/GitHubDialogHost";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 import { popoutPath, type PopoutRoute } from "./popout";
-import { RouteContext, useHashRoute } from "./router";
 
 /** 上の帯の、何のウィンドウかの札 */
 const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ", database: "DB" };
@@ -44,7 +43,6 @@ const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", 
 export function PopoutApp({ route }: { route: PopoutRoute }) {
   // 最初の描き終わり（起動の時刻の記録。app/bootMarks.ts）
   useLayoutEffect(() => bootMark("firstCommit"), []);
-  const hashRoute = useHashRoute();
   useServerConnection(publishServerEvent);
   const { projects } = useProjects();
   setProjectHues(projects);
@@ -67,7 +65,9 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
     if (runPageFind()) e.preventDefault();
   });
   return (
-    <RouteContext.Provider value={hashRoute}>
+    // URL は別ウィンドウの行き先なので、画面の URL として購読しない（useHashRoute は見ている画面を LAST_ROUTE に覚えるので、
+    // 別ウィンドウを開くたびに「最後に見ていた画面」が全プロジェクトに上書きされていた）。useRoute() は初めの値（全プロジェクト）
+    <>
       <ChatStatesContext.Provider value={chatStates}>
         <div ref={rootRef} className="popout">
           {find}
@@ -116,6 +116,6 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
         <DbUnlockHost />
         <DialogHost />
       </ChatStatesContext.Provider>
-    </RouteContext.Provider>
+    </>
   );
 }
