@@ -19,6 +19,8 @@ import { useOpenWithMenu } from "@/features/openWith/useOpenWithMenu";
 import { emptyHintOf, SURFACES } from "./surfaces";
 import { focusedPanelKey, PanelHostContext } from "./panelHost";
 import { specOf } from "@/features/panel/tabs/tabKinds";
+import { neighborChats } from "@/features/panel/tabs/tabPrefetch";
+import { useTabPrefetch } from "@/features/panel/tabs/useTabPrefetch";
 import { usePanelViewMenu } from "@/features/panel/tabs/PanelViewMenu";
 import { useNewChild } from "@/features/panel/agents/useNewChild";
 
@@ -91,6 +93,16 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const [mountedTabs, setMountedTabs] = useState<ReadonlySet<string>>(() => new Set());
   const shownNow = tabs.filter((t) => panel.shownTabOf(leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0]) === t.key && !mountedTabs.has(t.key));
   if (shownNow.length > 0) setMountedTabs(new Set([...mountedTabs, ...shownNow.map((t) => t.key)]));
+  // まだ描いていないチャットのタブを、表のタブに近い順に手すきのときに先読みする（切り替えたときに読み込みを待たない）
+  const tabByKey = new Map(tabs.map((t) => [t.key, t]));
+  const prefetch = neighborChats(
+    leaves.map((p) => ({ tabs: p.tabs, shown: panel.shownTabOf(p) })),
+    (key) => {
+      const t = tabByKey.get(key);
+      return t?.kind === "chat" && specOf(t).lazy && !mountedTabs.has(key) ? t.id : null;
+    },
+  );
+  useTabPrefetch(prefetch, panelOpen);
   /** ペインのタブの列（タブの列の左の道具は左上のペインに、右端の閉じるボタンは右上のペインにだけ置く） */
   const bar = (pane: PaneLeaf) => (
     <PaneTabBar
