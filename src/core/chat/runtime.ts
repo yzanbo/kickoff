@@ -4,7 +4,7 @@ import type { TurnControl } from "../providers/types.js";
 import { ChatQueue, splitLegacyPostCompact, type QueuePersistence } from "./queue.js";
 import { QueueEdits } from "./queueEdits.js";
 import { createRecoveryState, reconnectStateOf, type RecoveryState } from "./recovery/state.js";
-import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueuedMessage, QueueState, RestartResumeState } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueuedMessage, QueueState, RestartResumeState, WorkplaceMoveReservation } from "@shared/types";
 
 /** ChatRuntime がそのまま持つ、画面に配る様子（送信待ちの列は queue、再接続待ちは recovery から組み立てる） */
 interface LiveFields {
@@ -44,6 +44,8 @@ interface LiveFields {
   inheriting: boolean;
   /** 起動したときの再開の確かめを待っている（答えるまで続けない・送信待ちを送らない。ChatLive の restart_resume） */
   resume: RestartResumeState | null;
+  /** AI が予約した作業場所の移動（ChatLive の workplace_move。中身は workplaceReservation.ts が持つ） */
+  workplaceMove: WorkplaceMoveReservation | null;
 }
 
 /**
@@ -74,7 +76,7 @@ export class ChatRuntime {
   readonly afterCompactEdits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, drawingVisual: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, tellsClosed: false, inheriting: false, resume: null };
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, drawingVisual: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, compactAfterTurn: false, deliveringAfterCompact: false, compactedTurn: false, tellsClosed: false, inheriting: false, resume: null, workplaceMove: null };
   /** 圧縮が終わった（圧縮後指示を伝える。圧縮中・圧縮前指示から圧縮が終わるまで（compactPhase）が外れたとき） */
   private readonly onCompactEnded: () => void;
 
@@ -192,7 +194,7 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping, drawingVisual, afterCompact, awaitingCompact, compactAfterTurn, compactedTurn, tellsClosed, inheriting, resume } = this.fields;
+    const { background, retry, compacting, stopping, drawingVisual, afterCompact, awaitingCompact, compactAfterTurn, compactedTurn, tellsClosed, inheriting, resume, workplaceMove } = this.fields;
     return {
       queue: this.queueState(),
       background,
@@ -208,6 +210,7 @@ export class ChatRuntime {
       tells_closed: tellsClosed,
       inheriting,
       restart_resume: resume,
+      workplace_move: workplaceMove,
     };
   }
 

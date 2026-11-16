@@ -12,7 +12,8 @@ export type ChatEventData =
    * handover: この発言に添えて渡した、届いていなかったサブエージェントの報告（一覧の行のキー）。
    * pre_compact: 圧縮の前に送った圧縮前指示 / post_compact: 圧縮のあとに送った圧縮後指示（text は設定・プロジェクトの指示そのもの。AI には前置きを付けて送る）。
    * handoff_request: 子チャットに親への依頼文を頼んだ発言（画面は長い頼み方の文の代わりに 1 行で出す）。
-   * handoff_from: 子チャットから親チャットに渡した依頼（親チャットの発言。どの子チャットからか）
+   * handoff_from: 子チャットから親チャットに渡した依頼（親チャットの発言。どの子チャットからか）。
+   * workplace_continuation: AI が作業場所を移す予約に書いた続きの指示（Kickoff が移したあとに送った。メモの仕様書「0025」の段階 ③）
    */
   | {
       type: "user";
@@ -24,6 +25,7 @@ export type ChatEventData =
       post_compact?: true;
       handoff_request?: true;
       handoff_from?: HandoffFrom;
+      workplace_continuation?: true;
     }
   /** effort: 実際に使った推論の深さ（Claude Code が知らせたときだけ。null は深さを送らないモデル） */
   | { type: "init"; session_id: string; model?: string; permission_mode?: string; effort?: string | null }
@@ -92,6 +94,12 @@ export type ChatEventData =
       reason: WorkplaceMoveReason;
       carried?: true;
       backed_up?: true;
+      /** 元の作業場所で動いている内蔵ターミナル（止めずに残した。AI が移したとき = Q5） */
+      running?: string[];
+      /** 移した先で作業中だったほかのチャットの数（AI が移したとき = H6） */
+      busy?: number;
+      /** 先にこのチャットのワークツリーを片付けてから移した（AI の移す予約と片付けの予約が重なったとき = G4・J3） */
+      after_finish?: true;
       session_id?: string;
       message_id?: string;
     };
@@ -131,6 +139,7 @@ export const HANDOFF_VIA_MARKS: Record<HandoffVia, string> = { composer: "入力
 export interface MessageMarks {
   handoff_request?: true;
   handoff_from?: HandoffFrom;
+  workplace_continuation?: true;
 }
 
 /** 親チャットでの出どころ（どの子チャットから渡した依頼か。名前は渡したときのもの） */

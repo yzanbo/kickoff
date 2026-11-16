@@ -24,6 +24,7 @@ export function turnToolServers(params: ProviderTurnParams, cb: Pick<ProviderCal
       notify: params.chatNotify ?? null,
       userView: params.chatUserView ?? null,
       remove: params.chatRemove ?? null,
+      workplace: params.chatWorkplace ?? null,
     },
     cb,
     signal,

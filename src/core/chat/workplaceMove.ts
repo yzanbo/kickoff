@@ -31,6 +31,12 @@ export interface WorkplaceMoveInput {
   carried?: boolean;
   /** ワークツリーを片付けたとき、コミットしていない変更を控えに入れた（J6） */
   backedUp?: boolean;
+  /** 元の作業場所で動いている内蔵ターミナル（AI が移したとき、区切りと知らせに書く。Q5） */
+  running?: string[];
+  /** 移した先で作業中のほかのチャットの数（AI が移したとき。H6） */
+  busy?: number;
+  /** 先にこのチャットのワークツリーを片付けてから移した（G4・J3） */
+  afterFinish?: boolean;
 }
 
 /**
@@ -112,6 +118,9 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
     reason: input.reason,
     ...(input.carried ? { carried: true as const } : {}),
     ...(input.backedUp ? { backed_up: true as const } : {}),
+    ...(input.running?.length ? { running: input.running } : {}),
+    ...(input.busy ? { busy: input.busy } : {}),
+    ...(input.afterFinish ? { after_finish: true as const } : {}),
     ...(point?.session_id && point.message_id ? { session_id: point.session_id, message_id: point.message_id } : {}),
   });
   return store.chats.get(chatId)!;

@@ -106,10 +106,12 @@ class FakeProvider extends FakeProviderBase {
   preCompactSentId: string | null = null;
   /** 最後の実行に渡した、チャットを作るツールの中身（渡さなければ null） */
   lastCreateChat: ProviderTurnParams["createChat"] = null;
+  /** 最後の実行に渡した、作業場所を移す予約のツールの中身（メモの仕様書「0025」の段階 ③） */
+  lastWorkplace: ProviderTurnParams["chatWorkplace"] = null;
   /** 最後の実行が、Git で管理していないファイルだけを書けるチャットだったか（［AI で整える］の確かめに使う） */
   lastUntrackedOnly = false;
   async run(
-    params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; createChat?: ProviderTurnParams["createChat"]; untrackedOnly?: boolean },
+    params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; createChat?: ProviderTurnParams["createChat"]; chatWorkplace?: ProviderTurnParams["chatWorkplace"]; untrackedOnly?: boolean },
     cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "context" | "control" | "retry" | "preCompactSent">,
     signal: AbortSignal,
   ): Promise<ProviderTurnResult> {
@@ -120,6 +122,7 @@ class FakeProvider extends FakeProviderBase {
     this.lastSystemPrompt = params.systemPrompt;
     this.lastTurnContext = params.turnContext ?? null;
     this.lastCreateChat = params.createChat ?? null;
+    this.lastWorkplace = params.chatWorkplace ?? null;
     this.lastUntrackedOnly = params.untrackedOnly ?? false;
     this.prompts.push(params.prompt);
     this.promptIds.push(params.promptId);

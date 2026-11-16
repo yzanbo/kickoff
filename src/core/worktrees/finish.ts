@@ -96,6 +96,8 @@ async function askMergedPr(project: Project, branch: string): Promise<MergedPull
 export class WorktreeFinisher {
   /** 予約した後始末（頼んだチャット → プロジェクトとワークツリーのフォルダ） */
   private readonly reserved = new Map<number, { projectId: number; folder: string }>();
+  /** 予約が済む（片付けた・片付けられなかった）のを待っているもの（AI の作業場所を移す予約が、片付けを先に待つ。メモの仕様書「0025」の G4） */
+  private readonly waiters = new Map<number, (() => void)[]>();
   private readonly unsubscribe: () => void;
   private timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -303,6 +305,24 @@ export class WorktreeFinisher {
     }
   }
 
+  /** そのチャットが片付けを予約しているか */
+  hasReservation(chatId: number): boolean {
+    return this.reserved.has(chatId);
+  }
+
+  /** そのチャットの片付けの予約が済むまで待つ（予約がなければすぐ） */
+  afterReservation(chatId: number): Promise<void> {
+    if (!this.reserved.has(chatId)) return Promise.resolve();
+    return new Promise((resolve) => this.waiters.set(chatId, [...(this.waiters.get(chatId) ?? []), resolve]));
+  }
+
+  /** 予約が済んだ（待っているものに知らせる） */
+  private settled(chatId: number) {
+    const list = this.waiters.get(chatId) ?? [];
+    this.waiters.delete(chatId);
+    for (const resolve of list) resolve();
+  }
+
   /** 片付けを予約したワークツリーのフォルダ（利用者が作業場所を移す先にできない。メモの仕様書「0025」の H7） */
   reservedFolders(): Set<string> {
     return new Set([...this.reserved.values()].map((r) => r.folder));
@@ -326,6 +346,7 @@ export class WorktreeFinisher {
       const project = store.projects.get(r.projectId);
       if (!chat || !project) {
         this.reserved.delete(chatId);
+        this.settled(chatId);
         continue;
       }
       // 作業の終わりの知らせは、作業の後始末より先に届くので、作業中でなくなるまで待つ
@@ -345,6 +366,7 @@ export class WorktreeFinisher {
       } catch (e) {
         store.events.add(chatId, { type: "notice", message: `ワークツリーを片付けられませんでした（${errorMessage(e)}）` });
       }
+      this.settled(chatId);
     }
     if (waiting) this.schedule(this.deps.retryMs ?? 100);
   }
