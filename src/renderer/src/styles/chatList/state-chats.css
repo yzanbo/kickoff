@@ -30,7 +30,7 @@
   width: 100%;
   padding: 3px 6px 3px 2px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   font: inherit;
   font-size: 13px;
   text-align: left;

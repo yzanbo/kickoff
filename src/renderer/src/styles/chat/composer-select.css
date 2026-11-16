@@ -12,7 +12,7 @@
   height: 30px;
   padding: 0 8px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   font: inherit;
   font-size: 14px;
   color: var(--muted);
@@ -116,7 +116,7 @@
   width: 30px;
   height: 30px;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   color: var(--muted);
   background: transparent;
   cursor: pointer;

@@ -108,7 +108,7 @@
   height: 20px;
   padding: 0;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   color: var(--muted);
   background: transparent;
   cursor: pointer;
@@ -226,7 +226,7 @@
 .empty {
   padding: 28px;
   border: 1px dashed var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   color: var(--muted);
   text-align: center;
 }

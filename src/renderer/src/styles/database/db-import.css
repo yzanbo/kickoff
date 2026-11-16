@@ -22,7 +22,7 @@
   gap: 8px;
   padding: 8px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
 }
 
 .db-import-row > input[type="checkbox"] {

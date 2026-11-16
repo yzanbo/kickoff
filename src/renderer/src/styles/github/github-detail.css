@@ -59,7 +59,7 @@
   height: 22px;
   padding: 0 9px;
   border: 1px solid currentColor;
-  border-radius: 11px;
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
 }
@@ -179,7 +179,7 @@
   height: 20px;
   padding: 0 6px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 999px;
   background: transparent;
   color: inherit;
   font: inherit;

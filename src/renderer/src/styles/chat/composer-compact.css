@@ -7,7 +7,7 @@
 /* ---- 送信待ち（queued.css・queued-head.css の基底より後ろ。.queued-messages.compact で詳細度を上げる） ---- */
 .queued-messages.compact {
   padding: 2px 6px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .queued-messages.compact.collapsed {

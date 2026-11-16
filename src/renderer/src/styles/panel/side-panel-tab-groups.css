@@ -64,7 +64,7 @@
 .panel-tab-group.drop-target {
   outline: 1px dashed var(--accent);
   outline-offset: -1px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 

@@ -13,7 +13,7 @@
   padding: 5px;
   /* 入力欄（地が --bg-elev）の中でも枠が見えるよう、地と枠を文字の色で少しだけ持ち上げる（ライト・ダークどちらでも） */
   border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--text) 4%, var(--bg-elev));
   box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
   transition:
@@ -58,7 +58,7 @@
   flex: none;
   width: calc(36px * var(--chat-scale, 1));
   height: calc(36px * var(--chat-scale, 1));
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 .attachment-thumb {

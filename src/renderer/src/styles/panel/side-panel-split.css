@@ -184,7 +184,7 @@ input[type="text"].panel-tab-input {
 .panel-split-button {
   display: inline-flex;
   align-items: center;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .panel-split-button:hover,

@@ -167,7 +167,7 @@
 .github-thread-badge {
   padding: 0 6px;
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: 999px;
   font-family: inherit;
   color: var(--muted);
 }

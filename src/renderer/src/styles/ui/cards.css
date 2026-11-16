@@ -12,7 +12,7 @@
 .card {
   padding: 14px 16px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   background: var(--bg-elev);
 }
 

@@ -10,7 +10,7 @@
   display: grid;
   grid-template-columns: calc(var(--activity-time-w, 62px) * var(--chat-scale, 1)) auto minmax(0, 1fr);
   column-gap: 6px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
 }
 
 /* カードの「動きで見る」で強調した行（そのサブエージェントと配下）と、いま移っている行（枠を足す） */

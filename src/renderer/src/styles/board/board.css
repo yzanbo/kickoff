@@ -78,6 +78,6 @@
 
 .board-selection .selection-bar {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
 }

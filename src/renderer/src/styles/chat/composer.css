@@ -3,7 +3,7 @@
 .composer {
   position: relative;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius);
   background: var(--bg-elev);
 }
 
@@ -103,7 +103,7 @@
   padding: 12px 14px 2px;
   font-size: 14px;
   border: none;
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
   background: transparent;
   resize: none;
 }
@@ -174,7 +174,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  border-radius: 16px;
+  border-radius: var(--radius);
   font-weight: 600;
   color: var(--accent);
   background: color-mix(in srgb, var(--bg-elev) 85%, transparent);
@@ -205,14 +205,14 @@
  * .composer.compact を付けて詳細度で勝たせる
  */
 .composer.compact {
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
 }
 
 .composer.compact textarea {
   min-height: 32px;
   padding: 7px 12px 0;
   font-size: 12px;
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .composer.compact .composer-bar {

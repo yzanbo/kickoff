@@ -203,7 +203,7 @@
  * 入力欄とつなげて 1 枚の枠に見せる決まり（queued.css の .queued-messages + .composer）をここでも当てる
  */
 .memo-quick-queue:has(+ .composer.compact) > .queued-messages {
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .memo-quick-queue:has(> .queued-messages) + .composer,
