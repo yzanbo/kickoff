@@ -121,7 +121,8 @@ export function useChatView(
   const rootRef = useRef<HTMLDivElement>(null);
   const composer = useRef<ComposerHandle | null>(null);
   const side: MutableRefObject<SidePanelHandle | null> = useRef(null);
-  const scroll = useTimelineScrollHandle();
+  // 検索結果から開いたときは、初めから一番下へ付いていかない（移り先へ跳ぶ前に一番下へ寄せない）
+  const scroll = useTimelineScrollHandle(!focus);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
   const timeline = useTimelineWindow({ items, chatId: chat.id, focus, scroll });
   // 移り先が窓の外なら、窓を広げて描いてから移る

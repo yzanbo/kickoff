@@ -194,11 +194,19 @@ export function readingPrompt(timeline: HTMLElement, prompts?: PromptList, hold?
   const timelineTop = timeline.getBoundingClientRect().top;
   const line = timelineTop + 1;
   const holdLine = hold ? Math.max(line, (timeline.parentElement?.getBoundingClientRect().top ?? timelineTop) + hold.line + HOLD_SLACK_PX) : line;
-  const bubbles = timeline.querySelectorAll<HTMLElement>(".bubble.user");
+  // 自分の発言・質問への回答の行（行の包みの data-prompt-id）を上から見る。位置は行の包みで読み、線をまたぐ行だけ中の吹き出しの位置を読む
+  // （画面の外の行は描くのを省いているので、中の要素の位置を読むと、その行のレイアウトを強いる）
+  const rows = promptRows(timeline);
   let found: HTMLElement | undefined;
-  for (const bubble of bubbles) {
-    const held = hold !== undefined && Number(bubble.id.replace("ev-", "")) <= hold.id;
-    if (bubble.getBoundingClientRect().top >= (held ? holdLine : line)) break;
+  for (const row of rows) {
+    const held = hold !== undefined && Number(row.dataset.promptId) <= hold.id;
+    const limit = held ? holdLine : line;
+    const box = row.getBoundingClientRect();
+    // 吹き出しは行の中にあるので、行の上端が線より下なら吹き出しも下
+    if (box.top >= limit) break;
+    const bubble = row.querySelector<HTMLElement>(".bubble.user");
+    if (!bubble) continue;
+    if (box.bottom > limit && bubble.getBoundingClientRect().top >= limit) break;
     found = bubble;
   }
   if (!found) {
@@ -206,7 +214,7 @@ export function readingPrompt(timeline: HTMLElement, prompts?: PromptList, hold?
     const first = firstVisibleEventId(timeline, line);
     const before = first !== undefined && prompts ? promptBefore(prompts, first) : undefined;
     if (before) return before.compactKind ? { id: before.id, text: before.text, compactKind: before.compactKind } : { id: before.id, text: before.text };
-    found = bubbles[0];
+    found = rows[0]?.querySelector<HTMLElement>(".bubble.user") ?? undefined;
   }
   if (!found) return undefined;
   const id = Number(found.id.replace("ev-", ""));
@@ -221,12 +229,21 @@ export function readingPrompt(timeline: HTMLElement, prompts?: PromptList, hold?
   return compactKind ? { id, text, compactKind } : { id, text };
 }
 
-/** 流れの上端の線より下に掛かっている、いちばん上の項目の記録の ID（項目の要素の id は `ev-<記録の ID>`。なければ undefined） */
+/** 会話の流れの行の包み（入れ子のカードの中の行は含めない）のうち、自分の発言・質問への回答の行 */
+const promptRows = (timeline: HTMLElement) => [...timeline.querySelectorAll<HTMLElement>(":scope > .timeline-inner > .timeline-row[data-prompt-id]")];
+
+/**
+ * 流れの上端の線より下に掛かっている、いちばん上の項目の記録の ID（項目の要素の id は `ev-<記録の ID>`。なければ undefined）。
+ * 線より上で終わる行は包みの位置だけで飛ばし、中の要素の位置は線に掛かる行（描いている行）でだけ読む
+ */
 function firstVisibleEventId(timeline: HTMLElement, line: number): number | undefined {
-  for (const el of timeline.querySelectorAll<HTMLElement>('[id^="ev-"]')) {
-    if (el.getBoundingClientRect().bottom <= line) continue;
-    const id = Number(el.id.slice(3));
-    if (Number.isFinite(id) && id > 0) return id;
+  for (const row of timeline.querySelectorAll<HTMLElement>(":scope > .timeline-inner > .timeline-row")) {
+    if (row.getBoundingClientRect().bottom <= line) continue;
+    for (const el of row.querySelectorAll<HTMLElement>('[id^="ev-"]')) {
+      if (el.getBoundingClientRect().bottom <= line) continue;
+      const id = Number(el.id.slice(3));
+      if (Number.isFinite(id) && id > 0) return id;
+    }
   }
   return undefined;
 }

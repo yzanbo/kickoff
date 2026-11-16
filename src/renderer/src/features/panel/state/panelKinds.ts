@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useSetting } from "@/hooks/useSetting";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { panelTabKinds } from "@/lib/storageKeys";
@@ -62,17 +63,20 @@ export function showKind(surface: PanelSurface, kind: PanelKind) {
  */
 export function usePanelKinds(surface: PanelSurface, noChat = false) {
   const [stored, setStored] = useSetting(panelTabKinds(surface));
-  const all = decodeKinds(stored, surface);
-  const kinds = withoutChat(all, noChat);
-  return {
-    kinds,
-    /** 付け外しできる種類 */
-    choices: noChat ? CHAT_FREE_KINDS : PANEL_KINDS,
-    has: (kind: PanelKind) => kinds.includes(kind),
-    toggle: (kind: PanelKind) => {
-      // 見せている最後の 1 つは外さない（チャットを出さない欄では、隠しているチャットを数えない）
-      if (noChat && (kind === "chat" || (kinds.length === 1 && kinds[0] === kind))) return;
-      setStored([...toggleKind(all, kind)]);
-    },
-  };
+  // 設定が同じ間は同じ物を返す（パネルの操作の物を描き直しのたびに作り直さない。memo したパネルを描き直させない）
+  return useMemo(() => {
+    const all = decodeKinds(stored, surface);
+    const kinds = withoutChat(all, noChat);
+    return {
+      kinds,
+      /** 付け外しできる種類 */
+      choices: noChat ? CHAT_FREE_KINDS : PANEL_KINDS,
+      has: (kind: PanelKind) => kinds.includes(kind),
+      toggle: (kind: PanelKind) => {
+        // 見せている最後の 1 つは外さない（チャットを出さない欄では、隠しているチャットを数えない）
+        if (noChat && (kind === "chat" || (kinds.length === 1 && kinds[0] === kind))) return;
+        setStored([...toggleKind(all, kind)]);
+      },
+    };
+  }, [stored, surface, noChat, setStored]);
 }

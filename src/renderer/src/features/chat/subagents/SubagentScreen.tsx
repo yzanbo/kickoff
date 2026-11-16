@@ -8,6 +8,7 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { EmptyState } from "@/ui/EmptyState";
 import { useOptionalChatPane, type ChatPaneActions } from "@/features/chat/pane/chatPaneContext";
 import { TimelineItems } from "@/features/chat/timeline/Timeline";
+import { TimelineBusyContext } from "@/features/chat/timeline/timelineBusy";
 import { keepSelectionOnClick, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
 import { useQuoteMenu } from "@/features/chat/messages/useMessageMenu";
 import { SubagentActions } from "./SubagentActions";
@@ -73,7 +74,10 @@ function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
       <div ref={scrollRef} className="subagent-screen-scroll" onScroll={onScroll} tabIndex={-1}>
         <div ref={contentRef} className="subagent-screen-content" {...{ [QUOTABLE_ATTR]: "" }} onContextMenu={quoteMenu.openInRegion} onClickCapture={keepSelectionOnClick}>
           {entry.prompt && <SubagentPrompt text={entry.prompt} />}
-          <SubagentSteps entry={entry} view={view} items={items} renderItems={renderItems} />
+          {/* 作業中か（作業の終わりの行の分岐などが読む。timelineBusy） */}
+          <TimelineBusyContext.Provider value={view.busy}>
+            <SubagentSteps entry={entry} view={view} items={items} renderItems={renderItems} />
+          </TimelineBusyContext.Provider>
           <SubagentReport entry={entry} view={view} />
         </div>
       </div>

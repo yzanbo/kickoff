@@ -123,6 +123,12 @@
   overflow-y: auto;
 }
 
+/* 会話の流れ（ChatTimeline）は、流れの中の変化（書いている途中の文が伸びる・行が増える）を、流れの外のレイアウトと描画に及ぼさない。
+   大きさは .timeline-wrap の格子（minmax(0, 1fr)）で決まり、中身によらない（送る前のチャット・メモのチャットの案内の .timeline は中身で高さが決まるので付けない） */
+.timeline-wrap > .timeline {
+  contain: strict;
+}
+
 /* 上にスクロールしている間だけ出す、一番下へ戻るボタン（.icon-button より後ろの指定に勝つよう、枠の中で指定する） */
 .timeline-wrap .scroll-bottom {
   position: absolute;

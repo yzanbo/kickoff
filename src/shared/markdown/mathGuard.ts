@@ -36,6 +36,15 @@ export function looksLikeMath(content: string): boolean {
 }
 
 /**
+ * 1 つの $ のあとの、閉じの $ がまだ来ていない書きかけの中身が、続きによって数式になりうるか（書きかけの返答を少しずつ出すとき、
+ * 数式になりうる間だけ $ の手前で止めるため）。長すぎる・空白で始まる・改行や $ や ` を含む・文の言葉らしい（「$5 です」「$HOME」）なら、もうならない
+ */
+export function mayBecomeSingleDollarMath(content: string): boolean {
+  if (content.length > INLINE_MATH_MAX || /^\s/.test(content) || /[$`\n]/.test(content)) return false;
+  return !PROSE.test(withoutCommands(content));
+}
+
+/**
  * 1 つの $ で囲んだ部分を数式にするか。before は開きの $ の前の文字、after は閉じの $ の後ろの文字（文の頭・終わりなら undefined）。
  * 前後が英数字なら数式にしない（「US$5」）。中身は looksLikeMath
  */

@@ -1,6 +1,7 @@
 import { MessageCircleQuestion } from "lucide-react";
 import type { ChatEventOf } from "@shared/types";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
+import { LazyDetails } from "@/ui/LazyDetails";
 import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 
 /**
@@ -32,10 +33,9 @@ export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"app
                 <dd>{Array.isArray(answer) ? answer.join("、") : answer}</dd>
                 {data.previews?.[question] && (
                   <dd>
-                    <details className="question-answer-preview">
-                      <summary>選んだ図</summary>
-                      <pre>{data.previews[question]}</pre>
-                    </details>
+                    <LazyDetails className="question-answer-preview" summary={<summary>選んだ図</summary>}>
+                      {() => <pre>{data.previews?.[question]}</pre>}
+                    </LazyDetails>
                   </dd>
                 )}
                 {files.length > 0 && (

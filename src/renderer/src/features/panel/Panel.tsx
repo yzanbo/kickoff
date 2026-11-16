@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useSetting } from "@/hooks/useSetting";
@@ -29,9 +29,13 @@ import { useNewChild } from "@/features/panel/agents/useNewChild";
  * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
  * 「新しいチャット」の作成先・開けるターミナル（Mac のアプリでだけ）は欄の hook が usePanel に渡す。チャットを開いているペインでは、ターミナルはそのチャットの作業場所で開く。
  * 表示するタブの種類（panel.kinds）で隠している種類のタブは、タブの列にも中身にも出さない（閉じずに残す）。
- * タブの列を隠せる欄（チャットのパネル）で隠しているときは、どのペインのタブの列（と左の道具）も出さない
+ * タブの列を隠せる欄（チャットのパネル）で隠しているときは、どのペインのタブの列（と左の道具）も出さない。
+ * panel（usePanel）と frame が同じなら描き直さない（チャットの画面の右の欄が、返答のたびに描き直らないように）。
+ * タブの中身（PanelTabPage）も memo で、変わったタブだけが描き直る
  */
-export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
+export const Panel = memo(PanelBody);
+
+function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
   const { tabs, layout, panelOpen, terminals } = panel;
   const rules = SURFACES[panel.surface];
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
@@ -178,7 +182,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
             <PanelTabPage
               key={t.key}
               tab={t}
-              panel={panel}
+              panel={panel.pageOps}
               panelOpen={panelOpen}
               paneId={pane.id}
               active={active}

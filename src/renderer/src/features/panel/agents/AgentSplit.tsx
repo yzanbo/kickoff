@@ -1,9 +1,10 @@
-import type { MutableRefObject, ReactNode } from "react";
+import { useMemo, useRef, type MutableRefObject, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { useCoverableWidth } from "@/hooks/useCoverableWidth";
 import { SUBAGENT_PANEL_MAXIMIZED, SUBAGENT_PANEL_WIDTH } from "@/lib/storageKeys";
 import type { SidePanelHandle } from "@/features/chat/pane/useChatView";
 import { usePanelHost } from "@/features/panel/panelHost";
+import type { PanelFrame } from "@/features/panel/PanelTools";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
 import { SideSelectionAttach } from "@/features/chat/messages/SelectionAttach";
 import { MainChatContext } from "@/features/chat/pane/mainChatContext";
@@ -46,6 +47,25 @@ export function AgentSplit({ scope, handleRef, children }: { scope: number | Dra
   // 右の欄でメインを覆っているか（横幅いっぱいにした・狭くてメインが読めない）
   const full = width.maximized || width.covering;
   const covering = open && full;
+  // 覆っていて、メインを残すと右の欄の最小の幅に足りないほど狭いときは、元の幅に戻せない
+  const restoreDisabled = full && !width.canRestore;
+  // 右の欄のパネル（memo）に渡す frame は作り置く（チャットの画面は返答のたびに描き直るが、右の欄のタブは描き直さない）。
+  // つまみ・切り替えの操作は描くたびに作られるので、押したときにいまのものを呼ぶ
+  const latest = useRef(width);
+  latest.current = width;
+  const { paneRef } = width;
+  const frame = useMemo<PanelFrame>(
+    () => ({
+      paneRef,
+      resizeHandle: {
+        ...latest.current.resizeHandle,
+        onPointerDown: (e) => latest.current.resizeHandle.onPointerDown(e),
+        onDoubleClick: () => latest.current.resizeHandle.onDoubleClick(),
+      },
+      maximize: { on: full, disabled: restoreDisabled, toggle: () => latest.current.toggleMaximized() },
+    }),
+    [paneRef, full, restoreDisabled],
+  );
   // 流れの中のカードへ移るときは、メインを見せる（並べる形に戻す。狭くて戻せなければ、右の欄を閉じる）
   handleRef.current = {
     uncover: () => {
@@ -65,15 +85,7 @@ export function AgentSplit({ scope, handleRef, children }: { scope: number | Dra
       </div>
       {Host && (panel.panelOpen || panel.tabs.length > 0) && (
         <MainChatContext.Provider value={chatId}>
-          <Host
-            panel={panel}
-            frame={{
-              paneRef: width.paneRef,
-              resizeHandle: width.resizeHandle,
-              // 覆っていて、メインを残すと右の欄の最小の幅に足りないほど狭いときは、元の幅に戻せない
-              maximize: { on: full, disabled: full && !width.canRestore, toggle: width.toggleMaximized },
-            }}
-          />
+          <Host panel={panel} frame={frame} />
           {chatId !== null && <SideSelectionAttach mainChatId={chatId} container={() => document.querySelector(`[data-panel-key="${panelKey("agents", chatId)}"]`)} />}
         </MainChatContext.Provider>
       )}

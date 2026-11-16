@@ -14,11 +14,11 @@
 }
 
 /* メインの流れのカードは少し右へ寄せ、上から曲がって入る線で、メインから枝分かれした配下だと見せる（線はそのサブエージェントの色） */
-.timeline-inner > .subagent-card {
+.timeline-inner > .timeline-row > .subagent-card {
   margin-left: 18px;
 }
 
-.timeline-inner > .subagent-card::before {
+.timeline-inner > .timeline-row > .subagent-card::before {
   position: absolute;
   top: -6px;
   left: -16px;

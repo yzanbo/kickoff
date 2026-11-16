@@ -94,5 +94,5 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 
 ## 製品版の画面の配信
 
-- 製品版の画面はコア（`core/http/server.ts`）が配る。画面のファイルは `Cache-Control: no-cache` で返す（serveStatic は Last-Modified だけを付けるので、そのままだと Chromium が経験則でキャッシュを新しいとみなし、アプリを入れ替えたあとの起動で古い index.html・JS を問い合わせずに使い、新しいコアとかみ合わずに画面が真っ暗になった）。SPA の index.html を返すのは拡張子のないパスだけで、ない JS・CSS は 404。
+- 製品版の画面はコア（`core/http/server.ts`）が配る。キャッシュの決まりは `core/http/rendererCache.ts`（メモの仕様書「0023_表示を軽くする」の案 9）: `/assets/` の下（Vite が名前に中身のハッシュを付けて書く）は `public, max-age=31536000, immutable`（起動・別ウィンドウのたびに JS を取り直してコンパイルし直さない。V8 のコードキャッシュも効く）。ほか（index.html・favicon・SPA の index.html）は `Cache-Control: no-cache` と中身から作る ETag で、`If-None-Match` が合えば 304（serveStatic は Last-Modified だけを付けるので、no-cache がないと Chromium が経験則でキャッシュを新しいとみなし、アプリを入れ替えたあとの起動で古い index.html を問い合わせずに使い、新しいコアとかみ合わずに画面が真っ暗になった。asar の中のファイルの更新時刻はファイルごとでないので、If-Modified-Since ではなく ETag で比べる）。入れ替えても真っ暗にならないのは、index.html は毎回確かめて中身が変われば新しいものが届き、`/assets/` の下は中身が変われば名前が変わるため（全件がハッシュ付きかは、画面のビルドの終わりに `electron.vite.config.ts` の `hashedAssetsOnly` が確かめ、外れがあればビルドを失敗にする。`src/renderer/public/assets/` にファイルを置かない）。SPA の index.html を返すのは拡張子のないパスだけで、ない JS・CSS は 404。
 - `npm run install-app` は製品版を終了させ、Helper の終わりも待ってから、画面の HTTP キャッシュ（保存先の `Cache`。チャット・localStorage は別）を消して入れ替える。
