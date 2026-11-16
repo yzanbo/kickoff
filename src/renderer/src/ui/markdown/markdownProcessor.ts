@@ -81,11 +81,21 @@ export function renderMarkdown(pipeline: MarkdownPipeline, text: string, compone
   return post(tree, components);
 }
 
-/** react-markdown の post と同じ: raw（HTML）を文字にし、URL を安全にして（defaultUrlTransform）、React の要素にする */
+/** HTML のコメントだけ（前後の空白と、続けて並んだ複数のコメントは含む）の文か */
+const HTML_COMMENT_ONLY = /^\s*(?:<!--(?:(?!-->)[\s\S])*-->\s*)+$/;
+
+/** raw（生の HTML）の文が HTML のコメントだけか（`<!-- visual: v-… -->` のような目印。HTML として描いても何も出ないもの） */
+export const isHtmlComment = (value: string) => HTML_COMMENT_ONLY.test(value);
+
+/**
+ * react-markdown の post と同じ: raw（HTML）を文字にし、URL を安全にして（defaultUrlTransform）、React の要素にする。
+ * ただし HTML のコメントだけの raw は文字にせず消す（HTML として描いても出ないものなので。ほかの生の HTML は動かさずに文字で出す）
+ */
 function post(tree: HastRoot, components: Components): ReactElement {
   visit(tree, (node: Nodes, index, parent) => {
     if (node.type === "raw" && parent && typeof index === "number") {
-      parent.children[index] = { type: "text", value: node.value };
+      if (isHtmlComment(node.value)) parent.children.splice(index, 1);
+      else parent.children[index] = { type: "text", value: node.value };
       return index;
     }
     if (node.type === "element") {
