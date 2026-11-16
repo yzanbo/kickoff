@@ -101,17 +101,17 @@ export function ChatView({ chat, project, focus, visible, slot, onOpenNew, befor
     <ChatProviderContext.Provider value={chat.provider}>
       <FileLinksProvider value={fileLinks}>
         <PastWorkplacesProvider chatId={chat.id} current={fileLinks} side={canOpenSide}>
-        <ChatImagesProvider chatId={chat.id}>
-          <ChatPaneContext.Provider value={pane}>
-            <KeepAliveContext.Provider value={chat.id}>
-              <AgentSplit scope={chat.id} handleRef={shell.side}>
-                <Activity mode={mode}>
-                  <ChatColumn chat={chat} project={project} focus={focus} visible={visible} onOpenNew={onOpenNew} beforeSend={beforeSend} shell={shell} />
-                </Activity>
-              </AgentSplit>
-            </KeepAliveContext.Provider>
-          </ChatPaneContext.Provider>
-        </ChatImagesProvider>
+          <ChatImagesProvider chatId={chat.id}>
+            <ChatPaneContext.Provider value={pane}>
+              <KeepAliveContext.Provider value={chat.id}>
+                <AgentSplit scope={chat.id} handleRef={shell.side}>
+                  <Activity mode={mode}>
+                    <ChatColumn chat={chat} project={project} focus={focus} visible={visible} onOpenNew={onOpenNew} beforeSend={beforeSend} shell={shell} />
+                  </Activity>
+                </AgentSplit>
+              </KeepAliveContext.Provider>
+            </ChatPaneContext.Provider>
+          </ChatImagesProvider>
         </PastWorkplacesProvider>
       </FileLinksProvider>
     </ChatProviderContext.Provider>
