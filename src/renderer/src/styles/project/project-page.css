@@ -38,12 +38,13 @@
 }
 
 .project-header {
-  margin-bottom: 10px;
+  /* 見出しの下は、中身の枠のまわりの左右・下と同じ --gutter（利用者の依頼。前は 10px で、ほかの余白とそろっていなかった） */
+  margin-bottom: var(--gutter);
 }
 
 /* 名前の行を寄せたときだけ表示・非表示にしているときは、見出しの下を空けない（タブの列だけが残るときは、タブの列の下の線で区切る） */
 .project-header.title-out {
-  margin-bottom: 6px;
+  margin-bottom: var(--gutter);
 }
 
 .project-header.title-out:not(:has(.project-tabs-row)) {
