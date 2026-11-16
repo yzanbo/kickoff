@@ -6,6 +6,7 @@ import { VISUAL_CDN_ORIGINS, VISUAL_CODE_MAX, VISUAL_THEME_VARS, type VisualGuid
 const COMMON = [
   "# Kickoff の図の共通の決まり",
   "- show_visual で描いた図は、返答の中（呼んだ位置。文の間）に閉じた枠で出ます。図の前後の文で、何の図かを短く説明してください。",
+  "- 図の位置は show_visual を呼んだ位置で決まります。返答の本文に visual_id や図の目印（<!-- … --> の HTML のコメント・[図: …] など）を書かないでください（本文で図の場所を指す書き方はありません）。",
   "- kind: 構造の図（流れ・順序・状態・関係・ER・ガント）は mermaid、形を自分で決める図・絵は svg、グラフ・画面のラフ・動く部品は html。",
   "- svg は <svg ...> から始め、viewBox を付けて width は書かない（枠の幅に合わせて縮む）。html は <style>・<script> を含む HTML の断片か 1 枚のページ全体。",
   `- 中身は ${VISUAL_CODE_MAX.toLocaleString("en-US")} 文字まで。描き直すときは update_visual に、show_visual が返した visual_id と新しい中身の全体を渡す（差分ではなく全体）。`,
