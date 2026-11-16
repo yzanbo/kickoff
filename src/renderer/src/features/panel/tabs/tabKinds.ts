@@ -254,6 +254,8 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     group: (t, _chat, groupOf) => groupOf(t.projectId, t.group) ?? (t.groupName ? { name: t.groupName, hue: null } : undefined),
     projectOf: (t) => t.projectId,
     cluster: (t, r) => r.ofTarget(t.projectId, t.group, t.worktree),
+    // チャットの別ウィンドウへ移す（書きかけの文・添付ごと。中身は popOutTab が tabHandoff で渡す。利用者の依頼）
+    popout: (t, panel) => ({ route: { kind: "chats", panel, key: t.key, projectId: t.projectId }, title: `${t.title ?? NEW_CHAT_TITLE} — チャット` }),
   },
   subagent: {
     shows: "subagent",

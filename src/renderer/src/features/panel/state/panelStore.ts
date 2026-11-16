@@ -23,7 +23,13 @@ let version = 0;
  */
 let replica = false;
 /** このウィンドウが持つ欄か（下書きの保存で、ほかのウィンドウが持つ欄 = 別ウィンドウへ移したチャット欄の分は書き換えない。panelHandOff.ts） */
-let owns: (key: string) => boolean = () => true;
+let owns: (key: string) => boolean = (key) => !isWindowPanel(key);
+
+/** タブの列のある別ウィンドウの欄か（その別ウィンドウが持つので、メインのウィンドウは下書きの保存で書き換えない） */
+function isWindowPanel(key: string): boolean {
+  const surface = parsePanelKey(key)?.surface;
+  return surface === "window" || surface === "chatWindow";
+}
 
 /** 下書きのタブを残す（このウィンドウが持つ欄の分だけ） */
 const persistDrafts = () => writeDrafts([...states].map(([k, s]) => [k, s.tabs] as const), owns);

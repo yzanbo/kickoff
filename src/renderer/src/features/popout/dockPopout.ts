@@ -14,6 +14,7 @@ import { panelActions } from "@/features/panel/state/panelActions";
 import { isPanelMounted } from "@/features/panel/state/panelStore";
 import { panelKey, panelScreen } from "@/features/panel/surfaces";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
+import { takeHandedTab } from "@/features/panel/tabs/tabHandoff";
 import { claimTerminal } from "@/features/terminal/terminalOwner";
 
 /** 描かれるまで待ってから（開いたばかりのチャットの画面は、次の描画のあとにできる。2 秒まで） */
@@ -35,10 +36,14 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       // ブラウザは右サイドバーだけに置く（ブラウザの別ウィンドウから、さらに移したタブも）
       reopenInPanel(route.projectId !== null ? panelKey("side", route.projectId) : route.panel, { key: route.key, kind: "browser", url: route.url, title: route.title });
       return;
-    case "chats":
+    case "chats": {
       // チャットのパネルで開く（移すときに「表示だけ消した」ことにしたのを、開くことで戻す）
-      openChat(route.projectId, route.chatId);
+      if (route.chatId !== undefined) return openChat(route.projectId, route.chatId);
+      // 送る前の新しいチャット: 別ウィンドウが渡した中身（書きかけの文・添付）のまま、チャットのパネルに開き直す
+      const draft = takeHandedTab(route.key);
+      if (draft) reopenInPanel(panelKey("board", route.projectId), draft);
       return;
+    }
     case "terminal": {
       const { kind: _kind, panel, ...tab } = route;
       await claimTerminal(tab.key);
