@@ -342,7 +342,7 @@ test("送信待ちのコンテキスト消去の行: 作業中の「すぐ送る
   assert.equal(store.chats.get(chat.id)?.session_id, null);
 });
 
-test("起動したときの送信待ちの確かめ: 止めておくか・線は保ち、自動で送るまま残った列だけを、答えるまで送らずに聞く（送る / 続けてから送る / 止めておく）", async () => {
+test("起動したときの再開の確かめ: 止めておくか・線は保ち、自動で送るまま残った列だけを、答えるまで送らずに聞く（送る / 続けてから送る / 止めておく）", async () => {
   const { store, provider, project, approvals, providers, usage } = setup(async () => ({ status: "completed", sessionId: "s1" }));
   const make = (title: string) => store.chats.create({ project_id: project.id, provider: "claude", title, status: "running", model: null });
   const row = (id: string, text: string) => ({ id, text, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
@@ -352,9 +352,8 @@ test("起動したときの送信待ちの確かめ: 止めておくか・線は
   store.queues.save({ chatId: pauseChat.id, messages: [row("p1", "止める 1")], paused: false, stops: [] });
   store.queues.save({ chatId: pausedChat.id, messages: [row("q1", "止めていた 1")], paused: true, stops: [] });
   store.queues.save({ chatId: stoppedChat.id, messages: [row("t1", "線で待つ 1")], paused: false, stops: [0] });
-  // アプリを終えて起動し直した: 作業中だったチャットは中断（送る・止めるのチャットは作業していなかったことにする）
-  store.chats.update(sendChat.id, { status: "completed" });
-  store.chats.update(pauseChat.id, { status: "completed" });
+  // アプリを終えて起動し直した: 作業中だったチャットは中断（続けるのチャットのほかは作業していなかったことにする）
+  for (const c of [sendChat, pauseChat, pausedChat, stoppedChat]) store.chats.update(c.id, { status: "completed" });
   const interrupted = store.chats.recoverInterrupted("中断しました");
   const restarted = new Runner({ store, approvals, providers, usage, interrupted });
   const before = provider.calls.length;
@@ -363,18 +362,18 @@ test("起動したときの送信待ちの確かめ: 止めておくか・線は
   assert.equal(restarted.live(pausedChat.id).queue.paused, true);
   assert.deepEqual([restarted.live(stoppedChat.id).queue.paused, restarted.live(stoppedChat.id).queue.stops], [false, [0]]);
   assert.deepEqual(
-    restarted.queueResumes().map((r) => [r.chat_id, r.messages.length, r.messages[0].text, r.interrupted]),
+    restarted.restartResumes().map((r) => [r.chat_id, r.messages.length, r.messages[0].text, r.interrupted, r.queued]),
     [
-      [sendChat.id, 2, "送る 1", false],
-      [continueChat.id, 1, "続けてから 1", true],
-      [pauseChat.id, 1, "止める 1", false],
+      [sendChat.id, 2, "送る 1", false, true],
+      [continueChat.id, 1, "続けてから 1", true, true],
+      [pauseChat.id, 1, "止める 1", false, true],
     ],
   );
   // 答えるまでは送らない
   await tick();
   assert.equal(provider.calls.length, before);
 
-  await restarted.resolveQueueResumes([
+  await restarted.resolveRestartResumes([
     { chatId: sendChat.id, action: "send" },
     { chatId: continueChat.id, action: "continue" },
     { chatId: pauseChat.id, action: "pause" },
@@ -392,10 +391,10 @@ test("起動したときの送信待ちの確かめ: 止めておくか・線は
   assert.equal(restarted.live(pauseChat.id).queue.paused, true);
   assert.ok(!prompts.includes("止める 1"));
   // 答えたものは、もう聞かない
-  assert.deepEqual(restarted.queueResumes(), []);
+  assert.deepEqual(restarted.restartResumes(), []);
 });
 
-test("起動したときの送信待ちの確かめ: 答えるまでは、線を外す・並べ替えても送らず、自動で送る / 止めていますを押したら答えたことにする。止まったところを添える", async () => {
+test("起動したときの再開の確かめ: 答えるまでは、線を外す・並べ替えても送らず、自動で送る / 止めていますを押したら送信待ちには答えたことにする（作業を続けるかは聞き続ける）。止まったところを添える", async () => {
   const { store, provider, project, approvals, providers, usage } = setup(async () => ({ status: "completed", sessionId: "s1" }));
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "見て決める", status: "running", model: null });
   store.events.add(chat.id, { type: "user", text: "テストを直して", message_uuid: "u1" });
@@ -408,8 +407,8 @@ test("起動したときの送信待ちの確かめ: 答えるまでは、線を
   const before = provider.calls.length;
 
   // 画面に配る様子にも、確かめを待っていることが出る
-  assert.deepEqual(restarted.live(chat.id).queue_resume, { interrupted: true });
-  const [resume] = restarted.queueResumes();
+  assert.deepEqual(restarted.live(chat.id).restart_resume, { interrupted: true, queued: true });
+  const [resume] = restarted.restartResumes();
   assert.deepEqual(
     [resume.messages.map((m) => m.id), resume.stops, resume.last_prompt?.text, resume.last_reply?.text, resume.last_tool?.text],
     [["a", "b"], [1], "テストを直して", "直しています。", "Bash: npm test"],
@@ -420,8 +419,83 @@ test("起動したときの送信待ちの確かめ: 答えるまでは、線を
   await tick();
   assert.equal(provider.calls.length, before);
   assert.deepEqual(restarted.live(chat.id).queue.messages.map((m) => m.id), ["b", "a"]);
-  // 見出しの「止めています」を押したら、答えたことにする
+  // 見出しの「止めています」を押したら、送信待ちには答えたことにする（作業を続けるかは聞き続ける）
   await restarted.setQueuePaused(chat.id, true);
-  assert.equal(restarted.live(chat.id).queue_resume, null);
-  assert.deepEqual(restarted.queueResumes(), []);
+  assert.deepEqual(restarted.live(chat.id).restart_resume, { interrupted: true, queued: false });
+  assert.deepEqual(
+    restarted.restartResumes().map((r) => [r.chat_id, r.queued, r.messages.length]),
+    [[chat.id, false, 0]],
+  );
+});
+
+test("起動したときの再開の確かめ: アプリを終えるときに作業中だったチャットに印を付け、送信待ちがなくても聞く（続ける / 止めたまま / あとで）", async () => {
+  const { gates, script } = gatedScript();
+  const { store, runner, provider, project, approvals, providers, usage } = setup(script);
+  const continued = await runner.start({ projectId: project.id, prompt: "調べて" });
+  const paused = await runner.start({ projectId: project.id, prompt: "直して" });
+  const later = await runner.start({ projectId: project.id, prompt: "書いて" });
+  await until(() => gates.length === 3);
+  // 続けるチャットでは、サブエージェントが動いている途中だった
+  store.events.add(continued.id, { type: "tool_use", id: "task1", name: "Agent", input: { description: "下調べ", prompt: "README を読む" } });
+  store.events.add(continued.id, { type: "subagent", tool_use_id: "task1", task_id: "agent-1", description: "下調べ", status: "running" });
+  // アプリを終える: 止めると中断で終わり、作業中のまま残らない
+  runner.shutdown();
+  await until(() => [continued, paused, later].every((c) => store.chats.get(c.id)?.status === "cancelled"));
+  const interrupted = store.chats.recoverInterrupted("中断しました");
+  assert.deepEqual(interrupted, [continued.id, paused.id, later.id]);
+
+  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  const before = provider.calls.length;
+  assert.deepEqual(restarted.live(paused.id).restart_resume, { interrupted: true, queued: false });
+  const resumes = restarted.restartResumes();
+  assert.deepEqual(
+    resumes.map((r) => [r.chat_id, r.interrupted, r.queued, r.messages.length, r.last_prompt?.text]),
+    [
+      [continued.id, true, false, 0, "調べて"],
+      [paused.id, true, false, 0, "直して"],
+      [later.id, true, false, 0, "書いて"],
+    ],
+  );
+  assert.deepEqual(resumes[0].subagents, [{ description: "下調べ", agent_id: "agent-1" }]);
+  // 送信待ちのないチャットに「送る」は選べない（どれも変えない）
+  await assert.rejects(
+    restarted.resolveRestartResumes([
+      { chatId: paused.id, action: "pause" },
+      { chatId: later.id, action: "send" },
+    ]),
+    /送信待ちのないチャットには/,
+  );
+  assert.equal(restarted.restartResumes().length, 3);
+
+  await restarted.resolveRestartResumes([
+    { chatId: continued.id, action: "continue" },
+    { chatId: paused.id, action: "pause" },
+  ]);
+  // 続ける: 止まったサブエージェントの名前と ID を添えて、続きを頼む
+  await until(() => gates.length === 4);
+  const prompt = provider.calls.at(-1)!.prompt;
+  assert.match(prompt, /アプリの終了で止まったところから/);
+  assert.match(prompt, /- 「下調べ」（ID: agent-1）/);
+  assert.equal(provider.calls.length, before + 1);
+  gates[3]();
+  await until(() => !restarted.isBusy(continued.id));
+  // 止めたまま: 何も送らない。答えなかった（あとで）チャットだけ、待ったまま
+  assert.equal(store.chats.get(paused.id)?.status, "cancelled");
+  assert.deepEqual(restarted.restartResumes().map((r) => r.chat_id), [later.id]);
+  // 次に起動しても、答えなかったチャットだけを聞く
+  assert.deepEqual(store.chats.recoverInterrupted("中断しました"), [later.id]);
+});
+
+test("起動したときの再開の確かめ: 自分で送ったら作業を続けるかは聞かない（印も外す）。落ちて作業中のまま残ったチャットも聞く", async () => {
+  const { store, project, approvals, providers, usage } = setup(async () => ({ status: "completed", sessionId: "s1" }));
+  const crashed = store.chats.create({ project_id: project.id, provider: "claude", title: "落ちた", status: "running", model: null });
+  const interrupted = store.chats.recoverInterrupted("中断しました");
+  assert.deepEqual(interrupted, [crashed.id]);
+  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  assert.deepEqual(restarted.live(crashed.id).restart_resume, { interrupted: true, queued: false });
+  await restarted.send(crashed.id, "続きを進めて");
+  assert.equal(restarted.live(crashed.id).restart_resume, null);
+  await until(() => !restarted.isBusy(crashed.id));
+  assert.deepEqual(restarted.restartResumes(), []);
+  assert.deepEqual(store.chats.recoverInterrupted("中断しました"), []);
 });

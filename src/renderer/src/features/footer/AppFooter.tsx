@@ -18,7 +18,7 @@ import { usePopover } from "@/ui/Popover";
 import { UsageMeter } from "@/features/usage/UsageMeter";
 import { UsagePopover } from "@/features/usage/UsagePopover";
 import { ForegroundUsage, useForegroundUsage } from "@/features/usage/ForegroundUsage";
-import { QueueResumeFooterButton } from "@/features/chat/queue/QueueResumeDialog";
+import { RestartResumeFooterButton } from "@/features/chat/queue/RestartResumeDialog";
 import { PortsButton, PortsFallback } from "./ports/PortsButton";
 import { portsAvailable } from "./ports/portsStore";
 
@@ -87,8 +87,8 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       {projectId !== undefined && <FooterBranch projectId={projectId} />}
       {/* プロジェクトのフォルダでポートを開いているプロセス（0 なら出さない。AI が残した開発サーバーに気付いて止める。Mac のアプリの中だけ） */}
       {portsAvailable() && <PortsButton />}
-      {/* 起動したときの送信待ちの確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
-      <QueueResumeFooterButton />
+      {/* 起動したときの再開の確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
+      <RestartResumeFooterButton />
       <span className="spacer" />
       {foregroundAi !== null && <ForegroundUsage provider={foregroundAi} />}
       {foregroundAi === null && usage?.plan && (

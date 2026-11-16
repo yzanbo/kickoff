@@ -113,6 +113,8 @@ export interface Core {
   databaseStats(): DatabaseStats;
   /** ブラウザからこの Mac の画面として入る、一度だけ使える URL（npm run daemon が端末に出す） */
   browserLoginUrl(): string;
+  /** 作業中のチャット（送る準備・親の会話を写している途中も。メインプロセスが、終了してよいかを聞くダイアログに名前を並べる） */
+  runningChats(): { id: number; title: string | null }[];
   /** 作業中のチャットの数と、スマホ連携がオンか（メインプロセスが本体を眠らせないかを決める。変わったら bus の chat / settings が届く） */
   awakeNeeds(): { running: number; mobileEnabled: boolean };
   /** 内蔵ターミナルのシェル（この Mac の画面が消えたら、その持ち主のシェルを止める。コアのプロセスの入口が RPC から呼ぶ） */
@@ -128,8 +130,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   if (opts.onChildProcess) setChildProcessReporter(opts.onChildProcess);
   const store = new Store(path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
   opts.onStage?.("dbOpened");
+  // 前回の終了で作業の途中で止まったチャット（落ちて作業中のまま残ったものを失敗にし、終えるときに印を付けたものと一緒に返す）は、起動したときの再開の確かめで聞く
   const recovered = store.chats.recoverInterrupted(RECOVERED_MESSAGES[opts.recoveredReason ?? "quit"]);
-  if (recovered.length > 0) console.log(`[core] 中断された実行を ${recovered.length} 件復旧しました`);
+  if (recovered.length > 0) console.log(`[core] 前回の終了で作業の途中で止まったチャットが ${recovered.length} 件あります（起動したときの再開の確かめで聞きます）`);
 
   const token = loadOrCreateToken(opts.dataDir);
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
@@ -183,7 +186,6 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   databases.cleanExports();
   // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
-  // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
   // Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く）
   const docker = new DockerService(bus, opts.platform);
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる。チャットの AI とターミナルには PORT を渡す）
@@ -304,6 +306,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     localUrl: `http://127.0.0.1:${opts.port}`,
     bus,
     databaseStats: () => store.stats(),
+    runningChats: () => runner.busyChats(),
     awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: store.settings.get().remote_enabled }),
     browserLoginUrl: () => `http://127.0.0.1:${opts.port}/login?code=${browserLogin.issue()}`,
     terminals,

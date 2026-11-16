@@ -13,6 +13,8 @@ import {
   subagentAskOf,
   relayMessage,
   RESUME_PROMPT,
+  RESTART_RESUME_PROMPT,
+  restartResumePrompt,
   resumePrompt,
   resumeRequest,
   retryRequest,
@@ -57,6 +59,18 @@ test("通信が戻って自動で再開する指示: 止まったサブエージ
   assert.ok(prompt.startsWith(RESUME_PROMPT));
   assert.match(prompt, /SendMessage/);
   assert.match(prompt, /- 「調査」（ID: a1）/);
+});
+
+test("起動したときの再開の確かめで続ける指示: 途中で止まったサブエージェントがあれば、名前と ID（分からなければそう書く）を添えて再開を頼む", () => {
+  assert.equal(restartResumePrompt([]), RESTART_RESUME_PROMPT);
+  const prompt = restartResumePrompt([
+    { agentId: "a1", description: "調査" },
+    { agentId: null, description: "下書き" },
+  ]);
+  assert.ok(prompt.startsWith(RESTART_RESUME_PROMPT));
+  assert.match(prompt, /SendMessage/);
+  assert.match(prompt, /- 「調査」（ID: a1）/);
+  assert.match(prompt, /- 「下書き」（ID は分かりません）/);
 });
 
 test("圧縮前指示・圧縮後指示: オンの分を共通 → プロジェクトの順に空行でつなぎ、空・オフのものは除く", () => {

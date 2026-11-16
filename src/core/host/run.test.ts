@@ -23,7 +23,7 @@ const init: CoreInit = {
   recoveredReason: "crash",
 };
 
-/** 偽のコア（token・URL・close・バス・眠らせない理由・ターミナルだけ） */
+/** 偽のコア（token・URL・close・バス・眠らせない理由・作業中のチャット・ターミナルだけ） */
 function fakeCore() {
   const bus = new Bus();
   const state = { closed: 0, running: 0, closedOwners: [] as string[] };
@@ -35,6 +35,7 @@ function fakeCore() {
     databaseStats: () => ({}) as never,
     browserLoginUrl: () => "",
     awakeNeeds: () => ({ running: state.running, mobileEnabled: false }),
+    runningChats: () => [{ id: 7, title: "作業中" }],
     terminals: { closeOwnedBy: (owner: string) => void state.closedOwners.push(owner) } as never,
     close: async () => void state.closed++,
   } satisfies Core;
@@ -107,6 +108,8 @@ test("runCoreHost: init を受けて startCore に渡し、ready で token・URL
   assert.equal(await run.host.call("ping"), 5000);
   await run.host.call("terminal.closeOwnedBy", "wc:3");
   assert.deepEqual(fake.state.closedOwners, ["wc:3"]);
+  // 終了してよいかを聞くダイアログの名前（メモの仕様書「0026」の D11）
+  assert.deepEqual(await run.host.call("runningChats"), [{ id: 7, title: "作業中" }]);
   // close を頼むと、答えてから片付けて終わる
   await run.host.call("close");
   await until(() => run.exits.length === 1);

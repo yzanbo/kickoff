@@ -20,9 +20,22 @@ export function resumePrompt(agents: readonly { agentId: string; description: st
   ].join("\n");
 }
 
-/** アプリを起動し直したときの確かめで「中断した作業を続けてから送る」を選んだときに送る指示（送信待ちは、この作業が終わってから送る） */
-export const RESTART_RESUME_PROMPT =
-  "（アプリを起動し直したので再開します）アプリの終了で止まったところから、作業を続けてください。途中だったサブエージェントがあれば、SendMessage で続きから再開させてください（再開できなければ、同じ依頼で立ち上げ直してください）。";
+/** アプリを起動し直したときの確かめで「続ける」「続けてから送る」を選んだときに送る指示（送信待ちは、この作業が終わってから送る） */
+export const RESTART_RESUME_PROMPT = "（アプリを起動し直したので再開します）アプリの終了で止まったところから、作業を続けてください。";
+
+/**
+ * 起動したときの再開の確かめで「続ける」を選んだときの指示。作業の途中で止まったサブエージェントがあれば、名前と ID を添えて
+ * SendMessage で続きから再開するよう頼む（ID が分からないもの・記録が見つからないものは、同じ依頼で立ち上げ直す）
+ */
+export function restartResumePrompt(agents: readonly { agentId: string | null; description: string }[]): string {
+  if (agents.length === 0) return RESTART_RESUME_PROMPT;
+  return [
+    RESTART_RESUME_PROMPT,
+    "",
+    "アプリの終了で、次のサブエージェントも途中で止まっています。それぞれ SendMessage（宛先は ID）で、止まったところから続けるよう伝えて再開させてください。再開できないもの（ID がない・記録が見つからないなど）だけ、同じ依頼で立ち上げ直してください。",
+    ...agents.map((a) => (a.agentId ? `- 「${a.description}」（ID: ${a.agentId}）` : `- 「${a.description}」（ID は分かりません）`)),
+  ].join("\n");
+}
 
 /** 使用枠が戻って、続けると答えたときに送る指示 */
 export const USAGE_RESUME_PROMPT = "（使用枠が戻ったので再開します）使用枠の上限で止まったところから、作業を続けてください。";

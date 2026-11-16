@@ -136,7 +136,8 @@ test("v30 の移行: v29 の DB を開くと、記録の軽い形を読む覆う
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed", model: null });
   store.events.add(chat.id, { type: "tool_use", id: "c1", name: "Bash", input: {} });
-  // v29 に戻す（索引を外して版を下げる）
+  // v29 に戻す（索引を外して版を下げる。後の版の v31 の列と索引も外す）
+  store.db.exec(`DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending;`);
   store.db.exec(`DROP INDEX idx_chat_events_meta; PRAGMA user_version = ${USER_VERSION_BASE + 29};`);
   store.db.close();
   const again = openDatabase(file);
@@ -144,5 +145,20 @@ test("v30 の移行: v29 の DB を開くと、記録の軽い形を読む覆う
   assert.ok(again.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_chat_events_meta'").get());
   const row = again.prepare("SELECT json_extract(data, '$.name') AS name FROM chat_events INDEXED BY idx_chat_events_meta WHERE chat_id = ?").get(chat.id) as { name: string };
   assert.equal(row.name, "Bash");
+  again.close();
+});
+
+test("v31 の移行: v30 の DB を開くと、既存のチャットに再開の確かめの印（resume_pending = 0）と索引を足す", () => {
+  const file = path.join(tempDir(), DB_FILE);
+  const store = new Store(file);
+  const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "running", model: null });
+  // v30 に戻す（列と索引を外して版を下げる）
+  store.db.exec(`DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending; PRAGMA user_version = ${USER_VERSION_BASE + 30};`);
+  store.db.close();
+  const again = openDatabase(file);
+  assert.equal(userVersion(again), USER_VERSION_BASE + SCHEMA_VERSION);
+  assert.ok(again.prepare("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_chats_resume_pending'").get());
+  assert.deepEqual({ ...again.prepare("SELECT resume_pending FROM chats WHERE id = ?").get(chat.id) }, { resume_pending: 0 });
   again.close();
 });
