@@ -5,6 +5,8 @@ import type { ChatPaneActions } from "./chatPaneContext";
 
 /** メインのウィンドウで描いているチャットの画面（チャットごと。同じチャットを 2 つの欄で開いていることもある） */
 const panes = new Map<number, Set<ChatPaneActions>>();
+/** 画面のあるタブを表に出す操作（パネルのタブの中の画面だけ。隠れたタブで「移る」を受けたときに使う） */
+const fronts = new WeakMap<ChatPaneActions, () => void>();
 let unsubscribe: (() => void) | undefined;
 /** 足す先の画面がないときの受け口（addToChat.ts が置く。輪にならないよう、ここからは import しない） */
 let onMissingFill: ((chatId: number, text: string, attachments?: Attachment[]) => void) | undefined;
@@ -37,16 +39,23 @@ function handle(message: WindowMessage) {
   const pane = paneFor(message.chatId);
   // 別ウィンドウから足す先のチャットの画面がメインのウィンドウにもなければ、書きかけの文と添付に足して知らせる
   if (!pane) return message.type === "fillComposer" ? onMissingFill?.(message.chatId, message.text, message.attachments) : undefined;
-  if (message.type === "fillComposer") pane.fillComposer(message.text, { append: true, attachments: message.attachments });
-  else if (message.type === "reveal") pane.revealInConversation(message.eventId, message.agent);
+  if (message.type === "fillComposer") return pane.fillComposer(message.text, { append: true, attachments: message.attachments });
+  // 移る・動きを開くは、裏のタブ・閉じたパネルの画面なら先にそのタブを表に出す（隠れた画面の中で移っても、利用者には見えない）
+  if (!isChatPaneShown(message.chatId)) fronts.get(pane)?.();
+  if (message.type === "reveal") pane.revealInConversation(message.eventId, message.agent);
   else pane.focusActivity(message.agent);
 }
 
 /**
  * 別ウィンドウ（変更・サブエージェント）からの、このチャットへの知らせを受け取る（メインのウィンドウの ChatView だけが呼ぶ）:
- * チャット欄に足す（選択部分の「チャットに追加」・右クリックの「メインのチャット」・メモ）・会話のその場所へ移る・動きでそのサブエージェントを強調する
+ * チャット欄に足す（選択部分の「チャットに追加」・右クリックの「メインのチャット」・メモ）・会話のその場所へ移る・動きでそのサブエージェントを強調する。
+ * front はその画面のあるタブを表に出す操作（パネルのタブの中だけ。移る・動きを開くときに、隠れていれば先に表に出す）
  */
-export function useWindowMessagesFor(pane: ChatPaneActions) {
+export function useWindowMessagesFor(pane: ChatPaneActions, front: (() => void) | null) {
+  useEffect(() => {
+    if (front) fronts.set(pane, front);
+    else fronts.delete(pane);
+  }, [pane, front]);
   useEffect(() => {
     let set = panes.get(pane.chatId);
     if (!set) panes.set(pane.chatId, (set = new Set()));

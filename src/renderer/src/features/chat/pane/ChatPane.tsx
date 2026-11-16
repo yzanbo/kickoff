@@ -7,6 +7,7 @@ import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { AgentSplit } from "@/features/panel/agents/AgentSplit";
 import { usePanelHost } from "@/features/panel/panelHost";
 import { clearKeepAlive, KeepAliveContext, useKeepAlive } from "@/features/panel/tabs/tabKeepAlive";
+import { useTabPage } from "@/features/panel/tabs/tabPageContext";
 import { useOpenChat } from "@/features/chat/store/useChatStore";
 import { ChatProviderContext, noteForegroundProvider, useProviderStatus } from "@/features/chat/provider/chatProvider";
 import { ChatColumn } from "./ChatColumn";
@@ -81,7 +82,8 @@ export function ChatView({ chat, project, focus, visible, slot, onOpenNew, befor
   const { pane } = shell;
   useChatPaneSlot(slot, pane);
   // 別ウィンドウ（変更・サブエージェント）からの知らせ（チャット欄に足す・会話のその場所へ移る・動きを開く）
-  useWindowMessagesFor(pane);
+  // （裏のタブ・閉じたパネルで移る・動きを開くを受けたら、先にこのタブを表に出す）
+  useWindowMessagesFor(pane, useTabPage()?.show ?? null);
   // 返答の中のファイルのパス・変更カード・ツールの行のファイルを、押して右の欄（置けなければファイルタブ）で開けるようにする（作業場所のファイルだけ）
   const fileLinks = useFileLinks(chat, project?.repo_path, canOpenSide);
   // そのチャットの AI の状態（できること・ログインの仕方。中の部品は読み込みを頼まずに読むので、ここで 1 回頼む）
