@@ -235,7 +235,18 @@ function PanelTabPageBody({
   const Page = pageOf(tab);
   // 中身の見出しの右端の「別ウィンドウで開く」（PopOutTabButton）に渡す
   const popOutable = canPopOut(tab);
-  const actions = useMemo(() => ({ popOut: popOutable ? () => popOutTab(panel, tab.key) : null }), [popOutable, panel, tab.key]);
+  // このタブを表に出す（入れ子の欄（チャットの画面の右の欄）なら、外のチャットのタブも表に出す）
+  const outer = useContext(TabPageContext);
+  const actions = useMemo(
+    () => ({
+      popOut: popOutable ? () => popOutTab(panel, tab.key) : null,
+      show: () => {
+        outer?.show();
+        panel.showTab(tab.key);
+      },
+    }),
+    [popOutable, panel, tab.key, outer],
+  );
   // AI が操作しているブラウザのタブは、表に出ていなくても見えない形で並べる（撮る・押すため。browser.css）
   const agentBrowsing = useAgentBrowsing(tab.kind === "browser" ? tab.key : null);
   // 表示中か（外のタブ（右の欄を持つチャットのタブ）が裏に回っていれば、自分のペインで選んでいても表示していない）

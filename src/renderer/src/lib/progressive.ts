@@ -26,6 +26,22 @@ export function allocateRows(counts: readonly number[], limit: number): number[]
   });
 }
 
+/** 横に並ぶ列（ボードのカンバンの列）のいちばん細い幅と列の間（.board-column の min-width 170px ＋ .board-columns の gap 10px） */
+export const COLUMN_MIN_PX = 180;
+
+/** 窓の幅に入りうる列の数（いちばん細い列を並べた数。描く前は列の幅が分からないので、多めに見る） */
+export function columnsInView(viewportWidth: number): number {
+  return Math.max(1, Math.ceil(Math.max(0, viewportWidth) / COLUMN_MIN_PX));
+}
+
+/**
+ * 横に並ぶ列（count 本）に上限を配る: 窓に入りうる左の inView 本にはどれにも同じ上限（どれも上から見える）、右の見えない列は 0
+ * （最初の描画のあと上限なしで描く）。limit が Infinity ならすべて
+ */
+export function allocateColumns(count: number, limit: number, inView: number): number[] {
+  return Array.from({ length: count }, (_, i) => (limit === Number.POSITIVE_INFINITY || i < inView ? limit : 0));
+}
+
 /**
  * 1 つの一覧で描く行（budget はこの一覧に配った上限）。上限に収まれば同じ配列のまま、超えれば頭から上限の数だけと、省いた行の数
  * （呼ぶ側が省いた行の見積もりの高さの空の箱を置き、残りを足したときにスクロールバーのつまみが動かないようにする）

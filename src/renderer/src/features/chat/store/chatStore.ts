@@ -9,6 +9,7 @@ import {
   EMPTY_LOG,
   EMPTY_PROGRESS,
   EMPTY_VIEW,
+  HEAD_FILL_IDLE_MS,
   OPEN_HOLD_MAX_MS,
   PUBLISH_FALLBACK_MS,
   SHRINK_AFTER_MS,
@@ -78,6 +79,8 @@ export function createChatStore(deps: ChatStoreDeps) {
       dirty: new Set(),
       cancelPublish: null,
       hold: null,
+      cancelFill: null,
+      fillTriedAt: null,
     };
     entries.set(chatId, entry);
     return entry;
@@ -119,6 +122,22 @@ export function createChatStore(deps: ChatStoreDeps) {
       else e.published.progress = e.progress;
     }
     for (const channel of dirty) notify(e.chatId, channel);
+    if (dirty.includes("log")) scheduleFill(e);
+  };
+
+  /**
+   * 頭のターンを途中から読んで見せている（U5）なら、描いたあとの手すきのときにそのターンの頭まで読む（見ている部品があるときだけ。
+   * 読めなかったら同じ末尾では読み直さない。次に末尾が変わった・読み直したときにまた読む）
+   */
+  const scheduleFill = (e: Entry) => {
+    const { range } = e.detail;
+    if (e.cancelFill || !e.published.log.headPartial || e.viewers.size === 0 || e.paging || e.fillTriedAt === range.tailStart) return;
+    e.cancelFill = deps.idle(() => {
+      e.cancelFill = null;
+      if (entries.get(e.chatId) !== e || e.viewers.size === 0 || !e.published.log.headPartial) return;
+      e.fillTriedAt = e.detail.range.tailStart;
+      void paging.fillHead(e.chatId);
+    }, HEAD_FILL_IDLE_MS);
   };
 
   const schedulePublish = (e: Entry) => {
@@ -167,30 +186,39 @@ export function createChatStore(deps: ChatStoreDeps) {
     if (prev.events !== e.detail.events || prev.range !== e.detail.range) mark(e, "log");
   };
 
-  /** 読む（all: 持っている記録があっても、末尾から読み直す） */
-  const load = (e: Entry, all = false) => {
+  /** 読む（all: 持っている記録があっても、末尾から読み直す）。読み終えたら（読めなくても）解決する */
+  const load = (e: Entry, all = false): Promise<void> => {
     const id = ++e.request;
     e.replay = [];
     e.stale = false;
     const last = all || !e.detail.chat ? undefined : e.detail.events.at(-1)?.id;
     const alive = () => e.request === id && entries.get(e.chatId) === e;
-    deps
+    return deps
       .load(e.chatId, last === undefined ? { tail_turns: CHAT_TAIL_TURNS } : { after: last })
-      .then((d) => {
+      .then((d): Promise<void> | undefined => {
         if (!alive()) return;
         // 持っていた最後の記録が巻き戻しで消えていたら、末尾から読み直す
         if (d.after_missing) return load(e, true);
         const missed = e.replay ?? [];
         e.replay = null;
         const prev = e.detail;
-        if (last === undefined) e.epoch++;
+        if (last === undefined) {
+          e.epoch++;
+          e.fillTriedAt = null;
+        }
         e.detail = last === undefined ? detailFromSnapshot(d, missed, e.chatId, prev) : detailFromIncrement(d, missed, e.chatId, prev);
         if (e.error !== null) mark(e, "detail");
         e.error = null;
         // 書きかけの返答を持たない前の版のコア（起動したままのコア）は streaming_text を返さない
         stream.seed(e, d.chat.status === "running" ? (d.streaming_text ?? null) : null, missed);
         changed(e, prev);
-        if (!e.shown) showNow(e);
+        if (e.shown) return;
+        if (e.viewers.size > 0) showNow(e);
+        else {
+          // 先読み（見る部品がいない）: 見せる値だけ作っておき、開いたときに retain が見せてから描き終えるまでためる
+          e.shown = true;
+          publish(e);
+        }
       })
       .catch((err: unknown) => {
         if (!alive()) return;
@@ -208,6 +236,7 @@ export function createChatStore(deps: ChatStoreDeps) {
     const idle = [...entries.values()].filter((e) => e.viewers.size === 0).sort((a, b) => b.releasedAt - a.releasedAt);
     for (const e of idle.slice(WARM_CHATS)) {
       e.cancelPublish?.();
+      e.cancelFill?.();
       e.cancelShrink?.();
       e.stream.cancel?.();
       e.hold?.();
@@ -230,8 +259,9 @@ export function createChatStore(deps: ChatStoreDeps) {
       e.viewers.set(key, visibility);
       e.cancelShrink?.();
       e.cancelShrink = null;
-      if (e.replay === null && (!e.detail.chat || e.stale)) load(e);
+      if (e.replay === null && (!e.detail.chat || e.stale)) void load(e);
       if (first && e.shown) showNow(e);
+      scheduleFill(e);
       if (visibility === "visible") stream.flush(e);
       return {
         setVisibility(next: ChatVisibility) {
@@ -247,6 +277,27 @@ export function createChatStore(deps: ChatStoreDeps) {
         },
       };
     },
+
+    /**
+     * チャットを先読みする（見る部品は増やさない。メモの仕様書「0023_表示を軽くする」の案 4・分冊 3 の 1-4-7）。中身がなければ末尾と索引を読み、
+     * 見ていない間につなぎ直していれば取り直す。読み終えたら（読めなくても・もう持っていれば すぐ）解決する。先読みしただけのチャットは、
+     * 一度も見ていないものとして、見なくなったチャットより先に WARM_CHATS の上限で捨てる
+     */
+    prefetch(chatId: number): Promise<void> {
+      const existing = entries.get(chatId);
+      if (existing) {
+        if (existing.viewers.size === 0 && existing.replay === null && existing.stale) return load(existing);
+        return Promise.resolve();
+      }
+      const e = create(chatId);
+      e.releasedAt = 0;
+      const run = load(e);
+      trim();
+      return run;
+    },
+
+    /** 見ているチャットのどれかを読み込んでいる最中か（先読みは表のチャットの読み込みを待つ） */
+    busy: (): boolean => [...entries.values()].some((e) => e.viewers.size > 0 && (e.replay !== null || e.paging !== null)),
 
     /** サーバーの知らせを当てる（店にあるチャットのものだけ。見る部品がなくても当てる） */
     apply(event: BusEvent) {
@@ -271,7 +322,7 @@ export function createChatStore(deps: ChatStoreDeps) {
       if (event.type === "chat_delta") return;
       // 末尾より前で巻き戻した: 索引が作り直しになるので、末尾から読み直す
       if (event.type === "chat_events_deleted" && e.detail.range.tailStart > 0 && event.from_event_id < e.detail.range.tailStart && e.replay === null) {
-        load(e, true);
+        void load(e, true);
         return;
       }
       const prev = e.detail;
@@ -282,7 +333,7 @@ export function createChatStore(deps: ChatStoreDeps) {
     /** SSE をつなぎ直した: 見ているチャットは取り直し、見ていないチャットは次に見るときに取り直す */
     reconnected() {
       for (const e of entries.values()) {
-        if (e.viewers.size > 0) load(e);
+        if (e.viewers.size > 0) void load(e);
         else e.stale = true;
       }
     },
