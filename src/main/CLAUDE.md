@@ -7,7 +7,7 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 - `index.ts` は起動の順番だけを書く: 名前・保存先・ポートを決めて起動の記録を始める（`app/environment.ts` の `setupEnvironment`）→ 開発のデータがなければ製品版から一度だけ写す（`seedDevDataOnce`）→ 埋め込みブラウザの安全設定（`hardenWebviews`。ウィンドウを作る前）と、AI が読むコンソールの出力の記録（`watchWebviewConsoles`）→ 1 つだけ起動（2 つ目は、いまのウィンドウを前に出して終わる）→ 準備ができたら、ログインシェルの PATH（OS の口の `loadLoginShellPath`）→ コア（`startCore`。開発時は electron-vite の dev サーバーが画面を配り、製品版はコアが配る。OS の口 `hostPlatform`（音声入力の「macOS の音声認識」の補助コマンドの場所 `SPEECH_HELPER` も入れたもの）と、AI のブラウザ操作 `agentBrowser`、DB ワーカーを起動する口 `dbWorker` も渡す）→ 画面のセッション（`prepareAppSession`）→ IPC（`registerIpc`）→ メニュー（`setAppMenu`）→ ウィンドウ（`openMainWindow`）。
 - OS ごとに違う処理は `platform/` の口に集める（使う所に OS のコマンド・パスを散らさない）: コアと共通の口 `hostPlatform`（`src/core/platform` の `HostPlatform`）と、メインだけの口 `desktopPlatform`（`platform/types.ts` の `DesktopPlatform`: 入っている外部のターミナル・ブラウザとその開き方・開発中の Electron のメインプロセスの見分け。内蔵ターミナルのシェルはコアの口）を `platform/index.ts` の 1 か所で選ぶ（いまは macOS だけ。中身は `platform/macos/`）。DB ワーカーは別のプロセスで口を受け取れないので、シェルの口（`ShellPlatform`）だけはワーカーの入口（`src/core/databases/worker/main.ts`）が選ぶ（ほかの OS を足すときは両方で選び分ける）。`window-all-closed` の OS の見分けは Electron の決まりの書き方なのでそのまま。
 - 中身はフォルダごと: `app/`（環境・ウィンドウ・メニュー・終了の片付け・子の Electron・画面のセッションと権限・ダイアログ・外のアプリで開く・別ウィンドウ（`popouts.ts`。IPC の `windows.openPopout` / `focusMain` / `closeSelf`。画面のチャットの右の欄の中身と子チャットを同じ画面の URL のハッシュで開き、同じものは前に出す。子チャットのウィンドウは最小化で閉じ、✕ は止めて `onCloseRequested` で画面に閉じ方を聞かせる）・起動の記録・ログの場所）/ `ipc/`（登録と引数の形）/ `browser/`（埋め込みブラウザ）/ `terminal/`（内蔵ターミナル）/ `notifications/`（Mac の通知）/ `diagnostics/`（性能の記録）。
-- Electron に依らない判定・組み立ては別のファイルに分けてテストする（`app/urls.ts`・`app/openCommands.ts`・`platform/macos/openCommands.ts`・`app/mediaPermission.ts`・`app/childApps.ts` の `descendantElectronMains`・`ipc/register.ts`・`ipc/args.ts`・`notifications/notificationIds.ts`・`browser/extensionDirs.ts`・`browser/crx.ts`・`browser/keys.ts`・`browser/flatten.ts`・`diagnostics/profileSummary.ts`・`diagnostics/rendererTiming.ts`）。
+- Electron に依らない判定・組み立ては別のファイルに分けてテストする（`app/urls.ts`・`app/openCommands.ts`・`platform/macos/openCommands.ts`・`app/mediaPermission.ts`・`app/childApps.ts` の `descendantElectronMains`・`ipc/register.ts`・`ipc/args.ts`・`notifications/notificationIds.ts`・`browser/extensionDirs.ts`・`browser/crx.ts`・`browser/keys.ts`・`browser/flatten.ts`・`diagnostics/profileSummary.ts`・`diagnostics/rendererTiming.ts`・`diagnostics/bootTimeline.ts`）。
 - 開発版は `KICKOFF_REMOTE_DEBUG=<port>` のときだけ CDP のポートを開く（製品版では開かない。9333 で開くのは `npm run dev:cdp`）。このときは、隠れた窓でもタイマー・描画・アニメーションを止めない（Chromium の `disable-background-timer-throttling` など。確かめるときは開発版の窓を前に出さないので、止まると、なめらかなスクロールなどの動きを外から確かめられない）。
 
 ## 終了
@@ -74,6 +74,18 @@ Electron のメインプロセス。コア（`src/core`）を同じプロセス�
 - 重いときに再起動せず、その場で取る（ヘルプのメニュー・設定の「診断」→ `diagnostics.start`）。`diagnostics.ts` の `startDiagnostics` が自分の画面に `webContents.debugger` をつなぎ、10 秒（`DIAGNOSTICS_SECONDS`）の CPU プロファイル・画面の要素の数・メモリ（GC のあと・外れたままのノードの目安）・1 秒あたりの処理の時間・操作の遅れと長いフレーム（画面で評価する式とまとめる純粋関数は `rendererTiming.ts`）と、メインプロセスの分（`mainProcess.ts` の `startMainRecording`: CPU プロファイル・イベントループの遅れ・コアが画面へ送った知らせの数と量・SSE の数・DB の様子（`Core.databaseStats()`。メインは SQL を流さない））・プロセスごとの CPU とメモリを集める。デバッグ用のポートは開かない。
 - 保存先はログの場所（`app/logs.ts` の `logsDir()`）の `diagnostics/<日時>/` で、`summary.json`・`profile.cpuprofile`（画面）・`main.cpuprofile`（どちらも Chrome の開発者ツールで開ける）。データの保存先（Application Support）はエージェントから読めない（`chat/guard/selfProtection.ts`）ので、場所を貼っても読めるようログの場所に置く。以前の保存先の記録は、起動のときに `moveLegacyDiagnostics` で移す。
 - 様子は `diagnostics.onState` で画面に知らせる（記録の間も操作を続けられるよう、ダイアログにしない）。保存先と最近の記録は `diagnostics.folders`、Finder で開くのは `diagnostics.openRoot`（メニューの「保存先を開く」と共通）。集計は `profileSummary.ts` / `rendererTiming.ts` でテストする。
+
+## 詰まりの記録（diagnostics/stalls.ts）
+
+- 診断の 10 秒の外でも重さの原因を追えるよう、メインプロセスのイベントループの詰まりをいつも見張る（メモの仕様書「0023_表示を軽くする」の案 12。仕組みはコアの `system/stallWatch.ts`）。`index.ts` が起動の初めに `watchMainStalls` を 1 回だけ動かす（いまはコアも同じプロセスなので、コアの名前もここで付く）。名前はコアの所のほか、IPC の登録の補助（`ipc/register.ts`。`ipc:<まとまり>.<名前>`）・画面の知らせ（`startupLog.ts`・`hangWatch.ts`。`wc:<知らせ>`）・起動の同期の処理（`boot:seedDevData`・`boot:loadLoginShellPath`）で付ける。
+- 書き先はログの場所の `stalls.jsonl`（1 行 1 件の `StallRecord`。256KB で 1 世代。回すのはメインだけ。ログのファイルの口は `app/logFiles.ts` の `rotatingLog`）。最近の 50 件をメモリに持ち、診断の `summary.json` の `stalls.main` に入れる。2 秒を超えた `blocked` は startup.log にも 1 行書く。外へは送らない。
+
+## 起動の時刻とメモリの記録（diagnostics/bootRecorder.ts）
+
+- 起動 → 最初の描画 → 入力できるまでの時刻と、長く使ったあとのメモリの増え方を残す（メモの仕様書「0023_表示を軽くする」の案 18c。ほかの案の前後を比べる物差し）。時刻はすべて epoch ms（`performance.timeOrigin + performance.now()`）でそろえ、プロセスをまたいで引き算する。
+- メインの段階は `markMain`（最初の 1 回だけ）: `mainStart`（プロセスの始まり）・`mainLoaded`（`index.ts` の先頭）・`whenReady`・`coreStart` / `coreReady`（`startCore` の前後）・`windowCreated` / `loadStart` / `domReady` / `loaded`（`app/window.ts`）。画面の段階は画面の `app/bootMarks.ts` が IPC の `diagnostics.reportBoot`（send。`@shared/ipc` の `BootReport`）で 1 回送る。メインのウィンドウの最初の 1 回はメインの段階と合わせてメインの始まりを起点にし、読み込み直し・別ウィンドウ（`window: "popout"`）は画面の読み込みの始まりを起点にする。組み立てと 1 行の文は純粋な `bootTimeline.ts`（`buildBootRecord`・`bootLogLine`）。
+- 書き先はログの場所の `boot.jsonl`（1 回の読み込みで 1 行。128KB で 1 世代）と、メインのウィンドウなら startup.log の「起動の時刻 core=… window=… 最初の描画=… 入力できる=… 取り直した画面の JS=取り直した数/数」の 1 行（取れなかった段階は「-」）。
+- メモリ: コアを起動したあと `startMetricsLog` が 60 秒ごとに `app.getAppMetrics()`（プロセスごとのメモリ・CPU）と、その間に画面から届いたメモリ（`diagnostics.reportMemory`。`RendererMemory`: JavaScript のメモリ・要素の数）を `metrics.jsonl`（512KB で 1 世代）に 1 行書く（`metricsRow`）。診断の `summary.json` の `boot` に、最後の起動の時刻と最近 60 分の行を入れる。設定の「診断」にはまだ出さない。
 
 ## 起動の記録
 

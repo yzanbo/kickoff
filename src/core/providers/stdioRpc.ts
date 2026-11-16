@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { errorMessage } from "@shared/errors";
+import { timed } from "../system/stallWatch.js";
 
 /**
  * CLI と標準入出力の JSON-RPC で話す口（1 行に 1 つの JSON）。Codex の app-server（"jsonrpc" の欄なし）と ACP のエージェント（JSON-RPC 2.0）で共有する。
@@ -74,6 +75,8 @@ export type ServerRequestHandler = (method: string, params: unknown) => Promise<
 export interface StdioRpcOpts {
   /** 失敗の文に出す相手の名前（「Codex の app-server」など） */
   label: string;
+  /** 詰まりの見張りの名前に使う AI の ID（「provider:<ID>:<method>」。system/stallWatch.ts） */
+  provider: string;
   /** 送る行に "jsonrpc": "2.0" を付けるか（ACP は付ける。Codex の app-server は付けない）。受ける行はどちらでも読む */
   jsonrpc?: boolean;
 }
@@ -93,7 +96,8 @@ export class StdioRpc {
     private readonly opts: StdioRpcOpts,
   ) {
     this.envelope = opts.jsonrpc ? { jsonrpc: "2.0" } : {};
-    proc.onLine((line) => this.receive(line));
+    // 1 行の受け取りに名前を付けて詰まりの見張りに知らせる（名前は遅かったときだけ行の頭から読む）
+    proc.onLine(timed((line: string) => `provider:${opts.provider}:${/"method"\s*:\s*"([^"]*)"/.exec(line)?.[1] ?? "response"}`, (line: string) => this.receive(line)));
     proc.onExit((code, tail) => this.fail(`${opts.label}が終わりました（終了コード ${code ?? "不明"}）${tail.trim() ? `: ${tail.trim().split("\n").slice(-3).join(" / ")}` : ""}`));
   }
 

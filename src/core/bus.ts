@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import type { BusEvent } from "@shared/types";
+import { noteSyncSince, syncStart } from "./system/stallWatch.js";
 
 /** コア内の変更をクライアント（SSE）へ配信するためのイベントバス */
 export class Bus {
@@ -11,7 +12,10 @@ export class Bus {
   }
 
   publish(event: BusEvent) {
+    // 配る相手（SSE・通知など）の処理の合計を、詰まりの見張りに知らせる（system/stallWatch.ts）
+    const start = syncStart();
     this.emitter.emit("event", event);
+    noteSyncSince(start, () => `bus:${event.type}`);
   }
 
   subscribe(listener: (event: BusEvent) => void): () => void {

@@ -1,4 +1,5 @@
-import { useEffect, useRef, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
+import { markInteractive } from "@/app/bootMarks";
 import type { Attachment } from "@shared/types";
 import type { GitTarget } from "@/api";
 import { cx } from "@/lib/cx";
@@ -96,6 +97,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
+  // 入力欄が置かれた（起動の時刻の記録。app/bootMarks.ts）
+  useLayoutEffect(() => markInteractive("composer"), []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attach = useComposerFiles(savedAttachments);
   /** 文を入れて、キャレットを caret に置く（描き直して高さが合ってから） */
