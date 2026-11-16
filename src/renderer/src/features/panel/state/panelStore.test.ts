@@ -41,14 +41,23 @@ test("チャット欄の開閉は欄の状態 1 つで、プロジェクトご�
   );
 });
 
-test("見せている最後のタブを閉じると、ボードの右のパネル・フッターは閉じ、チャット欄は開いたまま", () => {
-  for (const [panel, open] of [["kanban:2", false], ["bottom:2", false], ["side:2", true]] as const) {
+test("見せている最後のタブを閉じると、ボードの右のパネル・フッター・右サイドバーは閉じる", () => {
+  for (const panel of ["kanban:2", "bottom:2"] as const) {
     const actions = panelActions(panel);
     actions.openTerminal(target(2));
     assert.equal(panelStateOf(panel).open, true);
     actions.closeTab(keys(panel)[0]);
-    assert.equal(panelStateOf(panel).open, open, panel);
+    assert.equal(panelStateOf(panel).open, false, panel);
   }
+  // 右サイドバーはブラウザだけ: 2 つのうち 1 つを閉じても開いたまま、最後の 1 つを閉じたら閉じる（下のパネルの最後のターミナルと同じ）
+  const side = panelActions("side:2");
+  side.openBrowser("https://a.example");
+  side.openBrowser("https://b.example");
+  const [first, second] = keys("side:2");
+  side.closeTab(first);
+  assert.equal(panelStateOf("side:2").open, true);
+  side.closeTab(second);
+  assert.equal(panelStateOf("side:2").open, false);
 });
 
 test("閉じたターミナルのタブは、シェルも止める（ペインを閉じたときも）", () => {
