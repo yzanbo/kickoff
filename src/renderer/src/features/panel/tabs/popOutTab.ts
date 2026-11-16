@@ -8,12 +8,13 @@ export const canPopOut = (tab: PanelTab | undefined): boolean => canPopout() && 
 
 /**
  * タブを別ウィンドウで開き、欄からは閉じる（別ウィンドウへ移す。同じものがもう開いていれば、それを前に出す）。
- * 閉じるときは後始末をしない（ターミナルのシェルは止めず、移した先がつなぎ直す）
+ * 閉じるときは後始末をしない（ターミナルのシェルは止めず、移した先がつなぎ直す）。at はウィンドウを置く画面の位置（タブをウィンドウの外へドラッグして離した所）。
+ * 別ウィンドウで開けないタブ（チャットなど）・ブラウザで開いた画面では何もしない
  */
-export function popOutTab(panel: Pick<PanelPageOps, "key" | "closeTab">, tabKey: string) {
+export function popOutTab(panel: Pick<PanelPageOps, "key" | "closeTab">, tabKey: string, at: { x: number; y: number } | null = null) {
   const tab = panelStateOf(panel.key).tabs.find((t) => t.key === tabKey);
-  const target = tab && specOf(tab).popout?.(tab, panel.key);
+  const target = canPopout() && tab ? specOf(tab).popout?.(tab, panel.key) : undefined;
   if (!target) return;
-  openPopout(target.route, target.title);
+  openPopout(target.route, target.title, at);
   panel.closeTab(tabKey, { dismiss: false, keep: true });
 }

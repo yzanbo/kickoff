@@ -162,11 +162,11 @@ export const isSidebarWindow = (): boolean => globalThis.location !== undefined 
 export const popoutKey = (route: PopoutRoute): string => popoutPath(route.kind === "changes" ? { ...route, focus: undefined } : route);
 
 /**
- * 別ウィンドウで開く（同じものがもう開いていれば前に出す）。title はウィンドウの名前。
+ * 別ウィンドウで開く（同じものがもう開いていれば前に出す）。title はウィンドウの名前、at は新しく開くときに置く画面の位置（タブをウィンドウの外へドラッグして離した所）。
  * 変更の移るファイルは、新しく開くときは URL で、もう開いていたときは知らせ（popoutFocus）で渡す
  */
-export function openPopout(route: PopoutRoute, title: string) {
-  void window.kickoff?.windows.openPopout(popoutPath(route), title).then(() => {
+export function openPopout(route: PopoutRoute, title: string, at: { x: number; y: number } | null = null) {
+  void window.kickoff?.windows.openPopout(popoutPath(route), title, at).then(() => {
     if (route.kind === "changes" && route.focus) postWindowMessage({ type: "popoutFocus", key: popoutKey(route), focus: route.focus });
   });
 }

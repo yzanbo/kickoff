@@ -2,7 +2,9 @@ import { useState, type DragEvent } from "react";
 import { dropZoneAt, insertSlotAt, splitOfZone, type DropZone, type InsertSlot } from "./paneGeometry";
 import type { PanelController } from "@/features/panel/usePanel";
 import { startDragGhost } from "@/ui/dragGhost";
+import { popOutTab } from "@/features/panel/tabs/popOutTab";
 import { endExternalTabDrag, EXTERNAL_TAB_MIME, useExternalTabDrag } from "./externalTabDrag";
+import { endedOutsideWindow } from "./tabDragOut";
 
 /** 右のパネルのタブをドラッグするときの dataTransfer の型（ファイルのドロップ（チャット欄への添付）と取り違えないよう独自の型にする） */
 const TAB_MIME = "application/x-kickoff-panel-tab";
@@ -14,7 +16,8 @@ const samePaneIndex = (index: number) => index;
  * 右のパネルのタブのドラッグ（HTML5）。ほかのペインのタブの列に落とすとそのペインへ移し（同じペインなら並べ替え）、
  * ペインの中身の端に落とすとその側に分けて置き、真ん中ならそのペインへ移す。
  * ドラッグ中だけ中身の上に透明の覆い（cover）を置き、webview やターミナルの上でも落とす場所を出す。
- * パネルの外からタブにして落とすもの（externalTabDrag。ファイルタブの木の行）も同じ形で受け、落としたらタブを開いてから移す・分ける
+ * パネルの外からタブにして落とすもの（externalTabDrag。ファイルタブの木の行）も同じ形で受け、落としたらタブを開いてから移す・分ける。
+ * ウィンドウの外で離したら、そのタブを別ウィンドウで開き、離した所に置く（別ウィンドウで開けるタブだけ。tabDragOut.ts）
  */
 export function useTabDrag(panel: PanelController) {
   // ドラッグ中のタブ（このパネルのタブだけを受け付ける）
@@ -56,8 +59,14 @@ export function useTabDrag(panel: PanelController) {
         // 半透明の写しがカーソルに付いて動く。dragstart の中で覆いを足すとドラッグが取り消されることがあるので、覆いは次の回に出す
         startDragGhost(e, { after: () => setDragging(key) });
       },
-      // dragstart の次の回に出す覆いより後に片付ける
-      onDragEnd: () => setTimeout(reset, 0),
+      onDragEnd: (e: DragEvent<HTMLElement>) => {
+        // dragstart の次の回に出す覆いより後に片付ける
+        setTimeout(reset, 0);
+        // ウィンドウの外で離した: 別ウィンドウで開く（開けないタブは何もしない）
+        const end = { clientX: e.clientX, clientY: e.clientY, dropEffect: e.dataTransfer.dropEffect };
+        if (endedOutsideWindow(end, { width: window.innerWidth, height: window.innerHeight }))
+          popOutTab(panel, key, { x: e.screenX, y: e.screenY });
+      },
     }),
     /**
      * タブの列に付ける（落とすとそのペインの、その位置へ移す）。toPaneIndex: 見た目の並びの位置をペインの並びの位置に直す

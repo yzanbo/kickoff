@@ -1,4 +1,4 @@
-import { BrowserWindow, type Rectangle } from "electron";
+import { BrowserWindow, screen, type Rectangle } from "electron";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { followAppearance, windowBackground } from "./appearance.js";
 import { PRELOAD_FILE } from "./environment.js";
@@ -31,7 +31,7 @@ const closingQuietly = new WeakSet<BrowserWindow>();
 /** IPC の windows（画面から頼まれて開く）。appUrl は Kickoff の画面の URL（同じ画面を、route のハッシュで開く） */
 export function popoutHandlers(appUrl: string): IpcHandlers["windows"] {
   return {
-    openPopout: (_e, route, title) => openPopout(appUrl, route, title),
+    openPopout: (_e, route, title, at) => openPopout(appUrl, route, title, at),
     focusMain: () => void showMainWindow(),
     closeSelf: (e) => {
       const win = BrowserWindow.fromWebContents(e.sender);
@@ -48,13 +48,25 @@ export function appWindows(): BrowserWindow[] {
   return [...(main ? [main] : []), ...popouts.values()].filter((w) => !w.isDestroyed());
 }
 
+/** 離した所（画面の座標）にウィンドウを置く位置（カーソルが上の帯の左寄りに来るように。その画面の作業領域の中に収める） */
+function placeAtDrop(drop: { x: number; y: number }, width: number, height: number): { x: number; y: number } {
+  const area = screen.getDisplayNearestPoint({ x: Math.round(drop.x), y: Math.round(drop.y) }).workArea;
+  return {
+    x: Math.round(clampInto(drop.x - 80, area.x, area.x + area.width - width)),
+    y: Math.round(clampInto(drop.y - 16, area.y, area.y + area.height - height)),
+  };
+}
+
+/** min〜max に収める（入りきらなければ min） */
+const clampInto = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
+
 /** 開いている別ウィンドウか（メインのウィンドウから closeSelf を呼ばれても閉じない） */
 function isPopout(win: BrowserWindow): boolean {
   for (const w of popouts.values()) if (w === win) return true;
   return false;
 }
 
-function openPopout(appUrl: string, route: string, title: string) {
+function openPopout(appUrl: string, route: string, title: string, dropAt: { x: number; y: number } | null) {
   const existing = popouts.get(route);
   if (existing && !existing.isDestroyed()) {
     if (existing.isMinimized()) existing.restore();
@@ -63,11 +75,13 @@ function openPopout(appUrl: string, route: string, title: string) {
     return;
   }
   const pane = PANE_WINDOWS[route];
-  const at = pane
+  const usual = pane
     ? (paneBounds.get(route) ?? { width: pane.width, height: pane.height })
     : lastBounds
       ? { x: lastBounds.x + 24, y: lastBounds.y + 24, width: lastBounds.width, height: lastBounds.height }
       : { width: 920, height: 820 };
+  // タブをウィンドウの外へドラッグして離したときは、離した所にウィンドウの上の端が来るように置く（Chrome のタブと同じ。大きさはいつもの大きさ）
+  const at = dropAt ? { ...usual, ...placeAtDrop(dropAt, usual.width, usual.height) } : usual;
   const win = new BrowserWindow({
     ...at,
     minWidth: pane?.minWidth ?? 420,
