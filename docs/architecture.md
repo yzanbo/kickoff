@@ -22,6 +22,7 @@
 |---|---|---|
 | チャット | `Chat` / 表 `chats` / `chat_id` | `Run` / `runs` / `run_id` |
 | 1 回の実行（送ってから終わるまで） | `Turn`（`executeTurn` / `TurnOutcome` / `TurnControl`） | `executeRun` / `RunOutcome` / `RunControl` |
+| Kickoff のコア（別のプロセス）とその様子（起動中・動いている・起動し直している・止まった・応答しない。画面の上の帯） | コアのプロセスの見張り役 `CoreProcess`（`main/app/coreProcess.ts`）・様子 `CoreState`（`CORE_STATES`）・やり取りの形 `core/host/protocol.ts`（`CoreInit` / `CoreReady` / `CoreMethods` / `HostMethods`） | （コアはメインプロセスの中） |
 | チャットの記録 | `ChatEvent` / 表 `chat_events` | `RunEvent` / `run_events` |
 | グループ | `ChatGroup` / 表 `chat_groups` | `RunGroup` / `run_groups` |
 | 定型文（チャット欄の中の上の帯から入れる・送る、よく使う指示。共通かプロジェクトだけ） | `Snippet` / 表 `snippets`（`project_id` が NULL = 共通）・`features/snippet/` | なし |
@@ -38,6 +39,11 @@
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `Runner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `core/chat/sessionPoints.ts`） | なし |
 | 作業中の様子（保存しない） | `ChatLive` | 詳細と SSE で別々の形 |
+| 末尾（チャットを開くときに読む最新のターン。ターンの境目は作業の終わり） | `tail`（`GET /api/chats/:id?tail_turns=`・`CHAT_TAIL_TURNS`・`core/chat/chatLogQuery.ts` の `tailStart`） | なし（すべてを読んでいた） |
+| 索引（末尾より前の記録のうち、記録全体から作るもの（サブエージェントの一覧・ToDo・図・指示の履歴など）が要るものだけを軽くしたもの） | `index`（`ChatDetail.index`・`@shared/chat/chatIndex` の `selectIndexIds` / `ChatEventMeta`・覆う索引 `idx_chat_events_meta`） | なし |
+| 途中の一部分（遠い発言へ移るときに読む、末尾とつながっていない記録のまとまり） | `focus`（`GET /api/chats/:id/events?around=`・`ChatEventPage`） | なし |
+| チャットの店（開いているチャットの中身を、部品の外にチャットごとに 1 つ持つ画面の店。同じチャットを何か所で開いても読み込みと SSE は 1 回）と口（部品が購読する用途ごとの入口: 詳細・記録・途中の文・サブエージェントの途中経過） | `features/chat/store/`（`createChatStore`・口 `detail` / `log` / `streaming` / `progress`・hook `useChatContent` / `useStreamingActive` / `useChatStreamGen` / `useChatProgress`） | `useChatDetail`（タブごとの state） |
+| 書きかけの返答（作業中に、確定する前の AI の文。画面では「書いている途中の返答」）と、その世代（消すたびに進む。確定した返答と同じ描き直しで入れ替える） | コアの `StreamingTexts`（`Bus.streamingText`・詳細の `streaming_text` / `streaming_length`・`chat_delta` の `offset`）・画面の店の `streamGen` / `streamText` | 画面の `streaming`（state） |
 | フィード（全プロジェクトの画面の、チャットごとのメインエージェントの最新の返答 1 件を新しい順に並べたもの） | `FeedItem`（`GET /api/feed`・`store.events.feed`・画面の `FeedList` / `useFeed`） | なし |
 | チャットの選択（モデル・深さ・権限・ファスト） | `ChatOptions`（`model` / `effort` / `permission_mode` / `fast_mode`） | `RunOptions`・`ProjectDefaults`（`permission` / `fastMode`）・設定（`claudeModel` / `defaultPermission`）・`ProviderRunParams`（`permissionMode`）の 4 通り |
 | 権限モード | `PermissionMode` | `PermissionChoice` |
@@ -69,6 +75,7 @@
 | 子チャット（チャットの発言から「新しい子チャットで聞く」・右の欄の「＋」の「新しい子チャット」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`。作ったときは `CHILD_CHAT_OPEN_ON_CREATE` で、開かないも選べる）。孫・ひ孫も作れる。サブエージェントの「伝える」で「新しい子チャットで聞く」を選ぶと、そのサブエージェントの会話の記録を添えた子チャットになる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`startSubagentChildChat`（`core/chat/subagentChild.ts`）・`features/chat/children/` | なし |
 | 親から外す（子チャットを親のないチャットにする・孫より深いものを自分の先祖の子に上げる。付け替えはしない。子孫はついていく） | `POST /api/chats/:id/detach`（本文 `ChatDetachBody`）・`detachChat`（`core/chat/detach.ts`）・`store.chats.detach`・AI の `update_chat` の `parent_id` | なし |
 | 親への依頼文（子チャットの AI に、親チャットの AI へ渡す依頼文だけを書いてもらう頼み。発言の印 = 依頼文の頼み）・親チャットに追加（子チャットの作業の最後の返答を、そのまま直接の親に渡す。渡し方 = 入力欄 / 今すぐ送る / 送信待ち、渡したあと = そのまま / アーカイブ / 削除）・渡したことの印 / 出どころの札 | 頼み方の文 `handoffRequestPrompt`・最後の返答 `lastReplyOfTurn`（`@shared/chat/handoff`）・発言の印 `MessageMarks`（`handoff_request` / `handoff_from`）・渡し方 `HandoffVia`・渡したあと `HandoffAfter`・`POST /api/chats/:id/handoff`（`core/chat/handoff.ts`）・記録 `handoff`・`features/chat/children/handoff.ts` | なし（「最新の答えを引用して渡す」は前からの `handBackText`） |
+| 見え方（チャットの流れの、記録ではない状態。開いているツール・カード・思考などの開閉、測った行の高さ、読んでいた位置。チャットの画面を作り直しても残し、最近の 50 チャットまでメモリだけに持つ。記録の店とは分ける） | `TimelineView`（`features/chat/timeline/timelineView.ts` の `createTimelineViews` / `timelineView` / `useTimelineOpen`） | チャットの画面の状態 `ChatPaneState.openSubagents` / `fullSubagents`・部品の中の開閉 |
 | 会話 / 動き（チャットの画面の見え方。動き = メインエージェントとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
 | GitHub タブ（プロジェクトの画面の上のタブで、連携先のリポジトリの issue・PR を「issue｜PR」で切り替えて見る・書く・AI に渡す。チャットの右の欄にも開ける。要件定義書の「5.11 GitHub」。段階 1「読む」・段階 2「AI に渡す」・段階 3「書く」まで作った。PR のチェックの「ログを開く」は CI のタブへ） | タブ `github`（`#/projects/:id/github`）・右の欄のタブの種類 `github`・画面 `features/github/`・コア `core/github/`（gh api の GraphQL・REST。ワークツリーの PR の見張り・push の `core/git/github.ts` はそのまま）・HTTP `/api/projects/:id/github/…` | なし（push と PR の作成だけ） |
 | 連携先（PR・issue を見る GitHub のリポジトリ。プロジェクトフォルダの git の remote から自動で決める。`gh repo set-default` → `upstream` → `origin`）と、プロジェクトで使う GitHub のアカウント（gh に入っているものから選ぶ。gh の有効なアカウントは切り替えない） | `GitHubRemote`・`GitHubTarget`（`core/git/githubTarget.ts`）・選んだ remote はプロジェクトの `github_remote`・アカウントは `github_account`（`GitHubAccount`・`core/git/githubAccount.ts` の `runAsGitHubAccount`）・ワークツリーの PR を見張るかは `pr_watch`・設定の画面は `ProjectGitHub` | なし |
@@ -94,7 +101,7 @@
 | テーブルの行の変更（段階 3 のセルの編集・行の追加と削除・CSV の取り込み。保存するまで画面に持つ） | 変更 `DbRowEdit`（`update` / `insert` / `delete`。行はキー `DbKeyValue` で指し、値は `DbEditValue`）・本文 `DbEditsBody` / 結果 `DbEditsResult`（`POST …/db-connections/:cid/edits`。1 回に `DB_EDITS_MAX` 件まで）・SQL の組み立て `@shared/database/dbEdit.ts`（`editStatements`・行を指す列 `editKeyColumns`）・ワーカーの `apply`・画面の保存していない変更 `TableEdits`（`features/database/tableEdits.ts`）・`useTableEdits` | なし |
 | SSH トンネル（踏み台を通して DB につなぐ。初めての踏み台は鍵の指紋を確かめる） | 接続の `ssh`（`DbSsh`: `host` / `port` / `user` / `identity_file`。v17）・パスワード `db_connection:<ID>:ssh_password`（`has_ssh_password`）・ワーカーの `worker/tunnel.ts`（`createTunnels`。同じ踏み台と DB へのトンネルは使い回す）・初めての踏み台の印 `DB_SSH_UNKNOWN_HOST`（409）・鍵 `DbSshHostKey`（`sshHostKey.ts`）・画面の `SshHostKeyDialog` | なし |
 | SQL の履歴（接続ごと。AI が流したものに印） | `DbQueryHistoryEntry` / 表 `db_query_history`（v14。`ran_by` = `user` / `ai`、AI なら `chat_id`。接続ごとに新しい `DB_HISTORY_MAX`（500）件だけ残す）・店 `store.dbQueryHistory` | なし |
-| DB ワーカー（DB の接続・SQL の実行・結果の整形・SSH トンネル・準備のコマンドを動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める（準備のコマンドを流している間は止めない）） | `core/databases/worker/`（Electron ではメインプロセスが `utilityProcess` で `out/main/dbWorker.js` を起動する口をコアに渡す（製品版は Electron の fuses で RunAsNode をオフにするので `ELECTRON_RUN_AS_NODE` は使わない）、`npm run daemon`・テストでは `worker/main.ts` を tsx で fork。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
+| DB ワーカー（DB の接続・SQL の実行・結果の整形・SSH トンネル・準備のコマンドを動かす別のプロセス。初めて DB を使ったときに立ち上げ、何もしない状態が 5 分続いたら止める（準備のコマンドを流している間は止めない）） | `core/databases/worker/`（Electron ではコアのプロセスの頼み（RPC の `dbWorker.spawn`）でメインプロセスが `utilityProcess` で `out/main/dbWorker.js` を起動し、コアと MessagePort で直結する（製品版は Electron の fuses で RunAsNode をオフにするので `ELECTRON_RUN_AS_NODE` は使わない）、`npm run daemon`・テストでは `worker/main.ts` を tsx で fork。コアの側は登録の表とワーカーとのやり取り `DbWorkerClient` だけ） | なし |
 | Docker タブ（プロジェクトの画面の上のタブ「Docker」（「DB」の隣）。本体とワークツリーの compose のサービスを見て、起動・停止し、ログをタブの中のログの画面で見て、シェルを下のパネルのターミナルで開く。この Mac のアプリの中だけ。要件定義書の「5.14 Docker」。段階 1 と段階 2「DB で開く」を作った） | タブ `docker`（`#/projects/:id/docker`）・画面 `features/docker/`（状態と操作の hook `useDocker`・描く部品 `DockerPane`・ログの画面 `DockerLogs`）・コア `core/docker/`・API `GET /api/projects/:id/docker`（一覧）・`POST …/docker/actions`（操作）・`POST …/docker/watch`（見ています）・`GET …/docker/logs`（ログの流れ・さかのぼり）・`GET …/docker/db`（「DB で開く」の行き先）・SSE `docker_changed`（`project_id`）・共有の型 `@shared/types/docker.ts` | なし |
 | ワークツリーの実行環境（ワークツリーごとにポートの番号と Docker の組の名前を分け、本体と複数のワークツリーのアプリを同時に動かす。要件定義書の「5.16」）と帯（ワークツリーに渡す 100 個ずつの番号のまとまり。20100〜29900 の 99 本。+00 は開発サーバー、+01 から Docker の公開ポート）・対応表（本体の番号 → 帯の番号）・整えきれていない所（手順で分けきれなかった所）・分けられない理由 | `WorktreeEnv`・`WorktreePortSlot`（`@shared/types/worktreeEnv.ts`）・表 `worktree_envs`（v22）・コア `core/worktreeEnv/`（`WorktreeEnvService`）・`GitWorktree.env`・`issues`・`blocked`・ワークツリーの `.env` の Kickoff の区切りと `.kickoff/compose.worktree.yaml`・［AI で整える］のチャット（Git で管理していないファイルだけを書ける）= `Chat.untracked_only`（v23） | 「ポートの範囲」「ポートのずらし」 |
 | ポートを使っているプロセス（Kickoff のプロジェクトのフォルダで TCP のポートを待っているもの。要件定義書の「5.17」）・起動元（Kickoff の中 / 切り離されている / ほかのアプリ）・帯の添え書き | `PortProcess`・`PortOrigin`（`PORT_ORIGINS`）・`PortBandNote`（`@shared/types/ports.ts`）・コア `core/ports/`（`PortProcessService`・`PortWatch`）・SSE の `ports_changed` | 「開発サーバーの一覧」「サービス」 |
@@ -494,9 +501,10 @@ src/
     ipc/               Electron の IPC の取り決め（チャンネル名・画面に出す API の型・中身の型）
     testing/           テストのデータを作る関数（コアと画面のテストで共通）
     errors.ts          errorMessage
-  core/                Electron に依存しないサーバー（HTTP API・SQLite・エージェントの実行）
+  core/                Electron に依存しないサーバー（HTTP API・SQLite・エージェントの実行）。Mac のアプリではメインが起動する別のプロセス（utilityProcess）で動く
     index.ts           組み立てと終了（startCore）
     daemon.ts          Electron なしで起動
+    host/              Mac のアプリのコアのプロセスの入口（main.ts → out/main/core.js）・メインとの RPC（protocol・rpc・ports）・メインにしかない口の写し（remote: ブラウザ・キーチェーン・通知・DB ワーカー）
     bus.ts             変更の知らせ（SSE へ）
     db/                schema・open（開く・版・リリース前の後片付け）・store（表ごとの店をまとめるだけ）・chats・events（記録と全文検索）・projects・groups・queues・snippets（定型文）・settings（設定・秘密・meta）
     http/              server（組み立て・認証・失敗の変換・SSE・画面の配信）・httpServer・auth・errors（NotFound など）・routes/（領域ごとに xxxRoutes）
@@ -506,17 +514,17 @@ src/
     github/            GitHub タブの読み取り（gh api の GraphQL と REST・応答を形にする normalize・一覧の ETag の覚え）
     usage/             使用状況（Claude のプランの枠と、ほかのサービス services/）
     voice/             音声入力の文字起こし（whisper-cli・macOS の音声認識・OpenAI）と、音声モードの読み上げ（OpenAI の声）
-    terminal/          内蔵ターミナルのシェル（TerminalSessions。この Mac の画面は IPC、スマホは WebSocket でつなぐ）と、AI に出力を読ませる口（TerminalControl）
+    terminal/          内蔵ターミナルのシェル（TerminalSessions。この Mac の画面もスマホも WebSocket でつなぐ）と、AI に出力を読ませる口（TerminalControl）
     docker/            Docker タブ（一覧・操作・エンジンの状態・見ている間だけの docker events・compose のファイル・ポートの取り合い・ログ・AI の守りが見る様子・「DB で開く」の案。表は持たない）
     memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown・HTML の一覧・読み書き・移動・ゴミ箱・チャットの文から作る・HTML のメモが読むファイルを返す）
     trash/             Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻す・本当に消す。AI の kickoff-trash・チャットとプロジェクトのゴミ箱・アーカイブ済みのチャットの整理・会話記録の片付けと乗り換えの古い記録・ほかの Kickoff が使う会話記録の確かめ）
     notifications/     通知の判断（だれも見ていなければ、この Mac の通知とつないだ端末のプッシュへ）・見ているもの・通知の中身
-    platform/          OS ごとに違う処理の口（HostPlatform: アプリを開く・待っているソケット・プロセスの表・ログインシェルの PATH・音声認識など）と macOS の中身（macos/）。メイン・daemon が作って startCore に渡す
+    platform/          OS ごとに違う処理の口（HostPlatform: アプリを開く・待っているソケット・プロセスの表・ログインシェルの PATH・音声認識など）と macOS の中身（macos/）。コアのプロセス・daemon が作って startCore に渡す（メインも childApps などで使う）
     system/            外部コマンド・パス・期限付きキャッシュ・保存先と名前（appEnv）・開発版のデータの写し
     testing/           テストの補助（サーバーの準備・偽のプロバイダー・一時フォルダ・Git の作業場所）
-  main/                Electron のメインプロセス
+  main/                Electron のメインプロセス（窓・OS の口・仲立ちだけ。コアは別のプロセス）
     index.ts           起動の順番だけ
-    app/               ウィンドウ・メニュー・終了の片付け・子の Electron・権限の問い合わせ・起動の記録
+    app/               コアのプロセスの見張り役（起動・RPC・落ちたら作り直す・応答の見張り・DB ワーカーを作る）・ウィンドウ・メニュー・終了の片付け・子の Electron・権限の問い合わせ・起動の記録
     ipc/               IPC の登録と引数の検査
     platform/          OS ごとに違う処理の口を 1 か所で選ぶ（コアと共通の hostPlatform（内蔵ターミナルのシェルも）・メインだけの desktopPlatform: 外部のターミナル・ブラウザ）と macOS の中身（macos/）
     browser/  terminal/  notifications/  diagnostics/

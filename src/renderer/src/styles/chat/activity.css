@@ -186,12 +186,6 @@
   max-width: none;
 }
 
-.activity-more {
-  display: block;
-  margin: 0 auto 8px;
-  font-size: calc(12px * var(--chat-scale, 1));
-}
-
 .activity-empty {
   padding: 16px 0;
   text-align: center;

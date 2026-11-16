@@ -1,5 +1,5 @@
 import { Check, ChevronRight, FileCheck2, SquareArrowOutUpRight } from "lucide-react";
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { GitFileChange } from "@shared/types";
 import { openProjectFile } from "@/app/router";
 import { cx } from "@/lib/cx";
@@ -77,8 +77,8 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
     resetOpen(path);
   };
   const unmarkViewed = (path: string) => {
-    const { [path]: _, ...rest } = viewed;
-    void _;
+    const rest = { ...viewed };
+    delete rest[path];
     setViewed(rest);
     setOpen(path, true);
   };
@@ -108,11 +108,11 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
   useEffect(() => {
     pending.current = focusAt;
   }, [focusAt]);
+  const revealFocus = useEffectEvent((path: string) => reveal(path));
   useEffect(() => {
     if (!focus || pending.current === undefined || !files.some((f) => f.file.path === focus)) return;
     pending.current = undefined;
-    reveal(focus);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    revealFocus(focus);
   }, [focus, focusAt, files]);
 
   if (git.status && !git.status.repo) {

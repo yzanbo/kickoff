@@ -1,9 +1,10 @@
 // 画面（レンダラー）が応答しなくなったときの記録と立て直し。外部ディスプレイをつなぐ・外したあとなどに画面がクリックも入力も受けなくなり、
 // アプリごと起動し直すしかなかった（起動の記録には「応答しません」だけが残り、戻った記録はなかった。2026-11-14 の利用者の報告）。
 // 原因をその場で突き止められるよう、止まっている JavaScript の場所と、そのころのディスプレイ・スリープの出来事を起動の記録に書き、
-// 止まったままなら「画面を読み込み直す」を聞く（コアは同じプロセスで動き続けるので、AI の作業は止まらない）
+// 止まったままなら「画面を読み込み直す」を聞く（コアは別のプロセスで動き続けるので、AI の作業は止まらない）
 import { app, dialog, powerMonitor, screen, session, type BrowserWindow } from "electron";
 import { errorMessage } from "@shared/errors";
+import { timed } from "../../core/system/stallWatch.js";
 import { startupLog } from "./startupLog.js";
 
 /** 応答しなくなってから、まだ戻らなければ聞くまでの時間 */
@@ -94,19 +95,19 @@ export function watchRendererHang(win: BrowserWindow, label: string) {
   };
 
   // 止まったままなら、押すたびに届く（「待つ」を選んだあとも、また押して届いたら聞き直す）
-  contents.on("unresponsive", () => {
+  contents.on("unresponsive", timed("wc:unresponsive", () => {
     const first = hungAt === undefined;
     hungAt ??= Date.now();
     startupLog(`${label}: 画面が応答しません（unresponsive）`);
     if (first) void collectStack(win).then((stack) => startupLog(`${label}: 止まっている JavaScript: ${stack}`));
     if (!timer && !asking) timer = setTimeout(() => void ask().catch((e: unknown) => startupLog(`${label}: 聞けませんでした ${errorMessage(e)}`)), ASK_AFTER_MS);
-  });
-  contents.on("responsive", () => {
+  }));
+  contents.on("responsive", timed("wc:responsive", () => {
     const took = hungAt === undefined ? "" : `（${Math.round((Date.now() - hungAt) / 1000)} 秒）`;
     hungAt = undefined;
     recover();
     startupLog(`${label}: 画面が応答を戻しました（responsive）${took}`);
-  });
+  }));
   contents.on("render-process-gone", recover);
   win.on("closed", recover);
 }

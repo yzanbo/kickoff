@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import type { Project, Chat } from "@shared/types";
+import type { Project, Chat, ChatEvent } from "@shared/types";
 import { GroupChip } from "@/features/group/GroupChip";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -9,7 +9,6 @@ import { ProviderChip } from "@/features/chat/provider/ProviderChips";
 import { GitHubLinkChip } from "@/features/github/GitHubLinkChip";
 import { ChatFind } from "@/features/chat/find/ChatFind";
 import { AgentPanelToggle } from "@/features/panel/agents/AgentPanelToggle";
-import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 import { cx } from "@/lib/cx";
 import { ChatDisplayItems, useChatHeaderBadgeColors, useChatHeaderItems, useChatHeaderOrder, useChatHeaderRowHidden } from "./ChatDisplayMenu";
 import { ChatHeaderTools } from "./ChatHeaderTools";
@@ -28,15 +27,12 @@ import { useChatPane, useChatPaneState } from "./chatPaneContext";
 export function ChatHeader({
   chat,
   project,
-  items,
-  version,
+  tail,
 }: {
   chat: Chat;
   project?: Project;
-  /** 流れ全体（チャットの中の検索で探す） */
-  items: TimelineItem[];
-  /** 描いている項目（変わったら検索の印を付け直す） */
-  version: unknown;
+  /** 記録の末尾（チャットの中の検索で探す。その前は検索がコアから読む） */
+  tail: ChatEvent[];
 }) {
   const shows = useChatHeaderItems();
   const ordered = useChatHeaderOrder();
@@ -48,7 +44,7 @@ export function ChatHeader({
   const collapsed = rowHidden && showing === "conversation" && !chat.archived_at;
   // 検索は会話だけに効く。見出しに出さないときは、浮かせた欄を ⌘F・文が残っている間だけ出す
   const findInline = !collapsed && shows("find");
-  const find = showing === "conversation" && <ChatFind items={items} version={version} floating={!findInline} />;
+  const find = showing === "conversation" && <ChatFind tail={tail} floating={!findInline} />;
   if (collapsed) return <header className="chat-header collapsed">{find}</header>;
 
   const turns = shows("turns") && chat.num_turns > 0;

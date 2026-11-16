@@ -1,5 +1,5 @@
 import { MessageSquarePlus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { PROVIDER_LABELS, type Attachment, type Chat, type ProviderId } from "@shared/types";
 import { api } from "@/api";
 import { useKnownChat, addChat } from "@/stores/chats";
@@ -66,11 +66,13 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
   const shows = useChatHeaderItems();
   const composer = useRef<ComposerHandle | null>(null);
   // 選んだ文から開いたら、引用を入力欄に入れる（キャレットはその下）。「AI に渡す」から開いたら、一言と添付も入れる
-  useEffect(() => {
+  // 開いたときに 1 回だけ（書き換えたあとで引用を入れ直さない）
+  const fillSeed = useEffectEvent(() => {
     const text = `${initialText(quote)}${seedText ?? ""}`;
     if (text || seedAttachments?.length) composer.current?.fill(text, seedAttachments?.length ? { attachments: seedAttachments } : undefined);
-    // 開いたときに 1 回だけ（書き換えたあとで引用を入れ直さない）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    fillSeed();
   }, []);
   // 最初の文を送って子チャットを作る（チャット欄の送信と、定型文の帯の ⌘クリック・「すぐ送る」で共通）
   const start = async (prompt: string, attachments: Attachment[]) => {
@@ -84,8 +86,9 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
   const [opening, setOpening] = useState(false);
   const openOnly = async () => {
     setOpening(true);
+    const body = { text: "", quote: null, inherit: true, event_id: eventId ?? null, options: options.options };
     try {
-      const child = await api.createChildChat(parent.id, { text: "", quote: null, inherit: true, event_id: eventId ?? null, options: options.options });
+      const child = await api.createChildChat(parent.id, body);
       addChat(child);
       onCreated(child, { always: true });
     } catch (e) {

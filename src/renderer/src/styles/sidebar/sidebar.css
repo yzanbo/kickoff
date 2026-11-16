@@ -129,6 +129,15 @@
   display: none;
 }
 
+/* 1 行の行の高さ 28px（画面の外の行の見積もりは上下の余白 6px を引いた中身の高さ・まだ作っていない行の空の箱は間の 1px を足す。sidebar-rows.css） */
+.workspaces.compact {
+  --progressive-row: 29px;
+}
+
+.workspaces.compact .chat-row-item > a.chat-row {
+  contain-intrinsic-block-size: auto 22px;
+}
+
 /* プロジェクトのカードを 1 行で出す（見出しの「プロジェクト」の行の「表示」。チャットの行とは別）: 名前を 1 行にして、チャット数の行は出さない */
 .workspaces.compact-projects .workspace-head {
   margin-bottom: 6px;

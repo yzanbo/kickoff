@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useEffectEvent, type RefObject } from "react";
 import { isComposing } from "@/lib/keys";
 
 interface DismissOptions {
@@ -52,21 +52,20 @@ function insideLaterLayer(layer: Layer, target: Node): boolean {
  */
 export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObject<HTMLElement | null>[], onDismiss: () => void, options: DismissOptions = {}) {
   const { enabled = true, outside = true, ignore, escape = "stop" } = options;
-  const dismiss = useRef(onDismiss);
-  dismiss.current = onDismiss;
-  const refs = useRef(ref);
-  refs.current = ref;
+  const dismiss = useEffectEvent(onDismiss);
+  // いま渡されている要素（ほかの層の知らせの中からも読む。描く中では呼ばない）
+  const currentElements = useEffectEvent(() => (Array.isArray(ref) ? ref : [ref as RefObject<HTMLElement | null>]).map((r) => r.current));
 
   useEffect(() => {
     if (!enabled) return;
-    const elements: Layer = () => (Array.isArray(refs.current) ? refs.current : [refs.current as RefObject<HTMLElement | null>]).map((r) => r.current);
+    const elements: Layer = () => currentElements();
     layers.push(elements);
     const onDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (elements().some((el) => el?.contains(target))) return;
       if (ignore && target.closest?.(ignore)) return;
       if (insideLaterLayer(elements, target)) return;
-      dismiss.current();
+      dismiss();
     };
     const onKey = (e: KeyboardEvent) => {
       // 日本語入力の変換をやめる Esc では閉じない（検索欄で変換をやめただけで、一覧が閉じないように）
@@ -77,7 +76,7 @@ export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObje
         // （大きく見た画像の右クリックのメニューを Esc で閉じると、画像のダイアログまで閉じていた）
         e.preventDefault();
       }
-      dismiss.current();
+      dismiss();
     };
     if (outside) window.addEventListener("mousedown", onDown);
     const release = outside ? holdDragRegions() : undefined;

@@ -73,8 +73,13 @@ export interface TerminalShell {
 export interface HostPlatform {
   /** アプリの保存先を置く親のフォルダ（Electron の appData と同じ場所。製品版と開発版の保存先はこの下の名前で分ける） */
   appDataRoot: string;
-  /** GUI から起動したアプリはログインシェルの PATH を引き継がないので、取り込んで process.env.PATH に足す */
+  /** GUI から起動したアプリはログインシェルの PATH を引き継がないので、取り込んで process.env.PATH に足す（同期。単体のコア） */
   loadLoginShellPath: () => void;
+  /**
+   * 同じことを止めずに行う（コアのプロセス）: 保存先に覚えた前回の値を先に入れ、読み直しは裏で流す。ready は読み終わるか打ち切ったら解ける
+   * （外部コマンドを起こす所が待つ。system/exec.ts の waitForShellPath）
+   */
+  startShellPath: (dataDir: string) => { ready: Promise<void> };
   /** アプリを名前で開く（Docker のエンジンが止まっているときの「OrbStack を開く」など） */
   openApp: (name: string) => Promise<void>;
   /** TCP のポートを待っているソケット（自分のユーザーのプロセスだけ） */

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ChatEvent, FeedItem } from "@shared/types";
-import { feedItemOf, feedPlainText, upsertFeedItem } from "./feed";
+import { feedItemOf, feedPlainText, upsertFeedItem, upsertFeedItems } from "./feed";
 
 const textEvent = (id: number, chatId: number, text: string, parent?: string) =>
   ({ id, chat_id: chatId, type: "text", data: { text, ...(parent ? { parent } : {}) }, created_at: `2026-11-0${id}` }) as ChatEvent;
@@ -25,4 +25,14 @@ test("upsertFeedItem: そのチャットの返答を入れ替えていちばん�
 test("feedPlainText: Markdown の印を外して読みやすい文に", () => {
   assert.equal(feedPlainText("## 結果\n\n**直しました**。`npm test` が通り、[説明](https://x) を見てください。\n\n```ts\nconst a = 1;\n```"), "結果\n直しました。npm test が通り、説明 を見てください。\nconst a = 1;");
   assert.equal(feedPlainText("| a | b |\n|---|---|\n| 1 | 2 |"), "| a | b |\n| 1 | 2 |");
+});
+
+test("upsertFeedItems: 1 フレームの分をまとめて当てた結果は、1 件ずつ当てたのと同じ（何も変わらなければ同じ配列）", () => {
+  const items = [item(1, 10), item(2, 5)];
+  const added = [item(2, 11), item(3, 1), item(1, 9), item(2, 12)];
+  const oneByOne = added.reduce<readonly FeedItem[]>((list, x) => upsertFeedItem(list, x), items);
+  assert.deepEqual(upsertFeedItems(items, added), oneByOne);
+  assert.deepEqual(upsertFeedItems(items, added).map((i) => [i.chat_id, i.event_id]), [[2, 12], [3, 1], [1, 10]]);
+  assert.equal(upsertFeedItems(items, [item(1, 3)]), items);
+  assert.equal(upsertFeedItems(items, []), items);
 });

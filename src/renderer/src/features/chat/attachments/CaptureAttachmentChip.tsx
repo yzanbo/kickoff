@@ -65,12 +65,12 @@ export function CaptureAttachmentChip({ attachment, onRemove }: { attachment: Ca
 
 /** 取った中身を読むだけで見るダイアログ（画像はそのまま出す） */
 function CaptureViewer({ attachment, onClose }: { attachment: CaptureAttachment; onClose: () => void }) {
-  const dialog = useModalDialog({ focusSelf: true });
+  const { ref: dialogRef, ...dialog } = useModalDialog({ focusSelf: true });
   const image = isImage(attachment);
   const text = useAsync(() => (image ? Promise.resolve("") : api.attachmentText(attachment)), [attachment.id]);
   const Icon = SOURCE_ICONS[attachment.source.type];
   return (
-    <dialog ref={dialog.ref} className="dialog app-dialog capture-viewer" aria-label={attachment.source.label} onClose={onClose} {...dialog.backdropProps}>
+    <dialog ref={dialogRef} className="dialog app-dialog capture-viewer" aria-label={attachment.source.label} onClose={onClose} {...dialog.backdropProps}>
       <div className="capture-viewer-head">
         <Icon size={16} aria-hidden />
         <span className="capture-viewer-title">

@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { ChatView } from "@/features/chat/pane/ChatPane";
-import { useChatDetail } from "@/features/chat/pane/useChatDetail";
+import { useOpenChat } from "@/features/chat/store/useChatStore";
 import { PanelHostContext } from "@/features/panel/panelHost";
 import { ChildChatBar } from "./ChildChatBar";
 
@@ -20,22 +20,21 @@ export function SideChildChat({
   /** パネルのタブの置き場所（chatPaneSlot。タブの右クリックから会話 / 動きを切り替える） */
   slot?: string;
 }) {
-  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
+  const { chat, project, error } = useOpenChat(chatId, visible);
   const title = chat?.title;
   // タブの名前を最新に（名前の自動生成・変更。渡される関数は描くたびに変わるので、名前が変わったときだけ呼ぶ）
-  const setTitle = useRef(onTitle);
-  setTitle.current = onTitle;
+  const setTitle = useEffectEvent(onTitle);
   useEffect(() => {
-    if (title !== undefined) setTitle.current(title);
+    if (title !== undefined) setTitle(title);
   }, [title]);
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;
   return (
     <div className="side-child-chat">
-      <ChildChatBar chat={chat} events={events} />
+      <ChildChatBar chat={chat} />
       <div className="side-child-chat-body">
         <PanelHostContext.Provider value={null}>
-          <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} visible={visible} slot={slot} />
+          <ChatView key={chat.id} chat={chat} project={project} visible={visible} slot={slot} pausable />
         </PanelHostContext.Provider>
       </div>
     </div>

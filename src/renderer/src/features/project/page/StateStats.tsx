@@ -12,13 +12,13 @@ import { BucketChip } from "@/features/chatList/StateChip";
  */
 export function StateStats({ chats, showProject = false }: { chats: Chat[]; showProject?: boolean }) {
   const { pending } = useChatStates();
-  const popover = usePopover<HTMLDivElement>();
+  const { anchor: popoverAnchor, ...popover } = usePopover<HTMLDivElement>();
 
   const sections = chatsByState(chats, pending);
   if (sections.length === 0) return null;
 
   return (
-    <div ref={popover.anchor} className="state-stats">
+    <div ref={popoverAnchor} className="state-stats">
       <button type="button" className="state-stats-button" aria-expanded={popover.open} title="状態ごとのチャットを一覧する" onClick={popover.toggle}>
         {sections.map((section) => (
           <BucketChip key={section.key} bucket={section} tone={bucketTone(section)} count={section.chats.length} chats={section.chats} />
@@ -27,7 +27,7 @@ export function StateStats({ chats, showProject = false }: { chats: Chat[]; show
       {popover.open && (
         <StateChatsPopover
           title="状態ごとのチャット"
-          anchor={popover.anchor}
+          anchor={popoverAnchor}
           sections={sections}
           showProject={showProject}
           // 子チャットも並ぶ（プロジェクト画面の見出し）ので、子チャットは設定の開き方で開く

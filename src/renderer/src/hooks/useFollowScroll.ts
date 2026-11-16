@@ -1,4 +1,6 @@
 import { useLayoutEffect, useRef, useState, type UIEvent } from "react";
+import { snapTarget } from "@/lib/followScroll";
+import { observeSize } from "./useSizeObserver";
 
 /** 最新（いちばん下）を見ているとみなす、下端からの距離 */
 const FOLLOW_SLACK_PX = 24;
@@ -23,14 +25,19 @@ export function useFollowScroll<E extends HTMLElement = HTMLDivElement, C extend
     const content = contentRef.current;
     if (!scroller || !content) return;
     const update = () => {
-      if (following.current && !paused) scroller.scrollTop = scroller.scrollHeight;
+      if (following.current && !paused) {
+        // 一番下からずれているときだけ書く（書くたびにスクロールの知らせが起きる）
+        const top = snapTarget(scroller);
+        if (top !== null) scroller.scrollTop = top;
+      }
       setOverflowing(scroller.scrollHeight > scroller.clientHeight + 1);
     };
     update();
-    const observer = new ResizeObserver(update);
-    observer.observe(scroller);
-    observer.observe(content);
-    return () => observer.disconnect();
+    // 大きさの知らせは、画面全体で 1 つの ResizeObserver から（レイアウトのあとに届くので、読んでもレイアウトを強いない）
+    const offs = [observeSize(scroller, update), observeSize(content, update)];
+    return () => {
+      for (const off of offs) off();
+    };
   }, [paused]);
   const onScroll = (e: UIEvent<E>) => {
     const el = e.currentTarget;

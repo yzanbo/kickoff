@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Element, Root } from "hast";
-import { nextRevealLength, revealBands, wrapStreamTail, REVEAL_FADE_MS } from "./streamReveal";
+import { nextRevealLength, revealBands, splitTail, wrapStreamTail, REVEAL_FADE_MS } from "./streamReveal";
 
 test("nextRevealLength: 遅れが大きいほど 1 フレームで多く出し、target を超えない", () => {
   const text = "a".repeat(1000);
@@ -64,4 +64,14 @@ test("wrapStreamTail: コードブロックの中は数えない・段がすべ�
   const untouched: Root = { type: "root", children: [el("p", [text("ab")])] };
   wrapStreamTail(untouched, [0, 0, 0]);
   assert.deepEqual((untouched.children[0] as Element).children, [text("ab")]);
+});
+
+test("splitTail: 段は後ろのブロックから長さまで割り当て、あふれた分を前のブロックへ（段の位置は保つ）", () => {
+  // 段の合計が最後のブロックより短い: 最後だけ
+  assert.deepEqual(splitTail([10, 20], [3, 4, 0]), [undefined, [3, 4, 0]]);
+  // 長い: 最後のブロックに 12 字（段 1 の 5 字・段 2 の 7 字）、残りを前へ
+  assert.deepEqual(splitTail([30, 12], [5, 10, 20]), [[0, 3, 20], [5, 7, 0]]);
+  // 段がない・すべて 0 なら、どのブロックにも渡さない
+  assert.deepEqual(splitTail([1, 2], undefined), [undefined, undefined]);
+  assert.deepEqual(splitTail([1, 2], [0, 0, 0]), [undefined, undefined]);
 });

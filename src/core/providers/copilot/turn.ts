@@ -5,6 +5,7 @@ import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
 import { byokProvider, copilotSandbox, mcpServersOf, runtimeEnv, turnPrompt } from "./config.js";
 import { createEventState, handleEvent, type EventState } from "./events.js";
+import { noteSyncSince, syncStart } from "../../system/stallWatch.js";
 import { createPermissionHandler, createPreToolUseHook, createUserInputHandler } from "./permissions.js";
 import type { CopilotClientFactory, CopilotClientLike, CopilotSessionLike, SessionConfig } from "./sdk.js";
 
@@ -88,7 +89,10 @@ export async function runCopilotTurn(deps: TurnDeps, params: ProviderTurnParams,
     session.on((event) => {
       if (event.type === "user.message" || event.type === "assistant.turn_start" || event.type === "session.error") started = true;
       if (event.type === "session.compaction_complete" && event.data.success) compacts++;
+      // 1 件の処理に名前を付けて詰まりの見張りに知らせる（system/stallWatch.ts）
+      const start = syncStart();
       handleEvent(event, cb, state);
+      noteSyncSince(start, () => `provider:copilot:${event.type}`);
       // 送る前の手の空き（続けたときの知らせなど）は数えない
       if (event.type === "session.idle" && started) finish(Boolean(event.data.aborted));
     });

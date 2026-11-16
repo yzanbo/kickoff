@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { VIEWING_TTL_MS, type Approval, type Chat, type ChatEvent, type ChatLive } from "@shared/types";
+import { streamingAppendOf, streamingEffectOf, type StreamingEffect } from "@shared/chat/streamingRules";
 import { applyEventToLog, lastEventId, mergeEvents } from "../lib/timeline";
 import type { HostSession } from "../state/hostSession";
 
@@ -19,9 +20,13 @@ export function useChat(session: HostSession | null, chatId: number) {
   const [error, setError] = useState<string | null>(null);
   const eventsRef = useRef(events);
   eventsRef.current = events;
+  // 読み込みの最中に届いた、書いている途中の返答への知らせ（読み込み中でなければ null）。読めたら、詳細の書きかけの返答に順に当て直す
+  // （詳細の文に入っている分は chat_delta の offset で捨てる。返答の途中で開いても文の頭から出る）
+  const streamingReplay = useRef<StreamingEffect[] | null>(null);
 
   const load = useCallback(async () => {
     if (!session) return;
+    streamingReplay.current = [];
     try {
       const last = lastEventId(eventsRef.current);
       const detail = await session.client.chatDetail(chatId, last === null ? { limit: PAGE } : { after: last });
@@ -34,12 +39,17 @@ export function useChat(session: HostSession | null, chatId: number) {
         setEvents(detail.events);
         setHasEarlier(detail.has_earlier);
       } else setEvents((e) => mergeEvents(e, detail.events));
+      // 書いている途中の返答は、詳細の書きかけの返答から始め、読み込みの最中に届いた知らせを当て直す
+      const missed = streamingReplay.current ?? [];
+      streamingReplay.current = null;
+      setStreaming(missed.reduce(applyStreaming, detail.chat.status === "running" ? (detail.streaming_text ?? "") : ""));
       setChat(detail.chat);
       setLive(detail.live);
       setApprovals(detail.approvals);
       setError(null);
       if (detail.chat.unread) void session.client.markSeen(chatId).catch(() => {});
     } catch (e) {
+      streamingReplay.current = null;
       setError(e instanceof Error ? e.message : String(e));
     }
   }, [session, chatId]);
@@ -58,11 +68,14 @@ export function useChat(session: HostSession | null, chatId: number) {
     const offOpen = session.onOpen(() => void load());
     const offEvent = session.onEvent((e) => {
       setEvents((current) => applyEventToLog(current, chatId, e));
-      if (e.type === "chat_event" && e.event.chat_id === chatId && e.event.type === "text") setStreaming("");
-      if (e.type === "chat_delta" && e.chat_id === chatId) setStreaming((s) => s + e.text);
+      // 書いている途中の返答を足す・消す（パソコンと同じ決まり。サブエージェントの記録・お知らせなどでは消さない）
+      const effect = streamingEffectOf(e);
+      if (effect?.chatId === chatId) {
+        streamingReplay.current?.push(effect);
+        setStreaming((s) => applyStreaming(s, effect));
+      }
       if (e.type === "chat" && e.chat.id === chatId) {
         setChat(e.chat);
-        if (e.chat.status !== "running") setStreaming("");
         // 見ている間に終わったら既読にする
         if (e.chat.unread && AppState.currentState === "active") void session.client.markSeen(chatId).catch(() => {});
       }
@@ -93,4 +106,9 @@ export function useChat(session: HostSession | null, chatId: number) {
   );
 
   return { chat, events, live, approvals, hasEarlier, streaming, error, loadEarlier, reload: load };
+}
+
+/** 書いている途中の返答に知らせを当てる（足すときは、もう持っている所を offset で捨てる） */
+function applyStreaming(text: string, effect: StreamingEffect): string {
+  return effect.effect === "append" ? text + streamingAppendOf(text.length, effect.text, effect.offset) : "";
 }

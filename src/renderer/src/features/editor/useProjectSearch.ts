@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import type { ProjectSearchQuery, ProjectSearchResult } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
@@ -17,7 +17,7 @@ type SearchOption = "case_sensitive" | "whole_word" | "regex" | "use_ignore";
  * 探し方の切り替え・含める / 除外するファイル（詳細）・置換の欄の中身・結果から外したもの・検索の履歴も持つ
  */
 export function useProjectSearch(projectId: number) {
-  const { target, key } = useGitTarget(projectId);
+  const { target } = useGitTarget(projectId);
   const [query, setQueryState] = useState("");
   const [options, setOptions] = useState<Record<SearchOption, boolean>>({ case_sensitive: false, whole_word: false, regex: false, use_ignore: true });
   const [include, setInclude] = useState("");
@@ -35,25 +35,26 @@ export function useProjectSearch(projectId: number) {
   const historyIndex = useRef(-1);
   const latest = useRef(0);
 
+  // 探す関数は作業場所が変わったときだけ作り直す（target は作業場所ごとに同じもの）
   const run = useCallback(
     async (search: ProjectSearchQuery) => {
       const request = ++latest.current;
       setLoading(true);
-      try {
-        const value = await api.searchProject(target, search);
-        if (request !== latest.current) return;
-        setResult({ query: search, value });
-        // 探し直したら、外したものは忘れる（VS Code と同じ）
-        setDismissed(new Set());
-        setError(undefined);
-      } catch (e) {
-        if (request === latest.current) setError(errorMessage(e));
-      } finally {
-        if (request === latest.current) setLoading(false);
-      }
+      await api.searchProject(target, search).then(
+        (value) => {
+          if (request !== latest.current) return;
+          setResult({ query: search, value });
+          // 探し直したら、外したものは忘れる（VS Code と同じ）
+          setDismissed(new Set());
+          setError(undefined);
+        },
+        (e: unknown) => {
+          if (request === latest.current) setError(errorMessage(e));
+        },
+      );
+      if (request === latest.current) setLoading(false);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [key],
+    [target],
   );
 
   const current: ProjectSearchQuery = { query, ...options, include, exclude };
@@ -71,10 +72,12 @@ export function useProjectSearch(projectId: number) {
 
   // 探した文字を履歴に残す（打っている途中の文字ではなく、結果が出たもの）
   const resultQuery = result?.query.query;
+  // 結果が変わったときだけ（履歴が変わっても足し直さない）
+  const remember = useEffectEvent((searched: string) => {
+    if (historyIndex.current < 0) setHistory(pushHistory(history, searched));
+  });
   useEffect(() => {
-    if (resultQuery && historyIndex.current < 0) setHistory(pushHistory(history, resultQuery));
-    // 結果が変わったときだけ（履歴が変わっても足し直さない）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (resultQuery) remember(resultQuery);
   }, [resultQuery]);
 
   const files = useMemo(() => visibleResults(result?.value.files ?? [], dismissed), [result, dismissed]);

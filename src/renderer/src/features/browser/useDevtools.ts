@@ -17,6 +17,15 @@ export const DEVTOOLS_DOCK_LABELS: Record<DevtoolsDock, string> = {
 
 const MIN_HEIGHT = 140;
 
+/** 埋め込みブラウザの webContents の ID（まだ表示の準備ができていなければ undefined） */
+function webContentsIdOf(view: WebviewTag | null | undefined): number | undefined {
+  try {
+    return view?.getWebContentsId();
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * 埋め込みブラウザの開発者ツール。右・下に出すときは、ブラウザのタブの中に置いたもう 1 つの埋め込みブラウザ（devtoolsRef）の中に表示し
  * （Electron の setDevToolsWebContents）、別のウィンドウのときはメインプロセスで作ったウィンドウの中に表示する。
@@ -35,35 +44,24 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
   const height = useDragSize({ setting: BROWSER_DEVTOOLS_HEIGHT, axis: "y", edge: "start", min: MIN_HEIGHT, keep: 120, pane: paneRef });
   const embedded = shown === "right" || shown === "bottom";
 
-  const viewId = () => {
-    try {
-      return viewRef.current?.getWebContentsId();
-    } catch {
-      // まだ表示の準備ができていない
-      return undefined;
-    }
-  };
+  const viewId = () => webContentsIdOf(viewRef.current);
 
   // 別のウィンドウを利用者が閉じたら、閉じた状態にする
   useEffect(
     () =>
       window.kickoff?.devtools.onWindowClosed((targetId) => {
-        if (targetId === viewId()) setShown((now) => (now === "window" ? null : now));
+        if (targetId === webContentsIdOf(viewRef.current)) setShown((now) => (now === "window" ? null : now));
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [viewRef],
   );
 
   // タブを閉じたら、開発者ツール（別のウィンドウも）を閉じる
   useEffect(() => {
     const view = viewRef.current;
     return () => {
-      try {
-        const id = view?.getWebContentsId();
-        if (id !== undefined) void window.kickoff?.devtools.close(id);
-      } catch {
-        // すでになくなっている
-      }
+      // すでになくなっていれば ID は読めない
+      const id = webContentsIdOf(view);
+      if (id !== undefined) void window.kickoff?.devtools.close(id);
     };
   }, [viewRef]);
 
@@ -73,7 +71,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
     if (!embedded || !holder) return;
     let done = false;
     const attach = () => {
-      const id = viewId();
+      const id = webContentsIdOf(viewRef.current);
       if (done || id === undefined) return;
       done = true;
       void window.kickoff?.devtools.openIn(id, holder.getWebContentsId()).catch(() => setShown(null));
@@ -82,9 +80,8 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
     return () => {
       holder.removeEventListener("dom-ready", attach);
     };
-    // 入れ物を作り直したとき（embedKey）だけ表示し直す。右と下の入れ替えでは表示し直さない
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [embedKey, embedded]);
+    // 入れ物を作り直したとき（embedKey）だけ表示し直す。右と下の入れ替えでは表示し直さない（viewRef は変わらない）
+  }, [embedKey, embedded, viewRef]);
 
   const openAt = (where: DevtoolsDock) => {
     const id = viewId();

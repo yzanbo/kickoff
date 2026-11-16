@@ -7,16 +7,21 @@ import { CopyButton } from "@/ui/CopyButton";
 import { HighlightedCode } from "@/ui/HighlightedCode";
 import { IconButton } from "@/ui/IconButton";
 import { ImageViewer } from "@/ui/imageViewer/ImageViewer";
+import { LazyDetails } from "@/ui/LazyDetails";
 import { MermaidDiagram } from "@/ui/markdown/mermaid/MermaidDiagram";
 import { reportFailure } from "@/ui/dialogs";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import type { ToolCall } from "@/features/chat/timeline/timelineItems";
+import { useNearViewport } from "@/hooks/useNearViewport";
+import { frameHeightKey, rememberedFrameHeight, rememberFrameHeight, useFrameSlot } from "./frameSlots";
 import { saveVisualToMemo } from "./saveVisual";
 import { VisualFrame } from "./VisualFrame";
-import { useChatVisuals } from "./visualsContext";
+import { useVisuals } from "./visualsContext";
 
 /** 図の高さの上限（画面の高さに対する割合。超えたら枠の中でスクロール） */
 const MAX_HEIGHT_RATIO = 0.8;
+/** 枠を置くまでの高さ（前に描いたときの高さがなければ。中身が届くまでの枠の高さと同じ） */
+const FRAME_WAIT_HEIGHT = 160;
 
 /** ソースの色付けの言語 */
 const SOURCE_LANG = { svg: "xml", html: "html", mermaid: undefined } as const;
@@ -37,7 +42,7 @@ const sourceOf = (input: unknown) => {
  * 描き直しの呼び出しの位置には 1 行だけ（押すと元の図へ移る）。中身を書き終えるまでは「図を描いています…」、失敗は理由
  */
 function VisualItem({ call }: { call: ToolCall }) {
-  const visuals = useChatVisuals();
+  const visuals = useVisuals();
   const { use, result } = call;
   const update = use.data.name === AI_UPDATE_VISUAL_TOOL;
   if (!result) return update ? <VisualNote busy text="図を描き直しています…" /> : <VisualPending title={titleOf(use.data.input)} />;
@@ -88,14 +93,16 @@ function VisualError({ text, source }: { text: string; source: { code: string; l
         <span>{text}</span>
       </div>
       {source && (
-        <details className="visual-card-error-source">
-          <summary>ソース</summary>
-          <pre className="visual-card-source">
-            <code>
-              <HighlightedCode code={source.code} lang={source.lang} />
-            </code>
-          </pre>
-        </details>
+        // ソース（と色付け）は、初めて開いたときに作る
+        <LazyDetails className="visual-card-error-source" summary={<summary>ソース</summary>}>
+          {() => (
+            <pre className="visual-card-source">
+              <code>
+                <HighlightedCode code={source.code} lang={source.lang} />
+              </code>
+            </pre>
+          )}
+        </LazyDetails>
       )}
     </div>
   );
@@ -113,7 +120,7 @@ function VisualFailed({ text, source }: { text: string; source: { code: string; 
 /** 描き直した位置の 1 行（押すと元の図へ移る） */
 function UpdatedRow({ visual }: { visual: ChatVisual }) {
   const pane = useOptionalChatPane();
-  const { shownEvent } = useChatVisuals();
+  const { shownEvent } = useVisuals();
   const target = shownEvent.get(visual.id);
   const name = visual.title ? `「${visual.title}」` : "図";
   return (
@@ -140,6 +147,14 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
   // 閉じた枠に描く種類（Mermaid はアプリの中で描く）
   const frameKind = visual.kind === "mermaid" ? null : visual.kind;
   const framed = frameKind !== null;
+  // 枠は画面の手前まで来て、同時に読み込む数に空きができてから置く（それまでは前に描いたときの高さ・なければ 160px の枠。案 14a）
+  const [nearRef, near] = useNearViewport<HTMLDivElement>({ enabled: framed });
+  const [slot, releaseSlot] = useFrameSlot(framed && near);
+  const maxHeight = Math.round(window.innerHeight * MAX_HEIGHT_RATIO);
+  const heightKey = frameHeightKey(visual.id, visual.code);
+  const boxHeight = rememberedFrameHeight(heightKey);
+  // 中を触った図（押した・入力した）は、流れの窓で行を外さない（読み直すと中で選んだ・動かした状態が消えるため）。触っていない図は外し、戻ったら読み直す
+  const [touched, setTouched] = useState(false);
   // 中身が変わったら（描き直した）、前の中身の失敗は消す
   const shownError = error?.code === visual.code ? error.message : null;
   const onError = (message: string) => setError({ code: visual.code, message });
@@ -150,7 +165,7 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
     saveVisualToMemo(visual, pane.chatId, pane.projectId()).catch((e: unknown) => setError({ code: visual.code, message: `メモに保存できませんでした: ${errorMessage(e)}` }));
   };
   return (
-    <div className="visual-card" id={`ev-${eventId}`}>
+    <div className="visual-card" id={`ev-${eventId}`} data-keep-row={touched ? "" : undefined}>
       <div className="visual-card-head">
         <span className="visual-card-title">{title}</span>
         <span className="visual-card-kind">{VISUAL_KIND_LABELS[visual.kind]}</span>
@@ -170,14 +185,20 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
             <HighlightedCode code={visual.code} lang={SOURCE_LANG[visual.kind]} />
           </code>
         </pre>
+      ) : !slot ? (
+        <div ref={nearRef} className="visual-frame-wait" style={{ height: Math.min(boxHeight ?? FRAME_WAIT_HEIGHT, maxHeight) }} aria-busy />
       ) : (
         <VisualFrame
           kind={frameKind}
           code={visual.code}
           title={title}
-          maxHeight={Math.round(window.innerHeight * MAX_HEIGHT_RATIO)}
+          maxHeight={maxHeight}
+          initialHeight={boxHeight}
           onError={onError}
           onPrompt={onPrompt}
+          onHeight={(h) => rememberFrameHeight(heightKey, h)}
+          onReady={releaseSlot}
+          onTouch={() => setTouched(true)}
         />
       )}
       {/* Mermaid は描けないとき自分でソースを出すので、理由だけを添える */}

@@ -1,6 +1,6 @@
 // SQL のタブの、使っていない間の扱い: トランザクションの途中で 10 分何もしなければ聞いて切る（useIdleFinish）・
 // 裏のタブの結果が多すぎれば捨て、戻ったら読み取りの文だけ流し直す（useSqlResultBudget）
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef } from "react";
 import { isReadOnlyStatement } from "@shared/database/sqlStatements";
 import { errorMessage } from "@shared/errors";
 import { DB_SESSION_IDLE_MS, type DbConnection } from "@shared/types";
@@ -18,6 +18,7 @@ import { finishSession } from "./sqlSessions";
 export function useIdleFinish(pending: boolean, connection: DbConnection, session: string): () => void {
   const client = useDbClient();
   const lastActive = useRef(Date.now());
+  const finish = useEffectEvent(() => finishSession(client.projectId, connection, session, "10 分何もしていないので、接続を切ります"));
   useEffect(() => {
     if (!pending) return;
     let timer: number | undefined;
@@ -27,7 +28,7 @@ export function useIdleFinish(pending: boolean, connection: DbConnection, sessio
         timer = window.setTimeout(() => void check(), left);
         return;
       }
-      const done = await finishSession(client.projectId, connection, session, "10 分何もしていないので、接続を切ります");
+      const done = await finish();
       if (!done) {
         lastActive.current = Date.now();
         timer = window.setTimeout(() => void check(), DB_SESSION_IDLE_MS);
@@ -35,7 +36,6 @@ export function useIdleFinish(pending: boolean, connection: DbConnection, sessio
     };
     timer = window.setTimeout(() => void check(), Math.max(0, DB_SESSION_IDLE_MS - (Date.now() - lastActive.current)));
     return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, connection.id, session]);
   return () => {
     lastActive.current = Date.now();
@@ -69,7 +69,8 @@ export function useSqlResultBudget({
     setRuns((all) => all.map((r) => (r.result && r.result.columns.length > 0 ? { sql: r.sql, write: r.write, evicted: true } : r))),
   );
   const restoring = useRef(false);
-  useEffect(() => {
+  // 見直すのは、見ているか・流しているか・結果が変わったときだけ（接続・作業場所は流し直すときのものを読む）
+  const restoreEvicted = useEffectEvent(() => {
     if (!active || busy || restoring.current || !runs.some((r) => r.evicted && isReadOnlyStatement(r.sql, connection.engine))) return;
     restoring.current = true;
     void (async () => {
@@ -88,6 +89,8 @@ export function useSqlResultBudget({
       setRuns(next);
       restoring.current = false;
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    restoreEvicted();
   }, [active, busy, runs]);
 }

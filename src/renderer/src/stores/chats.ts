@@ -223,6 +223,11 @@ export function useChildChats({ archived = false }: { archived?: boolean } = {})
   return useSyncExternalStore(subscribeChats, () => childView(archived));
 }
 
+/** アーカイブしていないチャットの一覧が届いたか（起動の時刻の記録でサイドバーが読む） */
+export function useChatsLoaded(): boolean {
+  return useStoreStatus(activeChats).loaded;
+}
+
 /** すべてのプロジェクトのチャットを、プロジェクトごとに（サイドバー。archived: アーカイブ済みも含める） */
 export function useChatsByProject({ archived = false }: { archived?: boolean } = {}): ChatsByProject {
   useStoreStatus(activeChats);

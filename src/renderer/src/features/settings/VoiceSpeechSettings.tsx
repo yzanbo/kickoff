@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Square, Volume2 } from "lucide-react";
 import { OPENAI_TTS_VOICES, VOICE_TTS_PROVIDERS, type AppSettings, type VoiceStatus } from "@shared/types";
+import { useLatest } from "@/hooks/useLatest";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { ErrorText } from "@/ui/ErrorText";
 import { Field } from "@/ui/Field";
@@ -33,10 +34,13 @@ export function VoiceSpeechSettings({ status, draft, apply }: { status: VoiceSta
   const voices = useSystemVoices(draft.voice_language);
   const [speaking, setSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const latest = useRef(draft);
-  latest.current = draft;
+  const latestRef = useLatest(draft);
+  // 読み上げる部品は初めて試すときに作る（描く中で ref に書かない）
   const speaker = useRef<Speaker | null>(null);
-  speaker.current ??= new Speaker(() => latest.current, setSpeaking, setError);
+  const speakerOf = () => {
+    if (!speaker.current) speaker.current = new Speaker(() => latestRef.current, setSpeaking, setError);
+    return speaker.current;
+  };
   useEffect(() => () => speaker.current?.stop(), []);
   // 設定を閉じた・別の項目へ移ったら読み上げをやめる（ページを離れるときも）
   useWindowEvent("pagehide", () => speaker.current?.stop());
@@ -44,7 +48,7 @@ export function VoiceSpeechSettings({ status, draft, apply }: { status: VoiceSta
   const preview = () => {
     setError(null);
     if (speaking) return speaker.current?.stop();
-    speaker.current?.enqueue(sampleText(draft.voice_language));
+    speakerOf().enqueue(sampleText(draft.voice_language));
   };
 
   return (

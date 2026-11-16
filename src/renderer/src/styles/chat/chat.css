@@ -123,6 +123,12 @@
   overflow-y: auto;
 }
 
+/* 会話の流れ（ChatTimeline）は、流れの中の変化（書いている途中の文が伸びる・行が増える）を、流れの外のレイアウトと描画に及ぼさない。
+   大きさは .timeline-wrap の格子（minmax(0, 1fr)）で決まり、中身によらない（送る前のチャット・メモのチャットの案内の .timeline は中身で高さが決まるので付けない） */
+.timeline-wrap > .timeline {
+  contain: strict;
+}
+
 /* 上にスクロールしている間だけ出す、一番下へ戻るボタン（.icon-button より後ろの指定に勝つよう、枠の中で指定する） */
 .timeline-wrap .scroll-bottom {
   position: absolute;
@@ -137,6 +143,26 @@
   transform: translateX(-50%);
 }
 
+/* 遠い記録を読むのが長引いているときの印（流れの上の真ん中に重ねる。いまの位置のまま待ち、読めたらなめらかに移る。メモの仕様書「0023_表示を軽くする」の Q1 A） */
+.timeline-jumping {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  color: var(--muted);
+  font-size: 12px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .timeline-inner {
   display: flex;
   flex-direction: column;
@@ -147,11 +173,19 @@
   font-size: calc(15px * var(--chat-scale, 1));
 }
 
-/* 長いチャットで、窓の外（上）の前の発言を足すボタン（上の端まで戻っても足す） */
-.timeline-more {
+/* 前・後ろの記録を読んでいる間だけ出す 1 行（流れの上・途中の一部分の下・動きの下。高さを決めておき、出し入れで読んでいる所がずれる量を一定にする） */
+.timeline-loading {
   align-self: center;
-  margin-bottom: 8px;
+  text-align: center;
+  height: calc(20px * var(--chat-scale, 1));
+  line-height: calc(20px * var(--chat-scale, 1));
   font-size: calc(12px * var(--chat-scale, 1));
+  color: var(--muted);
+}
+
+/* 窓の外の行の代わりの箱（高さだけ。測った高さか見積もり。features/chat/timeline の TimelineRows） */
+.timeline-box {
+  flex: none;
 }
 
 .chat-composer {

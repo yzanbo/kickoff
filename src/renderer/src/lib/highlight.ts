@@ -1,116 +1,26 @@
-import type { HighlighterCore, LanguageRegistration } from "shiki/core";
 import type { AppliedTheme } from "@/lib/appliedTheme";
-import { findHeredocs } from "@/lib/heredoc";
+import type { HighlightPriority } from "@/lib/highlightPool";
+import { highlightPool } from "@/lib/highlightWorkerEntry";
+import type { CodeToken } from "@/lib/tokenCodec";
 
-/** 色付きの断片（fontStyle は 1: 斜体 / 2: 太字 / 4: 下線 の足し算） */
-export interface CodeToken {
-  content: string;
-  color?: string;
-  fontStyle?: number;
-}
-
-/** これより長いコードは色を付けない（重くならないように） */
-const MAX_CHARS = 300_000;
-
-type Loader = () => Promise<{ default: LanguageRegistration[] }>;
-
-/** 色を付ける言語（よく使うものだけ。言語の定義は使うときに読み込む） */
-const LANGUAGES: Record<string, Loader> = {
-  typescript: () => import("shiki/langs/typescript.mjs"),
-  tsx: () => import("shiki/langs/tsx.mjs"),
-  javascript: () => import("shiki/langs/javascript.mjs"),
-  jsx: () => import("shiki/langs/jsx.mjs"),
-  json: () => import("shiki/langs/json.mjs"),
-  jsonc: () => import("shiki/langs/jsonc.mjs"),
-  css: () => import("shiki/langs/css.mjs"),
-  scss: () => import("shiki/langs/scss.mjs"),
-  html: () => import("shiki/langs/html.mjs"),
-  vue: () => import("shiki/langs/vue.mjs"),
-  svelte: () => import("shiki/langs/svelte.mjs"),
-  markdown: () => import("shiki/langs/markdown.mjs"),
-  yaml: () => import("shiki/langs/yaml.mjs"),
-  toml: () => import("shiki/langs/toml.mjs"),
-  xml: () => import("shiki/langs/xml.mjs"),
-  shellscript: () => import("shiki/langs/shellscript.mjs"),
-  python: () => import("shiki/langs/python.mjs"),
-  ruby: () => import("shiki/langs/ruby.mjs"),
-  go: () => import("shiki/langs/go.mjs"),
-  rust: () => import("shiki/langs/rust.mjs"),
-  java: () => import("shiki/langs/java.mjs"),
-  kotlin: () => import("shiki/langs/kotlin.mjs"),
-  swift: () => import("shiki/langs/swift.mjs"),
-  c: () => import("shiki/langs/c.mjs"),
-  cpp: () => import("shiki/langs/cpp.mjs"),
-  php: () => import("shiki/langs/php.mjs"),
-  sql: () => import("shiki/langs/sql.mjs"),
-  dockerfile: () => import("shiki/langs/dockerfile.mjs"),
-  // ツールの行と結果（検索の正規表現・コマンドの出力の差分とログ）
-  regexp: () => import("shiki/langs/regexp.mjs"),
-  diff: () => import("shiki/langs/diff.mjs"),
-  log: () => import("shiki/langs/log.mjs"),
-};
-
-// 色付けのライブラリは大きいので、使うときに初めて読み込む。配色は VS Code の Dark+ / Light+
-let loading: Promise<HighlighterCore> | undefined;
-const loadHighlighter = () =>
-  (loading ??= Promise.all([
-    import("shiki/core"),
-    import("shiki/engine/javascript"),
-    import("shiki/themes/dark-plus.mjs"),
-    import("shiki/themes/light-plus.mjs"),
-  ]).then(([{ createHighlighterCore }, { createJavaScriptRegexEngine }, dark, light]) =>
-    // WASM を使わない正規表現のエンジン（扱えない書き方は飛ばす）
-    createHighlighterCore({ themes: [dark.default, light.default], langs: [], engine: createJavaScriptRegexEngine({ forgiving: true }) }),
-  ));
-
-/** 色付けの結果を覚えておく短いコードの長さの上限と、覚える数（コマンドなど。ファイルの中身のような長いものは覚えない） */
-const CACHE_MAX_CHARS = 20_000;
-const CACHE_LIMIT = 200;
-const cache = new Map<string, Promise<CodeToken[][] | null>>();
+export type { CodeToken } from "@/lib/tokenCodec";
 
 /**
  * コードを行ごとの色付きの断片にする（lang は languageOf などで決めた言語）。色を付けない言語・長すぎるコードは null。
- * 短いコードは結果を覚え、同じコード・言語・配色なら作り直さない（ツールの一覧の 1 行と、開いた欄で同じコマンドを色付けするなど）。
- * 返す配列は覚えたものを共有するので、書き換えない
+ * 色付けは Web Worker の中で行う（Shiki の文法の読み込み・正規表現での解析で画面を止めない。lib/highlightPool.ts。メモの仕様書「0023_表示を軽くする」の案 20）。
+ * 結果は覚え（512 件・合わせて 400 万字）、同じコード・言語・配色なら作り直さない。返す配列は覚えたものを共有するので、書き換えない。
+ * signal で取り消すと、まだ始めていなければ捨てる。priority が near のものは、見えているもの（visible）のあとに色付けする
  */
-export function highlightLines(code: string, lang: string | undefined, theme: AppliedTheme): Promise<CodeToken[][] | null> {
-  if (!lang || !(lang in LANGUAGES) || code.length > MAX_CHARS) return Promise.resolve(null);
-  if (code.length > CACHE_MAX_CHARS) return computeLines(code, lang, theme);
-  const key = `${theme}\u0000${lang}\u0000${code}`;
-  const cached = cache.get(key);
-  if (cached) {
-    // 使ったものを新しい側へ（古いものから捨てる）
-    cache.delete(key);
-    cache.set(key, cached);
-    return cached;
-  }
-  const result = computeLines(code, lang, theme);
-  cache.set(key, result);
-  if (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value!);
-  // 失敗したものは覚えない
-  result.catch(() => cache.delete(key));
-  return result;
+export function highlightLines(
+  code: string,
+  lang: string | undefined,
+  theme: AppliedTheme,
+  opts?: { priority?: HighlightPriority; signal?: AbortSignal },
+): Promise<CodeToken[][] | null> {
+  return highlightPool.highlight(code, lang, theme, opts);
 }
 
-async function computeLines(code: string, lang: string, theme: AppliedTheme): Promise<CodeToken[][] | null> {
-  const highlighter = await loadHighlighter();
-  if (!highlighter.getLoadedLanguages().includes(lang)) await highlighter.loadLanguage((await LANGUAGES[lang]()).default);
-  const { tokens } = highlighter.codeToTokens(code, { lang, theme: theme === "dark" ? "dark-plus" : "light-plus" });
-  const lines = tokens.map((line) => line.map(({ content, color, fontStyle }) => ({ content, color, fontStyle })));
-  return lang === "shellscript" ? recolorHeredocs(code, lines, theme) : lines;
-}
-
-/**
- * シェルの heredoc の本文（python3 - <<'EOF' … EOF など）は、シェルの文法では文字列の色 1 色になるので、
- * 言語の分かるものは、その言語で色を付け直す（どの言語かは lib/heredoc.ts）
- */
-async function recolorHeredocs(code: string, lines: CodeToken[][], theme: AppliedTheme): Promise<CodeToken[][]> {
-  const source = code.split("\n");
-  for (const { start, end, lang } of findHeredocs(source)) {
-    if (!lang || end === start) continue;
-    const body = await highlightLines(source.slice(start, end).join("\n"), lang, theme);
-    // 行の数が合うときだけ入れ替える（ほかの本文の行の番号がずれないように）
-    if (body?.length === end - start) lines.splice(start, end - start, ...body);
-  }
-  return lines;
+/** 覚えている色付けの結果（同期。最初の描画から色付きで出す）。色を付けないと分かっていれば null、まだなければ undefined */
+export function peekHighlight(code: string, lang: string | undefined, theme: AppliedTheme): CodeToken[][] | null | undefined {
+  return highlightPool.peek(code, lang, theme);
 }

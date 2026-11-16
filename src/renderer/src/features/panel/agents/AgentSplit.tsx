@@ -1,9 +1,11 @@
-import type { MutableRefObject, ReactNode } from "react";
+import { useImperativeHandle, useMemo, type MutableRefObject, type ReactNode } from "react";
+import { useLatest } from "@/hooks/useLatest";
 import { cx } from "@/lib/cx";
 import { useCoverableWidth } from "@/hooks/useCoverableWidth";
 import { SUBAGENT_PANEL_MAXIMIZED, SUBAGENT_PANEL_WIDTH } from "@/lib/storageKeys";
-import type { SidePanelHandle } from "@/features/chat/pane/useChatView";
+import type { SidePanelHandle } from "@/features/chat/pane/useChatPaneActions";
 import { usePanelHost } from "@/features/panel/panelHost";
+import type { PanelFrame } from "@/features/panel/PanelTools";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
 import { SideSelectionAttach } from "@/features/chat/messages/SelectionAttach";
 import { MainChatContext } from "@/features/chat/pane/mainChatContext";
@@ -33,7 +35,7 @@ export function AgentSplit({ scope, handleRef, children }: { scope: number | Dra
   const Host = usePanelHost();
   const chatId = typeof scope === "number" ? scope : null;
   const panel = usePanel({ surface: "agents", scope, newChat: undefined, terminals: NO_TERMINALS });
-  const width = useCoverableWidth({
+  const { bodyRef: widthBodyRef, ...width } = useCoverableWidth({
     width: SUBAGENT_PANEL_WIDTH,
     maximized: SUBAGENT_PANEL_MAXIMIZED,
     min: MIN_AGENT_PANEL_WIDTH,
@@ -46,17 +48,39 @@ export function AgentSplit({ scope, handleRef, children }: { scope: number | Dra
   // 右の欄でメインを覆っているか（横幅いっぱいにした・狭くてメインが読めない）
   const full = width.maximized || width.covering;
   const covering = open && full;
+  // 覆っていて、メインを残すと右の欄の最小の幅に足りないほど狭いときは、元の幅に戻せない
+  const restoreDisabled = full && !width.canRestore;
+  // 右の欄のパネル（memo）に渡す frame は作り置く（チャットの画面は返答のたびに描き直るが、右の欄のタブは描き直さない）。
+  // つまみ・切り替えの操作は描くたびに作られるので、押したときにいまのものを呼ぶ
+  const latest = useLatest(width);
+  const { paneRef } = width;
+  // つまみの操作でない属性（役割・向き・説明）は向きで決まる文字なので、そのまま写す
+  const { role: handleRole, title: handleTitle, "aria-orientation": handleOrientation } = width.resizeHandle;
+  const frame = useMemo<PanelFrame>(
+    () => ({
+      paneRef,
+      resizeHandle: {
+        role: handleRole,
+        "aria-orientation": handleOrientation,
+        title: handleTitle,
+        onPointerDown: (e) => latest.current.resizeHandle.onPointerDown(e),
+        onDoubleClick: () => latest.current.resizeHandle.onDoubleClick(),
+      },
+      maximize: { on: full, disabled: restoreDisabled, toggle: () => latest.current.toggleMaximized() },
+    }),
+    [paneRef, full, restoreDisabled, handleRole, handleOrientation, handleTitle, latest],
+  );
   // 流れの中のカードへ移るときは、メインを見せる（並べる形に戻す。狭くて戻せなければ、右の欄を閉じる）
-  handleRef.current = {
+  useImperativeHandle(handleRef, () => ({
     uncover: () => {
       if (!covering) return;
       if (width.canRestore) width.toggleMaximized();
       else panel.close();
     },
-  };
+  }));
   return (
     <div
-      ref={width.bodyRef}
+      ref={widthBodyRef}
       className={cx("chat-split", open && "with-agents", covering && "agents-full", width.resizing && "resizing", width.stretching && "stretching")}
       style={width.style}
     >
@@ -65,15 +89,7 @@ export function AgentSplit({ scope, handleRef, children }: { scope: number | Dra
       </div>
       {Host && (panel.panelOpen || panel.tabs.length > 0) && (
         <MainChatContext.Provider value={chatId}>
-          <Host
-            panel={panel}
-            frame={{
-              paneRef: width.paneRef,
-              resizeHandle: width.resizeHandle,
-              // 覆っていて、メインを残すと右の欄の最小の幅に足りないほど狭いときは、元の幅に戻せない
-              maximize: { on: full, disabled: full && !width.canRestore, toggle: width.toggleMaximized },
-            }}
-          />
+          <Host panel={panel} frame={frame} />
           {chatId !== null && <SideSelectionAttach mainChatId={chatId} container={() => document.querySelector(`[data-panel-key="${panelKey("agents", chatId)}"]`)} />}
         </MainChatContext.Provider>
       )}

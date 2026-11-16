@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { bootMark } from "./bootMarks";
 import { publishServerEvent } from "@/api/events";
 import { useServerConnection } from "@/api/useServerConnection";
 import { useApprovals } from "@/stores/approvals";
@@ -20,6 +21,7 @@ import { NoProjectsGuide } from "@/features/project/NoProjectsGuide";
 import { ProjectChat } from "@/features/panel/projectChat/ProjectChat";
 import { useProjectChat } from "@/features/panel/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "@/features/settings/SettingsDialog";
+import { CoreStatusBand } from "@/features/diagnostics/CoreStatusBand";
 import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicator";
 import { HoverTip } from "@/ui/HoverTip";
 import { MemoProgress } from "@/features/memo/MemoProgress";
@@ -58,6 +60,8 @@ import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 
 export function App() {
+  // 最初の描き終わり（起動の時刻の記録。いちばん外の部品なので、中の部品の layout effect のあと）
+  useLayoutEffect(() => bootMark("firstCommit"), []);
   // URL（ハッシュ）はここで 1 回だけ購読し、部品は useRoute()（RouteContext）で読む
   const route = useHashRoute();
   // ⌘[ / ⌘] で、前に開いたチャット・次のチャットへ
@@ -205,6 +209,8 @@ export function App() {
         {settings && <SettingsDialog key={settings} initial={settings} onClose={() => setSettings(null)} />}
         {/* 性能の記録の様子（メニューの「ヘルプ」・設定の「診断」から始まる） */}
         <DiagnosticsIndicator />
+        {/* Kickoff のコア（別のプロセス）が落ちた・応答しないときの帯（メインプロセスが知らせる） */}
+        <CoreStatusBand />
         {/* マウスを乗せたときの説明（data-tip を付けた要素。アプリ全体で 1 つ） */}
         <HoverTip />
         <MemoProgress />

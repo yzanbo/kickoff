@@ -114,7 +114,15 @@ export function createdChatsByUser(events: ChatEvent[]): Map<number, number[]> {
   return created;
 }
 
-export function groupEvents(events: ChatEvent[], scope?: readonly string[]): TimelineItem[] {
+/** 流れの項目の組み立て方（末尾・途中の一部分だけを描くとき） */
+export interface GroupOptions {
+  /** 描く記録より前の、記録全体から作るものに要る記録（索引など）。項目は作らず、前に起動・裏で動かしたサブエージェントを数える */
+  preface?: readonly ChatEvent[];
+  /** 最初の作業の頭を読んでいない（大きすぎるターンを途中から読んだ）。その作業の終わりの行に、作業全体から作るもの（変更カード・返答のコピー・依頼文）を付けない */
+  partialHead?: boolean;
+}
+
+export function groupEvents(events: ChatEvent[], scope?: readonly string[], opts: GroupOptions = {}): TimelineItem[] {
   const items: TimelineItem[] = [];
   const byId = new Map<string, ToolCall>();
   const inScope = (parent: string | undefined) => (scope === undefined ? parent === undefined : parent !== undefined && scope.includes(parent));
@@ -132,6 +140,18 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
   const handoffs = scope === undefined ? handoffsByTurn(events) : new Map<number, ChatEventOf<"handoff">[]>();
   // AI が作った兄弟チャット・親のないチャット（メインの流れのときだけ。発言の下に札を出す）
   const created = scope === undefined ? createdChatsByUser(events) : new Map<number, number[]>();
+  // 描く記録より前に起動したサブエージェント（終わりの 1 行を出すかに使う。項目は作らない）
+  for (const e of opts.preface ?? []) {
+    if (e.type === "subagent") {
+      const agentKey = agentOfTask.get(e.data.task_id) ?? e.data.tool_use_id;
+      if (agentKey === undefined) continue;
+      if (e.data.tool_use_id === agentKey) agentOfTask.set(e.data.task_id, agentKey);
+      else if (e.data.tool_use_id !== undefined) backgrounded.add(agentKey);
+    } else if (e.type === "tool_result" && isBackgroundLaunch(e.data.content)) backgrounded.add(e.data.tool_use_id);
+    else if (e.type === "tool_use" && inScope(parentOf(e)) && isSubagentTool(e.data.name)) launchedHere.add(e.data.id);
+  }
+  // 頭を読んでいない最初の作業の終わり（その作業全体から作るものを付けない）
+  let partial = opts.partialHead === true;
   for (const [index, e] of events.entries()) {
     if (scope === undefined) {
       if (e.type === "tool_use" && EDIT_TOOLS.has(e.data.name)) turnEdits.set(e.data.id, { use: e });
@@ -175,6 +195,13 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
       if (text.trim() || (duration_ms ?? 0) >= THINKING_MIN_MS) items.push({ kind: "event", key: `e${e.id}`, event: e });
     } else if (e.type === "init" || e.type === "approval" || e.type === "handoff") {
       // 表示しない
+    } else if (e.type === "result" && partial) {
+      partial = false;
+      items.push({ kind: "event", key: `e${e.id}`, event: e });
+      turnStart = undefined;
+      turnTexts = [];
+      turnRequested = false;
+      turnEdits = new Map();
     } else if (e.type === "result") {
       const turnText = turnTexts.join("\n\n");
       let turnChanges = turnChangesCache.get(e);
@@ -282,4 +309,14 @@ export function relativize(text: string, repo: string): string {
   if (!repo) return text;
   const escaped = repo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return text.replace(new RegExp(`${escaped}/|${escaped}(?![\\w.-])`, "g"), (m) => (m.endsWith("/") ? "" : "."));
+}
+
+/** 作業場所ごとの、絶対パスを相対パスにする関数（同じ作業場所なら同じ関数。流れの各項目の memo が効くように） */
+const relatives = new Map<string, (s: string) => string>();
+const asIs = (s: string) => s;
+export function relativeOf(repo: string | undefined): (s: string) => string {
+  if (!repo) return asIs;
+  let fn = relatives.get(repo);
+  if (!fn) relatives.set(repo, (fn = (s: string) => relativize(s, repo)));
+  return fn;
 }

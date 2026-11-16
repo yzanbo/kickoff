@@ -1,5 +1,5 @@
 import { CornerDownLeft, Eraser, History, MessageCircleQuestion } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { isKey } from "@/lib/keys";
 import { useListNavigation } from "@/hooks/useListNavigation";
@@ -30,8 +30,6 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
   const { open, setOpen } = popover;
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
-  // 行に出す番号（会話の中で何番目の指示か。質問への回答・コンテキストの消去は数えない。絞り込んでも変えない）
-  const numbers = useMemo(() => new Map(prompts.filter((p) => !p.answers && !p.cleared).map((p, i) => [p.id, i + 1])), [prompts]);
   // ピルの数（指示と質問への回答。コンテキストの消去は自分の発言ではないので数えない）
   const count = prompts.filter((p) => !p.cleared).length;
   const items = useMemo(() => {
@@ -62,14 +60,10 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
   };
   const nav = useListNavigation(items, reuse);
   // 開いた・絞り込んだら、いちばん新しい（下の）指示を選ぶ
+  const selectNewest = useEffectEvent(() => nav.setIndex(items.length - 1));
   useLayoutEffect(() => {
-    if (open) nav.setIndex(items.length - 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (open) selectNewest();
   }, [open, items]);
-  // 選んでいる行を見せる（開いたときは、いちばん下）
-  useLayoutEffect(() => {
-    ref.current?.querySelector(".prompt-row.active")?.scrollIntoView({ block: "nearest" });
-  }, [open, nav.index]);
 
   // ⌃R（このチャットにピントがあるとき）: 開いて絞り込みの欄にピントを置く（開いていれば 1 つ前の一致へ）
   useChatHotkey(
@@ -102,28 +96,66 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
       onToggle={() => (open ? close() : setOpen(true))}
       onClose={close}
     >
-      {/* 絞り込みの欄は、一覧をスクロールしても上に残す帯に入れる（欄そのものを貼り付けると、帯の余白で欄の枠と高さが崩れる） */}
-      <div className="prompts-search">
-        <SearchField
-          autoFocus
-          value={query}
-          onChange={setQuery}
-          onKeyDown={(e) => {
-            // ⌘Enter はその指示へ移る（Enter は入力欄に入れる）
-            if (isKey(e, "Enter", { meta: true })) {
-              e.preventDefault();
-              jump(items[nav.index]);
-            } else nav.onKeyDown(e);
-          }}
-          placeholder="指示を探す（Enter で入力欄に入れる・⌘Enter でその指示へ移る）"
-          label="指示の履歴を探す"
-        />
-      </div>
+      {() => (
+        <>
+          {/* 絞り込みの欄は、一覧をスクロールしても上に残す帯に入れる（欄そのものを貼り付けると、帯の余白で欄の枠と高さが崩れる） */}
+          <div className="prompts-search">
+            <SearchField
+              autoFocus
+              value={query}
+              onChange={setQuery}
+              onKeyDown={(e) => {
+                // ⌘Enter はその指示へ移る（Enter は入力欄に入れる）
+                if (isKey(e, "Enter", { meta: true })) {
+                  e.preventDefault();
+                  jump(items[nav.index]);
+                } else nav.onKeyDown(e);
+              }}
+              placeholder="指示を探す（Enter で入力欄に入れる・⌘Enter でその指示へ移る）"
+              label="指示の履歴を探す"
+            />
+          </div>
+          <PromptRows prompts={prompts} items={items} active={nav.index} onHover={nav.setIndex} onJump={jump} onReuse={reuse} />
+        </>
+      )}
+    </ComposerChip>
+  );
+}
+
+/**
+ * 一覧の行（ピルを開いているときだけ描く。行の番号・時刻の文字もこのときだけ作る）。選んでいる行を見せる（開いたときは、いちばん下）
+ */
+function PromptRows({
+  prompts,
+  items,
+  active,
+  onHover,
+  onJump,
+  onReuse,
+}: {
+  prompts: PromptEntry[];
+  /** 絞り込んだ行 */
+  items: PromptEntry[];
+  /** 選んでいる行の位置 */
+  active: number;
+  onHover: (index: number) => void;
+  onJump: (p: PromptEntry) => void;
+  onReuse: (p: PromptEntry) => void;
+}) {
+  // 選んでいる行
+  const activeRef = useRef<HTMLDivElement>(null);
+  // 行に出す番号（会話の中で何番目の指示か。質問への回答・コンテキストの消去は数えない。絞り込んでも変えない）
+  const numbers = useMemo(() => new Map(prompts.filter((p) => !p.answers && !p.cleared).map((p, i) => [p.id, i + 1])), [prompts]);
+  useLayoutEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest" });
+  }, [active]);
+  return (
+    <>
       {items.length === 0 && <p className="muted small">合う指示はありません</p>}
       {items.map((p, index) => {
         return (
-          <div key={p.id} className={cx("prompt-row", index === nav.index && "active")} onMouseEnter={() => nav.setIndex(index)}>
-            <button type="button" className="prompt-jump" title={rowTitle(p)} onClick={() => jump(p)}>
+          <div key={p.id} ref={index === active ? activeRef : undefined} className={cx("prompt-row", index === active && "active")} onMouseEnter={() => onHover(index)}>
+            <button type="button" className="prompt-jump" title={rowTitle(p)} onClick={() => onJump(p)}>
               <span className="prompt-index">{numbers.get(p.id)}</span>
               {p.compactKind && <CompactPromptMark kind={p.compactKind} className="compact-prompt-tag" size={11} />}
               {p.answers && (
@@ -149,13 +181,13 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
                 size={13}
                 label="入力欄に入れる"
                 title="この文を入力欄に入れる（そのまま・少し直して送り直せる）"
-                onClick={() => reuse(p)}
+                onClick={() => onReuse(p)}
               />
             )}
           </div>
         );
       })}
-    </ComposerChip>
+    </>
   );
 }
 

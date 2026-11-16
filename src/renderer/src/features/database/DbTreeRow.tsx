@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useState, type ReactNode } from "react";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { ApiError } from "@/api";
@@ -86,7 +86,7 @@ export function TreeError({ depth, error, connection, onRetry }: { depth: number
     <div className="db-tree-error" style={{ paddingLeft: 26 + depth * 14 }}>
       <span>{errorMessage(error)}</span>
       {code === DB_NOT_IN_WORKTREE ? (
-        <button type="button" className="link-button small" onClick={() => client.useMain(connection.id)}>
+        <button type="button" className="link-button small" onClick={() => client.openMain(connection.id)}>
           本体のものを開く
         </button>
       ) : code === DB_PREP_UNCONFIRMED ? (
@@ -114,19 +114,23 @@ export function TreeError({ depth, error, connection, onRetry }: { depth: number
 /** 開いた段の中身を読む（開いている間だけ。失敗は例外のまま持ち、行に出す。ワークツリーにないときの印 code を残すため） */
 export function useNodeLoad<T>(open: boolean, load: () => Promise<T>, deps: unknown[]) {
   const [state, setState] = useState<{ value?: T; error?: unknown; loading: boolean }>({ loading: open });
+  // deps のどれかが変わったら（React の依存と同じく Object.is で比べる）読み直す回を進める
+  const [seen, setSeen] = useState({ deps, round: 0 });
+  if (deps.length !== seen.deps.length || deps.some((d, i) => !Object.is(d, seen.deps[i]))) setSeen({ deps, round: seen.round + 1 });
+  const loadNow = useEffectEvent(load);
+  const round = seen.round;
   useEffect(() => {
     if (!open) return;
     let alive = true;
     setState((s) => ({ ...s, loading: true }));
-    load().then(
+    loadNow().then(
       (value) => alive && setState({ value, loading: false }),
       (error: unknown) => alive && setState({ error, loading: false }),
     );
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, ...deps]);
+  }, [open, round]);
   return state;
 }
 

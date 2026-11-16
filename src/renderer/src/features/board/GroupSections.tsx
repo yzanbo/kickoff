@@ -12,6 +12,8 @@ import { bucketTone } from "@/features/chatList/StateChatsPopover";
 import { BucketChip } from "@/features/chatList/StateChip";
 import { orderGroupBuckets } from "@/features/group/groupOrder";
 import type { GroupBoardState } from "./useGroupBoard";
+import { RowBudgetScope, useRowBudgets } from "@/hooks/useProgressiveRows";
+import { ProgressiveItems } from "@/ui/ProgressiveRows";
 
 /**
  * 全プロジェクトのボードの「列: グループ」の、グループごとの列（ボード）・まとまり（リスト）。buckets は bucketChats のグループのまとまり（自分で作ったグループ → グループなし。
@@ -45,7 +47,13 @@ export function GroupSections({
   byState?: boolean;
 }) {
   const { dropClass, reorder, dropProps } = board;
-  return orderGroupBuckets(buckets, board.ungroupedAt).map((bucket) => {
+  const ordered = orderGroupBuckets(buckets, board.ungroupedAt);
+  // 最初に描く行の上限（hooks/useProgressiveRows.ts）: 横に並ぶ列（ボード）はどれにも同じだけ、縦に並ぶまとまり（リスト）は上から順に
+  const budgets = useRowBudgets(
+    ordered.map((b) => splitArchived(b.chats)[0].length),
+    list,
+  );
+  return ordered.map((bucket, i) => {
     const g = bucket.group ?? null;
     const key = g?.id ?? "none";
     const [members, archived] = splitArchived(bucket.chats);
@@ -54,15 +62,15 @@ export function GroupSections({
         {/* その列（グループ）で入力中の新しいチャット */}
         <DraftCards drafts={bucket.drafts} />
         {members.length === 0 && <p className="column-empty">{g ? "チャットをここへドラッグ" : "なし"}</p>}
-        {byState && bucket.children ? <StateParts parts={bucket.children} render={render} /> : members.map(render)}
+        {byState && bucket.children ? <StateParts parts={bucket.children} render={render} /> : <ProgressiveItems items={members} render={render} />}
         <ArchivedFold place={foldPlace} foldKey={`${bucket.key}/archived`} count={archived.length} bodyClassName="archived-fold">
-          {archived.map(render)}
+          <ProgressiveItems items={archived} render={render} />
         </ArchivedFold>
       </>
     );
     return (
+      <RowBudgetScope key={key} value={budgets[i]}>
       <section
-        key={key}
         className={cx(
           list ? "list-group" : "board-column",
           dropClass(g?.id ?? null),
@@ -76,6 +84,7 @@ export function GroupSections({
         <GroupColumnHead group={g} count={members.length + bucket.drafts.length} board={board} onNewChat={() => onNewChat(g ? { projectId, group: g.id } : { projectId })} />
         {list ? body : <div className="column-cards">{body}</div>}
       </section>
+      </RowBudgetScope>
     );
   });
 }
@@ -84,16 +93,20 @@ export function GroupSections({
  * グループの中の状態ごとの小分け（小見出しの札 ＋ カード・行。チャットのない状態は出さない。アーカイブ済みはグループのいちばん下の閉じたまとまりのまま）
  */
 function StateParts({ parts, render }: { parts: readonly ChatBucket<PanelDraft>[]; render: (chat: Chat) => ReactNode }) {
-  return parts.map((part) => {
+  // 最初に描く行の上限を、縦に並ぶ小分けの上から順に配る
+  const budgets = useRowBudgets(parts.map((part) => splitArchived(part.chats)[0].length));
+  return parts.map((part, i) => {
     const [active] = splitArchived(part.chats);
     if (active.length === 0) return null;
     return (
-      <div key={part.key} className="group-state-part">
+      <RowBudgetScope key={part.key} value={budgets[i]}>
+      <div className="group-state-part">
         <div className="group-state-head">
           <BucketChip bucket={part} tone={bucketTone(part)} count={active.length} chats={active} />
         </div>
-        {active.map(render)}
+        <ProgressiveItems items={active} render={render} />
       </div>
+      </RowBudgetScope>
     );
   });
 }

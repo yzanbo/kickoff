@@ -60,7 +60,7 @@ export function CommitView({
   // 変わったファイルを木で出すか（初めは木）
   const [list, setList] = useSetting(COMMIT_FILES_LIST);
   // 左のファイルの一覧の幅（境目をドラッグで変える。ダブルクリックで元に戻す）
-  const filesPane = useDragSize({ setting: COMMIT_FILES_WIDTH, min: 160, keep: 320 });
+  const { paneRef: filesPaneRef, ...filesPane } = useDragSize({ setting: COMMIT_FILES_WIDTH, min: 160, keep: 320 });
 
   // 読み込んだら 1 つ目のファイルを選ぶ（別のコミットに変わったら、読み込むまで外す）
   useEffect(() => setFile(detail?.files[0]), [detail]);
@@ -111,7 +111,7 @@ export function CommitView({
         />
       ) : (
         <div className={cx("commit-changes", filesPane.resizing && "resizing")}>
-          <aside ref={filesPane.paneRef} className="commit-files" style={{ width: filesPane.size }}>
+          <aside ref={filesPaneRef} className="commit-files" style={{ width: filesPane.size }}>
             <div className="commit-files-head">
               <span className="muted small">{detail ? `${files.length} 個のファイル` : "読み込み中…"}</span>
               <span className="spacer" />

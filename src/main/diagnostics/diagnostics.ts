@@ -6,8 +6,14 @@ import { errorMessage } from "@shared/errors";
 import { logsDir } from "../app/logs.js";
 import { mainWindow } from "../app/window.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
-import { startMainRecording } from "./mainProcess.js";
-import { diagnosticsFolderName, perSecond, RENDERER_PROBE, startCpuProfile, topSelfTime, type Metrics } from "./profileSummary.js";
+import { startProcessRecording } from "../../core/system/processRecording.js";
+import type { CoreDiagnostics } from "../../core/host/protocol.js";
+import type { CoreProcess } from "../app/coreProcess.js";
+import { recentCoreStalls, recentStalls } from "./stalls.js";
+import { bootSummary, recordBoot, recordRendererMemory } from "./bootRecorder.js";
+import { readLogOverview } from "./logOverview.js";
+import { startCpuProfile, topSelfTime } from "../../core/system/cpuProfile.js";
+import { diagnosticsFolderName, perSecond, RENDERER_PROBE, type Metrics } from "./profileSummary.js";
 import { RENDERER_COLLECT, RENDERER_OBSERVE, summarizeFrames, summarizeInteractions, type RendererTimings } from "./rendererTiming.js";
 
 /** 記録する長さ（秒）。重いと感じる操作をその間に続けてもらう */
@@ -59,14 +65,44 @@ export async function openDiagnosticsRoot(): Promise<void> {
   await shell.openPath(diagnosticsRoot());
 }
 
+/** ログの場所（stalls.jsonl・boot.jsonl・startup.log など）を Finder で開く（まだなければ作る） */
+async function openLogsDir(): Promise<void> {
+  await fs.mkdir(logsDir(), { recursive: true });
+  await shell.openPath(logsDir());
+}
+
 /** 性能の記録（IPC の diagnostics）。記録を取るのは、頼んできた画面のウィンドウ（なければメインのウィンドウ） */
 export const diagnosticsHandlers: IpcHandlers["diagnostics"] = {
   start: (e) => void startDiagnostics(BrowserWindow.fromWebContents(e.sender) ?? mainWindow()),
   folders: () => diagnosticsFolders(),
   openRoot: () => openDiagnosticsRoot(),
+  overview: () => readLogOverview(logsDir(), new Date()),
+  openLogs: () => openLogsDir(),
+  reportBoot: (_e, report) => recordBoot(report),
+  reportMemory: (e, memory) => recordRendererMemory(e.sender, memory),
 };
 
 let running = false;
+/** コアのプロセス（記録の 10 秒の間、コアの分も RPC で取る。index.ts がコアを作ったあとに渡す） */
+let core: Pick<CoreProcess, "call"> | null = null;
+
+/** 診断で記録するコアのプロセスを渡す */
+export function setDiagnosticsCore(next: Pick<CoreProcess, "call">) {
+  core = next;
+}
+
+/** コアの記録を始める（コアが動いていない・応答しなければ、その理由を summary に残して画面とメインの分だけ取る） */
+async function startCoreRecording(): Promise<() => Promise<CoreDiagnostics | { error: string }>> {
+  const target = core;
+  if (!target) return async () => ({ error: "コアがまだ起動していません" });
+  try {
+    await target.call("diagnostics.start");
+  } catch (e) {
+    const error = errorMessage(e);
+    return async () => ({ error });
+  }
+  return () => target.call("diagnostics.stop").catch((e: unknown) => ({ error: errorMessage(e) }));
+}
 
 /**
  * 性能の記録を取る（重いときに、再起動せずその場で）。Kickoff の画面に Electron のデバッガをつなぎ、
@@ -90,6 +126,7 @@ export async function startDiagnostics(win: BrowserWindow | undefined): Promise<
     await fs.writeFile(path.join(dir, "summary.json"), JSON.stringify(result.summary, null, 2));
     await fs.writeFile(path.join(dir, "profile.cpuprofile"), JSON.stringify(result.profile));
     if (result.mainProfile) await fs.writeFile(path.join(dir, "main.cpuprofile"), JSON.stringify(result.mainProfile));
+    if (result.coreProfile) await fs.writeFile(path.join(dir, "core.cpuprofile"), JSON.stringify(result.coreProfile));
     const { renderer, perSecond: rate } = result.summary;
     notify({
       state: "done",
@@ -122,13 +159,16 @@ async function capture(wc: WebContents, seconds: number) {
     const page = await evaluate(RENDERER_PROBE);
     // 操作の遅れ（キー入力などが画面に出るまで）と長いフレームを、記録の間だけ画面で集める
     await evaluate(RENDERER_OBSERVE);
-    const stopMain = await startMainRecording();
+    // メインプロセス（窓・IPC・仲立ち）とコアのプロセス（HTTP・SSE・DB・エージェント）を同じ 10 秒で取る
+    const stopMain = await startProcessRecording();
+    const stopCore = await startCoreRecording();
     // プロセスごとの CPU は「前に測ってからの使用率」なので、記録の始めに一度測っておく
     app.getAppMetrics();
     const stopProfile = await startCpuProfile(send);
     await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
     const profile = await stopProfile();
     const main = await stopMain();
+    const coreResult = await stopCore();
     const after = await metrics();
     const timings = (await evaluate(RENDERER_COLLECT)) as unknown as RendererTimings;
     // ごみ集め（GC）をしてから測り直す。GC のあとも残るメモリ・ノードが多ければ、どこかで持ち続けている（漏れ）
@@ -161,9 +201,15 @@ async function capture(wc: WebContents, seconds: number) {
       /** 50ms 以上かかったフレームと、その中で時間を使ったスクリプト */
       longFrames: summarizeFrames(timings.frames ?? []),
       longTasks: { count: timings.longTasks ?? 0, totalMs: timings.longTaskMs ?? 0 },
-      /** メインプロセス（コアのサーバー・DB も同じ）。CPU プロファイルは main.cpuprofile */
+      /** メインプロセス（窓・IPC・仲立ち）。CPU プロファイルは main.cpuprofile */
       main: main.summary,
-      // 記録した間のプロセスごとの CPU（%）とメモリ（MB）。Tab が画面、Browser がメインプロセス（コアのサーバーも同じプロセス）
+      /** コアのプロセス（HTTP・SSE・DB・エージェント）。CPU プロファイルは core.cpuprofile。取れなければ error */
+      core: "error" in coreResult ? coreResult : coreResult.summary,
+      /** 最近の詰まり（500ms を超えてイベントループが止まったもの。diagnostics/stalls.ts）。メインとコアのプロセスごと */
+      stalls: { main: recentStalls(), core: recentCoreStalls() },
+      /** 最後の起動の時刻（boot.jsonl の最後のメインのウィンドウの行）と最近 60 分のメモリ（metrics.jsonl。diagnostics/bootRecorder.ts） */
+      boot: bootSummary(),
+      // 記録した間のプロセスごとの CPU（%）とメモリ（MB）。Tab が画面、Browser がメインプロセス、Utility の Kickoff Core がコア
       processes: appMetrics.map((p) => ({
         type: p.type,
         name: p.name ?? "",
@@ -173,7 +219,7 @@ async function capture(wc: WebContents, seconds: number) {
       })),
       hotspots: topSelfTime(profile, 40),
     };
-    return { summary, profile, mainProfile: main.profile };
+    return { summary, profile, mainProfile: main.profile, coreProfile: "error" in coreResult ? null : coreResult.profile };
   } finally {
     try {
       dbg.detach();

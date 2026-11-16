@@ -10,6 +10,7 @@ import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
 import { GITHUB_MERGE_METHODS, HANDOFF_VIAS, type Attachment, type HandoffFrom } from "@shared/types";
 import { HANDOFF_AFTERS } from "@shared/chat/handoff";
 import { normalizeAttachment } from "@shared/attachment/normalize";
+import { THEME_CHOICES } from "@shared/theme/backgrounds";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
 import { NO_DB_TABS, parseDbClientTabs } from "./dbClientTabs";
 import { DEFAULT_GITHUB_FILTERS, parseGitHubFilters } from "./githubFilters";
@@ -103,8 +104,8 @@ const isString = (value: unknown): value is string => typeof value === "string";
 export const DATABASE_ID = defineSetting("kickoff:database-id", text());
 
 // テーマ・現在のプロジェクト
-/** テーマ（dark / light / system = システムに合わせる） */
-export const THEME = defineSetting("kickoff:theme", choice(["dark", "light", "system"], "dark"));
+/** テーマ（dark / light / system = システムに合わせる）。起動直後の骨組み（public/boot.js）も同じキーと値を直接読む */
+export const THEME = defineSetting("kickoff:theme", choice(THEME_CHOICES, "dark"));
 /** サイドバーで最後に選んでいたプロジェクトの ID（0 = まだない。⌘N の新しいチャットの作成先にも使う） */
 export const CURRENT_PROJECT = defineSetting("kickoff:current-project", number(0), { ids: true });
 

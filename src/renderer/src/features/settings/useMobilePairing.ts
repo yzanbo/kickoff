@@ -7,13 +7,16 @@ import { useAction } from "@/hooks/useAction";
 import { useAsync } from "@/hooks/useAsync";
 import { confirmDialog } from "@/ui/dialogs";
 
-/** QR の画像（data: の PNG）。qrcode は使うときだけ読み込む */
+/** QR の画像（data: の PNG）を作る。qrcode は使うときだけ読み込む */
+const qrDataUrl = (text: string) => import("qrcode").then(({ toDataURL }) => toDataURL(text, { margin: 1, width: 360, errorCorrectionLevel: "M" }));
+
+/** QR の画像（data: の PNG） */
 function useQrImage(text: string | null): string | null {
   const [image, setImage] = useState<{ text: string; url: string } | null>(null);
   useEffect(() => {
     if (!text) return;
     let alive = true;
-    void import("qrcode").then(({ toDataURL }) => toDataURL(text, { margin: 1, width: 360, errorCorrectionLevel: "M" })).then((url) => alive && setImage({ text, url }));
+    void qrDataUrl(text).then((url) => alive && setImage({ text, url }));
     return () => {
       alive = false;
     };

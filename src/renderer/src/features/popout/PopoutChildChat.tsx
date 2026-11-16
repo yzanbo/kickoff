@@ -1,9 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { ChildChatBar } from "@/features/chat/children/ChildChatBar";
 import { PopoutDockButton } from "./PopoutDockButton";
 import { ChatView } from "@/features/chat/pane/ChatPane";
-import { useChatDetail } from "@/features/chat/pane/useChatDetail";
+import { useOpenChat } from "@/features/chat/store/useChatStore";
 import { rootChatOf } from "@/features/chat/children/childChats";
 import { knownChat } from "@/stores/chats";
 import { SideScope } from "./SideScope";
@@ -16,27 +16,21 @@ import { reportFailure } from "@/ui/dialogs";
  * 「メインのチャット」（右クリックの組・選んだときの「メインに追加」）は、右の欄に開いたときと同じく、いちばん上の親
  */
 export function PopoutChildChat({ chatId }: { chatId: number }) {
-  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
+  const { chat, project, error } = useOpenChat(chatId, true);
   // 閉じ方を聞いている間に、もう一度 ✕ を押されても重ねて聞かない
   const asking = useRef(false);
-  const chatRef = useRef(chat);
-  chatRef.current = chat;
   // 閉じ方を聞かずに閉じる（メインプロセスに頼む。デスクトップアプリでなければ、ふつうに閉じる）
   const closeWindow = () => void (window.kickoff ? window.kickoff.windows.closeSelf() : window.close());
   // ✕・⌘W はメインプロセスが止めて知らせてくる。閉じ方を聞いてから閉じる（チャットが消えていれば、そのまま閉じる）
-  useEffect(
-    () =>
-      window.kickoff?.windows.onCloseRequested(() => {
-        const current = chatRef.current;
-        if (!current) return closeWindow();
-        if (asking.current) return;
-        asking.current = true;
-        closeChatWithChoice(current, closeWindow)
-          .catch(reportFailure("閉じられませんでした"))
-          .finally(() => (asking.current = false));
-      }),
-    [],
-  );
+  const onCloseRequested = useEffectEvent(() => {
+    if (!chat) return closeWindow();
+    if (asking.current) return;
+    asking.current = true;
+    closeChatWithChoice(chat, closeWindow)
+      .catch(reportFailure("閉じられませんでした"))
+      .finally(() => (asking.current = false));
+  });
+  useEffect(() => window.kickoff?.windows.onCloseRequested(() => onCloseRequested()), []);
 
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;
@@ -45,9 +39,9 @@ export function PopoutChildChat({ chatId }: { chatId: number }) {
   const mainChatId = root.id !== chat.id ? root.id : chat.parent_chat_id;
   return (
     <SideScope mainChatId={mainChatId}>
-      <ChildChatBar chat={chat} events={events} extra={<PopoutDockButton route={{ kind: "chat", chatId }} />} />
+      <ChildChatBar chat={chat} extra={<PopoutDockButton route={{ kind: "chat", chatId }} />} />
       <div className="popout-body">
-        <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} visible />
+        <ChatView key={chat.id} chat={chat} project={project} visible />
       </div>
     </SideScope>
   );

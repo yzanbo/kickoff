@@ -1,5 +1,5 @@
 // ER 図のタブの状態と操作: 構造と覚えた位置を読み、絞り込み（名前・まわりの段・表示の細かさ・推測の関係）を当て、足りない位置を自動で並べる
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { DB_ER_AUTO_MAX, DB_ER_MAX, type DbConnection, type DbErPositions, type DbErSchema } from "@shared/types";
 import { erNeighborhood, erPlace, erRelations } from "@shared/database/erDiagram";
 import { errorMessage } from "@shared/errors";
@@ -27,27 +27,30 @@ export function useErDiagram(tab: DbErTab, connection: DbConnection, onChange: (
   const [inferred, setInferred] = useState(true);
   const [query, setQuery] = useState("");
 
+  // 構造を読む（場所・描くテーブルは中身で比べ、タブの形が作り直されただけでは読み直さない）
   const namesKey = tab.names?.join("\n") ?? null;
-  useEffect(() => {
-    let alive = true;
+  const loadSchema = useEffectEvent((isAlive: () => boolean) => {
     setLoading(true);
     api.dbEr(client.projectId, connection.id, tab.path, tab.names, worktree).then(
       (s) => {
-        if (!alive) return;
+        if (!isAlive()) return;
         setSchema(s);
         setError(null);
         setLoading(false);
       },
       (e: unknown) => {
-        if (!alive) return;
+        if (!isAlive()) return;
         setError(errorMessage(e));
         setLoading(false);
       },
     );
+  });
+  useEffect(() => {
+    let alive = true;
+    loadSchema(() => alive);
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client.projectId, connection.id, tab.path.database, tab.path.schema, namesKey, worktree, reload, connection.updated_at]);
 
   useEffect(() => {
@@ -63,21 +66,23 @@ export function useErDiagram(tab: DbErTab, connection: DbConnection, onChange: (
 
   // 多い DB で「この表のまわり」から開いたら、そのテーブルと直接つながるテーブルを選んで描く
   const tooMany = schema !== null && tab.names === null && schema.tables.length === 0 && schema.names.length > DB_ER_AUTO_MAX;
+  const pickAround = useEffectEvent((focus: string, isAlive: () => boolean) => {
+    api.dbTable(client.projectId, connection.id, tab.path, focus, worktree).then(
+      (d) => {
+        if (!isAlive()) return;
+        const near = [focus, ...d.foreign_keys.map((f) => f.ref_table), ...d.referenced_by.filter((r) => r.schema === tab.path.schema || r.schema === null).map((r) => r.table)];
+        onChange({ names: [...new Set(near)].filter((n) => schema!.names.includes(n)).slice(0, DB_ER_MAX) });
+      },
+      (e: unknown) => isAlive() && setError(errorMessage(e)),
+    );
+  });
   useEffect(() => {
     if (!tooMany || !tab.focus) return;
     let alive = true;
-    api.dbTable(client.projectId, connection.id, tab.path, tab.focus, worktree).then(
-      (d) => {
-        if (!alive) return;
-        const near = [tab.focus!, ...d.foreign_keys.map((f) => f.ref_table), ...d.referenced_by.filter((r) => r.schema === tab.path.schema || r.schema === null).map((r) => r.table)];
-        onChange({ names: [...new Set(near)].filter((n) => schema!.names.includes(n)).slice(0, DB_ER_MAX) });
-      },
-      (e: unknown) => alive && setError(errorMessage(e)),
-    );
+    pickAround(tab.focus, () => alive);
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tooMany, tab.focus]);
 
   const tables = useMemo(() => schema?.tables ?? [], [schema]);
@@ -113,8 +118,8 @@ export function useErDiagram(tab: DbErTab, connection: DbConnection, onChange: (
   // 覚えた位置も自動の位置もないテーブルがあれば、見せているものすべてを並べ直す（覚えた位置はそのまま使う）
   const layoutRun = useRef(0);
   const missing = saved !== null && shown.some((t) => !saved[t.name] && !auto[t.name]);
-  useEffect(() => {
-    if (!missing) return;
+  // 並べ直すのは、見せるもの・関係が変わったときだけ（表示の細かさで箱の大きさが変わっても並べ直さない）
+  const layoutMissing = useEffectEvent(() => {
     const run = ++layoutRun.current;
     void erAutoLayout(
       shown.map((t) => ({ id: t.name, ...sizes.get(t.name)! })),
@@ -122,7 +127,9 @@ export function useErDiagram(tab: DbErTab, connection: DbConnection, onChange: (
     ).then((p) => {
       if (run === layoutRun.current) setAuto((a) => ({ ...a, ...p }));
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (missing) layoutMissing();
   }, [missing, shown, shownRelations]);
 
   const positionOf = useCallback((name: string) => saved?.[name] ?? auto[name] ?? null, [saved, auto]);

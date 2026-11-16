@@ -2,7 +2,7 @@
 import "@xyflow/react/dist/style.css";
 import { Background, ConnectionMode, Controls, MiniMap, ReactFlow, ReactFlowProvider, useNodesState, useReactFlow, type Edge, type NodeMouseHandler, type OnNodeDrag } from "@xyflow/react";
 import { Network } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { DB_ER_AUTO_MAX, type DbConnection, type DbErPositions } from "@shared/types";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { cx } from "@/lib/cx";
@@ -78,11 +78,11 @@ function ErCanvas({ tab, connection, active, onChange }: { tab: DbErTab; connect
 
   // 見せるものが変わったら全体を収める
   const shownKey = er.shown.map((t) => t.name).join("\n");
+  const fitAll = useEffectEvent(() => void flow.fitView({ padding: 0.15, duration: 200 }));
   useEffect(() => {
     if (!er.ready || !active) return;
-    const id = window.setTimeout(() => void flow.fitView({ padding: 0.15, duration: 200 }), 30);
+    const id = window.setTimeout(() => fitAll(), 30);
     return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [er.ready, shownKey, active]);
 
   // 線（つなぐ左右は箱の位置で決める: 子が親より左なら子の右から親の左へ）

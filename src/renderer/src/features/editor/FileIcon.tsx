@@ -8,6 +8,12 @@ type IconUrl = (name: string, dir: boolean, open: boolean, theme: "dark" | "ligh
 let resolver: IconUrl | undefined;
 let loading: Promise<IconUrl> | undefined;
 
+/** 対応表を読み込む（読み込みは 1 回だけ。部品の外に置くのは、部品の中でモジュールの変数を書き換えないため） */
+function loadResolver(): Promise<IconUrl> {
+  loading ??= import("./fileIcons").then((m) => (resolver = m.iconUrl));
+  return loading;
+}
+
 /** フォルダ・ファイルのアイコン（VS Code の Material Icon Theme。読み込むまでは線のアイコン） */
 export function FileIcon({ name, dir = false, open = false }: { name: string; dir?: boolean; open?: boolean }) {
   const theme = useAppliedTheme();
@@ -15,7 +21,7 @@ export function FileIcon({ name, dir = false, open = false }: { name: string; di
   useEffect(() => {
     if (iconUrl) return;
     let alive = true;
-    void (loading ??= import("./fileIcons").then((m) => (resolver = m.iconUrl))).then((r) => alive && setIconUrl(() => r));
+    void loadResolver().then((r) => alive && setIconUrl(() => r));
     return () => {
       alive = false;
     };

@@ -1,4 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
+import { bootMark } from "./bootMarks";
 import { useUserViewReport } from "./userViewReport";
 import { collectPopoutView, popoutChatIds } from "./userViewCollect";
 import { publishServerEvent } from "@/api/events";
@@ -14,6 +15,7 @@ import { saveAll } from "@/lib/saveAll";
 import { openEditorFind } from "@/features/editor/editorFind";
 import { MemoProgress } from "@/features/memo/MemoProgress";
 import { ToastHost } from "@/ui/toast";
+import { CoreStatusBand } from "@/features/diagnostics/CoreStatusBand";
 import { DialogHost } from "@/ui/dialogs";
 import { DbUnlockHost } from "@/features/database/DbUnlockHost";
 import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
@@ -40,6 +42,8 @@ const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", 
  * ⌘F は、ウィンドウの中を探す（ファイル・メモはエディタの検索、ほかは右上の検索の欄。子チャットはチャットの中の検索が先に受け取る）
  */
 export function PopoutApp({ route }: { route: PopoutRoute }) {
+  // 最初の描き終わり（起動の時刻の記録。app/bootMarks.ts）
+  useLayoutEffect(() => bootMark("firstCommit"), []);
   const hashRoute = useHashRoute();
   useServerConnection(publishServerEvent);
   const { projects } = useProjects();
@@ -106,6 +110,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
         <HoverTip />
         <MemoProgress />
         <ToastHost />
+        <CoreStatusBand />
         {/* GitHub の新しい issue・マージの確認（GitHub タブとメモ・チャットの「issue にする」から） */}
         <GitHubDialogHost />
         <DbUnlockHost />

@@ -5,11 +5,13 @@
     "src/preload/index.ts",
     "src/renderer/src/main.tsx",
     "src/core/daemon.ts",
+    "src/core/host/main.ts",
     "src/**/*.dbtest.ts",
     "electron.vite.config.ts",
     "scripts/*.mjs",
     "scripts/*.cjs",
-    "scripts/hooks/pre*.mjs"
+    "scripts/hooks/pre*.mjs",
+    "scripts/perf/*.mjs"
   ],
   "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}"],
   "ignoreExportsUsedInFile": true,

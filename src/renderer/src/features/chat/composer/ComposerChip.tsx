@@ -5,7 +5,8 @@ import { Popover, type usePopover } from "@/ui/Popover";
 
 /**
  * チャット欄の上のピル（指示の履歴・ToDo・サブエージェントで共通）。押すと上に一覧を開き（もう一度押す・外を押す・Esc で閉じる）、
- * 開いている間は ⌃ の向きのアイコンを回す（composer-chip.open）。children が一覧の中身
+ * 開いている間は ⌃ の向きのアイコンを回す（composer-chip.open）。children が一覧の中身を作る関数で、開いているときだけ呼ぶ
+ * （閉じている間は行を作らない。要素で渡すと、閉じていても呼ぶ側で全行を組み立てるため。メモの仕様書「0023_表示を軽くする」の案 1）
  */
 /**
  * ピルの文のうち、狭い所でアイコンと数だけにするときに隠す言葉（「指示の履歴」「件」など）。ふだんは見た目を変えない
@@ -17,7 +18,7 @@ export function ChipWord({ children }: { children: ReactNode }) {
 }
 
 export function ComposerChip({
-  popover,
+  popover: { anchor: popoverAnchor, ...popover },
   chip,
   title,
   label,
@@ -48,17 +49,18 @@ export function ComposerChip({
   onClose?: () => void;
   /** ピルと一覧を入れた要素 */
   ref?: Ref<HTMLDivElement>;
-  children: ReactNode;
+  /** 一覧の中身。開いているときだけ呼ぶ（hook が要る中身は部品にして、その要素を返す） */
+  children: () => ReactNode;
 }) {
   return (
     <div ref={ref} className="chip-wrap">
-      <button ref={popover.anchor} type="button" className={cx("composer-chip", popover.open && "open", chipClassName)} aria-expanded={popover.open} title={title} onClick={onToggle ?? popover.toggle}>
+      <button ref={popoverAnchor} type="button" className={cx("composer-chip", popover.open && "open", chipClassName)} aria-expanded={popover.open} title={title} onClick={onToggle ?? popover.toggle}>
         {chip}
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>
       {popover.open && (
-        <Popover anchor={popover.anchor} side="above" gap={8} label={label} className={cx("chip-popover", className)} ignore={ignore} onClose={onClose ?? popover.close}>
-          {children}
+        <Popover anchor={popoverAnchor} side="above" gap={8} label={label} className={cx("chip-popover", className)} ignore={ignore} onClose={onClose ?? popover.close}>
+          {children()}
         </Popover>
       )}
     </div>

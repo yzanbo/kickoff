@@ -1,9 +1,10 @@
 import { PanelRight } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { previewRowsSql } from "@shared/database/dbFilter";
 import { errorMessage } from "@shared/errors";
 import { DB_EDITS_MAX, DB_TABLE_PAGE_ROWS, type DbConnection, type DbFilter, type DbObjectPath, type DbRowFilter, type DbTableDetail } from "@shared/types";
 import { api } from "@/api";
+import { useLatest } from "@/hooks/useLatest";
 import { cx } from "@/lib/cx";
 import type { DbTableTab } from "@/lib/dbClientTabs";
 import { CopyButton } from "@/ui/CopyButton";
@@ -77,6 +78,8 @@ export function TableData({
   const result = data.result;
   const { edits, keyColumns, writable } = edit;
   const display = useMemo(() => (result ? displayRows(result.columns, result.rows, keyColumns, edits) : null), [result, keyColumns, edits]);
+  // edit.change は描き直しごとに作り直すが、中で読むのはいちばん新しい変更なので、表は中身が変わったときだけ作り直す（決めたときにいまの change を呼ぶ）
+  const changeRef = useLatest(edit.change);
   const gridEdit = useMemo((): DataGridEdit | undefined => {
     if (!display || !result) return undefined;
     return {
@@ -91,13 +94,11 @@ export function TableData({
         const name = result.columns[col].name;
         const insertId = display.insertIds[row];
         const key = display.keys[row];
-        if (insertId !== null) edit.change((e) => setInsertCell(e, insertId, name, text));
-        else if (key) edit.change((e) => setCell(e, key, name, text, result.rows[row][col]));
+        if (insertId !== null) changeRef.current((e) => setInsertCell(e, insertId, name, text));
+        else if (key) changeRef.current((e) => setCell(e, key, name, text, result.rows[row][col]));
       },
     };
-    // edit.change は描き直しごとに作り直すが、中で読むのはいちばん新しい変更なので、表の中身が変わったときだけ作り直す
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [display, result, writable]);
+  }, [display, result, writable, changeRef]);
   /** 行を足して、その行の頭のセルを選ぶ */
   const addRow = () => {
     if (!display) return;
@@ -133,9 +134,9 @@ export function TableData({
   // 画像のバイナリは、行の詳細を開いているときに中身を読んで縮小表示する
   const pickedRead = pickedRow !== null && result && pickedRow < result.rows.length ? result.rows[pickedRow] : undefined;
   const needFill = Boolean(pickedRead && ((hasLongValue(pickedRead) && (showDetail || writable)) || (hasUnreadImage(pickedRead) && showDetail)));
+  const fillRow = useEffectEvent((row: number) => void data.fill([row], keyColumns));
   useEffect(() => {
-    if (needFill && pickedRow !== null) void data.fill([pickedRow], keyColumns);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (needFill && pickedRow !== null) fillRow(pickedRow);
   }, [needFill, pickedRow]);
 
   return (

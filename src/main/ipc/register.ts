@@ -1,6 +1,7 @@
 import type { IpcMainEvent, IpcMainInvokeEvent, WebContents } from "electron";
 import type { z } from "zod";
 import { channelOf, ipcEntries, type InvokeSpec, type IpcArgs, type IpcGroup, type IpcMethodOf, type IpcSpec, type SendSpec } from "@shared/ipc";
+import { timed } from "../../core/system/stallWatch.js";
 import { sameOrigin } from "../app/urls.js";
 
 // IPC の取り決め（shared/ipc/contract.ts）どおりに、メインの処理を登録し、画面へ知らせる。
@@ -77,7 +78,8 @@ export function registerIpcHandlers(
   for (const { group, method, kind, channel } of ipcEntries()) {
     if (kind === "event") continue;
     const schema = schemaTable[group][method];
-    const handler = handlerTable[group][method];
+    // 処理の同期の分に名前を付けて、詰まりの見張りに知らせる（core/system/stallWatch.ts）
+    const handler = timed(`ipc:${group}.${method}`, handlerTable[group][method]);
     /** 通すなら引数を、断るなら書き残してその理由を返す */
     const accept = (event: Sender, raw: unknown[]): { args: unknown[] } | { rejected: IpcRejected } => {
       const parsed = trusted(event) ? schema.safeParse(raw) : undefined;

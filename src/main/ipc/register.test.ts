@@ -107,13 +107,13 @@ test("IPC の引数: 取り決めの形のものだけを処理に渡す（invok
   assert.equal(calls.length, 0);
   assert.equal(warnings.length, 7);
 
-  const write = listened.get("send:terminal.write")!;
-  write(fromScreen, "", "ls\r");
-  write(fromScreen, "t1", 42);
+  const setBadge = listened.get("send:notifications.setBadge")!;
+  setBadge(fromScreen, -1);
+  setBadge(fromScreen, "3");
   assert.equal(calls.length, 0);
   assert.equal(warnings.length, 9);
-  write(fromScreen, "t1", "ls\r");
-  assert.deepEqual(calls.pop(), { name: "terminal.write", args: ["t1", "ls\r"] });
+  setBadge(fromScreen, 3);
+  assert.deepEqual(calls.pop(), { name: "notifications.setBadge", args: [3] });
 });
 
 test("IPC の送り手: Kickoff の画面（同じ出どころ）からのものだけ受け付ける", async () => {
@@ -121,7 +121,7 @@ test("IPC の送り手: Kickoff の画面（同じ出どころ）からのもの
   const openPath = handled.get("invoke:externalApps.openPath")!;
   await assert.rejects(async () => openPath({ senderFrame: { url: "https://example.com/" } }, "/w"), /Kickoff の画面以外/);
   await assert.rejects(async () => openPath({ senderFrame: null }, "/w"), /Kickoff の画面以外/);
-  listened.get("send:terminal.write")!({ senderFrame: { url: "http://127.0.0.1:4319/" } }, "t1", "rm -rf ~\r");
+  listened.get("send:notifications.setBadge")!({ senderFrame: { url: "http://127.0.0.1:4319/" } }, 1);
   assert.equal(calls.length, 0);
   assert.equal(warnings.length, 3);
   assert.equal(await openPath(fromScreen, "/w"), "ok");
@@ -130,8 +130,8 @@ test("IPC の送り手: Kickoff の画面（同じ出どころ）からのもの
 test("画面への知らせ: 画面がない・閉じていれば送らない", () => {
   const sent: unknown[][] = [];
   const screen = (destroyed: boolean) => ({ isDestroyed: () => destroyed, send: (...args: unknown[]) => void sent.push(args) });
-  sendEvent(screen(false), "terminal", "onData", "t1", "hello");
-  sendEvent(screen(true), "terminal", "onData", "t1", "lost");
-  sendEvent(undefined, "terminal", "onExit", "t1", 0);
-  assert.deepEqual(sent, [["event:terminal.onData", "t1", "hello"]]);
+  sendEvent(screen(false), "notifications", "onOpenChat", 1, 2);
+  sendEvent(screen(true), "notifications", "onOpenChat", 1, 3);
+  sendEvent(undefined, "notifications", "onOpenCi", 1, 4);
+  assert.deepEqual(sent, [["event:notifications.onOpenChat", 1, 2]]);
 });

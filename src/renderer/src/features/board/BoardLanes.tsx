@@ -18,6 +18,7 @@ import { useBucketHueOf } from "@/features/chatList/useChatBuckets";
 import { FoldHead } from "@/ui/FoldHead";
 import { Segmented } from "@/ui/Segmented";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
+import { RowBudgetScope, useRowBudgets } from "@/hooks/useProgressiveRows";
 
 /**
  * スイムレーンの段の分け方（列はどれも状態）。カンバンでは グループ・作業場所（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
@@ -113,6 +114,12 @@ function useLaneTint(lanes: readonly ChatBucket<PanelDraft>[]): (lane: ChatBucke
   };
 }
 
+/** 段が縦に取る行の数（リストは段のすべて、ボードの状態の列は横に並ぶのでいちばん長い列） */
+function laneRows(lane: ChatBucket<PanelDraft>, list: boolean): number {
+  if (list || !lane.children?.length) return lane.chats.length;
+  return Math.max(...lane.children.map((c) => c.chats.length));
+}
+
 /**
  * ボードを段（スイムレーン）に分けて出す。段は bucketChats のまとまり（グループ・作業場所・プロジェクト。中の段が状態の列）で、
  * 段の中身（children: 下書きと状態の列・リストのまとまり）は呼ぶ側が描く。
@@ -153,10 +160,12 @@ export function BoardLanes({
     foldPlace,
     lanes.map((l) => l.key),
   );
+  // 最初に描く行の上限（hooks/useProgressiveRows.ts）を、上の段から順に配る。段の中で列が横に並ぶボードは、いちばん長い列の分だけ縦に場所を取る
+  const budgets = useRowBudgets(lanes.map((lane) => (folds.isOpen(lane.key) ? laneRows(lane, list) : 0)));
   return (
     <div className="board-lanes">
       {lanes.length === 0 && <p className="column-empty">チャットはありません</p>}
-      {lanes.map((lane) => {
+      {lanes.map((lane, i) => {
         const open = folds.isOpen(lane.key);
         const extra = laneProps?.(lane) ?? {};
         const head = tint(lane);
@@ -188,7 +197,11 @@ export function BoardLanes({
                   : undefined
               }
             />
-            {open && <div className={list ? "lane-list" : "board-columns lane-columns"}>{children(lane)}</div>}
+            {open && (
+              <div className={list ? "lane-list" : "board-columns lane-columns"}>
+                <RowBudgetScope value={budgets[i]}>{children(lane)}</RowBudgetScope>
+              </div>
+            )}
           </section>
         );
       })}

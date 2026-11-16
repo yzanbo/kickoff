@@ -1,7 +1,9 @@
 import { useLayoutEffect } from "react";
 import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
-import { useChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useChatPane, useChatPaneState } from "@/features/chat/pane/chatPaneContext";
+import type { ChatLogView } from "@/features/chat/store/chatStore";
+import { chatLog, useStreamingActive } from "@/features/chat/store/useChatStore";
 import type { PromptList } from "@/features/chat/prompts/promptHistory";
 import { StickyPrompt } from "@/features/chat/prompts/StickyPrompt";
 import { useStickyPrompt } from "@/features/chat/prompts/useStickyPrompt";
@@ -9,12 +11,15 @@ import { useWorkingStatus } from "@/features/chat/status/useWorkingStatus";
 import { keepSelectionOnClick, onEditable, onReplyBlank, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
 import { useQuoteMenu } from "@/features/chat/messages/useMessageMenu";
 import { ChatDisplayItems } from "@/features/chat/pane/ChatDisplayMenu";
+import { observeSize } from "@/hooks/useSizeObserver";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
-import { TimelineItems } from "./Timeline";
+import { activeFloor, TimelineRows } from "./Timeline";
+import { TimelineBusyContext } from "./timelineBusy";
 import { TimelineEnd } from "./TimelineEnd";
 import type { TimelineScroll } from "./timelineScroll";
+import { useFollowBottom } from "./useFollowBottom";
 import { useMarkSeen } from "./useMarkSeen";
 import { BOTTOM_SLACK_PX, useTimelineScroll } from "./useTimelineScroll";
 import type { TimelineWindow } from "./useTimelineWindow";
@@ -34,17 +39,17 @@ export function ChatTimeline({
   busy,
   agents = [],
   live,
-  streaming,
   approvals,
   focus,
   scroll,
   events,
+  log,
   prompts,
   visible,
   pillDock,
   hidden,
 }: {
-  /** 描く範囲（長いチャットでは最近の項目だけ。窓の外の上・下の項目の数と、それを足す・最新に戻す操作） */
+  /** 流れの窓（描く行と箱・移る処理・読み足しの様子。useTimelineWindow） */
   window: TimelineWindow;
   rel: (s: string) => string;
   chat: Chat;
@@ -56,14 +61,14 @@ export function ChatTimeline({
    * 停止中は押してからコアの知らせが届くまでの間も含め、圧縮中は作業中だけ（ChatView が決める）
    */
   live: ChatLive;
-  /** 書いている途中の返答 */
-  streaming: string;
   approvals: Approval[];
   focus?: number;
   /** 流れのスクロールの持ち主（流れの要素と、一番下に付いていくか） */
   scroll: TimelineScroll;
-  /** 会話の記録（最新の結果を一番下まで見たら既読にする） */
+  /** 会話の記録の末尾（最新の結果を一番下まで見たら既読にする） */
   events: ChatEvent[];
+  /** 記録の口（前・後ろの記録を読んでいるか・途中の一部分を出しているか） */
+  log: ChatLogView;
   /** 自分の指示の一覧（上に貼り付ける指示の帯の ↑ / ↓・添付） */
   prompts: PromptList;
   /** チャットを表示しているか（パネルの裏のタブ・閉じたパネルは見ていない） */
@@ -74,31 +79,32 @@ export function ChatTimeline({
   hidden?: boolean;
 }) {
   const pane = useChatPane();
-  const s = useTimelineScroll({
-    scroll,
-    root: pane.root,
-    window: w,
-    focus,
-    approvalsCount: approvals.length,
-    streaming,
-    endKey: busy ? (live.compacting !== null ? "compacting" : "working") : "idle",
-  });
-  const sticky = useStickyPrompt(scroll.ref, prompts, s.firstKey, s.lastKey);
+  // 要素に付ける ref は先に取り出す（scroll.ref を JSX の ref に渡すと、React Compiler が scroll 全体を ref とみなして最適化から外す）
+  const { ref: timelineRef, inner: timelineInnerRef } = scroll;
+  // 書いている途中の返答があるか（文はチャットの店の口から StreamingReply が読む。書き始め・消したときだけ描き直す）
+  const streaming = useStreamingActive(chat.id);
+  const s = useTimelineScroll({ chatId: chat.id, scroll, root: pane.root, window: w, focus, focused: log.focused, backToTail: () => chatLog.backToTail(chat.id) });
+  // 一番下に付いていく間は、流れの枠か中身の大きさが変わったら一番下へ寄せる（書いている途中の文・新しい項目・確認のカード・作業中の行も、すべて中身の大きさの知らせで）
+  useFollowBottom(scroll, scroll.inner, s.settle);
+  // 上に貼り付ける指示は、描く行が変わった・最後の項目が変わったときに確かめ直す
+  const sticky = useStickyPrompt(scroll.ref, prompts, w.version, w.last?.key);
+  // いまの作業の始まり（流れ全体で。これより後ろの行が作業中の行）
+  const activeFrom = busy && !log.focused ? activeFloor(w.items) : w.items.length;
   // 流れの見えている高さを CSS の --timeline-h に入れる（サブエージェントのカードの窓を、その半分ほどの高さにする）
   useLayoutEffect(() => {
     const el = scroll.ref.current;
     if (!el) return;
-    const measure = () => el.style.setProperty("--timeline-h", `${el.clientHeight}px`);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
+    el.style.setProperty("--timeline-h", `${el.clientHeight}px`);
+    return observeSize(el, ({ height }) => el.style.setProperty("--timeline-h", `${height}px`));
   }, [scroll]);
   // 作業中の行と一番下へ戻るボタンの文（1 回だけ組み立てる）
   const working = useWorkingStatus({ chat, events, last: w.last, streaming, live, agents, busy });
   const pill = useScrollPill({ away: s.away, waiting: approvals.length > 0, busy, chat, live, events, working });
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
-  useMarkSeen({ timelineRef: scroll.ref, chat, events, visible, away: s.away, slackPx: BOTTOM_SLACK_PX });
+  // 途中の一部分を出している間は、流れの一番下が最新ではないので既読にしない
+  useMarkSeen({ timelineRef: scroll.ref, chat, events, visible: visible && !log.focused, away: s.away, slackPx: BOTTOM_SLACK_PX });
+  // 遠い記録を読むのが長引いているとき（押した所に回る印。Q1 A）
+  const jumping = useChatPaneState((st) => st.jumping) ?? null;
   const pinned = sticky.pinned;
   // 流れの中の文（質問のカード・ツールの行・サブエージェントのカードなど）の右クリック。発言など自分のメニューを持つ所は、そちらが先に開く
   const quoteMenu = useQuoteMenu();
@@ -110,7 +116,9 @@ export function ChatTimeline({
       {/* 押すとピントが入り、↑↓・PageUp / PageDown・End でもスクロールできる（枠は出さない） */}
       <div
         className="timeline"
-        ref={scroll.ref}
+        ref={timelineRef}
+        // 重いもの（図・コードの色付け）を手前で描き始める見張りの枠（hooks/useNearViewport）
+        data-near-root=""
         tabIndex={-1}
         {...{ [QUOTABLE_ATTR]: "" }}
         onContextMenu={(e) => {
@@ -130,21 +138,19 @@ export function ChatTimeline({
           sticky.update();
         }}
       >
-        <div className="timeline-inner">
-          {w.hidden > 0 && (
-            <button type="button" className="link-button timeline-more" onClick={s.showMore}>
-              以前の発言を表示（あと {w.hidden} 件）
-            </button>
-          )}
-          {/* 途中の一部分（過去）を描いているときは、実行中のツールはない */}
-          <TimelineItems items={w.visible} rel={rel} active={busy && w.hiddenAfter === 0} />
-          {/* 途中の一部分を描いているときは、最新の分（書いている途中の返答・確認のカード・作業中の行）は出さない（一番下へ戻るボタンで最新へ） */}
-          {w.hiddenAfter > 0 ? (
-            <button type="button" className="link-button timeline-more" onClick={w.showLater}>
-              以降の発言を表示（あと {w.hiddenAfter} 件）
-            </button>
+        <div className="timeline-inner" ref={timelineInnerRef}>
+          {/* 前の記録を読んでいる間だけ、上に 1 行（窓の外は箱なので、スクロールすれば描かれる。ボタンは置かない。U1） */}
+          {w.loadingEarlier && <TimelineLoading />}
+          {/* 作業中かは項目の props で渡さず、書き直し・分岐のボタンだけが読む（timelineBusy） */}
+          <TimelineBusyContext.Provider value={busy}>
+            <TimelineRows window={w} rel={rel} activeFrom={activeFrom} />
+          </TimelineBusyContext.Provider>
+          {/* 途中の一部分を出しているときは、流れの終わりは最新ではないので、最新の分（書いている途中の返答・確認のカード・作業中の行）は出さない。
+              下の端に近づくと後ろを読み、末尾とつながったら出す */}
+          {log.focused ? (
+            w.loadingLater && <TimelineLoading />
           ) : (
-            <TimelineEnd chat={chat} busy={busy} streaming={streaming} approvals={approvals} working={working} live={live} agents={agents} events={events} scroll={scroll} />
+            <TimelineEnd chat={chat} busy={busy} streaming={streaming} visible={visible} approvals={approvals} working={working} live={live} agents={agents} events={events} />
           )}
         </div>
       </div>
@@ -165,7 +171,22 @@ export function ChatTimeline({
           <ChatDisplayItems />
         </PopupMenu>
       )}
+      {jumping !== null && (
+        <div className="timeline-jumping" role="status">
+          <span className="spinner" aria-hidden />
+          読み込み中…
+        </div>
+      )}
       {s.away && <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />}
+    </div>
+  );
+}
+
+/** 前・後ろの記録を読んでいる間の 1 行（高さは決めた値。styles/chat/chat.css の .timeline-loading） */
+function TimelineLoading() {
+  return (
+    <div className="timeline-loading" role="status">
+      読み込み中…
     </div>
   );
 }
