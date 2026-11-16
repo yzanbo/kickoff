@@ -49,7 +49,16 @@ export function useProgressivePage(key: string, hidden = false): number {
  */
 export function useRowBudgets(counts: readonly number[], stacked = true): number[] {
   const budget = useContext(RowBudget);
-  return stacked ? allocateRows(counts, budget) : allocateColumns(counts.length, budget, columnsInView(window.innerWidth));
+  return stacked ? allocateRows(counts, budget) : allocateColumns(counts.length, budget, Number.isFinite(budget) ? columnsInView(boardWidth()) : counts.length);
+}
+
+/**
+ * 横に並ぶ列に使える幅の見込み（描く前なので列の入れ物はまだない。窓の幅から、先に描いてある左のサイドバー・縦の列の右端までを引く）。
+ * 上限なしのとき（最初の描画のあと）は読まない
+ */
+function boardWidth(): number {
+  const left = document.querySelector(".sidebar")?.getBoundingClientRect().right ?? 0;
+  return window.innerWidth - left;
 }
 
 /** 行を描く一覧: いまの上限の数だけ頭から（収まれば同じ配列のまま）と、省いた行の数（ui/ProgressiveRows.tsx の ProgressiveSpacer で場所を取る） */
