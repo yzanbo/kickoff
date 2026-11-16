@@ -30,6 +30,7 @@ import type { SessionsUsedElsewhere } from "../trash/siblingSessions.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
 import type { UserViewRegistry } from "../userView/registry.js";
 import type { TrashService } from "../trash/service.js";
+import type { RemoteImageService } from "../remoteImages/service.js";
 import { approvalRoutes } from "./routes/approvals.js";
 import { deviceRoutes, pairingClaimRoutes } from "./routes/devices.js";
 import { userViewRoutes } from "./routes/userView.js";
@@ -56,6 +57,7 @@ import { queueRoutes } from "./routes/queue.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { turnRoutes } from "./routes/turns.js";
 import { uploadRoutes } from "./routes/uploads.js";
+import { chatImageRoutes } from "./routes/chatImages.js";
 import { usageRoutes } from "./routes/usage.js";
 import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
@@ -110,6 +112,8 @@ export interface ServerDeps {
   githubAccounts?: () => Promise<GitHubAccount[]>;
   /** Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻せる。trash/service.ts） */
   trashBin: TrashService;
+  /** チャット欄の外の画像（表示を許可したホストと、取ってきた画像の覚え） */
+  remoteImages: RemoteImageService;
   /** ワークツリーの後始末（画面の「消す」と AI の finish_worktree。確かめ・控え・予約。worktrees/finish.ts） */
   worktreeFinisher: WorktreeFinisher;
   /** 利用者が見ているもの（この Mac の画面のウィンドウごとと、チャットごとの送ったときの様子。AI の get_user_view。userView/registry.ts） */
@@ -239,6 +243,7 @@ export function createApp(deps: ServerDeps): Hono {
   snippetRoutes(app, deps);
   trashRoutes(app, deps);
   uploadRoutes(app, deps);
+  chatImageRoutes(app, deps);
   approvalRoutes(app, deps);
   providerRoutes(app, deps);
   usageRoutes(app, deps);

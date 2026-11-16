@@ -4,6 +4,9 @@ import { createBlockSplitter, splitBlocks } from "@/lib/markdownBlocks";
 import { splitTail } from "@/lib/streamReveal";
 import { createBlockCache, pipelineOf, renderMarkdown, type MarkdownPipeline } from "./markdownProcessor";
 import { MarkdownFileLinksContext } from "./markdownFileLinks";
+import { MarkdownImageSourcesContext, MarkdownImagesContext } from "./markdownImages";
+import { MarkdownLinkOpenerContext } from "./markdownLinks";
+import { imageSourcesIn } from "@shared/links/remoteImages";
 import { MermaidDiagram, MermaidPlaceholder } from "@/ui/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/ui/markdown/mermaid/mermaidSource";
 import { CopyButton } from "@/ui/CopyButton";
@@ -14,11 +17,29 @@ import { fenceLanguage } from "@/lib/languages";
 import { convertTexDelimiters, mayContainMath } from "@shared/markdown/mathGuard";
 import { useMathPlugins } from "@/ui/markdown/math/useMathPlugins";
 
-/** リンク。ファイルのパスらしいもの（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、開けるファイルなら押して開けるチップにする */
-const link: Components["a"] = ({ node, href, children }) => {
+/**
+ * リンク。ファイルのパスらしいもの（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、開けるファイルなら押して開けるチップにする。
+ * 外部リンク（http・https）は、開く口（MarkdownLinkOpenerContext）があればそれで開く（確認の画面・開き先の設定。メモの仕様書「0027_チャット欄の外の画像とリンク」）
+ */
+const link: Components["a"] = function MarkdownLink({ node, href, children }) {
+  const opener = useContext(MarkdownLinkOpenerContext);
   const path = node?.properties.dataFilePath;
+  const web = opener !== null && typeof href === "string" && /^https?:\/\//i.test(href);
   const plain = (
-    <a href={href} target="_blank" rel="noreferrer">
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      onClick={
+        web
+          ? (e) => {
+              if (e.button !== 0 || e.defaultPrevented) return;
+              e.preventDefault();
+              opener(e, href, hastText(node));
+            }
+          : undefined
+      }
+    >
       {children}
     </a>
   );
@@ -32,6 +53,15 @@ const link: Components["a"] = ({ node, href, children }) => {
 };
 
 const noSubscribe = () => () => {};
+
+/** hast の要素の中の文字（リンクの文字。確認の画面で「文字と行き先が違う」を見分ける） */
+function hastText(node: unknown): string {
+  if (!node || typeof node !== "object") return "";
+  const n = node as { type?: string; value?: unknown; children?: unknown[] };
+  if (n.type === "text" && typeof n.value === "string") return n.value;
+  return (n.children ?? []).map(hastText).join("");
+}
+const NO_SOURCES: readonly string[] = [];
 
 /**
  * 押すとファイルを開くチップ（中はインラインコードかリンクの文字。開き方・右クリックのメニューは渡す側が決める）。
@@ -127,8 +157,16 @@ const table: Components["table"] = ({ node: _node, ...props }) => (
   </div>
 );
 
-/** 画像。画面の手前まで来てからブラウザが読む（遠くの画像を、開いたときにまとめて読まない。案 14a） */
-const image: Components["img"] = ({ node: _node, ...props }) => <img loading="lazy" decoding="async" {...props} />;
+/**
+ * 画像。チャットの画面の中（MarkdownImagesContext があるとき）は、その描き方に任せる（外の画像は押すまで読み込まない・手元の画像はコアから読む。
+ * メモの仕様書「0027_チャット欄の外の画像とリンク」）。ほかの画面は、画面の手前まで来てからブラウザが読む（遠くの画像を、開いたときにまとめて読まない。案 14a）
+ */
+const image: Components["img"] = function MarkdownImage({ node: _node, ...props }) {
+  const images = useContext(MarkdownImagesContext);
+  const sources = useContext(MarkdownImageSourcesContext);
+  if (images && typeof props.src === "string" && props.src) return <>{images.render({ src: props.src, alt: props.alt, title: props.title, sources })}</>;
+  return <img loading="lazy" decoding="async" {...props} />;
+};
 
 // 描くたびに部品が作り直されないよう（図の状態が消えないよう）、外で作っておく
 const COMPONENTS: Components = { a: link, pre: codeBlock, table, img: image };
@@ -155,6 +193,9 @@ export const Markdown = memo(MarkdownBody, (a, b) => a.children === b.children &
 
 function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
   const links = useContext(MarkdownFileLinksContext);
+  const images = useContext(MarkdownImagesContext);
+  // 画像の描き方を差し込まれているときだけ、文に書かれた画像の src を拾って配る（「host から画像を n 件表示」の数）
+  const sources = useMemo(() => (images ? imageSourcesIn(children) : NO_SOURCES), [images, children]);
   const hasMath = mayContainMath(children);
   const math = useMathPlugins(hasMath);
   const withMath = hasMath && math !== null;
@@ -170,18 +211,20 @@ function MarkdownBody({ children, streaming = false, tail }: MarkdownProps) {
   const last = blocks.length - 1;
   return (
     <div className="markdown">
-      <StreamingFlag.Provider value={streaming}>
-        {/* ブロックの間には、全文を 1 度に描いたときと同じく改行の文字を置く（HTML を文字で出す所の間の空白・選んでコピーした文を変えない） */}
-        {blocks.map((b, i) => (
-          <Fragment key={i}>
-            {i > 0 && "\n"}
-            {/* 形をそろえて包む（最後のブロックが前のブロックになっても作り直さない） */}
-            <OpenFence.Provider value={i === last ? openFence : null}>
-              <MarkdownBlock pipeline={pipeline} text={b} tail={tails[i]} />
-            </OpenFence.Provider>
-          </Fragment>
-        ))}
-      </StreamingFlag.Provider>
+      <MarkdownImageSourcesContext.Provider value={sources}>
+        <StreamingFlag.Provider value={streaming}>
+          {/* ブロックの間には、全文を 1 度に描いたときと同じく改行の文字を置く（HTML を文字で出す所の間の空白・選んでコピーした文を変えない） */}
+          {blocks.map((b, i) => (
+            <Fragment key={i}>
+              {i > 0 && "\n"}
+              {/* 形をそろえて包む（最後のブロックが前のブロックになっても作り直さない） */}
+              <OpenFence.Provider value={i === last ? openFence : null}>
+                <MarkdownBlock pipeline={pipeline} text={b} tail={tails[i]} />
+              </OpenFence.Provider>
+            </Fragment>
+          ))}
+        </StreamingFlag.Provider>
+      </MarkdownImageSourcesContext.Provider>
     </div>
   );
 }

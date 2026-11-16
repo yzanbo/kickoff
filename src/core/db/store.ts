@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { createChatStore } from "./chats.js";
+import { createChatImageStore } from "./chatImages.js";
 import type { Notify } from "./common.js";
 import { createDbConnectionStore } from "./dbConnections.js";
 import { createDbErLayoutStore } from "./dbErLayouts.js";
@@ -39,6 +40,8 @@ export class Store {
   readonly snippets;
   /** ワークツリーの PR の知らせで、確認を閉じた PR */
   readonly prNotices;
+  /** チャット欄の外の画像（表示を許可したホストと、取ってきた画像の覚え書き。v32） */
+  readonly chatImages;
   /** CI の失敗を知らせた実行（同じ実行を知らせ直さない） */
   readonly ciNotices;
   /** DB クライアントの接続（プロジェクトごと。パスワードは secrets） */
@@ -72,6 +75,7 @@ export class Store {
     this.queues = createQueueStore(this.db);
     this.snippets = createSnippetStore(this.db, onChange);
     this.prNotices = createPrNoticeStore(this.db);
+    this.chatImages = createChatImageStore(this.db);
     this.ciNotices = createCiNoticeStore(this.db);
     this.dbConnections = createDbConnectionStore(this.db, onChange, this.secrets);
     this.dbQueryHistory = createDbQueryHistoryStore(this.db);

@@ -37,6 +37,7 @@ import { sweepUnusedSessions } from "./trash/sessionTrash.js";
 import { sweepUnusedUploads } from "./chat/uploadCleanup.js";
 import type { SessionTrash } from "./chat/sessionSwitch.js";
 import { registerProjectTrash } from "./trash/projectTrash.js";
+import { RemoteImageService } from "./remoteImages/service.js";
 import { WorktreeFinisher } from "./worktrees/finish.js";
 import { ChatRemover } from "./chat/aiChatRemove.js";
 import { UserViewRegistry } from "./userView/registry.js";
@@ -223,8 +224,10 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない。メモの仕様書「ファイル削除」の Q16）
   trashBin.addSweepStep(() => sweepUnusedUploads({ store, uploads }));
   // ゴミ箱に入れたチャット（チャットの削除・メモのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
-  registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), sessionsElsewhere });
-  registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), sessionsElsewhere });
+  const remoteImages = new RemoteImageService({ store, dir: path.join(opts.dataDir, "image-cache"), publish: (e) => bus.publish(e) });
+  const forgetChatImages = (ids: number[]) => remoteImages.forgetChats(ids);
+  registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages, sessionsElsewhere });
+  registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages, sessionsElsewhere });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speech: opts.platform.speech, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）
@@ -279,6 +282,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     viewing,
     browserLogin,
     trashBin,
+    remoteImages,
     worktreeFinisher,
     userViews,
     sessionsElsewhere,

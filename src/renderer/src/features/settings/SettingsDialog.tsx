@@ -1,4 +1,4 @@
-import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, PanelLeft, Palette, PlugZap, Puzzle, Shrink, Smartphone, SquareTerminal, StickyNote, Trash2 } from "lucide-react";
+import { Activity, Bell, Bot, Gauge, Link2, MessageSquare, MessageSquareQuote, Mic, PanelLeft, Palette, PlugZap, Puzzle, Shrink, Smartphone, SquareTerminal, StickyNote, Trash2 } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, PANEL_VIEW_BUTTON_HIDDEN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
@@ -23,13 +23,14 @@ import { ChildChatCreateField } from "./ChildChatCreateField";
 import { HandoffAfterField, HandoffViaField } from "./HandoffFields";
 import { ConnectionSettings } from "./ConnectionSettings";
 import { DiagnosticsSettings } from "./DiagnosticsSettings";
+import { LinkSettings } from "./LinkSettings";
 import { MemoSettings } from "./MemoSettings";
 import { MobileSettings } from "./MobileSettings";
 import { NotificationSettings } from "./NotificationSettings";
 import { TerminalSettings } from "./TerminalSettings";
 import { VoiceSettings } from "./VoiceSettings";
 
-export type SettingsSection = "usage" | "display" | "sidebar" | "connection" | "ai" | "chats" | "snippets" | "compact" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "trash" | "diagnostics";
+export type SettingsSection = "usage" | "display" | "sidebar" | "connection" | "ai" | "chats" | "snippets" | "compact" | "memos" | "links" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "trash" | "diagnostics";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
@@ -41,6 +42,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "snippets", label: "定型文", icon: MessageSquareQuote },
   { key: "compact", label: "圧縮前・圧縮後指示", icon: Shrink },
   { key: "memos", label: "メモ", icon: StickyNote },
+  { key: "links", label: "リンクと画像", icon: Link2 },
   { key: "voice", label: "音声入力", icon: Mic },
   { key: "notifications", label: "通知", icon: Bell },
   { key: "terminal", label: "ターミナル", icon: SquareTerminal },
@@ -65,6 +67,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
           {section === "snippets" && <SnippetSettings />}
           {section === "compact" && <CompactPromptSettings />}
           {section === "memos" && <MemoSettings />}
+          {section === "links" && <LinkSettings />}
           {section === "voice" && <VoiceSettings />}
           {section === "notifications" && <NotificationSettings />}
           {section === "terminal" && <TerminalSettings />}
