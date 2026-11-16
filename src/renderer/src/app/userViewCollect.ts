@@ -18,11 +18,12 @@ import type { ProjectTab, Route } from "./router";
 /** 欄の呼び名（AI に返す文の「どこのペインか」） */
 const AREA_LABELS: Record<PanelSurface, string> = {
   board: "チャットのパネル",
-  side: "ボードの右のパネル",
+  side: "右サイドバー",
   bottom: "下のパネル",
   agents: "チャットの画面の右の欄",
   memos: "メモのタブ",
   files: "ファイルのタブ",
+  window: "ブラウザの別ウィンドウ",
 };
 
 /** プロジェクトのタブの名前（中身はパネル・設定から読むものを除く） */

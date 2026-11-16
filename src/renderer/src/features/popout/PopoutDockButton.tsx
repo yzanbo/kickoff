@@ -4,6 +4,7 @@ import { postToMainWindow, subscribeWindowMessages } from "@/app/windowBus";
 import { flushMemoDrafts } from "@/features/memo/memoGuards";
 import { parsePanelKey } from "@/features/panel/surfaces";
 import { returnSideWindow } from "./PopoutSideChat";
+import { returnBrowserWindow } from "./browserWindow";
 
 /** 開き直し終えた知らせ（docked）を待つ上限（メインのウィンドウが応えなくても閉じる） */
 const DOCK_WAIT_MS = 3000;
@@ -11,7 +12,8 @@ const DOCK_WAIT_MS = 3000;
 /** ボタンの名前と説明（戻す先の欄で変える） */
 function dockLabel(route: PopoutRoute): { label: string; tip: string; left: boolean } {
   if (route.kind === "sidebar") return { label: "左の欄に戻す", tip: "メインのウィンドウのサイドバーを開いて、このウィンドウを閉じる", left: true };
-  const surface = route.kind === "side" ? "side" : route.kind === "browser" || route.kind === "terminal" ? parsePanelKey(route.panel)?.surface : "agents";
+  // ブラウザは右サイドバーだけに置くので、どこから移したものも右サイドバーへ戻す
+  const surface = route.kind === "side" || route.kind === "browser" ? "side" : route.kind === "terminal" ? parsePanelKey(route.panel)?.surface : "agents";
   if (surface === "side") return { label: "右サイドバーに戻す", tip: "メインのウィンドウの右サイドバーで開き直して、このウィンドウを閉じる", left: false };
   if (surface === "bottom") return { label: "下のパネルに戻す", tip: "メインのウィンドウの下のパネルで開き直して、このウィンドウを閉じる", left: false };
   if (surface === "agents") return { label: "右の欄に戻す", tip: "メインのウィンドウの、チャットの画面の右の欄で開き直して、このウィンドウを閉じる", left: false };
@@ -36,6 +38,8 @@ export function PopoutDockButton({ route }: { route: PopoutRoute }) {
       onClick={() => {
         // チャット欄は状態ごとメインのウィンドウに戻す（開いて戻す）
         if (route.kind === "side") return returnSideWindow(true);
+        // ブラウザの別ウィンドウは、タブをすべて右サイドバーへ戻す
+        if (route.kind === "browser") return returnBrowserWindow(route);
         flushMemoDrafts();
         // ブラウザはページを移ると URL のハッシュも変わるので、いまの行き先で戻す
         const current = parsePopout(location.hash) ?? route;

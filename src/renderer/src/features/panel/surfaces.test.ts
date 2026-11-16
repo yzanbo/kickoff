@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { draftScope, panelKey, panelScreen, parsePanelKey } from "./surfaces";
+import { draftScope, panelKey, panelScreen, parsePanelKey, projectOfPanel, windowScope } from "./surfaces";
 
 test("欄の覚える名前: 欄と画面から作り、読み戻せる（下書きの保存のキーと同じ形）", () => {
   assert.equal(panelKey("board", 3), "kanban:3");
@@ -36,4 +36,14 @@ test("送る前の新しいチャットの右の欄: 下書きのタブの key �
   assert.deepEqual(parsePanelKey(key), { surface: "agents", scope: "draft-new-abc" });
   assert.equal(panelScreen(key), undefined);
   assert.equal(parsePanelKey("agents:draft-"), undefined);
+});
+
+test("ブラウザの別ウィンドウの欄: プロジェクトと開いたタブのキーの名前（win:win-<プロジェクト>-<キー>）で覚え、プロジェクトを読み戻せ、移る先はない", () => {
+  const key = panelKey("window", windowScope(21, "browser:1:abc"));
+  assert.equal(key, "win:win-21-browser:1:abc");
+  assert.deepEqual(parsePanelKey(key), { surface: "window", scope: "win-21-browser:1:abc" });
+  assert.equal(projectOfPanel(key), 21);
+  assert.equal(panelScreen(key), undefined);
+  // プロジェクトのないものは 0 で、プロジェクトは null
+  assert.equal(projectOfPanel(panelKey("window", windowScope(null, "browser:2:def"))), null);
 });
