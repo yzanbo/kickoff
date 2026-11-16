@@ -499,3 +499,32 @@ test("起動したときの再開の確かめ: 自分で送ったら作業を続
   assert.deepEqual(restarted.restartResumes(), []);
   assert.deepEqual(store.chats.recoverInterrupted("中断しました"), []);
 });
+
+test("起動したときの再開の確かめ: アーカイブしたら（子チャットが親と一緒にしまわれても）聞かず、印も外れて戻しても聞かない。送信待ちは残して送らない", async () => {
+  const { store, project, approvals, providers, usage, provider } = setup(async () => ({ status: "completed", sessionId: "s1" }));
+  const make = (title: string, parent: number | null = null) =>
+    store.chats.create({ project_id: project.id, provider: "claude", title, status: "running", model: null, parent_chat_id: parent });
+  const parent = make("親");
+  const child = make("子", parent.id);
+  const kept = make("残す");
+  const row = (id: string, text: string) => ({ id, text, options: {}, attachments: [], created_at: "2026-11-16T00:00:00.000Z" });
+  store.queues.save({ chatId: parent.id, messages: [row("a", "次")], paused: false, stops: [] });
+  const interrupted = store.chats.recoverInterrupted("中断しました");
+  assert.deepEqual(interrupted, [parent.id, child.id, kept.id]);
+  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  assert.deepEqual(restarted.restartResumes().map((r) => r.chat_id), [parent.id, child.id, kept.id]);
+
+  // 親をアーカイブする（子も一緒にしまわれる）: 一覧から外れ、作業中の様子からも確かめを待つ印が消える
+  store.chats.archive(parent.id, true);
+  assert.deepEqual(restarted.restartResumes().map((r) => r.chat_id), [kept.id]);
+  assert.equal(restarted.live(parent.id).restart_resume, null);
+  assert.equal(restarted.live(child.id).restart_resume, null);
+  // 送信待ちは消さず、送り始めもしない
+  assert.deepEqual(restarted.live(parent.id).queue.messages.map((m) => m.text), ["次"]);
+  await tick();
+  assert.equal(provider.calls.length, 0);
+  // DB の印も外れる: 戻しても、次の起動でも聞かない
+  store.chats.archive(parent.id, false);
+  assert.deepEqual(restarted.restartResumes().map((r) => r.chat_id), [kept.id]);
+  assert.deepEqual(store.chats.recoverInterrupted("中断しました"), [kept.id]);
+});
