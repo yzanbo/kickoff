@@ -17,19 +17,19 @@ export function RestartResumeBanner({ chatId, resume, standalone = false }: { ch
     void action.run(a, async () => restartResumesStore.set(await api.resolveRestartResumes([{ chat_id: chatId, action: a }])));
   const primary = defaultResumeChoice(resume);
   return (
-    <div className={cx("queue-resume-banner", standalone && "standalone")} role="status">
-      <History size={14} className="queue-resume-banner-icon" aria-hidden />
-      <span className="queue-resume-banner-text">
+    <div className={cx("restart-resume-banner", standalone && "standalone")} role="status">
+      <History size={14} className="restart-resume-banner-icon" aria-hidden />
+      <span className="restart-resume-banner-text">
         {resume.queued ? (
           <>
             前回の終了で残った送信待ちです。決めるまで送りません。
-            {resume.interrupted && <span className="queue-resume-banner-note">アプリの終了で、作業の途中で止まりました。</span>}
+            {resume.interrupted && <span className="restart-resume-banner-note">アプリの終了で、作業の途中で止まりました。</span>}
           </>
         ) : (
           "前回の終了で、作業の途中で止まりました。"
         )}
       </span>
-      <span className="queue-resume-banner-actions">
+      <span className="restart-resume-banner-actions">
         {resumeActionsFor(resume).map((a) => (
           <button
             key={a}

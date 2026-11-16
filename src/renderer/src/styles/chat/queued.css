@@ -309,20 +309,20 @@
 }
 
 /* 起動したときの再開の確かめ（RestartResumeDialog）: チャットごとのカードに、見出し・送信待ちの 1 行（開くと止まったところ・止まったサブエージェントと送信待ちのすべて）・選ぶ切り替え */
-.dialog.app-dialog.queue-resume-dialog {
+.dialog.app-dialog.restart-resume-dialog {
   width: min(640px, calc(100vw - 32px));
 }
 
-.queue-resume-dialog .app-dialog-body {
+.restart-resume-dialog .app-dialog-body {
   max-height: calc(100vh - 64px);
 }
 
-.queue-resume-intro {
+.restart-resume-intro {
   display: grid;
   gap: 6px;
 }
 
-.queue-resume-list {
+.restart-resume-list {
   display: grid;
   gap: 10px;
   min-height: 0;
@@ -333,7 +333,7 @@
   list-style: none;
 }
 
-.queue-resume-row {
+.restart-resume-row {
   display: grid;
   gap: 6px;
   padding: 12px 14px;
@@ -344,18 +344,18 @@
 }
 
 /* 「あとで」を選んだカードは少し薄く（決めずに残る） */
-.queue-resume-row.later {
+.restart-resume-row.later {
   opacity: 0.7;
 }
 
-.queue-resume-head {
+.restart-resume-head {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
 
-.queue-resume-title {
+.restart-resume-title {
   min-width: 0;
   overflow: hidden;
   font-size: 14px;
@@ -364,18 +364,18 @@
   white-space: nowrap;
 }
 
-.queue-resume-time {
+.restart-resume-time {
   flex: none;
   margin-left: auto;
   font-variant-numeric: tabular-nums;
 }
 
-.queue-resume-note {
+.restart-resume-note {
   color: var(--warn);
 }
 
 /* 送信待ちの 1 行（押すと詳しく見る）。送信待ちの畳んだ 1 行と同じ並び */
-.queue-resume-toggle {
+.restart-resume-toggle {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -391,26 +391,26 @@
   cursor: pointer;
 }
 
-.queue-resume-toggle:hover {
+.restart-resume-toggle:hover {
   background: var(--bg-hover);
 }
 
-.queue-resume-chevron {
+.restart-resume-chevron {
   flex: none;
   color: var(--muted);
   transition: transform 0.15s;
 }
 
-.queue-resume-toggle[aria-expanded="true"] .queue-resume-chevron {
+.restart-resume-toggle[aria-expanded="true"] .restart-resume-chevron {
   transform: rotate(90deg);
 }
 
-.queue-resume-count {
+.restart-resume-count {
   flex: none;
   font-weight: 600;
 }
 
-.queue-resume-next {
+.restart-resume-next {
   min-width: 0;
   overflow: hidden;
   color: var(--muted);
@@ -418,23 +418,23 @@
   white-space: nowrap;
 }
 
-.queue-resume-toggle-label {
+.restart-resume-toggle-label {
   flex: none;
   margin-left: auto;
 }
 
-.queue-resume-details {
+.restart-resume-details {
   display: grid;
   gap: 10px;
   padding: 4px 2px 2px;
 }
 
-.queue-resume-section {
+.restart-resume-section {
   display: grid;
   gap: 6px;
 }
 
-.queue-resume-section-title {
+.restart-resume-section-title {
   margin: 0;
   font-size: 11px;
   font-weight: 600;
@@ -442,21 +442,21 @@
   color: var(--muted);
 }
 
-.queue-resume-moments {
+.restart-resume-moments {
   display: grid;
   gap: 2px 0;
   margin: 0;
 }
 
-.queue-resume-moments dt {
+.restart-resume-moments dt {
   margin-top: 4px;
 }
 
-.queue-resume-moment-time {
+.restart-resume-moment-time {
   font-variant-numeric: tabular-nums;
 }
 
-.queue-resume-moment {
+.restart-resume-moment {
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
@@ -468,20 +468,20 @@
 }
 
 /* 最後の指示は自分の発言と同じ地、最後のツールはコードの書体 */
-.queue-resume-moment.prompt {
+.restart-resume-moment.prompt {
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-hover);
 }
 
-.queue-resume-moment.tool {
+.restart-resume-moment.tool {
   font-family: var(--mono);
   font-size: 12px;
   -webkit-line-clamp: 2;
 }
 
 /* 途中で止まったサブエージェント（説明を 1 行ずつ） */
-.queue-resume-subagents {
+.restart-resume-subagents {
   display: grid;
   gap: 2px;
   margin: 0;
@@ -490,7 +490,7 @@
   line-height: 1.5;
 }
 
-.queue-resume-queue {
+.restart-resume-queue {
   display: grid;
   gap: 4px;
   margin: 0;
@@ -498,7 +498,7 @@
   list-style: none;
 }
 
-.queue-resume-item {
+.restart-resume-item {
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -508,14 +508,14 @@
   font-size: 12.5px;
 }
 
-.queue-resume-index {
+.restart-resume-index {
   flex: none;
   min-width: 1.2em;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.queue-resume-item-text {
+.restart-resume-item-text {
   display: -webkit-box;
   flex: 1;
   min-width: 0;
@@ -526,53 +526,53 @@
   -webkit-line-clamp: 3;
 }
 
-.queue-resume-item-text.action {
+.restart-resume-item-text.action {
   color: var(--muted);
 }
 
 /* 一時停止の線（送信待ちの線と同じ注意の色） */
-.queue-resume-stop {
+.restart-resume-stop {
   display: flex;
   align-items: center;
   gap: 6px;
   color: var(--warn);
 }
 
-.queue-resume-stop::after {
+.restart-resume-stop::after {
   flex: 1;
   border-top: 1px dashed currentColor;
   opacity: 0.6;
   content: "";
 }
 
-.queue-resume-foot {
+.restart-resume-foot {
   display: flex;
   margin-top: 2px;
 }
 
-.segmented.queue-resume-choice button {
+.segmented.restart-resume-choice button {
   padding: 3px 12px;
   font-size: 12px;
 }
 
-.queue-resume-open {
+.restart-resume-open {
   display: inline-flex;
   flex: none;
   align-items: center;
   gap: 3px;
 }
 
-.queue-resume-actions {
+.restart-resume-actions {
   align-items: center;
 }
 
 /* 選んだ内訳は左に寄せ、ボタンは右に */
-.queue-resume-summary {
+.restart-resume-summary {
   margin-right: auto;
 }
 
 /* 送信待ちの上の帯（RestartResumeBanner）: 決めるまで続けない・送らないことと、その場で決めるボタン。注意の色の薄い地 */
-.queue-resume-banner {
+.restart-resume-banner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -583,35 +583,35 @@
   background: color-mix(in srgb, var(--warn) 10%, transparent);
 }
 
-.queue-resume-banner-icon {
+.restart-resume-banner-icon {
   flex: none;
   color: var(--warn);
 }
 
-.queue-resume-banner-text {
+.restart-resume-banner-text {
   flex: 1 1 260px;
   min-width: 0;
 }
 
-.queue-resume-banner-note {
+.restart-resume-banner-note {
   margin-left: 4px;
   color: var(--warn);
 }
 
-.queue-resume-banner-actions {
+.restart-resume-banner-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
 /* 送信待ちのないチャットの帯（作業の途中で止まったことだけを聞く）: 入力欄の上に、独り立ちの枠で置く */
-.queue-resume-banner.standalone {
+.restart-resume-banner.standalone {
   margin-bottom: 6px;
   border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--border));
   border-radius: 10px;
 }
 
 /* 下の帯の入口（決めていない再開）。注意の色 */
-.footer-button.queue-resume-footer {
+.footer-button.restart-resume-footer {
   color: var(--warn);
 }
