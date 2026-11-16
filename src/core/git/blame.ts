@@ -2,6 +2,7 @@
 import type { GitBlame, GitBlameCommit } from "@shared/types";
 import { gitOutput } from "./exec.js";
 import { assertInside } from "./files.js";
+import { timed } from "../system/stallWatch.js";
 
 /** まだコミットしていない行のハッシュ（git blame が 0 を並べて返す） */
 const UNCOMMITTED = /^0+$/;
@@ -57,5 +58,8 @@ export async function gitBlame(repo: string, file: string): Promise<GitBlame | n
   const out = await gitOutput(repo, ["blame", "--porcelain", "--", `./${file}`], [128]);
   if (!out.trim()) return null;
   const email = await gitOutput(repo, ["config", "user.email"], [1]).catch(() => "");
-  return parseBlame(out, email);
+  return readBlame(out, email);
 }
+
+/** 出力を読む（大きなファイルでは数万行。同期の処理なので詰まりの見張りに名前を付ける。system/stallWatch.ts） */
+const readBlame = timed("git:blame", parseBlame);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ChatLive, RestartResume } from "@shared/types";
-import { reduceRestartResumes } from "./restartResumes";
+import { autoOpenRestartResumes, reduceRestartResumes } from "./restartResumes";
 
 const row = (id: string) => ({ id, text: id, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
 const resume = (chatId: number): RestartResume => ({
@@ -73,4 +73,31 @@ test("起動したときの再開の確かめの一覧: 途中で止まったチ
   const noQueue = [{ ...resume(2), interrupted: true, queued: false, messages: [] }];
   const empty = live({ queue: { messages: [], paused: false, stops: [], waiting_edit: false }, restart_resume: { interrupted: true, queued: false } });
   assert.equal(reduceRestartResumes(noQueue, { type: "chat_live", project_id: 1, chat_id: 2, live: empty }), noQueue);
+});
+
+test("確かめのダイアログを自動で開くか: まだ見せていないチャットが届いたときだけ開く（コアを作り直したあとに新しく止まったチャットでも。答えて外れたチャットがまた止まったときも）", () => {
+  const ids = (shown: ReadonlySet<number>) => [...shown].sort((a, b) => a - b);
+  // 起動のとき: 届くまでは開かない。届いたら開く
+  let step = autoOpenRestartResumes(new Set(), []);
+  assert.equal(step.open, false);
+  step = autoOpenRestartResumes(step.shown, [resume(1), resume(2)]);
+  assert.equal(step.open, true);
+  // 閉じたあと、同じ一覧のまま（取り直し・送信待ちの直し）では開かない。答えて減っても開かない
+  step = autoOpenRestartResumes(step.shown, [resume(1), resume(2)]);
+  assert.equal(step.open, false);
+  step = autoOpenRestartResumes(step.shown, [resume(2)]);
+  assert.equal(step.open, false);
+  assert.deepEqual(ids(step.shown), [2]);
+  // コアのプロセスを作り直したあと: 新しく止まったチャットが届いたら、もう一度開く（前は窓ごとに 1 回だけで開かなかった）
+  step = autoOpenRestartResumes(step.shown, [resume(2), resume(3)]);
+  assert.equal(step.open, true);
+  // 答えて一覧から外れたチャット（1）が、またあとで止まったときも開く
+  step = autoOpenRestartResumes(step.shown, [resume(2), resume(3)]);
+  assert.equal(step.open, false);
+  step = autoOpenRestartResumes(step.shown, [resume(1), resume(2), resume(3)]);
+  assert.equal(step.open, true);
+  assert.deepEqual(ids(step.shown), [1, 2, 3]);
+  // すべて答えて空になったあとに届いたものも開く
+  step = autoOpenRestartResumes(autoOpenRestartResumes(step.shown, []).shown, [resume(3)]);
+  assert.equal(step.open, true);
 });

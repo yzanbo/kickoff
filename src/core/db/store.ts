@@ -8,6 +8,7 @@ import { createDbPrepRunStore } from "./dbPrepRuns.js";
 import { createDeviceStore } from "./devices.js";
 import { createEventStore } from "./events.js";
 import { createGroupStore } from "./groups.js";
+import { createLogRevisions, type LogRevisions } from "./logRevisions.js";
 import { openDatabase } from "./open.js";
 import { createPrNoticeStore } from "./prNotices.js";
 import { createCiNoticeStore } from "./ciNotices.js";
@@ -53,6 +54,8 @@ export class Store {
   readonly trash;
   /** Kickoff が作ったセッション（Claude Code の会話記録）の覚え（使われなくなったらゴミ箱へ。trash/sessionTrash.ts） */
   readonly agentSessions;
+  /** 記録を足す以外の形で変えた知らせ（巻き戻し・セッションの付け替え・チャットの削除。コアの索引の覚えを捨てる合図） */
+  readonly logRevisions: LogRevisions = createLogRevisions();
 
   constructor(
     private readonly file: string,
@@ -63,9 +66,9 @@ export class Store {
     this.settings = createSettingsStore(this.db, onChange);
     this.secrets = createSecretStore(this.db);
     this.projects = createProjectStore(this.db, onChange);
-    this.chats = createChatStore(this.db, onChange);
+    this.chats = createChatStore(this.db, onChange, this.logRevisions);
     this.groups = createGroupStore(this.db, onChange, this.chats.get);
-    this.events = createEventStore(this.db, onChange, this.chats.get);
+    this.events = createEventStore(this.db, onChange, this.chats.get, this.logRevisions);
     this.queues = createQueueStore(this.db);
     this.snippets = createSnippetStore(this.db, onChange);
     this.prNotices = createPrNoticeStore(this.db);

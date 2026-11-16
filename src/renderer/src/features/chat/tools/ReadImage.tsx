@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/errors";
 import { api } from "@/api";
 import { formatBytes } from "@/lib/format";
+import { useSizeObserver } from "@/hooks/useSizeObserver";
 import { useAttachmentViewer } from "@/features/chat/attachments/useAttachmentViewer";
+import { readImageHeight, readImageKey, rememberReadImageHeight } from "./readImageHeights";
 
 /** 読み込んだ画像（画面で使う URL・大きさ・最後に変えた時刻） */
 interface Loaded {
@@ -28,12 +30,18 @@ export function ReadImage({ chatId, path, readAt }: { chatId: number; path: stri
   const [dims, setDims] = useState<{ width: number; height: number }>();
   const name = path.slice(path.lastIndexOf("/") + 1);
   const viewer = useAttachmentViewer(loaded ? [{ src: loaded.url, name }] : []);
+  // 前に描いたときの高さ（読み込み中・画像を解くまでの間、この高さで場所を取る。案 14a・20）と、描けたあとの高さを覚える
+  const key = readImageKey(chatId, path);
+  const known = readImageHeight(key);
+  const sizeRef = useSizeObserver<HTMLDivElement>(({ height }) => {
+    if (dims) rememberReadImageHeight(key, height);
+  });
 
   // 読んだ画像の URL（隠した会話の欄（Activity）を表に戻すと effect が流れ直すので、同じ画像なら読み直さない。
   // 片付けでは RELEASE_MS 待ってから捨て、その間に戻れば使い続ける。捨てたら、次に描いたときに読み直す）
   const held = useRef<{ key: string; url: string; timer?: number } | null>(null);
   useEffect(() => {
-    const key = `${chatId}\n${path}`;
+    const id = readImageKey(chatId, path);
     let alive = true;
     const release = () => {
       alive = false;
@@ -47,7 +55,7 @@ export function ReadImage({ chatId, path, readAt }: { chatId: number; path: stri
       }, RELEASE_MS);
     };
     const h = held.current;
-    if (h?.key === key) {
+    if (h?.key === id) {
       window.clearTimeout(h.timer);
       h.timer = undefined;
       return release;
@@ -59,7 +67,7 @@ export function ReadImage({ chatId, path, readAt }: { chatId: number; path: stri
       .then(({ blob, mtime }) => {
         if (!alive) return;
         const url = URL.createObjectURL(blob);
-        held.current = { key, url };
+        held.current = { key: id, url };
         setLoaded({ url, bytes: blob.size, mtime });
       })
       .catch((e: unknown) => alive && setError(errorMessage(e)));
@@ -67,11 +75,19 @@ export function ReadImage({ chatId, path, readAt }: { chatId: number; path: stri
   }, [chatId, path]);
 
   if (error) return <p className="tool-image-note muted small">{error}</p>;
-  if (!loaded) return <p className="tool-image-note muted small">読み込み中…</p>;
+  if (!loaded) {
+    // 前に描いた画像なら、その高さの枠で待つ（読めたときに下の行を動かさない）
+    if (known === undefined) return <p className="tool-image-note muted small">読み込み中…</p>;
+    return (
+      <div className="tool-image tool-image-wait" style={{ height: known }}>
+        <p className="tool-image-meta muted small">読み込み中…</p>
+      </div>
+    );
+  }
   const readTime = readAt ? Date.parse(readAt) : NaN;
   const changed = loaded.mtime !== null && Number.isFinite(readTime) && loaded.mtime > readTime + CHANGED_SLACK_MS;
   return (
-    <div className="tool-image">
+    <div ref={sizeRef} className="tool-image" style={!dims && known !== undefined ? { minHeight: known } : undefined}>
       <button
         type="button"
         className="tool-image-thumb"

@@ -7,6 +7,7 @@ import { gitOutput } from "./exec.js";
 import { gitPrefix, hasRef, listRemotes } from "./status.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import { realPathOrSelf } from "../system/paths.js";
+import { timed } from "../system/stallWatch.js";
 
 /**
  * `git worktree list --porcelain` を読む（空行で区切られた塊ごとに 1 つ。最初が本体）。
@@ -36,8 +37,11 @@ export function parseWorktrees(out: string, prefix = ""): GitWorktree[] {
 /** ワークツリーの一覧（repo はプロジェクトのフォルダ。リポジトリの中のフォルダなら、各ワークツリーの中の同じ位置を path にする） */
 export async function listWorktrees(repo: string): Promise<GitWorktree[]> {
   const [out, prefix] = await Promise.all([gitOutput(repo, ["worktree", "list", "--porcelain"]), gitPrefix(repo)]);
-  return parseWorktrees(out, prefix ?? "");
+  return readWorktrees(out, prefix ?? "");
 }
+
+/** 出力を読む（同期の処理なので詰まりの見張りに名前を付ける。system/stallWatch.ts） */
+const readWorktrees = timed("git:worktrees", parseWorktrees);
 
 /** 作業場所（本体かワークツリー。path は realpath でそろえたもの） */
 export interface Workplace {

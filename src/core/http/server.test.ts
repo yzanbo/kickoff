@@ -5,6 +5,7 @@ import path from "node:path";
 import type { AddressInfo } from "node:net";
 import { test } from "vitest";
 import { startHttpServer, stopHttpServer } from "./httpServer.js";
+import { readIndexHtml } from "./server.js";
 import { AUTH, TOKEN, setup } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 import type { ServerHello } from "@shared/types";
@@ -195,4 +196,12 @@ test("ブラウザのログイン: 一度だけの番号で本体のトークン
   assert.match(ok.headers.get("set-cookie") ?? "", /^kickoff_token=t+;.*HttpOnly/i);
   assert.equal((await app.request(`/login?code=${code}`)).status, 401);
   assert.equal((await app.request("/login?code=nope")).status, 401);
+});
+
+test("画面のファイル（index.html）を読めなければ、場所の分かる文で起動を失敗にする（黙って画面を配らないと窓が真っ暗のまま）", () => {
+  const dir = tempDir();
+  assert.throws(() => readIndexHtml(dir), /画面のファイル（.*index\.html）を読めません/);
+  assert.throws(() => readIndexHtml(path.join(dir, "ない")), /を読めません/);
+  fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html>");
+  assert.equal(readIndexHtml(dir), "<!doctype html>");
 });

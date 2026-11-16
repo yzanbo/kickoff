@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent, type RefObject } from "react";
+import { useEffect, useEffectEvent, useRef, type KeyboardEvent, type RefObject } from "react";
 import { consumeKey, hasModifiers, isCancelKey, isSubmitKey } from "@/lib/keys";
 import { insertDictation } from "./dictationText";
 import { useDictation } from "./useDictation";
@@ -24,12 +24,14 @@ export function useFieldDictation({
 }) {
   // 「入れてそのまま決める」とき、入れた文が value に入ってから（描き直したあとで）決める
   const submitAfterInsert = useRef<{ meta: boolean } | null>(null);
+  // 決める処理はいまのものを呼ぶ（onSubmit が変わっても effect はやり直さない。value が変わったときだけ）
+  const submitInserted = useEffectEvent((how: { meta: boolean }) => onSubmit(how));
   useEffect(() => {
     const how = submitAfterInsert.current;
     if (!how) return;
     submitAfterInsert.current = null;
-    onSubmit(how);
-  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+    submitInserted(how);
+  }, [value]);
   const pendingMeta = useRef(false);
   const dictation = useDictation({
     onText: (spoken, send) => {

@@ -1,3 +1,4 @@
+import { noteRuntimeProcess } from "./runtimeProcess.js";
 import type { CopilotSession, GetAuthStatusResponse, ModelInfo, ResumeSessionConfig, SessionConfig, SessionEvent } from "@github/copilot-sdk";
 
 /**
@@ -77,7 +78,12 @@ export const sdkClientFactory: CopilotClientFactory = ({ env, cwd }) => {
     return client;
   };
   return {
-    start: async () => (await ready()).start(),
+    start: async () => {
+      const c = await ready();
+      await c.start();
+      // ランタイムの子をメインに知らせる（コアが落ちたら作り直す前に止める）
+      noteRuntimeProcess(c);
+    },
     stop: async () => (client ? client.stop() : []),
     createSession: async (config) => wrapSession(await (await ready()).createSession(config)),
     resumeSession: async (id, config) => wrapSession(await (await ready()).resumeSession(id, config)),

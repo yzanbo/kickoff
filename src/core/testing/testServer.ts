@@ -47,7 +47,7 @@ import type { SpeechOptions } from "../voice/speech.js";
 import { FakeProviderBase } from "./fakeProvider.js";
 import "./gitRepo.js";
 import { tempDir } from "./tempDir.js";
-import { setupCore } from "./testCore.js";
+import { setupCore, type BeforeStart } from "./testCore.js";
 import { McpToolHost } from "../mcp/host.js";
 import { ProviderKeyVault } from "../providers/keys.js";
 
@@ -231,7 +231,7 @@ class FakeProvider extends FakeProviderBase {
  * 偽のプロバイダーで API のアプリを組み立てる（一時フォルダは、そのテストが終わったら消える）。
  * Git の名前は、設定していない環境でもコミットできるよう testing/gitRepo.ts が環境変数で渡す
  */
-export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } = {}) {
+export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; beforeStart?: BeforeStart } = {}) {
   const uploads = new UploadStore(tempDir());
   // 通信: online を false にすると AI の API に届かない（つながったかの確かめに使う）
   const network = { online: true };
@@ -239,17 +239,22 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher } 
   const userViews = new UserViewRegistry();
   // AI の操作ツールのコアの MCP サーバー（テストは app.request で /mcp/<名前> を呼ぶので、URL の頭は使わない）
   const mcpTools = new McpToolHost(() => "http://127.0.0.1");
-  const { bus, store, approvals, providers, usage, runner, provider, project } = setupCore(new FakeProvider(), {
-    uploads,
-    userViews,
-    toolHost: mcpTools,
-    reconnect: { check: async () => network.online, intervalMs: 5 },
-    usageLimit: { checkMs: 5 },
-    // 書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
-    editHoldTtlMs: 300,
-    // メモのチャットの実行では、メモのフォルダも読めるようにする（MemoService は下で作るので、呼ばれたときに引く）
-    memoDirOf: (p) => memos.dirOf(p),
-  });
+  const { bus, store, approvals, providers, usage, runner, provider, project } = setupCore(
+    new FakeProvider(),
+    {
+      uploads,
+      userViews,
+      toolHost: mcpTools,
+      reconnect: { check: async () => network.online, intervalMs: 5 },
+      usageLimit: { checkMs: 5 },
+      // 書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
+      editHoldTtlMs: 300,
+      // メモのチャットの実行では、メモのフォルダも読めるようにする（MemoService は下で作るので、呼ばれたときに引く）
+      memoDirOf: (p) => memos.dirOf(p),
+    },
+    // 前回の起動で残ったデータ（起動したときの再開の確かめ）
+    opts.beforeStart,
+  );
   // ほかのサービスは、ネットワークに出ない偽物にする
   let codexCalls = 0;
   const serviceUsage = new ServiceUsageMonitor(usage, [
