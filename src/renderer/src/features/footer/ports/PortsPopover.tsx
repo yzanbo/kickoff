@@ -5,7 +5,8 @@ import { workplaceText } from "@shared/docker/workplace";
 import { api } from "@/api";
 import { navigate, routeProjectId, useRoute } from "@/app/router";
 import { useExternalBrowser } from "@/features/openWith/externalApps";
-import { panelActions } from "@/features/panel/state/panelActions";
+import { openBrowserTab } from "@/features/panel/state/openBrowserTab";
+import { sidePanelsHandedOut } from "@/features/panel/state/panelHandOff";
 import { isPanelMounted } from "@/features/panel/state/panelStore";
 import { panelKey } from "@/features/panel/surfaces";
 import { useProjects } from "@/stores/projects";
@@ -20,15 +21,18 @@ import { bandText, originText, portUrl, stopTargetText, uptimeText } from "./por
 /** 止めている様子（止めている間 / 待っても終わらなかった = 「強制終了」を出す） */
 type StopState = "stopping" | "stuck";
 
-/** プロジェクトのチャット欄のブラウザで開く（ほかのプロジェクトなら、そのプロジェクトへ移って欄ができてから） */
+/**
+ * プロジェクトの右サイドバー（チャット欄）のブラウザで開く（ほかのプロジェクトなら、そのプロジェクトへ移って欄ができてから。
+ * 右サイドバーを別ウィンドウへ移しているときは、そのウィンドウに頼むので待たない）
+ */
 async function openInPanel(projectId: number, url: string, current: number | undefined) {
   const key = panelKey("side", projectId);
   if (current !== projectId) {
     navigate({ name: "project", id: projectId, tab: "board" });
     const until = Date.now() + 3_000;
-    while (!isPanelMounted(key) && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
+    while (!sidePanelsHandedOut() && !isPanelMounted(key) && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
   }
-  panelActions(key).openBrowser(url);
+  openBrowserTab(key, url);
 }
 
 interface Props {
@@ -135,7 +139,7 @@ function PortRow({
       <div className="ports-main">
         <span className="ports-ports">
           {p.ports.map((port) => (
-            <button key={port} type="button" className="ports-port" data-tip={`${portUrl(port)} をチャット欄のブラウザで開く`} onClick={() => open(port)}>
+            <button key={port} type="button" className="ports-port" data-tip={`${portUrl(port)} を右サイドバーのブラウザで開く`} onClick={() => open(port)}>
               :{port}
             </button>
           ))}

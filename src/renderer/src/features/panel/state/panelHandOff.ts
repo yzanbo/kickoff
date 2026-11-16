@@ -9,6 +9,9 @@ import { putPanels, setPanelOwnership, takePanels } from "./panelStore";
 /** メインのウィンドウ: チャット欄を別ウィンドウへ渡したあとか（戻される・別ウィンドウが閉じるまで） */
 let handedOut = false;
 
+/** メインのウィンドウ: チャット欄を別ウィンドウへ渡しているか（ブラウザのタブを開く頼みをそちらへ回す。openBrowserTab.ts） */
+export const sidePanelsHandedOut = (): boolean => handedOut;
+
 /** チャット欄の欄か */
 export const isSidePanel = (key: string): boolean => parsePanelKey(key)?.surface === "side";
 

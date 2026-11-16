@@ -234,8 +234,8 @@ export function PaneTabBar({
           })
         : display.map(tab)}
       </div>
-      {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く（タブのすぐ右。出す種類が決まっている欄（サブエージェントの欄）では出さない） */}
-      {!SURFACES[panel.surface].fixedKinds && (
+      {/* 新しいタブ: 欄で出す種類（チャット・ブラウザ・ターミナル）を 1 回で開く（タブのすぐ右。外から開くタブだけの欄（サブエージェントの欄など）では出さない） */}
+      {!SURFACES[panel.surface].noTabAdds && (
       <PanelTabAdds
         panel={panel}
         pane={pane}

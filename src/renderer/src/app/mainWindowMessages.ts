@@ -7,7 +7,7 @@ import { openSeededChat } from "@/features/chat/handoff/workplace";
 import { openMemoFromChat } from "@/features/memo/openMemoFrom";
 import { dockPopout } from "@/features/popout/dockPopout";
 import { openChatSplit } from "@/features/panel/board/openChatSplit";
-import { panelActions } from "@/features/panel/state/panelActions";
+import { openBrowserTab } from "@/features/panel/state/openBrowserTab";
 import { discardDraft, moveDraftToProject, openDraft, openDraftSplit, setDraftGroup, setDraftTitle, togglePinDraft } from "@/features/panel/state/panelDrafts";
 import { handleForwarded } from "./popoutNavigation";
 import { popoutKey } from "./popout";
@@ -23,7 +23,7 @@ function runPanelOp(o: PanelOp) {
   else if (o.op === "setDraftGroup") setDraftGroup(o.draft, o.group, o.groupName);
   else if (o.op === "togglePinDraft") togglePinDraft({ ...o.draft, pinned: o.pinned });
   else if (o.op === "discardDraft") discardDraft(o.draft);
-  else if (o.op === "openBrowser") panelActions(o.panel).openBrowser(o.url);
+  else if (o.op === "openBrowser") openBrowserTab(o.panel, o.url);
   else openChatSplit(o.chat, o.dir);
 }
 
