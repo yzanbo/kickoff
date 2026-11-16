@@ -122,6 +122,7 @@
 | ペアリング（端末をつなぐこと。Mac の画面が使い捨ての番号と QR を出し、端末が番号で頼み、Mac の画面で「この端末をつなぎますか」と確かめてから端末のトークンを 1 回だけ渡す）・つなぐ先の URL（端末から Mac の Kickoff に届く URL。QR に入れる） | `PairingCenter`（`core/devices/pairing.ts`）・`PairingState` / `PairingRequest` / `PairingClaimBody` / `PairingPollResult`（`@shared/types/device.ts`）・`pairingLink`（`@shared/devices/pairing.ts`）・設定の `mobile_url`・画面の `features/settings/MobileSettings.tsx` | `/pair?token=`（本体のトークンを QR に入れていた） |
 | 通知の判断（チャットの完了・失敗・回答待ち・CI の失敗を、それを見ていない人（この Mac の画面・端末）にだけ知らせる）・見ているもの（前に出しているチャット・CI のタブ。呼び主ごと） | `core/notifications/`（`NotificationCenter` / `Notice` / `PushSender` / `ViewingRegistry`）・`PUT /api/viewing`（`ViewingBody`）・`startCore({ notify, push })` | 画面の `useChatNotifications` / `useCiFailureNotifications`（画面が判断していた） |
 | API の版（Mac の Kickoff とスマホのアプリのやり取りの形の番号。Kickoff の版とは別に持ち、形を壊す変更をしたときだけ 1 つ上げる。1.0 からは変更を「足すだけ」（項目を消さない・名前を変えない）にし、壊すなら版を上げる。0.x の間は壊してよい）・話が通じない（アプリが古すぎる / Mac の Kickoff が古すぎる） | `@shared/api/version.ts`（`API_VERSION` / `MIN_CLIENT_API_VERSION` / 見出し `x-kickoff-api` / `client_too_old`・`host_too_old` / `apiMismatch`）・SSE の最初の行 `ServerHello`・`ServerStatus.api_version` | なし |
+| 外の画像（返答の Markdown の http・https の画像。押すまで外へ通信せず「{ホスト} から画像を n 件表示」のボタンにする）・画像の表示の許可（そのボタンを押したホスト。チャットごと）・外部リンク（返答などの http・https のリンク。開く前に毎回確かめる）・確認せずに開くドメイン（確認の画面の「今後確認しない」で覚えたもの。アプリ全体） | `@shared/links/remoteImages`（`RemoteImage`・`remoteImageOf`）・`ChatImageHost`・表 `chat_image_hosts` / `chat_image_cache`・`core/remoteImages/`（`RemoteImageService`）・`features/chat/images/`・`@shared/links/linkWarnings`（`LINK_WARNINGS`）・設定の `link_open_in` / `trusted_link_domains`・`features/browser/linkOpen.ts` | なし |
 
 ### チャットの軸とエージェントの軸
 
@@ -464,6 +465,14 @@ CREATE TABLE devices (
 - 段階 2「DB で開く」（スキーマは変えない）: postgres・mysql・mariadb のサービスから DB タブを開く。行き先は `GET /api/projects/:id/docker/db?compose=&service=`（`DockerDbTarget`: 登録済みの同じ DB の `connection_id` / 取り込みの案 `candidate` / 押せない理由 `blocked`）。案は DB クライアントの取り込みと同じ読み方（`core/databases/import/fromCompose.ts` の `candidatesFromCompose`）で、YAML でなく compose に聞いた設定（一覧で覚えた `config --format json` の中身）から作る（`core/docker/dbTarget.ts`。`core/docker → core/databases/import` の向きで、取り込みは Docker を知らない）。同じ DB かは種類・この Mac の中のホスト・ポートで比べ（`@shared/database/dbServer.ts` の `sameLocalServer`。画面の取り込みの選び方も同じ）、ワークツリーの db が本体と同じポートなら本体の接続、別のポートなら別の DB として名前にブランチを添える。登録は今の `POST …/db-connections/import` に案の key（`docker:<サービス>:<見出しのキー>`）を渡し、コアが compose に聞き直して作る（パスワードは画面に出さない）。画面は DB クライアントへの頼み（`dbClientRequests.ts`）に `import` を足し、取り込みの画面をその案だけ選んだ形で開く。ワークツリーの DB から作った接続はそのワークツリーを覚え（v23 の `db_connections.worktree_path`）、ワークツリーを消す確認の「この接続も消す」で一緒に消せる（ワークツリーの実行環境の段階 2）。
 - 別の機能に分けたもの: 本体とワークツリーで組の名前・ポートを確実に分ける仕組みは「ワークツリーの実行環境」（メモの仕様書は下書き）。Docker タブは組の名前を変えない。
 
+### チャット欄の外の画像とリンク（v32）
+
+詳しい仕様はメモの「0027_チャット欄の外の画像とリンク」の仕様書。守りの本体は「利用者が押すまで外へ通信しない」こと（画像の URL に秘密を入れて送らせる攻撃を防ぐ）。画面の CSP（`img-src`）は開けず、外の画像はコアが代わりに取る。
+
+- 表: `chat_image_hosts`（`chat_id`・`host`（小文字・ポート付き）・`allowed_at`。主キーは 2 つの組）と `chat_image_cache`（`chat_id`・`key`（URL の sha256）・`host`・`content_type`・`size`・`fetched_at`）。どちらもチャットを消すと一緒に消える（外部キーの cascade）。取った画像の中身はデータの場所の `image-cache/<チャット>/<key>` に置く。
+- 分岐（`POST /api/chats/:id/fork`）は許可と取った画像を写す。子チャットは引き継がない。チャットを本当に消すとき（ゴミ箱の片付け）・許可を外したときにファイルも消し、合計が 1GB を超えたら古いものから消す。
+- 置き場所: コアは `core/db/chatImages.ts`（店）・`core/remoteImages/`（取り方 `fetchImage.ts`・止める宛先 `addresses.ts`・`RemoteImageService`）・`core/http/routes/chatImages.ts`。画面は `features/chat/images/`（ボタン・URL の一覧・許可の店）と `features/browser/linkOpen.ts`（リンクの確認と開き先）・設定の「リンクと画像」。
+
 ### 記録（chat_events の data）
 
 `ChatEvent` は `type` で中身が決まる判別共用体にする（以前は `data` が `type` と結びついておらず、`event.data as …` が 50 か所あった）。新しい DB なので「以前の記録にはない」ための任意の項目は必須にする。
@@ -483,7 +492,7 @@ CREATE TABLE devices (
 
 ### 設定（AppSettings）
 
-snake_case にし、チャットの選択の既定を `ChatOptions` 1 つにまとめる: `default_provider` / `chat_defaults`（`ChatOptions`）/ `remote_enabled` / `ntfy_url` / `desktop_notifications` / `dock_badge` / `projects_dir` / `auto_resume_on_reconnect` / `auto_archive_days` / `voice_enabled` / `voice_provider` / `voice_language` / `voice_model` / `voice_openai_base_url` / `voice_openai_model` / `pre_compact_prompt` / `post_compact_prompt` / `pre_compact_enabled` / `post_compact_enabled`（圧縮前指示・圧縮後指示の共通の分と、送るか）。選択はチャット → プロジェクトの `chat_defaults` → 設定の `chat_defaults` の順に、同じ形を重ねて決める（`resolveChatOptions`）。
+snake_case にし、チャットの選択の既定を `ChatOptions` 1 つにまとめる: `default_provider` / `chat_defaults`（`ChatOptions`）/ `remote_enabled` / `ntfy_url` / `desktop_notifications` / `dock_badge` / `projects_dir` / `auto_resume_on_reconnect` / `auto_archive_days` / `voice_enabled` / `voice_provider` / `voice_language` / `voice_model` / `voice_openai_base_url` / `voice_openai_model` / `pre_compact_prompt` / `post_compact_prompt` / `pre_compact_enabled` / `post_compact_enabled`（圧縮前指示・圧縮後指示の共通の分と、送るか）。選択はチャット → プロジェクトの `chat_defaults` → 設定の `chat_defaults` の順に、同じ形を重ねて決める（`resolveChatOptions`）。 外部リンクの開き先 `link_open_in`・確認せずに開くドメイン `trusted_link_domains`（v32 と同じ版で足した。0027）。
 
 ### DB を作り直したときの画面の状態
 

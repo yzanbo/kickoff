@@ -37,6 +37,7 @@ import { requestCodeSearchFocus } from "@/features/editor/codeSearchFocus";
 import { useSidebar } from "@/features/sidebar/useSidebar";
 import { terminalTargets } from "@/features/panel/usePanel";
 import { DialogHost } from "@/ui/dialogs";
+import { LinkOpenerProvider } from "@/features/browser/LinkOpenerProvider";
 import { DbUnlockHost } from "@/features/database/DbUnlockHost";
 import { DropHintHost } from "@/ui/DropHint";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
@@ -170,6 +171,8 @@ export function App() {
   return (
     <RouteContext.Provider value={route}>
       <ChatStatesContext.Provider value={chatStates}>
+      {/* 返答の外部リンクの開き方（確かめ・開き先。メモの仕様書「0027_チャット欄の外の画像とリンク」） */}
+      <LinkOpenerProvider projectId={projectId}>
       <div {...sidebar.layout}>
         <Sidebar
           sidebar={sidebar}
@@ -252,6 +255,7 @@ export function App() {
           />
         )}
       </div>
+      </LinkOpenerProvider>
       </ChatStatesContext.Provider>
     </RouteContext.Provider>
   );

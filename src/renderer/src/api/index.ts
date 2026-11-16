@@ -3,6 +3,7 @@
 // 通信の土台（失敗・クエリの組み立て）は http.ts、SSE の接続は useServerConnection.ts（App で 1 回）、受け取ったイベントを各画面へ配るのは events.ts
 import { approvalsApi } from "./approvals";
 import { chatsApi } from "./chats";
+import { chatImagesApi } from "./chatImages";
 import { databasesApi } from "./databases";
 import { devicesApi } from "./devices";
 import { filesApi } from "./files";
@@ -32,6 +33,7 @@ export const api = {
   ...devicesApi,
   ...projectsApi,
   ...chatsApi,
+  ...chatImagesApi,
   ...turnsApi,
   ...queueApi,
   ...groupsApi,

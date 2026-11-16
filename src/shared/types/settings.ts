@@ -52,6 +52,14 @@ export const AI_CREATE_CHAT_MODE_LABELS: Record<AiCreateChatMode, string> = {
   off: "作らせない",
 };
 
+/** 返答などの Markdown のリンクを開く先（メモの仕様書「0027_チャット欄の外の画像とリンク」）: kickoff = Kickoff のブラウザのタブ / browser = 既定のブラウザ。⌘ を押しながらだと反対の方で開く */
+export const LINK_OPEN_TARGETS = ["kickoff", "browser"] as const;
+export type LinkOpenTarget = (typeof LINK_OPEN_TARGETS)[number];
+export const LINK_OPEN_TARGET_LABELS: Record<LinkOpenTarget, string> = { kickoff: "Kickoff のブラウザ", browser: "既定のブラウザ" };
+
+/** 「今後確認しない」にできるドメインの数の上限（設定の一覧が長くなりすぎないように） */
+export const TRUSTED_LINK_DOMAINS_MAX = 500;
+
 export interface AppSettings {
   /** 新規プロジェクトの既定プロバイダー */
   default_provider: ProviderId;
@@ -112,6 +120,10 @@ export interface AppSettings {
   post_compact_enabled: boolean;
   /** チャットの AI がチャット（子・兄弟・親のないチャット）を作るとき（承認カードの「常に許可」で allow になる。権限モードによらない。v29 で ai_child_chat から付け替えた） */
   ai_create_chat: AiCreateChatMode;
+  /** Markdown のリンクを開く先（既定は Kickoff のブラウザ） */
+  link_open_in: LinkOpenTarget;
+  /** 外部リンクを開く前の確認で「今後確認しない」にしたドメイン（小文字。アプリ全体で使う。警告に当たるリンクはこの一覧にあっても確かめる） */
+  trusted_link_domains: string[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -143,4 +155,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   pre_compact_enabled: true,
   post_compact_enabled: true,
   ai_create_chat: "ask",
+  link_open_in: "kickoff",
+  trusted_link_domains: [],
 };
