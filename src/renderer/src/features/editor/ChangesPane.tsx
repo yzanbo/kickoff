@@ -124,37 +124,40 @@ export function ChangesPane({
           </MenuItem>
         </PopupMenu>
       )}
-      <ErrorText message={git.error ?? action.error} />
-      <OperationBanner status={status} git={git} action={action} />
-      <CommitBox status={status} actions={commitActions} />
-      {empty ? (
-        <p className="muted small changes-empty">変更はありません。</p>
-      ) : (
-        <div className="change-groups" {...picks.containerProps}>
-          {showsStaged && (
+      {/* 見出しは残し、その下だけを流す */}
+      <div className="changes-scroll">
+        <ErrorText message={git.error ?? action.error} />
+        <OperationBanner status={status} git={git} action={action} />
+        <CommitBox status={status} actions={commitActions} />
+        {empty ? (
+          <p className="muted small changes-empty">変更はありません。</p>
+        ) : (
+          <div className="change-groups" {...picks.containerProps}>
+            {showsStaged && (
+              <ChangeGroup
+                title="ステージされている変更"
+                files={groups.staged}
+                staged
+                multi={picks.multiFor(true)}
+                picked={picks.pickedIn(true)}
+                fold={folds.staged}
+                onFoldChange={(staged) => setFolds((prev) => ({ ...prev, staged }))}
+                {...groupProps}
+              />
+            )}
             <ChangeGroup
-              title="ステージされている変更"
-              files={groups.staged}
-              staged
-              multi={picks.multiFor(true)}
-              picked={picks.pickedIn(true)}
-              fold={folds.staged}
-              onFoldChange={(staged) => setFolds((prev) => ({ ...prev, staged }))}
+              title="変更"
+              files={groups.unstaged}
+              staged={false}
+              multi={picks.multiFor(false)}
+              picked={picks.pickedIn(false)}
+              fold={folds.unstaged}
+              onFoldChange={(unstaged) => setFolds((prev) => ({ ...prev, unstaged }))}
               {...groupProps}
             />
-          )}
-          <ChangeGroup
-            title="変更"
-            files={groups.unstaged}
-            staged={false}
-            multi={picks.multiFor(false)}
-            picked={picks.pickedIn(false)}
-            fold={folds.unstaged}
-            onFoldChange={(unstaged) => setFolds((prev) => ({ ...prev, unstaged }))}
-            {...groupProps}
-          />
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </>
   );
 }

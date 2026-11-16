@@ -41,53 +41,55 @@ export function DbHome({
           <Plus size={13} aria-hidden /> 接続を足す
         </button>
       </div>
-      <div className="db-home-cards">
-        {connections.map((c) => (
-          <button key={c.id} type="button" className={cx("db-home-card", `db-env-${c.environment}`)} onClick={() => onOpen(c)} onContextMenu={(e) => onMenu(e, c)} title={`${c.name}（左の木で開く。右クリックで接続のメニュー）`}>
-            <span className="db-home-card-top">
-              <span className="db-engine-mark">{ENGINE_MARKS[c.engine]}</span>
-              <span className="db-home-card-name">{c.name}</span>
-              {connected?.includes(c.id) && (
-                <span data-tip="つないでいます" aria-label="つないでいます">
-                  <StatusDot tone="ok" />
-                </span>
-              )}
-              {c.memo_path && <StickyNote size={12} className="db-home-card-memo" aria-label="手順メモあり" />}
-            </span>
-            <span className="db-home-card-place small muted">{connectionPlace(c)}</span>
-            <span className="db-home-card-foot small">
-              <span className="db-home-env">
-                <span className="db-env-dot" aria-hidden />
-                {DB_ENVIRONMENT_LABELS[c.environment]}
+      <div className="db-home-body">
+        <div className="db-home-cards">
+          {connections.map((c) => (
+            <button key={c.id} type="button" className={cx("db-home-card", `db-env-${c.environment}`)} onClick={() => onOpen(c)} onContextMenu={(e) => onMenu(e, c)} title={`${c.name}（左の木で開く。右クリックで接続のメニュー）`}>
+              <span className="db-home-card-top">
+                <span className="db-engine-mark">{ENGINE_MARKS[c.engine]}</span>
+                <span className="db-home-card-name">{c.name}</span>
+                {connected?.includes(c.id) && (
+                  <span data-tip="つないでいます" aria-label="つないでいます">
+                    <StatusDot tone="ok" />
+                  </span>
+                )}
+                {c.memo_path && <StickyNote size={12} className="db-home-card-memo" aria-label="手順メモあり" />}
               </span>
-              {c.read_only && (
-                <span className="db-home-tag">
-                  <Lock size={11} aria-hidden /> 読み取り専用
+              <span className="db-home-card-place small muted">{connectionPlace(c)}</span>
+              <span className="db-home-card-foot small">
+                <span className="db-home-env">
+                  <span className="db-env-dot" aria-hidden />
+                  {DB_ENVIRONMENT_LABELS[c.environment]}
                 </span>
-              )}
-              {c.ai_access !== "none" && (
-                <span className="db-home-tag">
-                  <Sparkles size={11} aria-hidden /> AI に{DB_AI_ACCESS_LABELS[c.ai_access]}
-                </span>
-              )}
-              {c.last_connected_at && <span className="db-home-when muted">{relativeTime(c.last_connected_at)}</span>}
-            </span>
+                {c.read_only && (
+                  <span className="db-home-tag">
+                    <Lock size={11} aria-hidden /> 読み取り専用
+                  </span>
+                )}
+                {c.ai_access !== "none" && (
+                  <span className="db-home-tag">
+                    <Sparkles size={11} aria-hidden /> AI に{DB_AI_ACCESS_LABELS[c.ai_access]}
+                  </span>
+                )}
+                {c.last_connected_at && <span className="db-home-when muted">{relativeTime(c.last_connected_at)}</span>}
+              </span>
+            </button>
+          ))}
+          <button type="button" className="db-home-card db-home-card-add" onClick={onAdd}>
+            <Plus size={16} aria-hidden /> 接続を足す
           </button>
-        ))}
-        <button type="button" className="db-home-card db-home-card-add" onClick={onAdd}>
-          <Plus size={16} aria-hidden /> 接続を足す
-        </button>
+        </div>
+        {candidates.length > 0 && (
+          <section className="db-home-found">
+            <h3 className="db-home-found-title small">プロジェクトの中に、まだ登録していない DB が見つかりました</h3>
+            <ul className="db-home-found-list">
+              {candidates.map((c) => (
+                <Candidate key={c.key} projectId={projectId} candidate={c} />
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
-      {candidates.length > 0 && (
-        <section className="db-home-found">
-          <h3 className="db-home-found-title small">プロジェクトの中に、まだ登録していない DB が見つかりました</h3>
-          <ul className="db-home-found-list">
-            {candidates.map((c) => (
-              <Candidate key={c.key} projectId={projectId} candidate={c} />
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }
