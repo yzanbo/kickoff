@@ -59,6 +59,14 @@ export interface WorkplaceMoveRunDeps {
   worktreeEnvs?: Pick<WorktreeEnvService, "prepare">;
 }
 
+/**
+ * 利用者が予約を取り消したことを AI に伝える文（作業中ならその場で足し、足せなければ次の指示に一度だけ添える。
+ * 取り消したことを知らないまま「移ってから続けます」と答えたり、移ったつもりで進めたりしないように）
+ */
+export function cancelledNote(plan: WorkplaceMovePlan): string {
+  return `Kickoff からの知らせ（利用者の発言ではありません）: 利用者が、あなたが予約した作業場所の移動（${plan.label}へ）を取り消しました。作業が終わっても移らず、続きの指示も送りません。いまの作業場所のまま続けてください。`;
+}
+
 /** 止めた・失敗した作業では移さない（予約を消し、そう知らせる） */
 export function notMovedNotice(plan: WorkplaceMovePlan): string {
   return `作業が最後まで終わらなかったので、AI が予約した「${plan.label}へ移る」はしませんでした（予約を取り消しました）`;
