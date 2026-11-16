@@ -193,6 +193,11 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
   assert.equal(changed.status, 200);
   assert.equal(changed.body.repo_path, real);
   assert.equal(store.chats.get(chatId)?.project_id, project.id);
+  // 作業フォルダが変わったので、区切り（フォルダの付け替え）を置き、会話を新しいセッションに写す（メモの仕様書「0025」の G1）
+  const boundary = store.events.list(chatId).find((e) => e.type === "workplace_moved");
+  assert.ok(boundary?.type === "workplace_moved");
+  assert.deepEqual([boundary.data.reason, boundary.data.from.dir, boundary.data.to.dir], ["folder_moved", project.repo_path, real]);
+  assert.equal(store.chats.get(chatId)?.session_id, "moved-1");
   // 次の指示から新しいフォルダで動き、AI への説明のプロジェクトフォルダも新しい場所になる（指示を送るたびに作り直す）
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "2" })).status < 300, true);
   await until(() => provider.prompts.length === 2 && !runner.isBusy(chatId));

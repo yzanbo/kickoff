@@ -1,6 +1,7 @@
 // 動き（メインとすべてのサブエージェントの動きを、1 本の時系列に並べる表示）の行の組み立て。純粋な関数
 import type { ChatEvent } from "@shared/types";
 import { relayedText } from "@shared/chat/prompts";
+import { workplaceMoveLine } from "@shared/chat/workplaceMoves";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState } from "@shared/chat/subagentState";
 import { groupEvents, summarizeTools, type TimelineItem, type ToolCall } from "@/features/chat/timeline/timelineItems";
@@ -179,6 +180,8 @@ function rowOf(item: TimelineItem, agent: string | null, owner: SubagentEntry | 
       return { ...base, kind: "note", text: `会話を要約しました（${e.data.trigger === "auto" ? "自動" : "手動"}）` };
     case "context_cleared":
       return { ...base, kind: "note", text: "コンテキストを消去（ここから新しい会話）" };
+    case "workplace_moved":
+      return { ...base, kind: "note", text: workplaceMoveLine(e.data) };
     case "notice":
       return { ...base, kind: "note", text: firstLine(e.data.message) };
     case "error":

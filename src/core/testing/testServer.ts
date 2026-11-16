@@ -177,6 +177,14 @@ class FakeProvider extends FakeProviderBase {
     if (this.forkError) throw new Error(this.forkError);
     return `fork-${n}`;
   }
+  /** 作業場所を移すときに写したセッション（元の会話・作業フォルダ）と、写せないときの失敗（メモの仕様書「0025」） */
+  copies: [string, string][] = [];
+  copyError: string | null = null;
+  async copySessionForMove(sessionId: string, cwd: string) {
+    this.copies.push([sessionId, cwd]);
+    if (this.copyError) throw new Error(this.copyError);
+    return { sessionId: `moved-${this.copies.length}`, previousFile: `/sessions/${sessionId}.jsonl` };
+  }
   /** すべての会話記録のファイル（どのチャットも使っていない記録の一覧の元。テストで入れる） */
   sessionFiles: SessionFileInfo[] = [];
   async listSessionFiles() {

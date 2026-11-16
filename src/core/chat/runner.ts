@@ -5,6 +5,7 @@ import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } from "./input.js";
 import { startChildChat } from "./children.js";
+import { moveChatWorkplace, type WorkplaceMoveInput } from "./workplaceMove.js";
 import type { WorktreeFinisher } from "../worktrees/finish.js";
 import type { ChatRemover } from "./aiChatRemove.js";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type RestartResume, type RestartResumeAction, type TellResult, type MessageMarks } from "@shared/types";
@@ -587,6 +588,23 @@ export class Runner extends RunnerQueue {
   forget(chatId: number) {
     this.forgetRecovery(chatId);
     this.runtimes.forget(chatId);
+  }
+
+  /**
+   * チャットの作業場所を移す（メモの仕様書「0025_チャットの作業場所を変える」。中身は workplaceMove.ts の moveChatWorkplace）。
+   * 利用者・AI が移すときは作業中なら 409。移している間（会話を写す間）も作業中として数え（preparing）、その間に送られないようにする。
+   * 止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま。G3）
+   */
+  async moveWorkplace(chatId: number, input: WorkplaceMoveInput): Promise<Chat> {
+    if (input.reason === "user" || input.reason === "ai") this.requireIdle(chatId, "作業場所の変更");
+    const runtime = this.runtimes.get(chatId);
+    runtime.preparing = true;
+    try {
+      this.forgetRecovery(chatId);
+      return await moveChatWorkplace({ store: this.deps.store, providers: this.deps.providers, sessionTrash: this.deps.sessionTrash }, chatId, input);
+    } finally {
+      runtime.preparing = false;
+    }
   }
 
   /** 自分で送った・チャットを消した: 通信・使用枠の上限で止まったあとの再開の段取り（待つ・聞く）をやめる（再開の段取りが送ったものなら続ける） */

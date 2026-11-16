@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "vitest";
 import { tempDir } from "../../testing/tempDir.js";
-import { findSessionFile, listSessionFiles, readSessionHead, recentSegmentsRange, sessionFileInfo, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
+import { copyForWorkplaceMove, findSessionFile, listSessionFiles, readSessionHead, recentSegmentsRange, sessionFileInfo, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
 
 const SID = "11111111-1111-1111-1111-111111111111";
 const line = (o: object) => JSON.stringify({ sessionId: SID, ...o });
@@ -97,6 +97,24 @@ test("乗り換え: 終わりの直近 3 区切りだけを、発言の ID は�
   // 区切りが 2 つだけなら切るものがない
   const short = sessionFile([msg("a"), boundary("b1"), msg("c"), boundary("b2"), msg("d")]);
   assert.equal(await trimToRecentSegments(short.path, SID), null);
+});
+
+test("作業場所を移すとき: 直近 3 区切り（足りなければ丸ごと）を、発言の ID はそのまま・ファイルの控えの行は落として新しい ID のセッションに写す", async () => {
+  const history = line({ type: "file-history-snapshot", messageId: "c", snapshot: {} });
+  const delta = line({ type: "file-history-delta", messageId: "e", trackingPath: "/work/app/a.txt" });
+  const long = sessionFile([msg("a"), boundary("b1"), msg("c"), history, boundary("b2"), msg("d"), boundary("b3"), msg("e"), delta, msg("f")]);
+  mkdirSync(long.path.replace(/\.jsonl$/, ""));
+  const copied = await copyForWorkplaceMove(long.path, SID);
+  const written = readFileSync(copied.path, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  assert.deepEqual(written.map((l) => l.uuid ?? l.type), ["b1", "c", "b2", "d", "b3", "e", "f"]);
+  assert.ok(written.every((l) => l.sessionId === copied.sessionId));
+  // 同じ名前のフォルダ（サブエージェントの記録など）は新しいセッションの名前に移す。元の記録は変えない
+  assert.ok(existsSync(copied.path.replace(/\.jsonl$/, "")));
+  assert.ok(existsSync(long.path));
+  // 区切りが足りなければ丸ごと（控えは落とす）
+  const short = sessionFile([msg("a"), history, boundary("b1"), msg("c")]);
+  const whole = await copyForWorkplaceMove(short.path, SID);
+  assert.deepEqual(readFileSync(whole.path, "utf8").trim().split("\n").map((l) => JSON.parse(l).uuid), ["a", "b1", "c"]);
 });
 
 test("記録の頭から作業フォルダと最初の自分の発言を読む（< で始まる知らせ・メタの行は飛ばす）。すべての記録の一覧", async () => {

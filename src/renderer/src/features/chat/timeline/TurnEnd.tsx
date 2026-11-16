@@ -1,5 +1,6 @@
 import { ClipboardPenLine, GitBranch } from "lucide-react";
 import type { ChatEventOf } from "@shared/types";
+import { WORKPLACE_FORK_LOCKED } from "@shared/chat/workplaceMoves";
 import { cx } from "@/lib/cx";
 import { formatClock, formatElapsed } from "@/lib/time";
 import { copyRich } from "@/lib/richCopy";
@@ -16,6 +17,7 @@ import { requestHandoff } from "@/features/chat/children/handoff";
 import { AddToParentButton } from "@/features/chat/children/AddToParentButton";
 import { HandoffMarks } from "@/features/chat/children/HandoffMarks";
 import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
+import { useBeforeWorkplaceMove } from "@/features/chat/store/useChatStore";
 import type { TurnHandoff } from "./timelineItems";
 import { useTimelineBusy } from "./timelineBusy";
 
@@ -51,7 +53,9 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: T
   const chat = useKnownChat(event.chat_id);
   const child = chat && chat.parent_chat_id !== null && !chat.archived_at ? chat : undefined;
   // そのチャットの AI で分岐できなければ、押せない形にして理由を出す（メモの仕様書「0021」の Q4）
-  const forkBlock = useFeatureBlock("fork");
+  // 作業場所を移した区切りより前の地点からは分岐できない（メモの仕様書「0025」の Q3）
+  const beforeMove = useBeforeWorkplaceMove(event.chat_id, event.id);
+  const forkBlock = useFeatureBlock("fork") ?? (beforeMove ? WORKPLACE_FORK_LOCKED : null);
   const status = data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${data.text ?? ""}` : null;
   const worked = turnStart && formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
   if (!status && !worked && !turnText) return null;

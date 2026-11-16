@@ -6,6 +6,7 @@ import { isLocalImagePath, remoteImageOf, type RemoteImage } from "@shared/links
 import { api } from "@/api";
 import { MarkdownImagesContext, type MarkdownImageProps, type MarkdownImages } from "@/ui/markdown/markdownImages";
 import { useAttachmentViewer } from "@/features/chat/attachments/useAttachmentViewer";
+import { usePastWorkplaceAt } from "@/features/chat/timeline/PastWorkplace";
 import { useAllowedHosts } from "./imageHosts";
 import { hostGroupOf, type ImageHostGroup } from "./imageGroups";
 import { loadRemoteImage } from "./remoteImageCache";
@@ -62,9 +63,17 @@ function HostLine({ chatId, group }: { chatId: number; group: ImageHostGroup }) 
 
 /** 手元の画像（作業場所・添付・メモのフォルダの中。相対パスはチャットの作業場所から） */
 function LocalChatImage({ chatId, path, alt }: { chatId: number; path: string; alt?: string }) {
+  // 作業場所を移した区切りより前の返答なら、相対パスはそのときの作業場所から（メモの仕様書「0025」の H5）
+  const at = usePastWorkplaceAt();
   return (
     <span className="chat-image">
-      <LoadedImage load={() => api.toolImage(chatId, path).then(({ blob }) => URL.createObjectURL(blob))} loadKey={`${chatId}:local:${path}`} alt={alt} label={path} own />
+      <LoadedImage
+        load={() => api.toolImage(chatId, path, at).then(({ blob }) => URL.createObjectURL(blob))}
+        loadKey={`${chatId}:local:${at ?? ""}:${path}`}
+        alt={alt}
+        label={path}
+        own
+      />
     </span>
   );
 }

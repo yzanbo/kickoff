@@ -238,7 +238,8 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, databases
 
   /**
    * 別のプロジェクトへ移す（右クリックの「プロジェクトを移動」）。グループ・作業場所（ワークツリー）は元のプロジェクトのものなので外し、
-   * 作業場所は移った先の本体にする。会話（Claude Code のセッション）は作業フォルダが変わっても続けられる。作業中は断る
+   * 作業場所は移った先の本体にする。会話（Claude Code のセッション）は作業フォルダが変わっても続けられる。作業中は断る。
+   * 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（メモの仕様書「0025」の G1・J4。子チャットもそれぞれ）
    */
   app.post("/api/chats/:id/move", withChat, async (c) => {
     const { chat } = c.var;
@@ -248,8 +249,8 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, databases
     // 子チャット（子・孫…）も一緒に移す
     const family = store.chats.descendants(chat.id);
     for (const c of [chat, ...family]) runner.requireIdle(c.id, "移動");
-    for (const c of family) store.chats.move(c.id, target.id);
-    return c.json(store.chats.move(chat.id, target.id));
+    for (const c of family) await runner.moveWorkplace(c.id, { worktreePath: null, projectId: target.id, reason: "project_moved" });
+    return c.json(await runner.moveWorkplace(chat.id, { worktreePath: null, projectId: target.id, reason: "project_moved" }));
   });
 
   // 削除 = Kickoff のゴミ箱へ（子チャット（子・孫…）・会話の記録・会話記録のファイル・添付ごと。3 日は戻せ、3 日たったら本当に消す。

@@ -58,6 +58,3 @@ export function finishedText(o: FinishOutcome): string {
   if (o.chats > 0) lines.push(`このワークツリーで作業していたチャット ${o.chats} 件は、次から本体で動きます。`);
   return lines.join("\n");
 }
-
-/** 本体に戻したチャットに残すお知らせ */
-export const movedToMainNotice = (branch: string | null) => `ワークツリー（${branch ?? "ブランチなし"}）を片付けました。次からは本体で動きます`;

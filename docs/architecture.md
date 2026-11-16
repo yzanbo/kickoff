@@ -38,6 +38,7 @@
 | 起動したときの再開の確かめ（前回の終了で、作業の途中で止まったチャットと、自動で送るまま残った送信待ちを、起動してから続けるか・送るか聞く。送る / 続ける・続けてから送る / 止めておく・止めたまま / あとで） | `RestartResume` / `RestartResumeAction`（確かめを待つ印は `ChatLive.restart_resume`（`RestartResumeState`）、DB の印は `chats.resume_pending`。`GET\|POST /api/restart-resumes`・`Runner.restartResumes`・画面の `RestartResumeDialog` / `RestartResumeBanner`・店 `stores/restartResumes.ts`） | なし |
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `Runner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `core/chat/sessionPoints.ts`） | なし |
+| 作業場所を移した区切り（チャットの作業場所（本体 / ワークツリー・プロジェクト・フォルダ）が変わった所。会話は新しいセッションに写して続け、これより前の発言は巻き戻せず、分岐の起点にもできない） | 記録 `workplace_moved`（`from` / `to` は `WorkplaceRef`・理由 `WorkplaceMoveReason`）・移す処理 `core/chat/workplaceMove.ts` の `moveChatWorkplace`（`Runner.moveWorkplace`）・決まり `@shared/chat/workplaceMoves` | 別のプロジェクトへの移動・ワークツリーの片付けのお知らせ |
 | 作業中の様子（保存しない） | `ChatLive` | 詳細と SSE で別々の形 |
 | 末尾（チャットを開くときに読む最新のターン。ターンの境目は作業の終わり） | `tail`（`GET /api/chats/:id?tail_turns=`・`CHAT_TAIL_TURNS`・`core/chat/chatLogQuery.ts` の `tailStart`） | なし（すべてを読んでいた） |
 | 索引（末尾より前の記録のうち、記録全体から作るもの（サブエージェントの一覧・ToDo・図・指示の履歴など）が要るものだけを軽くしたもの） | `index`（`ChatDetail.index`・`@shared/chat/chatIndex` の `selectIndexIds` / `ChatEventMeta`・覆う索引 `idx_chat_events_meta`） | なし |
@@ -489,6 +490,7 @@ CREATE TABLE devices (
 | `compact` | `trigger` `pre_tokens` `post_tokens?` | |
 | `subagent` | `SubagentInfo` | |
 | `handoff` | `via`（composer / send / queue）`parent_chat_id` `turn_event_id`（子チャットの作業の返答を親に渡した。渡すたびに 1 件。流れには出さず、渡した作業の終わりの行の印にする） | 新しく足した |
+| `workplace_moved` | `from` `to`（`WorkplaceRef`: `project_id` `worktree_path` `branch` `dir`）`reason`（user / ai / worktree_finished / project_moved / folder_moved）`carried?`（コミットしていない変更を持っていった）`backed_up?`（片付けで控えに入れた）`session_id?` `message_id?`（移したあとの起点 = 新しいセッションに写した会話の同じ発言） | 新しく足した（メモの仕様書「0025」）。前はワークツリーを片付けたら `notice` のお知らせだけで、会話の起点は区切られなかった |
 
 ### 設定（AppSettings）
 
