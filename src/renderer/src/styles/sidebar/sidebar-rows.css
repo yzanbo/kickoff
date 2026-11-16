@@ -116,8 +116,14 @@ button.chat-row {
   visibility: hidden;
 }
 
-.chat-row.active {
-  background: var(--bg-hover);
+/*
+ * 開いているチャットの行（色は --bg-row-active。base/tokens.css）。乗せている間・メニューを開いている間も、
+ * 乗せたときの地（--bg-elev）に戻さずこの地のまま（開いている行がどれか分からなくならないように）
+ */
+.chat-row.active,
+.chat-row-item:hover > .chat-row.active,
+.chat-row-item:has(> .chat-row-actions.open) > .chat-row.active {
+  background: var(--bg-row-active);
 }
 
 .chat-row.ghost {
