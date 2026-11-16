@@ -34,7 +34,7 @@ export function createAiVisualTools(store: Store, chatId: number): AiVisualTools
       checkCode(code, title);
       const id = newVisualId();
       const name = title?.trim() ? `「${title.trim()}」` : "図";
-      return `${name}を返答のこの位置に描きました。${visualIdLine(id)}（描き直すときは update_visual にこの visual_id を渡してください。利用者に ID を見せる必要はありません）`;
+      return `${name}を返答のこの位置に描きました。${visualIdLine(id)}（描き直すときは update_visual にこの visual_id を渡してください。図はもうこの位置に出ているので、返答の本文に visual_id や図の目印（<!-- … --> の HTML のコメント・[図: …] など）を書かないでください）`;
     },
     update({ visual_id, code, title }) {
       if (!isVisualId(visual_id) || !store.events.hasToolResultWith(chatId, visualIdLine(visual_id))) {
