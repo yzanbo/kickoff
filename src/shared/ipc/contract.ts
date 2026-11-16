@@ -4,7 +4,7 @@
 // 値は種類だけ（zod・Electron・Node に依存しない。サンドボックスの preload にも束ねるため）
 import type { BrowserExtensionInfo, KnownExtensionKey } from "./browserExtensions";
 import type { BrowserHandOffCapture } from "./browserHandOff";
-import type { BootReport, DiagnosticsFolders, DiagnosticsState, RendererMemory } from "./diagnostics";
+import type { BootReport, DiagnosticsFolders, DiagnosticsOverview, DiagnosticsState, RendererMemory } from "./diagnostics";
 import type { CoreStatus } from "./core";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { LoginItemState } from "./loginItem";
@@ -184,6 +184,10 @@ export const NATIVE_API = {
     folders: invoke<[], DiagnosticsFolders>(),
     /** 保存先を Finder で開く（まだなければ作る） */
     openRoot: invoke<[]>(),
+    /** いつも取っている記録のまとめ（最近 24 時間の詰まり・最後の起動の時刻。設定の「診断」に出す） */
+    overview: invoke<[], DiagnosticsOverview>(),
+    /** ログの場所（~/Library/Logs/<アプリ名>）を Finder で開く（まだなければ作る） */
+    openLogs: invoke<[]>(),
     /** 記録の様子（記録中・保存中・保存した・失敗） */
     onState: event<[state: DiagnosticsState]>(),
     /** 画面の起動の時刻（読み込みごとに 1 回。メインが startup.log・boot.jsonl に書く） */

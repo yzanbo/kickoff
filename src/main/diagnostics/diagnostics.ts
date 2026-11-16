@@ -11,6 +11,7 @@ import type { CoreDiagnostics } from "../../core/host/protocol.js";
 import type { CoreProcess } from "../app/coreProcess.js";
 import { recentCoreStalls, recentStalls } from "./stalls.js";
 import { bootSummary, recordBoot, recordRendererMemory } from "./bootRecorder.js";
+import { readLogOverview } from "./logOverview.js";
 import { startCpuProfile, topSelfTime } from "../../core/system/cpuProfile.js";
 import { diagnosticsFolderName, perSecond, RENDERER_PROBE, type Metrics } from "./profileSummary.js";
 import { RENDERER_COLLECT, RENDERER_OBSERVE, summarizeFrames, summarizeInteractions, type RendererTimings } from "./rendererTiming.js";
@@ -64,11 +65,19 @@ export async function openDiagnosticsRoot(): Promise<void> {
   await shell.openPath(diagnosticsRoot());
 }
 
+/** ログの場所（stalls.jsonl・boot.jsonl・startup.log など）を Finder で開く（まだなければ作る） */
+async function openLogsDir(): Promise<void> {
+  await fs.mkdir(logsDir(), { recursive: true });
+  await shell.openPath(logsDir());
+}
+
 /** 性能の記録（IPC の diagnostics）。記録を取るのは、頼んできた画面のウィンドウ（なければメインのウィンドウ） */
 export const diagnosticsHandlers: IpcHandlers["diagnostics"] = {
   start: (e) => void startDiagnostics(BrowserWindow.fromWebContents(e.sender) ?? mainWindow()),
   folders: () => diagnosticsFolders(),
   openRoot: () => openDiagnosticsRoot(),
+  overview: () => readLogOverview(logsDir(), new Date()),
+  openLogs: () => openLogsDir(),
   reportBoot: (_e, report) => recordBoot(report),
   reportMemory: (e, memory) => recordRendererMemory(e.sender, memory),
 };
