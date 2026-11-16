@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FolderGit2, RotateCcw } from "lucide-react";
+import { FolderGit2 } from "lucide-react";
 import { ARCHIVE_CLEANUP_DAYS, ARCHIVE_CLEANUP_DAYS_LABELS, type ArchiveCleanupDays, type TrashItem } from "@shared/types";
 import { formatSize } from "@shared/attachment/truncate";
 import { api } from "@/api";
@@ -12,9 +12,8 @@ import { ErrorText } from "@/ui/ErrorText";
 import { confirmDialog } from "@/ui/dialogs";
 import { showToast } from "@/ui/toast";
 import { formatDayTime } from "@/lib/time";
-import { restoreFromTrash } from "./trashActions";
 import { remainingText } from "./trashText";
-import { TrashRow } from "./TrashTab";
+import { EmptyTrashButton, TrashRow, TrashRowActions } from "./TrashTab";
 import { OrphanSessions } from "./OrphanSessions";
 
 /**
@@ -40,7 +39,8 @@ function TrashedProjects() {
   return (
     <section className="section">
       <h2>ゴミ箱のプロジェクト</h2>
-      <p className="muted small">削除したプロジェクトは、チャット・DB の接続・定型文・設定ごと 3 日取っておき、ここから戻せます。3 日たつと本当に消えます（プロジェクトのフォルダはどちらでも消えません）。</p>
+      <p className="muted small">削除したプロジェクトは、チャット・DB の接続・定型文・設定ごと 3 日取っておき、ここから戻せます。3 日たつと本当に消えます（待たずに完全に消すこともできます。プロジェクトのフォルダはどちらでも消えません）。</p>
+      <EmptyTrashButton items={items} label="すべて完全に消す" title={`ゴミ箱のプロジェクト ${items.length} 件を完全に消しますか？`} />
       <ErrorText message={error} />
       {items.length === 0 ? (
         <p className="muted small">ゴミ箱にプロジェクトはありません。</p>
@@ -56,7 +56,6 @@ function TrashedProjects() {
 }
 
 function TrashedProjectRow({ item }: { item: TrashItem }) {
-  const { busy, run } = useAction();
   return (
     <li className="trash-row">
       <FolderGit2 size={16} className="trash-row-icon" aria-hidden />
@@ -71,10 +70,7 @@ function TrashedProjectRow({ item }: { item: TrashItem }) {
           </span>
         </div>
       </div>
-      <button type="button" className="btn btn-sm" disabled={busy !== null} onClick={() => void run("restore", () => restoreFromTrash(item))}>
-        <RotateCcw size={14} aria-hidden />
-        元に戻す
-      </button>
+      <TrashRowActions item={item} />
     </li>
   );
 }
@@ -135,7 +131,8 @@ function UnassignedTrash() {
   return (
     <section className="section">
       <h2>ゴミ箱（プロジェクトのないもの）</h2>
-      <p className="muted small">どのプロジェクトのフォルダにも入らない場所のものです。3 日たつと本当に消えます。</p>
+      <p className="muted small">どのプロジェクトのフォルダにも入らない場所のものです。3 日たつと本当に消えます（待たずに完全に消すこともできます）。</p>
+      <EmptyTrashButton items={data} label="すべて完全に消す" title={`プロジェクトのないゴミ箱のもの ${data.length} 件を完全に消しますか？`} />
       <ul className="trash-list">
         {data.map((item) => (
           <TrashRow key={item.id} item={item} />

@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import os from "node:os";
 import { z } from "zod";
-import type { ArchiveCleanupBody, OrphanSessionsTrashBody, TrashItem, TrashRestoreBody } from "@shared/types";
+import type { ArchiveCleanupBody, OrphanSessionsTrashBody, TrashItem, TrashPurgeBody, TrashRestoreBody } from "@shared/types";
 import type { StoredTrashItem } from "../../db/trash.js";
 import type { ServerDeps } from "../server.js";
 import { jsonBody, queryOf } from "../input.js";
@@ -15,6 +15,8 @@ const restoreSchema = z.object({ rename: z.boolean().optional() }) satisfies z.Z
 // 整理の日数（1 日から 10 年まで。画面の選択肢は ARCHIVE_CLEANUP_DAYS）
 const days = z.coerce.number().int().min(1).max(3650);
 const cleanupSchema = z.object({ days }) satisfies z.ZodType<ArchiveCleanupBody>;
+// まとめて完全に消す ID（画面に出していたもの。ゴミ箱の ID は uuid）
+const purgeSchema = z.object({ ids: z.array(z.string().uuid()).min(1).max(5000) }) satisfies z.ZodType<TrashPurgeBody>;
 const orphanTrashSchema = z.object({ session_ids: z.array(z.string().uuid()).min(1).max(5000) }) satisfies z.ZodType<OrphanSessionsTrashBody>;
 
 /** 画面に返す形（種類ごとの覚え書き details は出さない） */
@@ -22,7 +24,7 @@ const toApi = ({ details: _details, ...item }: StoredTrashItem): TrashItem => it
 
 /**
  * Kickoff のゴミ箱（メモの仕様書「ファイル削除」）。一覧はプロジェクトごと（AI が kickoff-trash で入れたばかりのものも取り込んでから返す）、
- * 元に戻すは戻した場所（同じ名前があれば 409 と TRASH_RESTORE_EXISTS。rename なら別の名前で戻す）。本当に消す口は置かない（3 日で消える）
+ * 元に戻すは戻した場所（同じ名前があれば 409 と TRASH_RESTORE_EXISTS。rename なら別の名前で戻す）。3 日で消えるのを待たずに、1 件・まとめて完全に消せる
  */
 export function trashRoutes(app: Hono, { store, trashBin, runner, providers, sessionsElsewhere }: ServerDeps) {
   const { withProject } = lookups(store);
@@ -64,6 +66,18 @@ export function trashRoutes(app: Hono, { store, trashBin, runner, providers, ses
   app.post("/api/archive-cleanup", async (c) => {
     const body = cleanupSchema.parse(await jsonBody(c));
     return c.json(runArchiveCleanup({ store, trashBin, runner }, body.days));
+  });
+
+  // 3 日を待たずに完全に消す: まとめて（「ゴミ箱を空にする」。画面に出していたものだけ。もうないものは飛ばす）と 1 件（もうなければ 404）
+  app.post("/api/trash/purge", async (c) => {
+    const body = purgeSchema.parse(await jsonBody(c));
+    return c.json({ purged: await trashBin.purgeNow(body.ids) });
+  });
+  app.delete("/api/trash/:itemId", async (c) => {
+    const id = c.req.param("itemId");
+    if (!store.trash.get(id)) throw new NotFound("ゴミ箱にありません（もう消えたか、戻したあとです）");
+    await trashBin.purgeNow([id]);
+    return c.body(null, 204);
   });
 
   app.post("/api/trash/:itemId/restore", async (c) => {

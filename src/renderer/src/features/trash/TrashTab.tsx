@@ -9,7 +9,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { useTicker } from "@/hooks/useTicker";
 import { formatDayTime } from "@/lib/time";
 import { useAction } from "@/hooks/useAction";
-import { restoreFromTrash } from "./trashActions";
+import { emptyTrash, purgeFromTrash, restoreFromTrash } from "./trashActions";
 import { remainingText } from "./trashText";
 
 /** 元の場所の見せ方（プロジェクトフォルダの中なら、そこからの場所） */
@@ -24,7 +24,8 @@ const kindIcon = (item: TrashItem) => (item.kind === "file" ? (item.is_dir ? Fol
 
 /**
  * プロジェクトの「ゴミ箱」タブ（メモの仕様書「ファイル削除」の Q6・Q10）。Kickoff のゴミ箱に入れたもの（AI の kickoff-trash・ファイル / メモの「ゴミ箱に入れる」・
- * チャットの削除）を新しい順に並べ、何を・いつ・誰が消したか・消えるまでの残り・大きさと「元に戻す」を出す。本当に消す操作は置かない（3 日で消える）
+ * チャットの削除）を新しい順に並べ、何を・いつ・誰が消したか・消えるまでの残り・大きさと「元に戻す」「完全に消す」を出す。3 日を待たずに全部を消す
+ * 「ゴミ箱を空にする」も見出しに置く（利用者の依頼。前は 3 日で消えるのを待つだけだった）
  */
 export function TrashTab({ projectId }: { projectId: number }) {
   const { data, error, loaded } = useProjectTrash(projectId);
@@ -38,7 +39,9 @@ export function TrashTab({ projectId }: { projectId: number }) {
       <header className="trash-head">
         <Trash2 size={16} aria-hidden />
         <h2>ゴミ箱</h2>
-        <span className="muted small">消したものを 3 日取っておきます。3 日たつと本当に消えます（OS のゴミ箱とは別です）。</span>
+        <span className="muted small">消したものを 3 日取っておきます。3 日たつと本当に消えます（待たずに完全に消すこともできます。OS のゴミ箱とは別です）。</span>
+        <span className="spacer" />
+        <EmptyTrashButton items={items} label="ゴミ箱を空にする" title={`ゴミ箱の ${items.length} 件を完全に消しますか？`} />
       </header>
       <ErrorText message={error} />
       {loaded && items.length === 0 ? (
@@ -58,7 +61,6 @@ export function TrashTab({ projectId }: { projectId: number }) {
 
 /** ゴミ箱の 1 行（プロジェクトの「ゴミ箱」タブと、設定の「ゴミ箱と整理」のプロジェクトのないもの） */
 export function TrashRow({ item, repoPath }: { item: TrashItem; repoPath?: string }) {
-  const { busy, run } = useAction();
   const Icon = kindIcon(item);
   // 元の場所（名前だけと同じ = プロジェクトフォルダのいちばん上なら出さない）
   const shown = originText(item.origin, repoPath);
@@ -99,10 +101,36 @@ export function TrashRow({ item, repoPath }: { item: TrashItem; repoPath?: strin
           </span>
         </div>
       </div>
+      <TrashRowActions item={item} />
+    </li>
+  );
+}
+
+/** ゴミ箱の行の右の操作（「元に戻す」と、3 日を待たずに「完全に消す」。行の直下に並べる） */
+export function TrashRowActions({ item }: { item: TrashItem }) {
+  const { busy, run } = useAction();
+  return (
+    <>
       <button type="button" className="btn btn-sm" disabled={busy !== null} onClick={() => void run("restore", () => restoreFromTrash(item))}>
         <RotateCcw size={14} aria-hidden />
         元に戻す
       </button>
-    </li>
+      <button type="button" className="btn btn-sm" disabled={busy !== null} onClick={() => void run("purge", () => purgeFromTrash(item))}>
+        <Trash2 size={14} aria-hidden />
+        完全に消す
+      </button>
+    </>
+  );
+}
+
+/** 並んでいるものをまとめて完全に消すボタン（タブの「ゴミ箱を空にする」・設定の「すべて完全に消す」。何もなければ出さない） */
+export function EmptyTrashButton({ items, label, title }: { items: readonly TrashItem[]; label: string; title: string }) {
+  const { busy, run } = useAction();
+  if (items.length === 0) return null;
+  return (
+    <button type="button" className="btn btn-danger btn-sm trash-empty" disabled={busy !== null} onClick={() => void run("empty", () => emptyTrash(items, title))}>
+      <Trash2 size={14} aria-hidden />
+      {label}
+    </button>
   );
 }

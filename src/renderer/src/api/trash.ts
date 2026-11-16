@@ -1,4 +1,4 @@
-import type { ArchiveCleanupPreview, ArchiveCleanupResult, OrphanSession, TrashItem, TrashRestoreResult } from "@shared/types";
+import type { ArchiveCleanupPreview, ArchiveCleanupResult, OrphanSession, TrashItem, TrashPurgeResult, TrashRestoreResult } from "@shared/types";
 import { request, withQuery } from "./http";
 
 /** Kickoff のゴミ箱（コアの http/routes/trash.ts） */
@@ -17,6 +17,10 @@ export const trashApi = {
   trashItem: (id: string) => request<TrashItem>("GET", `/api/trash/${id}`),
   /** 元に戻す（同じ名前があれば 409 と TRASH_RESTORE_EXISTS。rename なら「名前 2」で戻す） */
   restoreTrash: (id: string, rename = false) => request<TrashRestoreResult>("POST", `/api/trash/${id}/restore`, { rename }),
+  /** 3 日を待たずに 1 件を完全に消す（もうなければ 404） */
+  purgeTrash: (id: string) => request<void>("DELETE", `/api/trash/${id}`),
+  /** 3 日を待たずにまとめて完全に消す（もうないものは飛ばす） */
+  purgeTrashItems: (ids: string[]) => request<TrashPurgeResult>("POST", "/api/trash/purge", { ids }),
   /** アーカイブ済みのチャットの整理の見込み（days 日より前から動いていないもの） */
   archiveCleanupPreview: (days: number) => request<ArchiveCleanupPreview>("GET", withQuery("/api/archive-cleanup", { days })),
   /** アーカイブ済みのチャットをまとめてゴミ箱へ入れる */
