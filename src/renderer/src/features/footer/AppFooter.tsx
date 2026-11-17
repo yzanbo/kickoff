@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Check, GitBranch, Settings, TriangleAlert, Unplug, WifiOff } from "lucide-react";
 import { useOnline } from "@/hooks/useOnline";
 import type { ConnectionState } from "@/api/useServerConnection";
@@ -18,6 +19,9 @@ import { usePopover } from "@/ui/Popover";
 import { UsageMeter } from "@/features/usage/UsageMeter";
 import { UsagePopover } from "@/features/usage/UsagePopover";
 import { ForegroundUsage, useForegroundUsage } from "@/features/usage/ForegroundUsage";
+import { useForegroundChat } from "@/features/chat/provider/chatProvider";
+import { UsageProviderPicker } from "./UsageProviderPicker";
+import { activeTemporaryUsage, type SelectableUsage, type TemporaryUsage } from "./usageSelection";
 import { RestartResumeFooterButton } from "@/features/chat/queue/RestartResumeDialog";
 import { PortsButton, PortsFallback } from "./ports/PortsButton";
 import { portsAvailable } from "./ports/portsStore";
@@ -48,6 +52,17 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
   const menu = useContextMenu();
   // 前に出しているチャットが Claude Code 以外の AI・API キーで動かす AI なら、その AI の使用状況を出す（メモの仕様書「0021」の Q6 B）
   const foregroundAi = useForegroundUsage();
+  const foregroundChat = useForegroundChat();
+  const [choice, setChoice] = useState<TemporaryUsage | null>(null);
+  const temporary = activeTemporaryUsage(choice, foregroundChat);
+  const displayedAi = temporary === null ? foregroundAi : temporary === "claude" ? null : temporary;
+  // 別のチャットや AI に移ったら、前の詳細も閉じる。
+  useEffect(() => usagePopover.close(), [foregroundChat, usagePopover.close]);
+  const selectUsage = (provider: SelectableUsage | null) => {
+    usagePopover.close();
+    setChoice(provider === null ? null : { provider, foreground: foregroundChat });
+  };
+  const renderPlan = (label: string) => <UsageProviderPicker label={label} temporary={temporary} onSelect={selectUsage} />;
   // 隠していても、⌘K から「ポートを使っているプロセス」を開ける
   if (mode === "hide") return portsAvailable() ? <PortsFallback /> : null;
   return (
@@ -90,13 +105,9 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       {/* 起動したときの再開の確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
       <RestartResumeFooterButton />
       <span className="spacer" />
-      {foregroundAi !== null && <ForegroundUsage key={foregroundAi} provider={foregroundAi} />}
-      {foregroundAi === null && usage?.plan && (
-        <span className="plan-chip" title={`${usage.provider_label} でログインしているアカウントの契約プラン`}>
-          {planName(usage)}
-        </span>
-      )}
-      {foregroundAi !== null ? null : usage?.available ? (
+      {displayedAi !== null && <ForegroundUsage key={`${displayedAi}:${temporary ?? "auto"}`} provider={displayedAi} showSubscription={temporary !== null} renderPlan={renderPlan} />}
+      {displayedAi === null && renderPlan(planName(usage) || "Claude Code")}
+      {displayedAi !== null ? null : usage?.available ? (
         <button
           ref={usagePopoverAnchor}
           className={`footer-usage ${usagePopover.open ? "active" : ""}`}
@@ -114,7 +125,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       ) : (
         usage && <span className="muted">使用状況を取得できません</span>
       )}
-      {usagePopover.open && <UsagePopover anchor={usagePopoverAnchor} planUsage={planUsage} onClose={usagePopover.close} />}
+      {displayedAi === null && usagePopover.open && <UsagePopover anchor={usagePopoverAnchor} planUsage={planUsage} onClose={usagePopover.close} />}
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="下の帯の出し方" onClose={menu.close}>
           <div className="menu-label">下の帯</div>
