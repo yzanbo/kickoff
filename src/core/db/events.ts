@@ -44,6 +44,7 @@ const toEvent = (row: EventRow): ChatEvent => ({ ...row, data: withNormalizedAtt
 /** 記録の添付（自分の発言・質問への回答）を今の形にする（種類を持つ前の記録は、読むときに読み替える） */
 function withNormalizedAttachments(data: ChatEventData): ChatEventData {
   if (data.type === "user" && data.attachments) return { ...data, attachments: data.attachments.map(normalizeAttachment) };
+  if (data.type === "provider_switched" && data.handoff_attachments) return { ...data, handoff_attachments: data.handoff_attachments.map(normalizeAttachment) };
   if (data.type === "approval_resolved" && data.action === "answer" && data.attachments) {
     return { ...data, attachments: Object.fromEntries(Object.entries(data.attachments).map(([q, list]) => [q, list.map(normalizeAttachment)])) };
   }
@@ -277,7 +278,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       const ids = new Set<string>();
       if (chatIds.length === 0) return ids;
       const rows = db
-        .prepare(`SELECT data FROM chat_events WHERE chat_id IN (${chatIds.map(() => "?").join(",")}) AND type IN ('user', 'approval_resolved')`)
+        .prepare(`SELECT data FROM chat_events WHERE chat_id IN (${chatIds.map(() => "?").join(",")}) AND type IN ('user', 'approval_resolved', 'provider_switched')`)
         .all(...chatIds) as { data: string }[];
       for (const { data } of rows) for (const m of data.matchAll(UUID_PATTERN)) ids.add(m[0]);
       return ids;
@@ -287,7 +288,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       return (
         db
           .prepare(
-            `SELECT 1 FROM chat_events WHERE type IN ('user', 'approval_resolved') AND instr(data, $id) > 0
+            `SELECT 1 FROM chat_events WHERE type IN ('user', 'approval_resolved', 'provider_switched') AND instr(data, $id) > 0
              UNION ALL SELECT 1 FROM chat_queues WHERE instr(messages, $id) > 0 LIMIT 1`,
           )
           .get({ id: uploadId }) !== undefined
