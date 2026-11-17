@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, type MouseEvent, type ReactNode } from "react";
+import { useContext, useEffect, useId, useRef, type MouseEvent, type ReactNode } from "react";
 import type { ProviderId } from "@shared/types";
 import { TabVisibleContext } from "@/features/panel/tabs/tabPageContext";
 import { noteForegroundProvider } from "@/features/chat/provider/chatProvider";
@@ -18,10 +18,11 @@ import { TextWidthToggle, useWideText } from "./TextWidthToggle";
 export function DraftChatPage({ provider, className, badges, hero, children }: { provider: ProviderId; className?: string; badges: ReactNode; hero: ReactNode; children: ReactNode }) {
   const page = useRef<HTMLDivElement>(null);
   const visible = useContext(TabVisibleContext);
+  const draftKey = `draft:${useId()}`;
   // 初回送信を待たず、見出しで選んだ AI の使用状況を下の帯に出す。裏のタブでは上書きしない。
   useEffect(() => {
-    if (visible) noteForegroundProvider(provider);
-  }, [visible, provider]);
+    if (visible) noteForegroundProvider(provider, draftKey);
+  }, [visible, provider, draftKey]);
   const [wide] = useWideText();
   const shows = useChatHeaderItems();
   const rowHidden = useChatHeaderRowHidden();
@@ -36,8 +37,8 @@ export function DraftChatPage({ provider, className, badges, hero, children }: {
     <div
       ref={page}
       className={cx("chat-page chat-panel new-chat", wide && "wide", className)}
-      onPointerDownCapture={() => noteForegroundProvider(provider)}
-      onFocusCapture={() => noteForegroundProvider(provider)}
+      onPointerDownCapture={() => noteForegroundProvider(provider, draftKey)}
+      onFocusCapture={() => noteForegroundProvider(provider, draftKey)}
     >
       {rowHidden ? (
         <header className="chat-header collapsed" />

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import type { ProviderId, ServiceUsage } from "@shared/types";
 import { api } from "@/api";
 import { createStore } from "@/stores/createStore";
@@ -29,9 +29,9 @@ export function useForegroundUsage(): ProviderId | null {
 }
 
 /** 前に出しているチャットの AI の使用状況（帯の右。メーターを押すと Claude Code と同じく上に詳細を開く） */
-export function ForegroundUsage({ provider }: { provider: ProviderId }) {
+export function ForegroundUsage({ provider, showSubscription = false, renderPlan }: { provider: ProviderId; showSubscription?: boolean; renderPlan: (label: string) => ReactNode }) {
   const status = useProviderStatus(provider);
-  const pays = paysPerUse(status);
+  const pays = !showSubscription && paysPerUse(status);
   const usage = useStore(serviceUsageStore, { active: !pays });
   const { anchor, ...detail } = usePopover();
   const action = useAction<"refresh">();
@@ -46,21 +46,17 @@ export function ForegroundUsage({ provider }: { provider: ProviderId }) {
   const refresh = () => action.run("refresh", async () => serviceUsageStore.set(await api.refreshUsageServices()));
   if (pays) {
     return (
-      <span className="plan-chip" title={`前に出しているチャットの AI（${label}）は API キーで動かします。使った分だけ支払います`}>
-        {label} · {PAY_PER_USE_LABEL}
-      </span>
+      <>{renderPlan(`${label} · ${PAY_PER_USE_LABEL}`)}</>
     );
   }
   const service = usage.data?.find((s) => s.id === provider);
   // 更新で利用できなくなっても、開いている詳細には理由を残す。
-  if (!service || (service.status !== "ok" && !detail.open)) return null;
+  if (!service || (service.status !== "ok" && !detail.open)) {
+    return <>{renderPlan(label)}<span className="muted">{!service && usage.loading ? "取得中…" : "使用状況を取得できません"}</span></>;
+  }
   return (
     <>
-      {service.plan && (
-        <span className="plan-chip" title={`前に出しているチャットの AI（${label}）でログインしているアカウントの契約プラン`}>
-          {label} {planLabel(service.plan)}
-        </span>
-      )}
+      {renderPlan(`${label}${service.plan ? ` ${planLabel(service.plan)}` : ""}`)}
       {(service.windows.length > 0 || detail.open) && (
         <button
           type="button"

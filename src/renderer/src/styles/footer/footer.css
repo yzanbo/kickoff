@@ -179,6 +179,22 @@
   color: var(--accent-bright);
 }
 
+/* 使用状況の表示先（チャット連動 / Claude / Codex）を選ぶ札 */
+.footer-usage-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: inherit;
+  white-space: nowrap;
+  background: transparent;
+  cursor: pointer;
+}
+
+.footer-usage-picker:hover,
+.footer-usage-picker[aria-expanded="true"] {
+  background: var(--bg-hover);
+}
+
 :root[data-theme="light"] .plan-chip {
   color: var(--accent);
 }

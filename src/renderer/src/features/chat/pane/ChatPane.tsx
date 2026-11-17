@@ -92,8 +92,8 @@ export function ChatView({ chat, project, focus, visible, slot, onOpenNew, befor
   useProviderStatus(chat.provider, { load: true });
   // 表に出したチャットの AI を、下の帯の使用状況に出す（触ったときも。分けたペインで隣のチャットへ移ったとき）
   useEffect(() => {
-    if (visible) noteForegroundProvider(chat.provider);
-  }, [visible, chat.provider]);
+    if (visible) noteForegroundProvider(chat.provider, `chat:${chat.id}`);
+  }, [visible, chat.provider, chat.id]);
   const mode = useColumnMode(chat.id, visible, pausable);
   // 画面を閉じたら、止めない理由をすべて外す（片付けで外せない理由の持ち主が、会話の欄と一緒になくなるため。殻は Activity の外なので、閉じたときだけ流れる）
   useEffect(() => () => clearKeepAlive(chat.id), [chat.id]);

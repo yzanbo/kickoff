@@ -5,6 +5,7 @@ import { createContext, useContext, useSyncExternalStore } from "react";
 import type { ProviderFeature, ProviderId, ProviderStatus } from "@shared/types";
 import { useProviders } from "@/stores/providers";
 import { featureBlock, statusOf } from "./providerChoice";
+import { nextForegroundChat, type ForegroundChat } from "./foregroundChat";
 
 /** そのチャットの AI（入れていない所 = チャットの画面の外は Claude Code として扱い、何も止めない） */
 export const ChatProviderContext = createContext<ProviderId>("claude");
@@ -23,13 +24,14 @@ export function useFeatureBlock(feature: ProviderFeature): string | null {
 }
 
 // 前に出しているチャットの AI（下の帯の使用状況。Q6 B）。見えているチャットの画面を最後に表に出した・触ったものにする
-let foreground: ProviderId | null = null;
+let foreground: ForegroundChat = { provider: null, key: null };
 const listeners = new Set<() => void>();
 
 /** チャットの画面が表に出た・触られたときに、その AI を前に出したものとして覚える */
-export function noteForegroundProvider(id: ProviderId) {
-  if (foreground === id) return;
-  foreground = id;
+export function noteForegroundProvider(id: ProviderId, key: string) {
+  const next = nextForegroundChat(foreground, id, key);
+  if (foreground === next) return;
+  foreground = next;
   listeners.forEach((l) => l());
 }
 
@@ -39,4 +41,5 @@ const subscribe = (l: () => void) => {
 };
 
 /** 前に出しているチャットの AI（まだチャットを開いていなければ null） */
-export const useForegroundProvider = (): ProviderId | null => useSyncExternalStore(subscribe, () => foreground);
+export const useForegroundChat = (): ForegroundChat => useSyncExternalStore(subscribe, () => foreground);
+export const useForegroundProvider = (): ProviderId | null => useForegroundChat().provider;
