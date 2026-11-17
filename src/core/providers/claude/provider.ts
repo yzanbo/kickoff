@@ -209,7 +209,9 @@ export class ClaudeProvider implements AgentProvider {
           allowedTools: [...toAllowedTools(params.policy), ...toolAllowList(tools)],
           // Kickoff のチャットでは使わせないツール（PushNotification・EnterWorktree / ExitWorktree。理由は KICKOFF_DISALLOWED_TOOLS）
           disallowedTools: KICKOFF_DISALLOWED_TOOLS,
-          ...(Object.keys(mcpServers).length > 0 ? { mcpServers } : {}),
+          // AI の操作ツールの口は、鍵の見出しを Claude Code の起動の引数に載せないよう標準入力の initialize で渡す
+          // （同梱の Claude Code は SDK と同じ版なので読める。決めずにおくと SDK が廃止予定の警告を出す）
+          ...(Object.keys(mcpServers).length > 0 ? { mcpServers, mcpServersDelivery: "initialize" as const } : {}),
           canUseTool,
           resume: params.resumeSessionId ?? undefined,
           abortController,
