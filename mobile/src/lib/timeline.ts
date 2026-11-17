@@ -1,15 +1,15 @@
 // スマホのチャットの画面に出す行（縦 1 列。メインエージェントの発言・ツールの 1 行・終わり。サブエージェントの中身は出さない）。
 // 記録（ChatEvent）を持ち、本体の知らせ（chat_event・chat_events_deleted・chat_delta）でその場で直す。純粋な関数でテストする
-import type { BusEvent, ChatEvent, TurnEndStatus } from "@shared/types";
+import type { BusEvent, ChatEvent, ProviderId, TurnEndStatus } from "@shared/types";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, collectVisuals, visualIdOf, type ChatVisual } from "@shared/chat/aiVisual";
 import { workplaceMoveLine } from "@shared/chat/workplaceMoves";
-import { providerSwitchLine } from "@shared/chat/providerSwitch";
+import { providerAtEvent, providerBoundaries, providerSwitchLine } from "@shared/chat/providerSwitch";
 import { hasMath } from "./richPages";
 
 export type TimelineItem =
   | { kind: "user"; id: number; text: string; note: string | null }
   /** math: 数式を含む（WebView で描く） */
-  | { kind: "assistant"; id: number; text: string; math: boolean }
+  | { kind: "assistant"; id: number; text: string; math: boolean; provider?: ProviderId }
   /** AI が描いた図（いちばん新しい中身。書いている途中・失敗なら visual が null で text に様子） */
   | { kind: "visual"; id: number; visual: ChatVisual | null; text: string }
   | { kind: "tool"; id: number; name: string; summary: string; state: "running" | "ok" | "error" }
@@ -43,12 +43,13 @@ export function toolSummary(name: string, input: unknown): string {
 const END_LABELS: Record<TurnEndStatus, string> = { completed: "終わりました", failed: "失敗しました", cancelled: "止めました" };
 
 /** 記録から画面の行を作る（サブエージェントの中の発言・ツール・思考・セッションの始まりは出さない） */
-export function timelineOf(events: readonly ChatEvent[]): TimelineItem[] {
+export function timelineOf(events: readonly ChatEvent[], currentProvider?: ProviderId): TimelineItem[] {
   const items: TimelineItem[] = [];
   const tools = new Map<string, Extract<TimelineItem, { kind: "tool" }>>();
   // AI が描いた図（描いた呼び出しの位置に、いちばん新しい中身で出す。描き直しの位置は 1 行のお知らせ）
   const visuals = collectVisuals(events);
   const visualCalls = new Map<string, Extract<TimelineItem, { kind: "visual" | "notice" }>>();
+  const boundaries = providerBoundaries(events);
   for (const e of events) {
     switch (e.type) {
       case "user": {
@@ -58,7 +59,7 @@ export function timelineOf(events: readonly ChatEvent[]): TimelineItem[] {
         break;
       }
       case "text":
-        if (!e.data.parent && e.data.text.trim()) items.push({ kind: "assistant", id: e.id, text: e.data.text, math: hasMath(e.data.text) });
+        if (!e.data.parent && e.data.text.trim()) items.push({ kind: "assistant", id: e.id, text: e.data.text, math: hasMath(e.data.text), ...(currentProvider ? { provider: providerAtEvent(boundaries, e.id, currentProvider) } : {}) });
         break;
       case "tool_use":
         if (!e.data.parent && (e.data.name === AI_SHOW_VISUAL_TOOL || e.data.name === AI_UPDATE_VISUAL_TOOL)) {

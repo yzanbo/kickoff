@@ -1,5 +1,6 @@
 // 記録全体から作るものの取り出し口（メモの仕様書「0023_表示を軽くする」の M4・M5・分冊 3 の 4 章）
-import type { BackgroundState, ChatEvent, SubagentInfo } from "@shared/types";
+import type { BackgroundState, ChatEvent, ProviderId, SubagentInfo } from "@shared/types";
+import { providerAtEvent, providerBoundaries } from "@shared/chat/providerSwitch";
 import { collectSubagents, type SubagentEntry } from "@shared/chat/subagents";
 import { waitingSubagentKeys } from "@shared/chat/subagentState";
 import { workplaceBoundaries, type WorkplaceBoundary } from "@shared/chat/workplaceMoves";
@@ -84,6 +85,7 @@ function createMemo() {
   const waiting = memoLast(waitingSubagentKeys);
   const data = memoLast((list: SubagentEntry[], t: SubagentTree, h: ReadonlyMap<string, number>, w: ReadonlySet<string>): ChatSubagents => ({ entries: list, tree: t, hues: h, waiting: w }));
   const visuals = memoLast(chatVisualsOf);
+  const providerBounds = memoLast(providerBoundaries);
   const providerSwitch = memoLast((digest: ChatEvent[]): number => {
     let last = 0;
     for (const event of digest) if (event.type === "provider_switched") last = Math.max(last, event.id);
@@ -102,7 +104,7 @@ function createMemo() {
     if (key !== calls.key) calls = { key, set: key ? new Set(key.split(" ")) : NO_CALLS };
     return calls.set;
   });
-  return { entries, tree, hues, waiting, data, visuals, background, boundaries, providerSwitch };
+  return { entries, tree, hues, waiting, data, visuals, background, boundaries, providerSwitch, providerBounds };
 }
 
 /**
@@ -133,6 +135,10 @@ export function createChatSelectors(source: SelectorSource) {
     /** 作業場所を移した区切り（ID の順。索引にいつも入るので、末尾より前のものも。区切りが同じなら同じ配列） */
     workplaceBoundaries: (chatId: number): readonly WorkplaceBoundary[] => memoOf(chatId).boundaries(source.log(chatId).digest),
     providerSwitch: (chatId: number): number => memoOf(chatId).providerSwitch(source.log(chatId).digest),
+    providerAt: (chatId: number, eventId: number): ProviderId | null => {
+      const current = source.detail(chatId).chat?.provider;
+      return current ? providerAtEvent(memoOf(chatId).providerBounds(source.log(chatId).digest), eventId, current) : null;
+    },
     /** 裏でまだ動いている作業を起動した呼び出しの ID（中身が同じなら同じ Set） */
     backgroundCalls: (chatId: number): ReadonlySet<string> => memoOf(chatId).background(source.detail(chatId).live.background),
   };
