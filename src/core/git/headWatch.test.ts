@@ -1,6 +1,8 @@
 // HEAD の見張り: 作りかけのワークツリー（HEAD がまだ 0）が一覧にあれば、少しおいて取り直させる
 import assert from "node:assert/strict";
-import { test } from "vitest";
+import fs from "node:fs";
+import { EventEmitter } from "node:events";
+import { test, vi } from "vitest";
 import type { GitWorktree } from "@shared/types";
 import { afterTest } from "../testing/afterTest.js";
 import { gitRepo } from "../testing/gitRepo.js";
@@ -10,6 +12,9 @@ import { HeadWatch } from "./headWatch.js";
 const worktree = (path: string, head: string, main = false): GitWorktree => ({ path, root: path, branch: main ? "main" : null, head, main, locked: !main, prunable: false });
 
 test("作りかけのワークツリーがあれば 1 秒ほどで取り直させ、仕上がった一覧では取り直させない", async () => {
+  // このテストが確かめるのはタイマー。OS の監視エラーの通知とは独立させる。
+  const mockedWatch = vi.spyOn(fs, "watch").mockImplementation(() => Object.assign(new EventEmitter(), { close() {}, unref() { return this; } }) as fs.FSWatcher);
+  afterTest(() => mockedWatch.mockRestore());
   const { dir } = gitRepo({ files: { "a.txt": "a\n" } });
   const changed: number[] = [];
   const watch = new HeadWatch((id) => changed.push(id));
