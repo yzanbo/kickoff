@@ -6,6 +6,7 @@ import { approvalIndex } from "@/features/chat/chatState";
 import { COUNTED_COLUMNS } from "@/features/chat/chatState";
 import { chatHead, draftHead } from "./bucketHeads";
 import { bucketChats, flattenBucketChats, newChatPlaceOf, sortBuckets, type BucketHead, type ChatBucket } from "./buckets";
+import { byManual } from "./manualOrder";
 
 // 並び順は id の順（新しいほど大きい）
 const chat = (id: number, patch: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-11-${String(id).padStart(2, "0")}T00:00:00Z`, ...patch });
@@ -18,6 +19,70 @@ const groups: Record<number, ChatGroup[]> = { 1: [group(5, 2), group(4, 1)], 2: 
 const ctx = { pending, groupsOf: (id: number) => groups[id] ?? [] };
 /** まとまりのキーと、中のチャットの ID */
 const shape = (list: ChatBucket[]) => list.map((b) => [b.key, b.chats.map((c) => c.id)]);
+
+test("bucketChats: nested の固定はグループから抜き出さず、その中の先頭。固定同士・通常同士は選んだ並び順", () => {
+  const chats = [
+    chat(1, { group_id: 4, pinned: true, position: 0 }),
+    chat(2, { group_id: 4, pinned: true, position: 1 }),
+    chat(3, { group_id: 4, position: 2 }),
+    chat(4, { group_id: 4, position: 3 }),
+    chat(5, { group_id: 5, pinned: true }),
+    chat(6, { group_id: 77, pinned: true }),
+    chat(7),
+  ];
+  const opts = { ...ctx, by: "group" as const, project: 1, pinned: "nested" as const, archived: "nested" as const };
+  const list = bucketChats(chats, opts);
+  assert.deepEqual(shape(list), [["p1/g4", [2, 1, 4, 3]], ["p1/g5", [5]], ["p1/ungrouped", [6, 7]]]);
+  assert.deepEqual(shape(bucketChats(chats, { ...opts, sort: byManual })), [["p1/g4", [1, 2, 3, 4]], ["p1/g5", [5]], ["p1/ungrouped", [6, 7]]]);
+  assert.deepEqual(list[0].counts, { running: 0, needs_input: 0, unread: 0 });
+  assert.equal(chats[0].id, 1); // 入力の並びは変えない
+  assert.deepEqual(shape(bucketChats(chats.map((c) => ({ ...c, pinned: false })), opts)), [["p1/g4", [4, 3, 2, 1]], ["p1/g5", [5]], ["p1/ungrouped", [7, 6]]]);
+});
+
+test("bucketChats: nested の固定はグループ内の状態見出しより前。アーカイブ済みは固定していても末尾", () => {
+  const chats = [
+    chat(1, { group_id: 4, pinned: true, unread: true }),
+    chat(2, { group_id: 4, status: "running" }),
+    chat(3, { group_id: 4 }),
+    chat(4, { group_id: 4, pinned: true, archived_at: "x" }),
+    chat(5, { pinned: true }),
+  ];
+  const list = bucketChats(chats, { ...ctx, by: ["group", "status"], project: 1, pinned: "nested", archived: "nested" });
+  assert.deepEqual(list.map((b) => b.key), ["p1/g4", "p1/ungrouped"]);
+  assert.deepEqual(shape(list[0].children!), [["p1/g4/pinned", [1]], ["p1/g4/status:running", [2]], ["p1/g4/status:read", [3]]]);
+  assert.deepEqual(shape(list[1].children!), [["p1/ungrouped/pinned", [5]]]);
+  assert.deepEqual(list[0].counts, { running: 1, needs_input: 0, unread: 1 });
+  assert.deepEqual(list[0].archived?.chats.map((c) => c.id), [4]);
+  assert.deepEqual(flattenBucketChats(list).map((c) => c.id), [1, 2, 3, 4, 5]);
+});
+
+test("bucketChats: nested の固定は作業場所の中。本体・ワークツリー・以前のブランチの並びは変えない", () => {
+  const worktreesOf = () => [worktree("/repo", "main", true), worktree("/wt/a", "feature")];
+  const chats = [chat(1, { pinned: true }), chat(2), chat(3, { worktree_path: "/wt/a", pinned: true }), chat(4, { worktree_path: "/wt/a", status: "running" }), chat(5, { branch: "old", pinned: true })];
+  const opts = { ...ctx, worktreesOf, project: 1, pinned: "nested" as const, archived: "nested" as const };
+  const recent = bucketChats(chats, { ...opts, by: "worktree" });
+  assert.deepEqual(shape(recent), [["p1/w:main", [1, 2]], ["p1/w:/wt/a", [3, 4]], ["p1/w:branch:old", [5]]]);
+  const status = bucketChats(chats, { ...opts, by: ["worktree", "status"] });
+  assert.deepEqual(shape(status[1].children!), [["p1/w:/wt/a/pinned", [3]], ["p1/w:/wt/a/status:running", [4]]]);
+  assert.deepEqual(flattenBucketChats(status).map((c) => c.id), [1, 2, 3, 4, 5]);
+});
+
+test("bucketChats: 全プロジェクトでも nested の固定はプロジェクト・グループをまたがない", () => {
+  const chats = [chat(1, { group_id: 4, pinned: true }), chat(2, { group_id: 4 }), chat(3, { project_id: 2, group_id: 9, pinned: true }), chat(4, { project_id: 2, group_id: 9 })];
+  const list = bucketChats(chats, { ...ctx, by: ["project", "group", "status"], pinned: "nested", projects: [project(2), project(1)] });
+  assert.deepEqual(list.map((b) => b.key), ["p2", "p1"]);
+  assert.deepEqual(list[0].children?.map((b) => b.key), ["p2/g9"]);
+  assert.deepEqual(list[0].children?.[0].children?.map((b) => b.key), ["p2/g9/pinned", "p2/g9/status:read"]);
+  assert.deepEqual(flattenBucketChats(list).map((c) => c.id), [3, 4, 1, 2]);
+});
+
+test("bucketChats: ピン留めした下書きだけでも、所属する作業場所のまとまりを作る", () => {
+  const drafts = [{ projectId: 1, worktree: "/wt/a", pinned: true }];
+  const list = bucketChats([], { ...ctx, by: ["worktree", "status"], project: 1, pinned: "nested", drafts });
+  assert.equal(list[0].key, "p1/w:/wt/a");
+  assert.deepEqual(list[0].drafts, drafts);
+  assert.deepEqual(list[0].children, []);
+});
 
 test("bucketChats: グループはサイドバーの並び、もうないグループはグループなしに入れる。中は最後に動いた順", () => {
   const list = bucketChats([chat(1, { group_id: 5 }), chat(2, { group_id: 4 }), chat(3, { group_id: 77 }), chat(4), chat(6, { group_id: 5 })], { ...ctx, by: "group" });

@@ -1,4 +1,4 @@
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, Pin } from "lucide-react";
 import type { ReactNode } from "react";
 import { busyWithUnread } from "@shared/chat/state";
 import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/types";
@@ -72,11 +72,12 @@ export function ChatRow({
   const selected = selection?.has(chat.id) ?? false;
   // 作業中のまま、まだ見ていない返答がある（印に未読の点を重ね、名前を太字に）
   const busyUnread = busyWithUnread(chat, state);
+  const pinned = chat.pinned && !chat.archived_at;
   if (rename) {
     // 押しても開かず、ドラッグもしない（入力欄の文字を選べるように）
     return (
-      <li>
-        <div className={cx("chat-row", "renaming", active && "active")}>
+      <li className="chat-row-item">
+        <div className={cx("chat-row", "renaming", pinned && "pinned", active && "active")}>
           <StatusSlot state={state} unread={busyUnread} />
           <span className="chat-row-body">
             <ChatTitleInput chat={chat} editor={rename} />
@@ -97,6 +98,7 @@ export function ChatRow({
       <a
         className={cx(
           "chat-row",
+          pinned && "pinned",
           chat.archived_at && "archived",
           active && "active",
           selected && "multi-selected",
@@ -139,6 +141,11 @@ export function ChatRow({
             {project && <ProjectMark project={project} className="chat-row-project" />}
             {childMark && chat.parent_chat_id !== null && <ChildDepthMark chat={chat} />}
             <span className="chat-row-title">{chatTitle(chat.title)}</span>
+            {pinned && (
+              <span className="chat-row-pin" title="ピン留め中" aria-label="ピン留め中">
+                <Pin size={11} aria-hidden />
+              </span>
+            )}
             {state === "running" ? (
               <RunningTime chat={chat} />
             ) : (

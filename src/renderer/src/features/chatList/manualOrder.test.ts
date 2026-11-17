@@ -22,6 +22,19 @@ test("bucketScopes: いちばん外のまとまりのキー（中の段も同じ
   assert.equal(scopes.get(6), "p1/ungrouped");
 });
 
+test("bucketScopes: 所属先の中でも固定と通常は別の範囲（状態順・最近順で共通）", () => {
+  const chats = [makeChat(1, { group_id: 4, pinned: true }), makeChat(2, { group_id: 4, status: "running" }), makeChat(3, { group_id: 4 }), makeChat(4, { group_id: 4, pinned: true, archived_at: "x" }), makeChat(5, { pinned: true })];
+  for (const by of [["group"], ["group", "status"]] as const) {
+    const list = bucketChats(chats, { pending: approvalIndex([]), groupsOf: () => [makeGroup(4)], by, project: 1, pinned: "nested", archived: "nested" });
+    const scopes = bucketScopes(list);
+    assert.equal(scopes.get(1), "p1/g4/pinned");
+    assert.equal(scopes.get(2), "p1/g4");
+    assert.equal(scopes.get(3), "p1/g4");
+    assert.equal(scopes.get(4), "p1/g4/archived");
+    assert.equal(scopes.get(5), "p1/ungrouped/pinned");
+  }
+});
+
 test("moveChatInOrder: target の前・後ろへ動かす。動かせない・変わらないなら null", () => {
   assert.deepEqual(moveChatInOrder([1, 2, 3, 4], 4, 2, "before"), [1, 4, 2, 3]);
   assert.deepEqual(moveChatInOrder([1, 2, 3, 4], 1, 3, "after"), [2, 3, 1, 4]);

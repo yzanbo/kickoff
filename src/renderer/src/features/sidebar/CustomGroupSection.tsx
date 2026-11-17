@@ -11,11 +11,10 @@ import { InlineName } from "@/ui/InlineName";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { FoldHead } from "@/ui/FoldHead";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
-import { DraftRows } from "./DraftRows";
 import type { GroupSectionProps } from "./useGroupSections";
 import { huedHeadProps } from "./bucketColor";
 import { ArchivedBucketFold } from "./ArchivedBucketFold";
-import { ChatRowList } from "./ChatRowList";
+import { BucketChatRows } from "./BucketChatRows";
 
 /**
  * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身。bucket は bucketChats のグループのまとまりで、中の段があれば状態ごとに分ける）。
@@ -121,16 +120,17 @@ export function CustomGroupSection({
         }
       />
       <Collapse open={!closed} indent>
-        <DraftRows drafts={drafts} />
-        {/* チャットのないグループは、開いていても何も出さない（落とし先は見出しを含むまとまり全体。前は「チャットをここへドラッグ」を出していた） */}
-        {members.length === 0 ? null : bucket.children ? (
-          // 状態順のときは、グループの中を状態ごとの見出しに分ける
-          <div className="custom-group-grouped">
-            <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={filtering} />
-          </div>
-        ) : (
-          <ChatRowList chats={members} renderRow={renderRow} />
-        )}
+        <BucketChatRows
+          chats={members}
+          drafts={drafts}
+          sections={bucket.children}
+          renderRow={renderRow}
+          renderSections={(buckets) => (
+            <div className="custom-group-grouped">
+              <GroupedChatRows buckets={buckets} renderRow={renderRow} forceOpen={filtering} />
+            </div>
+          )}
+        />
         {/* このグループのアーカイブ済み（アーカイブ済みを出しているとき。落とすとアーカイブ、中の行をグループへ落とすと戻す） */}
         {bucket.archived && <ArchivedBucketFold projectId={projectId} bucket={bucket.archived} chats={allChats} groupId={group.id} renderRow={renderRow} forceOpen={filtering} />}
       </Collapse>

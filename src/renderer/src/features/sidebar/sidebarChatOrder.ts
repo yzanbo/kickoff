@@ -42,7 +42,7 @@ export function useSidebarChatOrder(chats: readonly Chat[], project: number | un
     by: project === undefined ? ["project", ...levels] : levels,
     project,
     projects: project === undefined ? visible : undefined,
-    pinned: true,
+    pinned: grouping === "none" ? true : "nested",
     archived: grouping === "none" ? "bucket" : "nested",
     sort: sidebarSort(order),
     idle: !enabled,

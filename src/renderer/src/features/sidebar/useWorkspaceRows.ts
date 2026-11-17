@@ -13,6 +13,7 @@ import { useWaitingView } from "./waitingView";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { useChatLayout } from "./chatGroupings";
 import { sidebarLevels, sidebarSort } from "./sidebarChatOrder";
+import { splitPinnedDrafts } from "./sidebarDrafts";
 import { useProjectDrafts } from "./DraftRows";
 import { unplacedDrafts, useDraftPlacement, type DraftSlot } from "./useDraftPlacement";
 
@@ -67,10 +68,11 @@ export function useWorkspaceRows({
   const showGroups = grouping === "group" && groupCount > 0;
   // 送る前の新しいチャット（下書き）。グループの見出しを出しているときは作成先のグループの中（グループなし・もうないグループのものはグループなしの中）、
   // 出していないときはいちばん上に並べる。自分が続きを書くものなので「要対応」でも出す（検索・状態での絞り込み中は出さない）
-  // ピン留めした下書きは、チャットと同じくいちばん上の「固定」に抜き出す（グループの中・いちばん上には出さない）
+  // ピン留めした下書きも所属先に残す。まとめないときだけ、プロジェクトの「固定」に抜き出す
   const allDrafts = useProjectDrafts(projectId);
   const showDrafts = !keyword && stateFilter === null;
-  const { drafts, pinnedDrafts } = useMemo(() => splitPinnedDrafts(allDrafts), [allDrafts]);
+  const { drafts, pinnedDrafts } = useMemo(() => splitPinnedDrafts(allDrafts, grouping === "none"), [allDrafts, grouping]);
+  const nestedDrafts = grouping !== "none";
 
   // 出すチャット: アーカイブしていないものは検索・要対応・状態で絞り、アーカイブ済みは（出すときだけ）検索で絞る（要対応・状態で絞っているときは出さない。
   // 作業中・回答待ち・未読はアーカイブしていないチャットだけを数えるので、出すと数と合わず、絞り込み中はまとまりを開くので「アーカイブ済み」も開いて見えた。利用者の指摘）。
@@ -91,10 +93,10 @@ export function useWorkspaceRows({
     project: projectId,
     // 手動のときは、まとまりの中をドラッグで並べた順（Chat.position）
     sort: sidebarSort(order),
-    pinned: true,
+    pinned: grouping === "none" ? true : "nested",
     // グループ別・作業場所別は、まとまりごとのいちばん下にそのまとまりのアーカイブ済み（bucket.archived）、まとめないときはいちばん下にまとめる
     archived: grouping === "none" ? "bucket" : "nested",
-    drafts: showGroups && showDrafts ? drafts : NO_DRAFTS,
+    drafts: nestedDrafts && showDrafts ? drafts : NO_DRAFTS,
     keepEmpty: filtering ? KEEP_UNGROUPED : KEEP_GROUPS,
     idle: collapsed,
   });
@@ -103,13 +105,13 @@ export function useWorkspaceRows({
 
   // 手動の並びのときは、下書きの行をタブの列での位置に合わせてチャットの行の間に置く（利用者の依頼。置かないものは、いままでどおりまとまりのいちばん上）。
   // グループの見出しを出しているときは同じグループのチャットの間、出していないときは見出しの下の一覧（作業場所別なら同じ作業場所）のチャットの間
-  const topDraftList = showDrafts && !showGroups ? drafts : NO_DRAFTS;
+  const topDraftList = showDrafts && !nestedDrafts ? drafts : NO_DRAFTS;
   const slots = useMemo<DraftSlot[]>(
     () =>
-      showGroups
-        ? buckets.filter((b) => b.drafts.length > 0).map((b) => ({ drafts: b.drafts, chats: b.chats }))
-        : [{ drafts: topDraftList, chats: mainRows, match: grouping === "worktree" ? sameWorkplace : undefined }],
-    [showGroups, buckets, topDraftList, mainRows, grouping],
+      nestedDrafts
+        ? buckets.filter((b) => b.drafts.length > 0).map((b) => ({ drafts: b.drafts.filter((d) => !d.pinned), chats: b.chats.filter((c) => !c.pinned) }))
+        : [{ drafts: topDraftList.filter((d) => !d.pinned), chats: mainRows }],
+    [nestedDrafts, buckets, topDraftList, mainRows],
   );
   const draftsAfter = useDraftPlacement(slots, chats, projectId, order === "manual" && !collapsed);
   const withUnplaced = <B extends { drafts: PanelDraft[] }>(b: B): B => {
@@ -139,6 +141,9 @@ export function useWorkspaceRows({
     pinned: buckets.find((b) => b.kind === "pinned"),
     /** まとまり（グループ・グループなし）の中の下書きの数（まとまりのキー → 数。手動の並びでチャットの行の後ろに置いたものも数える。見出しの数に足す） */
     draftCounts,
+    /** 作業場所の中に並べる下書き（手動でチャットの後ろに置くものを除く） */
+    draftsByBucket: new Map(buckets.map((b) => [b.key, unplacedDrafts(b.drafts, draftsAfter)])),
+    mainDraftCount: main.reduce((count, b) => count + b.drafts.length, 0),
     /** 自分で作ったグループ（グループでまとめているとき。チャットのないものも。絞り込み中は一致するもの・下書きのあるものだけ） */
     groups: buckets.filter((b) => b.kind === "group").map(withUnplaced),
     /** グループなし（グループでまとめているとき。もうないグループのものも含む） */
@@ -158,14 +163,4 @@ export function useWorkspaceRows({
     /** ピン留めした下書き（「固定」のチャットの上に並べる。検索・状態での絞り込み中は出さない） */
     pinnedDrafts: showDrafts ? pinnedDrafts : NO_DRAFTS,
   };
-}
-
-/** 作業場所別のとき、下書きと同じ作業場所のチャットか（下書きはワークツリーを選んでいなければ本体） */
-const sameWorkplace = (chat: Chat, draft: PanelDraft) => (chat.worktree_path ?? null) === (draft.worktree ?? null);
-
-/** 下書きを、ピン留めしていないもの・したものに分ける（どちらもなければ同じ空の配列） */
-function splitPinnedDrafts(all: PanelDraft[]): { drafts: PanelDraft[]; pinnedDrafts: PanelDraft[] } {
-  if (!all.some((d) => d.pinned)) return { drafts: all, pinnedDrafts: NO_DRAFTS };
-  const drafts = all.filter((d) => !d.pinned);
-  return { drafts: drafts.length === 0 ? NO_DRAFTS : drafts, pinnedDrafts: all.filter((d) => d.pinned) };
 }

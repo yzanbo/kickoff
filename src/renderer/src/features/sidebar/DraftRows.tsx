@@ -1,4 +1,4 @@
-import { SquarePen } from "lucide-react";
+import { Pin, SquarePen } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -59,7 +59,7 @@ export function DraftRow({ draft }: { draft: PanelDraft }) {
   if (renaming)
     return (
       <li className="chat-row-item">
-        <div className={cx("chat-row draft-row renaming", selected && "active")}>
+        <div className={cx("chat-row draft-row renaming", draft.pinned && "pinned", selected && "active")}>
           {slot}
           <span className="chat-row-body">
             <DraftTitleInput draft={draft} onDone={() => setRenaming(false)} />
@@ -71,7 +71,7 @@ export function DraftRow({ draft }: { draft: PanelDraft }) {
     <li className="chat-row-item">
       <button
         type="button"
-        className={cx("chat-row draft-row", selected && "active")}
+        className={cx("chat-row draft-row", draft.pinned && "pinned", selected && "active")}
         aria-current={selected || undefined}
         title="下書き（ドラッグでグループへ移す・右クリックで名前の変更・ピン留め・グループやプロジェクトの変更・削除）"
         draggable
@@ -84,6 +84,11 @@ export function DraftRow({ draft }: { draft: PanelDraft }) {
           <span className="chat-row-line">
             {/* 名前は最初のチャットを送るまで「New Chat」のまま（タブと同じ。利用者の依頼で、前は書きかけの文の 1 行目を出していた）。右クリックで付けた名前があればそれ */}
             <span className="chat-row-title">{draftTitleOf(draft)}</span>
+            {draft.pinned && (
+              <span className="chat-row-pin" title="ピン留め中" aria-label="ピン留め中">
+                <Pin size={11} aria-hidden />
+              </span>
+            )}
             <span className="chat-row-time">下書き</span>
           </span>
         </span>
