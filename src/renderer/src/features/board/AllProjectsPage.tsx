@@ -10,6 +10,7 @@ import { useGitHubStatus, useProviders } from "@/stores/providers";
 import { StateStats } from "@/features/project/page/StateStats";
 import { NoProjectsWelcome } from "@/features/project/ProjectsEmpty";
 import { EmptyState } from "@/ui/EmptyState";
+import { WindowHeaderContent } from "@/app/MaximizedHeader";
 
 /**
  * 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる）。
@@ -29,6 +30,7 @@ export function AllProjectsPage() {
   return (
     <div className="page page-wide page-board">
       <header className="page-header project-header">
+        <WindowHeaderContent>
         <div className="project-title-row">
           <h1>
             <ProjectSwitcher />
@@ -38,6 +40,7 @@ export function AllProjectsPage() {
             <StateStats chats={shownChats} showProject />
           </div>
         </div>
+        </WindowHeaderContent>
       </header>
       {notReady && (
         <section className="section">

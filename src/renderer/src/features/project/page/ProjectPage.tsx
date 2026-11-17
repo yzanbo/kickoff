@@ -22,6 +22,7 @@ import { MissingProject, NoProjectsWelcome } from "@/features/project/ProjectsEm
 import type { FileTarget, ProjectTab, ReopenRoute } from "@/app/router";
 import { editorWorktree } from "@/lib/storageKeys";
 import { WorktreeContext } from "@/features/worktree/worktreeContext";
+import { WindowHeaderContent } from "@/app/MaximizedHeader";
 
 interface ProjectPageProps {
   id: number;
@@ -129,7 +130,8 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMem
       {tab === "trash" && <TrashTab key={project.id} projectId={project.id} />}
       </div>
       </div>
-      {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
+      {/* 最大表示で元の画面が隠れていても、見出しから開いた設定は操作できる位置へ出す */}
+      {editing && <WindowHeaderContent><ProjectEditDialog project={project} onClose={() => setEditing(false)} /></WindowHeaderContent>}
     </div>
   );
 }

@@ -50,13 +50,16 @@ import { useAiOpenRequests } from "./aiOpenRequests";
 import { useWorkplaceMoveTabs } from "@/features/worktree/repointTabs";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
-import { boardTabOf, openNewChat, openProjectSearch, RouteContext, routeProjectId, useHashRoute } from "./router";
+import { boardTabOf, openNewChat, openProjectSearch, parse, RouteContext, routeProjectId, useHashRoute } from "./router";
 import { handleMainWindowMessage } from "./mainWindowMessages";
 import { OPEN_COMMAND_PALETTE_EVENT, START_NEW_CHAT_EVENT } from "./popoutNavigation";
 import { usePopoutHosts } from "./popoutHosts";
 import { subscribeWindowMessages } from "./windowBus";
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
-import { useChatHistory } from "./useChatHistory";
+import { useNavigationHistory } from "./useNavigationHistory";
+import { NavigationButtons } from "./NavigationButtons";
+import { MaximizedHeader, MaximizedHeaderBar } from "./MaximizedHeader";
+import { createNavigationHistory } from "./navigationHistory";
 import { useAppShortcuts } from "./shortcuts";
 import { usePlanUsage } from "@/features/usage/usage";
 import { setProjectHues } from "@/features/project/projectColor";
@@ -68,9 +71,8 @@ export function App() {
   // 最初の描き終わり（起動の時刻の記録。いちばん外の部品なので、中の部品の layout effect のあと）
   useLayoutEffect(() => bootMark("firstCommit"), []);
   // URL（ハッシュ）はここで 1 回だけ購読し、部品は useRoute()（RouteContext）で読む
-  const route = useHashRoute();
-  // ⌘[ / ⌘] で、前に開いたチャット・次のチャットへ
-  useChatHistory(route);
+  const [routeHistory] = useState(() => createNavigationHistory(parse(location.hash)));
+  const route = useHashRoute((next, replace) => routeHistory.record(next, replace));
   const planUsage = usePlanUsage();
   // サーバーとつなぎ、届いた知らせを各画面と店（stores/）に配る（ここで 1 回だけ）
   const connection = useServerConnection(publishServerEvent);
@@ -124,6 +126,11 @@ export function App() {
   const { sideHeld } = usePopoutHosts(route);
   const chat = useProjectChat(projectId ?? fallbackProject, { noChat: projectId === undefined, inWindow: sideHeld });
   const bottomPanel = useBottomPanel(projectId ?? "all", terminalTargets(projects, projectId));
+  // 戻る・進むの行き先が、最大表示したパネルの裏に隠れないようにする
+  const navigation = useNavigationHistory(routeHistory, () => {
+    if (chat.open && chat.maximized && !sideHeld) chat.setMaximized(false);
+    if (bottomPanel.open && bottomPanel.maximized) bottomPanel.toggleMaximized();
+  });
   // チャット・新しいチャットの URL では、プロジェクトのボードのパネルで開く
   // チャットを開く場所（ボードと分けた「チャット」タブ / ボードの右のパネル）
   const [chatPlacement] = useChatPlacement();
@@ -177,6 +184,7 @@ export function App() {
       {/* 返答の外部リンクの開き方（確かめ・開き先。メモの仕様書「0027_チャット欄の外の画像とリンク」） */}
       <LinkOpenerProvider projectId={projectId}>
       <div {...sidebar.layout}>
+        <MaximizedHeader active={(bottomPanel.available && bottomPanel.open && bottomPanel.maximized) || (!sideHeld && chat.open && chat.maximized)}>
         <Sidebar
           sidebar={sidebar}
           onNewChat={startNewChat}
@@ -204,6 +212,7 @@ export function App() {
         <BottomPanel bottom={bottomPanel} />
         </div>
         {!sideHeld && <ProjectChat chat={chat} />}
+        <MaximizedHeaderBar />
         <AppFooter onOpenSettings={setSettings} connection={connection} planUsage={planUsage} projectId={projectId} />
         {creating && (
           <NewProjectDialog
@@ -236,6 +245,8 @@ export function App() {
         <PrNoticeHost />
         {/* 開くボタンは、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く */}
         <SidebarOpenButton sidebar={sidebar} />
+        {/* 全体表示した欄のドラッグ領域より後ろに置き、いつでも押せるようにする */}
+        <NavigationButtons navigation={navigation} />
         {/* 右上のレイアウトの開閉（ドラッグ領域より優先されるよう、開くボタンと同じく後ろに置く） */}
         <LayoutToggles
           sidebar={{ open: sidebar.open, onToggle: sidebar.toggle }}
@@ -257,6 +268,7 @@ export function App() {
             onClose={() => setSearching(false)}
           />
         )}
+        </MaximizedHeader>
       </div>
       </LinkOpenerProvider>
       </ChatStatesContext.Provider>

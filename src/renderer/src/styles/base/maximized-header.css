@@ -1,0 +1,33 @@
+/*
+ * 最大表示した右サイドバー・下のパネルの、既存の 40px の操作行を共通ヘッダーにする。
+ * 元の画面が非表示・幅 0 でも、プロジェクト名・設定・状態の数は同じ部品を移して出す
+ */
+.maximized-header.page-header {
+  --page-x: var(--gutter);
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: var(--sidebar-shown);
+  z-index: 20;
+  height: 40px;
+  margin: 0;
+  padding: 6px var(--page-x) 0;
+  background: var(--bg);
+  transition: left var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+/* サイドバーの開閉中も、見出しを戻る・進むの上へ通過させない */
+.maximized-header > .project-title-row:not(.auto-hide) {
+  transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.maximized-header .project-title-row.auto-hide {
+  transition:
+    transform var(--panel-motion-duration) var(--panel-motion-ease),
+    opacity var(--panel-motion-duration) var(--panel-motion-ease),
+    padding-left var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.resizing-sidebar .maximized-header {
+  transition: none;
+}

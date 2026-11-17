@@ -3,6 +3,9 @@
 /* 左: サイドバー / 真ん中: 画面と下のパネル / 右: プロジェクトのチャット欄（下のパネルより下まで） / 下: 帯 */
 .layout {
   display: grid;
+  /* 信号機の右の画面移動と、その右のサイドバーを開くボタンのための空き */
+  --app-navigation-left: 76px;
+  --app-titlebar-left-end: 164px;
   /* いま見えているサイドバーの幅（閉じたら 0。右のチャット欄の幅の上限に使う） */
   --sidebar-shown: var(--sidebar-w, 260px);
   grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr) auto;
@@ -119,6 +122,13 @@
   position: fixed;
 }
 
+/* 画面の上端まで広げた欄は、タブをこの共通の操作行の下に置く */
+.panel-window-titlebar {
+  flex: none;
+  height: 40px;
+  -webkit-app-region: drag;
+}
+
 .icon-button.titlebar-toggle:hover {
   color: var(--text);
   background: var(--bg-elev);
@@ -152,8 +162,8 @@
 }
 
 .sidebar-collapsed .page-header > :first-child {
-  /* 開閉ボタン（左から 96px まで）の右に置く。画面の左右の余白の分を差し引く */
-  padding-left: calc(104px - var(--page-x));
+  /* 画面移動と開閉ボタンの右に置く。画面の左右の余白の分を差し引く */
+  padding-left: calc(var(--app-titlebar-left-end) - var(--page-x));
   transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);
 }
 

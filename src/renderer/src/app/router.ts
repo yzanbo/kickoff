@@ -91,9 +91,14 @@ function fileQuery({ path, line, worktree }: FileTarget): string {
  * ハッシュベースの簡易ルーター（Electron とスマホのブラウザの両方で動く）。
  * URL の購読は App の 1 回だけ（useHashRoute）で、部品は RouteContext から useRoute() で読む（route を props で中継しない）
  */
-export function useHashRoute(): Route {
+export function useHashRoute(onChange?: (route: Route, replace: boolean) => void): Route {
   const [route, setRoute] = useState(() => parse(location.hash));
-  useWindowEvent("hashchange", () => setRoute(parse(location.hash)));
+  useWindowEvent("hashchange", (event) => {
+    const next = parse(location.hash);
+    // 画面を描くと、子の部品が URL を置き換えることがある。必ず描く前に元の移動を履歴へ積む
+    onChange?.(next, Boolean((event as RouteChangeEvent).routeReplace));
+    setRoute(next);
+  });
   // 最後に見ていた画面を覚える（次に起動したときに開く。restoreLastRoute）
   useEffect(() => writeSetting(LAST_ROUTE, href(lastingRoute(route))), [route]);
   return route;
@@ -140,6 +145,11 @@ export function href(route: Route): string {
   }
 }
 
+/** アプリが URL を置き換えた通知（通常のリンク・ハッシュの変更と区別して、画面の履歴も置き換える） */
+export interface RouteChangeEvent extends HashChangeEvent {
+  routeReplace?: boolean;
+}
+
 export function navigate(route: Route, options: { replace?: boolean } = {}) {
   if (location.hash === href(route) && (route.name === "chat" || route.name === "newChat")) {
     window.dispatchEvent(new CustomEvent<ReopenRoute>(REOPEN_EVENT, { detail: route }));
@@ -148,7 +158,9 @@ export function navigate(route: Route, options: { replace?: boolean } = {}) {
   if (options.replace) {
     // 履歴に残さず置き換える（新しいチャット画面 → 作成されたチャットへ移るとき）
     history.replaceState(null, "", href(route));
-    window.dispatchEvent(new HashChangeEvent("hashchange"));
+    const event: RouteChangeEvent = new HashChangeEvent("hashchange");
+    event.routeReplace = true;
+    window.dispatchEvent(event);
   } else {
     location.hash = href(route);
   }

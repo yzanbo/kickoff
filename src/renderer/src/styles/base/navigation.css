@@ -1,0 +1,34 @@
+/* ウィンドウ全体の画面移動。見出しの表示設定・欄の最大表示とは独立して常に残す */
+.navigation-buttons {
+  position: fixed;
+  top: 8px;
+  left: var(--app-navigation-left);
+  z-index: 30;
+  display: flex;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.navigation-buttons .icon-button {
+  -webkit-app-region: no-drag;
+}
+
+/* サイドバーが閉じている間の開くボタンは、画面移動の右に置く */
+.layout .titlebar-toggle.floating {
+  left: calc(var(--app-navigation-left) + 60px);
+}
+
+@media (max-width: 720px) {
+  .layout {
+    --app-navigation-left: 36px;
+    --app-titlebar-left-end: 98px;
+  }
+
+  .layout .titlebar-toggle.floating {
+    left: 8px;
+  }
+
+  .navigation-buttons {
+    top: max(8px, env(safe-area-inset-top));
+  }
+}

@@ -20,6 +20,8 @@ export function BottomPanel({ bottom }: { bottom: BottomPanelController }) {
       aria-label="フッター"
     >
       <div className="bottom-panel-inner">
+        {/* 最大表示では、画面移動・プロジェクト情報・レイアウトの共通ヘッダーの下にタブを置く（分割したペインにも重ねない） */}
+        {maximized && <div className="panel-window-titlebar" aria-hidden />}
         <div className="bottom-panel-resizer" aria-label="パネルの高さを変える" {...bottom.resizeHandle} />
         <BottomTabs bottom={bottom} />
       </div>

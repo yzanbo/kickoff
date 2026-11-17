@@ -92,7 +92,7 @@
   padding-right: var(--gutter);
 }
 
-/* 最大化して画面のいちばん上に来たとき、サイドバーを閉じていれば信号機ボタンと開閉ボタンの右から並べる */
-.sidebar-collapsed .bottom-panel.maximized .board-panel.in-footer .panel-tabs:not(:where(.agent-panel *)) {
-  padding-left: 104px;
+/* 最大表示では上に操作行を設けるので、高さを変えるつまみを操作ボタンに重ねない */
+.bottom-panel.maximized .bottom-panel-resizer {
+  display: none;
 }
