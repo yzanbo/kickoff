@@ -37,8 +37,8 @@ export function AiSection({ project, app }: { project: Project; app: AppSettings
       </div>
       {planned.note && <p className="muted small">{planned.note}対応するまでは選べません。</p>}
       <ErrorText message={error} />
-      {project.provider === "claude" ? (
-        <AiDefaults project={project} app={app} />
+      {providers.data?.find((p) => p.id === project.provider)?.implemented !== false ? (
+        <AiDefaults project={project} provider={project.provider} app={app} />
       ) : (
         <p className="muted small">この AI の既定の設定は、対応したときにここで選べるようになります。</p>
       )}

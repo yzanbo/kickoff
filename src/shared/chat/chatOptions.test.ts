@@ -33,3 +33,14 @@ test("Claude Code 以外の AI には、Claude Code の既定（モデルの名�
   // 送るときの指定は、どの AI でも重ねる
   assert.deepEqual(resolveChatOptions(settings, "codex", project, { model: "gpt-6-luna" }), { ...PROVIDER_BASE_CHAT_OPTIONS, model: "gpt-6-luna" });
 });
+
+test("Claude Code のほかの AI は、アプリの provider_chat_defaults → プロジェクトの provider_chat_defaults の順に、その AI の分だけを重ねる（メモの仕様書「0028」の 9 節）", () => {
+  const settings = { ...DEFAULT_SETTINGS, provider_chat_defaults: { codex: { model: "gpt-6-luna", effort: "low" as const, permission_mode: "auto" as const, fast_mode: false } } };
+  assert.deepEqual(resolveChatOptions(settings, "codex"), { model: "gpt-6-luna", effort: "low", permission_mode: "auto", fast_mode: false });
+  const project = { chat_defaults: { model: "sonnet" }, provider_chat_defaults: { codex: { effort: "high" as const } } };
+  assert.deepEqual(resolveChatOptions(settings, "codex", project), { model: "gpt-6-luna", effort: "high", permission_mode: "auto", fast_mode: false });
+  // Claude Code にはほかの AI の既定を重ねない
+  assert.equal(resolveChatOptions(settings, "claude", project).model, "sonnet");
+  // 決めていない AI は初めの既定
+  assert.deepEqual(resolveChatOptions(settings, "copilot", project), PROVIDER_BASE_CHAT_OPTIONS);
+});

@@ -42,10 +42,9 @@ export function ProviderPicker({ value, onChange, tipPrefix = "この AI で始�
   );
 }
 
-/** チャットの見出しの AI の札（見せるだけ。Claude Code をサブスクで使うふだんのチャットには出さない） */
+/** チャットの見出しの AI の札（見せるだけ。送ったあとも、どのチャットでもいつも出す。メモの仕様書「0028」の 9 節） */
 export function ProviderChip({ provider }: { provider: ProviderId }) {
   const status = statusOf(useProviders({ active: false }).data, provider);
-  if (provider === "claude" && !paysPerUse(status)) return null;
   return (
     <span
       className="chat-group-chip chat-provider-chip"

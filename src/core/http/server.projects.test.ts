@@ -261,3 +261,26 @@ test("プロジェクトを削除するとゴミ箱に入り、3 日たって本
   assert.equal(provider.discarded.length, 1);
   assert.deepEqual([...provider.discarded[0].sessionIds].sort(), ["fork-1", "s1"]);
 });
+
+test("AI ごとの既定: 設定の新しいプロジェクトで使う AI と、Claude Code のほかの AI の既定（設定・プロジェクト）を保存し、新しいチャットに当てる（メモの仕様書「0028」の 9 節）", async () => {
+  const { call, project, runner, store } = setup();
+  const codex = { model: null, effort: "low", permission_mode: "auto", fast_mode: false };
+  const saved = await call("PUT", "/api/settings", { default_provider: "codex", provider_chat_defaults: { codex } });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.body.default_provider, "codex");
+  assert.deepEqual(saved.body.provider_chat_defaults, { codex });
+  // Claude Code の分は chat_defaults に持つので、ここには入れられない
+  assert.equal((await call("PUT", "/api/settings", { provider_chat_defaults: { claude: codex } })).status, 400);
+  // 新しいプロジェクトは、設定の AI で作る
+  const created = await call("POST", "/api/projects", { name: "新しい", parent_dir: tempDir(), folder_name: "new-p" });
+  assert.equal(created.body.provider, "codex");
+  assert.deepEqual(created.body.provider_chat_defaults, {});
+
+  // プロジェクトの既定は書いた項目だけ重ねる
+  const patched = await call("PATCH", `/api/projects/${project.id}`, { provider_chat_defaults: { codex: { effort: "high" } } });
+  assert.deepEqual(patched.body.provider_chat_defaults, { codex: { effort: "high" } });
+  const chat = await call("POST", `/api/projects/${project.id}/chats`, { text: "1", provider: "codex" });
+  assert.deepEqual([chat.body.model, chat.body.effort, chat.body.permission_mode], [null, "high", "auto"]);
+  await until(() => !runner.isBusy(chat.body.id));
+  assert.deepEqual(store.projects.get(project.id)?.provider_chat_defaults, { codex: { effort: "high" } });
+});
