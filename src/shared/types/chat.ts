@@ -93,6 +93,10 @@ export interface Chat {
   /** 推論の深さ（null なら指定しない＝モデルの既定） */
   effort: EffortLevel | null;
   permission_mode: PermissionMode;
+  /** このチャットでコマンドの砂場を使うか（作成時の既定） */
+  sandbox_enabled: boolean;
+  /** このチャットで Kickoff の編集先の制限を使うか（作成時の既定） */
+  edit_scope_enabled: boolean;
   /** ファストモードを指定したか */
   fast_mode: boolean;
   cost_usd: number;

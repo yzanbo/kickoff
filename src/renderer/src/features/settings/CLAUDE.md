@@ -1,5 +1,7 @@
 # 設定・使用状況・下の帯・診断（`features/settings`・`features/usage`・`features/footer`・`features/diagnostics`）
 
+「AI の既定」では新規チャットのコマンドの砂場と編集先の制限を独立して選べる。初めは両方オンで、変更は既存チャットに遡らない。オフの危険と別の制限を説明する。
+
 ## 設定のダイアログ（`SettingsDialog`）
 
 - 左下の歯車・⌘, から開く `TabbedDialog`（画面は移らない）。項目（`SettingsSection`）: 使用状況・表示・サイドバー・接続・AI の既定・チャット・定型文・圧縮前・圧縮後指示・メモ・リンクと画像・音声入力・通知・ターミナル・ブラウザの拡張機能・スマホ連携・ゴミ箱と整理（`features/trash/CLAUDE.md` の `TrashSettings`）・診断。部品からその項目で開くときは `openSettings(section)`（App が受け取る。開いていればその項目に切り替える。チャット欄のマイクから「音声入力」など）。

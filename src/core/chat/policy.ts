@@ -55,7 +55,7 @@ const PROJECT_FOLDER_WORDS = [
  * 言葉は画面とそろえる: プロジェクトフォルダ（プロジェクトの repo_path。呼び名は PROJECT_FOLDER_WORDS）・作業フォルダ（workdir。ワークツリーで作業するチャットはそのフォルダ）・メモフォルダ（memo.dir）。
  * git で管理していないフォルダ・git のリポジトリの中のフォルダもあるので「リポジトリ」とは呼ばない。送るたびに作り直すので、フォルダを変えたら次の指示から新しい場所が伝わる
  */
-export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string | null }, opts: { trash?: boolean; sandbox?: { unsandboxed: string[] }; browser?: LinkOpenTarget } = {}): string {
+export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string | null }, opts: { trash?: boolean; sandbox?: { unsandboxed: string[] }; editScopeEnabled?: boolean; browser?: LinkOpenTarget } = {}): string {
   const lines = [
     `# Kickoff からの指示`,
     `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
@@ -64,7 +64,7 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     `- 名前: ${project.name}`,
     `- プロジェクトフォルダ: ${project.repo_path}（利用者が${PROJECT_FOLDER_WORDS.map((w) => `「${w}」`).join("")}と言ったら、このフォルダのこと。「ルートの README」「ホームディレクトリの src」のようにファイルの場所を言われたら、このフォルダからの場所として探してください${workdir !== project.repo_path ? "（読み書きは作業フォルダの中の同じ場所で）" : ""}）`,
     workdir !== project.repo_path
-      ? `- 作業フォルダ: ${workdir}（このチャットはワークツリーで作業しています。ファイルの読み書き・コマンドはこの作業フォルダで行い、プロジェクトフォルダ（本体）は変えないでください）`
+      ? `- 作業フォルダ: ${workdir}（このチャットはワークツリーで作業しています。${opts.editScopeEnabled === false ? "作業フォルダとプロジェクトフォルダ（本体）を区別してください" : "ファイルの読み書き・コマンドはこの作業フォルダで行い、プロジェクトフォルダ（本体）は変えないでください"}）`
       : `- 作業フォルダ: プロジェクトフォルダと同じ`,
     // 利用者は会話の途中でプロジェクトフォルダ・作業フォルダ（本体 / ワークツリー。メモの仕様書「0025」の Q7）・メモフォルダを変えられる。この指示は送るたびに作り直すので、ここがいまの場所
     `- プロジェクトフォルダ・作業フォルダ・メモフォルダは、利用者が会話の途中で変えることがあります。ここに書いた場所がいまの場所です。前の会話に出てきたパスと違っていたら、こちらを使ってください。`,
@@ -85,7 +85,7 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     ...(opts.trash
       ? [`- ファイル・フォルダを消すときは、rm・unlink・find -delete・git clean ではなく ${TRASH_COMMAND} <パス>… を使ってください（Kickoff のゴミ箱に入り、3 日は利用者が元に戻せます。rm などは Kickoff が断ります。command not found なら "$KICKOFF_TRASH" <パス>… で呼べます）。`]
       : []),
-    ...(opts.sandbox ? sandboxLines(opts.sandbox.unsandboxed) : []),
+    ...(opts.sandbox ? sandboxLines(opts.sandbox.unsandboxed, opts.editScopeEnabled !== false) : []),
   );
 
   // ブラウザのツールの説明を読む前にも、どの AI にも利用者が選んだ開き先を伝える
@@ -161,11 +161,11 @@ function indent(text: string): string {
 }
 
 /** Bash の砂場のこと（chat/sandbox/。書けない場所・外で流すコマンドを初めから伝え、止められてから試し直す手間を省く） */
-function sandboxLines(unsandboxed: string[]): string[] {
+function sandboxLines(unsandboxed: string[], editScopeEnabled: boolean): string[] {
   // 外で流すコマンドは、npm・npx・brew の形だけを見せる（pnpm・yarn などの言い換えまで並べない）
   const shown = [...new Set(unsandboxed.filter((c) => /^(npm|npx|brew) /.test(c)).map((c) => c.replace(/:\*$/, "")))];
   return [
-    `- Bash のコマンドは砂場の中で動き、作業フォルダ・メモフォルダ・一時フォルダ・キャッシュ・パッケージの置き場の外には書けません（Operation not permitted になります）。作業フォルダの外のファイルを変えるときは Edit / Write を使ってください（Kickoff が利用者に確かめます）。同じリポジトリのほかの作業場所（本体・ほかのワークツリー）は変えられないので、要るときは自分でチャットを作らずに、利用者に「そのワークツリーのチャットで行うか、そこで子チャットを作るか」を提案してください。利用者の設定を変えるコマンド（git config --global・claude mcp add・gh auth login など）は流さずに、利用者に示して自分のターミナルで流してもらってください。`,
+    `- Bash のコマンドは砂場の中で動き、作業フォルダ・メモフォルダ・一時フォルダ・キャッシュ・パッケージの置き場の外には書けません（Operation not permitted になります）。${editScopeEnabled ? "作業フォルダの外のファイルを変えるときは Edit / Write を使ってください（Kickoff が利用者に確かめます）。同じリポジトリのほかの作業場所（本体・ほかのワークツリー）は変えられないので、要るときは自分でチャットを作らずに、利用者に「そのワークツリーのチャットで行うか、そこで子チャットを作るか」を提案してください。" : "ファイル編集ツールの編集先を確認する Kickoff の制限はオフです。"}利用者の設定を変えるコマンド（git config --global・claude mcp add・gh auth login など）は流さずに、利用者に示して自分のターミナルで流してもらってください。`,
     `- 砂場の外への通信は、HTTP の中継を通るもの（curl・npm・git の https・gh など）だけが通ります。ssh などの直接の通信は通りません（git は https で）。`,
     ...(shown.length > 0
       ? [

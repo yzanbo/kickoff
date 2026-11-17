@@ -1,5 +1,7 @@
 # 共有の層（src/shared）の説明
 
+新規チャットの砂場・編集先制限の既定は `AppSettings`、作成時の値は `Chat` に保持する。`chat/restrictionNotice.ts` は制限オフを知らせる文を画面とスマホで共有する。
+
 - `chat/aiSandboxDiagnostics.ts`: OS の拒否ログの限定診断の 2 つのツール名。コアの MCP の登録と画面の記録の見出しで共有する。診断の OS 依存の処理や生のログは shared に置かない。
 
 コア（`src/core`）・メインプロセス（`src/main`）・preload・画面（`src/renderer`）のどこからも使う型と純粋な関数。import は `@shared/…`（tsconfig の `paths` と `electron.vite.config.ts` のエイリアス）。コアと画面は互いに import しないので、両方で使うものはここに置く。

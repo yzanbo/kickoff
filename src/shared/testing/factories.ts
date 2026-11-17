@@ -17,6 +17,8 @@ export function makeChat(id: number, patch: Partial<Chat> = {}): Chat {
     model: null,
     effort: null,
     permission_mode: "default",
+    sandbox_enabled: true,
+    edit_scope_enabled: true,
     fast_mode: false,
     cost_usd: 0,
     num_turns: 0,

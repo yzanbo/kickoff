@@ -8,6 +8,8 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { ChatDisplayItems, useChatHeaderBadgeColors, useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
 import { ChatFontSizeButton } from "./ChatFontSizeButton";
 import { TextWidthToggle, useWideText } from "./TextWidthToggle";
+import { useAppSettings } from "@/stores/settings";
+import { RestrictionNotice } from "./RestrictionNotice";
 
 /**
  * 送る前のチャット（新しいチャット・新しい子チャットのタブ）の画面の枠。チャットの画面（ChatPane・ChatHeader）と同じ決まりで描く:
@@ -28,6 +30,7 @@ export function DraftChatPage({ provider, className, badges, hero, children }: {
   const rowHidden = useChatHeaderRowHidden();
   const badgeColors = useChatHeaderBadgeColors();
   const menu = useContextMenu();
+  const settings = useAppSettings().data;
   // ボタン・リンク・入力欄の上では、そのものの右クリックを残す（チャットの見出しと同じ）
   const onBlankContextMenu = (e: MouseEvent) => {
     if ((e.target as HTMLElement).closest("button, a, input, textarea, select, [role='search']")) return;
@@ -58,7 +61,7 @@ export function DraftChatPage({ provider, className, badges, hero, children }: {
       <div className="timeline" onContextMenu={onBlankContextMenu}>
         {hero}
       </div>
-      <div className="chat-composer">{children}</div>
+      <div className="chat-composer">{settings ? <RestrictionNotice draft sandboxEnabled={settings.sandbox_enabled_by_default} editScopeEnabled={settings.edit_scope_enabled_by_default} /> : <p className="composer-notice small">制限の設定を読み込み中です。</p>}{children}</div>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="チャットの画面" onClose={menu.close}>
           <ChatDisplayItems />

@@ -49,6 +49,16 @@ test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ
   assert.equal(threadOverrides(params({ auth: { mode: "api_key", apiKey: "k" } })).config?.["shell_environment_policy.ignore_default_excludes"], false);
 });
 
+test("利用者が選んだ砂場オフは thread と turn の両方に渡す。計画モードは読むだけを維持する", () => {
+  const off = params({ disableSandbox: true, permissionMode: "auto" });
+  assert.equal(threadOverrides(off).sandbox, "danger-full-access");
+  assert.deepEqual(codexSandboxPolicy(off), { type: "dangerFullAccess" });
+  const plan = params({ disableSandbox: true, permissionMode: "plan" });
+  assert.equal(threadOverrides(plan).sandbox, "read-only");
+  assert.deepEqual(codexSandboxPolicy(plan), { type: "readOnly", networkAccess: true });
+  assert.equal(threadOverrides(params()).sandbox, "workspace-write");
+});
+
 test("指示: 添える文脈を先に、別の塊で", () => {
   assert.deepEqual(turnInput({ prompt: "p", turnContext: "c" }).map((i) => i.text), ["c", "p"]);
   assert.deepEqual(turnInput({ prompt: "p", turnContext: null }).map((i) => i.text), ["p"]);

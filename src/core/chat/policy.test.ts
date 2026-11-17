@@ -126,6 +126,9 @@ test("砂場: 書けない場所・外のファイルは Edit で・設定を変
   assert.match(prompt, /`brew install`・`npm run dev`/);
   assert.doesNotMatch(prompt, /pnpm dev/);
   assert.match(prompt, /単独で流して/);
+  const unrestricted = buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: [] }, editScopeEnabled: false });
+  assert.match(unrestricted, /編集先を確認する Kickoff の制限はオフ/);
+  assert.doesNotMatch(unrestricted, /Kickoff が利用者に確かめます/);
   // 外で流すコマンドがなければ、その行は書かない
   assert.doesNotMatch(buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: [] } }), /砂場の外で流れます/);
 });

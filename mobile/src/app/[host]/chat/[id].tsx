@@ -7,6 +7,7 @@ import { Composer } from "../../../chat/Composer";
 import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
 import { workplaceMoveReservationText } from "@shared/chat/aiWorkplace";
+import { restrictionNotice } from "@shared/chat/restrictionNotice";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
 import { useHostState } from "../../../state/useHostState";
 import { ConnectionBanner } from "../../../ui/ConnectionBanner";
@@ -76,6 +77,7 @@ export default function ChatScreen() {
           ) : undefined
         }
       />
+      {chat && restrictionNotice(chat.sandbox_enabled, chat.edit_scope_enabled) !== "" && <Text style={[ui.error, { paddingHorizontal: 12 }]}>{restrictionNotice(chat.sandbox_enabled, chat.edit_scope_enabled)}</Text>}
       {canWrite && client ? (
         <Composer
           running={running}

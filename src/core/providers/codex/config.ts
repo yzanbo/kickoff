@@ -45,6 +45,7 @@ const writableRootsOf = (params: ProviderTurnParams): string[] => params.bashSan
  */
 export function codexSandboxPolicy(params: ProviderTurnParams): SandboxPolicy {
   if (params.permissionMode === "plan") return { type: "readOnly", networkAccess: true };
+  if (params.disableSandbox) return { type: "dangerFullAccess" };
   return { type: "workspaceWrite", writableRoots: writableRootsOf(params), networkAccess: true, excludeTmpdirEnvVar: false, excludeSlashTmp: false };
 }
 
@@ -78,7 +79,7 @@ export function threadOverrides(params: ProviderTurnParams): ThreadOverrides {
     model: params.model,
     cwd: params.cwd,
     approvalPolicy: CODEX_APPROVAL_POLICY,
-    sandbox: params.permissionMode === "plan" ? "read-only" : "workspace-write",
+    sandbox: params.permissionMode === "plan" ? "read-only" : params.disableSandbox ? "danger-full-access" : "workspace-write",
     developerInstructions: params.systemPrompt || null,
     config: {
       ...mcpServerOverrides(params.tools ?? [], params.permissionMode),

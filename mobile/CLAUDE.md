@@ -1,5 +1,7 @@
 # スマホのアプリ（mobile/。Android）
 
+チャット入力欄に制限オフの注意を表示する。文はデスクトップと同じ `shared/chat/restrictionNotice` を使う。
+
 Android から、Tailscale 経由で本体（Mac の Kickoff）のチャットを使うアプリ（スマホ連携の作る順の「2」。メモの「スマホ連携 サーバー構成の比較と案（図）」の 3・13・15〜18 節）。Expo（React Native）・TypeScript で、本体と同じ `@shared`（`../src/shared`）の型と純粋な関数を使う。配り方は APK を GitHub Releases に置く（手順は `README.md`）。
 
 ## 置き場所と依存

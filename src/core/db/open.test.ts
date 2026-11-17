@@ -12,6 +12,9 @@ import { Store } from "./store.js";
 
 const applicationId = (db: DatabaseSync) => (db.prepare("PRAGMA application_id").get() as { application_id: number }).application_id;
 
+/** v33 以前の DB を再現するときは、後から足した制限の列も外す */
+const dropRestrictionColumns = (db: DatabaseSync) => db.exec("ALTER TABLE chats DROP COLUMN sandbox_enabled; ALTER TABLE chats DROP COLUMN edit_scope_enabled;");
+
 /** sql を流しただけのデータベースを作る（Kickoff の印・版は sql の中で付ける） */
 function rawDatabase(dir: string, sql: string): string {
   const file = path.join(dir, DB_FILE);
@@ -136,6 +139,7 @@ test("v30 の移行: v29 の DB を開くと、記録の軽い形を読む覆う
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed", model: null });
   store.events.add(chat.id, { type: "tool_use", id: "c1", name: "Bash", input: {} });
+  dropRestrictionColumns(store.db);
   // v29 に戻す（索引を外して版を下げる。後の版の v31 の列と索引・v32 の表・v33 の列も外す）
   store.db.exec(`ALTER TABLE projects DROP COLUMN provider_chat_defaults; DROP TABLE chat_image_cache; DROP TABLE chat_image_hosts; DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending;`);
   store.db.exec(`DROP INDEX idx_chat_events_meta; PRAGMA user_version = ${USER_VERSION_BASE + 29};`);
@@ -153,6 +157,7 @@ test("v31 の移行: v30 の DB を開くと、既存のチャットに再開の
   const store = new Store(file);
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "running", model: null });
+  dropRestrictionColumns(store.db);
   // v30 に戻す（列と索引を外して版を下げる。後の版の v32 の表・v33 の列も外す）
   store.db.exec(`ALTER TABLE projects DROP COLUMN provider_chat_defaults; DROP TABLE chat_image_cache; DROP TABLE chat_image_hosts; DROP INDEX idx_chats_resume_pending; ALTER TABLE chats DROP COLUMN resume_pending; PRAGMA user_version = ${USER_VERSION_BASE + 30};`);
   store.db.close();
@@ -168,6 +173,7 @@ test("v32 の移行: v31 の DB を開くと、外の画像の表示を許可し
   const store = new Store(file);
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed", model: null });
+  dropRestrictionColumns(store.db);
   // v31 に戻す（表を外して版を下げる。後の版の v33 の列も外す）
   store.db.exec(`ALTER TABLE projects DROP COLUMN provider_chat_defaults; DROP TABLE chat_image_cache; DROP TABLE chat_image_hosts; PRAGMA user_version = ${USER_VERSION_BASE + 31};`);
   store.db.close();
@@ -183,6 +189,7 @@ test("v33 の移行: v32 の DB を開くと、プロジェクトに Claude Code
   const store = new Store(file);
   const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
   store.projects.update(project.id, { chat_defaults: { model: "sonnet" } });
+  dropRestrictionColumns(store.db);
   // v32 に戻す（列を外して版を下げる）
   store.db.exec(`ALTER TABLE projects DROP COLUMN provider_chat_defaults; PRAGMA user_version = ${USER_VERSION_BASE + 32};`);
   store.db.close();
@@ -191,5 +198,24 @@ test("v33 の移行: v32 の DB を開くと、プロジェクトに Claude Code
   const migrated = again.projects.get(project.id);
   assert.deepEqual(migrated?.provider_chat_defaults, {});
   assert.deepEqual(migrated?.chat_defaults, { model: "sonnet" });
+  again.db.close();
+});
+
+test("v34 の移行: 既存チャットは設定を変えていても両方の制限を維持する", () => {
+  const file = path.join(tempDir(), DB_FILE);
+  const store = new Store(file);
+  const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "既存", status: "completed" });
+  store.settings.update({ sandbox_enabled_by_default: false, edit_scope_enabled_by_default: false });
+  dropRestrictionColumns(store.db);
+  store.db.exec(`PRAGMA user_version = ${USER_VERSION_BASE + 33}`);
+  store.db.close();
+  const again = new Store(file);
+  assert.equal(userVersion(again.db), USER_VERSION_BASE + SCHEMA_VERSION);
+  assert.equal(again.chats.get(chat.id)?.sandbox_enabled, true);
+  assert.equal(again.chats.get(chat.id)?.edit_scope_enabled, true);
+  const fresh = again.chats.create({ project_id: project.id, provider: "codex", title: "新規", status: "completed" });
+  assert.equal(fresh.sandbox_enabled, false);
+  assert.equal(fresh.edit_scope_enabled, false);
   again.db.close();
 });

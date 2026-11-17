@@ -176,7 +176,10 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
 
     // Bash の砂場（書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない）
     const memoDir = deps.memoDirOf ? ensureDir(deps.memoDirOf(project)) : null;
-    const sandbox = deps.bashSandbox
+    // 計画モードと「AI で整える」の専用の保護は、アプリの既定にかかわらず維持する
+    const useSandbox = chat.sandbox_enabled || chat.permission_mode === "plan" || chat.untracked_only;
+    if (!useSandbox && chat.provider !== "claude" && chat.provider !== "codex") throw new Error("この AI は、Kickoff からサンドボックスをオフにする設定にまだ対応していません");
+    const sandbox = useSandbox && deps.bashSandbox
       ? await bashSandboxFor(deps.bashSandbox, { workdir: cwd, memoDir, readOnlyDirs: [...(deps.uploads ? [deps.uploads.dir] : []), ...readOnlyReferences(project, cwd)] })
       : null;
 
@@ -293,6 +296,7 @@ function buildTurnParams(
     systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, {
       trash: deps.trashCommand !== undefined,
       sandbox: sandbox ? { unsandboxed: sandbox.unsandboxedCommands } : undefined,
+      editScopeEnabled: chat.edit_scope_enabled || chat.untracked_only,
       browser: deps.browser ? deps.store.settings.get().link_open_in : undefined,
     }),
     turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id)), note),
@@ -311,7 +315,7 @@ function buildTurnParams(
     untrackedOnly: chat.untracked_only,
     // ファイルを書き換えるツールの先は、作業場所・メモのフォルダ・OS の一時フォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
     // 一時フォルダは Bash の砂場でも書けるので、Write で一時ファイルを置くたびに聞かない。［AI で整える］のチャットは上の守りがもっと狭く絞るので付けない）
-    writeScope: chat.untracked_only
+    writeScope: chat.untracked_only || !chat.edit_scope_enabled
       ? null
       : {
           writableDirs: [...(memoDir ? [realPathOrSelf(memoDir)] : []), ...(deps.bashSandbox?.rules.tempDirs ?? [])],
@@ -359,6 +363,7 @@ function buildTurnParams(
     // rm・git clean などでファイルを消す Bash は断り、kickoff-trash を使わせる（どこのファイルでも）
     deleteGuard: deps.trashCommand !== undefined,
     bashSandbox: sandbox,
+    disableSandbox: !chat.sandbox_enabled && chat.permission_mode !== "plan" && !chat.untracked_only,
   };
 }
 

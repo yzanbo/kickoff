@@ -17,6 +17,7 @@ export interface TextInput {
 export type AskForApproval = "untrusted" | "on-request" | "never";
 export type SandboxMode = "read-only" | "workspace-write" | "danger-full-access";
 export type SandboxPolicy =
+  | { type: "dangerFullAccess" }
   | { type: "readOnly"; networkAccess: boolean }
   | { type: "workspaceWrite"; writableRoots: string[]; networkAccess: boolean; excludeTmpdirEnvVar: boolean; excludeSlashTmp: boolean };
 

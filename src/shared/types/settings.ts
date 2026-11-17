@@ -72,6 +72,10 @@ export interface AppSettings {
   chat_defaults: ChatOptions;
   /** Claude Code のほかの AI の新しいチャットの既定の選択（書いていない AI は、モデル・深さはその AI の既定・毎回確認。モデルの null はその AI の既定。メモの仕様書「0028」の 9 節） */
   provider_chat_defaults: Partial<Record<OtherProviderId, ChatOptions>>;
+  /** 新しいチャットでコマンドの砂場を使う既定（既存のチャットは変えない） */
+  sandbox_enabled_by_default: boolean;
+  /** 新しいチャットで Kickoff の編集先の制限を使う既定（既存のチャットは変えない） */
+  edit_scope_enabled_by_default: boolean;
   /**
    * スマホ連携のオン・オフ（スマホからつなぐ）。オンのときだけ、端末の登録（ペアリング）を受け付け、つないだ端末からの頼みを受け、
    * 電源につないでいる間は本体を眠らせない。待ち受けは 127.0.0.1 のまま（外からは Tailscale Serve などを通す）。オフでも、つないだ端末の登録は残す
@@ -136,6 +140,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   provider_auth: {},
   chat_defaults: { model: "opus", effort: null, permission_mode: "default", fast_mode: false },
   provider_chat_defaults: {},
+  sandbox_enabled_by_default: true,
+  edit_scope_enabled_by_default: true,
   remote_enabled: false,
   mobile_url: null,
   ntfy_url: "",

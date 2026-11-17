@@ -69,7 +69,7 @@ export class Store {
     this.settings = createSettingsStore(this.db, onChange);
     this.secrets = createSecretStore(this.db);
     this.projects = createProjectStore(this.db, onChange);
-    this.chats = createChatStore(this.db, onChange, this.logRevisions);
+    this.chats = createChatStore(this.db, onChange, this.logRevisions, this.settings.get);
     this.groups = createGroupStore(this.db, onChange, this.chats.get);
     this.events = createEventStore(this.db, onChange, this.chats.get, this.logRevisions);
     this.queues = createQueueStore(this.db);
