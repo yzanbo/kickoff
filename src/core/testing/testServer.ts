@@ -7,6 +7,7 @@ import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
 import { WorktreePrWatch } from "../git/prWatch.js";
+import { HeadWatch } from "../git/headWatch.js";
 import { WorktreeFinisher } from "../worktrees/finish.js";
 import { ChatRemover } from "../chat/aiChatRemove.js";
 import { UserViewRegistry } from "../userView/registry.js";
@@ -503,7 +504,9 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages });
   // AI の API キー（暗号化の口を渡されたテストはそれで置く。実行の側には渡さない = いつもサブスク）
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
-  const app = createApp({ store, bus, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, remoteImages, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const headWatch = new HeadWatch((project_id) => bus.publish({ type: "worktrees_changed", project_id }));
+  afterTest(() => headWatch.close());
+  const app = createApp({ store, bus, headWatch, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, remoteImages, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {

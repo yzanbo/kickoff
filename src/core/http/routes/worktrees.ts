@@ -17,14 +17,18 @@ const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(400
  * ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」。
  * 新しいワークツリーのブランチ名の案は branch-suggestions（やりたいことの概要から、プロジェクトの AI に 1 回だけ聞く）
  */
-export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEnvs, worktreeFinisher }: ServerDeps) {
+export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEnvs, worktreeFinisher, headWatch }: ServerDeps) {
   const { withProject } = lookups(store);
 
   // Git で管理していないフォルダは、ワークツリーのないもの（空）として返す（Git の状態の repo: false と同じ扱い。失敗にすると、画面が取り直し続ける）
   app.get("/api/projects/:id/git/worktrees", withProject, async (c) => {
     const { project } = c.var;
+    if (!(await isGitWorkTree(project.repo_path))) return c.json([]);
+    const list = await listWorktrees(project.repo_path);
+    // HEAD の見張りを一覧に合わせる（ブランチを替えた・ワークツリーを足した消したら worktrees_changed で知らせ、画面が取り直す）
+    await headWatch.watch(project.id, project.repo_path, list);
     // ワークツリーの実行環境（ポートの帯・組の名前）も付ける
-    return c.json((await isGitWorkTree(project.repo_path)) ? worktreeEnvs.attach(project.id, await listWorktrees(project.repo_path)) : []);
+    return c.json(worktreeEnvs.attach(project.id, list));
   });
 
   app.get("/api/projects/:id/git/worktrees/path", withProject, async (c) => {

@@ -51,6 +51,8 @@ export type BusEvent =
   | { type: "voice_model"; id: string; download: VoiceDownload | null; downloaded: boolean }
   /** プロジェクトのメモを作った・書いた・動かした・ゴミ箱へ移した（Kickoff の中の操作だけ。一覧と開いているメモを取り直す） */
   | { type: "memos"; project_id: number; path: string | null }
+  /** プロジェクトのブランチを替えた・ワークツリーを足した・消した（コアの HEAD の見張り。画面はワークツリーの一覧を取り直す） */
+  | { type: "worktrees_changed"; project_id: number }
   // ワークツリーの PR の知らせ（そのプロジェクトの分を丸ごと。変わったときだけ）
   | { type: "worktree_prs"; project_id: number; notices: WorktreePrNotice[] }
   /** チャットで外の画像の表示を許可したホストが変わった（そのチャットの分を丸ごと。メモの仕様書「0027_チャット欄の外の画像とリンク」。端末には届けない） */
