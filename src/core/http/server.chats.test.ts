@@ -530,6 +530,22 @@ test("チャットのゴミ箱: 子チャットごと戻せ、戻したら一覧
   assert.equal(store.trash.list(project.id).length, 0);
 });
 
+test("AI 切り替え用の長文ファイルはアーカイブ・ゴミ箱で保持し、チャットの完全削除後に片付ける", async () => {
+  const { call, project, store, trashBin, trashClock, uploads } = setup();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "切り替え", status: "completed" });
+  const file = await uploads.save({ name: "long.txt", type: "text/plain", bytes: new TextEncoder().encode("長い会話") });
+  store.events.add(chat.id, { type: "provider_switched", from: "claude", to: "codex", handoff_attachments: [file] });
+  assert.equal(store.events.uploadInUse(file.id), true);
+  await call("PATCH", `/api/chats/${chat.id}`, { archived: true });
+  assert.ok(await uploads.resolve(file.id));
+  const removed = await call("DELETE", `/api/chats/${chat.id}`);
+  assert.equal(removed.status, 200);
+  assert.ok(await uploads.resolve(file.id));
+  trashClock.now += TRASH_KEEP_MS + 60_000;
+  await trashBin.sweep();
+  assert.equal(await uploads.resolve(file.id), undefined);
+});
+
 test("チャットの詳細の記録: クエリがなければすべて・after でそれより新しい分・limit で終わりから・before と limit でさかのぼる。after の記録が消えていれば after_missing", async () => {
   const { call, project, store } = setup();
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "長い", status: "completed" });
