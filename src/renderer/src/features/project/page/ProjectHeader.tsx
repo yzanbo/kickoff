@@ -6,6 +6,7 @@ import { cx } from "@/lib/cx";
 import { ToneChip } from "@/ui/ToneChip";
 import { confirmRestoreProject } from "@/features/project/projectOrder";
 import type { ProjectTab } from "@/app/router";
+import { WindowHeaderContent } from "@/app/MaximizedHeader";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { ProjectTabs, useProjectTabsLayout, type TabRefreshing } from "./ProjectTabs";
 import { StateStats } from "./StateStats";
@@ -47,6 +48,7 @@ export function ProjectHeader({
   return (
   <header className={cx("page-header project-header", mode !== "show" && "title-out")}>
     {mode !== "hide" && (
+    <WindowHeaderContent>
     <div className={cx("project-title-row", mode === "hover" && "auto-hide")} onContextMenu={menu.open}>
       <h1>
         <ProjectSwitcher project={project} tab={tab} />
@@ -70,6 +72,7 @@ export function ProjectHeader({
         <AllStateChats project={project} waiting={waiting} />
       </div>
     </div>
+    </WindowHeaderContent>
     )}
     {menu.menu && (
       <PopupMenu at={menu.menu.at} label="見出しの出し方" onClose={menu.close}>

@@ -1,6 +1,8 @@
 @import "./base/tokens.css";
 @import "./base/base.css";
 @import "./base/layout.css";
+@import "./base/navigation.css";
+@import "./base/maximized-header.css";
 @import "./ui/popover.css";
 @import "./ui/progressive.css";
 @import "./sidebar/sidebar.css";

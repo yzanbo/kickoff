@@ -14,7 +14,7 @@ import { terminalTargets, usePanel } from "@/features/panel/usePanel";
 import { usePanelWidth } from "./usePanelWidth";
 
 /** チャットを URL にする（サイドバーで強調され、戻る・進むで行き来できる） */
-const showInUrl = (chat: Pick<Chat, "id" | "project_id">) => openChat(chat.project_id, chat.id, undefined, { replace: true });
+const showInUrl = (chat: Pick<Chat, "id" | "project_id">) => openChat(chat.project_id, chat.id);
 
 /**
  * プロジェクトのチャットのパネル（ボードの右のパネル・ボードと分けた「チャット」タブで共通。どちらも kanban:<プロジェクト> の同じパネルなので、
@@ -29,7 +29,7 @@ export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { proje
     scope: projectId,
     holdEsc,
     // 新しいチャットを送ったら、そのチャットを URL にする
-    onCreated: showInUrl,
+    onCreated: (chat) => openChat(chat.project_id, chat.id, undefined, { replace: true }),
     newChat: { projectId },
     terminals: terminalTargets(all, projectId),
   });
@@ -48,7 +48,7 @@ export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { proje
 
 /**
  * タブで選んだチャットを URL にする（利用者の依頼。サイドバーの行も選択中として強調される。カードから開いたチャットと同じ）。
- * 見るのは、ピントのあるペインで表示中のタブ。変わったときだけ URL を差し替え（戻る・進むの履歴は増やさない）、チャットでないタブ
+ * 見るのは、ピントのあるペインで表示中のタブ。変わったときだけ画面移動として履歴に積み、チャットでないタブ
  * （新しいチャット・ブラウザ・ターミナル）にしたらプロジェクトの画面（tab）に戻して、サイドバーの強調を外す。
  * はじめて描いたときは URL を変えない（URL で開いたチャット（useBoardFocus）より先に、前に表示していたタブで上書きしないため）
  */
@@ -64,7 +64,7 @@ function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number
     prev.current = shown;
     if (first || shown === null) return;
     if (chat) showInUrl(chat);
-    else navigate({ name: "project", id: projectId, tab }, { replace: true });
+    else navigate({ name: "project", id: projectId, tab });
   });
   // 表示中のタブが変わったときだけ（チャットの中身が変わっても URL は変えない）
   useEffect(() => {

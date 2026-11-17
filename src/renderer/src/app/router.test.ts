@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
-import { boardTabOf, href, lastingRoute, parse, routeProjectId, type Route } from "./router";
+import { test, vi } from "vitest";
+import { boardTabOf, href, lastingRoute, navigate, parse, routeProjectId, type Route, type RouteChangeEvent } from "./router";
 
 test("parse: ハッシュを画面に読む（タブなしはボード、知らないタブはボード、知らない形は全プロジェクト）", () => {
   assert.deepEqual(parse(""), { name: "allProjects" });
@@ -93,4 +93,28 @@ test("lastingRoute: 起動したときに開く画面として覚えるのは、
   assert.equal(href(lastingRoute(parse("#/projects/3/changes"))), "#/projects/3/changes");
   assert.equal(href(lastingRoute(parse("#/projects/3/new?group=2"))), "#/projects/3/new?group=2");
   assert.equal(href(lastingRoute(parse("#/"))), "#/");
+});
+
+test("navigate: replace は画面の履歴も置き換える通知を添え、通常の移動とは区別できる", () => {
+  const target = new EventTarget();
+  const location = { hash: "#/projects/3/new" };
+  const replacements: string[] = [];
+  vi.stubGlobal("window", target);
+  vi.stubGlobal("location", location);
+  vi.stubGlobal("HashChangeEvent", class extends Event {});
+  vi.stubGlobal("history", {
+    replaceState: (_state: unknown, _title: string, url: string) => {
+      replacements.push(url);
+      location.hash = url;
+    },
+  });
+  const received: { hash: string; replace: boolean }[] = [];
+  target.addEventListener("hashchange", (event) => received.push({ hash: location.hash, replace: Boolean((event as RouteChangeEvent).routeReplace) }));
+
+  navigate({ name: "chat", projectId: 3, chatId: 9 }, { replace: true });
+  assert.deepEqual(replacements, ["#/projects/3/chats/9"]);
+  assert.deepEqual(received, [{ hash: "#/projects/3/chats/9", replace: true }]);
+  navigate({ name: "project", id: 3, tab: "memos" });
+  assert.equal(location.hash, "#/projects/3/memos");
+  assert.equal(replacements.length, 1);
 });

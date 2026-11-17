@@ -78,7 +78,7 @@
 }
 
 .sidebar-collapsed .project-title-row.auto-hide {
-  padding-left: 104px;
+  padding-left: var(--app-titlebar-left-end);
 }
 
 .project-title-row.auto-hide:hover,
