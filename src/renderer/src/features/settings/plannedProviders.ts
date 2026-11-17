@@ -4,7 +4,7 @@ import { useProviders } from "@/stores/providers";
 export const PLANNED_BADGE = "対応予定";
 
 /**
- * まだ Kickoff のチャットで使えない（対応予定の）AI（いまは Codex・Gemini）。
+ * まだ Kickoff のチャットで使えない（対応予定の）AI（いまは GitHub Copilot・Cursor・Gemini）。
  * ids: 対応予定の AI の ID（使用状況のサービスの ID とも同じ）。
  * note: 今後の対応予定であることの説明（対応予定のものがなければ null）
  */

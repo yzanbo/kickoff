@@ -150,8 +150,8 @@ export class CodexProvider implements AgentProvider {
     return res.thread.id;
   }
 
-  /** Sign in with ChatGPT を始める（login.ts。画面からつなぐのは段階 6） */
-  startLogin(): Promise<ChatgptLogin> {
+  /** ブラウザでのログインを始める（login.ts。Codex がログインを受けて ~/.codex に書く。設定の「接続」から） */
+  login(): Promise<ChatgptLogin> {
     if (!this.spawn) return Promise.reject(new Error("codex CLI が見つかりません"));
     const { args, env } = appServerLaunch(this.baseEnv, {});
     return startChatgptLogin({ spawn: this.spawn, args, env, cwd: os.homedir() });

@@ -20,7 +20,7 @@ export interface ProviderStatus {
 }
 
 /** AI によってできたりできなかったりすること（プロバイダーが対応するものだけを持つ） */
-export const PROVIDER_FEATURES = ["fork", "rewind_files", "subagent_log", "usage", "commands", "models", "summarize"] as const;
+export const PROVIDER_FEATURES = ["fork", "rewind_files", "subagent_log", "usage", "commands", "models", "summarize", "login"] as const;
 export type ProviderFeature = (typeof PROVIDER_FEATURES)[number];
 
 /** できることの名前（押せない理由の文に使う） */
@@ -32,6 +32,7 @@ export const PROVIDER_FEATURE_LABELS: Record<ProviderFeature, string> = {
   commands: "/ のコマンド",
   models: "モデルの選択",
   summarize: "AI で要約",
+  login: "ブラウザでログイン",
 };
 
 /** できないことの理由の文（「Codex のチャットでは分岐・巻き戻しは使えません」） */

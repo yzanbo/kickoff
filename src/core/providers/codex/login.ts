@@ -3,7 +3,7 @@ import type { SessionOpts } from "./session.js";
 import { openSession } from "./session.js";
 
 /**
- * Codex の Sign in with ChatGPT（メモの仕様書「0021」の Q12。OpenAI 公式のログイン）の骨組み。本物のログインはまだしない。
+ * Codex のブラウザでのログイン（メモの仕様書「0021」の Q12・「0028」の段階 ③。設定の「接続」の「ブラウザでログイン」から呼ぶ）。
  * 道: app-server の account/login/start（type: chatgpt）。Codex が OAuth の戻り先（この Mac の中のポート）を受け、ログインの URL を返すので、
  * Kickoff は利用者のブラウザでその URL を開き、account/login/completed の知らせを待つ。資格情報は Codex が自分の置き場（~/.codex）に書き、
  * `codex login` と同じものになる（Codex の CLI・ほかのアプリと共有）。
