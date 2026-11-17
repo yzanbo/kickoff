@@ -4,6 +4,7 @@
 
 ## 全体
 
+- 作業中のブラウザの既定はリンクの開き先設定（`link_open_in`）と共通。内蔵ブラウザのある環境では、`turn.ts` が送るたびに設定を読み、`policy.ts` の `buildSystemPrompt` で Claude Code・Codex などすべての AI に伝える。Kickoff なら `kickoff_browser` を優先し、別のブラウザを起動しない（利用者のブラウザ・自動テストの指定は優先）。OS の既定ならページを外部で開く。内蔵ブラウザのない環境にはこの指示を出さない。
 - 受付（API から呼ぶ窓口）は `runner.ts` の `Runner`（送信待ちの操作は土台のクラス `runnerQueue.ts` の `RunnerQueue`）。送った指示はすぐ動かす（同時に動かす数は決めない）。続きは同じセッション（`session_id`）を再開する。
 - チャットごとの作業中の状態（実行の止め方 `turn`・送る準備中 `preparing`・作業中の操作 `control`・送信待ち `queue`・書き直し中の指示 `edits`・再開の段取り `recovery`・画面に配る様子）は `runtime.ts` の `ChatRuntime` に集める（入れ物は `ChatRuntimes`。保存しない）。
 - 1 回の実行は `turn.ts` の `executeTurn`、チャットの作成と続きの指示の下ごしらえ（添付のパス・添付したメモ（写し）のパス・「AI に渡す」で取ったものの見出し・届かなかった報告を添える）は `input.ts` の `createChat` / `followupPrompt`。

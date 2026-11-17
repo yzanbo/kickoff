@@ -1,6 +1,6 @@
 import { memoKindOf } from "@shared/memo/kinds";
 import { TRASH_COMMAND } from "./guard/deleteGuard.js";
-import type { Project } from "@shared/types";
+import type { LinkOpenTarget, Project } from "@shared/types";
 
 /**
  * チャットのエージェントの権限ポリシー（プロバイダー非依存。どのチャットも同じ）。
@@ -55,7 +55,7 @@ const PROJECT_FOLDER_WORDS = [
  * 言葉は画面とそろえる: プロジェクトフォルダ（プロジェクトの repo_path。呼び名は PROJECT_FOLDER_WORDS）・作業フォルダ（workdir。ワークツリーで作業するチャットはそのフォルダ）・メモフォルダ（memo.dir）。
  * git で管理していないフォルダ・git のリポジトリの中のフォルダもあるので「リポジトリ」とは呼ばない。送るたびに作り直すので、フォルダを変えたら次の指示から新しい場所が伝わる
  */
-export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string | null }, opts: { trash?: boolean; sandbox?: { unsandboxed: string[] } } = {}): string {
+export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string | null }, opts: { trash?: boolean; sandbox?: { unsandboxed: string[] }; browser?: LinkOpenTarget } = {}): string {
   const lines = [
     `# Kickoff からの指示`,
     `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
@@ -87,6 +87,18 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
       : []),
     ...(opts.sandbox ? sandboxLines(opts.sandbox.unsandboxed) : []),
   );
+
+  // ブラウザのツールの説明を読む前にも、どの AI にも利用者が選んだ開き先を伝える
+  if (opts.browser) {
+    lines.push(
+      ``,
+      `## ブラウザ`,
+      opts.browser === "kickoff"
+        ? `- ブラウザの既定の開き先は「Kickoff のブラウザ」です。作業中にページを開く・画面を確かめる・操作するときは、kickoff_browser の browser_tabs・browser_open などを優先してください。利用者が別のブラウザや自動テストを指定した場合を除き、外部のブラウザ・Playwright・Chrome DevTools で別のブラウザを起動しないでください。`
+        : `- ブラウザの既定の開き先は「既定のブラウザ」（OS の既定のブラウザ）です。利用者にページを開くときは、そのブラウザで開いてください。利用者が「Kickoff のブラウザ」「開いているページ」と指定したときは、kickoff_browser のツールでそのタブを確かめてください。`,
+      `- この開き先は指示を送るたびに設定から読み直します。利用者が開き先を指定したときは、その指定を優先してください。`,
+    );
+  }
 
   // 図と数式: 書き方の細かい決まりは、描く前に visual_guide で読ませる（いつもの指示を長くしない）
   lines.push(
