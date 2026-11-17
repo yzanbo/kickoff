@@ -5,6 +5,8 @@ import type { ChatEvent } from "@shared/types";
 /** 1 回分のやり取り（index は 1 から。会話の初めからの番号） */
 export interface ConversationTurn {
   index: number;
+  userEventId: number;
+  replyEventIds: number[];
   /** 発言の時刻 */
   at: string;
   /** 自分の発言の文（圧縮前指示などは印の言葉） */
@@ -37,12 +39,12 @@ export function conversationTurns(events: readonly ChatEvent[]): ConversationTur
   const turns: ConversationTurn[] = [];
   for (const e of events) {
     if (e.type === "user") {
-      turns.push({ index: turns.length + 1, at: e.created_at, user: userText(e), replies: [], tools: 0, errors: [] });
+      turns.push({ index: turns.length + 1, userEventId: e.id, replyEventIds: [], at: e.created_at, user: userText(e), replies: [], tools: 0, errors: [] });
       continue;
     }
     const turn = turns.at(-1);
     if (!turn) continue;
-    if (e.type === "text" && !e.data.parent && e.data.text.trim()) turn.replies.push(e.data.text.trim());
+    if (e.type === "text" && !e.data.parent && e.data.text.trim()) { turn.replies.push(e.data.text.trim()); turn.replyEventIds.push(e.id); }
     else if (e.type === "tool_use" && !e.data.parent) turn.tools++;
     else if (e.type === "error") turn.errors.push(e.data.message);
   }
@@ -55,6 +57,8 @@ function turnText(turn: ConversationTurn): string {
   const tools = turn.tools > 0 ? `（ツール ${turn.tools} 回）` : "";
   if (turn.replies.length > 0) lines.push(`[AI]${tools}`, clip(turn.replies.join("\n\n"), CONVERSATION_LIMITS.reply));
   else if (tools) lines.push(`[AI]${tools}（文の答えなし）`);
+  if (turn.user.length > CONVERSATION_LIMITS.user) lines.push(`（利用者の発言の全文: read_chat の event_id に ${turn.userEventId} を指定）`);
+  if (turn.replies.join("\n\n").length > CONVERSATION_LIMITS.reply) lines.push(`（AI の発言の全文: read_chat の event_id に ${turn.replyEventIds.join("・")} をそれぞれ指定）`);
   for (const error of turn.errors) lines.push(`[失敗] ${clip(error, 500)}`);
   return lines.join("\n");
 }
