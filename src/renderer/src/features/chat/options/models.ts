@@ -1,19 +1,22 @@
 import { EFFORT_LEVELS, PERMISSION_MODES, type ChatOptions, type EffortLevel, type ModelOption, type PermissionMode, type ProviderId } from "@shared/types";
 
 /** 一覧での並び順（性能の高い順） */
-const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku"];
+const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku", "astra", "terra", "sol", "luna"];
 
 export interface ModelGroup {
   family: string;
   items: { value: string; version: string; description: string }[];
 }
 
-/** "Opus 5.5" → { family: "Opus", version: "5.5" }。バージョンが整数なら "5.0" と表記する */
+/** "Opus 5.5"・"GPT-6.1-Sol" を系統と世代に分ける。整数の世代は "5.0" のように表記する */
 export function splitModelLabel(label: string): { family: string; version: string } {
-  const m = label.match(/^(.*?)\s+(\d+(?:\.\d+)?)$/);
-  if (!m) return { family: label, version: "" };
-  const version = m[2].includes(".") ? m[2] : `${m[2]}.0`;
-  return { family: m[1], version };
+  const gpt = label.match(/^GPT[-\s]+(\d+(?:\.\d+)*)[-\s]+(Astra|Terra|Sol|Luna)$/i);
+  const m = label.match(/^(.*?)\s+(\d+(?:\.\d+)*)$/);
+  const family = gpt ? gpt[2][0].toUpperCase() + gpt[2].slice(1).toLowerCase() : m?.[1];
+  const rawVersion = gpt?.[1] ?? m?.[2];
+  if (!family || !rawVersion) return { family: label, version: "" };
+  const version = rawVersion.includes(".") ? rawVersion : `${rawVersion}.0`;
+  return { family, version };
 }
 
 /** モデルをファミリーごとにまとめ、新しいバージョンから並べる */
@@ -31,7 +34,7 @@ export function groupModels(models: ModelOption[]): ModelGroup[] {
     return i < 0 ? FAMILY_ORDER.length : i;
   };
   return [...groups.values()]
-    .map((g) => ({ ...g, items: g.items.sort((a, b) => Number(b.version) - Number(a.version)) }))
+    .map((g) => ({ ...g, items: g.items.sort((a, b) => b.version.localeCompare(a.version, "en", { numeric: true })) }))
     .sort((a, b) => rank(a.family) - rank(b.family));
 }
 
