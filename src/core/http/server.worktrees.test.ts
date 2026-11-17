@@ -7,6 +7,7 @@ import type { BusEvent, GitWorktree } from "@shared/types";
 import { setup, until } from "../testing/testServer.js";
 import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
+import { canWatchDirectory } from "../testing/canWatchDirectory.js";
 
 type Ctx = ReturnType<typeof setup>;
 
@@ -38,7 +39,8 @@ test("作業場所の色: 本体はプロジェクトの色、ワークツリー
   assert.equal(hueOf(await list(ctx), a), aHue);
 });
 
-test("HEAD の見張り: 一覧を読んだプロジェクトで、本体・ワークツリーのブランチを替えたら worktrees_changed を知らせる", async () => {
+test("HEAD の見張り: 一覧を読んだプロジェクトで、本体・ワークツリーのブランチを替えたら worktrees_changed を知らせる", async (t) => {
+  if (!(await canWatchDirectory())) t.skip("この環境では OS のディレクトリ監視を開始できません（EMFILE）。実際の監視は別の環境で確認してください");
   const ctx = setup();
   const { dir: repo } = gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
   const git = gitIn(repo);
