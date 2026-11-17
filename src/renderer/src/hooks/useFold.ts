@@ -47,9 +47,11 @@ const read = (place: string, key: string) => readSetting(FOLDS(foldId(place, key
  * （描いていないまとまりのキーも渡してよい）。set は参照が変わらない（memo した部品に渡せる）
  */
 export function useFolds(place: string, keys: readonly string[]) {
-  useSyncExternalStore(subscribeFolds, () => keys.map((key) => String(read(place, key))).join(","));
+  const snapshot = useSyncExternalStore(subscribeFolds, () => JSON.stringify(keys.map((key) => [key, read(place, key)])));
+  // 描画で読む値を購読した snapshot から作る。保存先を直接読むだけでは、React Compiler が isOpen と描画を使い回してしまう。
+  const values = new Map<string, boolean | null>(JSON.parse(snapshot));
   const set = useCallback((key: string, open: boolean) => writeSetting(FOLDS(foldId(place, key)), open), [place]);
-  const isOpen = (key: string, defaultOpen = true) => read(place, key) ?? defaultOpen;
+  const isOpen = (key: string, defaultOpen = true) => values.get(key) ?? defaultOpen;
   useFoldAll(place, (collapsed) => keys.forEach((key) => set(key, !collapsed)));
   return { isOpen, set, toggle: (key: string, defaultOpen = true) => set(key, !isOpen(key, defaultOpen)) };
 }
