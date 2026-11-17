@@ -38,6 +38,14 @@ test("sessionAt: あとでコンテキストを消去していれば、消去の
   assert.equal(sessionAt([events[0], events[5]], 0, null), null);
 });
 
+test("resumePointBefore: AI の切り替え前の別 AI のセッションを再開点にしない", () => {
+  const seq = eventSequence();
+  const switched: ChatEvent[] = [seq("result", { status: "completed", session_id: "old", message_id: "old-msg" }), seq("provider_switched", { from: "claude", to: "codex" })];
+  assert.equal(resumePointBefore(switched), undefined);
+  switched.push(seq("result", { status: "completed", session_id: "new", message_id: "new-msg" }));
+  assert.equal(resumePointBefore(switched)?.session_id, "new");
+});
+
 test("resumePointBefore: 作業場所を移した区切りより前の起点は使わず、区切りの移したあとの起点にする（なければ最初から。0025 の H2）", () => {
   const seq = eventSequence();
   const here = { project_id: 1, worktree_path: null, branch: "main", dir: "/repo" };

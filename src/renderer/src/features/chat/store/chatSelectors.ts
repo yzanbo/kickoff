@@ -84,6 +84,11 @@ function createMemo() {
   const waiting = memoLast(waitingSubagentKeys);
   const data = memoLast((list: SubagentEntry[], t: SubagentTree, h: ReadonlyMap<string, number>, w: ReadonlySet<string>): ChatSubagents => ({ entries: list, tree: t, hues: h, waiting: w }));
   const visuals = memoLast(chatVisualsOf);
+  const providerSwitch = memoLast((digest: ChatEvent[]): number => {
+    let last = 0;
+    for (const event of digest) if (event.type === "provider_switched") last = Math.max(last, event.id);
+    return last;
+  });
   // 作業場所を移した区切り（記録が増えても区切りが同じなら同じ配列。読む発言・カードを描き直さない）
   let moves: { key: string; list: readonly WorkplaceBoundary[] } = { key: "", list: NO_BOUNDARIES };
   const boundaries = memoLast((digest: ChatEvent[]): readonly WorkplaceBoundary[] => {
@@ -97,7 +102,7 @@ function createMemo() {
     if (key !== calls.key) calls = { key, set: key ? new Set(key.split(" ")) : NO_CALLS };
     return calls.set;
   });
-  return { entries, tree, hues, waiting, data, visuals, background, boundaries };
+  return { entries, tree, hues, waiting, data, visuals, background, boundaries, providerSwitch };
 }
 
 /**
@@ -127,6 +132,7 @@ export function createChatSelectors(source: SelectorSource) {
     visuals: (chatId: number): ChatVisuals => memoOf(chatId).visuals(source.log(chatId).digest),
     /** 作業場所を移した区切り（ID の順。索引にいつも入るので、末尾より前のものも。区切りが同じなら同じ配列） */
     workplaceBoundaries: (chatId: number): readonly WorkplaceBoundary[] => memoOf(chatId).boundaries(source.log(chatId).digest),
+    providerSwitch: (chatId: number): number => memoOf(chatId).providerSwitch(source.log(chatId).digest),
     /** 裏でまだ動いている作業を起動した呼び出しの ID（中身が同じなら同じ Set） */
     backgroundCalls: (chatId: number): ReadonlySet<string> => memoOf(chatId).background(source.detail(chatId).live.background),
   };

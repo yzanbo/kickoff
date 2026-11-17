@@ -4,6 +4,27 @@ import { randomUUID } from "node:crypto";
 import { test } from "vitest";
 import { setup, until } from "../testing/testServer.js";
 
+test("AI の切り替え前には巻き戻し・分岐・ファイル復元を許可しない", async () => {
+  const { call, project, store, runner, provider } = setup();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "前の発言" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  const before = store.events.list(chatId);
+  const user = before.find((e) => e.type === "user")!;
+  const result = before.find((e) => e.type === "result")!;
+  store.events.add(chatId, { type: "provider_switched", from: "claude", to: "codex" });
+  const count = store.events.list(chatId).length;
+  const rewind = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: user.id, text: "やり直し" });
+  const fork = await call("POST", `/api/chats/${chatId}/fork`, { event_id: result.id });
+  const files = await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id, dry_run: true });
+  for (const response of [rewind, fork, files]) {
+    assert.equal(response.status, 400);
+    assert.match(response.body.error, /AI を切り替える前/);
+  }
+  assert.equal(store.events.list(chatId).length, count);
+  assert.equal(provider.forks.length, 0);
+  assert.equal(provider.rewinds.length, 0);
+});
+
 test("分岐の API: 作業の終わりの時点までの会話を新しいチャットに写す（元のチャットは変えない）", async () => {
   const { call, project, store, runner, provider } = setup();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;

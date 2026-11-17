@@ -1,5 +1,7 @@
 # チャット（`features/chat`）
 
+AI 交代の記録 `provider_switched` は会話の区切りと動きの行に表示し、その前の巻き戻し・分岐・ファイル復元を画面でも制限する。コアも同じ制限を検証する。切り替えを行う UI はまだ未接続。
+
 入力欄の `RestrictionNotice` は、制限がオフのときに新規チャットの送信前と既存チャットで知らせる。メモのチャットの入力欄にも表示する。
 
 - OS の拒否ログの限定診断の呼び出しは `toolDescribe.ts` で「OS の拒否ログの診断を始める」「OS の拒否ログを読む」と表示する（名前は `@shared/chat/aiSandboxDiagnostics`）。

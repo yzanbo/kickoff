@@ -224,6 +224,8 @@ export const useChatVisuals = (chatId: number): ChatVisuals => useSelected(chatI
 export const useWorkplaceBoundaries = (chatId: number): readonly WorkplaceBoundary[] => useSelected(chatId, LOG_CHANNELS, () => selectors.workplaceBoundaries(chatId));
 /** その記録が、作業場所を移した区切りより前か（区切りが変わったときだけ描き直す） */
 export const useBeforeWorkplaceMove = (chatId: number, eventId: number): boolean => useWorkplaceBoundaries(chatId).some((b) => b.id > eventId);
+/** その記録が、AI を切り替えた区切りより前か。 */
+export const useBeforeProviderSwitch = (chatId: number, eventId: number): boolean => useSelected(chatId, LOG_CHANNELS, () => selectors.providerSwitch(chatId)) > eventId;
 /** 裏でまだ動いている作業を起動した呼び出しの ID */
 export const useChatBackgroundCalls = (chatId: number): ReadonlySet<string> => useSelected(chatId, DETAIL_CHANNELS, () => selectors.backgroundCalls(chatId));
 

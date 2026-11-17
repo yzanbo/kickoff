@@ -1,6 +1,7 @@
 // チャットの記録（chat_events の表）の形。型と定数のみ
 import type { ApprovalDecision, ApprovalKind } from "./approval";
 import type { Attachment, ChatStatus } from "./chat";
+import type { ProviderId } from "./settings";
 
 /** 作業の終わり方（作業中を除いた状態） */
 export type TurnEndStatus = Exclude<ChatStatus, "running">;
@@ -77,6 +78,8 @@ export type ChatEventData =
    * これより前の作業の終わりからは、巻き戻し・子チャットで会話を引き継がない）
    */
   | { type: "context_cleared" }
+  /** 同じチャットで担当 AI を替えた区切り。これより前には巻き戻し・分岐・ファイル復元ができない（0029）。 */
+  | { type: "provider_switched"; from: ProviderId; to: ProviderId }
   /** サブエージェントの開始・終了（途中経過は保存せず、chat_subagent で届く） */
   | ({ type: "subagent" } & SubagentInfo)
   /** 子チャットの答えを親チャットに渡した（子チャットの記録。turn_event_id: どの作業の終わりの答えか。via: 渡し方。parent_chat_id: 渡した先） */

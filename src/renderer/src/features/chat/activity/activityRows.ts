@@ -2,6 +2,7 @@
 import type { ChatEvent } from "@shared/types";
 import { relayedText } from "@shared/chat/prompts";
 import { workplaceMoveLine } from "@shared/chat/workplaceMoves";
+import { providerSwitchLine } from "@shared/chat/providerSwitch";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { subagentState } from "@shared/chat/subagentState";
 import { groupEvents, summarizeTools, type TimelineItem, type ToolCall } from "@/features/chat/timeline/timelineItems";
@@ -180,6 +181,8 @@ function rowOf(item: TimelineItem, agent: string | null, owner: SubagentEntry | 
       return { ...base, kind: "note", text: `会話を要約しました（${e.data.trigger === "auto" ? "自動" : "手動"}）` };
     case "context_cleared":
       return { ...base, kind: "note", text: "コンテキストを消去（ここから新しい会話）" };
+    case "provider_switched":
+      return { ...base, kind: "note", text: providerSwitchLine(e.data) };
     case "workplace_moved":
       return { ...base, kind: "note", text: workplaceMoveLine(e.data) };
     case "notice":
