@@ -250,7 +250,7 @@ test("Sign in with ChatGPT の骨組み: ログインの URL を返し、account
   await until(() => server.killed > 0);
 });
 
-test("開発用の環境変数のときだけ Codex を使う（ほかは対応予定のまま）", () => {
+test("開発用の環境変数は , 区切りの ID の集まりとして読む（Codex はいつも本物なので使わない）", () => {
   assert.deepEqual([...experimentalProviders({})], []);
-  assert.deepEqual([...experimentalProviders({ KICKOFF_EXPERIMENTAL_PROVIDERS: "codex, cursor" })], ["codex", "cursor"]);
+  assert.deepEqual([...experimentalProviders({ KICKOFF_EXPERIMENTAL_PROVIDERS: "copilot, cursor" })], ["copilot", "cursor"]);
 });
