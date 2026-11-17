@@ -4,10 +4,13 @@ import { isUsageLimitError } from "@shared/chat/usageLimit";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
 import { createApprovalHandler } from "./approvals.js";
-import { appServerLaunch, codexEffort, codexSandboxPolicy, threadOverrides, turnInput } from "./config.js";
+import { appServerLaunch, CODEX_APPROVAL_POLICY, codexEffort, codexSandboxPolicy, threadOverrides, turnInput } from "./config.js";
+import { startHookServer, type HookServer } from "./hookServer.js";
+import { assertHookActive, kickoffHookTrust, withHookTrust } from "./hookTrust.js";
 import { commandOutputDelta, createItemState, itemCompleted, itemStarted } from "./items.js";
 import type { CodexErrorInfo, ThreadItem, ThreadResponse, ThreadResumeParams, ThreadStartParams, ThreadTokenUsage, Turn, TurnError, TurnStartParams, TurnSteerParams } from "./protocol.js";
 import type { StdioRpc, StdioSpawn } from "../stdioRpc.js";
+import { createPreToolUseHandler } from "./preToolUse.js";
 import { openSession } from "./session.js";
 
 /** 止めたあと、Codex がターンの終わりを返すまで待つ長さ（過ぎたら app-server ごと止める） */
@@ -46,8 +49,8 @@ export function turnResult(turn: Turn, threadId: string, usage: ThreadTokenUsage
 }
 
 /**
- * 1 回の実行（ProviderTurnParams → app-server の thread/start か thread/resume → turn/start → turn/completed）。
- * 作業中に足す発言は turn/steer（control.tell）、止めるのは turn/interrupt。チャット欄の /compact は thread/compact/start
+ * 1 回の実行（ProviderTurnParams → フックの口を開く → app-server の thread/start か thread/resume（フックを信頼した覚えごと）→ フックが有効かの確かめ
+ * → turn/start → turn/completed）。作業中に足す発言は turn/steer（control.tell）、止めるのは turn/interrupt。チャット欄の /compact は thread/compact/start
  */
 export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
   if (signal.aborted) return { status: "cancelled", sessionId: params.resumeSessionId };
@@ -59,7 +62,11 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
   let lastError: TurnError | null = null;
   let retries = 0;
   let rpc: StdioRpc | null = null;
+  let hook: HookServer | null = null;
   const pendingSteers: string[] = [];
+  // フックで利用者が許した書く先（あとで同じファイルの変更の承認が来ても聞き直さない）
+  const approvedWrites = new Set<string>();
+  const guard = { params, self: deps.self };
   const compactOnly = params.prompt.trim() === "/compact";
 
   let finish!: (turn: Turn) => void;
@@ -130,27 +137,32 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
     }
   };
 
-  const { args, env } = appServerLaunch(deps.baseEnv, params);
   const onAbort = () => {
     if (rpc && threadId && turnId) void rpc.request("turn/interrupt", { threadId, turnId }).catch(() => {});
     setTimeout(() => finish({ id: turnId ?? "", status: "interrupted", error: null }), INTERRUPT_GRACE_MS).unref?.();
   };
   try {
+    // 守りを当てる PreToolUse のフックの口（hooks.ts）。URL と鍵は app-server の環境で渡す
+    hook = await startHookServer(createPreToolUseHandler({ params, guard, cb, signal, approvedWrites }));
+    const { args, env } = appServerLaunch(deps.baseEnv, params, hook);
     rpc = await openSession({
       spawn: deps.spawn,
       args,
       env,
       cwd: params.cwd,
       onNotification,
-      onServerRequest: createApprovalHandler({ params, guard: { params, self: deps.self }, cb, signal, items, steer }),
+      onServerRequest: createApprovalHandler({ params, guard, cb, signal, items, steer, approvedWrites }),
       onClosed: (reason) => finish({ id: turnId ?? "", status: "failed", error: { message: reason, codexErrorInfo: null, additionalDetails: null } }),
     });
-    const overrides = threadOverrides(params);
     if (compactOnly && !threadId) return { status: "failed", sessionId: null, error: "まだ圧縮する会話がありません" };
+    const base = threadOverrides(params);
+    const overrides = withHookTrust(base, await kickoffHookTrust(rpc, base));
     const opened = threadId
       ? await rpc.request<ThreadResponse>("thread/resume", { ...overrides, threadId, excludeTurns: true } satisfies ThreadResumeParams)
       : await rpc.request<ThreadResponse>("thread/start", overrides satisfies ThreadStartParams);
     threadId = opened.thread.id;
+    // 守りのフックが効いていなければ動かさない（守りなしで砂場の中のコマンドが流れるため）
+    await assertHookActive(rpc, threadId);
     cb.emit({ type: "init", session_id: threadId, model: opened.model, permission_mode: params.permissionMode, effort: codexEffort(params.effort) });
     signal.addEventListener("abort", onAbort, { once: true });
     if (compactOnly) {
@@ -161,7 +173,7 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
         threadId,
         input: turnInput(params),
         clientUserMessageId: params.promptId ?? null,
-        approvalPolicy: "untrusted",
+        approvalPolicy: CODEX_APPROVAL_POLICY,
         sandboxPolicy: codexSandboxPolicy(params),
         model: params.model,
         effort: codexEffort(params.effort),
@@ -180,5 +192,6 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
     cb.control?.(null);
     if (state.compacting) cb.compacting?.(false);
     rpc?.close();
+    hook?.close();
   }
 }

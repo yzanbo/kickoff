@@ -122,3 +122,15 @@
 .provider-pay-badge {
   color: var(--warn);
 }
+
+/* 設定の「接続」の AI のカードの「ブラウザでログイン」（ProviderLoginButton。待っている間の案内と「やめる」も） */
+.provider-login {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+.provider-login p {
+  margin: 0;
+}

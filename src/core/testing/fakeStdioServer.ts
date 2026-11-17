@@ -107,10 +107,45 @@ export function fakeStdioServer(defaults: [string, Handler][] = []): FakeStdioSe
 /** 偽の Codex の app-server（はじめから答える頼み: initialize・スレッド・ターン） */
 export type FakeCodexServer = FakeStdioServer;
 export function fakeCodexServer(): FakeCodexServer {
+  // スレッドごとの config の上書き（hooks/list が、渡されたフックと信頼の覚えから答える。本物は信頼の覚えがなければ untrusted）
+  const configs = new Map<string, Record<string, any>>();
+  const remember = (id: string, p: { config?: Record<string, any> | null }) => configs.set(id, p.config ?? {});
   return fakeStdioServer([
     ["initialize", () => ({ userAgent: "fake" })],
-    ["thread/start", () => ({ thread: { id: "thr-1" }, model: "gpt-fake" })],
-    ["thread/resume", (p) => ({ thread: { id: p.threadId }, model: "gpt-fake" })],
+    [
+      "thread/start",
+      (p) => {
+        const id = p.ephemeral ? "thr-probe" : "thr-1";
+        remember(id, p);
+        return { thread: { id }, model: "gpt-fake" };
+      },
+    ],
+    [
+      "thread/resume",
+      (p) => {
+        remember(p.threadId, p);
+        return { thread: { id: p.threadId }, model: "gpt-fake" };
+      },
+    ],
+    [
+      "hooks/list",
+      (p) => {
+        const config = configs.get(p.threadId) ?? {};
+        const key = "/<session-flags>/config.toml:pre_tool_use:0:0";
+        const hooks = (config["hooks.PreToolUse"] ?? []).flatMap((group: any) =>
+          group.hooks.map((h: any) => ({
+            key,
+            eventName: "preToolUse",
+            source: "sessionFlags",
+            command: h.command,
+            currentHash: "sha256:fake",
+            enabled: true,
+            trustStatus: config["hooks.state"]?.[key]?.trusted_hash === "sha256:fake" ? "trusted" : "untrusted",
+          })),
+        );
+        return { data: [{ cwd: "/w", hooks, warnings: [], errors: [] }] };
+      },
+    ],
     ["turn/start", () => ({ turn: { id: "turn-1", status: "inProgress", error: null } })],
     ["turn/steer", () => ({})],
     ["turn/interrupt", () => ({})],

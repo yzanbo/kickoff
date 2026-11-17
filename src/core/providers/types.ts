@@ -85,8 +85,23 @@ export interface AgentProvider {
   subagentLog?(sessionId: string, agentId: string, cwd: string): Promise<SubagentLogItem[]>;
   /** ファイルを、その会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけを返す）。作業中でないときに呼ぶ */
   rewindFiles?(sessionId: string, messageId: string, cwd: string, dryRun: boolean): Promise<FileRewindResult>;
+  /**
+   * ブラウザでログインを始める（CLI が自分でログインの戻り先を受け、資格情報を CLI の置き場に書く。Kickoff は資格情報を持たない。メモの仕様書「0028」の段階 ③）。
+   * 開く URL と、終わりを待つ口・やめる口を返す。ブラウザでのログインを持たないプロバイダーは未実装
+   */
+  login?(): Promise<ProviderLogin>;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult>;
+}
+
+/** 始めたブラウザでのログイン（login の答え） */
+export interface ProviderLogin {
+  /** 利用者のブラウザで開く URL */
+  authUrl: string;
+  /** ログインの終わり（成功なら true。失敗・やめたら理由で reject） */
+  completed: Promise<true>;
+  /** やめる */
+  cancel(): void;
 }
 
 /** サブエージェントの会話の 1 つ分（プロバイダーによらない形。user は依頼と、あとから伝えた指示） */
