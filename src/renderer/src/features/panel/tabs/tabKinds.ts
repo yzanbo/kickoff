@@ -2,6 +2,7 @@ import { Bot, Database, FileDiff, FileText, GitPullRequest, Globe, MessageSquare
 import type { ComponentType } from "react";
 import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
+import { draftDisplayTitle } from "@/features/panel/state/draftDisplayTitle";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { api } from "@/api";
@@ -248,8 +249,8 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   new: {
     shows: "chat",
     icon: SquarePen,
-    // 送る前に名前を付けていればその名前（右クリックの「名前を変更」）
-    label: (t) => t.title ?? NEW_CHAT_TITLE,
+    // 表示だけ本文の冒頭にする（手動の名前があれば優先）
+    label: (t) => draftDisplayTitle(t.title, t.draftText),
     // 作成先のグループ名（パネルの中で分かりしだい入れる。送ったあとのチャットのタブも同じく添える）
     group: (t, _chat, groupOf) => groupOf(t.projectId, t.group) ?? (t.groupName ? { name: t.groupName, hue: null } : undefined),
     projectOf: (t) => t.projectId,

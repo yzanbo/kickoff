@@ -1,4 +1,4 @@
-import { Pin, SquarePen } from "lucide-react";
+import { Paperclip, Pin, SquarePen } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -82,8 +82,8 @@ export function DraftRow({ draft }: { draft: PanelDraft }) {
         {slot}
         <span className="chat-row-body">
           <span className="chat-row-line">
-            {/* 名前は最初のチャットを送るまで「New Chat」のまま（タブと同じ。利用者の依頼で、前は書きかけの文の 1 行目を出していた）。右クリックで付けた名前があればそれ */}
             <span className="chat-row-title">{draftTitleOf(draft)}</span>
+            {draft.hasAttachments && !draft.text.trim() && <Paperclip size={12} aria-label="添付あり" />}
             {draft.pinned && (
               <span className="chat-row-pin" title="ピン留め中" aria-label="ピン留め中">
                 <Pin size={11} aria-hidden />
