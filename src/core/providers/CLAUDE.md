@@ -89,4 +89,4 @@ ACP（Agent Client Protocol。JSON-RPC 2.0 を標準入出力に 1 行 1 つ）�
 - 通信の再試行（`api_retry`）は `retry` で知らせ、返答が届き始めたら null。応答のないまま（`error_status` が null）の再試行があった・失敗の文が `isNetworkError` なら、失敗は通信の切断（`network`）。
 - 使用枠: `rate_limit_event` の `rejected`（戻る時刻は `resetTimeOf`）・返答のエラー `rate_limit`・失敗の文の `isUsageLimitError` で `usageLimit` を付ける。
 - コンテキストの大きさは、メインエージェントの最後の応答のトークン数（要約のあとは `compact_boundary` の `post_tokens`）と、使ったモデルのうちいちばん大きいコンテキストウィンドウ（サブエージェントの小さいモデルを除くため）。自動の圧縮は作業の途中で起きるので、要約したら作業の終わりを待たずに `context` で知らせる（`post_tokens` があればその値、なければ要約のあとの最初のメインの応答のトークン数）。
-- 使用枠・モデル・/ のコマンド・ファイルを戻すは、メッセージを送らないセッションを一瞬開いて、制御用の API だけを呼ぶ（`withIdleSession`。モデルへのリクエストがないので枠を使わない）。モデル（1 時間）と / のコマンド（作業場所ごとに 5 分）の一覧は、ルート（`http/routes/providers.ts`）で `ttlCache` に覚える（空の結果は覚えない）。
+- 使用枠・モデル・/ のコマンド・ファイルを戻すは、メッセージを送らないセッションを一瞬開いて、制御用の API だけを呼ぶ（`withIdleSession`。モデルへのリクエストがないので枠を使わない）。モデルの一覧は `modelCatalog.ts` の `providerModels`（AI の実体ごとに 1 時間覚える。空の結果は覚えない）で、チャット欄の一覧の API と、一覧にないモデルを外す守り `knownModel`（Claude Code 以外。メモの仕様書「0028」の 9 節）で同じものを使う。/ のコマンド（作業場所ごとに 5 分）の一覧は、ルート（`http/routes/providers.ts`）で `ttlCache` に覚える（空の結果は覚えない）。

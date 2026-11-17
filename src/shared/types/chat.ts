@@ -14,6 +14,8 @@ export interface ModelOption {
   efforts: EffortLevel[];
   supports_auto_mode: boolean;
   supports_fast_mode: boolean;
+  /** その AI の既定のモデル（Codex の一覧の isDefault。チャット欄でモデルを決めていないときに選んで見せる。分からなければなし） */
+  is_default?: boolean;
 }
 
 /**

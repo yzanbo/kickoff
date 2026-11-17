@@ -1,24 +1,17 @@
-import { Bot, Check, MousePointer2, Sparkles, SquareTerminal } from "lucide-react";
-import { type ReactNode } from "react";
+import { Check } from "lucide-react";
 import { PROVIDER_IDS, type AppSettings, type Project, type ProviderId, type ProviderStatus } from "@shared/types";
 import { api } from "@/api";
 import { useAction } from "@/hooks/useAction";
 import { accountLine } from "@/features/usage/usage";
 import { useProviders } from "@/stores/providers";
-import { ClaudeMark } from "@/ui/ClaudeMark";
+import { ProviderIcon } from "@/features/chat/provider/ProviderIcon";
 import { ErrorText } from "@/ui/ErrorText";
 import { StatusDot, type StatusTone } from "@/ui/StatusDot";
 import { AiDefaults } from "./AiDefaults";
 import { PLANNED_BADGE, usePlannedProviders } from "@/features/settings/plannedProviders";
 
-/** AI の見た目（カードのアイコンと、ログインに使う CLI） */
-const PROVIDER_META: Record<ProviderId, { icon: ReactNode; cli: string }> = {
-  claude: { icon: <ClaudeMark size={20} />, cli: "claude" },
-  codex: { icon: <SquareTerminal size={20} />, cli: "codex" },
-  copilot: { icon: <Bot size={20} />, cli: "copilot" },
-  cursor: { icon: <MousePointer2 size={20} />, cli: "agent" },
-  gemini: { icon: <Sparkles size={20} />, cli: "agy" },
-};
+/** ログインに使う CLI（カードの未ログインの案内） */
+const PROVIDER_CLI: Record<ProviderId, string> = { claude: "claude", codex: "codex", copilot: "copilot", cursor: "agent", gemini: "agy" };
 
 /** AI: どの AI を使うか（カード）と、その AI の既定 */
 export function AiSection({ project, app }: { project: Project; app: AppSettings | undefined }) {
@@ -64,7 +57,6 @@ export function ProviderCard({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const meta = PROVIDER_META[id];
   const ready = status?.implemented && status.installed && status.logged_in;
   const state: { tone: StatusTone; text: string } = !status
     ? { tone: "pending", text: "確認中…" }
@@ -74,7 +66,7 @@ export function ProviderCard({
         ? { tone: "ng", text: "CLI が見つかりません" }
         : status.logged_in
           ? { tone: "ok", text: "ログイン済み" }
-          : { tone: "ng", text: `未ログイン（${meta.cli} でログイン）` };
+          : { tone: "ng", text: `未ログイン（${PROVIDER_CLI[id]} でログイン）` };
   return (
     <button
       type="button"
@@ -86,7 +78,9 @@ export function ProviderCard({
       onClick={onSelect}
     >
       <span className="provider-card-head">
-        <span className={`provider-icon provider-${id}`}>{meta.icon}</span>
+        <span className={`provider-icon provider-${id}`}>
+          <ProviderIcon provider={id} size={20} />
+        </span>
         <span className="provider-name">{status?.label ?? id}</span>
         {selected && <Check size={16} className="provider-check" aria-label="使用中" />}
         {status && !status.implemented && <span className="badge">{PLANNED_BADGE}</span>}

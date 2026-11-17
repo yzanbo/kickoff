@@ -641,3 +641,28 @@ test("チャットの詳細に書きかけの返答（SSE で流した途中の�
   assert.equal(done.streaming_text, null);
   assert.equal(done.streaming_length, 0);
 });
+
+test("Claude Code 以外の AI のチャット: Claude Code の既定（モデル・深さ・権限）を当てず、その AI の一覧にないモデルは外して動かす（メモの仕様書「0028」の G1・G2）", async () => {
+  const { call, project, runner, provider, store } = setup();
+  store.settings.update({ chat_defaults: { model: "opus", effort: "high", permission_mode: "auto", fast_mode: false } });
+  const plain = await call("POST", `/api/projects/${project.id}/chats`, { text: "1", provider: "codex" });
+  assert.equal(plain.status, 201);
+  assert.deepEqual([plain.body.provider, plain.body.model, plain.body.effort, plain.body.permission_mode], ["codex", null, null, "default"]);
+  await until(() => !runner.isBusy(plain.body.id));
+
+  // 一覧があれば、ほかの AI のモデルの名前は作るときに外す（一覧にあるものはそのまま）
+  provider.models = async () => [{ value: "gpt-6-luna", label: "GPT-6 Luna", description: "", efforts: ["low"], supports_auto_mode: true, supports_fast_mode: false, is_default: true }];
+  const wrong = await call("POST", `/api/projects/${project.id}/chats`, { text: "2", provider: "codex", options: { model: "opus" } });
+  assert.equal(wrong.body.model, null);
+  await until(() => !runner.isBusy(wrong.body.id));
+  const right = await call("POST", `/api/projects/${project.id}/chats`, { text: "3", provider: "codex", options: { model: "gpt-6-luna" } });
+  assert.equal(right.body.model, "gpt-6-luna");
+  await until(() => !runner.isBusy(right.body.id));
+
+  // 前の版で一覧にない名前のまま作られたチャットも、送るときに外して動かし、チャットにも直して残す
+  const old = store.chats.create({ project_id: project.id, provider: "codex", title: "old", status: "completed", model: "opus" });
+  assert.equal((await call("POST", `/api/chats/${old.id}/messages`, { text: "続き" })).status, 200);
+  await until(() => !runner.isBusy(old.id));
+  assert.equal(provider.lastModel, null);
+  assert.equal(store.chats.get(old.id)?.model, null);
+});
