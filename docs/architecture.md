@@ -495,7 +495,7 @@ CREATE TABLE devices (
 
 ### 設定（AppSettings）
 
-snake_case にし、チャットの選択の既定を `ChatOptions` 1 つにまとめる: `default_provider` / `chat_defaults`（`ChatOptions`）/ `remote_enabled` / `ntfy_url` / `desktop_notifications` / `dock_badge` / `projects_dir` / `auto_resume_on_reconnect` / `auto_archive_days` / `voice_enabled` / `voice_provider` / `voice_language` / `voice_model` / `voice_openai_base_url` / `voice_openai_model` / `pre_compact_prompt` / `post_compact_prompt` / `pre_compact_enabled` / `post_compact_enabled`（圧縮前指示・圧縮後指示の共通の分と、送るか）。選択はチャット → プロジェクトの `chat_defaults` → 設定の `chat_defaults` の順に、同じ形を重ねて決める（`resolveChatOptions`）。 外部リンクの開き先 `link_open_in`・確認せずに開くドメイン `trusted_link_domains`（v32 と同じ版で足した。0027）。
+snake_case にし、チャットの選択の既定を `ChatOptions` 1 つにまとめる: `default_provider` / `chat_defaults`（`ChatOptions`）/ `remote_enabled` / `ntfy_url` / `desktop_notifications` / `dock_badge` / `projects_dir` / `auto_resume_on_reconnect` / `auto_archive_days` / `voice_enabled` / `voice_provider` / `voice_language` / `voice_model` / `voice_openai_base_url` / `voice_openai_model` / `pre_compact_prompt` / `post_compact_prompt` / `pre_compact_enabled` / `post_compact_enabled`（圧縮前指示・圧縮後指示の共通の分と、送るか）。選択はチャット → プロジェクトの `chat_defaults` → 設定の `chat_defaults` の順に、同じ形を重ねて決める（`resolveChatOptions`）。Claude Code のほかの AI は、同じ順で設定・プロジェクトの `provider_chat_defaults`（AI ごと。プロジェクトは v33 の列）を重ね、Claude Code の既定は重ねない（メモの仕様書「0028」の 9 節）。 外部リンクの開き先 `link_open_in`・確認せずに開くドメイン `trusted_link_domains`（v32 と同じ版で足した。0027）。
 
 ### DB を作り直したときの画面の状態
 

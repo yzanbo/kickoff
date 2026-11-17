@@ -1,10 +1,9 @@
 import { busyWithUnread } from "@shared/chat/state";
-import type { AgentState, Chat } from "@shared/types";
+import type { AgentState, Chat, ProviderId } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
 import type { ChatTitleEditor } from "@/features/chat/useChatRename";
-import { modelDisplayName } from "@/features/chat/options/models";
+import { ModelName } from "@/features/chat/options/ModelName";
 import { formatFullDateTime, relativeTime } from "@/lib/time";
-import { useModels } from "@/stores/providers";
 import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import { GroupChip } from "@/features/group/GroupChip";
 import { ProjectChip } from "@/features/project/ProjectChip";
@@ -41,10 +40,13 @@ export function CardBadges({ chat, projectName, show }: Pick<Props, "chat" | "pr
 }
 
 /** モデルの名前（"Opus 5.5"。モデルが分からないチャットでは出さない） */
-function ModelStat({ model }: { model: string | null }) {
-  const models = useModels("claude");
+function ModelStat({ provider, model }: { provider: ProviderId; model: string | null }) {
   if (!model) return null;
-  return <span className="card-stat">{modelDisplayName(models, model)}</span>;
+  return (
+    <span className="card-stat">
+      <ModelName provider={provider} model={model} />
+    </span>
+  );
 }
 
 /** 詳細の数（モデル・回答待ち・ターン数・API 換算・コンテキスト。表示項目で出すもので、値のあるものだけ） */
@@ -52,7 +54,7 @@ export function CardStats({ chat, pending = 0, show }: Pick<Props, "chat" | "pen
   return (
     <>
       {show("pending") && pending > 0 && <span className="card-pending">回答 {pending}件</span>}
-      {show("model") && <ModelStat model={chat.model} />}
+      {show("model") && <ModelStat provider={chat.provider} model={chat.model} />}
       {(["turns", "cost", "context"] as const).map((field) => {
         const text = show(field) ? cardStatText(chat, field) : undefined;
         return text && (

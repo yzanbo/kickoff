@@ -163,6 +163,7 @@ function MemoQuickComposer({
     chat ? { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode } : undefined,
     projectId,
     chat?.worktree_path ?? undefined,
+    chat?.provider,
   );
   const composer = useRef<ComposerHandle | null>(null);
   const busy = chat?.status === "running";

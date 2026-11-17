@@ -2,7 +2,7 @@
 import { afterTest } from "./afterTest.js";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../providers/types.js";
 import { createApp } from "../http/server.js";
-import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, GitHubRemote, SlashCommandOption, DevicePush } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, GitHubRemote, ModelOption, SlashCommandOption, DevicePush } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
@@ -110,12 +110,17 @@ class FakeProvider extends FakeProviderBase {
   lastWorkplace: ProviderTurnParams["chatWorkplace"] = null;
   /** 最後の実行が、Git で管理していないファイルだけを書けるチャットだったか（［AI で整える］の確かめに使う） */
   lastUntrackedOnly = false;
+  /** 最後の実行に渡したモデル（一覧にないモデルを外す確かめに使う。メモの仕様書「0028」） */
+  lastModel: string | null = null;
+  /** モデルの一覧（テストで入れる。なければ一覧を持たない AI） */
+  models?: () => Promise<ModelOption[]>;
   async run(
-    params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; createChat?: ProviderTurnParams["createChat"]; chatWorkplace?: ProviderTurnParams["chatWorkplace"]; untrackedOnly?: boolean },
+    params: { cwd: string; model?: string | null; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; createChat?: ProviderTurnParams["createChat"]; chatWorkplace?: ProviderTurnParams["chatWorkplace"]; untrackedOnly?: boolean },
     cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "context" | "control" | "retry" | "preCompactSent">,
     signal: AbortSignal,
   ): Promise<ProviderTurnResult> {
     this.lastCwd = params.cwd;
+    this.lastModel = params.model ?? null;
     this.preCompacts.push(params.preCompact ?? null);
     if (params.preCompact && this.preCompactSentId) cb.preCompactSent?.(this.preCompactSentId);
     this.lastDirs = params.additionalDirectories;

@@ -1,6 +1,6 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 import type { ChatOptionsPatch } from "./chat";
-import type { ProviderId } from "./settings";
+import type { OtherProviderId, ProviderId } from "./settings";
 
 export interface Project {
   id: number;
@@ -8,8 +8,10 @@ export interface Project {
   description: string;
   repo_path: string;
   provider: ProviderId;
-  /** このプロジェクトの既定（書いていない項目はアプリ全体の設定に従う） */
+  /** このプロジェクトの Claude Code のチャットの既定（書いていない項目はアプリ全体の設定に従う） */
   chat_defaults: ChatOptionsPatch;
+  /** このプロジェクトの Claude Code のほかの AI のチャットの既定（AI ごと。書いていない項目はアプリ全体のその AI の既定に従う。メモの仕様書「0028」の 9 節） */
+  provider_chat_defaults: Partial<Record<OtherProviderId, ChatOptionsPatch>>;
   /** 参照資料（AI がいつでも読めるフォルダ・ファイル。絶対パス） */
   reference_paths: ProjectReference[];
   /** サイドバーでの並び順（小さいほど前） */

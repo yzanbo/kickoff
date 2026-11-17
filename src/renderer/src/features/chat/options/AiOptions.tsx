@@ -1,5 +1,5 @@
-import { EFFORT_LABELS, PERMISSION_LABELS, type ModelOption } from "@shared/types";
-import { effortsFor, groupModels, permissionChoices } from "./models";
+import { EFFORT_LABELS, PERMISSION_LABELS, PROVIDER_LABELS, type ModelOption, type ProviderId } from "@shared/types";
+import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "./models";
 
 /** モデルの選択肢（ファミリーごと・新しい順）。一覧にない値が選ばれていれば、その値も出す */
 export function ModelOptions({ models, value }: { models: ModelOption[]; value: string | null | undefined }) {
@@ -17,6 +17,12 @@ export function ModelOptions({ models, value }: { models: ModelOption[]; value: 
       ))}
     </>
   );
+}
+
+/** Claude Code のほかの AI で、モデルを決めない（null = その AI の既定）ときの書き方（分かれば既定のモデルの名前を添える） */
+export function providerDefaultModelLabel(provider: ProviderId, models: ModelOption[]): string {
+  const fallback = models.find((m) => m.is_default);
+  return `${PROVIDER_LABELS[provider]} の既定${fallback ? `（${modelDisplayName(models, fallback.value)}）` : ""}`;
 }
 
 /** 推論の深さを指定しない（null）ときの書き方 */
