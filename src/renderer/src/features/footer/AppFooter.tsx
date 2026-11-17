@@ -90,7 +90,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       {/* 起動したときの再開の確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
       <RestartResumeFooterButton />
       <span className="spacer" />
-      {foregroundAi !== null && <ForegroundUsage provider={foregroundAi} />}
+      {foregroundAi !== null && <ForegroundUsage key={foregroundAi} provider={foregroundAi} />}
       {foregroundAi === null && usage?.plan && (
         <span className="plan-chip" title={`${usage.provider_label} でログインしているアカウントの契約プラン`}>
           {planName(usage)}
