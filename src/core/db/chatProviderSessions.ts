@@ -40,5 +40,8 @@ export function createChatProviderSessionStore(db: DatabaseSync) {
     remove(chatId: number, provider: ProviderId): void {
       db.prepare("DELETE FROM chat_provider_sessions WHERE chat_id = ? AND provider = ?").run(chatId, provider);
     },
+    removeAll(chatId: number): void {
+      db.prepare("DELETE FROM chat_provider_sessions WHERE chat_id = ?").run(chatId);
+    },
   };
 }

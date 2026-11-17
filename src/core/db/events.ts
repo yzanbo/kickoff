@@ -262,6 +262,12 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         .all(...chatIds) as { sid: string }[];
       return rows.map((r) => r.sid);
     },
+    /** AI 別にセッションを片付けるための最小の記録。切り替えの順序とセッション ID だけを読む。 */
+    sessionRecords(chatId: number): ChatEvent[] {
+      const rows = db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events
+        WHERE chat_id = ? AND type IN ('init', 'result', 'workplace_moved', 'provider_switched') ORDER BY id`).all(chatId) as unknown as EventRow[];
+      return rows.map(toEvent);
+    },
     /** このセッション ID を、いまあるチャットのどれかが使っているか（チャットの session_id か、記録の init・result） */
     /**
      * チャットの記録が指している添付の ID の候補（自分の発言・質問への回答の中の uuid。添付の保存先のフォルダ名と同じ形。

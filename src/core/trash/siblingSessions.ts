@@ -33,13 +33,16 @@ function usedIn(file: string, ids: string[]): string[] {
   try {
     db = new DatabaseSync(file, { readOnly: true });
     const marks = ids.map(() => "?").join(", ");
+    // 旧版の DB には AI ごとの保存先がないため、表の有無を確かめてから追加する。
+    const hasProviderSessions = Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'chat_provider_sessions'").get());
     const rows = db
       .prepare(
         `SELECT session_id AS sid FROM chats WHERE session_id IN (${marks})
          UNION SELECT json_extract(data, '$.session_id') FROM chat_events
-         WHERE type IN ('init', 'result') AND json_extract(data, '$.session_id') IN (${marks})`,
+         WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') IN (${marks})
+         ${hasProviderSessions ? `UNION SELECT session_id FROM chat_provider_sessions WHERE session_id IN (${marks})` : ""}`,
       )
-      .all(...ids, ...ids) as { sid: string }[];
+      .all(...ids, ...ids, ...(hasProviderSessions ? ids : [])) as { sid: string }[];
     return rows.map((r) => r.sid);
   } catch {
     return [];

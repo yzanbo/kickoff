@@ -34,7 +34,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 ## DB（db/）
 
 - スキーマは `db/schema.ts` の `MIGRATIONS` に追記して変える（既存の要素は書き換えない。v1 は `SCHEMA_V1`）。版ごとに 1 つのトランザクションで流す。
-- AI 切り替え（0029）の準備として v37 は `chat_provider_sessions` にチャットと AI ごとの再開先・引き継ぎ済みの記録位置を保存する。既存チャットの現在の AI とセッションを移行し、現在のセッションの更新に追従する。保存されたセッションは使用中として片付けから守る。現時点では切り替えの実行処理・チャット削除時のプロバイダー別の後片付けには未接続で、切り替え機能の完成を意味しない。
+- AI 切り替え（0029）の準備として v37 は `chat_provider_sessions` にチャットと AI ごとの再開先・引き継ぎ済みの記録位置を保存する。既存チャットの現在の AI とセッションを移行し、現在のセッションの更新に追従する。保存されたセッションは使用中として片付けから守り、ほかの Kickoff の DB も、表がある版なら同じように見る。チャット削除時は区切りの前後の AI ごとにセッションを集める。コンテキストの消去は AI ごとの再開先をすべて外す。切り替えの実行処理はまだ未接続。
 - 表はすべて STRICT。真偽値は `CHECK (x IN (0, 1))`、JSON の列は `CHECK (json_valid(x) AND json_type(x) = 'object')`（配列なら `'array'`）。値の一覧（状態・権限モードなど）は CHECK にしない（増やすたびに表を作り直すことになるため）。「ない」は NULL で、空文字を入れない列は `CHECK (x <> '')`（`worktree_path` が NULL なら本体）。
 - 版は `PRAGMA application_id`（`APPLICATION_ID` = 'KICK'）と `user_version`（`USER_VERSION_BASE` の 200 ＋ 版。v1 = 201）で持つ。触る前に `inspectSchema` で調べ、Kickoff のものでない・このアプリより新しい版なら、データに触らずに例外にする。
 - リリース前の系統（印が KICK で `user_version` が 100 ＋ 版）は引き継がない。起動のときに `db/open.ts` の `discardPrereleaseData` が DB（`-wal`・`-shm` も）・`backups/`・`uploads/` を消し、空の DB から作る（音声のモデル・トークンなど DB に依らないものは残す）。`openDatabase` はリリース前の DB を開かない。古い DB を変換する仕組みは作らない。

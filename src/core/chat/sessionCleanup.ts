@@ -16,10 +16,20 @@ export function collectChatSessions(store: Store, chats: Chat[]): ChatSessions {
   const byProvider = new Map<ProviderId, Set<string>>();
   const cwds = new Set<string>();
   for (const chat of chats) {
-    const ids = byProvider.get(chat.provider) ?? new Set<string>();
-    if (chat.session_id) ids.add(chat.session_id);
-    for (const id of store.events.sessionIds([chat.id])) ids.add(id);
-    byProvider.set(chat.provider, ids);
+    const events = store.events.sessionRecords(chat.id);
+    const firstSwitch = events.find((e) => e.type === "provider_switched");
+    let provider = firstSwitch?.type === "provider_switched" ? firstSwitch.data.from : chat.provider;
+    const add = (id: string, owner: ProviderId) => {
+      const ids = byProvider.get(owner) ?? new Set<string>();
+      ids.add(id);
+      byProvider.set(owner, ids);
+    };
+    for (const event of events) {
+      if (event.type === "provider_switched") provider = event.data.to;
+      else if ((event.type === "init" || event.type === "result" || event.type === "workplace_moved") && event.data.session_id) add(event.data.session_id, provider);
+    }
+    if (chat.session_id) add(chat.session_id, chat.provider);
+    for (const session of store.chatProviderSessions.list(chat.id)) add(session.session_id, session.provider);
     const project = store.projects.get(chat.project_id);
     if (chat.worktree_path) cwds.add(chat.worktree_path);
     if (project) cwds.add(project.repo_path);
