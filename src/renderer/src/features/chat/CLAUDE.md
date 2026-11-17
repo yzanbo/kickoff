@@ -1,5 +1,7 @@
 # チャット（`features/chat`）
 
+入力欄の `RestrictionNotice` は、制限がオフのときに新規チャットの送信前と既存チャットで知らせる。メモのチャットの入力欄にも表示する。
+
 - OS の拒否ログの限定診断の呼び出しは `toolDescribe.ts` で「OS の拒否ログの診断を始める」「OS の拒否ログを読む」と表示する（名前は `@shared/chat/aiSandboxDiagnostics`）。
 
 チャット全般（状態・操作・名前・メニュー・状態の印）と、1 つのチャットの画面。チャット欄の音声入力と音声モード（`features/dictation/`）と返答のファイルのチップ（`features/fileLinks/`）もここに書く。まとめ方・数え方は `features/chatList/CLAUDE.md`、タブの入れ物は `features/panel/CLAUDE.md`。

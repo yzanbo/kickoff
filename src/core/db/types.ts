@@ -24,6 +24,9 @@ export interface NewChat extends ChatOptionsPatch {
   memo_path?: string | null;
   /** Git で管理していないファイルだけを書けるチャットか（省けば false） */
   untracked_only?: boolean;
+  /** 新しいチャットの制限（省くとアプリの既定） */
+  sandbox_enabled?: boolean;
+  edit_scope_enabled?: boolean;
   /** 結び付いた GitHub の issue・PR */
   github_repo?: string | null;
   github_number?: number | null;

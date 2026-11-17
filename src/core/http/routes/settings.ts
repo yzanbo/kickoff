@@ -22,6 +22,8 @@ const settingsSchema = z
     chat_defaults: chatDefaultsSchema,
     // Claude Code のほかの AI ごとの既定（送った内容で置き換える。AI ごとに 4 つとも送る）
     provider_chat_defaults: otherProviderRecord(providerChatDefaultsSchema),
+    sandbox_enabled_by_default: z.boolean(),
+    edit_scope_enabled_by_default: z.boolean(),
     auto_archive_days: z.number().int().min(1).max(365).nullable(),
     auto_resume_on_reconnect: z.boolean(),
     voice_enabled: z.boolean(),

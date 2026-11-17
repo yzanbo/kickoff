@@ -1,5 +1,7 @@
 # プロバイダー（src/core/providers）の説明
 
+砂場を明示的にオフにした通常のチャットでは、Claude SDK に `sandbox.enabled: false`、Codex に `danger-full-access` と `dangerFullAccess` を渡す。計画モードを優先し、未対応 AI は無制限で実行せず失敗させる。AI や OS 固有の制限は別に残りうる。
+
 エージェントの実行基盤。コア（`chat/`）はこの抽象だけを使い、Claude Code の SDK を直接呼ばない。
 
 ## 抽象（types.ts）

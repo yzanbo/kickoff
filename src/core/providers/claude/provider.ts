@@ -31,7 +31,7 @@ import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../types.js";
 import { runCommand } from "../../system/exec.js";
-import { claudeSandbox } from "./sandbox.js";
+import { claudeSandboxOption } from "./sandbox.js";
 import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
 import { noteSyncSince, syncStart } from "../../system/stallWatch.js";
@@ -189,6 +189,7 @@ export class ClaudeProvider implements AgentProvider {
       : null;
     // Claude Code のプロセスの pid を知らせる（コアのプロセスが落ちたときに、メインが作り直す前に止める）
     const spawnNotes = agentSpawnNotes(params.onAgentSpawned);
+    const sandbox = claudeSandboxOption(params.bashSandbox, params.disableSandbox);
     try {
       const q = query({
         prompt: input.messages,
@@ -227,7 +228,7 @@ export class ClaudeProvider implements AgentProvider {
           enableFileCheckpointing: true,
           ...(params.fastMode ? { settings: { fastMode: true } } : {}),
           // Bash を砂場に入れ、書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする（止めるのは OS。メモの仕様書「0020_AI の書き込み先」の段階 2）
-          ...(params.bashSandbox ? { sandbox: claudeSandbox(params.bashSandbox) } : {}),
+          ...(sandbox ? { sandbox } : {}),
         },
       });
 

@@ -22,4 +22,7 @@ test("AI の既定は適用範囲と AI ごとの設定を区別して表示す�
   assert.ok(html.includes('aria-labelledby="ai-defaults-claude-title"'));
   assert.ok(html.includes('aria-labelledby="ai-defaults-codex-title"'));
   assert.ok(html.includes("そのチャットだけに適用"));
+  assert.ok(html.includes("コマンドのサンドボックスを使う"));
+  assert.ok(html.includes("チャットの編集先を制限する"));
+  assert.ok(html.includes("既存のチャットは、ここで再びオンにしても変わりません"));
 });

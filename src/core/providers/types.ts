@@ -204,6 +204,8 @@ export interface ProviderTurnParams {
    * 止めるのは OS）。プロバイダーが自分の砂場の設定に直す。なければかけない
    */
   bashSandbox?: BashSandbox | null;
+  /** 利用者がこのチャットで明示的に砂場なしを選んだ（省略は今までどおり） */
+  disableSandbox?: boolean;
 }
 
 export interface ApprovalRequest {

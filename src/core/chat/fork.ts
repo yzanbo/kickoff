@@ -31,6 +31,8 @@ export async function forkChat(deps: { store: Store; providers: Record<ProviderI
     effort: chat.effort,
     permission_mode: chat.permission_mode,
     fast_mode: chat.fast_mode,
+    sandbox_enabled: chat.sandbox_enabled,
+    edit_scope_enabled: chat.edit_scope_enabled,
     group_id: chat.group_id,
     worktree_path: chat.worktree_path,
   });

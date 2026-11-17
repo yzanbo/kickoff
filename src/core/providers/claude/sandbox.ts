@@ -27,3 +27,8 @@ export function claudeSandbox(sandbox: BashSandbox): NonNullable<Options["sandbo
     },
   };
 }
+
+/** 利用者が明示的にオフを選んだときは、Claude Code の設定も無効にする。省略時は既存の動作を保つ */
+export function claudeSandboxOption(sandbox: BashSandbox | null | undefined, disabled: boolean | undefined): Options["sandbox"] {
+  return disabled ? { enabled: false } : sandbox ? claudeSandbox(sandbox) : undefined;
+}

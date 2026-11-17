@@ -79,7 +79,7 @@ export function AiDefaultsSettings() {
             <EffortOptions model={currentModel} />
           </select>
         </Field>
-        <Field label="権限モード" help="参照資料への書き込みは、どのモードでも断ります。">
+        <Field label="権限モード" help="参照資料へのファイル編集ツールによる書き込みは、どのモードでも断ります。">
           <select value={defaults.permission_mode} onChange={(e) => setDefault({ permission_mode: e.target.value as PermissionMode })}>
             <PermissionOptions model={currentModel} />
           </select>
@@ -110,10 +110,29 @@ export function AiDefaultsSettings() {
         />
       ))}
       </div>
+      <div className="ai-defaults-heading">
+        <h3>新しいチャットの制限</h3>
+        <p>Claude Code・Codex の新しいチャットに適用します。既存のチャットは、ここで再びオンにしても変わりません。</p>
+      </div>
+      <div className="form ai-defaults-card-form">
+        <CheckField
+          label="コマンドのサンドボックスを使う"
+          help="オフにすると、AI のコマンドが利用者の権限で作業場所の外にも書ける可能性があります。計画モードと『AI で整える』では専用の制限を維持します。macOS や AI の設定による制限は別に残ることがあります。"
+          checked={draft.sandbox_enabled_by_default}
+          onChange={(on) => setDraft({ ...draft, sandbox_enabled_by_default: on })}
+        />
+        <CheckField
+          label="チャットの編集先を制限する"
+          help="オフにすると、Kickoff の編集先を確認する守りを外します。サンドボックスがオンなら、コマンド経由の変更にはその制限が残ります。参照資料などを守るファイル編集ツールの制限は別に残りますが、サンドボックスをオフにしたコマンドには及ばない場合があります。"
+          checked={draft.edit_scope_enabled_by_default}
+          onChange={(on) => setDraft({ ...draft, edit_scope_enabled_by_default: on })}
+        />
+        <p className="muted small">オフにした制限は新しいチャットの入力欄に表示します。Auto mode などの承認の設定は別です。Claude Code・Codex 以外は、砂場オフの指定に未対応の場合、守りを外して実行せずに知らせます。</p>
+      </div>
       <SaveActions
         save={save}
         disabled={!dirty}
-        onSave={() => saveFields({ default_provider: draft.default_provider, chat_defaults: defaults, provider_chat_defaults: draft.provider_chat_defaults })}
+        onSave={() => saveFields({ default_provider: draft.default_provider, chat_defaults: defaults, provider_chat_defaults: draft.provider_chat_defaults, sandbox_enabled_by_default: draft.sandbox_enabled_by_default, edit_scope_enabled_by_default: draft.edit_scope_enabled_by_default })}
       />
     </section>
   );

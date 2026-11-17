@@ -33,6 +33,7 @@ import type { useChatSend } from "./useChatSend";
 import { useChipsPortal } from "./chipsPortal";
 import { useHeldEdit } from "@/features/chat/status/heldEdit";
 import { HeldEditComposer } from "@/features/chat/status/HeldEditComposer";
+import { RestrictionNotice } from "./RestrictionNotice";
 
 /** 「質問として送る」の説明 */
 const ASK_SEND_TITLE =
@@ -124,7 +125,7 @@ export function ChatComposerArea({
       */}
       <BusyNeighborsNotice count={busyNeighbors} />
       {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる（外に描く先があればそこへ。一番下へ戻るボタンは流れの側に残す） */}
-      {portal?.target ? createPortal(chips, portal.target) : chips}
+      {portal?.target ? createPortal(<><RestrictionNotice sandboxEnabled={chat.sandbox_enabled} editScopeEnabled={chat.edit_scope_enabled} />{chips}</>, portal.target) : <><RestrictionNotice sandboxEnabled={chat.sandbox_enabled} editScopeEnabled={chat.edit_scope_enabled} />{chips}</>}
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順。外に描く先があれば、そこの入力欄の上へ） */}
       {/* 作業の途中で止まったことだけを聞いているときの帯は、送信待ち・入力欄の上（送信待ちと入力欄の 1 枚の枠を切らない） */}
       {resume && !resume.queued && <RestartResumeBanner chatId={chat.id} resume={resume} standalone />}

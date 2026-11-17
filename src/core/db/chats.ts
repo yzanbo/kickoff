@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { Chat, ChatStatus, GitHubLink } from "@shared/types";
+import { DEFAULT_SETTINGS, type AppSettings, type Chat, type ChatStatus, type GitHubLink } from "@shared/types";
 import { bit, updateRow, type Notify, type Row } from "./common.js";
 import type { NewChat } from "./types.js";
 import { rememberChatSession } from "./agentSessions.js";
@@ -37,11 +37,13 @@ const CHAT_COLUMNS = [
 export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;
 
 /** DB の行（真偽値は 0 / 1。archived_with_parent・trashed_at・trashed_with・ai_generation・resume_pending は店の中だけで使い、Chat には出さない） */
-type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only"> & {
+type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only" | "sandbox_enabled" | "edit_scope_enabled"> & {
   fast_mode: number;
   unread: number;
   pinned: number;
   untracked_only: number;
+  sandbox_enabled: number;
+  edit_scope_enabled: number;
   archived_with_parent: number;
   trashed_at: string | null;
   trashed_with: string | null;
@@ -52,7 +54,7 @@ type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned" | "untracked_only"> 
 /** DB の行をアプリの型にする（真偽値の列を boolean に） */
 function toChat(row: unknown): Chat {
   const { archived_with_parent: _withParent, trashed_at: _trashedAt, trashed_with: _trashedWith, ai_generation: _generation, resume_pending: _resume, ...r } = row as ChatRow;
-  return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1, untracked_only: r.untracked_only === 1 };
+  return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1, untracked_only: r.untracked_only === 1, sandbox_enabled: r.sandbox_enabled === 1, edit_scope_enabled: r.edit_scope_enabled === 1 };
 }
 
 /** 変える項目を DB の列の値にする（真偽値は 0 / 1） */
@@ -64,7 +66,7 @@ function toChatRow({ fast_mode, unread, ...rest }: ChatPatch): Row {
  * チャット（chats の表。エージェントとの会話。記録は events.ts）。Kickoff のゴミ箱に入れたチャット（trashed_at がある）は、
  * get・一覧・子孫などのふだんの読み取りから外す（消したのと同じに見せる）。ゴミ箱から扱うのは trashedWith / untrash / purgeTrashed だけ
  */
-export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: LogRevisions) {
+export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: LogRevisions, settings: () => Pick<AppSettings, "sandbox_enabled_by_default" | "edit_scope_enabled_by_default"> = () => DEFAULT_SETTINGS) {
   const get = (id: number): Chat | undefined => {
     const row = db.prepare("SELECT * FROM chats WHERE id = ? AND trashed_at IS NULL").get(id);
     return row ? toChat(row) : undefined;
@@ -151,10 +153,11 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
         .map(toChat);
     },
     create(input: NewChat): Chat {
+      const defaults = settings();
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path, untracked_only, github_repo, github_number, github_kind, ai_generation)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path, untracked_only, github_repo, github_number, github_kind, ai_generation, sandbox_enabled, edit_scope_enabled)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           input.project_id,
@@ -174,6 +177,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
           // repo・番号・種類はそろって入れる（どれかがなければ結び付けない）
           ...(input.github_repo && input.github_number && input.github_kind ? [input.github_repo, input.github_number, input.github_kind] : [null, null, null]),
           input.ai_generation ?? 0,
+          bit(input.sandbox_enabled ?? defaults.sandbox_enabled_by_default),
+          bit(input.edit_scope_enabled ?? defaults.edit_scope_enabled_by_default),
         );
       const chat = get(Number(lastInsertRowid))!;
       onChange({ type: "chat", chat });
