@@ -22,7 +22,7 @@ import { BOARD_COLUMNS, type BoardColumn, type Chat, type ChatGroup, type GitWor
 import { stateCounts, type ApprovalIndex, type StateCounts } from "@/features/chat/chatState";
 import { compareWorkplaces, type ChatWorkplace } from "@/features/worktree/workplace";
 import { byActive } from "@/stores/chats";
-import { chatHead, draftHead, levelHead, seedHeads } from "./bucketHeads";
+import { chatHead, draftHead, seedHeads } from "./bucketHeads";
 
 /** まとまりの分け方（1 段） */
 export type BucketBy = "project" | "group" | "worktree" | "status";
@@ -98,8 +98,8 @@ export interface BucketOptions<D extends DraftTarget = DraftTarget> extends Buck
   project?: number;
   /** 状態で分けるときの列（既定はカンバンの 4 列。ここにない列のチャットは入れない） */
   columns?: readonly BoardColumn[];
-  /** 固定したチャットを、プロジェクトごとの「固定」に抜き出す（いちばん前。中は分けない） */
-  pinned?: boolean;
+  /** true = プロジェクトごとの「固定」に抜き出す / nested = 所属するグループ・作業場所の先頭（状態で分けるときは、その手前の「固定」） */
+  pinned?: boolean | "nested";
   /**
    * アーカイブ済みのチャット: keep = ほかと同じく分ける（既定）/ bucket = 「アーカイブ済み」に抜き出す（いちばん後ろ。中はグループを除いた段で分ける）/
    * nested = いちばん外の段のまとまりごとに、その中の archived に入れる（サイドバーのグループ別・作業場所別。段がなければ bucket と同じ）/
@@ -150,7 +150,7 @@ const levelsOf = (by: BucketBy | readonly BucketBy[]): readonly BucketBy[] => (t
 
 /**
  * チャット（と下書き）をまとまりに分ける（純粋な関数。決まりはファイルの先頭）。
- * 例: サイドバーのグループ別 × 状態順 = bucketChats(chats, { by: ["group", "status"], project, pinned: true, archived: "bucket", ... })、
+ * 例: サイドバーのグループ別 × 状態順 = bucketChats(chats, { by: ["group", "status"], project, pinned: "nested", archived: "nested", ... })、
  * ボードの列 = bucketChats(chats, { by: "status", keepEmpty: true })、⌘⇧A = bucketChats(chats, { by: "status", columns: COUNTED_COLUMNS, archived: "drop" })
  */
 export function bucketChats<D extends DraftTarget = DraftTarget>(chats: readonly Chat[], options: BucketOptions<D>): ChatBucket<D>[] {
@@ -211,7 +211,7 @@ function bucketLevel<D extends DraftTarget>(
   };
   for (const head of seedHeads(by, options, columns, at.top, at.scope, at.parent)) if (keep(head)) add(head);
   for (const chat of chats) {
-    const head = at.top ? chatHead(chat, by, options, { ...options, columns, project: at.scope }) : levelHead(chat, by, options, columns, at.scope, at.parent);
+    const head = chatHead(chat, by, options, { ...options, columns, project: at.scope }, at.parent);
     if (head) add(head).chats.push(chat);
   }
   for (const draft of drafts) {
@@ -220,12 +220,13 @@ function bucketLevel<D extends DraftTarget>(
   }
   const list = sortBuckets([...buckets.values()], options.projects?.map((p) => p.id));
   for (const bucket of list) {
-    bucket.chats.sort(options.sort ?? byActive);
+    const sort = options.sort ?? byActive;
+    bucket.chats.sort(options.pinned === "nested" ? (a, b) => Number(b.pinned && !b.archived_at) - Number(a.pinned && !a.archived_at) || sort(a, b) : sort);
     bucket.counts = stateCounts(bucket.chats, options.pending);
     // 固定はまとめずに並べ、アーカイブ済みの中はグループを除いた段で分ける（グループに関係なく並べる）
     const next = bucket.kind === "pinned" ? [] : bucket.kind === "archived" ? levels.filter((l) => l !== "group") : inner;
     if (next.length > 0 && bucket.kind !== "all") {
-      bucket.children = bucketLevel(bucket.chats, [], next, { ...options, pinned: false, archived: "keep" }, { top: false, scope: bucket.projectId, parent: bucket.key });
+      bucket.children = bucketLevel(bucket.chats, [], next, { ...options, pinned: options.pinned === "nested" ? "nested" : false, archived: "keep" }, { top: false, scope: bucket.projectId, parent: bucket.key });
     }
   }
   return list;

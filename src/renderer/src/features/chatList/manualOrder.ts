@@ -15,13 +15,13 @@ export const byManual = (a: Chat, b: Chat): number => {
 };
 
 /**
- * チャットの ID → 並べ替えられる範囲（いちばん外のまとまりのキー。まとまりのアーカイブ済みはそのキー）。
+ * チャットの ID → 並べ替えられる範囲（いちばん外のまとまりのキー。中の固定は /pinned、アーカイブ済みはそのキー）。
  * ドラッグで並べ替えられるのは、同じ範囲のチャットどうしだけ（グループをまたぐ移動はグループのドロップ）
  */
 export function bucketScopes(buckets: readonly ChatBucket[]): Map<number, string> {
   const scopes = new Map<number, string>();
   for (const b of buckets) {
-    for (const c of b.chats) scopes.set(c.id, b.key);
+    for (const c of b.chats) scopes.set(c.id, c.pinned && !c.archived_at && b.kind !== "pinned" ? `${b.key}/pinned` : b.key);
     for (const c of b.archived?.chats ?? []) scopes.set(c.id, b.archived!.key);
   }
   return scopes;

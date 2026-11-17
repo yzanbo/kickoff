@@ -60,7 +60,7 @@ const statusHead = (column: BoardColumn, scope: number | undefined, parent: stri
   column,
 });
 
-const pinnedHead = (scope: number | undefined): BucketHead => ({ key: keyAt("pinned", scope, undefined), kind: "pinned", label: "固定", title: "固定したチャット", projectId: scope });
+const pinnedHead = (scope: number | undefined, parent?: string): BucketHead => ({ key: keyAt("pinned", scope, parent), kind: "pinned", label: "固定", title: "固定したチャット", projectId: scope });
 
 const archivedHead = (scope: number | undefined): BucketHead => ({
   key: keyAt("archived", scope, undefined),
@@ -97,15 +97,16 @@ export function chatHead(
   by: BucketBy | undefined,
   ctx: BucketContext,
   { pinned = false, archived = "keep", columns = BOARD_COLUMNS, project }: Pick<BucketOptions, "pinned" | "archived" | "columns" | "project"> = {},
+  parent?: string,
 ): BucketHead | undefined {
   const scope = by === "status" || by === undefined ? project : chat.project_id;
   if (chat.archived_at) {
     if (archived === "drop") return undefined;
     if (archived === "bucket") return archivedHead(scope);
-  } else if (pinned && chat.pinned) {
-    return pinnedHead(scope);
+  } else if (pinned && chat.pinned && (pinned !== "nested" || by === "status" || by === undefined)) {
+    return pinnedHead(scope, parent);
   }
-  return levelHead(chat, by, ctx, columns, project);
+  return levelHead(chat, by, ctx, columns, project, parent);
 }
 
 /** 下書きが入るまとまり（状態で分けるときは入れない = undefined） */

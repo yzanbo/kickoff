@@ -43,6 +43,34 @@ button.chat-row {
   cursor: pointer;
 }
 
+/* 固定は控えめな地と常時表示するピンで区別する。ホバー・選択中の地は、下の既存の指定を優先する */
+.chat-row.pinned {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+/* グループ・作業場所の中の固定一覧。見出しは開閉を増やさず、左上に控えめに添える */
+.sidebar-pinned-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.sidebar-pinned-head svg {
+  color: var(--accent-fg);
+  fill: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+/* 固定と通常の両方があるときだけ区切る。ドラッグの挿入位置の擬似要素とは別に描く */
+.sidebar-after-pinned {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+}
+
 .chat-row:hover,
 .chat-row-item:hover > .chat-row,
 .chat-row-item:has(> .chat-row-actions.open) > .chat-row {
@@ -147,6 +175,16 @@ button.chat-row {
   gap: 8px;
   /* 長いタイトルを省略表示にして、経過時間を常に見せる */
   min-width: 0;
+}
+
+.chat-row-pin {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--accent-fg);
+}
+
+.chat-row-pin svg {
+  fill: color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .chat-row-title {

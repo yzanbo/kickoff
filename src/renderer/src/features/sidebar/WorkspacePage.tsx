@@ -43,6 +43,7 @@ import { useWaitingView } from "./waitingView";
 import { huedHeadProps, useSidebarBucketColors } from "./bucketColor";
 import { useShownChildChats } from "./useShownChildChats";
 import { ChatRowList } from "./ChatRowList";
+import { BucketChatRows } from "./BucketChatRows";
 import { RowBudgetScope, useProgressivePage } from "@/hooks/useProgressiveRows";
 import { allocateRows } from "@/lib/progressive";
 
@@ -129,7 +130,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   const groupedDrafts = list.groups.some((g) => g.drafts.length > 0);
   // グループの見出しを出しているときは、どのグループにも入っていない下書き（もうないグループのものも）を「No Group」の中（チャットの上）に並べる
   // （以前はプロジェクトのいちばん上に出していて、グループなしのものだと分かりにくかった）
-  const ungroupedDrafts = showGroups ? (ungrouped?.drafts ?? []) : [];
+  const ungroupedDrafts = ungrouped?.drafts ?? [];
+  const mainDraftCount = list.mainDraftCount;
   // 固定を除いた、絞り込みを通したチャットの数
   const restCount = visibleCount - (pinned?.chats.length ?? 0);
   // 「No Group」の見出しで閉じているか（グループの見出しを出しているときだけ。閉じていれば中身を隠す）
@@ -232,23 +234,31 @@ export const WorkspacePage = memo(function WorkspacePage({
           onContextMenu={colors.onContextMenu}
         />
       )}
-      {(filtering && restCount === 0 && ungroupedDrafts.length === 0 && !mainArchived) ||
-      (visibleCount === 0 && ungroupedDrafts.length === 0 && ungroupedHidden) ? null : visibleCount === 0 &&
-        ungroupedDrafts.length === 0 &&
+      {(filtering && restCount === 0 && mainDraftCount === 0 && !mainArchived) ||
+      (visibleCount === 0 && mainDraftCount === 0 && ungroupedHidden) ? null : visibleCount === 0 &&
+        mainDraftCount === 0 &&
         !mainArchived ? (
         <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
           <SquarePen size={13} /> 最初のチャットを始める
         </button>
-      ) : mainRows.length === 0 && ungroupedDrafts.length === 0 && !mainArchived ? null : (
+      ) : mainRows.length === 0 && mainDraftCount === 0 && !mainArchived ? null : (
         // グループの見出しがあるときは「No Group」の見出しで開閉し、中身（グループなしの下書き・チャット）を段下げする
         <Collapse open={!ungroupedHidden} indent={showGroups}>
           {/* グループなしの下書き（グループから戻すドロップ先は、包む要素の「No Group」のまとまり） */}
-          <DraftRows drafts={ungroupedDrafts} />
-          {mainRows.length === 0 && !mainArchived ? null : mainSections ? (
+          {list.grouping === "group" ? (
+            <BucketChatRows
+              chats={mainRows}
+              drafts={ungroupedDrafts}
+              sections={mainSections}
+              renderRow={renderRow}
+              renderSections={(buckets) => <GroupedChatRows buckets={buckets} renderRow={renderRow} forceOpen={filtering} />}
+            />
+          ) : mainRows.length === 0 && mainDraftCount === 0 && !mainArchived ? null : mainSections ? (
             <GroupedChatRows
               buckets={mainSections}
               renderRow={renderRow}
               forceOpen={filtering}
+              draftsOf={(bucket) => list.draftsByBucket.get(bucket.key) ?? []}
               hueOf={colors.hueOf}
               onContextMenu={colors.onContextMenu}
               renderArchived={(bucket) => <ArchivedBucketFold projectId={project.id} bucket={bucket} chats={chats} renderRow={renderRow} forceOpen={filtering} />}

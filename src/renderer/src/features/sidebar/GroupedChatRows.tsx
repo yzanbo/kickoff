@@ -1,7 +1,7 @@
-import { GitBranch } from "lucide-react";
+import { GitBranch, Pin } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
-import { newChatPlaceOf, type ChatBucket } from "@/features/chatList/buckets";
+import { newChatPlaceOf, type BucketHead, type ChatBucket } from "@/features/chatList/buckets";
 import { openNewChat } from "@/app/router";
 import { NewChatItem } from "@/features/chat/NewChatItem";
 import { COLUMN_TONE } from "@/features/chat/tones";
@@ -12,10 +12,12 @@ import { WORKPLACE_KIND_LABELS } from "@/features/worktree/workplace";
 import { FoldSection } from "@/ui/FoldHead";
 import type { MouseEvent } from "react";
 import { huedHeadProps } from "./bucketColor";
-import { ChatRowList } from "./ChatRowList";
+import { BucketChatRows } from "./BucketChatRows";
+import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 
 /** まとまりの見出しの印（状態 = 列の色の点 / 作業場所 = ブランチ。ワークツリーは色付き、フォルダなし・以前のブランチは薄く） */
 function BucketMark({ bucket }: { bucket: ChatBucket }) {
+  if (bucket.kind === "pinned") return <Pin size={13} />;
   if (bucket.column) return <span className="status-group-dot" style={{ background: COLUMN_TONE[bucket.column] }} aria-hidden />;
   const kind = bucket.place?.kind;
   if (!kind) return null;
@@ -26,7 +28,7 @@ function BucketMark({ bucket }: { bucket: ChatBucket }) {
  * 見出しつきのまとまり 1 つ（見出しは 開閉・印・名前・件数。ボードの列の見出しと同じ形）。見出しを押すと開閉する。
  * 中の段があれば（作業場所の中を状態順に分けるとき）、その見出しのまとまりを並べる。開閉はまとまりのキーで覚え、forceOpen（検索中）は開いて見せる
  */
-function Section({ bucket, renderRow, forceOpen, hue, onContextMenu, renderArchived }: SectionProps & { bucket: ChatBucket; hue: number | null }) {
+function Section({ bucket, renderRow, forceOpen, hue, onContextMenu, renderArchived, draftsOf }: SectionProps & { bucket: ChatBucket; hue: number | null }) {
   // 開閉はまとまりのキーで覚える（見出しの行の「すべて閉じる / 開く」にも従う）
   const fold = useFold("sidebar", bucket.key, { forceOpen });
   const label = (
@@ -43,7 +45,7 @@ function Section({ bucket, renderRow, forceOpen, hue, onContextMenu, renderArchi
       open={fold.open}
       onToggle={fold.toggle}
       label={label}
-      count={bucket.chats.length}
+      count={bucket.chats.length + bucket.drafts.length}
       {...huedHeadProps(hue)}
       onContextMenu={
         onContextMenu &&
@@ -57,13 +59,17 @@ function Section({ bucket, renderRow, forceOpen, hue, onContextMenu, renderArchi
         })
       }
     >
-      {bucket.children ? (
-        <div className="custom-group-grouped">
-          <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={forceOpen} />
-        </div>
-      ) : bucket.chats.length === 0 ? null : (
-        <ChatRowList chats={bucket.chats} renderRow={renderRow} />
-      )}
+      <BucketChatRows
+        chats={bucket.chats}
+        drafts={draftsOf?.(bucket)}
+        sections={bucket.children}
+        renderRow={renderRow}
+        renderSections={(buckets) => (
+          <div className="custom-group-grouped">
+            <GroupedChatRows buckets={buckets} renderRow={renderRow} forceOpen={forceOpen} />
+          </div>
+        )}
+      />
       {bucket.archived && renderArchived?.(bucket.archived)}
     </FoldSection>
   );
@@ -82,6 +88,7 @@ export function GroupedChatRows({
   hueOf,
   onContextMenu,
   renderArchived,
+  draftsOf,
 }: Omit<SectionProps, "forceOpen"> & {
   buckets: readonly ChatBucket[];
   forceOpen?: boolean;
@@ -103,12 +110,15 @@ export function GroupedChatRows({
         hue={hueOf?.(bucket) ?? null}
         onContextMenu={onContextMenu}
         renderArchived={renderArchived}
+        draftsOf={draftsOf}
       />
     </RowBudgetScope>
   ));
 }
 
 interface SectionProps {
+  /** いちばん外の作業場所の中に並べる下書き */
+  draftsOf?: (bucket: BucketHead) => readonly PanelDraft[];
   renderRow: (chat: Chat) => ReactNode;
   forceOpen: boolean;
   /** 見出しの右クリック（「まとまりを色付きで表示」のメニュー。lead はその上に置く項目（作業場所の「新しいチャット」）。まとめないときは undefined） */
