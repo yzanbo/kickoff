@@ -78,7 +78,7 @@ function LaneTitle({ lane, showProject }: { lane: ChatBucket<PanelDraft>; showPr
     const extra = showProject && lane.projectId !== undefined ? `${projectName(lane.projectId)} ・ ${kindLabel}` : kindLabel;
     return (
       <>
-        <GitBranch size={14} className={cx(place.kind === "worktree" && "board-lane-worktree", (place.kind === "missing" || place.kind === "past") && "board-lane-gone")} />
+        <GitBranch size={14} className={cx(place.kind === "worktree" && "board-lane-worktree", place.kind === "missing" && "board-lane-gone")} />
         <span className="board-lane-label" title={lane.title}>
           {lane.label}
         </span>

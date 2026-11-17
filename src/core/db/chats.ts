@@ -30,6 +30,7 @@ const CHAT_COLUMNS = [
   "context_tokens",
   "context_window",
   "branch",
+  "finished_worktree_branch",
   "unread",
 ] as const satisfies readonly (keyof Chat)[];
 
@@ -300,18 +301,18 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
      * （作業場所は移った先の本体になる）。並び順は変えない
      */
     move(id: number, projectId: number): Chat {
-      db.prepare("UPDATE chats SET project_id = ?, group_id = NULL, worktree_path = NULL, branch = NULL WHERE id = ?").run(projectId, id);
+      db.prepare("UPDATE chats SET project_id = ?, group_id = NULL, worktree_path = NULL, branch = NULL, finished_worktree_branch = NULL WHERE id = ?").run(projectId, id);
       const chat = get(id)!;
       onChange({ type: "chat", chat });
       return chat;
     },
     /**
      * チャットの作業場所を変える（メモの仕様書「0025_チャットの作業場所を変える」。null なら本体）。branch を渡せば最後に作業したブランチも書き替える
-     * （利用者・AI が移したときは移した先のいまのブランチ。H3）。並び順は変えない
+     * （利用者・AI が移したときは移した先のいまのブランチ。H3）。片付けた印は finishedBranch に置き換える（ワークツリーを片付けて戻したときだけ渡す）。並び順は変えない
      */
-    setWorkplace(id: number, worktreePath: string | null, branch?: string | null): Chat {
-      if (branch === undefined) db.prepare("UPDATE chats SET worktree_path = ? WHERE id = ?").run(worktreePath, id);
-      else db.prepare("UPDATE chats SET worktree_path = ?, branch = ? WHERE id = ?").run(worktreePath, branch, id);
+    setWorkplace(id: number, worktreePath: string | null, branch?: string | null, finishedBranch: string | null = null): Chat {
+      if (branch === undefined) db.prepare("UPDATE chats SET worktree_path = ?, finished_worktree_branch = ? WHERE id = ?").run(worktreePath, finishedBranch, id);
+      else db.prepare("UPDATE chats SET worktree_path = ?, branch = ?, finished_worktree_branch = ? WHERE id = ?").run(worktreePath, branch, finishedBranch, id);
       const chat = get(id)!;
       onChange({ type: "chat", chat });
       return chat;
@@ -337,9 +338,14 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
     },
     /** その作業場所（ワークツリー）を使っているチャット */
     inWorktree,
-    /** ワークツリーを片付けたあと、そこで作業していたチャットの作業場所を本体に戻す（並び順は変えない） */
-    clearWorktree(projectId: number, worktreePath: string): void {
-      replaceWorktree(projectId, worktreePath, null);
+    /**
+     * ワークツリーを片付けたあと、そこで作業していたチャットの作業場所を本体に戻し、片付けた印に片付けたワークツリーのブランチを付ける
+     * （分からなければ、チャットが最後に作業したブランチ。並び順は変えない）
+     */
+    clearWorktree(projectId: number, worktreePath: string, finishedBranch: string | null): void {
+      const chats = inWorktree(projectId, worktreePath);
+      db.prepare("UPDATE chats SET worktree_path = NULL, finished_worktree_branch = COALESCE(?, branch) WHERE project_id = ? AND worktree_path = ?").run(finishedBranch, projectId, worktreePath);
+      for (const chat of chats) onChange({ type: "chat", chat: get(chat.id)! });
     },
     /** その作業場所のチャットを、別の作業場所（null なら本体）に付け替える（プロジェクトのフォルダを変えたとき。並び順は変えない） */
     replaceWorktree,

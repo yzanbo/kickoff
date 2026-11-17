@@ -117,6 +117,8 @@ export interface Chat {
   worktree_path: string | null;
   /** 最後に送ったときに作業していたブランチ（ワークツリーを片付けても残す。分からなければ null） */
   branch: string | null;
+  /** ワークツリーを片付けて本体に戻したとき、片付けたワークツリーのブランチ（次に送る・作業場所を移すまで。札は本体のまま、説明にだけ出す。片付けていなければ null） */
+  finished_worktree_branch: string | null;
   /** いまの作業（最後に送ったもの）を始めた時刻（まだ一度も動いていなければ null） */
   turn_started_at: string | null;
   /** 最後の応答の時点でコンテキストに入っていたトークン数と、その上限（まだ応答がなければ null） */

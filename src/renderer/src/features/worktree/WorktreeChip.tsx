@@ -4,7 +4,7 @@ import { cx } from "@/lib/cx";
 import { useWorktreeEnv } from "@/stores/worktrees";
 import { WorktreePrMark } from "./prNotice/PrNoticeMark";
 import { useChatWorkplace } from "./useWorkplace";
-import { WORKPLACE_SHORT_LABELS } from "./workplace";
+import { WORKPLACE_SHORT_LABELS, type WorkplaceChat } from "./workplace";
 import { worktreeEnvLines } from "./worktreeEnvText";
 
 /**
@@ -15,14 +15,14 @@ import { worktreeEnvLines } from "./worktreeEnvText";
  * ワークツリーの PR がマージされた・閉じられたら、札の後ろに印（`PrNoticeMark`。押すと片付けの確認）を添える（狭い所は markIconOnly でアイコンだけ）。
  * ワークツリーの実行環境（ポートの帯）があれば、乗せたときの説明にアプリの URL と対応表（db 5432 → 20101）を添える
  */
-export function WorktreeChip({ chat, markIconOnly }: { chat: Pick<Chat, "project_id" | "worktree_path" | "branch">; markIconOnly?: boolean }) {
+export function WorktreeChip({ chat, markIconOnly }: { chat: WorkplaceChat & Pick<Chat, "project_id">; markIconOnly?: boolean }) {
   const { place, hue } = useChatWorkplace(chat);
   const envLines = worktreeEnvLines(useWorktreeEnv(chat.project_id, chat.worktree_path));
   if (!place.name) return null;
   return (
     <>
       <span
-        className={cx("worktree-chip", (place.kind === "missing" || place.kind === "past") && "is-gone")}
+        className={cx("worktree-chip", place.kind === "missing" && "is-gone")}
         style={{ "--group-hue": hue } as CSSProperties}
         title={[place.title, ...envLines].join("\n")}
       >

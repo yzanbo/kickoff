@@ -156,9 +156,10 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     const chat = store.chats.get(chatId)!;
     const project = store.projects.get(chat.project_id)!;
     const cwd = await resolveWorkdir(chat, project);
-    // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）
+    // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）。
+    // 送ったので、ワークツリーを片付けた印は外す（札はもとから本体。説明に片付けたブランチを添えるのは次に送るまで）
     const branch = await currentBranch(cwd);
-    store.chats.update(chatId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
+    store.chats.update(chatId, { status: "running", turn_started_at: new Date().toISOString(), finished_worktree_branch: null, ...(branch ? { branch } : {}) });
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
     const since = store.events.list(chatId).at(-1)?.id ?? 0;
     // 上限に近づいて自動で圧縮する前に足す圧縮前指示（手で圧縮する実行には足さない）

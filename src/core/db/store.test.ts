@@ -193,9 +193,12 @@ test("ワークツリーのチャット: 作業場所で探し、片付けると
 
   const before = store.chats.get(inWt.id)!.active_at;
   events.length = 0;
-  store.chats.clearWorktree(project.id, wt);
+  store.chats.clearWorktree(project.id, wt, "feat/a");
   assert.equal(store.chats.get(inWt.id)!.worktree_path, null);
   assert.equal(store.chats.get(inWt2.id)!.worktree_path, null);
+  // 片付けた印（札は本体のまま、片付けたブランチを説明に添える）。本体のチャットには付けない
+  assert.equal(store.chats.get(inWt.id)!.finished_worktree_branch, "feat/a");
+  assert.equal(store.chats.get(inMain.id)!.finished_worktree_branch, null);
   assert.equal(store.chats.get(inWt.id)!.active_at, before);
   // ほかのプロジェクト・本体のチャットは触らない
   assert.equal(store.chats.get(otherWt.id)!.worktree_path, wt);
@@ -204,7 +207,7 @@ test("ワークツリーのチャット: 作業場所で探し、片付けると
   assert.deepEqual(store.chats.inWorktree(project.id, wt), []);
   // もう一度片付けても何も知らせない
   events.length = 0;
-  store.chats.clearWorktree(project.id, wt);
+  store.chats.clearWorktree(project.id, wt, "feat/a");
   assert.deepEqual(events, []);
 });
 

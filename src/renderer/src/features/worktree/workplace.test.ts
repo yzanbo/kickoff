@@ -43,13 +43,15 @@ test("作業場所: フォルダが消えたワークツリー（Git に記録�
   assert.equal(workplaceOf({ worktree_path: "/repo-worktrees/feat-x", branch: null }, list).name, "feat-x");
 });
 
-test("作業場所: 片付けて本体に戻ったチャットは、最後に作業したブランチでまとめる（本体の作業と混ぜない）", () => {
-  const past = workplaceOf({ worktree_path: null, branch: "feat/done" }, list);
-  assert.equal(past.kind, "past");
-  assert.equal(past.name, "feat/done");
-  assert.equal(past.key, "branch:feat/done");
-  // 本体と同じブランチなら本体
-  assert.equal(workplaceOf({ worktree_path: null, branch: "main" }, list).kind, "main");
+test("本体は現在のブランチを表示し、片付けたブランチは説明に残す", () => {
+  const main = workplaceOf({ worktree_path: null, branch: "old" }, list);
+  assert.equal(main.kind, "main");
+  assert.equal(main.name, "main");
+  assert.doesNotMatch(main.title, /片付けた/);
+  const finished = workplaceOf({ worktree_path: null, branch: "feat/done", finished_worktree_branch: "feat/done" }, list);
+  assert.equal(finished.key, "");
+  assert.equal(finished.name, "main");
+  assert.match(finished.title, /feat\/done/);
 });
 
 test("作業場所: 一覧を読み込むまでは、最後に作業したブランチ → フォルダ名で仮に出す（フォルダなしにはしない）", () => {
@@ -62,14 +64,14 @@ test("作業場所: 一覧を読み込むまでは、最後に作業したブラ
   assert.equal(workplaceOf({ worktree_path: null, branch: null }, []).name, "");
 });
 
-test("作業場所の並び: 本体 → ワークツリー（名前順）→ フォルダなし → 以前のブランチ", () => {
+test("作業場所の並び: 本体 → ワークツリー（名前順）→ フォルダなし", () => {
   const places = [
     workplaceOf({ worktree_path: null, branch: "feat/done" }, list),
     workplaceOf({ worktree_path: "/repo-worktrees/gone", branch: null }, list),
     workplaceOf({ worktree_path: "/repo-worktrees/feat-a", branch: null }, list),
     workplaceOf({ worktree_path: null, branch: null }, list),
   ];
-  assert.deepEqual(places.sort(compareWorkplaces).map((p) => p.kind), ["main", "worktree", "missing", "past"]);
+  assert.deepEqual(places.sort(compareWorkplaces).map((p) => p.kind), ["main", "main", "worktree", "missing"]);
 });
 
 test("countBusyAt: 同じ作業場所（null = 本体）で作業中のチャットだけを数え、いまのチャットは数えない", () => {

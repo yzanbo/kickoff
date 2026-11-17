@@ -112,7 +112,7 @@
   color: var(--group-color);
 }
 
-/* フォルダの見つからないワークツリー・片付けたあとの以前のブランチ（薄い灰） */
+/* フォルダの見つからないワークツリー（薄い灰） */
 .status-group-gone,
 .board-lane-gone {
   color: var(--extra-muted);

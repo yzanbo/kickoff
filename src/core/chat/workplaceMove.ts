@@ -31,6 +31,8 @@ export interface WorkplaceMoveInput {
   carried?: boolean;
   /** ワークツリーを片付けたとき、コミットしていない変更を控えに入れた（J6） */
   backedUp?: boolean;
+  /** ワークツリーを片付けたとき、消す直前に確かめたそのワークツリーのブランチ（ブランチから外れていれば null で、チャットが最後に作業したブランチを使う） */
+  finishedBranch?: string | null;
   /** 元の作業場所で動いている内蔵ターミナル（AI が移したとき、区切りと知らせに書く。Q5） */
   running?: string[];
   /** 移した先で作業中のほかのチャットの数（AI が移したとき。H6） */
@@ -108,8 +110,10 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
     store.chats.move(chatId, target.id);
     if (input.worktreePath !== null) store.chats.setWorkplace(chatId, input.worktreePath, toBranch);
   } else {
-    // 利用者・AI が移したら、移した先のいまのブランチを書く（H3）。片付け・フォルダの付け替えは、最後に作業したブランチを残す
-    store.chats.setWorkplace(chatId, input.worktreePath, isManual(input.reason) ? toBranch : undefined);
+    // 利用者・AI が移したら、移した先のいまのブランチを書く（H3）。片付け・フォルダの付け替えは、最後に作業したブランチを残す。
+    // 片付けたときは片付けたワークツリーのブランチを印に残す（札は本体のまま、説明に添える。次に送るまで）。ほかの移し方では印を外す
+    const finished = input.reason === "worktree_finished" ? (input.finishedBranch ?? from.branch) : null;
+    store.chats.setWorkplace(chatId, input.worktreePath, isManual(input.reason) ? toBranch : undefined, finished);
   }
   store.events.add(chatId, {
     type: "workplace_moved",

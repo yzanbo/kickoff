@@ -13,7 +13,7 @@ import { Store } from "./store.js";
 const applicationId = (db: DatabaseSync) => (db.prepare("PRAGMA application_id").get() as { application_id: number }).application_id;
 
 /** v33 以前の DB を再現するときは、後から足した制限の列も外す */
-const dropRestrictionColumns = (db: DatabaseSync) => db.exec("ALTER TABLE chats DROP COLUMN sandbox_enabled; ALTER TABLE chats DROP COLUMN edit_scope_enabled;");
+const dropRestrictionColumns = (db: DatabaseSync) => db.exec("ALTER TABLE chats DROP COLUMN finished_worktree_branch; ALTER TABLE chats DROP COLUMN sandbox_enabled; ALTER TABLE chats DROP COLUMN edit_scope_enabled;");
 
 /** sql を流しただけのデータベースを作る（Kickoff の印・版は sql の中で付ける） */
 function rawDatabase(dir: string, sql: string): string {

@@ -15,13 +15,13 @@ import { huedHeadProps } from "./bucketColor";
 import { BucketChatRows } from "./BucketChatRows";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 
-/** まとまりの見出しの印（状態 = 列の色の点 / 作業場所 = ブランチ。ワークツリーは色付き、フォルダなし・以前のブランチは薄く） */
+/** まとまりの見出しの印（状態 = 列の色の点 / 作業場所 = ブランチ。ワークツリーは色付き、フォルダなしは薄く） */
 function BucketMark({ bucket }: { bucket: ChatBucket }) {
   if (bucket.kind === "pinned") return <Pin size={13} />;
   if (bucket.column) return <span className="status-group-dot" style={{ background: COLUMN_TONE[bucket.column] }} aria-hidden />;
   const kind = bucket.place?.kind;
   if (!kind) return null;
-  return <GitBranch size={13} className={cx(kind === "worktree" && "status-group-worktree", (kind === "missing" || kind === "past") && "status-group-gone")} />;
+  return <GitBranch size={13} className={cx(kind === "worktree" && "status-group-worktree", kind === "missing" && "status-group-gone")} />;
 }
 
 /**

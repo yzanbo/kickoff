@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useChatWorkplace } from "@/features/worktree/useWorkplace";
-import { WORKPLACE_SHORT_LABELS } from "@/features/worktree/workplace";
+import { WORKPLACE_SHORT_LABELS, type WorkplaceChat } from "@/features/worktree/workplace";
 
 /**
  * タブの名前の後ろ（2 行のタブは下の行）に添える作業場所の札（どの作業場所のチャットかを添える。利用者の依頼）。
@@ -11,10 +11,10 @@ import { WORKPLACE_SHORT_LABELS } from "@/features/worktree/workplace";
  * ワークツリーを「WT」だけにすると、どのワークツリーか分からなかった。利用者の依頼）。入るかは PanelTab が測り、.panel-tab.place-short で切り替える。
  * ブランチ名は乗せたときの説明にも出す。色は作業場所の色（workplaceHue。同じブランチは同じ色）。Git でない本体（ブランチがない）は出さない
  */
-export function TabWorkplaceBadge({ chat }: { chat: Pick<Chat, "project_id" | "worktree_path" | "branch"> }) {
+export function TabWorkplaceBadge({ chat }: { chat: WorkplaceChat & Pick<Chat, "project_id"> }) {
   const { place, hue } = useChatWorkplace(chat);
   if (!place.name) return null;
-  const main = place.kind === "main" || place.kind === "past";
+  const main = place.kind === "main";
   return (
     <span className={cx("panel-tab-group-name panel-tab-workplace", main ? "main" : "worktree")} style={{ "--group-hue": hue } as CSSProperties} title={place.title}>
       <span className="panel-tab-workplace-kind">{WORKPLACE_SHORT_LABELS[place.kind]}</span>

@@ -40,8 +40,8 @@ test("まとまりの色: 作業場所別は、いまある作業場所をブラ
   assert.equal(hues.has("p5/w:/wt/gone"), false);
   const all = ["p5/w:main", "p5/w:/wt/a", "p5/w:/wt/b", "p5/pinned", "p5/archived"].map((k) => hues.get(k));
   assert.equal(new Set(all).size, all.length);
-  // 一覧にない作業場所（フォルダなし・以前のブランチ）は、見出しが持つ作業場所の色
-  assert.equal(bucketHueOf(head("p5/w:branch:old", "worktree", { hue: 135 }), hues), 135);
+  // 一覧にない作業場所（フォルダなし）は、見出しが持つ作業場所の色
+  assert.equal(bucketHueOf(head("p5/w:/wt/missing", "worktree", { hue: 135 }), hues), 135);
 });
 
 test("まとまりの色: 「その他」・状態・まとめないまとまりは色を付けない。プロジェクトどうしは別々に決める", () => {
