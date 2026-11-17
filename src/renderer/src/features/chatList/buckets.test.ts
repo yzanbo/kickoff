@@ -56,15 +56,15 @@ test("bucketChats: nested の固定はグループ内の状態見出しより前
   assert.deepEqual(flattenBucketChats(list).map((c) => c.id), [1, 2, 3, 4, 5]);
 });
 
-test("bucketChats: nested の固定は作業場所の中。本体・ワークツリー・以前のブランチの並びは変えない", () => {
+test("bucketChats: nested の固定は作業場所の中。本体・ワークツリーの並びは変えない。前のブランチが違っても本体", () => {
   const worktreesOf = () => [worktree("/repo", "main", true), worktree("/wt/a", "feature")];
   const chats = [chat(1, { pinned: true }), chat(2), chat(3, { worktree_path: "/wt/a", pinned: true }), chat(4, { worktree_path: "/wt/a", status: "running" }), chat(5, { branch: "old", pinned: true })];
   const opts = { ...ctx, worktreesOf, project: 1, pinned: "nested" as const, archived: "nested" as const };
   const recent = bucketChats(chats, { ...opts, by: "worktree" });
-  assert.deepEqual(shape(recent), [["p1/w:main", [1, 2]], ["p1/w:/wt/a", [3, 4]], ["p1/w:branch:old", [5]]]);
+  assert.deepEqual(shape(recent), [["p1/w:main", [5, 1, 2]], ["p1/w:/wt/a", [3, 4]]]);
   const status = bucketChats(chats, { ...opts, by: ["worktree", "status"] });
   assert.deepEqual(shape(status[1].children!), [["p1/w:/wt/a/pinned", [3]], ["p1/w:/wt/a/status:running", [4]]]);
-  assert.deepEqual(flattenBucketChats(status).map((c) => c.id), [1, 2, 3, 4, 5]);
+  assert.deepEqual(flattenBucketChats(status).map((c) => c.id), [5, 1, 2, 3, 4]);
 });
 
 test("bucketChats: 全プロジェクトでも nested の固定はプロジェクト・グループをまたがない", () => {
@@ -118,23 +118,22 @@ test("bucketChats: 下書きは作成先のグループへ（もうないグル�
   ]);
 });
 
-test("bucketChats: 作業場所は本体 → ワークツリー（名前順）→ フォルダなし → 以前のブランチ。下書きはそのプロジェクトの本体へ", () => {
+test("bucketChats: 作業場所は本体 → ワークツリー（名前順）→ フォルダなし。片付けて本体に戻ったチャットは本体。下書きはそのプロジェクトの本体へ", () => {
   const list1 = [worktree("/repo", "main", true), worktree("/repo-worktrees/b", "b-feature"), worktree("/repo-worktrees/a", "a-feature")];
   const worktreesOf = (id: number) => (id === 1 ? list1 : id === 2 ? [worktree("/two", "main", true)] : undefined);
   const chats = [
     chat(1, { worktree_path: "/repo-worktrees/b" }),
     chat(2, { worktree_path: "/gone" }),
-    chat(3, { branch: "old" }),
+    chat(3, { branch: "old", finished_worktree_branch: "old" }),
     chat(4, { worktree_path: "/repo-worktrees/a" }),
     chat(5),
   ];
   const list = bucketChats(chats, { ...ctx, worktreesOf, by: "worktree", drafts: [{ projectId: 2 }] });
   assert.deepEqual(shape(list), [
-    ["p1/w:main", [5]],
+    ["p1/w:main", [5, 3]],
     ["p1/w:/repo-worktrees/a", [4]],
     ["p1/w:/repo-worktrees/b", [1]],
     ["p1/w:/gone", [2]],
-    ["p1/w:branch:old", [3]],
     ["p2/w:main", []],
   ]);
   assert.deepEqual(
@@ -144,11 +143,10 @@ test("bucketChats: 作業場所は本体 → ワークツリー（名前順）�
       ["worktree", "a-feature"],
       ["worktree", "b-feature"],
       ["missing", "gone"],
-      ["past", "old"],
       ["main", "main"],
     ],
   );
-  assert.equal(list[5].drafts.length, 1);
+  assert.equal(list[4].drafts.length, 1);
 });
 
 test("bucketChats: 状態はカンバンの列の順。keepEmpty ならすべての列、columns にない列のチャットは入れない", () => {
@@ -317,14 +315,13 @@ test("flattenBucketChats: 画面に並ぶ順の 1 列にする（固定 → ま�
 
 test("newChatPlaceOf: グループ・No Group・作業場所のまとまりだけ、そこで始める作成先を返す", () => {
   const group = makeGroup(7, { project_id: 3 });
-  const place = (kind: "main" | "worktree" | "missing" | "past", key = "") => ({ key, kind, name: "b", title: "" });
+  const place = (kind: "main" | "worktree" | "missing", key = "") => ({ key, kind, name: "b", title: "" });
   assert.deepEqual(newChatPlaceOf({ key: "g", kind: "group", label: "G", projectId: 3, group }), { projectId: 3, group: 7 });
   assert.deepEqual(newChatPlaceOf({ key: "u", kind: "ungrouped", label: "No Group", projectId: 3 }), { projectId: 3 });
   assert.deepEqual(newChatPlaceOf({ key: "m", kind: "worktree", label: "main", projectId: 3, place: place("main") }), { projectId: 3 });
   assert.deepEqual(newChatPlaceOf({ key: "w", kind: "worktree", label: "b", projectId: 3, place: place("worktree", "/wt/b") }), { projectId: 3, worktree: "/wt/b" });
-  // フォルダが見つからない・以前のブランチ・場所の決まらないまとまり・プロジェクトの分からないまとまりでは始めない
+  // フォルダが見つからない・場所の決まらないまとまり・プロジェクトの分からないまとまりでは始めない
   assert.equal(newChatPlaceOf({ key: "x", kind: "worktree", label: "b", projectId: 3, place: place("missing", "/wt/x") }), null);
-  assert.equal(newChatPlaceOf({ key: "p", kind: "worktree", label: "b", projectId: 3, place: place("past") }), null);
   assert.equal(newChatPlaceOf({ key: "s", kind: "pinned", label: "固定", projectId: 3 }), null);
   assert.equal(newChatPlaceOf({ key: "u", kind: "ungrouped", label: "No Group" }), null);
   // プロジェクトを渡せば、まとまりにプロジェクトがなくてもそれを使う

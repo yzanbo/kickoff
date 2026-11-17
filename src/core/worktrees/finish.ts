@@ -234,8 +234,8 @@ export class WorktreeFinisher {
     // そこで作業していたチャットを本体に戻す。作業フォルダが変わるので、作業場所を移すのと同じく会話を新しいセッションに写して区切りを置く
     // （メモの仕様書「0025」の G1・J6。区切りの 1 行と AI への知らせに、片付けたことと控えに入れたかを書く）。ゴミ箱のチャットは付け替えるだけ
     const clearChats = async () => {
-      for (const chat of moved) await this.deps.runner.moveWorkplace(chat.id, { worktreePath: null, reason: "worktree_finished", backedUp: loseChanges }).catch(() => {});
-      for (const u of users) store.chats.clearWorktree(u.projectId, u.path);
+      for (const chat of moved) await this.deps.runner.moveWorkplace(chat.id, { worktreePath: null, reason: "worktree_finished", backedUp: loseChanges, finishedBranch: facts.branch }).catch(() => {});
+      for (const u of users) store.chats.clearWorktree(u.projectId, u.path, facts.branch);
     };
     let worktrees: GitWorktree[];
     try {

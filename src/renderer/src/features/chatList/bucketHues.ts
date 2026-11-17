@@ -43,7 +43,7 @@ export function projectBucketHues(by: HuedGrouping, projectId: number, ctx: Pick
 }
 
 /**
- * まとまりの色。hues（projectBucketHues）にあればその色、なければ（フォルダなし・以前のブランチ・アーカイブ済みの中の段）グループの色 →
+ * まとまりの色。hues（projectBucketHues）にあればその色、なければ（フォルダなし・アーカイブ済みの中の段）グループの色 →
  * 作業場所の色 → キーから決まる色。プロジェクト・状態・「その他」（ブラウザなど）・まとめないときは色を付けない（null）
  */
 export function bucketHueOf(head: Pick<BucketHead, "key" | "kind" | "group" | "hue">, hues: ReadonlyMap<string, number>): number | null {

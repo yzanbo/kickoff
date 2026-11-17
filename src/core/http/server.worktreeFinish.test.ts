@@ -46,6 +46,7 @@ test("画面の「消す」: 失うもの（force の変更・delete_branch の�
   assert.equal(removed.status, 200);
   assert.equal(fs.existsSync(wt), false);
   assert.equal(store.chats.get(chatId)?.worktree_path, null);
+  assert.equal(store.chats.get(chatId)?.finished_worktree_branch, "feat/d");
   // 本体に戻した区切りを置く（片付けた理由・コミットしていない変更は控えに入れたこと）
   const [moved] = moves(ctx, chatId);
   assert.deepEqual([moved.reason, moved.from.worktree_path, moved.from.branch, moved.to.worktree_path, moved.backed_up], ["worktree_finished", wt, "feat/d", null, true]);
@@ -69,9 +70,14 @@ test("画面の「消す」: 失うものがなければ控えを作らない。
   const ctx = setup();
   const { call, project, trashBin, trashClock } = ctx;
   const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
-  const { wt } = await worktreeChat(ctx, "feat/clean");
+  const { chatId, wt } = await worktreeChat(ctx, "feat/clean");
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt, delete_branch: true })).status, 200);
   assert.equal((await call("GET", `/api/projects/${project.id}/trash`)).body.length, 0);
+  // 片付けた印は、そのチャットでまた送ったら外れ、最後に作業したブランチは本体のいまのブランチになる
+  assert.equal(ctx.store.chats.get(chatId)?.finished_worktree_branch, "feat/clean");
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "本体で続き" });
+  await until(() => ctx.store.chats.get(chatId)?.status === "completed");
+  assert.deepEqual([ctx.store.chats.get(chatId)?.finished_worktree_branch, ctx.store.chats.get(chatId)?.branch], [null, "main"]);
   // 変更を捨てた控えは 3 日で消える
   const { wt: wt2 } = await worktreeChat(ctx, "feat/x");
   fs.writeFileSync(path.join(wt2, "x.txt"), "x\n");

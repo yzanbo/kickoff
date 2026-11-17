@@ -30,6 +30,7 @@ export function makeChat(id: number, patch: Partial<Chat> = {}): Chat {
     group_id: null,
     worktree_path: null,
     branch: null,
+    finished_worktree_branch: null,
     turn_started_at: null,
     context_tokens: null,
     context_window: null,
