@@ -101,6 +101,7 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
       <NewChildBar parentId={parent.id} />
       <div className="side-child-chat-body">
         <DraftChatPage
+          provider={provider}
           className="new-child-chat"
           // 作ったあとの子チャットの見出しと同じバッジ（子チャットは親と同じ作業場所で作り、グループには入らないので、グループの札は出さない）
           badges={

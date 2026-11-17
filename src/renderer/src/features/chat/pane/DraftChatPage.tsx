@@ -1,4 +1,7 @@
-import { useRef, type MouseEvent, type ReactNode } from "react";
+import { useContext, useEffect, useRef, type MouseEvent, type ReactNode } from "react";
+import type { ProviderId } from "@shared/types";
+import { TabVisibleContext } from "@/features/panel/tabs/tabPageContext";
+import { noteForegroundProvider } from "@/features/chat/provider/chatProvider";
 import { cx } from "@/lib/cx";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -12,8 +15,13 @@ import { TextWidthToggle, useWideText } from "./TextWidthToggle";
  * 見出しと流れの何もないところの右クリックで「チャットの画面」のメニュー。
  * 道具は会話がなくても効くもの（会話の横幅・会話の文字の大きさ）だけを出す（会話 / 動き・指示の帯・検索・ターン数・右の欄の開閉は、会話ができてから）
  */
-export function DraftChatPage({ className, badges, hero, children }: { className?: string; badges: ReactNode; hero: ReactNode; children: ReactNode }) {
+export function DraftChatPage({ provider, className, badges, hero, children }: { provider: ProviderId; className?: string; badges: ReactNode; hero: ReactNode; children: ReactNode }) {
   const page = useRef<HTMLDivElement>(null);
+  const visible = useContext(TabVisibleContext);
+  // 初回送信を待たず、見出しで選んだ AI の使用状況を下の帯に出す。裏のタブでは上書きしない。
+  useEffect(() => {
+    if (visible) noteForegroundProvider(provider);
+  }, [visible, provider]);
   const [wide] = useWideText();
   const shows = useChatHeaderItems();
   const rowHidden = useChatHeaderRowHidden();
@@ -25,7 +33,12 @@ export function DraftChatPage({ className, badges, hero, children }: { className
     menu.open(e);
   };
   return (
-    <div ref={page} className={cx("chat-page chat-panel new-chat", wide && "wide", className)}>
+    <div
+      ref={page}
+      className={cx("chat-page chat-panel new-chat", wide && "wide", className)}
+      onPointerDownCapture={() => noteForegroundProvider(provider)}
+      onFocusCapture={() => noteForegroundProvider(provider)}
+    >
       {rowHidden ? (
         <header className="chat-header collapsed" />
       ) : (
