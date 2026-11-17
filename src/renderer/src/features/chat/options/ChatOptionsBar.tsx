@@ -222,25 +222,26 @@ export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; d
         ]}
         onChange={setPermission}
       />
-      <IconButton
-        type="button"
-        icon={Zap}
-        size={15}
-        className={`fast-toggle ${fastMode ? "on" : ""}`}
-        aria-pressed={fastMode}
-        label="ファストモード"
-        title={
-          fastSupport === "loading"
-            ? "ファストモード（モデルの対応状況を確認中です）"
-            : fastSupport === "unknown"
-              ? "ファストモード（このモデルの対応状況を確認できません。対応しているモデルを選んでください）"
-              : fastSupport === "unsupported"
-                ? "ファストモード（このモデルは対応していません。対応しているモデルを選ぶと使えます）"
-            : `ファストモード: ${fastMode ? "オン" : "オフ"}（応答が速くなる代わりに、追加の使用枠から消費します。押すと${fastMode ? "オフ" : "オン"}にします）`
-        }
-        disabled={disabled || !fastSupported}
-        onClick={() => setFastMode(!fastMode)}
-      />
+      {/* 非対応と分かったモデル（Codex など）では出さない。取得中・不明のときは押せない形で残す */}
+      {fastSupport !== "unsupported" && (
+        <IconButton
+          type="button"
+          icon={Zap}
+          size={15}
+          className={`fast-toggle ${fastMode ? "on" : ""}`}
+          aria-pressed={fastMode}
+          label="ファストモード"
+          title={
+            fastSupport === "loading"
+              ? "ファストモード（モデルの対応状況を確認中です）"
+              : fastSupport === "unknown"
+                ? "ファストモード（このモデルの対応状況を確認できません。対応しているモデルを選んでください）"
+                : `ファストモード: ${fastMode ? "オン" : "オフ"}（応答が速くなる代わりに、追加の使用枠から消費します。押すと${fastMode ? "オフ" : "オン"}にします）`
+          }
+          disabled={disabled || !fastSupported}
+          onClick={() => setFastMode(!fastMode)}
+        />
+      )}
     </div>
   );
 }
