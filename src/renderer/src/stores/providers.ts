@@ -11,10 +11,11 @@ export const providersStore = createStore<ProviderStatus[]>({ load: () => api.pr
 export const githubStore = createStore<GitHubStatus>({ load: () => api.github(), maxAge: 0 });
 const modelsStore = createKeyedStore<ProviderId, ModelOption[]>({ load: (provider) => api.models(provider) });
 
-const NO_MODELS: ModelOption[] = Object.freeze([]) as unknown as ModelOption[];
+export const NO_MODELS: ModelOption[] = Object.freeze([]) as unknown as ModelOption[];
 
 /** プロバイダーの状態（active: false の間は取り直さない。閉じているポップオーバーなど） */
 export const useProviders = (options?: { active?: boolean }) => useStore(providersStore, options);
 export const useGitHubStatus = () => useStore(githubStore);
 /** チャット欄で選べるモデル（読み込み中・読めなかったときは空） */
-export const useModels = (provider: ProviderId = "claude"): ModelOption[] => useKeyedStore(modelsStore, provider).data ?? NO_MODELS;
+export const useModelsState = (provider: ProviderId = "claude") => useKeyedStore(modelsStore, provider);
+export const useModels = (provider: ProviderId = "claude"): ModelOption[] => useModelsState(provider).data ?? NO_MODELS;

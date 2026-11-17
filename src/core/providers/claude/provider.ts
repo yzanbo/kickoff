@@ -97,7 +97,7 @@ export class ClaudeProvider implements AgentProvider {
           description: m.description,
           efforts: (m.supportedEffortLevels ?? []).filter((e): e is EffortLevel => EFFORT_LEVELS.includes(e)),
           supports_auto_mode: Boolean(m.supportsAutoMode),
-          supports_fast_mode: Boolean(m.supportsFastMode),
+          supports_fast_mode: m.supportsFastMode ?? null,
         }));
     });
   }

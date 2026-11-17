@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { test } from "vitest";
 import { makeChat, makeEvent } from "@shared/testing/factories";
-import { WorkingExecutionBadges } from "./WorkingExecution";
+import { modelDefaultEffortOf, WorkingExecutionBadges } from "./WorkingExecution";
 import { workingExecutionOf } from "./executionSettings";
 
 const start = "2026-11-17T00:00:10.000Z";
@@ -36,6 +36,26 @@ test("通知の明示的な null は深さを指定しないことを表し、�
   const init = makeEvent(1, "init", { session_id: "s", effort: null }, { created_at: after });
   const followup = makeEvent(2, "user", { text: "追加" }, { created_at: after });
   assert.equal(workingExecutionOf(chat, [init, followup]).effort, null);
+});
+
+test("Codex の既定はモデル一覧の値と明示し、指定や実行値・未知の場合と混同しない", () => {
+  const chat = makeChat(1, { provider: "codex", model: "model-a", effort: null });
+  const execution = workingExecutionOf(chat, []);
+  const models = [{ value: "model-a", label: "A", description: "", efforts: [], default_effort: "high", supports_auto_mode: true, supports_fast_mode: false }];
+  assert.equal(modelDefaultEffortOf(execution, models), "high");
+  assert.equal(modelDefaultEffortOf({ ...execution, model: "other" }, models), undefined);
+  assert.equal(modelDefaultEffortOf({ ...execution, model: null }, models), undefined);
+  assert.equal(modelDefaultEffortOf({ ...execution, provider: "claude" }, models), undefined);
+  const render = (overrides: Partial<typeof execution>, modelDefaultEffort?: string) => renderToStaticMarkup(createElement(WorkingExecutionBadges, {
+    execution: { ...execution, ...overrides }, model: "Model A", modelDefaultEffort,
+  }));
+  assert.ok(render({}, "high").includes("推論: 既定（モデルの既定は High）"));
+  assert.ok(render({}, "future").includes("推論: 既定（モデルの既定は future）"));
+  assert.ok(render({}, undefined).includes("推論: 既定"));
+  assert.ok(!render({}, undefined).includes("モデルの既定は"));
+  assert.ok(render({ effort: "low" }, "high").includes("推論: Low"));
+  assert.ok(!render({ effort: "low" }, "high").includes("モデルの既定は"));
+  assert.ok(!render({ provider: "claude" }, "high").includes("モデルの既定は"));
 });
 
 test("作業中の札に AI・モデル・推論・権限・Fast の指定を出し、未知の値も隠さない", () => {

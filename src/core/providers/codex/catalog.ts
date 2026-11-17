@@ -15,6 +15,7 @@ export function toModelOptions(models: CodexModel[]): ModelOption[] {
       label: m.displayName || m.model,
       description: m.description,
       efforts: m.supportedReasoningEfforts.map((e) => e.reasoningEffort).filter(isEffort),
+      ...(m.defaultReasoningEffort ? { default_effort: m.defaultReasoningEffort } : {}),
       supports_auto_mode: true,
       supports_fast_mode: false,
       ...(m.isDefault ? { is_default: true } : {}),

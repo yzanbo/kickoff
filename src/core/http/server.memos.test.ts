@@ -3,11 +3,43 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { test } from "vitest";
+import { EventEmitter } from "node:events";
+import { test, vi } from "vitest";
 import type { BusEvent, MemoList } from "@shared/types";
 import { tempDir } from "../testing/tempDir.js";
 import { AUTH, setup } from "../testing/testServer.js";
 import { until } from "../testing/testCore.js";
+
+/** OS の監視を実際に試す。EMFILE 以外の失敗や通知が届かない場合は成功扱いにしない。 */
+async function canWatchFiles(): Promise<boolean> {
+  const dir = tempDir();
+  return new Promise<boolean>((resolve, reject) => {
+    let watcher: fs.FSWatcher;
+    try {
+      watcher = fs.watch(dir, { recursive: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EMFILE") resolve(false);
+      else reject(error);
+      return;
+    }
+    const timer = setTimeout(() => {
+      watcher.close();
+      reject(new Error("ファイル監視を開始しましたが、試しの変更が通知されませんでした"));
+    }, 3000);
+    watcher.once("error", (error: NodeJS.ErrnoException) => {
+      clearTimeout(timer);
+      watcher.close();
+      if (error.code === "EMFILE") resolve(false);
+      else reject(error);
+    });
+    watcher.once("change", () => {
+      clearTimeout(timer);
+      watcher.close();
+      resolve(true);
+    });
+    fs.writeFileSync(path.join(dir, "watch-probe.md"), "probe");
+  });
+}
 
 test("メモの保存先: 既定は親フォルダの下のプロジェクト名のフォルダ。名前を変えても同じフォルダ、ほかのプロジェクトとは重ねない", async () => {
   const { call, project, store, memoFake } = setup();
@@ -89,7 +121,32 @@ test("メモ: 作る・一覧・読む・保存（ほかで変わっていれば
   assert.ok(memoEvents.every((e) => e.project_id === project.id));
 });
 
-test("メモ: Kickoff の外（Finder・ほかのアプリ）での変更も、一覧を読んだあとは知らせる（隠しファイルは知らせない）", async () => {
+test("メモ: 監視からの外部変更を知らせ、隠しファイルは知らせない", async () => {
+  const watcher = new EventEmitter() as fs.FSWatcher;
+  watcher.close = () => {};
+  watcher.unref = () => watcher;
+  const watch = vi.spyOn(fs, "watch").mockReturnValue(watcher);
+  try {
+    const { call, project, bus } = setup();
+    const base = `/api/projects/${project.id}`;
+    await call("POST", `${base}/memos`, { path: "初め.md" });
+    const list = (await call("GET", `${base}/memos`)).body as MemoList;
+    assert.ok(watch.mock.calls.some(([dir, options]) => dir === list.dir && (options as unknown as { recursive?: boolean })?.recursive === true));
+    const events: BusEvent[] = [];
+    bus.subscribe((e) => events.push(e));
+    fs.writeFileSync(path.join(list.dir, ".隠し.md"), "x");
+    watcher.emit("change", "rename", ".隠し.md");
+    fs.writeFileSync(path.join(list.dir, "外から.md"), "# 外から\n");
+    watcher.emit("change", "rename", "外から.md");
+    await until(() => events.some((e) => e.type === "memos" && e.project_id === project.id && e.path === "外から.md"));
+    assert.ok(!events.some((e) => e.type === "memos" && e.path === ".隠し.md"));
+  } finally {
+    watch.mockRestore();
+  }
+});
+
+test("メモ: Kickoff の外（Finder・ほかのアプリ）での変更も、一覧を読んだあとは知らせる（隠しファイルは知らせない）", async (t) => {
+  if (!(await canWatchFiles())) t.skip("この環境では OS のファイル監視を開始できません（EMFILE）。実際の監視は別の環境で確認してください");
   const { call, project, bus } = setup();
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/memos`, { path: "初め.md" });

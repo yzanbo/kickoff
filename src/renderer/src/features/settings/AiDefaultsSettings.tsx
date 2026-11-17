@@ -1,7 +1,7 @@
 import { OTHER_PROVIDER_IDS, PROVIDER_IDS, PROVIDER_LABELS, type EffortLevel, type PermissionMode, type ProviderId } from "@shared/types";
 import { useModels, useProviders } from "@/stores/providers";
 import { providerPickBlock, statusOf } from "@/features/chat/provider/providerChoice";
-import { modelDisplayName } from "@/features/chat/options/models";
+import { ProviderIcon } from "@/features/chat/provider/ProviderIcon";
 import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions } from "@/features/chat/options/AiOptions";
 import { CheckField, Field } from "@/ui/Field";
 import { SaveActions } from "@/ui/SaveActions";
@@ -23,30 +23,49 @@ export function AiDefaultsSettings() {
   const setDefault = (patch: Partial<typeof defaults>) => setDraft({ ...draft, chat_defaults: { ...defaults, ...patch } });
   const currentModel = models.find((m) => m.value === defaults.model);
   return (
-    <section className="section">
-      <h2>AI の既定</h2>
-      <p className="muted small">新しいチャットは、そのチャットの AI のこの設定から始まります（プロジェクトの設定の「AI」で、プロジェクトごとに変えられます）。チャット欄で変えた内容は、そのチャットだけに効きます。</p>
-      <div className="form">
-        <Field
-          label="新しいプロジェクトで使う AI"
-          help="新しく作る・取り込むプロジェクトのチャットで初めに使う AI です。いまあるプロジェクトの AI は、プロジェクトの設定の「AI」で変えます。新しいチャットごとに選び直せます。"
-        >
-          <select value={draft.default_provider} onChange={(e) => setDraft({ ...draft, default_provider: e.target.value as ProviderId })}>
-            {PROVIDER_IDS.map((id) => {
-              const blocked = id === draft.default_provider ? null : providerPickBlock(id, statusOf(statuses, id));
-              return (
-                <option key={id} value={id} disabled={blocked !== null}>
-                  {PROVIDER_LABELS[id]}
-                  {blocked ? `（${blocked}）` : ""}
-                </option>
-              );
-            })}
-          </select>
-        </Field>
+    <section className="section ai-defaults-settings">
+      <div className="ai-defaults-intro">
+        <h2>AI の既定</h2>
+        <p>新しいプロジェクトとチャットで、はじめに使う AI の設定です。</p>
+        <p className="ai-defaults-scope">プロジェクトごとに設定を変えられます。チャット欄での変更は、そのチャットだけに適用されます。</p>
       </div>
-      <h3>{PROVIDER_LABELS.claude}</h3>
-      <div className="form">
-        <Field label={`モデル（${modelDisplayName(models, defaults.model ?? "")}）`}>
+      <div className="ai-defaults-project">
+        <div className="ai-defaults-project-copy">
+          <h3>新しいプロジェクト</h3>
+          <p>新しく作成・取り込みするプロジェクトに適用します。</p>
+        </div>
+        <div className="form">
+        <Field
+            label="新しいプロジェクトで使う AI"
+            help="プロジェクトの作成後も、そのプロジェクトの設定から変更できます。"
+          >
+            <select value={draft.default_provider} onChange={(e) => setDraft({ ...draft, default_provider: e.target.value as ProviderId })}>
+              {PROVIDER_IDS.map((id) => {
+                const blocked = id === draft.default_provider ? null : providerPickBlock(id, statusOf(statuses, id));
+                return (
+                  <option key={id} value={id} disabled={blocked !== null}>
+                    {PROVIDER_LABELS[id]}
+                    {blocked ? `（${blocked}）` : ""}
+                  </option>
+                );
+              })}
+            </select>
+          </Field>
+        </div>
+      </div>
+      <div className="ai-defaults-heading">
+        <h3>新しいチャット</h3>
+        <p>AI ごとに、チャットを始めるときの設定を決めます。</p>
+      </div>
+      <div className="ai-defaults-cards">
+      <section className="ai-defaults-card" aria-labelledby="ai-defaults-claude-title">
+        <div className="ai-defaults-card-head">
+          <span className="ai-defaults-card-icon"><ProviderIcon provider="claude" size={18} /></span>
+          <div><h3 id="ai-defaults-claude-title">{PROVIDER_LABELS.claude}</h3><p>Claude Code のチャットに適用</p></div>
+        </div>
+      <div className="form ai-defaults-card-form">
+        <div className="ai-defaults-grid">
+        <Field label="モデル">
           <select value={defaults.model ?? ""} onChange={(e) => setDefault({ model: e.target.value })}>
             <ModelOptions models={models} value={defaults.model} />
           </select>
@@ -65,12 +84,15 @@ export function AiDefaultsSettings() {
             <PermissionOptions model={currentModel} />
           </select>
         </Field>
+        </div>
         <CheckField
+          className="ai-defaults-fast"
           label="ファストモードを使う"
           help={
             <>
               応答が速くなる代わりに、Claude のプランの追加の使用枠（extra usage）から消費されます。追加の使用枠が無効な場合は通常の速度で動き、チャットに理由が表示されます。
-              {currentModel && !currentModel.supports_fast_mode && "（このモデルは対応していません）"}
+              {currentModel?.supports_fast_mode === false && "（このモデルは対応していません）"}
+              {currentModel?.supports_fast_mode === null && "（このモデルの対応状況を確認できません）"}
             </>
           }
           checked={defaults.fast_mode}
@@ -78,6 +100,7 @@ export function AiDefaultsSettings() {
           onChange={(on) => setDefault({ fast_mode: on })}
         />
       </div>
+      </section>
       {others.map((id) => (
         <ProviderDefaultsFields
           key={id}
@@ -86,6 +109,7 @@ export function AiDefaultsSettings() {
           onChange={(next) => setDraft({ ...draft, provider_chat_defaults: { ...draft.provider_chat_defaults, [id]: next } })}
         />
       ))}
+      </div>
       <SaveActions
         save={save}
         disabled={!dirty}
