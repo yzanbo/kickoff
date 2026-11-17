@@ -84,6 +84,10 @@ export function threadOverrides(params: ProviderTurnParams): ThreadOverrides {
       ...mcpServerOverrides(params.tools ?? [], params.permissionMode),
       ...hookConfig(),
       "shell_environment_policy.exclude": HIDDEN_FROM_COMMANDS,
+      // 作業フォルダの信頼を毎回こちらから伝える（伝えないと Codex が利用者の config.toml に「信頼済みのプロジェクト」の欄を書き足し続ける。
+      // メモの仕様書「0028」の F9）。値はいまの振る舞い（Kickoff に登録したプロジェクトは信頼する = リポジトリの .codex/ も読む）のまま。
+      // 信頼するかどうかの決まりは Claude と共通の課題として未定（0028 の 5 節）。パスに「.」が入っても区切らないよう入れ子で渡す
+      projects: { [params.cwd]: { trust_level: "trusted" } },
       "sandbox_workspace_write.writable_roots": writableRootsOf(params),
       "sandbox_workspace_write.network_access": true,
       ...(apiKey ? { "shell_environment_policy.ignore_default_excludes": false } : {}),
