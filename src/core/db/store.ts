@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { createChatStore } from "./chats.js";
+import { createChatProviderSessionStore } from "./chatProviderSessions.js";
 import { createChatImageStore } from "./chatImages.js";
 import type { Notify } from "./common.js";
 import { createDbConnectionStore } from "./dbConnections.js";
@@ -36,6 +37,7 @@ export class Store {
   readonly projects;
   readonly groups;
   readonly chats;
+  readonly chatProviderSessions;
   readonly events;
   readonly queues;
   readonly snippets;
@@ -73,6 +75,7 @@ export class Store {
     this.secrets = createSecretStore(this.db);
     this.projects = createProjectStore(this.db, onChange);
     this.chats = createChatStore(this.db, onChange, this.logRevisions, this.settings.get);
+    this.chatProviderSessions = createChatProviderSessionStore(this.db);
     this.groups = createGroupStore(this.db, onChange, this.chats.get);
     this.events = createEventStore(this.db, onChange, this.chats.get, this.logRevisions);
     this.queues = createQueueStore(this.db);

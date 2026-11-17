@@ -13,7 +13,7 @@ import { Store } from "./store.js";
 const applicationId = (db: DatabaseSync) => (db.prepare("PRAGMA application_id").get() as { application_id: number }).application_id;
 
 /** v33 以前の DB を再現するときは、後から足した制限の列も外す */
-const dropRestrictionColumns = (db: DatabaseSync) => db.exec("DROP TABLE worktree_colors; ALTER TABLE chats DROP COLUMN finished_worktree_branch; ALTER TABLE chats DROP COLUMN sandbox_enabled; ALTER TABLE chats DROP COLUMN edit_scope_enabled;");
+const dropRestrictionColumns = (db: DatabaseSync) => db.exec("DROP TABLE chat_provider_sessions; DROP TABLE worktree_colors; ALTER TABLE chats DROP COLUMN finished_worktree_branch; ALTER TABLE chats DROP COLUMN sandbox_enabled; ALTER TABLE chats DROP COLUMN edit_scope_enabled;");
 
 /** sql を流しただけのデータベースを作る（Kickoff の印・版は sql の中で付ける） */
 function rawDatabase(dir: string, sql: string): string {
@@ -217,5 +217,21 @@ test("v34 の移行: 既存チャットは設定を変えていても両方の�
   const fresh = again.chats.create({ project_id: project.id, provider: "codex", title: "新規", status: "completed" });
   assert.equal(fresh.sandbox_enabled, false);
   assert.equal(fresh.edit_scope_enabled, false);
+  again.db.close();
+});
+
+test("v37 の移行: 既存のチャットの AI とセッションを再開先として引き継ぐ", () => {
+  const file = path.join(tempDir(), DB_FILE);
+  const store = new Store(file);
+  const project = store.projects.create({ name: "p", repo_path: "/tmp/p", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "既存", status: "completed" });
+  const empty = store.chats.create({ project_id: project.id, provider: "codex", title: "未開始", status: "completed" });
+  store.chats.update(chat.id, { session_id: "existing-session" });
+  store.db.exec(`DROP TABLE chat_provider_sessions; PRAGMA user_version = ${USER_VERSION_BASE + 36};`);
+  store.db.close();
+  const again = new Store(file);
+  assert.equal(userVersion(again.db), USER_VERSION_BASE + SCHEMA_VERSION);
+  assert.deepEqual(again.chatProviderSessions.get(chat.id, "claude"), { chat_id: chat.id, provider: "claude", session_id: "existing-session", last_event_id: null });
+  assert.deepEqual(again.chatProviderSessions.list(empty.id), []);
   again.db.close();
 });
