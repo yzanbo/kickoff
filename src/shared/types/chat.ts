@@ -12,8 +12,11 @@ export interface ModelOption {
   label: string;
   description: string;
   efforts: EffortLevel[];
+  /** モデル一覧が知らせる既定の推論の深さ。設定による上書きや今回の実行値とは限らない */
+  default_effort?: string;
   supports_auto_mode: boolean;
-  supports_fast_mode: boolean;
+  /** モデルの対応状況。null はプロバイダーが通知しなかった場合 */
+  supports_fast_mode: boolean | null;
   /** その AI の既定のモデル（Codex の一覧の isDefault。チャット欄でモデルを決めていないときに選んで見せる。分からなければなし） */
   is_default?: boolean;
 }

@@ -102,6 +102,9 @@ test("モデル: 隠すものを除き、深さは Kickoff の段だけ。1 回�
   const options = toModelOptions(models);
   assert.deepEqual(options.map((o) => o.value), ["gpt-big", "gpt-big-mini"]);
   assert.deepEqual(options[0].efforts, ["high"]);
+  assert.equal(options[0].default_effort, "medium");
+  assert.equal(toModelOptions([model({ defaultReasoningEffort: "" })])[0].default_effort, undefined);
+  assert.equal(toModelOptions([model({ defaultReasoningEffort: "future" })])[0].default_effort, "future");
   assert.deepEqual(askModelOf(models, "standard"), { model: "gpt-big", effort: "medium" });
   assert.deepEqual(askModelOf(models, "light"), { model: "gpt-big-mini", effort: "low" });
   assert.deepEqual(askModelOf([], "light"), { model: null, effort: "low" });

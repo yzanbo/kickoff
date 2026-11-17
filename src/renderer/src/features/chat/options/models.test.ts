@@ -1,9 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ChatOptions, ModelOption } from "@shared/types";
-import { fallbackModel, groupModels, modelDisplayName, splitModelLabel, withDefaults } from "./models";
+import { fallbackModel, fastSupportOf, groupModels, modelDisplayName, splitModelLabel, withDefaults } from "./models";
 
 const m = (value: string, label: string): ModelOption => ({ value, label, description: "", efforts: [], supports_auto_mode: true, supports_fast_mode: false });
+
+test("Fast の対応情報があるときだけ操作可能。取得中・取得不能と非対応は分ける", () => {
+  const model = m("opus", "Opus");
+  assert.equal(fastSupportOf({ ...model, supports_fast_mode: true }, false), "supported");
+  assert.equal(fastSupportOf({ ...model, supports_fast_mode: false }, false), "unsupported");
+  assert.equal(fastSupportOf(undefined, true), "loading");
+  assert.equal(fastSupportOf(undefined, false), "unknown");
+  assert.equal(fastSupportOf({ ...model, supports_fast_mode: null }, false), "unknown");
+  assert.equal(fastSupportOf({ ...model, supports_fast_mode: null }, true), "loading");
+});
 
 test("モデルをファミリーごとにまとめ、Fable → Opus → Sonnet → Haiku、新しいバージョン順に並べる", () => {
   const groups = groupModels([

@@ -60,6 +60,13 @@ export function effortsFor(model: ModelOption | undefined): readonly EffortLevel
   return model?.efforts ?? EFFORT_LEVELS;
 }
 
+/** 対応の通知がない場合を、非対応や対応済みと混同しない。 */
+export function fastSupportOf(model: ModelOption | undefined, loading: boolean): "supported" | "unsupported" | "loading" | "unknown" {
+  if (model?.supports_fast_mode === true) return "supported";
+  if (model?.supports_fast_mode === false) return "unsupported";
+  return loading ? "loading" : "unknown";
+}
+
 /** そのモデルで選べる権限モード（Auto mode は対応しているモデルだけ。モデルが分からなければすべて） */
 export function permissionChoices(model: ModelOption | undefined): PermissionMode[] {
   return PERMISSION_MODES.filter((p) => p !== "auto" || !model || model.supports_auto_mode);

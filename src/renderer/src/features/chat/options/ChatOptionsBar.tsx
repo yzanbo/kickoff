@@ -6,9 +6,9 @@ import { api } from "@/api";
 import { createKeyedStore } from "@/stores/keyedStore";
 import { useKeyedStore } from "@/stores/useStore";
 import { useProjects } from "@/stores/projects";
-import { useModels } from "@/stores/providers";
+import { NO_MODELS, useModelsState } from "@/stores/providers";
 import { useAppSettings } from "@/stores/settings";
-import { effortsFor, fallbackModel, groupModels, modelDisplayName, permissionChoices, withDefaults } from "./models";
+import { effortsFor, fallbackModel, fastSupportOf, groupModels, modelDisplayName, permissionChoices, withDefaults } from "./models";
 import { ProviderIcon } from "@/features/chat/provider/ProviderIcon";
 import { OptionMenu } from "@/ui/OptionMenu";
 import { IconButton } from "@/ui/IconButton";
@@ -46,7 +46,8 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
   const project = projectId === undefined ? undefined : projectsById.get(projectId);
   const provider: ProviderId = providerArg ?? project?.provider ?? "claude";
   // モデルの一覧（AI ごとにアプリ全体で 1 回だけ取る）
-  const models = useModels(provider);
+  const modelState = useModelsState(provider);
+  const models = modelState.data ?? NO_MODELS;
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
   const [permission, setPermission] = useState<PermissionMode>(initial?.permission_mode ?? "default");
@@ -87,12 +88,13 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
   }, [models, model, provider]);
 
   const current = models.find((m) => m.value === model);
+  const fastSupport = fastSupportOf(current, modelState.loading);
   // 選んだモデルが対応していない深さ・Auto mode・ファストモードは外す
   useEffect(() => {
     if (!current) return;
     if (effort && !current.efforts.includes(effort)) setEffort(null);
     if (permission === "auto" && !current.supports_auto_mode) setPermission("default");
-    if (fastMode && !current.supports_fast_mode) setFastMode(false);
+    if (fastMode && current.supports_fast_mode === false) setFastMode(false);
   }, [current, effort, permission, fastMode]);
 
   // 深さを指定しないとき（既定）に、実際に使われる深さ（Claude Code の設定から。モデルを変えたら取り直す。ほかの AI は読まない）
@@ -100,7 +102,8 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
   const effortDefault = useKeyedStore(effortDefaults, projectId === undefined || provider !== "claude" ? undefined : effortKeyOf(projectId, modelId, worktree)).data;
 
   // 推論の深さの null は「指定しない」（モデルの既定に任せる）
-  const options: ChatOptions = { model, effort, permission_mode: permission, fast_mode: fastMode };
+  const effectiveFastMode = fastSupport === "supported" && fastMode;
+  const options: ChatOptions = { model, effort, permission_mode: permission, fast_mode: effectiveFastMode };
   return {
     provider,
     models,
@@ -111,7 +114,8 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
     setEffort,
     permission,
     setPermission,
-    fastMode,
+    fastMode: effectiveFastMode,
+    fastSupport,
     setFastMode,
     effortDefault,
     options,
@@ -160,9 +164,9 @@ const PERMISSION_HINTS: Partial<Record<PermissionMode, string>> = {
 
 /** 入力欄の下に並べる選択（モデル / 推論の深さ / 権限モード / ファストモード） */
 export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; disabled?: boolean }) {
-  const { provider, models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode, effortDefault } = state;
+  const { provider, models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, fastSupport, setFastMode, effortDefault } = state;
   const efforts = effortsFor(current);
-  const fastSupported = !current || current.supports_fast_mode;
+  const fastSupported = fastSupport === "supported";
   // そのチャットの AI でモデルを選べなければ、押せない形にして理由を出す（メモの仕様書「0021」の Q4）
   const modelBlock = useFeatureBlock("models");
 
@@ -226,8 +230,12 @@ export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; d
         aria-pressed={fastMode}
         label="ファストモード"
         title={
-          !fastSupported
-            ? "ファストモード（このモデルは対応していません。対応しているモデルを選ぶと使えます）"
+          fastSupport === "loading"
+            ? "ファストモード（モデルの対応状況を確認中です）"
+            : fastSupport === "unknown"
+              ? "ファストモード（このモデルの対応状況を確認できません。対応しているモデルを選んでください）"
+              : fastSupport === "unsupported"
+                ? "ファストモード（このモデルは対応していません。対応しているモデルを選ぶと使えます）"
             : `ファストモード: ${fastMode ? "オン" : "オフ"}（応答が速くなる代わりに、追加の使用枠から消費します。押すと${fastMode ? "オフ" : "オン"}にします）`
         }
         disabled={disabled || !fastSupported}

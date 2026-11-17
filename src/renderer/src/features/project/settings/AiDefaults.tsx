@@ -95,7 +95,7 @@ export function AiDefaults({ project, provider, app }: { project: Project; provi
             >
               <option value={INHERIT}>アプリの設定に従う（{appDefaults ? (appDefaults.fast_mode ? "使う" : "使わない") : "…"}）</option>
               <option value="on" disabled={currentModel ? !currentModel.supports_fast_mode : false}>
-                使う{currentModel && !currentModel.supports_fast_mode ? "（このモデルは対応していません）" : ""}
+                使う{currentModel?.supports_fast_mode === false ? "（このモデルは対応していません）" : currentModel?.supports_fast_mode === null ? "（このモデルの対応状況を確認できません）" : ""}
               </option>
               <option value="off">使わない</option>
             </select>
