@@ -56,6 +56,16 @@ function onTurn(server: FakeCodexServer, script: (s: FakeCodexServer) => Promise
 }
 const complete = (s: FakeCodexServer, status = "completed") => s.notify("turn/completed", { threadId: "thr-1", turn: { id: "turn-1", status, error: null } });
 
+test("診断に知らせる PID は、この実行で起動した app-server のもの", async () => {
+  const server = fakeCodexServer();
+  onTurn(server, (s) => complete(s));
+  const pids: number[] = [];
+  const spawn: typeof server.spawn = (args, opts) => ({ ...server.spawn(args, opts), pid: 321 });
+  const result = await new CodexProvider({ spawn }).run(params({ onAgentSpawned: (pid) => pids.push(pid) }), recorder().cb, new AbortController().signal);
+  assert.equal(result.status, "completed");
+  assert.deepEqual(pids, [321]);
+});
+
 test("実行: スレッドを作って指示を送り、返答・コマンドを Claude Code と同じ形の記録にして、ターンの ID を分岐の起点に返す", async () => {
   const server = fakeCodexServer();
   onTurn(server, (s) => {

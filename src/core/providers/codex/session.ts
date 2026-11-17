@@ -8,6 +8,7 @@ export interface SessionOpts {
   args: string[];
   env: Record<string, string | undefined>;
   cwd: string;
+  onProcessSpawned?: (pid: number) => void;
   onNotification?: (method: string, params: unknown) => void;
   onServerRequest?: ServerRequestHandler;
   onClosed?: (reason: string) => void;
@@ -24,6 +25,7 @@ const refuseAll: ServerRequestHandler = async (method) => {
  */
 export async function openSession(opts: SessionOpts): Promise<StdioRpc> {
   const proc = opts.spawn(opts.args, { env: opts.env, cwd: opts.cwd });
+  if (proc.pid !== undefined) opts.onProcessSpawned?.(proc.pid);
   const rpc = new StdioRpc(proc, opts.onNotification ?? (() => {}), opts.onServerRequest ?? refuseAll, opts.onClosed, { label: "Codex の app-server", provider: "codex" });
   try {
     await rpc.request("initialize", { clientInfo: CLIENT_INFO, capabilities: { experimentalApi: true, requestAttestation: false } });

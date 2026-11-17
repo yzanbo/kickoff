@@ -31,6 +31,7 @@ export class CommandError extends Error {
 }
 
 interface RunOptions {
+  signal?: AbortSignal;
   cwd?: string;
   timeout?: number;
   env?: NodeJS.ProcessEnv;

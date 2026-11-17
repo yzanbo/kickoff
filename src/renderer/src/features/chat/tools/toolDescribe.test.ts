@@ -7,10 +7,16 @@ import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_T
 import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "@shared/chat/aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "@shared/chat/aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/chat/aiTerminal";
+import { AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL } from "@shared/chat/aiSandboxDiagnostics";
 import { AI_FINISH_WORKTREE_TOOL } from "@shared/chat/aiWorktree";
 import { AI_CANCEL_WORKPLACE_MOVE_TOOL, AI_MOVE_WORKPLACE_TOOL } from "@shared/chat/aiWorkplace";
 import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL } from "@shared/chat/aiChatRemove";
 import { AI_NOTIFY_USER_TOOL } from "@shared/chat/aiNotify";
+
+test("OS の拒否ログ診断は、Claude Code・Codex 共通の名前を日本語にする", () => {
+  assert.equal(describeTool(AI_START_SANDBOX_DIAGNOSTICS_TOOL, {}), "OS の拒否ログの診断を始める");
+  assert.equal(describeTool(AI_READ_SANDBOX_DENIALS_TOOL, {}), "OS の拒否ログを読む");
+});
 
 test("ToDo のツール: 追加・更新・一覧・確認を文にする", () => {
   assert.equal(describeTool("TaskCreate", { subject: "確認 1", description: "動作確認用タスク 1" }), "ToDo を追加: 確認 1");

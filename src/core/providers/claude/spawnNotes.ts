@@ -3,7 +3,7 @@
 // onProcessSpawned を使う（型には出ていない口。なくなっても知らせが届かないだけで、実行は変わらない）。終わりは実行の終わりで知らせる
 import { reportChildProcess } from "../../system/childProcesses.js";
 
-export function agentSpawnNotes() {
+export function agentSpawnNotes(onSpawn?: (pid: number) => void) {
   const pids: number[] = [];
   return {
     /** query の options に重ねる */
@@ -11,6 +11,7 @@ export function agentSpawnNotes() {
       onProcessSpawned: (pid: number) => {
         pids.push(pid);
         reportChildProcess({ pid, group: false, kind: "agent", state: "started" });
+        onSpawn?.(pid);
       },
     },
     /** 実行が終わった（SDK は入力を閉じたあと少し待ってから止めるが、落ちたときに残っていれば止めるのはメインの確かめ） */

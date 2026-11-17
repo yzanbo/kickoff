@@ -9,6 +9,7 @@ import type { AiUserViewTools } from "../chat/aiUserView.js";
 import type { AiChatReadTools } from "../chat/aiChatRead.js";
 import type { AiProjectTools } from "../chat/aiProject.js";
 import type { AiTerminalTools } from "../chat/aiTerminal.js";
+import type { AiSandboxDiagnostics } from "../chat/sandboxDiagnostics.js";
 import type { AiVisualTools } from "../chat/aiVisual.js";
 import type { AiOpenTools } from "../chat/aiOpen.js";
 import type { HiddenDbTarget } from "../chat/guard/hiddenDb.js";
@@ -171,6 +172,10 @@ export interface ProviderTurnParams {
   chatProject?: AiProjectTools | null;
   /** このプロジェクトの内蔵ターミナルの出力を AI に読ませる口（デスクトップアプリのときだけ。なければそのツールを出さない） */
   chatTerminal?: AiTerminalTools | null;
+  /** この実行の OS 拒否ログの限定診断（プロバイダー共通の MCP） */
+  sandboxDiagnostics?: AiSandboxDiagnostics | null;
+  /** 自分で起動した CLI の PID。診断のチャットの境界に使う */
+  onAgentSpawned?: (pid: number) => void;
   /** 返答の中に図を描かせる口（どのチャットにも渡す。なければ図のツールを出さない） */
   chatVisual?: AiVisualTools | null;
   /** ワークツリーを AI に片付けさせる口（finish_worktree。どのチャットにも渡し、消せないチャットからは理由の文で断る。なければそのツールを出さない） */
