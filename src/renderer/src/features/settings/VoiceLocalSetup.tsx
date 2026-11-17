@@ -1,6 +1,6 @@
 import type { VoiceStatus } from "@shared/types";
 import { voiceStatusStore } from "@/stores/voice";
-import { CopyButton } from "@/ui/CopyButton";
+import { CommandLine } from "@/ui/CommandLine";
 import { ErrorText } from "@/ui/ErrorText";
 import { Field } from "@/ui/Field";
 import { RefreshButton } from "@/ui/IconButton";
@@ -34,10 +34,7 @@ export function VoiceLocalSetup({
           {toolsReady === false && (
             <>
               <p className="field-help">ターミナルで次のコマンドを実行してから、「確かめ直す」を押してください（どちらも無料です）。</p>
-              <div className="voice-command">
-                <code>{BREW_COMMAND}</code>
-                <CopyButton text={BREW_COMMAND} label="コマンドをコピー" />
-              </div>
+              <CommandLine command={BREW_COMMAND} />
             </>
           )}
           <ul className="voice-tools">

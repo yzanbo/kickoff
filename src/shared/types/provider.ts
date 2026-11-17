@@ -17,6 +17,20 @@ export interface ProviderStatus {
   auth_mode?: ProviderAuthMode;
   /** API キーを置いたか（キーそのものは出さない） */
   has_api_key?: boolean;
+  /** CLI の版（分からなければ null・省く）。bundled なら Kickoff に同梱した版（Claude Code。上げるのは Kickoff の開発の側） */
+  version?: string | null;
+  bundled?: boolean;
+  /** 利用者が入れた CLI に新しい版が出ていれば、その版と上げ方（自分で上げられるものだけ。いまは Codex） */
+  update?: ProviderUpdate | null;
+}
+
+/** 入れた CLI の新しい版と上げ方 */
+export interface ProviderUpdate {
+  latest: string;
+  /** 上げるコマンド（ターミナルで流す） */
+  command: string;
+  /** 入れ方の名前（Homebrew の cask・npm） */
+  source: string;
 }
 
 /** AI によってできたりできなかったりすること（プロバイダーが対応するものだけを持つ） */

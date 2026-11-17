@@ -134,3 +134,21 @@
 .provider-login p {
   margin: 0;
 }
+
+/* 設定の「接続」の AI のカードの CLI の版と、新しい版の知らせ（ProviderVersion） */
+.provider-version {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.provider-update {
+  display: grid;
+  gap: 4px;
+  margin-top: 2px;
+  color: var(--warn);
+}
+
+.provider-update .command-line {
+  color: var(--text);
+}
