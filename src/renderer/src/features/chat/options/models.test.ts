@@ -26,6 +26,47 @@ test("モデルをファミリーごとにまとめ、Fable → Opus → Sonnet 
   );
 });
 
+test("Codex は Astra → Terra → Sol → Luna にまとめ、各系統を新しい世代順に並べる", () => {
+  const sol = { ...m("gpt-6.1-sol", "GPT-6.1-Sol"), description: "Latest workhorse model." };
+  const groups = groupModels([
+    sol,
+    m("gpt-6-astra", "GPT-6-Astra"),
+    m("gpt-6.1-terra", "GPT-6.1 Terra"),
+    m("gpt-6-sol", "GPT-6-Sol"),
+    m("gpt-6-luna", "GPT-6-Luna"),
+    m("gpt-6.1-astra", "GPT-6.1-Astra"),
+  ]);
+  assert.deepEqual(groups.map((g) => [g.family, g.items.map((i) => [i.value, i.version])]), [
+    ["Astra", [["gpt-6.1-astra", "6.1"], ["gpt-6-astra", "6.0"]]],
+    ["Terra", [["gpt-6.1-terra", "6.1"]]],
+    ["Sol", [["gpt-6.1-sol", "6.1"], ["gpt-6-sol", "6.0"]]],
+    ["Luna", [["gpt-6-luna", "6.0"]]],
+  ]);
+  assert.equal(groups[2].items[0].description, sol.description);
+});
+
+test("Codex の名前はハイフン・空白・大文字小文字に対応し、未知の系統や派生モデルは名前を残す", () => {
+  assert.deepEqual(splitModelLabel("GPT-6.1-Sol"), { family: "Sol", version: "6.1" });
+  assert.deepEqual(splitModelLabel("GPT-6.1 Terra"), { family: "Terra", version: "6.1" });
+  assert.deepEqual(splitModelLabel("gpt-6-astra"), { family: "Astra", version: "6.0" });
+  for (const label of ["GPT-6.1-Sol-preview", "GPT-6-NewFamily", "GPT-6", "Custom model"]) {
+    assert.deepEqual(splitModelLabel(label), { family: label, version: "" });
+  }
+  assert.equal(modelDisplayName([m("gpt-6.1-sol", "GPT-6.1-Sol")], "gpt-6.1-sol"), "Sol 6.1");
+});
+
+test("バージョンは小数ではなく各桁の数字で比較し、表記違いの同一世代は最初の選択肢を残す", () => {
+  const groups = groupModels([
+    m("sol-6-9", "GPT-6.9-Sol"),
+    m("sol-6-10", "GPT-6.10-Sol"),
+    m("sol-6-10-alias", "GPT-6.10 Sol"),
+    m("sol-6", "GPT-6-Sol"),
+  ]);
+  assert.deepEqual(groups.map((g) => [g.family, g.items.map((i) => [i.value, i.version])]), [
+    ["Sol", [["sol-6-10", "6.10"], ["sol-6-9", "6.9"], ["sol-6", "6.0"]]],
+  ]);
+});
+
 test("閉じた状態の表示名と、名前の分解", () => {
   assert.deepEqual(splitModelLabel("Fable 5"), { family: "Fable", version: "5.0" });
   assert.equal(modelDisplayName([m("opus", "Opus 5.5")], "opus"), "Opus 5.5");
