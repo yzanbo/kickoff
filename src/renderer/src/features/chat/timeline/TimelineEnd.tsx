@@ -5,6 +5,7 @@ import { ApprovalCard } from "@/features/chat/approvals/ApprovalCard";
 import { BackgroundTasks } from "@/features/chat/status/BackgroundTasks";
 import { ReconnectRow } from "@/features/chat/status/ConnectionStatus";
 import { Working } from "@/features/chat/status/Working";
+import { WorkingExecution } from "@/features/chat/status/WorkingExecution";
 import { CompactingRow } from "@/features/chat/status/CompactingRow";
 import { AfterCompactMessages, type AfterCompactUntil } from "@/features/chat/status/AfterCompactMessages";
 import { VisualPending } from "@/features/chat/visuals/VisualItem";
@@ -59,7 +60,7 @@ export function TimelineEnd({
       ))}
       {busy &&
         approvals.length === 0 &&
-        (live.compacting ? <CompactingRow compacting={live.compacting} /> : <Working since={chat.turn_started_at}>{working}</Working>)}
+        (live.compacting ? <CompactingRow compacting={live.compacting} /> : <Working since={chat.turn_started_at} details={<WorkingExecution chat={chat} events={events} />}>{working}</Working>)}
       {/* 圧縮後指示と、預かった「いま」の指示は、圧縮の行・作業中の行の下に送る順で */}
       {(live.after_compact.length > 0 || pendingPost !== null) && <AfterCompactMessages messages={live.after_compact} pendingPost={pendingPost} until={until} />}
       {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} events={events} />}

@@ -238,6 +238,33 @@
   color: var(--muted);
 }
 
+/* 実行設定は狭い欄では折り返し、サブエージェントの作業中の行には影響させない。 */
+.working-with-details {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.working-execution {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.working-execution-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: calc(11px * var(--chat-scale, 1));
+  line-height: 1.5;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 /* 作業中の経過時間（桁が変わっても横に揺れないよう、数字の幅をそろえる） */
 .working-elapsed {
   color: var(--extra-muted);
