@@ -183,6 +183,7 @@ export function NewChatPane({
   return (
     <AgentSplit scope={draftScope(tabKey)} handleRef={side}>
     <DraftChatPage
+      provider={provider}
       badges={
         <>
           {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。グループと作業場所は、押すと選び直せる */}
