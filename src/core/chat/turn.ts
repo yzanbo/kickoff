@@ -150,15 +150,29 @@ export interface StoppedAgent {
  */
 export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false, compactTrigger }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
   const { store, providers } = deps;
+  // 作業した場所と、始めたときのブランチ（調べ終える前に失敗した・Git でない・ブランチから外れていれば null）
+  let turnDir: string | null = null;
+  let startBranch: string | null = null;
+  /**
+   * 作業の途中で AI がブランチを替えていたら、最後に作業したブランチを覚え直す（結果を書く前に。外れていれば・読めなければ前のまま）。
+   * 始めにブランチを読めなかった場所（Git でないなど）では読み直さない（作業ごとに外部コマンドを増やさない）
+   */
+  const rememberEndBranch = async () => {
+    const branch = turnDir && startBranch ? await currentBranch(turnDir).catch(() => null) : null;
+    const chat = store.chats.get(chatId);
+    if (branch && chat && branch !== chat.branch) store.chats.update(chatId, { branch });
+  };
   try {
     // エージェントの CLI は、ログインシェルの PATH を読み直し終えてから起こす（コアのプロセスの起動の直後だけ待つ。system/exec.ts）
     await shellPathSettled();
     const chat = store.chats.get(chatId)!;
     const project = store.projects.get(chat.project_id)!;
     const cwd = await resolveWorkdir(chat, project);
+    turnDir = cwd;
     // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）。
     // 送ったので、ワークツリーを片付けた印は外す（札はもとから本体。説明に片付けたブランチを添えるのは次に送るまで）
     const branch = await currentBranch(cwd);
+    startBranch = branch;
     store.chats.update(chatId, { status: "running", turn_started_at: new Date().toISOString(), finished_worktree_branch: null, ...(branch ? { branch } : {}) });
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
     const since = store.events.list(chatId).at(-1)?.id ?? 0;
@@ -220,6 +234,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       }
     }
     const network = result.status === "failed" && Boolean(result.network);
+    await rememberEndBranch();
     applyResult(store, chatId, result, compact, since, network);
     // 圧縮した作業が最後まで終わったら、直近の区切りだけの新しいセッションに乗り換える（会話記録が大きくなり続けないように。失敗しても作業は止めない）
     if (result.status === "completed") {
@@ -233,6 +248,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     return { status: result.status, network, stoppedAgents };
   } catch (e) {
     const message = errorMessage(e);
+    await rememberEndBranch();
     // 失敗も、見るまでは未読にする
     store.chats.update(chatId, { status: "failed", error: message, unread: true });
     store.events.add(chatId, { type: "error", message });
