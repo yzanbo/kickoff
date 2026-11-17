@@ -220,6 +220,8 @@ export interface GitWorktree {
   prunable: boolean;
   /** ワークツリーの実行環境（ポートの帯・組の名前。一覧の API だけが付ける。この機能の前に作った・本体は null） */
   env?: WorktreeEnv | null;
+  /** この作業場所に保存された色相 */
+  hue?: number;
 }
 
 /** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット） */

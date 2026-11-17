@@ -21,6 +21,7 @@ import { databaseStats, type DatabaseStats } from "./stats.js";
 import { createTrashStore } from "./trash.js";
 import { createAgentSessionStore } from "./agentSessions.js";
 import { createWorktreeEnvStore } from "./worktreeEnvs.js";
+import { createWorktreeColorStore } from "./worktreeColors.js";
 
 /**
  * SQLite の永続化層。表ごとの店（store.chats.get など）をまとめて持つ。変更系の操作は onChange で知らせる
@@ -51,6 +52,8 @@ export class Store {
   readonly dbPrepRuns;
   /** ワークツリーの実行環境（ポートの帯・組の名前） */
   readonly worktreeEnvs;
+  /** ワークツリーの色（作業するフォルダごとに、初めて見たときに決めた色相） */
+  readonly worktreeColors;
   /** スマホ連携の端末（トークンの hash・最後に使った時刻・プッシュの宛先） */
   readonly devices;
   /** Kickoff のゴミ箱（消したものを 3 日だけ取っておく。中身のファイルは trash/TrashService が置き場に置く） */
@@ -82,6 +85,7 @@ export class Store {
     this.dbErLayouts = createDbErLayoutStore(this.db);
     this.dbPrepRuns = createDbPrepRunStore(this.db);
     this.worktreeEnvs = createWorktreeEnvStore(this.db);
+    this.worktreeColors = createWorktreeColorStore(this.db);
     this.devices = createDeviceStore(this.db);
     this.trash = createTrashStore(this.db, onChange);
     this.agentSessions = createAgentSessionStore(this.db);

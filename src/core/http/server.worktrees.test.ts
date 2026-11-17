@@ -1,6 +1,8 @@
-// ワークツリーの一覧: HEAD の見張り（ブランチを替えたら worktrees_changed で知らせる）
+// ワークツリーの一覧: HEAD の見張り（ブランチを替えたら worktrees_changed で知らせる）と作業場所の色（覚えて変えない）
+import assert from "node:assert/strict";
 import path from "node:path";
 import { test } from "vitest";
+import { PROJECT_HUES, workplaceDefaultHue } from "@shared/project/colors";
 import type { BusEvent, GitWorktree } from "@shared/types";
 import { setup, until } from "../testing/testServer.js";
 import { gitIn, gitRepo } from "../testing/gitRepo.js";
@@ -9,6 +11,32 @@ import { tempDir } from "../testing/tempDir.js";
 type Ctx = ReturnType<typeof setup>;
 
 const list = async (ctx: Ctx) => (await ctx.call("GET", `/api/projects/${ctx.project.id}/git/worktrees`)).body as GitWorktree[];
+const hueOf = (worktrees: GitWorktree[], where: string) => worktrees.find((w) => w.path === where)?.hue;
+
+test("作業場所の色: 本体はプロジェクトの色、ワークツリーは互いに被らない色を覚え、ブランチを替えても・ほかを足しても・作り直しても変わらない", async () => {
+  const ctx = setup();
+  const { dir: repo } = gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
+  const git = gitIn(repo);
+  const base = tempDir();
+  const a = path.join(base, "a");
+  git("worktree", "add", "-q", "-b", "feat/a", a);
+  git("worktree", "add", "-q", "-b", "feat/b", path.join(base, "b"));
+  const first = await list(ctx);
+  const main = first.find((w) => w.main)!;
+  assert.equal(main.hue, workplaceDefaultHue(ctx.project.id, ""));
+  const hues = first.map((w) => w.hue);
+  assert.ok(hues.every((h) => h !== undefined && (PROJECT_HUES as readonly number[]).includes(h)));
+  assert.equal(new Set(hues).size, hues.length);
+  const aHue = hueOf(first, a);
+  // ブランチを替える・ほかのワークツリーを足す
+  gitIn(a)("switch", "-q", "-c", "zzz");
+  git("worktree", "add", "-q", "-b", "aaa", path.join(base, "0"));
+  assert.equal(hueOf(await list(ctx), a), aHue);
+  // 同じフォルダに作り直しても同じ色
+  git("worktree", "remove", a);
+  git("worktree", "add", "-q", "-b", "feat/again", a);
+  assert.equal(hueOf(await list(ctx), a), aHue);
+});
 
 test("HEAD の見張り: 一覧を読んだプロジェクトで、本体・ワークツリーのブランチを替えたら worktrees_changed を知らせる", async () => {
   const ctx = setup();

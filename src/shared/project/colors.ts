@@ -3,6 +3,16 @@
  */
 export const PROJECT_HUES = [0, 28, 48, 135, 172, 200, 222, 262, 292, 330] as const;
 
+/**
+ * 作業場所の好みの色（key は作業するフォルダ。本体は空）。本体の色はいつもこれで、ワークツリーは初めて見たときにこれを第一の候補にして決め、覚える
+ * （コアの core/worktrees/colors.ts）。画面は一覧を読む前・一覧にない作業場所の仮の色にも使う
+ */
+export function workplaceDefaultHue(projectId: number, key: string): number {
+  let hash = 0;
+  for (const ch of `p${projectId}/w:${key || "main"}`) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return PROJECT_HUES[hash % PROJECT_HUES.length];
+}
+
 /** 色相の差（0〜180） */
 const distance = (a: number, b: number) => {
   const d = Math.abs(a - b) % 360;
