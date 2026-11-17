@@ -1,5 +1,6 @@
 import { errorMessage } from "@shared/errors";
 import type { PlanUsage, ServiceUsage } from "@shared/types";
+import { USAGE_REFRESH_MS } from "@shared/usageRefresh";
 import type { UsageMonitor } from "../planUsage.js";
 import { codexUsage } from "./codex.js";
 import { usageResult, type UsageFetcher } from "./common.js";
@@ -8,7 +9,7 @@ import { cursorUsage } from "./cursor.js";
 import { geminiUsage } from "./gemini.js";
 
 /** 取り直すまでの間隔（設定を開いている間に画面が取りに来る。誰も見ていなければ取らない） */
-const MAX_AGE_MS = 5 * 60_000;
+const MAX_AGE_MS = USAGE_REFRESH_MS;
 
 const claude = usageResult({ id: "claude", label: "Claude Code" });
 
@@ -52,11 +53,13 @@ export class ServiceUsageMonitor {
   }
 
   private async load(force: boolean): Promise<ServiceUsage[]> {
+    // 取得にかかった時間も含めて鮮度を数える（1 分ごとの問い合わせが古いキャッシュに戻らないようにする）。
+    const startedAt = Date.now();
     const first = (force ? this.claude.refresh(true) : this.claude.get()).then(claudeServiceUsage, (e: unknown) => claude.error(errorMessage(e)));
     // 1 つが失敗・遅延しても、ほかのサービスは出す
     const others = this.fetchers.map((f) => f.fetch().catch((e: unknown) => usageResult(f).error(`取得できませんでした（${errorMessage(e)}）`)));
     const list = await Promise.all([first, ...others]);
-    this.cache = { at: Date.now(), list };
+    this.cache = { at: startedAt, list };
     return list;
   }
 }

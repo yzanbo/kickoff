@@ -53,7 +53,7 @@ export function ServiceUsageDetails({ service, error }: { service: ServiceUsage;
         : <p className="muted small usage-popover-foot">{service.message}</p>)}
       <ErrorText message={error} />
       <p className="muted small usage-popover-foot">
-        {formatClock(service.fetched_at)} 時点（開いている間は 5 分ごとに自動更新）
+        {formatClock(service.fetched_at)} 時点（1 分ごとに自動更新）
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import type { ProviderId, ServiceUsage } from "@shared/types";
+import { USAGE_REFRESH_MS } from "@shared/usageRefresh";
 import { api } from "@/api";
 import { createStore } from "@/stores/createStore";
 import { useStore } from "@/stores/useStore";
@@ -10,11 +11,10 @@ import { UsageMeter } from "./UsageMeter";
 import { useAction } from "@/hooks/useAction";
 import { usePopover } from "@/ui/Popover";
 import { ServiceUsagePopover } from "./ServiceUsagePopover";
-
-const POLL_MS = 5 * 60_000;
+import { startUsagePolling } from "./usagePolling";
 
 /** サービスごとの使用状況（下の帯と詳細で共有する。Claude Code 以外のチャットを前に出したときだけ読む） */
-const serviceUsageStore = createStore<ServiceUsage[]>({ load: () => api.usageServices(), maxAge: POLL_MS });
+const serviceUsageStore = createStore<ServiceUsage[]>({ load: () => api.usageServices(), maxAge: USAGE_REFRESH_MS });
 
 /**
  * 下の帯の使用状況に、前に出しているチャットの AI のものを出すか（メモの仕様書「0021」の Q6 B）。
@@ -36,13 +36,12 @@ export function ForegroundUsage({ provider, showSubscription = false, renderPlan
   const { anchor, ...detail } = usePopover();
   const action = useAction<"refresh">();
   const label = providerLabel(provider, status);
-  // 開いている間は取り直す。更新後は下の帯の数値も同じ店から直る。
+  // 下の帯を表示している間は、詳細を閉じていても取り直す。詳細も同じ店を読む。
   useEffect(() => {
-    if (!detail.open || pays) return;
+    if (pays) return;
     serviceUsageStore.ensure();
-    const timer = setInterval(() => void serviceUsageStore.reload().catch(() => {}), POLL_MS);
-    return () => clearInterval(timer);
-  }, [detail.open, pays]);
+    return startUsagePolling(() => void serviceUsageStore.reload().catch(() => {}));
+  }, [pays]);
   const refresh = () => action.run("refresh", async () => serviceUsageStore.set(await api.refreshUsageServices()));
   if (pays) {
     return (

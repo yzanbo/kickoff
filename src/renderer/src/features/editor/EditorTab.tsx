@@ -4,7 +4,7 @@ import { baseName } from "@/lib/format";
 import { useAction } from "@/hooks/useAction";
 import type { CommitBusy } from "./useCommitActions";
 import { useDragSize } from "@/hooks/useDragSize";
-import { navigate, type FileTarget } from "@/app/router";
+import { navigate, openProjectFile, type FileTarget } from "@/app/router";
 import { CHANGES_LIST_WIDTH } from "@/lib/storageKeys";
 import { WorktreePicker } from "@/features/worktree/WorktreePicker";
 import { ErrorText } from "@/ui/ErrorText";
@@ -90,6 +90,7 @@ export function EditorTab({
     },
     // 右クリックの「新しいタブで開く」（変更の一覧からなら、そのまとまりの差分）
     openTab: (path, staged) => void setSelected(staged === undefined ? { path } : changeSelection({ path, staged }, groupsOf(git.status)), true),
+    openInFilesTab: (path) => openProjectFile(projectId, { path, ...(worktree ? { worktree } : {}) }),
     gitRun: (action, paths) => void gitAction.guard(() => git.act(action, paths)),
   });
   // 検索の結果の置換（すべて・ファイルごと・行ごと。元に戻す）

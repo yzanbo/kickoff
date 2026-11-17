@@ -65,6 +65,7 @@ export function useFileActions(
     onReveal,
     onFindInFolder,
     openTab,
+    openInFilesTab,
     gitRun,
   }: {
     /** 作業場所のフォルダ（絶対パス。Finder で表示・パスをコピー） */
@@ -79,6 +80,8 @@ export function useFileActions(
     onFindInFolder?: (folder: string) => void;
     /** ファイルを新しいタブで開く（staged は変更の一覧から開くときのまとまり。差分を出す） */
     openTab: (path: string, staged?: boolean) => void;
+    /** 変更の一覧から、プロジェクトのファイルタブに移って実際のファイルを開く */
+    openInFilesTab: (path: string) => void;
     /** 変更の一覧で選んだもののステージ・ステージの取り消し・元に戻す */
     gitRun: (action: GitAction, paths: string[]) => void;
   },
@@ -220,6 +223,11 @@ export function useFileActions(
           <MenuItem onSelect={() => openTab(value.path, value.staged)}>
             <ExternalLink size={14} aria-hidden /> 新しいタブで開く
           </MenuItem>
+          {!explorer && (
+            <MenuItem onSelect={() => openInFilesTab(value.path)}>
+              <ExternalLink size={14} aria-hidden /> ファイルタブで開く
+            </MenuItem>
+          )}
           <div className="menu-separator" role="separator" />
         </>
       )}

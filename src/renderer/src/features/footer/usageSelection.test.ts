@@ -31,14 +31,17 @@ test("下書きで AI を変える、別の下書きや子チャットに移る�
 
 test("表示先の札は自動・一時表示を見分けられ、メニューを開くボタンになっている", () => {
   const render = (temporary: "claude" | "codex" | null) => renderToStaticMarkup(createElement(UsageProviderPicker, {
-    label: "Codex Plus", temporary, onSelect: () => {},
+    provider: temporary ?? "codex", label: "Codex Plus", temporary, onSelect: () => {},
   }));
   const automatic = render(null);
   assert.match(automatic, /aria-haspopup="menu"/);
   assert.match(automatic, /aria-expanded="false"/);
   assert.match(automatic, /チャットに連動/);
+  assert.match(automatic, /data-provider="codex"/);
+  assert.match(automatic, /footer-usage-provider-icon/);
   assert.doesNotMatch(automatic, /一時表示/);
   const manual = render("codex");
   assert.match(manual, /Codex Plus/);
   assert.match(manual, /一時表示/);
+  assert.match(render("claude"), /data-provider="claude"/);
 });

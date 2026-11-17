@@ -2,8 +2,8 @@ import type { Bus } from "../bus.js";
 import { errorMessage } from "@shared/errors";
 import type { AgentProvider } from "../providers/index.js";
 import type { PlanUsage } from "@shared/types";
+import { USAGE_REFRESH_MS } from "@shared/usageRefresh";
 
-const POLL_MS = 5 * 60_000;
 /** 連続した再取得をまとめる最短間隔 */
 const MIN_INTERVAL_MS = 15_000;
 
@@ -24,7 +24,7 @@ export class UsageMonitor {
 
   start() {
     void this.refresh();
-    this.timer = setInterval(() => void this.refresh(), POLL_MS);
+    this.timer = setInterval(() => void this.refresh(), USAGE_REFRESH_MS);
   }
 
   stop() {

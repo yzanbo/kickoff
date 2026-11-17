@@ -199,6 +199,30 @@
   color: var(--accent);
 }
 
+/* AI の種類を文字だけでなく、アイコンと色でも区別する。色はライト・ダーク両方のテーマ用トークンを使う。 */
+:root .footer-usage-picker[data-provider="claude"] {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 42%, var(--border-strong));
+  background: color-mix(in srgb, var(--warn) 12%, var(--bg));
+}
+:root .footer-usage-picker[data-provider="codex"] {
+  color: var(--info);
+  border-color: color-mix(in srgb, var(--info) 42%, var(--border-strong));
+  background: color-mix(in srgb, var(--info) 12%, var(--bg));
+}
+:root .footer-usage-picker[data-provider="claude"]:hover,
+:root .footer-usage-picker[data-provider="claude"][aria-expanded="true"] {
+  background: color-mix(in srgb, var(--warn) 20%, var(--bg));
+}
+:root .footer-usage-picker[data-provider="codex"]:hover,
+:root .footer-usage-picker[data-provider="codex"][aria-expanded="true"] {
+  background: color-mix(in srgb, var(--info) 20%, var(--bg));
+}
+.footer-usage-provider-icon, .footer-usage-menu-provider { display: inline-flex; flex: none; align-items: center; }
+.footer-usage-menu-provider[data-provider="claude"] { color: var(--warn); }
+.footer-usage-menu-provider[data-provider="codex"] { color: var(--info); }
+.footer-usage-temporary { font-weight: 400; }
+
 .footer-usage {
   display: flex;
   align-items: center;
