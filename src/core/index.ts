@@ -26,6 +26,7 @@ import { UploadStore } from "./chat/uploads.js";
 import { startAutoArchive } from "./chat/autoArchive.js";
 import { VoiceService } from "./voice/service.js";
 import { WorktreePrWatch } from "./git/prWatch.js";
+import { HeadWatch } from "./git/headWatch.js";
 import { listPullRequests } from "./git/github.js";
 import { listWorktrees } from "./git/worktrees.js";
 import { MemoService } from "./memos/memos.js";
@@ -257,7 +258,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const browserLogin = new BrowserLogin();
   const notifications = new NotificationCenter({ bus, store, viewing, desktop: opts.notify, push: opts.push ?? expoPushSender() });
   const host = opts.host ?? "127.0.0.1";
+  const headWatch = new HeadWatch((project_id) => bus.publish({ type: "worktrees_changed", project_id }));
   const app = createApp({
+    headWatch,
     mcpTools,
     providerKeys,
     store,
@@ -333,6 +336,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       stopAutoArchive();
       trashBin.close();
       memos.close();
+      headWatch.close();
       await databases.close();
       terminals.closeAll();
       await relay?.close();

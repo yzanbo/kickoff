@@ -63,6 +63,7 @@ import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
 import { worktreePrRoutes } from "./routes/worktreePrs.js";
 import type { WorktreePrWatch } from "../git/prWatch.js";
+import type { HeadWatch } from "../git/headWatch.js";
 import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, type GitHubAccount, type ProviderId, type ServerHello, type ServerStatus } from "@shared/types";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION, type ApiMismatch } from "@shared/api/version";
 import { createMiddleware } from "hono/factory";
@@ -90,6 +91,8 @@ export interface ServerDeps {
   memos: MemoService;
   /** ワークツリーの PR の見張り（マージ・マージせずに閉じたことの知らせ） */
   prWatch: WorktreePrWatch;
+  /** ブランチの切り替え・ワークツリーの足し引きの見張り（一覧の API が見張りを一覧に合わせる） */
+  headWatch: HeadWatch;
   /** DB クライアント（接続の登録・木・テーブル・SQL。DB の処理は別のプロセスの DB ワーカーで動かす） */
   databases: DatabaseService;
   /** GitHub タブ（連携先のリポジトリの issue・PR を読む） */
