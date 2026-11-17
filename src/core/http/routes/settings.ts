@@ -5,7 +5,7 @@ import { WHISPER_MODEL_IDS } from "../../voice/models.js";
 import { AI_CREATE_CHAT_MODES, LINK_OPEN_TARGETS, OPENAI_TTS_VOICES, TRUSTED_LINK_DOMAINS_MAX, PROVIDER_AUTH_MODES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
 import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/chat/autoCompact";
 import { jsonBody } from "../input.js";
-import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, voiceLanguage } from "./schemas.js";
+import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, otherProviderRecord, providerChatDefaultsSchema, voiceLanguage } from "./schemas.js";
 
 const settingsSchema = z
   .object({
@@ -20,6 +20,8 @@ const settingsSchema = z
     projects_dir: z.string().min(1).max(500),
     // 送った内容で置き換える（4 つとも送る）
     chat_defaults: chatDefaultsSchema,
+    // Claude Code のほかの AI ごとの既定（送った内容で置き換える。AI ごとに 4 つとも送る）
+    provider_chat_defaults: otherProviderRecord(providerChatDefaultsSchema),
     auto_archive_days: z.number().int().min(1).max(365).nullable(),
     auto_resume_on_reconnect: z.boolean(),
     voice_enabled: z.boolean(),

@@ -1,4 +1,5 @@
 import type { BrowserControl } from "../browser/control.js";
+import { knownModel } from "../providers/modelCatalog.js";
 import { shellPathSettled } from "../system/exec.js";
 import type { TerminalControl } from "../terminal/control.js";
 import { createDbAiTools, hasAiConnections } from "../databases/aiTools.js";
@@ -183,8 +184,12 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       // ログインの仕方（API キーにしたのに置いていない・開けなければ、動かさずに分かる文で止める）
       const auth = (await deps.providerKeys?.authFor(chat.provider)) ?? { mode: "subscription" as const, apiKey: null };
       if (auth.mode === "api_key" && !auth.apiKey) throw new Error(`${providers[chat.provider].label} のログインの仕方が「${PROVIDER_AUTH_MODE_LABELS.api_key}」ですが、API キーを読めませんでした。設定の AI の欄で API キーを置き直してください`);
+      // その AI のモデルの一覧にない名前（ほかの AI のモデルなど）は外し、その AI の既定で動かす。チャットにも直して残す（メモの仕様書「0028」の 9 節）
+      const model = await knownModel(chat.provider, providers[chat.provider], chat.model);
+      if (model !== chat.model) store.chats.update(chatId, { model });
       const params: ProviderTurnParams = {
         ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId, compact ? null : takePendingNote(runtime)),
+        model,
         preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent),
         env,
         auth,

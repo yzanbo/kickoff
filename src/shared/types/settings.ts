@@ -5,6 +5,9 @@ import type { VoiceProvider, VoiceTtsProvider } from "./voice";
 
 export const PROVIDER_IDS = ["claude", "codex", "copilot", "cursor", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
+/** Claude Code のほかの AI（既定の選択を Claude Code と分けて持つ。メモの仕様書「0028」の 9 節） */
+export type OtherProviderId = Exclude<ProviderId, "claude">;
+export const OTHER_PROVIDER_IDS = PROVIDER_IDS.filter((id): id is OtherProviderId => id !== "claude");
 
 /** AI のログインの仕方（メモの仕様書「0021」の Q13）: subscription = 定額のプラン（各 CLI のログイン・Codex は Sign in with ChatGPT）/ api_key = API キー（使った分の支払い） */
 export const PROVIDER_AUTH_MODES = ["subscription", "api_key"] as const;
@@ -65,8 +68,10 @@ export interface AppSettings {
   default_provider: ProviderId;
   /** AI ごとのログインの仕方（書いていない AI はサブスク。API キーそのものは secrets に暗号化して置き、ここには出さない） */
   provider_auth: Partial<Record<ProviderId, ProviderAuthMode>>;
-  /** 新しいチャットの既定の選択（モデルは既定のプロバイダーのもの。推論の深さの null は指定しない＝モデルの既定） */
+  /** 新しい Claude Code のチャットの既定の選択（推論の深さの null は指定しない＝モデルの既定） */
   chat_defaults: ChatOptions;
+  /** Claude Code のほかの AI の新しいチャットの既定の選択（書いていない AI は、モデル・深さはその AI の既定・毎回確認。モデルの null はその AI の既定。メモの仕様書「0028」の 9 節） */
+  provider_chat_defaults: Partial<Record<OtherProviderId, ChatOptions>>;
   /**
    * スマホ連携のオン・オフ（スマホからつなぐ）。オンのときだけ、端末の登録（ペアリング）を受け付け、つないだ端末からの頼みを受け、
    * 電源につないでいる間は本体を眠らせない。待ち受けは 127.0.0.1 のまま（外からは Tailscale Serve などを通す）。オフでも、つないだ端末の登録は残す
@@ -130,6 +135,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   default_provider: "claude",
   provider_auth: {},
   chat_defaults: { model: "opus", effort: null, permission_mode: "default", fast_mode: false },
+  provider_chat_defaults: {},
   remote_enabled: false,
   mobile_url: null,
   ntfy_url: "",

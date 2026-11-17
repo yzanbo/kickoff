@@ -454,3 +454,14 @@ test("AI が作る子チャット: 親の会話を引き継げたら、親の最
   await until(() => ctx.store.chats.get(child.id)?.session_id?.startsWith("fork-") === true);
   await until(() => !ctx.runner.isBusy(child.id));
 });
+
+test("子チャット: 聞かずに開く子チャットは、プロジェクトの AI ではなく親と同じ AI で作る（親の会話を写すため。メモの仕様書「0028」の G5）", async () => {
+  const ctx = setup();
+  const { call, store } = ctx;
+  const parentId: number = (await call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "親の質問", provider: "codex" })).body.id;
+  await until(() => store.chats.get(parentId)?.status === "completed");
+  const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "", inherit: true })).body;
+  assert.equal(ctx.project.provider, "claude");
+  assert.equal(child.provider, "codex");
+  assert.equal(child.model, null);
+});

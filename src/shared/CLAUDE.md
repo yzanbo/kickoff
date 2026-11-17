@@ -43,7 +43,7 @@
 ## 選択（ChatOptions）
 
 - モデル・推論の深さ・権限モード・ファストモードは `ChatOptions`（`model` / `effort` / `permission_mode` / `fast_mode`）1 つの形。送るとき・送信待ち・プロジェクトの既定は、その一部（`ChatOptionsPatch`）。
-- 決め方は `chatOptions.ts` の `resolveChatOptions(settings, project, override)`: 設定の `chat_defaults` の上に、プロジェクトの `chat_defaults` → 送るときの指定の順に、書いてある項目だけを重ねる（undefined は次の段に従う）。`model` / `effort` の null は「指定しない」（SDK とモデルの既定）として残す。アプリの既定の権限モードは「毎回確認」（`default`）。
+- 決め方は `chatOptions.ts` の `resolveChatOptions(settings, provider, project, override)`: その AI のアプリの既定（`appChatDefaults`。Claude Code は設定の `chat_defaults`、ほかの AI は `PROVIDER_BASE_CHAT_OPTIONS` = モデル・深さはその AI の既定・毎回確認）の上に、その AI のプロジェクトの既定（`projectChatDefaults`。Claude Code はプロジェクトの `chat_defaults`）→ 送るときの指定の順に、書いてある項目だけを重ねる（undefined は次の段に従う。Claude Code の既定をほかの AI に重ねない。メモの仕様書「0028」の 9 節）。`model` / `effort` の null は「指定しない」（SDK とモデルの既定）として残す。アプリの既定の権限モードは「毎回確認」（`default`）。
 
 ## 状態と列（state.ts）
 

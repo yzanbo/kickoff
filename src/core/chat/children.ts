@@ -131,10 +131,11 @@ function openChildChat(store: Store, parent: Chat, init: { sessionId: string; no
   const project = store.projects.get(parent.project_id)!;
   const created = store.chats.create({
     project_id: parent.project_id,
-    provider: project.provider,
+    // 親の会話を写したセッションなので、親と同じ AI（プロジェクトの AI と違うことがある。メモの仕様書「0028」の G5）
+    provider: parent.provider,
     title: "",
     status: "completed",
-    ...resolveChatOptions(store.settings.get(), project.chat_defaults, init.options),
+    ...resolveChatOptions(store.settings.get(), parent.provider, project, init.options),
     group_id: null,
     worktree_path: parent.worktree_path,
     parent_chat_id: parent.id,

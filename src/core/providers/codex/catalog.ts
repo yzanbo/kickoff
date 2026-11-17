@@ -17,6 +17,7 @@ export function toModelOptions(models: CodexModel[]): ModelOption[] {
       efforts: m.supportedReasoningEfforts.map((e) => e.reasoningEffort).filter(isEffort),
       supports_auto_mode: true,
       supports_fast_mode: false,
+      ...(m.isDefault ? { is_default: true } : {}),
     }));
 }
 

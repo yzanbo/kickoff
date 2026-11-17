@@ -1,4 +1,4 @@
-import { EFFORT_LEVELS, PERMISSION_MODES, type ChatOptions, type EffortLevel, type ModelOption, type PermissionMode } from "@shared/types";
+import { EFFORT_LEVELS, PERMISSION_MODES, type ChatOptions, type EffortLevel, type ModelOption, type PermissionMode, type ProviderId } from "@shared/types";
 
 /** 一覧での並び順（性能の高い順） */
 const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku"];
@@ -38,9 +38,18 @@ export function groupModels(models: ModelOption[]): ModelGroup[] {
 /** 閉じた状態で見せる名前（"Opus 5.5"） */
 export function modelDisplayName(models: ModelOption[], value: string | null): string {
   const m = models.find((x) => x.value === value);
-  if (!m) return value ?? "読み込み中…";
+  if (!m) return value ?? (models.length > 0 ? "既定" : "読み込み中…");
   const { family, version } = splitModelLabel(m.label);
   return version ? `${family} ${version}` : family;
+}
+
+/**
+ * 一覧にないモデル（ほかの AI のモデル・その AI の既定 = null）を、その AI の既定のモデル（一覧の `is_default`。なければ null）に直す
+ * （メモの仕様書「0028」の 9 節）。一覧が届くまでと、Claude Code（一覧の外の名前も受け付ける）は直さない
+ */
+export function fallbackModel(models: ModelOption[], model: string | null, provider: ProviderId): string | null {
+  if (provider === "claude" || models.length === 0 || models.some((m) => m.value === model)) return model;
+  return models.find((m) => m.is_default)?.value ?? null;
 }
 
 /** そのモデルで選べる推論の深さ（モデルが分からなければすべて） */
