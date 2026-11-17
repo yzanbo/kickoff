@@ -212,6 +212,7 @@ function useSelected<T>(chatId: number, channels: readonly Channel[], read: () =
 const SUBAGENT_CHANNELS: readonly Channel[] = ["detail", "log", "progress"];
 const LOG_CHANNELS: readonly Channel[] = ["log"];
 const DETAIL_CHANNELS: readonly Channel[] = ["detail"];
+const DETAIL_LOG_CHANNELS: readonly Channel[] = ["detail", "log"];
 
 /**
  * 記録全体から作るものの取り出し口（chatSelectors.ts。同じ世代なら会話の欄と同じ値）。会話の欄のほか、Activity の外の部品
@@ -226,6 +227,8 @@ export const useWorkplaceBoundaries = (chatId: number): readonly WorkplaceBounda
 export const useBeforeWorkplaceMove = (chatId: number, eventId: number): boolean => useWorkplaceBoundaries(chatId).some((b) => b.id > eventId);
 /** その記録が、AI を切り替えた区切りより前か。 */
 export const useBeforeProviderSwitch = (chatId: number, eventId: number): boolean => useSelected(chatId, LOG_CHANNELS, () => selectors.providerSwitch(chatId)) > eventId;
+/** その発言を返した AI。途中で AI を替える前の返答も元の担当で表示する。 */
+export const useProviderAtEvent = (chatId: number, eventId: number) => useSelected(chatId, DETAIL_LOG_CHANNELS, () => selectors.providerAt(chatId, eventId));
 /** 裏でまだ動いている作業を起動した呼び出しの ID */
 export const useChatBackgroundCalls = (chatId: number): ReadonlySet<string> => useSelected(chatId, DETAIL_CHANNELS, () => selectors.backgroundCalls(chatId));
 

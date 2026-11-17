@@ -7,6 +7,7 @@ import { Composer } from "../../../chat/Composer";
 import { MathText, VisualView } from "../../../chat/RichView";
 import { useChat } from "../../../chat/useChat";
 import { workplaceMoveReservationText } from "@shared/chat/aiWorkplace";
+import { PROVIDER_LABELS } from "@shared/types";
 import { restrictionNotice } from "@shared/chat/restrictionNotice";
 import { timelineOf, type TimelineItem } from "../../../lib/timeline";
 import { useHostState } from "../../../state/useHostState";
@@ -18,7 +19,7 @@ export default function ChatScreen() {
   const chatId = Number(id);
   const { session, connection, access } = useHostState(host);
   const { chat, events, live, approvals, hasEarlier, streaming, error, loadEarlier } = useChat(session, chatId);
-  const items = useMemo(() => timelineOf(events).reverse(), [events]);
+  const items = useMemo(() => timelineOf(events, chat?.provider).reverse(), [events, chat?.provider]);
   const canWrite = access === "full";
   const running = chat?.status === "running";
   const client = session?.client;
@@ -117,11 +118,11 @@ function Item({ item, onPrompt }: { item: TimelineItem; onPrompt?: (text: string
       );
     case "assistant":
       // 数式を含む返答は WebView で（数式だけを KaTeX で描く）
-      if (item.math) return <MathText text={item.text} />;
       return (
-        <Text style={ui.text} selectable>
-          {item.text}
-        </Text>
+        <View>
+          {item.provider && <Text style={[ui.muted, { fontSize: 11 }]}>{PROVIDER_LABELS[item.provider]}</Text>}
+          {item.math ? <MathText text={item.text} /> : <Text style={ui.text} selectable>{item.text}</Text>}
+        </View>
       );
     case "visual":
       return item.visual ? <VisualView visual={item.visual} onPrompt={onPrompt} /> : <Text style={[ui.muted, { textAlign: "center" }]}>{item.text}</Text>;

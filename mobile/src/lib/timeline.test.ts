@@ -5,6 +5,19 @@ import { applyEventToLog, lastEventId, mergeEvents, timelineOf, toolSummary } fr
 
 const ev = (id: number, type: ChatEvent["type"], data: unknown): ChatEvent => ({ id, chat_id: 1, type, data, created_at: "2026-11-14T00:00:00Z" }) as ChatEvent;
 
+test("AI 切り替えの前後の返答は、それぞれの AI を表示する", () => {
+  const items = timelineOf([
+    ev(1, "text", { text: "前" }),
+    ev(2, "provider_switched", { from: "claude", to: "codex" }),
+    ev(3, "text", { text: "後" }),
+  ], "codex");
+  assert.deepEqual(items, [
+    { kind: "assistant", id: 1, text: "前", math: false, provider: "claude" },
+    { kind: "notice", id: 2, text: "Claude Code → Codex に切り替えました" },
+    { kind: "assistant", id: 3, text: "後", math: false, provider: "codex" },
+  ]);
+});
+
 test("timelineOf: 自分の発言・メインの返答・ツールの 1 行（結果で ✓ / ✕）・終わりを並べ、サブエージェントの中身と思考は出さない", () => {
   const events = [
     ev(1, "user", { type: "user", text: "直して", message_uuid: "m" }),

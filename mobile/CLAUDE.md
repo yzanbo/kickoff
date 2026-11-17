@@ -1,5 +1,7 @@
 # スマホのアプリ（mobile/。Android）
 
+AI の返答には、その記録の時点の担当 AI を表示する。交代の区切りの前後で担当を切り替え、区切りのない以前のチャットは現在の AI を使う（0029 の Q24・Q41）。
+
 チャット入力欄に制限オフの注意を表示する。文はデスクトップと同じ `shared/chat/restrictionNotice` を使う。
 
 Android から、Tailscale 経由で本体（Mac の Kickoff）のチャットを使うアプリ（スマホ連携の作る順の「2」。メモの「スマホ連携 サーバー構成の比較と案（図）」の 3・13・15〜18 節）。Expo（React Native）・TypeScript で、本体と同じ `@shared`（`../src/shared`）の型と純粋な関数を使う。配り方は APK を GitHub Releases に置く（手順は `README.md`）。
