@@ -1,0 +1,5 @@
+# Kickoff ではコードの参照調査に Serena を利用する。
+# 使用を強制するフックは追加しない。軽い作業で不要なら false にする。
+# 起動方法・バージョンは ~/.codex/config.toml の設定を継承する。
+[mcp_servers.serena]
+enabled = true
