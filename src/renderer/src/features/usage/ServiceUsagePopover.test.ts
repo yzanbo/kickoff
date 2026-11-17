@@ -24,7 +24,7 @@ const render = (usage: ServiceUsage, error?: string) => renderToStaticMarkup(cre
 
 test("Codex の詳細には全使用枠・アカウント・補足・取得時刻を表示する", () => {
   const html = render(service());
-  for (const text of ["5時間", "週", "9%", "1%", "test@example.com", "クレジット残り 150", "時点", "5 分ごとに自動更新"]) {
+  for (const text of ["5時間", "週", "9%", "1%", "test@example.com", "クレジット残り 150", "時点", "1 分ごとに自動更新"]) {
     assert.ok(html.includes(text), text);
   }
   assert.equal((html.match(/role="meter"/g) ?? []).length, 2);

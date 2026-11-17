@@ -1,7 +1,7 @@
 import { EFFORT_LEVELS, PERMISSION_MODES, type ChatOptions, type EffortLevel, type ModelOption, type PermissionMode, type ProviderId } from "@shared/types";
 
 /** 一覧での並び順（性能の高い順） */
-const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku", "astra", "terra", "sol", "luna"];
+const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku", "astra", "sol", "terra", "luna"];
 
 export interface ModelGroup {
   family: string;

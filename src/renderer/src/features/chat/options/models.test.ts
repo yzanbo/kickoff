@@ -36,7 +36,7 @@ test("モデルをファミリーごとにまとめ、Fable → Opus → Sonnet 
   );
 });
 
-test("Codex は Astra → Terra → Sol → Luna にまとめ、各系統を新しい世代順に並べる", () => {
+test("Codex は Astra → Sol → Terra → Luna にまとめ、各系統を新しい世代順に並べる", () => {
   const sol = { ...m("gpt-6.1-sol", "GPT-6.1-Sol"), description: "Latest workhorse model." };
   const groups = groupModels([
     sol,
@@ -48,11 +48,11 @@ test("Codex は Astra → Terra → Sol → Luna にまとめ、各系統を新�
   ]);
   assert.deepEqual(groups.map((g) => [g.family, g.items.map((i) => [i.value, i.version])]), [
     ["Astra", [["gpt-6.1-astra", "6.1"], ["gpt-6-astra", "6.0"]]],
-    ["Terra", [["gpt-6.1-terra", "6.1"]]],
     ["Sol", [["gpt-6.1-sol", "6.1"], ["gpt-6-sol", "6.0"]]],
+    ["Terra", [["gpt-6.1-terra", "6.1"]]],
     ["Luna", [["gpt-6-luna", "6.0"]]],
   ]);
-  assert.equal(groups[2].items[0].description, sol.description);
+  assert.equal(groups[1].items[0].description, sol.description);
 });
 
 test("Codex の名前はハイフン・空白・大文字小文字に対応し、未知の系統や派生モデルは名前を残す", () => {

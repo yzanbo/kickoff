@@ -62,7 +62,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
     usagePopover.close();
     setChoice(provider === null ? null : { provider, foreground: foregroundChat });
   };
-  const renderPlan = (label: string) => <UsageProviderPicker label={label} temporary={temporary} onSelect={selectUsage} />;
+  const renderPlan = (label: string) => <UsageProviderPicker provider={displayedAi ?? "claude"} label={label} temporary={temporary} onSelect={selectUsage} />;
   // 隠していても、⌘K から「ポートを使っているプロセス」を開ける
   if (mode === "hide") return portsAvailable() ? <PortsFallback /> : null;
   return (

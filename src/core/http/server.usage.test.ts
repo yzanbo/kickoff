@@ -16,7 +16,7 @@ test("サービスごとの使用状況: Claude と各サービスを並べ、�
     ],
   );
   assert.match(first.body[2].message, /つながりません/);
-  // 5 分以内はとっておいた値を返す
+  // 1 分以内はとっておいた値を返す
   await call("GET", "/api/usage/services");
   assert.equal(codexCalls(), 1);
   const refreshed = await call("POST", "/api/usage/services/refresh");
