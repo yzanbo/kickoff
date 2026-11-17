@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { BranchSuggestBody, BranchSuggestions, WorktreeEnvSetupBody, WorktreeEnvSetupResult, WorktreeRemovalInfo } from "@shared/types";
+import type { BranchSuggestBody, BranchSuggestions, GitWorktree, WorktreeEnvSetupBody, WorktreeEnvSetupResult, WorktreeRemovalInfo } from "@shared/types";
 import { addWorktree, gitRefs, isGitWorkTree, listWorktrees, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
 import { branchSuggestPrompt, parseBranchSuggestions } from "../../git/branchSuggest.js";
 import { envSetupPrompt, envSetupTitle } from "../../worktreeEnv/setupPrompt.js";
@@ -9,7 +9,7 @@ import { asInvalid, Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
 import { branchName, folderPath } from "./schemas.js";
-
+import { attachWorktreeHues } from "../../worktrees/colors.js";
 /** ブランチ名の案を頼む本文（やりたいことの概要） */
 const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(4000) }) satisfies z.ZodType<BranchSuggestBody>;
 
@@ -19,6 +19,8 @@ const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(400
  */
 export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEnvs, worktreeFinisher, headWatch }: ServerDeps) {
   const { withProject } = lookups(store);
+  /** 画面に返す一覧（ワークツリーの実行環境と作業場所の色を付ける） */
+  const present = (projectId: number, list: GitWorktree[]) => attachWorktreeHues(store, projectId, worktreeEnvs.attach(projectId, list));
 
   // Git で管理していないフォルダは、ワークツリーのないもの（空）として返す（Git の状態の repo: false と同じ扱い。失敗にすると、画面が取り直し続ける）
   app.get("/api/projects/:id/git/worktrees", withProject, async (c) => {
@@ -27,8 +29,8 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEn
     const list = await listWorktrees(project.repo_path);
     // HEAD の見張りを一覧に合わせる（ブランチを替えた・ワークツリーを足した消したら worktrees_changed で知らせ、画面が取り直す）
     await headWatch.watch(project.id, project.repo_path, list);
-    // ワークツリーの実行環境（ポートの帯・組の名前）も付ける
-    return c.json(worktreeEnvs.attach(project.id, list));
+    // ワークツリーの実行環境（ポートの帯・組の名前）と作業場所の色も付ける
+    return c.json(present(project.id, list));
   });
 
   app.get("/api/projects/:id/git/worktrees/path", withProject, async (c) => {
@@ -54,7 +56,7 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEn
     const { project } = c.var;
     // 作ったら、ポートの帯と組の名前を割り当てる（ワークツリーの実行環境）
     const list = await addWorktree(project.repo_path, branch, (made) => worktreeEnvs.prepare(project, made));
-    return c.json(worktreeEnvs.attach(project.id, list), 201);
+    return c.json(present(project.id, list), 201);
   });
 
   /**
@@ -73,7 +75,7 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEn
     }
     const input = await worktreeEnvs.setupInput(project, worktree);
     const chat = await runner.start({ projectId: project.id, prompt: envSetupPrompt(input), title: envSetupTitle(input.label), worktreePath: folder, untrackedOnly: true });
-    return c.json({ chat, worktrees: worktreeEnvs.attach(project.id, list) } satisfies WorktreeEnvSetupResult, 201);
+    return c.json({ chat, worktrees: present(project.id, list) } satisfies WorktreeEnvSetupResult, 201);
   });
 
   // 消す前の確かめ（コミットしていない変更・プッシュしていないコミット）
@@ -111,6 +113,6 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEn
       deleteMergedRemote: false,
       byChatId: null,
     });
-    return c.json(worktreeEnvs.attach(project.id, worktrees));
+    return c.json(present(project.id, worktrees));
   });
 }

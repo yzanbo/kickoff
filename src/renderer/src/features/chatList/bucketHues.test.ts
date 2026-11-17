@@ -33,7 +33,7 @@ test("まとまりの色: 画面に出ているまとまりではなく、プロ
 });
 
 test("まとまりの色: 作業場所別は、いまある作業場所をブランチの印と同じ色にし、固定・アーカイブ済みはそれと被らない色", () => {
-  const list = [worktree("/repo", { main: true, branch: "main" }), worktree("/wt/a"), worktree("/wt/b"), worktree("/wt/gone", { prunable: true })];
+  const list = [worktree("/repo", { main: true, branch: "main", hue: 0 }), worktree("/wt/a", { hue: 135 }), worktree("/wt/b", { hue: 200 }), worktree("/wt/gone", { prunable: true, hue: 262 })];
   const hues = projectBucketHues("worktree", 5, { worktreesOf: () => list });
   assert.equal(hues.get("p5/w:main"), workplaceHue(5, { key: "" }, list));
   assert.equal(hues.get("p5/w:/wt/a"), workplaceHue(5, { key: "/wt/a" }, list));
