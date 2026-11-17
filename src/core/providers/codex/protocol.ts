@@ -13,7 +13,7 @@ export interface TextInput {
   text_elements: [];
 }
 
-/** 承認を聞く決まり（Kickoff はいつも untrusted にして、聞かれたものに守りを当てる） */
+/** 承認を聞く決まり（Kickoff は on-request にして、守りは PreToolUse のフックで当てる。メモの仕様書「0028」の F1） */
 export type AskForApproval = "untrusted" | "on-request" | "never";
 export type SandboxMode = "read-only" | "workspace-write" | "danger-full-access";
 export type SandboxPolicy =

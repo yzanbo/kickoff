@@ -21,14 +21,15 @@ export function toModelOptions(models: CodexModel[]): ModelOption[] {
 }
 
 /**
- * 1 回だけ聞くとき（ask）のモデルと深さ。名前を決め打ちせず、一覧から選ぶ: standard = 既定のモデル、light = 名前に mini の付くもの（なければ既定）を浅く。
- * 一覧が取れなければ Codex の既定（null）
+ * 1 回だけ聞くとき（ask）のモデルと深さ。名前を決め打ちせず、一覧から選ぶ: standard = 既定のモデル、light = 軽いモデル（名前に mini の付くもの、
+ * なければ説明が速い・安いと言うもの（2026-11-17 の一覧では gpt-6-luna の「Fast and affordable」）。どちらもなければ既定）を浅く。
+ * 一覧の先にあるほど新しいので、最初に当たったものを使う。一覧が取れなければ Codex の既定（null）
  */
 export function askModelOf(models: CodexModel[], tier: AskModel): { model: string | null; effort: string } {
   const visible = models.filter((m) => !m.hidden);
   const standard = visible.find((m) => m.isDefault) ?? visible[0];
   if (tier === "standard") return { model: standard?.model ?? null, effort: "medium" };
-  const light = visible.find((m) => /mini/i.test(m.model)) ?? standard;
+  const light = visible.find((m) => /mini/i.test(m.model)) ?? visible.find((m) => /\b(fast|affordable|lightweight)\b/i.test(m.description)) ?? standard;
   return { model: light?.model ?? null, effort: "low" };
 }
 
