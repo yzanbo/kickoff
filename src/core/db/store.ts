@@ -24,6 +24,7 @@ import { createTrashStore } from "./trash.js";
 import { createAgentSessionStore } from "./agentSessions.js";
 import { createWorktreeEnvStore } from "./worktreeEnvs.js";
 import { createWorktreeColorStore } from "./worktreeColors.js";
+import type { Attachment, Chat, ChatEventOf, ChatOptions, ProviderId } from "@shared/types";
 
 /**
  * SQLite の永続化層。表ごとの店（store.chats.get など）をまとめて持つ。変更系の操作は onChange で知らせる
@@ -69,7 +70,7 @@ export class Store {
 
   constructor(
     private readonly file: string,
-    onChange: Notify = () => {},
+    private readonly onChange: Notify = () => {},
   ) {
     this.db = openDatabase(file);
     this.databaseId = readDatabaseId(this.db);
@@ -95,6 +96,56 @@ export class Store {
     this.devices = createDeviceStore(this.db);
     this.trash = createTrashStore(this.db, onChange);
     this.agentSessions = createAgentSessionStore(this.db);
+  }
+
+  /**
+   * AI の切り替え・区切り・次の指示用の文脈を 1 つのトランザクションで保存する。
+   * 実行前の作業中・確認画面との競合は呼び出し側も検査する。失敗時に途中の状態を残さない。
+   */
+  commitProviderSwitch(input: {
+    chatId: number;
+    expectedProvider: ProviderId;
+    target: ProviderId;
+    options: ChatOptions;
+    context: string;
+    state: "ready" | "blocked";
+    error: string | null;
+    attachments: Attachment[];
+    expectedLastEventId: number | null;
+    afterEventId: number | null;
+    currentLastEventId: number | null;
+    queueWasPaused: boolean;
+  }): { chat: Chat; event: ChatEventOf<"provider_switched"> } {
+    this.db.exec("BEGIN IMMEDIATE");
+    let eventId: number;
+    try {
+      const current = this.chats.get(input.chatId);
+      if (!current || current.archived_at || current.status === "running" || current.provider !== input.expectedProvider || current.provider === input.target) throw new Error("チャットの状態が変わったため、AI を切り替えられません");
+      const latest = this.db.prepare("SELECT MAX(id) AS id FROM chat_events WHERE chat_id = ?").get(current.id) as { id: number | null };
+      if (latest.id !== input.expectedLastEventId) throw new Error("会話が変わったため、AI を切り替えられません");
+      if (current.session_id) this.chatProviderSessions.save(current.id, current.provider, current.session_id, input.currentLastEventId);
+      const targetSession = this.chatProviderSessions.get(current.id, input.target);
+      const inserted = this.db.prepare("INSERT INTO chat_events (chat_id, type, data) VALUES (?, 'provider_switched', ?)").run(
+        current.id,
+        JSON.stringify({ from: current.provider, to: input.target, ...(input.attachments.length ? { handoff_attachments: input.attachments } : {}) }),
+      );
+      eventId = Number(inserted.lastInsertRowid);
+      this.chatProviderHandoffs.save({ chatId: current.id, eventId, provider: input.target, context: input.context, state: input.state, error: input.error, lastEventId: input.afterEventId, queueWasPaused: input.queueWasPaused });
+      this.db.prepare(`UPDATE chats SET provider = ?, session_id = ?, model = ?, effort = ?, permission_mode = ?, fast_mode = ?, context_tokens = NULL, context_window = NULL WHERE id = ?`).run(
+        input.target, targetSession?.session_id ?? null, input.options.model, input.options.effort, input.options.permission_mode, input.options.fast_mode ? 1 : 0, current.id,
+      );
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+    const chat = this.chats.get(input.chatId)!;
+    const event = this.events.get(eventId)! as ChatEventOf<"provider_switched">;
+    // 通知先の失敗で、保存済みの操作を失敗扱いにしない（再試行による二重切り替えを防ぐ）。
+    for (const change of [{ type: "chat", chat } as const, { type: "chat_event", project_id: chat.project_id, event } as const]) {
+      try { this.onChange(change); } catch (error) { console.warn("[provider-switch] 保存後の通知に失敗しました", error); }
+    }
+    return { chat, event };
   }
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
