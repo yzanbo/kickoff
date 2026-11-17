@@ -7,13 +7,12 @@ import { relativeTime } from "@/lib/time";
 import { CHILD_CHAT_OPEN_IN } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { canPopout } from "@/app/popout";
-import { useModels } from "@/stores/providers";
 import { ArchivedFold } from "@/ui/ArchivedFold";
 import { IconButton } from "@/ui/IconButton";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { summaryState } from "@/features/chat/chatState";
 import { confirmArchiveChats, confirmDeleteChat, toggleArchiveChat } from "@/features/chat/chatActions";
-import { modelDisplayName } from "@/features/chat/options/models";
+import { ModelName } from "@/features/chat/options/ModelName";
 import { DefaultOpenPlace, OpenPlaceButtons } from "@/features/chat/composer/OpenPlaceControls";
 import { useChildChats, useKnownChat } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -86,7 +85,6 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   // アーカイブ済みも数えるので、アーカイブ済みの一覧も読む（全プロジェクトで 1 回だけ読み、知らせで直す）
   const children = useChildChats({ archived: true }).get(chatId);
   const { stateOf } = useChatStates();
-  const models = useModels();
   const popover = usePopover();
   const [openIn, setOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
   // 子チャットが新しくできたら、少しの間ピルを光らせる（開かない設定でも、作ったことと置き場所が分かる）
@@ -106,7 +104,6 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   };
   const renderRow = (c: Chat) => {
     const state = stateOf(c);
-    const meta = [modelDisplayName(models, c.model), relativeTime(c.active_at)].filter(Boolean);
     return (
       <div
         key={c.id}
@@ -127,7 +124,13 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
           </span>
           <span className="subagent-meta">
             <span className={cx("child-chat-row-state", `child-${state}`)}>{AGENT_STATE_LABELS[state]}</span>
-            {meta.map((m) => ` · ${m}`).join("")}
+            {c.model && (
+              <>
+                {" · "}
+                <ModelName provider={c.provider} model={c.model} />
+              </>
+            )}
+            {` · ${relativeTime(c.active_at)}`}
           </span>
         </span>
         <OpenPlaceButtons places={places} onOpen={(place) => open(c, place === "window" ? "window" : "side")} />

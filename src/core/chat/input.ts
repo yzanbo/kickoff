@@ -2,6 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
+import { knownModel } from "../providers/modelCatalog.js";
 import type { ExecutionDeps } from "./turn.js";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -59,8 +60,10 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
   const providerId = input.provider ?? project.provider;
   if (!providers[providerId].implemented) throw new Invalid(`${providers[providerId].label} はまだ使えません`);
 
-  // チャット欄で指定がなければ、プロジェクトの既定 → アプリ全体の設定の順に使う
-  const options = resolveChatOptions(store.settings.get(), project.chat_defaults, input.options);
+  // チャット欄で指定がなければ、その AI のプロジェクトの既定 → アプリ全体の設定の順に使う。
+  // その AI のモデルの一覧にない名前は外す（その AI の既定で動かす。メモの仕様書「0028」の 9 節）
+  const resolved = resolveChatOptions(store.settings.get(), providerId, project, input.options);
+  const options = { ...resolved, model: await knownModel(providerId, providers[providerId], resolved.model) };
   const titleText = input.titleText ?? input.prompt;
   const created = store.chats.create({
     project_id: project.id,
