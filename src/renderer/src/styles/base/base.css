@@ -53,3 +53,18 @@ kbd {
   color: var(--muted);
 }
 
+/* ターミナルで流してもらうコマンドの 1 行とコピー（ui/CommandLine） */
+.command-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 6px 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+}
+
+.command-line code {
+  overflow-wrap: anywhere;
+}

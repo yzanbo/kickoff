@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import type { ProviderAuth } from "../keys.js";
@@ -14,6 +15,22 @@ export function resolveClaudeExecutable(): string | undefined {
     return bin.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * Agent SDK に同梱される Claude Code の版（SDK の package.json の claudeCodeVersion。読めなければ null）。上げるのは Kickoff の開発の側（package.json の SDK）。
+ * SDK は package.json を exports に出していないので、同梱の実行ファイルのパッケージの隣（同じ @anthropic-ai の下）にあるものを読む
+ */
+export function bundledClaudeVersion(): string | null {
+  try {
+    const require = createRequire(import.meta.url);
+    const platformPkg = require.resolve(`@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/package.json`);
+    const sdkPkg = path.join(path.dirname(path.dirname(platformPkg)), "claude-agent-sdk", "package.json");
+    const version = (JSON.parse(fs.readFileSync(sdkPkg, "utf8")) as { claudeCodeVersion?: unknown }).claudeCodeVersion;
+    return typeof version === "string" ? version : null;
+  } catch {
+    return null;
   }
 }
 

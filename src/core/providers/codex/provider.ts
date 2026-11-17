@@ -12,6 +12,8 @@ import type { AccountResponse, CodexModel, ModelListResponse, RateLimitsResponse
 import { spawnStdio, type StdioSpawn } from "../stdioRpc.js";
 import { withSession } from "./session.js";
 import { runCodexTurn } from "./turn.js";
+import { CodexUpdateCheck } from "./update.js";
+import { parseCodexVersion } from "@shared/provider/cliUpdates";
 
 /** モデルの一覧を読む頁の上限（安全のため） */
 const MAX_MODEL_PAGES = 5;
@@ -24,6 +26,8 @@ export interface CodexProviderOpts {
   spawn?: StdioSpawn;
   /** app-server に渡す環境変数の元（省けば process.env） */
   env?: Record<string, string | undefined>;
+  /** 入れた codex の新しい版の確かめ（テストは差し替える。省けば Homebrew・npm に 1 日 1 回聞く） */
+  updates?: CodexUpdateCheck;
 }
 
 /**
@@ -39,8 +43,10 @@ export class CodexProvider implements AgentProvider {
   private readonly executable: string | null;
   private readonly spawn: StdioSpawn | null;
   private readonly baseEnv: Record<string, string | undefined>;
+  private readonly updates: CodexUpdateCheck;
 
   constructor(private readonly opts: CodexProviderOpts = {}) {
+    this.updates = opts.updates ?? new CodexUpdateCheck();
     this.executable = opts.spawn ? "codex" : findExecutable(["codex"]);
     this.spawn = opts.spawn ?? (this.executable ? spawnStdio(this.executable) : null);
     this.baseEnv = opts.env ?? process.env;
@@ -56,7 +62,11 @@ export class CodexProvider implements AgentProvider {
   async status(): Promise<ProviderStatus> {
     const base = { id: this.id, label: this.label, implemented: true };
     if (!this.executable) return { ...base, installed: false, logged_in: false, detail: "codex CLI が見つかりません（brew install codex）" };
-    const version = this.opts.spawn ? null : await runCommand(this.executable, ["--version"], { timeout: 5000 }).then((s) => s.trim().split("\n").at(-1) ?? null, () => null);
+    const executable = this.executable;
+    const version = this.opts.spawn ? null : await runCommand(executable, ["--version"], { timeout: 5000 }).then(parseCodexVersion, () => null);
+    // 新しい版は、ログインの様子と並べて聞く（聞けなくても状態は出す）
+    const update = this.updates.of(executable, version).catch(() => null);
+    const extra = async () => ({ version, update: await update });
     try {
       const res = await this.session((rpc) => rpc.request<AccountResponse>("account/read", {}));
       const account = res.account;
@@ -64,16 +74,17 @@ export class CodexProvider implements AgentProvider {
       const plan = account && account.type === "chatgpt" ? (account as { planType: string }).planType : undefined;
       return {
         ...base,
+        ...(await extra()),
         installed: true,
         logged_in: account !== null,
         account: email,
         plan,
         detail: account
-          ? `${account.type === "apiKey" ? "API キーでログイン済み" : "ChatGPT でログイン済み"}${plan ? `（${plan} プラン）` : ""}${version ? ` · ${version}` : ""}`
+          ? `${account.type === "apiKey" ? "API キーでログイン済み" : "ChatGPT でログイン済み"}${plan ? `（${plan} プラン）` : ""}`
           : "未ログインです。Kickoff の設定から ChatGPT でログインするか、ターミナルで `codex login` を流してください",
       };
     } catch (e) {
-      return { ...base, installed: true, logged_in: false, detail: `ログイン状態を取得できませんでした: ${errorMessage(e)}` };
+      return { ...base, ...(await extra()), installed: true, logged_in: false, detail: `ログイン状態を取得できませんでした: ${errorMessage(e)}` };
     }
   }
 

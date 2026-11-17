@@ -23,7 +23,7 @@ import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOptio
 import { createCanUseTool } from "./approvals.js";
 import { mcpServersOf, toolAllowList } from "./mcpServers.js";
 import { agentSpawnNotes } from "./spawnNotes.js";
-import { agentEnv, claudeAuthEnv, resolveClaudeExecutable } from "./env.js";
+import { agentEnv, bundledClaudeVersion, claudeAuthEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
 import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks, toAllowedTools } from "./policy.js";
@@ -49,7 +49,8 @@ export class ClaudeProvider implements AgentProvider {
   constructor(private readonly self?: SelfInfo) {}
 
   async status(): Promise<ProviderStatus> {
-    const base = { id: this.id, label: this.label, implemented: true };
+    // 同梱の Claude Code の版（設定の「接続」に出す。上げるのは Kickoff の開発の側なので、新しい版の知らせはここでは出さない）
+    const base = { id: this.id, label: this.label, implemented: true, version: bundledClaudeVersion(), bundled: true };
     if (!this.executable) {
       return { ...base, installed: false, logged_in: false, detail: "Claude Code のバイナリが見つかりません" };
     }

@@ -1,5 +1,5 @@
 import type { TailscaleStatus } from "@shared/types";
-import { CopyButton } from "@/ui/CopyButton";
+import { CommandLine } from "@/ui/CommandLine";
 import { ErrorText } from "@/ui/ErrorText";
 import { RefreshButton } from "@/ui/IconButton";
 import { VoiceStep } from "./VoiceStep";
@@ -45,10 +45,7 @@ export function TailscaleGuide({ status, loading, error, mobileUrl, onRecheck, o
             Mac のターミナルで次のコマンドを流します（Mac を起動し直しても続きます）。初めてのときは、Tailscale の管理画面の「DNS」で HTTPS Certificates を有効にするよう聞かれます。
           </p>
           {status && (
-            <div className="voice-command">
-              <code>{status.command}</code>
-              <CopyButton text={status.command} label="コマンドをコピー" />
-            </div>
+            <CommandLine command={status.command} />
           )}
           {serveUrl && <p className="muted small">出しています: {serveUrl}</p>}
           {status && status.other_serves.length > 0 && (
