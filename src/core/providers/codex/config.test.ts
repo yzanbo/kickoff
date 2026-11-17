@@ -40,6 +40,8 @@ test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ
   assert.equal(over.config?.["features.hooks"], true);
   assert.equal((over.config?.["hooks.PreToolUse"] as { matcher: string }[])[0].matcher, "^(Bash|apply_patch)$");
   assert.deepEqual(over.config?.["shell_environment_policy.exclude"], ["KICKOFF_CODEX_HOOK_URL", "KICKOFF_CODEX_HOOK_TOKEN"]);
+  // 作業フォルダの信頼をこちらから伝える（Codex が利用者の config.toml に書き足さないように。パスの「.」で区切らない入れ子）
+  assert.deepEqual(threadOverrides(params({ cwd: "/w/my.app" })).config?.projects, { "/w/my.app": { trust_level: "trusted" } });
   assert.equal(over.sandbox, "workspace-write");
   assert.equal(over.developerInstructions, "文脈");
   assert.deepEqual(over.config?.["sandbox_workspace_write.writable_roots"], ["/memo"]);
