@@ -188,7 +188,7 @@ export class ClaudeProvider implements AgentProvider {
       ? createPreCompactGate({ ...params.preCompact, push, onSent: (uuid) => cb.preCompactSent?.(uuid), onNudged: (uuid) => cb.preCompactNudged?.(uuid) })
       : null;
     // Claude Code のプロセスの pid を知らせる（コアのプロセスが落ちたときに、メインが作り直す前に止める）
-    const spawnNotes = agentSpawnNotes();
+    const spawnNotes = agentSpawnNotes(params.onAgentSpawned);
     try {
       const q = query({
         prompt: input.messages,

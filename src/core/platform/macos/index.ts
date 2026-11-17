@@ -11,6 +11,7 @@ import { alive, appBundleOf, processTable } from "./processes.js";
 import { loadLoginShellPath } from "./shellEnv.js";
 import { startShellPath } from "./shellPath.js";
 import { macosAgentSandbox } from "./sandbox.js";
+import { macosSandboxDiagnostics } from "./sandboxDiagnostics.js";
 
 interface MacosPlatformOptions {
   /** macOS の音声認識の補助コマンド（kickoff-speech）の場所（なければ音声認識は使えない扱い） */
@@ -27,6 +28,7 @@ export const MACOS_APP_DATA_ROOT = path.join(os.homedir(), "Library", "Applicati
 export function macosPlatform({ speechHelper = null }: MacosPlatformOptions = {}): HostPlatform {
   const openApp = async (name: string) => void (await runCommand("/usr/bin/open", ["-a", name]));
   return {
+    sandboxDiagnostics: macosSandboxDiagnostics,
     appDataRoot: MACOS_APP_DATA_ROOT,
     loadLoginShellPath,
     startShellPath: (dataDir) => startShellPath({ dataDir }),

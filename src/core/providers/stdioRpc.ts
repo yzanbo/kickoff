@@ -11,6 +11,8 @@ import { reportChildProcess } from "../system/childProcesses.js";
 
 /** 起動した CLI（標準入出力と終わり） */
 export interface StdioProcess {
+  /** 本物の CLI の PID（テストの偽物は省ける） */
+  readonly pid?: number;
   write(line: string): void;
   onLine(listener: (line: string) => void): void;
   /** 終わったとき（code: 終了コード。標準エラーの終わりの部分を添える） */
@@ -51,6 +53,7 @@ export function spawnStdio(executable: string): StdioSpawn {
       exit(null);
     });
     return {
+      pid,
       write: (line) => {
         if (!child.stdin.destroyed) child.stdin.write(`${line}\n`);
       },

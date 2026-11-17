@@ -1,5 +1,6 @@
 import type { BrowserControl } from "../browser/control.js";
 import { knownModel } from "../providers/modelCatalog.js";
+import { TurnSandboxDiagnostics } from "./sandboxDiagnostics.js";
 import { shellPathSettled } from "../system/exec.js";
 import type { TerminalControl } from "../terminal/control.js";
 import { createDbAiTools, hasAiConnections } from "../databases/aiTools.js";
@@ -58,6 +59,8 @@ import { turnToolServers } from "../mcp/turnTools.js";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
+  /** OS の拒否ログを安全に読み取る口（実行ごとに診断を作る） */
+  sandboxDiagnostics?: import("../platform/sandboxDiagnostics.js").SandboxDiagnosticsPlatform;
   store: Store;
   approvals: ApprovalCenter;
   providers: Record<ProviderId, AgentProvider>;
@@ -195,11 +198,20 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         auth,
       };
       const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
+      const diagnostics = deps.sandboxDiagnostics && (chat.provider === "claude" || chat.provider === "codex") ? new TurnSandboxDiagnostics(deps.sandboxDiagnostics) : null;
+      params.sandboxDiagnostics = diagnostics;
+      params.onAgentSpawned = diagnostics?.onSpawn;
+      const closeDiagnostics = () => diagnostics?.close();
+      signal.addEventListener("abort", closeDiagnostics, { once: true });
+      if (signal.aborted) closeDiagnostics();
       // AI の操作ツールは、この実行の鍵でコアの MCP サーバーに出し、プロバイダーにはその口だけを渡す（どの CLI でも同じツール。終わったら鍵を捨てる）
-      const tools = deps.toolHost?.open(turnToolServers(params, callbacks, signal)) ?? null;
+      let tools: ReturnType<McpToolHost["open"]> | null = null;
       try {
+        tools = deps.toolHost?.open(turnToolServers(params, callbacks, signal)) ?? null;
         return await providers[chat.provider].run({ ...params, tools: tools?.endpoints ?? [] }, callbacks, signal);
       } finally {
+        signal.removeEventListener("abort", closeDiagnostics);
+        diagnostics?.close();
         tools?.close();
       }
     }

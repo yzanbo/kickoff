@@ -70,3 +70,32 @@ test("実行が失敗しても鍵を捨てる", async () => {
   await until(() => store.chats.get(chat.id)?.status === "failed");
   assert.equal(host.openSessions, 0);
 });
+
+for (const providerId of ["claude", "codex"] as const) {
+  test(`${providerId}: 同じ限定診断ツールを MCP から呼べる。実行終了後は診断も閉じる`, async () => {
+    const host = new McpToolHost(() => "http://127.0.0.1:1");
+    let diagnostic: ProviderTurnParams["sandboxDiagnostics"];
+    const provider = new ScriptedProvider(async (params) => {
+      diagnostic = params.sandboxDiagnostics;
+      params.onAgentSpawned?.(123);
+      const endpoint = params.tools!.find((t) => t.name === "kickoff_chat")!;
+      assert.ok(endpoint.autoAllow.includes("start_sandbox_diagnostics"));
+      assert.ok(endpoint.autoAllow.includes("read_sandbox_denials"));
+      const client = await connect(host, endpoint);
+      try {
+        const tools = await client.listTools();
+        const start = tools.tools.find((t) => t.name === "start_sandbox_diagnostics")!;
+        assert.deepEqual(start.inputSchema.properties, {});
+        const result = await client.callTool({ name: "start_sandbox_diagnostics", arguments: {} });
+        assert.equal(JSON.parse((result.content as { text: string }[])[0].text).status, "capturing");
+      } finally { await client.close(); }
+      return { status: "completed", sessionId: "s" };
+    });
+    const rootTime = Math.floor(Date.now() / 1000) * 1000;
+    const { runner, store, project } = setupCore(provider, { toolHost: host, sandboxDiagnostics: { processes: async () => [{ pid: 123, ppid: 1, startedAt: rootTime }], denials: async () => [] } });
+    const chat = await runner.start({ projectId: project.id, provider: providerId, prompt: "診断" });
+    await until(() => store.chats.get(chat.id)?.status === "completed");
+    assert.equal(JSON.parse(await diagnostic!.start()).status, "unavailable");
+    assert.equal(host.openSessions, 0);
+  });
+}

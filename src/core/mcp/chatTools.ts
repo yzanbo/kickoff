@@ -37,12 +37,16 @@ import { NOTIFY_INSTRUCTIONS, notifyTools } from "./chatNotifyTools.js";
 import { USER_VIEW_INSTRUCTIONS, userViewTools } from "./chatUserViewTools.js";
 import { REMOVE_INSTRUCTIONS, removeTools } from "./chatRemoveTools.js";
 import { WORKPLACE_INSTRUCTIONS, workplaceTools } from "./chatWorkplaceTools.js";
+import { DIAGNOSTIC_INSTRUCTIONS, diagnosticTools } from "./chatDiagnosticTools.js";
+import type { AiSandboxDiagnostics } from "../chat/sandboxDiagnostics.js";
+import { AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL } from "@shared/chat/aiSandboxDiagnostics";
 
 /** Kickoff のチャットを AI が操作するツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_chat__…） */
 export const CHAT_SERVER = "kickoff_chat";
 
 /** 1 回の実行に渡すチャットのツールの中身（チャットを作るのは設定と世代で、ターミナルはメインプロセスがないと渡さないことがある。ほかはどのチャットにも渡す） */
 export interface ChatTools {
+  diagnostics?: AiSandboxDiagnostics | null;
   createChat: AiCreateChatTools | null;
   chatEdit: AiChatEditTools | null;
   open: AiOpenTools | null;
@@ -62,6 +66,7 @@ export interface ChatTools {
  * 権限モードにかかわらず同じに効く（Auto mode でも承認を飛ばさない）。名前・固定・グループは聞かずに変える
  */
 const chatToolNames = (tools: ChatTools) => [
+  ...(tools.diagnostics ? [AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL] : []),
   ...(tools.createChat ? [AI_CREATE_CHAT_TOOL] : []),
   ...(tools.chatEdit ? [AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL] : []),
   ...(tools.open ? [AI_OPEN_MEMO_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_SQL_TOOL, AI_ADD_DRAFT_TOOL] : []),
@@ -100,6 +105,7 @@ const EDIT_INSTRUCTIONS = [
 const instructionsFor = (tools: ChatTools) =>
   [
     "Kickoff（このチャットを動かしているアプリ）のチャットなどを操作するツール。",
+    ...(tools.diagnostics ? DIAGNOSTIC_INSTRUCTIONS : []),
     ...(tools.createChat ? CREATE_INSTRUCTIONS : []),
     ...(tools.chatEdit ? EDIT_INSTRUCTIONS : []),
     ...(tools.open ? OPEN_INSTRUCTIONS : []),
@@ -202,13 +208,14 @@ function chatEditTools(chatEdit: AiChatEditTools) {
 
 /** 1 回の実行に渡す、チャットを操作するツールの MCP サーバー（渡すツールがなければ null） */
 export function chatToolServer(tools: ChatTools, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): ToolServer | null {
-  if (!tools.createChat && !tools.chatEdit && !tools.open && !tools.read && !tools.project && !tools.terminal && !tools.visual && !tools.worktree && !tools.notify && !tools.userView && !tools.remove && !tools.workplace) return null;
+  if (!tools.diagnostics && !tools.createChat && !tools.chatEdit && !tools.open && !tools.read && !tools.project && !tools.terminal && !tools.visual && !tools.worktree && !tools.notify && !tools.userView && !tools.remove && !tools.workplace) return null;
   return {
     name: CHAT_SERVER,
     // 画面と記録が見分けに使う名前は Claude Code の見え方（mcp__kickoff_chat__…）なので、頭を外してツールの名前にする
     autoAllow: chatToolNames(tools).map((name) => name.replace(`mcp__${CHAT_SERVER}__`, "")),
     instructions: instructionsFor(tools),
     tools: [
+      ...(tools.diagnostics ? diagnosticTools(tools.diagnostics) : []),
       ...(tools.createChat ? [createChatTool(tools.createChat, cb, signal)] : []),
       ...(tools.chatEdit ? chatEditTools(tools.chatEdit) : []),
       ...(tools.open ? openTools(tools.open) : []),

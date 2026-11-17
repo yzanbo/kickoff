@@ -150,6 +150,7 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
       args,
       env,
       cwd: params.cwd,
+      onProcessSpawned: params.onAgentSpawned,
       onNotification,
       onServerRequest: createApprovalHandler({ params, guard, cb, signal, items, steer, approvedWrites }),
       onClosed: (reason) => finish({ id: turnId ?? "", status: "failed", error: { message: reason, codexErrorInfo: null, additionalDetails: null } }),

@@ -1,6 +1,7 @@
 // OS ごとに違う処理の口。コアはここを通して OS に触れ、OS ごとのコマンド・パスを散らさない（いまは macOS だけ。ほかの OS は同じ形で足す）
 import type { DockerEngineStarter, VoiceStatus } from "@shared/types";
 import type { AudioInput } from "../voice/types.js";
+import type { SandboxDiagnosticsPlatform } from "./sandboxDiagnostics.js";
 
 /** TCP のポートを待っているソケット 1 つ */
 export interface ListeningSocket {
@@ -71,6 +72,8 @@ export interface TerminalShell {
 
 /** OS ごとに違う処理 */
 export interface HostPlatform {
+  /** OS の拒否ログの限定診断（未対応ならツールを出さない） */
+  sandboxDiagnostics?: SandboxDiagnosticsPlatform;
   /** アプリの保存先を置く親のフォルダ（Electron の appData と同じ場所。製品版と開発版の保存先はこの下の名前で分ける） */
   appDataRoot: string;
   /** GUI から起動したアプリはログインシェルの PATH を引き継がないので、取り込んで process.env.PATH に足す（同期。単体のコア） */

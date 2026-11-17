@@ -13,6 +13,7 @@ import type { ToolServer } from "./tool.js";
 export function turnToolServers(params: ProviderTurnParams, cb: Pick<ProviderCallbacks, "requestApproval">, signal: AbortSignal): ToolServer[] {
   const chat = chatToolServer(
     {
+      diagnostics: params.sandboxDiagnostics ?? null,
       createChat: params.createChat ?? null,
       chatEdit: params.chatEdit ?? null,
       open: params.open ?? null,

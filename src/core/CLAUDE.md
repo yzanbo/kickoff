@@ -103,6 +103,10 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## AI の操作ツール（mcp/）
 
+- 診断の実機検証（2026-11-17、開発版のみ）: Claude Code（Haiku）・Codex（Luna）の両方から共通の診断ツールを呼べた。ディレクトリの `fs.watch` は Claude Code では成功し、Codex では `EMFILE` を再現。同じ Node 子プロセスの `mach-lookup com.apple.FSEvents` の拒否をライブ収集で取得し、原因を確認した。保存済みログの `log show` だけでは取得できなかった。`log stream` は `--type log --no-backtrace` で余分なイベント・バックトレースを外す（外さないと出力上限に達した）。
+
+- OS の砂場の拒否ログ診断（`mcp/chatDiagnosticTools.ts`・`chat/sandboxDiagnostics.ts`・`platform/macos/sandboxDiagnostics.ts`・`sandboxLogStream.ts`）: Claude Code・Codex に共通の `start_sandbox_diagnostics` → エラー再現 → `read_sandbox_denials`。引数なし。コアが固定の `/usr/bin/log stream` で OS 発信の拒否だけを最長 2 分読み、250ms ごとに起動時刻付きの親子を調べる。読んだ・実行が終わった・中断したら収集も止める。SIGTERM で止まらなければ SIGKILL。コアが落ちたときの子の後始末にも登録する。プロセスは 256、区間は 1024、保持する候補は 1000、結果は 100 件、OS の出力は 1MB まで。CLI の起動通知の PID からたどれる子だけで、両端を観測した時間の記録に限定する。短命なプロセスなどは欠ける。OS ログの `processID`（kernel など）を拒否された actor と取り違えない。起動通知・親子が不明なら対象を広げず取得不可。生の本文・パス・未知のサービス名・コマンドラインは出さず、FSEvents の既知のサービス名だけ残す。他チャットのログは返さない。`unavailable` と `no_matching_entries` は別で、後者も「拒否なし」の証明ではない。失敗は固定の分類コードだけを返す。砂場の許可コマンド・権限・OS の設定は変えない。保存済みログだけを提供する OS の口では固定の `log show` 相当を使う。テストは各 `sandboxDiagnostics.test.ts`・`sandboxLogStream.test.ts`・`mcp/turnTools.test.ts`。
+
 AI に Kickoff を操作させるツール（埋め込みブラウザ `kickoff_browser`・プロジェクトの DB `kickoff_db`・チャットなど `kickoff_chat`）は、どの CLI からもつなげるコアの 1 つの MCP サーバーで出す（メモの仕様書「0021_Codex・Copilot・Cursor 対応」の Q7。2026-11-15 に利用者が決めた。前は Claude Agent SDK のプロセス内の MCP サーバーで、Claude Code 専用だった）。
 
 - 定義はプロバイダーに依らない形（`tool.ts`）: `defineTool(名前, 説明, 引数の形（zod）, 中身, { annotations })` → `ToolDef`。サーバーは `ToolServer`（名前・使い方 `instructions`・ツール・聞かずに使わせるツール `autoAllow` = 承認と断りをツールの中で行うもの・読むだけのもの。CLI の許可の設定に直すのはプロバイダー）。中身は `src/core/chat/ai*.ts` と `databases/aiTools.ts`・`browser/` で、ここは引数の形と失敗の文と承認の聞き方だけ。
