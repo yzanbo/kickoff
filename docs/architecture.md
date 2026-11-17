@@ -214,7 +214,7 @@ CREATE TABLE chats (
   model TEXT, effort TEXT, permission_mode TEXT NOT NULL,
   fast_mode INTEGER NOT NULL DEFAULT 0 CHECK (fast_mode IN (0, 1)),
   worktree_path TEXT CHECK (worktree_path <> ''),   -- NULL = 本体
-  branch TEXT CHECK (branch <> ''),                 -- 最後に送ったときのブランチ。NULL = 分からない
+  branch TEXT CHECK (branch <> ''),                 -- 最後に作業したブランチ（送ったとき・作業の終わりに覚える）。NULL = 分からない
   status TEXT NOT NULL,                             -- running / completed / failed / cancelled（queued・waiting はなくす）
   error TEXT,
   session_id TEXT,

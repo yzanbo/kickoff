@@ -4,6 +4,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { ScriptedProvider, type Script } from "../testing/fakeProvider.js";
 import { tempDir } from "../testing/tempDir.js";
+import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { setupCore, until } from "../testing/testCore.js";
 import { judgeFileWrite } from "./guard/writeScope.js";
 import { UploadStore } from "./uploads.js";
@@ -375,4 +376,17 @@ test("kickoff-trash があれば、PATH・置き場・チャットの ID を渡�
   await until(() => plain.store.chats.get(other.id)?.status === "completed");
   assert.equal(plain.provider.calls[0].deleteGuard, false);
   assert.equal(plain.provider.calls[0].env?.KICKOFF_TRASH_DIR, undefined);
+});
+
+test("作業の途中で AI がブランチを替えたら、作業の終わりに最後に作業したブランチを覚え直す（失敗で終わっても）", async () => {
+  const { store, runner, project } = setup(async (params) => {
+    gitIn(params.cwd)("switch", "-q", "-c", params.prompt);
+    return params.prompt === "feat/fail" ? { status: "failed", sessionId: "s", error: "失敗" } : { status: "completed", sessionId: "s", result: "ok", turns: 1 };
+  });
+  gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
+  const chat = await runner.start({ projectId: project.id, prompt: "feat/x" });
+  // 結果を書く前に覚え直す
+  await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.branch === "feat/x");
+  await runner.send(chat.id, "feat/fail");
+  await until(() => store.chats.get(chat.id)?.status === "failed" && store.chats.get(chat.id)?.branch === "feat/fail");
 });
