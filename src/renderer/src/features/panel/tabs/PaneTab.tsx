@@ -1,4 +1,5 @@
 import type { HTMLAttributes } from "react";
+import { Paperclip } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { knownChat, useKnownChat } from "@/stores/chats";
 import { useFileTabDirty } from "@/features/editor/fileTabs";
@@ -96,7 +97,7 @@ export function PaneTab({
       iconClass={spec.iconClass}
       badge={spec.badge && !SURFACES[panel.surface].noKindBadges ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
       label={label}
-      after={activity}
+      after={t.kind === "new" && !t.draftText?.trim() && (t.draftAttachments ?? t.seed?.attachments ?? []).length > 0 ? <Paperclip size={12} aria-label="添付あり" /> : activity}
       group={show("group") ? group : undefined}
       tag={workplaceTag}
       tagKey={workplaceTag && place ? `${place.worktree_path ?? ""}|${place.branch ?? ""}` : undefined}

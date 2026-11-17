@@ -1,12 +1,12 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { navigate } from "@/app/router";
-import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
 import type { DraftTarget } from "@/features/chatList/buckets";
 import type { DraftTabSpot } from "@/features/chatList/manualOrder";
 import { homePane, isTabVisible, paneOfTab, type SplitDir } from "@/features/panel/layout/paneTree";
 import { panelKey, panelScreen } from "@/features/panel/surfaces";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { panelActions } from "./panelActions";
+import { draftDisplayTitle } from "./draftDisplayTitle";
 import { forwardPanelOp } from "./panelMirror";
 import { allPanels, dispatchPanel, isPanelMounted, panelStateOf, panelsVersion, subscribePanels } from "./panelStore";
 
@@ -27,10 +27,12 @@ export interface PanelDraft extends DraftTarget {
   pinned: boolean;
   /** 送る前に付けた名前（右クリックの「名前を変更」。送ったらその名前のチャットになる。なければ「New Chat」） */
   title?: string;
+  /** 送る前の添付があるか */
+  hasAttachments?: boolean;
 }
 
-/** 下書きの名前（付けていなければ「New Chat」。タブ・サイドバー・ボード・⌘⇧A で同じ） */
-export const draftTitleOf = (draft: Pick<PanelDraft, "title">) => draft.title ?? NEW_CHAT_TITLE;
+/** 下書きの表示名（手動の名前、本文の最初の行、New Chat の順） */
+export const draftTitleOf = (draft: Pick<PanelDraft, "title" | "text">) => draftDisplayTitle(draft.title, draft.text);
 
 /** 下書きを指す値（ドラッグで渡す。どの欄のパネルの、どのタブか） */
 export type DraftRef = Pick<PanelDraft, "panel" | "key">;
@@ -50,6 +52,7 @@ const sameDraft = (a: PanelDraft, b: PanelDraft) =>
   a.text === b.text &&
   a.showing === b.showing &&
   a.pinned === b.pinned &&
+  a.hasAttachments === b.hasAttachments &&
   a.title === b.title;
 
 /** 新しいチャットのタブの下書き（showing はその欄で表示しているか） */
@@ -63,6 +66,7 @@ const draftOfTab = (panel: string, t: Extract<PanelTab, { kind: "new" }>, showin
   showing,
   pinned: t.pinned === true,
   title: t.title,
+  hasAttachments: (t.draftAttachments ?? t.seed?.attachments ?? []).length > 0,
 });
 
 /** パネルのタブが下書きなら、その下書き（タブの右クリックのメニュー。表示しているかは見ない） */
