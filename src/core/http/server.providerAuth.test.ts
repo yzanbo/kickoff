@@ -84,3 +84,47 @@ test("新しいチャット: AI を選べ（省けばプロジェクトの AI）
   assert.ok(notice?.type === "notice" && notice.data.message.includes("AI が違うので"));
   assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { text: "q", provider: "nope" })).status, 400);
 });
+
+test("ブラウザでのログイン: 始めると開く URL を返し、終わり・失敗・やめたを provider_login で知らせる（ログインを持たない AI は 400）", async () => {
+  const { call, bus, provider } = setup();
+  assert.equal((await call("POST", "/api/providers/codex/login")).status, 400);
+
+  const events: unknown[] = [];
+  const unsubscribe = bus.subscribe((e) => {
+    if (e.type === "provider_login") events.push(e);
+  });
+  // 偽のログイン（終わり方をテストから決める）
+  const pending: { resolve: () => void; reject: (e: Error) => void }[] = [];
+  let cancels = 0;
+  Object.assign(provider, {
+    login: async () => {
+      let settle!: { resolve: () => void; reject: (e: Error) => void };
+      const completed = new Promise<true>((resolve, reject) => (settle = { resolve: () => resolve(true), reject }));
+      pending.push(settle);
+      return { authUrl: `https://auth.example/${pending.length}`, completed, cancel: () => (cancels++, settle.reject(new Error("やめました"))) };
+    },
+  });
+  try {
+    const started = await call("POST", "/api/providers/codex/login");
+    assert.deepEqual(started.body, { auth_url: "https://auth.example/1" });
+    pending[0].resolve();
+    await until(() => events.length === 1);
+    assert.deepEqual(events[0], { type: "provider_login", provider: "codex", status: "completed", error: null });
+
+    await call("POST", "/api/providers/codex/login");
+    pending[1].reject(new Error("ブラウザで断られました"));
+    await until(() => events.length === 2);
+    assert.deepEqual(events[1], { type: "provider_login", provider: "codex", status: "failed", error: "ブラウザで断られました" });
+
+    // やめる → cancelled。始め直したら前のものは知らせずにやめる
+    await call("POST", "/api/providers/codex/login");
+    await call("POST", "/api/providers/codex/login");
+    assert.equal(cancels, 1);
+    assert.equal((await call("DELETE", "/api/providers/codex/login")).status, 204);
+    await until(() => events.length === 3);
+    assert.deepEqual(events[2], { type: "provider_login", provider: "codex", status: "cancelled", error: null });
+    assert.equal((await call("DELETE", "/api/providers/codex/login")).status, 204);
+  } finally {
+    unsubscribe();
+  }
+});

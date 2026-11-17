@@ -30,12 +30,18 @@ test("AI の操作ツール: mcp_servers.<名前> に URL・鍵の見出し・�
   assert.equal((mcpServerOverrides(tools, "auto")["mcp_servers.kickoff_chat"] as { default_tools_approval_mode: string }).default_tools_approval_mode, "approve");
 });
 
-test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ。承認はいつも untrusted、システムプロンプトは developer_instructions", () => {
+test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ。承認は on-request で守りは PreToolUse のフック、システムプロンプトは developer_instructions", () => {
   const sandbox = { writableDirs: ["/memo"], readOnlyDirs: ["/ref"], unsandboxedCommands: [], proxyPort: null };
   assert.deepEqual(codexSandboxPolicy(params({ permissionMode: "plan" })), { type: "readOnly", networkAccess: true });
   assert.deepEqual(codexSandboxPolicy(params({ bashSandbox: sandbox })), { type: "workspaceWrite", writableRoots: ["/memo"], networkAccess: true, excludeTmpdirEnvVar: false, excludeSlashTmp: false });
   const over = threadOverrides(params({ bashSandbox: sandbox, model: "gpt-x" }));
-  assert.equal(over.approvalPolicy, "untrusted");
+  assert.equal(over.approvalPolicy, "on-request");
+  // 守りのフック（Bash と apply_patch）と、フックの口の URL・鍵を AI のコマンドから外す
+  assert.equal(over.config?.["features.hooks"], true);
+  assert.equal((over.config?.["hooks.PreToolUse"] as { matcher: string }[])[0].matcher, "^(Bash|apply_patch)$");
+  assert.deepEqual(over.config?.["shell_environment_policy.exclude"], ["KICKOFF_CODEX_HOOK_URL", "KICKOFF_CODEX_HOOK_TOKEN"]);
+  // 作業フォルダの信頼をこちらから伝える（Codex が利用者の config.toml に書き足さないように。パスの「.」で区切らない入れ子）
+  assert.deepEqual(threadOverrides(params({ cwd: "/w/my.app" })).config?.projects, { "/w/my.app": { trust_level: "trusted" } });
   assert.equal(over.sandbox, "workspace-write");
   assert.equal(over.developerInstructions, "文脈");
   assert.deepEqual(over.config?.["sandbox_workspace_write.writable_roots"], ["/memo"]);
@@ -50,8 +56,12 @@ test("指示: 添える文脈を先に、別の塊で", () => {
 
 test("起動: サブスクは鍵の環境変数を外し、API キーは CODEX_API_KEY と forced_login_method で渡す（起動の引数に鍵を載せない）", () => {
   const base = { PATH: "/bin", OPENAI_API_KEY: "old", CODEX_API_KEY: "old2" };
-  const sub = appServerLaunch(base, { env: { GH_TOKEN: "g" } });
+  const sub = appServerLaunch({ ...base, KICKOFF_CODEX_HOOK_TOKEN: "stale" }, { env: { GH_TOKEN: "g" } }, { url: "http://127.0.0.1:1/", token: "t" });
   assert.deepEqual(sub.args, ["app-server"]);
+  // フックの口は環境変数で渡す（起動の引数には載せない。前の値は引き継がない）
+  assert.equal(sub.env.KICKOFF_CODEX_HOOK_URL, "http://127.0.0.1:1/");
+  assert.equal(sub.env.KICKOFF_CODEX_HOOK_TOKEN, "t");
+  assert.equal(appServerLaunch({ KICKOFF_CODEX_HOOK_TOKEN: "stale" }, {}).env.KICKOFF_CODEX_HOOK_TOKEN, undefined);
   assert.equal(sub.env.OPENAI_API_KEY, undefined);
   assert.equal(sub.env.CODEX_API_KEY, undefined);
   assert.equal(sub.env.GH_TOKEN, "g");
@@ -95,6 +105,9 @@ test("モデル: 隠すものを除き、深さは Kickoff の段だけ。1 回�
   assert.deepEqual(askModelOf(models, "standard"), { model: "gpt-big", effort: "medium" });
   assert.deepEqual(askModelOf(models, "light"), { model: "gpt-big-mini", effort: "low" });
   assert.deepEqual(askModelOf([], "light"), { model: null, effort: "low" });
+  // mini がなければ、説明が速い・安いと言うモデル（2026-11-17 の一覧の gpt-6-luna の形）
+  const noMini = [model({ model: "gpt-6.1-sol", isDefault: true, description: "Latest workhorse model." }), model({ model: "gpt-6-luna", description: "Fast and affordable model for easier tasks." })];
+  assert.deepEqual(askModelOf(noMini, "light"), { model: "gpt-6-luna", effort: "low" });
 });
 
 test("使用枠: 短い枠を 5 時間、長い枠を週に", () => {

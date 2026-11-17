@@ -20,7 +20,7 @@ export function UsagePanel() {
   const [services, setServices] = useState<ServiceUsage[]>();
   // 開いている間の取り直しは失敗だけを出し、「更新」は押せなくして「更新中…」を出す
   const action = useAction<"refresh">();
-  // Kickoff のチャットでまだ使えない AI（Codex・Gemini）は、使用状況は見られるが今後の対応予定であることを添える
+  // Kickoff のチャットでまだ使えない AI（GitHub Copilot・Cursor・Gemini）は、使用状況は見られるが今後の対応予定であることを添える
   const planned = usePlannedProviders();
 
   const load = useEffectEvent(() => void action.guard(async () => setServices(await api.usageServices())));

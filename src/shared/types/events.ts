@@ -1,6 +1,6 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 import type { Approval } from "./approval";
-import type { AppSettings } from "./settings";
+import type { AppSettings, ProviderId } from "./settings";
 import type { Project } from "./project";
 import type { PlanUsage } from "./provider";
 import type { Chat, ChatGroup, ChatImageHost } from "./chat";
@@ -78,7 +78,16 @@ export type BusEvent =
   /** つないだ端末の一覧が変わった（中身は送らない。画面は読み直す） */
   | { type: "devices" }
   /** Kickoff のゴミ箱の中身が変わった（入れた・戻した・消えた。project_id は出すプロジェクト。画面は「ゴミ箱」タブを読み直す） */
-  | { type: "trash"; project_id: number | null };
+  | { type: "trash"; project_id: number | null }
+  /**
+   * AI のブラウザでのログインが終わった（設定の「接続」の「ブラウザでログイン」。POST /api/providers/:id/login で始めたもの。
+   * completed = ログインした / failed = できなかった（error に理由）/ cancelled = やめた。画面は AI の状態を読み直す。この Mac の画面だけに届ける）
+   */
+  | { type: "provider_login"; provider: ProviderId; status: ProviderLoginStatus; error: string | null };
+
+/** ブラウザでのログインの終わり方 */
+export const PROVIDER_LOGIN_STATUSES = ["completed", "failed", "cancelled"] as const;
+export type ProviderLoginStatus = (typeof PROVIDER_LOGIN_STATUSES)[number];
 
 /** AI が開くときの場所（side = いちばん上の親チャットの画面の右の欄 / window = 別ウィンドウ） */
 export const OPEN_PLACES = ["side", "window"] as const;

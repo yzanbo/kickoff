@@ -54,6 +54,11 @@ export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provi
  * プロジェクトのフォルダ（本体）を変える（PUT /api/projects/:id/repo-path）。取り込みと同じ決まりで、git のルートのフォルダを指す。
  * git でない・コミットがないフォルダは init_git で初期化に同意したときだけ
  */
+/** AI のブラウザでのログインを始めた答え（POST /api/providers/:id/login。画面は auth_url を既定のブラウザで開き、provider_login の知らせを待つ） */
+export interface ProviderLoginStart {
+  auth_url: string;
+}
+
 export interface ProjectRepoPathBody {
   path: string;
   init_git?: boolean;

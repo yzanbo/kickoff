@@ -1,6 +1,7 @@
 import type { EffortLevel } from "@shared/types";
 import type { ToolEndpoint } from "../../mcp/host.js";
 import type { ProviderTurnParams } from "../types.js";
+import { HOOK_TOKEN_ENV, HOOK_URL_ENV, hookConfig } from "./hooks.js";
 import type { JsonValue, SandboxPolicy, TextInput, ThreadOverrides } from "./protocol.js";
 
 /**
@@ -58,7 +59,17 @@ function shellEnvSet(env: Record<string, string> | undefined): Record<string, st
 }
 
 /**
- * thread/start・thread/resume の上書き。承認はいつも untrusted にして Codex に聞かせ、来た承認に Kickoff の守りを当てる（approvals.ts）。
+ * 承認の決まり（メモの仕様書「0028」の F1）。on-request = ふだんのコマンド・ファイルの変更は砂場の中で聞かずに流し、砂場から出るときだけ聞く。
+ * 守りと権限モードは PreToolUse のフック（hooks.ts・preToolUse.ts）で当てる。前の untrusted は、承認したコマンドを砂場の外で動かし、
+ * Codex ももう対応しない（非推奨）ため使わない
+ */
+export const CODEX_APPROVAL_POLICY = "on-request" as const;
+
+/** AI のコマンドの環境から外す変数（フックの口の URL と鍵。フックには app-server の環境から届く） */
+const HIDDEN_FROM_COMMANDS = [HOOK_URL_ENV, HOOK_TOKEN_ENV];
+
+/**
+ * thread/start・thread/resume の上書き。承認は on-request、守りは PreToolUse のフック（フックを信頼した覚えは turn.ts が足す）。
  * システムプロンプトに足す文は developer_instructions（Codex の既定の指示は残す）。API キーで動かすときは、子プロセスから鍵の環境変数を外す既定を強める
  */
 export function threadOverrides(params: ProviderTurnParams): ThreadOverrides {
@@ -66,11 +77,17 @@ export function threadOverrides(params: ProviderTurnParams): ThreadOverrides {
   return {
     model: params.model,
     cwd: params.cwd,
-    approvalPolicy: "untrusted",
+    approvalPolicy: CODEX_APPROVAL_POLICY,
     sandbox: params.permissionMode === "plan" ? "read-only" : "workspace-write",
     developerInstructions: params.systemPrompt || null,
     config: {
       ...mcpServerOverrides(params.tools ?? [], params.permissionMode),
+      ...hookConfig(),
+      "shell_environment_policy.exclude": HIDDEN_FROM_COMMANDS,
+      // 作業フォルダの信頼を毎回こちらから伝える（伝えないと Codex が利用者の config.toml に「信頼済みのプロジェクト」の欄を書き足し続ける。
+      // メモの仕様書「0028」の F9）。値はいまの振る舞い（Kickoff に登録したプロジェクトは信頼する = リポジトリの .codex/ も読む）のまま。
+      // 信頼するかどうかの決まりは Claude と共通の課題として未定（0028 の 5 節）。パスに「.」が入っても区切らないよう入れ子で渡す
+      projects: { [params.cwd]: { trust_level: "trusted" } },
       "sandbox_workspace_write.writable_roots": writableRootsOf(params),
       "sandbox_workspace_write.network_access": true,
       ...(apiKey ? { "shell_environment_policy.ignore_default_excludes": false } : {}),
@@ -98,9 +115,17 @@ const CODEX_KEY_VARS = ["CODEX_API_KEY", "OPENAI_API_KEY", "CODEX_ACCESS_TOKEN"]
 export function appServerLaunch(
   base: Record<string, string | undefined>,
   params: Pick<ProviderTurnParams, "env" | "auth">,
+  hook?: { url: string; token: string },
 ): { args: string[]; env: Record<string, string | undefined> } {
   const env: Record<string, string | undefined> = { ...base, ...(params.env ?? {}) };
   for (const name of CODEX_KEY_VARS) delete env[name];
+  // フックの口（PreToolUse のフックが app-server の環境から読む。AI のコマンドからは外す = threadOverrides）
+  delete env[HOOK_URL_ENV];
+  delete env[HOOK_TOKEN_ENV];
+  if (hook) {
+    env[HOOK_URL_ENV] = hook.url;
+    env[HOOK_TOKEN_ENV] = hook.token;
+  }
   const args = ["app-server"];
   if (params.auth?.mode === "api_key" && params.auth.apiKey) {
     env.CODEX_API_KEY = params.auth.apiKey;

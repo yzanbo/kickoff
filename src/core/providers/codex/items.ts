@@ -22,9 +22,11 @@ export interface ItemState {
   compacting: boolean;
   /** 手で頼んだ圧縮（thread/compact/start）か */
   manualCompact: boolean;
+  /** 圧縮を始めたときの大きさ（分からなければ null。要約が終わるころにはトークン数が要約のあとの値に変わっているため） */
+  preCompactTokens: number | null;
 }
 
-export const createItemState = (): ItemState => ({ outputs: new Map(), usage: null, compacting: false, manualCompact: false });
+export const createItemState = (): ItemState => ({ outputs: new Map(), usage: null, compacting: false, manualCompact: false, preCompactTokens: null });
 
 const clip = (text: string) => (text.length > TOOL_RESULT_LIMIT ? `${text.slice(0, TOOL_RESULT_LIMIT)}\n…（省略）` : text);
 
@@ -81,6 +83,7 @@ export function itemStarted(item: ThreadItem, cb: ProviderCallbacks, state: Item
     case "contextCompaction":
       if (!state.compacting) {
         state.compacting = true;
+        state.preCompactTokens = state.usage?.last.totalTokens ?? null;
         cb.compacting?.(true);
       }
       return;
@@ -99,7 +102,8 @@ export function itemCompleted(item: ThreadItem, cb: ProviderCallbacks, state: It
       const it = item as Extract<ThreadItem, { type: "reasoning" }>;
       const text = [...it.summary, ...it.content].join("\n\n").trim();
       const duration = it.startedAtMs && it.completedAtMs ? it.completedAtMs - it.startedAtMs : undefined;
-      if (text || duration !== undefined) cb.emit({ type: "thinking", text, ...(duration !== undefined ? { duration_ms: duration } : {}) });
+      // 中身がなく 1 秒に満たない思考は残さない（Codex は空の要約の項目をたびたび出し、画面に空の行が並ぶため。メモの仕様書「0028」の F4）
+      if (text || (duration ?? 0) >= 1000) cb.emit({ type: "thinking", text, ...(duration !== undefined ? { duration_ms: duration } : {}) });
       return;
     }
     case "commandExecution": {
@@ -137,7 +141,11 @@ export function itemCompleted(item: ThreadItem, cb: ProviderCallbacks, state: It
     }
     case "contextCompaction": {
       // 要約の記録を先に残してから圧縮中を外す（Claude Code と同じ順。圧縮中に預かった「いま」が圧縮の下に並ぶ）
-      cb.emit({ type: "compact", trigger: state.manualCompact ? "manual" : "auto", pre_tokens: state.usage?.last.totalTokens ?? 0 });
+      // 始めたときの大きさが分かれば前後を、分からなければ（手で頼んだ圧縮は app-server を起こした直後で、まだ数が届いていない）いまの数だけを残す
+      const now = state.usage?.last.totalTokens ?? 0;
+      const pre = state.preCompactTokens;
+      state.preCompactTokens = null;
+      cb.emit({ type: "compact", trigger: state.manualCompact ? "manual" : "auto", ...(pre !== null && pre !== now ? { pre_tokens: pre, post_tokens: now } : { pre_tokens: now }) });
       if (state.compacting) {
         state.compacting = false;
         cb.compacting?.(false);

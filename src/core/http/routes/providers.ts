@@ -3,15 +3,61 @@ import { z } from "zod";
 import { claudeEffortDefault } from "../../providers/claude/effortDefault.js";
 import { githubStatus } from "../../git/github.js";
 import type { ServerDeps } from "../server.js";
-import { PROVIDER_IDS, type ModelOption, type ProviderId, type SlashCommandOption } from "@shared/types";
+import { PROVIDER_IDS, type ModelOption, type ProviderId, type ProviderLoginStart, type SlashCommandOption } from "@shared/types";
 import { ttlCache } from "../../system/ttlCache.js";
 import { lookups } from "../lookups.js";
 import { providerFeatures } from "../../providers/features.js";
 import { jsonBody } from "../input.js";
+import { Invalid } from "../errors.js";
+import type { ProviderLogin } from "../../providers/types.js";
+import { errorMessage } from "@shared/errors";
 
 /** 外部 CLI（Claude などのプロバイダー・gh）の状態、チャット欄のモデルの一覧・/ のコマンド・既定の推論の深さ */
-export function providerRoutes(app: Hono, { store, providers, providerKeys }: ServerDeps) {
+export function providerRoutes(app: Hono, { store, providers, providerKeys, bus }: ServerDeps) {
   const { withWorkdir } = lookups(store);
+
+  // AI のブラウザでのログイン（メモの仕様書「0028」の段階 ③）。AI ごとに 1 つだけ持ち（メモリだけ）、始め直したら前のものはやめる。
+  // 終わったら provider_login を知らせる（画面は AI の状態を読み直す）。CLI が自分で資格情報を書くので、Kickoff は資格情報を持たない
+  const logins = new Map<ProviderId, ProviderLogin>();
+  // 利用者がやめたログイン（終わりを「やめた」として知らせる）
+  const cancelledLogins = new WeakSet<ProviderLogin>();
+  app.post("/api/providers/:id/login", async (c) => {
+    const id = z.enum(PROVIDER_IDS).parse(c.req.param("id"));
+    const provider = providers[id];
+    if (!provider.login) throw new Invalid(`${provider.label} は Kickoff からブラウザでログインできません`);
+    // 前のログインは覚えから外してからやめる（やめた知らせが、いまのログインの失敗として流れないように）
+    const previous = logins.get(id);
+    if (previous) {
+      logins.delete(id);
+      previous.cancel();
+    }
+    const login = await provider.login().catch((e: unknown) => {
+      throw new Invalid(`ログインを始められませんでした: ${errorMessage(e)}`);
+    });
+    logins.set(id, login);
+    void login.completed.then(
+      () => bus.publish({ type: "provider_login", provider: id, status: "completed", error: null }),
+      (e: unknown) => {
+        // 始め直したときの前のものは知らせない（いまのログインの様子と取り違えるため）
+        if (logins.get(id) !== login) return;
+        const cancelled = cancelledLogins.has(login);
+        bus.publish({ type: "provider_login", provider: id, status: cancelled ? "cancelled" : "failed", error: cancelled ? null : errorMessage(e) });
+      },
+    ).finally(() => {
+      if (logins.get(id) === login) logins.delete(id);
+    });
+    return c.json({ auth_url: login.authUrl } satisfies ProviderLoginStart);
+  });
+  // やめる（始めていなければ何もしない）
+  app.delete("/api/providers/:id/login", (c) => {
+    const id = z.enum(PROVIDER_IDS).parse(c.req.param("id"));
+    const login = logins.get(id);
+    if (login) {
+      cancelledLogins.add(login);
+      login.cancel();
+    }
+    return c.body(null, 204);
+  });
 
   // 状態に、その AI でできること（features）を添える（画面がないものを押せない形にする）
   // ログインの仕方と、API キーを置いたか（キーそのものは出さない）も添える

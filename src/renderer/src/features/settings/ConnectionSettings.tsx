@@ -6,6 +6,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { GitHubStatusCard, StatusCard } from "@/ui/StatusCard";
 import { PLANNED_BADGE, usePlannedProviders } from "./plannedProviders";
 import { ProviderAuthSettings } from "./ProviderAuthSettings";
+import { canBrowserLogin, ProviderLoginButton } from "./ProviderLoginButton";
 
 /**
  * 設定: Kickoff サーバー（アドレス・起動した時刻・実行中のエージェント・スマホ連携）と、AI エージェントと GitHub の CLI のログイン状態。
@@ -61,6 +62,7 @@ export function ConnectionSettings() {
                 <>
                   {p.detail}
                   {p.account && <div className="muted small">{p.account}</div>}
+                  {canBrowserLogin(p) && <ProviderLoginButton provider={p} />}
                 </>
               }
             />

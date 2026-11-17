@@ -5,6 +5,7 @@ import type { ApprovalDecision } from "@shared/types";
 import { fakeCodexServer, type FakeCodexServer } from "../../testing/fakeStdioServer.js";
 import { until } from "../../testing/testCore.js";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "../types.js";
+import { HOOK_INACTIVE } from "./hookTrust.js";
 import { CodexProvider } from "./provider.js";
 import { experimentalProviders } from "../index.js";
 
@@ -75,9 +76,11 @@ test("実行: スレッドを作って指示を送り、返答・コマンドを
   );
   assert.deepEqual(rec.events[1], { type: "tool_use", id: "c1", name: "Bash", input: { command: "ls" } });
   assert.deepEqual(rec.streamed, ["でき"]);
-  // スレッドの上書き: 承認は untrusted、MCP は鍵の見出し付き（起動の引数・環境変数には載せない）
-  const start = server.requests.find((r) => r.method === "thread/start")!.params;
-  assert.equal(start.approvalPolicy, "untrusted");
+  // スレッドの上書き: 承認は on-request、守りのフックを信頼した覚えごと渡す、MCP は鍵の見出し付き（起動の引数・環境変数には載せない）
+  const start = server.requests.find((r) => r.method === "thread/start" && !r.params.ephemeral)!.params;
+  assert.equal(start.approvalPolicy, "on-request");
+  assert.ok(start.config["hooks.PreToolUse"]);
+  assert.deepEqual(Object.values(start.config["hooks.state"]), [{ trusted_hash: "sha256:fake" }]);
   assert.equal(start.developerInstructions, "Kickoff の文脈");
   assert.deepEqual(start.config["mcp_servers.kickoff_chat"].http_headers, { Authorization: "Bearer secret-key" });
   assert.ok(!JSON.stringify(server.spawned[0]).includes("secret-key"));
@@ -86,9 +89,17 @@ test("実行: スレッドを作って指示を送り、返答・コマンドを
   assert.ok(server.killed > 0);
 });
 
+test("守りのフックが信頼済みにならなければ、作業を始めずに失敗で返す（守りなしで動かさない）", async () => {
+  const server = fakeCodexServer();
+  server.handle("hooks/list", () => ({ data: [{ cwd: "/w", hooks: [], warnings: [], errors: [] }] }));
+  const result = await new CodexProvider({ spawn: server.spawn }).run(params(), recorder().cb, new AbortController().signal);
+  assert.equal(result.status, "failed");
+  assert.equal(result.error, HOOK_INACTIVE);
+  assert.ok(!server.requests.some((r) => r.method === "turn/start"));
+});
+
 test("続き: セッション ID のスレッドを resume してから送る", async () => {
   const server = fakeCodexServer();
-  server.handle("thread/resume", (p) => ({ thread: { id: p.threadId }, model: "gpt-fake" }));
   server.handle("turn/start", (p, s) => {
     setImmediate(() => s.notify("turn/completed", { threadId: p.threadId, turn: { id: "turn-9", status: "completed", error: null } }));
     return { turn: { id: "turn-9", status: "inProgress", error: null } };
@@ -96,7 +107,7 @@ test("続き: セッション ID のスレッドを resume してから送る", 
   const result = await new CodexProvider({ spawn: server.spawn }).run(params({ resumeSessionId: "thr-old" }), recorder().cb, new AbortController().signal);
   assert.equal(result.sessionId, "thr-old");
   assert.equal(result.lastMessageId, "turn-9");
-  assert.ok(!server.requests.some((r) => r.method === "thread/start"));
+  assert.ok(!server.requests.some((r) => r.method === "thread/start" && !r.params.ephemeral));
 });
 
 test("承認と守り: 消すコマンドは聞かずに断り、理由を turn/steer で伝える。ほかは毎回確認なら承認カードで聞く", async () => {
@@ -244,13 +255,13 @@ test("Sign in with ChatGPT の骨組み: ログインの URL を返し、account
     setImmediate(() => s.notify("account/login/completed", { loginId: "L1", success: true, error: null }));
     return { type: "chatgpt", loginId: "L1", authUrl: "https://auth.example/login" };
   });
-  const login = await new CodexProvider({ spawn: server.spawn }).startLogin();
+  const login = await new CodexProvider({ spawn: server.spawn }).login();
   assert.equal(login.authUrl, "https://auth.example/login");
   assert.equal(await login.completed, true);
   await until(() => server.killed > 0);
 });
 
-test("開発用の環境変数のときだけ Codex を使う（ほかは対応予定のまま）", () => {
+test("開発用の環境変数は , 区切りの ID の集まりとして読む（Codex はいつも本物なので使わない）", () => {
   assert.deepEqual([...experimentalProviders({})], []);
-  assert.deepEqual([...experimentalProviders({ KICKOFF_EXPERIMENTAL_PROVIDERS: "codex, cursor" })], ["codex", "cursor"]);
+  assert.deepEqual([...experimentalProviders({ KICKOFF_EXPERIMENTAL_PROVIDERS: "copilot, cursor" })], ["copilot", "cursor"]);
 });
