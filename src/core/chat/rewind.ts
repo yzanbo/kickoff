@@ -5,6 +5,7 @@ import { providerFeatureMissing, type FileRewindResult, type ProviderId, type Ch
 import { asInvalid, Invalid } from "../http/errors.js";
 import { resumePointBefore, sessionAt } from "./sessionPoints.js";
 import { isBeforeWorkplaceMove, WORKPLACE_FILES_LOCKED, WORKPLACE_REWIND_LOCKED } from "@shared/chat/workplaceMoves";
+import { isBeforeProviderSwitch, PROVIDER_FILES_LOCKED, PROVIDER_REWIND_LOCKED } from "@shared/chat/providerSwitch";
 
 /**
  * チャットを、自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す。
@@ -27,6 +28,7 @@ export async function rewindChat(
   if (target?.type !== "user") throw new Invalid("自分の発言のところからだけ巻き戻せます");
   // 作業場所を移した区切りより前の発言へは巻き戻せない（会話もファイルも。メモの仕様書「0025」の Q3）
   if (isBeforeWorkplaceMove(events, target.id)) throw new Invalid(WORKPLACE_REWIND_LOCKED);
+  if (isBeforeProviderSwitch(events, target.id)) throw new Invalid(PROVIDER_REWIND_LOCKED);
   const attachments = target.data.attachments ?? [];
   if (!input.text && attachments.length === 0) throw new Invalid("メッセージか添付ファイルが必要です");
 
@@ -82,6 +84,7 @@ export async function rewindFiles(
   if (target?.type !== "user") throw new Invalid("自分の発言のところからだけ戻せます");
   // 作業場所を移す前の発言は、ファイルの控えが元の作業場所のファイルを指すので戻さない（メモの仕様書「0025」の Q3）
   if (isBeforeWorkplaceMove(events, target.id)) throw new Invalid(WORKPLACE_FILES_LOCKED);
+  if (isBeforeProviderSwitch(events, target.id)) throw new Invalid(PROVIDER_FILES_LOCKED);
   const provider = providers[chat.provider];
   if (!provider.rewindFiles) throw new Invalid(providerFeatureMissing(provider.label, "rewind_files"));
   // ファイルの記録は、その発言を送ったセッションにある（あとでコンテキストを消去していれば、消去の前のセッション）

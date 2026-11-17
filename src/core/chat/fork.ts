@@ -3,6 +3,7 @@ import type { Store } from "../db/store.js";
 import { providerFeatureMissing, type ProviderId, type Chat } from "@shared/types";
 import { asInvalid, Invalid } from "../http/errors.js";
 import { isBeforeWorkplaceMove, WORKPLACE_FORK_LOCKED } from "@shared/chat/workplaceMoves";
+import { isBeforeProviderSwitch, PROVIDER_FORK_LOCKED } from "@shared/chat/providerSwitch";
 
 /**
  * チャットを、作業の終わり（result イベント）の時点から分岐する（「Fork chat from here」）。
@@ -16,6 +17,7 @@ export async function forkChat(deps: { store: Store; providers: Record<ProviderI
   const point = event?.type === "result" ? event.data : undefined;
   // 作業場所を移した区切りより前の地点からは分岐できない（新しいチャットがどの作業場所で動くかが決まらない。メモの仕様書「0025」の Q3）
   if (event && isBeforeWorkplaceMove(events, event.id)) throw new Invalid(WORKPLACE_FORK_LOCKED);
+  if (event && isBeforeProviderSwitch(events, event.id)) throw new Invalid(PROVIDER_FORK_LOCKED);
   // 最後まで終わった作業の終わりからだけ分岐できる（止めた・失敗した作業の最後のメッセージはセッションに残らないことがある）
   if (point?.status !== "completed" || !point.session_id || !point.message_id) throw new Invalid("この時点からは分岐できません");
   const provider = providers[chat.provider];

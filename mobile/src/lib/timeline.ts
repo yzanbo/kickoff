@@ -3,6 +3,7 @@
 import type { BusEvent, ChatEvent, TurnEndStatus } from "@shared/types";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, collectVisuals, visualIdOf, type ChatVisual } from "@shared/chat/aiVisual";
 import { workplaceMoveLine } from "@shared/chat/workplaceMoves";
+import { providerSwitchLine } from "@shared/chat/providerSwitch";
 import { hasMath } from "./richPages";
 
 export type TimelineItem =
@@ -107,6 +108,9 @@ export function timelineOf(events: readonly ChatEvent[]): TimelineItem[] {
         break;
       case "context_cleared":
         items.push({ kind: "notice", id: e.id, text: "コンテキストを消去しました" });
+        break;
+      case "provider_switched":
+        items.push({ kind: "notice", id: e.id, text: providerSwitchLine(e.data) });
         break;
       case "workplace_moved":
         // 作業場所を移した区切り（メモの仕様書「0025」の I1）

@@ -10,7 +10,7 @@ import type { ChatEvent, ChatEventOf } from "@shared/types";
 export function resumePointBefore(events: ChatEvent[], end = events.length): ChatEventOf<"result">["data"] | undefined {
   for (let i = Math.min(end, events.length) - 1; i >= 0; i--) {
     const e = events[i];
-    if (e.type === "context_cleared") return undefined;
+    if (e.type === "context_cleared" || e.type === "provider_switched") return undefined;
     if (e.type === "workplace_moved") return e.data.session_id && e.data.message_id ? { status: "completed", session_id: e.data.session_id, message_id: e.data.message_id } : undefined;
     if (e.type === "result" && e.data.status === "completed" && e.data.session_id && e.data.message_id) return e.data;
   }

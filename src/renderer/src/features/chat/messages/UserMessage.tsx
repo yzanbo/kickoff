@@ -6,6 +6,7 @@ import type { ChatEventOf } from "@shared/types";
 import { subagentAskOf } from "@shared/chat/prompts";
 import { handoffRequestExtra } from "@shared/chat/handoff";
 import { WORKPLACE_FILES_LOCKED, WORKPLACE_REWIND_LOCKED } from "@shared/chat/workplaceMoves";
+import { PROVIDER_FILES_LOCKED, PROVIDER_REWIND_LOCKED } from "@shared/chat/providerSwitch";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import { useSizeObserver } from "@/hooks/useSizeObserver";
@@ -23,7 +24,7 @@ import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/snippet/compactP
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 import { useFeatureBlock } from "@/features/chat/provider/chatProvider";
 import { useTimelineBusy } from "@/features/chat/timeline/timelineBusy";
-import { useBeforeWorkplaceMove } from "@/features/chat/store/useChatStore";
+import { useBeforeProviderSwitch, useBeforeWorkplaceMove } from "@/features/chat/store/useChatStore";
 
 /**
  * 自分の発言（吹き出し）。長い発言は途中まで出して「もっと見る / たたむ」で開閉する。
@@ -74,8 +75,9 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
   // そのチャットの AI でできないこと（書き直しは分岐・巻き戻しを、ファイルを戻すは控えを使う。メモの仕様書「0021」の Q4）
   // 作業場所を移した区切りより前の発言は、会話もファイルも巻き戻せない（メモの仕様書「0025」の Q3・H2）
   const beforeMove = useBeforeWorkplaceMove(event.chat_id, event.id);
-  const rewindBlock = useFeatureBlock("fork") ?? (beforeMove ? WORKPLACE_REWIND_LOCKED : null);
-  const filesBlock = useFeatureBlock("rewind_files") ?? (beforeMove ? WORKPLACE_FILES_LOCKED : null);
+  const beforeSwitch = useBeforeProviderSwitch(event.chat_id, event.id);
+  const rewindBlock = useFeatureBlock("fork") ?? (beforeMove ? WORKPLACE_REWIND_LOCKED : beforeSwitch ? PROVIDER_REWIND_LOCKED : null);
+  const filesBlock = useFeatureBlock("rewind_files") ?? (beforeMove ? WORKPLACE_FILES_LOCKED : beforeSwitch ? PROVIDER_FILES_LOCKED : null);
   // 書き直しを始める（作業中かは操作の部品が見る）
   const onEdit = pane && !rewindBlock ? () => setDraft(text) : undefined;
   // ファイルだけを、この発言を送る前の状態に戻す（ファイルの記録を取り始めてからの発言だけ）

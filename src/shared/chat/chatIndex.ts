@@ -51,6 +51,7 @@ export const INDEX_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>([
   "error",
   "compact",
   "context_cleared",
+  "provider_switched",
   "workplace_moved",
   "subagent",
   "approval_resolved",
