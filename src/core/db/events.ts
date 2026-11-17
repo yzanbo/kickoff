@@ -292,6 +292,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       const rows = db
         .prepare(
           `SELECT session_id AS sid FROM chats WHERE session_id IS NOT NULL
+           UNION SELECT session_id FROM chat_provider_sessions
            UNION SELECT json_extract(data, '$.session_id') FROM chat_events WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') IS NOT NULL`,
         )
         .all() as { sid: string }[];
@@ -302,6 +303,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         db
           .prepare(
             `SELECT 1 FROM chats WHERE session_id = $sid
+             UNION ALL SELECT 1 FROM chat_provider_sessions WHERE session_id = $sid
              UNION ALL SELECT 1 FROM chat_events WHERE type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') = $sid LIMIT 1`,
           )
           .get({ sid: sessionId }),

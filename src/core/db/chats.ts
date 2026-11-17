@@ -3,6 +3,7 @@ import { DEFAULT_SETTINGS, type AppSettings, type Chat, type ChatStatus, type Gi
 import { bit, updateRow, type Notify, type Row } from "./common.js";
 import type { NewChat } from "./types.js";
 import { rememberChatSession } from "./agentSessions.js";
+import { syncCurrentChatProviderSession } from "./chatProviderSessions.js";
 import type { LogRevisions } from "./logRevisions.js";
 
 /** チャットの一覧の絞り込み（並びは最後に動いた順） */
@@ -193,6 +194,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
       updateRow(db, "chats", id, toChatRow(patch), CHAT_COLUMNS, patch.status !== undefined);
       // チャットに入れたセッションは Kickoff が使ったものとして覚える（使われなくなったら会話記録をゴミ箱へ。メモの仕様書「ファイル削除」の Q17）
       if (typeof patch.session_id === "string") rememberChatSession(db, id, patch.session_id);
+      if (patch.session_id !== undefined) syncCurrentChatProviderSession(db, id, patch.session_id);
       const chat = get(id)!;
       onChange({ type: "chat", chat });
       return chat;
