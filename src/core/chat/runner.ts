@@ -752,6 +752,8 @@ export class Runner extends RunnerQueue {
     this.forgetRecovery(chatId);
     // コンテキストの大きさは、次の応答まで分からない
     const cleared = store.chats.update(chat.id, { session_id: null, context_tokens: null });
+    // ほかの AI に戻しても、消去前の会話を再開しない。
+    store.chatProviderSessions.removeAll(chat.id);
     // 新しい会話: 次に上限に近づいたら、また圧縮前指示を送る
     const runtime = this.runtimes.get(chatId);
     runtime.preCompactSent = false;
