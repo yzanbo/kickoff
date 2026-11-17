@@ -55,6 +55,29 @@ test("read_chat: 同じプロジェクトのチャットの会話を読み、ほ
   assert.throws(() => tools.readChat({ chat_id: 9999 }), /このプロジェクトにありません/);
 });
 
+test("read_chat: 省略された長い発言を記録 ID と文字位置で最後まで読み、ほかのチャットや非公開の記録は読ませない", () => {
+  const ctx = setup();
+  const long = "あ😀".repeat(2_501);
+  const user = ctx.store.events.add(ctx.other.id, { type: "user", text: long, message_uuid: "u1" });
+  const answer = ctx.store.events.add(ctx.other.id, { type: "text", text: "答え".repeat(2_100) });
+  const hidden = ctx.store.events.add(ctx.other.id, { type: "user", text: "圧縮用", pre_compact: true, message_uuid: "u2" });
+  const subagent = ctx.store.events.add(ctx.other.id, { type: "text", text: "子の内部", parent: "sub" });
+  const outside = ctx.store.events.add(ctx.outside.id, { type: "user", text: "別のプロジェクト", message_uuid: "u3" });
+  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals }, ctx.child.id);
+  const listed = tools.readChat({ chat_id: ctx.other.id, turns: 2 });
+  assert.match(listed, new RegExp(`event_id に ${user.id}`));
+  assert.match(listed, new RegExp(`event_id に ${answer.id}`));
+  const first = JSON.parse(tools.readChat({ chat_id: ctx.other.id, event_id: user.id }));
+  const second = JSON.parse(tools.readChat({ chat_id: ctx.other.id, event_id: user.id, offset: first.next_offset }));
+  assert.equal(first.text + second.text, long);
+  assert.equal(second.next_offset, null);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: hidden.id }), /読める発言がありません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: subagent.id }), /読める発言がありません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: outside.id }), /読める発言がありません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: user.id, turns: 1 }), /同時に指定できません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, offset: 3 }), /event_id が必要/);
+});
+
 test("get_usage: 使った割合と残り・リセットの時刻（取れなければその理由）", async () => {
   const usage: PlanUsage = {
     provider: "claude",
