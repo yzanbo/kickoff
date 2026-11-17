@@ -12,6 +12,7 @@ export function providerFeatures(provider: AgentProvider): ProviderFeature[] {
     commands: typeof provider.commands === "function",
     models: typeof provider.models === "function",
     summarize: typeof provider.summarize === "function",
+    login: typeof provider.login === "function",
   };
   return (Object.keys(has) as ProviderFeature[]).filter((f) => has[f]);
 }

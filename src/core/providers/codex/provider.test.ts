@@ -255,7 +255,7 @@ test("Sign in with ChatGPT の骨組み: ログインの URL を返し、account
     setImmediate(() => s.notify("account/login/completed", { loginId: "L1", success: true, error: null }));
     return { type: "chatgpt", loginId: "L1", authUrl: "https://auth.example/login" };
   });
-  const login = await new CodexProvider({ spawn: server.spawn }).startLogin();
+  const login = await new CodexProvider({ spawn: server.spawn }).login();
   assert.equal(login.authUrl, "https://auth.example/login");
   assert.equal(await login.completed, true);
   await until(() => server.killed > 0);
