@@ -12,7 +12,7 @@ import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes } from "../../git
 import { Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
-import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, projectDescription, projectName } from "./schemas.js";
+import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, otherProviderRecord, projectDescription, projectName, providerChatDefaultsSchema } from "./schemas.js";
 import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 import { projectMemoFolder } from "@shared/memo/names";
@@ -69,6 +69,8 @@ const projectPatchSchema = z
     reference_paths: z.array(z.object({ path: z.string().trim().min(1).max(1000) })).max(50),
     // 送った内容で置き換える（書いていない項目はアプリ全体の設定に従う）
     chat_defaults: chatDefaultsSchema.partial().strict(),
+    // Claude Code のほかの AI ごとの既定（送った内容で置き換える。書いていない項目はアプリ全体のその AI の既定に従う）
+    provider_chat_defaults: otherProviderRecord(providerChatDefaultsSchema.partial().strict()),
     // メモのフォルダを、このプロジェクトだけ別の場所にする（null なら親フォルダの下）
     memo_path: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
     // このプロジェクトの圧縮前指示（null ならなし）

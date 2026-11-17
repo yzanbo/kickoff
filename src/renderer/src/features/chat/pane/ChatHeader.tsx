@@ -75,7 +75,7 @@ export function ChatHeader({
           {ordered(["project", "group", "worktree"] as const).map((k) => (
             <Fragment key={k}>{badges[k]}</Fragment>
           ))}
-          {/* チャットの AI（Claude Code をサブスクで使うふだんのチャットには出さない。メモの仕様書「0021」の Q1・Q13） */}
+          {/* チャットの AI（送ったあとも、どのチャットでもいつも出す。メモの仕様書「0021」の Q1・Q13、「0028」の 9 節） */}
           <ProviderChip provider={chat.provider} />
           {/* 結び付いた GitHub の issue・PR（押すと GitHub タブでそれを開く） */}
           <GitHubLinkChip chat={chat} />

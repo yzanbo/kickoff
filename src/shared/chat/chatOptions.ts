@@ -12,20 +12,24 @@ function written(patch: ChatOptionsPatch | undefined): ChatOptionsPatch {
   return Object.fromEntries(Object.entries(patch ?? {}).filter(([, v]) => v !== undefined));
 }
 
-/** その AI のアプリの既定（Claude Code は設定の chat_defaults） */
+/** その AI のアプリの既定（Claude Code は設定の chat_defaults、ほかの AI は provider_chat_defaults。前の設定で持っていなければ初めの既定） */
 export function appChatDefaults(settings: AppSettings, provider: ProviderId): ChatOptions {
-  return provider === "claude" ? settings.chat_defaults : PROVIDER_BASE_CHAT_OPTIONS;
+  if (provider === "claude") return settings.chat_defaults;
+  return { ...PROVIDER_BASE_CHAT_OPTIONS, ...settings.provider_chat_defaults?.[provider] };
 }
 
-/** その AI のプロジェクトの既定（Claude Code はプロジェクトの chat_defaults。書いていない項目はアプリの既定に従う） */
-export function projectChatDefaults(project: Pick<Project, "chat_defaults"> | undefined, provider: ProviderId): ChatOptionsPatch | undefined {
-  return provider === "claude" ? project?.chat_defaults : undefined;
+/** その AI のプロジェクトの既定（Claude Code はプロジェクトの chat_defaults、ほかの AI は provider_chat_defaults。書いていない項目はアプリの既定に従う） */
+export function projectChatDefaults(project: ProjectChatDefaults | undefined, provider: ProviderId): ChatOptionsPatch | undefined {
+  return provider === "claude" ? project?.chat_defaults : project?.provider_chat_defaults?.[provider];
 }
+
+/** 決め方に使うプロジェクトの既定 */
+type ProjectChatDefaults = Pick<Project, "chat_defaults"> & Partial<Pick<Project, "provider_chat_defaults">>;
 
 /**
  * チャットの選択を決める。その AI のアプリの既定の上に、その AI のプロジェクトの既定 → 送るときの指定の順に、書いてある項目だけを重ねる。
  * 推論の深さの null は「指定しない」（SDK とモデルの既定に任せる）。権限モードはアプリの既定が「毎回確認」
  */
-export function resolveChatOptions(settings: AppSettings, provider: ProviderId, project?: Pick<Project, "chat_defaults">, override?: ChatOptionsPatch): ChatOptions {
+export function resolveChatOptions(settings: AppSettings, provider: ProviderId, project?: ProjectChatDefaults, override?: ChatOptionsPatch): ChatOptions {
   return { ...appChatDefaults(settings, provider), ...written(projectChatDefaults(project, provider)), ...written(override) };
 }

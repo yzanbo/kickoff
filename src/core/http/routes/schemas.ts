@@ -3,7 +3,7 @@ import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
 import { normalizeAttachment } from "@shared/attachment/normalize";
 import type { Attachment, AttachmentSource, ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
-import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, PERMISSION_MODES, PROVIDER_IDS, USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/types";
+import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, OTHER_PROVIDER_IDS, PERMISSION_MODES, PROVIDER_IDS, USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 
 // ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
@@ -70,6 +70,12 @@ export const chatDefaultsSchema = z.object({
   permission_mode: z.enum(PERMISSION_MODES),
   fast_mode: z.boolean(),
 });
+
+/** Claude Code のほかの AI のチャットの既定（モデルの null はその AI の既定。メモの仕様書「0028」の 9 節） */
+export const providerChatDefaultsSchema = chatDefaultsSchema.extend({ model: z.string().min(1).max(100).nullable() });
+
+/** Claude Code のほかの AI ごとの既定（AI の ID → 選択） */
+export const otherProviderRecord = <T extends z.ZodType>(value: T) => z.partialRecord(z.enum(OTHER_PROVIDER_IDS), value);
 
 /** メモのフォルダからの相対パス（外・隠しファイルは指せない） */
 export const memoPathSchema = z

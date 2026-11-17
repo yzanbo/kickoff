@@ -6,13 +6,13 @@ import { bit, updateRow, type Notify, type Row } from "./common.js";
 import type { NewProject } from "./types.js";
 
 /** プロジェクトの変えられる列（型と UPDATE の対象をここ 1 つで決める） */
-const PROJECT_COLUMNS = ["name", "description", "repo_path", "provider", "hue", "pinned", "archived_at", "tags", "chat_defaults", "reference_paths", "memo_folder", "memo_path", "pre_compact_prompt", "post_compact_prompt", "pre_compact_enabled", "post_compact_enabled", "github_account", "github_remote", "pr_watch", "ci_watch"] as const satisfies readonly (keyof Project)[];
+const PROJECT_COLUMNS = ["name", "description", "repo_path", "provider", "hue", "pinned", "archived_at", "tags", "chat_defaults", "provider_chat_defaults", "reference_paths", "memo_folder", "memo_path", "pre_compact_prompt", "post_compact_prompt", "pre_compact_enabled", "post_compact_enabled", "github_account", "github_remote", "pr_watch", "ci_watch"] as const satisfies readonly (keyof Project)[];
 
 /** プロジェクトの変えられる項目 */
 export type ProjectPatch = Partial<Pick<Project, (typeof PROJECT_COLUMNS)[number]>>;
 
 /** DB の行（JSON の列は文字列、真偽値は 0 / 1） */
-type ProjectRow = Omit<Project, "pinned" | "tags" | "chat_defaults" | "reference_paths" | "pre_compact_enabled" | "post_compact_enabled" | "pr_watch" | "ci_watch"> & {
+type ProjectRow = Omit<Project, "pinned" | "tags" | "chat_defaults" | "provider_chat_defaults" | "reference_paths" | "pre_compact_enabled" | "post_compact_enabled" | "pr_watch" | "ci_watch"> & {
   pinned: number;
   pr_watch: number;
   ci_watch: number;
@@ -20,6 +20,7 @@ type ProjectRow = Omit<Project, "pinned" | "tags" | "chat_defaults" | "reference
   post_compact_enabled: number;
   tags: string;
   chat_defaults: string;
+  provider_chat_defaults: string;
   reference_paths: string;
   /** ゴミ箱に入れた時刻（店の中だけで使い、Project には出さない） */
   trashed_at: string | null;
@@ -37,12 +38,13 @@ function toProject(row: unknown): Project {
     ci_watch: r.ci_watch === 1,
     tags: JSON.parse(r.tags),
     chat_defaults: JSON.parse(r.chat_defaults),
+    provider_chat_defaults: JSON.parse(r.provider_chat_defaults),
     reference_paths: JSON.parse(r.reference_paths),
   };
 }
 
 /** 変える項目を DB の列の値にする */
-function toProjectRow({ pinned, pre_compact_enabled, post_compact_enabled, pr_watch, ci_watch, tags, chat_defaults, reference_paths, ...rest }: ProjectPatch): Row {
+function toProjectRow({ pinned, pre_compact_enabled, post_compact_enabled, pr_watch, ci_watch, tags, chat_defaults, provider_chat_defaults, reference_paths, ...rest }: ProjectPatch): Row {
   return {
     ...rest,
     pinned: bit(pinned),
@@ -52,6 +54,7 @@ function toProjectRow({ pinned, pre_compact_enabled, post_compact_enabled, pr_wa
     ci_watch: bit(ci_watch),
     tags: tags === undefined ? undefined : JSON.stringify(normalizeTags(tags)),
     chat_defaults: chat_defaults === undefined ? undefined : JSON.stringify(chat_defaults),
+    provider_chat_defaults: provider_chat_defaults === undefined ? undefined : JSON.stringify(provider_chat_defaults),
     reference_paths: reference_paths === undefined ? undefined : JSON.stringify(reference_paths),
   } as Row;
 }
