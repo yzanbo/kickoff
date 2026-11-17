@@ -44,5 +44,21 @@ export function createChatProviderHandoffStore(db: DatabaseSync) {
     remove(chatId: number): void {
       db.prepare("DELETE FROM chat_provider_handoffs WHERE chat_id = ?").run(chatId);
     },
+    /** 実行の直前に 1 回だけ送信中へ進める。別の操作や古い区切りは競合として失敗する。 */
+    claim(chatId: number, eventId: number, provider: ProviderId): boolean {
+      return db.prepare("UPDATE chat_provider_handoffs SET state = 'sending', error = NULL WHERE chat_id = ? AND event_id = ? AND provider = ? AND state = 'ready'").run(chatId, eventId, provider).changes === 1;
+    },
+    /** 送信後の状態が分からない場合は自動再送しない（Q45）。 */
+    markUncertain(chatId: number, eventId: number, error: string): boolean {
+      return db.prepare("UPDATE chat_provider_handoffs SET state = 'uncertain', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'sending'").run(error, chatId, eventId).changes === 1;
+    },
+    /** 同じ切り替えの送信が無事に完了した場合だけ、保留を外す。 */
+    complete(chatId: number, eventId: number): boolean {
+      return db.prepare("DELETE FROM chat_provider_handoffs WHERE chat_id = ? AND event_id = ? AND state = 'sending'").run(chatId, eventId).changes === 1;
+    },
+    /** 前回の終了時に送信中だったものは、起動後に受信不明として利用者の確認を待つ。 */
+    recoverInterrupted(): number {
+      return Number(db.prepare("UPDATE chat_provider_handoffs SET state = 'uncertain', error = ? WHERE state = 'sending'").run("前回の終了時に送信中だったため、AI が指示を受け取ったか確認できません").changes);
+    },
   };
 }
