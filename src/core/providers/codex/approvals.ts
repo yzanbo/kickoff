@@ -1,7 +1,9 @@
 import { judgeCommand, judgeWritePath, type GuardContext } from "../../chat/guard/judgeTool.js";
-import { askApproval, guardOutcome, isAllowed, modeOutcome, type ApprovalOutcome } from "../guardedApproval.js";
+import { askApproval, guardOutcome, isAllowed, modeOutcome, PLAN_MODE_DECLINED, type ApprovalOutcome } from "../guardedApproval.js";
 import type { ProviderCallbacks, ProviderTurnParams } from "../types.js";
 import { changeAsTool } from "./items.js";
+import { writeKey } from "./preToolUse.js";
+import { isUnsandboxedCommand, SANDBOX_EXIT_DECLINED } from "./sandboxExit.js";
 import type {
   ApprovalDecision,
   CommandApprovalParams,
@@ -14,10 +16,10 @@ import type {
 } from "./protocol.js";
 
 /**
- * Codex の app-server からの頼み（承認・質問）に答える（メモの仕様書「0021」の Q3 と「作りながら決める」の承認の決まり）。
- * Codex にはいつも untrusted で聞かせ、聞かれたコマンド・書く先に Kickoff の守り（chat/guard/judgeTool.ts）を当てる:
- * 断る守り → decline / 聞く守り（Docker・作業場所の外）→ 権限モードによらず承認カード / 何もなし → 権限モード（Auto mode = 通す・
- * 編集を自動承認 = ファイルの変更だけ通す・毎回確認 = 聞く・計画 = 変更を断る）。
+ * Codex の app-server からの頼み（承認・質問）に答える（メモの仕様書「0021」の Q3 と、0028 の F1 の組み替え）。
+ * 承認の決まりは on-request（ふだんのコマンド・ファイルの変更は Codex の砂場の中で聞かずに流れ、守りと権限モードは PreToolUse のフック = preToolUse.ts で当てる）。
+ * ここに来るのは砂場から出る頼みだけ: コマンドを砂場の外で流す → 決まったコマンド（Bash の砂場の unsandboxedCommands）だけ通し、ほかは断る /
+ * 書ける場所の外へのファイルの変更 → 守り（chat/guard/judgeTool.ts）と権限モード（フックで許した書く先は聞き直さない）。
  * Codex の承認の答えには理由を渡す欄がないので、断った理由は turn/steer でいまの作業に伝える（steer）。
  * 守りと権限モードの決まりは Copilot などと共通の guardedApproval.ts
  */
@@ -31,6 +33,8 @@ export interface ApprovalDeps {
   items: Map<string, ThreadItem>;
   /** 断った理由をいまの作業に伝える */
   steer(text: string): void;
+  /** フックで利用者が許した書く先（実体のパス。preToolUse.ts） */
+  approvedWrites: Set<string>;
 }
 
 const declinedNote = (what: string, reason: string) => `［Kickoff］${what}を断りました: ${reason}`;
@@ -42,11 +46,23 @@ function toDecision(deps: ApprovalDeps, outcome: ApprovalOutcome, what: string):
   return "decline";
 }
 
+/**
+ * コマンドの承認の頼み = 砂場の外で流したい（on-request）。断る守りはここでも当て、計画モードは断る。
+ * Bash の砂場をかけている実行では、決まったコマンドだけ通す（守り・権限モードはフックで当て済み）。砂場をかけていなければ、守りと権限モードで決める
+ */
 async function commandApproval(deps: ApprovalDeps, p: CommandApprovalParams): Promise<{ decision: ApprovalDecision }> {
   const command = p.command ?? "";
   const input = { command };
   const what = `コマンド「${command.slice(0, 200)}」`;
-  const guarded = await guardOutcome(deps, await judgeCommand(deps.guard, command), "Bash", input, p.itemId);
+  const verdict = await judgeCommand(deps.guard, command);
+  if (verdict.kind === "deny") return { decision: toDecision(deps, { allow: false, reason: verdict.reason }, what) };
+  if (deps.params.permissionMode === "plan") return { decision: toDecision(deps, { allow: false, reason: PLAN_MODE_DECLINED }, what) };
+  const sandbox = deps.params.bashSandbox;
+  if (sandbox) {
+    const allowed = isUnsandboxedCommand(command, sandbox.unsandboxedCommands);
+    return { decision: toDecision(deps, allowed ? { allow: true } : { allow: false, reason: SANDBOX_EXIT_DECLINED }, what) };
+  }
+  const guarded = await guardOutcome(deps, verdict, "Bash", input, p.itemId);
   return { decision: toDecision(deps, guarded ?? (await modeOutcome(deps, "command", "Bash", input, p.itemId, p.reason)), what) };
 }
 
@@ -60,6 +76,8 @@ async function fileChangeApproval(deps: ApprovalDeps, p: FileChangeApprovalParam
     deps.steer(declinedNote(what, "変えるファイルが分からないため、Kickoff の守りを当てられませんでした"));
     return { decision: "decline" };
   }
+  // フックで利用者が許した書く先だけなら聞き直さない
+  if (paths.every((target) => deps.approvedWrites.has(writeKey(deps.params.cwd, target)))) return { decision: "accept" };
   let asked = false;
   for (const target of paths) {
     const guarded = await guardOutcome(deps, await judgeWritePath(deps.guard, target), "Write", { file_path: target }, p.itemId);
