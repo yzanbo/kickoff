@@ -290,7 +290,11 @@ function buildTurnParams(
     cwd,
     prompt,
     ...(promptId ? { promptId } : {}),
-    systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, { trash: deps.trashCommand !== undefined, sandbox: sandbox ? { unsandboxed: sandbox.unsandboxedCommands } : undefined }),
+    systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, {
+      trash: deps.trashCommand !== undefined,
+      sandbox: sandbox ? { unsandboxed: sandbox.unsandboxedCommands } : undefined,
+      browser: deps.browser ? deps.store.settings.get().link_open_in : undefined,
+    }),
     turnContext: joinContexts(chatContextNote(chatContextOf(deps.store, chat)), workplaceMoveContext(deps.store.events.pendingWorkplaceMove(chat.id)), note),
     policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,

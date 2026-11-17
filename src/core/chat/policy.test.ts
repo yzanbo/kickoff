@@ -19,6 +19,19 @@ test("どのチャットも同じ権限: Git の読み取りとテスト・ビ�
   assert.ok(!rules.some((r) => r.startsWith("Bash(git commit") || r.startsWith("mcp__")));
 });
 
+test("ブラウザ: 開き先が Kickoff なら内蔵ツールを優先し、OS の既定なら外部で開くよう伝える", () => {
+  const p = project();
+  const kickoff = buildSystemPrompt(p, p.repo_path, undefined, { browser: "kickoff" });
+  assert.match(kickoff, /既定の開き先は「Kickoff のブラウザ」/);
+  assert.match(kickoff, /kickoff_browser の browser_tabs・browser_open などを優先/);
+  assert.match(kickoff, /利用者が別のブラウザや自動テストを指定した場合を除き/);
+  const external = buildSystemPrompt(p, p.repo_path, undefined, { browser: "browser" });
+  assert.match(external, /既定の開き先は「既定のブラウザ」（OS の既定のブラウザ）/);
+  assert.doesNotMatch(external, /browser_open などを優先/);
+  // 内蔵ブラウザのない環境では、使えないツールを勧めない
+  assert.doesNotMatch(buildSystemPrompt(p), /## ブラウザ/);
+});
+
 test("指示はセクション・タスク・成果物に触れず、プロジェクト・参照資料だけを伝える", () => {
   const prompt = buildSystemPrompt(project([{ path: "/tmp/spec", kind: "folder" }]));
   assert.ok(prompt.includes("日本語"));
