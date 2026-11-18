@@ -48,6 +48,10 @@ export function createChatProviderHandoffStore(db: DatabaseSync) {
     claim(chatId: number, eventId: number, provider: ProviderId): boolean {
       return db.prepare("UPDATE chat_provider_handoffs SET state = 'sending', error = NULL WHERE chat_id = ? AND event_id = ? AND provider = ? AND state = 'ready'").run(chatId, eventId, provider).changes === 1;
     },
+    /** AI を起動する前に準備が失敗した場合は、再試行を待つ。 */
+    blockReady(chatId: number, eventId: number, error: string): boolean {
+      return db.prepare("UPDATE chat_provider_handoffs SET state = 'blocked', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'ready'").run(error, chatId, eventId).changes === 1;
+    },
     /** 送信後の状態が分からない場合は自動再送しない（Q45）。 */
     markUncertain(chatId: number, eventId: number, error: string): boolean {
       return db.prepare("UPDATE chat_provider_handoffs SET state = 'uncertain', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'sending'").run(error, chatId, eventId).changes === 1;

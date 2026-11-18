@@ -57,3 +57,15 @@ test("引き継ぎの保存に失敗したら、セッション・区切り・AI
   assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
   store.close();
 });
+
+test("引き継ぎの完了と、AI の再開位置の更新は同時に行う", () => {
+  const { store, chat } = setup();
+  const switched = store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "x", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
+  assert.equal(store.chatProviderHandoffs.claim(chat.id, switched.event.id, "codex"), true);
+  assert.equal(store.completeProviderHandoff(chat.id, switched.event.id, "codex", "wrong", 20), false);
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "sending");
+  assert.equal(store.completeProviderHandoff(chat.id, switched.event.id, "codex", "codex-session", 20), true);
+  assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
+  assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.last_event_id, 20);
+  store.close();
+});

@@ -81,6 +81,8 @@ export class Runner extends RunnerQueue {
       onAfterCompactEditsChanged: (chatId) => this.afterCompactEditsChanged(chatId),
       onCompactEnded: (chatId) => this.deliverAfterCompact(chatId),
     });
+    // 前回、AI が指示を受け取る途中でアプリが終了した場合、自動再送せず確認を待つ。
+    deps.store.chatProviderHandoffs.recoverInterrupted();
     // 前回の終了で作業の途中で止まったチャットと、自動で送るまま送信待ちが残ったチャットは、起動しただけでは続けず・送らず、
     // 利用者に聞く（restartResumes / resolveRestartResumes）
     const interrupted = new Set(deps.interrupted ?? []);
@@ -122,6 +124,15 @@ export class Runner extends RunnerQueue {
   private waitsForResume(chatId: number): boolean {
     const { queue } = this.runtimes.get(chatId);
     return queue.list().length > 0 && !queue.isPaused() && !queue.stopsAtHead() && !this.isBusy(chatId);
+  }
+
+  protected handoffCanSend(chatId: number): boolean {
+    const pending = this.deps.store.chatProviderHandoffs.get(chatId);
+    return !pending || (pending.state === "ready" && pending.provider === this.deps.store.chats.get(chatId)?.provider);
+  }
+
+  protected handoffPending(chatId: number): boolean {
+    return this.deps.store.chatProviderHandoffs.get(chatId) !== undefined;
   }
 
   /**
@@ -278,6 +289,7 @@ export class Runner extends RunnerQueue {
   async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { pauseAfter = false, postCompact = false, marks = {} }: SendOpts = {}): Promise<Chat> {
     const chat = this.requireChat(chatId);
     this.requireIdle(chatId, "送信");
+    if (!this.handoffCanSend(chatId)) throw new Conflict("AI の引き継ぎを確認するまで送信できません");
     // チャット欄の /clear: Claude Code に送らず、送信待ちのコンテキスト消去と同じく Kickoff がセッションを外して区切りを残す
     if (!postCompact && isClearCommand(text, attachments)) return this.clearByCommand(chatId);
     const { store } = this.deps;
@@ -676,6 +688,7 @@ export class Runner extends RunnerQueue {
   async compact(chatId: number): Promise<Chat> {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);
+    if (store.chatProviderHandoffs.get(chatId)) throw new Conflict("AI の引き継ぎが終わるまで圧縮できません");
     const runtime = this.runtimes.get(chatId);
     if (this.isBusy(chatId)) {
       // 圧縮前指示があれば、送信待ちに入れずにいまの作業へそのまま伝え、その作業が終わったら送信待ちより先に圧縮する。足せなければ予約にする
@@ -747,6 +760,7 @@ export class Runner extends RunnerQueue {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);
     this.requireIdle(chatId, "コンテキストの消去");
+    if (this.handoffPending(chatId)) throw new Conflict("AI の引き継ぎが終わるまでコンテキストを消去できません");
     if (!chat.session_id) throw new Conflict("まだ会話がないので、消去するコンテキストがありません");
     // 自分で頼んだ: 止まったあとの再開の段取り（前の会話の続きを頼むもの）をやめる
     this.forgetRecovery(chatId);
@@ -837,7 +851,8 @@ export class Runner extends RunnerQueue {
     } finally {
       runtime.turn = null;
       // 通信が切れた・使用枠の上限で止まったときは送らず、つながる・枠が戻るのを待つ（送っても失敗して消えるため。アプリを終えるときも送らない）
-      const finished = this.recovery.finished(item.chatId, outcome) && !this.shuttingDown;
+      // 切り替えた AI への引き継ぎが未確定なら、通常の自動再接続・送信待ちを進めない。
+      const finished = this.handoffCanSend(item.chatId) && this.recovery.finished(item.chatId, outcome) && !this.shuttingDown;
       // 圧縮前指示の作業が最後まで終わって、まだ圧縮していなければ、続けて圧縮する（手で頼んだ圧縮の前の指示 = thenCompact、
       // 自動の圧縮の前の指示で、作業の区切りまで圧縮が来なかったもの = awaitingCompact。次の指示を送ると、その初めに圧縮されて、指示が圧縮より上に出るため）。
       // 止めた・失敗したときは圧縮しない
