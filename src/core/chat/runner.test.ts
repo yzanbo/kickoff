@@ -389,4 +389,8 @@ test("作業の途中で AI がブランチを替えたら、作業の終わり�
   await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.branch === "feat/x");
   await runner.send(chat.id, "feat/fail");
   await until(() => store.chats.get(chat.id)?.status === "failed" && store.chats.get(chat.id)?.branch === "feat/fail");
+  // ブランチから外れた場所で始めても、取り出したブランチを覚える
+  gitIn(project.repo_path)("switch", "-q", "--detach");
+  await runner.send(chat.id, "feat/from-detached");
+  await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.branch === "feat/from-detached");
 });

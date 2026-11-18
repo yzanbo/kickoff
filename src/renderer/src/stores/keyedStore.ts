@@ -25,12 +25,13 @@ interface Entry<T> {
   failures: number;
   retryAt: number;
   retryTimer: ReturnType<typeof setTimeout> | undefined;
+  refreshTimer?: ReturnType<typeof setTimeout>;
   /** reload を待っているもの */
   waiters: { resolve: (data: T) => void; reject: (error: unknown) => void }[];
 }
 
 export function createKeyedStore<K extends string | number, T>(options: KeyedStoreOptions<K, T> = {}): KeyedStore<K, T> {
-  const { load, reduce, reloadOn, dropOn, maxAge, refreshOnFocus } = options;
+  const { load, reduce, reloadOn, dropOn, maxAge, refreshOnFocus, refreshAfterMaxAge } = options;
   const entries = new Map<K, Entry<T>>();
   const listeners = new Map<K, Set<() => void>>();
   // 使っている部品の数（key ごと。値を捨てて作り直しても数は残す）
@@ -69,6 +70,23 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
     entry.retryTimer = undefined;
   }
 
+  function stopRefresh(entry: Entry<T>) {
+    clearTimeout(entry.refreshTimer);
+    entry.refreshTimer = undefined;
+  }
+
+  function scheduleRefresh(key: K, entry: Entry<T>) {
+    stopRefresh(entry);
+    if (!load || !refreshAfterMaxAge || !maxAge || !inUse(key) || !entry.state.loaded || entry.state.loading || entry.stale) return;
+    entry.refreshTimer = setTimeout(() => {
+      entry.refreshTimer = undefined;
+      if (entries.get(key) !== entry || !inUse(key)) return;
+      ensure(key);
+      if (fresh(entry)) scheduleRefresh(key, entry);
+    }, Math.max(1, maxAge - (Date.now() - entry.loadedAt)));
+    (entry.refreshTimer as { unref?: () => void }).unref?.();
+  }
+
   /** 失敗を覚えずに、しばらくしてから取り直す（使っていれば。使っていなければ、次に使うときに） */
   function scheduleRetry(key: K, entry: Entry<T>) {
     entry.failures++;
@@ -86,6 +104,7 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
     if (!load) return;
     const request = ++entry.request;
     stopRetry(entry);
+    stopRefresh(entry);
     entry.replay = [];
     entry.again = false;
     entry.stale = false;
@@ -110,6 +129,7 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
           return start(key, entry);
         }
         change(key, entry, { data, error: undefined, loading: false });
+        scheduleRefresh(key, entry);
         settle(entry, { data });
       },
       (error: unknown) => {
@@ -157,6 +177,7 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
     entries.delete(key);
     entry.request++;
     stopRetry(entry);
+    stopRefresh(entry);
     settle(entry, { error: new Error("読み込みをやめました") });
     notify(key);
   }
@@ -186,7 +207,11 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
 
   if (refreshOnFocus && typeof window !== "undefined") {
     window.addEventListener("focus", () => {
-      for (const key of entries.keys()) if (inUse(key)) ensure(key);
+      for (const [key, entry] of entries) {
+        if (!inUse(key)) continue;
+        if (refreshOnFocus === "always" && !entry.state.loading) entry.stale = true;
+        ensure(key);
+      }
     });
   }
 
@@ -205,13 +230,19 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
     retain(key) {
       users.set(key, (users.get(key) ?? 0) + 1);
       ensure(key);
+      const entry = entries.get(key);
+      if (entry) scheduleRefresh(key, entry);
       let released = false;
       return () => {
         if (released) return;
         released = true;
         const left = (users.get(key) ?? 1) - 1;
         if (left > 0) users.set(key, left);
-        else users.delete(key);
+        else {
+          users.delete(key);
+          const entry = entries.get(key);
+          if (entry) stopRefresh(entry);
+        }
       };
     },
     ensure,
@@ -230,6 +261,7 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
       stopRetry(entry);
       Object.assign(entry, { replay: null, again: false, stale: false, failures: 0, retryAt: 0, loadedAt: Date.now() });
       change(key, entry, { data: value, error: undefined, loading: false });
+      scheduleRefresh(key, entry);
       settle(entry, { data: value });
     },
     update,

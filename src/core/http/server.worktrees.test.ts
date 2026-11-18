@@ -39,20 +39,28 @@ test("作業場所の色: 本体はプロジェクトの色、ワークツリー
   assert.equal(hueOf(await list(ctx), a), aHue);
 });
 
-test("HEAD の見張り: 一覧を読んだプロジェクトで、本体・ワークツリーのブランチを替えたら worktrees_changed を知らせる", async (t) => {
+test("HEAD の見張り: 本体・ワークツリーのブランチ切り替えと、最初のワークツリーの追加・削除を知らせる", async (t) => {
   if (!(await canWatchDirectory())) t.skip("この環境では OS のディレクトリ監視を開始できません（EMFILE）。実際の監視は別の環境で確認してください");
   const ctx = setup();
   const { dir: repo } = gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
   const git = gitIn(repo);
   const wt = path.join(tempDir(), "w");
-  git("worktree", "add", "-q", "-b", "feat/w", wt);
   const events: BusEvent[] = [];
   ctx.bus.subscribe((e) => events.push(e));
   const changed = () => events.filter((e) => e.type === "worktrees_changed" && e.project_id === ctx.project.id).length;
   await list(ctx);
   git("switch", "-q", "-c", "other");
   await until(() => changed() > 0);
-  const before = changed();
+  let before = changed();
+  git("worktree", "add", "-q", "-b", "feat/w", wt);
+  await until(() => changed() > before);
+  assert.equal((await list(ctx)).find((w) => w.path === wt)?.branch, "feat/w");
+  before = changed();
   gitIn(wt)("switch", "-q", "-c", "feat/w2");
   await until(() => changed() > before);
+  assert.equal((await list(ctx)).find((w) => w.path === wt)?.branch, "feat/w2");
+  before = changed();
+  git("worktree", "remove", wt);
+  await until(() => changed() > before);
+  assert.equal((await list(ctx)).some((w) => w.path === wt), false);
 });

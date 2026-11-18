@@ -6,6 +6,30 @@ import { publishServerEvent, publishServerOpen } from "@/api/events";
 import { createStore } from "./createStore";
 import { createKeyedStore } from "./keyedStore";
 
+test("期限で自動更新する店: 使用中のキーだけ、古くなったら値を出したまま取り直す", async () => {
+  vi.useFakeTimers();
+  const calls: number[] = [];
+  const store = createKeyedStore<number, number>({ load: async (key) => { calls.push(key); return calls.length; }, maxAge: 30_000, refreshAfterMaxAge: true });
+  const release = store.retain(1);
+  const releaseOther = store.retain(2);
+  try {
+    await vi.advanceTimersByTimeAsync(0);
+    releaseOther();
+    await vi.advanceTimersByTimeAsync(29_999);
+    assert.deepEqual(calls, [1, 2]);
+    await vi.advanceTimersByTimeAsync(1);
+    assert.deepEqual(calls, [1, 2, 1]);
+    assert.equal(store.get(1).data, 3);
+    release();
+    await vi.advanceTimersByTimeAsync(30_000);
+    assert.deepEqual(calls, [1, 2, 1]);
+  } finally {
+    release();
+    releaseOther();
+    vi.useRealTimers();
+  }
+});
+
 /** 外から終わらせられる読み込み */
 function deferred<T>() {
   let resolve!: (value: T) => void;
