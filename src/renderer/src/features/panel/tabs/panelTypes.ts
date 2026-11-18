@@ -7,6 +7,10 @@ export const PROJECT_VIEWS = ["files", "search", "history"] as const;
 export type ProjectView = (typeof PROJECT_VIEWS)[number];
 export const PROJECT_VIEW_LABELS: Record<ProjectView, string> = { files: "ファイル", search: "検索", history: "履歴" };
 
+/** チャットの画面の右の欄に開ける、プロジェクトのタブと同じ画面のうち、欄に 1 つだけ開くもの（GitHub と同じ形。CI・Docker・ゴミ箱） */
+export const PROJECT_TOOLS = ["ci", "docker", "trash"] as const;
+export type ProjectTool = (typeof PROJECT_TOOLS)[number];
+
 /** 新しいチャットを始めるときの指定（どのプロジェクト・グループで始めるか） */
 export interface NewChatTarget {
   projectId: number;
@@ -56,6 +60,8 @@ export type PanelTab =
   | { key: string; kind: "database"; chatId: number; projectId: number; worktree?: string }
   /** チャットの画面の右の欄に開いた、プロジェクトの「GitHub」タブと同じ画面（issue・PR の一覧と中身。欄に 1 つ）。chatId: どのチャットの右の欄か */
   | { key: string; kind: "github"; chatId: number; projectId: number }
+  /** チャットの画面の右の欄に開いた、プロジェクトの「CI」「Docker」「ゴミ箱」タブと同じ画面（種類ごとに欄に 1 つ）。chatId: どのチャットの右の欄か */
+  | { [K in ProjectTool]: { key: string; kind: K; chatId: number; projectId: number } }[ProjectTool]
   /**
    * チャットの画面の右の欄に開いた子チャット（孫・ひ孫も、いちばん上の親の右の欄に開く）。chatId: どのチャットの右の欄か（いちばん上の親）。
    * childId: 子チャット。title: タブに出す名前（開いたときの名前。中身が読み込んだら最新にする）

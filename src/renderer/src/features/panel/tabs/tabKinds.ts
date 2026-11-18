@@ -1,4 +1,4 @@
-import { Bot, Database, FileDiff, FileText, GitPullRequest, Globe, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen, SquareTerminal, StickyNote, type LucideIcon } from "lucide-react";
+import { Bot, Container, Database, FileDiff, FileText, GitPullRequest, Globe, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen, SquareTerminal, StickyNote, Trash2, Workflow, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
@@ -16,7 +16,7 @@ import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
 import { projectOfPanel } from "@/features/panel/surfaces";
 import type { PopoutRoute } from "@/app/popout";
-import { PROJECT_VIEW_LABELS, type NewChatTarget, type PanelTab, type ProjectView, type TerminalTarget } from "./panelTypes";
+import { PROJECT_VIEW_LABELS, type NewChatTarget, type PanelTab, type ProjectTool, type ProjectView, type TerminalTarget } from "./panelTypes";
 
 /**
  * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・変更・プロジェクトの画面（ファイル・検索・履歴）・ファイル・メモ・子チャット・新しい子チャット・ブラウザ・ターミナル）ごとの違いを集めた表。
@@ -127,6 +127,24 @@ export const databaseTab = ({ chatId, projectId, worktree }: Omit<TabOf<"databas
 
 /** 右の欄に開く GitHub のタブ（その欄に 1 つ） */
 export const githubTab = ({ chatId, projectId }: Omit<TabOf<"github">, "key" | "kind">): TabOf<"github"> => ({ key: "github", kind: "github", chatId, projectId });
+
+/** 右の欄に開く CI・Docker・ゴミ箱のタブ（種類ごとに、その欄に 1 つ） */
+export const projectToolTab = <K extends ProjectTool>(kind: K, { chatId, projectId }: { chatId: number; projectId: number }) =>
+  ({ key: kind, kind, chatId, projectId }) as TabOf<K>;
+
+/** 右の欄に欄に 1 つだけ開く、プロジェクトのタブと同じ画面（GitHub・CI・Docker・ゴミ箱）の種類の決まり。違うのはアイコンと名前だけ */
+function projectToolKind<T extends { chatId: number; projectId: number } & PanelTab>(icon: LucideIcon, label: string, hint: string): TabKindSpec<T> {
+  return {
+    shows: "file",
+    icon,
+    label: () => label,
+    hint: () => hint,
+    projectOf: (t) => t.projectId,
+    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+    chatIdOf: (t) => t.chatId,
+    cluster: () => OTHER_CLUSTER,
+  };
+}
 
 /** 子チャットのタブのキー（同じ子チャットは、その欄に 1 つのタブ） */
 export const childTabKey = (childId: number) => `child:${childId}`;
@@ -351,16 +369,10 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
       title: `DB — ${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}`,
     }),
   },
-  github: {
-    shows: "file",
-    icon: GitPullRequest,
-    label: () => "GitHub",
-    hint: () => "GitHub（このプロジェクトの連携先の issue・PR）",
-    projectOf: (t) => t.projectId,
-    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
-    chatIdOf: (t) => t.chatId,
-    cluster: () => OTHER_CLUSTER,
-  },
+  github: projectToolKind(GitPullRequest, "GitHub", "GitHub（このプロジェクトの連携先の issue・PR）"),
+  ci: projectToolKind(Workflow, "CI", "CI の結果（このプロジェクトの GitHub Actions の実行）"),
+  docker: projectToolKind(Container, "Docker", "Docker（このプロジェクトの compose のサービス）"),
+  trash: projectToolKind(Trash2, "ゴミ箱", "ゴミ箱（3 日で消えます）"),
   child: {
     shows: "subagent",
     icon: MessagesSquare,

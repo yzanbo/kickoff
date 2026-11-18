@@ -12,6 +12,9 @@ import { createdChildPlace, openChildChat } from "@/features/chat/children/openC
 import { SideMemo } from "@/features/memo/SideMemo";
 import { LazyDatabaseClient } from "@/features/database/LazyDatabaseClient";
 import { GitHubTab } from "@/features/github/GitHubTab";
+import { CiTab } from "@/features/ci/CiTab";
+import { DockerTab } from "@/features/docker/DockerTab";
+import { TrashTab } from "@/features/trash/TrashTab";
 import { ProjectFileTab } from "@/features/editor/ProjectFileTab";
 import { SideFileView } from "@/features/editor/SideFileView";
 import { SideProjectView } from "./SideProjectView";
@@ -112,6 +115,10 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   database: ({ tab: t }) => <LazyDatabaseClient projectId={t.projectId} place={`chat-${t.chatId}`} worktree={t.worktree ?? null} />,
   // チャットの画面の右の欄だけに開く。プロジェクトの「GitHub」タブと同じ画面（狭いので一覧と中身を切り替えて出す。絞り込みと開いているものはプロジェクトのタブと共通）
   github: ({ tab: t }) => <GitHubTab projectId={t.projectId} />,
+  // チャットの画面の右の欄だけに開く。プロジェクトの「CI」「Docker」「ゴミ箱」タブと同じ画面（開いているもの・絞り込みはプロジェクトのタブと共通）
+  ci: ({ tab: t }) => <CiTab projectId={t.projectId} />,
+  docker: ({ tab: t }) => <DockerTab projectId={t.projectId} />,
+  trash: ({ tab: t }) => <TrashTab projectId={t.projectId} />,
   child: ({ tab: t, panel, visible }) => (
     <SideChildChat
       chatId={t.childId}

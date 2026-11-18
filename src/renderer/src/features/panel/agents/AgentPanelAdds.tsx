@@ -1,4 +1,4 @@
-import { Bot, ChevronDown, ChevronRight, Database, FileDiff, GitPullRequest, MessageSquarePlus, MessagesSquare, StickyNote, type LucideIcon } from "lucide-react";
+import { Bot, ChevronDown, ChevronRight, Container, Database, FileDiff, GitPullRequest, MessageSquarePlus, MessagesSquare, StickyNote, Trash2, Workflow, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { openChildChat } from "@/features/chat/children/openChild";
@@ -22,7 +22,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 /**
  * 右の欄のタブの列の新しいタブのボタン: 「新しい子チャット」と、横の ▾ で、ほかに右の欄に開けるもののメニュー（2 つを 1 つのボタンに見せる .panel-split-button）。
  * メニューは 新しい子チャット ｜ 子チャット ▸（このチャットの子）・サブエージェント ▸（アーカイブしたものは除く）｜ ファイル・検索・変更・履歴（プロジェクトの左の列のタブと同じ画面。
- * 作業場所はこのチャットの作業場所から）｜ メモ ▸（最近変えた 12 件）・DB ▸（DB クライアントと、接続ごとの新しい SQL のタブ。この Mac のアプリの中だけ）。
+ * 作業場所はこのチャットの作業場所から）｜ メモ ▸（最近変えた 12 件）・DB ▸（DB クライアントと、接続ごとの新しい SQL のタブ。この Mac のアプリの中だけ）・Docker・GitHub・CI（この Mac のアプリの中だけ）・ゴミ箱。
  * どれも設定の開き方によらず、この右の欄に開く（▸ の一覧が空なら押せない）
  */
 export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; onNewChild: () => void }) {
@@ -69,6 +69,8 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const dbMenu = useSubmenu();
   if (!chat) return null;
   const worktree = chat.worktree_path ?? undefined;
+  // 欄に 1 つだけ開くもの（GitHub・CI・Docker・ゴミ箱）の開く先
+  const target = { chatId: chat.id, projectId: chat.project_id };
   /** プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面を、この右の欄に開く項目 */
   const projectView = (view: ProjectView) => {
     const Icon = PROJECT_VIEW_ICONS[view];
@@ -134,12 +136,23 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
           />
         </SubmenuItem>
       )}
-      {/* GitHub もこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける。プロジェクトの「GitHub」タブと同じ） */}
+      {/* Docker・GitHub・CI もこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける。プロジェクトのタブと同じ）。並びはプロジェクトのタブの初めの並び */}
       {window.kickoff && (
-        <MenuItem title="プロジェクトの「GitHub」タブと同じ画面（issue・PR の一覧と中身）を開く" onSelect={() => panel.openGitHub({ chatId: chat.id, projectId: chat.project_id })}>
-          <GitPullRequest size={14} /> GitHub
-        </MenuItem>
+        <>
+          <MenuItem title="プロジェクトの「Docker」タブと同じ画面（compose のサービス）を開く" onSelect={() => panel.openProjectTool("docker", target)}>
+            <Container size={14} /> Docker
+          </MenuItem>
+          <MenuItem title="プロジェクトの「GitHub」タブと同じ画面（issue・PR の一覧と中身）を開く" onSelect={() => panel.openGitHub(target)}>
+            <GitPullRequest size={14} /> GitHub
+          </MenuItem>
+          <MenuItem title="プロジェクトの「CI」タブと同じ画面（GitHub Actions の実行の一覧とログ）を開く" onSelect={() => panel.openProjectTool("ci", target)}>
+            <Workflow size={14} /> CI
+          </MenuItem>
+        </>
       )}
+      <MenuItem title="プロジェクトの「ゴミ箱」タブと同じ画面（消したものを 3 日取っておき、元に戻せる）を開く" onSelect={() => panel.openProjectTool("trash", target)}>
+        <Trash2 size={14} /> ゴミ箱
+      </MenuItem>
     </>
   );
 }

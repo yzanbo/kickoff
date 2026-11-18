@@ -89,6 +89,10 @@ function describeTab(tab: PanelTab): UserViewTab {
       return databaseTab(tab.projectId, `chat-${tab.chatId}`);
     case "github":
       return githubTab(tab.projectId);
+    case "ci":
+    case "docker":
+    case "trash":
+      return { kind: "page", label: PROJECT_TAB_LABELS[tab.kind], project_id: tab.projectId };
     case "child":
       return { kind: "child_chat", chat_id: tab.childId, title: tab.title, project_id: tab.projectId };
     case "newChild":
