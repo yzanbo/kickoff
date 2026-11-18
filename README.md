@@ -53,6 +53,15 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 
 コミットと push のたびに git のフック（`.githooks/`。`npm install` が `git config core.hooksPath .githooks` を設定する）が確かめを流し、落ちたら止める。コミット時はコミットするファイルについて型・knip・テストの書き方の見張り（`scripts/check-test-rules.mjs`）・関係するテスト（`npm run test:changed:isolated`）、push 時は `npm test` とビルド（一時フォルダに出す）。コミットしない変更が混ざっていると、コミット時のフックは確かめずに止まる（コミットする中身だけにしてから）。
 
+新規チャットのコマンド用サンドボックスの既定を実機で確かめるには、各 CLI にログインした状態で、Kickoff の外にある macOS のターミナルから実行する。
+
+```bash
+npx tsx scripts/check-restriction-defaults.ts claude
+npx tsx scripts/check-restriction-defaults.ts codex
+```
+
+オフにするのは検証用チャットだけ。既存のチャットや設定は変えず、作業フォルダ内外に作った検証用フォルダだけに書き込む。AI ごとに 2 回送信するため、使用枠を使い、CLI の会話履歴に残る。検証後は表示されたフォルダをゴミ箱へ移す。`--self-test` を足すと、実際の AI を使わずスクリプトの判定だけを確認できる。
+
 インストールしたアプリ（本番）と開発（`npm run dev` / `npm run daemon`）は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/core/system/appEnv.ts`）。
 
 | | 本番（`/Applications/Kickoff.app`） | 開発 |
