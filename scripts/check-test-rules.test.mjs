@@ -15,11 +15,14 @@ test("前のテストの値を残す書き方を見つける", () => {
     code("process.env", '["KICKOFF_X"] = "1";'),
     code("delete ", "process.env.HOME;"),
     code("process", '.chdir("/tmp");'),
+    code("process.env", "[key] ??= value;"),
+    code("process.env", ".X ||= \"1\";"),
+    code("globalThis", ".fetch &&= fake;"),
   ];
   const found = findViolations(lines.join("\n"));
   assert.deepEqual(
     found.map((v) => v.line),
-    [1, 2, 3, 4, 5, 6, 7, 8],
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
   );
 });
 

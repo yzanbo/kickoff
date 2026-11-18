@@ -7,6 +7,7 @@ import { tempDir } from "./tempDir.js";
 // テストで動かす git（準備も、コアの処理のコミットも）の名前。Git の名前を設定していない環境でもコミットできるよう、
 // この補助を読み込んだテストでは環境変数で渡す（すでに決めてあればそのまま）
 const IDENTITY = { GIT_AUTHOR_NAME: "Kickoff Test", GIT_AUTHOR_EMAIL: "test@example.com", GIT_COMMITTER_NAME: "Kickoff Test", GIT_COMMITTER_EMAIL: "test@example.com" };
+// test-rules-ignore: 読み込んだときに、テストの git が使う名前を入れる（利用者が決めた値は ??= で上書きしない）
 for (const [key, value] of Object.entries(IDENTITY)) process.env[key] ??= value;
 
 /** その作業場所で git を動かし、標準出力を返す */

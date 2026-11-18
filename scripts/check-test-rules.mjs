@@ -10,9 +10,9 @@ import { fileURLToPath } from "node:url";
 /** 見張る決まり（パターンと、代わりにどう書くか） */
 export const TEST_RULES = [
   { pattern: /from\s+["']node:test["']/, message: "テストは Vitest で書く（import { test } from \"vitest\"）" },
-  { pattern: /\bglobalThis(\.[\w$]+|\[[^\]]+\])\s*=(?!=)/, message: "グローバルは vi.stubGlobal で変える（テストごとに自動で戻る）" },
+  { pattern: /\bglobalThis(\.[\w$]+|\[[^\]]+\])\s*(?:\?\?|\|\||&&)?=(?!=)/, message: "グローバルは vi.stubGlobal で変える（テストごとに自動で戻る）" },
   { pattern: /\bObject\.(assign|defineProperty|defineProperties)\(\s*globalThis\b/, message: "グローバルは vi.stubGlobal で変える（テストごとに自動で戻る）" },
-  { pattern: /\bprocess\.env(\.[\w$]+|\[[^\]]+\])\s*=(?!=)/, message: "環境変数は vi.stubEnv で変える（テストごとに自動で戻る）" },
+  { pattern: /\bprocess\.env(\.[\w$]+|\[[^\]]+\])\s*(?:\?\?|\|\||&&)?=(?!=)/, message: "環境変数は vi.stubEnv で変える（テストごとに自動で戻る）" },
   { pattern: /\bdelete\s+process\.env\b/, message: "環境変数は vi.stubEnv で変える（消すなら vi.stubEnv(名前, undefined)）" },
   { pattern: /\bObject\.assign\(\s*process\.env\b/, message: "環境変数は vi.stubEnv で変える（テストごとに自動で戻る）" },
   { pattern: /\bprocess\.chdir\(/, message: "今のフォルダを変えない（プロセス全体に残る。パスを渡す）" },
