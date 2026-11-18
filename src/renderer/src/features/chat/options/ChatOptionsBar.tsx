@@ -52,6 +52,16 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
   const [permission, setPermission] = useState<PermissionMode>(initial?.permission_mode ?? "default");
   const [fastMode, setFastMode] = useState<boolean>(initial?.fast_mode ?? false);
+  // 既存のチャットの AI を途中で替えたら（メモの仕様書「0029」の Q12）、コアが当て直したそのチャットの選択に合わせ直す。
+  // 前の AI のモデル・権限モードを残すと、確認画面で見せた値と違うものを新しい AI に送ってしまう（Claude Code は一覧の外のモデル名も受け付けるので、下の当て直しでも直らない）
+  const [optionsProvider, setOptionsProvider] = useState(provider);
+  if (initial && optionsProvider !== provider) {
+    setOptionsProvider(provider);
+    setModel(initial.model ?? null);
+    setEffort(initial.effort ?? null);
+    setPermission(initial.permission_mode ?? "default");
+    setFastMode(initial.fast_mode ?? false);
+  }
 
   // 新しいチャットは、設定とプロジェクトが届いたら、その既定から始める（どちらも店から。あとで既定を変えても、選び直したものは変えない）。
   // 既定を当てたプロジェクト（"app" = プロジェクトなし）と AI を覚え、替わったら当て直す
