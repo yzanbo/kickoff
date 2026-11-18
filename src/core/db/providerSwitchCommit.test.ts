@@ -20,7 +20,7 @@ test("AI の変更・履歴の区切り・次回送信用の引き継ぎを一�
   assert.equal(result.chat.permission_mode, "auto");
   assert.equal(result.chat.sandbox_enabled, false);
   assert.equal(result.chat.edit_scope_enabled, true);
-  assert.deepEqual(result.event.data, { from: "claude", to: "codex" });
+  assert.deepEqual(result.event.data, { from: "claude", to: "codex", handoff_context: "引き継ぎ", handoff_status: "ready" });
   assert.equal(store.chatProviderSessions.get(chat.id, "claude")?.last_event_id, 9);
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.eventId, result.event.id);
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.queueWasPaused, true);
@@ -65,6 +65,9 @@ test("引き継ぎの完了と、AI の再開位置の更新は同時に行う",
   assert.equal(store.completeProviderHandoff(chat.id, switched.event.id, "codex", "wrong", 20), false);
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "sending");
   assert.equal(store.completeProviderHandoff(chat.id, switched.event.id, "codex", "codex-session", 20), true);
+  const event = store.events.get(switched.event.id);
+  assert.equal(event?.type === "provider_switched" && event.data.handoff_status, "delivered");
+  assert.equal(event?.type === "provider_switched" && event.data.handoff_context, "x");
   assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
   assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.last_event_id, 20);
   store.close();
