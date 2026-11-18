@@ -90,7 +90,7 @@ export function NewChatPane({
   // 右の欄の操作（流れの中のカードへ移ることがないので、受け取るだけ）
   const side: MutableRefObject<SidePanelHandle | null> = useRef(null);
   const project = projectsById.get(projectId);
-  // 使う AI（初めはプロジェクトの AI。見出しの札で選び直せ、送ったあとは変えない。メモの仕様書「0021」の Q1）
+  // 使う AI（初めはプロジェクトの AI。チャット欄の札で選び直せ、送ったあとは変えない。メモの仕様書「0021」の Q1）
   const [pickedProvider, setPickedProvider] = useState<ProviderId | null>(null);
   const provider: ProviderId = pickedProvider ?? project?.provider ?? "claude";
   const options = useChatOptions(undefined, projectId, undefined, provider);
@@ -190,7 +190,6 @@ export function NewChatPane({
           {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
           {groupBadge && <GroupPicker groups={groups} value={group} onChange={(next) => onGroupChange(next, groupNameIn(groups, next))} />}
           {shows("worktree") && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
-          <ProviderPicker value={provider} onChange={setPickedProvider} />
         </>
       }
       hero={
@@ -219,6 +218,8 @@ export function NewChatPane({
           key={projectId}
           chatContext={{ projectId }}
           options={options}
+          // 使う AI（チャット欄のモデルの左。押すと選び直す）
+          providerChip={<ProviderPicker value={provider} onChange={setPickedProvider} />}
           autoFocus
           onTextChange={onDraftChange}
           savedAttachments={savedAttachments}

@@ -29,6 +29,7 @@ import { ComposerHandoffChip } from "@/features/chat/children/HandoffFromChip";
 import { MemoChip } from "@/features/memo/MemoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
+import { ProviderChip } from "@/features/chat/provider/ProviderChips";
 import type { useChatSend } from "./useChatSend";
 import { useChipsPortal } from "./chipsPortal";
 import { useHeldEdit } from "@/features/chat/status/heldEdit";
@@ -135,6 +136,8 @@ export function ChatComposerArea({
       <Composer
         chatContext={{ projectId: chat.project_id, exclude: chat.id }}
         options={options}
+        // チャットの AI（どのチャットでもいつも出す。押すと Claude Code・Codex を切り替える。メモの仕様書「0021」の Q1・Q13、「0028」の 9 節）
+        providerChip={<ProviderChip chat={chat} busy={busy} />}
         busy={busy}
         queueWhileIdle={!busy && queued}
         // 会話の圧縮中は、右下をふだんの見た目にする（中断のボタンを出さない）

@@ -28,9 +28,9 @@ async function switchWithConfirmation(chatId: number, target: "claude" | "codex"
 }
 
 /**
- * 送る前の新しいチャット・新しい子チャットの見出しで、使う AI を選ぶ札（メモの仕様書「0021」の Q1・Q8）。
+ * 送る前の新しいチャット・新しい子チャットのチャット欄（下の行のモデルの左）で、使う AI を選ぶ札（メモの仕様書「0021」の Q1・Q8）。
  * 選べるのは Kickoff のチャットで使える AI だけで、対応予定のもの・API キーが要るのに置いていないものは押せない形で理由を出す。
- * 始めたあとの Claude Code・Codex 間の切り替えはチャットの見出しから行う。
+ * 始めたあとの Claude Code・Codex 間の切り替えは、チャット欄の同じ場所の札（ProviderChip）から行う。
  */
 export function ProviderPicker({ value, onChange, tipPrefix = "この AI で始めます" }: { value: ProviderId; onChange: (id: ProviderId) => void; tipPrefix?: string }) {
   const statuses = useProviders().data;
@@ -58,7 +58,7 @@ export function ProviderPicker({ value, onChange, tipPrefix = "この AI で始�
   );
 }
 
-/** チャットの見出しの AI の札。Claude Code と Codex は確認してから切り替える。 */
+/** チャット欄（下の行のモデルの左）の AI の札。Claude Code と Codex は確認してから切り替える。 */
 export function ProviderChip({ chat, busy }: { chat: Chat; busy: boolean }) {
   const provider = chat.provider;
   const statuses = useProviders().data;
