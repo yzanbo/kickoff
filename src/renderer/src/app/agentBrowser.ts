@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { setAgentBrowsing } from "@/features/browser/agentBrowsing";
 import { panelActions } from "@/features/panel/state/panelActions";
 import { allPanels, isPanelMounted } from "@/features/panel/state/panelStore";
+import { showSideBrowser } from "@/features/panel/state/openBrowserTab";
 import { isTabShown, panelOfTab } from "@/features/panel/state/tabPlace";
 import { panelKey } from "@/features/panel/surfaces";
 
@@ -30,6 +31,8 @@ export function useAgentBrowserBridge() {
       }
       const show = reveal && mayReveal(after);
       const actions = panelActions(key);
+      // 表に出すときは、右サイドバーの中身もブラウザにする（ほかの中身を見ていても気づけるように）
+      if (show) showSideBrowser(key);
       const tabKey = show ? actions.openBrowser(url) : actions.addBrowserBehind(url);
       setAgentBrowsing(tabKey, true);
       api.opened(requestId, tabKey, show, null);
@@ -37,7 +40,10 @@ export function useAgentBrowserBridge() {
     const offReveal = api.onRevealRequest((requestId, tabKey, after) => {
       const key = panelOfTab(panelsView(), tabKey);
       const show = key !== null && mayReveal(after);
-      if (show) panelActions(key).showTab(tabKey);
+      if (show) {
+        showSideBrowser(key);
+        panelActions(key).showTab(tabKey);
+      }
       api.revealed(requestId, show);
     });
     const offActivity = api.onActivity((tabKey, active) => setAgentBrowsing(tabKey, active));

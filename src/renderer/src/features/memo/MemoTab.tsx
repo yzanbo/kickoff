@@ -20,6 +20,7 @@ import { focusedPane } from "@/features/panel/layout/paneTree";
 import { Panel } from "@/features/panel/Panel";
 import type { PanelFrame } from "@/features/panel/PanelTools";
 import { usePanel } from "@/features/panel/usePanel";
+import type { PanelScope } from "@/features/panel/surfaces";
 import { ancestorsOf, buildMemoTree, filterMemos, isUnder, parentOf } from "./memoPaths";
 import { MemoFoundList } from "./MemoFoundList";
 import { MemoListHead } from "./MemoListHead";
@@ -27,7 +28,7 @@ import { MemoListMenu, type MemoMenuTarget } from "./MemoListMenu";
 import { memoListDropProps } from "./memoDrag";
 import { MemoTree, type MemoRenaming } from "./MemoTree";
 import { confirmLeaveMemosUnder } from "./memoGuards";
-import { closeMemoTabsUnder, openMemoInPanel } from "./memoPanel";
+import { closeMemoTabsUnder, memoPanelKey, openMemoInPanel } from "./memoPanel";
 import { requestMemoReveal } from "./memoReveal";
 import { MemoPlanDialog } from "./MemoPlanDialog";
 import { followMovedMemo, useMemoActions } from "./useMemoActions";
@@ -43,9 +44,24 @@ const NO_TERMINALS: readonly TerminalTarget[] = [];
  * 右クリックの「新しいタブで開く」で新しいタブに開く（openMemoInPanel）。一覧の選んでいる行は、ピントのあるペインで表示中のメモ。⌘ / Shift ＋クリックでいくつも選べ（useMultiSelect）、
  * まとめてドラッグで動かす・右クリックで開く・パスをコピー・ゴミ箱に入れる。最後に表示したメモは memoSelected に覚え、次に開いたときに開き直す
  */
-export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: number; openMemo?: string; openMemoLine?: number }) {
+export function MemoTab({
+  projectId,
+  openMemo,
+  openMemoLine,
+  scope,
+  onOpenedMemo,
+}: {
+  projectId: number;
+  openMemo?: string;
+  openMemoLine?: number;
+  /** 右のタブの欄を覚える範囲（なければプロジェクト。右サイドバーのメモは、真ん中のメモのタブと別の範囲） */
+  scope?: PanelScope;
+  /** openMemo を開いたとき（あれば URL を書き換えない。右サイドバーは頼みを片付けるだけで、画面を移らない） */
+  onOpenedMemo?: () => void;
+}) {
   const list = useMemoList(projectId);
-  const panel = usePanel({ surface: "memos", scope: projectId, newChat: undefined, terminals: NO_TERMINALS });
+  const panelKeyOf = memoPanelKey(projectId, scope);
+  const panel = usePanel({ surface: "memos", scope: scope ?? projectId, newChat: undefined, terminals: NO_TERMINALS });
   const { panelOpen, setOpen } = panel;
   // 右の欄はいつも開いておく（タブがなければ案内）
   useEffect(() => {
@@ -88,7 +104,7 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   const openFolders = (paths: string[]) => setOpenList([...new Set([...openList, ...paths])]);
   // メモを開く（newTab = 新しいタブ。ふだんはピントのあるペインで表示中のメモを入れ替える。そのときは書きかけをどうするか聞く）
   const select = async (path: string, newTab = false) => {
-    await openMemoInPanel(projectId, path, newTab);
+    await openMemoInPanel(projectId, path, newTab, panelKeyOf);
     openFolders(ancestorsOf(path));
   };
 
@@ -103,7 +119,7 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   const entriesLoaded = list.data !== undefined;
   const reopenRemembered = useEffectEvent(() => {
     if (openMemo || panel.tabs.length > 0 || !remembered) return;
-    if (list.data?.entries.some((e) => e.path === remembered && !e.dir)) void openMemoInPanel(projectId, remembered, true);
+    if (list.data?.entries.some((e) => e.path === remembered && !e.dir)) void openMemoInPanel(projectId, remembered, true, panelKeyOf);
   });
   useEffect(() => {
     if (entriesLoaded) reopenRemembered();
@@ -115,7 +131,8 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
     if (line) requestMemoReveal(projectId, path, line);
     void select(path, true);
     memosStore.invalidate(projectId);
-    navigate({ name: "project", id: projectId, tab: "memos" }, { replace: true });
+    if (onOpenedMemo) onOpenedMemo();
+    else navigate({ name: "project", id: projectId, tab: "memos" }, { replace: true });
   });
   useEffect(() => {
     if (openMemo) openFromUrl(openMemo, openMemoLine);
@@ -187,7 +204,7 @@ export function MemoTab({ projectId, openMemo, openMemoLine }: { projectId: numb
   const dragPaths = (node: TreeNode) => (multi.has(node.path) && multi.selected.length > 1 ? topLevelPaths(multi.selected) : [node.path]);
   const dropInto = (paths: string[], folder: string) => void actions.moveAllInto(paths, folder);
   const openInNewTabs = async (paths: string[]) => {
-    for (const path of paths) await openMemoInPanel(projectId, path, true);
+    for (const path of paths) await openMemoInPanel(projectId, path, true, panelKeyOf);
   };
 
   return (

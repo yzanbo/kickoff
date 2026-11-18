@@ -333,6 +333,15 @@ export const projectBrowserSession = defineSettingFamily("kickoff:project-browse
 export const PROJECT_CHAT_WIDTH = defineSetting("kickoff:project-chat-width", number(367));
 /** 右サイドバーを横幅いっぱい（左のサイドバーの右から画面の右端まで）に広げているか（タブの列の左端の切り替え。アプリ全体） */
 export const PROJECT_CHAT_MAXIMIZED = defineSetting("kickoff:project-chat-maximized", flag());
+/**
+ * プロジェクトごとの、右サイドバーで見ている中身（右端のアイコンの列で切り替える。browser = ブラウザ、ほかはプロジェクトのタブと同じ画面。
+ * メインのウィンドウと右サイドバーの別ウィンドウで同じ値を読む。features/panel/projectChat/sideView.ts。メモの仕様書「0031_右サイドバーにプロジェクトの画面を出す」）
+ */
+export const sideView = defineSettingFamily(
+  "kickoff:side-view:",
+  choice(["browser", "memos", "files", "search", "changes", "history", "db", "docker", "github", "ci", "trash"], "browser"),
+  { ids: true },
+);
 export const BOTTOM_PANEL_HEIGHT = defineSetting("kickoff:bottom-panel-height", number(198));
 /** チャットの画面の右の欄（サブエージェントの欄）の幅（px。左端のつまみのドラッグで変える。どのチャットでも同じ） */
 export const SUBAGENT_PANEL_WIDTH = defineSetting("kickoff:subagent-panel-width", number(520));

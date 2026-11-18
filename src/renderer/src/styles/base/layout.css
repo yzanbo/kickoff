@@ -8,7 +8,9 @@
   --app-titlebar-left-end: 164px;
   /* いま見えているサイドバーの幅（閉じたら 0。右のチャット欄の幅の上限に使う） */
   --sidebar-shown: var(--sidebar-w, 260px);
-  grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr) auto;
+  /* 右端のアイコンの列（右サイドバーの中身の切り替え。features/panel/projectChat/SideRail.tsx）の幅。プロジェクトがなければ列を置かないので 0 */
+  --side-rail-w: 37px;
+  grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr) auto auto;
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
   transition: grid-template-columns var(--panel-motion-duration) var(--panel-motion-ease);
@@ -17,7 +19,7 @@
 /* サイドバーを閉じたとき（⌘B） */
 .layout.sidebar-collapsed {
   --sidebar-shown: 0px;
-  grid-template-columns: 0px minmax(0, 1fr) auto;
+  grid-template-columns: 0px minmax(0, 1fr) auto auto;
 }
 
 .layout.sidebar-collapsed .sidebar {

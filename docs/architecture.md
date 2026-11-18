@@ -69,7 +69,8 @@
 | ゴミ箱（Kickoff の中のゴミ箱。消したもの（AI の rm の代わりの kickoff-trash・画面の「ゴミ箱に入れる」・チャット・プロジェクトの削除）を 3 日取っておき、元に戻せる。OS のゴミ箱とは別。メモの仕様書「ファイル削除」） | `TrashItem` / 表 `trash_items`（v26。種類 `TrashKind`: `file` / `chat` / `project` / `session` / `worktree`（消したワークツリーの控え。Git の参照 `refs/kickoff/trash/<id>/branch|changes`））・置き場はデータのフォルダの `trash/<id>/item/`・`TrashService`（`core/trash/`）・`GET /api/projects/:id/trash`・`POST /api/trash/:id/restore`・SSE `trash`・Kickoff が作ったセッションの覚え（表 `agent_sessions`。v28） | OS のゴミ箱（`moveToTrash`）へ移していた |
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |
 | タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
-| 右サイドバー（画面の右端の、ブラウザだけを並べる欄。コードでは「チャット欄」`side`。チャットのパネルはチャットだけ・下のパネルはターミナルだけ） | `surface: "side"`（`useProjectChat` ＋ `ProjectChat`） | 画面の文言で「チャット欄」（入力欄の呼び名と重なる） |
+| 右サイドバー（画面の右端の欄。右端のアイコンの列で、ブラウザとプロジェクトのタブと同じ画面（メモ・ファイル・検索・変更・履歴・DB・Docker・GitHub・CI・ゴミ箱）を切り替える。コードでは「チャット欄」`side`。チャットのパネルはチャットだけ・下のパネルはターミナルだけ） | `surface: "side"`（`useProjectChat` ＋ `ProjectChat`） | 画面の文言で「チャット欄」（入力欄の呼び名と重なる） |
+| 右サイドバーの中身（右端のアイコンの列で選ぶもの。プロジェクトごと） | `SideView`（`browser` か、プロジェクトのタブの名前。設定 `sideView`・`features/panel/projectChat/sideView.ts`）・右端の列 `SideRail`・中身 `SideBody` / `SideViewBody` | なし |
 | 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインエージェントとのつながりが見えないのでやめた） |
 | チャットタブ（チャットをボードと分けて横幅いっぱいに開くプロジェクトのタブ。設定でボードの右のパネルにも戻せる） | タブ `chats`（`#/projects/:id/chats`）・`ChatsTab`・置き方の設定 `CHAT_PLACEMENT`（`separate` / `together`）。中身はボードの右のパネルと同じ `kanban:<プロジェクト>` のパネル | ボードの右のパネルだけ |
 | メモ（プロジェクトの「メモ」タブ。プロジェクトの外のフォルダの Markdown か HTML（HTML のメモ = HTML と CSS で書くページ。描いた見た目で見る）） | メモのフォルダ（設定 `memos_dir` の下の、プロジェクトの `memo_folder`。別の場所なら `memo_path`）・`MemoService`（`core/memos/`）・`MemoTab`（`features/memo/`） | なし |

@@ -13,13 +13,13 @@ interface Tip {
   /** ショートカットのキー（見出しの右に出す） */
   keys?: string;
   /** 出す向き（right = 要素の右。左の縦の列のアイコンのように、上に出すと隣を隠すもの） */
-  side?: "right";
+  side?: "right" | "left";
   anchor: DOMRect;
 }
 
 /**
  * マウスを乗せたときの説明（アプリ全体で 1 つ。App が置く）。data-tip（説明）と data-tip-title（見出し。省ける）・data-tip-keys（ショートカット。省ける）を付けた要素に
- * 乗せると、少し待ってその上（入らなければ下。data-tip-side="right" なら右）に出す。OS の title より早く出て、見出しと説明を分けて読める。
+ * 乗せると、少し待ってその上（入らなければ下。data-tip-side="right" なら右、"left" なら左）に出す。OS の title より早く出て、見出しと説明を分けて読める。
  * ダイアログ（top layer）の上にも出るよう popover で出す。押した・キーを押した・スクロールした・離れたら消す
  */
 export function HoverTip() {
@@ -50,7 +50,7 @@ export function HoverTip() {
           title,
           text,
           keys: el.getAttribute("data-tip-keys") ?? undefined,
-          side: el.getAttribute("data-tip-side") === "right" ? "right" : undefined,
+          side: tipSideOf(el.getAttribute("data-tip-side")),
           anchor: el.getBoundingClientRect(),
         });
       }, SHOW_DELAY_MS);
@@ -84,10 +84,10 @@ export function HoverTip() {
     if (!el.matches(":popover-open")) el.showPopover();
     const { width, height } = el.getBoundingClientRect();
     const a = tip.anchor;
-    if (tip.side === "right") {
-      // 要素の右の、縦の真ん中にそろえる（入らなければ画面の中に寄せる）
+    if (tip.side) {
+      // 要素の右（右端の縦の列は左）の、縦の真ん中にそろえる（入らなければ画面の中に寄せる）
       el.style.top = `${Math.max(MARGIN, Math.min(window.innerHeight - height - MARGIN, a.top + a.height / 2 - height / 2))}px`;
-      el.style.left = `${Math.min(window.innerWidth - width - MARGIN, a.right + MARGIN)}px`;
+      el.style.left = tip.side === "right" ? `${Math.min(window.innerWidth - width - MARGIN, a.right + MARGIN)}px` : `${Math.max(MARGIN, a.left - width - MARGIN)}px`;
       return;
     }
     const above = a.top - height - MARGIN;
@@ -109,6 +109,9 @@ export function HoverTip() {
     </div>
   );
 }
+
+/** 横に出す向き（左の縦の列のアイコンは右、右端の縦の列のアイコンは左。なければ上下） */
+const tipSideOf = (raw: string | null): "right" | "left" | undefined => (raw === "right" || raw === "left" ? raw : undefined);
 
 /**
  * 「名前（説明）」の形の文を、見出しと説明に分けて data-tip の属性にする（アイコンだけの選択肢・ボタンの label をそのまま使う）。
