@@ -2,6 +2,7 @@
 
 /* 「エディタ」タブの履歴（左にブランチの線、右に件名・作者・日時） */
 .history-list {
+  container: history-list / inline-size;
   margin: 0;
   padding: 4px 0 8px;
   list-style: none;
@@ -324,11 +325,49 @@
 
 /* 履歴の表の列（件名・作者・コミットの番号・日時） */
 .history-subject {
+  display: flex;
   flex: 1;
+  align-items: center;
   min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/*
+ * 件名の前の札。狭いときは件名の文を先に縮め（3em まで）、それでも入らなければ札の名前を「…」で詰める
+ * （利用者の指摘。前は札と文を 1 つの欄で切っていて、狭いと札の途中で切れ、ブランチが見えなくなった）
+ */
+.history-refs {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.history-refs > .ref-badge,
+.history-refs > .ref-badge-group,
+.history-refs > .ref-badge-group > .ref-badge {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  vertical-align: 0;
+}
+
+/* 札が縮んでも、✓・マークとリモートのマークだけの札は残して、名前だけを詰める */
+.history-refs > .ref-badge-group > .ref-badge.remote {
+  flex: none;
+}
+
+.history-refs .ref-badge-name {
+  min-width: 2em;
+}
+
+.history-subject-text {
+  flex: 1 1 0;
+  min-width: 3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .history-author,
@@ -353,6 +392,25 @@
 
 .history-date {
   width: 118px;
+}
+
+/* 狭いときは、作者 → コミットの番号 → 日時の順に列を隠し、件名と札の幅を残す */
+@container history-list (width < 600px) {
+  .history-author {
+    display: none;
+  }
+}
+
+@container history-list (width < 460px) {
+  .history-hash {
+    display: none;
+  }
+}
+
+@container history-list (width < 340px) {
+  .history-date {
+    display: none;
+  }
 }
 
 /* 履歴の右側（上にコミットの表、下に詳細。境目はドラッグで動かせる） */
