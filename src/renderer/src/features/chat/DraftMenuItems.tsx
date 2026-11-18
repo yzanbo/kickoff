@@ -21,7 +21,7 @@ const openNewChatAt = (place: NewChatPlace) => openNewChat(place.projectId, { gr
 /**
  * 送る前の新しいチャット（下書き）の右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのタブで共通）。
  * チャットの右クリック（ChatMenuItems）と同じ並び・同じ文とアイコンにし、下書きでもできるものだけを置く（利用者の依頼）:
- * 新しいチャット（同じグループ・作業場所）｜ 開く・その場所だけの項目（before。分けて開くなど）｜ 名前を変更・固定・グループを変更・プロジェクトを変更 ｜ 削除 ｜ after（タブを閉じるなど）。
+ * 新しいチャット（同じグループ・作業場所）｜ 開く・その場所だけの項目（before。分けて開くなど）｜ 整理 = 名前を変更・固定 ｜ 移す = グループを変更・プロジェクトを変更 ｜ 削除 ｜ after（タブの表示・タブを閉じるなど）。
  * 子チャットを作成・既読 / 未読・セッション ID をコピー・アーカイブは、まだチャットがない（送るまで作られない）ので出さない
  */
 export function DraftMenuItems({
@@ -77,8 +77,10 @@ export function DraftMenuItems({
       </MenuItem>
       {/* 固定したものはプロジェクトのいちばん上の「固定」に出し、送ったら、できたチャットも固定する */}
       <MenuItem onSelect={() => togglePinDraft(draft)}>
-        <Pin size={14} /> {draft.pinned ? "ピン留めを外す" : "ピン留め"}
+        <Pin size={14} /> {draft.pinned ? "固定を外す" : "固定"}
       </MenuItem>
+      {/* 移す組（チャットの右クリックと同じ区切り） */}
+      <div className="menu-separator" role="separator" />
       {/* 乗せる・押す・→ で横にこのプロジェクトのグループの一覧を開く（作成先のグループを変える。送ったらそのグループに入る） */}
       <button {...grouping.trigger}>
         <Folder size={14} /> グループを変更

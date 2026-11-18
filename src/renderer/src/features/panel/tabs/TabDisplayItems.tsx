@@ -190,14 +190,13 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
 
 /**
  * タブの右クリックの「タブの表示 ›」（乗せる・押す・→ で横に開く子のメニューに TabDisplayItems を出す。タブの列の「表示」のメニューと同じ値。利用者の依頼）。
- * 項目のない欄（サブエージェントの欄）では何も出さない。前に区切り線を置く
+ * 項目のない欄（サブエージェントの欄）では何も出さない。区切り線は置かない（タブのメニューで「タブを閉じる」と 1 つの組にする）
  */
 export function TabDisplaySubmenu({ panel }: { panel: PanelController }) {
   const sub = useSubmenu();
   if (!hasTabDisplayItems(panel)) return null;
   return (
     <>
-      {separator}
       <button {...sub.trigger} title="タブの列の「表示」のメニューと同じ、タブの表示の選び方です">
         <SlidersHorizontal size={14} /> タブの表示
         <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
