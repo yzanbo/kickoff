@@ -31,8 +31,8 @@ const projects: TestProjectInlineConfiguration[] = [
 if (process.env.KICKOFF_DBTEST) projects.push({ extends: true, test: { name: "db", include: ["src/**/*.dbtest.ts"], fileParallelism: false, ...common } });
 
 export default defineConfig({
-  // スマホのフォルダの tsconfig は expo の設定を継ぐ（mobile/node_modules がないと読めない）ので、どのファイルもルートの tsconfig で変換する
-  tsconfig: "./tsconfig.json",
+  // スマホのフォルダの tsconfig は expo の設定を継ぐ（mobile/node_modules がないと読めない）ので、どのファイルもテストの tsconfig（tsconfig.test.json）で変換する
+  tsconfig: "./tsconfig.test.json",
   resolve: { alias },
   test: {
     projects,

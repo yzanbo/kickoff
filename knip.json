@@ -7,6 +7,7 @@
     "src/core/daemon.ts",
     "src/core/host/main.ts",
     "src/**/*.dbtest.ts",
+    "src/core/terminal/xtermTypes.d.ts",
     "electron.vite.config.ts",
     "scripts/*.mjs",
     "scripts/check-provider-switch.ts",

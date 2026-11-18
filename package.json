@@ -9,7 +9,7 @@
     "preview": "electron-vite preview",
     "preview:measure": "KICKOFF_REMOTE_DEBUG=9334 KICKOFF_PORT=4396 KICKOFF_USER_DATA_DIR=\"${TMPDIR:-/tmp}/kickoff-measure\" electron-vite preview",
     "daemon": "tsx src/core/daemon.ts",
-    "typecheck": "tsc --noEmit --noUnusedLocals",
+    "typecheck": "tsc -p tsconfig.shared.json && tsc -p tsconfig.node.json && tsc -p tsconfig.preload.json && tsc -p tsconfig.web.json && tsc -p tsconfig.test.json",
     "test": "vitest run --no-isolate --sequence.shuffle.files",
     "test:isolated": "vitest run --isolate",
     "test:changed": "node scripts/test-changed.mjs",

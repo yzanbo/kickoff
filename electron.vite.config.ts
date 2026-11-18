@@ -11,7 +11,7 @@ import { reactCompilerReport } from "./scripts/react-compiler-report.mjs";
 // コアの API サーバーのポート（開発時は Vite から /api をここへ転送する。開発用のポート: appEnv.ts）
 const corePort = Number(process.env.KICKOFF_PORT ?? APP_ENVS.development.port);
 
-// import のエイリアス（tsconfig.json の paths と同じ）。@shared はどのプロセスからも、@ は画面の中だけ
+// import のエイリアス（tsconfig.base.json の paths と同じ）。@shared はどのプロセスからも、@ は画面の中だけ
 const shared = { "@shared": resolve("src/shared") };
 
 /**

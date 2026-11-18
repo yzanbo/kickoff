@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@/*": ["./src/renderer/src/*"],
+      "@xterm/xterm": ["./src/core/terminal/xtermTypes.d.ts"]
+    }
+  },
+  "include": ["src/core/**/*.ts", "src/main/**/*.ts", "scripts/**/*.ts", "electron.vite.config.ts", "vitest.config.ts"],
+  "exclude": ["**/*.test.ts", "**/*.dbtest.ts", "src/**/testing/**", "scripts/check-codex-uploads.ts"]
+}

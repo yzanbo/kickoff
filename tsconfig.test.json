@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"]
+  },
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.dbtest.ts",
+    "src/**/testing/**/*.ts",
+    "src/renderer/src/lib/memoryStorage.ts",
+    "src/renderer/src/global.d.ts",
+    "vitest.setup.ts"
+  ]
+}
