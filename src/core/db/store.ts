@@ -128,7 +128,7 @@ export class Store {
       const targetSession = this.chatProviderSessions.get(current.id, input.target);
       const inserted = this.db.prepare("INSERT INTO chat_events (chat_id, type, data) VALUES (?, 'provider_switched', ?)").run(
         current.id,
-        JSON.stringify({ from: current.provider, to: input.target, ...(input.attachments.length ? { handoff_attachments: input.attachments } : {}), ...(input.queuedIds?.length ? { queued_ids: input.queuedIds } : {}) }),
+        JSON.stringify({ from: current.provider, to: input.target, handoff_context: input.context, handoff_status: input.state, ...(input.attachments.length ? { handoff_attachments: input.attachments } : {}), ...(input.queuedIds?.length ? { queued_ids: input.queuedIds } : {}) }),
       );
       eventId = Number(inserted.lastInsertRowid);
       this.chatProviderHandoffs.save({ chatId: current.id, eventId, provider: input.target, context: input.context, state: input.state, error: input.error, lastEventId: input.afterEventId, queueWasPaused: input.queueWasPaused });
@@ -160,6 +160,7 @@ export class Store {
         return false;
       }
       this.chatProviderSessions.save(chatId, provider, sessionId, lastEventId);
+      this.db.prepare("UPDATE chat_events SET data = json_set(data, '$.handoff_status', 'delivered') WHERE id = ? AND chat_id = ? AND type = 'provider_switched'").run(eventId, chatId);
       if (!this.chatProviderHandoffs.complete(chatId, eventId)) throw new Error("AI の引き継ぎ状態が変わりました");
       this.db.exec("COMMIT");
       return true;
@@ -181,7 +182,7 @@ export class Store {
         return false;
       }
       const previous = event.data.handoff_attachments ?? [];
-      const data = { ...event.data, handoff_attachments: [...previous, ...attachments] };
+      const data = { ...event.data, handoff_context: context, handoff_status: "ready", handoff_attachments: [...previous, ...attachments] };
       this.db.prepare("UPDATE chat_events SET data = ? WHERE id = ? AND chat_id = ?").run(JSON.stringify(data), eventId, chatId);
       this.chatProviderHandoffs.save({ ...pending, context, state: "ready", error: null });
       this.db.exec("COMMIT");

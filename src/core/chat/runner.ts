@@ -191,6 +191,7 @@ export class Runner extends RunnerQueue {
     runtime.preparing = true;
     runtime.switchingProvider = true;
     let started = false;
+    let recovered = false;
     try {
       const result = await retryProviderHandoffPreparation({ store, uploads, requireIdle: () => {
         if (!runtime.preparing || !runtime.switchingProvider || runtime.turn) throw new Conflict("チャットの状態が変わったため、再試行できません");
@@ -210,11 +211,16 @@ export class Runner extends RunnerQueue {
         started = true;
         void this.execute({ chatId, prompt, promptId: attempt.data.message_uuid });
       }
+      recovered = true;
       return result;
+    } catch (error) {
+      // 再準備後の失敗でも、元の指示を飛ばして次の待ちを送らない。
+      store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
+      throw error;
     } finally {
       runtime.preparing = false;
       runtime.switchingProvider = false;
-      if (!started && this.handoffCanSend(chatId)) void this.sendNextQueued(chatId);
+      if (recovered && !started && this.handoffCanSend(chatId)) void this.sendNextQueued(chatId);
     }
   }
 
