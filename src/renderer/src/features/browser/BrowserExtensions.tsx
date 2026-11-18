@@ -1,8 +1,7 @@
-import { Download, FolderOpen, Puzzle, X } from "lucide-react";
+import { Download, FolderOpen, Puzzle, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { KNOWN_EXTENSIONS, type BrowserExtensionInfo, type KnownExtensionKey } from "@shared/ipc";
+import { KNOWN_EXTENSION_KEYS, KNOWN_EXTENSIONS, type BrowserExtensionInfo, type KnownExtensionKey } from "@shared/ipc";
 import { useAction } from "@/hooks/useAction";
-import { IconButton } from "@/ui/IconButton";
 import { ResultMessage } from "@/ui/SaveActions";
 
 const SOURCE_LABELS: Record<BrowserExtensionInfo["source"], string> = {
@@ -11,14 +10,14 @@ const SOURCE_LABELS: Record<BrowserExtensionInfo["source"], string> = {
   folder: "フォルダを指定",
 };
 
-/** ボタン 1 つで取得・取り込みできる拡張機能 */
-const REACT_DEVTOOLS: KnownExtensionKey = "react-devtools";
+/** 実行中の操作（どの拡張機能のものか分かるように、キー・パスを添える） */
+type ExtensionAction = `install:${KnownExtensionKey}` | `import:${KnownExtensionKey}` | `remove:${string}` | "folder";
 
 /** 埋め込みブラウザの拡張機能（設定画面） */
 export function BrowserExtensions() {
   const api = window.kickoff?.browserExtensions;
   const [list, setList] = useState<BrowserExtensionInfo[]>([]);
-  const action = useAction<"remove" | "install" | "import" | "folder">();
+  const action = useAction<ExtensionAction>();
   const busy = action.busy;
 
   useEffect(() => {
@@ -27,58 +26,80 @@ export function BrowserExtensions() {
 
   if (!api) return <p className="muted small">ブラウザの拡張機能はデスクトップアプリでのみ設定できます。</p>;
 
-  /** 拡張機能を足す・外す（そのあとの一覧が返る。終わったら結果の文を出す） */
-  const run = (name: NonNullable<typeof busy>, fn: () => Promise<BrowserExtensionInfo[]>, done: string) =>
+  /** 拡張機能を足す・消す（そのあとの一覧が返る。終わったら結果の文を出す） */
+  const run = (name: ExtensionAction, fn: () => Promise<BrowserExtensionInfo[]>, done: string) =>
     action.run(name, async () => setList(await fn()), { done });
 
-  const reactName = KNOWN_EXTENSIONS[REACT_DEVTOOLS].name.toLowerCase();
-  const hasReact = list.some((e) => e.name.toLowerCase().includes(reactName));
+  const added = new Set(list.map((e) => e.key));
+  const addable = KNOWN_EXTENSION_KEYS.filter((k) => !added.has(k));
 
   return (
     <div className="ext-settings">
       <p className="muted small">
-        埋め込みブラウザで使う Chrome の拡張機能です。開発者ツール向けの拡張（React DevTools など）は動きますが、Bitwarden のようにポップアップや Chrome
-        の機能を多く使う拡張は動きません（そのようなページは「Chrome で開く」を使ってください）。
+        埋め込みブラウザで使う Chrome の拡張機能です。開発者ツールにパネルを足す拡張（React DevTools など）は動きますが、Bitwarden のようにポップアップや Chrome
+        の機能を多く使う拡張は動きません（そのようなページは「Chrome で開く」を使ってください）。足した・消したあとは、ページを読み込み直して開発者ツールを開き直すと反映されます。
       </p>
+      <h3>追加した拡張機能</h3>
       {list.length === 0 ? (
-        <p className="muted small">読み込んでいる拡張機能はありません。</p>
+        <p className="muted small">追加した拡張機能はありません。</p>
       ) : (
         <ul className="ext-list">
           {list.map((e) => (
-            <li key={e.path}>
-              <Puzzle size={14} className="muted" />
-              <span className="ext-name">
-                {e.name} <span className="muted small">{e.version}</span>
-              </span>
-              <span className="badge">{SOURCE_LABELS[e.source]}</span>
-              <IconButton
-                icon={X}
-                label={`${e.name} を外す`}
-                title="外す"
-                size={13}
-                disabled={busy !== null}
-                onClick={() => void run("remove", () => api.remove(e.path), `${e.name} を外しました`)}
-              />
-            </li>
+            <AddedExtension key={e.path} ext={e} busy={busy} onRemove={(detach) => void run(`remove:${e.path}`, () => api.remove(e.path), `${e.name} を${detach ? "外しました" : "削除しました"}`)} />
           ))}
         </ul>
       )}
+      {addable.length > 0 && (
+        <>
+          <h3>よく使う拡張機能</h3>
+          <ul className="ext-list">
+            {addable.map((key) => {
+              const { name, description } = KNOWN_EXTENSIONS[key];
+              return (
+                <li key={key}>
+                  <Puzzle size={14} className="muted" />
+                  <span className="ext-name">
+                    {name}
+                    <span className="ext-description muted small">{description}</span>
+                  </span>
+                  <button className="btn btn-sm" disabled={busy !== null} onClick={() => void run(`install:${key}`, () => api.install(key), `${name} を追加しました`)}>
+                    <Download size={13} aria-hidden /> {busy === `install:${key}` ? "取得中…" : "ウェブストアから取得"}
+                  </button>
+                  <button className="btn btn-sm" disabled={busy !== null} onClick={() => void run(`import:${key}`, () => api.importFromChrome(key), `Chrome の ${name} を取り込みました`)}>
+                    {busy === `import:${key}` ? "取り込み中…" : "Chrome から取り込む"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
       <div className="ext-actions">
-        {!hasReact && (
-          <>
-            <button className="btn" disabled={busy !== null} onClick={() => void run("install", () => api.install(REACT_DEVTOOLS), "React DevTools を追加しました")}>
-              <Download size={14} /> {busy === "install" ? "取得中…" : "React DevTools をウェブストアから取得"}
-            </button>
-            <button className="btn" disabled={busy !== null} onClick={() => void run("import", () => api.importFromChrome(REACT_DEVTOOLS), "Chrome の React DevTools を取り込みました")}>
-              Chrome から取り込む
-            </button>
-          </>
-        )}
         <button className="btn" disabled={busy !== null} onClick={() => void run("folder", () => api.addFolder(), "拡張機能を追加しました")}>
           <FolderOpen size={14} /> フォルダを指定…
         </button>
       </div>
       <ResultMessage result={action.result} as="p" className="small" />
     </div>
+  );
+}
+
+/** 追加した拡張機能の 1 行。指定したフォルダは利用者のものなので一覧から外すだけ、Kickoff が取得・写したものはファイルごと消す */
+function AddedExtension({ ext, busy, onRemove }: { ext: BrowserExtensionInfo; busy: ExtensionAction | null; onRemove: (detach: boolean) => void }) {
+  const detach = ext.source === "folder";
+  const RemoveIcon = detach ? X : Trash2;
+  const removing = busy === `remove:${ext.path}`;
+  return (
+    <li>
+      <Puzzle size={14} className="muted" />
+      <span className="ext-name">
+        {ext.name} {ext.version && <span className="muted small">{ext.version}</span>}
+        {ext.error && <span className="ext-error small">読み込めませんでした: {ext.error}</span>}
+      </span>
+      <span className="badge">{SOURCE_LABELS[ext.source]}</span>
+      <button className="btn btn-sm" disabled={busy !== null} title={detach ? "一覧から外します（フォルダは消しません）" : "拡張機能のファイルごと消します"} onClick={() => onRemove(detach)}>
+        <RemoveIcon size={13} aria-hidden /> {removing ? (detach ? "外しています…" : "削除中…") : detach ? "外す" : "削除"}
+      </button>
+    </li>
   );
 }
