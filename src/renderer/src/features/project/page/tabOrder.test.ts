@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { applyTabOrder, flatTabOrder, isNoopDrop, moveGroup, moveTabInGroup, orderAfterDrop } from "./tabOrder";
+import { applyTabOrder, flatTabOrder, isNoopDrop, mergeSubsetOrder, moveGroup, moveTabInGroup, orderAfterDrop } from "./tabOrder";
 
 const t = (tab: string) => ({ tab });
 const GROUPS = [
@@ -43,4 +43,18 @@ test("isNoopDrop: すぐ前の後ろ・すぐ後ろの前に落としても並�
   assert.equal(isNoopDrop(GROUPS, { tab: "search", group: "code" }, { kind: "tab", key: "files", side: "after" }), true);
   assert.equal(isNoopDrop(GROUPS, { tab: "search", group: "code" }, { kind: "tab", key: "changes", side: "before" }), true);
   assert.equal(isNoopDrop(GROUPS, { tab: "search", group: "code" }, { kind: "tab", key: "changes", side: "after" }), false);
+});
+
+test("mergeSubsetOrder: 一部だけを並べ替えた並びを全体に戻し、ほかのタブ（ボード・チャット）は場所を変えない", () => {
+  const full = flatTabOrder(GROUPS);
+  // 右端の列（ボード・チャットなし）で、メモをコードの前へ
+  const rail = GROUPS.filter((g) => g.key !== "work");
+  const reordered = moveGroup(rail, "memos", "code", "before");
+  const merged = mergeSubsetOrder(full, reordered);
+  assert.deepEqual(merged, ["board", "chats", "memos", "files", "search", "changes", "history"]);
+  assert.deepEqual(keys(applyTabOrder(GROUPS, merged)), ["work:board,chats", "memos:memos", "code:files,search,changes", "history:history"]);
+  // ボード・チャットが間にあっても、読むときにまとまりは続けて並ぶ
+  const middle = flatTabOrder(applyTabOrder(GROUPS, ["files", "search", "changes", "board", "chats", "history", "memos"]));
+  const moved = mergeSubsetOrder(middle, moveGroup(applyTabOrder(rail, middle), "memos", "code", "before"));
+  assert.deepEqual(keys(applyTabOrder(GROUPS, moved)), ["memos:memos", "code:files,search,changes", "work:board,chats", "history:history"]);
 });

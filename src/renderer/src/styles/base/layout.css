@@ -8,7 +8,10 @@
   --app-titlebar-left-end: 164px;
   /* いま見えているサイドバーの幅（閉じたら 0。右のチャット欄の幅の上限に使う） */
   --sidebar-shown: var(--sidebar-w, 260px);
-  /* 右端のアイコンの列（右サイドバーの中身の切り替え。features/panel/projectChat/SideRail.tsx）の幅。プロジェクトがなければ列を置かないので 0 */
+  /*
+   * 右端のアイコンの列（右サイドバーの中身の切り替え。features/panel/projectChat/SideRail.tsx）の幅。プロジェクトの左の縦のタブと同じ形を小さくして、
+   * 28px のタブ ＋ 左右 4px ＋ 左の境目の線 1px。プロジェクトがなければ列を置かないので 0
+   */
   --side-rail-w: 37px;
   grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr) auto auto;
   grid-template-rows: minmax(0, 1fr) auto;

@@ -73,3 +73,16 @@ export function isNoopDrop(groups: readonly TabGroup<{ tab: string }>[], moving:
   const after = orderAfterDrop(groups, moving, target);
   return after.length === before.length && after.every((tab, i) => tab === before[i]);
 }
+
+/**
+ * 一部のタブだけを並べ替えた並び（右サイドバーの右端の列。ボード・チャットがない）を、全体の並びに戻す（純粋な関数）。
+ * 全体の並びのうち、並べ替えたタブがあった場所に新しい順で入れ直し、ほかのタブ（ボード・チャット）はその場所のまま残す。
+ * まとまりがほかのタブをまたいで分かれても、読むときの applyTabOrder がいちばん前のタブの位置でまとめ直す
+ */
+export function mergeSubsetOrder(full: readonly string[], reordered: readonly string[]): string[] {
+  const moved = new Set(reordered);
+  let next = 0;
+  const merged = full.map((tab) => (moved.has(tab) ? reordered[next++] : tab));
+  // 全体の並びになかったタブ（新しく足したタブなど）は後ろへ
+  return [...merged, ...reordered.slice(next)];
+}

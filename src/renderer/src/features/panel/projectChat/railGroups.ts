@@ -1,34 +1,29 @@
 import { sideViewOfTab, type SideView } from "./sideView";
 
-/** 右端のアイコンの列の 1 つ（中身・名前・アイコン） */
-export interface RailItem<I> {
-  view: SideView;
+/** 右端のアイコンの列のタブ（並べ替えの tab は右サイドバーの中身の名前 = プロジェクトのタブの名前） */
+export interface RailTab<I> {
+  tab: Exclude<SideView, "browser">;
   label: string;
   icon: I;
 }
 
-/** 右端のアイコンの列のまとまり（2 つ以上ならプロジェクトのタブと同じく薄い地でつなぐ） */
+/** 右端のアイコンの列のまとまり */
 export interface RailGroup<I> {
   key: string;
   label: string;
-  items: RailItem<I>[];
+  tabs: RailTab<I>[];
 }
 
 /**
- * 右端のアイコンの列のまとまり（純粋な関数）。ブラウザだけのまとまりを先頭に、そのあとプロジェクトのタブのまとまりを並べた順のまま
- * （右サイドバーに出さないボード・チャットは除き、中身がなくなったまとまりは出さない）。利用者の依頼で、プロジェクトの縦のタブと同じまとまりで見せる
+ * 右端のアイコンの列のまとまり（純粋な関数）。プロジェクトのタブのまとまりから、右サイドバーに出さないボード・チャットを除き、
+ * 中身がなくなったまとまりは出さない（ブラウザは列の先頭に別に置く）。並べ替えはプロジェクトのタブと同じ仕組みで、並びも共通
  */
-export function railGroupsOf<I>(
-  groups: readonly { key: string; label: string; tabs: readonly { tab: string; label: string; tip?: string; icon: I }[] }[],
-  browser: { label: string; icon: I },
-): RailGroup<I>[] {
-  const result: RailGroup<I>[] = [{ key: "browser", label: browser.label, items: [{ view: "browser", label: browser.label, icon: browser.icon }] }];
-  for (const g of groups) {
-    const items = g.tabs.flatMap((t) => {
+export function railGroupsOf<I>(groups: readonly { key: string; label: string; tabs: readonly { tab: string; label: string; tip?: string; icon: I }[] }[]): RailGroup<I>[] {
+  return groups.flatMap((g) => {
+    const tabs = g.tabs.flatMap((t) => {
       const view = sideViewOfTab(t.tab);
-      return view ? [{ view, label: t.tip ?? t.label, icon: t.icon }] : [];
+      return view ? [{ tab: view, label: t.tip ?? t.label, icon: t.icon }] : [];
     });
-    if (items.length > 0) result.push({ key: g.key, label: g.label, items });
-  }
-  return result;
+    return tabs.length > 0 ? [{ key: g.key, label: g.label, tabs }] : [];
+  });
 }

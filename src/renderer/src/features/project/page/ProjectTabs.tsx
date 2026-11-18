@@ -46,9 +46,10 @@ export interface TabSpec {
  * 同じまとまりのタブは薄い地でつなぎ、まとまりの間を空けて、どれが同じ仲間かを見て分かるようにする（タブが 1 つのまとまりは地を付けない）:
  * チャットの作業（ボード・チャット）/ コード（ファイル・検索・変更・履歴。どれも作業場所のコードと Git。以前の「エディタ」タブの中の切り替えと履歴）/ メモ。
  * ドラッグで並べ替えられる（ほかのまとまりへはまとまりごと、同じまとまりの中では 1 つずつ。useProjectTabOrder）。
- * 2 つ以上のタブのまとまりは、端（縦並びは上・横並びは左）のつまみをつかむと、まとまりごと動かせる
+ * 2 つ以上のタブのまとまりは、端（縦並びは上・横並びは左）のつまみをつかむと、まとまりごと動かせる。
+ * 右サイドバーの右端のアイコンの列も、このまとまりと並び（ボード・チャットを除く）で同じ見た目に描き、同じように並べ替えられる（SideRail）
  */
-const TAB_GROUPS: TabGroupSpec[] = [
+export const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
   {
     key: "work",
     label: "チャット",
@@ -80,26 +81,10 @@ const TAB_GROUPS: TabGroupSpec[] = [
   { key: "trash", label: "ゴミ箱", tabs: [{ tab: "trash", label: "ゴミ箱", icon: Trash2, tip: "ゴミ箱（3 日で消えます）" }] },
 ];
 
-/** タブのまとまり（名前と、まとまりの中のタブ） */
-export interface TabGroupSpec {
-  key: string;
-  label: string;
-  tabs: TabSpec[];
-}
-
-/**
- * 並べ替えた順のタブのまとまり。右サイドバーの右端のアイコンの列が、プロジェクトのタブと同じ並び・同じまとまりに付いていくのに使う
- * （メモの仕様書「0031_右サイドバーにプロジェクトの画面を出す」の Q4。列だけの並びは持たない）
- */
-export function useOrderedProjectTabGroups(): TabGroupSpec[] {
-  const [saved] = useSetting(PROJECT_TAB_ORDER);
-  return useMemo(() => applyTabOrder(TAB_GROUPS, saved), [saved]);
-}
-
 /** 並べ替えた順のタブ（まとまりをほどいて 1 列に。右サイドバーの見出しの名前） */
 export function useOrderedProjectTabs(): TabSpec[] {
-  const groups = useOrderedProjectTabGroups();
-  return useMemo(() => groups.flatMap((g) => g.tabs), [groups]);
+  const [saved] = useSetting(PROJECT_TAB_ORDER);
+  return useMemo(() => applyTabOrder(TAB_GROUPS, saved).flatMap((g) => g.tabs), [saved]);
 }
 
 /**
