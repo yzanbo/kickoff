@@ -174,6 +174,20 @@ test("送信前の失敗を再試行すると元の発言を重複させず同�
   assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
 });
 
+test("再試行時に送信中の印を取った後でも AI の起動前に失敗したら再試行待ちに戻す", async () => {
+  const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
+  const { store, project, runner } = setupCore(provider, { uploads: new UploadStore(tempDir()) });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "記録", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: true });
+  store.projects.update(project.id, { repo_path: "/private/tmp/kickoff-missing-workdir-for-handoff-test" });
+  await runner.send(chat.id, "最初の指示");
+  await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "blocked");
+  await runner.retryProviderHandoff(chat.id);
+  await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "blocked");
+  assert.equal(provider.calls.length, 0);
+  assert.equal(store.events.list(chat.id).filter((event) => event.type === "user").length, 1);
+});
+
 test("再起動時に送信中だった引き継ぎは受信不明として保持し、自動再送しない", () => {
   let id = 0;
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));

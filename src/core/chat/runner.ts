@@ -194,30 +194,27 @@ export class Runner extends RunnerQueue {
     runtime.switchingProvider = true;
     let started = false;
     let recovered = false;
+    let claimed = false;
     try {
+      const attempt = store.events.list(chatId).find((event) => event.id > pending.eventId && event.type === "user");
+      const prompt = attempt?.type === "user" ? (await followupPrompt(this.deps, chatId, attempt.data.text, attempt.data.attachments ?? [])).prompt : null;
       const result = await retryProviderHandoffPreparation({ store, uploads, requireIdle: () => {
         if (!runtime.preparing || !runtime.switchingProvider || runtime.turn) throw new Conflict("チャットの状態が変わったため、再試行できません");
-      } }, chatId);
-      const attempt = store.events.list(chatId).find((event) => event.id > pending.eventId && event.type === "user");
-      if (attempt?.type === "user") {
-        let prompt: string;
-        try {
-          prompt = (await followupPrompt(this.deps, chatId, attempt.data.text, attempt.data.attachments ?? [])).prompt;
-        } catch (error) {
-          store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
-          throw error;
-        }
+      } }, chatId, attempt?.type === "user");
+      claimed = attempt?.type === "user";
+      if (attempt?.type === "user" && prompt !== null) {
         store.chats.update(chatId, { status: "running", error: null, unread: false });
         runtime.preparing = false;
         runtime.switchingProvider = false;
         started = true;
-        void this.execute({ chatId, prompt, promptId: attempt.data.message_uuid });
+        void this.execute({ chatId, prompt, promptId: attempt.data.message_uuid, claimedHandoffEventId: pending.eventId });
       }
       recovered = true;
       return result;
     } catch (error) {
       // 再準備後の失敗でも、元の指示を飛ばして次の待ちを送らない。
-      store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
+      if (claimed) store.chatProviderHandoffs.blockBeforeSend(chatId, pending.eventId, errorMessage(error));
+      else store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
       throw error;
     } finally {
       runtime.preparing = false;

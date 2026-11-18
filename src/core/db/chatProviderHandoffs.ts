@@ -52,6 +52,10 @@ export function createChatProviderHandoffStore(db: DatabaseSync) {
     blockReady(chatId: number, eventId: number, error: string): boolean {
       return db.prepare("UPDATE chat_provider_handoffs SET state = 'blocked', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'ready'").run(error, chatId, eventId).changes === 1;
     },
+    /** 送信中の印を先に取ったものの、AI を呼ぶ前に止まったと確実な場合だけ戻す。 */
+    blockBeforeSend(chatId: number, eventId: number, error: string): boolean {
+      return db.prepare("UPDATE chat_provider_handoffs SET state = 'blocked', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'sending'").run(error, chatId, eventId).changes === 1;
+    },
     /** 送信後の状態が分からない場合は自動再送しない（Q45）。 */
     markUncertain(chatId: number, eventId: number, error: string): boolean {
       return db.prepare("UPDATE chat_provider_handoffs SET state = 'uncertain', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'sending'").run(error, chatId, eventId).changes === 1;

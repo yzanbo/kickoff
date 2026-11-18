@@ -125,6 +125,8 @@ export interface TurnRequest {
    * Runner が続けて圧縮する実行は auto（上限に近づいて Claude Code が始めようとした圧縮を、作業の終わりで済ませる）
    */
   compactTrigger?: CompactTrigger;
+  /** 再試行時に資料と同時に取った送信中の印。ほかの操作へ渡さない。 */
+  claimedHandoffEventId?: number;
 }
 
 /** 1 回の実行の終わり方（Runner が次に何をするかを決める） */
@@ -149,7 +151,7 @@ export interface StoppedAgent {
  * 作業中の様子（裏の作業・再試行・圧縮中・作業中のチャットへの操作）はチャットの runtime に書く（画面には runtime が配る）。
  * 失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
  */
-export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false, compactTrigger }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
+export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false, compactTrigger, claimedHandoffEventId }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
   const { store, providers } = deps;
   const handoff = store.chatProviderHandoffs.get(chatId);
   let handoffClaimed = false;
@@ -220,7 +222,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       };
       const initialContext = params.turnContext ?? null;
       if (handoff) {
-        if (compact || handoff.state !== "ready" || handoff.provider !== chat.provider) throw new Error("AI の引き継ぎを確認するまで、この操作はできません");
+        if (compact || (handoff.state !== "ready" && !(handoff.state === "sending" && handoff.eventId === claimedHandoffEventId)) || handoff.provider !== chat.provider) throw new Error("AI の引き継ぎを確認するまで、この操作はできません");
         params.turnContext = joinContexts(params.turnContext ?? null, handoff.context);
       }
       const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
@@ -235,7 +237,10 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       try {
         tools = deps.toolHost?.open(turnToolServers(params, callbacks, signal)) ?? null;
         if (handoff) {
-          if (!store.chatProviderHandoffs.claim(chatId, handoff.eventId, chat.provider)) throw new Error("AI の引き継ぎ状態が変わったため、送信を中止しました");
+          if (claimedHandoffEventId === handoff.eventId) {
+            const current = store.chatProviderHandoffs.get(chatId);
+            if (!current || current.eventId !== handoff.eventId || current.provider !== chat.provider || current.state !== "sending") throw new Error("AI の引き継ぎ状態が変わったため、送信を中止しました");
+          } else if (!store.chatProviderHandoffs.claim(chatId, handoff.eventId, chat.provider)) throw new Error("AI の引き継ぎ状態が変わったため、送信を中止しました");
           handoffClaimed = true;
         }
         const first = await providers[chat.provider].run({ ...params, tools: tools?.endpoints ?? [] }, callbacks, signal);
@@ -271,7 +276,9 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       } else if (handoffClaimed) {
         store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, result.error ?? "AI が指示を受け取ったか確認できません");
       } else {
-        store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, result.error ?? "AI に引き継ぐ前に作業が止まりました");
+        const reason = result.error ?? "AI に引き継ぐ前に作業が止まりました";
+        if (claimedHandoffEventId === handoff.eventId) store.chatProviderHandoffs.blockBeforeSend(chatId, handoff.eventId, reason);
+        else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, reason);
       }
     }
     // 圧縮した作業が最後まで終わったら、直近の区切りだけの新しいセッションに乗り換える（会話記録が大きくなり続けないように。失敗しても作業は止めない）
@@ -288,6 +295,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     const message = errorMessage(e);
     if (handoff) {
       if (handoffClaimed) store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, message);
+      else if (claimedHandoffEventId === handoff.eventId) store.chatProviderHandoffs.blockBeforeSend(chatId, handoff.eventId, message);
       else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, message);
     }
     await rememberEndBranch();
