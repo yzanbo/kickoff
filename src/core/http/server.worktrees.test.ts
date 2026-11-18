@@ -44,7 +44,8 @@ test("HEAD の見張り: 本体・ワークツリーのブランチ切り替え�
   const ctx = setup();
   const { dir: repo } = gitRepo({ dir: ctx.project.repo_path, files: { "a.txt": "a\n" } });
   const git = gitIn(repo);
-  const wt = path.join(tempDir(), "w");
+  // git はワークツリーを実際のパス（/tmp → /private/tmp）で返すので、比べるパスも実際のパスにする
+  const wt = path.join(tempDir({ real: true }), "w");
   const events: BusEvent[] = [];
   ctx.bus.subscribe((e) => events.push(e));
   const changed = () => events.filter((e) => e.type === "worktrees_changed" && e.project_id === ctx.project.id).length;
