@@ -9,7 +9,7 @@ import { expect } from "vitest";
 export const RECORDS_DIR = path.resolve("test-records");
 
 /**
- * 値を test-records/<name> の記録と比べる（なければ書く。違えば落ちる。直すときは npx vitest run --update <ファイル>）。
+ * 値を test-records/<name> の記録と比べる（なければ書く。違えば落ちる。直すときは npx vitest run <ファイル> --update。--update を前に書くと、次の引数を更新の種類として読み、全部のテストを流す）。
  * 文字ならそのまま、ほかは 2 字下げの JSON（最後に改行）にして比べる
  */
 export async function matchRecord(name: string, value: unknown): Promise<void> {
