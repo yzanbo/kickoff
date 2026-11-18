@@ -1,0 +1,13 @@
+{
+  "agents": {
+    "running": "number"
+  },
+  "api_version": "number",
+  "database_id": "string",
+  "host": "string",
+  "min_client_api_version": "number",
+  "port": "number",
+  "remote_enabled": "boolean",
+  "started_at": "string",
+  "version": "string"
+}

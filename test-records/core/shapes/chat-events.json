@@ -1,0 +1,26 @@
+{
+  "events": [
+    {
+      "chat_id": "number",
+      "created_at": "string",
+      "data": {
+        "content?": "string",
+        "id?": "string",
+        "input?": {
+          "file_path": "string"
+        },
+        "is_error?": "boolean",
+        "message_uuid?": "string",
+        "name?": "string",
+        "status?": "string",
+        "text?": "string",
+        "tool_use_id?": "string"
+      },
+      "id": "number",
+      "type": "string"
+    }
+  ],
+  "has_earlier": "boolean",
+  "has_later": "boolean",
+  "head_partial": "boolean"
+}

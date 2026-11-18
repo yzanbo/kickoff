@@ -1,0 +1,12 @@
+{
+  "composes": [],
+  "context": "string",
+  "engine": "string",
+  "others": [],
+  "silent": {},
+  "starter": {
+    "app": "string",
+    "kind": "string",
+    "label": "string"
+  }
+}

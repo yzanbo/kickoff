@@ -1,0 +1,22 @@
+{
+  "ahead": "number",
+  "behind": "number",
+  "branch": "string",
+  "conflicts": [],
+  "has_origin": "boolean",
+  "operation": "null",
+  "repo": "boolean",
+  "staged": [
+    {
+      "kind": "string",
+      "path": "string"
+    }
+  ],
+  "unstaged": [
+    {
+      "kind": "string",
+      "path": "string"
+    }
+  ],
+  "upstream": "null"
+}

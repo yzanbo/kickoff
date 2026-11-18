@@ -1,0 +1,10 @@
+[
+  {
+    "created_at": "string",
+    "hue": "number",
+    "id": "number",
+    "name": "string",
+    "position": "number",
+    "project_id": "number"
+  }
+]
