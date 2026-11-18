@@ -51,3 +51,23 @@ test("AI の切り替えは確認した条件が変わったら拒否し、再�
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "ready");
   assert.equal(provider.prompts.length, 0);
 });
+
+test("切り替えの準備中に権限の既定が変わったら確定しない", async () => {
+  const { call, store, project, provider } = setup();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const url = `/api/chats/${chat.id}/provider-switch`;
+  const preview = await call("GET", `${url}?target=codex`);
+  const originalStatus = provider.status.bind(provider);
+  let release!: () => void;
+  let entered!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const started = new Promise<void>((resolve) => { entered = resolve; });
+  provider.status = async () => { entered(); await gate; return originalStatus(); };
+  const switching = call("POST", url, { target: "codex", confirmation: preview.body.confirmation });
+  await started;
+  store.settings.update({ provider_chat_defaults: { codex: { model: null, effort: null, permission_mode: "auto", fast_mode: false } } });
+  release();
+  assert.equal((await switching).status, 409);
+  assert.equal(store.chats.get(chat.id)?.provider, "claude");
+  assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
+});
