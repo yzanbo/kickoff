@@ -3,6 +3,14 @@ import type { ProviderHandoffStatus } from "@shared/types";
 import { turnsApi } from "@/api/turns";
 import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
 
+async function retryHandoff(chatId: number, handoff: ProviderHandoffStatus, refresh: () => Promise<void>): Promise<void> {
+  try {
+    const result = handoff.state === "uncertain" ? await turnsApi.confirmResendProviderHandoff(chatId, handoff.event_id) : await turnsApi.retryProviderHandoff(chatId, handoff.event_id);
+    await refresh();
+    if (result.warning) await alertDialog("引き継ぎについて", result.warning);
+  } catch (error) { await refresh().catch(() => {}); await reportFailure("引き継ぎを再試行できませんでした")(error); }
+}
+
 /** 送信を止めた理由と、利用者が明示的に選ぶ復旧操作。 */
 export function ProviderHandoffNotice({ chatId, visible }: { chatId: number; visible: boolean }) {
   const [handoff, setHandoff] = useState<ProviderHandoffStatus | null>(null);
@@ -23,12 +31,7 @@ export function ProviderHandoffNotice({ chatId, visible }: { chatId: number; vis
   const retry = async () => {
     if (uncertain && !await confirmDialog({ title: "同じ指示を再送しますか？", message: "AI がすでに指示を受け取っていた場合、同じ作業が二重に実行される可能性があります。作業場所と会話を確認してから選んでください。", confirmLabel: "重複の可能性を確認して再送", danger: true })) return;
     setWorking(true);
-    try {
-      const result = uncertain ? await turnsApi.confirmResendProviderHandoff(chatId, handoff.event_id) : await turnsApi.retryProviderHandoff(chatId, handoff.event_id);
-      await refresh();
-      if (result.warning) await alertDialog("引き継ぎについて", result.warning);
-    } catch (error) { await refresh().catch(() => {}); await reportFailure("引き継ぎを再試行できませんでした")(error); }
-    finally { setWorking(false); }
+    void retryHandoff(chatId, handoff, refresh).finally(() => setWorking(false));
   };
   return <div className="provider-handoff-notice" role="alert">
     <div><strong>{uncertain ? "AI が指示を受け取ったか確認できません" : "AI への引き継ぎを準備できませんでした"}</strong><br />{handoff.error ?? "確認するまで次の指示は送られません。"}</div>

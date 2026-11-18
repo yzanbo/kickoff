@@ -13,6 +13,20 @@ const PROVIDER_HUES: Record<ProviderId, number> = { claude: 20, codex: 160, copi
 /** 札に乗せたときの説明の後ろ（API キーで動かすなら、使った分の支払いであることを添える） */
 const payNote = (status: ProviderStatus | undefined) => (paysPerUse(status) ? `。API キーで動かします（${PAY_PER_USE_LABEL}）` : "");
 
+async function switchWithConfirmation(chatId: number, target: "claude" | "codex", label: string): Promise<void> {
+  const preview = await turnsApi.providerSwitchPreview(chatId, target);
+  const ok = await confirmDialog({ title: `${label} に切り替えますか？`, confirmLabel: "切り替える", message: [
+    `権限モード: ${PERMISSION_LABELS[preview.options.permission_mode]}`,
+    `送信待ち: ${preview.queued_ids.length} 件（切り替え後の AI に送ります）`,
+    preview.busy_child_ids.length ? `同じ作業場所で子チャット ${preview.busy_child_ids.length} 件が作業中です。子チャットはそのまま続きます。` : "",
+    "切り替え前の会話には巻き戻し・分岐・ファイル復元ができなくなります。",
+    "会話の引き継ぎは、切り替え後の最初の指示に添えます。",
+  ].filter(Boolean).join("\n") });
+  if (!ok) return;
+  const result = await turnsApi.switchProvider(chatId, target, preview.confirmation);
+  if (result.warning) await alertDialog("AI を切り替えました", result.warning);
+}
+
 /**
  * 送る前の新しいチャット・新しい子チャットの見出しで、使う AI を選ぶ札（メモの仕様書「0021」の Q1・Q8）。
  * 選べるのは Kickoff のチャットで使える AI だけで、対応予定のもの・API キーが要るのに置いていないものは押せない形で理由を出す。
@@ -58,23 +72,10 @@ export function ProviderChip({ chat, busy }: { chat: Chat; busy: boolean }) {
     const reason = id === provider ? null : providerSwitchBlock(candidate);
     if (reason) disabled[id] = reason;
   }
-  const change = async (target: "claude" | "codex") => {
+  const change = (target: "claude" | "codex") => {
     if (target === provider) return;
     setSwitching(true);
-    try {
-      const preview = await turnsApi.providerSwitchPreview(chat.id, target);
-      const ok = await confirmDialog({ title: `${labels[target]} に切り替えますか？`, confirmLabel: "切り替える", message: [
-        `権限モード: ${PERMISSION_LABELS[preview.options.permission_mode]}`,
-        `送信待ち: ${preview.queued_ids.length} 件（切り替え後の AI に送ります）`,
-        preview.busy_child_ids.length ? `同じ作業場所で子チャット ${preview.busy_child_ids.length} 件が作業中です。子チャットはそのまま続きます。` : "",
-        "切り替え前の会話には巻き戻し・分岐・ファイル復元ができなくなります。",
-        "会話の引き継ぎは、切り替え後の最初の指示に添えます。",
-      ].filter(Boolean).join("\n") });
-      if (!ok) return;
-      const result = await turnsApi.switchProvider(chat.id, target, preview.confirmation);
-      if (result.warning) await alertDialog("AI を切り替えました", result.warning);
-    } catch (error) { await reportFailure("AI を切り替えられませんでした")(error); }
-    finally { setSwitching(false); }
+    void switchWithConfirmation(chat.id, target, labels[target]).catch(reportFailure("AI を切り替えられませんでした")).finally(() => setSwitching(false));
   };
   if (supported) return <ChipPicker className="chat-group-chip chat-provider-chip" hue={PROVIDER_HUES[provider]} icon={Bot} name={providerChipName(provider, status)} tip="このチャットの AI を切り替える" menuTitle="使う AI" values={["claude", "codex"] as const} labels={labels} value={provider} disabled={disabled} inactive={chat.archived_at ? "アーカイブ済みのチャットは切り替えられません" : busy ? "作業が終わってから切り替えてください" : switching ? "切り替え中です" : null} onPick={(target) => void change(target)} />;
   return (
