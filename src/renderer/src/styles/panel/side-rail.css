@@ -29,10 +29,27 @@
 .side-rail-items {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: none;
+}
+
+/*
+ * アイコンのまとまり（プロジェクトの縦のタブ .project-side-tabs .project-tab-group と同じ見せ方）。2 つ以上のまとまりは薄い地でつなぎ（.boxed）、
+ * まとまりの間を空けて、どれが同じ仲間か見て分かるようにする
+ */
+.side-rail-group {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.side-rail-group.boxed {
+  padding: 3px 0;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .side-rail .side-rail-item {
