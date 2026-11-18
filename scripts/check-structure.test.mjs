@@ -3,13 +3,22 @@ import { test } from "vitest";
 import {
   baselineFrom,
   buildGraph,
+  checkCssClasses,
   checkFileSizes,
   checkImports,
+  checkNativeAccess,
+  checkPatterns,
+  checkPlacement,
+  checkPublicApi,
+  checkSqlTables,
   compareWithBaseline,
   countLines,
+  cssClassesIn,
+  findSiblingCycles,
   globToRegExp,
   parseImports,
   resolveSpecifier,
+  sqlTablesIn,
 } from "./check-structure.mjs";
 
 test("glob: ** は 0 個以上のフォルダ、* は / をまたがない、{a,b} と ? も使える", () => {
@@ -199,4 +208,133 @@ test("基準線と比べる: 基準線がなければ、いまの違反が全部
   const result = compareWithBaseline([imp("r:a -> b")], { version: 1, violations: {} });
   assert.equal(result.added.length, 1);
   assert.deepEqual(result.stale, []);
+});
+
+const keys = (violations) => violations.map((v) => v.key);
+
+test("公開の口: 外からは entry だけ。中どうしと except は見ない", () => {
+  const graph = graphOf([
+    ["src/features/board/core/x.ts", ["src/features/chat/core/index.ts", "src/features/chat/core/inner.ts", "src/features/chat/core/run/deep.ts", "zod"]],
+    ["src/features/chat/core/run/a.ts", ["src/features/chat/core/inner.ts"]],
+    ["src/app/core/start.ts", ["src/features/chat/core/inner.ts"]],
+  ]);
+  const config = { publicApi: [{ name: "feature-core", dirs: "src/features/*/core", entry: ["index.ts"], except: ["src/app/**"] }] };
+  assert.deepEqual(keys(checkPublicApi(graph, config)), [
+    "public:feature-core:src/features/board/core/x.ts -> src/features/chat/core/inner.ts",
+    "public:feature-core:src/features/board/core/x.ts -> src/features/chat/core/run/deep.ts",
+  ]);
+});
+
+test("兄弟の循環: 読み合うフォルダを 1 つの成分にし、3 つの輪も 1 つ。自分の中・直下のファイル・テストは辺にしない", () => {
+  const graph = graphOf([
+    ["src/f/a/x.ts", ["src/f/b/y.ts", "src/f/a/z.ts"]],
+    ["src/f/b/y.ts", ["src/f/a/x.ts"]],
+    ["src/f/c/x.ts", ["src/f/d/x.ts"]],
+    ["src/f/d/x.ts", ["src/f/e/x.ts", "src/f/root.ts"]],
+    ["src/f/e/x.ts", ["src/f/c/x.ts"]],
+    ["src/f/root.ts", ["src/f/g/x.ts"]],
+    ["src/f/g/x.ts", ["src/f/h/x.ts"]],
+    ["src/f/h/x.test.ts", ["src/f/g/x.ts"]],
+  ]);
+  const config = { tests: ["**/*.test.ts"], siblingCycles: [{ name: "f", parents: ["src/f"], tests: "exclude" }] };
+  assert.deepEqual(keys(findSiblingCycles(graph, config)), ["cycle:f:src/f:a,b", "cycle:f:src/f:c,d,e"]);
+  const nested = { siblingCycles: [{ name: "ui", parents: ["src/*"] }] };
+  assert.deepEqual(keys(findSiblingCycles(graph, nested)), ["cycle:ui:src/f:a,b", "cycle:ui:src/f:c,d,e", "cycle:ui:src/f:g,h"]);
+});
+
+test("window.kickoff: allow の外で書いたファイル。コメントの行は数えない", () => {
+  const sources = new Map([
+    ["src/r/a.ts", "const x = window.kickoff.getInfo();"],
+    ["src/r/b.ts", "globalThis.kickoff?.quit();"],
+    ["src/r/c.ts", "// window.kickoff は native.ts から\n/* globalThis.kickoff */\n * window.kickoff"],
+    ["src/r/native.ts", "window.kickoff.quit();"],
+    ["src/other.ts", "window.kickoff.quit();"],
+  ]);
+  const config = { nativeAccess: { files: ["src/r/**"], allow: ["src/r/native.ts"] } };
+  assert.deepEqual(keys(checkNativeAccess(sources, config)), ["native:src/r/a.ts", "native:src/r/b.ts"]);
+});
+
+test("SQL の表を拾う: FROM・JOIN・INSERT INTO・CREATE TABLE・テンプレート文字。コメントとふつうの文は拾わない", () => {
+  const source = [
+    'const a = "SELECT c.id FROM chats c JOIN chat_events e ON e.chat_id = c.id";',
+    'const b = "INSERT INTO projects (name) VALUES (?) ON CONFLICT(name) DO UPDATE SET name = excluded.name";',
+    'const c = "CREATE TABLE IF NOT EXISTS groups (id INTEGER)";',
+    "const d = `UPDATE snippets SET body = ? WHERE id = ${id}`;",
+    'const e = "DELETE FROM secrets WHERE project_id = ?";',
+    "// SELECT * FROM comment_table",
+    'const f = "Copy the text from clipboard into the editor";',
+  ].join("\n");
+  assert.deepEqual(sqlTablesIn("x.ts", source).sort(), ["chat_events", "chats", "groups", "projects", "secrets", "snippets"]);
+});
+
+test("SQL の表の持ち主: 持ち主の外で書けば違反。ignoreNames は表にしない", () => {
+  const sources = new Map([
+    ["src/core/chats/store.ts", 'db.prepare("SELECT * FROM chats");'],
+    ["src/core/board/list.ts", 'db.prepare("SELECT * FROM chats JOIN groups");'],
+    ["src/core/projects/trigger.ts", 'db.exec("DELETE FROM drop_secrets");'],
+  ]);
+  const config = {
+    sqlTables: { files: ["src/core/**"], owners: { chats: ["src/core/chats/**"], groups: ["src/core/board/**"], drop_secrets: ["src/core/x/**"] }, ignoreNames: ["drop_secrets"] },
+  };
+  assert.deepEqual(keys(checkSqlTables(sources, config)), ["sql:src/core/board/list.ts:chats"]);
+});
+
+test("CSS のクラスを拾う: 子孫・:hover・:not()・@media の中。コメント・文字・url()・宣言の値は拾わない", () => {
+  const css = [
+    "/* .commented { } */",
+    ".chat-row:hover .x, .chat-row.is-open { color: red; margin: .5rem; }",
+    "@media (max-width: 600px) { .a:not(.b) > .c { background: url(./img.d.png); } }",
+    '.e::before { content: ".f"; }',
+  ].join("\n");
+  assert.deepEqual(cssClassesIn(css), ["chat-row", "x", "is-open", "a", "b", "c", "e"]);
+});
+
+test("CSS のクラスの持ち主: いちばん長い頭の持ち主だけ。頭のないクラスは free の CSS だけ", () => {
+  const sources = new Map([
+    ["src/chat/a.css", ".chat-row {} .chat-list-row {} .btn {}"],
+    ["src/list/b.css", ".chat-list-row {}"],
+    ["src/ui/c.css", ".btn {} .chat-row {}"],
+  ]);
+  const config = {
+    cssClasses: {
+      files: ["src/**/*.css"],
+      owners: [
+        { prefix: "chat-", owner: ["src/chat/**"] },
+        { prefix: "chat-list-", owner: ["src/list/**"] },
+      ],
+      free: ["src/ui/**"],
+    },
+  };
+  assert.deepEqual(keys(checkCssClasses(sources, config)), ["css:src/chat/a.css:chat-list-row", "css:src/chat/a.css:btn", "css:src/ui/c.css:chat-row"]);
+});
+
+test("禁じる書き方: 呼び出し・参照・引数なしの new を数える。コメント・文字・allow・テストは数えない", () => {
+  const code = [
+    "const a = Date.now();",
+    "const b = new Date();",
+    "const c = new Date(a);",
+    "setTimeout(() => {}, 0);",
+    "timers.setTimeout(() => {}, 0);",
+    "const f = Date.now;",
+    "// Date.now() と setTimeout() は書かない",
+    'const s = "new Date() setTimeout()";',
+  ].join("\n");
+  const sources = new Map([
+    ["src/core/a.ts", code],
+    ["src/core/clock.ts", code],
+    ["src/core/a.test.ts", code],
+  ]);
+  const forbid = [{ call: "setTimeout" }, { member: "Date.now" }, { new: "Date", args: 0 }];
+  const config = { tests: ["**/*.test.ts"], patterns: [{ name: "no-raw-clock", files: ["src/core/**"], allow: ["src/core/clock.ts"], forbid, message: "時計は k.clock を通す" }] };
+  const found = checkPatterns(sources, config);
+  assert.deepEqual(
+    found.map((v) => [v.key, v.value]),
+    [["pattern:no-raw-clock:src/core/a.ts", 4]],
+  );
+});
+
+test("置かないファイル: deny に合うファイル（except を除く）", () => {
+  const files = ["src/features/x/a.ts", "src/features/x/CLAUDE.md", "src/features/x/core/a.ts", "src/features/y/keep.ts"];
+  const config = { placement: [{ name: "feature-root-no-code", deny: ["src/features/*/*.{ts,tsx,css}"], except: ["src/features/y/**"], message: "機能の直下にコードを置かない" }] };
+  assert.deepEqual(keys(checkPlacement(files, config)), ["placement:feature-root-no-code:src/features/x/a.ts"]);
 });

@@ -3,15 +3,18 @@
 // node scripts/check-structure.mjs --count         … 種類ごとの数と合計を JSON で出す（終了コード 0）
 // node scripts/check-structure.mjs --list <種類>   … いまの違反を並べる
 // node scripts/check-structure.mjs --write-baseline [--allow-grow] … いまの違反で基準線を書き直す（増えるときは --allow-grow がなければ断る）
+// node scripts/check-structure.mjs --no-baseline   … 基準線を読まずに、いまの違反を全部出す（違反があれば終了コード 1）
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildGraph, isCodeFile, matchesAny } from "./structure/parse.mjs";
-import { checkFileSizes, checkImports } from "./structure/checks.mjs";
+import { buildGraph, expandLayers, isCodeFile, matchesAny } from "./structure/parse.mjs";
+import { checkFileSizes, checkImports, checkNativeAccess, checkPlacement, checkPublicApi, findSiblingCycles } from "./structure/checks.mjs";
+import { checkCssClasses, checkPatterns, checkSqlTables } from "./structure/content.mjs";
 
 export { buildGraph, expandLayers, globToRegExp, matchesAny, parseImports, resolveSpecifier } from "./structure/parse.mjs";
-export { checkFileSizes, checkImports } from "./structure/checks.mjs";
+export { checkFileSizes, checkImports, checkNativeAccess, checkPlacement, checkPublicApi, findSiblingCycles } from "./structure/checks.mjs";
+export { checkCssClasses, checkPatterns, checkSqlTables, countForbidden, cssClassesIn, sqlTablesIn } from "./structure/content.mjs";
 
 /** 違反の種類（基準線の並び順）。値を持つ種類は、基準線に { 鍵: 値 } で載せ、値が増えたら落とす */
 export const KINDS = ["import", "public", "cycle", "size", "native", "sql", "css", "pattern", "placement"];
@@ -75,12 +78,29 @@ export function collectViolations({ sources, files, config }) {
   const code = new Map([...sources].filter(([file]) => isCodeFile(file) && matchesAny(file, config.files ?? [])));
   const graph = buildGraph(code, config, files);
   const lineCounts = new Map([...sources].map(([file, text]) => [file, countLines(text)]));
-  return [...checkImports(graph, config), ...checkFileSizes(lineCounts, config)];
+  return [
+    ...checkImports(graph, config),
+    ...checkPublicApi(graph, config),
+    ...findSiblingCycles(graph, config),
+    ...checkFileSizes(lineCounts, config),
+    ...checkNativeAccess(sources, config),
+    ...checkSqlTables(sources, config),
+    ...checkCssClasses(sources, config),
+    ...checkPatterns(sources, config),
+    ...checkPlacement([...files].sort(), config),
+  ];
 }
 
 /** 検査が読むファイル（設定の各 files に合う、Git が知っているファイル） */
 function wantedGlobs(config) {
-  return [...(config.files ?? []), ...(config.fileSize?.files ?? [])];
+  return [
+    ...(config.files ?? []),
+    ...(config.fileSize?.files ?? []),
+    ...(config.nativeAccess?.files ?? []),
+    ...(config.sqlTables?.files ?? []),
+    ...(config.cssClasses?.files ?? []),
+    ...(config.patterns ?? []).flatMap((rule) => expandLayers(rule.files, config.layers ?? {})),
+  ];
 }
 
 function readRepo(root, config) {
@@ -155,7 +175,7 @@ async function main(args) {
     return 0;
   }
   if (args.includes("--write-baseline")) return writeBaseline(violations, baseline, baselineFile, args.includes("--allow-grow"));
-  return check(violations, baseline);
+  return check(violations, args.includes("--no-baseline") ? { version: 1, violations: {} } : baseline);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

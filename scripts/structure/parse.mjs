@@ -66,14 +66,20 @@ function literalText(raw) {
   return m.length === 3 ? m[2] : m[1];
 }
 
+/** コードを構文木にする（読めない書き方があれば、ファイルの名前を付けて投げる） */
+export function parseCode(file, source) {
+  const result = parseSync(file, source);
+  const errors = result.errors.filter((e) => e.severity === "Error");
+  if (errors.length > 0) throw new Error(`${file}: 読めません（${errors[0].message}）`);
+  return result;
+}
+
 /**
  * ファイルの import を並べる（静的な import・`export … from`・文字で書いた `import("…")`）。
  * typeOnly は、取り込む名前がすべて型のとき（`import type`・`import { type X }`・`export type … from`）
  */
 export function parseImports(file, source) {
-  const result = parseSync(file, source);
-  const errors = result.errors.filter((e) => e.severity === "Error");
-  if (errors.length > 0) throw new Error(`${file}: 読めません（${errors[0].message}）`);
+  const result = parseCode(file, source);
   const found = [];
   for (const imp of result.module.staticImports) {
     const typeOnly = imp.entries.length > 0 && imp.entries.every((e) => e.isType);
