@@ -46,7 +46,7 @@ const SSE_TYPES = {
 } satisfies Record<BusEvent["type"], true>;
 
 /** まだコアのテストに名前が出ない種類（減らすだけ。テストを足したら消す） */
-const PENDING: readonly string[] = ["chat_events_deleted", "chat_subagent", "group"];
+const PENDING: readonly string[] = [];
 
 test("SSE の種類の記録（種類を機能へ配っても変わらない）", async () => {
   await matchRecord("core/sse-types.json", Object.keys(SSE_TYPES).sort());

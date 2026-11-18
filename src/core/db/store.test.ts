@@ -110,7 +110,7 @@ test("チャットのやり取りをキーワードで検索できる（範囲�
   assert.equal(store.events.search("ログイン", { chatId: b.id }).length, 0);
 });
 
-test("グループ: 作成順に並び、並べ替え・削除するとチャットはグループなしに戻る", () => {
+test("グループ: 作成順に並び、作る・名前を変える・並べ替えるたびに知らせ、削除するとチャットはグループなしに戻る", () => {
   const { store, project, events } = setup();
   const a = store.groups.create(project.id, "コードレビュー");
   const b = store.groups.create(project.id, "調査");
@@ -130,6 +130,10 @@ test("グループ: 作成順に並び、並べ替え・削除するとチャッ
 
   store.groups.reorder(project.id, [b.id, a.id]);
   assert.deepEqual(store.groups.list(project.id).map((g) => g.name), ["調査", "コードレビュー"]);
+  assert.equal(store.groups.rename(a.id, "レビュー").name, "レビュー");
+  // 知らせ（SSE の group）は変えたあとのグループ。並べ替えはそのプロジェクトのすべてのグループを 1 件ずつ
+  const groupEvents = events.flatMap((e) => (e.type === "group" ? [`${e.group.id}:${e.group.name}:${e.group.position}`] : []));
+  assert.deepEqual(groupEvents, [`${a.id}:コードレビュー:0`, `${b.id}:調査:1`, `${b.id}:調査:0`, `${a.id}:コードレビュー:1`, `${a.id}:レビュー:1`]);
 
   events.length = 0;
   store.groups.delete(a.id);

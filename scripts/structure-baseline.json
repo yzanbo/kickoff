@@ -7,7 +7,7 @@
     "size": {
       "src/core/chat/queue.ts": 350,
       "src/core/chat/runner.queue.test.ts": 530,
-      "src/core/chat/runner.test.ts": 443,
+      "src/core/chat/runner.test.ts": 441,
       "src/core/chat/runner.ts": 1001,
       "src/core/chat/runnerQueue.ts": 326,
       "src/core/chat/runtime.ts": 313,

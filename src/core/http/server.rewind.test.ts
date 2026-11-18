@@ -144,6 +144,20 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   assert.deepEqual(store.events.list(otherId).map((e) => e.type), ["user", "result"]);
 });
 
+test("巻き戻すと、消した記録の頭（巻き戻した発言の ID）を SSE の chat_events_deleted で 1 回だけ知らせる", async () => {
+  const { call, project, store, runner, provider, bus } = setup();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => store.chats.get(chatId)?.status === "completed");
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
+  const secondUser = store.events.list(chatId).filter((e) => e.type === "user")[1];
+  const deleted: unknown[] = [];
+  bus.subscribe((e) => e.type === "chat_events_deleted" && deleted.push(e));
+  assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: secondUser.id, text: "2 を書き直し" })).status, 200);
+  await until(() => !runner.isBusy(chatId) && provider.prompts.length === 3);
+  assert.deepEqual(deleted, [{ type: "chat_events_deleted", project_id: project.id, chat_id: chatId, from_event_id: secondUser.id }]);
+});
+
 test("ファイルを戻す API: 自分の発言を送る前の状態にファイルだけ戻す（会話はそのまま）。dry_run は量だけ。戻せない・作業中は断る", async () => {
   const { call, project, store, runner, provider } = setup();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
