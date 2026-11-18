@@ -18,6 +18,8 @@ import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, res
 import { postCompactItem, preCompactPromptOf } from "./preCompact.js";
 import { isClearCommand } from "@shared/chat/queueActions";
 import { marksOf } from "@shared/chat/handoff";
+import { prepareAndCommitProviderSwitch } from "./providerSwitch.js";
+import type { ProviderId } from "@shared/types";
 
 /**
  * エージェントの実行を管理する。
@@ -127,6 +129,7 @@ export class Runner extends RunnerQueue {
   }
 
   protected handoffCanSend(chatId: number): boolean {
+    if (this.runtimes.get(chatId).switchingProvider) return false;
     const pending = this.deps.store.chatProviderHandoffs.get(chatId);
     return !pending || (pending.state === "ready" && pending.provider === this.deps.store.chats.get(chatId)?.provider);
   }
@@ -140,6 +143,40 @@ export class Runner extends RunnerQueue {
     if (!pending) return;
     const event = this.deps.store.events.get(pending.eventId);
     if (event?.type === "provider_switched") this.runtimes.get(chatId).queue.resetOptions(event.data.queued_ids ?? []);
+  }
+
+  /** 切り替えを排他的に準備する。確認中に送信待ちが変わった場合は古い内容で確定しない。 */
+  async switchProvider(chatId: number, expectedProvider: ProviderId, target: ProviderId): Promise<{ chat: Chat; warning: string | null }> {
+    const chat = this.requireChat(chatId);
+    this.requireIdle(chatId, "AI の切り替え");
+    if (chat.provider !== expectedProvider || chat.provider === target || (target !== "claude" && target !== "codex") || (chat.provider !== "claude" && chat.provider !== "codex")) throw new Conflict("チャットの状態が変わったため、AI を切り替えられません");
+    if (this.deps.store.chatProviderHandoffs.get(chatId)) throw new Conflict("前の AI の引き継ぎを確認してから切り替えてください");
+    const uploads = this.deps.uploads;
+    if (!uploads) throw new Conflict("添付の保存先がないため、AI を切り替えられません");
+    const runtime = this.runtimes.get(chatId);
+    const initialQueue = runtime.queue.snapshot();
+    const initialSignature = JSON.stringify(initialQueue);
+    runtime.switchingProvider = true;
+    runtime.preparing = true;
+    let switched = false;
+    try {
+      const provider = this.deps.providers[target];
+      const status = await provider.status();
+      const auth = await this.deps.providerKeys?.authFor(target);
+      if (!provider.implemented || !status.implemented || !status.installed) throw new Conflict("切り替え先の AI が利用できません");
+      if (auth?.mode === "api_key" ? !auth.apiKey : !status.logged_in) throw new Conflict("切り替え先の AI にログインまたは API キーの設定が必要です");
+      const requireStable = () => {
+        if (!runtime.switchingProvider || !runtime.preparing || runtime.turn || JSON.stringify(runtime.queue.snapshot()) !== initialSignature) throw new Conflict("送信待ちやチャットの状態が変わったため、AI を切り替えられません");
+      };
+      const result = await prepareAndCommitProviderSwitch({ store: this.deps.store, uploads, requireIdle: requireStable }, { chatId, expectedProvider, target, queueWasPaused: initialQueue.paused, queuedIds: initialQueue.messages.map((message) => message.id) });
+      switched = true;
+      return result;
+    } finally {
+      runtime.switchingProvider = false;
+      runtime.preparing = false;
+      // 準備中に増えた指示も含め、動いていた列は通常の条件で再開する。失敗時も取り残さない。
+      if (switched || runtime.queue.list().length > 0) void this.sendNextQueued(chatId);
+    }
   }
 
   /**
@@ -361,6 +398,7 @@ export class Runner extends RunnerQueue {
       return "sent";
     }
     const runtime = this.runtimes.get(chatId);
+    if (runtime.switchingProvider) throw new Conflict("AI の切り替え中は指示を送れません。切り替え後に送ってください");
     // 作業中の /clear: いまのやり取りには足せない（足すと作業の途中で会話が空になる）ので、終わったらすぐ消去する予約にする
     // （送信待ちのいちばん上に消去の行。作業中の行の「すぐ送る」と同じ）
     if (!postCompact && isClearCommand(text, attachments)) {
