@@ -192,8 +192,11 @@
   --page-x: 40px;
   max-width: 820px;
   margin: 0 auto;
-  /* 上は信号機ボタンの行（タイトルの行がその高さに収まる） */
-  padding: 6px var(--page-x) 64px;
+  /*
+   * 上は信号機ボタンの行（タイトルの行がその高さに収まる）。4px ＋ 行の 34px の真ん中（21px）を、
+   * 左上の戻る・進むと右上の開閉のボタン（top 8px・高さ 26px）の真ん中にそろえる（前は 6px で 2px 下にずれていた）
+   */
+  padding: 4px var(--page-x) 64px;
 }
 
 .page.is-stale {
