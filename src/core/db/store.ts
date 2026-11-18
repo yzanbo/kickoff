@@ -148,6 +148,26 @@ export class Store {
     return { chat, event };
   }
 
+  /** 引き継ぎを使った作業が完了したら、再開位置の更新と保留の解除をまとめて行う。 */
+  completeProviderHandoff(chatId: number, eventId: number, provider: ProviderId, sessionId: string, lastEventId: number): boolean {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const current = this.chats.get(chatId);
+      const pending = this.chatProviderHandoffs.get(chatId);
+      if (!current || current.provider !== provider || current.session_id !== sessionId || !pending || pending.eventId !== eventId || pending.provider !== provider || pending.state !== "sending") {
+        this.db.exec("ROLLBACK");
+        return false;
+      }
+      this.chatProviderSessions.save(chatId, provider, sessionId, lastEventId);
+      if (!this.chatProviderHandoffs.complete(chatId, eventId)) throw new Error("AI の引き継ぎ状態が変わりました");
+      this.db.exec("COMMIT");
+      return true;
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
   stats(): DatabaseStats {
     return databaseStats(this.db, this.file);

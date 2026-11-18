@@ -150,6 +150,8 @@ export interface StoppedAgent {
  */
 export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false, compactTrigger }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
   const { store, providers } = deps;
+  const handoff = store.chatProviderHandoffs.get(chatId);
+  let handoffClaimed = false;
   // 作業した場所と、始めたときのブランチ（調べ終える前に失敗した・Git でない・ブランチから外れていれば null）
   let turnDir: string | null = null;
   let startBranch: string | null = null;
@@ -215,6 +217,10 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         env,
         auth,
       };
+      if (handoff) {
+        if (compact || handoff.state !== "ready" || handoff.provider !== chat.provider) throw new Error("AI の引き継ぎを確認するまで、この操作はできません");
+        params.turnContext = joinContexts(params.turnContext ?? null, handoff.context);
+      }
       const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
       const diagnostics = deps.sandboxDiagnostics && (chat.provider === "claude" || chat.provider === "codex") ? new TurnSandboxDiagnostics(deps.sandboxDiagnostics) : null;
       params.sandboxDiagnostics = diagnostics;
@@ -226,6 +232,10 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       let tools: ReturnType<McpToolHost["open"]> | null = null;
       try {
         tools = deps.toolHost?.open(turnToolServers(params, callbacks, signal)) ?? null;
+        if (handoff) {
+          if (!store.chatProviderHandoffs.claim(chatId, handoff.eventId, chat.provider)) throw new Error("AI の引き継ぎ状態が変わったため、送信を中止しました");
+          handoffClaimed = true;
+        }
         return await providers[chat.provider].run({ ...params, tools: tools?.endpoints ?? [] }, callbacks, signal);
       } finally {
         signal.removeEventListener("abort", closeDiagnostics);
@@ -236,6 +246,18 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     const network = result.status === "failed" && Boolean(result.network);
     await rememberEndBranch();
     applyResult(store, chatId, result, compact, since, network);
+    if (handoff) {
+      if (handoffClaimed && result.status === "completed" && result.sessionId) {
+        const last = store.events.recent(chatId, 1)[0];
+        if (!last || last.type !== "result" || !store.completeProviderHandoff(chatId, handoff.eventId, handoff.provider, result.sessionId, last.id)) {
+          store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, "AI の引き継ぎ完了を確認できませんでした");
+        }
+      } else if (handoffClaimed) {
+        store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, result.error ?? "AI が指示を受け取ったか確認できません");
+      } else {
+        store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, result.error ?? "AI に引き継ぐ前に作業が止まりました");
+      }
+    }
     // 圧縮した作業が最後まで終わったら、直近の区切りだけの新しいセッションに乗り換える（会話記録が大きくなり続けないように。失敗しても作業は止めない）
     if (result.status === "completed") {
       await switchAfterCompact({ store, provider: providers[chat.provider], trash: deps.sessionTrash }, chatId, cwd, since).catch((e: unknown) =>
@@ -248,6 +270,10 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     return { status: result.status, network, stoppedAgents };
   } catch (e) {
     const message = errorMessage(e);
+    if (handoff) {
+      if (handoffClaimed) store.chatProviderHandoffs.markUncertain(chatId, handoff.eventId, message);
+      else store.chatProviderHandoffs.blockReady(chatId, handoff.eventId, message);
+    }
     await rememberEndBranch();
     // 失敗も、見るまでは未読にする
     store.chats.update(chatId, { status: "failed", error: message, unread: true });
