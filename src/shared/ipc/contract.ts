@@ -6,6 +6,7 @@ import type { BrowserExtensionInfo, KnownExtensionKey } from "./browserExtension
 import type { BrowserHandOffCapture } from "./browserHandOff";
 import type { BootReport, DiagnosticsFolders, DiagnosticsOverview, DiagnosticsState, RendererMemory } from "./diagnostics";
 import type { CoreStatus } from "./core";
+import type { DevtoolsBounds } from "./devtools";
 import type { ExternalBrowserId, ExternalTerminalId } from "./externalApps";
 import type { LoginItemState } from "./loginItem";
 import type { NotifyRequest, NotifyResult } from "./notifications";
@@ -105,8 +106,12 @@ export const NATIVE_API = {
   },
   /** 埋め込みブラウザ（<webview>）の開発者ツール。targetId・devtoolsId は埋め込みブラウザの WebContents の ID */
   devtools: {
-    /** 開発者ツールを、同じ画面の別の埋め込みブラウザの中に表示する（右・下に並べる） */
-    openIn: invoke<[targetId: number, devtoolsId: number, inspect?: { x: number; y: number }]>(),
+    /** 開発者ツールを、呼んだ画面のウィンドウに重ねた表示（WebContentsView）の中に出す（右・下に並べる。置き場所は bounds） */
+    openIn: invoke<[targetId: number, bounds: DevtoolsBounds, inspect?: { x: number; y: number }]>(),
+    /** 右・下に並べた開発者ツールの置き場所を変える（null は隠す。タブが裏にある・メニューなどが上に重なるとき） */
+    place: invoke<[targetId: number, bounds: DevtoolsBounds | null]>(),
+    /** 右・下に並べた開発者ツールの見た目を撮る（隠している間に代わりに見せる。JPEG の data URL。撮れなければ null） */
+    snapshot: invoke<[targetId: number], string | null>(),
     /** 開発者ツールを、別のウィンドウで開く */
     openWindow: invoke<[targetId: number, inspect?: { x: number; y: number }]>(),
     /** 開発者ツールを閉じる（別のウィンドウも） */

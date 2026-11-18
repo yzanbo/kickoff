@@ -3,6 +3,7 @@ export * from "./contract";
 export * from "./browserExtensions";
 export * from "./browserHandOff";
 export * from "./core";
+export * from "./devtools";
 export * from "./diagnostics";
 export * from "./externalApps";
 export * from "./loginItem";
