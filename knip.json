@@ -9,11 +9,12 @@
     "src/**/*.dbtest.ts",
     "electron.vite.config.ts",
     "scripts/*.mjs",
+    "scripts/check-provider-switch.ts",
     "scripts/*.cjs",
     "scripts/hooks/pre*.mjs",
     "scripts/perf/*.mjs"
   ],
-  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}"],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}", "scripts/check-provider-switch.ts"],
   "ignoreExportsUsedInFile": true,
   "ignoreBinaries": ["sips", "iconutil", "plutil", "pgrep", "ditto", "codex"]
 }
