@@ -224,6 +224,14 @@ export class Runner extends RunnerQueue {
     }
   }
 
+  /** 受信不明時に利用者が重複の可能性を承知して再送を選んだ場合だけ実行する。 */
+  async confirmResendProviderHandoff(chatId: number, eventId: number): Promise<{ warning: string | null }> {
+    this.requireChat(chatId);
+    this.requireIdle(chatId, "AI の引き継ぎの再送");
+    if (!this.deps.store.chatProviderHandoffs.confirmResend(chatId, eventId)) throw new Conflict("AI の引き継ぎ状態が変わりました。確認し直してください");
+    return this.retryProviderHandoff(chatId);
+  }
+
   /**
    * 起動したときの再開の確かめ: 前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット（答えるまで続けない・送らない）。
    * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところ・止まったサブエージェントを添える。

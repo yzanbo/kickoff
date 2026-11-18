@@ -56,6 +56,10 @@ export function createChatProviderHandoffStore(db: DatabaseSync) {
     markUncertain(chatId: number, eventId: number, error: string): boolean {
       return db.prepare("UPDATE chat_provider_handoffs SET state = 'uncertain', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'sending'").run(error, chatId, eventId).changes === 1;
     },
+    /** 受信不明の再送は利用者が明示した場合に限る。まず blocked に戻し、資料を作り直してから送る。 */
+    confirmResend(chatId: number, eventId: number): boolean {
+      return db.prepare("UPDATE chat_provider_handoffs SET state = 'blocked', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'uncertain'").run("利用者が再送を選びました。引き継ぎを準備します。", chatId, eventId).changes === 1;
+    },
     /** 同じ切り替えの送信が無事に完了した場合だけ、保留を外す。 */
     complete(chatId: number, eventId: number): boolean {
       return db.prepare("DELETE FROM chat_provider_handoffs WHERE chat_id = ? AND event_id = ? AND state = 'sending'").run(chatId, eventId).changes === 1;
