@@ -1,5 +1,5 @@
 // push 時のフック（.githooks/pre-push から呼ぶ。メモの方針「0022_テストを軽くする」の ③）。
-// 全体のテストを 1 プロセスで（順番を毎回入れ替えて）流し、ビルドを確かめる。1 つでも落ちたら push を止める。
+// 文書と構造の検査（コミット時と同じもの）のあと、全体のテストを 1 プロセスで（順番を毎回入れ替えて）流し、ビルドを確かめる。1 つでも落ちたら push を止める。
 // ビルドは一時フォルダに出す（動いている開発版が読む out/ を書き換えないように）
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
@@ -12,6 +12,8 @@ if (!pushesCommits(readFileSync(0, "utf8"))) process.exit(0);
 const outDir = mkdtempSync(path.join(os.tmpdir(), "kickoff-prepush-build-"));
 try {
   const checks = [
+    ["文書", "node", ["scripts/check-docs.mjs"]],
+    ["構造", "node", ["scripts/check-structure.mjs"]],
     ["全体のテスト（1 プロセス・順番を入れ替え）", "npm", ["test", "--silent"]],
     ["ビルド", "npx", ["electron-vite", "build", "--outDir", outDir, "--logLevel", "warn"]],
   ];
