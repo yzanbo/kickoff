@@ -48,7 +48,7 @@ export interface TabSpec {
  * ドラッグで並べ替えられる（ほかのまとまりへはまとまりごと、同じまとまりの中では 1 つずつ。useProjectTabOrder）。
  * 2 つ以上のタブのまとまりは、端（縦並びは上・横並びは左）のつまみをつかむと、まとまりごと動かせる
  */
-const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
+const TAB_GROUPS: TabGroupSpec[] = [
   {
     key: "work",
     label: "チャット",
@@ -80,13 +80,26 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
   { key: "trash", label: "ゴミ箱", tabs: [{ tab: "trash", label: "ゴミ箱", icon: Trash2, tip: "ゴミ箱（3 日で消えます）" }] },
 ];
 
+/** タブのまとまり（名前と、まとまりの中のタブ） */
+export interface TabGroupSpec {
+  key: string;
+  label: string;
+  tabs: TabSpec[];
+}
+
 /**
- * 並べ替えた順のタブ（まとまりをほどいて 1 列に）。右サイドバーの右端のアイコンの列が、プロジェクトのタブと同じ並びに付いていくのに使う
+ * 並べ替えた順のタブのまとまり。右サイドバーの右端のアイコンの列が、プロジェクトのタブと同じ並び・同じまとまりに付いていくのに使う
  * （メモの仕様書「0031_右サイドバーにプロジェクトの画面を出す」の Q4。列だけの並びは持たない）
  */
-export function useOrderedProjectTabs(): TabSpec[] {
+export function useOrderedProjectTabGroups(): TabGroupSpec[] {
   const [saved] = useSetting(PROJECT_TAB_ORDER);
-  return useMemo(() => applyTabOrder(TAB_GROUPS, saved).flatMap((g) => g.tabs), [saved]);
+  return useMemo(() => applyTabOrder(TAB_GROUPS, saved), [saved]);
+}
+
+/** 並べ替えた順のタブ（まとまりをほどいて 1 列に。右サイドバーの見出しの名前） */
+export function useOrderedProjectTabs(): TabSpec[] {
+  const groups = useOrderedProjectTabGroups();
+  return useMemo(() => groups.flatMap((g) => g.tabs), [groups]);
 }
 
 /**
