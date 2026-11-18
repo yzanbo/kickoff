@@ -106,3 +106,14 @@ test("消失したセッションの切り離しに失敗したら再開先と�
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.lastEventId, 4);
   store.close();
 });
+
+test("自動の再準備は資料と送信中の印を同時に保存し、中断後に勝手に再送しない", () => {
+  const { store, chat } = setup();
+  const switched = store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "古い資料", state: "blocked", error: "失敗", attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
+  assert.equal(store.retryProviderHandoff(chat.id, switched.event.id, "codex", "新しい資料", [], true), true);
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "sending");
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.context, "新しい資料");
+  assert.equal(store.chatProviderHandoffs.recoverInterrupted(), 1);
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "uncertain");
+  store.close();
+});

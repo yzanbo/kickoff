@@ -194,7 +194,7 @@ export class Store {
   }
 
   /** 準備をやり直した資料と、その参照先を同時に保存する。別の切り替えや送信と競合したら変更しない。 */
-  retryProviderHandoff(chatId: number, eventId: number, provider: ProviderId, context: string, attachments: Attachment[]): boolean {
+  retryProviderHandoff(chatId: number, eventId: number, provider: ProviderId, context: string, attachments: Attachment[], claim = false): boolean {
     this.db.exec("BEGIN IMMEDIATE");
     try {
       const chat = this.chats.get(chatId);
@@ -207,7 +207,7 @@ export class Store {
       const previous = event.data.handoff_attachments ?? [];
       const data = { ...event.data, handoff_context: context, handoff_status: "ready", handoff_attachments: [...previous, ...attachments] };
       this.db.prepare("UPDATE chat_events SET data = ? WHERE id = ? AND chat_id = ?").run(JSON.stringify(data), eventId, chatId);
-      this.chatProviderHandoffs.save({ ...pending, context, state: "ready", error: null });
+      this.chatProviderHandoffs.save({ ...pending, context, state: claim ? "sending" : "ready", error: null });
       this.db.exec("COMMIT");
     } catch (error) {
       this.db.exec("ROLLBACK");

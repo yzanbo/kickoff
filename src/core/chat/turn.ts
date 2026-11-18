@@ -245,12 +245,13 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         handoffClaimed = false;
         store.events.add(chatId, { type: "notice", message: "以前の AI のセッションが見つからなかったため、新しいセッションを作ります。以前のセッションにしかない文脈は引き継げません。" });
         if (!deps.uploads) throw new Error("添付の保存先がないため、会話の引き継ぎを準備できません");
-        const retry = await retryProviderHandoffPreparation({ store, uploads: deps.uploads, requireIdle: () => {} }, chatId);
+        // 再準備と送信中の印を同時に保存する。終了が割り込んでも、元の指示を飛ばして次へ進まない。
+        const retry = await retryProviderHandoffPreparation({ store, uploads: deps.uploads, requireIdle: () => {} }, chatId, true);
+        handoffClaimed = true;
         if (retry.warning) store.events.add(chatId, { type: "notice", message: retry.warning });
         if (signal.aborted) throw new Error("新しいセッションの準備中に中断しました");
         const prepared = store.chatProviderHandoffs.get(chatId);
-        if (!prepared || prepared.eventId !== handoff.eventId || prepared.state !== "ready" || !store.chatProviderHandoffs.claim(chatId, handoff.eventId, chat.provider)) throw new Error("AI の引き継ぎ状態が変わったため再開を中止しました");
-        handoffClaimed = true;
+        if (!prepared || prepared.eventId !== handoff.eventId || prepared.state !== "sending") throw new Error("AI の引き継ぎ状態が変わったため再開を中止しました");
         return await providers[chat.provider].run({ ...params, resumeSessionId: null, turnContext: joinContexts(initialContext, prepared.context), tools: tools?.endpoints ?? [] }, callbacks, signal);
       } finally {
         signal.removeEventListener("abort", closeDiagnostics);

@@ -75,6 +75,7 @@ export async function prepareAndCommitProviderSwitch(
 export async function retryProviderHandoffPreparation(
   deps: ProviderSwitchDeps,
   chatId: number,
+  claim = false,
 ): Promise<{ warning: string | null }> {
   const { store, uploads } = deps;
   deps.requireIdle(chatId);
@@ -88,7 +89,7 @@ export async function retryProviderHandoffPreparation(
   try {
     const git = await (deps.git ?? providerHandoffGit)(workdirOf(chat, project)).catch(() => ({ context: "作業場所の Git の状態を取得できませんでした。", warning: "Git の状態を取得できませんでした" }));
     deps.requireIdle(chatId);
-    if (!store.retryProviderHandoff(chatId, pending.eventId, pending.provider, [prepared.context, git.context].filter(Boolean).join("\n\n"), prepared.created)) throw new Error("AI の引き継ぎ状態が変わったため、再試行できません");
+    if (!store.retryProviderHandoff(chatId, pending.eventId, pending.provider, [prepared.context, git.context].filter(Boolean).join("\n\n"), prepared.created, claim)) throw new Error("AI の引き継ぎ状態が変わったため、再試行できません");
     const missing = prepared.missing.length ? `添付 ${prepared.missing.length} 件が見つかりません` : null;
     return { warning: [git.warning, missing].filter(Boolean).join("。") || null };
   } catch (error) {
