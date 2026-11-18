@@ -48,6 +48,7 @@ export abstract class RunnerQueue {
   /** AI 切り替え後の保留があれば、指示を取り出す前に確かめる。 */
   protected abstract handoffCanSend(chatId: number): boolean;
   protected abstract handoffPending(chatId: number): boolean;
+  protected abstract normalizeHandoffQueue(chatId: number): void;
 
   /** チャットの送信待ちの列 */
   private queueOf(chatId: number) {
@@ -153,6 +154,7 @@ export abstract class RunnerQueue {
    */
   async sendQueuedNow(chatId: number, id: string): Promise<void> {
     if (!this.handoffCanSend(chatId)) throw new Conflict("AI の引き継ぎを確認するまで送信できません");
+    this.normalizeHandoffQueue(chatId);
     const queue = this.queueOf(chatId);
     const found = queue.list().find((m) => m.id === id);
     if (!found) throw missing();
@@ -182,6 +184,7 @@ export abstract class RunnerQueue {
    */
   async sendAllQueued(chatId: number, ids?: string[]): Promise<void> {
     if (!this.handoffCanSend(chatId)) throw new Conflict("AI の引き継ぎを確認するまで送信できません");
+    this.normalizeHandoffQueue(chatId);
     // 1 つにまとめた指示を列から取り出して送る（列に「まとめた 1 件」を一瞬出さない）
     // まとめていま送るのは、起動したときの確かめにも答えたことにする（すべて送るとき。選んだものだけなら、残りはまだ決めていない）
     if (!ids) this.answerRestartResume(chatId);
@@ -279,6 +282,7 @@ export abstract class RunnerQueue {
     // 作業中（送る準備の途中も）なら送らない（取り出すと送れずに消える。いまの作業が終わったときに、もう一度呼ばれる）
     if (this.isBusy(chatId)) return;
     if (!this.handoffCanSend(chatId)) return;
+    this.normalizeHandoffQueue(chatId);
     const runtime = this.runtimes.get(chatId);
     // 起動したときの再開の確かめで送信待ちを聞いている間は送らない（中身を見て直している途中に、線を外す・書き直しを終えるなどで送り始めないように）。
     // 送信待ちが空になったら、送信待ちについては聞かない（作業の途中で止まったことは聞き続ける）

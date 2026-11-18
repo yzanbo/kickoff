@@ -135,6 +135,13 @@ export class Runner extends RunnerQueue {
     return this.deps.store.chatProviderHandoffs.get(chatId) !== undefined;
   }
 
+  protected normalizeHandoffQueue(chatId: number): void {
+    const pending = this.deps.store.chatProviderHandoffs.get(chatId);
+    if (!pending) return;
+    const event = this.deps.store.events.get(pending.eventId);
+    if (event?.type === "provider_switched") this.runtimes.get(chatId).queue.resetOptions(event.data.queued_ids ?? []);
+  }
+
   /**
    * 起動したときの再開の確かめ: 前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット（答えるまで続けない・送らない）。
    * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところ・止まったサブエージェントを添える。
@@ -290,6 +297,7 @@ export class Runner extends RunnerQueue {
     const chat = this.requireChat(chatId);
     this.requireIdle(chatId, "送信");
     if (!this.handoffCanSend(chatId)) throw new Conflict("AI の引き継ぎを確認するまで送信できません");
+    this.normalizeHandoffQueue(chatId);
     // チャット欄の /clear: Claude Code に送らず、送信待ちのコンテキスト消去と同じく Kickoff がセッションを外して区切りを残す
     if (!postCompact && isClearCommand(text, attachments)) return this.clearByCommand(chatId);
     const { store } = this.deps;

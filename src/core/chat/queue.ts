@@ -71,6 +71,14 @@ export class ChatQueue {
     return this.messages;
   }
 
+  /** AI を切り替えたときに待っていた指示だけ、元の AI のモデルや権限の指定を外す。 */
+  resetOptions(ids: readonly string[]): void {
+    const chosen = new Set(ids);
+    if (!this.messages.some((m) => chosen.has(m.id) && Object.keys(m.options ?? {}).length > 0)) return;
+    this.messages = this.messages.map((m) => chosen.has(m.id) ? { ...m, options: {} } : m);
+    this.notify();
+  }
+
   /** 終わっても自動で送らずに止めておくか */
   isPaused(): boolean {
     return this.paused;
