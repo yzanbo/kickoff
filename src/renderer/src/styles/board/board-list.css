@@ -21,6 +21,18 @@
 
 .ext-name {
   flex: 1;
+  min-width: 0;
+}
+
+/* よく使う拡張機能の説明・読み込めなかった理由は名前の下の行に */
+.ext-description,
+.ext-error {
+  display: block;
+}
+
+.ext-error {
+  color: var(--ng);
+  overflow-wrap: anywhere;
 }
 
 .ext-actions {

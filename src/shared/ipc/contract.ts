@@ -141,14 +141,15 @@ export const NATIVE_API = {
   },
   /** 埋め込みブラウザの拡張機能（React DevTools など）。どれも、そのあとの一覧を返す */
   browserExtensions: {
+    /** 保存してある拡張機能（読み込めなかったものも） */
     list: invoke<[], BrowserExtensionInfo[]>(),
-    /** よく使う拡張機能を Chrome ウェブストアから取得する */
+    /** よく使う拡張機能を Chrome ウェブストアから取得する（Chrome から写した同じものは消す） */
     install: invoke<[key: KnownExtensionKey], BrowserExtensionInfo[]>(),
-    /** よく使う拡張機能を、Chrome にインストール済みのものから写す */
+    /** よく使う拡張機能を、Chrome にインストール済みのものから写す（ウェブストアから取った同じものは消す） */
     importFromChrome: invoke<[key: KnownExtensionKey], BrowserExtensionInfo[]>(),
     /** 展開済みの拡張機能のフォルダを選んで読み込む */
     addFolder: invoke<[], BrowserExtensionInfo[]>(),
-    /** 外す（取得・写したものはフォルダも消す） */
+    /** 消す（取得・写したものはフォルダごと消す。フォルダを指定したものは一覧から外すだけで、フォルダは残す） */
     remove: invoke<[path: string], BrowserExtensionInfo[]>(),
   },
   /**
