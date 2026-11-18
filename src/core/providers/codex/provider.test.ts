@@ -120,6 +120,17 @@ test("続き: セッション ID のスレッドを resume してから送る", 
   assert.ok(!server.requests.some((r) => r.method === "thread/start" && !r.params.ephemeral));
 });
 
+test("resume が対象セッションの消失を明示したとき、指示を送らず区別できる結果を返す", async () => {
+  const server = fakeCodexServer();
+  const id = "00000000-0000-4000-8000-000000000000";
+  server.handle("thread/resume", () => { throw Object.assign(new Error(`no rollout found for thread id ${id}`), { code: -32600 }); });
+  const result = await new CodexProvider({ spawn: server.spawn }).run(params({ resumeSessionId: id }), recorder().cb, new AbortController().signal);
+  assert.equal(result.status, "failed");
+  assert.equal(result.resumeSessionMissing, true);
+  assert.equal(result.sessionId, id);
+  assert.equal(server.requests.some((request) => request.method === "turn/start"), false);
+});
+
 test("承認と守り: 消すコマンドは聞かずに断り、理由を turn/steer で伝える。ほかは毎回確認なら承認カードで聞く", async () => {
   const server = fakeCodexServer();
   const answers: unknown[] = [];

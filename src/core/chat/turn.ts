@@ -56,6 +56,7 @@ import { autoPreCompactParams, postCompactItem, postCompactPromptOf, preCompactP
 import type { McpToolHost } from "../mcp/host.js";
 import type { ProviderKeyVault } from "../providers/keys.js";
 import { turnToolServers } from "../mcp/turnTools.js";
+import { retryProviderHandoffPreparation } from "./providerSwitch.js";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
@@ -217,6 +218,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
         env,
         auth,
       };
+      const initialContext = params.turnContext ?? null;
       if (handoff) {
         if (compact || handoff.state !== "ready" || handoff.provider !== chat.provider) throw new Error("AI の引き継ぎを確認するまで、この操作はできません");
         params.turnContext = joinContexts(params.turnContext ?? null, handoff.context);
@@ -236,7 +238,20 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
           if (!store.chatProviderHandoffs.claim(chatId, handoff.eventId, chat.provider)) throw new Error("AI の引き継ぎ状態が変わったため、送信を中止しました");
           handoffClaimed = true;
         }
-        return await providers[chat.provider].run({ ...params, tools: tools?.endpoints ?? [] }, callbacks, signal);
+        const first = await providers[chat.provider].run({ ...params, tools: tools?.endpoints ?? [] }, callbacks, signal);
+        if (!handoff || !first.resumeSessionMissing || first.status !== "failed" || !chat.session_id || first.sessionId !== chat.session_id || signal.aborted) return first;
+        // 「再開要求の段階で履歴がない」と確定した場合は、まだ利用者の指示は送られていない。
+        if (!store.markProviderSessionMissing(chatId, handoff.eventId, chat.provider, chat.session_id)) throw new Error("AI のセッション状態が変わったため再開を中止しました");
+        handoffClaimed = false;
+        store.events.add(chatId, { type: "notice", message: "以前の AI のセッションが見つからなかったため、新しいセッションを作ります。以前のセッションにしかない文脈は引き継げません。" });
+        if (!deps.uploads) throw new Error("添付の保存先がないため、会話の引き継ぎを準備できません");
+        const retry = await retryProviderHandoffPreparation({ store, uploads: deps.uploads, requireIdle: () => {} }, chatId);
+        if (retry.warning) store.events.add(chatId, { type: "notice", message: retry.warning });
+        if (signal.aborted) throw new Error("新しいセッションの準備中に中断しました");
+        const prepared = store.chatProviderHandoffs.get(chatId);
+        if (!prepared || prepared.eventId !== handoff.eventId || prepared.state !== "ready" || !store.chatProviderHandoffs.claim(chatId, handoff.eventId, chat.provider)) throw new Error("AI の引き継ぎ状態が変わったため再開を中止しました");
+        handoffClaimed = true;
+        return await providers[chat.provider].run({ ...params, resumeSessionId: null, turnContext: joinContexts(initialContext, prepared.context), tools: tools?.endpoints ?? [] }, callbacks, signal);
       } finally {
         signal.removeEventListener("abort", closeDiagnostics);
         diagnostics?.close();

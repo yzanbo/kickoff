@@ -93,3 +93,16 @@ test("受信不明の引き継ぎは準備の再試行では送信可能に戻�
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "uncertain");
   store.close();
 });
+
+test("消失したセッションの切り離しに失敗したら再開先と保留状態を元に戻す", () => {
+  const { store, chat } = setup();
+  const switched = store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "資料", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: 4, currentLastEventId: null, queueWasPaused: false });
+  store.chatProviderHandoffs.claim(chat.id, switched.event.id, "codex");
+  store.db.exec("CREATE TRIGGER fail_missing BEFORE UPDATE ON chat_provider_handoffs BEGIN SELECT RAISE(ABORT, 'test failure'); END");
+  assert.throws(() => store.markProviderSessionMissing(chat.id, switched.event.id, "codex", "codex-session"), /test failure/);
+  assert.equal(store.chats.get(chat.id)?.session_id, "codex-session");
+  assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.session_id, "codex-session");
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "sending");
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.lastEventId, 4);
+  store.close();
+});

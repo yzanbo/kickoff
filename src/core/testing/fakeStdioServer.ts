@@ -85,7 +85,7 @@ export function fakeStdioServer(defaults: [string, Handler][] = []): FakeStdioSe
             .then(() => (handler ? handler(msg.params, server) : Promise.reject(new Error(`unknown method ${msg.method}`))))
             .then(
               (result) => send({ id, result: result ?? {} }),
-              (e: Error) => send({ id, error: { code: -32601, message: e.message } }),
+              (e: Error & { code?: number }) => send({ id, error: { code: e.code ?? -32601, message: e.message } }),
             );
         },
         onLine: (listener) => {

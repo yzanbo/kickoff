@@ -9,12 +9,17 @@ import { startHookServer, type HookServer } from "./hookServer.js";
 import { assertHookActive, kickoffHookTrust, withHookTrust } from "./hookTrust.js";
 import { commandOutputDelta, createItemState, itemCompleted, itemStarted } from "./items.js";
 import type { CodexErrorInfo, ThreadItem, ThreadResponse, ThreadResumeParams, ThreadStartParams, ThreadTokenUsage, Turn, TurnError, TurnStartParams, TurnSteerParams } from "./protocol.js";
-import type { StdioRpc, StdioSpawn } from "../stdioRpc.js";
+import { StdioRpcError, type StdioRpc, type StdioSpawn } from "../stdioRpc.js";
 import { createPreToolUseHandler } from "./preToolUse.js";
 import { openSession } from "./session.js";
 
 /** 止めたあと、Codex がターンの終わりを返すまで待つ長さ（過ぎたら app-server ごと止める） */
 const INTERRUPT_GRACE_MS = 5000;
+
+/** app-server 0.169 の thread/resume が返す、対象 ID の履歴なしを示す応答だけを認める。 */
+export function confirmedMissingResume(error: unknown, sessionId: string | null): boolean {
+  return Boolean(sessionId && error instanceof StdioRpcError && error.method === "thread/resume" && error.code === -32600 && error.message === `no rollout found for thread id ${sessionId}`);
+}
 
 export interface TurnDeps {
   spawn: StdioSpawn;
@@ -187,7 +192,7 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
     return turnResult(turn, threadId, state.usage, lastText, lastError);
   } catch (e) {
     const message = errorMessage(e);
-    return { status: signal.aborted ? "cancelled" : "failed", sessionId: threadId, error: message, ...(isNetworkError(message) ? { network: true } : {}) };
+    return { status: signal.aborted ? "cancelled" : "failed", sessionId: threadId, error: message, ...(!signal.aborted && confirmedMissingResume(e, params.resumeSessionId) ? { resumeSessionMissing: true as const } : {}), ...(isNetworkError(message) ? { network: true } : {}) };
   } finally {
     signal.removeEventListener("abort", onAbort);
     cb.control?.(null);
