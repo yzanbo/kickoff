@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { layoutGraph } from "./commitGraph";
+import { layoutGraph, rowLanes } from "./commitGraph";
 
 test("一本道の履歴は、すべて 1 列目に並ぶ", () => {
   const { rows, lanes } = layoutGraph([
@@ -47,4 +47,17 @@ test("右の列のブランチが、左の列の待っている親へ合流す�
     rows[2].bottom.map((e) => [e.from, e.to]).sort(),
     [[0, 0], [1, 0]],
   );
+});
+
+test("行の列の数は、その行の点と線が通るいちばん右の列まで（ほかの行の広さに引きずられない）", () => {
+  // m = マージ（親 b と x）。x の枝が閉じたあとの行は 1 列だけ
+  const { rows, lanes } = layoutGraph([
+    { hash: "m", parents: ["b", "x"] },
+    { hash: "x", parents: ["a"] },
+    { hash: "b", parents: ["a"] },
+    { hash: "a", parents: ["z"] },
+    { hash: "z", parents: [] },
+  ]);
+  assert.equal(lanes, 2);
+  assert.deepEqual(rows.map(rowLanes), [2, 2, 2, 1, 1]);
 });

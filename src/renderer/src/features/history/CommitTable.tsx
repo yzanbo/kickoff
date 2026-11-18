@@ -2,7 +2,7 @@ import { useEffect, useRef, type MouseEvent } from "react";
 import type { GitCommit } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { formatDayTime } from "@/lib/time";
-import type { GraphRow } from "./commitGraph";
+import { rowLanes, type GraphRow } from "./commitGraph";
 import { laneColor } from "./laneColors";
 import { RefBadges } from "./CommitRefBadges";
 import type { RefTarget } from "./refTarget";
@@ -22,9 +22,12 @@ function edgePath(from: number, to: number, y1: number, y2: number) {
   return `M ${x(from)} ${y1} C ${x(from)} ${mid}, ${x(to)} ${mid}, ${x(to)} ${y2}`;
 }
 
-/** 1 行分のグラフ（上半分・下半分の線と、コミットの点。マージは中を抜いた点） */
-function GraphCell({ row, lanes, merge }: { row: GraphRow; lanes: number; merge: boolean }) {
-  const width = Math.min(lanes, MAX_LANES) * LANE;
+/**
+ * 1 行分のグラフ（上半分・下半分の線と、コミットの点。マージは中を抜いた点）。
+ * 幅はその行で使う列まで（件名を、その行の線のすぐ右から始める。利用者の依頼。前は履歴全体でいちばん広い所の幅をどの行にも取り、1 本道の所でも線と件名の間が大きく空いた）
+ */
+function GraphCell({ row, merge }: { row: GraphRow; merge: boolean }) {
+  const width = Math.min(rowLanes(row), MAX_LANES) * LANE;
   return (
     <svg className="graph-cell" width={width} height={ROW} aria-hidden>
       {row.top.map((e, i) => (
@@ -38,7 +41,10 @@ function GraphCell({ row, lanes, merge }: { row: GraphRow; lanes: number; merge:
   );
 }
 
-/** コミットの表（列: 線つきの件名・作者・コミットの番号・日時）。選んだ行が見えるようにスクロールする */
+/**
+ * コミットの表（列: 線つきの件名・作者・コミットの番号・日時）。選んだ行が見えるようにスクロールする。
+ * 狭いときは件名の文より札を残し、作者・番号・日時の列を順に隠す（CSS の @container history-list）
+ */
 export function CommitTable({
   log,
   selected,
@@ -71,10 +77,14 @@ export function CommitTable({
               title={commit.subject}
               onClick={() => onSelect(commit)}
             >
-              <GraphCell row={log.graph.rows[i]} lanes={log.graph.lanes} merge={commit.parents.length > 1} />
+              <GraphCell row={log.graph.rows[i]} merge={commit.parents.length > 1} />
               <span className="history-subject">
-                <RefBadges refs={commit.refs} known={log.refs} color={laneColor(log.graph.rows[i].color)} onMenu={onRefMenu} />
-                {commit.subject}
+                {commit.refs.length > 0 && (
+                  <span className="history-refs">
+                    <RefBadges refs={commit.refs} known={log.refs} color={laneColor(log.graph.rows[i].color)} onMenu={onRefMenu} />
+                  </span>
+                )}
+                <span className="history-subject-text">{commit.subject}</span>
               </span>
               <span className="history-author" title={commit.email}>
                 {commit.author}

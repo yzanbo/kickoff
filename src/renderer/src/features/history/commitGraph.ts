@@ -95,3 +95,10 @@ export function layoutGraph(commits: { hash: string; parents: string[] }[]): { r
   }
   return { rows, lanes: width };
 }
+
+/** その行で使う列の数（点と、上下の線が通るいちばん右の列まで）。件名を、その行の線のすぐ右から始めるため */
+export function rowLanes(row: GraphRow): number {
+  let last = row.col;
+  for (const e of [...row.top, ...row.bottom]) last = Math.max(last, e.from, e.to);
+  return last + 1;
+}
