@@ -1,9 +1,14 @@
-import type { Attachment, Chat, ChatOptionsPatch, ChildChatBody, FileRewindResult, HandoffBody, HandoffResult, HandoffVia, MessageMarks, QueuedMessage, SendMessageBody, SubagentChildBody, TellResult } from "@shared/types";
+import type { Attachment, Chat, ChatOptionsPatch, ChildChatBody, FileRewindResult, HandoffBody, HandoffResult, HandoffVia, MessageMarks, ProviderHandoffStatus, ProviderId, ProviderSwitchPreview, ProviderSwitchResult, QueuedMessage, SendMessageBody, SubagentChildBody, TellResult } from "@shared/types";
 import { withUserView } from "@/lib/userViewSnapshot";
 import { request } from "./http";
 
 /** チャットの実行（続きを送る・止めずに伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し。コアの routes/turns.ts） */
 export const turnsApi = {
+  providerSwitchPreview: (chatId: number, target: ProviderId) => request<ProviderSwitchPreview>("GET", `/api/chats/${chatId}/provider-switch?target=${encodeURIComponent(target)}`),
+  switchProvider: (chatId: number, target: ProviderId, confirmation: string) => request<ProviderSwitchResult>("POST", `/api/chats/${chatId}/provider-switch`, { target, confirmation }),
+  providerHandoff: (chatId: number) => request<ProviderHandoffStatus | null>("GET", `/api/chats/${chatId}/provider-handoff`),
+  retryProviderHandoff: (chatId: number, eventId: number) => request<{ warning: string | null }>("POST", `/api/chats/${chatId}/provider-handoff/retry`, { event_id: eventId }),
+  confirmResendProviderHandoff: (chatId: number, eventId: number) => request<{ warning: string | null }>("POST", `/api/chats/${chatId}/provider-handoff/confirm-resend`, { event_id: eventId, confirm_duplicate_risk: true }),
   /** 圧縮のあとのやり取りが終わるまで預かった指示を、送らずに外す（圧縮中に誤って送ったとき。外した指示を返す） */
   removeAfterCompact: (chatId: number, messageId: string) => request<QueuedMessage>("DELETE", `/api/chats/${chatId}/after-compact/${encodeURIComponent(messageId)}`),
   /** 預かった指示をその場で書き直す（送る順はそのまま。書き直し中の印も外れる。書き直した指示を返す。もう伝えたなら 404） */
