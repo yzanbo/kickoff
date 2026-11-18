@@ -60,6 +60,8 @@ export class ChatRuntime {
    * 組み立ての間（await）に別の送信（送信待ちの自動送信と「いま」など）が割り込むと、同じチャットを 2 つ同時に動かし、片方の指示が会話から消えていた
    */
   preparing = false;
+  /** AI の交代の準備中。送信待ちを取り出したり「いま」を預けたりしない。 */
+  switchingProvider = false;
   /** 作業中のチャットへの操作（止めずに発言を足す・裏の作業を止める。プロバイダーが渡し、終わったら null） */
   control: TurnControl | null = null;
   /**
