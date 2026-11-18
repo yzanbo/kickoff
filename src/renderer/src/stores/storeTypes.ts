@@ -27,8 +27,10 @@ export interface KeyedStoreOptions<K, T> {
   dropOn?: (event: BusEvent) => K | undefined;
   /** 値が古くなるまでの時間（ms）。過ぎてから使うと、前の値を出したまま裏で取り直す（0 なら使い始めるたびに）。省けば古くならない */
   maxAge?: number;
-  /** ウィンドウに戻ったとき、使っている値が古ければ取り直す */
-  refreshOnFocus?: boolean;
+  /** 使っている値は maxAge を過ぎた時点でも自動で取り直す */
+  refreshAfterMaxAge?: boolean;
+  /** ウィンドウに戻ったとき、使っている値が古ければ取り直す。"always" は新しくても取り直す */
+  refreshOnFocus?: boolean | "always";
 }
 
 /** key（プロジェクトの ID など）ごとに値を持つ店 */
@@ -61,7 +63,7 @@ export interface StoreOptions<T> {
   reduce?: (data: T, event: BusEvent) => T;
   reloadOn?: (event: BusEvent) => boolean;
   maxAge?: number;
-  refreshOnFocus?: boolean;
+  refreshOnFocus?: KeyedStoreOptions<number, T>["refreshOnFocus"];
 }
 
 /** 値を 1 つだけ持つ店（できることは KeyedStore と同じ） */

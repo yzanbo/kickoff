@@ -157,13 +157,12 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
   let handoffClaimed = false;
   // 作業した場所と、始めたときのブランチ（調べ終える前に失敗した・Git でない・ブランチから外れていれば null）
   let turnDir: string | null = null;
-  let startBranch: string | null = null;
   /**
    * 作業の途中で AI がブランチを替えていたら、最後に作業したブランチを覚え直す（結果を書く前に。外れていれば・読めなければ前のまま）。
-   * 始めにブランチを読めなかった場所（Git でないなど）では読み直さない（作業ごとに外部コマンドを増やさない）
+   * 始めにブランチから外れていても、作業中にブランチを取り出すことがあるので読み直す。
    */
   const rememberEndBranch = async () => {
-    const branch = turnDir && startBranch ? await currentBranch(turnDir).catch(() => null) : null;
+    const branch = turnDir ? await currentBranch(turnDir) : null;
     const chat = store.chats.get(chatId);
     if (branch && chat && branch !== chat.branch) store.chats.update(chatId, { branch });
   };
@@ -177,7 +176,6 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）。
     // 送ったので、ワークツリーを片付けた印は外す（札はもとから本体。説明に片付けたブランチを添えるのは次に送るまで）
     const branch = await currentBranch(cwd);
-    startBranch = branch;
     store.chats.update(chatId, { status: "running", turn_started_at: new Date().toISOString(), finished_worktree_branch: null, ...(branch ? { branch } : {}) });
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
     const since = store.events.list(chatId).at(-1)?.id ?? 0;

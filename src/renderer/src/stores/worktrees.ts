@@ -1,6 +1,6 @@
 // プロジェクトごとのワークツリー（本体を含む）の一覧。カード・行がいくつあっても、取りに行くのはプロジェクトごとに 1 回。
 // ブランチは Kickoff の外でも変わるので、コアの HEAD の見張りの知らせ（worktrees_changed）ですぐ取り直す。見張りが漏れたときの備えに、
-// 30 秒たってから使ったとき・ウィンドウに戻ったときにも取り直す（届くまでは前の一覧を出す）。
+// 表示している間は 30 秒ごと・ウィンドウに戻ったときにも取り直す（届くまでは前の一覧を出す）。
 // ワークツリーを作る・消す API はそのあとの一覧を返すので、それを set で入れる（作った・片付けたあとは invalidate ですぐ取り直す）
 import { useMemo } from "react";
 import type { GitWorktree, WorktreeEnv } from "@shared/types";
@@ -14,7 +14,8 @@ const MAX_AGE_MS = 30_000;
 export const worktreesStore = createKeyedStore<number, GitWorktree[]>({
   load: (projectId) => api.gitWorktrees(projectId),
   maxAge: MAX_AGE_MS,
-  refreshOnFocus: true,
+  refreshAfterMaxAge: true,
+  refreshOnFocus: "always",
   reloadOn: (event, projectId) => event.type === "worktrees_changed" && event.project_id === projectId,
   dropOn: (e) => (e.type === "project_deleted" ? e.id : undefined),
 });

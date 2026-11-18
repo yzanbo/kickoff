@@ -14,5 +14,8 @@ export function useChatTabHint(chat: Chat | undefined, label: string, group: str
   if (!chat) return undefined;
   const place = workplaceOf(chat, worktreesOf(chat.project_id));
   const parts = [projectName(chat.project_id), group && `グループ: ${group}`, place.name].filter(Boolean);
-  return parts.length > 0 ? `${label}（${parts.join(" · ")}）` : label;
+  const current = parts.length > 0 ? `${label}（${parts.join(" · ")}）` : label;
+  return place.kind === "main" && chat.finished_worktree_branch
+    ? `${current}\n片付けたワークツリーのブランチ: ${chat.finished_worktree_branch}`
+    : current;
 }
