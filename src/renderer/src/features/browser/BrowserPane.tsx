@@ -31,7 +31,9 @@ interface Props {
  * 埋め込みブラウザ（開発中のアプリのプレビュー・ドキュメント閲覧）。
  * デスクトップアプリでのみ動く。表示するページは Kickoff 本体と切り離した専用のセッションで開く。
  */
-export function BrowserPane({ url: initialUrl, onChange, agentTarget, visible, onOpenTab }: Props) {
+export function BrowserPane({ url, onChange, agentTarget, visible, onOpenTab }: Props) {
+  // 作り直したときは最後のページから。以降の移動は webview に任せ、src を更新して二重に読み込まない
+  const [initialUrl] = useState(url);
   const paneRef = useRef<HTMLDivElement>(null);
   const ref = useRef<WebviewTag | null>(null);
   // 「AI に渡す」が押したときに読む webview（描く中で ref を読む関数を作らないよう、state にも持つ）
@@ -40,7 +42,7 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget, visible, o
     ref.current = el;
     setView(el);
   }, []);
-  const [address, setAddress] = useState(initialUrl);
+  const [address, setAddress] = useState(initialUrl === "about:blank" ? "" : initialUrl);
   const [current, setCurrent] = useState(initialUrl);
   // 外のブラウザ（パネルのブラウザの ▾ で選ぶ。初めは Chrome）
   const external = useExternalBrowser();
@@ -60,6 +62,7 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget, visible, o
     if (!view) return;
     const sync = () => {
       const url = view.getURL();
+      if (!url) return;
       setCurrent(url);
       // 空のページでは、アドレス欄も空のままにする
       setAddress(url === "about:blank" ? "" : url);

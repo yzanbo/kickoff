@@ -328,6 +328,8 @@ export const PANEL_SHOW_ARCHIVED = defineSetting("kickoff:panel-show-archived", 
 export const panelTabKinds = defineSettingFamily("kickoff:panel-tab-kinds:", list());
 /** プロジェクトごとの、右のチャット欄を開いているか */
 export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag(), { ids: true });
+/** プロジェクトごとの右サイドバーのブラウザ。開いていたタブと配置（panel/state/browserSession.ts で確かめる） */
+export const projectBrowserSession = defineSettingFamily("kickoff:project-browser-session:", record(), { ids: true });
 export const PROJECT_CHAT_WIDTH = defineSetting("kickoff:project-chat-width", number(367));
 /** 右サイドバーを横幅いっぱい（左のサイドバーの右から画面の右端まで）に広げているか（タブの列の左端の切り替え。アプリ全体） */
 export const PROJECT_CHAT_MAXIMIZED = defineSetting("kickoff:project-chat-maximized", flag());

@@ -5,9 +5,11 @@ import { publishServerEvent } from "@/api/events";
 import { installMemoryStorage } from "@/lib/memoryStorage";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { NEW_CHAT_DRAFTS, panelTabKinds, projectChatOpen } from "@/lib/storageKeys";
+import { activeTabOf } from "@/features/panel/layout/paneTree";
+import { readBrowserSession } from "./browserSession";
 import { panelActions } from "./panelActions";
 import { currentDrafts, discardDraft, setDraftGroup } from "./panelDrafts";
-import { panelStateOf } from "./panelStore";
+import { panelStateOf, takePanels } from "./panelStore";
 
 const { local } = installMemoryStorage();
 beforeEach(() => local.clear());
@@ -58,6 +60,34 @@ test("見せている最後のタブを閉じると、ボードの右のパネ�
   assert.equal(panelStateOf("side:2").open, true);
   side.closeTab(second);
   assert.equal(panelStateOf("side:2").open, false);
+});
+
+test("右サイドバーのブラウザ: 隠しても開いていたページと選択を復元し、個別に閉じたタブは復元しない", () => {
+  const key = "side:31";
+  const side = panelActions(key);
+  const first = side.openBrowser("https://example.test/start");
+  const second = side.openBrowser("https://example.test/other");
+  side.patchTab(first, { kind: "browser", fields: { current: "https://example.test/next", title: "次のページ" } });
+  side.showTab(first);
+  side.close();
+  // メモリの状態を外し、読み込み直したときと同じように保存から作る
+  takePanels((panel) => panel === key);
+  assert.equal(panelStateOf(key).open, false);
+  assert.deepEqual(keys(key), [first, second]);
+  assert.equal(activeTabOf(panelStateOf(key).layout), first);
+  assert.deepEqual(panelStateOf(key).tabs[0], { kind: "browser", key: first, url: "https://example.test/next", title: "次のページ", restored: true });
+  side.closeTab(first);
+  assert.deepEqual(readBrowserSession(31)?.tabs.map((t) => t.key), [second]);
+  side.closeTab(second);
+  assert.equal(readBrowserSession(31), null);
+});
+
+test("削除したプロジェクトのブラウザのタブは保存からも外す", () => {
+  panelActions("side:32").openBrowser("https://example.test");
+  takePanels((key) => key === "side:32");
+  assert.ok(readBrowserSession(32));
+  publishServerEvent({ type: "project_deleted", id: 32 });
+  assert.equal(readBrowserSession(32), null);
 });
 
 test("閉じたターミナルのタブは、シェルも止める（ペインを閉じたときも）", () => {

@@ -155,7 +155,7 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   ),
   browser: ({ tab: t, panel, visible }) => (
     <BrowserPane
-      url={t.url}
+      url={t.current ?? t.url}
       visible={visible}
       onOpenTab={(url, background) => {
         // クリックしたブラウザのペインに足し、リンク・画像なら今のタブを表示したままにする

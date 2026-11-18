@@ -1,17 +1,19 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { subscribeServerEvent } from "@/api/events";
 import { readSetting, writeSetting } from "@/lib/storage";
+import { reconcileLayout } from "@/features/panel/layout/paneLayout";
 import { draftScope, panelKey, parsePanelKey, SURFACES } from "@/features/panel/surfaces";
 import { kindOfTab, specOf } from "@/features/panel/tabs/tabKinds";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
+import { readBrowserSession, writeBrowserSession } from "./browserSession";
 import { moveDraftsToChatPanels, readSavedDrafts, writeDrafts } from "./draftPersistence";
 import { readKinds } from "./panelKinds";
 import { emptyPanel, panelReducer, type PanelAction, type PanelRules, type PanelState } from "./panelState";
 
 /**
  * 欄のパネルの状態を、欄・画面ごと（surfaces.ts の panelKey）に覚えておく店。ボードとエディタなどのタブを切り替えると欄の部品は
- * 作り直されるので、戻ってきたときに元どおりにできるよう、部品ではなくここで持つ（アプリを閉じるまで。送る前の新しいチャットのタブだけは
- * draftPersistence で localStorage にも残し、起動したら閉じた欄のタブとして戻す。チャット欄の開閉はプロジェクトごとに覚える）。
+ * 作り直されるので、戻ってきたときに元どおりにできるよう、部品ではなくここで持つ（原則アプリを閉じるまで）。
+ * 送る前の新しいチャットと、右サイドバーのブラウザのタブ・配置・欄の開閉は localStorage にも残す。
  * 部品は usePanelState で読み、dispatchPanel で変える（画面に出ていない欄も、サイドバーの下書きなどから同じ方法で変えられる）
  */
 const states = new Map<string, PanelState>();
@@ -22,7 +24,7 @@ let version = 0;
  * 変える操作はメインのウィンドウに頼む。panelMirror.ts）
  */
 let replica = false;
-/** このウィンドウが持つ欄か（下書きの保存で、ほかのウィンドウが持つ欄 = 別ウィンドウへ移したチャット欄の分は書き換えない。panelHandOff.ts） */
+/** このウィンドウが持つ欄か（下書き・ブラウザの保存で、ほかのウィンドウが持つ欄の分は書き換えない。panelHandOff.ts） */
 let owns: (key: string) => boolean = (key) => !isWindowPanel(key);
 
 /** タブの列のある別ウィンドウの欄か（その別ウィンドウが持つので、メインのウィンドウは下書きの保存で書き換えない） */
@@ -41,10 +43,19 @@ function openSettingOf(key: string) {
   return setting && typeof at.scope === "number" ? setting(at.scope) : undefined;
 }
 
+/** 右サイドバーのタブを保存する先（プロジェクトごと） */
+function browserProjectOf(key: string): number | null {
+  const at = parsePanelKey(key);
+  return at?.surface === "side" && typeof at.scope === "number" ? at.scope : null;
+}
+
 /** 欄の初めの状態（開いているかを覚える欄は、覚えた値から） */
 function initialState(key: string, tabs: readonly PanelTab[] = []): PanelState {
   const setting = openSettingOf(key);
-  return emptyPanel(tabs, setting ? readSetting(setting) : false);
+  const project = browserProjectOf(key);
+  const browser = project === null ? null : readBrowserSession(project);
+  const state = emptyPanel(browser ? [...browser.tabs, ...tabs] : tabs, setting ? readSetting(setting) : false);
+  return browser ? { ...state, layout: tabs.length ? reconcileLayout(browser.layout, state.tabs.map((t) => t.key)) : browser.layout } : state;
 }
 
 // 前回残した下書きのタブを、閉じた欄のタブとして戻す（チャットを出さない欄に残っていたものは、作成先のプロジェクトのチャットのパネルへ移して残し直す）
@@ -103,6 +114,10 @@ export function dispatchPanel(key: string, action: PanelAction): void {
     // 別ウィンドウへ移したタブは後始末をしない（keep。ターミナルのシェルは移した先がつなぐ）
     if (!(action.type === "close" && action.keep)) prev.tabs.filter((t) => !kept.has(t.key)).forEach(dispose);
     persistDrafts();
+  }
+  if (owns(key) && (next.tabs !== prev.tabs || next.layout !== prev.layout)) {
+    const project = browserProjectOf(key);
+    if (project !== null) writeBrowserSession(project, next);
   }
   const setting = next.open !== prev.open ? openSettingOf(key) : undefined;
   if (setting) writeSetting(setting, next.open);
@@ -196,6 +211,14 @@ export const isPanelMounted = (key: string) => mounted.has(key);
 
 // 削除したチャットのタブ（そのチャットのサブエージェントのタブも）は、どの欄でも閉じる（画面に出ていない欄も）
 subscribeServerEvent((e) => {
+  if (e.type === "project_deleted" && !replica) {
+    const side = panelKey("side", e.id);
+    if (owns(side)) {
+      writeBrowserSession(e.id, null);
+      takePanels((key) => key === side);
+    }
+    return;
+  }
   if (e.type !== "chat_deleted") return;
   for (const [key, state] of [...states]) {
     const gone = state.tabs.filter((t) => specOf(t).chatIdOf?.(t) === e.id);

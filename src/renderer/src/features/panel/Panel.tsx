@@ -88,10 +88,14 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const view = usePanelViewMenu(panel);
   // 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ。タブの列の「＋」と空の欄のボタン）
   const newChild = useNewChild(panel);
-  // 一度表示したタブ（中身を作ったもの。チャットのタブは、ここにあるか表示中のときだけ中身を作る）
+  // 一度表示したタブ。チャットは初めて表示したとき、復元したブラウザは初めて欄を開いたときから中身を作る
   // （描く中で ref に書かず state に持つ。表示中なのにまだ入っていないタブがあれば、描いている間に足す）
   const [mountedTabs, setMountedTabs] = useState<ReadonlySet<string>>(() => new Set());
-  const shownNow = tabs.filter((t) => panel.shownTabOf(leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0]) === t.key && !mountedTabs.has(t.key));
+  const shownNow = tabs.filter((t) => !mountedTabs.has(t.key) && (
+    t.kind === "browser" && t.restored
+      ? panelOpen
+      : panel.shownTabOf(leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0]) === t.key
+  ));
   if (shownNow.length > 0) setMountedTabs(new Set([...mountedTabs, ...shownNow.map((t) => t.key)]));
   // まだ描いていないチャットのタブを、表のタブに近い順に手すきのときに先読みする（切り替えたときに読み込みを待たない）
   const tabByKey = new Map(tabs.map((t) => [t.key, t]));
@@ -192,6 +196,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
           const rect = rectOf.get(pane.id);
           const active = panel.shownTabOf(pane) === t.key;
           if (!active && specOf(t).lazy && !mountedTabs.has(t.key)) return null;
+          if (t.kind === "browser" && t.restored && !panelOpen && !mountedTabs.has(t.key)) return null;
           return (
             <PanelTabPage
               key={t.key}
