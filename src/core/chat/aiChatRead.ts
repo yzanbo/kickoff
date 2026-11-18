@@ -2,6 +2,7 @@
 // 同じプロジェクトのチャットの一覧と会話、使用枠の残りを返す。読むだけで何も変えないので、聞かずに返す（権限モード・Auto mode によらず承認カードを出さない）。
 // ほかのプロジェクトのチャットは読めない
 import { LIST_PROJECT_CHATS_MAX, READ_CHAT_DEFAULT_TURNS, READ_CHAT_MAX_TURNS, type ReadChatInput } from "@shared/chat/aiRead";
+import { extraUsageSpendText, OVERAGE_STATE_HINTS, OVERAGE_STATE_LABELS, overageStateOf } from "@shared/overage";
 import type { Chat, PlanUsage, UsageWindow } from "@shared/types";
 import type { Store } from "../db/store.js";
 import type { ApprovalCenter } from "./approvals.js";
@@ -54,7 +55,11 @@ export function usageText(u: PlanUsage): string {
     `- ${windowText(u.seven_day)}`,
     ...u.model_weekly.map((w) => `- ${windowText(w)}`),
   ];
-  if (u.extra_usage?.enabled) lines.push(`- 追加の使用枠: オン${u.extra_usage.utilization === null ? "" : `（${Math.round(u.extra_usage.utilization)}% 使用）`}`);
+  // 超過分の様子（意図せず課金していないか）と、この請求期間の超過分の額
+  const overage = overageStateOf(u);
+  lines.push(`- ${OVERAGE_STATE_LABELS[overage]}（${OVERAGE_STATE_HINTS[overage]}）`);
+  const spend = u.extra_usage ? extraUsageSpendText(u.extra_usage) : null;
+  if (spend) lines.push(`- ${spend}`);
   if (u.error) lines.push(`（最新の取得に失敗したため、前に取った値です: ${u.error}）`);
   return lines.join("\n");
 }

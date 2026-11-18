@@ -247,6 +247,8 @@ export interface ProviderCallbacks {
   retry?(info: ApiRetryInfo | null): void;
   /** 裏で動いている作業・メインの返答が終わったかが変わったとき（保存しない） */
   background?(state: BackgroundState): void;
+  /** いま超過分（プランの上限を超えたあとの追加の使用枠。使った分の支払い）で動いているかを AI が知らせた（Claude だけ。保存はコアが使用枠に） */
+  overage?(inUse: boolean): void;
   /** 会話を圧縮（要約）し始めた・終わった（手で圧縮したときも、上限に近づいて自動で圧縮されたときも。保存しない） */
   compacting?(active: boolean): void;
   /** 図のツール（show_visual・update_visual）の中身を書いている途中か（書き始めた・書き終えた。保存しない） */

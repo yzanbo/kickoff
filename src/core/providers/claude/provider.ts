@@ -28,7 +28,7 @@ import { createMessageState, emitSdkMessage } from "./messages.js";
 import { subagentLogOf } from "./subagentLog.js";
 import { KICKOFF_DISALLOWED_TOOLS, turnContextHook, turnHooks, toAllowedTools } from "./policy.js";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
-import { normalizeUsage, readPlanDisplayName } from "./usage.js";
+import { normalizeUsage, overageInUseOf, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "../types.js";
 import { runCommand } from "../../system/exec.js";
 import { claudeSandboxOption } from "./sandbox.js";
@@ -256,9 +256,14 @@ export class ClaudeProvider implements AgentProvider {
           retrying = false;
           cb.retry?.(null);
         }
-        if (msg.type === "rate_limit_event" && msg.rate_limit_info.status === "rejected") {
-          limited = true;
-          limitResetsAt = resetTimeOf(msg.rate_limit_info.resetsAt) ?? limitResetsAt;
+        if (msg.type === "rate_limit_event") {
+          if (msg.rate_limit_info.status === "rejected") {
+            limited = true;
+            limitResetsAt = resetTimeOf(msg.rate_limit_info.resetsAt) ?? limitResetsAt;
+          }
+          // いま超過分（追加の使用枠。使った分の支払い）で動いているか（意図せず課金していないかを下の帯で見せる）
+          const overage = overageInUseOf(msg.rate_limit_info);
+          if (overage !== null) cb.overage?.(overage);
         }
         if (msg.type === "assistant" && msg.error === "rate_limit") limited = true;
         commandOutput.handle(msg);

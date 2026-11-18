@@ -244,6 +244,29 @@
   background: color-mix(in srgb, var(--info) 14%, transparent);
 }
 
+/*
+ * Claude の札の横の、超過分（追加の使用枠）の印。いま超過分で動いていれば赤く塗り（意図せず課金していないかを一目で）、
+ * 追加の使用枠がオン（上限を超えると課金される）なら枠線だけ。札と同じ高さ・文字の大きさ
+ */
+.footer-usage-overage {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 16px;
+  padding: 0 5px;
+  border: 1px solid currentcolor;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--warn);
+}
+
+.footer-usage-overage[data-state="in_use"] {
+  color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 16%, transparent);
+}
+
 /* 帯の中のメーターは短く細く（AI を 2 つ並べても入るように） */
 .footer-usage .meter.meter-inline {
   gap: 5px;
@@ -280,6 +303,24 @@
 
 .usage-popover-foot {
   margin: 0;
+}
+
+/* 詳細の超過分（追加の使用枠）の様子。いま超過分で動いていれば見出しを赤く、オンなら黄に */
+.usage-overage {
+  display: grid;
+  gap: 2px;
+}
+
+.usage-overage-label {
+  font-weight: 600;
+}
+
+.usage-overage[data-state="in_use"] .usage-overage-label {
+  color: var(--ng);
+}
+
+.usage-overage[data-state="on"] .usage-overage-label {
+  color: var(--warn);
 }
 
 .icon-button .spin {

@@ -79,3 +79,27 @@ test("サービスの取得が遅くても、取得開始から 1 分後には�
   await monitor.get();
   assert.equal(calls, 2);
 });
+
+test("超過分の知らせ: 変わったときだけ配り、取り直しても残し、上限に達した枠がなくなったら外す", async () => {
+  let current: PlanUsage = { ...usage(), seven_day: { ...usage().seven_day, utilization: 100 } };
+  const provider = { id: "claude", label: "Claude", usage: async () => current } as AgentProvider;
+  const bus = new Bus();
+  const published: (boolean | undefined)[] = [];
+  bus.subscribe((event) => { if (event.type === "usage") published.push(event.usage.overage?.in_use); });
+  const monitor = new UsageMonitor(provider, bus);
+  await monitor.refresh(true);
+  assert.equal((await monitor.get()).overage, null);
+  // 動き始めたときだけ true を返し、同じ値の知らせでは配らない
+  assert.equal(monitor.noteOverage(true), true);
+  assert.equal(monitor.noteOverage(true), false);
+  assert.equal((await monitor.get()).overage?.in_use, true);
+  // 週の枠が 100% のまま取り直しても、超過分で動いている印は残す
+  await monitor.refresh(true);
+  assert.equal((await monitor.get()).overage?.in_use, true);
+  // 枠がリセットされた（上限に達した枠がない）なら外す
+  current = usage();
+  await monitor.refresh(true);
+  assert.equal((await monitor.get()).overage?.in_use, false);
+  // 配ったもの: 初めの取得（印なし）・動き始め・取り直し 2 回（同じ値の 2 回目の知らせは配っていない）
+  assert.deepEqual(published, [undefined, true, true, false]);
+});

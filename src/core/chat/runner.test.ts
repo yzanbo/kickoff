@@ -323,6 +323,31 @@ test("圧縮のきっかけ: 手で圧縮した（ボタン・/compact を送っ
   assert.deepEqual(notices, ["会話の圧縮に失敗しました（too long）", "会話の圧縮に失敗しました（too long）"]);
 });
 
+test("超過分（追加の使用枠）で動き始めたら、その作業のチャットにお知らせを 1 回だけ残す（動いている間に送った次の作業には残さない）", async () => {
+  const { store, runner, project } = setup(async (params, cb) => {
+    cb.emit({ type: "init", session_id: "s1" });
+    if (params.prompt !== "枠の中") {
+      cb.overage?.(true);
+      cb.overage?.(true);
+    } else cb.overage?.(false);
+    return { status: "completed", sessionId: "s1", result: "ok", turns: 1 };
+  });
+  const notices = (chatId: number) => store.events.list(chatId).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
+  const chat = await runner.start({ projectId: project.id, prompt: "超えた" });
+  await until(() => store.chats.get(chat.id)?.status === "completed" && !runner.isBusy(chat.id));
+  assert.deepEqual(notices(chat.id), ["Claude のプランの使用枠の上限を超えたため、ここから追加の使用枠（使った分の支払い）で動いています"]);
+  // 超過分のまま次の作業: もう知らせてあるので残さない
+  await runner.send(chat.id, "まだ超えている");
+  await until(() => store.chats.get(chat.id)?.num_turns === 2 && !runner.isBusy(chat.id));
+  assert.equal(notices(chat.id).length, 1);
+  // 枠に戻ったあと、また超えたら残す
+  await runner.send(chat.id, "枠の中");
+  await until(() => store.chats.get(chat.id)?.num_turns === 3 && !runner.isBusy(chat.id));
+  await runner.send(chat.id, "また超えた");
+  await until(() => store.chats.get(chat.id)?.num_turns === 4 && !runner.isBusy(chat.id));
+  assert.equal(notices(chat.id).length, 2);
+});
+
 test("手で圧縮すると /compact を送り、要約したことだけを残す（発言・未読・会話の回数には数えない）", async () => {
   const { store, runner, provider, project } = setup(async (params, cb) => {
     if (params.prompt === "/compact") {
