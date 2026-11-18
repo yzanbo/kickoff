@@ -80,6 +80,23 @@ test("引き継ぎ送信中に通信が切れたら、受信不明にして自�
   assert.equal(provider.calls.length, 1);
 });
 
+test("受信不明では確認せず再送せず、利用者が対象の切り替えを明示したときだけ再送する", async () => {
+  let calls = 0;
+  const provider = new ScriptedProvider(async () => ++calls === 1 ? { status: "failed", sessionId: "s", error: "切断", network: true } : { status: "completed", sessionId: "s", result: "完了" });
+  const { store, runner, project } = setupCore(provider, { uploads: new UploadStore(tempDir()) });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const switched = store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "記録", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
+  await runner.send(chat.id, "最初の指示");
+  await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "uncertain");
+  await assert.rejects(runner.retryProviderHandoff(chat.id), /再試行できる/);
+  await assert.rejects(runner.confirmResendProviderHandoff(chat.id, switched.event.id + 1), /状態が変わりました/);
+  assert.equal(calls, 1);
+  await runner.confirmResendProviderHandoff(chat.id, switched.event.id);
+  await until(() => !runner.isBusy(chat.id) && calls === 2);
+  assert.equal(store.events.list(chat.id).filter((event) => event.type === "user").length, 1);
+  assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
+});
+
 test("AI を呼ぶ前に準備が失敗した場合は、引き継ぎを blocked にして後の指示を送らない", async () => {
   const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
   const { store, project, runner, chatId } = switched(provider);
