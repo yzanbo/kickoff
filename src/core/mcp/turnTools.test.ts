@@ -1,23 +1,11 @@
 // 実行ごとに AI の操作ツールの口を渡し、終わったら鍵を捨てる（turn.ts と mcp/host.ts）
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { setupCore, until } from "../testing/testCore.js";
 import { ScriptedProvider } from "../testing/fakeProvider.js";
-import { McpToolHost, type ToolEndpoint } from "./host.js";
+import { connectToolHost } from "../testing/mcpClient.js";
+import { McpToolHost } from "./host.js";
 import type { ProviderTurnParams } from "../providers/types.js";
-
-/** 口にコアの MCP サーバーの中身へ直接つなぐクライアント（HTTP のサーバーを立てない） */
-async function connect(host: McpToolHost, endpoint: ToolEndpoint) {
-  const transport = new StreamableHTTPClientTransport(new URL(endpoint.url), {
-    requestInit: { headers: endpoint.headers },
-    fetch: (url, init) => host.handle(endpoint.name, new Request(String(url), init as RequestInit)),
-  });
-  const client = new Client({ name: "test", version: "0" });
-  await client.connect(transport);
-  return client;
-}
 
 test("実行に、チャットのツールの口を渡し、そこから家系のチャットを読める。終わったら鍵を捨てる", async () => {
   const host = new McpToolHost(() => "http://127.0.0.1:1");
@@ -29,7 +17,7 @@ test("実行に、チャットのツールの口を渡し、そこから家系�
     openDuringRun = host.openSessions;
     const chat = params.tools?.find((t) => t.name === "kickoff_chat");
     assert.ok(chat, "チャットのツールの口がある");
-    const client = await connect(host, chat);
+    const client = await connectToolHost(host, chat);
     const result = await client.callTool({ name: "list_family_chats", arguments: {} });
     listed = (result.content as { text: string }[])[0].text;
     await client.close();
@@ -81,7 +69,7 @@ for (const providerId of ["claude", "codex"] as const) {
       const endpoint = params.tools!.find((t) => t.name === "kickoff_chat")!;
       assert.ok(endpoint.autoAllow.includes("start_sandbox_diagnostics"));
       assert.ok(endpoint.autoAllow.includes("read_sandbox_denials"));
-      const client = await connect(host, endpoint);
+      const client = await connectToolHost(host, endpoint);
       try {
         const tools = await client.listTools();
         const start = tools.tools.find((t) => t.name === "start_sandbox_diagnostics")!;
