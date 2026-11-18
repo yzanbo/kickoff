@@ -21,9 +21,9 @@
       "brokenRefs": 2
     },
     "docs/requirements.md": {
-      "bytes": 165673,
+      "bytes": 165570,
       "longLines": 6,
-      "forbidden": 164,
+      "forbidden": 163,
       "brokenRefs": 2
     },
     "mobile/CLAUDE.md": {
