@@ -111,6 +111,7 @@ export class Store {
     state: "ready" | "blocked";
     error: string | null;
     attachments: Attachment[];
+    queuedIds?: string[];
     expectedLastEventId: number | null;
     afterEventId: number | null;
     currentLastEventId: number | null;
@@ -127,7 +128,7 @@ export class Store {
       const targetSession = this.chatProviderSessions.get(current.id, input.target);
       const inserted = this.db.prepare("INSERT INTO chat_events (chat_id, type, data) VALUES (?, 'provider_switched', ?)").run(
         current.id,
-        JSON.stringify({ from: current.provider, to: input.target, ...(input.attachments.length ? { handoff_attachments: input.attachments } : {}) }),
+        JSON.stringify({ from: current.provider, to: input.target, ...(input.attachments.length ? { handoff_attachments: input.attachments } : {}), ...(input.queuedIds?.length ? { queued_ids: input.queuedIds } : {}) }),
       );
       eventId = Number(inserted.lastInsertRowid);
       this.chatProviderHandoffs.save({ chatId: current.id, eventId, provider: input.target, context: input.context, state: input.state, error: input.error, lastEventId: input.afterEventId, queueWasPaused: input.queueWasPaused });

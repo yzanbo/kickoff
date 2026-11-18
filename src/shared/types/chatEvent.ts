@@ -79,7 +79,7 @@ export type ChatEventData =
    */
   | { type: "context_cleared" }
   /** 同じチャットで担当 AI を替えた区切り。これより前には巻き戻し・分岐・ファイル復元ができない（0029）。 */
-  | { type: "provider_switched"; from: ProviderId; to: ProviderId; handoff_attachments?: Attachment[] }
+  | { type: "provider_switched"; from: ProviderId; to: ProviderId; handoff_attachments?: Attachment[]; queued_ids?: string[] }
   /** サブエージェントの開始・終了（途中経過は保存せず、chat_subagent で届く） */
   | ({ type: "subagent" } & SubagentInfo)
   /** 子チャットの答えを親チャットに渡した（子チャットの記録。turn_event_id: どの作業の終わりの答えか。via: 渡し方。parent_chat_id: 渡した先） */

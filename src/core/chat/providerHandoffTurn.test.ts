@@ -51,6 +51,21 @@ test("引き継ぎが完了する前の圧縮・コンテキスト消去は待�
   assert.equal(provider.calls.length, 0);
 });
 
+test("切り替え前の送信待ちは元の AI の設定を外し、切り替え後に足した指示の設定は残す", async () => {
+  const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "codex-1", result: "完了" }));
+  const { store, runner, project } = setupCore(provider);
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  await runner.queueMessage(chat.id, "旧 AI で予約", { permission_mode: "auto" }, [], { hold: true });
+  const old = runner.queueState(chat.id).messages[0];
+  store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "記録", state: "ready", error: null, attachments: [], queuedIds: [old.id], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: true });
+  await runner.queueMessage(chat.id, "新 AI で予約", { permission_mode: "acceptEdits" }, [], { hold: true });
+  await runner.setQueuePaused(chat.id, true);
+  await runner.sendQueuedNow(chat.id, old.id);
+  await until(() => !runner.isBusy(chat.id) && provider.calls.length === 1);
+  assert.equal(provider.calls[0].permissionMode, "default");
+  assert.equal(runner.queueState(chat.id).messages[0].options.permission_mode, "acceptEdits");
+});
+
 test("引き継ぎ送信中に通信が切れたら、受信不明にして自動再送・次の送信待ちを止める", async () => {
   const provider = new ScriptedProvider(async () => ({ status: "failed", sessionId: "codex-1", error: "切断", network: true }));
   const { store, runner, chatId } = switched(provider);

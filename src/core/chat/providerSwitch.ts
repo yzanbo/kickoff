@@ -21,7 +21,7 @@ export interface ProviderSwitchDeps {
  */
 export async function prepareAndCommitProviderSwitch(
   deps: ProviderSwitchDeps,
-  input: { chatId: number; expectedProvider: ProviderId; target: ProviderId; queueWasPaused: boolean },
+  input: { chatId: number; expectedProvider: ProviderId; target: ProviderId; queueWasPaused: boolean; queuedIds?: string[] },
 ): Promise<{ chat: Chat; warning: string | null }> {
   const { store, uploads } = deps;
   deps.requireIdle(input.chatId);
@@ -57,6 +57,7 @@ export async function prepareAndCommitProviderSwitch(
       state: preparationError ? "blocked" : "ready",
       error: preparationError,
       attachments: prepared?.created ?? [],
+      queuedIds: input.queuedIds,
       expectedLastEventId,
       afterEventId: previousTarget?.last_event_id ?? null,
       currentLastEventId,
