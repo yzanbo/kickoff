@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { test } from "vitest";
+import { test, vi } from "vitest";
 import { PROVIDER_IDS, TRASH_KEEP_MS } from "@shared/types";
 import { AUTH, setup, until } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
@@ -387,12 +387,12 @@ test("チャットのやり取りの記録の API: 全部のやり取りを Mark
 });
 
 test("既定の推論の深さの API: 作業フォルダの Claude Code の設定から求める", async () => {
+  // 環境変数で決めている環境ではそちらが先になるので、どの環境でも設定のファイルから求めるよう外す
+  vi.stubEnv("CLAUDE_CODE_EFFORT_LEVEL", undefined);
   const { call, project } = setup();
   fs.mkdirSync(path.join(project.repo_path, ".claude"), { recursive: true });
   fs.writeFileSync(path.join(project.repo_path, ".claude", "settings.local.json"), JSON.stringify({ modelSettings: { "claude-opus-5": { effortLevel: "high" } } }));
-  const body = (await call("GET", `/api/projects/${project.id}/effort-default?model=claude-opus-5`)).body;
-  // 環境変数で決めている環境では、そちらが先になる
-  if (!process.env.CLAUDE_CODE_EFFORT_LEVEL) assert.deepEqual(body, { effort: "high", source: "local" });
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/effort-default?model=claude-opus-5`)).body, { effort: "high", source: "local" });
   assert.equal((await call("GET", "/api/projects/999/effort-default")).status, 404);
 });
 
