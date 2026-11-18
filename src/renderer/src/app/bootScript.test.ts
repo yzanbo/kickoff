@@ -105,10 +105,10 @@ test("下の帯の出し方: show・hover・hide をそのまま、未保存と�
   assert.equal(runBoot({ stored: { "kickoff:footer-mode": "big" } }).footer, "show");
 });
 
-test("骨組みの大きさは本物と同じ: 下の帯は footer.css の 28px で横幅いっぱい、その分サイドバーが短い。幅 720px 以下のサイドバーは mobile.css の上限 40dvh", () => {
-  assert.match(footerCss, /\.app-footer \{[^}]*grid-column: 1 \/ -1;[^}]*height: 28px/);
-  assert.match(indexHtml, /\.boot-footer \{[^}]*left: 0;[^}]*height: 28px/);
-  assert.match(indexHtml, /\.boot-sidebar \{ height: calc\(100% - 28px\); \}/);
+test("骨組みの大きさは本物と同じ: 下の帯は footer.css の 24px で横幅いっぱい、その分サイドバーが短い。幅 720px 以下のサイドバーは mobile.css の上限 40dvh", () => {
+  assert.match(footerCss, /\.app-footer \{[^}]*grid-column: 1 \/ -1;[^}]*height: 24px/);
+  assert.match(indexHtml, /\.boot-footer \{[^}]*left: 0;[^}]*height: 24px/);
+  assert.match(indexHtml, /\.boot-sidebar \{ height: calc\(100% - 24px\); \}/);
   const media = indexHtml.slice(indexHtml.indexOf("@media (max-width: 720px)"));
   assert.match(media, /\.boot-sidebar \{[^}]*height: 40dvh/);
   assert.match(mobileCss, /\.sidebar \{[^}]*max-height: 40dvh/);
