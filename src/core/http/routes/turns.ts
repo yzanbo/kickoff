@@ -13,6 +13,7 @@ import { rewindFiles, rewindChat } from "../../chat/rewind.js";
 import { workdirOf } from "../../chat/workdir.js";
 import type { TellResult } from "@shared/types";
 import { marksOf } from "@shared/chat/handoff";
+import { Conflict } from "../errors.js";
 
 /**
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
@@ -22,6 +23,26 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
   const { withChat } = lookups(store);
   /** 分岐・巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
   const deps = { store, runner, providers };
+
+  // 保留中の引き継ぎを表示する。送る前の資料は準備したもので、受信済みを意味しない。
+  app.get("/api/chats/:id/provider-handoff", withChat, (c) => {
+    const pending = store.chatProviderHandoffs.get(c.var.chat.id);
+    return c.json(pending ? { event_id: pending.eventId, provider: pending.provider, state: pending.state, error: pending.error, context: pending.context } : null);
+  });
+
+  // 画面で見た区切りが変わった場合は、別の引き継ぎを誤って再試行しない。
+  app.post("/api/chats/:id/provider-handoff/retry", withChat, async (c) => {
+    const { event_id } = z.object({ event_id: z.number().int().positive() }).parse(await jsonBody(c));
+    const pending = store.chatProviderHandoffs.get(c.var.chat.id);
+    if (!pending || pending.eventId !== event_id || pending.state !== "blocked") throw new Conflict("AI の引き継ぎ状態が変わりました。確認し直してください");
+    return c.json(await runner.retryProviderHandoff(c.var.chat.id));
+  });
+
+  // 受信不明の場合、重複の可能性を利用者が明示的に確認した操作だけを受け付ける。
+  app.post("/api/chats/:id/provider-handoff/confirm-resend", withChat, async (c) => {
+    const { event_id } = z.object({ event_id: z.number().int().positive(), confirm_duplicate_risk: z.literal(true) }).parse(await jsonBody(c));
+    return c.json(await runner.confirmResendProviderHandoff(c.var.chat.id, event_id));
+  });
 
   // 続きを送る（pause_after なら、この作業が終わったら送信待ちを一時停止する = 質問として送る）
   app.post("/api/chats/:id/messages", withChat, async (c) => {
