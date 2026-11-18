@@ -10,10 +10,11 @@ import { useNarrowSplit } from "@/hooks/useNarrowSplit";
 import { useSetting } from "@/hooks/useSetting";
 import { useWhenVisible } from "@/hooks/useWhenVisible";
 import { cx } from "@/lib/cx";
-import { GITHUB_LIST_WIDTH, githubFilters, githubSelected } from "@/lib/storageKeys";
+import { GITHUB_LIST_WIDTH, GITHUB_LIST_HIDDEN, githubFilters, githubSelected } from "@/lib/storageKeys";
 import { useChats } from "@/stores/chats";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
+import { ListHideButton, ListRail } from "@/ui/ListRail";
 import { IconButton } from "@/ui/IconButton";
 import { GitHubDetail } from "./GitHubDetail";
 import { GitHubFilterBar } from "./GitHubFilterBar";
@@ -85,7 +86,9 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
     }
     return map;
   }, [chats, repo]);
-  const showList = !narrow || !selected;
+  // 左の一覧を隠しているか（広いときだけ効く。狭いときは一覧と中身を切り替えて 1 つずつ出すので、隠さない）
+  const [listHidden, setListHidden] = useSetting(GITHUB_LIST_HIDDEN);
+  const showList = narrow ? !selected : !listHidden;
   const showDetail = !narrow || selected;
 
   return (
@@ -98,6 +101,13 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
               {repo}
             </a>
             <IconButton icon={ExternalLink} size={13} label="この一覧を GitHub で開く" onClick={() => window.open(githubListUrl(host, repo, filter), "_blank", "noopener")} />
+            {/* 一覧を隠す（右端。狭いときは一覧と中身を切り替えるので出さない） */}
+            {!narrow && (
+              <>
+                <span className="spacer" />
+                <ListHideButton size={13} label="issue・PR の一覧を隠す" onHide={() => setListHidden(true)} />
+              </>
+            )}
           </div>
           <GitHubFilterBar
             filter={filter}
@@ -136,6 +146,7 @@ function GitHubBrowser({ projectId, host, repo }: { projectId: number; host: str
           {!narrow && <div className="pane-resizer github-list-resizer" {...width.handle} />}
         </aside>
       )}
+      {!narrow && listHidden && <ListRail label="issue・PR の一覧を表示" onShow={() => setListHidden(false)} />}
       {showDetail && (
         <div className="github-main">
           {selected ? (

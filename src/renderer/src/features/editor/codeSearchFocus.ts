@@ -17,9 +17,14 @@ export function requestCodeSearchFocus() {
 
 /** 頼みを受け取る（受け取ったら消す） */
 export function takeCodeSearchFocus(): boolean {
-  const had = pendingAt > 0 && Date.now() - pendingAt <= TTL_MS;
+  const had = peekCodeSearchFocus();
   pendingAt = 0;
   return had;
+}
+
+/** 受け取らずに、まだ頼みがあるかだけを見る（一覧を隠している EditorTab が、検索の欄を出すかを決める） */
+export function peekCodeSearchFocus(): boolean {
+  return pendingAt > 0 && Date.now() - pendingAt <= TTL_MS;
 }
 
 /** 頼みを聞く（開いている SearchView。戻り値で聞くのをやめる） */
