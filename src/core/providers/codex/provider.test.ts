@@ -99,6 +99,19 @@ test("実行: スレッドを作って指示を送り、返答・コマンドを
   assert.ok(server.killed > 0);
 });
 
+test("実行中の使用枠の知らせ（スレッドの ID がない）から、クレジットの様子を渡す", async () => {
+  const server = fakeCodexServer();
+  onTurn(server, (s) => {
+    s.notify("turn/started", { threadId: "thr-1", turn: { id: "turn-1", status: "inProgress", error: null } });
+    s.notify("account/rateLimits/updated", { rateLimits: { primary: { usedPercent: 100, windowDurationMins: 300, resetsAt: null }, secondary: null, planType: null, credits: { hasCredits: true, unlimited: false, balance: "142" } } });
+    complete(s);
+  });
+  const notes: unknown[] = [];
+  const rec = recorder();
+  await new CodexProvider({ spawn: server.spawn }).run(params(), { ...rec.cb, credits: (note) => notes.push(note) }, new AbortController().signal);
+  assert.deepEqual(notes, [{ has_credits: true, unlimited: false, balance: 142, limit_reached: true }]);
+});
+
 test("守りのフックが信頼済みにならなければ、作業を始めずに失敗で返す（守りなしで動かさない）", async () => {
   const server = fakeCodexServer();
   server.handle("hooks/list", () => ({ data: [{ cwd: "/w", hooks: [], warnings: [], errors: [] }] }));

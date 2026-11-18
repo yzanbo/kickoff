@@ -2,7 +2,7 @@
 import type { Approval } from "./approval";
 import type { AppSettings, ProviderId } from "./settings";
 import type { Project } from "./project";
-import type { PlanUsage } from "./provider";
+import type { CodexCredits, PlanUsage } from "./provider";
 import type { Chat, ChatGroup, ChatImageHost } from "./chat";
 import type { ChatEvent, CommandOutput, HandoffFrom, SubagentInfo } from "./chatEvent";
 import type { ChatLive } from "./chatLive";
@@ -47,6 +47,8 @@ export type BusEvent =
   | { type: "approval_resolved"; id: string; chat_id: number }
   | { type: "settings"; settings: AppSettings }
   | { type: "usage"; usage: PlanUsage }
+  /** Codex のクレジットの様子が変わった（実行中の知らせ・使用状況の取得で、残りが減った・枠に空きが戻ったなど） */
+  | { type: "codex_credits"; credits: CodexCredits }
   /** 音声入力のモデルのダウンロードの進み具合（download が null なら終わった・やめた。downloaded はファイルがあるか） */
   | { type: "voice_model"; id: string; download: VoiceDownload | null; downloaded: boolean }
   /** プロジェクトのメモを作った・書いた・動かした・ゴミ箱へ移した（Kickoff の中の操作だけ。一覧と開いているメモを取り直す） */

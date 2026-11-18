@@ -234,6 +234,15 @@ export interface TurnControl {
   stopTask(taskId: string): Promise<void>;
 }
 
+/** AI が知らせたクレジットの様子（分からない項目は null = 前の値のまま） */
+export interface CreditsNote {
+  has_credits: boolean | null;
+  unlimited: boolean | null;
+  balance: number | null;
+  /** 上限に達した枠があるか（ないなら、クレジットから引かれてはいない） */
+  limit_reached: boolean | null;
+}
+
 export interface ProviderCallbacks {
   emit(event: AgentEvent): void;
   /** 返答の文字を生成されたそばから渡す（画面のストリーミング表示用。保存しない） */
@@ -249,6 +258,8 @@ export interface ProviderCallbacks {
   background?(state: BackgroundState): void;
   /** いま超過分（プランの上限を超えたあとの追加の使用枠。使った分の支払い）で動いているかを AI が知らせた（Claude だけ。保存はコアが使用枠に） */
   overage?(inUse: boolean): void;
+  /** クレジットの様子を AI が知らせた（Codex だけ。残りが減ったかはコアが前の値と比べる） */
+  credits?(note: CreditsNote): void;
   /** 会話を圧縮（要約）し始めた・終わった（手で圧縮したときも、上限に近づいて自動で圧縮されたときも。保存しない） */
   compacting?(active: boolean): void;
   /** 図のツール（show_visual・update_visual）の中身を書いている途中か（書き始めた・書き終えた。保存しない） */

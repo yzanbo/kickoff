@@ -1,6 +1,7 @@
 import { errorMessage } from "@shared/errors";
 import type { PlanUsage, ServiceUsage } from "@shared/types";
 import { USAGE_REFRESH_MS } from "@shared/usageRefresh";
+import { limitReachedOf, type CodexCreditsWatch } from "../codexCredits.js";
 import type { UsageMonitor } from "../planUsage.js";
 import { codexUsage } from "./codex.js";
 import { usageResult, type UsageFetcher } from "./common.js";
@@ -39,6 +40,8 @@ export class ServiceUsageMonitor {
   constructor(
     private readonly claude: Pick<UsageMonitor, "get" | "refresh">,
     private readonly fetchers: UsageFetcher[] = SERVICE_FETCHERS,
+    /** Codex のクレジットの見張り（取った残りを渡し、減ったかを決めてもらう。なければ取ったまま） */
+    private readonly codexCredits?: CodexCreditsWatch,
   ) {}
 
   async get(): Promise<ServiceUsage[]> {
@@ -58,8 +61,16 @@ export class ServiceUsageMonitor {
     const first = (force ? this.claude.refresh(true) : this.claude.get()).then(claudeServiceUsage, (e: unknown) => claude.error(errorMessage(e)));
     // 1 つが失敗・遅延しても、ほかのサービスは出す
     const others = this.fetchers.map((f) => f.fetch().catch((e: unknown) => usageResult(f).error(`取得できませんでした（${errorMessage(e)}）`)));
-    const list = await Promise.all([first, ...others]);
+    const list = (await Promise.all([first, ...others])).map((s) => this.withCredits(s));
     this.cache = { at: startedAt, list };
     return list;
+  }
+
+  /** Codex の取れた結果のクレジットを見張りに通し、減ったか（spending）を重ねる */
+  private withCredits(service: ServiceUsage): ServiceUsage {
+    const credits = service.id === "codex" && service.status === "ok" ? service.credits : undefined;
+    if (!this.codexCredits || !credits) return service;
+    this.codexCredits.note({ ...credits, limit_reached: limitReachedOf(service.windows.map((w) => w.utilization)) });
+    return { ...service, credits: this.codexCredits.current() };
   }
 }

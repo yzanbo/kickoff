@@ -1,6 +1,7 @@
 import { EFFORT_LEVELS, PROVIDER_LABELS, type EffortLevel, type ModelOption, type PlanUsage, type UsageWindow } from "@shared/types";
-import type { AskModel } from "../types.js";
-import type { CodexModel, RateLimitWindow, RateLimitsResponse } from "./protocol.js";
+import { creditBalanceOf, limitReachedOf } from "../../usage/codexCredits.js";
+import type { AskModel, CreditsNote } from "../types.js";
+import type { CodexModel, RateLimitSnapshot, RateLimitWindow, RateLimitsResponse } from "./protocol.js";
 
 /** Codex の答え（モデルの一覧・使用枠）を Kickoff の形にする（純粋関数） */
 
@@ -53,5 +54,23 @@ export function toPlanUsage(res: RateLimitsResponse, now = new Date()): PlanUsag
     seven_day: windowOf("seven_day", "週", long),
     model_weekly: [],
     fetched_at: now.toISOString(),
+  };
+}
+
+/**
+ * 実行中の使用枠の知らせ（account/rateLimits/updated）から、クレジットの様子。知らせは一部だけのことがあり、
+ * 書いていない項目は null（前の値のまま）。クレジットも枠も書いていなければ null（何も知らせない）
+ */
+export function creditsNoteOf(snapshot: RateLimitSnapshot | null | undefined): CreditsNote | null {
+  if (!snapshot) return null;
+  const credits = snapshot.credits ?? null;
+  const windows = [snapshot.primary, snapshot.secondary].filter((w): w is RateLimitWindow => w !== null && w !== undefined);
+  const limit = limitReachedOf(windows.map((w) => w.usedPercent));
+  if (!credits && limit === null) return null;
+  return {
+    has_credits: credits?.hasCredits ?? null,
+    unlimited: credits?.unlimited ?? null,
+    balance: creditBalanceOf(credits?.balance),
+    limit_reached: limit,
   };
 }

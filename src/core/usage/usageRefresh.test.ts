@@ -3,6 +3,7 @@ import { test, vi } from "vitest";
 import type { PlanUsage } from "@shared/types";
 import { Bus } from "../bus.js";
 import type { AgentProvider } from "../providers/index.js";
+import { CodexCreditsWatch } from "./codexCredits.js";
 import { UsageMonitor } from "./planUsage.js";
 import { ServiceUsageMonitor } from "./services/index.js";
 import { usageResult } from "./services/common.js";
@@ -102,4 +103,22 @@ test("超過分の知らせ: 変わったときだけ配り、取り直しても
   assert.equal((await monitor.get()).overage?.in_use, false);
   // 配ったもの: 初めの取得（印なし）・動き始め・取り直し 2 回（同じ値の 2 回目の知らせは配っていない）
   assert.deepEqual(published, [undefined, true, true, false]);
+});
+
+test("Codex のクレジット: 取り直して残りが減っていたら spending を重ね、枠に空きが戻ったら外す", async () => {
+  const claude = { get: async () => usage(), refresh: async () => usage() };
+  let balance = 150;
+  let percent = 100;
+  const codex = { id: "codex" as const, label: "Codex", fetch: async () =>
+    usageResult({ id: "codex", label: "Codex" }).ok({
+      windows: [{ key: "primary", label: "5時間", utilization: percent, resets_at: null }],
+      credits: { has_credits: true, unlimited: false, balance, spending: null },
+    }) };
+  const monitor = new ServiceUsageMonitor(claude, [codex], new CodexCreditsWatch());
+  const creditsOf = async () => (await monitor.refresh(true)).find((s) => s.id === "codex")?.credits;
+  assert.equal((await creditsOf())?.spending, null);
+  balance = 142;
+  assert.deepEqual([(await creditsOf())?.spending?.from, (await creditsOf())?.spending?.to], [150, 142]);
+  percent = 20;
+  assert.equal((await creditsOf())?.spending, null);
 });

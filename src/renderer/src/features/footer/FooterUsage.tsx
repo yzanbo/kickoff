@@ -10,7 +10,7 @@ import { cx } from "@/lib/cx";
 import { useProviders } from "@/stores/providers";
 import { usePopover } from "@/ui/Popover";
 import { groupChipText, UsageChip } from "./UsageChip";
-import { OverageBadge, useOverageToast } from "./OverageBadge";
+import { CodexCreditsBadge, OverageBadge, useOverageToast } from "./OverageBadge";
 import { UsageDetailsPopover } from "./UsageDetailsPopover";
 import { usageGroups, type UsageGroup } from "./usageGroups";
 
@@ -23,7 +23,7 @@ export function FooterUsage({ planUsage }: { planUsage: ReturnType<typeof usePla
   const statuses = useProviders({ active: false }).data;
   const services = useServiceUsage();
   const groups = usageGroups({ foreground, statuses, services: services.data });
-  useOverageToast(planUsage.usage);
+  useOverageToast(planUsage.usage, services.data?.find((s) => s.id === "codex")?.credits);
   return (
     <span className="footer-usages">
       {groups.map((g, i) => (
@@ -113,7 +113,14 @@ function UsageGroupInline({ group, usage, status, loading }: {
           </>
         );
       case "service":
-        return group.service.windows.map((w) => <UsageMeter key={w.key} window={w} inline />);
+        return (
+          <>
+            {group.provider === "codex" && <CodexCreditsBadge credits={group.service.credits} />}
+            {group.service.windows.map((w) => (
+              <UsageMeter key={w.key} window={w} inline />
+            ))}
+          </>
+        );
       case "pay":
         return null;
       case "missing":

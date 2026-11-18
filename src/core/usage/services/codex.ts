@@ -1,6 +1,7 @@
 import os from "node:os";
 import path from "node:path";
-import type { ServiceUsage } from "@shared/types";
+import type { CodexCredits, ServiceUsage } from "@shared/types";
+import { creditBalanceOf } from "../codexCredits.js";
 import { defineFetcher, emailOf, fetchJsonOr, isExpired, isoFromSeconds, jwtClaims, jwtExpiry, readJsonFile, usageResult, usageWindow } from "./common.js";
 
 const result = usageResult({ id: "codex", label: "Codex" });
@@ -23,7 +24,7 @@ interface RawWindow {
 export interface CodexUsageResponse {
   plan_type?: string;
   rate_limit?: { primary_window?: RawWindow | null; secondary_window?: RawWindow | null } | null;
-  credits?: { has_credits?: boolean; unlimited?: boolean; balance?: number | null } | null;
+  credits?: { has_credits?: boolean; unlimited?: boolean; balance?: number | string | null } | null;
 }
 
 /** 枠の長さ（秒）から名前を付ける（5 時間・週・30 日。それ以外は時間か日） */
@@ -42,9 +43,12 @@ export function parseCodexUsage(body: CodexUsageResponse, account: string | null
     ["secondary", body.rate_limit?.secondary_window, "週"],
   ] as const;
   const notes: string[] = [];
-  const credits = body.credits;
-  if (credits?.unlimited) notes.push("クレジット: 無制限");
-  else if (credits?.has_credits && typeof credits.balance === "number") notes.push(`クレジット残り ${credits.balance}`);
+  const raw = body.credits;
+  const balance = creditBalanceOf(raw?.balance);
+  if (raw?.unlimited) notes.push("クレジット: 無制限");
+  else if (raw?.has_credits && balance !== null) notes.push(`クレジット残り ${balance}`);
+  // 減ったかは見張り（CodexCreditsWatch）が前の値と比べて決める
+  const credits: CodexCredits | null = raw ? { has_credits: raw.has_credits ?? false, unlimited: raw.unlimited ?? false, balance, spending: null } : null;
   return result.ok({
     plan: body.plan_type ?? planHint,
     account,
@@ -52,6 +56,7 @@ export function parseCodexUsage(body: CodexUsageResponse, account: string | null
       raw ? [usageWindow(key, windowLabel(raw.limit_window_seconds, fallback), raw.used_percent ?? null, isoFromSeconds(raw.reset_at))] : [],
     ),
     notes,
+    credits,
   });
 }
 

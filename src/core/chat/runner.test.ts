@@ -6,6 +6,7 @@ import { ScriptedProvider, type Script } from "../testing/fakeProvider.js";
 import { tempDir } from "../testing/tempDir.js";
 import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { setupCore, until } from "../testing/testCore.js";
+import { CodexCreditsWatch } from "../usage/codexCredits.js";
 import { judgeFileWrite } from "./guard/writeScope.js";
 import { UploadStore } from "./uploads.js";
 import type { CompactingState } from "@shared/types";
@@ -346,6 +347,27 @@ test("超過分（追加の使用枠）で動き始めたら、その作業の�
   await runner.send(chat.id, "また超えた");
   await until(() => store.chats.get(chat.id)?.num_turns === 4 && !runner.isBusy(chat.id));
   assert.equal(notices(chat.id).length, 2);
+});
+
+test("Codex のクレジットの残りが減り始めたら、その作業のチャットにお知らせを 1 回だけ残す", async () => {
+  const balances = [150, 142, 130];
+  const { store, runner, project } = setupCore(new ScriptedProvider(async (_params, cb) => {
+    cb.emit({ type: "init", session_id: "s1" });
+    cb.credits?.({ has_credits: true, unlimited: false, balance: balances.shift() ?? null, limit_reached: true });
+    return { status: "completed", sessionId: "s1", result: "ok", turns: 1 };
+  }), { codexCredits: new CodexCreditsWatch() });
+  const notices = (chatId: number) => store.events.list(chatId).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
+  const chat = await runner.start({ projectId: project.id, prompt: "初め" });
+  await until(() => store.chats.get(chat.id)?.status === "completed" && !runner.isBusy(chat.id));
+  // 初めて見た残りでは比べる相手がないので残さない
+  assert.deepEqual(notices(chat.id), []);
+  await runner.send(chat.id, "減った");
+  await until(() => store.chats.get(chat.id)?.num_turns === 2 && !runner.isBusy(chat.id));
+  assert.deepEqual(notices(chat.id), ["Codex のプランの使用枠の上限を超えたため、ここからクレジットから引かれて動いています"]);
+  // 減り続けても、もう知らせてあるので残さない
+  await runner.send(chat.id, "まだ減る");
+  await until(() => store.chats.get(chat.id)?.num_turns === 3 && !runner.isBusy(chat.id));
+  assert.equal(notices(chat.id).length, 1);
 });
 
 test("手で圧縮すると /compact を送り、要約したことだけを残す（発言・未読・会話の回数には数えない）", async () => {

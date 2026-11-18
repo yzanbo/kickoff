@@ -1,7 +1,8 @@
-import type { ExtraUsage, PlanUsage } from "./types";
+import type { CodexCredits, ExtraUsage, PlanUsage } from "./types";
 
 /**
- * Claude のプランの超過分（追加の使用枠）の様子。意図せず課金していないかを、下の帯・使用状況の詳細・AI の get_usage で同じ言葉で伝える。
+ * プランの上限を超えたあとの支払いの様子（Claude は追加の使用枠、Codex はクレジット）。
+ * 意図せず課金していないかを、下の帯・使用状況の詳細・AI の get_usage で同じ言葉で伝える。
  * - in_use: いま超過分で動いている（使った分を払っている。実行中の rate_limit_event が知らせた）
  * - on: 追加の使用枠がオン（上限を超えると、止まらずに課金されて続く）
  * - off: 追加の使用枠がオフ（上限で止まり、課金されない）
@@ -52,3 +53,35 @@ export function extraUsageSpendText(extra: ExtraUsage): string | null {
   const pct = extra.utilization === null ? "" : `（${Math.round(extra.utilization)}%）`;
   return `今月の超過分 ${formatMinorAmount(extra.used_credits, extra.currency)}${limit}${pct}`;
 }
+
+/** Codex のクレジットの様子の文（様子の分け方は Claude と同じ。in_use = 残りが減った、on = クレジットがある、off = ない） */
+export const CODEX_CREDIT_STATE_LABELS: Record<OverageState, string> = {
+  in_use: "クレジット使用中",
+  on: "クレジット: あり",
+  off: "クレジット: なし",
+  unknown: "クレジット: 不明",
+};
+
+export const CODEX_CREDIT_STATE_HINTS: Record<OverageState, string> = {
+  in_use: "プランの使用枠の上限を超え、クレジットから引かれて動いています",
+  on: "プランの使用枠の上限を超えると、止まらずにクレジットから引かれて続きます",
+  off: "プランの使用枠の上限に達すると止まり、クレジットは引かれません",
+  unknown: "Codex からクレジットの情報が返っていません",
+};
+
+/** Codex のクレジットの様子（残りが減ったのを見たら in_use。無制限か残りがあれば on、なければ off） */
+export function codexCreditStateOf(credits: CodexCredits | null | undefined): OverageState {
+  if (!credits) return "unknown";
+  if (credits.spending) return "in_use";
+  if (credits.unlimited) return "on";
+  return credits.has_credits && (credits.balance === null || credits.balance > 0) ? "on" : "off";
+}
+
+/** クレジットが減った分の 1 行（「クレジットの残り 150 → 142（8 減りました）」）。減っていなければ null */
+export function codexCreditSpendText(credits: CodexCredits): string | null {
+  const s = credits.spending;
+  return s ? `クレジットの残り ${s.from} → ${s.to}（${roundCredits(s.from - s.to)} 減りました）` : null;
+}
+
+/** クレジットの差（小数の引き算の誤差を丸める） */
+const roundCredits = (n: number) => Math.round(n * 100) / 100;

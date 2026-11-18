@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import type { ProviderTurnParams } from "../types.js";
 import { appServerLaunch, codexEffort, codexSandboxPolicy, mcpServerOverrides, threadOverrides, turnInput, CODEX_MCP_TOOL_TIMEOUT_S } from "./config.js";
 import { changeAsTool, diffEdits } from "./items.js";
-import { askModelOf, toModelOptions, toPlanUsage } from "./catalog.js";
+import { askModelOf, creditsNoteOf, toModelOptions, toPlanUsage } from "./catalog.js";
 import { turnResult } from "./turn.js";
 import type { CodexModel } from "./protocol.js";
 
@@ -133,6 +133,17 @@ test("使用枠: 短い枠を 5 時間、長い枠を週に", () => {
   assert.equal(usage.five_hour.utilization, 12);
   assert.equal(usage.five_hour.resets_at, new Date(1_800_000_000_000).toISOString());
   assert.equal(usage.seven_day.utilization, 40);
+});
+
+test("実行中の使用枠の知らせのクレジット: 書いていない項目は null。クレジットも枠もなければ何も知らせない", () => {
+  const window = (usedPercent: number) => ({ usedPercent, windowDurationMins: 300, resetsAt: null });
+  assert.deepEqual(creditsNoteOf({ primary: window(100), secondary: window(40), planType: null, credits: { hasCredits: true, unlimited: false, balance: "12.5" } }), {
+    has_credits: true, unlimited: false, balance: 12.5, limit_reached: true,
+  });
+  // 枠だけの知らせ（クレジットは前の値のまま）
+  assert.deepEqual(creditsNoteOf({ primary: window(30), secondary: null, planType: null }), { has_credits: null, unlimited: null, balance: null, limit_reached: false });
+  assert.equal(creditsNoteOf({ primary: null, secondary: null, planType: null, credits: null }), null);
+  assert.equal(creditsNoteOf(undefined), null);
 });
 
 test("結果: 終わったらターンの ID を分岐の起点に、通信の切断と使用枠の上限を見分ける", () => {
