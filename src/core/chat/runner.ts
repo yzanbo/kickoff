@@ -18,7 +18,7 @@ import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, res
 import { postCompactItem, preCompactPromptOf } from "./preCompact.js";
 import { isClearCommand } from "@shared/chat/queueActions";
 import { marksOf } from "@shared/chat/handoff";
-import { prepareAndCommitProviderSwitch } from "./providerSwitch.js";
+import { prepareAndCommitProviderSwitch, retryProviderHandoffPreparation } from "./providerSwitch.js";
 import type { ProviderId } from "@shared/types";
 
 /**
@@ -176,6 +176,45 @@ export class Runner extends RunnerQueue {
       runtime.preparing = false;
       // 準備中に増えた指示も含め、動いていた列は通常の条件で再開する。失敗時も取り残さない。
       if (switched || runtime.queue.list().length > 0) void this.sendNextQueued(chatId);
+    }
+  }
+
+  /** 送信前の引き継ぎ失敗をやり直す。すでに記録した指示は同じ発言として再開する。 */
+  async retryProviderHandoff(chatId: number): Promise<{ warning: string | null }> {
+    this.requireChat(chatId);
+    this.requireIdle(chatId, "AI の引き継ぎの再試行");
+    const { store, uploads } = this.deps;
+    const pending = store.chatProviderHandoffs.get(chatId);
+    if (!pending || pending.state !== "blocked") throw new Conflict("再試行できる AI の引き継ぎがありません");
+    if (!uploads) throw new Conflict("添付の保存先がないため、引き継ぎを再試行できません");
+    const runtime = this.runtimes.get(chatId);
+    runtime.preparing = true;
+    runtime.switchingProvider = true;
+    let started = false;
+    try {
+      const result = await retryProviderHandoffPreparation({ store, uploads, requireIdle: () => {
+        if (!runtime.preparing || !runtime.switchingProvider || runtime.turn) throw new Conflict("チャットの状態が変わったため、再試行できません");
+      } }, chatId);
+      const attempt = store.events.list(chatId).find((event) => event.id > pending.eventId && event.type === "user");
+      if (attempt?.type === "user") {
+        let prompt: string;
+        try {
+          prompt = (await followupPrompt(this.deps, chatId, attempt.data.text, attempt.data.attachments ?? [])).prompt;
+        } catch (error) {
+          store.chatProviderHandoffs.blockReady(chatId, pending.eventId, errorMessage(error));
+          throw error;
+        }
+        store.chats.update(chatId, { status: "running", error: null, unread: false });
+        runtime.preparing = false;
+        runtime.switchingProvider = false;
+        started = true;
+        void this.execute({ chatId, prompt, promptId: attempt.data.message_uuid });
+      }
+      return result;
+    } finally {
+      runtime.preparing = false;
+      runtime.switchingProvider = false;
+      if (!started && this.handoffCanSend(chatId)) void this.sendNextQueued(chatId);
     }
   }
 

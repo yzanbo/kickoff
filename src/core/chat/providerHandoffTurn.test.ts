@@ -3,6 +3,8 @@ import { test } from "vitest";
 import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/chat/chatOptions";
 import { ScriptedProvider } from "../testing/fakeProvider.js";
 import { setupCore, until } from "../testing/testCore.js";
+import { UploadStore } from "./uploads.js";
+import { tempDir } from "../testing/tempDir.js";
 
 function switched(provider: ScriptedProvider, state: "ready" | "blocked" = "ready") {
   const ctx = setupCore(provider);
@@ -88,6 +90,22 @@ test("AI を呼ぶ前に準備が失敗した場合は、引き継ぎを blocked
   assert.equal(provider.calls.length, 0);
   assert.equal(runner.queueState(chatId).messages.length, 1);
   assert.match(store.chatProviderHandoffs.get(chatId)?.error ?? "", /作業場所/);
+});
+
+test("送信前の失敗を再試行すると元の発言を重複させず同じ指示から再開する", async () => {
+  const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s", result: "完了" }));
+  const { store, project, runner } = setupCore(provider, { uploads: new UploadStore(tempDir()) });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "記録", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: true });
+  store.projects.update(project.id, { repo_path: "/private/tmp/kickoff-missing-workdir-for-handoff-test" });
+  await runner.send(chat.id, "最初の指示");
+  await until(() => !runner.isBusy(chat.id) && store.chatProviderHandoffs.get(chat.id)?.state === "blocked");
+  store.projects.update(project.id, { repo_path: project.repo_path });
+  await runner.retryProviderHandoff(chat.id);
+  await until(() => !runner.isBusy(chat.id) && provider.calls.length === 1);
+  assert.match(provider.calls[0].prompt, /最初の指示/);
+  assert.equal(store.events.list(chat.id).filter((event) => event.type === "user").length, 1);
+  assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
 });
 
 test("再起動時に送信中だった引き継ぎは受信不明として保持し、自動再送しない", () => {
