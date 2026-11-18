@@ -29,3 +29,25 @@ test("準備に失敗した引き継ぎは同じ区切りで再試行できる",
   assert.equal((await call("POST", `/api/chats/${chat.id}/provider-handoff/retry`, { event_id: switched.event.id })).status, 200);
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "ready");
 });
+
+test("AI の切り替えは確認した条件が変わったら拒否し、再確認後に確定する", async () => {
+  const { call, store, runner, project, provider } = setup();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const url = `/api/chats/${chat.id}/provider-switch`;
+  const first = await call("GET", `${url}?target=codex`);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.from, "claude");
+  assert.equal(first.body.to, "codex");
+  assert.equal(first.body.queued_ids.length, 0);
+  await runner.queueMessage(chat.id, "待ち", {}, [], { hold: true });
+  await runner.setQueuePaused(chat.id, true);
+  assert.equal((await call("POST", url, { target: "codex", confirmation: first.body.confirmation })).status, 409);
+  assert.equal(store.chats.get(chat.id)?.provider, "claude");
+  const next = await call("GET", `${url}?target=codex`);
+  assert.equal(next.body.queued_ids.length, 1);
+  const result = await call("POST", url, { target: "codex", confirmation: next.body.confirmation });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.chat.provider, "codex");
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "ready");
+  assert.equal(provider.prompts.length, 0);
+});

@@ -14,6 +14,7 @@ import { workdirOf } from "../../chat/workdir.js";
 import type { TellResult } from "@shared/types";
 import { marksOf } from "@shared/chat/handoff";
 import { Conflict } from "../errors.js";
+import { providerSwitchPreview } from "../../chat/providerSwitchPreview.js";
 
 /**
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
@@ -23,6 +24,22 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
   const { withChat } = lookups(store);
   /** 分岐・巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
   const deps = { store, runner, providers };
+
+  app.get("/api/chats/:id/provider-switch", withChat, (c) => {
+    const target = z.enum(["claude", "codex"]).parse(c.req.query("target"));
+    runner.requireIdle(c.var.chat.id, "AI の切り替え");
+    return c.json(providerSwitchPreview(store, runner, c.var.chat.id, target));
+  });
+
+  app.post("/api/chats/:id/provider-switch", withChat, async (c) => {
+    const body = z.object({ target: z.enum(["claude", "codex"]), confirmation: z.string().regex(/^[a-f0-9]{64}$/) }).parse(await jsonBody(c));
+    const { chat } = c.var;
+    const requireConfirmation = () => {
+      if (providerSwitchPreview(store, runner, chat.id, body.target).confirmation !== body.confirmation) throw new Conflict("確認した内容が変わりました。もう一度確かめてください");
+    };
+    requireConfirmation();
+    return c.json(await runner.switchProvider(chat.id, chat.provider, body.target, requireConfirmation));
+  });
 
   // 保留中の引き継ぎを表示する。送る前の資料は準備したもので、受信済みを意味しない。
   app.get("/api/chats/:id/provider-handoff", withChat, (c) => {
