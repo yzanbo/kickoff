@@ -11,7 +11,8 @@
   z-index: 20;
   height: 40px;
   margin: 0;
-  padding: 6px var(--page-x) 0;
+  /* 名前の行（24px）の真ん中を、ふだんと同じく左上の戻る・進むの真ん中（21px）にそろえる */
+  padding: 9px var(--page-x) 0;
   background: var(--bg);
   transition: left var(--panel-motion-duration) var(--panel-motion-ease);
 }
