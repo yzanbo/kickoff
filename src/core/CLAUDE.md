@@ -186,7 +186,7 @@ Kickoff のプロジェクトのフォルダ（本体・ワークツリー）で
 
 ## 使用状況（usage/）
 
-- `planUsage.ts` の `UsageMonitor`: Claude のプランの使用枠を 1 分ごとと実行のあとに取り（`provider.usage()`。メッセージを送らないので枠を使わない。15 秒以内の続けての取得はまとめる）、SSE の `usage` で配る。
+- `planUsage.ts` の `UsageMonitor`: Claude のプランの使用枠を 1 分ごとと実行のあとに取り（`provider.usage()`。メッセージを送らないので枠を使わない。15 秒以内の続けての取得はまとめる）、SSE の `usage` で配る。いま超過分（追加の使用枠）で動いているか（`overage`）は、実行中に Claude Code が知らせた最後の値を `noteOverage` で覚えて重ね（変わったときだけ配る。取り直しても残し、上限に達した枠がなくなったら外す）、超過分で動き始めたときは、その作業のチャットにお知らせを 1 回残す（`chat/turn.ts` の `OVERAGE_NOTICE`。超過分のまま続いた次の作業・ほかのチャットには残さない）。
 - `services/`: 設定の「使用状況」のサービスごと（Claude Code・Codex・GitHub Copilot・Cursor・Gemini）。`ServiceUsageMonitor` が 5 分覚え、Claude は `UsageMonitor` の値を使う。1 サービス 1 ファイルの `UsageFetcher` を `defineFetcher` で作り、結果は `usageResult(base)` の `ok` / `unavailable` / `error`、HTTP の状態コードの振り分けは `fetchJsonOr`、応答の変換は `parseXxx`（`services.test.ts` でテストする）。1 つが失敗・遅れても、ほかは出す。
 - 問い合わせは `fetchJson`（`Accept` は JSON を既定にする）。サービスが決まった名乗りを求めなければ `USER_AGENT`（Kickoff）で名乗り、ほかのアプリのふりをしない。Gemini のログインの更新に使う ID は `geminiClient.ts` の `geminiOAuthClient`（入れた Gemini CLI の `package.json` から根を見つけ、中の .js から探す。非同期で読み、Gemini CLI の実体と更新日時ごとに覚える）。
 - 各サービスのログイン情報は読むだけで、更新・書き換えをしない（更新用のトークンを使うと、そのサービスの CLI のログインが切れる）。期限切れは、そのサービスを起動するよう案内する。

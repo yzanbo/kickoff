@@ -96,6 +96,27 @@ export interface ServiceUsage {
   fetched_at: string;
 }
 
+/** 追加の使用枠の様子（金額は currency の最小単位。USD ならセント） */
+export interface ExtraUsage {
+  /** オンか（オフなら、プランの上限で止まり、課金されない） */
+  enabled: boolean;
+  /** 月の上限に対して使った割合（%）。分からなければ null */
+  utilization: number | null;
+  /** この請求期間に超過分で使った額。分からなければ null */
+  used_credits: number | null;
+  /** 月の上限の額。決めていなければ null */
+  monthly_limit: number | null;
+  /** 通貨（"USD" など）。分からなければ null */
+  currency: string | null;
+}
+
+/** 超過分で動いているかの知らせ（実行中の rate_limit_event から） */
+export interface OverageNote {
+  in_use: boolean;
+  /** 知らされた時刻 */
+  observed_at: string;
+}
+
 export interface PlanUsage {
   /** どの AI のプランか（Codex・Gemini に対応したときも同じ形で返す） */
   provider: ProviderId;
@@ -108,8 +129,10 @@ export interface PlanUsage {
   seven_day: UsageWindow;
   /** モデル別の週枠（例: Fable） */
   model_weekly: UsageWindow[];
-  /** 追加の使用枠（extra usage）。わからなければ null */
-  extra_usage?: { enabled: boolean; utilization: number | null } | null;
+  /** 追加の使用枠（extra usage。プランの上限を超えたあと、使った分を払って続ける）。わからなければ null */
+  extra_usage?: ExtraUsage | null;
+  /** いま超過分で動いているか（Claude Code が実行中に知らせた最後の値。まだ知らされていなければ null） */
+  overage?: OverageNote | null;
   fetched_at: string;
   error?: string;
 }

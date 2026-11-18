@@ -36,6 +36,7 @@
 - `ipc/`: Electron の IPC の取り決め（→「IPC の取り決め」）。
 - `testing/chatScenarios.ts`: 長いチャットの記録を種から組み立てる `scenarioChat`（サブエージェント・ToDo・図・質問への回答・圧縮などを混ぜる。乱数は `seededRandom`）。索引 ＋ 末尾 = 全件の同値のテストに使う。
 - `testing/factories.ts`: テストのデータを作る関数（`makeChat` / `makeProject` / `makeGroup` / `makeEvent` / `eventSequence`。省いた項目はそれらしい既定値で埋める）。コアと画面のテストで共通にし、テストごとに作る関数を書かない。
+- `overage.ts`: Claude のプランの超過分（追加の使用枠）の様子 `OVERAGE_STATES`（`in_use` / `on` / `off` / `unknown`）と文 `OVERAGE_STATE_LABELS` / `OVERAGE_STATE_HINTS`・決め方 `overageStateOf`・通貨の最小単位の額の書き方 `formatMinorAmount`・この期間の超過分の 1 行 `extraUsageSpendText`。下の帯・使用状況の詳細と AI の get_usage で同じ言葉にする。
 - `errors.ts`: `errorMessage`（例外を画面に出す文にする。`e instanceof Error ? e.message : String(e)` を書かない）。
 
 ## 記録（ChatEvent）

@@ -15,8 +15,16 @@ import { tempDir } from "./tempDir.js";
 /** Runner に渡す値のうち、ここで組み立てないもの（添付の置き場所・再開の時計など） */
 type RunnerOptions = Omit<ConstructorParameters<typeof Runner>[0], "store" | "approvals" | "providers" | "usage" | "bus">;
 
-/** 使用枠は取れない（ネットワークに出ない） */
-const offlineUsage = { get: async () => ({ available: false }), refresh: async () => ({ available: false }) } as unknown as UsageMonitor;
+/** 使用枠は取れない（ネットワークに出ない）。超過分の知らせだけは本物と同じく覚え、動き始めたかを返す */
+function offlineUsage(): UsageMonitor {
+  let inUse = false;
+  const noteOverage = (next: boolean) => {
+    const started = next && !inUse;
+    inUse = next;
+    return started;
+  };
+  return { get: async () => ({ available: false }), refresh: async () => ({ available: false }), noteOverage } as unknown as UsageMonitor;
+}
 
 /**
  * Runner を作る前に、前回の起動で残ったデータを入れる（起動したときの再開の確かめを試す）。
@@ -36,8 +44,9 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const project = store.projects.create({ name: "p", repo_path: repo, provider: "claude" });
   const interrupted = beforeStart?.(store, project);
   // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない
-  const runner = new Runner({ store, approvals, providers, usage: offlineUsage, bus, tellableWaitMs: 50, ...(interrupted ? { interrupted } : {}), ...runnerOptions });
-  return { bus, store, approvals, providers, usage: offlineUsage, runner, provider, project };
+  const usage = offlineUsage();
+  const runner = new Runner({ store, approvals, providers, usage, bus, tellableWaitMs: 50, ...(interrupted ? { interrupted } : {}), ...runnerOptions });
+  return { bus, store, approvals, providers, usage, runner, provider, project };
 }
 
 /** 少し待つ（ほかの非同期の処理を進める） */

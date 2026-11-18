@@ -437,12 +437,15 @@ function readOnlyReferences(project: Project, cwd: string): string[] {
   return project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p));
 }
 
+/** 超過分で動き始めたときのお知らせ */
+const OVERAGE_NOTICE = "Claude のプランの使用枠の上限を超えたため、ここから追加の使用枠（使った分の支払い）で動いています";
+
 /**
  * プロバイダーからの知らせ: 途中経過は配るだけ、作業中の様子は runtime に書き（runtime が画面に配る）、イベントは記録、
  * 承認依頼は回答を待つ（待つ間は回答待ち）
  */
 function callbacksFor(
-  { store, approvals, bus }: ExecutionDeps,
+  { store, approvals, bus, usage }: ExecutionDeps,
   runtime: ChatRuntime,
   chat: Chat,
   signal: AbortSignal,
@@ -467,6 +470,10 @@ function callbacksFor(
       runtime.control = compact ? null : control;
     },
     background: (background) => runtime.update({ background }),
+    // 超過分（追加の使用枠）で動き始めたら、どの作業から課金されたかが分かるようお知らせに残す（下の帯の札は使用枠の知らせで赤くなる）
+    overage: (inUse) => {
+      if (usage?.noteOverage(inUse)) store.events.add(chatId, { type: "notice", message: OVERAGE_NOTICE });
+    },
     drawingVisual: (drawingVisual) => runtime.update({ drawingVisual }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
     // 圧縮が始まったら、この作業が終わるまで「いま」を預かる（圧縮後指示のやり取りに混ぜない。作業の終わりで Runner が外す）

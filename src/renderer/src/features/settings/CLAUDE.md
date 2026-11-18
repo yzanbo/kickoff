@@ -37,6 +37,7 @@
 ## 使用状況（`features/usage`）
 
 - プランの使用枠（5 時間・週）は店（`usageStore`）をアプリ全体で 1 つ共有する（`usePlanUsage` を App が持ち、下の帯 `AppFooter` に渡す。チャット欄のメーターの詳細には出さない）。リセットまでの残り時間を進める時計（60 秒）は残り時間を出す `UsageMeter` が持つ（App に置くと 60 秒ごとにアプリ全体が描き直るため。メモの仕様書「0023_表示を軽くする」の案 30）。名前の付け方・段階などは `usage.ts`（`usageWindowLabel`（モデル別の週枠は「週 · Fable」、下の帯の 1 行表示ではモデル名だけ）・`usageLevel`（70% から注意、90% から警告）・`planName` / `planLabel` / `accountLine` / `weeklyModel` / `usageUnavailableText`）。
+- 超過分（追加の使用枠。プランの上限を超えたあと使った分を払って続ける）の様子は `@shared/overage` の `overageStateOf`（いま超過分で動いている `in_use` → オン `on` → オフ `off` → 不明 `unknown`。文は `OVERAGE_STATE_LABELS` / `OVERAGE_STATE_HINTS`、この期間の超過分の額は `extraUsageSpendText`。AI の get_usage も同じ言葉）。下の帯の Claude の札の横に `features/footer/OverageBadge.tsx` の `OverageBadge`（`in_use` は赤く塗った「超過分で課金中」、`on` は黄の枠線の「追加枠オン」。オフ・不明は出さず詳細で伝える）、詳細には `features/usage/OverageDetails.tsx`（様子・説明・今月の超過分の額）。超過分で動き始めたら（前は動いていなかった）`useOverageToast` が画面の下に知らせる。意図せず課金していないかを分かるようにする（利用者の依頼）。
 - 使用率のバーは `UsageBar`（使用枠のメーター・チャット欄のコンテキストウィンドウで共通。数値のない枠は灰色）、使用枠のメーターは `UsageMeter`、何時時点かと最新の取得の失敗は `UsageFetchedNote`。
 - 設定の「使用状況」（`UsagePanel`）はサービスごと（Claude Code・Codex・GitHub Copilot・Cursor・Gemini）の枠。各サービスのログイン情報を読むだけなので、見られないサービスは理由と見る方法を出す（取るのはコア）。
 

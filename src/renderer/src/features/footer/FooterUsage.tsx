@@ -10,6 +10,7 @@ import { cx } from "@/lib/cx";
 import { useProviders } from "@/stores/providers";
 import { usePopover } from "@/ui/Popover";
 import { groupChipText, UsageChip } from "./UsageChip";
+import { OverageBadge, useOverageToast } from "./OverageBadge";
 import { UsageDetailsPopover } from "./UsageDetailsPopover";
 import { usageGroups, type UsageGroup } from "./usageGroups";
 
@@ -22,6 +23,7 @@ export function FooterUsage({ planUsage }: { planUsage: ReturnType<typeof usePla
   const statuses = useProviders({ active: false }).data;
   const services = useServiceUsage();
   const groups = usageGroups({ foreground, statuses, services: services.data });
+  useOverageToast(planUsage.usage);
   return (
     <span className="footer-usages">
       {groups.map((g, i) => (
@@ -101,6 +103,7 @@ function UsageGroupInline({ group, usage, status, loading }: {
         if (!usage.available) return <span className="muted">取得できません</span>;
         return (
           <>
+            <OverageBadge usage={usage} />
             <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
             <UsageMeter window={usage.seven_day} inline />
             {/* モデル別の週枠（Fable など）。1 行表示では短く「Fable」と出す（usageWindowLabel） */}
