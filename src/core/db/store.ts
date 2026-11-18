@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { createChatStore } from "./chats.js";
 import { createChatProviderSessionStore } from "./chatProviderSessions.js";
-import { createChatProviderHandoffStore } from "./chatProviderHandoffs.js";
+import { createChatProviderHandoffStore, handoffBlocksSwitch } from "./chatProviderHandoffs.js";
 import { createChatImageStore } from "./chatImages.js";
 import type { Notify } from "./common.js";
 import { createDbConnectionStore } from "./dbConnections.js";
@@ -119,11 +119,18 @@ export class Store {
   }): { chat: Chat; event: ChatEventOf<"provider_switched"> } {
     this.db.exec("BEGIN IMMEDIATE");
     let eventId: number;
+    let supersededEventId: number | null = null;
     try {
       const current = this.chats.get(input.chatId);
       if (!current || current.archived_at || current.status === "running" || current.provider !== input.expectedProvider || current.provider === input.target) throw new Error("チャットの状態が変わったため、AI を切り替えられません");
       const latest = this.db.prepare("SELECT MAX(id) AS id FROM chat_events WHERE chat_id = ?").get(current.id) as { id: number | null };
       if (latest.id !== input.expectedLastEventId) throw new Error("会話が変わったため、AI を切り替えられません");
+      const superseded = this.chatProviderHandoffs.get(current.id);
+      const blocked = handoffBlocksSwitch(superseded, current.provider);
+      if (blocked) throw new Error(blocked);
+      // 送る前に替え直したので、前の区切りの資料は渡していない印を付ける（引き継ぎ内容の表示で区別する。Q44）
+      supersededEventId = superseded?.eventId ?? null;
+      if (superseded) this.db.prepare("UPDATE chat_events SET data = json_set(data, '$.handoff_status', 'superseded') WHERE id = ? AND chat_id = ? AND type = 'provider_switched'").run(superseded.eventId, current.id);
       if (current.session_id) this.chatProviderSessions.save(current.id, current.provider, current.session_id, input.currentLastEventId);
       const targetSession = this.chatProviderSessions.get(current.id, input.target);
       const inserted = this.db.prepare("INSERT INTO chat_events (chat_id, type, data) VALUES (?, 'provider_switched', ?)").run(
@@ -139,6 +146,9 @@ export class Store {
     } catch (error) {
       this.db.exec("ROLLBACK");
       throw error;
+    }
+    if (supersededEventId !== null) {
+      try { this.logRevisions.changed(input.chatId); } catch (error) { console.warn("[provider-switch] 記録の更新通知に失敗しました", error); }
     }
     const chat = this.chats.get(input.chatId)!;
     const event = this.events.get(eventId)! as ChatEventOf<"provider_switched">;

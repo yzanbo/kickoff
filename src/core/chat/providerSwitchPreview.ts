@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
 import type { ProviderId, ProviderSwitchPreview } from "@shared/types";
+import { handoffBlocksSwitch } from "../db/chatProviderHandoffs.js";
 import type { Store } from "../db/store.js";
 import { Conflict, NotFound } from "../http/errors.js";
 import type { Runner } from "./runner.js";
@@ -12,7 +13,8 @@ export function providerSwitchPreview(store: Store, runner: Runner, chatId: numb
   const chat = store.chats.get(chatId);
   if (!chat) throw new NotFound("チャットが見つかりません");
   if (chat.archived_at || chat.provider === target || (chat.provider !== "claude" && chat.provider !== "codex") || (target !== "claude" && target !== "codex")) throw new Conflict("この AI には切り替えられません");
-  if (store.chatProviderHandoffs.get(chatId)) throw new Conflict("前の AI の引き継ぎを確認してから切り替えてください");
+  const blocked = handoffBlocksSwitch(store.chatProviderHandoffs.get(chatId), chat.provider);
+  if (blocked) throw new Conflict(blocked);
   const project = store.projects.get(chat.project_id);
   if (!project) throw new NotFound("プロジェクトが見つかりません");
   const queue = runner.queueState(chatId);

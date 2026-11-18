@@ -117,3 +117,32 @@ test("自動の再準備は資料と送信中の印を同時に保存し、中�
   assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "uncertain");
   store.close();
 });
+
+test("送る前の準備済みの引き継ぎは、替え直すと置き換え、前の区切りに渡していない印を付ける", () => {
+  const { store, chat } = setup();
+  const base = { options: PROVIDER_BASE_CHAT_OPTIONS, context: "x", state: "ready" as const, error: null, attachments: [], afterEventId: null, currentLastEventId: null, queueWasPaused: false };
+  const first = store.commitProviderSwitch({ ...base, chatId: chat.id, expectedProvider: "claude", target: "codex", expectedLastEventId: null });
+  const back = store.commitProviderSwitch({ ...base, chatId: chat.id, expectedProvider: "codex", target: "claude", expectedLastEventId: first.event.id, context: "戻す" });
+  assert.equal(back.chat.provider, "claude");
+  assert.equal(back.chat.session_id, "claude-session");
+  const old = store.events.get(first.event.id);
+  assert.equal(old?.type === "provider_switched" && old.data.handoff_status, "superseded");
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.eventId, back.event.id);
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.context, "戻す");
+  store.close();
+});
+
+test("準備の失敗・送信中・受信不明の引き継ぎがあれば、替え直さない", () => {
+  for (const state of ["blocked", "sending", "uncertain"] as const) {
+    const { store, chat } = setup();
+    const base = { options: PROVIDER_BASE_CHAT_OPTIONS, context: "x", error: null, attachments: [], afterEventId: null, currentLastEventId: null, queueWasPaused: false };
+    const first = store.commitProviderSwitch({ ...base, state: "ready", chatId: chat.id, expectedProvider: "claude", target: "codex", expectedLastEventId: null });
+    store.chatProviderHandoffs.save({ ...store.chatProviderHandoffs.get(chat.id)!, state });
+    assert.throws(() => store.commitProviderSwitch({ ...base, state: "ready", chatId: chat.id, expectedProvider: "codex", target: "claude", expectedLastEventId: first.event.id }), /切り替え/);
+    assert.equal(store.chats.get(chat.id)?.provider, "codex");
+    assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, state);
+    const old = store.events.get(first.event.id);
+    assert.equal(old?.type === "provider_switched" && old.data.handoff_status, "ready");
+    store.close();
+  }
+});

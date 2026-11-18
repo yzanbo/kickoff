@@ -102,3 +102,27 @@ test("同じチャットで AI を切り替えて続け、元の AI に戻した
   assert.doesNotMatch(provider.lastTurnContext ?? "", /最初の話/);
   assert.equal(store.events.list(chat.id).filter((event) => event.type === "provider_switched").length, 2);
 });
+
+test("切り替えたあと何も送っていなければ、確認して元の AI に戻せる（受信不明なら断る）", async () => {
+  const { call, store, project, provider } = setup();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const url = `/api/chats/${chat.id}/provider-switch`;
+  const toCodex = await call("GET", `${url}?target=codex`);
+  assert.equal((await call("POST", url, { target: "codex", confirmation: toCodex.body.confirmation })).status, 200);
+  const firstEventId = store.chatProviderHandoffs.get(chat.id)!.eventId;
+  const back = await call("GET", `${url}?target=claude`);
+  assert.equal(back.status, 200);
+  const result = await call("POST", url, { target: "claude", confirmation: back.body.confirmation });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.chat.provider, "claude");
+  const old = store.events.get(firstEventId);
+  assert.equal(old?.type === "provider_switched" && old.data.handoff_status, "superseded");
+  const pending = store.chatProviderHandoffs.get(chat.id)!;
+  assert.equal(pending.provider, "claude");
+  store.chatProviderHandoffs.claim(chat.id, pending.eventId, "claude");
+  store.chatProviderHandoffs.markUncertain(chat.id, pending.eventId, "受信不明");
+  const refused = await call("GET", `${url}?target=codex`);
+  assert.equal(refused.status, 409);
+  assert.match(refused.body.error, /受け取ったか確認/);
+  assert.equal(provider.prompts.length, 0);
+});
