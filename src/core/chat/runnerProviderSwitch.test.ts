@@ -55,3 +55,20 @@ test("切り替え先が使えなければ元の AI のままにする", async (
   assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
   assert.equal(runner.isBusy(chat.id), false);
 });
+
+test("切り替え中に増えた指示は、切り替え中止後に元の AI へ自動送信しない", async () => {
+  const provider = new ScriptedProvider(async () => ({ status: "completed", sessionId: "s" }));
+  const originalStatus = provider.status.bind(provider);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  provider.status = async () => { await gate; return originalStatus(); };
+  const { store, runner, project } = setupCore(provider, { uploads: new UploadStore(tempDir()) });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const switching = runner.switchProvider(chat.id, "claude", "codex");
+  await runner.queueMessage(chat.id, "切り替え中の指示");
+  release();
+  await assert.rejects(switching, /送信待ちやチャットの状態が変わった/);
+  assert.equal(runner.queueState(chat.id).paused, true);
+  assert.equal(runner.queueState(chat.id).messages[0].text, "切り替え中の指示");
+  assert.equal(provider.calls.length, 0);
+});
