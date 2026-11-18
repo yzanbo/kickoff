@@ -44,6 +44,7 @@
 @import "./chat/tool-status.css";
 @import "./chat/command-live.css";
 @import "./chat/messages.css";
+@import "./chat/provider-switch.css";
 @import "./chat/jump-flash.css";
 @import "./chat/sticky-prompt.css";
 @import "./chat/child-chats.css";

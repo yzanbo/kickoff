@@ -16,8 +16,8 @@ const payNote = (status: ProviderStatus | undefined) => (paysPerUse(status) ? `�
 async function switchWithConfirmation(chatId: number, target: "claude" | "codex", label: string): Promise<void> {
   const preview = await turnsApi.providerSwitchPreview(chatId, target);
   const ok = await confirmDialog({ title: `${label} に切り替えますか？`, confirmLabel: "切り替える", message: [
-    `権限モード: ${PERMISSION_LABELS[preview.options.permission_mode]}`,
-    `送信待ち: ${preview.queued_ids.length} 件（切り替え後の AI に送ります）`,
+    `${label} の権限モード: ${PERMISSION_LABELS[preview.options.permission_mode]}`,
+    preview.queued_ids.length ? `送信待ちの ${preview.queued_ids.length} 件は、切り替え後の ${label} に送ります。` : "",
     preview.busy_child_ids.length ? `同じ作業場所で子チャット ${preview.busy_child_ids.length} 件が作業中です。子チャットはそのまま続きます。` : "",
     "切り替え前の会話には巻き戻し・分岐・ファイル復元ができなくなります。",
     "会話の引き継ぎは、切り替え後の最初の指示に添えます。",

@@ -303,26 +303,6 @@
   text-align: center;
 }
 
-.provider-switch-details {
-  margin: 0 auto 10px;
-  max-width: 720px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.provider-switch-details summary { cursor: pointer; }
-.provider-switch-details pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; }
-.provider-handoff-notice {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--info) 12%, var(--bg));
-  font-size: 12px;
-}
-.provider-handoff-notice button { flex: none; }
-
 /* 作業場所を移した区切りより前の行で、そのときの作業場所がもうないとき（Timeline の PastWorkplace）: 行の形は変えず、ファイルのチップ・変更カードのファイル・ツールの行のファイルを薄くする（押すと開けないと知らせる） */
 .past-workplace-gone {
   display: contents;
