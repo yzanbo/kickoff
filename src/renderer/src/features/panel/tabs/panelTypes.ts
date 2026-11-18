@@ -69,8 +69,8 @@ export type PanelTab =
    * text・attachments: 入力欄に初めに入れる文と添付（「AI に渡す」の「子チャットで聞く」）
    */
   | { key: string; kind: "newChild"; chatId: number; projectId: number; parentId?: number; quote?: string; eventId?: number; follow?: boolean; text?: string; attachments?: Attachment[] }
-  /** url は開いたときのページ（webview の初めの src）、current はいま表示しているページ（外のブラウザで開くときに渡す） */
-  | { key: string; kind: "browser"; url: string; title: string; current?: string }
+  /** url は開いたときのページ、current はいまのページ（保存や webview の作り直しに使う）。restored は欄を開くまで読み込まない復元タブ */
+  | { key: string; kind: "browser"; url: string; title: string; current?: string; restored?: boolean }
   /**
    * cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。projectId: どのプロジェクトの作業場所か。key は裏のシェルのキーにも使う。
    * command・title・env: 決まったコマンドで開くタブ（Docker のシェルなど。TerminalTarget）

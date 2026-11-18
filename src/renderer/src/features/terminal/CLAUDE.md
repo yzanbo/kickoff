@@ -13,6 +13,7 @@
 
 ## 埋め込みブラウザ（`features/browser`）
 
+- 右サイドバーでは、前回開いていたタブを最後に表示した URL で開き直す（`features/panel/state/browserSession.ts`）。プロジェクトを切り替えて webview を作り直したときも、最初の URL ではなく最後のページから始める（`BrowserPane` で初めの `src` を固定し、ナビゲーションのたびに再読み込みしない）。フォームへの書きかけや戻る・進むの履歴は保存しない。
 - ページ内のキーワード検索（`useBrowserFind`）は ⌘F または余白の右クリック。タブの名前やアドレス欄にピントがあれば `registerPageFind` から、ページの中なら IPC の `browser.onFindRequested` から開く（WebContents ID が合う表示中のタブだけ）。`FindField` で件数を表示し、Enter / Shift+Enter で次 / 前、Esc で閉じる。文字を探して印を付けるのは webview の `findInPage`。検索を閉じたとき・タブが見えなくなったときは印を外す。
 - 右クリックはメモと同じ `PopupMenu`。ページ内（`BrowserPageMenu`）は Electron の webview の `context-menu` で受け、リンク・画像・音声・動画・選んだ文・入力欄・余白で項目を変える。リンク・画像などは同じ欄の裏のタブに開ける。選んだ文はコピー・Google 検索・チャットへの添付（外から来たデータ）に使えるが、入力欄の文は検索やチャットに渡さない。「検証」は設定した場所の開発者ツールで開く。アドレス欄と検索欄は `useBrowserTextMenu` で切り取り・コピー・貼り付け・すべて選択を出す。ページ自身が右クリックを処理していれば横取りしない。
 - `BrowserPane`（開発中のアプリのプレビュー・ドキュメント閲覧。デスクトップアプリでのみ動く）。ページは Kickoff 本体と切り離した専用のセッション（`partition="persist:kickoff-browser"`。メインプロセスでも強制）で開く。アドレス欄の文字は `lib/url.ts` の `normalizeUrl`（URL らしければそのまま、localhost などは http、ドメインは https、それ以外は検索）。アドレス欄の横の「〜で開く」は選んでいる外のブラウザで開く。
