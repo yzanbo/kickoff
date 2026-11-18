@@ -10,11 +10,12 @@
     "electron.vite.config.ts",
     "scripts/*.mjs",
     "scripts/check-provider-switch.ts",
+    "scripts/check-codex-uploads.ts",
     "scripts/*.cjs",
     "scripts/hooks/pre*.mjs",
     "scripts/perf/*.mjs"
   ],
-  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}", "scripts/check-provider-switch.ts"],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}", "scripts/check-provider-switch.ts", "scripts/check-codex-uploads.ts"],
   "ignoreExportsUsedInFile": true,
   "ignoreBinaries": ["sips", "iconutil", "plutil", "pgrep", "ditto", "codex"]
 }
