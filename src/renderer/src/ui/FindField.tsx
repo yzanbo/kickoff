@@ -64,8 +64,8 @@ export function FindField({
   onChange: (value: string) => void;
   placeholder: string;
   invalid: boolean;
-  options: FindOptions;
-  onToggleOption: (name: FindOptionName) => void;
+  options?: FindOptions;
+  onToggleOption?: (name: FindOptionName) => void;
   /** 件数の文（findCountText） */
   count: string;
   /** 前後へ移れるか（一致があるか） */
@@ -93,7 +93,7 @@ export function FindField({
     onClose();
   };
   const keyDown = (e: KeyboardEvent<HTMLInputElement>, field: "search" | "replace") => {
-    if (isComposing(e) || onKeyDown?.(e) || handleFindOptionKey(e, onToggleOption)) return;
+    if (isComposing(e) || onKeyDown?.(e) || (onToggleOption && handleFindOptionKey(e, onToggleOption))) return;
     if (isCancelKey(e)) return escape(e);
     if (field === "replace") {
       if (e.key !== "Enter") return;
@@ -146,7 +146,7 @@ export function FindField({
           />,
           // 探し方・件数・前後・閉じる（チャットの見出しの欄は、ピントがある・文があるときだけ見せる。.find-box-controls）
           <span className="find-box-controls">
-            <FindOptionButtons options={options} onToggle={onToggleOption} size={14} />
+            {options && onToggleOption && <FindOptionButtons options={options} onToggle={onToggleOption} size={14} />}
             <span className={cx("find-box-count", invalid && "invalid")} aria-live="polite">
               {count}
             </span>

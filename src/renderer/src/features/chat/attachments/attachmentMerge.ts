@@ -5,7 +5,8 @@ import type { Attachment } from "@shared/types";
 export function sameAttachment(a: Attachment, b: Attachment): boolean {
   if (a.id === b.id) return true;
   if (a.kind === "memo" && b.kind === "memo") return a.memo === b.memo;
-  if (a.kind === "capture" && b.kind === "capture") return a.source.type === b.source.type && a.source.label === b.source.label;
+  // 同じページでも、選ぶたびに別の引用を添えられる
+  if (a.kind === "capture" && b.kind === "capture") return a.source.type !== "browser_selection" && a.source.type === b.source.type && a.source.label === b.source.label;
   return false;
 }
 

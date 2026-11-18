@@ -5,6 +5,7 @@ import { externalAppHandlers } from "../app/externalApps.js";
 import { loginItemHandlers } from "../app/loginItem.js";
 import { popoutHandlers } from "../app/popouts.js";
 import { agentBrowserHandlers } from "../browser/agentBrowser.js";
+import { browserContextHandlers } from "../browser/contextMenu.js";
 import { devtoolsHandlers } from "../browser/devtools.js";
 import { browserExtensionHandlers } from "../browser/extensions.js";
 import { diagnosticsHandlers } from "../diagnostics/diagnostics.js";
@@ -25,6 +26,7 @@ export function registerIpc(appUrl: string, parts: Pick<IpcHandlers, "core">) {
       dialog: dialogHandlers,
       windows: popoutHandlers(appUrl),
       externalApps: externalAppHandlers,
+      browser: browserContextHandlers,
       devtools: devtoolsHandlers,
       agentBrowser: agentBrowserHandlers,
       browserExtensions: browserExtensionHandlers,

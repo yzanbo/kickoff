@@ -1,6 +1,8 @@
 import { app, session, type Session, type WebContents } from "electron";
 import { openLinksExternally } from "../app/externalLinks.js";
 import { isEmbeddableUrl } from "../app/urls.js";
+import { sendEvent } from "../ipc/register.js";
+import { isBrowserFindKey } from "./keys.js";
 
 // 埋め込みブラウザ（<webview>）のセッションと安全設定。開発者ツールは devtools.ts、拡張機能は extensions.ts
 
@@ -23,6 +25,14 @@ export function hardenWebviews() {
       webPreferences.sandbox = true;
       params.partition = BROWSER_PARTITION;
       if (params.src && !isEmbeddableUrl(params.src)) event.preventDefault();
+    });
+    contents.on("did-attach-webview", (_event, guest) => {
+      // ページの中にピントがあると、外の画面の keydown には届かない。開発者ツールは自分の検索に任せる
+      guest.on("before-input-event", (event, input) => {
+        if (!isBrowserFindKey(input) || guest.getURL().startsWith("devtools:")) return;
+        event.preventDefault();
+        if (!input.isAutoRepeat) sendEvent(contents, "browser", "onFindRequested", guest.id);
+      });
     });
     // 埋め込みブラウザ内の新しいウィンドウは、外部のブラウザで開く
     if (contents.getType() === "webview") openLinksExternally(contents);

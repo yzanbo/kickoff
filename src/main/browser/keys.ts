@@ -1,4 +1,15 @@
-// AI が渡したキーの名前を、Electron の sendInputEvent の keyCode にする（Electron に依らないのでテストする）
+// 埋め込みブラウザのキーの判定と変換（Electron の実体に依らないのでテストする）
+
+import type { Input } from "electron";
+
+/** ページ内検索の ⌘F（Mac 以外は Ctrl+F）。変換中や、ほかの修飾キーが付いたキーはページに任せる */
+export function isBrowserFindKey(
+  input: Pick<Input, "type" | "key" | "meta" | "control" | "alt" | "shift" | "isComposing">,
+  mac = process.platform === "darwin",
+): boolean {
+  return input.type === "keyDown" && input.key.toLowerCase() === "f" && !input.isComposing &&
+    !input.alt && !input.shift && input.meta === mac && input.control !== mac;
+}
 
 /** Web の KeyboardEvent.key の名前 → Electron のキーの名前（同じものは書かない） */
 const ALIASES: Record<string, string> = {

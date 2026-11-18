@@ -16,6 +16,7 @@ export function normalizeUrl(input: string): string {
   return googleSearch(v);
 }
 
-function googleSearch(query: string): string {
+/** URL と紛らわしい文でも、検索語として Google に渡す */
+export function googleSearch(query: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 }

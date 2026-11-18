@@ -105,7 +105,7 @@ export function PaneTab({
       title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group.name}）` : label)}
       className={cx(className, agent && (agent.state === "unread" || agent.state === "failed" || agent.unread) && "unread")}
       // チャット・子チャットのタブは、乗せて少し待ったら中身を先読みする（features/chat/store/hoverPrefetch.ts）
-      extra={activityOf === undefined ? extra : { ...extra, ...prefetchAttr(activityOf) }}
+      extra={t.kind === "browser" ? { ...extra, ...browserTabAttr(t.key) } : activityOf === undefined ? extra : { ...extra, ...prefetchAttr(activityOf) }}
       onSelect={() => panel.showTab(t.key)}
       pinnedIn={show("pin") && chat?.pinned ? chat.project_id : null}
       // 状態の印を隠したときは、ほかの種類のタブと同じくアイコンを出す（未読・失敗の太字はそのまま）
@@ -122,3 +122,5 @@ export function PaneTab({
 
 /** 先読みの見張りが読む印（HTMLAttributes に data-* を書けないので、属性の束として渡す） */
 const prefetchAttr = (chatId: number) => ({ "data-prefetch-chat": String(chatId) }) as HTMLAttributes<HTMLDivElement>;
+/** ブラウザのページ内検索が、名前のボタンにピントがあるときに読む印 */
+const browserTabAttr = (key: string) => ({ "data-browser-tab-key": key }) as HTMLAttributes<HTMLDivElement>;

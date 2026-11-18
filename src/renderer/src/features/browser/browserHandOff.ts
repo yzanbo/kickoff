@@ -1,5 +1,6 @@
 // 埋め込みブラウザのタブの「AI に渡す」: 見えている範囲の画面と、覚えているコンソールのエラー・警告を札にする（要件の添付の共通化の段階 2）
 import type { Attachment } from "@shared/types";
+import { webUrlOf } from "@shared/links/linkWarnings";
 import { api } from "@/api";
 import { showToast } from "@/ui/toast";
 import type { HandOffItem } from "@/features/chat/handoff/handOff";
@@ -50,5 +51,26 @@ export function browserHandOffItem(projectId: number, webContentsId: () => numbe
       if (id === null) return Promise.reject(new Error("ページの準備ができていません"));
       return captureTab(id, page());
     },
+  };
+}
+
+/** ページで選んだ文は「外から来たデータ」の札にする。URL の資格情報は添付しない */
+export function browserSelectionItem(projectId: number, text: string, url: string): HandOffItem {
+  const origin = webUrlOf(url);
+  const sourceUrl = origin && !origin.username && !origin.password ? (origin.href.length <= 2000 ? origin.href : origin.origin) : null;
+  return {
+    projectId,
+    what: "ブラウザで選んだ文",
+    text: "",
+    capture: () => api.capture({
+      name: "browser-selection.txt",
+      mime: "text/plain",
+      text,
+      source: {
+        type: "browser_selection",
+        url: sourceUrl,
+        label: origin?.host || "選択したテキスト",
+      },
+    }),
   };
 }
