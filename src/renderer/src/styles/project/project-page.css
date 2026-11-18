@@ -42,6 +42,29 @@
   margin-bottom: var(--gutter);
 }
 
+/*
+ * プロジェクト・全プロジェクトの画面の名前の行は 24px にし、上から 9px に置く（利用者の依頼）。行の真ん中（21px）は左上の戻る・進むと右上の開閉のボタンの
+ * 真ん中のまま、下の画面は 9 ＋ 24 ＋ 見出しの下の --gutter（6px）= 39px から始まり、中身の枠の線 1px の下のタブの列が、右サイドバーの上の行（40px）の下と
+ * 同じ高さになる（前は名前の行が 34px で、真ん中のタブの列だけ 5px 下にずれていた）。名前のボタン・行のアイコンのボタンも 24px に
+ */
+.page-board:has(> .project-header:not(.title-out)) {
+  padding-top: 9px;
+}
+
+.project-header > .project-title-row {
+  height: 24px;
+  min-height: 24px;
+}
+
+.project-title-row .icon-button {
+  width: 24px;
+  height: 24px;
+}
+
+.project-title-row .state-stats-button {
+  padding: 0 2px;
+}
+
 /* 名前の行を寄せたときだけ表示・非表示にしているときは、見出しの下を空けない（タブの列だけが残るときは、タブの列の下の線で区切る） */
 .project-header.title-out {
   margin-bottom: var(--gutter);
@@ -166,8 +189,8 @@
   align-items: center;
   gap: 6px;
   max-width: 100%;
-  /* 高さはアイコンのボタン（.icon-button の 26px）にそろえる（利用者の依頼。前は文字と余白で決まり 29px ほどあった） */
-  height: 26px;
+  /* 高さは名前の行のアイコンのボタン（24px）にそろえる（利用者の依頼。前は文字と余白で決まり 29px ほどあり、一度は 26px にした） */
+  height: 24px;
   padding: 0 8px 0 2px;
   border-width: 1px;
   border-style: solid;

@@ -10,9 +10,9 @@
   --sidebar-shown: var(--sidebar-w, 260px);
   /*
    * 右端のアイコンの列（右サイドバーの中身の切り替え。features/panel/projectChat/SideRail.tsx）の幅。プロジェクトの左の縦のタブと同じ形を小さくして、
-   * 28px のタブ ＋ 左右 4px ＋ 左の境目の線 1px。プロジェクトがなければ列を置かないので 0
+   * 26px のタブ ＋ 左右 4px ＋ 左の境目の線 1px。プロジェクトがなければ列を置かないので 0
    */
-  --side-rail-w: 37px;
+  --side-rail-w: 35px;
   grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr) auto auto;
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
