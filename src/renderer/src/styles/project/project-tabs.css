@@ -38,12 +38,13 @@
 
 /*
  * 選んでいるタブの左の線: 地の角丸に沿って曲がらない直線にする（利用者の依頼。前は枠の左の線で、角丸に沿って曲がっていた）。
- * 地の角丸の分だけ上下を空けて、まっすぐな所にだけ引く。色は横並びの下線と同じ --accent-fg
+ * 上下は 2px だけ空けて長く引く（利用者の依頼。前は地の角丸の分（6px）を空けていて短かった）。線はまっすぐのまま、地の角丸（乗せたとき・選んでいるとき）も残す。
+ * 色は横並びの下線と同じ --accent-fg。右サイドバーの右端のアイコンの列も同じ
  */
 .project-side-tabs .tab.active::before {
   position: absolute;
-  top: var(--radius-sm);
-  bottom: var(--radius-sm);
+  top: 2px;
+  bottom: 2px;
   left: 0;
   width: 2px;
   background: var(--accent-fg);
