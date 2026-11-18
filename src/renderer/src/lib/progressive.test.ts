@@ -1,18 +1,14 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
+import { createFakeScheduler } from "@shared/testing/fakeScheduler";
 import { allocateColumns, allocateRows, columnsInView, COLUMN_MIN_PX, createProgressive, firstRowLimit, progressiveSlice } from "./progressive";
 
 /** 手で進める frame と、呼ばれた transition・flushSync の記録 */
 function harness() {
-  let frames: (() => void)[] = [];
+  const clock = createFakeScheduler();
   const log: string[] = [];
   const progressive = createProgressive({
-    frame: (callback) => {
-      frames.push(callback);
-      return () => {
-        frames = frames.filter((f) => f !== callback);
-      };
-    },
+    frame: clock.frame,
     transition: (update) => {
       log.push("transition");
       update();
@@ -22,12 +18,7 @@ function harness() {
       update();
     },
   });
-  const tick = () => {
-    const now = frames;
-    frames = [];
-    now.forEach((f) => f());
-  };
-  return { progressive, log, tick, frames: () => frames.length };
+  return { progressive, log, tick: clock.runFrames, frames: () => clock.pending.frames };
 }
 
 test("最初に描く行の数は、窓の高さを 24px で割った数に 8 を足したもの", () => {

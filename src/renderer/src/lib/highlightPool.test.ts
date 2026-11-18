@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { onTestFinished, test } from "vitest";
+import { settle } from "@shared/testing/async";
 import { createHighlightPool, HIGHLIGHT_CACHE, HIGHLIGHT_MAX_CHARS, type HighlightJob, type HighlightReply, type HighlightWorker } from "./highlightPool";
 import { encodeTokens } from "./tokenCodec";
 
@@ -38,8 +39,6 @@ function setup() {
   onTestFinished(() => pool.dispose());
   return { pool, workers };
 }
-
-const flush = () => new Promise((r) => setTimeout(r, 0));
 
 test("色付けは Worker に 1 つずつ頼み、結果を覚えて peek で同期に返す。同じコードは 2 回頼まない", async () => {
   const { pool, workers } = setup();
@@ -87,7 +86,7 @@ test("見えているもの（visible）を手前のもの（near）より先に
   await visible;
   assert.equal(w.reply().code, "near1");
   await near1;
-  await flush();
+  await settle();
   assert.equal(w.jobs.length, 0);
 });
 

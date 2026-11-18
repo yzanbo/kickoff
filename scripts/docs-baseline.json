@@ -215,8 +215,8 @@
       "brokenRefs": 0
     },
     "src/shared/CLAUDE.md": {
-      "bytes": 37559,
-      "ancestors": 50688,
+      "bytes": 37550,
+      "ancestors": 50679,
       "longLines": 18,
       "forbidden": 10,
       "brokenRefs": 0

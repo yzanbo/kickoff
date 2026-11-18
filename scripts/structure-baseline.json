@@ -41,7 +41,7 @@
       "src/main/browser/agentBrowser.ts": 329,
       "src/renderer/src/features/chat/composer/Composer.tsx": 332,
       "src/renderer/src/features/chat/queue/QueuedMessages.tsx": 306,
-      "src/renderer/src/features/chat/store/chatStore.test.ts": 468,
+      "src/renderer/src/features/chat/store/chatStore.test.ts": 428,
       "src/renderer/src/features/chat/store/chatStore.ts": 390,
       "src/renderer/src/features/chat/subagents/subagentParts.tsx": 318,
       "src/renderer/src/features/chat/timeline/timelineItems.ts": 322,
