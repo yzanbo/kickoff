@@ -6,6 +6,7 @@ export * from "./chatEvent";
 export * from "./chatLive";
 export * from "./approval";
 export * from "./provider";
+export * from "./providerSwitch";
 export * from "./git";
 export * from "./server";
 export * from "./events";

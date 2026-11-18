@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
-import type { ProviderId } from "@shared/types";
+import type { ProviderId, ProviderSwitchPreview } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { Conflict, NotFound } from "../http/errors.js";
 import type { Runner } from "./runner.js";
 import { workdirOf } from "./workdir.js";
 
 /** 確認画面と確定時で同じ条件を比較する。資料や API キーはトークンに含めない。 */
-export function providerSwitchPreview(store: Store, runner: Runner, chatId: number, target: ProviderId) {
+export function providerSwitchPreview(store: Store, runner: Runner, chatId: number, target: ProviderId): ProviderSwitchPreview {
   const chat = store.chats.get(chatId);
   if (!chat) throw new NotFound("チャットが見つかりません");
   if (chat.archived_at || chat.provider === target || (chat.provider !== "claude" && chat.provider !== "codex") || (target !== "claude" && target !== "codex")) throw new Conflict("この AI には切り替えられません");
