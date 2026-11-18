@@ -1,10 +1,11 @@
 import { useSyncExternalStore } from "react";
+import { CloseButton } from "./IconButton";
 
 /** 画面の下に少しの間だけ出す知らせ（「〇〇に追加しました［開く］」など。画面は移さない） */
 interface Toast {
   id: number;
   message: string;
-  /** 知らせの右のボタン（押すと知らせを閉じてから実行） */
+  /** 知らせの右のボタン（押すと知らせを閉じてから実行。その右にいつも閉じるボタンを出す） */
   action?: { label: string; run: () => void };
 }
 
@@ -55,6 +56,8 @@ export function ToastHost() {
               {t.action.label}
             </button>
           )}
+          {/* 時間を待たずにすぐ消す */}
+          <CloseButton label="知らせを閉じる" className="toast-close" onClick={() => dismiss(t.id)} />
         </div>
       ))}
     </div>
