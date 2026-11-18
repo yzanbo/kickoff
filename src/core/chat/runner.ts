@@ -19,6 +19,7 @@ import { postCompactItem, preCompactPromptOf } from "./preCompact.js";
 import { isClearCommand } from "@shared/chat/queueActions";
 import { marksOf } from "@shared/chat/handoff";
 import { prepareAndCommitProviderSwitch, retryProviderHandoffPreparation } from "./providerSwitch.js";
+import { handoffBlocksSwitch } from "../db/chatProviderHandoffs.js";
 import type { ProviderId } from "@shared/types";
 
 /**
@@ -150,7 +151,8 @@ export class Runner extends RunnerQueue {
     const chat = this.requireChat(chatId);
     this.requireIdle(chatId, "AI の切り替え");
     if (chat.provider !== expectedProvider || chat.provider === target || (target !== "claude" && target !== "codex") || (chat.provider !== "claude" && chat.provider !== "codex")) throw new Conflict("チャットの状態が変わったため、AI を切り替えられません");
-    if (this.deps.store.chatProviderHandoffs.get(chatId)) throw new Conflict("前の AI の引き継ぎを確認してから切り替えてください");
+    const blocked = handoffBlocksSwitch(this.deps.store.chatProviderHandoffs.get(chatId), chat.provider);
+    if (blocked) throw new Conflict(blocked);
     const uploads = this.deps.uploads;
     if (!uploads) throw new Conflict("添付の保存先がないため、AI を切り替えられません");
     const runtime = this.runtimes.get(chatId);

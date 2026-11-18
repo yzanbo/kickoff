@@ -14,6 +14,19 @@ export interface ChatProviderHandoff {
   queueWasPaused: boolean;
 }
 
+/**
+ * 保留中の引き継ぎが、次の AI の切り替えを止めるか。止めるならその理由の文。
+ * まだ何も送っていない準備済み（ready）のものは、次の切り替えで置き換えてよい（切り替えたあと送る前に戻す・替え直すため）。
+ * 準備の失敗・送信中・受信不明は、指示を失わない・二重に送らないよう、片付くまで切り替えない（メモの仕様書「0029」の Q36〜Q38・Q45）。
+ */
+export function handoffBlocksSwitch(pending: ChatProviderHandoff | undefined, currentProvider: ProviderId): string | null {
+  if (!pending) return null;
+  if (pending.state === "ready" && pending.provider === currentProvider) return null;
+  if (pending.state === "blocked") return "引き継ぎを準備できていません。先に再試行してから切り替えてください";
+  if (pending.state === "uncertain") return "AI が指示を受け取ったか確認できていません。確認してから切り替えてください";
+  return "引き継ぎを送っている途中です。終わってから切り替えてください";
+}
+
 interface HandoffRow {
   chat_id: number;
   event_id: number;

@@ -23,6 +23,8 @@ export async function prepareProviderHandoff(
   afterEventId = 0,
 ): Promise<PreparedProviderHandoff> {
   const selection = selectProviderHandoff(events, afterEventId);
+  // 前に使ったセッションへ戻すとき、離れていた間に会話がなければ、空の会話記録の見出しを渡さない
+  if (selection.entries.length === 0 && !selection.earlierOmitted) return { context: `前回この AI と話したあと、Kickoff のチャット ${chatId} に新しい会話はありません。`, created: [], missing: [], includedEventIds: [], earlierOmitted: false };
   const created: FileAttachment[] = [];
   const missing: PreparedProviderHandoff["missing"] = [];
   const lines = [

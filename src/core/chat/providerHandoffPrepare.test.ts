@@ -44,3 +44,14 @@ test("準備の途中で失敗したら作った長文ファイルを片付け�
   }, 1, [first, second]), /保存失敗/);
   assert.equal(await uploads.resolve(created[0]), undefined);
 });
+
+test("前に使ったセッションへ戻すとき、離れていた間に会話がなければ、新しい会話がないとだけ伝える", async () => {
+  const uploads = new UploadStore(tempDir());
+  const ev = eventSequence();
+  const user = ev("user", { text: "前の依頼" });
+  const answer = ev("text", { text: "前の返答" });
+  const result = await prepareProviderHandoff(uploads, 7, [user, answer], answer.id);
+  assert.deepEqual(result.includedEventIds, []);
+  assert.match(result.context, /新しい会話はありません/);
+  assert.doesNotMatch(result.context, /会話記録です/);
+});

@@ -16,7 +16,7 @@ export function ProviderSwitchRecord({ event }: { event: ChatEventOf<"provider_s
     <div className="workplace-moved-divider" role="separator" aria-label="AI を切り替えました"><span>{providerSwitchLine(event.data)}</span></div>
     {event.data.handoff_context !== undefined && <details className="provider-switch-details" onToggle={(e) => { if (e.currentTarget.open) void load(); }}>
       <summary>引き継ぎ内容を確認</summary>
-      <p>{error ?? (pending?.state === "uncertain" ? "AI が受け取ったか確認できません。" : pending?.state === "blocked" ? `準備できていません: ${pending.error ?? "理由を確認してください"}` : latest.data.handoff_status === "delivered" ? "この内容を添えた指示への応答を受け取りました。" : "準備した内容です。まだ引き継ぎが完了したとは限りません。")}</p>
+      <p>{error ?? (pending?.state === "uncertain" ? "AI が受け取ったか確認できません。" : pending?.state === "blocked" ? `準備できていません: ${pending.error ?? "理由を確認してください"}` : latest.data.handoff_status === "delivered" ? "この内容を添えた指示への応答を受け取りました。" : latest.data.handoff_status === "superseded" ? "指示を送る前に別の AI へ切り替えたため、この内容は渡していません。" : "準備した内容です。まだ引き継ぎが完了したとは限りません。")}</p>
       <pre>{latest.data.handoff_context}</pre>
     </details>}
   </div>;
