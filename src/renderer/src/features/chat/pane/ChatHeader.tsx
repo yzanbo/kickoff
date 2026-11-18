@@ -5,7 +5,6 @@ import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { WorkplaceMoveChip } from "@/features/worktree/WorkplaceMoveChip";
-import { ProviderChip } from "@/features/chat/provider/ProviderChips";
 import { GitHubLinkChip } from "@/features/github/GitHubLinkChip";
 import { ChatFind } from "@/features/chat/find/ChatFind";
 import { AgentPanelToggle } from "@/features/panel/agents/AgentPanelToggle";
@@ -28,13 +27,11 @@ export function ChatHeader({
   chat,
   project,
   tail,
-  busy,
 }: {
   chat: Chat;
   project?: Project;
   /** 記録の末尾（チャットの中の検索で探す。その前は検索がコアから読む） */
   tail: ChatEvent[];
-  busy: boolean;
 }) {
   const shows = useChatHeaderItems();
   const ordered = useChatHeaderOrder();
@@ -77,8 +74,6 @@ export function ChatHeader({
           {ordered(["project", "group", "worktree"] as const).map((k) => (
             <Fragment key={k}>{badges[k]}</Fragment>
           ))}
-          {/* チャットの AI（送ったあとも、どのチャットでもいつも出す。メモの仕様書「0021」の Q1・Q13、「0028」の 9 節） */}
-          <ProviderChip chat={chat} busy={busy} />
           {/* 結び付いた GitHub の issue・PR（押すと GitHub タブでそれを開く） */}
           <GitHubLinkChip chat={chat} />
         </span>

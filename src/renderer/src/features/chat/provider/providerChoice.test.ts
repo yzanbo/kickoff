@@ -47,8 +47,8 @@ test("featureBlock: できることにないものは理由の文、届いてい
 
 test("paysPerUse / providerChipName: API キーで動かす AI には印を添える", () => {
   assert.equal(paysPerUse(status()), false);
-  assert.equal(providerChipName("claude", status()), "Claude Code");
+  assert.equal(providerChipName("claude", status()), "Claude");
   assert.equal(paysPerUse(status({ auth_mode: "api_key" })), true);
-  assert.equal(providerChipName("claude", status({ auth_mode: "api_key" })), "Claude Code · API キー");
+  assert.equal(providerChipName("claude", status({ auth_mode: "api_key" })), "Claude · API キー");
   assert.equal(providerChipName("codex", undefined), "Codex");
 });

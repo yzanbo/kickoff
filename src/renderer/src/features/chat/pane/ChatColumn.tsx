@@ -61,7 +61,7 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
             data-chat-role={chat.memo_path ? "memo" : chat.parent_chat_id !== null ? "child" : "chat"}
             onPointerDownCapture={() => noteForegroundProvider(chat.provider, `chat:${chat.id}`)}
           >
-            <ChatHeader chat={chat} project={project} tail={log.tail} busy={view.busy} />
+            <ChatHeader chat={chat} project={project} tail={log.tail} />
             <ProviderHandoffNotice key={chat.id} chatId={chat.id} visible={visible} />
             {/* 返答の一部を選んで、チャット欄に引用を足す（右の欄・別ウィンドウの中では SideSelectionAttach が出す） */}
             <SelectionAttach />

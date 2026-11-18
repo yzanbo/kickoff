@@ -34,6 +34,8 @@ import { useComposerBarFit } from "./useComposerBarFit";
 interface Props {
   /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
   options?: ChatOptionsState;
+  /** 使う AI の札（下の行のモデルの左に置く。送る前は選ぶ札、送ったあとは切り替える札） */
+  providerChip?: ReactNode;
   placeholder?: string;
   autoFocus?: boolean;
   busy?: boolean;
@@ -93,7 +95,7 @@ const ignoreStop = () => {};
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
  * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, savedAttachments, handleRef, chatContext, sendTo, menuItems, voiceMode }: Props) {
+export function Composer({ options, providerChip, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, savedAttachments, handleRef, chatContext, sendTo, menuItems, voiceMode }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
@@ -294,6 +296,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
         <div className="composer-tools">
           <AttachButton size={16} className="attach-button" onFiles={attach.addFiles} />
           {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
+          {providerChip}
           {options && <ChatOptionsBar state={options} />}
         </div>
         <ComposerActions

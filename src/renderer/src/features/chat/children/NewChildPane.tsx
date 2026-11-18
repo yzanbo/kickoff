@@ -108,7 +108,6 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
             <>
               {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
               {shows("worktree") && <WorktreeChip chat={parent} />}
-              <ProviderPicker value={provider} onChange={setProvider} tipPrefix="この AI で子チャットを始めます" />
             </>
           }
           hero={
@@ -135,6 +134,8 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
           <Composer
             chatContext={{ projectId: parent.project_id }}
             options={options}
+            // 使う AI（チャット欄のモデルの左。押すと選び直す）
+            providerChip={<ProviderPicker value={provider} onChange={setProvider} tipPrefix="この AI で子チャットを始めます" />}
             autoFocus
             handleRef={composer}
             suggestTarget={parent.worktree_path ? { projectId: parent.project_id, worktree: parent.worktree_path } : parent.project_id}
