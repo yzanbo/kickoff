@@ -41,5 +41,5 @@ const subscribe = (l: () => void) => {
 };
 
 /** 前に出しているチャットの AI（まだチャットを開いていなければ null） */
-export const useForegroundChat = (): ForegroundChat => useSyncExternalStore(subscribe, () => foreground);
+const useForegroundChat = (): ForegroundChat => useSyncExternalStore(subscribe, () => foreground);
 export const useForegroundProvider = (): ProviderId | null => useForegroundChat().provider;

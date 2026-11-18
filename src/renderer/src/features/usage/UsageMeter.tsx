@@ -58,8 +58,8 @@ interface Props {
   window: UsageWindow;
   compact?: boolean;
   /**
-   * フッター用の 1 行表示（ラベル・バー・値を横に並べる。モデル別の週枠はモデル名だけ）。「残りわずか」「上限間近」の文は並べない（バーの色と % で分かり、
-   * 帯の幅を取るため）。マウスを乗せたときの説明と読み上げには残す
+   * フッター用の 1 行表示（ラベル・バー・値を横に並べる。モデル別の週枠はモデル名だけ）。「残りわずか」「上限間近」の文とリセットまでの残り時間は並べない
+   * （バーの色と % で分かり、帯の幅を取るため。利用者の依頼で Claude と Codex を並べるので、残り時間も外した）。マウスを乗せたときの説明と読み上げには残す
    */
   inline?: boolean;
   /** 枠が始まっていないときの説明 */
@@ -82,16 +82,13 @@ export function UsageMeter({ window: w, compact, inline, idleText }: Props) {
 
   if (inline) {
     return (
-      <span className={`meter meter-inline meter-${severity}`} title={[status, detail].filter(Boolean).join("\n") || undefined}>
+      <span
+        className={`meter meter-inline meter-${severity}`}
+        title={[status, detail, w.utilization !== null && resetShort && `${resetShort}にリセット`].filter(Boolean).join("\n") || undefined}
+      >
         <span className="meter-label">{label}</span>
         {bar}
         <span className="meter-value">{valueText}</span>
-        {/* リセットまでの残り（フッターでは短く） */}
-        {w.utilization !== null && resetShort && (
-          <span className="meter-reset" aria-label={`${resetShort}にリセット`}>
-            ↻{resetShort}
-          </span>
-        )}
       </span>
     );
   }

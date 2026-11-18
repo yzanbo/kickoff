@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
 import { Check, GitBranch, Settings, TriangleAlert, Unplug, WifiOff } from "lucide-react";
 import { useOnline } from "@/hooks/useOnline";
+import { usePopover } from "@/ui/Popover";
+import type { usePlanUsage } from "@/features/usage/usage";
+import { FooterUsage } from "./FooterUsage";
 import type { ConnectionState } from "@/api/useServerConnection";
 import { href } from "@/app/router";
-import { FIVE_HOUR_IDLE, planName, type usePlanUsage } from "@/features/usage/usage";
 import { useMainBranch } from "@/features/worktree/useWorkplace";
 import type { SettingsSection } from "@/features/settings/SettingsDialog";
 import { ConnectionPopover, connectionLabel } from "./ConnectionPopover";
@@ -15,13 +16,6 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { cx } from "@/lib/cx";
 import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode } from "./footerMode";
-import { usePopover } from "@/ui/Popover";
-import { UsageMeter } from "@/features/usage/UsageMeter";
-import { UsagePopover } from "@/features/usage/UsagePopover";
-import { ForegroundUsage, useForegroundUsage } from "@/features/usage/ForegroundUsage";
-import { useForegroundChat } from "@/features/chat/provider/chatProvider";
-import { UsageProviderPicker } from "./UsageProviderPicker";
-import { activeTemporaryUsage, type SelectableUsage, type TemporaryUsage } from "./usageSelection";
 import { RestartResumeFooterButton } from "@/features/chat/queue/RestartResumeDialog";
 import { PortsButton, PortsFallback } from "./ports/PortsButton";
 import { portsAvailable } from "./ports/portsStore";
@@ -36,7 +30,7 @@ interface Props {
 }
 
 /**
- * 下の帯（左: 設定・サーバーとの接続が切れたときの札・CLI が使えないときの札・ブランチ・ポートを使っているプロセス / 右: 契約プランと使用状況。ターミナルの開閉は右上）。
+ * 下の帯（左: 設定・サーバーとの接続が切れたときの札・CLI が使えないときの札・ブランチ・ポートを使っているプロセス / 右: AI ごとの契約プランと使用状況（FooterUsage）。ターミナルの開閉は右上）。
  * 接続の札は、つながっている間は出さない（デスクトップ版ではサーバーはアプリの中で動き、いつも「接続済み」だったため）。
  * 接続の札と使用状況は押すと、その上に詳細を出す（画面は移らない）。
  * 出し方（表示 / 下端に寄せたときだけ表示 / 非表示。useFooterMode）は、帯の右クリックと設定の「表示」で選ぶ。下端に寄せたときだけ出すときは、
@@ -46,23 +40,8 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
   const online = useOnline();
   const { anchor: connAnchor, ...conn } = usePopover();
   const notice = useConnectionNotice(connection.state);
-  const { anchor: usagePopoverAnchor, ...usagePopover } = usePopover();
-  const usage = planUsage.usage;
   const [mode, setMode] = useFooterMode();
   const menu = useContextMenu();
-  // 前に出しているチャットが Claude Code 以外の AI・API キーで動かす AI なら、その AI の使用状況を出す（メモの仕様書「0021」の Q6 B）
-  const foregroundAi = useForegroundUsage();
-  const foregroundChat = useForegroundChat();
-  const [choice, setChoice] = useState<TemporaryUsage | null>(null);
-  const temporary = activeTemporaryUsage(choice, foregroundChat);
-  const displayedAi = temporary === null ? foregroundAi : temporary === "claude" ? null : temporary;
-  // 別のチャットや AI に移ったら、前の詳細も閉じる。
-  useEffect(() => usagePopover.close(), [foregroundChat, usagePopover.close]);
-  const selectUsage = (provider: SelectableUsage | null) => {
-    usagePopover.close();
-    setChoice(provider === null ? null : { provider, foreground: foregroundChat });
-  };
-  const renderPlan = (label: string) => <UsageProviderPicker provider={displayedAi ?? "claude"} label={label} temporary={temporary} onSelect={selectUsage} />;
   // 隠していても、⌘K から「ポートを使っているプロセス」を開ける
   if (mode === "hide") return portsAvailable() ? <PortsFallback /> : null;
   return (
@@ -105,27 +84,7 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
       {/* 起動したときの再開の確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
       <RestartResumeFooterButton />
       <span className="spacer" />
-      {displayedAi !== null && <ForegroundUsage key={`${displayedAi}:${temporary ?? "auto"}`} provider={displayedAi} showSubscription={temporary !== null} renderPlan={renderPlan} />}
-      {displayedAi === null && renderPlan(planName(usage) || "Claude Code")}
-      {displayedAi !== null ? null : usage?.available ? (
-        <button
-          ref={usagePopoverAnchor}
-          className={`footer-usage ${usagePopover.open ? "active" : ""}`}
-          title="使用状況の詳細"
-          aria-expanded={usagePopover.open}
-          onClick={usagePopover.toggle}
-        >
-          <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
-          <UsageMeter window={usage.seven_day} inline />
-          {/* モデル別の週枠（Fable など）。1 行表示では短く「Fable」と出す（usageWindowLabel） */}
-          {usage.model_weekly.map((w) => (
-            <UsageMeter key={w.key} window={w} inline />
-          ))}
-        </button>
-      ) : (
-        usage && <span className="muted">使用状況を取得できません</span>
-      )}
-      {displayedAi === null && usagePopover.open && <UsagePopover anchor={usagePopoverAnchor} planUsage={planUsage} onClose={usagePopover.close} />}
+      <FooterUsage planUsage={planUsage} />
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="下の帯の出し方" onClose={menu.close}>
           <div className="menu-label">下の帯</div>
