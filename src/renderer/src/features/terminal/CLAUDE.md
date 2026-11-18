@@ -13,6 +13,8 @@
 
 ## 埋め込みブラウザ（`features/browser`）
 
+- ページ内のキーワード検索（`useBrowserFind`）は ⌘F または余白の右クリック。タブの名前やアドレス欄にピントがあれば `registerPageFind` から、ページの中なら IPC の `browser.onFindRequested` から開く（WebContents ID が合う表示中のタブだけ）。`FindField` で件数を表示し、Enter / Shift+Enter で次 / 前、Esc で閉じる。文字を探して印を付けるのは webview の `findInPage`。検索を閉じたとき・タブが見えなくなったときは印を外す。
+- 右クリックはメモと同じ `PopupMenu`。ページ内（`BrowserPageMenu`）は Electron の webview の `context-menu` で受け、リンク・画像・音声・動画・選んだ文・入力欄・余白で項目を変える。リンク・画像などは同じ欄の裏のタブに開ける。選んだ文はコピー・Google 検索・チャットへの添付（外から来たデータ）に使えるが、入力欄の文は検索やチャットに渡さない。「検証」は設定した場所の開発者ツールで開く。アドレス欄と検索欄は `useBrowserTextMenu` で切り取り・コピー・貼り付け・すべて選択を出す。ページ自身が右クリックを処理していれば横取りしない。
 - `BrowserPane`（開発中のアプリのプレビュー・ドキュメント閲覧。デスクトップアプリでのみ動く）。ページは Kickoff 本体と切り離した専用のセッション（`partition="persist:kickoff-browser"`。メインプロセスでも強制）で開く。アドレス欄の文字は `lib/url.ts` の `normalizeUrl`（URL らしければそのまま、localhost などは http、ドメインは https、それ以外は検索）。アドレス欄の横の「〜で開く」は選んでいる外のブラウザで開く。
 - 開発者ツールは `useDevtools`: 右・下はタブの中のもう 1 つの webview に、別のウィンドウはメインプロセスで作ったウィンドウに出す。どこに出しているかは画面の側で持ち、Electron の「開いた・閉じた」の知らせには頼らない（遅れて届く）。右と下の入れ替えは開き直さず、同じ入れ物の並べ方だけを変える。メニュー（`DockMenu`）で場所を選ぶと、その場所で開く。場所は `BROWSER_DEVTOOLS_DOCK`（初めは別のウィンドウ）、大きさは `BROWSER_DEVTOOLS_WIDTH` / `BROWSER_DEVTOOLS_HEIGHT`（`useDragSize`）。
 - 帯の「AI に渡す ▾」（プロジェクトの欄のタブだけ。仕様書「添付の共通化」の段階 2）: 共通の渡し先のメニュー（`features/chat/CLAUDE.md` の「AI に渡す」）で選び、押した時点の画面とコンソールの札を 2 つまとめて入力欄に入れる（要らない方は札の × で外す）。中身は `browserHandOff.ts` の `browserHandOffItem` がメインプロセスの `agentBrowser.handOffCapture` で取る: 画面はタブに見えている範囲だけ（AI の browser_screenshot と同じ撮り方。ページ全体は撮らない）、コンソールは覚えている出力（読み直し・移動の前のものも）のうちエラーと警告だけを、行ごとに出たページの URL 付きの文書にする（`consoleDocument.ts`。札の名前も。console.log などは入れない）。エラー・警告が 0 件ならコンソールの札は作らず、画面が撮れなければ理由を知らせてコンソールだけ入れる。どちらの札もページが書いたものなので「外から来たデータ」。新しいチャットは本体で始め、一言は空。

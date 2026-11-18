@@ -11,6 +11,7 @@ export const isOurWebview = (host: WebContents, c: WebContents | undefined): c i
 
 // 埋め込みブラウザ（の WebContents の ID）ごとの、開発者ツールの別のウィンドウ
 const devtoolsWindows = new Map<number, BrowserWindow>();
+type Point = { x: number; y: number };
 
 /** 別のウィンドウを閉じる（こちらから閉じるときは、画面には知らせない） */
 function closeDevToolsWindow(targetId: number) {
@@ -31,13 +32,14 @@ function resetDevTools(target: WebContents) {
   if (target.isDevToolsOpened()) target.closeDevTools();
 }
 
-function openDevToolsIn(host: WebContents, targetId: number, devtoolsId: number) {
+function openDevToolsIn(host: WebContents, targetId: number, devtoolsId: number, inspect?: Point) {
   const target = targetOf(host, targetId);
   const devtools = webContents.fromId(devtoolsId);
   if (!isOurWebview(host, devtools)) throw new Error("開発者ツールを開けません");
   resetDevTools(target);
   target.setDevToolsWebContents(devtools);
   target.openDevTools();
+  if (inspect) target.inspectElement(inspect.x, inspect.y);
 }
 
 /**
@@ -45,13 +47,14 @@ function openDevToolsIn(host: WebContents, targetId: number, devtoolsId: number)
  * 開発者ツール用のウィンドウをこちらで作り、その中に表示する（Electron の説明どおりのやり方）。
  * 利用者がウィンドウを閉じたら、開発者ツールも閉じて画面に知らせる（devtools.onWindowClosed）
  */
-function openDevToolsWindow(host: WebContents, targetId: number) {
+function openDevToolsWindow(host: WebContents, targetId: number, inspect?: Point) {
   const target = targetOf(host, targetId);
   resetDevTools(target);
   const win = new BrowserWindow({ width: 1000, height: 720, title: "開発者ツール", backgroundColor: "#202124" });
   devtoolsWindows.set(targetId, win);
   target.setDevToolsWebContents(win.webContents);
   target.openDevTools({ mode: "detach" });
+  if (inspect) target.inspectElement(inspect.x, inspect.y);
   win.on("closed", () => {
     // こちらから閉じたとき（場所を変えた・閉じるボタン）は何もしない
     if (devtoolsWindows.get(targetId) !== win) return;
@@ -70,7 +73,7 @@ function closeDevTools(host: WebContents, targetId: number) {
 
 /** 埋め込みブラウザの開発者ツール（IPC の devtools）。どちらも、頼んできた画面の中の埋め込みブラウザに限る */
 export const devtoolsHandlers: IpcHandlers["devtools"] = {
-  openIn: (e, targetId, devtoolsId) => openDevToolsIn(e.sender, targetId, devtoolsId),
-  openWindow: (e, targetId) => openDevToolsWindow(e.sender, targetId),
+  openIn: (e, targetId, devtoolsId, inspect) => openDevToolsIn(e.sender, targetId, devtoolsId, inspect),
+  openWindow: (e, targetId, inspect) => openDevToolsWindow(e.sender, targetId, inspect),
   close: (e, targetId) => closeDevTools(e.sender, targetId),
 };

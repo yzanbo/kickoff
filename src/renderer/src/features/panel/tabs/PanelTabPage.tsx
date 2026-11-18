@@ -153,9 +153,16 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       />
     </Suspense>
   ),
-  browser: ({ tab: t, panel }) => (
+  browser: ({ tab: t, panel, visible }) => (
     <BrowserPane
       url={t.url}
+      visible={visible}
+      onOpenTab={(url, background) => {
+        // クリックしたブラウザのペインに足し、リンク・画像なら今のタブを表示したままにする
+        panel.showTab(t.key);
+        if (background) panel.addBrowserBehind(url);
+        else panel.openBrowser(url);
+      }}
       // AI に操作させるため、どのパネルのどのタブかをメインプロセスに登録する（プロジェクトの欄でなければプロジェクトは null）
       agentTarget={{ tabKey: t.key, projectId: projectOfPanel(panel.key) }}
       // 空のページのあいだは「新しいタブ」と表示する

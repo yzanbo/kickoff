@@ -12,6 +12,8 @@ const none = z.tuple([]);
 const absolutePath = z.string().refine((p) => path.isAbsolute(p), { message: "絶対パスではありません" });
 /** 埋め込みブラウザ（WebContents）の ID */
 const webContentsId = z.number().int().nonnegative();
+const coordinate = z.int32();
+const inspectPoint = z.object({ x: coordinate, y: coordinate }).optional();
 const positiveInt = z.number().int().positive();
 const terminalId = z.enum(EXTERNAL_TERMINALS.map((t) => t.id));
 const browserId = z.enum(EXTERNAL_BROWSERS.map((b) => b.id));
@@ -42,9 +44,12 @@ export const IPC_ARGS = defineArgSchemas({
     browsers: none,
     openBrowser: z.tuple([z.string().optional(), browserId.optional()]),
   },
+  browser: {
+    copyImageAt: z.tuple([webContentsId, coordinate, coordinate]),
+  },
   devtools: {
-    openIn: z.tuple([webContentsId, webContentsId]),
-    openWindow: z.tuple([webContentsId]),
+    openIn: z.tuple([webContentsId, webContentsId, inspectPoint]),
+    openWindow: z.tuple([webContentsId, inspectPoint]),
     close: z.tuple([webContentsId]),
   },
   agentBrowser: {

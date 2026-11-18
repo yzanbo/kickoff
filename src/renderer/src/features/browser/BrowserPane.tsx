@@ -11,9 +11,16 @@ import { DockMenu } from "./DockMenu";
 import { DEVTOOLS_DOCK_LABELS, useDevtools } from "./useDevtools";
 import { useAgentRegistration } from "./agentBrowsing";
 import { browserHandOffItem } from "./browserHandOff";
+import { useBrowserFind } from "./BrowserFind";
+import { BrowserPageMenu, useBrowserPageMenu } from "./BrowserPageMenu";
+import { useBrowserTextMenu } from "./useBrowserTextMenu";
 
 interface Props {
   url: string;
+  /** パネルが開いていて、このタブを表示しているか */
+  visible: boolean;
+  /** 右クリックで開く新しいタブを、このブラウザと同じ欄に足す */
+  onOpenTab: (url: string, background: boolean) => void;
   /** ページのタイトル・URL が変わったとき（タブの表示と、次回の初期 URL の保存に使う） */
   onChange?: (info: { url: string; title: string }) => void;
   /** AI に操作させるときの登録先（パネルのタブのキーと、どのプロジェクトの欄か） */
@@ -24,7 +31,8 @@ interface Props {
  * 埋め込みブラウザ（開発中のアプリのプレビュー・ドキュメント閲覧）。
  * デスクトップアプリでのみ動く。表示するページは Kickoff 本体と切り離した専用のセッションで開く。
  */
-export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
+export function BrowserPane({ url: initialUrl, onChange, agentTarget, visible, onOpenTab }: Props) {
+  const paneRef = useRef<HTMLDivElement>(null);
   const ref = useRef<WebviewTag | null>(null);
   // 「AI に渡す」が押したときに読む webview（描く中で ref を読む関数を作らないよう、state にも持つ）
   const [view, setView] = useState<WebviewTag | null>(null);
@@ -42,6 +50,9 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
   // 開発者ツール（右・下・別のウィンドウ）と、出す場所を選ぶメニュー
   const { paneRef: devtoolsPaneRef, devtoolsRef, ...devtools } = useDevtools(ref);
   const dockMenu = useContextMenu({ align: "end" });
+  const find = useBrowserFind({ paneRef, view, visible, tabKey: agentTarget?.tabKey ?? null });
+  const pageMenu = useBrowserPageMenu(view, visible);
+  const textMenu = useBrowserTextMenu(visible);
   const notifyChange = useEffectEvent((page: { url: string; title: string }) => onChange?.(page));
 
   useEffect(() => {
@@ -126,7 +137,7 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
   }
 
   return (
-    <div className="browser-pane">
+    <div ref={paneRef} className="browser-pane" onContextMenu={textMenu.onContextMenu}>
       <form className="browser-toolbar" onSubmit={go}>
         <IconButton icon={ArrowLeft} label="戻る" size={15} type="button" disabled={!nav.back} onClick={() => ref.current?.goBack()} />
         <IconButton icon={ArrowRight} label="進む" size={15} type="button" disabled={!nav.forward} onClick={() => ref.current?.goForward()} />
@@ -181,6 +192,22 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget }: Props) {
           onClick={() => external.open(current)}
         />
       </form>
+      {find.field}
+      {textMenu.element}
+      {view && pageMenu.shown && (
+        <BrowserPageMenu
+          shown={pageMenu.shown}
+          close={pageMenu.close}
+          view={view}
+          currentUrl={current}
+          projectId={projectId}
+          nav={nav}
+          external={external}
+          openTab={onOpenTab}
+          openFind={find.open}
+          inspect={devtools.inspect}
+        />
+      )}
       {dockMenu.menu && <DockMenu at={dockMenu.menu.at} value={devtools.dock} onPick={devtools.changeDock} onClose={dockMenu.close} />}
       {error && <p className="browser-error">{error}</p>}
       <div className={cx("browser-body", devtools.embed && `dock-${devtools.embed.dock}`, devtools.resizing && "resizing")}>

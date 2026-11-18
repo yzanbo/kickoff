@@ -96,12 +96,19 @@ export const NATIVE_API = {
     /** 外部のブラウザ（省くと Chrome）でページを開く（url がない・http(s) でなければ空の新しいタブ） */
     openBrowser: invoke<[url?: string, browser?: ExternalBrowserId]>(),
   },
+  /** 埋め込みブラウザ（<webview>）のページ内検索・右クリックの操作 */
+  browser: {
+    /** ページの中で ⌘F が押された（その WebContents の ID） */
+    onFindRequested: event<[webContentsId: number]>(),
+    /** 右クリックした場所の画像をコピーする。座標は webview が知らせた値 */
+    copyImageAt: invoke<[webContentsId: number, x: number, y: number]>(),
+  },
   /** 埋め込みブラウザ（<webview>）の開発者ツール。targetId・devtoolsId は埋め込みブラウザの WebContents の ID */
   devtools: {
     /** 開発者ツールを、同じ画面の別の埋め込みブラウザの中に表示する（右・下に並べる） */
-    openIn: invoke<[targetId: number, devtoolsId: number]>(),
+    openIn: invoke<[targetId: number, devtoolsId: number, inspect?: { x: number; y: number }]>(),
     /** 開発者ツールを、別のウィンドウで開く */
-    openWindow: invoke<[targetId: number]>(),
+    openWindow: invoke<[targetId: number, inspect?: { x: number; y: number }]>(),
     /** 開発者ツールを閉じる（別のウィンドウも） */
     close: invoke<[targetId: number]>(),
     /** 開発者ツールの別のウィンドウを、利用者が閉じた */

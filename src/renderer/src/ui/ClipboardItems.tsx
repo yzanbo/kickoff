@@ -2,7 +2,7 @@ import { lineLocation, textWithPath } from "@/lib/pathCopy";
 import { reportFailure } from "./dialogs";
 import { MenuItem } from "./PopupMenu";
 
-const copy = (text: string) => navigator.clipboard.writeText(text).catch(reportFailure("コピーできませんでした"));
+export const copyClipboardText = (text: string) => navigator.clipboard.writeText(text).catch(reportFailure("コピーできませんでした"));
 
 /**
  * 右クリックのメニューの、見出し「クリップボード」の組: 切り取り（onCut を渡したとき）・コピー・パスを含めてコピー・パスをコピー・貼り付け（onPaste を渡したとき）。
@@ -32,7 +32,7 @@ export function ClipboardItems({
           切り取り
         </MenuItem>
       )}
-      <MenuItem disabled={!text} onSelect={() => void copy(text)}>
+      <MenuItem disabled={!text} onSelect={() => void copyClipboardText(text)}>
         コピー
       </MenuItem>
       {path && (
@@ -40,11 +40,11 @@ export function ClipboardItems({
           <MenuItem
             disabled={!selection.trim()}
             title="選択部分の前に、ファイルのフルパス（分かれば行番号も）を付けてコピーします"
-            onSelect={() => void copy(textWithPath(lineLocation(path, lines), selection))}
+            onSelect={() => void copyClipboardText(textWithPath(lineLocation(path, lines), selection))}
           >
             パスを含めてコピー
           </MenuItem>
-          <MenuItem title="ファイルのフルパスをコピーします" onSelect={() => void copy(path)}>
+          <MenuItem title="ファイルのフルパスをコピーします" onSelect={() => void copyClipboardText(path)}>
             パスをコピー
           </MenuItem>
         </>

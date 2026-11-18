@@ -62,7 +62,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   // 利用者が見ているもの（このウィンドウの中身。AI の get_user_view が読む）
   useUserViewReport(() => collectPopoutView(route), (view) => popoutChatIds(view, route), [route]);
   const rootRef = useRef<HTMLDivElement>(null);
-  const find = usePageFind(rootRef, { native: openEditorFind, placeholder: "このウィンドウを検索", className: "page-find" });
+  const find = usePageFind(rootRef, { native: openEditorFind, placeholder: "このウィンドウを検索", className: "page-find", enabled: route.kind !== "browser" });
   useWindowEvent("keydown", (e) => {
     if (e.defaultPrevented) return;
     // ⌘⇧S: すべて保存（このウィンドウのメモ・ファイル。メインのウィンドウと同じ）

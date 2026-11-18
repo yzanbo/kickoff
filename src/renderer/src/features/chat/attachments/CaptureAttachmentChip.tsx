@@ -1,4 +1,4 @@
-import { CircleDot, Container, Database, Workflow, GitPullRequest, MessageSquareCode, Monitor, ShieldAlert, SquareTerminal, TriangleAlert, type LucideIcon } from "lucide-react";
+import { CircleDot, Container, Database, Workflow, GitPullRequest, MessageSquareCode, Monitor, ShieldAlert, SquareTerminal, TextSelect, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachment/sources";
 import type { AttachmentSourceType, CaptureAttachment } from "@shared/types";
@@ -18,6 +18,7 @@ const SOURCE_ICONS: Record<AttachmentSourceType, LucideIcon> = {
   db_failure: Database,
   browser_console: TriangleAlert,
   browser_screen: Monitor,
+  browser_selection: TextSelect,
   terminal: SquareTerminal,
   docker_logs: Container,
   ci_log: Workflow,

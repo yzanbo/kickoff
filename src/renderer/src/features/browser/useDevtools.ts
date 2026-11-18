@@ -16,6 +16,7 @@ export const DEVTOOLS_DOCK_LABELS: Record<DevtoolsDock, string> = {
 };
 
 const MIN_HEIGHT = 140;
+type Point = { x: number; y: number };
 
 /** 埋め込みブラウザの webContents の ID（まだ表示の準備ができていなければ undefined） */
 function webContentsIdOf(view: WebviewTag | null | undefined): number | undefined {
@@ -38,6 +39,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
   const [shown, setShown] = useState<DevtoolsDock | null>(null);
   const [embedKey, setEmbedKey] = useState(0);
   const devtoolsRef = useRef<WebviewTag | null>(null);
+  const inspectOnOpen = useRef<Point | null>(null);
   // 右に出すときの幅（左端のつまみ）と、下に出すときの高さ（上端のつまみ）。右と下で同じ入れ物（paneRef）を使う
   const paneRef = useRef<HTMLDivElement>(null);
   const width = useDragSize({ setting: BROWSER_DEVTOOLS_WIDTH, edge: "start", min: 260, keep: 240, pane: paneRef });
@@ -74,7 +76,9 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
       const id = webContentsIdOf(viewRef.current);
       if (done || id === undefined) return;
       done = true;
-      void window.kickoff?.devtools.openIn(id, holder.getWebContentsId()).catch(() => setShown(null));
+      const point = inspectOnOpen.current;
+      inspectOnOpen.current = null;
+      void window.kickoff?.devtools.openIn(id, holder.getWebContentsId(), point ?? undefined).catch(() => setShown(null));
     };
     holder.addEventListener("dom-ready", attach);
     return () => {
@@ -83,20 +87,25 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
     // 入れ物を作り直したとき（embedKey）だけ表示し直す。右と下の入れ替えでは表示し直さない（viewRef は変わらない）
   }, [embedKey, embedded, viewRef]);
 
-  const openAt = (where: DevtoolsDock) => {
+  const openAt = (where: DevtoolsDock, inspect?: Point) => {
     const id = viewId();
     if (id === undefined) return;
     if (where === "window") {
+      inspectOnOpen.current = null;
       setShown("window");
-      void window.kickoff?.devtools.openWindow(id).catch(() => setShown(null));
+      void window.kickoff?.devtools.openWindow(id, inspect).catch(() => setShown(null));
     } else {
       // タブの中に出していれば並べ方だけを変え、そうでなければ入れ物を作り直して表示する
-      if (!embedded) setEmbedKey((k) => k + 1);
+      if (!embedded) {
+        inspectOnOpen.current = inspect ?? null;
+        setEmbedKey((k) => k + 1);
+      }
       setShown(where);
     }
   };
 
   const close = () => {
+    inspectOnOpen.current = null;
     const id = viewId();
     if (id !== undefined) void window.kickoff?.devtools.close(id);
     setShown(null);
@@ -119,6 +128,11 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
     heightHandle: height.handle,
     resizing: width.resizing || height.resizing,
     toggle: () => (shown ? close() : openAt(dock)),
+    inspect: (point: Point) => {
+      if (!shown) openAt(dock, point);
+      else if (embedded && !devtoolsRef.current) inspectOnOpen.current = point;
+      else viewRef.current?.inspectElement(point.x, point.y);
+    },
     /** 出す場所を選ぶ（選んだ場所で開く。開いていれば、その場所へ移す） */
     changeDock: (next: DevtoolsDock) => {
       setDock(next);
