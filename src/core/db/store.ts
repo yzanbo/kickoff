@@ -170,6 +170,29 @@ export class Store {
     }
   }
 
+  /** 再開前に対象セッションの消失が確定した場合だけ、再開位置を外して資料の再準備を待つ。 */
+  markProviderSessionMissing(chatId: number, eventId: number, provider: ProviderId, sessionId: string): boolean {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const chat = this.chats.get(chatId);
+      const pending = this.chatProviderHandoffs.get(chatId);
+      if (!chat || chat.provider !== provider || chat.session_id !== sessionId || !pending || pending.eventId !== eventId || pending.provider !== provider || pending.state !== "sending") {
+        this.db.exec("ROLLBACK");
+        return false;
+      }
+      this.db.prepare("UPDATE chats SET session_id = NULL WHERE id = ?").run(chatId);
+      this.chatProviderSessions.remove(chatId, provider);
+      this.chatProviderHandoffs.save({ ...pending, state: "blocked", error: "以前のセッションが見つからないため、会話の資料を作り直します", lastEventId: null });
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+    const chat = this.chats.get(chatId)!;
+    try { this.onChange({ type: "chat", chat }); } catch (error) { console.warn("[provider-handoff] セッション変更の通知に失敗しました", error); }
+    return true;
+  }
+
   /** 準備をやり直した資料と、その参照先を同時に保存する。別の切り替えや送信と競合したら変更しない。 */
   retryProviderHandoff(chatId: number, eventId: number, provider: ProviderId, context: string, attachments: Attachment[]): boolean {
     this.db.exec("BEGIN IMMEDIATE");

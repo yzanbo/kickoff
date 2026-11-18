@@ -33,6 +33,7 @@ import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, Pr
 import { runCommand } from "../../system/exec.js";
 import { claudeSandboxOption } from "./sandbox.js";
 import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
+import { confirmedClaudeMissingResume } from "./missingResume.js";
 import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
 import { noteSyncSince, syncStart } from "../../system/stallWatch.js";
 
@@ -156,6 +157,7 @@ export class ClaudeProvider implements AgentProvider {
 
     let sessionId = params.resumeSessionId;
     let final: SDKResultMessage | undefined;
+    let seenOtherMessage = false;
     // メインエージェントの最後の応答で、コンテキストに入っていたトークン数
     let contextTokens: number | undefined;
     // 要約したあとの大きさが分からず、次のメインの応答で知らせるところか
@@ -242,6 +244,7 @@ export class ClaudeProvider implements AgentProvider {
       // 裏で動いている作業と、メインの返答が終わったか（変わったときだけ知らせる）
       const trackBackground = createBackgroundTracker();
       for await (const msg of q) {
+        if (msg.type !== "result") seenOtherMessage = true;
         // 1 件の処理に名前を付けて詰まりの見張りに知らせる（system/stallWatch.ts）
         const handleStart = syncStart();
         // 通信の再試行: 画面に回数と次に送り直すまでの時間を知らせる（応答がない = 通信が切れている）
@@ -295,7 +298,7 @@ export class ClaudeProvider implements AgentProvider {
     } catch (e) {
       if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };
       const error = errorMessage(e);
-      return { status: "failed", sessionId, error, lastMessageId, network: network(error), ...usageLimit(error) };
+      return { status: "failed", sessionId, error, lastMessageId, ...(confirmedClaudeMissingResume(e, params.resumeSessionId, final, seenOtherMessage) ? { resumeSessionMissing: true as const } : {}), network: network(error), ...usageLimit(error) };
     } finally {
       signal.removeEventListener("abort", onAbort);
       turnOver.stop();
