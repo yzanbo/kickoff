@@ -9,37 +9,7 @@ import type { BusEvent, MemoList } from "@shared/types";
 import { tempDir } from "../testing/tempDir.js";
 import { AUTH, setup } from "../testing/testServer.js";
 import { until } from "../testing/testCore.js";
-
-/** OS の監視を実際に試す。EMFILE 以外の失敗や通知が届かない場合は成功扱いにしない。 */
-async function canWatchFiles(): Promise<boolean> {
-  const dir = tempDir();
-  return new Promise<boolean>((resolve, reject) => {
-    let watcher: fs.FSWatcher;
-    try {
-      watcher = fs.watch(dir, { recursive: true });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "EMFILE") resolve(false);
-      else reject(error);
-      return;
-    }
-    const timer = setTimeout(() => {
-      watcher.close();
-      reject(new Error("ファイル監視を開始しましたが、試しの変更が通知されませんでした"));
-    }, 3000);
-    watcher.once("error", (error: NodeJS.ErrnoException) => {
-      clearTimeout(timer);
-      watcher.close();
-      if (error.code === "EMFILE") resolve(false);
-      else reject(error);
-    });
-    watcher.once("change", () => {
-      clearTimeout(timer);
-      watcher.close();
-      resolve(true);
-    });
-    fs.writeFileSync(path.join(dir, "watch-probe.md"), "probe");
-  });
-}
+import { canWatchDirectory } from "../testing/canWatchDirectory.js";
 
 test("メモの保存先: 既定は親フォルダの下のプロジェクト名のフォルダ。名前を変えても同じフォルダ、ほかのプロジェクトとは重ねない", async () => {
   const { call, project, store, memoFake } = setup();
@@ -146,7 +116,7 @@ test("メモ: 監視からの外部変更を知らせ、隠しファイルは知
 });
 
 test("メモ: Kickoff の外（Finder・ほかのアプリ）での変更も、一覧を読んだあとは知らせる（隠しファイルは知らせない）", async (t) => {
-  if (!(await canWatchFiles())) t.skip("この環境では OS のファイル監視を開始できません（EMFILE）。実際の監視は別の環境で確認してください");
+  if (!(await canWatchDirectory({ recursive: true }))) t.skip("この環境では OS のファイル監視を開始できません（EMFILE）。実際の監視は別の環境で確認してください");
   const { call, project, bus } = setup();
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/memos`, { path: "初め.md" });
