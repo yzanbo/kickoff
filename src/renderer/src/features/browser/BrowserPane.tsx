@@ -48,7 +48,7 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget, visible, o
   const [nav, setNav] = useState({ back: false, forward: false });
   const [error, setError] = useState<string>();
   // 開発者ツール（右・下・別のウィンドウ）と、出す場所を選ぶメニュー
-  const { paneRef: devtoolsPaneRef, devtoolsRef, ...devtools } = useDevtools(ref);
+  const { paneRef: devtoolsPaneRef, slotRef: devtoolsSlotRef, ...devtools } = useDevtools(ref, visible);
   const dockMenu = useContextMenu({ align: "end" });
   const find = useBrowserFind({ paneRef, view, visible, tabKey: agentTarget?.tabKey ?? null });
   const pageMenu = useBrowserPageMenu(view, visible);
@@ -226,7 +226,10 @@ export function BrowserPane({ url: initialUrl, onChange, agentTarget, visible, o
               className="browser-devtools"
               style={devtools.embed.dock === "right" ? { width: devtools.width } : { height: devtools.height }}
             >
-              <webview key={devtools.embed.key} ref={devtoolsRef} className="browser-devtools-view" src="about:blank" partition="persist:kickoff-browser" />
+              {/* 開発者ツールはメインプロセスがこの枠に重ねて出す（webview の中には出さない）。重ねた表示を隠している間は、撮った見た目を出す */}
+              <div ref={devtoolsSlotRef} className="browser-devtools-view">
+                {devtools.snapshot && <img className="browser-devtools-snapshot" src={devtools.snapshot.src} style={{ width: devtools.snapshot.width }} alt="" />}
+              </div>
             </div>
           </>
         )}

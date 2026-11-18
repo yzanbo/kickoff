@@ -14,6 +14,8 @@ const absolutePath = z.string().refine((p) => path.isAbsolute(p), { message: "�
 const webContentsId = z.number().int().nonnegative();
 const coordinate = z.int32();
 const inspectPoint = z.object({ x: coordinate, y: coordinate }).optional();
+/** 右・下に並べた開発者ツールの置き場所（画面の CSS の px） */
+const devtoolsBounds = z.object({ x: z.number().finite(), y: z.number().finite(), width: z.number().finite().nonnegative(), height: z.number().finite().nonnegative() });
 const positiveInt = z.number().int().positive();
 const terminalId = z.enum(EXTERNAL_TERMINALS.map((t) => t.id));
 const browserId = z.enum(EXTERNAL_BROWSERS.map((b) => b.id));
@@ -48,7 +50,9 @@ export const IPC_ARGS = defineArgSchemas({
     copyImageAt: z.tuple([webContentsId, coordinate, coordinate]),
   },
   devtools: {
-    openIn: z.tuple([webContentsId, webContentsId, inspectPoint]),
+    openIn: z.tuple([webContentsId, devtoolsBounds, inspectPoint]),
+    place: z.tuple([webContentsId, devtoolsBounds.nullable()]),
+    snapshot: z.tuple([webContentsId]),
     openWindow: z.tuple([webContentsId, inspectPoint]),
     close: z.tuple([webContentsId]),
   },
