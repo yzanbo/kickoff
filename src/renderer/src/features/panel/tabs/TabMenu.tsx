@@ -16,13 +16,14 @@ import { TabDisplaySubmenu } from "./TabDisplayItems";
 
 /**
  * 右のパネルのタブの右クリックのメニュー: いちばん上に「新しいチャット」（チャットを出す欄だけ。利用者の依頼。右クリックしたタブのペインに、
- * チャット・新しいチャットのタブなら同じグループ・作業場所で、ほかのタブなら欄の作成先で始める）、右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
- * 一覧のペインに「（一覧）」と添える）、分けたペインのサイドバーと連動したチャットは一覧のペインに戻す、閉じる。
+ * チャット・新しいチャットのタブなら同じグループ・作業場所で、ほかのタブなら欄の作成先で始める）、表示する場所の組（右・下に分ける・ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
+ * 一覧のペインに「（一覧）」と添える）・別ウィンドウで開く・分けたペインのサイドバーと連動したチャットは一覧のペインに戻す。利用者の依頼で 1 つの組に集めた。前は別ウィンドウで開くだけがいちばん下にあった）、
+ * いちばん下にタブの組（タブの表示 ›・タブを閉じる）。
  * チャットのタブと子チャットのタブには、会話 / 動きの切り替え（見出しの行を隠していても切り替えられるように）と、サイドバーの行と同じチャットの項目
  * （ChatMenuItems。名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる（子チャットのタブも、ふつうのチャットのタブと
  * 同じ並びにする。利用者の依頼。前は名前を変更・分けて開く・別ウィンドウで開く・閉じるだけだった）。
  * 送る前の新しいチャットのタブは、サイドバーの下書きの行と同じ項目（DraftMenuItems。チャットの項目のうち下書きでもできるもの）を同じ並びで
- * 閉じるの前に「タブの表示 ›」（タブの列の「表示」のメニューの上の部分と同じ項目を横に開く。TabDisplaySubmenu。利用者の依頼）。
+ * 閉じるのすぐ上に「タブの表示 ›」（タブの列の「表示」のメニューの上の部分と同じ項目を横に開く。TabDisplaySubmenu。利用者の依頼）。
  */
 export function TabMenu({
   panel,
@@ -79,13 +80,14 @@ export function TabMenu({
       {activity ? <MessageSquare size={14} /> : <GitBranch size={14} />} {activity ? "会話に戻る" : "動きを見る"}
     </MenuItem>
   );
+  // 表示する場所の組（分ける・ほかのペインへ移す・別ウィンドウ・一覧のペインに戻す）。タブはもう開いているので「開く」は付けず、ペインの右上のボタンと同じ「右に分ける」「下に分ける」と呼ぶ
   const paneItems = (
     <>
       <MenuItem onSelect={() => panel.splitPane(pane.id, "row", "after", tabKey)}>
-        <Columns2 size={14} /> 右に分けて開く
+        <Columns2 size={14} /> 右に分ける
       </MenuItem>
       <MenuItem onSelect={() => panel.splitPane(pane.id, "column", "after", tabKey)}>
-        <Rows2 size={14} /> 下に分けて開く
+        <Rows2 size={14} /> 下に分ける
       </MenuItem>
       {panes.length > 1 &&
         panes.map((p, i) =>
@@ -95,11 +97,7 @@ export function TabMenu({
             </MenuItem>
           ),
         )}
-    </>
-  );
-  const closeItem = (
-    <>
-      {/* チャットの画面の右の欄のサブエージェント・変更・ファイルは、別ウィンドウへ移せる（2 枚目の画面に置くなど） */}
+      {/* チャットのパネルのチャット・チャットの画面の右の欄のサブエージェント・変更・ファイルなどは、別ウィンドウへ移せる（2 枚目の画面に置くなど） */}
       {canPopOut(tab) && (
         <MenuItem onSelect={() => popOutTab(panel, tabKey)}>
           <AppWindow size={14} /> 別ウィンドウで開く
@@ -110,6 +108,13 @@ export function TabMenu({
           <Undo2 size={14} /> 一覧のペインに戻す
         </MenuItem>
       )}
+    </>
+  );
+  // タブの組（いちばん下。タブの表示 ›・タブを閉じる）
+  const tabItems = (
+    <>
+      <div className="menu-separator" role="separator" />
+      <TabDisplaySubmenu panel={panel} />
       {/* メニューの「閉じる」は、チャットの閉じ方を聞かずに閉じる（× と違い、アーカイブ・削除はこのメニューの項目で選べる）。保存していない書きかけのあるファイル・メモは × と同じく保存するかを聞く */}
       <MenuItem onSelect={() => void (tab ? confirmCloseUnsaved(panel.key, tab) : Promise.resolve(true)).then((ok) => ok && panel.closeTab(tabKey))}>
         <X size={14} /> タブを閉じる
@@ -126,13 +131,7 @@ export function TabMenu({
           onRename={onRename}
           onClose={onClose}
           before={paneItems}
-          after={
-            <>
-              <TabDisplaySubmenu panel={panel} />
-              <div className="menu-separator" role="separator" />
-              {closeItem}
-            </>
-          }
+          after={tabItems}
         />
       ) : chat ? (
         <ChatMenuItems
@@ -148,13 +147,7 @@ export function TabMenu({
               {paneItems}
             </>
           }
-          after={
-            <>
-              <TabDisplaySubmenu panel={panel} />
-              <div className="menu-separator" role="separator" />
-              {closeItem}
-            </>
-          }
+          after={tabItems}
         />
       ) : (
         <>
@@ -166,9 +159,7 @@ export function TabMenu({
             </MenuItem>
           )}
           {paneItems}
-          <TabDisplaySubmenu panel={panel} />
-          <div className="menu-separator" role="separator" />
-          {closeItem}
+          {tabItems}
         </>
       )}
     </PopupMenu>

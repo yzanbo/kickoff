@@ -7,6 +7,13 @@
   color: var(--muted);
 }
 
+/* メニュー全体の題名（「チャット画面表示」。下の組の見出し .menu-label より一段上に見えるよう、本文の色の太字にする） */
+.menu-label.menu-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .group-pick-menu {
   min-width: 200px;
 }
