@@ -30,7 +30,7 @@ function userText(e: Extract<ChatEvent, { type: "user" }>): string {
   if (e.data.pre_compact) return "（圧縮前指示）";
   if (e.data.post_compact) return "（圧縮後指示）";
   if (e.data.handoff_request) return "（親への依頼文を頼みました）";
-  const attachments = e.data.attachments?.length ? `\n（添付 ${e.data.attachments.length} 個）` : "";
+  const attachments = e.data.attachments?.length ? `\n（添付 ${e.data.attachments.length} 個。場所は read_chat の event_id に ${e.id} を指定）` : "";
   return e.data.text + attachments;
 }
 

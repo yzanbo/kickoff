@@ -5,6 +5,8 @@ import type { PlanUsage } from "@shared/types";
 import { ScriptedProvider } from "../testing/fakeProvider.js";
 import { setupCore } from "../testing/testCore.js";
 import { createAiChatReadTools, usageText } from "./aiChatRead.js";
+import { UploadStore } from "./uploads.js";
+import { tempDir } from "../testing/tempDir.js";
 
 function setup() {
   const ctx = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s", turns: 1, result: "" })));
@@ -76,6 +78,23 @@ test("read_chat: 省略された長い発言を記録 ID と文字位置で最�
   assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: outside.id }), /読める発言がありません/);
   assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: user.id, turns: 1 }), /同時に指定できません/);
   assert.throws(() => tools.readChat({ chat_id: ctx.other.id, offset: 3 }), /event_id が必要/);
+});
+
+test("read_chat: 添付のある発言は場所を後から読み、欠けた添付も知らせる。他プロジェクトは読ませない", async () => {
+  const ctx = setup();
+  const uploads = new UploadStore(tempDir());
+  const file = await uploads.save({ name: "資料.txt", type: "text/plain", bytes: new TextEncoder().encode("秘密の内容") });
+  const missing = { ...file, id: "00000000-0000-0000-0000-000000000000", name: "消えた.txt" };
+  const event = ctx.store.events.add(ctx.other.id, { type: "user", text: "確認して", message_uuid: "u", attachments: [file, missing] });
+  const outside = ctx.store.events.add(ctx.outside.id, { type: "user", text: "別", message_uuid: "v", attachments: [file] });
+  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals, uploads }, ctx.child.id);
+  assert.match(tools.readChat({ chat_id: ctx.other.id }), new RegExp(`event_id に ${event.id}`));
+  const result = JSON.parse(await tools.readChatWithAttachments({ chat_id: ctx.other.id, event_id: event.id }));
+  assert.equal(result.attachments[0].path, (await uploads.resolve(file.id))?.path);
+  assert.equal(result.attachments[1].unavailable, true);
+  assert.doesNotMatch(JSON.stringify(result), /秘密の内容/);
+  await assert.rejects(tools.readChatWithAttachments({ chat_id: ctx.outside.id, event_id: outside.id }), /このプロジェクトにありません/);
+  await assert.rejects(tools.readChatWithAttachments({ chat_id: ctx.other.id, event_id: outside.id }), /読める発言がありません/);
 });
 
 test("get_usage: 使った割合と残り・リセットの時刻（取れなければその理由）", async () => {
