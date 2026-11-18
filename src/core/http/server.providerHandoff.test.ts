@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { PROVIDER_BASE_CHAT_OPTIONS } from "@shared/chat/chatOptions";
-import { setup } from "../testing/testServer.js";
+import { setup, until } from "../testing/testServer.js";
 
 test("引き継ぎの状態を返し、古い区切りや未確認の再送を断る", async () => {
   const { call, store, project, provider } = setup();
@@ -13,6 +13,11 @@ test("引き継ぎの状態を返し、古い区切りや未確認の再送を�
   assert.equal(state.body.state, "uncertain");
   assert.equal(state.body.event_id, switched.event.id);
   assert.equal(state.body.context, "会話の資料");
+  const detail = await call("GET", `/api/chats/${chat.id}/provider-handoff/${switched.event.id}`);
+  assert.equal(detail.body.event.data.handoff_context, "会話の資料");
+  assert.equal(detail.body.pending.state, "uncertain");
+  const other = store.chats.create({ project_id: project.id, provider: "claude", title: "別", status: "completed" });
+  assert.equal((await call("GET", `/api/chats/${other.id}/provider-handoff/${switched.event.id}`)).status, 404);
   assert.equal((await call("POST", `/api/chats/${chat.id}/provider-handoff/retry`, { event_id: switched.event.id })).status, 409);
   assert.equal((await call("POST", `/api/chats/${chat.id}/provider-handoff/confirm-resend`, { event_id: switched.event.id })).status, 400);
   assert.equal((await call("POST", `/api/chats/${chat.id}/provider-handoff/confirm-resend`, { event_id: switched.event.id + 1, confirm_duplicate_risk: true })).status, 409);
@@ -70,4 +75,30 @@ test("切り替えの準備中に権限の既定が変わったら確定しな�
   assert.equal((await switching).status, 409);
   assert.equal(store.chats.get(chat.id)?.provider, "claude");
   assert.equal(store.chatProviderHandoffs.get(chat.id), undefined);
+});
+
+test("同じチャットで AI を切り替えて続け、元の AI に戻したときは前のセッションを再開する", async () => {
+  const { call, store, runner, project, provider } = setup();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "c", status: "completed" });
+  const send = async (text: string, count: number) => {
+    assert.equal((await call("POST", `/api/chats/${chat.id}/messages`, { text })).status, 200);
+    await until(() => !runner.isBusy(chat.id) && provider.prompts.length === count);
+  };
+  const change = async (target: "claude" | "codex") => {
+    const url = `/api/chats/${chat.id}/provider-switch`;
+    const preview = await call("GET", `${url}?target=${target}`);
+    assert.equal(preview.status, 200);
+    assert.equal((await call("POST", url, { target, confirmation: preview.body.confirmation })).status, 200);
+  };
+  await send("最初の話", 1);
+  await change("codex");
+  assert.equal(provider.prompts.length, 1);
+  await send("Codex への指示", 2);
+  assert.match(provider.lastTurnContext ?? "", /最初の話/);
+  await change("claude");
+  await send("続きをお願い", 3);
+  assert.equal(provider.resumes[2], "s1");
+  assert.match(provider.lastTurnContext ?? "", /Codex への指示/);
+  assert.doesNotMatch(provider.lastTurnContext ?? "", /最初の話/);
+  assert.equal(store.events.list(chat.id).filter((event) => event.type === "provider_switched").length, 2);
 });

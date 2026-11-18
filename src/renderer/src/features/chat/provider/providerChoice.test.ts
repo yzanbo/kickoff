@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ProviderStatus } from "@shared/types";
-import { featureBlock, paysPerUse, providerChipName, providerPickBlock } from "./providerChoice";
+import { featureBlock, paysPerUse, providerChipName, providerPickBlock, providerSwitchBlock } from "./providerChoice";
 
 const status = (patch: Partial<ProviderStatus> = {}): ProviderStatus => ({
   id: "claude",
@@ -20,6 +20,15 @@ test("providerPickBlock: 対応予定・確認中は選べず理由を返し、�
   assert.equal(providerPickBlock("claude", status()), null);
   assert.equal(providerPickBlock("claude", undefined), "確認中…");
   assert.match(providerPickBlock("codex", status({ id: "codex", label: "Codex", implemented: false })) ?? "", /Codex は今後の対応予定/);
+});
+
+test("providerSwitchBlock: インストールとログイン・API キーを確認する", () => {
+  assert.match(providerSwitchBlock(undefined) ?? "", /確認中/);
+  assert.match(providerSwitchBlock(status({ installed: false })) ?? "", /利用できません/);
+  assert.match(providerSwitchBlock(status({ logged_in: false })) ?? "", /ログイン/);
+  assert.match(providerSwitchBlock(status({ auth_mode: "api_key", has_api_key: false })) ?? "", /API キー/);
+  assert.equal(providerSwitchBlock(status({ auth_mode: "api_key", has_api_key: true, logged_in: false })), null);
+  assert.equal(providerSwitchBlock(status()), null);
 });
 
 test("providerPickBlock: Gemini（Antigravity）は API キーを置いて API キーの設定にしたときだけ選べる", () => {
