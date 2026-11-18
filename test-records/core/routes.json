@@ -1,0 +1,1130 @@
+[
+  {
+    "route": "DELETE /api/chats/:id",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/chats/:id/after-compact/:messageId",
+    "device": "full"
+  },
+  {
+    "route": "DELETE /api/chats/:id/github",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/chats/:id/image-hosts",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/chats/:id/queue",
+    "device": "full"
+  },
+  {
+    "route": "DELETE /api/chats/:id/queue/:queueId",
+    "device": "full"
+  },
+  {
+    "route": "DELETE /api/chats/:id/reconnect",
+    "device": "full"
+  },
+  {
+    "route": "DELETE /api/chats/:id/workplace-move",
+    "device": "full"
+  },
+  {
+    "route": "DELETE /api/devices/:id",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/groups/:id",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/pairing",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/projects/:id",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/projects/:id/db-connections/:cid",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/projects/:id/db-connections/:cid/er-layout",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/projects/:id/db-connections/:cid/sessions/:session",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/projects/:id/file",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/projects/:id/memo",
+    "device": "full"
+  },
+  {
+    "route": "DELETE /api/providers/:id/login",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/snippets/:id",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/terminals/:key",
+    "device": "full"
+  },
+  {
+    "route": "DELETE /api/trash/:itemId",
+    "device": "none"
+  },
+  {
+    "route": "DELETE /api/voice/models/:id",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/approvals",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/archive-cleanup",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/chats",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/chats/:id",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/chats/:id/events",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/chats/:id/image-hosts",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/chats/:id/provider-handoff",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/chats/:id/provider-handoff/:eventId",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/chats/:id/provider-switch",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/chats/:id/remote-image",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/chats/:id/texts",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/chats/:id/tool-image",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/chats/:id/transcript",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/chats/:id/workplace",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/devices",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/devices/self",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/events",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/feed",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/github",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/health",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/memos/defaults",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/memos/search",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/memos/users",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/orphan-sessions",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/pairing",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/ports",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/projects/:id",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/projects/:id/chats",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/projects/:id/ci/runs",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/ci/runs/:run",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/ci/runs/:run/failed-log",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/ci/runs/:run/jobs/:job/log",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/commands",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/:cid/databases",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/:cid/er-layout",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/:cid/history",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/:cid/prep-runs",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/:cid/prepare",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/:cid/schemas",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/:cid/sessions/:session",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/connected",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/import",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/db-connections/ssh-hosts",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/docker",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/docker/db",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/docker/logs",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/docker/logs/before",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/effort-default",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/file",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/file/asset/:place/*",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/file/image",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/files",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/blame",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/commits/:hash",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/commits/:hash/diff",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/diff",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/log",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/merge-preview",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/original",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/pr",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/refs",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/status",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/worktrees",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/worktrees/info",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/git/worktrees/path",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/github",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/github/connection",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/github/image",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/github/issues/:number",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/github/items",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/github/meta",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/github/pulls/:number",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/github/pulls/:number/files",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/groups",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/projects/:id/memo",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/projects/:id/memo/file/*",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/projects/:id/memos",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/projects/:id/search",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/projects/:id/trash",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/providers",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/providers/:id/models",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/restart-resumes",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/search",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/settings",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/snippets",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/status",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/tailscale",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/terminals",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/terminals/:key/ws",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/trash/:itemId",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/trash/projects",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/trash/unassigned",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/uploads/:id",
+    "device": "full"
+  },
+  {
+    "route": "GET /api/usage",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/usage/services",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/voice",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/workspace/inspect",
+    "device": "none"
+  },
+  {
+    "route": "GET /api/worktree-prs",
+    "device": "none"
+  },
+  {
+    "route": "GET /login",
+    "device": "none"
+  },
+  {
+    "route": "GET /visual-frame",
+    "device": "none"
+  },
+  {
+    "route": "PATCH /api/chats/:id",
+    "device": "full"
+  },
+  {
+    "route": "PATCH /api/chats/:id/after-compact/:messageId",
+    "device": "full"
+  },
+  {
+    "route": "PATCH /api/chats/:id/queue/:queueId",
+    "device": "full"
+  },
+  {
+    "route": "PATCH /api/devices/:id",
+    "device": "none"
+  },
+  {
+    "route": "PATCH /api/groups/:id",
+    "device": "none"
+  },
+  {
+    "route": "PATCH /api/projects/:id",
+    "device": "none"
+  },
+  {
+    "route": "PATCH /api/projects/:id/db-connections/:cid",
+    "device": "none"
+  },
+  {
+    "route": "PATCH /api/snippets/:id",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/approvals/:id",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/archive-cleanup",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/captures",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/background/:taskId/stop",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/cancel",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/children",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/clear",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/compact",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/detach",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/fork",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/handoff",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/messages",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/move",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/provider-handoff/confirm-resend",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/provider-handoff/retry",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/provider-switch",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/queue",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/queue/:queueId/move",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/queue/:queueId/send",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/queue/clear",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/queue/compact",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/queue/merge",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/queue/move-many",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/queue/remove-many",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/queue/send-all",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/queue/send-in-order",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/rewind",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/rewind-files",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/seen",
+    "device": "read"
+  },
+  {
+    "route": "POST /api/chats/:id/subagents/:agentId/children",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/tell",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/chats/:id/transcript",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/chats/:id/unseen",
+    "device": "read"
+  },
+  {
+    "route": "POST /api/chats/:id/workplace",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/orphan-sessions/trash",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/pairing",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/pairing/requests/:id/approve",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/pairing/requests/:id/deny",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/ports/stop",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/chats",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/projects/:id/ci/runs/:run/rerun",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/ci/runs/:run/worktree",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/count",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/definition",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/disconnect",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/edits",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/entered-passwords",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/er",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/full-row",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/objects",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/outline",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/prep/confirm",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/prepare",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/prepare/cancel",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/rows",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/sessions/:session/cancel",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/sessions/:session/commit",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/sessions/:session/rollback",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/sql",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/sql-assist",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/:cid/table",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/copy",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/import",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/ssh-host-key",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/ssh-host-key/accept",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/db-connections/test",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/docker/actions",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/docker/brew-stop",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/docker/open-engine",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/docker/watch",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/file/rename",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/files",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/branch-action",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/branch-suggestions",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/commit",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/discard",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/fetch",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/init",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/operation",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/pr",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/pull",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/push",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/resolve",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/stage",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/unstage",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/worktrees",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/worktrees/env-setup",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/git/worktrees/remove",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/issues",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/issues/:number/state",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/items/:number/comments",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/pulls/:number/checkout",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/pulls/:number/merge",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/pulls/:number/reviews",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/pulls/:number/state",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/pulls/:number/threads/:thread/replies",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/pulls/:number/threads/:thread/resolve",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/github/pulls/:number/worktree",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/groups",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/memo/chat",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/projects/:id/memo/snapshot",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/projects/:id/memos",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/projects/:id/memos/ai-plan",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/projects/:id/memos/from-chat",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/projects/:id/memos/move",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/projects/:id/search/replace",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/:id/terminals",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/projects/:id/worktree-prs/:number/dismiss",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/projects/import",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/providers/:id/login",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/restart-resumes",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/snippets",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/speech",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/terminals",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/transcribe",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/trash/:itemId/restore",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/trash/purge",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/uploads",
+    "device": "full"
+  },
+  {
+    "route": "POST /api/usage/refresh",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/usage/services/refresh",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/voice/models/:id/download",
+    "device": "none"
+  },
+  {
+    "route": "POST /api/worktree-prs/refresh",
+    "device": "none"
+  },
+  {
+    "route": "POST /pairing/claim",
+    "device": "none"
+  },
+  {
+    "route": "POST /pairing/requests/:id",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/chats/:id/after-compact/editing",
+    "device": "full"
+  },
+  {
+    "route": "PUT /api/chats/:id/github",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/chats/:id/image-hosts",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/chats/:id/queue/editing",
+    "device": "full"
+  },
+  {
+    "route": "PUT /api/chats/:id/queue/paused",
+    "device": "full"
+  },
+  {
+    "route": "PUT /api/chats/:id/queue/stop-after",
+    "device": "full"
+  },
+  {
+    "route": "PUT /api/chats/:id/queue/stops",
+    "device": "full"
+  },
+  {
+    "route": "PUT /api/devices/self/push",
+    "device": "read"
+  },
+  {
+    "route": "PUT /api/projects/:id/chats/order",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/projects/:id/db-connections/:cid/er-layout",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/projects/:id/db-connections/order",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/projects/:id/file",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/projects/:id/github/items/:number/labels",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/projects/:id/groups/order",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/projects/:id/memo",
+    "device": "full"
+  },
+  {
+    "route": "PUT /api/projects/:id/repo-path",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/projects/order",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/providers/:id/api-key",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/settings",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/snippets/order",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/terminals/:key/owner",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/user-view",
+    "device": "none"
+  },
+  {
+    "route": "PUT /api/viewing",
+    "device": "read"
+  },
+  {
+    "route": "PUT /api/voice/openai-key",
+    "device": "none"
+  }
+]
