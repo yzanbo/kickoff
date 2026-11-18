@@ -31,6 +31,10 @@ test("Codex: 5 時間・週の枠とクレジットを読む（枠の名前は�
     ],
   );
   assert.deepEqual(u.notes, ["クレジット残り 150"]);
+  assert.deepEqual(u.credits, { has_credits: true, unlimited: false, balance: 150, spending: null });
+  // 残りが数の文字でも読む。クレジットの情報がなければ null
+  assert.equal(parseCodexUsage({ credits: { has_credits: true, balance: "12.5" } }, null, null).credits?.balance, 12.5);
+  assert.equal(parseCodexUsage({}, null, null).credits, null);
 });
 
 test("Copilot: プレミアムリクエストの使った数と率、無制限は補足に、契約がなければ unavailable", () => {

@@ -92,8 +92,22 @@ export interface ServiceUsage {
   windows: UsageWindow[];
   /** 枠のほかの補足（"クレジット残り 150" など） */
   notes: string[];
+  /** Codex のクレジット（プランの上限を超えたあと、買ったクレジットから引いて続ける）。Codex 以外・分からなければ null */
+  credits?: CodexCredits | null;
   message?: string;
   fetched_at: string;
+}
+
+/** Codex のクレジットの様子 */
+export interface CodexCredits {
+  /** クレジットを持っているか（なければ、プランの上限で止まり、引かれない） */
+  has_credits: boolean;
+  /** 無制限か */
+  unlimited: boolean;
+  /** 残り。分からなければ null */
+  balance: number | null;
+  /** 残りが減ったのを見た（いまクレジットから引かれている。from → to は見た残り）。上限に達した枠がなくなったら外す */
+  spending: { since: string; from: number; to: number } | null;
 }
 
 /** 追加の使用枠の様子（金額は currency の最小単位。USD ならセント） */

@@ -38,6 +38,7 @@ import { createAiChatRemoveTools, type ChatRemover } from "./aiChatRemove.js";
 import { createAiWorkplaceTools, type AiWorkplaceDeps } from "./aiWorkplace.js";
 import { createAiUserViewTools } from "./aiUserView.js";
 import type { MemoService } from "../memos/memos.js";
+import type { CodexCreditsWatch } from "../usage/codexCredits.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { canCreateChat, createAiCreateChatTools, type StartedChild } from "./aiCreateChat.js";
 import type { ChildChatInput } from "./children.js";
@@ -83,6 +84,8 @@ export interface ExecutionDeps {
   worktreeEnvs?: WorktreeEnvService;
   /** Claude のプランの使用枠（AI の get_usage が読む。なければ使えないと返す） */
   usage?: UsageMonitor;
+  /** Codex のクレジットの見張り（実行中の知らせで残りが減ったら、そのチャットにお知らせを残す。なければ見ない） */
+  codexCredits?: CodexCreditsWatch;
   /** メモ（AI の move_memo が名前を変える・移す。なければそのツールは使えないと返す） */
   memos?: MemoService;
   /** チャットが作業中か（AI の update_chat が、作業中の子チャットを親から外すのを断る。Runner が渡す。なければ作業中とみなさない） */
@@ -439,13 +442,15 @@ function readOnlyReferences(project: Project, cwd: string): string[] {
 
 /** 超過分で動き始めたときのお知らせ */
 const OVERAGE_NOTICE = "Claude のプランの使用枠の上限を超えたため、ここから追加の使用枠（使った分の支払い）で動いています";
+/** Codex のクレジットの残りが減り始めたときのお知らせ */
+const CODEX_CREDITS_NOTICE = "Codex のプランの使用枠の上限を超えたため、ここからクレジットから引かれて動いています";
 
 /**
  * プロバイダーからの知らせ: 途中経過は配るだけ、作業中の様子は runtime に書き（runtime が画面に配る）、イベントは記録、
  * 承認依頼は回答を待つ（待つ間は回答待ち）
  */
 function callbacksFor(
-  { store, approvals, bus, usage }: ExecutionDeps,
+  { store, approvals, bus, usage, codexCredits }: ExecutionDeps,
   runtime: ChatRuntime,
   chat: Chat,
   signal: AbortSignal,
@@ -473,6 +478,10 @@ function callbacksFor(
     // 超過分（追加の使用枠）で動き始めたら、どの作業から課金されたかが分かるようお知らせに残す（下の帯の札は使用枠の知らせで赤くなる）
     overage: (inUse) => {
       if (usage?.noteOverage(inUse)) store.events.add(chatId, { type: "notice", message: OVERAGE_NOTICE });
+    },
+    // Codex のクレジットの残りが減り始めたら、どの作業から引かれたかが分かるようお知らせに残す
+    credits: (note) => {
+      if (codexCredits?.note(note)) store.events.add(chatId, { type: "notice", message: CODEX_CREDITS_NOTICE });
     },
     drawingVisual: (drawingVisual) => runtime.update({ drawingVisual }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）

@@ -8,7 +8,8 @@ import { appServerLaunch, CODEX_APPROVAL_POLICY, codexEffort, codexSandboxPolicy
 import { startHookServer, type HookServer } from "./hookServer.js";
 import { assertHookActive, kickoffHookTrust, withHookTrust } from "./hookTrust.js";
 import { commandOutputDelta, createItemState, itemCompleted, itemStarted } from "./items.js";
-import type { CodexErrorInfo, ThreadItem, ThreadResponse, ThreadResumeParams, ThreadStartParams, ThreadTokenUsage, Turn, TurnError, TurnStartParams, TurnSteerParams } from "./protocol.js";
+import { creditsNoteOf } from "./catalog.js";
+import type { CodexErrorInfo, RateLimitsUpdatedNotification, ThreadItem, ThreadResponse, ThreadResumeParams, ThreadStartParams, ThreadTokenUsage, Turn, TurnError, TurnStartParams, TurnSteerParams } from "./protocol.js";
 import { StdioRpcError, type StdioRpc, type StdioSpawn } from "../stdioRpc.js";
 import { createPreToolUseHandler } from "./preToolUse.js";
 import { openSession } from "./session.js";
@@ -89,6 +90,13 @@ export async function runCodexTurn(deps: TurnDeps, params: ProviderTurnParams, c
 
   const ours = (p: { threadId?: string }) => !threadId || p.threadId === threadId;
   const onNotification = (method: string, raw: unknown) => {
+    // 使用枠の知らせはスレッドの ID を持たない（アカウントのもの）ので、自分のスレッドかを確かめる前に受ける。
+    // クレジットの残りを渡し、減ったら（上限を超えてクレジットから引かれ始めたら）コアが知らせる
+    if (method === "account/rateLimits/updated") {
+      const note = creditsNoteOf((raw as RateLimitsUpdatedNotification | null)?.rateLimits);
+      if (note) cb.credits?.(note);
+      return;
+    }
     const p = raw as Record<string, unknown> & { threadId?: string };
     if (!ours(p)) return;
     switch (method) {

@@ -53,3 +53,11 @@ test("枠・アカウント・補足がなくても空白だけにせず理由�
   assert.ok(!html.includes("test@example.com"));
   assert.ok(!html.includes("クレジット"));
 });
+
+test("Codex のクレジット: 残りが減っていれば「クレジット使用中」と減った分、あれば「あり」、なければ出さない", () => {
+  const spending = render(service({ credits: { has_credits: true, unlimited: false, balance: 142, spending: { since: "2026-11-18T10:00:00Z", from: 150, to: 142 } } }));
+  for (const text of ["クレジット使用中", "クレジットから引かれて動いています", "クレジットの残り 150 → 142（8 減りました）", "から"]) assert.ok(spending.includes(text), text);
+  const available = render(service({ credits: { has_credits: true, unlimited: false, balance: 150, spending: null } }));
+  assert.ok(available.includes("クレジット: あり"));
+  assert.ok(!render(service()).includes("usage-overage"));
+});

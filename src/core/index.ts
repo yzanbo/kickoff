@@ -17,6 +17,7 @@ import { McpToolHost } from "./mcp/host.js";
 import { ProviderKeyVault } from "./providers/keys.js";
 import { Store } from "./db/store.js";
 import { DB_FILE, discardPrereleaseData } from "./db/open.js";
+import { CodexCreditsWatch } from "./usage/codexCredits.js";
 import { ServiceUsageMonitor } from "./usage/services/index.js";
 import { UsageMonitor } from "./usage/planUsage.js";
 import { ApprovalCenter } from "./chat/approvals.js";
@@ -147,7 +148,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // 使用枠は Claude のプランから取得する（Codex 対応時にプロバイダーごとに拡張する）
   const usage = new UsageMonitor(providers.claude, bus);
   // 設定の「使用状況」に並べる、ほかのサービス（Codex・Copilot・Cursor・Gemini）の使用状況
-  const serviceUsage = new ServiceUsageMonitor(usage);
+  // Codex のクレジットの見張り（使用状況の取得と、Codex の実行中の知らせの両方から残りを受ける）
+  const codexCredits = new CodexCreditsWatch(bus);
+  const serviceUsage = new ServiceUsageMonitor(usage, undefined, codexCredits);
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
   // メモの親フォルダの既定は ~/Documents/kickoff（保存先のフォルダ名のアプリ名を空白のない小文字に。開発版は kickoff-dev で、製品版のメモに触らない）。
@@ -219,7 +222,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const userViews = new UserViewRegistry();
   // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ。メモの仕様書「0021」の Q7）
   const mcpTools = new McpToolHost(() => `http://127.0.0.1:${opts.port}`);
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: opts.platform.sandboxDiagnostics, toolHost: mcpTools, providerKeys, interrupted: recovered });
+  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: opts.platform.sandboxDiagnostics, toolHost: mcpTools, providerKeys, interrupted: recovered });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（メモの仕様書「ファイル削除」の Q17）
   trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない。メモの仕様書「ファイル削除」の Q16）

@@ -175,8 +175,24 @@ export interface RateLimitWindow {
   windowDurationMins: number | null;
   resetsAt: number | null;
 }
+/** クレジット（上限を超えたあとに引く。残りは数の文字） */
+export interface CreditsSnapshot {
+  hasCredits: boolean;
+  unlimited: boolean;
+  balance: string | null;
+}
+export interface RateLimitSnapshot {
+  primary: RateLimitWindow | null;
+  secondary: RateLimitWindow | null;
+  planType: string | null;
+  credits?: CreditsSnapshot | null;
+}
 export interface RateLimitsResponse {
-  rateLimits: { primary: RateLimitWindow | null; secondary: RateLimitWindow | null; planType: string | null };
+  rateLimits: RateLimitSnapshot;
+}
+/** 実行中の使用枠の知らせ（account/rateLimits/updated。分からない項目は null で、前の値を消さない） */
+export interface RateLimitsUpdatedNotification {
+  rateLimits: RateLimitSnapshot;
 }
 
 /** モデルの一覧（model/list） */
