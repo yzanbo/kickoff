@@ -175,8 +175,9 @@ export class Runner extends RunnerQueue {
     } finally {
       runtime.switchingProvider = false;
       runtime.preparing = false;
-      // 準備中に増えた指示も含め、動いていた列は通常の条件で再開する。失敗時も取り残さない。
-      if (switched || runtime.queue.list().length > 0) void this.sendNextQueued(chatId);
+      // 切り替えに失敗したとき、準備中に増えた指示を意図せず元の AI に送らない。
+      if (switched) void this.sendNextQueued(chatId);
+      else if (JSON.stringify(runtime.queue.snapshot()) !== initialSignature && runtime.queue.list().length > 0) runtime.queue.setPaused(true);
     }
   }
 
