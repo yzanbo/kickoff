@@ -1,4 +1,4 @@
-import { List, Plus, Settings } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { useState, type MouseEvent, type MutableRefObject } from "react";
 import type { Snippet } from "@shared/types";
 import { snippetLabel } from "@shared/snippet/snippets";
@@ -8,7 +8,6 @@ import { cx } from "@/lib/cx";
 import { useProjectSnippets } from "@/stores/snippets";
 import { reportFailure } from "@/ui/dialogs";
 import { IconButton } from "@/ui/IconButton";
-import { usePopover } from "@/ui/Popover";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
@@ -16,7 +15,6 @@ import { SendCancelled } from "@/features/chat/composer/useComposerSend";
 import { confirmDeleteSnippet } from "./snippetActions";
 import { SnippetDialog } from "./SnippetDialog";
 import type { SnippetEditing } from "./SnippetManager";
-import { SnippetPicker } from "./SnippetPicker";
 import { useHorizontalScroller } from "./useHorizontalScroller";
 
 /** ピルに乗せたときに見せる本文の長さの上限 */
@@ -28,7 +26,7 @@ const tipOf = (text: string) => (text.length > TIP_MAX ? `${text.slice(0, TIP_MA
  * 入力欄の上の定型文の帯。このプロジェクトで使う定型文（共通とこのプロジェクトだけのもの）を横に並べ、入りきらなければ横にスクロールする
  * （縦のホイールでも動く。端の先に続きがあれば薄くぼかす）。ピルを押すと入力欄のキャレットの位置に入れ（書いている文は残す）、
  * ⌘クリック・右クリックの「すぐ送る」で、そのまま送る（作業中は送信待ちの送り方に従う。送る処理は呼ぶ側）。
- * 右に「一覧」（すべてを縦に並べて絞り込む）と「定型文を管理」。設定の「表示」・帯の右クリックで隠せる
+ * 右に「定型文を管理」の歯車（利用者の依頼で、前はその左にすべてを縦に並べて絞り込む「一覧」もあった）。設定の「表示」・帯の右クリックで隠せる
  */
 export function SnippetBar({
   projectId,
@@ -42,7 +40,6 @@ export function SnippetBar({
   const snippets = useProjectSnippets(projectId);
   const [hidden, setHidden] = useSetting(SNIPPET_BAR_HIDDEN);
   const { ref: scrollerRef, ...scroller } = useHorizontalScroller(snippets);
-  const { anchor: pickerAnchor, ...picker } = usePopover();
   const menu = useContextMenu<Snippet | null>();
   // 管理のダイアログ（開いていなければ false。開いた直後に編集する行・新しく作るなら "new"）
   const [managing, setManaging] = useState<SnippetEditing | false>(false);
@@ -89,16 +86,6 @@ export function SnippetBar({
         </div>
         <div className="snippet-bar-tools">
           <IconButton
-            ref={pickerAnchor}
-            icon={List}
-            size={14}
-            label="定型文の一覧"
-            title={`定型文の一覧（${snippets.length} 件。絞り込んで選べます）`}
-            aria-expanded={picker.open}
-            className={cx("snippet-bar-tool", picker.open && "active")}
-            onClick={picker.toggle}
-          />
-          <IconButton
             icon={Settings}
             size={14}
             label="定型文を管理"
@@ -108,19 +95,7 @@ export function SnippetBar({
           />
         </div>
       </div>
-      {/* 一覧・メニュー・ダイアログは帯の外に置く（中の右クリック・クリックが帯に伝わらないように） */}
-      {picker.open && (
-        <SnippetPicker
-          anchor={pickerAnchor}
-          projectId={projectId}
-          snippets={snippets}
-          onInsert={insert}
-          onSend={send}
-          onAdd={() => setManaging("new")}
-          onManage={() => setManaging(null)}
-          onClose={picker.close}
-        />
-      )}
+      {/* メニュー・ダイアログは帯の外に置く（中の右クリック・クリックが帯に伝わらないように） */}
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="定型文" onClose={menu.close}>
           {menu.menu.value && <SnippetMenuItems snippet={menu.menu.value} onInsert={insert} onSend={send} onEdit={(s) => setManaging(s.id)} />}
