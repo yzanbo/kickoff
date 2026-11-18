@@ -1,13 +1,6 @@
 import os from "node:os";
-import {
-  forkSession,
-  getSubagentMessages,
-  query,
-  type Options,
-  type Query,
-  type SDKResultMessage,
-  type SDKUserMessage,
-} from "@anthropic-ai/claude-agent-sdk";
+import type { Options, Query, SDKResultMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import { realClaudeSdk, type ClaudeProviderOptions, type ClaudeSdk } from "./sdk.js";
 import { createBackgroundTracker } from "./background.js";
 import { copyForWorkplaceMove, findSessionFile, listSessionFiles, removeSession, sessionFileInfo, sessionFilesSize, trashSessions, trimToRecentSegments, writeRecentSegments } from "./sessionFiles.js";
 import { createTurnOver } from "./turnOver.js";
@@ -44,10 +37,15 @@ export class ClaudeProvider implements AgentProvider {
   readonly id = "claude" as const;
   readonly label = "Claude Code";
   readonly implemented = true;
-  private readonly executable = resolveClaudeExecutable();
+  private readonly sdk: ClaudeSdk;
+  private readonly executable: string | undefined;
+  private readonly self: SelfInfo | undefined;
 
-  /** self: エージェントを動かしている Kickoff 自身（自分を壊すツールの呼び出しを断るのに使う） */
-  constructor(private readonly self?: SelfInfo) {}
+  constructor(opts: ClaudeProviderOptions = {}) {
+    this.sdk = opts.sdk ?? realClaudeSdk;
+    this.executable = opts.executable ?? resolveClaudeExecutable();
+    this.self = opts.self;
+  }
 
   async status(): Promise<ProviderStatus> {
     // 同梱の Claude Code の版（設定の「接続」に出す。上げるのは Kickoff の開発の側なので、新しい版の知らせはここでは出さない）
@@ -131,7 +129,7 @@ export class ClaudeProvider implements AgentProvider {
     async function* noMessages(): AsyncGenerator<SDKUserMessage> {
       await idle;
     }
-    const q = query({
+    const q = this.sdk.query({
       prompt: noMessages(),
       options: { env: agentEnv(), settingSources: [], pathToClaudeCodeExecutable: this.executable, ...extra },
     });
@@ -194,7 +192,7 @@ export class ClaudeProvider implements AgentProvider {
     const spawnNotes = agentSpawnNotes(params.onAgentSpawned);
     const sandbox = claudeSandboxOption(params.bashSandbox, params.disableSandbox);
     try {
-      const q = query({
+      const q = this.sdk.query({
         prompt: input.messages,
         options: {
           ...spawnNotes.options,
@@ -351,7 +349,7 @@ export class ClaudeProvider implements AgentProvider {
     const recent = file ? await writeRecentSegments(file, sessionId, messageId, opts.keep).catch(() => null) : null;
     if (recent) {
       try {
-        return (await forkSession(recent.sessionId, { upToMessageId: messageId })).sessionId;
+        return (await this.sdk.forkSession(recent.sessionId, { upToMessageId: messageId })).sessionId;
       } catch {
         // 切り出したものを写せなければ、丸ごと写す
       } finally {
@@ -359,9 +357,9 @@ export class ClaudeProvider implements AgentProvider {
       }
     }
     try {
-      return (await forkSession(sessionId, { dir: cwd, upToMessageId: messageId })).sessionId;
+      return (await this.sdk.forkSession(sessionId, { dir: cwd, upToMessageId: messageId })).sessionId;
     } catch {
-      return (await forkSession(sessionId, { upToMessageId: messageId })).sessionId;
+      return (await this.sdk.forkSession(sessionId, { upToMessageId: messageId })).sessionId;
     }
   }
 
@@ -403,8 +401,8 @@ export class ClaudeProvider implements AgentProvider {
 
   /** サブエージェントの会話を記録から読む（cwd のプロジェクトで見つからなければ、すべてのプロジェクトから探す。なければ空） */
   async subagentLog(sessionId: string, agentId: string, cwd: string): Promise<SubagentLogItem[]> {
-    let messages = await getSubagentMessages(sessionId, agentId, { dir: cwd }).catch(() => []);
-    if (messages.length === 0) messages = await getSubagentMessages(sessionId, agentId).catch(() => []);
+    let messages = await this.sdk.getSubagentMessages(sessionId, agentId, { dir: cwd }).catch(() => []);
+    if (messages.length === 0) messages = await this.sdk.getSubagentMessages(sessionId, agentId).catch(() => []);
     return subagentLogOf(messages);
   }
 
@@ -439,7 +437,7 @@ export class ClaudeProvider implements AgentProvider {
    * 会話記録は残さない（persistSession: false。続けることはなく、残すとチャットを作るたびに ~/.claude/projects に使わない記録が 1 つずつ増えていた）
    */
   private async askOnce(prompt: string, tier: AskModel = "light"): Promise<string> {
-    const q = query({
+    const q = this.sdk.query({
       prompt,
       options: {
         persistSession: false,

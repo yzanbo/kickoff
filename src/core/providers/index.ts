@@ -27,7 +27,7 @@ export function experimentalProviders(env: Record<string, string | undefined> = 
 export function createProviders(self?: SelfInfo, authFor?: (id: ProviderId) => Promise<ProviderAuth>): Record<ProviderId, AgentProvider> {
   const experimental = experimentalProviders();
   return {
-    claude: new ClaudeProvider(self),
+    claude: new ClaudeProvider({ self }),
     codex: new CodexProvider({ self }),
     copilot: experimental.has("copilot") ? new CopilotProvider({ self }) : new PlannedProvider("copilot", PROVIDER_LABELS.copilot, "copilot"),
     cursor: experimental.has("cursor") ? cursorProvider({ self, authFor: authFor && (() => authFor("cursor")) }) : new PlannedProvider("cursor", PROVIDER_LABELS.cursor, "agent"),
