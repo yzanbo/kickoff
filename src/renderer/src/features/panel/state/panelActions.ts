@@ -4,8 +4,8 @@ import type { PaneLayout, SplitDir, SplitSide } from "@/features/panel/layout/pa
 import { focusPane, moveTab, returnToHome, splitPane } from "@/features/panel/layout/paneLayout";
 import { equalizeSplit, setSplitSizes } from "@/features/panel/layout/paneSizes";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
-import type { NewChatTarget, PanelTab, ProjectView, TerminalTarget } from "@/features/panel/tabs/panelTypes";
-import { browserTab, changesTab, chatTab, childTab, databaseTab, fileTab, githubTab, kindOfTab, memoTab, newChatTab, newChildTab, newTabKey, projectViewTab, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
+import type { NewChatTarget, PanelTab, ProjectTool, ProjectView, TerminalTarget } from "@/features/panel/tabs/panelTypes";
+import { browserTab, changesTab, chatTab, childTab, databaseTab, fileTab, githubTab, kindOfTab, memoTab, newChatTab, newChildTab, newTabKey, projectToolTab, projectViewTab, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
 import { readKinds, showKind } from "./panelKinds";
 import type { PanelAction, TabPatch } from "./panelState";
 import { dispatchPanel, panelStateOf } from "./panelStore";
@@ -77,6 +77,8 @@ export function panelActions(key: string) {
     openDatabase: (target: { chatId: number; projectId: number; worktree?: string }) => openTab(databaseTab(target)),
     /** プロジェクトの「GitHub」タブと同じ画面をタブで開く（チャットの画面の右の欄。欄に 1 つのタブで、あればそのペインで表示する） */
     openGitHub: (target: { chatId: number; projectId: number }) => openTab(githubTab(target)),
+    /** プロジェクトの「CI」「Docker」「ゴミ箱」タブと同じ画面をタブで開く（チャットの画面の右の欄。種類ごとに欄に 1 つのタブで、あればそのペインで表示する） */
+    openProjectTool: (kind: ProjectTool, target: { chatId: number; projectId: number }) => openTab(projectToolTab(kind, target)),
     /** 子チャットをタブで開く（いちばん上の親のチャットの画面の右の欄。同じ子チャットのタブがあればそのペインで表示する） */
     openChild: (target: { chatId: number; childId: number; projectId: number; title: string }) => openTab(childTab(target)),
     /** 新しい子チャットのタブを開く（チャットの画面の右の欄の「＋」。押すたびに新しいタブ。最初の文を送ると、できた子チャットのタブになる） */
