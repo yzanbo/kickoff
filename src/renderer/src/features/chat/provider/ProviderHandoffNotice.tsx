@@ -35,6 +35,6 @@ export function ProviderHandoffNotice({ chatId, visible }: { chatId: number; vis
   };
   return <div className="provider-handoff-notice" role="alert">
     <div><strong>{uncertain ? "AI が指示を受け取ったか確認できません" : "AI への引き継ぎを準備できませんでした"}</strong><br />{handoff.error ?? "確認するまで次の指示は送られません。"}</div>
-    <button type="button" disabled={working} onClick={() => void retry()}>{working ? "準備中…" : uncertain ? "確認して再送" : "再試行"}</button>
+    <button type="button" className="btn" disabled={working} onClick={() => void retry()}>{working ? "準備中…" : uncertain ? "確認して再送" : "再試行"}</button>
   </div>;
 }
