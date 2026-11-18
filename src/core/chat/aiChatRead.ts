@@ -7,11 +7,13 @@ import type { Store } from "../db/store.js";
 import type { ApprovalCenter } from "./approvals.js";
 import { familyOf } from "./aiChatEdit.js";
 import { conversationTurns, formatConversation } from "./conversation.js";
+import type { UploadStore } from "./uploads.js";
 
 /** 読むだけのツールの中身（AI に返す文。読めなければ理由の文で throw） */
 export interface AiChatReadTools {
   listProjectChats(): string;
   readChat(input: ReadChatInput): string;
+  readChatWithAttachments(input: ReadChatInput): Promise<string>;
   usage(): Promise<string>;
 }
 
@@ -20,6 +22,7 @@ export interface AiChatReadDeps {
   approvals: ApprovalCenter;
   /** Claude のプランの使用枠（なければ get_usage は使えないと返す） */
   usage?: { get(): Promise<PlanUsage> };
+  uploads?: Pick<UploadStore, "resolve">;
 }
 
 /** 文の中の名前（空なら「名前なし」） */
@@ -57,7 +60,7 @@ export function usageText(u: PlanUsage): string {
 }
 
 /** chatId のチャットの AI に渡す、読むだけのツールの中身。チャットは呼ぶたびに引き直す */
-export function createAiChatReadTools({ store, approvals, usage }: AiChatReadDeps, chatId: number): AiChatReadTools {
+export function createAiChatReadTools({ store, approvals, usage, uploads }: AiChatReadDeps, chatId: number): AiChatReadTools {
   const requireSelf = (): Chat => {
     const chat = store.chats.get(chatId);
     if (!chat) throw new Error("このチャットが見つかりません（消された可能性があります）");
@@ -69,7 +72,7 @@ export function createAiChatReadTools({ store, approvals, usage }: AiChatReadDep
     const inFamily = new Set(members.map((m) => m.id));
     return (chat: Chat) => (inFamily.has(chat.id) ? relationOf(chat) : "ほかの家系");
   };
-  return {
+  const tools: AiChatReadTools = {
     listProjectChats() {
       const self = requireSelf();
       const relationOf = relations(self);
@@ -121,9 +124,22 @@ export function createAiChatReadTools({ store, approvals, usage }: AiChatReadDep
       const label = `チャット「${nameOf(target.title)}」（ID ${target.id}・${relations(self)(target)}・${chatStateText(target, approvals.list({ chatId: target.id }).length > 0)}${target.archived_at ? "・アーカイブ済み" : ""}）`;
       return formatConversation(label, conversationTurns(store.events.conversation(target.id)), count, input.before);
     },
+    async readChatWithAttachments(input) {
+      // 認可と公開してよい発言かの検査を先に行い、他のチャットの添付を推測して読ませない。
+      const result = tools.readChat(input);
+      if (input.event_id === undefined) return result;
+      const event = store.events.get(input.event_id);
+      if (!event || event.type !== "user" || !event.data.attachments?.length) return result;
+      const attachments = await Promise.all(event.data.attachments.map(async (attachment) => {
+        const file = await uploads?.resolve(attachment.id);
+        return { name: attachment.name, mime: attachment.mime, path: file?.path ?? null, ...(file ? {} : { unavailable: true }) };
+      }));
+      return JSON.stringify({ ...JSON.parse(result), attachments });
+    },
     async usage() {
       if (!usage) throw new Error("使用枠を読む口がないため、使用枠の残りを返せません");
       return usageText(await usage.get());
     },
   };
+  return tools;
 }

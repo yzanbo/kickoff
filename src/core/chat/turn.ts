@@ -380,7 +380,7 @@ function buildTurnParams(
     // このプロジェクトのメモ・同じ家系のチャットを画面に開くツール（どのチャットにも。画面に頼む口（バス）があるときだけ）
     open: deps.bus ? createAiOpenTools({ store: deps.store, publish: (e) => deps.bus?.publish(e), memoDirOf: deps.memoDirOf }, chat.id) : null,
     // 同じプロジェクトのチャットの一覧・会話と使用枠を読むツール（どのチャットにも）
-    chatRead: createAiChatReadTools({ store: deps.store, approvals: deps.approvals, usage: deps.usage }, chat.id),
+    chatRead: createAiChatReadTools({ store: deps.store, approvals: deps.approvals, usage: deps.usage, uploads: deps.uploads }, chat.id),
     // このプロジェクトの定型文に足す・メモの名前を変える／移すツール（どのチャットにも）
     chatProject: createAiProjectTools({ store: deps.store, memos: deps.memos }, chat.id),
     // このプロジェクトの内蔵ターミナルの出力を読むツール（どのチャットにも。メインプロセスが口を渡したときだけ）
