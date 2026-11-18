@@ -146,7 +146,7 @@ export class Runner extends RunnerQueue {
   }
 
   /** 切り替えを排他的に準備する。確認中に送信待ちが変わった場合は古い内容で確定しない。 */
-  async switchProvider(chatId: number, expectedProvider: ProviderId, target: ProviderId): Promise<{ chat: Chat; warning: string | null }> {
+  async switchProvider(chatId: number, expectedProvider: ProviderId, target: ProviderId, requireConfirmation?: () => void): Promise<{ chat: Chat; warning: string | null }> {
     const chat = this.requireChat(chatId);
     this.requireIdle(chatId, "AI の切り替え");
     if (chat.provider !== expectedProvider || chat.provider === target || (target !== "claude" && target !== "codex") || (chat.provider !== "claude" && chat.provider !== "codex")) throw new Conflict("チャットの状態が変わったため、AI を切り替えられません");
@@ -167,6 +167,7 @@ export class Runner extends RunnerQueue {
       if (auth?.mode === "api_key" ? !auth.apiKey : !status.logged_in) throw new Conflict("切り替え先の AI にログインまたは API キーの設定が必要です");
       const requireStable = () => {
         if (!runtime.switchingProvider || !runtime.preparing || runtime.turn || JSON.stringify(runtime.queue.snapshot()) !== initialSignature) throw new Conflict("送信待ちやチャットの状態が変わったため、AI を切り替えられません");
+        requireConfirmation?.();
       };
       const result = await prepareAndCommitProviderSwitch({ store: this.deps.store, uploads, requireIdle: requireStable }, { chatId, expectedProvider, target, queueWasPaused: initialQueue.paused, queuedIds: initialQueue.messages.map((message) => message.id) });
       switched = true;
