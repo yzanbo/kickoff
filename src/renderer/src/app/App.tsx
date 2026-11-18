@@ -21,6 +21,7 @@ import { NoProjectsGuide } from "@/features/project/NoProjectsGuide";
 import { runAfterNewProject } from "@/features/project/new/afterNewProject";
 import { ProjectChat } from "@/features/panel/projectChat/ProjectChat";
 import { useProjectChat } from "@/features/panel/projectChat/useProjectChat";
+import { SideRail } from "@/features/panel/projectChat/SideRail";
 import { SettingsDialog, type SettingsSection } from "@/features/settings/SettingsDialog";
 import { CoreStatusBand } from "@/features/diagnostics/CoreStatusBand";
 import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicator";
@@ -212,6 +213,8 @@ export function App() {
         <BottomPanel bottom={bottomPanel} />
         </div>
         {!sideHeld && <ProjectChat chat={chat} />}
+        {/* 右端のアイコンの列（右サイドバーを閉じていても・別ウィンドウへ移していても置く。メモの仕様書「0031」の Q3・Q6） */}
+        {chat.projectId !== undefined && <SideRail projectId={chat.projectId} open={chat.open} held={sideHeld} />}
         <MaximizedHeaderBar />
         <AppFooter onOpenSettings={setSettings} connection={connection} planUsage={planUsage} projectId={projectId} />
         {creating && (

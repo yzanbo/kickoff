@@ -3,7 +3,10 @@ import { cx } from "@/lib/cx";
 import { Panel } from "@/features/panel/Panel";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
 import type { PanelFrame } from "@/features/panel/PanelTools";
+import { useSetting } from "@/hooks/useSetting";
+import { sideView } from "@/lib/storageKeys";
 import type { ProjectChatController } from "./useProjectChat";
+import { SideViewBody } from "./SideViewBody";
 
 /** 右サイドバーはブラウザだけなので、ターミナルを開く場所はない */
 const NO_TERMINALS: TerminalTarget[] = [];
@@ -31,9 +34,26 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
       <div className="project-chat-inner">
         {/* 上の行は信号機ボタン・右上のレイアウトの開閉と同じ行のウィンドウのドラッグ領域。タブの列はその下の行（利用者の依頼） */}
         <div className="panel-window-titlebar" aria-hidden />
-        <ProjectChatPanel projectId={projectId} noChat={noChat} frame={frame} />
+        <SideBody projectId={projectId} noChat={noChat} frame={frame} />
       </div>
     </aside>
+  );
+}
+
+/**
+ * 右サイドバーの中身: 右端のアイコンの列で選んだもの（メモの仕様書「0031_右サイドバーにプロジェクトの画面を出す」）。
+ * ブラウザはほかの中身を見ている間も隠して置く（ページ・ログインの状態・書きかけを保つ）。ほかの中身は見ているものだけ描く（SideViewBody）。
+ * メインのウィンドウの右サイドバーと、右サイドバーの別ウィンドウ（PopoutSideChat）で同じものを描く
+ */
+export function SideBody({ projectId, noChat, frame }: { projectId: number; noChat: boolean; frame?: PanelFrame }) {
+  const [view] = useSetting(sideView(projectId));
+  return (
+    <>
+      <div className="side-browser" hidden={view !== "browser"}>
+        <ProjectChatPanel projectId={projectId} noChat={noChat} frame={frame} />
+      </div>
+      {view !== "browser" && <SideViewBody key={projectId} projectId={projectId} view={view} frame={frame} />}
+    </>
   );
 }
 

@@ -6,7 +6,7 @@
    * 見せる幅: 覚えた幅（--chat-w）のまま、真ん中の画面を --main-min-w だけ残すところまで（ウィンドウを狭めた・サイドバーを開いたときも）。
    * 欄そのものは 320px より狭くしない
    */
-  --chat-shown: min(var(--chat-w), max(320px, calc(100vw - var(--sidebar-shown, 0px) - var(--main-min-w))));
+  --chat-shown: min(var(--chat-w), max(320px, calc(100vw - var(--sidebar-shown, 0px) - var(--side-rail-w, 0px) - var(--main-min-w))));
   grid-column: 3;
   grid-row: 1;
   position: relative;
@@ -46,7 +46,7 @@
  * 幅は同じ動きでなめらかに変える。左端のつまみは使わない
  */
 .project-chat.maximized {
-  --chat-shown: calc(100vw - var(--sidebar-shown, 0px));
+  --chat-shown: calc(100vw - var(--sidebar-shown, 0px) - var(--side-rail-w, 0px));
 }
 
 .project-chat.maximized .project-chat-resizer {

@@ -190,8 +190,21 @@ export function openNewChat(projectId: number, target: { group?: number; worktre
 
 /** プロジェクトのファイルタブで、ファイルを開く（行があればその行へ移る） */
 export function openProjectFile(projectId: number, file: FileTarget) {
+  if (sideOpener?.(projectId, { kind: "file", file })) return;
   navigate({ name: "project", id: projectId, tab: "files", file });
 }
+
+/** 右サイドバーで開くよう頼まれたもの（ファイル・メモ） */
+export type SideOpenTarget = { kind: "file"; file: FileTarget } | { kind: "memo"; path: string; line?: number };
+
+/**
+ * 右サイドバーで開く口（右サイドバーがその中身を見せているときだけ開いて true を返す。メモの仕様書「0031」の Q7）。
+ * 右サイドバーの部品（features/panel/projectChat/sideOpenRequests.ts）が置く（ルーターは画面の部品を import しないため）
+ */
+let sideOpener: ((projectId: number, target: SideOpenTarget) => boolean) | null = null;
+export const setSideOpener = (opener: typeof sideOpener) => {
+  sideOpener = opener;
+};
 
 /** プロジェクトの検索タブを開く（⌘⇧F） */
 export function openProjectSearch(projectId: number) {
@@ -200,6 +213,7 @@ export function openProjectSearch(projectId: number) {
 
 /** メモのタブでそのメモを開く（path を省くとメモのタブへ移るだけ。開いているチャットは右のパネルに残る） */
 export function openMemo(projectId: number, path?: string) {
+  if (path && sideOpener?.(projectId, { kind: "memo", path })) return;
   navigate({ name: "project", id: projectId, tab: "memos", ...(path ? { memo: path } : {}) });
 }
 

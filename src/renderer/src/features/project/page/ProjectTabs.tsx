@@ -7,12 +7,14 @@ import { useSetting } from "@/hooks/useSetting";
 import { NO_CHATS, useChatsWithChildrenByProject } from "@/stores/chats";
 import type { SettingValue } from "@/lib/storage";
 import { href, type ProjectTab } from "@/app/router";
-import { PROJECT_TABS_LAYOUT } from "@/lib/storageKeys";
+import { PROJECT_TAB_ORDER, PROJECT_TABS_LAYOUT } from "@/lib/storageKeys";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { MenuItem } from "@/ui/PopupMenu";
 import { useChatPlacement } from "./chatPlacement";
 import { useProjectTabOrder } from "./useProjectTabOrder";
+import { applyTabOrder } from "./tabOrder";
+import { useMemo } from "react";
 
 /** タブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。縦の幅を本体に回せる） */
 export type ProjectTabsLayout = SettingValue<typeof PROJECT_TABS_LAYOUT>;
@@ -31,7 +33,7 @@ export interface TabRefreshing {
 }
 
 /** タブの列に出すタブ 1 つ */
-interface TabSpec {
+export interface TabSpec {
   tab: ProjectTab;
   label: string;
   icon: LucideIcon;
@@ -77,6 +79,15 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
   // ゴミ箱（Kickoff のゴミ箱。消したものを 3 日取っておき、元に戻せる。いちばん後ろ）
   { key: "trash", label: "ゴミ箱", tabs: [{ tab: "trash", label: "ゴミ箱", icon: Trash2, tip: "ゴミ箱（3 日で消えます）" }] },
 ];
+
+/**
+ * 並べ替えた順のタブ（まとまりをほどいて 1 列に）。右サイドバーの右端のアイコンの列が、プロジェクトのタブと同じ並びに付いていくのに使う
+ * （メモの仕様書「0031_右サイドバーにプロジェクトの画面を出す」の Q4。列だけの並びは持たない）
+ */
+export function useOrderedProjectTabs(): TabSpec[] {
+  const [saved] = useSetting(PROJECT_TAB_ORDER);
+  return useMemo(() => applyTabOrder(TAB_GROUPS, saved).flatMap((g) => g.tabs), [saved]);
+}
 
 /**
  * プロジェクトの画面のタブ（ボード・チャット（ボードと分ける置き方のとき）・ファイル・検索・変更・履歴・メモ）。チャットのタブ（ボードと分けない置き方ならボード）には状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。

@@ -7,7 +7,8 @@ import { adoptSidePanels, isSidePanel, ownSidePanelsOnly } from "@/features/pane
 import { panelActions } from "@/features/panel/state/panelActions";
 import { allPanels } from "@/features/panel/state/panelStore";
 import { panelKey } from "@/features/panel/surfaces";
-import { ProjectChatPanel } from "@/features/panel/projectChat/ProjectChat";
+import { SideBody } from "@/features/panel/projectChat/ProjectChat";
+import { SideRail } from "@/features/panel/projectChat/SideRail";
 import { useFallbackProject } from "@/features/sidebar/currentProject";
 import { useMainWindowRoute } from "./useMainWindowRoute";
 
@@ -40,7 +41,7 @@ export function returnSideWindow(open: boolean) {
 }
 
 /**
- * チャット欄の別ウィンドウの中身（メインのウィンドウのチャット欄と同じ ProjectChatPanel を、ウィンドウいっぱいに）。
+ * チャット欄の別ウィンドウの中身（メインのウィンドウの右サイドバーと同じ SideBody と、右端のアイコンの列を、ウィンドウいっぱいに）。
  * 開くとメインのウィンドウがチャット欄の状態（すべてのプロジェクトのタブ）をこのウィンドウに渡し、メインのウィンドウはチャット欄を描かない（panelHandOff.ts）。
  * 出すのはメインのウィンドウで開いているプロジェクトの欄（全プロジェクトの画面ならサイドバーで選んでいるもので、チャットは出さない）。
  * ✕ で閉じるとチャット欄をメインのウィンドウに戻す（閉じたまま。メインプロセスが閉じるのを止めて知らせる）
@@ -84,7 +85,10 @@ export function PopoutSideChat() {
   return (
     <RouteContext.Provider value={route}>
       <div className="popout-body popout-side-chat">
-        <ProjectChatPanel projectId={projectId} noChat={routeProject === undefined} />
+        <div className="popout-side-body">
+          <SideBody projectId={projectId} noChat={routeProject === undefined} />
+        </div>
+        <SideRail projectId={projectId} open inWindow />
       </div>
     </RouteContext.Provider>
   );

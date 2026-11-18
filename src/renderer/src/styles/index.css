@@ -157,6 +157,7 @@
 @import "./terminal/terminal.css";
 @import "./panel/bottom-panel.css";
 @import "./panel/project-chat.css";
+@import "./panel/side-rail.css";
 @import "./panel/agent-panel.css";
 @import "./ui/color-swatch.css";
 @import "./ui/drag-ghost.css";

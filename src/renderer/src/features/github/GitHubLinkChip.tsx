@@ -3,6 +3,7 @@ import type { Chat, GitHubLink } from "@shared/types";
 import { navigate } from "@/app/router";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { githubFilters, githubSelected } from "@/lib/storageKeys";
+import { isSideViewShown, showSideView } from "@/features/panel/projectChat/sideView";
 
 /** GitHub タブで開いているものをその issue・PR にする（一覧を issue｜PR のその種類にし、中身にそれを出す。プロジェクトのタブと右の欄で同じ値） */
 export function selectGitHubItem(projectId: number, link: Pick<GitHubLink, "kind" | "number">) {
@@ -13,6 +14,8 @@ export function selectGitHubItem(projectId: number, link: Pick<GitHubLink, "kind
 /** プロジェクトの GitHub タブへ移って、その issue・PR を開く */
 export function openGitHubItem(projectId: number, link: Pick<GitHubLink, "kind" | "number">) {
   selectGitHubItem(projectId, link);
+  // 右サイドバーが GitHub を見せていれば、真ん中の画面は動かさずに右サイドバーで開く（開いているものは設定で共有。メモの仕様書「0031」の Q7）
+  if (isSideViewShown(projectId, "github")) return showSideView(projectId, "github");
   navigate({ name: "project", id: projectId, tab: "github" });
 }
 
