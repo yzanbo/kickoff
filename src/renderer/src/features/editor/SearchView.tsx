@@ -4,6 +4,7 @@ import { cx } from "@/lib/cx";
 import { hasModifiers, isComposing, isKey } from "@/lib/keys";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
+import { ListHideButton } from "@/ui/ListRail";
 import { subscribeCodeSearchFocus, takeCodeSearchFocus } from "./codeSearchFocus";
 import { SearchResults } from "./SearchResults";
 import { resultCounts } from "./searchHits";
@@ -16,6 +17,8 @@ interface Props {
   /** 選んでいる結果（ファイルと行） */
   selected?: { path: string; line?: number };
   onSelect: (path: string, line: number, newTab?: boolean) => void;
+  /** 左の一覧を隠す（見出しの右端のボタン） */
+  onHideList: () => void;
 }
 
 /** オン・オフの切り替えのアイコンのボタン（入力欄の右） */
@@ -29,7 +32,7 @@ function Toggle({ icon, label, on, onClick }: { icon: typeof CaseSensitive; labe
  * 見出しに、探し直す・すべて閉じる / 開く・結果を消す。結果（SearchResults）の行を選ぶと、そのファイルのその行を右に出す。
  * ⌘⇧F（VS Code と同じ）で、このタブへ移って検索の欄にピントを置き、書いてある文を選ぶ（codeSearchFocus.ts）
  */
-export function SearchView({ search, replacer, selected, onSelect }: Props) {
+export function SearchView({ search, replacer, selected, onSelect, onHideList }: Props) {
   const { result } = search;
   const counts = resultCounts(search.files);
   // 閉じているファイル（探し直したら、すべて開いた状態に戻す）
@@ -70,6 +73,7 @@ export function SearchView({ search, replacer, selected, onSelect }: Props) {
           onClick={() => setCollapsed(allCollapsed ? new Set() : new Set(search.files.map((f) => f.path)))}
         />
         <IconButton icon={ListX} size={14} label="検索の結果を消す" disabled={!search.query} onClick={search.clear} />
+        <ListHideButton size={14} label="検索を隠す" onHide={onHideList} />
       </header>
       <div className="code-search-form">
         <IconButton

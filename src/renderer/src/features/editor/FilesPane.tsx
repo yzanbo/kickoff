@@ -4,6 +4,7 @@ import { isCancelKey } from "@/lib/keys";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
+import { ListHideButton } from "@/ui/ListRail";
 import { FileTree, type TreeMulti } from "./FileTree";
 import { folderPaths, parentPath, treePaths, visibleTreePaths, type ChangeKinds } from "./treeModel";
 import type { FileCreate, FileRename } from "./useFileActions";
@@ -29,6 +30,7 @@ export function FilesPane({
   rename,
   create,
   fileDrag,
+  onHideList,
 }: {
   rootName: string;
   git: GitStatusController;
@@ -44,6 +46,8 @@ export function FilesPane({
   create: FileCreate;
   /** ファイルの行のドラッグ（右のファイルのタブの欄へ落として開く・分ける） */
   fileDrag?: ComponentProps<typeof FileTree>["fileDrag"];
+  /** 左の一覧を隠す（見出しの右端のボタン） */
+  onHideList: () => void;
 }) {
   // 見出しのボタンで作る場所（開いているファイルの入ったフォルダー。VS Code は選んでいる行のフォルダーに作る）
   const createIn = selected ? parentPath(selected) : "";
@@ -79,6 +83,7 @@ export function FilesPane({
           disabled={!files.tree?.some((n) => n.dir && !n.ignored)}
           onClick={anyOpen ? folders.closeAll : folders.openAll}
         />
+        <ListHideButton label="ファイルの一覧を隠す" onHide={onHideList} />
       </header>
       <div
         className="files-pane"

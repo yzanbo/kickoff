@@ -1,4 +1,4 @@
-import { FileCode2, FilePlus, FolderOpen, PanelLeftOpen, StickyNote } from "lucide-react";
+import { FileCode2, FilePlus, FolderOpen, StickyNote } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useState, type MouseEvent } from "react";
 import type { TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { navigate } from "@/app/router";
@@ -12,7 +12,7 @@ import { useSetting } from "@/hooks/useSetting";
 import { memosStore, useMemoList } from "@/stores/memos";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
-import { IconButton } from "@/ui/IconButton";
+import { ListRail } from "@/ui/ListRail";
 import { SearchField } from "@/ui/SearchField";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { folderPaths, topLevelPaths, visibleTreePaths, type TreeNode } from "@/features/editor/treeModel";
@@ -38,7 +38,7 @@ const FIXED_FRAME: PanelFrame = { fixed: true };
 const NO_TERMINALS: readonly TerminalTarget[] = [];
 
 /**
- * プロジェクトの「メモ」タブ（左にメモのフォルダの木、右に開いたメモ）。左の一覧は隠せる（MEMO_LIST_HIDDEN。隠している間は左端の細い帯に「一覧を表示」）。メモはプロジェクトの外（設定の親フォルダの下の、
+ * プロジェクトの「メモ」タブ（左にメモのフォルダの木、右に開いたメモ）。左の一覧は隠せる（MEMO_LIST_HIDDEN。隠している間は左端の細い帯 ListRail に「一覧を表示」）。メモはプロジェクトの外（設定の親フォルダの下の、
  * プロジェクトごとのフォルダ）の Markdown。openMemo は URL の ?memo= で来たメモ（チャットの「メモに追加」・⌘K から。開いたら URL から外す）、openMemoLine はそのメモで移る行（⌘K の「メモ内の文言」）。
  * 右は開いたメモをタブで並べるパネル（memos。チャットのパネルと同じく、タブのドラッグで上下・左右に分けられる）。一覧のメモを押すと、ピントのあるペインで表示中のメモを入れ替え、
  * 右クリックの「新しいタブで開く」で新しいタブに開く（openMemoInPanel）。一覧の選んでいる行は、ピントのあるペインで表示中のメモ。⌘ / Shift ＋クリックでいくつも選べ（useMultiSelect）、
@@ -211,9 +211,7 @@ export function MemoTab({
     <div className={cx("changes", "memo-tab", width.resizing && "resizing")}>
       {listHidden ? (
         // 一覧を隠している間は、左端の細い帯に戻すボタンだけを置く（メモを開いていなくても戻せるように）
-        <div className="memo-list-rail">
-          <IconButton icon={PanelLeftOpen} label="メモの一覧を表示" onClick={() => setListHidden(false)} />
-        </div>
+        <ListRail label="メモの一覧を表示" onShow={() => setListHidden(false)} />
       ) : (
         <>
         <aside

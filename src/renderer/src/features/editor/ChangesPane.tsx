@@ -6,6 +6,7 @@ import { useSetting } from "@/hooks/useSetting";
 import { CHANGES_TREE } from "@/lib/storageKeys";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
+import { ListHideButton } from "@/ui/ListRail";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ChangeGroup, OPEN_FOLD, type ChangeFold, type GitAction } from "./ChangeGroup";
@@ -33,6 +34,7 @@ export function ChangesPane({
   selected,
   onSelect,
   rename,
+  onHideList,
 }: {
   status: Extract<GitStatus, { repo: true }>;
   git: GitStatusController;
@@ -42,6 +44,8 @@ export function ChangesPane({
   selected?: Selection;
   onSelect: (next: { path: string; staged: boolean }, newTab?: boolean) => void;
   rename: FileRename;
+  /** 左の一覧を隠す（見出しの右端のボタン） */
+  onHideList: () => void;
 }) {
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）
   const [changesTree, setChangesTree] = useSetting(CHANGES_TREE);
@@ -99,6 +103,7 @@ export function ChangesPane({
           aria-expanded={moreMenu.isOpen}
           onClick={(e) => moreMenu.toggle(e)}
         />
+        <ListHideButton size={16} label="変更の一覧を隠す" onHide={onHideList} />
       </header>
       {moreMenu.menu && (
         <PopupMenu at={moreMenu.menu.at} label="ソース管理の操作" ignore=".changes-more" onClose={moreMenu.close}>

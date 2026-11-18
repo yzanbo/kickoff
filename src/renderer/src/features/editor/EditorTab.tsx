@@ -5,7 +5,10 @@ import { useAction } from "@/hooks/useAction";
 import type { CommitBusy } from "./useCommitActions";
 import { useDragSize } from "@/hooks/useDragSize";
 import { navigate, openProjectFile, type FileTarget } from "@/app/router";
-import { CHANGES_LIST_WIDTH } from "@/lib/storageKeys";
+import { CHANGES_LIST_HIDDEN, CHANGES_LIST_WIDTH } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { ListRail } from "@/ui/ListRail";
+import { peekCodeSearchFocus, subscribeCodeSearchFocus } from "./codeSearchFocus";
 import { WorktreePicker } from "@/features/worktree/WorktreePicker";
 import { ErrorText } from "@/ui/ErrorText";
 import { ChangesPane } from "./ChangesPane";
@@ -97,6 +100,17 @@ export function EditorTab({
   const replacer = useSearchReplace(projectId, { search, selection, git });
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
   const { paneRef: listPaneRef, ...list } = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
+  // 左の一覧を隠しているか（3 つのタブで共通。隠している間は左端の細い帯 ListRail に戻すボタン）
+  const [listHidden, setListHidden] = useSetting(CHANGES_LIST_HIDDEN);
+  const hideList = () => setListHidden(true);
+  // ⌘⇧F（検索の欄にピントを置く頼み）が来たら、隠していた一覧を出す（検索の欄は一覧の中にあるため。頼みは出した SearchView が受け取る）
+  const showListForSearch = useEffectEvent(() => {
+    if (listHidden) setListHidden(false);
+  });
+  useEffect(() => {
+    if (peekCodeSearchFocus()) showListForSearch();
+    return subscribeCodeSearchFocus(showListForSearch);
+  }, []);
   // チャットの返答のファイルのチップから来たとき（ファイルタブ）: エクスプローラーでそのファイルを選び（行があればその行へ）、
   // 上のフォルダを開いて、URL からは外す（同じファイルをもう一度押しても開けるように）
   const revealOpenFile = useEffectEvent((path: string, line: number | undefined) => {
@@ -138,6 +152,10 @@ export function EditorTab({
       {worktree && <WorktreeBar projectId={projectId} worktree={worktree} git={git} onFinished={() => onWorktreeChange(undefined)} />}
     </div>
     <div className={cx("changes", list.resizing && "resizing")}>
+      {listHidden ? (
+        <ListRail label={view === "files" ? "ファイルの一覧を表示" : view === "search" ? "検索を表示" : "変更の一覧を表示"} onShow={() => setListHidden(false)} />
+      ) : (
+      <>
       <aside
         ref={listPaneRef}
         className="changes-list"
@@ -145,7 +163,7 @@ export function EditorTab({
         aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}
       >
         {view === "search" ? (
-          <SearchView search={search} replacer={replacer} selected={selected} onSelect={(path, line, newTab) => void setSelected({ path, line }, newTab)} />
+          <SearchView search={search} replacer={replacer} selected={selected} onSelect={(path, line, newTab) => void setSelected({ path, line }, newTab)} onHideList={hideList} />
         ) : view === "files" ? (
           <FilesPane
             rootName={rootName}
@@ -158,6 +176,7 @@ export function EditorTab({
             rename={rename}
             create={create}
             fileDrag={fileDragProps(selection.panel.key, projectId)}
+            onHideList={hideList}
           />
         ) : (
           status.repo && (
@@ -170,11 +189,14 @@ export function EditorTab({
               selected={selected}
               onSelect={(next, newTab) => void setSelected(changeSelection(next, groups), newTab)}
               rename={rename}
+              onHideList={hideList}
             />
           )
         )}
       </aside>
       <div className="pane-resizer" aria-label="一覧の幅を変える" {...list.handle} />
+      </>
+      )}
       {/* 開いたファイルのタブ（中身が使う Git の状態などは FileTabsContext で渡す） */}
       <FileTabsContext.Provider value={env}>
         <Panel panel={selection.panel} frame={FIXED_FRAME} />

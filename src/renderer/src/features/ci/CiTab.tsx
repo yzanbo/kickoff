@@ -9,9 +9,10 @@ import { useDragSize } from "@/hooks/useDragSize";
 import { useNarrowSplit } from "@/hooks/useNarrowSplit";
 import { useSetting } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
-import { CI_LIST_WIDTH, ciSelected } from "@/lib/storageKeys";
+import { CI_LIST_WIDTH, CI_LIST_HIDDEN, ciSelected } from "@/lib/storageKeys";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
+import { ListHideButton, ListRail } from "@/ui/ListRail";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { DETAIL_MIN_WIDTH } from "@/features/github/GitHubTab";
 import { githubRepoUrl } from "@/features/github/githubLinks";
@@ -67,7 +68,9 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
   const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);
   const open = useCallback((run: CiRun) => setSelectedText(ciSelectedText(run.id)), [setSelectedText]);
   const watched = useMemo(() => new Set([...(data?.workplace_branches ?? []), ...(data?.default_branch ? [data.default_branch] : [])]), [data]);
-  const showList = !narrow || !selected;
+  // 左の一覧を隠しているか（広いときだけ効く。狭いときは一覧と中身を切り替えて 1 つずつ出すので、隠さない）
+  const [listHidden, setListHidden] = useSetting(CI_LIST_HIDDEN);
+  const showList = narrow ? !selected : !listHidden;
   const showDetail = !narrow || selected;
   const actionsUrl = `${githubRepoUrl(host, repo)}/actions`;
 
@@ -80,6 +83,13 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
               {repo}
             </a>
             <IconButton icon={ExternalLink} size={13} label="GitHub Actions のページを開く" onClick={() => window.open(actionsUrl, "_blank", "noopener")} />
+            {/* 一覧を隠す（右端。狭いときは一覧と中身を切り替えるので出さない） */}
+            {!narrow && (
+              <>
+                <span className="spacer" />
+                <ListHideButton size={13} label="実行の一覧を隠す" onHide={() => setListHidden(true)} />
+              </>
+            )}
           </div>
           <div className="github-filter-bar">
             <div className="github-filter-row">
@@ -109,6 +119,7 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
           {!narrow && <div className="pane-resizer github-list-resizer" {...width.handle} />}
         </aside>
       )}
+      {!narrow && listHidden && <ListRail label="実行の一覧を表示" onShow={() => setListHidden(false)} />}
       {showDetail && (
         <div className="github-main">
           {selected ? (

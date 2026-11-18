@@ -1,8 +1,9 @@
-import { ChevronsDownUp, ChevronsUpDown, Ellipsis, FileCode2, FilePlus, FolderPlus, PanelLeftClose, RefreshCw, Sparkles } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, Ellipsis, FileCode2, FilePlus, FolderPlus, RefreshCw, Sparkles } from "lucide-react";
 import type { MemoKind } from "@shared/memo/kinds";
 import { cx } from "@/lib/cx";
 import { useOverflowCompact } from "@/hooks/useOverflowCompact";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
+import { ListHideButton } from "@/ui/ListRail";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 
@@ -73,7 +74,7 @@ export function MemoListHead({
           <IconButton icon={foldIcon} label={foldLabel} disabled={!folds.hasFolders} onClick={folds.toggle} />
         </>
       )}
-      <IconButton icon={PanelLeftClose} label="メモの一覧を隠す" onClick={onHide} />
+      <ListHideButton label="メモの一覧を隠す" onHide={onHide} />
       {newMenu.menu && (
         <PopupMenu at={newMenu.menu.at} label="新しいメモ" onClose={newMenu.close} ignore=".memo-new-button">
           <MenuItem onSelect={() => onCreate("markdown")}>

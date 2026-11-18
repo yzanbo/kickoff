@@ -458,6 +458,8 @@ export const BUSY_WORKPLACE_ACTION = defineSetting("kickoff:busy-workplace-actio
 export const CHANGES_TREE = defineSetting("kickoff:changes-tree", flag(true));
 /** ファイルタブ・履歴タブの左の一覧の幅 */
 export const CHANGES_LIST_WIDTH = defineSetting("kickoff:changes-list-width", number(246));
+/** ファイル・検索・変更のタブの左の一覧を隠しているか（3 つのタブで共通。どのプロジェクトでも同じ） */
+export const CHANGES_LIST_HIDDEN = defineSetting("kickoff:changes-list-hidden", flag(false));
 /** 差分の並べ方（split = 左右に並べる / unified = 1 列） */
 export const DIFF_LAYOUT = defineSetting("kickoff:diff-layout", choice(["split", "unified"], "unified"));
 /** ファイルの中身（編集の部品・読むだけの表）を、横幅に入らない行で折り返すか（ファイルの見出しのボタン・エディタの中の ⌥Z で切り替える。初めは折り返さない） */
@@ -504,6 +506,8 @@ export const githubMergeMethod = defineSettingFamily("kickoff:github-merge-metho
 export const githubReviewDraft = defineSettingFamily("kickoff:github-review:", json(parseReviewDraft, EMPTY_REVIEW_DRAFT, isEmptyReviewDraft), { ids: true });
 /** GitHub タブの左の一覧の幅（どのプロジェクトでも同じ） */
 export const GITHUB_LIST_WIDTH = defineSetting("kickoff:github-list-width", number(380));
+/** GitHub タブの左の一覧を隠しているか（どのプロジェクトでも同じ。一覧と中身を切り替える狭い所では効かない） */
+export const GITHUB_LIST_HIDDEN = defineSetting("kickoff:github-list-hidden", flag(false));
 /** GitHub タブの PR の「変更」の左のファイルの木を閉じているか（初めは出す）と、その幅（どのプロジェクトでも同じ） */
 export const GITHUB_FILES_TREE_HIDDEN = defineSetting("kickoff:github-files-tree-hidden", flag());
 export const GITHUB_FILES_WIDTH = defineSetting("kickoff:github-files-width", number(240));
@@ -511,6 +515,8 @@ export const GITHUB_FILES_WIDTH = defineSetting("kickoff:github-files-width", nu
 export const ciSelected = defineSettingFamily("kickoff:ci-selected:", text(), { ids: true });
 /** CI のタブの左の一覧の幅（どのプロジェクトでも同じ） */
 export const CI_LIST_WIDTH = defineSetting("kickoff:ci-list-width", number(380));
+/** CI のタブの左の一覧を隠しているか（どのプロジェクトでも同じ。一覧と中身を切り替える狭い所では効かない） */
+export const CI_LIST_HIDDEN = defineSetting("kickoff:ci-list-hidden", flag(false));
 /** DB クライアントの左の一覧の幅（どの置き場所でも同じ） */
 export const DB_LIST_WIDTH = defineSetting("kickoff:db-list-width", number(260));
 /** SQL のタブの入力欄の高さ（タブの中の割合 %。どの SQL のタブでも同じ） */
