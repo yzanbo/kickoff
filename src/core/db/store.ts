@@ -169,6 +169,33 @@ export class Store {
     }
   }
 
+  /** 準備をやり直した資料と、その参照先を同時に保存する。別の切り替えや送信と競合したら変更しない。 */
+  retryProviderHandoff(chatId: number, eventId: number, provider: ProviderId, context: string, attachments: Attachment[]): boolean {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const chat = this.chats.get(chatId);
+      const pending = this.chatProviderHandoffs.get(chatId);
+      const event = this.events.get(eventId);
+      if (!chat || chat.archived_at || chat.provider !== provider || !pending || pending.eventId !== eventId || pending.provider !== provider || pending.state !== "blocked" || !event || event.chat_id !== chatId || event.type !== "provider_switched") {
+        this.db.exec("ROLLBACK");
+        return false;
+      }
+      const previous = event.data.handoff_attachments ?? [];
+      const data = { ...event.data, handoff_attachments: [...previous, ...attachments] };
+      this.db.prepare("UPDATE chat_events SET data = ? WHERE id = ? AND chat_id = ?").run(JSON.stringify(data), eventId, chatId);
+      this.chatProviderHandoffs.save({ ...pending, context, state: "ready", error: null });
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+    try { this.logRevisions.changed(chatId); } catch (error) { console.warn("[provider-handoff] 記録の更新通知に失敗しました", error); }
+    const chat = this.chats.get(chatId)!;
+    const event = this.events.get(eventId)!;
+    try { this.onChange({ type: "chat_event", project_id: chat.project_id, event }); } catch (error) { console.warn("[provider-handoff] 保存後の通知に失敗しました", error); }
+    return true;
+  }
+
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
   stats(): DatabaseStats {
     return databaseStats(this.db, this.file);

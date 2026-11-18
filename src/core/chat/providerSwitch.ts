@@ -70,3 +70,29 @@ export async function prepareAndCommitProviderSwitch(
     throw error;
   }
 }
+
+/** 準備に失敗した切り替えを、切り替え時点までの記録から組み直す。ここでは指示を送らない。 */
+export async function retryProviderHandoffPreparation(
+  deps: ProviderSwitchDeps,
+  chatId: number,
+): Promise<{ warning: string | null }> {
+  const { store, uploads } = deps;
+  deps.requireIdle(chatId);
+  const chat = store.chats.get(chatId);
+  const pending = store.chatProviderHandoffs.get(chatId);
+  if (!chat || chat.archived_at || !pending || pending.state !== "blocked" || pending.provider !== chat.provider) throw new Error("再試行できる AI の引き継ぎがありません");
+  const project = store.projects.get(chat.project_id);
+  if (!project) throw new Error("プロジェクトが見つかりません");
+  const events = store.events.list(chatId).filter((event) => event.id < pending.eventId);
+  const prepared = await prepareProviderHandoff(uploads, chatId, events, pending.lastEventId ?? 0);
+  try {
+    const git = await (deps.git ?? providerHandoffGit)(workdirOf(chat, project)).catch(() => ({ context: "作業場所の Git の状態を取得できませんでした。", warning: "Git の状態を取得できませんでした" }));
+    deps.requireIdle(chatId);
+    if (!store.retryProviderHandoff(chatId, pending.eventId, pending.provider, [prepared.context, git.context].filter(Boolean).join("\n\n"), prepared.created)) throw new Error("AI の引き継ぎ状態が変わったため、再試行できません");
+    const missing = prepared.missing.length ? `添付 ${prepared.missing.length} 件が見つかりません` : null;
+    return { warning: [git.warning, missing].filter(Boolean).join("。") || null };
+  } catch (error) {
+    await Promise.all(prepared.created.map((file) => uploads.remove(file.id).catch(() => {})));
+    throw error;
+  }
+}

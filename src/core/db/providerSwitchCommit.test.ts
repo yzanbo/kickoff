@@ -69,3 +69,24 @@ test("引き継ぎの完了と、AI の再開位置の更新は同時に行う",
   assert.equal(store.chatProviderSessions.get(chat.id, "codex")?.last_event_id, 20);
   store.close();
 });
+
+test("引き継ぎの再準備の保存が失敗したら、資料の参照と状態をまとめて元に戻す", () => {
+  const { store, chat } = setup();
+  const switched = store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "古い資料", state: "blocked", error: "失敗", attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: true });
+  store.db.exec("CREATE TRIGGER fail_retry BEFORE UPDATE ON chat_provider_handoffs BEGIN SELECT RAISE(ABORT, 'test failure'); END");
+  assert.throws(() => store.retryProviderHandoff(chat.id, switched.event.id, "codex", "新しい資料", []), /test failure/);
+  assert.deepEqual(store.events.get(switched.event.id)?.data, switched.event.data);
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.context, "古い資料");
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "blocked");
+  store.close();
+});
+
+test("受信不明の引き継ぎは準備の再試行では送信可能に戻せない", () => {
+  const { store, chat } = setup();
+  const switched = store.commitProviderSwitch({ chatId: chat.id, expectedProvider: "claude", target: "codex", options: PROVIDER_BASE_CHAT_OPTIONS, context: "資料", state: "ready", error: null, attachments: [], expectedLastEventId: null, afterEventId: null, currentLastEventId: null, queueWasPaused: false });
+  store.chatProviderHandoffs.claim(chat.id, switched.event.id, "codex");
+  store.chatProviderHandoffs.markUncertain(chat.id, switched.event.id, "受信不明");
+  assert.equal(store.retryProviderHandoff(chat.id, switched.event.id, "codex", "新しい資料", []), false);
+  assert.equal(store.chatProviderHandoffs.get(chat.id)?.state, "uncertain");
+  store.close();
+});
