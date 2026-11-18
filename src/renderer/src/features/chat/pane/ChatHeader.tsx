@@ -28,11 +28,13 @@ export function ChatHeader({
   chat,
   project,
   tail,
+  busy,
 }: {
   chat: Chat;
   project?: Project;
   /** 記録の末尾（チャットの中の検索で探す。その前は検索がコアから読む） */
   tail: ChatEvent[];
+  busy: boolean;
 }) {
   const shows = useChatHeaderItems();
   const ordered = useChatHeaderOrder();
@@ -76,7 +78,7 @@ export function ChatHeader({
             <Fragment key={k}>{badges[k]}</Fragment>
           ))}
           {/* チャットの AI（送ったあとも、どのチャットでもいつも出す。メモの仕様書「0021」の Q1・Q13、「0028」の 9 節） */}
-          <ProviderChip provider={chat.provider} />
+          <ProviderChip chat={chat} busy={busy} />
           {/* 結び付いた GitHub の issue・PR（押すと GitHub タブでそれを開く） */}
           <GitHubLinkChip chat={chat} />
         </span>

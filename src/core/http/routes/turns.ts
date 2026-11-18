@@ -13,7 +13,7 @@ import { rewindFiles, rewindChat } from "../../chat/rewind.js";
 import { workdirOf } from "../../chat/workdir.js";
 import type { TellResult } from "@shared/types";
 import { marksOf } from "@shared/chat/handoff";
-import { Conflict } from "../errors.js";
+import { Conflict, NotFound } from "../errors.js";
 import { providerSwitchPreview } from "../../chat/providerSwitchPreview.js";
 
 /**
@@ -45,6 +45,14 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
   app.get("/api/chats/:id/provider-handoff", withChat, (c) => {
     const pending = store.chatProviderHandoffs.get(c.var.chat.id);
     return c.json(pending ? { event_id: pending.eventId, provider: pending.provider, state: pending.state, error: pending.error, context: pending.context } : null);
+  });
+
+  app.get("/api/chats/:id/provider-handoff/:eventId", withChat, (c) => {
+    const id = z.coerce.number().int().positive().parse(c.req.param("eventId"));
+    const event = store.events.get(id);
+    if (!event || event.chat_id !== c.var.chat.id || event.type !== "provider_switched") throw new NotFound("AI の切り替え記録が見つかりません");
+    const pending = store.chatProviderHandoffs.get(c.var.chat.id);
+    return c.json({ event, pending: pending?.eventId === id ? { state: pending.state, error: pending.error } : null });
   });
 
   // 画面で見た区切りが変わった場合は、別の引き継ぎを誤って再試行しない。

@@ -2,7 +2,7 @@ import { ChevronRight, Eraser, FolderInput } from "lucide-react";
 import { memo, type CSSProperties } from "react";
 import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { workplaceMoveLine } from "@shared/chat/workplaceMoves";
-import { providerSwitchLine } from "@shared/chat/providerSwitch";
+import { ProviderSwitchRecord } from "@/features/chat/provider/ProviderSwitchRecord";
 import { formatElapsed, formatFullStamp, formatStamp } from "@/lib/time";
 import { LazyDetails } from "@/ui/LazyDetails";
 import type { TimelineItem, TurnHandoff } from "./timelineItems";
@@ -255,7 +255,7 @@ function EventItem({
         </div>
       );
     case "provider_switched":
-      return <div className="workplace-moved-divider" id={`ev-${event.id}`} role="separator" aria-label="AI を切り替えました"><span>{providerSwitchLine(event.data)}</span></div>;
+      return <ProviderSwitchRecord event={event} />;
     case "workplace_moved":
       // 作業場所を移した区切り（メモの仕様書「0025」）。これより上の発言は巻き戻せず、分岐の起点にもできない
       return (

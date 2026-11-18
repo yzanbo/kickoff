@@ -1,4 +1,4 @@
-import type { Attachment, Chat, ChatOptionsPatch, ChildChatBody, FileRewindResult, HandoffBody, HandoffResult, HandoffVia, MessageMarks, ProviderHandoffStatus, ProviderId, ProviderSwitchPreview, ProviderSwitchResult, QueuedMessage, SendMessageBody, SubagentChildBody, TellResult } from "@shared/types";
+import type { Attachment, Chat, ChatEventOf, ChatOptionsPatch, ChildChatBody, FileRewindResult, HandoffBody, HandoffResult, HandoffVia, MessageMarks, ProviderHandoffStatus, ProviderId, ProviderSwitchPreview, ProviderSwitchResult, QueuedMessage, SendMessageBody, SubagentChildBody, TellResult } from "@shared/types";
 import { withUserView } from "@/lib/userViewSnapshot";
 import { request } from "./http";
 
@@ -7,6 +7,7 @@ export const turnsApi = {
   providerSwitchPreview: (chatId: number, target: ProviderId) => request<ProviderSwitchPreview>("GET", `/api/chats/${chatId}/provider-switch?target=${encodeURIComponent(target)}`),
   switchProvider: (chatId: number, target: ProviderId, confirmation: string) => request<ProviderSwitchResult>("POST", `/api/chats/${chatId}/provider-switch`, { target, confirmation }),
   providerHandoff: (chatId: number) => request<ProviderHandoffStatus | null>("GET", `/api/chats/${chatId}/provider-handoff`),
+  providerHandoffRecord: (chatId: number, eventId: number) => request<{ event: ChatEventOf<"provider_switched">; pending: Pick<ProviderHandoffStatus, "state" | "error"> | null }>("GET", `/api/chats/${chatId}/provider-handoff/${eventId}`),
   retryProviderHandoff: (chatId: number, eventId: number) => request<{ warning: string | null }>("POST", `/api/chats/${chatId}/provider-handoff/retry`, { event_id: eventId }),
   confirmResendProviderHandoff: (chatId: number, eventId: number) => request<{ warning: string | null }>("POST", `/api/chats/${chatId}/provider-handoff/confirm-resend`, { event_id: eventId, confirm_duplicate_risk: true }),
   /** 圧縮のあとのやり取りが終わるまで預かった指示を、送らずに外す（圧縮中に誤って送ったとき。外した指示を返す） */

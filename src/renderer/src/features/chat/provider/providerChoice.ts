@@ -25,6 +25,14 @@ export function providerPickBlock(id: ProviderId, status: ProviderStatus | undef
   return null;
 }
 
+/** 途中の切り替えは CLI と認証が揃っている場合だけ選べる。 */
+export function providerSwitchBlock(status: ProviderStatus | undefined): string | null {
+  if (!status) return "AI の状態を確認中です";
+  if (!status.implemented || !status.installed) return "この AI は利用できません";
+  if (status.auth_mode === "api_key" ? !status.has_api_key : !status.logged_in) return "ログインまたは API キーの設定が必要です";
+  return null;
+}
+
 /**
  * そのチャットの AI でその機能を使えない理由（使えるなら null）。
  * 状態がまだ届いていない・コアが できること を返さない（古いコア）ときは止めない（Claude Code のチャットで押せなくならないように）
