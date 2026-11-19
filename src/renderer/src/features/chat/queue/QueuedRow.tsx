@@ -10,7 +10,6 @@ import { startDragGhost } from "@/ui/dragGhost";
 import { QUEUE_ACTION_LOOKS } from "./queueActionLooks";
 import { cx } from "@/lib/cx";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
-import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 import { HandoffFromChip } from "@/features/chat/children/HandoffFromChip";
 import { INHERIT_LABELS, inheritHelp } from "@/features/chat/children/InheritChoice";
 
@@ -153,8 +152,6 @@ export function QueuedRow({
       ) : (
         <>
           <AttachmentPeek attachments={m.attachments} />
-          {/* 作業が途中で終わって送信待ちの先頭に回った圧縮後指示（いちばん上のまま、ほかの指示より先に送る） */}
-          {m.post_compact && <CompactPromptMark kind="post" className="compact-prompt-tag" size={11} />}
           {/* 子チャットから渡した依頼（「親チャットに追加」の送信待ち）の出どころ */}
           {m.handoff_from && <HandoffFromChip from={m.handoff_from} />}
           {/* サブエージェントに「あとで」伝える指示は、AI への前置きを隠して宛先の札と本文だけ */}

@@ -175,7 +175,7 @@ export abstract class RunnerQueue {
       await this.sendNextQueued(chatId);
       return;
     }
-    await this.tell(chatId, message.text, message.options, message.attachments, { postCompact: message.post_compact, marks: marksOf(message) });
+    await this.tell(chatId, message.text, message.options, message.attachments, { marks: marksOf(message) });
   }
 
   /**
@@ -318,7 +318,7 @@ export abstract class RunnerQueue {
       return;
     }
     try {
-      await this.send(chatId, next.text, next.options, next.attachments, { postCompact: next.post_compact, marks: marksOf(next) });
+      await this.send(chatId, next.text, next.options, next.attachments, { marks: marksOf(next) });
     } catch (e) {
       this.reportError(chatId, `待ちの指示を送れませんでした: ${errorMessage(e)}`);
     }
