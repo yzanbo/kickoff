@@ -145,16 +145,6 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     touchConnected(id: number) {
       db.prepare(`UPDATE db_connections SET last_connected_at = ${NOW} WHERE id = ?`).run(id);
     },
-    /** プロジェクトの中で ids の順に並べ直す（ほかのプロジェクトの接続・書いていない接続は、いまの順のまま後ろ） */
-    reorder(projectId: number, ids: number[]): DbConnection[] {
-      const current = this.list(projectId).map((c) => c.id);
-      const head = ids.filter((id, i) => current.includes(id) && ids.indexOf(id) === i);
-      const order = [...head, ...current.filter((id) => !head.includes(id))];
-      const stmt = db.prepare("UPDATE db_connections SET position = ? WHERE id = ?");
-      order.forEach((id, i) => stmt.run(i, id));
-      notify(projectId);
-      return this.list(projectId);
-    },
     /** メモの名前を変えた・動かしたとき、それを手順メモにしている接続の memo_path を付け替える（フォルダなら中のメモのものも） */
     remapMemoPath(projectId: number, from: string, to: string) {
       const rows = db

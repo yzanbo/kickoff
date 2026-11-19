@@ -151,8 +151,6 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
     return c.json(project, 201);
   });
 
-  app.get("/api/projects/:id", withProject, (c) => c.json(c.var.project));
-
   app.patch("/api/projects/:id", withProject, async (c) => {
     const { project } = c.var;
     const { reference_paths, archived, ...patch } = projectPatchSchema.parse(await jsonBody(c));

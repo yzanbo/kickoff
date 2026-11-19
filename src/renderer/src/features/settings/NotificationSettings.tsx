@@ -1,10 +1,10 @@
 import { errorMessage } from "@shared/errors";
 import { useAction } from "@/hooks/useAction";
-import { CheckField, Field } from "@/ui/Field";
+import { CheckField } from "@/ui/Field";
 import { ResultMessage, SaveActions } from "@/ui/SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
 
-/** 設定: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・Dock のアイコンの数・ntfy） */
+/** 設定: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・Dock のアイコンの数） */
 export function NotificationSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
   // テスト通知を送っている間と、その結果（届かなかったら理由。Mac の設定で許可していないときなど）
@@ -52,11 +52,8 @@ export function NotificationSettings() {
             <ResultMessage result={test.result} as="p" className="small" />
           </div>
         )}
-        <Field label="ntfy のトピック URL（任意）" help="承認待ち・完了・失敗をスマホに通知します（M5 で対応）。">
-          <input type="url" value={draft.ntfy_url} placeholder="https://ntfy.sh/your-topic" onChange={(e) => setDraft({ ...draft, ntfy_url: e.target.value })} />
-        </Field>
       </div>
-      <SaveActions save={save} disabled={!dirty} onSave={() => saveFields({ desktop_notifications: draft.desktop_notifications, dock_badge: draft.dock_badge, ntfy_url: draft.ntfy_url.trim() })} />
+      <SaveActions save={save} disabled={!dirty} onSave={() => saveFields({ desktop_notifications: draft.desktop_notifications, dock_badge: draft.dock_badge })} />
     </section>
   );
 }

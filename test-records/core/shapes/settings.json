@@ -16,7 +16,6 @@
   "link_open_in": "string",
   "memos_dir": "null",
   "mobile_url": "null",
-  "ntfy_url": "string",
   "post_compact_enabled": "boolean",
   "post_compact_prompt": "null",
   "pre_compact_enabled": "boolean",

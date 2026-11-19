@@ -225,11 +225,6 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
     return c.json(store.dbConnections.create(c.var.project.id, await databases.vault.seal(body)), 201);
   });
 
-  app.put(`${base}/order`, withProject, async (c) => {
-    const { ids } = z.object({ ids: z.array(z.number().int()) }).parse(await jsonBody(c));
-    return c.json(store.dbConnections.reorder(c.var.project.id, ids));
-  });
-
   // ほかのプロジェクトの接続を写す（パスワードは選んだときだけ）
   app.post(`${base}/copy`, withProject, async (c) => {
     const { from_id, copy_password } = copySchema.parse(await jsonBody(c));

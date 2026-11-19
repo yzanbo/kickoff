@@ -65,7 +65,6 @@ test("リポジトリの中のフォルダ: ワークツリーは一番上の隣
 
   const list = (await call("GET", url("/git/worktrees"))).body;
   assert.deepEqual(list.map((w: { path: string; root: string }) => [w.path, w.root]), [[path.join(top, "app"), top]]);
-  assert.equal((await call("GET", url("/git/worktrees/path?branch=feat/a"))).body.path, path.join(worktreeRoot, "app"));
 
   // チャットのワークツリー: エージェントは中の app/ で動き、Git の操作もそこだけ
   const created = await call("POST", url("/chats"), { text: "並行で", new_worktree_branch: "feat/a" });

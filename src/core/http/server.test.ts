@@ -13,11 +13,11 @@ import { makeEvent } from "@shared/testing/factories";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION } from "@shared/api/version";
 
 test("API はトークン（Bearer・Cookie）がないと 401", async () => {
-  const { app } = setup();
-  assert.equal((await app.request("/api/health")).status, 401);
-  const ok = await app.request("/api/health", { headers: AUTH });
-  assert.deepEqual(await ok.json(), { ok: true, version: "0.1.0" });
-  assert.equal((await app.request("/api/health", { headers: { cookie: `kickoff_token=${TOKEN}` } })).status, 200);
+  const { app, project } = setup();
+  assert.equal((await app.request("/api/projects")).status, 401);
+  const ok = await app.request("/api/projects", { headers: AUTH });
+  assert.deepEqual(((await ok.json()) as { id: number }[]).map((p) => p.id), [project.id]);
+  assert.equal((await app.request("/api/projects", { headers: { cookie: `kickoff_token=${TOKEN}` } })).status, 200);
 });
 
 test("図の枠のページ（/visual-frame）は認証の外で、図だけの CSP（通信しない）と no-store で返す", async () => {
@@ -46,7 +46,7 @@ test("本文が JSON として読めない・必須の本文が空なら 400（�
 
 test("URL の :id は正の整数でなければ 400（クエリの ID と同じ）、なければ 404。どのルートも同じ引き当て", async () => {
   const { call, project } = setup();
-  for (const url of ["/api/projects/abc", "/api/projects/1.5", "/api/projects/0", "/api/chats/x", "/api/projects/abc/git/status", "/api/projects/-1/chats"]) {
+  for (const url of ["/api/projects/abc/chats", "/api/projects/1.5/chats", "/api/projects/0/chats", "/api/chats/x", "/api/projects/abc/git/status", "/api/projects/-1/chats"]) {
     assert.deepEqual(await call("GET", url), { status: 400, body: { error: "ID の指定が正しくありません" } }, url);
   }
   assert.equal((await call("PATCH", "/api/groups/x", { name: "g" })).status, 400);
@@ -54,7 +54,7 @@ test("URL の :id は正の整数でなければ 400（クエリの ID と同じ
   assert.deepEqual(await call("GET", "/api/projects/999/git/status"), { status: 404, body: { error: "プロジェクトが見つかりません" } });
   assert.deepEqual(await call("DELETE", "/api/groups/999"), { status: 404, body: { error: "グループが見つかりません" } });
   assert.deepEqual(await call("POST", "/api/chats/999/cancel"), { status: 404, body: { error: "チャットが見つかりません" } });
-  assert.equal((await call("GET", `/api/projects/${project.id}`)).status, 200);
+  assert.equal((await call("GET", `/api/projects/${project.id}/chats`)).status, 200);
 });
 
 test("リアルタイム配信（SSE）は、つないだらすぐ最初の行 hello（本体の版・API の版・本体の ID）を送る", async () => {

@@ -219,7 +219,7 @@ test("プロジェクトのゴミ箱: 消すとチャットごと一覧から外
   assert.notEqual(store.projects.get(other.id)?.memo_folder, memoFolder);
   assert.equal(store.projects.get(project.id), undefined);
   assert.equal(store.chats.get(chat.id), undefined);
-  assert.equal((await call("GET", `/api/projects/${project.id}`)).status, 404);
+  assert.ok(!((await call("GET", "/api/projects")).body as { id: number }[]).some((p) => p.id === project.id));
   const listed = (await call("GET", "/api/trash/projects")).body as TrashItem[];
   assert.deepEqual(listed.map((i) => [i.id, i.label]), [[removed.body.trash_id, "消す"]]);
   // 同じフォルダをもう一度取り込もうとしたら、ゴミ箱から戻すよう断る

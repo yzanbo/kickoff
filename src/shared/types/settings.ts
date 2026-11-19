@@ -83,8 +83,6 @@ export interface AppSettings {
   remote_enabled: boolean;
   /** スマホ連携で端末がつなぐ先の URL（Tailscale Serve の https://<Mac の名前>.ts.net など。ペアリングの QR に入れる。null なら QR を出さず番号だけ） */
   mobile_url: string | null;
-  /** ntfy のトピック URL（空なら通知しない） */
-  ntfy_url: string;
   /** チャットの完了・失敗・回答待ちを Mac の通知で知らせる */
   desktop_notifications: boolean;
   /** Dock の Kickoff のアイコンに、要対応（回答待ち・未読）のチャットの数を赤い数字で出す */
@@ -144,7 +142,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   edit_scope_enabled_by_default: true,
   remote_enabled: false,
   mobile_url: null,
-  ntfy_url: "",
   desktop_notifications: true,
   dock_badge: true,
   projects_dir: "~/Documents",

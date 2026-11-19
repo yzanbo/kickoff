@@ -8,7 +8,6 @@ type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 /** 端末に開く口（メソッドとパス。Hono のルートと同じ書き方） */
 export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   // 接続・状態・知らせ
-  ["GET", "/api/health"],
   ["GET", "/api/status"],
   ["GET", "/api/events"],
   // いま見ているもの（見ているチャットの知らせは通知しない）
@@ -18,7 +17,6 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["PUT", "/api/devices/self/push"],
   // プロジェクト・グループ（見るだけ）
   ["GET", "/api/projects"],
-  ["GET", "/api/projects/:id"],
   ["GET", "/api/projects/:id/groups"],
   // チャット（一覧・中身・作る・名前と固定・既読・探す）
   ["GET", "/api/projects/:id/chats"],

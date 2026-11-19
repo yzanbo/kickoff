@@ -79,7 +79,6 @@ export const databasesApi = {
   createDbConnection: (projectId: number, body: NewDbConnectionBody) => request<DbConnection>("POST", base(projectId), body),
   updateDbConnection: (projectId: number, id: number, patch: DbConnectionPatch) => request<DbConnection>("PATCH", one(projectId, id), patch),
   deleteDbConnection: (projectId: number, id: number) => request<void>("DELETE", one(projectId, id)),
-  reorderDbConnections: (projectId: number, ids: number[]) => request<DbConnection[]>("PUT", `${base(projectId)}/order`, { ids }),
   dbImportCandidates: (projectId: number) => request<DbImportCandidate[]>("GET", `${base(projectId)}/import`),
   importDbConnections: (projectId: number, body: DbImportBody) => request<DbConnection[]>("POST", `${base(projectId)}/import`, body),
   copyDbConnection: (projectId: number, body: CopyDbConnectionBody) => request<DbConnection>("POST", `${base(projectId)}/copy`, body),

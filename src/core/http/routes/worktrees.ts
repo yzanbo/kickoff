@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { BranchSuggestBody, BranchSuggestions, GitWorktree, WorktreeEnvSetupBody, WorktreeEnvSetupResult, WorktreeRemovalInfo } from "@shared/types";
-import { addWorktree, gitRefs, isGitWorkTree, listWorktrees, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
+import { addWorktree, gitRefs, isGitWorkTree, listWorktrees, worktreeRemovalInfo } from "../../git/index.js";
 import { branchSuggestPrompt, parseBranchSuggestions } from "../../git/branchSuggest.js";
 import { envSetupPrompt, envSetupTitle } from "../../worktreeEnv/setupPrompt.js";
 import type { ServerDeps } from "../server.js";
@@ -31,11 +31,6 @@ export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEn
     await headWatch.watch(project.id, project.repo_path, list);
     // ワークツリーの実行環境（ポートの帯・組の名前）と作業場所の色も付ける
     return c.json(present(project.id, list));
-  });
-
-  app.get("/api/projects/:id/git/worktrees/path", withProject, async (c) => {
-    const { branch } = z.object({ branch: branchName }).parse({ branch: c.req.query("branch") });
-    return c.json({ path: await worktreePathFor(c.var.project.repo_path, branch) });
   });
 
   // やりたいことの概要から、ブランチ名の案を AI に出してもらう（軽いモデルで 1 回だけ。いまあるブランチと同じ名前は除く。案が作れなければ 400）

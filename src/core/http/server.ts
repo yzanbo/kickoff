@@ -217,8 +217,6 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json(body, status);
   });
 
-  app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));
-
   // 画面の左下の「接続」の詳細
   app.get("/api/status", (c) => {
     const settings = store.settings.get();

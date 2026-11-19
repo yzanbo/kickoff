@@ -953,7 +953,7 @@
 | SET-019 | 見ている人には通知しない | notifications | T:server.notifications |
 | SET-020 | 通知を押してそのチャットを開く | 土台:desktop | M |
 | SET-021 | Dock のアイコンに要対応の数を出す | notifications | T:dockBadge |
-| SET-022 | ntfy でスマホに知らせる（一部） | notifications | M |
+| SET-022 | ntfy でスマホに知らせる（取りやめ: 欄を保存するだけで知らせていなかった。スマホへはプッシュで知らせる。MOB-013） | notifications | M |
 
 ### 診断
 | ID | 機能 | 持ち主 | 確かめ方 |

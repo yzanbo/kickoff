@@ -164,10 +164,6 @@
     "device": "none"
   },
   {
-    "route": "GET /api/health",
-    "device": "full"
-  },
-  {
     "route": "GET /api/memos/defaults",
     "device": "full"
   },
@@ -193,10 +189,6 @@
   },
   {
     "route": "GET /api/projects",
-    "device": "full"
-  },
-  {
-    "route": "GET /api/projects/:id",
     "device": "full"
   },
   {
@@ -349,10 +341,6 @@
   },
   {
     "route": "GET /api/projects/:id/git/worktrees/info",
-    "device": "none"
-  },
-  {
-    "route": "GET /api/projects/:id/git/worktrees/path",
     "device": "none"
   },
   {
@@ -1069,10 +1057,6 @@
   },
   {
     "route": "PUT /api/projects/:id/db-connections/:cid/er-layout",
-    "device": "none"
-  },
-  {
-    "route": "PUT /api/projects/:id/db-connections/order",
     "device": "none"
   },
   {

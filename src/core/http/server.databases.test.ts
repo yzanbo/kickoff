@@ -84,12 +84,6 @@ test("DB の接続: 作る・一覧・変える・並べ替える・消す。パ
   assert.equal(((await call("PATCH", `/api/projects/${project.id}/db-connections/${pg.id}`, { password: null })).body as DbConnection).has_password, false);
   await call("PATCH", `/api/projects/${project.id}/db-connections/${pg.id}`, { password: "again" });
 
-  const ordered = (await call("PUT", `/api/projects/${project.id}/db-connections/order`, { ids: [pg.id] })).body as DbConnection[];
-  assert.deepEqual(
-    ordered.map((c) => c.id),
-    [pg.id, created.body.id],
-  );
-
   assert.equal((await call("DELETE", `/api/projects/${project.id}/db-connections/${pg.id}`)).status, 204);
   assert.equal(store.dbConnections.password(pg.id), null);
   assert.equal((await call("DELETE", `/api/projects/${project.id}/db-connections/${pg.id}`)).status, 404);

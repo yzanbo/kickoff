@@ -54,8 +54,8 @@ test("設定・プロジェクトの API", async () => {
     (await call("GET", "/api/projects")).body.map((p: { id: number }) => p.id),
     [project.id],
   );
-  assert.equal((await call("GET", `/api/projects/${project.id}`)).body.name, "p");
-  assert.deepEqual(await call("GET", "/api/projects/999"), { status: 404, body: { error: "プロジェクトが見つかりません" } });
+  assert.equal((await call("GET", "/api/projects")).body.find((p: { id: number }) => p.id === project.id).name, "p");
+  assert.deepEqual(await call("PATCH", "/api/projects/999", { name: "q" }), { status: 404, body: { error: "プロジェクトが見つかりません" } });
 
   const patched = await call("PATCH", `/api/projects/${project.id}`, { name: "q" });
   assert.equal(patched.body.name, "q");

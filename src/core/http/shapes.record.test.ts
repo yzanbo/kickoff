@@ -7,7 +7,7 @@ import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { matchRecord, shapeOf } from "../testing/record.js";
 import { setup } from "../testing/testServer.js";
 
-test("主な応答の形の記録（14 本）", async () => {
+test("主な応答の形の記録（13 本）", async () => {
   const { call, store, project } = setup();
   // 本物の Git の作業場所（ステージした変更・ステージしていない変更・まだ Git にないファイル）
   gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n", "b.txt": "b\n" } });
@@ -31,7 +31,6 @@ test("主な応答の形の記録（14 本）", async () => {
     ["status", "/api/status"],
     ["settings", "/api/settings"],
     ["projects", "/api/projects"],
-    ["project", `/api/projects/${project.id}`],
     ["project-chats", `/api/projects/${project.id}/chats`],
     ["chat-detail", `/api/chats/${chat.id}`],
     ["chat-events", `/api/chats/${chat.id}/events?before=${end.id + 1}&turns=10`],
