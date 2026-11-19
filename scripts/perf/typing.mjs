@@ -2,7 +2,7 @@
 // node scripts/perf/typing.mjs [--chat 224] [--keys 40] [--streaming] [--json]
 //   --streaming: 確かめ用のチャットに返答を書かせ、書いている最中に打つ（streaming.mjs）
 import { parseArgs } from "node:util";
-import { api, connectPage, metrics, metricsDelta, sleep, waitTimelineExpr } from "./cdp.mjs";
+import { api, connectPage, metrics, metricsDelta, sleep, waitTimelineExpr } from "../devtools/cdp.mjs";
 import { summarize, summarizeProfile } from "./stats.mjs";
 import { startStreamingLive, stopStreaming } from "./streaming.mjs";
 

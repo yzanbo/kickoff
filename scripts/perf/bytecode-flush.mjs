@@ -2,7 +2,7 @@
 // 戻ってからの操作（ボード・長いチャット・設定）の JS の時間とコンパイルの合計時間、画面のメモリを出す。
 // node scripts/perf/bytecode-flush.mjs [--project 21] [--chat 224] [--gc 12] [--idle 0]（--idle は GC の前に待つ分）
 import { parseArgs } from "node:util";
-import { connectPage, sleep } from "./cdp.mjs";
+import { connectPage, sleep } from "../devtools/cdp.mjs";
 
 const { values } = parseArgs({ options: { project: { type: "string", default: "21" }, chat: { type: "string", default: "224" }, gc: { type: "string", default: "12" }, idle: { type: "string", default: "0" } } });
 const page = await connectPage();

@@ -10,9 +10,11 @@
 // 記録は /tmp/kickoff-snaps/<名前>.json（状態は state-<名前>.json）。本番のアプリ（ポート 4317）には触らない。
 import fs from "node:fs";
 import path from "node:path";
+import { cdpPort, connectPage, sleep } from "./devtools/cdp.mjs";
 
 const DIR = "/tmp/kickoff-snaps";
-const CDP_PORT = Number(process.env.KICKOFF_REMOTE_DEBUG ?? 9333);
+/** アプリの画面（別ウィンドウ・webview・DevTools を除く）につなぐ。CDP のポートは --cdp > KICKOFF_REMOTE_DEBUG > 9333 */
+const connect = () => connectPage({ port: cdpPort() });
 
 /** 見た目に関わる計算後のプロパティ（全部は多すぎるので、レイアウト・色・文字・枠・重なりに絞る） */
 const PROPS = [
@@ -82,40 +84,6 @@ const CSS_RULES_JS = `JSON.stringify([...document.styleSheets].map((s) => {
   return { id: s.ownerNode?.getAttribute?.("data-vite-dev-id") ?? s.href ?? "<inline>", rules };
 }))`;
 
-/** 開発版の画面（CDP）につなぐ。webview（埋め込みブラウザ）や DevTools ではなく、アプリの画面を選ぶ */
-async function connect() {
-  const targets = await (await fetch(`http://127.0.0.1:${CDP_PORT}/json`)).json();
-  const pages = targets.filter((t) => t.type === "page" && !t.url.startsWith("devtools://"));
-  const page = pages.find((t) => /localhost:5173|index\.html/.test(t.url)) ?? pages[0];
-  if (!page) throw new Error(`画面が見つかりません（npm run dev:cdp（KICKOFF_REMOTE_DEBUG=${CDP_PORT} npm run dev）で起動していますか）`);
-  const ws = new WebSocket(page.webSocketDebuggerUrl);
-  await new Promise((ok, ng) => {
-    ws.onopen = ok;
-    ws.onerror = ng;
-  });
-  let seq = 0;
-  const pending = new Map();
-  ws.onmessage = (ev) => {
-    const m = JSON.parse(ev.data);
-    if (m.id && pending.has(m.id)) {
-      pending.get(m.id)(m);
-      pending.delete(m.id);
-    }
-  };
-  const evaluate = async (expression) => {
-    const r = await new Promise((ok) => {
-      const id = ++seq;
-      pending.set(id, ok);
-      ws.send(JSON.stringify({ id, method: "Runtime.evaluate", params: { expression, awaitPromise: true, returnByValue: true } }));
-    });
-    if (r.error) throw new Error(r.error.message);
-    if (r.result.exceptionDetails) throw new Error(r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails.text);
-    return r.result.result.value;
-  };
-  return { evaluate, close: () => ws.close() };
-}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const file = (name) => path.join(DIR, `${name}.json`);
 const option = (args, key, fallback) => {
   const i = args.indexOf(key);

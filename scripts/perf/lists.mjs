@@ -3,7 +3,7 @@
 // 測り終えたら差し替えを外し、localStorage を元に戻して読み込み直す。
 // node scripts/perf/lists.mjs [--count 1000] [--project 21] [--groups 8] [--runs 3] [--json]
 import { parseArgs } from "node:util";
-import { api, connectPage, metrics, metricsDelta, sleep } from "./cdp.mjs";
+import { api, connectPage, metrics, metricsDelta, reload, sleep, withSavedStorage } from "../devtools/cdp.mjs";
 import { summarize, summarizeProfile } from "./stats.mjs";
 
 /** 偽のチャットとグループを足す fetch の差し替え（読み込む前の画面で動く文） */
@@ -47,17 +47,6 @@ export function shimSource({ template, projectId, count, groups }) {
     return new Response(JSON.stringify([...body, ...extra]), { status: 200, headers: { "content-type": "application/json" } });
   };
 })();`;
-}
-
-/** 画面を読み込み直し、サイドバーが描かれるまで待つ */
-export async function reload(page) {
-  await page.send("Page.reload", { ignoreCache: false });
-  await sleep(800);
-  for (let i = 0; i < 150; i++) {
-    if (await page.evaluate(`!!document.querySelector(".sidebar .workspace-page")`).catch(() => false)) return;
-    await sleep(200);
-  }
-  throw new Error("読み込み直したあとサイドバーが出ません");
 }
 
 /**
@@ -198,43 +187,44 @@ export async function measureLists({ count = 1000, projectId = 21, groups = 8, r
   const template = (await api("GET", `/api/projects/${projectId}/chats`))[0];
   if (!template) throw new Error(`プロジェクト ${projectId} にチャットがありません（偽のチャットの型に使う）`);
   const page = await connectPage();
-  const saved = await page.evaluate(`JSON.stringify(Object.fromEntries(Object.entries(localStorage)))`);
-  const savedHash = await page.evaluate(`location.hash`);
-  let scriptId = null;
   const results = [];
   try {
-    await page.send("Page.enable");
-    await page.send("Performance.enable");
-    await page.send("Profiler.enable");
-    if (count > 0) ({ identifier: scriptId } = await page.send("Page.addScriptToEvaluateOnNewDocument", { source: shimSource({ template, projectId, count, groups }) }));
-    // 要対応だけ・アーカイブ済みを隠す（測るチャットがすべて並ぶように）。設定はあとで元に戻す
-    await page.evaluate(`(localStorage.setItem("kickoff:sidebar-waiting-only", "0"), 1)`);
-    await reload(page);
-    await sleep(1500);
-    for (const sc of scenarios(projectId, count)) {
-      if (only && !sc.name.includes(only)) continue;
-      const list = [];
-      for (let i = 0; i < runs; i++) {
-        await page.evaluate(`(async () => { ${sc.setup} })()`);
-        await sleep(1200);
-        list.push(await measure(page, sc));
+    // 測り終えたら localStorage とハッシュを元に戻して読み込み直す
+    await withSavedStorage(page, async () => {
+      let scriptId = null;
+      try {
+        await page.send("Page.enable");
+        await page.send("Performance.enable");
+        await page.send("Profiler.enable");
+        if (count > 0) ({ identifier: scriptId } = await page.send("Page.addScriptToEvaluateOnNewDocument", { source: shimSource({ template, projectId, count, groups }) }));
+        // 要対応だけ・アーカイブ済みを隠す（測るチャットがすべて並ぶように）
+        await page.evaluate(`(localStorage.setItem("kickoff:sidebar-waiting-only", "0"), 1)`);
+        await reload(page);
+        await sleep(1500);
+        for (const sc of scenarios(projectId, count)) {
+          if (only && !sc.name.includes(only)) continue;
+          const list = [];
+          for (let i = 0; i < runs; i++) {
+            await page.evaluate(`(async () => { ${sc.setup} })()`);
+            await sleep(1200);
+            list.push(await measure(page, sc));
+          }
+          // トレースは別の 1 回で取る（プロファイルと重ねると、どちらの時間も伸びるため）
+          let traced = null;
+          if (trace) {
+            await page.evaluate(`(async () => { ${sc.setup} })()`);
+            await sleep(1200);
+            traced = await measureTrace(page, sc);
+          }
+          const pick = (k) => summarize(list.map((r) => r[k] ?? 0)).median;
+          results.push({ name: sc.name, firstMs: pick("firstMs"), longest: pick("longest"), paintMs: pick("paintMs"), scriptMs: pick("scriptMs"), layoutMs: pick("layoutMs"), styleMs: pick("styleMs"), taskMs: pick("taskMs"), react: pick("react"), app: pick("app"), nodes: pick("nodes"), trace: traced, runs: list });
+        }
+      } finally {
+        // 差し替えを外してから戻す（戻したあとの読み込み直しに偽のチャットを入れない）
+        if (scriptId) await page.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: scriptId }).catch(() => {});
       }
-      // トレースは別の 1 回で取る（プロファイルと重ねると、どちらの時間も伸びるため）
-      let traced = null;
-      if (trace) {
-        await page.evaluate(`(async () => { ${sc.setup} })()`);
-        await sleep(1200);
-        traced = await measureTrace(page, sc);
-      }
-      const pick = (k) => summarize(list.map((r) => r[k] ?? 0)).median;
-      results.push({ name: sc.name, firstMs: pick("firstMs"), longest: pick("longest"), paintMs: pick("paintMs"), scriptMs: pick("scriptMs"), layoutMs: pick("layoutMs"), styleMs: pick("styleMs"), taskMs: pick("taskMs"), react: pick("react"), app: pick("app"), nodes: pick("nodes"), trace: traced, runs: list });
-    }
+    });
   } finally {
-    if (scriptId) await page.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: scriptId }).catch(() => {});
-    // 元の設定に戻して読み込み直す（setItem だけだと画面の覚えた値で上書きされるので、同じ式で読み込み直す）
-    await page
-      .evaluate(`(() => { const saved = ${JSON.stringify(saved)}; const v = JSON.parse(saved); localStorage.clear(); for (const [k, x] of Object.entries(v)) localStorage.setItem(k, x); location.hash = ${JSON.stringify(savedHash)}; location.reload(); return 1; })()`)
-      .catch(() => {});
     page.close();
   }
   return { count, projectId, groups, results };

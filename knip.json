@@ -15,7 +15,8 @@
     "scripts/check-restriction-defaults.ts",
     "scripts/*.cjs",
     "scripts/hooks/pre*.mjs",
-    "scripts/perf/*.mjs"
+    "scripts/perf/*.mjs",
+    "scripts/devtools/*.mjs"
   ],
   "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}", "scripts/check-provider-switch.ts", "scripts/check-codex-uploads.ts"],
   "ignoreExportsUsedInFile": true,

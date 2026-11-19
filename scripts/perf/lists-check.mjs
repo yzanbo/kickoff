@@ -3,8 +3,8 @@
 // チャットは lists.mjs と同じく画面の fetch を差し替えて足し、終わったら差し替えを外して localStorage を元に戻す。
 // node scripts/perf/lists-check.mjs [--count 1000] [--project 21]
 import { parseArgs } from "node:util";
-import { api, connectPage, sleep } from "./cdp.mjs";
-import { reload, shimSource } from "./lists.mjs";
+import { api, connectPage, reload, sleep, withSavedStorage } from "../devtools/cdp.mjs";
+import { shimSource } from "./lists.mjs";
 
 const imports = `const s = await import("/src/lib/storage.ts"); const k = await import("/src/lib/storageKeys.ts"); const f = await import("/src/hooks/useFold.ts");`;
 const frame = `await new Promise((r) => requestAnimationFrame(r));`;
@@ -98,9 +98,6 @@ const boardFindExpr = (projectId) => `(async () => {
 export async function checkLists({ count = 1000, projectId = 21 } = {}) {
   const template = (await api("GET", `/api/projects/${projectId}/chats`))[0];
   const page = await connectPage();
-  const saved = await page.evaluate(`JSON.stringify(Object.fromEntries(Object.entries(localStorage)))`);
-  const savedHash = await page.evaluate(`location.hash`);
-  let scriptId = null;
   const out = {};
   // 確かめている間に画面が出したエラー・警告（React の flushSync の警告など）
   const problems = [];
@@ -109,24 +106,28 @@ export async function checkLists({ count = 1000, projectId = 21 } = {}) {
     if (m.method === "Runtime.exceptionThrown") problems.push(String(m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text).slice(0, 300));
   });
   try {
-    await page.send("Page.enable");
-    await page.send("Runtime.enable");
-    ({ identifier: scriptId } = await page.send("Page.addScriptToEvaluateOnNewDocument", { source: shimSource({ template, projectId, count, groups: 8 }) }));
-    await page.evaluate(`(localStorage.setItem("kickoff:sidebar-waiting-only", "0"), 1)`);
-    await reload(page);
-    await sleep(1500);
-    for (const [name, check] of Object.entries(checks)) {
-      out[name] = await page.evaluate(sidebarExpr(projectId, check));
-      await sleep(500);
-    }
-    out.boardFind = await page.evaluate(boardFindExpr(projectId));
-    out.problems = problems;
+    // 確かめ終えたら localStorage とハッシュを元に戻して読み込み直す
+    await withSavedStorage(page, async () => {
+      let scriptId = null;
+      try {
+        await page.send("Page.enable");
+        await page.send("Runtime.enable");
+        ({ identifier: scriptId } = await page.send("Page.addScriptToEvaluateOnNewDocument", { source: shimSource({ template, projectId, count, groups: 8 }) }));
+        await page.evaluate(`(localStorage.setItem("kickoff:sidebar-waiting-only", "0"), 1)`);
+        await reload(page);
+        await sleep(1500);
+        for (const [name, check] of Object.entries(checks)) {
+          out[name] = await page.evaluate(sidebarExpr(projectId, check));
+          await sleep(500);
+        }
+        out.boardFind = await page.evaluate(boardFindExpr(projectId));
+        out.problems = problems;
+      } finally {
+        if (scriptId) await page.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: scriptId }).catch(() => {});
+      }
+    });
   } finally {
     off();
-    if (scriptId) await page.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: scriptId }).catch(() => {});
-    await page
-      .evaluate(`(() => { const v = JSON.parse(${JSON.stringify(saved)}); localStorage.clear(); for (const [k, x] of Object.entries(v)) localStorage.setItem(k, x); location.hash = ${JSON.stringify(savedHash)}; location.reload(); return 1; })()`)
-      .catch(() => {});
     page.close();
   }
   return out;
