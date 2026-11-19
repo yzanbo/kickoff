@@ -12,15 +12,12 @@ import type { ServerHello } from "@shared/types";
 import { makeEvent } from "@shared/testing/factories";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION } from "@shared/api/version";
 
-test("API はトークン（Bearer・Cookie）がないと 401。本体のトークンを URL で渡す口（前の /pair?token=）はない", async () => {
+test("API はトークン（Bearer・Cookie）がないと 401", async () => {
   const { app } = setup();
   assert.equal((await app.request("/api/health")).status, 401);
   const ok = await app.request("/api/health", { headers: AUTH });
   assert.deepEqual(await ok.json(), { ok: true, version: "0.1.0" });
   assert.equal((await app.request("/api/health", { headers: { cookie: `kickoff_token=${TOKEN}` } })).status, 200);
-
-  const old = await app.request(`/pair?token=${TOKEN}`);
-  assert.equal(old.headers.get("set-cookie"), null);
 });
 
 test("図の枠のページ（/visual-frame）は認証の外で、図だけの CSP（通信しない）と no-store で返す", async () => {

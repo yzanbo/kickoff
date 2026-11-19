@@ -1,4 +1,4 @@
-// ブラウザからこの Mac の画面として入る、一度だけ使えるログイン（npm run daemon が端末に出す URL。前の /pair?token= の代わり）。
+// ブラウザからこの Mac の画面として入る、一度だけ使えるログイン（npm run daemon が端末に出す URL）。
 // URL に本体のトークンは入れず、使い捨ての番号と引き換えに本体のトークンの Cookie を置く（Mac のアプリの画面は Cookie を最初から持つので使わない）
 import { randomBytes } from "node:crypto";
 

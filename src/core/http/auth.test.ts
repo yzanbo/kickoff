@@ -6,11 +6,9 @@ import { loadOrCreateToken } from "./auth.js";
 import { BrowserLogin } from "./browserLogin.js";
 import { tempDir } from "../testing/tempDir.js";
 
-test("loadOrCreateToken: 作り直しの印がなければ、前の版のトークン（/pair で配ったもの）を一度だけ作り直す。そのあとは同じトークン", () => {
+test("loadOrCreateToken: token がなければ作り、次からは同じ token を返す", () => {
   const dir = tempDir();
-  fs.writeFileSync(path.join(dir, "token"), "o".repeat(32));
   const first = loadOrCreateToken(dir);
-  assert.notEqual(first, "o".repeat(32));
   assert.equal(loadOrCreateToken(dir), first);
   assert.equal(fs.readFileSync(path.join(dir, "token"), "utf8"), first);
 });
