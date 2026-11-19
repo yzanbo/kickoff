@@ -10,6 +10,7 @@
     "src/core/terminal/xtermTypes.d.ts",
     "electron.vite.config.ts",
     "scripts/*.mjs",
+    "scripts/refactor/*.mjs",
     "scripts/*.cjs",
     "scripts/hooks/pre*.mjs",
     "scripts/perf/*.mjs",
