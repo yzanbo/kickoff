@@ -8,7 +8,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { Attachment, ChatOptionsPatch, GitHubLink, Project, ProviderId } from "@shared/types";
 import { withAttachmentNote } from "./uploads.js";
-import { appendNote, CAPTURE_HEADING, captureLine, MEMO_ATTACHMENT_HEADING, MEMO_SNAPSHOT_HEADING, memoSnapshotLine } from "./attachmentNotes.js";
+import { appendNote, CAPTURE_HEADING, captureLine, MEMO_SNAPSHOT_HEADING, memoSnapshotLine } from "./attachmentNotes.js";
 import { Invalid, NotFound } from "../http/errors.js";
 import { isInside } from "../system/paths.js";
 
@@ -138,21 +138,15 @@ async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, te
 
 /**
  * 添付のパスをメッセージに書き添える（エージェントは Read ツールで読む。中身は書かない）。種類ごとに見出しを分ける:
- * ファイル・メモ（写しがあれば写しと元のメモのパス、古い添付はメモのフォルダのファイルのパス）・「AI に渡す」で取ったもの（出どころ・時刻・外から来たか）。
+ * ファイル・メモ（写しと元のメモのパス）・「AI に渡す」で取ったもの（出どころ・時刻・外から来たか）。
  * メモの写しと取ったものの見出しは、保存したときの記録（uploads.meta）から書く。見つからない添付・メモは書かない
  */
 async function promptWithAttachments({ uploads, memoDirOf }: ExecutionDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
   const memoDir = project && memoDirOf ? memoDirOf(project) : null;
   const files = [];
-  const memos: string[] = [];
   const snapshots: string[] = [];
   const captures: string[] = [];
   for (const attachment of attachments) {
-    if (attachment.kind === "memo" && !attachment.taken_at) {
-      const file = memoDir ? await memoFile(memoDir, attachment.memo) : null;
-      if (file) memos.push(file);
-      continue;
-    }
     const resolved = await uploads?.resolve(attachment.id);
     if (!resolved) continue;
     const saved = (await uploads?.meta(attachment.id)) ?? null;
@@ -161,7 +155,6 @@ async function promptWithAttachments({ uploads, memoDirOf }: ExecutionDeps, proj
     else files.push({ path: resolved.path, attachment });
   }
   let prompt = withAttachmentNote(text, files);
-  prompt = appendNote(prompt, MEMO_ATTACHMENT_HEADING, memos.map((m) => `- ${m}`));
   prompt = appendNote(prompt, MEMO_SNAPSHOT_HEADING, snapshots);
   return appendNote(prompt, CAPTURE_HEADING, captures);
 }

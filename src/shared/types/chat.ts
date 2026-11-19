@@ -235,13 +235,12 @@ export interface FileAttachment extends AttachmentBase {
 
 /**
  * メモの添付（チャットのプロジェクトのメモ。memo はメモのフォルダからの相対パス）。付けたときの中身の写しを保存先に置き（id がその写し）、
- * 送るときは写しのパスと元のメモのパスを AI に伝える（頼まれたら元のメモを書き換えてよい）。taken_at は写した時刻。
- * 写しのない古いメモの添付（taken_at なし・size 0）は、送るときのメモのファイルのパスだけを伝える
+ * 送るときは写しのパスと元のメモのパスを AI に伝える（頼まれたら元のメモを書き換えてよい）。taken_at は写した時刻
  */
 export interface MemoAttachment extends AttachmentBase {
   kind: "memo";
   memo: string;
-  taken_at?: string;
+  taken_at: string;
 }
 
 /**
@@ -257,10 +256,7 @@ export interface CaptureAttachment extends AttachmentBase {
   redacted: number;
 }
 
-/**
- * チャットの添付（種類 kind で分ける）。チャットの記録・送信待ちに残るので、古い形（kind なし。memo があればメモ）は読むときに
- * `@shared/attachment/normalize` の normalizeAttachment で読み替える（表は作り直さない）
- */
+/** チャットの添付（種類 kind で分ける） */
 export type Attachment = FileAttachment | MemoAttachment | CaptureAttachment;
 
 /**

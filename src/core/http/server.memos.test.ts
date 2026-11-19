@@ -5,11 +5,12 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { test, vi } from "vitest";
-import type { BusEvent, MemoList } from "@shared/types";
+import type { BusEvent, MemoAttachment, MemoList } from "@shared/types";
 import { tempDir } from "../testing/tempDir.js";
 import { AUTH, setup } from "../testing/testServer.js";
 import { until } from "../testing/testCore.js";
 import { canWatchDirectory } from "../testing/canWatchDirectory.js";
+import { MEMO_SNAPSHOT_HEADING } from "../chat/attachmentNotes.js";
 
 test("メモの保存先: 既定は親フォルダの下のプロジェクト名のフォルダ。名前を変えても同じフォルダ、ほかのプロジェクトとは重ねない", async () => {
   const { call, project, store, memoFake } = setup();
@@ -261,31 +262,32 @@ test("メモのチャット: メモごとに 1 つのふつうのチャット。
   assert.match(provider.lastSystemPrompt, /メモは HTML のファイルです/);
 });
 
-test("メモの添付: 入力欄に添付したメモは、メモのフォルダのファイルのパスを AI に伝え、メモのフォルダを読み書きできる場所に足す（外・隠しファイルは 400）", async () => {
+test("メモの添付: 入力欄に添付したメモの写しは、写しと元のメモのパスを AI に伝え、メモのフォルダを読み書きできる場所に足す（外・隠しファイルは 400）", async () => {
   const { call, project, provider, store } = setup();
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/memos`, { path: "設計/DB.md", content: "# DB\n" });
   const memoDir = ((await call("GET", `${base}/memos`)).body as MemoList).dir;
-  const memo = (p: string) => ({ id: randomUUID(), name: path.basename(p), mime: "text/markdown", size: 0, memo: p });
-  assert.equal((await call("POST", `${base}/chats`, { text: "x", attachments: [memo("../外.md")] })).status, 400);
-  assert.equal((await call("POST", `${base}/chats`, { text: "x", attachments: [memo(".隠し.md")] })).status, 400);
+  const snapshot = (await call("POST", `${base}/memo/snapshot`, { path: "設計/DB.md" })).body as MemoAttachment;
+  for (const outside of ["../外.md", ".隠し.md"]) {
+    assert.equal((await call("POST", `${base}/memo/snapshot`, { path: outside })).status, 400);
+    assert.equal((await call("POST", `${base}/chats`, { text: "x", attachments: [{ ...snapshot, memo: outside }] })).status, 400);
+  }
   // 文がなくても、メモの添付だけで送れる
-  const created = await call("POST", `${base}/chats`, { text: "", attachments: [memo("設計/DB.md")] });
+  const created = await call("POST", `${base}/chats`, { text: "", attachments: [snapshot] });
   assert.equal(created.status, 201);
   await until(() => store.chats.get(created.body.id)?.status === "completed");
-  assert.match(provider.prompts.at(-1)!, /^添付したメモ（[^\n]*）:\n- .*設計\/DB\.md$/);
+  assert.ok(provider.prompts.at(-1)!.startsWith(`${MEMO_SNAPSHOT_HEADING}:\n- `));
   assert.ok(provider.prompts.at(-1)!.includes(path.join(memoDir, "設計/DB.md")));
   assert.ok(provider.lastDirs.includes(memoDir));
   // 記録には添付のまま残す（画面がメモの札で出す）
-  // 種類を持つ前の形（kind なし）で送っても、メモの添付として読み替える
   const user = store.events.list(created.body.id).find((e) => e.type === "user");
   const first = user?.type === "user" ? user.data.attachments?.[0] : undefined;
   assert.equal(first?.kind === "memo" && first.memo, "設計/DB.md");
-  // 続きの指示でも。見つからないメモは書かない
-  await call("POST", `/api/chats/${created.body.id}/messages`, { text: "続きを書いて", attachments: [memo("設計/DB.md"), memo("ない.md")] });
+  // 続きの指示でも。写しが見つからない添付は書かない
+  await call("POST", `/api/chats/${created.body.id}/messages`, { text: "続きを書いて", attachments: [snapshot, { ...snapshot, id: randomUUID() }] });
   await until(() => provider.prompts.length === 2 && store.chats.get(created.body.id)?.status === "completed");
   assert.equal(provider.prompts[1].split("\n- ").length, 2);
-  assert.ok(provider.prompts[1].startsWith("続きを書いて\n\n添付したメモ"));
+  assert.ok(provider.prompts[1].startsWith(`続きを書いて\n\n${MEMO_SNAPSHOT_HEADING}`));
 });
 
 test("メモの AI: フォルダの整理案は使える案だけを返し、動かさない（メモがなければ AI に聞かない）", async () => {

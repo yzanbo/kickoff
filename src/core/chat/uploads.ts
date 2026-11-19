@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { normalizeAttachment } from "@shared/attachment/normalize";
 import { formatSize, truncateText } from "@shared/attachment/truncate";
 import { redactSecrets } from "@shared/secrets/redact";
 import type { Attachment, AttachmentSource, CaptureAttachment, FileAttachment, MemoAttachment } from "@shared/types";
@@ -95,7 +94,7 @@ export class UploadStore {
   async meta(id: string): Promise<Attachment | null> {
     if (!isUploadId(id)) return null;
     try {
-      return normalizeAttachment(JSON.parse(await fs.readFile(path.join(this.dir, id, META_FILE), "utf8")));
+      return JSON.parse(await fs.readFile(path.join(this.dir, id, META_FILE), "utf8")) as Attachment;
     } catch {
       return null;
     }

@@ -3,9 +3,6 @@ import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachment/s
 import { formatSize } from "@shared/attachment/truncate";
 import type { CaptureAttachment, MemoAttachment } from "@shared/types";
 
-/** 添付したメモの見出し（写しのない古い添付。メモはメモのフォルダのファイルそのもの。頼まれたら AI が続きを書けるように） */
-export const MEMO_ATTACHMENT_HEADING = "添付したメモ（メモのフォルダのファイルそのものです。Read ツールで読めます。頼まれたら、このファイルを直接書き換えてかまいません）";
-
 /** メモの写しの見出し（読むのは写し。頼まれたら元のメモを書き換える） */
 export const MEMO_SNAPSHOT_HEADING = "添付したメモ（付けたときの中身の写しです。Read ツールで読めます。頼まれたら、元のメモのファイルを直接書き換えてかまいません）";
 
@@ -35,7 +32,7 @@ export function captureLine(file: string, a: CaptureAttachment): string {
 
 /** メモの写し 1 つの行（元のメモがもうなければ書かない） */
 export function memoSnapshotLine(file: string, a: MemoAttachment, original: string | null): string {
-  const taken = a.taken_at ? `を ${formatTakenAt(a.taken_at)} に写したもの` : "";
+  const taken = `を ${formatTakenAt(a.taken_at)} に写したもの`;
   return `- ${file}（メモ「${a.memo}」${taken}${original ? `。元のメモ: ${original}` : "。元のメモはもうありません"}）`;
 }
 

@@ -9,7 +9,6 @@
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
 import { GITHUB_MERGE_METHODS, HANDOFF_VIAS, type Attachment, type HandoffFrom } from "@shared/types";
 import { HANDOFF_AFTERS } from "@shared/chat/handoff";
-import { normalizeAttachment } from "@shared/attachment/normalize";
 import { THEME_CHOICES } from "@shared/theme/backgrounds";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
 import { NO_DB_TABS, parseDbClientTabs } from "./dbClientTabs";
@@ -18,20 +17,20 @@ import { EMPTY_REVIEW_DRAFT, isEmptyReviewDraft, parseReviewDraft } from "./gith
 
 const NO_ATTACHMENTS: readonly Attachment[] = [];
 
-/** 残しておいた添付の 1 つが使える形か（種類を持つ前の形も。メモはパス、取ったものは出どころと時刻が要る） */
-function isStoredAttachment(value: unknown): value is Parameters<typeof normalizeAttachment>[0] {
+/** 残しておいた添付の 1 つが使える形か（メモはパスと写した時刻、取ったものは出どころと時刻が要る） */
+function isStoredAttachment(value: unknown): value is Attachment {
   if (typeof value !== "object" || value === null) return false;
   const a = value as Record<string, unknown>;
   if (typeof a.id !== "string" || typeof a.name !== "string" || typeof a.mime !== "string" || typeof a.size !== "number") return false;
-  if (a.kind === undefined || a.kind === "file") return a.memo === undefined || typeof a.memo === "string";
-  if (a.kind === "memo") return typeof a.memo === "string";
+  if (a.kind === "file") return true;
+  if (a.kind === "memo") return typeof a.memo === "string" && typeof a.taken_at === "string";
   return a.kind === "capture" && typeof a.source === "object" && a.source !== null && typeof a.taken_at === "string";
 }
 
-/** 残しておいた添付の列（形の合わない要素は捨て、種類を持つ前の形は今の形に読み替える） */
+/** 残しておいた添付の列（形の合わない要素は捨てる） */
 function parseAttachments(value: unknown): readonly Attachment[] | undefined {
   if (!Array.isArray(value)) return undefined;
-  return value.filter(isStoredAttachment).map(normalizeAttachment);
+  return value.filter(isStoredAttachment);
 }
 
 /** 並び順（列の名前と向き。列の名前が使えるかは読む側で確かめる） */

@@ -1,7 +1,6 @@
 import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
-import { normalizeAttachment } from "@shared/attachment/normalize";
 import type { Attachment, AttachmentSource, ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
 import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, OTHER_PROVIDER_IDS, PERMISSION_MODES, PROVIDER_IDS, USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
@@ -98,23 +97,20 @@ const attachmentBase = {
   size: z.number().int().nonnegative(),
 };
 
-/** 添付（保存済みのファイル・メモ・「AI に渡す」で取ったもの）。種類を持つ前の形（kind なし）も受け取り、今の形に読み替える */
-export const attachmentSchema = z.preprocess(
-  (v) => (v && typeof v === "object" && !("kind" in v) ? normalizeAttachment(v as Parameters<typeof normalizeAttachment>[0]) : v),
-  z.discriminatedUnion("kind", [
-    z.object({ kind: z.literal("file"), ...attachmentBase }),
-    z.object({ kind: z.literal("memo"), ...attachmentBase, memo: memoPathSchema, taken_at: z.string().max(40).optional() }),
-    z.object({
-      kind: z.literal("capture"),
-      ...attachmentBase,
-      source: attachmentSourceSchema,
-      taken_at: z.string().max(40),
-      truncated: z.boolean(),
-      original_size: z.number().int().nonnegative(),
-      redacted: z.number().int().nonnegative(),
-    }),
-  ]),
-) satisfies z.ZodType<Attachment>;
+/** 添付（保存済みのファイル・メモの写し・「AI に渡す」で取ったもの） */
+export const attachmentSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("file"), ...attachmentBase }),
+  z.object({ kind: z.literal("memo"), ...attachmentBase, memo: memoPathSchema, taken_at: z.string().max(40) }),
+  z.object({
+    kind: z.literal("capture"),
+    ...attachmentBase,
+    source: attachmentSourceSchema,
+    taken_at: z.string().max(40),
+    truncated: z.boolean(),
+    original_size: z.number().int().nonnegative(),
+    redacted: z.number().int().nonnegative(),
+  }),
+]) satisfies z.ZodType<Attachment>;
 export const attachmentsSchema = z.array(attachmentSchema).max(MAX_ATTACHMENTS);
 
 /** 送る指示の文（前後の空白は除く） */

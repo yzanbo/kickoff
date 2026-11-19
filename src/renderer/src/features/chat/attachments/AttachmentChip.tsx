@@ -129,7 +129,7 @@ export function AttachmentChips({ attachments, onRemove }: { attachments: Attach
 }
 
 /**
- * メモの添付（メモのフォルダからの相対パス。付けたときの写しがあれば、写した時刻を添える）。
+ * メモの添付（メモのフォルダからの相対パス。付けたときの写しの時刻を添える）。
  * 送った発言の中では押すとそのメモを開く（設定の開き方。チャットの画面の中だけ）
  */
 function MemoAttachmentChip({ attachment, onRemove }: { attachment: MemoAttachment; onRemove?: () => void }) {
@@ -148,7 +148,7 @@ function MemoAttachmentChip({ attachment, onRemove }: { attachment: MemoAttachme
     </>
   );
   return (
-    <span className="attachment memo-attachment" title={taken_at ? `メモ: ${memo}\n${formatDayTime(taken_at)} に付けたときの中身を渡します（頼めば元のメモを書き換えます）` : `メモ: ${memo}`}>
+    <span className="attachment memo-attachment" title={`メモ: ${memo}\n${formatDayTime(taken_at)} に付けたときの中身を渡します（頼めば元のメモを書き換えます）`}>
       {chat ? (
         <button type="button" className="attachment-link" aria-label={`メモ「${memo}」を開く`} onClick={() => openMemoFromChat({ projectId: chat.project_id, path: memo, chatId: chat.id })}>
           {body}

@@ -10,9 +10,9 @@ test("fileKindLabel: 拡張子を大文字に。拡張子がない・隠しフ�
   assert.equal(fileKindLabel("x."), null);
 });
 
-test("memoSubline: メモ・入ったフォルダ・付けた時刻を「 · 」でつなぐ（ないものは省く）", () => {
+test("memoSubline: メモ・入ったフォルダ・付けた時刻を「 · 」でつなぐ（フォルダがなければ省く）", () => {
   const clock = () => "今日 13:48";
   assert.equal(memoSubline("開発履歴/01_機能一覧.html", "2026-11-14T04:48:00Z", clock), "メモ · 開発履歴 · 今日 13:48");
-  assert.equal(memoSubline("a/b/c.md", null, clock), "メモ · a/b");
-  assert.equal(memoSubline("c.md", undefined, clock), "メモ");
+  assert.equal(memoSubline("a/b/c.md", "2026-11-14T04:48:00Z", clock), "メモ · a/b · 今日 13:48");
+  assert.equal(memoSubline("c.md", "2026-11-14T04:48:00Z", clock), "メモ · 今日 13:48");
 });

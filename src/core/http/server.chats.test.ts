@@ -289,7 +289,7 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
   const answered = await call("POST", `/api/approvals/${question.approval.id}`, {
     action: "answer",
     answers: { Q: "この画像のように" },
-    attachments: { Q: [saved, { id: randomUUID(), name: "missing.png", mime: "image/png", size: 1 }] },
+    attachments: { Q: [saved, { kind: "file", id: randomUUID(), name: "missing.png", mime: "image/png", size: 1 }] },
   });
   // 回答した依頼は一覧から消えるので、返すものはない（204）
   assert.equal(answered.status, 204);
