@@ -1,18 +1,25 @@
 // 開発版（npm run dev:cdp = KICKOFF_REMOTE_DEBUG=9333 npm run dev）の画面の DOM と計算後のスタイルを記録し、変更の前後で比べる。
 // 見た目を変えないはずの変更（CSS の分割・部品の分割）の確かめに使う。
 //
-//   node scripts/ui-snapshot.mjs take <名前> [#/hash] [--pre "<先に画面で実行する JS>"] [--wait ms]
+//   node scripts/ui-snapshot.mjs take <名前> [#/hash] [--pre "<先に画面で実行する JS>"] [--wait ms] [--semantic]
 //   node scripts/ui-snapshot.mjs diff <前の名前> <後の名前> [--ignore prop1,prop2] [--limit 60]
 //   node scripts/ui-snapshot.mjs css <名前>           … 読み込まれている CSS の規則を順に記録する（分割の前後で順が同じかを見る）
 //   node scripts/ui-snapshot.mjs state save <名前>    … いまの localStorage を保存する（前後で同じ状態から始めるため）
 //   node scripts/ui-snapshot.mjs state restore <名前> … 保存した localStorage に戻して画面を読み直す（確かめ終わったら利用者の状態に戻すのにも使う）
 //
+// --semantic は意味の記録（画面に出る物の役割・名前・状態の並び。devtools/semantic.mjs）を取り、diff は記録の種類を見て比べ方を選ぶ。
+// どのコマンドにも --cdp <port>（CDP のポート）・--out <dir>（記録の置き場所）を付けられる。
 // 記録は /tmp/kickoff-snaps/<名前>.json（状態は state-<名前>.json）。本番のアプリ（ポート 4317）には触らない。
 import fs from "node:fs";
 import path from "node:path";
 import { cdpPort, connectPage, sleep } from "./devtools/cdp.mjs";
+import { SEMANTIC_JS, diffSemantic, formatSemantic, formatSemanticDiff } from "./devtools/semantic.mjs";
 
-const DIR = "/tmp/kickoff-snaps";
+const option = (args, key, fallback) => {
+  const i = args.indexOf(key);
+  return i >= 0 ? args[i + 1] : fallback;
+};
+const DIR = option(process.argv, "--out", "/tmp/kickoff-snaps");
 /** アプリの画面（別ウィンドウ・webview・DevTools を除く）につなぐ。CDP のポートは --cdp > KICKOFF_REMOTE_DEBUG > 9333 */
 const connect = () => connectPage({ port: cdpPort() });
 
@@ -42,7 +49,7 @@ const PROPS = [
 ];
 
 /** 画面の中で動かす: すべての要素の計算後のスタイル・疑似要素・位置を集める（アニメーションは 0 秒で止め、ピントを外して、状態をそろえる） */
-const SNAPSHOT_JS = `(() => {
+export const SNAPSHOT_JS = `(() => {
   const PROPS = ${JSON.stringify(PROPS)};
   document.activeElement?.blur?.();
   document.getAnimations().forEach((a) => { try { a.pause(); a.currentTime = 0; } catch {} });
@@ -78,17 +85,13 @@ const SNAPSHOT_JS = `(() => {
 })()`;
 
 /** 読み込まれているスタイルシートごとに、規則を順に並べる（コメントは入らないので、分割の前後で同じになるはず） */
-const CSS_RULES_JS = `JSON.stringify([...document.styleSheets].map((s) => {
+export const CSS_RULES_JS = `JSON.stringify([...document.styleSheets].map((s) => {
   let rules = [];
   try { rules = [...s.cssRules].map((r) => r.cssText); } catch { rules = ["<読めない>"]; }
   return { id: s.ownerNode?.getAttribute?.("data-vite-dev-id") ?? s.href ?? "<inline>", rules };
 }))`;
 
 const file = (name) => path.join(DIR, `${name}.json`);
-const option = (args, key, fallback) => {
-  const i = args.indexOf(key);
-  return i >= 0 ? args[i + 1] : fallback;
-};
 const short = (p) => p.split(">").slice(-3).join(">");
 
 async function take(args) {
@@ -107,11 +110,12 @@ async function take(args) {
       await cdp.evaluate(`(async () => { ${pre} })()`);
       await sleep(wait);
     }
-    const json = await cdp.evaluate(SNAPSHOT_JS);
-    fs.mkdirSync(DIR, { recursive: true });
-    fs.writeFileSync(file(name), json);
+    const semantic = args.includes("--semantic");
+    const json = await cdp.evaluate(semantic ? SEMANTIC_JS : SNAPSHOT_JS);
     const meta = JSON.parse(json);
-    console.log(`${name}: ${meta.count} 要素, hash=${meta.hash}, theme=${meta.theme || "dark"}, size=${meta.size.join("x")} → ${file(name)}`);
+    fs.mkdirSync(DIR, { recursive: true });
+    fs.writeFileSync(file(name), semantic ? formatSemantic(meta) : json);
+    console.log(`${name}: ${meta.count} ${semantic ? "物" : "要素"}, hash=${meta.hash}, theme=${meta.theme || "dark"}, size=${meta.size.join("x")} → ${file(name)}`);
   } finally {
     cdp.close();
   }
@@ -153,15 +157,24 @@ async function state(args) {
   }
 }
 
-/** スタイルの違い・DOM の違いを出す。違いがあれば終了コード 1 */
+/** 2 つの記録の名前を受けて比べる。違いがあれば終了コード 1 */
 function diff(args) {
   const [a, b] = args;
   if (!a || !b) throw new Error("前と後の名前を指定してください");
   const ignore = new Set(String(option(args, "--ignore", "")).split(",").filter(Boolean));
   const limit = Number(option(args, "--limit", "60"));
-  const A = JSON.parse(fs.readFileSync(file(a), "utf8"));
-  const B = JSON.parse(fs.readFileSync(file(b), "utf8"));
+  const same = diffRecords(JSON.parse(fs.readFileSync(file(a), "utf8")), JSON.parse(fs.readFileSync(file(b), "utf8")), { ignore, limit });
+  process.exitCode = same ? 0 : 1;
+}
+
+/** 記録の種類（CSS の規則・意味の記録・スタイルつき）を見て比べ、違いを出す。同じなら true */
+export function diffRecords(A, B, { ignore = new Set(), limit = 60 } = {}) {
   if (Array.isArray(A)) return diffCss(A, B);
+  if (A.items) {
+    const result = diffSemantic(A, B);
+    console.log(formatSemanticDiff(A, B, result, limit));
+    return result.same;
+  }
   const mapA = new Map(A.elements.map((e) => [e.path, e]));
   const mapB = new Map(B.elements.map((e) => [e.path, e]));
   const onlyA = [...mapA.keys()].filter((k) => !mapB.has(k));
@@ -203,7 +216,7 @@ function diff(args) {
   list("後だけにある:", onlyB);
   if (lines.length) console.log(lines.slice(0, limit).join("\n") + (lines.length > limit ? `\n…ほか ${lines.length - limit} 行` : ""));
   if (rectLines.length) console.log("位置・大きさの違い（先頭）:\n" + rectLines.join("\n"));
-  process.exitCode = styleDiffs || onlyA.length || onlyB.length ? 1 : 0;
+  return !styleDiffs && !onlyA.length && !onlyB.length;
 }
 
 /** CSS の規則の記録どうしを、順に並べたまま比べる（どのシートに属するかは見ない） */
@@ -220,13 +233,15 @@ function diffCss(A, B) {
   }
   console.log(`規則: 前 ${ra.length} / 後 ${rb.length}。${first < 0 ? "順も中身も同じ" : `${first + 1} 番目から違う`}`);
   if (first >= 0) console.log(`   前: ${ra[first]?.slice(0, 200)}\n   後: ${rb[first]?.slice(0, 200)}`);
-  process.exitCode = first < 0 ? 0 : 1;
+  return first < 0;
 }
 
-const [command, ...rest] = process.argv.slice(2);
-const commands = { take, diff, css, state };
-if (!commands[command]) {
-  console.error("使い方: node scripts/ui-snapshot.mjs take <名前> [#/hash] | diff <前> <後> | css <名前> | state save|restore <名前>");
-  process.exit(2);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const [command, ...rest] = process.argv.slice(2);
+  const commands = { take, diff, css, state };
+  if (!commands[command]) {
+    console.error("使い方: node scripts/ui-snapshot.mjs take <名前> [#/hash] [--semantic] | diff <前> <後> | css <名前> | state save|restore <名前>");
+    process.exit(2);
+  }
+  await commands[command](rest);
 }
-await commands[command](rest);

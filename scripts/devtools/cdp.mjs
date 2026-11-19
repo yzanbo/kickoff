@@ -51,6 +51,9 @@ async function fetchJson(port, route) {
   }
 }
 
+/** 1 つの CDP の呼び出しの答えを待つ上限（測る道具の長い式も入る長さ） */
+const SEND_TIMEOUT_MS = 120_000;
+
 /** WebSocket の CDP の口（send・on・close）。切れたら、答えを待っている呼び出しを失敗にする */
 async function openSession(url) {
   const ws = new WebSocket(url);
@@ -74,10 +77,16 @@ async function openSession(url) {
     for (const { reject } of pending.values()) reject(new Error("CDP の接続が切れました"));
     pending.clear();
   });
+  // 画面が固まったときに待ち続けないよう、答えを待つのは SEND_TIMEOUT_MS まで
   const send = (method, params = {}) =>
     new Promise((resolve, reject) => {
       const i = ++id;
-      pending.set(i, { resolve, reject });
+      const timer = setTimeout(() => {
+        pending.delete(i);
+        reject(new Error(`CDP の ${method} の答えが ${SEND_TIMEOUT_MS / 1000} 秒ありません（画面が固まっている）`));
+      }, SEND_TIMEOUT_MS);
+      const settle = (fn) => (value) => (clearTimeout(timer), fn(value));
+      pending.set(i, { resolve: settle(resolve), reject: settle(reject) });
       ws.send(JSON.stringify({ id: i, method, params }));
     });
   return { send, on: (fn) => (listeners.add(fn), () => listeners.delete(fn)), close: () => ws.close() };
@@ -142,24 +151,60 @@ export async function reload(page, { timeoutMs = 30000 } = {}) {
 }
 
 /**
- * localStorage（とハッシュ）を保存して fn を流し、終わったら戻して読み直す。setItem と reload を同じ evaluate でする
- * （setItem だけだと、画面の覚えた値で上書きされる）。戻せなかったら、fn の結果を消さずにエラーを出して終了コードを 1 にする
+ * localStorage を local の中身だけにし、ハッシュを hash にして読み込み直す（clearSession なら sessionStorage も空にする）。
+ * setItem と reload を同じ evaluate でする（setItem だけだと、画面の覚えた値で上書きされる）。サイドバーが出るまで待つ
+ */
+export async function resetPage(page, { local, hash, clearSession = false }, { timeoutMs = 30000 } = {}) {
+  // 読み込み直す前に前の画面のごみを片付ける（大きな記録を取りながら読み込み直しを 30 回ほど続けると、片付かない前の文書でメモリが 400MB を超え、
+  // 読み込み直した画面が答えなくなった。片付けてからなら 60 回続けても 100MB に収まる）
+  await page.send("HeapProfiler.collectGarbage");
+  await page.evaluate(
+    `(() => { const ls = ${JSON.stringify(local)}; localStorage.clear(); ${clearSession ? "sessionStorage.clear();" : ""} for (const [k, v] of Object.entries(ls)) localStorage.setItem(k, v); window.${RELOADING} = true; location.hash = ${JSON.stringify(hash)}; location.reload(); return 1; })()`,
+  );
+  await waitReloaded(page, timeoutMs);
+  // 画面の知っているマウスの位置を窓の外にする（利用者のマウスが窓の上で止まっていると、出てきた一覧の行に乗った扱いになり、選ぶ行が変わる）
+  await page.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: -1, y: -1 });
+}
+
+/**
+ * localStorage（とハッシュ）を保存して fn を流し、終わったら戻して読み直す。
+ * 戻せなかったら、fn の結果を消さずにエラーを出して終了コードを 1 にする
  */
 export async function withSavedStorage(page, fn) {
-  const saved = await page.evaluate(`JSON.stringify({ hash: location.hash, ls: Object.fromEntries(Object.entries(localStorage)) })`);
+  const saved = JSON.parse(await page.evaluate(`JSON.stringify({ hash: location.hash, ls: Object.fromEntries(Object.entries(localStorage)) })`));
   try {
     return await fn();
   } finally {
     try {
-      await page.evaluate(
-        `(() => { const { hash, ls } = JSON.parse(${JSON.stringify(saved)}); localStorage.clear(); for (const [k, v] of Object.entries(ls)) localStorage.setItem(k, v); window.${RELOADING} = true; location.hash = hash; location.reload(); return 1; })()`,
-      );
-      await waitReloaded(page, 30000);
+      await resetPage(page, { local: saved.ls, hash: saved.hash });
     } catch (e) {
       console.error(`localStorage を元に戻せませんでした: ${e.message}`);
       process.exitCode = 1;
     }
   }
+}
+
+/** キーの名前から CDP の code と仮想キーの番号（押すキーを足すときはここに） */
+const KEYS = {
+  ",": ["Comma", 188],
+  Enter: ["Enter", 13],
+  Escape: ["Escape", 27],
+  ArrowDown: ["ArrowDown", 40],
+  ArrowUp: ["ArrowUp", 38],
+  Tab: ["Tab", 9],
+  Backspace: ["Backspace", 8],
+};
+
+/**
+ * 画面にキーを押す（CDP の Input.dispatchKeyEvent。窓を前に出さない）。key は 1 文字か KEYS の名前。
+ * 修飾キーは { meta, shift, alt, ctrl }。修飾キーなしの 1 文字は文字として入る
+ */
+export async function press(page, key, { meta = false, shift = false, alt = false, ctrl = false } = {}) {
+  const modifiers = (alt ? 1 : 0) | (ctrl ? 2 : 0) | (meta ? 4 : 0) | (shift ? 8 : 0);
+  const [code, keyCode] = KEYS[key] ?? (/^[a-z]$/i.test(key) ? [`Key${key.toUpperCase()}`, key.toUpperCase().charCodeAt(0)] : /^[0-9]$/.test(key) ? [`Digit${key}`, key.charCodeAt(0)] : ["", 0]);
+  const text = key.length === 1 && !meta && !ctrl ? key : undefined;
+  await page.send("Input.dispatchKeyEvent", { type: text ? "keyDown" : "rawKeyDown", key, code, modifiers, windowsVirtualKeyCode: keyCode, text });
+  await page.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, modifiers, windowsVirtualKeyCode: keyCode });
 }
 
 /** Performance.getMetrics の値を名前で引けるようにする（ScriptDuration・LayoutDuration・RecalcStyleDuration は秒） */
