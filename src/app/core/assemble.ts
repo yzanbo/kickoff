@@ -7,6 +7,12 @@ import { createTrash, type TrashApi } from "@/features/trash/core/index";
 import { createProjects } from "@/features/projects/core/index";
 import { createGroups } from "@/features/groups/core/index";
 import { createSnippets } from "@/features/snippets/core/index";
+import { createAi, type AiApi } from "@/features/ai/core/index";
+import { createAttachments } from "@/features/attachments/core/index";
+import { createUserView } from "@/features/userView/core/index";
+import { createNotifications } from "@/features/notifications/core/index";
+import { createVoice } from "@/features/voice/core/index";
+import { createDevices, type DevicesApi } from "@/features/devices/core/index";
 import { createLegacy, type LegacyApi } from "./legacy";
 import type { CorePrepared } from "./prepare";
 import type { CoreEnv } from "./types";
@@ -14,7 +20,7 @@ import type { CoreEnv } from "./types";
 /** 並べた機能と、起動したコアの口（Core）・テストに出すもの */
 export interface AppAssembly extends AssembledCore {
   /** 機能の口（テストが中のサービスを見る） */
-  apis: { trash: TrashApi; legacy: LegacyApi };
+  apis: { trash: TrashApi; ai: AiApi; devices: DevicesApi; legacy: LegacyApi };
   runningChats(): { id: number; title: string | null }[];
   awakeNeeds(): { running: number; mobileEnabled: boolean };
   terminals: TerminalSessions;
@@ -26,15 +32,25 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
   const trash = createTrash(k, env.trash);
   const projects = createProjects(k, { trash: trash.api });
   const groups = createGroups(k);
+  const ai = createAi(k, { ...env.ai, secretCipher: env.secretCipher });
+  const attachments = createAttachments(k, { trash: trash.api }, env.attachments);
   const snippets = createSnippets(k);
-  const legacy = createLegacy(k, env, prepared, { trash: trash.api });
-  const { runner, terminals, hooks } = legacy.api;
+  const userView = createUserView();
+  const notifications = createNotifications(k, env.notifications);
+  const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
+  const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
+  const legacy = createLegacy(k, env, prepared, { trash: trash.api, ai: ai.api, uploads: attachments.api, userViews: userView.api });
+  const { runner, terminals, mcpTools } = legacy.api;
   return {
-    features: [settings, trash, projects, groups, snippets, legacy],
-    hooks,
-    apis: { trash: trash.api, legacy: legacy.api },
+    features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, legacy],
+    hooks: {
+      deviceAuth: devices.api.auth,
+      status: () => ({ remote_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
+      mcp: mcpTools,
+    },
+    apis: { trash: trash.api, ai: ai.api, devices: devices.api, legacy: legacy.api },
     runningChats: () => runner.busyChats(),
-    awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: k.settings.get().remote_enabled }),
+    awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: devices.api.mobileEnabled() }),
     terminals,
   };
 }

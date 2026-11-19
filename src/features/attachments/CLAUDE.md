@@ -2,7 +2,7 @@
 
 ## 地図
 
-- `core/uploads.ts`: 添付の置き場 `UploadStore`（保存先の `uploads/<id>/`）。表示のルートは `core/routes/uploads.ts`、ツールの画像は `core/toolImage.ts`。片付けは `@/features/chat/core/attachmentsCleanup.ts`。
+- `core/uploads.ts`: 添付の置き場 `UploadStore`（保存先の `uploads/<id>/`）。表示のルートは `core/routes/uploads.ts`、ツールの画像は `core/toolImage.ts`。片付けは `core/attachmentsCleanup.ts`（`core/index.ts` の `createAttachments` がゴミ箱の片付けの段に足す）。
 - `ui/handoff/`: 「AI に渡す」。渡すものは各タブが `HandOffItem`（`handOff.ts`）で作る。ボタンは `HandOffButton`・項目は `HandOffItems`、渡し先は `HAND_OFF_TARGETS`。
 
 ## 決まり

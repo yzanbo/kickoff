@@ -1,12 +1,9 @@
 // 仮の機能 legacy の受け口: まだ createX に分けていない機能のルートを、いまの登録の順で ServerDeps から登録する（機能を分けるたびに外す）
 import type { Context, Hono } from "hono";
 import { VISUAL_FRAME_CSP, VISUAL_FRAME_SHELL } from "@shared/visuals/visualDocument";
-import type { CoreFeature, ServeHooks } from "@/foundation/core/feature";
+import type { CoreFeature } from "@/foundation/core/feature";
 import type { ServerDeps } from "@/foundation/core/http/server";
 import { approvalRoutes } from "@/features/chat/core/routes/approvals";
-import { deviceAuth } from "@/features/devices/core/auth";
-import { deviceRoutes, pairingClaimRoutes } from "@/features/devices/core/routes/devices";
-import { userViewRoutes } from "@/features/userView/core/routes/userView";
 import { terminalRoutes } from "@/features/terminal/core/routes/terminals";
 import { chatRoutes } from "@/features/chat/core/routes/chats";
 import { databaseRoutes } from "@/features/database/core/routes/databases";
@@ -19,43 +16,28 @@ import { gitRoutes } from "@/features/git/core/routes/git";
 import { sessionRoutes } from "@/features/chat/core/routes/sessions";
 import { noteRoutes } from "@/features/notes/core/routes/notes";
 import { projectRoutes } from "@/features/projects/core/routes/projects";
-import { providerRoutes } from "@/features/ai/core/routes/providers";
 import { queueRoutes } from "@/features/chat/core/routes/queue";
 import { turnRoutes } from "@/features/chat/core/routes/turns";
 import { uploadRoutes } from "@/features/attachments/core/routes/uploads";
 import { chatImageRoutes } from "@/features/remoteImages/core/routes/chatImages";
-import { usageRoutes } from "@/features/ai/core/routes/usage";
-import { voiceRoutes } from "@/features/voice/core/routes/voice";
 import { worktreeRoutes } from "@/features/worktrees/core/routes/worktrees";
 import { worktreePrRoutes } from "@/features/github/core/routes/worktreePrs";
-import type { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { TrashApi } from "@/features/trash/core/index";
 
 /** まだ分けていない機能のルートが受ける値（分けた下の機能の口を足したもの） */
 type LegacyRouteDeps = ServerDeps & { trashBin: TrashApi };
 
-/** 受け口（ペアリングの番号の口は認証の外）と、図の枠のページ */
+/** 受け口と、図の枠のページ */
 export function legacyRoutes(deps: LegacyRouteDeps): Pick<CoreFeature, "routes" | "pages"> {
   return {
     routes: [
-      // スマホ連携のペアリング: まだトークンを持たない端末が、番号で頼んで結果を聞く口（認証の外。routes/devices.ts）
-      { access: "public", legacy: (app) => pairingClaimRoutes(app, deps) },
       { legacy: (app) => registerLegacyRoutes(app, deps) },
     ],
     pages: { "/visual-frame": visualFrame },
   };
 }
 
-/** HTTP の土台への口（端末の認証・接続の詳細の作業中の数・AI の操作ツールの MCP） */
-export function legacyHooks({ store, runner }: Pick<ServerDeps, "store" | "runner">, mcp: McpToolHost): ServeHooks {
-  return {
-    deviceAuth: deviceAuth(store),
-    status: () => ({ remote_enabled: store.settings.get().remote_enabled, agents: runner.stats() }),
-    mcp,
-  };
-}
-
-/** 機能ごとの API（登録の順は変えない。分けた機能 settings・trash・groups・snippets はこの前） */
+/** 機能ごとの API（登録の順は変えない。分けた機能のルートはこの前） */
 function registerLegacyRoutes(app: Hono, deps: LegacyRouteDeps): void {
   projectRoutes(app, deps);
   chatRoutes(app, deps);
@@ -65,22 +47,17 @@ function registerLegacyRoutes(app: Hono, deps: LegacyRouteDeps): void {
   uploadRoutes(app, deps);
   chatImageRoutes(app, deps);
   approvalRoutes(app, deps);
-  providerRoutes(app, deps);
-  usageRoutes(app, deps);
   gitRoutes(app, deps);
   filesRoutes(app, deps);
   worktreeRoutes(app, deps);
   worktreePrRoutes(app, deps);
-  voiceRoutes(app, deps);
   noteRoutes(app, deps);
   databaseRoutes(app, deps);
   githubRoutes(app, deps);
   ciRoutes(app, deps);
   dockerRoutes(app, deps);
   portsRoutes(app, deps);
-  deviceRoutes(app, deps);
   terminalRoutes(app, deps);
-  userViewRoutes(app, deps);
 }
 
 /**

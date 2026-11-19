@@ -3,7 +3,7 @@
 // どこからも使われていない添付（会話の記録（ゴミ箱のチャットも）・送信待ちのどれも ID を指していないもの）は、付けてから 30 日たったら消す。
 // 利用者が「消した」ものではないので、ゴミ箱には入れない
 import type { Store } from "@/foundation/core/db/store";
-import type { UploadStore } from "@/features/attachments/core/uploads";
+import type { UploadStore } from "./uploads";
 
 /** 付けてから消すまで（金曜に書きかけて週明けに続けても消えないよう、ゴミ箱の 3 日より長く） */
 export const UNUSED_UPLOAD_KEEP_MS = 30 * 24 * 60 * 60 * 1000;

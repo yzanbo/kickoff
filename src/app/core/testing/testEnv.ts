@@ -156,10 +156,9 @@ export function testEnv(f: TestFakes, { secretCipher = null, claudeSdk }: { secr
         },
         { id: "cursor", label: "Cursor", fetch: async () => Promise.reject(new Error("つながりません")) },
       ],
-      sessionsElsewhere: null,
     },
     // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない・書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
-    chat: { reconnect: { check: async () => f.network.online, intervalMs: 5 }, usageLimit: { checkMs: 5 }, editHoldTtlMs: 300, tellableWaitMs: 50 },
+    chat: { reconnect: { check: async () => f.network.online, intervalMs: 5 }, usageLimit: { checkMs: 5 }, editHoldTtlMs: 300, tellableWaitMs: 50, sessionsElsewhere: null },
     trash: { now: () => f.trashClock.now, installCommand: false, projectOfPath: (origin, projects) => projects.find((p) => origin === p.repo_path || origin.startsWith(`${p.repo_path}/`))?.id ?? null },
     notes: { defaultDir: f.noteFake.defaultDir },
     attachments: { dir: tempDir() },

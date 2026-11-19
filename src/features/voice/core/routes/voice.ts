@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { VoiceService } from "@/features/voice/core/service";
 import { findWhisperModel } from "@/features/voice/core/models";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
@@ -21,7 +21,7 @@ function requireVoiceModel(id: string) {
 }
 
 /** 音声入力: 文字起こし・準備の状態・この Mac のモデルの管理・OpenAI の API キー */
-export function voiceRoutes(app: Hono, { voice }: ServerDeps) {
+export function voiceRoutes(app: Hono, { voice }: { voice: VoiceService }) {
   // チャット欄のマイクで録った音声を文にする（multipart の file と、省けば設定の言語になる language）
   app.post("/api/transcribe", async (c) => {
     const body = await c.req.parseBody();

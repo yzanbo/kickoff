@@ -4,7 +4,6 @@ import type { UserView, UserViewBody } from "@shared/types";
 import type { UserViewRegistry } from "@/features/userView/core/registry";
 import { callerOf } from "@/foundation/core/http/caller";
 import { jsonBody } from "@/foundation/core/http/input";
-import type { ServerDeps } from "@/foundation/core/http/server";
 import { userViewSchema } from "@/foundation/core/http/schemas";
 
 /** 見ているものの知らせ（ウィンドウごと。閉じるときは view を null） */
@@ -24,7 +23,7 @@ export function rememberSentView(c: Context, userViews: UserViewRegistry, chatId
  * 利用者が見ているもの（AI の get_user_view）: この Mac の画面のウィンドウが、見ているものが変わったとき
  * （少しまとめて）と、見ている間 USER_VIEW_REPORT_MS ごとに知らせる。コアは覚えておくだけ（保存しない）。端末には開かない（スマホは入れない）
  */
-export function userViewRoutes(app: Hono, { userViews }: ServerDeps) {
+export function userViewRoutes(app: Hono, { userViews }: { userViews: UserViewRegistry }) {
   app.put("/api/user-view", async (c) => {
     userViews.report(userViewBodySchema.parse(await jsonBody(c)));
     return c.body(null, 204);

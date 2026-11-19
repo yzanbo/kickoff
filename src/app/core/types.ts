@@ -10,15 +10,15 @@ import type { SecretCipher } from "@/features/database/core/secrets";
 import type { DesktopNotify, PushSender } from "@/features/notifications/core/center";
 import type { TerminalSessions } from "@/features/terminal/core/sessions";
 import type { CorePlatformParts } from "./platform";
-import type { GitHubAccount, ProviderId } from "@shared/types";
+import type { GitHubAccount } from "@shared/types";
 import type { TrashEnv } from "@/features/trash/core/index";
-import type { AgentProvider } from "@/features/ai/core/providers/types";
-import type { ProviderAuth } from "@/features/ai/core/providers/keys";
-import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";
-import type { UsageFetcher } from "@/features/ai/core/usage/services/common";
+import type { AiEnv } from "@/features/ai/core/index";
+import type { AttachmentsEnv } from "@/features/attachments/core/index";
+import type { DevicesEnv } from "@/features/devices/core/index";
+import type { NotificationsEnv } from "@/features/notifications/core/index";
+import type { VoiceEnv } from "@/features/voice/core/index";
 import type { SessionsUsedElsewhere } from "@/features/chat/core/sessions/siblingSessions";
 import type { Runner } from "@/features/chat/core/runner";
-import type { VoiceService } from "@/features/voice/core/service";
 import type { DockerCli } from "@/features/docker/core/cli";
 import type { PortProbe } from "@/features/docker/core/ports";
 import type { GitHubService } from "@/features/github/core/service";
@@ -95,27 +95,23 @@ export interface CoreEnv {
   browser?: BrowserControl;
   /** AI の操作ツールの MCP の URL の頭（http://127.0.0.1:<ポート>） */
   mcpBaseUrl: string;
-  ai: {
-    /** AI のつなぎ込み（本物は自分の情報と API キーを渡した各 AI。テストは偽のプロバイダー） */
-    providers(authFor: (id: ProviderId) => Promise<ProviderAuth>): Record<ProviderId, AgentProvider>;
-    /** Claude のプランの使用枠 */
-    usage(claude: AgentProvider, bus: Bus): UsageMonitor;
-    /** 設定の「使用状況」のほかのサービス（省けば本物の一覧） */
-    services?: UsageFetcher[];
+  /** 暗号化の口は secretCipher から渡す */
+  ai: Omit<AiEnv, "secretCipher">;
+  chat: Pick<OptionsOf<typeof Runner>, "reconnect" | "usageLimit" | "editHoldTtlMs" | "tellableWaitMs"> & {
     /** ほかの Kickoff（製品版と開発版）が使っているセッション（null は調べない） */
     sessionsElsewhere: SessionsUsedElsewhere | null;
   };
-  chat: Pick<OptionsOf<typeof Runner>, "reconnect" | "usageLimit" | "editHoldTtlMs" | "tellableWaitMs">;
   trash: TrashEnv & {
     /** AI の rm の代わりの kickoff-trash を bin/ に置くか */
     installCommand: boolean;
   };
   notes: { defaultDir: string };
-  /** 添付の置き場所（省けば保存先の uploads/） */
-  attachments: { dir?: string };
-  voice: Pick<OptionsOf<typeof VoiceService>, "engines" | "findTools" | "fetch">;
-  devices: { pairingNow?: () => number };
-  notifications: { notify?: DesktopNotify; push: PushSender };
+  attachments: AttachmentsEnv;
+  /** OS の音声認識は platformParts.speech */
+  voice: Omit<VoiceEnv, "speech">;
+  /** tailscale のコマンドの場所は platformParts.tailscaleCli */
+  devices: Omit<DevicesEnv, "tailscaleCli">;
+  notifications: NotificationsEnv;
   docker: { cli?: DockerCli; portProbe?: PortProbe };
   ports: { afterTurnMs?: number; stopWaitMs?: number };
   terminal: { env?: Record<string, string>; spawn?: ConstructorParameters<typeof TerminalSessions>[0]["spawn"] };

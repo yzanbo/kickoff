@@ -2,7 +2,10 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { claudeEffortDefault } from "@/features/ai/core/providers/claude/effortDefault";
 import { githubStatus } from "@/features/github/core/github";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Bus } from "@/foundation/core/bus";
+import type { Store } from "@/foundation/core/db/store";
+import type { AgentProvider } from "@/features/ai/core/providers/types";
+import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
 import { PROVIDER_IDS, type ProviderId, type ProviderLoginStart, type SlashCommandOption } from "@shared/types";
 import { ttlCache } from "@/foundation/core/system/ttlCache";
 import { lookups } from "@/foundation/core/http/lookups";
@@ -14,7 +17,7 @@ import type { ProviderLogin } from "@/features/ai/core/providers/types";
 import { errorMessage } from "@shared/foundation/errors";
 
 /** 外部 CLI（Claude などのプロバイダー・gh）の状態、チャット欄のモデルの一覧・/ のコマンド・既定の推論の深さ */
-export function providerRoutes(app: Hono, { store, providers, providerKeys, bus }: ServerDeps) {
+export function providerRoutes(app: Hono, { store, providers, providerKeys, bus }: { store: Store; providers: Record<ProviderId, AgentProvider>; providerKeys: ProviderKeyVault; bus: Bus }) {
   const { withWorkdir } = lookups(store);
 
   // AI のブラウザでのログイン。AI ごとに 1 つだけ持ち（メモリだけ）、始め直したら前のものはやめる。

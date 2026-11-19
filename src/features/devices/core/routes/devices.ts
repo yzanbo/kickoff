@@ -1,10 +1,11 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { DEVICE_ACCESSES, type DevicePush, type DeviceUpdateBody, type PairingApproveBody, type PairingClaimBody, type ViewingBody } from "@shared/types";
+import { DEVICE_ACCESSES, type DevicePush, type DeviceUpdateBody, type PairingApproveBody, type PairingClaimBody } from "@shared/types";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { callerOf } from "@/foundation/core/http/caller";
-import { DEVICE_NAME_MAX } from "@/features/devices/core/pairing";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import { DEVICE_NAME_MAX, type PairingCenter } from "@/features/devices/core/pairing";
+import type { Bus } from "@/foundation/core/bus";
+import type { Store } from "@/foundation/core/db/store";
 import { idParam, jsonBody } from "@/foundation/core/http/input";
 import { tailscaleStatus } from "@/features/devices/core/tailscale";
 
@@ -20,13 +21,14 @@ const accessSchema = z.enum(DEVICE_ACCESSES);
 const approveSchema = z.object({ access: accessSchema.optional() }) satisfies z.ZodType<PairingApproveBody>;
 const updateSchema = z.object({ access: accessSchema }) satisfies z.ZodType<DeviceUpdateBody>;
 
-const viewingSchema = z.object({ chat_id: z.number().int().positive().nullable(), ci_project_id: z.number().int().positive().nullable() }) satisfies z.ZodType<ViewingBody>;
-
 /**
  * スマホ連携の端末とペアリング。この Mac の画面だけが使う口（/api/pairing・/api/devices。端末には開かない = deviceAccess.ts）と、
  * まだトークンを持たない端末が使う口（/pairing/…。認証の外。番号と、頼んだ端末だけが知る鍵で守る）
  */
-export function deviceRoutes(app: Hono, { pairing, store, viewing, bus, tailscaleCli, listen }: ServerDeps) {
+export function deviceRoutes(
+  app: Hono,
+  { pairing, store, bus, tailscaleCli, listen }: { pairing: PairingCenter; store: Store; bus: Bus; tailscaleCli: () => string | null; listen?: { host: string; port: number } },
+) {
   // 端末が自分（名前・できること）を読む（この Mac の画面は端末ではないので 400）
   app.get("/api/devices/self", (c) => {
     const caller = callerOf(c);
@@ -41,11 +43,6 @@ export function deviceRoutes(app: Hono, { pairing, store, viewing, bus, tailscal
     if (caller.kind !== "device") throw new Invalid("プッシュの宛先は、つないだ端末が自分で登録します");
     const { push } = pushBodySchema.parse(await jsonBody(c));
     store.devices.setPush(caller.deviceId, push);
-    return c.body(null, 204);
-  });
-  // いま見ているもの（この Mac の画面も端末も。だれかが見ているチャット・CI のタブの知らせは通知しない = notifications/center.ts）
-  app.put("/api/viewing", async (c) => {
-    viewing.report(callerOf(c), viewingSchema.parse(await jsonBody(c)));
     return c.body(null, 204);
   });
 
@@ -77,7 +74,7 @@ export function deviceRoutes(app: Hono, { pairing, store, viewing, bus, tailscal
 }
 
 /** まだトークンを持たない端末の口（認証のミドルウェアより前・/api の外に登録する） */
-export function pairingClaimRoutes(app: Hono, { pairing }: Pick<ServerDeps, "pairing">) {
+export function pairingClaimRoutes(app: Hono, { pairing }: { pairing: PairingCenter }) {
   // 番号でつなぎたいと頼む → 頼みの ID と、結果を聞く鍵（201）
   app.post("/pairing/claim", async (c) => {
     const { code, name } = claimSchema.parse(await jsonBody(c));
