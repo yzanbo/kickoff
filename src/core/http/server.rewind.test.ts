@@ -172,8 +172,9 @@ test("ファイルを戻す API: 自分の発言を送る前の状態にファ�
   assert.deepEqual(provider.rewinds, [["s1", messageId, project.repo_path, true]]);
   const events = store.events.list(chatId).length;
   // 戻す: お知らせを残し、会話の記録は消さない
-  assert.equal((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id })).status, 200);
-  // 本当に戻したときの結果には変わったファイルが付かないので、先に量を測ってから戻す
+  const done = await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id });
+  // 応答は dry_run と同じ形（キーは files_changed。本当に戻したときの結果には変わったファイルが付かないので、先に量を測ってから戻す）
+  assert.deepEqual(done.body, provider.rewindResult);
   assert.deepEqual(provider.rewinds.slice(1).map((r) => r[3]), [true, false]);
   const after = store.events.list(chatId);
   assert.equal(after.length, events + 1);

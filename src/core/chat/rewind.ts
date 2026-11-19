@@ -97,7 +97,7 @@ export async function rewindFiles(
   if (input.dryRun) return preview;
   const done = await provider.rewindFiles(sessionId, messageId, input.cwd, false).catch(asInvalid);
   if (!done.can_rewind) throw new Invalid(rewindFailure(done.error));
-  const result = { ...preview, ...done, filesChanged: preview.files_changed, insertions: preview.insertions, deletions: preview.deletions };
+  const result = { ...preview, ...done, files_changed: preview.files_changed, insertions: preview.insertions, deletions: preview.deletions };
   store.events.add(chat.id, { type: "notice", message: `ファイルを、この発言を送る前の状態に戻しました（${restoredSummary(result)}。会話はそのまま）` });
   return result;
 }

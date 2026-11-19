@@ -153,7 +153,7 @@ export interface PlanUsage {
   error?: string;
 }
 
-/** ファイルを戻した結果（canRewind: 戻せる・戻せたか。filesChanged: 変わるファイル。insertions / deletions: 行の増減） */
+/** ファイルを戻した結果（can_rewind: 戻せる・戻せたか。files_changed: 変わるファイル。insertions / deletions: 行の増減） */
 export interface FileRewindResult {
   can_rewind: boolean;
   error?: string;
