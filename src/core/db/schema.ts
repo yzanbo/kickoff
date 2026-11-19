@@ -7,7 +7,7 @@ export const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 export const APPLICATION_ID = 0x4b49434b;
 
 /**
- * v1 のスキーマ（docs/architecture.md の「3. スキーマ」）。すべて STRICT。真偽値は 0 / 1、JSON の列は json_valid と json_type で形を確かめる。
+ * v1 のスキーマ。すべて STRICT。真偽値は 0 / 1、JSON の列は json_valid と json_type で形を確かめる。
  * 値の一覧（状態など）は CHECK にしない（増やすたびに表を作り直すことになるため）。
  * 会話の記録のうち、自分の発言とメインの AI の返答（type が user / サブエージェントでない text）の文は生成列 text に出し、
  * 全文検索の索引 chat_event_search（trigram で部分一致）はビュー chat_event_texts を中身にして、トリガーで追従させる

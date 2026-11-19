@@ -7,8 +7,7 @@
 アプリ開発を、AI エージェントとのチャットで進めるための Mac デスクトップアプリ。プロジェクトごとに、作業場所（git のワークツリー）・グループ・状態でチャットを並べ、並行して進める。
 
 - 要件: [docs/requirements.md](docs/requirements.md)
-- 設計（語彙・スキーマ・構成）: [docs/architecture.md](docs/architecture.md)
-- 実装計画（初期のもの）: [docs/plan.md](docs/plan.md)
+- 設計（語彙・名前の決まり・構成）: [docs/architecture.md](docs/architecture.md)
 
 ## 使い方
 
@@ -82,7 +81,7 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 | `build` | アプリのアイコン（元の絵は本番 `icon.svg`・開発版 `icon-dev.svg`） |
 | `scripts` | 製品版の入れ替え（`install-app`）・アイコンの作成・開発用の Electron.app の書き換え・開発版の画面の点検（`ui-audit-buttons`・`ui-snapshot`）・補助コマンドのビルドの差し込み（`speech-helper.ts`） |
 
-設計（語彙・スキーマ・構成）は [docs/architecture.md](docs/architecture.md)、書き方の決まりは `CLAUDE.md`（ルートと各フォルダ）。
+設計（語彙・名前の決まり・構成）は [docs/architecture.md](docs/architecture.md)、書き方の決まりは `CLAUDE.md`（ルートと各フォルダ）。
 
 | 環境変数 | 説明 |
 |---|---|

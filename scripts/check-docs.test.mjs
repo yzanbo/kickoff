@@ -34,7 +34,7 @@ test("上限は上から最初に合ったもの。差し替えの { path, max }
   assert.equal(limitFor("CLAUDE.md", limits), 8192);
   assert.equal(limitFor("src/foundation/ui/CLAUDE.md", limits), 6144);
   assert.equal(limitFor("src/features/chat/CLAUDE.md", limits), 4096);
-  assert.equal(limitFor("docs/plan.md", limits), null);
+  assert.equal(limitFor("docs/notes.md", limits), null);
   assert.equal(limitFor("src/core/CLAUDE.md", [{ path: "src/core/CLAUDE.md", max: 9000 }, ...limits]), 9000);
   assert.equal(limitFor("src/core/CLAUDE.md", [{ glob: "src/core/**", max: 7000 }, ...limits]), 7000);
 });
