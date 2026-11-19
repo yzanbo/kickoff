@@ -70,7 +70,7 @@ npx tsx scripts/check-restriction-defaults.ts codex
 | データ | `~/Library/Application Support/Kickoff/` | `~/Library/Application Support/Kickoff Dev/` |
 | ポート | 4317 | 4318 |
 
-データベースの版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）で持つ（`src/core/db/schema.ts`）。リリース前の版（2026-11 の作り直しより前）の DB は引き継がない: 新しい版を初めて起動したとき、その DB（`kickoff.db` と `-wal` / `-shm`）と `backups/`・`uploads/` を消して、空の DB から始める（`src/core/db/open.ts` の `discardPrereleaseData`。音声入力のモデル・ログインのトークンは残す）。このアプリより新しい版の DB・Kickoff のものでない DB は、触らずに起動をやめる。
+データベースの版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）で持つ（`src/core/db/schema.ts`）。このアプリより新しい版の DB・Kickoff のものでない DB は、触らずに起動をやめる。
 
 開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/core/system/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
 

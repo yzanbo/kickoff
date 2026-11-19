@@ -16,7 +16,7 @@ import { createApp } from "./http/server.js";
 import { McpToolHost } from "./mcp/host.js";
 import { ProviderKeyVault } from "./providers/keys.js";
 import { Store } from "./db/store.js";
-import { DB_FILE, discardPrereleaseData } from "./db/open.js";
+import { DB_FILE } from "./db/open.js";
 import { CodexCreditsWatch } from "./usage/codexCredits.js";
 import { ServiceUsageMonitor } from "./usage/services/index.js";
 import { UsageMonitor } from "./usage/planUsage.js";
@@ -130,7 +130,6 @@ export interface Core {
 export async function startCore(opts: CoreOptions): Promise<Core> {
   fs.mkdirSync(opts.dataDir, { recursive: true });
   const bus = new Bus();
-  if (discardPrereleaseData(opts.dataDir)) console.log("[core] リリース前の版の保存データ（データベース・backups・uploads）を消し、新しく作り直しました");
   if (opts.onChildProcess) setChildProcessReporter(opts.onChildProcess);
   const store = new Store(path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
   opts.onStage?.("dbOpened");

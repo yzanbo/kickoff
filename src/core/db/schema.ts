@@ -549,14 +549,8 @@ const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEM
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
-/**
- * PRAGMA user_version は、この数に版を足して持つ（v1 = 201）。2026-11 の作り直しより前（リリース前）の系統は 100 ＋ 版（101〜）で、
- * その DB は引き継がずに消して作り直す（open.ts の discardPrereleaseData）
- */
+/** PRAGMA user_version は、この数に版を足して持つ（v1 = 201） */
 export const USER_VERSION_BASE = 200;
-
-/** リリース前の系統の user_version（100 ＋ 版） */
-const PRERELEASE_BASE = 100;
 
 const pragmaNumber = (db: DatabaseSync, name: "user_version" | "application_id") =>
   (db.prepare(`PRAGMA ${name}`).get() as Record<string, number>)[name];
@@ -566,8 +560,8 @@ export function userVersion(db: DatabaseSync): number {
   return pragmaNumber(db, "user_version");
 }
 
-/** データベースの系統と版。empty: 作ったばかり（空） / current: いまの系統の v<version> / prerelease: リリース前の系統（消して作り直す） */
-export type SchemaState = { kind: "empty" } | { kind: "current"; version: number } | { kind: "prerelease" };
+/** データベースの系統と版。empty: 作ったばかり（空） / current: いまの系統の v<version> */
+export type SchemaState = { kind: "empty" } | { kind: "current"; version: number };
 
 /** 開いたデータベースが何かを調べる（読むだけ）。Kickoff のものでない・このアプリより新しい版なら、データに触らずに例外を投げる */
 export function inspectSchema(db: DatabaseSync): SchemaState {
@@ -575,7 +569,6 @@ export function inspectSchema(db: DatabaseSync): SchemaState {
   const raw = userVersion(db);
   if (applicationId === APPLICATION_ID) {
     if (raw > USER_VERSION_BASE && raw <= USER_VERSION_BASE + SCHEMA_VERSION) return { kind: "current", version: raw - USER_VERSION_BASE };
-    if (raw > PRERELEASE_BASE && raw < USER_VERSION_BASE) return { kind: "prerelease" };
   }
   if (applicationId === 0 && raw === 0) {
     const { objects } = db.prepare("SELECT count(*) AS objects FROM sqlite_master").get() as { objects: number };
@@ -589,7 +582,6 @@ export function inspectSchema(db: DatabaseSync): SchemaState {
 /** いまの系統の版を上げる。版ごとに 1 つのトランザクションで流し、いまの系統の印と user_version（USER_VERSION_BASE ＋ 版）を付ける */
 export function migrate(db: DatabaseSync) {
   const state = inspectSchema(db);
-  if (state.kind === "prerelease") throw new Error("リリース前の版のデータベースは、消してから作り直します（discardPrereleaseData）");
   for (let v = state.kind === "current" ? state.version : 0; v < MIGRATIONS.length; v++) {
     db.exec("BEGIN");
     try {

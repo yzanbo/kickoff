@@ -7,7 +7,7 @@
 
 | 項目 | 決定 |
 |---|---|
-| 保存データ | 引き継がない。新しい版を初めて起動したとき、リリース前の版の DB（`kickoff.db` と `-wal` / `-shm`）・`backups/`・`uploads/` を消して、空の DB から始める。写しは取らない |
+| 保存データ | 引き継がない。リリース前の版の DB は開かずに例外にする（消す・写すコードは持たない） |
 | 古い仕組み | v17 からの変換（`legacyMigration` / `legacyValues`）と、版を上げる前の写し（`dbBackup`）はなくす。localStorage の以前の値の読み替えもなくす |
 | 見た目・動き | 共通化に伴う小さな統一はしてよい（場所ごとに少しずつ違う見た目・動きを、共通の部品に寄せて 1 つにする）。変えたものは最後に一覧で報告する |
 | 機能 | 使っていない機能・設定も消さない（候補は報告にだけ書く） |
@@ -155,7 +155,7 @@
 
 ## 3. スキーマ（新しい v1）
 
-`src/core/db/schema.ts`。すべて STRICT。真偽値は `CHECK (x IN (0, 1))`、JSON は `CHECK (json_valid(x) AND json_type(x) = 'object' | 'array')`。値の一覧（状態など）は CHECK にしない（増やすたびに表を作り直すことになるため）。版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）。リリース前の系統（101〜104）は 0. のとおり消して作り直し、それ以外の見知らぬ版は触らずに例外にする。
+`src/core/db/schema.ts`。すべて STRICT。真偽値は `CHECK (x IN (0, 1))`、JSON は `CHECK (json_valid(x) AND json_type(x) = 'object' | 'array')`。値の一覧（状態など）は CHECK にしない（増やすたびに表を作り直すことになるため）。版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）。見知らぬ版（リリース前の系統も）は触らずに例外にする。
 
 ```sql
 -- アプリの設定（キーごとの JSON。既定とマージして AppSettings にする）
@@ -522,7 +522,7 @@ src/
     daemon.ts          Electron なしで起動
     host/              Mac のアプリのコアのプロセスの入口（main.ts → out/main/core.js）・メインとの RPC（protocol・rpc・ports）・メインにしかない口の写し（remote: ブラウザ・キーチェーン・通知・DB ワーカー）
     bus.ts             変更の知らせ（SSE へ）
-    db/                schema・open（開く・版・リリース前の後片付け）・store（表ごとの店をまとめるだけ）・chats・events（記録と全文検索）・projects・groups・queues・snippets（定型文）・settings（設定・秘密・meta）
+    db/                schema・open（開く・版）・store（表ごとの店をまとめるだけ）・chats・events（記録と全文検索）・projects・groups・queues・snippets（定型文）・settings（設定・秘密・meta）
     http/              server（組み立て・認証・失敗の変換・SSE・画面の配信）・httpServer・auth・errors（NotFound など）・routes/（領域ごとに xxxRoutes）
     chat/              チャットの実行: runner（受付）・turn（1 回の実行）・input・runtime（チャットごとの作業中の状態）・queue（送信待ち）・recovery/（通信の切断・使用枠の上限からの再開）・approvals・fork・rewind・policy（AI への指示と許可）・guard/（書き込みの守り: 参照資料・Kickoff 自身）・transcript・uploads・autoArchive
     providers/         プロバイダーの抽象（types）と実装（claude/）

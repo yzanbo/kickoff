@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "vitest";
-import { DB_FILE, discardPrereleaseData, openDatabase, sqliteLabel } from "./open.js";
+import { DB_FILE, openDatabase, sqliteLabel } from "./open.js";
 import { APPLICATION_ID, SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "./schema.js";
 import { tempDir } from "../testing/tempDir.js";
 import { afterTest } from "../testing/afterTest.js";
@@ -49,44 +49,16 @@ test("openDatabase: Kickoff のものでない・このアプリより新しい�
     ["ほかのアプリの印", "CREATE TABLE t (x); PRAGMA application_id = 1234; PRAGMA user_version = 201;"],
     ["いまの系統の印で、版が 101 より前", `CREATE TABLE t (x); PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 1;`],
     ["このアプリより新しい版", `CREATE TABLE t (x); PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = ${USER_VERSION_BASE + SCHEMA_VERSION + 1};`],
+    ["いまの系統の印で、リリース前の版（104）", `CREATE TABLE chats (id INTEGER); PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 104;`],
   ];
   for (const [name, sql] of cases) {
     const dir = tempDir();
     const file = rawDatabase(dir, sql);
     const before = fs.readFileSync(file);
     assert.throws(() => openDatabase(file), /対応していない版のため開けません/, name);
-    assert.equal(discardPrereleaseData(dir), false, name);
     assert.ok(fs.readFileSync(file).equals(before), name);
     assert.deepEqual(fs.readdirSync(dir), [DB_FILE], name);
   }
-});
-
-test("discardPrereleaseData: リリース前の系統（101〜199）の DB は、backups・uploads と一緒に消し、ほかのファイルは残す", () => {
-  const dir = tempDir();
-  rawDatabase(dir, `CREATE TABLE chats (id INTEGER); PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 104;`);
-  fs.writeFileSync(path.join(dir, `${DB_FILE}-wal`), "");
-  fs.writeFileSync(path.join(dir, `${DB_FILE}-shm`), "");
-  for (const sub of ["backups", "uploads", "models"]) {
-    fs.mkdirSync(path.join(dir, sub));
-    fs.writeFileSync(path.join(dir, sub, "file"), "x");
-  }
-  fs.writeFileSync(path.join(dir, "token"), "secret");
-  assert.throws(() => openDatabase(path.join(dir, DB_FILE)), /リリース前の版/);
-
-  assert.equal(discardPrereleaseData(dir), true);
-  assert.deepEqual(fs.readdirSync(dir).sort(), ["models", "token"]);
-  // 消したあとは、空の DB として新しく作る
-  const db = openDatabase(path.join(dir, DB_FILE));
-  assert.equal(userVersion(db), USER_VERSION_BASE + SCHEMA_VERSION);
-  db.close();
-  assert.equal(discardPrereleaseData(dir), false);
-});
-
-test("discardPrereleaseData: DB がなければ何もしない", () => {
-  const dir = tempDir();
-  fs.mkdirSync(path.join(dir, "uploads"));
-  assert.equal(discardPrereleaseData(dir), false);
-  assert.deepEqual(fs.readdirSync(dir), ["uploads"]);
 });
 
 test("sqliteLabel: SQL の頭から動詞と表を読む（表が読めなければ動詞だけ）", () => {

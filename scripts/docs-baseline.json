@@ -9,13 +9,13 @@
       "brokenRefs": 0
     },
     "README.md": {
-      "bytes": 12045,
-      "longLines": 3,
+      "bytes": 11672,
+      "longLines": 2,
       "forbidden": 0,
       "brokenRefs": 1
     },
     "docs/architecture.md": {
-      "bytes": 116483,
+      "bytes": 116288,
       "longLines": 16,
       "forbidden": 21,
       "brokenRefs": 2
@@ -40,22 +40,22 @@
       "brokenRefs": 0
     },
     "src/core/CLAUDE.md": {
-      "bytes": 210575,
-      "ancestors": 223704,
+      "bytes": 210054,
+      "ancestors": 223183,
       "longLines": 104,
       "forbidden": 43,
       "brokenRefs": 5
     },
     "src/core/chat/CLAUDE.md": {
       "bytes": 127502,
-      "ancestors": 351206,
+      "ancestors": 350685,
       "longLines": 68,
       "forbidden": 41,
       "brokenRefs": 0
     },
     "src/core/providers/CLAUDE.md": {
       "bytes": 68537,
-      "ancestors": 292241,
+      "ancestors": 291720,
       "longLines": 42,
       "forbidden": 29,
       "brokenRefs": 3
