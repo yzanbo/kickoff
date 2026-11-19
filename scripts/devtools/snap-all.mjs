@@ -6,7 +6,8 @@
 // 意味の記録（devtools/semantic.mjs）は test-records/ui/<名前>/<画面>.<テーマ>.json（コミットする）、
 // スタイルつきの記録と CSS の規則（ui-snapshot.mjs の take・css と同じ形）は .snapshots/<名前>/（コミットしない）。
 // 画面ごとに保存を空にしてテーマと画面の設定だけを置き、時計を決まった起点に戻して読み込み直してから、記録が 1 秒変わらなくなるのを待って取る
-// （画面の時計は読み込んでから進むので、毎回読み込み直して「n 分前」をそろえる）。終わったら localStorage を元に戻す
+// （画面の時計は読み込んでから進むので、毎回読み込み直して「n 分前」をそろえる）。終わったら localStorage を元に戻す。
+// 記録は npm run fixture:seed で作り直して起動した直後に取る（通しの確かめは DB の接続の最後に使った時刻などをコアに残す）
 import fs from "node:fs";
 import path from "node:path";
 import { cdpPort, connectPage, press, resetPage, sleep, withSavedStorage } from "./cdp.mjs";

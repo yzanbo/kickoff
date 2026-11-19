@@ -21,7 +21,8 @@ async function waitFor(page, expr, label, { timeoutMs = 5000 } = {}) {
     const t0 = performance.now();
     while (performance.now() - t0 < ${timeoutMs}) {
       const value = await (async () => (${expr}))();
-      if (value) return value;
+      // 要素は値として持ち帰れないので、見つかったことだけを返す
+      if (value) return value instanceof Node ? true : value;
       await new Promise((r) => { requestAnimationFrame(r); setTimeout(r, 50); });
     }
     return null;
