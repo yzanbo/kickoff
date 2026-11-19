@@ -24,7 +24,7 @@
 - 聞く守りは Auto mode でも聞く。「このチャットでは許可」は `ChatRuntime.writeAllowed` に覚える（保存しない）。
 - 砂場（`bashSandboxFor`）はどのチャットにもかけ、内蔵ターミナルにはかけない。利用者の設定ファイルは書ける場所に入れない（理由は JSDoc）。
 - 砂場の外で流すコマンドは、コマンド全体がそれだけのときだけ外で流れる（VAR=値・パイプ・リダイレクトが付くと中に戻る）。
-- ネットワークは絞らず `networkRelay.ts` の中継を使わせる（`startCore` が起こし `close` で止める）。
+- ネットワークは絞らず `networkRelay.ts` の中継を使わせる（`@/app/core/prepare.ts` が起こし、`createGuard` の `stop` で止める）。
 - `writeScope` は参照資料・Kickoff の保存先・見せない DB に口を出さず、そちらの守りに任せる（カードを出さない）。
 - `deleteGuard` は `ExecutionDeps.trashCommand` があるときだけ付け、`trashCommandEnv` で PATH に kickoff-trash を入れる。
 - 砂場の拒否の診断（`core/chatDiagnosticTools.ts`）は生の本文・パス・コマンドラインとほかのチャットのログを返さない。砂場の設定は変えない。

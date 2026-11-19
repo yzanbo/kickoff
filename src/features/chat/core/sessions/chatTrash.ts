@@ -25,10 +25,8 @@ export interface ChatPurgeDeps {
   store: Store;
   providers: Record<ProviderId, AgentProvider>;
   uploads: Pick<UploadStore, "resolve" | "remove">;
-  /** AI の SQL の結果を書き出した CSV を消す */
-  forgetChatExports?: (chatIds: number[]) => void;
-  /** チャット欄の外の画像の覚え（ディスクのフォルダ）を消す（core/remoteImages/service.ts） */
-  forgetChatImages?: (chatIds: number[]) => Promise<void>;
+  /** 上の機能の後片付け（AI の SQL の結果を書き出した CSV・チャット欄の外の画像の覚え。chat の onChatsPurged に登録したもの） */
+  onPurged?: (chatIds: number[]) => Promise<void>;
   /** ほかの Kickoff（製品版と開発版）のチャットが使っているセッション（その会話記録は消さない。siblingSessions.ts） */
   sessionsElsewhere?: (ids: string[]) => Set<string>;
 }
@@ -112,8 +110,7 @@ export async function purgeChatsOf(deps: ChatPurgeDeps, itemId: string): Promise
     if (deps.store.events.uploadInUse(id) || !(await deps.uploads.resolve(id))) continue;
     await deps.uploads.remove(id).catch(() => {});
   }
-  deps.forgetChatExports?.(ids);
-  await deps.forgetChatImages?.(ids).catch(() => {});
+  await deps.onPurged?.(ids).catch(() => {});
 }
 
 /**

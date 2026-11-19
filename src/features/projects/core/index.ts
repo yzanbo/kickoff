@@ -4,6 +4,8 @@ import type { KernelWithStore } from "@/foundation/core/kernel";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { TrashApi } from "@/features/trash/core/index";
 
+export { registerProjectTrash } from "./trash";
+
 export interface ProjectsDeps {
   trash: TrashApi;
 }

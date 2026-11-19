@@ -1,4 +1,4 @@
-// 機能の組み立て: 機能を下の層から作って並べる（本物の起動 startCore.ts とテストの createTestCore が同じものを通る）。まだ分けていないものは仮の機能 legacy の中
+// 機能の組み立て: 機能を下の層から作って並べる（本物の起動 startCore.ts とテストの createTestCore が同じものを通る）。上の機能を使う下の機能のルートは仮の機能 legacy の中
 import type { AssembledCore } from "@/foundation/core/feature";
 import type { KernelWithStore } from "@/foundation/core/kernel";
 import { createSettings } from "@/features/settings/core/index";
@@ -7,11 +7,13 @@ import { createProjects } from "@/features/projects/core/index";
 import { createGroups } from "@/features/groups/core/index";
 import { createSnippets } from "@/features/snippets/core/index";
 import { createAi, type AiApi } from "@/features/ai/core/index";
-import { createAttachments } from "@/features/attachments/core/index";
-import { createUserView } from "@/features/userView/core/index";
+import { createAttachments, type UploadStore } from "@/features/attachments/core/index";
+import { createUserView, type UserViewRegistry } from "@/features/userView/core/index";
 import { createNotifications } from "@/features/notifications/core/index";
 import { createVoice } from "@/features/voice/core/index";
 import { createDevices, type DevicesApi } from "@/features/devices/core/index";
+import { createChat, type ChatApi } from "@/features/chat/core/index";
+import { createGuard } from "@/features/guard/core/index";
 import { createFiles } from "@/features/files/core/index";
 import { createGit } from "@/features/git/core/index";
 import { createDocker, type DockerService } from "@/features/docker/core/index";
@@ -24,14 +26,29 @@ import { createRemoteImages, type RemoteImageService } from "@/features/remoteIm
 import { createNotes, type NoteService } from "@/features/notes/core/index";
 import { createDatabase, type DatabaseService } from "@/features/database/core/index";
 import { createBrowser } from "@/features/browser/core/index";
-import { createLegacy, type LegacyApi } from "./legacy";
+import { createLegacy } from "./legacy";
 import type { CorePrepared } from "./prepare";
 import type { CoreEnv } from "./types";
 
 /** 並べた機能と、起動したコアの口（Core）・テストに出すもの */
 export interface AppAssembly extends AssembledCore {
   /** 機能の口（テストが中のサービスを見る） */
-  apis: { trash: TrashApi; ai: AiApi; devices: DevicesApi; legacy: LegacyApi; docker: DockerService; worktrees: WorktreesApi; github: GitHubApi; terminals: TerminalSessions; ports: PortWatch; notes: NoteService; databases: DatabaseService; remoteImages: RemoteImageService };
+  apis: {
+    trash: TrashApi;
+    ai: AiApi;
+    uploads: UploadStore;
+    userViews: UserViewRegistry;
+    devices: DevicesApi;
+    chat: ChatApi;
+    docker: DockerService;
+    worktrees: WorktreesApi;
+    github: GitHubApi;
+    terminals: TerminalSessions;
+    ports: PortWatch;
+    notes: NoteService;
+    databases: DatabaseService;
+    remoteImages: RemoteImageService;
+  };
   runningChats(): { id: number; title: string | null }[];
   awakeNeeds(): { running: number; mobileEnabled: boolean };
   terminals: TerminalSessions;
@@ -50,32 +67,46 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
   const notifications = createNotifications(k, env.notifications);
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
-  const legacy = createLegacy(k, env, prepared, { trash: trash.api, ai: ai.api, uploads: attachments.api, userViews: userView.api });
-  const { runner, mcpTools } = legacy.api;
-  // ここからはチャット（いまは legacy の Runner）の上の機能
+  const { trashCommandFile } = prepared;
+  const chat = createChat(k, { trash: trash.api, ai: ai.api, uploads: attachments.api, userViews: userView.api }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl, retryMs: env.retryMs });
+  const { runner } = chat.api;
+  // ここからはチャットの上の機能
+  const guard = createGuard({ trash: trash.api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile });
   const visuals = createVisuals();
-  const remoteImages = createRemoteImages(k, env.remoteImages);
+  const remoteImages = createRemoteImages(k, { chat: chat.api }, env.remoteImages);
   const files = createFiles(k, { trash: trash.api });
   const git = createGit(k);
   const docker = createDocker(k, { engine: env.platformParts.dockerEngine, ...env.docker });
-  const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: { runner } }, { ...env.worktrees, retryMs: env.retryMs });
+  const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api }, { ...env.worktrees, retryMs: env.retryMs });
   const github = createGitHub(k, { worktrees: worktrees.api }, env.github);
-  const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: { runner }, uploads: attachments.api }, env.notes);
-  const database = createDatabase(k, { ai: ai.api, docker: docker.api, worktrees: worktrees.api }, { ...env.database, secretCipher: env.secretCipher });
+  const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, uploads: attachments.api }, env.notes);
+  const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api }, { ...env.database, secretCipher: env.secretCipher });
   const terminal = createTerminal(k, { worktrees: worktrees.api }, { shell: env.platformParts.terminalShell(), ...env.terminal });
   const browser = createBrowser({ control: env.browser });
   const ports = createPorts(k, { selfPid: env.hostPid, ...env.ports });
-  // 上の機能の口を、下の Runner とまだ分けていないルートに渡す
-  legacy.api.attach({ docker: docker.api, worktrees: worktrees.api, github: github.api, terminals: terminal.api, notes: notes.api, databases: database.api, remoteImages: remoteImages.api, browser: browser.api });
+  // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）
   const terminals = terminal.api;
+  chat.api.attach({
+    notes: notes.api,
+    databases: database.api,
+    docker: docker.api,
+    worktreeEnvs: worktrees.api.envs,
+    worktreeFinisher: worktrees.api.finisher,
+    terminals,
+    browser: browser.api,
+    ...guard.api,
+    remoteImages: remoteImages.api,
+  });
+  // 持ち主の機能より上の機能を使うルート（プロジェクト・添付の表示）
+  const legacy = createLegacy(k, { trash: trash.api, ai: ai.api, chat: chat.api, uploads: attachments.api, userViews: userView.api, github: github.api, notes: notes.api });
   return {
-    features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, legacy, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports],
+    features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports, legacy],
     hooks: {
       deviceAuth: devices.api.auth,
       status: () => ({ remote_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
-      mcp: mcpTools,
+      mcp: chat.api.mcpTools,
     },
-    apis: { trash: trash.api, ai: ai.api, devices: devices.api, legacy: legacy.api, docker: docker.api, worktrees: worktrees.api, github: github.api, terminals, ports: ports.api, notes: notes.api, databases: database.api, remoteImages: remoteImages.api },
+    apis: { trash: trash.api, ai: ai.api, uploads: attachments.api, userViews: userView.api, devices: devices.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, github: github.api, terminals, ports: ports.api, notes: notes.api, databases: database.api, remoteImages: remoteImages.api },
     runningChats: () => runner.busyChats(),
     awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: devices.api.mobileEnabled() }),
     terminals,

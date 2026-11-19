@@ -15,8 +15,7 @@ import type { AttachmentsEnv } from "@/features/attachments/core/index";
 import type { DevicesEnv } from "@/features/devices/core/index";
 import type { NotificationsEnv } from "@/features/notifications/core/index";
 import type { VoiceEnv } from "@/features/voice/core/index";
-import type { SessionsUsedElsewhere } from "@/features/chat/core/sessions/siblingSessions";
-import type { Runner } from "@/features/chat/core/runner";
+import type { ChatEnv } from "@/features/chat/core/index";
 import type { DockerEnv } from "@/features/docker/core/index";
 import type { PortsEnv } from "@/features/ports/core/index";
 import type { GitHubEnv } from "@/features/github/core/index";
@@ -75,9 +74,6 @@ export interface Core {
   close(): Promise<void>;
 }
 
-/** 1 つ目の引数の型（機能のサービスの選択肢） */
-type OptionsOf<C extends abstract new (...args: never[]) => unknown> = NonNullable<ConstructorParameters<C>[0]>;
-
 /**
  * 本物とテストで違う、外の世界の口。本物は realEnv.ts が CoreOptions から、テストは testing/testEnv.ts が偽物から作り、
  * どちらも同じ assembleCore を通る（省いた欄は本物の既定）
@@ -95,10 +91,9 @@ export interface CoreEnv {
   mcpBaseUrl: string;
   /** 暗号化の口は secretCipher から渡す */
   ai: Omit<AiEnv, "secretCipher">;
-  chat: Pick<OptionsOf<typeof Runner>, "reconnect" | "usageLimit" | "editHoldTtlMs" | "tellableWaitMs"> & {
-    /** ほかの Kickoff（製品版と開発版）が使っているセッション（null は調べない） */
-    sessionsElsewhere: SessionsUsedElsewhere | null;
-  };
+  /** 前の終わり方・置いた kickoff-trash・MCP の URL・確かめ直しの間隔は、ほかの欄から組み立てで渡す */
+  chat: Omit<ChatEnv, "recoveredReason" | "trashCommandFile" | "mcpBaseUrl" | "retryMs">;
+
   trash: TrashEnv & {
     /** AI の rm の代わりの kickoff-trash を bin/ に置くか */
     installCommand: boolean;

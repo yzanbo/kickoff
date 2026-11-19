@@ -63,10 +63,12 @@ export function createTestCore(opts: { staticDir?: string; secretCipher?: Secret
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  const { trash, devices, docker, worktrees, github, terminals, ports, notes, databases, remoteImages } = assembled.apis;
-  // 分けた機能の口も、前と同じ名前で返す（API のテストを書き換えない）
+  const { trash, ai, uploads, userViews, devices, chat, docker, worktrees, github, terminals, ports, notes, databases, remoteImages } = assembled.apis;
+  // 機能の口を、組み立てを分ける前と同じ名前で返す（API のテストを書き換えない）
+  const { runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere } = chat;
+  const parts = { store: k.store, bus: k.bus, providers: ai.providers, runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere, uploads, userViews };
   const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, terminals, ports, notes, databases, remoteImages };
-  return { ...assembled.apis.legacy, ...split, ...fakes, k, app, project, call, browserLogin, close, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
+  return { ...parts, ...split, ...fakes, k, app, project, call, browserLogin, close, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
 }
 
 /** Runner に渡す値のうち、ここで組み立てないもの（添付の置き場所・再開の時計など） */
