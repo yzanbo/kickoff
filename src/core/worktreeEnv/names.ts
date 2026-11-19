@@ -7,7 +7,7 @@ const slug = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-/** 埋め込みブラウザで開く名前（feat/x → feat-x.localhost。DNS の 1 段は 63 文字まで。使える文字がなければ wt） */
+/** 埋め込みブラウザで開く名前（feat/x → feat-x.localhost。localhost のままだと本体とログインの Cookie が混ざる。DNS の 1 段は 63 文字まで。使える文字がなければ wt） */
 export function browserHostOf(name: string): string {
   const label = slug(name).slice(0, 63).replace(/-+$/, "") || "wt";
   return `${label}.localhost`;

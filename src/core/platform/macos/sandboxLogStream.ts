@@ -7,6 +7,7 @@ import type { SandboxDenial, SandboxLogFailure } from "../sandboxDiagnostics.js"
 /** macOS の OS 発信の拒否だけ（AI が predicate を指定する口は作らない） */
 export const SANDBOX_LOG_PREDICATE = '(process == "kernel" OR process == "sandboxd") AND eventMessage BEGINSWITH "Sandbox: " AND eventMessage CONTAINS " deny("';
 
+/** OS の拒否のログを流れているまま読む（保存済みのログの log show だけでは拒否が取れない。--type log・--no-backtrace は外さない = 外すと余分なイベントとバックトレースで出力の上限に達する） */
 export async function watchSandboxLog(
   signal: AbortSignal,
   parse: (line: string) => SandboxDenial[],

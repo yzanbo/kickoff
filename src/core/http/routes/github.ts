@@ -114,7 +114,7 @@ export function githubRoutes(app: Hono, { store, github, prWatch }: ServerDeps) 
     return c.json(await github.list(c.var.project, filterOfQuery(query), { cursor: query.cursor ?? null, refresh: query.refresh === "1" }));
   });
 
-  // ?cached=1 は GitHub に聞かずに、最後に取った中身（なければ null）。開き直したときのつなぎの表示
+  // ?cached=1 は GitHub に聞かずに、最後に取った中身（なければ null）。開き直したときのつなぎの表示（画面は同時に cached なしでも頼み、開いたときは必ず GitHub に聞く）
   app.get("/api/projects/:id/github/issues/:number", withProject, async (c) =>
     c.json(queryOf(c, "cached") === "1" ? github.cachedDetail(c.var.project, "issue", idParam(c, "number")) : await github.issue(c.var.project, idParam(c, "number"))),
   );

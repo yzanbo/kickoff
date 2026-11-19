@@ -184,6 +184,7 @@ function chatEditTools(chatEdit: AiChatEditTools) {
       "update_chat",
       "同じ家系のチャットの名前・固定・グループを変え、子チャットを親から外す（家系の外でも同じプロジェクトなら名前だけ変えられる。聞かずに変える。省いた項目は変えない。親から外すのは利用者に頼まれたときだけ）",
       {
+        // 省いたら自分、にしない（書き忘れで黙って自分の名前が変わる）
         chat_id: z.number().int().describe("変えるチャットの ID（必須。自分のチャットでも書く。分からなければ list_family_chats・list_project_chats で確かめる）"),
         title: z.string().min(1).max(CHAT_TITLE_MAX).optional().describe("新しい名前（省くと変えない）"),
         pinned: z.boolean().optional().describe("固定する（true）・外す（false）。省くと変えない"),

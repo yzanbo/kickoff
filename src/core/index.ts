@@ -311,7 +311,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     browserLoginUrl: () => `http://127.0.0.1:${opts.port}/login?code=${browserLogin.issue()}`,
     terminals,
     close: async () => {
-      // 止める途中の知らせで通知を出さない
+      // 止める順を変えない（通知 → エージェント → 流れ続けている外部コマンド → 見張り・サービス → DB ワーカー → ターミナル・Bash の通信の中継 → ためた途中の返答 → HTTP → DB）。止める途中の知らせで通知を出さない
       notifications.close();
       runner.shutdown();
       // 流れ続けている外部コマンド（docker events・起動の途中の up -d など）は聞かずに止める

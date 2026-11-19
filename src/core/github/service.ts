@@ -143,7 +143,7 @@ export class GitHubService {
 
   /**
    * 一覧（cursor = 続き）。頭の 1 回は、前に取ったときの ETag で「リポジトリの issue・PR が変わったか」を聞き（変わっていなければ使用量に数えない）、
-   * 変わっていない・5 分以内なら覚えたものを返す。refresh なら必ず聞き直す
+   * 変わっていない・5 分以内なら覚えたものを返す（CI の結果は ETag を変えないので、5 分たてば聞き直す）。refresh なら必ず聞き直す
    */
   list(project: Project, filter: GitHubListFilter, opts: { cursor?: string | null; refresh?: boolean } = {}): Promise<GitHubItemPage> {
     return this.within(project, async (ctx) => {

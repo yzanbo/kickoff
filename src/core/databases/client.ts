@@ -6,7 +6,7 @@ import type { DbEngine } from "@shared/types";
 import type { WorkerCancel, WorkerEvent, WorkerMethod, WorkerMethods, WorkerRequest, WorkerResponse } from "./protocol.js";
 import { reportChildProcess } from "../system/childProcesses.js";
 
-/** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス `inProcessWorker.ts`） */
+/** ワーカーとのつなぎ（別のプロセス・テストでは同じプロセス `inProcessWorker.ts`。それはドライバを読むので、ここから import しない = コアの起動を遅くしない） */
 export interface WorkerChannel {
   send(message: WorkerRequest | WorkerCancel): void;
   /** 答えと、ワーカーからの知らせ（流したコマンドの結果） */

@@ -4,8 +4,10 @@ import type { GitHubRemote } from "@shared/types";
 import { gitOutput } from "./exec.js";
 
 /**
- * Kickoff が GitHub として扱うホスト（いまは github.com だけ）。GitHub Enterprise を足すときは、ここに足す
- * （ほかの所はホストを受け取って動く。残りの手順は src/core/CLAUDE.md の「GitHub のホスト」）
+ * Kickoff が GitHub として扱うホスト（いまは github.com だけ）。GitHub Enterprise を足すときは、ここに足す（ほかの所はホストを受け取って動く）。
+ * 残りの手順: ① この一覧を gh にログインしているホスト（gh auth status --json hosts のキー）から作る ② アカウントの一覧（listGitHubAccounts）を連携先のホストで出す
+ * ③ git と AI のチャットに渡すトークン（gitOutput・turn.ts の githubEnvForGit()）に連携先のホストを渡す ④ githubStatus のホスト
+ * ⑤ 画面の CSP（src/renderer/index.html の img-src）に本文の画像のホストを足す
  */
 export const GITHUB_HOSTS: readonly string[] = [GITHUB_DEFAULT_HOST];
 

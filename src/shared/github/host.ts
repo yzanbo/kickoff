@@ -1,5 +1,5 @@
 // GitHub のホスト（github.com。GitHub Enterprise ならそのホスト）。連携先・アカウント・gh・画面の URL は、すべてホストを受け取って組み立てる。
-// いま Kickoff が GitHub として扱うのは github.com だけ（core/git/githubTarget.ts の GITHUB_HOSTS）。Enterprise を足すときの手順は src/core/CLAUDE.md
+// いま Kickoff が GitHub として扱うのは github.com だけ（core/git/githubTarget.ts の GITHUB_HOSTS）。Enterprise を足すときの手順はその JSDoc
 /** github.com（ホストを決めていないときの既定） */
 export const GITHUB_DEFAULT_HOST = "github.com";
 

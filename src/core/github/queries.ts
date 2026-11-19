@@ -16,7 +16,7 @@ const ITEM_FIELDS = `
   ... on PullRequest { ${ITEM_COMMON} isDraft reviewDecision headRefName baseRefName
     commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } }`;
 
-/** 一覧（GitHub の新しい検索。担当・マイルストーンの「どれか」に (… OR …) を使う。q は @shared/github/searchQuery で作る） */
+/** 一覧（GitHub の新しい検索 ISSUE_ADVANCED。担当・マイルストーンの「どれか」に (… OR …) を使う。type: ISSUE ではマイルストーンを 2 つ書くと最後の 1 つしか効かない。q は @shared/github/searchQuery で作る） */
 export const SEARCH_QUERY = `query($q: String!, $first: Int!, $after: String) {
   search(query: $q, type: ISSUE_ADVANCED, first: $first, after: $after) {
     issueCount
