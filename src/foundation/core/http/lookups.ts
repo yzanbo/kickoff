@@ -1,9 +1,9 @@
-// URL の :id が指すもの（プロジェクト・チャット・グループ・定型文）を DB から引き当てる。ルートでは app.get(path, withProject, handler) のようにミドルウェアとして置き、
+// URL の :id が指すもの（プロジェクト・チャット・グループ）を DB から引き当てる。ルートでは app.get(path, withProject, handler) のようにミドルウェアとして置き、
 // ハンドラーは c.var.project などで受け取る（番号でなければ 400、なければ 404。ルートごとに引き当てと検証を書かない）
 import type { Context, MiddlewareHandler } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Store } from "@/foundation/core/db/store";
-import type { Chat, ChatGroup, Project, Snippet } from "@shared/types";
+import type { Chat, ChatGroup, Project } from "@shared/types";
 import { NotFound } from "@/foundation/core/errors";
 import type { ProjectScopes } from "@/foundation/core/workplace/kit";
 import { idParam, queryOf } from "./input";
@@ -27,12 +27,6 @@ function requireGroup(store: Store, id: number): ChatGroup {
   return group;
 }
 
-function requireSnippet(store: Store, id: number): Snippet {
-  const snippet = store.snippets.get(id);
-  if (!snippet) throw new NotFound("定型文が見つかりません");
-  return snippet;
-}
-
 const SCOPES_KEY = "projectScopes";
 
 /** プロジェクトの頼みの包み（Kernel.workplace.projectScopes）を頼みに持たせる（http/app.ts が認証のあとに置く） */
@@ -51,7 +45,7 @@ function inProjectScopes(c: Context, project: Project, next: () => Promise<void>
 }
 
 /**
- * :id のプロジェクト・チャット・グループ・定型文を c.var に入れるミドルウェア。
+ * :id のプロジェクト・チャット・グループを c.var に入れるミドルウェア。
  * プロジェクトの操作の中の gh・git は、登録された包みの中で動かす（そのプロジェクトで選んだ GitHub のアカウント）
  */
 export function lookups(store: Store) {
@@ -77,10 +71,6 @@ export function lookups(store: Store) {
     }),
     withGroup: createMiddleware<{ Variables: { group: ChatGroup } }>(async (c, next) => {
       c.set("group", requireGroup(store, idParam(c)));
-      await next();
-    }),
-    withSnippet: createMiddleware<{ Variables: { snippet: Snippet } }>(async (c, next) => {
-      c.set("snippet", requireSnippet(store, idParam(c)));
       await next();
     }),
   };

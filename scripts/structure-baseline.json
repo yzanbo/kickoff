@@ -2571,7 +2571,7 @@
       "src/shared/chat/subagents.ts": 311,
       "src/shared/chat/toolText.ts": 342,
       "src/shared/database/sqlStatements.ts": 318,
-      "src/shared/foundation/apiTypes.ts": 634
+      "src/shared/foundation/apiTypes.ts": 624
     },
     "native": [
       "src/app/renderer/popoutHosts.ts",

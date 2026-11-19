@@ -1,5 +1,7 @@
 // プロジェクトの機能のコアの入口（ほかの機能はここだけを読む）
+import type { Project } from "@shared/projects/types";
 import type { CoreFeature } from "@/foundation/core/feature";
+import { requireProject } from "@/foundation/core/http/lookups";
 import type { KernelWithStore } from "@/foundation/core/kernel";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { TrashApi } from "@/features/trash/core/index";
@@ -12,6 +14,8 @@ export interface ProjectsDeps {
 }
 
 export interface ProjectsApi {
+  /** そのプロジェクト（なければ 404「プロジェクトが見つかりません」） */
+  require(id: number): Project;
   /** 上の機能の口を受ける（ルートが使う。組み立ての最後に 1 回だけ。仮の口で、上の機能が登録する形に替えたら消す） */
   attach(upper: ProjectRouteUpper): void;
 }
@@ -22,7 +26,7 @@ export function createProjects(k: KernelWithStore, deps: ProjectsDeps): CoreFeat
   let upper: ProjectRouteUpper | null = null;
   return {
     name: "projects",
-    api: { attach: (given) => void (upper = given) },
+    api: { require: (id) => requireProject(k.store, id), attach: (given) => void (upper = given) },
     routes: [
       {
         legacy: (app) => {

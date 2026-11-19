@@ -1,7 +1,7 @@
 import type { NewSnippetBody, Snippet, SnippetPatch } from "@shared/types";
 import { request } from "@/foundation/ui/api/http";
 
-/** 定型文（コアの routes/snippets.ts）。一覧はすべて（プロジェクトごとに絞るのは画面）。並べ替えは、並べたあとのすべての定型文が返る */
+/** 定型文（取り決めは @shared/snippets/contract.ts）。一覧はすべて（プロジェクトごとに絞るのは画面）。並べ替えは、並べたあとのすべての定型文が返る */
 export const snippetsApi = {
   snippets: () => request<Snippet[]>("GET", "/api/snippets"),
   createSnippet: (body: NewSnippetBody) => request<Snippet>("POST", "/api/snippets", body),

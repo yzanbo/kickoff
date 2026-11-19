@@ -19,3 +19,13 @@ export interface Snippet {
 export const SNIPPET_LABEL_MAX = 40;
 /** 本文の長さの上限 */
 export const SNIPPET_TEXT_MAX = 20_000;
+
+/** 定型文を作る本文（project_id が null なら共通、label が null なら本文の 1 行目を名前に見せる） */
+export interface NewSnippetBody {
+  project_id: number | null;
+  label: string | null;
+  text: string;
+}
+
+/** 定型文を変える本文（書いた項目だけ変える。project_id を null にすると共通に、番号にするとそのプロジェクトだけに） */
+export type SnippetPatch = Partial<NewSnippetBody>;

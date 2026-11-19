@@ -61,7 +61,7 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
   const groups = createGroups(k);
   const ai = createAi(k, { ...env.ai, secretCipher: env.secretCipher });
   const attachments = createAttachments(k, { trash: trash.api }, env.attachments);
-  const snippets = createSnippets(k);
+  const snippets = createSnippets(k, { projects: projects.api });
   const userView = createUserView();
   const notifications = createNotifications(k, env.notifications);
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
