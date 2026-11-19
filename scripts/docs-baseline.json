@@ -145,11 +145,11 @@
       "brokenRefs": 2
     },
     "src/renderer/src/features/panel/CLAUDE.md": {
-      "bytes": 95936,
-      "ancestors": 183729,
-      "longLines": 55,
-      "forbidden": 85,
-      "brokenRefs": 6
+      "bytes": 11567,
+      "ancestors": 99360,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 0
     },
     "src/renderer/src/features/popout/CLAUDE.md": {
       "bytes": 21276,

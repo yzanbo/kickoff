@@ -6,7 +6,8 @@ import { closedLinks, NO_LINKS, openedLinks, syncLinkedTabs, type LinkState } fr
 
 /**
  * 1 つの欄のパネルの状態（欄・画面ごとに 1 つ。panelStore.ts が覚える）: タブ・分割の配置（いつもタブにそろえておく）・開いているか・
- * サイドバーとの連動の覚え。変えるのはすべて panelReducer（純粋関数）で、閉じたタブの後始末・保存は店が行う
+ * サイドバーとの連動の覚え。変えるのはすべて panelReducer（純粋関数）で、閉じたタブの後始末・保存は店が行う。
+ * 配置をタブにそろえておくのは、自動で足したタブが配置にないまま分ける・移すと、その操作が何もしないため
  */
 export interface PanelState {
   tabs: readonly PanelTab[];
@@ -137,7 +138,7 @@ export function panelReducer(state: PanelState, action: PanelAction, rules: Pane
       const keys = next.tabs.map((t) => t.key);
       const kept = new Set(keys);
       const gone = state.tabs.flatMap((t) => (kept.has(t.key) ? [] : [t.key]));
-      // 外れたタブは閉じたときと同じく隣のタブを表示し、足したタブは一覧のペインへ（分けたペインには自動で足さない）
+      // 外れたタブは閉じたときと同じく隣のタブを表示し、足したタブは一覧のペインへ（分けたペインには自動で足さない。1 つのタブを見せるために分けたペインに、ほかのチャットが流れ込まないように）
       return { ...state, tabs: next.tabs, links: next.links, layout: reconcileLayout(closeLayoutTabs(state.layout, gone), keys) };
     }
     case "setOpen":
