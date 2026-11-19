@@ -7,7 +7,7 @@ import { getCookie, setCookie } from "hono/cookie";
 import { DEVICE_FORBIDDEN, DEVICE_READ_ONLY, MOBILE_OFF, MOBILE_OFF_MESSAGE } from "@shared/types";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import { setCaller, type Caller } from "./caller";
-import { deviceMayUse } from "./deviceAccess";
+import type { DeviceMayUse } from "./deviceAccess";
 
 export const AUTH_COOKIE = "kickoff_token";
 
@@ -44,9 +44,9 @@ export interface DeviceAuth {
 
 /**
  * /api/* の認証と呼び主: 本体のトークンならこの Mac、端末のトークンならその端末（caller.ts）。
- * 端末は deviceAccess.ts の口だけ（既定で閉じる。ほかは 403）。スマホ連携がオフなら、つないだ端末からの頼みも断る（登録は残す）
+ * 端末は開いた口だけ（deviceAccess.ts。既定で閉じる。ほかは 403）。スマホ連携がオフなら、つないだ端末からの頼みも断る（登録は残す）
  */
-export function authMiddleware(token: string, deviceAuth: DeviceAuth | undefined): MiddlewareHandler {
+export function authMiddleware(token: string, deviceAuth: DeviceAuth | undefined, deviceMayUse: DeviceMayUse): MiddlewareHandler {
   return async (c, next) => {
     const given = [c.req.header("authorization")?.replace(/^Bearer\s+/i, ""), getCookie(c, AUTH_COOKIE)].filter((t): t is string => Boolean(t));
     if (given.some((t) => tokenMatches(token, t))) {

@@ -2,7 +2,7 @@
 import type { Hono } from "hono";
 import type { AssembledCore, CoreFeature } from "@/foundation/core/feature";
 import { closeKernel, type Kernel } from "@/foundation/core/kernel";
-import { createHttpApp } from "@/foundation/core/http/app";
+import { createHttpApp, type HttpApp } from "@/foundation/core/http/app";
 import { BrowserLogin, loadOrCreateToken } from "@/foundation/core/http/auth";
 import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServer";
 
@@ -19,7 +19,7 @@ export interface ServedCore {
 export async function serveCore(k: Kernel, assembled: AssembledCore, opts: { listen: { host: string; port: number } }): Promise<ServedCore> {
   const token = loadOrCreateToken(k.paths.dataDir);
   const browserLogin = new BrowserLogin(k.clock);
-  const app = createHttpApp(k, assembled, { token, browserLogin, listen: opts.listen });
+  const { app } = createHttpApp(k, assembled, { token, browserLogin, listen: opts.listen });
   // ポートが使われているなどで待ち受けられなければ、作ったものと DB を閉じてから伝える
   const server = await startHttpServer(app, opts.listen).catch(async (e: unknown) => {
     await stopFeatures(k, assembled.features);
@@ -41,8 +41,8 @@ export async function serveCore(k: Kernel, assembled: AssembledCore, opts: { lis
   };
 }
 
-/** テスト用: 待ち受けずに Hono のアプリだけ作る（start() は呼ばない） */
-export function appOf(k: Pick<Kernel, "bus" | "clock" | "paths" | "workplace">, assembled: AssembledCore, opts: { token: string; browserLogin?: BrowserLogin }): Hono {
+/** テスト用: 待ち受けずに Hono のアプリと登録した受け口だけ作る（start() は呼ばない） */
+export function appOf(k: Pick<Kernel, "bus" | "clock" | "paths" | "workplace">, assembled: AssembledCore, opts: { token: string; browserLogin?: BrowserLogin }): HttpApp {
   return createHttpApp(k, assembled, { token: opts.token, browserLogin: opts.browserLogin ?? new BrowserLogin(k.clock) });
 }
 

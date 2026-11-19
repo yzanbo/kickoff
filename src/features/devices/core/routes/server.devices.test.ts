@@ -13,7 +13,8 @@ import {
   type PairingState,
   type TailscaleStatus,
 } from "@shared/types";
-import { DEVICE_ROUTES, READ_ONLY_DEVICE_ROUTES } from "@/foundation/core/http/deviceAccess";
+import { deviceRoutes, LEGACY_DEVICE_ROUTES, LEGACY_READ_ONLY_DEVICE_ROUTES } from "@/foundation/core/http/deviceAccess";
+import { matchRecord } from "@/foundation/core/testing/record";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { AUTH, setup } from "@/app/core/testing/testServer";
 
@@ -78,10 +79,13 @@ test("端末: 知らないトークン・取り消した端末は 401。Tailscal
   assert.equal((await app.request("/api/status", { headers: DEVICE })).status, 401);
 });
 
-test("端末に開く口は、どれもいまあるルート（名前を変えたら、端末に開く口の一覧も直す）", () => {
-  const { app } = setup();
-  const routes = new Set(app.routes.filter((r) => r.method !== "ALL").map((r) => `${r.method} ${r.path}`));
-  for (const [method, path] of DEVICE_ROUTES) assert.ok(routes.has(`${method} ${path}`), `${method} ${path} がありません`);
+test("端末に開く口の記録（取り決めの access と、まだ乗せていない口の表を合わせたもの。どれもいまあるルート）", async () => {
+  const { app, routes } = setup();
+  const existing = new Set(app.routes.filter((r) => r.method !== "ALL").map((r) => `${r.method} ${r.path}`));
+  const open = deviceRoutes(routes);
+  for (const { method, path } of open) assert.ok(existing.has(`${method} ${path}`), `${method} ${path} がありません`);
+  // 開け忘れ・閉め忘れは記録の差分で見える
+  await matchRecord("core/device-routes.txt", `${open.map((r) => `${r.method} ${r.path} ${r.access}`).sort().join("\n")}\n`);
 });
 
 test("端末: 見るだけの端末は、見る口・見ているものの知らせ・既読だけ使え、送る・答える・止めるは 403 と印で断る", async () => {
@@ -119,8 +123,8 @@ test("端末: 見るだけの端末は、見る口・見ているものの知ら
 });
 
 test("端末: 見るだけの端末にも使わせる口は、どれも端末に開いた口の中にある", () => {
-  const open = new Set(DEVICE_ROUTES.map(([m, p]) => `${m} ${p}`));
-  for (const [method, path] of READ_ONLY_DEVICE_ROUTES) assert.ok(open.has(`${method} ${path}`), `${method} ${path}`);
+  const open = new Set(LEGACY_DEVICE_ROUTES.map(([m, p]) => `${m} ${p}`));
+  for (const [method, path] of LEGACY_READ_ONLY_DEVICE_ROUTES) assert.ok(open.has(`${method} ${path}`), `${method} ${path}`);
 });
 
 test("SSE: 端末には開いた口の知らせだけを届け、この Mac の画面への頼み・閉じた口の知らせは届けない", async () => {

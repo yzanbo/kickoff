@@ -1,15 +1,12 @@
-// 端末（スマホ）から使える口と、届ける知らせ。既定は「この Mac だけ」で、ここに書いたものだけを端末に開く
-// （新しい口・知らせの種類は、書き足すまで端末からは使えない。口の名前を変えたら、ここも直す = server.devices.test.ts が確かめる）
+// 端末（スマホ）から使える口と、届ける知らせ。既定は「この Mac だけ」で、取り決めの access と、まだ取り決めに乗せていない口の表（下の 2 つ）に
+// 書いたものだけを端末に開く（新しい口・知らせの種類は、書き足すまで端末からは使えない。開いた口の一覧は test-records/core/device-routes.txt の記録）
 import { TrieRouter } from "hono/router/trie-router";
+import type { Method } from "@shared/foundation/contract";
 import type { BusEvent, DeviceAccess } from "@shared/types";
+import { routeTable, type Mountable } from "./mount";
 
-type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-
-/** 端末に開く口（メソッドとパス。Hono のルートと同じ書き方） */
-export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
-  // 接続・状態・知らせ
-  ["GET", "/api/status"],
-  ["GET", "/api/events"],
+/** まだ取り決めに乗せていない口のうち、端末に開くもの（メソッドとパス。Hono のルートと同じ書き方。機能を取り決めに乗せたら、その行を消す） */
+export const LEGACY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   // いま見ているもの（見ているチャットの知らせは通知しない）
   ["PUT", "/api/viewing"],
   // 自分（名前・できること）と、自分のプッシュの宛先を登録する・外す
@@ -92,29 +89,48 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
 
 /**
  * 「見るだけ」の端末も使える、GET のほかの口（見ているものの知らせ・自分のプッシュの宛先・既読と未読の印）。
- * どれも DEVICE_ROUTES にあるもので、チャット・送信待ち・承認などの中身は変えない
+ * どれも LEGACY_DEVICE_ROUTES にあるもので、チャット・送信待ち・承認などの中身は変えない（取り決めでは access: "deviceRead"）
  */
-export const READ_ONLY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
+export const LEGACY_READ_ONLY_DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["PUT", "/api/viewing"],
   ["PUT", "/api/devices/self/push"],
   ["POST", "/api/chats/:id/seen"],
   ["POST", "/api/chats/:id/unseen"],
 ];
 
-const routerOf = (routes: readonly (readonly [Method, string])[]) => {
-  const router = new TrieRouter<true>();
-  for (const [method, path] of routes) router.add(method, path, true);
-  return router;
-};
-const deviceRouter = routerOf(DEVICE_ROUTES);
-const readOnlyRouter = routerOf(READ_ONLY_DEVICE_ROUTES);
+/** 端末に開いた口 1 本（device = 見るだけの端末は GET だけ・deviceRead = 見るだけの端末も使える） */
+export interface DeviceRoute {
+  method: Method;
+  path: string;
+  access: "device" | "deviceRead";
+}
+
+/** 端末に開いた口の一覧（取り決めの access と、まだ乗せていない口の表を合わせたもの） */
+export function deviceRoutes(routes: readonly Mountable[]): DeviceRoute[] {
+  const readOnly = new Set(LEGACY_READ_ONLY_DEVICE_ROUTES.map(([m, p]) => `${m} ${p}`));
+  return [
+    ...routeTable(routes).flatMap(({ method, path, access }) => (access === "device" || access === "deviceRead" ? [{ method, path, access }] : [])),
+    ...LEGACY_DEVICE_ROUTES.map(([method, path]) => ({ method, path, access: readOnly.has(`${method} ${path}`) ? ("deviceRead" as const) : ("device" as const) })),
+  ];
+}
 
 /** 端末がその口を使えるか（ok / 端末に開いていない forbidden / 見るだけの端末なので使えない read_only。HEAD は GET として見る） */
-export function deviceMayUse(method: string, path: string, access: DeviceAccess = "full"): "ok" | "forbidden" | "read_only" {
-  const m = method === "HEAD" ? "GET" : method;
-  if (deviceRouter.match(m, path)[0].length === 0) return "forbidden";
-  if (access === "full" || m === "GET" || readOnlyRouter.match(m, path)[0].length > 0) return "ok";
-  return "read_only";
+export type DeviceMayUse = (method: string, path: string, access: DeviceAccess) => "ok" | "forbidden" | "read_only";
+
+/** 受け口の一覧から、端末がその口を使えるかの判定を作る */
+export function deviceAccess(routes: readonly Mountable[]): DeviceMayUse {
+  const open = new TrieRouter<true>();
+  const readOnly = new TrieRouter<true>();
+  for (const r of deviceRoutes(routes)) {
+    open.add(r.method, r.path, true);
+    if (r.access === "deviceRead") readOnly.add(r.method, r.path, true);
+  }
+  return (method, path, access) => {
+    const m = method === "HEAD" ? "GET" : method;
+    if (open.match(m, path)[0].length === 0) return "forbidden";
+    if (access === "full" || m === "GET" || readOnly.match(m, path)[0].length > 0) return "ok";
+    return "read_only";
+  };
 }
 
 /** 端末に届ける知らせの種類（開いた口の中身が変わったもの。この Mac の画面への頼み・閉じた口の知らせは届けない） */

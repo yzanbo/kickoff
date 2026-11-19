@@ -4,7 +4,7 @@ import type { Context, Hono, Next } from "hono";
 import { streamSSE } from "hono/streaming";
 import { upgradeWebSocket } from "@hono/node-server";
 import { z } from "zod";
-import { splitKey } from "@shared/foundation/contract";
+import { splitKey, type Access, type Method, type RouteKind } from "@shared/foundation/contract";
 import { callerOf } from "./caller";
 import { fileResponse, type FileReply } from "./fileReply";
 import type { ImplementedRoutes, MountEntry, Param, SseHandler, WsHandler } from "./implement";
@@ -33,6 +33,11 @@ export function mount(app: Hono, routes: readonly Mountable[], phase: Phase): vo
   for (const r of routes) if (isLegacy(r) && inPhase(r.access, phase)) r.legacy(app);
   const entries = routes.flatMap((r) => (isLegacy(r) ? [] : r.entries.filter((e) => inPhase(e.spec.access, phase)).map((entry) => ({ entry, context: r.context }))));
   for (const { entry, context } of sortBySegments(entries)) register(app, entry, context);
+}
+
+/** 取り決めに乗せた口の一覧（端末の判定と、全ルートの記録が読む） */
+export function routeTable(routes: readonly Mountable[]): { method: Method; path: string; kind: RouteKind; access: Access | null }[] {
+  return routes.flatMap((r) => (isLegacy(r) ? [] : r.entries.map((e) => ({ ...splitKey(e.key), kind: e.spec.kind, access: e.spec.access ?? null }))));
 }
 
 /** 段の種類の順（決まった文字 → :引数 → *） */

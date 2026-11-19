@@ -65,7 +65,7 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: St
   });
 
   // この Mac の画面のタブのシェルを用意する（あればつなぎ直し = meta・持ち主を覚え直す。なければ cwd で始める）。出力はこのあと WebSocket で受ける。
-  // 端末からは使えない（DEVICE_ROUTES に入れない。好きなフォルダ・コマンドで始められるため）
+  // 端末からは使えない（端末に開かない。好きなフォルダ・コマンドで始められるため）
   app.post("/api/terminals", async (c) => {
     const body = openSchema.parse(await jsonBody(c));
     const placeholder = { id: `open:${body.key}`, data: () => {}, exit: () => {} };
@@ -77,7 +77,7 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: St
   });
 
   // この Mac の画面のタブのシェルの持ち主だけを替える（タブを別ウィンドウへ移す・戻すとき。移す元の画面が閉じても止めさせない）。
-  // シェルがなければ 404 で、始めない（終わったコマンドのタブを流し直さないため）。端末からは使えない（DEVICE_ROUTES に入れない）
+  // シェルがなければ 404 で、始めない（終わったコマンドのタブを流し直さないため）。端末からは使えない（端末に開かない）
   app.put("/api/terminals/:key/owner", async (c) => {
     const key = c.req.param("key");
     const body = ownerSchema.parse(await jsonBody(c));

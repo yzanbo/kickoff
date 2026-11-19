@@ -1,9 +1,8 @@
 // Kickoff の HTTP API の土台。デスクトップの画面とスマホのアプリが共通で使う。認証はトークン（Cookie または Authorization: Bearer）。
-// 登録の順: 詰まりの見張りの名前付け → 版の確かめ → 認証の外の口 → /login → /mcp → 認証 → 失敗の応答 → 状態 → 機能のルート → SSE → API の 404 → 画面の配信
+// 登録の順: 詰まりの見張りの名前付け → 版の確かめ → 認証の外の口 → /login → /mcp → 認証 → 失敗の応答 → 機能と土台のルート（状態・SSE） → API の 404 → 画面の配信
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VERSION, type ApiMismatch } from "@shared/foundation/api/version";
-import type { ServerStatus } from "@shared/foundation/server";
 import { MCP_PATH } from "@/foundation/core/aiTools/host";
 import { systemClock } from "@/foundation/core/clock";
 import type { AssembledCore } from "@/foundation/core/feature";
@@ -11,9 +10,10 @@ import type { Kernel } from "@/foundation/core/kernel";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
 import { authMiddleware, loginRoute, type BrowserLogin } from "./auth";
 import { errorResponse } from "./errorResponse";
-import { eventsRoute } from "./events";
+import { deviceAccess } from "./deviceAccess";
 import { provideProjectScopes } from "./lookups";
-import { mount } from "./mount";
+import { mount, type Mountable } from "./mount";
+import { serverRoutes } from "./serverRoutes";
 import { serveRenderer } from "./static";
 
 const STARTED_AT = systemClock.iso();
@@ -27,10 +27,16 @@ export interface HttpAppOptions {
   listen?: { host: string; port: number };
 }
 
+/** 組み立てたアプリと、登録した受け口（機能と土台の口。端末に開いた口の一覧の元） */
+export interface HttpApp {
+  app: Hono;
+  routes: readonly Mountable[];
+}
+
 /** 組み立てた機能の受け口を、土台の口と決まった順に並べた Hono のアプリを作る */
-export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths" | "workplace">, { features, hooks }: AssembledCore, opts: HttpAppOptions): Hono {
+export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths" | "workplace">, { features, hooks }: AssembledCore, opts: HttpAppOptions): HttpApp {
   const app = new Hono();
-  const routes = features.flatMap((f) => f.routes ?? []);
+  const routes = [...features.flatMap((f) => f.routes ?? []), serverRoutes(k, hooks, { version: VERSION, startedAt: STARTED_AT, listen: opts.listen })];
 
   // 詰まりの見張り（system/stallWatch.ts）: 頼みの最初の await までの同期の分に「http:<メソッド> <パス>」の名前を付ける（数字の段は :id。中の SQL は別に名前が付く）
   app.use("*", async (c, next) => {
@@ -62,7 +68,7 @@ export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths" | "workp
   const mcp = hooks.mcp;
   if (mcp) app.all(`${MCP_PATH}/:server`, (c) => mcp.handle(c.req.param("server"), c.req.raw));
 
-  app.use("/api/*", authMiddleware(opts.token, hooks.deviceAuth));
+  app.use("/api/*", authMiddleware(opts.token, hooks.deviceAuth, deviceAccess(routes)));
   // まだ取り決めに乗せていないプロジェクトの口（lookups.ts の withProject）が、登録された包み（GitHub のアカウント）を読む
   app.use("/api/*", provideProjectScopes(k.workplace.projectScopes));
 
@@ -73,29 +79,12 @@ export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths" | "workp
     return c.json(body, status);
   });
 
-  // 画面の左下の「接続」の詳細
-  app.get("/api/status", (c) => {
-    const status: ServerStatus = {
-      version: VERSION,
-      started_at: STARTED_AT,
-      host: opts.listen?.host ?? "127.0.0.1",
-      port: opts.listen?.port ?? Number(new URL(c.req.url).port),
-      ...hooks.status(),
-      database_id: k.paths.databaseId,
-      api_version: API_VERSION,
-      min_client_api_version: MIN_CLIENT_API_VERSION,
-    };
-    return c.json(status);
-  });
-
-  // ---- 機能ごとの API（まだ取り決めに乗せていないものを並べた機能の順に、取り決めの分をそのあとに。mount.ts） ----
+  // ---- 機能と土台の API（まだ取り決めに乗せていないものを並べた機能の順に、取り決めの分（接続の状態・SSE を含む）をそのあとに。mount.ts） ----
   mount(app, routes, "auth");
-
-  eventsRoute(app, k, VERSION, hooks.deviceAuth);
 
   // 知らない API は JSON の 404 にする（本番の画面の配信の「未知のパスは index.html」に落とすと、200 の HTML が返っていた）
   app.all("/api/*", (c) => c.json({ error: "API が見つかりません" }, 404));
 
   if (k.paths.staticDir) serveRenderer(app, k.paths.staticDir);
-  return app;
+  return { app, routes };
 }

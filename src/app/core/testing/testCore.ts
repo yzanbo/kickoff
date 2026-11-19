@@ -48,7 +48,7 @@ export function createTestCore(opts: { staticDir?: string; secretCipher?: Secret
   opts.beforeStart?.(k.store, project);
   const assembled = assembleCore(k, testEnv(fakes, { secretCipher: opts.secretCipher, claudeSdk: opts.claudeSdk }));
   const browserLogin = new BrowserLogin();
-  const app = appOf(k, assembled, { token: TOKEN, browserLogin });
+  const { app, routes } = appOf(k, assembled, { token: TOKEN, browserLogin });
   const close = () => stopFeatures(k, assembled.features);
   afterTest(close);
   // 見張りのうちポートを使っているプロセスだけは始める（実行が終わったときの見張りを確かめる。ほかは start しない）
@@ -68,7 +68,7 @@ export function createTestCore(opts: { staticDir?: string; secretCipher?: Secret
   const { runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere } = chat;
   const parts = { store: k.store, bus: k.bus, providers: ai.providers, runner, approvals, streamingText, mcpTools, chatRemover, sessionsElsewhere, uploads, userViews };
   const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, terminals, ports, notes, databases, remoteImages };
-  return { ...parts, ...split, ...fakes, k, app, project, call, browserLogin, close, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
+  return { ...parts, ...split, ...fakes, k, app, routes, project, call, browserLogin, close, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
 }
 
 /** Runner に渡す値のうち、ここで組み立てないもの（添付の置き場所・再開の時計など） */
