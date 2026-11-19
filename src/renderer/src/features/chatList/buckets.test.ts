@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Chat, ChatGroup, GitWorktree } from "@shared/types";
-import { makeChat, makeGroup, makeProject } from "@shared/testing/factories";
+import type { Chat, ChatGroup } from "@shared/types";
+import { makeChat, makeGroup, makeProject, makeWorktree } from "@shared/testing/factories";
 import { approvalIndex } from "@/features/chat/chatState";
 import { COUNTED_COLUMNS } from "@/features/chat/chatState";
 import { chatHead, draftHead } from "./bucketHeads";
@@ -12,7 +12,6 @@ import { byManual } from "./manualOrder";
 const chat = (id: number, patch: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-11-${String(id).padStart(2, "0")}T00:00:00Z`, ...patch });
 const group = (id: number, position: number, projectId = 1) => makeGroup(id, { position, project_id: projectId });
 const project = (id: number) => makeProject(id, { name: `P${id}` });
-const worktree = (path: string, branch: string, main = false): GitWorktree => ({ path, root: path, branch, head: "abc1234", main, locked: false, prunable: false });
 
 const pending = approvalIndex([]);
 const groups: Record<number, ChatGroup[]> = { 1: [group(5, 2), group(4, 1)], 2: [group(9, 1, 2)] };
@@ -57,7 +56,7 @@ test("bucketChats: nested の固定はグループ内の状態見出しより前
 });
 
 test("bucketChats: nested の固定は作業場所の中。本体・ワークツリーの並びは変えない。前のブランチが違っても本体", () => {
-  const worktreesOf = () => [worktree("/repo", "main", true), worktree("/wt/a", "feature")];
+  const worktreesOf = () => [makeWorktree("/repo", { branch: "main", main: true }), makeWorktree("/wt/a", { branch: "feature" })];
   const chats = [chat(1, { pinned: true }), chat(2), chat(3, { worktree_path: "/wt/a", pinned: true }), chat(4, { worktree_path: "/wt/a", status: "running" }), chat(5, { branch: "old", pinned: true })];
   const opts = { ...ctx, worktreesOf, project: 1, pinned: "nested" as const, archived: "nested" as const };
   const recent = bucketChats(chats, { ...opts, by: "worktree" });
@@ -119,8 +118,8 @@ test("bucketChats: 下書きは作成先のグループへ（もうないグル�
 });
 
 test("bucketChats: 作業場所は本体 → ワークツリー（名前順）→ フォルダなし。片付けて本体に戻ったチャットは本体。下書きはそのプロジェクトの本体へ", () => {
-  const list1 = [worktree("/repo", "main", true), worktree("/repo-worktrees/b", "b-feature"), worktree("/repo-worktrees/a", "a-feature")];
-  const worktreesOf = (id: number) => (id === 1 ? list1 : id === 2 ? [worktree("/two", "main", true)] : undefined);
+  const list1 = [makeWorktree("/repo", { branch: "main", main: true }), makeWorktree("/repo-worktrees/b", { branch: "b-feature" }), makeWorktree("/repo-worktrees/a", { branch: "a-feature" })];
+  const worktreesOf = (id: number) => (id === 1 ? list1 : id === 2 ? [makeWorktree("/two", { branch: "main", main: true })] : undefined);
   const chats = [
     chat(1, { worktree_path: "/repo-worktrees/b" }),
     chat(2, { worktree_path: "/gone" }),

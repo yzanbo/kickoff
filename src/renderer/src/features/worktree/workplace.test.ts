@@ -1,19 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Chat, GitWorktree } from "@shared/types";
+import type { Chat } from "@shared/types";
+import { makeWorktree } from "@shared/testing/factories";
 import { compareWorkplaces, countBusyAt, workplaceOf } from "./workplace";
 
-const wt = (path: string, branch: string | null, extra: Partial<GitWorktree> = {}): GitWorktree => ({
-  path,
-  root: path,
-  branch,
-  head: "a1b2c3d4e5f6",
-  main: false,
-  locked: false,
-  prunable: false,
-  ...extra,
-});
-const list = [wt("/repo", "main", { main: true }), wt("/repo-worktrees/feat-a", "feat/a"), wt("/repo-worktrees/gone", "feat/gone", { prunable: true })];
+const list = [makeWorktree("/repo", { branch: "main", main: true }), makeWorktree("/repo-worktrees/feat-a", { branch: "feat/a" }), makeWorktree("/repo-worktrees/gone", { branch: "feat/gone", prunable: true })];
 
 test("作業場所: 本体・ワークツリーは、いまのブランチ名で出す", () => {
   assert.deepEqual(
@@ -29,7 +20,7 @@ test("作業場所: 本体・ワークツリーは、いまのブランチ名で
 });
 
 test("作業場所: ブランチから外れていれば HEAD とコミット", () => {
-  const detached = [wt("/repo", null, { main: true })];
+  const detached = [makeWorktree("/repo", { branch: null, head: "a1b2c3d4e5f6", main: true })];
   assert.equal(workplaceOf({ worktree_path: null, branch: null }, detached).name, "HEAD a1b2c3d");
 });
 

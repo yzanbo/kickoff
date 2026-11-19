@@ -1,15 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { BusEvent, ChatEvent } from "@shared/types";
-import { makeChat } from "@shared/testing/factories";
+import type { ChatEventType } from "@shared/types";
+import { busEvent, makeChat, makeEvent, type EventInput } from "@shared/testing/factories";
 import { streamingAppendOf, streamingEffectOf } from "./streamingRules";
 
-/** チャット 7 の記録の知らせ（中身の形は決まりに関わる所だけ） */
-const eventOf = (type: string, data: Record<string, unknown> = {}): BusEvent => ({
-  type: "chat_event",
-  project_id: 1,
-  event: { id: 1, chat_id: 7, type, data, created_at: "2026-11-15T00:00:00.000Z" } as unknown as ChatEvent,
-});
+/** チャット 7 の記録の知らせ（中身は決まりに関わる所だけなので、形は言い切る） */
+const eventOf = (type: string, data: Record<string, unknown> = {}) =>
+  busEvent("chat_event", { project_id: 1, event: makeEvent(1, type as ChatEventType, data as EventInput<ChatEventType>, { chat_id: 7, created_at: "2026-11-15T00:00:00.000Z" }) });
 
 test("streamingEffectOf: chat_delta は足す", () => {
   assert.deepEqual(streamingEffectOf({ type: "chat_delta", project_id: 1, chat_id: 7, text: "こん" }), { chatId: 7, effect: "append", text: "こん" });

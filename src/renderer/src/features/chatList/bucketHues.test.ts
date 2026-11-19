@@ -1,14 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { PROJECT_HUES } from "@shared/project/colors";
-import { makeGroup } from "@shared/testing/factories";
-import type { GitWorktree } from "@shared/types";
+import { makeGroup, makeWorktree } from "@shared/testing/factories";
 import type { BucketHead } from "./buckets";
 import { bucketHueOf, bucketHuesOf, projectBucketHues, spreadHues } from "./bucketHues";
 import { workplaceHue } from "@/features/worktree/workplaceHue";
 
 const head = (key: string, kind: BucketHead["kind"], extra: Partial<BucketHead> = {}): BucketHead => ({ key, kind, label: key, projectId: 1, ...extra });
-const worktree = (path: string, patch: Partial<GitWorktree> = {}): GitWorktree => ({ path, root: path, branch: path, head: "abc", main: false, locked: false, prunable: false, ...patch });
 
 test("まとまりの色: グループ別は自分で作ったグループの覚えた色を、グループの並びで先に取る（被ったものは空いている色へ）", () => {
   const [a, b] = PROJECT_HUES;
@@ -33,7 +31,7 @@ test("まとまりの色: 画面に出ているまとまりではなく、プロ
 });
 
 test("まとまりの色: 作業場所別は、いまある作業場所をブランチの印と同じ色にし、固定・アーカイブ済みはそれと被らない色", () => {
-  const list = [worktree("/repo", { main: true, branch: "main", hue: 0 }), worktree("/wt/a", { hue: 135 }), worktree("/wt/b", { hue: 200 }), worktree("/wt/gone", { prunable: true, hue: 262 })];
+  const list = [makeWorktree("/repo", { main: true, branch: "main", hue: 0 }), makeWorktree("/wt/a", { hue: 135 }), makeWorktree("/wt/b", { hue: 200 }), makeWorktree("/wt/gone", { prunable: true, hue: 262 })];
   const hues = projectBucketHues("worktree", 5, { worktreesOf: () => list });
   assert.equal(hues.get("p5/w:main"), workplaceHue(5, { key: "" }, list));
   assert.equal(hues.get("p5/w:/wt/a"), workplaceHue(5, { key: "/wt/a" }, list));

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test, vi } from "vitest";
 import type { BusEvent, ChatGroup } from "@shared/types";
 import { fakeLoader } from "@shared/testing/async";
-import { makeGroup } from "@shared/testing/factories";
+import { busEvent, makeGroup } from "@shared/testing/factories";
 import { publishServerEvent, publishServerOpen } from "@/api/events";
 import { createStore } from "./createStore";
 import { createKeyedStore } from "./keyedStore";
@@ -33,7 +33,7 @@ test("期限で自動更新する店: 使用中のキーだけ、古くなった
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 const group = (id: number, project_id = 1) => makeGroup(id, { project_id, name: `g${id}` });
-const groupEvent = (g: ChatGroup): BusEvent => ({ type: "group", group: g });
+const groupEvent = (g: ChatGroup) => busEvent("group", { group: g });
 
 test("店: 同時に何度頼まれても読み込みは 1 回で、届いたら値を出す", async () => {
   const { calls, load } = fakeLoader<void, number>();

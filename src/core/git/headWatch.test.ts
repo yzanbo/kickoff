@@ -4,14 +4,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { EventEmitter } from "node:events";
 import { test, vi } from "vitest";
-import type { GitWorktree } from "@shared/types";
+import { makeWorktree } from "@shared/testing/factories";
 import { afterTest } from "../testing/afterTest.js";
 import { gitIn, gitRepo } from "../testing/gitRepo.js";
 import { tempDir } from "../testing/tempDir.js";
 import { until } from "../testing/testCore.js";
 import { HeadWatch } from "./headWatch.js";
 
-const worktree = (path: string, head: string, main = false): GitWorktree => ({ path, root: path, branch: main ? "main" : null, head, main, locked: !main, prunable: false });
+const worktree = (path: string, head: string, main = false) => makeWorktree(path, { branch: main ? "main" : null, head, main, locked: !main });
 
 test("本体とワークツリーの HEAD の置き換え、ワークツリー一覧の変更だけを知らせる", async () => {
   const watchers = new Map<string, fs.FSWatcher>();

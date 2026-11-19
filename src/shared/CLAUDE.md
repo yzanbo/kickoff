@@ -34,7 +34,7 @@
 - `devices/`: スマホ連携の決まり（ペアリングの QR に入れる URL `pairing.ts` の `pairingLink`（`<つなぐ先>/pair?code=…&host=<本体の ID>`。つなぐ先がなければ null）・番号の区切り `formatPairingCode`）。
 - `theme/`: テーマの選び方 `THEME_CHOICES`（画面の設定 `THEME` の値）と地の色 `THEME_BACKGROUNDS`（`tokens.css` の `--bg` と同じ。テストで確かめる）・ダークか `isDarkTheme`・窓の地の色 `backgroundFor`・覚えたテーマを読む `parseThemeChoice`（`backgrounds.ts`。画面の `app/theme.ts` とメインの `app/appearance.ts` で同じ決め方にする。メモの仕様書「0023_表示を軽くする」の案 18a）。
 - `ipc/`: Electron の IPC の取り決め（→「IPC の取り決め」）。
-- `testing/`: テストからだけ使う補助（テストごとに書き直さない）。データ `testing/factories.ts`（`makeChat` などの `make…`・`eventSequence`。省いた項目は既定値で埋める）・長いチャットの記録を種から組み立てる `testing/chatScenarios.ts` の `scenarioChat`（索引 ＋ 末尾 = 全件の同値のテスト用。乱数は `seededRandom`）・手で進める rAF・手すき・タイマー・時計 `testing/fakeScheduler.ts`・待ち `testing/async.ts`（`settle`・`deferred`・`fakeLoader`）。
+- `testing/`: テストからだけ使う補助（テストごとに書き直さない）。データ `testing/factories.ts`（`makeChat` などの `make…`・`eventSequence`・`busEvent`。省いた項目は既定値で埋める）・長いチャットの記録 `testing/chatScenarios.ts` の `scenarioChat`（索引 ＋ 末尾 = 全件の同値のテスト用。乱数は `seededRandom`）・手で進める rAF・手すき・タイマー・時計 `testing/fakeScheduler.ts`・待ち `testing/async.ts`（`settle`・`deferred`・`fakeLoader`）。
 - `overage.ts`: プランの上限を超えたあとの支払いの様子 `OVERAGE_STATES`（`in_use` / `on` / `off` / `unknown`）。Claude の超過分（追加の使用枠）は文 `OVERAGE_STATE_LABELS` / `OVERAGE_STATE_HINTS`・決め方 `overageStateOf`・通貨の最小単位の額の書き方 `formatMinorAmount`・この期間の超過分の 1 行 `extraUsageSpendText`、Codex のクレジットは文 `CODEX_CREDIT_STATE_LABELS` / `CODEX_CREDIT_STATE_HINTS`・決め方 `codexCreditStateOf`（残りが減った = `in_use`）・減った分の 1 行 `codexCreditSpendText`。下の帯・使用状況の詳細と AI の get_usage で同じ言葉にする。
 - `errors.ts`: `errorMessage`（例外を画面に出す文にする。`e instanceof Error ? e.message : String(e)` を書かない）。
 

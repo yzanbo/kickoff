@@ -1,22 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Snippet } from "@shared/types";
+import { makeSnippet } from "@shared/testing/factories";
 import { reduceSnippets } from "./snippets";
 
-const snippet = (id: number, position: number, project_id: number | null = null): Snippet => ({
-  id,
-  project_id,
-  label: null,
-  text: `t${id}`,
-  position,
-  created_at: "",
-  updated_at: "",
-});
-
 test("reduceSnippets: 作った・変えたものは並び順の位置へ、消した・消したプロジェクトのものは外す。関係なければ同じ一覧", () => {
-  const list = [snippet(1, 0), snippet(2, 1, 5)];
+  const list = [makeSnippet(1, { position: 0 }), makeSnippet(2, { position: 1, project_id: 5 })];
   assert.deepEqual(
-    reduceSnippets(list, { type: "snippet", snippet: snippet(3, -1) }).map((s) => s.id),
+    reduceSnippets(list, { type: "snippet", snippet: makeSnippet(3, { position: -1 }) }).map((s) => s.id),
     [3, 1, 2],
   );
   assert.deepEqual(

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ChatLive, RestartResume } from "@shared/types";
+import { makeChatLive } from "@shared/testing/factories";
 import { autoOpenRestartResumes, reduceRestartResumes } from "./restartResumes";
 
 const row = (id: string) => ({ id, text: id, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
@@ -18,24 +19,9 @@ const resume = (chatId: number): RestartResume => ({
   stopped_at: null,
   subagents: [],
 });
-const live = (over: Partial<ChatLive>): ChatLive => ({
-  queue: { messages: [row("a")], paused: false, stops: [], waiting_edit: false },
-  background: null,
-  retry: null,
-  reconnect: null,
-  compacting: null,
-  stopping: false,
-  drawing_visual: false,
-  after_compact: [],
-  awaiting_compact: false,
-  compact_after_turn: false,
-  compacted_turn: false,
-  tells_closed: false,
-  inheriting: false,
-  workplace_move: null,
-  restart_resume: { interrupted: false, queued: true },
-  ...over,
-});
+/** 送信待ちが 1 件あり、再開の確かめを待っている様子 */
+const live = (over: Partial<ChatLive>) =>
+  makeChatLive({ queue: { messages: [row("a")], paused: false, stops: [], waiting_edit: false }, restart_resume: { interrupted: false, queued: true }, ...over });
 
 test("起動したときの再開の確かめの一覧: 答えた・空になった・消したら外し、送信待ちが変わったら中身を直す", () => {
   const list = [resume(1), resume(2)];

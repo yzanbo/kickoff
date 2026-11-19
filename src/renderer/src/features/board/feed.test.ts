@@ -1,17 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ChatEvent, FeedItem } from "@shared/types";
+import type { FeedItem } from "@shared/types";
+import { makeEvent } from "@shared/testing/factories";
 import { feedItemOf, feedPlainText, upsertFeedItem, upsertFeedItems } from "./feed";
 
 const textEvent = (id: number, chatId: number, text: string, parent?: string) =>
-  ({ id, chat_id: chatId, type: "text", data: { text, ...(parent ? { parent } : {}) }, created_at: `2026-11-0${id}` }) as ChatEvent;
+  makeEvent(id, "text", { text, ...(parent ? { parent } : {}) }, { chat_id: chatId, created_at: `2026-11-0${id}` });
 const item = (chatId: number, eventId: number): FeedItem => ({ chat_id: chatId, event_id: eventId, text: `t${eventId}`, created_at: "x" });
 
 test("feedItemOf: メインエージェントの返答だけ（サブエージェント・空・ほかの種類は null）。長ければ切って …", () => {
   assert.deepEqual(feedItemOf(textEvent(1, 5, "  こんにちは ")), { chat_id: 5, event_id: 1, text: "こんにちは", created_at: "2026-11-01" });
   assert.equal(feedItemOf(textEvent(1, 5, "サブ", "tool-1")), null);
   assert.equal(feedItemOf(textEvent(1, 5, "  ")), null);
-  assert.equal(feedItemOf({ id: 2, chat_id: 5, type: "user", data: { text: "質問" }, created_at: "x" } as ChatEvent), null);
+  assert.equal(feedItemOf(makeEvent(2, "user", { text: "質問" }, { chat_id: 5, created_at: "x" })), null);
   assert.equal(feedItemOf(textEvent(1, 5, "あ".repeat(450)))?.text.length, 401);
 });
 

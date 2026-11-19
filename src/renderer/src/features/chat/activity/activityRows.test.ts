@@ -2,13 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
-import { eventSequence } from "@shared/testing/factories";
+import { eventSequence, makeSubagent } from "@shared/testing/factories";
 import { subagentTree } from "@/features/chat/subagents/subagentTree";
 import { activityRows, agentScope, agentTargetOf, filterActivity, focusedRowIndexes, type ActivityRow } from "./activityRows";
 
 /** 2026-11-01 00:00:00 から sec 秒後の時刻 */
 const at = (sec: number) => new Date(Date.UTC(2026, 10, 1, 0, 0, sec)).toISOString();
-const agent = (key: string, extra: Partial<SubagentEntry> = {}): SubagentEntry => ({ key, description: key, status: "running", ...extra });
 const summary = (rows: ReturnType<typeof activityRows>) => rows.map((r) => [r.agent ?? "main", r.kind, r.text]);
 
 test("activityRows: メインの指示・ツール・返答・作業の終わりを時刻の順に、1 行目だけ・続けてのツールは 1 行で", () => {
@@ -51,8 +50,8 @@ test("activityRows: サブエージェントの動きは起動の行のあとに
     ev("tool_result", { tool_use_id: "m1", content: "", is_error: false }, { created_at: at(6) }),
   ];
   const tree = subagentTree([
-    agent("a1", { description: "調査", status: "completed", startedAt: at(1), endedAt: at(20) }),
-    agent("b1", { description: "洗い出し", parentKey: "a1", status: "completed", startedAt: at(5), endedAt: at(15) }),
+    makeSubagent("a1", { description: "調査", status: "completed", startedAt: at(1), endedAt: at(20) }),
+    makeSubagent("b1", { description: "洗い出し", parentKey: "a1", status: "completed", startedAt: at(5), endedAt: at(15) }),
   ]);
   const rows = activityRows(events, tree, false);
   assert.deepEqual(summary(rows), [
@@ -69,7 +68,7 @@ test("activityRows: サブエージェントの動きは起動の行のあとに
 });
 
 test("activityRows: 終わりの行の文はカード・一覧と同じ状態の文（受け取り待ち・届いていない・通信で中断・中断を見分ける）", () => {
-  const ended = (key: string, extra: Partial<SubagentEntry>) => agent(key, { startedAt: at(1), endedAt: at(9), ...extra });
+  const ended = (key: string, extra: Partial<SubagentEntry>) => makeSubagent(key, { startedAt: at(1), endedAt: at(9), ...extra });
   const tree = subagentTree([
     ended("p", { status: "completed", delivery: "pending" }),
     ended("l", { status: "completed", delivery: "lost" }),
@@ -115,8 +114,8 @@ test("activityRows: チャット欄から伝えた指示は宛先付き、中の
     ev("user", { text: relayMessage("ag-1", "調査", "テストも見て") }, { created_at: at(2) }),
   ];
   const tree = subagentTree([
-    agent("a1", { description: "調査", agentId: "ag-1", startedAt: at(0) }),
-    agent("c1", { description: "内側", parentKey: "a1", startedAt: at(1), lastTool: "Glob", lastActivityAt: at(3) }),
+    makeSubagent("a1", { description: "調査", agentId: "ag-1", startedAt: at(0) }),
+    makeSubagent("c1", { description: "内側", parentKey: "a1", startedAt: at(1), lastTool: "Glob", lastActivityAt: at(3) }),
   ]);
   const rows = activityRows(events, tree, true);
   assert.deepEqual(summary(rows), [
@@ -136,7 +135,7 @@ test("filterActivity: メインだけ・そのサブエージェントと配下�
     ev("text", { text: "探します", parent: "b1" }, { created_at: at(3) }),
     ev("text", { text: "待っています" }, { created_at: at(4) }),
   ];
-  const tree = subagentTree([agent("a1"), agent("b1", { parentKey: "a1" })]);
+  const tree = subagentTree([makeSubagent("a1"), makeSubagent("b1", { parentKey: "a1" })]);
   const rows = activityRows(events, tree, true);
   assert.deepEqual(filterActivity(rows, tree, { kind: "main" }).map((r) => r.text), ["サブエージェント「a1」を起動", "返答「待っています」"]);
   assert.deepEqual(filterActivity(rows, tree, { kind: "agent", key: "a1" }).map((r) => r.text), [
@@ -158,7 +157,7 @@ test("focusedRowIndexes: そのサブエージェントの起動の行・中の�
     ev("text", { text: "探します", parent: "b1" }, { created_at: at(3) }),
     ev("text", { text: "待っています" }, { created_at: at(4) }),
   ];
-  const tree = subagentTree([agent("a1"), agent("c1"), agent("b1", { parentKey: "a1" })]);
+  const tree = subagentTree([makeSubagent("a1"), makeSubagent("c1"), makeSubagent("b1", { parentKey: "a1" })]);
   const rows = activityRows(events, tree, true);
   const texts = (scope: Set<string>) => focusedRowIndexes(rows, scope).map((i) => rows[i].text);
   assert.deepEqual([...agentScope(tree, "a1")].sort(), ["a1", "b1"]);

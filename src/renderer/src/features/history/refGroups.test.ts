@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { GitRefs, GitWorktree } from "@shared/types";
+import type { GitRefs } from "@shared/types";
+import { makeWorktree } from "@shared/testing/factories";
 import { groupBranches } from "./refGroups";
 
 const branch = (name: string, current = false): GitRefs["branches"][number] => ({ name, hash: name, current, upstream: null, ahead: 0, behind: 0, worktree: null });
-const tree = (path: string, b: string | null, main = false): GitWorktree => ({ path, root: path, branch: b, head: "h", main, locked: false, prunable: false });
 
 test("groupBranches: 本体で取り出しているブランチを先頭に、ワークツリーで取り出しているブランチはワークツリーの行へ分ける", () => {
   const branches = [branch("a"), branch("feature/x"), branch("main", true), branch("topic")];
-  const worktrees = [tree("/repo", "main", true), tree("/repo-worktrees/feature-x", "feature/x"), tree("/repo-worktrees/detached", null)];
+  const worktrees = [makeWorktree("/repo", { branch: "main", main: true }), makeWorktree("/repo-worktrees/feature-x", { branch: "feature/x" }), makeWorktree("/repo-worktrees/detached", { branch: null })];
   const all = groupBranches(branches, worktrees, () => true);
   assert.deepEqual(all.main.map((b) => b.name), ["main", "a", "topic"]);
   assert.deepEqual(

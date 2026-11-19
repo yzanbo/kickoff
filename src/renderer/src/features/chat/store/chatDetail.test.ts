@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Approval, BusEvent, Chat, ChatDetail, ChatEvent, ChatLive } from "@shared/types";
-import { makeChat, makeEvent } from "@shared/testing/factories";
+import type { Approval, BusEvent, Chat, ChatDetail, ChatEvent } from "@shared/types";
+import { busEvent, makeChat, makeChatLive, makeEvent } from "@shared/testing/factories";
 import { detailFromIncrement, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
 import { EMPTY_RANGE } from "./chatLog";
 
 const chat = (id: number, status: Chat["status"] = "running") => makeChat(id, { status });
 const ev = (id: number, chatId = 1) => makeEvent(id, "text", { text: `#${id}` }, { chat_id: chatId });
 const approval = (id: string, chatId = 1) => ({ id, chat_id: chatId }) as Approval;
-const live = (paused: boolean): ChatLive => ({ ...EMPTY_DETAIL.live, queue: { ...EMPTY_DETAIL.live.queue, paused } });
+const live = (paused: boolean) => makeChatLive({ queue: { ...makeChatLive().queue, paused } });
 const ids = (s: ChatDetailState) => s.events.map((e) => e.id);
-const added = (event: ChatEvent): BusEvent => ({ type: "chat_event", project_id: 1, event });
+const added = (event: ChatEvent) => busEvent("chat_event", { project_id: 1, event });
 const loaded: ChatDetailState = { chat: chat(1), events: [ev(1), ev(2)], range: EMPTY_RANGE, approvals: [], live: EMPTY_DETAIL.live };
 const run = (state: ChatDetailState, ...events: BusEvent[]) => events.reduce((s, e) => reduceChatDetail(s, e, 1), state);
 

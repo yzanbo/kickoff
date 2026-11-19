@@ -1,6 +1,24 @@
 // テストのデータを作る関数（コアと画面のテストで共通。テストからだけ使う）。省いた項目は、それらしい既定値で埋める。
 // Node・DOM に依存しない
-import type { Chat, ChatEventDataOf, ChatEventOf, ChatEventType, ChatGroup, GitHubPullDetail, GitHubReviewThread, Project } from "@shared/types";
+import {
+  PROVIDER_LABELS,
+  type Attachment,
+  type BusEvent,
+  type Chat,
+  type ChatEventDataOf,
+  type ChatEventOf,
+  type ChatEventType,
+  type ChatGroup,
+  type ChatLive,
+  type GitHubPullDetail,
+  type GitHubReviewThread,
+  type GitWorktree,
+  type Project,
+  type ProviderId,
+  type ProviderStatus,
+  type Snippet,
+} from "@shared/types";
+import type { SubagentEntry } from "@shared/chat/subagents";
 
 /** 既定の時刻 */
 const TEST_TIME = "2026-11-01T00:00:00Z";
@@ -175,4 +193,56 @@ export function makeEvent<T extends ChatEventType>(id: number, type: T, data: Ev
 export function eventSequence() {
   let id = 0;
   return <T extends ChatEventType>(type: T, data: EventInput<T>, meta?: EventMeta) => makeEvent(++id, type, data, meta);
+}
+
+/** ワークツリー（作業するフォルダ・一番上ともに path、ブランチなし・本体でない） */
+export function makeWorktree(path: string, patch: Partial<GitWorktree> = {}): GitWorktree {
+  return { path, root: path, branch: null, head: "0000000", main: false, locked: false, prunable: false, ...patch };
+}
+
+/** AI の CLI の状態（名前は PROVIDER_LABELS、対応済み・入っている・ログインしている） */
+export function makeProviderStatus(id: ProviderId, patch: Partial<ProviderStatus> = {}): ProviderStatus {
+  return { id, label: PROVIDER_LABELS[id], implemented: true, installed: true, logged_in: true, detail: "", ...patch };
+}
+
+/** 添付（既定はファイル「<id>.png」・1 バイト。メモ・「AI に渡す」で取ったものは patch の kind とその項目で） */
+export function makeAttachment(id: string, patch: Partial<Attachment> = {}): Attachment {
+  return { kind: "file", id, name: `${id}.png`, mime: "image/png", size: 1, ...patch } as Attachment;
+}
+
+/** 作業中の様子（何も起きていない: 送信待ちは空・自動で送る） */
+export function makeChatLive(patch: Partial<ChatLive> = {}): ChatLive {
+  return {
+    queue: { messages: [], paused: false, stops: [], waiting_edit: false },
+    background: null,
+    retry: null,
+    reconnect: null,
+    compacting: null,
+    stopping: false,
+    drawing_visual: false,
+    after_compact: [],
+    awaiting_compact: false,
+    compact_after_turn: false,
+    compacted_turn: false,
+    tells_closed: false,
+    inheriting: false,
+    workplace_move: null,
+    restart_resume: null,
+    ...patch,
+  };
+}
+
+/** サブエージェントの一覧の行（説明は key、動いている） */
+export function makeSubagent(key: string, patch: Partial<SubagentEntry> = {}): SubagentEntry {
+  return { key, description: key, status: "running", ...patch };
+}
+
+/** 定型文（共通・名前なし・本文「本文<id>」・並び順は id） */
+export function makeSnippet(id: number, patch: Partial<Snippet> = {}): Snippet {
+  return { id, project_id: null, label: null, text: `本文${id}`, position: id, created_at: TEST_TIME, updated_at: TEST_TIME, ...patch };
+}
+
+/** SSE の知らせ（type で残りの形が決まる） */
+export function busEvent<T extends BusEvent["type"]>(type: T, data: Omit<Extract<BusEvent, { type: T }>, "type">): Extract<BusEvent, { type: T }> {
+  return { type, ...data } as Extract<BusEvent, { type: T }>;
 }

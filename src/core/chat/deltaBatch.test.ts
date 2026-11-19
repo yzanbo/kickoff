@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { BusEvent } from "@shared/types";
+import { busEvent } from "@shared/testing/factories";
 import { fakeTimers } from "../testing/fakeTimers.js";
 import { Bus } from "../bus.js";
 import { DeltaBatch } from "./deltaBatch.js";
 
-const delta = (chat_id: number, text: string): BusEvent => ({ type: "chat_delta", project_id: 1, chat_id, text });
+const delta = (chat_id: number, text: string) => busEvent("chat_delta", { project_id: 1, chat_id, text });
 const other: BusEvent = { type: "project_deleted", id: 3 };
 
 /** 流した知らせを覚えるまとめ役 */

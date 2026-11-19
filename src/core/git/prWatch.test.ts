@@ -2,19 +2,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { GitWorktree } from "@shared/types";
+import { makeWorktree } from "@shared/testing/factories";
 import type { BranchPullRequest } from "./github.js";
 import { noticesFor } from "./prWatch.js";
 
-const worktree = (branch: string | null, extra: Partial<GitWorktree> = {}): GitWorktree => ({
-  path: `/w/${branch}`,
-  root: `/w/${branch}`,
-  branch,
-  head: "abc",
-  main: false,
-  locked: false,
-  prunable: false,
-  ...extra,
-});
+const worktree = (branch: string | null, extra: Partial<GitWorktree> = {}) => makeWorktree(`/w/${branch}`, { branch, head: "abc", ...extra });
 const pr = (number: number, branch: string, state: BranchPullRequest["state"], owner = "me"): BranchPullRequest => ({
   number,
   title: `PR ${number}`,

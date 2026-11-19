@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { eventSequence } from "@shared/testing/factories";
+import { eventSequence, makeSubagent } from "@shared/testing/factories";
 import type { SubagentEntry } from "./subagents";
 import { subagentState, waitingSubagentKeys } from "./subagentState";
 
-const entry = (patch: Partial<SubagentEntry>): SubagentEntry => ({ key: "a", description: "調査", status: "completed", ...patch });
+/** 終わったサブエージェント「調査」 */
+const entry = (patch: Partial<SubagentEntry>) => makeSubagent("a", { description: "調査", status: "completed", ...patch });
 
 test("subagentState: チャットと同じ 5 つの状態と、添える細かい様子", () => {
   assert.deepEqual(subagentState(entry({ status: "running" })), { state: "running", detail: null });

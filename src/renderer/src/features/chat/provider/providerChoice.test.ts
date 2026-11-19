@@ -1,20 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ProviderStatus } from "@shared/types";
+import { makeProviderStatus } from "@shared/testing/factories";
 import { featureBlock, paysPerUse, providerChipName, providerPickBlock, providerSwitchBlock } from "./providerChoice";
 
-const status = (patch: Partial<ProviderStatus> = {}): ProviderStatus => ({
-  id: "claude",
-  label: "Claude Code",
-  implemented: true,
-  installed: true,
-  logged_in: true,
-  detail: "",
-  features: ["fork", "rewind_files", "models"],
-  auth_mode: "subscription",
-  has_api_key: false,
-  ...patch,
-});
+/** Claude Code（分岐・ファイルを戻す・モデルの一覧ができる・サブスクで動かす） */
+const status = (patch: Partial<ProviderStatus> = {}) =>
+  makeProviderStatus("claude", { features: ["fork", "rewind_files", "models"], auth_mode: "subscription", has_api_key: false, ...patch });
 
 test("providerPickBlock: 対応予定・確認中は選べず理由を返し、使える AI は null", () => {
   assert.equal(providerPickBlock("claude", status()), null);

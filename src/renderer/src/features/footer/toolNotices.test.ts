@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ProviderStatus } from "@shared/types";
+import { makeProviderStatus } from "@shared/testing/factories";
 import { toolNotices } from "./toolNotices";
 
-const claude = (installed: boolean, logged_in: boolean): ProviderStatus => ({ id: "claude", label: "Claude Code", implemented: true, installed, logged_in, detail: "d" });
-const codex: ProviderStatus = { id: "codex", label: "Codex", implemented: false, installed: false, logged_in: false, detail: "対応予定" };
+const claude = (installed: boolean, logged_in: boolean) => makeProviderStatus("claude", { installed, logged_in, detail: "d" });
+const codex = makeProviderStatus("codex", { implemented: false, installed: false, logged_in: false, detail: "対応予定" });
 
 test("toolNotices: 使える・まだ確かめていないものは出さない（対応予定のプロバイダーも出さない）", () => {
   assert.deepEqual(toolNotices(undefined, undefined), []);
