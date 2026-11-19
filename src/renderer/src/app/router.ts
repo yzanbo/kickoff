@@ -3,10 +3,7 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { LAST_ROUTE } from "@/lib/storageKeys";
 
-// プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く。文書はファイルタブ（files）でファイルとして見る
-// （以前の要件定義書・スケジュール・タスク・レポートのタブの URL は、知らないタブとしてボードに戻る）
-// ファイル（files）・検索（search）・変更（changes = ソース管理）は、以前の「エディタ」タブの中の切り替えをタブにしたもの（開いたファイルは 3 つで共有）
-// 以前のグループのボード（groups）の URL は、知らないタブとしてボードに戻る（列の分け方のボタンとグループのボードの画面はなくした）
+// プロジェクトの画面のタブ（設定はタブでなく、プロジェクト名の横の「編集」から開く。ファイル・検索・変更（ソース管理）は開いたファイルを共有する）
 const PROJECT_TABS = ["board", "chats", "files", "search", "changes", "history", "memos", "db", "github", "docker", "ci", "trash"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
@@ -43,7 +40,6 @@ export function parse(hash: string): Route {
 
   const newChat = path.match(/^\/projects\/(\d+)\/new$/);
   if (newChat) {
-    // 以前の ?section= は読まない
     const group = Number(params.get("group"));
     const worktree = params.get("worktree");
     return {
@@ -57,8 +53,8 @@ export function parse(hash: string): Route {
   const project = path.match(/^\/projects\/(\d+)(?:\/([a-z]+))?$/);
   if (project) {
     const named = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "board";
-    // 開くファイルはファイルタブでだけ読む（以前のファイルタブ changes?file= の URL も、ファイルタブで開く）
-    const file = named === "files" || named === "changes" ? parseFileTarget(params) : undefined;
+    // 開くファイルはファイルタブでだけ読む
+    const file = named === "files" ? parseFileTarget(params) : undefined;
     const tab: ProjectTab = file ? "files" : named;
     const memo = tab === "memos" ? params.get("memo") : null;
     const memoLine = Number(params.get("line"));

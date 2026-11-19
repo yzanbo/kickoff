@@ -10,23 +10,16 @@ test("parse: ハッシュを画面に読む（タブなしはボード、知ら�
   assert.deepEqual(parse("#/projects/3/changes"), { name: "project", id: 3, tab: "changes" });
   assert.deepEqual(parse("#/projects/3/history"), { name: "project", id: 3, tab: "history" });
   assert.deepEqual(parse("#/projects/3/unknown"), { name: "project", id: 3, tab: "board" });
-  // なくした要件定義書・スケジュール・タスク・レポートのタブは、ボードに戻る
-  for (const tab of ["requirements", "schedule", "tasks", "reports"]) {
-    assert.deepEqual(parse(`#/projects/3/${tab}`), { name: "project", id: 3, tab: "board" }, tab);
-  }
-  // 以前のグループのボードの URL はボードに戻る（?group= は読まない）
-  assert.deepEqual(parse("#/projects/3/groups?group=7"), { name: "project", id: 3, tab: "board" });
-  assert.deepEqual(parse("#/projects/3/changes?group=7"), { name: "project", id: 3, tab: "changes" });
 });
 
-test("parse: ファイルタブで開くファイル（ファイルタブでだけ読む。以前のファイルタブ changes?file= もファイルタブで開く。行は 1 以上の整数だけ）", () => {
+test("parse: ファイルタブで開くファイル（ファイルタブでだけ読む。行は 1 以上の整数だけ）", () => {
   assert.deepEqual(parse("#/projects/3/files?file=src%2Fa.ts&line=12&worktree=%2Fw%2Fx"), {
     name: "project",
     id: 3,
     tab: "files",
     file: { path: "src/a.ts", line: 12, worktree: "/w/x" },
   });
-  assert.deepEqual(parse("#/projects/3/changes?file=a.ts&line=0"), { name: "project", id: 3, tab: "files", file: { path: "a.ts" } });
+  assert.deepEqual(parse("#/projects/3/files?file=a.ts&line=0"), { name: "project", id: 3, tab: "files", file: { path: "a.ts" } });
   assert.deepEqual(parse("#/projects/3/files?line=4"), { name: "project", id: 3, tab: "files" });
   assert.deepEqual(parse("#/projects/3/search"), { name: "project", id: 3, tab: "search" });
   assert.deepEqual(parse("#/projects/3/history?file=a.ts"), { name: "project", id: 3, tab: "history" });
@@ -38,9 +31,9 @@ test("parse: ファイルタブで開くファイル（ファイルタブでだ�
   assert.deepEqual(parse("#/projects/3/memos?line=7"), { name: "project", id: 3, tab: "memos" });
 });
 
-test("parse: 新しいチャット（以前の section は読まない）とチャット（focus は 0 なら付けない）", () => {
+test("parse: 新しいチャットとチャット（focus は 0 なら付けない）", () => {
   assert.deepEqual(parse("#/projects/3/new"), { name: "newChat", projectId: 3 });
-  assert.deepEqual(parse("#/projects/3/new?section=requirements&group=2"), { name: "newChat", projectId: 3, group: 2 });
+  assert.deepEqual(parse("#/projects/3/new?group=2"), { name: "newChat", projectId: 3, group: 2 });
   assert.deepEqual(parse("#/projects/3/chats/12"), { name: "chat", projectId: 3, chatId: 12 });
   assert.deepEqual(parse("#/projects/3/chats/12?event=99"), { name: "chat", projectId: 3, chatId: 12, focus: 99 });
   assert.deepEqual(parse("#/projects/3/chats/12?event=0"), { name: "chat", projectId: 3, chatId: 12 });

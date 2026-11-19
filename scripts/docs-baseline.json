@@ -117,8 +117,8 @@
       "brokenRefs": 0
     },
     "src/renderer/src/features/editor/CLAUDE.md": {
-      "bytes": 51683,
-      "ancestors": 139491,
+      "bytes": 51624,
+      "ancestors": 139432,
       "longLines": 34,
       "forbidden": 52,
       "brokenRefs": 1
