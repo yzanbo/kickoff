@@ -166,10 +166,10 @@ test("設定のパスの文字（JSON のキー・「パス:関数名」）を�
 });
 
 test("残り: 移す前のパスの文字と、画面の root からの /src/… を出す", () => {
-  const files = { "a.ts": 'const x = "src/core/db/open.ts";\nconst y = "src/features/a.ts";', "b.mjs": 'await import("/src/lib/storage.ts");\nmobile/src/core/x' };
-  const found = reportLeftovers(Object.keys(files), (f) => files[f]);
+  const files = { "a.ts": 'const x = "src/core/db/open.ts";\nconst y = "src/features/a.ts";\n// src/shared/types/chat.ts', "b.mjs": 'await import("/src/lib/storage.ts");\nmobile/src/core/x' };
+  const found = reportLeftovers(Object.keys(files), (f) => files[f], new Set(["src/shared/types/chat.ts"]));
   assert.deepEqual(
     found.map((l) => `${l.file}:${l.line}`),
-    ["a.ts:1", "b.mjs:1"],
+    ["a.ts:1", "a.ts:3", "b.mjs:1"],
   );
 });

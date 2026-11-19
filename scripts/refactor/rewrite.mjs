@@ -133,14 +133,15 @@ export function rewriteSource(oldPath, newPath, text, ctx, onRewrite = () => {},
 /** 移す前のパス（src/core/・src/main/・src/preload/・src/renderer/ と、画面の root からの /src/…） */
 const LEFTOVER = /(?<![\w-]|mobile\/)src\/(core|main|preload|renderer)\/|["'`(]\/src\/(lib|hooks|ui|app|features|stores|api|styles)\//;
 
-/** 書き換えたあとの木に、移す前のパスが残っている所（直すのは人） */
-export function reportLeftovers(files, read) {
+/** 書き換えたあとの木に、移す前のパスが残っている所（直すのは人）。moved を渡すと、そこにある旧のパス（src/shared の中で動くものなど）の文字も出す */
+export function reportLeftovers(files, read, moved = new Set()) {
   const found = [];
   for (const file of files) {
     read(file)
       .split("\n")
       .forEach((text, i) => {
-        if (LEFTOVER.test(text)) found.push({ file, line: i + 1, text: text.trim().slice(0, 200) });
+        const hit = LEFTOVER.test(text) || [...text.matchAll(/src\/[\w./-]*\w/g)].some((m) => moved.has(m[0]));
+        if (hit) found.push({ file, line: i + 1, text: text.trim().slice(0, 200) });
       });
   }
   return found;

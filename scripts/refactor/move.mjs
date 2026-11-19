@@ -85,6 +85,11 @@ function printProblems(problems) {
   console.log(`問題: ${problems.length}${problems.length ? `（${Object.entries(byKind).map(([k, v]) => `${k} ${v.length}`).join("・")}）` : ""}`);
 }
 
+/** 動かすファイルの旧のパス */
+function movedOf(byFrom) {
+  return new Set([...byFrom].filter(([from, to]) => from !== to).map(([from]) => from));
+}
+
 /** 書き換えたあとの木（メモリ）の残り */
 function leftoversOf(rewrites, files, byFrom) {
   const next = new Map(rewrites.map((r) => [r.to, r.after]));
@@ -92,7 +97,7 @@ function leftoversOf(rewrites, files, byFrom) {
   for (const from of files) {
     const to = byFrom.get(from) ?? from;
     if (SKIP_LEFTOVERS(to)) continue;
-    found.push(...reportLeftovers([to], () => next.get(to) ?? read(from)));
+    found.push(...reportLeftovers([to], () => next.get(to) ?? read(from), movedOf(byFrom)));
   }
   return found;
 }
@@ -182,12 +187,13 @@ function apply(args) {
   console.log(`動かした: ${moves.length}・中身を書き換えた: ${written}`);
   if (restDirs.length) console.log(`残ったフォルダ（Git が知らないファイルがある）: ${restDirs.join(" ")}`);
   // ⑥ 残り
-  return leftovers();
+  return leftovers(args);
 }
 
-function leftovers() {
+function leftovers(args = []) {
   const names = tracked().filter((f) => !SKIP_LEFTOVERS(f) && existsSync(path.join(ROOT, f)));
-  const found = reportLeftovers(names, read);
+  const tablePath = path.resolve(ROOT, optionOf(args, "--table", DEFAULT_TABLE));
+  const found = reportLeftovers(names, read, existsSync(tablePath) ? movedOf(new Map(parseMoveTable(readFileSync(tablePath, "utf8")).map((r) => [r.from, r.to]))) : new Set());
   for (const l of found) console.log(`${l.file}:${l.line}: ${l.text}`);
   console.log(`移す前のパスの残り: ${found.length} 行`);
   return 0;
