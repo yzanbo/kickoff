@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DockerContainer, DockerService } from "@shared/types";
+import type { DockerContainer, DockerServiceInfo } from "@shared/types";
 import { buildDockerList, composeKeyOf, logSourcesOf, sharedMessage, sharedVictims, type ComposeEntry } from "./listing";
 import type { Workplace } from "@/foundation/core/workplace/worktrees";
 import type { ComposeConfig, RawContainer } from "./parse";
@@ -165,7 +165,7 @@ test("sharedVictims: 自分の見出しのコンテナと、ほかの組の名�
 
 test("logSourcesOf: 数を増やしたサービスは番号付き、使い捨ては添え書き、作っていないサービスは入れない", () => {
   const ctr = (id: string, number: number, state: DockerContainer["state"] = "running"): DockerContainer => ({ id, name: id, image: "i", state, status: "", exit_code: state === "exited" ? 1 : null, health: null, ports: [], number });
-  const svc = (name: string, containers: DockerContainer[], oneoffs: DockerContainer[] = []): DockerService => ({ name, image: "i", profiles: [], published: [], containers, oneoffs, mark: "running", running: 0, db_kind: null });
+  const svc = (name: string, containers: DockerContainer[], oneoffs: DockerContainer[] = []): DockerServiceInfo => ({ name, image: "i", profiles: [], published: [], containers, oneoffs, mark: "running", running: 0, db_kind: null });
   const sources = logSourcesOf({ services: [svc("app", [ctr("a1", 1), ctr("a2", 2, "exited")]), svc("db", [ctr("d1", 1)], [ctr("r1", 1)]), svc("tool", [])] });
   assert.deepEqual(
     sources.map((s) => [s.container, s.label, s.running, s.exit_code]),

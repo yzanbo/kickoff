@@ -1,10 +1,10 @@
 // Docker タブの表示の文（純粋な関数。テストは dockerView.test.ts）
-import type { DockerCompose, DockerContainer, DockerFailure, DockerPortConflict, DockerService, DockerShare, DockerSilentConflict } from "@shared/types";
+import type { DockerCompose, DockerContainer, DockerFailure, DockerPortConflict, DockerServiceInfo, DockerShare, DockerSilentConflict } from "@shared/types";
 import { DOCKER_MARK_LABELS } from "@shared/types";
 import { workplaceText } from "@shared/foundation/workplace";
 
 /** サービスの行の印の文字（● ○ ✕ ◌ ⏸ ◇） */
-export const MARK_GLYPHS: Record<DockerService["mark"], string> = {
+export const MARK_GLYPHS: Record<DockerServiceInfo["mark"], string> = {
   running: "●",
   starting: "◌",
   paused: "⏸",
@@ -15,7 +15,7 @@ export const MARK_GLYPHS: Record<DockerService["mark"], string> = {
 };
 
 /** サービスの行の様子の文（「止まっている（exit 1）」「×3（2 個動いている）」「tools のときだけ」） */
-export function serviceStatusText(s: DockerService): string {
+export function serviceStatusText(s: DockerServiceInfo): string {
   if (s.containers.length === 0) return s.profiles.length ? `${s.profiles.join("・")} のときだけ` : DOCKER_MARK_LABELS.none;
   if (s.containers.length > 1) return `×${s.containers.length}（${s.running} 個動いている）`;
   const [c] = s.containers;
@@ -26,7 +26,7 @@ export function serviceStatusText(s: DockerService): string {
 }
 
 /** Mac に出しているポート（動いているコンテナの分。重ねない） */
-export function servicePorts(s: DockerService): number[] {
+export function servicePorts(s: DockerServiceInfo): number[] {
   const ports = s.containers.filter((c) => c.state === "running").flatMap((c) => c.ports.map((p) => p.host_port));
   return [...new Set(ports)].sort((a, b) => a - b);
 }
@@ -35,7 +35,7 @@ export function servicePorts(s: DockerService): number[] {
  * compose で Mac に出すはずのポートのうち、動いているコンテナが出していないもの（ポートの取り合いで起動に失敗したコンテナは、
  * あとで起動してもポートを出さないまま動く。作り直すまで直らない）
  */
-export function unpublishedPorts(s: Pick<DockerService, "published" | "containers">): number[] {
+export function unpublishedPorts(s: Pick<DockerServiceInfo, "published" | "containers">): number[] {
   const missing = new Set<number>();
   for (const c of s.containers.filter((x) => x.state === "running")) {
     const host = new Set(c.ports.map((p) => p.host_port));
@@ -78,7 +78,7 @@ export const conflictText = (c: Pick<DockerPortConflict, "port" | "label">) => `
  * 相手のポートを Mac に出すもの。サービスの並びの順で、どのサービスにも当たらない相手は rest
  */
 export function conflictsByService(
-  services: Pick<DockerService, "name" | "profiles" | "published">[],
+  services: Pick<DockerServiceInfo, "name" | "profiles" | "published">[],
   failure: Pick<DockerFailure, "service" | "conflicts">,
 ): { rows: { service: string; conflicts: DockerPortConflict[] }[]; rest: DockerPortConflict[] } {
   const started = services.filter((s) => (failure.service ? s.name === failure.service : s.profiles.length === 0));

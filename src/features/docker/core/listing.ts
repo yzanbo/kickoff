@@ -4,7 +4,7 @@ import path from "node:path";
 import { workplaceText } from "@shared/foundation/workplace";
 import { relativeApiPath } from "@/foundation/core/system/paths";
 import type { Workplace } from "@/foundation/core/workplace/worktrees";
-import type { DockerCompose, DockerContainer, DockerLogSource, DockerOtherContainer, DockerService, DockerShare } from "@shared/types";
+import type { DockerCompose, DockerContainer, DockerLogSource, DockerOtherContainer, DockerServiceInfo, DockerShare } from "@shared/types";
 import { dbKindOf, deepestWorkplace, parsePorts, parseStatus, serviceMark, type ComposeConfig, type RawContainer } from "./parse";
 
 /** compose のファイル 1 つ分の読み取り（見つけたファイルと、作ったコンテナのラベルにあるファイル） */
@@ -46,7 +46,7 @@ function toContainer(c: RawContainer): DockerContainer {
 }
 
 /** サービスの行（設定のサービスに、設定にないコンテナのサービスを足す。札付きは後ろ） */
-function servicesOf(config: ComposeConfig | null, containers: RawContainer[]): DockerService[] {
+function servicesOf(config: ComposeConfig | null, containers: RawContainer[]): DockerServiceInfo[] {
   const names = new Set([...(config?.services.map((s) => s.name) ?? []), ...containers.map((c) => c.service ?? "").filter(Boolean)]);
   // 札付きのサービス（ふだんの up では起動しない）は後ろに、それぞれ名前の順
   const optional = (name: string) => (config?.services.find((s) => s.name === name)?.profiles.length ?? 0) > 0;

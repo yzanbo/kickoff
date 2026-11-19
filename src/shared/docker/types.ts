@@ -43,7 +43,7 @@ export interface DockerContainer {
 }
 
 /** compose のサービス 1 つ（数を増やしたものも 1 行にまとめる） */
-export interface DockerService {
+export interface DockerServiceInfo {
   name: string;
   /** イメージ（設定にあればそれ、なければコンテナのもの。build だけなら null） */
   image: string | null;
@@ -162,7 +162,7 @@ export interface DockerCompose {
   project_name: string | null;
   /** 1 つでもコンテナを作ってあるか */
   created: boolean;
-  services: DockerService[];
+  services: DockerServiceInfo[];
   /** 設定を読めなかったときの標準エラーの最後の数行 */
   config_error: string | null;
   /** 作ったときから設定が変わっている（［作り直して起動］を出す） */

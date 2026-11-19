@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DockerCompose, DockerContainer, DockerService } from "@shared/types";
+import type { DockerCompose, DockerContainer, DockerServiceInfo } from "@shared/types";
 import { planDockerAction, startedServices } from "./actions";
 
 const ctr = (id: string, state: DockerContainer["state"] = "running"): DockerContainer => ({ id, name: id, image: "img", state, status: "", exit_code: null, health: null, ports: [], number: 1 });
-const svc = (name: string, over: Partial<DockerService> = {}): DockerService => ({ name, image: "img", profiles: [], published: [], containers: [], oneoffs: [], mark: "none", running: 0, db_kind: null, ...over });
+const svc = (name: string, over: Partial<DockerServiceInfo> = {}): DockerServiceInfo => ({ name, image: "img", profiles: [], published: [], containers: [], oneoffs: [], mark: "none", running: 0, db_kind: null, ...over });
 const compose = (over: Partial<DockerCompose> = {}): DockerCompose => ({
   key: "k",
   worktree_path: null,

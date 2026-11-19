@@ -1,14 +1,14 @@
 // Docker タブの「DB で開く」: DB のサービスを DB タブで開く。登録済みの同じ DB ならその接続を選び、なければ取り込みの画面をその案を選んだ形で開く。
 // 動いていなければ確かめてから起動し、動き出したら開く（起動に失敗したら開かない。失敗は見出しに出る）
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import type { DockerCompose, DockerService } from "@shared/types";
+import type { DockerCompose, DockerServiceInfo } from "@shared/types";
 import { api } from "@/foundation/ui/api";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { requestDbClient } from "@/features/database/ui/dbClientRequests";
 import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
 import { showToast } from "@/foundation/ui/kit/toast";
 
-export function useOpenDockerDb(projectId: number, compose: DockerCompose, service: DockerService, start: () => void) {
+export function useOpenDockerDb(projectId: number, compose: DockerCompose, service: DockerServiceInfo, start: () => void) {
   const [waiting, setWaiting] = useState(false);
   // 起動を送ったときの失敗の時刻（前の操作の失敗が残っていても、それでは止めない）と、起動の操作を見たか
   const failureAtStart = useRef<string | null>(null);

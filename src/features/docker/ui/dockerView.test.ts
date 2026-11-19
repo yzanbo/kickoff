@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DockerContainer, DockerService } from "@shared/types";
+import type { DockerContainer, DockerServiceInfo } from "@shared/types";
 import { conflictText, conflictsByService, oneoffSummary, othersTip, servicePorts, serviceStatusText, shareText, shellCommand, silentText, stopOthersLabel, unpublishedPorts } from "./dockerView";
 
 const ctr = (over: Partial<DockerContainer> = {}): DockerContainer => ({ id: "c", name: "c", image: "i", state: "running", status: "", exit_code: null, health: null, ports: [], number: 1, ...over });
-const svc = (over: Partial<DockerService> = {}): DockerService => ({ name: "db", image: "postgres", profiles: [], published: [], containers: [], oneoffs: [], mark: "none", running: 0, db_kind: null, ...over });
+const svc = (over: Partial<DockerServiceInfo> = {}): DockerServiceInfo => ({ name: "db", image: "postgres", profiles: [], published: [], containers: [], oneoffs: [], mark: "none", running: 0, db_kind: null, ...over });
 
 test("serviceStatusText: 作っていない・札付き・数を増やした・異常に終了", () => {
   assert.equal(serviceStatusText(svc()), "作っていない");

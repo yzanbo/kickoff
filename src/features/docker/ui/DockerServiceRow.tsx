@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Database, RotateCcw, ScrollText, SquareTerminal, TriangleAlert } from "lucide-react";
-import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerPortConflict, DockerService, DockerSilentConflict } from "@shared/types";
+import type { DockerAction, DockerActionBody, DockerCompose, DockerContainer, DockerPortConflict, DockerServiceInfo, DockerSilentConflict } from "@shared/types";
 import { DOCKER_DB_NO_PORT, DOCKER_MARK_LABELS } from "@shared/types";
 import { useExternalBrowser } from "@/foundation/ui/external/externalApps";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
@@ -21,7 +21,7 @@ import { MARK_GLYPHS, conflictText, oneoffSummary, servicePorts, serviceStatusTe
 type Send = (action: DockerActionBody["action"], extra?: Partial<DockerActionBody>) => void;
 
 /** 行の主な操作（印で決める。動いていれば停止、一時停止なら再開、ほかは起動） */
-function primaryAction(s: DockerService): { action: DockerAction; label: string } {
+function primaryAction(s: DockerServiceInfo): { action: DockerAction; label: string } {
   if (s.mark === "paused") return { action: "unpause", label: "再開" };
   if (s.running > 0) return { action: "stop", label: "停止" };
   return { action: "start", label: "起動" };
@@ -53,7 +53,7 @@ export function DockerServiceRow({
 }: {
   projectId: number;
   compose: DockerCompose;
-  service: DockerService;
+  service: DockerServiceInfo;
   busy: boolean;
   send: Send;
   silent: Record<string, DockerSilentConflict[]>;
