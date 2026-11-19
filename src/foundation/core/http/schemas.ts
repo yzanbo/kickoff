@@ -4,8 +4,9 @@ import { expandHome } from "@/foundation/core/system/paths";
 import type { Attachment, AttachmentSource, ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, NoteChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
 import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, OTHER_PROVIDER_IDS, PERMISSION_MODES, PROVIDER_IDS, USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
+import { branchName, folderPath, repoPath } from "./zodParts";
 
-// ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
+// ルートで共通に使う zod の形と上限のうち、機能の言葉を持つもの（機能に依らない部品は zodParts.ts。検証の失敗の 400 は http/app.ts の onError）
 
 /** 送る指示 1 件の文字数の上限（チャット・送信待ち・巻き戻しで同じ） */
 const MAX_MESSAGE_CHARS = 50_000;
@@ -14,26 +15,12 @@ const MAX_ATTACHMENTS = 20;
 /** 送信待ちの複数選択の上限 */
 const MAX_QUEUE_SELECTION = 500;
 
-/** ?project_id= などの、省略できる ID（数でなければ 400。NaN を SQL に入れない） */
-export const optionalId = z.coerce.number().int().positive().optional();
-
-/** リポジトリの中のパス（ファイル・フォルダ） */
-export const repoPath = z.string().min(1).max(1000);
-
-/** 作業場所のフォルダ（ワークツリーの絶対パス） */
-export const folderPath = z.string().min(1).max(2000);
-
 /** 絶対パス（~ で始めてもよい）のフォルダの指定か（ノートの親フォルダ・プロジェクトのノートのフォルダ） */
 export const isAbsoluteFolder = (p: string) => path.isAbsolute(expandHome(p));
 export const ABSOLUTE_FOLDER = "フォルダは / か ~ から始まる場所で指定してください";
 
 /** 圧縮前指示・圧縮後指示（設定の共通の指示・プロジェクトの指示。空にするのは null） */
 export const compactPrompt = z.string().trim().min(1).max(COMPACT_PROMPT_MAX).nullable();
-
-/** ?staged=1 などの切り替え（"0" / "1"） */
-export const flag = z.enum(["0", "1"]);
-
-export const branchName = z.string().trim().min(1).max(200);
 
 export const groupName = z.string().trim().min(1).max(60);
 

@@ -2,6 +2,7 @@
 import path from "node:path";
 import type { Context } from "hono";
 import { Invalid } from "@/foundation/core/errors";
+import { fileResponse } from "./fileReply";
 
 /** HTML のページが読むファイルの種類（拡張子 → Content-Type。ほかは application/octet-stream） */
 const ASSET_TYPES: Record<string, string> = {
@@ -36,13 +37,8 @@ export function decodeSegments(raw: string): string {
   }
 }
 
-/** ファイルの中身をそのまま返す（ページとして開かれても何も動かないよう sandbox の CSP を付け、いつも取り直させる） */
+/** ファイルの中身をそのまま返す（見出しは fileReply.ts。いつも取り直させる） */
 export function assetResponse(c: Context, file: string, data: Buffer) {
   const ext = path.posix.extname(file).toLowerCase();
-  return c.body(new Uint8Array(data), 200, {
-    "Content-Type": ASSET_TYPES[ext] ?? "application/octet-stream",
-    "Content-Security-Policy": "sandbox",
-    "X-Content-Type-Options": "nosniff",
-    "Cache-Control": "no-cache",
-  });
+  return fileResponse(c, { bytes: new Uint8Array(data), type: ASSET_TYPES[ext] ?? "application/octet-stream" });
 }

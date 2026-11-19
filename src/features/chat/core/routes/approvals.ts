@@ -3,7 +3,8 @@ import { z } from "zod";
 import type { ChatRouteDeps } from "./deps";
 import type { ApprovalDecision } from "@shared/types";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
-import { attachmentsSchema, optionalId } from "@/foundation/core/http/schemas";
+import { attachmentsSchema } from "@/foundation/core/http/schemas";
+import { optionalId } from "@/foundation/core/http/zodParts";
 import { answersWithAttachments } from "@/features/attachments/core/uploads";
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [

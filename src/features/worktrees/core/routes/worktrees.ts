@@ -13,7 +13,7 @@ import type { HeadWatch } from "@/features/worktrees/core/headWatch";
 import { asInvalid, Conflict, Invalid } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
-import { branchName, folderPath } from "@/foundation/core/http/schemas";
+import { branchName, folderPath } from "@/foundation/core/http/zodParts";
 import { attachWorktreeHues } from "@/features/worktrees/core/colors";
 /** ブランチ名の案を頼む本文（やりたいことの概要） */
 const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(4000) }) satisfies z.ZodType<BranchSuggestBody>;

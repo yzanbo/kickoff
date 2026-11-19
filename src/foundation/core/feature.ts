@@ -1,8 +1,9 @@
 // 機能の形（CoreFeature）と、組み立てた機能の並び（AssembledCore）。機能は createX(k, deps, env) で作り、
 // 組み立て（@/app/core/assemble.ts）が並べ、serve.ts が受け口を登録して始める・止める
-import type { Context, Hono } from "hono";
+import type { Context } from "hono";
 import type { ServerStatus } from "@shared/foundation/server";
 import type { DeviceAuth } from "@/foundation/core/http/auth";
+import type { Mountable } from "@/foundation/core/http/mount";
 
 /** 機能の名前 */
 export type FeatureName =
@@ -11,16 +12,11 @@ export type FeatureName =
   | "files" | "git" | "worktrees" | "github" | "docker" | "database" | "notes" | "terminal" | "browser" | "ports" | "voice"
   | "devices" | "diagnostics";
 
-/** HTTP の受け口（取り決めに乗せるまでは、Hono に直に登録する関数。access が public なら認証の外に登録する） */
-export interface Mountable {
-  readonly legacy: (app: Hono) => void;
-  readonly access?: "public";
-}
-
 export interface CoreFeature<Api = unknown> {
   readonly name: FeatureName;
   /** ほかの機能に出す口（上の機能が createX の deps で受ける） */
   readonly api: Api;
+  /** HTTP の受け口（取り決めの implement か、まだ乗せていない legacy） */
   readonly routes?: readonly Mountable[];
   /** 認証の外のページ（GET） */
   readonly pages?: Readonly<Record<`/${string}`, (c: Context) => Response | Promise<Response>>>;

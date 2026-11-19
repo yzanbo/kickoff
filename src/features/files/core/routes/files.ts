@@ -9,7 +9,7 @@ import { lookups } from "@/foundation/core/http/lookups";
 import { assetResponse, decodeSegments } from "@/foundation/core/http/assets";
 import { requireWorktree } from "@/foundation/core/http/workdir";
 import { Invalid } from "@/foundation/core/errors";
-import { flag, repoPath } from "@/foundation/core/http/schemas";
+import { flag, repoPath } from "@/foundation/core/http/zodParts";
 
 /** 置換の本文（検索の指定・置換の文・置換する行） */
 const replaceBodySchema = z.object({

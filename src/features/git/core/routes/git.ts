@@ -9,7 +9,7 @@ import type { Store } from "@/foundation/core/db/store";
 import { Invalid } from "@/foundation/core/errors";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
-import { branchName, flag, repoPath } from "@/foundation/core/http/schemas";
+import { branchName, flag, repoPath } from "@/foundation/core/http/zodParts";
 
 const diffQuerySchema = z.object({ path: repoPath, old: repoPath.optional(), staged: flag.default("0") });
 

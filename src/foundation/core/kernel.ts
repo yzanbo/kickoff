@@ -11,6 +11,7 @@ import type { HostPlatform } from "@/foundation/core/platform/types";
 import { setChildProcessReporter, type ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import { runCommand } from "@/foundation/core/system/exec";
 import { stopAllStreams, streamCommand } from "@/foundation/core/system/stream";
+import { createWorkplaceKit, type WorkplaceKit } from "@/foundation/core/workplace/kit";
 
 /** 外部コマンド（終わるまで待つ run・流れ続ける stream・流れ続けているものを全部止める stopAllStreams） */
 export interface Exec {
@@ -51,6 +52,8 @@ export interface Kernel {
   readonly settings: Store["settings"];
   readonly secrets: Store["secrets"];
   readonly log: Log;
+  /** 作業場所の登録先（上の機能が登録する口。workplace/kit.ts） */
+  readonly workplace: WorkplaceKit;
 }
 
 /** 表ごとの店の束も持つ仮の形（店は DB の土台を作り直すときに機能へ移す） */
@@ -97,6 +100,7 @@ export function createKernel(opts: KernelOptions): KernelWithStore {
     settings: store.settings,
     secrets: store.secrets,
     log: consoleLog,
+    workplace: createWorkplaceKit(),
     store,
   };
   if (opts.onChildProcess) reporting.add(k);

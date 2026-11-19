@@ -10,7 +10,8 @@ import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { assetResponse, decodeSegments } from "@/foundation/core/http/assets";
-import { folderPath, noteChatSchema, notePathSchema, optionalId, repoPath } from "@/foundation/core/http/schemas";
+import { noteChatSchema, notePathSchema } from "@/foundation/core/http/schemas";
+import { folderPath, optionalId, repoPath } from "@/foundation/core/http/zodParts";
 import { noteKindOf } from "@shared/notes/kinds";
 
 /** HTML のノートのファイルを返す口の前置き（この後ろがノートのフォルダからの相対パス。画面の <base> と同じ） */

@@ -42,7 +42,7 @@ export async function serveCore(k: Kernel, assembled: AssembledCore, opts: { lis
 }
 
 /** テスト用: 待ち受けずに Hono のアプリだけ作る（start() は呼ばない） */
-export function appOf(k: Pick<Kernel, "bus" | "clock" | "paths">, assembled: AssembledCore, opts: { token: string; browserLogin?: BrowserLogin }): Hono {
+export function appOf(k: Pick<Kernel, "bus" | "clock" | "paths" | "workplace">, assembled: AssembledCore, opts: { token: string; browserLogin?: BrowserLogin }): Hono {
   return createHttpApp(k, assembled, { token: opts.token, browserLogin: opts.browserLogin ?? new BrowserLogin(k.clock) });
 }
 

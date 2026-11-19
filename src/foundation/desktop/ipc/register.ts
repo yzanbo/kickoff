@@ -1,5 +1,6 @@
 import type { IpcMainEvent, IpcMainInvokeEvent, WebContents } from "electron";
 import type { z } from "zod";
+import type { Same } from "@shared/foundation/contract";
 import { channelOf, ipcEntries, type InvokeSpec, type IpcArgs, type IpcGroup, type IpcMethodOf, type IpcSpec, type SendSpec } from "@shared/foundation/ipc";
 import { timed } from "@/foundation/core/system/stallWatch";
 import { sameOrigin } from "@/foundation/desktop/app/urls";
@@ -16,7 +17,6 @@ type CallArgs<G extends IpcGroup, M extends CallMethod<G>> = IpcArgs<IpcSpec<G, 
 /** 引数の形（zod）。通したあとの形は取り決めの引数と同じ */
 export type IpcArgSchemas = { [G in IpcGroup]: { [M in CallMethod<G>]: z.ZodType<CallArgs<G, M>, CallArgs<G, M>> } };
 
-type Same<X, Y> = [X] extends [Y] ? ([Y] extends [X] ? true : false) : false;
 /** 受け取る形（input）が取り決めの引数と同じでないものに印を付ける（狭いと画面から届く正しい値を断り、広いと型が合わない） */
 type ExactArgs<T extends IpcArgSchemas> = {
   [G in IpcGroup]: {

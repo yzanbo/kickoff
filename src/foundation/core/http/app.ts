@@ -6,12 +6,14 @@ import { API_MISMATCH_LABELS, API_VERSION, API_VERSION_HEADER, MIN_CLIENT_API_VE
 import type { ServerStatus } from "@shared/foundation/server";
 import { MCP_PATH } from "@/foundation/core/aiTools/host";
 import { systemClock } from "@/foundation/core/clock";
-import type { AssembledCore, Mountable } from "@/foundation/core/feature";
+import type { AssembledCore } from "@/foundation/core/feature";
 import type { Kernel } from "@/foundation/core/kernel";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
 import { authMiddleware, loginRoute, type BrowserLogin } from "./auth";
 import { errorResponse } from "./errorResponse";
 import { eventsRoute } from "./events";
+import { provideProjectScopes } from "./lookups";
+import { mount } from "./mount";
 import { serveRenderer } from "./static";
 
 const STARTED_AT = systemClock.iso();
@@ -26,11 +28,9 @@ export interface HttpAppOptions {
 }
 
 /** 組み立てた機能の受け口を、土台の口と決まった順に並べた Hono のアプリを作る */
-export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths">, { features, hooks }: AssembledCore, opts: HttpAppOptions): Hono {
+export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths" | "workplace">, { features, hooks }: AssembledCore, opts: HttpAppOptions): Hono {
   const app = new Hono();
-  const mount = (pick: (r: Mountable) => boolean) => {
-    for (const f of features) for (const r of f.routes ?? []) if (pick(r)) r.legacy(app);
-  };
+  const routes = features.flatMap((f) => f.routes ?? []);
 
   // 詰まりの見張り（system/stallWatch.ts）: 頼みの最初の await までの同期の分に「http:<メソッド> <パス>」の名前を付ける（数字の段は :id。中の SQL は別に名前が付く）
   app.use("*", async (c, next) => {
@@ -52,7 +52,7 @@ export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths">, { feat
   app.use("/pairing/*", checkClientVersion);
 
   // 認証の外の口（まだトークンを持たない端末のペアリング）とページ（図の枠など。中身を画面が postMessage で渡すので秘密を持たない）
-  mount((r) => r.access === "public");
+  mount(app, routes, "public");
   for (const f of features) for (const [path, page] of Object.entries(f.pages ?? {})) app.get(path, page);
 
   // ブラウザからこの Mac の画面として入る（npm run daemon が出す一度だけの番号。本体のトークンの Cookie を置いて画面へ）
@@ -63,6 +63,8 @@ export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths">, { feat
   if (mcp) app.all(`${MCP_PATH}/:server`, (c) => mcp.handle(c.req.param("server"), c.req.raw));
 
   app.use("/api/*", authMiddleware(opts.token, hooks.deviceAuth));
+  // まだ取り決めに乗せていないプロジェクトの口（lookups.ts の withProject）が、登録された包み（GitHub のアカウント）を読む
+  app.use("/api/*", provideProjectScopes(k.workplace.projectScopes));
 
   // 失敗はここでまとめて応答にする（種類は errors.ts。知らない失敗だけ記録する）
   app.onError((err, c) => {
@@ -86,8 +88,8 @@ export function createHttpApp(k: Pick<Kernel, "bus" | "clock" | "paths">, { feat
     return c.json(status);
   });
 
-  // ---- 機能ごとの API（並べた機能の順。:id の引き当ては lookups.ts、失敗の種類は errors.ts） ----
-  mount((r) => r.access !== "public");
+  // ---- 機能ごとの API（まだ取り決めに乗せていないものを並べた機能の順に、取り決めの分をそのあとに。mount.ts） ----
+  mount(app, routes, "auth");
 
   eventsRoute(app, k, VERSION, hooks.deviceAuth);
 

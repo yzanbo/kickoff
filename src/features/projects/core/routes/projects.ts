@@ -13,6 +13,7 @@ import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes } from "@/feature
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
+import { idsBody } from "@/foundation/core/http/zodParts";
 import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, otherProviderRecord, projectDescription, projectName, providerChatDefaultsSchema } from "@/foundation/core/http/schemas";
 import { PROJECT_HUES } from "@shared/projects/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
@@ -237,7 +238,7 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
 
   // サイドバーでのプロジェクトの並び順（並べたあとの一覧を返す。グループの並べ替えと同じ）
   app.put("/api/projects/order", async (c) => {
-    const { ids } = z.object({ ids: z.array(z.number().int()).max(500) }).parse(await jsonBody(c));
+    const { ids } = idsBody.parse(await jsonBody(c));
     return c.json(store.projects.reorder(ids));
   });
 

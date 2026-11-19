@@ -5,6 +5,7 @@ import type { KernelWithStore } from "@/foundation/core/kernel";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import { CiService } from "./ci";
+import { runAsGitHubAccount } from "./githubAccount";
 import { WorktreePrWatch } from "./prWatch";
 import { GitHubService } from "./service";
 import { ciRoutes } from "./routes/ci";
@@ -35,6 +36,8 @@ export interface GitHubApi {
 /** GitHub タブと CI の結果（GitHub Actions）・ワークツリーの PR の知らせ（見張りは待ち受けのあとに始める） */
 export function createGitHub(k: KernelWithStore, deps: { worktrees: WorktreesApi }, env: GitHubEnv): CoreFeature<GitHubApi> {
   const { store, bus } = k;
+  // プロジェクトの頼み（ルート）の中の gh・git は、そのプロジェクトで選んだ GitHub のアカウントで動かす
+  k.workplace.projectScopes.add((project, run) => runAsGitHubAccount(project.github_account, run));
   // PR のブランチのワークツリーを作ったら、実行環境を整える
   const github = new GitHubService({ ...env.service, onWorktreeCreated: (project, worktree) => deps.worktrees.envs.prepare(project, worktree) });
   const ci = new CiService(github, env.ci);
