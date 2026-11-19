@@ -60,13 +60,6 @@
       "forbidden": 0,
       "brokenRefs": 0
     },
-    "src/main/CLAUDE.md": {
-      "bytes": 49819,
-      "ancestors": 62882,
-      "longLines": 34,
-      "forbidden": 16,
-      "brokenRefs": 2
-    },
     "src/renderer/src/CLAUDE.md": {
       "bytes": 17223,
       "ancestors": 30286,

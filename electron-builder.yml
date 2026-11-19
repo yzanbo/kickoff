@@ -5,7 +5,7 @@ directories:
 # Electron は npm で入れた node_modules/electron/dist（package.json の版と同じ）をそのまま使う。
 # 指定しないと electron-builder がビルドのたびに GitHub から取り直し（確かめの SHASUMS も）、GitHub が 504 などを返すと入れ替えが止まる
 electronDist: node_modules/electron/dist
-# Electron の fuses（作った製品版の実行ファイルにだけ効き、開発版の node_modules の Electron には効かない）。
+# Electron の fuses（作った製品版の実行ファイルにだけ効き、開発版の node_modules の Electron には効かない。確かめは node node_modules/@electron/fuses/dist/bin.js read --app <作った .app>）。
 # DB のパスワードはキーチェーンの鍵（safeStorage）で暗号化しているので、AI が Bash から Kickoff 本人として
 # 自分の JavaScript を動かして鍵を受け取る道をふさぐ（要件 5.12）。DB ワーカーは utilityProcess で起動するので RunAsNode は要らない
 electronFuses:

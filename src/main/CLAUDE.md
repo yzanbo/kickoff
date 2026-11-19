@@ -1,121 +1,60 @@
 # メインプロセス（src/main）の説明
 
-Electron のメインプロセス。窓・OS の口・仲立ちだけを持ち、コア（`src/core`）は別のプロセス（`utilityProcess`）で起動する（メインの JavaScript の糸は画面の入力の道でもあるので、コアの重さを乗せない。メモの仕様書「0023_表示を軽くする」の案 16）。画面には最小限のネイティブ機能（IPC）だけを出す。
+Electron のメインプロセス。窓・OS の口・仲立ちだけを持ち、コアは別のプロセス（`utilityProcess`）で動かす（メインの糸は画面の入力の道でもあるので重さを乗せない）。
 
 ## 構成と起動
-
-- `index.ts` は起動の順番だけを書く: 名前・保存先・ポートを決めて起動の記録を始める（`app/environment.ts` の `setupEnvironment`）→ 開発のデータがなければ製品版から一度だけ写す（`seedDevDataOnce`）→ 埋め込みブラウザの安全設定（`hardenWebviews`。ウィンドウを作る前）と、AI が読むコンソールの出力の記録（`watchWebviewConsoles`）→ 1 つだけ起動（2 つ目は、いまのウィンドウを前に出して終わる）→ 準備ができたら、コアのプロセスを fork（`app/coreHost.ts` の `createCoreProcess` → `start`。できるだけ早く。ログインシェルの PATH・DB・HTTP はコアの中で進む）→ IPC（`registerIpc`。URL はポートから先に分かる: 製品版 `http://127.0.0.1:<ポート>`、開発は electron-vite の dev サーバー）→ メニュー（`setAppMenu`）→ ウィンドウを先に作る（`openMainWindow(url, session)`。画面のプロセスの準備をコアの起動と重ね、読み込みは待たせる）→ コアの ready を待って画面のセッション（`prepareAppSession(url, ready.token)`）→ 画面を読み込む → 眠らせない・拡張機能（分冊 4 の 1-4）。メインはログインシェルの PATH を読まない（同期の `$SHELL -ilc` で起動を止めていたため。読むのはコア）。
-- OS ごとに違う処理は `platform/` の口に集める（使う所に OS のコマンド・パスを散らさない）: コアと共通の口 `hostPlatform`（`src/core/platform` の `HostPlatform`）と、メインだけの口 `desktopPlatform`（`platform/types.ts` の `DesktopPlatform`: 入っている外部のターミナル・ブラウザとその開き方・開発中の Electron のメインプロセスの見分け。内蔵ターミナルのシェルはコアの口）を `platform/index.ts` の 1 か所で選ぶ（いまは macOS だけ。中身は `platform/macos/`）。DB ワーカーは別のプロセスで口を受け取れないので、シェルの口（`ShellPlatform`）だけはワーカーの入口（`src/core/databases/worker/main.ts`）が選ぶ（ほかの OS を足すときは両方で選び分ける）。`window-all-closed` の OS の見分けは Electron の決まりの書き方なのでそのまま。
-- 中身はフォルダごと: `app/`（環境・コアのプロセス（`coreProcess.ts`・`coreHost.ts`・`coreRestart.ts`・`coreChildren.ts`）・ウィンドウ・メニュー・終了の片付け・子の Electron・画面のセッションと権限・ダイアログ・外のアプリで開く・別ウィンドウ（`popouts.ts`。IPC の `windows.openPopout` / `focusMain` / `closeSelf`。画面のチャットの右の欄の中身と子チャットを同じ画面の URL のハッシュで開き、同じものは前に出す。子チャットのウィンドウは最小化で閉じる。子チャット・チャット欄のウィンドウの ✕ は止めて `onCloseRequested` で画面に知らせる（子チャットは閉じ方を聞き、チャット欄は状態をメインのウィンドウに戻してから閉じる）。サイドバー・チャット欄のウィンドウは細く開き、位置と大きさを欄ごとに別に覚える。チャット欄・ブラウザのタブのウィンドウだけ `webviewTag` を許す。閉じたら `onPopoutClosed` でメインのウィンドウに知らせる（画面が知らせられずに閉じたときも）。メインのウィンドウと別ウィンドウの一覧は `appWindows`。`openPopout` の `at`（タブをウィンドウの外へドラッグして離した所の、タブの左上）があれば、新しく開くウィンドウの最初のタブがそこにぴったり重なるように置き（別ウィンドウの中の最初のタブの位置 `firstTabInContent` と、作ってから測った枠の上の帯の高さを引く）、その画面の作業領域に収める。`windows.captureRegion` は呼んだ画面の範囲を撮って幅 440px の JPEG の data URL にする（タブをドラッグするときの小さなサムネイル）・起動の記録・ログの場所）/ `ipc/`（登録と引数の形）/ `browser/`（埋め込みブラウザ）/ `terminal/`（内蔵ターミナル）/ `notifications/`（Mac の通知）/ `diagnostics/`（性能の記録）。
-- Electron に依らない判定・組み立ては別のファイルに分けてテストする（`app/urls.ts`・`app/compileCache.ts` の `compileCacheFolderName`・`staleCacheFolders`・`buildFingerprint`・`app/openCommands.ts`・`platform/macos/openCommands.ts`・`app/mediaPermission.ts`・`app/childApps.ts` の `descendantElectronMains`・`app/quitConfirm.ts`・`ipc/register.ts`・`ipc/args.ts`・`notifications/notificationIds.ts`・`browser/extensionDirs.ts`・`browser/devtoolsBounds.ts`・`browser/crx.ts`・`browser/keys.ts`・`browser/flatten.ts`・`browser/gatherReplies.ts`・`diagnostics/profileSummary.ts`・`diagnostics/rendererTiming.ts`・`diagnostics/bootTimeline.ts`・`diagnostics/logOverview.ts`・`app/coreRestart.ts`・`app/coreChildren.ts`）。
-- 画面の V8 には `--js-flags=--no-flush-bytecode` を付ける（`setupEnvironment`。しばらく呼ばれていない関数のバイトコードを捨てさせず、長く放っておいたあとの最初の操作でコンパイルし直さない。30 分放っておいたあと長いチャットを開き直す JS が 115 → 71ms、画面のメモリの増えは約 5MB。メモの仕様書「0023_表示を軽くする」の案 18b）。起動のあとに足す指定なので、画面と webview にだけ効き、メインには効かない。
-- 開発版は `KICKOFF_REMOTE_DEBUG=<port>` のときだけ CDP のポートを開く（製品版では開かない。9333 で開くのは `npm run dev:cdp`）。このときは、隠れた窓でもタイマー・描画・アニメーションを止めない（Chromium の `disable-background-timer-throttling` など。確かめるときは開発版の窓を前に出さないので、止まると、なめらかなスクロールなどの動きを外から確かめられない）。
-- 決まった保存先: 開発時（パッケージでない）だけ、環境変数 `KICKOFF_USER_DATA_DIR` があれば保存先をそこにし、製品版のデータを写さない（`environment.ts` の `measureDataDir`。製品版の DB を読まない・開発版の保存先に触らない）。決まったデータの開発版 `npm run dev:fixture` が使う。
+<!-- 行き先: src/foundation/desktop/ -->
+- `index.ts` は起動の順番だけを書く（順と理由はそのコメント）。中身は `app/`（環境・コアのプロセス・窓・別ウィンドウ `popouts.ts`・メニュー・終了・子の Electron・セッションと権限・起動の記録）/ `ipc/` / `browser/` / `terminal/` / `notifications/` / `diagnostics/` / `platform/`。
+- OS ごとの処理は `platform/` の口（`hostPlatform`・`desktopPlatform`）に集め、`platform/index.ts` で選ぶ。DB ワーカーのシェルの口だけはワーカーの入口が選ぶ（OS を足すときは両方）。
+- Electron に依らない判定・組み立ては別のファイルに分けてテストする（`app/urls.ts`・`ipc/register.ts` など）。
+- メインはログインシェルの PATH を読まない（読むのはコア）。
+- CDP のポートは `KICKOFF_REMOTE_DEBUG` のときだけ開く。`KICKOFF_USER_DATA_DIR` は開発時だけ見る（`measureDataDir`。製品版の DB を読まない）。
 
 ## 終了
-
-- 終了時の片付けは `app/shutdown.ts` の `registerShutdown`: `before-quit` で `preventDefault` → 自分から起動した Electron のアプリ（`stopChildElectronApps`。3 秒まで）→ コアのプロセス（`CoreProcess.close(残りの時間)`: RPC の `close` → コアは `core.close()`（ターミナルのシェルも）してから自分で終わる。メインは終わるのを待ち、間に合わなければ SIGTERM）→ 終える（`exitKeepingNotifications`）。片付けは 5 秒で打ち切る。`reallyExit` はメインの後片付けを飛ばすので、コアは必ず先に終わらせる。`app.quit()` を呼び直さない（ウィンドウを閉じたところで終了が取り消され、アプリが残る）。
-- 作業中のチャットがあれば、片付けの前に終了してよいかを聞く（⌘Q・メニュー・Dock・AppleScript の quit。メモの仕様書「0026_起動したときの再開の確かめ」の D11）: 作業中のチャットはコアに RPC の `runningChats`（1 秒まで）で聞き、聞けなければ（コアが止まっている・応答しない）聞かずに終える。見出し「作業中のチャットが n 件あります」・本文は名前 5 件まで（`app/quitConfirm.ts` の `quitConfirmText`）と「終了すると作業が止まります。次に起動したときに、続けるかを聞きます。」・［終了する］（Return）［やめる］（Esc）。前のウィンドウのシート（なければアプリのダイアログ）。聞いている間にもう一度 ⌘Q を押したら、そのまま終える。「終了する」ならそのまま片付けに進む。聞かないのは、Mac の終了・再起動・ログアウト（`powerMonitor` の `shutdown`）と、シグナル（`kill -TERM`・Ctrl+C。`process.on` の SIGTERM・SIGINT で受けて聞かずに `app.quit()`。聞いている途中に届いても、待たずに終える）。「次からは聞かない」の設定は置かない。止めた作業は、次に起動したときにコアの再開の確かめで聞く（コアは `close` で作業中のチャットに印を付ける。メインが強制終了されてもコアは親が消えたのを見て同じく片付ける。コアごと落ちたときも、起動のときに作業中のまま残ったものを拾う）。
-- 最後は `app.exit()` を使わず、localStorage（`flushStorageData`）と Cookie（`cookies.flushStore`）を書き出してから `process.reallyExit(0)` で Electron の後片付けを通らずに終える。`app.exit()` で普通に終わると、Electron が後片付けで、この起動で出した通知を通知センターからすべて消すため（残す手立ては公開されていない。異常終了した起動の通知だけが残っていた）。`flushStorageData` は書き終わりを知らせないので、少し待ってから終える。DB などの片付けは、その前のコアのプロセスの `close` で済ませる。
-- 子の Electron（`app/childApps.ts`。プロセスの表と、開発中の Electron のメインプロセスの見分けは OS の口から受ける）: 製品版の内蔵ターミナル・エージェントから起動した開発版などは、製品版の子孫になる（シェル・エージェントはコアのプロセスの子なので、メイン → コア（Helper）→ シェル → 開発版。メインの pid の子孫から探すので見つかる）。終わるときは、そのメインプロセスにだけ先に SIGTERM を送り、終わるのを待つ。シェルやエージェントを先に止めると、開発版が Helper ごといきなり止められ、localStorage が消えるため。
-- コアの HTTP サーバーは `core/http/httpServer.ts` の `stopHttpServer` で止める（開いたままの SSE の接続もすべて切る。切らないと close が終わらず、終了まで止まる）。
+<!-- 行き先: src/foundation/desktop/ -->
+- 片付けは `app/shutdown.ts` の `registerShutdown` 1 か所（子の Electron → コアの `close` → `exitKeepingNotifications`。順と理由はその JSDoc）。
+- メインはコアのプロセスを直接止めない（RPC の `close` を頼んで待つ）。`reallyExit` は後片付けを飛ばすので、コアを必ず先に終わらせる。`app.quit()` を呼び直さない。
+- 子の Electron はメインプロセスにだけ先に SIGTERM を送る（`app/childApps.ts`。シェルを先に止めると開発版の localStorage が消える）。
 
 ## IPC
-
-- 取り決めは `@shared/ipc` の `NATIVE_API` 1 か所（まとまり → 名前 → 種類と引数・戻り値の型。`src/shared/CLAUDE.md`）。チャンネル名は `channelOf` で作り、手書きしない。preload（`src/preload/nativeApi.ts` の `createNativeApi`）はこの表から `window.kickoff` を作る。
-- メインは `ipc/ipc.ts` の `registerIpc` で、まとまりごとの処理（`IpcHandlers["terminal"]` の型で、その機能のフォルダに置く: `dialogHandlers`・`externalAppHandlers`・`devtoolsHandlers`・`agentBrowserHandlers`・`browserExtensionHandlers`・`terminalHandlers`・`notificationHandlers()`・`loginItemHandlers`・`diagnosticsHandlers`）を `ipc/register.ts` の `registerIpcHandlers` に渡す。登録の補助がすべて同じ扱いにする: 送り手が Kickoff の画面か（`fromApp(appUrl)`。画面を読み込んだ URL と同じ出どころの枠か）を確かめ、引数を zod（`ipc/args.ts` の `IPC_ARGS`）で確かめ、通したものだけを処理に渡す。断ったら書き残し、invoke は `IpcRejected` で失敗させ、send は捨てる（送り手と形の確かめはここだけで、処理では繰り返さない）。
-- 引数の形は `defineArgSchemas` で定め、取り決めの引数と形が違えば typecheck で分かる。形だけを確かめる（ファイルがあるか・範囲に丸めるなどは処理で行う）。画面から届いたパスは信じない（消すフォルダなどは解決してから比べる）。
-- メインから画面への知らせは `sendEvent(webContents, group, method, ...args)`（画面がない・閉じていれば何もしない）。
-- 足すときは `NATIVE_API` → `IPC_ARGS` → 処理の順（どれかが欠ければ typecheck で分かる）。
+<!-- 行き先: src/foundation/desktop/ -->
+- 取り決めは `@shared/ipc` の `NATIVE_API`（`src/shared/CLAUDE.md` の「IPC の取り決め」）。登録は `ipc/register.ts` を通す（送り手と引数の zod をそこで確かめ、処理で繰り返さない）。
+- 画面から届いたパスは信じない（解決してから比べる）。足すときは `NATIVE_API` → `IPC_ARGS`（`ipc/args.ts`）→ 処理の順。
 
 ## 画面のセッションと権限
-
-- DB ワーカー: コアの DB クライアントが DB に触る別のプロセスは、コアが RPC の `dbWorker.spawn`（コアの `process.env` = 読み込んだログインシェルの PATH を渡す）で頼み、メイン（`app/coreProcess.ts`）が Electron の `utilityProcess` でビルドの `out/main/dbWorker.js`（`app/environment.ts` の `DB_WORKER_FILE`）から起動して、`MessageChannelMain` の口をワーカー（`{ t: "port" }`）とコア（`{ t: "port", purpose: "dbWorker", workerId }`）に 1 つずつ渡す（話すのはコアとワーカーの直結。メインを通らない。止めるのは `dbWorker.kill` で OS から）。前の「自分の実行ファイルを `ELECTRON_RUN_AS_NODE` で Node として fork する」形は使わない（製品版は Electron の fuses で RunAsNode をオフにするため。AI が Bash から Kickoff 本人として JavaScript を動かし、キーチェーンの鍵を受け取れないように）。`utilityProcess` は自分のプロセスグループを持てないので、ワーカーが起動した ssh・シェルはワーカーが pid を知らせ、コアの `DbWorkerClient` が止める。
-- DB のパスワードの暗号化の口（`app/secretCipher.ts` の `safeStorageCipher`）: Electron の `safeStorage` の非同期の口（`encryptStringAsync` / `decryptStringAsync`。キーチェーンの許可の画面が出ている間もメインプロセスを止めない）を、コアから RPC の `secret.encrypt` / `secret.decrypt`（時間の上限なし）で呼ばせる（`safeStorage` はメインにしかないため。コアの中では `remoteCipher` が `startCore({ secretCipher })` に入る）。鍵（キーチェーンの「<アプリ名> Safe Storage」）は初めて暗号化・復号するときに取りに行き、起動のときには触らない（DB を使わない人が、入れ替えのたびに許可を聞かれないように）。
-- `app/appSession.ts` の `prepareAppSession`: 画面（defaultSession）に認証の Cookie を置き（トークンを画面のコードに渡さない）、マイクの許可の答え方を登録する。
-- `app/mediaPermission.ts`: マイクはアプリ自身の画面からの音声だけ許し、カメラ・ほかの出どころは断る。media 以外は Electron の既定どおり許す（通知・クリップボードなどを壊さない）。判定は純粋関数（`permissionAllowed` / `permissionCheckAllowed`）でテストする。埋め込みブラウザは別のセッションなので広げない。
-- 製品版には `electron-builder.yml` の `electronFuses` で Electron の fuses を入れる（RunAsNode・Node の inspect の引数・`NODE_OPTIONS` をオフ、asar だけから読む・asar の改ざんの確かめをオン、Cookie の暗号化はオフのまま）。DB のパスワードを暗号化しているキーチェーンの鍵を、AI が Bash から Kickoff 本人として JavaScript を動かして受け取れないようにするため（要件 5.12）。作った製品版にだけ効き、開発版には効かない。`process.execPath` を Node として起動する形（`ELECTRON_RUN_AS_NODE`）を足さない（子のプロセスは `utilityProcess` で）。確かめは `node node_modules/@electron/fuses/dist/bin.js read --app <作った .app>`。署名は仮の署名（ad-hoc）のままで、自分用の証明書は作らない（理由は `electron-builder.yml` の `mac.identity` のコメント）。
-- 製品版で macOS がマイクの許可を聞けるよう、`electron-builder.yml` の `mac.extendInfo` に `NSMicrophoneUsageDescription` を置く（hardened runtime を使わないので entitlement は要らない）。
-- 音声入力の「macOS の音声認識」の補助コマンド `kickoff-speech`（Swift。ソースは `native/kickoff-speech/main.swift`）は、メインプロセスのビルドの始めに `scripts/speech-helper.ts` の差し込み（`electron.vite.config.ts`）が `swiftc` で `out/native/kickoff-speech` に作る（ソースより新しければ作らない。Swift のコンパイラがないなどで作れなくても、警告を出してビルドは続ける。その Kickoff では「macOS の音声認識」が選べないだけ）。古い macOS でも起動して「使えない」と答えられるよう、対象の版は macOS 12 にして、新しい API は実行のときに確かめて使う。場所は `app/environment.ts` の `SPEECH_HELPER`（実行ファイルは asar の中からは動かせないので、`electron-builder.yml` の `asarUnpack` に `out/native/**` を足し、製品版では `app.asar.unpacked` の下を指す）。呼ぶのはコア（`src/core/CLAUDE.md` の「音声入力」）。
+<!-- 行き先: src/foundation/desktop/ -->
+- 子のプロセスは `utilityProcess` で起動する。`ELECTRON_RUN_AS_NODE` の形を足さない（製品版は fuses で切る。`electron-builder.yml`）。
+- DB ワーカーはメインが起動し、コアと `MessageChannelMain` で直結する（話はメインを通らない）。
+- キーチェーンの鍵（`app/secretCipher.ts`）は非同期の口で、初めて使うときに取る。マイクはアプリ自身の画面だけ許す（`app/mediaPermission.ts`）。
 
 ## ウィンドウ・外のアプリ
-
-- `app/window.ts`: メインのウィンドウ（`contextIsolation`・`sandbox`・`nodeIntegration: false`・`webviewTag`）。Mac ではウィンドウを閉じてもアプリは残り、Dock を押すと作り直す。窓がないときに通知を押した・2 つ目を起動したときも、`showMainWindow` が覚えた画面の URL（`setMainWindowUrl`）で作り直す（通知はそのチャット・CI のタブの画面のハッシュで開く。前は窓を閉じたあとに通知を押しても何も開かなかった）。新しいウィンドウを開こうとしたら、http(s) のページだけ既定のブラウザで開く（`app/externalLinks.ts` の `openLinksExternally`。埋め込みブラウザの中のリンクも同じ）。
-- 外のアプリで開く（`app/externalApps.ts`）: 外部のターミナル・ブラウザは OS の口（`desktopPlatform`）。macOS の中身は `platform/macos/openCommands.ts`（`open` の引数 `externalTerminalArgs` / `externalBrowserArgs`（ページは http(s) だけ）・入っているアプリ `installedTerminals` / `installedBrowsers`）。OS に依らないもの（開くフォルダの確かめ `existingFolder`・VS Code の URL `vscodeFileUrl`（パスは区切りごとに符号化する。`#` `?` を含むパスも開けるように））は `app/openCommands.ts`。アプリの一覧は `@shared/ipc` の `EXTERNAL_TERMINALS` / `EXTERNAL_BROWSERS`。
-- フォルダ・ファイルの選択は `app/dialogs.ts` の `pickPaths`。macOS の窓は題（`title`）を出さないので、フォルダを選ぶ `pickFolder` は何のために選ぶかを窓の上の文（`message`。省けば題と同じ）と決めるボタンの名前（`buttonLabel`）で伝え、初めに開くフォルダ（`defaultPath`）も渡せる（`PickFolderOptions`）。
-- 窓の地の色（画面を読み込む前・大きさを変えている間に見える色。メモの仕様書「0023_表示を軽くする」の案 18a）は、選んでいるテーマの `--bg`（`@shared/theme/backgrounds` の `backgroundFor`）にする（`app/appearance.ts` の `windowBackground`。メインのウィンドウ・別ウィンドウ）。メインは localStorage を読めないので、画面が IPC の `appearance.setTheme` で知らせたテーマを `<userData>/appearance.json`（`{ "theme": … }`。変わったときだけ非同期で書く。localStorage のキーの決まりの外のメインのファイル）に覚え、最初の窓を作るときに 1 回読む（ないときはダーク = テーマの既定）。知らせを受けたら開いている窓（`followAppearance` で渡したもの。開発者ツールの窓は入れない）の `setBackgroundColor` も変え、テーマが `system` なら `nativeTheme` の `updated` でも変える。
+<!-- 行き先: src/foundation/desktop/ -->
+- 窓は `app/window.ts`（窓がなければ `showMainWindow` が作り直す）、外のアプリは `app/externalApps.ts`、選ぶ窓は `app/dialogs.ts`。
+- 窓の地の色は画面のテーマに合わせる（`app/appearance.ts`。メインは localStorage を読めない）。
 
 ## 埋め込みブラウザ（browser/）
+<!-- 行き先: src/features/browser/ -->
+- ページは信頼しない外部のもの（`hardenWebviews`。窓を作る前に登録）。操作は頼んできた画面の中の webview に限る（`isOurWebview`）。
+- 開発者ツールは webview の中に出さず、埋め込みブラウザのセッションの WebContents に出す。どこに出したかは画面が持つ（Electron の知らせは遅れる）。
 
-- ページの中にピントがあるときの ⌘F は、`browser.ts` の `before-input-event` で拾い、埋め込みページの WebContents ID を、持ち主のウィンドウにだけ `browser.onFindRequested` で知らせる。開発者ツール自身の検索は横取りしない。
-- ページの右クリックのメニューは画面で出す。画像のコピー（`browser.copyImageAt`）と開発者ツールを開きながら指定位置を検証する操作（`devtools.openIn` / `openWindow` の `inspect`）は、持ち主のウィンドウの webview に限り、Electron が知らせた座標で行う。
+## ターミナル・眠らせない・通知
+<!-- 行き先: src/foundation/desktop/ -->
+- シェルはコア（`src/core/CLAUDE.md` の「ターミナル」）。メインは消えた画面のシェルをコアに止めさせるだけ（`terminal/terminals.ts`）。
+- 眠らせない決まりは `app/keepAwakeRules.ts`。ログイン時に起動は OS の設定を読み、DB に持たない（開発版は切り替えない）。
+- 通知の要否と文はコア（`src/core/CLAUDE.md` の「通知」）。メインは知らせ `notify` で出すだけ。
 
-- `browser.ts` の `hardenWebviews`: 表示するページは信頼しない外部のものとして扱う（Node を使わせない・preload を差し込ませない・http(s) と空のページだけ・専用のセッション）。
-- `devtools.ts`: 開発者ツールは、右・下は頼んできた画面のウィンドウに重ねた表示（`WebContentsView`。IPC の `devtools.openIn` で画面の枠の範囲に置き、`place` で動かす・隠す（null）、`snapshot` で見た目を撮る。範囲は画面の CSS の px で、`devtoolsBounds.ts` の `viewBoundsOf` が画面の倍率を掛けて端を丸める）に、別のウィンドウはこちらで作ったウィンドウに出す（どちらも `setDevToolsWebContents`）。webview の中には出さない（Electron 45 では、webview に出した開発者ツールに Electron とのつなぎ（`DevToolsHost`）が入らず、ページにつながらず拡張機能も読み込まれなかった。読み込む前の webview は中身がまだなく使えない。小さな Electron で比べて確かめた）。重ねた表示はページ・画面・ウィンドウのどれかがなくなったら片付ける。どちらも、頼んできた画面の中の webview に限る。どこに出しているかは画面の側で持ち、Electron の devtools-opened / closed の知らせには頼らない（遅れて届く）。利用者が別のウィンドウを閉じたら `devtools.onWindowClosed` で知らせる。
-- `agentBrowser.ts` の `agentBrowser`: AI（チャットのエージェント）に埋め込みブラウザを操作させる、コアの `BrowserControl` の実装（ツールは `core/mcp/browserTools.ts`）。画面のブラウザのタブは、webview の準備ができたら IPC の `agentBrowser.register`（WebContents の ID・タブのキー・プロジェクト）で登録し、頼んできた画面の中の webview に限る（`devtools.ts` の `isOurWebview`）。AI が新しいタブを開くときは画面（メインのウィンドウと別ウィンドウのすべて。チャット欄・ブラウザのタブは別ウィンドウにもあるので、受け持てる画面が答え、どれも受け持てなければ最後の断りを返す。`gatherReplies.ts`。表に出す頼み・操作の知らせも同じくすべてへ）に `onOpenRequest` で頼み、足したタブのキーを `opened` で受け取って、その webview の登録を待つ。表に出す頼み（開くときの `reveal`・既存のタブの `reveal`）は、画面に `onOpenRequest` の引数・`onRevealRequest` で頼んで `opened` / `revealed` で表に出したかを受け（3 秒で答えがなければ出さなかったことにする）、出したらページの大きさが 2 回続けて同じになるまで待つ（`settledLayout`。閉じた欄の見えない並びから開いた欄へ変わるため）。前に表に出したタブ `after` がもう閉じていれば、利用者は見ていないので頼まない。操作したタブは `onActivity` で画面に知らせ（最後の操作から 30 秒で消す）、画面がタブに「AI 操作中」の印を出し、表に出ていないタブも見えない形で並べる（大きさがないと撮れず、位置で押せない。並ぶまで `laidOut` で待つ）。ページの中で動かす文は `pageScripts.ts`（読み取りで押せる要素に `data-kickoff-ref` の番号を付け、押す・打つはその番号で探す）。押すは要素を真ん中までスクロールし、その位置が要素なら `sendInputEvent` のマウスで押す（覆われていれば JavaScript の `click()`）。打つは値の setter を通して input・change を起こす（React の入力欄にも届く）。送るはフォームの `requestSubmit`、フォームがなければ Enter。キーの名前は `keys.ts` の `browserKeyCode`。撮るは `capturePage` を幅 1280px までに縮め、透明なところを白で埋めて（`flatten.ts`。背景を決めていないページが黒く写るため）JPEG にする（`shoot`）。コンソールの出力は webview ができたときから `webviewConsole.ts` が 200 件まで、出たときのページの URL と時刻と一緒に覚える（登録はページの準備のあとなので、そこからだと読み込み中の出力を取りこぼす。AI の browser_console には前と同じ形の文 `webviewConsoleOf`）。画面のタブの「AI に渡す」は IPC の `agentBrowser.handOffCapture`（WebContents の ID。頼んだ画面の中の webview だけ）で、同じ撮り方の画面と、覚えている出力のうちエラー・警告（`webviewProblemsOf`。URL 付き）を返す（撮れなくてもコンソールは返し、理由を添える）。
-- `extensions.ts`: 拡張機能（ウェブストアから取る・Chrome から写す・展開済みのフォルダを読む）。ボタンで足せるよく使う拡張機能は `@shared/ipc` の `KNOWN_EXTENSIONS`（React・Vue・Redux・Svelte・Apollo。Electron 45 で、開発者ツールにパネルが出て中身が描かれるのを確かめた。Angular DevTools は裏の service worker が起動しないので入れない）。保存先のフォルダの名前はキー（ウェブストア）か「chrome-キー」（Chrome から写した）で、出どころとキーはフォルダの名前から読む（`extensionDirs.ts` の `extensionOrigin` / `knownExtensionDir`）。同じ拡張機能を別の出どころから足したら、前のものは消す（パネルが 2 つ出ないように）。Electron は毎回の読み込みが要るので、起動のたびに `loadSavedExtensions`。読み込めなかったものも理由と一緒に一覧に出し、消せるようにする。消すときは、Kickoff が取得・写したものはフォルダごと消し（消してよいのは保存先のすぐ下のフォルダだけ。`isManagedExtensionDir`）、フォルダを指定したものは一覧から外すだけでフォルダは残す。`.crx` は `crx.ts` で展開する。
-- 拡張機能のパネルは、開発者ツールを表示する WebContents のセッションに拡張機能があるときだけ出る。開発者ツールを出す別のウィンドウ・右・下の重ねた表示は、どれも埋め込みブラウザのセッション（`browserSession`）で作る（既定のセッションだと拡張機能のページが `ERR_BLOCKED_BY_CLIENT` で断られ、パネルが 1 つも出なかった）。
-
-## ターミナル（terminal/）
-
-- シェルはコアで動き（`src/core/CLAUDE.md` の「ターミナル」。2026-11-14 にスマホからも使えるよう移した）、この Mac の画面のパネルのタブもスマホと同じくコアの API（`POST /api/terminals`・WebSocket の `GET /api/terminals/:key/ws`）で直接つなぐ（出力をメインプロセスに通さない。メモの仕様書「0023_表示を軽くする」の案 16）。`terminals.ts` は画面の生き死にだけを見る: IPC の `terminal.owner` で画面に持ち主の印（`wc:<WebContents の ID>`）を返してその画面を見張り、その画面が消えた・読み込み直したら、コアにその持ち主のシェルを止めさせる（`setTerminalCloser` で渡した口。タブの記録は画面と一緒に消えるので）。止めさせるのは RPC の `terminal.closeOwnedBy`。IPC の `terminal` のまとまりがあることが、Mac のアプリでターミナルを使える印。シェルに渡す `KICKOFF_TERMINAL_OF`（製品版 / 開発版。`npm run install-app` が、製品版のターミナルから流されたのを見分ける）はコアの起動の値（`CoreInit.terminalEnv`）で渡す。終わるときのシェルの片付けもコア（`core.close`）。コアのプロセスが落ちたら、シェルはコアの子なので一緒に終わり、画面のタブは WebSocket が切れて「終わった形」になる。
-
-## 眠らせない（app/keepAwake.ts）
-
-- 本体（コアが動くこのプロセス）を眠らせないのは、作業中のチャットがある間と、スマホ連携がオン（設定の `remote_enabled`）で電源につないでいる間（`keepAwakeRules.ts` の `keepAwakeReason`。2026-11-14 に決めた。スマホから新しい指示を送るには、待っている間も本体が起きている必要があるため。バッテリーのときは、作業中でなければ眠ってよい）。`powerSaveBlocker` の `prevent-app-suspension`（画面は消えてよく、本体だけ起こしておく。`pmset -g assertions` に `NoIdleSleepAssertion` が出る）。
-- 作業中の数とスマホ連携のオン・オフはコアのプロセスの知らせ `awake`（コアが Bus の `chat`・`settings` のたびと作業中の間は 2 秒ごとに `Core.awakeNeeds` を読み、変わったときだけ送る。前は知らせのたびに読むだけで、作業が終わっても次に何か起きるまで「作業中」のまま本体を眠らせなかった）、電源は `powerMonitor`（`isOnBatteryPower`・`on-ac` / `on-battery`）から読み、そのたびに付け外しする（`index.ts` がコアを起動したあと `startKeepAwake`）。コアが落ちた・作り直している間は外し、作り直したコアの最初の知らせで付け直す。変わったら起動の記録に「眠らせない: working / mobile / なし」を残す。
-- MacBook のふたを閉じたときの眠り（外部ディスプレイと電源をつないでいるときを除く）は、これでは防げない。
-
-## ログイン時に起動（app/loginItem.ts）
-
-- 設定の「スマホ連携」で選ぶ（既定はオフ。2026-11-14 に決めた。オフのままだと、Mac を再起動したあとは Kickoff を開くまでスマホから届かない）。IPC の `loginItem.get` / `set`（`@shared/ipc` の `LoginItemState`）で、値は OS の設定（`app.getLoginItemSettings` / `setLoginItemSettings`。macOS・Windows とも）をそのまま読み、DB には持たない。開発版（`app.isPackaged` でない）は Electron 本体が登録されてしまうので切り替えず、`available: false` と理由を返す。
-- ログイン時に起動したとき（`openedAtLogin`。macOS の `wasOpenedAtLogin`）は、窓を出さずに裏で動かす（本体だけ起こしておく）。Dock を押す・もう一度開く・通知を押すと窓を作る（`showMainWindow`）。
-
-## 通知（notifications/）
-
-- Mac の通知はメインプロセスの `Notification` で出す（画面の通知は、画面を読み込み直す・終えると通知センターから消え、届かなかった理由も分からないため）。チャットの完了・失敗・回答待ち・CI の失敗は、出すか（だれも見ていないか・設定）と文をコアが決め（`src/core/CLAUDE.md` の「通知」）、コアのプロセスの知らせ `notify`（コアの中では `startCore({ notify })` に入る `remoteNotify`）を受けた `notifyFromCore` が出す。押したときの処理を付けておくため、新しいものから 50 件の参照を持つ。Kickoff を終えても通知センターに残る（終わり方は「終了」）。
-- 通知の ID にチャット（`kickoff-chat:`）か CI の実行（`kickoff-ci:`。CI の失敗の知らせ）を埋め込み（`notificationIds.ts` の `notificationIdOf` / `chatOfNotificationId` / `ciOfNotificationId`。毎回変える）、起動したら `Notification.getHistory()` で通知センターに残っているものにも押したときの処理を付け直す。押したら Kickoff を前に出し、`notifications.onOpenChat` で画面にそのチャットを、`notifications.onOpenCi` で CI のタブのその実行を開かせる。
-- 画面からは `notifications.notify`（設定の「テスト通知を送る」。結果は `{ ok }` か `{ ok: false, error }`）・`notifications.openSettings`（Mac の「システム設定 → 通知」）・`notifications.setBadge`（Dock のアイコンの赤い数字。`app.setBadgeCount`。0 で消える。数えるのは画面）。
-
-## 性能の記録（diagnostics/）
-
-- 重いときに再起動せず、その場で取る（ヘルプのメニュー・設定の「診断」→ `diagnostics.start`）。`diagnostics.ts` の `startDiagnostics` が自分の画面に `webContents.debugger` をつなぎ、10 秒（`DIAGNOSTICS_SECONDS`）の CPU プロファイル・画面の要素の数・メモリ（GC のあと・外れたままのノードの目安）・1 秒あたりの処理の時間・操作の遅れと長いフレーム（画面で評価する式とまとめる純粋関数は `rendererTiming.ts`）と、メインプロセスの分とコアのプロセスの分（どちらも `src/core/system/processRecording.ts` の `startProcessRecording`: CPU プロファイル・イベントループの遅れ。コアの分は RPC の `diagnostics.start` / `stop` でコアの中で取り、コアが画面へ送った知らせの数と量・SSE の数・DB の様子（`Core.databaseStats()`）も入れる。`summary.json` の `core`。取れなければ `{ error }`）・プロセスごとの CPU とメモリを集める。デバッグ用のポートは開かない。
-- 保存先はログの場所（`app/logs.ts` の `logsDir()`）の `diagnostics/<日時>/` で、`summary.json`・`profile.cpuprofile`（画面）・`main.cpuprofile`・`core.cpuprofile`（どれも Chrome の開発者ツールで開ける）。データの保存先（Application Support）はエージェントから読めない（`chat/guard/selfProtection.ts`）ので、場所を貼っても読めるようログの場所に置く。
-- 様子は `diagnostics.onState` で画面に知らせる（記録の間も操作を続けられるよう、ダイアログにしない）。保存先と最近の記録は `diagnostics.folders`、Finder で開くのは `diagnostics.openRoot`（メニューの「保存先を開く」と共通）。集計は `profileSummary.ts` / `rendererTiming.ts` でテストする。
-
-## 詰まりの記録（diagnostics/stalls.ts）
-
-- 診断の 10 秒の外でも重さの原因を追えるよう、メインプロセスのイベントループの詰まりをいつも見張る（メモの仕様書「0023_表示を軽くする」の案 12。仕組みはコアの `system/stallWatch.ts`）。`index.ts` が起動の初めに `watchMainStalls` を 1 回だけ動かす。名前は IPC の登録の補助（`ipc/register.ts`。`ipc:<まとまり>.<名前>`）・画面の知らせ（`startupLog.ts`・`hangWatch.ts`。`wc:<知らせ>`）・起動の同期の処理（`boot:seedDevData`）で付ける。コアのプロセスの詰まりは、コアが自分で見張り（`src/core/host/run.ts`。`process: "core"`）、同じ `stalls.jsonl` に書き足して、RPC の `stall` でメインにも送る（`recordCoreStall`）。
-- 書き先はログの場所の `stalls.jsonl`（1 行 1 件の `StallRecord`。256KB で 1 世代。回すのはメインだけで、コアが書き足し始める前に起動のときに回す（`rotatingLog` の `prepare`）。ログのファイルの口は `app/logFiles.ts` の `rotatingLog`）。プロセスごとに最近の 50 件をメモリに持ち、診断の `summary.json` の `stalls.main` / `stalls.core` に入れる。2 秒を超えた `blocked` は startup.log にも 1 行書く。外へは送らない。
-
-## 起動の時刻とメモリの記録（diagnostics/bootRecorder.ts）
-
-- 起動 → 最初の描画 → 入力できるまでの時刻と、長く使ったあとのメモリの増え方を残す（メモの仕様書「0023_表示を軽くする」の案 18c。ほかの案の前後を比べる物差し）。時刻はすべて epoch ms（`performance.timeOrigin + performance.now()`）でそろえ、プロセスをまたいで引き算する。
-- メインの段階は `markMain`（最初の 1 回だけ）: `mainStart`（プロセスの始まり）・`mainLoaded`（`index.ts` の先頭）・`whenReady`・`coreForked`（コアのプロセスを fork した）・`coreReady`（ready を受けた）・コアのプロセスの段階 `core.processStart` / `core.modulesLoaded` / `core.dbOpened` / `core.listening`（コアが ready で返す時刻をそのまま入れる）・`windowCreated` / `loadStart` / `domReady` / `loaded`（`app/window.ts`）。画面の段階は画面の `app/bootMarks.ts` が IPC の `diagnostics.reportBoot`（send。`@shared/ipc` の `BootReport`）で 1 回送る。メインのウィンドウの最初の 1 回はメインの段階と合わせてメインの始まりを起点にし、読み込み直し・別ウィンドウ（`window: "popout"`）は画面の読み込みの始まりを起点にする。組み立てと 1 行の文は純粋な `bootTimeline.ts`（`buildBootRecord`・`bootLogLine`）。
-- 書き先はログの場所の `boot.jsonl`（1 回の読み込みで 1 行。128KB で 1 世代）と、メインのウィンドウなら startup.log の「起動の時刻 core=…(fork=… process=… modules=… db=… listen=…) window=… 最初の描画=… 入力できる=… 取り直した画面の JS=取り直した数/数」の 1 行（取れなかった段階は「-」）。
-- メモリ: コアを起動したあと `startMetricsLog` が 60 秒ごとに `app.getAppMetrics()`（プロセスごとのメモリ・CPU。コアは Utility の「Kickoff Core」）と、コアの V8 のメモリ（RPC の `metrics`。`core`）と、その間に画面から届いたメモリ（`diagnostics.reportMemory`。`RendererMemory`: JavaScript のメモリ・要素の数）を `metrics.jsonl`（512KB で 1 世代）に 1 行書く（`metricsRow`）。診断の `summary.json` の `boot` に、最後の起動の時刻と最近 60 分の行を入れる。
-
-## 設定の「診断」に出す記録のまとめ（diagnostics/logOverview.ts）
-
-- 設定の「診断」に、最近 24 時間の詰まりの件数・いちばん長かったもの（長さ・処理の名前・時刻。メインとコアのプロセスごと）と、最後の起動の時刻（最初の描画・入力できるまで）を出す（メモの仕様書「0023_表示を軽くする」の U10。分冊 4 の Q3）。IPC の `diagnostics.overview`（`@shared/ipc` の `DiagnosticsOverview`）が呼ばれるたびに、ログの場所の `stalls.jsonl`・`boot.jsonl` を回した 1 世代（`.1`）も含めて読む（`readLogOverview`。メモリの最近の分ではなくファイルを読むので、起動し直す前の分も入る）。
-- 数え方は純粋な `summarizeStalls`（`blocked` だけ。タイマーが間引かれただけの `throttled` は数えない。10 秒にまとめた行は `repeat` の数で数える）と `lastLaunch`（メインの始まりを起点にした行 = メインのウィンドウの最初の読み込みの最後のもの。読み込み直し・別ウィンドウの行は使わない）。書きかけ・壊れた行は飛ばす（`parseJsonl`）。
-- 「記録の場所を開く」は `diagnostics.openLogs`（ログの場所を Finder で開く。まだなければ作る）。
+## 診断の記録（diagnostics/）
+<!-- 行き先: src/features/diagnostics/ -->
+- 性能（`diagnostics.ts`）・詰まり（`stalls.ts`）・起動の時刻とメモリ（`bootRecorder.ts`）・設定の「診断」のまとめ（`logOverview.ts`）。書き先はログの場所（`app/logs.ts`。保存先はエージェントが読めない）。
+- 時刻は epoch ms でそろえる。ログを回すのはメインだけ（コアが書き足す前に）。
 
 ## コアのプロセス（app/coreProcess.ts）
+<!-- 行き先: src/foundation/desktop/ -->
+- RPC の形は `src/core/host/protocol.ts` 1 か所。HTTP・SSE・WebSocket は画面からコアへ直接。
+- 落ちたら残った子を止めてから作り直す（古い子が書いている間に再開すると食い違う）。
+- コンパイルキャッシュ（`app/compileCache.ts`）を `~/Library/Caches` に置かない（AI の砂場が書ける）。
 
-- 見張り役 `CoreProcess`（`app/coreHost.ts` の `createCoreProcess` が起動の値・メインの口・知らせの行き先と一緒に作る）: ビルドの `out/main/core.js`（`CORE_FILE`。入口は `src/core/host/main.ts`）を `utilityProcess.fork`（`serviceName: "Kickoff Core"`）し、`{ t: "init" }`（`CoreInit`: 保存先・ポート・画面の置き場・ターミナルの環境変数・音声認識の補助コマンド・メインの pid・ログの場所・前のコアの終わり方）を送って `ready`（トークン・URL・pid・起動の時刻）か `failed` を待つ。最初の起動で失敗したら「Kickoff を起動できません」を出して終える（作り直さない）。
-- やり取りは `parentPort` 1 本の RPC（`src/core/host/`。形は `protocol.ts` の 1 か所）: メイン → コアは `close`・`ping`・`diagnostics.start` / `stop`・`terminal.closeOwnedBy`・`metrics`、コア → メインは埋め込みブラウザ（`browser.*`。中身は `agentBrowser`）・キーチェーンの鍵（`secret.*`）・DB ワーカー（`dbWorker.spawn` / `kill`）、コアからの知らせは `notify`（`notifyFromCore`）・`awake`（眠らせない）・`browser.touch`・`stall`・`children`。HTTP・SSE・ターミナルの WebSocket は画面からコアへ直接で、メインを通らない。
-- 落ちたら（U8）: 待っている呼び出しを失敗にし、残った子（コアが `children` で知らせたエージェントの CLI・DB ワーカーの子のうち、親がコア・DB ワーカー・launchd（1）のもの。`coreChildren.ts` の `childrenToStop`。DB ワーカーそのものも）を SIGTERM → 2 秒で SIGKILL で止めてから（古い子が会話記録・作業場所を書いている間に再開が走ると食い違うため）、0.5 → 2 → 5 秒待って作り直す（`coreRestart.ts` の `restartDelay`。5 分に 3 回落ちたら止めて `failed`）。作り直したコアは、作業中のまま残ったチャットを「Kickoff のコアが止まったため中断しました。メッセージを送ると続きから再開できます。」の失敗にする（`recoveredReason: "crash"`）。
-- 応答しない（U9）: 5 秒ごとの `ping` が 30 秒返らなければ `unresponsive`（一時の重さでは知らせない）。返れば `ready` に戻る。利用者の［起動し直す］（IPC の `core.restart`）は SIGTERM → 3 秒で SIGKILL → 終わったのを確かめ、子を止めてから作り直す。［待つ］（`core.wait`）は帯を閉じ、また 30 秒返らなければ知らせる。
-- 様子（`@shared/ipc` の `CoreState`: starting / ready / restarting / failed / unresponsive）は起動の記録に書き、開いている画面すべてに IPC の `core.onState` で知らせる（画面の上の帯）。画面を読み込んだときは `core.state` で読む。
-- コンパイルキャッシュ（メモの仕様書「0023_表示を軽くする」の案 24。`app/compileCache.ts`）: コアのプロセスは、本体を読む前に V8 のコンパイルキャッシュ（Node の `module.enableCompileCache`）を Kickoff が決めた場所で有効にする（呼んだあとに読むモジュールだけが載るので、入口 `src/core/host/main.ts` の本体は動的に読む）。場所はメインが決め、起動の引数 `--kickoff-compile-cache=<場所>`（`src/core/system/compileCache.ts` の `COMPILE_CACHE_ARG`。init は本体を読んだあとに届くため）で渡す: 保存先の `compile-cache/<アプリの版>-<Electron の版>-<arch>-<ビルドの印>/core`（`compileCacheFolderName`。ビルドの印 `buildFingerprint` は `out/main/chunks` の束の名前（中身のハッシュ付き）から作る = 入れ替えて束が変わったら新しいフォルダで始め、古いキャッシュは使わない。束が同じなら開発版で起動し直しても使える。名前にハッシュのない入口の束は Node が中身のハッシュで外れを見分ける）。`~/Library/Caches` に置かない（AI の Bash の砂場が書けるので、すり替えると Kickoff のプロセスで自分のコードを動かせる）。コアは ready の 10 秒後と終わる前に書き出す（`flushCompileCache`）。起動して 30 秒たったら、いまのものでない形の合うフォルダを消す（`prepareCoreCompileCache`）。メインプロセスの束には使わない（測って差が出なかった）。環境変数 `NODE_COMPILE_CACHE` で起動されたら（メインでは Node が起動の初めに読んで有効にし、Kickoff のコードでは止められない）、startup.log に残し、環境変数は子のプロセスに受け継がせない（`dropCompileCacheEnv`。分冊 4 の 5 章）。
-
-## 起動の記録
-
-- `app/startupLog.ts`: `~/Library/Logs/<アプリ名>/startup.log` に、起動の各段階（whenReady・ログインシェルの PATH・コア・認証の Cookie）と、メインのウィンドウの画面の読み込み（読み込みの各段階・失敗・画面のプロセスの異常終了・preload のエラー・画面の console.error・10 秒たっても終わらない）・子プロセスの異常終了を書く。512KB を超えたら 1 世代だけ残す。`npm run install-app` で入れ替えた直後の初回だけ画面が出ないことがあり、macOS の記録では画面の中で何が起きたか分からなかったため。エージェントも読める場所に置く。
-- 画面が応答しなくなったとき（`app/hangWatch.ts`。メインのウィンドウと別ウィンドウ。2026-11-14 の利用者の報告: 外部ディスプレイをつなぐ・外したあとなどに、クリックも入力も受けなくなり、アプリごと起動し直すしかなかった。記録には「応答しません」だけが残り、戻った記録はなかった）: `unresponsive` で、止まっている JavaScript の場所（`webFrameMain.collectJavaScriptCallStack`。起動の前に `enableHangStacks` が Chromium の機能を入れ、`allowHangStacks` が Kickoff の画面の応答に `Document-Policy: include-js-call-stacks-in-crash-reports` を足す。3 秒で返らなければ「JavaScript は動いていない（描画・GPU・OS の側）」と書く）を起動の記録に書く。10 秒たっても `responsive` が来なければ「画面が応答しません」の確認（画面を読み込み直す / 待つ）を出し、読み込み直すなら画面のプロセスを止めて（`forcefullyCrashRenderer`）新しいプロセスで読み込み直す（コアは別のプロセスで動き続けるので、AI の作業は止まらない）。戻ったら確認を自動で閉じ、かかった秒数を書く。「待つ」のあとも、止まったまま押して届いたらまた聞く。きっかけを照らし合わせるため、ディスプレイの抜き差し・解像度の変化（変わった項目のある知らせだけ。macOS 27 では変わった項目のない知らせが 0.1 秒ごとに届くことがあった）・スリープ・画面のロックも書く（`logDisplayEvents`）。
-
-## 製品版の画面の配信
-
-- 製品版の画面はコア（`core/http/server.ts`）が配る。キャッシュの決まりは `core/http/rendererCache.ts`（メモの仕様書「0023_表示を軽くする」の案 9）: `/assets/` の下（Vite が名前に中身のハッシュを付けて書く）は `public, max-age=31536000, immutable`（起動・別ウィンドウのたびに JS を取り直してコンパイルし直さない。V8 のコードキャッシュも効く）。ほか（index.html・favicon・SPA の index.html）は `Cache-Control: no-cache` と中身から作る ETag で、`If-None-Match` が合えば 304（serveStatic は Last-Modified だけを付けるので、no-cache がないと Chromium が経験則でキャッシュを新しいとみなし、アプリを入れ替えたあとの起動で古い index.html を問い合わせずに使い、新しいコアとかみ合わずに画面が真っ暗になった。asar の中のファイルの更新時刻はファイルごとでないので、If-Modified-Since ではなく ETag で比べる）。入れ替えても真っ暗にならないのは、index.html は毎回確かめて中身が変われば新しいものが届き、`/assets/` の下は中身が変われば名前が変わるため（全件がハッシュ付きかは、画面のビルドの終わりに `electron.vite.config.ts` の `hashedAssetsOnly` が確かめ、外れがあればビルドを失敗にする。`src/renderer/public/assets/` にファイルを置かない）。SPA の index.html を返すのは拡張子のないパスだけで、ない JS・CSS は 404。
-- `npm run install-app` は製品版を終了させ、Helper の終わりも待ってから、画面の HTTP キャッシュ（保存先の `Cache`。チャット・localStorage は別）を消して入れ替える。
+## 起動の記録・製品版の画面の配信
+<!-- 行き先: src/foundation/desktop/ -->
+- 起動の記録は `app/startupLog.ts`、画面が応答しないときは `app/hangWatch.ts`。
+- 製品版の画面はコアが配る（`core/http/rendererCache.ts`）。`src/renderer/public/assets/` に置かない（ハッシュのない名前はビルドが落とす）。

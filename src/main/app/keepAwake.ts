@@ -1,4 +1,4 @@
-// 本体を眠らせない（powerSaveBlocker の prevent-app-suspension。画面は消えてよく、本体だけ起こしておく）。
+// 本体を眠らせない（powerSaveBlocker の prevent-app-suspension。画面は消えてよく、本体だけ起こしておく。MacBook のふたを閉じたときの眠りは防げない）。
 // 決まりは keepAwakeRules.ts。作業中の数とスマホ連携のオン・オフはコアのプロセスの知らせ（awake。変わったときだけ届く）から、
 // 電源はこの Mac の powerMonitor から読む。コアが落ちたら外し、作り直したコアの最初の知らせで付け直す
 import { powerMonitor, powerSaveBlocker } from "electron";
