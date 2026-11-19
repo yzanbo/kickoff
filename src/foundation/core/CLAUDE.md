@@ -11,7 +11,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 | `db/`・`http/` | SQLite（`node:sqlite`）/ Hono の API・認証・SSE・画面の配信 |
 | `aiTools/` | AI の操作ツールを出す MCP サーバー |
 | `workplace/` | 作業場所（git の実行・ワークツリー・持っていく変更 `carry.ts`・Git でないフォルダ） |
-| `platform/` | OS ごとに違う処理の口 `HostPlatform` と macOS の中身（`macos/`）。DB ワーカーは別の口 `ShellPlatform` |
+| `platform/` | OS ごとに違う処理の口 `HostPlatform`（機能だけの値は `@/app/core/platform.ts`）と macOS の中身（`macos/`）。DB ワーカーは `ShellPlatform` |
 | `system/` | 外部コマンド・パス・`ttlCache.ts`・名前と保存先とポート `appEnv.ts`・開発版のデータの写し `devData.ts`・詰まりの見張り `stallWatch.ts` |
 | `settings/`・`shell/`・`testing/` | 設定・Bash の文の区切り `shellWords.ts`・テストの補助 |
 
@@ -19,7 +19,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - 起動のとき、作業中のまま残ったチャットは未読の失敗にし、途中で止まった印のあるものを再開の確かめに渡す（`store.chats.recoverInterrupted`）。終わりの記録のない最後の作業には `endInterruptedTurns` が `result` を足す。
 - `chat_delta` はほかの知らせより必ず先に流す（`@/features/chat/core/deltaStage.ts`）。知らせはすべて `Bus` を通し、`Bus` を通さずに SSE へ書かない（どの購読者から見ても順が同じ）。
 - 子のプロセス（エージェントの CLI・DB ワーカーの子・診断の `log`）を起こしたら `system/childProcesses.ts` の `reportChildProcess` で知らせる（コアが落ちたらメインが止める）。
-- 眠らせない理由（`@/app/core/hostRun.ts` の `awake`）は作業中の間は一定の間隔でも読み直す（作業の終わりの `chat` は作業中の数が減るより先に流れる）。コアのプロセスの決まりは `src/foundation/desktop/CLAUDE.md` の「コアのプロセス」。
+- 眠らせない理由（`@/app/core/hostRun.ts` の `awake`）は作業中の間は一定の間隔でも読み直す（理由は `AWAKE_RECHECK_MS`）。コアのプロセスの決まりは `src/foundation/desktop/CLAUDE.md` の「コアのプロセス」。
 - 重い同期の処理には `stallWatch.ts` の `timed` / `noteSync` で名前を付ける（詰まりの記録に出る）。製品版と開発版は `APP_ENVS` の別の保存先とポートで同時に動く。
 
 ## DB（`db/`）

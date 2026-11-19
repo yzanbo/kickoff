@@ -1,5 +1,4 @@
-// Docker タブのコア: 一覧（エンジンの様子・compose の見出し・ほかのプロジェクトの数）・操作（compose ごとに 1 つずつ・［中止］・失敗を残す）・
-// docker events（見ている画面があるときだけ）。DB は使わない（覚えるものはメモリだけ）
+// Docker タブのコア: 一覧（エンジンの様子・compose の見出し・ほかのプロジェクトの数）・操作（compose ごとに 1 つずつ・［中止］・失敗を残す）・docker events（見ている画面があるときだけ）。DB は使わない
 import fs from "node:fs";
 import path from "node:path";
 import type { DockerAction, DockerActionBody, DockerFailure, DockerList, DockerLogLine, DockerLogSource, DockerOperation, Project } from "@shared/types";
@@ -22,6 +21,7 @@ import { PS_FORMAT, parsePs, type RawContainer } from "./parse";
 import { allocatedPortOf, conflictLabel, hostPortsOf, portConflictsOf } from "./portConflict";
 import { DockerPorts } from "./ports";
 import type { HostPlatform } from "@/foundation/core/platform/types";
+import type { DockerEngineStarters } from "./engine";
 
 /** 失敗の文に残す標準エラーの行数 */
 const FAILURE_LINES = 8;
@@ -61,7 +61,7 @@ export class DockerService {
   constructor(
     private readonly bus: Bus,
     /** OS の口のうち、待っているソケット（静かなぶつかり）とアプリを開く（エンジンを起こす） */
-    readonly host: Pick<HostPlatform, "listeningSockets" | "dockerEngine">,
+    readonly host: Pick<HostPlatform, "listeningSockets"> & { dockerEngine: DockerEngineStarters },
     cli = new DockerCli(),
   ) {
     this.ports = new DockerPorts(host.listeningSockets);

@@ -1,6 +1,7 @@
 import os from "node:os";
 import path from "node:path";
-import type { HostPlatform, SelfGuardRules } from "@/foundation/core/platform/types";
+import type { HostPlatform } from "@/foundation/core/platform/types";
+import type { SelfGuardRules } from "@/features/guard/core/platformRules";
 import { expandHome, isInside } from "@/foundation/core/system/paths";
 import { TRASH_COMMAND } from "./deleteGuard";
 
@@ -22,12 +23,12 @@ export interface SelfInfo {
   appName: string;
   /** インストールしたアプリの本体（/Applications/Kickoff.app など）。開発中（node_modules の Electron）・daemon ではない */
   appBundle?: string;
-  /** OS ごとのプロセスを止める・操作するコマンドの見分け方（OS の口の selfGuard） */
+  /** OS ごとのプロセスを止める・操作するコマンドの見分け方（macOS は MACOS_SELF_GUARD） */
   guard: SelfGuardRules;
 }
 
-/** いま動いているプロセスから、自分の情報を作る（アプリの本体と、止めるコマンドの見分け方は OS の口から。hostPid はメインプロセス） */
-export function currentSelf(dataDir: string, port: number, platform: Pick<HostPlatform, "appBundleOf" | "selfGuard">, hostPid?: number): SelfInfo {
+/** いま動いているプロセスから、自分の情報を作る（アプリの本体は OS の口から。guard は OS ごとの止めるコマンドの見分け方。hostPid はメインプロセス） */
+export function currentSelf(dataDir: string, port: number, platform: Pick<HostPlatform, "appBundleOf">, guard: SelfGuardRules, hostPid?: number): SelfInfo {
   const bundle = platform.appBundleOf(process.execPath)?.replace(/\/+$/, "");
   return {
     pids: [...new Set([process.pid, hostPid ?? process.pid])],
@@ -35,7 +36,7 @@ export function currentSelf(dataDir: string, port: number, platform: Pick<HostPl
     port,
     appName: path.basename(dataDir),
     appBundle: bundle && !bundle.includes("/node_modules/") ? bundle : undefined,
-    guard: platform.selfGuard,
+    guard,
   };
 }
 

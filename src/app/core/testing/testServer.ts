@@ -42,7 +42,7 @@ import type { GraphqlVars, RestResponse, WriteMethod } from "@/features/github/c
 import { readGitHubRemotes, type GitHubTarget } from "@/features/github/core/githubTarget";
 import { DbSecretVault, type SecretCipher } from "@/features/database/core/secrets";
 import type { VoiceTools } from "@/features/voice/core/tools";
-import type { OsSpeechStatus } from "@/foundation/core/platform/types";
+import type { OsSpeechStatus } from "@/features/voice/core/types";
 import type { AudioInput, LocalOptions, OpenAiOptions } from "@/features/voice/core/types";
 import type { SpeechOptions } from "@/features/voice/core/speech";
 import { FakeProviderBase } from "@/features/ai/core/testing/fakeProvider";

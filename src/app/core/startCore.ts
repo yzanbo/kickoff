@@ -9,6 +9,7 @@ import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServ
 import { createProviders } from "@/features/ai/core/providers/index";
 import { currentSelf } from "@/features/guard/core/guard/selfProtection";
 import type { HostPlatform } from "@/foundation/core/platform/types";
+import type { CorePlatformParts } from "./platform";
 import { PairingCenter } from "@/features/devices/core/pairing";
 import { NotificationCenter, type DesktopNotify, type PushSender } from "@/features/notifications/core/center";
 import { expoPushSender } from "@/features/devices/core/push";
@@ -77,8 +78,9 @@ export interface CoreOptions {
   browser?: BrowserControl;
   /** 内蔵ターミナルのシェルに足す環境変数（どちらの Kickoff のターミナルか = KICKOFF_TERMINAL_OF。メインプロセス・daemon が渡す） */
   terminalEnv?: Record<string, string>;
-  /** OS ごとに違う処理（ゴミ箱・ポートを待っているプロセス・音声認識など。いまは platform/macos の macosPlatform。メインプロセス・daemon が作って渡す） */
+  /** OS ごとに違う処理（機能に依らない口 = macosPlatform と、機能だけが使う値 = ./platform.ts の macosParts。コアのプロセス・daemon が作って渡す） */
   platform: HostPlatform;
+  platformParts: CorePlatformParts;
   /** DB ワーカーを起動してつなぐ（Electron のアプリはメインが utilityProcess で out/main/dbWorker.js を起動する。渡さなければソースの worker/main.ts を node ＋ tsx で fork） */
   dbWorker?: () => WorkerChannel;
   /** DB のパスワードの暗号化（Electron の safeStorage。渡さなければ、暗号化せずに置く） */
@@ -141,7 +143,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
   // AI の API キー（DB のパスワードと同じくキーチェーンの鍵で暗号化して置く）
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
-  const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform, opts.hostPid), (id) => providerKeys.authFor(id));
+  const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform, opts.platformParts.selfGuard, opts.hostPid), (id) => providerKeys.authFor(id));
   // 使用枠（下の帯・超過分の知らせ）は Claude のプランから取得する（ほかの AI は下の serviceUsage）
   const usage = new UsageMonitor(providers.claude, bus);
   // Codex のクレジットの見張り（使用状況の取得と、Codex の実行中の知らせの両方から残りを受ける）
@@ -172,30 +174,28 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     trashBin,
     trashNoteChats: (projectId, notePath, itemId) => trashNoteChats({ store, runner }, projectId, notePath, itemId),
   });
-  // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる）
-  // DB のパスワードはキーチェーンの鍵で暗号化して置く
+  // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる。パスワードはキーチェーンの鍵で暗号化）
   const vault = new DbSecretVault(store, opts.secretCipher ?? null);
   const databases = new DatabaseService({ store, client: new DbWorkerClient(opts.dbWorker ?? (() => forkWorker(devWorkerEntry()))), vault, dataDir: opts.dataDir, appDataRoot: opts.platform.appDataRoot, publish: (e) => bus.publish(e) });
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   databases.cleanExports();
   // ノートのチャットの実行では、AI にノートのフォルダも読み書きさせる
   // Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く）
-  const docker = new DockerService(bus, opts.platform);
+  const docker = new DockerService(bus, { listeningSockets: opts.platform.listeningSockets, dockerEngine: opts.platformParts.dockerEngine });
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる。チャットの AI とターミナルには PORT を渡す）
   const worktreeEnvs = new WorktreeEnvService(store, docker);
   // ポートを使っているプロセス（AI が残した開発サーバーに気付いて止める。調べるのは窓を開いた・チャットの実行が終わったときだけ）
   const ports = new PortWatch(bus, new PortProcessService({ store, probe: opts.platform, selfPid: opts.hostPid, selfBundle: opts.platform.appBundleOf(process.execPath) }));
   // 内蔵ターミナルのシェル（この Mac の画面は IPC、スマホは WebSocket でつなぐ。ワークツリーのシェルには PORT を渡す。AI は出力を読むだけ）
-  const terminals = new TerminalSessions({ shell: opts.platform.terminalShell(), env: opts.terminalEnv, envOf: (cwd) => worktreeEnvs.envFor(cwd) });
+  const terminals = new TerminalSessions({ shell: opts.platformParts.terminalShell(), env: opts.terminalEnv, envOf: (cwd) => worktreeEnvs.envFor(cwd) });
   // AI の rm の代わりの kickoff-trash を bin/ に置く（置けなければ守りも付けない。AI が消せなくなって止まらないように）
   const trashCommand = await installTrashCommand(path.join(opts.dataDir, "bin")).then(
     (file) => ({ path: file, dir: trashBin.dir }),
     (e: unknown) => (console.warn(`[core] kickoff-trash を置けませんでした: ${errorMessage(e)}`), undefined),
   );
-  // AI の Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする）。
-  // 通信はどこへでも通す中継を通す（ネットワークは絞らない。起こせなければプロバイダーの中継のまま）
+  // AI の Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする）。通信はどこへでも通す中継を通す（ネットワークは絞らない。起こせなければプロバイダーの中継のまま）
   const relay = await startNetworkRelay().catch((e: unknown) => (console.warn(`[core] Bash の通信の中継を起こせませんでした: ${errorMessage(e)}`), null));
-  const bashSandbox: BashSandboxDeps = { rules: opts.platform.agentSandbox, proxyPort: relay?.port ?? null, trashDir: trashCommand ? trashCommand.dir : null };
+  const bashSandbox: BashSandboxDeps = { rules: opts.platformParts.agentSandbox, proxyPort: relay?.port ?? null, trashDir: trashCommand ? trashCommand.dir : null };
   // 製品版と開発版は同じ ~/.claude/projects に会話記録を置く（開発版のデータは製品版から写す）ので、会話記録を片付ける前に、ほかの Kickoff が使っていないか確かめる
   const sessionsElsewhere = siblingSessionCheck(opts.dataDir, opts.platform.appDataRoot);
   // 長いチャットを直近の区切りだけの新しいセッションに乗り換えたら、古い会話記録を Kickoff のゴミ箱（3 日）へ
@@ -207,7 +207,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const userViews = new UserViewRegistry();
   // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ）
   const mcpTools = new McpToolHost(() => `http://127.0.0.1:${opts.port}`);
-  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, noteDirOf: (project) => notes.dirOf(project), notes, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: opts.platform.sandboxDiagnostics, toolHost: mcpTools, providerKeys, interrupted: recovered });
+  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, noteDirOf: (project) => notes.dirOf(project), notes, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: opts.platformParts.sandboxDiagnostics, toolHost: mcpTools, providerKeys, interrupted: recovered });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ
   trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない）
@@ -218,7 +218,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages, sessionsElsewhere });
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages, sessionsElsewhere });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
-  const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speech: opts.platform.speech, publish: (e) => bus.publish(e) });
+  const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), speech: opts.platformParts.speech, publish: (e) => bus.publish(e) });
   // GitHub タブと CI の結果（GitHub Actions）
   const github = new GitHubService({ onWorktreeCreated: (project, worktree) => worktreeEnvs.prepare(project, worktree) });
   const ci = new CiService(github);
@@ -278,7 +278,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     worktreeFinisher,
     userViews,
     sessionsElsewhere,
-    tailscaleCli: opts.platform.tailscaleCli,
+    tailscaleCli: opts.platformParts.tailscaleCli,
     terminals,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },

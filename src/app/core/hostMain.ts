@@ -21,17 +21,19 @@ if (!parentPort) {
   const flush = () => {
     if (cached) flushCompileCache();
   };
-  const [{ runCoreHost, coreStallWatch }, { startCore }, { macosPlatform }, { parentRpcPort }] = await Promise.all([
+  const [{ runCoreHost, coreStallWatch }, { startCore }, { macosPlatform }, { macosParts }, { parentRpcPort }] = await Promise.all([
     import("./hostRun"),
     import("./startCore"),
     import("@/foundation/core/platform/macos/index"),
+    import("./platform"),
     import("@/foundation/core/host/ports"),
   ]);
   const modulesLoaded = epochNow();
   await runCoreHost(parentRpcPort(parentPort, { parentPid: () => process.ppid }), {
     startCore,
-    // OS の口（いまは macOS だけ。ほかの OS を足すときは、ここと src/foundation/desktop/platform/index.ts で選び分ける）
-    platform: (init) => macosPlatform({ speechHelper: init.speechHelper }),
+    // OS の口（いまは macOS だけ。ほかの OS を足すときは、ここと ./platform.ts・src/foundation/desktop/platform/index.ts で選び分ける）
+    platform: () => macosPlatform(),
+    platformParts: (init, platform) => macosParts(platform, { speechHelper: init.speechHelper }),
     now: epochNow,
     // 終わる前にも書き出す（起動のあとに読んだモジュールの分）
     exit: (code) => {

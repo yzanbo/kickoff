@@ -1,7 +1,7 @@
 // macOS の Docker のエンジンの起こし方（context の名前から: OrbStack・Docker Desktop はアプリを開く、colima はコマンドをコピーしてもらう）
 import { findOrb } from "./cli";
 import { runCommand } from "@/foundation/core/system/exec";
-import type { DockerEngineStarters } from "@/foundation/core/platform/types";
+import type { DockerEngineStarters } from "./engine";
 
 /** context の名前から起こし方を決める（分からなければ null） */
 export const macosDockerStarterOf: DockerEngineStarters["starterOf"] = (context) => {

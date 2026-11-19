@@ -2,7 +2,7 @@
 
 ## 地図
 
-- `core/service.ts`: `VoiceService` が設定の `voice_provider` で `local`（`whisper-cli`＋`ffmpeg`）/ `macos`（OS の口の `speech`）/ `openai` に振り分ける。準備の確かめは `readiness.ts`、WebM は `webmToOgg.ts` で Ogg に詰め替える。
+- `core/service.ts`: `VoiceService` が設定の `voice_provider` で `local`（`whisper-cli`＋`ffmpeg`）/ `macos`（`core/macos.ts` の `macosSpeech`）/ `openai` に振り分ける。準備の確かめは `readiness.ts`、WebM は `webmToOgg.ts` で Ogg に詰め替える。
 - macOS は補助コマンド `kickoff-speech`（`native/kickoff-speech/main.swift`）。
 - `ui/`: 欄に入れる音声入力 `useFieldDictation`（質問の「その他」・送信待ちの書き直す欄で共有）・入れ方 `insertDictation`・音声モード `voiceSession.ts`（React に依存しない）・読み上げる文 `speakableText`・準備の状態 `useVoiceStatus`・設定 `ui/settings/`。
 

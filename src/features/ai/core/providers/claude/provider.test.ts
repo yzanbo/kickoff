@@ -5,7 +5,6 @@ import type { ApprovalDecision, ApiRetryInfo } from "@shared/types";
 import { fakeClaudeSdk, type FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { until } from "@/app/core/testing/testCore";
-import { MACOS_SELF_GUARD } from "@/foundation/core/platform/macos/index";
 import type { SelfInfo } from "@/features/guard/core/guard/selfProtection";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams, TurnControl } from "@/features/ai/core/providers/types";
 import { ClaudeProvider } from "./provider";
@@ -109,7 +108,7 @@ test("続き: resumeSessionId を resume に渡し、存在しないセッショ
 });
 
 test("守り: 消すコマンド・フックを飛ばす git・自分を止めるコマンドは、権限モードによらず PreToolUse のフックが断る", async () => {
-  const self: SelfInfo = { pids: [4242], dataDir: "/tmp/kickoff-self-test", port: 4317, appName: "Kickoff", guard: MACOS_SELF_GUARD };
+  const self: SelfInfo = { pids: [4242], dataDir: "/tmp/kickoff-self-test", port: 4317, appName: "Kickoff", guard: { killByName: /\b(pkill|killall)\b/, scripting: { pattern: /\bosascript\b/, label: "AppleScript" } } };
   const commands = ["rm -rf /tmp/x", "git commit --no-verify -m x", "kill -TERM 4242", "ls"];
   for (const permissionMode of ["default", "auto"] as const) {
     const fake = fakeClaudeSdk();

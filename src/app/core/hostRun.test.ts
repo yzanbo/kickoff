@@ -4,6 +4,7 @@ import { test } from "vitest";
 import { Bus } from "@/foundation/core/bus";
 import type { Core, CoreOptions } from "./startCore";
 import type { HostPlatform } from "@/foundation/core/platform/types";
+import type { CorePlatformParts } from "./platform";
 import { afterTest } from "@/foundation/core/testing/afterTest";
 import { until } from "@/app/core/testing/testCore";
 import type { CoreEvents, CoreInit, CoreMethods, HostEvents, HostMethods } from "@/foundation/core/host/protocol";
@@ -61,11 +62,12 @@ function start(startCore: (opts: CoreOptions) => Promise<Core>) {
   });
   for (const name of ["children", "awake", "notify", "stall", "browser.touch"] as const) host.on(name, (payload) => events.push({ name, payload }));
   let platformInit: CoreInit | null = null;
-  const platform = (i: CoreInit) => {
+  const platform = () => ({ startShellPath: () => ({ ready: Promise.resolve() }) }) as unknown as HostPlatform;
+  const platformParts = (i: CoreInit) => {
     platformInit = i;
-    return { startShellPath: () => ({ ready: Promise.resolve() }) } as unknown as HostPlatform;
+    return {} as CorePlatformParts;
   };
-  const done = runCoreHost(nodeRpcPort(port2), { startCore, platform, now: () => 5000, exit: (code) => void exits.push(code), timings: { processStart: 1100, modulesLoaded: 1200 }, awakeRecheckMs: 20 });
+  const done = runCoreHost(nodeRpcPort(port2), { startCore, platform, platformParts, now: () => 5000, exit: (code) => void exits.push(code), timings: { processStart: 1100, modulesLoaded: 1200 }, awakeRecheckMs: 20 });
   return { hostPort, host, port1, exits, messages, events, done, platformInit: () => platformInit };
 }
 

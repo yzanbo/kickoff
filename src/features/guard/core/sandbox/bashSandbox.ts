@@ -4,7 +4,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { gitOutput } from "@/foundation/core/workplace/exec";
-import type { AgentSandboxRules } from "@/foundation/core/platform/types";
+import type { AgentSandboxRules } from "@/features/guard/core/platformRules";
 import { realPathLoose } from "@/foundation/core/system/paths";
 
 /** プロバイダーに渡す砂場（パスはどれも実体のパス） */

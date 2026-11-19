@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import os from "node:os";
 import { test } from "vitest";
-import { MACOS_SELF_GUARD } from "@/foundation/core/platform/macos/index";
+import { MACOS_SELF_GUARD } from "@/features/guard/core/macosRules";
 import { currentSelf, evaluateSelfProtection, type SelfInfo } from "./selfProtection";
 
 const home = os.homedir();
@@ -86,7 +86,7 @@ test("evaluateSelfProtection: Kickoff が置いた kickoff-trash（保存先の 
 });
 
 test("currentSelf: メインプロセスの pid を渡せば、コアのプロセスと両方を自分にする（単体のコアは自分だけ）", () => {
-  const platform = { appBundleOf: () => null, selfGuard: MACOS_SELF_GUARD };
-  assert.deepEqual(currentSelf("/tmp/Kickoff Dev", 4318, platform, 1).pids, [process.pid, 1]);
-  assert.deepEqual(currentSelf("/tmp/Kickoff Dev", 4318, platform).pids, [process.pid]);
+  const platform = { appBundleOf: () => null };
+  assert.deepEqual(currentSelf("/tmp/Kickoff Dev", 4318, platform, MACOS_SELF_GUARD, 1).pids, [process.pid, 1]);
+  assert.deepEqual(currentSelf("/tmp/Kickoff Dev", 4318, platform, MACOS_SELF_GUARD).pids, [process.pid]);
 });

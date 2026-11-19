@@ -9,7 +9,7 @@ import { voiceUnreadyReason } from "./readiness";
 import { findVoiceTools, type VoiceTools } from "./tools";
 import type { AudioInput, TranscribeEngines } from "./types";
 import { Invalid } from "@/foundation/core/errors";
-import type { OsSpeech } from "@/foundation/core/platform/types";
+import type { OsSpeech } from "./types";
 
 interface VoiceServiceOptions {
   store: Store;

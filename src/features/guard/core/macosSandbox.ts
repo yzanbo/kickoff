@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { findExecutable, runCommand } from "@/foundation/core/system/exec";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
-import type { AgentSandboxRules } from "@/foundation/core/platform/types";
+import type { AgentSandboxRules } from "./platformRules";
 
 /**
  * 砂場の外で流すコマンド: Homebrew は入れる・上げるときに自分で sandbox-exec をかけるが、macOS は砂場の入れ子を許さず（sandbox_apply: Operation not permitted）、

@@ -6,7 +6,7 @@ import { runCommand } from "@/foundation/core/system/exec";
 import { Invalid } from "@/foundation/core/errors";
 import { audioExtension, commandFailure } from "./local";
 import { webmToOgg } from "./webmToOgg";
-import type { AudioInput, MacosOptions } from "./types";
+import type { AudioInput, MacosOptions, OsSpeech } from "./types";
 
 /** macOS の音声認識の様子（画面に出す形） */
 export type MacosSpeech = VoiceStatus["macos"];
@@ -69,4 +69,12 @@ export async function transcribeMacos(audio: AudioInput, opts: MacosOptions): Pr
   } finally {
     await fs.promises.rm(dir, { recursive: true, force: true });
   }
+}
+
+/** macOS の音声認識の口（補助コマンド kickoff-speech の場所。なければ使えない扱い） */
+export function macosSpeech(helper: string | null): OsSpeech {
+  return {
+    check: (language) => checkMacosSpeech(helper, language),
+    transcribe: (audio, language) => transcribeMacos(audio, { helper: helper ?? "", language }),
+  };
 }

@@ -6,6 +6,7 @@ import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Core, CoreOptions } from "./startCore";
 import type { HostPlatform } from "@/foundation/core/platform/types";
+import type { CorePlatformParts } from "./platform";
 import { waitForShellPath } from "@/foundation/core/system/exec";
 import { startProcessRecording } from "@/features/diagnostics/core/processRecording";
 import { startStallWatch, type StallRecord } from "@/foundation/core/system/stallWatch";
@@ -16,8 +17,10 @@ import { hostDbWorker, remoteBrowser, remoteCipher, remoteNotify } from "./hostR
 
 export interface CoreHostDeps {
   startCore: (opts: CoreOptions) => Promise<Core>;
-  /** OS の口を作る（音声認識の補助コマンドの場所は init から） */
+  /** OS の口を作る */
   platform: (init: CoreInit) => HostPlatform;
+  /** 機能だけが使う OS の値を作る（音声認識の補助コマンドの場所は init から） */
+  platformParts: (init: CoreInit, platform: HostPlatform) => CorePlatformParts;
   now: () => number;
   /** プロセスを終える（テストでは覚えるだけ） */
   exit: (code: number) => void;
@@ -126,6 +129,7 @@ export async function runCoreHost(parent: RpcPort, deps: CoreHostDeps): Promise<
       staticDir: init.staticDir ?? undefined,
       terminalEnv: init.terminalEnv,
       platform,
+      platformParts: deps.platformParts(init, platform),
       hostPid: init.hostPid,
       recoveredReason: init.recoveredReason,
       browser: remoteBrowser(rpc),

@@ -1,5 +1,17 @@
 // 文字起こしの部品どうしで使う型（画面と共有する型は types/voice.ts）
+import type { VoiceStatus } from "@shared/types";
 import type { SpeechOptions } from "./speech";
+
+/** OS の音声認識の様子（画面に出す形） */
+export type OsSpeechStatus = VoiceStatus["macos"];
+
+/** OS の音声認識（使えない OS では、check が helper: false を返す。macOS は macos.ts の macosSpeech） */
+export interface OsSpeech {
+  /** この言語で使えるか（言語は設定の値のまま） */
+  check: (language: string) => Promise<OsSpeechStatus>;
+  /** 音声を文にする（失敗したら 400） */
+  transcribe: (audio: AudioInput, language: string) => Promise<string>;
+}
 
 /** 画面から受け取った音声 */
 export interface AudioInput {

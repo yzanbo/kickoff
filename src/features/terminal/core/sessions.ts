@@ -5,7 +5,7 @@ import { statSync } from "node:fs";
 import os from "node:os";
 import * as pty from "node-pty";
 import type { TerminalStart, TerminalTabMeta } from "@shared/types";
-import type { TerminalShell } from "@/foundation/core/platform/types";
+import type { TerminalShell } from "./shell";
 import type { TerminalControl, TerminalTabInfo, TerminalTail } from "./control";
 import { TerminalOutput } from "./output";
 import { shellPathSettled } from "@/foundation/core/system/exec";
