@@ -2,22 +2,22 @@
   "version": 1,
   "files": {
     "README.md": {
-      "bytes": 10851,
+      "bytes": 10525,
       "longLines": 2,
       "forbidden": 0,
-      "brokenRefs": 4
+      "brokenRefs": 1
     },
     "docs/architecture.md": {
-      "bytes": 67553,
+      "bytes": 62305,
       "longLines": 1,
       "forbidden": 4,
-      "brokenRefs": 76
+      "brokenRefs": 2
     },
     "docs/requirements.md": {
-      "bytes": 112785,
+      "bytes": 112766,
       "longLines": 5,
-      "forbidden": 49,
-      "brokenRefs": 32
+      "forbidden": 12,
+      "brokenRefs": 0
     },
     "mobile/README.md": {
       "bytes": 4189,

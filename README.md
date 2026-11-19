@@ -52,7 +52,7 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 
 コミットと push のたびに git のフック（`.githooks/`。`npm install` が `git config core.hooksPath .githooks` を設定する）が確かめを流し、落ちたら止める。コミット時はコミットするファイルについて型・knip・テストの書き方の見張り（`scripts/check-test-rules.mjs`）・関係するテスト（`npm run test:changed:isolated`）、push 時は `npm test` とビルド（一時フォルダに出す）。コミットしない変更が混ざっていると、コミット時のフックは確かめずに止まる（コミットする中身だけにしてから）。
 
-インストールしたアプリ（本番）と開発（`npm run dev` / `npm run daemon`）は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/core/system/appEnv.ts`）。
+インストールしたアプリ（本番）と開発（`npm run dev` / `npm run daemon`）は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/foundation/core/system/appEnv.ts`）。
 
 | | 本番（`/Applications/Kickoff.app`） | 開発 |
 |---|---|---|
@@ -60,9 +60,9 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 | データ | `~/Library/Application Support/Kickoff/` | `~/Library/Application Support/Kickoff Dev/` |
 | ポート | 4317 | 4318 |
 
-データベースの版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）で持つ（`src/core/db/schema.ts`）。このアプリより新しい版の DB・Kickoff のものでない DB は、触らずに起動をやめる。
+データベースの版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）で持つ（`src/foundation/core/db/schema.ts`）。このアプリより新しい版の DB・Kickoff のものでない DB は、触らずに起動をやめる。
 
-開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/core/system/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
+開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/foundation/core/system/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
 
 このリポジトリの `.claude/settings.json` の SessionStart フックで、Kickoff に入っている Claude Code（`@anthropic-ai/claude-agent-sdk` の `claudeCodeVersion`）に新しい版が出たら、このリポジトリのチャット（製品版の Kickoff の kickoff プロジェクトも）のエージェントに知らせる（`scripts/check-agent-updates.mjs`。npm に聞くのは 24 時間に 1 回、同じ版の知らせは 1 日 1 回まで。覚えは `node_modules/.cache/kickoff/claude-update.json`）。`npm run install-app` の最後にも、新しい版があれば 1 行出す。
 
@@ -72,14 +72,14 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 
 | ディレクトリ | 役割 |
 |---|---|
-| `src/shared` | どのプロセスからも使う型（`types/`）と純粋な関数（`chat/` `project/`）、IPC の取り決め（`ipc/`）、テストのデータ（`testing/`）。Node・DOM・Electron・React に依存しない（import は `@shared/…`） |
-| `src/core` | Electron に依存しない中核。DB（`db/`）・HTTP API（`http/`）・チャットの実行（`chat/`）・プロバイダー（`providers/`）・Git（`git/`）・使用状況（`usage/`）・音声入力（`voice/`）・外部コマンドとパス（`system/`）。デスクトップ画面・スマホ・将来のネイティブアプリが同じ API を使う |
-| `src/main` | Electron のメインプロセス（起動と終了 `app/`・IPC `ipc/`・埋め込みブラウザ・ターミナル・通知・性能の記録） |
-| `src/preload` | 画面に公開する最小限のネイティブ機能（`@shared/ipc` の取り決めから作る） |
-| `src/renderer` | 画面（React）。`app/`・`api/`・`stores/`・`lib/`・`hooks/`・`ui/`・`features/<領域>/`、CSS は `styles/`（領域ごとのサブフォルダを `index.css` の `@import` の順でつなぐ。import は `@/…`） |
+| `src/shared` | 純粋な型と関数（Node・DOM・Electron・React に依らない）。コア・画面・メイン・preload・スマホが読む（import は `@shared/…`） |
+| `src/foundation` | 機能の言葉を持たない土台（コア `core/`・画面 `ui/`・メインプロセスと preload `desktop/`） |
+| `src/features` | 機能ごとのフォルダ（チャット・AI・パネル・Git・DB クライアントなど。中は `core/`・`ui/`・`desktop/`・`worker/` と `CLAUDE.md`） |
+| `src/app` | 組み立て（コアの起動 `core/`・メインの起動と preload の入口 `desktop/`・画面の入口と CSS `renderer/`）。ここだけが全部の機能を知る |
+| `mobile` | スマホのアプリ（Android。Expo。別の npm のまとまり） |
 | `native` | 音声入力の「macOS の音声認識」の補助コマンド（Swift の `kickoff-speech`。ビルドのときに `out/native` へ作る。Xcode の Command Line Tools の `swiftc` が要り、なければ作らずにビルドを続ける） |
 | `build` | アプリのアイコン（元の絵は本番 `icon.svg`・開発版 `icon-dev.svg`） |
-| `scripts` | 製品版の入れ替え（`install-app`）・アイコンの作成・開発用の Electron.app の書き換え・開発版の画面の点検（`ui-audit-buttons`・`ui-snapshot`）・補助コマンドのビルドの差し込み（`speech-helper.ts`） |
+| `scripts`・`docs` | 道具（製品版の入れ替え `install-app`・アイコンの作成・開発用の Electron.app の書き換え・開発版の画面の点検 `ui-audit-buttons`・`ui-snapshot`・補助コマンドのビルドの差し込み `speech-helper.ts`・文書と構造の検査）と文書 |
 
 設計（語彙・名前の決まり・構成）は [docs/architecture.md](docs/architecture.md)、書き方の決まりは `CLAUDE.md`（ルートと各フォルダ）。
 
