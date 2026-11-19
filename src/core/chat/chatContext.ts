@@ -113,7 +113,8 @@ function childrenTree(store: Store, chat: Chat): ChatChildEntry[] {
 
 /**
  * 指示に添える文脈の文（親も子もないチャットは null）。
- * AI からは Kickoff のチャットが見えないので、自分と親・子を名前と ID で伝える（「親チャットはどれ？」「子チャットはどれ？」に答えられるように）
+ * AI からは Kickoff のチャットが見えないので、自分と親・子を名前と ID で伝える（「親チャットはどれ？」「子チャットはどれ？」に答えられるように）。
+ * システムプロンプトでなく送るたびの指示に添える（Claude Code は続きのセッションでシステムプロンプトを取り直さず、分岐した子は親のときのままなので届かない）
  */
 export function chatContextNote(chat: ChatContext): string | null {
   const parent = chat.ancestors.at(-1);

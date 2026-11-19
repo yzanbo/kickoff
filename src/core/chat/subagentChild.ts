@@ -21,7 +21,8 @@ export interface SubagentChildInput {
 
 /**
  * サブエージェントの会話を記録から読み（Claude Code の記録。読めなければ Kickoff の記録から）、Markdown の添付にして、
- * メインのチャットの子チャットを作って聞く（会話は引き継がない。始めた位置はサブエージェントを起動した呼び出し）
+ * メインのチャットの子チャットを作って聞く（始めた位置はサブエージェントを起動した呼び出し）。
+ * 会話は引き継がない（親の会話を写すと、子チャットの AI が自分をメインエージェントだと思って答えるため）
  */
 export async function startSubagentChildChat(
   deps: { store: Store; runner: Runner; providers: Record<ProviderId, AgentProvider>; uploads: UploadStore },

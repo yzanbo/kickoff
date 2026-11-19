@@ -95,6 +95,7 @@ function realDirs(dirs: (string | null)[]): string[] {
 /**
  * このチャットの実行の砂場を作る。書ける = 作業場所・メモのフォルダ・決まりの例外（共有の .git・Claude Code のサブエージェントのワークツリー・ゴミ箱・
  * 一時フォルダ・キャッシュ・道具の状態（docker の buildx）・パッケージの置き場）。利用者の設定ファイル（~/.gitconfig・~/.zshrc・~/.claude.json など）は入れない
+ * （Claude Code の設定のフックは砂場の外で動くので、Bash で書ければ砂場を抜けられる。Edit で書くなら書き込み先の守りが承認カードで聞く）
  */
 export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, memoDir, readOnlyDirs }: { workdir: string; memoDir: string | null; readOnlyDirs: string[] }): Promise<BashSandbox> {
   const home = os.homedir();
