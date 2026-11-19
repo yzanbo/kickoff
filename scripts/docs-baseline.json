@@ -2,8 +2,8 @@
   "version": 1,
   "files": {
     "CLAUDE.md": {
-      "bytes": 13114,
-      "ancestors": 13114,
+      "bytes": 13063,
+      "ancestors": 13063,
       "longLines": 4,
       "forbidden": 0,
       "brokenRefs": 0
@@ -28,7 +28,7 @@
     },
     "mobile/CLAUDE.md": {
       "bytes": 9979,
-      "ancestors": 23093,
+      "ancestors": 23042,
       "longLines": 5,
       "forbidden": 5,
       "brokenRefs": 0
@@ -41,182 +41,168 @@
     },
     "src/core/CLAUDE.md": {
       "bytes": 31042,
-      "ancestors": 44156,
+      "ancestors": 44105,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/core/chat/CLAUDE.md": {
       "bytes": 20018,
-      "ancestors": 64174,
+      "ancestors": 64123,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/core/providers/CLAUDE.md": {
       "bytes": 8622,
-      "ancestors": 52778,
+      "ancestors": 52727,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/main/CLAUDE.md": {
       "bytes": 49819,
-      "ancestors": 62933,
+      "ancestors": 62882,
       "longLines": 34,
       "forbidden": 16,
       "brokenRefs": 2
     },
     "src/renderer/src/CLAUDE.md": {
-      "bytes": 17185,
-      "ancestors": 30299,
+      "bytes": 17223,
+      "ancestors": 30286,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/board/CLAUDE.md": {
       "bytes": 3629,
-      "ancestors": 33928,
+      "ancestors": 33915,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/chat/CLAUDE.md": {
       "bytes": 31794,
-      "ancestors": 62093,
+      "ancestors": 62080,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/chatList/CLAUDE.md": {
       "bytes": 2002,
-      "ancestors": 32301,
+      "ancestors": 32288,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
-    "src/renderer/src/features/ci/CLAUDE.md": {
-      "bytes": 7290,
-      "ancestors": 37589,
-      "longLines": 5,
-      "forbidden": 0,
-      "brokenRefs": 1
-    },
     "src/renderer/src/features/database/CLAUDE.md": {
       "bytes": 4141,
-      "ancestors": 34440,
+      "ancestors": 34427,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/docker/CLAUDE.md": {
       "bytes": 1707,
-      "ancestors": 32006,
+      "ancestors": 31993,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/editor/CLAUDE.md": {
       "bytes": 4681,
-      "ancestors": 34980,
+      "ancestors": 34967,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/github/CLAUDE.md": {
-      "bytes": 21165,
-      "ancestors": 51464,
-      "longLines": 14,
-      "forbidden": 2,
+      "bytes": 2921,
+      "ancestors": 33207,
+      "longLines": 0,
+      "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/memo/CLAUDE.md": {
       "bytes": 3374,
-      "ancestors": 33673,
+      "ancestors": 33660,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/palette/CLAUDE.md": {
       "bytes": 1086,
-      "ancestors": 31385,
+      "ancestors": 31372,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/panel/CLAUDE.md": {
-      "bytes": 11567,
-      "ancestors": 41866,
+      "bytes": 11515,
+      "ancestors": 41801,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
-    "src/renderer/src/features/popout/CLAUDE.md": {
-      "bytes": 21276,
-      "ancestors": 51575,
-      "longLines": 13,
-      "forbidden": 10,
-      "brokenRefs": 0
-    },
     "src/renderer/src/features/project/CLAUDE.md": {
       "bytes": 2313,
-      "ancestors": 32612,
+      "ancestors": 32599,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/settings/CLAUDE.md": {
       "bytes": 2717,
-      "ancestors": 33016,
+      "ancestors": 33003,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/sidebar/CLAUDE.md": {
       "bytes": 5109,
-      "ancestors": 35408,
+      "ancestors": 35395,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/snippet/CLAUDE.md": {
       "bytes": 1423,
-      "ancestors": 31722,
+      "ancestors": 31709,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/terminal/CLAUDE.md": {
       "bytes": 2024,
-      "ancestors": 32323,
+      "ancestors": 32310,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/trash/CLAUDE.md": {
       "bytes": 1984,
-      "ancestors": 32283,
+      "ancestors": 32270,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/features/worktree/CLAUDE.md": {
       "bytes": 1903,
-      "ancestors": 32202,
+      "ancestors": 32189,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
     },
     "src/renderer/src/styles/CLAUDE.md": {
       "bytes": 28170,
-      "ancestors": 58469,
+      "ancestors": 58456,
       "longLines": 6,
       "forbidden": 6,
       "brokenRefs": 0
     },
     "src/shared/CLAUDE.md": {
       "bytes": 37106,
-      "ancestors": 50220,
+      "ancestors": 50169,
       "longLines": 18,
       "forbidden": 10,
       "brokenRefs": 0

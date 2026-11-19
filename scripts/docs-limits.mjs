@@ -29,7 +29,6 @@ export const DOC_LIMITS = [
   { path: "src/renderer/src/features/palette/CLAUDE.md", max: 1.5 * 1024 },
   { path: "src/renderer/src/features/snippet/CLAUDE.md", max: 1.5 * 1024 },
   { path: "src/renderer/src/features/trash/CLAUDE.md", max: 2 * 1024 },
-  // features/popout・features/ci の CLAUDE.md は、ほかの CLAUDE.md へ合わせて消すので目標を置かない（消すまで既定の上限のまま）
   // 末尾の「決めたこと（測った数）」に、CLAUDE.md から移す測った数を書き足すため一時に緩める
   { path: "docs/architecture.md", max: 68 * 1024 },
 ];

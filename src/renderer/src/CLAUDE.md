@@ -14,7 +14,7 @@
 | `hooks/`・`ui/` | ドメインを知らない hooks・部品 |
 | `features/<領域>/` | 領域ごとの部品と hooks |
 
-`CLAUDE.md` のない小さな領域の説明は: `dictation/`・`fileLinks/` → `chat/`、`group/` → `sidebar/`、`history/` → `editor/`、`usage/`・`footer/`・`diagnostics/` → `settings/`、`browser/`・`openWith/` → `terminal/`。
+`CLAUDE.md` のない領域の説明は: `dictation/`・`fileLinks/` → `chat/`、`group/` → `sidebar/`、`history/` → `editor/`、`usage/`・`footer/`・`diagnostics/` → `settings/`、`browser/`・`openWith/` → `terminal/`、`ci/` → `github/`、`popout/` → `panel/`。
 
 - 依存の向きは `app → features → stores / api / ui / hooks / lib → @shared`。app の全体のもの（`useRoute`・`openChat`・`useChatStates`）は features から読んでよい。
 - import は同じフォルダなら `./`、それ以外は `@/…`、プロセスをまたぐものは `@shared/…`。`../` でたどらない。

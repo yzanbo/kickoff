@@ -1,33 +1,37 @@
-# GitHub（`features/github`）
+# GitHub・CI（`features/github`・`features/ci`）
+<!-- 行き先: src/features/github/ -->
 
-プロジェクトの「GitHub」タブ（`#/projects/:id/github`）と、チャットの画面の右の欄の GitHub のタブ（`features/panel/CLAUDE.md` のタブの種類 `github`）。連携先のリポジトリの issue・PR を「issue｜PR」で切り替えて見る。要件定義書の「5.11 GitHub」の段階 1「読む」・段階 2「AI に渡す」・段階 3「書く」まで作った。コアは `src/core/CLAUDE.md` の「GitHub タブ」、API は `api/github.ts`。
+プロジェクトの「GitHub」タブ（issue・PR）と右の欄の GitHub のタブ、「CI」タブ。コアは `src/core/CLAUDE.md` の「GitHub タブ・CI のタブ」、API は `api/github.ts`・`api/ci.ts`。
 
-- この Mac のアプリの中だけ（`window.kickoff`）。ブラウザ・スマホから開いたときはタブも右の欄の項目も出さない（コアの口は端末（スマホ）に開かない。DB クライアントと同じ）。
-- `GitHubTab`: 初めに連携を確かめ（`api.githubConnection`）、使えなければ（remote がない・gh がない・ログインしていない）理由と直し方・「もう一度確かめる」を `EmptyState` で出す。使えれば `GitHubBrowser`: 左に一覧（幅はつまみ `GITHUB_LIST_WIDTH`）、右に開いたものの中身。中身の欄に 440px（`DETAIL_MIN_WIDTH`。CI のタブも同じ値）が残らない幅（右の欄など）では、一覧と中身を切り替えて 1 つずつ出す（中身の見出しの ← で一覧へ。`hooks/useNarrowSplit`）。隠れて幅 0 の間は切り替えない。広いときは、一覧の上の行の右端のボタンで一覧を隠せる（`GITHUB_LIST_HIDDEN`。隠している間は左端の細い帯 `ui/ListRail` から戻す。狭くて切り替えているときは出さず、隠していても一覧を出す。利用者の依頼）。
-- 一覧の上の行: リポジトリの名前は GitHub のリポジトリのページへのリンク、右の印（「この一覧を GitHub で開く」）はいまの絞り込みの一覧のページ（issue は `/issues`、PR は `/pulls` に、同じ絞り込みの検索の文を `q` で）を外のブラウザで開く。URL は純粋関数の `githubLinks.ts` の `githubRepoUrl` / `githubListUrl`（連携先のホストから組む。テストあり）。
-- 絞り込み（`GitHubFilterBar`）: issue｜PR の切り替え・件数・取り直し、検索の欄、札（状態・自分・ラベル・担当・マイルストーン・並べ方。ラベル・担当・マイルストーンはいくつも選べ、メニューは選んでも閉じない。担当・マイルストーンの複数は「どれか」、ラベルの複数は「すべて」。既定から変えた札は色を付け、「絞り込みを外す」）。検索の欄は札も含めた検索の文（`is:open label:bug ログイン` のように。`@shared/github/searchQuery` の `githubSearchText`。リポジトリ・種類は出さず、並べ方は既定から変えたときだけ）で、札を変えると欄の文も変わり、欄を書き換えると（打つのが止まって 0.5 秒か Enter）`parseGitHubSearchText` で札に戻して残りを検索の文にする（仕様書 6。状態の語を消せば「すべて」。同じ意味の書き方なら打っている途中の文は崩さない）。GitHub の検索の書き方（`is:draft` など）もそのまま使える。保存した前の形（1 つだけの `assignee` / `milestone`）も読む（`lib/githubFilters.ts`）。候補は `api.githubMeta`。絞り込みは issue と PR で別々に、プロジェクトごとに覚える（`githubFilters(プロジェクト)`。形と既定・読み直しは `lib/githubFilters.ts`、GitHub の検索の文にするのは `@shared/github/searchQuery`）。開いているものも覚える（`githubSelected(プロジェクト)`。「issue:12」「pr:5」）。プロジェクトのタブと右の欄で同じ値。
-- 一覧（`useGitHubList` ＋ `GitHubItemRow`）: 状態のアイコン（issue の開いている / 完了 / 対応しない、PR の下書き / 開いている / マージ済み / 閉じた。`GitHubStateIcon`）・題名・ラベル（GitHub の色）・番号・作った人・更新・担当・PR はレビューとチェックの成否・コメント数。50 件ずつで、下まで送ったら続きを読む（「続きを読む」のボタンが見えたら読む `hooks/useWhenVisible`。押しても読める。仕様書 6）。同じ絞り込みで取り直して新しくなった行（更新の時刻が変わった・前の一覧のいちばん新しい更新より後に更新されて入ってきた）は、4 秒ほどアクセントの色で塗って薄れさせる（`useGitHubList` の `fresh`、`GitHubItemRow` の `.fresh`。見分けは純粋関数の `githubFresh.ts` の `freshItemNumbers`、テストあり。初めて読んだとき・絞り込みを変えたときは塗らない。仕様書 6）。結び付いたチャットがある行は右上に印（`.github-item-chats`。「チャット」、2 つ以上なら数。乗せるとチャットの名前、押すといちばん最近動いたチャットを開く。行のボタンの中にボタンを置かないよう、行の入れ物 `.github-item-wrap` に重ねる）。結び付きはチャットの店から、この一覧のリポジトリの「種類:番号」で引く。
-- 中身（`useGitHubDetail` ＋ `GitHubDetail`）: 見出しに題名・状態・作った人・ラベル・担当・マイルストーン・issue を閉じる PR（`GitHubDetailBadges` の `GitHubLinkedPulls`。押すと Kickoff の中でその PR を開く）、PR はブランチ（fork なら持ち主を添える）・増減・ファイル数・レビュー・マージできるか（開いている PR だけ。`merge_state` を `GITHUB_MERGE_STATE_LABELS` の文で、通る / 確かめ中 / 止まっている（保護ルール・base より古い・衝突など）の色。`GitHubMergeBadges`）・承認の数・衝突。別の issue・PR に移ったときは、コアが最後に取った中身（`api.githubCachedDetail`。10 分まで）があれば「更新中…」を付けてすぐ出し、GitHub の答えで差し替える（仕様書 12。覚えの答えは頼みの番号でなく「同じもので、まだ中身を出していないか」で受ける。開発版の StrictMode で取り直しが 2 回走り、番号で見ると捨てていた）。issue は本文と会話の流れ（`GitHubTimeline`: コメント・レビュー（その行のスレッドも）・コミット・出来事）、PR は「会話 / 変更 n / チェック n」の切り替え。
-  - 変更（`GitHubPullChanges`）: 上にレビューの帯、左に変えたファイルの木（`GitHubPullFileTree`。変更タブ・履歴の詳細と同じ `FileTree` と印。GitHub の変わり方を印にするのは純粋関数の `pullFiles.ts`、テストあり。押すとそのファイルの差分へ移り、畳んでいれば開く。帯の頭のボタンで閉じられ（`GITHUB_FILES_TREE_HIDDEN`）、幅はつまみ（`GITHUB_FILES_WIDTH`）、560px より狭い欄では出さない。仕様書 8）、右にファイルごとの見出し（開閉・名前の変更・状態・スレッドの数・増減。流しても上に残る）と 1 列の差分（`features/editor` の `UnifiedDiff` と `useDiffHighlight` を使い回す）。行のスレッドはその行の下に出す（解決済みのスレッドは会話の流れでも差分の中でも畳み、見出しとコメントの数だけ。▸ で開く。`GitHubThread`。仕様書 8）（RIGHT は新しい側の行、LEFT は古い側の行。割り当ては純粋関数の `pullThreads.ts`、テストあり）。いまの差分にない行へのスレッド（古い差分・差分の外）はファイルの下にまとめる。20 ファイルより多い PR は初めは畳む。読むのは「変更」を開いたときで、PR の最新のコミット（`head_sha`）が変わったら読み直す。大きすぎる・バイナリのファイルは GitHub で見るよう出す。
-  - チェック（`GitHubChecksList`）: 落ちた → 途中 → 通った → ほか の順に、ワークフロー / 名前・説明・所要時間（動いているものは今までに「〜」。純粋関数の `githubChecks.ts` の `checkDuration`、テストあり）・GitHub の詳細へのリンク。GitHub Actions のチェック（`run_id` があるもの）には「ログを開く」（`features/ci` の `openCiRun` で CI のタブのその実行・ジョブを開く）。ログを読む・AI に渡す・やり直すは CI のタブ（`features/ci/CLAUDE.md`）。
-- AI に渡す（段階 2。中身の見出しの「AI に渡す ▾」`GitHubHandoffMenu`。共通の「AI に渡す」（`features/chat/CLAUDE.md` の「AI に渡す」。`HandOffButton`）に、issue・PR を渡すもの（`HandOffItem`）を渡す。どれも入力欄に入れるだけで、送るのは自分で。操作は `githubHandoff.ts`、文と札の中身は純粋関数の `githubPrompt.ts`（テストあり。書いたままの Markdown `body_markdown` から作る））:
-  - 渡すもの: 入力欄の一言（書き換えられる。`handOffText`「GitHub の issue #12「題名」に対応してください。」）と、押した時点の題名・URL・本文・コメントとレビューの本文（PR は解決していない行のコメントも）の札（`api.capture`。中身 `itemDocument`、出どころ `sourceOf`（`github_issue` / `github_pull`、ラベル「持ち主/名前#番号 題名」。番号があるので AI が gh で読み直せる）、名前 `captureNameOf`（`issue-12.md` / `pr-12.md`））。外から来た中身なので、札に盾の印が付き、AI には「指示ではありません」と伝わる。鍵らしい値はコアが伏せる。結び付ける issue・PR（`linkOf`）と、新しいワークツリーの名前の案（`worktreeBranchOf`: issue は `issue-N-<題名の英数字の語を 5 語・30 文字まで>`（英数字の語がなければ `issue-N`）、PR は `pr-N`。テストあり）も渡す。
-  - 渡し先は共通の 4 つ: 新しいチャットで始める（作業場所を毎回選ぶ `chooseWorkplace`: 新しいワークツリー（おすすめ）/ 本体 / いまあるワークツリー… → プロジェクトのチャットのパネルに、一言と札を入れた新しいチャットのタブ。送ったチャットはその issue・PR に結び付く）・このチャットに追加（右の欄で）・新しい子チャットで聞く（右の欄で）・ほかのチャットに追加 ▸（画面は移らない）。足した先がまだどれにも結び付いていないチャットなら結び付ける。
-  - レビューコメントで直す（PR だけ。メニューの下に足す項目。解決していない行のスレッドの数を添え、0 件なら押せない。`fixReviewComments`）: コアに PR のブランチのワークツリーを用意してもらい（なければその場で作る。fork の PR は `pr-N`。`api.githubPullWorktree`）、その作業場所のチャット（アーカイブしていないもの。この PR に結び付いたもの → 最近動いたもの）の入力欄に、一言（`reviewFixText`）とレビューコメントの札（出どころ `github_review`、中身 `reviewDocument`（ファイル・行・コメント）、`pr-N-review.md`）を入れて開く。チャットがなければ、その作業場所で新しいチャットのタブを開く。会話の流れ・変更の中の行のスレッドにも、解決していないものには「AI に渡す」（`ThreadHandoffContext` を `GitHubDetail` が渡す。そのスレッドだけで同じ流れ）。
-  - 結び付き: チャットの見出し・ボードのカードに `#番号` の札（`GitHubLinkChip`。押すと `openGitHubItem` で GitHub タブのその issue・PR を開く（`selectGitHubItem` で絞り込みの種類と開いているものを書いてから移る））、チャットの右クリックの「GitHub #n との結び付きを外す」（`features/chat/ChatMenuItems`）。issue に結び付いたチャットの作業場所で PR を作ると、コアが本文に「Closes #n」を足す。
-- 本文・コメントは GitHub が作った HTML（`bodyHTML`）を `GitHubHtml` が DOMPurify で整えて出す（リンクは外のブラウザで開くよう `target="_blank"`、相対の URL は中身のホストのページに直す（`GitHubBodyContext`。`DetailBody` が中身の URL のホスト・リポジトリ・プロジェクトを渡す。既定は github.com）。画像は CSP の `img-src` で github.com・`*.githubusercontent.com` を許している。GitHub Enterprise を足すときは、そのホストも足す。連携先のリポジトリの中のファイルを指す画像（非公開のリポジトリは鍵がないと読めない）は、コアの口 `GET /api/projects/:id/github/image?url=` から読む（`githubLinks.ts` の `githubImageSource`、テストあり。コアが gh api で取る。鍵は画面に渡さない。仕様書 12）。本文に貼った画像は GitHub の署名つきの URL なのでそのまま）。
-- 本文・コメントへの操作（`useGitHubBodyActions`。中身の本文の入れ物 `DetailBody` に付ける。PR の「変更」の行のスレッドにも効く）:
-  - このリポジトリの issue・PR へのリンク（「#12」など。見分けは純粋関数の `githubLinks.ts` の `githubItemRef`（テストあり）: 同じホスト（中身の URL のホスト）・同じ「持ち主/名前」の `/issues/N`・`/pull/N`。後ろの `/files`・`#…` は問わない）を押すと、Kickoff の中で開く（`selectGitHubItem`。いま見ている GitHub タブ・右の欄のまま、そのものに切り替える）。ほかのリポジトリ・コミット・ユーザーなどのリンクと、⌘・Shift などを押しながら押したときは、今までどおり外のブラウザ（要件 5.11 の「#番号 は Kickoff の中で開く」。利用者の依頼で段階 1 の残りを足した）。
-  - 文を選んで右クリック: 見出し「選んだ文」の下に、共通の「AI に渡す」の渡し先のうち「このチャットに追加」（右の欄で）と「ほかのチャットに追加 ▸」（`HandOffItems` の `hide` で新しいチャット・子チャットを出さない）とコピー。足すのは、どの issue・PR の文かを頭に添えた引用（`githubPrompt.ts` の `quotePrompt`。1 つの本文の中なら `selectionToMarkdown` で Markdown に戻す。本文をまたいだら文のまま）で、札にはしない（短く、自分の言葉と混ぜて書くもの）。チャットは結び付けない。文を選んでいなければメニューを出さない（要件 5.11 の段階 2 の「本文で選んだ文の右クリック」）。
-- 書く（段階 3。書き込みの API は `api/github.ts` の `github…`。書いたら中身を取り直す（`useGitHubDetail` の `refresh`）。閉じる・開き直す・ラベル・スレッドの解決・マージのボタンは、そのアカウントに GitHub が許しているときだけ出す（中身の `viewer`・スレッドの `can_reply` / `can_resolve`・PR の `can_merge`。書けない人のリポジトリではコメントと返信だけ）:
-  - Markdown の書く欄は `GitHubMarkdownField`（「書く｜プレビュー」。プレビューは Kickoff の `Markdown`。⌘Enter で送る）。コメント・issue の本文・レビュー・返信・行のコメントで同じもの。
-  - 会話の下のコメント欄（`GitHubCommentBox`。issue も PR の「会話」も）: 「コメント」、書いた文があれば「コメントして閉じる / 開き直す」。issue の閉じ方は ▾ で「完了 / 対応しない」（ボタンそのものは完了）。マージ済みの PR は閉じる・開き直すを出さない。
-  - 見出し: 「URL をコピー」（`CopyButton`）と、ラベルの札（`GitHubLabelPicker`。リポジトリのラベルをチェックの一覧で続けて切り替え、閉じたときに変わっていれば付けるものすべてで置き換える）。PR は「チェックアウト」「マージ…」（`GitHubPullActions`）。
-  - 新しい issue（`NewIssueDialog`。題名・本文・ラベル・担当（同じ `GitHubLabelPicker` の `kind="assignees"`））: 一覧の上の ＋（作ったら issue の一覧に切り替えてその issue を開く）と、メモの本文・チャットの発言の右クリックの「issue にする」（`IssueFromTextItem`。選んだ文、なければメモ全体・発言の全体を本文に入れ、作る前に直せる。この Mac のアプリの中だけ）。連携先が使えなければ理由を出して作らせない。
-  - ダイアログ（新しい issue・マージの確認）は `githubDialogs.ts` の `openNewIssue` / `openMergeDialog` で頼み、App と別ウィンドウに 1 つずつ置く `GitHubDialogHost` が描く（GitHub タブの外のメモ・チャットからも開くため）。
-  - マージ（`MergeDialog`。決定 ⑦: いつも確認）: 方式はリポジトリが許すものだけで、前回の方式をプロジェクトごとに覚える（`githubMergeMethod`。許していなければ許すものの初め `pickMergeMethod`）。下書き・衝突・CI が落ちた / 途中・変更依頼・承認なし・ブランチが古い・保護ルールの止まりを、確認の中に色で出す（純粋関数 `githubMerge.ts` の `mergeWarnings`。テストあり）。見ていた最新のコミット（`head_sha`）で頼むので、確認のあとに積まれたら GitHub が断る。断られたら GitHub の理由（保護ルールの説明など）をそのまま出す。マージしたら、プロジェクトの PR の見張りがオンならコアがその場で聞き直し、そのブランチのワークツリーがあれば「片付ける」の確認が自動で出る（`features/worktree` の `PrNoticeHost`）。見張りを切っていれば、そのワークツリーを消す確認（`confirmRemoveWorktree`）をここから出す。
-  - チェックアウト（`githubCheckout.ts`。決定 ⑧）: 取るたびに「新しいワークツリー / 本体」を選び（既定の印は付けない）、本体ならまだコミットしていない変更と本体で作業中のチャット（子チャットも）を確認で知らせる（文は `mainCheckoutNotes`）。fork の PR も取れる（コアが `pr-N` に）。取ったら「ここで新しいチャット」（入力欄は空のまま、PR に結び付けて、その作業場所で新しいチャットのタブを開く `features/chat/handoff/workplace.ts` の `openSeededChat`）。
-  - レビュー（「変更」。`GitHubReview.tsx`）: 差分の行（選べば行の範囲。変更後の行を含めば変更後の側）を右クリックして「n 行目にレビューのコメントを書く」→ その行の下の欄で「レビューにためる」（どの行かは差分の表の `data-no` / `data-side` から読む `reviewLines.ts`。テストあり）。ためた行のコメントは下書きの印つきで行の下に出し、消せる。プロジェクトと PR ごとに画面の保存（`githubReviewDraft`）に置くので、会話へ移っても・アプリを閉じても残る。上の帯（`GitHubReviewBar`。流しても上に残る）の「レビューを書く」で本文と「コメント / 承認 / 変更依頼で送る」。行のコメントもまとめて 1 回で送り、送ったら書きかけを消す。
-  - 行のスレッドへの返信と解決（`GitHubThreadActions`。決定 ⑥: 人がする）: スレッドの下の「返信」（書く欄を開く）と「解決済みにする / 解決を戻す」。会話の流れのスレッドにも「変更」の差分の中のスレッドにも出す（`ThreadActionsContext` を `GitHubDetail` が渡す）。
-- 取り直し（`useGitHubRefresh`。CI のタブも使う。間隔は `every` で変えられる）: 開いたとき・取り直しのボタン・窓に戻ったとき・開いている間は 1 分ごと（Kickoff が前にあるときだけ）。取り直している間は前の中身のまま「更新中…」を出し、古い応答は捨てる。一覧はコアが ETag で変わっていないことを確かめて覚えたものを返すので、1 分ごとでも GitHub の使用量はほとんど増えない。
-- CSS は `styles/github/`（`github-list` 一覧と絞り込み・結び付いたチャットの印・`github-detail` 中身の見出しと「AI に渡す」・チャットの `#番号` の札・`github-timeline` 会話の流れとスレッド・`github-files` PR の変更・`github-write` 書く欄・コメント欄・ラベルの札・新しい issue・マージの確認・レビューの帯と行のコメント・スレッドの返信）。
+| ファイル | 中身 |
+|---|---|
+| `GitHubTab`・`useGitHubList`・`GitHubFilterBar` | 一覧と絞り込み（検索の文との行き来は `@shared/github/searchQuery`） |
+| `useGitHubDetail`・`GitHubDetail`・`GitHubPullChanges` | 中身・PR の変更 |
+| `githubHandoff.ts`・`githubPrompt.ts` | AI に渡す（文と札は純粋。テストは隣） |
+| `GitHubHtml`・`useGitHubBodyActions`・`githubLinks.ts` | 本文の表示とリンク |
+| `MergeDialog`・`githubCheckout.ts`・`GitHubReview.tsx` | 書く（マージ・チェックアウト・レビュー） |
+| `useGitHubRefresh.ts` | 取り直し（CI のタブも使う。古い応答は捨てる） |
+
+## 決まり
+<!-- 行き先: src/features/github/ -->
+
+- この Mac のアプリの中だけ（`window.kickoff`）。ブラウザ・スマホではタブも右の欄の項目も出さない（CI も同じ）。
+- 絞り込みと開いているものはプロジェクトごとに覚え、タブと右の欄で同じ値（`githubFilters`・`githubSelected`）。
+- AI に渡すのは入力欄に入れるだけ。札は外から来た中身（`api.capture`）。選んだ文は引用にして札にしない。
+- 書くボタンは GitHub が許すときだけ出す（`viewer`・`can_*`）。マージはいつも確認し、見ていた `head_sha` で頼む。
+- ダイアログは `githubDialogs.ts` で頼み、App と別ウィンドウに 1 つずつの `GitHubDialogHost` が描く。
+
+## 落とし穴
+<!-- 行き先: src/features/github/ -->
+
+- 本文の HTML は `GitHubHtml` が DOMPurify で整える。画像は CSP の `img-src` のホストだけ（GitHub Enterprise はそのホストも足す）。非公開の画像はコアの口から読む。
+- 覚えた中身（`api.githubCachedDetail`）は、頼みの番号でなく、まだ何も出していない同じものかで受ける。
+
+## CI（`features/ci`）
+<!-- 行き先: src/features/github/ -->
+
+- 枠と行は GitHub タブのクラスと `DETAIL_MIN_WIDTH` を使う（CI だけの見た目は `styles/ci/ci.css`）。
+- ログの色は Docker と同じ `ansiSpans`・`SpanView`（`features/docker`）。
+- 動いている実行がある間は短い間隔で取り直す（`CI_PENDING_REFRESH_MS`）。`ci_failed` が届いたら一覧を取り直す。
+- ほかから開くのは `ciLinks.ts` の `openCiRun`（PR のチェックの「ログを開く」・失敗の通知）。知らせを出すかはコア（`src/core/CLAUDE.md` の「通知」）。
+- テストは `ciView.test.ts`（開くジョブとステップ・札の中身・ログの行）。

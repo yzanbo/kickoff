@@ -2,7 +2,7 @@
 <!-- 行き先: src/features/panel/ -->
 
 タブを並べる欄。8 つの欄（`board`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`memos`・`files`・別ウィンドウ `window`・`chatWindow`）は同じ `Panel` / `usePanel` で、違いは `SURFACES` と欄の殻が渡す `frame` だけ。
-タブの中身のチャットは `features/chat/CLAUDE.md`、ターミナル・ブラウザは `features/terminal/CLAUDE.md`、別ウィンドウは `features/popout/CLAUDE.md`。
+タブの中身のチャットは `features/chat/CLAUDE.md`、ターミナル・ブラウザは `features/terminal/CLAUDE.md`。
 
 | フォルダ | 中身 |
 |---|---|
@@ -16,7 +16,7 @@
 ## 欄の決まり（`SURFACES`）
 <!-- 行き先: src/features/panel/ -->
 
-- 欄ごとの違い（出す種類 `kinds`・Esc・最後のタブを閉じたら・始めるもの・閉じる / 分けるボタン・大きくする・案内・札・クラス）は、作る側・描く側で分岐させず `SURFACES` に集める。
+- 欄ごとの違い（出す種類 `kinds`・Esc・ボタン・札など）は、作る側・描く側で分岐させず `SURFACES` に集める。
 - 欄ごとに出すタブは 1 種類（`board` = チャット・`side` = ブラウザ・`bottom` = ターミナル）。新しいタブ・空の欄のボタンもその種類だけ。
 - ブラウザのタブはどこから開いても右サイドバーに開く（`state/openBrowserTab.ts`）。ターミナルは下のパネルに開く。
 - 状態は `panelKey(surface, scope)` で欄・画面ごとに覚える。`memoryPrefix` は下書きの保存のキーにも使うので変えない。
@@ -35,7 +35,7 @@
 ## タブの種類（`tabs/tabKinds.ts`）
 <!-- 行き先: src/features/panel/ -->
 
-- 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（キー・アイコンと名前・プロジェクト・チャット・中身を作る時・後始末・まとまり・`popout`・`badge`）は、種類で分岐させず `TAB_KINDS` から引く。中身は `PanelTabPage` の `PAGES`。
+- 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（キー・名前・後始末・`popout` など）は、種類で分岐させず `TAB_KINDS` から引く。中身は `PanelTabPage` の `PAGES`。
 - キーはチャットが `chatKey(id)`（1 チャット 1 タブ）、サブエージェントが `agentTabKey`、ほかは `newTabKey`（ターミナルのキーは裏のシェルのキーにも使う）。
 - 種類を足すときは、作る関数・`panelActions` の `open…`・`app/popout.ts`・`app/PopoutApp.tsx`・`features/popout/dockPopout.ts`・`tabWindow.ts`・`app/userViewCollect.ts` も直す。
 - ほかにも `agents/AgentPanelAdds.tsx`・`features/worktree/repointTabs.ts`・`layout/tabTransfer.ts`・`lib/storageKeys.ts` の保存の型・`PaneTab.tsx` の名指しを見る。
@@ -58,7 +58,7 @@
 - 配置は木とピントのあるペイン `focused`・一覧のペイン `home`（`paneTree.ts`）。木はタブのキーだけを指し、1 つのタブは 1 つのペインにだけある。
 - 変え方は純粋関数（`paneLayout.ts`・`paneSizes.ts`）、位置と落とす場所は `paneGeometry.ts`。最後の 1 つのペインは消さない。
 - タブの中身はいつも中身の直下に置いて style で重ね、分けても作り直さない（`PanelTabPage` のコメント）。
-- ドラッグ中だけ中身の上に透明の覆いを置く（webview の上でも落とせる。`useTabDrag`）。絵は `startDragGhost`、別ウィンドウで開けるタブはサムネイル（`tabThumbnail.ts`）。
+- ドラッグ中だけ中身の上に透明の覆いを置く（webview の上でも落とせる。`useTabDrag`）。
 - パネルの外からタブにして落とすものは `beginExternalTabDrag` で知らせ、落としたらタブを開いてから移す。
 - ウィンドウの外へ離すと別ウィンドウで開く（`tabDragOut.ts`）。ほかのウィンドウの欄へは `tabTransfer.ts`（落とした側が開き直し、元は後始末なしで閉じる）。
 - 落とす位置は見た目の並びで印を付け、`paneIndexOf` でペインの並びに直す（まとまりの境目は `insertSlotAt`）。
@@ -66,10 +66,8 @@
 ## タブの列（`tabs/PaneTabBar`）
 <!-- 行き先: src/features/panel/ -->
 
-- 並びは、左の道具（`PanelTools`。左上のペインだけ）→ タブ → 新しいタブ（`PanelTabAdds`）→ 分割と閉じる（右上のペインだけ）。
 - 表示の選び方は「表示」のメニュー（`usePanelViewMenu`）1 つにまとめ、右クリックの「タブの表示 ›」と同じ `TabDisplayItems` を使う。項目を足したら `usePanelViewReset` にも足す。
-- タブが増えたら細くして収める（タブごとに `container: panel-tab`）か、横にスクロールする（`PANEL_TAB_OVERFLOW`）。
-- 表示中のタブと画面を 1 枚の面に見せる（`side-panel-tab-sheet.css`。境目は枠でなく影）。色のあるタブは `--tab-color` 1 つで示す。
+- 色のあるタブは `--tab-color` 1 つで示す（タブと画面の面は `side-panel-tab-sheet.css`）。
 - タブの列を隠す欄（`hideableTabs`）では、隠している間は覚えた横幅いっぱいを効かせない（`usePanelWidth` の `maximizable`）。
 
 ## タブのまとまり（`clusters/`）
@@ -94,9 +92,17 @@
 - タブで選んだチャットを URL にするが、はじめて描いたときは変えない（`useBoardPanel.ts` のコメント）。
 - 幅と覆う決まりは `hooks/useCoverableWidth` で共通。開閉で動いている間は開き終えたときの幅のまま切り取り、中身を並べ直さない。
 - 右サイドバー（`ProjectChat`）と下のパネル（`BottomPanel`）は閉じても要素を残す（書きかけ・シェルをなくさない）。
-- 右サイドバーの中身はアイコンの列（`SideRail`。並びはプロジェクトのタブと共通）で選び、ブラウザはほかを見ている間も隠して置く。
+- 右サイドバーのブラウザは、ほかの中身を見ている間も隠して置く（中身は `SideRail` で選ぶ）。
 - 右の欄（`AgentSplit`）はチャットのタブの中の入れ子のパネルで、`PanelHostContext` で受ける（理由は `panelHost.ts`）。パネルの外では置かない。
 - キーはピントのあるいちばん内側の欄だけが受け取る（`focusedPanelKey`・`focusInNestedPanel`）。外側の欄の CSS は `:not(:where(.agent-panel *))` で内側に効かせない。
 - 右の欄の ⌘F（`AgentPanelFind`）はエディタ・子チャットの検索に任せる。親のチャットの画面のキーは右の欄の中で受け取らない（`isChatTarget`）。
 - 右サイドバーと最大表示の下のパネルの上の行は `.panel-window-titlebar` にそろえ、信号機・戻る / 進むと重ねない。
 - 欄の開閉の動きは `--panel-motion-duration` / `--panel-motion-ease` にそろえる（`styles/CLAUDE.md`）。
+
+## 別ウィンドウ（`features/popout`・`app/popout*.ts`）
+<!-- 行き先: src/features/panel/ -->
+
+- 行き先は `#/popout/<種類>`（`app/popout.ts`）。`PopoutApp` は App の一部だけを描き、URL を画面として購読しない。
+- メインの画面・ダイアログを動かす操作は `app/windowBus.ts` でメインに頼む（中身はウィンドウをまたげる値だけ）。
+- サイドバーのウィンドウの店はメインの写し（`panelMirror.ts`）、チャット欄のウィンドウは持ち主ごと移す（`panelHandOff.ts`）。
+- 子チャットのウィンドウの ✕ はメインプロセスが止めて聞く（`beforeunload` では止められない。`src/main/app/popouts.ts`）。
