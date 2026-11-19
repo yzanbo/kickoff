@@ -4,8 +4,7 @@ import { test } from "vitest";
 import { userViewSummaryOf } from "@shared/userView/tools";
 import type { UserView } from "@shared/types";
 import { createAiUserViewTools } from "@/features/userView/core/aiUserView";
-import { until } from "@/app/core/testing/testCore";
-import { setup } from "@/app/core/testing/testServer";
+import { setup, until } from "@/app/core/testing/testServer";
 
 const DEVICE_TOKEN = "u".repeat(43);
 const DEVICE = { authorization: `Bearer ${DEVICE_TOKEN}`, "content-type": "application/json" };

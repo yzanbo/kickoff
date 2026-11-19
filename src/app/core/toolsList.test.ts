@@ -12,7 +12,7 @@ import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { connectToolHost } from "@/foundation/core/testing/mcpClient";
 import { maskVolatile, matchRecord } from "@/foundation/core/testing/record";
 import { setupCore, until } from "@/app/core/testing/testCore";
-import { McpToolHost } from "./host";
+import { McpToolHost } from "@/foundation/core/aiTools/host";
 
 /** 1 つの MCP の口で AI に見せるもの */
 interface ListedServer {

@@ -3,7 +3,7 @@ import { MessageChannel } from "node:worker_threads";
 import { test } from "vitest";
 import { afterTest } from "@/foundation/core/testing/afterTest";
 import { manualClock } from "@/foundation/core/testing/manualClock";
-import { until } from "@/app/core/testing/testCore";
+import { until } from "@/foundation/core/testing/until";
 import { nodeRpcPort } from "./ports";
 import { rpcTimeoutOf, type CoreMethods } from "./protocol";
 import { createRpc } from "./rpc";

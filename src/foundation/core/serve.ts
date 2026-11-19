@@ -47,7 +47,7 @@ export function appOf(k: Pick<Kernel, "bus" | "clock" | "paths">, assembled: Ass
 }
 
 /** 機能を止める順: stopPhase が "first" の機能を並べた順に（通知 → エージェント）→ 流れ続けている外部コマンド → 残りの機能を作った順の逆に */
-async function stopFeatures(k: Pick<Kernel, "exec">, features: readonly CoreFeature[]): Promise<void> {
+export async function stopFeatures(k: Pick<Kernel, "exec">, features: readonly CoreFeature[]): Promise<void> {
   for (const f of features.filter((x) => x.stopPhase === "first")) await f.stop?.();
   k.exec.stopAllStreams();
   for (const f of features.filter((x) => x.stopPhase !== "first").reverse()) await f.stop?.();

@@ -68,6 +68,8 @@ export interface KernelOptions {
   clock?: Clock;
   /** 起こした子プロセスの知らせ（コアのプロセスがメインへ送る。system/childProcesses.ts） */
   onChildProcess?: (note: ChildProcessNote) => void;
+  /** DB のファイル（既定は保存先の kickoff.db。テストは ":memory:"） */
+  dbFile?: string;
 }
 
 const consoleLog: Log = {
@@ -84,7 +86,7 @@ export function createKernel(opts: KernelOptions): KernelWithStore {
   fs.mkdirSync(opts.dataDir, { recursive: true });
   const bus = new Bus();
   if (opts.onChildProcess) setChildProcessReporter(opts.onChildProcess);
-  const store = new Store(path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
+  const store = new Store(opts.dbFile ?? path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
   const k: KernelWithStore = {
     clock: opts.clock ?? systemClock,
     bus,

@@ -10,6 +10,21 @@ import type { SecretCipher } from "@/features/database/core/secrets";
 import type { DesktopNotify, PushSender } from "@/features/notifications/core/center";
 import type { TerminalSessions } from "@/features/terminal/core/sessions";
 import type { CorePlatformParts } from "./platform";
+import type { GitHubAccount, Project, ProviderId } from "@shared/types";
+import type { AgentProvider } from "@/features/ai/core/providers/types";
+import type { ProviderAuth } from "@/features/ai/core/providers/keys";
+import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";
+import type { UsageFetcher } from "@/features/ai/core/usage/services/common";
+import type { SessionsUsedElsewhere } from "@/features/chat/core/sessions/siblingSessions";
+import type { Runner } from "@/features/chat/core/runner";
+import type { VoiceService } from "@/features/voice/core/service";
+import type { DockerCli } from "@/features/docker/core/cli";
+import type { PortProbe } from "@/features/docker/core/ports";
+import type { GitHubService } from "@/features/github/core/service";
+import type { CiService } from "@/features/github/core/ci";
+import type { WorktreePrWatch } from "@/features/github/core/prWatch";
+import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
+import type { RemoteImageService } from "@/features/remoteImages/core/service";
 
 export interface CoreOptions {
   dataDir: string;
@@ -60,3 +75,77 @@ export interface Core {
   terminals: TerminalSessions;
   close(): Promise<void>;
 }
+
+/** 1 つ目の引数の型（機能のサービスの選択肢） */
+type OptionsOf<C extends abstract new (...args: never[]) => unknown> = NonNullable<ConstructorParameters<C>[0]>;
+
+/**
+ * 本物とテストで違う、外の世界の口。本物は realEnv.ts が CoreOptions から、テストは testing/testEnv.ts が偽物から作り、
+ * どちらも同じ assembleCore を通る（省いた欄は本物の既定）
+ */
+export interface CoreEnv {
+  /** 機能だけが使う OS の値 */
+  platformParts: CorePlatformParts;
+  recoveredReason?: RecoveredReason;
+  /** DB のパスワード・AI の API キーの暗号化（null なら暗号化せずに置く） */
+  secretCipher: SecretCipher | null;
+  /** メインのプロセスの pid（自分を守る仕組みとポートの一覧が自分として扱う。省けば process.pid） */
+  hostPid?: number;
+  browser?: BrowserControl;
+  /** AI の操作ツールの MCP の URL の頭（http://127.0.0.1:<ポート>） */
+  mcpBaseUrl: string;
+  ai: {
+    /** AI のつなぎ込み（本物は自分の情報と API キーを渡した各 AI。テストは偽のプロバイダー） */
+    providers(authFor: (id: ProviderId) => Promise<ProviderAuth>): Record<ProviderId, AgentProvider>;
+    /** Claude のプランの使用枠 */
+    usage(claude: AgentProvider, bus: Bus): UsageMonitor;
+    /** 設定の「使用状況」のほかのサービス（省けば本物の一覧） */
+    services?: UsageFetcher[];
+    /** ほかの Kickoff（製品版と開発版）が使っているセッション（null は調べない） */
+    sessionsElsewhere: SessionsUsedElsewhere | null;
+  };
+  chat: Pick<OptionsOf<typeof Runner>, "reconnect" | "usageLimit" | "editHoldTtlMs" | "tellableWaitMs">;
+  trash: {
+    /** 入れた時刻・片付けの時計（省けば本物の時計） */
+    now?: () => number;
+    /** AI の rm の代わりの kickoff-trash を bin/ に置くか */
+    installCommand: boolean;
+    /** 元の場所を含むプロジェクト（省けば本体・ノートのフォルダの実体のパスで見る） */
+    projectOfPath?: (origin: string, projects: Project[]) => number | null;
+  };
+  notes: { defaultDir: string };
+  /** 添付の置き場所（省けば保存先の uploads/） */
+  attachments: { dir?: string };
+  voice: Pick<OptionsOf<typeof VoiceService>, "engines" | "findTools" | "fetch">;
+  devices: { pairingNow?: () => number };
+  notifications: { notify?: DesktopNotify; push: PushSender };
+  docker: { cli?: DockerCli; portProbe?: PortProbe };
+  ports: { afterTurnMs?: number; stopWaitMs?: number };
+  terminal: { env?: Record<string, string>; spawn?: ConstructorParameters<typeof TerminalSessions>[0]["spawn"] };
+  remoteImages: Pick<OptionsOf<typeof RemoteImageService>, "fetcher">;
+  github: {
+    service: Omit<OptionsOf<typeof GitHubService>, "onWorktreeCreated">;
+    ci: NonNullable<ConstructorParameters<typeof CiService>[1]>;
+    prWatch: Pick<OptionsOf<typeof WorktreePrWatch>, "resolveTarget" | "listPullRequests">;
+    /** gh に入っている GitHub のアカウント（省けば gh auth status） */
+    accounts?: () => Promise<GitHubAccount[]>;
+  };
+  worktrees: Pick<OptionsOf<typeof WorktreeFinisher>, "mergedPr">;
+  /** 作業の終わりの予約の確かめ直しの間隔（ワークツリーの後始末・チャットの削除。省けば本物の間隔） */
+  retryMs?: number;
+  database: {
+    /** DB ワーカーを起動してつなぐ */
+    worker: () => WorkerChannel;
+    /** AI の SQL の結果の CSV の置き場所（省けば保存先の中） */
+    exportRoot?: string;
+    /** 起動したときに古い CSV を消すか */
+    cleanExports: boolean;
+  };
+  guard: {
+    /** AI の Bash の砂場を付けるか */
+    sandbox: boolean;
+    /** Bash の通信の中継を起こすか（起こさなければプロバイダーの中継のまま） */
+    relay: boolean;
+  };
+}
+
