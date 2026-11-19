@@ -16,7 +16,9 @@ export function agentStateOf(chat: Chat, hasPendingApproval: boolean): AgentStat
 
 /**
  * 未読にする「新しい結果」の記録か: AI の文章の返答（サブエージェントのものは除く）・作業の終わり・失敗。
- * ツールの実行・考え中などの途中経過では未読にしない（作業中のチャットがずっと未読になるのを防ぐ）
+ * ツールの実行・考え中などの途中経過では未読にしない（作業中のチャットがずっと未読になるのを防ぐ）。
+ * コア（turn.ts が未読を付ける）と画面（useMarkSeen が既読にする）が同じこの関数を使う。既読にしてよいかを見る db/events.ts の
+ * latestUnreadId は同じ条件を SQL で書いているので、変えたらそちらも直す
  */
 export function isUnreadEvent(event: ChatEvent): boolean {
   if (event.type === "text") return !event.data.parent;

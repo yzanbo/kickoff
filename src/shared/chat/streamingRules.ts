@@ -11,6 +11,7 @@ export type StreamingEffect = { chatId: number; effect: "append"; text: string; 
 
 /**
  * 知らせが、書いている途中の返答に何をするか（足す / 消す / 何もしない = null）。パソコンの画面とスマホのアプリで同じ決まりにする。
+ * コアの書きかけの返答（streamingTexts.ts。詳細の streaming_text）も同じこの関数で消す（3 つの側がずれると文が二重・欠けになる）。変えたら streamingRules.test.ts を通す。
  * 消すのは、メインエージェント（parent のない）の文・思考・ツールの呼び出しと結果、作業の終わり・失敗、巻き戻し（chat_events_deleted）、作業中でなくなったとき。
  * サブエージェントの記録（parent あり）・裏のサブエージェントの終わり（subagent。parent を持たない）・お知らせ・承認・圧縮・init・渡した記録・
  * コンテキストの消去・自分の発言では消さない（返答の途中に届いても、メインエージェントの文は続いているため。メモの仕様書「0023_表示を軽くする」の U12）

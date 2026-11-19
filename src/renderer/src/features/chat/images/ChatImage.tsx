@@ -14,7 +14,8 @@ import { ImageHostButton, ImageUrlsButton } from "./ImageHostButton";
 
 /**
  * チャットの画面の Markdown の画像の描き方を入れる（メモの仕様書「0027_チャット欄の外の画像とリンク」）: 手元の画像はコアから読んで出し、
- * 外の画像は「host から画像を n 件表示」を押して許可したホストのものだけを、コアが取ってきて出す（画面の CSP は開けない）
+ * 外の画像は「host から画像を n 件表示」を押して許可したホストのものだけを、コアが取ってきて出す（画面の CSP は開けない）。
+ * 守りの本体は「利用者が押すまで外へ通信しない」ことなので、許可の前に外の URL を読む形（img の src に入れるなど）にしない。描き方を入れるのはチャットの画面だけ
  */
 export function ChatImagesProvider({ chatId, children }: { chatId: number; children: ReactNode }) {
   const value = useMemo<MarkdownImages>(() => ({ render: (props) => <ChatImage chatId={chatId} {...props} /> }), [chatId]);

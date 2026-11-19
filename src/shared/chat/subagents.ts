@@ -69,9 +69,9 @@ export function isSubagentTool(name: string): boolean {
 }
 
 /**
- * チャットのサブエージェントの一覧を組み立てる。保存されたイベント（Agent の呼び出しと結果、開始・終了の通知）と、
- * 画面にだけ届く途中経過（progress: トークン数・直近のツール）を合わせる。作業の終わりの記録（result）の時点で動いていたものと、
- * busy でないときの終わっていないものは、止まったとみなす（報告を渡していれば完了、なければ中断）
+ * チャットのサブエージェントの一覧を組み立てる。保存されたイベント（Agent の呼び出しと結果、開始・終了の通知）と、画面にだけ届く途中経過（progress: トークン数・直近のツール）を合わせる。
+ * 作業の終わりの記録（result）の時点で動いていたものと、busy でないときの終わっていないものは、止まったとみなす（報告を渡していれば完了、なければ中断）。
+ * コア（作業の終わりのお知らせ・通信が戻ったときの再開 = unfinishedSubagents / networkStoppedSubagents、報告の受け渡し = reportHandover.ts）と画面の一覧が同じこの数え方を使う。変えたら subagents.test.ts と chatIndex.test.ts を通す
  */
 export function collectSubagents(events: ChatEvent[], progress: Record<string, SubagentInfo>, busy: boolean, live?: Set<string>): SubagentEntry[] {
   const map = new Map<string, SubagentEntry>();
