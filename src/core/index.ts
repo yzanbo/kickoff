@@ -54,7 +54,7 @@ import { DatabaseService } from "./databases/service.js";
 import { GitHubService } from "./github/service.js";
 import { CiService } from "./github/ci.js";
 import { devWorkerEntry } from "./databases/entry.js";
-import { DbSecretVault, migrateInBackground, type SecretCipher } from "./databases/secrets.js";
+import { DbSecretVault, type SecretCipher } from "./databases/secrets.js";
 import { stopAllStreams } from "./system/stream.js";
 import { DockerService } from "./docker/service.js";
 import { WorktreeEnvService } from "./worktreeEnv/service.js";
@@ -175,9 +175,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     trashMemoChats: (projectId, memoPath, itemId) => trashMemoChats({ store, runner }, projectId, memoPath, itemId),
   });
   // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる）
-  // DB のパスワードはキーチェーンの鍵で暗号化して置く（暗号化せずに置いていたものは、起動のときに一度だけ置き換える）
+  // DB のパスワードはキーチェーンの鍵で暗号化して置く
   const vault = new DbSecretVault(store, opts.secretCipher ?? null);
-  migrateInBackground(vault);
   const databases = new DatabaseService({ store, client: new DbWorkerClient(opts.dbWorker ?? (() => forkWorker(devWorkerEntry()))), vault, dataDir: opts.dataDir, appDataRoot: opts.platform.appDataRoot, publish: (e) => bus.publish(e) });
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   databases.cleanExports();

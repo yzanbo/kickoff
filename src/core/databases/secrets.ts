@@ -2,7 +2,6 @@
 // AI がパスワードを知ると psql などで直接 DB に入れ、AI のツールの守りが素通りになるため（要件 5.12）。
 // 暗号化の口はメインプロセスが startCore に渡す（コアは Electron に依らない）。口のない単体のコア・テストは暗号化せずに置く（予備）
 import { DB_PASSWORD_LOCKED } from "@shared/types";
-import { errorMessage } from "@shared/errors";
 import type { Store } from "../db/store.js";
 import type { DbSecretKey } from "../db/settings.js";
 import { dbAiPasswordKey, dbPasswordKey, dbSshPasswordKey } from "../db/dbConnections.js";
@@ -93,28 +92,4 @@ export class DbSecretVault {
   forget(connectionId: number) {
     this.entered.delete(connectionId);
   }
-
-  /**
-   * 暗号化せずに置いていた DB のパスワードを、まとめて一度だけ暗号化して置き換える（暗号化を入れた版の最初の起動。
-   * 元の値はファイルに残さない）。置き換えた数を返す。口がなければ何もしない
-   */
-  async migrate(): Promise<number> {
-    if (!this.cipher) return 0;
-    const plain = this.store.secrets.list("db_connection:").filter((e) => e.value && !e.value.startsWith(SEALED));
-    if (plain.length === 0) return 0;
-    const sealed = [];
-    for (const e of plain) sealed.push({ key: e.key, value: await this.sealOne(e.value) });
-    // 暗号化している間に利用者が変えた・消したものは置き換えない
-    const still = sealed.filter((e, i) => this.store.secrets.get(e.key) === plain[i].value);
-    this.store.secrets.replaceSecurely(still);
-    return still.length;
-  }
-}
-
-/** 起動のときの置き換え（失敗しても起動は止めない。次の起動でもう一度試す） */
-export function migrateInBackground(vault: DbSecretVault) {
-  vault
-    .migrate()
-    .then((count) => count > 0 && console.log(`[core] 暗号化せずに置いていた DB のパスワード ${count} 件を暗号化しました`))
-    .catch((error) => console.warn(`[core] DB のパスワードを暗号化できませんでした（次の起動でもう一度試します）: ${errorMessage(error)}`));
 }

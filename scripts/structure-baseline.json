@@ -30,7 +30,7 @@
       "src/core/http/server.trash.test.ts": 442,
       "src/core/http/server.ts": 336,
       "src/core/http/server.turns.test.ts": 754,
-      "src/core/index.ts": 341,
+      "src/core/index.ts": 340,
       "src/core/memos/memos.ts": 338,
       "src/core/providers/claude/provider.ts": 465,
       "src/core/providers/types.ts": 318,
