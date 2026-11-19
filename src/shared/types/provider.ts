@@ -12,7 +12,7 @@ export interface ProviderStatus {
   plan?: string;
   detail: string;
   /** その AI でできること（ないものは画面で押せない形にして理由を添える。メモの仕様書「0021」の Q4。コアの /api/providers が付ける） */
-  features?: ProviderFeature[];
+  features: ProviderFeature[];
   /** ログインの仕方（設定の provider_auth。Q13。コアの /api/providers が付ける） */
   auth_mode?: ProviderAuthMode;
   /** API キーを置いたか（キーそのものは出さない） */
@@ -23,6 +23,9 @@ export interface ProviderStatus {
   /** 利用者が入れた CLI に新しい版が出ていれば、その版と上げ方（自分で上げられるものだけ。いまは Codex） */
   update?: ProviderUpdate | null;
 }
+
+/** 各 AI の CLI が返す状態（API の応答 ProviderStatus は、これにコアの /api/providers ができること features を足したもの） */
+export type ProviderCliStatus = Omit<ProviderStatus, "features">;
 
 /** 入れた CLI の新しい版と上げ方 */
 export interface ProviderUpdate {

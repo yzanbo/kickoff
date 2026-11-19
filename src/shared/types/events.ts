@@ -35,7 +35,7 @@ export type BusEvent =
       chat_id: number;
       text: string;
       /** 書きかけの返答の中で text が始まる位置（UTF-16 の長さ。コアのバスが流すときに付ける。チャットの詳細の streaming_length と同じ数え方） */
-      offset?: number;
+      offset: number;
     }
   /** サブエージェントの途中経過（トークン数・直近のツール。保存しない） */
   | { type: "chat_subagent"; project_id: number; chat_id: number; subagent: SubagentInfo }

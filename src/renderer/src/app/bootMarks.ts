@@ -103,8 +103,7 @@ const native = typeof window === "undefined" ? undefined : window.kickoff;
 const boot = native
   ? createBootMarks({
       now: epochNow,
-      // ?. は、開発中に画面だけ新しくなり preload が古いままのとき（口がまだない）に投げないため
-      send: (report) => native.diagnostics.reportBoot?.(report),
+      send: (report) => native.diagnostics.reportBoot(report),
       afterPaint: (fn) => requestAnimationFrame(() => requestAnimationFrame(fn)),
       later: (ms, fn) => void setTimeout(fn, ms),
       collect: collectPerformance,
@@ -130,7 +129,7 @@ export function startMemoryReports(kind: BootWindow) {
       () => {
         const heap = (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize;
         const memory: RendererMemory = { window: kind, jsHeapMB: heap === undefined ? null : Math.round(heap / 1048576), domNodes: document.getElementsByTagName("*").length };
-        native.diagnostics.reportMemory?.(memory);
+        native.diagnostics.reportMemory(memory);
       },
       { timeout: 5_000 },
     );

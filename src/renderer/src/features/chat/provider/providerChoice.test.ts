@@ -30,11 +30,10 @@ test("providerPickBlock: Gemini（Antigravity）は API キーを置いて API �
   assert.equal(providerPickBlock("gemini", gemini({ auth_mode: "api_key", has_api_key: true })), null);
 });
 
-test("featureBlock: できることにないものは理由の文、届いていない・できることを返さないコアなら止めない", () => {
+test("featureBlock: できることにないものは理由の文、届いていなければ止めない", () => {
   assert.equal(featureBlock(status(), "fork"), null);
   assert.equal(featureBlock(status({ label: "Codex" }), "subagent_log"), "Codex のチャットではサブエージェントの会話の記録は使えません");
   assert.equal(featureBlock(undefined, "fork"), null);
-  assert.equal(featureBlock(status({ features: undefined }), "commands"), null);
 });
 
 test("paysPerUse / providerChipName: API キーで動かす AI には印を添える", () => {

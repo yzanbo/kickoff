@@ -1,6 +1,6 @@
 import os from "node:os";
 import { errorMessage } from "@shared/errors";
-import type { ModelOption, PlanUsage, ProviderStatus } from "@shared/types";
+import type { ModelOption, PlanUsage, ProviderCliStatus } from "@shared/types";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { findExecutable, runCommand } from "../../system/exec.js";
 import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
@@ -59,7 +59,7 @@ export class CodexProvider implements AgentProvider {
     return withSession({ spawn: this.spawn, args, env, cwd }, fn);
   }
 
-  async status(): Promise<ProviderStatus> {
+  async status(): Promise<ProviderCliStatus> {
     const base = { id: this.id, label: this.label, implemented: true };
     if (!this.executable) return { ...base, installed: false, logged_in: false, detail: "codex CLI が見つかりません（brew install codex）" };
     const executable = this.executable;

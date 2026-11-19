@@ -12,7 +12,7 @@ import { isNetworkError } from "@shared/chat/networkErrors";
 import { isUsageLimitError, resetTimeOf } from "@shared/chat/usageLimit";
 import { autoCompactEnv } from "@shared/chat/autoCompact";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./labels.js";
-import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "@shared/types";
+import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderCliStatus, type SlashCommandOption } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";
 import { mcpServersOf, toolAllowList } from "./mcpServers.js";
 import { agentSpawnNotes } from "./spawnNotes.js";
@@ -47,7 +47,7 @@ export class ClaudeProvider implements AgentProvider {
     this.self = opts.self;
   }
 
-  async status(): Promise<ProviderStatus> {
+  async status(): Promise<ProviderCliStatus> {
     // 同梱の Claude Code の版（設定の「接続」に出す。上げるのは Kickoff の開発の側なので、新しい版の知らせはここでは出さない）
     const base = { id: this.id, label: this.label, implemented: true, version: bundledClaudeVersion(), bundled: true };
     if (!this.executable) {

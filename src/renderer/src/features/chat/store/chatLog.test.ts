@@ -112,7 +112,7 @@ test("途中の一部分: 流れに出すのはその記録だけで、下へ伸
   assert.deepEqual(joined.tail.map((e) => e.id), [4, 5, 6, 7, 8, 9, 10, 11, 12]);
   assert.equal(joined.range.tailStart, 4);
   assert.equal(deleteFrom(focused.range, 5).focus?.events.length, 1);
-  // 末尾だけ（索引のない前の版のコア）なら、すべてを読んでいる
+  // 索引がない（末尾で読んでいない）詳細なら、すべてを読んでいる
   assert.deepEqual(rangeFromDetail({ chat: makeChat(1), events } as unknown as ChatDetail), EMPTY_RANGE);
   assert.equal(itemIndexOfEvent(groupEvents(joined.tail), 4), 0);
 });

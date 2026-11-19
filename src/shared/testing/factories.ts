@@ -1,6 +1,7 @@
 // テストのデータを作る関数（コアと画面のテストで共通。テストからだけ使う）。省いた項目は、それらしい既定値で埋める。
 // Node・DOM に依存しない
 import {
+  PROVIDER_FEATURES,
   PROVIDER_LABELS,
   type Attachment,
   type BusEvent,
@@ -200,9 +201,9 @@ export function makeWorktree(path: string, patch: Partial<GitWorktree> = {}): Gi
   return { path, root: path, branch: null, head: "0000000", main: false, locked: false, prunable: false, ...patch };
 }
 
-/** AI の CLI の状態（名前は PROVIDER_LABELS、対応済み・入っている・ログインしている） */
+/** AI の CLI の状態（名前は PROVIDER_LABELS、対応済み・入っている・ログインしている・できることはすべて） */
 export function makeProviderStatus(id: ProviderId, patch: Partial<ProviderStatus> = {}): ProviderStatus {
-  return { id, label: PROVIDER_LABELS[id], implemented: true, installed: true, logged_in: true, detail: "", ...patch };
+  return { id, label: PROVIDER_LABELS[id], implemented: true, installed: true, logged_in: true, detail: "", features: [...PROVIDER_FEATURES], ...patch };
 }
 
 /** 添付（既定はファイル「<id>.png」・1 バイト。メモ・「AI に渡す」で取ったものは patch の kind とその項目で） */

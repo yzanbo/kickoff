@@ -34,7 +34,7 @@ function setup() {
 const chatOf = (id: number, status: Chat["status"] = "running") => makeChat(id, { status });
 const text = (id: number, chatId = 1, data: { text: string; parent?: string } = { text: `#${id}` }) => makeEvent(id, "text", data, { chat_id: chatId });
 const added = (event: ChatEvent) => busEvent("chat_event", { project_id: 1, event });
-const delta = (t: string, offset?: number, chatId = 1) => busEvent("chat_delta", { project_id: 1, chat_id: chatId, text: t, ...(offset !== undefined && { offset }) });
+const delta = (t: string, offset: number, chatId = 1) => busEvent("chat_delta", { project_id: 1, chat_id: chatId, text: t, offset });
 const detail = (chat: Chat, events: ChatEvent[] = [], streaming: string | null = null): ChatDetail => ({
   chat,
   events,

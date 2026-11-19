@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { busEvent, makeChat, makeEvent } from "@shared/testing/factories";
-import { StreamingTexts } from "./streamingTexts.js";
+import { makeChat, makeEvent } from "@shared/testing/factories";
+import { StreamingTexts, type BusInput } from "./streamingTexts.js";
 
-const delta = (chat_id: number, text: string) => busEvent("chat_delta", { project_id: 1, chat_id, text });
+const delta = (chat_id: number, text: string): BusInput => ({ type: "chat_delta", project_id: 1, chat_id, text });
 
 test("途中の文をチャットごとにつなぎ、流す chat_delta に書きかけの文の中の位置を付ける", () => {
   const texts = new StreamingTexts();

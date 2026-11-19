@@ -20,7 +20,7 @@ import type { DbAiTools } from "../databases/aiTools.js";
 import type { ToolEndpoint } from "../mcp/host.js";
 import type { ProviderAuth } from "./keys.js";
 import type { ChatPolicy } from "../chat/policy.js";
-import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, RememberScope, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
+import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, RememberScope, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderCliStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
 
 /**
  * エージェント実行基盤の抽象化。
@@ -39,7 +39,7 @@ export interface AgentProvider {
   /** false の場合は UI に「未対応」と表示し、実行を受け付けない */
   readonly implemented: boolean;
   /** CLI のインストール・ログイン状態 */
-  status(): Promise<ProviderStatus>;
+  status(): Promise<ProviderCliStatus>;
   /** サブスクリプションの使用枠（対応していないプロバイダーは未実装でよい） */
   usage?(): Promise<PlanUsage>;
   /** チャット欄で選べるモデルの一覧 */

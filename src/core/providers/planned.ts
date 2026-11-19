@@ -1,4 +1,4 @@
-import type { ProviderId, ProviderStatus } from "@shared/types";
+import type { ProviderId, ProviderCliStatus } from "@shared/types";
 import type { AgentProvider, ProviderTurnResult } from "./types.js";
 import { runCommand } from "../system/exec.js";
 
@@ -16,7 +16,7 @@ export class PlannedProvider implements AgentProvider {
     private readonly command: string,
   ) {}
 
-  async status(): Promise<ProviderStatus> {
+  async status(): Promise<ProviderCliStatus> {
     const version = await cliVersion(this.command);
     return {
       id: this.id,

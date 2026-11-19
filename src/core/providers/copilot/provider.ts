@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import os from "node:os";
 import { errorMessage } from "@shared/errors";
-import type { ModelOption, PlanUsage, ProviderStatus } from "@shared/types";
+import type { ModelOption, PlanUsage, ProviderCliStatus } from "@shared/types";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
@@ -60,7 +60,7 @@ export class CopilotProvider implements AgentProvider {
     }
   }
 
-  async status(): Promise<ProviderStatus> {
+  async status(): Promise<ProviderCliStatus> {
     const base = { id: this.id, label: this.label, implemented: true };
     if (!this.opts.clientFactory && !bundledRuntimeInstalled()) return { ...base, installed: false, logged_in: false, detail: "Copilot SDK のランタイムが入っていません（npm install をやり直してください）" };
     try {

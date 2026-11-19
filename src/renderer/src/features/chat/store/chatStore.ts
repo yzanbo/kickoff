@@ -209,8 +209,7 @@ export function createChatStore(deps: ChatStoreDeps) {
         e.detail = last === undefined ? detailFromSnapshot(d, missed, e.chatId, prev) : detailFromIncrement(d, missed, e.chatId, prev);
         if (e.error !== null) mark(e, "detail");
         e.error = null;
-        // 書きかけの返答を持たない前の版のコア（起動したままのコア）は streaming_text を返さない
-        stream.seed(e, d.chat.status === "running" ? (d.streaming_text ?? null) : null, missed);
+        stream.seed(e, d.chat.status === "running" ? d.streaming_text : null, missed);
         changed(e, prev);
         if (e.shown) return;
         if (e.viewers.size > 0) showNow(e);

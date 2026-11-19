@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import type { BusEvent } from "@shared/types";
 import { DeltaBatch, type DeltaTimers } from "./chat/deltaBatch.js";
-import { StreamingTexts } from "./chat/streamingTexts.js";
+import { StreamingTexts, type BusInput } from "./chat/streamingTexts.js";
 import { noteSyncSince, syncStart } from "./system/stallWatch.js";
 
 /**
@@ -22,7 +22,7 @@ export class Bus {
     this.deltas = new DeltaBatch((event) => this.emit(event), timers);
   }
 
-  publish(event: BusEvent) {
+  publish(event: BusInput) {
     if (this.deltas.accept(event)) return;
     this.emit(event);
   }
@@ -37,7 +37,7 @@ export class Bus {
     return this.streaming.textOf(chatId);
   }
 
-  private emit(event: BusEvent) {
+  private emit(event: BusInput) {
     // 配る相手（SSE・通知など）の処理の合計を、詰まりの見張りに知らせる（system/stallWatch.ts）
     const start = syncStart();
     this.emitter.emit("event", this.streaming.track(event));

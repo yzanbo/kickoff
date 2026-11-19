@@ -33,7 +33,7 @@ export function failureStateOf(status: number, body: { code?: string; error?: st
 }
 
 /**
- * SSE の最初の行 hello から、つながってよいか: 版が合わない・版を知らせない古い本体なら mismatch、
+ * SSE の最初の行 hello から、つながってよいか: 版が合わない・版の読めない hello なら mismatch、
  * 本体の ID がつないだときと違えば other_host、通じれば open
  */
 export function helloStateOf(hello: Partial<ServerHello> | null, hostId: string): SessionState {

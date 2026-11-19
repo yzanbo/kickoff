@@ -14,8 +14,7 @@ const darkScheme = () => matchMedia("(prefers-color-scheme: dark)");
 function applyTheme() {
   const theme = readSetting(THEME);
   document.documentElement.dataset.theme = isDarkTheme(theme, darkScheme().matches) ? "dark" : "light";
-  // ?. は、開発中に画面だけ新しくなり preload が古いままのとき（口がまだない）に投げないため
-  window.kickoff?.appearance?.setTheme?.(theme);
+  window.kickoff?.appearance.setTheme(theme);
 }
 
 /**

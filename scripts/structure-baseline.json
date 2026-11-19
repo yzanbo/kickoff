@@ -42,7 +42,7 @@
       "src/renderer/src/features/chat/composer/Composer.tsx": 332,
       "src/renderer/src/features/chat/queue/QueuedMessages.tsx": 306,
       "src/renderer/src/features/chat/store/chatStore.test.ts": 428,
-      "src/renderer/src/features/chat/store/chatStore.ts": 390,
+      "src/renderer/src/features/chat/store/chatStore.ts": 389,
       "src/renderer/src/features/chat/subagents/subagentParts.tsx": 318,
       "src/renderer/src/features/chat/timeline/timelineItems.ts": 319,
       "src/renderer/src/features/chat/tools/toolDescribe.ts": 342,

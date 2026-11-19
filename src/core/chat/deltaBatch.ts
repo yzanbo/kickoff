@@ -1,4 +1,4 @@
-import type { BusEvent } from "@shared/types";
+import type { BusInput } from "./streamingTexts.js";
 
 /** 書いている途中の返答（chat_delta）をまとめる間隔。画面の 1 フレームに合わせる（1 秒に最大 60 通） */
 export const DELTA_BATCH_MS = 16;
@@ -22,12 +22,12 @@ export class DeltaBatch {
   private timer: unknown = null;
 
   constructor(
-    private readonly emit: (event: BusEvent) => void,
+    private readonly emit: (event: BusInput) => void,
     private readonly timers: DeltaTimers = realTimers,
   ) {}
 
   /** chat_delta ならためる（true）。ほかの知らせなら、ためた分を先に流す（false。その知らせは呼んだ側が流す） */
-  accept(event: BusEvent): boolean {
+  accept(event: BusInput): boolean {
     if (event.type !== "chat_delta") {
       this.flush();
       return false;

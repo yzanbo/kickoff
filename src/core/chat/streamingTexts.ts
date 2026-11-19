@@ -1,6 +1,9 @@
 import type { BusEvent } from "@shared/types";
 import { streamingEffectOf } from "@shared/chat/streamingRules";
 
+/** バスに流す知らせ（chat_delta の書きかけの文の中の位置 offset は、バスが流すときに付ける） */
+export type BusInput = Exclude<BusEvent, { type: "chat_delta" }> | Omit<Extract<BusEvent, { type: "chat_delta" }>, "offset">;
+
 /**
  * チャットごとの書きかけの返答（SSE で送った chat_delta をつないだもの）。チャットの詳細（GET /api/chats/:id）の streaming_text に入れ、
  * 返答の途中で開いた画面・スマホが、文の頭から出せるようにする（メモの仕様書「0023_表示を軽くする」の M1・分冊 1 の 2-5）。
@@ -12,20 +15,19 @@ export class StreamingTexts {
   private readonly texts = new Map<number, string>();
 
   /** 流す知らせを見て、書きかけの文を足す・消す。chat_delta は位置 offset を付けたものを返す（ほかはそのまま） */
-  track(event: BusEvent): BusEvent {
+  track(event: BusInput): BusEvent {
+    if (event.type === "chat_delta") {
+      const before = this.texts.get(event.chat_id) ?? "";
+      this.texts.set(event.chat_id, before + event.text);
+      return { ...event, offset: before.length };
+    }
     if (event.type === "chat_deleted") {
       this.texts.delete(event.id);
       return event;
     }
     const effect = streamingEffectOf(event);
-    if (!effect) return event;
-    if (effect.effect === "clear") {
-      this.texts.delete(effect.chatId);
-      return event;
-    }
-    const before = this.texts.get(effect.chatId) ?? "";
-    this.texts.set(effect.chatId, before + effect.text);
-    return event.type === "chat_delta" ? { ...event, offset: before.length } : event;
+    if (effect?.effect === "clear") this.texts.delete(effect.chatId);
+    return event;
   }
 
   /** いまの書きかけの文（なければ null） */

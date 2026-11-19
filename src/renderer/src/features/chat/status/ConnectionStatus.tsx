@@ -24,8 +24,7 @@ export function reconnectLabel(reconnect: ReconnectState): string {
     reconnect.attempts === 0
       ? "通信が切れて止まりました。つながったら自動で再開します"
       : `通信が切れて止まりました。つながったら自動で再開します（${reconnect.attempts}/${reconnect.max} 回再開済み）`;
-  // 以前のコアは agents を返さない
-  const agents = reconnect.agents ?? [];
+  const { agents } = reconnect;
   return agents.length > 0 ? `${base}。通信で止まったサブエージェント ${agents.length} 件（${agents.join("、")}）も続きから再開します` : base;
 }
 

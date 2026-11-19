@@ -27,8 +27,8 @@
       "brokenRefs": 2
     },
     "mobile/CLAUDE.md": {
-      "bytes": 9988,
-      "ancestors": 23117,
+      "bytes": 9979,
+      "ancestors": 23108,
       "longLines": 5,
       "forbidden": 5,
       "brokenRefs": 0

@@ -35,10 +35,10 @@ export function providerSwitchBlock(status: ProviderStatus | undefined): string 
 
 /**
  * そのチャットの AI でその機能を使えない理由（使えるなら null）。
- * 状態がまだ届いていない・コアが できること を返さない（古いコア）ときは止めない（Claude Code のチャットで押せなくならないように）
+ * 状態がまだ届いていないときは止めない（Claude Code のチャットで押せなくならないように）
  */
 export function featureBlock(status: ProviderStatus | undefined, feature: ProviderFeature): string | null {
-  if (!status?.features) return null;
+  if (!status) return null;
   return status.features.includes(feature) ? null : providerFeatureMissing(status.label, feature);
 }
 

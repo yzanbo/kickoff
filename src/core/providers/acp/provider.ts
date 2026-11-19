@@ -1,5 +1,5 @@
 import os from "node:os";
-import type { ProviderId, ProviderStatus } from "@shared/types";
+import type { ProviderId, ProviderCliStatus } from "@shared/types";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { findExecutable, runCommand } from "../../system/exec.js";
 import { cleanTitle, summarizePrompt, titlePrompt } from "../askPrompts.js";
@@ -58,7 +58,7 @@ export class AcpProvider implements AgentProvider {
     this.baseEnv = opts.env ?? process.env;
   }
 
-  async status(): Promise<ProviderStatus> {
+  async status(): Promise<ProviderCliStatus> {
     const base = { id: this.id, label: this.label, implemented: true };
     if (!this.executable) return { ...base, installed: false, logged_in: false, detail: this.spec.installHint };
     const version = this.opts.spawn ? null : await runCommand(this.executable, ["--version"], { timeout: 5000 }).then((s) => s.trim().split("\n")[0]?.slice(0, 60) ?? null, () => null);
