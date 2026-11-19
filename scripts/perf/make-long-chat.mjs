@@ -1,14 +1,16 @@
 // 開発版の DB に、確かめ用の長いチャットを作る（指示 n 回・1 回の作業に 6〜14 回のツール・表とコードブロックのある返答）。
-// node scripts/perf/make-long-chat.mjs --turns 300 [--from 224] [--data <保存先のフォルダ>]
+// node scripts/perf/make-long-chat.mjs --turns 300 [--from 224] [--data <保存先のフォルダ>] [--fixture]
 //   --from: 行の項目（プロジェクト・モデル・権限など）を写す元のチャット。開発版を止めていなくてよい（WAL）が、
 //   作ったチャットは画面を読み込み直すと一覧に出る。製品版の DB には書かない（開発版の保存先だけを開く）。
 //   --data: 開発版の保存先の代わりに書く保存先（AI の砂場は開発版の保存先に書けないので、写した DB と一時のコアで測るとき。
 //   KICKOFF_DATA_DIR に同じフォルダを渡してコアを起動する。製品版の保存先は断る）
+//   --fixture: 決まったデータの開発版（npm run dev:fixture）の保存先に、その長いチャットを元にして書く
 import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { parseArgs } from "node:util";
+import { FIXTURE, perfDefaults } from "../devtools/fixture.mjs";
 
 /** 決まった種から作る乱数（何度作っても同じチャットになる） */
 function seeded(seed) {
@@ -16,9 +18,9 @@ function seeded(seed) {
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32);
 }
 
-const { values } = parseArgs({ options: { turns: { type: "string", default: "300" }, from: { type: "string", default: "224" }, title: { type: "string" }, data: { type: "string" } } });
+const { values } = parseArgs({ options: { turns: { type: "string", default: "300" }, from: { type: "string", default: perfDefaults().chat }, title: { type: "string" }, data: { type: "string" }, fixture: { type: "boolean" } } });
 const turns = Number(values.turns);
-const dataDir = path.resolve(values.data ?? path.join(os.homedir(), "Library/Application Support/Kickoff Dev"));
+const dataDir = path.resolve(values.data ?? (values.fixture ? FIXTURE.dataDir : path.join(os.homedir(), "Library/Application Support/Kickoff Dev")));
 if (dataDir === path.join(os.homedir(), "Library/Application Support/Kickoff")) throw new Error("製品版の保存先には書きません");
 const db = new DatabaseSync(path.join(dataDir, "kickoff.db"));
 db.exec("PRAGMA busy_timeout = 10000");

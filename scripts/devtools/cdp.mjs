@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { FIXTURE, usesFixture } from "./fixture.mjs";
 
 /** 開発版の既定の保存先（npm run dev のとき） */
 const DEV_DATA_DIR = path.join(os.homedir(), "Library/Application Support/Kickoff Dev");
@@ -17,20 +18,20 @@ function argValue(argv, name) {
   return undefined;
 }
 
-/** CDP のポート: 引数 --cdp <port> > 環境変数 KICKOFF_REMOTE_DEBUG > 9333 */
+/** CDP のポート: 引数 --cdp <port> > 引数 --fixture（決まったデータの開発版 9335）> 環境変数 KICKOFF_REMOTE_DEBUG > 9333 */
 export function cdpPort(argv = process.argv) {
-  return Number(argValue(argv, "cdp") ?? process.env.KICKOFF_REMOTE_DEBUG ?? 9333);
+  return Number(argValue(argv, "cdp") ?? (usesFixture(argv) ? FIXTURE.cdp : undefined) ?? process.env.KICKOFF_REMOTE_DEBUG ?? 9333);
 }
 
-/** コアのポート: 引数 --api <port> > 環境変数 KICKOFF_PORT > 4318 */
+/** コアのポート: 引数 --api <port> > 引数 --fixture（4319）> 環境変数 KICKOFF_PORT > 4318 */
 export function apiPort(argv = process.argv) {
-  return Number(argValue(argv, "api") ?? process.env.KICKOFF_PORT ?? 4318);
+  return Number(argValue(argv, "api") ?? (usesFixture(argv) ? FIXTURE.api : undefined) ?? process.env.KICKOFF_PORT ?? 4318);
 }
 
-/** 開発版の保存先: 引数 --data <dir> > 既定の Kickoff Dev */
+/** 開発版の保存先: 引数 --data <dir> > 引数 --fixture（${TMPDIR}/kickoff-fixture）> 既定の Kickoff Dev */
 function dataDirOf(argv = process.argv) {
   const dir = argValue(argv, "data");
-  return dir ? path.resolve(dir) : DEV_DATA_DIR;
+  return dir ? path.resolve(dir) : usesFixture(argv) ? FIXTURE.dataDir : DEV_DATA_DIR;
 }
 
 /** アプリの画面の URL（開発の Vite・コアが配る画面。後ろはハッシュ・クエリか終わり） */
@@ -102,7 +103,7 @@ export async function connectBrowser({ port = cdpPort() } = {}) {
   return openSession(version.webSocketDebuggerUrl);
 }
 
-/** 開発版の API の鍵（<保存先>/token。保存先は引数 --data > 既定の Kickoff Dev） */
+/** 開発版の API の鍵（<保存先>/token。保存先は引数 --data > --fixture > 既定の Kickoff Dev） */
 export function devToken(dataDir = dataDirOf()) {
   return readFileSync(path.join(dataDir, "token"), "utf8").trim();
 }

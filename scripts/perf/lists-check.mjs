@@ -1,9 +1,10 @@
 // 長い一覧を段階に分けて描いたとき（メモの仕様書「0023_表示を軽くする」の案 23）に、開いた直後のまだ描いていない行にも
 // キーでの移動・Shift での範囲の選択・ドラッグ・ボードの ⌘F（チャット名の検索）が効くかを、開発版で確かめる。
 // チャットは lists.mjs と同じく画面の fetch を差し替えて足し、終わったら差し替えを外して localStorage を元に戻す。
-// node scripts/perf/lists-check.mjs [--count 1000] [--project 21]
+// node scripts/perf/lists-check.mjs [--count 1000] [--project 21] [--fixture]（--fixture は決まったデータの開発版の ID・ポート）
 import { parseArgs } from "node:util";
 import { api, connectPage, reload, sleep, withSavedStorage } from "../devtools/cdp.mjs";
+import { perfDefaults } from "../devtools/fixture.mjs";
 import { shimSource } from "./lists.mjs";
 
 const imports = `const s = await import("/src/lib/storage.ts"); const k = await import("/src/lib/storageKeys.ts"); const f = await import("/src/hooks/useFold.ts");`;
@@ -134,6 +135,6 @@ export async function checkLists({ count = 1000, projectId = 21 } = {}) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { values } = parseArgs({ options: { count: { type: "string", default: "1000" }, project: { type: "string", default: "21" } } });
+  const { values } = parseArgs({ options: { count: { type: "string", default: "1000" }, project: { type: "string", default: perfDefaults().project }, fixture: { type: "boolean" } } });
   console.log(JSON.stringify(await checkLists({ count: Number(values.count), projectId: Number(values.project) }), null, 1));
 }

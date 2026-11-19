@@ -1,10 +1,12 @@
 // 案 18b の比べ方: 一通り開いたあと、GC を何度も起こして使っていない関数のバイトコードを古びさせ（長く放っておいたのに近い形）、
 // 戻ってからの操作（ボード・長いチャット・設定）の JS の時間とコンパイルの合計時間、画面のメモリを出す。
-// node scripts/perf/bytecode-flush.mjs [--project 21] [--chat 224] [--gc 12] [--idle 0]（--idle は GC の前に待つ分）
+// node scripts/perf/bytecode-flush.mjs [--project 21] [--chat 224] [--gc 12] [--idle 0] [--fixture]（--idle は GC の前に待つ分。--fixture は決まったデータの開発版の ID・ポート）
 import { parseArgs } from "node:util";
 import { connectPage, sleep } from "../devtools/cdp.mjs";
+import { perfDefaults } from "../devtools/fixture.mjs";
 
-const { values } = parseArgs({ options: { project: { type: "string", default: "21" }, chat: { type: "string", default: "224" }, gc: { type: "string", default: "12" }, idle: { type: "string", default: "0" } } });
+const ids = perfDefaults();
+const { values } = parseArgs({ options: { project: { type: "string", default: ids.project }, chat: { type: "string", default: ids.chat }, fixture: { type: "boolean" }, gc: { type: "string", default: "12" }, idle: { type: "string", default: "0" } } });
 const page = await connectPage();
 // 窓が隠れていると rAF が止まるので、操作のあと 1.2 秒の間に JS が使った時間（getMetrics の ScriptDuration の差）で比べる
 await page.send("Performance.enable");

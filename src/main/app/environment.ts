@@ -43,8 +43,8 @@ export function setupEnvironment(): { port: number; devUrl: string | undefined }
 }
 
 /**
- * 測るための一時の保存先（開発時の環境変数 KICKOFF_USER_DATA_DIR。製品版では見ない）。ビルドしたものを、開発版の保存先・製品版に触らずに
- * 起動して測るとき（npm run preview:measure → scripts/measure-code-cache.mjs）
+ * 決まった保存先（開発時の環境変数 KICKOFF_USER_DATA_DIR。製品版では見ない）。開発版の保存先・製品版に触らずに起動するとき
+ * （決まったデータの開発版 npm run dev:fixture・ビルドしたものを測る npm run preview:measure）
  */
 function measureDataDir(): string | null {
   const dir = process.env.KICKOFF_USER_DATA_DIR;

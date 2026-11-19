@@ -25,19 +25,23 @@ test("アプリの画面を選び、別ウィンドウ・devtools・webview・�
   assert.equal(findAppPage([]), null);
 });
 
-test("CDP のポートは 引数 --cdp > KICKOFF_REMOTE_DEBUG > 9333", () => {
+test("CDP のポートは 引数 --cdp > --fixture > KICKOFF_REMOTE_DEBUG > 9333", () => {
   vi.stubEnv("KICKOFF_REMOTE_DEBUG", undefined);
   assert.equal(cdpPort(["node", "x.mjs"]), 9333);
   vi.stubEnv("KICKOFF_REMOTE_DEBUG", "9444");
   assert.equal(cdpPort(["node", "x.mjs"]), 9444);
   assert.equal(cdpPort(["node", "x.mjs", "take", "a", "--cdp", "9335"]), 9335);
   assert.equal(cdpPort(["node", "x.mjs", "--cdp=9336"]), 9336);
+  // --fixture は決まったデータの開発版（--cdp が先）
+  assert.equal(cdpPort(["node", "x.mjs", "--fixture"]), 9335);
+  assert.equal(cdpPort(["node", "x.mjs", "--fixture", "--cdp", "9337"]), 9337);
 });
 
-test("コアのポートは 引数 --api > KICKOFF_PORT > 4318", () => {
+test("コアのポートは 引数 --api > --fixture > KICKOFF_PORT > 4318", () => {
   vi.stubEnv("KICKOFF_PORT", undefined);
   assert.equal(apiPort(["node", "x.mjs"]), 4318);
   vi.stubEnv("KICKOFF_PORT", "4396");
   assert.equal(apiPort(["node", "x.mjs"]), 4396);
-  assert.equal(apiPort(["node", "x.mjs", "--api", "4319"]), 4319);
+  assert.equal(apiPort(["node", "x.mjs", "--api", "4320"]), 4320);
+  assert.equal(apiPort(["node", "x.mjs", "--fixture"]), 4319);
 });

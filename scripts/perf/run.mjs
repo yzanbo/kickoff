@@ -1,13 +1,14 @@
 // 3 節の合格の線にある値をまとめて測る（開発版を npm run dev:cdp で起動しておく）。
-// node scripts/perf/run.mjs [--chat 224] [--long <10 倍のチャットの ID>] [--repeat 3] [--out <JSON の保存先>]
+// node scripts/perf/run.mjs [--chat 224] [--long <10 倍のチャットの ID>] [--repeat 3] [--out <JSON の保存先>] [--fixture]（--fixture は決まったデータの開発版の ID・ポート）
 //   入力の遅れ（待機中・書いている最中）・初めて開く・切り替えて戻る。--long があれば 10 倍のチャットを開く時間も
 import { writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { perfDefaults } from "../devtools/fixture.mjs";
 import { measureOpen } from "./open.mjs";
 import { summarize } from "./stats.mjs";
 import { measureTyping } from "./typing.mjs";
 
-const { values } = parseArgs({ options: { chat: { type: "string", default: "224" }, long: { type: "string" }, repeat: { type: "string", default: "3" }, out: { type: "string" } } });
+const { values } = parseArgs({ options: { chat: { type: "string", default: perfDefaults().chat }, fixture: { type: "boolean" }, long: { type: "string" }, repeat: { type: "string", default: "3" }, out: { type: "string" } } });
 const chatId = Number(values.chat);
 const repeat = Number(values.repeat);
 const result = { at: new Date().toISOString(), chatId };

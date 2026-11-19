@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "dev:cdp": "KICKOFF_REMOTE_DEBUG=9333 electron-vite dev",
+    "dev:fixture": "node scripts/devtools/fixture.mjs",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "preview:measure": "KICKOFF_REMOTE_DEBUG=9334 KICKOFF_PORT=4396 KICKOFF_USER_DATA_DIR=\"${TMPDIR:-/tmp}/kickoff-measure\" electron-vite preview",

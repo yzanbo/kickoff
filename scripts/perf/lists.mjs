@@ -1,9 +1,10 @@
 // 長くなる一覧（サイドバー・ボード・全プロジェクトの画面）を描く時間を、JS（React）とレイアウト・スタイルに分けて測る（メモの仕様書「0023_表示を軽くする」の案 23）。
 // チャットは DB に足さない: 画面の fetch を差し替えて、GET /api/chats に偽のチャットを足して返す（API で作ると AI に送るため）。
 // 測り終えたら差し替えを外し、localStorage を元に戻して読み込み直す。
-// node scripts/perf/lists.mjs [--count 1000] [--project 21] [--groups 8] [--runs 3] [--json]
+// node scripts/perf/lists.mjs [--count 1000] [--project 21] [--groups 8] [--runs 3] [--json] [--fixture]（--fixture は決まったデータの開発版の ID・ポート）
 import { parseArgs } from "node:util";
 import { api, connectPage, metrics, metricsDelta, reload, sleep, withSavedStorage } from "../devtools/cdp.mjs";
+import { perfDefaults } from "../devtools/fixture.mjs";
 import { summarize, summarizeProfile } from "./stats.mjs";
 
 /** 偽のチャットとグループを足す fetch の差し替え（読み込む前の画面で動く文） */
@@ -231,7 +232,7 @@ export async function measureLists({ count = 1000, projectId = 21, groups = 8, r
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { values } = parseArgs({ options: { count: { type: "string", default: "1000" }, project: { type: "string", default: "21" }, groups: { type: "string", default: "8" }, runs: { type: "string", default: "3" }, only: { type: "string" }, trace: { type: "boolean" }, json: { type: "boolean" } } });
+  const { values } = parseArgs({ options: { count: { type: "string", default: "1000" }, project: { type: "string", default: perfDefaults().project }, fixture: { type: "boolean" }, groups: { type: "string", default: "8" }, runs: { type: "string", default: "3" }, only: { type: "string" }, trace: { type: "boolean" }, json: { type: "boolean" } } });
   const r = await measureLists({ count: Number(values.count), projectId: Number(values.project), groups: Number(values.groups), runs: Number(values.runs), only: values.only, trace: values.trace });
   if (values.json) console.log(JSON.stringify(r, null, 1));
   else {
