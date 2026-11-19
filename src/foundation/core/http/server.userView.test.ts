@@ -6,7 +6,6 @@ import type { UserView } from "@shared/types";
 import { createAiUserViewTools } from "@/features/userView/core/aiUserView";
 import { until } from "@/app/core/testing/testCore";
 import { setup } from "@/app/core/testing/testServer";
-import { hashToken } from "./caller";
 
 const DEVICE_TOKEN = "u".repeat(43);
 const DEVICE = { authorization: `Bearer ${DEVICE_TOKEN}`, "content-type": "application/json" };
@@ -43,7 +42,7 @@ test("見ているもの: この Mac の画面のウィンドウが知らせ、A
 test("見ているもの: スマホ（端末）は知らせられず、端末から送った指示の様子は覚えない", async () => {
   const { app, call, store, project, runner, userViews } = setup();
   store.settings.update({ remote_enabled: true });
-  store.devices.create("Pixel", hashToken(DEVICE_TOKEN));
+  store.devices.create("Pixel", DEVICE_TOKEN);
   const put = await app.request("/api/user-view", { method: "PUT", headers: DEVICE, body: JSON.stringify({ window_id: "phone", view: viewOf(project.id, "x.ts"), chat_ids: [], focused: true }) });
   assert.equal(put.status, 403);
   const chat = (await call("POST", `/api/projects/${project.id}/chats`, { text: "見て" })).body;

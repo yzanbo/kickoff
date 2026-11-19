@@ -39,7 +39,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 - ルートは各機能の `core/routes/<領域>.ts` の `xxxRoutes(app, deps)` で、`http/server.ts` の `createApp` で登録する。登録の順（認証と `onError` のあと、SSE・API の 404・画面の配信の前）を崩さない。
 - `:id` は `http/lookups.ts` のミドルウェア（`withProject` / `withChat` / `withWorkdir` など）で引き、`c.var` で受ける。作業場所の指定は `http/workdir.ts` の `requireWorktree`、チャットのフォルダは `@/features/chat/core/workdir.ts` の `workdirOf`。
-- 失敗は `errors.ts` の `Invalid` / `NotFound` / `Conflict` を投げて伝える（`onError` が `{ error }` にする。外の SDK は `.catch(asInvalid)`）。包み直さない。作業中にできない操作は `runner.requireIdle`（409）。
+- 失敗は `errors.ts` の `Invalid` / `NotFound` / `Conflict` を投げ、`http/errorResponse.ts` が `{ error }` にする（外の SDK は `.catch(asInvalid)`）。包み直さない。作業中に断る操作は `runner.requireIdle`（409）。
 - 本文は `http/input.ts` の `jsonBody`、クエリは `queryOf` で読み、zod で確かめる（共通の形は `http/schemas.ts`）。本文の型は `@shared/foundation/apiTypes.ts` に置き、zod は `satisfies` で合わせる。
 - 送る指示（文・選択・添付）は、新しいチャット・続き・伝える・送信待ちで同じ形。応答は、変えたら変えたあとの資源・作ったら 201・待たずに始めたら 202・返すものがなければ 204。
 - API・SSE の形は 1.0 から「足すだけ」にし、壊すなら `@shared/foundation/api/version` の `API_VERSION` を上げる。下限より古いアプリは認証より前に 426。

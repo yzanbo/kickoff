@@ -6,10 +6,10 @@ import { streamSSE } from "hono/streaming";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { VISUAL_FRAME_CSP, VISUAL_FRAME_SHELL } from "@shared/visuals/visualDocument";
 import { AUTH_COOKIE, tokenMatches } from "./auth";
-import { callerOf, hashToken, setCaller } from "./caller";
+import { callerOf, setCaller } from "./caller";
 import { deviceMaySee, deviceMayUse } from "./deviceAccess";
 import { errorMessage } from "@shared/foundation/errors";
-import { errorResponse } from "@/foundation/core/errors";
+import { errorResponse } from "./errorResponse";
 import type { Bus } from "@/foundation/core/bus";
 import type { AgentProvider } from "@/features/ai/core/providers/index";
 import type { Store } from "@/foundation/core/db/store";
@@ -198,12 +198,12 @@ export function createApp(deps: ServerDeps): Hono {
       setCaller(c, { kind: "host" });
       return next();
     }
-    const device = given.map((t) => store.devices.byTokenHash(hashToken(t))).find((d) => d !== null);
+    const device = given.map((t) => store.devices.byToken(t)).find((d) => d !== null);
     if (!device) return c.json({ error: "unauthorized" }, 401);
     // スマホ連携がオフなら、つないだ端末からの頼みも断る（登録は残す。オンに戻せばそのまま使える）
     if (!store.settings.get().remote_enabled) return c.json({ error: MOBILE_OFF_MESSAGE, code: MOBILE_OFF }, 403);
     store.devices.touch(device.id);
-    setCaller(c, { kind: "device", device });
+    setCaller(c, { kind: "device", deviceId: device.id, readOnly: device.access !== "full" });
     const use = deviceMayUse(c.req.method, c.req.path, device.access);
     if (use === "forbidden") return c.json({ error: "この操作は、この Mac の Kickoff からだけ使えます", code: DEVICE_FORBIDDEN }, 403);
     if (use === "read_only") return c.json({ error: "この端末は「見るだけ」です（Mac の Kickoff の設定の「スマホ連携」で変えられます）", code: DEVICE_READ_ONLY }, 403);
@@ -277,7 +277,7 @@ export function createApp(deps: ServerDeps): Hono {
       });
       const unsubscribe = bus.subscribe((event) => {
         if (isDevice && event.type === "settings" && !event.settings.remote_enabled) return finish();
-        if (caller.kind === "device" && event.type === "devices" && !store.devices.get(caller.device.id)) return finish();
+        if (caller.kind === "device" && event.type === "devices" && !store.devices.get(caller.deviceId)) return finish();
         if (!isDevice || deviceMaySee(event)) {
           const start = syncStart();
           const data = sseDataOf(event);

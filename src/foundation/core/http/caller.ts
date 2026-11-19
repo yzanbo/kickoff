@@ -1,14 +1,9 @@
 // 呼び主（API を呼んだのがこの Mac の画面か、つないだ端末か）。どのトークンで来たかだけで決める
 // （接続の相手のアドレス・Tailscale などの見出しは信じない。Tailscale Serve は 127.0.0.1 から転送してくるため）
-import { createHash } from "node:crypto";
 import type { Context } from "hono";
-import type { Device } from "@shared/types";
 
-/** 呼び主: この Mac（本体のトークン。画面の Cookie）か、つないだ端末（端末のトークン） */
-export type Caller = { kind: "host" } | { kind: "device"; device: Device };
-
-/** 端末のトークンの hash（端末の表にはこれだけを置く） */
-export const hashToken = (token: string): string => createHash("sha256").update(token).digest("hex");
+/** 呼び主: この Mac（本体のトークン。画面の Cookie）か、つないだ端末（端末のトークン。端末の中身は devices の店で引く） */
+export type Caller = { kind: "host" } | { kind: "device"; deviceId: number; readOnly: boolean };
 
 const CALLER_KEY = "caller";
 

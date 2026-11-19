@@ -2,7 +2,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Approval } from "@shared/types";
-import { hashToken } from "@/foundation/core/http/caller";
 import { createAiNotifyTools } from "@/features/notifications/core/aiNotify";
 import { until } from "@/app/core/testing/testCore";
 import { setup } from "@/app/core/testing/testServer";
@@ -54,7 +53,7 @@ test("通知: 作業中から終わった・失敗・回答待ち・CI の失敗
 test("通知: 見ている人には送らず、見ていない人にだけ送る（この Mac で見ていれば Mac の通知は出さず、見ていない端末にはプッシュ。端末で見ていれば、その端末には送らない）", async () => {
   const { app, call, chat, finish, bus, project, notifyFake, store } = withChat();
   const token = "d".repeat(40);
-  const pixel = store.devices.create("Pixel", hashToken(token));
+  const pixel = store.devices.create("Pixel", token);
   store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[p]" });
   // この Mac で見ている: Mac の通知は出さず、見ていない端末にはプッシュ
   assert.equal((await call("PUT", "/api/viewing", { chat_id: chat.id, ci_project_id: project.id })).status, 204);
@@ -74,7 +73,7 @@ test("通知: 見ている人には送らず、見ていない人にだけ送る
 
 test("通知: CI の失敗はこの Mac だけ（CI のタブは端末に開いていないので、プッシュには送らない）", async () => {
   const { bus, project, notifyFake, store } = withChat();
-  const pixel = store.devices.create("Pixel", hashToken("z".repeat(40)));
+  const pixel = store.devices.create("Pixel", "z".repeat(40));
   store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[q]" });
   bus.publish({ type: "ci_failed", failure: { project_id: project.id, run_id: 2, workflow: "w", number: 1, branch: "b", title: "t", url: "u" } });
   assert.deepEqual(notifyFake.notified.map((n) => n.kind), ["ci_failed"]);
@@ -83,9 +82,9 @@ test("通知: CI の失敗はこの Mac だけ（CI のタブは端末に開い�
 
 test("通知: 設定で Mac の通知を切ったら出さない。プッシュの宛先のある端末には、会話の中身を載せない短い文と本体の ID で送る", async () => {
   const { call, finish, store, notifyFake } = withChat();
-  const pixel = store.devices.create("Pixel", hashToken("x".repeat(40)));
+  const pixel = store.devices.create("Pixel", "x".repeat(40));
   store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[a]" });
-  store.devices.create("宛先なし", hashToken("y".repeat(40)));
+  store.devices.create("宛先なし", "y".repeat(40));
   await call("PUT", "/api/settings", { desktop_notifications: false });
   finish("failed");
   assert.deepEqual(notifyFake.notified, []);
@@ -94,7 +93,7 @@ test("通知: 設定で Mac の通知を切ったら出さない。プッシュ�
 
 test("通知: Expo が「宛先がもう使えない」と答えたら、その端末のプッシュの宛先を外す（次からは送らない）", async () => {
   const { finish, store, notifyFake } = withChat();
-  const pixel = store.devices.create("Pixel", hashToken("x".repeat(40)));
+  const pixel = store.devices.create("Pixel", "x".repeat(40));
   store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[gone]" });
   notifyFake.result = "gone";
   finish("completed");
@@ -111,7 +110,7 @@ test("見ているものの知らせ: 形が違えば 400", async () => {
 test("AI からの知らせ（notify_user）: 見ていなければ Mac の通知に本文を出し、スマホのプッシュには本文を載せない。流れに記録を残し、1 回の作業で 3 回まで", async () => {
   const { chat, bus, store, notifyFake, call } = withChat();
   const token = "e".repeat(40);
-  const pixel = store.devices.create("Pixel", hashToken(token));
+  const pixel = store.devices.create("Pixel", token);
   store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[q]" });
   const tools = createAiNotifyTools({ store, publish: (e) => bus.publish(e) }, chat.id);
   assert.match(tools.notify({ message: "  移行の 1 段目が済みました  " }), /あと 2 回/);

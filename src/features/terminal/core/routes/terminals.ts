@@ -26,7 +26,7 @@ const ownerSchema = z.object({ owner: z.string().regex(/^wc:\d+$/) }) satisfies 
 const clientMessage = z.union([z.object({ type: z.literal("input"), data: z.string().max(100_000) }), z.object({ type: z.literal("resize"), cols: size, rows: size })]) satisfies z.ZodType<TerminalClientMessage>;
 
 /** シェルの持ち主の印（この Mac の画面のタブは、POST /api/terminals で渡したその画面の印 wc:<ID>） */
-export const ownerOf = (caller: Caller) => (caller.kind === "device" ? `device:${caller.device.id}` : "host");
+export const ownerOf = (caller: Caller) => (caller.kind === "device" ? `device:${caller.deviceId}` : "host");
 
 /** その呼び主が、そのシェルを止めてよいか（この Mac は何でも。端末は自分が作ったものだけ） */
 const mayClose = (caller: Caller, owner: string | null) => caller.kind === "host" || owner === ownerOf(caller);
@@ -54,9 +54,10 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: ServerDeps)
     const cwd = (await requireWorktree(project.repo_path, body.worktree_path ?? undefined))?.path ?? project.repo_path;
     const key = `api:${randomUUID()}`;
     const caller = callerOf(c);
+    const device = caller.kind === "device" ? store.devices.get(caller.deviceId) : null;
     // 作るだけ（出力は、あとでつなぐ WebSocket に届く。それまでの分は snapshot に入る）
     const placeholder = { id: `create:${key}`, data: () => {}, exit: () => {} };
-    await terminals.open({ key, cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: ownerOf(caller), meta: { projectId: project.id, title: caller.kind === "device" ? `ターミナル（${caller.device.name}）` : "ターミナル" } });
+    await terminals.open({ key, cwd, cols: body.cols, rows: body.rows, client: placeholder, owner: ownerOf(caller), meta: { projectId: project.id, title: device ? `ターミナル（${device.name}）` : "ターミナル" } });
     terminals.detach(key, placeholder.id);
     return c.json({ key } satisfies TerminalCreated, 201);
   });
@@ -105,7 +106,7 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: ServerDeps)
       // 打てるかは送るたびに読み直す（つないだあとで「見るだけ」に変えた・取り消した端末の入力は捨てる）
       const canType = () => {
         if (caller.kind === "host") return true;
-        return store.devices.get(caller.device.id)?.access === "full" && store.settings.get().remote_enabled;
+        return store.devices.get(caller.deviceId)?.access === "full" && store.settings.get().remote_enabled;
       };
       let unsubscribe = () => {};
       const cols = Number(c.req.query("cols")) || 80;
@@ -115,7 +116,7 @@ export function terminalRoutes(app: Hono, { store, terminals, bus }: ServerDeps)
           // 端末を取り消した・スマホ連携をオフにしたら、つながったままの WebSocket も切る
           if (caller.kind === "device") {
             unsubscribe = bus.subscribe((e) => {
-              if ((e.type === "devices" && !store.devices.get(caller.device.id)) || (e.type === "settings" && !e.settings.remote_enabled)) ws.close();
+              if ((e.type === "devices" && !store.devices.get(caller.deviceId)) || (e.type === "settings" && !e.settings.remote_enabled)) ws.close();
             });
           }
           const send = (message: TerminalServerMessage) => ws.send(JSON.stringify(message));

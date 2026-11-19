@@ -31,14 +31,16 @@ export function deviceRoutes(app: Hono, { pairing, store, viewing, bus, tailscal
   app.get("/api/devices/self", (c) => {
     const caller = callerOf(c);
     if (caller.kind !== "device") throw new Invalid("つないだ端末から読む口です");
-    return c.json(caller.device);
+    const device = store.devices.get(caller.deviceId);
+    if (!device) throw new NotFound("端末が見つかりません");
+    return c.json(device);
   });
   // 端末が自分のプッシュの宛先を登録する・外す（null）。この Mac の画面は端末ではないので 400。宛先は外に出さない（Device は has_push だけ）
   app.put("/api/devices/self/push", async (c) => {
     const caller = callerOf(c);
     if (caller.kind !== "device") throw new Invalid("プッシュの宛先は、つないだ端末が自分で登録します");
     const { push } = pushBodySchema.parse(await jsonBody(c));
-    store.devices.setPush(caller.device.id, push);
+    store.devices.setPush(caller.deviceId, push);
     return c.body(null, 204);
   });
   // いま見ているもの（この Mac の画面も端末も。だれかが見ているチャット・CI のタブの知らせは通知しない = notifications/center.ts）

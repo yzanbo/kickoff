@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { DEVICE_ACCESSES, type Device, type DeviceAccess, type DevicePush } from "@shared/types";
 import { NOW } from "@/foundation/core/db/schema";
+import { hashToken } from "@/features/devices/core/token";
 
 /** 最後に使った時刻を書き直す間隔（API を呼ぶたびに書かない） */
 const TOUCH_INTERVAL_SEC = 60;
@@ -29,7 +30,7 @@ const toDevice = (r: DeviceRow): Device => ({
 });
 
 /**
- * スマホ連携の端末（devices の表）。トークンは hash で引く（本物は持たない）。プッシュの宛先は push で読むだけで、Device には出さない
+ * スマホ連携の端末（devices の表）。トークンは hash にして置き、hash で引く（本物は持たない）。プッシュの宛先は push で読むだけで、Device には出さない
  */
 export function createDeviceStore(db: DatabaseSync) {
   const row = (id: number) => db.prepare(`SELECT ${COLUMNS} FROM devices WHERE id = ?`).get(id) as DeviceRow | undefined;
@@ -42,13 +43,13 @@ export function createDeviceStore(db: DatabaseSync) {
       const r = row(id);
       return r ? toDevice(r) : null;
     },
-    /** トークンの hash で引く（取り消した・知らない hash なら null） */
-    byTokenHash(tokenHash: string): Device | null {
-      const r = db.prepare(`SELECT ${COLUMNS} FROM devices WHERE token_hash = ?`).get(tokenHash) as DeviceRow | undefined;
+    /** トークンで引く（hash で比べる。取り消した・知らないトークンなら null） */
+    byToken(token: string): Device | null {
+      const r = db.prepare(`SELECT ${COLUMNS} FROM devices WHERE token_hash = ?`).get(hashToken(token)) as DeviceRow | undefined;
       return r ? toDevice(r) : null;
     },
-    create(name: string, tokenHash: string, access: DeviceAccess = "full"): Device {
-      const { lastInsertRowid } = db.prepare("INSERT INTO devices (name, token_hash, access) VALUES (?, ?, ?)").run(name, tokenHash, access);
+    create(name: string, token: string, access: DeviceAccess = "full"): Device {
+      const { lastInsertRowid } = db.prepare("INSERT INTO devices (name, token_hash, access) VALUES (?, ?, ?)").run(name, hashToken(token), access);
       return toDevice(row(Number(lastInsertRowid))!);
     },
     /** できることを変える（なければ null） */

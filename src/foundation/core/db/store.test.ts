@@ -370,8 +370,8 @@ test("端末: トークンの hash で引き、プッシュの宛先は一覧に
   assert.equal(store.devices.create("タブレット", "hash-t", "read").access, "read");
   assert.equal(store.devices.setAccess(pixel.id, "read")?.access, "read");
   store.devices.setAccess(pixel.id, "full");
-  assert.equal(store.devices.byTokenHash("hash-a")?.id, pixel.id);
-  assert.equal(store.devices.byTokenHash("hash-b"), null);
+  assert.equal(store.devices.byToken("hash-a")?.id, pixel.id);
+  assert.equal(store.devices.byToken("hash-b"), null);
   // 同じ hash は 2 つ置けない
   assert.throws(() => store.devices.create("別の端末", "hash-a"));
 
@@ -391,6 +391,6 @@ test("端末: トークンの hash で引き、プッシュの宛先は一覧に
 
   assert.equal(store.devices.remove(pixel.id), true);
   assert.equal(store.devices.remove(pixel.id), false);
-  assert.equal(store.devices.byTokenHash("hash-a"), null);
+  assert.equal(store.devices.byToken("hash-a"), null);
   store.close();
 });

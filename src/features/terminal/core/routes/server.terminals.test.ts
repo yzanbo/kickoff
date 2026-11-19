@@ -4,7 +4,6 @@ import type { AddressInfo } from "node:net";
 import { test } from "vitest";
 import WebSocket from "ws";
 import type { TerminalCreated, TerminalServerMessage, TerminalTab } from "@shared/types";
-import { hashToken } from "@/foundation/core/http/caller";
 import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServer";
 import { until } from "@/app/core/testing/testCore";
 import { AUTH, setup } from "@/app/core/testing/testServer";
@@ -16,8 +15,8 @@ const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
 function withDevices() {
   const ctx = setup();
   ctx.store.settings.update({ remote_enabled: true });
-  const full = ctx.store.devices.create("Pixel", hashToken(FULL_TOKEN), "full");
-  const read = ctx.store.devices.create("タブレット", hashToken(READ_TOKEN), "read");
+  const full = ctx.store.devices.create("Pixel", FULL_TOKEN, "full");
+  const read = ctx.store.devices.create("タブレット", READ_TOKEN, "read");
   return { ...ctx, full, read };
 }
 

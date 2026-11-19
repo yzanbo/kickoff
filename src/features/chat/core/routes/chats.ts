@@ -3,7 +3,8 @@ import { z } from "zod";
 import { addWorktree, worktreePathFor } from "@/features/git/core/index";
 import type { ServerDeps } from "@/foundation/core/http/server";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
-import { lookups, requireGroupOf, requireProject } from "@/foundation/core/http/lookups";
+import { lookups, requireProject } from "@/foundation/core/http/lookups";
+import { requireGroupOf } from "@/features/groups/core/index";
 import { requireWorktree } from "@/foundation/core/http/workdir";
 import { rememberSentView } from "@/features/userView/core/routes/userView";
 import { branchName, chatTitle, flag, githubLinkSchema, newChatSchema, optionalId } from "@/foundation/core/http/schemas";
@@ -75,7 +76,7 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, worktreeE
   app.post("/api/projects/:id/chats", withProject, async (c) => {
     const { project } = c.var;
     const input = newChatSchema.parse(await jsonBody(c));
-    if (input.group_id !== undefined) requireGroupOf(store, input.group_id, project.id);
+    if (input.group_id !== undefined) requireGroupOf(store.groups, input.group_id, project.id);
     const worktreePath = await resolveWorktree(project.repo_path, input.worktree_path, input.new_worktree_branch, (made) => worktreeEnvs.prepare(project, made));
     const created = await runner.start({
       projectId: project.id,
@@ -201,7 +202,7 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, worktreeE
   app.patch("/api/chats/:id", withChat, async (c) => {
     const { chat } = c.var;
     const { title, group_id, pinned, archived } = chatPatchSchema.parse(await jsonBody(c));
-    if (group_id !== undefined && group_id !== null) requireGroupOf(store, group_id, chat.project_id);
+    if (group_id !== undefined && group_id !== null) requireGroupOf(store.groups, group_id, chat.project_id);
     // 子チャット（子・孫…）も一緒にしまう（作業中のものがあればしまえない）。戻すときは、一緒にしまった子孫だけを戻す（store.chats.archive）
     if (archived) for (const c of [chat, ...store.chats.descendants(chat.id)]) if (c.archived_at === null) runner.requireIdle(c.id, "アーカイブ");
     if (group_id !== undefined) store.chats.setGroup(chat.id, group_id);

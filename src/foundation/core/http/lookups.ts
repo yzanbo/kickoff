@@ -4,7 +4,7 @@ import { createMiddleware } from "hono/factory";
 import type { Store } from "@/foundation/core/db/store";
 import type { Chat, ChatGroup, Project, Snippet } from "@shared/types";
 import { runAsGitHubAccount } from "@/features/github/core/githubAccount";
-import { Invalid, NotFound } from "@/foundation/core/errors";
+import { NotFound } from "@/foundation/core/errors";
 import { idParam, queryOf } from "./input";
 import { requireWorktree } from "./workdir";
 
@@ -30,13 +30,6 @@ function requireSnippet(store: Store, id: number): Snippet {
   const snippet = store.snippets.get(id);
   if (!snippet) throw new NotFound("定型文が見つかりません");
   return snippet;
-}
-
-/** グループ。ほかのプロジェクトのものなら 400（チャットを入れられるのは同じプロジェクトのグループだけ） */
-export function requireGroupOf(store: Store, groupId: number, projectId: number): ChatGroup {
-  const group = requireGroup(store, groupId);
-  if (group.project_id !== projectId) throw new Invalid("ほかのプロジェクトのグループには入れられません");
-  return group;
 }
 
 /**

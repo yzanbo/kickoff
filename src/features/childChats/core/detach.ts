@@ -4,7 +4,7 @@
 import type { Chat } from "@shared/types";
 import type { Store } from "@/foundation/core/db/store";
 import { Conflict, Invalid } from "@/foundation/core/errors";
-import { requireGroupOf } from "@/foundation/core/http/lookups";
+import { requireGroupOf } from "@/features/groups/core/index";
 import { lineageOf } from "@/features/chat/core/tools/aiChatEdit";
 
 /** 外す先: parentId が null なら親のないチャット（groupId のグループへ。null・省略ならグループなし）、先祖の ID ならその子 */
@@ -38,7 +38,7 @@ export function detachChat(store: Store, isBusy: (chatId: number) => boolean, ch
   const groupId = target.groupId ?? null;
   if (groupId !== null) {
     if (to) throw new Invalid("グループに入れられるのは親のないチャットだけです");
-    requireGroupOf(store, groupId, chat.project_id);
+    requireGroupOf(store.groups, groupId, chat.project_id);
   }
   if (isBusy(chat.id)) throw new Conflict("作業中のチャットは親から外せません。終わってから（または中断してから）行ってください");
 

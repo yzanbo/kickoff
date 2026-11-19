@@ -6,7 +6,7 @@ import type { Caller } from "@/foundation/core/http/caller";
 /** 見ている人（この Mac の画面か、端末の ID） */
 export type Viewer = "host" | number;
 
-const viewerOf = (caller: Caller): Viewer => (caller.kind === "host" ? "host" : caller.device.id);
+const viewerOf = (caller: Caller): Viewer => (caller.kind === "host" ? "host" : caller.deviceId);
 
 export class ViewingRegistry {
   private readonly views = new Map<Viewer, { view: ViewingBody; at: number }>();

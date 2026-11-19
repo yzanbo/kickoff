@@ -1,5 +1,7 @@
 # グループ（`src/features/groups`）
 
+- ほかの機能は `core/index.ts` だけを読む（`requireGroupOf`: チャットを入れるグループがあり、同じプロジェクトのものか）。
+
 ## グループの共通部分（`ui/`）
 
 - `useReorder`・`useGroupDrop`・`startChatDrag` / `startDraftDrag` はサイドバー・全プロジェクトのボード・タブのまとまりで共通。

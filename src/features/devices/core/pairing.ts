@@ -3,7 +3,7 @@
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import { MOBILE_OFF, PAIRING_CODE_TTL_MS, type BusEvent, type DeviceAccess, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/types";
 import type { Store } from "@/foundation/core/db/store";
-import { hashToken } from "@/foundation/core/http/caller";
+import { hashToken } from "./token";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 
 /** 番号を続けて間違えたら、その番号を捨てる回数（当てずっぽうで頼み続けさせない） */
@@ -109,7 +109,7 @@ export class PairingCenter {
   approve(id: string, access: DeviceAccess = "full"): PairingState {
     const request = this.pendingRequest(id);
     const token = randomBytes(32).toString("base64url");
-    const device = this.store.devices.create(request.name, hashToken(token), access);
+    const device = this.store.devices.create(request.name, token, access);
     Object.assign(request, { status: "approved", token, deviceId: device.id, expiresAt: this.now() + PAIRING_CODE_TTL_MS });
     this.code = null;
     this.publish({ type: "devices" });

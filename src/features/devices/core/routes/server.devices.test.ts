@@ -13,7 +13,6 @@ import {
   type PairingState,
   type TailscaleStatus,
 } from "@shared/types";
-import { hashToken } from "@/foundation/core/http/caller";
 import { DEVICE_ROUTES, READ_ONLY_DEVICE_ROUTES } from "@/foundation/core/http/deviceAccess";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import { AUTH, setup } from "@/app/core/testing/testServer";
@@ -30,7 +29,7 @@ function mobileSetup() {
 
 function withDevice() {
   const ctx = mobileSetup();
-  const device = ctx.store.devices.create("Pixel 8", hashToken(DEVICE_TOKEN));
+  const device = ctx.store.devices.create("Pixel 8", DEVICE_TOKEN);
   return { ...ctx, device };
 }
 
@@ -297,7 +296,7 @@ test("スマホ連携がオフなら、つないだ端末からの頼みとペ�
 
 test("端末を取り消したら、その端末のつながったままの SSE をそこで切る（ほかの端末・この Mac の画面は切らない）", async () => {
   const { app, call, device, store } = withDevice();
-  const other = store.devices.create("タブレット", hashToken("o".repeat(43)));
+  const other = store.devices.create("タブレット", "o".repeat(43));
   const open = async (headers: Record<string, string>) => {
     const res = await app.request("/api/events", { headers });
     const reader = res.body!.getReader();
