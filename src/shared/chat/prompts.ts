@@ -163,7 +163,7 @@ function activeCompactPrompt(kind: CompactPromptKind, source: CompactPromptSourc
   return source?.[enabled] ? (source[text]?.trim() ?? null) || null : null;
 }
 
-/** そのプロジェクトで送る圧縮前指示・圧縮後指示（オンの分を共通 → プロジェクトの順に空行でつなぐ。どちらもなければ null） */
+/** そのプロジェクトで送る圧縮前指示・圧縮後指示（オンの分を共通 → プロジェクトの順に空行でつなぐ。どちらもなければ null）。コアの送る文と画面の見せる文が同じこの関数を使う */
 export function compactPromptFor(kind: CompactPromptKind, settings: CompactPromptSource | undefined, project: CompactPromptSource | undefined): string | null {
   const parts = [activeCompactPrompt(kind, settings), activeCompactPrompt(kind, project)].filter((p): p is string => p !== null);
   return parts.length > 0 ? parts.join("\n\n") : null;

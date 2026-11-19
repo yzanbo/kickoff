@@ -1,36 +1,28 @@
-# ターミナル・埋め込みブラウザ・外のアプリで開く（`features/terminal`・`features/browser`・`features/openWith`）
+# ターミナル・埋め込みブラウザ・外で開く（`features/terminal`・`browser`・`openWith`）
 
-どれもパネルのタブ（`features/panel/CLAUDE.md`）の中身か、タブの列から開くもの。メインプロセスの側（シェル・webview のセッション・開発者ツールのウィンドウ・外のアプリの開き方）は `src/main/CLAUDE.md`。
+パネルのタブの中身。メインプロセスの側は `src/main/CLAUDE.md`。
 
 ## ターミナル（`features/terminal`）
+<!-- 行き先: src/features/terminal/ -->
 
-- 表示は `TerminalPane`（xterm.js ＋ WebGL。使うときだけ読み込む（`PanelTabPage` から lazy））。シェルはコアで動き（`src/core/CLAUDE.md` の「ターミナル」）、この Mac の画面もスマホと同じくコアの API でつなぐ（`api/terminals.ts`: `openTerminal` = `POST /api/terminals` でシェルを用意してから、`terminalSocketUrl` の WebSocket でつなぐ。持ち主の印はメインプロセスの IPC `terminal.owner` で 1 回もらう（`terminalOwner.ts` の `windowOwner`）。タブを別ウィンドウへ移す・戻すときは、受け取った側が `claimTerminal`（`PUT /api/terminals/:key/owner`。シェルがなければ何もしない）で持ち主になってから、渡した側を閉じる（`features/popout/CLAUDE.md`）。メモの仕様書「0023_表示を軽くする」の案 16）。コアとのつなぎがシェルの終わりの知らせなしに切れた（コアが落ちた・起動し直した。シェルはコアと一緒に終わる）ら、終わった形にする（キーで開き直す・決まったコマンドのタブは［もう一度流す］）。タブを閉じたら `closeTerminal`（`DELETE /api/terminals/:key`）。タブを裏に回しても・ボードを切り替えても・欄を閉じても動き続け、つなぎ直したらいまの画面の内容（`open` が返す snapshot）をもらって描き直す（WebSocket の最初の `snapshot`。つなぐまでに届いた出力は snapshot に含まれているので捨てる。画面に出したい注意も、別の出力として送らず snapshot に入れる）。配色は `terminalTheme`（16 色は VS Code の Dark+ / Light+、地と文字はアプリの色）、文字は `terminalFont`。⌘ を押しながらリンクを押すと、そのプロジェクトの右サイドバー（チャット欄）のブラウザのタブで開く（ブラウザは右サイドバーだけに置く。`features/panel/state/openBrowserTab.ts`）。
-- つなぐたびに、タブの持ち主（プロジェクト）と名前（`terminalTitle`。タブの列と同じ）を `openTerminal` の `meta` でコアに知らせる（`TerminalPane` の `meta`）。チャットの AI がこのプロジェクトのターミナルの出力を読む（`list_terminals`・`read_terminal`。読むだけ）ときに、タブを見分けて名前で示すため。
-- ⌘ のないキー（⌃B・⌃K・Esc など）はシェルのものなので、ターミナルの中ではアプリのショートカットやパネルを閉じる Esc に渡さない。
-- 文を選んで右クリック（`useTerminalSelectionMenu`。選んでいないときはメニューを出さない）、またはプロジェクトの欄のターミナルで選び終えたとき範囲の終わりの下に出る小さな「チャットに追加 ▾」（ほかの選んだ文の「チャットに追加」と同じ `.selection-attach` の見た目。位置は `terminalSelection.ts` の `selectionButtonPoint` が `.xterm-screen` の位置と選んだ範囲の終わりのセルから測り、終わりが見えていなければ出さない。押しても選択を外さない。キーを押す・スクロール・右クリックで消す。ボタンから開いたメニューには「コピー」を出さない）: 「コピー」と、プロジェクトの欄のターミナルなら「選んだ文をチャットに追加」の共通の渡し先（`features/chat/CLAUDE.md` の「AI に渡す」の `HandOffItems`。プロジェクトはパネルのキーから。チャットの右の欄の範囲はチャットの ID なので使わない）。長さで分ける（仕様書「添付の共通化」の段階 2。ターミナルだけの例外で、ほかの「チャットに追加」は文の引用のまま）: 30 行か 3000 文字までは入力欄に「ターミナルの出力:」とコードのブロックの文で入れ（その場で直せる）、それを超えたら押した時点の中身の札（`terminal.txt`。名前は「フォルダ・n 行」。外から来たデータではない）にして入力欄をログで埋めない。形は `terminalSelection.ts`（行末の空白・頭と終わりの空行を落としてから数える）。
-- 決まったコマンドで開くタブ（Docker のシェルなど。`TerminalTarget` の `command`・`title`・`env` → タブの同じ欄 → `TerminalPane` → `openTerminal` の `start`）: シェルはそのコマンドだけをログインシェルの `-l -c` で流し、タブの名前は `title`。終わったら「終了しました（終了コード n）」を出し、キーでは開き直さず、右下の［もう一度流す］（`.terminal-rerun`）で同じコマンドを始め直す。つなぎ直し（すでにあるシェル）では流し直さない。タブは再起動では戻らない（パネルのタブは覚えないため）。開くのは `panelActions(key).openTerminal(target)`。
-- 開く場所は `terminalTargets`（プロジェクトのボードはそのプロジェクトの本体、全プロジェクトのボードは各プロジェクト。Mac のアプリでだけ）。チャットを表示しているペインから開くときは、そのチャットの作業場所で開く。いくつもあって決まらなければ `TerminalTargetMenu` で選ぶ。
+- シェルはコアで動き、画面はスマホと同じコアの API でつなぐ（`api/terminals.ts`。`src/core/CLAUDE.md` の「ターミナル」）。
+- タブを別ウィンドウへ移す・戻すときは、受け取った側が `claimTerminal` で持ち主になってから渡した側を閉じる。
+- つなぐまでの出力は最初の snapshot に入っているので捨てる。画面に出す注意も snapshot に入れる。
+- ⌘ のないキーはシェルのもの（ショートカット・Esc に渡さない）。つなぐたびに `meta`（持ち主・名前）を知らせる（AI が名前で示す）。
 
 ## 埋め込みブラウザ（`features/browser`）
+<!-- 行き先: src/features/browser/ -->
 
-- 右サイドバーでは、前回開いていたタブを最後に表示した URL で開き直す（`features/panel/state/browserSession.ts`）。プロジェクトを切り替えて webview を作り直したときも、最初の URL ではなく最後のページから始める（`BrowserPane` で初めの `src` を固定し、ナビゲーションのたびに再読み込みしない）。フォームへの書きかけや戻る・進むの履歴は保存しない。
-- ページ内のキーワード検索（`useBrowserFind`）は ⌘F または余白の右クリック。タブの名前やアドレス欄にピントがあれば `registerPageFind` から、ページの中なら IPC の `browser.onFindRequested` から開く（WebContents ID が合う表示中のタブだけ）。`FindField` で件数を表示し、Enter / Shift+Enter で次 / 前、Esc で閉じる。文字を探して印を付けるのは webview の `findInPage`。検索を閉じたとき・タブが見えなくなったときは印を外す。
-- 右クリックはメモと同じ `PopupMenu`。ページ内（`BrowserPageMenu`）は Electron の webview の `context-menu` で受け、リンク・画像・音声・動画・選んだ文・入力欄・余白で項目を変える。リンク・画像などは同じ欄の裏のタブに開ける。選んだ文はコピー・Google 検索・チャットへの添付（外から来たデータ）に使えるが、入力欄の文は検索やチャットに渡さない。「検証」は設定した場所の開発者ツールで開く。アドレス欄と検索欄は `useBrowserTextMenu` で切り取り・コピー・貼り付け・すべて選択を出す。ページ自身が右クリックを処理していれば横取りしない。
-- `BrowserPane`（開発中のアプリのプレビュー・ドキュメント閲覧。デスクトップアプリでのみ動く）。ページは Kickoff 本体と切り離した専用のセッション（`partition="persist:kickoff-browser"`。メインプロセスでも強制）で開く。アドレス欄の文字は `lib/url.ts` の `normalizeUrl`（URL らしければそのまま、localhost などは http、ドメインは https、それ以外は検索）。アドレス欄の横の「〜で開く」は選んでいる外のブラウザで開く。
-- 開発者ツールは `useDevtools`: 右・下はタブの中の枠（`.browser-devtools-view`）にメインプロセスがウィンドウに重ねた表示（WebContentsView）を置いてその中に、別のウィンドウはメインプロセスで作ったウィンドウに出す（webview の中には出さない。Electron 45 では webview に出した開発者ツールがつながらず、ページを調べられず拡張機能も出なかった）。重ねた表示の置き場所は `useDockedDevtools` が毎フレーム枠を測って IPC の `devtools.place` で合わせる（欄の幅を変える・移すと、大きさが変わらずに位置だけ動くため。変わったときだけ知らせる）。重ねた表示は画面の HTML より上に描かれるので、タブが裏にある・枠が見えないときは隠し、メニュー・ポップオーバー・説明の吹き出し・ダイアログ・お知らせ・ドラッグの絵（`:popover-open`・`dialog[open]`・body の直下の要素など）が枠に重なる間と境目をドラッグしている間は、`devtools.snapshot` で撮った見た目を枠に出してから隠す（判定の比べ方は `devtoolsBox.ts`）。どこに出しているかは画面の側で持ち、Electron の「開いた・閉じた」の知らせには頼らない（遅れて届く）。右と下の入れ替えは開き直さず、同じ枠の並べ方だけを変える（重ねた表示は枠に付いていく）。メニュー（`DockMenu`）で場所を選ぶと、その場所で開く。場所は `BROWSER_DEVTOOLS_DOCK`（初めは別のウィンドウ）、大きさは `BROWSER_DEVTOOLS_WIDTH` / `BROWSER_DEVTOOLS_HEIGHT`（`useDragSize`）。
-- 帯の「AI に渡す ▾」（プロジェクトの欄のタブだけ。仕様書「添付の共通化」の段階 2）: 共通の渡し先のメニュー（`features/chat/CLAUDE.md` の「AI に渡す」）で選び、押した時点の画面とコンソールの札を 2 つまとめて入力欄に入れる（要らない方は札の × で外す）。中身は `browserHandOff.ts` の `browserHandOffItem` がメインプロセスの `agentBrowser.handOffCapture` で取る: 画面はタブに見えている範囲だけ（AI の browser_screenshot と同じ撮り方。ページ全体は撮らない）、コンソールは覚えている出力（読み直し・移動の前のものも）のうちエラーと警告だけを、行ごとに出たページの URL 付きの文書にする（`consoleDocument.ts`。札の名前も。console.log などは入れない）。エラー・警告が 0 件ならコンソールの札は作らず、画面が撮れなければ理由を知らせてコンソールだけ入れる。どちらの札もページが書いたものなので「外から来たデータ」。新しいチャットは本体で始め、一言は空。
-- 拡張機能は設定の「ブラウザの拡張機能」（`BrowserExtensions`）。
-- AI（チャットのエージェント）もブラウザのタブを見る・操作する（ツールは `core/mcp/browserTools.ts`、操作はメインプロセスの `browser/agentBrowser.ts`）。`BrowserPane` は `agentTarget`（タブのキーとパネルのプロジェクト）を受け、webview の準備ができたら `useAgentRegistration` でメインプロセスに登録する。AI が新しいタブを開くときは、App の `useAgentBrowserBridge`（`app/agentBrowser.ts`）がそのプロジェクトのチャット欄（`side:<プロジェクト>`）に足す（チャット欄はいま出ているプロジェクトの分だけ描くので、ほかのプロジェクトなら断って AI に理由を返す）。AI が作業の初めに使うタブ（新しく開いた・その作業で初めて操作する既存のタブ）は、そのタブのある欄（チャット欄・下のパネル・ボードの右のパネル）を開いて表示中にする（新しいタブは `panelActions.openBrowser`、既存のタブは `showTab`。利用者が別のチャットを見ていても開く。キーボードのピントは動かさないので、入力欄で書いている途中の文字はブラウザに入らない。利用者が AI の操作に気づけるように。Auto mode では承認カードが出ないので、目で見えることを守りにする。利用者と決めた）。表に出すのは作業ごとに初めの 1 回だけ（`core/mcp/browserReveal.ts`）で、そのあと AI が別のタブに移ったときは、利用者がまだ前に表に出したタブを見ている（欄が開いていて表示中。`features/panel/state/tabPlace.ts` の `isTabShown`）ときだけ切り替える。利用者がほかのタブに切り替えた・欄を閉じたら、その作業の間はもう表に戻さない。AI が「裏で」と頼まれた（ツールの `background`）ときは、表に出さずに足す（`panelActions.addBrowserBehind`。見ているタブ・欄の開閉は変えない）。AI が操作している間はタブの名前の前を「AI 操作中」のロボット（`BrowserTabLead`。`agentBrowsing.ts` の `useAgentBrowsing`）にし、そのタブのページに `.agent-browsing` を付けて、表に出ていない・欄を閉じていても透明のまま欄の大きさで並べる（`browser.css`。閉じたチャット欄は、開いたときと同じ幅・高さ・タブの列で見えないまま並べ、AI が撮る画面の大きさを利用者が欄を開いて見る大きさとそろえる。前はページだけをウィンドウの高さいっぱいに置き、タブの列の分だけ縦長に撮れていた）。
+- ページは本体と切り離したセッション（`persist:kickoff-browser`。メインでも強制）。入力欄の文は検索・チャットに渡さない。
+- 開発者ツールの重ねた表示は HTML より上に描く。メニュー・ダイアログが重なる間は撮った絵に替える（`devtoolsBox.ts`）。
+- AI が使うタブは作業ごとに初めの 1 回だけ表に出す（`core/mcp/browserReveal.ts`）。キーボードのピントは動かさない。
 
-## 外部リンクを開く（`features/browser/linkOpen.ts`・`LinkOpenerProvider`）
+## 外部リンク（`browser/linkOpen.ts`）
+<!-- 行き先: src/foundation/ui/ -->
 
-返答などの Markdown の外部リンク（http・https）は、開く前に毎回確かめる（メモの仕様書「0027_チャット欄の外の画像とリンク」）。App と別ウィンドウが `LinkOpenerProvider` で Markdown に開き方を入れ、Kickoff の画面全体の Markdown に効く（ふつうの `<a target="_blank">` はメインプロセスが既定のブラウザで開く）。
-
-- 確認の画面「外部リンクを開く」（`openWebLink`）: 行き先の URL と、当たった警告（`@shared/links/linkWarnings` の `linkWarnings`: リンクの文字に見えるサイトと行き先が違う・URL にユーザー名・国際化ドメイン名（実際の表記を添える）・IP アドレス）。警告がなければ「{ドメイン} へのリンクは今後確認しない」を選べ、選んだドメインは設定の `trusted_link_domains`（アプリ全体）に足して次から確かめない。警告に当たるリンクは覚えていても毎回確かめ、「今後確認しない」も出さない。
-- 開き先は設定の `link_open_in`（Kickoff のブラウザ（初め）/ 既定のブラウザ）。⌘（Ctrl）を押しながら押すと反対の方。Kickoff のブラウザは AI の browser_open と同じ所（見ているプロジェクトのチャット欄の新しいタブ `openSideBrowser`）。プロジェクトを開いていない画面・別ウィンドウでは既定のブラウザ。
+- Markdown の外部リンクは開く前に確かめる（`openWebLink`）。警告に当たるリンクは覚えたドメインでも毎回確かめる。
 
 ## 外のアプリで開く（`features/openWith`）
+<!-- 行き先: src/features/panel/ -->
 
-- パネルのタブの列のブラウザ・ターミナルは、アイコンで新しいタブ、横の細い ▾ でメニュー `OpenWithMenu`（新しいタブで開く・区切り線・「外部で開く」の見出しの下にこの Mac に入っているアプリの一覧。アプリを押すとそのアプリの新しいタブ・窓でそのまま開き、次からの既定にもなる。チェックは付けない（利用者の依頼））。アイコンと ▾ は 1 つのボタンに見せ、どちらに乗せても・メニューを開いている間も、2 つをつなげた 1 つの地で光らせる（`.panel-split-button` の `.panel-open-with`）。
-- 開閉と開く場所は `useOpenWithMenu`（ブラウザは押したペインで表示中のブラウザのタブのページ（`browserPageOf`。そのブラウザの新しいタブで開き、なければ空の新しいタブ）、ターミナルはアイコン・タブがないときのボタン・▾ のどれも同じ決め方 `terminalTargetOf`（表示中のチャットの作業場所 → 開く場所が 1 つならそこ。決まらなければ `TerminalTargetMenu`））。
-- 選んでいるアプリと入っているアプリの一覧は `externalApps.ts` の `useExternalTerminal` / `useExternalBrowser`（`EXTERNAL_TERMINAL` / `EXTERNAL_BROWSER`（初めは Chrome）。入っているアプリはアプリ全体で 1 回だけ調べる店。開けなければお知らせ）。アプリの一覧は `@shared/ipc` の `EXTERNAL_TERMINALS` / `EXTERNAL_BROWSERS`。チャットの見出しには外部のターミナルのボタンを置かない（パネルの ▾ に集める）。
+- 開く場所は `terminalTargetOf` 1 つで決める。チャットの見出しに外部のターミナルのボタンを置かない（パネルの ▾ に集める）。

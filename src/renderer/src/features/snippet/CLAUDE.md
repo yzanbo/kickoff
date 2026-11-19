@@ -1,31 +1,20 @@
 # 定型文（`features/snippet/`）
+<!-- 行き先: src/features/snippets/ -->
 
-よく送る指示を定型文として持ち、チャット欄の中の上の帯から押すだけで入力欄に入れる・送る。
+よく送る指示を、チャット欄の上の帯（`SnippetBar`）から入力欄に入れる・送る。
 
-## データ
+| ファイル | 中身 |
+|---|---|
+| `stores/snippets.ts`・`snippetActions.ts` | 店（すべてを 1 つで読む）・作る / 直す / 並べ替える / 消す |
+| `SnippetManager`・`SnippetForm` | 管理（帯のダイアログ・設定・プロジェクトの設定で同じ部品） |
 
-- 1 つの一覧（表 `snippets`・型 `Snippet`）で、行ごとに範囲を持つ: `project_id` が `null` なら共通（すべてのプロジェクト）、番号ならそのプロジェクトだけ。範囲は後から切り替えられる。プロジェクトを消すと、そのプロジェクトだけのものも消える。
-- 名前（`label`）は省ける。省いたら本文の 1 行目を名前として見せる（`@shared/snippet/snippets` の `snippetLabel`）。並びは全体で 1 本の `position`（`bySnippetPosition`）。
-- 店は `stores/snippets.ts` の 1 つ（すべてを読む。SSE の `snippet` / `snippet_deleted` で直す）。チャットで使うものは `useProjectSnippets(projectId)`（このプロジェクトだけのもの ＋ 共通。`snippetsFor`）、設定のすべては `useAllSnippets`。
-- 作る・直す・並べ替える・消すは `snippetActions.ts`（応答の値を店に入れて、知らせを待たずにそろえる。消すときは `confirmDeleteSnippet` で確かめる）。並べ替えは見えている行だけを動かし、ほかの行の位置は変えない（`moveWithin`）。
+- 範囲は行ごと（`project_id` が `null` なら共通）。チャットの一覧は `snippetsFor`（そのプロジェクト ＋ 共通）。
+- 操作の応答は店に入れ、知らせを待たない。並べ替えは見えている行だけを動かす（`moveWithin`）。
+- 帯を出すかは `SNIPPET_BAR_HIDDEN` 1 つ（どこで切り替えても同じ値）。ダイアログは背景を押しても閉じない。
 
-## 帯（`SnippetBar`）
+## 圧縮前指示・圧縮後指示（`CompactPrompt*`・`useCompactPrompt.ts`）
+<!-- 行き先: src/features/compact/ -->
 
-- 置き場所はチャット欄（入力欄）の枠の中のいちばん上。送信待ちがあれば、送信待ちと入力欄の間の区切り線の下に入る（`features/chat/pane/ChatComposerArea.tsx` が `Composer` の `header` に渡す。文を書く欄はそのすぐ下）。
-- ピルを横に並べ、入りきらなければ横にスクロールする（`useHorizontalScroller`。縦のホイールも横に動かす。端の先に続きがあれば `fade-start` / `fade-end` で薄くぼかす。スクロールバーは出さない）。ピルは名前を省略して出し、乗せると本文（400 文字まで）を出す。
-- ピルを押すと入力欄のキャレットの位置に入れる（`ComposerHandle.insert`。書いている文は残す）。⌘クリック・右クリックの「すぐ送る」は、入力欄はそのままでその定型文だけを送る（作業中・送信待ちがあれば送信待ちに足す。送る処理は `ChatComposerArea` の `sendSnippet`）。送る前の確かめでやめた（`SendCancelled`）なら失敗の文を出さない。
-- 右に「定型文を管理」（`SnippetDialog`）の歯車だけを置く（利用者の依頼で、前はその左に、すべてを縦に並べて絞り込む「定型文の一覧」もあった）。定型文がなければピルの代わりに「定型文を追加」。
-- 右クリック: ピルの上なら、入力欄に入れる・すぐ送る・編集…・削除。どこでも、定型文を追加・定型文を管理…・定型文の帯を隠す。
-- 帯を出すかは `SNIPPET_BAR_HIDDEN`（帯の右クリック・入力欄の文を書く欄の右クリックの「定型文の帯を表示 / 隠す」（`SnippetBarToggleItem`。帯を隠していても入力欄から戻せる。`Composer` の `menuItems`）・チャットの見出しと会話の何もないところの右クリックの「チャット画面表示」の「定型文の帯」・設定の「定型文」のいちばん上と「表示」の「定型文の帯」で共通。どのチャットでも同じ）。設定の 2 か所は同じ部品 `SnippetBarField`（表示する / 表示しない）。
-
-## 管理（`SnippetManager` ＋ `SnippetForm`）
-
-- 足す・直す・範囲を変える・並べ替える（↑↓）・消す。同じ部品を、帯のダイアログ（`SnippetDialog`。このプロジェクトのもの）・設定の「定型文」（すべて。一覧の上に帯の表示の切り替え）・プロジェクトの設定の「定型文」（そのプロジェクトのもの）で使う（`SnippetSettings`）。
-- フォームは 1 つずつ開く（`SnippetEditing`: 直す行の ID / `"new"` / `null`）。⌘Enter で保存、Esc はまずフォームだけをやめる（ダイアログは閉じない）。範囲の選択肢（共通 ＋ 選べるプロジェクト。チャットとプロジェクトの設定ではそのプロジェクトだけ、アプリの設定ではすべて）が 3 つまでなら `Segmented`、それより多ければ select。
-- ダイアログは背景を押しても閉じない（書きかけを消さないため）。下の「すべての定型文を設定で見る」で設定の「定型文」を開く（`openSettings("snippets")`）。
-
-## 圧縮前指示・圧縮後指示（`CompactPromptForm`・`CompactPromptEditor`）
-
-設定の「圧縮前・圧縮後指示」とプロジェクトの設定の「圧縮前・圧縮後指示」に、圧縮前指示・圧縮後指示の順に置く欄（`CompactPromptSettings`。利用者の依頼で、前は「定型文」の項目の中の定型文の一覧の下にあった。定型文は自分で送る指示、こちらは圧縮の前後に自動で送る指示なので項目を分けた。帯のダイアログには出さない。種類は共有の `@shared/chat/prompts` の `CompactPromptKind`（`pre` / `post`）で、`compactPromptKinds.ts` の名前・アイコン（圧縮前 = `Shrink`・圧縮後 = `ListRestart`）・説明は `COMPACT_PROMPT_KINDS` 1 か所、保存する項目は共有の `COMPACT_PROMPT_FIELDS`）。共通・プロジェクトの指示ごとにオン / オフ（`COMPACT_PROMPT_SWITCH`。設定の欄では文の上、メーターの詳細では範囲の切り替えの右の、選んでいる方の分）を持ち、押したらすぐ保存する（文の保存は「保存」で別。オフでも文は残し、送らないだけ。書いておいて一時的に止めたいとき）。同じ値をチャット欄のメーターの詳細（`features/chat/composer/ContextMeter.tsx`）の「圧縮前指示」「圧縮後指示」（`CompactPromptEditor`）でも書ける: 開閉の行（初めは閉じる。開いているかは `useFold("composer", "pre-compact" / "post-compact")` で種類ごとに覚える）に、書いてある指示の範囲（共通 ＋ プロジェクト名 / 共通 / プロジェクト名 / なし。オフのものは「共通（オフ）」のように添える）を添え、開くと共通 / プロジェクト（ボタンはプロジェクト名。長ければ省略）を `Segmented` で切り替えて書く（両方の書きかけを持ち、切り替えても消さない）。書きかけと保存はどちらも `useCompactPrompt(kind, projectId | null)`（保存した・ほかで変わったら書きかけを合わせる）。圧縮前指示は会話を圧縮する前に、圧縮後指示は圧縮したあとに AI に送る指示で、設定は共通の分（`AppSettings.pre_compact_prompt` / `post_compact_prompt`）、プロジェクトはそのプロジェクトの分（`Project` の同じ項目）。送るときは共通 → プロジェクトの順につなぐ。空にすると null で保存して送らない（オフも送らない。どちらも `AppSettings` / `Project` の `pre_compact_enabled` / `post_compact_enabled`）。手で圧縮するときは先に送ってから圧縮し、自動の圧縮でも圧縮を待たせて済ませてもらう（コア。`src/core/chat/CLAUDE.md`）。圧縮後指示は、手で・自動のどちらの圧縮でも、圧縮のたびに、圧縮の間に預かった指示より先に送る。送った指示は会話に「圧縮前指示」「圧縮後指示」の札（`CompactPromptMark`。会話の吹き出し・指示の帯・指示の履歴・圧縮を待つ吹き出し・送信待ちの行で共通）付きの自分の発言として残る（`features/chat/CLAUDE.md` の「発言」）。
-
-チャットに送る指示（オンの分を共通 → プロジェクトにつないだもの）は `useSentCompactPrompt(kind, projectId)`（圧縮を待つ間に、まだ預かりに入っていない圧縮後指示を先に見せる `TimelineEnd` が使う）。
+- 種類の名前とアイコンは `COMPACT_PROMPT_KINDS`、保存する項目は `@shared/chat/prompts` の `COMPACT_PROMPT_FIELDS`。
+- 見せる文はコアと同じ `compactPromptFor`。送る順はコア（`src/core/chat/CLAUDE.md` の「圧縮と、圧縮前・圧縮後の指示」）。
+- オン / オフは文と別にすぐ保存する（オフでも文は残す）。
