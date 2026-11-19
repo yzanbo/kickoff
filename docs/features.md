@@ -1,6 +1,6 @@
 # Kickoff 機能の一覧
 
-最後に一覧を確かめたコミット: 730a2cd4
+最後に一覧を確かめたコミット: ecb7d718
 列: ID・機能・持ち主（機能のフォルダの名前。土台は `土台:core` / `土台:ui` / `土台:desktop` / `土台:shared`、組み立ては `app`、スマホは `mobile`、道具は `道具`）・確かめ方（`T:<テストのファイルの名前>` / `E:<通しの確かめの名前>` / `M`（手で見る））。（一部）は一部だけ作ってあるもの。
 
 ## PRJ プロジェクト
@@ -75,7 +75,7 @@
 |---|---|---|---|
 | LST-015 | グループを作る・名前を変える・消す | groups | M |
 | LST-016 | グループと No Group を並べ替える | groups | T:groups |
-| LST-017 | チャットをドラッグでグループへ移す | groups | T:groups |
+| LST-017 | チャットをドラッグでグループへ移す | groups | T:groups,E:sidebar-drag |
 | LST-018 | グループを選んで新しいチャットを始める | groups | M |
 
 ### チャットの操作
@@ -89,7 +89,7 @@
 | LST-024 | チャットを別のプロジェクトへ移す | chat | M |
 | LST-025 | アーカイブ・戻す・削除（必ず確かめる） | chat | M |
 | LST-026 | 右・下に分けて開く | chatList | M |
-| LST-027 | いくつも選んでまとめて操作する | chatList | M |
+| LST-027 | いくつも選んでまとめて操作する | chatList | E:sidebar-range |
 
 ### 状態と未読
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -110,7 +110,7 @@
 |---|---|---|---|
 | LST-034 | 全プロジェクトのボードを見る | board | M |
 | LST-035 | プロジェクトのボードをカンバンで見る | board | M |
-| LST-036 | ボード・リスト・フィードを切り替える | board | M |
+| LST-036 | ボード・リスト・フィードを切り替える | board | E:board-view |
 | LST-037 | 列の分け方（状態・グループ）を選ぶ | board | M |
 | LST-038 | 段（スイムレーン）に分ける | board | M |
 | LST-039 | カードに出す項目を選ぶ | board | M |
@@ -140,7 +140,7 @@
 | LST-055 | 「表示」のメニューでタブの見せ方を選ぶ | panel | M |
 | LST-056 | タブをグループ別・作業場所別にまとめる | chatPanel | M |
 | LST-057 | まとまりの札から一覧・畳む・隠す | chatPanel | M |
-| LST-058 | ペインに分けて並べる | panel | M |
+| LST-058 | ペインに分けて並べる | panel | E:pane-split |
 
 ### 右の欄と別ウィンドウ
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -157,12 +157,12 @@
 ### 探す・移る
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| LST-067 | ⌘K でプロジェクト・チャット・メモへ移る | palette | M |
+| LST-067 | ⌘K でプロジェクト・チャット・メモへ移る | palette | E:palette-open |
 | LST-068 | ⌘K でチャット・メモの文言を探す | palette | M |
 | LST-069 | やり取りを全文検索する | palette | M |
 | LST-070 | ⌘⇧A で作業中・回答待ちのチャットを一覧する | chatList | M |
 | LST-071 | 前に見た画面・チャットへ戻る・進む | 土台:ui | M |
-| LST-072 | ⌘F・⌘⇧F・⌘L で探す・ピントを移す | app | M |
+| LST-072 | ⌘F・⌘⇧F・⌘L で探す・ピントを移す | app | E:board-find |
 | LST-073 | ドラッグ中に欄の端でスクロールする | 土台:ui | M |
 
 ### 右サイドバー
@@ -259,7 +259,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | CHT-045 | 返答の手元の画像を表示する | remoteImages | M |
-| CHT-046 | 外の画像をホストごとのボタンで表示する | remoteImages | M |
+| CHT-046 | 外の画像をホストごとのボタンで表示する | remoteImages | T:server.chatImages |
 | CHT-047 | 画像の表示を許可したサイトを外す | remoteImages | M |
 | CHT-048 | リンクの開き先を選ぶ | remoteImages | M |
 | CHT-049 | 外部リンクを開く前に確かめる | 土台:ui | M |
@@ -288,7 +288,7 @@
 | RUN-012 | AI を替えた区切りと、返答ごとの担当 AI を出す | providerSwitch | T:ProviderSwitchRecord |
 | RUN-013 | AI ごとのセッションを持ち、前の AI に戻したら続きから | chat | T:chatProviderSessions |
 | RUN-014 | 引き継ぎに失敗したら元の指示を残して直す | providerSwitch | M |
-| RUN-015 | その AI にない機能を理由付きで押せない形にする | ai | M |
+| RUN-015 | その AI にない機能を理由付きで押せない形にする | ai | T:server.providerAuth |
 
 ### 作業中
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -309,14 +309,14 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | RUN-023 | 「あとで」で送信待ちに入れる | chat | M |
-| RUN-024 | 送信待ちの一覧を入力欄の上に出す | queue | M |
+| RUN-024 | 送信待ちの一覧を入力欄の上に出す | queue | E:queue-list |
 | RUN-025 | 1 件をすぐ送る・消す・上下へ動かす | queue | M |
 | RUN-026 | 送信待ちを書き直す | queue | M |
 | RUN-027 | ドラッグで並べ替える | queue | M |
 | RUN-028 | 選んだ指示をまとめて送る・消す・1 つにまとめる | queue | M |
 | RUN-029 | 自動で送る / 止めています を切り替える | chat | T:queue |
 | RUN-030 | すべて送る（まとめて 1 件 / 1 件ずつ順に） | queue | M |
-| RUN-031 | 一時停止の印を挟む | chat | T:queue |
+| RUN-031 | 一時停止の印を挟む | chat | T:queue,E:queue-list |
 | RUN-032 | 質問として送る（答えのあと一時停止） | chat | M |
 | RUN-033 | 会話の圧縮・コンテキストの消去を挟む | chat | T:queue |
 | RUN-034 | 新しいチャット・子チャットで聞く / 移す | queue | M |
@@ -472,10 +472,10 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | VOI-010 | 音声入力をオン・オフする | voice | M |
-| VOI-011 | 文字起こしの方法を選ぶ | voice | M |
-| VOI-012 | whisper の準備とモデルを入れる | voice | M |
+| VOI-011 | 文字起こしの方法を選ぶ | voice | T:server.voice |
+| VOI-012 | whisper の準備とモデルを入れる | voice | T:server.voice |
 | VOI-013 | macOS の音声認識で起こす | voice | M |
-| VOI-014 | OpenAI で起こす | voice | M |
+| VOI-014 | OpenAI で起こす | voice | T:server.voice |
 | VOI-015 | 読み上げの声と速さを選ぶ | voice | M |
 
 ## NOTE メモ
@@ -497,8 +497,8 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | NOTE-010 | ライブプレビューで書く | notes | T:livePreview |
-| NOTE-011 | ⌘S で保存・書きかけを残す | notes | M |
-| NOTE-012 | ほかで変わったメモを読み直す | notes | T:memoWatcher |
+| NOTE-011 | ⌘S で保存・書きかけを残す | notes | E:note-edit |
+| NOTE-012 | ほかで変わったメモを読み直す | notes | T:memoWatcher,server.memos |
 | NOTE-013 | 題名を書き換えて名前を変える | notes | M |
 | NOTE-014 | メモの中を探す・置き換える | notes | M |
 | NOTE-015 | HTML で書く | notes | M |
@@ -514,13 +514,13 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | NOTE-019 | チャットの文をメモにする | notes | M |
-| NOTE-020 | 既存のメモに足す・AI で組み込む | notes | T:memoAi |
+| NOTE-020 | 既存のメモに足す・AI で組み込む | notes | T:memoAi,server.memos |
 | NOTE-021 | チャットからメモを開く | notes | M |
 | NOTE-022 | 入力欄の上のピルからメモを使う | notes | M |
 | NOTE-023 | メモをチャットに追加する | notes | M |
 | NOTE-024 | 選んだ文から新しいチャットを始める | notes | M |
 | NOTE-025 | メモを GitHub の issue にする | notes | M |
-| NOTE-026 | 全プロジェクトのメモの文言を探す | notes | T:memoSearch |
+| NOTE-026 | 全プロジェクトのメモの文言を探す | notes | T:memoSearch,server.memos |
 
 ### 図と数式
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -560,8 +560,8 @@
 ### 変更とコミット
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| CODE-017 | 変更の一覧と差分を見る | git | M |
-| CODE-018 | ステージ・取り消し・元に戻す | git | M |
+| CODE-017 | 変更の一覧と差分を見る | git | E:open-diff |
+| CODE-018 | ステージ・取り消し・元に戻す | git | T:server.git |
 | CODE-019 | コミットを作る | git | M |
 | CODE-020 | 修正・プッシュ・同期つきのコミット | git | M |
 | CODE-021 | プル・プッシュ・フェッチ | git | M |
@@ -586,7 +586,7 @@
 | CODE-032 | 履歴を開いた・窓に戻ったときにリモートの最新を取ってくる | git | T:gitAutoFetch |
 | CODE-033 | ブランチをチェックアウトする | git | M |
 | CODE-034 | ブランチ・タグを作る | git | M |
-| CODE-035 | マージ・リベースする | git | M |
+| CODE-035 | マージ・リベースする | git | T:server.gitBranches |
 | CODE-036 | 追跡・名前の変更・削除 | git | M |
 | CODE-037 | 変更を退避・戻す・適用する | git | M |
 | CODE-038 | チェリーピック・リバート（一部） | git | M |
@@ -608,8 +608,8 @@
 ### 実行環境
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| CODE-049 | ワークツリーごとにポートを分ける | worktrees | M |
-| CODE-050 | AI で実行環境を整える | worktrees | M |
+| CODE-049 | ワークツリーごとにポートを分ける | worktrees | T:server.worktreeEnv |
+| CODE-050 | AI で実行環境を整える | worktrees | T:server.worktreeEnv |
 | CODE-051 | 消すときにコンテナと接続も消す | worktrees | M |
 
 ## TERM ターミナル・ブラウザ
@@ -642,19 +642,19 @@
 |---|---|---|---|
 | DB-001 | 接続を登録して試す | database | M |
 | DB-002 | 接続を写す・複製する・消す | database | M |
-| DB-003 | 接続する・切る | database | M |
-| DB-004 | プロジェクトから接続を取り込む | database | M |
-| DB-005 | ワークツリーの SQLite を開く | database | M |
+| DB-003 | 接続する・切る | database | T:server.databases |
+| DB-004 | プロジェクトから接続を取り込む | database | T:server.databases |
+| DB-005 | ワークツリーの SQLite を開く | database | T:server.databases |
 | DB-006 | 接続の並びを変える（一部） | database | M |
 
 ### つなぎ方と守り
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| DB-007 | SSH トンネルを通す | database | M |
-| DB-008 | つなぐ前に準備のコマンドを流す | database | M |
+| DB-007 | SSH トンネルを通す | database | T:server.databases |
+| DB-008 | つなぐ前に準備のコマンドを流す | database | T:server.databases |
 | DB-009 | 環境ごとの色と書き込みの守り | database | M |
 | DB-010 | 読み取り専用の接続で一時的に書く | database | M |
-| DB-011 | パスワードをキーチェーンで暗号化する | database | T:secrets |
+| DB-011 | パスワードをキーチェーンで暗号化する | database | T:secrets,server.databases |
 
 ### 手順メモ
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -667,14 +667,14 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | DB-015 | DB タブ・右の欄・別ウィンドウで開く | database | M |
-| DB-016 | 木で DB・テーブル・列をたどる | database | M |
+| DB-016 | 木で DB・テーブル・列をたどる | database | E:db-table |
 | DB-017 | テーブルをピン留めする | database | T:dbPins |
 | DB-018 | テーブル・列を名前で探す | database | M |
 
 ### テーブル
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| DB-019 | データを見て並べ替える | database | M |
+| DB-019 | データを見て並べ替える | database | E:db-table |
 | DB-020 | 行を絞り込む | database | M |
 | DB-021 | 外部キーで参照先の行へ移る | database | M |
 | DB-022 | 行の詳細を縦に見る | database | M |
@@ -692,7 +692,7 @@
 | DB-030 | トランザクションをコミット・取り消す | database | M |
 | DB-031 | 流す接続を替える | database | M |
 | DB-032 | SQL の履歴から入れ直す | database | M |
-| DB-033 | AI に SQL を書いてもらう | database | T:sqlAssist |
+| DB-033 | AI に SQL を書いてもらう | database | T:sqlAssist,server.databases |
 
 ### ER 図
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -717,20 +717,20 @@
 |---|---|---|---|
 | DB-044 | compose のサービスを一覧で見る | docker | M |
 | DB-045 | 止まっているエンジンを起こす | docker | M |
-| DB-046 | まとめて起動・停止・再起動する | docker | T:actions |
+| DB-046 | まとめて起動・停止・再起動する | docker | T:actions,server.docker |
 | DB-047 | 片付ける・作り直して起動する | docker | M |
 | DB-048 | サービスごとに起動・停止・再開する | docker | M |
 | DB-049 | 失敗をターミナルで流し直す | docker | M |
 | DB-050 | 公開ポートをブラウザで開く | docker | M |
 | DB-051 | コンテナのシェルを開く | docker | T:dockerView |
-| DB-052 | 同じ組の名前を知らせる | docker | T:listing |
+| DB-052 | 同じ組の名前を知らせる | docker | T:listing,server.docker |
 | DB-053 | DB のサービスを DB で開く | docker | M |
 | DB-054 | ほかの作業場所の Docker を止める前に聞く | docker | T:dockerGuard |
 
 ### Docker のログ
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| DB-055 | ログを時刻順にまとめて見る | docker | M |
+| DB-055 | ログを時刻順にまとめて見る | docker | T:server.docker |
 | DB-056 | ログを絞る・探す | docker | M |
 | DB-057 | ログを AI に渡す | docker | M |
 
@@ -738,9 +738,9 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | DB-058 | ポートを使っているプロセスを見る | ports | M |
-| DB-059 | プロセスを止める | ports | T:service |
+| DB-059 | プロセスを止める | ports | T:service,server.ports |
 | DB-060 | ポートをブラウザで開く | ports | M |
-| DB-061 | ポートの取り合いで相手を止めて起動する | docker | T:portConflict |
+| DB-061 | ポートの取り合いで相手を止めて起動する | docker | T:portConflict,server.docker |
 | DB-062 | Docker の外のポートの占有を知らせる | docker | M |
 
 ### パスワードと準備の確かめ
@@ -754,7 +754,7 @@
 ### 連携
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| GH-001 | gh のアカウントで GitHub につなぐ | github | M |
+| GH-001 | gh のアカウントで GitHub につなぐ | github | T:server.github |
 
 ### 一覧
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -784,7 +784,7 @@
 ### 書く
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| GH-015 | コメントする・閉じる・開き直す | github | M |
+| GH-015 | コメントする・閉じる・開き直す | github | T:server.github |
 | GH-016 | ラベルを付け替える | github | M |
 | GH-017 | 新しい issue を作る | github | M |
 | GH-018 | 行にコメントしてレビューを送る | github | M |
@@ -796,7 +796,7 @@
 | GH-020 | プッシュして PR を作る | github | T:github |
 | GH-021 | PR をマージする | github | M |
 | GH-022 | PR をチェックアウトする | github | M |
-| GH-023 | マージ・クローズを知らせて片付ける | github | T:prWatch |
+| GH-023 | マージ・クローズを知らせて片付ける | github | T:prWatch,server.worktreePrs |
 
 ### CI
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -804,11 +804,11 @@
 | GH-024 | GitHub Actions の実行の一覧 | github | M |
 | GH-025 | ジョブとステップを見る | github | M |
 | GH-026 | ジョブのログを読む | github | M |
-| GH-027 | 失敗したジョブ・すべてをやり直す | github | M |
+| GH-027 | 失敗したジョブ・すべてをやり直す | github | T:server.ci |
 | GH-028 | 落ちた CI のログを AI に渡す | github | M |
 | GH-029 | 落ちたブランチの作業場所で直す | github | M |
 | GH-030 | PR のチェックから CI のログを開く | github | M |
-| GH-031 | CI の失敗を Mac の通知で知らせる | github | M |
+| GH-031 | CI の失敗を Mac の通知で知らせる | github | T:server.ci,server.notifications |
 
 ## AIT AI の Kickoff 操作ツール
 
@@ -820,7 +820,7 @@
 | AIT-003 | チャットをアーカイブする・消す | chat | M |
 | AIT-004 | 家系のチャットに下書きを入れる | chat | T:aiOpen |
 | AIT-005 | チャットの一覧・会話・使用枠を読む | chat | T:aiChatRead |
-| AIT-006 | 利用者に知らせる | notifications | M |
+| AIT-006 | 利用者に知らせる | notifications | T:server.notifications |
 | AIT-007 | 利用者が見ているものを読む | userView | M |
 | AIT-008 | AI がチャットの作業場所を移す | workplaceMove | M |
 
@@ -864,7 +864,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | MOB-001 | スマホからつなぐをオン・オフする | devices | M |
-| MOB-002 | QR と番号でペアリングする | devices | M |
+| MOB-002 | QR と番号でペアリングする | devices | T:server.devices |
 | MOB-003 | つなぐ頼みを Mac で確かめる | devices | M |
 | MOB-004 | Tailscale Serve の始め方を案内する | devices | M |
 | MOB-005 | Serve の URL をつなぐ先にする | devices | T:status |
@@ -875,7 +875,7 @@
 |---|---|---|---|
 | MOB-007 | つないだ端末の一覧を見る | devices | M |
 | MOB-008 | 端末を見るだけにする | 土台:core | M |
-| MOB-009 | 端末を取り消す | devices | M |
+| MOB-009 | 端末を取り消す | devices | T:server.devices |
 | MOB-010 | 端末に開く API を限る | 土台:core | M |
 
 ### Mac の常駐
@@ -887,7 +887,7 @@
 ### 通知
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| MOB-013 | スマホにプッシュで知らせる | devices | T:expoPush |
+| MOB-013 | スマホにプッシュで知らせる | devices | T:expoPush,server.notifications |
 
 ### Android のアプリ
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -920,7 +920,7 @@
 ### 設定
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| SET-001 | 設定のダイアログを開く | settings | M |
+| SET-001 | 設定のダイアログを開く | settings | E:settings-open |
 | SET-002 | テーマ（ダーク・ライト・システム） | 土台:ui | M |
 | SET-003 | 見出し・タブの列・チャットを開く場所を選ぶ | settings | M |
 | SET-004 | サブエージェント・子チャット・メモを開く場所 | ai | M |
@@ -933,7 +933,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | SET-009 | サーバー・AI・gh の様子を見る | ai | M |
-| SET-010 | Claude Code のログイン状態とプラン | ai | M |
+| SET-010 | Claude Code のログイン状態とプラン | ai | T:server.providerAuth |
 | SET-011 | AI ごとにログインの仕方（サブスク / API キー）を選ぶ・API キーを置く | ai | M |
 
 ### 下の帯と使用枠
@@ -944,13 +944,13 @@
 | SET-014 | 使用枠とプランを出す | ai | M |
 | SET-015 | 使用枠の詳細を開く | ai | M |
 | SET-016 | 前に出しているチャットの AI の使用状況を出す（取りやめ: 下の帯に AI ごとに並べる形に替えた。SET-026） | ai | M |
-| SET-017 | サービスごとの使用状況を見る | ai | M |
+| SET-017 | サービスごとの使用状況を見る | ai | T:server.usage |
 
 ### 通知
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| SET-018 | Mac の通知で知らせる | notifications | M |
-| SET-019 | 見ている人には通知しない | notifications | M |
+| SET-018 | Mac の通知で知らせる | notifications | T:server.notifications |
+| SET-019 | 見ている人には通知しない | notifications | T:server.notifications |
 | SET-020 | 通知を押してそのチャットを開く | 土台:desktop | M |
 | SET-021 | Dock のアイコンに要対応の数を出す | notifications | T:dockBadge |
 | SET-022 | ntfy でスマホに知らせる（一部） | notifications | M |
@@ -993,10 +993,10 @@
 ### ゴミ箱
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| BASE-013 | 消したものを 3 日取っておき、元に戻す（Kickoff のゴミ箱） | trash | M |
+| BASE-013 | 消したものを 3 日取っておき、元に戻す（Kickoff のゴミ箱） | trash | T:server.trash |
 | BASE-014 | プロジェクトの「ゴミ箱」タブで見て戻す | trash | M |
 | BASE-015 | 消した直後の知らせから元に戻す | trash | M |
-| BASE-016 | AI が消すときもゴミ箱へ（kickoff-trash） | trash | T:command |
+| BASE-016 | AI が消すときもゴミ箱へ（kickoff-trash） | trash | T:command,server.trash |
 | BASE-017 | ゴミ箱のプロジェクトを設定から戻す | trash | M |
 | BASE-018 | アーカイブ済みの古いチャットをまとめてゴミ箱へ | chat | T:archiveCleanup |
 | BASE-019 | どのチャットも使っていない会話記録を探してゴミ箱へ | chat | M |
@@ -1038,7 +1038,7 @@
 | BASE-039 | 長いチャット・作業中の表示と入力を軽くする | chat | T:chatStore |
 | BASE-040 | サブエージェントのカードの手順を、そのサブエージェントの記録だけから作る | subagents | T:subagentEvents |
 | BASE-041 | 裏のタブのチャットは描くのを止める | conversation | M |
-| BASE-042 | 長い一覧は画面に入る分から描く | 土台:ui | M |
+| BASE-042 | 長い一覧は画面に入る分から描く | 土台:ui | E:sidebar-keys,sidebar-range,sidebar-drag,board-find |
 | BASE-043 | 画面のビルドと配信を速くする | 道具 | M |
 
 ### 開発と配布
