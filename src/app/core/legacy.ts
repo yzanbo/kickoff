@@ -9,29 +9,22 @@ import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { Runner } from "@/features/chat/core/runner";
 import { endInterruptedTurns } from "@/features/chat/core/interruptedTurnEnd";
 import { startAutoArchive } from "@/features/chat/core/autoArchive";
-import { WorktreePrWatch } from "@/features/github/core/prWatch";
-import { HeadWatch } from "@/features/worktrees/core/headWatch";
-import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import { NoteService } from "@/features/notes/core/notes";
 import type { TrashApi } from "@/features/trash/core/index";
+import type { DockerService } from "@/features/docker/core/index";
+import type { WorktreesApi } from "@/features/worktrees/core/index";
+import type { GitHubApi } from "@/features/github/core/index";
+import type { TerminalSessions } from "@/features/terminal/core/index";
 import { sweepUnusedSessions } from "@/features/chat/core/sessions/sessionTrash";
 import type { SessionTrash } from "@/features/chat/core/sessionSwitch";
 import { registerProjectTrash } from "@/features/projects/core/trash";
 import { RemoteImageService } from "@/features/remoteImages/core/service";
-import { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import { registerChatTrash, trashNoteChats, trashNoteChatsOnImport } from "@/features/chat/core/sessions/chatTrash";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
-import { TerminalSessions } from "@/features/terminal/core/sessions";
 import { DbWorkerClient } from "@/features/database/core/client";
 import { DatabaseService } from "@/features/database/core/service";
-import { GitHubService } from "@/features/github/core/service";
-import { CiService } from "@/features/github/core/ci";
 import { DbSecretVault } from "@/features/database/core/secrets";
-import { DockerService } from "@/features/docker/core/service";
-import { WorktreeEnvService } from "@/features/worktrees/core/env/service";
-import { PortProcessService } from "@/features/ports/core/service";
-import { PortWatch } from "@/features/ports/core/watch";
 import type { BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
 import type { KernelWithStore } from "@/foundation/core/kernel";
@@ -51,6 +44,16 @@ const RECOVERED_MESSAGES: Record<RecoveredReason, string> = {
 export interface LegacyApi extends ServerDeps {
   mcpTools: McpToolHost;
   chatRemover: ChatRemover;
+  /** 上の機能の口を受ける（上の機能は Runner を使うので legacy のあとに作り、組み立ての最後に 1 回だけ呼ぶ） */
+  attach(upper: LegacyUpper): void;
+}
+
+/** legacy のあとに作る上の機能の口 */
+export interface LegacyUpper {
+  docker: DockerService;
+  worktrees: WorktreesApi;
+  github: GitHubApi;
+  terminals: TerminalSessions;
 }
 
 /** 分けた下の機能の口 */
@@ -91,15 +94,6 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
   const databases = new DatabaseService({ store, client: new DbWorkerClient(env.database.worker), vault, dataDir: k.paths.dataDir, appDataRoot: k.paths.appDataRoot, exportRoot: env.database.exportRoot, publish: (e) => bus.publish(e) });
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   if (env.database.cleanExports) databases.cleanExports();
-  // Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く）
-  const docker = new DockerService(bus, { listeningSockets: k.platform.listeningSockets, dockerEngine: env.platformParts.dockerEngine }, env.docker.cli);
-  if (env.docker.portProbe) docker.ports.probe = env.docker.portProbe;
-  // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる。チャットの AI とターミナルには PORT を渡す）
-  const worktreeEnvs = new WorktreeEnvService(store, docker);
-  // ポートを使っているプロセス（AI が残した開発サーバーに気付いて止める。調べるのは窓を開いた・チャットの実行が終わったときだけ）
-  const ports = new PortWatch(bus, new PortProcessService({ store, probe: k.platform, selfPid: env.hostPid, selfBundle: k.platform.appBundleOf(process.execPath), stopWaitMs: env.ports.stopWaitMs }), env.ports.afterTurnMs);
-  // 内蔵ターミナルのシェル（この Mac の画面は IPC、スマホは WebSocket でつなぐ。ワークツリーのシェルには PORT を渡す。AI は出力を読むだけ）
-  const terminals = new TerminalSessions({ shell: env.platformParts.terminalShell(), env: env.terminal.env, envOf: (cwd) => worktreeEnvs.envFor(cwd), spawn: env.terminal.spawn });
   // AI の rm の代わりの kickoff-trash（置けていなければ守りも付けない。AI が消せなくなって止まらないように）
   const trashCommand = trashCommandFile ? { path: trashCommandFile, dir: trashBin.dir } : undefined;
   // AI の Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする）。通信はどこへでも通す中継を通す（ネットワークは絞らない。起こせなければプロバイダーの中継のまま）
@@ -114,7 +108,7 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
   };
   // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ）
   const mcpTools = new McpToolHost(() => env.mcpBaseUrl);
-  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, noteDirOf: (project) => notes.dirOf(project), notes, browser: env.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: env.guard.sandbox ? env.platformParts.sandboxDiagnostics : undefined, toolHost: mcpTools, providerKeys, interrupted: recovered, ...timing });
+  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, noteDirOf: (project) => notes.dirOf(project), notes, browser: env.browser, databases, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: env.guard.sandbox ? env.platformParts.sandboxDiagnostics : undefined, toolHost: mcpTools, providerKeys, interrupted: recovered, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
@@ -122,29 +116,10 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
   const forgetChatImages = (ids: number[]) => remoteImages.forgetChats(ids);
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages, sessionsElsewhere });
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages, sessionsElsewhere });
-  // GitHub タブと CI の結果（GitHub Actions）
-  const github = new GitHubService({ ...env.github.service, onWorktreeCreated: (project, worktree) => worktreeEnvs.prepare(project, worktree) });
-  const ci = new CiService(github, env.github.ci);
-  // ワークツリーの PR の見張り（GitHub でマージされた・閉じられたことを、5 分ごとと窓に戻ったときに確かめる）。
-  // CI の失敗の見張りも相乗りする（ワークツリーのないプロジェクトでも。落ちたら SSE の ci_failed）
-  const prWatch = new WorktreePrWatch({
-    store,
-    publish: (e) => bus.publish(e),
-    listWorktrees,
-    ...env.github.prWatch,
-    alsoCheck: async (project) => {
-      for (const failure of await ci.watch(project, store)) bus.publish({ type: "ci_failed", failure });
-    },
-  });
-  // ワークツリーの後始末（画面の「消す」と AI の finish_worktree。消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
-  const worktreeFinisher = new WorktreeFinisher({ store, bus, runner, worktreeEnvs, databases, prWatch, trashBin, mergedPr: env.worktrees.mergedPr, retryMs: env.retryMs });
-  runner.useWorktreeFinisher(worktreeFinisher);
   // チャットのアーカイブ・削除（AI の archive_chat・delete_chat。自分・自分の祖先を頼まれたら作業の終わりに行う予約）
   const chatRemover = new ChatRemover({ store, bus, runner, trashBin, retryMs: env.retryMs });
   runner.useChatRemover(chatRemover);
-  const headWatch = new HeadWatch((project_id) => bus.publish({ type: "worktrees_changed", project_id }));
   const deps: ServerDeps = {
-    headWatch,
     store,
     bus,
     streamingText: deltas.streamingText,
@@ -153,49 +128,48 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
     approvals,
     uploads,
     notes,
-    prWatch,
     databases,
-    github,
-    ci,
-    docker,
-    worktreeEnvs,
-    ports,
     remoteImages,
-    worktreeFinisher,
     userViews,
     sessionsElsewhere,
-    githubAccounts: env.github.accounts,
-    terminals,
   };
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ。始めるのは待ち受けのあと）
   let stopAutoArchive: (() => void) | null = null;
+  // 上の機能の口（ルートは待ち受けの前に登録するので、それまでに attach で受ける）
+  let upper: LegacyUpper | null = null;
+  const routeDeps = () => {
+    if (!upper) throw new Error("組み立ての最後に legacy の attach を呼んでいません");
+    const { docker, worktrees, github, terminals } = upper;
+    return { ...deps, trashBin, docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, githubAccounts: github.accounts, terminals };
+  };
 
   return {
     name: "legacy",
     // エージェントを先に止める（通知のあと・流れ続けている外部コマンドと分けた下の機能より前。中の止める順は stop のとおり）
     stopPhase: "first",
-    api: { ...deps, mcpTools, chatRemover },
-    ...legacyRoutes({ ...deps, trashBin }),
+    api: {
+      ...deps,
+      mcpTools,
+      chatRemover,
+      attach: (given) => {
+        upper = given;
+        runner.attach({ docker: given.docker, worktreeEnvs: given.worktrees.envs, worktreeFinisher: given.worktrees.finisher, terminals: given.terminals });
+      },
+    },
+    ...legacyRoutes(routeDeps),
     start: () => {
-      prWatch.start();
-      ports.start();
       stopAutoArchive = startAutoArchive(store, bus);
     },
     stop: async () => {
-      // 止める順を変えない（エージェント → 流れ続けている外部コマンド → 見張り・サービス → DB ワーカー → ターミナル・Bash の通信の中継）。通知は先に notifications が止める
+      // 止める順（エージェント → 流れ続けている外部コマンド → 見張り・サービス → DB ワーカー → Bash の通信の中継）。通知は先に notifications が止め、
+      // 分けた上の機能（Docker・PR の見張り・ワークツリーの後始末・ポート・ターミナルなど）はこのあとに作った順の逆で止まる
       runner.shutdown();
       // 流れ続けている外部コマンド（docker events・起動の途中の up -d など）は聞かずに止める
       k.exec.stopAllStreams();
-      docker.close();
-      prWatch.stop();
-      worktreeFinisher.close();
       chatRemover.close();
-      ports.close();
       stopAutoArchive?.();
       notes.close();
-      headWatch.close();
       await databases.close();
-      terminals.closeAll();
       await relay?.close();
     },
   };

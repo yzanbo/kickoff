@@ -2,7 +2,9 @@ import type { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { DOCKER_ACTIONS, type DockerActionBody, type DockerBrewStopBody, type DockerDbTarget } from "@shared/types";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { Bus } from "@/foundation/core/bus";
+import type { DockerService } from "@/features/docker/core/service";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { Invalid } from "@/foundation/core/errors";
@@ -22,7 +24,7 @@ const actionBody = z.object({
 const brewStopBody = z.object({ name: z.string().regex(/^[\w@.+-]{1,200}$/) }) satisfies z.ZodType<DockerBrewStopBody>;
 
 /** Docker タブ（端末には開かない = http/deviceAccess.ts。スマホの画面にはタブを出さない） */
-export function dockerRoutes(app: Hono, { store, docker, bus }: ServerDeps) {
+export function dockerRoutes(app: Hono, { store, docker, bus }: { store: Store; docker: DockerService; bus: Bus }) {
   const { withProject } = lookups(store);
 
   // 一覧（?refresh=1 は覚えた compose の設定を捨てて取り直す ［↻］）

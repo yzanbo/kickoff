@@ -33,6 +33,7 @@ import {
   type Project,
 } from "@shared/types";
 import type { ServerDeps } from "@/foundation/core/http/server";
+import type { DockerService } from "@/features/docker/core/index";
 import { asInvalid, Invalid, NotFound } from "@/foundation/core/errors";
 import { idParam, jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
@@ -45,12 +46,7 @@ import { parseSqlAnswer, sqlAssistPrompt } from "@/features/database/core/sqlAss
 // ---- 入力の形 ----
 
 const text = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max)
-    .nullable()
-    .transform((v) => v || null);
+  z.string().trim().max(max).nullable().transform((v) => v || null);
 const ssl = z.object({ mode: z.enum(["require", "verify"]), ca_path: text(2000) }).nullable();
 /** SSH トンネル（ホストは ~/.ssh/config の Host かホスト名。「-」で始まるものは ssh のオプションと取り違えるので断る） */
 const sshHost = z
@@ -191,7 +187,7 @@ const editsSchema = z.object({
  * DB クライアント（接続の登録・試す・木・テーブル・SQL）。この Mac からの頼みだけ受ける（LAN は暗号化なしの HTTP で、
  * 読むだけでも DB の中身が流れるため）。変えたら db_connections の知らせ（中身なし）を出し、画面はここから読み直す
  */
-export function databaseRoutes(app: Hono, { store, databases, providers, docker }: ServerDeps) {
+export function databaseRoutes(app: Hono, { store, databases, providers, docker }: ServerDeps & { docker: DockerService }) {
   const { withProject } = lookups(store);
 
   /** :cid の接続（このプロジェクトのものでなければ 404） */

@@ -1,7 +1,8 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { CiRerunBody } from "@shared/types";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { CiService } from "@/features/github/core/ci";
 import { idParam, jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 
@@ -11,7 +12,7 @@ const rerunBody = z.object({ failed: z.boolean() }) satisfies z.ZodType<CiRerunB
  * CI の結果（core/github/ci.ts）: 実行の一覧（外の CI の成否も）・実行の中身・ジョブのログ・失敗したステップのログ・
  * やり直し・「（ブランチ名）で直す」の作業場所。GitHub タブと同じく、この Mac からの頼みだけ受ける（gh はプロジェクトで選んだアカウントで動かす）
  */
-export function ciRoutes(app: Hono, { store, ci }: ServerDeps) {
+export function ciRoutes(app: Hono, { store, ci }: { store: Store; ci: CiService }) {
   const { withProject } = lookups(store);
 
   app.get("/api/projects/:id/ci/runs", withProject, async (c) => c.json(await ci.list(c.var.project)));

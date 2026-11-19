@@ -75,7 +75,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
     sandboxDiagnostics: { processes: async () => [], denials: async () => [] },
     ...options,
   });
-  core.runner.useWorktreeFinisher(unused<WorktreeFinisher>("worktreeFinisher"));
+  core.runner.attach({ worktreeFinisher: unused<WorktreeFinisher>("worktreeFinisher") });
   core.runner.useChatRemover(unused<ChatRemover>("chatRemover"));
   const chatId = await send(core);
   await until(() => seen.length === 1 && core.store.chats.get(chatId)?.status === "completed");

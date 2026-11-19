@@ -20,7 +20,9 @@ import {
   type GitHubThreadReplyBody,
   type GitHubThreadResolveBody,
 } from "@shared/types";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { WorktreePrWatch } from "@/features/github/core/prWatch";
+import type { GitHubService } from "@/features/github/core/service";
 import { idParam, jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 
@@ -103,7 +105,7 @@ const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "
  * コメント・閉じる / 開き直す・ラベル・issue の作成・レビューの送信・スレッドへの返信と解決・マージ・チェックアウト。
  * 端末には開かない（http/deviceAccess.ts。中身は DB に持たず、開くたびに GitHub に聞く。gh はプロジェクトで選んだアカウントで動かす）
  */
-export function githubRoutes(app: Hono, { store, github, prWatch }: ServerDeps) {
+export function githubRoutes(app: Hono, { store, github, prWatch }: { store: Store; github: GitHubService; prWatch: WorktreePrWatch }) {
   const { withProject } = lookups(store);
 
   app.get("/api/projects/:id/github/connection", withProject, async (c) => c.json(await github.connection(c.var.project)));

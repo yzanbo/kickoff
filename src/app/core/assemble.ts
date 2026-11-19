@@ -1,7 +1,6 @@
 // 機能の組み立て: 機能を下の層から作って並べる（本物の起動 startCore.ts とテストの createTestCore が同じものを通る）。まだ分けていないものは仮の機能 legacy の中
 import type { AssembledCore } from "@/foundation/core/feature";
 import type { KernelWithStore } from "@/foundation/core/kernel";
-import type { TerminalSessions } from "@/features/terminal/core/sessions";
 import { createSettings } from "@/features/settings/core/index";
 import { createTrash, type TrashApi } from "@/features/trash/core/index";
 import { createProjects } from "@/features/projects/core/index";
@@ -13,6 +12,13 @@ import { createUserView } from "@/features/userView/core/index";
 import { createNotifications } from "@/features/notifications/core/index";
 import { createVoice } from "@/features/voice/core/index";
 import { createDevices, type DevicesApi } from "@/features/devices/core/index";
+import { createFiles } from "@/features/files/core/index";
+import { createGit } from "@/features/git/core/index";
+import { createDocker, type DockerService } from "@/features/docker/core/index";
+import { createWorktrees, type WorktreesApi } from "@/features/worktrees/core/index";
+import { createGitHub, type GitHubApi } from "@/features/github/core/index";
+import { createTerminal, type TerminalSessions } from "@/features/terminal/core/index";
+import { createPorts, type PortWatch } from "@/features/ports/core/index";
 import { createLegacy, type LegacyApi } from "./legacy";
 import type { CorePrepared } from "./prepare";
 import type { CoreEnv } from "./types";
@@ -20,7 +26,7 @@ import type { CoreEnv } from "./types";
 /** 並べた機能と、起動したコアの口（Core）・テストに出すもの */
 export interface AppAssembly extends AssembledCore {
   /** 機能の口（テストが中のサービスを見る） */
-  apis: { trash: TrashApi; ai: AiApi; devices: DevicesApi; legacy: LegacyApi };
+  apis: { trash: TrashApi; ai: AiApi; devices: DevicesApi; legacy: LegacyApi; docker: DockerService; worktrees: WorktreesApi; github: GitHubApi; terminals: TerminalSessions; ports: PortWatch };
   runningChats(): { id: number; title: string | null }[];
   awakeNeeds(): { running: number; mobileEnabled: boolean };
   terminals: TerminalSessions;
@@ -40,15 +46,26 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
   const legacy = createLegacy(k, env, prepared, { trash: trash.api, ai: ai.api, uploads: attachments.api, userViews: userView.api });
-  const { runner, terminals, mcpTools } = legacy.api;
+  const { runner, mcpTools, databases } = legacy.api;
+  // ここからはチャット（いまは legacy の Runner）の上の機能
+  const files = createFiles(k, { trash: trash.api });
+  const git = createGit(k);
+  const docker = createDocker(k, { engine: env.platformParts.dockerEngine, ...env.docker });
+  const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: { runner }, databases }, { ...env.worktrees, retryMs: env.retryMs });
+  const github = createGitHub(k, { worktrees: worktrees.api }, env.github);
+  const terminal = createTerminal(k, { worktrees: worktrees.api }, { shell: env.platformParts.terminalShell(), ...env.terminal });
+  const ports = createPorts(k, { selfPid: env.hostPid, ...env.ports });
+  // 上の機能の口を、下の Runner とまだ分けていないルートに渡す
+  legacy.api.attach({ docker: docker.api, worktrees: worktrees.api, github: github.api, terminals: terminal.api });
+  const terminals = terminal.api;
   return {
-    features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, legacy],
+    features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, legacy, files, git, docker, worktrees, github, terminal, ports],
     hooks: {
       deviceAuth: devices.api.auth,
       status: () => ({ remote_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
       mcp: mcpTools,
     },
-    apis: { trash: trash.api, ai: ai.api, devices: devices.api, legacy: legacy.api },
+    apis: { trash: trash.api, ai: ai.api, devices: devices.api, legacy: legacy.api, docker: docker.api, worktrees: worktrees.api, github: github.api, terminals, ports: ports.api },
     runningChats: () => runner.busyChats(),
     awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: devices.api.mobileEnabled() }),
     terminals,

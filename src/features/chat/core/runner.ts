@@ -7,7 +7,6 @@ import { createChat, followupPrompt, nameOnFirstMessage, type StartChatInput } f
 import { startChildChat } from "@/features/childChats/core/children";
 import { moveChatWorkplace, type WorkplaceMoveSteps, type WorkplaceMoveInput } from "@/features/workplaceMove/core/workplaceMove";
 import { cancelledNote, notMovedNotice, runReservedMove, WorkplaceReservations, type WorkplaceMovePlan } from "@/features/workplaceMove/core/workplaceReservation";
-import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type RestartResume, type RestartResumeAction, type TellResult, type MessageMarks } from "@shared/types";
 import { resumeMomentsOf, stoppedSubagentsOf } from "./restartResume";
@@ -109,12 +108,10 @@ export class Runner extends RunnerQueue {
     });
   }
 
-  /**
-   * ワークツリーの後始末（AI の finish_worktree の中身）を渡す。後始末は作業中か・送信待ちを止めるのに Runner を使うので、Runner を作ったあとで渡す
-   * （渡すまでは AI にそのツールを出さない）
-   */
-  useWorktreeFinisher(finisher: WorktreeFinisher) {
-    this.turnDeps.worktreeFinisher = finisher;
+  /** 上の機能の口（Docker・ワークツリーの実行環境と後始末・内蔵ターミナル）を渡す。上の機能は Runner を使うので、組み立ての最後に渡す（後始末を渡すまでは AI にそのツールを出さない） */
+  attach(upper: Pick<ExecutionDeps, "docker" | "worktreeEnvs" | "worktreeFinisher" | "terminals">) {
+    Object.assign(this.deps, upper);
+    Object.assign(this.turnDeps, upper);
   }
 
   /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat の中身）を渡す。作業中か・送信待ちを止めるのに Runner を使うので、Runner を作ったあとで渡す */

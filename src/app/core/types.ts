@@ -8,9 +8,8 @@ import type { BrowserControl } from "@shared/browser/control";
 import type { WorkerChannel } from "@/features/database/core/client";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import type { DesktopNotify, PushSender } from "@/features/notifications/core/center";
-import type { TerminalSessions } from "@/features/terminal/core/sessions";
+import type { TerminalEnv, TerminalSessions } from "@/features/terminal/core/index";
 import type { CorePlatformParts } from "./platform";
-import type { GitHubAccount } from "@shared/types";
 import type { TrashEnv } from "@/features/trash/core/index";
 import type { AiEnv } from "@/features/ai/core/index";
 import type { AttachmentsEnv } from "@/features/attachments/core/index";
@@ -19,12 +18,10 @@ import type { NotificationsEnv } from "@/features/notifications/core/index";
 import type { VoiceEnv } from "@/features/voice/core/index";
 import type { SessionsUsedElsewhere } from "@/features/chat/core/sessions/siblingSessions";
 import type { Runner } from "@/features/chat/core/runner";
-import type { DockerCli } from "@/features/docker/core/cli";
-import type { PortProbe } from "@/features/docker/core/ports";
-import type { GitHubService } from "@/features/github/core/service";
-import type { CiService } from "@/features/github/core/ci";
-import type { WorktreePrWatch } from "@/features/github/core/prWatch";
-import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
+import type { DockerEnv } from "@/features/docker/core/index";
+import type { PortsEnv } from "@/features/ports/core/index";
+import type { GitHubEnv } from "@/features/github/core/index";
+import type { WorktreesEnv } from "@/features/worktrees/core/index";
 import type { RemoteImageService } from "@/features/remoteImages/core/service";
 
 export interface CoreOptions {
@@ -112,18 +109,16 @@ export interface CoreEnv {
   /** tailscale のコマンドの場所は platformParts.tailscaleCli */
   devices: Omit<DevicesEnv, "tailscaleCli">;
   notifications: NotificationsEnv;
-  docker: { cli?: DockerCli; portProbe?: PortProbe };
-  ports: { afterTurnMs?: number; stopWaitMs?: number };
-  terminal: { env?: Record<string, string>; spawn?: ConstructorParameters<typeof TerminalSessions>[0]["spawn"] };
+  /** macOS のエンジンの起こし方は platformParts.dockerEngine */
+  docker: Omit<DockerEnv, "engine">;
+  /** 自分の pid は hostPid */
+  ports: Omit<PortsEnv, "selfPid">;
+  /** ログインのシェルは platformParts.terminalShell */
+  terminal: Omit<TerminalEnv, "shell">;
   remoteImages: Pick<OptionsOf<typeof RemoteImageService>, "fetcher">;
-  github: {
-    service: Omit<OptionsOf<typeof GitHubService>, "onWorktreeCreated">;
-    ci: NonNullable<ConstructorParameters<typeof CiService>[1]>;
-    prWatch: Pick<OptionsOf<typeof WorktreePrWatch>, "resolveTarget" | "listPullRequests">;
-    /** gh に入っている GitHub のアカウント（省けば gh auth status） */
-    accounts?: () => Promise<GitHubAccount[]>;
-  };
-  worktrees: Pick<OptionsOf<typeof WorktreeFinisher>, "mergedPr">;
+  github: GitHubEnv;
+  /** 確かめ直しの間隔は retryMs */
+  worktrees: Omit<WorktreesEnv, "retryMs">;
   /** 作業の終わりの予約の確かめ直しの間隔（ワークツリーの後始末・チャットの削除。省けば本物の間隔） */
   retryMs?: number;
   database: {

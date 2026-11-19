@@ -1,7 +1,6 @@
 // ワークツリーの後始末: 画面の「ワークツリーを消す」と AI の finish_worktree の両方がここを通る。
 // 消す前に確かめ（コミットしていない変更・取り込み済みか）、失うものがあれば Git の控え（refs/kickoff/trash/…）に入れて Kickoff のゴミ箱に 3 日残し、
-// ワークツリー・ブランチ・ポートの帯・Docker の組（そのワークツリーだけのもの）・PR の知らせを片付け、そこで作業していたチャットを本体に戻す。
-// ワークツリー自身のチャットから頼まれたら、そのチャットの作業が終わってから消す（予約）
+// ワークツリー・ブランチ・ポートの帯・Docker の組（そのワークツリーだけのもの）・PR の知らせを片付け、そこで作業していたチャットを本体に戻す。ワークツリー自身のチャットから頼まれたら、そのチャットの作業が終わってから消す（予約）
 import path from "node:path";
 import type { GitWorktree, Project } from "@shared/types";
 import { errorMessage } from "@shared/foundation/errors";
@@ -16,7 +15,6 @@ import { mergedPullRequestOf, type MergedPullRequest } from "@/features/github/c
 import { runAsGitHubAccount } from "@/features/github/core/githubAccount";
 import { resolveGitHubTarget } from "@/features/github/core/githubTarget";
 import { addWorktree, findWorktree, isGitWorkTree, listWorktrees, removeWorktree } from "@/features/git/core/index";
-import type { WorktreePrWatch } from "@/features/github/core/prWatch";
 import { hasRef } from "@/features/git/core/status";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { realPathOrSelf } from "@/foundation/core/system/paths";
@@ -71,7 +69,6 @@ export interface WorktreeFinisherDeps {
   runner: Runner;
   worktreeEnvs: WorktreeEnvService;
   databases: DatabaseService;
-  prWatch: WorktreePrWatch;
   trashBin: TrashService;
   /** ブランチのマージ済みの PR（GitHub で取り込んだかの見分け。テストでは差し替える。省けば gh に聞く） */
   mergedPr?: (project: Project, branch: string) => Promise<MergedPullRequest | null>;
@@ -81,10 +78,7 @@ export interface WorktreeFinisherDeps {
 
 /** 祖先か（a が b に含まれるか。どちらかがなければ false） */
 const isAncestor = (repo: string, a: string, b: string) =>
-  gitOutput(repo, ["merge-base", "--is-ancestor", a, b]).then(
-    () => true,
-    () => false,
-  );
+  gitOutput(repo, ["merge-base", "--is-ancestor", a, b]).then(() => true, () => false);
 
 /** ブランチのマージ済みの PR を gh に聞く（GitHub の remote がない・聞けなければ null） */
 async function askMergedPr(project: Project, branch: string): Promise<MergedPullRequest | null> {
@@ -100,6 +94,7 @@ export class WorktreeFinisher {
   private readonly waiters = new Map<number, (() => void)[]>();
   private readonly unsubscribe: () => void;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private readonly changed: (() => Promise<void>)[] = [];
 
   constructor(private readonly deps: WorktreeFinisherDeps) {
     // 作業が終わったら（作業中でなくなった知らせ）予約を確かめる。予約したチャットなら、送信待ちを先に止める（ワークツリーで動くつもりで書いた指示が、本体で勝手に動かないように）
@@ -110,6 +105,11 @@ export class WorktreeFinisher {
     });
     // ゴミ箱から戻す: 同じ名前でワークツリーを作り直し、ブランチと途中の変更を戻す。3 日たったら控えの参照を消す
     deps.trashBin.register("worktree", { restore: (item) => this.restore(item), purge: (item) => this.purge(item) });
+  }
+
+  /** ワークツリーを消した・戻したあとに呼ぶものを足す（上の機能が登録する。github が PR の知らせを作り直す） */
+  afterChange(fn: () => Promise<void>) {
+    this.changed.push(fn);
   }
 
   close() {
@@ -193,7 +193,7 @@ export class WorktreeFinisher {
   }
 
   private async removeAs(project: Project, folder: string, opts: FinishOptions): Promise<FinishResult> {
-    const { store, trashBin, worktreeEnvs, databases, prWatch } = this.deps;
+    const { store, trashBin, worktreeEnvs, databases } = this.deps;
     const repo = project.repo_path;
     const list = await listWorktrees(repo);
     const target = list.find((w) => w.path === folder);
@@ -260,7 +260,7 @@ export class WorktreeFinisher {
     else store.dbConnections.clearWorktree(folder);
     const remote = upstream ? await this.deleteRemote(repo, upstream) : null;
     // そのワークツリーの PR の知らせ・印を消す（GitHub には聞き直さない）
-    await prWatch.recomputeAll();
+    for (const fn of this.changed) await fn();
     const outcome: FinishOutcome = { branch: facts.branch, changes: facts.changes, merged: facts.merged, unmerged: facts.unmerged, trashId, docker, remote, chats: moved.length };
     return { worktrees, outcome, text: finishedText(outcome) };
   }
@@ -387,7 +387,7 @@ export class WorktreeFinisher {
     const made = list.find((w) => w.branch === details.branch && !w.main);
     if (made && details.has_changes_ref) await applySnapshot(made.root, trashRef(item.id, "changes"));
     await dropTrashRefs(repo, item.id);
-    await this.deps.prWatch.recomputeAll();
+    for (const fn of this.changed) await fn();
   }
 
   /** 3 日たったら控えの参照を消す */

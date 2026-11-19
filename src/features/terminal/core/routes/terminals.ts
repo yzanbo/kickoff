@@ -8,7 +8,9 @@ import { Invalid, NotFound } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { requireWorktree } from "@/foundation/core/http/workdir";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { Bus } from "@/foundation/core/bus";
+import type { TerminalSessions } from "@/features/terminal/core/sessions";
 
 const size = z.number().int().min(2).max(1000);
 const createSchema = z.object({ worktree_path: z.string().min(1).nullable(), cols: size, rows: size }) satisfies z.ZodType<TerminalCreateBody>;
@@ -37,7 +39,7 @@ const mayClose = (caller: Caller, owner: string | null) => caller.kind === "host
  * シェルはコアの TerminalSessions で動く。キーの入力・出力は WebSocket（細かく行き来するため。この口だけ）。
  * 見るだけの端末は、一覧と WebSocket で見るだけで、シェルを作る・止める（403）・キーを送る（捨てる）はできない
  */
-export function terminalRoutes(app: Hono, { store, terminals, bus }: ServerDeps) {
+export function terminalRoutes(app: Hono, { store, terminals, bus }: { store: Store; terminals: TerminalSessions; bus: Bus }) {
   const { withProject } = lookups(store);
 
   // 動いているシェルのタブ（?project_id= でそのプロジェクトのものだけ）

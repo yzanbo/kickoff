@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { WorktreePrWatch } from "@/features/github/core/prWatch";
 import { NotFound } from "@/foundation/core/errors";
 import { lookups } from "@/foundation/core/http/lookups";
 
@@ -8,7 +9,7 @@ import { lookups } from "@/foundation/core/http/lookups";
  * ワークツリーの PR の知らせ（ワークツリーのブランチの PR が GitHub でマージされた・マージせずに閉じられた。core/git/prWatch.ts）。
  * 一覧・窓に戻ったときの取り直し・確認を閉じた（同じ PR では確認を出し直さない）
  */
-export function worktreePrRoutes(app: Hono, { store, prWatch }: ServerDeps) {
+export function worktreePrRoutes(app: Hono, { store, prWatch }: { store: Store; prWatch: WorktreePrWatch }) {
   const { withProject } = lookups(store);
 
   app.get("/api/worktree-prs", (c) => c.json(prWatch.list()));

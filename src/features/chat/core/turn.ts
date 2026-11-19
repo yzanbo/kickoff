@@ -97,7 +97,7 @@ export interface ExecutionDeps {
   trashCommand?: TrashCommand;
   /** 乗り換えた古い会話記録をゴミ箱へ入れる（なければ乗り換えても古い記録は残す） */
   sessionTrash?: SessionTrash;
-  /** ワークツリーの後始末（AI の finish_worktree。Runner を作ったあとで useWorktreeFinisher が渡す。なければそのツールを出さない） */
+  /** ワークツリーの後始末（AI の finish_worktree。Runner を作ったあとで attach が渡す。なければそのツールを出さない） */
   worktreeFinisher?: WorktreeFinisher;
   /** 利用者が見ているもの（AI の get_user_view が読む。なければそのツールを出さない） */
   userViews?: UserViewRegistry;

@@ -4,7 +4,11 @@ import type { BranchSuggestBody, BranchSuggestions, GitWorktree, WorktreeEnvSetu
 import { addWorktree, gitRefs, isGitWorkTree, listWorktrees, worktreeRemovalInfo } from "@/features/git/core/index";
 import { branchSuggestPrompt, parseBranchSuggestions } from "@/features/worktrees/core/branchSuggest";
 import { envSetupPrompt, envSetupTitle } from "@/features/worktrees/core/env/setupPrompt";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { AiApi } from "@/features/ai/core/index";
+import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
+import type { WorktreeFinisher, WorktreeFinisherDeps } from "@/features/worktrees/core/finish";
+import type { HeadWatch } from "@/features/worktrees/core/headWatch";
 import { asInvalid, Conflict, Invalid } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
@@ -13,11 +17,21 @@ import { attachWorktreeHues } from "@/features/worktrees/core/colors";
 /** ブランチ名の案を頼む本文（やりたいことの概要） */
 const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(4000) }) satisfies z.ZodType<BranchSuggestBody>;
 
+/** 受け口が使うもの */
+interface WorktreeRouteDeps {
+  store: Store;
+  runner: WorktreeFinisherDeps["runner"];
+  providers: AiApi["providers"];
+  worktreeEnvs: WorktreeEnvService;
+  worktreeFinisher: WorktreeFinisher;
+  headWatch: HeadWatch;
+}
+
 /**
  * ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」。
  * 新しいワークツリーのブランチ名の案は branch-suggestions（やりたいことの概要から、プロジェクトの AI に 1 回だけ聞く）
  */
-export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEnvs, worktreeFinisher, headWatch }: ServerDeps) {
+export function worktreeRoutes(app: Hono, { store, runner, providers, worktreeEnvs, worktreeFinisher, headWatch }: WorktreeRouteDeps) {
   const { withProject } = lookups(store);
   /** 画面に返す一覧（ワークツリーの実行環境と作業場所の色を付ける） */
   const present = (projectId: number, list: GitWorktree[]) => attachWorktreeHues(store, projectId, worktreeEnvs.attach(projectId, list));

@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { PortStopBody, PortStopResult } from "@shared/types";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { PortWatch } from "@/features/ports/core/watch";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 
 const stopBody = z.object({
@@ -11,7 +11,7 @@ const stopBody = z.object({
 }) satisfies z.ZodType<PortStopBody>;
 
 /** ポートを使っているプロセス（端末には開かない = http/deviceAccess.ts。コマンドの全文を返し、プロセスを止められるため） */
-export function portsRoutes(app: Hono, { ports }: ServerDeps) {
+export function portsRoutes(app: Hono, { ports }: { ports: PortWatch }) {
 
   // 調べる（窓を開いた・↻。調べたら SSE の ports_changed でほかの窓に知らせる）。?cached=1 は最後に調べた一覧（知らせを受けた・起動したとき）
   app.get("/api/ports", async (c) => c.json({ processes: queryOf(c, "cached") === "1" ? await ports.latest() : await ports.check() }));

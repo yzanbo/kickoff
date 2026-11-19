@@ -4,15 +4,8 @@ import { VISUAL_FRAME_CSP, VISUAL_FRAME_SHELL } from "@shared/visuals/visualDocu
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { ServerDeps } from "@/foundation/core/http/server";
 import { approvalRoutes } from "@/features/chat/core/routes/approvals";
-import { terminalRoutes } from "@/features/terminal/core/routes/terminals";
 import { chatRoutes } from "@/features/chat/core/routes/chats";
 import { databaseRoutes } from "@/features/database/core/routes/databases";
-import { githubRoutes } from "@/features/github/core/routes/github";
-import { ciRoutes } from "@/features/github/core/routes/ci";
-import { dockerRoutes } from "@/features/docker/core/routes/docker";
-import { portsRoutes } from "@/features/ports/core/routes/ports";
-import { filesRoutes } from "@/features/files/core/routes/files";
-import { gitRoutes } from "@/features/git/core/routes/git";
 import { sessionRoutes } from "@/features/chat/core/routes/sessions";
 import { noteRoutes } from "@/features/notes/core/routes/notes";
 import { projectRoutes } from "@/features/projects/core/routes/projects";
@@ -20,24 +13,34 @@ import { queueRoutes } from "@/features/chat/core/routes/queue";
 import { turnRoutes } from "@/features/chat/core/routes/turns";
 import { uploadRoutes } from "@/features/attachments/core/routes/uploads";
 import { chatImageRoutes } from "@/features/remoteImages/core/routes/chatImages";
-import { worktreeRoutes } from "@/features/worktrees/core/routes/worktrees";
-import { worktreePrRoutes } from "@/features/github/core/routes/worktreePrs";
 import type { TrashApi } from "@/features/trash/core/index";
+import type { DockerService } from "@/features/docker/core/index";
+import type { WorktreeEnvService, WorktreeFinisher } from "@/features/worktrees/core/index";
+import type { GitHubApi } from "@/features/github/core/index";
+import type { TerminalSessions } from "@/features/terminal/core/index";
 
-/** まだ分けていない機能のルートが受ける値（分けた下の機能の口を足したもの） */
-type LegacyRouteDeps = ServerDeps & { trashBin: TrashApi };
+/** まだ分けていない機能のルートが受ける値（分けた機能の口を足したもの） */
+type LegacyRouteDeps = ServerDeps & {
+  trashBin: TrashApi;
+  docker: DockerService;
+  worktreeEnvs: WorktreeEnvService;
+  worktreeFinisher: WorktreeFinisher;
+  prWatch: GitHubApi["prWatch"];
+  githubAccounts: GitHubApi["accounts"];
+  terminals: TerminalSessions;
+};
 
-/** 受け口と、図の枠のページ */
-export function legacyRoutes(deps: LegacyRouteDeps): Pick<CoreFeature, "routes" | "pages"> {
+/** 受け口と、図の枠のページ（受ける値は登録するときに読む。上の機能の口は legacy のあとに作るため） */
+export function legacyRoutes(deps: () => LegacyRouteDeps): Pick<CoreFeature, "routes" | "pages"> {
   return {
     routes: [
-      { legacy: (app) => registerLegacyRoutes(app, deps) },
+      { legacy: (app) => registerLegacyRoutes(app, deps()) },
     ],
     pages: { "/visual-frame": visualFrame },
   };
 }
 
-/** 機能ごとの API（登録の順は変えない。分けた機能のルートはこの前） */
+/** 機能ごとの API（登録の順は変えない。分けた機能のルートは並べた機能の順で、パスが重ならないので前後は問わない） */
 function registerLegacyRoutes(app: Hono, deps: LegacyRouteDeps): void {
   projectRoutes(app, deps);
   chatRoutes(app, deps);
@@ -47,17 +50,8 @@ function registerLegacyRoutes(app: Hono, deps: LegacyRouteDeps): void {
   uploadRoutes(app, deps);
   chatImageRoutes(app, deps);
   approvalRoutes(app, deps);
-  gitRoutes(app, deps);
-  filesRoutes(app, deps);
-  worktreeRoutes(app, deps);
-  worktreePrRoutes(app, deps);
   noteRoutes(app, deps);
   databaseRoutes(app, deps);
-  githubRoutes(app, deps);
-  ciRoutes(app, deps);
-  dockerRoutes(app, deps);
-  portsRoutes(app, deps);
-  terminalRoutes(app, deps);
 }
 
 /**

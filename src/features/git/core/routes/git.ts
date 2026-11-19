@@ -6,7 +6,6 @@ import { createPullRequest, pullRequestFor } from "@/features/github/core/github
 import { resolveGitHubTarget, type GitHubTarget } from "@/features/github/core/githubTarget";
 import type { GitBranchAction, GitBranchActionResult, Project } from "@shared/types";
 import type { Store } from "@/foundation/core/db/store";
-import type { ServerDeps } from "@/foundation/core/http/server";
 import { Invalid } from "@/foundation/core/errors";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
@@ -66,7 +65,7 @@ const branchActionSchema = z.discriminatedUnion("action", [
  * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・PR）。操作するフォルダは withWorkdir（?worktree=）の c.var.workdir。
  * ファイルの一覧・中身は http/routes/files.ts、ワークツリーは http/routes/worktrees.ts
  */
-export function gitRoutes(app: Hono, { store }: ServerDeps) {
+export function gitRoutes(app: Hono, { store }: { store: Store }) {
   const { withWorkdir } = lookups(store);
 
   app.get("/api/projects/:id/git/status", withWorkdir, async (c) => c.json(await gitStatus(c.var.workdir)));

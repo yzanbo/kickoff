@@ -89,7 +89,14 @@ const projectPatchSchema = z
   .partial() satisfies z.ZodType<ProjectPatch>;
 
 /** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
-export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, githubAccounts = listGitHubAccounts }: ServerDeps & { trashBin: TrashApi }) {
+/** 分けた機能の口（GitHub の PR の見張り・gh のアカウント） */
+interface ProjectRouteExtras {
+  trashBin: TrashApi;
+  prWatch: { checkProject(projectId: number): Promise<void> };
+  githubAccounts?: typeof listGitHubAccounts;
+}
+
+export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, githubAccounts = listGitHubAccounts }: ServerDeps & ProjectRouteExtras) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;

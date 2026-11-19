@@ -52,7 +52,7 @@ export function createTestCore(opts: { staticDir?: string; secretCipher?: Secret
   const close = () => stopFeatures(k, assembled.features);
   afterTest(close);
   // 見張りのうちポートを使っているプロセスだけは始める（実行が終わったときの見張りを確かめる。ほかは start しない）
-  assembled.apis.legacy.ports.start();
+  assembled.apis.ports.start();
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
     const res = await app.request(url, {
@@ -63,8 +63,10 @@ export function createTestCore(opts: { staticDir?: string; secretCipher?: Secret
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  const { trash, devices } = assembled.apis;
-  return { ...assembled.apis.legacy, ...fakes, k, app, project, call, browserLogin, close, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
+  const { trash, devices, docker, worktrees, github, terminals, ports } = assembled.apis;
+  // 分けた機能の口も、前と同じ名前で返す（API のテストを書き換えない）
+  const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, terminals, ports };
+  return { ...assembled.apis.legacy, ...split, ...fakes, k, app, project, call, browserLogin, close, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
 }
 
 /** Runner に渡す値のうち、ここで組み立てないもの（添付の置き場所・再開の時計など） */
