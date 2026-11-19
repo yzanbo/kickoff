@@ -38,7 +38,7 @@ function untilText(until: AfterCompactUntil, post: boolean, hasPost: boolean): s
  * 圧縮を待っていないのに残っている圧縮後指示（通信の切断などで作業ごと終わったもの）は、
  * 作業中ならいまの作業に、作業していなければ次に送った指示の作業にそのまま伝わるので、そう添える（until）。
  * 伝える前なら、吹き出しの下のボタンで送らずに消せる（圧縮中に誤って送ったとき）。鉛筆（ふつうの発言の書き直しと同じアイコン）で、チャット欄を書き直しの欄に
- * 入れ替えて直せる（HeldEditComposer。保存しても送る順は変えない。前は「入力欄に戻す」で消してから入力欄に入れていたので、送り直すと最後に回り、順番が入れ替わった）
+ * 入れ替えて直せる（HeldEditComposer。保存しても送る順は変えない。「入力欄に戻す」で消してから入力欄に入れると、送り直したとき最後に回り、順番が入れ替わる）
  */
 export function AfterCompactMessages({ messages, pendingPost, until }: { messages: QueuedMessage[]; pendingPost: string | null; until: AfterCompactUntil }) {
   const pending: QueuedMessage[] = pendingPost === null ? [] : [{ id: PENDING_POST_ID, text: pendingPost, options: {}, attachments: [], created_at: "", post_compact: true }];

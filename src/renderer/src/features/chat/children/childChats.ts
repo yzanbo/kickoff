@@ -71,7 +71,7 @@ export type ChildStateMark = (typeof CHILD_STATE_MARKS)[number];
 
 /**
  * 子・孫・ひ孫…の状態ごとの数（回答待ち・失敗・未読・作業中。既読は数えない）。アーカイブ済みとその下は数えない（withArchived なら数える。親ごとアーカイブしたとき）。
- * 輪になっていても止まる。サイドバーの親の行の下の「子チャット n」に、閉じていても子孫の様子が分かるよう出す（利用者の依頼）
+ * 輪になっていても止まる。サイドバーの親の行の下の「子チャット n」に、閉じていても子孫の様子が分かるよう出す
  */
 export function childStateCounts(
   chatId: number,
@@ -106,7 +106,7 @@ export interface ChildActivity {
 
 /**
  * 子・孫・ひ孫…を数える（アーカイブ済みとその下は数えない。輪になっていても止まる）。子孫がなければ null。
- * 親のタブで、子チャットがあること・裏で動いていることを見せるため（利用者の依頼）
+ * 親のタブで、子チャットがあること・裏で動いていることを見せるため
  */
 export function childActivityOf(
   chatId: number,

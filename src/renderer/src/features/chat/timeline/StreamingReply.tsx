@@ -12,7 +12,7 @@ import { Markdown } from "@/ui/markdown/Markdown";
  * 見えていない間（パネルの裏のタブ・閉じたパネル・動きに切り替えた会話。visible が false）は少しずつ出さず、表に出たら最新の文から出す。
  * 書きかけの記号は生の文字で出さない（強調・コードは閉じの記号を補い、リンクの行き先・表・数式などは手前で止める。`createMarkdownRevealLimit`）。
  * 文はチャットの店の途中の文の口から、記録の口で選んだ世代の分を rAF の中で読む（React の state・props に入れない。確定した返答と同じ描き直しで世代が進み、
- * この部品は外れる。メモの仕様書「0023_表示を軽くする」の M1・案 2）
+ * この部品は外れる）
  */
 export function StreamingReply({ chatId, visible }: { chatId: number; visible: boolean }) {
   const gen = useChatStreamGen(chatId);

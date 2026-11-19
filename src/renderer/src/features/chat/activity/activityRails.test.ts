@@ -75,7 +75,7 @@ test("layoutRails: active を渡すと、最新の行より先へは作業中の
   assert.deepEqual(last(new Set(["a"])), ["0:main:top-node", "1:a:top-bottom:open", "2:b:top-node"]);
   // チャットが作業中ならメインも続く
   assert.deepEqual(last(new Set([null, "a", "b"])), ["0:main:top-bottom:open", "1:a:top-bottom:open", "2:b:top-bottom:open"]);
-  // active を渡さなければ、これまでどおり先まで通す
+  // active を渡さなければ、どの線も先まで通す
   assert.ok(layoutRails(rows).rows.at(-1)!.segments.every((s) => s.to === "bottom" && !s.open));
   const launch = layoutRails(rows).rows[1];
   assert.equal(launch.segments.find((s) => s.agent === "a")?.joins, true);

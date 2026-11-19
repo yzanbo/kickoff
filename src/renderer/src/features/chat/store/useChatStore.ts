@@ -86,7 +86,7 @@ export function useChatLog(chatId: number): ChatLogView {
 }
 
 /**
- * 記録の読み足し（メモの仕様書「0023_表示を軽くする」の案 4）: 前を読む・途中の一部分の後ろを読む・遠い記録を読む・末尾に戻る・
+ * 記録の読み足し: 前を読む・途中の一部分の後ろを読む・遠い記録を読む・末尾に戻る・
  * サブエージェントの中を読む・その記録を流れに出しているか
  */
 export const chatLog = {
@@ -99,7 +99,7 @@ export const chatLog = {
 };
 
 /**
- * チャットを先読みする（末尾と索引だけ。見る部品は増やさない。メモの仕様書「0023_表示を軽くする」の案 4・分冊 3 の 1-4-7）。
+ * チャットを先読みする（末尾と索引だけ。見る部品は増やさない）。
  * 手すきのときに 1 件ずつ、見ているチャットの読み込み中は待つ。先に書いたものほど先に読む
  */
 export const prefetchChats = (chatIds: readonly number[]) => prefetchQueue.request(chatIds);
@@ -152,8 +152,8 @@ function useChatOf(chatId: number): Chat | undefined {
 /**
  * チャットを開く（チャットの画面を描く 5 か所: パネルのタブ・右の欄の子チャット・メモのチャット・子チャットとサブエージェントの別ウィンドウ）。
  * 店に見ることを頼み（retain）、チャット・プロジェクト・読み込みの失敗だけを返す（記録・回答待ち・作業中の様子は読まない。
- * 会話の欄が自分で読むので、隠した会話の欄（Activity）の外の殻は、記録が届くたびに描き直さない。メモの仕様書「0023_表示を軽くする」の M5）。
- * 中身を描けたら（rAF 2 回）、開いた直後にためていた知らせを 1 回で当てる（案 21）
+ * 会話の欄が自分で読むので、隠した会話の欄（Activity）の外の殻は、記録が届くたびに描き直さない）。
+ * 中身を描けたら（rAF 2 回）、開いた直後にためていた知らせを 1 回で当てる
  */
 export function useOpenChat(chatId: number, visible: boolean) {
   useChatRetain(chatId, visible);
@@ -216,12 +216,12 @@ const DETAIL_LOG_CHANNELS: readonly Channel[] = ["detail", "log"];
 
 /**
  * 記録全体から作るものの取り出し口（chatSelectors.ts。同じ世代なら会話の欄と同じ値）。会話の欄のほか、Activity の外の部品
- * （右の欄のタブの印・「サブエージェントを足す」の一覧・右の欄のサブエージェントの画面）が context ではなく直接読む（メモの仕様書「0023_表示を軽くする」の M5）
+ * （右の欄のタブの印・「サブエージェントを足す」の一覧・右の欄のサブエージェントの画面）が context ではなく直接読む
  */
 export const useChatSubagents = (chatId: number): ChatSubagents => useSelected(chatId, SUBAGENT_CHANNELS, () => selectors.subagents(chatId));
 /** AI が描いた図（記録から組み立てたもの） */
 export const useChatVisuals = (chatId: number): ChatVisuals => useSelected(chatId, LOG_CHANNELS, () => selectors.visuals(chatId));
-/** 作業場所を移した区切り（区切りより前の発言の書き直し・分岐を止め、ファイルをそのときの作業場所から開く。メモの仕様書「0025」） */
+/** 作業場所を移した区切り（区切りより前の発言の書き直し・分岐を止め、ファイルをそのときの作業場所から開く） */
 export const useWorkplaceBoundaries = (chatId: number): readonly WorkplaceBoundary[] => useSelected(chatId, LOG_CHANNELS, () => selectors.workplaceBoundaries(chatId));
 /** その記録が、作業場所を移した区切りより前か（区切りが変わったときだけ描き直す） */
 export const useBeforeWorkplaceMove = (chatId: number, eventId: number): boolean => useWorkplaceBoundaries(chatId).some((b) => b.id > eventId);

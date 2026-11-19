@@ -21,7 +21,7 @@ export function InheritChoice({ inherit, onChange, parentLabel, onOpen, opening 
   onChange: (inherit: boolean) => void;
   /** 説明の文で親を呼ぶ名前（「親のチャット」「このチャット」） */
   parentLabel: string;
-  /** 「引き継いで開く」: 聞くことを書かずに、会話を引き継いだ子チャットを開く（引き継ぐを選んでいるときだけ右端に出す。利用者の依頼） */
+  /** 「引き継いで開く」: 聞くことを書かずに、会話を引き継いだ子チャットを開く（引き継ぐを選んでいるときだけ右端に出す） */
   onOpen?: () => void;
   /** 開いている途中（ボタンを押せなくする） */
   opening?: boolean;

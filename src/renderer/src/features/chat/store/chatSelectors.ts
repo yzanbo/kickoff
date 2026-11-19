@@ -1,4 +1,4 @@
-// 記録全体から作るものの取り出し口（メモの仕様書「0023_表示を軽くする」の M4・M5・分冊 3 の 4 章）
+// 記録全体から作るものの取り出し口
 import type { BackgroundState, ChatEvent, ProviderId, SubagentInfo } from "@shared/types";
 import { providerAtEvent, providerBoundaries } from "@shared/chat/providerSwitch";
 import { collectSubagents, type SubagentEntry } from "@shared/chat/subagents";
@@ -111,7 +111,7 @@ function createMemo() {
  * 記録全体から作るもの（サブエージェント・図・裏で動かしている呼び出し）を、店のいまの値から作る取り出し口。
  * 入力（記録の digest・途中経過・作業中か・裏の作業・回答待ち）が前と同じ物なら同じ結果を返すので、会話の欄と、境目の外で直接読む部品
  * （右の欄のタブの印・「サブエージェントを足す」の一覧・右の欄のサブエージェントの画面）が同じ世代で二重に作らない。
- * 届いた分だけ計算する形（案 10）は、測ったら記録 1 件で 1ms に届かなかったので作らない（分冊 1 の 9 章）
+ * 届いた分だけ計算する形は、測ったら記録 1 件で 1ms に届かなかったので作らない
  */
 export function createChatSelectors(source: SelectorSource) {
   const memos = createLruMap<number, ReturnType<typeof createMemo>>(MEMO_CHATS);

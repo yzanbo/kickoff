@@ -1,4 +1,4 @@
-// チャットの店の、記録の読み足し（前を読む・途中の一部分・サブエージェントの中・見ていない間に縮める。メモの仕様書「0023_表示を軽くする」の案 4・U7。
+// チャットの店の、記録の読み足し（前を読む・途中の一部分・サブエージェントの中・見ていない間に縮める。
 // chatStore.ts が使う。範囲の決まりは純粋関数の chatLog.ts）
 import { CHAT_TAIL_TURNS, type ChatEventPage, type ChatEventsQuery } from "@shared/types";
 import type { ChatDetailState } from "./chatDetail";
@@ -57,7 +57,7 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
   };
 
   return {
-    /** 見ていない間の末尾を縮める（U7。店の retain が時計で呼ぶ） */
+    /** 見ていない間の末尾を縮める（店の retain が時計で呼ぶ） */
     shrink(e: Entry) {
       e.cancelShrink = null;
       if (e.viewers.size > 0 || !e.detail.chat || e.paging) return;
@@ -95,7 +95,7 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
 
     /**
      * その記録を流れに出せるよう読む（読めたら流れがその記録を含む）。末尾の中なら途中の一部分をやめるだけ、末尾から 2 回分の読み足しの
-     * ターン以内なら末尾をそこまで伸ばし、遠ければその前後を途中の一部分として読む（Q1 A: 読む間は呼ぶ側が今の位置で待つ）
+     * ターン以内なら末尾をそこまで伸ばし、遠ければその前後を途中の一部分として読む（読む間は呼ぶ側が今の位置で待つ）
      */
     openAround(chatId: number, eventId: number): Promise<void> {
       const e = loadedEntry(chatId);
@@ -133,7 +133,7 @@ export function createPaging({ entries, page: fetchPage, mark }: PagingDeps) {
     },
 
     /**
-     * 頭のターンを途中から読んだ末尾（U5。1 ターンが大きすぎて終わりから上限まで読んだ）の、そのターンの頭までを読んで末尾につなぐ。
+     * 頭のターンを途中から読んだ末尾（1 ターンが大きすぎて終わりから上限まで読んだ）の、そのターンの頭までを読んで末尾につなぐ。
      * 読み終えるまで、その作業の終わりの行に作業全体から作るもの（変更カード・返答のコピー・依頼文）を出さない。店が描いたあとの手すきに呼ぶ
      */
     fillHead(chatId: number): Promise<void> {

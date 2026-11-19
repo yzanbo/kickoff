@@ -1,5 +1,5 @@
 // チャットの記録の読み込んだ範囲（末尾・索引・途中の一部分・サブエージェントの中）の決まり（純粋関数。チャットの店 chatStore.ts が使う）。
-// メモの仕様書「0023_表示を軽くする」の案 4・分冊 3 の 1-4。末尾 = 開いたときに読む最新のターンから終わりまで（つながっている。SSE の記録はここに足す）、
+// 末尾 = 開いたときに読む最新のターンから終わりまで（つながっている。SSE の記録はここに足す）、
 // 索引 = 末尾より前の、記録全体から作るもの（サブエージェントの一覧・ToDo・図・指示の履歴など）が要る記録だけを軽くしたもの、
 // 途中の一部分 = 遠い発言へ移ったときに読む、末尾とつながっていないまとまり。記録全体から作る関数には、これらを重ねたもの（digest）を渡す
 import type { ChatDetail, ChatEvent, ChatEventPage } from "@shared/types";
@@ -20,7 +20,7 @@ export interface LogRange {
   index: ChatEvent[];
   /** 末尾より前に記録があるか */
   hasEarlier: boolean;
-  /** 末尾の頭のターンが大きすぎて途中から読んでいるか（作業の終わりの行に、そのターン全体から作るものを出さない。U5） */
+  /** 末尾の頭のターンが大きすぎて途中から読んでいるか（作業の終わりの行に、そのターン全体から作るものを出さない） */
   headPartial: boolean;
   focus: LogFocus | null;
   /** 末尾より前に始まったサブエージェントの中の記録（カード・右の欄を開いたときに読む） */
@@ -127,7 +127,7 @@ export function turnsBefore(range: LogRange, id: number): number {
 }
 
 /**
- * 見ていない間の末尾を縮める（最新 turns ターンだけを残し、その前は索引に移す。U7）。途中の一部分・サブエージェントの中は捨てる。
+ * 見ていない間の末尾を縮める（最新 turns ターンだけを残し、その前は索引に移す）。途中の一部分・サブエージェントの中は捨てる。
  * 索引は残す末尾の前の分を indexOfEvents で作り、もとの索引に重ねる
  */
 export function shrinkTail(range: LogRange, tail: readonly ChatEvent[], ctx: IndexContext, turns = CHAT_TAIL_TURNS): { range: LogRange; tail: ChatEvent[] } {

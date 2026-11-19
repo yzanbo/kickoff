@@ -53,8 +53,8 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs }: T
   const busy = useTimelineBusy();
   const chat = useKnownChat(event.chat_id);
   const child = chat && chat.parent_chat_id !== null && !chat.archived_at ? chat : undefined;
-  // そのチャットの AI で分岐できなければ、押せない形にして理由を出す（メモの仕様書「0021」の Q4）
-  // 作業場所を移した区切りより前の地点からは分岐できない（メモの仕様書「0025」の Q3）
+  // そのチャットの AI で分岐できなければ、押せない形にして理由を出す
+  // 作業場所を移した区切りより前の地点からは分岐できない
   const beforeMove = useBeforeWorkplaceMove(event.chat_id, event.id);
   const beforeSwitch = useBeforeProviderSwitch(event.chat_id, event.id);
   const forkBlock = useFeatureBlock("fork") ?? (beforeMove ? WORKPLACE_FORK_LOCKED : beforeSwitch ? PROVIDER_FORK_LOCKED : null);

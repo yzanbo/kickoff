@@ -5,7 +5,7 @@ import { EMPTY_DETAIL, type ChatDetailState } from "./chatDetail";
 /** 見え方（hidden = パネルの裏のタブ・閉じたパネル） */
 export type ChatVisibility = "visible" | "hidden";
 
-/** 書いている途中の返答を当てる間隔（ms）: 見えている所がある / 見えている所がない / ウィンドウが隠れている（メモの仕様書の案 6a） */
+/** 書いている途中の返答を当てる間隔（ms）: 見えている所がある / 見えている所がない / ウィンドウが隠れている */
 export const STREAM_FLUSH_MS = { visible: 33, hidden: 100, windowHidden: 200 } as const;
 /** rAF が来ないとき（隠れたウィンドウ）に、見せる値を差し替えるまでの時間 */
 export const PUBLISH_FALLBACK_MS = 100;
@@ -13,9 +13,9 @@ export const PUBLISH_FALLBACK_MS = 100;
 export const OPEN_HOLD_MAX_MS = 3000;
 /** 見る部品がなくなっても中身を残すチャットの数（古く見なくなったものから捨てる） */
 export const WARM_CHATS = 20;
-/** 見る部品がなくなってから、末尾を縮めるまでの時間（U7） */
+/** 見る部品がなくなってから、末尾を縮めるまでの時間 */
 export const SHRINK_AFTER_MS = 10 * 60_000;
-/** 頭のターンを途中から読んだとき（U5）、描いたあとの手すきを待つ長さの上限（来なければこの時間で読む） */
+/** 頭のターンを途中から読んだとき、描いたあとの手すきを待つ長さの上限（来なければこの時間で読む） */
 export const HEAD_FILL_IDLE_MS = 1000;
 
 export interface ChatStoreDeps {
@@ -63,7 +63,7 @@ export interface ChatLogView {
   hasEarlier: boolean;
   /** 途中の一部分を出しているか（下に末尾がある） */
   focused: boolean;
-  /** 流れの最初の作業の頭を読んでいない（U5） */
+  /** 流れの最初の作業の頭を読んでいない */
   headPartial: boolean;
   /** 前・後ろ・遠い所を読んでいる最中か */
   paging: boolean;
@@ -122,7 +122,7 @@ export interface Entry {
   cancelPublish: (() => void) | null;
   /** 開いた直後で、描き終えるまでためている（取り消すと待つのをやめる） */
   hold: (() => void) | null;
-  /** 頭のターンを埋める読み込みの予約（手すきのとき。U5） */
+  /** 頭のターンを埋める読み込みの予約（手すきのとき） */
   cancelFill: (() => void) | null;
   /** 頭のターンを埋めようとした末尾の始まり（読めなかったとき、同じ所で何度も読み直さない） */
   fillTriedAt: number | null;

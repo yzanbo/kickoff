@@ -46,8 +46,7 @@ function ApprovalFrom({ approval }: { approval: Approval }) {
   );
 }
 
-/** 自動の再開を何度試しても続かなかった: 再開するか（もう一度「続けて」を送る）、やめるか（失敗のまま） */
-/** 止まった作業を再開するかの確認（通信の切断で自動の再開が続かなかった・使用枠が戻った） */
+/** 止まった作業を再開するかの確認（通信の切断で自動の再開が続かなかった・使用枠が戻った）: 再開する（もう一度「続けて」を送る）か、やめる（失敗のまま）か */
 function ReconnectCard({ approval }: { approval: Approval }) {
   const { sending, error, resolve } = useResolve(approval.id);
   const usage = approval.kind === "usage_limit";

@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from "react";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 
-// チャットの画面のキー（⌘↓・⌘⌥↑ / ↓・⌃R・⌘F）を、ピントがそのチャットにあるときだけ受け取る仕組み（以前は 4 か所で別々に、クラス名で画面を探して判定していた）
+// チャットの画面のキー（⌘↓・⌘⌥↑ / ↓・⌃R・⌘F）を、ピントがそのチャットにあるときだけ受け取る仕組み
 
 /** 押したかを見るチャットの画面（⌘F のように、どこにもピントがないときも、最後に押したチャットで受け取るもの） */
 const pressRoots = new Set<HTMLElement>();

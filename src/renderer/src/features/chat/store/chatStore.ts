@@ -28,7 +28,7 @@ export { STREAM_FLUSH_MS, PUBLISH_FALLBACK_MS, OPEN_HOLD_MAX_MS, WARM_CHATS, SHR
 export type { ChatVisibility, ChatStoreDeps, ChatDetailView, ChatLogView, ChatProgressView } from "./chatStoreTypes";
 
 /*
- * チャットの店（メモの仕様書「0023_表示を軽くする」の M1・案 4・分冊 3 の 0-2 / 1-4）。開いているチャットの中身（チャット・記録・回答待ち・作業中の様子・
+ * チャットの店。開いているチャットの中身（チャット・記録・回答待ち・作業中の様子・
  * 書いている途中の返答・サブエージェントの途中経過）を、部品の外にチャットごとに 1 つ持つ。同じチャットを何か所（パネルのタブ・右の欄・メモの欄）で
  * 開いても、読み込みと SSE の当て方はここで 1 回。React には依存しない（hook は useChatStore.ts）。
  *
@@ -38,15 +38,15 @@ export type { ChatVisibility, ChatStoreDeps, ChatDetailView, ChatLogView, ChatPr
  * - streaming: 書いている途中の返答（React の state に入れない。少しずつ出す部品が rAF の中で streamText で読む。chatStream.ts）
  * - progress: サブエージェントの途中経過（SSE の chat_subagent。記録に残らない）
  *
- * 記録は開くとき末尾（最新 CHAT_TAIL_TURNS ターン）だけを読み、その前は索引で受ける（案 4）。前を読み足す・遠い所を読む（途中の一部分）・
+ * 記録は開くとき末尾（最新 CHAT_TAIL_TURNS ターン）だけを読み、その前は索引で受ける。前を読み足す・遠い所を読む（途中の一部分）・
  * サブエージェントの中を読むのは loadEarlier / loadLater / openAround / loadScope（chatPaging.ts）。末尾より前で巻き戻したら読み直す。
  *
  * 当てた値（working）と部品に見せる値（published）を分ける: 知らせはいつも working に当て、見せる値の差し替えだけを 1 フレームに 1 回にまとめる
  * （rAF。隠れたウィンドウでは rAF が止まるので PUBLISH_FALLBACK_MS で当てる）。開いた直後（中身を初めて見せた・残っていた中身をまた見せた）は、
- * 待たずに 1 回見せてから描き終えるまで（markPainted か OPEN_HOLD_MAX_MS）ためて 1 回で当てる（案 21）。
+ * 待たずに 1 回見せてから描き終えるまで（markPainted か OPEN_HOLD_MAX_MS）ためて 1 回で当てる。
  *
  * 見る部品がなくなったチャット（retain が 0）も、WARM_CHATS 件まで中身を残して知らせを当て続け、SHRINK_AFTER_MS たったら末尾を最新
- * CHAT_TAIL_TURNS ターンに縮める（U7）。SSE をつなぎ直したら、見ているチャットは持っている最後の記録より後を ?after= で取り直し
+ * CHAT_TAIL_TURNS ターンに縮める。SSE をつなぎ直したら、見ているチャットは持っている最後の記録より後を ?after= で取り直し
  * （巻き戻しで消えていれば末尾から読み直す）、見ていないチャットは次に見るときに取り直す（stale）
  */
 
@@ -126,7 +126,7 @@ export function createChatStore(deps: ChatStoreDeps) {
   };
 
   /**
-   * 頭のターンを途中から読んで見せている（U5）なら、描いたあとの手すきのときにそのターンの頭まで読む（見ている部品があるときだけ。
+   * 頭のターンを途中から読んで見せているなら、描いたあとの手すきのときにそのターンの頭まで読む（見ている部品があるときだけ。
    * 読めなかったら同じ末尾では読み直さない。次に末尾が変わった・読み直したときにまた読む）
    */
   const scheduleFill = (e: Entry) => {
@@ -249,7 +249,7 @@ export function createChatStore(deps: ChatStoreDeps) {
   return {
     /**
      * チャットを見る（中身がなければ読み、見る部品がなくなっても捨てずに残す）。返り値で見え方を変える・やめる。
-     * 見る部品がいなかったチャットに中身があれば、待たずに見せてから描き終えるまで知らせをためる（案 21）
+     * 見る部品がいなかったチャットに中身があれば、待たずに見せてから描き終えるまで知らせをためる
      */
     retain(chatId: number, visibility: ChatVisibility) {
       const e = entries.get(chatId) ?? create(chatId);
@@ -278,7 +278,7 @@ export function createChatStore(deps: ChatStoreDeps) {
     },
 
     /**
-     * チャットを先読みする（見る部品は増やさない。メモの仕様書「0023_表示を軽くする」の案 4・分冊 3 の 1-4-7）。中身がなければ末尾と索引を読み、
+     * チャットを先読みする（見る部品は増やさない）。中身がなければ末尾と索引を読み、
      * 見ていない間につなぎ直していれば取り直す。読み終えたら（読めなくても・もう持っていれば すぐ）解決する。先読みしただけのチャットは、
      * 一度も見ていないものとして、見なくなったチャットより先に WARM_CHATS の上限で捨てる
      */

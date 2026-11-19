@@ -11,7 +11,7 @@ export interface ChatFindMatch {
 /**
  * チャットの記録から、自分の発言とメインの AI の返答の文で pattern を探す（記録の順。探し方は lib/textFind の findPattern で作る。画面の印と同じ照らし合わせ）。
  * 画面に描いた文ではなく記録から探すので、長いチャットでも流れをすべて描かずに数え、移れる。末尾より前の本文はコアの /texts で読んだもの
- * （正規表現をコアで流さないため。メモの仕様書「0023_表示を軽くする」の案 4）
+ * （正規表現をコアで流さないため）
  */
 export function findMatches(events: readonly ChatEvent[], pattern: FindPattern): ChatFindMatch[] {
   if (!pattern || "error" in pattern) return [];

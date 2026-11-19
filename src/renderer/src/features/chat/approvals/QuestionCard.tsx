@@ -21,7 +21,7 @@ type QuestionLayout = SettingValue<typeof QUESTION_LAYOUT>;
  * AI からの質問（AskUserQuestion）。選択肢と「その他」（複数行・画像などの添付）で答える。
  * 質問が 2 つ以上なら、1 問ずつ（上に質問の見出しを並べて、いまの位置と答えたものを示す。戻る・次へ）と、すべて並べるを切り替えられる（初めは 1 問ずつ）。
  * 選択肢に図（preview。AskUserQuestion の、選択肢ごとの見本・図）があれば、選択肢の右（狭ければ下）に、乗せた・ピントのある選択肢、なければ選んだ選択肢、
- * どちらもなければ図のある最初の選択肢の図を出す（利用者の依頼。前は図を出しておらず、AI が「右の図のとおり」と聞いても見えなかった）
+ * どちらもなければ図のある最初の選択肢の図を出す（AI が「右の図のとおり」と聞いたときに見えるように）
  */
 export function QuestionCard({ approval }: { approval: Approval }) {
   const questions = (approval.input.questions as Question[] | undefined) ?? [];

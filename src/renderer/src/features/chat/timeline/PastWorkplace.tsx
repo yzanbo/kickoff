@@ -1,4 +1,4 @@
-// 作業場所を移した区切りより前の行（メモの仕様書「0025_チャットの作業場所を変える」の Q4・H5）:
+// 作業場所を移した区切りより前の行:
 // その行のファイルのチップ・変更カード・「差分を見る」・ツールの行・読んだ画像を、その発言のときの作業場所から開く
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { ProjectFiles } from "@shared/types";

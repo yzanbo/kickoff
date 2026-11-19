@@ -3,7 +3,7 @@ import { createLruMap, type LruMap } from "@/lib/lruMap";
 import { createValueCell, type ValueCell } from "@/lib/valueCell";
 
 /**
- * 流れの見え方（記録ではなく、チャットの画面の見え方。チャットの店 chatStore には入れない。メモの仕様書「0023_表示を軽くする」の M2・分冊 2 の 0-3 (c)）。
+ * 流れの見え方（記録ではなく、チャットの画面の見え方。チャットの店 chatStore には入れない）。
  * 部品の外にチャットごとに持つので、行が窓から外れて戻っても・チャットの画面を作り直しても（タブを閉じて開き直した）残る。保存しない（メモリだけ。アプリを終えたら消える）
  */
 export interface TimelineView {
@@ -19,7 +19,7 @@ export interface TimelineView {
   /** 見積もりの種類ごとの補正（測った高さ ÷ 見積もりの移動平均。初めは 1） */
   readonly correction: Map<string, number>;
   /**
-   * 読んでいた位置（チャットの画面を閉じたときに書く。開き直したとき、そのあと新しい項目が届いていなければここへ戻す。U2）。
+   * 読んでいた位置（チャットの画面を閉じたときに書く。開き直したとき、そのあと新しい項目が届いていなければここへ戻す）。
    * key は基準の行（見えている上端をまたぐ行）、offset はその行の上端から見えている上端までの距離、last はそのときの最後の項目のキー
    */
   position: { key: string; offset: number; last: string } | null;

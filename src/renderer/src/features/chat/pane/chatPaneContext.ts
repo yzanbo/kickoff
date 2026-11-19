@@ -39,7 +39,7 @@ export interface ChatPaneState {
   activityFocus: { key: string; nonce: number } | null;
   /** 「伝える」の入力欄を開いているサブエージェントのカード（行のキー。カードのいちばん下に開く） */
   tellOpen: ReadonlySet<string>;
-  /** 遠い記録へ移るために読んでいる記録の ID（読むのが 150ms を超えたときだけ。押した所に回る印を出す。Q1 A） */
+  /** 遠い記録へ移るために読んでいる記録の ID（読むのが 150ms を超えたときだけ。押した所に回る印を出す） */
   jumping: number | null;
 }
 

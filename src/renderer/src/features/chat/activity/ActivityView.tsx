@@ -27,12 +27,12 @@ const ALL: ActivityFilter = { kind: "all" };
 
 /**
  * 動き: メインとすべてのサブエージェントの動きを、1 本の時系列に並べる（チャットの見出しの「会話 / 動き」で、会話と同じ場所に出す）。
- * 履歴のタブと同じく、上を最新にする（利用者の依頼）。
+ * 履歴のタブと同じく、上を最新にする。
  * 左の線は、メインの線から起動した時刻でサブエージェントの線が枝分かれし（上へ伸びる）、終わった時刻で閉じる（配下であること・いつ始まりいつ終わったか・
  * どこが並行していたかを 1 枚で見せる）。上のチップでエージェントを絞り込み（その配下ごと）、行を押すと会話のその場所へ移る。
  * カードの「動きで見る」では、絞り込まずにそのサブエージェントと配下の行をすべて強調し、いちばん上（最新）の行へ移る（useActivityFocus。↑↓ で順に）
  * 描くのは見えている所の近くの行だけ（画素で決める窓 useRowWindow。新しい側は上。外は測った高さ・見積もりの箱）。下の端（いちばん古い行）に
- * 近づいたら、前の記録を読む（読んでいる間は下に「読み込み中…」。メモの仕様書「0023_表示を軽くする」の 22d・案 4）
+ * 近づいたら、前の記録を読む（読んでいる間は下に「読み込み中…」）
  */
 export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const view = useSubagentsView();
@@ -41,7 +41,7 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   // サブエージェントの行の右クリック: 開き方を選ぶ（流れの中のカード / 右の欄）
   const menu = useContextMenu<{ key: string; eventId?: number }>();
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
-  // 中身のまま読んだ記録から（末尾より前は、下の端に近づいたら読み足す。メモの仕様書「0023_表示を軽くする」の案 4）
+  // 中身のまま読んだ記録から（末尾より前は、下の端に近づいたら読み足す）
   const events = view?.loaded;
   const tree = view?.tree;
   const busy = view?.busy ?? false;

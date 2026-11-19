@@ -1,4 +1,4 @@
-// チャットで外の画像の表示を許可したホスト（チャットごと。コアの DB に覚え、変わったら知らせ chat_image_hosts で入れ替える）。メモの仕様書「0027_チャット欄の外の画像とリンク」
+// チャットで外の画像の表示を許可したホスト（チャットごと。コアの DB に覚え、変わったら知らせ chat_image_hosts で入れ替える）
 import { useMemo } from "react";
 import type { ChatImageHost } from "@shared/types";
 import { api } from "@/api";

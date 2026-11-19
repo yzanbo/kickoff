@@ -56,7 +56,7 @@ function CreatedChip({ id }: { id: number }) {
 
 /**
  * 親の会話の、聞いた発言・返答の下に並べる子チャットの札（そこから聞いた子チャットだけ）と、その発言の作業で AI が create_chat で作った
- * 兄弟チャット・親のないチャットの札（created。「,」でつないだ ID。作った側の流れから見つけられるように。メモの仕様書「0019_AI の操作ツールの追加」の E）
+ * 兄弟チャット・親のないチャットの札（created。「,」でつないだ ID。作った側の流れから見つけられるように）
  */
 export function ChildChatMarks({ chatId, eventId, created }: { chatId: number; eventId: number; created?: string }) {
   const children = useChildChats().get(chatId)?.filter((c) => c.parent_event_id === eventId) ?? [];
@@ -92,8 +92,8 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   if (!children?.length) return null;
   const visible = children.filter((c) => !c.archived_at);
   const hidden = children.filter((c) => c.archived_at);
-  // 見てほしい子チャットの数を、様子ごとに分けて添える（回答待ち → 失敗 → 未読。前は 3 つをまとめて「答えあり」と数え、回答待ちも「答えあり」に見えた）
-  // 完了した子チャット（作業中・回答待ちでないもの）。一覧の上のボタンでまとめてアーカイブする（サブエージェントの一覧と同じ。利用者の依頼）
+  // 見てほしい子チャットの数を、様子ごとに分けて添える（回答待ち → 失敗 → 未読。3 つをまとめて「答えあり」と数えると、回答待ちも「答えあり」に見える）
+  // 完了した子チャット（作業中・回答待ちでないもの）。一覧の上のボタンでまとめてアーカイブする（サブエージェントの一覧と同じ）
   const finished = visible.filter((c) => !UNFINISHED_STATES.has(stateOf(c)));
   const notices = NOTICE_STATES.map((state) => ({ state, count: visible.filter((c) => stateOf(c) === state).length })).filter((n) => n.count > 0);
   // 別ウィンドウは Mac のアプリだけ

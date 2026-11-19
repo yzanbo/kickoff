@@ -11,7 +11,7 @@ export function useChildDepth(chat: Pick<Chat, "id" | "parent_chat_id"> | undefi
 
 /**
  * 親の行の外に並ぶ子チャットの行の、名前の前の深さの札（「子」「孫」「ひ孫」。色は右の欄の子チャットのタブの札と同じ深さの色 --child-depth-<n>）。
- * サイドバーで状態・要対応で絞り込んだときや ⌘⇧A のように、子チャットが親の中でなく 1 行で並ぶ所で、子チャットだと分かるように置く（利用者の依頼）。
+ * サイドバーで状態・要対応で絞り込んだときや ⌘⇧A のように、子チャットが親の中でなく 1 行で並ぶ所で、子チャットだと分かるように置く。
  * 乗せると「「親の名前」の子チャット」
  */
 export function ChildDepthMark({ chat }: { chat: Pick<Chat, "id" | "parent_chat_id"> }) {

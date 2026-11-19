@@ -28,7 +28,7 @@ async function switchWithConfirmation(chatId: number, target: "claude" | "codex"
 }
 
 /**
- * 送る前の新しいチャット・新しい子チャットのチャット欄（下の行のモデルの左）で、使う AI を選ぶ札（メモの仕様書「0021」の Q1・Q8）。
+ * 送る前の新しいチャット・新しい子チャットのチャット欄（下の行のモデルの左）で、使う AI を選ぶ札。
  * 選べるのは Kickoff のチャットで使える AI だけで、対応予定のもの・API キーが要るのに置いていないものは押せない形で理由を出す。
  * 始めたあとの Claude Code・Codex 間の切り替えは、チャット欄の同じ場所の札（ProviderChip）から行う。
  */

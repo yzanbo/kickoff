@@ -32,7 +32,7 @@ export interface RailLayout {
  * 終わりの行（end）のあとは列を空け、あとから起動したものが使い回す。起動の行のない持ち主（絞り込んだ・記録を巻き戻した）は、
  * その最初の行の節から線を始める。絞り込みで行のない子へは枝分かれしない。
  * active（まだ作業中の持ち主。メインはチャットが作業中なら null）を渡すと、最新の行より先へは作業中の持ち主の線だけを続け（open）、
- * ほかは最新の行の節の高さで止める（利用者の指摘で、前は終わっているメインの線なども最新の行より先まで出ていた）
+ * ほかは最新の行の節の高さで止める（終わっているメインの線なども最新の行より先へ出さない）
  */
 export function layoutRails(rows: readonly Pick<ActivityRow, "agent" | "kind" | "child">[], active?: ReadonlySet<string | null>): RailLayout {
   const present = new Set(rows.map((r) => r.agent));

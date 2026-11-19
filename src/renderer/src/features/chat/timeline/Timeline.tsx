@@ -39,7 +39,7 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
 export const activeFloor = (items: TimelineItem[]) => items.findLastIndex((item) => item.kind === "event" && item.event.type === "result");
 
 /**
- * 会話の流れ: 窓（useRowWindow）が決めた行だけを描き、窓の外は測った高さの箱にする（メモの仕様書「0023_表示を軽くする」の案 22）。
+ * 会話の流れ: 窓（useRowWindow）が決めた行だけを描き、窓の外は測った高さの箱にする。
  * 行と箱は 1 つの並びにする（入れ子の配列にすると、箱が増えたときに後ろの行がすべて作り直される）。
  * activeFrom: いまの作業の始まり（流れ全体で求める。これより後ろの行に data-live）
  */
@@ -257,7 +257,7 @@ function EventItem({
     case "provider_switched":
       return <ProviderSwitchRecord event={event} />;
     case "workplace_moved":
-      // 作業場所を移した区切り（メモの仕様書「0025」）。これより上の発言は巻き戻せず、分岐の起点にもできない
+      // 作業場所を移した区切り。これより上の発言は巻き戻せず、分岐の起点にもできない
       return (
         <div className="workplace-moved-divider" id={`ev-${event.id}`} role="separator" aria-label="作業場所を移しました">
           <FolderInput size={12} aria-hidden />

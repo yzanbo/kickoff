@@ -1,4 +1,4 @@
-// チャットの店の、書いている途中の返答の当て方（メモの仕様書「0023_表示を軽くする」の案 2・6a。chatStore.ts が使う）
+// チャットの店の、書いている途中の返答の当て方（chatStore.ts が使う）
 import type { BusEvent } from "@shared/types";
 import { streamingAppendOf, streamingEffectOf, type StreamingEffect } from "@shared/chat/streamingRules";
 import { STREAM_FLUSH_MS, type ChatStoreDeps, type Entry } from "./chatStoreTypes";

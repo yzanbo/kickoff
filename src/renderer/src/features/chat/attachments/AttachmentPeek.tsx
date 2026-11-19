@@ -25,7 +25,7 @@ export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
   const rest = attachments.length - shown.length;
   const names = attachments.map((a) => a.name).join("\n");
   // 行で複数の添付を 1 つにまとめているときは、まず一覧を開き、そこから全画面へ（1 つだけなら、すぐ全画面）
-  // 開いているときに押したら閉じる（以前は外側のクリックとして閉じたあと、続くクリックで開き直していた）
+  // 開いているときに押したら閉じる（外側のクリックとして閉じたあと、続くクリックで開き直さない）
   const openGrid = rest > 0 ? () => setGrid((open) => !open) : undefined;
   return (
     <span className="attach-peek" title={`添付 ${attachments.length} 件\n${names}`}>

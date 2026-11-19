@@ -8,9 +8,9 @@ import { TabChildChatsPopover } from "./TabChildChatsPopover";
 
 /**
  * タブの名前の後ろに添える、子孫の子チャットの印（子チャットのマーク・作業中のリング（回答待ちなら琥珀色の「!」）・件数）。
- * 親のタブを見るだけで、子チャット（孫も）があること・裏で動いていることが分かるようにする（利用者の依頼）。
+ * 親のタブを見るだけで、子チャット（孫も）があること・裏で動いていることが分かるようにする。
  * moving: 作業中・回答待ちの子孫を色付きで出す（「タブに出す項目」の「状態」）。always: 動いていなくても子チャットがあれば、子チャットのマークと数を薄く出す（「子チャット」）。
- * 押すと子チャットの一覧（TabChildChatsPopover）を開き、選んだ子チャットを親の右の欄に開く（利用者の依頼）。タブの名前のボタンの中にあるので、
+ * 押すと子チャットの一覧（TabChildChatsPopover）を開き、選んだ子チャットを親の右の欄に開く。タブの名前のボタンの中にあるので、
  * ボタンを入れ子にせず role="button" の span にし、押してもタブを選ばない（stopPropagation）
  */
 export function ChildActivityMark({ chatId, moving, always }: { chatId: number; moving: boolean; always: boolean }) {

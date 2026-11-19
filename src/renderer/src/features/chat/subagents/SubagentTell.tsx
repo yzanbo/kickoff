@@ -64,7 +64,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
     onSent?.();
     openCreatedChild(child);
   };
-  // そのチャットの AI がサブエージェントの会話の記録を読めなければ、子チャットで聞けない（メモの仕様書「0021」の Q4）
+  // そのチャットの AI がサブエージェントの会話の記録を読めなければ、子チャットで聞けない
   const child = mode === "child" && !logBlock;
   const send = (text: string, attachments: Attachment[], sendMode?: QueueSendMode) => (child ? ask(text, attachments) : relay(text, attachments, sendMode));
   const later = !child && view.busy && queueMode === "queue";

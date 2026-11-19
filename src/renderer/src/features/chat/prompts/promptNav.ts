@@ -6,7 +6,7 @@ const SLACK = 8;
 /**
  * 自分の指示の上端の、流れの見えている上端からの距離（px）。位置は窓（描いていない行も前からの和で）から locate で読み、
  * 窓の中にない指示は読み込んだ範囲（loaded）の前なら上（-∞）、後ろなら下（+∞）とみなす（読み込んでいない範囲の指示は記録の順で前後を決める）。
- * 描いていない指示を「上にある」とみなすと、箱の窓で下の箱に入った指示へ ⌘⌥↑ で跳ぶため、位置はいつも数で持つ（メモの仕様書「0023_表示を軽くする」の分冊 2 の 1-6）
+ * 描いていない指示を「上にある」とみなすと、箱の窓で下の箱に入った指示へ ⌘⌥↑ で跳ぶため、位置はいつも数で持つ
  */
 export function promptTops(ids: number[], locate: (id: number) => number | undefined, loaded: { first: number; last: number } | null): Map<number, number> {
   const tops = new Map<number, number>();

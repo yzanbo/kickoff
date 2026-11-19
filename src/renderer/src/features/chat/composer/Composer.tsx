@@ -155,8 +155,8 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
     return () => clearTimeout(timer);
   }, [text]);
   // 書いた分だけ高さを伸ばすのは CSS（composer.css の field-sizing: content と max-height）に任せる。
-  // 以前はキーを押すたびに高さを auto に戻して scrollHeight を測っていて、そのたびにページ全体のレイアウトをその場でやり直させていた
-  // （長いチャットで画面の要素が多いと、1 文字ごとに数十 ms かかり、文字入力が遅くなった原因の 1 つ）
+  // キーを押すたびに高さを auto に戻して scrollHeight を測ると、そのたびにページ全体のレイアウトをその場でやり直させる
+  // （長いチャットで画面の要素が多いと、1 文字ごとに数十 ms かかり、文字入力が遅くなる）
   const sender = useComposerSend({
     text,
     files: attach,

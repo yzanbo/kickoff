@@ -1,4 +1,4 @@
-// チャットの AI を画面の部品に配る（メモの仕様書「0021」の Q4: その AI にない機能は押せない形にして理由を出す）。
+// チャットの AI を画面の部品に配る（その AI にない機能は押せない形にして理由を出す）。
 // チャットの画面（ChatView）・送る前の新しいチャット・新しい子チャットが ChatProviderContext に AI を入れ、中の部品は useFeatureBlock で理由を読む。
 // AI の状態の店（providersStore）は使い始めるたびに取り直すので、読み込みを頼むのは入れる側の 1 か所（useProviderStatus の load）だけにし、中の部品は頼まずに読む
 import { createContext, useContext, useSyncExternalStore } from "react";
@@ -23,7 +23,7 @@ export function useFeatureBlock(feature: ProviderFeature): string | null {
   return featureBlock(useProviderStatus(useChatProviderId()), feature);
 }
 
-// 前に出しているチャットの AI（下の帯の使用状況。Q6 B）。見えているチャットの画面を最後に表に出した・触ったものにする
+// 前に出しているチャットの AI（下の帯の使用状況）。見えているチャットの画面を最後に表に出した・触ったものにする
 let foreground: ForegroundChat = { provider: null, key: null };
 const listeners = new Set<() => void>();
 

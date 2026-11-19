@@ -103,7 +103,7 @@ export function ChatTimeline({
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   // 途中の一部分を出している間は、流れの一番下が最新ではないので既読にしない
   useMarkSeen({ timelineRef: scroll.ref, chat, events, visible: visible && !log.focused, away: s.away, slackPx: BOTTOM_SLACK_PX });
-  // 遠い記録を読むのが長引いているとき（押した所に回る印。Q1 A）
+  // 遠い記録を読むのが長引いているとき（押した所に回る印）
   const jumping = useChatPaneState((st) => st.jumping) ?? null;
   const pinned = sticky.pinned;
   // 流れの中の文（質問のカード・ツールの行・サブエージェントのカードなど）の右クリック。発言など自分のメニューを持つ所は、そちらが先に開く
@@ -139,7 +139,7 @@ export function ChatTimeline({
         }}
       >
         <div className="timeline-inner" ref={timelineInnerRef}>
-          {/* 前の記録を読んでいる間だけ、上に 1 行（窓の外は箱なので、スクロールすれば描かれる。ボタンは置かない。U1） */}
+          {/* 前の記録を読んでいる間だけ、上に 1 行（窓の外は箱なので、スクロールすれば描かれる。ボタンは置かない） */}
           {w.loadingEarlier && <TimelineLoading />}
           {/* 作業中かは項目の props で渡さず、書き直し・分岐のボタンだけが読む（timelineBusy） */}
           <TimelineBusyContext.Provider value={busy}>

@@ -33,7 +33,7 @@ export function ReadImage({ chatId, path, readAt }: { chatId: number; path: stri
   const [dims, setDims] = useState<{ width: number; height: number }>();
   const name = path.slice(path.lastIndexOf("/") + 1);
   const viewer = useAttachmentViewer(loaded ? [{ src: loaded.url, name }] : []);
-  // 前に描いたときの高さ（読み込み中・画像を解くまでの間、この高さで場所を取る。案 14a・20）と、描けたあとの高さを覚える
+  // 前に描いたときの高さ（読み込み中・画像を解くまでの間、この高さで場所を取る）と、描けたあとの高さを覚える
   const key = readImageKey(chatId, at === undefined ? path : `${at}:${path}`);
   const known = readImageHeight(key);
   const sizeRef = useSizeObserver<HTMLDivElement>(({ height }) => {

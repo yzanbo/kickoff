@@ -13,7 +13,7 @@ import { loadRemoteImage } from "./remoteImageCache";
 import { ImageHostButton, ImageUrlsButton } from "./ImageHostButton";
 
 /**
- * チャットの画面の Markdown の画像の描き方を入れる（メモの仕様書「0027_チャット欄の外の画像とリンク」）: 手元の画像はコアから読んで出し、
+ * チャットの画面の Markdown の画像の描き方を入れる: 手元の画像はコアから読んで出し、
  * 外の画像は「host から画像を n 件表示」を押して許可したホストのものだけを、コアが取ってきて出す（画面の CSP は開けない）。
  * 守りの本体は「利用者が押すまで外へ通信しない」ことなので、許可の前に外の URL を読む形（img の src に入れるなど）にしない。描き方を入れるのはチャットの画面だけ
  */
@@ -64,7 +64,7 @@ function HostLine({ chatId, group }: { chatId: number; group: ImageHostGroup }) 
 
 /** 手元の画像（作業場所・添付・メモのフォルダの中。相対パスはチャットの作業場所から） */
 function LocalChatImage({ chatId, path, alt }: { chatId: number; path: string; alt?: string }) {
-  // 作業場所を移した区切りより前の返答なら、相対パスはそのときの作業場所から（メモの仕様書「0025」の H5）
+  // 作業場所を移した区切りより前の返答なら、相対パスはそのときの作業場所から
   const at = usePastWorkplaceAt();
   return (
     <span className="chat-image">

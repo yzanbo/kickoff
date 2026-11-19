@@ -47,8 +47,8 @@ export function modelDisplayName(models: ModelOption[], value: string | null): s
 }
 
 /**
- * 一覧にないモデル（ほかの AI のモデル・その AI の既定 = null）を、その AI の既定のモデル（一覧の `is_default`。なければ null）に直す
- * （メモの仕様書「0028」の 9 節）。一覧が届くまでと、Claude Code（一覧の外の名前も受け付ける）は直さない
+ * 一覧にないモデル（ほかの AI のモデル・その AI の既定 = null）を、その AI の既定のモデル（一覧の `is_default`。なければ null）に直す。
+ * 一覧が届くまでと、Claude Code（一覧の外の名前も受け付ける）は直さない
  */
 export function fallbackModel(models: ModelOption[], model: string | null, provider: ProviderId): string | null {
   if (provider === "claude" || models.length === 0 || models.some((m) => m.value === model)) return model;

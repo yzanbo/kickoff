@@ -23,7 +23,7 @@ async function preview(chatId: number, eventId: number): Promise<FileRewindResul
 
 /**
  * 書き直して送り直す前の確かめ。その発言のあとに AI が変えたファイルがあれば「会話だけ」「ファイルも」から選んでもらう
- * （なければ、今までどおり会話だけの確かめ）。やめたら null、送るならファイルも戻すか
+ * （なければ、会話だけの確かめ）。やめたら null、送るならファイルも戻すか
  */
 export async function confirmRewindSend(chatId: number, eventId: number): Promise<{ restoreFiles: boolean } | null> {
   const files = await preview(chatId, eventId);

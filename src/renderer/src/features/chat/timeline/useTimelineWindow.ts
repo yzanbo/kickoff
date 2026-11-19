@@ -7,7 +7,7 @@ import type { TimelineItem } from "./timelineItems";
 import type { TimelineScroll } from "./timelineScroll";
 import { timelineView } from "./timelineView";
 
-/** 読んでいない記録の読み足し（チャットの店。メモの仕様書「0023_表示を軽くする」の案 4） */
+/** 読んでいない記録の読み足し（チャットの店） */
 export interface TimelinePaging {
   /** 流れに出す記録より前に、読んでいない記録があるか */
   hasEarlier: boolean;
@@ -23,13 +23,13 @@ export interface TimelinePaging {
 const itemKey = (item: TimelineItem) => item.key;
 
 /**
- * チャットの流れの窓（画素で決める窓 useRowWindow を流れ用に包む。メモの仕様書「0023_表示を軽くする」の案 22）。
+ * チャットの流れの窓（画素で決める窓 useRowWindow を流れ用に包む）。
  * 流れの項目は、記録の口の読み込んだ範囲（末尾か、遠くへ移ったときの途中の一部分）から作り、窓の外は測った高さ（見え方の店の sizes。
- * なければ見積もり rowEstimate）の箱にする。スクロールバーのつまみは読み込んだ範囲の全体を表す（読んでいない前の分の箱は置かない。M3・U1）。
+ * なければ見積もり rowEstimate）の箱にする。スクロールバーのつまみは読み込んだ範囲の全体を表す（読んでいない前の分の箱は置かない）。
  * - 読んだ範囲の始まりに近づいたら前の記録を読み（loadEarlier。読んでいる間は流れの上に「読み込み中…」）、途中の一部分の終わりに近づいたら
  *   後ろを読む（loadLater。末尾とつながったら途中の一部分をやめる）
  * - 移る処理（指示へ・検索から・カードへ・子チャットの聞いた位置）は reveal(記録の ID) を待ってから移る（描いて測り終えたら解決する）
- * - 開き直したとき（見え方の店に読んでいた位置があり、そのあと新しい項目が届いていなければ）はその位置から（U2）
+ * - 開き直したとき（見え方の店に読んでいた位置があり、そのあと新しい項目が届いていなければ）はその位置から
  */
 export function useTimelineWindow({
   items,

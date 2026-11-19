@@ -147,7 +147,7 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
   // 閉じた枠に描く種類（Mermaid はアプリの中で描く）
   const frameKind = visual.kind === "mermaid" ? null : visual.kind;
   const framed = frameKind !== null;
-  // 枠は画面の手前まで来て、同時に読み込む数に空きができてから置く（それまでは前に描いたときの高さ・なければ 160px の枠。案 14a）
+  // 枠は画面の手前まで来て、同時に読み込む数に空きができてから置く（それまでは前に描いたときの高さ・なければ 160px の枠）
   const [nearRef, near] = useNearViewport<HTMLDivElement>({ enabled: framed });
   const [slot, releaseSlot] = useFrameSlot(framed && near);
   const maxHeight = Math.round(window.innerHeight * MAX_HEIGHT_RATIO);

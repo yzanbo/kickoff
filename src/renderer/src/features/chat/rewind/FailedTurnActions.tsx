@@ -17,7 +17,7 @@ export function FailedTurnActions({ resultId }: { resultId: number }) {
   const choices = useChatPaneState((s) => s.retry);
   // 別のモデルの一覧（終わりの行はチャット欄の近く（画面の下のほう）にあるので、下に収まらなければボタンの上に開く）
   const menu = useContextMenu();
-  // 作業を始めた発言が作業場所を移した区切りより前なら、巻き戻して再試行は出さない（メモの仕様書「0025」の H2）
+  // 作業を始めた発言が作業場所を移した区切りより前なら、巻き戻して再試行は出さない
   const beforeMove = useBeforeWorkplaceMove(pane?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
   const beforeSwitch = useBeforeProviderSwitch(pane?.chatId ?? 0, choices?.failed.prompt?.eventId ?? Number.MAX_SAFE_INTEGER);
   if (!pane || !choices || choices.failed.resultId !== resultId) return null;
@@ -58,7 +58,7 @@ export function FailedTurnActions({ resultId }: { resultId: number }) {
         </button>
       )}
       {menu.menu && (
-        // 開いているときにボタンを押したら閉じる（外側のクリックとして閉じると、続くクリックで開き直していた）
+        // 開いているときにボタンを押したら閉じる（外側のクリックとして閉じると、続くクリックで開き直してしまう）
         <PopupMenu at={menu.menu.at} label="再試行するモデル" ignore=".turn-retry-model" onClose={menu.close}>
           {models.map((m) => (
             <MenuItem key={m.value} onSelect={() => retry({ model: m.value })}>

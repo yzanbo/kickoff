@@ -56,7 +56,7 @@ export function NewChildPane({ parentId, ...rest }: Props) {
 
 function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachments, eventId, onCreated }: Omit<Props, "parentId"> & { parent: Chat }) {
   // 選択（モデルなど）は親から引き継がず、新しいチャットと同じく設定どおり（プロジェクトの既定 → 設定の既定）から始める。このタブで変えたものだけ効かせる
-  // 使う AI（初めは親と同じ。選び直せ、親と違う AI なら会話は引き継がない。メモの仕様書「0021」の Q8）
+  // 使う AI（初めは親と同じ。選び直せ、親と違う AI なら会話は引き継がない）
   const [provider, setProvider] = useState<ProviderId>(parent.provider);
   const otherAi = provider !== parent.provider;
   const options = useChatOptions(undefined, parent.project_id, parent.worktree_path ?? undefined, provider);

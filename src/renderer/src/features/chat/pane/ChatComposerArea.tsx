@@ -122,7 +122,7 @@ export function ChatComposerArea({
     <div className="chat-composer">
       {/*
         同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる）。押して開くピルの列とは役割が違うので、
-        ピルに混ぜず、その上の 1 行に分ける（以前はピルの横に並べていて、ピルの一つに見えた・狭いと折り返してピルの間に入った）
+        ピルに混ぜず、その上の 1 行に分ける（ピルの横に並べると、ピルの一つに見え、狭いと折り返してピルの間に入る）
       */}
       <BusyNeighborsNotice count={busyNeighbors} />
       {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる（外に描く先があればそこへ。一番下へ戻るボタンは流れの側に残す） */}
@@ -136,7 +136,7 @@ export function ChatComposerArea({
       <Composer
         chatContext={{ projectId: chat.project_id, exclude: chat.id }}
         options={options}
-        // チャットの AI（どのチャットでもいつも出す。押すと Claude Code・Codex を切り替える。メモの仕様書「0021」の Q1・Q13、「0028」の 9 節）
+        // チャットの AI（どのチャットでもいつも出す。押すと Claude Code・Codex を切り替える）
         providerChip={<ProviderChip chat={chat} busy={busy} />}
         busy={busy}
         queueWhileIdle={!busy && queued}

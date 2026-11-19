@@ -30,7 +30,7 @@ export interface ChatViewInput {
  * 1 つのチャットの会話の欄（ChatColumn）の状態: 選択（モデル・深さ・権限）・作業中の様子・サブエージェント・流れ（窓とスクロール）・
  * 自分の指示の一覧・送り方。記録・回答待ち・作業中の様子はチャットの店の口をここで読む（会話の欄は隠すと止まる Activity の中なので、
  * 隠れている間は記録が届いても描き直さない）。子の部品に配る操作（ChatPaneActions）は殻（ChatView）が useChatPaneActions で 1 回だけ作り、
- * 操作が読むいまの値はここで描くたびに shell.latest に入れる（メモの仕様書「0023_表示を軽くする」の M5）
+ * 操作が読むいまの値はここで描くたびに shell.latest に入れる
  */
 export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: ChatViewInput, shell: ChatShellHandles) {
   const { pane, scroll, latest: latestRef } = shell;
@@ -62,7 +62,7 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     }),
     [coreLive, busy, stopClicked],
   );
-  // 記録全体から作るもの（サブエージェント・指示の一覧・失敗した作業など）は、末尾と索引を重ねた digest から作る（案 4）
+  // 記録全体から作るもの（サブエージェント・指示の一覧・失敗した作業など）は、末尾と索引を重ねた digest から作る
   const events = log.digest;
   // サブエージェントの一覧・入れ子・色・回答待ち（店の取り出し口 chatSelectors。右の欄のタブの印・サブエージェントの画面と同じ値を 1 回だけ作る）
   const { entries: subagents, tree } = useChatSubagents(chat.id);
@@ -86,7 +86,7 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     }),
     [chatId],
   );
-  // 開き直したとき: 前に読んでいた位置があり、そのあと新しい項目が届いていなければ、その位置から（届いていれば一番下。検索から開いたらその発言。U2）
+  // 開き直したとき: 前に読んでいた位置があり、そのあと新しい項目が届いていなければ、その位置から（届いていれば一番下。検索から開いたらその発言）
   const [initial] = useState(() => {
     const saved = timelineView(chatId).position;
     if (focus !== undefined || !saved || items.at(-1)?.key !== saved.last) return null;

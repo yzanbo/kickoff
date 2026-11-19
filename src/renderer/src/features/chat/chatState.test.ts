@@ -12,13 +12,13 @@ test("approvalIndex: 回答待ちの依頼があるチャットの ID の集ま�
   assert.equal(approvalIndex([]).size, 0);
 });
 
-test("runStateOf: 回答待ちの依頼があれば、作業中でも回答待ち", () => {
+test("chatStateOf: 回答待ちの依頼があれば、作業中でも回答待ち", () => {
   const index = approvalIndex([{ chat_id: 1 }]);
   assert.equal(chatStateOf(chat(1, "running"), index), "needs_input");
   assert.equal(chatStateOf(chat(2, "running"), index), "running");
 });
 
-test("runStateOf: 依頼がなければ、チャットの状態どおり（失敗・未読・既読）", () => {
+test("chatStateOf: 依頼がなければ、チャットの状態どおり（失敗・未読・既読）", () => {
   const none = approvalIndex([]);
   // 失敗も、見るまでは目立たせ（未読）、見たら既読
   assert.equal(chatStateOf(chat(1, "failed", true), none), "failed");
@@ -47,7 +47,7 @@ test("stateCounts: 作業中・回答待ち・未読の数（カンバンの列�
 });
 
 test("stateCounts: 依頼と状態がずれた一瞬（依頼が残ったまま止まった・依頼が消えて状態が戻る前）も、0 未満や二重には数えない", () => {
-  // 以前の見出しは「作業中 = 動いている数 − 回答待ちの数」の引き算で、ここが -1 になっていた
+  // 「作業中 = 動いている数 − 回答待ちの数」の引き算で数えると、ここが -1 になる
   assert.deepEqual(stateCounts([chat(1, "completed")], approvalIndex([{ chat_id: 1 }])), { running: 0, needs_input: 1, unread: 0 });
 });
 

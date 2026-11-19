@@ -31,7 +31,7 @@ export interface SidePanelHandle {
   uncover: () => void;
 }
 
-/** 遠い記録を読んでいるとき、押した所に回る印を出すまでの時間（メモの仕様書「0023_表示を軽くする」の Q1 A） */
+/** 遠い記録を読んでいるとき、押した所に回る印を出すまでの時間 */
 const JUMP_PENDING_MS = 150;
 
 /** 右の欄の中のサブエージェントの画面（data-agent-screen）の、スクロールする欄 */
@@ -66,7 +66,7 @@ export interface ChatShellHandles {
 /**
  * 1 つのチャットの画面の操作（ChatPaneActions）を、会話の欄を隠しても止まらない殻（ChatView）で 1 回だけ作る。
  * 操作が読む値（記録・選択・窓・送り方）は会話の欄が描くたびに latest に入れる（隠れている間は、隠す前の値のまま。
- * 隠れた会話の欄の state を変える操作は、表に戻したときに描かれる。メモの仕様書「0023_表示を軽くする」の M5・分冊 3 の 3-3-1）
+ * 隠れた会話の欄の state を変える操作は、表に戻したときに描かれる）
  */
 export function useChatPaneActions({
   chatId,
@@ -99,7 +99,7 @@ export function useChatPaneActions({
     });
     const patch = (next: Partial<ChatPaneState>) => state.set({ ...state.get(), ...next });
     /**
-     * その記録を流れに出してから then（読んでいなければ読み、読めて流れに出たら。Q1 A: いまの位置で待ち、JUMP_PENDING_MS を超えたら
+     * その記録を流れに出してから then（読んでいなければ読み、読めて流れに出たら。いまの位置で待ち、JUMP_PENDING_MS を超えたら
      * 押した所に回る印 jumping を出す）
      */
     const whenShown = (eventId: number, then: () => void) => {
@@ -112,8 +112,7 @@ export function useChatPaneActions({
       });
     };
     /**
-     * その記録を読んで流れに出し、窓でその前後を描いて測り終えたら解決する（移る処理はどれもこれを待ってから jumpToEvent。
-     * メモの仕様書「0023_表示を軽くする」の M3 の await reveal()）
+     * その記録を読んで流れに出し、窓でその前後を描いて測り終えたら解決する（移る処理はどれもこれを待ってから jumpToEvent）
      */
     const drawn = (eventId: number) => new Promise<void>((resolve) => whenShown(eventId, () => void now().timeline.revealEvent(eventId).then(resolve)));
     /** 描いたあとに、その記録の要素へ移る（開いたカードの中の行は、カードの中身が描かれるまで数フレーム待つ） */

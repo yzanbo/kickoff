@@ -200,13 +200,13 @@ export function Summary({ entry, childCount }: { entry: SubagentEntry; childCoun
 export function useSubagentItems(entry: SubagentEntry, view: SubagentsView): TimelineItem[] {
   const { key, agentId, toolUseEventId } = entry;
   const scopeKey = scopeOf(entry).join(" ");
-  // 末尾より前に始まったサブエージェントは、中の記録を読む（索引には中の最後の動きしかない。メモの仕様書「0023_表示を軽くする」の案 4）
+  // 末尾より前に始まったサブエージェントは、中の記録を読む（索引には中の最後の動きしかない）
   const before = view.tailStart > 0 && toolUseEventId !== undefined && toolUseEventId < view.tailStart;
   const { chatId } = view;
   useEffect(() => {
     if (before) void chatLog.loadScope(chatId, scopeKey.split(" "), toolUseEventId === undefined ? [] : [toolUseEventId]);
   }, [before, chatId, scopeKey, toolUseEventId]);
-  // そのサブエージェントの流れの記録だけを選んでから組み立てる（カードごとに読み込んだ記録の全体をたどらない。メモの仕様書「0023_表示を軽くする」の M4）
+  // そのサブエージェントの流れの記録だけを選んでから組み立てる（カードごとに読み込んだ記録の全体をたどらない）
   const events = useMemo(() => subagentEvents(view.loaded, view.events, scopeKey.split(" "), key, agentId), [view.loaded, view.events, scopeKey, key, agentId]);
   return useMemo(() => groupEvents(events, scopeKey.split(" ")), [events, scopeKey]);
 }

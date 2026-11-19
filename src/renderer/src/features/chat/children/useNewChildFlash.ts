@@ -17,7 +17,7 @@ export function freshChildren(children: readonly Pick<Chat, "id" | "created_at">
 /**
  * 渡した子チャットに、新しく作られてまだ光らせていないものが現れたら、少しの間 true。
  * 会話の欄を裏のタブで止めている間（Activity の hidden）は光らせず、表に戻したら、隠していた間に作られた子で光らせる
- * （隠すときに光っていれば消す。消さないと、片付けでタイマーが止まって光ったまま残る。メモの仕様書「0023_表示を軽くする」の U6）
+ * （隠すときに光っていれば消す。消さないと、片付けでタイマーが止まって光ったまま残る）
  */
 export function useNewChildFlash(children: readonly Chat[] | undefined): boolean {
   const [flashing, setFlashing] = useState(false);

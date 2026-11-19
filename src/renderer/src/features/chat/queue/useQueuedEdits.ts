@@ -76,8 +76,7 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
   return {
     edits,
     editHeight,
-    /** 書き直す欄を開く（もう開いているものは、書いている途中の文のまま） */
-    /** 書き直す欄を開く（会話の圧縮の行は書き直せないので除く） */
+    /** 書き直す欄を開く（もう開いているものは、書いている途中の文のまま。会話の圧縮の行は書き直せないので除く） */
     start: (messages: QueuedMessage[]) => {
       const editable = messages.filter((m) => !m.compact);
       if (editable.length === 0) return;

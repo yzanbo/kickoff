@@ -1,11 +1,11 @@
-// チャットの AI（メモの仕様書「0021_Codex・Copilot・Cursor 対応」の Q1・Q4・Q8・Q13）の、画面で使う純粋な決まり:
+// チャットの AI の、画面で使う純粋な決まり:
 // 選べるか（対応予定は選べない）・その AI にない機能の理由・API キーで動かすか（使った分の支払い）
 import { PROVIDER_LABELS, providerFeatureMissing, type ProviderFeature, type ProviderId, type ProviderStatus } from "@shared/types";
 
 /** API キーで動かす AI に添える印（設定・チャットの AI の札） */
 export const PAY_PER_USE_LABEL = "使った分の支払い";
 
-/** サブスクでは使わず、API キーでだけ動かす AI（Gemini（Antigravity）は定額のプランとしては扱わない。Q11） */
+/** サブスクでは使わず、API キーでだけ動かす AI（Gemini（Antigravity）のログインをほかのアプリから使うのは利用規約で禁じられているので、定額のプランとしては扱わない） */
 export const API_KEY_ONLY_PROVIDERS: ReadonlySet<ProviderId> = new Set<ProviderId>(["gemini"]);
 
 /** AI の名前（状態がまだ届いていなくても出せるように、共有の名前から） */
@@ -45,7 +45,7 @@ export function featureBlock(status: ProviderStatus | undefined, feature: Provid
 /** API キーで動かすか（使った分の支払い。設定の provider_auth が api_key） */
 export const paysPerUse = (status: ProviderStatus | undefined): boolean => status?.auth_mode === "api_key";
 
-/** 札では短く出す AI の名前（チャット欄の下の行は狭いので。利用者の依頼で「Claude Code」を「Claude」に。乗せたときの説明は正式な名前のまま） */
+/** 札では短く出す AI の名前（チャット欄の下の行は狭いので「Claude Code」を「Claude」に。乗せたときの説明は正式な名前のまま） */
 const CHIP_SHORT_NAMES: Partial<Record<ProviderId, string>> = { claude: "Claude" };
 
 /** AI の札とそのメニューに出す名前（短い名前。API キーで動かすなら「· API キー」を添える） */

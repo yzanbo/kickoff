@@ -17,7 +17,7 @@ export const BOTTOM_SLACK_PX = 80;
  * - スクロールしたら窓に知らせる（描く範囲を決め直し、読んだ範囲の端に近づいたら読み足す。useRowWindow）
  * - 一番下へ戻る（遠ければ 1 画面手前まで一気に寄せてから、なめらかに。途中の一部分を出しているときは末尾に戻してから）。⌘↓ でも
  * - 検索結果から開いた発言（focus）を描いてから移り、一瞬強調する
- * - スクロールし終えたとき・流れを片付けるときに、読んでいた位置を見え方の店に覚える（一番下に付いていれば覚えない。開き直したときに使う。U2）
+ * - スクロールし終えたとき・流れを片付けるときに、読んでいた位置を見え方の店に覚える（一番下に付いていれば覚えない。開き直したときに使う）
  * away は一番下から離れているか（一番下へ戻るボタンを出す）
  */
 export function useTimelineScroll({
@@ -43,7 +43,7 @@ export function useTimelineScroll({
   const [away, setAway] = useState(false);
 
   // 検索結果から開いたときは、その発言を描いてから移り、一瞬強調する（読んでいなければ、読めて流れに出たら）。
-  // 移れたら覚え、同じ発言へは移り直さない（隠したタブを表に戻すと effect が流れ直し、読んでいた所から引き戻していた）
+  // 移れたら覚え、同じ発言へは移り直さない（隠したタブを表に戻すと effect が流れ直し、読んでいた所から引き戻してしまう）
   const jumpedTo = useRef<number | undefined>(undefined);
   const { items } = w;
   const revealEvent = useEffectEvent((eventId: number) => w.revealEvent(eventId));

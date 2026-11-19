@@ -43,7 +43,7 @@ import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
  */
 export function SubagentScreen({ chatId, agentKey }: { chatId: number; agentKey: string }) {
   // 記録から作るもの（サブエージェント・図・裏で動かしている呼び出し）は、チャットの店の取り出し口を直接読む（会話の欄が隠れて止まっていても、
-  // この画面は動く。会話の欄と同じ世代なら同じ値。メモの仕様書「0023_表示を軽くする」の M5）。中の部品にはこの画面が配る
+  // この画面は動く。会話の欄と同じ世代なら同じ値）。中の部品にはこの画面が配る
   const view = useChatSubagentsView(chatId);
   const visuals = useChatVisuals(chatId);
   const background = useChatBackgroundCalls(chatId);

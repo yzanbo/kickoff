@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createLruMap } from "@/lib/lruMap";
 
 /**
- * AI が描いた図の枠（iframe）を同時に読み込む数の上限と、描いた枠の高さの覚え（メモの仕様書「0023_表示を軽くする」の案 14a）。
+ * AI が描いた図の枠（iframe）を同時に読み込む数の上限と、描いた枠の高さの覚え。
  * 遠くの発言へ移って図がたくさんある所に着いたとき、枠のページ・中のスクリプト・CDN の読み込みが一度に走って画面が止まらないようにする
  */
 

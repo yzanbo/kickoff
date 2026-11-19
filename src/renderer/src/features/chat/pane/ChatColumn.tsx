@@ -34,7 +34,7 @@ interface ChatColumnProps {
 /**
  * チャットの会話の欄（見出し・流れ・チャット欄）。殻（ChatView）の中の Activity の内側に置き、裏のタブでは止まる（effect を片付け、
  * 記録が届いても描き直さない。表に戻したら最新の記録で 1 回描く）。記録・回答待ち・作業中の様子・記録全体から作るものは、ここで
- * チャットの店の口を読む（殻は読まない。メモの仕様書「0023_表示を軽くする」の M5・分冊 3 の 3-3-1）。状態は useChatView にあり、ここは描くだけ。
+ * チャットの店の口を読む（殻は読まない）。状態は useChatView にあり、ここは描くだけ。
  * 流れの部品が読むサブエージェント・図・裏の呼び出しは、ここから context で配る（右の欄のサブエージェントの画面は、同じ口を自分で読む）
  */
 export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visible, onOpenNew, beforeSend, shell }: ChatColumnProps) {

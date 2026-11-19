@@ -22,7 +22,7 @@ const effortKeyOf = (projectId: number, model: string | null, worktree: string |
 
 /**
  * 深さを指定しないときに使われる深さ（プロジェクト・モデル・作業場所ごと。チャット欄がいくつあっても、取りに行くのは key ごとに 1 回。
- * 前は描いたときの effect で取っていて、隠したタブを表に戻すたびに同じ値を取り直していた。メモの仕様書「0023_表示を軽くする」の分冊 3 の 3-3-3）
+ * 描いたときの effect で取ると、隠したタブを表に戻すたびに同じ値を取り直す）
  */
 const effortDefaults = createKeyedStore<string, EffortDefault>({
   load: (key) => {
@@ -38,7 +38,7 @@ const effortDefaults = createKeyedStore<string, EffortDefault>({
  * 新しいチャットでプロジェクトを替えたら（全プロジェクトのボード）、そのプロジェクトの既定に当て直す。
  * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始め、既定は当てない（別のプロジェクトへ移しても、チャットの選択のまま）。
  * provider はそのチャットの AI（モデルの一覧をその AI から読む。省けばプロジェクトの AI）。新しいチャットで AI を替えたら、モデル・推論の深さをその AI の既定に当て直す
- * （メモの仕様書「0028」の 9 節。前の AI のモデルの名前を残すと、その AI に知らない名前を渡していた）。
+ * （前の AI のモデルの名前を残すと、その AI に知らない名前を渡す）。
  */
 export function useChatOptions(initial: ChatOptions | undefined, projectId?: number, worktree?: string, providerArg?: ProviderId) {
   const settings = useAppSettings().data;
@@ -52,7 +52,7 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
   const [permission, setPermission] = useState<PermissionMode>(initial?.permission_mode ?? "default");
   const [fastMode, setFastMode] = useState<boolean>(initial?.fast_mode ?? false);
-  // 既存のチャットの AI を途中で替えたら（メモの仕様書「0029」の Q12）、コアが当て直したそのチャットの選択に合わせ直す。
+  // 既存のチャットの AI を途中で替えたら、コアが当て直したそのチャットの選択に合わせ直す。
   // 前の AI のモデル・権限モードを残すと、確認画面で見せた値と違うものを新しい AI に送ってしまう（Claude Code は一覧の外のモデル名も受け付けるので、下の当て直しでも直らない）
   const [optionsProvider, setOptionsProvider] = useState(provider);
   if (initial && optionsProvider !== provider) {
@@ -177,7 +177,7 @@ export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; d
   const { provider, models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, fastSupport, setFastMode, effortDefault } = state;
   const efforts = effortsFor(current);
   const fastSupported = fastSupport === "supported";
-  // そのチャットの AI でモデルを選べなければ、押せない形にして理由を出す（メモの仕様書「0021」の Q4）
+  // そのチャットの AI でモデルを選べなければ、押せない形にして理由を出す
   const modelBlock = useFeatureBlock("models");
 
   return (

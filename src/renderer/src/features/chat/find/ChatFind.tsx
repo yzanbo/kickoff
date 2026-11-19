@@ -39,7 +39,7 @@ export function ChatFind({
   const { root, reveal, focusComposer, searchTexts, drawn } = useChatPane();
   // 流れの窓が描く行を変えたら印を付け直す（見出しを通さずに直接購読する。スクロールで描く行が変わっても見出しは描き直さない）
   const version = useSyncExternalStore(drawn.subscribe, drawn.get);
-  // 遠い一致へ移るために読んでいる（150ms を超えたら件数のところに出す。Q1 A）
+  // 遠い一致へ移るために読んでいる（150ms を超えたら件数のところに出す）
   const jumping = useChatPaneState((s) => s.jumping) ?? null;
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");

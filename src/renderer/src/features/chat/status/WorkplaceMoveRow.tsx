@@ -5,7 +5,7 @@ import { api } from "@/api";
 import { reportFailure } from "@/ui/dialogs";
 
 /**
- * AI が作業場所を移す予約の行（流れのいちばん下。作業中の様子の workplace_move。メモの仕様書「0025」の I2）:
+ * AI が作業場所を移す予約の行（流れのいちばん下。作業中の様子の workplace_move）:
  * 作業が終わったらどこへ移るか・続きを送るかを出し、「移らない」で取り消す（取り消すと会話にお知らせが残る）
  */
 export function WorkplaceMoveRow({ chatId, reservation }: { chatId: number; reservation: WorkplaceMoveReservation }) {

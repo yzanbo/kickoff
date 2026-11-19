@@ -55,7 +55,7 @@ export function useSuggest({
   const targetKey = target === undefined ? "" : keyOf(target);
 
   // 候補を出すときに、はじめて一覧を取ってくる（出している間は読み込みを頼む。取れなければ候補なし）
-  // そのチャットの AI に / のコマンドがなければ取りに行かない（一覧はプロジェクトの AI のものなので、違う AI のチャットで出さない。メモの仕様書「0021」の Q4）
+  // そのチャットの AI に / のコマンドがなければ取りに行かない（一覧はプロジェクトの AI のものなので、違う AI のチャットで出さない）
   const commandsBlocked = useFeatureBlock("commands") !== null;
   const commandsState = useKeyedStore(commandsStore, targetKey && trigger?.kind === "slash" && !commandsBlocked ? targetKey : undefined, { active: open });
   const filesState = useKeyedStore(filesStore, targetKey && trigger?.kind === "file" ? targetKey : undefined, { active: open });

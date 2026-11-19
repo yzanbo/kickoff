@@ -72,8 +72,8 @@ export function UserMessage({ event, createdChats }: { event: ChatEventOf<"user"
   const pane = useOptionalChatPane();
   // 書き直している文（undefined なら書き直していない）
   const [draft, setDraft] = useState<string>();
-  // そのチャットの AI でできないこと（書き直しは分岐・巻き戻しを、ファイルを戻すは控えを使う。メモの仕様書「0021」の Q4）
-  // 作業場所を移した区切りより前の発言は、会話もファイルも巻き戻せない（メモの仕様書「0025」の Q3・H2）
+  // そのチャットの AI でできないこと（書き直しは分岐・巻き戻しを、ファイルを戻すは控えを使う）
+  // 作業場所を移した区切りより前の発言は、会話もファイルも巻き戻せない
   const beforeMove = useBeforeWorkplaceMove(event.chat_id, event.id);
   const beforeSwitch = useBeforeProviderSwitch(event.chat_id, event.id);
   const rewindBlock = useFeatureBlock("fork") ?? (beforeMove ? WORKPLACE_REWIND_LOCKED : beforeSwitch ? PROVIDER_REWIND_LOCKED : null);
