@@ -16,7 +16,7 @@
   width: 300px;
   /* 狭いとき（チャット欄を広げた）も、右の差分・中身を残す（覚えた幅より優先） */
   max-width: 50%;
-  /* 見出し（.changes-head）と探す欄は残し、その下（.changes-scroll・ファイルの木の .files-pane）だけを流す（利用者の依頼。VS Code のビューと同じ） */
+  /* 見出し（.changes-head）と探す欄は残し、その下（.changes-scroll・ファイルの木の .files-pane）だけを流す（VS Code のビューと同じ） */
   overflow: hidden;
   border-right: 1px solid var(--border);
   background: var(--bg-sidebar);
@@ -40,7 +40,7 @@
   color: var(--muted);
 }
 
-/* 見出しの先頭のアイコン（ブランチ）は、名前が長くても縮めない（前は名前に押されて小さくなっていた） */
+/* 見出しの先頭のアイコン（ブランチ）は、名前が長くても縮めない */
 .changes-head > svg {
   flex: none;
 }

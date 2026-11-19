@@ -36,8 +36,8 @@
 }
 
 /*
- * 2 行のタブのとき（利用者の依頼）: 新しいタブのボタン・右端のペインを分ける・閉じるボタン・左端の道具を、高くしたタブの縦幅の真ん中に置く
- * （ふだんは 1 行のタブに合わせて上から 2px。前は新しいタブのボタンだけを真ん中にしていて、分けるボタンと左端の道具は上に寄っていた）
+ * 2 行のタブのとき: 新しいタブのボタン・右端のペインを分ける・閉じるボタン・左端の道具を、高くしたタブの縦幅の真ん中に置く
+ * （ふだんは 1 行のタブに合わせて上から 2px）
  */
 .panel-tabs:has(> .panel-tab-strip .panel-tab.two-line) > :is(.panel-tab-adds, .panel-pane-tools, .panel-controls) {
   align-items: center;
@@ -111,7 +111,7 @@
 
 /*
  * タブが増えたとき「横にスクロールする」（PANEL_TAB_OVERFLOW の scroll。PaneTabBar の .scroll-tabs）: タブ・まとまりを細くせず、ふだんの幅（180px）のまま並べ、
- * タブの列（.panel-tab-strip の overflow-x）を横にスクロールする（VS Code と同じ。利用者の依頼。初めはタブを細くして収める）
+ * タブの列（.panel-tab-strip の overflow-x）を横にスクロールする（VS Code と同じ。初めはタブを細くして収める）
  */
 .panel-tab-strip.scroll-tabs .panel-tab,
 .panel-tab-strip.scroll-tabs .panel-tab-group {

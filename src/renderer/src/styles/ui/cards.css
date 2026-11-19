@@ -92,7 +92,7 @@
 }
 
 
-/* 設定の「接続」の AI のログインの仕方（`ProviderAuthSettings`: AI ごとにサブスク / API キーの切り替えと API キーの欄。メモの仕様書「0021」の Q13） */
+/* 設定の「接続」の AI のログインの仕方（`ProviderAuthSettings`: AI ごとにサブスク / API キーの切り替えと API キーの欄） */
 .provider-auth h3 {
   margin: 16px 0 4px;
   font-size: 14px;

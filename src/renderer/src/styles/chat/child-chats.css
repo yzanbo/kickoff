@@ -184,7 +184,7 @@
   gap: 8px;
   padding: 6px var(--gutter);
   border-bottom: 1px solid var(--border);
-  /* 地は画面と同じ（右の欄の中のほかのタブとそろえる。前はサイドバーの色で染めていた） */
+  /* 地は画面と同じ（右の欄の中のほかのタブとそろえる） */
   background: var(--bg);
 }
 

@@ -7,7 +7,7 @@
 
 /*
  * 録音中: 赤く塗り、マイクの音量（--mic-level 0〜1。DictationButton の useMicLevel）で外側の輪を広げる。
- * 前は音に関係なく脈打たせていて、声を拾っているかが分からなかった（利用者の指摘）
+ * 音に関係なく脈打たせると、声を拾っているかが分からない
  */
 .dictation-recording {
   --mic-level: 0;

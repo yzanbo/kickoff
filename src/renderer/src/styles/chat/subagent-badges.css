@@ -186,7 +186,7 @@ button.subagent-children:hover {
 
 /*
  * 狭い欄（右の欄を分けたペインなど）でも名前が消えないよう、カードの見出し・画面の見出しは名前を先に残し、
- * 種類・「右の欄で表示中」・時刻から縮める（以前は名前だけが縮み、「general-purpose 失敗」だけが見えた）。状態の文は折り返さない
+ * 種類・「右の欄で表示中」・時刻から縮める。状態の文は折り返さない
  */
 :is(.subagent-card-title, .subagent-screen-title) > :is(.subagent-card-name, .subagent-screen-name) {
   flex: 0 1 auto;

@@ -7,7 +7,7 @@
   min-height: 0;
 }
 
-/* 見出し（接続の数と「接続を足す」）は残し、その下（.db-home-body）だけを流す（利用者の依頼） */
+/* 見出し（接続の数と「接続を足す」）は残し、その下（.db-home-body）だけを流す */
 .db-home-head {
   flex: none;
   padding: 20px 20px 0;

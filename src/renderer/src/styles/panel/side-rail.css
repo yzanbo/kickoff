@@ -1,5 +1,5 @@
 /*
- * 右サイドバーの右端のアイコンの列（features/panel/projectChat/SideRail.tsx。VS Code のアクティビティバーと同じ形。メモの仕様書「0031」）。
+ * 右サイドバーの右端のアイコンの列（features/panel/projectChat/SideRail.tsx。VS Code のアクティビティバーと同じ形）。
  * 画面の右端の 4 列目に、右サイドバーを閉じていても置く。上の行（信号機ボタン・右上のレイアウトの開閉と同じ行）はウィンドウのドラッグ領域のまま空け、アイコンはその下から
  */
 .side-rail {
@@ -28,7 +28,7 @@
 
 /*
  * アイコンの並び。プロジェクトの左の縦のタブと同じクラス（.tabs.project-side-tabs・.project-tab-group・.tab。project/project-tabs.css）で描くので、
- * まとまりの地・つまみ・間隔・選んでいる印の線・並べ替えの線は左と同じ（利用者の依頼）。ここでは、アイコンが多いときに縦に流すことだけを足す
+ * まとまりの地・つまみ・間隔・選んでいる印の線・並べ替えの線は左と同じ。ここでは、アイコンが多いときに縦に流すことだけを足す
  */
 .side-rail .side-rail-items {
   min-height: 0;
@@ -36,7 +36,7 @@
   scrollbar-width: none;
 }
 
-/* 形は左と同じまま、アイコンは小さく（利用者の依頼。左の 36px に対して 26px。アイコンは 14px） */
+/* 形は左と同じまま、アイコンは小さく（左の 36px に対して 26px。アイコンは 14px） */
 .side-rail .project-side-tabs .tab {
   width: 26px;
   height: 26px;

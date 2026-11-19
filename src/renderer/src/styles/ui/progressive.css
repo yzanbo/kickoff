@@ -1,4 +1,4 @@
-/* ==== 段階に分けて描く一覧のまだ描いていない行の場所（ui/ProgressiveRows.tsx。メモの仕様書「0023_表示を軽くする」の案 23） ==== */
+/* ==== 段階に分けて描く一覧のまだ描いていない行の場所（ui/ProgressiveRows.tsx） ==== */
 
 /* 高さ = 省いた行の数 × 行の見積もり（--progressive-row。行の間の gap も含めた 1 行分を、一覧ごとにその一覧の CSS で決める） */
 .progressive-spacer {

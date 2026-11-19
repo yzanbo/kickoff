@@ -109,7 +109,7 @@ dialog[open] {
   overflow-y: auto;
 }
 
-/* 左に項目・右に内容のダイアログのフォームは、右の欄の横幅いっぱいに使う（以前は 560px までで、ダイアログの右側が空いていた） */
+/* 左に項目・右に内容のダイアログのフォームは、右の欄の横幅いっぱいに使う */
 .tabbed-dialog-content .form {
   max-width: none;
 }

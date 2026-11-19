@@ -6,7 +6,7 @@
   flex-direction: column;
 }
 
-/* 見出し（説明と「ゴミ箱を空にする」）は残し、その下（.trash-body）だけを流す（利用者の依頼） */
+/* 見出し（説明と「ゴミ箱を空にする」）は残し、その下（.trash-body）だけを流す */
 .trash-head {
   flex: none;
   padding: 12px var(--gutter) 10px;

@@ -5,7 +5,7 @@
   grid-column: 1 / -1;
   align-items: center;
   gap: 16px;
-  /* 利用者の依頼で 28px から詰めた（起動直後の骨組み index.html の .boot-footer と同じ値。app/bootScript.test.ts が確かめる） */
+  /* 起動直後の骨組み index.html の .boot-footer と同じ値（app/bootScript.test.ts が確かめる） */
   height: 24px;
   padding: 0 12px;
   border-top: 1px solid var(--border);
@@ -180,7 +180,7 @@
 
 /*
  * 下の帯の右の使用状況（AI ごとのボタンを区切り線で並べる。押すとその AI の詳細を開く）。
- * 利用者の依頼で Claude と Codex を同時に出すため、バーを短くし、リセットまでの時間は乗せたときの説明に移した
+ * Claude と Codex を同時に出すため、バーを短くし、リセットまでの時間は乗せたときの説明に出す
  */
 .footer-usages {
   display: flex;

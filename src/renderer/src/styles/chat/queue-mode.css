@@ -44,7 +44,7 @@
 
 /*
  * ⌘ / ⌘⇧ を押している間（Composer の heldMode）: Enter で使われる方を、選んでいる方（灰の地）とは別の青で示す
- * （以前は切り替えの上に「Enter で〜」の札も添えていたが、文が長く邪魔だったのでやめた。ボタンが光るだけにする）
+ * （札は添えず、ボタンが光るだけにする）
  */
 .busy-controls.held-tell .queue-mode button[data-value="tell"],
 .busy-controls.held-queue .queue-mode button[data-value="queue"],
