@@ -1,7 +1,7 @@
 // 決まったデータを作る（npm run fixture:seed が流す。scripts/devtools/fixture.mjs）。
-// npx tsx scripts/devtools/seed.ts --data <保存先> --now <画面の時計の起点の ms>
-// 保存先のフォルダを消して作り直し、DB・Git のリポジトリ・メモ・SQLite の DB を入れて、ID を <保存先>/fixture.json に書く。
-// 時刻はすべて --now からさかのぼった決まった値にする（何度作っても同じ中身になる）。保存先が一時フォルダ（TMPDIR か /tmp）の下でなければ断る
+// npx tsx scripts/devtools/seed.ts --root <置き場所> --data <開発版の保存先（置き場所の中）> --now <画面の時計の起点の ms>
+// 置き場所のフォルダを消して作り直し、Git のリポジトリ・メモ・SQLite の DB と、保存先に Kickoff の DB を入れて、ID を <置き場所>/fixture.json に書く。
+// 時刻はすべて --now からさかのぼった決まった値にする（何度作っても同じ中身になる）。置き場所が一時フォルダ（TMPDIR か /tmp）の下でなければ断る
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -14,9 +14,12 @@ import { DB_FILE } from "../../src/core/db/open.js";
 import { Store } from "../../src/core/db/store.js";
 import type { NewChat } from "../../src/core/db/types.js";
 
-const { values } = parseArgs({ options: { data: { type: "string" }, now: { type: "string" } } });
-if (!values.data || !values.now) throw new Error("--data <保存先> と --now <ms> を渡してください");
-const dir = path.resolve(values.data);
+const { values } = parseArgs({ options: { root: { type: "string" }, data: { type: "string" }, now: { type: "string" } } });
+if (!values.root || !values.data || !values.now) throw new Error("--root <置き場所>・--data <保存先> と --now <ms> を渡してください");
+const dir = path.resolve(values.root);
+const dataDir = path.resolve(values.data);
+// SQLite の DB などを保存先の外に置く（DB のタブは Kickoff の保存先の中のファイルを開かない）
+if (path.dirname(dataDir) !== dir) throw new Error(`保存先は置き場所のすぐ下にしてください: ${dataDir}`);
 const now = Number(values.now);
 const MINUTE = 60_000;
 /** now から ms だけさかのぼった時刻（ISO） */
@@ -27,7 +30,7 @@ const tmpRoots = [...new Set([os.tmpdir(), "/tmp"].map((d) => fs.realpathSync(d)
 const parent = fs.realpathSync(path.dirname(dir));
 if (!tmpRoots.some((root) => parent === root || parent.startsWith(root + path.sep))) throw new Error(`一時フォルダ（${tmpRoots.join("・")}）の下でない保存先には作りません: ${dir}`);
 fs.rmSync(dir, { recursive: true, force: true });
-fs.mkdirSync(dir, { recursive: true });
+fs.mkdirSync(dataDir, { recursive: true });
 
 /** ファイルを書き、更新時刻を決まった値にする */
 function write(file: string, text: string, at = now - 7 * 24 * 60 * MINUTE) {
@@ -86,7 +89,7 @@ sample.exec(`
 sample.close();
 
 // --- Kickoff の DB
-const store = new Store(path.join(dir, DB_FILE));
+const store = new Store(path.join(dataDir, DB_FILE));
 const { db } = store;
 db.exec("BEGIN");
 const alpha = store.projects.create({ name: "alpha", repo_path: alphaDir, provider: "claude" });

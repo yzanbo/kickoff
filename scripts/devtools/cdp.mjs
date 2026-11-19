@@ -28,7 +28,7 @@ export function apiPort(argv = process.argv) {
   return Number(argValue(argv, "api") ?? (usesFixture(argv) ? FIXTURE.api : undefined) ?? process.env.KICKOFF_PORT ?? 4318);
 }
 
-/** 開発版の保存先: 引数 --data <dir> > 引数 --fixture（/private/tmp/kickoff-fixture）> 既定の Kickoff Dev */
+/** 開発版の保存先: 引数 --data <dir> > 引数 --fixture（/private/tmp/kickoff-fixture/data）> 既定の Kickoff Dev */
 function dataDirOf(argv = process.argv) {
   const dir = argValue(argv, "data");
   return dir ? path.resolve(dir) : usesFixture(argv) ? FIXTURE.dataDir : DEV_DATA_DIR;

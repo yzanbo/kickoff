@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "dev:cdp": "KICKOFF_REMOTE_DEBUG=9333 electron-vite dev",
-    "dev:fixture": "KICKOFF_REMOTE_DEBUG=9335 KICKOFF_PORT=4319 KICKOFF_USER_DATA_DIR=/private/tmp/kickoff-fixture electron-vite dev",
+    "dev:fixture": "KICKOFF_REMOTE_DEBUG=9335 KICKOFF_PORT=4319 KICKOFF_USER_DATA_DIR=/private/tmp/kickoff-fixture/data electron-vite dev",
     "fixture:seed": "node scripts/devtools/fixture.mjs",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
