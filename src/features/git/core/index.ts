@@ -9,7 +9,7 @@ export { replaceInProject, searchProject } from "@/features/files/core/search";
 export { commitStaged, discardPaths, fetchRemote, gitDiff, gitOriginal, pullBranch, pushBranch, stagePaths, toGitDiff, unstagePaths } from "./changes";
 export { gitBlame } from "./blame";
 export { gitCommitDetail, gitCommitDiff, gitLog, gitRefs, parseCommit, parseNameStatus } from "./history";
-export { addWorktree, findWorktree, listWorktrees, newWorktreeProblem, parseWorktrees, removeWorktree, worktreePathFor, worktreeMoves, worktreeRemovalInfo } from "@/foundation/core/workplace/worktrees";
+export { addWorktree, findWorktree, listWorktrees, newWorktreeProblem, parseWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "@/foundation/core/workplace/worktrees";
 
 /** 作業場所の Git（状態・変更・コミット・履歴・ブランチ・PR の受け口） */
 export function createGit(k: KernelWithStore): CoreFeature<null> {

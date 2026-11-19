@@ -67,7 +67,7 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
   const { trashCommandFile } = prepared;
-  const chat = createChat(k, { trash: trash.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl, retryMs: env.retryMs });
+  const chat = createChat(k, { trash: trash.api, projects: projects.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl, retryMs: env.retryMs });
   const { runner } = chat.api;
   // ここからはチャットの上の機能
   const guard = createGuard({ trash: trash.api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile });
@@ -77,7 +77,7 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
   const git = createGit(k);
   const docker = createDocker(k, { engine: env.platformParts.dockerEngine, ...env.docker });
   const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api }, { ...env.worktrees, retryMs: env.retryMs });
-  const github = createGitHub(k, { worktrees: worktrees.api }, env.github);
+  const github = createGitHub(k, { worktrees: worktrees.api, projects: projects.api }, env.github);
   const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api }, env.notes);
   const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api }, { ...env.database, secretCipher: env.secretCipher });
   const terminal = createTerminal(k, { worktrees: worktrees.api }, { shell: env.platformParts.terminalShell(), ...env.terminal });
@@ -96,7 +96,6 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
     ...guard.api,
     remoteImages: remoteImages.api,
   });
-  projects.api.attach({ runner, prWatch: github.api.prWatch, githubAccounts: github.api.accounts });
   return {
     features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports],
     hooks: {

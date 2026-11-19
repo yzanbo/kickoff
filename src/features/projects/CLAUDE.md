@@ -11,6 +11,7 @@
 - タグの整え方は `@shared/projects/tags.ts`、名前の変更・削除は `tagActions.ts`（付いているすべてのプロジェクトに効く）。
 - フォルダの被りは、どこでも `folderOverlaps.ts`（ノートは `NoteOverlapNotice`）の判定と文で知らせる。
 - 部品からは `openNewProject(request)` で開く（作ったあとの処理は値で渡す。理由は `NewProjectAfter`）。プロジェクトがなければ先に `NoProjectsGuide`。
+- コアのプロジェクトのルートが上の機能の力を使うときは、`core/index.ts` の `ProjectsApi` に口を足して上の機能が登録する（作業中か・フォルダを変えたあと・ゴミ箱に入れたチャットは chat、設定を変えたあと・GitHub の連携は github）。
 
 ## 落とし穴
 

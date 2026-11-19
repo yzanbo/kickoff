@@ -5,11 +5,10 @@ import { z } from "zod";
 import { expandHome, realPathLoose, realPathOrSelf } from "@/foundation/core/system/paths";
 import type { Store } from "@/foundation/core/db/store";
 import type { TrashApi } from "@/features/trash/core/index";
-import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProjectGitHub, type ProjectRepoPathBody, type ProviderId } from "@shared/types";
+import type { ProjectGitHub } from "@shared/types";
+import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProjectRepoPathBody, type ProviderId } from "@shared/types";
 import { createWorkspace, initGitRepo, inspectWorkspace, prepareImportedWorkspace, toFolderName } from "@/features/projects/core/workspace";
-import { worktreeMoves } from "@/features/git/core/index";
-import { listGitHubAccounts } from "@/features/github/core/githubAccount";
-import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes } from "@/features/github/core/githubTarget";
+import { worktreeMoves } from "@/foundation/core/workplace/worktrees";
 import { Conflict, Invalid } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
@@ -89,24 +88,28 @@ const projectPatchSchema = z
   })
   .partial() satisfies z.ZodType<ProjectPatch>;
 
-/** 上の機能の口（chat の Runner・github の PR の見張りと gh のアカウント。プロジェクトはそれより下なので、使う形だけを書く） */
-export interface ProjectRouteUpper {
-  runner: Parameters<typeof trashProject>[0]["runner"] & {
-    isBusy(chatId: number): boolean;
-    moveWorkplace(chatId: number, input: { worktreePath: string | null; reason: "folder_moved"; fromDir: string }): Promise<unknown>;
-  };
-  prWatch: { checkProject(projectId: number): Promise<void> };
-  githubAccounts?: typeof listGitHubAccounts;
+/** 上の機能が登録した口（projects/core/index.ts の ProjectsApi の登録を束ねたもの） */
+export interface ProjectRouteHooks {
+  /** 作業中のチャットがあるか（chat が登録） */
+  isBusy(projectId: number): boolean;
+  /** 設定を変えたあと（変えた項目の名前。github が登録: PR の見張りを聞き直す） */
+  afterUpdate(project: Project, changed: readonly string[]): void;
+  /** 本体のフォルダを変えたあと（変える前のプロジェクトと、ワークツリーの作業場所の付け替え先。chat が登録: 作業場所を移す） */
+  afterRepoMove(before: Project, moves: ReadonlyMap<string, string | null>): Promise<void>;
+  /** GitHub の連携の様子（github が登録） */
+  github(project: Project): Promise<ProjectGitHub>;
+  /** プロジェクトと一緒にゴミ箱に入れたチャット（chat が登録: 作業中の状態を捨てる） */
+  chatsTrashed(chatIds: number[]): void;
 }
 
 /** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
-export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, githubAccounts = listGitHubAccounts }: { store: Store; trashBin: TrashApi } & ProjectRouteUpper) {
+export function projectRoutes(app: Hono, { store, trashBin, hooks }: { store: Store; trashBin: TrashApi; hooks: ProjectRouteHooks }) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;
   /** プロジェクトに作業中のチャットがあれば 409（フォルダを変える・git の管理を始めるなど、フォルダごと変わる操作の前に） */
   const requireNoBusyChat = (projectId: number, refusal: string) => {
-    if (store.chats.list({ projectId, includeArchived: true }).some((chat) => runner.isBusy(chat.id))) {
+    if (hooks.isBusy(projectId)) {
       throw new Conflict(`作業中のチャットがあるので、${refusal}。終わってから（または中断してから）行ってください`);
     }
   };
@@ -165,33 +168,19 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
 
   app.patch("/api/projects/:id", withProject, async (c) => {
     const { project } = c.var;
-    const { reference_paths, archived, ...patch } = projectPatchSchema.parse(await jsonBody(c));
+    const input = projectPatchSchema.parse(await jsonBody(c));
+    const { reference_paths, archived, ...patch } = input;
     const updated = store.projects.update(project.id, {
       ...patch,
       ...(reference_paths ? { reference_paths: resolveReferences(reference_paths) } : {}),
       ...(archived === undefined ? {} : { archived_at: archived ? (project.archived_at ?? new Date().toISOString()) : null }),
     });
-    // GitHub の連携・アーカイブを変えたら、ワークツリーの PR の見張りをそのプロジェクトだけ聞き直す（待たない）
-    if (patch.github_account !== undefined || patch.github_remote !== undefined || patch.pr_watch !== undefined || patch.ci_watch !== undefined || archived !== undefined) {
-      void prWatch.checkProject(project.id);
-    }
+    hooks.afterUpdate(project, Object.keys(input).filter((key) => input[key as keyof typeof input] !== undefined));
     return c.json(updated);
   });
 
   // GitHub の連携（設定の「GitHub」: gh に入っているアカウント・GitHub の remote・自動で選ぶ remote・いまの連携先）
-  app.get("/api/projects/:id/github", withProject, async (c) => {
-    const { project } = c.var;
-    const [accounts, { remotes, ghDefault }] = await Promise.all([githubAccounts(), readGitHubRemotes(project.repo_path)]);
-    const auto = autoGitHubRemote(remotes, ghDefault);
-    const target = pickGitHubTarget(remotes, ghDefault, project.github_remote);
-    return c.json({
-      accounts,
-      remotes,
-      auto_remote: auto?.name ?? null,
-      repo: target?.repo ?? null,
-      host: target?.host ?? null,
-    } satisfies ProjectGitHub);
-  });
+  app.get("/api/projects/:id/github", withProject, async (c) => c.json(await hooks.github(c.var.project)));
 
   /**
    * プロジェクトのフォルダ（本体）を変える（フォルダを移した・別の場所に置き直したとき）。取り込みと同じ決まりで確かめ、
@@ -212,16 +201,9 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
     const repoPath = await prepareImportedWorkspace(input.path, input.init_git);
     // ワークツリーで作業していたチャットの付け替え（同じリポジトリなら同じワークツリーの中の新しいフォルダ、そうでなければ本体）
     const moves = await worktreeMoves(project.repo_path, repoPath);
-    const chats = store.chats.list({ projectId: project.id, includeArchived: true });
     const updated = store.projects.update(project.id, { repo_path: repoPath });
-    // 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（本体のチャットも）
-    for (const chat of chats) {
-      const to = chat.worktree_path ? (moves.get(chat.worktree_path) ?? null) : null;
-      await runner.moveWorkplace(chat.id, { worktreePath: to, reason: "folder_moved", fromDir: chat.worktree_path ?? project.repo_path });
-    }
-    // ゴミ箱にあるチャットも付け替える（戻したときに消えた作業場所を指さないように）
-    const used = new Set(chats.flatMap((chat) => (chat.worktree_path ? [chat.worktree_path] : [])));
-    for (const from of used) store.chats.replaceWorktree(project.id, from, moves.get(from) ?? null);
+    // チャットの作業場所を移す（作業フォルダが変わるので、会話を新しいセッションに写して区切りを置く）
+    await hooks.afterRepoMove(project, moves);
     return c.json(updated);
   });
 
@@ -247,7 +229,7 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
   app.delete("/api/projects/:id", withProject, (c) => {
     const { project } = c.var;
     requireNoBusyChat(project.id, "プロジェクトを削除できません");
-    const item = trashProject({ store, trashBin, runner }, project);
+    const item = trashProject({ store, trashBin, chatsTrashed: hooks.chatsTrashed }, project);
     return c.json({ trash_id: item.id });
   });
 }

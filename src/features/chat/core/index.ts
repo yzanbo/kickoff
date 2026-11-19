@@ -4,7 +4,7 @@ import type { CoreFeature } from "@/foundation/core/feature";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
 import type { KernelWithStore } from "@/foundation/core/kernel";
 import type { AiApi } from "@/features/ai/core/index";
-import { registerProjectTrash } from "@/features/projects/core/index";
+import { registerProjectTrash, type ProjectsApi } from "@/features/projects/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import { ApprovalCenter } from "./approvals";
 import { startAutoArchive } from "./autoArchive";
@@ -34,6 +34,7 @@ const RECOVERED_MESSAGES: Record<RecoveredReason, string> = {
 
 export interface ChatDeps {
   trash: TrashApi;
+  projects: ProjectsApi;
   ai: AiApi;
   /** 添付の置き場（attachments の口） */
   uploads: NonNullable<ExecutionDeps["uploads"]>;
@@ -126,6 +127,7 @@ export function createChat(k: KernelWithStore, deps: ChatDeps, env: ChatEnv): Co
   };
   registerChatTrash(trashBin, purgeDeps);
   registerProjectTrash(trashBin, purgeDeps);
+  registerProjectHooks(deps.projects, store, runner);
   // チャットのアーカイブ・削除（自分・自分の祖先を頼まれたら作業の終わりに行う予約）
   const chatRemover = new ChatRemover({ store, bus, runner, trashBin, retryMs });
   runner.useChatRemover(chatRemover);
@@ -178,4 +180,23 @@ export function createChat(k: KernelWithStore, deps: ChatDeps, env: ChatEnv): Co
       stopAutoArchive?.();
     },
   };
+}
+
+/** プロジェクトの口に、チャットの分を登録する（作業中か・本体のフォルダを変えたら作業場所を移す・ゴミ箱に入れたら作業中の状態を捨てる） */
+function registerProjectHooks(projects: ProjectsApi, store: KernelWithStore["store"], runner: Runner): void {
+  projects.addBusyCheck((projectId) => store.chats.list({ projectId, includeArchived: true }).some((chat) => runner.isBusy(chat.id)));
+  projects.afterRepoMove(async (project, moves) => {
+    const chats = store.chats.list({ projectId: project.id, includeArchived: true });
+    // 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（本体のチャットも）
+    for (const chat of chats) {
+      const to = chat.worktree_path ? (moves.get(chat.worktree_path) ?? null) : null;
+      await runner.moveWorkplace(chat.id, { worktreePath: to, reason: "folder_moved", fromDir: chat.worktree_path ?? project.repo_path });
+    }
+    // ゴミ箱にあるチャットも付け替える（戻したときに消えた作業場所を指さないように）
+    const used = new Set(chats.flatMap((chat) => (chat.worktree_path ? [chat.worktree_path] : [])));
+    for (const from of used) store.chats.replaceWorktree(project.id, from, moves.get(from) ?? null);
+  });
+  projects.onChatsTrashed((ids) => {
+    for (const id of ids) runner.forget(id);
+  });
 }

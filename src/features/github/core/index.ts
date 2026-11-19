@@ -3,9 +3,11 @@ import type { GitHubAccount } from "@shared/types";
 import type { CoreFeature } from "@/foundation/core/feature";
 import type { KernelWithStore } from "@/foundation/core/kernel";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
+import type { ProjectsApi } from "@/features/projects/core/index";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import { CiService } from "./ci";
-import { runAsGitHubAccount } from "./githubAccount";
+import { listGitHubAccounts, runAsGitHubAccount } from "./githubAccount";
+import { autoGitHubRemote, pickGitHubTarget, readGitHubRemotes } from "./githubTarget";
 import { WorktreePrWatch } from "./prWatch";
 import { GitHubService } from "./service";
 import { ciRoutes } from "./routes/ci";
@@ -29,12 +31,13 @@ export interface GitHubEnv {
 export interface GitHubApi {
   /** ワークツリーの PR の見張り（マージ・マージせずに閉じたことの知らせ） */
   prWatch: WorktreePrWatch;
-  /** gh に入っている GitHub のアカウント（省けば gh auth status） */
-  accounts?: () => Promise<GitHubAccount[]>;
 }
 
+/** 変えたら PR の見張りを聞き直すプロジェクトの項目 */
+const PR_WATCH_KEYS: ReadonlySet<string> = new Set(["github_account", "github_remote", "pr_watch", "ci_watch", "archived"]);
+
 /** GitHub タブと CI の結果（GitHub Actions）・ワークツリーの PR の知らせ（見張りは待ち受けのあとに始める） */
-export function createGitHub(k: KernelWithStore, deps: { worktrees: WorktreesApi }, env: GitHubEnv): CoreFeature<GitHubApi> {
+export function createGitHub(k: KernelWithStore, deps: { worktrees: WorktreesApi; projects: ProjectsApi }, env: GitHubEnv): CoreFeature<GitHubApi> {
   const { store, bus } = k;
   // プロジェクトの頼み（ルート）の中の gh・git は、そのプロジェクトで選んだ GitHub のアカウントで動かす
   k.workplace.projectScopes.add((project, run) => runAsGitHubAccount(project.github_account, run));
@@ -54,9 +57,21 @@ export function createGitHub(k: KernelWithStore, deps: { worktrees: WorktreesApi
   });
   // ワークツリーを消した・戻したら、その PR の知らせ・印を作り直す（GitHub には聞き直さない）
   deps.worktrees.finisher.afterChange(() => prWatch.recomputeAll());
+  // プロジェクトの GitHub の連携・アーカイブを変えたら、ワークツリーの PR の見張りをそのプロジェクトだけ聞き直す（待たない）
+  deps.projects.afterUpdate((project, changed) => {
+    if (changed.some((key) => PR_WATCH_KEYS.has(key))) void prWatch.checkProject(project.id);
+  });
+  // 設定の「GitHub」: gh に入っているアカウント・GitHub の remote・自動で選ぶ remote・いまの連携先
+  const accounts = env.accounts ?? listGitHubAccounts;
+  deps.projects.provideGitHub(async (project) => {
+    const [list, { remotes, ghDefault }] = await Promise.all([accounts(), readGitHubRemotes(project.repo_path)]);
+    const auto = autoGitHubRemote(remotes, ghDefault);
+    const target = pickGitHubTarget(remotes, ghDefault, project.github_remote);
+    return { accounts: list, remotes, auto_remote: auto?.name ?? null, repo: target?.repo ?? null, host: target?.host ?? null };
+  });
   return {
     name: "github",
-    api: { prWatch, accounts: env.accounts },
+    api: { prWatch },
     routes: [
       {
         legacy: (app) => {

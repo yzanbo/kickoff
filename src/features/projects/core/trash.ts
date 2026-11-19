@@ -4,16 +4,20 @@
 import type { Project } from "@shared/types";
 import type { Store } from "@/foundation/core/db/store";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
-import { purgeChatsOf, restoreChatsOf, type ChatPurgeDeps, type ChatTrashDeps } from "@/features/chat/core/sessions/chatTrash";
+import { purgeChatsOf, restoreChatsOf, type ChatPurgeDeps } from "@/features/chat/core/sessions/chatTrash";
 import type { TrashService } from "@/features/trash/core/service";
 
-/** プロジェクトをゴミ箱へ入れる（作業中のチャットがないことは呼ぶ側が確かめる）。入れたゴミ箱の行を返す */
-export function trashProject(deps: ChatTrashDeps, project: Project, at = new Date().toISOString()): StoredTrashItem {
+/** プロジェクトをゴミ箱へ入れる（作業中のチャットがないことは呼ぶ側が確かめる。一緒に入れたチャットは chatsTrashed に渡す）。入れたゴミ箱の行を返す */
+export function trashProject(
+  deps: { store: Store; trashBin: Pick<TrashService, "addRecord">; chatsTrashed: (chatIds: number[]) => void },
+  project: Project,
+  at = new Date().toISOString(),
+): StoredTrashItem {
   const item = deps.trashBin.addRecord({ project_id: project.id, kind: "project", label: project.name });
   const chats = deps.store.chats.list({ projectId: project.id, includeArchived: true });
   const ids = chats.flatMap((chat) => [chat.id, ...deps.store.chats.descendants(chat.id).map((c) => c.id)]);
   deps.store.chats.trash([...new Set(ids)], item.id, at);
-  for (const id of ids) deps.runner.forget(id);
+  deps.chatsTrashed(ids);
   deps.store.projects.setTrashed(project.id, at);
   return item;
 }
