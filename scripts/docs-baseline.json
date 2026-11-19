@@ -40,29 +40,29 @@
       "brokenRefs": 0
     },
     "src/core/CLAUDE.md": {
-      "bytes": 208662,
-      "ancestors": 221791,
+      "bytes": 208638,
+      "ancestors": 221767,
       "longLines": 104,
       "forbidden": 43,
       "brokenRefs": 5
     },
     "src/core/chat/CLAUDE.md": {
       "bytes": 126804,
-      "ancestors": 348595,
+      "ancestors": 348571,
       "longLines": 67,
       "forbidden": 41,
       "brokenRefs": 0
     },
     "src/core/providers/CLAUDE.md": {
       "bytes": 68537,
-      "ancestors": 290328,
+      "ancestors": 290304,
       "longLines": 42,
       "forbidden": 29,
       "brokenRefs": 3
     },
     "src/main/CLAUDE.md": {
-      "bytes": 50383,
-      "ancestors": 63512,
+      "bytes": 50295,
+      "ancestors": 63424,
       "longLines": 36,
       "forbidden": 17,
       "brokenRefs": 2
@@ -351,7 +351,6 @@
     "src/main/app/shutdown.ts": 1,
     "src/main/diagnostics/bootRecorder.ts": 2,
     "src/main/diagnostics/bootTimeline.ts": 4,
-    "src/main/diagnostics/diagnostics.ts": 1,
     "src/main/diagnostics/logOverview.ts": 3,
     "src/main/diagnostics/stalls.ts": 2,
     "src/main/index.ts": 1,

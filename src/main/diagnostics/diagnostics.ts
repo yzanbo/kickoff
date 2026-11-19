@@ -19,27 +19,9 @@ import { RENDERER_COLLECT, RENDERER_OBSERVE, summarizeFrames, summarizeInteracti
 /** 記録する長さ（秒）。重いと感じる操作をその間に続けてもらう */
 export const DIAGNOSTICS_SECONDS = 10;
 
-/**
- * 記録を保存するフォルダ（ログの場所の diagnostics/。app/logs.ts）。
- * 以前はデータの保存先（Application Support）に置いていたが、そこはエージェントから読めないので、場所をチャットに貼っても読んでもらえなかった
- */
+/** 記録を保存するフォルダ（ログの場所の diagnostics/。app/logs.ts。データの保存先はエージェントから読めないので、そこには置かない） */
 function diagnosticsRoot(): string {
   return path.join(logsDir(), "diagnostics");
-}
-
-/** 以前の保存先（データの保存先の diagnostics/）に残っている記録を、いまの保存先へ移す（起動したときに 1 回） */
-export async function moveLegacyDiagnostics(): Promise<void> {
-  const legacy = path.join(app.getPath("userData"), "diagnostics");
-  const entries = await fs.readdir(legacy, { withFileTypes: true }).catch(() => null);
-  if (!entries) return;
-  await fs.mkdir(diagnosticsRoot(), { recursive: true });
-  for (const e of entries) {
-    if (!e.isDirectory()) continue;
-    // 同じ名前（同じ日時）の記録がもうあれば、移さずに残す
-    await fs.rename(path.join(legacy, e.name), path.join(diagnosticsRoot(), e.name)).catch(() => {});
-  }
-  // 空になったら消す（残ったものがあれば消さない）
-  await fs.rmdir(legacy).catch(() => {});
 }
 
 /** 最近の記録として返す数 */

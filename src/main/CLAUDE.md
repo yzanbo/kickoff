@@ -80,7 +80,7 @@ Electron のメインプロセス。窓・OS の口・仲立ちだけを持ち�
 ## 性能の記録（diagnostics/）
 
 - 重いときに再起動せず、その場で取る（ヘルプのメニュー・設定の「診断」→ `diagnostics.start`）。`diagnostics.ts` の `startDiagnostics` が自分の画面に `webContents.debugger` をつなぎ、10 秒（`DIAGNOSTICS_SECONDS`）の CPU プロファイル・画面の要素の数・メモリ（GC のあと・外れたままのノードの目安）・1 秒あたりの処理の時間・操作の遅れと長いフレーム（画面で評価する式とまとめる純粋関数は `rendererTiming.ts`）と、メインプロセスの分とコアのプロセスの分（どちらも `src/core/system/processRecording.ts` の `startProcessRecording`: CPU プロファイル・イベントループの遅れ。コアの分は RPC の `diagnostics.start` / `stop` でコアの中で取り、コアが画面へ送った知らせの数と量・SSE の数・DB の様子（`Core.databaseStats()`）も入れる。`summary.json` の `core`。取れなければ `{ error }`）・プロセスごとの CPU とメモリを集める。デバッグ用のポートは開かない。
-- 保存先はログの場所（`app/logs.ts` の `logsDir()`）の `diagnostics/<日時>/` で、`summary.json`・`profile.cpuprofile`（画面）・`main.cpuprofile`・`core.cpuprofile`（どれも Chrome の開発者ツールで開ける）。データの保存先（Application Support）はエージェントから読めない（`chat/guard/selfProtection.ts`）ので、場所を貼っても読めるようログの場所に置く。以前の保存先の記録は、起動のときに `moveLegacyDiagnostics` で移す。
+- 保存先はログの場所（`app/logs.ts` の `logsDir()`）の `diagnostics/<日時>/` で、`summary.json`・`profile.cpuprofile`（画面）・`main.cpuprofile`・`core.cpuprofile`（どれも Chrome の開発者ツールで開ける）。データの保存先（Application Support）はエージェントから読めない（`chat/guard/selfProtection.ts`）ので、場所を貼っても読めるようログの場所に置く。
 - 様子は `diagnostics.onState` で画面に知らせる（記録の間も操作を続けられるよう、ダイアログにしない）。保存先と最近の記録は `diagnostics.folders`、Finder で開くのは `diagnostics.openRoot`（メニューの「保存先を開く」と共通）。集計は `profileSummary.ts` / `rendererTiming.ts` でテストする。
 
 ## 詰まりの記録（diagnostics/stalls.ts）

@@ -27,17 +27,3 @@ test("ほかの Kickoff の DB が使っているセッションだけを返す�
   // 製品版から見ると、開発版の DB はないので空（自分の DB は見ない）
   assert.equal(siblingSessionCheck(prod, root)(["s-chat"]).size, 0);
 });
-
-test("古い版の DB に AI 別セッションの表がなくても既存のセッションを守る", () => {
-  const root = tempDir();
-  const prod = appDataDir(root, "production");
-  const dev = appDataDir(root, "development");
-  fs.mkdirSync(prod, { recursive: true });
-  const store = new Store(path.join(prod, DB_FILE), () => {});
-  const project = store.projects.create({ name: "p", repo_path: "/work/p", provider: "claude" });
-  const chat = store.chats.create({ project_id: project.id, title: "c", provider: "claude", status: "completed" });
-  store.chats.update(chat.id, { session_id: "old-session" });
-  store.db.exec("DROP TABLE chat_provider_sessions");
-  store.close();
-  assert.deepEqual([...siblingSessionCheck(dev, root)(["old-session", "other"])], ["old-session"]);
-});

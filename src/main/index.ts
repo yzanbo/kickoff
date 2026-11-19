@@ -16,7 +16,7 @@ import { openMainWindow, setMainWindowUrl, showMainWindow } from "./app/window.j
 import { hardenWebviews } from "./browser/browser.js";
 import { loadSavedExtensions } from "./browser/extensions.js";
 import { watchWebviewConsoles } from "./browser/webviewConsole.js";
-import { moveLegacyDiagnostics, setDiagnosticsCore } from "./diagnostics/diagnostics.js";
+import { setDiagnosticsCore } from "./diagnostics/diagnostics.js";
 import { watchMainStalls } from "./diagnostics/stalls.js";
 import { markMain, startMetricsLog } from "./diagnostics/bootRecorder.js";
 import { registerIpc } from "./ipc/ipc.js";
@@ -69,7 +69,6 @@ async function start() {
   const ready = coreProcess.start();
   // ディスプレイの抜き差し・スリープを起動の記録に書く（画面が応答しなくなったきっかけを照らし合わせるため）
   logDisplayEvents();
-  void moveLegacyDiagnostics();
   setMainWindowUrl(url);
   registerIpc(url, { core: coreIpcHandlers(coreProcess) });
   setAppMenu();
