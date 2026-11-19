@@ -640,9 +640,9 @@ test("チャットの詳細に書きかけの返答（SSE で流した途中の�
   const seen: number[] = [];
   bus.subscribe((e) => e.type === "chat_delta" && e.chat_id === chatId && seen.push(e.offset ?? -1));
   bus.publish({ type: "chat_delta", project_id: project.id, chat_id: chatId, text: "返答の" });
-  bus.flushDeltas();
+  bus.flush();
   bus.publish({ type: "chat_delta", project_id: project.id, chat_id: chatId, text: "途中" });
-  bus.flushDeltas();
+  bus.flush();
   assert.deepEqual(seen, [0, 3]);
   const middle = (await call("GET", `/api/chats/${chatId}`)).body;
   assert.equal(middle.streaming_text, "返答の途中");

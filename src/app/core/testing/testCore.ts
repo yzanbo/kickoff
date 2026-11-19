@@ -5,6 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { PROVIDER_IDS, type Project, type ProviderId } from "@shared/types";
 import { Bus } from "@/foundation/core/bus";
+import { systemClock } from "@/foundation/core/clock";
+import { chatDeltaStage } from "@/features/chat/core/deltaStage";
 import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { Runner } from "@/features/chat/core/runner";
 import { Store } from "@/foundation/core/db/store";
@@ -35,6 +37,8 @@ export type BeforeStart = (store: Store, project: Project) => number[];
 /** 偽のプロバイダー（どのプロバイダーとして呼ばれても同じもの）で、コアの中身を組み立てる */
 export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: RunnerOptions = {}, beforeStart?: BeforeStart) {
   const bus = new Bus();
+  const deltas = chatDeltaStage(systemClock);
+  bus.use(deltas);
   const store = new Store(":memory:", (e) => bus.publish(e));
   const approvals = new ApprovalCenter(bus);
   const providers = Object.fromEntries(PROVIDER_IDS.map((id) => [id, provider])) as unknown as Record<ProviderId, AgentProvider>;
@@ -46,7 +50,7 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   // 足す口のない偽のプロバイダーで「いま」を送るテストを待たせない
   const usage = offlineUsage();
   const runner = new Runner({ store, approvals, providers, usage, bus, tellableWaitMs: 50, ...(interrupted ? { interrupted } : {}), ...runnerOptions });
-  return { bus, store, approvals, providers, usage, runner, provider, project };
+  return { bus, deltas, store, approvals, providers, usage, runner, provider, project };
 }
 
 /** 少し待つ（ほかの非同期の処理を進める） */

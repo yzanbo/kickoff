@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { BusEvent } from "@shared/types";
+import type { BusEvent, BusInput } from "@shared/types";
 import { manualClock } from "@/foundation/core/testing/manualClock";
 import { Bus } from "@/foundation/core/bus";
 import { DeltaBatch } from "./deltaBatch";
-import type { BusInput } from "./streamingTexts";
+import { chatDeltaStage } from "./deltaStage";
 
 const delta = (chat_id: number, text: string): BusInput => ({ type: "chat_delta", project_id: 1, chat_id, text });
 const other: BusEvent = { type: "project_deleted", id: 3 };
@@ -32,18 +32,20 @@ test("16ms の間の同じチャットの途中の文は 1 通にまとまり、
 });
 
 test("ほかの知らせの前に、ためた途中の文を必ず先に流す（順が「途中の文 → その知らせ」になる）", () => {
-  const bus = new Bus(manualClock());
+  const bus = new Bus();
+  const stage = chatDeltaStage(manualClock());
+  bus.use(stage);
   const seen: BusEvent[] = [];
   bus.subscribe((e) => seen.push(e));
   bus.publish(delta(7, "こん"));
   bus.publish(delta(7, "にちは"));
   bus.publish(other);
   bus.publish(delta(7, "!"));
-  // バスが流す途中の文には、書きかけの返答の中の位置 offset が付く（chat/streamingTexts.ts）
+  // バスが流す途中の文には、書きかけの返答の中の位置 offset が付く（streamingTexts.ts）
   assert.deepEqual(seen, [{ ...delta(7, "こんにちは"), offset: 0 }, other]);
-  bus.flushDeltas();
+  bus.flush();
   assert.deepEqual(seen, [{ ...delta(7, "こんにちは"), offset: 0 }, other, { ...delta(7, "!"), offset: 5 }]);
-  assert.equal(bus.streamingText(7), "こんにちは!");
+  assert.equal(stage.streamingText(7), "こんにちは!");
 });
 
 test("flush でタイマーが止まり、ためた分がないときは何も流さない", () => {

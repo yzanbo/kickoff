@@ -15,9 +15,9 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 | `system/` | 外部コマンド・パス・`ttlCache.ts`・名前と保存先とポート `appEnv.ts`・開発版のデータの写し `devData.ts`・詰まりの見張り `stallWatch.ts` |
 | `settings/`・`shell/`・`testing/` | 設定・Bash の文の区切り `shellWords.ts`・テストの補助 |
 
-- `close`（`@/app/core/startCore.ts`）は止める順を変えない（エージェント → 流れ続けている外部コマンド → 見張りとサービス → DB ワーカー → `bus.flushDeltas` → HTTP → DB。`close` の頭のコメント）。サービスを足したら止めるのも足す。
+- `close`（`@/app/core/startCore.ts`）は止める順を変えない（エージェント → 流れ続けている外部コマンド → 見張りとサービス → DB ワーカー → `bus.flush` → HTTP → DB。`close` の頭のコメント）。サービスを足したら止めるのも足す。
 - 起動のとき、作業中のまま残ったチャットは未読の失敗にし、途中で止まった印のあるものを再開の確かめに渡す（`store.chats.recoverInterrupted`）。終わりの記録のない最後の作業には `endInterruptedTurns` が `result` を足す。
-- `chat_delta` はほかの知らせより必ず先に流す（`@/features/chat/core/deltaBatch.ts`）。知らせはすべて `Bus` を通し、`Bus` を通さずに SSE へ書かない（どの購読者から見ても順が同じ）。
+- `chat_delta` はほかの知らせより必ず先に流す（`@/features/chat/core/deltaStage.ts`）。知らせはすべて `Bus` を通し、`Bus` を通さずに SSE へ書かない（どの購読者から見ても順が同じ）。
 - 子のプロセス（エージェントの CLI・DB ワーカーの子・診断の `log`）を起こしたら `system/childProcesses.ts` の `reportChildProcess` で知らせる（コアが落ちたらメインが止める）。
 - 眠らせない理由（`@/app/core/hostRun.ts` の `awake`）は作業中の間は一定の間隔でも読み直す（作業の終わりの `chat` は作業中の数が減るより先に流れる）。コアのプロセスの決まりは `src/foundation/desktop/CLAUDE.md` の「コアのプロセス」。
 - 重い同期の処理には `stallWatch.ts` の `timed` / `noteSync` で名前を付ける（詰まりの記録に出る）。製品版と開発版は `APP_ENVS` の別の保存先とポートで同時に動く。

@@ -535,8 +535,6 @@
       "foundation-core:src/foundation/core/aiTools/toolsList.test.ts -> src/features/userView/core/registry.ts",
       "foundation-core:src/foundation/core/aiTools/toolsList.test.ts -> src/features/worktrees/core/finish.ts",
       "foundation-core:src/foundation/core/aiTools/toolsList.test.ts -> src/shared/browser/control.ts",
-      "foundation-core:src/foundation/core/bus.ts -> src/features/chat/core/deltaBatch.ts",
-      "foundation-core:src/foundation/core/bus.ts -> src/features/chat/core/streamingTexts.ts",
       "foundation-core:src/foundation/core/db/providerSwitchCommit.test.ts -> src/shared/ai/chatOptions.ts",
       "foundation-core:src/foundation/core/db/store.ts -> src/features/chat/core/db/agentSessions.ts",
       "foundation-core:src/foundation/core/db/store.ts -> src/features/chat/core/db/chatProviderHandoffs.ts",
@@ -2477,8 +2475,6 @@
       "feature-entry:src/foundation/core/aiTools/toolsList.test.ts -> src/features/terminal/core/control.ts",
       "feature-entry:src/foundation/core/aiTools/toolsList.test.ts -> src/features/userView/core/registry.ts",
       "feature-entry:src/foundation/core/aiTools/toolsList.test.ts -> src/features/worktrees/core/finish.ts",
-      "feature-entry:src/foundation/core/bus.ts -> src/features/chat/core/deltaBatch.ts",
-      "feature-entry:src/foundation/core/bus.ts -> src/features/chat/core/streamingTexts.ts",
       "feature-entry:src/foundation/core/db/store.ts -> src/features/chat/core/db/agentSessions.ts",
       "feature-entry:src/foundation/core/db/store.ts -> src/features/chat/core/db/chatProviderHandoffs.ts",
       "feature-entry:src/foundation/core/db/store.ts -> src/features/chat/core/db/chatProviderSessions.ts",
@@ -2666,7 +2662,7 @@
       "siblings:src:app,features,foundation,shared"
     ],
     "size": {
-      "src/app/core/startCore.ts": 340,
+      "src/app/core/startCore.ts": 339,
       "src/app/core/testing/testServer.ts": 523,
       "src/app/renderer/styles/board/board-columns.css": 303,
       "src/app/renderer/styles/board/board-header.css": 301,

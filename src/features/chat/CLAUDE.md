@@ -10,7 +10,7 @@
 | `core/runtime.ts` | チャットごとの作業中の状態 `ChatRuntime`（保存しない） |
 | `core/turn.ts` | 1 回の実行 `executeTurn`・プロバイダーに渡すもの `buildTurnParams`・結果の反映 `applyResult` |
 | `core/input.ts` | チャットの作成と続きの指示の下ごしらえ（名前・添付の見出し `@/features/attachments/core/attachmentNotes.ts`・届かなかった報告） |
-| `core/deltaBatch.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の「チャットの記録の読み方」） |
+| `core/deltaStage.ts`・`streamingTexts.ts`・`chatLogQuery.ts`・`chatIndexCache.ts` | 書きかけの返答・記録の読み方（下の「チャットの記録の読み方」） |
 | `ui/store/` | 画面のチャットの店（詳細・記録・一覧 `knownChats.ts`） |
 | ほか | 下の同じ名前の節 |
 

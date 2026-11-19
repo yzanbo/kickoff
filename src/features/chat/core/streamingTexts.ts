@@ -1,8 +1,5 @@
-import type { BusEvent } from "@shared/types";
+import type { BusEvent, BusInput } from "@shared/types";
 import { streamingEffectOf } from "@shared/chat/streamingRules";
-
-/** バスに流す知らせ（chat_delta の書きかけの文の中の位置 offset は、バスが流すときに付ける） */
-export type BusInput = Exclude<BusEvent, { type: "chat_delta" }> | Omit<Extract<BusEvent, { type: "chat_delta" }>, "offset">;
 
 /**
  * チャットごとの書きかけの返答（SSE で送った chat_delta をつないだもの）。チャットの詳細（GET /api/chats/:id）の streaming_text に入れ、

@@ -88,6 +88,9 @@ export type BusEvent =
    */
   | { type: "provider_login"; provider: ProviderId; status: ProviderLoginStatus; error: string | null };
 
+/** コアのバスに流す知らせ（chat_delta の書きかけの文の中の位置 offset は、バスが配るときに付ける） */
+export type BusInput = Exclude<BusEvent, { type: "chat_delta" }> | Omit<Extract<BusEvent, { type: "chat_delta" }>, "offset">;
+
 /** ブラウザでのログインの終わり方 */
 const PROVIDER_LOGIN_STATUSES = ["completed", "failed", "cancelled"] as const;
 type ProviderLoginStatus = (typeof PROVIDER_LOGIN_STATUSES)[number];

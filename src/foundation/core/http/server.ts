@@ -78,6 +78,8 @@ import { etag } from "hono/etag";
 export interface ServerDeps {
   store: Store;
   bus: Bus;
+  /** いまの書きかけの返答（chat の段 chatDeltaStage が持つ。チャットの詳細の streaming_text） */
+  streamingText(chatId: number): string | null;
   token: string;
   providers: Record<ProviderId, AgentProvider>;
   usage: UsageMonitor;
@@ -146,8 +148,7 @@ export function createApp(deps: ServerDeps): Hono {
   const { store, bus, token, runner } = deps;
   const app = new Hono();
 
-  // 詰まりの見張り（system/stallWatch.ts）: 頼みの最初の await までの同期の分に「http:<メソッド> <パス>」の名前を付ける（数字の段は :id）。
-  // 中の SQL は別に名前が付く
+  // 詰まりの見張り（system/stallWatch.ts）: 頼みの最初の await までの同期の分に「http:<メソッド> <パス>」の名前を付ける（数字の段は :id。中の SQL は別に名前が付く）
   app.use("*", async (c, next) => {
     const start = syncStart();
     const done = next();
@@ -188,8 +189,7 @@ export function createApp(deps: ServerDeps): Hono {
   // AI の操作ツールの MCP の口（コアの MCP サーバー。mcp/host.ts）。本体・端末のトークンではなく、1 回の実行ごとの鍵で受ける（その実行に決めたツールだけ）
   app.all(`${MCP_PATH}/:server`, (c) => deps.mcpTools.handle(c.req.param("server"), c.req.raw));
 
-  // 認証と呼び主: 本体のトークン（この Mac の画面の Cookie）ならこの Mac、端末のトークンならその端末（http/caller.ts）。
-  // 端末は deviceAccess.ts に書いた口だけ使える（既定で閉じる。ほかは 403）
+  // 認証と呼び主: 本体のトークン（この Mac の画面の Cookie）ならこの Mac、端末のトークンならその端末（http/caller.ts）。端末は deviceAccess.ts の口だけ（既定で閉じる。ほかは 403）
   app.use("/api/*", async (c, next) => {
     const given = [c.req.header("authorization")?.replace(/^Bearer\s+/i, ""), getCookie(c, AUTH_COOKIE)].filter((t): t is string => Boolean(t));
     if (given.some((t) => tokenMatches(token, t))) {

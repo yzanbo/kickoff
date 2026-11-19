@@ -1,5 +1,5 @@
 import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
-import type { BusInput } from "./streamingTexts";
+import type { BusInput } from "@shared/types";
 
 /** 書いている途中の返答（chat_delta）をまとめる間隔。画面の 1 フレームに合わせる（1 秒に最大 60 通） */
 const DELTA_BATCH_MS = 16;

@@ -1,47 +1,61 @@
 import { EventEmitter } from "node:events";
-import type { BusEvent } from "@shared/types";
-import { DeltaBatch } from "@/features/chat/core/deltaBatch";
-import { StreamingTexts, type BusInput } from "@/features/chat/core/streamingTexts";
+import type { BusEvent, BusInput } from "@shared/types";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
-import type { Clock } from "@/foundation/core/clock";
 
 /**
- * コア内の変更をクライアント（SSE）へ配信するためのイベントバス。
- * 書いている途中の返答（chat_delta）はチャットごとに 16ms ためて 1 通にまとめ、ほかの知らせを流す前に必ず先に流す（`chat/deltaBatch.ts`。
- * 知らせはすべてここを通るので、どの購読者から見ても順は変わらない）。
- * 流した途中の返答はチャットごとにつないで持ち（`chat/streamingTexts.ts`。チャットの詳細の streaming_text）、chat_delta に書きかけの文の中の位置 offset を付けて流す
+ * 配る前に通す段（機能が use で登録する。例: chat の書きかけの返答をまとめる段 `@/features/chat/core/deltaStage.ts`）。
+ * 段は知らない種類をそのまま通す
+ */
+export interface BusStage {
+  /** 受け取ったら true（その場では配らない。あとで emit で、次の段から通して配る） */
+  accept?(event: BusInput, emit: (event: BusInput) => void): boolean;
+  /** 配る直前に知らせを足し直す（offset を付けるなど） */
+  track?(event: BusInput): BusEvent;
+  /** ためているものをすぐ配る（コアを止めるとき） */
+  flush?(): void;
+}
+
+/**
+ * コア内の変更をクライアント（SSE）へ配る運び手。機能の言葉は持たず、配る前の段（BusStage）を登録の順に通す。
+ * 知らせはすべてここを通るので、どの購読者から見ても順は変わらない
  */
 export class Bus {
   private readonly emitter = new EventEmitter();
-  private readonly deltas: DeltaBatch;
-  private readonly streaming = new StreamingTexts();
+  private readonly stages: BusStage[] = [];
 
-  /** clock はテストで差し替える（ためた途中の返答を流すタイマー） */
-  constructor(clock?: Pick<Clock, "setTimeout" | "clearTimeout">) {
+  constructor() {
     // 接続中のクライアント数ぶん購読が増えるため上限を外す
     this.emitter.setMaxListeners(0);
-    this.deltas = new DeltaBatch((event) => this.emit(event), clock);
   }
 
-  publish(event: BusInput) {
-    if (this.deltas.accept(event)) return;
-    this.emit(event);
+  /** 配る前の段を足す（登録の順に通す） */
+  use(stage: BusStage): void {
+    this.stages.push(stage);
   }
 
-  /** ためている途中の返答をすぐ流す（コアを止めるとき） */
-  flushDeltas() {
-    this.deltas.flush();
+  publish(event: BusInput): void {
+    this.pass(event, 0);
   }
 
-  /** いまの書きかけの返答（SSE で流した分をつないだもの。なければ null） */
-  streamingText(chatId: number): string | null {
-    return this.streaming.textOf(chatId);
+  /** ためているものをすぐ配る（コアを止めるとき） */
+  flush(): void {
+    for (const stage of this.stages) stage.flush?.();
   }
 
-  private emit(event: BusInput) {
+  /** from 番目の段から通す（受け取った段は、あとで次の段から通す） */
+  private pass(event: BusInput, from: number): void {
+    for (let i = from; i < this.stages.length; i++) {
+      if (this.stages[i].accept?.(event, (later) => this.pass(later, i + 1))) return;
+    }
+    this.deliver(event);
+  }
+
+  private deliver(event: BusInput): void {
     // 配る相手（SSE・通知など）の処理の合計を、詰まりの見張りに知らせる（system/stallWatch.ts）
     const start = syncStart();
-    this.emitter.emit("event", this.streaming.track(event));
+    let out: BusInput = event;
+    for (const stage of this.stages) if (stage.track) out = stage.track(out);
+    this.emitter.emit("event", out);
     noteSyncSince(start, () => `bus:${event.type}`);
   }
 

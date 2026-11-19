@@ -259,7 +259,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
   const userViews = new UserViewRegistry();
   // AI の操作ツールのコアの MCP サーバー（テストは app.request で /mcp/<名前> を呼ぶので、URL の頭は使わない）
   const mcpTools = new McpToolHost(() => "http://127.0.0.1");
-  const { bus, store, approvals, providers, usage, runner, provider, project } = setupCore(
+  const { bus, deltas, store, approvals, providers, usage, runner, provider, project } = setupCore(
     new FakeProvider(),
     {
       uploads,
@@ -506,7 +506,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
   const headWatch = new HeadWatch((project_id) => bus.publish({ type: "worktrees_changed", project_id }));
   afterTest(() => headWatch.close());
-  const app = createApp({ store, bus, headWatch, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, notes, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, remoteImages, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const app = createApp({ store, bus, streamingText: deltas.streamingText, headWatch, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, notes, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, remoteImages, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {

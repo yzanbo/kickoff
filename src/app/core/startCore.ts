@@ -3,6 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { loadOrCreateToken } from "@/foundation/core/http/auth";
 import { Bus } from "@/foundation/core/bus";
+import { systemClock } from "@/foundation/core/clock";
+import { chatDeltaStage } from "@/features/chat/core/deltaStage";
 import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServer";
 import { createProviders } from "@/features/ai/core/providers/index";
 import { currentSelf } from "@/features/guard/core/guard/selfProtection";
@@ -77,10 +79,7 @@ export interface CoreOptions {
   terminalEnv?: Record<string, string>;
   /** OS ごとに違う処理（ゴミ箱・ポートを待っているプロセス・音声認識など。いまは platform/macos の macosPlatform。メインプロセス・daemon が作って渡す） */
   platform: HostPlatform;
-  /**
-   * DB ワーカーを起動してつなぐ（Electron のアプリはメインプロセスが utilityProcess でビルドの out/main/dbWorker.js を起動する。
-   * 渡さなければ、ソースの worker/main.ts を node ＋ tsx で fork する）
-   */
+  /** DB ワーカーを起動してつなぐ（Electron のアプリはメインが utilityProcess で out/main/dbWorker.js を起動する。渡さなければソースの worker/main.ts を node ＋ tsx で fork） */
   dbWorker?: () => WorkerChannel;
   /** DB のパスワードの暗号化（Electron の safeStorage。渡さなければ、暗号化せずに置く） */
   secretCipher?: SecretCipher;
@@ -88,10 +87,7 @@ export interface CoreOptions {
   notify?: DesktopNotify;
   /** スマホのプッシュを送る口（省けば Expo Push = notifications/expoPush.ts。Web Push はまだ送らない） */
   push?: PushSender;
-  /**
-   * Electron のメインプロセスの pid（コアのプロセスで動くとき。自分を守る仕組みとポートの一覧が、メインも自分として扱う。
-   * 省けば process.pid = 単体のコア・テスト）
-   */
+  /** Electron のメインプロセスの pid（コアのプロセスで動くとき。自分を守る仕組みとポートの一覧がメインも自分として扱う。省けば process.pid = 単体のコア・テスト） */
   hostPid?: number;
   /** 前のコアの終わり方（作業中のまま残ったチャットを中断にする文を選ぶ。省けばアプリの終了） */
   recoveredReason?: RecoveredReason;
@@ -130,6 +126,8 @@ export interface Core {
 export async function startCore(opts: CoreOptions): Promise<Core> {
   fs.mkdirSync(opts.dataDir, { recursive: true });
   const bus = new Bus();
+  const deltas = chatDeltaStage(systemClock);
+  bus.use(deltas);
   if (opts.onChildProcess) setChildProcessReporter(opts.onChildProcess);
   const store = new Store(path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
   opts.onStage?.("dbOpened");
@@ -255,6 +253,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     providerKeys,
     store,
     bus,
+    streamingText: deltas.streamingText,
     token,
     providers,
     usage,
@@ -331,7 +330,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       terminals.closeAll();
       await relay?.close();
       // ためている途中の返答を、SSE を切る前に流す
-      bus.flushDeltas();
+      bus.flush();
       await stopHttpServer(server);
       store.close();
       if (opts.onChildProcess) setChildProcessReporter(null);
