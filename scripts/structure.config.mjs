@@ -1,6 +1,6 @@
 // 構造の検査（scripts/check-structure.mjs）の決まり。いまの構成でもう守れている決まりだけを書く。
 // 公開の口・兄弟の循環・window.kickoff・SQL・CSS は、いまの構成では守れていない（書くと違反が何百も基準線に入り、フォルダを移すと鍵が全部変わる）ので、
-// 0018 の P2-4 で新しい構成の決まりと一緒に書く。禁じる書き方（patterns）・置かないファイル（placement）は、持ち主の段が足す
+// 新しい構成に移すときに、その決まりと一緒に書く。禁じる書き方（patterns）・置かないファイル（placement）は、持ち主の段が足す
 
 /**
  * @typedef {Object} StructureConfig

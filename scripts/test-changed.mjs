@@ -1,4 +1,4 @@
-// 変えたファイルに関係するテストだけを流す（npm run test:changed / test:changed:isolated。メモの方針「0022_テストを軽くする」の ① と ②）。
+// 変えたファイルに関係するテストだけを流す（npm run test:changed / test:changed:isolated）。
 // ファイルを渡せばそのファイル（コミット時のフックはコミットするファイル）、渡さなければまだコミットしていない変更に関係するテスト。
 // --isolated でファイルごとに新しいプロセス（ほかのファイルが残した値に頼るテストを見つける）。付けなければプロセスを使い回す
 import { spawnSync } from "node:child_process";

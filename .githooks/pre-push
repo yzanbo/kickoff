@@ -1,3 +1,3 @@
 #!/bin/sh
-# push 時のフック（メモの方針「0022_テストを軽くする」）。中身は scripts/hooks/prePush.mjs
+# push 時のフック。中身は scripts/hooks/prePush.mjs
 exec node scripts/hooks/prePush.mjs "$@"

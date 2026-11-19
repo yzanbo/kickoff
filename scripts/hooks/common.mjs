@@ -1,4 +1,4 @@
-// git のフック（.githooks/pre-commit・pre-push）で共通に使う補助（メモの方針「0022_テストを軽くする」）
+// git のフック（.githooks/pre-commit・pre-push）で共通に使う補助
 import { spawnSync } from "node:child_process";
 
 /** 型・knip・テストに関係するファイル（これを 1 つもコミットしないなら、コミット時の確かめは流さない） */

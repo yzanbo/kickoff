@@ -29,7 +29,7 @@ function hashedAssetsOnly() {
   };
 }
 
-// React Compiler（部品・hooks の値と描いた結果を自動で覚え、変わっていない所を描き直さない。メモの仕様書「0023_表示を軽くする」の案 17）。
+// React Compiler（部品・hooks の値と描いた結果を自動で覚え、変わっていない所を描き直さない）。
 // 最適化できなかった部品・hooks は報告にまとめ、許した一覧にないものが増えたらビルドを止める（scripts/react-compiler-report.mjs）。
 // Vitest（vitest.config.ts）には入れない（画面のテストは純粋な関数だけで、通しても確かめるものが増えず遅くなるだけのため）
 const compilerReport = reactCompilerReport({ allowList: "src/renderer/react-compiler-skips.json" });
@@ -41,7 +41,7 @@ export default defineConfig({
     plugins: [speechHelper()],
     build: {
       outDir: "out/main",
-      // コアのプロセス（out/main/core.js。メインが utilityProcess で起動する。メモの仕様書「0023_表示を軽くする」の案 16）と
+      // コアのプロセス（out/main/core.js。メインが utilityProcess で起動する）と
       // DB クライアントの DB ワーカー（out/main/dbWorker.js。メインが作り、コアと直結する）もメインプロセスと一緒に作る
       rolldownOptions: {
         input: { index: resolve("src/main/index.ts"), core: resolve("src/core/host/main.ts"), dbWorker: resolve("src/core/databases/worker/main.ts") },

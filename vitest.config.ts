@@ -1,4 +1,4 @@
-// テストの設定（Vitest。メモの方針「0022_テストを軽くする」）。
+// テストの設定（Vitest）。
 // 軽い組（純粋なテスト）と重い組（コアの HTTP・DB・git・docker・子プロセス）の 2 組。既定はプロセスを使い回す（isolate: false）で、
 // ファイルごとに切り離すのはコマンドで --isolate を付ける（npm run test:isolated・test:changed:isolated）
 import { fileURLToPath } from "node:url";
@@ -16,7 +16,7 @@ const common = {
   unstubGlobals: true,
   unstubEnvs: true,
   restoreMocks: true,
-  // 本物の git・子プロセスを使うテストがあるので長めに（node:test には上限がなかった）
+  // 本物の git・子プロセスを使うテストがあるので長めに
   testTimeout: 60_000,
   hookTimeout: 60_000,
 };
@@ -37,7 +37,7 @@ export default defineConfig({
   test: {
     projects,
     isolate: false,
-    // 同時に流すファイルは 6 つまで（12 コアのうち、2 つのチャットが重なっても収まる数。2026-11-15 に node:test で決めた値）
+    // 同時に流すファイルは 6 つまで（12 コアのうち、2 つのチャットが重なっても収まる数）
     maxWorkers: 6,
   },
 });
