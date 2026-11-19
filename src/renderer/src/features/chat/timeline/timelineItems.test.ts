@@ -19,7 +19,6 @@ test("ツールのまとまりの要約: 編集・読み取りはファイルの
     "2個のファイルを編集、1個のファイルを読み取り および 2回検索",
   );
   assert.equal(summarizeTools([call("Agent"), call("Task")]), "サブエージェントを2件起動");
-  assert.equal(summarizeTools([call("mcp__kickoff__create_task"), call("Bash")]), "1個のコマンドを実行 および Kickoff を1回使用");
   assert.equal(summarizeTools([]), "");
 });
 

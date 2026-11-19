@@ -5,7 +5,7 @@ import { chatTitle } from "@/features/chat/chatTitle";
 import { openChatOrChild } from "./openChild";
 
 /**
- * チャットのツールの行を開いた中身（AI がチャットを作るツール create_chat と、前の版の create_child_chat）: 送った依頼の全文と、
+ * チャットのツールの行を開いた中身（AI がチャットを作るツール create_chat）: 送った依頼の全文と、
  * 作れていれば作ったチャットの札（名前。押すと、子・兄弟チャットは設定の開き方で、親のないチャットはチャットのパネルで開く）。
  * 結果の文はツールの行がこの下に出す
  */

@@ -65,8 +65,6 @@ export function relayMessage(agentId: string, name: string, text: string): strin
 }
 
 const SUBAGENT_ASK_HEAD = "【サブエージェントについて聞く】";
-/** 見分けるときの頭（言葉を整理する前の「【サブエージェントに直接聞く】」で始めた子チャットも見分ける） */
-const SUBAGENT_ASK_HEADS = [SUBAGENT_ASK_HEAD, "【サブエージェントに直接聞く】"];
 
 /**
  * サブエージェントについて子チャットで聞くときの最初の指示（1 行目に宛先、本文は区切りの後ろにそのまま）。
@@ -83,7 +81,7 @@ export function subagentAskMessage(agentId: string, name: string, fileName: stri
 
 /** 子チャットの最初の発言が、サブエージェントについて聞いたものなら、宛先の名前と本文（違えば undefined） */
 export function subagentAskOf(message: string): { name: string; text: string } | undefined {
-  if (!SUBAGENT_ASK_HEADS.some((head) => message.startsWith(head))) return undefined;
+  if (!message.startsWith(SUBAGENT_ASK_HEAD)) return undefined;
   const at = message.indexOf("\n---\n");
   const name = /「(.*)」（ID: /.exec(message.split("\n")[0])?.[1];
   return at < 0 || name === undefined ? undefined : { name, text: message.slice(at + 5) };

@@ -1,6 +1,6 @@
 // ツールの呼び出しを人が読める文にする（タイムラインのツールの行・実行中の表示・承認カードで共通）
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL, describeUpdateChat } from "@shared/chat/aiChatEdit";
-import { AI_CHAT_RELATION_LABELS, AI_CHILD_CHAT_TOOL_LEGACY, AI_CREATE_CHAT_TOOL, isCreateChatTool, relationOf } from "@shared/chat/aiCreateChat";
+import { AI_CHAT_RELATION_LABELS, AI_CREATE_CHAT_TOOL, isCreateChatTool, relationOf } from "@shared/chat/aiCreateChat";
 import {
   AI_ADD_DRAFT_TOOL,
   AI_OPEN_CHAT_TOOL,
@@ -28,8 +28,6 @@ import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, AI_VISUAL_GUIDE_TOOL, descr
 import { isSubagentTool } from "@shared/chat/subagents";
 
 type Input = Record<string, unknown>;
-
-const KICKOFF_PREFIX = "mcp__kickoff__";
 
 const TOOL_LABELS: Record<string, string> = {
   Read: "読む",
@@ -66,7 +64,6 @@ const TOOL_LABELS: Record<string, string> = {
   EnterWorktree: "ワークツリーに入る",
   ExitWorktree: "ワークツリーを出る",
   [AI_CREATE_CHAT_TOOL]: "チャットを作る",
-  [AI_CHILD_CHAT_TOOL_LEGACY]: "子チャットを作る",
   [AI_LIST_FAMILY_TOOL]: "同じ家系のチャットを確かめる",
   [AI_UPDATE_CHAT_TOOL]: "チャットを変更",
   [AI_OPEN_MEMO_TOOL]: "メモを開く",
@@ -104,14 +101,6 @@ const TODO_STATUS: Record<string, string> = {
   deleted: "削除",
 };
 
-/** Kickoff の MCP のツール（以前の版の記録に残っている）の文 */
-const KICKOFF_TOOLS: Record<string, (input: Input) => string> = {
-  create_task: (i) => joinLabel("タスクを作成", str(i.title)),
-  list_tasks: () => "タスクの一覧",
-  save_artifact: (i) => joinLabel("成果物を保存", str(i.title)),
-  list_artifacts: () => "成果物の一覧",
-};
-
 const str = (value: unknown): string => (typeof value === "string" ? value : typeof value === "number" ? String(value) : "");
 
 /** 1 行目だけを max 文字までにする */
@@ -128,9 +117,8 @@ function splitMcp(name: string): { server: string; tool: string } | null {
   return m ? { server: m[1], tool: m[2] } : null;
 }
 
-/** ツールの表示名（Kickoff のツールはまとめて「Kickoff」、ほかの MCP のツールはサーバーの名前） */
+/** ツールの表示名（表にない MCP のツールはサーバーの名前） */
 export function toolLabel(name: string): string {
-  if (name.startsWith(KICKOFF_PREFIX)) return "Kickoff";
   return TOOL_LABELS[name] ?? splitMcp(name)?.server ?? name;
 }
 
@@ -247,9 +235,6 @@ function describeKnown(name: string, input: Input): string | null {
       return "";
     case "AskUserQuestion":
       return describeQuestions(input.questions);
-    case AI_CHILD_CHAT_TOOL_LEGACY:
-      // 名前があれば名前、なければ依頼の 1 行目（依頼の全文は開いた中身と承認カードで見る）
-      return clip(str(input.title) || str(input.text));
     case AI_CREATE_CHAT_TOOL:
       // 何を作ったか・名前（なければ依頼の 1 行目）・ワークツリー（「子チャット「ログの調査」（ワークツリー feat/a）」）
       return clip(describeCreateChat(input));
@@ -317,11 +302,6 @@ function describeKnown(name: string, input: Input): string | null {
   if (isSubagentTool(name) && typeof input.description === "string") {
     return typeof input.subagent_type === "string" ? `${input.description}（${input.subagent_type}）` : input.description;
   }
-  if (name.startsWith(KICKOFF_PREFIX)) {
-    const tool = name.slice(KICKOFF_PREFIX.length);
-    const describe = KICKOFF_TOOLS[tool];
-    return describe ? describe(input) : joinLabel(tool, describeUnknownInput(input));
-  }
   const mcp = splitMcp(name);
   if (mcp) return [mcp.tool, describeUnknownInput(input)].filter(Boolean).join(" ");
   return null;
@@ -341,8 +321,9 @@ export function describeToolInput(name: string, input: Input): string {
 /** AI が作ったチャットの行の文（何を作ったか・名前か依頼の 1 行目・ワークツリーのブランチ） */
 function describeCreateChat(input: Input): string {
   const name = str(input.title) || str(input.text).split("\n")[0];
+  const relation = relationOf(input);
   const branch = str(input.worktree_branch);
-  return `${AI_CHAT_RELATION_LABELS[relationOf(input)]}「${name}」${branch ? `（ワークツリー ${branch}）` : ""}`;
+  return `${relation ? AI_CHAT_RELATION_LABELS[relation] : ""}「${name}」${branch ? `（ワークツリー ${branch}）` : ""}`;
 }
 
 /** 承認カードに出す入力（計画の提示は計画の全文。ほかは describeToolInput と同じ） */
