@@ -1,85 +1,52 @@
 # 共有の層（src/shared）の説明
 
-新規チャットの砂場・編集先制限の既定は `AppSettings`、作成時の値は `Chat` に保持する。`chat/restrictionNotice.ts` は制限オフを知らせる文を画面とスマホで共有する。
-
-- `chat/aiSandboxDiagnostics.ts`: OS の拒否ログの限定診断の 2 つのツール名。コアの MCP の登録と画面の記録の見出しで共有する。診断の OS 依存の処理や生のログは shared に置かない。
-
-コア（`src/core`）・メインプロセス（`src/main`）・preload・画面（`src/renderer`）のどこからも使う型と純粋な関数。import は `@shared/…`（tsconfig の `paths` と `electron.vite.config.ts` のエイリアス）。コアと画面は互いに import しないので、両方で使うものはここに置く。
+コア・メインプロセス・preload・画面・スマホのどこからも使う型と純粋な関数。import は `@shared/…`。コアと画面は互いに import しないので、両方で使うものはここに置く。
 
 ## 決まり
-
-- Node・DOM・Electron・React に依存しない（型・定数・純粋な関数だけ。コアと画面で同じ結果にする）。`ipc/` は zod にも依存しない（サンドボックスの preload に束ねるため）。
-- 名前: HTTP API・SSE・DB に出る形（`@shared/types` の型。設定の `AppSettings` も）は snake_case。コードの変数・関数、画面の中だけの型、Electron の IPC の形（`@shared/ipc`）は camelCase。外のツールの形をそのまま写すもの（Claude Code の AskUserQuestion の `multiSelect` など）はそのまま。
-- 「ない」は `null`（空文字で「本体」「不明」を表さない。`worktree_path` が null なら本体）。
-- 状態などの値の一覧は `as const` の配列から型を作り（`CHAT_STATUSES` → `ChatStatus`）、画面の文言は同じ場所の `…_LABELS`（`BOARD_COLUMN_LABELS` / `AGENT_STATE_LABELS` / `PERMISSION_LABELS` / `EFFORT_LABELS` など）に置く。DB の CHECK にはしない。
-- テストは同じフォルダの `*.test.ts`。
+<!-- 行き先: ルートの CLAUDE.md（「層と依存の向き」） -->
+- Node・DOM・Electron・React に依存しない（型・定数・純粋な関数だけ）。`ipc/` は zod にも依存しない（サンドボックスの preload に束ねるため）。
+- コアと画面（とスマホ）で同じ結果にする決まりはここに 1 つだけ書き、それぞれの側で書き直さない。
+- 例外の文は `errors.ts` の `errorMessage`（`e instanceof Error ? e.message : String(e)` を書かない）。テストは同じフォルダの `*.test.ts`。
 
 ## フォルダ
-
-- `types/`: API・SSE・DB の形（入口は `index.ts`）。`chat`（`Chat`・`ChatGroup`・`ChatOptions`・外の画像の表示を許可したホスト `ChatImageHost`・`QueuedMessage`・添付 `Attachment`（種類 `kind` で分ける: ファイル `FileAttachment` / メモ `MemoAttachment`（付けたときの写しなら `taken_at`）/ 「AI に渡す」で取ったもの `CaptureAttachment`（出どころ `AttachmentSource`・取った時刻・切ったか・元の大きさ・伏せた数））・カンバンの列と状態）/ `chatEvent`（記録）/ `chatLive`（作業中の様子 `ChatLive`・`QueueState`・圧縮中の様子 `CompactingState`）/ `project` / `approval` / `settings`（`AppSettings`・`DEFAULT_SETTINGS`・プロバイダー・推論の深さ・権限モード・外部リンクの開き先 `LINK_OPEN_TARGETS` と `LINK_OPEN_TARGET_LABELS`・確認せずに開くドメインの上限 `TRUSTED_LINK_DOMAINS_MAX`）/ `provider`（CLI の状態・使用枠）/ `git` / `voice` / `memo`（メモの一覧・作った場所）/ `snippet`（定型文 `Snippet`・長さの上限）/ `ci`（CI のタブの実行 `CiRun`・ジョブ `CiJob`・ステップ `CiStep`・状態 `CI_STATES` と `CI_STATE_LABELS`・外の CI `CiExternalCheck`・ログ `CiJobLog` / `CiFailedLog`・失敗の知らせ `CiFailure`）/ `worktreeEnv`（ワークツリーの実行環境 `WorktreeEnv`・帯の中の番号 `WorktreePortSlot`・帯の範囲 `WORKTREE_BAND_FIRST` など・対応表の文 `worktreeSlotLabel`・［AI で整える］の本文と結果 `WorktreeEnvSetupBody` / `WorktreeEnvSetupResult`）/ `ports`（ポートを使っているプロセス `PortProcess`・起動元 `PORT_ORIGINS` と `PORT_ORIGIN_LABELS` / `PORT_ORIGIN_HINTS`・帯の添え書き `PortBandNote`・止める本文と結果 `PortStopBody` / `PortStopResult`）/ `device`（スマホ連携の端末 `Device`（トークン・プッシュの宛先は出さず `has_push` だけ）・プッシュの宛先 `DevicePush`（Expo Push / Web Push。端末の表にだけ置く）・403 の印 `DEVICE_FORBIDDEN`・ペアリングの様子と本文 `PairingState` / `PairingClaimBody` / `PairingClaimResult` / `PairingPollResult`・番号の有効な時間 `PAIRING_CODE_TTL_MS`・いま見ているもの `ViewingBody` と覚える時間 `VIEWING_TTL_MS`）/ `userView`（利用者が見ているもの `UserView`・ペイン `UserViewPane`・タブの中身 `UserViewTab`・選んでいる範囲 `UserViewSelection`・知らせの本文 `UserViewBody`・選んだ文の上限 `USER_VIEW_TEXT_MAX`・知らせ直す間隔 `USER_VIEW_REPORT_MS`）/ `server`（`ServerStatus`（API の版も）・SSE の最初の行 `ServerHello`）/ `events`（SSE の `BusEvent`）/ `api`（API にだけ出る本文 `…Body` と応答の形。コアの zod は `satisfies` でこの型に合わせる）。
-- `chat/`: チャットの決まり（状態と列 `state.ts`・選択の決め方 `chatOptions.ts`・サブエージェントの一覧 `subagents.ts` / `subagentSupersede.ts` / `backgroundTasks.ts`・サブエージェントの状態（チャットと同じ 5 つの状態と細かい様子）`subagentState.ts`・送信待ちの印 `queueStops.ts`・書き直しの持ち時間 `queueEditHolds.ts`・失敗の見分け `networkErrors.ts` / `usageLimit.ts`・AI への定型文 `prompts.ts`・ツールの結果の画像の拡張子 `toolImage.ts`・AI がチャットを作るツールの名前・作る場所 `AI_CHAT_RELATIONS` と `AI_CHAT_RELATION_LABELS`・子チャットの深さと世代と 1 回の作業の数の上限・結果の印 `aiCreateChat.ts`・AI が家系のチャットの名前・固定・グループを変えるツールの名前・引数の形・記録の行の文 `aiChatEdit.ts`・AI が読むだけのツール（チャットの一覧・会話・使用枠）の名前・引数・上限・記録の行の文 `aiRead.ts`・AI がプロジェクトに足す・変えるツール（定型文・メモの移動）の名前・引数・記録の行の文 `aiProject.ts`・AI が画面に開く・入れるツール（メモ・家系のチャット・ファイル・差分・SQL のタブ・下書き）の名前・引数・上限・記録の行の文 `aiOpen.ts`・AI が内蔵ターミナルの出力を読むツールの名前・引数・上限・記録の行の文 `aiTerminal.ts`・AI がワークツリーを片付けるツール（`finish_worktree`）の名前・記録の行の文 `aiWorktree.ts`・AI が自分のチャットの作業場所を移す予約のツール（`move_workplace`・`cancel_workplace_move`）の名前・移す先の種類 `AI_WORKPLACE_TARGETS`・記録の行の文 `describeMoveWorkplace`・作業中の様子に出す予約の文 `workplaceMoveReservationText` の `aiWorkplace.ts`・AI が利用者の画面を読むツール（`get_user_view`）の名前・結果の 1 行目の記録の行の文（`userViewSummaryLine` / `userViewSummaryOf`）`aiUserView.ts`・AI がチャットをアーカイブする・消すツール（`archive_chat`・`delete_chat`）の名前・引数の形・記録の行の文 `aiChatRemove.ts`・AI が利用者に知らせるツール（`notify_user`）の名前・文の長さと回数の上限・流れに残す文 `aiNoticeLine`・記録の行の文 `aiNotify.ts`・AI が返答の中に描く図のツール（`visual_guide`・`show_visual`・`update_visual`）の名前・種類 `VISUAL_KINDS`・書き方の説明の種類・上限・HTML の図が読める CDN `VISUAL_CDN_ORIGINS`・図の中のテーマの変数 `VISUAL_THEME_VARS`・結果の文の図の ID（`visualIdLine` / `visualIdOf`）・記録から図を組み立てる `collectVisuals`（描き直しは成功したものだけを元の図に重ねる）・記録の行の文 `describeVisual` の `aiVisual.ts`・書いている途中の返答（SSE の `chat_delta`）を知らせごとに足す / 消す / 何もしないの決まり `streamingRules.ts` の `streamingEffectOf`（消すのは parent のない text・thinking・tool_use・tool_result、result・error、巻き戻し、作業中でなくなったとき。サブエージェントの記録・subagent・お知らせ・承認・圧縮・init・渡した記録・コンテキストの消去・自分の発言では消さない。パソコンの画面とスマホのアプリ・コアの書きかけの返答で同じものを使う。メモの仕様書「0023_表示を軽くする」の U12）・チャットの詳細の書きかけの返答から始めたあとに、途中の文を位置 `offset` で重なりを捨てて足す `streamingAppendOf`・作業場所を移した区切り（記録 `workplace_moved`。メモの仕様書「0025」）の決まり `workplaceMoves.ts`（区切りの一覧 `workplaceBoundaries`・区切りより前か `isBeforeWorkplaceMove`・その記録のときの作業場所 `workplaceAt` / `workplaceAtBoundaries`・呼び名 `workplaceLabel`・会話の 1 行 `workplaceMoveLine`・AI への知らせ `workplaceMoveNote`・断るときの文 `WORKPLACE_REWIND_LOCKED` など。コアと画面とスマホで同じものを使う）・子チャットの深さの呼び名 `childDepth.ts`（1 = 子・2 = 孫・3 = ひ孫チャット。画面の帯・タブの札と、AI に添える文脈で同じ呼び名にする））。
-- `project/`: プロジェクトの色（`colors.ts` の `PROJECT_HUES` と `pickProjectHue`。グループの色も同じ選び方）とタグ（`tags.ts` の `normalizeTags` / `matchesTags` / `collectTags` / 並べた順にする `orderTags` / 名前を変える `renameTagIn`・外す `removeTagFrom`・`MAX_TAG_LENGTH` / `MAX_TAGS`・タグなしを表す `UNTAGGED`）。
-- `memo/`: メモの名前（`names.ts` の `safeMemoName`（ファイル名に使える形）/ `uniqueMemoName`（重ならない名前）/ `projectMemoFolder`（プロジェクトのメモのフォルダ名。コアが決める名前と、新しいプロジェクトのダイアログの見込みで同じにする）/ `chatMemoName`（チャットから作るメモの名前）/ `datedMemoName`（その日の日付を頭に付けた名前。メモのタブの新しいメモの仮の名前）/ `memoDatePrefixLength`（名前の頭の日付の長さ））と種類（`kinds.ts` の `MEMO_KINDS`（Markdown / HTML）・拡張子で決める `memoKindOf`・メモの拡張子 `memoExtensionOf`・新しい HTML のメモのひな形 `newHtmlMemo`）。コアと画面で同じものを使う。
-- `snippet/`: 定型文の決まり（`snippets.ts` の `snippetLabel`（名前がなければ本文の 1 行目）/ `snippetsFor`（そのプロジェクトで使うもの = 共通 ＋ そのプロジェクトだけのもの）/ `bySnippetPosition`（並び）/ `moveWithin`（見えている行だけで動かした並び））。
-- `search/`: ファイルの中の検索と置換（`searchMatch.ts` の `searchPattern`（検索の指定と同じ探し方の正規表現）/ `splitMatches`（行を見つかった部分とそれ以外に分ける）/ `splitReplacements`・`replaceInLine`（置き換える。正規表現なら置換の文の `$1`・`$&`・`$<名前>`・`\n` などを使い、大文字と小文字を保持するなら `matchCase` で見つかった文の形に合わせる）、`pathGlobs.ts` の `toPathspecs`（含める・除外するファイルの glob を git の pathspec に。VS Code と同じ読み方: `./` で作業場所から、そうでなければどの深さでも、`{a,b}` は広げる））。画面の結果の印・置換のプレビューと、コアの置換で同じ探し方・置き換え方にする。
-- `database/`: DB クライアントの決まり（この Mac の中の DB のサーバーの見分け `dbServer.ts` の `isLocalHost` / `sameLocalServer`（種類・この Mac の中のホスト・ポート。書いていないポートは既定。取り込みの同じ接続と、Docker タブの「DB で開く」の登録済みの同じ DB・取り込みの画面の選び方で同じ比べ方にする）・接続の URL を読む `dbUrl.ts` の `parseDbUrl`（ユーザー名とパスワードは最後の `@` までを自分で切り出す。符号化していない `#` `/` `?` `@` を含むパスワードを URL の決まりのまま読むと、別の所で切って読み違え、取り込みの候補から黙って落ちていた）・セルの値の見分け（バイナリ `isDbBinary`・頭だけの長い文字 `isDbLongText`・バイナリの頭の 16 進から画像の種類 `dbImageType`（行の詳細の縮小表示。SVG は扱わない））の `dbValue.ts`・SQL を文に分ける / 読み取りの文か見分ける / 危険な文（DROP・TRUNCATE・ALTER・WHERE のない UPDATE / DELETE・判定できない文）の理由 `dangerReason` と接続の `write_check` からどう確かめるか `writeConfirmation` の `sqlStatements.ts`（方言の違い: MySQL の `/*! … */`・`/*M! … */` は中身を文として読む（MySQL は実行するので、コメントとして捨てると AI の読み取りの判定・書き込む前の確かめを素通りする）・MySQL の `--` は後ろに空白があるときだけコメント・`#` は MySQL だけ・PostgreSQL の `E'…'` は `\` でエスケープ・PostgreSQL の囲むコメントは入れ子・ドル記号の文字列）・ER 図の `erDiagram.ts`（ワーカーが詳細から作る形 `erTableOf`・場所のキー `erPlace`・関係（外部キーと「<単数>_id」の推測）と多さ `erRelations`・まわり `erNeighborhood`・Mermaid の文 `erMermaid`）・テーブルについて AI に聞くチャットの文 `dbAsk.ts` の `dbAskPrompt`・つながらないときの案内の `dbFailure.ts`（失敗の文から種類 `dbFailureKind`・よくある原因 `DB_FAILURE_CAUSES`・手順メモの名前の案 `suggestDbMemoName` とひな形 `dbMemoTemplate`・「AI に渡す」の一言 `dbFixText` と、つながらない様子の札の中身 `dbFailureDocument`（パスワードは入れない）・「直し方を追記…」の 1 行 `dbMemoFixEntry` と、手順メモの「つながらないときの直し方」の段の終わりに足す `appendDbMemoFix`）・つなぐ前の準備のコマンドの `dbPrep.ts`（使える名前 `DB_PREP_PLACEHOLDERS`・シェルの 1 語にして埋める `expandPrepCommand` / `shellQuote`・空の整理 `normalizePrep`・確かめた中身の写し `prepConfirmKey`・つなぐときのコマンドがあるか `hasConnectCommands`・次に確かめる日 `isCheckDue` / `localToday`）・テーブルの行の変更を SQL にする `dbEdit.ts`（`editStatements`（値は params、見せる文 `preview` には埋める・当たるはずの行の数 `expect`）・識別子を囲む `quoteName`・場所つきの名前 `qualifiedTable`・行を指す列 `editKeyColumns`（主キー → NULL を許さない一意のインデックス → なし。ビューはなし）））。コアのワーカー・ルートと画面で同じものを使う。
-- `attachment/`: チャットの添付の決まり（「AI に渡す」で取ったものの出どころの名前 `sources.ts` の `ATTACHMENT_SOURCE_LABELS` と外から来た中身か `isExternalSource`（issue・PR・レビュー・CI の失敗ログ（`ci_log`）・ブラウザのコンソール・画面・選んだ文は外。DB の失敗の様子・ターミナルで選んだ文・Docker のログ（`docker_logs`）は外ではない）・大きすぎる中身を頭と終わりを残して UTF-8 のバイト数に収める `truncate.ts` の `truncateText`（`tailShare` で終わりに回す割合。ログは多め。文字の途中では切らない）とバイト数の書き方 `formatSize`）。コアの見出しと画面の札で同じ言葉にする。
-- `secrets/`: 鍵らしい値を見つけて伏せる `redact.ts` の `redactSecrets`（AWS のアクセスキー・GitHub のトークン・`sk-` の API キー（Anthropic は名前を分ける。数字を含むものだけ）・Slack のトークン・Google の API キー・Stripe の秘密鍵・秘密鍵の塊（終わりのない塊は終わりまで）・URL のパスワードの 8 つ。跡は「[伏せた値: GitHub のトークン]」、伏せた数を返す）。「AI に渡す」で取った中身にだけ使う（自由に書いたパスワード・📎 のファイル・メモは見ない）。「秘密の値の漏れを調べる」もこの見つけ方を使う。
-- `markdown/`: Markdown の数式の決まり（`mathGuard.ts`。$$…$$・\(…\)・\[…\] は中身が空でなければいつも数式（行の頭からの \[…\] は段落の数式）、1 つの $ は中身が数式らしいときだけ（値段の「$5」・シェルの「$HOME」と取り違えない）。中身が数式らしいか `looksLikeMath`（1 文字の英字・英字を含む式・TeX や数学の記号。数だけ・4 文字以上の英単語・日本語は数式にしない）・1 つの $ の前後も見る `isSingleDollarMath`・\( \) と \[ \] を Markdown の $$ に書き換える `convertTexDelimiters`（コードの中は変えない）・数式の場所 `mathRanges`（メモのエディタ）・含みうるか `mayContainMath`・閉じの $ がまだの書きかけが続きで数式になりうるか `mayBecomeSingleDollarMath`（書きかけの返答を少しずつ出すとき、その間だけ $ の手前で止める））。チャットの返答・メモ・GitHub の表示とスマホのアプリで同じ決まりにする。
-- `links/`: 返答の画像とリンクの決まり（メモの仕様書「0027_チャット欄の外の画像とリンク」。`remoteImages.ts` の外の画像の見分け `remoteImageOf`（`RemoteImage`: URL・ホスト（小文字・ポート付き = 許可の単位）・https か。`//` は https、ユーザー名入り・http(s) でないものは null）・手元のパスか `isLocalImagePath`・Markdown の文に書かれた画像の src を書いた順に拾う `imageSourcesIn`（「n 件表示」の数と URL の一覧）、`linkWarnings.ts` の外部リンクの確認の警告 `LINK_WARNINGS` と `LINK_WARNING_LABELS`（文字と行き先のホストが違う `text_mismatch`（www. とサブドメインは同じとみなす）・ユーザー名入り `userinfo`・国際化ドメイン名 `idn`・IP アドレス `ip`（ループバックは除く））・`linkWarnings`・「今後確認しない」の単位 `linkDomainOf`（ホスト名の小文字）・`webUrlOf`）。コアの画像の口と画面で同じ決まりにする。
-- `files/`: ファイルタブで画像として見せるファイル（`imageFiles.ts` の `imageFileType`（拡張子 → コアが返す Content-Type。icns は中の PNG を返すので image/png）・`isSvgFile`・`isIcnsFile`・上限 `MAX_IMAGE_FILE_BYTES`）。コアの画像の口と画面のプレビューで同じ判定にする。
-- `docker/`: Docker の作業場所の呼び名 `workplace.ts` の `workplaceText`（「本体 | main」「WT | feat-x」。Docker タブ・ポートの取り合いの相手の説明・AI の守りの承認カードで同じ形にする）。
-- `github/`: GitHub の決まり（一覧の絞り込みと GitHub の検索の文の行き来 `searchQuery.ts`（GitHub に聞く文 `githubSearchQuery`・検索の欄に出す文 `githubSearchText`・欄の文を札に戻す `parseGitHubSearchText`。担当・マイルストーンの複数は `(… OR …)` の「どれか」、ラベルの複数は「すべて」）・本文の画像のうちリポジトリの中のファイルを指すものの見分け `repoImage.ts`（`repoFileOfUrl`: `/raw/`・`/blob/…?raw=true`・`raw.githubusercontent.com`。`isFileOfRepo`）・ホスト（github.com か GitHub Enterprise か）の `host.ts`（既定のホスト `GITHUB_DEFAULT_HOST`・比べる形 `normalizeGitHubHost`・`isDefaultGitHubHost`・Web のページの頭 `githubWebOrigin`・URL のホスト `githubHostOfUrl`））。コアの gh と画面の URL で同じものを使う。
-- `api/`: API の版（`version.ts`。やり取りの形の番号 `API_VERSION`（Kickoff の版とは別。形を壊す変更のときだけ上げる）・受けるアプリの下限 `MIN_CLIENT_API_VERSION`・アプリが版を伝える見出し `API_VERSION_HEADER`・話が通じないときの印 `API_MISMATCHES` と文 `API_MISMATCH_LABELS`・比べる `apiMismatch`）。
-- `devices/`: スマホ連携の決まり（ペアリングの QR に入れる URL `pairing.ts` の `pairingLink`（`<つなぐ先>/pair?code=…&host=<本体の ID>`。つなぐ先がなければ null）・番号の区切り `formatPairingCode`）。
-- `theme/`: テーマの選び方 `THEME_CHOICES`（画面の設定 `THEME` の値）と地の色 `THEME_BACKGROUNDS`（`tokens.css` の `--bg` と同じ。テストで確かめる）・ダークか `isDarkTheme`・窓の地の色 `backgroundFor`・覚えたテーマを読む `parseThemeChoice`（`backgrounds.ts`。画面の `app/theme.ts` とメインの `app/appearance.ts` で同じ決め方にする。メモの仕様書「0023_表示を軽くする」の案 18a）。
-- `ipc/`: Electron の IPC の取り決め（→「IPC の取り決め」）。
-- `testing/`: テストからだけ使う補助（テストごとに書き直さない）。データ `testing/factories.ts`（`makeChat` などの `make…`・`eventSequence`・`busEvent`。省いた項目は既定値で埋める）・長いチャットの記録 `testing/chatScenarios.ts` の `scenarioChat`（索引 ＋ 末尾 = 全件の同値のテスト用。乱数は `seededRandom`）・手で進める rAF・手すき・タイマー・時計 `testing/fakeScheduler.ts`・待ち `testing/async.ts`（`settle`・`deferred`・`fakeLoader`）。
-- `overage.ts`: プランの上限を超えたあとの支払いの様子 `OVERAGE_STATES`（`in_use` / `on` / `off` / `unknown`）。Claude の超過分（追加の使用枠）は文 `OVERAGE_STATE_LABELS` / `OVERAGE_STATE_HINTS`・決め方 `overageStateOf`・通貨の最小単位の額の書き方 `formatMinorAmount`・この期間の超過分の 1 行 `extraUsageSpendText`、Codex のクレジットは文 `CODEX_CREDIT_STATE_LABELS` / `CODEX_CREDIT_STATE_HINTS`・決め方 `codexCreditStateOf`（残りが減った = `in_use`）・減った分の 1 行 `codexCreditSpendText`。下の帯・使用状況の詳細と AI の get_usage で同じ言葉にする。
-- `errors.ts`: `errorMessage`（例外を画面に出す文にする。`e instanceof Error ? e.message : String(e)` を書かない）。
+<!-- 行き先: 消す（地図だけ。database/ の行は src/features/database/、devices/ の行は src/features/devices/） -->
+- `types/`: API・SSE・DB の形（入口は `index.ts`。`api.ts` の本文と応答の型に、コアの zod が `satisfies` で合わせる）。
+- `chat/`: チャットの決まり（下の節）と、AI のツールの名前・引数・記録の行の文（`ai*.ts`）。
+- 機能ごと: `project/`・`memo/`・`snippet/`・`search/`・`database/`・`attachment/`・`secrets/`・`markdown/`・`links/`・`files/`・`docker/`・`github/`・`api/`（版の互換）・`devices/`・`theme/`・`ipc/`。同じものを使う側は各ファイルの頭のコメント。
+- `testing/`: テストからだけ使う補助（`factories.ts`・`chatScenarios.ts`・`fakeScheduler.ts`・`async.ts`）。
 
 ## 記録（ChatEvent）
-
-- `chatEvent.ts` の `ChatEventData` は `type` で中身が決まる判別共用体。保存した 1 件は `ChatEvent`（`id` / `chat_id` / `type` / `data` / `created_at`）で、`if (e.type === "text")` で `e.data.text` が読める。`event.data as …` と書かない。
-- 絞ったあとの形を引数・入れ物の型に書くときは `ChatEventOf<"result">`、中身だけなら `ChatEventDataOf<T>`（形が 2 つある `approval_resolved` は union のまま。ふつうの `Omit` は union を 1 つに混ぜて絞り込めなくなるので、`DistributiveOmit` を使う）。
-- 主な型: `user`（`message_uuid` は必須。`handover` は添えて渡した報告の行のキー）/ `text`・`thinking`・`tool_use`・`tool_result`（`parent` があればサブエージェントのもの）/ `approval` / `approval_resolved`（`action` で回答の形が決まり、`answer` なら選んだままの回答と添付）/ `result`（終わり方・`network`・`usage_limit`・分岐の起点の `session_id` / `message_id`）/ `error`・`notice` / `compact` / `subagent` / `workplace_moved`（作業場所を移した区切り。`from` / `to` の `WorkplaceRef`・理由 `WorkplaceMoveReason`・移したあとの起点）。新しい DB から始めたので、以前の記録のための任意の項目は持たない。型を足すときは、プロバイダーが `emit` で送る形か（`user` / `approval` / `approval_resolved` / `result` 以外）も考える。
+<!-- 行き先: src/features/chat/ -->
+- `ChatEventData` は `type` で中身が決まる判別共用体。`if (e.type === "text")` で絞り、`event.data as …` と書かない。
+- 絞った形は `ChatEventOf<"result">` / `ChatEventDataOf<T>`。union から項目を外すのは `DistributiveOmit`（`Omit` だと絞り込めなくなる）。
+- 型を足すときは、プロバイダーが `emit` で送る形か（`user` / `approval` / `approval_resolved` / `result` 以外）も考える。
 
 ## 選択（ChatOptions）
-
-- モデル・推論の深さ・権限モード・ファストモードは `ChatOptions`（`model` / `effort` / `permission_mode` / `fast_mode`）1 つの形。送るとき・送信待ち・プロジェクトの既定は、その一部（`ChatOptionsPatch`）。
-- 決め方は `chatOptions.ts` の `resolveChatOptions(settings, provider, project, override)`: その AI のアプリの既定（`appChatDefaults`。Claude Code は設定の `chat_defaults`、ほかの AI は `PROVIDER_BASE_CHAT_OPTIONS` = モデル・深さはその AI の既定・毎回確認）の上に、その AI のプロジェクトの既定（`projectChatDefaults`。Claude Code はプロジェクトの `chat_defaults`）→ 送るときの指定の順に、書いてある項目だけを重ねる（undefined は次の段に従う。Claude Code の既定をほかの AI に重ねない。メモの仕様書「0028」の 9 節）。`model` / `effort` の null は「指定しない」（SDK とモデルの既定）として残す。アプリの既定の権限モードは「毎回確認」（`default`）。
+<!-- 行き先: src/features/ai/ -->
+- 決め方は `chatOptions.ts` の `resolveChatOptions` 1 つ（アプリの既定 → プロジェクトの既定 → 送るときの指定の順に、書いた項目だけを重ねる）。
 
 ## 状態と列（state.ts）
-
-- `agentStateOf(chat, hasPendingApproval)`: 回答待ち → エラー（失敗してまだ見ていない）→ 作業中 → 未読 → 既読の順に決める。回答待ちはチャットの状態に持たず、回答待ちの一覧から決める。
-- `boardColumnOf(state)`: カンバンの列（作業中 / 回答待ち / 未読 / 既読）は AI の状態だけで決まり、人は動かさない。失敗も見るまでは未読。終わったかより、結果を見たかで分ける。
-- `isUnreadEvent`: 未読にする記録（メインの AI の文章の返答・作業の終わり・失敗。ツールの実行などの途中経過では付けない）。コアの `store.events.latestUnreadId` も同じ条件で数える。
-- `busyWithUnread`: 作業中のまま未読（列・数は作業中のまま、印に未読の点を重ねる）。
+<!-- 行き先: src/features/chat/ -->
+- 状態は `agentStateOf`、カンバンの列は `boardColumnOf`（AI の状態だけで決まり、人は動かさない）。回答待ちはチャットの状態に持たない。
+- 未読の条件 `isUnreadEvent` は、コアの `store.events.latestUnreadId` が SQL で同じものを書いている（変えたら両方）。
 
 ## サブエージェントの数え方（subagents.ts）
-
-- `collectSubagents(events, progress, busy, live?)`: Agent の呼び出しと結果・開始と終了の知らせ（記録）と、画面にだけ届く途中経過（`progress`）から一覧（`SubagentEntry`）を作る。行は作業 ID（`agentId`）でまとめる（SendMessage で再開すると、知らせの呼び出し ID が再開を頼んだ SendMessage のものになるため）。作業の終わりの記録（`result`）で、そのとき動いていたものはすべて止まったとみなす（報告を渡していれば完了、なければ中断。`endedAt` は result の時刻）。Kickoff では作業の終わりで Claude Code のプロセスも終わるため（前は通信の切断のときに印を付けるだけで、最後の busy が false のときだけ中断に直していたので、次の作業中になると前の作業で止まったものが動いているまま数えられ、「〇分動いていません」が出続けた。2026-11-16）。止まった記録の ID（`endEventId`）は通信の切断のときだけ付ける（`unfinishedSubagents` が、終わりの知らせがないまま止まったものを `endEventId` がないことで見分けるため）。そのあと SendMessage で再開した知らせ（呼び出し ID が違う running）で始まり直す。作業中でなければ、終わっていないもの（いまの作業でまだ終わりの記録がないもの）も中断とみなす。`live`（いま裏で動いている作業）から消えたものは終わったとみなし、報告を渡していれば完了、なければ中断。裏で動かしたときの起動の知らせ（`backgroundTasks.ts` の `isBackgroundLaunch`）は完了と数えない。Agent の結果は、起動した流れ（呼び出しと同じ `parent`）に返ったものだけを終わりとして数える（fork のサブエージェントは親の会話を引き継ぐので、自分の中の頭に起動の呼び出しへの仮の結果「Fork started — that fork is you.」が `parent` = 自分で届く。それで完了にすると、作業中なのに印が灰色だった。2026-11-15）。
-- 入れ子: サブエージェントが起動したサブエージェントは、起動したほうの行のキーを `parentKey` に持つ（Agent の呼び出しの記録の `parent`）。SendMessage で再開した回の中の記録は parent が再開を頼んだ SendMessage の ID になりうるので、その ID を `aliases` に覚えて元の行のものとして数える。子孫の動き（発言・ツール・知らせ）は祖先の `lastActivityAt` にも伝え、子の結果を待っている親を「動きがない」としない。時刻は、初めに起動した `startedAt` と、いちばん新しい回が止まった `endedAt`（作業中は undefined）。
-- 行が持つもの: 通信の切断で止まった `network`、報告が親に届いたか `delivery`（`received` = 待つ形ならツールの結果が返った・裏で動かしたなら報告のあとに親が動いた / `pending` = 親がまだ動いていない / `lost` = 親が動かないまま作業が終わった）と、届かなかった本文 `undeliveredReport`、出力の上限で止まった `outputLimit`（`isOutputLimitError`）、最後に動いた時刻 `lastActivityAt` と結果待ちのツール `pendingTool`、やり直された `supersededBy`。
-- やり直し済み（`subagentSupersede.ts` の `markSuperseded`）: 止まった行のあとに始まり、種類が同じで、説明（短い方に対する重なり）と依頼文（Dice 係数）の 2 文字の組がどちらも半分以上重なるもの。同時に始めた似た依頼は止まる前に始まっているので数えない。
-- 報告の本文（`subagentReport`）は、SubagentHandback の本文 → 終わりの知らせの要約の順に探す。
-- コアの作業の終わりのお知らせ（`unfinishedSubagents`）・通信が戻ったときの再開（`networkStoppedSubagents`）・届かなかった報告の受け渡し（`core/chat/reportHandover.ts`）も、画面の一覧と同じこの数え方を使う。数え方を変えるときは両方に効く。
+<!-- 行き先: src/features/subagents/ -->
+- `collectSubagents` は、コア（作業の終わりのお知らせ・再開・報告の受け渡し）と画面が同じ数え方を使う。変えたら `subagents.test.ts` と `chatIndex.test.ts` を通す。
 
 ## 末尾と索引（chatIndex.ts）
-
-- パソコンの画面はチャットを開くとき、記録の末尾（最新のターン）だけを読み、その前は索引（記録全体から作るもの = サブエージェントの一覧・ToDo・図・指示の履歴・作業の終わりの印などが要る記録だけ）で受ける（メモの仕様書「0023_表示を軽くする」の案 4）。記録全体から作る関数には、索引・途中の一部分・末尾を `mergeById` で ID の順に重ねたもの（digest）を渡す。
-- 選ぶ規則は `selectIndexIds(metas, start, ctx)` の 1 か所だけ（コアの `buildIndex` も画面の `indexOfEvents` もこれを通す）。軽い形 `ChatEventMeta`（`metaOfEvent`。種類・呼び出し ID `callId`（data の `id`）・ツールの名前・`parent`・`tool_use_id`・`task_id`・`status`）だけで選び、`full`（中身のまま）か `slim`（`slimIndexEvent` が文・入力・結果を空にする）を返す: R1 種類 `INDEX_TYPES` は full（成功した作業の終わりは写しの文を外す）/ R2 名前 `INDEX_TOOLS` の呼び出しとその結果は full / R3 サブエージェントの知らせが指す呼び出し・回答待ちと裏の作業の呼び出し（`IndexContext`）は slim / R4 サブエージェントの流れ（parent）ごとに最後の文・思考・呼び出し・結果を slim、最後の呼び出しは full / R5 サブエージェントが終わった・報告したあと、次の作業の終わりまでの最初のメインの文・思考・呼び出しを slim（報告が届いたかの見分け）。full が勝つ。
-- 規則を変えたら、`chatIndex.test.ts` の「どの切れ目の索引 ＋ 末尾でも全件と同じ」を通す（`scenarioChat` の種は固定）。記録全体から作る関数を足したら、その関数もこのテストに足し、要る記録が索引に入るよう規則を足す。
+<!-- 行き先: src/features/chat/ -->
+- 画面は記録の末尾だけを読み、それより古い記録は索引で受ける。記録全体から作る関数には、索引 ＋ 末尾を `mergeById` で重ねたものを渡す。
+- 選ぶ規則は `selectIndexIds` 1 か所（コアの `buildIndex` も画面も通す。SQL に書き直さない）。
+- 規則を変えたら、`chatIndex.test.ts` の「どの切れ目の索引 ＋ 末尾でも全件と同じ」を通す。記録全体から作る関数を足したら、このテストにも足す。
 
 ## そのほかのチャットの決まり
-
-- `queueStops.ts`: 送信待ちの一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと）の整え方 `normalizeStops`・列が変わったときの寄せ方 `remapStops`・印の線を見た目の 1 行として扱う並べ替え `moveToSlot`。コアの `ChatQueue` と、画面の「動かすと変わるか」で同じものを使う。
-- `queueEditHolds.ts` の `EDIT_HOLD_TTL_MS`: 送信待ちを書き直している印の持ち時間（コアが覚え、画面はこれより短い間隔で知らせ直す）。
-- `networkErrors.ts` の `isNetworkError`・`usageLimit.ts` の `isUsageLimitError` / `resetTimeOf` / `exhaustedResetOf`: 失敗の文・Claude Code の知らせ・使用枠から、通信の切断と使用枠の上限を見分け、枠が戻る時刻を決める。
-- `prompts.ts`: AI へ送る定型文（送るとチャットに自分の発言として残る）。止まったあとの再開（`resumePrompt` / `USAGE_RESUME_PROMPT`）・続きから再試行（`RETRY_PROMPT`）・サブエージェントへの指示（`relayMessage` / `relayedText` / 宛先と本文を読む `relayOf`（送信待ちの行で前置きを隠す）/ `resumeRequest` / `retryRequest` / `HAND_OVER_NOW`）・サブエージェントについて子チャットで聞く指示（`subagentAskMessage`。画面で前置きを隠すための読み取り `subagentAskOf`）・圧縮前指示・圧縮後指示（種類 `CompactPromptKind` と保存する項目 `COMPACT_PROMPT_FIELDS`・オンの分を共通 → プロジェクトにつなぐ `compactPromptFor`・上限 `COMPACT_PROMPT_MAX`・圧縮後指示の前置き `postCompactMessage`・手で圧縮するときの前置き `manualPreCompactMessage`・作業中に手で圧縮を頼んだときにいまの作業に伝える前置き `busyPreCompactMessage`・自動の圧縮のときの前置き `autoPreCompactMessage`（済んだら合図の一文 `PRE_COMPACT_DONE` を書いてもらう。見分けは `isPreCompactDone`。作業が残っていれば合図だけで返答を終えず続けてツールを呼ぶよう添える）・合図のあと裏の作業を待って止まったときにプロバイダーが足す `PRE_COMPACT_NUDGE`）。文を手で組み立てずに、ここに足して使う。
-- `handoff.ts`: 子チャットから親チャットへの依頼文の受け渡し。頼み方の文 `handoffRequestPrompt`（返答はそのまま親の入力欄に入るので、依頼文だけ・前置きや確認の質問なし・頭は「子チャット「…」で検討した結果、次をお願いします。」・ファイルは書き換えない。利用者の追加の指示 `extra` は終わりに見出しを付けて足し、たたんだ発言に出すために `handoffRequestExtra` で取り出す）・子チャットの AI に渡す文脈の 1 行 `HANDOFF_CONTEXT_RULE`（自分の言葉で頼み直しても同じ形に）・作業の最後の返答 `lastReplyOfTurn` / `lastReplyBefore`（終わりの直前のメインエージェントのひと続きの文。サブエージェントの文・思考・お知らせ・承認・渡した記録は飛ばし、ツール・発言で区切る）・渡したあと `HANDOFF_AFTERS` と、入力欄に入れたときの削除をアーカイブにする `handoffAfterFor`・発言の印を取り出す `marksOf`。渡し方 `HANDOFF_VIAS` と発言の印 `MessageMarks` は `types/chatEvent.ts`。
+<!-- 行き先: src/features/chat/ -->
+- 送信待ちの止める印は `queueStops.ts`（コアの並べ替えと画面の落とした形の予測が同じ関数）、書き直しの印の持ち時間は `queueEditHolds.ts`。
+- 書いている途中の返答の足し・消しは `streamingRules.ts`（コア・画面・スマホが同じ関数）。通信の切断・使用枠の上限は `networkErrors.ts`・`usageLimit.ts`。
+- AI へ送る定型文は `prompts.ts`、子チャットから親への受け渡しは `handoff.ts`。文を手で組み立てずに、ここに足して使う。
 
 ## IPC の取り決め（ipc/）
-
-- `contract.ts` の `NATIVE_API` が、画面に出すネイティブ機能（`window.kickoff`。デスクトップアプリだけにあり、スマホのブラウザにはない）の唯一の一覧: まとまり → 名前 → 種類（`invoke` = 呼んで返事を待つ / `send` = 送るだけ / `event` = メインから画面への知らせ。名前は `on…`）と引数・戻り値の型。チャンネル名は `channelOf` / `ipcEntries` が「種類:まとまり.名前」で作り、手書きしない。画面の側の型は `NativeApi`。
-- 値は種類だけを持つ（型の引数は必ず書く）。引数の形の確かめ（zod）はメインの `main/ipc/args.ts` にあり、取り決めと形が違えば typecheck で分かる。中身の型（通知・ターミナル・拡張機能・ブラウザのタブの「AI に渡す」で取るもの `browserHandOff.ts`・性能の記録と起動の時刻・画面のメモリ（`diagnostics.ts` の `BootReport`・`RendererMemory`）・外のアプリ・ログイン時に起動 `loginItem.ts`）は同じフォルダの各ファイル。
+<!-- 行き先: src/foundation/desktop/ -->
+- `contract.ts` の `NATIVE_API` が、画面に出すネイティブ機能（`window.kickoff`。デスクトップだけ）の唯一の一覧。チャンネル名は `channelOf` で作り、手書きしない。
+- 値は種類だけを持つ（型の引数は必ず書く）。引数の zod はメインの `main/ipc/args.ts`（形が違えば typecheck で分かる）。中身の型は同じフォルダの各ファイル。

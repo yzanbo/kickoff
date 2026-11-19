@@ -1,65 +1,70 @@
 # Kickoff の書き方の決まり
 
-要件は `docs/requirements.md`、全体の設計（語彙・構成・依存の向き）は `docs/architecture.md`、開発のコマンドは `README.md`。ここには、どこを触るときにも守る決まりだけを書く。仕組みと振る舞いの説明は、そのフォルダの `CLAUDE.md`（そのフォルダのファイルを読むと読み込まれる）にある。機能の説明はここに書かない。
+要件は `docs/requirements.md`、設計（語彙・構成）は `docs/architecture.md`、コマンドは `README.md`。ここには、どこを触るときにも守る決まりだけを書く。仕組みは、そのフォルダの `CLAUDE.md` にある（機能の説明はここに書かない）。
 
 ## 説明の置き場所
 
 | 触る所 | 読む `CLAUDE.md` |
 |---|---|
 | 共有の型・決まり・IPC の取り決め（`src/shared`） | `src/shared/CLAUDE.md` |
-| コア（DB・HTTP API・外部コマンド・Git・使用状況・音声入力） | `src/core/CLAUDE.md` |
-| チャットの実行（送る・送信待ち・止まったあとの再開・承認・分岐と巻き戻し） | `src/core/chat/CLAUDE.md` |
-| プロバイダー（Claude Code） | `src/core/providers/CLAUDE.md` |
+| コア（DB・HTTP・外部コマンド・Git ほか） | `src/core/CLAUDE.md` |
+| チャットの実行（送る・送信待ち・再開・承認・分岐） | `src/core/chat/CLAUDE.md` |
+| プロバイダー（AI ごとのつなぎ込み） | `src/core/providers/CLAUDE.md` |
 | Electron のメインプロセス・preload | `src/main/CLAUDE.md` |
-| 画面全体（置き場所・データ・保存・API の窓口・共有部品・表示・性能） | `src/renderer/src/CLAUDE.md` |
-| 画面の領域 | `src/renderer/src/features/<領域>/CLAUDE.md`（chat・chatList・sidebar・board・panel・project・palette・editor・worktree・settings・terminal・memo・snippet・database・github・docker・trash。`CLAUDE.md` のない領域の置き場所は画面全体の `CLAUDE.md`） |
+| 画面全体（置き場所・データ・保存・共有部品・性能） | `src/renderer/src/CLAUDE.md` |
+| 画面の領域 | `src/renderer/src/features/<領域>/CLAUDE.md`（ない領域は画面全体の `CLAUDE.md`） |
 | CSS | `src/renderer/src/styles/CLAUDE.md` |
 | スマホのアプリ（Android。Expo） | `mobile/CLAUDE.md` |
 
-新しい領域を作ったら、そのフォルダに `CLAUDE.md` を足してこの表に足す。振る舞いを変えたら、その領域の `CLAUDE.md` も同じコミットで直す。
+新しい領域を作ったら、そのフォルダに `CLAUDE.md` を足す。振る舞いを変えたら、その領域の `CLAUDE.md` も同じコミットで直す。
 
 ## 語彙と名前
 
-- 画面の言葉とコードの名前を 1 対 1 にする: チャット = `Chat`（表 `chats`・`chat_id`）、送ってから終わるまでの 1 回の実行 = `Turn`、チャットの記録 = `ChatEvent`、グループ = `ChatGroup`、送信待ち = `Queue`、作業中の様子 = `ChatLive`、未読 / 既読 = `unread` / `read`、チャットの選択（モデル・深さ・権限・ファスト）= `ChatOptions`、権限モード = `PermissionMode`、タブの入れ物 = `Panel`。新しい言葉を足したら `docs/architecture.md` の「語彙」に足す。
+- 画面の言葉とコードの名前を 1 対 1 にする: チャット = `Chat`（表 `chats`・`chat_id`）、1 回の実行 = `TurnRequest`（結果 `TurnOutcome`）、記録 = `ChatEvent`、グループ = `ChatGroup`、送信待ち = `ChatQueue`（1 件は `QueuedMessage`）、作業中の様子 = `ChatLive`、未読 / 既読 = `unread` / `read`、チャットの選択 = `ChatOptions`、権限モード = `PermissionMode`、タブの入れ物 = `Panel`。新しい言葉は `docs/architecture.md` の「語彙」に足す。
 - HTTP API・SSE・DB に出る形は snake_case。コードの変数・関数・画面の中だけの型・IPC の形は camelCase。外のツールの形を写すもの（AskUserQuestion の `multiSelect` など）はそのまま。
 - 「ない」は `null`（空文字で「本体」「不明」を表さない）。
-- 状態などの値の一覧は `as const` の配列から型を作り、画面の文言は同じ場所の `…_LABELS` に置く。
+- 値の一覧は `as const` の配列から型を作り、画面の文言は同じ場所の `…_LABELS` に置く。
 - コメントと画面の文言は日本語、変数名・関数名は英語。
-- 画面の文言で単独の「メイン」を使わない。チャットは関係（親チャット / 子チャット / 孫チャット。足す先のチャットは名前）、AI はメインエージェント / サブエージェント、動詞は向きで伝える（下へ）・聞く（横へ）・渡す（上へ）と分ける（`docs/architecture.md` の「チャットの軸とエージェントの軸」）。
-- macOS のファイル名は大文字・小文字を区別しないので、部品（`FileTree.tsx`）と補助（`fileTree.ts`）のように、大文字・小文字だけが違う名前を付けない。
+- 画面の文言で単独の「メイン」を使わない。チャットは関係（親 / 子 / 孫チャット）か名前、AI はメインエージェント / サブエージェント、動詞は向きで伝える（下へ）・聞く（横へ）・渡す（上へ）と分ける（`docs/architecture.md` の「チャットの軸とエージェントの軸」）。
+- 大文字・小文字だけが違う名前を付けない（macOS は区別しない。`FileTree.tsx` と `fileTree.ts` など）。
 
 ## 層と依存の向き
 
 - `src/shared` は、どのプロセスからも使う型と純粋な関数（Node・DOM・Electron・React に依存しない）。import は `@shared/…`。
-- コア（`src/core`。Electron に依存しないサーバー）と画面（`src/renderer`）は互いに import しない。両方で使うものは `src/shared` に置く。メインプロセスはコアを読んでよい。
-- 画面の中は `app → features → stores / api / ui / hooks / lib → @shared`。ui / hooks / lib / stores / api は features・app を import しない。画面の import は同じフォルダなら `./`、それ以外は `@/…`（`../` でたどらない）。コアとメインの中は相対パスに `.js` を付ける。
-- 書く前に、各フォルダの `CLAUDE.md` の共有の部品・hooks・補助で足りないか探す。同じ形を 2 か所目に書くことになったら、共有にしてから使う。
+- コア（`src/core`。Electron に依存しないサーバー）と画面（`src/renderer`）は互いに import しない。メインプロセスはコアを読んでよい。
+- 画面の中は `app → features → stores / api / ui / hooks / lib → @shared`（逆に import しない）。画面の import は同じフォルダなら `./`、それ以外は `@/…`（`../` でたどらない）。コアとメインの中は相対パスに `.js` を付ける。
+- 書く前に、各フォルダの `CLAUDE.md` の共有の部品・hooks・補助で足りないか探す。同じ形を 2 か所目に書くなら、共有にしてから使う。
 - 1 ファイルが 300 行を超えたら分割を考える。大きな部品は「状態と操作の hook」と「描く部品」に分ける。
 
 ## 保存の形
 
-- DB のスキーマは `src/core/db/schema.ts`。表はすべて STRICT、真偽値は `CHECK (x IN (0, 1))`、JSON は `CHECK (json_valid(x) AND json_type(x) = …)`。値の一覧（状態・権限モードなど）は CHECK にしない（増やすたびに表を作り直すことになるため）。版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）で持ち、変えるときは `MIGRATIONS` の末尾に追記する（既存の要素は書き換えない）。読み書きは表ごとの店（`store.chats.get` など）を通す。
-- 画面の保存（localStorage・sessionStorage）は、すべて `src/renderer/src/lib/storageKeys.ts` で宣言し、読み書きは `useSetting` / `readSetting` を通す（部品から直接読み書きしない）。宣言していないキーは起動したときに消える。プロジェクト・チャットなどの ID を含むものは `ids` を付ける（DB を作り直したら捨てる）。
-- 秘密の値（API キーなど）は `secrets` の表に置き、設定・SSE・API の応答には出さない（保存したかだけを返す）。
+- DB のスキーマは `src/core/db/schema.ts`。表はすべて STRICT、真偽値は `CHECK (x IN (0, 1))`、JSON は `CHECK (json_valid(x) AND json_type(x) = …)`。値の一覧は CHECK にしない（増やすたびに表を作り直すため）。
+- 版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）。変えるときは `MIGRATIONS` の末尾に足す（既存の要素は書き換えない）。読み書きは表ごとの店（`store.chats.get` など）を通す。
+- 画面の保存（localStorage など）は `src/renderer/src/lib/storageKeys.ts` で宣言し、`useSetting` / `readSetting` で読み書きする（部品から直接読み書きしない）。宣言していないキーは起動時に消える。ID を含むものは `ids` を付ける（DB を作り直したら捨てる）。
+- 秘密の値（API キーなど）は `secrets` の表に置き、設定・SSE・API の応答に出さない（保存したかだけを返す）。
 
 ## 製品版の Kickoff で Kickoff を作るとき
 
-このリポジトリのチャットは、製品版の Kickoff（`/Applications/Kickoff.app`。プロセス名 `Kickoff`、データ `~/Library/Application Support/Kickoff`、ポート 4317）の中で動いていることがある。作って確かめるのは開発版（Kickoff Dev。プロセスは `node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .`、データ `Kickoff Dev`、ポート 4318）だけで、製品版は自分を動かしているアプリなので触らない。
+このリポジトリのチャットは、製品版の Kickoff（`/Applications/Kickoff.app`。データ `~/Library/Application Support/Kickoff`、ポート 4317）の中で動いていることがある。作って確かめるのは開発版（データ `Kickoff Dev`、ポート 4318）だけ。製品版は自分を動かしているアプリなので触らない。
 
-- Kickoff は 2 つのプロセスで動く: メインプロセス（窓・OS の口）と、その子のコアのプロセス（`utilityProcess` の Helper。`--service-name=Kickoff Core`。HTTP・DB・エージェント・ターミナル。チャットの AI・内蔵ターミナルのシェルはコアの子）。エージェントは、自分を動かしている Kickoff（両方のプロセス・アプリ本体・保存先・API のポート）を壊すツールの呼び出しを、`PreToolUse` フックで断られる（`src/core/chat/guard/selfProtection.ts`。権限モードに関係なく効く）。うっかりを防ぐもので、わざと避ける書き方までは見抜けないので、下の決まりも守る。
-- 製品版を止めない・入れ替えない。`pkill` / `killall` は `.claude/settings.json` で禁止してある。開発版を止めるときは `pgrep -f "Electron.app/Contents/MacOS/Electron \."` でメインプロセスを特定して `kill -TERM` だけを送る（まとめて止めると、書きかけの localStorage が消える。コアのプロセスはメインが終わるときに片付けて止めるので、直接止めない。直接止めると、落ちたとみなして作り直す）。その前に `/api/status` で作業中のチャットがないことを確かめる。
-- `npm run install-app`（製品版の入れ替え）は、製品版の中のチャット・ターミナルから流さない（実行中のチャット・`KICKOFF_TERMINAL_OF` を見て止まる）。必要なら、利用者に macOS のターミナルで流すよう頼む。
-- 製品版の中から起動した開発版は、製品版の子孫のプロセスになる（メイン → コアのプロセス → シェル → 開発版）。製品版は終わるとき、先に子の Electron のアプリを止める（`src/main/app/childApps.ts`）。
-- 同じ作業場所（本体のフォルダ）を、複数のチャットで同時に書き換えない。並行して進めるときは、チャットごとにワークツリーを使う。
-- 開発版などの終わらないコマンドを裏で動かしたまま返答を終えない（チャットが作業中のまま終わらない）。確かめが済んだら止める。
+- Kickoff はメインプロセスと、その子のコアのプロセス（`--service-name=Kickoff Core`。HTTP・DB・エージェント・ターミナル）で動き、チャットの AI・内蔵ターミナルのシェルはコアの子。
+- 自分を動かしている Kickoff（プロセス・アプリ・保存先・ポート）を壊すツールの呼び出しは、権限モードに関係なく `PreToolUse` フックが断る（`src/core/chat/guard/selfProtection.ts`）。わざと避ける書き方は見抜けないので、下の決まりも守る。
+- 製品版を止めない・入れ替えない。`pkill` / `killall` は `.claude/settings.json` で禁止してある。
+- 開発版を止めるときは、先に `/api/status` で作業中のチャットがないことを確かめ、`pgrep -f "Electron.app/Contents/MacOS/Electron \."` のメインプロセスに `kill -TERM` だけを送る（まとめて止めると書きかけの localStorage が消える）。コアのプロセスは直接止めない（落ちたとみなして作り直す）。
+- `npm run install-app`（製品版の入れ替え）は、製品版の中のチャット・ターミナルから流さない。要るなら利用者に macOS のターミナルで流してもらう。
+- 製品版の中から起動した開発版は製品版の子孫になり、製品版は終わるときに先に止める（`src/main/app/childApps.ts`）。
+- 同じ作業場所（本体のフォルダ）を複数のチャットで同時に書き換えない（並行するならチャットごとにワークツリー）。
+- 開発版などの終わらないコマンドを裏で動かしたまま返答を終えない。確かめが済んだら止める。
 
 ## 確かめ方
 
-- 型は `npm run typecheck`（使っていない import・変数も残さない）、テストは `npm test`、使っていない export・ファイル・依存は `npm run knip`、ビルドは `npm run build`。スマホのアプリ（`mobile/`）を触ったら `npm run mobile:typecheck` も通す（テストは `npm test` に入っている）。
-- これらはコミットと push のたびに git のフック（`.githooks/`。`npm install` の postinstall が `core.hooksPath` を設定する）が流し、1 つでも落ちたら止める: コミット時（`scripts/hooks/preCommit.mjs`）は文書の検査（`scripts/check-docs.mjs`。`.md` だけのコミットでも）と、コードを含めば構造の検査（`scripts/check-structure.mjs`）・型・knip・テストの書き方の見張り（`scripts/check-test-rules.mjs`）・`mobile/` を含めば `mobile:typecheck`・関係するテスト（`test:changed:isolated`）、push 時（`scripts/hooks/prePush.mjs`）は文書と構造の検査・`npm test`・ビルド（一時フォルダに出す）。確かめるのは作業場所のファイルなので、コミットしない変更が混ざっているとコミット時のフックは止まる（コミットする中身だけにしてから）。落ちたら原因を直してからもう一度コミット・push する。フックを飛ばす書き方（`--no-verify`・`git commit -n`・`core.hooksPath` の書き換え）は使わない（Kickoff の守りと `.claude/settings.json` が断る）。
-- テストは Vitest で、4 つのコマンドがある（範囲 × 流し方）: `npm run test:changed`（変えたファイルに関係するテストを 1 プロセスで。作業中に何度でも）・`npm run test:changed:isolated`（同じ範囲をファイルごとに新しいプロセスで）・`npm test`（全体を 1 プロセスで、ファイルの順番を毎回入れ替える）・`npm run test:isolated`（全体をファイルごとに。`npm test` で落ちて原因が分からないとき、ほかのファイルの影響かを切り分ける）。
-- 純粋な関数にはテストを書く（`*.test.ts` を対象の隣に。`import { test } from "vitest"` と `node:assert/strict`）。テストのデータは `@shared/testing/factories`、一時フォルダ・Git の作業場所・コアの準備は `src/core/testing` の補助を使い、テストごとに書き直さない。API を変えたら、その領域の `src/core/http/server.<領域>.test.ts` にテストを足す。
-- テストは同じプロセスで続けて流れるので、前のテストの値をほかのファイルに残さない: グローバル（`window`・`fetch`・`location` など）は `vi.stubGlobal`、環境変数は `vi.stubEnv` で変え（テストごとに自動で戻る。`globalThis.x = …`・`process.env.X = …` と直接書かない）、localStorage・sessionStorage は `@/lib/memoryStorage` の `installMemoryStorage`、偽の時計は `vi.useFakeTimers`（テストのあとに本物へ戻す）、作ったもの（見張り・サーバー・一時フォルダ）の後片付けは `onTestFinished` か、テストの中でも外でも使える `src/core/testing/afterTest.ts` の `afterTest`。共通の準備は `vitest.setup.ts`、組（軽い組 `light` と、コア・メインの重い組 `heavy`）と設定は `vitest.config.ts`。直接書き換える書き方は、テストの書き方の見張りが落とす（どうしても要る行は、その行か 1 つ上に `test-rules-ignore: 理由`）。
-- 画面の変更は、開発版（`npm run dev:cdp`。`KICKOFF_REMOTE_DEBUG=9333 npm run dev` と同じで、CDP のポートは 9333。チャットの AI は Bash の砂場の外で起動するよう、前に VAR=値・後ろにパイプ・リダイレクトを付けずに単独で流す）で実際に動かして確かめる。ボタンの見た目を変えたら `node scripts/ui-audit-buttons.mjs [#/hash ...]`、見た目を変えないはずの変更は `node scripts/ui-snapshot.mjs take <名前> [#/hash]` で前後を記録して `diff` で比べる。
+- 型は `npm run typecheck`（使っていない import・変数も残さない）、テストは `npm test`、使っていない export・ファイル・依存は `npm run knip`、ビルドは `npm run build`。`mobile/` を触ったら `npm run mobile:typecheck` も通す。
+- これらと文書・構造・テストの書き方の検査（`scripts/check-docs.mjs`・`check-structure.mjs`・`check-test-rules.mjs`）を、コミットと push のたびに git のフック（`.githooks/`）が流す（文書の検査は `.md` だけのコミットでも）。落ちたら原因を直してからコミット・push し直す。
+- フックは作業場所のファイルを確かめるので、コミットしない変更が混ざると止まる。フックを飛ばす書き方（`--no-verify`・`git commit -n`・`core.hooksPath` の書き換え）は使わない（Kickoff の守りと `.claude/settings.json` が断る）。
+- テストは Vitest。作業中は `npm run test:changed`（変えたファイルに関係するもの）、全体は `npm test`（順番を毎回入れ替える）。どちらも `:isolated` を付けるとファイルごとのプロセスで流す（ほかのファイルの影響かを切り分ける）。
+- 純粋な関数にはテストを書く（対象の隣に `*.test.ts`。`import { test } from "vitest"` と `node:assert/strict`）。データは `@shared/testing/factories`、一時フォルダ・Git の作業場所・コアの準備は `src/core/testing` の補助を使う（テストごとに書き直さない）。API を変えたら `src/core/http/server.<領域>.test.ts` にテストを足す。
+- テストは同じプロセスで続けて流れるので、値をほかのファイルに残さない: グローバルは `vi.stubGlobal`、環境変数は `vi.stubEnv`（`globalThis.x = …`・`process.env.X = …` と直接書かない）、保存は `@/lib/memoryStorage` の `installMemoryStorage`、偽の時計は `vi.useFakeTimers`（あとで本物へ戻す）。
+- 作ったもの（見張り・サーバー・一時フォルダ）の後片付けは `onTestFinished` か `src/core/testing/afterTest.ts` の `afterTest`。共通の準備は `vitest.setup.ts`、組と設定は `vitest.config.ts`。直接書き換える書き方は見張りが落とす（要る行は、その行か 1 つ上に `test-rules-ignore: 理由`）。
+- 画面の変更は開発版（`npm run dev:cdp`。CDP は 9333。AI は砂場の外で起動するよう、前に VAR=値・後ろにパイプ・リダイレクトを付けず単独で流す）で動かして確かめる。ボタンの見た目は `node scripts/ui-audit-buttons.mjs`、見た目を変えないはずの変更は `node scripts/ui-snapshot.mjs take <名前>` の前後を `diff` で比べる。
 - 利用者の localStorage を書き換えて確かめたら、元の値に戻す。
 - コミットは区切りごとに日本語で「種類: 内容」（`feat` / `fix` / `refactor` / `test` / `docs`）。不具合の修正は、リファクタとは別のコミットにする。

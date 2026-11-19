@@ -21,7 +21,7 @@
 | 画面の言葉 | コード |
 |---|---|
 | チャット | `Chat` / 表 `chats` / `chat_id` |
-| 1 回の実行（送ってから終わるまで） | `Turn`（`executeTurn` / `TurnOutcome` / `TurnControl`） |
+| 1 回の実行（送ってから終わるまで） | `TurnRequest`（`executeTurn` / `TurnOutcome` / `TurnControl`） |
 | Kickoff のコア（別のプロセス）とその様子（起動中・動いている・起動し直している・止まった・応答しない。画面の上の帯） | コアのプロセスの見張り役 `CoreProcess`（`main/app/coreProcess.ts`）・様子 `CoreState`（`CORE_STATES`）・やり取りの形 `core/host/protocol.ts`（`CoreInit` / `CoreReady` / `CoreMethods` / `HostMethods`） |
 | チャットの記録 | `ChatEvent` / 表 `chat_events` |
 | グループ | `ChatGroup` / 表 `chat_groups` |
@@ -32,7 +32,7 @@
 | プロジェクトフォルダ（プロジェクトに登録したフォルダ。AI が作業する所。git のリポジトリの中のフォルダでもよい。「フォルダ」「プロジェクトのフォルダ」「本体のフォルダ」とは呼ばない。ワークツリーと並べるときだけ「本体」） | `Project.repo_path`（`PUT /api/projects/:id/repo-path`・`changeProjectFolder`。AI へはシステムプロンプトの「プロジェクトフォルダ」） |
 | 作業フォルダ（そのチャットの AI が実際に作業する所。本体で作業するならプロジェクトフォルダ、ワークツリーならその中の同じ位置） | `workdirOf(chat, project)`（`chat.worktree_path ?? project.repo_path`） |
 | メモフォルダ（「メモ」タブのメモを置くフォルダ。プロジェクトフォルダとは別の場所で、プロジェクトフォルダを変えても変わらない） | `MemoService.dirOf(project)`（`memo_path` か、設定の `memos_dir` の下の `memo_folder`） |
-| 送信待ち | `Queue`（`chat_queues`） |
+| 送信待ち | `ChatQueue`・`QueuedMessage`（`chat_queues`） |
 | 添付（チャットの指示に添えるもの。種類 = ファイル（📎・ドラッグ・貼り付け）/ メモ（付けたときの写し）/ 取ったもの（「AI に渡す」で押したときの中身をファイルにしたもの）。中身は送らず、パスと見出しを書き添えて AI が Read で読む） | `Attachment`（`kind`: `file` / `memo` / `capture`）・取ったものの出どころ `AttachmentSource`（`type` は `ATTACHMENT_SOURCE_TYPES`）・`POST /api/captures`・`POST /api/projects/:id/memo/snapshot`・`UploadStore`（`core/chat/uploads.ts`）・見出し `core/chat/attachmentNotes.ts`・鍵を伏せる `@shared/secrets/redact` |
 | AI に渡す（各タブの 1 つのもの（issue・PR・CI の落ちたステップのログ・DB のつながらない様子・ブラウザのタブの画面とコンソール・ターミナルで選んだ長い文など）を、押した時点の中身の札にしてチャットの入力欄に一言と入れる。渡し先 = 新しいチャットで始める / このチャットに追加 / 新しい子チャットで聞く / ほかのチャットに追加。送るのは自分で） | 渡すもの `HandOffItem`・渡し先 `HAND_OFF_TARGETS`（`features/chat/handoff/handOff.ts`）・ボタン `HandOffButton`（「AI に渡す ▾」）・ブラウザの中身はメインプロセスの `agentBrowser.handOffCapture`（`@shared/ipc` の `BrowserHandOffCapture`）・画像の札は `POST /api/captures` の `image_base64` |
 | 起動したときの再開の確かめ（前回の終了で、作業の途中で止まったチャットと、自動で送るまま残った送信待ちを、起動してから続けるか・送るか聞く。送る / 続ける・続けてから送る / 止めておく・止めたまま / あとで） | `RestartResume` / `RestartResumeAction`（確かめを待つ印は `ChatLive.restart_resume`（`RestartResumeState`）、DB の印は `chats.resume_pending`。`GET\|POST /api/restart-resumes`・`Runner.restartResumes`・画面の `RestartResumeDialog` / `RestartResumeBanner`・店 `stores/restartResumes.ts`） |
