@@ -1,6 +1,5 @@
-// 構造の検査（scripts/check-structure.mjs）の決まり。いまの構成でもう守れている決まりだけを書く。
-// 公開の口・兄弟の循環・window.kickoff・SQL・CSS は、いまの構成では守れていない（書くと違反が何百も基準線に入り、フォルダを移すと鍵が全部変わる）ので、
-// 新しい構成に移すときに、その決まりと一緒に書く。禁じる書き方（patterns）・置かないファイル（placement）は、持ち主の段が足す
+// 構造の検査（scripts/check-structure.mjs）の決まり。層と依存の向き（ルートの CLAUDE.md）と機能の並び（下の FEATURES）を書く。
+// いまある違反は基準線（scripts/structure-baseline.json）に載せ、作り直しの段ごとに減らす。禁じる書き方（patterns）・SQL・CSS の持ち主は、持ち主の段が足す
 
 /**
  * @typedef {Object} StructureConfig
@@ -76,44 +75,95 @@
  * @property {string} message
  */
 
+/** 機能（下の層から。上の機能は下の機能を読んでよく、逆は読めない） */
+export const FEATURES = [
+  "settings", "panel", "palette", "trash", "projects", "groups", "ai", "chat", "guard", "attachments",
+  "composer", "snippets", "compact", "subagents", "childChats", "visuals", "remoteImages", "providerSwitch",
+  "workplaceMove", "queue", "userView", "notifications", "conversation", "chatList", "chatPanel", "files",
+  "git", "docker", "worktrees", "github", "notes", "database", "terminal", "browser", "ports", "voice",
+  "devices", "diagnostics", "sidebar", "board",
+];
+
+/** f と、f より下の機能の glob の { } */
+const upTo = (f) => `{${FEATURES.slice(0, FEATURES.indexOf(f) + 1).join(",")}}`;
+/** だれが読んでもよい純粋な土台（src/shared/types は取り決めの型を束ねる入口で、土台として扱う） */
+const SHARED_BASE = ["src/shared/foundation/**", "src/shared/types/**"];
+/** 機能 f のコア・画面が読んでよい取り決め（自分と下の機能） */
+const sharedUpTo = (f) => [...SHARED_BASE, `src/shared/${upTo(f)}/**`];
+/** 機能 f のコアが読んでよい先 */
+const coreAllow = (f) => [...sharedUpTo(f), "src/foundation/core/**", `src/features/${upTo(f)}/{core,testing}/**`];
+/** 機能 f のコアのテスト（テストは組み立てたコア src/app/core/testing と、自分の別プロセスの中身を読んでよい） */
+const coreTests = (f) => [`src/features/${f}/core/**/*.test.{ts,tsx}`, `src/features/${f}/core/**/*.dbtest.ts`, `src/features/${f}/core/**/testing/**`, `src/features/${f}/testing/**`];
+const RENDERER = ["src/foundation/ui/**", "src/features/*/ui/**", "src/app/renderer/**"];
+
+/** 機能ごとの import の向き（コア・画面・メイン・別プロセス） */
+const featureImports = FEATURES.flatMap((f) => [
+  { name: `feature-core:${f}`, from: [`src/features/${f}/core/**`, `src/features/${f}/testing/**`], tests: "exclude", allow: coreAllow(f), message: `機能（${f}）のコアは、取り決めと土台のコアと、自分と下の機能のコアだけを読む（上の機能の力は、下が口を宣言して上が登録する）` },
+  { name: `feature-core-tests:${f}`, from: coreTests(f), allow: [...coreAllow(f), `src/features/${f}/worker/**`, "src/app/core/testing/**"], message: `機能（${f}）のコアのテストは、コアと同じ先と、組み立てたコア（src/app/core/testing）・自分の別プロセスだけを読む` },
+  { name: `feature-ui:${f}`, from: [`src/features/${f}/ui/**`], allow: [...sharedUpTo(f), "src/foundation/ui/**", `src/features/${upTo(f)}/ui/**`], message: `機能（${f}）の画面は、取り決めと土台の画面と、自分と下の機能の画面だけを読む（上の機能の部品は、下が拡張点を宣言して上が登録する）` },
+  { name: `feature-desktop:${f}`, from: [`src/features/${f}/desktop/**`], allow: ["src/shared/**", "src/foundation/core/**", "src/foundation/desktop/**", `src/features/${f}/{desktop,core}/**`], message: `機能（${f}）のメインは、取り決め・土台のコアとメイン・自分のメインだけを読む` },
+  { name: `feature-desktop-core-types:${f}`, from: [`src/features/${f}/desktop/**`], typeOnlyAllowed: true, deny: [`src/features/${f}/core/**`], message: `機能（${f}）のメインが自分のコアから読むのは型だけ` },
+  { name: `feature-worker:${f}`, from: [`src/features/${f}/worker/**`], allow: ["src/shared/**", `src/features/${f}/worker/**`], message: `機能（${f}）の別プロセスは、取り決めと自分の別プロセスだけを読む（コアとは取り決めの型だけでつなぐ）` },
+]);
+
 /** @type {StructureConfig} */
 export default {
   files: ["src/**/*.{ts,tsx,css}", "mobile/src/**/*.{ts,tsx}", "scripts/**/*.{mjs,ts}"],
   tests: ["**/*.test.{ts,tsx,mjs}", "**/*.dbtest.ts", "**/testing/**", "vitest.setup.ts", "src/foundation/ui/storage/memoryStorage.ts"],
   aliases: { "@shared/": "src/shared/", "@/": "src/" },
-  // 層の中身は新しい構成の置き場所（決まりそのものは新しい構成の決まりに入れ替えるまで、いまの構成のもののまま）
+  // プロセスの層（コア・メイン・preload・画面・共有）
   layers: {
     core: ["src/foundation/core/**", "src/features/*/core/**", "src/features/*/worker/**", "src/features/*/testing/**", "src/app/core/**"],
     main: ["src/foundation/desktop/**", "src/features/*/desktop/**", "src/app/desktop/**"],
     preload: ["src/foundation/desktop/preload/**", "src/app/desktop/preload.ts"],
-    renderer: ["src/foundation/ui/**", "src/features/*/ui/**", "src/app/renderer/**"],
-    rendererBase: ["src/foundation/ui/**"],
-    // 機能（src/features/*/ui）を読まない決まりは、新しい構成の層の決まりに入れ替えるときに入れる（いまは土台から機能を読む所が残る）
-    rendererUpper: ["src/app/renderer/**"],
+    renderer: RENDERER,
     shared: ["src/shared/**"],
   },
   imports: [
+    // プロセスの層
     { name: "core-not-renderer", from: ["core"], deny: ["renderer"], message: "コアは画面を読まない（両方で使うものは src/shared へ）" },
     { name: "renderer-not-core", from: ["renderer"], deny: ["core", "main", "preload"], message: "画面はコア・メインを読まない（両方で使うものは src/shared へ）" },
-    { name: "base-not-features", from: ["rendererBase"], deny: ["rendererUpper"], message: "画面の土台（src/foundation/ui）は組み立て（src/app/renderer）を読まない" },
-    { name: "shared-pure", from: ["shared"], tests: "exclude", allow: ["shared"], allowModules: [], message: "shared は shared だけを読む（Node・DOM・npm のパッケージに依らない）" },
+    { name: "shared-pure", from: ["shared"], tests: "exclude", allowModules: [], message: "shared は Node・DOM・npm のパッケージに依らない" },
     { name: "renderer-not-node", from: ["renderer"], tests: "exclude", denyModules: ["node:*"], message: "画面は node: を読まない" },
+    { name: "renderer-not-electron", from: ["src/foundation/ui/**", "src/app/renderer/**", ...FEATURES.filter((f) => f !== "browser").map((f) => `src/features/${f}/ui/**`)], tests: "exclude", denyModules: ["electron"], message: "画面は electron を読まない（IPC の型は @shared/foundation/ipc）" },
+    { name: "browser-ui-electron-types", from: ["src/features/browser/ui/**"], tests: "exclude", typeOnlyAllowed: true, denyModules: ["electron"], message: "埋め込みブラウザの画面が electron から読むのは型だけ" },
     { name: "preload-narrow", from: ["preload"], tests: "exclude", allow: ["preload", "src/shared/foundation/ipc/**"], allowModules: ["electron"], message: "preload は electron と @shared/foundation/ipc だけを読む" },
+    // 共有（純粋な取り決め）
+    { name: "shared-foundation", from: SHARED_BASE, allow: SHARED_BASE, message: "shared/foundation は機能の取り決め（shared/<機能>）を読まない" },
+    ...FEATURES.map((f) => ({ name: `shared-order:${f}`, from: [`src/shared/${f}/**`], allow: sharedUpTo(f), message: `取り決め（shared/${f}）は、土台と自分と下の機能の取り決めだけを読む` })),
+    // 土台（機能の言葉を持たない。機能のものが要るときは、土台が口を宣言し、機能が実装して app が渡す）
+    { name: "foundation-core", from: ["src/foundation/core/**"], allow: [...SHARED_BASE, "src/foundation/core/**"], message: "土台のコアは機能と app を読まない" },
+    { name: "foundation-ui", from: ["src/foundation/ui/**"], allow: [...SHARED_BASE, "src/foundation/ui/**"], message: "土台の画面は機能と app を読まない" },
+    { name: "foundation-desktop", from: ["src/foundation/desktop/**"], allow: [...SHARED_BASE, "src/foundation/core/**", "src/foundation/desktop/**"], message: "土台のメインは機能と app を読まない（コアから読むのは土台だけ）" },
+    // 機能
+    ...featureImports,
+    // 組み立て（ここだけが全部の機能を知る）とスマホ
+    { name: "app-shared", from: ["src/app/shared/**"], allow: ["src/shared/**", "src/app/shared/**"], message: "app/shared は純粋な束ねだけ" },
+    { name: "app-core", from: ["src/app/core/**"], allow: ["src/shared/**", "src/foundation/core/**", "src/features/*/{core,testing}/**", "src/app/shared/**", "src/app/core/**"], message: "app/core はコアのプロセスのものだけを読む" },
+    { name: "app-desktop", from: ["src/app/desktop/**"], allow: ["src/shared/**", "src/foundation/core/**", "src/foundation/desktop/**", "src/features/*/desktop/**", "src/app/desktop/**"], message: "app/desktop はメインのプロセスのものだけを読む" },
+    { name: "app-renderer", from: ["src/app/renderer/**"], allow: ["src/shared/**", "src/foundation/ui/**", "src/features/*/ui/**", "src/app/shared/**", "src/app/renderer/**"], message: "app/renderer は画面のものだけを読む" },
+    { name: "mobile-shared-only", from: ["mobile/src/**"], allow: ["src/shared/**", "src/app/shared/**", "mobile/**"], message: "スマホが読んでよいのは src/shared と src/app/shared だけ" },
   ],
-  publicApi: [],
-  siblingCycles: [],
+  // ほかの機能を読むのは、その機能の core/index.ts・ui/index.ts からだけ（app は全部を知る）
+  publicApi: [{ name: "feature-entry", dirs: "src/features/*", entry: ["core/index.ts", "ui/index.ts"], except: ["src/app/**"] }],
+  // どの階層でも、兄弟のフォルダどうしは循環させない
+  siblingCycles: [{ name: "siblings", parents: ["src", "src/**"] }],
   fileSize: {
     limit: 300,
     rules: [
-      // 型の宣言だけのファイル（いまの構成の src/shared/types/ の 300 行を超えるもの）
-      { glob: "{src/shared/foundation/apiTypes.ts,src/shared/database/types.ts,src/shared/git/types.ts}", limit: 500 },
       { glob: "**/*.test.{ts,tsx,mjs}", limit: 400 },
+      // 型・表の宣言だけのファイル
+      { glob: "**/{schema,types,contract,events,settings,storage}.ts", limit: 500 },
     ],
     files: ["src/**/*.{ts,tsx,css}", "mobile/src/**/*.{ts,tsx}", "scripts/**/*.{mjs,ts}"],
   },
-  nativeAccess: { files: [], allow: [] },
+  // window.kickoff（IPC）を直に触ってよいのは、画面の土台と機能の ui/native.ts だけ
+  nativeAccess: { files: RENDERER, allow: ["src/foundation/ui/**", "src/features/*/ui/native.ts"] },
   sqlTables: { files: [], owners: {} },
   cssClasses: { files: [], owners: [], free: [] },
   patterns: [],
-  placement: [],
+  placement: [
+    { name: "feature-root-no-code", deny: ["src/features/*/*.{ts,tsx,css}"], message: "機能の直下にコードを置かない（core・ui・desktop・worker の下へ。直下はどの tsconfig にも入らない）" },
+    { name: "middle-no-claude-md", deny: ["src/features/CLAUDE.md", "src/foundation/CLAUDE.md", "src/shared/CLAUDE.md"], message: "中間の層に CLAUDE.md を置かない（祖先の CLAUDE.md は毎回読み込まれる）" },
+  ],
 };

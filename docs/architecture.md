@@ -179,7 +179,7 @@ mobile/                   スマホのアプリ（Android。Expo。別の npm �
 scripts/  docs/           道具と文書
 ```
 
-依存の向きはルートの `CLAUDE.md` の「層と依存の向き」（土台は機能を読まない・機能は下の機能の入口だけを読む・コアと画面は互いに import しない）。
+依存の向きはルートの `CLAUDE.md` の「層と依存の向き」（土台は機能を読まない・機能は下の機能の入口だけを読む・コアと画面は互いに import しない）。機能の上下の並び（`FEATURES`）と層ごとの読んでよい先は `scripts/structure.config.mjs` に書き、コミット時に `scripts/check-structure.mjs` が確かめる（いまある違反は基準線 `scripts/structure-baseline.json` に載せて減らす）。
 
 ## 4. 共通化の対象
 
