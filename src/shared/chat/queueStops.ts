@@ -48,7 +48,7 @@ export interface QueueSlot {
 /**
  * 指示を、並びを保ったまま slot へ動かしたあとの列と印の位置。
  * 印の線は見た目の並びの 1 行として扱い、動かした指示だけが線の上下を移る（動かしていない指示は線の同じ側に残る）。
- * 以前は印を位置の数のまま残していたので、いちばん上・下へ移すと、動かしていない指示が線を越えて止まる所がずれていた
+ * 印を位置の数のまま残すと、いちばん上・下へ移したとき、動かしていない指示が線を越えて止まる所がずれる
  */
 export function moveToSlot<T extends { id: string }>(list: T[], stops: number[], ids: string[], slot: QueueSlot): { list: T[]; stops: number[] } {
   const moving = new Set(ids);

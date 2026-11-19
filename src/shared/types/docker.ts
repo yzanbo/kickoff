@@ -58,7 +58,7 @@ export interface DockerService {
   mark: DockerMark;
   /** 動いているコンテナの数 */
   running: number;
-  /** DB クライアントで開けるイメージか（postgres・mysql・mariadb。段階 2 の「DB で開く」で使う） */
+  /** DB クライアントで開けるイメージか（postgres・mysql・mariadb。「DB で開く」で使う） */
   db_kind: "postgres" | "mysql" | null;
 }
 
@@ -92,7 +92,6 @@ export const DOCKER_ACTION_BUSY_LABELS: Record<DockerAction, string> = {
   stop_container: "停止中…",
   stop_others_and_start: "相手を止めて起動中…",
 };
-
 
 /** compose で動いている操作（コアが compose ごとに 1 つだけ持つ） */
 export interface DockerOperation {

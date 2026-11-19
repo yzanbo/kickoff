@@ -18,7 +18,7 @@ test("VS Code で開く URL: パスを区切りごとに符号化し（# と ? �
   assert.equal(vscodeFileUrl("/repo/src/a.ts"), "vscode://file/repo/src/a.ts");
   assert.equal(vscodeFileUrl("/repo/src/a.ts", 12), "vscode://file/repo/src/a.ts:12");
   assert.equal(vscodeFileUrl("/repo/src/a.ts", 0), "vscode://file/repo/src/a.ts");
-  // 以前は encodeURI で、# と ? が URL の断片・問い合わせとして読まれて開けなかった
+  // encodeURI だと、# と ? が URL の断片・問い合わせとして読まれて開けない
   assert.equal(vscodeFileUrl("/repo/#notes/what?.md", 3), "vscode://file/repo/%23notes/what%3F.md:3");
   assert.equal(vscodeFileUrl("/repo/仕様 書/a b.md"), "vscode://file/repo/%E4%BB%95%E6%A7%98%20%E6%9B%B8/a%20b.md");
   assert.equal(new URL(vscodeFileUrl("/repo/#notes/what?.md")).hash, "");

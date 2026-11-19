@@ -32,7 +32,7 @@ export function externalTerminalArgs(id: ExternalTerminalId, dir: string): strin
 
 /**
  * 外部のブラウザで開く `open` の引数（url は http(s) のときだけ渡す。なければ空の新しいタブ（about:blank）を開く。
- * 利用者の依頼。前はアプリを前に出すだけで、パネルの ▾ の「外部で開く」を押してもタブが増えなかった）
+ * アプリを前に出すだけだと、パネルの ▾ の「外部で開く」を押してもタブが増えないため）
  */
 export function externalBrowserArgs(id: ExternalBrowserId, url?: string): string[] {
   const app = EXTERNAL_BROWSERS.find((b) => b.id === id)?.app ?? "Google Chrome";

@@ -114,7 +114,7 @@ export function timelineOf(events: readonly ChatEvent[], currentProvider?: Provi
         items.push({ kind: "notice", id: e.id, text: providerSwitchLine(e.data) });
         break;
       case "workplace_moved":
-        // 作業場所を移した区切り（メモの仕様書「0025」の I1）
+        // 作業場所を移した区切り
         items.push({ kind: "notice", id: e.id, text: workplaceMoveLine(e.data) });
         break;
       default:

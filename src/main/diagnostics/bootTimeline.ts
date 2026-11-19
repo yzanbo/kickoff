@@ -1,11 +1,11 @@
 import { BOOT_MARKS, type BootReport, type BootWindow, type RendererMemory } from "@shared/ipc";
 
-// 起動の時刻と画面のメモリの記録の組み立て（メモの仕様書「0023_表示を軽くする」の案 18c）。Electron に依らない（つなぐのは bootRecorder.ts）。
+// 起動の時刻と画面のメモリの記録の組み立て。Electron に依らない（つなぐのは bootRecorder.ts）。
 // 時刻はすべて epoch ms（performance.timeOrigin + performance.now()）でそろえ、プロセスをまたいで引き算する
 
 /**
  * メインプロセスの段階（起きる順）。core.* はコアのプロセスの段階（CoreReady.timings。プロセスの始まり・モジュールを読み終えた・DB を開いた・
- * 待ち受けを始めた）で、coreForked はメインがコアのプロセスを起動した時刻（メモの仕様書「0023_表示を軽くする」の案 16）
+ * 待ち受けを始めた）で、coreForked はメインがコアのプロセスを起動した時刻
  */
 const MAIN_STAGES = [
   "mainStart",

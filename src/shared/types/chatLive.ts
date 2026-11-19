@@ -111,7 +111,7 @@ export interface ChatLive {
   restart_resume: RestartResumeState | null;
   /**
    * AI が予約した作業場所の移動（kickoff_chat の move_workplace。この作業が最後まで終わったら Kickoff が移し、続きを送る。なければ null）。
-   * 画面とスマホに「作業が終わったら … へ移ります」と出し、取り消せる（DELETE /api/chats/:id/workplace-move。メモの仕様書「0025」の I2・J7）
+   * 画面とスマホに「作業が終わったら … へ移ります」と出し、取り消せる（DELETE /api/chats/:id/workplace-move）
    */
   workplace_move: WorkplaceMoveReservation | null;
 }

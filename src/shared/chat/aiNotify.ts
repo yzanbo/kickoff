@@ -1,4 +1,4 @@
-// チャットの AI が利用者に知らせるツール（kickoff_chat の notify_user。メモの仕様書「0019_AI の操作ツールの追加」の C）の、コアと画面で共有する名前・上限と、記録の文
+// チャットの AI が利用者に知らせるツール（kickoff_chat の notify_user）の、コアと画面で共有する名前・上限と、記録の文
 
 /** 利用者に知らせるツールの名前 */
 export const AI_NOTIFY_USER_TOOL = "mcp__kickoff_chat__notify_user";

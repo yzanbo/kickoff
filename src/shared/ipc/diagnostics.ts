@@ -35,7 +35,7 @@ export interface StallDigest {
 }
 
 /**
- * 設定の「診断」に出す、いつも取っている記録のまとめ（メモの仕様書「0023_表示を軽くする」の U10。ログの場所の stalls.jsonl・boot.jsonl から
+ * 設定の「診断」に出す、いつも取っている記録のまとめ（ログの場所の stalls.jsonl・boot.jsonl から
  * メインが集める）
  */
 export interface DiagnosticsOverview {
@@ -59,7 +59,7 @@ export interface DiagnosticsOverview {
   } | null;
 }
 
-/** 起動の記録の画面の段階（メモの仕様書「0023_表示を軽くする」の案 18c。画面の app/bootMarks.ts が付ける） */
+/** 起動の記録の画面の段階（画面の app/bootMarks.ts が付ける） */
 export const BOOT_MARKS = ["entry", "storageReady", "appImported", "firstCommit", "firstPaint", "firstContentfulPaint", "interactive"] as const;
 export type BootMarkName = (typeof BOOT_MARKS)[number];
 

@@ -5,7 +5,7 @@ import { sameOrigin } from "./urls.js";
 
 /**
  * 許可の問い合わせへの答え。media（マイク・カメラ）はアプリ自身の画面からの音声だけ許し、カメラ・ほかの出どころは断る。
- * media 以外は、これまでどおり許す（Electron の既定。通知・クリップボードなどを壊さない）
+ * media 以外は許す（Electron の既定。通知・クリップボードなどを壊さない）
  */
 export function permissionAllowed(req: { permission: string; requestingUrl: string; appUrl: string; mediaTypes?: readonly string[] }): boolean {
   if (req.permission !== "media") return true;

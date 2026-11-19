@@ -1,4 +1,4 @@
-// 作業場所を移した区切り（記録の workplace_moved。メモの仕様書「0025_チャットの作業場所を変える」）の決まり。
+// 作業場所を移した区切り（記録の workplace_moved）の決まり。
 // コア（巻き戻し・分岐・起点・AI への知らせ）と画面（区切りの 1 行・ボタン・ファイルのチップ）とスマホで同じものを使う
 import type { ChatEvent, ChatEventDataOf, ChatEventOf, WorkplaceMoveReason, WorkplaceRef } from "@shared/types";
 
@@ -36,7 +36,7 @@ export function latestWorkplaceMove(events: readonly ChatEvent[]): ChatEventOf<"
   return latest;
 }
 
-/** その記録より後に区切りがあるか（= 作業場所を移す前の記録。巻き戻し・分岐・ファイルを戻すができない。Q3・H2） */
+/** その記録より後に区切りがあるか（= 作業場所を移す前の記録。巻き戻し・分岐・ファイルを戻すができない） */
 export function isBeforeWorkplaceMove(events: readonly ChatEvent[], eventId: number): boolean {
   return events.some((e) => e.type === "workplace_moved" && e.id > eventId);
 }
@@ -47,18 +47,18 @@ function workplaceAtBoundaries(boundaries: readonly WorkplaceBoundary[], eventId
   return { ...current, moved: false };
 }
 
-/** その記録のときの作業場所（ファイルのチップ・変更カード・読んだ画像を開く所。Q4・H5） */
+/** その記録のときの作業場所（ファイルのチップ・変更カード・読んだ画像を開く所） */
 export function workplaceAt(events: readonly ChatEvent[], eventId: number, current: WorkplacePlace): WorkplacePlace & { moved: boolean } {
   return workplaceAtBoundaries(workplaceBoundaries(events), eventId, current);
 }
 
-/** 区切りより前の発言を巻き戻せないときの文（Q3） */
+/** 区切りより前の発言を巻き戻せないときの文 */
 export const WORKPLACE_REWIND_LOCKED = "作業場所を移す前の発言なので巻き戻せません（会話もファイルも）";
-/** 区切りより前の地点から分岐できないときの文（Q3） */
+/** 区切りより前の地点から分岐できないときの文 */
 export const WORKPLACE_FORK_LOCKED = "作業場所を移す前の地点なので分岐できません";
-/** 区切りより前の発言のファイル・画像を、そのときの作業場所がもうなくて開けないときの文（Q4） */
+/** 区切りより前の発言のファイル・画像を、そのときの作業場所がもうなくて開けないときの文 */
 export const workplaceGoneText = (label: string): string => `この発言のときの作業場所（${label}）はもうないので開けません`;
-/** 区切りより前の発言のファイルを戻せないときの文（Q3） */
+/** 区切りより前の発言のファイルを戻せないときの文 */
 export const WORKPLACE_FILES_LOCKED = "作業場所を移す前の発言なので、ファイルは戻せません";
 
 /** パスの最後の名前 */
@@ -90,7 +90,7 @@ function fromTo(data: MoveData): string {
   return `${side(data.from)} → ${side(data.to)}`;
 }
 
-/** 会話の区切りの 1 行（画面・スマホ。Q4・I1・J6） */
+/** 会話の区切りの 1 行（画面・スマホ） */
 export function workplaceMoveLine(data: MoveData): string {
   const notes: string[] = [];
   if (data.carried) notes.push("コミットしていない変更も持っていきました");
@@ -126,7 +126,7 @@ function changesNote(data: MoveData): string {
 }
 
 /**
- * 移したあと最初に送るものに 1 回だけ添える、移動の知らせ（Q7。指示に添える文脈で渡し、利用者の発言の文には混ぜない）。
+ * 移したあと最初に送るものに 1 回だけ添える、移動の知らせ（指示に添える文脈で渡し、利用者の発言の文には混ぜない）。
  * 前の会話に出てきたパスは元の作業場所のものであること・読み書きはいまの作業フォルダで行うことを伝える
  */
 export function workplaceMoveNote(data: MoveData): string {

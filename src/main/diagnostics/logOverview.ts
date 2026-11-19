@@ -4,8 +4,8 @@ import type { DiagnosticsOverview, StallDigest } from "@shared/ipc";
 import type { StallRecord } from "../../core/system/stallWatch.js";
 import type { BootRecord } from "./bootTimeline.js";
 
-// 設定の「診断」に出す、いつも取っている記録のまとめ（メモの仕様書「0023_表示を軽くする」の U10）。
-// ログの場所の stalls.jsonl（案 12）と boot.jsonl（案 18c）を、回した 1 世代（.1）も含めて読んで集める。Electron に依らない
+// 設定の「診断」に出す、いつも取っている記録のまとめ。
+// ログの場所の stalls.jsonl と boot.jsonl を、回した 1 世代（.1）も含めて読んで集める。Electron に依らない
 
 /** 詰まりを数える長さ（最近 24 時間） */
 const STALL_WINDOW_MS = 24 * 60 * 60 * 1000;

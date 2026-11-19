@@ -1,4 +1,3 @@
-// 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 import type { EffortLevel, PermissionMode, ProviderId } from "./settings";
 import type { MessageMarks } from "./chatEvent";
 import type { GitHubKind } from "./github";
@@ -43,17 +42,17 @@ export interface ChatOptions {
 /** 選択の一部（送るとき・送信待ち・プロジェクトの既定）。書いていない項目は、次の段（送るとき → プロジェクト → アプリ）に従う */
 export type ChatOptionsPatch = Partial<ChatOptions>;
 
-/**
- * カンバンの列。人は動かさず、AI の状態から決まる（boardColumnOf）:
- * 作業中（考えている・順番待ち）→ 回答待ち（承認・質問に答えてほしい）→ 未読（作業が終わった・失敗した。まだ見ていない）→ 既読（見た）。
- * 終わったかどうかより、終わった結果を見たかどうかを分ける（見ていないものを「完了」と呼ばない）
- */
 /** 名前が空のチャット（文字を書かずに添付だけで送ったときなど）の代わりの名前（画面・メモ・会話の書き出しで共通。New Chat・No Group とそろえて英語） */
 export const UNTITLED_CHAT_TITLE = "Untitled Chat";
 
 /** チャットの名前の文字数の上限（コアの入力の検証・AI がチャットの名前を変えるツール・画面の名前の欄で共通） */
 export const CHAT_TITLE_MAX = 100;
 
+/**
+ * カンバンの列。人は動かさず、AI の状態から決まる（boardColumnOf）:
+ * 作業中（考えている・順番待ち）→ 回答待ち（承認・質問に答えてほしい）→ 未読（作業が終わった・失敗した。まだ見ていない）→ 既読（見た）。
+ * 終わったかどうかより、終わった結果を見たかどうかを分ける（見ていないものを「完了」と呼ばない）
+ */
 export const BOARD_COLUMNS = ["running", "needs_input", "unread", "read"] as const;
 export type BoardColumn = (typeof BOARD_COLUMNS)[number];
 
@@ -156,7 +155,6 @@ export interface ChatGroup {
   created_at: string;
 }
 
-/** チャットのやり取りの検索結果（1 件 = 1 つの発言） */
 /** フィード（全プロジェクトの画面）の 1 件: チャットごとの、メインエージェントの最新の返答の初めの部分 */
 export interface FeedItem {
   chat_id: number;
@@ -169,6 +167,7 @@ export interface FeedItem {
 /** フィードに載せる返答の文字数 */
 export const FEED_TEXT_LIMIT = 400;
 
+/** チャットのやり取りの検索結果（1 件 = 1 つの発言） */
 export interface SearchHit {
   event_id: number;
   chat_id: number;
@@ -260,7 +259,7 @@ export interface CaptureAttachment extends AttachmentBase {
 export type Attachment = FileAttachment | MemoAttachment | CaptureAttachment;
 
 /**
- * チャットで外の画像の表示を許可したホスト（メモの仕様書「0027_チャット欄の外の画像とリンク」）。返答の外の画像は「ホストから画像を n 件表示」を押すまで読み込まず、
+ * チャットで外の画像の表示を許可したホスト。返答の外の画像は「ホストから画像を n 件表示」を押すまで読み込まず、
  * 押したホストはそのチャットの中だけ覚えて、以後は押さずに表示する（分岐では写し、子チャットには引き継がない）
  */
 export interface ChatImageHost {

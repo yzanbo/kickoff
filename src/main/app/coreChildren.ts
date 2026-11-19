@@ -1,4 +1,4 @@
-// コアが起こした子プロセス（メインが覚えて、コアが落ちたときに止める）の決め方（Electron に依らない純粋関数。メモの仕様書「0023_表示を軽くする」の案 16）
+// コアが起こした子プロセス（メインが覚えて、コアが落ちたときに止める）の決め方（Electron に依らない純粋関数）
 import type { ChildProcessNote } from "../../core/host/protocol.js";
 import type { ProcessRow } from "../../core/platform/types.js";
 

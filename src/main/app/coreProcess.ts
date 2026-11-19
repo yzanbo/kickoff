@@ -1,6 +1,6 @@
 // コアのプロセス（utilityProcess）の見張り役: 起動して ready を待ち、RPC をつなぎ、落ちたら子を止めてから作り直し、応答しなければ知らせ、終わらせる。
 // コアは HTTP・SSE・WebSocket・SQLite・エージェント・ターミナル・MCP サーバーを持ち、メインは窓・OS の口・仲立ちだけを持つ
-// （メインの JavaScript の糸は画面の入力の道でもあるので、コアの重さを乗せない）。メモの仕様書「0023_表示を軽くする」の案 16（分冊 4 の 1-3・1-6）
+// （メインの JavaScript の糸は画面の入力の道でもあるので、コアの重さを乗せない）
 import { MessageChannelMain, utilityProcess, type MessagePortMain, type UtilityProcess } from "electron";
 import { errorMessage } from "@shared/errors";
 import type { CoreState } from "@shared/ipc";

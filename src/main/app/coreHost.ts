@@ -1,5 +1,5 @@
 // コアのプロセスを組み立てる: 起動の値（init）・コアから呼ばれるメインの口（埋め込みブラウザ・キーチェーンの鍵）・コアからの知らせの行き先
-// （通知・ブラウザの操作の印・詰まり）・様子の配り先（画面の帯の IPC core.onState）。メモの仕様書「0023_表示を軽くする」の案 16（分冊 4 の 1-3・1-4）
+// （通知・ブラウザの操作の印・詰まり）・様子の配り先（画面の帯の IPC core.onState）
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import type { CoreState } from "@shared/ipc";
@@ -51,7 +51,7 @@ function coreCacheArgs(): string[] {
 export function createCoreProcess(opts: { port: number; devUrl: string | undefined }): CoreProcess {
   const core = new CoreProcess({
     file: CORE_FILE,
-    // コアのコンパイルキャッシュの場所（init は本体を読んだあとに届くので、起動の引数で渡す。案 24）
+    // コアのコンパイルキャッシュの場所（init は本体を読んだあとに届くので、起動の引数で渡す）
     args: coreCacheArgs(),
     dbWorkerFile: DB_WORKER_FILE,
     init: (recoveredReason) => ({

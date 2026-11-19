@@ -1,4 +1,3 @@
-// 型と定数のみ。Node 依存なし（コア・画面で共有する）
 // DB クライアント（プロジェクトの「DB」タブ。プロジェクトごとに DB の接続を登録し、テーブルを見る・SQL を流す）
 
 /** DB の種類（MariaDB は mysql） */
@@ -19,7 +18,7 @@ export type DbAiAccess = (typeof DB_AI_ACCESSES)[number];
 export const DB_AI_ACCESS_LABELS: Record<DbAiAccess, string> = { none: "見せない", ask: "承認して見せる", allow: "自由に見せる" };
 
 /**
- * 書き込む前の確かめ（読み取り専用でない接続で、利用者が流す SQL・保存する変更に。要件 5.12 の本番の守り）:
+ * 書き込む前の確かめ（読み取り専用でない接続で、利用者が流す SQL・保存する変更に。本番の守り）:
  * dangerous = 危険な文（DROP・TRUNCATE・ALTER・WHERE のない UPDATE / DELETE・判定できない文）だけ確かめる /
  * all = 書き込みのたびに SQL を見せて確かめる / env_name = 環境の名前を打たないと流せない
  */
@@ -181,7 +180,7 @@ export type DbEditValue = string | null;
 export type DbKeyValue = string | number | boolean | null;
 
 /**
- * テーブルの行の変更（段階 3 のセルの編集）。更新・削除はキー（主キーか、NULL を許さない一意の列の組）で 1 行を指す。
+ * テーブルの行の変更（セルの編集）。更新・削除はキー（主キーか、NULL を許さない一意の列の組）で 1 行を指す。
  * 追加の values にない列は DB の既定値
  */
 export type DbRowEdit =

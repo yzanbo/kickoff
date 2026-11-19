@@ -25,10 +25,10 @@ export function relationOf(input: Record<string, unknown>): AiChatRelation | nul
 /** AI が作れる子チャットの深さ（根のチャットから何段目までか。2 = 孫チャットまで。孫チャットからは子チャットを作れない） */
 export const AI_CHILD_CHAT_MAX_DEPTH = 2;
 
-/** AI が作ったチャットの世代の上限（利用者が作ったチャット = 0。2 世代目のチャットからは作れない。Q7） */
+/** AI が作ったチャットの世代の上限（利用者が作ったチャット = 0。2 世代目のチャットからは作れない） */
 export const AI_CHAT_MAX_GENERATION = 2;
 
-/** 1 回の作業（Turn）で AI が作れるチャットの数（Q7） */
+/** 1 回の作業（Turn）で AI が作れるチャットの数 */
 export const AI_CHATS_PER_TURN = 5;
 
 /** ツールの結果に書く、作ったチャットの印（画面が結果からチャットを開くために読む） */

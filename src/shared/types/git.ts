@@ -1,4 +1,3 @@
-// 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // Git の状態・差分・ファイル・検索・履歴・ワークツリー・PR（エディタタブ）
 import type { WorktreeEnv } from "./worktreeEnv";
 /**
@@ -218,7 +217,7 @@ export interface GitWorktree {
   locked: boolean;
   /** フォルダがなくなっていて、片付けられる */
   prunable: boolean;
-  /** ワークツリーの実行環境（ポートの帯・組の名前。一覧の API だけが付ける。この機能の前に作った・本体は null） */
+  /** ワークツリーの実行環境（ポートの帯・組の名前。一覧の API だけが付ける。覚えのないワークツリー（Kickoff の外で作ったものなど）・本体は null） */
   env?: WorktreeEnv | null;
   /** この作業場所に保存された色相 */
   hue?: number;
@@ -241,7 +240,6 @@ export interface WorktreeRemovalInfo {
   db_connections: { id: number; name: string }[];
 }
 
-/** ブランチの PR（GitHub。gh で調べる） */
 /**
  * ワークツリーの PR の知らせ（ワークツリーのブランチのいちばん新しい PR が、GitHub でマージされた・マージせずに閉じられた）。
  * ワークツリーを片付けるまで出し続ける。dismissed = 確認を閉じた（同じ PR では確認を出し直さず、印から開き直す）
@@ -255,6 +253,7 @@ export interface WorktreePrNotice {
   dismissed: boolean;
 }
 
+/** ブランチの PR（GitHub。gh で調べる） */
 export interface PullRequestInfo {
   number: number;
   url: string;

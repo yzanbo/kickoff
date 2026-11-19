@@ -1,5 +1,4 @@
-// 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-// Kickoff のゴミ箱（消したものを 3 日だけ取っておき、元に戻せる。メモの仕様書「ファイル削除」）
+// Kickoff のゴミ箱（消したものを 3 日だけ取っておき、元に戻せる）
 
 /**
  * ゴミ箱に入れたものの種類（file = ファイル・フォルダ（メモも）/ chat = チャット（子チャット・会話記録・添付ごと）/ project = プロジェクト / session = 持ち主のいない会話記録 /
@@ -64,7 +63,7 @@ export interface TrashPurgeResult {
 /** 元に戻せないとき（元の場所に同じ名前がある）の印。画面が「別の名前で戻す」を聞く */
 export const TRASH_RESTORE_EXISTS = "trash_restore_exists";
 
-/** アーカイブ済みのチャットの整理（メモの仕様書「ファイル削除」の Q19）で選べる日数（それより動いていないものをまとめてゴミ箱へ） */
+/** アーカイブ済みのチャットの整理で選べる日数（それより動いていないものをまとめてゴミ箱へ） */
 export const ARCHIVE_CLEANUP_DAYS = [7, 30, 90, 180, 365] as const;
 export type ArchiveCleanupDays = (typeof ARCHIVE_CLEANUP_DAYS)[number];
 export const ARCHIVE_CLEANUP_DAYS_LABELS: Record<ArchiveCleanupDays, string> = { 7: "1 週間", 30: "30 日", 90: "90 日", 180: "180 日", 365: "1 年" };
@@ -89,7 +88,7 @@ export interface ArchiveCleanupResult {
   trashed: number;
 }
 
-/** どのチャットも使っていない会話記録（GET /api/orphan-sessions。メモの仕様書「ファイル削除」の Q17 の「いまある分」） */
+/** どのチャットも使っていない会話記録（GET /api/orphan-sessions） */
 export interface OrphanSession {
   session_id: string;
   provider: string;

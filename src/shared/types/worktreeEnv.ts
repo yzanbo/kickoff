@@ -1,4 +1,4 @@
-// ワークツリーの実行環境（ワークツリーごとにポートの帯と Docker の組の名前を分ける。メモの仕様書「ワークツリーの実行環境」）
+// ワークツリーの実行環境（ワークツリーごとにポートの帯と Docker の組の名前を分ける）
 import type { Chat } from "./chat";
 import type { GitWorktree } from "./git";
 

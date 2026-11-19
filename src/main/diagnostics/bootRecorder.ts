@@ -5,7 +5,7 @@ import { openedAtLogin } from "../app/loginItem.js";
 import { startupLog } from "../app/startupLog.js";
 import { bootLogLine, buildBootRecord, metricsRow, type BootRecord, type MainMarks, type MainStage, type MetricsRow } from "./bootTimeline.js";
 
-// 起動の時刻と画面のメモリ（定期）の記録（メモの仕様書「0023_表示を軽くする」の案 18c）。組み立ては bootTimeline.ts。
+// 起動の時刻と画面のメモリ（定期）の記録。組み立ては bootTimeline.ts。
 // ~/Library/Logs/<アプリ名>/boot.jsonl（1 回の読み込みで 1 行）と metrics.jsonl（60 秒ごとに 1 行）に書き、起動の時刻は startup.log にも 1 行書く
 
 /** これを超えたら 1 世代だけ残す（boot は約 300 回分、metrics は 1 行 400 字ほどで約 21 時間分） */

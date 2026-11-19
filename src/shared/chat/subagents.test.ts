@@ -116,7 +116,7 @@ test("サブエージェント: 裏で動いているものの一覧から消え
     makeEvent(8, "tool_use", { id: "fg1", name: "Agent", input: { description: "待つ形" } }),
     makeEvent(9, "subagent", { task_id: "a3", tool_use_id: "fg1", description: "待つ形", status: "running" }),
   ];
-  // 一覧の知らせがなければ、これまでどおり作業中のまま
+  // 一覧の知らせがなければ、作業中のまま
   assert.deepEqual(collectSubagents(events, {}, true).map((s) => s.status), ["running", "running", "running"]);
   // 一覧が空（裏の 2 件は消えた）: 報告を渡した 1 件目は完了、2 件目は中断。待つ形のものは作業中のまま
   assert.deepEqual(collectSubagents(events, {}, true, new Set()).map((s) => s.status), ["completed", "stopped", "running"]);

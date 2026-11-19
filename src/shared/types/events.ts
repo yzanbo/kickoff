@@ -1,4 +1,3 @@
-// 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 import type { Approval } from "./approval";
 import type { AppSettings, ProviderId } from "./settings";
 import type { Project } from "./project";
@@ -57,7 +56,7 @@ export type BusEvent =
   | { type: "worktrees_changed"; project_id: number }
   // ワークツリーの PR の知らせ（そのプロジェクトの分を丸ごと。変わったときだけ）
   | { type: "worktree_prs"; project_id: number; notices: WorktreePrNotice[] }
-  /** チャットで外の画像の表示を許可したホストが変わった（そのチャットの分を丸ごと。メモの仕様書「0027_チャット欄の外の画像とリンク」。端末には届けない） */
+  /** チャットで外の画像の表示を許可したホストが変わった（そのチャットの分を丸ごと。端末には届けない） */
   | { type: "chat_image_hosts"; project_id: number; chat_id: number; hosts: ChatImageHost[] }
   /** DB の接続の一覧が変わった（中身は送らない。端末には届けない = http/deviceAccess.ts） */
   | { type: "db_connections"; project_id: number }

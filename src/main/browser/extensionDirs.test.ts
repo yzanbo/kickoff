@@ -6,7 +6,7 @@ test("消してよい拡張機能のフォルダ: 保存先のすぐ下だけ。
   const root = "/data/browser-extensions";
   assert.equal(isManagedExtensionDir(root, "/data/browser-extensions/react-devtools"), true);
   assert.equal(isManagedExtensionDir(root, "/data/browser-extensions/chrome-react-devtools/"), true);
-  // 以前は startsWith だけで比べていたので、これらも rm -rf していた
+  // startsWith だけで比べると、これらも rm -rf してしまう
   assert.equal(isManagedExtensionDir(root, "/data/browser-extensions/../../Users/me"), false);
   assert.equal(isManagedExtensionDir(root, "/data/browser-extensions/.."), false);
   assert.equal(isManagedExtensionDir(root, "/data/browser-extensions-other/x"), false);
@@ -19,7 +19,7 @@ test("拡張機能の出どころ: 保存先のすぐ下はキーか「chrome-�
   const root = "/data/browser-extensions";
   assert.deepEqual(extensionOrigin(root, knownExtensionDir(root, "vue-devtools", "webstore")), { source: "webstore", key: "vue-devtools" });
   assert.deepEqual(extensionOrigin(root, knownExtensionDir(root, "redux-devtools", "chrome-profile")), { source: "chrome-profile", key: "redux-devtools" });
-  // 知らない名前（前の版で足したものなど）は、出どころだけ読む
+  // 知らない名前は、出どころだけ読む
   assert.deepEqual(extensionOrigin(root, "/data/browser-extensions/old-thing"), { source: "webstore", key: null });
   assert.deepEqual(extensionOrigin(root, "/data/browser-extensions/chrome-old-thing"), { source: "chrome-profile", key: null });
   assert.deepEqual(extensionOrigin(root, "/Users/me/my-extension"), { source: "folder", key: null });

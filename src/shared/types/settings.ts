@@ -1,15 +1,14 @@
-// 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // プロバイダー・推論の深さ・権限モードの定数と、アプリ全体の設定
 import type { ChatOptions } from "./chat";
 import type { VoiceProvider, VoiceTtsProvider } from "./voice";
 
 export const PROVIDER_IDS = ["claude", "codex", "copilot", "cursor", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
-/** Claude Code のほかの AI（既定の選択を Claude Code と分けて持つ。メモの仕様書「0028」の 9 節） */
+/** Claude Code のほかの AI（既定の選択を Claude Code と分けて持つ） */
 export type OtherProviderId = Exclude<ProviderId, "claude">;
 export const OTHER_PROVIDER_IDS = PROVIDER_IDS.filter((id): id is OtherProviderId => id !== "claude");
 
-/** AI のログインの仕方（メモの仕様書「0021」の Q13）: subscription = 定額のプラン（各 CLI のログイン・Codex は Sign in with ChatGPT）/ api_key = API キー（使った分の支払い） */
+/** AI のログインの仕方: subscription = 定額のプラン（各 CLI のログイン・Codex は Sign in with ChatGPT）/ api_key = API キー（使った分の支払い） */
 export const PROVIDER_AUTH_MODES = ["subscription", "api_key"] as const;
 export type ProviderAuthMode = (typeof PROVIDER_AUTH_MODES)[number];
 export const PROVIDER_AUTH_MODE_LABELS: Record<ProviderAuthMode, string> = { subscription: "サブスク", api_key: "API キー" };
@@ -55,7 +54,7 @@ export const AI_CREATE_CHAT_MODE_LABELS: Record<AiCreateChatMode, string> = {
   off: "作らせない",
 };
 
-/** 返答などの Markdown のリンクを開く先（メモの仕様書「0027_チャット欄の外の画像とリンク」）: kickoff = Kickoff のブラウザのタブ / browser = 既定のブラウザ。⌘ を押しながらだと反対の方で開く */
+/** 返答などの Markdown のリンクを開く先: kickoff = Kickoff のブラウザのタブ / browser = 既定のブラウザ。⌘ を押しながらだと反対の方で開く */
 export const LINK_OPEN_TARGETS = ["kickoff", "browser"] as const;
 export type LinkOpenTarget = (typeof LINK_OPEN_TARGETS)[number];
 export const LINK_OPEN_TARGET_LABELS: Record<LinkOpenTarget, string> = { kickoff: "Kickoff のブラウザ", browser: "既定のブラウザ" };
@@ -70,7 +69,7 @@ export interface AppSettings {
   provider_auth: Partial<Record<ProviderId, ProviderAuthMode>>;
   /** 新しい Claude Code のチャットの既定の選択（推論の深さの null は指定しない＝モデルの既定） */
   chat_defaults: ChatOptions;
-  /** Claude Code のほかの AI の新しいチャットの既定の選択（書いていない AI は、モデル・深さはその AI の既定・毎回確認。モデルの null はその AI の既定。メモの仕様書「0028」の 9 節） */
+  /** Claude Code のほかの AI の新しいチャットの既定の選択（書いていない AI は、モデル・深さはその AI の既定・毎回確認。モデルの null はその AI の既定） */
   provider_chat_defaults: Partial<Record<OtherProviderId, ChatOptions>>;
   /** 新しいチャットでコマンドの砂場を使う既定（既存のチャットは変えない） */
   sandbox_enabled_by_default: boolean;
@@ -125,7 +124,7 @@ export interface AppSettings {
   pre_compact_enabled: boolean;
   /** 共通の圧縮後指示を送るか（false なら文を残したまま送らない） */
   post_compact_enabled: boolean;
-  /** チャットの AI がチャット（子・兄弟・親のないチャット）を作るとき（承認カードの「常に許可」で allow になる。権限モードによらない。v29 で ai_child_chat から付け替えた） */
+  /** チャットの AI がチャット（子・兄弟・親のないチャット）を作るとき（承認カードの「常に許可」で allow になる。権限モードによらない） */
   ai_create_chat: AiCreateChatMode;
   /** Markdown のリンクを開く先（既定は Kickoff のブラウザ） */
   link_open_in: LinkOpenTarget;

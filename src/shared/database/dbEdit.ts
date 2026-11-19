@@ -1,4 +1,4 @@
-// テーブルの行の変更（段階 3 のセルの編集・行の追加と削除・CSV の取り込み）を SQL にする（純粋な関数。コアが流す文と、画面が見せる文で共通）
+// テーブルの行の変更（セルの編集・行の追加と削除・CSV の取り込み）を SQL にする（純粋な関数。コアが流す文と、画面が見せる文で共通）
 import type { DbEngine, DbKeyValue, DbObjectPath, DbRowEdit, DbTableDetail } from "../types";
 
 /** DB に渡す値（数はそのまま。SQLite の型のない列でもキーが合うように） */

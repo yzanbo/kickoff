@@ -13,7 +13,7 @@ const CORE_CLOSE_MARGIN_MS = 300;
  * 終了時の片付け（before-quit）: preventDefault → 自分から起動した Electron のアプリ → コアのプロセス（close を頼み、終わるのを待つ。
  * ターミナルのシェル・DB も）の順に止めて exitKeepingNotifications。片付けは 5 秒で打ち切る。app.quit() は呼び直さない（ウィンドウだけ閉じてアプリが残る）。
  * reallyExit はメインの後片付けを飛ばすので、コアは必ず先に終わらせる（メインが先に消えると、コアは片付けの途中で止まる）。
- * 作業中のチャットがあれば、片付けの前に終了してよいかを聞く（⌘Q・メニュー・Dock・AppleScript の quit。メモの仕様書「0026」の D11。名前はコアに RPC の runningChats で聞く）。
+ * 作業中のチャットがあれば、片付けの前に終了してよいかを聞く（⌘Q・メニュー・Dock・AppleScript の quit。名前はコアに RPC の runningChats で聞く）。
  * Mac の終了・再起動・ログアウトと、シグナル（kill -TERM・Ctrl+C）では聞かない（止めた作業は、次に起動したときの再開の確かめで聞く）
  */
 export function registerShutdown(core: () => CoreProcess | undefined) {

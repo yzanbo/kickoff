@@ -231,7 +231,7 @@ export interface GitHubPullFiles {
   fetched_at: string;
 }
 
-// ---- 段階 3「書く」（コメント・閉じる / 開き直す・ラベル・issue の作成・レビューの送信・マージ・チェックアウト） ----
+// ---- 書く（コメント・閉じる / 開き直す・ラベル・issue の作成・レビューの送信・マージ・チェックアウト） ----
 
 /** 自分（プロジェクトのアカウント）がこの issue・PR にできること（できないボタンは出さない） */
 export interface GitHubViewerAbilities {

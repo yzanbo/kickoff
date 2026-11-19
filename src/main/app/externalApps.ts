@@ -6,7 +6,7 @@ import { isWebUrl } from "./urls.js";
 
 /** アプリの外で開く（IPC の externalApps）。OS ごとの開き方は platform/ の DesktopPlatform */
 export const externalAppHandlers: IpcHandlers["externalApps"] = {
-  // 開けなかったときの理由（shell.openPath が返す文）は、これまでどおり画面に返さない
+  // 開けなかったときの理由（shell.openPath が返す文）は、画面に返さない
   openPath: async (_e, target) => void (await shell.openPath(target)),
   // Finder で入っているフォルダを開いて選ぶ
   revealPath: (_e, target) => shell.showItemInFolder(target),

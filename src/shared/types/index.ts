@@ -1,4 +1,4 @@
-// コア・UI・将来のモバイルアプリで共有するドメイン型の入口（中身は types/ に分けてある。型と定数のみ。Node 依存を持ち込まないこと）
+// コア・画面・スマホで共有するドメイン型の入口（中身は types/ に分けてある。型と定数のみ。Node 依存を持ち込まないこと）
 export * from "./settings";
 export * from "./project";
 export * from "./chat";

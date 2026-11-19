@@ -1,4 +1,3 @@
-// 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 import type { ProviderAuthMode, ProviderId } from "./settings";
 
 // 外部 CLI（Claude Code など）の状態・コマンド・使用枠
@@ -11,9 +10,9 @@ export interface ProviderStatus {
   account?: string;
   plan?: string;
   detail: string;
-  /** その AI でできること（ないものは画面で押せない形にして理由を添える。メモの仕様書「0021」の Q4。コアの /api/providers が付ける） */
+  /** その AI でできること（ないものは画面で押せない形にして理由を添える。コアの /api/providers が付ける） */
   features: ProviderFeature[];
-  /** ログインの仕方（設定の provider_auth。Q13。コアの /api/providers が付ける） */
+  /** ログインの仕方（設定の provider_auth。コアの /api/providers が付ける） */
   auth_mode?: ProviderAuthMode;
   /** API キーを置いたか（キーそのものは出さない） */
   has_api_key?: boolean;

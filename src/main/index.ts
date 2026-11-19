@@ -56,7 +56,7 @@ if (!app.requestSingleInstanceLock()) {
 
 /**
  * 準備ができたら: コアのプロセスを fork（ログインシェルの PATH・DB・HTTP はコアの中で進む）→ IPC・メニュー → 窓を先に作る
- * → コアの ready を待って画面のセッション → 画面を読み込む（分冊 4 の 1-4）
+ * → コアの ready を待って画面のセッション → 画面を読み込む
  */
 async function start() {
   markMain("whenReady");

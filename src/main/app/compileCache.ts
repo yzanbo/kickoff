@@ -4,10 +4,10 @@ import { readdir, rm } from "node:fs/promises";
 import module from "node:module";
 import path from "node:path";
 
-// コアのプロセスのコンパイルキャッシュの置き場所と後片付け（メモの仕様書「0023_表示を軽くする」の案 24。分冊 4 の 5 章）。
+// コアのプロセスのコンパイルキャッシュの置き場所と後片付け。
 // 置き場所は保存先の compile-cache/<アプリの版>-<Electron の版>-<arch>-<ビルドの印>/core。~/Library/Caches に置かないのは、
 // AI の Bash の砂場がそこに書けるため（中身をすり替えると Kickoff のプロセスで自分のコードを動かせる）。保存先は砂場と自分を守る仕組みの両方で AI から触れない。
-// メインプロセスの束には使わない（測って差が出なかった。分冊 4 の 5 章）
+// メインプロセスの束には使わない（測って差が出なかった）
 
 /** 保存先の下のキャッシュのフォルダ */
 const COMPILE_CACHE_DIR = "compile-cache";
@@ -78,7 +78,7 @@ const CACHE_ENV = ["NODE_COMPILE_CACHE", "NODE_COMPILE_CACHE_PORTABLE"] as const
 
 /**
  * 環境変数 NODE_COMPILE_CACHE で起動されたなら、その場所を返し（起動の記録に残す）、環境変数を子のプロセス（コア・DB ワーカー・
- * ターミナル・エージェント）に受け継がせない。メインプロセスでは Node が起動の初めに読んで有効にしてしまい、Kickoff のコードでは止められない（分冊 4 の 5 章）
+ * ターミナル・エージェント）に受け継がせない。メインプロセスでは Node が起動の初めに読んで有効にしてしまい、Kickoff のコードでは止められない
  */
 export function dropCompileCacheEnv(): string | null {
   const dir = module.getCompileCacheDir() ?? null;

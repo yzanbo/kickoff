@@ -1,4 +1,3 @@
-// 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // コアのサーバーと GitHub CLI の状態
 import type { HostApiVersion } from "../api/version";
 

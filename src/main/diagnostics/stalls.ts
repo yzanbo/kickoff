@@ -2,7 +2,7 @@ import { startStallWatch, type StallRecord } from "../../core/system/stallWatch.
 import { rotatingLog } from "../app/logFiles.js";
 import { startupLog } from "../app/startupLog.js";
 
-// メインプロセスの詰まりの記録（メモの仕様書「0023_表示を軽くする」の案 12）。コアのプロセスの詰まりはコアが同じファイルに書き足し、
+// メインプロセスの詰まりの記録。コアのプロセスの詰まりはコアが同じファイルに書き足し、
 // RPC の stall でメインにも届く（recordCoreStall）。~/Library/Logs/<アプリ名>/stalls.jsonl に 1 行 1 件で書き（エージェントも読める場所）、
 // 最近の分をプロセスごとに診断の summary.json に入れる。ファイルを回すのはメインだけ（2 つのプロセスが同じ名前で回して消し合わないように）
 

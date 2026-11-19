@@ -57,7 +57,7 @@ const firstTabInContent = (route: string) => ({ x: route.startsWith("/popout/cha
 
 /**
  * 離した所にウィンドウを置く位置（tab = 最初のタブの左上を置く画面の位置。新しいウィンドウのタブが、離したときのタブとぴったり重なるように。
- * 利用者の依頼。titleBar = ウィンドウの枠の上の帯の高さ。その画面の作業領域の中に収める）
+ * titleBar = ウィンドウの枠の上の帯の高さ。その画面の作業領域の中に収める）
  */
 function placeAtDrop(route: string, tab: { x: number; y: number }, width: number, height: number, titleBar: number): { x: number; y: number } {
   const first = firstTabInContent(route);

@@ -14,7 +14,7 @@ export type ChatEventData =
    * pre_compact: 圧縮の前に送った圧縮前指示 / post_compact: 圧縮のあとに送った圧縮後指示（text は設定・プロジェクトの指示そのもの。AI には前置きを付けて送る）。
    * handoff_request: 子チャットに親への依頼文を頼んだ発言（画面は長い頼み方の文の代わりに 1 行で出す）。
    * handoff_from: 子チャットから親チャットに渡した依頼（親チャットの発言。どの子チャットからか）。
-   * workplace_continuation: AI が作業場所を移す予約に書いた続きの指示（Kickoff が移したあとに送った。メモの仕様書「0025」の段階 ③）
+   * workplace_continuation: AI が作業場所を移す予約に書いた続きの指示（Kickoff が移したあとに送った）
    */
   | {
       type: "user";
@@ -85,10 +85,10 @@ export type ChatEventData =
   /** 子チャットの答えを親チャットに渡した（子チャットの記録。turn_event_id: どの作業の終わりの答えか。via: 渡し方。parent_chat_id: 渡した先） */
   | { type: "handoff"; via: HandoffVia; parent_chat_id: number; turn_event_id: number }
   /**
-   * 作業場所を移した区切り（メモの仕様書「0025_チャットの作業場所を変える」）。from / to: 移す前と後の作業場所。reason: なぜ移ったか。
-   * carried: コミットしていない変更を持っていった（Q2）。backed_up: ワークツリーを片付けたとき、コミットしていない変更を控えに入れた（J6）。
+   * 作業場所を移した区切り。from / to: 移す前と後の作業場所。reason: なぜ移ったか。
+   * carried: コミットしていない変更を持っていった。backed_up: ワークツリーを片付けたとき、コミットしていない変更を控えに入れた。
    * session_id / message_id: 移したあとの会話の起点（新しいセッションに写した、写せなければいまのセッションの、区切りの直前の最後まで終わった作業の終わり。
-   * なければ省く）。区切りより前の発言へは巻き戻し・分岐ができず、起点を探すとき区切りを境目にする（H2）
+   * なければ省く）。区切りより前の発言へは巻き戻し・分岐ができず、起点を探すとき区切りを境目にする
    */
   | {
       type: "workplace_moved";
@@ -97,11 +97,11 @@ export type ChatEventData =
       reason: WorkplaceMoveReason;
       carried?: true;
       backed_up?: true;
-      /** 元の作業場所で動いている内蔵ターミナル（止めずに残した。AI が移したとき = Q5） */
+      /** 元の作業場所で動いている内蔵ターミナル（止めずに残した。AI が移したとき） */
       running?: string[];
-      /** 移した先で作業中だったほかのチャットの数（AI が移したとき = H6） */
+      /** 移した先で作業中だったほかのチャットの数（AI が移したとき） */
       busy?: number;
-      /** 先にこのチャットのワークツリーを片付けてから移した（AI の移す予約と片付けの予約が重なったとき = G4・J3） */
+      /** 先にこのチャットのワークツリーを片付けてから移した（AI の移す予約と片付けの予約が重なったとき） */
       after_finish?: true;
       session_id?: string;
       message_id?: string;
@@ -120,7 +120,7 @@ export interface WorkplaceRef {
 
 /**
  * 作業場所が移った理由: 利用者が移した / AI が移した（操作ツール）/ ワークツリーを片付けて本体に戻った / 別のプロジェクトへ移した /
- * プロジェクトのフォルダを変えた（G1）
+ * プロジェクトのフォルダを変えた
  */
 const WORKPLACE_MOVE_REASONS = ["user", "ai", "worktree_finished", "project_moved", "folder_moved"] as const;
 export type WorkplaceMoveReason = (typeof WORKPLACE_MOVE_REASONS)[number];

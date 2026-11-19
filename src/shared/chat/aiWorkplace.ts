@@ -1,4 +1,4 @@
-// チャットの AI が自分のチャットの作業場所を移すツール（kickoff_chat の move_workplace・cancel_workplace_move。メモの仕様書「0025」の段階 ③）の、
+// チャットの AI が自分のチャットの作業場所を移すツール（kickoff_chat の move_workplace・cancel_workplace_move）の、
 // コアと画面で共有する名前・移す先の種類・記録の行に出す文
 
 /** 作業場所を移す予約のツールの名前 */
@@ -18,7 +18,7 @@ export function describeMoveWorkplace(input: Record<string, unknown>): string {
   return input.carry === true ? `${place}（変更を持っていく）` : place;
 }
 
-/** 作業中の様子に出す予約の文（パソコンの画面とスマホで同じ。I2・J7） */
+/** 作業中の様子に出す予約の文（パソコンの画面とスマホで同じ） */
 export function workplaceMoveReservationText(r: { label: string; carry: boolean; continuation: boolean }): string {
   return `作業が終わったら${r.label}へ移ります${r.carry ? "（コミットしていない変更も持っていきます）" : ""}。${r.continuation ? "移したら AI が続けます" : "移すだけで、続きは送りません"}`;
 }

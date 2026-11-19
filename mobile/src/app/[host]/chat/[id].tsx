@@ -40,7 +40,7 @@ export default function ChatScreen() {
             {approvals.map((a) => (
               <ApprovalCard key={a.id} approval={a} canAnswer={canWrite} onResolve={(d) => (client ? client.resolveApproval(a.id, d) : Promise.resolve())} />
             ))}
-            {/* AI が作業場所を移す予約（取り消すと移らない。見るだけの端末は見えるだけ。J7） */}
+            {/* AI が作業場所を移す予約（取り消すと移らない。見るだけの端末は見えるだけ） */}
             {live?.workplace_move && (
               <View style={[ui.card, ui.row]}>
                 <Text style={[ui.text, { flex: 1 }]}>{workplaceMoveReservationText(live.workplace_move)}</Text>

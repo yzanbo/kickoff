@@ -2,7 +2,7 @@
 import type { AppSettings, ChatOptions, ChatOptionsPatch, Project, ProviderId } from "@shared/types";
 
 /**
- * Claude Code 以外の AI の、アプリの既定の初め（メモの仕様書「0028」の 9 節）。
+ * Claude Code 以外の AI の、アプリの既定の初め。
  * モデル・推論の深さはその AI の既定に任せ、権限モードは毎回確認（設定の chat_defaults は Claude Code のモデルの名前なので重ねない）
  */
 export const PROVIDER_BASE_CHAT_OPTIONS: ChatOptions = { model: null, effort: null, permission_mode: "default", fast_mode: false };
