@@ -2732,7 +2732,7 @@
       "src/features/trash/core/service.ts": 363,
       "src/features/worktrees/core/finish.ts": 404,
       "src/foundation/core/db/schema.ts": 596,
-      "src/foundation/core/http/server.ts": 334,
+      "src/foundation/core/http/server.ts": 332,
       "src/foundation/desktop/app/coreProcess.ts": 343,
       "src/foundation/ui/kit/dialogs.tsx": 319,
       "src/foundation/ui/storage/storageKeys.ts": 566,
@@ -2796,7 +2796,21 @@
     ],
     "sql": [],
     "css": [],
-    "pattern": {},
+    "pattern": {
+      "core-clock:src/features/chat/core/approvals.ts": 1,
+      "core-clock:src/features/chat/core/attachmentsCleanup.ts": 1,
+      "core-clock:src/features/chat/core/autoArchive.ts": 1,
+      "core-clock:src/features/chat/core/db/chats.ts": 3,
+      "core-clock:src/features/chat/core/queue.ts": 3,
+      "core-clock:src/features/chat/core/queueEdits.ts": 1,
+      "core-clock:src/features/chat/core/recovery/poller.ts": 1,
+      "core-clock:src/features/chat/core/recovery/recovery.ts": 1,
+      "core-clock:src/features/chat/core/runner.ts": 5,
+      "core-clock:src/features/chat/core/sessions/archiveCleanup.ts": 1,
+      "core-clock:src/features/chat/core/sessions/sessionTrash.ts": 1,
+      "core-clock:src/features/chat/core/tools/aiChatRemove.ts": 1,
+      "core-clock:src/features/chat/core/turn.ts": 2
+    },
     "placement": [
       "middle-no-claude-md:src/shared/CLAUDE.md"
     ]

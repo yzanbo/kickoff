@@ -1,15 +1,9 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { BackgroundState } from "@shared/types";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 
 /** すぐには閉じないとき（足した発言・裏の作業の終わりの知らせで、次の返答が始まりうる）に、始まるのを待つ時間 */
 export const TURN_OVER_GRACE_MS = 2000;
-
-interface Timers {
-  set: (fn: () => void, ms: number) => unknown;
-  clear: (handle: unknown) => void;
-}
-
-const realTimers: Timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as ReturnType<typeof setTimeout>) };
 
 /**
  * Claude Code の入力を閉じる時を決める（閉じると、手が空いた Claude Code は終わり、実行が終わる）。
@@ -23,7 +17,7 @@ const realTimers: Timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => 
  * 終わりの知らせへの返答を始める）。待つ間に返答を始めたら（running）やめて、その返答の idle を待つ。
  * session_state_changed が届かないときの保険として、届くまでは返答の終わりと裏の作業 0 件で閉じる
  */
-export function createTurnOver(close: () => void, { graceMs = TURN_OVER_GRACE_MS, timers = realTimers }: { graceMs?: number; timers?: Timers } = {}) {
+export function createTurnOver(close: () => void, { graceMs = TURN_OVER_GRACE_MS, clock = systemClock }: { graceMs?: number; clock?: Pick<Clock, "setTimeout" | "clearTimeout"> } = {}) {
   let sawState = false;
   let state: "idle" | "running" | "requires_action" = "running";
   let tasks = 0;
@@ -31,14 +25,14 @@ export function createTurnOver(close: () => void, { graceMs = TURN_OVER_GRACE_MS
   let replied = false;
   // 前に running になってから発言を足したか（足した発言で次の返答が始まりうる）
   let pushedSinceRunning = false;
-  let timer: unknown = null;
+  let timer: TimerHandle | null = null;
   const cancel = () => {
-    if (timer !== null) timers.clear(timer);
+    clock.clearTimeout(timer);
     timer = null;
   };
   const closeLater = () => {
     if (timer !== null) return;
-    timer = timers.set(() => {
+    timer = clock.setTimeout(() => {
       timer = null;
       if (state === "idle" && tasks === 0) close();
     }, graceMs);

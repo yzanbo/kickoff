@@ -1,4 +1,5 @@
 import { PerformanceObserver } from "node:perf_hooks";
+import { systemClock } from "@/foundation/core/clock";
 
 // イベントループの詰まりの見張り。一定の間隔のタイマーの遅れで止まった長さを測り、
 // その間にいちばん長かった同期の処理（timed / noteSync で名前を付けたもの）と一緒に知らせる。
@@ -48,8 +49,8 @@ export interface StallClock {
   rssMB(): number;
 }
 
-/** 本物の時計（performance.now は macOS では眠っている間に進まないので、スリープは遅れに入らない） */
-function systemClock(): { clock: StallClock; dispose: () => void } {
+/** 本物の時計（performance.now は macOS では眠っている間に進まないので、スリープは遅れに入らない。刻みのタイマーは unref の systemClock） */
+function realStallClock(): { clock: StallClock; dispose: () => void } {
   let gc = 0;
   const observer = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) gc += entry.duration;
@@ -58,9 +59,8 @@ function systemClock(): { clock: StallClock; dispose: () => void } {
   const clock: StallClock = {
     now: () => performance.now(),
     every: (ms, fn) => {
-      const timer = setInterval(fn, ms);
-      timer.unref();
-      return () => clearInterval(timer);
+      const timer = systemClock.setInterval(fn, ms);
+      return () => systemClock.clearInterval(timer);
     },
     cpuMs: () => {
       const { user, system } = process.cpuUsage();
@@ -82,7 +82,7 @@ const round = (ms: number) => Math.round(ms);
  * （同じ処理の詰まりは STALL_REPEAT_MS に 1 行へまとめる）。同時に動かせるのは 1 つ（新しく始めたほうが名前を受け取る）
  */
 export function startStallWatch(opts: { process: StallProcess; onStall: (record: StallRecord) => void; clock?: StallClock }): () => void {
-  const system = opts.clock ? null : systemClock();
+  const system = opts.clock ? null : realStallClock();
   const clock = opts.clock ?? system!.clock;
   const state: NonNullable<typeof active> = { now: () => clock.now(), longest: null };
   active = state;
@@ -119,7 +119,7 @@ export function startStallWatch(opts: { process: StallProcess; onStall: (record:
       // 同期の I/O（execFileSync など）は CPU を使わずに止めるので、名前付きの処理が半分以上を占めていれば blocked
       const busy = cpuMs >= blockedMs / 2 || (longest?.ms ?? 0) >= blockedMs / 2;
       const record: StallRecord = {
-        at: new Date().toISOString(),
+        at: systemClock.iso(),
         process: opts.process,
         pid: process.pid,
         blockedMs: round(blockedMs),

@@ -1,8 +1,9 @@
 import { EventEmitter } from "node:events";
 import type { BusEvent } from "@shared/types";
-import { DeltaBatch, type DeltaTimers } from "@/features/chat/core/deltaBatch";
+import { DeltaBatch } from "@/features/chat/core/deltaBatch";
 import { StreamingTexts, type BusInput } from "@/features/chat/core/streamingTexts";
 import { noteSyncSince, syncStart } from "@/foundation/core/system/stallWatch";
+import type { Clock } from "@/foundation/core/clock";
 
 /**
  * コア内の変更をクライアント（SSE）へ配信するためのイベントバス。
@@ -15,11 +16,11 @@ export class Bus {
   private readonly deltas: DeltaBatch;
   private readonly streaming = new StreamingTexts();
 
-  /** timers はテストで差し替える（ためた途中の返答を流すタイマー） */
-  constructor(timers?: DeltaTimers) {
+  /** clock はテストで差し替える（ためた途中の返答を流すタイマー） */
+  constructor(clock?: Pick<Clock, "setTimeout" | "clearTimeout">) {
     // 接続中のクライアント数ぶん購読が増えるため上限を外す
     this.emitter.setMaxListeners(0);
-    this.deltas = new DeltaBatch((event) => this.emit(event), timers);
+    this.deltas = new DeltaBatch((event) => this.emit(event), clock);
   }
 
   publish(event: BusInput) {

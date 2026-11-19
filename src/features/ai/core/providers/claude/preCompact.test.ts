@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { PRE_COMPACT_DONE, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
-import { fakeTimers } from "@/foundation/core/testing/fakeTimers";
+import { manualClock } from "@/foundation/core/testing/manualClock";
 import { createPreCompactGate, replyText } from "./preCompact";
 
 /** ウィンドウ 200k・始めの大きさ 150k のゲートと、足した発言の記録 */
@@ -9,7 +9,7 @@ function setup(opts: { contextTokens?: number | null; push?: boolean } = {}) {
   const pushed: string[] = [];
   const sent: string[] = [];
   const nudged: string[] = [];
-  const clock = fakeTimers();
+  const clock = manualClock();
   const gate = createPreCompactGate({
     message: "指示",
     contextWindow: 200_000,
@@ -21,7 +21,7 @@ function setup(opts: { contextTokens?: number | null; push?: boolean } = {}) {
     onSent: (uuid) => sent.push(uuid),
     onNudged: (uuid) => nudged.push(uuid),
     newId: () => `id${pushed.length + 1}`,
-    timers: clock.timers,
+    clock,
   });
   return { gate, pushed, sent, nudged, clock };
 }
@@ -103,47 +103,47 @@ test("応答の文: 文の部分だけをつなぎ、なければ null", () => {
 test("背中を押す: 合図のあと裏の作業だけを待って止まり続けたら、発言を 1 回足す", () => {
   const { gate, pushed, nudged, clock } = signaled();
   gate.noteWaiting(true);
-  assert.equal(clock.size, 1);
+  assert.equal(clock.pending, 1);
   // 待っている間に何度知らせても、待ち直さない
   gate.noteWaiting(true);
-  assert.equal(clock.size, 1);
-  clock.fire();
+  assert.equal(clock.pending, 1);
+  clock.fireAll();
   assert.deepEqual(pushed, ["id1:指示", `id2:${PRE_COMPACT_NUDGE}`]);
   assert.deepEqual(nudged, ["id2"]);
   // 押すのは 1 回だけ
   gate.noteWaiting(false);
   gate.noteWaiting(true);
-  assert.equal(clock.size, 0);
+  assert.equal(clock.pending, 0);
 });
 
 test("背中を押す: 待つ間に動き出した・裏の作業がなくなったらやめ、合図の前・圧縮のあとは押さない", () => {
   const moved = signaled();
   moved.gate.noteWaiting(true);
   moved.gate.noteWaiting(false);
-  assert.equal(moved.clock.size, 0);
+  assert.equal(moved.clock.pending, 0);
   assert.equal(moved.nudged.length, 0);
   // 合図の前（指示の作業の途中）
   const before = setup();
   before.gate.shouldBlock("auto", undefined);
   before.gate.noteWaiting(true);
-  assert.equal(before.clock.size, 0);
+  assert.equal(before.clock.pending, 0);
   // 合図のあと、ツールの結果で圧縮が走った
   const compacted = signaled();
   compacted.gate.noteWaiting(true);
   compacted.gate.noteCompacted(30_000);
-  assert.equal(compacted.clock.size, 0);
+  assert.equal(compacted.clock.pending, 0);
   compacted.gate.noteWaiting(true);
-  assert.equal(compacted.clock.size, 0);
+  assert.equal(compacted.clock.pending, 0);
   // 実行が終わった
   const stopped = signaled();
   stopped.gate.noteWaiting(true);
   stopped.gate.stop();
-  assert.equal(stopped.clock.size, 0);
+  assert.equal(stopped.clock.pending, 0);
 });
 
 test("背中を押す: 足せなかった（入力が閉じている）ときは押したことにしない", () => {
   let open = false;
-  const clock = fakeTimers();
+  const clock = manualClock();
   const nudged: string[] = [];
   const gate = createPreCompactGate({
     message: "指示",
@@ -153,19 +153,19 @@ test("背中を押す: 足せなかった（入力が閉じている）ときは
     onSent: () => undefined,
     onNudged: (uuid) => nudged.push(uuid),
     newId: () => "id",
-    timers: clock.timers,
+    clock,
   });
   open = true;
   gate.shouldBlock("auto", undefined);
   gate.noteReply(160_000, PRE_COMPACT_DONE);
   open = false;
   gate.noteWaiting(true);
-  clock.fire();
+  clock.fireAll();
   assert.equal(nudged.length, 0);
   // 次にまた止まったら押す
   open = true;
   gate.noteWaiting(true);
-  clock.fire();
+  clock.fireAll();
   assert.deepEqual(nudged, ["id"]);
 });
 
@@ -173,5 +173,5 @@ test("背中を押す: 合図以外の理由で通したとき（残りが少な
   const { gate, clock } = setup({ contextTokens: 180_000 });
   assert.equal(gate.shouldBlock("auto", undefined), false);
   gate.noteWaiting(true);
-  assert.equal(clock.size, 0);
+  assert.equal(clock.pending, 0);
 });

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { MessageChannel } from "node:worker_threads";
 import { test } from "vitest";
 import { afterTest } from "@/foundation/core/testing/afterTest";
-import { fakeTimers } from "@/foundation/core/testing/fakeTimers";
+import { manualClock } from "@/foundation/core/testing/manualClock";
 import { until } from "@/app/core/testing/testCore";
 import { nodeRpcPort } from "./ports";
 import { rpcTimeoutOf, type CoreMethods } from "./protocol";
@@ -63,26 +63,26 @@ test("RPC: 呼び出しと返事・失敗の文・知らせが両方向に届く
 
 test("RPC: 時間の上限を過ぎたら失敗にする（時計は引数）。上限なしのものは待ち続ける", async () => {
   const { a, b } = channel();
-  const clock = fakeTimers();
-  const sideA = createRpc<A, B, AEvents, BEvents>(a, { handlers: { add: async (x, y) => x + y, fail: async () => {} }, timers: clock.timers, timeoutOf: (m) => (m === "slow" ? 5000 : null) });
+  const clock = manualClock();
+  const sideA = createRpc<A, B, AEvents, BEvents>(a, { handlers: { add: async (x, y) => x + y, fail: async () => {} }, clock, timeoutOf: (m) => (m === "slow" ? 5000 : null) });
   createRpc<B, A, BEvents, AEvents>(b, { handlers: { hello: async (n) => n, slow: () => new Promise<void>(() => {}) } });
   const slow = sideA.call("slow");
-  assert.equal(clock.size, 1);
-  clock.fire();
+  assert.equal(clock.pending, 1);
+  clock.fireAll();
   await assert.rejects(slow, /slow が 5 秒で返りませんでした/);
   // 上限なしは時計を使わない
   assert.equal(await sideA.call("hello", "x"), "x");
-  assert.equal(clock.size, 0);
+  assert.equal(clock.pending, 0);
 });
 
 test("RPC: メインがコアに作業中のチャットを聞く runningChats は 1 秒で打ち切る（コアが詰まっていても ⌘Q で終えられる。メモの仕様書「0026」の D11）", async () => {
   type Core = Pick<CoreMethods, "runningChats">;
   const { a, b } = channel();
-  const clock = fakeTimers();
+  const clock = manualClock();
   // メインプロセスの CoreProcess と同じ上限（rpcTimeoutOf）で呼ぶ。上限の長さも覚える
   const limits: number[] = [];
-  const timers = { set: (fn: () => void, ms: number) => (limits.push(ms), clock.timers.set(fn)), clear: clock.timers.clear };
-  const main = createRpc<Record<string, never>, Core, Record<string, never>, Record<string, never>>(a, { handlers: {}, timers, timeoutOf: rpcTimeoutOf });
+  const timers = { setTimeout: (fn: () => void, ms: number) => (limits.push(ms), clock.setTimeout(fn, ms)), clearTimeout: clock.clearTimeout };
+  const main = createRpc<Record<string, never>, Core, Record<string, never>, Record<string, never>>(a, { handlers: {}, clock: timers, timeoutOf: rpcTimeoutOf });
   // コアの答え（呼ばれるたびに、答える関数を入れ替える）
   const core = { answer: null as ((chats: { id: number; title: string | null }[]) => void) | null };
   createRpc<Core, Record<string, never>, Record<string, never>, Record<string, never>>(b, { handlers: { runningChats: () => new Promise((r) => (core.answer = r)) } });
@@ -90,11 +90,11 @@ test("RPC: メインがコアに作業中のチャットを聞く runningChats �
   // 答えが返らない（コアが詰まっている）: 1 秒で失敗にする（メインはそのとき聞かずに終える）
   const stuck = main.call("runningChats");
   assert.deepEqual(limits, [1_000]);
-  clock.fire();
+  clock.fireAll();
   await assert.rejects(stuck, /runningChats が 1 秒で返りませんでした/);
   // メインの受け方（shutdown.ts）: 聞けなければ作業中のチャットはないものとして、聞かずに終える
   const fallback = main.call("runningChats").catch(() => []);
-  clock.fire();
+  clock.fireAll();
   assert.deepEqual(await fallback, []);
 
   // 1 秒より前に答えれば、作業中のチャットが届く（時計は外す）
@@ -103,7 +103,7 @@ test("RPC: メインがコアに作業中のチャットを聞く runningChats �
   await until(() => core.answer !== null);
   core.answer!([{ id: 7, title: "作業中" }]);
   assert.deepEqual(await asked, [{ id: 7, title: "作業中" }]);
-  assert.equal(clock.size, 0);
+  assert.equal(clock.pending, 0);
 });
 
 test("RPC: 口が閉じたら、待っている呼び出しを失敗にし、以後の呼び出しもすぐ失敗にする", async () => {

@@ -2,27 +2,13 @@
 // 番号付きの呼び出し・時間の上限・口が閉じたら待っている呼び出しを失敗にする。失敗は文で運び、受けた側で Error にする
 // （埋め込みブラウザの操作の失敗は「理由の文の Error」なので、AI に返る文は変わらない）
 import { errorMessage } from "@shared/foundation/errors";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { RpcMessage } from "./protocol";
 import type { RpcPort } from "./ports";
 
 // 表の型（CoreMethods など）を受けるため、関数の形だけを any で受ける（引数の形は表ごとに違う）
 type AnyFn = (...args: any[]) => Promise<unknown>;
 type Fns<T> = { [K in keyof T]: T[K] extends AnyFn ? T[K] : never };
-
-/** 時計（テストでは手で進めるものを渡す） */
-export interface RpcTimers {
-  set(fn: () => void, ms: number): unknown;
-  clear(handle: unknown): void;
-}
-
-const realTimers: RpcTimers = {
-  set: (fn, ms) => {
-    const t = setTimeout(fn, ms);
-    t.unref?.();
-    return t;
-  },
-  clear: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
-};
 
 export interface Rpc<Remote, LocalEvents, RemoteEvents> {
   /** 相手の口を呼ぶ（失敗・時間切れ・口が閉じたら Error） */
@@ -46,14 +32,15 @@ function isRpcMessage(m: unknown): m is RpcMessage {
 const CLOSED_MESSAGE = "Kickoff のコアのプロセスが止まりました";
 
 /**
- * 口の上に RPC を作る。handlers は相手から呼ばれる口（Local の表のとおり）。timeoutOf はこちらから呼ぶときの時間の上限（null は上限なし）
+ * 口の上に RPC を作る。handlers は相手から呼ばれる口（Local の表のとおり）。timeoutOf はこちらから呼ぶときの時間の上限（null は上限なし）。
+ * clock は時間の上限のタイマー（テストでは手で進めるものを渡す）
  */
 export function createRpc<Local, Remote, LocalEvents, RemoteEvents>(
   port: RpcPort,
-  opts: { handlers: Fns<Local>; timeoutOf?: (method: string) => number | null; timers?: RpcTimers; closedMessage?: string },
+  opts: { handlers: Fns<Local>; timeoutOf?: (method: string) => number | null; clock?: Pick<Clock, "setTimeout" | "clearTimeout">; closedMessage?: string },
 ): Rpc<Remote, LocalEvents, RemoteEvents> {
-  const timers = opts.timers ?? realTimers;
-  const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: unknown }>();
+  const clock = opts.clock ?? systemClock;
+  const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: TimerHandle | null }>();
   const listeners = new Map<string, Set<(payload: unknown) => void>>();
   let nextId = 1;
   let closed = false;
@@ -72,7 +59,7 @@ export function createRpc<Local, Remote, LocalEvents, RemoteEvents>(
     const p = pending.get(id);
     if (!p) return;
     pending.delete(id);
-    if (p.timer !== undefined) timers.clear(p.timer);
+    clock.clearTimeout(p.timer);
     if (outcome.ok) p.resolve(outcome.value);
     else p.reject(new Error(outcome.error));
   };
@@ -109,7 +96,7 @@ export function createRpc<Local, Remote, LocalEvents, RemoteEvents>(
       const id = nextId++;
       return new Promise((resolve, reject) => {
         const ms = opts.timeoutOf?.(method) ?? null;
-        const timer = ms === null ? undefined : timers.set(() => settle(id, { ok: false, error: `${method} が ${Math.round(ms / 1000)} 秒で返りませんでした` }), ms);
+        const timer = ms === null ? null : clock.setTimeout(() => settle(id, { ok: false, error: `${method} が ${Math.round(ms / 1000)} 秒で返りませんでした` }), ms);
         pending.set(id, { resolve, reject, timer });
         send({ t: "call", id, method, args });
       });

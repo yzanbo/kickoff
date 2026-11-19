@@ -161,7 +161,16 @@ export default {
   nativeAccess: { files: RENDERER, allow: ["src/foundation/ui/**", "src/features/*/ui/native.ts"] },
   sqlTables: { files: [], owners: {} },
   cssClasses: { files: [], owners: [], free: [] },
-  patterns: [],
+  patterns: [
+    // 時間に頼る処理は Clock（@/foundation/core/clock）を受ける。テストの時計（manualClock）で進められるように
+    {
+      name: "core-clock",
+      files: ["src/foundation/core/**", "src/features/chat/core/**"],
+      allow: ["src/foundation/core/clock.ts", "src/foundation/core/testing/manualClock.ts"],
+      forbid: [{ call: "setTimeout" }, { call: "setInterval" }, { member: "Date.now" }, { new: "Date", args: 0 }],
+      message: "setTimeout・setInterval・Date.now()・new Date() を直に書かない（Clock を受けて clock.setTimeout・clock.now()・clock.iso() に）",
+    },
+  ],
   placement: [
     { name: "feature-root-no-code", deny: ["src/features/*/*.{ts,tsx,css}"], message: "機能の直下にコードを置かない（core・ui・desktop・worker の下へ。直下はどの tsconfig にも入らない）" },
     { name: "middle-no-claude-md", deny: ["src/features/CLAUDE.md", "src/foundation/CLAUDE.md", "src/shared/CLAUDE.md"], message: "中間の層に CLAUDE.md を置かない（祖先の CLAUDE.md は毎回読み込まれる）" },

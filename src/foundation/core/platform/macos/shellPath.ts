@@ -6,6 +6,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { searchDirs } from "@/foundation/core/system/exec";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 
 /** 前回の値を置くファイル（保存先 = AI から書けない場所。~/Library/Caches は砂場で書ける） */
 export const SHELL_PATH_FILE = "shell-path.json";
@@ -60,40 +61,32 @@ export function startShellPath(opts: {
   dataDir: string;
   read?: () => Promise<string | null>;
   timeoutMs?: number;
-  timers?: { set(fn: () => void, ms: number): unknown; clear(handle: unknown): void };
+  clock?: Pick<Clock, "setTimeout" | "clearTimeout" | "iso">;
   env?: NodeJS.ProcessEnv;
-  now?: () => number;
 }): ShellPath {
   const env = opts.env ?? process.env;
   const file = path.join(opts.dataDir, SHELL_PATH_FILE);
   const original = env.PATH ?? "";
   const saved = readSavedPath(file);
   env.PATH = saved ? merged(saved, original) : merged(searchDirs(original), "");
-  const timers = opts.timers ?? {
-    set: (fn: () => void, ms: number) => {
-      const t = setTimeout(fn, ms);
-      t.unref();
-      return t;
-    },
-    clear: (h: unknown) => clearTimeout(h as ReturnType<typeof setTimeout>),
-  };
+  const clock = opts.clock ?? systemClock;
   const read = (opts.read ?? readLoginShellPath)().then(
     (value) => {
       const dirs = value ? cleanPath(value) : [];
       if (dirs.length === 0) return;
       env.PATH = merged(dirs, original);
       try {
-        fs.writeFileSync(file, JSON.stringify({ path: dirs.join(":"), at: new Date(opts.now?.() ?? Date.now()).toISOString() }));
+        fs.writeFileSync(file, JSON.stringify({ path: dirs.join(":"), at: clock.iso() }));
       } catch {
         // 書けなくても、次の起動で読み直すだけ
       }
     },
     () => {},
   );
-  let timer: unknown;
+  let timer: TimerHandle | null = null;
   const timeout = new Promise<void>((resolve) => {
-    timer = timers.set(resolve, opts.timeoutMs ?? SHELL_PATH_WAIT_MS);
+    timer = clock.setTimeout(resolve, opts.timeoutMs ?? SHELL_PATH_WAIT_MS);
   });
-  const ready = Promise.race([read, timeout]).then(() => timers.clear(timer));
+  const ready = Promise.race([read, timeout]).then(() => clock.clearTimeout(timer));
   return { ready };
 }

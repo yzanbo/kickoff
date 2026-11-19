@@ -15,7 +15,7 @@ test("loadOrCreateToken: token がなければ作り、次からは同じ token 
 
 test("BrowserLogin: ログインの番号は一度だけ・期限まで使える", () => {
   let now = 0;
-  const login = new BrowserLogin(() => now);
+  const login = new BrowserLogin({ now: () => now });
   const code = login.issue();
   assert.equal(login.consume("wrong"), false);
   assert.equal(login.consume(code), true);

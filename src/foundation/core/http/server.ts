@@ -10,6 +10,7 @@ import { callerOf, setCaller } from "./caller";
 import { deviceMaySee, deviceMayUse } from "./deviceAccess";
 import { errorMessage } from "@shared/foundation/errors";
 import { errorResponse } from "./errorResponse";
+import { systemClock } from "@/foundation/core/clock";
 import type { Bus } from "@/foundation/core/bus";
 import type { AgentProvider } from "@/features/ai/core/providers/index";
 import type { Store } from "@/foundation/core/db/store";
@@ -137,13 +138,10 @@ export interface ServerDeps {
   listen?: { host: string; port: number };
 }
 
-const STARTED_AT = new Date().toISOString();
+const STARTED_AT = systemClock.iso();
 const VERSION = "0.1.0";
 
-/**
- * Kickoff の HTTP API。デスクトップの画面とスマホのアプリが共通で使う。
- * 認証はトークン（Cookie または Authorization: Bearer）。
- */
+/** Kickoff の HTTP API。デスクトップの画面とスマホのアプリが共通で使う。認証はトークン（Cookie または Authorization: Bearer） */
 export function createApp(deps: ServerDeps): Hono {
   const { store, bus, token, runner } = deps;
   const app = new Hono();
@@ -285,12 +283,12 @@ export function createApp(deps: ServerDeps): Hono {
           void stream.writeSSE({ data });
         }
       });
-      const ping = setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);
+      const ping = systemClock.setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);
       // つないだらすぐ hello（本体の版・API の版・本体の ID）を送る。何か書くまで応答ヘッダーが届かず、画面が「接続中」のままになるのも防ぐ
       const hello: ServerHello = { core_version: VERSION, api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: store.databaseId };
       await stream.writeSSE({ event: "hello", data: JSON.stringify(hello) });
       await closed;
-      clearInterval(ping);
+      systemClock.clearInterval(ping);
       unsubscribe();
     }),
   );

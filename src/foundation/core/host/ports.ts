@@ -1,6 +1,7 @@
 // メインとコアのやり取りの口の形をそろえる（Electron の parentPort・MessagePortMain・Node の MessagePort の違いを吸う）。
 // RPC（rpc.ts）とコアのプロセスの入口（run.ts）はこの形だけを使う。メインの側の口（utilityProcess の子）は main/app/coreProcess.ts で同じ形に包む
 import type { MessagePort as NodeMessagePort } from "node:worker_threads";
+import { systemClock } from "@/foundation/core/clock";
 
 /** やり取りの口。onMessage・onClose は受けるのをやめる関数を返す */
 export interface RpcPort {
@@ -63,13 +64,12 @@ export function parentRpcPort(parent: ParentPortLike, opts: { parentPid: () => n
   const firstParent = opts.parentPid();
   let closed = false;
   parent.on("message", (e) => messages.emit(e.data, e.ports ?? []));
-  const timer = setInterval(() => {
+  const timer = systemClock.setInterval(() => {
     if (closed || opts.parentPid() === firstParent) return;
     closed = true;
-    clearInterval(timer);
+    systemClock.clearInterval(timer);
     closes.emit();
   }, opts.watchMs ?? 1000);
-  timer.unref();
   return {
     post: (message, transfer) => parent.postMessage(message, transfer),
     onMessage: messages.add,

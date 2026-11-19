@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { HookCallbackMatcher } from "@anthropic-ai/claude-agent-sdk";
 import { isPreCompactDone, PRE_COMPACT_NUDGE } from "@shared/chat/prompts";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 
 /** 指示を足し始めるのに要る、コンテキストの残り（トークン。最後の応答のあとに届くツールの結果の分も見込む） */
 const START_MARGIN = 30_000;
@@ -13,13 +14,6 @@ const MAX_HOLDS = 8;
  * 手が空いた直後に Claude Code が自分で次を始める（届いていた知らせ・足した発言を読む）ときは足さない
  */
 const PRE_COMPACT_NUDGE_MS = 5000;
-
-interface Timers {
-  set: (fn: () => void, ms: number) => unknown;
-  clear: (handle: unknown) => void;
-}
-
-const realTimers: Timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as ReturnType<typeof setTimeout>) };
 
 export interface PreCompactGateOptions {
   /** AI に足す文（前置き付きの圧縮前指示） */
@@ -38,7 +32,7 @@ export interface PreCompactGateOptions {
   newId?: () => string;
   /** 背中を押すまでの時間と時計（テストで差し替える） */
   nudgeMs?: number;
-  timers?: Timers;
+  clock?: Pick<Clock, "setTimeout" | "clearTimeout">;
 }
 
 /**
@@ -54,7 +48,7 @@ export interface PreCompactGateOptions {
  */
 export function createPreCompactGate(opts: PreCompactGateOptions) {
   const newId = opts.newId ?? randomUUID;
-  const timers = opts.timers ?? realTimers;
+  const clock = opts.clock ?? systemClock;
   const nudgeMs = opts.nudgeMs ?? PRE_COMPACT_NUDGE_MS;
   let phase: "ready" | "holding" | "passed" = "ready";
   let holds = 0;
@@ -63,9 +57,9 @@ export function createPreCompactGate(opts: PreCompactGateOptions) {
   // 合図の一文を受けて、まだ圧縮していないか（背中を押す相手）と、もう押したか（押すのは圧縮 1 回につき 1 回だけ）
   let signaled = false;
   let nudged = false;
-  let timer: unknown = null;
+  let timer: TimerHandle | null = null;
   const cancel = () => {
-    if (timer !== null) timers.clear(timer);
+    clock.clearTimeout(timer);
     timer = null;
   };
   const nudge = () => {
@@ -102,7 +96,7 @@ export function createPreCompactGate(opts: PreCompactGateOptions) {
      */
     noteWaiting(waiting: boolean) {
       if (!waiting || !signaled || nudged) return cancel();
-      if (timer === null) timer = timers.set(nudge, nudgeMs);
+      if (timer === null) timer = clock.setTimeout(nudge, nudgeMs);
     },
     /** 実行が終わった（待っている背中押しをやめる） */
     stop: cancel,

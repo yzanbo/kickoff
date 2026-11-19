@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { BackgroundState, BackgroundTask } from "@shared/types";
-import { fakeTimers } from "@/foundation/core/testing/fakeTimers";
+import { manualClock } from "@/foundation/core/testing/manualClock";
 import { createTurnOver } from "./turnOver";
 
 const stateMsg = (state: "idle" | "running" | "requires_action") => ({ type: "system", subtype: "session_state_changed", state }) as unknown as SDKMessage;
@@ -12,9 +12,9 @@ const task: BackgroundTask = { task_id: "t1", kind: "command", description: "sle
 const bg = (tasks: BackgroundTask[], replied: boolean): BackgroundState => ({ tasks, replied });
 
 function setup() {
-  const clock = fakeTimers();
+  const clock = manualClock();
   let closed = 0;
-  const turnOver = createTurnOver(() => closed++, { timers: clock.timers });
+  const turnOver = createTurnOver(() => closed++, { clock });
   return { turnOver, clock, closed: () => closed };
 }
 
@@ -50,7 +50,7 @@ test("createTurnOver: 裏の作業があるうちの idle では閉じず、0 �
   turnOver.note(tasksMsg, bg([], true));
   assert.equal(closed(), 0, "0 件になった時点では閉じない");
   turnOver.note(stateMsg("running"), undefined);
-  assert.equal(clock.size, 0, "返答を始めたら待つのをやめる");
+  assert.equal(clock.pending, 0, "返答を始めたら待つのをやめる");
   turnOver.note(resultMsg, bg([], true));
   turnOver.note(stateMsg("idle"), undefined);
   assert.equal(closed(), 1);
@@ -63,7 +63,7 @@ test("createTurnOver: 裏の作業が 0 件になっても返答を始めなけ�
   turnOver.note(stateMsg("idle"), undefined);
   turnOver.note(tasksMsg, bg([], true));
   assert.equal(closed(), 0);
-  clock.fire();
+  clock.fireAll();
   assert.equal(closed(), 1);
 });
 
@@ -76,7 +76,7 @@ test("createTurnOver: 発言を足したあとの idle は少し待ち、その�
   turnOver.note(stateMsg("idle"), undefined);
   assert.equal(closed(), 0, "足した発言を読む前の idle では閉じない");
   turnOver.note(stateMsg("running"), undefined);
-  assert.equal(clock.size, 0);
+  assert.equal(clock.pending, 0);
   turnOver.note(stateMsg("idle"), undefined);
   assert.equal(closed(), 1, "足した発言の返答のあとの idle で閉じる");
 });
@@ -87,7 +87,7 @@ test("createTurnOver: 足した発言をいまの返答で読んでいたら（�
   turnOver.pushed();
   turnOver.note(stateMsg("idle"), undefined);
   assert.equal(closed(), 0);
-  clock.fire();
+  clock.fireAll();
   assert.equal(closed(), 1);
 });
 
@@ -114,7 +114,7 @@ test("createTurnOver: stop で待っている閉じるをやめる", () => {
   turnOver.note(tasksMsg, bg([task], true));
   turnOver.note(tasksMsg, bg([], true));
   turnOver.stop();
-  clock.fire();
+  clock.fireAll();
   // 最初の idle（裏の作業 0 件）で 1 回閉じたあとは、待っていた分では閉じない
   assert.equal(closed(), 1);
 });

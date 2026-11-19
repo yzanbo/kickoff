@@ -6,7 +6,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 | フォルダ | 中身 |
 |---|---|
-| `bus.ts`・`errors.ts` | 変更の知らせ `Bus`（`BusEvent`。SSE で配る）・失敗の型 |
+| `bus.ts`・`errors.ts`・`clock.ts` | 変更の知らせ `Bus`（`BusEvent`。SSE で配る）・失敗の型・時計 `Clock`（時間に頼る処理はこれを受け、`setTimeout`・`Date.now()` を直に書かない） |
 | `host/` | メインとの `parentPort` 1 本の RPC（`rpc.ts`。形は `protocol.ts` の 1 か所）。メインにしかない口は `@/app/core/hostRemote.ts` |
 | `db/`・`http/` | SQLite（`node:sqlite`）/ Hono の API・認証・SSE・画面の配信 |
 | `aiTools/` | AI の操作ツールを出す MCP サーバー |
@@ -64,7 +64,6 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - `autoAllow` には、承認と断りをツールの中で行うものと読むだけのものだけを入れる（名前は `mcp__kickoff_chat__` の頭を外す）。
 - 権限モード・Auto mode によらず聞くもの（承認の要る `db_query`・「毎回聞く」の `create_chat`）は、ツールの中で `requestApproval`。
 - 使い方とデータを信頼しないことは `instructions` で渡す。ツールを足したら `ChatTools`・`instructions`・`autoAllow`・`@/features/chat/core/tools/turnTools.test.ts` も直す。
-- 作業の初めにブラウザのタブを使うときは 1 回だけ欄を表に出す（`@/features/browser/core/browserReveal.ts`。Auto mode では承認カードが出ないため）。
 - 砂場の拒否の診断（`@/features/guard/core/chatDiagnosticTools.ts`）は生の本文・パス・コマンドラインとほかのチャットのログを返さない。砂場の設定は変えない。
 
 ## テスト
@@ -73,5 +72,5 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - 作ったもの（見張り・サーバー・子プロセス・DB ワーカー）は必ず止める（`setup()` の分は `afterTest`。足したら止めるのも足す）。
 - API のルートを変えたら、その機能の `core/routes/server.<領域>.test.ts` に足す（認証・SSE・配信は `http/server.test.ts`、端末は `server.devices.test.ts`）。
 - 準備の補助: API は `@/app/core/testing/testServer.ts` の `setup()`、`Runner` は `@/app/core/testing/testCore.ts` の `setupCore` と `@/features/ai/core/testing/fakeProvider.ts` の `ScriptedProvider`。前回の起動のデータは `beforeStart` で入れる。
-- 条件は `until(cond)` で待つ（2 秒。遅れうるものは `until(cond, ms)`）。決め打ちの時間で待ってから比べない。時計は `testing/fakeTimers.ts`。
+- 条件は `until(cond)` で待つ（2 秒。遅れうるものは `until(cond, ms)`）。決め打ちの時間で待ってから比べない。時計は `testing/manualClock.ts`。
 - ログインシェルを流すテストは `testing/quietShell.ts` を読み込む。一時フォルダは `testing/tempDir.ts`、Git は `testing/gitRepo.ts`、データは `@shared/foundation/testing/factories`。

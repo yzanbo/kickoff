@@ -1,15 +1,8 @@
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 import type { BusInput } from "./streamingTexts";
 
 /** 書いている途中の返答（chat_delta）をまとめる間隔。画面の 1 フレームに合わせる（1 秒に最大 60 通） */
 const DELTA_BATCH_MS = 16;
-
-/** タイマーの口（テストでは `testing/fakeTimers.ts` に差し替える） */
-export interface DeltaTimers {
-  set: (fn: () => void, ms: number) => unknown;
-  clear: (handle: unknown) => void;
-}
-
-const realTimers: DeltaTimers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as NodeJS.Timeout) };
 
 /**
  * 書いている途中の返答を、チャットごとに DELTA_BATCH_MS の間ためて 1 通にまとめる。
@@ -19,11 +12,12 @@ const realTimers: DeltaTimers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h
 export class DeltaBatch {
   /** チャット ID → ためた文（ためた順） */
   private readonly pending = new Map<number, { project_id: number; text: string }>();
-  private timer: unknown = null;
+  private timer: TimerHandle | null = null;
 
+  /** clock はためた分を流すタイマー（テストでは手で進めるものを渡す） */
   constructor(
     private readonly emit: (event: BusInput) => void,
-    private readonly timers: DeltaTimers = realTimers,
+    private readonly clock: Pick<Clock, "setTimeout" | "clearTimeout"> = systemClock,
   ) {}
 
   /** chat_delta ならためる（true）。ほかの知らせなら、ためた分を先に流す（false。その知らせは呼んだ側が流す） */
@@ -35,8 +29,8 @@ export class DeltaBatch {
     const held = this.pending.get(event.chat_id);
     if (held) held.text += event.text;
     else this.pending.set(event.chat_id, { project_id: event.project_id, text: event.text });
-    // タイマーは unref しない（16ms で必ず流れる。止めるときは flush を呼ぶ）
-    this.timer ??= this.timers.set(() => {
+    // 16ms で流れる（コアは待ち受けで動き続ける。止めるときは flush を呼ぶ）
+    this.timer ??= this.clock.setTimeout(() => {
       this.timer = null;
       this.flush();
     }, DELTA_BATCH_MS);
@@ -46,7 +40,7 @@ export class DeltaBatch {
   /** ためた分をすべて流す（タイマー・ほかの知らせの前・止めるとき） */
   flush(): void {
     if (this.timer !== null) {
-      this.timers.clear(this.timer);
+      this.clock.clearTimeout(this.timer);
       this.timer = null;
     }
     if (this.pending.size === 0) return;

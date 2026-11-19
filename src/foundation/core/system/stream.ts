@@ -2,6 +2,7 @@
 // runCommand（exec.ts）は終わるまで出力をためるので、つないだまま 1 行ずつ受け取るものと、途中で止めたいものはこちらを使う
 import { spawn } from "node:child_process";
 import { errorMessage } from "@shared/foundation/errors";
+import { systemClock, type Clock, type TimerHandle } from "@/foundation/core/clock";
 
 export interface StreamOptions {
   cwd?: string;
@@ -12,6 +13,8 @@ export interface StreamOptions {
   onErrorLine?: (line: string) => void;
   /** 終わったときに返す標準エラーの最後の行数（既定 20） */
   tailLines?: number;
+  /** 止めても終わらないときに SIGKILL を送るタイマー（既定 systemClock） */
+  clock?: Pick<Clock, "setTimeout" | "clearTimeout">;
 }
 
 export interface StreamResult {
@@ -54,10 +57,10 @@ export function lineSplitter(onLine: (line: string) => void): { push(chunk: stri
 }
 
 /** コマンドを動かし、出力を 1 行ずつ渡す。コアを閉じるときは stopAllStreams でまとめて止める */
-export function streamCommand(file: string, args: string[], { cwd, env, onLine, onErrorLine, tailLines = 20 }: StreamOptions = {}): StreamedCommand {
+export function streamCommand(file: string, args: string[], { cwd, env, onLine, onErrorLine, tailLines = 20, clock = systemClock }: StreamOptions = {}): StreamedCommand {
   const tail: string[] = [];
   let stopped = false;
-  let killTimer: NodeJS.Timeout | undefined;
+  let killTimer: TimerHandle | null = null;
   const child = spawn(file, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"] });
   const out = lineSplitter((line) => onLine?.(line));
   const err = lineSplitter((line) => {
@@ -74,7 +77,7 @@ export function streamCommand(file: string, args: string[], { cwd, env, onLine, 
       const finish = (code: number | null, reason?: string) => {
         if (settled) return;
         settled = true;
-        clearTimeout(killTimer);
+        clock.clearTimeout(killTimer);
         out.end();
         err.end();
         running.delete(handle);
@@ -87,8 +90,7 @@ export function streamCommand(file: string, args: string[], { cwd, env, onLine, 
       if (stopped || child.exitCode !== null || child.signalCode !== null) return;
       stopped = true;
       child.kill("SIGTERM");
-      killTimer = setTimeout(() => child.kill("SIGKILL"), KILL_AFTER_MS);
-      killTimer.unref();
+      killTimer = clock.setTimeout(() => child.kill("SIGKILL"), KILL_AFTER_MS);
     },
   };
   running.add(handle);

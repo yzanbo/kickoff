@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { BusEvent } from "@shared/types";
-import { fakeTimers } from "@/foundation/core/testing/fakeTimers";
+import { manualClock } from "@/foundation/core/testing/manualClock";
 import { Bus } from "@/foundation/core/bus";
 import { DeltaBatch } from "./deltaBatch";
 import type { BusInput } from "./streamingTexts";
@@ -11,9 +11,9 @@ const other: BusEvent = { type: "project_deleted", id: 3 };
 
 /** 流した知らせを覚えるまとめ役 */
 function batch() {
-  const clock = fakeTimers();
+  const clock = manualClock();
   const out: BusInput[] = [];
-  return { clock, out, deltas: new DeltaBatch((e) => out.push(e), clock.timers) };
+  return { clock, out, deltas: new DeltaBatch((e) => out.push(e), clock) };
 }
 
 test("16ms の間の同じチャットの途中の文は 1 通にまとまり、違うチャットは別々に、ためた順で流れる", () => {
@@ -22,17 +22,17 @@ test("16ms の間の同じチャットの途中の文は 1 通にまとまり、
   deltas.accept(delta(8, "やあ"));
   deltas.accept(delta(7, "にちは"));
   assert.deepEqual(out, []);
-  assert.equal(clock.size, 1);
-  clock.fire();
+  assert.equal(clock.pending, 1);
+  clock.fireAll();
   assert.deepEqual(out, [delta(7, "こんにちは"), delta(8, "やあ")]);
   // 流したあとは、ためた分がない（タイマーも動いていない）
-  clock.fire();
+  clock.fireAll();
   assert.equal(out.length, 2);
-  assert.equal(clock.size, 0);
+  assert.equal(clock.pending, 0);
 });
 
 test("ほかの知らせの前に、ためた途中の文を必ず先に流す（順が「途中の文 → その知らせ」になる）", () => {
-  const bus = new Bus(fakeTimers().timers);
+  const bus = new Bus(manualClock());
   const seen: BusEvent[] = [];
   bus.subscribe((e) => seen.push(e));
   bus.publish(delta(7, "こん"));
@@ -53,7 +53,7 @@ test("flush でタイマーが止まり、ためた分がないときは何も�
   deltas.accept(delta(1, "a"));
   deltas.flush();
   assert.deepEqual(out, [delta(1, "a")]);
-  assert.equal(clock.size, 0);
+  assert.equal(clock.pending, 0);
   assert.equal(deltas.accept(other), false);
   assert.deepEqual(out, [delta(1, "a")]);
 });
