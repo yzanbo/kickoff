@@ -37,7 +37,6 @@ function TabWindowPanel({ route }: { route: TabWindowRoute }) {
   const panel = usePanel({
     surface: route.kind === "browser" ? "window" : "chatWindow",
     scope: windowScope(route.projectId, route.key),
-    noChat: route.kind === "browser",
     newChat: undefined,
     terminals: NO_TERMINALS,
     // このウィンドウで送ってできたチャットは、メインのウィンドウのチャットのパネルには出さない（サイドバーとの連動で足されたら、表示だけ消してもらう）

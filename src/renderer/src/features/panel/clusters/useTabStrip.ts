@@ -27,12 +27,10 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
     const t = panel.tabs.find((x) => x.key === key);
     return t?.kind === "chat" ? t.id : null;
   };
-  // 欄で隠している種類のタブは並べない（閉じずに残す）。チャットを隠しているときは、タブのないグループの札も出さない
-  const paneKnown = pane.tabs.filter(panel.isKindShown);
-  const known = showChat && home ? orderLikeSidebar(paneKnown, chatIdOf, sidebarOrder.index) : paneKnown;
+  const known = showChat && home ? orderLikeSidebar(pane.tabs, chatIdOf, sidebarOrder.index) : pane.tabs;
   // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない
   const shownSeeds = showChat && home ? seeds : [];
-  // チャットを隠している欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
+  // チャットを出さない欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
   const all = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, shownSeeds, projectOrder);
   // そのまとまりに入るサイドバーのチャットの数（サイドバーの見出しと同じ数え方。送る前の新しいチャット（下書き。New Chat）のタブも 1 つと数える。利用者の依頼）
   const isNewTab = (key: string) => panel.tabs.some((t) => t.key === key && t.kind === "new");

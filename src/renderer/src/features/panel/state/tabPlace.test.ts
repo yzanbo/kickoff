@@ -5,7 +5,7 @@ import { emptyPanel, panelReducer, type PanelAction, type PanelState } from "./p
 import { isTabShown, panelOfTab } from "./tabPlace";
 
 const browser = (key: string): PanelTab => ({ key, kind: "browser", url: "https://example.com", title: "" });
-const run = (state: PanelState, ...actions: PanelAction[]) => actions.reduce((s, a) => panelReducer(s, a, { shows: () => true, closeWhenEmpty: false }), state);
+const run = (state: PanelState, ...actions: PanelAction[]) => actions.reduce((s, a) => panelReducer(s, a, { closeWhenEmpty: false }), state);
 
 /** ブラウザのタブ a（表示中）と b（裏）の開いた欄 */
 const sideOpen = run(emptyPanel(), { type: "open", tab: browser("browser:a") }, { type: "add", tab: browser("browser:b") });

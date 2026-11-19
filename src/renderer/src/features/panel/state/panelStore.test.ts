@@ -4,7 +4,7 @@ import { makeChat } from "@shared/testing/factories";
 import { publishServerEvent } from "@/api/events";
 import { installMemoryStorage } from "@/lib/memoryStorage";
 import { readSetting, writeSetting } from "@/lib/storage";
-import { NEW_CHAT_DRAFTS, panelTabKinds, projectChatOpen } from "@/lib/storageKeys";
+import { NEW_CHAT_DRAFTS, projectChatOpen } from "@/lib/storageKeys";
 import { activeTabOf } from "@/features/panel/layout/paneTree";
 import { readBrowserSession } from "./browserSession";
 import { panelActions } from "./panelActions";
@@ -102,40 +102,17 @@ test("閉じたターミナルのタブは、シェルも止める（ペイン�
   assert.deepEqual(keys("bottom:3"), []);
 });
 
-test("開閉: 見せるタブがないまま開くと、右サイドバー（チャット欄）は空のまま開き、フッターはターミナルを始める", () => {
+test("開閉: タブがないまま開くと、右サイドバー（チャット欄）は空のまま開き、フッターはターミナルを始める", () => {
   panelActions("side:4").toggle();
   assert.deepEqual(keys("side:4"), []);
   assert.equal(panelStateOf("side:4").open, true);
-  // 前にチャットを出すよう選んでいても、新しいチャットは始めない（ブラウザだけの欄）
-  panelActions("side:4").toggle();
-  writeSetting(panelTabKinds("side"), ["chat", "browser"]);
-  panelActions("side:4").toggle();
-  assert.deepEqual(keys("side:4"), []);
   panelActions("bottom:4").toggle({ terminal: target(4) });
   assert.deepEqual(panelStateOf("bottom:4").tabs.map((t) => t.kind), ["terminal"]);
-  // 見せるタブがあれば、開け閉めするだけ
+  // タブがあれば、開け閉めするだけ
   panelActions("bottom:4").toggle({ terminal: target(4) });
   panelActions("bottom:4").toggle({ terminal: target(4) });
   assert.equal(panelStateOf("bottom:4").tabs.length, 1);
   assert.equal(panelStateOf("bottom:4").open, true);
-});
-
-test("隠している種類のタブを自分で開いたら、その種類を出す", () => {
-  writeSetting(panelTabKinds("board"), ["chat"]);
-  panelActions("kanban:5").openBrowser("https://example.com");
-  assert.deepEqual(readSetting(panelTabKinds("board")), ["chat", "browser"]);
-});
-
-test("隠している種類のタブ（チャットを隠した欄の下書きなど）を表示するときも、その種類を出す", () => {
-  writeSetting(panelTabKinds("bottom"), ["terminal"]);
-  const actions = panelActions("bottom:12");
-  actions.openNew({ projectId: 12 });
-  const [draft] = keys("bottom:12");
-  writeSetting(panelTabKinds("bottom"), ["terminal"]);
-  actions.close();
-  actions.showTab(draft);
-  assert.deepEqual(readSetting(panelTabKinds("bottom")), ["chat", "terminal"]);
-  assert.equal(panelStateOf("bottom:12").open, true);
 });
 
 test("開いているチャットを検索から（focus 付きで）開き直しても、タブを作り直さず、名前とタブの中のチャットは残す", () => {

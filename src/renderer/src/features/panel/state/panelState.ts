@@ -15,11 +15,9 @@ export interface PanelState {
   links: LinkState;
 }
 
-/** 欄の決まりのうち、状態の変え方にかかわるもの（店が欄の決まり SURFACES と「表示するタブ」から作る） */
+/** 欄の決まりのうち、状態の変え方にかかわるもの（店が欄の決まり SURFACES から作る） */
 export interface PanelRules {
-  /** いまこの欄で見せている種類のタブか */
-  shows: (tab: PanelTab) => boolean;
-  /** 見せている最後のタブを閉じたら欄も閉じる */
+  /** 最後のタブを閉じたら欄も閉じる */
   closeWhenEmpty: boolean;
 }
 
@@ -72,14 +70,14 @@ function patched(tab: PanelTab, patch: TabPatch): PanelTab {
   return Object.keys(fields).every((k) => current[k] === fields[k]) ? tab : ({ ...tab, ...fields } as PanelTab);
 }
 
-/** タブを閉じる。見せているタブがなくなったら、欄の決まりで欄も閉じる（隠した種類のタブが残っていても） */
+/** タブを閉じる。タブがなくなったら、欄の決まりで欄も閉じる */
 function closeTabs(state: PanelState, keys: readonly string[], dismiss: boolean, rules: PanelRules): PanelState {
   const closing = new Set(keys);
   const closed = state.tabs.filter((t) => closing.has(t.key));
   if (closed.length === 0) return state;
   const tabs = state.tabs.filter((t) => !closing.has(t.key));
   const chats = closed.flatMap((t) => (t.kind === "chat" ? [t.id] : []));
-  const open = state.open && !(rules.closeWhenEmpty && !tabs.some(rules.shows));
+  const open = state.open && !(rules.closeWhenEmpty && tabs.length === 0);
   return { ...state, tabs, layout: closeLayoutTabs(state.layout, keys), links: closedLinks(state.links, chats, dismiss), open };
 }
 

@@ -145,9 +145,9 @@
       "brokenRefs": 2
     },
     "src/renderer/src/features/panel/CLAUDE.md": {
-      "bytes": 98661,
-      "ancestors": 186469,
-      "longLines": 56,
+      "bytes": 95936,
+      "ancestors": 183744,
+      "longLines": 55,
       "forbidden": 85,
       "brokenRefs": 6
     },
@@ -531,7 +531,7 @@
     "src/renderer/src/features/panel/projectChat/useSideWorktree.ts": 1,
     "src/renderer/src/features/panel/state/openBrowserTab.ts": 2,
     "src/renderer/src/features/panel/state/panelDrafts.ts": 1,
-    "src/renderer/src/features/panel/surfaces.ts": 7,
+    "src/renderer/src/features/panel/surfaces.ts": 6,
     "src/renderer/src/features/panel/tabs/NewChatPane.tsx": 1,
     "src/renderer/src/features/panel/tabs/PanelViewMenu.tsx": 4,
     "src/renderer/src/features/panel/tabs/TabDisplayItems.tsx": 7,

@@ -26,12 +26,12 @@ export function PanelCloseButton({ panel, frame }: { panel: PanelController; fra
 
 /**
  * タブの列の左の道具（左上のペインにだけ置く）: 左から、閉じる（欄の決まりで先頭か最後。右端に置く欄（サブエージェントの欄）は PaneTabBar の endControls、
- * チャット欄は右上のレイアウトの開閉で閉じるので出さない）・大きくする切り替え（横幅いっぱい ⇔ 元の幅 / 最大化 ⇔ 元の高さ）・「表示」のメニューのボタン（表示するタブ・チャットのまとめ方・
+ * チャット欄は右上のレイアウトの開閉で閉じるので出さない）・大きくする切り替え（横幅いっぱい ⇔ 元の幅 / 最大化 ⇔ 元の高さ）・「表示」のメニューのボタン（チャットのまとめ方・
  * アーカイブ済み・チャットの画面。usePanelViewMenu。タブの列の何もないところの右クリックでも同じメニュー）。
  * よく使い、状態が見た目で分かってほしい閉じる・大きくするはアイコンのまま、たまにしか変えない表示の選び方は 1 つのメニューにまとめる
  */
 export function PanelTools({ panel, frame, view }: { panel: PanelController; frame?: PanelFrame; view: PanelViewMenu }) {
-  const { closeButton, maximize, maximizeLabels } = SURFACES[panel.surface];
+  const { closeButton, maximize } = SURFACES[panel.surface];
   const close = <PanelCloseButton panel={panel} frame={frame} />;
   const state = frame?.maximize;
   return (
@@ -45,12 +45,8 @@ export function PanelTools({ panel, frame, view }: { panel: PanelController; fra
           icon={state.on ? FoldHorizontal : UnfoldHorizontal}
           size={15}
           className="panel-control"
-          label={state.on ? (maximizeLabels?.on ?? "元の幅に戻す") : (maximizeLabels?.off ?? "横幅いっぱいに広げる")}
-          title={
-            state.on
-              ? `${maximizeLabels?.on ?? "元の幅に戻す"}${state.disabled ? "（画面が狭いため、元の幅に戻せません）" : ""}`
-              : (maximizeLabels?.off ?? "横幅いっぱいに広げる")
-          }
+          label={state.on ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+          title={state.on ? `元の幅に戻す${state.disabled ? "（画面が狭いため、元の幅に戻せません）" : ""}` : "横幅いっぱいに広げる"}
           aria-pressed={state.on}
           disabled={state.disabled}
           onClick={state.toggle}

@@ -1,11 +1,11 @@
 import { Globe, MessageSquarePlus, SquarePen, SquareTerminal } from "lucide-react";
-import type { PanelKind } from "@/features/panel/state/panelKinds";
+import type { PanelKind } from "@/features/panel/surfaces";
 
 /**
  * タブがないときのパネル・ペインの中身（新しいチャット・ブラウザ・ターミナルを開くボタン）。
  * hint があれば、新しいチャットの代わりにその案内の文を出す（ボードの分けていないパネル。新しいチャットは見出しの「新規」から）。
  * チャットを出さない欄でも、hint があれば出す（サブエージェントの欄。中身は外から開くタブだけなので、開き方を案内する）。
- * サブエージェントの欄では、案内の下に新しい子チャットのボタンも出す（onNewChild）。欄で隠している種類（kinds）のボタンは出さない
+ * サブエージェントの欄では、案内の下に新しい子チャットのボタンも出す（onNewChild）。欄に出さない種類（kinds）のボタンは出さない
  */
 export function PanelEmpty({
   hint,

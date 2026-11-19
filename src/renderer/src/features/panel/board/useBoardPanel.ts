@@ -53,7 +53,7 @@ export function useProjectChatsPanel({ projectId, holdEsc, focus, tab }: { proje
  * はじめて描いたときは URL を変えない（URL で開いたチャット（useBoardFocus）より先に、前に表示していたタブで上書きしないため）
  */
 function useShownChatInUrl(panel: ReturnType<typeof usePanel>, projectId: number, tab: "board" | "chats") {
-  const shown = panel.panelOpen ? panel.shownTabOf(focusedPane(panel.layout)) : null;
+  const shown = panel.panelOpen ? focusedPane(panel.layout).active : null;
   const shownTab = shown === null ? undefined : panel.tabs.find((t) => t.key === shown);
   // タブが覚えているチャットの ID とプロジェクト（一覧にまだ届いていないチャットでも引ける）
   const chat = shownTab?.kind === "chat" ? { id: shownTab.id, project_id: shownTab.projectId } : undefined;

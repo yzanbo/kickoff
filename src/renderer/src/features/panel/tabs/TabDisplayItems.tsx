@@ -7,8 +7,6 @@ import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { ClusterShortItem } from "@/features/panel/clusters/ClusterShortItem";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
-import { PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
-import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
 import { PANEL_TAB_GROUP_COLORS, PANEL_TAB_HIDDEN, PANEL_TAB_OVERFLOW, PANEL_TAB_TWO_LINE } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
@@ -16,8 +14,8 @@ import { CHAT_ORDERS, ORDER_META, useChatLayout } from "@/features/sidebar/chatG
 import { groupedTabField, hiddenTabFields, TAB_FIELD_LABELS, TAB_FIELDS, toggleTabField } from "./tabFields";
 import { ArchivedChatsItem } from "./ArchivedChatsItem";
 
-/** その欄に、タブの表示の項目があるか（表示するタブの種類を選べる欄か、チャットを出す欄。サブエージェントの欄はない） */
-export const hasTabDisplayItems = (panel: PanelController) => !SURFACES[panel.surface].fixedKinds || panel.kinds.has("chat");
+/** その欄に、タブの表示の項目があるか（チャットを出す欄。サブエージェントの欄はない） */
+export const hasTabDisplayItems = (panel: PanelController) => panel.kinds.has("chat");
 
 const separator = <div className="menu-separator" role="separator" />;
 
@@ -30,11 +28,10 @@ const TAB_OVERFLOW_TIPS: Record<(typeof TAB_OVERFLOWS)[number], string> = {
 
 /**
  * タブの表示の項目（タブの列の「表示」のメニューの上の部分と、タブの右クリックの「タブの表示 ›」で共通。利用者の依頼）:
- * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方（とまとまりの色）・チャットの並び順（サイドバーと共通）・タブに出す項目（tabFields）・
+ * チャットのまとめ方（とまとまりの色）・チャットの並び順（サイドバーと共通）・タブに出す項目（tabFields）・
  * グループ別のときに出すグループ（HiddenGroupItems）・アーカイブ済みのチャットを出すか。まとまりごとに区切り線で分ける
  */
 export function TabDisplayItems({ panel }: { panel: PanelController }) {
-  const { kinds } = panel;
   const [grouping, setGrouping] = useTabGrouping(panel.surface);
   // チャットの並び順はサイドバーと共通の 1 つの設定（利用者の依頼。一覧のペインのチャットのタブはサイドバーと同じ並びなので、どちらで選んでもそろう）
   const { order, setOrder } = useChatLayout();
@@ -45,8 +42,7 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
   const [twoLine, setTwoLine] = useSetting(PANEL_TAB_TWO_LINE);
   // タブが増えて入らないとき、細くして収めるか横にスクロールするか（すべてのパネルで共通。利用者の依頼）
   const [overflow, setOverflow] = useSetting(PANEL_TAB_OVERFLOW);
-  const showKinds = !SURFACES[panel.surface].fixedKinds;
-  const showChat = kinds.has("chat");
+  const showChat = panel.kinds.has("chat");
 
   const section = (title: string, items: ReactNode) => (
     <>
@@ -55,28 +51,6 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
     </>
   );
   const sections: ReactNode[] = [];
-  if (showKinds)
-    sections.push(
-      section(
-        "表示するタブ",
-        kinds.choices.map((k) => {
-          const on = kinds.has(k);
-          const last = on && kinds.kinds.length === 1;
-          return (
-            <MenuItem
-              key={k}
-              role="menuitemcheckbox"
-              checked={on}
-              title={last ? "1 つは表示しておきます" : on ? `${PANEL_KIND_LABELS[k]}のタブを隠す（閉じずに残します）` : `${PANEL_KIND_LABELS[k]}のタブを表示する`}
-              onSelect={() => kinds.toggle(k)}
-            >
-              <span className="project-switch-item">{PANEL_KIND_LABELS[k]}</span>
-              {on && <Check size={14} aria-hidden />}
-            </MenuItem>
-          );
-        }),
-      ),
-    );
   if (showChat) {
     sections.push(
       section(

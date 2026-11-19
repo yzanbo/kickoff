@@ -35,28 +35,27 @@ test("下書きの保存: 壊れた値・形の違うものは読まない", () 
 
 const draftOf = (key: string, projectId: number): DraftTab => ({ key, kind: "new", projectId });
 
-test("チャットを出さない欄の下書き（全プロジェクトのボード・右サイドバー・フッター）: 作成先のプロジェクトのチャットのパネルの後ろへ移し、元の分は消す", () => {
+test("チャットの別ウィンドウの下書き: 作成先のプロジェクトのチャットのパネルの後ろへ移し、元の分は消す", () => {
   const saved = new Map([
-    ["kanban:all", [draftOf("new:a", 1), draftOf("new:b", 2)]],
+    ["cwin:win-1-chat:5", [draftOf("new:a", 1), draftOf("new:b", 2)]],
     ["kanban:1", [draftOf("new:x", 1)]],
     ["side:2", [draftOf("new:y", 2)]],
-    ["bottom:all", [draftOf("new:c", 1)]],
-    ["bottom:1", [draftOf("new:d", 1)]],
   ]);
   const moved = moveDraftsToChatPanels(saved);
   assert.deepEqual(
     [...moved],
     [
-      ["kanban:1", [draftOf("new:x", 1), draftOf("new:a", 1), draftOf("new:c", 1), draftOf("new:d", 1)]],
-      ["kanban:2", [draftOf("new:b", 2), draftOf("new:y", 2)]],
+      ["kanban:1", [draftOf("new:x", 1), draftOf("new:a", 1)]],
+      ["side:2", [draftOf("new:y", 2)]],
+      ["kanban:2", [draftOf("new:b", 2)]],
     ],
   );
   // 元の Map は書き換えない
-  assert.equal(saved.get("kanban:all")?.length, 2);
+  assert.equal(saved.get("cwin:win-1-chat:5")?.length, 2);
 });
 
-test("全プロジェクトのボードの下書き: 同じタブが移す先にあれば重ねず、移すものがなければ同じ Map を返す", () => {
-  const twice = moveDraftsToChatPanels(new Map([["kanban:all", [draftOf("new:a", 1)]], ["kanban:1", [draftOf("new:a", 1)]]]));
+test("チャットの別ウィンドウの下書き: 同じタブが移す先にあれば重ねず、移すものがなければ同じ Map を返す", () => {
+  const twice = moveDraftsToChatPanels(new Map([["cwin:win-1-chat:5", [draftOf("new:a", 1)]], ["kanban:1", [draftOf("new:a", 1)]]]));
   assert.deepEqual([...twice], [["kanban:1", [draftOf("new:a", 1)]]]);
   const none = new Map([["kanban:1", [draftOf("new:x", 1)]]]);
   assert.equal(moveDraftsToChatPanels(none), none);

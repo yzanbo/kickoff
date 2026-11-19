@@ -11,7 +11,7 @@ const newTab = (key: string): PanelTab => ({ key, kind: "new", projectId: 1 });
 const terminal = (key: string): PanelTab => ({ key, kind: "terminal", cwd: "/tmp", label: "tmp", projectId: 1 });
 
 /** 見せる種類（既定はすべて）と、最後のタブを閉じたら閉じるか */
-const rules = (closeWhenEmpty = true, shows: PanelRules["shows"] = () => true): PanelRules => ({ shows, closeWhenEmpty });
+const rules = (closeWhenEmpty = true): PanelRules => ({ closeWhenEmpty });
 const run = (state: PanelState, ...actions: PanelAction[]) => actions.reduce((s, a) => panelReducer(s, a, rules()), state);
 
 /** 木を読みやすい文字列にする（ペインのタブ・表示中のタブ） */
@@ -87,17 +87,13 @@ test("replace: 連動で先に足されていた同じチャットのタブは�
   assert.equal(shape(next.layout.root), `${FIRST_PANE}[chat:1,*chat:9]`);
 });
 
-test("close: 表示中のタブを閉じたら隣のタブへ。見せているタブがなくなったら欄も閉じる（閉じない欄もある）", () => {
+test("close: 表示中のタブを閉じたら隣のタブへ。タブがなくなったら欄も閉じる（閉じない欄もある）", () => {
   const s = run(emptyPanel([chatTab(1), chatTab(2)]), { type: "show", key: "chat:1" });
   const one = run(s, { type: "close", keys: ["chat:1"], dismiss: true });
   assert.equal(shape(one.layout.root), `${FIRST_PANE}[*chat:2]`);
   assert.equal(one.open, true);
   assert.equal(run(one, { type: "close", keys: ["chat:2"], dismiss: true }).open, false);
   assert.equal(panelReducer(one, { type: "close", keys: ["chat:2"], dismiss: true }, rules(false)).open, true);
-  // 隠した種類のタブ（ターミナル）しか残らなければ閉じる
-  const hidden = panelReducer(run(emptyPanel([chatTab(1), terminal("terminal:a")]), { type: "show", key: "chat:1" }), { type: "close", keys: ["chat:1"], dismiss: true }, rules(true, (t) => t.kind !== "terminal"));
-  assert.deepEqual(keys(hidden), ["terminal:a"]);
-  assert.equal(hidden.open, false);
   // 知らないタブなら同じ状態
   assert.equal(run(s, { type: "close", keys: ["zzz"], dismiss: true }), s);
 });

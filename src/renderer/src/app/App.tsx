@@ -122,10 +122,9 @@ export function App() {
   const fallbackProject = useFallbackProject();
   // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
   // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。全プロジェクトの画面では、サイドバーで選んでいるプロジェクトのもの）
-  // 全プロジェクトの画面ではチャットを出さない（ターミナルとブラウザだけ。チャットはそのプロジェクトへ移って開く）
   // サイドバー・チャット欄の別ウィンドウが開いている間、いまの画面とパネルの状態を送る（チャット欄は状態ごと渡し、このウィンドウでは描かない）
   const { sideHeld } = usePopoutHosts(route);
-  const chat = useProjectChat(projectId ?? fallbackProject, { noChat: projectId === undefined, inWindow: sideHeld });
+  const chat = useProjectChat(projectId ?? fallbackProject, { inWindow: sideHeld });
   const bottomPanel = useBottomPanel(projectId ?? "all", terminalTargets(projects, projectId));
   // 戻る・進むの行き先が、最大表示したパネルの裏に隠れないようにする
   const navigation = useNavigationHistory(routeHistory, () => {

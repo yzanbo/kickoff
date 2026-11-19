@@ -94,8 +94,7 @@ export function PaneTabBar({
   rename: TabRename;
 }) {
   const insertAt = drag.insertAt(pane.id);
-  // 見せている表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ）
-  const active = panel.shownTabOf(pane);
+  const active = pane.active;
   const strip = useTabStrip(panel, pane, home, active);
   const { clusters, display } = strip;
   // グループ別のとき、チャットのタブをほかのグループのまとまり（No Group も）に落とすと、そのグループへ移す
@@ -105,12 +104,12 @@ export function PaneTabBar({
   useEffect(() => {
     stripRef.current?.querySelector(".panel-tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [active, pane.tabs.length]);
-  /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   /** ペインを閉じる（閉じるファイル・メモのタブに保存していない書きかけがあれば、先に保存するかを聞く） */
   const closePane = () => {
     const tabs = panel.tabs.filter((t) => pane.tabs.includes(t.key));
     void confirmCloseAllUnsaved(panel.key, tabs).then((ok) => ok && panel.closePane(pane.id));
   };
+  /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (active ?? undefined) : undefined);
   // タブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
   const groupsOf = useGroupsOf(panel.tabs.flatMap((t) => specOf(t).projectOf(t) ?? []));

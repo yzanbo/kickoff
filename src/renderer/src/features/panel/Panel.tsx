@@ -30,7 +30,6 @@ import { useNewChild } from "@/features/panel/agents/useNewChild";
  * 分けているときは、中身の中にペインごとのタブの列と境目のつまみを、割合の位置で重ねる（タブの中身はいつも中身の直下に置き、作り直さない）。
  * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
  * 「新しいチャット」の作成先・開けるターミナル（Mac のアプリでだけ）は欄の hook が usePanel に渡す。チャットを開いているペインでは、ターミナルはそのチャットの作業場所で開く。
- * 表示するタブの種類（panel.kinds）で隠している種類のタブは、タブの列にも中身にも出さない（閉じずに残す）。
  * タブの列を隠せる欄（チャットのパネル）で隠しているときは、どのペインのタブの列（と左の道具）も出さない。
  * panel（usePanel）と frame が同じなら描き直さない（チャットの画面の右の欄が、返答のたびに描き直らないように）。
  * タブの中身（PanelTabPage）も memo で、変わったタブだけが描き直る
@@ -66,7 +65,6 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const closeAtRight = SURFACES[panel.surface].closeButton?.at === "right";
   const topRightId = topRightPane(layout.root).id;
   const { panes, sashes } = layoutRects(layout.root);
-  const anyShown = (keys: readonly string[]) => keys.some(panel.isKindShown);
   // ブラウザ・ターミナルを開く（ターミナルの開く場所の決め方と、開く場所を選ぶメニュー・▾ のメニュー）
   const openWith = useOpenWithMenu(panel);
 
@@ -84,7 +82,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
     panelOpen,
   );
 
-  // 「表示」のメニュー（表示するタブ・まとめ方・アーカイブ済み・チャットの画面）。道具のボタンと、タブの列の何もないところの右クリックで同じものを開く
+  // 「表示」のメニュー（まとめ方・アーカイブ済み・チャットの画面）。道具のボタンと、タブの列の何もないところの右クリックで同じものを開く
   const view = usePanelViewMenu(panel);
   // 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ。タブの列の「＋」と空の欄のボタン）
   const newChild = useNewChild(panel);
@@ -94,13 +92,13 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const shownNow = tabs.filter((t) => !mountedTabs.has(t.key) && (
     t.kind === "browser" && t.restored
       ? panelOpen
-      : panel.shownTabOf(leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0]) === t.key
+      : (leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0]).active === t.key
   ));
   if (shownNow.length > 0) setMountedTabs(new Set([...mountedTabs, ...shownNow.map((t) => t.key)]));
   // まだ描いていないチャットのタブを、表のタブに近い順に手すきのときに先読みする（切り替えたときに読み込みを待たない）
   const tabByKey = new Map(tabs.map((t) => [t.key, t]));
   const prefetch = neighborChats(
-    leaves.map((p) => ({ tabs: p.tabs, shown: panel.shownTabOf(p) })),
+    leaves.map((p) => ({ tabs: p.tabs, shown: p.active })),
     (key) => {
       const t = tabByKey.get(key);
       return t?.kind === "chat" && specOf(t).lazy && !mountedTabs.has(key) ? t.id : null;
@@ -169,7 +167,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
       {frame?.resizeHandle && <div inert={!panelOpen} className="panel-resizer" aria-label="パネルの幅を変える" {...frame.resizeHandle} />}
       {!split && !tabsHidden && bar(leaves[0])}
       <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing", twoLine && "tabs-two-line")} inert={!panelOpen}>
-        {!split && !anyShown(leaves[0].tabs) && empty(leaves[0])}
+        {!split && leaves[0].tabs.length === 0 && empty(leaves[0])}
         {split &&
           panes.map(({ id, rect }) => {
             const pane = leaves.find((p) => p.id === id)!;
@@ -181,7 +179,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
                 onPointerDown={() => panel.focusPane(id)}
               >
                 {!tabsHidden && bar(pane)}
-                {!anyShown(pane.tabs) && empty(pane)}
+                {pane.tabs.length === 0 && empty(pane)}
               </div>
             );
           })}
@@ -194,7 +192,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
         {tabs.map((t) => {
           const pane = leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0];
           const rect = rectOf.get(pane.id);
-          const active = panel.shownTabOf(pane) === t.key;
+          const active = pane.active === t.key;
           if (!active && specOf(t).lazy && !mountedTabs.has(t.key)) return null;
           if (t.kind === "browser" && t.restored && !panelOpen && !mountedTabs.has(t.key)) return null;
           return (

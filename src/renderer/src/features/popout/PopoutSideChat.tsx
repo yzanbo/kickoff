@@ -86,7 +86,7 @@ export function PopoutSideChat() {
     <RouteContext.Provider value={route}>
       <div className="popout-body popout-side-chat">
         <div className="popout-side-body">
-          <SideBody projectId={projectId} noChat={routeProject === undefined} />
+          <SideBody projectId={projectId} />
         </div>
         <SideRail projectId={projectId} open inWindow />
       </div>

@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { postWindowMessage, subscribeWindowMessages } from "@/app/windowBus";
 import { panelActions } from "@/features/panel/state/panelActions";
 import { panelStateOf, subscribePanels } from "@/features/panel/state/panelStore";
-import type { PanelKind } from "@/features/panel/state/panelKinds";
+import type { PanelKind } from "@/features/panel/surfaces";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 
 /** ウィンドウをまたいで移せるタブ（中身の形。送る前の新しいチャットは、書きかけの文・添付ごとタブの中身をそのまま） */

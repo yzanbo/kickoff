@@ -12,11 +12,11 @@ import { SideViewBody } from "./SideViewBody";
 const NO_TERMINALS: TerminalTarget[] = [];
 
 /**
- * プロジェクトのチャット欄（画面の右端。下のパネルより下まで）。中身はボードの右のパネルと同じタブ（Panel）で、
- * ＋からチャット・ブラウザ・ターミナルを開ける。左端のつまみで幅を変える。閉じても要素は残し（幅 0）、書きかけの文章をなくさない
+ * プロジェクトのチャット欄（画面の右端。下のパネルより下まで。画面の文言では「右サイドバー」）。ブラウザのタブはボードの右のパネルと同じタブ（Panel）で、
+ * ＋からブラウザを開ける。左端のつまみで幅を変える。閉じても要素は残し（幅 0）、開いていたページ・書きかけをなくさない
  */
 export function ProjectChat({ chat }: { chat: ProjectChatController }) {
-  const { width: { paneRef: widthPaneRef, ...width }, projectId, noChat, maximized, setMaximized } = chat;
+  const { width: { paneRef: widthPaneRef, ...width }, projectId, maximized, setMaximized } = chat;
   // タブの列の左端の「横幅いっぱいに広げる ⇔ 元の幅に戻す」
   const frame = useMemo<PanelFrame>(() => ({ maximize: { on: maximized, toggle: () => setMaximized(!maximized) } }), [maximized, setMaximized]);
   if (projectId === undefined) return null;
@@ -34,7 +34,7 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
       <div className="project-chat-inner">
         {/* 上の行は信号機ボタン・右上のレイアウトの開閉と同じ行のウィンドウのドラッグ領域。タブの列はその下の行（利用者の依頼） */}
         <div className="panel-window-titlebar" aria-hidden />
-        <SideBody projectId={projectId} noChat={noChat} frame={frame} />
+        <SideBody projectId={projectId} frame={frame} />
       </div>
     </aside>
   );
@@ -45,12 +45,12 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
  * ブラウザはほかの中身を見ている間も隠して置く（ページ・ログインの状態・書きかけを保つ）。ほかの中身は見ているものだけ描く（SideViewBody）。
  * メインのウィンドウの右サイドバーと、右サイドバーの別ウィンドウ（PopoutSideChat）で同じものを描く
  */
-export function SideBody({ projectId, noChat, frame }: { projectId: number; noChat: boolean; frame?: PanelFrame }) {
+export function SideBody({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
   const [view] = useSetting(sideView(projectId));
   return (
     <>
       <div className="side-browser" hidden={view !== "browser"}>
-        <ProjectChatPanel projectId={projectId} noChat={noChat} frame={frame} />
+        <ProjectChatPanel projectId={projectId} frame={frame} />
       </div>
       {view !== "browser" && <SideViewBody key={projectId} projectId={projectId} view={view} frame={frame} />}
     </>
@@ -62,8 +62,8 @@ export function SideBody({ projectId, noChat, frame }: { projectId: number; noCh
  * 欄ごと別ウィンドウへ移すボタンは置かない（利用者の依頼で隠した。タブは右クリック・ウィンドウの外へのドラッグで 1 つずつ別ウィンドウで開ける）。
  * frame: 横幅いっぱいの切り替え（メインのウィンドウだけ。別ウィンドウはウィンドウの大きさで決まるので渡さない）
  */
-export function ProjectChatPanel({ projectId, noChat, frame }: { projectId: number; noChat: boolean; frame?: PanelFrame }) {
+export function ProjectChatPanel({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
   // ブラウザだけの欄（利用者の依頼）なので、新しいチャット・ターミナルの開く場所は渡さない
-  const panel = usePanel({ surface: "side", scope: projectId, noChat, newChat: undefined, terminals: NO_TERMINALS });
+  const panel = usePanel({ surface: "side", scope: projectId, newChat: undefined, terminals: NO_TERMINALS });
   return <Panel panel={panel} frame={frame} />;
 }

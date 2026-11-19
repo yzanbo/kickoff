@@ -15,8 +15,8 @@ export type BottomPanelController = ReturnType<typeof useBottomPanel>;
 
 /**
  * フッター（画面の下のパネル。VS Code と同じく、どの画面でも ⌃` か ⌘J で開閉する）の殻: 開閉・高さ・最大化・ショートカット。App が持つ。
- * 中身は右のパネル・右端のチャット欄と同じタブ（BottomPanel の中の usePanel の欄 "bottom"）で、初めはターミナルとブラウザを出す
- * （表示するタブ・タブのまとめ方はフッターだけで覚える）。タブ・開いているかはプロジェクトごと（全プロジェクトの画面は別）。
+ * 中身は右のパネル・右端のチャット欄と同じタブ（BottomPanel の中の usePanel の欄 "bottom"）で、ターミナルだけを出す。
+ * タブ・開いているかはプロジェクトごと（全プロジェクトの画面は別）。
  * タブはほかの欄と同じく上下・左右のペインに分けられる（フッターにピントがあるときの ⌘\ で右に分ける）。
  * Esc では閉じない（ターミナルの中で使うため）。シェルはメインプロセスで動き続けるので、閉じても・ほかのプロジェクトに移っても残る
  */
@@ -41,9 +41,8 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
     if (!open) setMaximized(false);
   }, [open]);
 
-  /** 開閉。開くときに見せているタブがなく、ターミナルを出す欄で開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
-  // 全プロジェクトの画面のフッターはチャットを出さない（BottomPanel）
-  const toggle = () => actions.toggle({ terminal: targets.length === 1 && window.kickoff?.terminal ? targets[0] : undefined, noChat: scope === "all" });
+  /** 開閉。開くときにタブがなく、開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
+  const toggle = () => actions.toggle({ terminal: targets.length === 1 && window.kickoff?.terminal ? targets[0] : undefined });
 
   // ⌃`（VS Code と同じ）か ⌘J で開閉。ターミナルの中で押しても効くよう、ほかより先に受け取る
   useWindowEvent(

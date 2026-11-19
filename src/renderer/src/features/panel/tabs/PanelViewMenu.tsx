@@ -12,7 +12,7 @@ import { hasTabDisplayItems, TabDisplayItems } from "./TabDisplayItems";
 
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
- * タブの表示（表示するタブの種類・チャットのまとめ方・並び順・タブに出す項目・出すグループ・アーカイブ済み。TabDisplayItems。タブの右クリックの「タブの表示 ›」と共通）を
+ * タブの表示（チャットのまとめ方・並び順・タブに出す項目・出すグループ・アーカイブ済み。TabDisplayItems。タブの右クリックの「タブの表示 ›」と共通）を
  * 1 つにまとめる（以前はそれぞれのアイコンが並び、タブの列の道具が多かった）。
  * チャットの画面の表示（タブの列・見出し・指示の帯など）は、チャットの見出しと会話の何もないところの右クリック・設定の「表示」で選ぶ
  * （前は「チャット画面表示 ›」の子のメニューもここにあったが、利用者の依頼で消した）。
@@ -31,7 +31,7 @@ export function usePanelViewMenu(panel: PanelController) {
 
   const separator = <div className="menu-separator" role="separator" />;
   const sections: ReactNode[] = [];
-  // タブの表示（表示するタブ・まとめ方・並び順・タブに出す項目・出すグループ・アーカイブ済み。タブの右クリックの「タブの表示 ›」と共通）
+  // タブの表示（まとめ方・並び順・タブに出す項目・出すグループ・アーカイブ済み。タブの右クリックの「タブの表示 ›」と共通）
   if (has) sections.push(<TabDisplayItems panel={panel} />);
   if (has)
     sections.push(
@@ -98,7 +98,7 @@ export function PanelViewButton({ view }: { view: PanelViewMenu }) {
       size={15}
       className={cx("panel-control", view.buttonClass)}
       label={label}
-      title={`${label}: 表示するタブ・チャットのまとめ方と並び順・タブに出す項目・アーカイブ済みなど（タブの列の何もないところの右クリックでも開きます）`}
+      title={`${label}: チャットのまとめ方と並び順・タブに出す項目・アーカイブ済みなど（タブの列の何もないところの右クリックでも開きます）`}
       aria-haspopup="menu"
       aria-expanded={view.isOpen}
       onClick={view.toggle}

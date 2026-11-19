@@ -42,10 +42,9 @@ export function useOpenWithMenu(panel: PanelController) {
   // ターミナルを開く場所を選ぶメニュー（tab = 新しいタブ / external = 外のターミナル。icon = アイコン・タブがないときのボタンから開いた）
   const picker = useContextMenu<{ mode: "tab" | "external"; app?: ExternalTerminalId; icon: boolean }>();
 
-  /** ペインで見せている表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ） */
+  /** ペインで見せている表示中のタブ */
   const shownTab = (paneId: string) => {
-    const pane = findPane(panel.layout, paneId);
-    const key = pane && panel.shownTabOf(pane);
+    const key = findPane(panel.layout, paneId)?.active;
     return panel.tabs.find((t) => t.key === key);
   };
 

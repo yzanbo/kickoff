@@ -5,8 +5,7 @@ import { focusPane, moveTab, returnToHome, splitPane } from "@/features/panel/la
 import { equalizeSplit, setSplitSizes } from "@/features/panel/layout/paneSizes";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, ProjectTool, ProjectView, TerminalTarget } from "@/features/panel/tabs/panelTypes";
-import { browserTab, changesTab, chatTab, childTab, databaseTab, fileTab, githubTab, kindOfTab, memoTab, newChatTab, newChildTab, newTabKey, projectToolTab, projectViewTab, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
-import { readKinds, showKind } from "./panelKinds";
+import { browserTab, changesTab, chatTab, childTab, databaseTab, fileTab, githubTab, memoTab, newChatTab, newChildTab, newTabKey, projectToolTab, projectViewTab, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
 import type { PanelAction, TabPatch } from "./panelState";
 import { dispatchPanel, panelStateOf } from "./panelStore";
 
@@ -15,17 +14,14 @@ const lastNew = new Map<string, { target: string; key: string; at: number }>();
 
 /**
  * 欄のパネル（覚える名前 key）の操作。部品の外からも使え、usePanel が束ねて返す。
- * 開く操作は、自分で開くタブはピントのあるペインに足し（すでにあればそのペインで表示）、欄も開く。隠している種類のタブなら、その種類を出す
+ * 開く操作は、自分で開くタブはピントのあるペインに足し（すでにあればそのペインで表示）、欄も開く
  */
 export function panelActions(key: string) {
   const at = parsePanelKey(key);
   const dispatch = (action: PanelAction) => dispatchPanel(key, action);
   const changeLayout = (change: (layout: PaneLayout) => PaneLayout) => dispatch({ type: "layout", change });
 
-  const openTab = (tab: PanelTab, reopen?: TabPatch) => {
-    if (at) showKind(at.surface, kindOfTab(tab));
-    dispatch({ type: "open", tab, reopen });
-  };
+  const openTab = (tab: PanelTab, reopen?: TabPatch) => dispatch({ type: "open", tab, reopen });
 
   /**
    * 新しいチャットのタブを開く（ボードや列・グループの＋、サイドバーの＋など）。ブラウザ・ターミナルと同じく、押すたびに新しいタブを開く
@@ -92,19 +88,14 @@ export function panelActions(key: string) {
     /** ブラウザのタブを表に出さずに足し、そのキーを返す（AI が「裏で」開いたとき。見ているタブ・欄の開閉は変えない） */
     addBrowserBehind: (url: string) => {
       const tab = browserTab(url);
-      if (at) showKind(at.surface, "browser");
       dispatch({ type: "add", tab });
       return tab.key;
     },
     openTerminal,
     /** 作ったタブを開く（領域ごとの種類のタブ。プロジェクトのファイルのタブ（features/editor/fileTabs.ts）など。同じキーのタブがあればそのペインで表示する） */
     openPanelTab: (tab: PanelTab) => openTab(tab),
-    /** 開いているタブを表示する（タブ・下書きを押したとき。隠している種類のタブなら、その種類を出す。ないタブなら何もしない） */
-    showTab: (tabKey: string) => {
-      const tab = panelStateOf(key).tabs.find((t) => t.key === tabKey);
-      if (tab && at) showKind(at.surface, kindOfTab(tab));
-      dispatch({ type: "show", key: tabKey });
-    },
+    /** 開いているタブを表示する（タブ・下書きを押したとき。ないタブなら何もしない） */
+    showTab: (tabKey: string) => dispatch({ type: "show", key: tabKey }),
     /** タブの中身を変える（新しいチャットのプロジェクト・グループ、ブラウザのタイトルなど。その種類のタブだけ） */
     patchTab: (tabKey: string, patch: TabPatch) => dispatch({ type: "patch", key: tabKey, ...patch }),
     /** タブを別のタブに置き換える（同じペインの同じ位置のまま。名前を変えたメモのタブなど、キーが変わるとき） */
@@ -113,26 +104,21 @@ export function panelActions(key: string) {
     replaceWithChat: (tabKey: string, chat: Chat) => dispatch({ type: "replace", key: tabKey, tab: chatTab(chat) }),
     /**
      * タブを閉じる（表示中のタブならそのペインの隣のタブへ。空になったペインは消す）。dismiss: false はアーカイブ・削除のあと
-     * （サイドバーに出ている間は連動でまた出る）。ふだんは表示だけ消したことにして、連動で出し直さない
+     * （サイドバーに出ている間は連動でまた出る）。ふだんは表示だけ消したことにして、連動で出し直さない。keep: 後始末をしない（別ウィンドウへ移すとき）
      */
-    /** タブを閉じる（keep: 後始末をしない。別ウィンドウへ移すとき） */
     closeTab: (tabKey: string, { dismiss = true, keep = false }: { dismiss?: boolean; keep?: boolean } = {}) => dispatch({ type: "close", keys: [tabKey], dismiss, keep }),
     /** タブを一覧のペインへ戻す（分けたペインで、サイドバーと連動したチャットのタブを閉じたとき。表示だけ消したことにはしない） */
     returnToHome: (tabKey: string) => changeLayout((l) => returnToHome(l, tabKey)),
     setOpen,
     close: () => setOpen(false),
     /**
-     * 開閉。開くときに見せているタブがなければ、欄の決まり（SURFACES の openWhenEmpty）でタブを始める
-     * （チャット欄 = チャットを出す欄なら新しいチャット / フッター = ターミナルを出す欄で、開く場所 terminal が決まっていればターミナル）
+     * 開閉。開くときにタブがなければ、欄の決まり（SURFACES の openWhenEmpty）でタブを始める
+     * （フッター = 開く場所 terminal が決まっていればターミナル）
      */
-    toggle: ({ terminal, noChat = false }: { terminal?: TerminalTarget; noChat?: boolean } = {}) => {
+    toggle: ({ terminal }: { terminal?: TerminalTarget } = {}) => {
       const state = panelStateOf(key);
       if (state.open || !at) return setOpen(!state.open);
-      const kinds = readKinds(at.surface, noChat);
-      const empty = !state.tabs.some((t) => kinds.includes(kindOfTab(t)));
-      const start = SURFACES[at.surface].openWhenEmpty;
-      if (empty && start === "newChat" && kinds.includes("chat") && typeof at.scope === "number") return openNew({ projectId: at.scope });
-      if (empty && start === "terminal" && kinds.includes("terminal") && terminal) return openTerminal(terminal);
+      if (state.tabs.length === 0 && SURFACES[at.surface].openWhenEmpty === "terminal" && terminal) return openTerminal(terminal);
       setOpen(true);
     },
     /** ペインにピントを移す（ペインを押した・ペインの中で操作したとき。新しく開くタブはここに入る） */

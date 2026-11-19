@@ -323,8 +323,6 @@ export const PANEL_HIDDEN_GROUPS = defineSetting("kickoff:panel-hidden-groups", 
 export const PANEL_HIDE_EMPTY_GROUPS = defineSetting("kickoff:panel-hide-empty-groups", flag(false));
 /** パネルのチャットのタブにアーカイブ済みのチャットを出すか（すべてのパネルで共通。サイドバーの SIDEBAR_SHOW_ARCHIVED とは別。利用者の依頼で、サイドバーで出していてもタブには出さない。初めは隠す） */
 export const PANEL_SHOW_ARCHIVED = defineSetting("kickoff:panel-show-archived", flag(false));
-/** 欄ごとの、表示するタブの種類（chat / browser / terminal。空なら欄ごとの既定） */
-export const panelTabKinds = defineSettingFamily("kickoff:panel-tab-kinds:", list());
 /** プロジェクトごとの、右のチャット欄を開いているか */
 export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag(), { ids: true });
 /** プロジェクトごとの右サイドバーのブラウザ。開いていたタブと配置（panel/state/browserSession.ts で確かめる） */

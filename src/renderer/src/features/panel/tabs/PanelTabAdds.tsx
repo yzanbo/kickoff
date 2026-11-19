@@ -8,7 +8,7 @@ import type { PanelController } from "@/features/panel/usePanel";
 /**
  * ペインのタブの列の、タブのすぐ右の新しいタブのボタン（チャット・ブラウザ・ターミナル）。
  * ブラウザ・ターミナルは、アイコンで新しいタブ、横の ▾ で外のアプリで開くメニュー（2 つを 1 つのボタンに見せる .panel-split-button）。
- * 欄で隠している種類のボタンは出さない（表示するタブはタブの列の左の「表示するタブ」で選ぶ）
+ * 欄に出さない種類のボタンは出さない（欄ごとの種類は SURFACES の kinds）
  */
 export function PanelTabAdds({
   panel,

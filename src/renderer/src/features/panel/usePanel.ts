@@ -2,15 +2,14 @@ import { useMemo } from "react";
 import { useLatest } from "@/hooks/useLatest";
 import type { Chat } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { isTabVisible, type PaneLeaf } from "@/features/panel/layout/paneTree";
+import { isTabVisible } from "@/features/panel/layout/paneTree";
 import { panelActions } from "@/features/panel/state/panelActions";
-import { shownActiveOf, usePanelKinds } from "@/features/panel/state/panelKinds";
 import { isLinkedTab } from "@/features/panel/state/panelState";
 import { useMountedPanel, usePanelState } from "@/features/panel/state/panelStore";
 import { useLinkedTabs } from "@/features/panel/state/useLinkedChats";
 import { panelKey, projectOfPanel, SURFACES, type PanelScope, type PanelSurface } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
-import { chatKey, kindOfTab, tabChat } from "@/features/panel/tabs/tabKinds";
+import { chatKey, tabChat } from "@/features/panel/tabs/tabKinds";
 import { openNoProjectsGuide } from "@/features/project/new/openNewProject";
 import { isComposing } from "@/lib/keys";
 import { focusedPanelKey, focusInNestedPanel } from "./panelHost";
@@ -19,7 +18,7 @@ export type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/t
 export { terminalTargets } from "@/features/panel/tabs/panelTypes";
 
 interface Options {
-  /** どの欄か（決まりは SURFACES。表示するタブの種類・タブのまとめ方も欄ごとに覚える） */
+  /** どの欄か（決まりは SURFACES。タブのまとめ方も欄ごとに覚える） */
   surface: PanelSurface;
   /**
    * どの画面の欄か（プロジェクト・全プロジェクト "all"）。状態はこれで覚え、チャットのタブはこの範囲のサイドバーに出ているチャットにそろえる
@@ -34,11 +33,6 @@ interface Options {
   terminals: readonly TerminalTarget[];
   /** 新しいチャットができたとき（URL をそのチャットにするなど） */
   onCreated?: (chat: Chat) => void;
-  /**
-   * チャットを出さない欄（全プロジェクトの画面のフッター・チャット欄。ボードの右のパネルをなくしたのと同じく、チャットはそのプロジェクトへ移って開く）。
-   * チャットのタブは閉じずに隠し、サイドバーとそろえもしない。表示するタブの選び方にもチャットを出さない
-   */
-  noChat?: boolean;
 }
 
 export type PanelController = ReturnType<typeof usePanel>;
@@ -60,17 +54,15 @@ export type PanelPageOps = ReturnType<typeof panelActions> & {
  * サイドバーと連動して自動で足すチャットのタブは一覧のペイン（homePane。分けた元のペイン）に入る）。
  * 表示は Panel。大きさ（幅・高さ・最大化）は欄の殻（useBoardPanel・useProjectChat・useBottomPanel）が持つ
  */
-export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, onCreated, noChat = false }: Options) {
+export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, onCreated }: Options) {
   const key = panelKey(surface, scope);
   const state = usePanelState(key);
   const { tabs, layout, open: panelOpen } = state;
   useMountedPanel(key);
-  // 欄で表示するタブの種類（隠した種類のタブは閉じずに残す。隠している種類のタブを自分で開いたら、その種類を出す）
-  const kinds = usePanelKinds(surface, noChat);
-  // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える。チャットを隠している欄では読まず、タブもそろえない）。
+  // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える。チャットを出さない欄では読まず、タブもそろえない）。
   // チャットの別ウィンドウは、そのプロジェクトのチャットを読むだけで、タブはそろえない（移したチャットだけを並べる）
   const unlinked = SURFACES[surface].unlinkedChats === true;
-  const chats = useLinkedTabs(key, unlinked ? (projectOfPanel(key) ?? scope) : scope, kinds.has("chat"), !unlinked);
+  const chats = useLinkedTabs(key, unlinked ? (projectOfPanel(key) ?? scope) : scope, SURFACES[surface].kinds.includes("chat"), !unlinked);
   const actions = useMemo(() => panelActions(key), [key]);
   // 新しいチャットができたときの知らせは、いま渡されているものを呼ぶ（タブの中身に渡す操作を作り直さないため）
   const created = useLatest(onCreated);
@@ -103,11 +95,6 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
   return useMemo(() => {
     /** 欄でこのタブを見せているか（分割していれば、どれかのペインで表示中） */
     const isShowingTab = (tabKey: string) => panelOpen && isTabVisible(layout, tabKey);
-    /** そのタブの種類をこの欄で見せているか */
-    const isKindShown = (tabKey: string) => {
-      const t = tabs.find((x) => x.key === tabKey);
-      return t !== undefined && kinds.has(kindOfTab(t));
-    };
 
     return {
       ...pageOps,
@@ -117,11 +104,8 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
       key,
       tabs,
       surface,
-      /** 表示するタブの種類（タブの列の「表示するタブ」） */
-      kinds,
-      isKindShown,
-      /** ペインで見せる表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ。なければ null = 空のペイン） */
-      shownTabOf: (pane: PaneLeaf) => shownActiveOf(pane, isKindShown),
+      /** 出すタブの種類（欄の決まり SURFACES の kinds） */
+      kinds: new Set(SURFACES[surface].kinds),
       /** 分割の配置 */
       layout,
       panelOpen,
@@ -141,7 +125,7 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
       /** 欄でこのチャットを表示しているか（カードを選択中として見せる。分割していれば、どれかのペインで） */
       isShowing: (chatId: number) => isShowingTab(chatKey(chatId)),
     };
-  }, [pageOps, actions, key, state, tabs, layout, panelOpen, surface, kinds, chats, terminals, newChat]);
+  }, [pageOps, actions, key, state, tabs, layout, panelOpen, surface, chats, terminals, newChat]);
 }
 
 const NO_TERMINALS: readonly TerminalTarget[] = [];

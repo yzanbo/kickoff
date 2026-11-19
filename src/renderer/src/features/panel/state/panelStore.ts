@@ -1,13 +1,11 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { subscribeServerEvent } from "@/api/events";
 import { readSetting, writeSetting } from "@/lib/storage";
-import { reconcileLayout } from "@/features/panel/layout/paneLayout";
 import { draftScope, panelKey, parsePanelKey, SURFACES } from "@/features/panel/surfaces";
-import { kindOfTab, specOf } from "@/features/panel/tabs/tabKinds";
+import { specOf } from "@/features/panel/tabs/tabKinds";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { readBrowserSession, writeBrowserSession } from "./browserSession";
 import { moveDraftsToChatPanels, readSavedDrafts, writeDrafts } from "./draftPersistence";
-import { readKinds } from "./panelKinds";
 import { emptyPanel, panelReducer, type PanelAction, type PanelRules, type PanelState } from "./panelState";
 
 /**
@@ -55,10 +53,10 @@ function initialState(key: string, tabs: readonly PanelTab[] = []): PanelState {
   const project = browserProjectOf(key);
   const browser = project === null ? null : readBrowserSession(project);
   const state = emptyPanel(browser ? [...browser.tabs, ...tabs] : tabs, setting ? readSetting(setting) : false);
-  return browser ? { ...state, layout: tabs.length ? reconcileLayout(browser.layout, state.tabs.map((t) => t.key)) : browser.layout } : state;
+  return browser ? { ...state, layout: browser.layout } : state;
 }
 
-// 前回残した下書きのタブを、閉じた欄のタブとして戻す（チャットを出さない欄に残っていたものは、作成先のプロジェクトのチャットのパネルへ移して残し直す）
+// 前回残した下書きのタブを、閉じた欄のタブとして戻す（チャットの別ウィンドウに残っていたものは、作成先のプロジェクトのチャットのパネルへ移して残し直す）
 const savedDrafts = readSavedDrafts();
 const restoredDrafts = moveDraftsToChatPanels(savedDrafts);
 for (const [key, tabs] of restoredDrafts) states.set(key, initialState(key, tabs));
@@ -77,12 +75,10 @@ export const allPanels = (): ReadonlyMap<string, PanelState> => states;
 /** 状態が変わるたびに増える数（下書きの一覧を作り直すかを決める） */
 export const panelsVersion = () => version;
 
-/** 欄の決まり（見せている種類・最後のタブを閉じたら閉じるか） */
+/** 欄の決まり（最後のタブを閉じたら閉じるか） */
 function rulesOf(key: string): PanelRules {
   const at = parsePanelKey(key);
-  if (!at) return { shows: () => true, closeWhenEmpty: false };
-  const kinds = readKinds(at.surface);
-  return { shows: (t) => kinds.includes(kindOfTab(t)), closeWhenEmpty: SURFACES[at.surface].closeWhenEmpty };
+  return { closeWhenEmpty: at ? SURFACES[at.surface].closeWhenEmpty : false };
 }
 
 /**

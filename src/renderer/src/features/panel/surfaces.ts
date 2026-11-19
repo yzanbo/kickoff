@@ -2,7 +2,6 @@ import { PanelBottomClose, PanelRightClose, type LucideIcon } from "lucide-react
 import type { Route } from "@/app/router";
 import { readSetting, type SettingFamily } from "@/lib/storage";
 import { CHAT_PLACEMENT, projectChatOpen } from "@/lib/storageKeys";
-import type { PanelKind } from "./state/panelKinds";
 
 /**
  * タブの欄（board = チャットのパネル（ボードの右・「チャット」タブ。チャットだけ）/ side = 画面の右端のチャット欄（画面の文言では「右サイドバー」。ブラウザだけ）/
@@ -14,6 +13,11 @@ import type { PanelKind } from "./state/panelKinds";
  * chatWindow = チャットの別ウィンドウ（チャットのパネルのチャットのタブを外へ出した先。ほかのチャットのタブもドラッグで足せる。ウィンドウごとに 1 つ））
  */
 export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos" | "files" | "window" | "chatWindow";
+
+/**
+ * 欄に出すタブの種類（チャットには、新しいチャットのタブも入る。サブエージェント・ファイルはチャットの画面の右の欄・メモとファイルのタブの右だけに出す種類）
+ */
+export type PanelKind = "chat" | "browser" | "terminal" | "subagent" | "file";
 
 /**
  * どの画面の欄か（プロジェクトの ID・全プロジェクトの画面 "all"。サブエージェントの欄はチャットの ID）。
@@ -48,8 +52,8 @@ export const draftScope = (tabKey: string): DraftScope => `draft-${tabKey}`;
 export interface SurfaceRules {
   /** 覚えておく状態の名前の頭（<頭>:<プロジェクト | all>。下書きの保存（kickoff:new-chat-drafts）のキーにも使うので変えない） */
   memoryPrefix: string;
-  /** 初めに見せるタブの種類（タブの列の「表示するタブ」で変えるまで） */
-  defaultKinds: readonly PanelKind[];
+  /** 出すタブの種類（欄ごとに決まっている。新しいタブのボタン・空の欄のボタン・ドラッグで受け入れる種類もこれで決まる） */
+  kinds: readonly PanelKind[];
   /**
    * Esc で閉じるか（ボードの右のパネル。チャット欄はページの中で Esc を使うので、フッターはターミナルの中で使うので閉じない）。
    * focused は、ピントが欄の中にあるときだけ閉じる（サブエージェントの欄。外のメインのチャットで押した Esc では閉じない）
@@ -57,8 +61,8 @@ export interface SurfaceRules {
   closeOnEsc: boolean | "focused";
   /** 見せている最後のタブを閉じたら、欄も閉じるか（右サイドバーも下のパネルと同じく閉じる。利用者の依頼） */
   closeWhenEmpty: boolean;
-  /** 見せるタブがないまま開いたときに始めるもの（フッター = ターミナル（開く場所が 1 つのとき））。newChat は新しいチャット（いま使う欄はない） */
-  openWhenEmpty: "newChat" | "terminal" | null;
+  /** タブがないまま開いたときに始めるもの（フッター = ターミナル（開く場所が 1 つのとき）） */
+  openWhenEmpty: "terminal" | null;
   /** 開いているかを覚える設定（プロジェクトごと）。なければアプリを閉じるまで覚える */
   openSetting?: SettingFamily<boolean>;
   /**
@@ -70,13 +74,6 @@ export interface SurfaceRules {
   noSplitButtons?: boolean;
   /** 大きくする切り替え（width = 横幅いっぱい ⇔ 元の幅 / height = 最大化 ⇔ 元の高さ。大きさは欄の殻が持ち、Panel の frame で渡す） */
   maximize?: "width" | "height";
-  /** 大きくする切り替えの名前（なければ「横幅いっぱいに広げる / 元の幅に戻す」など。on = 大きくしているときの名前） */
-  maximizeLabels?: { on: string; off: string };
-  /**
-   * 出すタブの種類が決まっている欄か（defaultKinds のまま。表示するタブの種類のメニューを出さない）。チャットのパネルはチャットだけ・
-   * チャット欄（右サイドバー）はブラウザだけ・下のパネルはターミナルだけ（利用者の依頼）・サブエージェントの欄・メモとファイルのタブの右
-   */
-  fixedKinds?: boolean;
   /** タブの列の新しいタブのボタンを出さない（中身は外から開くタブと、newChild の新しい子チャットだけの欄。サブエージェントの欄・メモとファイルのタブの右） */
   noTabAdds?: boolean;
   /**
@@ -109,7 +106,7 @@ export interface SurfaceRules {
 export const SURFACES: Record<PanelSurface, SurfaceRules> = {
   board: {
     memoryPrefix: "kanban",
-    defaultKinds: ["chat"],
+    kinds: ["chat"],
     closeOnEsc: true,
     closeWhenEmpty: true,
     openWhenEmpty: null,
@@ -118,12 +115,10 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     maximize: "width",
     hideableTabs: true,
     emptyHint: "カードを押すと、ここにチャットが開きます。",
-    fixedKinds: true,
   },
   side: {
     memoryPrefix: "side",
-    defaultKinds: ["browser"],
-    fixedKinds: true,
+    kinds: ["browser"],
     closeOnEsc: false,
     // 最後のブラウザのタブを閉じたら閉じる（下のパネルの最後のターミナルと同じ。利用者の依頼。前は空のまま開いていた）
     closeWhenEmpty: true,
@@ -137,8 +132,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
   },
   bottom: {
     memoryPrefix: "bottom",
-    defaultKinds: ["terminal"],
-    fixedKinds: true,
+    kinds: ["terminal"],
     closeOnEsc: false,
     closeWhenEmpty: true,
     openWhenEmpty: "terminal",
@@ -148,7 +142,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
   },
   agents: {
     memoryPrefix: "agents",
-    defaultKinds: ["subagent", "file"],
+    kinds: ["subagent", "file"],
     closeOnEsc: "focused",
     closeWhenEmpty: true,
     openWhenEmpty: null,
@@ -159,16 +153,14 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     emptyHint:
       "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
     newChildHint: "「＋」で新しい子チャットを始められます。",
-    fixedKinds: true,
     noTabAdds: true,
     newChild: true,
     rootClass: "agent-panel",
   },
-  // ブラウザの別ウィンドウ: ブラウザだけ。最後のタブを閉じたらウィンドウごと閉じる（Chrome と同じ。ウィンドウの殻 features/popout/browserWindow.ts）
+  // ブラウザの別ウィンドウ: ブラウザだけ。最後のタブを閉じたらウィンドウごと閉じる（Chrome と同じ。ウィンドウの殻 features/popout/tabWindow.ts）
   window: {
     memoryPrefix: "win",
-    defaultKinds: ["browser"],
-    fixedKinds: true,
+    kinds: ["browser"],
     closeOnEsc: false,
     closeWhenEmpty: false,
     openWhenEmpty: null,
@@ -178,8 +170,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
   // チャットの別ウィンドウ: チャットだけ。サイドバーとそろえず、移した・ドラッグで足したチャットだけ。最後のタブがなくなればウィンドウごと閉じる（features/popout/tabWindow.ts）
   chatWindow: {
     memoryPrefix: "cwin",
-    defaultKinds: ["chat"],
-    fixedKinds: true,
+    kinds: ["chat"],
     closeOnEsc: false,
     closeWhenEmpty: false,
     openWhenEmpty: null,
@@ -190,26 +181,24 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
   },
   memos: {
     memoryPrefix: "memos",
-    // メモのタブは「ファイル」の種類に入る（出す種類は決まっている）
-    defaultKinds: ["file"],
+    // メモのタブは「ファイル」の種類に入る
+    kinds: ["file"],
     closeOnEsc: false,
     closeWhenEmpty: false,
     openWhenEmpty: null,
     emptyHint: "左の一覧でメモを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
-    fixedKinds: true,
     noTabAdds: true,
     noKindBadges: true,
     className: "memo-panel",
   },
   files: {
     memoryPrefix: "files",
-    // ファイルのタブは「ファイル」の種類に入る（出す種類は決まっている）
-    defaultKinds: ["file"],
+    // ファイルのタブは「ファイル」の種類に入る
+    kinds: ["file"],
     closeOnEsc: false,
     closeWhenEmpty: false,
     openWhenEmpty: null,
     emptyHint: "左の一覧でファイルを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
-    fixedKinds: true,
     noTabAdds: true,
     noKindBadges: true,
     className: "file-panel",
@@ -218,16 +207,16 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
 
 const SURFACE_NAMES = Object.keys(SURFACES) as PanelSurface[];
 
-/**
- * 欄の状態を覚える名前（ボード = kanban:<プロジェクト>（列を状態で分けても・グループで分けても同じパネル。全プロジェクトのボードはパネルを持たず、
- * 以前の kanban:all に残っていた下書きは起動したときに作成先のプロジェクトへ移す）/ チャット欄 = side:<プロジェクト> / フッター = bottom:<プロジェクト | all>）
- */
 /** タブがないときの案内（新しい子チャットを開けるときだけ、その文を足す） */
 export function emptyHintOf(rules: SurfaceRules, canNewChild: boolean): string | undefined {
   if (!rules.emptyHint) return undefined;
   return canNewChild && rules.newChildHint ? `${rules.emptyHint}${rules.newChildHint}` : rules.emptyHint;
 }
 
+/**
+ * 欄の状態を覚える名前（ボード = kanban:<プロジェクト>（列を状態で分けても・グループで分けても同じパネル。全プロジェクトのボードはパネルを持たない）/
+ * チャット欄 = side:<プロジェクト> / フッター = bottom:<プロジェクト | all>）
+ */
 export const panelKey = (surface: PanelSurface, scope: PanelScope) => `${SURFACES[surface].memoryPrefix}:${scope}`;
 
 /** 覚える名前から、どの欄・どの画面のものか（知らない形なら undefined） */
