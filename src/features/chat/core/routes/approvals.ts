@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { ChatRouteDeps } from "./deps";
 import type { ApprovalDecision } from "@shared/types";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { attachmentsSchema, optionalId } from "@/foundation/core/http/schemas";
@@ -19,7 +19,7 @@ const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action
 ]);
 
 /** 回答待ち: ツールの承認依頼・AI からの質問・再開するかの確かめ（一覧と回答） */
-export function approvalRoutes(app: Hono, { approvals, uploads }: ServerDeps) {
+export function approvalRoutes(app: Hono, { approvals, uploads }: Pick<ChatRouteDeps, "approvals" | "uploads">) {
   app.get("/api/approvals", (c) => {
     const { project_id } = z.object({ project_id: optionalId }).parse({ project_id: queryOf(c, "project_id") });
     return c.json(approvals.list({ projectId: project_id }));

@@ -3,7 +3,7 @@ import type { CoreFeature } from "@/foundation/core/feature";
 import type { KernelWithStore } from "@/foundation/core/kernel";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { AiApi } from "@/features/ai/core/index";
-import type { UploadStore } from "@/features/attachments/core/index";
+import type { AttachmentsApi } from "@/features/attachments/core/index";
 import { trashNoteChats, trashNoteChatsOnImport, type Runner } from "@/features/chat/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
 import { NoteService } from "./notes";
@@ -15,10 +15,10 @@ export interface NotesDeps {
   trash: TrashApi;
   /** ノートの案を AI に聞く */
   ai: AiApi;
-  /** ノートのチャット（chat を createX に分けるまでは仮の機能 legacy の Runner） */
+  /** ノートのチャット */
   chat: { runner: Runner };
-  /** ノートの写しを添付にする */
-  uploads: UploadStore;
+  /** ノートの写しを添付にし、ツールの結果の画像はノートのフォルダからも読む */
+  attachments: AttachmentsApi;
 }
 
 /** プロジェクトのノート（保存先はプロジェクトの外。外での変更の見張りは止めるときに閉じる） */
@@ -37,10 +37,11 @@ export function createNotes(k: KernelWithStore, deps: NotesDeps, env: { defaultD
   trash.addOriginResolver((origin) => store.projects.list().find((p) => (p.note_path || p.note_folder) && isInside(realPathLoose(notes.dirOf(p)), origin))?.id ?? null);
   // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）
   trash.addImportHook((item) => trashNoteChatsOnImport({ store, runner: chat.runner, noteDirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }, item));
+  deps.attachments.addImageDir((p) => notes.dirOf(p));
   return {
     name: "notes",
     api: notes,
-    routes: [{ legacy: (app) => noteRoutes(app, { store, notes, runner: chat.runner, uploads: deps.uploads }) }],
+    routes: [{ legacy: (app) => noteRoutes(app, { store, notes, runner: chat.runner, uploads: deps.attachments.uploads }) }],
     stop: () => notes.close(),
   };
 }

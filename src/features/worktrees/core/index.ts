@@ -18,7 +18,7 @@ export interface WorktreesDeps {
   /** ブランチの名前の案を AI に聞く */
   ai: AiApi;
   docker: DockerService;
-  /** 作業中か・送信待ち・作業場所を移す（chat を createX に分けるまでは仮の機能 legacy の Runner） */
+  /** 作業中か・送信待ち・作業場所を移す */
   chat: { runner: Runner };
 }
 

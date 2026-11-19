@@ -1,4 +1,4 @@
-// 機能の組み立て: 機能を下の層から作って並べる（本物の起動 startCore.ts とテストの createTestCore が同じものを通る）。上の機能を使う下の機能のルートは仮の機能 legacy の中
+// 機能の組み立て: 機能を下の層から作って並べる（本物の起動 startCore.ts とテストの createTestCore が同じものを通る）。並べた順に作って始め、先に止める機能（stopPhase）のあとは逆の順に止める
 import type { AssembledCore } from "@/foundation/core/feature";
 import type { KernelWithStore } from "@/foundation/core/kernel";
 import { createSettings } from "@/features/settings/core/index";
@@ -26,7 +26,6 @@ import { createRemoteImages, type RemoteImageService } from "@/features/remoteIm
 import { createNotes, type NoteService } from "@/features/notes/core/index";
 import { createDatabase, type DatabaseService } from "@/features/database/core/index";
 import { createBrowser } from "@/features/browser/core/index";
-import { createLegacy } from "./legacy";
 import type { CorePrepared } from "./prepare";
 import type { CoreEnv } from "./types";
 
@@ -68,7 +67,7 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
   const { trashCommandFile } = prepared;
-  const chat = createChat(k, { trash: trash.api, ai: ai.api, uploads: attachments.api, userViews: userView.api }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl, retryMs: env.retryMs });
+  const chat = createChat(k, { trash: trash.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api }, { ...env.chat, recoveredReason: env.recoveredReason, trashCommandFile, mcpBaseUrl: env.mcpBaseUrl, retryMs: env.retryMs });
   const { runner } = chat.api;
   // ここからはチャットの上の機能
   const guard = createGuard({ trash: trash.api }, { sandbox: env.guard.sandbox, rules: env.platformParts.agentSandbox, diagnostics: env.platformParts.sandboxDiagnostics, relay: prepared.relay, trashCommandFile });
@@ -79,7 +78,7 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
   const docker = createDocker(k, { engine: env.platformParts.dockerEngine, ...env.docker });
   const worktrees = createWorktrees(k, { trash: trash.api, ai: ai.api, docker: docker.api, chat: chat.api }, { ...env.worktrees, retryMs: env.retryMs });
   const github = createGitHub(k, { worktrees: worktrees.api }, env.github);
-  const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, uploads: attachments.api }, env.notes);
+  const notes = createNotes(k, { trash: trash.api, ai: ai.api, chat: chat.api, attachments: attachments.api }, env.notes);
   const database = createDatabase(k, { ai: ai.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api }, { ...env.database, secretCipher: env.secretCipher });
   const terminal = createTerminal(k, { worktrees: worktrees.api }, { shell: env.platformParts.terminalShell(), ...env.terminal });
   const browser = createBrowser({ control: env.browser });
@@ -97,16 +96,15 @@ export function assembleCore(k: KernelWithStore, env: CoreEnv, prepared: CorePre
     ...guard.api,
     remoteImages: remoteImages.api,
   });
-  // 持ち主の機能より上の機能を使うルート（プロジェクト・添付の表示）
-  const legacy = createLegacy(k, { trash: trash.api, ai: ai.api, chat: chat.api, uploads: attachments.api, userViews: userView.api, github: github.api, notes: notes.api });
+  projects.api.attach({ runner, prWatch: github.api.prWatch, githubAccounts: github.api.accounts });
   return {
-    features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports, legacy],
+    features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports],
     hooks: {
       deviceAuth: devices.api.auth,
       status: () => ({ remote_enabled: devices.api.mobileEnabled(), agents: runner.stats() }),
       mcp: chat.api.mcpTools,
     },
-    apis: { trash: trash.api, ai: ai.api, uploads: attachments.api, userViews: userView.api, devices: devices.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, github: github.api, terminals, ports: ports.api, notes: notes.api, databases: database.api, remoteImages: remoteImages.api },
+    apis: { trash: trash.api, ai: ai.api, uploads: attachments.api.uploads, userViews: userView.api, devices: devices.api, chat: chat.api, docker: docker.api, worktrees: worktrees.api, github: github.api, terminals, ports: ports.api, notes: notes.api, databases: database.api, remoteImages: remoteImages.api },
     runningChats: () => runner.busyChats(),
     awakeNeeds: () => ({ running: runner.stats().running, mobileEnabled: devices.api.mobileEnabled() }),
     terminals,

@@ -2,10 +2,9 @@ import type { Hono } from "hono";
 import os from "node:os";
 import { z } from "zod";
 import type { ArchiveCleanupBody, OrphanSessionsTrashBody } from "@shared/types";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { ChatRouteDeps } from "./deps";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { realPathLoose } from "@/foundation/core/system/paths";
-import type { TrashApi } from "@/features/trash/core/index";
 import { archiveCleanupPreview, runArchiveCleanup } from "@/features/chat/core/sessions/archiveCleanup";
 import { listOrphanSessions, trashOrphanSessions, type OrphanSessionDeps } from "@/features/chat/core/sessions/orphanSessions";
 
@@ -15,7 +14,7 @@ const cleanupSchema = z.object({ days }) satisfies z.ZodType<ArchiveCleanupBody>
 const orphanTrashSchema = z.object({ session_ids: z.array(z.string().uuid()).min(1).max(5000) }) satisfies z.ZodType<OrphanSessionsTrashBody>;
 
 /** 会話記録の片付け（設定の「ゴミ箱と整理」）: どのチャットも使っていない会話記録と、アーカイブ済みのチャットの整理 */
-export function sessionRoutes(app: Hono, { store, trashBin, runner, providers, sessionsElsewhere }: Pick<ServerDeps, "store" | "runner" | "providers" | "sessionsElsewhere"> & { trashBin: TrashApi }) {
+export function sessionRoutes(app: Hono, { store, trashBin, runner, providers, sessionsElsewhere }: Pick<ChatRouteDeps, "store" | "trashBin" | "runner" | "providers" | "sessionsElsewhere">) {
   // どのチャットも使っていない会話記録: 一覧と、選んだものをゴミ箱へ
   const orphanDeps: OrphanSessionDeps = {
     store,

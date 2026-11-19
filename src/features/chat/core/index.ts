@@ -172,9 +172,8 @@ export function createChat(k: KernelWithStore, deps: ChatDeps, env: ChatEnv): Co
       stopAutoArchive = startAutoArchive(store, bus);
     },
     stop: () => {
-      // エージェント → 流れ続けている外部コマンド（docker events・起動の途中の up -d など。聞かずに止める）→ 削除の予約・自動のアーカイブ
+      // エージェント → 削除の予約・自動のアーカイブ（流れ続けている外部コマンドは、このあと土台が聞かずに止める）
       runner.shutdown();
-      k.exec.stopAllStreams();
       chatRemover.close();
       stopAutoArchive?.();
     },

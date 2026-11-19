@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { ChatRouteDeps } from "./deps";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
 import { rememberSentView } from "@/features/userView/core/routes/userView";
@@ -13,7 +13,7 @@ import { marksOf } from "@shared/chat/handoff";
  * 止めておく・「ここまで送ったら止めます」の印。応答はどれも、変えたあとの送信待ち（QueueState。SSE の chat_live の queue と同じ形）。
  * 列にない指示は 404、送るものがないなどの状態は 409（Runner が投げる）
  */
-export function queueRoutes(app: Hono, { store, runner, userViews }: ServerDeps) {
+export function queueRoutes(app: Hono, { store, runner, userViews }: Pick<ChatRouteDeps, "store" | "runner" | "userViews">) {
   const { withChat } = lookups(store);
 
   // 起動したときの再開の確かめ: 前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット（答えるまで続けない・送らない）

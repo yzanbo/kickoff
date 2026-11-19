@@ -4,12 +4,12 @@ import type { Context, Hono } from "hono";
 import type { ServerStatus } from "@shared/foundation/server";
 import type { DeviceAuth } from "@/foundation/core/http/auth";
 
-/** 機能の名前（legacy は乗せ替えの途中の仮の機能） */
+/** 機能の名前 */
 export type FeatureName =
   | "settings" | "trash" | "projects" | "groups" | "ai" | "chat" | "guard" | "attachments" | "snippets" | "compact"
   | "childChats" | "visuals" | "remoteImages" | "providerSwitch" | "workplaceMove" | "queue" | "userView" | "notifications"
   | "files" | "git" | "worktrees" | "github" | "docker" | "database" | "notes" | "terminal" | "browser" | "ports" | "voice"
-  | "devices" | "diagnostics" | "legacy";
+  | "devices" | "diagnostics";
 
 /** HTTP の受け口（取り決めに乗せるまでは、Hono に直に登録する関数。access が public なら認証の外に登録する） */
 export interface Mountable {

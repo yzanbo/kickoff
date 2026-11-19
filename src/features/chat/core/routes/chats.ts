@@ -1,8 +1,7 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
 import { addWorktree, worktreePathFor } from "@/features/git/core/index";
-import type { ServerDeps } from "@/foundation/core/http/server";
-import type { TrashApi } from "@/features/trash/core/index";
+import type { ChatRouteDeps } from "./deps";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
 import { requireGroupOf } from "@/features/groups/core/index";
@@ -12,7 +11,7 @@ import { branchName, chatTitle, flag, githubLinkSchema, newChatSchema, optionalI
 import { chatTranscript } from "@/features/chat/core/transcript";
 import { detachChat } from "@/features/childChats/core/detach";
 import { trashChat } from "@/features/chat/core/sessions/chatTrash";
-import { planUserWorkplaceMove, workplaceMoveCheck, type WorkplaceUserMoveDeps } from "@/features/workplaceMove/core/workplaceUserMove";
+import { planUserWorkplaceMove, workplaceMoveCheck } from "@/features/workplaceMove/core/workplaceUserMove";
 import { CHAT_DETAIL_LIMIT_MAX, CHAT_TAIL_MAX_BYTES, type ChatDetachBody, type ChatDetail, type ChatDetailQuery, type ChatEvent, type ChatEventPage, type ChatEventsQuery, type ChatPatch, type ChatTexts, type ChatTranscript, type GitWorktree, type WorkplaceMoveBody } from "@shared/types";
 import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, tailStart } from "@/features/chat/core/chatLogQuery";
 
@@ -68,10 +67,8 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-/** 分けた機能の口（ゴミ箱・ワークツリーの実行環境と後始末の予約・内蔵ターミナル） */
-type ChatRouteExtras = { trashBin: TrashApi; worktreeEnvs: NonNullable<WorkplaceUserMoveDeps["worktreeEnvs"]>; worktreeFinisher: { reservedFolders(): Set<string> } } & Pick<WorkplaceUserMoveDeps, "terminals">;
 
-export function chatRoutes(app: Hono, { store, streamingText, runner, approvals, worktreeEnvs, trashBin, userViews, worktreeFinisher, terminals }: ServerDeps & ChatRouteExtras) {
+export function chatRoutes(app: Hono, { store, streamingText, runner, approvals, worktreeEnvs, trashBin, userViews, worktreeFinisher, terminals }: ChatRouteDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）

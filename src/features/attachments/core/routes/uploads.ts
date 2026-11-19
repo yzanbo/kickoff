@@ -2,7 +2,8 @@ import fs from "node:fs";
 import nodePath from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { UploadStore } from "@/features/attachments/core/uploads";
 import { TOOL_IMAGE_MTIME_HEADER } from "@shared/attachments/toolImage";
 import type { CaptureBody, Project } from "@shared/types";
 import { readToolImage } from "@/features/attachments/core/toolImage";
@@ -31,7 +32,7 @@ const captureSchema = z
   .refine((b) => b.image_base64 === undefined || CAPTURE_IMAGE_TYPES.includes(b.mime), "画像の形式が対応していません") satisfies z.ZodType<CaptureBody>;
 
 /** 添付ファイル（受け取り・画面での表示）と、ツールの結果の画像の表示 */
-export function uploadRoutes(app: Hono, { uploads, store, notes }: ServerDeps & { notes: { dirOf(project: Project): string } }) {
+export function uploadRoutes(app: Hono, { uploads, store, imageDirs }: { uploads: UploadStore; store: Store; imageDirs: readonly ((project: Project) => string)[] }) {
   const { withChat } = lookups(store);
 
   // 別のチャットのやり取りを Markdown の記録にして、添付ファイルとして保存する（いまのチャットに添えて、AI に読ませる）
@@ -93,7 +94,7 @@ export function uploadRoutes(app: Hono, { uploads, store, notes }: ServerDeps & 
     // 返答の Markdown の画像（`![](docs/a.png)`）は相対パスで来るので、チャットの作業場所から読む
     const file = nodePath.isAbsolute(path) ? path : nodePath.resolve(workdir, path);
     const pastDirs = moves.map((m) => m.data.from.dir);
-    const image = await readToolImage(file, [workdir, workdirOf(chat, project), project.repo_path, uploads.dir, notes.dirOf(project), ...pastDirs]);
+    const image = await readToolImage(file, [workdir, workdirOf(chat, project), project.repo_path, uploads.dir, ...imageDirs.map((dirOf) => dirOf(project)), ...pastDirs]);
     return c.body(new Uint8Array(image.data), 200, {
       "content-type": image.type,
       "content-security-policy": "sandbox",
