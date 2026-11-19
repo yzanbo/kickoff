@@ -24,7 +24,7 @@ export const ORDER_META: Record<ChatOrder, { label: string; short: string; icon:
   // ボタンの名前は短く（プロジェクトの並び順の「最近順」「手動」と同じ）。メニューでは「最近動いた順」
   recent: { label: "最近動いた順", short: "最近順", icon: Clock },
   status: { label: "状態順", short: "状態順", icon: ListTree },
-  // まとまり（グループ・作業場所など）の中を、ドラッグで並べた順にする（利用者の依頼。最近順・状態順でもドラッグすると手動になる）
+  // まとまり（グループ・作業場所など）の中を、ドラッグで並べた順にする（最近順・状態順でもドラッグすると手動になる）
   manual: { label: "手動（ドラッグで並べた順）", short: "手動", icon: GripVertical },
 };
 

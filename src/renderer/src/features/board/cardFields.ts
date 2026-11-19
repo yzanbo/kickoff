@@ -2,7 +2,7 @@ import type { Chat } from "@shared/types";
 import { hiddenItemsOf, sameHiddenItemsOf, toggleHiddenItem } from "@/lib/hiddenItems";
 import { contextRatio } from "./chatSort";
 
-// ボードのカード・リストの行・フィードのカードに出す項目（ツールバーの「表示項目」で、項目ごとに出す・隠すを選ぶ。利用者の依頼）。
+// ボードのカード・リストの行・フィードのカードに出す項目（ツールバーの「表示項目」で、項目ごとに出す・隠すを選ぶ）。
 // 覚えるのは隠した項目だけ（BOARD_CARD_HIDDEN）。名前（チャット名）とアーカイブ済みの札はいつも出す
 
 export const CARD_FIELDS = ["state", "project", "group", "worktree", "model", "pending", "turns", "cost", "context", "active", "created"] as const;

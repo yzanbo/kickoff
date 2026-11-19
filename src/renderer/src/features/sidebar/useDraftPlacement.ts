@@ -18,8 +18,8 @@ export type DraftsAfter = ReadonlyMap<number, readonly PanelDraft[]>;
 const NO_PLACEMENT: DraftsAfter = new Map();
 
 /**
- * 手動の並びのとき、下書きの行を、タブの列（その欄の一覧のペイン）での下書きのタブの位置に合わせて、チャットの行の間に置く（利用者の依頼。
- * 前は並び順にかかわらず、まとまりのいちばん上に置いていた）。タブの列で下書きより前に見える同じまとまりのチャットの後ろ（draftAnchor）。
+ * 手動の並びのとき、下書きの行を、タブの列（その欄の一覧のペイン）での下書きのタブの位置に合わせて、チャットの行の間に置く。
+ * タブの列で下書きより前に見える同じまとまりのチャットの後ろ（draftAnchor）。
  * 手動でない・下書きがないときは何もしない（空の Map）。タブの位置は文字にして比べ、タブの列が変わったときだけ計算し直す
  */
 export function useDraftPlacement(slots: readonly DraftSlot[], chats: readonly Chat[], projectId: number, enabled: boolean): DraftsAfter {

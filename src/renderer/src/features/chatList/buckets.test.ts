@@ -238,7 +238,7 @@ test("bucketChats: archived が nested なら、いちばん外の段のまと�
   // 中の段（状態）は、アーカイブしていないものだけで分ける
   assert.deepEqual(list[1].children?.map((c) => c.key), ["p1/g4/status:running"]);
   assert.equal(list[1].archived?.kind, "archived");
-  // まとめないときは、今までどおり「アーカイブ済み」に抜き出す
+  // まとめないときは、「アーカイブ済み」に抜き出す
   assert.deepEqual(shape(bucketChats([chat(1), chat(2, { archived_at: "x" })], { pending, by: [], project: 1, archived: "nested" })), [
     ["p1/all", [1]],
     ["p1/archived", [2]],

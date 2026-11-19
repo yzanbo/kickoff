@@ -100,7 +100,7 @@ export function App() {
   useAgentBrowserBridge();
   // チャットの AI が頼んだメモ・家系のチャットを開く（kickoff_chat の open_memo・open_chat）
   useAiOpenRequests();
-  // 作業場所を移したチャットの右の欄のタブを、新しい作業場所に付け替える（メモの仕様書「0025」の H4）
+  // 作業場所を移したチャットの右の欄のタブを、新しい作業場所に付け替える
   useWorkplaceMoveTabs();
   const sidebar = useSidebar();
   // 新しいプロジェクトのダイアログ（null = 閉じている。名前の初めの値・作ったあとの処理を持てる）
@@ -181,7 +181,7 @@ export function App() {
   return (
     <RouteContext.Provider value={route}>
       <ChatStatesContext.Provider value={chatStates}>
-      {/* 返答の外部リンクの開き方（確かめ・開き先。メモの仕様書「0027_チャット欄の外の画像とリンク」） */}
+      {/* 返答の外部リンクの開き方（確かめ・開き先） */}
       <LinkOpenerProvider projectId={projectId}>
       <div {...sidebar.layout}>
         <MaximizedHeader active={(bottomPanel.available && bottomPanel.open && bottomPanel.maximized) || (!sideHeld && chat.open && chat.maximized)}>
@@ -212,7 +212,7 @@ export function App() {
         <BottomPanel bottom={bottomPanel} />
         </div>
         {!sideHeld && <ProjectChat chat={chat} />}
-        {/* 右端のアイコンの列（右サイドバーを閉じていても・別ウィンドウへ移していても置く。メモの仕様書「0031」の Q3・Q6） */}
+        {/* 右端のアイコンの列（右サイドバーを閉じていても・別ウィンドウへ移していても置く） */}
         {chat.projectId !== undefined && <SideRail projectId={chat.projectId} open={chat.open} held={sideHeld} />}
         <MaximizedHeaderBar />
         <AppFooter onOpenSettings={setSettings} connection={connection} planUsage={planUsage} projectId={projectId} />

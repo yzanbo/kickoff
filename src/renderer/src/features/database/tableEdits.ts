@@ -1,4 +1,4 @@
-// テーブルのデータの、まだ保存していない変更（段階 3 のセルの編集・行の追加と削除・CSV の取り込み）。React に依らない。
+// テーブルのデータの、まだ保存していない変更（セルの編集・行の追加と削除・CSV の取り込み）。React に依らない。
 // 行は読んだときのキー（主キーか、NULL を許さない一意の列の組）の値で指し、保存するときに DbRowEdit にする（SQL はコアが作る）
 import type { DbColumnInfo, DbEditValue, DbKeyValue, DbRowEdit, DbValue } from "@shared/types";
 

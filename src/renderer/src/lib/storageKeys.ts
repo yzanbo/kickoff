@@ -60,7 +60,7 @@ const defaultView = (id: string, name: string, view: "board" | "list", columns: 
 });
 
 /**
- * プロジェクトのボードに初めからある保存したビュー（利用者の依頼。並びは グループボード・状態ボード・グループリスト）。
+ * プロジェクトのボードに初めからある保存したビュー（並びは グループボード・状態ボード・グループリスト）。
  * 形は features/board/savedViews.ts の BoardViewState。並び順は初めの最後に動いた順、アーカイブは初めの未アーカイブ。
  * 表示項目は入れない（当てても表示項目を変えない）。名前を変えた・消したビューは覚えた一覧のほうを使う（すべて消しても [] で残し、ここに戻さない）
  */
@@ -70,7 +70,7 @@ const DEFAULT_PROJECT_VIEWS: readonly StoredView[] = [
   defaultView("default-group-list", "グループリスト", "list", "state", "group"),
 ];
 
-/** 全プロジェクトのボードに初めからある保存したビュー（利用者の依頼。並びは プロジェクト別グループボード・プロジェクト別リスト。決まりはプロジェクトのボードと同じ） */
+/** 全プロジェクトのボードに初めからある保存したビュー（並びは プロジェクト別グループボード・プロジェクト別リスト。決まりはプロジェクトのボードと同じ） */
 const DEFAULT_ALL_PROJECTS_VIEWS: readonly StoredView[] = [
   defaultView("default-project-group-board", "プロジェクト別グループボード", "board", "groups", "project"),
   defaultView("default-project-list", "プロジェクト別リスト", "list", "none", "project"),
@@ -120,7 +120,7 @@ export const SIDEBAR_PROJECT_ORDER = defineSetting("kickoff:sidebar-project-orde
 export const SIDEBAR_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:sidebar-show-archived-projects", flag());
 /** プロジェクトのカードを 1 行で出すか（名前だけにして、チャット数の行を隠す） */
 export const SIDEBAR_PROJECT_COMPACT = defineSetting("kickoff:sidebar-project-compact", flag());
-/** 最後に見ていた画面（URL のハッシュ）。起動したとき・ウィンドウを作り直したときに開く（app/router.ts の restoreLastRoute。利用者の依頼） */
+/** 最後に見ていた画面（URL のハッシュ）。起動したとき・ウィンドウを作り直したときに開く（app/router.ts の restoreLastRoute） */
 export const LAST_ROUTE = defineSetting("kickoff:last-route", text(), { ids: true });
 /** プロジェクトごとに最後に見ていた画面（URL のハッシュ。横スライドで戻ってきたときに開く。アプリを閉じるまで） */
 export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project", record(isString), { ids: true, session: true });
@@ -172,7 +172,7 @@ export const SIDEBAR_BUCKET_COLORS = defineSetting("kickoff:sidebar-bucket-color
 
 /**
  * サイドバーのビュー（プロジェクト・チャット・要対応の見え方の組に名前を付けたもの。features/sidebar/sidebarViews.ts の SidebarViewState）。
- * 初めは「標準」「コンパクト」「要対応」の順（利用者が示した形。いちど先頭をコンパクトにしたが、利用者の依頼で標準を先頭に戻した）。すべて消したら [] を覚え、初めのビューには戻さない（ボードの保存したビューと同じ）
+ * 初めは「標準」「コンパクト」「要対応」の順。すべて消したら [] を覚え、初めのビューには戻さない（ボードの保存したビューと同じ）
  */
 const sidebarView = (id: string, name: string, state: Readonly<Record<string, unknown>>): StoredView => ({
   id,
@@ -201,7 +201,7 @@ const DEFAULT_SIDEBAR_VIEWS: readonly StoredView[] = [
 ];
 export const SIDEBAR_SAVED_VIEWS = defineSetting("kickoff:sidebar-views", json(parseStoredViews, DEFAULT_SIDEBAR_VIEWS));
 /**
- * 最後に選んだサイドバーのビュー（ID。⚙ の窓の「上書き」の先。まだ一度も選んでいなければ ""。そのときは最初のビュー（初めはコンパクト）を当てる）
+ * 最後に選んだサイドバーのビュー（ID。⚙ の窓の「上書き」の先。まだ一度も選んでいなければ ""。そのときは最初のビュー（初めは標準）を当てる）
  */
 export const SIDEBAR_VIEW_SELECTED = defineSetting("kickoff:sidebar-view-selected", text());
 
@@ -235,7 +235,7 @@ export const BOARD_GROUPS_BY_STATE = defineSetting("kickoff:board-groups-by-stat
  * none = 分けない。ボードとリストで共通。全プロジェクトのボードの ALL_PROJECTS_BOARD_COLUMNS とは別に覚える）
  */
 export const PROJECT_BOARD_COLUMNS = defineSetting("kickoff:board-columns-project", choice(["state", "groups", "none"], "state"));
-/** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる。すべてのボードで共通。前の版の table（表）はなくしたので、覚えていれば初めの board に戻る） */
+/** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる。すべてのボードで共通） */
 export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list"], "board"));
 /** ボードを段（スイムレーン）に分けるか（ボード・リストで共通。分け方は PROJECT_BOARD_LANES・ALL_PROJECTS_BOARD_LANES） */
 export const BOARD_SPLIT = defineSetting("kickoff:board-split", flag());
@@ -258,7 +258,7 @@ export const ALL_PROJECTS_SAVED_VIEWS = defineSetting("kickoff:board-views-all",
 export const PROJECT_SAVED_VIEWS = defineSetting("kickoff:board-views", json(parseStoredViews, DEFAULT_PROJECT_VIEWS));
 /**
  * ボードごとの最後の見え方（features/board/savedViews.ts の BoardViewState。読む側で確かめる）。表示・並び順などの設定はすべてのボードで共通なので、
- * ボードを移る（全プロジェクト ⇄ プロジェクト）たびに、そのボードで最後に見ていた見え方に戻す（覚えていなければ最初のビュー。利用者の依頼）。
+ * ボードを移る（全プロジェクト ⇄ プロジェクト）たびに、そのボードで最後に見ていた見え方に戻す（覚えていなければ最初のビュー）。
  * プロジェクトのボードはすべてのプロジェクトで共通
  */
 export const ALL_PROJECTS_LAST_VIEW = defineSetting("kickoff:board-last-view-all", json(parseLooseObject, null, (v) => v === null));
@@ -304,24 +304,24 @@ export const PANEL_MAXIMIZED = defineSetting("kickoff:panel-maximized", flag());
 export const panelTabGrouping = defineSettingFamily("kickoff:panel-tab-grouping:", choice(SIDEBAR_CHAT_SECTIONS.choices, "none"));
 /** タブをまとめたときのまとまりに色を付けるか（札・タブの線。サイドバーのまとまりと同じ色。すべての欄で共通。初めは付ける） */
 export const PANEL_TAB_GROUP_COLORS = defineSetting("kickoff:panel-tab-group-colors", flag(true));
-/** タブのまとまりの札の名前を、頭の 1 文字だけにするか（すべての欄で共通。初めは省略しない。利用者の依頼） */
+/** タブのまとまりの札の名前を、頭の 1 文字だけにするか（すべての欄で共通。初めは省略しない） */
 export const PANEL_TAB_CLUSTER_SHORT = defineSetting("kickoff:panel-tab-cluster-short", flag());
 /** タブに出さない項目（状態・ピン留め・グループ・作業場所。features/panel/tabs/tabFields.ts。すべてのパネルで共通。初めはすべて出す） */
 export const PANEL_TAB_HIDDEN = defineSetting("kickoff:panel-tab-hidden", list());
-/** チャットを出す欄のタブを 2 行にする（名前の下の行にグループ・作業場所の札。すべてのパネルで共通。初めは 1 行。サイドバーのチャットの行の 1 行 / 2 行とは別。利用者の依頼） */
+/** チャットを出す欄のタブを 2 行にする（名前の下の行にグループ・作業場所の札。すべてのパネルで共通。初めは 1 行。サイドバーのチャットの行の 1 行 / 2 行とは別） */
 export const PANEL_TAB_TWO_LINE = defineSetting("kickoff:panel-tab-two-line", flag(false));
 /**
  * チャットを出す欄で、タブが増えて入らないとき: shrink = タブを細くして収める（Chrome と同じ。初め） / scroll = ふだんの幅のまま並べ、タブの列を横にスクロールする
- * （VS Code と同じ。すべてのパネルで共通。利用者の依頼）
+ * （VS Code と同じ。すべてのパネルで共通）
  */
 export const PANEL_TAB_OVERFLOW = defineSetting("kickoff:panel-tab-overflow", choice(["shrink", "scroll"], "shrink"));
-/** タブの列の左の道具の「表示」ボタンを隠すか（すべてのパネルで共通。初めは出す。隠してもタブの列の何もないところの右クリックで同じメニューを開ける。利用者の依頼） */
+/** タブの列の左の道具の「表示」ボタンを隠すか（すべてのパネルで共通。初めは出す。隠してもタブの列の何もないところの右クリックで同じメニューを開ける） */
 export const PANEL_VIEW_BUTTON_HIDDEN = defineSetting("kickoff:panel-view-button-hidden", flag());
 /** タブの列（グループ別）で隠す、自分で作ったグループの ID（すべてのパネル・ペインで共通。グループなし・固定・アーカイブ済みは隠せない） */
 export const PANEL_HIDDEN_GROUPS = defineSetting("kickoff:panel-hidden-groups", list(), { ids: true });
 /** タブの列（グループ別）で、チャットが 1 つもないグループの札を隠すか（すべてのパネルで共通。初めは出す） */
 export const PANEL_HIDE_EMPTY_GROUPS = defineSetting("kickoff:panel-hide-empty-groups", flag(false));
-/** パネルのチャットのタブにアーカイブ済みのチャットを出すか（すべてのパネルで共通。サイドバーの SIDEBAR_SHOW_ARCHIVED とは別。利用者の依頼で、サイドバーで出していてもタブには出さない。初めは隠す） */
+/** パネルのチャットのタブにアーカイブ済みのチャットを出すか（すべてのパネルで共通。サイドバーの SIDEBAR_SHOW_ARCHIVED とは別。サイドバーで出していてもタブには出さない。初めは隠す） */
 export const PANEL_SHOW_ARCHIVED = defineSetting("kickoff:panel-show-archived", flag(false));
 /** プロジェクトごとの、右のチャット欄を開いているか */
 export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag(), { ids: true });
@@ -332,7 +332,7 @@ export const PROJECT_CHAT_WIDTH = defineSetting("kickoff:project-chat-width", nu
 export const PROJECT_CHAT_MAXIMIZED = defineSetting("kickoff:project-chat-maximized", flag());
 /**
  * プロジェクトごとの、右サイドバーで見ている中身（右端のアイコンの列で切り替える。browser = ブラウザ、ほかはプロジェクトのタブと同じ画面。
- * メインのウィンドウと右サイドバーの別ウィンドウで同じ値を読む。features/panel/projectChat/sideView.ts。メモの仕様書「0031_右サイドバーにプロジェクトの画面を出す」）
+ * メインのウィンドウと右サイドバーの別ウィンドウで同じ値を読む。features/panel/projectChat/sideView.ts）
  */
 export const sideView = defineSettingFamily(
   "kickoff:side-view:",

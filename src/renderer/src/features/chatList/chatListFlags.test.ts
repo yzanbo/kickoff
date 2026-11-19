@@ -29,7 +29,7 @@ test("isWaitingState: 自分が見る番は回答待ちと未読（失敗した�
   assert.equal(isWaitingState("read"), false);
 });
 
-test("waitingRuns: 要対応のチャットだけ（元の順のまま。アーカイブ済みは除く）", () => {
+test("waitingChats: 要対応のチャットだけ（元の順のまま。アーカイブ済みは除く）", () => {
   assert.deepEqual(
     waitingChats(chats, pending).map((r) => r.id),
     [3, 4, 5, 7],

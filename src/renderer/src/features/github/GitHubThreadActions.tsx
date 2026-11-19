@@ -4,7 +4,7 @@ import { useAction } from "@/hooks/useAction";
 import { ErrorText } from "@/ui/ErrorText";
 import { GitHubMarkdownField } from "./GitHubMarkdownField";
 
-/** 行のスレッドへの返信と解決（PR の中身が渡す。返信・解決済みにするのは人。要件 5.11 の段階 3・決定 ⑥） */
+/** 行のスレッドへの返信と解決（PR の中身が渡す。返信・解決済みにするのは人） */
 export interface ThreadActions {
   reply: (thread: GitHubReviewThread, body: string) => Promise<void>;
   resolve: (thread: GitHubReviewThread, resolved: boolean) => Promise<void>;

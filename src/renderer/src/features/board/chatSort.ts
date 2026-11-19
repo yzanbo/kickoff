@@ -29,7 +29,7 @@ export interface ChatSort {
   dir: SortDir;
 }
 
-/** 初めの並び（最後に動いた順。今までのボードの並び） */
+/** 初めの並び（最後に動いた順） */
 export const DEFAULT_CHAT_SORT: ChatSort = Object.freeze({ key: "active", dir: "desc" });
 
 /** 数・日時の列は、初めに押すと大きい・新しい順（文字の列は あ→ん・A→Z） */

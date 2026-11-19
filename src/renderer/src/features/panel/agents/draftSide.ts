@@ -3,8 +3,8 @@ import { draftScope, panelKey, type DraftScope } from "@/features/panel/surfaces
 import { movePanel } from "@/features/panel/state/panelStore";
 
 /**
- * 送る前の新しいチャット（下書きのタブ）の右の欄（利用者の依頼。前は送る前のチャットには右の欄がなく、入力欄の上のメモのピルから開くと、
- * メモのタブへ移っていた）。NewChatPane が AgentSplit で包み、中身（メモのピルなど）はこの context で、開く先の右の欄の範囲を知る
+ * 送る前の新しいチャット（下書きのタブ）の右の欄（入力欄の上のメモのピルから開いても、
+ * メモのタブへ移らないように）。NewChatPane が AgentSplit で包み、中身（メモのピルなど）はこの context で、開く先の右の欄の範囲を知る
  */
 export const DraftSideContext = createContext<DraftScope | null>(null);
 

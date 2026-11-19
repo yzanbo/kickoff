@@ -17,8 +17,7 @@ export const chatsApi = {
   /** フィード（全プロジェクトの画面）: チャットごとのメインエージェントの最新の返答 1 件の初めの部分。返答の新しい順 */
   feed: (limit?: number) => request<FeedItem[]>("GET", withQuery("/api/feed", { limit })),
   startChat: (projectId: number, body: NewChatBody) => request<Chat>("POST", `/api/projects/${projectId}/chats`, { ...body, ...withUserView() } satisfies NewChatBody),
-  /** チャットの詳細（記録・回答待ち・作業中の様子。作業中の様子は SSE の chat_live で追いかける） */
-  /** チャットの詳細（query を省けば記録はすべて。つなぎ直したときは after で切れていた間の分だけ） */
+  /** チャットの詳細（記録・回答待ち・作業中の様子。作業中の様子は SSE の chat_live で追いかける。query を省けば記録はすべて。つなぎ直したときは after で切れていた間の分だけ） */
   chatDetail: (id: number, query: ChatDetailQuery = {}) => request<ChatDetail>("GET", withQuery(`/api/chats/${id}`, { ...query })),
   /** チャットの記録の一部分（さかのぼる・間をすべて・遠い所の前後・下へ伸ばす・サブエージェントの中。開いたときに末尾だけを読んだあと） */
   chatEvents: (id: number, query: ChatEventsQuery) => request<ChatEventPage>("GET", withQuery(`/api/chats/${id}/events`, { ...query })),
@@ -34,13 +33,13 @@ export const chatsApi = {
   /** eventId: 一番下まで見た記録（それより新しい返答があれば、未読のまま） */
   markSeen: (chatId: number, eventId?: number) => request<Chat>("POST", `/api/chats/${chatId}/seen`, eventId === undefined ? undefined : { event_id: eventId }),
   markUnseen: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/unseen`),
-  /** チャットを別のプロジェクトへ移す（グループ・作業場所は外れ、移した先の本体で作業する。会話は続く） */
   /** 手動の並び（サイドバーの並び順「手動順」）を ids の順にする（並べたチャットが並びの順に返る） */
   reorderChats: (projectId: number, ids: number[]) => request<Chat[]>("PUT", `/api/projects/${projectId}/chats/order`, { ids }),
   /** 子チャットを親から外す（parent_chat_id: null = 親のないチャット（group_id のグループへ）/ 先祖の ID = その子に上げる） */
   detachChat: (chatId: number, body: ChatDetachBody) => request<Chat>("POST", `/api/chats/${chatId}/detach`, body),
+  /** チャットを別のプロジェクトへ移す（グループ・作業場所は外れ、移した先の本体で作業する。会話は続く） */
   moveChat: (chatId: number, projectId: number) => request<Chat>("POST", `/api/chats/${chatId}/move`, { project_id: projectId }),
-  /** 作業場所を移す前の確かめの中身（元の場所に残る変更・動いているターミナル・移す先にできないワークツリー。メモの仕様書「0025」） */
+  /** 作業場所を移す前の確かめの中身（元の場所に残る変更・動いているターミナル・移す先にできないワークツリー） */
   workplaceCheck: (chatId: number) => request<WorkplaceMoveCheck>("GET", `/api/chats/${chatId}/workplace`),
   /** チャットの作業場所を移す（本体・いまあるワークツリー・新しいワークツリー。子チャットは移さない） */
   moveWorkplace: (chatId: number, body: WorkplaceMoveBody) => request<Chat>("POST", `/api/chats/${chatId}/workplace`, body),

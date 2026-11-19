@@ -35,7 +35,7 @@ const isPull = (d: Detail): d is GitHubPullDetail => d.item.kind === "pr";
 /**
  * GitHub タブの右（開いた issue・PR の中身）。見出し（題名・状態・作った人・ラベル・担当・issue を閉じる PR、PR はブランチ・増減・レビュー・マージできるか・承認の数・衝突）と、
  * issue は本文と会話の流れ、PR は会話・変更（差分と行のスレッド）・チェックの切り替え。取り直している間は前の中身に「更新中」の印を出す。
- * 書く（段階 3）: 会話の下のコメント欄（閉じる・開き直すも）・ラベル・URL のコピー、PR はチェックアウト・マージ・行のスレッドへの返信と解決・「変更」でのレビュー。
+ * 書く: 会話の下のコメント欄（閉じる・開き直すも）・ラベル・URL のコピー、PR はチェックアウト・マージ・行のスレッドへの返信と解決・「変更」でのレビュー。
  * 書いたら中身を取り直す
  */
 export function GitHubDetail({ projectId, kind, number, onBack }: { projectId: number; kind: GitHubKind; number: number; onBack?: () => void }) {

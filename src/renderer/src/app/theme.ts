@@ -9,7 +9,7 @@ const darkScheme = () => matchMedia("(prefers-color-scheme: dark)");
 
 /**
  * いまのテーマを <html data-theme> に出す（既定はダーク。system は OS のダーク・ライトに合わせる）。起動直後は public/boot.js が
- * 同じ値で先に出している。デスクトップアプリなら、選んでいるテーマをメインにも知らせる（窓の地の色。メモの仕様書「0023_表示を軽くする」の案 18a）
+ * 同じ値で先に出している。デスクトップアプリなら、選んでいるテーマをメインにも知らせる（窓の地の色）
  */
 function applyTheme() {
   const theme = readSetting(THEME);

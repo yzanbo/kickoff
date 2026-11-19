@@ -22,7 +22,7 @@ export const uploadsApi = {
    * 作業場所・添付・メモのフォルダの外・ないファイルは ApiError（文はそのまま画面に出せる）
    */
   toolImage: async (chatId: number, path: string, at?: number): Promise<{ blob: Blob; mtime: number | null }> => {
-    // at: 作業場所を移した区切りより前の記録なら、その記録の ID（そのときの作業場所から読む。メモの仕様書「0025」の H5）
+    // at: 作業場所を移した区切りより前の記録なら、その記録の ID（そのときの作業場所から読む）
     const { blob, headers } = await requestBlob(withQuery(`/api/chats/${chatId}/tool-image`, { path, at }));
     const mtime = Number(headers.get(TOOL_IMAGE_MTIME_HEADER));
     return { blob, mtime: Number.isFinite(mtime) && mtime > 0 ? mtime : null };

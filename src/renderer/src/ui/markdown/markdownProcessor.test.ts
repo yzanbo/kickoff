@@ -12,7 +12,7 @@ import { remarkMathGuard } from "./math/remarkMathGuard";
 import { createBlockCache, createPipeline, isHtmlComment, pipelineOf, renderMarkdown } from "./markdownProcessor";
 
 /*
- * 等しいことのテスト（メモの仕様書「0023_表示を軽くする」の案 15）: react-markdown そのもので全文を描いた結果と、
+ * 等しいことのテスト: react-markdown そのもので全文を描いた結果と、
  * ブロックに分けて作り置きの処理で描いた結果（ブロックの間に改行の文字を置く。Markdown の部品と同じ）が同じであること。
  * react-markdown と写した道具（markdownProcessor.ts の先頭）を上げるときは、このテストで写しのずれを見る
  */

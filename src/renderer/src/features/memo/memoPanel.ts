@@ -8,7 +8,7 @@ import { memoTab } from "@/features/panel/tabs/tabKinds";
 import { confirmLeaveMemo } from "./memoGuards";
 import { isUnder, remapPath } from "./memoPaths";
 
-/** 右サイドバーのメモの右のタブの欄の範囲（真ん中のメモのタブとは別に覚える。メモの仕様書「0031_右サイドバーにプロジェクトの画面を出す」） */
+/** 右サイドバーのメモの右のタブの欄の範囲（真ん中のメモのタブとは別に覚える） */
 export const sideMemoScope = (projectId: number): ViewScope => `view-side-${projectId}`;
 
 /** メモのタブの右の欄の覚える名前（プロジェクトごと。scope を渡せばその範囲 = 右サイドバーのメモ） */

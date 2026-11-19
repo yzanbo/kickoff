@@ -7,7 +7,7 @@ import { ApiError } from "@/api/http";
 import { dbConnectionsStore } from "@/stores/dbConnections";
 import { alertDialog, confirmDialog, promptDialog } from "@/ui/dialogs";
 
-// 接続の手順メモ（要件 5.12 の段階 2）: メモのフォルダの DB/ の下のメモを、つなぎ方（経路）ごとに 1 つ作り、いくつもの接続で使う
+// 接続の手順メモ: メモのフォルダの DB/ の下のメモを、つなぎ方（経路）ごとに 1 つ作り、いくつもの接続で使う
 
 /**
  * 手順メモを作って接続に結ぶ（名前はつなぎ方の名前をすすめる。ひな形の 4 つの見出しを入れる）。同じ名前のメモがあれば、それを使うか聞く。

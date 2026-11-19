@@ -1,4 +1,4 @@
-// ほかの場所から右サイドバーで開くよう頼まれたファイル・メモ（右サイドバーがその中身を見せているときだけ。メモの仕様書「0031」の Q7）。
+// ほかの場所から右サイドバーで開くよう頼まれたファイル・メモ（右サイドバーがその中身を見せているときだけ）。
 // 中身の部品が受け取って開いたら片付ける（同じ頼みで開き直さない）
 import { useSyncExternalStore } from "react";
 import { setSideOpener, type SideOpenTarget } from "@/app/router";
@@ -33,7 +33,7 @@ export function useSideOpenRequest<K extends SideOpenRequest["kind"]>(projectId:
 }
 
 // ファイル・メモを開く口（openProjectFile・openMemo）が、右サイドバーがファイル・メモを見せていればここへ頼む。
-// 頼みはこのウィンドウの中だけに置くので、右サイドバーを別ウィンドウへ移しているときは、いままでどおり真ん中のタブで開く
+// 頼みはこのウィンドウの中だけに置くので、右サイドバーを別ウィンドウへ移しているときは、真ん中のタブで開く
 setSideOpener((projectId, target) => {
   if (sidePanelsHandedOut() || !isSideViewShown(projectId, target.kind === "file" ? "files" : "memos")) return false;
   requestSideOpen(projectId, target);

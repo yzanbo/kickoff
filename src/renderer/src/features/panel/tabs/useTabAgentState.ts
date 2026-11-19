@@ -19,7 +19,7 @@ export interface TabAgentState {
 
 /**
  * タブのエージェントの状態: チャット・子チャット（サイドバーの行と同じ chatStateOf）・サブエージェント（subagentState）を同じ 5 つの状態で返す。
- * どの欄のタブも同じ印・同じ太字の決まりで見せるため（以前は子チャットのタブが太字にならず、サブエージェントのタブはツールと同じ ✓ ✕ だった）。
+ * どの欄のタブも同じ印・同じ太字の決まりで見せるため。
  * 状態のないタブ（ブラウザ・ファイルなど）・分からないもの（子チャットがまだ読み込まれていない・巻き戻して消えたサブエージェント）は undefined
  */
 export function useTabAgentState(panel: PanelController, tab: PanelTab): TabAgentState | undefined {

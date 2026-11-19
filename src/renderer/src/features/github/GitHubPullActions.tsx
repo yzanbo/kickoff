@@ -4,7 +4,7 @@ import { checkoutPull, useMainRunningChats } from "./githubCheckout";
 import { openMergeDialog } from "./githubDialogs";
 
 /**
- * PR の見出しの操作（要件 5.11 の段階 3）: 「チェックアウト」（新しいワークツリー / 本体を選んで取り出す。githubCheckout.ts）と、
+ * PR の見出しの操作: 「チェックアウト」（新しいワークツリー / 本体を選んで取り出す。githubCheckout.ts）と、
  * 開いていてマージできるアカウントなら「マージ…」（いつも確認を挟む MergeDialog）。マージしたら onChanged（中身を取り直す）
  */
 export function GitHubPullActions({ projectId, detail, onChanged }: { projectId: number; detail: GitHubPullDetail; onChanged: () => void }) {

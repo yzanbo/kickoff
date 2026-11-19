@@ -13,7 +13,7 @@ import { buildEdits, editCounts, NO_EDITS, type TableEdits } from "./tableEdits"
 import { clipSql, confirmByEnvName, useSqlWrite } from "./useSqlWrite";
 
 /**
- * テーブルのタブのまだ保存していない変更（段階 3）。タブを開いている間だけ持つ（データと構造を切り替えても残す。閉じるときは捨てるか聞く）。
+ * テーブルのタブのまだ保存していない変更。タブを開いている間だけ持つ（データと構造を切り替えても残す。閉じるときは捨てるか聞く）。
  * 保存は流す SQL を見せて確かめてから 1 つのトランザクションで（⌘S・⌘⇧S のすべて保存も）。読み取り専用の接続は「書き込む」の間だけ書き換えられる
  */
 export function useTableEdits(tab: DbTableTab, connection: DbConnection, detail: DbTableDetail | undefined, worktree: string | null, onSaved: () => void) {

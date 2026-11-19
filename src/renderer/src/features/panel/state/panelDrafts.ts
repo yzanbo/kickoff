@@ -101,7 +101,7 @@ export function usePanelDrafts(panels: readonly string[]): PanelDraft[] {
 
 /**
  * 下書きのタブの、その欄の一覧のペイン（サイドバーと連動したチャットのタブが入るペイン）での位置（サイドバーの手動の並びで、下書きの行を
- * タブの位置に合わせる。利用者の依頼）。一覧のペインにない（分けたペインへ移した）なら null
+ * タブの位置に合わせる）。一覧のペインにない（分けたペインへ移した）なら null
  */
 export function draftTabSpot(draft: DraftRef): DraftTabSpot | null {
   const state = allPanels().get(draft.panel);

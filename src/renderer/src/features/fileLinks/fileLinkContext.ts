@@ -23,7 +23,7 @@ export interface FileLinks {
   showMenu: (e: MouseEvent, ref: FileRef) => void;
 }
 
-/** ないとき（チャット以外の画面）は、今までどおりチップにしない */
+/** ないとき（チャット以外の画面）は、チップにしない */
 export const FileLinkContext = createContext<FileLinks | undefined>(undefined);
 
 /** 押したとき: ⌘ を押しながらならファイルタブ、そうでなければ open（右の欄） */

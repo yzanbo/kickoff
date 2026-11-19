@@ -97,7 +97,7 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   const chatActivityTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useServerEvent((e) => {
     // チャットが動いた（送った・終わった）か、作業中にツールの結果が届いた（ファイルを変えたかもしれない）。
-    // 作業中はチャットの行が変わらないので、ツールの結果も見ないと、差分が作業の終わりまで追いつかなかった
+    // 作業中はチャットの行が変わらないので、ツールの結果も見ないと、差分が作業の終わりまで追いつかない
     const moved = e.type === "chat" ? e.chat.project_id === projectId : e.type === "chat_event" && e.project_id === projectId && e.event.type === "tool_result";
     if (!moved) return;
     // 待っている間も更新中の印を出す（チャットが動いた = ファイルが変わったかもしれない）

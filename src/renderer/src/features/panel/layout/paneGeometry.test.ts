@@ -73,7 +73,7 @@ test("insertSlotAt: まとまりの境目では、次の枠に入る前なら前
     { left: 100, width: 100, group: 0, groupLeft: 0 },
     { left: 250, width: 100, group: 1, groupLeft: 210 },
   ];
-  // 同じまとまりの中はいままでどおり
+  // 同じまとまりの中は、タブの左半分ならそのタブの前
   assert.deepEqual(insertSlotAt(120, tabs), { index: 1, after: false });
   // 前のまとまりの最後のタブの右半分・枠の間 → 前のまとまりの最後の後ろ
   assert.deepEqual(insertSlotAt(160, tabs), { index: 2, after: true });

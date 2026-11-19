@@ -23,9 +23,9 @@ const KIND_ICONS = { chat: MessageSquare, project: FolderGit2, session: History,
 const kindIcon = (item: TrashItem) => (item.kind === "file" ? (item.is_dir ? Folder : File) : KIND_ICONS[item.kind]);
 
 /**
- * プロジェクトの「ゴミ箱」タブ（メモの仕様書「ファイル削除」の Q6・Q10）。Kickoff のゴミ箱に入れたもの（AI の kickoff-trash・ファイル / メモの「ゴミ箱に入れる」・
+ * プロジェクトの「ゴミ箱」タブ。Kickoff のゴミ箱に入れたもの（AI の kickoff-trash・ファイル / メモの「ゴミ箱に入れる」・
  * チャットの削除）を新しい順に並べ、何を・いつ・誰が消したか・消えるまでの残り・大きさと「元に戻す」「完全に消す」を出す。3 日を待たずに全部を消す
- * 「ゴミ箱を空にする」も見出しに置く（利用者の依頼。前は 3 日で消えるのを待つだけだった）
+ * 「ゴミ箱を空にする」も見出しに置く
  */
 export function TrashTab({ projectId }: { projectId: number }) {
   const { data, error, loaded } = useProjectTrash(projectId);

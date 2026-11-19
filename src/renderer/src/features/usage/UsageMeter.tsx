@@ -59,7 +59,7 @@ interface Props {
   compact?: boolean;
   /**
    * フッター用の 1 行表示（ラベル・バー・値を横に並べる。モデル別の週枠はモデル名だけ）。「残りわずか」「上限間近」の文とリセットまでの残り時間は並べない
-   * （バーの色と % で分かり、帯の幅を取るため。利用者の依頼で Claude と Codex を並べるので、残り時間も外した）。マウスを乗せたときの説明と読み上げには残す
+   * （バーの色と % で分かり、帯の幅を取るため。Claude と Codex を並べるので、残り時間も出さない）。マウスを乗せたときの説明と読み上げには残す
    */
   inline?: boolean;
   /** 枠が始まっていないときの説明 */
@@ -68,7 +68,7 @@ interface Props {
 
 /** 使用枠のメーター（使用率に応じて 通常 → 注意 → 上限間近 と色とラベルが変わる。名前の付け方は usageWindowLabel） */
 export function UsageMeter({ window: w, compact, inline, idleText }: Props) {
-  // リセットまでの残り時間の表示を進める（時計で描き直すのは、この値を出すメーターだけ。メモの仕様書「0023_表示を軽くする」の案 30）
+  // リセットまでの残り時間の表示を進める（時計で描き直すのは、この値を出すメーターだけ）
   useTicker(60_000);
   const severity = severityOf(w.utilization);
   const label = usageWindowLabel(w, inline);

@@ -1,7 +1,7 @@
 import type { NamedView } from "@/lib/namedViews";
 import { SIDEBAR_CHAT_ORDER, SIDEBAR_CHAT_SECTIONS, SIDEBAR_LAYOUT, SIDEBAR_PROJECT_ORDER, SIDEBAR_WAITING_VIEW } from "@/lib/storageKeys";
 
-// サイドバーのビュー（プロジェクト一覧の上の見出しの見え方の組に名前を付けたもの。利用者の依頼で、見出しの 3 行をビューのタブ 1 行にした）。
+// サイドバーのビュー（プロジェクト一覧の上の見出しの見え方の組に名前を付けたもの）。
 // 読み書きは useSidebarViews、ここは形・読み方・比べ方（純粋な関数）。一覧の操作は lib/namedViews.ts
 
 /** ビューに入れる見え方（見出しの 3 行のボタンの値。それぞれの設定と 1 対 1） */

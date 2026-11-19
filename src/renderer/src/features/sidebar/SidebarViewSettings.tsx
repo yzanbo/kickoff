@@ -16,7 +16,7 @@ import { canChooseOrder, WAITING_ORDERS, WAITING_SCOPES, waitingAxes, waitingVie
 import { WAITING_ORDER_META, WAITING_SCOPE_META } from "./waitingView";
 
 /**
- * 設定の「サイドバー」: サイドバーの見出しのビューの一覧（利用者の依頼）。並べ替え（↑↓。見出しのタブのドラッグと同じ並び）・名前の変更・
+ * 設定の「サイドバー」: サイドバーの見出しのビューの一覧。並べ替え（↑↓。見出しのタブのドラッグと同じ並び）・名前の変更・
  * 中身の変更（見出しの ⚙ の窓と同じ項目）・削除・新しいビュー（いまのサイドバーの見え方から作る）
  */
 export function SidebarViewSettings() {

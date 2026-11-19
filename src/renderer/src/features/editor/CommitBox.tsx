@@ -8,7 +8,7 @@ import type { CommitActions } from "./useCommitActions";
 /**
  * 「変更」の上のコミットの欄（VS Code と同じ）。メッセージ（書いた分だけ伸びる 1 行の欄）を書いて「コミット」（⌘Enter）。右の ▾ で
  * コミット / コミット (修正) / コミットしてプッシュ / コミットして同期 を選ぶ。ステージしたものがなければ、すべてステージしてコミットするか確かめる。
- * リモートより進んでいれば「プッシュ」、追いかけるブランチがまだなければ「ブランチを公開」、遅れていれば「プル」を下に出す（利用者の依頼で残す）
+ * リモートより進んでいれば「プッシュ」、追いかけるブランチがまだなければ「ブランチを公開」、遅れていれば「プル」を下に出す
  */
 export function CommitBox({ status, actions }: { status: Extract<GitStatus, { repo: true }>; actions: CommitActions }) {
   const { message, setMessage, busy, canCommit, canPush, publish, commit, push, pull } = actions;

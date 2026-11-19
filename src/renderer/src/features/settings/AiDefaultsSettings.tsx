@@ -10,7 +10,7 @@ import { useSettingsDraft } from "./useSettingsDraft";
 
 /**
  * 設定: 新しいプロジェクトで使う AI と、AI ごとの新しいチャットの既定（モデル・推論の深さ・権限モード・ファストモード）。
- * Claude Code のほかの AI は、Kickoff のチャットで使えるもの（implemented）だけ出す（メモの仕様書「0028」の 9 節）
+ * Claude Code のほかの AI は、Kickoff のチャットで使えるもの（implemented）だけ出す
  */
 export function AiDefaultsSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();

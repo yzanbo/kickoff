@@ -1,4 +1,4 @@
-// CodeMirror 6 の編集の部品を 1 つ作る hook（SQL のタブの入力欄・メモの編集で共通）。
+// CodeMirror 6 の編集の部品を 1 つ作る hook。
 // 作るのは描いたときの 1 回だけ（中身を入れ直すときは key を変えて作り直す）。書き換わったら onChange にいまの文を渡し、
 // 途中で変える拡張（言語の補完・表示の切り替え）は dynamic に渡せば、dynamicDeps が変わったときに差し替える
 import { Compartment, EditorState, type Extension } from "@codemirror/state";

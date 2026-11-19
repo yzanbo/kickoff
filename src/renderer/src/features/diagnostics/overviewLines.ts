@@ -1,7 +1,7 @@
 import type { DiagnosticsOverview, StallDigest } from "@shared/ipc";
 import { formatDayTime } from "@/lib/time";
 
-// 設定の「診断」に出す、いつも取っている記録のまとめの文（メモの仕様書「0023_表示を軽くする」の U10）。1〜3 行にする
+// 設定の「診断」に出す、いつも取っている記録のまとめの文。1〜3 行にする
 
 /** 短い長さ（1 秒未満は ms、それより長ければ小数 1 桁の秒） */
 export function formatShortMs(ms: number): string {

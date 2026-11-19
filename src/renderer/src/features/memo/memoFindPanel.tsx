@@ -47,7 +47,7 @@ function countMatches(state: EditorState): { total: number; current: number | nu
  */
 function MemoFindPanel({ view, state, initialFocus }: { view: EditorView; state: EditorState; initialFocus: boolean }) {
   // 描く中では view.state（同じ view のまま書き換わる外の値）ではなく、渡された state（CodeMirror の更新ごとに新しい物）を読む
-  // （React Compiler が view が同じ間の結果を使い回しても、state が替われば読み直す。メモの仕様書「0023_表示を軽くする」の案 17）
+  // （React Compiler が view が同じ間の結果を使い回しても、state が替われば読み直す）
   const { options, toggle } = useFindOptions();
   const query = getSearchQuery(state);
   const [text, setText] = useState(query.search);

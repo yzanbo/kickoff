@@ -6,7 +6,7 @@ import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions, pro
 import { CheckField, Field } from "@/ui/Field";
 
 /**
- * 設定の「AI の既定」の、Claude Code のほかの AI の新しいチャットの既定（メモの仕様書「0028」の 9 節）。
+ * 設定の「AI の既定」の、Claude Code のほかの AI の新しいチャットの既定。
  * モデルは「その AI の既定」（null）か一覧のもの。ファストモードは、その AI のモデルのどれかが対応しているときだけ出す（Codex は持たない）
  */
 export function ProviderDefaultsFields({ provider, value, onChange }: { provider: OtherProviderId; value: ChatOptions | undefined; onChange: (next: ChatOptions) => void }) {

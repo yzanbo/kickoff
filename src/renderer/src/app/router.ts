@@ -108,8 +108,8 @@ export function lastingRoute(route: Route): Route {
 }
 
 /**
- * 起動したとき（ウィンドウを作り直したときも）、URL に画面の指定がなければ、最後に見ていた画面を開く（利用者の依頼。
- * 前は起動するといつも全プロジェクトだった）。App を描く前に呼ぶ。指定があれば（再読み込み・別ウィンドウ）そのまま
+ * 起動したとき（ウィンドウを作り直したときも）、URL に画面の指定がなければ、最後に見ていた画面を開く。
+ * App を描く前に呼ぶ。指定があれば（再読み込み・別ウィンドウ）そのまま
  */
 export function restoreLastRoute() {
   if (location.hash.replace(/^#/, "") !== "") return;
@@ -194,7 +194,7 @@ export function openProjectFile(projectId: number, file: FileTarget) {
 export type SideOpenTarget = { kind: "file"; file: FileTarget } | { kind: "memo"; path: string; line?: number };
 
 /**
- * 右サイドバーで開く口（右サイドバーがその中身を見せているときだけ開いて true を返す。メモの仕様書「0031」の Q7）。
+ * 右サイドバーで開く口（右サイドバーがその中身を見せているときだけ開いて true を返す）。
  * 右サイドバーの部品（features/panel/projectChat/sideOpenRequests.ts）が置く（ルーターは画面の部品を import しないため）
  */
 let sideOpener: ((projectId: number, target: SideOpenTarget) => boolean) | null = null;

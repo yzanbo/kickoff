@@ -75,9 +75,9 @@ export function useWorkspaceRows({
   const nestedDrafts = grouping !== "none";
 
   // 出すチャット: アーカイブしていないものは検索・要対応・状態で絞り、アーカイブ済みは（出すときだけ）検索で絞る（要対応・状態で絞っているときは出さない。
-  // 作業中・回答待ち・未読はアーカイブしていないチャットだけを数えるので、出すと数と合わず、絞り込み中はまとまりを開くので「アーカイブ済み」も開いて見えた。利用者の指摘）。
+  // 作業中・回答待ち・未読はアーカイブしていないチャットだけを数えるので、出すと数と合わず、絞り込み中はまとまりを開くので「アーカイブ済み」も開いて見える）。
   // 行の分け方は、チャット・絞り込み・回答待ちの一覧が変わったときだけ計算し直す（matches は検索語が変わるまで同じ関数）
-  // 要対応・状態で絞るときは、合う子チャットも行に並べる（親の中に閉じたままだと見えないため。数にも入れている。利用者の依頼）
+  // 要対応・状態で絞るときは、合う子チャットも行に並べる（親の中に閉じたままだと見えないため。数にも入れている）
   const shown = useMemo(() => {
     const fits = (chat: Chat) => {
       const state = stateOf(chat);
@@ -103,7 +103,7 @@ export function useWorkspaceRows({
   const main = buckets.filter(isMainBucket);
   const mainRows = useMemo(() => buckets.filter(isMainBucket).flatMap((b) => b.chats), [buckets]);
 
-  // 手動の並びのときは、下書きの行をタブの列での位置に合わせてチャットの行の間に置く（利用者の依頼。置かないものは、いままでどおりまとまりのいちばん上）。
+  // 手動の並びのときは、下書きの行をタブの列での位置に合わせてチャットの行の間に置く（置かないものは、まとまりのいちばん上）。
   // グループの見出しを出しているときは同じグループのチャットの間、出していないときは見出しの下の一覧（作業場所別なら同じ作業場所）のチャットの間
   const topDraftList = showDrafts && !nestedDrafts ? drafts : NO_DRAFTS;
   const slots = useMemo<DraftSlot[]>(
@@ -133,7 +133,7 @@ export function useWorkspaceRows({
     setStateFilter,
     filtering,
     pending,
-    /** アーカイブしていないチャットの数（絞り込む前。固定したもの・送る前の新しいチャット（下書き）も数える。利用者の依頼で、下書きもやり取りのあるチャットと同じに数える） */
+    /** アーカイブしていないチャットの数（絞り込む前。固定したもの・送る前の新しいチャット（下書き）も数える。下書きもやり取りのあるチャットと同じに数える） */
     chatCount: chats.filter((c) => !c.archived_at).length + allDrafts.length,
     /** 絞り込んだあとのアーカイブしていないチャットの数（下書きは含めない。空のときの案内を出すかに使う） */
     visibleCount: shown.filter((c) => !c.archived_at).length,

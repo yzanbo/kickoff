@@ -19,7 +19,7 @@ export function useCardFields(): ShowCardField {
 }
 
 /**
- * ツールバーの「表示項目」（並び順の左。利用者の依頼）。カード・リストの行・フィードのカードに出すバッジ・詳細・日時を、
+ * ツールバーの「表示項目」（並び順の左）。カード・リストの行・フィードのカードに出すバッジ・詳細・日時を、
  * チェックのメニューで 1 つずつ出す・隠す（押してもメニューは閉じない）。いちばん下の「既定に戻す」で初めの選び方に戻す
  */
 export function CardFieldsButton({ allProjects }: { allProjects: boolean }) {

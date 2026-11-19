@@ -3,7 +3,7 @@ import { consumeKey, isCancelKey, isSubmitKey } from "@/lib/keys";
 import { useHeldMeta } from "./useHeldMeta";
 
 /**
- * 書き直しの欄のキー（発言の書き直し・送信待ちの書き直し・質問の「その他」・選んだ範囲へのコメントで共通）:
+ * 書き直しの欄のキー:
  * Enter で決める（⌘Enter なら meta。保存していま送るなど）・Shift+Enter で改行・Esc でやめる（onCancel を渡したとき。パネルを閉じる Esc には渡さない）。
  * 変換中の Enter・Esc は変換に使い、決めない・やめない。⌘ だけを押している間は heldMeta（⌘Enter で使われるボタンを光らせる）。
  * keyProps を欄（textarea）に渡す

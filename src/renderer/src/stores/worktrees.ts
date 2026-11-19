@@ -23,7 +23,7 @@ export const worktreesStore = createKeyedStore<number, GitWorktree[]>({
 /** そのプロジェクトのワークツリーの一覧（読み込み中・読めなかったときは undefined） */
 export const useWorktrees = (projectId: number): GitWorktree[] | undefined => useKeyedStore(worktreesStore, projectId).data;
 
-/** ワークツリーの実行環境（ポートの帯・組の名前。一覧を読んでいない・本体・この機能の前に作ったものは null） */
+/** ワークツリーの実行環境（ポートの帯・組の名前。一覧を読んでいない・本体・覚えのないワークツリー（Kickoff の外で作ったものなど）は null） */
 export const worktreeEnvOf = (projectId: number, path: string | null): WorktreeEnv | null =>
   (path && worktreesStore.get(projectId).data?.find((w) => w.path === path)?.env) || null;
 

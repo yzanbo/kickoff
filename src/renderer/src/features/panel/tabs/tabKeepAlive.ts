@@ -1,9 +1,9 @@
-// 裏に回しても止めない会話の欄（keepAlive。メモの仕様書「0023_表示を軽くする」の M5・分冊 3 の 3-3-3）
+// 裏に回しても止めない会話の欄（keepAlive）
 import { createContext, useCallback, useContext, useState, useSyncExternalStore } from "react";
 
 /**
  * 会話の欄を止めない理由: 音声モード・音声入力の録音と文字起こし・添付のアップロード・送信待ちの書き直し・預かった指示の書き直し。
- * どれも「裏に回しても続く」がいままでの振る舞いで、止めると利用者の操作が途中で切れる
+ * どれも裏に回しても続け、止めると利用者の操作が途中で切れる
  */
 const KEEP_ALIVE_REASONS = ["voice", "dictation", "upload", "queueEdit", "heldEdit"] as const;
 export type KeepAliveReason = (typeof KEEP_ALIVE_REASONS)[number];
@@ -63,7 +63,7 @@ export const setKeepAlive = (chatId: number, reason: KeepAliveReason, on: boolea
 /** チャットの画面（殻）を閉じたとき、そのチャットの理由をすべて外す */
 export const clearKeepAlive = (chatId: number) => keepAlive.clear(chatId);
 
-/** そのチャットの会話の欄を止めない理由があるか（あれば会話の欄を止めず、いままでどおり hidden で隠すだけにする） */
+/** そのチャットの会話の欄を止めない理由があるか（あれば会話の欄を止めず、hidden で隠すだけにする） */
 export function useKeepAlive(chatId: number): boolean {
   return useSyncExternalStore(
     useCallback((l: () => void) => keepAlive.subscribe(chatId, l), [chatId]),

@@ -8,7 +8,6 @@ export type ProjectReorder = ReturnType<typeof useProjectReorder>;
  * サイドバーのプロジェクトのドラッグでの並べ替え（縦並びのカード・横スライドとアイコンの列の丸で共通）。
  * 並べ替えられるのは、しまっていないプロジェクト（しまったものはつかめず、ドロップ先にもならない）。
  * 並び順が「最近動いた順」でもつかめ、落とすと、いま見えている並びのまま動かした順を手動の並びとして保存し、onManual で手動に切り替える
- * （前は手動の並びのときだけつかめ、最近動いた順ではドラッグしても何も起きなかった）
  */
 export function useProjectReorder({ ids, isArchived, onManual }: { ids: number[]; isArchived: (id: number) => boolean; onManual?: () => void }) {
   const reorder = useReorder(

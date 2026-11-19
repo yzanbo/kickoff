@@ -15,7 +15,7 @@ import { VoiceProviderCard } from "./VoiceProviderCard";
 import { VoiceSpeechSettings } from "./VoiceSpeechSettings";
 
 /**
- * 設定: 音声入力（利用者の依頼で使いやすく作り直した）。上から、使うかのスイッチといま使えるか（1 枚のカード）→ 文字起こしの方法（無料 / 有料の札付きのカード 3 枚）→
+ * 設定: 音声入力。上から、使うかのスイッチといま使えるか（1 枚のカード）→ 文字起こしの方法（無料 / 有料の札付きのカード 3 枚）→
  * 話す言語 → 選んだ方法の準備（手順ごとに済んだら ✓）→ 音声モードの読み上げ（声の方法・声・速さ）。変えたらその場で保存する（保存のボタンを押し忘れて効かない、をなくす）
  */
 export function VoiceSettings() {

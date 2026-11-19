@@ -25,7 +25,7 @@ import { followMovedMemo, useMemoActions } from "./useMemoActions";
  * 入力欄の上の「メモ」（指示の履歴・子チャットと同じピルの列）。押すとメモのフォルダの木（メモのタブと同じ並び・同じ開いているフォルダ。
  * メモの入っていないフォルダは出さない）を出し、メモの行を押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。
  * 行の右のボタンで、メモを開かずにこのチャットの入力欄に追加する（押した時点の写しの札。一覧は閉じず、続けていくつも足せる）・設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられ、
- * 右端の「フォルダをすべて開く / すべて閉じる」で木のフォルダをまとめて開閉する（利用者の依頼）。開閉はプロジェクトごとに 1 つ（memoOpenFolders）なので、
+ * 右端の「フォルダをすべて開く / すべて閉じる」で木のフォルダをまとめて開閉する。開閉はプロジェクトごとに 1 つ（memoOpenFolders）なので、
  * 同じプロジェクトのどのチャットのピルでも、メモのタブの木でも同じになる
  * 行をドラッグしてフォルダ（一覧の空いている所なら直下）へ落とすと動かす（メモのタブの木と同じ）。
  * プロジェクトにメモがなければ出さない。
@@ -62,7 +62,7 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
   const open = (path: string, place?: "side" | "window") => {
     popover.close();
     // 右の欄・別ウィンドウの中（メモのタブの中のメモのチャットなど）では、その右の欄を持つチャットの右の欄に新しいタブで開く
-    // （前はメモのチャット自身の右の欄を探し、メモのチャットをチャットのパネルに開いていた）
+    // （メモのチャット自身の右の欄を探すと、メモのチャットをチャットのパネルに開いてしまう）
     openMemoFromChat({ projectId, path, chatId: mainChat ?? chatId, place, draftSide });
   };
   return (
@@ -111,7 +111,7 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
               onDropTarget={setDropTarget}
               onOpen={open}
               onAttach={(path) => {
-                // 続けていくつも足せるよう、一覧は閉じない（利用者の依頼）
+                // 続けていくつも足せるよう、一覧は閉じない
                 if (chatId !== null) attachMemoToChat(chatId, projectId, path);
                 else onAttach?.(path);
               }}

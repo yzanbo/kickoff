@@ -80,7 +80,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 選んでいる = いまの画面がこのプロジェクト（カンバン・チャットなど）
   const isActive = routeProjectId(route) === project.id;
   // 行の絞り込み（検索・要対応・状態）と、固定・グループ・グループなし・アーカイブ済みへの分け方（bucketChats）
-  // 要対応・状態ごとの数で数えるチャット（アーカイブしていないもの。子チャットも入れる。利用者の依頼）
+  // 要対応・状態ごとの数で数えるチャット（アーカイブしていないもの。子チャットも入れる）
   const counted = useChatsWithChildrenByProject()[project.id] ?? NO_CHATS;
   const list = useWorkspaceRows({ projectId: project.id, chats, counted, groupCount: groups.length, searchAll, collapsed });
   const { showGroups, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, chatCount, visibleCount, pinned, ungrouped, mainRows, mainSections, archived, mainArchived } = list;
@@ -89,7 +89,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   const [showArchivedChats] = useShowArchivedChats();
   const childChats = useChildChats({ archived: showArchivedChats });
   // 一覧を開いた直後（まとめ方・並び順・開閉・アーカイブ済みを出すか・チャットが届いたかが変わったとき）は画面に入る数の行だけを描き、
-  // 最初の描画のあとに残りを描く（見えていない裏のページは初めは描かない。メモの仕様書「0023_表示を軽くする」の案 23）
+  // 最初の描画のあとに残りを描く（見えていない裏のページは初めは描かない）
   const rowBudget = useProgressivePage(`${grouping}/${order}/${collapsed ? 1 : 0}/${showArchivedChats ? 1 : 0}/${chats.length > 0 ? 1 : 0}`, hidden);
   // 要対応の「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す）。
   // 検索・状態で絞っている間は出さない
@@ -129,7 +129,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   // グループに入れた下書きがあれば、グループなしのチャットがなくても「No Group」の見出しを出す（下書きを戻すドロップ先）
   const groupedDrafts = list.groups.some((g) => g.drafts.length > 0);
   // グループの見出しを出しているときは、どのグループにも入っていない下書き（もうないグループのものも）を「No Group」の中（チャットの上）に並べる
-  // （以前はプロジェクトのいちばん上に出していて、グループなしのものだと分かりにくかった）
+  // （プロジェクトのいちばん上に出すと、グループなしのものだと分かりにくい）
   const ungroupedDrafts = ungrouped?.drafts ?? [];
   const mainDraftCount = list.mainDraftCount;
   // 固定を除いた、絞り込みを通したチャットの数
@@ -148,7 +148,7 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
   const rename = useChatRename((m) => void alertDialog("名前を変更できませんでした", m));
-  // まとまり（グループ別のグループ・No Group、作業場所別の作業場所）の中の行で隠す札（見出しと同じことを言うため。利用者の依頼）
+  // まとまり（グループ別のグループ・No Group、作業場所別の作業場所）の中の行で隠す札（見出しと同じことを言うため）
   const bucketChip = showGroups ? "group" : list.grouping === "worktree" ? "worktree" : undefined;
   // drafts: 手動の並びで、タブの列でこのチャットのすぐ後ろにある下書きも並べるか（同じチャットをもう一度出す「要対応」のまとまりでは出さない）
   // inBucket: まとまりの中の行か（まとまりの外の「要対応」「固定」の行は、どのグループ・作業場所かがわかるよう札を残す）

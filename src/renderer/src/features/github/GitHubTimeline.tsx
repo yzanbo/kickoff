@@ -39,7 +39,7 @@ export const ThreadHandoffContext = createContext<((thread: GitHubReviewThread) 
 
 /**
  * 行のスレッド 1 つ（ファイルと行・解決済み・古い差分の印・差分の終わりの数行・コメント・返信と解決（PR の中身の中だけ））。
- * 解決済みのものは畳んでおき（見出しとコメントの数だけ）、見出しの ▸ で開く。解決を戻した・解決したら、また既定の開き方に戻す（仕様書 8）。
+ * 解決済みのものは畳んでおき（見出しとコメントの数だけ）、見出しの ▸ で開く。解決を戻した・解決したら、また既定の開き方に戻す。
  * inline は PR の「変更」の差分の行の下に出すとき（ファイルと差分の数行は差分そのものが見えているので出さない）
  */
 export function GitHubThread({ thread, inline = false }: { thread: GitHubReviewThread; inline?: boolean }) {

@@ -12,7 +12,7 @@ export function DiagnosticsSettings({ onClose }: { onClose: () => void }) {
   const available = Boolean(window.kickoff);
   // 保存先と最近の記録（新しい順）。デスクトップアプリでだけ取れる
   const folders = useAsync(async () => (await window.kickoff?.diagnostics.folders()) ?? null);
-  // いつも取っている記録のまとめ（最近 24 時間の詰まり・最後の起動の時刻。メモの仕様書「0023_表示を軽くする」の U10）
+  // いつも取っている記録のまとめ（最近 24 時間の詰まり・最後の起動の時刻）
   const overview = useAsync(async () => (await window.kickoff?.diagnostics.overview()) ?? null);
   return (
     <section className="section">

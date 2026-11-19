@@ -21,7 +21,7 @@ export function visibleChangePaths(paths: readonly string[], fold: ChangeFold, t
 }
 
 /**
- * 変更の一覧（ChangesPane）の ⌘ / Shift ＋クリックの複数選択（利用者の依頼。決まりは useMultiSelect）。「ステージされている変更」と「変更」をまたいで 1 つで、
+ * 変更の一覧（ChangesPane）の ⌘ / Shift ＋クリックの複数選択（決まりは useMultiSelect）。「ステージされている変更」と「変更」をまたいで 1 つで、
  * 範囲は見えている並び（ステージ済み → 未ステージ）。まだ何も選んでいなければ開いているファイルも入れる。フォルダの行は選ばない（中に変更のないファイルもあるため）。
  * 返す multiFor(staged) をまとまりに渡し、pickedIn(staged) は行のボタン（ステージなど）を選んだものすべてに効かせるのに使う
  */

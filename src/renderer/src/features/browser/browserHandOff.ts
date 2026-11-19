@@ -1,4 +1,4 @@
-// 埋め込みブラウザのタブの「AI に渡す」: 見えている範囲の画面と、覚えているコンソールのエラー・警告を札にする（要件の添付の共通化の段階 2）
+// 埋め込みブラウザのタブの「AI に渡す」: 見えている範囲の画面と、覚えているコンソールのエラー・警告を札にする
 import type { Attachment } from "@shared/types";
 import { webUrlOf } from "@shared/links/linkWarnings";
 import { api } from "@/api";

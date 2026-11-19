@@ -2,7 +2,7 @@ import type { ProviderId, ProviderStatus, ServiceUsage } from "@shared/types";
 import { paysPerUse, statusOf } from "@/features/chat/provider/providerChoice";
 
 /**
- * 下の帯の右に並べる AI ごとのまとまり（利用者の依頼で、Claude と Codex を同時に出す。前は 1 つの AI だけを出し、札で切り替えていた）。
+ * 下の帯の右に並べる AI ごとのまとまり（Claude と Codex を同時に出す）。
  * - plan: Claude Code のプランの使用枠（`/api/usage`。5 時間・週・モデル別の週）
  * - service: サービスごとの使用状況（`/api/usage/services`）のその AI の枠
  * - pay: API キーで動かす（使った分の支払い。枠はない）

@@ -24,7 +24,7 @@ import { useShownChildChats } from "./useShownChildChats";
  * 行にどのプロジェクトかの印を添える）/ プロジェクト別 = サイドバーのプロジェクトの並びで見出しに分ける（見出しの中は状態順）。
  * variant: top = 一覧の上にまとめる（「要対応 n 件」の見出しで開閉し、その下にプロジェクトの一覧が続く）/ list = 要対応だけを並べる（これだけを並べる）。
  * 行はプロジェクトの一覧と同じ ChatRow（右クリック・名前の変更・複数選択）。出すのはサイドバーと同じく、しまっていない・タグの絞り込みに合うプロジェクトのチャット。
- * 子チャット（孫も）も並べ、押すと設定の開き方（右の欄 / 別ウィンドウ）で開く（利用者の依頼。前は親のないチャットだけで、未読の子チャットが数に入らなかった）
+ * 子チャット（孫も）も並べ、押すと設定の開き方（右の欄 / 別ウィンドウ）で開く（未読の子チャットも数に入れるため）
  */
 export function WaitingInbox({ variant, order }: { variant: "top" | "list"; order: WaitingOrder }) {
   const chats = useChatsWithChildrenByProject();

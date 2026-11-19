@@ -178,7 +178,7 @@ export function closePane(layout: PaneLayout, paneId: string, keep: (key: string
 /**
  * 覚えていた配置を、いまのタブに合わせて直す: ないタブのキーは外し（2 つのペインにあれば先のほうだけ残す）、
  * どのペインにもないタブ（サイドバーと連動して自動で足したチャットなど）は一覧のペインに足す（自分で開くタブは placeTab でピントのあるペインに入る。
- * 以前はここもピントのあるペインで、1 つのタブだけを見せるために分けたペインに、ほかのチャットが流れ込んでいた）。
+ * ピントのあるペインに足すと、1 つのタブだけを見せるために分けたペインに、ほかのチャットが流れ込む）。
  * 表示中のタブ・ピントのあるペインがなくなっていれば先頭にする
  */
 export function reconcileLayout(layout: PaneLayout, keys: readonly string[]): PaneLayout {

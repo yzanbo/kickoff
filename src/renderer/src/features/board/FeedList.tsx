@@ -85,7 +85,7 @@ export function FeedCardContent({
         {show("project") && <ProjectChip id={chat.project_id} name={projectName} />}
         {rename ? <ChatTitleInput chat={chat} editor={rename} /> : <span className="card-title one-line">{chatTitle(chat.title)}</span>}
         <CardBadges chat={chat} show={show} />
-        {/* 状態はボードの列の見出しと同じ色の札（利用者の依頼。前は点と文だけ） */}
+        {/* 状態はボードの列の見出しと同じ色の札 */}
         {show("state") && (
           <span className="feed-card-state">
             <StateChip state={state} label={AGENT_STATE_LABELS[state]} unread={busyWithUnread(chat, state)} />

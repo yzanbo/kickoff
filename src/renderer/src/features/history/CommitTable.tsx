@@ -24,7 +24,7 @@ function edgePath(from: number, to: number, y1: number, y2: number) {
 
 /**
  * 1 行分のグラフ（上半分・下半分の線と、コミットの点。マージは中を抜いた点）。
- * 幅はその行で使う列まで（件名を、その行の線のすぐ右から始める。利用者の依頼。前は履歴全体でいちばん広い所の幅をどの行にも取り、1 本道の所でも線と件名の間が大きく空いた）
+ * 幅はその行で使う列まで（件名を、その行の線のすぐ右から始める。履歴全体でいちばん広い所の幅をどの行にも取ると、1 本道の所でも線と件名の間が大きく空く）
  */
 function GraphCell({ row, merge }: { row: GraphRow; merge: boolean }) {
   const width = Math.min(rowLanes(row), MAX_LANES) * LANE;

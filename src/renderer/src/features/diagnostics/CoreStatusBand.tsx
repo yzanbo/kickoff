@@ -3,7 +3,7 @@ import { CORE_STATE_LABELS, type CoreState } from "@shared/ipc";
 import { errorMessage } from "@shared/errors";
 
 /**
- * Kickoff のコア（別のプロセス）が落ちた・応答しないときの、画面の上の細い帯（メモの仕様書「0023_表示を軽くする」の案 16・U8・U9）。
+ * Kickoff のコア（別のプロセス）が落ちた・応答しないときの、画面の上の細い帯。
  * 様子はメインプロセスが見張って知らせる（IPC の core.onState）。作り直している間「Kickoff のコアを起動し直しています…」、
  * 作り直すのを止めたら「コアが止まりました［起動し直す］」、応答しなければ「Kickoff のコアが応答しません［起動し直す］［待つ］」。
  * 戻ったら（ready）消える。ブラウザで開いた画面（window.kickoff がない）には出さない

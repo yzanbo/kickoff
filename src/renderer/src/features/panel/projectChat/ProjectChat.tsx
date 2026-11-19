@@ -32,7 +32,7 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
     >
       <div className="pane-resizer project-chat-resizer" aria-label="右サイドバーの幅を変える" {...width.handle} />
       <div className="project-chat-inner">
-        {/* 上の行は信号機ボタン・右上のレイアウトの開閉と同じ行のウィンドウのドラッグ領域。タブの列はその下の行（利用者の依頼） */}
+        {/* 上の行は信号機ボタン・右上のレイアウトの開閉と同じ行のウィンドウのドラッグ領域。タブの列はその下の行 */}
         <div className="panel-window-titlebar" aria-hidden />
         <SideBody projectId={projectId} frame={frame} />
       </div>
@@ -41,7 +41,7 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
 }
 
 /**
- * 右サイドバーの中身: 右端のアイコンの列で選んだもの（メモの仕様書「0031_右サイドバーにプロジェクトの画面を出す」）。
+ * 右サイドバーの中身: 右端のアイコンの列で選んだもの。
  * ブラウザはほかの中身を見ている間も隠して置く（ページ・ログインの状態・書きかけを保つ）。ほかの中身は見ているものだけ描く（SideViewBody）。
  * メインのウィンドウの右サイドバーと、右サイドバーの別ウィンドウ（PopoutSideChat）で同じものを描く
  */
@@ -59,11 +59,11 @@ export function SideBody({ projectId, frame }: { projectId: number; frame?: Pane
 
 /**
  * チャット欄の中身（プロジェクトのタブ。開いているかは欄の殻 useProjectChat と同じ店から読む）。チャット欄の別ウィンドウ（PopoutSideChat）も同じものを描く。
- * 欄ごと別ウィンドウへ移すボタンは置かない（利用者の依頼で隠した。タブは右クリック・ウィンドウの外へのドラッグで 1 つずつ別ウィンドウで開ける）。
+ * 欄ごと別ウィンドウへ移すボタンは置かない（タブは右クリック・ウィンドウの外へのドラッグで 1 つずつ別ウィンドウで開ける）。
  * frame: 横幅いっぱいの切り替え（メインのウィンドウだけ。別ウィンドウはウィンドウの大きさで決まるので渡さない）
  */
 function ProjectChatPanel({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
-  // ブラウザだけの欄（利用者の依頼）なので、新しいチャット・ターミナルの開く場所は渡さない
+  // ブラウザだけの欄なので、新しいチャット・ターミナルの開く場所は渡さない
   const panel = usePanel({ surface: "side", scope: projectId, newChat: undefined, terminals: NO_TERMINALS });
   return <Panel panel={panel} frame={frame} />;
 }

@@ -9,7 +9,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { GitHubMarkdownField } from "./GitHubMarkdownField";
 
 /**
- * issue・PR の会話の下のコメント欄（要件 5.11 の段階 3）: Markdown で書いて「コメント」、書いた文があれば「コメントして閉じる」。
+ * issue・PR の会話の下のコメント欄: Markdown で書いて「コメント」、書いた文があれば「コメントして閉じる」。
  * issue は閉じ方（完了 / 対応しない）を ▾ で選ぶ（ボタンそのものは完了）。閉じたものは「開き直す」。マージ済みの PR は閉じる・開き直すを出さない。
  * 閉じる・開き直す・ラベルは、そのアカウントにできるときだけ（GitHub の viewerCan…）。送ったら onChanged（中身を取り直す）
  */

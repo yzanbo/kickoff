@@ -88,7 +88,7 @@ export function CardTimes({ chat, show, active: givenActive }: Pick<Props, "chat
 
 /**
  * ボードのカードの中身（状態の印と名前・札・詳細・日時。出すものはツールバーの「表示項目」で選ぶ）。状態は名前の左に、サイドバーの行と同じ印（StatusSlot。作業中は回るリング・
- * 回答待ちは！・未読は緑の点、作業中のまま未読なら緑の点を重ねる）で出す（利用者の依頼。前は下の行に点と「既読」などの文）。何も出さない行は描かない
+ * 回答待ちは！・未読は緑の点、作業中のまま未読なら緑の点を重ねる）で出す。何も出さない行は描かない
  */
 export function ChatCardContent({ chat, state, projectName, pending = 0, rename, show }: Props) {
   const badges = (projectName !== undefined && show("project")) || (show("group") && chat.group_id !== null) || show("worktree") || Boolean(chat.archived_at);

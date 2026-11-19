@@ -3,7 +3,7 @@ import { ensureAllRows } from "@/hooks/useProgressiveRows";
 
 /**
  * 透明な 4 × 4 px の PNG。1 px だと Retina（2 倍）の画面では 0.5 pt になり、OS に渡すときに 0 × 0 に切り捨てられて「絵なし」とみなされ、
- * 既定の濃い絵（つかんだ物の写し）が出ていた（利用者の指摘。OS が窓の上に描くので画面の写真には写らない）。3 倍の画面でも 1 pt 以上になる大きさにする
+ * 既定の濃い絵（つかんだ物の写し）が出る（OS が窓の上に描くので画面の写真には写らない）。3 倍の画面でも 1 pt 以上になる大きさにする
  */
 const BLANK_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAADElEQVR42mNgoBwAAABEAAHpHptRAAAAAElFTkSuQmCC";
 
@@ -44,7 +44,7 @@ interface DragGhostOptions {
 
 /**
  * ドラッグの絵（dragstart から呼ぶ。アプリのどのドラッグもこれを使う）: つかんだ物をそのまま写して半透明にし、つかんだところがカーソルの下にあるまま、
- * カーソルに素直に付いて動かす。ブラウザの既定の絵は文字・アイコンが濃いまま写り、透け方も決められず、下の「入る位置の線」・落とし先の枠が見えにくかった
+ * カーソルに素直に付いて動かす。ブラウザの既定の絵は文字・アイコンが濃いまま写り、透け方も決められず、下の「入る位置の線」・落とし先の枠が見えにくい
  * （送信待ちで作った見せ方を、アプリ全体にそろえた）。既定の絵は透明にして、写しを画面のいちばん上に重ね、ドラッグの間は dragover に合わせて動かす。
  * 動かしている物は、ドラッグの間だけ薄くする
  */
@@ -104,7 +104,7 @@ export function startDragGhost(e: DragEvent<Element>, { source, count = 1, after
   setTimeout(() => {
     // すぐに落とした（end が先に済んだ）ときは印を付けない
     if (ghost.isConnected) el.setAttribute(SOURCE_ATTR, "");
-    // 落とす先は並んだ行・カードの位置で決めるので、開いた直後でまだ描いていない一覧があればすべて描く（dragstart の中では描き直さない。案 23）
+    // 落とす先は並んだ行・カードの位置で決めるので、開いた直後でまだ描いていない一覧があればすべて描く（dragstart の中では描き直さない）
     ensureAllRows();
     after?.();
   }, 0);

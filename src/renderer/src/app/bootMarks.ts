@@ -1,6 +1,6 @@
 import type { BootMarkName, BootReport, BootWindow, RendererMemory } from "@shared/ipc";
 
-// 画面の起動の時刻（メモの仕様書「0023_表示を軽くする」の案 18c）: 入口 → 表示の設定 → 部品の読み込み → 最初の描き終わり → 最初の描画 → 入力できるまで。
+// 画面の起動の時刻: 入口 → 表示の設定 → 部品の読み込み → 最初の描き終わり → 最初の描画 → 入力できるまで。
 // そろったら IPC の diagnostics.reportBoot で 1 回だけメインへ送る（メインが startup.log・boot.jsonl に書く）。画面のメモリも 60 秒ごとに送る。
 // 決め方は純粋な createBootMarks（時計・送り先・描画の待ち方・タイマーは引数）、rAF・performance・IPC につなぐのは下の薄い部分
 

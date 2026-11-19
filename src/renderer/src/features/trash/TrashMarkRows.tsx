@@ -11,7 +11,7 @@ import { remainingText } from "./trashText";
 type MarkState = { kind: "loading" } | { kind: "in"; item: TrashItem } | { kind: "gone" } | { kind: "restored" };
 
 /**
- * 会話の中のコマンドの出力に出た kickoff-trash の印（メモの仕様書「ファイル削除」の Q6 ③）を 1 行ずつ出し、その場で「元に戻す」。
+ * 会話の中のコマンドの出力に出た kickoff-trash の印を 1 行ずつ出し、その場で「元に戻す」。
  * まだゴミ箱にあるかは、呼び出しを開いたとき（active）に 1 回だけ聞く（閉じたままの呼び出しでは聞かない）
  */
 export function TrashMarkRows({ marks, active, rel }: { marks: TrashMark[]; active: boolean; rel: (s: string) => string }) {

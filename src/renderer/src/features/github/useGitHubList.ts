@@ -19,8 +19,8 @@ const NO_FRESH: ReadonlySet<number> = new Set();
 
 /**
  * GitHub タブの一覧。絞り込みを変えた・開いた・取り直しのボタン・窓に戻った・1 分ごとに GitHub に聞く。
- * 聞いている間は、前に取った一覧を「更新中」の印を付けて出しておく（要件 5.11）。古い頼みの答えは捨てる。
- * 同じ絞り込みで取り直して新しくなった行（更新された・新しく入った）は、少しの間だけ fresh に入れる（仕様書 6。行に色を付ける）
+ * 聞いている間は、前に取った一覧を「更新中」の印を付けて出しておく。古い頼みの答えは捨てる。
+ * 同じ絞り込みで取り直して新しくなった行（更新された・新しく入った）は、少しの間だけ fresh に入れる（行に色を付ける）
  */
 export function useGitHubList(projectId: number, filter: GitHubListFilter, active: boolean) {
   const [state, setState] = useState<ListState>({ page: null, error: null, loading: true, loadingMore: false });

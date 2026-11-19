@@ -24,10 +24,10 @@ export function cellKind(value: DbValue): "null" | "binary" | "empty" | "number"
   return "text";
 }
 
-/** 接続の行に添える場所（SQLite はファイル、ほかは ユーザー@ホスト:ポート/DB） */
 /** DB の種類の短い印（木・接続のホーム。商標のロゴは使わない） */
 export const ENGINE_MARKS: Record<DbEngine, string> = { postgres: "Pg", mysql: "My", sqlite: "Lt" };
 
+/** 接続の行に添える場所（SQLite はファイル、ほかは ユーザー@ホスト:ポート/DB） */
 export function connectionPlace(c: Pick<DbConnection, "engine" | "host" | "port" | "database" | "username" | "file_path">): string {
   if (c.engine === "sqlite") return c.file_path ?? "";
   const host = c.host ? `${c.host}${c.port ? `:${c.port}` : ""}` : "";

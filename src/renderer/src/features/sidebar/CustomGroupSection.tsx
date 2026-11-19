@@ -54,7 +54,7 @@ export function CustomGroupSection({
   draftCount: number;
 }) {
   const { chats: members, drafts } = bucket;
-  // 見出しを押すと開閉する（前はそのグループのボードを開いていたが、プロジェクトのボードの列の分け方をなくし、グループのボードの画面もなくした）
+  // 見出しを押すと開閉する
   const press = () => onSetClosed(!closed);
   const pressLabel = closed ? "開く" : "閉じる";
   return (

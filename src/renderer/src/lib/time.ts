@@ -2,7 +2,7 @@
 
 /**
  * 日時を文字にする書式（toLocale*String と同じ選択肢。どれも時・日付の項目を持つので、Intl.DateTimeFormat の format と同じ文字になる）。
- * toLocale*String は呼ぶたびに Intl の準備をやり直して重いので、書式ごとに作り置いて使い回す（流れの項目・一覧の行ごとに呼ぶため。メモの仕様書「0023_表示を軽くする」の案 1）
+ * toLocale*String は呼ぶたびに Intl の準備をやり直して重いので、書式ごとに作り置いて使い回す（流れの項目・一覧の行ごとに呼ぶため）
  */
 const DATE_FORMATS = {
   clock: { hour: "2-digit", minute: "2-digit" },
@@ -184,7 +184,7 @@ export function formatRunTime(ms: number): string {
 
 /**
  * 出している開始と終了の時刻の差（秒より下を切り捨てた時刻どうしの差。"13:27:37 – 13:27:38" なら 1秒）。
- * 実際の長さ（0.6 秒など）を切り捨てると、時刻は 1 秒違うのに「0秒」と出て、並べた時刻と合わなかった
+ * 実際の長さ（0.6 秒など）を切り捨てると、時刻は 1 秒違うのに「0秒」と出て、並べた時刻と合わない
  */
 export function formatStampRunTime(start: string, end: string): string {
   const seconds = Math.floor(Date.parse(end) / 1000) - Math.floor(Date.parse(start) / 1000);

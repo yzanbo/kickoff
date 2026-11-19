@@ -28,7 +28,7 @@ interface Props {
 
 /**
  * 左のサイドバー（新しいチャット・全プロジェクト・検索、プロジェクトごとのチャット一覧、設定）。要対応のオン / オフは一覧の上の見出しの「要対応」の行
- * （利用者の依頼で、上の段から移した。上の段は押すと開く・作るものだけにする）
+ * （上の段は押すと開く・作るものだけにする）
  */
 export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewProject }: Props) {
   const route = useRoute();
@@ -50,7 +50,7 @@ export function Sidebar({ sidebar, onNewChat, newChatProject, onSearch, onNewPro
     if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.metaKey || e.altKey || e.ctrlKey) return;
     const target = e.target as HTMLElement | null;
     if (!target?.closest(".sidebar-section") || target.closest("input, textarea, select, [role=menu]")) return;
-    // 開いた直後でまだ描いていない行があれば、先にすべて描く（最後の行まで移れるように。案 23）
+    // 開いた直後でまだ描いていない行があれば、先にすべて描く（最後の行まで移れるように）
     ensureAllRows();
     const rows = visibleRows();
     if (rows.length === 0) return;

@@ -62,7 +62,7 @@ export function ChatRow({
   onOpen?: () => void;
   /** ドラッグでの手動の並べ替えの落とし先（入る位置の線のクラスと、行に付ける dragover / drop。useChatRowReorder） */
   reorder?: RowReorderProps;
-  /** 2 行目で隠す札（グループ別・作業場所別のまとまりの中では、見出しと同じことを言う札を出さない。利用者の依頼） */
+  /** 2 行目で隠す札（グループ別・作業場所別のまとまりの中では、見出しと同じことを言う札を出さない） */
   hideChip?: "group" | "worktree";
   /** 子チャットなら名前の前に深さの札（「子」「孫」）を付けるか（親の行の外に 1 行で並ぶとき。状態・要対応で絞った一覧・要対応のまとまり） */
   childMark?: boolean;
@@ -124,7 +124,7 @@ export function ChatRow({
           if (selection?.click(e, chat.id)) return;
           open();
         }}
-        // 行にピントがあるときの Enter は名前の変更（Finder と同じ。利用者の依頼で、前は Enter で開いていた）、Space で開く
+        // 行にピントがあるときの Enter は名前の変更（Finder と同じ）、Space で開く
         onKeyDown={(e) => {
           if (isRenameKey(e)) {
             e.preventDefault();

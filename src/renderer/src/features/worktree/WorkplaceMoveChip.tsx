@@ -22,7 +22,7 @@ export function useWorkplaceChoices(chat: Pick<Chat, "project_id" | "worktree_pa
   const kindOf = (main: boolean) => WORKPLACE_SHORT_LABELS[main ? "main" : "worktree"];
   const labels: Record<string, string> = Object.fromEntries(usable.map((w) => [w.main ? "" : w.path, `${kindOf(w.main)}｜${worktreeLabel(w)}`]));
   labels[NEW] = "＋ 新しいワークツリー…";
-  // いまの場所と、片付けを予約したワークツリー（H7）は選べない
+  // いまの場所と、片付けを予約したワークツリーは選べない
   const current = chat.worktree_path ?? "";
   const disabled: Record<string, string> = { [current]: "いまの作業場所です" };
   for (const path of reserved) disabled[path] = "片付けを予約しているワークツリーなので、移す先にできません";
@@ -40,7 +40,7 @@ export function useWorkplaceChoices(chat: Pick<Chat, "project_id" | "worktree_pa
 }
 
 /**
- * チャットの見出しの作業場所の札（メモの仕様書「0025」の Q8）: 見た目は WorktreeChip のまま ▾ を付け、押すと移す先を選ぶ。
+ * チャットの見出しの作業場所の札: 見た目は WorktreeChip のまま ▾ を付け、押すと移す先を選ぶ。
  * 作業中・実行環境を整えるチャットは押せない（理由を説明に）。ワークツリーの一覧がない（Git でない）プロジェクトは押せない札のまま
  */
 export function WorkplaceMoveChip({ chat }: { chat: Chat }) {

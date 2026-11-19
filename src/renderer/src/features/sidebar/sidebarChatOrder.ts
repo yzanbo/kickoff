@@ -32,7 +32,7 @@ export interface SidebarChatOrder {
 /**
  * サイドバーのチャットの並び。サイドバーと同じまとめ方・並び順・固定・アーカイブ済みで分けて 1 列にする
  * （useWorkspaceRows と同じ分け方。絞り込みは入れない）。project がなければ全プロジェクトで、サイドバーのプロジェクトの並びで分ける。
- * パネルのチャットのタブをサイドバーと同じ順に並べ、ドラッグで並べ替えた順を保存するのに使う（利用者の依頼）
+ * パネルのチャットのタブをサイドバーと同じ順に並べ、ドラッグで並べ替えた順を保存するのに使う
  */
 export function useSidebarChatOrder(chats: readonly Chat[], project: number | undefined, enabled: boolean): SidebarChatOrder {
   const { grouping, order } = useChatLayout();
@@ -56,7 +56,7 @@ export function useSidebarChatOrder(chats: readonly Chat[], project: number | un
 }
 
 /**
- * ドラッグでチャットを並べ替える（サイドバーの行・パネルの一覧のペインのチャットのタブ。利用者の依頼）。並べられるのは、同じ範囲
+ * ドラッグでチャットを並べ替える（サイドバーの行・パネルの一覧のペインのチャットのタブ）。並べられるのは、同じ範囲
  * （同じグループ・作業場所・固定・アーカイブ済みの中。order.scope）のチャットどうしだけ。落とすと、いま見えているサイドバーの並びのまま
  * 動かしたものだけを動かし、その並び全体を手動の並びとして保存して（api.reorderChats。プロジェクトの中の 1 つの並び）、並び順を手動に切り替える
  * （最近順・状態順のときも。プロジェクトの並べ替えと同じ）。応答のチャットはすぐ一覧に入れ、知らせを待たずにそろえる

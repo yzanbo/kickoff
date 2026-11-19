@@ -42,7 +42,7 @@ const BRANCH_TITLE_WORDS = 5;
 const BRANCH_TITLE_MAX = 30;
 
 /**
- * 新しいワークツリーの名前の案（仕様書 ⑤。直せる）: issue は「issue-128-<題名の短い形>」（題名の英数字の語を小文字にしてハイフンでつなぐ。
+ * 新しいワークツリーの名前の案（直せる）: issue は「issue-128-<題名の短い形>」（題名の英数字の語を小文字にしてハイフンでつなぐ。
  * 英数字の語がなければ（日本語だけの題名など）「issue-128」）、PR は「pr-5」
  */
 export function worktreeBranchOf(detail: GitHubIssueDetail): string {

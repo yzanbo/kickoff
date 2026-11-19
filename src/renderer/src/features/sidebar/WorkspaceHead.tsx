@@ -130,7 +130,7 @@ export function WorkspaceHead({
           />
         )}
         <HeadCounts counts={counts} filter={stateFilter} onFilter={onStateFilter} />
-        {/* このプロジェクトに絞り込んだ ⌘⇧A の一覧（下書き・作業中・回答待ち・未読。利用者の依頼） */}
+        {/* このプロジェクトに絞り込んだ ⌘⇧A の一覧（下書き・作業中・回答待ち・未読） */}
         <ActiveChatsButton project={project} size={14} className="workspace-active-chats" />
         <IconButton
           icon={SquarePen}

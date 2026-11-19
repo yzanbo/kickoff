@@ -3,14 +3,14 @@ import { request, withQuery } from "./http";
 
 /**
  * 内蔵ターミナル（コアの routes/terminals.ts）。この Mac の画面のタブもスマホと同じく、シェルを用意してから WebSocket でつなぐ
- * （出力はメインプロセスを通らない。メモの仕様書「0023_表示を軽くする」の案 16）
+ * （出力はメインプロセスを通らない）
  */
 export const terminalsApi = {
   /** タブのシェルを用意する（あればつなぎ直し = 名前と持ち主を覚え直すだけ。なければ cwd で始める） */
   openTerminal: (body: TerminalOpenBody) => request<TerminalOpened>("POST", "/api/terminals", body),
-  /** シェルを止める（タブを閉じたとき） */
   /** シェルの持ち主だけを替える（タブを別ウィンドウへ移す・戻すとき。なければ 404 で、始めない） */
   setTerminalOwner: (key: string, body: TerminalOwnerBody) => request<void>("PUT", `/api/terminals/${encodeURIComponent(key)}/owner`, body),
+  /** シェルを止める（タブを閉じたとき） */
   closeTerminal: (key: string) => request<void>("DELETE", `/api/terminals/${encodeURIComponent(key)}`),
 };
 

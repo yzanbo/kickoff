@@ -41,7 +41,7 @@ export function KanbanBody({ view, split, flat, byGroup, byState, buckets, draft
   const render = list ? cards.row : cards.card;
 
   if (byGroup && projectId !== undefined) {
-    // プロジェクトのボードのグループの列: グループを列にして縦に並べ、カードのドラッグでグループを移す（利用者の依頼。段に分けるなら段ごとに）
+    // プロジェクトのボードのグループの列: グループを列にして縦に並べ、カードのドラッグでグループを移す（段に分けるなら段ごとに）
     const groupColumns = (chats: ChatBucket<PanelDraft>["chats"], laneDrafts: readonly PanelDraft[]) => (
       <ProjectGroupColumns projectId={projectId} chats={chats} drafts={laneDrafts} list={list} foldPlace={foldPlace} render={render} />
     );

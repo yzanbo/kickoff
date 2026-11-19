@@ -59,7 +59,7 @@ export interface SurfaceRules {
    * focused は、ピントが欄の中にあるときだけ閉じる（サブエージェントの欄。外のメインのチャットで押した Esc では閉じない）
    */
   closeOnEsc: boolean | "focused";
-  /** 見せている最後のタブを閉じたら、欄も閉じるか（右サイドバーも下のパネルと同じく閉じる。利用者の依頼） */
+  /** 見せている最後のタブを閉じたら、欄も閉じるか（右サイドバーも下のパネルと同じく閉じる） */
   closeWhenEmpty: boolean;
   /** タブがないまま開いたときに始めるもの（フッター = ターミナル（開く場所が 1 つのとき）） */
   openWhenEmpty: "terminal" | null;
@@ -120,13 +120,13 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     memoryPrefix: "side",
     kinds: ["browser"],
     closeOnEsc: false,
-    // 最後のブラウザのタブを閉じたら閉じる（下のパネルの最後のターミナルと同じ。利用者の依頼。前は空のまま開いていた）
+    // 最後のブラウザのタブを閉じたら閉じる（下のパネルの最後のターミナルと同じ）
     closeWhenEmpty: true,
     openWhenEmpty: null,
     openSetting: projectChatOpen,
-    // 横幅いっぱい ⇔ 元の幅（タブの列の左端。チャットの画面の右の欄と同じ。利用者の依頼）
+    // 横幅いっぱい ⇔ 元の幅（タブの列の左端。チャットの画面の右の欄と同じ）
     maximize: "width",
-    // 狭い欄なので、右・下に分けるボタンは置かない（利用者の依頼。分けるのはタブのドラッグ・右クリック・⌘\）
+    // 狭い欄なので、右・下に分けるボタンは置かない（分けるのはタブのドラッグ・右クリック・⌘\）
     noSplitButtons: true,
     className: "as-sidebar",
   },
@@ -148,7 +148,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     openWhenEmpty: null,
     closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "right" },
     noSplitButtons: true,
-    // 左の会話を覆って横幅いっぱいに広げる ⇔ 元の幅に戻す（タブの列の左端。利用者の依頼）
+    // 左の会話を覆って横幅いっぱいに広げる ⇔ 元の幅に戻す（タブの列の左端）
     maximize: "width",
     emptyHint:
       "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",

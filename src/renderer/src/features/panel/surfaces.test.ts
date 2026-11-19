@@ -14,7 +14,7 @@ test("欄の覚える名前: 欄と画面から作り、読み戻せる（下書
 
 test("欄が出る画面: 全プロジェクトの欄（ボード・フッター）は全プロジェクトの画面、プロジェクトの欄はそのプロジェクトのボード", () => {
   assert.deepEqual(panelScreen("kanban:all"), { name: "allProjects" });
-  // 以前は kanban 以外の全プロジェクトの欄（フッター）を、ID が NaN のプロジェクトの画面として開いていた
+  // kanban 以外の全プロジェクトの欄（フッター）も、ID が NaN のプロジェクトの画面にしない
   assert.deepEqual(panelScreen("bottom:all"), { name: "allProjects" });
   assert.deepEqual(panelScreen("bottom:4"), { name: "project", id: 4, tab: "board" });
   assert.deepEqual(panelScreen("side:4"), { name: "project", id: 4, tab: "board" });

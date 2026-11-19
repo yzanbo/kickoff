@@ -44,7 +44,7 @@ export function useMemoActions(
   const refresh = () => memosStore.invalidate(projectId);
   const entries = () => memosStore.get(projectId).data?.entries ?? [];
 
-  /** 新しいメモ（HTML なら、題名の見出しと <style> の入ったひな形から始める）。仮の名前「2026-11-09 無題のメモ」（作った日の日付を頭に。利用者の依頼）ですぐ作る */
+  /** 新しいメモ（HTML なら、題名の見出しと <style> の入ったひな形から始める）。仮の名前「2026-11-09 無題のメモ」（作った日の日付を頭に）ですぐ作る */
   const createMemo = async (folder: string, kind: MemoKind = "markdown") => {
     const html = kind === "html";
     const path = untitledPath(entries(), folder, datedMemoName(UNTITLED_MEMO, new Date()), MEMO_KIND_EXTENSIONS[kind]);

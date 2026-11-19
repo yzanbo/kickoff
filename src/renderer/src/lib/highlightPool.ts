@@ -1,4 +1,4 @@
-// コードの色付けを Web Worker に頼む待ち行列（メモの仕様書「0023_表示を軽くする」の案 20）。
+// コードの色付けを Web Worker に頼む待ち行列。
 // Worker を作る関数（spawn）を受け取って作る（画面は lib/highlightWorkerEntry.ts の 1 つを使い、テストは偽の Worker を渡す。?worker はここで import しない）
 import type { AppliedTheme } from "./appliedTheme";
 import { isHighlightLanguage } from "./highlightLanguages";

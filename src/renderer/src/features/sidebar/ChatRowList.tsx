@@ -6,7 +6,7 @@ import { ProgressiveSpacer } from "@/ui/ProgressiveRows";
 
 /**
  * サイドバーのチャットの行の一覧（`ul.chat-rows`）。プロジェクトの一覧を開いた直後は、配られた上限（hooks/useProgressiveRows.ts）の数だけ
- * 頭から描き、残りの場所は空の箱で取る（最初の描画のあとにすべて描く。メモの仕様書「0023_表示を軽くする」の案 23）
+ * 頭から描き、残りの場所は空の箱で取る（最初の描画のあとにすべて描く）
  */
 export function ChatRowList({ chats, renderRow, className }: { chats: readonly Chat[]; renderRow: (chat: Chat) => ReactNode; className?: string }) {
   const { shown, omitted } = useProgressiveRows(chats);

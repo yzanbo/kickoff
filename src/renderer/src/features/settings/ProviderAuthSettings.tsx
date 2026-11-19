@@ -10,8 +10,8 @@ import { API_KEY_ONLY_PROVIDERS, PAY_PER_USE_LABEL } from "@/features/chat/provi
 import { PLANNED_BADGE } from "./plannedProviders";
 
 /**
- * 設定の「接続」の AI ごとのログインの仕方（メモの仕様書「0021」の Q13）: サブスク（各 CLI のログイン・定額のプラン）か API キー（使った分の支払い）か。
- * API キーは Kickoff がキーチェーンの鍵で暗号化して置き、画面には二度と出さない（置いたかだけ）。Gemini（Antigravity）は API キーでだけ動く（Q11）
+ * 設定の「接続」の AI ごとのログインの仕方: サブスク（各 CLI のログイン・定額のプラン）か API キー（使った分の支払い）か。
+ * API キーは Kickoff がキーチェーンの鍵で暗号化して置き、画面には二度と出さない（置いたかだけ）。Gemini（Antigravity）は API キーでだけ動く
  */
 export function ProviderAuthSettings({ providers }: { providers: ProviderStatus[] }) {
   return (

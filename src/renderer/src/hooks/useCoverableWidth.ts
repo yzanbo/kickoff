@@ -42,7 +42,6 @@ interface CoverableWidthOptions extends CoverRules {
 /**
  * 横に並べた右側の欄の幅（左端のつまみのドラッグで変える。覚えておく）と、横幅いっぱい（もう一方を覆う）の切り替え。
  * 横に残す側が狭すぎるとき（ウィンドウ・外側の欄を狭めた）は、覚えた幅のまま覆い、広がったら戻す。
- * ボードの右のパネル（usePanelWidth）と、チャットの画面の右の欄（サブエージェントの欄）で共通。
  * bodyRef と style は 2 つを並べる要素に、paneRef は欄に、resizeHandle は欄の左端のつまみに渡す
  */
 export function useCoverableWidth({ width: widthSetting, maximized: maximizedSetting, maximizable = true, min, gap, minRest, widthVar, shownVar }: CoverableWidthOptions) {
@@ -64,7 +63,7 @@ export function useCoverableWidth({ width: widthSetting, maximized: maximizedSet
     target: () => body,
     onStart: () => maximized && setMaximized(false),
     // ドラッグ中は描き直さずに幅を直接書き込むので、離したら描き直しで決まる値をここでも書く。覆うところで始めて覆うところで離すと、
-    // 描き直しの値（100vw）は前と同じなので React が書き直さず、離した位置の幅が残っていた（もう一方は隠れたのに、その幅の空白が残った）
+    // 描き直しの値（100vw）は前と同じなので React が書き直さず、離した位置の幅が残る（もう一方は隠れたのに、その幅の空白が残る）
     onChange: (size) => body?.style.setProperty(widthVar, leavesNarrowRest(body.clientWidth, size, { gap, minRest }) ? "100vw" : `${size}px`),
   });
   const width = resize.size;

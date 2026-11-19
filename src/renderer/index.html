@@ -4,13 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://github.com https://*.githubusercontent.com; connect-src 'self'" />
-    <!-- 起動直後の地の色と骨組み（保存したテーマ・サイドバーの開閉と幅を <html> に出す。メモの仕様書「0023_表示を軽くする」の案 18a） -->
+    <!-- 起動直後の地の色と骨組み（保存したテーマ・サイドバーの開閉と幅を <html> に出す） -->
     <script src="/boot.js"></script>
     <style>
       /*
        * 起動直後の地の色と骨組み: 地の色に、サイドバーの欄（保存した幅・閉じていれば出さない）と下の帯だけを描く（文字・行の形・動く光は描かない。幅 720px 以下は下の @media）。
-       * 上の帯（信号機ボタンの行の 44px）は、本物の画面ではどの画面でも地と同じ色で、区切りの線もないので描かない（前は地と少し違う色の面にしていて、
-       * React が描いた瞬間に帯の色だけが消えてちらついた）。React が描いたら #root の中身ごと置き換わる。色は styles/base/tokens.css の
+       * 上の帯（信号機ボタンの行の 44px）は、本物の画面ではどの画面でも地と同じ色で、区切りの線もないので描かない（地と少し違う色の面にすると、
+       * React が描いた瞬間に帯の色だけが消えてちらつく）。React が描いたら #root の中身ごと置き換わる。色は styles/base/tokens.css の
        * --bg・--bg-sidebar・--border と同じ値、幅の境目は styles/base/mobile.css と同じ 720px（src/renderer/src/app/bootScript.test.ts で確かめる）
        */
       :root { --boot-bg: #141818; --boot-sidebar: #0f1313; --boot-line: #1e2626; }

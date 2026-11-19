@@ -3,7 +3,7 @@ import { isFocusRingKey } from "@/lib/keys";
 /**
  * いまの操作がマウス（指・ペン）か、キーボードか（`<html data-modality="pointer|keyboard">`）。ピントの枠の CSS が読む（styles/base/focus.css）。
  * ブラウザの :focus-visible は、マウスで押したボタンにピントがあるまま Shift（⌘ なども）を押しただけでキーボードの操作とみなして枠を出すので
- * （利用者の指摘。サイドバーのビューのタブを押したあと、Shift を押すと枠が出た）、修飾キーだけ・ショートカットではキーボードに切り替えない。
+ * （サイドバーのビューのタブを押したあと、Shift を押すと枠が出る）、修飾キーだけ・ショートカットではキーボードに切り替えない。
  * 押すまで（起動した直後）は付けず、ブラウザの決め方のまま
  */
 export function startInputModality() {

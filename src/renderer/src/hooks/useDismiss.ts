@@ -51,9 +51,8 @@ function insideLaterLayer(layer: Layer, target: Node): boolean {
  * ref の要素（いくつか渡せば、そのどれか。ポップオーバーと開いたボタンなど）の中のクリックでは閉じない
  * （ウィンドウのドラッグ領域のクリックでも閉じるよう、開いている間はドラッグ領域を止める）。
  * 後から開いた層（ポップオーバーの中から開いたメニュー。body に出すので要素の上では外にある）の中のクリックも、外側とみなさない
- * （前は ⚙ の窓の中のメニューの項目を押すと、押した時点で窓が閉じてメニューごと消え、選んだものが届かなかった）。
- * 埋め込みのページ（webview・iframe）の中を押したときも、外側のクリックとして閉じる（mousedown が届かないので、ピントがそこへ移ったことで見る。
- * 利用者の指摘。前は右サイドバーのブラウザの ▾ のメニューが、ページを押しても閉じなかった）
+ * （外側とみなすと、⚙ の窓の中のメニューの項目を押した時点で窓が閉じてメニューごと消え、選んだものが届かない）。
+ * 埋め込みのページ（webview・iframe）の中を押したときも、外側のクリックとして閉じる（mousedown が届かないので、ピントがそこへ移ったことで見る）
  */
 export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObject<HTMLElement | null>[], onDismiss: () => void, options: DismissOptions = {}) {
   const { enabled = true, outside = true, ignore, escape = "stop" } = options;
@@ -88,7 +87,7 @@ export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObje
       if (escape === "stop") {
         e.stopImmediatePropagation();
         // 開いている <dialog> の Esc（cancel）は伝えるのを止めても起きるので、既定の動きも止める
-        // （大きく見た画像の右クリックのメニューを Esc で閉じると、画像のダイアログまで閉じていた）
+        // （大きく見た画像の右クリックのメニューを Esc で閉じると、画像のダイアログまで閉じてしまう）
         e.preventDefault();
       }
       dismiss();

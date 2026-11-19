@@ -1,7 +1,7 @@
 import type { ChatImageHost } from "@shared/types";
 import { request, requestBlob, withQuery } from "./http";
 
-/** チャット欄の外の画像（表示を許可したホストと、許可したホストの画像）。コアの routes/chatImages.ts（メモの仕様書「0027_チャット欄の外の画像とリンク」） */
+/** チャット欄の外の画像（表示を許可したホストと、許可したホストの画像）。コアの routes/chatImages.ts */
 export const chatImagesApi = {
   /** そのチャットで表示を許可したホスト */
   imageHosts: (chatId: number) => request<{ hosts: ChatImageHost[] }>("GET", `/api/chats/${chatId}/image-hosts`).then((r) => r.hosts),

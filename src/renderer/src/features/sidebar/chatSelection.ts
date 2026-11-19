@@ -48,7 +48,7 @@ export function useChatSelectionState(existing: readonly number[], order: () => 
     ids: select.ids,
     has: select.has,
     click: (e, id) => {
-      // Shift の範囲は画面に並ぶ行から決めるので、開いた直後でまだ描いていない行があれば先にすべて描く（案 23）
+      // Shift の範囲は画面に並ぶ行から決めるので、開いた直後でまだ描いていない行があれば先にすべて描く
       if (e.shiftKey) ensureAllRows();
       return select.click(e, id);
     },

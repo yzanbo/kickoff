@@ -2,7 +2,7 @@ import { createContext, startTransition, useContext, useEffect, useState } from 
 import { flushSync } from "react-dom";
 import { allocateColumns, allocateRows, columnsInView, createProgressive, firstRowLimit, progressiveSlice } from "@/lib/progressive";
 
-// 長い一覧（サイドバーのプロジェクトのチャットの一覧・ボード）を段階に分けて描く（決まりは lib/progressive.ts。メモの仕様書「0023_表示を軽くする」の案 23）。
+// 長い一覧（サイドバーのプロジェクトのチャットの一覧・ボード）を段階に分けて描く（決まりは lib/progressive.ts）。
 // ページの入口の useProgressivePage が、開いた直後は画面に入る数（ページ全体で 1 つの上限）を、最初の描画のあとは上限なし（Infinity）を返し、
 // RowBudget で中の一覧へ配る。縦に並ぶまとまりは useRowBudgets で上から順に分け、行を描く一覧は useProgressiveRows で頭から配った数だけ描く。
 

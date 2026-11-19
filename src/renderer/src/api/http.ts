@@ -19,7 +19,6 @@ const CORE_DOWN = "core_down";
 
 /**
  * コアにつながらなかった失敗（送った文は呼ぶ側が残す）。Mac のアプリではコアのプロセスを作り直している間のこと（帯と同じ言葉）。
- * メモの仕様書「0023_表示を軽くする」の案 16・U8
  */
 function coreDown(status = 0): ApiError {
   const message = typeof window !== "undefined" && window.kickoff ? CORE_DOWN_SEND_MESSAGE : "Kickoff につながりません。少し待ってからもう一度送ってください";

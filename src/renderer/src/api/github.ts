@@ -52,7 +52,7 @@ export const githubApi = {
   githubPullFiles: (projectId: number, number: number) => request<GitHubPullFiles>("GET", `/api/projects/${projectId}/github/pulls/${number}/files`),
   /** PR のブランチのワークツリー（いまあればそれ、なければ PR の元のブランチを取ってきて作る。レビューコメントで直す） */
   githubPullWorktree: (projectId: number, number: number) => request<GitHubPullWorktree>("POST", `/api/projects/${projectId}/github/pulls/${number}/worktree`),
-  // ---- 書き込み（段階 3）。様子が変わるだけのものは何も返さないので、呼んだ側が中身を取り直す ----
+  // ---- 書き込み。様子が変わるだけのものは何も返さないので、呼んだ側が中身を取り直す ----
   /** issue・PR にコメント（Markdown） */
   githubComment: (projectId: number, number: number, body: string) => request<void>("POST", `/api/projects/${projectId}/github/items/${number}/comments`, { body }),
   /** 閉じる / 開き直す（reason は issue を閉じるときの閉じ方） */

@@ -33,7 +33,7 @@ export function CodexCreditsBadge({ credits }: { credits: CodexCredits | null | 
 }
 
 /**
- * 払って動き始めたら（前は払っていなかった）、画面の下に知らせる。開いたときにもう払っていたら知らせない（帯の印で分かる）。
+ * 払って動き始めたら（それまでは払っていなかった）、画面の下に知らせる。開いたときにもう払っていたら知らせない（帯の印で分かる）。
  * Claude は超過分で動いているか、Codex はクレジットの残りが減ったか
  */
 export function useOverageToast(usage: PlanUsage | undefined, codexCredits: CodexCredits | null | undefined) {

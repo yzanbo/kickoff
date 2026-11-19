@@ -13,10 +13,10 @@ import { useRememberedView } from "./useRememberedView";
 import { useSavedViews } from "./useSavedViews";
 
 /**
- * ツールバーの上の、保存したビューのタブ（Notion のビューを参考に）。押すとそのビューの見え方（表示・段・列の分け方・並び順・表の列・
+ * ツールバーの上の、保存したビューのタブ（Notion のビューを参考に）。押すとそのビューの見え方（表示・段・列の分け方・並び順・
  * アーカイブ）を当て、いまの見え方に合うビューを選択中に見せる。「＋ 今のビューを新規保存」でいまの見え方に名前を付けて足し、
  * タブのドラッグで並べ替え、右クリックで名前の変更・いまの見え方で上書き・削除。いまの見え方と同じビューがもうあれば「今のビューを新規保存」は押せなくし、
- * どのビューと同じかを横に書く（同じ見え方のビューを 2 つ作らない。利用者の依頼）。全プロジェクトのボード（projectId なし）とプロジェクトのボード（
+ * どのビューと同じかを横に書く（同じ見え方のビューを 2 つ作らない）。全プロジェクトのボード（projectId なし）とプロジェクトのボード（
  * すべてのプロジェクトで共通）で別の一覧で、同じ一覧に同じ名前は付けられない
  */
 export function SavedViewTabs({ projectId }: { projectId?: number }) {
@@ -29,7 +29,7 @@ export function SavedViewTabs({ projectId }: { projectId?: number }) {
   const [renaming, setRenaming] = useState<string>();
   // いまの見え方と同じビュー（あれば新しく作らない）
   const duplicate = saved.active;
-  /** 同じ一覧の同じ名前は付けられない（利用者の依頼。名前を変えるときはそのビュー自身を除く） */
+  /** 同じ一覧の同じ名前は付けられない（名前を変えるときはそのビュー自身を除く） */
   const nameError = (exceptId?: string) => (name: string) => (viewNameTaken(saved.views, name, exceptId) ? `「${name}」というビューはもうあります` : null);
   const remove = async (view: SavedView) => {
     if (await confirmDialog({ title: `ビュー「${view.name}」を削除しますか？`, message: "表示の設定はいまのまま残ります。", confirmLabel: "削除", danger: true })) saved.remove(view.id);

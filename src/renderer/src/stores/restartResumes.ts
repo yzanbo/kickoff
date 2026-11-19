@@ -29,7 +29,7 @@ export function reduceRestartResumes(list: RestartResume[], event: BusEvent): Re
 
 /**
  * 確かめのダイアログを自動で開くか（窓ごと）。shown は前に見せた一覧のチャット。まだ見せていないチャットが届いたら開く
- * （起動のときと、コアのプロセスを作り直したあとに新しく止まったチャットが届いたとき。メモの仕様書「0026」の D7）。
+ * （起動のときと、コアのプロセスを作り直したあとに新しく止まったチャットが届いたとき）。
  * 返す shown はいまの一覧のチャットだけにする（答えて一覧から外れたチャットが、あとでまた止まったときも開く）
  */
 export function autoOpenRestartResumes(shown: ReadonlySet<number>, list: readonly RestartResume[]): { open: boolean; shown: ReadonlySet<number> } {

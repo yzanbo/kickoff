@@ -13,7 +13,7 @@ const SHOW_ITEMS: { value: MemoChatShow; label: string; title: string }[] = [
   { value: "hidden", label: "非表示", title: "欄もメモの下の入力欄も出さず、メモだけを広く見る（吹き出しのボタンでいつでも開ける）" },
 ];
 
-/** 吹き出しを押したときの次の見え方（非表示 → チャット表示のみ → 会話を開く → 非表示 … と回る。利用者の依頼） */
+/** 吹き出しを押したときの次の見え方（非表示 → チャット表示のみ → 会話を開く → 非表示 … と回る） */
 const NEXT_SHOW: Record<MemoChatShow, MemoChatShow> = { hidden: "quick", quick: "open", open: "hidden" };
 
 const labelOf = (value: MemoChatShow) => SHOW_ITEMS.find((item) => item.value === value)?.label ?? "";

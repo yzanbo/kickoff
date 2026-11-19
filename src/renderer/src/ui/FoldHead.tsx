@@ -36,7 +36,7 @@ export interface FoldHeadProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
 }
 
 /**
- * 開閉できるまとまりの見出しの土台（サイドバーのまとまり・グループ・並べ方のまとまり、ボードの段で共通）: 開閉の矢印（GroupToggle）・
+ * 開閉できるまとまりの見出しの土台: 開閉の矢印（GroupToggle）・
  * 名前（押しても開閉）・件数・右の操作。見た目は look で選ぶ。ほかの props（ドロップ先・ドラッグ・右クリック・title など）は見出しの要素に付ける。
  * 開閉の記憶は hooks/useFold
  */

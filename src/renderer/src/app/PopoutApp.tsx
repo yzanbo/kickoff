@@ -76,7 +76,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   });
   return (
     // URL は別ウィンドウの行き先なので、画面の URL として購読しない（useHashRoute は見ている画面を LAST_ROUTE に覚えるので、
-    // 別ウィンドウを開くたびに「最後に見ていた画面」が全プロジェクトに上書きされていた）。useRoute() は初めの値（全プロジェクト）
+    // 別ウィンドウを開くたびに「最後に見ていた画面」が全プロジェクトに上書きされる）。useRoute() は初めの値（全プロジェクト）
     <>
       <ChatStatesContext.Provider value={chatStates}>
         {/* 外部リンクは確かめてから開く。別ウィンドウには Kickoff のブラウザのタブの置き場がないので、開き先は既定のブラウザ */}

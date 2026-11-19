@@ -4,7 +4,7 @@ import vm from "node:vm";
 import { test } from "vitest";
 import { THEME_BACKGROUNDS } from "@shared/theme/backgrounds";
 
-// 起動直後の骨組み（public/boot.js と index.html の <style>。メモの仕様書「0023_表示を軽くする」の案 18a）。
+// 起動直後の骨組み（public/boot.js と index.html の <style>）。
 // public/ の中身は Vite がそのまま out/renderer に写すので、テストはここに置く
 
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8");
@@ -92,7 +92,7 @@ test("窓の地の色（THEME_BACKGROUNDS）は tokens.css の --bg と同じ", 
 });
 
 test("上の帯（信号機ボタンの行）は描かない: 本物の画面ではどの画面でもその場所は地と同じ色で、区切りの線もない", () => {
-  // 前は地と少し違う色の面で描き、React が描いた瞬間に帯の色だけが消えてちらついた（メモの仕様書「0023_表示を軽くする」の 7 章）
+  // 地と少し違う色の面で描くと、React が描いた瞬間に帯の色だけが消えてちらつく
   assert.ok(!indexHtml.includes("boot-band"));
   // 中身はサイドバーの欄と下の帯だけ
   assert.ok(indexHtml.includes('<div id="root"><div class="boot-shell" aria-hidden="true"><div class="boot-sidebar"></div><div class="boot-footer"></div></div></div>'));

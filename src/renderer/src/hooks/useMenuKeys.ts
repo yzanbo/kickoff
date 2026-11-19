@@ -4,7 +4,7 @@ import { useWindowEvent } from "./useWindowEvent";
 
 /**
  * メニューを開いたらメニューそのものにピントを置き、↑↓ で項目を移る（↓ で先頭・↑ で最後から、端では回り込む。stepIndex。macOS のメニューと同じ）。
- * 以前は先頭の項目にピントを置いていて、直前にキーを使っていると、右クリックで開いただけでも先頭の項目にピントの枠が出ていた。
+ * 先頭の項目にピントを置くと、直前にキーを使っていたとき、右クリックで開いただけでも先頭の項目にピントの枠が出るため。
  * メニューの中に横に開く一覧（data-menu-scope の付いた要素）があれば、ピントのある側の項目の中だけで動く
  */
 export function useMenuKeys(ref: RefObject<HTMLElement | null>) {

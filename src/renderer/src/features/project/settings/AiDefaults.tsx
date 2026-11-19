@@ -14,7 +14,7 @@ const INHERIT = "__inherit__";
 /** 「その AI の既定のモデル」（null）を表す select の値（Claude Code のほかの AI だけ） */
 const PROVIDER_DEFAULT = "";
 
-/** このプロジェクトのその AI の既定（Claude Code は chat_defaults、ほかの AI は provider_chat_defaults。メモの仕様書「0028」の 9 節） */
+/** このプロジェクトのその AI の既定（Claude Code は chat_defaults、ほかの AI は provider_chat_defaults） */
 const projectPatchOf = (project: Project, provider: ProviderId): ChatOptionsPatch =>
   (provider === "claude" ? project.chat_defaults : project.provider_chat_defaults[provider]) ?? {};
 

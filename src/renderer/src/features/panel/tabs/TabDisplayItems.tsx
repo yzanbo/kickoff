@@ -27,20 +27,20 @@ const TAB_OVERFLOW_TIPS: Record<(typeof TAB_OVERFLOWS)[number], string> = {
 };
 
 /**
- * タブの表示の項目（タブの列の「表示」のメニューの上の部分と、タブの右クリックの「タブの表示 ›」で共通。利用者の依頼）:
+ * タブの表示の項目（タブの列の「表示」のメニューの上の部分と、タブの右クリックの「タブの表示 ›」で共通）:
  * チャットのまとめ方（とまとまりの色）・チャットの並び順（サイドバーと共通）・タブに出す項目（tabFields）・
  * グループ別のときに出すグループ（HiddenGroupItems）・アーカイブ済みのチャットを出すか。まとまりごとに区切り線で分ける
  */
 export function TabDisplayItems({ panel }: { panel: PanelController }) {
   const [grouping, setGrouping] = useTabGrouping(panel.surface);
-  // チャットの並び順はサイドバーと共通の 1 つの設定（利用者の依頼。一覧のペインのチャットのタブはサイドバーと同じ並びなので、どちらで選んでもそろう）
+  // チャットの並び順はサイドバーと共通の 1 つの設定（一覧のペインのチャットのタブはサイドバーと同じ並びなので、どちらで選んでもそろう）
   const { order, setOrder } = useChatLayout();
   // タブに出す項目（隠した項目だけを覚える）
   const [tabHidden, setTabHidden] = useSetting(PANEL_TAB_HIDDEN);
   const hiddenFields = hiddenTabFields(tabHidden);
-  // タブを 2 行にするか（サイドバーのチャットの行とは別の、タブだけの設定。利用者の依頼）
+  // タブを 2 行にするか（サイドバーのチャットの行とは別の、タブだけの設定）
   const [twoLine, setTwoLine] = useSetting(PANEL_TAB_TWO_LINE);
-  // タブが増えて入らないとき、細くして収めるか横にスクロールするか（すべてのパネルで共通。利用者の依頼）
+  // タブが増えて入らないとき、細くして収めるか横にスクロールするか（すべてのパネルで共通）
   const [overflow, setOverflow] = useSetting(PANEL_TAB_OVERFLOW);
   const showChat = panel.kinds.has("chat");
 
@@ -63,7 +63,7 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
             </MenuItem>
           ))}
           {/* まとめたまとまりの色（色付き / 色なし。まとまりの札の右クリックにも同じ項目）と名前の省略。まとめないときは効かないので出さない。
-              まとめ方の選択肢と見分けられるよう、上に区切り線を引く（利用者の依頼） */}
+              まとめ方の選択肢と見分けられるよう、上に区切り線を引く */}
           {grouping !== "none" && (
             <>
               {separator}
@@ -114,7 +114,7 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
             </MenuItem>
           );
         }).concat(
-          // 項目の付け外しと見分けられるよう、上に区切り線を引く（利用者の依頼）
+          // 項目の付け外しと見分けられるよう、上に区切り線を引く
           <Fragment key="two-line-sep">{separator}</Fragment>,
           // 2 行で表示: グループ・作業場所の札を名前の下の行に置く（すべてのパネルで共通。サイドバーのチャットの行の 1 行 / 2 行とは別）
           <MenuItem
@@ -163,7 +163,7 @@ export function TabDisplayItems({ panel }: { panel: PanelController }) {
 }
 
 /**
- * タブの右クリックの「タブの表示 ›」（乗せる・押す・→ で横に開く子のメニューに TabDisplayItems を出す。タブの列の「表示」のメニューと同じ値。利用者の依頼）。
+ * タブの右クリックの「タブの表示 ›」（乗せる・押す・→ で横に開く子のメニューに TabDisplayItems を出す。タブの列の「表示」のメニューと同じ値）。
  * 項目のない欄（サブエージェントの欄）では何も出さない。区切り線は置かない（タブのメニューで「タブを閉じる」と 1 つの組にする）
  */
 export function TabDisplaySubmenu({ panel }: { panel: PanelController }) {

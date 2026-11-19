@@ -235,7 +235,7 @@ export function useChatsByProject({ archived = false }: { archived?: boolean } =
   return useSyncExternalStore(subscribeChats, () => byProjectView(archived));
 }
 
-// アーカイブしていないチャットを子チャットも入れて（メモのチャットは入れない）。要対応・⌘⇧A・状態ごとの数で、子チャットも数えるため（利用者の依頼）
+// アーカイブしていないチャットを子チャットも入れて（メモのチャットは入れない）。要対応・⌘⇧A・状態ごとの数で、子チャットも数えるため
 const withChildrenCache: { active: Chat[] | undefined; chats: Chat[]; byProject: ChatsByProject } = { active: undefined, chats: NO_CHATS, byProject: {} };
 
 function withChildrenView(): { chats: Chat[]; byProject: ChatsByProject } {

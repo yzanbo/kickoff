@@ -15,8 +15,8 @@ import { UsageDetailsPopover } from "./UsageDetailsPopover";
 import { usageGroups, type UsageGroup } from "./usageGroups";
 
 /**
- * 下の帯の右の使用状況。Claude と Codex（と、前に出しているチャットのほかの AI）を、AI ごとのまとまり（札 ＋ 枠のメーター）で並べる
- * （利用者の依頼。前は 1 つの AI だけを出し、札のメニューで切り替えていた）。まとまりごとに別のボタンで、押すとその AI の詳細を開く（利用者の依頼）
+ * 下の帯の右の使用状況。Claude と Codex（と、前に出しているチャットのほかの AI）を、AI ごとのまとまり（札 ＋ 枠のメーター）で並べる。
+ * まとまりごとに別のボタンで、押すとその AI の詳細を開く
  */
 export function FooterUsage({ planUsage }: { planUsage: ReturnType<typeof usePlanUsage> }) {
   const foreground = useForegroundProvider();

@@ -17,7 +17,7 @@ export function GroupToggle({ open, onToggle, icon: Icon, iconSize = 13 }: { ope
 
 /**
  * 見出しの名前より左（開閉の矢印とそのまわりの余白・添えたアイコン）を押したか。
- * 矢印のボタンは小さいので、そこを押したときも選ばずに開閉だけにする（プロジェクトのカード・グループの見出しで共通）
+ * 矢印のボタンは小さいので、そこを押したときも選ばずに開閉だけにする
  */
 export function pressedLeftOfName(e: MouseEvent, name: Element | null) {
   return name !== null && e.clientX < name.getBoundingClientRect().left;

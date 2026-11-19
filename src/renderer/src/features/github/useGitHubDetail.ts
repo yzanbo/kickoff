@@ -9,7 +9,7 @@ export type GitHubDetail = GitHubIssueDetail | GitHubPullDetail;
 /**
  * 開いている issue・PR の中身。開いたとき・取り直しのボタン・窓に戻った・1 分ごとに GitHub に聞く。
  * 同じものを取り直している間は前の中身を出し（「更新中」の印）、別のものに移ったら読み込み中に戻す。
- * 移ったときは、コアが最後に取った中身（10 分まで）があれば、GitHub の答えが届くまでそれを出す（仕様書 12 のつなぎの表示）
+ * 移ったときは、コアが最後に取った中身（10 分まで）があれば、GitHub の答えが届くまでそれを出す
  */
 export function useGitHubDetail(projectId: number, kind: GitHubKind, number: number, active: boolean) {
   const key = `${projectId}:${kind}:${number}`;

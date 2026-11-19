@@ -12,7 +12,7 @@ import { openChat, openMemo, type Route } from "./router";
  * 通知（チャットの完了・失敗・回答待ち・CI の失敗）を出すかはコアが決める（src/core/notifications/center.ts。だれも見ていなければ、
  * この Mac の通知とつないだ端末のプッシュへ）。画面がするのは 2 つだけ: いま見ているものをコアに知らせる（useViewingReport）と、
  * Mac の通知が押されたら、そのチャット・CI の実行を開く（useNotificationTargets）。
- * ブラウザで開いた画面の通知は、Web Push を作るまで出さない（2026-11-14 に利用者と決めた）
+ * ブラウザで開いた画面の通知は、Web Push を作るまで出さない
  */
 
 /** 見ているものの知らせを送り直す間隔（コアは VIEWING_TTL_MS で忘れるので、それより短く） */

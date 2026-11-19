@@ -14,7 +14,7 @@ export function useBoardColumns(allProjects: boolean) {
 }
 
 /**
- * ボードの列の分け方。「状態」と「グループ」をそれぞれオン・オフする（利用者の依頼。全プロジェクトのボードで作り、プロジェクトのボードにも置いた）:
+ * ボードの列の分け方。「状態」と「グループ」をそれぞれオン・オフする（全プロジェクトのボードとプロジェクトのボードに置く）:
  * 状態だけ = 作業中・回答待ち・未読・既読と下書きの列 / グループだけ = グループの列（カードをドラッグしてグループを移す）/
  * 両方 = グループの列の中を状態で小分け（グループ×状態）/ どちらもオフ = 下書きもチャットも状態で分けずに 1 つの並び。
  * 覚える値は useBoardColumns の state / groups / none と BOARD_GROUPS_BY_STATE。
@@ -42,7 +42,7 @@ export function BoardColumnsToggle({ allProjects, groups }: { allProjects: boole
       className="view-toggle"
       label="列の分け方"
       onToggle={toggle}
-      // 並びは グループ | 状態（利用者の依頼。グループを出さないボードでは状態だけ）
+      // 並びは グループ | 状態（グループを出さないボードでは状態だけ）
       options={[
         ...(groups
           ? [

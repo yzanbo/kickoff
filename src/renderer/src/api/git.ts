@@ -33,9 +33,9 @@ export const gitApi = {
   /** 変更のあるファイルの差分（staged ならステージしたもの） */
   gitDiff: (target: GitTarget, file: GitFileChange, staged: boolean) =>
     request<GitDiff>("GET", workdirPath(target, "/git/diff", { path: file.path, staged, old: file.old_path })),
-  /** 差分の元の中身（差分から編集するとき、左に並べる。staged なら HEAD、そうでなければステージした中身） */
   /** 行ごとの変更の記録（git blame。Git で管理していないファイルは null） */
   gitBlame: (target: GitTarget, path: string) => request<GitBlame | null>("GET", workdirPath(target, "/git/blame", { path })),
+  /** 差分の元の中身（差分から編集するとき、左に並べる。staged なら HEAD、そうでなければステージした中身） */
   gitOriginal: (target: GitTarget, file: GitFileChange, staged: boolean) =>
     request<GitOriginal>("GET", workdirPath(target, "/git/original", { path: file.path, staged, old: file.old_path })),
   /** 作業場所のブランチの PR（なければ null）と、PR を作る（まだプッシュしていなければ先にプッシュする） */

@@ -96,7 +96,7 @@ export interface InsertSlot {
 /**
  * まとまり（グループ・作業場所の枠）に分けて並べたタブの列で、落とす位置を決める。各タブに入っているまとまりの番号 group と、その枠の左端 groupLeft を渡す。
  * まとまりの境目（前のタブと次のタブのまとまりが違う）では、次のまとまりの枠に入る前（枠の左端より左）なら前のまとまりの最後の後ろ（after）、
- * 枠に入っていれば次のまとまりの最初の前にする（前は境目がどちらも「次のタブの前」で、前のまとまりの最後に入れたくても、印が次のまとまりの先頭に出た）
+ * 枠に入っていれば次のまとまりの最初の前にする（境目をどちらも「次のタブの前」にすると、前のまとまりの最後に入れたくても、印が次のまとまりの先頭に出る）
  */
 export function insertSlotAt(clientX: number, tabs: readonly { left: number; width: number; group: number; groupLeft: number }[]): InsertSlot {
   const index = insertIndexAt(clientX, tabs);

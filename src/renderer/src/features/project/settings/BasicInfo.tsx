@@ -28,11 +28,11 @@ export function BasicInfo({ project }: { project: Project }) {
     <section className="section">
       <h2>基本情報</h2>
       <div className="form">
-        {/* プロジェクト名と概要は、基本情報のいちばん上に置く（利用者の依頼。前はフォルダ・メモフォルダ・色・タグの下だった）。下の「保存」はこの 2 つだけのもの */}
+        {/* プロジェクト名と概要は、基本情報のいちばん上に置く。下の「保存」はこの 2 つだけのもの */}
         <Field label="プロジェクト名">
           <input type="text" value={draft.name} maxLength={100} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
         </Field>
-        {/* 概要の欄は、空なら 2 行の高さで、書いた分だけ伸ばす（field-sizing。利用者の依頼。前は空でも 4 行あった） */}
+        {/* 概要の欄は、空なら 2 行の高さで、書いた分だけ伸ばす（field-sizing） */}
         <Field label="概要" help="このプロジェクトのチャットで、AI にプロジェクトの説明として渡します。">
           <textarea className="project-description" rows={2} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
         </Field>
@@ -47,7 +47,7 @@ export function BasicInfo({ project }: { project: Project }) {
 }
 
 /**
- * メモフォルダ（利用者の依頼で、前は別の項目「メモ」で変えていたものを、ここでそのまま変える）。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。
+ * メモフォルダ。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。
  * ふだんは空欄（薄い文字でいまの場所 = アプリの設定の「メモ」の親フォルダの下の、このプロジェクトの名前のフォルダ）で、書く・選ぶとこのプロジェクトだけ別の場所にする。
  * ほかのプロジェクトとメモフォルダが同じなら、いつも知らせる（MemoFolderField）
  */

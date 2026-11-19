@@ -11,7 +11,6 @@ export function splitArchived<T extends Pick<Chat, "archived_at">>(list: readonl
 
 /**
  * 一覧のいちばん下に置く、閉じたまとまり「アーカイブ済み n」（サイドバーのプロジェクトのアーカイブ済みと同じ見出し。初めは閉じていて、押すと開く）。
- * ボードの列・まとまり、サイドバーの子チャット、入力欄の上のサブエージェント・子チャットの一覧で共通。
  * 開いているかは、場所（place）とまとまりのキー（foldKey）で覚える。中の行・カードは使う側で薄く出す（.archived）。件数が 0 なら出さない。
  * indent: 中身を段下げして縦の線でつなぐ（サイドバー）、bodyClassName: 中身を包む要素のクラス（ボードのカードの間隔 archived-fold）
  */

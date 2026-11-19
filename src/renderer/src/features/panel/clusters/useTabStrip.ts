@@ -19,7 +19,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const showChat = panel.kinds.has("chat");
   const [grouping] = useTabGrouping(panel.surface);
   const { clusterOf, clusterOfChat, seeds, projectOrder, hueOf } = useTabClusters(panel, grouping);
-  // 一覧のペインのチャットのタブは、サイドバーと同じ並び（まとめ方・並び順・固定・アーカイブ済み）にする（利用者の依頼）。
+  // 一覧のペインのチャットのタブは、サイドバーと同じ並び（まとめ方・並び順・固定・アーカイブ済み）にする。
   // 自分で置いたタブだけの分けたペインは、ペインの並びのまま
   const scope = parsePanelKey(panel.key)?.scope;
   const sidebarOrder = useSidebarChatOrder(panel.chats, typeof scope === "number" ? scope : undefined, showChat && home);
@@ -32,7 +32,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   const shownSeeds = showChat && home ? seeds : [];
   // チャットを出さない欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
   const all = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, shownSeeds, projectOrder);
-  // そのまとまりに入るサイドバーのチャットの数（サイドバーの見出しと同じ数え方。送る前の新しいチャット（下書き。New Chat）のタブも 1 つと数える。利用者の依頼）
+  // そのまとまりに入るサイドバーのチャットの数（サイドバーの見出しと同じ数え方。送る前の新しいチャット（下書き。New Chat）のタブも 1 つと数える）
   const isNewTab = (key: string) => panel.tabs.some((t) => t.key === key && t.kind === "new");
   const chatCount = (c: TabCluster) => panel.chats.filter((r) => clusterOfChat(r).key === c.key).length + c.tabs.filter(isNewTab).length;
   // グループ別では、隠したグループ・チャットのないグループ（設定）を外す。隠したグループでも表示中のタブがあれば、畳んだ形で残す（forced）
@@ -56,7 +56,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   /** タブのチャット（チャットのタブのものだけ） */
   const chatsOf = (keys: readonly string[]) => keys.flatMap((key) => panel.chatOf(panel.tabs.find((x) => x.key === key)) ?? []);
   const display = clusters ? clusters.flatMap(shownTabs) : known;
-  // 一覧のペインのチャットのタブのドラッグでの並べ替えは、サイドバーと同じ手動の並びとして保存する（利用者の依頼）
+  // 一覧のペインのチャットのタブのドラッグでの並べ替えは、サイドバーと同じ手動の並びとして保存する
   const manual = useManualChatReorder(sidebarOrder);
   /**
    * 一覧のペインで、key のチャットのタブを見た目の並びの index 番目の前に落としたとき、手動の並びを変える（変えたら true）。

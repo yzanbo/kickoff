@@ -1,5 +1,5 @@
-// チャットの作業場所を移す（メモの仕様書「0025_チャットの作業場所を変える」の段階 ②。見出しの札・右クリックの「作業場所を変更」から）:
-// 移す先で作業中のチャットがあれば新しいチャットと同じ設定に従い（H6）、移す前の確かめ（Q2 残る変更 / 持っていく・Q5 動いているもの）を出して移す
+// チャットの作業場所を移す（見出しの札・右クリックの「作業場所を変更」から）:
+// 移す先で作業中のチャットがあれば新しいチャットと同じ設定に従い、移す前の確かめ（残る変更 / 持っていく・動いているもの）を出して移す
 import type { Chat, WorkplaceMoveCheck } from "@shared/types";
 import { errorMessage } from "@shared/errors";
 import { api } from "@/api";
@@ -49,7 +49,7 @@ function checkLines(check: WorkplaceMoveCheck): string[] {
  */
 export async function moveChatWorkplace(chat: Chat, target: Workplace, label?: string): Promise<void> {
   let place = target;
-  // 移す先で、ほかのチャットが作業中（H6）。新しいチャットと同じ設定に従う
+  // 移す先で、ほかのチャットが作業中。新しいチャットと同じ設定に従う
   if (place.kind !== "new") {
     const busy = countBusyAt(currentChats({ projectId: chat.project_id }), place.kind === "main" ? null : place.path, chat.id);
     if (busy > 0) {
@@ -76,7 +76,7 @@ export async function moveChatWorkplace(chat: Chat, target: Workplace, label?: s
   const lines = checkLines(check);
   let carry = false;
   if (place.kind === "new" && check.changes.length > 0) {
-    // 新しいワークツリーはいまのコミットから作るので、変更を持っていっても衝突しない（Q2）
+    // 新しいワークツリーはいまのコミットから作るので、変更を持っていっても衝突しない
     const picked = await confirmWithCheck({
       title,
       message: [

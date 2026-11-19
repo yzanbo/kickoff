@@ -75,7 +75,7 @@ test("確かめのダイアログを自動で開くか: まだ見せていない
   step = autoOpenRestartResumes(step.shown, [resume(2)]);
   assert.equal(step.open, false);
   assert.deepEqual(ids(step.shown), [2]);
-  // コアのプロセスを作り直したあと: 新しく止まったチャットが届いたら、もう一度開く（前は窓ごとに 1 回だけで開かなかった）
+  // コアのプロセスを作り直したあと: 新しく止まったチャットが届いたら、もう一度開く（窓ごとに 1 回だけにしない）
   step = autoOpenRestartResumes(step.shown, [resume(2), resume(3)]);
   assert.equal(step.open, true);
   // 答えて一覧から外れたチャット（1）が、またあとで止まったときも開く

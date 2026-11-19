@@ -13,8 +13,8 @@ import { Segmented } from "@/ui/Segmented";
 type Scope = "all" | "project";
 
 /**
- * プロジェクトの見出しの右端のボタン: 押すと、左の状態ごとの数（StateStats）と同じ一覧（StateChatsPopover）を、すべてのプロジェクトのチャットで開く
- * （利用者の依頼。前は ⌘⇧A の一覧を開いていた）。一覧の上の切り替えで、このプロジェクトだけにもできる（開くたびに「すべてのプロジェクト」から）。
+ * プロジェクトの見出しの右端のボタン: 押すと、左の状態ごとの数（StateStats）と同じ一覧（StateChatsPopover）を、すべてのプロジェクトのチャットで開く。
+ * 一覧の上の切り替えで、このプロジェクトだけにもできる（開くたびに「すべてのプロジェクト」から）。
  * 右上にすべてのプロジェクトの要対応の数（useAllWaiting）。数えるプロジェクトは ⌘⇧A の「すべて」と同じ（useAllProjectChats）
  */
 export function AllStateChats({ project, waiting }: { project: Pick<Project, "id" | "name">; waiting: WaitingBadge }) {

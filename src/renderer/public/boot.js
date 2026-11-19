@@ -1,5 +1,5 @@
 // 起動直後に、保存したテーマとサイドバーの形を <html> に出す（入口の JS と CSS を読む前に、いつもの地の色と骨組みで描くため。
-// メモの仕様書「0023_表示を軽くする」の案 18a・U11。骨組みの CSS は index.html の <style>）。CSP がインラインのスクリプトを止めるので外のファイルにする。
+// 骨組みの CSS は index.html の <style>）。CSP がインラインのスクリプトを止めるので外のファイルにする。
 // 値の読み方は lib/storageKeys.ts の kickoff:theme・kickoff:sidebar・kickoff:sidebar-width・kickoff:footer-mode と app/theme.ts・features/sidebar/useSidebar.ts と同じ
 // （変えたら両方直す。src/renderer/src/app/bootScript.test.ts で確かめる）。ブラウザで開いた画面でも動く（window.kickoff を使わない）
 (function () {

@@ -1,4 +1,4 @@
-// 右サイドバーで見ている中身（右端のアイコンの列で切り替える。メモの仕様書「0031_右サイドバーにプロジェクトの画面を出す」）。
+// 右サイドバーで見ている中身（右端のアイコンの列で切り替える）。
 // 値はプロジェクトごとに localStorage に覚えるので、右サイドバーを別ウィンドウへ移していても、メインのウィンドウの列から切り替えられる
 import { readSetting, writeSetting, type SettingValue } from "@/lib/storage";
 import { sideView } from "@/lib/storageKeys";
@@ -27,7 +27,7 @@ export function showSideView(projectId: number, view: SideView): void {
   panelActions(panelKey("side", projectId)).setOpen(true);
 }
 
-/** 右サイドバーがいまその中身を見せているか（開いている・別ウィンドウへ移しているときだけ。ほかから開くときの行き先を決める。Q7） */
+/** 右サイドバーがいまその中身を見せているか（開いている・別ウィンドウへ移しているときだけ。ほかから開くときの行き先を決める） */
 export function isSideViewShown(projectId: number, view: SideView): boolean {
   if (readSetting(sideView(projectId)) !== view) return false;
   return sidePanelsHandedOut() || panelStateOf(panelKey("side", projectId)).open;

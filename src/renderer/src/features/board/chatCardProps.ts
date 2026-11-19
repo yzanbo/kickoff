@@ -6,7 +6,7 @@ import { isOpenKey, isRenameKey } from "@/lib/keys";
 
 /**
  * ボードのカード（リストの行も同じ）の操作をカード全体でそろえる:
- * クリック・Space = チャットを開く / ⌘ / Shift ＋クリック = 選ぶ（onPick）/ Enter = 名前を変え始める（Finder と同じ。利用者の依頼で、前は Enter でも開いていた）/ 右クリック = メニュー / ドラッグ = 移す（全プロジェクトのボードのグループの列）。
+ * クリック・Space = チャットを開く / ⌘ / Shift ＋クリック = 選ぶ（onPick）/ Enter = 名前を変え始める（Finder と同じ）/ 右クリック = メニュー / ドラッグ = 移す（全プロジェクトのボードのグループの列）。
  * カードの中のボタンを押したときは開かない
  */
 export function chatCardProps(

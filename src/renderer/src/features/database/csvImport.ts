@@ -1,4 +1,4 @@
-// CSV・TSV の取り込み（段階 3）: 文を行とセルに分け、テーブルの列に当てて、足す行にする。React に依らない
+// CSV・TSV の取り込み: 文を行とセルに分け、テーブルの列に当てて、足す行にする。React に依らない
 import type { DbEditValue } from "@shared/types";
 
 export const CSV_DELIMITERS = [",", "\t", ";"] as const;

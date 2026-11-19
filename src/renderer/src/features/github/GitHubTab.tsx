@@ -33,7 +33,7 @@ function parseSelected(text: string): { kind: GitHubKind; number: number } | nul
 }
 
 /**
- * プロジェクトの「GitHub」タブ（要件 5.11 の段階 1「読む」）: 左に issue｜PR の一覧と絞り込み、右に開いたものの中身。
+ * プロジェクトの「GitHub」タブ: 左に issue｜PR の一覧と絞り込み、右に開いたものの中身。
  * 連携先・アカウントはプロジェクトの設定の「GitHub」のとおり。使えなければ（remote がない・gh がない・ログインしていない）理由と直し方を出す
  */
 export function GitHubTab({ projectId }: { projectId: number }) {

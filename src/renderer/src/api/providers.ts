@@ -7,9 +7,9 @@ export const providersApi = {
   providers: () => request<ProviderStatus[]>("GET", "/api/providers"),
   github: () => request<GitHubStatus>("GET", "/api/github"),
   models: (provider: ProviderId) => request<ModelOption[]>("GET", `/api/providers/${provider}/models`),
-  /** AI の API キーを置く・消す（null で消す。キーは画面に返らない。メモの仕様書「0021」の Q13） */
+  /** AI の API キーを置く・消す（null で消す。キーは画面に返らない） */
   saveProviderApiKey: (provider: ProviderId, key: string | null) => request<void>("PUT", `/api/providers/${provider}/api-key`, { key }),
-  /** AI のブラウザでのログインを始める（開く URL が返る。終わりは SSE の provider_login。メモの仕様書「0028」の段階 ③） */
+  /** AI のブラウザでのログインを始める（開く URL が返る。終わりは SSE の provider_login） */
   startProviderLogin: (provider: ProviderId) => request<ProviderLoginStart>("POST", `/api/providers/${provider}/login`),
   /** ブラウザでのログインをやめる */
   cancelProviderLogin: (provider: ProviderId) => request<void>("DELETE", `/api/providers/${provider}/login`),

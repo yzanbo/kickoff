@@ -1,4 +1,4 @@
-// 埋め込みブラウザのタブを開く口（ブラウザは右サイドバー = チャット欄（side）だけに置く。利用者の依頼）。
+// 埋め込みブラウザのタブを開く口（ブラウザは右サイドバー = チャット欄（side）だけに置く）。
 // チャット欄を別ウィンドウへ移しているときは、そのウィンドウに頼む（このウィンドウには欄の状態がないため）
 import { postWindowMessage } from "@/app/windowBus";
 import { writeSetting } from "@/lib/storage";
@@ -17,7 +17,7 @@ export function openBrowserTab(panel: string, url: string): void {
 /** そのプロジェクトの右サイドバー（チャット欄）にブラウザのタブを開く（ターミナルの ⌘ クリック・ポート・Docker・ワークツリーの「ブラウザで開く」） */
 export const openSideBrowser = (projectId: number, url: string): void => openBrowserTab(panelKey("side", projectId), url);
 
-/** 右サイドバーの中身をブラウザにする（ほかの中身を見ていても、開いたブラウザのタブが見えるように。メモの仕様書「0031」） */
+/** 右サイドバーの中身をブラウザにする（ほかの中身を見ていても、開いたブラウザのタブが見えるように） */
 export function showSideBrowser(panel: string): void {
   const projectId = isSidePanel(panel) ? projectOfPanel(panel) : null;
   if (projectId !== null) writeSetting(sideView(projectId), "browser");

@@ -18,7 +18,7 @@ export function useReviewDraft(projectId: number, number: number) {
 }
 
 /**
- * 「変更」の上のレビューの帯（要件 5.11 の段階 3）: ためた行のコメントの数と「レビューを書く」。開くと本文（Markdown）と、送り方（コメント / 承認 / 変更依頼）。
+ * 「変更」の上のレビューの帯: ためた行のコメントの数と「レビューを書く」。開くと本文（Markdown）と、送り方（コメント / 承認 / 変更依頼）。
  * 行のコメントもまとめて 1 回で送り（GitHub と同じ）、見ていた最新のコミット（head_sha）に付ける。送ったら書きかけを消して onSent（中身を取り直す）
  */
 export function GitHubReviewBar({

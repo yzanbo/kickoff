@@ -9,7 +9,6 @@ export const dockerApi = {
   dockerWatch: (projectId: number) => request<DockerList>("POST", `/api/projects/${projectId}/docker/watch`),
   /** 操作（待たずに始まり、始めたあとの一覧を返す。cancel・dismiss は何も返さない。別の作業場所と同じ組になる起動は 409・code docker_shared_project） */
   dockerAction: (projectId: number, body: DockerActionBody) => request<DockerList | undefined>("POST", `/api/projects/${projectId}/docker/actions`, body),
-  /** エンジンを開く（OrbStack・Docker Desktop。開くアプリは context の名前からコアが決める） */
   /** ログの画面の流れ（SSE の URL。EventSource でつなぐ。中身は DockerLogEvent） */
   dockerLogsUrl: (projectId: number, compose: string) => withQuery(`/api/projects/${projectId}/docker/logs`, { compose }),
   /** ログの「さらに前を読む」（until より前の 500 行。この compose のコンテナだけ） */
@@ -20,5 +19,6 @@ export const dockerApi = {
   /** 「DB で開く」の行き先（登録済みの同じ DB の接続・取り込みの案・押せない理由） */
   dockerDbTarget: (projectId: number, compose: string, service: string) =>
     request<DockerDbTarget>("GET", withQuery(`/api/projects/${projectId}/docker/db`, { compose, service })),
+  /** エンジンを開く（OrbStack・Docker Desktop。開くアプリは context の名前からコアが決める） */
   dockerOpenEngine: (projectId: number) => request<void>("POST", `/api/projects/${projectId}/docker/open-engine`),
 };

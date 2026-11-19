@@ -1,4 +1,4 @@
-// Docker タブの「DB で開く」（段階 2）: DB のサービスを DB タブで開く。登録済みの同じ DB ならその接続を選び、なければ取り込みの画面をその案を選んだ形で開く。
+// Docker タブの「DB で開く」: DB のサービスを DB タブで開く。登録済みの同じ DB ならその接続を選び、なければ取り込みの画面をその案を選んだ形で開く。
 // 動いていなければ確かめてから起動し、動き出したら開く（起動に失敗したら開かない。失敗は見出しに出る）
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { DockerCompose, DockerService } from "@shared/types";

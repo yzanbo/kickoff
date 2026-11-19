@@ -21,8 +21,7 @@ import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { RowBudgetScope, useRowBudgets } from "@/hooks/useProgressiveRows";
 
 /**
- * スイムレーンの段の分け方（列はどれも状態）。カンバンでは グループ・作業場所（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
- * グループのタブではグループで分ける
+ * スイムレーンの段の分け方: グループ・作業場所（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）
  */
 export type BoardLane = SettingValue<typeof PROJECT_BOARD_LANES>;
 
@@ -49,7 +48,7 @@ const LANE_ICONS: Record<BoardLane | "none", LucideIcon> = {
 
 /**
  * ボードのツールバーの段の分け方の切り替え（「分けない / グループ / 作業場所 / プロジェクト」のボタンの組。ボード・リストで共通）。
- * value は段に分けていなければ "none"。前は「段: …」の選択欄だったが、利用者の依頼で列の分け方と同じボタンの組にした
+ * value は段に分けていなければ "none"。列の分け方と同じボタンの組
  */
 export function LaneSelect({ value, options, onChange }: { value: BoardLane | "none"; options: readonly BoardLane[]; onChange: (value: BoardLane | "none") => void }) {
   return (
@@ -125,7 +124,7 @@ function laneRows(lane: ChatBucket<PanelDraft>, list: boolean): number {
  * 段の中身（children: 下書きと状態の列・リストのまとまり）は呼ぶ側が描く。
  * 段は見出しで開閉でき（名前だけでなく、見出しの空いているところを押しても）、ボード（foldPlace）と段のまとまりのキーで覚える。
  * グループ・No Group・作業場所の段の見出しの右クリックは、その段で始める「新しいチャット」（どこで始めるかの札を添える。チャットの右クリックと同じ NewChatItem。
- * 利用者の依頼。プロジェクトの段・フォルダのない作業場所の段では出さない）
+ * プロジェクトの段・フォルダのない作業場所の段では出さない）
  */
 export function BoardLanes({
   lanes,
@@ -183,7 +182,7 @@ export function BoardLanes({
                 folds.set(lane.key, !open);
               }}
               label={<LaneTitle lane={lane} showProject={showProject} />}
-              // 送る前の新しいチャット（下書き。New Chat）も 1 つと数える（利用者の依頼。サイドバーのグループの見出しと同じ）
+              // 送る前の新しいチャット（下書き。New Chat）も 1 つと数える（サイドバーのグループの見出しと同じ）
               count={lane.chats.length + lane.drafts.length}
               actions={actions?.(lane)}
               className={cx(head.className, actions && "board-lane-head-actions")}

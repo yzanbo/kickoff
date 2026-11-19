@@ -122,7 +122,7 @@ export function HistorySidebar({
   onStashMenu: (e: MouseEvent, ref: string) => void;
 }) {
   const [filter, setFilter] = useState("");
-  // 押した行（利用者の依頼: どの行を選んだか見て分かるようにする）。同じコミットを指す行（ブランチとリモート・タグなど）が重なっても、押した 1 行だけを選ぶ。
+  // 押した行（どの行を選んだか見て分かるようにする）。同じコミットを指す行（ブランチとリモート・タグなど）が重なっても、押した 1 行だけを選ぶ。
   // 表でほかのコミットを選んだら、どの行も選ばない
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const rows: RowPick = {

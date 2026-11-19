@@ -1,5 +1,5 @@
-// コードの色付けの本体（Shiki）。色付けの Worker（lib/highlightWorker.ts）の中で動かす（画面のスレッドで文法の読み込み・正規表現での解析をしない。
-// メモの仕様書「0023_表示を軽くする」の案 20）。DOM に触れない
+// コードの色付けの本体（Shiki）。色付けの Worker（lib/highlightWorker.ts）の中で動かす（画面のスレッドで文法の読み込み・正規表現での解析をしない）。
+// DOM に触れない
 import type { HighlighterCore, LanguageRegistration } from "shiki/core";
 import type { AppliedTheme } from "./appliedTheme";
 import { findHeredocs } from "./heredoc";

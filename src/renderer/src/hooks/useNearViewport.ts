@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 
 /**
- * 要素が画面（スクロールする枠の見えている所）の手前まで来たかを見張る、共有の IntersectionObserver（メモの仕様書「0023_表示を軽くする」の案 14a・20）。
+ * 要素が画面（スクロールする枠の見えている所）の手前まで来たかを見張る、共有の IntersectionObserver。
  * 見張りは「枠（root）と余白（margin）の組」ごとに 1 つを使い回す（要素ごとに new IntersectionObserver しない）。
  * 枠は、要素のいちばん外側の data-near-root の先祖（チャットの流れの枠など）。なければ画面。
  * root を省く（画面を枠にする）と、rootMargin が広げるのは画面の見える所だけで、途中のスクロールする枠の切り取りには余白が付かず、

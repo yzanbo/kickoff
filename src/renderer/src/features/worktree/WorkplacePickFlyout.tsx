@@ -7,8 +7,8 @@ import { useWorkplaceChoices } from "./WorkplaceMoveChip";
 import { moveChatWorkplace } from "./moveWorkplace";
 
 /**
- * チャットの右クリックの「作業場所を変更」の横に開く、移す先の一覧（メモの仕様書「0025」の Q8）: 本体・いまあるワークツリー・新しいワークツリー…。
- * いまの作業場所にチェック、片付けを予約したワークツリーは押せない（理由を説明に。H7）。選ぶと確かめてから移す（moveChatWorkplace）
+ * チャットの右クリックの「作業場所を変更」の横に開く、移す先の一覧: 本体・いまあるワークツリー・新しいワークツリー…。
+ * いまの作業場所にチェック、片付けを予約したワークツリーは押せない（理由を説明に）。選ぶと確かめてから移す（moveChatWorkplace）
  */
 export function WorkplacePickFlyout({ anchor, chat, onDone, onBack }: { anchor: HTMLElement; chat: Chat; onDone: () => void; onBack: () => void }) {
   const [reserved, setReserved] = useState<string[]>([]);

@@ -83,7 +83,7 @@ function ProjectKanban({ projectId, menu, chats }: { projectId: number; menu: Re
 
 /**
  * 全プロジェクトのカンバン（全プロジェクトの画面）。右のパネルを持たず、カードを押すとそのプロジェクトへ移って開く（サイドバー・⌘⇧A・検索と同じ。
- * 同じチャットが全プロジェクトとプロジェクトの 2 つのパネルで別々に開かないように）。ツールバーに「新規」は置かない（プロジェクトのボードにもない。利用者の依頼。新しいチャットは ⌘N・サイドバー・タブの列の＋から始める）。
+ * 同じチャットが全プロジェクトとプロジェクトの 2 つのパネルで別々に開かないように）。ツールバーに「新規」は置かない（プロジェクトのボードにもない。新しいチャットは ⌘N・サイドバー・タブの列の＋から始める）。
  * 下書きの列には、すべてのプロジェクトの下書きを並べる（押すとその欄の画面へ移って開く）
  */
 export function AllProjectsKanban() {
@@ -136,8 +136,8 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   // スイムレーンの段の分け方
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
   // 全プロジェクトのボードのグループの列は、段がプロジェクトのときだけ選べる（グループはプロジェクトごとのもの）。ほかの段では、覚えた「グループ」は状態の列で出す（段をプロジェクトに戻すとグループに戻る）。
-  // プロジェクトのボードはボードのときだけ選べる（グループを列にして縦に並べ、カードのドラッグでグループを移す。利用者の依頼）。
-  // リストでは段の「グループ」と同じ見た目になるので出さない（利用者の依頼。覚えた「グループ」は状態の列で出し、ボードに戻すとグループに戻る）
+  // プロジェクトのボードはボードのときだけ選べる（グループを列にして縦に並べ、カードのドラッグでグループを移す）。
+  // リストでは段の「グループ」と同じ見た目になるので出さない（覚えた「グループ」は状態の列で出し、ボードに戻すとグループに戻る）
   const projectLanes = allProjects && split && lanes === "project";
   const groupsAvailable = allProjects ? projectLanes : view !== "list";
   const byGroup = groupsAvailable && columns === "groups";
@@ -145,7 +145,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   // プロジェクトのボードでグループの列にしているときは、段の「グループ」は選べない（列と同じ分け方になるため）。覚えた段はそのままで、分けない形で出す
   const laneSplit = split && !(byGroup && !allProjects && lanes === "group");
   const laneChoices = byGroup && !allProjects ? laneOptions.filter((o) => o !== "group") : laneOptions;
-  // プロジェクトのボードの段: グループでは、カードを別のグループの段へドラッグしてグループを移す（利用者の依頼。グループの列にしているときは段がグループにならない）。
+  // プロジェクトのボードの段: グループでは、カードを別のグループの段へドラッグしてグループを移す（グループの列にしているときは段がグループにならない）。
   // 落とし先になるよう、チャットのないグループの段も出す
   const groupLanes = !allProjects && laneSplit && lanes === "group";
   const groupLaneDrop = useGroupLaneDrop(projectId, groupLanes);
@@ -165,7 +165,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
   const laneReorder = useProjectLaneReorder(allProjects);
   // 並び順（ツールバーの「並び順」。列・まとまりの中もこの順）
   const { sort, setSort, compare } = useChatSort(projectIds ? [...projectIds] : projectId !== undefined ? [projectId] : []);
-  // ⌘ / Shift ＋クリックで選んだカード（利用者の依頼。サイドバーと同じ決まりで、まとめて操作する欄とメニューもサイドバーと同じ SelectionBar。範囲はボードの画面の並び）
+  // ⌘ / Shift ＋クリックで選んだカード（サイドバーと同じ決まりで、まとめて操作する欄とメニューもサイドバーと同じ SelectionBar。範囲はボードの画面の並び）
   const selection = useChatSelectionState(
     shown.map((c) => c.id),
     boardCardIds,
@@ -219,7 +219,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
    * 全プロジェクトのボードも、パネルがあったときと同じ名前のまま）
    */
   const foldPlace = `board:${panelKey("board", projectId ?? "all")}`;
-  // ボードを開いた直後（見え方を変えた・チャットが届いたときも）は画面に入る数のカードだけを描き、最初の描画のあとに残りを描く（メモの仕様書「0023_表示を軽くする」の案 23）
+  // ボードを開いた直後（見え方を変えた・チャットが届いたときも）は画面に入る数のカードだけを描き、最初の描画のあとに残りを描く
   const rowBudget = useProgressivePage(
     `${projectId ?? "all"}/${feed ? `feed/${feedData.loaded ? 1 : 0}` : view}/${laneSplit ? lanes : "none"}/${columns}/${filters.archive}/${loaded ? 1 : 0}`,
   );
@@ -258,7 +258,7 @@ function KanbanView({ projectId, menu, rightPanel, onOpen, drafts: allDrafts }: 
         />
         )
       }
-      // 並び順の左に「表示項目」（カード・行に出す項目。利用者の依頼）。フィードのカードにも効くので、フィードでも出す
+      // 並び順の左に「表示項目」（カード・行に出す項目）。フィードのカードにも効くので、フィードでも出す
       sortTools={
         <>
           <CardFieldsButton allProjects={allProjects} />

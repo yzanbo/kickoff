@@ -5,7 +5,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { copyImage, downloadImage } from "./imageFile";
 
 /**
- * 画像の右クリックのメニュー（画像をコピー・大きく表示・保存）。チャットの添付のサムネイル・添付の一覧で共通。
+ * 画像の右クリックのメニュー（画像をコピー・大きく表示・保存）。
  * 発言の右クリックのメニュー（メッセージをコピー）には伝えず、画像の上ではこちらだけを出す
  */
 export function useImageMenu(): {

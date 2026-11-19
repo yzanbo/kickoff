@@ -1,4 +1,4 @@
-// このウィンドウで利用者が見ているもの（AI の get_user_view。メモの仕様書「0019_AI の操作ツールの追加」の D）を集める:
+// このウィンドウで利用者が見ているもの（AI の get_user_view）を集める:
 // 見ているプロジェクト・プロジェクトのタブ・画面に出ている欄（パネル）のペインごとの前のタブ・チャットの画面の右の欄に開いているもの。
 // タブの中身のうち部品だけが知っているもの（エディタのカーソルと選んでいる範囲・メモで選んでいる文）は lib/viewDetails から読む
 import { USER_VIEW_TEXT_MAX, type UserView, type UserViewPane, type UserViewTab } from "@shared/types";

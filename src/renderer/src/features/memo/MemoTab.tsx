@@ -70,7 +70,7 @@ export function MemoTab({
   // 一覧の選んでいる行 = ピントのあるペインで表示中のメモ
   const focusedTab = panel.tabs.find((t) => t.key === focusedPane(panel.layout).active);
   const selected = focusedTab?.kind === "memo" ? focusedTab.path : "";
-  // 一覧で選んでいる行（背景の色。利用者の依頼で、フォルダも選べ、一覧の空いている所を押すと外れる。VS Code のエクスプローラーと同じ）。
+  // 一覧で選んでいる行（背景の色。フォルダも選べ、一覧の空いている所を押すと外れる。VS Code のエクスプローラーと同じ）。
   // null = 表示中のメモに合わせる、"" = 何も選んでいない、パス = 押したフォルダ。表示中のメモが変わったら、それに合わせ直す
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => setPicked(null), [selected]);
@@ -95,7 +95,7 @@ export function MemoTab({
   const dirs = useMemo(() => folderPaths(tree), [tree]);
   const found = useMemo(() => (query.trim() ? filterMemos(entries ?? [], query) : null), [entries, query]);
   const dir = list.data?.dir ?? "";
-  // ⌘ / Shift ＋クリックで選んだいくつかの行（利用者の依頼。Finder と同じ。範囲は見えている並び = 探していれば見つかった順、ふだんは開いているフォルダの中までの木の順）
+  // ⌘ / Shift ＋クリックで選んだいくつかの行（Finder と同じ。範囲は見えている並び = 探していれば見つかった順、ふだんは開いているフォルダの中までの木の順）
   const allPaths = useMemo(() => (entries ?? []).map((e) => e.path), [entries]);
   const multi = useMultiSelect(allPaths, () => (found ? found.map((e) => e.path) : visibleTreePaths(tree, open)));
   const isSelected = (path: string) => (multi.selected.length > 0 ? multi.has(path) : highlighted === path);

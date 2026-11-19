@@ -26,7 +26,7 @@ const LEVEL_DECAY = 0.8;
 
 /**
  * 録音中の音量を、包みの要素の --mic-level（0〜1）に入れる（描き直しをせずに、マイクの輪と横の棒の高さを変える）。
- * 声を拾っているかを目で見せる（前は経過時間だけで、話しても何も動かず、届いているか分からなかった）
+ * 声を拾っているかを目で見せる（経過時間だけだと、話しても何も動かず、届いているか分からない）
  */
 function useMicLevel(dictation: Dictation) {
   const ref = useRef<HTMLSpanElement>(null);

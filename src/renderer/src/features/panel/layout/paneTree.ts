@@ -80,7 +80,7 @@ export function nextActiveTab(tabs: readonly string[], closedKey: string, active
   return rest[Math.min(index, rest.length - 1)] ?? null;
 }
 
-/** ピントのあるペインの表示中のタブ（今までの「表示中のタブ」と同じ意味） */
+/** ピントのあるペインの表示中のタブ */
 export const activeTabOf = (layout: PaneLayout): string | null => focusedPane(layout).active;
 
 /** どこかのペインで表示中のタブか */

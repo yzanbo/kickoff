@@ -9,7 +9,7 @@ import { MemoOverlapNotice } from "@/features/memo/MemoOverlapNotice";
 
 /**
  * 新しいプロジェクト・取り込むプロジェクトのメモの保存先を送る形。手で決めた場所（custom）があれば別の場所（memo_path）、
- * なければ base（フォルダ名）から設定の親フォルダの下の名前（memo_folder。コアが重ならない名前にする）。base がまだなければ送らない（今までどおり、初めてメモを使ったときに決める）
+ * なければ base（フォルダ名）から設定の親フォルダの下の名前（memo_folder。コアが重ならない名前にする）。base がまだなければ送らない（初めてメモを使ったときに決める）
  */
 export function memoDirBody(base: string, custom: string | null): NewProjectMemoDir {
   if (custom?.trim()) return { memo_path: custom.trim() };

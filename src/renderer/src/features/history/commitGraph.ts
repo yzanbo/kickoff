@@ -85,7 +85,7 @@ export function layoutGraph(commits: { hash: string; parents: string[] }[]): { r
     }
     const bottom: GraphEdge[] = [...targets.map((to) => ({ from: col, to, color: colors[to] })), ...joins];
     // そのまま通り過ぎる線（ほかの列からこの点の親へつなぐ線の行き先になった列も、その列の線は下へ続ける。
-    // 前は行き先の列を除いていて、左の列が待っている親へ右の列から合流する行で、左の列の線が点の高さで途切れた）
+    // 行き先の列を除くと、左の列が待っている親へ右の列から合流する行で、左の列の線が点の高さで途切れる）
     lanes.forEach((hash, i) => {
       if (hash !== null && i !== col && before[i] === hash) bottom.push({ from: i, to: i, color: colors[i] });
     });

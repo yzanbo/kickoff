@@ -32,7 +32,7 @@ export function BottomPanel({ bottom }: { bottom: BottomPanelController }) {
 /** フッターの中身（画面ごとのタブ。開いているかは殻 useBottomPanel と同じ店から読む） */
 function BottomTabs({ bottom }: { bottom: BottomPanelController }) {
   const { targets, scope } = bottom;
-  // ターミナルだけの欄（利用者の依頼）なので、新しいチャットの作成先は渡さない
+  // ターミナルだけの欄なので、新しいチャットの作成先は渡さない
   const panel = usePanel({ surface: "bottom", scope, newChat: undefined, terminals: targets });
   return <Panel panel={panel} frame={{ maximize: { on: bottom.maximized, toggle: bottom.toggleMaximized } }} />;
 }

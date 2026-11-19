@@ -99,7 +99,7 @@ export function fixLabelContrast(svg: string, background: string): string {
       if (rect.width === 0 && rect.height === 0) continue;
       if (tag === "text") {
         // シーケンス図の番号（autonumber）の下の丸は線の先の形（marker）で描かれ、下の色に数えられないので替えない
-        // （番号の色はテーマが丸の色に合わせて決める。前は丸の外の地と比べて替え、丸と同じ色になって番号が消えた）
+        // （番号の色はテーマが丸の色に合わせて決める。丸の外の地と比べて替えると、丸と同じ色になって番号が消える）
         if (el.classList.contains("sequenceNumber")) continue;
         const target = el.querySelector("tspan") ?? el;
         const text = parseColor(getComputedStyle(target).fill);

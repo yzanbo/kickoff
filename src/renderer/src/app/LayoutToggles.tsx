@@ -13,7 +13,7 @@ interface Toggle {
  * 右サイドバー = チャット欄（ブラウザと、右端のアイコンの列で切り替えるプロジェクトの画面。⌥⌘B。全プロジェクトの画面では、サイドバーで選んでいるプロジェクトのもの。プロジェクトが 1 つもなければ出さない）。出せないものは渡さない。
  * アイコンは、サイドバー・フッター・右の欄の閉じる / 開くボタンと同じ向きのもの（開いていれば閉じる向き、閉じていれば開く向き）。
  * プロジェクトの画面では、見出しの行の出し方（reveal）に合わせる: 寄せたときだけ表示なら見出しと一緒に出し入れし（.layout-toggles.auto-hide）、
- * 非表示なら出さない（利用者の依頼。ショートカットはそのまま効く）
+ * 非表示なら出さない（ショートカットはそのまま効く）
  */
 export function LayoutToggles({ sidebar, bottom, chat, reveal = "show" }: { sidebar: Toggle; bottom?: Toggle; chat?: Toggle; reveal?: ProjectHeaderMode }) {
   if (reveal === "hide") return null;

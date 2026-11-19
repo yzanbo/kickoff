@@ -9,7 +9,7 @@ import { MONACO_MATCHES_LIMIT, monacoFindController } from "./monacoFindOptions"
 
 /**
  * ファイルのエディタ（Monaco。ファイル・検索・変更のタブ・右の欄・別ウィンドウ）の ⌘F の検索の欄。ほかの検索の欄と同じ部品（ui/FindField）で、
- * エディタの右上に浮かせる（利用者の依頼。前は Monaco が描く検索の欄で、見た目がほかと違った）。
+ * エディタの右上に浮かせる（Monaco が描く検索の欄は見た目がほかと違うため）。
  * 探す・印・移る・置き換えは Monaco の検索の仕組み（editor.contrib.findController）をそのまま使い、Monaco の検索の欄は CSS で隠す（.code-editor .find-widget）。
  * 欄を出すかは Monaco の検索の様子（isRevealed）に合わせる（エディタの中の Esc・⌘G で Monaco が開け閉めしても、この欄がついていく）。
  * ⌘F（エディタの中・ページの ⌘F）で開き、⌥⌘F で置き換えの行も開く。選んでいる 1 行の文があれば、それを入れる

@@ -18,7 +18,7 @@ import type { PopoutRoute } from "@/app/popout";
 import { PROJECT_VIEW_LABELS, type NewChatTarget, type PanelTab, type ProjectTool, type ProjectView, type TerminalTarget } from "./panelTypes";
 
 /**
- * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・変更・プロジェクトの画面（ファイル・検索・履歴）・ファイル・メモ・子チャット・新しい子チャット・ブラウザ・ターミナル）ごとの違いを集めた表。
+ * パネルのタブの種類（panelTypes.ts の `PanelTab` の kind）ごとの違いを集めた表。
  * タブを作る（キーの決め方）・アイコンと名前・どのプロジェクトのものか・中身を作る時・閉じたときの後始末・
  * どのまとまりに入るかを、種類で分岐させずにここから引く。中身（どの部品を描き、中身からの知らせでタブをどう変えるか）は PanelTabPage の PAGES
  */
@@ -253,7 +253,7 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
       const chat = r.chatById(t.id) ?? t.chat;
       return chat ? r.ofChat(chat) : r.ofTarget(t.projectId);
     },
-    // チャット（いちばん上の親）をタブの列のある別ウィンドウへ移す（利用者の依頼。features/popout/tabWindow.ts）
+    // チャット（いちばん上の親）をタブの列のある別ウィンドウへ移す（features/popout/tabWindow.ts）
     popout: (t, panel) => ({
       route: { kind: "chats", panel, key: t.key, chatId: t.id, projectId: t.projectId },
       title: `${t.chat?.title ?? t.title ?? "チャット"} — チャット`,
@@ -267,7 +267,7 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     group: (t, _chat, groupOf) => groupOf(t.projectId, t.group) ?? (t.groupName ? { name: t.groupName, hue: null } : undefined),
     projectOf: (t) => t.projectId,
     cluster: (t, r) => r.ofTarget(t.projectId, t.group, t.worktree),
-    // チャットの別ウィンドウへ移す（書きかけの文・添付ごと。中身は popOutTab が tabHandoff で渡す。利用者の依頼）
+    // チャットの別ウィンドウへ移す（書きかけの文・添付ごと。中身は popOutTab が tabHandoff で渡す）
     popout: (t, panel) => ({ route: { kind: "chats", panel, key: t.key, projectId: t.projectId }, title: `${t.title ?? NEW_CHAT_TITLE} — チャット` }),
   },
   subagent: {
@@ -362,7 +362,7 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   trash: projectToolKind(Trash2, "ゴミ箱", "ゴミ箱（3 日で消えます）"),
   child: {
     icon: MessagesSquare,
-    // 子チャットであることは札で見せる（前は名前の頭の「↳」だけで、サブエージェントの入れ子と見分けにくかった）
+    // 子チャットであることは札で見せる（名前の頭の「↳」だけだと、サブエージェントの入れ子と見分けにくい）
     badge: "子",
     // 孫より深いものは「孫」「ひ孫」にし、札と下線を深さの色にする（孫・ひ孫も同じ欄に子と並ぶので見分ける）
     BadgeText: ChildTabBadge,

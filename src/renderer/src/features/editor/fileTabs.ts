@@ -57,7 +57,7 @@ export function setFileTabDirty(panelKey: string, tabKey: string, dirty: boolean
 }
 
 const isDirty = (panelKey: string, tabKey: string) => dirtyTabs.has(dirtyId(panelKey, tabKey));
-/** そのタブに保存していない変更があるか（作業場所を移したときに、書きかけのファイルのタブを付け替えずに残す。メモの仕様書「0025」の H4） */
+/** そのタブに保存していない変更があるか（作業場所を移したときに、書きかけのファイルのタブを付け替えずに残す） */
 export const isFileTabDirty = isDirty;
 const fileTabsOf = (panelKey: string) => panelStateOf(panelKey).tabs.filter(isFileTab);
 

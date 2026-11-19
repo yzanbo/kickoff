@@ -10,8 +10,8 @@ export interface MarkdownImageProps {
 }
 
 /**
- * Markdown の画像の描き方を差し込む口（ここはドメインを知らない。中身はチャットの画面が features/chat/images の ChatImagesProvider で入れる。
- * メモの仕様書「0027_チャット欄の外の画像とリンク」）。ないとき（チャット以外の画面）は、ふつうの img のまま（外の画像は画面の CSP が止める）
+ * Markdown の画像の描き方を差し込む口（ここはドメインを知らない。中身はチャットの画面が features/chat/images の ChatImagesProvider で入れる）。
+ * ないとき（チャット以外の画面）は、ふつうの img のまま（外の画像は画面の CSP が止める）
  */
 export interface MarkdownImages {
   render: (props: MarkdownImageProps) => ReactNode;

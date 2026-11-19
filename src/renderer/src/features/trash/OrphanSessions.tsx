@@ -10,7 +10,7 @@ import { showToast } from "@/ui/toast";
 import { formatDayTime } from "@/lib/time";
 
 /**
- * どのチャットも使っていない会話記録（メモの仕様書「ファイル削除」の Q17 の「いまある分」）。前からある会話記録は、ターミナルで直接使った Claude Code の
+ * どのチャットも使っていない会話記録。前からある会話記録は、ターミナルで直接使った Claude Code の
  * 記録と見分けられないので自動では消さず、「探す」を押したら日付・大きさ・最初の発言・作業フォルダの一覧を出し、選んだものだけを Kickoff のゴミ箱へ入れる
  */
 export function OrphanSessions() {

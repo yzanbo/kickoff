@@ -90,7 +90,7 @@ export function NewChatPane({
   // 右の欄の操作（流れの中のカードへ移ることがないので、受け取るだけ）
   const side: MutableRefObject<SidePanelHandle | null> = useRef(null);
   const project = projectsById.get(projectId);
-  // 使う AI（初めはプロジェクトの AI。チャット欄の札で選び直せ、送ったあとは変えない。メモの仕様書「0021」の Q1）
+  // 使う AI（初めはプロジェクトの AI。チャット欄の札で選び直せ、送ったあとは変えない）
   const [pickedProvider, setPickedProvider] = useState<ProviderId | null>(null);
   const provider: ProviderId = pickedProvider ?? project?.provider ?? "claude";
   const options = useChatOptions(undefined, projectId, undefined, provider);

@@ -6,7 +6,7 @@ import { diagramBackground, mermaidConfig } from "./mermaidConfig";
 
 /**
  * 描いた図（SVG）を覚えておく数と SVG の字数の合計（同じ図を開き直したとき・タブを切り替えたとき・流れの窓で行を外して戻したときに、描き直さない。
- * よく見る図ほど残す。1 件の SVG は数十〜数百 KB で、組み立ては画面のスレッドで数十〜数百 ms かかる。メモの仕様書「0023_表示を軽くする」の案 14a）
+ * よく見る図ほど残す。1 件の SVG は数十〜数百 KB で、組み立ては画面のスレッドで数十〜数百 ms かかる）
  */
 const CACHE_LIMIT = 200;
 const CACHE_CHARS = 20_000_000;

@@ -160,7 +160,7 @@ export function bucketChats<D extends DraftTarget = DraftTarget>(chats: readonly
   const drafts = (options.drafts ?? []).filter((d) => own(d.projectId));
   const top = { top: true, scope: options.project };
   if (options.archived !== "nested") return bucketLevel(mine, drafts, levels, options, top);
-  // 段がなければ（まとめない）、今までどおり「アーカイブ済み」に抜き出す
+  // 段がなければ（まとめない）、「アーカイブ済み」に抜き出す
   if (levels.length === 0) return bucketLevel(mine, drafts, levels, { ...options, archived: "bucket" }, top);
   const list = bucketLevel(
     mine.filter((c) => !c.archived_at),

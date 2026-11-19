@@ -99,7 +99,7 @@ export function MemoView({
   const [quickHidden, setQuickHidden] = useSetting(MEMO_QUICK_CHAT_HIDDEN);
   const quickFolded = chatOpen || quickHidden;
   // 欄を閉じている間は、メモのチャットの上のピルの列（指示の履歴・ToDo・サブエージェントなど）と送信待ちを下の入力欄の上に描く
-  // （利用者の依頼: 会話の欄を閉じていても送信待ちを見せる。送信待ちがあれば、下の入力欄から送るものも送信待ちに足す）
+  // （会話の欄を閉じていても送信待ちを見せる。送信待ちがあれば、下の入力欄から送るものも送信待ちに足す）
   const [chipsHost, setChipsHost] = useState<HTMLDivElement | null>(null);
   const [queueHost, setQueueHost] = useState<HTMLDivElement | null>(null);
   const [queued, setQueued] = useState(false);

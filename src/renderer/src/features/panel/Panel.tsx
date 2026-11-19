@@ -41,7 +41,7 @@ function PanelBody({ panel, frame }: { panel: PanelController; frame?: PanelFram
   const rules = SURFACES[panel.surface];
   const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const tabsHidden = !!rules.hideableTabs && tabRowHidden;
-  // タブの 2 行（名前の下にグループ・作業場所の札）。タブだけの設定で、サイドバーのチャットの行の 1 行 / 2 行とは別（利用者の依頼。前はサイドバーに合わせていた）
+  // タブの 2 行（名前の下にグループ・作業場所の札）。タブだけの設定で、サイドバーのチャットの行の 1 行 / 2 行とは別
   const [tabTwoLine] = useSetting(PANEL_TAB_TWO_LINE);
   const twoLine = tabTwoLine && panel.kinds.has("chat");
   // タブが入らないとき、細くして収めるか横にスクロールするか（チャットを出す欄だけ。「表示」のメニューの「タブが増えたとき」）

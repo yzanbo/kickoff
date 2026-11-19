@@ -15,7 +15,7 @@ function save(patch: Partial<Pick<AppSettings, "link_open_in" | "trusted_link_do
 }
 
 /**
- * 設定の「リンクと画像」（メモの仕様書「0027_チャット欄の外の画像とリンク」）: 外部リンクの開き先と、確かめずに開くドメインの一覧。
+ * 設定の「リンクと画像」: 外部リンクの開き先と、確かめずに開くドメインの一覧。
  * 外の画像の表示の許可はチャットごと（チャットのメニューの「画像の表示を許可したサイト」）なので、ここには置かない
  */
 export function LinkSettings() {

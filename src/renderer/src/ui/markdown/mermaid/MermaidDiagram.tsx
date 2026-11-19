@@ -57,7 +57,7 @@ function ZoomButtons({ zoom }: { zoom: DiagramZoom }) {
  * Markdown の ```mermaid を図にする。
  * 図はチャットの中に SVG で入れ、Shadow DOM で囲む。描けないとき（書き方の誤り・大きすぎる図）はコードのまま出す。
  * 描いたことのない図は、画面の手前 1200px まで来てから描く（`useNearViewport`。それまでは前に描いたときの高さ・なければ見積もりの枠で場所を取り、
- * 描いても上下の位置がなるべく動かないようにする。覚えた図はすぐ出す。メモの仕様書「0023_表示を軽くする」の案 14a）。
+ * 描いても上下の位置がなるべく動かないようにする。覚えた図はすぐ出す）。
  * onError: 描けなかった理由を受け取る（AI が描いた図のカードが、理由を添えて出す）
  */
 export function MermaidDiagram({ code, onError }: { code: string; onError?: (message: string) => void }) {

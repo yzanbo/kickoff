@@ -13,7 +13,7 @@ function selectCiRun(projectId: number, runId: number, jobId: number | null = nu
 /** プロジェクトの CI のタブへ移って、その実行（とジョブ）を開く */
 export function openCiRun(projectId: number, runId: number, jobId: number | null = null) {
   selectCiRun(projectId, runId, jobId);
-  // 右サイドバーが CI を見せていれば、真ん中の画面は動かさずに右サイドバーで開く（開いているものは設定で共有。メモの仕様書「0031」の Q7）
+  // 右サイドバーが CI を見せていれば、真ん中の画面は動かさずに右サイドバーで開く（開いているものは設定で共有）
   if (isSideViewShown(projectId, "ci")) return showSideView(projectId, "ci");
   navigate({ name: "project", id: projectId, tab: "ci" });
 }

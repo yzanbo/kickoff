@@ -19,7 +19,7 @@ import { useMathPlugins } from "@/ui/markdown/math/useMathPlugins";
 
 /**
  * リンク。ファイルのパスらしいもの（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、開けるファイルなら押して開けるチップにする。
- * 外部リンク（http・https）は、開く口（MarkdownLinkOpenerContext）があればそれで開く（確認の画面・開き先の設定。メモの仕様書「0027_チャット欄の外の画像とリンク」）
+ * 外部リンク（http・https）は、開く口（MarkdownLinkOpenerContext）があればそれで開く（確認の画面・開き先の設定）
  */
 const link: Components["a"] = function MarkdownLink({ node, href, children }) {
   const opener = useContext(MarkdownLinkOpenerContext);
@@ -99,7 +99,7 @@ const OpenFence = createContext<number | null>(null);
 /**
  * コードブロック。上の帯に言語名とコピーのボタンを出す（ボタンはいつも出す）。
  * ```mermaid は図にする（書いている途中は、閉じていない書きかけの図だけを枠にし、書き終えた（閉じた）図は返答の途中でも描く。
- * 一番下に付いていっているときは付いていき、上を読んでいるときは読んでいる位置をブラウザのスクロールアンカーが保つ。メモの仕様書「0023_表示を軽くする」の U4）
+ * 一番下に付いていっているときは付いていき、上を読んでいるときは読んでいる位置をブラウザのスクロールアンカーが保つ）
  */
 const codeBlock: Components["pre"] = function CodeBlock({ node, ...props }) {
   const streaming = useContext(StreamingFlag);
@@ -117,7 +117,7 @@ const codeBlock: Components["pre"] = function CodeBlock({ node, ...props }) {
 /**
  * 言語名とコピーの帯の付いたコードブロック。書き終えた返答（streaming でない）は、画面の手前まで来たら文法の色を付ける
  * （色付けは Worker。色が付くまでは文字のまま出し、付いたら同じ文字を色の付いた断片に替える。<pre> の中は折り返さず、字の幅・高さは変わらない。
- * 書いている途中は付けない（書きかけのコードは文法が閉じておらず、色が行ごとに変わってちらつく）。メモの仕様書「0023_表示を軽くする」の U3・案 20）
+ * 書いている途中は付けない（書きかけのコードは文法が閉じておらず、色が行ごとに変わってちらつく））
  */
 function CodeBlockBody({ block, streaming, pre }: { block: { language: string; text: string }; streaming: boolean; pre: ComponentProps<"pre"> }) {
   const [nearRef, near] = useNearViewport<HTMLDivElement>({ enabled: !streaming });
@@ -158,8 +158,8 @@ const table: Components["table"] = ({ node: _node, ...props }) => (
 );
 
 /**
- * 画像。チャットの画面の中（MarkdownImagesContext があるとき）は、その描き方に任せる（外の画像は押すまで読み込まない・手元の画像はコアから読む。
- * メモの仕様書「0027_チャット欄の外の画像とリンク」）。ほかの画面は、画面の手前まで来てからブラウザが読む（遠くの画像を、開いたときにまとめて読まない。案 14a）
+ * 画像。チャットの画面の中（MarkdownImagesContext があるとき）は、その描き方に任せる（外の画像は押すまで読み込まない・手元の画像はコアから読む）。
+ * ほかの画面は、画面の手前まで来てからブラウザが読む（遠くの画像を、開いたときにまとめて読まない）
  */
 const image: Components["img"] = function MarkdownImage({ node: _node, ...props }) {
   const images = useContext(MarkdownImagesContext);
@@ -187,7 +187,7 @@ const sameTail = (a: readonly number[] | undefined, b: readonly number[] | undef
  * チャットのパネルの中（MarkdownFileLinksContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
  * streaming: 生成中の返答。tail: 生成中に出たばかりの文字の数（出てからの時間で分けた段。新しい順。終わりの文字を段ごとに薄く出す。`useStreamReveal`）。
  * 文は空行で区切ったブロック（`lib/markdownBlocks.ts`）に分け、ブロックごとに memo する。書いている途中は伸びる最後のブロックだけを解析し直し、
- * 書き終えたブロックは描いた要素を覚えから使い回す（作り置きの処理 `markdownProcessor.ts`。メモの仕様書「0023_表示を軽くする」の案 15）
+ * 書き終えたブロックは描いた要素を覚えから使い回す（作り置きの処理 `markdownProcessor.ts`）
  */
 export const Markdown = memo(MarkdownBody, (a, b) => a.children === b.children && a.streaming === b.streaming && sameTail(a.tail, b.tail));
 

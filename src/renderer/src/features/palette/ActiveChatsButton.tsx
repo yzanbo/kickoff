@@ -9,7 +9,7 @@ import type { WaitingBadge } from "./useAllWaiting";
 export const ACTIVE_CHATS_LABEL = "作業中・待ちのチャットを一覧";
 
 /**
- * ⌘⇧A の一覧を、そのプロジェクトに絞り込んだところから開くボタン（サイドバーのプロジェクトのカード。利用者の依頼。アイコンは ⌘⇧A の一覧の入力欄と同じ Activity）。
+ * ⌘⇧A の一覧を、そのプロジェクトに絞り込んだところから開くボタン（サイドバーのプロジェクトのカード。アイコンは ⌘⇧A の一覧の入力欄と同じ Activity）。
  * プロジェクトの見出しの右端の、すべてのプロジェクトの状態ごとのチャットは features/project/page/AllStateChats
  */
 export function ActiveChatsButton({ project, size, className }: { project: Pick<Project, "id" | "name">; size?: number; className?: string }) {

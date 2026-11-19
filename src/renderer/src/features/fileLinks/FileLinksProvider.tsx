@@ -13,7 +13,7 @@ import type { ChatFileLinks } from "./useFileLinks";
  * 右クリックのメニュー（FileMenu）はここで 1 つだけ描く。
  * 返答の Markdown に渡すもの（MarkdownFileLinksContext）は、作業場所が同じ間は同じ物にする: remark の差し込みは作業場所のフォルダだけで
  * パスらしい文字に印を付け、開けるかはリンクがファイルの一覧の小さな店（fileIndexStore）からパスごとに選んで読む
- * （作業が終わるたびに一覧を取り直しても、すべての返答を解析し直さない。メモの仕様書「0023_表示を軽くする」の案 28）
+ * （作業が終わるたびに一覧を取り直しても、すべての返答を解析し直さない）
  */
 export function FileLinksProvider({ value, children }: { value: ChatFileLinks | undefined; children: ReactNode }) {
   const menu = useContextMenu<FileRef>();

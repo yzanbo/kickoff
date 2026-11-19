@@ -12,7 +12,7 @@ export interface NamedView<S = unknown> {
 const nameKey = (name: string) => name.trim().normalize("NFKC").toLowerCase();
 
 /**
- * 同じ一覧にもう同じ名前のビューがあるか（利用者の依頼で同じ名前は付けられない）。名前を変えるときは、そのビュー自身は除く（exceptId）
+ * 同じ一覧にもう同じ名前のビューがあるか（同じ名前は付けられない）。名前を変えるときは、そのビュー自身は除く（exceptId）
  */
 export const viewNameTaken = <V extends NamedView>(views: readonly V[], name: string, exceptId?: string): boolean =>
   views.some((v) => v.id !== exceptId && nameKey(v.name) === nameKey(name));

@@ -15,7 +15,7 @@ import { confirmRemoveWorktree } from "@/features/worktree/removeWorktree";
 import { mergeWarnings, pickMergeMethod } from "./githubMerge";
 
 /**
- * PR のマージの確認（要件 5.11 の段階 3・決定 ⑦。取り消せないので、いつもこの確認を挟む）: 方式（リポジトリが許すものだけ。前回の方式を覚える）を選び、
+ * PR のマージの確認（取り消せないので、いつもこの確認を挟む）: 方式（リポジトリが許すものだけ。前回の方式を覚える）を選び、
  * CI が落ちている・承認がない・ブランチが古い・衝突などを目立たせる（`mergeWarnings`）。GitHub の保護ルールで断られたら、その理由をそのまま出す。
  * 見ていた最新のコミット（head_sha）で頼むので、確認のあとに積まれたコミットがあれば GitHub が断る。
  * マージしたら片付けへ: PR の見張り（pr_watch）がオンならコアがその場で聞き直し、ワークツリーがあれば「片付ける」の確認が出る（PrNoticeHost）。

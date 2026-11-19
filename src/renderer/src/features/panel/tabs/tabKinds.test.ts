@@ -13,7 +13,7 @@ test("タブのキー: チャットは中身から決まり（同じものは 1 
   assert.equal(chatTab(makeChat(5)).key, chatTab(makeChat(5)).key);
   assert.notEqual(newChatTab({ projectId: 1 }).key, newChatTab({ projectId: 1 }).key);
   assert.notEqual(terminalTab(target).key, terminalTab(target).key);
-  // ブラウザも、同じ瞬間に 2 つ開いても重ならない（以前は時刻だけで、続けて開くと同じキーになることがあった）
+  // ブラウザも、同じ瞬間に 2 つ開いても重ならない（時刻だけのキーだと、続けて開くと同じキーになる）
   assert.notEqual(browserTab().key, browserTab().key);
   // ターミナルはどのプロジェクトの作業場所かも覚える（あとでフォルダから逆算しない）
   assert.equal(terminalTab(target).projectId, 3);

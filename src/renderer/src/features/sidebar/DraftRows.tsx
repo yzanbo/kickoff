@@ -12,7 +12,7 @@ import { useChatPlacement } from "@/features/project/page/chatPlacement";
 
 /**
  * 下書きのタブを、いまの画面のプロジェクトのチャットのパネルで表示しているか（サイドバーの行を選択中に見せる。チャットの行が URL で
- * 選択中になるのと同じく、タブで選んでいるものがサイドバーで分かるように。利用者の依頼）。チャットのパネルが出ているのは、
+ * 選択中になるのと同じく、タブで選んでいるものがサイドバーで分かるように）。チャットのパネルが出ているのは、
  * チャットタブに分ける置き方ならチャットタブ、ボードの右に置くならボード（パネルが開いているときだけ = draft.showing）
  */
 function useDraftSelected(draft: PanelDraft): boolean {

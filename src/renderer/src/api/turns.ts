@@ -42,7 +42,7 @@ export const turnsApi = {
   clearContext: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/clear`),
   /** 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる */
   stopReconnect: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}/reconnect`),
-  /** AI が予約した作業場所の移動を取り消す（メモの仕様書「0025」の I2） */
+  /** AI が予約した作業場所の移動を取り消す */
   cancelWorkplaceMove: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}/workplace-move`),
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
   stopBackgroundTask: (chatId: number, taskId: string) => request<void>("POST", `/api/chats/${chatId}/background/${encodeURIComponent(taskId)}/stop`),

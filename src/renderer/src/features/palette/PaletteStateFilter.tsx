@@ -18,7 +18,7 @@ export const ACTIVE_STATE_LABELS: Record<ActiveState, string> = {
 const TONES: Record<ActiveState, string> = { draft: DRAFT_TONE, running: COLUMN_TONE.running, needs_input: COLUMN_TONE.needs_input, unread: COLUMN_TONE.unread };
 
 /**
- * ⌘⇧A の一覧を状態で絞り込む行（利用者の依頼）: 下書き・作業中・回答待ち・未読を、押すたびに付け外しする（いくつでも選べ、1 つは残す。⌘K の探す対象と同じピル）。
+ * ⌘⇧A の一覧を状態で絞り込む行: 下書き・作業中・回答待ち・未読を、押すたびに付け外しする（いくつでも選べ、1 つは残す。⌘K の探す対象と同じピル）。
  * それぞれに、ほかの絞り込み（文字・プロジェクト）を通ったものの数を添える。選んだものは覚えておく（ACTIVE_CHATS_HIDDEN_STATES。隠したものだけを覚える）
  */
 export function PaletteStateFilter({ shown, counts, onToggle }: { shown: ReadonlySet<ActiveState>; counts: Record<ActiveState, number>; onToggle: (state: ActiveState) => void }) {

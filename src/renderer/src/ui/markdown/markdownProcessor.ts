@@ -1,6 +1,6 @@
 /**
- * Markdown を React の要素にする処理（react-markdown 10.1.0 の Markdown と同じ手順を、unified の processor を作り置きにして行う。
- * メモの仕様書「0023_表示を軽くする」の案 15）。react-markdown は描くたびに processor を組み立て直すので、ブロックに分けて描くと
+ * Markdown を React の要素にする処理（react-markdown 10.1.0 の Markdown と同じ手順を、unified の processor を作り置きにして行う）。
+ * react-markdown は描くたびに processor を組み立て直すので、ブロックに分けて描くと
  * その手間がブロックの数だけ増える。作り置きにすれば、分けても全体の手間は増えない。
  *
  * react-markdown の中身（公開されていない createProcessor・post）を写している。package.json で react-markdown と写した道具
@@ -56,7 +56,7 @@ const noLinks = new Map<MathPlugins | null, MarkdownPipeline>();
 
 /**
  * Markdown の部品が使う処理の組: remark-gfm・数式（読み込んであれば）・ファイルのチップの差し込み、rehype は数式のときだけ rehype-katex
- * （react-markdown に渡していたときと同じ順）
+ * （react-markdown に渡すときと同じ順）
  */
 export function pipelineOf(links: PluggableList[number] | undefined, math: MathPlugins | null): MarkdownPipeline {
   const table = links && typeof links === "object" ? (byLinks.get(links) ?? new Map<MathPlugins | null, MarkdownPipeline>()) : noLinks;

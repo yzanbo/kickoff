@@ -42,7 +42,7 @@ export interface OverlapLine {
 const names = (list: readonly FolderOwner[]) => list.map((p) => `「${p.name}」`).join("");
 
 /**
- * 被りの知らせの文。same は、新しく作る・取り込むでは使えない（ng）、フォルダの変更・基本情報では使えるが知らせる（warn。利用者の依頼）
+ * 被りの知らせの文。same は、新しく作る・取り込むでは使えない（ng）、フォルダの変更・基本情報では使えるが知らせる（warn）
  */
 export function folderOverlapLines(overlaps: FolderOverlaps<FolderOwner>, same: "ng" | "warn"): OverlapLine[] {
   const lines: OverlapLine[] = [];

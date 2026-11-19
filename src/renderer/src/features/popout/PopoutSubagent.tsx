@@ -57,7 +57,7 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
   const links = usePopoutFileLinks(fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
   return (
     <FileLinksProvider value={links}>
-      {/* 作業場所を移す前の行は、そのときの作業場所の別ウィンドウで開く（メモの仕様書「0025」の H5） */}
+      {/* 作業場所を移す前の行は、そのときの作業場所の別ウィンドウで開く */}
       <PastWorkplacesProvider chatId={chat.id} current={links} side={false} adapt={(l, place) => popoutFileLinks(l, { chatId: chat.id, ...place })}>
         <ChatImagesProvider chatId={chat.id}>
           <ChatPaneContext.Provider value={pane}>

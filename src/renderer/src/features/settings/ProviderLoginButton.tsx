@@ -13,7 +13,7 @@ type LoginState = { kind: "idle" } | { kind: "starting" } | { kind: "waiting" } 
 export const canBrowserLogin = (p: ProviderStatus) => p.implemented && p.installed && !p.logged_in && p.features.includes("login");
 
 /**
- * AI のブラウザでのログイン（メモの仕様書「0028」の段階 ③。いまは Codex = ChatGPT でログイン）。押すとコアがログインを始め、返った URL を既定のブラウザで開く
+ * AI のブラウザでのログイン（いまは Codex = ChatGPT でログイン）。押すとコアがログインを始め、返った URL を既定のブラウザで開く
  * （メインプロセスが window.open を既定のブラウザに渡す）。ログインの戻り先は CLI が受け、資格情報も CLI の置き場に書く（Kickoff は持たない）。
  * 終わりは SSE の provider_login で受け、AI の状態を読み直す
  */

@@ -7,7 +7,7 @@ const MODES = ["write", "preview"] as const;
 type Mode = (typeof MODES)[number];
 
 /**
- * GitHub に書く Markdown の欄（コメント・issue の本文・レビュー・スレッドへの返信）。「書く｜プレビュー」で、書きながら見た目を確かめられる（要件 5.11 の段階 3）。
+ * GitHub に書く Markdown の欄（コメント・issue の本文・レビュー・スレッドへの返信）。「書く｜プレビュー」で、書きながら見た目を確かめられる。
  * プレビューは Kickoff の Markdown の表示（GitHub の #番号・@名前の自動リンクは送ってから GitHub が付ける）。⌘Enter で onSubmit（送るボタンと同じ）
  */
 export function GitHubMarkdownField({

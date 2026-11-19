@@ -12,7 +12,7 @@ import { IconButton } from "@/ui/IconButton";
 import { cx } from "@/lib/cx";
 import { useWrapCompact } from "@/hooks/useOverflowCompact";
 
-/** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる）・表（チャット 1 つが 1 行。見出しで並べ替える） */
+/** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる） */
 export type BoardView = SettingValue<typeof BOARD_VIEW>;
 
 /**
@@ -39,7 +39,7 @@ interface Props {
   feed?: boolean;
   /** 表示のまとまりで、列の分け方の後ろに置くもの（段の分け方 LaneSelect） */
   viewOptions?: ReactNode;
-  /** 表示のまとまりで、ボード / リストのすぐ右に置く、列の分け方の切り替え（グループ | 状態。利用者の依頼で、前は段の分け方の後ろだった） */
+  /** 表示のまとまりで、ボード / リストのすぐ右に置く、列の分け方の切り替え（グループ | 状態） */
   columns?: ReactNode;
   /** 表示のまとまりのいちばん後ろに置く、表示項目と並び順のボタン */
   sortTools?: ReactNode;
@@ -49,12 +49,12 @@ interface Props {
 
 /**
  * ボード（全プロジェクトのカンバン・プロジェクトのカンバン）の見出し。道具を概念ごとにまとめて並べる:
- * 左に 整える（グループを作成。利用者の依頼でいちばん左） / 表示（ボード・リスト） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
+ * 左に 整える（グループを作成。いちばん左） / 表示（ボード・リスト） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（右のパネルのあるプロジェクトのボードだけ。ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
 export function BoardHeader({ query, onQuery, filters, organize, view, onView, feed = false, viewOptions, columns, sortTools, panel }: Props) {
   // 狭いときは、まずまとまりごと次の行へ折り返し（2 段までは文字のまま）、3 段目が要るときだけボタンの文字を隠してアイコンにする
-  // （入るかは実際の段の数で決める。利用者の依頼で、前は見出しの幅 1120px 以下ですぐアイコンにしていた）
+  // （入るかは見出しの幅の決め打ちでなく、実際の段の数で決める）
   const { ref: fitRef, ...fit } = useWrapCompact<HTMLDivElement>(2, "icon-only");
   return (
     <div className="board-header">
