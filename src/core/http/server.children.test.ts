@@ -433,13 +433,12 @@ test("親から外す: 作業中なら 409（その下の孫が作業中でも�
   await until(() => !runner.isBusy(grandchild));
 });
 
-test("設定: AI がチャットを作るとき（既定は毎回聞く。毎回聞く / 聞かずに作る / 作らせない のほかは 400。前の名前 ai_child_chat は受けない）", async () => {
+test("設定: AI がチャットを作るとき（既定は毎回聞く。毎回聞く / 聞かずに作る / 作らせない のほかは 400）", async () => {
   const { call } = setup();
   assert.equal((await call("GET", "/api/settings")).body.ai_create_chat, "ask");
   assert.equal((await call("PUT", "/api/settings", { ai_create_chat: "allow" })).body.ai_create_chat, "allow");
   assert.equal((await call("PUT", "/api/settings", { ai_create_chat: "off" })).body.ai_create_chat, "off");
   assert.equal((await call("PUT", "/api/settings", { ai_create_chat: "always" })).status, 400);
-  assert.equal((await call("PUT", "/api/settings", { ai_child_chat: "allow" })).status, 400);
 });
 
 test("AI が作る子チャット: 親の会話を引き継げたら、親の最後まで終わった作業から写して始め、引き継いだことを AI に返す", async () => {

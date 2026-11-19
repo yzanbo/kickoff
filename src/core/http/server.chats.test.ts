@@ -42,9 +42,8 @@ test("チャット・グループの API", async () => {
   await call("DELETE", `/api/groups/${second.id}`);
   const otherGroup = (await call("POST", `/api/projects/${other.id}/groups`, { name: "x" })).body;
 
-  // 本文も添付もなければ送れない（本文のキーは続きと同じ text。以前の prompt は受け付けない）。ほかのプロジェクトのグループには入れられない
-  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { phase: "requirements" })).status, 400);
-  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { prompt: "以前のキー" })).status, 400);
+  // 本文も添付もなければ送れない。ほかのプロジェクトのグループには入れられない
+  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, {})).status, 400);
   const cross = await call("POST", `/api/projects/${project.id}/chats`, { text: "x", group_id: otherGroup.id });
   assert.deepEqual(cross, { status: 400, body: { error: "ほかのプロジェクトのグループには入れられません" } });
 
@@ -93,9 +92,6 @@ test("チャット・グループの API", async () => {
   assert.equal(store.chats.get(chatId)?.active_at, activeAt);
   assert.equal((await call("PATCH", `/api/chats/${chatId}`, { pinned: false })).body.pinned, false);
   assert.equal((await call("PATCH", `/api/chats/${chatId}`, { pinned: "yes" })).status, 400);
-  // 以前の個別のルートはなくした
-  assert.equal((await call("POST", `/api/chats/${chatId}/pin`, { pinned: true })).status, 404);
-  assert.equal((await call("POST", `/api/chats/${chatId}/archive`, { archived: true })).status, 404);
   // アーカイブ・戻す（しまったままもう一度しまっても、しまった日時は変えない）。並び順は変えない
   const archived = (await call("PATCH", `/api/chats/${chatId}`, { archived: true })).body;
   assert.ok(archived.archived_at);

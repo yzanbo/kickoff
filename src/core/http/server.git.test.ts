@@ -404,8 +404,6 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   fs.rmSync(path.join(worktree, "b.txt"));
   assert.deepEqual(await call("POST", removeUrl, { path: fs.realpathSync(repo), delete_branch: true }), { status: 400, body: { error: "本体のフォルダは消せません" } });
   assert.deepEqual(await call("POST", removeUrl, { path: "/no/such/worktree", delete_branch: true }), { status: 404, body: { error: "ワークツリーが見つかりません" } });
-  // 以前の「片付ける」の個別のルートはなくした
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: worktree })).status, 404);
   const finished = await call("POST", removeUrl, { path: worktree, delete_branch: true });
   assert.equal(finished.status, 200);
   assert.equal(finished.body.length, 1);

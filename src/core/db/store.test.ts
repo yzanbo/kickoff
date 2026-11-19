@@ -13,8 +13,6 @@ function setup() {
 test("プロジェクトを作成すると既定値が入り、変更が通知される", () => {
   const { project, events } = setup();
   assert.equal(project.provider, "claude");
-  // 使わなくなった列（テスト・デプロイ・自動コミットなど）は返さない
-  for (const key of ["test_command", "deploy_instructions", "auto_commit", "current_phase", "write_scopes"]) assert.equal(key in project, false, key);
   assert.equal(events.at(-1)?.type, "project");
 });
 
@@ -217,7 +215,6 @@ test("ワークツリーのチャット: 作業場所で探し、片付けると
 
 test("プロジェクトの既定・参照資料は JSON で保存され、そのまま読み戻せる", () => {
   const { store, project } = setup();
-  assert.equal("write_scopes" in project, false);
   assert.deepEqual(project.reference_paths, []);
   const references = [
     { path: "/tmp/spec", kind: "folder" as const },

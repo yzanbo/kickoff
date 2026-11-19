@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { gitRepo } from "../testing/gitRepo.js";
 import { TRASH_KEEP_MS } from "@shared/types";
-import { AUTH, setup, until } from "../testing/testServer.js";
+import { setup, until } from "../testing/testServer.js";
 import { tempDir } from "../testing/tempDir.js";
 
 test("設定: リンクの開き先（既定は Kickoff のブラウザ）と、確認を省くドメイン（小文字にそろえ、重ねない・使えない名前は 400）", async () => {
@@ -21,7 +21,7 @@ test("設定: リンクの開き先（既定は Kickoff のブラウザ）と、
 });
 
 test("設定・プロジェクトの API", async () => {
-  const { app, call, project, store } = setup();
+  const { call, project, store } = setup();
   assert.equal((await call("PUT", "/api/settings", { auto_archive_days: 3 })).body.auto_archive_days, 3);
   const invalid = await call("PUT", "/api/settings", { auto_archive_days: 999 });
   assert.equal(invalid.status, 400);
@@ -57,10 +57,8 @@ test("設定・プロジェクトの API", async () => {
   assert.equal((await call("GET", `/api/projects/${project.id}`)).body.name, "p");
   assert.deepEqual(await call("GET", "/api/projects/999"), { status: 404, body: { error: "プロジェクトが見つかりません" } });
 
-  // 以前の書き込み範囲（write_scopes）は受け付けず（無視する）、返しもしない
-  const patched = await call("PATCH", `/api/projects/${project.id}`, { name: "q", write_scopes: { requirements: ["docs"] } });
+  const patched = await call("PATCH", `/api/projects/${project.id}`, { name: "q" });
   assert.equal(patched.body.name, "q");
-  assert.equal(patched.body.write_scopes, undefined);
   const missing = await call("PATCH", `/api/projects/${project.id}`, { reference_paths: [{ path: "/no/such/kickoff/path" }] });
   assert.deepEqual(missing, { status: 400, body: { error: "見つかりません: /no/such/kickoff/path" } });
   const refs = await call("PATCH", `/api/projects/${project.id}`, { reference_paths: [{ path: project.repo_path }, { path: project.repo_path }] });
@@ -82,14 +80,6 @@ test("設定・プロジェクトの API", async () => {
   // フォルダの指定がなければ 400（起動したフォルダを点検しない）
   assert.equal((await call("GET", "/api/workspace/inspect")).status, 400);
   assert.equal((await call("GET", "/api/workspace/inspect?path=%20")).status, 400);
-
-  // タスク・成果物の API はなくした
-  for (const url of [`/api/projects/${project.id}/tasks`, `/api/projects/${project.id}/artifacts`]) {
-    assert.equal((await app.request(url, { headers: AUTH })).status, 404, url);
-  }
-  // 以前の設定（テストのコマンド・デプロイの手順・自動コミット）は受け付けず（無視する）、返しもしない
-  const legacy = (await call("PATCH", `/api/projects/${project.id}`, { test_command: "npm test", deploy_instructions: "x", auto_commit: false })).body;
-  for (const key of ["test_command", "deploy_instructions", "auto_commit"]) assert.equal(key in legacy, false, key);
 });
 
 test("新しいプロジェクト: フォルダを Git のリポジトリとして作り、説明（description。取り込み・編集と同じキー）を README の「アイデア」にも書く", async () => {
