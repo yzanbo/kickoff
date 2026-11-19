@@ -1,6 +1,7 @@
 // 長い一覧の通しの確かめ（sidebar-*・board-find）が共通に使う準備: 画面の fetch を差し替えて偽のチャット 1,000・グループ 8 を足し、
 // サイドバーの一覧・ボードを開いた直後（残りの行を描く前）に操作する（段階に分けて描く決まり。画面の CLAUDE.md の「性能」）
 
+import { STORAGE_IMPORTS } from "../devtools/cdp.mjs";
 import { shimSource } from "../devtools/listShim.mjs";
 
 /** 足す偽のチャットの数 */
@@ -29,9 +30,7 @@ export const sidebarRows = (projectId) => `[...document.querySelectorAll('.works
  * check の中では rows() で行を読める。{ first（開いた直後の行の数）, after（終わったときの行の数）, …check の結果 } を返す
  */
 export const sidebarCheckExpr = (projectId, check) => `(async () => {
-  const s = await import("/src/lib/storage.ts");
-  const k = await import("/src/lib/storageKeys.ts");
-  const f = await import("/src/hooks/useFold.ts");
+  ${STORAGE_IMPORTS}
   const rows = () => ${sidebarRows(projectId)};
   // 初めて開いたときに当たるビュー「標準」が当たってから、要対応をオフにする（偽のチャットがすべてプロジェクトの一覧に並ぶように）
   ${until("s.readSetting(k.SIDEBAR_VIEW_SELECTED)", "サイドバーのビューが当たる")}

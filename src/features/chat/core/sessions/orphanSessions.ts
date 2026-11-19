@@ -1,0 +1,64 @@
+// どのチャットも使っていない会話記録の一覧と片付け。
+// Kickoff が覚えていない会話記録は、ターミナルで直接使った Claude Code の記録と見分けられないので自動では消さず、
+// 日付・大きさ・最初の発言の一覧を出して、利用者が選んだものだけを Kickoff のゴミ箱（3 日）へ入れる
+import type { OrphanSession, ProviderId } from "@shared/types";
+import type { Store } from "@/foundation/core/db/store";
+import type { AgentProvider, SessionFileInfo } from "@/features/ai/core/providers/types";
+import type { SessionsUsedElsewhere } from "./siblingSessions";
+import type { TrashService } from "@/features/trash/core/service";
+import { sessionCompanion, sessionLabel } from "./sessionTrash";
+import { realPathLoose } from "@/foundation/core/system/paths";
+
+export interface OrphanSessionDeps {
+  /** Kickoff の 1 回だけの問い合わせを動かす一時フォルダ（実体のパス。その作業フォルダの記録に kickoff_ask の印を付ける） */
+  askDir?: string | null;
+  store: Store;
+  providers: Record<ProviderId, AgentProvider>;
+  trashBin: Pick<TrashService, "putPath">;
+  sessionsElsewhere: SessionsUsedElsewhere;
+  /** 作業フォルダを含むプロジェクト（なければ null） */
+  projectOfPath: (cwd: string) => number | null;
+}
+
+/** どのチャットも使っていない会話記録のファイル（Kickoff が覚えたもの = 片付けが拾うものと、ほかの Kickoff が使うものは除く） */
+async function orphanFiles(deps: OrphanSessionDeps): Promise<(SessionFileInfo & { provider: ProviderId })[]> {
+  const used = deps.store.events.usedSessionIds();
+  const files: (SessionFileInfo & { provider: ProviderId })[] = [];
+  const seen = new Set<string>();
+  for (const [providerId, provider] of Object.entries(deps.providers) as [ProviderId, AgentProvider][]) {
+    for (const info of (await provider.listSessionFiles?.()) ?? []) {
+      // 同じファイルを 2 回数えない（いくつものプロバイダーが同じ場所を読むとき）
+      if (seen.has(info.file) || used.has(info.sessionId) || deps.store.agentSessions.has(info.sessionId)) continue;
+      seen.add(info.file);
+      files.push({ ...info, provider: providerId });
+    }
+  }
+  const elsewhere = deps.sessionsElsewhere(files.map((f) => f.sessionId));
+  return files.filter((f) => !elsewhere.has(f.sessionId));
+}
+
+/** 一覧（新しい順） */
+export async function listOrphanSessions(deps: OrphanSessionDeps): Promise<OrphanSession[]> {
+  return (await orphanFiles(deps)).map((f) => ({
+    session_id: f.sessionId,
+    provider: f.provider,
+    size: f.size,
+    modified_at: f.modifiedAt,
+    cwd: f.cwd,
+    first_prompt: f.firstPrompt,
+    project_id: f.cwd ? deps.projectOfPath(f.cwd) : null,
+    kickoff_ask: Boolean(deps.askDir && f.cwd && realPathLoose(f.cwd) === deps.askDir),
+  }));
+}
+
+/** 選んだものをゴミ箱へ入れる（調べ直して、まだどのチャットも使っていないものだけ）。入れた数を返す */
+export async function trashOrphanSessions(deps: OrphanSessionDeps, sessionIds: string[]): Promise<number> {
+  const wanted = new Set(sessionIds);
+  let trashed = 0;
+  for (const f of await orphanFiles(deps)) {
+    if (!wanted.has(f.sessionId)) continue;
+    await deps.trashBin.putPath(f.file, { projectId: f.cwd ? deps.projectOfPath(f.cwd) : null, kind: "session", label: sessionLabel(f.firstPrompt), companions: [sessionCompanion(f.file)] });
+    trashed++;
+  }
+  return trashed;
+}

@@ -1,0 +1,65 @@
+import type { Hono } from "hono";
+import { z } from "zod";
+import type { ServerDeps } from "@/foundation/core/http/server";
+import { WHISPER_MODEL_IDS } from "@/features/voice/core/models";
+import { AI_CREATE_CHAT_MODES, LINK_OPEN_TARGETS, OPENAI_TTS_VOICES, TRUSTED_LINK_DOMAINS_MAX, PROVIDER_AUTH_MODES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
+import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/compact/autoCompact";
+import { jsonBody } from "@/foundation/core/http/input";
+import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, otherProviderRecord, providerChatDefaultsSchema, voiceLanguage } from "@/foundation/core/http/schemas";
+
+const settingsSchema = z
+  .object({
+    default_provider: z.enum(PROVIDER_IDS),
+    provider_auth: z.partialRecord(z.enum(PROVIDER_IDS), z.enum(PROVIDER_AUTH_MODES)),
+    remote_enabled: z.boolean(),
+    // スマホ連携で端末がつなぐ先（http(s) の URL。null ならなし）
+    mobile_url: z.url({ protocol: /^https?$/ }).max(500).nullable(),
+    desktop_notifications: z.boolean(),
+    dock_badge: z.boolean(),
+    projects_dir: z.string().min(1).max(500),
+    // 送った内容で置き換える（4 つとも送る）
+    chat_defaults: chatDefaultsSchema,
+    // Claude Code のほかの AI ごとの既定（送った内容で置き換える。AI ごとに 4 つとも送る）
+    provider_chat_defaults: otherProviderRecord(providerChatDefaultsSchema),
+    sandbox_enabled_by_default: z.boolean(),
+    edit_scope_enabled_by_default: z.boolean(),
+    auto_archive_days: z.number().int().min(1).max(365).nullable(),
+    auto_resume_on_reconnect: z.boolean(),
+    voice_enabled: z.boolean(),
+    voice_provider: z.enum(VOICE_PROVIDERS),
+    voice_language: voiceLanguage,
+    voice_model: z.enum(WHISPER_MODEL_IDS),
+    voice_openai_base_url: z.union([z.literal(""), z.url({ protocol: /^https?$/ })]),
+    voice_openai_model: z.string().trim().min(1).max(100),
+    // 音声モードの読み上げ（声の名前は空ならその言語の既定の声）
+    voice_tts_provider: z.enum(VOICE_TTS_PROVIDERS),
+    voice_tts_voice: z.string().trim().max(200),
+    voice_tts_openai_voice: z.enum(OPENAI_TTS_VOICES),
+    voice_tts_rate: z.number().min(VOICE_TTS_RATE_MIN).max(VOICE_TTS_RATE_MAX),
+    // メモの親フォルダ（null なら既定の場所）
+    memos_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
+    // 自動圧縮を始める使用率（null なら Claude Code の既定）
+    auto_compact_pct: z.number().int().min(AUTO_COMPACT_PCT_MIN).max(AUTO_COMPACT_PCT_MAX).nullable(),
+    // 共通の圧縮前指示（null ならなし）
+    pre_compact_prompt: compactPrompt,
+    post_compact_prompt: compactPrompt,
+    // 共通の圧縮前指示・圧縮後指示を送るか（オフでも文は残す）
+    pre_compact_enabled: z.boolean(),
+    post_compact_enabled: z.boolean(),
+    // チャットの AI がチャット（子・兄弟・親のないチャット）を作るとき（毎回聞く / 聞かずに作る / 作らせない）
+    ai_create_chat: z.enum(AI_CREATE_CHAT_MODES),
+    // Markdown のリンクを開く先と、確認を省くドメイン（小文字にそろえ、重ねない）
+    link_open_in: z.enum(LINK_OPEN_TARGETS),
+    trusted_link_domains: z
+      .array(z.string().trim().toLowerCase().min(1).max(253).regex(/^[a-z0-9.-]+$/))
+      .max(TRUSTED_LINK_DOMAINS_MAX)
+      .transform((list) => [...new Set(list)]),
+  })
+  .partial()
+  .strict() satisfies z.ZodType<Partial<AppSettings>>;
+
+/** アプリ全体の設定（設定ダイアログ。送った項目だけを変える） */
+export function settingsRoutes(app: Hono, { store }: ServerDeps) {
+  app.get("/api/settings", (c) => c.json(store.settings.get()));
+  app.put("/api/settings", async (c) => c.json(store.settings.update(settingsSchema.parse(await jsonBody(c)))));
+}

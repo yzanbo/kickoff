@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeEvent } from "@shared/testing/factories";
+import { makeEvent } from "@shared/foundation/testing/factories";
 import { collectSubagents, networkStoppedSubagents } from "./subagents";
 import { textSimilarity } from "./subagentSupersede";
 

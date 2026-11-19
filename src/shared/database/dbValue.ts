@@ -1,5 +1,5 @@
 // セルの値（DbValue）の見分け（バイナリ・長い文字の頭）。どのプロセスからも使う純粋な関数
-import type { DbBinary, DbLongText, DbValue } from "../types/database";
+import type { DbBinary, DbLongText, DbValue } from "./types";
 
 /** バイナリか */
 export const isDbBinary = (v: DbValue): v is DbBinary => v !== null && typeof v === "object" && "binary" in v;

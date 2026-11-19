@@ -1,6 +1,6 @@
 // ペアリングの QR・手で打った番号の読み方。QR は本体の画面が出す <つなぐ先>/pair?code=…&host=<本体の ID>（@shared/devices/pairing の pairingLink）
 import type { PairingClaimBody, PairingClaimResult, PairingPollResult } from "@shared/types";
-import { API_VERSION_HEADER } from "@shared/api/version";
+import { API_VERSION_HEADER } from "@shared/foundation/api/version";
 import { APP_API_VERSION } from "./version";
 
 /** QR から読んだもの（つなぐ先の URL・使い捨ての番号・本体の ID） */

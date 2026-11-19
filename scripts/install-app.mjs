@@ -11,7 +11,7 @@ const root = path.join(import.meta.dirname, "..");
 const target = "/Applications/Kickoff.app";
 const built = path.join(root, "dist", "mac-arm64", "Kickoff.app");
 const bundleId = "dev.zanbo.kickoff";
-// 本番の保存先とポート（src/core/system/appEnv.ts の production と同じ）
+// 本番の保存先とポート（src/foundation/core/system/appEnv.ts の production と同じ）
 const prodDir = path.join(os.homedir(), "Library", "Application Support", "Kickoff");
 const prodPort = 4317;
 

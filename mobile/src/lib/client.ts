@@ -17,7 +17,7 @@ import type {
   TerminalTab,
   ViewingBody,
 } from "@shared/types";
-import { API_VERSION_HEADER } from "@shared/api/version";
+import { API_VERSION_HEADER } from "@shared/foundation/api/version";
 import { APP_API_VERSION } from "./version";
 
 /** 本体が断ったとき（code は本体の印。なければ null） */

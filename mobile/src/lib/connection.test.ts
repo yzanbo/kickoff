@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { API_VERSION, MIN_CLIENT_API_VERSION } from "@shared/api/version";
+import { API_VERSION, MIN_CLIENT_API_VERSION } from "@shared/foundation/api/version";
 import { failureStateOf, helloStateOf, isFinal } from "./connection";
 
 const hello = (patch: Record<string, unknown> = {}) => ({ core_version: "0.1.0", api_version: API_VERSION, min_client_api_version: MIN_CLIENT_API_VERSION, host_id: "h1", ...patch });

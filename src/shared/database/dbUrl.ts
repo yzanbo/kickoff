@@ -1,4 +1,4 @@
-import { DB_DEFAULT_PORTS, type DbEngine, type DbSsl } from "../types/database";
+import { DB_DEFAULT_PORTS, type DbEngine, type DbSsl } from "./types";
 
 // 接続の URL（postgres://user:pass@host:5432/db?sslmode=require など）を読んで、接続の登録の欄を埋める
 

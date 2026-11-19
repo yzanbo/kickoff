@@ -1,5 +1,5 @@
 import type { ChatEvent, ChatEventType } from "@shared/types";
-import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "./aiVisual";
+import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL } from "@shared/visuals/aiVisual";
 
 /*
  * 記録の索引。画面は最新の数十ターン分（末尾 tail）だけを中身のまま持ち、

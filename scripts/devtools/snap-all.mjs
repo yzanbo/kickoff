@@ -10,7 +10,7 @@
 // 記録は npm run fixture:seed で作り直して起動した直後に取る（通しの確かめは DB の接続の最後に使った時刻などをコアに残す）
 import fs from "node:fs";
 import path from "node:path";
-import { cdpPort, connectPage, press, resetPage, sleep, withSavedStorage } from "./cdp.mjs";
+import { STORAGE_IMPORTS, cdpPort, connectPage, press, resetPage, sleep, withSavedStorage } from "./cdp.mjs";
 import { fixedClockSource } from "./clock.mjs";
 import { FIXTURE, readFixture } from "./fixture.mjs";
 import { SEMANTIC_JS, diffSemantic, formatSemantic, formatSemanticDiff } from "./semantic.mjs";
@@ -42,7 +42,7 @@ export const SCREENS = [
     name: "sidebar-worktree",
     title: "サイドバーのまとめ方（作業場所別）",
     hash: (f) => `#/projects/${f.projects.alpha}`,
-    pre: `const s = await import("/src/lib/storage.ts"); const k = await import("/src/lib/storageKeys.ts");
+    pre: `${STORAGE_IMPORTS}
       for (let i = 0; i < 100 && !s.readSetting(k.SIDEBAR_VIEW_SELECTED); i++) await new Promise((r) => setTimeout(r, 50));
       s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "worktree");`,
   },

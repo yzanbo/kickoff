@@ -4,6 +4,6 @@
     "lib": ["ES2023"],
     "types": ["node"]
   },
-  "include": ["src/preload/**/*.ts"],
+  "include": ["src/foundation/desktop/preload/**/*.ts", "src/app/desktop/preload.ts"],
   "exclude": ["**/*.test.ts"]
 }

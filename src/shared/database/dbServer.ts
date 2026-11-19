@@ -1,4 +1,4 @@
-import { DB_DEFAULT_PORTS, type DbEngine } from "../types/database";
+import { DB_DEFAULT_PORTS, type DbEngine } from "./types";
 
 // この Mac の中の DB のサーバーの見分け（DB クライアントの取り込みと Docker タブの「DB で開く」で、同じ DB かを比べる）
 

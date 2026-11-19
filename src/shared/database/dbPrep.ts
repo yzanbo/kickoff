@@ -1,4 +1,4 @@
-import type { DbPrep } from "../types/database";
+import type { DbPrep } from "./types";
 
 // つなぐ前の準備のコマンド: 中の {名前} の埋め方・確かめた中身の写し・次に確かめる日
 

@@ -2,7 +2,7 @@
 // アプリと本体は別々に更新されるので、話が通じない・つなぐ先が違うときは、つなぎ直しを繰り返さずに理由を出して止める（壊れずに断る）
 import type { ServerHello } from "@shared/types";
 import { MOBILE_OFF } from "@shared/types";
-import type { ApiMismatch } from "@shared/api/version";
+import type { ApiMismatch } from "@shared/foundation/api/version";
 import { hostMismatch } from "./version";
 
 /** つながりの様子 */

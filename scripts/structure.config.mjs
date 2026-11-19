@@ -79,31 +79,34 @@
 /** @type {StructureConfig} */
 export default {
   files: ["src/**/*.{ts,tsx,css}", "mobile/src/**/*.{ts,tsx}", "scripts/**/*.{mjs,ts}"],
-  tests: ["**/*.test.{ts,tsx,mjs}", "**/*.dbtest.ts", "**/testing/**", "vitest.setup.ts", "src/renderer/src/lib/memoryStorage.ts"],
-  aliases: { "@shared/": "src/shared/", "@/": "src/renderer/src/" },
+  tests: ["**/*.test.{ts,tsx,mjs}", "**/*.dbtest.ts", "**/testing/**", "vitest.setup.ts", "src/foundation/ui/storage/memoryStorage.ts"],
+  aliases: { "@shared/": "src/shared/", "@/": "src/" },
+  // 層の中身は新しい構成の置き場所（決まりそのものは新しい構成の決まりに入れ替えるまで、いまの構成のもののまま）
   layers: {
-    core: ["src/core/**"],
-    main: ["src/main/**"],
-    preload: ["src/preload/**"],
-    renderer: ["src/renderer/**"],
-    rendererBase: ["src/renderer/src/ui/**", "src/renderer/src/hooks/**", "src/renderer/src/lib/**", "src/renderer/src/stores/**", "src/renderer/src/api/**"],
-    rendererUpper: ["src/renderer/src/features/**", "src/renderer/src/app/**"],
+    core: ["src/foundation/core/**", "src/features/*/core/**", "src/features/*/worker/**", "src/features/*/testing/**", "src/app/core/**"],
+    main: ["src/foundation/desktop/**", "src/features/*/desktop/**", "src/app/desktop/**"],
+    preload: ["src/foundation/desktop/preload/**", "src/app/desktop/preload.ts"],
+    renderer: ["src/foundation/ui/**", "src/features/*/ui/**", "src/app/renderer/**"],
+    rendererBase: ["src/foundation/ui/**"],
+    // 機能（src/features/*/ui）を読まない決まりは、新しい構成の層の決まりに入れ替えるときに入れる（いまは土台から機能を読む所が残る）
+    rendererUpper: ["src/app/renderer/**"],
     shared: ["src/shared/**"],
   },
   imports: [
     { name: "core-not-renderer", from: ["core"], deny: ["renderer"], message: "コアは画面を読まない（両方で使うものは src/shared へ）" },
     { name: "renderer-not-core", from: ["renderer"], deny: ["core", "main", "preload"], message: "画面はコア・メインを読まない（両方で使うものは src/shared へ）" },
-    { name: "base-not-features", from: ["rendererBase"], deny: ["rendererUpper"], message: "ui・hooks・lib・stores・api は features・app を読まない" },
+    { name: "base-not-features", from: ["rendererBase"], deny: ["rendererUpper"], message: "画面の土台（src/foundation/ui）は組み立て（src/app/renderer）を読まない" },
     { name: "shared-pure", from: ["shared"], tests: "exclude", allow: ["shared"], allowModules: [], message: "shared は shared だけを読む（Node・DOM・npm のパッケージに依らない）" },
     { name: "renderer-not-node", from: ["renderer"], tests: "exclude", denyModules: ["node:*"], message: "画面は node: を読まない" },
-    { name: "preload-narrow", from: ["preload"], tests: "exclude", allow: ["preload", "src/shared/ipc/**"], allowModules: ["electron"], message: "preload は electron と @shared/ipc だけを読む" },
+    { name: "preload-narrow", from: ["preload"], tests: "exclude", allow: ["preload", "src/shared/foundation/ipc/**"], allowModules: ["electron"], message: "preload は electron と @shared/foundation/ipc だけを読む" },
   ],
   publicApi: [],
   siblingCycles: [],
   fileSize: {
     limit: 300,
     rules: [
-      { glob: "src/shared/types/**", limit: 500 },
+      // 型の宣言だけのファイル（いまの構成の src/shared/types/ の 300 行を超えるもの）
+      { glob: "{src/shared/foundation/apiTypes.ts,src/shared/database/types.ts,src/shared/git/types.ts}", limit: 500 },
       { glob: "**/*.test.{ts,tsx,mjs}", limit: 400 },
     ],
     files: ["src/**/*.{ts,tsx,css}", "mobile/src/**/*.{ts,tsx}", "scripts/**/*.{mjs,ts}"],

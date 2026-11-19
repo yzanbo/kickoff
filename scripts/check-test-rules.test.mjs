@@ -53,12 +53,12 @@ test("test-rules-ignore を同じ行か 1 つ上の行に書けば見逃す", ()
 });
 
 test("見張るのはテストのファイルとテストの補助だけ", () => {
-  assert.equal(isTestSource("src/core/chat/send.test.ts"), true);
+  assert.equal(isTestSource("src/features/chat/core/send.test.ts"), true);
   assert.equal(isTestSource("scripts/check-test-rules.test.mjs"), true);
-  assert.equal(isTestSource("src/core/databases/drivers.dbtest.ts"), true);
-  assert.equal(isTestSource("src/core/testing/quietShell.ts"), true);
-  assert.equal(isTestSource("src/shared/testing/factories.ts"), true);
+  assert.equal(isTestSource("src/features/database/worker/drivers.dbtest.ts"), true);
+  assert.equal(isTestSource("src/foundation/core/testing/quietShell.ts"), true);
+  assert.equal(isTestSource("src/shared/foundation/testing/factories.ts"), true);
   assert.equal(isTestSource("vitest.setup.ts"), true);
-  assert.equal(isTestSource("src/core/chat/send.ts"), false);
-  assert.equal(isTestSource("src/renderer/src/lib/memoryStorage.ts"), false);
+  assert.equal(isTestSource("src/features/chat/core/send.ts"), false);
+  assert.equal(isTestSource("src/foundation/ui/storage/memoryStorage.ts"), false);
 });

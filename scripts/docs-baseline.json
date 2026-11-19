@@ -1,23 +1,30 @@
 {
   "version": 1,
   "files": {
+    "CLAUDE.md": {
+      "bytes": 10212,
+      "ancestors": 10212,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 11
+    },
     "README.md": {
       "bytes": 10851,
       "longLines": 2,
       "forbidden": 0,
-      "brokenRefs": 1
+      "brokenRefs": 4
     },
     "docs/architecture.md": {
       "bytes": 67170,
       "longLines": 1,
       "forbidden": 4,
-      "brokenRefs": 2
+      "brokenRefs": 76
     },
     "docs/requirements.md": {
       "bytes": 112785,
       "longLines": 5,
       "forbidden": 49,
-      "brokenRefs": 1
+      "brokenRefs": 32
     },
     "mobile/README.md": {
       "bytes": 4189,
@@ -25,189 +32,203 @@
       "forbidden": 0,
       "brokenRefs": 0
     },
-    "src/core/CLAUDE.md": {
-      "bytes": 31042,
-      "ancestors": 41254,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/core/chat/CLAUDE.md": {
-      "bytes": 20018,
-      "ancestors": 61272,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/core/providers/CLAUDE.md": {
+    "src/features/ai/CLAUDE.md": {
       "bytes": 8622,
-      "ancestors": 49876,
+      "ancestors": 18834,
       "longLines": 0,
       "forbidden": 0,
-      "brokenRefs": 0
+      "brokenRefs": 4
     },
-    "src/renderer/src/CLAUDE.md": {
+    "src/features/board/CLAUDE.md": {
+      "bytes": 3629,
+      "ancestors": 13841,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 1
+    },
+    "src/features/chat/CLAUDE.md": {
+      "bytes": 20018,
+      "ancestors": 30230,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 7
+    },
+    "src/features/chatList/CLAUDE.md": {
+      "bytes": 2002,
+      "ancestors": 12214,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 1
+    },
+    "src/features/conversation/CLAUDE.md": {
+      "bytes": 31794,
+      "ancestors": 42006,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 16
+    },
+    "src/features/database/CLAUDE.md": {
+      "bytes": 4141,
+      "ancestors": 14353,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 4
+    },
+    "src/features/docker/CLAUDE.md": {
+      "bytes": 1707,
+      "ancestors": 11919,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 2
+    },
+    "src/features/files/CLAUDE.md": {
+      "bytes": 4681,
+      "ancestors": 14893,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 1
+    },
+    "src/features/github/CLAUDE.md": {
+      "bytes": 2921,
+      "ancestors": 13133,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 4
+    },
+    "src/features/notes/CLAUDE.md": {
+      "bytes": 3374,
+      "ancestors": 13586,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 2
+    },
+    "src/features/palette/CLAUDE.md": {
+      "bytes": 1086,
+      "ancestors": 11298,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 3
+    },
+    "src/features/panel/CLAUDE.md": {
+      "bytes": 11515,
+      "ancestors": 21727,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 11
+    },
+    "src/features/projects/CLAUDE.md": {
+      "bytes": 2313,
+      "ancestors": 12525,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 1
+    },
+    "src/features/settings/CLAUDE.md": {
+      "bytes": 2717,
+      "ancestors": 12929,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 7
+    },
+    "src/features/sidebar/CLAUDE.md": {
+      "bytes": 5109,
+      "ancestors": 15321,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 1
+    },
+    "src/features/snippets/CLAUDE.md": {
+      "bytes": 1423,
+      "ancestors": 11635,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 2
+    },
+    "src/features/terminal/CLAUDE.md": {
+      "bytes": 2024,
+      "ancestors": 12236,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 5
+    },
+    "src/features/trash/CLAUDE.md": {
+      "bytes": 1984,
+      "ancestors": 12196,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 2
+    },
+    "src/features/worktrees/CLAUDE.md": {
+      "bytes": 1903,
+      "ancestors": 12115,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 2
+    },
+    "src/foundation/core/CLAUDE.md": {
+      "bytes": 31023,
+      "ancestors": 41235,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 35
+    },
+    "src/foundation/desktop/CLAUDE.md": {
+      "bytes": 5686,
+      "ancestors": 15898,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 5
+    },
+    "src/foundation/ui/CLAUDE.md": {
       "bytes": 17223,
       "ancestors": 27435,
       "longLines": 0,
       "forbidden": 0,
-      "brokenRefs": 0
+      "brokenRefs": 24
     },
-    "src/renderer/src/features/board/CLAUDE.md": {
-      "bytes": 3629,
-      "ancestors": 31064,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/chat/CLAUDE.md": {
-      "bytes": 31794,
-      "ancestors": 59229,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/chatList/CLAUDE.md": {
-      "bytes": 2002,
-      "ancestors": 29437,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/database/CLAUDE.md": {
-      "bytes": 4141,
-      "ancestors": 31576,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/docker/CLAUDE.md": {
-      "bytes": 1707,
-      "ancestors": 29142,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/editor/CLAUDE.md": {
-      "bytes": 4681,
-      "ancestors": 32116,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/github/CLAUDE.md": {
-      "bytes": 2921,
-      "ancestors": 30356,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/memo/CLAUDE.md": {
-      "bytes": 3374,
-      "ancestors": 30809,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/palette/CLAUDE.md": {
-      "bytes": 1086,
-      "ancestors": 28521,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/panel/CLAUDE.md": {
-      "bytes": 11515,
-      "ancestors": 38950,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/project/CLAUDE.md": {
-      "bytes": 2313,
-      "ancestors": 29748,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/settings/CLAUDE.md": {
-      "bytes": 2717,
-      "ancestors": 30152,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/sidebar/CLAUDE.md": {
-      "bytes": 5109,
-      "ancestors": 32544,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/snippet/CLAUDE.md": {
-      "bytes": 1423,
-      "ancestors": 28858,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/terminal/CLAUDE.md": {
-      "bytes": 2024,
-      "ancestors": 29459,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/trash/CLAUDE.md": {
-      "bytes": 1984,
-      "ancestors": 29419,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/features/worktree/CLAUDE.md": {
-      "bytes": 1903,
-      "ancestors": 29338,
-      "longLines": 0,
-      "forbidden": 0,
-      "brokenRefs": 0
-    },
-    "src/renderer/src/styles/CLAUDE.md": {
+    "src/foundation/ui/styles/CLAUDE.md": {
       "bytes": 7061,
       "ancestors": 34496,
       "longLines": 0,
       "forbidden": 0,
-      "brokenRefs": 0
+      "brokenRefs": 2
+    },
+    "src/shared/CLAUDE.md": {
+      "bytes": 4959,
+      "ancestors": 15171,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 1
     }
   },
   "comments": {
-    "src/core/databases/worker/postgres.ts": 1,
-    "src/core/http/routes/chats.ts": 1,
-    "src/core/usage/codexCredits.ts": 1,
-    "src/core/usage/planUsage.ts": 1,
-    "src/renderer/src/features/browser/BrowserPane.tsx": 1,
-    "src/renderer/src/features/chat/activity/ActivityView.tsx": 1,
-    "src/renderer/src/features/chat/children/ChildChatBar.tsx": 1,
-    "src/renderer/src/features/chat/children/openChild.ts": 1,
-    "src/renderer/src/features/chat/composer/Composer.tsx": 1,
-    "src/renderer/src/features/chat/messages/UserMessage.tsx": 1,
-    "src/renderer/src/features/chat/pane/ChatHeader.tsx": 1,
-    "src/renderer/src/features/chat/prompts/promptNav.ts": 1,
-    "src/renderer/src/features/chat/store/chatDetail.ts": 1,
-    "src/renderer/src/features/chat/store/chatLog.ts": 2,
-    "src/renderer/src/features/chat/store/chatStore.ts": 2,
-    "src/renderer/src/features/database/ConnectionMemoField.tsx": 1,
-    "src/renderer/src/features/dictation/recorder.ts": 1,
-    "src/renderer/src/features/docker/useDockerLogs.ts": 2,
-    "src/renderer/src/features/project/page/ProjectPage.tsx": 1,
-    "src/renderer/src/hooks/useListNavigation.ts": 1,
-    "src/renderer/src/hooks/useRowWindow.ts": 1,
-    "src/renderer/src/lib/progressive.ts": 2,
-    "src/renderer/src/lib/textFind.ts": 1,
-    "src/renderer/src/lib/time.ts": 3,
-    "src/renderer/src/stores/projects.ts": 1,
+    "src/features/ai/core/usage/codexCredits.ts": 1,
+    "src/features/ai/core/usage/planUsage.ts": 1,
+    "src/features/browser/ui/BrowserPane.tsx": 1,
+    "src/features/chat/core/routes/chats.ts": 1,
+    "src/features/chat/ui/open/openChat.ts": 1,
+    "src/features/chat/ui/store/chatDetail.ts": 1,
+    "src/features/chat/ui/store/chatLog.ts": 2,
+    "src/features/chat/ui/store/chatStore.ts": 2,
+    "src/features/childChats/ui/ChildChatBar.tsx": 1,
+    "src/features/composer/ui/Composer.tsx": 1,
+    "src/features/conversation/ui/activity/ActivityView.tsx": 1,
+    "src/features/conversation/ui/messages/UserMessage.tsx": 1,
+    "src/features/conversation/ui/promptList/promptNav.ts": 1,
+    "src/features/conversation/ui/screen/ChatHeader.tsx": 1,
+    "src/features/conversation/ui/timeline/rowWindow/useRowWindow.ts": 1,
+    "src/features/database/ui/ConnectionMemoField.tsx": 1,
+    "src/features/database/worker/postgres.ts": 1,
+    "src/features/docker/ui/useDockerLogs.ts": 2,
+    "src/features/projects/ui/page/ProjectPage.tsx": 1,
+    "src/features/projects/ui/stores/projects.ts": 1,
+    "src/features/voice/ui/recorder.ts": 1,
+    "src/foundation/ui/hooks/useListNavigation.ts": 1,
+    "src/foundation/ui/lib/progressive.ts": 2,
+    "src/foundation/ui/lib/textFind.ts": 1,
+    "src/foundation/ui/lib/time.ts": 3,
     "src/shared/chat/chatIndex.ts": 1,
-    "src/shared/types/api.ts": 1
+    "src/shared/foundation/apiTypes.ts": 1
   },
   "vocabulary": 3,
   "forbiddenFiles": [

@@ -1,0 +1,117 @@
+// チャットの AI が読むだけのツールの中身（同じプロジェクトのチャットの一覧・会話・使用枠。ほかのプロジェクトは読めない）
+import assert from "node:assert/strict";
+import { test } from "vitest";
+import type { PlanUsage } from "@shared/types";
+import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
+import { setupCore } from "@/app/core/testing/testCore";
+import { createAiChatReadTools, usageText } from "./aiChatRead";
+import { UploadStore } from "@/features/attachments/core/uploads";
+import { tempDir } from "@/foundation/core/testing/tempDir";
+
+function setup() {
+  const ctx = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s", turns: 1, result: "" })));
+  const base = { project_id: ctx.project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, memo_path: null };
+  const root = ctx.store.chats.create({ ...base, title: "根", parent_chat_id: null });
+  const child = ctx.store.chats.create({ ...base, title: "子", parent_chat_id: root.id });
+  const other = ctx.store.chats.create({ ...base, title: "よそ", parent_chat_id: null, status: "failed" });
+  const project2 = ctx.store.projects.create({ name: "q", repo_path: "/tmp/q-not-used", provider: "claude" });
+  const outside = ctx.store.chats.create({ ...base, project_id: project2.id, title: "別のプロジェクト", parent_chat_id: null });
+  return { ...ctx, root, child, other, outside };
+}
+
+test("list_project_chats: 同じプロジェクトのチャット（子チャットも）を、状態・関係と一緒に返す（ほかのプロジェクトは入れない）", () => {
+  const ctx = setup();
+  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals }, ctx.child.id);
+  // 親チャットが回答待ち
+  ctx.approvals.request({ chatId: ctx.root.id, projectId: ctx.project.id }, { kind: "permission", toolName: "Bash", input: {}, canRemember: false }, new AbortController().signal);
+  const listed = JSON.parse(tools.listProjectChats());
+  const byId = new Map(listed.chats.map((c: { id: number }) => [c.id, c]));
+  assert.equal(listed.self_id, ctx.child.id);
+  assert.deepEqual(
+    [ctx.root, ctx.child, ctx.other].map((c) => {
+      const row = byId.get(c.id) as { state: string; relation: string };
+      return [row.state, row.relation];
+    }),
+    [
+      ["回答待ち", "親"],
+      ["終わった", "自分"],
+      ["失敗", "ほかの家系"],
+    ],
+  );
+  assert.equal(byId.has(ctx.outside.id), false);
+});
+
+test("read_chat: 同じプロジェクトのチャットの会話を読み、ほかのプロジェクト・ない ID は断る", () => {
+  const ctx = setup();
+  ctx.store.events.add(ctx.other.id, { type: "user", text: "経緯を決めて", message_uuid: "u1" });
+  ctx.store.events.add(ctx.other.id, { type: "tool_use", id: "t1", name: "Write", input: { content: "大きな中身".repeat(1000) } });
+  // サブエージェントの呼び出し（記録から読むときも parent を残し、数えない）
+  ctx.store.events.add(ctx.other.id, { type: "tool_use", id: "t2", name: "Read", input: {}, parent: "a1" });
+  ctx.store.events.add(ctx.other.id, { type: "text", text: "A 案に決めました" });
+  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals }, ctx.child.id);
+  const read = tools.readChat({ chat_id: ctx.other.id });
+  assert.match(read, /チャット「よそ」（ID \d+・ほかの家系・失敗）の会話: 全 1 回のうち 1 回目/);
+  assert.match(read, /\[AI\]（ツール 1 回）\nA 案に決めました/);
+  assert.ok(!read.includes("大きな中身"));
+  assert.throws(() => tools.readChat({ chat_id: ctx.outside.id }), /このプロジェクトにありません/);
+  assert.throws(() => tools.readChat({ chat_id: 9999 }), /このプロジェクトにありません/);
+});
+
+test("read_chat: 省略された長い発言を記録 ID と文字位置で最後まで読み、ほかのチャットや非公開の記録は読ませない", () => {
+  const ctx = setup();
+  const long = "あ😀".repeat(2_501);
+  const user = ctx.store.events.add(ctx.other.id, { type: "user", text: long, message_uuid: "u1" });
+  const answer = ctx.store.events.add(ctx.other.id, { type: "text", text: "答え".repeat(2_100) });
+  const hidden = ctx.store.events.add(ctx.other.id, { type: "user", text: "圧縮用", pre_compact: true, message_uuid: "u2" });
+  const subagent = ctx.store.events.add(ctx.other.id, { type: "text", text: "子の内部", parent: "sub" });
+  const outside = ctx.store.events.add(ctx.outside.id, { type: "user", text: "別のプロジェクト", message_uuid: "u3" });
+  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals }, ctx.child.id);
+  const listed = tools.readChat({ chat_id: ctx.other.id, turns: 2 });
+  assert.match(listed, new RegExp(`event_id に ${user.id}`));
+  assert.match(listed, new RegExp(`event_id に ${answer.id}`));
+  const first = JSON.parse(tools.readChat({ chat_id: ctx.other.id, event_id: user.id }));
+  const second = JSON.parse(tools.readChat({ chat_id: ctx.other.id, event_id: user.id, offset: first.next_offset }));
+  assert.equal(first.text + second.text, long);
+  assert.equal(second.next_offset, null);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: hidden.id }), /読める発言がありません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: subagent.id }), /読める発言がありません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: outside.id }), /読める発言がありません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, event_id: user.id, turns: 1 }), /同時に指定できません/);
+  assert.throws(() => tools.readChat({ chat_id: ctx.other.id, offset: 3 }), /event_id が必要/);
+});
+
+test("read_chat: 添付のある発言は場所を後から読み、欠けた添付も知らせる。他プロジェクトは読ませない", async () => {
+  const ctx = setup();
+  const uploads = new UploadStore(tempDir());
+  const file = await uploads.save({ name: "資料.txt", type: "text/plain", bytes: new TextEncoder().encode("秘密の内容") });
+  const missing = { ...file, id: "00000000-0000-0000-0000-000000000000", name: "消えた.txt" };
+  const event = ctx.store.events.add(ctx.other.id, { type: "user", text: "確認して", message_uuid: "u", attachments: [file, missing] });
+  const outside = ctx.store.events.add(ctx.outside.id, { type: "user", text: "別", message_uuid: "v", attachments: [file] });
+  const tools = createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals, uploads }, ctx.child.id);
+  assert.match(tools.readChat({ chat_id: ctx.other.id }), new RegExp(`event_id に ${event.id}`));
+  const result = JSON.parse(await tools.readChatWithAttachments({ chat_id: ctx.other.id, event_id: event.id }));
+  assert.equal(result.attachments[0].path, (await uploads.resolve(file.id))?.path);
+  assert.equal(result.attachments[1].unavailable, true);
+  assert.doesNotMatch(JSON.stringify(result), /秘密の内容/);
+  await assert.rejects(tools.readChatWithAttachments({ chat_id: ctx.outside.id, event_id: outside.id }), /このプロジェクトにありません/);
+  await assert.rejects(tools.readChatWithAttachments({ chat_id: ctx.other.id, event_id: outside.id }), /読める発言がありません/);
+});
+
+test("get_usage: 使った割合と残り・リセットの時刻（取れなければその理由）", async () => {
+  const usage: PlanUsage = {
+    provider: "claude",
+    provider_label: "Claude",
+    available: true,
+    plan: "Max",
+    five_hour: { key: "five_hour", label: "5 時間", utilization: 42.4, resets_at: "2026-11-13T15:00:00Z" },
+    seven_day: { key: "seven_day", label: "週", utilization: null, resets_at: null },
+    model_weekly: [],
+    fetched_at: "2026-11-13T12:00:00Z",
+  };
+  const text = usageText(usage);
+  assert.match(text, /5 時間: 42% 使用（残り 58%）・2026-11-13T15:00:00Z にリセット/);
+  assert.match(text, /週: まだ始まっていません/);
+  assert.match(usageText({ ...usage, available: false, error: "API キー" }), /取得できません（API キー）/);
+  const ctx = setup();
+  await assert.rejects(createAiChatReadTools({ store: ctx.store, approvals: ctx.approvals }, ctx.child.id).usage(), /使用枠を読む口がない/);
+});

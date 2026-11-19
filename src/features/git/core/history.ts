@@ -1,0 +1,134 @@
+// 履歴（git log・コミットの詳細と差分・ブランチやタグの一覧）
+import type { GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs } from "@shared/types";
+import { toGitDiff } from "./changes";
+import { gitOutput } from "@/foundation/core/workplace/exec";
+import { assertInside } from "@/features/files/core/files";
+import { readGitHubRemotes } from "@/features/github/core/githubTarget";
+import { gitPrefix, hasRef, kindOf, parseAheadBehind } from "./status";
+import { Invalid } from "@/foundation/core/errors";
+import { timed } from "@/foundation/core/system/stallWatch";
+
+/** 履歴の区切り（コミットの間は RS、項目の間は NUL） */
+const LOG_FORMAT = "%H%x00%P%x00%an%x00%ae%x00%aI%x00%D%x00%s%x1e";
+const HASH_RE = /^[0-9a-f]{4,64}$/i;
+
+/** git log の 1 件（LOG_FORMAT の並び）を読む */
+export function parseCommit(record: string): GitCommit {
+  const [hash, parents, author, email, date, refs, subject] = record.replace(/^\n/, "").split("\0");
+  return {
+    hash,
+    parents: parents ? parents.split(" ") : [],
+    author,
+    email,
+    date,
+    refs: refs ? refs.split(", ") : [],
+    subject,
+  };
+}
+
+/**
+ * 履歴（すべてのブランチ。新しい順で、親より子が先。skip 件目から limit 件）。リポジトリの中のフォルダなら、その中を変えたコミットだけ
+ * （親は git がそのフォルダを変えたコミットへつなぎ直すので、線はつながったまま）
+ */
+export async function gitLog(repo: string, skip = 0, limit = 200): Promise<GitLog> {
+  // コミットがまだなければ空
+  if (!(await hasRef(repo, "HEAD"))) return { commits: [], more: false };
+  const scope = (await gitPrefix(repo)) ? ["--", "."] : [];
+  const out = await gitOutput(repo, ["log", "--all", "--topo-order", `--format=${LOG_FORMAT}`, `--skip=${skip}`, `-n`, String(limit + 1), ...scope]);
+  const commits = readLog(out);
+  return { commits: commits.slice(0, limit), more: commits.length > limit };
+}
+
+/** git log の出力を読む（同期の処理なので詰まりの見張りに名前を付ける。system/stallWatch.ts） */
+const readLog = timed("git:log", (out: string) => out.split("\x1e").filter((r) => r.trim()).map(parseCommit));
+const readNameStatus = timed("git:name-status", parseNameStatus);
+
+/** 名前の変わったファイルなども含めた、変わったファイルの一覧（git diff --name-status -z の出力を読む） */
+export function parseNameStatus(out: string): GitFileChange[] {
+  const parts = out.split("\0").filter(Boolean);
+  const files: GitFileChange[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const code = parts[i];
+    const kind = kindOf(code[0]);
+    if (code[0] === "R" || code[0] === "C") {
+      files.push({ old_path: parts[i + 1], path: parts[i + 2], kind });
+      i += 2;
+    } else {
+      files.push({ path: parts[i + 1], kind });
+      i += 1;
+    }
+  }
+  return files;
+}
+
+/** コミットの詳細（マージは 1 つ目の親との差、最初のコミットは空との差）。ファイルはプロジェクトのフォルダの中だけを、そのフォルダから見たパスで（--relative） */
+export async function gitCommitDetail(repo: string, hash: string): Promise<GitCommitDetail> {
+  if (!HASH_RE.test(hash)) throw new Invalid("コミットの指定が正しくありません");
+  const head = await gitOutput(repo, ["show", "-s", `--format=${LOG_FORMAT.replace("%x1e", "")}%x00%cn%x00%cI%x00%B`, hash]);
+  const [hashFull, parents, author, email, date, refs, subject, committer, committedAt, ...body] = head.split("\0");
+  const commit = parseCommit([hashFull, parents, author, email, date, refs, subject].join("\0"));
+  const parent = commit.parents[0];
+  const changes = parent
+    ? await gitOutput(repo, ["diff", "--name-status", "--relative", "-M", "-z", parent, commit.hash])
+    : await gitOutput(repo, ["diff-tree", "--root", "--no-commit-id", "-r", "--relative", "-M", "--name-status", "-z", commit.hash]);
+  return { ...commit, body: body.join("\0").trim(), committer, committed_at: committedAt, files: readNameStatus(changes) };
+}
+
+/** コミットでの 1 つのファイルの差分（1 つ目の親との差。最初のコミットは空との差） */
+export async function gitCommitDiff(repo: string, hash: string, file: string, oldPath?: string): Promise<GitDiff> {
+  if (!HASH_RE.test(hash)) throw new Invalid("コミットの指定が正しくありません");
+  await assertInside(repo, file);
+  if (oldPath) await assertInside(repo, oldPath);
+  const paths = oldPath ? ["--", oldPath, file] : ["--", file];
+  const parents = (await gitOutput(repo, ["show", "-s", "--format=%P", hash])).trim();
+  const parent = parents.split(" ")[0];
+  const diff = parent
+    ? await gitOutput(repo, ["diff", "--no-color", "--no-ext-diff", "--relative", "-M", parent, hash, ...paths])
+    : await gitOutput(repo, ["show", "--no-color", "--no-ext-diff", "--relative", "--format=", hash, ...paths]);
+  return toGitDiff(diff);
+}
+
+/** ブランチ・リモート・タグ・stash（履歴の左の一覧） */
+export async function gitRefs(repo: string): Promise<GitRefs> {
+  const refs: GitRefs = { branches: [], remotes: [], tags: [], stashes: [] };
+  const [out, github] = await Promise.all([
+    gitOutput(repo, [
+      "for-each-ref",
+      "--format=%(refname)%00%(objectname)%00%(*objectname)%00%(upstream:short)%00%(upstream:track)%00%(HEAD)%00%(worktreepath)",
+      "refs/heads",
+      "refs/remotes",
+      "refs/tags",
+    ]),
+    readGitHubRemotes(repo).then((r) => new Set(r.remotes.map((remote) => remote.name))),
+  ]);
+  for (const line of out.split("\n").filter(Boolean)) {
+    const [ref, object, peeled, upstream, track, head, worktree] = line.split("\0");
+    // 注釈つきのタグは、指しているコミットを使う
+    const hash = peeled || object;
+    if (ref.startsWith("refs/heads/")) {
+      refs.branches.push({
+        name: ref.slice(11),
+        hash,
+        current: head === "*",
+        upstream: upstream || null,
+        ...parseAheadBehind(track),
+        worktree: worktree || null,
+      });
+    } else if (ref.startsWith("refs/remotes/")) {
+      const name = ref.slice(13);
+      if (name.endsWith("/HEAD")) continue;
+      const remote = name.slice(0, name.indexOf("/"));
+      let group = refs.remotes.find((r) => r.name === remote);
+      if (!group) refs.remotes.push((group = { name: remote, github: github.has(remote), branches: [] }));
+      group.branches.push({ name, hash });
+    } else if (ref.startsWith("refs/tags/")) {
+      refs.tags.push({ name: ref.slice(10), hash });
+    }
+  }
+  const stashes = await gitOutput(repo, ["stash", "list", "--format=%gd%x00%H%x00%s"]).catch(() => "");
+  for (const line of stashes.split("\n").filter(Boolean)) {
+    const [ref, hash, message] = line.split("\0");
+    refs.stashes.push({ ref, hash, message });
+  }
+  return refs;
+}

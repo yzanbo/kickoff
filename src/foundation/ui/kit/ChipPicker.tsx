@@ -1,0 +1,90 @@
+import { ChevronDown, type LucideIcon } from "lucide-react";
+import { useId, type CSSProperties } from "react";
+import { cx } from "@/foundation/ui/lib/cx";
+import { ChoiceMenu } from "./ChoiceMenu";
+import { useContextMenu } from "./useContextMenu";
+
+/**
+ * 選べる札: 見た目は札（className で札の形と色。hue は札の色 --group-hue）のまま、名前の右に ▾ を付け、押すと下に 1 つ選ぶメニュー（ChoiceMenu）を開く。
+ * 新しいチャットの見出しの作成先のグループ・作業場所（チャットの見出しのグループの札・ブランチの印と同じ形で、選べることだけを ▾ で示す）。
+ * empty は「選んでいない」（グループなしなど）で、色を付けず控えめに出す。
+ * kind は名前の前に出す種類（作業場所の「本体」「WT」など。あれば印の代わりに出し、名前は区切りの後ろの補足になる）
+ */
+export function ChipPicker<T extends string>({
+  className,
+  hue,
+  empty,
+  icon: Icon,
+  kind,
+  name,
+  tip,
+  menuTitle,
+  values,
+  labels,
+  value,
+  disabled,
+  inactive,
+  onOpen,
+  onPick,
+}: {
+  className: string;
+  hue?: number;
+  empty?: boolean;
+  icon?: LucideIcon;
+  kind?: string;
+  /** 札に出す名前 */
+  name: string;
+  /** 乗せたときの説明 */
+  tip: string;
+  menuTitle: string;
+  values: readonly T[];
+  labels: Record<T, string>;
+  value: T;
+  /** 選べない選択肢と、その理由（ChoiceMenu の disabled） */
+  disabled?: Partial<Record<T, string>>;
+  /** 札ごと押せないときの理由（押せなくして、乗せたときの説明にする） */
+  inactive?: string | null;
+  /** メニューを開いたとき（選べない選択肢を、開いたときに読み直す） */
+  onOpen?: () => void;
+  onPick: (value: T) => void;
+}) {
+  const menu = useContextMenu();
+  // 開いたボタンをもう一度押したら閉じる（外側のクリックとして閉じたあとに開き直さない。ほかの札は外側として扱う）
+  const id = useId();
+  return (
+    <>
+      <button
+        type="button"
+        className={cx(className, "chip-picker", empty && "is-empty")}
+        style={hue === undefined ? undefined : ({ "--group-hue": hue } as CSSProperties)}
+        data-chip-picker={id}
+        data-tip={inactive ?? tip}
+        aria-haspopup="menu"
+        aria-expanded={menu.isOpen}
+        disabled={Boolean(inactive)}
+        onClick={(e) => {
+          if (!menu.isOpen) onOpen?.();
+          menu.toggle(e);
+        }}
+      >
+        {Icon && <Icon size={11} aria-hidden />}
+        {kind && <span className="chip-kind">{kind}</span>}
+        <span className="chip-name">{name}</span>
+        <ChevronDown size={11} aria-hidden className="chip-picker-caret" />
+      </button>
+      {menu.menu && (
+        <ChoiceMenu
+          at={menu.menu.at}
+          title={menuTitle}
+          values={values}
+          labels={labels}
+          value={value}
+          disabled={disabled}
+          ignore={`[data-chip-picker="${id}"]`}
+          onPick={onPick}
+          onClose={menu.close}
+        />
+      )}
+    </>
+  );
+}

@@ -1,0 +1,8 @@
+import type { ProviderId } from "@shared/types";
+import { useModels } from "@/features/ai/ui/stores/providers";
+import { modelDisplayName } from "./models";
+
+/** チャットのモデルの名前（"Opus 5.5"。そのチャットの AI のモデルの一覧で引く） */
+export function ModelName({ provider, model }: { provider: ProviderId; model: string }) {
+  return <>{modelDisplayName(useModels(provider), model)}</>;
+}

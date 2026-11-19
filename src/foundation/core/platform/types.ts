@@ -1,0 +1,128 @@
+// OS ごとに違う処理の口。コアはここを通して OS に触れ、OS ごとのコマンド・パスを散らさない（いまは macOS だけ。ほかの OS は同じ形で足す）
+import type { DockerEngineStarter, VoiceStatus } from "@shared/types";
+import type { AudioInput } from "@/features/voice/core/types";
+import type { SandboxDiagnosticsPlatform } from "@/features/guard/core/sandboxDiagnosticsPlatform";
+
+/** TCP のポートを待っているソケット 1 つ */
+export interface ListeningSocket {
+  /** プロセスの名前 */
+  process: string;
+  pid: number;
+  /** 127.0.0.1:5432・*:5432・[::1]:5432 など（OS のコマンドに出たまま） */
+  address: string;
+  port: number;
+}
+
+/** プロセスの表の 1 行 */
+export interface ProcessRow {
+  pid: number;
+  /** 親の pid */
+  ppid: number;
+  /** 動いている時間（秒。読めなければ null） */
+  elapsed: number | null;
+  /** コマンド（引数まで。改行は空白に） */
+  command: string;
+}
+
+/** OS の音声認識の様子（画面に出す形） */
+export type OsSpeechStatus = VoiceStatus["macos"];
+
+/** OS の音声認識（使えない OS では、check が helper: false を返す） */
+export interface OsSpeech {
+  /** この言語で使えるか（言語は設定の値のまま） */
+  check: (language: string) => Promise<OsSpeechStatus>;
+  /** 音声を文にする（失敗したら 400） */
+  transcribe: (audio: AudioInput, language: string) => Promise<string>;
+}
+
+/** 自分を守る仕組み（chat/guard/selfProtection.ts）が見分ける、OS ごとのプロセスを止める・操作するコマンド */
+export interface SelfGuardRules {
+  /** 名前でまとめて止めるコマンド（macOS は pkill・killall） */
+  killByName: RegExp;
+  /** アプリを外から操作する手段と、断るときの呼び名（macOS は osascript = AppleScript） */
+  scripting: { pattern: RegExp; label: string };
+}
+
+/** Docker のエンジンが止まっているときの起こし方（ボタンで開くアプリ・コピーするコマンド） */
+export interface DockerEngineStarters {
+  /** いまの context の名前から、画面に出す起こし方（分からなければ null） */
+  starterOf: (context: string | null) => DockerEngineStarter;
+  /** 起こし方が「アプリを開く」のとき、エンジンを起こす（起きるまでは待たない。画面が調べ直す） */
+  start: (starter: Extract<DockerEngineStarter, { kind: "open" }>) => Promise<void>;
+}
+
+/**
+ * DB ワーカー（別のプロセス）が使う OS の口。ワーカーは関数を受け取れないので、HostPlatform には入れず、
+ * ワーカーの入口（databases/worker/main.ts）が自分で選ぶ（ほかの OS を足すときは、そこと src/foundation/desktop/platform/index.ts で選び分ける）
+ */
+export interface ShellPlatform {
+  /** コマンドの文を、利用者のログインシェルで流す起動の仕方（ターミナルと同じ設定で動かすため） */
+  loginShell: (command: string) => { file: string; args: string[] };
+  /** いま動いているプロセスの親子（親の pid → 子の pid の並び。読めなければ空） */
+  childrenByParent: () => Map<number, number[]>;
+}
+
+/** 内蔵ターミナルで動かすシェル */
+export interface TerminalShell {
+  /** 実行ファイル */
+  file: string;
+  /** 引数（command があれば、そのコマンドだけを流す。なければ対話のシェル） */
+  args: (command: string | null) => string[];
+}
+
+/** OS ごとに違う処理 */
+export interface HostPlatform {
+  /** OS の拒否ログの限定診断（未対応ならツールを出さない） */
+  sandboxDiagnostics?: SandboxDiagnosticsPlatform;
+  /** アプリの保存先を置く親のフォルダ（Electron の appData と同じ場所。製品版と開発版の保存先はこの下の名前で分ける） */
+  appDataRoot: string;
+  /** GUI から起動したアプリはログインシェルの PATH を引き継がないので、取り込んで process.env.PATH に足す（同期。単体のコア） */
+  loadLoginShellPath: () => void;
+  /**
+   * 同じことを止めずに行う（コアのプロセス）: 保存先に覚えた前回の値を先に入れ、読み直しは裏で流す。ready は読み終わるか打ち切ったら解ける
+   * （外部コマンドを起こす所が待つ。system/exec.ts の waitForShellPath）
+   */
+  startShellPath: (dataDir: string) => { ready: Promise<void> };
+  /** アプリを名前で開く（Docker のエンジンが止まっているときの「OrbStack を開く」など） */
+  openApp: (name: string) => Promise<void>;
+  /** TCP のポートを待っているソケット（自分のユーザーのプロセスだけ） */
+  listeningSockets: () => Promise<ListeningSocket[]>;
+  /** プロセスの表（pid → 行） */
+  processTable: () => Promise<Map<number, ProcessRow>>;
+  /** プロセスの作業フォルダ（pid → フォルダ。読めないものは入らない） */
+  processCwds: (pids: number[]) => Promise<Map<number, string>>;
+  /** シグナルを送る */
+  kill: (pid: number, signal: "SIGTERM" | "SIGKILL") => void;
+  /** まだ動いているか */
+  alive: (pid: number) => boolean;
+  /** 実行ファイルのパスから、アプリの本体のフォルダ（末尾の / まで。アプリの本体の中でなければ null） */
+  appBundleOf: (execPath: string) => string | null;
+  /** OS の音声認識 */
+  speech: OsSpeech;
+  /** 自分（エージェントを動かしている Kickoff）を止めるコマンドの見分け方 */
+  selfGuard: SelfGuardRules;
+  /** Docker のエンジンの起こし方 */
+  dockerEngine: DockerEngineStarters;
+  /** 内蔵ターミナルのシェル（シェルはコアで動かす = terminal/sessions.ts） */
+  terminalShell: () => TerminalShell;
+  /** tailscale のコマンドの場所（入っていなければ null。設定の「スマホ連携」の Tailscale Serve の案内） */
+  tailscaleCli: () => string | null;
+  /** AI の Bash の砂場に OS ごとに足す決まり（chat/sandbox/） */
+  agentSandbox: AgentSandboxRules;
+}
+
+/** AI の Bash の砂場に OS ごとに足す決まり */
+export interface AgentSandboxRules {
+  /** OS の一時フォルダ（実体のパス）。Bash の砂場に加えて、ファイルを書き換えるツール（Write・Edit）の書き込み先の守りでも聞かずに書かせる */
+  tempDirs: string[];
+  /** 書けるフォルダ（一時フォルダ・キャッシュ・パッケージの置き場など。まだないものを返してもよい） */
+  writableDirs: () => Promise<string[]>;
+  /**
+   * 砂場の外で流すコマンド（Claude Code の許可ルールの書き方 `<コマンド>:*`。中で自分の砂場をかけるので、砂場の中では動かないもの。
+   * macOS は砂場の入れ子を許さないので、brew install など）
+   */
+  unsandboxedCommands: string[];
+}
+
+/** ポートを使っているプロセスを調べる・止めるのに使う口（テストでは偽物に差し替える） */
+export type ProcessProbe = Pick<HostPlatform, "listeningSockets" | "processTable" | "processCwds" | "kill" | "alive">;

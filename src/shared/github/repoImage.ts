@@ -1,6 +1,6 @@
 // issue・PR の本文の画像のうち、リポジトリの中のファイルを指すもの（非公開のリポジトリでは鍵がないと読めないので、コアが gh api で取って返す）。
 // 本文に貼った画像（private-user-images.githubusercontent.com の署名つきの URL）は鍵なしで読めるので、ここでは扱わない
-import { isDefaultGitHubHost, normalizeGitHubHost } from "./host";
+import { isDefaultGitHubHost, normalizeGitHubHost } from "@shared/foundation/codeHost";
 
 /** リポジトリの中のファイル（ref はブランチ・タグ・コミット） */
 export interface GitHubRepoFile {

@@ -5,10 +5,21 @@
     "types": ["node"],
     "paths": {
       "@shared/*": ["./src/shared/*"],
-      "@/*": ["./src/renderer/src/*"],
-      "@xterm/xterm": ["./src/core/terminal/xtermTypes.d.ts"]
+      "@/*": ["./src/*"],
+      "@xterm/xterm": ["./src/features/terminal/core/xtermTypes.d.ts"]
     }
   },
-  "include": ["src/core/**/*.ts", "src/main/**/*.ts", "scripts/**/*.ts", "electron.vite.config.ts", "vitest.config.ts"],
-  "exclude": ["**/*.test.ts", "**/*.dbtest.ts", "src/**/testing/**"]
+  "include": [
+    "src/foundation/core/**/*.ts",
+    "src/foundation/desktop/**/*.ts",
+    "src/features/*/core/**/*.ts",
+    "src/features/*/desktop/**/*.ts",
+    "src/features/*/worker/**/*.ts",
+    "src/app/core/**/*.ts",
+    "src/app/desktop/**/*.ts",
+    "scripts/**/*.ts",
+    "electron.vite.config.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": ["**/*.test.ts", "**/*.dbtest.ts", "src/**/testing/**", "src/foundation/desktop/preload/**", "src/app/desktop/preload.ts"]
 }

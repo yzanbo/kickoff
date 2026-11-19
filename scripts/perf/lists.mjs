@@ -3,7 +3,7 @@
 // 測り終えたら差し替えを外し、localStorage を元に戻して読み込み直す。
 // node scripts/perf/lists.mjs [--count 1000] [--project 21] [--groups 8] [--runs 3] [--json] [--fixture]（--fixture は決まったデータの開発版の ID・ポート）
 import { parseArgs } from "node:util";
-import { api, connectPage, metrics, metricsDelta, reload, sleep, withSavedStorage } from "../devtools/cdp.mjs";
+import { STORAGE_IMPORTS, api, connectPage, metrics, metricsDelta, reload, sleep, withSavedStorage } from "../devtools/cdp.mjs";
 import { perfDefaults } from "../devtools/fixture.mjs";
 import { shimSource } from "../devtools/listShim.mjs";
 import { summarize, summarizeProfile } from "./stats.mjs";
@@ -104,7 +104,7 @@ async function measure(page, { action, count, first, all }) {
 
 const ROWS = (projectId) => `document.querySelectorAll('.workspace-page[data-project-id="${projectId}"] a.chat-row[data-chat-id]').length`;
 const CARDS = `document.querySelectorAll(".board-main [data-chat-id]").length`;
-const imports = `const s = await import("/src/lib/storage.ts"); const k = await import("/src/lib/storageKeys.ts"); const f = await import("/src/hooks/useFold.ts");`;
+const imports = STORAGE_IMPORTS;
 
 /** 測る場面（setup で前の状態にしてから、action で開く） */
 function scenarios(projectId, count) {

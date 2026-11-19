@@ -9,7 +9,7 @@
     "fixture:seed": "node scripts/devtools/fixture.mjs",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "daemon": "tsx src/core/daemon.ts",
+    "daemon": "tsx src/app/core/daemon.ts",
     "typecheck": "tsc -p tsconfig.shared.json && tsc -p tsconfig.node.json && tsc -p tsconfig.preload.json && tsc -p tsconfig.web.json && tsc -p tsconfig.test.json",
     "test": "vitest run --no-isolate --sequence.shuffle.files",
     "test:isolated": "vitest run --isolate",

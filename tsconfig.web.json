@@ -4,6 +4,13 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client"]
   },
-  "include": ["src/renderer/src/**/*.ts", "src/renderer/src/**/*.tsx"],
-  "exclude": ["**/*.test.ts", "src/renderer/src/**/testing/**", "src/renderer/src/lib/memoryStorage.ts"]
+  "include": [
+    "src/foundation/ui/**/*.ts",
+    "src/foundation/ui/**/*.tsx",
+    "src/features/*/ui/**/*.ts",
+    "src/features/*/ui/**/*.tsx",
+    "src/app/renderer/**/*.ts",
+    "src/app/renderer/**/*.tsx"
+  ],
+  "exclude": ["**/*.test.ts", "src/**/testing/**", "src/foundation/ui/storage/memoryStorage.ts"]
 }

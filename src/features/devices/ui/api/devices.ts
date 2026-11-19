@@ -1,0 +1,29 @@
+import type { Device, DeviceAccess, DeviceUpdateBody, PairingApproveBody, PairingState, TailscaleStatus, ViewingBody, UserViewBody } from "@shared/types";
+import { request } from "@/foundation/ui/api/http";
+
+/** スマホ連携の端末とペアリング（コアの routes/devices.ts。この Mac の画面だけが使う口） */
+export const devicesApi = {
+  pairingState: () => request<PairingState>("GET", "/api/pairing"),
+  /** 新しい番号を出す（前の番号は捨てる） */
+  startPairing: () => request<PairingState>("POST", "/api/pairing"),
+  cancelPairing: () => request<PairingState>("DELETE", "/api/pairing"),
+  /** つなぐ（access: 端末ができること。見るだけ / 使える） */
+  approvePairing: (requestId: string, access: DeviceAccess) =>
+    request<PairingState>("POST", `/api/pairing/requests/${encodeURIComponent(requestId)}/approve`, { access } satisfies PairingApproveBody),
+  denyPairing: (requestId: string) => request<PairingState>("POST", `/api/pairing/requests/${encodeURIComponent(requestId)}/deny`),
+  devices: () => request<Device[]>("GET", "/api/devices"),
+  revokeDevice: (id: number) => request<void>("DELETE", `/api/devices/${id}`),
+  /** 端末ができることを変える（次の頼みから効く） */
+  setDeviceAccess: (id: number, access: DeviceAccess) => request<Device>("PATCH", `/api/devices/${id}`, { access } satisfies DeviceUpdateBody),
+  /** この Mac の Tailscale の様子（Serve の案内） */
+  tailscaleStatus: () => request<TailscaleStatus>("GET", "/api/tailscale"),
+  /** いま見ているもの（だれかが見ているチャット・CI のタブの知らせは通知しない。この Mac の画面も端末も使う） */
+  reportViewing: (body: ViewingBody) => request<void>("PUT", "/api/viewing", body),
+  /** 窓を閉じる・読み込み直すときに「何も見ていない」を知らせる（ページが消えても届くよう keepalive。返事は待たない） */
+  reportLeaving: () => void request<void>("PUT", "/api/viewing", { chat_id: null, ci_project_id: null } satisfies ViewingBody, { keepalive: true }).catch(() => {}),
+  /** 利用者が見ているもの（このウィンドウのペインごとの前のタブなど。AI の get_user_view が読む。この Mac の画面だけ） */
+  reportUserView: (body: UserViewBody) => request<void>("PUT", "/api/user-view", body),
+  /** 窓を閉じる・読み込み直すときに、このウィンドウを忘れてもらう（keepalive。返事は待たない） */
+  reportUserViewClosed: (windowId: string) =>
+    void request<void>("PUT", "/api/user-view", { window_id: windowId, view: null, chat_ids: [], focused: false } satisfies UserViewBody, { keepalive: true }).catch(() => {}),
+};

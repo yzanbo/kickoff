@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { pairingLink } from "@shared/devices/pairing";
-import { API_VERSION_HEADER } from "@shared/api/version";
+import { API_VERSION_HEADER } from "@shared/foundation/api/version";
 import { ApiError, HostClient, withQuery } from "./client";
 import { claimPairing, normalizeHostUrl, parsePairingLink } from "./pairing";
 import { hostMismatch } from "./version";

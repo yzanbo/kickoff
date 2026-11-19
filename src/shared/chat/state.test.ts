@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { agentStateOf, boardColumnOf } from "./state";
-import { Store } from "../../core/db/store.js";
+import { Store } from "@/foundation/core/db/store";
 
 function mk() {
   const store = new Store(":memory:");

@@ -1,4 +1,4 @@
-import type { DbEngine, DbWriteCheck } from "../types/database";
+import type { DbEngine, DbWriteCheck } from "./types";
 
 // SQL の文の分け方と、読むだけの文かの判定（SQL のタブの ⌘↵ / ⇧⌘↵ と、読み取り専用の接続の 1 段目の守り）。
 // 文字列・識別子・コメントの中の ; や語は数えない。MySQL の DELIMITER（手続きを作るときの区切りの付け替え）は扱わない。

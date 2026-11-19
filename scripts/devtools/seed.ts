@@ -9,10 +9,10 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { parseArgs } from "node:util";
 import type { ChatEventData, QueuedMessage } from "@shared/types";
-import { scenarioChat } from "@shared/testing/chatScenarios";
-import { DB_FILE } from "../../src/core/db/open.js";
-import { Store } from "../../src/core/db/store.js";
-import type { NewChat } from "../../src/core/db/types.js";
+import { scenarioChat } from "@shared/chat/testing/chatScenarios";
+import { DB_FILE } from "../../src/foundation/core/db/open.js";
+import { Store } from "../../src/foundation/core/db/store.js";
+import type { NewChat } from "../../src/foundation/core/db/types.js";
 
 const { values } = parseArgs({ options: { root: { type: "string" }, data: { type: "string" }, now: { type: "string" } } });
 if (!values.root || !values.data || !values.now) throw new Error("--root <置き場所>・--data <保存先> と --now <ms> を渡してください");

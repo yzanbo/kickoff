@@ -1,5 +1,5 @@
 // macOS の音声認識（SpeechAnalyzer。macOS 26 以上）で、音声のファイルを文字にする小さなコマンド。
-// Kickoff のコアが、音声入力の文字起こしの方法「macOS の音声認識」で呼ぶ（src/core/voice/macos.ts）。
+// Kickoff のコアが、音声入力の文字起こしの方法「macOS の音声認識」で呼ぶ（src/features/voice/core/macos.ts）。
 //
 //   kickoff-speech check <言語>               使えるかを JSON で返す {"available":…,"locale":…,"installed":…}
 //   kickoff-speech transcribe <言語> <ファイル>  起こした文を標準出力に書く（失敗は標準エラーに理由を書いて 1 で終わる）

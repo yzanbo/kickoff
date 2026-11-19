@@ -3,7 +3,18 @@
 import { readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { FIXTURE, usesFixture } from "./fixture.mjs";
+
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+
+/** 画面のモジュールを開発の Vite から読む URL（リポジトリの根からのパス。Vite の root の外なので /@fs/ の絶対パスで読む。画面と同じ実体になる） */
+export function rendererModule(file) {
+  return `/@fs${path.join(REPO, file)}`;
+}
+
+/** 画面で保存の補助（s）・保存のキー（k）・開閉（f）を読む文 */
+export const STORAGE_IMPORTS = `const s = await import("${rendererModule("src/foundation/ui/storage/settings.ts")}"); const k = await import("${rendererModule("src/foundation/ui/storage/storageKeys.ts")}"); const f = await import("${rendererModule("src/foundation/ui/hooks/useFold.ts")}");`;
 
 /** 開発版の既定の保存先（npm run dev のとき） */
 const DEV_DATA_DIR = path.join(os.homedir(), "Library/Application Support/Kickoff Dev");

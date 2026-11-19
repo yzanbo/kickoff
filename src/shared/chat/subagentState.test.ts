@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { eventSequence, makeSubagent } from "@shared/testing/factories";
+import { eventSequence, makeSubagent } from "@shared/foundation/testing/factories";
 import type { SubagentEntry } from "./subagents";
 import { subagentState, waitingSubagentKeys } from "./subagentState";
 

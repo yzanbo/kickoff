@@ -1,9 +1,9 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ChatEvent } from "@shared/types";
-import { makeEvent } from "@shared/testing/factories";
-import { scenarioChat } from "@shared/testing/chatScenarios";
-import { collectVisuals } from "./aiVisual";
+import { makeEvent } from "@shared/foundation/testing/factories";
+import { scenarioChat } from "@shared/chat/testing/chatScenarios";
+import { collectVisuals } from "@shared/visuals/aiVisual";
 import { indexOfEvents, mergeById, metaOfEvent, selectIndexIds, slimIndexEvent, type IndexContext } from "./chatIndex";
 import { collectSubagents, subagentReport } from "./subagents";
 import { waitingSubagentKeys } from "./subagentState";

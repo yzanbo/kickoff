@@ -390,7 +390,7 @@
 | SUB-006 | サブエージェントのことを子チャットで聞く | childChats | M |
 | SUB-007 | 止まったサブエージェントを再開・やり直す | subagents | M |
 | SUB-008 | 動きのないサブエージェントを止める | subagents | M |
-| SUB-009 | 届かなかった報告を次の指示に添える | subagents | T:reportHandover |
+| SUB-009 | 届かなかった報告を次の指示に添える | subagents | T:reports |
 | SUB-010 | 裏で動いたものの終わりを 1 行で出す | subagents | M |
 
 ### 子チャット
@@ -401,7 +401,7 @@
 | SUB-013 | 送信の ▾ から新規の子チャットに送る | conversation | M |
 | SUB-014 | 親の会話を引き継ぐか選ぶ | childChats | M |
 | SUB-015 | 引き継いで開く（聞かずに作る） | childChats | M |
-| SUB-016 | 親子の関係を AI に伝える | childChats | T:chatContext |
+| SUB-016 | 親子の関係を AI に伝える | childChats | T:context |
 | SUB-017 | 子チャットを右の欄・別ウィンドウで開く | chat | M |
 | SUB-018 | 上の帯に親までの系譜と深さを出す | childChats | M |
 | SUB-019 | 聞いた発言の下に子チャットの札 | childChats | M |
@@ -851,7 +851,7 @@
 ### 表示
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| AIT-017 | ツールの呼び出しを文で見せる | chat | T:toolDescribe |
+| AIT-017 | ツールの呼び出しを文で見せる | chat | T:toolText |
 
 ### 図
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -867,7 +867,7 @@
 | MOB-002 | QR と番号でペアリングする | devices | T:server.devices |
 | MOB-003 | つなぐ頼みを Mac で確かめる | devices | M |
 | MOB-004 | Tailscale Serve の始め方を案内する | devices | M |
-| MOB-005 | Serve の URL をつなぐ先にする | devices | T:status |
+| MOB-005 | Serve の URL をつなぐ先にする | devices | T:tailscale |
 | MOB-006 | アプリと本体の版の違いを断る | 土台:shared | T:version |
 
 ### 端末
@@ -887,7 +887,7 @@
 ### 通知
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| MOB-013 | スマホにプッシュで知らせる | devices | T:expoPush,server.notifications |
+| MOB-013 | スマホにプッシュで知らせる | devices | T:push,server.notifications |
 
 ### Android のアプリ
 | ID | 機能 | 持ち主 | 確かめ方 |

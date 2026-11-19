@@ -1,0 +1,134 @@
+import assert from "node:assert/strict";
+import { test } from "vitest";
+import { buildSystemPrompt, CHAT_POLICY } from "./system";
+import { toAllowedTools } from "@/features/ai/core/providers/claude/policy";
+import { Store } from "@/foundation/core/db/store";
+
+function project(references: { path: string; kind: "folder" | "file" }[] = []) {
+  const store = new Store(":memory:");
+  const p = store.projects.create({ name: "a", description: "メモアプリ", repo_path: "/tmp/a", provider: "claude" });
+  return store.projects.update(p.id, { reference_paths: references });
+}
+
+test("どのチャットも同じ権限: Git の読み取りとテスト・ビルドは承認なし、ファイルの編集は権限モードに任せる", () => {
+  const rules = toAllowedTools(CHAT_POLICY);
+  assert.ok(rules.includes("Bash(git status:*)"));
+  assert.ok(rules.includes("Bash(npm test:*)"));
+  assert.ok(rules.includes("WebSearch"));
+  assert.ok(!rules.includes("Edit"));
+  assert.ok(!rules.some((r) => r.startsWith("Bash(git commit") || r.startsWith("mcp__")));
+});
+
+test("ブラウザ: 開き先が Kickoff なら内蔵ツールを優先し、OS の既定なら外部で開くよう伝える", () => {
+  const p = project();
+  const kickoff = buildSystemPrompt(p, p.repo_path, undefined, { browser: "kickoff" });
+  assert.match(kickoff, /既定の開き先は「Kickoff のブラウザ」/);
+  assert.match(kickoff, /kickoff_browser の browser_tabs・browser_open などを優先/);
+  assert.match(kickoff, /利用者が別のブラウザや自動テストを指定した場合を除き/);
+  const external = buildSystemPrompt(p, p.repo_path, undefined, { browser: "browser" });
+  assert.match(external, /既定の開き先は「既定のブラウザ」（OS の既定のブラウザ）/);
+  assert.doesNotMatch(external, /browser_open などを優先/);
+  // 内蔵ブラウザのない環境では、使えないツールを勧めない
+  assert.doesNotMatch(buildSystemPrompt(p), /## ブラウザ/);
+});
+
+test("指示はセクション・タスク・成果物に触れず、プロジェクト・参照資料だけを伝える", () => {
+  const prompt = buildSystemPrompt(project([{ path: "/tmp/spec", kind: "folder" }]));
+  assert.ok(prompt.includes("日本語"));
+  assert.ok(prompt.includes("- 名前: a"));
+  assert.ok(prompt.includes("メモアプリ"));
+  assert.ok(prompt.includes("- 「spec」: `/tmp/spec/`（フォルダ）"));
+  for (const word of ["セクション", "タスク", "成果物", "mcp__kickoff__", "テストコマンド", "デプロイ", "コミット"]) {
+    assert.ok(!prompt.includes(word), word);
+  }
+});
+
+test("参照資料: 名前（パスの最後）を添え、「参照資料」・似た名前で言われたらその参照資料のことで、中の場所はそのフォルダから探すよう伝える", () => {
+  const prompt = buildSystemPrompt(project([{ path: "/Users/a/Documents/Design Spec", kind: "folder" }, { path: "/Users/a/notes/api.md", kind: "file" }]));
+  assert.ok(prompt.includes("- 「Design Spec」: `/Users/a/Documents/Design Spec/`（フォルダ）"));
+  assert.ok(prompt.includes("- 「api.md」: `/Users/a/notes/api.md`（ファイル）"));
+  assert.match(prompt, /「参照資料」と言ったら、この一覧のフォルダ・ファイルのこと/);
+  assert.match(prompt, /完全に同じでなくても/);
+  assert.match(prompt, /その参照資料のフォルダからの場所として探して/);
+  assert.match(prompt, /候補を挙げて利用者に聞いて/);
+  // 参照資料がなければ節ごと出さない
+  assert.ok(!buildSystemPrompt(project([])).includes("## 参照資料"));
+});
+
+test("フォルダ: プロジェクトフォルダと作業フォルダを呼び名つきで伝え、ワークツリーのチャットは作業フォルダで作業してプロジェクトフォルダは変えないよう伝える", () => {
+  const p = project();
+  const prompt = buildSystemPrompt(p, "/tmp/a-worktrees/x");
+  assert.ok(prompt.includes("- プロジェクトフォルダ: /tmp/a（利用者が「プロジェクトフォルダ」「プロジェクトディレクトリ」「ルートフォルダ」「ルートディレクトリ」「ホームフォルダ」「ホームディレクトリ」と言ったら、このフォルダのこと。"));
+  // ファイルの場所の起点にしてもらう。ワークツリーのチャットは、読み書きを作業フォルダの同じ場所で
+  assert.ok(prompt.includes("このフォルダからの場所として探してください（読み書きは作業フォルダの中の同じ場所で）"));
+  assert.ok(prompt.includes("- 作業フォルダ: /tmp/a-worktrees/x（このチャットはワークツリーで作業しています"));
+  // 本体で作業するチャットは、作業フォルダ = プロジェクトフォルダ
+  const main = buildSystemPrompt(p);
+  assert.ok(main.includes("- 作業フォルダ: プロジェクトフォルダと同じ"));
+  assert.ok(main.includes("このフォルダからの場所として探してください）"));
+  // 途中で変わることがあるので、ここに書いた場所を使うよう伝える（送るたびに作り直す）
+  assert.ok(main.includes("ここに書いた場所がいまの場所です"));
+  assert.ok(buildSystemPrompt({ ...p, repo_path: "/tmp/b" }).includes("- プロジェクトフォルダ: /tmp/b"));
+});
+
+test("指示: 通信のエラーで止まったサブエージェントは 1 回だけ続きから再開し、ほかの失敗・利用者が止めたものは再開しない", () => {
+  const prompt = buildSystemPrompt(project([]));
+  assert.match(prompt, /API・通信のエラー/);
+  assert.match(prompt, /1 回だけ再開/);
+  assert.match(prompt, /利用者が止めたもの（中断）は、再開も立ち上げ直しもせず/);
+});
+
+test("指示: 出力の上限（max_output_tokens）で止まったサブエージェントは、短く分けるよう添えて 1 回だけ続きを頼む（通信のエラーとは分ける）", () => {
+  const prompt = buildSystemPrompt(project([]));
+  assert.match(prompt, /max_output_tokens/);
+  assert.match(prompt, /報告は短くまとめる/);
+  assert.match(prompt, /大きなファイルは何回かに分けて書く/);
+});
+
+test("指示: 会話ごと別のフォルダへ移る EnterWorktree は使えず、書き換えを分けるなら Kickoff のワークツリーを利用者に提案する（サブエージェントのワークツリーは使える）", () => {
+  const prompt = buildSystemPrompt(project([]));
+  assert.match(prompt, /EnterWorktree \/ ExitWorktree）は使えません/);
+  assert.match(prompt, /自分でチャットもワークツリーも作らずに/);
+  assert.match(prompt, /［ワークツリーを作る］で作ったワークツリーのチャットで行うか、ワークツリーの子チャットを作るか/);
+  assert.match(prompt, /isolation: "worktree" はこれまでどおり使えます/);
+});
+
+test("図と数式: 図はツールで描き、初めに書き方を読むこと・数式の書き方を伝える（細かい書き方はツールの説明に任せて短く）", () => {
+  const prompt = buildSystemPrompt(project([]));
+  assert.ok(prompt.includes("## 図と数式"));
+  assert.ok(prompt.includes("show_visual"));
+  assert.ok(prompt.includes("visual_guide"));
+  assert.ok(prompt.includes("$$ … $$"));
+  assert.ok(prompt.includes("\\( … \\)"));
+});
+
+test("メモ: どのチャットでも「メモ」が「メモ」タブのメモ（フォルダ）のことだと伝え、メモのチャットはどのメモの横かを伝える", () => {
+  const p = project();
+  const plain = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/memos/a", file: null });
+  assert.ok(plain.includes("利用者が「メモ」と言ったら、Kickoff の「メモ」タブのメモのことです"));
+  assert.ok(plain.includes("メモフォルダ `/tmp/memos/a`"));
+  assert.ok(!plain.includes("の横で話しています"));
+  const memoChat = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/memos/a", file: "/tmp/memos/a/x.md" });
+  assert.ok(memoChat.includes("`/tmp/memos/a/x.md` の横で話しています"));
+  assert.ok(!memoChat.includes("利用者が「メモ」と言ったら"));
+  // メモのフォルダが分からなければ、メモのことは書かない
+  assert.ok(!buildSystemPrompt(p).includes("## メモ"));
+});
+
+test("砂場: 書けない場所・外のファイルは Edit で・設定を変えるコマンドは利用者に・直接の通信は通らないことと、外で流すコマンドは単独で流すことを伝える（砂場がないときは書かない）", () => {
+  assert.doesNotMatch(buildSystemPrompt(project([])), /砂場/);
+  const prompt = buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: ["brew install:*", "npm run dev:*", "pnpm dev:*"] } });
+  assert.match(prompt, /砂場の中で動き/);
+  assert.match(prompt, /Edit \/ Write を使って/);
+  assert.match(prompt, /git config --global/);
+  assert.match(prompt, /ssh などの直接の通信は通りません/);
+  // 外で流すコマンドは npm・npx・brew の形だけを見せる
+  assert.match(prompt, /`brew install`・`npm run dev`/);
+  assert.doesNotMatch(prompt, /pnpm dev/);
+  assert.match(prompt, /単独で流して/);
+  const unrestricted = buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: [] }, editScopeEnabled: false });
+  assert.match(unrestricted, /編集先を確認する Kickoff の制限はオフ/);
+  assert.doesNotMatch(unrestricted, /Kickoff が利用者に確かめます/);
+  // 外で流すコマンドがなければ、その行は書かない
+  assert.doesNotMatch(buildSystemPrompt(project([]), "/tmp/a", undefined, { sandbox: { unsandboxed: [] } }), /砂場の外で流れます/);
+});

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ChatEventType } from "@shared/types";
-import { busEvent, makeChat, makeEvent, type EventInput } from "@shared/testing/factories";
+import { busEvent, makeChat, makeEvent, type EventInput } from "@shared/foundation/testing/factories";
 import { streamingAppendOf, streamingEffectOf } from "./streamingRules";
 
 /** チャット 7 の記録の知らせ（中身は決まりに関わる所だけなので、形は言い切る） */

@@ -1,9 +1,9 @@
 // スマホのチャットの画面に出す行（縦 1 列。メインエージェントの発言・ツールの 1 行・終わり。サブエージェントの中身は出さない）。
 // 記録（ChatEvent）を持ち、本体の知らせ（chat_event・chat_events_deleted・chat_delta）でその場で直す。純粋な関数でテストする
 import type { BusEvent, ChatEvent, ProviderId, TurnEndStatus } from "@shared/types";
-import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, collectVisuals, visualIdOf, type ChatVisual } from "@shared/chat/aiVisual";
-import { workplaceMoveLine } from "@shared/chat/workplaceMoves";
-import { providerAtEvent, providerBoundaries, providerSwitchLine } from "@shared/chat/providerSwitch";
+import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, collectVisuals, visualIdOf, type ChatVisual } from "@shared/visuals/aiVisual";
+import { workplaceMoveLine } from "@shared/workplaceMove/workplaceMoves";
+import { providerAtEvent, providerBoundaries, providerSwitchLine } from "@shared/providerSwitch/providerSwitch";
 import { hasMath } from "./richPages";
 
 export type TimelineItem =

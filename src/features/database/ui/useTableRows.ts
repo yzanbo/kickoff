@@ -1,0 +1,104 @@
+import { useEffect, useEffectEvent, useState } from "react";
+import { errorMessage } from "@shared/foundation/errors";
+import type { DbConnection, DbQueryResult, DbRowFilter, DbSort, DbValue } from "@shared/types";
+import { api } from "@/foundation/ui/api";
+import { useLatest } from "@/foundation/ui/hooks/useLatest";
+import type { DbTableTab } from "@/features/database/ui/client/dbClientTabs";
+import { useDbClient } from "./dbClientContext";
+import { nextSort } from "./dbFormat";
+import { hasLongValue, hasUnreadImage, rowKeyFilters } from "./dbRowTools";
+
+const NO_FILTER: DbRowFilter = { filters: [], where: null };
+
+/**
+ * テーブルの行（絞り込み・並べ替え・続きを読む）。長い文字は頭だけ届くので、行の詳細・書き直し・書き出しの前に、
+ * 行を指すキーの列（keyColumns）で 1 行ずつ全体を読み直して差し替える（fill）
+ */
+export function useTableRows(tab: DbTableTab, connection: DbConnection, worktree: string | null) {
+  const client = useDbClient();
+  const [sort, setSort] = useState<DbSort[]>([]);
+  const [result, setResult] = useState<DbQueryResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>();
+  const [nonce, setNonce] = useState(0);
+  // 裏のタブの結果が多すぎて捨てた（戻ったら取り直す。resultBudget.ts）
+  const [evicted, setEvicted] = useState(false);
+  const filter = tab.filter ?? NO_FILTER;
+  const filterKey = JSON.stringify(filter);
+  // fill が読むいちばん新しい結果（読み直している間に取り直したら、差し替えない）
+  const latestRef = useLatest(result);
+  const load = async (offset: number, base: DbQueryResult | null) => {
+    setLoading(true);
+    setError(undefined);
+    let page: DbQueryResult;
+    try {
+      page = await api.dbRows(client.projectId, connection.id, { path: tab.path, table: tab.name, sort, offset, filter }, worktree);
+    } catch (e) {
+      setError(errorMessage(e));
+      if (!base) setResult(null);
+      setLoading(false);
+      return;
+    }
+    setResult(base ? { ...page, rows: [...base.rows, ...page.rows] } : page);
+    setLoading(false);
+  };
+  // 読み直すのは、タブ・接続・作業場所・並べ替え・絞り込みの中身が変わったときと、頼まれたとき（nonce）だけ
+  const loadFirst = useEffectEvent(() => void load(0, null));
+  useEffect(() => {
+    loadFirst();
+  }, [tab.key, connection.id, worktree, sort, nonce, filterKey]);
+
+  /**
+   * 頭だけの長い文字・まだ中身を読んでいない画像がある行（indexes の中）を全体のまま読み直して差し替え、差し替えたあとの行を返す
+   * （キーの列がない・読めなかった行は頭のまま。読み直している間に取り直したら null）
+   */
+  const fill = async (indexes: number[], keyColumns: string[] | null): Promise<DbValue[][] | null> => {
+    const base = latestRef.current;
+    if (!base) return null;
+    const rows = [...base.rows];
+    let changed = false;
+    for (const i of indexes) {
+      const row = rows[i];
+      if (!row || !(hasLongValue(row) || hasUnreadImage(row))) continue;
+      const filters = rowKeyFilters(base.columns, row, keyColumns);
+      if (!filters) continue;
+      try {
+        const full = await api.dbFullRow(client.projectId, connection.id, { path: tab.path, table: tab.name, filters }, worktree);
+        if (full.columns.length !== base.columns.length) continue;
+        rows[i] = full.row;
+        changed = true;
+      } catch (e) {
+        setError(`長い値の残りを読めませんでした: ${errorMessage(e)}`);
+      }
+    }
+    if (latestRef.current !== base) return null;
+    if (changed) {
+      const next = { ...base, rows };
+      latestRef.current = next;
+      setResult(next);
+    }
+    return rows;
+  };
+
+  return {
+    sort,
+    filter,
+    result,
+    loading,
+    error,
+    sortBy: (column: string, add = false) => setSort((s) => nextSort(s, column, add)),
+    more: () => result && void load(result.rows.length, result),
+    reload: () => {
+      setEvicted(false);
+      setNonce((n) => n + 1);
+    },
+    evicted,
+    /** 結果を捨てる（裏のタブの量が多すぎるとき） */
+    evict: () => {
+      latestRef.current = null;
+      setResult(null);
+      setEvicted(true);
+    },
+    fill,
+  };
+}

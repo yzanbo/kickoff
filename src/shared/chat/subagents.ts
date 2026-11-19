@@ -1,5 +1,5 @@
 import { isBackgroundLaunch } from "./backgroundTasks";
-import { isNetworkError } from "./networkErrors";
+import { isNetworkError } from "@shared/ai/networkErrors";
 import { markSuperseded } from "./subagentSupersede";
 import type { ChatEvent, SubagentInfo } from "@shared/types";
 

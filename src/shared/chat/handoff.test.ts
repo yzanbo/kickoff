@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { eventSequence } from "@shared/testing/factories";
+import { eventSequence } from "@shared/foundation/testing/factories";
 import { handoffAfterFor, handoffRequestExtra, handoffRequestPrompt, lastReplyOfTurn } from "./handoff";
 
 test("handoffRequestPrompt: 子チャットの名前を頭の文に入れる（名前がなければ Untitled Chat）", () => {

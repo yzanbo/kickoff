@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { makeEvent } from "@shared/testing/factories";
+import { makeEvent } from "@shared/foundation/testing/factories";
 import { collectSubagents, isOutputLimitError, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "./subagents";
 
 test("fork のサブエージェント: 自分の中の頭に届く起動の呼び出しへの仮の結果では完了にせず、起動した流れに結果が返るまで作業中", () => {

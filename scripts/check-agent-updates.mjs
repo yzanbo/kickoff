@@ -1,6 +1,6 @@
 // AI の CLI に新しい版が出ていないかを確かめる（開発のチャットと、製品版の入れ替えの最後に知らせる）。
 //   Claude Code … Kickoff に同梱（Claude Agent SDK の package.json の claudeCodeVersion）。上げるのは package.json の SDK
-//   Codex       … 利用者が入れた codex（Homebrew の cask か npm。最新の版は入れ方ごとに聞く。共有の決まりは src/shared/provider/cliUpdates.ts）
+//   Codex       … 利用者が入れた codex（Homebrew の cask か npm。最新の版は入れ方ごとに聞く。共有の決まりは src/shared/ai/cliUpdates.ts）
 //   node scripts/check-agent-updates.mjs --hook  … このリポジトリの .claude/settings.json の SessionStart から呼ぶ。
 //                                                  新しい版があれば、エージェントへの文脈（additionalContext）を出す（同じ版は 1 日 1 回まで）
 //   node scripts/check-agent-updates.mjs         … 新しい版があれば 1 行ずつ出す（npm run install-app の最後にも呼ぶ）
@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CODEX_INSTALL_SOURCE_LABELS, CODEX_LATEST_URLS, CODEX_UPDATE_COMMANDS, codexInstallSource, codexLatestOf, compareVersions, parseCodexVersion } from "../src/shared/provider/cliUpdates.ts";
+import { CODEX_INSTALL_SOURCE_LABELS, CODEX_LATEST_URLS, CODEX_UPDATE_COMMANDS, codexInstallSource, codexLatestOf, compareVersions, parseCodexVersion } from "../src/shared/ai/cliUpdates.ts";
 
 const SDK = "@anthropic-ai/claude-agent-sdk";
 const CLAUDE_LATEST_URL = `https://registry.npmjs.org/${SDK}/latest`;

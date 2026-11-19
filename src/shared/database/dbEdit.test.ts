@@ -1,7 +1,7 @@
 // テーブルの行の変更を SQL にする: 場所つきの名前・値は params・キーの NULL・変えない更新は飛ばす・既定値だけの追加・行を指す列の選び方
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { DbTableColumn } from "../types/database";
+import type { DbTableColumn } from "./types";
 import { editKeyColumns, editStatements, qualifiedTable } from "./dbEdit";
 
 const col = (name: string, patch: Partial<DbTableColumn> = {}): DbTableColumn => ({ name, type: "text", nullable: true, default: null, primary_key: false, comment: null, ...patch });
