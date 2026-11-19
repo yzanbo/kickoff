@@ -3,7 +3,8 @@
 /*
  * 流れの 1 項目の包み（測る・content-visibility を当てる単位）。見た目を変えない:
  * 中の項目の並べ方は包みの外の並びと同じ（自分の発言の align-self・作業の終わりの変更カードと行の間の gap を保つ）。
- * 間隔は親の gap をそのまま使う（会話の流れ .timeline-inner は 4px、カードの中の手順の窓・カードの中身は grid の 8px）
+ * 間隔は親の gap をそのまま使う（会話の流れ .timeline-inner は 4px、カードの中の手順の窓・カードの中身は grid の 8px）。
+ * 項目を指す選択子は .timeline-inner > .timeline-row > … の形にし、入れ子のカードの中の行に当てない
  */
 .timeline-row {
   --row-ink: var(--gutter);

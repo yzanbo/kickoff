@@ -187,10 +187,10 @@
       "brokenRefs": 0
     },
     "src/renderer/src/styles/CLAUDE.md": {
-      "bytes": 28170,
-      "ancestors": 58456,
-      "longLines": 6,
-      "forbidden": 6,
+      "bytes": 7061,
+      "ancestors": 37347,
+      "longLines": 0,
+      "forbidden": 0,
       "brokenRefs": 0
     },
     "src/shared/CLAUDE.md": {
