@@ -18,7 +18,6 @@ import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
 import type { SessionsUsedElsewhere } from "@/features/chat/core/sessions/siblingSessions";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import type { UserViewRegistry } from "@/features/userView/core/registry";
-import type { TrashService } from "@/features/trash/core/service";
 import type { RemoteImageService } from "@/features/remoteImages/core/service";
 import type { PairingCenter } from "@/features/devices/core/pairing";
 import type { ViewingRegistry } from "@/features/notifications/core/viewing";
@@ -66,8 +65,6 @@ export interface ServerDeps {
   viewing: ViewingRegistry;
   /** gh に入っている GitHub のアカウント（設定の「GitHub」。テストでは差し替えて、gh を呼ばない。なければ gh auth status） */
   githubAccounts?: () => Promise<GitHubAccount[]>;
-  /** Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻せる。trash/service.ts） */
-  trashBin: TrashService;
   /** チャット欄の外の画像（表示を許可したホストと、取ってきた画像の覚え） */
   remoteImages: RemoteImageService;
   /** ワークツリーの後始末（画面の「消す」と AI の finish_worktree。確かめ・控え・予約。worktrees/finish.ts） */

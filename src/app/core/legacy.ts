@@ -18,7 +18,7 @@ import { WorktreePrWatch } from "@/features/github/core/prWatch";
 import { HeadWatch } from "@/features/worktrees/core/headWatch";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import { NoteService } from "@/features/notes/core/notes";
-import { TrashService } from "@/features/trash/core/service";
+import type { TrashApi } from "@/features/trash/core/index";
 import { sweepUnusedSessions } from "@/features/chat/core/sessions/sessionTrash";
 import { sweepUnusedUploads } from "@/features/chat/core/attachmentsCleanup";
 import type { SessionTrash } from "@/features/chat/core/sessionSwitch";
@@ -61,8 +61,13 @@ export interface LegacyApi extends ServerDeps {
   hooks: ServeHooks;
 }
 
+/** 分けた下の機能の口 */
+export interface LegacyDeps {
+  trash: TrashApi;
+}
+
 /** いまの全部の機能を作る（待ち受けを始めたあとの見張りは start、止めるのは stop） */
-export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFile, relay }: CorePrepared): CoreFeature<LegacyApi> {
+export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFile, relay }: CorePrepared, { trash: trashBin }: LegacyDeps): CoreFeature<LegacyApi> {
   const { bus, store } = k;
   const deltas = chatDeltaStage(k.clock);
   bus.use(deltas);
@@ -84,20 +89,10 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
   const serviceUsage = new ServiceUsageMonitor(usage, env.ai.services, codexCredits);
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(env.attachments.dir ?? path.join(k.paths.dataDir, "uploads"));
-  // Kickoff のゴミ箱（消したものを 3 日取っておく。起動したときと 1 時間ごとに、期限の来たものを本当に消す）。
-  // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体・ノートのフォルダ）のゴミ箱に出す
-  const trashBin = new TrashService({
-    store,
-    dir: path.join(k.paths.dataDir, "trash"),
-    now: env.trash.now,
-    projectOfPath: (origin) => {
-      if (env.trash.projectOfPath) return env.trash.projectOfPath(origin, store.projects.list());
-      const owner = store.projects.list().find((p) => isInside(realPathLoose(p.repo_path), origin) || ((p.note_path || p.note_folder) && isInside(realPathLoose(notes.dirOf(p)), origin)));
-      return owner?.id ?? null;
-    },
-    // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）
-    onImported: (item) => trashNoteChatsOnImport({ store, runner, noteDirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }, item),
-  });
+  // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体のフォルダは projects、ここはノートのフォルダ）のゴミ箱に出す
+  trashBin.addOriginResolver((origin) => store.projects.list().find((p) => (p.note_path || p.note_folder) && isInside(realPathLoose(notes.dirOf(p)), origin))?.id ?? null);
+  // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）
+  trashBin.addImportHook((item) => trashNoteChatsOnImport({ store, runner, noteDirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }, item));
   const notes = new NoteService({
     store,
     defaultDir: env.notes.defaultDir,
@@ -196,7 +191,6 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
     ports,
     pairing,
     viewing,
-    trashBin,
     remoteImages,
     worktreeFinisher,
     userViews,
@@ -212,13 +206,14 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
 
   return {
     name: "legacy",
+    // 通知とエージェントを先に止める（流れ続けている外部コマンド・分けた下の機能より前。中の止める順は stop のとおり）
+    stopPhase: "first",
     api: { ...deps, mcpTools, chatRemover, hooks: legacyHooks(deps, mcpTools) },
-    ...legacyRoutes(deps),
+    ...legacyRoutes({ ...deps, trashBin }),
     start: () => {
       usage.start();
       prWatch.start();
       ports.start();
-      trashBin.start();
       stopAutoArchive = startAutoArchive(store, bus);
     },
     stop: async () => {
@@ -235,7 +230,6 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
       chatRemover.close();
       ports.close();
       stopAutoArchive?.();
-      trashBin.close();
       notes.close();
       headWatch.close();
       await databases.close();

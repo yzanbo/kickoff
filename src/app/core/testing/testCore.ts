@@ -63,7 +63,7 @@ export function createTestCore(opts: { staticDir?: string; secretCipher?: Secret
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { ...assembled.apis.legacy, ...fakes, k, app, project, call, browserLogin, close, codexCalls: () => fakes.counts.codex };
+  return { ...assembled.apis.legacy, ...fakes, k, app, project, call, browserLogin, close, trashBin: assembled.apis.trash, codexCalls: () => fakes.counts.codex };
 }
 
 /** Runner に渡す値のうち、ここで組み立てないもの（添付の置き場所・再開の時計など） */

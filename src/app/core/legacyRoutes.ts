@@ -16,14 +16,11 @@ import { dockerRoutes } from "@/features/docker/core/routes/docker";
 import { portsRoutes } from "@/features/ports/core/routes/ports";
 import { filesRoutes } from "@/features/files/core/routes/files";
 import { gitRoutes } from "@/features/git/core/routes/git";
-import { groupRoutes } from "@/features/groups/core/routes/groups";
-import { snippetRoutes } from "@/features/snippets/core/routes/snippets";
-import { trashRoutes } from "@/features/trash/core/routes/trash";
+import { sessionRoutes } from "@/features/chat/core/routes/sessions";
 import { noteRoutes } from "@/features/notes/core/routes/notes";
 import { projectRoutes } from "@/features/projects/core/routes/projects";
 import { providerRoutes } from "@/features/ai/core/routes/providers";
 import { queueRoutes } from "@/features/chat/core/routes/queue";
-import { settingsRoutes } from "@/features/settings/core/routes/settings";
 import { turnRoutes } from "@/features/chat/core/routes/turns";
 import { uploadRoutes } from "@/features/attachments/core/routes/uploads";
 import { chatImageRoutes } from "@/features/remoteImages/core/routes/chatImages";
@@ -32,9 +29,13 @@ import { voiceRoutes } from "@/features/voice/core/routes/voice";
 import { worktreeRoutes } from "@/features/worktrees/core/routes/worktrees";
 import { worktreePrRoutes } from "@/features/github/core/routes/worktreePrs";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
+import type { TrashApi } from "@/features/trash/core/index";
+
+/** まだ分けていない機能のルートが受ける値（分けた下の機能の口を足したもの） */
+type LegacyRouteDeps = ServerDeps & { trashBin: TrashApi };
 
 /** 受け口（ペアリングの番号の口は認証の外）と、図の枠のページ */
-export function legacyRoutes(deps: ServerDeps): Pick<CoreFeature, "routes" | "pages"> {
+export function legacyRoutes(deps: LegacyRouteDeps): Pick<CoreFeature, "routes" | "pages"> {
   return {
     routes: [
       // スマホ連携のペアリング: まだトークンを持たない端末が、番号で頼んで結果を聞く口（認証の外。routes/devices.ts）
@@ -54,16 +55,13 @@ export function legacyHooks({ store, runner }: Pick<ServerDeps, "store" | "runne
   };
 }
 
-/** 機能ごとの API（登録の順は変えない） */
-function registerLegacyRoutes(app: Hono, deps: ServerDeps): void {
-  settingsRoutes(app, deps);
+/** 機能ごとの API（登録の順は変えない。分けた機能 settings・trash・groups・snippets はこの前） */
+function registerLegacyRoutes(app: Hono, deps: LegacyRouteDeps): void {
   projectRoutes(app, deps);
   chatRoutes(app, deps);
   turnRoutes(app, deps);
   queueRoutes(app, deps);
-  groupRoutes(app, deps);
-  snippetRoutes(app, deps);
-  trashRoutes(app, deps);
+  sessionRoutes(app, deps);
   uploadRoutes(app, deps);
   chatImageRoutes(app, deps);
   approvalRoutes(app, deps);

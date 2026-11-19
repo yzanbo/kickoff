@@ -13,7 +13,7 @@ Kickoff のゴミ箱（消したものを 3 日取っておき、元に戻せる
 | `ui/TrashMarkRows.tsx` | コマンドの出力の下の［元に戻す］（印の読み方は `@shared/trash/marks`） |
 | `ui/trashActions.ts`・`ui/trashText.ts` | 戻す・完全に消す・消した直後の知らせ `showTrashedToast`・残り時間と確認の文 |
 
-種類を登録するのは `@/features/chat/core/sessions/chatTrash.ts`・`@/features/projects/core/trash.ts`・`@/features/worktrees/core/finish.ts`。
+種類を登録するのは `@/features/chat/core/sessions/chatTrash.ts`・`@/features/projects/core/trash.ts`・`@/features/worktrees/core/finish.ts`。AI の kickoff-trash で入れたものの元の場所の引き当て（`addOriginResolver`）は projects（本体）とノート（ノートのフォルダ）が、取り込んだあと（`addImportHook`）はノートが登録する（`core/index.ts` の `createTrash`）。
 
 ## 決まり
 

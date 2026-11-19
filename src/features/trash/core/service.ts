@@ -36,10 +36,6 @@ export interface TrashServiceDeps {
   store: Store;
   /** 置き場（データのフォルダの trash/） */
   dir: string;
-  /** AI の kickoff-trash で入れたもののうち、消したチャットが分からないものを、どのプロジェクトのゴミ箱に出すか（元の場所から。分からなければ null） */
-  projectOfPath?: (origin: string) => number | null;
-  /** AI の kickoff-trash で入れたものを取り込んだあと（ノートならノートのチャットも一緒に入れる） */
-  onImported?: (item: StoredTrashItem) => void;
   /** いまの時刻（テストで差し替える） */
   now?: () => number;
 }
@@ -55,10 +51,7 @@ async function move(from: string, to: string): Promise<void> {
   }
 }
 
-const exists = (p: string) => fs.lstat(p).then(
-  () => true,
-  () => false,
-);
+const exists = (p: string) => fs.lstat(p).then(() => true, () => false);
 
 /** フォルダの中身を足した大きさ（リンクはたどらない。数えすぎたら null） */
 async function measure(target: string): Promise<number | null> {
@@ -77,10 +70,7 @@ async function measure(target: string): Promise<number | null> {
   return total;
 }
 
-const readText = (p: string) => fs.readFile(p, "utf8").then(
-  (s) => s.trim(),
-  () => null,
-);
+const readText = (p: string) => fs.readFile(p, "utf8").then((s) => s.trim(), () => null);
 
 /**
  * Kickoff のゴミ箱。消したものを置き場（データのフォルダの trash/<id>/item/<名前>）に移して 3 日取っておき、
@@ -109,13 +99,22 @@ export class TrashService {
 
   /** 片付けのたびに一緒に流すもの（Kickoff が作ったセッションのうち、使われなくなったものの会話記録をゴミ箱へ入れるなど） */
   private readonly sweepSteps: (() => Promise<unknown>)[] = [];
+  /** 元の場所からプロジェクトを引く口（本体・ノートのフォルダ。足した順に聞き、最初の答え）と、AI の kickoff-trash で入れたものを取り込んだあとに呼ぶもの（ノートのチャットも一緒に入れる）。上の機能が登録する */
+  private readonly originResolvers: ((origin: string) => number | null)[] = [];
+  private readonly importHooks: ((item: StoredTrashItem) => void)[] = [];
 
-  /** 元の場所を含むプロジェクト（本体・ノートのフォルダ。なければ null） */
+  /** 元の場所を含むプロジェクト（AI の kickoff-trash で入れたもののうち、消したチャットが分からないものを出すゴミ箱。なければ null） */
   projectOf(origin: string): number | null {
-    return this.deps.projectOfPath?.(origin) ?? null;
+    return this.originResolvers.reduce<number | null>((found, resolve) => found ?? resolve(origin), null);
   }
 
-  /** 片付け（起動したとき・1 時間ごと）に一緒に流すものを足す（失敗しても片付けは止めない） */
+  /** 元の場所からプロジェクトを引く口・取り込んだあとに呼ぶもの・片付け（起動したとき・1 時間ごと）に一緒に流すもの（失敗しても片付けは止めない）を足す */
+  addOriginResolver(resolve: (origin: string) => number | null): void {
+    this.originResolvers.push(resolve);
+  }
+  addImportHook(hook: (item: StoredTrashItem) => void): void {
+    this.importHooks.push(hook);
+  }
   addSweepStep(step: () => Promise<unknown>): void {
     this.sweepSteps.push(step);
   }
@@ -219,7 +218,7 @@ export class TrashService {
       const trashedAt = at && !Number.isNaN(Date.parse(at)) ? new Date(at).toISOString() : new Date(this.now()).toISOString();
       const added = this.deps.store.trash.add({
         id,
-        project_id: chat ? chat.project_id : (this.deps.projectOfPath?.(origin) ?? null),
+        project_id: chat ? chat.project_id : this.projectOf(origin),
         kind: "file",
         label: path.basename(origin),
         origin,
@@ -228,7 +227,7 @@ export class TrashService {
         trashed_at: trashedAt,
       });
       this.measureLater(id);
-      this.deps.onImported?.(added);
+      for (const hook of this.importHooks) hook(added);
       imported++;
     }
     return imported;

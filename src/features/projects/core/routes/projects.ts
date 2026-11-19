@@ -4,6 +4,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { expandHome, realPathLoose, realPathOrSelf } from "@/foundation/core/system/paths";
 import type { ServerDeps } from "@/foundation/core/http/server";
+import type { TrashApi } from "@/features/trash/core/index";
 import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProjectGitHub, type ProjectRepoPathBody, type ProviderId } from "@shared/types";
 import { createWorkspace, initGitRepo, inspectWorkspace, prepareImportedWorkspace, toFolderName } from "@/features/projects/core/workspace";
 import { worktreeMoves } from "@/features/git/core/index";
@@ -88,7 +89,7 @@ const projectPatchSchema = z
   .partial() satisfies z.ZodType<ProjectPatch>;
 
 /** プロジェクト（作成・取り込み・設定の変更・フォルダの変更・git の管理を始める・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
-export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, githubAccounts = listGitHubAccounts }: ServerDeps) {
+export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, githubAccounts = listGitHubAccounts }: ServerDeps & { trashBin: TrashApi }) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;

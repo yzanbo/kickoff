@@ -10,7 +10,8 @@ import type { SecretCipher } from "@/features/database/core/secrets";
 import type { DesktopNotify, PushSender } from "@/features/notifications/core/center";
 import type { TerminalSessions } from "@/features/terminal/core/sessions";
 import type { CorePlatformParts } from "./platform";
-import type { GitHubAccount, Project, ProviderId } from "@shared/types";
+import type { GitHubAccount, ProviderId } from "@shared/types";
+import type { TrashEnv } from "@/features/trash/core/index";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import type { ProviderAuth } from "@/features/ai/core/providers/keys";
 import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";
@@ -105,13 +106,9 @@ export interface CoreEnv {
     sessionsElsewhere: SessionsUsedElsewhere | null;
   };
   chat: Pick<OptionsOf<typeof Runner>, "reconnect" | "usageLimit" | "editHoldTtlMs" | "tellableWaitMs">;
-  trash: {
-    /** 入れた時刻・片付けの時計（省けば本物の時計） */
-    now?: () => number;
+  trash: TrashEnv & {
     /** AI の rm の代わりの kickoff-trash を bin/ に置くか */
     installCommand: boolean;
-    /** 元の場所を含むプロジェクト（省けば本体・ノートのフォルダの実体のパスで見る） */
-    projectOfPath?: (origin: string, projects: Project[]) => number | null;
   };
   notes: { defaultDir: string };
   /** 添付の置き場所（省けば保存先の uploads/） */

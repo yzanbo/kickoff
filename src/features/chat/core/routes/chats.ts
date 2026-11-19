@@ -2,6 +2,7 @@ import type { Context, Hono } from "hono";
 import { z } from "zod";
 import { addWorktree, worktreePathFor } from "@/features/git/core/index";
 import type { ServerDeps } from "@/foundation/core/http/server";
+import type { TrashApi } from "@/features/trash/core/index";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
 import { requireGroupOf } from "@/features/groups/core/index";
@@ -67,7 +68,7 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-export function chatRoutes(app: Hono, { store, streamingText, runner, approvals, worktreeEnvs, trashBin, userViews, worktreeFinisher, terminals }: ServerDeps) {
+export function chatRoutes(app: Hono, { store, streamingText, runner, approvals, worktreeEnvs, trashBin, userViews, worktreeFinisher, terminals }: ServerDeps & { trashBin: TrashApi }) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）

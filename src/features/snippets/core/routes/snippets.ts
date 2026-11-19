@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX, type NewSnippetBody, type SnippetPatch } from "@shared/types";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
 import { jsonBody } from "@/foundation/core/http/input";
 import { lookups, requireProject } from "@/foundation/core/http/lookups";
 
@@ -26,7 +26,7 @@ const snippetPatchSchema = z.object({ project_id: projectId.optional(), label: l
  * 定型文（一覧は 1 つで、画面はすべてを読んでプロジェクトごとに絞る。作るは 201、変えたら変えたあとの定型文、
  * 並べ替えは並べたあとの一覧、削除は 204）。project_id はあるプロジェクトだけ（なければ 404）
  */
-export function snippetRoutes(app: Hono, { store }: ServerDeps) {
+export function snippetRoutes(app: Hono, { store }: { store: Store }) {
   const { withSnippet } = lookups(store);
 
   app.get("/api/snippets", (c) => c.json(store.snippets.list()));

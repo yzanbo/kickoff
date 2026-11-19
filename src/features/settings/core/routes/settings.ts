@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Kernel } from "@/foundation/core/kernel";
 import { WHISPER_MODEL_IDS } from "@/features/voice/core/models";
 import { AI_CREATE_CHAT_MODES, LINK_OPEN_TARGETS, OPENAI_TTS_VOICES, TRUSTED_LINK_DOMAINS_MAX, PROVIDER_AUTH_MODES, PROVIDER_IDS, VOICE_PROVIDERS, VOICE_TTS_PROVIDERS, VOICE_TTS_RATE_MAX, VOICE_TTS_RATE_MIN, type AppSettings } from "@shared/types";
 import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/compact/autoCompact";
@@ -59,7 +59,7 @@ const settingsSchema = z
   .strict() satisfies z.ZodType<Partial<AppSettings>>;
 
 /** アプリ全体の設定（設定ダイアログ。送った項目だけを変える） */
-export function settingsRoutes(app: Hono, { store }: ServerDeps) {
-  app.get("/api/settings", (c) => c.json(store.settings.get()));
-  app.put("/api/settings", async (c) => c.json(store.settings.update(settingsSchema.parse(await jsonBody(c)))));
+export function settingsRoutes(app: Hono, { settings }: { settings: Kernel["settings"] }) {
+  app.get("/api/settings", (c) => c.json(settings.get()));
+  app.put("/api/settings", async (c) => c.json(settings.update(settingsSchema.parse(await jsonBody(c)))));
 }
