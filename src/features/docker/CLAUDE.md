@@ -1,21 +1,34 @@
-# Docker タブ（`features/docker`）
-<!-- 行き先: src/features/docker/ -->
+# Docker（`src/features/docker`）
 
-プロジェクトの「Docker」タブ。compose のサービスの一覧・操作・ログ・シェル。コアは `src/core/CLAUDE.md` の「Docker タブ」、API は `api/docker.ts`。
+プロジェクトの「Docker」タブ。compose のサービスの一覧・操作・ログ・シェル。
+
+## 地図
 
 | ファイル | 中身 |
 |---|---|
-| `useDocker.ts` | 状態と操作・「見ています」・取り直し |
-| `DockerTab`・`DockerComposeBlock`・`DockerServiceRow` | 一覧 |
-| `DockerLogs`・`useDockerLogs.ts`・`useDockerLog*.ts*` | ログの画面（流れ・⌘F・AI に渡す） |
-| `dockerView.ts`・`dockerLogView.ts`・`ansi.ts` | 表示の文と行の形（純粋。テストは隣） |
-| `useOpenDockerDb.ts` | 「DB で開く」 |
+| `core/service.ts`・`core/cli.ts` | compose のサービスを見て操作する（呼び方は `DockerCli`。覚えは `ComposeConfigCache`） |
+| `core/actions.ts`・`core/listing.ts` | 操作のコマンド `planDockerAction`・一覧の見出し（どちらも純粋） |
+| `core/guardFacts.ts`・`core/guard/` | AI の守りが見る様子・守り（`src/features/guard/CLAUDE.md`） |
+| `ui/useDocker.ts` | 状態と操作・「見ています」・取り直し |
+| `ui/DockerTab`・`ui/DockerComposeBlock`・`ui/DockerServiceRow` | 一覧 |
+| `ui/DockerLogs`・`ui/useDockerLogs.ts`・`ui/useDockerLog*.ts*` | ログの画面（流れ・⌘F・AI に渡す） |
+| `ui/dockerView.ts`・`ui/dockerLogView.ts` | 表示の文と行の形（純粋。テストは隣） |
+| `ui/useOpenDockerDb.ts` | 「DB で開く」 |
 
-- この Mac のアプリの中だけ（`window.kickoff` がなければタブを出さない）。
-- 確かめを聞くのは元に戻せない操作（片付け・作り直して起動）だけ。
-- 作業場所の文はコアと同じ `@shared/docker/workplace` の `workplaceText`。
+## 決まり
+
+- エンジンは管理せず `docker` コマンドだけ。DB は使わない。この Mac のアプリの中だけ（`window.kickoff` がなければタブを出さない）。口は端末に開かない。
+- compose の設定は compose 自身に聞く（YAML を読まない）。どのプロジェクトかは `working_dir` の `deepestWorkplace`。作業場所の文はコアと画面で同じ `@shared/foundation/workplace` の `workplaceText`。
+- 停止・再起動・片付けは `-p` だけで `/` から流す（ファイルのあるフォルダで流すと札付きが残る）。片付けに `-v` は付けない。
+- 操作は compose ごとに 1 つずつ（取り直す前に予約し、2 つ目は 409）。up は時間で打ち切らず［中止］で止める。
+- 確かめを聞くのは元に戻せない操作（片付け・作り直して起動）だけ。別の作業場所と同じ組になる起動（409）は、コアの文で確かめてから `confirm_shared` で送り直す。
+- docker events は画面の貸し出しの間だけ流す。ログは保存しない。
+
+## 落とし穴
+
+- ポートの取り合いで相手を止めたら、ぶつかったサービスは `--force-recreate` で作り直す（理由は `core/actions.ts`）。
+- AI の守りが見る様子は時間で打ち切り、答えなければ通す側に倒す。
 - 「見ています」は 20 秒ごと（コアは 45 秒届かなければ `docker events` を止める）。重なった取り直しは 1 回にまとめる。
-- 別の作業場所と同じ組になる起動（409）は、コアの文で確かめてから `confirm_shared` で送り直す。
-- ログはつなぎ直したら持っている行を捨てる（コアが最新の 500 行から送り直す）。読み返している間は古い行を捨てない。
-- エラー・警告は行の文字で見分ける（標準出力か標準エラーかは使わない）。
+- ログはつなぎ直したら持っている行を捨てる（コアが最新の 500 行から送り直す）。読み返している間は古い行を捨てない。エラー・警告は行の文字で見分ける（標準出力か標準エラーかは使わない）。
 - `ansi.ts` と `DockerLogRow` の `SpanView` は CI のタブのログも使う（変えたら CI のログも見る）。
+- テストは `server.docker.test.ts`・`server.dockerDb.test.ts`（`dockerFake`）・`core/actions.test.ts`。

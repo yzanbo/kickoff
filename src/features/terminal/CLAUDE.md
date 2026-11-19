@@ -1,28 +1,22 @@
-# ターミナル・埋め込みブラウザ・外で開く（`features/terminal`・`browser`・`openWith`）
+# ターミナル（`src/features/terminal`）
 
-パネルのタブの中身。メインプロセスの側は `src/main/CLAUDE.md`。
+内蔵ターミナル（パネルのタブ）。メインプロセスの側は `src/foundation/desktop/CLAUDE.md`。
 
-## ターミナル（`features/terminal`）
-<!-- 行き先: src/features/terminal/ -->
+## 地図
 
-- シェルはコアで動き、画面はスマホと同じコアの API でつなぐ（`api/terminals.ts`。`src/core/CLAUDE.md` の「ターミナル」）。
-- タブを別ウィンドウへ移す・戻すときは、受け取った側が `claimTerminal` で持ち主になってから渡した側を閉じる。
-- つなぐまでの出力は最初の snapshot に入っているので捨てる。画面に出す注意も snapshot に入れる。
+- `core/sessions.ts`: シェルを動かす `TerminalSessions`（シェルは OS の口の `terminalShell`）。出力と snapshot は `core/output.ts`、AI に読ませる口は `core/control.ts`（AI のツールは `core/aiTerminal.ts`。決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
+- `ui/`: タブ `TerminalPane`・API `ui/api/terminals.ts`（画面もスマホも同じコアの API でつなぐ）・パネルの下の欄 `ui/bottom/`。
+
+## 決まり
+
+- シェルはコアで動かす。ワークツリーの中なら `PORT` も渡す。
+- 持ち主は画面（`wc:<ID>`。画面が消えたらメインが `closeOwnedBy`）か端末か `host`。持ち主を替える口は、シェルがなければ始めずに 404（終わったコマンドを流し直さない）。
+- WebSocket はターミナルの口だけ（`@/foundation/core/http/httpServer.ts` が `ws` を渡す）。見るだけの端末の入力は捨て、打てるかは送るたびに読み直す。
 - ⌘ のないキーはシェルのもの（ショートカット・Esc に渡さない）。つなぐたびに `meta`（持ち主・名前）を知らせる（AI が名前で示す）。
 
-## 埋め込みブラウザ（`features/browser`）
-<!-- 行き先: src/features/browser/ -->
+## 落とし穴
 
-- ページは本体と切り離したセッション（`persist:kickoff-browser`。メインでも強制）。入力欄の文は検索・チャットに渡さない。
-- 開発者ツールの重ねた表示は HTML より上に描く。メニュー・ダイアログが重なる間は撮った絵に替える（`devtoolsBox.ts`）。
-- AI が使うタブは作業ごとに初めの 1 回だけ表に出す（`core/mcp/browserReveal.ts`）。キーボードのピントは動かさない。
-
-## 外部リンク（`browser/linkOpen.ts`）
-<!-- 行き先: src/foundation/ui/ -->
-
-- Markdown の外部リンクは開く前に確かめる（`openWebLink`）。警告に当たるリンクは覚えたドメインでも毎回確かめる。
-
-## 外のアプリで開く（`features/openWith`）
-<!-- 行き先: src/features/panel/ -->
-
-- 開く場所は `terminalTargetOf` 1 つで決める。チャットの見出しに外部のターミナルのボタンを置かない（パネルの ▾ に集める）。
+- `open` はあればつなぎ直していまの画面（`snapshot`）を返す。snapshot は書き終えるのを待ってから取り、取る間の出力は返したあとに送る。
+- つなぐまでの出力は最初の snapshot に入っているので画面は捨てる。画面に出す注意も snapshot に入れる。
+- タブを別ウィンドウへ移す・戻すときは、受け取った側が `claimTerminal` で持ち主になってから渡した側を閉じる。
+- テストは `core/routes/server.terminals.test.ts`（`core/testing/fakeTerminal.ts`）。

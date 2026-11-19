@@ -49,4 +49,4 @@
 ## IPC の取り決め（ipc/）
 <!-- 行き先: src/foundation/desktop/ -->
 - `contract.ts` の `NATIVE_API` が、画面に出すネイティブ機能（`window.kickoff`。デスクトップだけ）の唯一の一覧。チャンネル名は `channelOf` で作り、手書きしない。
-- 値は種類だけを持つ（型の引数は必ず書く）。引数の zod はメインの `main/ipc/args.ts`（形が違えば typecheck で分かる）。中身の型は同じフォルダの各ファイル。
+- 値は種類だけを持つ（型の引数は必ず書く）。引数の zod はメインの `@/foundation/desktop/ipc/args.ts`（形が違えば typecheck で分かる）。中身の型は同じフォルダの各ファイル。
