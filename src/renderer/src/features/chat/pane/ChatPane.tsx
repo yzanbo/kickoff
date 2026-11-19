@@ -51,7 +51,8 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
 
 /**
  * 会話の欄の見え方: 止めてよい画面（pausable。パネルのタブ・右の欄の子チャット）で、表示していなくて、止めない理由（keepAlive: 音声モード・録音・
- * アップロード・送信待ちと預かった指示の書き直し）がなければ hidden（React の Activity で止める）。メモのチャット・別ウィンドウはいつも visible
+ * アップロード・送信待ちと預かった指示の書き直し）がなければ hidden（React の Activity で止める）。メモのチャット・別ウィンドウはいつも visible。
+ * hidden にすると中の effect の片付けが、visible に戻すと effect が流れ直すので、流れ直して困るものは描いている間に決めるか店に置く
  */
 function useColumnMode(chatId: number, visible: boolean, pausable: boolean): "visible" | "hidden" {
   const keepAlive = useKeepAlive(chatId);
