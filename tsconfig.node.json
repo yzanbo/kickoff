@@ -10,5 +10,5 @@
     }
   },
   "include": ["src/core/**/*.ts", "src/main/**/*.ts", "scripts/**/*.ts", "electron.vite.config.ts", "vitest.config.ts"],
-  "exclude": ["**/*.test.ts", "**/*.dbtest.ts", "src/**/testing/**", "scripts/check-codex-uploads.ts"]
+  "exclude": ["**/*.test.ts", "**/*.dbtest.ts", "src/**/testing/**"]
 }
