@@ -24,6 +24,16 @@ test("Electron を起動するスクリプトだけを見分ける（ビルド�
   assert.deepEqual(electronLaunchScripts(scripts), ["dev", "dev:cdp", "preview", "start", "forge"]);
 });
 
+test("前に VAR=値 を並べて electron-vite dev を直接呼ぶスクリプトは Electron を起動するものに数え、Node の補助から起動するものは数えない", () => {
+  const scripts = {
+    "dev:fixture": "KICKOFF_REMOTE_DEBUG=9335 KICKOFF_PORT=4319 KICKOFF_USER_DATA_DIR=/private/tmp/kickoff-fixture electron-vite dev",
+    // 中で electron-vite を起動しても、スクリプトの文字に出ていなければ見分けられない（砂場の中で流れる）
+    "fixture:seed": "node scripts/devtools/fixture.mjs",
+  };
+  assert.deepEqual(electronLaunchScripts(scripts), ["dev:fixture"]);
+  assert.ok(scriptRunCommands(electronLaunchScripts(scripts)).includes("npm run dev:fixture:*"));
+});
+
 test("スクリプトを流すコマンドは npm・pnpm・yarn・bun の形（start は npm start も）", () => {
   assert.deepEqual(scriptRunCommands(["dev"]), ["npm run dev:*", "pnpm dev:*", "pnpm run dev:*", "yarn dev:*", "yarn run dev:*", "bun run dev:*"]);
   assert.ok(scriptRunCommands(["start"]).includes("npm start:*"));

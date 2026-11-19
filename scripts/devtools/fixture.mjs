@@ -1,13 +1,15 @@
-// 決まったデータで開発版を起動する（npm run dev:fixture）。保存先 ${TMPDIR}/kickoff-fixture・コア 4319・CDP 9335 で、
-// 利用者の開発版（4318・9333・Kickoff Dev）と同時に動かせる。起動のたびにデータを作り直す（scripts/devtools/seed.ts）。
-// 止めるときは node scripts/perf/quit-dev.mjs --fixture（CDP の Browser.close）か、この起動に SIGINT・SIGTERM を送る（開発版へ渡す）
-import { spawn, spawnSync } from "node:child_process";
+// 決まったデータの開発版。データを作るのは npm run fixture:seed（このファイル。砂場の中で流してよい）、起動は npm run dev:fixture
+// （package.json の中で electron-vite dev を直接呼ぶ。AI の砂場は Electron を起動するスクリプトだけを砂場の外で流すため）。
+// 保存先 /private/tmp/kickoff-fixture・コア 4319・CDP 9335 で、利用者の開発版（4318・9333・Kickoff Dev）と同時に動かせる。
+// 保存先は TMPDIR を使わない決まった場所（砂場の中と外で TMPDIR が違いうるため。/private/tmp は砂場の中でも書ける）。
+// 止めるときは node scripts/perf/quit-dev.mjs --fixture（CDP の Browser.close）
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import os from "node:os";
 import path from "node:path";
 
+/** 決まったデータの開発版の場所（package.json の dev:fixture と同じ値。fixture.test.mjs が確かめる） */
 export const FIXTURE = {
-  dataDir: path.join(os.tmpdir(), "kickoff-fixture"),
+  dataDir: "/private/tmp/kickoff-fixture",
   cdp: 9335,
   api: 4319,
   /** 画面の時計の起点（2026-11-19 12:00 JST）。記録の相対時刻をそろえる */
@@ -24,7 +26,7 @@ export function readFixture() {
   try {
     return JSON.parse(readFileSync(path.join(FIXTURE.dataDir, "fixture.json"), "utf8"));
   } catch (e) {
-    throw new Error(`決まったデータがありません（${FIXTURE.dataDir}）。npm run dev:fixture で起動してください（${e.message}）`);
+    throw new Error(`決まったデータがありません（${FIXTURE.dataDir}）。npm run fixture:seed で作ってから npm run dev:fixture で起動してください（${e.message}）`);
   }
 }
 
@@ -42,14 +44,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     () => false,
   );
   if (running) {
-    console.error(`決まったデータの開発版がもう動いています（CDP ${FIXTURE.cdp}）。止めてから起動してください（node scripts/perf/quit-dev.mjs --fixture）`);
+    console.error(`決まったデータの開発版がもう動いています（CDP ${FIXTURE.cdp}）。止めてから作り直してください（node scripts/perf/quit-dev.mjs --fixture）`);
     process.exit(1);
   }
-  const bin = (name) => path.resolve("node_modules/.bin", name);
-  const seed = spawnSync(bin("tsx"), ["scripts/devtools/seed.ts", "--data", FIXTURE.dataDir, "--now", String(FIXTURE.now)], { stdio: "inherit" });
-  if (seed.status !== 0) process.exit(seed.status ?? 1);
-  const env = { ...process.env, KICKOFF_REMOTE_DEBUG: String(FIXTURE.cdp), KICKOFF_PORT: String(FIXTURE.api), KICKOFF_USER_DATA_DIR: FIXTURE.dataDir };
-  const child = spawn(bin("electron-vite"), ["dev"], { stdio: "inherit", env });
-  for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => child.kill(signal));
-  child.on("exit", (code, signal) => process.exit(code ?? (signal ? 1 : 0)));
+  const tsx = path.resolve("node_modules/.bin/tsx");
+  const seed = spawnSync(tsx, ["scripts/devtools/seed.ts", "--data", FIXTURE.dataDir, "--now", String(FIXTURE.now)], { stdio: "inherit" });
+  process.exit(seed.status ?? 1);
 }

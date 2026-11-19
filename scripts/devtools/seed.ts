@@ -1,7 +1,7 @@
-// 決まったデータを作る（npm run dev:fixture が起動の前に流す。scripts/devtools/fixture.mjs）。
+// 決まったデータを作る（npm run fixture:seed が流す。scripts/devtools/fixture.mjs）。
 // npx tsx scripts/devtools/seed.ts --data <保存先> --now <画面の時計の起点の ms>
 // 保存先のフォルダを消して作り直し、DB・Git のリポジトリ・メモ・SQLite の DB を入れて、ID を <保存先>/fixture.json に書く。
-// 時刻はすべて --now からさかのぼった決まった値にする（何度作っても同じ中身になる）。保存先が一時フォルダの下でなければ断る
+// 時刻はすべて --now からさかのぼった決まった値にする（何度作っても同じ中身になる）。保存先が一時フォルダ（TMPDIR か /tmp）の下でなければ断る
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -22,10 +22,10 @@ const MINUTE = 60_000;
 /** now から ms だけさかのぼった時刻（ISO） */
 const ago = (ms: number) => new Date(now - ms).toISOString();
 
-// 一時フォルダの下だけを消して作り直す（製品版・開発版の保存先を消さない）
-const tmp = fs.realpathSync(os.tmpdir());
+// 一時フォルダの下だけを消して作り直す（製品版・開発版の保存先を消さない）。決まったデータの保存先は TMPDIR でなく /tmp（macOS は /private/tmp）の下
+const tmpRoots = [...new Set([os.tmpdir(), "/tmp"].map((d) => fs.realpathSync(d)))];
 const parent = fs.realpathSync(path.dirname(dir));
-if (parent !== tmp && !parent.startsWith(tmp + path.sep)) throw new Error(`一時フォルダ（${tmp}）の下でない保存先には作りません: ${dir}`);
+if (!tmpRoots.some((root) => parent === root || parent.startsWith(root + path.sep))) throw new Error(`一時フォルダ（${tmpRoots.join("・")}）の下でない保存先には作りません: ${dir}`);
 fs.rmSync(dir, { recursive: true, force: true });
 fs.mkdirSync(dir, { recursive: true });
 

@@ -28,7 +28,7 @@ export function apiPort(argv = process.argv) {
   return Number(argValue(argv, "api") ?? (usesFixture(argv) ? FIXTURE.api : undefined) ?? process.env.KICKOFF_PORT ?? 4318);
 }
 
-/** 開発版の保存先: 引数 --data <dir> > 引数 --fixture（${TMPDIR}/kickoff-fixture）> 既定の Kickoff Dev */
+/** 開発版の保存先: 引数 --data <dir> > 引数 --fixture（/private/tmp/kickoff-fixture）> 既定の Kickoff Dev */
 function dataDirOf(argv = process.argv) {
   const dir = argValue(argv, "data");
   return dir ? path.resolve(dir) : usesFixture(argv) ? FIXTURE.dataDir : DEV_DATA_DIR;
@@ -47,7 +47,7 @@ async function fetchJson(port, route) {
   try {
     return await (await fetch(`http://127.0.0.1:${port}${route}`)).json();
   } catch (e) {
-    throw new Error(`開発版の CDP（ポート ${port}）につなげません。npm run dev:cdp（9333）か npm run dev:fixture（9335）で起動してください（${e.message}）`);
+    throw new Error(`開発版の CDP（ポート ${port}）につなげません。npm run dev:cdp（9333）か npm run dev:fixture（9335。先に npm run fixture:seed）で起動してください（${e.message}）`);
   }
 }
 
