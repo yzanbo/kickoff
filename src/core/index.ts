@@ -45,7 +45,7 @@ import { ChatRemover } from "./chat/aiChatRemove.js";
 import { UserViewRegistry } from "./userView/registry.js";
 import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "./trash/chatTrash.js";
 import { isInside, realPathLoose } from "./system/paths.js";
-import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
+import { defaultMemosDir } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
 import type { BrowserControl } from "./browser/control.js";
 import { TerminalSessions } from "./terminal/sessions.js";
@@ -152,19 +152,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const serviceUsage = new ServiceUsageMonitor(usage, undefined, codexCredits);
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
-  // メモの親フォルダの既定は ~/Documents/kickoff（保存先のフォルダ名のアプリ名を空白のない小文字に。開発版は kickoff-dev で、製品版のメモに触らない）。
-  // 既定のまま使っていて、前の既定（~/Documents/<アプリ名> メモ）にメモがあれば、そのフォルダを新しい名前にして引き継ぐ
-  const documentsDir = path.join(os.homedir(), "Documents");
-  const memosDefaultDir = defaultMemosDir(opts.dataDir, documentsDir);
-  const legacyDir = legacyMemosDir(opts.dataDir, documentsDir);
-  if (store.settings.get().memos_dir === null && adoptLegacyMemosDir(legacyDir, memosDefaultDir)) {
-    // そのプロジェクトだけの場所（memo_path）で前のフォルダの中を指していたものも付け替える
-    for (const project of store.projects.list()) {
-      const moved = project.memo_path ? movedPath(project.memo_path, legacyDir, memosDefaultDir) : null;
-      if (moved) store.projects.update(project.id, { memo_path: moved });
-    }
-    console.log(`[core] メモのフォルダを ${memosDefaultDir} に移しました`);
-  }
+  // メモの親フォルダの既定は ~/Documents/kickoff（保存先のフォルダ名のアプリ名を空白のない小文字に。開発版は kickoff-dev で、製品版のメモに触らない）
+  const memosDefaultDir = defaultMemosDir(opts.dataDir, path.join(os.homedir(), "Documents"));
   // Kickoff のゴミ箱（消したものを 3 日取っておく。起動したときと 1 時間ごとに、期限の来たものを本当に消す）。
   // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体・メモのフォルダ）のゴミ箱に出す
   const trashBin = new TrashService({

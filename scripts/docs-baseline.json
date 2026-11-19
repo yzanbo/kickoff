@@ -40,22 +40,22 @@
       "brokenRefs": 0
     },
     "src/core/CLAUDE.md": {
-      "bytes": 210054,
-      "ancestors": 223183,
+      "bytes": 209752,
+      "ancestors": 222881,
       "longLines": 104,
       "forbidden": 43,
       "brokenRefs": 5
     },
     "src/core/chat/CLAUDE.md": {
       "bytes": 127502,
-      "ancestors": 350685,
+      "ancestors": 350383,
       "longLines": 68,
       "forbidden": 41,
       "brokenRefs": 0
     },
     "src/core/providers/CLAUDE.md": {
       "bytes": 68537,
-      "ancestors": 291720,
+      "ancestors": 291418,
       "longLines": 42,
       "forbidden": 29,
       "brokenRefs": 3
