@@ -172,7 +172,7 @@ src/
     worker/               別プロセスの入口（database だけ）
     CLAUDE.md             地図・決まり・落とし穴
   app/                    組み立て（ここだけが全部の機能を知る）
-    core/                 startCore.ts（組み立てと終了）・daemon.ts（Electron なしで起動）・hostMain.ts / hostRun.ts（Mac のアプリのコアのプロセス）・testing/
+    core/                 startCore.ts（起動）・assemble.ts（機能の組み立て）・daemon.ts（Electron なしで起動）・hostMain.ts / hostRun.ts（Mac のアプリのコアのプロセス）・testing/
     desktop/              index.ts（メインの起動の順番）・preload.ts
     renderer/             index.html・main.tsx・App.tsx・PopoutApp.tsx・styles/（index.css の @import の順でつなぐ CSS）・public/
 mobile/                   スマホのアプリ（Android。Expo。別の npm のまとまり。@shared は ../src/shared を読む）

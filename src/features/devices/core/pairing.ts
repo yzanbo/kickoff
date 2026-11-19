@@ -1,15 +1,13 @@
 // スマホ連携のペアリング: この Mac の画面が使い捨ての番号を出し、端末が番号で頼み、Mac の画面で確かめてから端末のトークンを 1 回だけ渡す。
 // 番号・頼みはメモリにだけ持つ（アプリを終えたら消える）。端末は store.devices に hash で残る
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { MOBILE_OFF, PAIRING_CODE_TTL_MS, type BusEvent, type DeviceAccess, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/types";
+import { MOBILE_OFF, MOBILE_OFF_MESSAGE, PAIRING_CODE_TTL_MS, type BusEvent, type DeviceAccess, type PairingClaimResult, type PairingPollResult, type PairingRequest, type PairingState } from "@shared/types";
 import type { Store } from "@/foundation/core/db/store";
 import { hashToken } from "./token";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 
 /** 番号を続けて間違えたら、その番号を捨てる回数（当てずっぽうで頼み続けさせない） */
 const MAX_WRONG_CLAIMS = 5;
-/** スマホ連携がオフのときの断りの文 */
-export const MOBILE_OFF_MESSAGE = "スマホ連携がオフです。Mac の Kickoff の設定「スマホ連携」でオンにしてください";
 /** 名前の長さの上限 */
 export const DEVICE_NAME_MAX = 60;
 

@@ -1,7 +1,9 @@
 // API のテスト（server.*.test.ts）の共通の準備: 偽のプロバイダーでアプリを組み立て、トークン付きで呼ぶ補助を返す。テストからだけ使う
 import { afterTest } from "@/foundation/core/testing/afterTest";
 import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SessionFileInfo, SubagentLogItem } from "@/features/ai/core/providers/types";
-import { createApp } from "@/foundation/core/http/server";
+import { appOf } from "@/foundation/core/serve";
+import { systemClock } from "@/foundation/core/clock";
+import { legacyHooks, legacyRoutes } from "@/app/core/legacyRoutes";
 import type { ApiRetryInfo, BackgroundState, FileRewindResult, GitHubAccount, GitHubRemote, ModelOption, SlashCommandOption, DevicePush } from "@shared/types";
 import { UploadStore } from "@/features/attachments/core/uploads";
 import { ServiceUsageMonitor } from "@/features/ai/core/usage/services/index";
@@ -33,7 +35,7 @@ import { TerminalSessions } from "@/features/terminal/core/sessions";
 import { fakeTerminals } from "@/features/terminal/core/testing/fakeTerminal";
 import type { Notice } from "@/features/notifications/core/notices";
 import { ViewingRegistry } from "@/features/notifications/core/viewing";
-import { BrowserLogin } from "@/foundation/core/http/browserLogin";
+import { BrowserLogin } from "@/foundation/core/http/auth";
 import { parseCwds, parseLsof } from "@/foundation/core/platform/macos/listening";
 import { macosDockerEngine } from "@/features/docker/core/macosEngine";
 import { parsePs } from "@/foundation/core/platform/macos/processes";
@@ -354,8 +356,7 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
       for (const failure of await ci.watch(project, store)) bus.publish({ type: "ci_failed", failure });
     },
   });
-  // DB クライアントは同じプロセスのワーカーで動かす（中身は本物と同じ。dataDir は Kickoff 自身の保存先の代わり）
-  // DB クライアント: Kickoff 自身の保存先と、製品版・開発版の保存先の親（OS の口の appDataRoot の代わり）
+  // DB クライアントは同じプロセスのワーカーで動かす（中身は本物と同じ。dataDir は Kickoff 自身の保存先、appDataRoot は製品版・開発版の保存先の親の代わり）
   const dbFake = { dataDir: tempDir(), appDataRoot: tempDir() };
   const databases = new DatabaseService({ store, client: new DbWorkerClient(inProcessWorker), vault: new DbSecretVault(store, opts.secretCipher ?? null), dataDir: dbFake.dataDir, appDataRoot: dbFake.appDataRoot, exportRoot: tempDir(), publish: (e) => bus.publish(e) });
   // GitHub タブ: 連携先と GitHub の答えは偽物（graphql / rest / pages を差し替える。聞いたものは calls に残る）
@@ -441,9 +442,8 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
   // スマホ連携のペアリング（番号と頼みはメモリだけ。時計は pairingClock.now を進めて期限を試す）
   const pairingClock = { now: Date.now() };
   const pairing = new PairingCenter({ store, publish: (e) => bus.publish(e), now: () => pairingClock.now });
-  // 通知: この Mac の通知とプッシュは偽物にして、出したものを覚える（notified / pushed）
   const viewing = new ViewingRegistry();
-  // 通知: 出した Mac の通知と送ったプッシュを覚える（result で送った結果を差し替える。gone なら宛先を外す）
+  // 通知: この Mac の通知とプッシュは偽物にして、出したものを覚える（notified / pushed。result で送った結果を差し替える。gone なら宛先を外す）
   const notifyFake = { notified: [] as Notice[], pushed: [] as { push: DevicePush; title: string; body: string; host_id: string }[], result: "sent" as PushResult };
   const notifications = new NotificationCenter({
     bus,
@@ -499,14 +499,14 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
   runner.useChatRemover(chatRemover);
   afterTest(() => chatRemover.close());
   // ノートのフォルダの見張り（FSEvents）と DB ワーカーの接続も止める（同じプロセスで続けて流すと、ほかのファイルのテストまで残り続ける）
-  afterTest(() => notes.close());
-  afterTest(() => databases.close());
+  afterTest(() => (notes.close(), databases.close()));
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages });
   // AI の API キー（暗号化の口を渡されたテストはそれで置く。実行の側には渡さない = いつもサブスク）
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
   const headWatch = new HeadWatch((project_id) => bus.publish({ type: "worktrees_changed", project_id }));
   afterTest(() => headWatch.close());
-  const app = createApp({ store, bus, streamingText: deltas.streamingText, headWatch, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, notes, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, remoteImages, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const deps = { store, bus, streamingText: deltas.streamingText, headWatch, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, notes, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, trashBin, remoteImages, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts };
+  const app = appOf({ bus, clock: systemClock, paths: { dataDir: tempDir(), port: 0, host: "127.0.0.1", staticDir: opts.staticDir ?? null, appDataRoot: dbFake.appDataRoot, databaseId: store.databaseId } }, { features: [{ name: "legacy", api: null, ...legacyRoutes(deps) }], hooks: legacyHooks(deps, mcpTools) }, { token: TOKEN, browserLogin });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {

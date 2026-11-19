@@ -7,16 +7,16 @@ import { Bus } from "@/foundation/core/bus";
 import { systemClock, type Clock } from "@/foundation/core/clock";
 import { DB_FILE } from "@/foundation/core/db/open";
 import { Store } from "@/foundation/core/db/store";
-import { loadOrCreateToken } from "@/foundation/core/http/auth";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import { setChildProcessReporter, type ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import { runCommand } from "@/foundation/core/system/exec";
-import { streamCommand } from "@/foundation/core/system/stream";
+import { stopAllStreams, streamCommand } from "@/foundation/core/system/stream";
 
-/** 外部コマンド（終わるまで待つ run・流れ続ける stream） */
+/** 外部コマンド（終わるまで待つ run・流れ続ける stream・流れ続けているものを全部止める stopAllStreams） */
 export interface Exec {
   run: typeof runCommand;
   stream: typeof streamCommand;
+  stopAllStreams: typeof stopAllStreams;
 }
 
 export interface CorePaths {
@@ -53,10 +53,9 @@ export interface Kernel {
   readonly log: Log;
 }
 
-/** 表ごとの店の束と本体のトークンも持つ仮の形（店は DB の土台を作り直すときに機能へ、トークンは HTTP の土台へ移す） */
+/** 表ごとの店の束も持つ仮の形（店は DB の土台を作り直すときに機能へ移す） */
 export interface KernelWithStore extends Kernel {
   readonly store: Store;
-  readonly token: string;
 }
 
 export interface KernelOptions {
@@ -80,7 +79,7 @@ const consoleLog: Log = {
 /** 子プロセスの知らせを渡した Kernel（閉じるときにその知らせを外す） */
 const reporting = new WeakSet<Kernel>();
 
-/** 土台を開く: 保存先を作る → Bus → 子プロセスの知らせ → DB を開いて版をそろえる → 本体のトークン */
+/** 土台を開く: 保存先を作る → Bus → 子プロセスの知らせ → DB を開いて版をそろえる */
 export function createKernel(opts: KernelOptions): KernelWithStore {
   fs.mkdirSync(opts.dataDir, { recursive: true });
   const bus = new Bus();
@@ -90,14 +89,13 @@ export function createKernel(opts: KernelOptions): KernelWithStore {
     clock: opts.clock ?? systemClock,
     bus,
     db: store.db,
-    exec: { run: runCommand, stream: streamCommand },
+    exec: { run: runCommand, stream: streamCommand, stopAllStreams },
     platform: opts.platform,
     paths: { dataDir: opts.dataDir, port: opts.port, host: opts.host ?? "127.0.0.1", staticDir: opts.staticDir ?? null, appDataRoot: opts.platform.appDataRoot, databaseId: store.databaseId },
     settings: store.settings,
     secrets: store.secrets,
     log: consoleLog,
     store,
-    token: loadOrCreateToken(opts.dataDir),
   };
   if (opts.onChildProcess) reporting.add(k);
   return k;

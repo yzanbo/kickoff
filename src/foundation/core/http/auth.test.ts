@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import { loadOrCreateToken } from "./auth";
-import { BrowserLogin } from "./browserLogin";
+import { BrowserLogin, loadOrCreateToken } from "./auth";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 
 test("loadOrCreateToken: token がなければ作り、次からは同じ token を返す", () => {

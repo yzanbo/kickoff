@@ -15,7 +15,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 | `system/` | 外部コマンド・パス・`ttlCache.ts`・名前と保存先とポート `appEnv.ts`・開発版のデータの写し `devData.ts`・詰まりの見張り `stallWatch.ts` |
 | `settings/`・`shell/`・`testing/` | 設定・Bash の文の区切り `shellWords.ts`・テストの補助 |
 
-- `close`（`@/app/core/startCore.ts`）は止める順を変えない（エージェント → 流れ続けている外部コマンド → 見張りとサービス → DB ワーカー → `bus.flush` → HTTP → DB。`close` の頭のコメント）。サービスを足したら止めるのも足す。
+- 機能は `feature.ts` の `CoreFeature`（`@/app/core/assemble.ts` が並べる）。`serve.ts` が待ち受けて `start` を作った順に呼び、止める順（`stopPhase: "first"` → 流れ続けている外部コマンド → 残りを作った順の逆 → `bus.flush` → HTTP → DB）も決める。
 - 起動のとき、作業中のまま残ったチャットは未読の失敗にし、途中で止まった印のあるものを再開の確かめに渡す（`store.chats.recoverInterrupted`）。終わりの記録のない最後の作業には `endInterruptedTurns` が `result` を足す。
 - `chat_delta` はほかの知らせより必ず先に流す（`@/features/chat/core/deltaStage.ts`）。知らせはすべて `Bus` を通し、`Bus` を通さずに SSE へ書かない（どの購読者から見ても順が同じ）。
 - 子のプロセス（エージェントの CLI・DB ワーカーの子・診断の `log`）を起こしたら `system/childProcesses.ts` の `reportChildProcess` で知らせる（コアが落ちたらメインが止める）。
@@ -37,7 +37,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## HTTP（`http/`）
 
-- ルートは各機能の `core/routes/<領域>.ts` の `xxxRoutes(app, deps)` で、`http/server.ts` の `createApp` で登録する。登録の順（認証と `onError` のあと、SSE・API の 404・画面の配信の前）を崩さない。
+- ルートは各機能の `core/routes/<領域>.ts` の `xxxRoutes(app, deps)` を `CoreFeature.routes` で出す。登録の順（認証と `onError` のあと、SSE・API の 404・画面の配信の前）は `http/app.ts`。
 - `:id` は `http/lookups.ts` のミドルウェア（`withProject` / `withChat` / `withWorkdir` など）で引き、`c.var` で受ける。作業場所の指定は `http/workdir.ts` の `requireWorktree`、チャットのフォルダは `@/features/chat/core/workdir.ts` の `workdirOf`。
 - 失敗は `errors.ts` の `Invalid` / `NotFound` / `Conflict` を投げ、`http/errorResponse.ts` が `{ error }` にする（外の SDK は `.catch(asInvalid)`）。包み直さない。作業中に断る操作は `runner.requireIdle`（409）。
 - 本文は `http/input.ts` の `jsonBody`、クエリは `queryOf` で読み、zod で確かめる（共通の形は `http/schemas.ts`）。本文の型は `@shared/foundation/apiTypes.ts` に置き、zod は `satisfies` で合わせる。

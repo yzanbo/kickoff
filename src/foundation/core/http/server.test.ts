@@ -5,7 +5,7 @@ import path from "node:path";
 import type { AddressInfo } from "node:net";
 import { test } from "vitest";
 import { startHttpServer, stopHttpServer } from "./httpServer";
-import { readIndexHtml } from "./server";
+import { readIndexHtml } from "./static";
 import { AUTH, TOKEN, setup } from "@/app/core/testing/testServer";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import type { ServerHello } from "@shared/types";

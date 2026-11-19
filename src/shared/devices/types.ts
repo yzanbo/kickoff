@@ -108,3 +108,5 @@ export const VIEWING_TTL_MS = 90_000;
 
 /** スマホ連携がオフのときに、端末からの頼み・ペアリングを断る印 */
 export const MOBILE_OFF = "mobile_off";
+/** スマホ連携がオフのときの断りの文 */
+export const MOBILE_OFF_MESSAGE = "スマホ連携がオフです。Mac の Kickoff の設定「スマホ連携」でオンにしてください";
