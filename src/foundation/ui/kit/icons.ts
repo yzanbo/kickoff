@@ -1,7 +1,7 @@
 import { createLucideIcon } from "lucide-react";
 
 /**
- * チャットの外から、チャットの入力欄に足す（メモの添付・選んだ部分の引用など）ときのアイコン:
+ * チャットの外から、チャットの入力欄に足す（ノートの添付・選んだ部分の引用など）ときのアイコン:
  * 吹き出しの中へ入る下向きの矢印。入力欄の中の「ファイルを添付」（Paperclip）・新しい子チャット（MessageSquarePlus）と形を分ける
  */
 export const AddToChat = createLucideIcon("add-to-chat", [

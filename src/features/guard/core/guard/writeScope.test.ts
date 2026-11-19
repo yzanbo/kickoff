@@ -7,16 +7,16 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 import { writeTargetOf } from "./scope";
 import { judgeFileWrite, type WriteScopeFacts } from "./writeScope";
 
-/** 本体・ワークツリー・サブエージェントのワークツリー・メモ・Claude Code の設定を並べた一時フォルダ（実体のパス） */
+/** 本体・ワークツリー・サブエージェントのワークツリー・ノート・Claude Code の設定を並べた一時フォルダ（実体のパス） */
 function layout() {
   const root = tempDir({ real: true });
   const main = path.join(root, "app");
   const wt = path.join(root, "app-worktrees", "feat-x");
   const sub = path.join(main, ".claude", "worktrees", "agent-1");
-  const memo = path.join(root, "memos");
+  const note = path.join(root, "notes");
   const claude = path.join(root, "claude");
   const other = path.join(root, "other-project");
-  for (const dir of [main, wt, sub, memo, claude, other]) fs.mkdirSync(dir, { recursive: true });
+  for (const dir of [main, wt, sub, note, claude, other]) fs.mkdirSync(dir, { recursive: true });
   const workplaces: Workplace[] = [
     { path: main, worktree_path: null, branch: "main" },
     { path: wt, worktree_path: wt, branch: "feat/x" },
@@ -24,21 +24,21 @@ function layout() {
   ];
   const facts = (workdir: string, over: Partial<WriteScopeFacts> = {}): WriteScopeFacts => ({
     workdir,
-    writableDirs: [memo, path.join(claude, "plans")],
+    writableDirs: [note, path.join(claude, "plans")],
     memoryParents: [path.join(claude, "projects")],
     workplaces: async () => workplaces,
     ...over,
   });
-  return { root, main, wt, sub, memo, claude, other, facts };
+  return { root, main, wt, sub, note, claude, other, facts };
 }
 
-test("書き込み先の守り: 自分の作業場所・メモのフォルダ・Claude Code のメモリと計画・サブエージェントのワークツリーは書ける", async () => {
-  const { main, wt, sub, memo, claude, facts } = layout();
+test("書き込み先の守り: 自分の作業場所・ノートのフォルダ・Claude Code のメモリと計画・サブエージェントのワークツリーは書ける", async () => {
+  const { main, wt, sub, note, claude, facts } = layout();
   const kind = async (workdir: string, target: string) => (await judgeFileWrite(target, facts(workdir))).kind;
   assert.equal(await kind(main, path.join(main, "src/a.ts")), "pass");
   assert.equal(await kind(wt, path.join(wt, "src/a.ts")), "pass");
-  assert.equal(await kind(main, path.join(memo, "開発履歴/a.md")), "pass");
-  assert.equal(await kind(wt, path.join(memo, "a.html")), "pass");
+  assert.equal(await kind(main, path.join(note, "開発履歴/a.md")), "pass");
+  assert.equal(await kind(wt, path.join(note, "a.html")), "pass");
   assert.equal(await kind(main, path.join(claude, "projects", "-Users-x-app", "memory", "a.md")), "pass");
   assert.equal(await kind(main, path.join(claude, "plans", "plan.md")), "pass");
   // サブエージェントのワークツリーは、本体のチャットからもワークツリーのチャットからも書ける（本体の中に置かれる）

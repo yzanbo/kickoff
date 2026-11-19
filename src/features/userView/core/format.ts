@@ -44,8 +44,8 @@ function tabText(tab: UserViewTab, chatId: number): string {
     }
     case "changes":
       return `変更（差分）${tab.focus ? `: ${tab.focus}` : ""}${tab.worktree ? `（ワークツリー ${tab.worktree}）` : ""}`;
-    case "memo":
-      return `メモ: ${tab.path}${tab.selected_text ? `\n    選んでいる文: 「${tab.selected_text}」` : ""}`;
+    case "note":
+      return `ノート: ${tab.path}${tab.selected_text ? `\n    選んでいる文: 「${tab.selected_text}」` : ""}`;
     case "browser":
       return `ブラウザ: ${tab.title || "（題なし）"}（${tab.url}）`;
     case "github":
@@ -64,8 +64,8 @@ function tabSummary(tab: UserViewTab): string {
   switch (tab.kind) {
     case "editor":
       return `エディタ: ${path.basename(tab.path)}${tab.selection ? ` ${tab.selection.from_line === tab.selection.to_line ? `${tab.selection.from_line} 行` : `${tab.selection.from_line}〜${tab.selection.to_line} 行`}を選択中` : ""}`;
-    case "memo":
-      return `メモ: ${path.basename(tab.path)}${tab.selected_text ? "（文を選択中）" : ""}`;
+    case "note":
+      return `ノート: ${path.basename(tab.path)}${tab.selected_text ? "（文を選択中）" : ""}`;
     case "chat":
     case "child_chat":
       return `チャット「${tab.title}」`;
@@ -74,10 +74,10 @@ function tabSummary(tab: UserViewTab): string {
   }
 }
 
-/** 記録の行に出すとき、どのタブを先に挙げるか（選んでいるもの → エディタ・メモ → 開いている issue・PR → ブラウザ・DB → ほか） */
+/** 記録の行に出すとき、どのタブを先に挙げるか（選んでいるもの → エディタ・ノート → 開いている issue・PR → ブラウザ・DB → ほか） */
 function weight(tab: UserViewTab): number {
   if (tab.kind === "editor") return tab.selection ? 0 : 2;
-  if (tab.kind === "memo") return tab.selected_text ? 1 : 3;
+  if (tab.kind === "note") return tab.selected_text ? 1 : 3;
   if (tab.kind === "github" && tab.item) return 4;
   if (tab.kind === "browser" || tab.kind === "database" || tab.kind === "changes") return 5;
   if (tab.kind === "chat" || tab.kind === "child_chat" || tab.kind === "new_chat") return 9;

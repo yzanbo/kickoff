@@ -1,4 +1,4 @@
-// kickoff_chat の画面に頼むツール（open_memo・open_chat・open_file・open_diff・open_sql・add_draft）。中身は core/chat/aiOpen.ts、ここは引数の形と使い方だけ
+// kickoff_chat の画面に頼むツール（open_note・open_chat・open_file・open_diff・open_sql・add_draft）。中身は core/chat/aiOpen.ts、ここは引数の形と使い方だけ
 import { defineTool as tool } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
 import { OPEN_PLACES } from "@shared/types";
@@ -7,10 +7,10 @@ import { run } from "@/foundation/core/aiTools/chatToolResult";
 
 /** 画面に頼むツールの使い方（MCP の instructions として AI に渡す） */
 export const OPEN_INSTRUCTIONS = [
-  "open_memo は、このプロジェクトのメモ（メモのフォルダの .md・.html）を Kickoff の画面に開く。path はメモのフォルダからの相対パスか、メモのフォルダの中の絶対パス。",
+  "open_note は、このプロジェクトのノート（ノートのフォルダの .md・.html）を Kickoff の画面に開く。path はノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パス。",
   "open_chat は、このチャットと同じ家系のチャット（list_family_chats の一覧）を Kickoff の画面に開く。子チャット・孫チャットは右の欄か別ウィンドウ、いちばん上の親チャットはチャットのパネルに開く。",
   "open_file は、このチャットの作業場所のファイルを開く（line でその行を目立たせる）。open_diff は、作業場所のまだコミットしていない変更を開く（path でそのファイルの位置へ）。利用者に「ここを見てください」と見せるときに使う。",
-  "place は side（いちばん上の親チャットの画面の右の欄。子チャットの中からでも親の右の欄に開く）か window（別ウィンドウ）。利用者が「右で」「右の欄で」「サイドで」と言ったら side、「別ウィンドウで」「新しいウィンドウで」と言ったら window。場所を言われなければ省く（メモ・チャットは利用者の設定の開き方、ファイル・差分は右の欄）。",
+  "place は side（いちばん上の親チャットの画面の右の欄。子チャットの中からでも親の右の欄に開く）か window（別ウィンドウ）。利用者が「右で」「右の欄で」「サイドで」と言ったら side、「別ウィンドウで」「新しいウィンドウで」と言ったら window。場所を言われなければ省く（ノート・チャットは利用者の設定の開き方、ファイル・差分は右の欄）。",
   "open_sql は、このプロジェクトの DB の接続（AI に見せる接続だけ）の新しい SQL のタブに SQL を入れて開く。流さない（流すのは利用者）。書き込みの SQL を用意して、利用者に確かめてから流してもらうときに使う。",
   "add_draft は、同じ家系のチャット（list_family_chats の一覧。親チャット・子チャットなど）の入力欄に下書きを入れる。書きかけがあれば、その後ろに足す（消さない）。親チャットに入れると「子チャットから渡した」の印も付く。送るのは利用者。利用者が「親チャットに渡して」「〇〇の入力欄に入れて」と頼んだときに使う。",
   "どれも開く・入れるだけで何も変えないので、聞かずに頼む。頼まれていないのに開かない・入れない。開けたかは返らない（画面に頼むだけ）。",
@@ -21,10 +21,10 @@ export function openTools(open: AiOpenTools) {
   const place = z.enum(OPEN_PLACES).optional().describe("side = 右の欄（いちばん上の親チャットの画面）/ window = 別ウィンドウ。利用者が場所を言わなければ省く");
   return [
     tool(
-      "open_memo",
-      "このプロジェクトのメモを Kickoff の画面（右の欄・別ウィンドウ）に開く（開くだけ）",
-      { path: z.string().min(1).describe("メモのフォルダからの相対パス（「機能の仕様/図.html」）か、メモのフォルダの中の絶対パス"), place },
-      run((args) => open.openMemo(args)),
+      "open_note",
+      "このプロジェクトのノートを Kickoff の画面（右の欄・別ウィンドウ）に開く（開くだけ）",
+      { path: z.string().min(1).describe("ノートのフォルダからの相対パス（「機能の仕様/図.html」）か、ノートのフォルダの中の絶対パス"), place },
+      run((args) => open.openNote(args)),
     ),
     tool(
       "open_chat",

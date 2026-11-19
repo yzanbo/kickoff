@@ -39,7 +39,7 @@ export function applyHostEvent(state: HostState, e: BusEvent): HostState {
   }
 }
 
-/** 一覧の 1 行（アーカイブ・子チャット・メモのチャットは出さない。回答待ち → 作業中 → 未読 → 最後に動いた順） */
+/** 一覧の 1 行（アーカイブ・子チャット・ノートのチャットは出さない。回答待ち → 作業中 → 未読 → 最後に動いた順） */
 export interface ChatRow {
   chat: Chat;
   state: AgentState;
@@ -55,7 +55,7 @@ export function chatSections(state: HostState): { project: Project; rows: ChatRo
     .map((project) => ({
       project,
       rows: state.chats
-        .filter((c) => c.project_id === project.id && c.archived_at === null && c.parent_chat_id === null && c.memo_path === null)
+        .filter((c) => c.project_id === project.id && c.archived_at === null && c.parent_chat_id === null && c.note_path === null)
         .map((chat) => ({ chat, state: agentStateOf(chat, pending.has(chat.id)) }))
         .sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state] || b.chat.active_at.localeCompare(a.chat.active_at)),
     }));

@@ -26,7 +26,7 @@ const live = (over: Partial<ChatLive>) =>
 test("起動したときの再開の確かめの一覧: 答えた・空になった・消したら外し、送信待ちが変わったら中身を直す", () => {
   const list = [resume(1), resume(2)];
   // 関係のない知らせ・ほかのチャットでは同じ一覧
-  assert.equal(reduceRestartResumes(list, { type: "memos", project_id: 1, path: null }), list);
+  assert.equal(reduceRestartResumes(list, { type: "notes", project_id: 1, path: null }), list);
   assert.equal(reduceRestartResumes(list, { type: "chat_live", project_id: 1, chat_id: 9, live: live({}) }), list);
   // 答えた（restart_resume が null）
   assert.deepEqual(

@@ -10,7 +10,7 @@ import { useDbClient } from "./dbClientContext";
 import { requestDbClient } from "./dbClientRequests";
 import { disconnectConnection } from "./sqlSessions";
 
-/** 接続の右クリック: 接続する / 接続を切る・SQL を開く・ER 図・手順メモ・準備のコマンド（あれば）・編集・写す・消す */
+/** 接続の右クリック: 接続する / 接続を切る・SQL を開く・ER 図・手順ノート・準備のコマンド（あれば）・編集・写す・消す */
 export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; connection: DbConnection; onClose: () => void }) {
   const client = useDbClient();
   const connected = useDbConnectedIds(client.projectId).data?.includes(c.id) ?? false;
@@ -74,8 +74,8 @@ export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; 
       <MenuItem onSelect={() => void openEr()}>
         <Network size={14} /> ER 図
       </MenuItem>
-      <MenuItem onSelect={() => client.openMemo(c)}>
-        <StickyNote size={14} /> {c.memo_path ? "手順メモを開く" : "手順メモを作る…"}
+      <MenuItem onSelect={() => client.openNote(c)}>
+        <StickyNote size={14} /> {c.note_path ? "手順ノートを開く" : "手順ノートを作る…"}
       </MenuItem>
       {c.prep && (
         <MenuItem onSelect={() => client.showPrep({ connection: c })}>
@@ -85,7 +85,7 @@ export function ConnectionMenu({ at, connection: c, onClose }: { at: Placement; 
       <MenuItem onSelect={() => client.editConnection(c)}>
         <Pencil size={14} /> 編集…
       </MenuItem>
-      <MenuItem onSelect={() => void duplicate()} title="同じ設定（パスワード・手順メモも）で新しい接続を作り、編集を開く">
+      <MenuItem onSelect={() => void duplicate()} title="同じ設定（パスワード・手順ノートも）で新しい接続を作り、編集を開く">
         <Copy size={14} /> 写す…
       </MenuItem>
       <MenuItem danger onSelect={() => void remove()}>

@@ -1,7 +1,7 @@
-/* ==== 接続の手順メモ・つながらないときの案内（DbFailureDialog・DbFailureHelp・木の手順メモの印） ==== */
+/* ==== 接続の手順ノート・つながらないときの案内（DbFailureDialog・DbFailureHelp・木の手順ノートの印） ==== */
 
-/* 木の接続の行の名前の後ろの、手順メモがあることの小さな印 */
-.db-tree-memo {
+/* 木の接続の行の名前の後ろの、手順ノートがあることの小さな印 */
+.db-tree-note {
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -59,12 +59,12 @@
   word-break: break-word;
 }
 
-.db-failure-memo {
+.db-failure-note {
   display: grid;
   gap: 6px;
 }
 
-.db-failure-memo-head {
+.db-failure-note-head {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -72,24 +72,24 @@
   font-weight: 600;
 }
 
-.db-failure-memo-head > .muted {
+.db-failure-note-head > .muted {
   overflow: hidden;
   font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.db-failure-memo-tools {
+.db-failure-note-tools {
   display: inline-flex;
   gap: 6px;
   margin-left: auto;
 }
 
-.db-failure-memo p {
+.db-failure-note p {
   margin: 0;
 }
 
-.db-failure-memo-body {
+.db-failure-note-body {
   max-height: 34vh;
   padding: 4px 12px;
   overflow: auto;
@@ -107,14 +107,14 @@
   vertical-align: -2px;
 }
 
-/* 接続のダイアログの手順メモの欄（選ぶ ▾ と「新しく作る…」） */
-.db-memo-field {
+/* 接続のダイアログの手順ノートの欄（選ぶ ▾ と「新しく作る…」） */
+.db-note-field {
   display: flex;
   gap: 6px;
   align-items: center;
 }
 
-.db-memo-field select {
+.db-note-field select {
   flex: 1;
   min-width: 0;
 }

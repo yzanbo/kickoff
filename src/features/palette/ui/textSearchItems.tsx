@@ -1,9 +1,9 @@
 import { Bot, FileCode2, StickyNote, User } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
-import { memoKindOf } from "@shared/notes/kinds";
-import type { MemoSearchHit, SearchHit } from "@shared/types";
+import { noteKindOf } from "@shared/notes/kinds";
+import type { NoteSearchHit, SearchHit } from "@shared/types";
 import { chatTitle } from "@/features/chat/ui/chatTitle";
-import { baseName } from "@/features/notes/ui/memoPaths";
+import { baseName } from "@/features/notes/ui/notePaths";
 import type { PaletteItem } from "./paletteItem";
 
 /** 打つのが止まってから探すまでの時間 */
@@ -32,20 +32,20 @@ export function messageItem(hit: SearchHit, projectName: (id: number) => string)
   };
 }
 
-/** メモの中の文で見つかった 1 行を、⌘K の行にする（押すとそのプロジェクトのメモのタブでメモを開き、その行へ移る） */
-export function memoTextItem(hit: MemoSearchHit, projectName: (id: number) => string): PaletteItem {
+/** ノートの中の文で見つかった 1 行を、⌘K の行にする（押すとそのプロジェクトのノートのタブでノートを開き、その行へ移る） */
+export function noteTextItem(hit: NoteSearchHit, projectName: (id: number) => string): PaletteItem {
   return {
     key: `mt-${hit.project_id}-${hit.path}-${hit.line}`,
     label: marked(hit.text, hit.match_start, hit.match_end),
     text: hit.text,
     hint: `${baseName(hit.path)}:${hit.line} · ${projectName(hit.project_id)}`,
-    icon: memoKindOf(hit.path) === "html" ? <FileCode2 size={15} aria-label="HTML のメモ" /> : <StickyNote size={15} aria-label="メモ" />,
-    route: { name: "project", id: hit.project_id, tab: "memos", memo: hit.path, memoLine: hit.line },
+    icon: noteKindOf(hit.path) === "html" ? <FileCode2 size={15} aria-label="HTML のノート" /> : <StickyNote size={15} aria-label="ノート" />,
+    route: { name: "project", id: hit.project_id, tab: "notes", note: hit.path, noteLine: hit.line },
   };
 }
 
 /**
- * 中身の文で探す（チャット内の文言・メモ内の文言）: 入力が止まったら search で探す。対象に入れていない・入力が空なら探さない。
+ * 中身の文で探す（チャット内の文言・ノート内の文言）: 入力が止まったら search で探す。対象に入れていない・入力が空なら探さない。
  * 古い入力の結果が後から届いても使わない
  */
 export function useDebouncedSearch<T>(query: string, enabled: boolean, search: (q: string) => Promise<T[]>) {

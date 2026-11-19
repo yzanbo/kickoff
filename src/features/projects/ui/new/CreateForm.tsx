@@ -10,7 +10,7 @@ import { folderOverlaps } from "@/features/projects/ui/folderOverlaps";
 import { FolderOverlapNotice } from "@/features/projects/ui/OverlapNotice";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { FolderField } from "./FolderField";
-import { memoDirBody, MemoDirField } from "./MemoDirField";
+import { noteDirBody, NoteDirField } from "./NoteDirField";
 import type { FormProps } from "./NewProjectDialog";
 
 /** 英数字だけのフォルダ名を名前から作る（日本語だけの名前なら空になるので手入力してもらう） */
@@ -37,8 +37,8 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
   const [parentRepo, setParentRepo] = useState<string | null>(null);
   // 保存先の実体のパス（リンクを解いたもの。ほかのプロジェクトのフォルダとの被りを比べる）
   const [parentReal, setParentReal] = useState<string>();
-  // メモの保存先を手で決めた場所（null なら保存先・フォルダ名から自動）
-  const [memoDir, setMemoDir] = useState<string | null>(null);
+  // ノートの保存先を手で決めた場所（null なら保存先・フォルダ名から自動）
+  const [noteDir, setNoteDir] = useState<string | null>(null);
   const { submitting, error, submit } = useSubmit();
 
   // フォルダ名を手で変えるまでは、名前から自動で提案する
@@ -74,7 +74,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
 
   const create = (e: FormEvent) => {
     e.preventDefault();
-    void submit(async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName, init_git: initGit, ...memoDirBody(folderName, memoDir) })));
+    void submit(async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName, init_git: initGit, ...noteDirBody(folderName, noteDir) })));
   };
 
   const fullPath = `${parentDir.replace(/\/+$/, "")}/${folderName || "…"}`;
@@ -115,7 +115,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
         <FolderOverlapNotice path={realTarget} same="ng" />
       </Field>
 
-      <MemoDirField base={folderName} custom={memoDir} onCustom={setMemoDir} />
+      <NoteDirField base={folderName} custom={noteDir} onCustom={setNoteDir} />
 
       <GitInitField
         on={parentRepo ? "このフォルダで新しく始める" : "git で管理する"}

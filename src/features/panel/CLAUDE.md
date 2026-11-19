@@ -1,6 +1,6 @@
 # タブの入れ物（`src/features/panel`）
 
-タブを並べる欄。8 つの欄（`board`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`memos`・`files`・別ウィンドウ `window`・`chatWindow`）は同じ `Panel` / `usePanel` で、違いは `SURFACES` と欄の殻が渡す `frame` だけ。
+タブを並べる欄。8 つの欄（`board`・右サイドバー `side`・`bottom`・チャットの右の欄 `agents`・`notes`・`files`・別ウィンドウ `window`・`chatWindow`）は同じ `Panel` / `usePanel` で、違いは `SURFACES` と欄の殻が渡す `frame` だけ。
 パスは `ui/` から。チャットの部分（サイドバーとの連動・タブのまとまり・下書き・右の欄）は `src/features/chatPanel/CLAUDE.md`、タブの中身のチャットは `src/features/conversation/CLAUDE.md`、ターミナルは `src/features/terminal/CLAUDE.md`、ブラウザは `src/features/browser/CLAUDE.md`。
 
 | フォルダ | 中身 |

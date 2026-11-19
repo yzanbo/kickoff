@@ -114,7 +114,7 @@ export function createTrashStore(db: DatabaseSync, onChange: Notify) {
       db.prepare("UPDATE trash_items SET size = ? WHERE id = ?").run(size, id);
       onChange({ type: "trash", project_id: item.project_id });
     },
-    /** 種類ごとの覚え書きを書き直す（AI が入れたメモに、メモのフォルダからのパスを足すなど） */
+    /** 種類ごとの覚え書きを書き直す（AI が入れたノートに、ノートのフォルダからのパスを足すなど） */
     setDetails(id: string, details: Record<string, unknown>): void {
       db.prepare("UPDATE trash_items SET details = ? WHERE id = ?").run(JSON.stringify(details), id);
     },

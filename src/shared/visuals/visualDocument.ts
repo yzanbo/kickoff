@@ -116,7 +116,7 @@ export function visualDocument(input: { kind: "svg" | "html"; code: string; vars
   return `<!doctype html>\n<html><head>\n${head}\n</head><body>\n${body}\n</body></html>`;
 }
 
-/** 明るいテーマの値（HTML のメモに保存するとき・スマホの明るい配色。画面はいまのテーマの値を CSS から読んで渡す） */
+/** 明るいテーマの値（HTML のノートに保存するとき・スマホの明るい配色。画面はいまのテーマの値を CSS から読んで渡す） */
 export const VISUAL_LIGHT_THEME: VisualThemeValues = {
   "--vis-bg": "#ffffff",
   "--vis-surface": "#f6f8fa",
@@ -140,10 +140,10 @@ export const VISUAL_LIGHT_THEME: VisualThemeValues = {
 const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 /**
- * 図を HTML のメモにするときの中身（明るいテーマの値を置いたページ。HTML のメモの表示はスクリプトを動かさないので、
+ * 図を HTML のノートにするときの中身（明るいテーマの値を置いたページ。HTML のノートの表示はスクリプトを動かさないので、
  * スクリプトで描くグラフは描かれない）
  */
-export function visualMemoHtml(title: string, code: string): string {
+export function visualNoteHtml(title: string, code: string): string {
   return `<!doctype html>
 <html lang="ja">
 <head>

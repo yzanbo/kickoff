@@ -1,4 +1,4 @@
-// メモの Markdown の中の ```mermaid（~~~mermaid）の塊を探す（メモのライブ表示で図にするため。純粋な関数）
+// ノートの Markdown の中の ```mermaid（~~~mermaid）の塊を探す（ノートのライブ表示で図にするため。純粋な関数）
 
 /** Mermaid の塊。from は開きの行の頭、to は閉じの行の終わり（閉じていなければ探さない）、code は中身 */
 export interface MermaidBlock {

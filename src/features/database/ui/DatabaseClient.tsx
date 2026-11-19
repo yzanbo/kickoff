@@ -9,12 +9,12 @@ import {
   closeConnectionTabs,
   closeDbTab,
   openErTab,
-  openMemoTab,
+  openNoteTab,
   openNewSqlTab,
   openPreviewTab,
   openTableTab,
   pinDbTab,
-  renameMemoTab,
+  renameNoteTab,
   setSqlConnection,
   setTableFilter,
   tableTabKey,
@@ -24,7 +24,7 @@ import {
 import { DB_LIST_HIDDEN, DB_LIST_WIDTH, dbClientTabs, dbSqlDraft, dbTreeOpen } from "@/foundation/ui/storage/storageKeys";
 import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
 import { useDbConnections } from "@/features/database/ui/client/connectionsStore";
-import { SideMemo } from "@/features/notes/ui/SideMemo";
+import { SideNote } from "@/features/notes/ui/SideNote";
 import { PopOutTabButton } from "@/features/panel/ui/tabs/PopOutTabButton";
 import { CloseButton, IconButton } from "@/foundation/ui/kit/IconButton";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";
@@ -40,7 +40,7 @@ import { DbHome } from "./DbHome";
 import { DbList } from "./DbList";
 import { DbPrepDialog } from "./DbPrepDialog";
 import { useDbClientRequests } from "./dbClientRequests";
-import { createConnectionMemo } from "./dbMemo";
+import { createConnectionNote } from "./dbNote";
 import { breadcrumbOf, DbTabIcon, PendingMark, tabLabel, tabTitle, UnsavedMark } from "./DbTabParts";
 import { DefinitionView } from "./DefinitionView";
 import { finishSession } from "./sqlSessions";
@@ -144,17 +144,17 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
       setOverlay(false);
     },
     editConnection: (c) => setEditing(c),
-    openMemo: (c) => void openConnectionMemo(c),
+    openNote: (c) => void openConnectionNote(c),
     showFailure: setFailure,
     showPrep: setPrepFor,
   };
 
-  /** 接続の手順メモをタブで開く（なければ作ってから。作るのをやめたら何もしない） */
-  const openConnectionMemo = async (c: DbConnection) => {
-    const path = c.memo_path ?? (await createConnectionMemo(projectId, c));
+  /** 接続の手順ノートをタブで開く（なければ作ってから。作るのをやめたら何もしない） */
+  const openConnectionNote = async (c: DbConnection) => {
+    const path = c.note_path ?? (await createConnectionNote(projectId, c));
     if (!path) return;
     // 作るダイアログの間にタブが変わっていてもよいよう、いまの値から開く
-    setState(openMemoTab(readSetting(dbClientTabs(place)), c.id, path));
+    setState(openNoteTab(readSetting(dbClientTabs(place)), c.id, path));
     setOverlay(false);
   };
 
@@ -252,14 +252,14 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
               if (!c) return null;
               return (
                 <div key={t.key} className="db-tab-page" hidden={t.key !== state.active}>
-                  {t.kind === "memo" ? (
-                    <SideMemo
+                  {t.kind === "note" ? (
+                    <SideNote
                       projectId={projectId}
                       path={t.path}
                       chatId={null}
-                      memoTabButton
-                      // 接続の memo_path はコアが付け替えて知らせる
-                      onRenamed={(to) => setState(renameMemoTab(readSetting(dbClientTabs(place)), t.key, to))}
+                      noteTabButton
+                      // 接続の note_path はコアが付け替えて知らせる
+                      onRenamed={(to) => setState(renameNoteTab(readSetting(dbClientTabs(place)), t.key, to))}
                     />
                   ) : t.kind === "sql" ? (
                     <SqlView tab={t} connection={c} active={t.key === state.active} />
@@ -300,10 +300,10 @@ export function DatabaseClient({ projectId, place, worktree }: { projectId: numb
         {failure && (
           <DbFailureDialog
             projectId={projectId}
-            // 一覧が取り直されたら（手順メモを結んだなど）新しい方で
+            // 一覧が取り直されたら（手順ノートを結んだなど）新しい方で
             connection={byId.get(failure.connection.id) ?? failure.connection}
             error={failure.error}
-            onMemo={() => void openConnectionMemo(byId.get(failure.connection.id) ?? failure.connection)}
+            onNote={() => void openConnectionNote(byId.get(failure.connection.id) ?? failure.connection)}
             onRetry={failure.retry}
             onPrep={() => setPrepFor({ connection: failure.connection, retry: failure.retry })}
             onClose={() => setFailure(null)}

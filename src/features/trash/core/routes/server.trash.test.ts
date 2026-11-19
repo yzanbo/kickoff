@@ -182,23 +182,23 @@ test("ゴミ箱: kickoff-trash（Kickoff が置く sh）で入れたものが、
   assert.equal(fs.readFileSync(path.join(work, "dist", "x", "a.js"), "utf8"), "1");
 });
 
-test("ゴミ箱: AI が kickoff-trash でメモを消したら、メモのチャットも同じ行に入り、戻すと一緒に戻る", async () => {
+test("ゴミ箱: AI が kickoff-trash でノートを消したら、ノートのチャットも同じ行に入り、戻すと一緒に戻る", async () => {
   const { call, project, trashBin, store, runner } = setup();
   const base = `/api/projects/${project.id}`;
-  await call("POST", `${base}/memos`, { path: "案.md", content: "# 案" });
-  const memoDir = (await call("GET", `${base}/memos`)).body.dir as string;
-  const memoChat = store.chats.create({ project_id: project.id, provider: "claude", title: "案のチャット", status: "completed", memo_path: "案.md" });
+  await call("POST", `${base}/notes`, { path: "案.md", content: "# 案" });
+  const noteDir = (await call("GET", `${base}/notes`)).body.dir as string;
+  const noteChat = store.chats.create({ project_id: project.id, provider: "claude", title: "案のチャット", status: "completed", note_path: "案.md" });
   const worker = store.chats.create({ project_id: project.id, provider: "claude", title: "片付け", status: "completed" });
   const bin = await installTrashCommand(tempDir());
-  await execFileAsync("sh", ["-c", `kickoff-trash "${path.join(memoDir, "案.md")}"`], { env: { ...process.env, ...trashCommandEnv({ path: bin, dir: trashBin.dir }, worker.id) } });
+  await execFileAsync("sh", ["-c", `kickoff-trash "${path.join(noteDir, "案.md")}"`], { env: { ...process.env, ...trashCommandEnv({ path: bin, dir: trashBin.dir }, worker.id) } });
 
   const list = (await call("GET", `${base}/trash`)).body as TrashItem[];
   assert.equal(list.length, 1);
-  assert.equal(store.chats.get(memoChat.id), undefined);
-  assert.equal(runner.isBusy(memoChat.id), false);
+  assert.equal(store.chats.get(noteChat.id), undefined);
+  assert.equal(runner.isBusy(noteChat.id), false);
   await call("POST", `/api/trash/${list[0].id}/restore`, {});
-  assert.equal(store.chats.get(memoChat.id)?.memo_path, "案.md");
-  assert.ok(fs.existsSync(path.join(memoDir, "案.md")));
+  assert.equal(store.chats.get(noteChat.id)?.note_path, "案.md");
+  assert.ok(fs.existsSync(path.join(noteDir, "案.md")));
 });
 
 test("プロジェクトのゴミ箱: 消すとチャットごと一覧から外れ、同じフォルダの登録は戻すよう断る。戻すとチャットも戻り、3 日たてば本当に消える", async () => {
@@ -208,15 +208,15 @@ test("プロジェクトのゴミ箱: 消すとチャットごと一覧から外
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "中のチャット", status: "completed" });
   store.events.add(chat.id, { type: "init", session_id: "sess-p" });
   const snippet = store.snippets.create({ project_id: project.id, label: "このプロジェクトだけ", text: "本文" });
-  const memoFolder = store.projects.update(project.id, { memo_folder: "消す" }).memo_folder;
+  const noteFolder = store.projects.update(project.id, { note_folder: "消す" }).note_folder;
 
   const removed = await call("DELETE", `/api/projects/${project.id}`);
   assert.equal(removed.status, 200);
   // ゴミ箱にある間は、そのプロジェクトだけの定型文も一覧から外れる
   assert.ok(!((await call("GET", "/api/snippets")).body as { id: number }[]).some((s) => s.id === snippet.id));
-  // 新しいプロジェクトのメモのフォルダは、ゴミ箱のプロジェクトのフォルダ名と重ねない（戻したときに同じフォルダを指さないように）
-  const other = (await call("POST", "/api/projects/import", { path: tempDir(), name: "消す", provider: "claude", memo_folder: "消す" })).body;
-  assert.notEqual(store.projects.get(other.id)?.memo_folder, memoFolder);
+  // 新しいプロジェクトのノートのフォルダは、ゴミ箱のプロジェクトのフォルダ名と重ねない（戻したときに同じフォルダを指さないように）
+  const other = (await call("POST", "/api/projects/import", { path: tempDir(), name: "消す", provider: "claude", note_folder: "消す" })).body;
+  assert.notEqual(store.projects.get(other.id)?.note_folder, noteFolder);
   assert.equal(store.projects.get(project.id), undefined);
   assert.equal(store.chats.get(chat.id), undefined);
   assert.ok(!((await call("GET", "/api/projects")).body as { id: number }[]).some((p) => p.id === project.id));

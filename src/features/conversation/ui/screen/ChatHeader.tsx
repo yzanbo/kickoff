@@ -18,7 +18,7 @@ import { useChatPane, useChatPaneState } from "@/features/chat/ui/screen/ports";
  * チャットの見出し: プロジェクト・グループ・作業場所のバッジとチャットの名前（親のないチャットだけ。ダブルクリックで名前を変える）、右に道具（会話 / 動き・検索など。アーカイブはタブ・サイドバーの右クリックから）・ターン数と API 換算。
  * 右端に右の欄の開閉（右の欄を置ける画面だけ。子チャットの画面の中には右の欄を重ねないので出さない）。
  * 閉じる・状態の印（作業中・回答待ちなど）はパネルのタブにあるので、ここには出さない。
- * 子チャットは上の帯（ChildChatBar）に名前があり、メモのチャットはメモの欄の中なので、名前を出さない。
+ * 子チャットは上の帯（ChildChatBar）に名前があり、ノートのチャットはノートの欄の中なので、名前を出さない。
  * 行を出すか・どの項目を出すかは、タブの列の「表示」の「チャットの画面」（見出しの何もないところの右クリックでも同じもの）で選ぶ。
  * 行を隠していても、動きを見ている間（会話へ戻れるように）とアーカイブ済みのチャット（気づけるように）は出す。
  * 検索欄を見出しに出していないとき（行・項目を隠した）は、⌘F でチャットの右上に浮かせて出す（下の会話は動かさない）
@@ -48,7 +48,7 @@ export function ChatHeader({
 
   const turns = shows("turns") && chat.num_turns > 0;
   const cost = shows("cost") && chat.cost_usd > 0;
-  const title = shows("title") && chat.parent_chat_id === null && chat.memo_path === null;
+  const title = shows("title") && chat.parent_chat_id === null && chat.note_path === null;
   // バッジ・数は、「見出しに出す項目」で並べ替えた順に出す
   const badges: Record<"project" | "group" | "worktree", ReactNode> = {
     project: project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />,

@@ -2,9 +2,9 @@ import { Clipboard, FileText, LayoutGrid, ListChecks, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { DB_ER_AUTO_MAX, type DbConnection } from "@shared/types";
 import { erMermaid, erPlace } from "@shared/database/erDiagram";
-import { safeMemoName, uniqueMemoName } from "@shared/notes/names";
+import { safeNoteName, uniqueNoteName } from "@shared/notes/names";
 import { api } from "@/foundation/ui/api";
-import { openMemo } from "@/foundation/ui/navigation/router";
+import { openNote } from "@/foundation/ui/navigation/router";
 import type { DbErTab } from "@/features/database/ui/client/dbClientTabs";
 import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";
 import { RefreshButton } from "@/foundation/ui/kit/IconButton";
@@ -32,7 +32,7 @@ const DEPTHS = [
 
 /**
  * ER 図の道具の行: 名前の絞り込み・まわりの段（中心のテーブルがあるとき）・表示の細かさ・推測の関係・テーブルを選ぶ・
- * 自動で並べ直す・Mermaid でコピー・メモに書き出す・画像で保存（SVG / PNG）・見えているテーブルについてチャットで聞く・読み直す
+ * 自動で並べ直す・Mermaid でコピー・ノートに書き出す・画像で保存（SVG / PNG）・見えているテーブルについてチャットで聞く・読み直す
  */
 export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; connection: DbConnection; er: ErDiagramState; onChange: (patch: ErTabPatch) => void }) {
   const client = useDbClient();
@@ -41,7 +41,7 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
   const [copied, setCopied] = useState(false);
   const names = er.schema?.names ?? [];
 
-  // 書き出すメモ・画像の名前
+  // 書き出すノート・画像の名前
   const title = `ER 図 ${connection.name} ${erPlace(tab.path)}${tab.focus ? ` ${tab.focus}` : ""}`;
   const mermaid = () => erMermaid(er.shown, er.shownRelations, er.detail);
   const copy = async () => {
@@ -49,20 +49,20 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   };
-  /** 見えているものを Mermaid の文にしてメモに書き出す（失敗は投げる） */
-  const writeMemo = async () => {
-    const list = await api.memos(client.projectId);
+  /** 見えているものを Mermaid の文にしてノートに書き出す（失敗は投げる） */
+  const writeNote = async () => {
+    const list = await api.notes(client.projectId);
     const taken = list.entries.filter((e) => !e.dir && !e.path.includes("/")).map((e) => e.path.replace(/\.md$/i, ""));
-    const name = uniqueMemoName(safeMemoName(title), taken);
+    const name = uniqueNoteName(safeNoteName(title), taken);
     const where = [connection.name, tab.path.database, tab.path.schema].filter(Boolean).join(" / ");
     const content = `# ER 図: ${where}${tab.focus ? `（${tab.focus} のまわり）` : ""}\n\n\`\`\`mermaid\n${mermaid()}\n\`\`\`\n`;
     const path = `${name}.md`;
-    await api.createMemo(client.projectId, path, { content });
-    if (await confirmDialog({ title: "メモに書き出しました", message: `メモ「${path}」に Mermaid の ER 図を書き出しました。メモのタブで開きますか？`, confirmLabel: "開く" })) {
-      openMemo(client.projectId, path);
+    await api.createNote(client.projectId, path, { content });
+    if (await confirmDialog({ title: "ノートに書き出しました", message: `ノート「${path}」に Mermaid の ER 図を書き出しました。ノートのタブで開きますか？`, confirmLabel: "開く" })) {
+      openNote(client.projectId, path);
     }
   };
-  const exportMemo = () => writeMemo().catch((e: unknown) => void reportFailure("メモに書き出せませんでした")(e));
+  const exportNote = () => writeNote().catch((e: unknown) => void reportFailure("ノートに書き出せませんでした")(e));
 
   return (
     <div className="db-er-toolbar">
@@ -97,8 +97,8 @@ export function ErToolbar({ tab, connection, er, onChange }: { tab: DbErTab; con
       <button type="button" className="btn btn-sm" disabled={er.shown.length === 0} onClick={() => void copy()} data-tip="見えているテーブルを Mermaid の erDiagram の文でコピー">
         <Clipboard size={13} aria-hidden /> {copied ? "コピーしました" : "Mermaid でコピー"}
       </button>
-      <button type="button" className="btn btn-sm" disabled={er.shown.length === 0} onClick={() => void exportMemo()} data-tip="見えているテーブルを Mermaid の図にして、このプロジェクトのメモに書き出す">
-        <FileText size={13} aria-hidden /> メモに書き出す
+      <button type="button" className="btn btn-sm" disabled={er.shown.length === 0} onClick={() => void exportNote()} data-tip="見えているテーブルを Mermaid の図にして、このプロジェクトのノートに書き出す">
+        <FileText size={13} aria-hidden /> ノートに書き出す
       </button>
       <ErImageButton er={er} name={title} />
       <AskAiButton connection={connection} path={tab.path} tables={er.shown.map((t) => t.name)} label="チャットで聞く" />

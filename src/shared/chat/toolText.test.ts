@@ -3,8 +3,8 @@ import { test } from "vitest";
 import { describeApprovalInput, describeTool, describeToolInput, describeUnknownInput, toolLabel, visibleToolResult } from "./toolText";
 import { AI_LIST_FAMILY_TOOL, AI_UPDATE_CHAT_TOOL } from "./aiChatEdit";
 import { AI_CREATE_CHAT_TOOL } from "./aiCreateChat";
-import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_MEMO_TOOL, AI_OPEN_SQL_TOOL } from "./aiOpen";
-import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL } from "./aiProject";
+import { AI_ADD_DRAFT_TOOL, AI_OPEN_CHAT_TOOL, AI_OPEN_DIFF_TOOL, AI_OPEN_FILE_TOOL, AI_OPEN_NOTE_TOOL, AI_OPEN_SQL_TOOL } from "./aiOpen";
+import { AI_ADD_SNIPPET_TOOL, AI_MOVE_NOTE_TOOL } from "./aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL } from "./aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL } from "@shared/terminal/aiTerminal";
 import { AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL } from "@shared/guard/aiSandboxDiagnostics";
@@ -99,9 +99,9 @@ test("AI がチャットの名前・固定・グループを変えるツール: 
   assert.equal(describeTool(AI_UPDATE_CHAT_TOOL, { chat_id: 3, group_id: null }), "チャットを変更: グループから外した（チャット 3）");
 });
 
-test("AI がメモ・チャットを開くツール: 何をどこに開いたか（場所を省いたら付けない）", () => {
-  assert.equal(describeTool(AI_OPEN_MEMO_TOOL, { path: "機能の仕様/図.html", place: "window" }), "メモを開く: 機能の仕様/図.html（別ウィンドウ）");
-  assert.equal(describeTool(AI_OPEN_MEMO_TOOL, { path: "メモ.md" }), "メモを開く: メモ.md");
+test("AI がノート・チャットを開くツール: 何をどこに開いたか（場所を省いたら付けない）", () => {
+  assert.equal(describeTool(AI_OPEN_NOTE_TOOL, { path: "機能の仕様/図.html", place: "window" }), "ノートを開く: 機能の仕様/図.html（別ウィンドウ）");
+  assert.equal(describeTool(AI_OPEN_NOTE_TOOL, { path: "ノート.md" }), "ノートを開く: ノート.md");
   assert.equal(describeTool(AI_OPEN_CHAT_TOOL, { chat_id: 12, place: "side" }), "チャットを開く: チャット 12（右の欄）");
   assert.equal(describeTool(AI_OPEN_CHAT_TOOL, { chat_id: 3, place: "どこか" }), "チャットを開く: チャット 3");
 });
@@ -113,10 +113,10 @@ test("AI が読むだけのツール: 一覧・使用枠は名前だけ、会話
   assert.equal(describeTool(AI_READ_CHAT_TOOL, { chat_id: 12, before: 38, turns: 5 }), "チャットの会話を読む: チャット 12（38 回目より前）");
 });
 
-test("AI がプロジェクトに足す・変えるツール: 定型文は名前（なければ 1 行目）、メモは移す前と後", () => {
+test("AI がプロジェクトに足す・変えるツール: 定型文は名前（なければ 1 行目）、ノートは移す前と後", () => {
   assert.equal(describeTool(AI_ADD_SNIPPET_TOOL, { text: "テストを流して", label: "テスト" }), "定型文に登録: テスト");
   assert.equal(describeTool(AI_ADD_SNIPPET_TOOL, { text: "型を確かめて\n二行目" }), "定型文に登録: 型を確かめて");
-  assert.equal(describeTool(AI_MOVE_MEMO_TOOL, { from: "案.md", to: "済/案.md" }), "メモを移動: 案.md → 済/案.md");
+  assert.equal(describeTool(AI_MOVE_NOTE_TOOL, { from: "案.md", to: "済/案.md" }), "ノートを移動: 案.md → 済/案.md");
 });
 
 test("AI が画面に頼むツール: 開いたファイル・差分・SQL と、下書きを入れたチャット", () => {

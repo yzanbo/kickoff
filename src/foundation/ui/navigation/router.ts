@@ -4,7 +4,7 @@ import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
 import { LAST_ROUTE } from "@/foundation/ui/storage/storageKeys";
 
 // プロジェクトの画面のタブ（設定はタブでなく、プロジェクト名の横の「編集」から開く。ファイル・検索・変更（ソース管理）は開いたファイルを共有する）
-const PROJECT_TABS = ["board", "chats", "files", "search", "changes", "history", "memos", "db", "github", "docker", "ci", "trash"] as const;
+const PROJECT_TABS = ["board", "chats", "files", "search", "changes", "history", "notes", "db", "github", "docker", "ci", "trash"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** ファイルタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */
@@ -18,10 +18,10 @@ export type Route =
   /** 全プロジェクト（全プロジェクトのチャットのカンバン。URL は #/） */
   | { name: "allProjects" }
   /**
-   * file: ファイルタブで開くファイル（開いたら URL から外す）。memo: メモのタブで開くメモ（メモのフォルダからの相対パス。開いたら URL から外す）。
-   * memoLine: そのメモで移る行（⌘K の「メモ内の文言」から。URL は ?line=）
+   * file: ファイルタブで開くファイル（開いたら URL から外す）。note: ノートのタブで開くノート（ノートのフォルダからの相対パス。開いたら URL から外す）。
+   * noteLine: そのノートで移る行（⌘K の「ノート内の文言」から。URL は ?line=）
    */
-  | { name: "project"; id: number; tab: ProjectTab; file?: FileTarget; memo?: string; memoLine?: number }
+  | { name: "project"; id: number; tab: ProjectTab; file?: FileTarget; note?: string; noteLine?: number }
   /** group・worktree: 始めるグループ・作業場所のワークツリーのフォルダ（チャットの右クリックの「新しいチャット」。同じグループ・作業場所で始める） */
   | { name: "newChat"; projectId: number; group?: number; worktree?: string }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
@@ -56,15 +56,15 @@ export function parse(hash: string): Route {
     // 開くファイルはファイルタブでだけ読む
     const file = named === "files" ? parseFileTarget(params) : undefined;
     const tab: ProjectTab = file ? "files" : named;
-    const memo = tab === "memos" ? params.get("memo") : null;
-    const memoLine = Number(params.get("line"));
+    const note = tab === "notes" ? params.get("note") : null;
+    const noteLine = Number(params.get("line"));
     return {
       name: "project",
       id: Number(project[1]),
       tab,
       ...(file ? { file } : {}),
-      ...(memo ? { memo } : {}),
-      ...(memo && Number.isInteger(memoLine) && memoLine > 0 ? { memoLine } : {}),
+      ...(note ? { note } : {}),
+      ...(note && Number.isInteger(noteLine) && noteLine > 0 ? { noteLine } : {}),
     };
   }
   return { name: "allProjects" };
@@ -100,7 +100,7 @@ export function useHashRoute(onChange?: (route: Route, replace: boolean) => void
   return route;
 }
 
-/** 覚えておく形（開いたら URL から外す一度きりのもの: 開くファイル・メモ・強調する発言は外す） */
+/** 覚えておく形（開いたら URL から外す一度きりのもの: 開くファイル・ノート・強調する発言は外す） */
 export function lastingRoute(route: Route): Route {
   if (route.name === "project") return { name: "project", id: route.id, tab: route.tab };
   if (route.name === "chat") return { name: "chat", projectId: route.projectId, chatId: route.chatId };
@@ -127,8 +127,8 @@ export function href(route: Route): string {
     case "project":
       if (route.tab === "board") return `#/projects/${route.id}`;
       if (route.tab === "files") return `#/projects/${route.id}/files${route.file ? fileQuery(route.file) : ""}`;
-      if (route.tab === "memos")
-        return `#/projects/${route.id}/memos${route.memo ? `?${new URLSearchParams({ memo: route.memo, ...(route.memoLine ? { line: String(route.memoLine) } : {}) })}` : ""}`;
+      if (route.tab === "notes")
+        return `#/projects/${route.id}/notes${route.note ? `?${new URLSearchParams({ note: route.note, ...(route.noteLine ? { line: String(route.noteLine) } : {}) })}` : ""}`;
       return `#/projects/${route.id}/${route.tab}`;
     case "newChat": {
       const query = new URLSearchParams({ ...(route.group ? { group: String(route.group) } : {}), ...(route.worktree ? { worktree: route.worktree } : {}) }).toString();
@@ -190,8 +190,8 @@ export function openProjectFile(projectId: number, file: FileTarget) {
   navigate({ name: "project", id: projectId, tab: "files", file });
 }
 
-/** 右サイドバーで開くよう頼まれたもの（ファイル・メモ） */
-export type SideOpenTarget = { kind: "file"; file: FileTarget } | { kind: "memo"; path: string; line?: number };
+/** 右サイドバーで開くよう頼まれたもの（ファイル・ノート） */
+export type SideOpenTarget = { kind: "file"; file: FileTarget } | { kind: "note"; path: string; line?: number };
 
 /**
  * 右サイドバーで開く口（右サイドバーがその中身を見せているときだけ開いて true を返す）。
@@ -207,10 +207,10 @@ export function openProjectSearch(projectId: number) {
   navigate({ name: "project", id: projectId, tab: "search" });
 }
 
-/** メモのタブでそのメモを開く（path を省くとメモのタブへ移るだけ。開いているチャットは右のパネルに残る） */
-export function openMemo(projectId: number, path?: string) {
-  if (path && sideOpener?.(projectId, { kind: "memo", path })) return;
-  navigate({ name: "project", id: projectId, tab: "memos", ...(path ? { memo: path } : {}) });
+/** ノートのタブでそのノートを開く（path を省くとノートのタブへ移るだけ。開いているチャットは右のパネルに残る） */
+export function openNote(projectId: number, path?: string) {
+  if (path && sideOpener?.(projectId, { kind: "note", path })) return;
+  navigate({ name: "project", id: projectId, tab: "notes", ...(path ? { note: path } : {}) });
 }
 
 /** 画面がどのプロジェクトに属するか（サイドバーの強調表示や ⌘N 用） */

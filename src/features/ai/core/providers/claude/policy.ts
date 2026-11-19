@@ -78,7 +78,7 @@ function dockerGuardHook(guard: DockerGuard, cb: Pick<ProviderCallbacks, "reques
 }
 
 /**
- * 書き込み先の守りの判定に使う様子: チャットが渡したもの（作業場所・メモのフォルダ・作業場所の一覧）に、Claude Code の決まりの例外
+ * 書き込み先の守りの判定に使う様子: チャットが渡したもの（作業場所・ノートのフォルダ・作業場所の一覧）に、Claude Code の決まりの例外
  * （計画 ~/.claude/plans と、メモリ ~/.claude/projects/<プロジェクト>/memory。CLAUDE_CONFIG_DIR があればその下）を足す
  */
 function writeScopeFacts(cwd: string, scope: WriteScopeParams): WriteScopeFacts {
@@ -93,7 +93,7 @@ function writeScopeFacts(cwd: string, scope: WriteScopeParams): WriteScopeFacts 
 
 /**
  * AI の書き込み先の守り（PreToolUse のファイルを書き換えるツールだけ。chat/guard/writeScope.ts）: 同じリポジトリのほかの作業場所なら断り、
- * 作業場所・メモのフォルダ・例外の外なら承認カードで聞いて待つ（権限モードに関係なく、Auto mode でも聞く）。ほかの守りが断るもの（参照資料・Kickoff の保存先・
+ * 作業場所・ノートのフォルダ・例外の外なら承認カードで聞いて待つ（権限モードに関係なく、Auto mode でも聞く）。ほかの守りが断るもの（参照資料・Kickoff の保存先・
  * 見せない DB）はカードを出さずにそちらに任せる。［許可］［このチャットでは許可］なら許して流す（計画モードは権限モードに任せる）。後者はそのファイルをチャットの間もう聞かない
  */
 function writeScopeHook(params: ProviderTurnParams, scope: WriteScopeParams, deniedElsewhere: Evaluate[], cb: Pick<ProviderCallbacks, "requestApproval">): HookCallbackMatcher {
@@ -148,7 +148,7 @@ function writeScopeHook(params: ProviderTurnParams, scope: WriteScopeParams, den
  * git のフック（コミット時・push 時の確かめ）を飛ばす Bash（--no-verify・commit -n・core.hooksPath を変える）は、いつも断る（gitHookGuard）。
  * 環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定する Bash（Kickoff の起動に別のコードを差し込める穴）も、いつも断る（compileCacheGuard）。
  * 別の作業場所・ほかのプロジェクトの Docker に手を出す Bash は、守りがあれば承認カードで聞く（dockerGuardHook）。
- * ファイルを書き換えるツールの先は、守りがあれば作業場所・メモのフォルダ・例外だけにし、同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く（writeScopeHook）。
+ * ファイルを書き換えるツールの先は、守りがあれば作業場所・ノートのフォルダ・例外だけにし、同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く（writeScopeHook）。
  * Auto mode や許可ルールがあっても効く
  */
 export function turnHooks(

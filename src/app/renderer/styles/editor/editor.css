@@ -22,7 +22,7 @@
   background: var(--bg-sidebar);
 }
 
-/* 左の一覧の、見出しと探す欄の下の流れる部分（変更・検索・履歴・メモ。ファイルの木は .files-pane） */
+/* 左の一覧の、見出しと探す欄の下の流れる部分（変更・検索・履歴・ノート。ファイルの木は .files-pane） */
 .changes-scroll {
   flex: 1 1 0;
   min-height: 0;

@@ -17,25 +17,25 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import { navigate } from "@/foundation/ui/navigation/router";
 import { COMMAND_PALETTE_TARGETS } from "@/foundation/ui/storage/storageKeys";
 import type { PaletteItem as Item } from "./paletteItem";
-import { memoTextItem, messageItem, useDebouncedSearch } from "./textSearchItems";
-import { usePaletteMemos } from "@/features/notes/ui/paletteSource";
+import { noteTextItem, messageItem, useDebouncedSearch } from "./textSearchItems";
+import { usePaletteNotes } from "@/features/notes/ui/paletteSource";
 
 /**
- * 探す対象。チャットの中の文言は全文検索（文言の全文検索のパネルと同じ API）で、入力したときだけ探す。メモはすべてのプロジェクトのメモを名前（とフォルダ）で。
- * メモの中の文言は、すべてのプロジェクトのメモの中の行を、入力したときだけ探す
+ * 探す対象。チャットの中の文言は全文検索（文言の全文検索のパネルと同じ API）で、入力したときだけ探す。ノートはすべてのプロジェクトのノートを名前（とフォルダ）で。
+ * ノートの中の文言は、すべてのプロジェクトのノートの中の行を、入力したときだけ探す
  */
-type Target = "project" | "chat" | "memo" | "message" | "memoText";
+type Target = "project" | "chat" | "note" | "message" | "noteText";
 const TARGETS: { value: Target; label: string }[] = [
   { value: "project", label: "プロジェクト" },
   { value: "chat", label: "チャット" },
-  { value: "memo", label: "メモ" },
+  { value: "note", label: "ノート" },
   { value: "message", label: "チャット内の文言" },
-  { value: "memoText", label: "メモ内の文言" },
+  { value: "noteText", label: "ノート内の文言" },
 ];
-const DEFAULT_TARGETS: Target[] = ["project", "chat", "memo"];
+const DEFAULT_TARGETS: Target[] = ["project", "chat", "note"];
 const isTarget = (t: string): t is Target => TARGETS.some((x) => x.value === t);
 
-/** ⌘K: プロジェクト・チャット・メモを名前で（選べばチャット・メモの中の文言でも）探して移動する */
+/** ⌘K: プロジェクト・チャット・ノートを名前で（選べばチャット・ノートの中の文言でも）探して移動する */
 export function CommandPalette({ onClose }: { onClose: () => void }) {
   const { projects, projectName } = useProjects();
   const [query, setQuery] = useState("");
@@ -57,9 +57,9 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     if (next.length > 0) setStored(next);
   };
   const messages = useDebouncedSearch(query, targets.includes("message"), (q) => api.search(q, {}));
-  const memoTexts = useDebouncedSearch(query, targets.includes("memoText"), (q) => api.searchMemos(q).then((r) => r.hits));
-  const searching = messages.searching || memoTexts.searching;
-  const memos = usePaletteMemos(projects, targets.includes("memo"), projectName);
+  const noteTexts = useDebouncedSearch(query, targets.includes("noteText"), (q) => api.searchNotes(q).then((r) => r.hits));
+  const searching = messages.searching || noteTexts.searching;
+  const notes = usePaletteNotes(projects, targets.includes("note"), projectName);
 
   const items = useMemo<Item[]>(() => {
     const q = query.trim().toLowerCase();
@@ -82,16 +82,16 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         named.push({ key: `r-${r.id}`, label: title, text: title, hint: projectName(r.project_id), hintMark: <PaletteProjectMark projectId={r.project_id} />, chips: <PaletteChatChips chat={r} />, icon: <StatusSlot state={stateOf(r)} unread={busyWithUnread(r, stateOf(r))} />, route: { name: "chat", projectId: r.project_id, chatId: r.id } });
       }
     }
-    named.push(...memos);
+    named.push(...notes);
     // 操作（何か入力したときだけ。下の帯を隠していても開ける。Mac のアプリの中だけ）
     if (q && portsAvailable()) {
       const label = "ポートを使っているプロセス";
       named.push({ key: "ports", label, text: `${label} port`, hint: "操作", icon: <Network size={15} />, run: openPortsPopover });
     }
     const filtered = q ? named.filter((i) => `${i.text} ${i.hint}`.toLowerCase().includes(q)) : named;
-    // 名前で見つかったものを先に（50 件まで）、続けてチャットの中の文言・メモの中の文言
-    return [...filtered.slice(0, 50), ...messages.hits.map((h) => messageItem(h, projectName)), ...memoTexts.hits.map((h) => memoTextItem(h, projectName))];
-  }, [projects, chats, memos, query, messages.hits, memoTexts.hits, targets, projectName, stateOf]);
+    // 名前で見つかったものを先に（50 件まで）、続けてチャットの中の文言・ノートの中の文言
+    return [...filtered.slice(0, 50), ...messages.hits.map((h) => messageItem(h, projectName)), ...noteTexts.hits.map((h) => noteTextItem(h, projectName))];
+  }, [projects, chats, notes, query, messages.hits, noteTexts.hits, targets, projectName, stateOf]);
 
   function go(item: Item | undefined) {
     if (!item) return;

@@ -8,7 +8,7 @@ import { DialogActions } from "@/foundation/ui/kit/DialogActions";
 import { Field } from "@/foundation/ui/kit/Field";
 import { FolderField } from "./FolderField";
 import { InspectionPanel } from "./InspectionPanel";
-import { memoDirBody, MemoDirField } from "./MemoDirField";
+import { noteDirBody, NoteDirField } from "./NoteDirField";
 import { gitInitChoice, gitManagedNote } from "@/features/projects/ui/gitInitChoice";
 import { GitInitField } from "@/features/projects/ui/GitInitField";
 import type { FormProps } from "./NewProjectDialog";
@@ -21,8 +21,8 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   const [nameEdited, setNameEdited] = useState(false);
   const [description, setDescription] = useState("");
   const [initGit, setInitGit] = useState(false);
-  // メモの保存先を手で決めた場所（null なら取り込むフォルダの名前から自動）
-  const [memoDir, setMemoDir] = useState<string | null>(null);
+  // ノートの保存先を手で決めた場所（null なら取り込むフォルダの名前から自動）
+  const [noteDir, setNoteDir] = useState<string | null>(null);
   const { submitting, error, setError, submit } = useSubmit();
 
   // フォルダが決まったら中身を点検する（入力中は少し待つ）
@@ -54,13 +54,13 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   // git の管理を始めるかのボタン（git でない・コミットがない・リポジトリの中のフォルダ。初めは始めない）
   const gitChoice = inspection ? gitInitChoice(inspection) : null;
   const blocked = !inspection || !inspection.exists || !inspection.is_directory || Boolean(inspection.registered_project_id);
-  // 自動で決めるメモのフォルダ名は、取り込むフォルダの名前
-  const memoBase = !blocked ? (inspection.path.replace(/\/+$/, "").split("/").pop() ?? "") : "";
+  // 自動で決めるノートのフォルダ名は、取り込むフォルダの名前
+  const noteBase = !blocked ? (inspection.path.replace(/\/+$/, "").split("/").pop() ?? "") : "";
 
   const importProject = (e: FormEvent) => {
     e.preventDefault();
     if (!inspection) return;
-    void submit(async () => onCreated(await api.importProject({ path: inspection.path, name, description, init_git: initGit, ...memoDirBody(memoBase, memoDir) })));
+    void submit(async () => onCreated(await api.importProject({ path: inspection.path, name, description, init_git: initGit, ...noteDirBody(noteBase, noteDir) })));
   };
 
   return (
@@ -93,7 +93,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
         />
       </Field>
 
-      {inspection && !blocked && <MemoDirField base={memoBase} custom={memoDir} onCustom={setMemoDir} />}
+      {inspection && !blocked && <NoteDirField base={noteBase} custom={noteDir} onCustom={setNoteDir} />}
 
       <Field label="概要・やりたいこと（任意）">
         <textarea

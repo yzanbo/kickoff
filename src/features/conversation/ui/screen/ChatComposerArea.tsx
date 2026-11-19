@@ -26,7 +26,7 @@ import { ChildChatsChip } from "@/features/childChats/ui/ChildChatChips";
 import { INHERIT_LABELS, inheritHelp } from "@/features/childChats/ui/InheritChoice";
 import { openCreatedChild } from "@/features/chat/ui/open/openChat";
 import { ComposerHandoffChip } from "@/features/childChats/ui/HandBackFromChip";
-import { MemoChip } from "@/features/notes/ui/MemoChip";
+import { NoteChip } from "@/features/notes/ui/NoteChip";
 import { SubagentChip } from "@/features/subagents/ui/SubagentChip";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 import { ProviderChip } from "@/features/ai/ui/provider/ProviderChips";
@@ -88,8 +88,8 @@ export function ChatComposerArea({
   // 「質問として送る」: いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する（答えを見て次を決める）
   // 「新規の子チャットに送る（会話を引き継ぐ / 新しく始める）」: この文と添付で新しい子チャットを作って送る（このチャットの作業は止めない。
   // 作った子チャットは設定の「子チャットを作ったとき」で開く。上のピルの子チャットにも並ぶ。選択（モデルなど）は渡さず、設定どおりの既定）。
-  // メモのチャット・アーカイブ済みでは出さない
-  const memoOrArchived = Boolean(chat.memo_path) || chat.archived_at !== null;
+  // ノートのチャット・アーカイブ済みでは出さない
+  const noteOrArchived = Boolean(chat.note_path) || chat.archived_at !== null;
   const sendToChild = (inherit: boolean) => async (text: string, attachments: Attachment[]) => {
     openCreatedChild(await api.createChildChat(chat.id, { text, attachments, quote: null, inherit, event_id: null }));
   };
@@ -98,7 +98,7 @@ export function ChatComposerArea({
   // 音声モードで読み上げる候補（メインエージェントの文章の返答）。起こした文は定型文の「すぐ送る」と同じ送り方で送る（入力欄の文は残す）
   // （events は末尾と索引を重ねたもの。索引の返答は文を空にした軽い形なので除く）
   const voiceReplies = useMemo(() => events.flatMap((e) => (e.type === "text" && !e.data.parent && e.data.text ? [{ id: e.id, text: e.data.text }] : [])), [events]);
-  // メモのチャットの欄を閉じている間は、ピルの列と送信待ちをメモの下の入力欄の上に描く（chipsPortal）
+  // ノートのチャットの欄を閉じている間は、ピルの列と送信待ちをノートの下の入力欄の上に描く（chipsPortal）
   const portal = useChipsPortal();
   // チャット欄のコンパクト表示は、上のピルの列にも効かせる（ピルを低く・小さな文字に。composer-compact.css）
   const [compact] = useSetting(COMPOSER_COMPACT);
@@ -108,15 +108,15 @@ export function ChatComposerArea({
       <TodoChip chatId={chat.id} events={events} />
       <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} />
       <ChildChatsChip chatId={chat.id} />
-      <MemoChip projectId={chat.project_id} chatId={chat.id} />
+      <NoteChip projectId={chat.project_id} chatId={chat.id} />
       {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
       {!portal?.target && <span ref={onDock} className="composer-chips-dock" />}
     </div>
   );
   // 起動したときの再開の確かめ: 送信待ちを聞いていれば送信待ちの上に、作業の途中で止まったことだけなら入力欄の上に帯を出す
   const resume = live.restart_resume;
-  const queuedList = <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={resume?.queued ? resume : null} sentShown={sentShown} />;
-  // 外の入力欄（メモの下）にも、送信待ちがあるかを知らせる（あれば、チャット欄と同じく送るものを送信待ちに足す）
+  const queuedList = <QueuedMessages queue={live.queue} busy={busy} childChats={!noteOrArchived} resume={resume?.queued ? resume : null} sentShown={sentShown} />;
+  // 外の入力欄（ノートの下）にも、送信待ちがあるかを知らせる（あれば、チャット欄と同じく送るものを送信待ちに足す）
   useEffect(() => portal?.onQueued(queued), [portal, queued]);
   return (
     <div className="chat-composer">
@@ -169,7 +169,7 @@ export function ChatComposerArea({
         savedAttachments={settingAttachmentDraft(chatAttachmentsDraft(chat.id))}
         sendTo={[
           { label: "質問として送る", hint: "答えが返ったら、送信待ちを一時停止", icon: OctagonPause, title: ASK_SEND_TITLE, onSend: send.onAsk },
-          ...(memoOrArchived
+          ...(noteOrArchived
             ? []
             : [true, false].map((inherit) => ({
                 // 子チャットの 2 つは「新規の子チャットに送る」の見出しの下に 1 組で並べる

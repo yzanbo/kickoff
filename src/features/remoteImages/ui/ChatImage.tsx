@@ -62,7 +62,7 @@ function HostLine({ chatId, group }: { chatId: number; group: ImageHostGroup }) 
   );
 }
 
-/** 手元の画像（作業場所・添付・メモのフォルダの中。相対パスはチャットの作業場所から） */
+/** 手元の画像（作業場所・添付・ノートのフォルダの中。相対パスはチャットの作業場所から） */
 function LocalChatImage({ chatId, path, alt }: { chatId: number; path: string; alt?: string }) {
   // 作業場所を移した区切りより前の返答なら、相対パスはそのときの作業場所から
   const at = usePastWorkplaceAt();

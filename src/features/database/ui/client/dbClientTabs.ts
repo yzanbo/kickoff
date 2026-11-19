@@ -1,4 +1,4 @@
-// DB クライアントの右のタブ（テーブル・SQL・ER 図・手順メモ）の並びと、表示中のタブ。置き場所（プロジェクトの DB タブ・右の欄・別ウィンドウ）ごとに覚える（保存は storageKeys の dbClientTabs）。
+// DB クライアントの右のタブ（テーブル・SQL・ER 図・手順ノート）の並びと、表示中のタブ。置き場所（プロジェクトの DB タブ・右の欄・別ウィンドウ）ごとに覚える（保存は storageKeys の dbClientTabs）。
 // 形の確かめと、開く・閉じる・選ぶを純粋関数で持つ（React に依らない）
 import { DB_FILTER_OPS, DB_OBJECT_KINDS, type DbFilterOp, type DbObjectKind, type DbObjectPath, type DbRowFilter } from "@shared/types";
 
@@ -38,16 +38,16 @@ export interface DbErTab {
   names: string[] | null;
 }
 
-/** 接続の手順メモのタブ（メモ 1 つに 1 つ。いくつもの接続で同じメモを使えるので、connection_id は開いた接続） */
-interface DbMemoTab {
+/** 接続の手順ノートのタブ（ノート 1 つに 1 つ。いくつもの接続で同じノートを使えるので、connection_id は開いた接続） */
+interface DbNoteTab {
   key: string;
-  kind: "memo";
+  kind: "note";
   connection_id: number;
-  /** メモのフォルダからの相対パス */
+  /** ノートのフォルダからの相対パス */
   path: string;
 }
 
-export type DbClientTab = DbTableTab | DbSqlTab | DbErTab | DbMemoTab;
+export type DbClientTab = DbTableTab | DbSqlTab | DbErTab | DbNoteTab;
 
 export interface DbClientTabs {
   tabs: DbClientTab[];
@@ -76,7 +76,7 @@ const isTab = (v: unknown): v is DbClientTab => {
   const t = v as Record<string, unknown> | null;
   if (!t || typeof t !== "object" || typeof t.key !== "string" || typeof t.connection_id !== "number") return false;
   if (t.kind === "sql") return typeof t.title === "string";
-  if (t.kind === "memo") return typeof t.path === "string" && t.path !== "";
+  if (t.kind === "note") return typeof t.path === "string" && t.path !== "";
   if (t.kind === "er") {
     const namesOk = t.names === null || (Array.isArray(t.names) && t.names.every((n) => typeof n === "string"));
     return isPath(t.path) && (t.focus === null || typeof t.focus === "string") && typeof t.depth === "number" && namesOk;
@@ -206,20 +206,20 @@ export function updateErTab(state: DbClientTabs, key: string, patch: Partial<Pic
   return { ...state, tabs: state.tabs.map((t) => (t.key === key && t.kind === "er" ? { ...t, ...patch } : t)) };
 }
 
-/** 手順メモのタブのキー（メモのパスごとに 1 つ） */
-export const memoTabKey = (path: string) => `memo:${path}`;
+/** 手順ノートのタブのキー（ノートのパスごとに 1 つ） */
+export const noteTabKey = (path: string) => `note:${path}`;
 
-/** 手順メモのタブを開く（もう開いていれば選ぶだけ） */
-export const openMemoTab = (state: DbClientTabs, connectionId: number, path: string): DbClientTabs =>
-  openDbTab(state, { key: memoTabKey(path), kind: "memo", connection_id: connectionId, path });
+/** 手順ノートのタブを開く（もう開いていれば選ぶだけ） */
+export const openNoteTab = (state: DbClientTabs, connectionId: number, path: string): DbClientTabs =>
+  openDbTab(state, { key: noteTabKey(path), kind: "note", connection_id: connectionId, path });
 
-/** 手順メモの名前が変わったら、タブのパスとキーを付け替える（同じメモのタブがほかにあれば、そちらを残してこれを閉じる） */
-export function renameMemoTab(state: DbClientTabs, key: string, path: string): DbClientTabs {
-  const next = memoTabKey(path);
+/** 手順ノートの名前が変わったら、タブのパスとキーを付け替える（同じノートのタブがほかにあれば、そちらを残してこれを閉じる） */
+export function renameNoteTab(state: DbClientTabs, key: string, path: string): DbClientTabs {
+  const next = noteTabKey(path);
   if (next === key) return state;
   if (state.tabs.some((t) => t.key === next)) return { ...closeDbTab(state, key), active: next };
   return {
-    tabs: state.tabs.map((t) => (t.key === key && t.kind === "memo" ? { ...t, key: next, path } : t)),
+    tabs: state.tabs.map((t) => (t.key === key && t.kind === "note" ? { ...t, key: next, path } : t)),
     active: state.active === key ? next : state.active,
   };
 }

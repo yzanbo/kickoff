@@ -1,7 +1,7 @@
 // ⌘K で探す窓が開き、チャットの名前で探して Enter で開く（ハッシュがそのチャットに変わる）
 import assert from "node:assert/strict";
 
-const INPUT = `document.querySelector("input[placeholder='プロジェクト・チャット・メモを検索']")`;
+const INPUT = `document.querySelector("input[placeholder='プロジェクト・チャット・ノートを検索']")`;
 const SELECTED = `document.querySelector(".palette-list [role=option][aria-selected=true]")`;
 
 export default {

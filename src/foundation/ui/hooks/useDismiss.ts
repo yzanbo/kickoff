@@ -33,7 +33,7 @@ function holdDragRegions(): () => void {
   };
 }
 
-/** 埋め込みのページ（埋め込みブラウザの webview・HTML のメモの iframe）か。中を押してもこのページには mousedown が届かない */
+/** 埋め込みのページ（埋め込みブラウザの webview・HTML のノートの iframe）か。中を押してもこのページには mousedown が届かない */
 const isEmbeddedPage = (el: Element | null): el is HTMLElement => el instanceof HTMLElement && (el.tagName === "WEBVIEW" || el.tagName === "IFRAME");
 
 /** 開いている層（useDismiss を使うポップオーバー・メニュー）の要素。開いた順 */

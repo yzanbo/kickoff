@@ -70,7 +70,7 @@ export function HandOffItems({ item, onPick }: { item: HandOffItem; onPick?: () 
   };
   const mainChatId = useMainChat();
   const mainChat = useKnownChat(mainChatId ?? 0);
-  const canChild = mainChat && !mainChat.memo_path && mainChat.archived_at === null;
+  const canChild = mainChat && !mainChat.note_path && mainChat.archived_at === null;
   return (
     <>
       {!hide.has("new") && (

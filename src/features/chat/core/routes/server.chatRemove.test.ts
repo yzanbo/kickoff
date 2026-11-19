@@ -37,7 +37,7 @@ test("archive_chat: 同じプロジェクトのほかの家系のチャットを
   assert.match(chatRemover.fromChat(me, "archive", target), /もうアーカイブしてあります/);
   // ほかのプロジェクトのチャット・ないチャットは断る
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
-  const foreign = store.chats.create({ ...store.chats.get(me)!, project_id: other.id, title: "よそ", parent_chat_id: null, group_id: null, worktree_path: null, parent_event_id: null, memo_path: null });
+  const foreign = store.chats.create({ ...store.chats.get(me)!, project_id: other.id, title: "よそ", parent_chat_id: null, group_id: null, worktree_path: null, parent_event_id: null, note_path: null });
   assert.throws(() => chatRemover.fromChat(me, "archive", foreign.id), /このプロジェクトにありません/);
   assert.throws(() => chatRemover.fromChat(me, "delete", 99999), /このプロジェクトにありません/);
   assert.equal(store.chats.get(foreign.id)?.archived_at, null);

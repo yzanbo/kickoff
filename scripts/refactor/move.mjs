@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmdirSync, statSync, 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkTable, fixRowsOf, formatProblem, mergeTables, parseBaseTable, parseMoveTable } from "./table.mjs";
-import { reportLeftovers, rewriteSource } from "./rewrite.mjs";
+import { CURRENT_ALIASES, reportLeftovers, rewriteSource } from "./rewrite.mjs";
 
 export { checkTable, fixRowsOf, formatProblem, mergeTables, parseBaseTable, parseMoveTable, FEATURES, KNOWN_EXCEPTIONS } from "./table.mjs";
 export { resolveOld, rewriteSpecifier, rewriteSource, reportLeftovers } from "./rewrite.mjs";
@@ -21,7 +21,7 @@ const DEFAULT_TABLE = "scripts/refactor/moves.tsv";
 /** 中身を書き換えるファイル（src の全部と、src を読む mobile/src・scripts。このフォルダの道具は除く） */
 const REWRITE_RANGE = /^(src\/|mobile\/src\/|scripts\/)(?!refactor\/).*\.(ts|tsx|mts|mjs|js|cjs|css|html)$/;
 /** パスの文字（"src/…"）を表で書き換える設定のファイル（旧のパス）。react-compiler-skips のキーは「パス:関数名」 */
-const PATH_STRING_FILES = ["src/renderer/react-compiler-skips.json", "scripts/structure-baseline.json", "scripts/docs-baseline.json", "scripts/docs-limits.mjs"];
+const PATH_STRING_FILES = ["src/app/renderer/react-compiler-skips.json", "scripts/structure-baseline.json", "scripts/docs-baseline.json", "scripts/docs-limits.mjs"];
 /** 残りを探さないファイル（移動表そのもの・このフォルダ・文書。文書のパスは別に直す） */
 const NO_LEFTOVERS = /^scripts\/refactor\/|\.md$|\.tsv$|^test-records\/|\.(png|svg|icns|ico|jpg|woff2?)$/;
 const SKIP_LEFTOVERS = (file) => NO_LEFTOVERS.test(file);
@@ -60,10 +60,10 @@ function loadTable(args) {
   return { rows, files, problems, byFrom: new Map(rows.map((r) => [r.from, r.to])) };
 }
 
-/** すべてのファイルの新しい中身を、旧の木で計算する */
+/** すべてのファイルの新しい中身を、旧の木で計算する（P2-2b のあとの木なので、別名はいまの tsconfig の paths で解く） */
 function computeRewrites(files, byFrom) {
   const all = new Set(files);
-  const ctx = { byFrom, exists: (p) => all.has(p) };
+  const ctx = { byFrom, exists: (p) => all.has(p), aliases: CURRENT_ALIASES };
   const out = [];
   for (const from of files) {
     const to = byFrom.get(from) ?? from;

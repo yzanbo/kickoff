@@ -7,8 +7,8 @@ import { EditorTab } from "@/features/files/ui/EditorTab";
 import { useGitStatus } from "@/features/git/ui/useGitStatus";
 import { GitHubTab } from "@/features/github/ui/GitHubTab";
 import { HistoryTab } from "@/features/git/ui/history/HistoryTab";
-import { MemoTab } from "@/features/notes/ui/MemoTab";
-import { sideMemoScope } from "@/features/notes/ui/memoPanel";
+import { NoteTab } from "@/features/notes/ui/NoteTab";
+import { sideNoteScope } from "@/features/notes/ui/notePanel";
 import { TrashTab } from "@/features/trash/ui/TrashTab";
 import { WorktreeContext } from "@/foundation/ui/workplace/worktreeContext";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
@@ -22,7 +22,7 @@ import type { SideView } from "./sideView";
 /**
  * 右サイドバーのブラウザ以外の中身（プロジェクトのタブと同じ画面をそのまま描く）。
  * ファイル・検索・変更・履歴・DB は、真ん中に開いているチャットの作業場所に付いていく（useSideWorktree）。開いたファイルのタブは作業場所ごとに覚える。
- * 真ん中のプロジェクトのタブとは別の状態にする（メモ・ファイルのタブの欄は、右サイドバーだけの範囲 view-side-<プロジェクト>）。
+ * 真ん中のプロジェクトのタブとは別の状態にする（ノート・ファイルのタブの欄は、右サイドバーだけの範囲 view-side-<プロジェクト>）。
  * 見ていない中身は描かない（裏で取り直し・見張りを続けない。開いていたもの・絞り込みは設定と欄の店に残る）
  */
 export function SideViewBody({ projectId, view, frame }: { projectId: number; view: Exclude<SideView, "browser">; frame?: PanelFrame }) {
@@ -58,8 +58,8 @@ function SideViewContent({ projectId, view }: { projectId: number; view: Exclude
     case "history":
     case "db":
       return <SideCodeView projectId={projectId} view={view} />;
-    case "memos":
-      return <SideMemos projectId={projectId} />;
+    case "notes":
+      return <SideNotes projectId={projectId} />;
     case "github":
       return <GitHubTab projectId={projectId} />;
     case "docker":
@@ -71,11 +71,11 @@ function SideViewContent({ projectId, view }: { projectId: number; view: Exclude
   }
 }
 
-/** メモ（真ん中のメモのタブとは別の右のタブの欄。ほかから開くよう頼まれたメモは 1 回だけ開く） */
-function SideMemos({ projectId }: { projectId: number }) {
-  const memo = useSideOpenRequest(projectId, "memo");
+/** ノート（真ん中のノートのタブとは別の右のタブの欄。ほかから開くよう頼まれたノートは 1 回だけ開く） */
+function SideNotes({ projectId }: { projectId: number }) {
+  const note = useSideOpenRequest(projectId, "note");
   return (
-    <MemoTab projectId={projectId} scope={sideMemoScope(projectId)} openMemo={memo?.path} openMemoLine={memo?.line} onOpenedMemo={() => takeSideOpenRequest(projectId)} />
+    <NoteTab projectId={projectId} scope={sideNoteScope(projectId)} openNote={note?.path} openNoteLine={note?.line} onOpenedNote={() => takeSideOpenRequest(projectId)} />
   );
 }
 

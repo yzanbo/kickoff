@@ -1,4 +1,4 @@
-// 画面のタブの中身のうち、部品だけが知っているもの（エディタのカーソルと選んでいる範囲・メモで選んでいる文）を、
+// 画面のタブの中身のうち、部品だけが知っているもの（エディタのカーソルと選んでいる範囲・ノートで選んでいる文）を、
 // 利用者が見ているものの知らせ（app/userViewReport.ts。AI の get_user_view）が読むための置き場。開いている部品が置き、閉じたら外す
 import type { UserViewSelection } from "@shared/types";
 
@@ -9,7 +9,7 @@ export interface EditorCursor {
 }
 
 const editors = new Map<string, () => EditorCursor | null>();
-const memos = new Map<string, () => string>();
+const notes = new Map<string, () => string>();
 
 const editorKey = (projectId: number, path: string) => `${projectId}:${path}`;
 
@@ -25,14 +25,14 @@ export function registerEditorCursor(projectId: number, path: string, read: () =
 /** そのファイルのエディタのカーソル（開いていなければ null） */
 export const editorCursorOf = (projectId: number, path: string): EditorCursor | null => editors.get(editorKey(projectId, path))?.() ?? null;
 
-/** 開いているメモの選んでいる文を読む口を置く（返した関数で外す） */
-export function registerMemoSelection(projectId: number, path: string, read: () => string): () => void {
+/** 開いているノートの選んでいる文を読む口を置く（返した関数で外す） */
+export function registerNoteSelection(projectId: number, path: string, read: () => string): () => void {
   const key = editorKey(projectId, path);
-  memos.set(key, read);
+  notes.set(key, read);
   return () => {
-    if (memos.get(key) === read) memos.delete(key);
+    if (notes.get(key) === read) notes.delete(key);
   };
 }
 
-/** そのメモで選んでいる文（選んでいない・開いていなければ null） */
-export const memoSelectionOf = (projectId: number, path: string): string | null => memos.get(editorKey(projectId, path))?.() || null;
+/** そのノートで選んでいる文（選んでいない・開いていなければ null） */
+export const noteSelectionOf = (projectId: number, path: string): string | null => notes.get(editorKey(projectId, path))?.() || null;

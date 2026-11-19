@@ -1,6 +1,6 @@
 // 決まったデータを作る（npm run fixture:seed が流す。scripts/devtools/fixture.mjs）。
 // npx tsx scripts/devtools/seed.ts --root <置き場所> --data <開発版の保存先（置き場所の中）> --now <画面の時計の起点の ms>
-// 置き場所のフォルダを消して作り直し、Git のリポジトリ・メモ・SQLite の DB と、保存先に Kickoff の DB を入れて、ID を <置き場所>/fixture.json に書く。
+// 置き場所のフォルダを消して作り直し、Git のリポジトリ・ノート・SQLite の DB と、保存先に Kickoff の DB を入れて、ID を <置き場所>/fixture.json に書く。
 // 時刻はすべて --now からさかのぼった決まった値にする（何度作っても同じ中身になる）。置き場所が一時フォルダ（TMPDIR か /tmp）の下でなければ断る
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -55,8 +55,8 @@ const commits: { message: string; files: Record<string, string> }[] = [
   { message: "画面の入口を足す", files: { "src/index.ts": 'import { App } from "./components/App";\n\nexport const app = App();\n', "src/components/App.tsx": "export function App() {\n  return null;\n}\n" } },
   { message: "ボタンと見た目を足す", files: { "src/components/Button.tsx": "export function Button() {\n  return null;\n}\n", "src/styles.css": ".button {\n  padding: 4px 8px;\n}\n" } },
   { message: "補助の関数を足す", files: { "src/util.ts": "export const sum = (a: number, b: number) => a + b;\n", "docs/guide.md": "# 使い方\n\n1. 起動する\n2. 開く\n" } },
-  { message: "メモを足す", files: { "notes/plan.md": "# 計画\n\n- 一覧を作る\n- 検索を足す\n", "notes/todo.md": "# やること\n\n- [ ] 名前を決める\n" } },
-  { message: "メモを整える", files: { "notes/meeting.md": "# 打ち合わせ\n\n決めたこと: 段階に分けて進める。\n", "notes/ideas/backlog.md": "# あとで\n\n- 色を選べるようにする\n" } },
+  { message: "ノートを足す", files: { "notes/plan.md": "# 計画\n\n- 一覧を作る\n- 検索を足す\n", "notes/todo.md": "# やること\n\n- [ ] 名前を決める\n" } },
+  { message: "ノートを整える", files: { "notes/meeting.md": "# 打ち合わせ\n\n決めたこと: 段階に分けて進める。\n", "notes/ideas/backlog.md": "# あとで\n\n- 色を選べるようにする\n" } },
 ];
 fs.mkdirSync(alphaDir, { recursive: true });
 git(alphaDir, ["init", "-q"]);
@@ -75,7 +75,7 @@ write(path.join(alphaDir, "src/search.ts"), "export const search = (words: strin
 // --- プロジェクト beta（Git なしのフォルダ）
 const betaDir = path.join(dir, "repos", "beta");
 write(path.join(betaDir, "README.md"), "# beta\n\nGit で管理していないフォルダ。\n");
-write(path.join(betaDir, "memo.txt"), "メモ\n");
+write(path.join(betaDir, "note.txt"), "ノート\n");
 
 // --- SQLite の DB（表 2 つ）
 const sqliteFile = path.join(dir, "sample.sqlite");
@@ -94,9 +94,9 @@ const { db } = store;
 db.exec("BEGIN");
 const alpha = store.projects.create({ name: "alpha", repo_path: alphaDir, provider: "claude" });
 const beta = store.projects.create({ name: "beta", repo_path: betaDir, provider: "claude" });
-// メモのフォルダはプロジェクトごとに保存先の中へ（既定の ~/Documents の下を使わない）
-store.projects.update(alpha.id, { memo_path: notesDir });
-store.projects.update(beta.id, { memo_path: path.join(dir, "beta-notes") });
+// ノートのフォルダはプロジェクトごとに保存先の中へ（既定の ~/Documents の下を使わない）
+store.projects.update(alpha.id, { note_path: notesDir });
+store.projects.update(beta.id, { note_path: path.join(dir, "beta-notes") });
 const research = store.groups.create(alpha.id, "調べもの");
 const fixes = store.groups.create(alpha.id, "直しもの");
 
@@ -110,7 +110,7 @@ interface ChatSpec extends Omit<NewChat, "provider" | "title"> {
   archived?: boolean;
   error?: string;
 }
-// 作業中（running）は入れない（コアが起動で失敗に直すため）。未読 2・失敗（未読）1・固定 1・アーカイブ 1・子 1・孫 1・メモのチャット 1
+// 作業中（running）は入れない（コアが起動で失敗に直すため）。未読 2・失敗（未読）1・固定 1・アーカイブ 1・子 1・孫 1・ノートのチャット 1
 const specs: ChatSpec[] = [
   { key: "long", title: "長いチャット（120 回）", project_id: alpha.id, group_id: research.id, status: "completed", turns: 120, seed: 7 },
   { key: "parent", title: "子チャットのある親チャット", project_id: alpha.id, status: "completed", turns: 3, seed: 2 },
@@ -123,7 +123,7 @@ const specs: ChatSpec[] = [
   { key: "cancelled", title: "止めたチャット", project_id: beta.id, status: "cancelled", turns: 1, seed: 10 },
   { key: "pinned", title: "固定したチャット", project_id: alpha.id, status: "completed", turns: 1, seed: 11, pinned: true },
   { key: "archived", title: "アーカイブしたチャット", project_id: alpha.id, status: "completed", turns: 1, seed: 12, archived: true },
-  { key: "memo", title: "計画のメモのチャット", project_id: alpha.id, status: "completed", turns: 1, seed: 13, memo_path: "plan.md" },
+  { key: "note", title: "計画のノートのチャット", project_id: alpha.id, status: "completed", turns: 1, seed: 13, note_path: "plan.md" },
 ];
 const chatIds: Record<string, number> = {};
 const setEventTime = db.prepare("UPDATE chat_events SET created_at = ? WHERE id = ?");
@@ -183,7 +183,7 @@ const fixture = {
   chats: chatIds,
   snippets: snippetIds,
   dbConnections: { sample: connection.id },
-  memos: ["plan.md", "todo.md", "meeting.md", "ideas/backlog.md"],
+  notes: ["plan.md", "todo.md", "meeting.md", "ideas/backlog.md"],
 };
 fs.writeFileSync(path.join(dir, "fixture.json"), `${JSON.stringify(fixture, null, 2)}\n`);
 console.log(`決まったデータを作りました: ${dir}（チャット ${specs.length}・プロジェクト 2）`);

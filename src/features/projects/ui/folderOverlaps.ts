@@ -50,7 +50,7 @@ export function folderOverlapLines(overlaps: FolderOverlaps<FolderOwner>, same: 
     lines.push(
       same === "ng"
         ? { kind: "ng", text: `${names(overlaps.same)}のプロジェクトフォルダです（同じフォルダには作れません）` }
-        : { kind: "warn", text: `${names(overlaps.same)}のプロジェクトフォルダと同じです（同じフォルダを複数のプロジェクトで使います。チャット・設定・メモはプロジェクトごとに別）` },
+        : { kind: "warn", text: `${names(overlaps.same)}のプロジェクトフォルダと同じです（同じフォルダを複数のプロジェクトで使います。チャット・設定・ノートはプロジェクトごとに別）` },
     );
   }
   if (overlaps.inside.length > 0) lines.push({ kind: "warn", text: `${names(overlaps.inside)}のプロジェクトフォルダの中です` });
@@ -58,7 +58,7 @@ export function folderOverlapLines(overlaps: FolderOverlaps<FolderOwner>, same: 
   return lines;
 }
 
-/** メモフォルダの被りの文（被っていても使える） */
-export function memoOverlapLines(users: readonly FolderOwner[]): OverlapLine[] {
-  return users.length > 0 ? [{ kind: "warn", text: `${names(users)}のメモフォルダと同じです（同じメモを共有します）` }] : [];
+/** ノートフォルダの被りの文（被っていても使える） */
+export function noteOverlapLines(users: readonly FolderOwner[]): OverlapLine[] {
+  return users.length > 0 ? [{ kind: "warn", text: `${names(users)}のノートフォルダと同じです（同じノートを共有します）` }] : [];
 }

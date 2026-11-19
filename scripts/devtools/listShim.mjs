@@ -23,8 +23,8 @@ export function shimSource({ template, projectId, count, groups }) {
     pinned: false,
     session_id: null,
     position: null,
-    // 型にしたチャットがメモのチャット・子チャット・アーカイブ済みでも、ふつうのチャットとして並べる
-    memo_path: null,
+    // 型にしたチャットがノートのチャット・子チャット・アーカイブ済みでも、ふつうのチャットとして並べる
+    note_path: null,
     parent_chat_id: null,
     parent_event_id: null,
     archived_at: null,

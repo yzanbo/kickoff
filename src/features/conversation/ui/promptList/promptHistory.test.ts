@@ -37,7 +37,7 @@ test("指示の一覧: 自分の発言を会話の順に（添付だけならフ
 });
 
 test("指示の一覧: 圧縮の前に送った圧縮前指示には印を付ける（自分で書いた指示は付けない）", () => {
-  const events = [event("user", { text: "調べて" }), event("user", { text: "メモにまとめて", pre_compact: true }), event("user", { text: "メモを読み直して", post_compact: true })];
+  const events = [event("user", { text: "調べて" }), event("user", { text: "ノートにまとめて", pre_compact: true }), event("user", { text: "ノートを読み直して", post_compact: true })];
   assert.deepEqual(promptListOf(events).entries.map((p) => p.compactKind), [null, "pre", "post"]);
 });
 

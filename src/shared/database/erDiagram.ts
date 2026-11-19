@@ -138,7 +138,7 @@ function mermaidType(type: string): string {
 }
 
 /**
- * Mermaid の erDiagram の文（「Mermaid でコピー」「メモに書き出す」）。detail で列の出し方（すべて / 主キーと外部キーだけ / 名前だけ）。
+ * Mermaid の erDiagram の文（「Mermaid でコピー」「ノートに書き出す」）。detail で列の出し方（すべて / 主キーと外部キーだけ / 名前だけ）。
  * 推測の関係は点線（..）
  */
 export function erMermaid(tables: DbErTable[], relations: ErRelation[], detail: "all" | "keys" | "names"): string {

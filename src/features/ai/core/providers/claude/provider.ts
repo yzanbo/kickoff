@@ -230,7 +230,7 @@ export class ClaudeProvider implements AgentProvider {
           // 編集の前のファイルを取っておく（巻き戻しで、自分の発言の時点のファイルに戻せるように）
           enableFileCheckpointing: true,
           ...(params.fastMode ? { settings: { fastMode: true } } : {}),
-          // Bash を砂場に入れ、書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする（止めるのは OS）
+          // Bash を砂場に入れ、書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする（止めるのは OS）
           ...(sandbox ? { sandbox } : {}),
         },
       });
@@ -432,7 +432,7 @@ export class ClaudeProvider implements AgentProvider {
   }
 
   /**
-   * ツールを使わずに 1 回だけ聞く（名前を付ける・要約する・メモの整理。チャットの記録には残さない。既定は軽い段 = haiku）。
+   * ツールを使わずに 1 回だけ聞く（名前を付ける・要約する・ノートの整理。チャットの記録には残さない。既定は軽い段 = haiku）。
    * 空の一時フォルダで動かす（Kickoff を起動したフォルダで動かすと、そこの CLAUDE.md・自動のメモリーを読み込み、答えに混ざる）。
    * 会話記録は残さない（persistSession: false。続けることはなく、残すとチャットを作るたびに ~/.claude/projects に使わない記録が 1 つずつ増えていた）
    */

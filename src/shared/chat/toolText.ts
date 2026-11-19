@@ -6,16 +6,16 @@ import {
   AI_OPEN_CHAT_TOOL,
   AI_OPEN_DIFF_TOOL,
   AI_OPEN_FILE_TOOL,
-  AI_OPEN_MEMO_TOOL,
+  AI_OPEN_NOTE_TOOL,
   AI_OPEN_SQL_TOOL,
   describeAddDraft,
   describeOpenChat,
   describeOpenDiff,
   describeOpenFile,
-  describeOpenMemo,
+  describeOpenNote,
   describeOpenSql,
 } from "./aiOpen";
-import { AI_ADD_SNIPPET_TOOL, AI_MOVE_MEMO_TOOL, describeAddSnippet, describeMoveMemo } from "./aiProject";
+import { AI_ADD_SNIPPET_TOOL, AI_MOVE_NOTE_TOOL, describeAddSnippet, describeMoveNote } from "./aiProject";
 import { AI_LIST_PROJECT_CHATS_TOOL, AI_READ_CHAT_TOOL, AI_USAGE_TOOL, describeReadChat } from "./aiRead";
 import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL, describeReadTerminal } from "@shared/terminal/aiTerminal";
 import { AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL } from "@shared/guard/aiSandboxDiagnostics";
@@ -61,13 +61,13 @@ const TOOL_LABELS: Record<string, string> = {
   [AI_CREATE_CHAT_TOOL]: "チャットを作る",
   [AI_LIST_FAMILY_TOOL]: "同じ家系のチャットを確かめる",
   [AI_UPDATE_CHAT_TOOL]: "チャットを変更",
-  [AI_OPEN_MEMO_TOOL]: "メモを開く",
+  [AI_OPEN_NOTE_TOOL]: "ノートを開く",
   [AI_OPEN_CHAT_TOOL]: "チャットを開く",
   [AI_LIST_PROJECT_CHATS_TOOL]: "プロジェクトのチャットを確かめる",
   [AI_READ_CHAT_TOOL]: "チャットの会話を読む",
   [AI_USAGE_TOOL]: "使用枠を確かめる",
   [AI_ADD_SNIPPET_TOOL]: "定型文に登録",
-  [AI_MOVE_MEMO_TOOL]: "メモを移動",
+  [AI_MOVE_NOTE_TOOL]: "ノートを移動",
   [AI_OPEN_FILE_TOOL]: "ファイルを開く",
   [AI_OPEN_DIFF_TOOL]: "差分を開く",
   [AI_OPEN_SQL_TOOL]: "SQL のタブに入れる",
@@ -235,9 +235,9 @@ function describeKnown(name: string, input: Input): string | null {
     case AI_UPDATE_CHAT_TOOL:
       // どのチャットの何を変えたか（引数から。「名前を『…』に変えた・固定した（チャット 12）」）
       return clip(describeUpdateChat(input));
-    case AI_OPEN_MEMO_TOOL:
-      // どのメモをどこに開いたか（「機能の仕様/図.html（別ウィンドウ）」。場所を省いたら設定の開き方なので付けない）
-      return clip(describeOpenMemo(input));
+    case AI_OPEN_NOTE_TOOL:
+      // どのノートをどこに開いたか（「機能の仕様/図.html（別ウィンドウ）」。場所を省いたら設定の開き方なので付けない）
+      return clip(describeOpenNote(input));
     case AI_OPEN_CHAT_TOOL:
       return clip(describeOpenChat(input));
     case AI_LIST_PROJECT_CHATS_TOOL:
@@ -248,8 +248,8 @@ function describeKnown(name: string, input: Input): string | null {
       return clip(describeReadChat(input));
     case AI_ADD_SNIPPET_TOOL:
       return clip(describeAddSnippet(input));
-    case AI_MOVE_MEMO_TOOL:
-      return clip(describeMoveMemo(input));
+    case AI_MOVE_NOTE_TOOL:
+      return clip(describeMoveNote(input));
     case AI_OPEN_FILE_TOOL:
       return clip(describeOpenFile(input));
     case AI_OPEN_DIFF_TOOL:

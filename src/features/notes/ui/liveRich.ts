@@ -1,4 +1,4 @@
-// メモの Markdown 表示の数式（$…$・$$…$$・\(…\)・\[…\]）と Mermaid の塊（```mermaid）を図にする飾り。
+// ノートの Markdown 表示の数式（$…$・$$…$$・\(…\)・\[…\]）と Mermaid の塊（```mermaid）を図にする飾り。
 // 数式の場所は `@shared/markdown/mathGuard` の mathRanges（チャットの返答と同じ決まり）を KaTeX で、Mermaid はチャットと同じ renderMermaid で描く。
 // カーソルがその中にあるときは、書いたとおりの記号を見せる（ライブプレビューの見出しなどと同じ）。行をまたいで置き換えるので、ViewPlugin ではなく StateField で飾る
 import { Prec, StateEffect, StateField, type EditorState, type Range } from "@codemirror/state";
@@ -9,7 +9,7 @@ import { readAppliedTheme, subscribeAppliedTheme, type AppliedTheme } from "@/fo
 import { renderMermaid } from "@/foundation/ui/kit/markdown/mermaid/renderMermaid";
 import { mermaidBlocks } from "./mermaidBlocks";
 
-// KaTeX は大きいので、数式のあるメモを開いたときに初めて読み込む
+// KaTeX は大きいので、数式のあるノートを開いたときに初めて読み込む
 let katex: typeof KaTeX | null = null;
 let loading: Promise<void> | undefined;
 const loadKatex = () =>
@@ -58,7 +58,7 @@ class MermaidWidget extends WidgetType {
     el.className = "cm-md-mermaid";
     el.setAttribute("role", "img");
     el.setAttribute("aria-label", "Mermaid の図");
-    // 図の CSS がメモに漏れず、メモの CSS も図に効かないよう Shadow DOM に入れる（チャットの図と同じ）
+    // 図の CSS がノートに漏れず、ノートの CSS も図に効かないよう Shadow DOM に入れる（チャットの図と同じ）
     const root = el.attachShadow({ mode: "open" });
     root.innerHTML = `<div class="cm-md-mermaid-wait"></div>`;
     renderMermaid(this.code, this.theme).then(
@@ -150,5 +150,5 @@ const richWatcher = ViewPlugin.fromClass(
   },
 );
 
-/** メモの Markdown 表示の数式と Mermaid の図（ライブプレビューの記号の飾りより前に置く。数式の中の _ ・ * や、コードの塊の飾りと重ねないように） */
+/** ノートの Markdown 表示の数式と Mermaid の図（ライブプレビューの記号の飾りより前に置く。数式の中の _ ・ * や、コードの塊の飾りと重ねないように） */
 export const liveRich = [Prec.high(richField), richWatcher];

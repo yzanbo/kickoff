@@ -53,7 +53,7 @@ export function DbHome({
                     <StatusDot tone="ok" />
                   </span>
                 )}
-                {c.memo_path && <StickyNote size={12} className="db-home-card-memo" aria-label="手順メモあり" />}
+                {c.note_path && <StickyNote size={12} className="db-home-card-note" aria-label="手順ノートあり" />}
               </span>
               <span className="db-home-card-place small muted">{connectionPlace(c)}</span>
               <span className="db-home-card-foot small">

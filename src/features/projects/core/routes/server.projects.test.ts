@@ -33,7 +33,7 @@ test("設定・プロジェクトの API", async () => {
   // しないは null で保存する
   assert.equal((await call("PUT", "/api/settings", { auto_archive_days: null })).body.auto_archive_days, null);
   // 圧縮前指示: 前後の空白を除き、空は 400（なしは null）
-  assert.equal((await call("PUT", "/api/settings", { pre_compact_prompt: " メモ " })).body.pre_compact_prompt, "メモ");
+  assert.equal((await call("PUT", "/api/settings", { pre_compact_prompt: " ノート " })).body.pre_compact_prompt, "ノート");
   assert.equal((await call("PUT", "/api/settings", { pre_compact_prompt: "  " })).status, 400);
   assert.equal((await call("PUT", "/api/settings", { pre_compact_prompt: null })).body.pre_compact_prompt, null);
   assert.equal((await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: "書き残す" })).body.pre_compact_prompt, "書き残す");
@@ -102,21 +102,21 @@ test("新しいプロジェクト: フォルダを Git のリポジトリとし�
   assert.equal(fs.existsSync(path.join(empty, "README.md")), false);
 });
 
-test("新しいプロジェクト・取り込みのメモの保存先: memo_folder は使える名前にして重なれば「名前-2」、memo_path は別の場所、省けば決めない", async () => {
+test("新しいプロジェクト・取り込みのノートの保存先: note_folder は使える名前にして重なれば「名前-2」、note_path は別の場所、省けば決めない", async () => {
   const { call, store } = setup();
   const parent = tempDir();
-  const first = (await call("POST", "/api/projects", { name: "A", parent_dir: parent, folder_name: "a", memo_folder: "メモ/a" })).body;
-  assert.deepEqual([first.memo_folder, first.memo_path], ["メモ-a", null]);
+  const first = (await call("POST", "/api/projects", { name: "A", parent_dir: parent, folder_name: "a", note_folder: "ノート/a" })).body;
+  assert.deepEqual([first.note_folder, first.note_path], ["ノート-a", null]);
   const folder = tempDir();
-  const imported = (await call("POST", "/api/projects/import", { path: folder, name: "B", memo_folder: "メモ-a" })).body;
-  assert.equal(imported.memo_folder, "メモ-a-2");
-  const memoDir = tempDir();
-  const elsewhere = (await call("POST", "/api/projects", { name: "C", parent_dir: parent, folder_name: "c", memo_folder: "x", memo_path: memoDir })).body;
-  assert.deepEqual([elsewhere.memo_folder, elsewhere.memo_path], [null, memoDir]);
+  const imported = (await call("POST", "/api/projects/import", { path: folder, name: "B", note_folder: "ノート-a" })).body;
+  assert.equal(imported.note_folder, "ノート-a-2");
+  const noteDir = tempDir();
+  const elsewhere = (await call("POST", "/api/projects", { name: "C", parent_dir: parent, folder_name: "c", note_folder: "x", note_path: noteDir })).body;
+  assert.deepEqual([elsewhere.note_folder, elsewhere.note_path], [null, noteDir]);
   const plain = (await call("POST", "/api/projects", { name: "D", parent_dir: parent, folder_name: "d" })).body;
-  assert.deepEqual([plain.memo_folder, plain.memo_path], [null, null]);
+  assert.deepEqual([plain.note_folder, plain.note_path], [null, null]);
   // 別の場所は絶対パスだけ
-  assert.equal((await call("POST", "/api/projects", { name: "E", parent_dir: parent, folder_name: "e", memo_path: "rel/dir" })).status, 400);
+  assert.equal((await call("POST", "/api/projects", { name: "E", parent_dir: parent, folder_name: "e", note_path: "rel/dir" })).status, 400);
   assert.equal(store.projects.list().length, 5);
 });
 

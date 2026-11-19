@@ -32,7 +32,7 @@ export function TreeRow({
   icon: ReactNode;
   label: string;
   note?: string;
-  /** 名前の後ろに添える小さな印（接続の手順メモなど） */
+  /** 名前の後ろに添える小さな印（接続の手順ノートなど） */
   mark?: ReactNode;
   title?: string;
   className?: string;

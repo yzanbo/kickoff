@@ -7,7 +7,7 @@ import { useSetting } from "./useSetting";
 /** 探し方ごとの保存先（どの検索の欄でも同じ値） */
 const SETTINGS = { caseSensitive: FIND_CASE, wholeWord: FIND_WHOLE_WORD, regex: FIND_REGEX } as const;
 
-/** いまの探し方（React の外。メモのエディタの検索・Monaco の検索の欄に渡す） */
+/** いまの探し方（React の外。ノートのエディタの検索・Monaco の検索の欄に渡す） */
 export function readFindOptions(): FindOptions {
   return { caseSensitive: readSetting(FIND_CASE), wholeWord: readSetting(FIND_WHOLE_WORD), regex: readSetting(FIND_REGEX) };
 }

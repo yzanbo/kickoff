@@ -56,7 +56,7 @@ function statesReader<K extends string | number, T>(store: KeyedStore<K, T>, key
 
 /**
  * key ごとの店の、いくつかの key の様子を引く関数（グループ名を引くタブの列・作業場所で段に分けるボードなど）。
- * 渡した key のどれかの様子が変わったときだけ描き直し、返す関数も新しくなる（memo の deps に入れてよい）。
+ * 渡した key のどれかの様子が変わったときだけ描き直し、返す関数も新しくなる（note の deps に入れてよい）。
  * ほかの key が変わっても描き直さない（返す関数はほかの key も引けるが、変わっても知らせない。読み込みも頼まない）
  */
 export function useKeyedStores<K extends string | number, T>(store: KeyedStore<K, T>, keys: readonly K[], { active = true }: UseOptions = {}): (key: K) => StoreState<T> {

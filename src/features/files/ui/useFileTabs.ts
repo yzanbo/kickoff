@@ -9,7 +9,7 @@ import { closeFileTabsUnder, dirtyFilePaths, dirtyFileUnder, openFileTab, reloca
 const NO_TERMINALS: readonly TerminalTarget[] = [];
 
 /**
- * ファイル・検索・変更のタブの右の、開いたファイルをタブで並べるパネル（files。メモのタブの右と同じく、タブのドラッグ・右クリック・⌘\ で上下・左右に分けられる）と、
+ * ファイル・検索・変更のタブの右の、開いたファイルをタブで並べるパネル（files。ノートのタブの右と同じく、タブのドラッグ・右クリック・⌘\ で上下・左右に分けられる）と、
  * 左の一覧から開く操作。選んでいるファイル（selected）は、ピントのあるペインで表示中のタブ。scope はプロジェクト（チャットの右の欄の「ファイル」タブの中は、その部品ごとの名前）
  */
 export function useFileTabs(projectId: number, scope: PanelScope) {

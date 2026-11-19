@@ -20,7 +20,7 @@ interface WindowView extends SeenView {
 /** 選んだ文が長ければ切る（画面でも切るが、コアでも守る） */
 function clipView(view: UserView): UserView {
   const clip = (s: string | null) => (s !== null && s.length > USER_VIEW_TEXT_MAX ? `${s.slice(0, USER_VIEW_TEXT_MAX)}…（切りました）` : s);
-  const tab = <T extends UserView["side"][number] | null>(t: T): T => (t && t.kind === "memo" ? { ...t, selected_text: clip(t.selected_text) } : t);
+  const tab = <T extends UserView["side"][number] | null>(t: T): T => (t && t.kind === "note" ? { ...t, selected_text: clip(t.selected_text) } : t);
   return { ...view, panes: view.panes.map((p) => ({ ...p, tab: tab(p.tab) })), side: view.side.map(tab) };
 }
 

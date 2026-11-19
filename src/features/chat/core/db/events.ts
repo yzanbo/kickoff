@@ -332,7 +332,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       if (chat) onChange({ type: "chat_events_deleted", project_id: chat.project_id, chat_id: chatId, from_event_id: fromEventId });
     },
     /**
-     * フィード: チャット（子チャット・メモのチャットを除く）ごとに、メインエージェントの最新の返答 1 件の初めの部分。返答の新しい順。
+     * フィード: チャット（子チャット・ノートのチャットを除く）ごとに、メインエージェントの最新の返答 1 件の初めの部分。返答の新しい順。
      * チャットごとに記録の索引（chat_id, id）を新しい方からたどって最初の返答を引く（返答はたいてい終わりの近くにあるので、記録の多いチャットでも速い）
      */
     feed(limit = 100): FeedItem[] {

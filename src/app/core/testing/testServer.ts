@@ -15,8 +15,8 @@ import { listWorktrees } from "@/foundation/core/workplace/worktrees";
 import type { BranchPullRequest, MergedPullRequest } from "@/features/github/core/github";
 import { TrashService } from "@/features/trash/core/service";
 import { registerProjectTrash } from "@/features/projects/core/trash";
-import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "@/features/chat/core/sessions/chatTrash";
-import { MemoService } from "@/features/notes/core/memos";
+import { registerChatTrash, trashNoteChats, trashNoteChatsOnImport } from "@/features/chat/core/sessions/chatTrash";
+import { NoteService } from "@/features/notes/core/notes";
 import { DbWorkerClient } from "@/features/database/core/client";
 import { inProcessWorker } from "@/features/database/testing/inProcessWorker";
 import { DatabaseService } from "@/features/database/core/service";
@@ -96,7 +96,7 @@ class FakeProvider extends FakeProviderBase {
   private gate: Promise<void> | null = null;
   /** これがあれば、止められてもすぐには終わらない（サブエージェント・裏のコマンドが終わるのを待つ Claude Code の代わり） */
   slowStop: Promise<void> | null = null;
-  /** 最後に読めるようにしたフォルダと、足したシステムプロンプト（メモのチャットの確かめに使う） */
+  /** 最後に読めるようにしたフォルダと、足したシステムプロンプト（ノートのチャットの確かめに使う） */
   lastDirs: string[] = [];
   lastSystemPrompt = "";
   /** 最後に指示に添えた文脈（子チャットの親など。なければ null） */
@@ -269,8 +269,8 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
       usageLimit: { checkMs: 5 },
       // 書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
       editHoldTtlMs: 300,
-      // メモのチャットの実行では、メモのフォルダも読めるようにする（MemoService は下で作るので、呼ばれたときに引く）
-      memoDirOf: (p) => memos.dirOf(p),
+      // ノートのチャットの実行では、ノートのフォルダも読めるようにする（NoteService は下で作るので、呼ばれたときに引く）
+      noteDirOf: (p) => notes.dirOf(p),
     },
     // 前回の起動で残ったデータ（起動したときの再開の確かめ）
     opts.beforeStart,
@@ -315,24 +315,24 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
     findTools: async () => voiceFake.tools,
     fetch: () => voiceFake.download(),
   });
-  // メモ: 親フォルダの既定は一時フォルダ
-  const memoFake = { defaultDir: tempDir() };
-  // Kickoff のゴミ箱: 置き場は一時フォルダ。時計は trashClock.now で進める（メモ・ファイルタブの「ゴミ箱に入れる」はここへ）
+  // ノート: 親フォルダの既定は一時フォルダ
+  const noteFake = { defaultDir: tempDir() };
+  // Kickoff のゴミ箱: 置き場は一時フォルダ。時計は trashClock.now で進める（ノート・ファイルタブの「ゴミ箱に入れる」はここへ）
   const trashClock = { now: Date.now() };
   const trashBin: TrashService = new TrashService({
     store,
     dir: tempDir(),
     now: () => trashClock.now,
     projectOfPath: (origin) => store.projects.list().find((p) => origin === p.repo_path || origin.startsWith(`${p.repo_path}/`))?.id ?? null,
-    onImported: (item) => trashMemoChatsOnImport({ store, runner, memoDirOf: (p) => memos.dirOf(p), publish: (e) => bus.publish(e) }, item),
+    onImported: (item) => trashNoteChatsOnImport({ store, runner, noteDirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }, item),
   });
-  const memos = new MemoService({
+  const notes = new NoteService({
     store,
-    defaultDir: memoFake.defaultDir,
+    defaultDir: noteFake.defaultDir,
     providers,
     publish: (e) => bus.publish(e),
     trashBin,
-    trashMemoChats: (projectId, memoPath, itemId) => trashMemoChats({ store, runner }, projectId, memoPath, itemId),
+    trashNoteChats: (projectId, notePath, itemId) => trashNoteChats({ store, runner }, projectId, notePath, itemId),
   });
   // ワークツリーの PR の見張り: ワークツリーは本物の git、PR の一覧は偽物（prFake.prs を返し、聞いた回数を覚える。失敗させるなら fail）
   const prFake = { prs: [] as BranchPullRequest[], asked: 0, fail: false, merged: {} as Record<string, MergedPullRequest> };
@@ -498,15 +498,15 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
   const chatRemover = new ChatRemover({ store, bus, runner, trashBin, retryMs: 10 });
   runner.useChatRemover(chatRemover);
   afterTest(() => chatRemover.close());
-  // メモのフォルダの見張り（FSEvents）と DB ワーカーの接続も止める（同じプロセスで続けて流すと、ほかのファイルのテストまで残り続ける）
-  afterTest(() => memos.close());
+  // ノートのフォルダの見張り（FSEvents）と DB ワーカーの接続も止める（同じプロセスで続けて流すと、ほかのファイルのテストまで残り続ける）
+  afterTest(() => notes.close());
   afterTest(() => databases.close());
   registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages });
   // AI の API キー（暗号化の口を渡されたテストはそれで置く。実行の側には渡さない = いつもサブスク）
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
   const headWatch = new HeadWatch((project_id) => bus.publish({ type: "worktrees_changed", project_id }));
   afterTest(() => headWatch.close());
-  const app = createApp({ store, bus, headWatch, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, remoteImages, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
+  const app = createApp({ store, bus, headWatch, token: TOKEN, mcpTools, providerKeys, providers, usage, serviceUsage, runner, approvals, uploads, voice, notes, prWatch, databases, github, ci, docker, worktreeEnvs, ports, pairing, viewing, browserLogin, trashBin, remoteImages, worktreeFinisher, userViews, tailscaleCli: () => tailscaleFake.cli, terminals, githubAccounts: async () => githubFake.accounts, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -518,6 +518,6 @@ export function setup(opts: { staticDir?: string; secretCipher?: SecretCipher; b
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, mcpTools, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, memoFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, worktreeFinisher, chatRemover, userViews, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, remoteImages, imageFake, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, mcpTools, pairing, pairingClock, notifyFake, tailscaleFake, terminalFake, terminals, browserLogin, provider, uploads, voiceFake, noteFake, trashBin, trashClock, prFake, githubFake, ghFake, prWatch, worktreeFinisher, chatRemover, userViews, network, approvals, databases, dbFake, dockerFake, portsFake, docker, worktreeEnvs, ports, remoteImages, imageFake, codexCalls: () => codexCalls };
 }
 

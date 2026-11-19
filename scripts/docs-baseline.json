@@ -2,19 +2,19 @@
   "version": 1,
   "files": {
     "README.md": {
-      "bytes": 10525,
+      "bytes": 10528,
       "longLines": 2,
       "forbidden": 0,
       "brokenRefs": 1
     },
     "docs/architecture.md": {
-      "bytes": 62305,
+      "bytes": 62386,
       "longLines": 1,
       "forbidden": 4,
       "brokenRefs": 2
     },
     "docs/requirements.md": {
-      "bytes": 112766,
+      "bytes": 112985,
       "longLines": 5,
       "forbidden": 12,
       "brokenRefs": 0
@@ -33,8 +33,15 @@
       "brokenRefs": 0
     },
     "src/features/conversation/CLAUDE.md": {
-      "bytes": 15311,
-      "ancestors": 25509,
+      "bytes": 15314,
+      "ancestors": 25512,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 0
+    },
+    "src/features/notes/CLAUDE.md": {
+      "bytes": 4162,
+      "ancestors": 14360,
       "longLines": 0,
       "forbidden": 0,
       "brokenRefs": 0
@@ -77,7 +84,7 @@
     "src/features/conversation/ui/promptList/promptNav.ts": 1,
     "src/features/conversation/ui/screen/ChatHeader.tsx": 1,
     "src/features/conversation/ui/timeline/rowWindow/useRowWindow.ts": 1,
-    "src/features/database/ui/ConnectionMemoField.tsx": 1,
+    "src/features/database/ui/ConnectionNoteField.tsx": 1,
     "src/features/database/worker/postgres.ts": 1,
     "src/features/docker/ui/useDockerLogs.ts": 2,
     "src/features/projects/ui/page/ProjectPage.tsx": 1,

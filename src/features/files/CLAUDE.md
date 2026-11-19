@@ -31,5 +31,5 @@
 - 保存は開いたときの指紋（`hash`）と比べる。保存した直後の古い中身はほかでの変更と見ない（`ignoreHash`）。
 - Monaco は作り直さず `updateOptions` で変える。上げたときは `monacoEditor.ts` の頭のとおり入口を作り直す。
 - Monaco の選択はページの選択にならないので、チャットに足す選択は `registerCodeSelection`（`@/foundation/ui/code/codeSelection.ts`）から読む。
-- 木の縦の線はファイル・変更・履歴・メモの木で同じ CSS（`editor-explorer.css`）。
+- 木の縦の線はファイル・変更・履歴・ノートの木で同じ CSS（`editor-explorer.css`）。
 - チップの開く関数は同じものにして返答の Markdown を描き直させない。remark の差し込みは一覧を受け取らずにパスらしい文字に印を付け、開けるかはリンクの部品が `fileIndexStore.ts` から自分の分だけ読む（一覧を取り直しても解析し直さない）。

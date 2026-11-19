@@ -28,7 +28,7 @@ input[type="text"].inline-name {
   font-size: 13px;
 }
 
-/* 入力欄のすぐ右に添える文（メモの拡張子など。名前には含めない） */
+/* 入力欄のすぐ右に添える文（ノートの拡張子など。名前には含めない） */
 .inline-name-suffix {
   flex: none;
   margin-right: 2px;

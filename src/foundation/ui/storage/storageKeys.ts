@@ -17,13 +17,13 @@ import { EMPTY_REVIEW_DRAFT, isEmptyReviewDraft, parseReviewDraft } from "@/feat
 
 const NO_ATTACHMENTS: readonly Attachment[] = [];
 
-/** 残しておいた添付の 1 つが使える形か（メモはパスと写した時刻、取ったものは出どころと時刻が要る） */
+/** 残しておいた添付の 1 つが使える形か（ノートはパスと写した時刻、取ったものは出どころと時刻が要る） */
 function isStoredAttachment(value: unknown): value is Attachment {
   if (typeof value !== "object" || value === null) return false;
   const a = value as Record<string, unknown>;
   if (typeof a.id !== "string" || typeof a.name !== "string" || typeof a.mime !== "string" || typeof a.size !== "number") return false;
   if (a.kind === "file") return true;
-  if (a.kind === "memo") return typeof a.memo === "string" && typeof a.taken_at === "string";
+  if (a.kind === "note") return typeof a.note === "string" && typeof a.taken_at === "string";
   return a.kind === "capture" && typeof a.source === "object" && a.source !== null && typeof a.taken_at === "string";
 }
 
@@ -215,7 +215,7 @@ export const SIDEBAR_VIEW_SELECTED = defineSetting("kickoff:sidebar-view-selecte
 export const FOLDS = defineSettingFamily("kickoff:fold:", optionalFlag(), { ids: true });
 
 // パレット
-/** ⌘K で探す対象（project / chat / memo / message。空ならプロジェクト・チャット・メモ） */
+/** ⌘K で探す対象（project / chat / note / message。空ならプロジェクト・チャット・ノート） */
 export const COMMAND_PALETTE_TARGETS = defineSetting("kickoff:command-palette-targets", list());
 /** ⌘⇧A（作業中・待ちのチャットの一覧）に、アーカイブ済みのプロジェクトのチャットも出すか */
 export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:active-chats-show-archived-projects", flag());
@@ -336,7 +336,7 @@ export const PROJECT_CHAT_MAXIMIZED = defineSetting("kickoff:project-chat-maximi
  */
 export const sideView = defineSettingFamily(
   "kickoff:side-view:",
-  choice(["browser", "memos", "files", "search", "changes", "history", "db", "docker", "github", "ci", "trash"], "browser"),
+  choice(["browser", "notes", "files", "search", "changes", "history", "db", "docker", "github", "ci", "trash"], "browser"),
   { ids: true },
 );
 export const BOTTOM_PANEL_HEIGHT = defineSetting("kickoff:bottom-panel-height", number(198));
@@ -391,10 +391,10 @@ export const HANDOFF_VIA = defineSetting("kickoff:handoff-via", choice(HANDOFF_V
  */
 export const HANDOFF_AFTER = defineSetting("kickoff:handoff-after", choice(HANDOFF_AFTERS, "keep"));
 /**
- * チャットからメモを開く場所（side = チャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」）。
- * 「メモに追加」のあとの「開く」・入力欄の上のメモの札で共通（メモのタブから開くのは、メモのタブの中）
+ * チャットからノートを開く場所（side = チャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」）。
+ * 「ノートに追加」のあとの「開く」・入力欄の上のノートの札で共通（ノートのタブから開くのは、ノートのタブの中）
  */
-export const MEMO_OPEN_IN = defineSetting("kickoff:memo-open-in", choice(["side", "window"], "side"));
+export const NOTE_OPEN_IN = defineSetting("kickoff:note-open-in", choice(["side", "window"], "side"));
 /** チャットごとの、手で隠した ToDo の一覧（その一覧の印 todoSignature。一覧が書き換わったらまた出す） */
 export const todoHidden = defineSettingFamily("kickoff:todo-hidden:", text(), { ids: true });
 /** チャットごとの、アーカイブしたサブエージェント（呼び出し ID） */
@@ -437,7 +437,7 @@ export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["x
 /** 会話の横幅を広げるか（どのチャットでも同じ。初めは広げる） */
 export const CHAT_WIDE = defineSetting("kickoff:chat-wide", flag(true));
 /**
- * ⌘F の検索の欄の探し方（大文字・小文字を区別・単語単位・正規表現。VS Code の「Aa」「ab」「.*」）。チャット・ファイル・差分・メモ・履歴など、
+ * ⌘F の検索の欄の探し方（大文字・小文字を区別・単語単位・正規表現。VS Code の「Aa」「ab」「.*」）。チャット・ファイル・差分・ノート・履歴など、
  * どの検索の欄でも同じ値を使う（hooks/useFindOptions）。大文字・小文字のキーは、チャットの中の検索だけにあったころの名前のまま
  */
 export const FIND_CASE = defineSetting("kickoff:chat-find-case-sensitive", flag());
@@ -472,16 +472,16 @@ export const HISTORY_SPLIT = defineSetting("kickoff:history-split", number(43));
 export const HISTORY_LIST_HIDDEN = defineSetting("kickoff:history-list-hidden", flag());
 /** プロジェクトごとの、ファイルタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
 export const editorWorktree = defineSettingFamily("kickoff:editor-worktree:", text(), { ids: true });
-/** プロジェクトごとの、メモのタブで開いているメモ（メモのフォルダからの相対パス。空なら選んでいない） */
-export const memoSelected = defineSettingFamily("kickoff:memo-selected:", text(), { ids: true });
-/** プロジェクトごとの、メモのタブの木で開いているフォルダ */
-export const memoOpenFolders = defineSettingFamily("kickoff:memo-open-folders:", list(), { ids: true });
-/** メモの表示（preview = Markdown 表示（Obsidian のライブプレビューと同じ。カーソルの行だけ記号を見せる）/ edit = そのまま表示（記号もそのまま）。どちらも書ける） */
-export const MEMO_VIEW = defineSetting("kickoff:memo-view", choice(["edit", "preview"], "preview"));
-/** まだ保存していないメモ（キーは「プロジェクト:メモのパス」。値は書いたものと、書き始めたときのメモの指紋。保存する・捨てると消す。アプリを閉じても残す） */
-export const memoDraft = defineSettingFamily("kickoff:memo-draft:", json(parseMemoDraft, null, (v) => v === null), { ids: true });
-/** メモのタブの左の一覧（メモのフォルダの木）を隠しているか（どのプロジェクトでも同じ） */
-export const MEMO_LIST_HIDDEN = defineSetting("kickoff:memo-list-hidden", flag(false));
+/** プロジェクトごとの、ノートのタブで開いているノート（ノートのフォルダからの相対パス。空なら選んでいない） */
+export const noteSelected = defineSettingFamily("kickoff:note-selected:", text(), { ids: true });
+/** プロジェクトごとの、ノートのタブの木で開いているフォルダ */
+export const noteOpenFolders = defineSettingFamily("kickoff:note-open-folders:", list(), { ids: true });
+/** ノートの表示（preview = Markdown 表示（Obsidian のライブプレビューと同じ。カーソルの行だけ記号を見せる）/ edit = そのまま表示（記号もそのまま）。どちらも書ける） */
+export const NOTE_VIEW = defineSetting("kickoff:note-view", choice(["edit", "preview"], "preview"));
+/** まだ保存していないノート（キーは「プロジェクト:ノートのパス」。値は書いたものと、書き始めたときのノートの指紋。保存する・捨てると消す。アプリを閉じても残す） */
+export const noteDraft = defineSettingFamily("kickoff:note-draft:", json(parseNoteDraft, null, (v) => v === null), { ids: true });
+/** ノートのタブの左の一覧（ノートのフォルダの木）を隠しているか（どのプロジェクトでも同じ） */
+export const NOTE_LIST_HIDDEN = defineSetting("kickoff:note-list-hidden", flag(false));
 /**
  * DB クライアントの右のタブ（テーブル・SQL）と表示中のタブ。置き場所ごと（プロジェクトの DB タブ = project-<ID>・チャットの右の欄 = chat-<ID>・別ウィンドウ = popout-<ID>）。
  * 接続・プロジェクトの ID を含むので DB を作り直したら捨てる
@@ -520,16 +520,16 @@ export const DB_LIST_WIDTH = defineSetting("kickoff:db-list-width", number(260))
 export const DB_SQL_EDITOR_HEIGHT = defineSetting("kickoff:db-sql-editor-height", number(40));
 /** DB クライアントの左の一覧を隠しているか（どの置き場所でも同じ。狭い所ではいつも隠してパンくずにする） */
 export const DB_LIST_HIDDEN = defineSetting("kickoff:db-list-hidden", flag(false));
-/** メモのチャットの欄（本文の右）を開いているか（どのメモでも同じ。チャットそのものは DB の chats.memo_path） */
-export const MEMO_CHAT_OPEN = defineSetting("kickoff:memo-chat-open", flag(false));
-/** メモのチャットの欄を閉じている間、メモの下の入力欄（MemoQuickChat）も隠すか（どのメモでも同じ。見出しの吹き出しの ▾・入力欄の「隠す」で切り替える） */
-export const MEMO_QUICK_CHAT_HIDDEN = defineSetting("kickoff:memo-quick-chat-hidden", flag(false));
-/** メモのチャットの欄の幅（本文の右に並べたとき。境目のつまみで変える） */
-export const MEMO_CHAT_WIDTH = defineSetting("kickoff:memo-chat-width", number(380));
-/** メモのチャットの欄の置き場所（right = 本文の右 / bottom = 本文の下。欄の見出しで切り替える。right でも狭ければ下に並べる） */
-export const MEMO_CHAT_PLACE = defineSetting("kickoff:memo-chat-place", choice(["right", "bottom"], "right"));
-/** メモのチャットの欄の高さ（本文の下に置いたとき。本文と欄を合わせた高さに対する %。境目のつまみで変える） */
-export const MEMO_CHAT_HEIGHT = defineSetting("kickoff:memo-chat-height", number(45));
+/** ノートのチャットの欄（本文の右）を開いているか（どのノートでも同じ。チャットそのものは DB の chats.note_path） */
+export const NOTE_CHAT_OPEN = defineSetting("kickoff:note-chat-open", flag(false));
+/** ノートのチャットの欄を閉じている間、ノートの下の入力欄（NoteQuickChat）も隠すか（どのノートでも同じ。見出しの吹き出しの ▾・入力欄の「隠す」で切り替える） */
+export const NOTE_QUICK_CHAT_HIDDEN = defineSetting("kickoff:note-quick-chat-hidden", flag(false));
+/** ノートのチャットの欄の幅（本文の右に並べたとき。境目のつまみで変える） */
+export const NOTE_CHAT_WIDTH = defineSetting("kickoff:note-chat-width", number(380));
+/** ノートのチャットの欄の置き場所（right = 本文の右 / bottom = 本文の下。欄の見出しで切り替える。right でも狭ければ下に並べる） */
+export const NOTE_CHAT_PLACE = defineSetting("kickoff:note-chat-place", choice(["right", "bottom"], "right"));
+/** ノートのチャットの欄の高さ（本文の下に置いたとき。本文と欄を合わせた高さに対する %。境目のつまみで変える） */
+export const NOTE_CHAT_HEIGHT = defineSetting("kickoff:note-chat-height", number(45));
 /** チャットの画面の右の欄の「変更」で確認済みにしたファイル（キーは「プロジェクト:ワークツリーのフォルダ（本体は空）」。値はパス → 確認したときの差分の指紋） */
 export const sideViewedFiles = defineSettingFamily("kickoff:side-viewed:", record(isString), { ids: true });
 
@@ -551,15 +551,15 @@ export const BROWSER_DEVTOOLS_DOCK = defineSetting("kickoff:browser-devtools-doc
 export const BROWSER_DEVTOOLS_WIDTH = defineSetting("kickoff:browser-devtools-width", number(420));
 export const BROWSER_DEVTOOLS_HEIGHT = defineSetting("kickoff:browser-devtools-height", number(300));
 
-/** まだ保存していないメモ（memoDraft の値） */
-export interface MemoDraft {
+/** まだ保存していないノート（noteDraft の値） */
+export interface NoteDraft {
   /** 書いたもの */
   text: string;
-  /** 書き始めたときのメモの指紋（いまのメモと違えば、ほかで変わっている） */
+  /** 書き始めたときのノートの指紋（いまのノートと違えば、ほかで変わっている） */
   hash: string;
 }
 
-function parseMemoDraft(value: unknown): MemoDraft | null | undefined {
+function parseNoteDraft(value: unknown): NoteDraft | null | undefined {
   if (!value || typeof value !== "object") return undefined;
   const { text: body, hash } = value as Record<string, unknown>;
   return typeof body === "string" && typeof hash === "string" ? { text: body, hash } : undefined;

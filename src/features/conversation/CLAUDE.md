@@ -15,11 +15,11 @@
 
 ## 1 つのチャットの画面（`screen/`）
 
-- チャットの画面を描く 5 か所（`ChatPane`・`SideChildChat`・`MemoChatView`・`PopoutChildChat`・`PopoutSubagent`）は `useOpenChat(chatId, visible)` で店を見る。部品で記録の fetch・SSE を持たない。
+- チャットの画面を描く 5 か所（`ChatPane`・`SideChildChat`・`NoteChatView`・`PopoutChildChat`・`PopoutSubagent`）は `useOpenChat(chatId, visible)` で店を見る。部品で記録の fetch・SSE を持たない。
 - 店（`createChatStore`）はチャットごとに 1 つ。同じチャットを何か所で開いても読み込みと SSE は 1 回（別ウィンドウはウィンドウごと）。
 - 部品は要る口だけを `useSyncExternalStore` で購読する（`detail`・`log`・`streaming`・`progress`）。差し替えは 1 フレームに 1 回、変わっていない口は同じ値。途中の文は state に入れない。
 - `ChatPane` と殻 `ChatView` は記録を読まない（読むと、隠れている間も届くたびに殻ごと描き直す）。記録は会話の欄 `ChatColumn` が読む。
-- `ChatColumn` は `Activity` に入れ、止めてよい画面で表示していないときは hidden で止める（`useColumnMode`）。メモのチャット・別ウィンドウは止めない。
+- `ChatColumn` は `Activity` に入れ、止めてよい画面で表示していないときは hidden で止める（`useColumnMode`）。ノートのチャット・別ウィンドウは止めない。
 - 別ウィンドウからの知らせは殻が `useWindowMessagesFor` で受ける（止めていても）。移る・動きを開くなら、先にタブを表に出す（`TabPageContext` の `show`）。
 - 子の部品への操作は `ChatPaneContext`（`ChatPaneActions`）1 つで配り、チャットごとに 1 回だけ作る。props で中継しない・クラス名で DOM を探さない。
 - 変わる様子は `useChatPaneState` で読む（保存しない）。画面の外でも描く部品は `useOptionalChatPane` を使う。

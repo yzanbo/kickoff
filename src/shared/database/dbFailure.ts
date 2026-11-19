@@ -41,7 +41,7 @@ export const DB_FAILURE_CAUSES: Record<DbFailureKind, string[]> = {
   ssl: ["SSL の設定が DB と合わない（使う・使わない）", "証明書を確かめるときは CA が要る（Supabase は独自の CA、RDS は AWS の CA の束）"],
   no_database: ["DB 名の誤り", "DB がまだ作られていない・消された"],
   file: ["ファイルの場所の誤り・まだ作られていない", "ワークツリーにそのファイルがない"],
-  other: ["接続の設定（ホスト・ポート・ユーザー・SSL）を見直す", "手順メモの「つなぐ前にやること」を済ませたか確かめる"],
+  other: ["接続の設定（ホスト・ポート・ユーザー・SSL）を見直す", "手順ノートの「つなぐ前にやること」を済ませたか確かめる"],
 };
 
 const RULES: [DbFailureKind, RegExp][] = [
@@ -60,20 +60,20 @@ export function dbFailureKind(message: string): DbFailureKind {
   return RULES.find(([, re]) => re.test(message))?.[0] ?? "other";
 }
 
-/** 手順メモを置くメモのフォルダの中のフォルダ */
-export const DB_MEMO_DIR = "DB";
+/** 手順ノートを置くノートのフォルダの中のフォルダ */
+export const DB_NOTE_DIR = "DB";
 
-/** 手順メモの名前の案（接続の名前ではなく、つなぎ方（経路）の名前をすすめる: 「本番（db.example.com）」「ローカル（SQLite）」） */
-export function suggestDbMemoName(c: Pick<DbConnection, "engine" | "environment" | "host">): string {
+/** 手順ノートの名前の案（接続の名前ではなく、つなぎ方（経路）の名前をすすめる: 「本番（db.example.com）」「ローカル（SQLite）」） */
+export function suggestDbNoteName(c: Pick<DbConnection, "engine" | "environment" | "host">): string {
   const where = c.engine === "sqlite" ? "SQLite" : (c.host ?? DB_ENGINE_LABELS[c.engine]);
   return `${DB_ENVIRONMENT_LABELS[c.environment]}（${where}）`;
 }
 
-/** 手順メモのひな形（4 つの見出し。パスワードは書かない）。today は「変えた履歴」の 1 行目の日付（YYYY-MM-DD） */
-export function dbMemoTemplate(title: string, today: string): string {
+/** 手順ノートのひな形（4 つの見出し。パスワードは書かない）。today は「変えた履歴」の 1 行目の日付（YYYY-MM-DD） */
+export function dbNoteTemplate(title: string, today: string): string {
   return `# ${title}
 
-> DB の接続の手順メモです（Kickoff の DB クライアントから開けます）。パスワードそのものは書かないでください（ふつうのファイルなので）。
+> DB の接続の手順ノートです（Kickoff の DB クライアントから開けます）。パスワードそのものは書かないでください（ふつうのファイルなので）。
 
 ## つなぐ前にやること
 
@@ -93,11 +93,11 @@ export function dbMemoTemplate(title: string, today: string): string {
 `;
 }
 
-/** 手順メモの直し方の見出し（dbMemoTemplate と同じ） */
+/** 手順ノートの直し方の見出し（dbNoteTemplate と同じ） */
 const FIX_HEADING = "## つながらないときの直し方";
 
-/** 「手順メモに追記」の 1 行: 日付・失敗の種類と失敗の文の頭・直し方（どちらも 1 行に詰める） */
-export function dbMemoFixEntry(today: string, error: string, fix: string): string {
+/** 「手順ノートに追記」の 1 行: 日付・失敗の種類と失敗の文の頭・直し方（どちらも 1 行に詰める） */
+export function dbNoteFixEntry(today: string, error: string, fix: string): string {
   const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
   const head = oneLine(error.split("\n")[0] ?? "");
   const clipped = head.length > 80 ? `${head.slice(0, 80)}…` : head;
@@ -105,10 +105,10 @@ export function dbMemoFixEntry(today: string, error: string, fix: string): strin
 }
 
 /**
- * 手順メモの「つながらないときの直し方」の終わりに 1 行足す（その段の最後の行の次。段がなければメモの終わりに見出しごと足す）。
+ * 手順ノートの「つながらないときの直し方」の終わりに 1 行足す（その段の最後の行の次。段がなければノートの終わりに見出しごと足す）。
  * ほかの段・例の行はそのまま
  */
-export function appendDbMemoFix(content: string, entry: string): string {
+export function appendDbNoteFix(content: string, entry: string): string {
   const lines = content.split("\n");
   const at = lines.findIndex((l) => l.trim() === FIX_HEADING);
   if (at < 0) return `${content.trimEnd()}${content.trim() ? "\n\n" : ""}${FIX_HEADING}\n\n${entry}\n`;
@@ -132,10 +132,10 @@ export function dbFixText(c: Pick<DbConnection, "name">): string {
 }
 
 /**
- * つながらない様子の札の中身（「AI に渡す」）: 失敗の文・接続の設定（パスワードは入れない）・手順メモの場所と、直したあと・直し方の決まり。
- * AI はふつうのチャットと同じく承認を通してコマンドを流せる。直ったら手順メモに追記してもらう
+ * つながらない様子の札の中身（「AI に渡す」）: 失敗の文・接続の設定（パスワードは入れない）・手順ノートの場所と、直したあと・直し方の決まり。
+ * AI はふつうのチャットと同じく承認を通してコマンドを流せる。直ったら手順ノートに追記してもらう
  */
-export function dbFailureDocument(c: Pick<DbConnection, "name" | "engine" | "environment" | "host" | "port" | "database" | "username" | "file_path" | "ssl" | "read_only" | "memo_path">, error: string): string {
+export function dbFailureDocument(c: Pick<DbConnection, "name" | "engine" | "environment" | "host" | "port" | "database" | "username" | "file_path" | "ssl" | "read_only" | "note_path">, error: string): string {
   const fields: [string, string | null][] = [
     ["名前", c.name],
     ["種類", DB_ENGINE_LABELS[c.engine]],
@@ -164,10 +164,10 @@ export function dbFailureDocument(c: Pick<DbConnection, "name" | "engine" | "env
     "",
     ...fields.filter(([, v]) => v !== null).map(([k, v]) => `- ${k}: ${v}`),
     "",
-    c.memo_path
-      ? `## 手順メモ\n\nこの接続の手順メモはメモフォルダの「${c.memo_path}」です。先に読んでください。直ったら、何をしたかをその「変えた履歴」と「つながらないときの直し方」に書き足してください。`
-      : `## 手順メモ\n\nこの接続にはまだ手順メモがありません。直ったら、つなぐ前にやること・直し方をメモフォルダの「${DB_MEMO_DIR}/」の下に手順メモとして書いてください。`,
+    c.note_path
+      ? `## 手順ノート\n\nこの接続の手順ノートはノートフォルダの「${c.note_path}」です。先に読んでください。直ったら、何をしたかをその「変えた履歴」と「つながらないときの直し方」に書き足してください。`
+      : `## 手順ノート\n\nこの接続にはまだ手順ノートがありません。直ったら、つなぐ前にやること・直し方をノートフォルダの「${DB_NOTE_DIR}/」の下に手順ノートとして書いてください。`,
     "",
-    "IP の許可を 0.0.0.0/0 に広げるなど、守りを弱める直し方はしないでください。パスワード・トークンをメモに書かないでください。",
+    "IP の許可を 0.0.0.0/0 に広げるなど、守りを弱める直し方はしないでください。パスワード・トークンをノートに書かないでください。",
   ].join("\n");
 }

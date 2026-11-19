@@ -19,7 +19,7 @@ import type { ApprovalCenter } from "@/features/chat/core/approvals";
 import type { Runner } from "@/features/chat/core/runner";
 import type { UploadStore } from "@/features/attachments/core/uploads";
 import type { VoiceService } from "@/features/voice/core/service";
-import type { MemoService } from "@/features/notes/core/memos";
+import type { NoteService } from "@/features/notes/core/notes";
 import type { DatabaseService } from "@/features/database/core/service";
 import type { GitHubService } from "@/features/github/core/service";
 import type { CiService } from "@/features/github/core/ci";
@@ -50,7 +50,7 @@ import { gitRoutes } from "@/features/git/core/routes/git";
 import { groupRoutes } from "@/features/groups/core/routes/groups";
 import { snippetRoutes } from "@/features/snippets/core/routes/snippets";
 import { trashRoutes } from "@/features/trash/core/routes/trash";
-import { memoRoutes } from "@/features/notes/core/routes/memos";
+import { noteRoutes } from "@/features/notes/core/routes/notes";
 import { projectRoutes } from "@/features/projects/core/routes/projects";
 import { providerRoutes } from "@/features/ai/core/routes/providers";
 import { queueRoutes } from "@/features/chat/core/routes/queue";
@@ -87,8 +87,8 @@ export interface ServerDeps {
   uploads: UploadStore;
   /** 音声入力の文字起こしとモデルの管理 */
   voice: VoiceService;
-  /** プロジェクトのメモ（保存先はプロジェクトの外） */
-  memos: MemoService;
+  /** プロジェクトのノート（保存先はプロジェクトの外） */
+  notes: NoteService;
   /** ワークツリーの PR の見張り（マージ・マージせずに閉じたことの知らせ） */
   prWatch: WorktreePrWatch;
   /** ブランチの切り替え・ワークツリーの足し引きの見張り（一覧の API が見張りを一覧に合わせる） */
@@ -253,7 +253,7 @@ export function createApp(deps: ServerDeps): Hono {
   worktreeRoutes(app, deps);
   worktreePrRoutes(app, deps);
   voiceRoutes(app, deps);
-  memoRoutes(app, deps);
+  noteRoutes(app, deps);
   databaseRoutes(app, deps);
   githubRoutes(app, deps);
   ciRoutes(app, deps);

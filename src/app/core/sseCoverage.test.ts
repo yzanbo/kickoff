@@ -28,7 +28,7 @@ const SSE_TYPES = {
   usage: true,
   codex_credits: true,
   voice_model: true,
-  memos: true,
+  notes: true,
   worktrees_changed: true,
   worktree_prs: true,
   chat_image_hosts: true,

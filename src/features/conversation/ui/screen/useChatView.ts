@@ -22,7 +22,7 @@ export interface ChatViewInput {
   focus?: number;
   /** 新しいチャットのタブを開く（送信待ちの指示・選んだ文を新しいチャットで聞くとき。パネルの外では渡さない） */
   onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
-  /** 送る前にすること（メモのチャットで、書きかけのメモを保存してから送る） */
+  /** 送る前にすること（ノートのチャットで、書きかけのノートを保存してから送る） */
   beforeSend?: () => Promise<void>;
 }
 
@@ -136,7 +136,7 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     onJump: (id) => pane.jumpTo(id),
   });
   // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
-  // ピルの列を画面の外に描いているとき（メモのチャットの欄を閉じている）は、会話へ移る前に画面を見せる
+  // ピルの列を画面の外に描いているとき（ノートのチャットの欄を閉じている）は、会話へ移る前に画面を見せる
   const chipsPortal = useChipsPortal();
   const latest: PaneLatest = {
     chat,

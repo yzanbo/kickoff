@@ -42,7 +42,7 @@ export interface ChatOptions {
 /** 選択の一部（送るとき・送信待ち・プロジェクトの既定）。書いていない項目は、次の段（送るとき → プロジェクト → アプリ）に従う */
 export type ChatOptionsPatch = Partial<ChatOptions>;
 
-/** 名前が空のチャット（文字を書かずに添付だけで送ったときなど）の代わりの名前（画面・メモ・会話の書き出しで共通。New Chat・No Group とそろえて英語） */
+/** 名前が空のチャット（文字を書かずに添付だけで送ったときなど）の代わりの名前（画面・ノート・会話の書き出しで共通。New Chat・No Group とそろえて英語） */
 export const UNTITLED_CHAT_TITLE = "Untitled Chat";
 
 /** チャットの名前の文字数の上限（コアの入力の検証・AI がチャットの名前を変えるツール・画面の名前の欄で共通） */
@@ -128,10 +128,10 @@ export interface Chat {
   /** 親の会話のどの記録（発言・返答）から聞いたか（子チャットで、聞いた位置が分かるとき） */
   parent_event_id: number | null;
   /**
-   * メモのチャット（メモの右の欄で話す、メモごとに 1 つのチャット）のメモ（メモのフォルダからの相対パス）。null ならふつうのチャット。
-   * サイドバー・ボードに並べず、そのメモの右の欄から開く
+   * ノートのチャット（ノートの右の欄で話す、ノートごとに 1 つのチャット）のノート（ノートのフォルダからの相対パス）。null ならふつうのチャット。
+   * サイドバー・ボードに並べず、そのノートの右の欄から開く
    */
-  memo_path: string | null;
+  note_path: string | null;
   /** Git で管理していないファイルだけを書けるチャット（ワークツリーの実行環境の［AI で整える］。AI のファイルの書き込みを守りで断る） */
   untracked_only: boolean;
   /** 結び付いた GitHub の issue・PR のリポジトリ（「持ち主/名前」）と番号（どちらも null なら結び付いていない。issue と PR の番号はリポジトリの中で重ならないので種類は持たない） */
@@ -233,12 +233,12 @@ export interface FileAttachment extends AttachmentBase {
 }
 
 /**
- * メモの添付（チャットのプロジェクトのメモ。memo はメモのフォルダからの相対パス）。付けたときの中身の写しを保存先に置き（id がその写し）、
- * 送るときは写しのパスと元のメモのパスを AI に伝える（頼まれたら元のメモを書き換えてよい）。taken_at は写した時刻
+ * ノートの添付（チャットのプロジェクトのノート。note はノートのフォルダからの相対パス）。付けたときの中身の写しを保存先に置き（id がその写し）、
+ * 送るときは写しのパスと元のノートのパスを AI に伝える（頼まれたら元のノートを書き換えてよい）。taken_at は写した時刻
  */
-export interface MemoAttachment extends AttachmentBase {
-  kind: "memo";
-  memo: string;
+export interface NoteAttachment extends AttachmentBase {
+  kind: "note";
+  note: string;
   taken_at: string;
 }
 
@@ -256,7 +256,7 @@ export interface CaptureAttachment extends AttachmentBase {
 }
 
 /** チャットの添付（種類 kind で分ける） */
-export type Attachment = FileAttachment | MemoAttachment | CaptureAttachment;
+export type Attachment = FileAttachment | NoteAttachment | CaptureAttachment;
 
 /**
  * チャットで外の画像の表示を許可したホスト。返答の外の画像は「ホストから画像を n 件表示」を押すまで読み込まず、

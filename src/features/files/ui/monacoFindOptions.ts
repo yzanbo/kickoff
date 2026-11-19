@@ -49,7 +49,7 @@ export const MONACO_MATCHES_LIMIT = 19999;
 export const monacoFindController = (editor: monaco.editor.ICodeEditor) => editor.getContribution<MonacoFindController>("editor.contrib.findController");
 
 /**
- * Monaco の検索の仕組み（MonacoFindBar の欄）の「Aa」「ab」「.*」を、ほかの検索の欄（チャット・ページ・メモ）と同じ値にそろえる（hooks/useFindOptions）。
+ * Monaco の検索の仕組み（MonacoFindBar の欄）の「Aa」「ab」「.*」を、ほかの検索の欄（チャット・ページ・ノート）と同じ値にそろえる（hooks/useFindOptions）。
  * 開いたときに覚えた値を入れ、Monaco の欄で切り替えたら覚え直し、ほかの欄で切り替えたら Monaco にも入れる。戻り値で外す
  */
 export function syncMonacoFindOptions(editor: monaco.editor.ICodeEditor): () => void {

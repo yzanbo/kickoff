@@ -1,13 +1,13 @@
 import { confirmCloseFileTab } from "@/features/files/ui/fileTabs";
-import { confirmLeaveMemo } from "@/features/notes/ui/memoGuards";
+import { confirmLeaveNote } from "@/features/notes/ui/noteGuards";
 import type { PanelTab } from "./panelTypes";
 
 /**
- * タブを閉じてよいか: 保存していない書きかけのあるファイル・メモのタブは、保存するかを聞く（ほかの種類はそのまま true）。
+ * タブを閉じてよいか: 保存していない書きかけのあるファイル・ノートのタブは、保存するかを聞く（ほかの種類はそのまま true）。
  * タブの ×・右クリックの「タブを閉じる」・ペインを閉じるで同じに聞く（どれかで書きかけを黙って捨てない）
  */
 export async function confirmCloseUnsaved(panelKey: string, tab: PanelTab): Promise<boolean> {
-  if (tab.kind === "memo") return confirmLeaveMemo(tab.projectId, tab.path);
+  if (tab.kind === "note") return confirmLeaveNote(tab.projectId, tab.path);
   if (tab.kind === "projectFile") return confirmCloseFileTab(panelKey, tab.key);
   return true;
 }

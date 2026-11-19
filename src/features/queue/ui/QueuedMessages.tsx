@@ -60,7 +60,7 @@ export function QueuedMessages({
    */
   queue: QueueState;
   busy: boolean;
-  /** 右クリックの「子チャットで開く / 移す」を出すか（メモのチャット・アーカイブ済みでは子チャットを作れない） */
+  /** 右クリックの「子チャットで開く / 移す」を出すか（ノートのチャット・アーカイブ済みでは子チャットを作れない） */
   childChats: boolean;
   /** 起動したときの再開の確かめで送信待ちを聞いている（前回の終了で残った。決めるまでコアは送らない。上に帯を出す。送信待ちを聞いていなければ null） */
   resume: ChatLive["restart_resume"];

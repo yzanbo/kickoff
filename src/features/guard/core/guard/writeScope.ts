@@ -1,5 +1,5 @@
 // AI の書き込み先の守り（プロバイダー非依存）: ファイルを書き換えるツール（Write・Edit・MultiEdit・NotebookEdit）の書く先を、
-// 作業場所・メモのフォルダ・決まりの例外だけにする。同じリポジトリのほかの作業場所（本体・ほかのワークツリー）は断り、それ以外の外は承認カードで聞く
+// 作業場所・ノートのフォルダ・決まりの例外だけにする。同じリポジトリのほかの作業場所（本体・ほかのワークツリー）は断り、それ以外の外は承認カードで聞く
 // （聞くのはプロバイダーのフック。権限モードに関係なく、Auto mode でも聞く）。読むことは絞らない。Bash は見ない（Bash の砂場 sandbox/bashSandbox.ts で止める）
 import os from "node:os";
 import path from "node:path";
@@ -12,7 +12,7 @@ import { isInside } from "@/foundation/core/system/paths";
 export interface WriteScopeFacts {
   /** チャットの作業場所 */
   workdir: string;
-  /** いつも書けるフォルダ（メモのフォルダ・プロバイダーの決まりの例外。Claude Code の計画 ~/.claude/plans など） */
+  /** いつも書けるフォルダ（ノートのフォルダ・プロバイダーの決まりの例外。Claude Code の計画 ~/.claude/plans など） */
   writableDirs: string[];
   /** この下の「<名前>/memory」の中を書けるフォルダ（Claude Code のメモリ ~/.claude/projects/<プロジェクト>/memory） */
   memoryParents: string[];
@@ -22,7 +22,7 @@ export interface WriteScopeFacts {
 
 /** チャットの実行がプロバイダーに渡すもの（プロバイダーが自分の決まりの例外を足して WriteScopeFacts にする） */
 export interface WriteScopeParams {
-  /** いつも書けるフォルダ（メモのフォルダ。実体のパス） */
+  /** いつも書けるフォルダ（ノートのフォルダ。実体のパス） */
   writableDirs: string[];
   /** プロジェクトの本体とワークツリー */
   workplaces(): Promise<Workplace[]>;
@@ -63,7 +63,7 @@ function otherWorkplaceReason(target: string, owner: Workplace, mine: string): s
 }
 
 /**
- * 書く先（実体のパス）を判定する。書ける = 作業場所・メモのフォルダ・決まりの例外（Claude Code のメモリと計画・サブエージェントのワークツリー）。
+ * 書く先（実体のパス）を判定する。書ける = 作業場所・ノートのフォルダ・決まりの例外（Claude Code のメモリと計画・サブエージェントのワークツリー）。
  * 同じリポジトリのほかの作業場所は断り、それ以外の外は聞く。どの作業場所のものかは、いちばん深く入る作業場所で決める
  * （本体の中に置いたワークツリーは、本体ではなくそのワークツリーのもの）。作業場所の一覧が取れなければ、作業場所の中かだけで見る
  */
@@ -81,6 +81,6 @@ export async function judgeFileWrite(target: string, facts: WriteScopeFacts): Pr
   return {
     kind: "ask",
     title: `作業場所の外のファイルに書き込もうとしています: ${shown(target)}`,
-    description: `このチャットの作業場所（${shown(mine)}）とメモのフォルダの外です。Kickoff の AI の守りが、作業場所の外への書き込みを流す前に確かめています。`,
+    description: `このチャットの作業場所（${shown(mine)}）とノートのフォルダの外です。Kickoff の AI の守りが、作業場所の外への書き込みを流す前に確かめています。`,
   };
 }

@@ -158,8 +158,8 @@ export interface DbConnection {
   ssh: DbSsh | null;
   /** SSH のパスワードを保存したか（鍵・ssh-agent ならなし） */
   has_ssh_password: boolean;
-  /** 接続の手順メモ（メモのフォルダからの相対パス。つなぎ方ごとに 1 つで、いくつもの接続で同じでよい。null なら選んでいない） */
-  memo_path: string | null;
+  /** 接続の手順ノート（ノートのフォルダからの相対パス。つなぎ方ごとに 1 つで、いくつもの接続で同じでよい。null なら選んでいない） */
+  note_path: string | null;
   /** つなぐ前の準備のコマンド（null = なし） */
   prep: DbPrep | null;
   /** Docker タブの「DB で開く」で、どのワークツリーの DB から作った接続か（作業するフォルダ。null なら本体・ほか。ワークツリーを消すとき一緒に消せる） */

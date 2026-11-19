@@ -124,7 +124,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kin
                   } else onSelect(node.path, !multi && (e.metaKey || e.ctrlKey));
                 }}
                 {...(!node.dir && fileDrag ? fileDrag(node.path) : {})}
-                // 行にピントがあるときの Enter で名前を変える（Finder・メモの木と同じ。開くのは押す・Space）
+                // 行にピントがあるときの Enter で名前を変える（Finder・ノートの木と同じ。開くのは押す・Space）
                 onKeyDown={(e) => {
                   if (!renamable || !isRenameKey(e)) return;
                   e.preventDefault();

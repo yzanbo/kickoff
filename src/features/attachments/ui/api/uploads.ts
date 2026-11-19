@@ -19,7 +19,7 @@ export const uploadsApi = {
   attachmentText: async (a: Attachment): Promise<string> => (await requestBlob(`/api/uploads/${a.id}`)).blob.text(),
   /**
    * ツールの結果の画像（読むで読んだ画像）を、呼び出しの入力のパスから読む（いまのファイル。最後に変えた時刻 mtime も）。
-   * 作業場所・添付・メモのフォルダの外・ないファイルは ApiError（文はそのまま画面に出せる）
+   * 作業場所・添付・ノートのフォルダの外・ないファイルは ApiError（文はそのまま画面に出せる）
    */
   toolImage: async (chatId: number, path: string, at?: number): Promise<{ blob: Blob; mtime: number | null }> => {
     // at: 作業場所を移した区切りより前の記録なら、その記録の ID（そのときの作業場所から読む）

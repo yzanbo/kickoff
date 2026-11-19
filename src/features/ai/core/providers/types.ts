@@ -48,10 +48,10 @@ export interface AgentProvider {
   commands?(cwd: string): Promise<SlashCommandOption[]>;
   /** 最初のメッセージから短いチャット名を作る */
   title?(text: string): Promise<string>;
-  /** あとで読み返すメモにするため、文を短くまとめる（チャットの文を「AI で要約してメモに追加」） */
+  /** あとで読み返すノートにするため、文を短くまとめる（チャットの文を「AI で要約してノートに追加」） */
   summarize?(text: string): Promise<string>;
   /**
-   * ツールを使わずに 1 回だけ聞いて、答えの文を返す（メモの AI の整理。チャットの記録には残さない）。
+   * ツールを使わずに 1 回だけ聞いて、答えの文を返す（ノートの AI の整理。チャットの記録には残さない）。
    * model: 軽い問い合わせは light（既定）、文を書き直すなど質が要るものは standard
    */
   ask?(prompt: string, options?: { model?: AskModel }): Promise<string>;
@@ -164,11 +164,11 @@ export interface ProviderTurnParams {
   createChat?: AiCreateChatTools | null;
   /** 同じ家系のチャットの名前・固定・グループを AI に変えさせる口（どのチャットにも渡す。なければそのツールを出さない） */
   chatEdit?: AiChatEditTools | null;
-  /** このプロジェクトのメモ・同じ家系のチャットを AI に画面へ開かせる口（どのチャットにも渡す。なければそのツールを出さない） */
+  /** このプロジェクトのノート・同じ家系のチャットを AI に画面へ開かせる口（どのチャットにも渡す。なければそのツールを出さない） */
   open?: AiOpenTools | null;
   /** 同じプロジェクトのチャットの一覧・会話と使用枠を AI に読ませる口（どのチャットにも渡す。なければそのツールを出さない） */
   chatRead?: AiChatReadTools | null;
-  /** このプロジェクトの定型文に足す・メモの名前を変える／移す口を AI に渡す（どのチャットにも渡す。なければそのツールを出さない） */
+  /** このプロジェクトの定型文に足す・ノートの名前を変える／移す口を AI に渡す（どのチャットにも渡す。なければそのツールを出さない） */
   chatProject?: AiProjectTools | null;
   /** このプロジェクトの内蔵ターミナルの出力を AI に読ませる口（デスクトップアプリのときだけ。なければそのツールを出さない） */
   chatTerminal?: AiTerminalTools | null;
@@ -193,14 +193,14 @@ export interface ProviderTurnParams {
   /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */
   dockerGuard?: DockerGuard | null;
   /**
-   * AI の書き込み先の守り（chat/guard/writeScope.ts。ファイルを書き換えるツールの先を、作業場所・メモのフォルダ・決まりの例外だけにする。
+   * AI の書き込み先の守り（chat/guard/writeScope.ts。ファイルを書き換えるツールの先を、作業場所・ノートのフォルダ・決まりの例外だけにする。
    * 同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く）。なければ付けない（Git で管理していないファイルだけを書けるチャットは、そちらの守りが絞る）
    */
   writeScope?: WriteScopeParams | null;
   /** ファイルを消す Bash（rm・find -delete・git clean など）を断り、kickoff-trash を使わせる守り（chat/guard/deleteGuard.ts）を付けるか */
   deleteGuard?: boolean;
   /**
-   * AI の Bash の砂場（chat/sandbox/bashSandbox.ts。Bash が書ける場所を作業場所・メモのフォルダ・決まりの例外だけにし、
+   * AI の Bash の砂場（chat/sandbox/bashSandbox.ts。Bash が書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにし、
    * 止めるのは OS）。プロバイダーが自分の砂場の設定に直す。なければかけない
    */
   bashSandbox?: BashSandbox | null;

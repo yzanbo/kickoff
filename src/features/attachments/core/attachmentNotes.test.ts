@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { CaptureAttachment, MemoAttachment } from "@shared/types";
-import { appendNote, captureLine, formatTakenAt, memoSnapshotLine } from "./attachmentNotes";
+import type { CaptureAttachment, NoteAttachment } from "@shared/types";
+import { appendNote, captureLine, formatTakenAt, noteSnapshotLine } from "./attachmentNotes";
 
 const capture = (patch: Partial<CaptureAttachment> = {}): CaptureAttachment => ({
   kind: "capture",
@@ -29,10 +29,10 @@ test("captureLine: 外でない出どころには注意を書かず、伏せた�
   assert.match(line, /鍵らしい値を 2 か所伏せました。大きすぎたので頭と終わりだけ残しました（元は 45\.0 MB）/);
 });
 
-test("memoSnapshotLine: 写しと元のメモのパス", () => {
-  const memo: MemoAttachment = { kind: "memo", id: "x", name: "a.md", mime: "text/markdown", size: 3, memo: "設計/a.md", taken_at: "2026-11-13T01:30:00.000Z" };
-  assert.match(memoSnapshotLine("/u/x/a.md", memo, "/m/設計/a.md"), /^- \/u\/x\/a\.md（メモ「設計\/a\.md」を .+ に写したもの。元のメモ: \/m\/設計\/a\.md）$/);
-  assert.match(memoSnapshotLine("/u/x/a.md", memo, null), /元のメモはもうありません）$/);
+test("noteSnapshotLine: 写しと元のノートのパス", () => {
+  const note: NoteAttachment = { kind: "note", id: "x", name: "a.md", mime: "text/markdown", size: 3, note: "設計/a.md", taken_at: "2026-11-13T01:30:00.000Z" };
+  assert.match(noteSnapshotLine("/u/x/a.md", note, "/m/設計/a.md"), /^- \/u\/x\/a\.md（ノート「設計\/a\.md」を .+ に写したもの。元のノート: \/m\/設計\/a\.md）$/);
+  assert.match(noteSnapshotLine("/u/x/a.md", note, null), /元のノートはもうありません）$/);
 });
 
 test("formatTakenAt・appendNote", () => {

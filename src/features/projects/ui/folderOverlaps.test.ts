@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { folderOverlapLines, folderOverlaps, memoOverlapLines } from "./folderOverlaps";
+import { folderOverlapLines, folderOverlaps, noteOverlapLines } from "./folderOverlaps";
 
 const p = (id: number, repo_path: string) => ({ id, name: `p${id}`, repo_path });
 const projects = [p(1, "/a/app"), p(2, "/a/app/sub"), p(3, "/a/apple"), p(4, "/a")];
@@ -13,12 +13,12 @@ test("folderOverlaps: 同じ・その中・中にあるを分ける（名前の�
   assert.deepEqual(ids(folderOverlaps("", projects)), [[], [], []]);
 });
 
-test("folderOverlapLines: 同じフォルダは作る・取り込むでは ng、変更・基本情報では warn。メモは warn", () => {
+test("folderOverlapLines: 同じフォルダは作る・取り込むでは ng、変更・基本情報では warn。ノートは warn", () => {
   const o = folderOverlaps("/a/app", projects);
   assert.deepEqual(folderOverlapLines(o, "ng").map((l) => l.kind), ["ng", "warn", "warn"]);
   assert.match(folderOverlapLines(o, "warn")[0].text, /^「p1」のプロジェクトフォルダと同じです/);
   assert.equal(folderOverlapLines(o, "warn")[1].text, "「p4」のプロジェクトフォルダの中です");
   assert.equal(folderOverlapLines(o, "warn")[2].text, "中に「p2」のプロジェクトフォルダがあります");
-  assert.deepEqual(memoOverlapLines([]), []);
-  assert.equal(memoOverlapLines([p(1, "/x"), p(2, "/y")])[0].text, "「p1」「p2」のメモフォルダと同じです（同じメモを共有します）");
+  assert.deepEqual(noteOverlapLines([]), []);
+  assert.equal(noteOverlapLines([p(1, "/x"), p(2, "/y")])[0].text, "「p1」「p2」のノートフォルダと同じです（同じノートを共有します）");
 });

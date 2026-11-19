@@ -140,7 +140,7 @@ function openChildChat(store: Store, parent: Chat, init: { sessionId: string; no
     worktree_path: parent.worktree_path,
     parent_chat_id: parent.id,
     parent_event_id: init.eventId,
-    memo_path: null,
+    note_path: null,
   });
   store.events.add(created.id, { type: "notice", message: init.notice });
   return store.chats.update(created.id, { session_id: init.sessionId, branch: parent.branch, context_window: parent.context_window });

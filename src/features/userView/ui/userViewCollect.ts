@@ -1,10 +1,10 @@
 // このウィンドウで利用者が見ているもの（AI の get_user_view）を集める:
 // 見ているプロジェクト・プロジェクトのタブ・画面に出ている欄（パネル）のペインごとの前のタブ・チャットの画面の右の欄に開いているもの。
-// タブの中身のうち部品だけが知っているもの（エディタのカーソルと選んでいる範囲・メモで選んでいる文）は lib/viewDetails から読む
+// タブの中身のうち部品だけが知っているもの（エディタのカーソルと選んでいる範囲・ノートで選んでいる文）は lib/viewDetails から読む
 import { USER_VIEW_TEXT_MAX, type UserView, type UserViewPane, type UserViewTab } from "@shared/types";
 import { readSetting } from "@/foundation/ui/storage/settings";
 import { dbClientTabs, githubSelected } from "@/foundation/ui/storage/storageKeys";
-import { editorCursorOf, memoSelectionOf } from "@/foundation/ui/lib/viewDetails";
+import { editorCursorOf, noteSelectionOf } from "@/foundation/ui/lib/viewDetails";
 import { dbConnectionsStore } from "@/features/database/ui/client/connectionsStore";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { allPanels, isPanelMounted } from "@/features/panel/ui/state/panelStore";
@@ -21,7 +21,7 @@ const AREA_LABELS: Record<PanelSurface, string> = {
   side: "右サイドバー",
   bottom: "下のパネル",
   agents: "チャットの画面の右の欄",
-  memos: "メモのタブ",
+  notes: "ノートのタブ",
   files: "ファイルのタブ",
   window: "ブラウザの別ウィンドウ",
   chatWindow: "チャットの別ウィンドウ",
@@ -35,7 +35,7 @@ const PROJECT_TAB_LABELS: Record<ProjectTab, string> = {
   search: "検索",
   changes: "変更（ソース管理）",
   history: "履歴",
-  memos: "メモ",
+  notes: "ノート",
   db: "DB",
   github: "GitHub",
   docker: "Docker",
@@ -83,8 +83,8 @@ function describeTab(tab: PanelTab): UserViewTab {
       return { kind: "page", label: PROJECT_VIEW_LABELS[tab.view], project_id: tab.projectId };
     case "projectFile":
       return editorTab(tab.projectId, tab.path, null, tab.line);
-    case "memo":
-      return { kind: "memo", path: tab.path, selected_text: clip(memoSelectionOf(tab.projectId, tab.path)), project_id: tab.projectId };
+    case "note":
+      return { kind: "note", path: tab.path, selected_text: clip(noteSelectionOf(tab.projectId, tab.path)), project_id: tab.projectId };
     case "database":
       return databaseTab(tab.projectId, `chat-${tab.chatId}`);
     case "github":
@@ -111,7 +111,7 @@ function projectOfRoute(route: Route): number | null {
   return null;
 }
 
-/** プロジェクトのタブのペイン（チャットのタブはパネルのペインで出すので省く。ファイル・メモの中身はファイル・メモのタブのペインで出す） */
+/** プロジェクトのタブのペイン（チャットのタブはパネルのペインで出すので省く。ファイル・ノートの中身はファイル・ノートのタブのペインで出す） */
 function projectTabPane(route: Route): UserViewPane | null {
   if (route.name !== "project" || route.tab === "chats") return null;
   const id = route.id;
@@ -153,8 +153,8 @@ export function collectPopoutView(route: PopoutRoute): UserView {
   const tab: UserViewTab =
     route.kind === "chat"
       ? { kind: chat?.parent_chat_id != null ? "child_chat" : "chat", chat_id: route.chatId, title: chat?.title ?? "", project_id: pid }
-      : route.kind === "memo"
-        ? { kind: "memo", path: route.path, selected_text: clip(memoSelectionOf(route.projectId, route.path)), project_id: route.projectId }
+      : route.kind === "note"
+        ? { kind: "note", path: route.path, selected_text: clip(noteSelectionOf(route.projectId, route.path)), project_id: route.projectId }
         : route.kind === "file"
           ? editorTab(route.projectId, route.path, route.worktree ?? null, route.line)
           : route.kind === "changes"

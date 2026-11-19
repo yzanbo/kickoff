@@ -24,7 +24,7 @@ export const PROJECT_SETTINGS_SECTIONS: DialogSection<ProjectSettingsSection>[] 
 
 /**
  * プロジェクトの設定の、選んでいる項目の内容（プロジェクト名の横の「編集」から開くダイアログの右側）。
- * 基本情報（メモフォルダも）・参照資料・AI・GitHub（使うアカウント・連携先・PR の見張り）・定型文・圧縮前・圧縮後指示・削除
+ * 基本情報（ノートフォルダも）・参照資料・AI・GitHub（使うアカウント・連携先・PR の見張り）・定型文・圧縮前・圧縮後指示・削除
  */
 export function ProjectSettings({ project, section }: { project: Project; section: ProjectSettingsSection }) {
   const settings = useAppSettings();

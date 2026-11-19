@@ -30,7 +30,7 @@ import { WorktreePrWatch } from "@/features/github/core/prWatch";
 import { HeadWatch } from "@/features/worktrees/core/headWatch";
 import { listPullRequests } from "@/features/github/core/github";
 import { listWorktrees } from "@/foundation/core/workplace/worktrees";
-import { MemoService } from "@/features/notes/core/memos";
+import { NoteService } from "@/features/notes/core/notes";
 import { errorMessage } from "@shared/foundation/errors";
 import { TrashService } from "@/features/trash/core/service";
 import { installTrashCommand } from "@/features/trash/core/command";
@@ -43,9 +43,9 @@ import { RemoteImageService } from "@/features/remoteImages/core/service";
 import { WorktreeFinisher } from "@/features/worktrees/core/finish";
 import { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import { UserViewRegistry } from "@/features/userView/core/registry";
-import { registerChatTrash, trashMemoChats, trashMemoChatsOnImport } from "@/features/chat/core/sessions/chatTrash";
+import { registerChatTrash, trashNoteChats, trashNoteChatsOnImport } from "@/features/chat/core/sessions/chatTrash";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
-import { defaultMemosDir } from "@/features/notes/core/defaultDir";
+import { defaultNotesDir } from "@/features/notes/core/defaultDir";
 import type { DatabaseStats } from "@/foundation/core/db/stats";
 import type { BrowserControl } from "@shared/browser/control";
 import { TerminalSessions } from "@/features/terminal/core/sessions";
@@ -152,27 +152,27 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const serviceUsage = new ServiceUsageMonitor(usage, undefined, codexCredits);
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
-  // メモの親フォルダの既定は ~/Documents/kickoff（保存先のフォルダ名のアプリ名を空白のない小文字に。開発版は kickoff-dev で、製品版のメモに触らない）
-  const memosDefaultDir = defaultMemosDir(opts.dataDir, path.join(os.homedir(), "Documents"));
+  // ノートの親フォルダの既定は ~/Documents/kickoff（保存先のフォルダ名のアプリ名を空白のない小文字に。開発版は kickoff-dev で、製品版のノートに触らない）
+  const notesDefaultDir = defaultNotesDir(opts.dataDir, path.join(os.homedir(), "Documents"));
   // Kickoff のゴミ箱（消したものを 3 日取っておく。起動したときと 1 時間ごとに、期限の来たものを本当に消す）。
-  // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体・メモのフォルダ）のゴミ箱に出す
+  // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体・ノートのフォルダ）のゴミ箱に出す
   const trashBin = new TrashService({
     store,
     dir: path.join(opts.dataDir, "trash"),
     projectOfPath: (origin) => {
-      const owner = store.projects.list().find((p) => isInside(realPathLoose(p.repo_path), origin) || ((p.memo_path || p.memo_folder) && isInside(realPathLoose(memos.dirOf(p)), origin)));
+      const owner = store.projects.list().find((p) => isInside(realPathLoose(p.repo_path), origin) || ((p.note_path || p.note_folder) && isInside(realPathLoose(notes.dirOf(p)), origin)));
       return owner?.id ?? null;
     },
-    // AI がメモを kickoff-trash で消したら、メモのチャットも同じ行に入れる（画面から消したときと同じ）
-    onImported: (item) => trashMemoChatsOnImport({ store, runner, memoDirOf: (p) => memos.dirOf(p), publish: (e) => bus.publish(e) }, item),
+    // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）
+    onImported: (item) => trashNoteChatsOnImport({ store, runner, noteDirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }, item),
   });
-  const memos = new MemoService({
+  const notes = new NoteService({
     store,
-    defaultDir: memosDefaultDir,
+    defaultDir: notesDefaultDir,
     providers,
     publish: (e) => bus.publish(e),
     trashBin,
-    trashMemoChats: (projectId, memoPath, itemId) => trashMemoChats({ store, runner }, projectId, memoPath, itemId),
+    trashNoteChats: (projectId, notePath, itemId) => trashNoteChats({ store, runner }, projectId, notePath, itemId),
   });
   // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる）
   // DB のパスワードはキーチェーンの鍵で暗号化して置く
@@ -180,7 +180,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const databases = new DatabaseService({ store, client: new DbWorkerClient(opts.dbWorker ?? (() => forkWorker(devWorkerEntry()))), vault, dataDir: opts.dataDir, appDataRoot: opts.platform.appDataRoot, publish: (e) => bus.publish(e) });
   // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
   databases.cleanExports();
-  // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
+  // ノートのチャットの実行では、AI にノートのフォルダも読み書きさせる
   // Docker タブ（docker events は見ている画面があるときだけ動かす。チャットの AI の Docker の守りも、これで相手を引く）
   const docker = new DockerService(bus, opts.platform);
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる。チャットの AI とターミナルには PORT を渡す）
@@ -194,7 +194,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     (file) => ({ path: file, dir: trashBin.dir }),
     (e: unknown) => (console.warn(`[core] kickoff-trash を置けませんでした: ${errorMessage(e)}`), undefined),
   );
-  // AI の Bash の砂場（書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする）。
+  // AI の Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする）。
   // 通信はどこへでも通す中継を通す（ネットワークは絞らない。起こせなければプロバイダーの中継のまま）
   const relay = await startNetworkRelay().catch((e: unknown) => (console.warn(`[core] Bash の通信の中継を起こせませんでした: ${errorMessage(e)}`), null));
   const bashSandbox: BashSandboxDeps = { rules: opts.platform.agentSandbox, proxyPort: relay?.port ?? null, trashDir: trashCommand ? trashCommand.dir : null };
@@ -209,12 +209,12 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const userViews = new UserViewRegistry();
   // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ）
   const mcpTools = new McpToolHost(() => `http://127.0.0.1:${opts.port}`);
-  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: opts.platform.sandboxDiagnostics, toolHost: mcpTools, providerKeys, interrupted: recovered });
+  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, noteDirOf: (project) => notes.dirOf(project), notes, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: opts.platform.sandboxDiagnostics, toolHost: mcpTools, providerKeys, interrupted: recovered });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ
   trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
   // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない）
   trashBin.addSweepStep(() => sweepUnusedUploads({ store, uploads }));
-  // ゴミ箱に入れたチャット（チャットの削除・メモのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
+  // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
   const remoteImages = new RemoteImageService({ store, dir: path.join(opts.dataDir, "image-cache"), publish: (e) => bus.publish(e) });
   const forgetChatImages = (ids: number[]) => remoteImages.forgetChats(ids);
   registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages, sessionsElsewhere });
@@ -263,7 +263,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     approvals,
     uploads,
     voice,
-    memos,
+    notes,
     prWatch,
     databases,
     github,
@@ -325,7 +325,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       ports.close();
       stopAutoArchive();
       trashBin.close();
-      memos.close();
+      notes.close();
       headWatch.close();
       await databases.close();
       terminals.closeAll();

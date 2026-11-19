@@ -1,4 +1,4 @@
-/* ==== 入力欄の上の一覧（サブエージェント・メモ）の開き方: 行の右のボタンと、上の「行を押したとき」の切り替え（OpenPlaceControls） ==== */
+/* ==== 入力欄の上の一覧（サブエージェント・ノート）の開き方: 行の右のボタンと、上の「行を押したとき」の切り替え（OpenPlaceControls） ==== */
 
 .open-place-buttons {
   display: inline-flex;
@@ -18,8 +18,8 @@
   margin-left: 0;
 }
 
-/* メモの行: 「このチャットに追加」は開く場所のボタンの組のすぐ左（組は右へ寄せず、添付のボタンから右に並べる） */
-.memo-chip-attach + .open-place-buttons {
+/* ノートの行: 「このチャットに追加」は開く場所のボタンの組のすぐ左（組は右へ寄せず、添付のボタンから右に並べる） */
+.note-chip-attach + .open-place-buttons {
   margin-left: 0;
 }
 

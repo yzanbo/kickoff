@@ -10,7 +10,7 @@ import { FindField, findCountText } from "./FindField";
 const RESEARCH_DELAY_MS = 150;
 
 /**
- * ページの中の文字を探す欄（⌘F）。target の中の見えている文字（中の同じオリジンの iframe の中も。HTML のメモのページ）から探して印を付け（CSS Custom Highlight API。DOM は書き換えない。findMarks.ts）、
+ * ページの中の文字を探す欄（⌘F）。target の中の見えている文字（中の同じオリジンの iframe の中も。HTML のノートのページ）から探して印を付け（CSS Custom Highlight API。DOM は書き換えない。findMarks.ts）、
  * host の右上に浮かせる（host は position: relative の要素）。Enter / ↓ で次、Shift+Enter / ↑ で前、Esc で閉じる。
  * 探し方（大文字・小文字の区別・単語単位・正規表現。⌥⌘C / ⌥⌘W / ⌥⌘R）は、ほかの検索の欄と同じ値（useFindOptions）。
  * target の中身が変わったら（ファイルを選び直した・読み込みや色付けが届いた・差分を取り直した）、探し直す。

@@ -6,7 +6,7 @@ import { Store } from "@/foundation/core/db/store";
 
 function project(references: { path: string; kind: "folder" | "file" }[] = []) {
   const store = new Store(":memory:");
-  const p = store.projects.create({ name: "a", description: "メモアプリ", repo_path: "/tmp/a", provider: "claude" });
+  const p = store.projects.create({ name: "a", description: "ノートアプリ", repo_path: "/tmp/a", provider: "claude" });
   return store.projects.update(p.id, { reference_paths: references });
 }
 
@@ -36,7 +36,7 @@ test("指示はセクション・タスク・成果物に触れず、プロジ�
   const prompt = buildSystemPrompt(project([{ path: "/tmp/spec", kind: "folder" }]));
   assert.ok(prompt.includes("日本語"));
   assert.ok(prompt.includes("- 名前: a"));
-  assert.ok(prompt.includes("メモアプリ"));
+  assert.ok(prompt.includes("ノートアプリ"));
   assert.ok(prompt.includes("- 「spec」: `/tmp/spec/`（フォルダ）"));
   for (const word of ["セクション", "タスク", "成果物", "mcp__kickoff__", "テストコマンド", "デプロイ", "コミット"]) {
     assert.ok(!prompt.includes(word), word);
@@ -102,17 +102,17 @@ test("図と数式: 図はツールで描き、初めに書き方を読むこと
   assert.ok(prompt.includes("\\( … \\)"));
 });
 
-test("メモ: どのチャットでも「メモ」が「メモ」タブのメモ（フォルダ）のことだと伝え、メモのチャットはどのメモの横かを伝える", () => {
+test("ノート: どのチャットでも「ノート」が「ノート」タブのノート（フォルダ）のことだと伝え、ノートのチャットはどのノートの横かを伝える", () => {
   const p = project();
-  const plain = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/memos/a", file: null });
-  assert.ok(plain.includes("利用者が「メモ」と言ったら、Kickoff の「メモ」タブのメモのことです"));
-  assert.ok(plain.includes("メモフォルダ `/tmp/memos/a`"));
+  const plain = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/notes/a", file: null });
+  assert.ok(plain.includes("利用者が「ノート」と言ったら、Kickoff の「ノート」タブのノートのことです"));
+  assert.ok(plain.includes("ノートフォルダ `/tmp/notes/a`"));
   assert.ok(!plain.includes("の横で話しています"));
-  const memoChat = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/memos/a", file: "/tmp/memos/a/x.md" });
-  assert.ok(memoChat.includes("`/tmp/memos/a/x.md` の横で話しています"));
-  assert.ok(!memoChat.includes("利用者が「メモ」と言ったら"));
-  // メモのフォルダが分からなければ、メモのことは書かない
-  assert.ok(!buildSystemPrompt(p).includes("## メモ"));
+  const noteChat = buildSystemPrompt(p, p.repo_path, { dir: "/tmp/notes/a", file: "/tmp/notes/a/x.md" });
+  assert.ok(noteChat.includes("`/tmp/notes/a/x.md` の横で話しています"));
+  assert.ok(!noteChat.includes("利用者が「ノート」と言ったら"));
+  // ノートのフォルダが分からなければ、ノートのことは書かない
+  assert.ok(!buildSystemPrompt(p).includes("## ノート"));
 });
 
 test("砂場: 書けない場所・外のファイルは Edit で・設定を変えるコマンドは利用者に・直接の通信は通らないことと、外で流すコマンドは単独で流すことを伝える（砂場がないときは書かない）", () => {

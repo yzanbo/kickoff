@@ -1,7 +1,7 @@
 import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "@/foundation/core/system/paths";
-import type { Attachment, AttachmentSource, ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
+import type { Attachment, AttachmentSource, ChatOptionsPatch, ChildChatBody, GitHubLink, HandoffBody, NoteChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
 import { ATTACHMENT_SOURCE_TYPES, CHAT_TITLE_MAX, EFFORT_LEVELS, GITHUB_KINDS, HANDOFF_VIAS, OTHER_PROVIDER_IDS, PERMISSION_MODES, PROVIDER_IDS, USER_VIEW_TEXT_MAX, type UserView, type UserViewTab } from "@shared/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 
@@ -23,7 +23,7 @@ export const repoPath = z.string().min(1).max(1000);
 /** 作業場所のフォルダ（ワークツリーの絶対パス） */
 export const folderPath = z.string().min(1).max(2000);
 
-/** 絶対パス（~ で始めてもよい）のフォルダの指定か（メモの親フォルダ・プロジェクトのメモのフォルダ） */
+/** 絶対パス（~ で始めてもよい）のフォルダの指定か（ノートの親フォルダ・プロジェクトのノートのフォルダ） */
 export const isAbsoluteFolder = (p: string) => path.isAbsolute(expandHome(p));
 export const ABSOLUTE_FOLDER = "フォルダは / か ~ から始まる場所で指定してください";
 
@@ -76,12 +76,12 @@ export const providerChatDefaultsSchema = chatDefaultsSchema.extend({ model: z.s
 /** Claude Code のほかの AI ごとの既定（AI の ID → 選択） */
 export const otherProviderRecord = <T extends z.ZodType>(value: T) => z.partialRecord(z.enum(OTHER_PROVIDER_IDS), value);
 
-/** メモのフォルダからの相対パス（外・隠しファイルは指せない） */
-export const memoPathSchema = z
+/** ノートのフォルダからの相対パス（外・隠しファイルは指せない） */
+export const notePathSchema = z
   .string()
   .min(1)
   .max(1000)
-  .refine((p) => !p.startsWith("/") && p.split("/").every((part) => part !== "" && !part.startsWith(".")), "メモのパスが正しくありません");
+  .refine((p) => !p.startsWith("/") && p.split("/").every((part) => part !== "" && !part.startsWith(".")), "ノートのパスが正しくありません");
 
 /** 「AI に渡す」で取ったものの出どころ */
 export const attachmentSourceSchema = z.object({
@@ -97,10 +97,10 @@ const attachmentBase = {
   size: z.number().int().nonnegative(),
 };
 
-/** 添付（保存済みのファイル・メモの写し・「AI に渡す」で取ったもの） */
+/** 添付（保存済みのファイル・ノートの写し・「AI に渡す」で取ったもの） */
 const attachmentSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("file"), ...attachmentBase }),
-  z.object({ kind: z.literal("memo"), ...attachmentBase, memo: memoPathSchema, taken_at: z.string().max(40) }),
+  z.object({ kind: z.literal("note"), ...attachmentBase, note: notePathSchema, taken_at: z.string().max(40) }),
   z.object({
     kind: z.literal("capture"),
     ...attachmentBase,
@@ -134,7 +134,7 @@ const userViewTabSchema = z.union([
     ...viewProject,
   }),
   z.object({ kind: z.literal("changes"), worktree: viewText.nullable(), focus: viewText.nullable(), ...viewProject }),
-  z.object({ kind: z.literal("memo"), path: viewText, selected_text: z.string().max(USER_VIEW_TEXT_MAX * 2).nullable(), ...viewProject }),
+  z.object({ kind: z.literal("note"), path: viewText, selected_text: z.string().max(USER_VIEW_TEXT_MAX * 2).nullable(), ...viewProject }),
   z.object({ kind: z.literal("browser"), url: viewText, title: viewText, ...viewProject }),
   z.object({ kind: z.literal("github"), item: z.object({ kind: z.enum(["issue", "pr"]), number: z.number().int().positive() }).nullable(), ...viewProject }),
   z.object({ kind: z.literal("database"), connection: viewText.nullable(), table: viewText.nullable(), ...viewProject }),
@@ -185,8 +185,8 @@ export const newChatSchema = z
   })
   .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<NewChatBody>;
 
-/** メモのチャットの最初の指示（どのメモについてのチャットか） */
-export const memoChatSchema = z.object({ ...messageShape, path: repoPath }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<MemoChatBody>;
+/** ノートのチャットの最初の指示（どのノートについてのチャットか） */
+export const noteChatSchema = z.object({ ...messageShape, path: repoPath }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<NoteChatBody>;
 
 /** 子チャットで聞く（文か添付が要る。選んだ文の引用は任意。inherit なら親の会話を引き継ぐ） */
 export const childChatSchema = z

@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { formatSize, truncateText } from "@shared/attachments/truncate";
 import { redactSecrets } from "@shared/foundation/secrets/redact";
-import type { Attachment, AttachmentSource, CaptureAttachment, FileAttachment, MemoAttachment } from "@shared/types";
+import type { Attachment, AttachmentSource, CaptureAttachment, FileAttachment, NoteAttachment } from "@shared/types";
 import { Invalid } from "@/foundation/core/errors";
 
 /** 1 ファイルあたりの上限 */
@@ -18,7 +18,7 @@ const isUploadId = (id: string) => /^[0-9a-f-]{36}$/.test(id);
 /**
  * チャットの添付ファイル。データフォルダの uploads/<id>/<ファイル名> に保存し、
  * エージェントには Read ツールで読めるパスとして渡す（リポジトリには置かない）。
- * 「AI に渡す」で取った中身（capture）とメモの写しは、同じフォルダに添付の記録（META_FILE）も置き、送るときの見出しはこの記録から書く
+ * 「AI に渡す」で取った中身（capture）とノートの写しは、同じフォルダに添付の記録（META_FILE）も置き、送るときの見出しはこの記録から書く
  */
 export class UploadStore {
   constructor(readonly dir: string) {}
@@ -58,10 +58,10 @@ export class UploadStore {
     return attachment;
   }
 
-  /** メモの写しを保存する（付けたときの中身。memo はメモのフォルダからの相対パス） */
-  async saveMemoSnapshot(input: { memo: string; mime: string; bytes: Uint8Array }): Promise<MemoAttachment> {
-    const { id, name } = await this.write(path.basename(input.memo), input.bytes);
-    const attachment: MemoAttachment = { kind: "memo", id, name, mime: input.mime, size: input.bytes.byteLength, memo: input.memo, taken_at: new Date().toISOString() };
+  /** ノートの写しを保存する（付けたときの中身。note はノートのフォルダからの相対パス） */
+  async saveNoteSnapshot(input: { note: string; mime: string; bytes: Uint8Array }): Promise<NoteAttachment> {
+    const { id, name } = await this.write(path.basename(input.note), input.bytes);
+    const attachment: NoteAttachment = { kind: "note", id, name, mime: input.mime, size: input.bytes.byteLength, note: input.note, taken_at: new Date().toISOString() };
     await this.writeMeta(attachment);
     return attachment;
   }
@@ -90,7 +90,7 @@ export class UploadStore {
     return name ? { path: path.join(folder, name), name } : undefined;
   }
 
-  /** 保存したときの添付の記録（capture・メモの写し。ほかの添付・読めなければ null） */
+  /** 保存したときの添付の記録（capture・ノートの写し。ほかの添付・読めなければ null） */
   async meta(id: string): Promise<Attachment | null> {
     if (!isUploadId(id)) return null;
     try {

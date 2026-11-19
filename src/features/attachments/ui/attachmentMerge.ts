@@ -1,10 +1,10 @@
 // 入力欄の添付の並びに足すときの決まり（純粋関数。入力欄の中と、開いていないチャットの下書きで同じにする）
 import type { Attachment } from "@shared/types";
 
-/** 同じものか（同じ ID・同じメモ・同じ出どころの取ったもの）。付けなおしたら前のものと入れ替える */
+/** 同じものか（同じ ID・同じノート・同じ出どころの取ったもの）。付けなおしたら前のものと入れ替える */
 export function sameAttachment(a: Attachment, b: Attachment): boolean {
   if (a.id === b.id) return true;
-  if (a.kind === "memo" && b.kind === "memo") return a.memo === b.memo;
+  if (a.kind === "note" && b.kind === "note") return a.note === b.note;
   // 同じページでも、選ぶたびに別の引用を添えられる
   if (a.kind === "capture" && b.kind === "capture") return a.source.type !== "browser_selection" && a.source.type === b.source.type && a.source.label === b.source.label;
   return false;

@@ -134,7 +134,7 @@
  *   --agents-w   チャットの画面の右の欄（サブエージェントの欄）の幅・--agents-shown 開き終えたときの幅（AgentSplit.tsx → useCoverableWidth.ts）
  *   --bottom-h   下のパネルの高さ（useBottomPanel.ts）
  *   --chat-w     プロジェクトのチャット欄の幅（useProjectChat.ts・ProjectChat.tsx）
- *   --memo-chat-w メモの会話の欄の幅・--memo-chat-h 下に置くときの高さ（%）と --memo-chat-h-num（同じ値の数）・--memo-quick-h メモの下の入力欄の高さ（MemoView.tsx・useBottomChatMotion.ts）
+ *   --note-chat-w ノートの会話の欄の幅・--note-chat-h 下に置くときの高さ（%）と --note-chat-h-num（同じ値の数）・--note-quick-h ノートの下の入力欄の高さ（NoteView.tsx・useBottomChatMotion.ts）
  *   --docker-log-h Docker タブのログの画面の高さ（タブの高さに対する %。DockerTab.tsx）
  *   --depth      ファイルの木の段の深さ（FileTree.tsx）
  *   --tone       状態ごとのチャット数の色（サイドバー HeadCounts.tsx・画面の見出し StateStats.tsx）

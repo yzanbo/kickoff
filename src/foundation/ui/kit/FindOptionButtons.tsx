@@ -8,7 +8,7 @@ const ICONS = { caseSensitive: CaseSensitive, wholeWord: WholeWord, regex: Regex
 
 /**
  * 検索の欄の探し方の切り替え（VS Code と同じ「Aa」「ab」「.*」。入れているときは .find-option.on）。
- * チャットの中の検索・ページの検索の欄（FindBar）・メモのエディタの検索で同じ見た目にする。値は hooks/useFindOptions
+ * チャットの中の検索・ページの検索の欄（FindBar）・ノートのエディタの検索で同じ見た目にする。値は hooks/useFindOptions
  */
 export function FindOptionButtons({ options, onToggle, size = 15 }: { options: FindOptions; onToggle: (name: FindOptionName) => void; size?: number }) {
   return (

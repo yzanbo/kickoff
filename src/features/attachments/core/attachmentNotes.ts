@@ -1,10 +1,10 @@
 // 送るときに AI へ書き添える、添付の見出し（種類・出どころ・取った時刻・パス。中身は書かず、Read ツールで読んでもらう）
 import { ATTACHMENT_SOURCE_LABELS, isExternalSource } from "@shared/attachments/sources";
 import { formatSize } from "@shared/attachments/truncate";
-import type { CaptureAttachment, MemoAttachment } from "@shared/types";
+import type { CaptureAttachment, NoteAttachment } from "@shared/types";
 
-/** メモの写しの見出し（読むのは写し。頼まれたら元のメモを書き換える） */
-export const MEMO_SNAPSHOT_HEADING = "添付したメモ（付けたときの中身の写しです。Read ツールで読めます。頼まれたら、元のメモのファイルを直接書き換えてかまいません）";
+/** ノートの写しの見出し（読むのは写し。頼まれたら元のノートを書き換える） */
+export const NOTE_SNAPSHOT_HEADING = "添付したノート（付けたときの中身の写しです。Read ツールで読めます。頼まれたら、元のノートのファイルを直接書き換えてかまいません）";
 
 /** 「AI に渡す」で取ったものの見出し */
 export const CAPTURE_HEADING = "AI に渡したもの（押したときの中身をファイルにしたものです。Read ツールで読めます）";
@@ -30,10 +30,10 @@ export function captureLine(file: string, a: CaptureAttachment): string {
   return `- ${file}（${parts.join("。")}）`;
 }
 
-/** メモの写し 1 つの行（元のメモがもうなければ書かない） */
-export function memoSnapshotLine(file: string, a: MemoAttachment, original: string | null): string {
+/** ノートの写し 1 つの行（元のノートがもうなければ書かない） */
+export function noteSnapshotLine(file: string, a: NoteAttachment, original: string | null): string {
   const taken = `を ${formatTakenAt(a.taken_at)} に写したもの`;
-  return `- ${file}（メモ「${a.memo}」${taken}${original ? `。元のメモ: ${original}` : "。元のメモはもうありません"}）`;
+  return `- ${file}（ノート「${a.note}」${taken}${original ? `。元のノート: ${original}` : "。元のノートはもうありません"}）`;
 }
 
 /** 見出しと行を 1 つの段にして、文のあとに足す（行がなければそのまま） */

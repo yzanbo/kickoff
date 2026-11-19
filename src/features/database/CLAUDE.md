@@ -9,7 +9,7 @@
 | `core/service.ts`・`core/secrets.ts` | 接続（表 `db_connections`）・パスワードの金庫 `DbSecretVault`・AI の SQL `DatabaseService.aiQuery`（結果の CSV `aiExports.ts`・返す文 `aiFormat.ts`） |
 | `core/client.ts`・`worker/` | DB ワーカーの呼び手 `DbWorkerClient`・ワーカー（頼みを流す `handler.ts`・ドライバ・SSH トンネル `tunnel.ts`・子の起こし方 `children.ts`） |
 | `ui/DatabaseClient`・`ui/dbClientContext.ts` | 殻（左に接続の一覧、右にタブ）・下の部品が読む操作 `useDbClient` |
-| `ui/Connection*.tsx`・`ui/DbFailureDialog`・`ui/DbPrepDialog`・`ui/dbMemo.ts` | 接続の登録・編集・写す・取り込む・つながらないときの案内・準備・手順メモ |
+| `ui/Connection*.tsx`・`ui/DbFailureDialog`・`ui/DbPrepDialog`・`ui/dbNote.ts` | 接続の登録・編集・写す・取り込む・つながらないときの案内・準備・手順ノート |
 | `ui/TableView`・`ui/SqlView`・`ui/DefinitionView`・`ui/er/` | テーブル・SQL・関数と列挙型のタブ・ER 図 |
 | `ui/dbClientRequests.ts`・`ui/openSqlFromChat.ts` | 外（右の欄・Docker タブ・チャット）からの頼み |
 
@@ -39,6 +39,6 @@
 - 裏のタブの結果は量の上限（`resultBudget.ts`）で捨て、戻ったら読み取りの文だけ流し直す（書く文は流さない）。
 - テーブルの編集の保存は、書き直している欄を先に決めてから SQL を見せる。送る順は `buildEdits`（消す → 書き換える → 足す）。行のキー `rowKey` は読んだときの値。
 - 長い値（`DbLongText`）は頭だけ届く。書き出し・書き直しの前に、行を指すキーの列で残りを読む（`fill`）。
-- 手順メモの名前を変えたらタブを `renameMemoTab` で付け替える（接続の `memo_path` はコアが付け替える）。鍵を確かめるダイアログは接続のダイアログの中に開くので、閉じた知らせを外へ伝えない。
+- 手順ノートの名前を変えたらタブを `renameNoteTab` で付け替える（接続の `note_path` はコアが付け替える）。鍵を確かめるダイアログは接続のダイアログの中に開くので、閉じた知らせを外へ伝えない。
 - ER 図の箱の寸法 `ui/er/erBox.ts` は `db-er.css` と合わせる（並べる計算と画像で使う）。
 - テストは `core/routes/server.databases.test.ts`・`core/aiTools.test.ts`。PostgreSQL・MySQL・MariaDB は `worker/drivers.dbtest.ts` を `npm run test:db`（Docker。`npm test` に入れない）。

@@ -73,21 +73,21 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/uploads"],
   ["GET", "/api/uploads/:id"],
   ["GET", "/api/chats/:id/tool-image"],
-  // メモ（一覧・読む・書く・作る・動かす・ゴミ箱・メモのチャット・探す）
-  ["GET", "/api/memos/defaults"],
-  ["GET", "/api/memos/users"],
-  ["GET", "/api/memos/search"],
-  ["GET", "/api/projects/:id/memos"],
-  ["GET", "/api/projects/:id/memo"],
-  ["GET", "/api/projects/:id/memo/file/*"],
-  ["PUT", "/api/projects/:id/memo"],
-  ["DELETE", "/api/projects/:id/memo"],
-  ["POST", "/api/projects/:id/memos"],
-  ["POST", "/api/projects/:id/memos/move"],
-  ["POST", "/api/projects/:id/memo/snapshot"],
-  ["POST", "/api/projects/:id/memo/chat"],
-  ["POST", "/api/projects/:id/memos/ai-plan"],
-  ["POST", "/api/projects/:id/memos/from-chat"],
+  // ノート（一覧・読む・書く・作る・動かす・ゴミ箱・ノートのチャット・探す）
+  ["GET", "/api/notes/defaults"],
+  ["GET", "/api/notes/users"],
+  ["GET", "/api/notes/search"],
+  ["GET", "/api/projects/:id/notes"],
+  ["GET", "/api/projects/:id/note"],
+  ["GET", "/api/projects/:id/note/file/*"],
+  ["PUT", "/api/projects/:id/note"],
+  ["DELETE", "/api/projects/:id/note"],
+  ["POST", "/api/projects/:id/notes"],
+  ["POST", "/api/projects/:id/notes/move"],
+  ["POST", "/api/projects/:id/note/snapshot"],
+  ["POST", "/api/projects/:id/note/chat"],
+  ["POST", "/api/projects/:id/notes/ai-plan"],
+  ["POST", "/api/projects/:id/notes/from-chat"],
 ];
 
 /**
@@ -133,7 +133,7 @@ const DEVICE_EVENT_TYPES = new Set<BusEvent["type"]>([
   "chat_live",
   "approval",
   "approval_resolved",
-  "memos",
+  "notes",
 ]);
 
 /** 端末に届けてよい知らせか */

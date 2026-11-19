@@ -86,7 +86,7 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
 const startPlain = async ({ runner, project }: Core) => (await runner.start({ projectId: project.id, prompt: "x" })).id;
 
 /** 終わったチャットを店に作る（aiGeneration は AI が作った世代） */
-function storedChat({ store, project }: Core, input: { title: string; parent?: number; aiGeneration?: number; memoPath?: string }) {
+function storedChat({ store, project }: Core, input: { title: string; parent?: number; aiGeneration?: number; notePath?: string }) {
   return store.chats.create({
     project_id: project.id,
     provider: "claude",
@@ -94,7 +94,7 @@ function storedChat({ store, project }: Core, input: { title: string; parent?: n
     status: "completed",
     parent_chat_id: input.parent ?? null,
     ai_generation: input.aiGeneration,
-    memo_path: input.memoPath ?? null,
+    note_path: input.notePath ?? null,
   }).id;
 }
 
@@ -116,7 +116,7 @@ const CASES: Record<string, () => Promise<ListedServer[]>> = {
       const child = storedChat(core, { title: "子", parent: storedChat(core, { title: "親" }), aiGeneration: 1 });
       return sendTo(core, { title: "孫", parent: child, aiGeneration: 2 });
     }),
-  note: () => toolsSeenBy((core) => sendTo(core, { title: "メモ", memoPath: "a.md" })),
+  note: () => toolsSeenBy((core) => sendTo(core, { title: "ノート", notePath: "a.md" })),
   createOff: () =>
     toolsSeenBy(async (core) => {
       core.store.settings.update({ ai_create_chat: "off" });

@@ -32,7 +32,7 @@
 ### プロジェクトの設定
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| PRJ-013 | 名前・概要・色・メモのフォルダを変える | projects | M |
+| PRJ-013 | 名前・概要・色・ノートのフォルダを変える | projects | M |
 | PRJ-014 | プロジェクトのフォルダを変える | projects | M |
 | PRJ-015 | git の管理を始める | projects | M |
 | PRJ-016 | 参照資料（AI が読むフォルダ・ファイル）を足す | projects | M |
@@ -157,8 +157,8 @@
 ### 探す・移る
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| LST-067 | ⌘K でプロジェクト・チャット・メモへ移る | palette | E:palette-open |
-| LST-068 | ⌘K でチャット・メモの文言を探す | palette | M |
+| LST-067 | ⌘K でプロジェクト・チャット・ノートへ移る | palette | E:palette-open |
+| LST-068 | ⌘K でチャット・ノートの文言を探す | palette | M |
 | LST-069 | やり取りを全文検索する | palette | M |
 | LST-070 | ⌘⇧A で作業中・回答待ちのチャットを一覧する | chatList | M |
 | LST-071 | 前に見た画面・チャットへ戻る・進む | 土台:ui | M |
@@ -168,7 +168,7 @@
 ### 右サイドバー
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| LST-074 | 右端のアイコンの列で、ブラウザ・メモ・ファイル・検索・変更・履歴・GitHub・CI・DB・Docker・ゴミ箱を切り替える | projects | M |
+| LST-074 | 右端のアイコンの列で、ブラウザ・ノート・ファイル・検索・変更・履歴・GitHub・CI・DB・Docker・ゴミ箱を切り替える | projects | M |
 | LST-075 | 開いている中身のアイコンを押し直して閉じる（閉じても列は残る） | projects | M |
 | LST-076 | 列の並びをプロジェクトのタブの並びに合わせる | projects | M |
 | LST-077 | 見ていた中身をプロジェクトごとに、開いたもの・選んだものを中身ごとに覚える | projects | M |
@@ -239,7 +239,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | CHT-037 | チャットの中を探す | conversation | M |
-| CHT-038 | 文の右クリック（コピー・追加・メモ・issue） | conversation | M |
+| CHT-038 | 文の右クリック（コピー・追加・ノート・issue） | conversation | M |
 
 ### 動き
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -362,7 +362,7 @@
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
 | RUN-056 | 共通の指示と承認の要らないコマンドを渡す | chat | T:policy |
-| RUN-057 | 参照資料・メモのフォルダを AI に読ませる | chat | M |
+| RUN-057 | 参照資料・ノートのフォルダを AI に読ませる | chat | M |
 | RUN-058 | ポート・GitHub のアカウントを AI の実行に渡す | chat | M |
 
 ### ほかの AI と自動化
@@ -426,7 +426,7 @@
 |---|---|---|---|
 | ATT-001 | ファイルを添付する（📎・ドロップ・貼り付け） | composer | M |
 | ATT-002 | 添付の画像を大きく見る | attachments | M |
-| ATT-003 | メモ・「AI に渡す」の札を開いて見る | attachments | M |
+| ATT-003 | ノート・「AI に渡す」の札を開いて見る | attachments | M |
 | ATT-004 | 添付を 1 行にまとめて見せる | attachments | M |
 | ATT-005 | ほかのチャットを参照して添える | composer | M |
 
@@ -478,17 +478,17 @@
 | VOI-014 | OpenAI で起こす | voice | T:server.voice |
 | VOI-015 | 読み上げの声と速さを選ぶ | voice | M |
 
-## NOTE メモ
+## NOTE ノート
 
-### メモのタブ
+### ノートのタブ
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| NOTE-001 | メモ・フォルダを作る | notes | M |
+| NOTE-001 | ノート・フォルダを作る | notes | M |
 | NOTE-002 | 名前を変える | notes | M |
 | NOTE-003 | ドラッグでフォルダへ動かす | notes | M |
 | NOTE-004 | いくつも選んでまとめて扱う | notes | M |
 | NOTE-005 | ゴミ箱・パスのコピー | notes | M |
-| NOTE-006 | 名前で探す | notes | T:memoPaths |
+| NOTE-006 | 名前で探す | notes | T:notePaths |
 | NOTE-007 | タブで開く・分けて並べる | notes | M |
 | NOTE-008 | 一覧を隠す・フォルダをすべて開閉する | notes | M |
 | NOTE-009 | 保存先のフォルダを決める | notes | M |
@@ -498,29 +498,29 @@
 |---|---|---|---|
 | NOTE-010 | ライブプレビューで書く | notes | T:livePreview |
 | NOTE-011 | ⌘S で保存・書きかけを残す | notes | E:note-edit |
-| NOTE-012 | ほかで変わったメモを読み直す | notes | T:memoWatcher,server.memos |
+| NOTE-012 | ほかで変わったノートを読み直す | notes | T:noteWatcher,server.notes |
 | NOTE-013 | 題名を書き換えて名前を変える | notes | M |
-| NOTE-014 | メモの中を探す・置き換える | notes | M |
+| NOTE-014 | ノートの中を探す・置き換える | notes | M |
 | NOTE-015 | HTML で書く | notes | M |
 
-### メモの AI
+### ノートの AI
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| NOTE-016 | メモの横で AI と話す | notes | M |
-| NOTE-017 | メモの下の入力欄から頼む | notes | M |
+| NOTE-016 | ノートの横で AI と話す | notes | M |
+| NOTE-017 | ノートの下の入力欄から頼む | notes | M |
 | NOTE-018 | AI でフォルダを整理する | notes | M |
 
 ### チャットとの行き来
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| NOTE-019 | チャットの文をメモにする | notes | M |
-| NOTE-020 | 既存のメモに足す・AI で組み込む | notes | T:memoAi,server.memos |
-| NOTE-021 | チャットからメモを開く | notes | M |
-| NOTE-022 | 入力欄の上のピルからメモを使う | notes | M |
-| NOTE-023 | メモをチャットに追加する | notes | M |
+| NOTE-019 | チャットの文をノートにする | notes | M |
+| NOTE-020 | 既存のノートに足す・AI で組み込む | notes | T:noteAi,server.notes |
+| NOTE-021 | チャットからノートを開く | notes | M |
+| NOTE-022 | 入力欄の上のピルからノートを使う | notes | M |
+| NOTE-023 | ノートをチャットに追加する | notes | M |
 | NOTE-024 | 選んだ文から新しいチャットを始める | notes | M |
-| NOTE-025 | メモを GitHub の issue にする | notes | M |
-| NOTE-026 | 全プロジェクトのメモの文言を探す | notes | T:memoSearch,server.memos |
+| NOTE-025 | ノートを GitHub の issue にする | notes | M |
+| NOTE-026 | 全プロジェクトのノートの文言を探す | notes | T:noteSearch,server.notes |
 
 ### 図と数式
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -656,12 +656,12 @@
 | DB-010 | 読み取り専用の接続で一時的に書く | database | M |
 | DB-011 | パスワードをキーチェーンで暗号化する | database | T:secrets,server.databases |
 
-### 手順メモ
+### 手順ノート
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| DB-012 | 接続の手順メモを作る・開く | database | M |
+| DB-012 | 接続の手順ノートを作る・開く | database | M |
 | DB-013 | つながらないときの案内 | database | M |
-| DB-014 | 直し方を手順メモに足す | database | M |
+| DB-014 | 直し方を手順ノートに足す | database | M |
 
 ### 木と探す
 | ID | 機能 | 持ち主 | 確かめ方 |
@@ -827,13 +827,13 @@
 ### 開く
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| AIT-009 | メモ・チャット・ファイル・差分を画面に開く | chat | T:aiOpen |
+| AIT-009 | ノート・チャット・ファイル・差分を画面に開く | chat | T:aiOpen |
 | AIT-010 | SQL のタブに SQL を入れて開く | chat | T:aiOpen |
 
 ### プロジェクト
 | ID | 機能 | 持ち主 | 確かめ方 |
 |---|---|---|---|
-| AIT-011 | 定型文を足す・メモを動かす | chat | T:aiProject |
+| AIT-011 | 定型文を足す・ノートを動かす | chat | T:aiProject |
 | AIT-012 | ターミナルの出力を読む | terminal | T:aiTerminal |
 | AIT-013 | 埋め込みブラウザを見る・操作する | browser | M |
 | AIT-014 | ワークツリーを後始末する | worktrees | M |
@@ -902,7 +902,7 @@
 | MOB-021 | ターミナルを使う | mobile | M |
 | MOB-022 | 裏から戻ったら抜けた分を取る | mobile | M |
 | MOB-023 | APK を作って配る | mobile | M |
-| MOB-024 | メモ・子チャット・添付を使う（一部） | 土台:core | M |
+| MOB-024 | ノート・子チャット・添付を使う（一部） | 土台:core | M |
 | MOB-025 | 実機で通して確かめる（一部） | mobile | M |
 
 ### iPhone
@@ -923,7 +923,7 @@
 | SET-001 | 設定のダイアログを開く | settings | E:settings-open |
 | SET-002 | テーマ（ダーク・ライト・システム） | 土台:ui | M |
 | SET-003 | 見出し・タブの列・チャットを開く場所を選ぶ | settings | M |
-| SET-004 | サブエージェント・子チャット・メモを開く場所 | ai | M |
+| SET-004 | サブエージェント・子チャット・ノートを開く場所 | ai | M |
 | SET-005 | 新しいチャットの AI の既定を決める | ai | T:AiDefaultsSettings |
 | SET-006 | 新しいチャットの制限（コマンドの砂場・編集先の制限）の既定を選ぶ | ai | T:AiDefaultsSettings |
 | SET-007 | ✕ と、作業中の作業場所での扱いを選ぶ | chat | M |
@@ -1011,7 +1011,7 @@
 | BASE-024 | AI が Kickoff 自身を壊す呼び出しを断る | guard | T:selfProtection |
 | BASE-025 | 参照資料・作業場所の外への書き込みを断る | guard | T:scope |
 | BASE-026 | Git 管理外だけ書けるチャット | guard | T:scope |
-| BASE-027 | AI のファイルの書き込みを作業場所・メモ・例外だけにする | guard | T:writeScope |
+| BASE-027 | AI のファイルの書き込みを作業場所・ノート・例外だけにする | guard | T:writeScope |
 | BASE-028 | AI の Bash を砂場に入れ、書ける場所を絞る | guard | M |
 | BASE-029 | 砂場で断られた書き込みを AI に説明する | guard | T:sandboxDenied |
 | BASE-030 | AI に会話ごと作業場所を移させない（Claude Code の EnterWorktree） | ai | T:policy |

@@ -23,7 +23,7 @@ const KIND_ICONS = { chat: MessageSquare, project: FolderGit2, session: History,
 const kindIcon = (item: TrashItem) => (item.kind === "file" ? (item.is_dir ? Folder : File) : KIND_ICONS[item.kind]);
 
 /**
- * プロジェクトの「ゴミ箱」タブ。Kickoff のゴミ箱に入れたもの（AI の kickoff-trash・ファイル / メモの「ゴミ箱に入れる」・
+ * プロジェクトの「ゴミ箱」タブ。Kickoff のゴミ箱に入れたもの（AI の kickoff-trash・ファイル / ノートの「ゴミ箱に入れる」・
  * チャットの削除）を新しい順に並べ、何を・いつ・誰が消したか・消えるまでの残り・大きさと「元に戻す」「完全に消す」を出す。3 日を待たずに全部を消す
  * 「ゴミ箱を空にする」も見出しに置く
  */
@@ -47,7 +47,7 @@ export function TrashTab({ projectId }: { projectId: number }) {
         <ErrorText message={error} />
         {loaded && items.length === 0 ? (
           <EmptyState icon={Trash2} title="ゴミ箱は空です">
-            AI が消したファイル（rm の代わりの kickoff-trash）・ファイルタブやメモの「ゴミ箱に入れる」・削除したチャット・消したワークツリーの控え（取り込んでいないコミット・途中の変更）が、ここに 3 日入ります。
+            AI が消したファイル（rm の代わりの kickoff-trash）・ファイルタブやノートの「ゴミ箱に入れる」・削除したチャット・消したワークツリーの控え（取り込んでいないコミット・途中の変更）が、ここに 3 日入ります。
           </EmptyState>
         ) : (
           <ul className="trash-list">

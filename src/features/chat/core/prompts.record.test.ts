@@ -42,14 +42,14 @@ const idle = (ctx: Ctx, chatId: number) => until(() => !ctx.runner.isBusy(chatId
 
 /** 記録の場合と、その文の作り方（いまの API・実行のテストと同じ手順） */
 const CASES: Record<string, () => Promise<string>> = {
-  // 本物の起動と同じく kickoff-trash・Bash の砂場・メモのフォルダがあり、プロジェクトに概要と参照資料があるチャット
+  // 本物の起動と同じく kickoff-trash・Bash の砂場・ノートのフォルダがあり、プロジェクトに概要と参照資料があるチャット
   plain: async () => {
     const tmp = tempDir({ real: true });
     fs.mkdirSync(path.join(tmp, "spec"));
     fs.writeFileSync(path.join(tmp, "design.png"), "");
     const provider = new ScriptedProvider(done);
     const { store, runner, project } = setupCore(provider, {
-      memoDirOf: () => path.join(tmp, "メモ"),
+      noteDirOf: () => path.join(tmp, "ノート"),
       trashCommand: { path: path.join(tmp, "bin", "kickoff-trash"), dir: path.join(tmp, "trash") },
       bashSandbox: { rules: { tempDirs: [tmp], writableDirs: async () => [tmp], unsandboxedCommands: ["npm run dev:*", "brew services start:*"] }, proxyPort: null, trashDir: null },
     });
@@ -79,18 +79,18 @@ const CASES: Record<string, () => Promise<string>> = {
     await idle(ctx, child.id);
     return promptRecord({ prompt: ctx.provider.prompts.at(-1), turnContext: ctx.provider.lastTurnContext }, [parentId, child.id]);
   },
-  // Markdown のメモと HTML のメモのチャット
+  // Markdown のノートと HTML のノートのチャット
   "note-chat": async () => {
     const ctx = setup();
     const base = `/api/projects/${ctx.project.id}`;
     const systemPrompts: string[] = [];
     for (const [file, content] of [["設計/画面.md", "# 画面\n"], ["資料.html", "<p>x</p>"]]) {
-      await ctx.call("POST", `${base}/memos`, { path: file, content });
-      const chat = (await ctx.call("POST", `${base}/memo/chat`, { path: file, text: "相談したい" })).body;
+      await ctx.call("POST", `${base}/notes`, { path: file, content });
+      const chat = (await ctx.call("POST", `${base}/note/chat`, { path: file, text: "相談したい" })).body;
       await idle(ctx, chat.id);
       systemPrompts.push(ctx.provider.lastSystemPrompt);
     }
-    return promptRecord({ "systemPrompt（Markdown のメモ）": systemPrompts[0], "systemPrompt（HTML のメモ）": systemPrompts[1] }, []);
+    return promptRecord({ "systemPrompt（Markdown のノート）": systemPrompts[0], "systemPrompt（HTML のノート）": systemPrompts[1] }, []);
   },
   // 変更を持って新しいワークツリーへ移したあと、最初に送った指示
   "workplace-moved": async () => {
@@ -142,7 +142,7 @@ const CASES: Record<string, () => Promise<string>> = {
     const ctx = setup();
     const chatId = await finishedChat(ctx, "はじめ");
     await ctx.call("PUT", "/api/settings", { post_compact_prompt: " 共通のあと " });
-    await ctx.call("PATCH", `/api/projects/${ctx.project.id}`, { post_compact_prompt: "メモを読み直す" });
+    await ctx.call("PATCH", `/api/projects/${ctx.project.id}`, { post_compact_prompt: "ノートを読み直す" });
     ctx.provider.emitCompactOnCompact = true;
     await ctx.call("POST", `/api/chats/${chatId}/compact`);
     await until(() => ctx.provider.prompts.length === 3 && !ctx.runner.isBusy(chatId));

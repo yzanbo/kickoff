@@ -1,4 +1,4 @@
-/* ==== 選択部分をチャットに追加（SelectionAttach）: 返答・差分・ファイル・メモの一部を選ぶと上に出るボタン（区切り線で並べる。チャットの画面の会話では「チャットに追加」「新しい子チャットで聞く」「新しいチャットで聞く」「メモ ▾」） ==== */
+/* ==== 選択部分をチャットに追加（SelectionAttach）: 返答・差分・ファイル・ノートの一部を選ぶと上に出るボタン（区切り線で並べる。チャットの画面の会話では「チャットに追加」「新しい子チャットで聞く」「新しいチャットで聞く」「ノート ▾」） ==== */
 
 .selection-attach {
   position: fixed;
@@ -24,17 +24,17 @@
   border-left: 1px solid var(--border);
 }
 
-/* 「メモ ▾」（SelectionMemoButton）: 押すと下にメモへの入れ方のメニューを開く。▾ は控えめに、乗せた・開いたときだけ濃く */
-.selection-memo-chevron {
+/* 「ノート ▾」（SelectionNoteButton）: 押すと下にノートへの入れ方のメニューを開く。▾ は控えめに、乗せた・開いたときだけ濃く */
+.selection-note-chevron {
   margin-left: -2px;
   color: var(--muted);
 }
 
-.selection-memo:hover .selection-memo-chevron,
-.selection-memo[aria-expanded="true"] .selection-memo-chevron {
+.selection-note:hover .selection-note-chevron,
+.selection-note[aria-expanded="true"] .selection-note-chevron {
   color: var(--text);
 }
 
-.selection-memo[aria-expanded="true"] {
+.selection-note[aria-expanded="true"] {
   background: var(--bg-hover);
 }

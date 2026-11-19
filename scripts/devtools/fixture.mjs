@@ -9,7 +9,7 @@ import path from "node:path";
 
 /** 決まったデータの開発版の場所（package.json の dev:fixture と同じ値。fixture.test.mjs が確かめる） */
 export const FIXTURE = {
-  /** 決まったデータの置き場所（fixture.json・Git のリポジトリ・メモ・SQLite の DB） */
+  /** 決まったデータの置き場所（fixture.json・Git のリポジトリ・ノート・SQLite の DB） */
   root: "/private/tmp/kickoff-fixture",
   /** 開発版の保存先（Kickoff の DB・鍵）。DB のタブは保存先の中のファイルを開かないので、ほかのデータと分ける */
   dataDir: "/private/tmp/kickoff-fixture/data",

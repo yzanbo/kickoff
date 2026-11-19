@@ -7,7 +7,7 @@ import { run } from "@/foundation/core/aiTools/chatToolResult";
 
 /** 読むだけのツールの使い方（MCP の instructions として AI に渡す） */
 export const READ_INSTRUCTIONS = [
-  "list_project_chats は、このプロジェクトのアーカイブしていないチャット（子チャット・メモのチャットも）の一覧（ID・名前・状態・未読・このチャットから見た関係・最後に動いた時刻）を返す。",
+  "list_project_chats は、このプロジェクトのアーカイブしていないチャット（子チャット・ノートのチャットも）の一覧（ID・名前・状態・未読・このチャットから見た関係・最後に動いた時刻）を返す。",
   `read_chat は、同じプロジェクトのチャットの会話（自分の発言と AI の答えの文だけ。ツールの中身は省く）を読む。既定は最後の ${READ_CHAT_DEFAULT_TURNS} 回分（turns で ${READ_CHAT_MAX_TURNS} 回まで）。さらに前は、返した文にある before の番号を渡して読む。長いチャットを丸ごと読まず、要る分だけさかのぼる。`,
   "発言が長く省略された場合は read_chat に event_id を指定して全文を分割して読める。next_offset があれば次の offset に指定する。",
   "添付のある発言も event_id を指定すると、読める添付の場所と見つからない添付が分かる。中身は自動では読まない。",

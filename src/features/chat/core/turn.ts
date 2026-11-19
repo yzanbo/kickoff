@@ -37,7 +37,7 @@ import { createAiNotifyTools } from "@/features/notifications/core/aiNotify";
 import { createAiChatRemoveTools, type ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import { createAiWorkplaceTools, type AiWorkplaceDeps } from "@/features/workplaceMove/core/aiWorkplace";
 import { createAiUserViewTools } from "@/features/userView/core/aiUserView";
-import type { MemoService } from "@/features/notes/core/memos";
+import type { NoteService } from "@/features/notes/core/notes";
 import type { CodexCreditsWatch } from "@/features/ai/core/usage/codexCredits";
 import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";
 import { canCreateChat, createAiCreateChatTools, type StartedChild } from "@/features/childChats/core/aiCreateChat";
@@ -68,8 +68,8 @@ export interface ExecutionDeps {
   providers: Record<ProviderId, AgentProvider>;
   uploads?: UploadStore;
   bus?: Bus;
-  /** プロジェクトのメモのフォルダ（メモのチャットで、AI にメモを読み書きさせるため。なければメモのチャットでもメモのフォルダを足さない） */
-  memoDirOf?: (project: Project) => string;
+  /** プロジェクトのノートのフォルダ（ノートのチャットで、AI にノートを読み書きさせるため。なければノートのチャットでもノートのフォルダを足さない） */
+  noteDirOf?: (project: Project) => string;
   /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。なければ AI にブラウザのツールを出さない） */
   browser?: BrowserControl;
   /** 内蔵ターミナルの読み取り（デスクトップアプリのメインプロセスが渡す。なければ AI にターミナルのツールを出さない） */
@@ -86,8 +86,8 @@ export interface ExecutionDeps {
   usage?: UsageMonitor;
   /** Codex のクレジットの見張り（実行中の知らせで残りが減ったら、そのチャットにお知らせを残す。なければ見ない） */
   codexCredits?: CodexCreditsWatch;
-  /** メモ（AI の move_memo が名前を変える・移す。なければそのツールは使えないと返す） */
-  memos?: MemoService;
+  /** ノート（AI の move_note が名前を変える・移す。なければそのツールは使えないと返す） */
+  notes?: NoteService;
   /** チャットが作業中か（AI の update_chat が、作業中の子チャットを親から外すのを断る。Runner が渡す。なければ作業中とみなさない） */
   isBusy?: (chatId: number) => boolean;
   /**
@@ -195,13 +195,13 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       ...(deps.trashCommand ? trashCommandEnv(deps.trashCommand, chat.id) : {}),
     };
 
-    // Bash の砂場（書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない）
-    const memoDir = deps.memoDirOf ? ensureDir(deps.memoDirOf(project)) : null;
+    // Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする。読めるフォルダに足した添付・作業場所の外の参照資料は書かせない）
+    const noteDir = deps.noteDirOf ? ensureDir(deps.noteDirOf(project)) : null;
     // 計画モードと「AI で整える」の専用の保護は、アプリの既定にかかわらず維持する
     const useSandbox = chat.sandbox_enabled || chat.permission_mode === "plan" || chat.untracked_only;
     if (!useSandbox && chat.provider !== "claude" && chat.provider !== "codex") throw new Error("この AI は、Kickoff からサンドボックスをオフにする設定にまだ対応していません");
     const sandbox = useSandbox && deps.bashSandbox
-      ? await bashSandboxFor(deps.bashSandbox, { workdir: cwd, memoDir, readOnlyDirs: [...(deps.uploads ? [deps.uploads.dir] : []), ...readOnlyReferences(project, cwd)] })
+      ? await bashSandboxFor(deps.bashSandbox, { workdir: cwd, noteDir, readOnlyDirs: [...(deps.uploads ? [deps.uploads.dir] : []), ...readOnlyReferences(project, cwd)] })
       : null;
 
     // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
@@ -215,7 +215,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       const model = await knownModel(chat.provider, providers[chat.provider], chat.model);
       if (model !== chat.model) store.chats.update(chatId, { model });
       const params: ProviderTurnParams = {
-        ...buildTurnParams(deps, chat, project, { cwd, memoDir, sandbox }, runtime.writeAllowed, prompt, promptId, compact ? null : takePendingNote(runtime)),
+        ...buildTurnParams(deps, chat, project, { cwd, noteDir, sandbox }, runtime.writeAllowed, prompt, promptId, compact ? null : takePendingNote(runtime)),
         model,
         preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent),
         env,
@@ -327,7 +327,7 @@ async function resolveWorkdir(chat: Chat, project: Project): Promise<string> {
   return cwd;
 }
 
-/** フォルダがなければ作って返す（作れなければ null。メモのフォルダ） */
+/** フォルダがなければ作って返す（作れなければ null。ノートのフォルダ） */
 function ensureDir(dir: string): string | null {
   try {
     mkdirSync(dir, { recursive: true });
@@ -349,19 +349,19 @@ function buildTurnParams(
   deps: ExecutionDeps,
   chat: Chat,
   project: Project,
-  { cwd, memoDir, sandbox }: { cwd: string; memoDir: string | null; sandbox: BashSandbox | null },
+  { cwd, noteDir, sandbox }: { cwd: string; noteDir: string | null; sandbox: BashSandbox | null },
   writeAllowed: Set<string>,
   prompt: string,
   promptId?: string,
   note: string | null = null,
 ): ProviderTurnParams {
-  // メモのフォルダ（executeTurn がまだなければ作る: メモのタブで最初のメモを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「メモ」が「メモ」タブのメモのことだと伝える
-  // （入力欄にメモを添付して続きを頼む・「メモに書いて」と頼めるように）。メモのチャットは、どのメモについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
+  // ノートのフォルダ（executeTurn がまだなければ作る: ノートのタブで最初のノートを作るのと同じ場所）も読み書きできる場所に足し、どのチャットでも「ノート」が「ノート」タブのノートのことだと伝える
+  // （入力欄にノートを添付して続きを頼む・「ノートに書いて」と頼めるように）。ノートのチャットは、どのノートについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
   return {
     cwd,
     prompt,
     ...(promptId ? { promptId } : {}),
-    systemPrompt: buildSystemPrompt(project, cwd, memoDir ? { dir: memoDir, file: chat.memo_path ? path.join(memoDir, chat.memo_path) : null } : undefined, {
+    systemPrompt: buildSystemPrompt(project, cwd, noteDir ? { dir: noteDir, file: chat.note_path ? path.join(noteDir, chat.note_path) : null } : undefined, {
       trash: deps.trashCommand !== undefined,
       sandbox: sandbox ? { unsandboxed: sandbox.unsandboxedCommands } : undefined,
       editScopeEnabled: chat.edit_scope_enabled || chat.untracked_only,
@@ -376,17 +376,17 @@ function buildTurnParams(
     fastMode: chat.fast_mode,
     autoCompactPct: deps.store.settings.get().auto_compact_pct,
     // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
-    additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(memoDir ? [memoDir] : [])],
+    additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(noteDir ? [noteDir] : [])],
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
     readOnlyPaths: readOnlyReferences(project, cwd),
     // ［AI で整える］のチャットは、Git で管理していないファイルだけを書ける（続きの指示でも）
     untrackedOnly: chat.untracked_only,
-    // ファイルを書き換えるツールの先は、作業場所・メモのフォルダ・OS の一時フォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
+    // ファイルを書き換えるツールの先は、作業場所・ノートのフォルダ・OS の一時フォルダ・決まりの例外だけ（同じリポジトリのほかの作業場所は断り、それ以外の外は承認カードで聞く。
     // 一時フォルダは Bash の砂場でも書けるので、Write で一時ファイルを置くたびに聞かない。［AI で整える］のチャットは上の守りがもっと狭く絞るので付けない）
     writeScope: chat.untracked_only || !chat.edit_scope_enabled
       ? null
       : {
-          writableDirs: [...(memoDir ? [realPathOrSelf(memoDir)] : []), ...(deps.bashSandbox?.rules.tempDirs ?? [])],
+          writableDirs: [...(noteDir ? [realPathOrSelf(noteDir)] : []), ...(deps.bashSandbox?.rules.tempDirs ?? [])],
           workplaces: () => workplacesOf(project.repo_path),
           allowed: writeAllowed,
         },
@@ -402,12 +402,12 @@ function buildTurnParams(
         : null,
     // 同じ家系のチャットの名前・固定・グループを変えるツール（どのチャットにも。孫チャット・子チャットを作らせない設定のときも渡す）
     chatEdit: createAiChatEditTools(deps.store, chat.id, deps.isBusy ?? (() => false)),
-    // このプロジェクトのメモ・同じ家系のチャットを画面に開くツール（どのチャットにも。画面に頼む口（バス）があるときだけ）
-    open: deps.bus ? createAiOpenTools({ store: deps.store, publish: (e) => deps.bus?.publish(e), memoDirOf: deps.memoDirOf }, chat.id) : null,
+    // このプロジェクトのノート・同じ家系のチャットを画面に開くツール（どのチャットにも。画面に頼む口（バス）があるときだけ）
+    open: deps.bus ? createAiOpenTools({ store: deps.store, publish: (e) => deps.bus?.publish(e), noteDirOf: deps.noteDirOf }, chat.id) : null,
     // 同じプロジェクトのチャットの一覧・会話と使用枠を読むツール（どのチャットにも）
     chatRead: createAiChatReadTools({ store: deps.store, approvals: deps.approvals, usage: deps.usage, uploads: deps.uploads }, chat.id),
-    // このプロジェクトの定型文に足す・メモの名前を変える／移すツール（どのチャットにも）
-    chatProject: createAiProjectTools({ store: deps.store, memos: deps.memos }, chat.id),
+    // このプロジェクトの定型文に足す・ノートの名前を変える／移すツール（どのチャットにも）
+    chatProject: createAiProjectTools({ store: deps.store, notes: deps.notes }, chat.id),
     // このプロジェクトの内蔵ターミナルの出力を読むツール（どのチャットにも。メインプロセスが口を渡したときだけ）
     chatTerminal: deps.terminals ? createAiTerminalTools({ store: deps.store, terminals: deps.terminals }, chat.id) : null,
     // 返答の中に図（SVG・HTML・Mermaid）を描くツール（どのチャットにも。画面とスマホが記録から描く）
@@ -530,8 +530,8 @@ function callbacksFor(
         // 圧縮中をもう外していた（知らせの順が前後した）ときは、ここで伝える
         runtime.flushAfterCompact();
       }
-      // メモのチャットでツールの結果が届いたら（AI がメモを書き換えたかもしれない）、メモが変わったと知らせる（開いているメモは、書きかけでなければ読み直す）
-      if (chat.memo_path && event.type === "tool_result") bus?.publish({ type: "memos", project_id: projectId, path: null });
+      // ノートのチャットでツールの結果が届いたら（AI がノートを書き換えたかもしれない）、ノートが変わったと知らせる（開いているノートは、書きかけでなければ読み直す）
+      if (chat.note_path && event.type === "tool_result") bus?.publish({ type: "notes", project_id: projectId, path: null });
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）
       if (!compact && isUnreadEvent(saved) && !store.chats.get(chatId)?.unread) store.chats.setUnread(chatId, true);
     },

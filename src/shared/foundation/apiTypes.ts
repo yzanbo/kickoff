@@ -21,15 +21,15 @@ export type NewProjectBody = {
   provider?: ProviderId;
   /** git リポジトリとして初期化するか（省くと初期化する） */
   init_git?: boolean;
-} & NewProjectMemoDir;
+} & NewProjectNoteDir;
 
 /**
- * 新しいプロジェクト・取り込むプロジェクトのメモのフォルダ（省けば初めてメモを使ったときにプロジェクト名から決める）。
- * memo_folder: 設定のメモの親フォルダの下のフォルダ名（ほかのプロジェクトと重なれば「名前-2」）/ memo_path: このプロジェクトだけ別の場所（絶対パス。memo_folder より優先）
+ * 新しいプロジェクト・取り込むプロジェクトのノートのフォルダ（省けば初めてノートを使ったときにプロジェクト名から決める）。
+ * note_folder: 設定のノートの親フォルダの下のフォルダ名（ほかのプロジェクトと重なれば「名前-2」）/ note_path: このプロジェクトだけ別の場所（絶対パス。note_folder より優先）
  */
-export interface NewProjectMemoDir {
-  memo_folder?: string;
-  memo_path?: string;
+export interface NewProjectNoteDir {
+  note_folder?: string;
+  note_path?: string;
 }
 
 /** 既存のフォルダを取り込む（POST /api/projects/import）。init_git なら Git のリポジトリにしてから取り込む */
@@ -39,13 +39,13 @@ export type ImportProjectBody = {
   description?: string;
   init_git?: boolean;
   provider?: ProviderId;
-} & NewProjectMemoDir;
+} & NewProjectNoteDir;
 
 /**
  * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・chat_defaults・reference_paths は送った内容で置き換える。
  * 参照資料はパスだけ送れば、フォルダかファイルかはサーバーで調べる。archived はしまう（アーカイブ）・戻す
  */
-export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "chat_defaults" | "provider_chat_defaults" | "memo_path" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch" | "ci_watch">> & {
+export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "chat_defaults" | "provider_chat_defaults" | "note_path" | "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled" | "github_account" | "github_remote" | "pr_watch" | "ci_watch">> & {
   archived?: boolean;
   reference_paths?: Pick<ProjectReference, "path">[];
 };
@@ -217,32 +217,32 @@ export interface QueueMessageBody extends SendMessageBody {
   hold?: boolean;
 }
 
-/** メモを保存する（PUT /api/projects/:id/memo。base_hash は開いたときの指紋。null なら確かめずに上書き） */
-export interface MemoWriteBody {
+/** ノートを保存する（PUT /api/projects/:id/note。base_hash は開いたときの指紋。null なら確かめずに上書き） */
+export interface NoteWriteBody {
   path: string;
   content: string;
   base_hash: string | null;
 }
 
-/** 新しいメモ・フォルダ（POST /api/projects/:id/memos。dir ならフォルダ） */
-export interface MemoCreateBody {
+/** 新しいノート・フォルダ（POST /api/projects/:id/notes。dir ならフォルダ） */
+export interface NoteCreateBody {
   path: string;
   dir?: boolean;
   content?: string;
 }
 
-/** メモの名前を変える・動かす（POST /api/projects/:id/memos/move） */
-export interface MemoMoveBody {
+/** ノートの名前を変える・動かす（POST /api/projects/:id/notes/move） */
+export interface NoteMoveBody {
   from: string;
   to: string;
 }
 
 /**
- * チャットの文からメモを作る・足す（POST /api/projects/:id/memos/from-chat）。summarize なら AI で要約してから。
- * append_to があればそのメモに足し、なければ folder（null なら直下）に「<チャット名> チャットメモ<n>」を作る。
- * merge なら append_to のメモと AI でまとめ直し、メモ全体を書き換える（summarize は見ない）
+ * チャットの文からノートを作る・足す（POST /api/projects/:id/notes/from-chat）。summarize なら AI で要約してから。
+ * append_to があればそのノートに足し、なければ folder（null なら直下）に「<チャット名> チャットノート<n>」を作る。
+ * merge なら append_to のノートと AI でまとめ直し、ノート全体を書き換える（summarize は見ない）
  */
-export interface MemoFromChatBody {
+export interface NoteFromChatBody {
   chat_id: number;
   text: string;
   summarize: boolean;
@@ -252,15 +252,15 @@ export interface MemoFromChatBody {
 }
 
 /**
- * メモのチャットを始める（POST /api/projects/:id/memo/chat。最初の指示）。path はどのメモについてのチャットか（メモのフォルダからの相対パス）。
+ * ノートのチャットを始める（POST /api/projects/:id/note/chat。最初の指示）。path はどのノートについてのチャットか（ノートのフォルダからの相対パス）。
  * 続きはふつうのチャットと同じく POST /api/chats/:id/messages
  */
-export interface MemoChatBody extends MessageBody {
+export interface NoteChatBody extends MessageBody {
   path: string;
 }
 
-/** AI でメモのフォルダの整理案を作る（POST /api/projects/:id/memos/ai-plan）。instruction は頼み（null ならおまかせ） */
-export interface MemoAiPlanBody {
+/** AI でノートのフォルダの整理案を作る（POST /api/projects/:id/notes/ai-plan）。instruction は頼み（null ならおまかせ） */
+export interface NoteAiPlanBody {
   instruction: string | null;
 }
 
@@ -415,8 +415,8 @@ export interface NewDbConnectionBody {
   ai_username?: string | null;
   /** AI 用のユーザーのパスワード（password と同じく、省けばそのまま・null で消す） */
   ai_password?: string | null;
-  /** 接続の手順メモ（メモのフォルダからの相対パス。null で外す） */
-  memo_path?: string | null;
+  /** 接続の手順ノート（ノートのフォルダからの相対パス。null で外す） */
+  note_path?: string | null;
   /** SSH トンネル（省けばそのまま・null で使わない） */
   ssh?: DbSsh | null;
   /** SSH のパスワード（password と同じく、省けばそのまま・null で消す） */
@@ -434,7 +434,7 @@ export type DbConnectionPatch = Partial<NewDbConnectionBody>;
 /**
  * つながるか試す（POST …/db-connections/test。保存しない）。connection_id があれば、password を省いたときにその接続の保存したパスワードを使う
  */
-export type DbConnectionTestBody = Omit<NewDbConnectionBody, "name" | "read_only" | "write_check" | "ai_access" | "ai_username" | "ai_password" | "memo_path" | "check_on" | "check_note"> & { connection_id?: number };
+export type DbConnectionTestBody = Omit<NewDbConnectionBody, "name" | "read_only" | "write_check" | "ai_access" | "ai_username" | "ai_password" | "note_path" | "check_on" | "check_note"> & { connection_id?: number };
 
 /**
  * 踏み台のサーバーの鍵を見る（POST …/db-connections/ssh-host-key）・受け入れて ~/.ssh/known_hosts に足す（…/ssh-host-key/accept。

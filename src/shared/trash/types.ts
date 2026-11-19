@@ -1,7 +1,7 @@
 // Kickoff のゴミ箱（消したものを 3 日だけ取っておき、元に戻せる）
 
 /**
- * ゴミ箱に入れたものの種類（file = ファイル・フォルダ（メモも）/ chat = チャット（子チャット・会話記録・添付ごと）/ project = プロジェクト / session = 持ち主のいない会話記録 /
+ * ゴミ箱に入れたものの種類（file = ファイル・フォルダ（ノートも）/ chat = チャット（子チャット・会話記録・添付ごと）/ project = プロジェクト / session = 持ち主のいない会話記録 /
  * worktree = 消したワークツリーの控え（取り込んでいないコミット・途中の変更。戻すと同じ名前でワークツリーを作り直す）
  */
 export const TRASH_KINDS = ["file", "chat", "project", "session", "worktree"] as const;

@@ -1,0 +1,56 @@
+/* ==== ノートの AI のフォルダの整理案のダイアログ（NotePlanDialog。ノートのチャットの欄は note-chat.css） ==== */
+
+/* ノートのタブの「AI でフォルダを整理」のダイアログ（整理案のチェックの一覧。多ければ中でスクロール） */
+.dialog.app-dialog.note-plan-dialog {
+  width: min(640px, calc(100vw - 48px));
+}
+
+.note-plan-list {
+  display: grid;
+  gap: 2px;
+  max-height: 50vh;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.note-plan-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: start;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.note-plan-row:hover {
+  background: var(--bg-hover);
+}
+
+.note-plan-row input {
+  margin-top: 3px;
+}
+
+.note-plan-paths {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.note-plan-from {
+  color: var(--muted);
+}
+
+.note-plan-to {
+  font-weight: 600;
+}
+
+.note-plan-reason {
+  grid-column: 2;
+}

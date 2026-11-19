@@ -1,7 +1,7 @@
 import { PanelLeft, PanelRight } from "lucide-react";
 import { parsePopout, popoutKey, type PopoutRoute } from "./popout";
 import { postToMainWindow, subscribeWindowMessages } from "./windowBus";
-import { flushMemoDrafts } from "@/features/notes/ui/memoGuards";
+import { flushNoteDrafts } from "@/features/notes/ui/noteGuards";
 import { parsePanelKey } from "@/features/panel/ui/surfaces";
 import { returnSideWindow } from "@/features/projects/ui/rightSidebar/PopoutRightSidebar";
 import { returnTabWindow } from "@/features/panel/ui/popout/tabWindow";
@@ -27,7 +27,7 @@ const closeSelf = () => void (window.kickoff ? window.kickoff.windows.closeSelf(
 /**
  * 別ウィンドウの「右の欄に戻す」: 中身をメインのウィンドウのチャットの画面の右の欄（パネルのタブは元の欄）で開き直し（dockPopout）、
  * 開き直し終えた知らせを待ってから、このウィンドウを閉じる（ターミナルはシェルの持ち主をメインのウィンドウに移してから閉じる。閉じ方は聞かない。
- * メモの書きかけは残してから閉じるので、右の欄で未保存のまま続きを書ける）。サイドバーは「左の欄に戻す」（メインのウィンドウのサイドバーを開く）
+ * ノートの書きかけは残してから閉じるので、右の欄で未保存のまま続きを書ける）。サイドバーは「左の欄に戻す」（メインのウィンドウのサイドバーを開く）
  */
 export function PopoutDockButton({ route }: { route: PopoutRoute }) {
   const { label, tip, left } = dockLabel(route);
@@ -41,7 +41,7 @@ export function PopoutDockButton({ route }: { route: PopoutRoute }) {
         if (route.kind === "side") return returnSideWindow(true);
         // タブの列のある別ウィンドウは、タブをすべて戻す（ブラウザは右サイドバー、チャットはチャットのパネル）
         if (route.kind === "browser" || route.kind === "chats") return returnTabWindow(route);
-        flushMemoDrafts();
+        flushNoteDrafts();
         // ブラウザはページを移ると URL のハッシュも変わるので、いまの行き先で戻す
         const current = parsePopout(location.hash) ?? route;
         const key = popoutKey(current);

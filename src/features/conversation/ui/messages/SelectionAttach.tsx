@@ -9,24 +9,24 @@ import { useChatPane } from "@/features/chat/ui/screen/ports";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { chatTargetName } from "@/features/chat/ui/chatTitle";
-import { SelectionMemoButton } from "@/features/notes/ui/SelectionMemoButton";
+import { SelectionNoteButton } from "@/features/notes/ui/SelectionNoteButton";
 import { focusedCodeSelection } from "@/foundation/ui/code/codeSelection";
 import { selectionWithin } from "./quotable";
 import { quoteCode, quoteComment } from "@/features/chat/ui/quote";
 import { SelectionTargetButton } from "./SelectionTargetButton";
 
-/** 選んだ範囲（画面の位置と、チャット欄に足す引用。返答なら、描いた表示を Markdown に戻した文も（メモにするとき）） */
+/** 選んだ範囲（画面の位置と、チャット欄に足す引用。返答なら、描いた表示を Markdown に戻した文も（ノートにするとき）） */
 export interface Picked {
   rect: { left: number; top: number; width: number };
   quote: string;
   markdown?: string;
   /** コードの行を選んだとき: 選んだ行のコード（行番号・+- を除いたもの）と行（パスを含めてコピー） */
   code?: { text: string; lines: { from: number; to: number } };
-  /** 右の欄・別ウィンドウで「メモ ▾」を出すときの、メモの出どころのチャット（子チャットならその子、サブエージェントなら足す先のチャット。出さないなら undefined） */
-  memoChatId?: number;
+  /** 右の欄・別ウィンドウで「ノート ▾」を出すときの、ノートの出どころのチャット（子チャットならその子、サブエージェントなら足す先のチャット。出さないなら undefined） */
+  noteChatId?: number;
 }
 
-/** 足す先のボタンの横に置くもの（「メモ ▾」）に渡す操作: hold = メニューを開いている間は消さない / done = 済んだので選択ごと消す */
+/** 足す先のボタンの横に置くもの（「ノート ▾」）に渡す操作: hold = メニューを開いている間は消さない / done = 済んだので選択ごと消す */
 export interface ExtraControls {
   hold: (hold: boolean) => void;
   done: () => void;
@@ -64,7 +64,7 @@ function currentRange(): { selection: Selection; range: Range; element: Element 
 function pickedInQuotable(root: Element | null): Picked | undefined {
   const selected = selectionWithin(root, { quotable: true });
   if (!selected) return undefined;
-  // 返答の Markdown の表示の中なら Markdown に戻したものも持つ（メモには書式のまま残す。右クリックの「メモ」と同じ）
+  // 返答の Markdown の表示の中なら Markdown に戻したものも持つ（ノートには書式のまま残す。右クリックの「ノート」と同じ）
   return { rect: selected.range.getBoundingClientRect(), quote: quoteComment(selected.text.trim(), ""), markdown: selected.markdown };
 }
 
@@ -102,8 +102,8 @@ const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追�
  * チャットの画面の会話の中の文（発言・質問のカード・ツールの行・サブエージェントのカードなど。`data-quotable` の中）を選ぶと、その上にボタンを並べる:
  * 「チャットに追加」（すぐこのチャットの入力欄の文の後ろに引用を足す。何件か足してから、まとめて送れる。送るのは自分で）・
  * 「新しい子チャットで聞く」（引用を入れた子チャットを作り、このチャットの作業を止めずに横で聞く。発言の右クリックと同じ）・
- * 「新しいチャットで聞く」（チャットのタブが入っているパネルの中だけ。引用を入力欄に入れた新しいチャット）・「メモ ▾」（SelectionMemoButton。押すとメモへの入れ方のメニュー）。
- * 右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach が足す先のチャットと両方に足せるボタンを出す）
+ * 「新しいチャットで聞く」（チャットのタブが入っているパネルの中だけ。引用を入力欄に入れた新しいチャット）・「ノート ▾」（SelectionNoteButton。押すとノートへの入れ方のメニュー）。
+ * 右の欄・別ウィンドウの中のチャット（子チャット・ノートのチャット）では出さない（SideSelectionAttach が足す先のチャットと両方に足せるボタンを出す）
  */
 export function SelectionAttach() {
   const { root, fillComposer, chatId, projectId, askInNewChat } = useChatPane();
@@ -133,21 +133,21 @@ export function SelectionAttach() {
       pick={() => pickedInQuotable(root.current)}
       targets={targets}
       extra={(picked, controls) => (
-        <SelectionMemoButton projectId={projectId()} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />
+        <SelectionNoteButton projectId={projectId()} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />
       )}
     />
   );
 }
 
 /** 右の欄・別ウィンドウの中のチャットの画面の種類ごとの、そのチャットに足すボタンの名前 */
-const INNER_LABELS: Record<string, string> = { child: "子チャットに追加", memo: "メモのチャットに追加" };
+const INNER_LABELS: Record<string, string> = { child: "子チャットに追加", note: "ノートのチャットに追加" };
 
 /**
  * 右の欄・別ウィンドウ（container の中）で、会話の文（子チャットの流れ・サブエージェントの画面の手順）・差分・ファイルの中身の行を選ぶと、その上に「チャットに追加」を出し、押すとメインのチャット（mainChatId）の入力欄に足す。
  * ボタンの名前は足す先のチャットの名前（「「機能開発」に追加」。右の欄のどのタブでも同じ呼び方）。
- * 子チャット・メモのチャットの中で選んだときは、それと、そのチャットに足すボタン（「子チャットに追加」「メモのチャットに追加」）の 2 つ。
- * 子チャット・サブエージェントの会話の文なら、横に「メモ ▾」も出す（出どころは子チャットならその子、サブエージェントなら足す先のチャット。メモのチャット・コードの行では出さない）。
- * メモの本文は MemoSelectionAttach が出す
+ * 子チャット・ノートのチャットの中で選んだときは、それと、そのチャットに足すボタン（「子チャットに追加」「ノートのチャットに追加」）の 2 つ。
+ * 子チャット・サブエージェントの会話の文なら、横に「ノート ▾」も出す（出どころは子チャットならその子、サブエージェントなら足す先のチャット。ノートのチャット・コードの行では出さない）。
+ * ノートの本文は NoteSelectionAttach が出す
  */
 export function SideSelectionAttach({ mainChatId, container }: { mainChatId: number; container: () => Element | null }) {
   // 選んだ所の中のチャットの画面（足す先と別のチャットなら、その ID と種類）
@@ -158,14 +158,14 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
     if (!page || !root?.contains(page) || chatId === mainChatId) return undefined;
     return { chatId, role: page.dataset.chatRole ?? "" };
   };
-  // 会話の文なら、メモの出どころのチャットも覚える（メモのチャットの中は除く）
+  // 会話の文なら、ノートの出どころのチャットも覚える（ノートのチャットの中は除く）
   const pick = (): Picked | undefined => {
     const code = pickedInCode(container());
     if (code) return code;
     const picked = pickedInQuotable(container());
     if (!picked) return undefined;
     const inner = innerChat();
-    return inner?.role === "memo" ? picked : { ...picked, memoChatId: inner?.chatId ?? mainChatId };
+    return inner?.role === "note" ? picked : { ...picked, noteChatId: inner?.chatId ?? mainChatId };
   };
   return (
     <SelectionAttachBox
@@ -185,10 +185,10 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
         ];
       }}
       extra={(picked, controls) => {
-        const from = picked.memoChatId;
+        const from = picked.noteChatId;
         const projectId = from === undefined ? undefined : (knownChat(from) ?? knownChat(mainChatId))?.project_id;
         if (from === undefined || projectId === undefined) return null;
-        return <SelectionMemoButton projectId={projectId} chatId={from} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />;
+        return <SelectionNoteButton projectId={projectId} chatId={from} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />;
       }}
     />
   );
@@ -196,8 +196,8 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
 
 /**
  * 選んだ範囲の上のボタン（pick が、いま選んでいる範囲が足せる所かを決め、targets が足す先のボタンを決める）。押すとその onAdd に引用を渡す。
- * 別ウィンドウ・右の欄のメモでは、足す先（メインのウィンドウのチャット欄など）を targets で渡す。
- * extra はボタンの横に置くもの（メインの会話の「メモ ▾」）。足す先の ▾（more）・extra のメニューを開いている間（hold）は、外側のクリック・選び直し・スクロールで消さない
+ * 別ウィンドウ・右の欄のノートでは、足す先（メインのウィンドウのチャット欄など）を targets で渡す。
+ * extra はボタンの横に置くもの（メインの会話の「ノート ▾」）。足す先の ▾（more）・extra のメニューを開いている間（hold）は、外側のクリック・選び直し・スクロールで消さない
  */
 export function SelectionAttachBox({
   pick,

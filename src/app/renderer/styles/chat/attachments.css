@@ -1,7 +1,7 @@
 /* ==== 添付ファイル（画像を大きく見る・Mermaid の図の全画面は image-viewer.css） ==== */
 
 /*
- * 添付の札（ファイル・メモ・「AI に渡す」で取ったもの。入力欄・発言の吹き出し・送信待ちで同じ形）: 1 枚のカードに、左に角丸のアイコンの地（種類ごとの色）
+ * 添付の札（ファイル・ノート・「AI に渡す」で取ったもの。入力欄・発言の吹き出し・送信待ちで同じ形）: 1 枚のカードに、左に角丸のアイコンの地（種類ごとの色）
  * か画像のサムネイル、右に名前と 2 行目（種類・大きさ・時刻）。押せる札は乗せると枠をアクセントの色にする。
  * 中の押せる部分（.attachment-link）は button / a / span のどれでも同じ見た目にする（button の既定の白地と枠を残すと、札の中にもう 1 つ枠が出る）
  */
@@ -66,7 +66,7 @@
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%);
 }
 
-/* アイコンの地（種類ごとの色。ファイルはファイルの種類のアイコンをそのまま、メモはアクセント、「AI に渡す」は青） */
+/* アイコンの地（種類ごとの色。ファイルはファイルの種類のアイコンをそのまま、ノートはアクセント、「AI に渡す」は青） */
 .attachment-icon {
   display: grid;
   place-items: center;
@@ -80,7 +80,7 @@
   height: 20px;
 }
 
-.memo-attachment .attachment-icon {
+.note-attachment .attachment-icon {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }

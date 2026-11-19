@@ -7,7 +7,7 @@ import { openEditorFind } from "@/foundation/ui/code/editorFind";
 
 /**
  * チャットの画面の右の欄の ⌘F（タブの中の文字を探す）。ピントが右の欄の中にある（どこにもピントがなければ、最後に右の欄を押した）とき、
- * 表示しているタブで探す: メモ（CodeMirror）・ファイルの編集（Monaco）はエディタの検索の欄（見えていない行も探せる。editorFind.ts）、
+ * 表示しているタブで探す: ノート（CodeMirror）・ファイルの編集（Monaco）はエディタの検索の欄（見えていない行も探せる。editorFind.ts）、
  * 子チャットはその画面のチャットの検索に任せ、ほか（サブエージェント・変更・読むだけのファイル）は欄の右上に検索の欄（FindBar）を出して、画面の文字に印を付ける。
  * エディタの中にピントがあれば、そのエディタが自分で受け取る
  */
@@ -27,7 +27,7 @@ export function AgentPanelFind({ panelKey }: { panelKey: string }) {
       );
       if (!panel) return;
       const focusedHere = panel.contains(active);
-      // エディタ（メモの CodeMirror・ファイルの Monaco）の中なら、その検索に任せる
+      // エディタ（ノートの CodeMirror・ファイルの Monaco）の中なら、その検索に任せる
       if (active?.closest(".cm-editor, .monaco-editor")) return;
       const from = (focusedHere ? active : lastPressedElement())?.closest<HTMLElement>(".panel-tab-page");
       const page = from && !from.hidden ? from : panel.querySelector<HTMLElement>(".panel-tab-page:not([hidden])");
@@ -36,7 +36,7 @@ export function AgentPanelFind({ panelKey }: { panelKey: string }) {
       if (page.querySelector(".chat-find")) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      // メモ・ファイルの編集は、エディタの検索の欄を開く
+      // ノート・ファイルの編集は、エディタの検索の欄を開く
       if (openEditorFind(page)) {
         setFound(null);
         return;

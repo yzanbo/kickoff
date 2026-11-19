@@ -21,7 +21,7 @@ function setup() {
  */
 function family(ctx: ReturnType<typeof setup>) {
   const { store, project } = ctx;
-  const base = { project_id: project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, memo_path: null };
+  const base = { project_id: project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, note_path: null };
   const root = store.chats.create({ ...base, title: "根", parent_chat_id: null });
   const childA = store.chats.create({ ...base, title: "子A", parent_chat_id: root.id });
   const childB = store.chats.create({ ...base, title: "子B", parent_chat_id: root.id });
@@ -85,7 +85,7 @@ test("update_chat: 家系の外のチャットは、同じプロジェクトな�
   const ctx = setup();
   const { childA, other } = family(ctx);
   const otherProject = ctx.store.projects.create({ name: "q", repo_path: "/tmp/kickoff-test-other", provider: "claude" });
-  const base = { provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, memo_path: null, parent_chat_id: null };
+  const base = { provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, note_path: null, parent_chat_id: null };
   const foreignChat = ctx.store.chats.create({ ...base, project_id: otherProject.id, title: "よそのプロジェクト" });
   const tools = createAiChatEditTools(ctx.store, childA.id, idle);
   assert.match(tools.update({ chat_id: other.id, title: " 【済】よそ " }), /ほかの家系.*「よそ」から「【済】よそ」/);

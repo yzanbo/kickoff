@@ -54,12 +54,12 @@ export function trashChat(deps: ChatTrashDeps, chat: Chat, opts: { byChatId?: nu
 }
 
 /**
- * メモと一緒に、そのメモのチャット（フォルダならその中のメモのもの。子孫も）をゴミ箱の同じ行に入れる（一覧には 1 行で出る。作業中のものはそのまま）。
+ * ノートと一緒に、そのノートのチャット（フォルダならその中のノートのもの。子孫も）をゴミ箱の同じ行に入れる（一覧には 1 行で出る。作業中のものはそのまま）。
  * 入れたチャットの数を返す
  */
-export function trashMemoChats(deps: Omit<ChatTrashDeps, "trashBin">, projectId: number, memoPath: string, itemId: string): number {
+export function trashNoteChats(deps: Omit<ChatTrashDeps, "trashBin">, projectId: number, notePath: string, itemId: string): number {
   const ids: number[] = [];
-  for (const chat of deps.store.chats.memoChats(projectId, memoPath)) {
+  for (const chat of deps.store.chats.noteChats(projectId, notePath)) {
     const family = [chat, ...deps.store.chats.descendants(chat.id)];
     if (family.some((c) => c.status === "running")) continue;
     ids.push(...family.map((c) => c.id));
@@ -71,22 +71,22 @@ export function trashMemoChats(deps: Omit<ChatTrashDeps, "trashBin">, projectId:
 }
 
 /**
- * AI が kickoff-trash でメモ（メモのフォルダの中のもの）を消したとき、画面から消したときと同じく、メモのチャットも同じ行に入れ、
- * 覚え書きにメモのフォルダからのパスを足す（別の名前で戻したときに付け替えるため）。メモの一覧が変わったことも知らせる
+ * AI が kickoff-trash でノート（ノートのフォルダの中のもの）を消したとき、画面から消したときと同じく、ノートのチャットも同じ行に入れ、
+ * 覚え書きにノートのフォルダからのパスを足す（別の名前で戻したときに付け替えるため）。ノートの一覧が変わったことも知らせる
  */
-export function trashMemoChatsOnImport(
-  deps: Omit<ChatTrashDeps, "trashBin"> & { memoDirOf: (project: Project) => string; publish: (e: BusEvent) => void },
+export function trashNoteChatsOnImport(
+  deps: Omit<ChatTrashDeps, "trashBin"> & { noteDirOf: (project: Project) => string; publish: (e: BusEvent) => void },
   item: StoredTrashItem,
 ): void {
   const project = item.project_id !== null ? deps.store.projects.get(item.project_id) : null;
-  if (!project || !item.origin || !(project.memo_path || project.memo_folder)) return;
-  // kickoff-trash は元の場所をリンクを解いた形で書くので、メモのフォルダもリンクを解いて比べる
-  const dir = realPathLoose(deps.memoDirOf(project));
+  if (!project || !item.origin || !(project.note_path || project.note_folder)) return;
+  // kickoff-trash は元の場所をリンクを解いた形で書くので、ノートのフォルダもリンクを解いて比べる
+  const dir = realPathLoose(deps.noteDirOf(project));
   if (!isInside(dir, item.origin) || item.origin === dir) return;
-  const memo = path.relative(dir, item.origin).split(path.sep).join("/");
-  deps.store.trash.setDetails(item.id, { ...item.details, memo });
-  trashMemoChats(deps, project.id, memo, item.id);
-  deps.publish({ type: "memos", project_id: project.id, path: null });
+  const note = path.relative(dir, item.origin).split(path.sep).join("/");
+  deps.store.trash.setDetails(item.id, { ...item.details, note });
+  trashNoteChats(deps, project.id, note, item.id);
+  deps.publish({ type: "notes", project_id: project.id, path: null });
 }
 
 /** ゴミ箱の行と一緒に入れたチャットを戻す（親がもう消えたものは親のないチャットに） */
@@ -117,8 +117,8 @@ export async function purgeChatsOf(deps: ChatPurgeDeps, itemId: string): Promise
 }
 
 /**
- * ゴミ箱にチャットの扱いを登録する（チャットの行・メモ・プロジェクトのどれから戻しても、一緒に入れたチャットを戻し、本当に消すときは一緒に消す）。
- * メモを別の名前で戻したら、メモのチャットの memo_path も付け替える
+ * ゴミ箱にチャットの扱いを登録する（チャットの行・ノート・プロジェクトのどれから戻しても、一緒に入れたチャットを戻し、本当に消すときは一緒に消す）。
+ * ノートを別の名前で戻したら、ノートのチャットの note_path も付け替える
  */
 export function registerChatTrash(trashBin: TrashService, deps: ChatPurgeDeps): void {
   const purge = (item: StoredTrashItem) => purgeChatsOf(deps, item.id);
@@ -126,11 +126,11 @@ export function registerChatTrash(trashBin: TrashService, deps: ChatPurgeDeps): 
   trashBin.register("file", {
     restore: (item, restoredPath) => {
       const restored = restoreChatsOf(deps.store, item.id);
-      const memo = typeof item.details.memo === "string" ? item.details.memo : null;
-      if (!memo || !item.origin || !restoredPath || restoredPath === item.origin || item.project_id === null || restored.length === 0) return;
-      // 元の場所からメモのフォルダを割り出し、戻した名前で付け替える
-      const memoDir = item.origin.slice(0, item.origin.length - memo.length).replace(/\/+$/, "");
-      deps.store.chats.remapMemoPath(item.project_id, memo, path.relative(memoDir, restoredPath).split(path.sep).join("/"));
+      const note = typeof item.details.note === "string" ? item.details.note : null;
+      if (!note || !item.origin || !restoredPath || restoredPath === item.origin || item.project_id === null || restored.length === 0) return;
+      // 元の場所からノートのフォルダを割り出し、戻した名前で付け替える
+      const noteDir = item.origin.slice(0, item.origin.length - note.length).replace(/\/+$/, "");
+      deps.store.chats.remapNotePath(item.project_id, note, path.relative(noteDir, restoredPath).split(path.sep).join("/"));
     },
     purge,
   });

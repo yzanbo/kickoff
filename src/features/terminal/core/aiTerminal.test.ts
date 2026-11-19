@@ -8,7 +8,7 @@ import { clipTail, createAiTerminalTools } from "./aiTerminal";
 
 function setup(tabs: (projectId: number) => TerminalTabInfo[], output: Record<string, string[]> = {}) {
   const ctx = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s", turns: 1, result: "" })));
-  const base = { project_id: ctx.project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, parent_chat_id: null, memo_path: null };
+  const base = { project_id: ctx.project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, parent_chat_id: null, note_path: null };
   const chat = ctx.store.chats.create({ ...base, title: "作業" });
   const asked: [string, number][] = [];
   const terminals: TerminalControl = {

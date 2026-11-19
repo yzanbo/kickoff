@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { changesTab, databaseTab, fileTab, memoTab, projectViewTab } from "@/features/panel/ui/tabs/tabKinds";
+import { changesTab, databaseTab, fileTab, noteTab, projectViewTab } from "@/features/panel/ui/tabs/tabKinds";
 import { repointPlan } from "./repointTabs";
 
 test("作業場所を移したら、移す前の作業場所を指す右の欄のタブを付け替え、書きかけのファイルのタブは残す（メモの仕様書「0025」の H4）", () => {
@@ -11,7 +11,7 @@ test("作業場所を移したら、移す前の作業場所を指す右の欄�
     fileTab({ ...at, path: "dirty.ts" }),
     projectViewTab({ ...at, view: "files" }),
     databaseTab(at),
-    memoTab({ ...at, path: "m.md" }),
+    noteTab({ ...at, path: "m.md" }),
     // ほかの作業場所・ほかのチャットのタブは触らない
     changesTab({ ...at, worktree: "/wt/other" }),
     fileTab({ chatId: 2, projectId: 7, path: "a.ts" }),

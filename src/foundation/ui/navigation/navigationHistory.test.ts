@@ -6,7 +6,7 @@ import type { Route } from "./router";
 const all: Route = { name: "allProjects" };
 const board: Route = { name: "project", id: 1, tab: "board" };
 const chat: Route = { name: "chat", projectId: 1, chatId: 10 };
-const memos: Route = { name: "project", id: 1, tab: "memos" };
+const notes: Route = { name: "project", id: 1, tab: "notes" };
 
 test("画面の履歴: 起動時はどちらにも移れず、端を越えても状態を変えない", () => {
   const history = createNavigationHistory(all);
@@ -20,10 +20,10 @@ test("画面の履歴: 起動時はどちらにも移れず、端を越えても
 test("画面の履歴: チャットだけでなく、タブ・プロジェクト・全プロジェクトを前後にたどる", () => {
   const history = createNavigationHistory(all);
   const other: Route = { name: "project", id: 2, tab: "files" };
-  for (const route of [board, chat, memos, other]) history.record(route);
-  for (const route of [memos, chat, board, all]) assert.deepEqual(history.move(-1), route);
+  for (const route of [board, chat, notes, other]) history.record(route);
+  for (const route of [notes, chat, board, all]) assert.deepEqual(history.move(-1), route);
   assert.equal(history.move(-1), undefined);
-  for (const route of [board, chat, memos, other]) assert.deepEqual(history.move(1), route);
+  for (const route of [board, chat, notes, other]) assert.deepEqual(history.move(1), route);
   assert.equal(history.move(1), undefined);
 });
 
@@ -32,8 +32,8 @@ test("画面の履歴: 戻った先から新しい画面を開いたら、進む
   history.record(board);
   history.record(chat);
   history.move(-1);
-  history.record(memos);
-  assert.deepEqual(history.getSnapshot(), { entries: [all, board, memos], index: 2 });
+  history.record(notes);
+  assert.deepEqual(history.getSnapshot(), { entries: [all, board, notes], index: 2 });
   assert.equal(history.move(1), undefined);
   assert.deepEqual(history.move(-1), board);
 });
@@ -41,13 +41,13 @@ test("画面の履歴: 戻った先から新しい画面を開いたら、進む
 test("画面の履歴: 同じ画面・一度きりの指定を重ねて積まず、進む履歴も消さない", () => {
   const history = createNavigationHistory(board);
   history.record(chat);
-  history.record(memos);
+  history.record(notes);
   history.move(-1);
   const before = history.getSnapshot();
   history.record({ ...chat, focus: 123 } as Route);
   assert.equal(history.getSnapshot(), before);
-  assert.deepEqual(history.move(1), memos);
-  history.record({ name: "project", id: 1, tab: "memos", memo: "設計.md", memoLine: 12 });
+  assert.deepEqual(history.move(1), notes);
+  history.record({ name: "project", id: 1, tab: "notes", note: "設計.md", noteLine: 12 });
   assert.equal(history.getSnapshot().entries.length, 3);
   const files: Route = { name: "project", id: 1, tab: "files" };
   history.record({ ...files, file: { path: "README.md", line: 4 } } as Route);

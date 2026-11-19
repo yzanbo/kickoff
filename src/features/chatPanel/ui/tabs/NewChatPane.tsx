@@ -23,7 +23,7 @@ import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
 import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/conversation/ui/screen/ChatDisplayMenu";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 import { ContextMeter } from "@/features/compact/ui/ContextMeter";
-import { MemoChip } from "@/features/notes/ui/MemoChip";
+import { NoteChip } from "@/features/notes/ui/NoteChip";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
 import { AgentSplit } from "@/features/chatPanel/ui/agents/AgentSplit";
 import { claimVoiceHandoff } from "@/features/voice/ui/voiceHandoff";
@@ -68,7 +68,7 @@ interface Props {
 
 /**
  * 右側のパネルで始める新しいチャット（最初のメッセージを送ると、そのチャットのタブになる）。
- * チャットの画面と同じく右の欄を持ち（AgentSplit。範囲は下書きのタブの draft-<key>）、メモのピルから開いたメモはここに開く。送ったら中身はできたチャットの右の欄へ移る
+ * チャットの画面と同じく右の欄を持ち（AgentSplit。範囲は下書きのタブの draft-<key>）、ノートのピルから開いたノートはここに開く。送ったら中身はできたチャットの右の欄へ移る
  */
 export function NewChatPane({
   tabKey,
@@ -208,9 +208,9 @@ export function NewChatPane({
     >
       {/* 会話が始まったあとのチャット欄と同じく、ピルの列の上に作業中のほかのチャットの知らせ */}
       <BusyNeighborsNotice count={busyNeighbors} />
-      {/* 会話が始まったあとのチャット欄と同じピルの列（いまはメモだけ。指示の履歴・ToDo・サブエージェント・子チャットは中身がないので出さない） */}
+      {/* 会話が始まったあとのチャット欄と同じピルの列（いまはノートだけ。指示の履歴・ToDo・サブエージェント・子チャットは中身がないので出さない） */}
       <div className="composer-chips">
-        <MemoChip projectId={projectId} chatId={null} onAttach={(path) => void api.memoSnapshot(projectId, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("メモを添付できませんでした"))} />
+        <NoteChip projectId={projectId} chatId={null} onAttach={(path) => void api.noteSnapshot(projectId, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("ノートを添付できませんでした"))} />
       </div>
       {ready && (
         <ChatProviderContext.Provider value={provider}>

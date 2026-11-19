@@ -8,7 +8,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { Attachment, ChatOptionsPatch, GitHubLink, Project, ProviderId } from "@shared/types";
 import { withAttachmentNote } from "@/features/attachments/core/uploads";
-import { appendNote, CAPTURE_HEADING, captureLine, MEMO_SNAPSHOT_HEADING, memoSnapshotLine } from "@/features/attachments/core/attachmentNotes";
+import { appendNote, CAPTURE_HEADING, captureLine, NOTE_SNAPSHOT_HEADING, noteSnapshotLine } from "@/features/attachments/core/attachmentNotes";
 import { Invalid, NotFound } from "@/foundation/core/errors";
 import { isInside } from "@/foundation/core/system/paths";
 
@@ -36,8 +36,8 @@ export interface StartChatInput {
   notice?: string;
   /** 名前（1 行目・AI が付ける名前）のもとにする文（なければ prompt。子チャットでは引用を除いた質問だけ） */
   titleText?: string;
-  /** メモのチャット: どのメモについてのチャットか（メモのフォルダからの相対パス） */
-  memoPath?: string;
+  /** ノートのチャット: どのノートについてのチャットか（ノートのフォルダからの相対パス） */
+  notePath?: string;
   /** Git で管理していないファイルだけを書けるチャット（ワークツリーの実行環境の［AI で整える］） */
   untrackedOnly?: boolean;
   /** 結び付ける GitHub の issue・PR */
@@ -75,7 +75,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
     worktree_path: input.worktreePath || null,
     parent_chat_id: input.parentChatId ?? null,
     parent_event_id: input.parentEventId ?? null,
-    memo_path: input.memoPath ?? null,
+    note_path: input.notePath ?? null,
     untracked_only: input.untrackedOnly ?? false,
     github_repo: input.github?.repo ?? null,
     github_number: input.github?.number ?? null,
@@ -138,11 +138,11 @@ async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, te
 
 /**
  * 添付のパスをメッセージに書き添える（エージェントは Read ツールで読む。中身は書かない）。種類ごとに見出しを分ける:
- * ファイル・メモ（写しと元のメモのパス）・「AI に渡す」で取ったもの（出どころ・時刻・外から来たか）。
- * メモの写しと取ったものの見出しは、保存したときの記録（uploads.meta）から書く。見つからない添付・メモは書かない
+ * ファイル・ノート（写しと元のノートのパス）・「AI に渡す」で取ったもの（出どころ・時刻・外から来たか）。
+ * ノートの写しと取ったものの見出しは、保存したときの記録（uploads.meta）から書く。見つからない添付・ノートは書かない
  */
-async function promptWithAttachments({ uploads, memoDirOf }: ExecutionDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
-  const memoDir = project && memoDirOf ? memoDirOf(project) : null;
+async function promptWithAttachments({ uploads, noteDirOf }: ExecutionDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
+  const noteDir = project && noteDirOf ? noteDirOf(project) : null;
   const files = [];
   const snapshots: string[] = [];
   const captures: string[] = [];
@@ -151,17 +151,17 @@ async function promptWithAttachments({ uploads, memoDirOf }: ExecutionDeps, proj
     if (!resolved) continue;
     const saved = (await uploads?.meta(attachment.id)) ?? null;
     if (saved?.kind === "capture") captures.push(captureLine(resolved.path, saved));
-    else if (saved?.kind === "memo") snapshots.push(memoSnapshotLine(resolved.path, saved, memoDir ? await memoFile(memoDir, saved.memo) : null));
+    else if (saved?.kind === "note") snapshots.push(noteSnapshotLine(resolved.path, saved, noteDir ? await noteFile(noteDir, saved.note) : null));
     else files.push({ path: resolved.path, attachment });
   }
   let prompt = withAttachmentNote(text, files);
-  prompt = appendNote(prompt, MEMO_SNAPSHOT_HEADING, snapshots);
+  prompt = appendNote(prompt, NOTE_SNAPSHOT_HEADING, snapshots);
   return appendNote(prompt, CAPTURE_HEADING, captures);
 }
 
-/** メモのフォルダの中のファイルの絶対パス（外を指す・ないなら null） */
-async function memoFile(dir: string, memo: string): Promise<string | null> {
-  const file = path.join(dir, memo);
+/** ノートのフォルダの中のファイルの絶対パス（外を指す・ないなら null） */
+async function noteFile(dir: string, note: string): Promise<string | null> {
+  const file = path.join(dir, note);
   if (!isInside(dir, file) || file === dir) return null;
   return (await fs.stat(file).then((s) => s.isFile(), () => false)) ? file : null;
 }

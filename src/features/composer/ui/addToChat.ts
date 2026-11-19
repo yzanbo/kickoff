@@ -1,4 +1,4 @@
-// チャットの入力欄の後ろに文（と添付）を足す口（右の欄・別ウィンドウの「チャットに追加」・右クリックの「メインのチャット」・メモの添付・「AI に渡す」で共通）
+// チャットの入力欄の後ろに文（と添付）を足す口（右の欄・別ウィンドウの「チャットに追加」・右クリックの「メインのチャット」・ノートの添付・「AI に渡す」で共通）
 import type { Attachment } from "@shared/types";
 import { parsePopout } from "@/foundation/ui/navigation/popout";
 import { postToMainWindow } from "@/foundation/ui/navigation/windowBus";
@@ -25,7 +25,7 @@ export function addToChat(chatId: number, text: string, attachments?: Attachment
 
 /**
  * 開いていないチャットの書きかけの文（chatDraft）と送る前の添付（chatAttachmentsDraft）に足し、「〇〇に追加しました［開く］」と知らせる。
- * 開いたときに入力欄に入る。同じメモ・同じ出どころの取ったものは新しく足した方に入れ替える
+ * 開いたときに入力欄に入る。同じノート・同じ出どころの取ったものは新しく足した方に入れ替える
  */
 function addToChatDraft(chatId: number, text: string, attachments: Attachment[] = []) {
   if (text) writeSetting(chatDraft(chatId), appendBlock(readSetting(chatDraft(chatId)), text));

@@ -6,7 +6,7 @@ import { toModelOptions } from "./catalog";
 import { byokProvider, copilotSandbox, runtimeEnv } from "./config";
 import { toolAsKickoff } from "./events";
 
-const sandbox: BashSandbox = { writableDirs: ["/memo", "/cache"], readOnlyDirs: ["/uploads"], unsandboxedCommands: [], proxyPort: null };
+const sandbox: BashSandbox = { writableDirs: ["/note", "/cache"], readOnlyDirs: ["/uploads"], unsandboxedCommands: [], proxyPort: null };
 
 test("砂場: 書けるのは作業場所と書けるフォルダ・読むことと通信は絞らない・MCP は砂場に入れない。計画モードは何も書かせない。砂場がなければ渡さない", () => {
   assert.equal(copilotSandbox({ bashSandbox: null, permissionMode: "default" }), undefined);
@@ -15,7 +15,7 @@ test("砂場: 書けるのは作業場所と書けるフォルダ・読むこと
   assert.equal(on.addCurrentWorkingDirectory, true);
   assert.equal(on.sandboxMcpServers, false);
   assert.equal(on.allowBypass, false);
-  assert.deepEqual(on.userPolicy?.filesystem, { readwritePaths: ["/memo", "/cache"], readonlyPaths: ["/", "/uploads"] });
+  assert.deepEqual(on.userPolicy?.filesystem, { readwritePaths: ["/note", "/cache"], readonlyPaths: ["/", "/uploads"] });
   assert.deepEqual(on.userPolicy?.network, { allowOutbound: true, allowLocalNetwork: true });
   const plan = copilotSandbox({ bashSandbox: sandbox, permissionMode: "plan" })!;
   assert.equal(plan.addCurrentWorkingDirectory, false);

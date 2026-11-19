@@ -20,8 +20,8 @@ export interface NewChat extends ChatOptionsPatch {
   /** 子チャットの親と、親の会話のどの記録から聞いたか */
   parent_chat_id?: number | null;
   parent_event_id?: number | null;
-  /** メモのチャットのメモ（メモのフォルダからの相対パス） */
-  memo_path?: string | null;
+  /** ノートのチャットのノート（ノートのフォルダからの相対パス） */
+  note_path?: string | null;
   /** Git で管理していないファイルだけを書けるチャットか（省けば false） */
   untracked_only?: boolean;
   /** 新しいチャットの制限（省くとアプリの既定） */

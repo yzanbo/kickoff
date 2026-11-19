@@ -1,9 +1,9 @@
 // 別ウィンドウの「右の欄に戻す」: 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（メインのウィンドウで呼ぶ）。
 // 子チャット・変更・ファイル・DB クライアントは結びついたチャット（子チャットなら、いちばん上の親）の右の欄、サブエージェントはそのチャットの右の欄、
-// メモは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければメモのタブ）。サイドバーはこのウィンドウのサイドバーを開く。
+// ノートは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければノートのタブ）。サイドバーはこのウィンドウのサイドバーを開く。
 // パネルのブラウザ・ターミナルのタブは元の欄に開き直す（ターミナルはシェルの持ち主をこのウィンドウにしてから。別ウィンドウが閉じてもシェルを止めさせない）
 import type { PopoutRoute } from "@/foundation/ui/navigation/popout";
-import { navigate, openChat, openMemo } from "@/foundation/ui/navigation/router";
+import { navigate, openChat, openNote } from "@/foundation/ui/navigation/router";
 import { writeSetting } from "@/foundation/ui/storage/settings";
 import { SIDEBAR_OPEN } from "@/foundation/ui/storage/storageKeys";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
@@ -77,7 +77,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
       );
       return;
     }
-    case "memo": {
+    case "note": {
       // 開いたチャット（なければ、いま見えているチャットのうち、そのプロジェクトのもの。子チャットなら、いちばん上の親）
       const shown =
         (route.chatId !== undefined ? knownChat(route.chatId) : undefined) ??
@@ -85,7 +85,7 @@ export async function dockPopout(route: PopoutRoute): Promise<void> {
           .map((id) => knownChat(id))
           .find((c) => c?.project_id === route.projectId);
       const root = shown && rootChatOf(shown, knownChat);
-      if (!root || !openInRootSide(root.id, (rootId, side) => side.openMemo({ chatId: rootId, projectId: route.projectId, path: route.path }))) openMemo(route.projectId, route.path);
+      if (!root || !openInRootSide(root.id, (rootId, side) => side.openNote({ chatId: rootId, projectId: route.projectId, path: route.path }))) openNote(route.projectId, route.path);
       return;
     }
   }

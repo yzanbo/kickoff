@@ -64,7 +64,7 @@
     "device": "none"
   },
   {
-    "route": "DELETE /api/projects/:id/memo",
+    "route": "DELETE /api/projects/:id/note",
     "device": "full"
   },
   {
@@ -164,15 +164,15 @@
     "device": "none"
   },
   {
-    "route": "GET /api/memos/defaults",
+    "route": "GET /api/notes/defaults",
     "device": "full"
   },
   {
-    "route": "GET /api/memos/search",
+    "route": "GET /api/notes/search",
     "device": "full"
   },
   {
-    "route": "GET /api/memos/users",
+    "route": "GET /api/notes/users",
     "device": "full"
   },
   {
@@ -380,15 +380,15 @@
     "device": "full"
   },
   {
-    "route": "GET /api/projects/:id/memo",
+    "route": "GET /api/projects/:id/note",
     "device": "full"
   },
   {
-    "route": "GET /api/projects/:id/memo/file/*",
+    "route": "GET /api/projects/:id/note/file/*",
     "device": "full"
   },
   {
-    "route": "GET /api/projects/:id/memos",
+    "route": "GET /api/projects/:id/notes",
     "device": "full"
   },
   {
@@ -920,27 +920,27 @@
     "device": "none"
   },
   {
-    "route": "POST /api/projects/:id/memo/chat",
+    "route": "POST /api/projects/:id/note/chat",
     "device": "full"
   },
   {
-    "route": "POST /api/projects/:id/memo/snapshot",
+    "route": "POST /api/projects/:id/note/snapshot",
     "device": "full"
   },
   {
-    "route": "POST /api/projects/:id/memos",
+    "route": "POST /api/projects/:id/notes",
     "device": "full"
   },
   {
-    "route": "POST /api/projects/:id/memos/ai-plan",
+    "route": "POST /api/projects/:id/notes/ai-plan",
     "device": "full"
   },
   {
-    "route": "POST /api/projects/:id/memos/from-chat",
+    "route": "POST /api/projects/:id/notes/from-chat",
     "device": "full"
   },
   {
-    "route": "POST /api/projects/:id/memos/move",
+    "route": "POST /api/projects/:id/notes/move",
     "device": "full"
   },
   {
@@ -1072,7 +1072,7 @@
     "device": "none"
   },
   {
-    "route": "PUT /api/projects/:id/memo",
+    "route": "PUT /api/projects/:id/note",
     "device": "full"
   },
   {

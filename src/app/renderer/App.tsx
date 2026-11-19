@@ -26,7 +26,7 @@ import { SettingsDialog, type SettingsSection } from "@/features/settings/ui/Set
 import { CoreStatusBand } from "@/features/diagnostics/ui/CoreStatusBand";
 import { DiagnosticsIndicator } from "@/features/diagnostics/ui/DiagnosticsIndicator";
 import { HoverTip } from "@/foundation/ui/kit/HoverTip";
-import { MemoProgress } from "@/features/notes/ui/MemoProgress";
+import { NoteProgress } from "@/features/notes/ui/NoteProgress";
 import { ToastHost } from "@/foundation/ui/kit/toast";
 import { GitHubDialogHost } from "@/features/github/ui/GitHubDialogHost";
 import { RestartResumeHost } from "@/features/queue/ui/restartResume/RestartResumeDialog";
@@ -98,7 +98,7 @@ export function App() {
   useDockBadge({ enabled: appSettings?.dock_badge ?? true, projects, pending: chatStates.pending });
   // AI が埋め込みブラウザのタブを開く・操作している印
   useAgentBrowserBridge();
-  // チャットの AI が頼んだメモ・家系のチャットを開く（kickoff_chat の open_memo・open_chat）
+  // チャットの AI が頼んだノート・家系のチャットを開く（kickoff_chat の open_note・open_chat）
   useAiOpenRequests();
   // 作業場所を移したチャットの右の欄のタブを、新しい作業場所に付け替える
   useWorkplaceMoveTabs();
@@ -175,7 +175,7 @@ export function App() {
   // サイドバーの別ウィンドウの「新しいチャット」「検索」（別ウィンドウで起きたものは app/popoutNavigation.ts が渡してくる）
   useWindowEvent(START_NEW_CHAT_EVENT, startNewChat);
   useWindowEvent(OPEN_COMMAND_PALETTE_EVENT, () => setPalette(true));
-  // 別ウィンドウからの「ファイルタブで開く」・メモ・子チャットを開く・子チャットから親へ・画面を移る操作は、このウィンドウで
+  // 別ウィンドウからの「ファイルタブで開く」・ノート・子チャットを開く・子チャットから親へ・画面を移る操作は、このウィンドウで
   useEffect(() => subscribeWindowMessages(handleMainWindowMessage), []);
 
   return (
@@ -202,8 +202,8 @@ export function App() {
               tab={route.name === "project" ? route.tab : boardTabOf(chatPlacement)}
               focus={route.name === "project" ? undefined : route}
               openFile={route.name === "project" ? route.file : undefined}
-              openMemo={route.name === "project" ? route.memo : undefined}
-              openMemoLine={route.name === "project" ? route.memoLine : undefined}
+              openNote={route.name === "project" ? route.note : undefined}
+              openNoteLine={route.name === "project" ? route.noteLine : undefined}
             />
           ) : (
             <AllProjectsPage />
@@ -237,9 +237,9 @@ export function App() {
         <CoreStatusBand />
         {/* マウスを乗せたときの説明（data-tip を付けた要素。アプリ全体で 1 つ） */}
         <HoverTip />
-        <MemoProgress />
+        <NoteProgress />
         <ToastHost />
-        {/* GitHub の新しい issue・マージの確認（GitHub タブとメモ・チャットの「issue にする」から） */}
+        {/* GitHub の新しい issue・マージの確認（GitHub タブとノート・チャットの「issue にする」から） */}
         <GitHubDialogHost />
         {/* 起動したときの再開の確かめ（前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャットを、続けるか・送るか聞く） */}
         <RestartResumeHost />

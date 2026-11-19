@@ -38,7 +38,7 @@ export interface TrashServiceDeps {
   dir: string;
   /** AI の kickoff-trash で入れたもののうち、消したチャットが分からないものを、どのプロジェクトのゴミ箱に出すか（元の場所から。分からなければ null） */
   projectOfPath?: (origin: string) => number | null;
-  /** AI の kickoff-trash で入れたものを取り込んだあと（メモならメモのチャットも一緒に入れる） */
+  /** AI の kickoff-trash で入れたものを取り込んだあと（ノートならノートのチャットも一緒に入れる） */
   onImported?: (item: StoredTrashItem) => void;
   /** いまの時刻（テストで差し替える） */
   now?: () => number;
@@ -110,7 +110,7 @@ export class TrashService {
   /** 片付けのたびに一緒に流すもの（Kickoff が作ったセッションのうち、使われなくなったものの会話記録をゴミ箱へ入れるなど） */
   private readonly sweepSteps: (() => Promise<unknown>)[] = [];
 
-  /** 元の場所を含むプロジェクト（本体・メモのフォルダ。なければ null） */
+  /** 元の場所を含むプロジェクト（本体・ノートのフォルダ。なければ null） */
   projectOf(origin: string): number | null {
     return this.deps.projectOfPath?.(origin) ?? null;
   }

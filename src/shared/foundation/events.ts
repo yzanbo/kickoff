@@ -50,8 +50,8 @@ export type BusEvent =
   | { type: "codex_credits"; credits: CodexCredits }
   /** 音声入力のモデルのダウンロードの進み具合（download が null なら終わった・やめた。downloaded はファイルがあるか） */
   | { type: "voice_model"; id: string; download: VoiceDownload | null; downloaded: boolean }
-  /** プロジェクトのメモを作った・書いた・動かした・ゴミ箱へ移した（Kickoff の中の操作だけ。一覧と開いているメモを取り直す） */
-  | { type: "memos"; project_id: number; path: string | null }
+  /** プロジェクトのノートを作った・書いた・動かした・ゴミ箱へ移した（Kickoff の中の操作だけ。一覧と開いているノートを取り直す） */
+  | { type: "notes"; project_id: number; path: string | null }
   /** プロジェクトのブランチを替えた・ワークツリーを足した・消した（コアの HEAD の見張り。画面はワークツリーの一覧を取り直す） */
   | { type: "worktrees_changed"; project_id: number }
   // ワークツリーの PR の知らせ（そのプロジェクトの分を丸ごと。変わったときだけ）
@@ -66,7 +66,7 @@ export type BusEvent =
   | { type: "docker_changed"; project_id: number }
   /** 見張っているブランチの CI が落ちた（同じ実行は 1 回だけ。画面は設定の「通知」に合わせて Mac の通知を出し、CI のタブを取り直す） */
   | { type: "ci_failed"; failure: CiFailure }
-  /** チャットの AI が、メモ・家系のチャット・ファイル・差分・SQL を開くよう頼んだ（Mac のアプリのメインのウィンドウだけが受けて開く。kickoff_chat の open_…） */
+  /** チャットの AI が、ノート・家系のチャット・ファイル・差分・SQL を開くよう頼んだ（Mac のアプリのメインのウィンドウだけが受けて開く。kickoff_chat の open_…） */
   | { type: "open_view"; request: OpenViewRequest }
   /** チャットの AI が、家系のチャットの入力欄に下書きを入れるよう頼んだ（Mac のアプリのメインのウィンドウだけが受けて入れる。kickoff_chat の add_draft） */
   | { type: "chat_draft"; request: ChatDraftRequest }
@@ -98,11 +98,11 @@ export type OpenPlace = (typeof OPEN_PLACES)[number];
 export const OPEN_PLACE_LABELS: Record<OpenPlace, string> = { side: "右の欄", window: "別ウィンドウ" };
 
 /**
- * AI が画面に頼む「開く」の中身。place が null なら画面の設定の開き方（メモ = チャットからメモを開く場所・子チャット = 子チャットを開く場所）。
- * lineage は、いちばん上の親チャットから、頼んだチャット（メモ）・開くチャット（チャット）までの並び（画面がまだ読み込んでいない子チャットでも、親をたどって右の欄に開けるように）
+ * AI が画面に頼む「開く」の中身。place が null なら画面の設定の開き方（ノート = チャットからノートを開く場所・子チャット = 子チャットを開く場所）。
+ * lineage は、いちばん上の親チャットから、頼んだチャット（ノート）・開くチャット（チャット）までの並び（画面がまだ読み込んでいない子チャットでも、親をたどって右の欄に開けるように）
  */
 export type OpenViewRequest =
-  | { kind: "memo"; project_id: number; path: string; place: OpenPlace | null; lineage: Chat[] }
+  | { kind: "note"; project_id: number; path: string; place: OpenPlace | null; lineage: Chat[] }
   | { kind: "chat"; place: OpenPlace | null; lineage: Chat[] }
   /** 頼んだチャットの作業場所のファイル（path は作業場所からの相対パス。line は目立たせる行） */
   | { kind: "file"; project_id: number; worktree: string | null; path: string; line: number | null; place: OpenPlace | null; lineage: Chat[] }

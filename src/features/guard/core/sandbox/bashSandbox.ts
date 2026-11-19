@@ -1,4 +1,4 @@
-// AI の Bash の砂場（プロバイダー非依存）: Bash のコマンドが書ける場所を、作業場所・メモのフォルダ・決まりの例外だけにする。
+// AI の Bash の砂場（プロバイダー非依存）: Bash のコマンドが書ける場所を、作業場所・ノートのフォルダ・決まりの例外だけにする。
 // 止めるのは OS（Claude Code は macOS の Seatbelt）で、ここは「どこに書けるか・どのコマンドを砂場の外で流すか」の一覧を作るだけ（各 CLI の設定に直すのはプロバイダー）
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -9,7 +9,7 @@ import { realPathLoose } from "@/foundation/core/system/paths";
 
 /** プロバイダーに渡す砂場（パスはどれも実体のパス） */
 export interface BashSandbox {
-  /** 書けるフォルダ（作業場所・メモのフォルダ・決まりの例外） */
+  /** 書けるフォルダ（作業場所・ノートのフォルダ・決まりの例外） */
   writableDirs: string[];
   /** 読めるフォルダに足したが、書かせないもの（添付の保存先・作業場所の外の参照資料。プロバイダーが読めるフォルダを書けるようにしてしまうため） */
   readOnlyDirs: string[];
@@ -92,17 +92,17 @@ function realDirs(dirs: (string | null)[]): string[] {
 }
 
 /**
- * このチャットの実行の砂場を作る。書ける = 作業場所・メモのフォルダ・決まりの例外（共有の .git・Claude Code のサブエージェントのワークツリー・ゴミ箱・
+ * このチャットの実行の砂場を作る。書ける = 作業場所・ノートのフォルダ・決まりの例外（共有の .git・Claude Code のサブエージェントのワークツリー・ゴミ箱・
  * 一時フォルダ・キャッシュ・道具の状態（docker の buildx）・パッケージの置き場）。利用者の設定ファイル（~/.gitconfig・~/.zshrc・~/.claude.json など）は入れない
  * （Claude Code の設定のフックは砂場の外で動くので、Bash で書ければ砂場を抜けられる。Edit で書くなら書き込み先の守りが承認カードで聞く）
  */
-export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, memoDir, readOnlyDirs }: { workdir: string; memoDir: string | null; readOnlyDirs: string[] }): Promise<BashSandbox> {
+export async function bashSandboxFor(deps: BashSandboxDeps, { workdir, noteDir, readOnlyDirs }: { workdir: string; noteDir: string | null; readOnlyDirs: string[] }): Promise<BashSandbox> {
   const home = os.homedir();
   const [commonDir, platformDirs, electronCommands] = await Promise.all([gitCommonDir(workdir), deps.rules.writableDirs(), electronCommandsOf(workdir)]);
   // Claude Code のサブエージェントのワークツリー（isolation: "worktree"。<リポジトリ>/.claude/worktrees/<名前>）。共有の .git が <リポジトリ>/.git のときだけ分かる
   const subagentWorktrees = commonDir && path.basename(commonDir) === ".git" ? path.join(path.dirname(commonDir), ".claude", "worktrees") : null;
   return {
-    writableDirs: realDirs([workdir, memoDir, commonDir, subagentWorktrees, deps.trashDir, ...[...HOME_CACHE_DIRS, ...HOME_STATE_DIRS].map((d) => path.join(home, d)), ...platformDirs]),
+    writableDirs: realDirs([workdir, noteDir, commonDir, subagentWorktrees, deps.trashDir, ...[...HOME_CACHE_DIRS, ...HOME_STATE_DIRS].map((d) => path.join(home, d)), ...platformDirs]),
     readOnlyDirs: realDirs(readOnlyDirs),
     unsandboxedCommands: [...new Set([...deps.rules.unsandboxedCommands, ...electronCommands])],
     proxyPort: deps.proxyPort,

@@ -6,7 +6,7 @@ import { useChatSubagents } from "@/features/chat/ui/store/useChatStore";
 import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
 import { flattenTree } from "@/features/subagents/ui/model/subagentTree";
 import { DbMenuItems } from "@/features/database/ui/DbMenuItems";
-import { RecentMemoItems } from "@/features/notes/ui/MemoMenuItems";
+import { RecentNoteItems } from "@/features/notes/ui/NoteMenuItems";
 import { parsePanelKey } from "@/features/panel/ui/surfaces";
 import { PROJECT_VIEW_LABELS, type ProjectView } from "@/features/panel/ui/tabs/panelTypes";
 import { PROJECT_VIEW_ICONS } from "@/features/projects/ui/views/ProjectViewTabLead";
@@ -22,7 +22,7 @@ import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
 /**
  * 右の欄のタブの列の新しいタブのボタン: 「新しい子チャット」と、横の ▾ で、ほかに右の欄に開けるもののメニュー（2 つを 1 つのボタンに見せる .panel-split-button）。
  * メニューは 新しい子チャット ｜ 子チャット ▸（このチャットの子）・サブエージェント ▸（アーカイブしたものは除く）｜ ファイル・検索・変更・履歴（プロジェクトの左の列のタブと同じ画面。
- * 作業場所はこのチャットの作業場所から）｜ メモ ▸（最近変えた 12 件）・DB ▸（DB クライアントと、接続ごとの新しい SQL のタブ。この Mac のアプリの中だけ）・Docker・GitHub・CI（この Mac のアプリの中だけ）・ゴミ箱。
+ * 作業場所はこのチャットの作業場所から）｜ ノート ▸（最近変えた 12 件）・DB ▸（DB クライアントと、接続ごとの新しい SQL のタブ。この Mac のアプリの中だけ）・Docker・GitHub・CI（この Mac のアプリの中だけ）・ゴミ箱。
  * どれも設定の開き方によらず、この右の欄に開く（▸ の一覧が空なら押せない）
  */
 export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; onNewChild: () => void }) {
@@ -34,7 +34,7 @@ export function AgentPanelAdds({ panel, onNewChild }: { panel: PanelController; 
         <IconButton
           icon={ChevronDown}
           label="右の欄に開く"
-          title="新しい子チャット・子チャット・サブエージェント・ファイル・検索・変更・履歴・メモ・DB から選んで、右の欄に開く"
+          title="新しい子チャット・子チャット・サブエージェント・ファイル・検索・変更・履歴・ノート・DB から選んで、右の欄に開く"
           size={12}
           className="panel-open-with agent-panel-adds-more"
           aria-haspopup="menu"
@@ -65,7 +65,7 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
   const subagents = flattenTree(tree).filter(({ entry }) => !archivedKeys.includes(entry.key));
   const childMenu = useSubmenu();
   const agentMenu = useSubmenu();
-  const memoMenu = useSubmenu();
+  const noteMenu = useSubmenu();
   const dbMenu = useSubmenu();
   if (!chat) return null;
   const worktree = chat.worktree_path ?? undefined;
@@ -123,8 +123,8 @@ function AgentPanelAddItems({ panel, onNewChild }: { panel: PanelController; onN
       </MenuItem>
       {projectView("history")}
       <div className="menu-separator" role="separator" />
-      <SubmenuItem submenu={memoMenu} icon={StickyNote} label="メモ" empty={null}>
-        <RecentMemoItems projectId={chat.project_id} onPick={(path) => panel.openMemo({ chatId: chat.id, projectId: chat.project_id, path })} />
+      <SubmenuItem submenu={noteMenu} icon={StickyNote} label="ノート" empty={null}>
+        <RecentNoteItems projectId={chat.project_id} onPick={(path) => panel.openNote({ chatId: chat.id, projectId: chat.project_id, path })} />
       </SubmenuItem>
       {/* DB はこの Mac のアプリの中だけ（API が 127.0.0.1 からだけ受ける） */}
       {window.kickoff && (

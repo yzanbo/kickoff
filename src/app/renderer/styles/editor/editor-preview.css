@@ -18,7 +18,7 @@
 
 /*
  * HTML は中身のページの見た目のまま描くので、ページの既定と同じ白地・明るい配色に置く
- * （HTML のメモのページ .memo-html-page と同じ理由。アプリのダークの color-scheme を受け継ぐと白地に白い文字になる）
+ * （HTML のノートのページ .note-html-page と同じ理由。アプリのダークの color-scheme を受け継ぐと白地に白い文字になる）
  */
 .page-preview-html {
   border: 0;

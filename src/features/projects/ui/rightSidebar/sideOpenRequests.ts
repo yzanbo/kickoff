@@ -1,4 +1,4 @@
-// ほかの場所から右サイドバーで開くよう頼まれたファイル・メモ（右サイドバーがその中身を見せているときだけ）。
+// ほかの場所から右サイドバーで開くよう頼まれたファイル・ノート（右サイドバーがその中身を見せているときだけ）。
 // 中身の部品が受け取って開いたら片付ける（同じ頼みで開き直さない）
 import { useSyncExternalStore } from "react";
 import { setSideOpener, type SideOpenTarget } from "@/foundation/ui/navigation/router";
@@ -32,10 +32,10 @@ export function useSideOpenRequest<K extends SideOpenRequest["kind"]>(projectId:
   return request?.kind === kind ? (request as Extract<SideOpenRequest, { kind: K }>) : undefined;
 }
 
-// ファイル・メモを開く口（openProjectFile・openMemo）が、右サイドバーがファイル・メモを見せていればここへ頼む。
+// ファイル・ノートを開く口（openProjectFile・openNote）が、右サイドバーがファイル・ノートを見せていればここへ頼む。
 // 頼みはこのウィンドウの中だけに置くので、右サイドバーを別ウィンドウへ移しているときは、真ん中のタブで開く
 setSideOpener((projectId, target) => {
-  if (sidePanelsHandedOut() || !isSideViewShown(projectId, target.kind === "file" ? "files" : "memos")) return false;
+  if (sidePanelsHandedOut() || !isSideViewShown(projectId, target.kind === "file" ? "files" : "notes")) return false;
   requestSideOpen(projectId, target);
   return true;
 });

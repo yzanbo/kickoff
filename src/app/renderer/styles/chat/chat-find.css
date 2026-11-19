@@ -1,4 +1,4 @@
-/* ==== 検索の欄（ui/FindField。チャット・ページ・メモ・ファイルのエディタの ⌘F で同じ見た目。置き場所は下の .chat-find・.pane-find などで決める） ==== */
+/* ==== 検索の欄（ui/FindField。チャット・ページ・ノート・ファイルのエディタの ⌘F で同じ見た目。置き場所は下の .chat-find・.pane-find などで決める） ==== */
 
 /* 枠の中に、虫眼鏡・入力・探し方（Aa・ab・.*）・件数・前後・閉じる。ピントがあればアクセントの枠、正規表現として読めなければ赤い枠 */
 .find-box {
@@ -179,10 +179,10 @@
 }
 
 
-/* ページの ⌘F（usePageFind）: ファイル・検索・変更の右側・履歴の詳細・メモ・別ウィンドウの右上（見出しの行のすぐ下）に浮かせる。見た目は右の欄の検索の欄と同じ */
+/* ページの ⌘F（usePageFind）: ファイル・検索・変更の右側・履歴の詳細・ノート・別ウィンドウの右上（見出しの行のすぐ下）に浮かせる。見た目は右の欄の検索の欄と同じ */
 .changes-diff,
 .history-detail,
-.memo-view,
+.note-view,
 .popout {
   position: relative;
 }
@@ -191,10 +191,10 @@
   top: 40px;
 }
 
-/* メモ: 右にメモのチャットを開いているときは、本文の右上に出す（チャットの欄の見出しを隠さない。幅は MemoView が --memo-find-right に入れる） */
-.memo-view > .pane-find.page-find {
-  right: calc(var(--memo-find-right, 0px) + 12px);
-  width: min(320px, calc(100% - var(--memo-find-right, 0px) - 24px));
+/* ノート: 右にノートのチャットを開いているときは、本文の右上に出す（チャットの欄の見出しを隠さない。幅は NoteView が --note-find-right に入れる） */
+.note-view > .pane-find.page-find {
+  right: calc(var(--note-find-right, 0px) + 12px);
+  width: min(320px, calc(100% - var(--note-find-right, 0px) - 24px));
 }
 
 /* 別ウィンドウでは、上の細い帯と中の画面の帯（件数・表示のしかた・取り直しなど）の下に出す（帯のボタンを隠さない） */

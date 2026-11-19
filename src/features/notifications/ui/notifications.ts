@@ -6,7 +6,7 @@ import { openChatOrChild } from "@/features/chat/ui/open/openChat";
 import { openCiRun } from "@/features/github/ui/ci/ciLinks";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { useWindowFocused } from "@/foundation/ui/hooks/useWindowFocused";
-import { openChat, openMemo, type Route } from "@/foundation/ui/navigation/router";
+import { openChat, openNote, type Route } from "@/foundation/ui/navigation/router";
 
 /**
  * 通知（チャットの完了・失敗・回答待ち・CI の失敗）を出すかはコアが決める（src/features/notifications/core/center.ts。だれも見ていなければ、
@@ -47,7 +47,7 @@ export function useViewingReport(route: Route) {
   }, [chatId, ciProjectId]);
 }
 
-/** Mac の通知が押されたら開く（チャットは子チャット・メモのチャットならその開き方で。Kickoff を起動し直したあとに前の通知が押されたときも） */
+/** Mac の通知が押されたら開く（チャットは子チャット・ノートのチャットならその開き方で。Kickoff を起動し直したあとに前の通知が押されたときも） */
 export function useNotificationTargets() {
   useEffect(() => {
     const offChat = window.kickoff?.notifications.onOpenChat((projectId, chatId) => void openNotifiedChat(projectId, chatId));
@@ -59,13 +59,13 @@ export function useNotificationTargets() {
   }, []);
 }
 
-/** 通知のチャットを開く（子チャットなら設定の開き方、メモのチャットならそのメモ。読めなければいちばん上のチャットとして） */
+/** 通知のチャットを開く（子チャットなら設定の開き方、ノートのチャットならそのノート。読めなければいちばん上のチャットとして） */
 async function openNotifiedChat(projectId: number, chatId: number) {
   const chat = await api.chatDetail(chatId, { limit: 1 }).then(
     (d) => d.chat,
     () => null,
   );
   if (!chat) return openChat(projectId, chatId);
-  if (chat.memo_path !== null) return openMemo(chat.project_id, chat.memo_path);
+  if (chat.note_path !== null) return openNote(chat.project_id, chat.note_path);
   openChatOrChild(chat);
 }

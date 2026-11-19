@@ -25,8 +25,8 @@ export interface ConnectionForm {
   ai_username: string;
   ai_password: string;
   clearAiPassword: boolean;
-  /** 手順メモ（メモのフォルダからの相対パス。空ならなし） */
-  memo_path: string;
+  /** 手順ノート（ノートのフォルダからの相対パス。空ならなし） */
+  note_path: string;
   /** SSH トンネルを通す（踏み台・ホスト・ユーザー・鍵。空ならなし = ~/.ssh/config と ssh の既定） */
   ssh_on: boolean;
   ssh_host: string;
@@ -66,7 +66,7 @@ export const formOf = (c: DbConnection | null): ConnectionForm => ({
   ai_username: c?.ai_username ?? "",
   ai_password: "",
   clearAiPassword: false,
-  memo_path: c?.memo_path ?? "",
+  note_path: c?.note_path ?? "",
   ssh_on: c?.ssh != null,
   ssh_host: c?.ssh?.host ?? "",
   ssh_port: c?.ssh?.port ? String(c.ssh.port) : "",
@@ -121,7 +121,7 @@ export function bodyOf(form: ConnectionForm, editing: boolean): NewDbConnectionB
     ...(sqlite || password === undefined ? {} : { password }),
     ai_username: sqlite ? null : text(form.ai_username),
     ...(sqlite || aiPassword === undefined ? {} : { ai_password: aiPassword }),
-    memo_path: text(form.memo_path),
+    note_path: text(form.note_path),
     ssh: ssh
       ? { host: form.ssh_host.trim(), port: form.ssh_port.trim() ? Number(form.ssh_port) : null, user: text(form.ssh_user), identity_file: text(form.ssh_identity_file) }
       : null,

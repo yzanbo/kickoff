@@ -7,15 +7,15 @@ import { CHAT_PLACEMENT, projectChatOpen } from "@/foundation/ui/storage/storage
  * タブの欄（board = チャットのパネル（ボードの右・「チャット」タブ。チャットだけ）/ side = 画面の右端のチャット欄（画面の文言では「右サイドバー」。ブラウザだけ）/
  * bottom = フッター（下のパネル。ターミナルだけ）/
  * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く） /
- * memos = プロジェクトの「メモ」タブの右（開いたメモをタブで並べる。左の一覧から開く） /
+ * notes = プロジェクトの「ノート」タブの右（開いたノートをタブで並べる。左の一覧から開く） /
  * files = プロジェクトの「ファイル」「検索」「変更」タブの右（開いたファイル・差分をタブで並べる。左の一覧から開く） /
  * window = ブラウザの別ウィンドウ（右サイドバーのタブをウィンドウの外へ出した先。Chrome のウィンドウと同じく、中でもタブを足せる。ウィンドウごとに 1 つ） /
  * chatWindow = チャットの別ウィンドウ（チャットのパネルのチャットのタブを外へ出した先。ほかのチャットのタブもドラッグで足せる。ウィンドウごとに 1 つ））
  */
-export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos" | "files" | "window" | "chatWindow";
+export type PanelSurface = "board" | "side" | "bottom" | "agents" | "notes" | "files" | "window" | "chatWindow";
 
 /**
- * 欄に出すタブの種類（チャットには、新しいチャットのタブも入る。サブエージェント・ファイルはチャットの画面の右の欄・メモとファイルのタブの右だけに出す種類）
+ * 欄に出すタブの種類（チャットには、新しいチャットのタブも入る。サブエージェント・ファイルはチャットの画面の右の欄・ノートとファイルのタブの右だけに出す種類）
  */
 export type PanelKind = "chat" | "browser" | "terminal" | "subagent" | "file";
 
@@ -74,7 +74,7 @@ export interface SurfaceRules {
   noSplitButtons?: boolean;
   /** 大きくする切り替え（width = 横幅いっぱい ⇔ 元の幅 / height = 最大化 ⇔ 元の高さ。大きさは欄の殻が持ち、Panel の frame で渡す） */
   maximize?: "width" | "height";
-  /** タブの列の新しいタブのボタンを出さない（中身は外から開くタブと、newChild の新しい子チャットだけの欄。サブエージェントの欄・メモとファイルのタブの右） */
+  /** タブの列の新しいタブのボタンを出さない（中身は外から開くタブと、newChild の新しい子チャットだけの欄。サブエージェントの欄・ノートとファイルのタブの右） */
   noTabAdds?: boolean;
   /**
    * サイドバーの一覧とチャットのタブをそろえない欄（チャットの別ウィンドウ。移したチャットだけを並べる。タブのチャットの状態のために、
@@ -85,14 +85,14 @@ export interface SurfaceRules {
   hideableTabs?: boolean;
   /**
    * 新しい子チャットを開けるか（サブエージェントの欄。タブの列の「＋」と空の欄のボタンで、この欄のチャットの子チャットを入力欄だけのタブで始める。
-   * メモのチャット・アーカイブ済みのチャットでは出さない）
+   * ノートのチャット・アーカイブ済みのチャットでは出さない）
    */
   newChild?: boolean;
   /** タブがないときに、新しいチャットのボタンの代わりに出す案内（分けていない欄だけ。ボードの右のパネル: 新しいチャットは見出しの「新規」から） */
   emptyHint?: string;
-  /** タブの種類の札（「メモ」「サブ」「子」）を付けない（1 つの種類しか並ばない欄。メモのタブの右） */
+  /** タブの種類の札（「ノート」「サブ」「子」）を付けない（1 つの種類しか並ばない欄。ノートのタブの右） */
   noKindBadges?: boolean;
-  /** 新しい子チャットを開けるときだけ、案内の後ろに足す文（メモのチャット・アーカイブ済みでは「＋」を出さないので、案内でも言わない） */
+  /** 新しい子チャットを開けるときだけ、案内の後ろに足す文（ノートのチャット・アーカイブ済みでは「＋」を出さないので、案内でも言わない） */
   newChildHint?: string;
   /** パネルに付けるクラス（欄ごとの見た目。as-sidebar = 欄いっぱいに置く（枠・影なし）/ in-footer = フッター） */
   className?: string;
@@ -151,7 +151,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     // 左の会話を覆って横幅いっぱいに広げる ⇔ 元の幅に戻す（タブの列の左端）
     maximize: "width",
     emptyHint:
-      "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
+      "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとノートの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
     newChildHint: "「＋」で新しい子チャットを始められます。",
     noTabAdds: true,
     newChild: true,
@@ -179,17 +179,17 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     unlinkedChats: true,
     className: "as-sidebar",
   },
-  memos: {
-    memoryPrefix: "memos",
-    // メモのタブは「ファイル」の種類に入る
+  notes: {
+    memoryPrefix: "notes",
+    // ノートのタブは「ファイル」の種類に入る
     kinds: ["file"],
     closeOnEsc: false,
     closeWhenEmpty: false,
     openWhenEmpty: null,
-    emptyHint: "左の一覧でメモを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
+    emptyHint: "左の一覧でノートを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
     noTabAdds: true,
     noKindBadges: true,
-    className: "memo-panel",
+    className: "note-panel",
   },
   files: {
     memoryPrefix: "files",
@@ -252,7 +252,7 @@ export function panelScreen(key: string): Route | undefined {
   if (!at || at.surface === "agents") return undefined;
   if (at.scope === "all") return { name: "allProjects" };
   if (typeof at.scope !== "number") return undefined;
-  if (at.surface === "memos") return { name: "project", id: at.scope, tab: "memos" };
+  if (at.surface === "notes") return { name: "project", id: at.scope, tab: "notes" };
   const chats = at.surface === "board" && readSetting(CHAT_PLACEMENT) === "separate";
   return { name: "project", id: at.scope, tab: chats ? "chats" : "board" };
 }

@@ -31,9 +31,9 @@ test("AI の操作ツール: mcp_servers.<名前> に URL・鍵の見出し・�
 });
 
 test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ。承認は on-request で守りは PreToolUse のフック、システムプロンプトは developer_instructions", () => {
-  const sandbox = { writableDirs: ["/memo"], readOnlyDirs: ["/ref"], unsandboxedCommands: [], proxyPort: null };
+  const sandbox = { writableDirs: ["/note"], readOnlyDirs: ["/ref"], unsandboxedCommands: [], proxyPort: null };
   assert.deepEqual(codexSandboxPolicy(params({ permissionMode: "plan" })), { type: "readOnly", networkAccess: true });
-  assert.deepEqual(codexSandboxPolicy(params({ bashSandbox: sandbox })), { type: "workspaceWrite", writableRoots: ["/memo"], networkAccess: true, excludeTmpdirEnvVar: false, excludeSlashTmp: false });
+  assert.deepEqual(codexSandboxPolicy(params({ bashSandbox: sandbox })), { type: "workspaceWrite", writableRoots: ["/note"], networkAccess: true, excludeTmpdirEnvVar: false, excludeSlashTmp: false });
   const over = threadOverrides(params({ bashSandbox: sandbox, model: "gpt-x" }));
   assert.equal(over.approvalPolicy, "on-request");
   // 守りのフック（Bash と apply_patch）と、フックの口の URL・鍵を AI のコマンドから外す
@@ -44,7 +44,7 @@ test("砂場と上書き: 計画は読むだけ、ほかは書けるフォルダ
   assert.deepEqual(threadOverrides(params({ cwd: "/w/my.app" })).config?.projects, { "/w/my.app": { trust_level: "trusted" } });
   assert.equal(over.sandbox, "workspace-write");
   assert.equal(over.developerInstructions, "文脈");
-  assert.deepEqual(over.config?.["sandbox_workspace_write.writable_roots"], ["/memo"]);
+  assert.deepEqual(over.config?.["sandbox_workspace_write.writable_roots"], ["/note"]);
   assert.equal(over.config?.["shell_environment_policy.ignore_default_excludes"], undefined);
   assert.equal(threadOverrides(params({ auth: { mode: "api_key", apiKey: "k" } })).config?.["shell_environment_policy.ignore_default_excludes"], false);
 });

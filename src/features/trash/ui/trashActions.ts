@@ -1,5 +1,5 @@
 // Kickoff のゴミ箱の操作（元に戻す・3 日を待たずに完全に消す・ゴミ箱に入れた直後の「元に戻す」の知らせ）。プロジェクトの「ゴミ箱」タブ・
-// 会話の中の kickoff-trash の行・ゴミ箱のプロジェクト・ファイル / メモ / チャット / プロジェクトを消したあとの知らせで共通に使う
+// 会話の中の kickoff-trash の行・ゴミ箱のプロジェクト・ファイル / ノート / チャット / プロジェクトを消したあとの知らせで共通に使う
 import { TRASH_RESTORE_EXISTS, type TrashKind } from "@shared/types";
 import { api, ApiError } from "@/foundation/ui/api";
 import { confirmDialog, reportFailure } from "@/foundation/ui/kit/dialogs";

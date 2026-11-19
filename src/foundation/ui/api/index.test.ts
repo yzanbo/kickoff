@@ -13,7 +13,7 @@ import { filesApi } from "@/features/files/ui/api/files";
 import { gitApi } from "@/features/git/ui/api/git";
 import { githubApi } from "@/features/github/ui/api/github";
 import { groupsApi } from "@/features/groups/ui/api/groups";
-import { memosApi } from "@/features/notes/ui/api/memos";
+import { notesApi } from "@/features/notes/ui/api/notes";
 import { projectsApi } from "@/features/projects/ui/api/projects";
 import { providersApi } from "@/features/ai/ui/api/providers";
 import { queueApi } from "@/features/queue/ui/api/queue";
@@ -27,7 +27,7 @@ import { usageApi } from "@/features/ai/ui/api/usage";
 import { voiceApi } from "@/features/voice/ui/api/voice";
 import { worktreesApi } from "@/features/worktrees/ui/api/worktrees";
 
-const groups = { approvalsApi, chatsApi, chatImagesApi, filesApi, gitApi, groupsApi, projectsApi, providersApi, queueApi, settingsApi, turnsApi, uploadsApi, usageApi, voiceApi, worktreesApi, memosApi, snippetsApi, databasesApi, githubApi, dockerApi, ciApi, portsApi, devicesApi, trashApi, terminalsApi };
+const groups = { approvalsApi, chatsApi, chatImagesApi, filesApi, gitApi, groupsApi, projectsApi, providersApi, queueApi, settingsApi, turnsApi, uploadsApi, usageApi, voiceApi, worktreesApi, notesApi, snippetsApi, databasesApi, githubApi, dockerApi, ciApi, portsApi, devicesApi, trashApi, terminalsApi };
 
 test("api: 資源ごとの関数の名前は重ならず、すべて api に入っている（重なると後のもので上書きされる）", () => {
   const owner = new Map<string, string>();

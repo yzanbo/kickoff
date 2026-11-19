@@ -74,7 +74,7 @@ export function FindField({
   closeLabel?: string;
   /** Esc（入力欄・置き換えの欄で）。なければ閉じる */
   onEscape?: (e: KeyboardEvent<HTMLInputElement>) => void;
-  /** 入力欄のキーを先に受け取る（受け取ったら true。メモのエディタの検索の欄のキー） */
+  /** 入力欄のキーを先に受け取る（受け取ったら true。ノートのエディタの検索の欄のキー） */
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => boolean;
   replace?: FindReplace;
   className?: string;

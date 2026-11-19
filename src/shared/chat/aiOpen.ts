@@ -1,14 +1,14 @@
-// チャットの AI がメモ・家系のチャットを開くツール（kickoff_chat の open_memo・open_chat）の、コアと画面で共有する名前と、記録の行に出す文
+// チャットの AI がノート・家系のチャットを開くツール（kickoff_chat の open_note・open_chat）の、コアと画面で共有する名前と、記録の行に出す文
 import { OPEN_PLACE_LABELS, OPEN_PLACES, type OpenPlace } from "@shared/types";
 
-/** メモを開くツールの名前 */
-export const AI_OPEN_MEMO_TOOL = "mcp__kickoff_chat__open_memo";
+/** ノートを開くツールの名前 */
+export const AI_OPEN_NOTE_TOOL = "mcp__kickoff_chat__open_note";
 
 /** 家系のチャットを開くツールの名前 */
 export const AI_OPEN_CHAT_TOOL = "mcp__kickoff_chat__open_chat";
 
-/** open_memo の引数（path はメモのフォルダからの相対パスか、メモのフォルダの中の絶対パス。place を省くと画面の設定の開き方） */
-export interface OpenMemoInput {
+/** open_note の引数（path はノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パス。place を省くと画面の設定の開き方） */
+export interface OpenNoteInput {
   path: string;
   place?: OpenPlace;
 }
@@ -23,7 +23,7 @@ export interface OpenChatInput {
 const placeLabel = (place: unknown): string | null => (OPEN_PLACES.includes(place as OpenPlace) ? OPEN_PLACE_LABELS[place as OpenPlace] : null);
 
 /** 記録の行に出す文（「機能の仕様/図.html（別ウィンドウ）」。場所を省いたら場所は付けない） */
-export function describeOpenMemo(input: Record<string, unknown>): string {
+export function describeOpenNote(input: Record<string, unknown>): string {
   const target = typeof input.path === "string" ? input.path : "";
   const place = placeLabel(input.place);
   return place ? `${target}（${place}）` : target;

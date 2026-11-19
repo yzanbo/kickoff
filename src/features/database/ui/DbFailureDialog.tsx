@@ -1,6 +1,6 @@
 import { NotebookPen, Play, RotateCcw, StickyNote } from "lucide-react";
 import { useEffect, useState } from "react";
-import { appendDbMemoFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureDocument, dbFailureKind, dbFixText, dbMemoFixEntry } from "@shared/database/dbFailure";
+import { appendDbNoteFix, DB_FAILURE_CAUSES, DB_FAILURE_LABELS, dbFailureDocument, dbFailureKind, dbFixText, dbNoteFixEntry } from "@shared/database/dbFailure";
 import { localToday } from "@shared/database/dbPrep";
 import { errorMessage } from "@shared/foundation/errors";
 import { DB_ENVIRONMENT_LABELS, type DbConnection } from "@shared/types";
@@ -31,40 +31,40 @@ export function DbFailureHelp({ error }: { error: string }) {
   );
 }
 
-/** つながらない様子を渡すもの（一言と、押した時点の失敗の文・接続の設定（パスワードなし）・手順メモの場所の札。作業場所は聞かずに本体で） */
+/** つながらない様子を渡すもの（一言と、押した時点の失敗の文・接続の設定（パスワードなし）・手順ノートの場所の札。作業場所は聞かずに本体で） */
 function failureItem(projectId: number, c: DbConnection, error: string): HandOffItem {
   return {
     projectId,
-    what: `「${c.name}」につながらない様子（失敗の文・接続の設定・手順メモの場所）`,
+    what: `「${c.name}」につながらない様子（失敗の文・接続の設定・手順ノートの場所）`,
     text: dbFixText(c),
     capture: () => api.capture({ name: "db-failure.md", mime: "text/markdown", text: dbFailureDocument(c, error), source: { type: "db_failure", label: c.name, url: null } }),
   };
 }
 
-/** 手順メモの「つながらないときの直し方」に 1 行足す（直し方を聞いて、いまの中身に足して保存。開いたあとでほかで変わっていれば 409）。足したら true */
-async function appendFixToMemo(projectId: number, path: string, error: string): Promise<boolean> {
+/** 手順ノートの「つながらないときの直し方」に 1 行足す（直し方を聞いて、いまの中身に足して保存。開いたあとでほかで変わっていれば 409）。足したら true */
+async function appendFixToNote(projectId: number, path: string, error: string): Promise<boolean> {
   const fix = await promptDialog({
-    title: "手順メモに直し方を追記",
-    message: `何をしたらつながったかを、手順メモ「${path}」の「つながらないときの直し方」に、日付と失敗の種類を添えて 1 行で足します。次につながらないとき、この案内に出ます。`,
+    title: "手順ノートに直し方を追記",
+    message: `何をしたらつながったかを、手順ノート「${path}」の「つながらないときの直し方」に、日付と失敗の種類を添えて 1 行で足します。次につながらないとき、この案内に出ます。`,
     label: "直し方",
     placeholder: "例: VPN をつなぎ直した / いまの IP をセキュリティグループに足した",
     confirmLabel: "追記する",
   });
   if (!fix?.trim()) return false;
-  const now = await api.memo(projectId, path);
-  await api.saveMemo(projectId, path, appendDbMemoFix(now.content, dbMemoFixEntry(localToday(), error, fix)), now.hash);
+  const now = await api.note(projectId, path);
+  await api.saveNote(projectId, path, appendDbNoteFix(now.content, dbNoteFixEntry(localToday(), error, fix)), now.hash);
   return true;
 }
 
 /**
  * つながらないときの案内（木の接続の失敗の行の「直し方を見る」から）: 失敗の文・見分けた種類とよくある原因・最後につながった日時・
- * 手順メモの中身（なければ作る。あれば「直し方を追記…」で、直ったときの直し方を 1 行足す）・「AI に渡す ▾」（AI に見せない接続では出さない）・「準備を流す…」（準備のコマンドがあれば）・「つなぎ直す」
+ * 手順ノートの中身（なければ作る。あれば「直し方を追記…」で、直ったときの直し方を 1 行足す）・「AI に渡す ▾」（AI に見せない接続では出さない）・「準備を流す…」（準備のコマンドがあれば）・「つなぎ直す」
  */
 export function DbFailureDialog({
   projectId,
   connection: c,
   error,
-  onMemo,
+  onNote,
   onRetry,
   onPrep,
   onClose,
@@ -72,8 +72,8 @@ export function DbFailureDialog({
   projectId: number;
   connection: DbConnection;
   error: string;
-  /** 手順メモを DB クライアントのタブで開く（なければ作ってから） */
-  onMemo: () => void;
+  /** 手順ノートを DB クライアントのタブで開く（なければ作ってから） */
+  onNote: () => void;
   /** 開いていた段を読み直す（なければ出さない） */
   onRetry?: () => void;
   /** つなぐ前の準備のダイアログを出す（準備のコマンドがあるときだけ出す） */
@@ -83,20 +83,20 @@ export function DbFailureDialog({
   const { ref: dialogRef, ...dialog } = useModalDialog();
   // つながった時刻はつなぐたびには知らせない（一覧を取り直させない）ので、開いたときに一覧を読み直して「最後につながった」を新しくする
   useEffect(() => dbConnectionsStore.invalidate(projectId), [projectId]);
-  const memo = useAsync(() => (c.memo_path ? api.memo(projectId, c.memo_path) : Promise.resolve(null)), [projectId, c.memo_path]);
+  const note = useAsync(() => (c.note_path ? api.note(projectId, c.note_path) : Promise.resolve(null)), [projectId, c.note_path]);
   const then = (run: () => void) => () => {
     dialog.close();
     run();
   };
 
-  const [memoError, setMemoError] = useState<string>();
+  const [noteError, setNoteError] = useState<string>();
   const appendFix = async () => {
-    if (!c.memo_path) return;
-    setMemoError(undefined);
+    if (!c.note_path) return;
+    setNoteError(undefined);
     try {
-      if (await appendFixToMemo(projectId, c.memo_path, error)) memo.reload();
+      if (await appendFixToNote(projectId, c.note_path, error)) note.reload();
     } catch (e) {
-      setMemoError(errorMessage(e));
+      setNoteError(errorMessage(e));
     }
   };
 
@@ -115,35 +115,35 @@ export function DbFailureDialog({
             "まだ一度もつながっていません"
           )}
         </p>
-        <section className="db-failure-memo">
-          <div className="db-failure-memo-head">
+        <section className="db-failure-note">
+          <div className="db-failure-note-head">
             <StickyNote size={14} aria-hidden />
-            <span>手順メモ</span>
-            {c.memo_path && <span className="muted small">{c.memo_path}</span>}
-            <span className="db-failure-memo-tools">
-              {c.memo_path ? (
+            <span>手順ノート</span>
+            {c.note_path && <span className="muted small">{c.note_path}</span>}
+            <span className="db-failure-note-tools">
+              {c.note_path ? (
                 <>
-                  <button type="button" className="btn btn-sm" disabled={!memo.data} onClick={() => void appendFix()} data-tip="つながったら、何をしたら直ったかを手順メモに 1 行足す">
+                  <button type="button" className="btn btn-sm" disabled={!note.data} onClick={() => void appendFix()} data-tip="つながったら、何をしたら直ったかを手順ノートに 1 行足す">
                     <NotebookPen size={13} aria-hidden /> 直し方を追記…
                   </button>
-                  <button type="button" className="btn btn-sm" onClick={then(onMemo)}>
+                  <button type="button" className="btn btn-sm" onClick={then(onNote)}>
                     開く
                   </button>
                 </>
               ) : (
-                <button type="button" className="btn btn-sm" onClick={then(onMemo)}>
-                  手順メモを作る…
+                <button type="button" className="btn btn-sm" onClick={then(onNote)}>
+                  手順ノートを作る…
                 </button>
               )}
             </span>
           </div>
-          <ErrorText message={memoError} />
-          {!c.memo_path && <p className="small muted">つなぐ前にやること・直し方を残しておくと、次につながらないときにここに出ます。</p>}
-          {c.memo_path && memo.loading && <p className="small muted">読み込み中…</p>}
-          {c.memo_path && memo.error && <p className="small muted">手順メモが見つかりません（名前を変えた・消したなら、接続の編集で選び直してください）</p>}
-          {memo.data && (
-            <div className="db-failure-memo-body">
-              <Markdown>{memo.data.content}</Markdown>
+          <ErrorText message={noteError} />
+          {!c.note_path && <p className="small muted">つなぐ前にやること・直し方を残しておくと、次につながらないときにここに出ます。</p>}
+          {c.note_path && note.loading && <p className="small muted">読み込み中…</p>}
+          {c.note_path && note.error && <p className="small muted">手順ノートが見つかりません（名前を変えた・消したなら、接続の編集で選び直してください）</p>}
+          {note.data && (
+            <div className="db-failure-note-body">
+              <Markdown>{note.data.content}</Markdown>
             </div>
           )}
         </section>

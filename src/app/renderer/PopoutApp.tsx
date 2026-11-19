@@ -13,7 +13,7 @@ import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { isKey } from "@/foundation/ui/lib/keys";
 import { saveAll } from "@/foundation/ui/lib/saveAll";
 import { openEditorFind } from "@/foundation/ui/code/editorFind";
-import { MemoProgress } from "@/features/notes/ui/MemoProgress";
+import { NoteProgress } from "@/features/notes/ui/NoteProgress";
 import { ToastHost } from "@/foundation/ui/kit/toast";
 import { CoreStatusBand } from "@/features/diagnostics/ui/CoreStatusBand";
 import { DialogHost } from "@/foundation/ui/kit/dialogs";
@@ -27,7 +27,7 @@ import { PopoutChildChat } from "@/features/chatPanel/ui/popout/PopoutChildChat"
 import { PopoutSidebar } from "@/features/sidebar/ui/PopoutSidebar";
 import { PopoutSideChat } from "@/features/projects/ui/rightSidebar/PopoutRightSidebar";
 import { PopoutTabWindow, PopoutTerminal } from "@/features/panel/ui/popout/PopoutTabWindow";
-import { SideMemo } from "@/features/notes/ui/SideMemo";
+import { SideNote } from "@/features/notes/ui/SideNote";
 import { LazyDatabaseClient } from "@/features/database/ui/LazyDatabaseClient";
 import { SideScope } from "@/features/conversation/ui/SideScope";
 import { PopoutDockButton } from "@/foundation/ui/navigation/PopoutDockButton";
@@ -38,13 +38,13 @@ import { usePopoutForwarding } from "@/foundation/ui/navigation/popoutNavigation
 import { useAgentBrowserBridge } from "@/features/browser/ui/agentBrowser";
 
 /** 上の帯の、何のウィンドウかの札 */
-const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ", database: "DB", sidebar: "サイドバー", side: "右サイドバー", browser: "ブラウザ", chats: "チャット", terminal: "ターミナル" };
+const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", note: "ノート", database: "DB", sidebar: "サイドバー", side: "右サイドバー", browser: "ブラウザ", chats: "チャット", terminal: "ターミナル" };
 
 /**
- * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアントと左のサイドバー）の画面。メインのウィンドウの App は使わない
+ * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・ノート・DB クライアントと左のサイドバー）の画面。メインのウィンドウの App は使わない
  * （サイドバー・通知・ショートカット・下の帯などを 2 つ動かさないため）。サーバーとのつながり・回答待ち・プロジェクトの色・会話の文字の大きさだけを持つ。
  * 表示の設定は localStorage をメインのウィンドウと共有し、書き換えは storage の知らせでそろう（lib/storage）。
- * ⌘F は、ウィンドウの中を探す（ファイル・メモはエディタの検索、ほかは右上の検索の欄。子チャットはチャットの中の検索が先に受け取る）
+ * ⌘F は、ウィンドウの中を探す（ファイル・ノートはエディタの検索、ほかは右上の検索の欄。子チャットはチャットの中の検索が先に受け取る）
  */
 export function PopoutApp({ route }: { route: PopoutRoute }) {
   // 最初の描き終わり（起動の時刻の記録。app/bootMarks.ts）
@@ -65,7 +65,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   const find = usePageFind(rootRef, { native: openEditorFind, placeholder: "このウィンドウを検索", className: "page-find", enabled: route.kind !== "browser" });
   useWindowEvent("keydown", (e) => {
     if (e.defaultPrevented) return;
-    // ⌘⇧S: すべて保存（このウィンドウのメモ・ファイル。メインのウィンドウと同じ）
+    // ⌘⇧S: すべて保存（このウィンドウのノート・ファイル。メインのウィンドウと同じ）
     if (isKey(e, "s", { meta: true, shift: true }) || isKey(e, "s", { ctrl: true, shift: true })) {
       e.preventDefault();
       void saveAll();
@@ -109,13 +109,13 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
             <SideScope mainChatId={route.chatId ?? null}>
               {route.kind === "subagent" ? (
                 <PopoutSubagent chatId={route.chatId} agentKey={route.agentKey} />
-              ) : route.kind === "memo" ? (
+              ) : route.kind === "note" ? (
                 <div className="popout-body">
-                  <SideMemo
+                  <SideNote
                     projectId={route.projectId}
                     path={route.path}
                     chatId={route.chatId ?? null}
-                    // 名前を変えたら、ウィンドウの URL も新しい名前に（読み込み直しても同じメモを開く）
+                    // 名前を変えたら、ウィンドウの URL も新しい名前に（読み込み直しても同じノートを開く）
                     onRenamed={(to) => history.replaceState(null, "", `#${popoutPath({ ...route, path: to })}`)}
                   />
                 </div>
@@ -131,10 +131,10 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
         </div>
         </LinkOpenerProvider>
         <HoverTip />
-        <MemoProgress />
+        <NoteProgress />
         <ToastHost />
         <CoreStatusBand />
-        {/* GitHub の新しい issue・マージの確認（GitHub タブとメモ・チャットの「issue にする」から） */}
+        {/* GitHub の新しい issue・マージの確認（GitHub タブとノート・チャットの「issue にする」から） */}
         <GitHubDialogHost />
         <DbUnlockHost />
         <DialogHost />

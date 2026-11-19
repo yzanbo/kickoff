@@ -1,9 +1,9 @@
-// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ・DB クライアント、左のサイドバー、
+// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・ノート・DB クライアント、左のサイドバー、
 // 右端のチャット欄とそのブラウザ・ターミナルのタブを、メインのウィンドウの外に出して見る）の行き先
 import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
 import { postWindowMessage } from "./windowBus";
 
-/** 別ウィンドウで開くもの（メモのほかは、開いたチャットに結びつく。chatId はメインのウィンドウのそのチャットへ知らせるのに使う） */
+/** 別ウィンドウで開くもの（ノートのほかは、開いたチャットに結びつく。chatId はメインのウィンドウのそのチャットへ知らせるのに使う） */
 export type PopoutRoute =
   /** 作業場所のコミットしていない変更（focus のファイルの位置へ移る） */
   | { kind: "changes"; chatId: number; projectId: number; worktree?: string; focus?: string }
@@ -14,10 +14,10 @@ export type PopoutRoute =
   /** 子チャット（チャットの画面そのもの。chatId は子チャット） */
   | { kind: "chat"; chatId: number }
   /**
-   * プロジェクトのメモ（path はメモのフォルダからの相対）。chatId は開いたチャット（メモをそのチャットの入力欄に添付する先。
-   * チャットごとに別のウィンドウ）。メモのタブなど、チャットの外から開いたものはなし
+   * プロジェクトのノート（path はノートのフォルダからの相対）。chatId は開いたチャット（ノートをそのチャットの入力欄に添付する先。
+   * チャットごとに別のウィンドウ）。ノートのタブなど、チャットの外から開いたものはなし
    */
-  | { kind: "memo"; projectId: number; path: string; chatId?: number }
+  | { kind: "note"; projectId: number; path: string; chatId?: number }
   /** DB クライアント（右の欄の DB のタブ。worktree は SQLite のファイルを開く作業場所） */
   | { kind: "database"; chatId: number; projectId: number; worktree?: string }
   /** 左のサイドバー（アプリに 1 つ。行を押すと、メインのウィンドウで開く） */
@@ -70,7 +70,7 @@ export function popoutPath(route: PopoutRoute): string {
     if (route.env) params.set("env", JSON.stringify(route.env));
     return `${PREFIX}${route.kind}?${params.toString()}`;
   }
-  if (route.kind === "memo") {
+  if (route.kind === "note") {
     params.set("project", String(route.projectId));
     params.set("path", route.path);
     if (route.chatId !== undefined) params.set("chat", String(route.chatId));
@@ -111,11 +111,11 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
     const chatId = positive(params.get("chat"));
     return panel && key && projectId !== undefined ? { kind, panel, key, ...(chatId !== undefined ? { chatId } : {}), projectId } : undefined;
   }
-  if (kind === "memo") {
+  if (kind === "note") {
     const projectId = positive(params.get("project"));
-    const memoPath = params.get("path");
+    const notePath = params.get("path");
     const chatId = positive(params.get("chat"));
-    return projectId !== undefined && memoPath ? { kind, projectId, path: memoPath, ...(chatId !== undefined ? { chatId } : {}) } : undefined;
+    return projectId !== undefined && notePath ? { kind, projectId, path: notePath, ...(chatId !== undefined ? { chatId } : {}) } : undefined;
   }
   const chatId = positive(params.get("chat"));
   if (chatId === undefined) return undefined;

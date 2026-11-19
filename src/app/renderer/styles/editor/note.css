@@ -1,0 +1,358 @@
+/* ==== プロジェクトの「ノート」タブ（左にノートのフォルダの木、右に開いたノート。枠と一覧はエディタタブの .changes を使う） ==== */
+
+/* 名前で探す欄（一覧の見出しの下） */
+.note-search {
+  margin: 6px 8px 2px;
+}
+
+.changes-scroll > .note-found {
+  margin: 0;
+  padding: 4px 0 8px;
+  list-style: none;
+}
+
+/* 見つかったノートの、入っているフォルダ（名前の右に薄く） */
+.note-found-folder {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+/*
+ * ノート・フォルダをドラッグして落とす先。フォルダは行と中身をまとめてアクセントの枠で囲み、薄く染める（中のノートに重ねていても、
+ * どのフォルダに入るかが分かるように）。フォルダの名前もアクセントの色にする。
+ * ノートのタブの木（.tree-item）と入力欄の上の「ノート」の木（.note-chip-item）で同じ見た目
+ */
+:is(.tree-item, .note-chip-item).drop-target {
+  position: relative;
+  isolation: isolate;
+}
+
+/* 囲みは一覧の左右の端から少し離して描く（行の中身は動かさない） */
+:is(.tree-item, .note-chip-item).drop-target::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 4px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent);
+  pointer-events: none;
+  content: "";
+}
+
+:is(.tree-item, .note-chip-item).drop-target > :is(.tree-row, .note-chip-row) {
+  background: transparent;
+}
+
+.tree-item.drop-target > .tree-row .tree-name,
+.note-chip-item.drop-target > .note-chip-row .note-chip-title {
+  font-weight: 600;
+  color: var(--accent-fg);
+}
+
+/* 直下へ落とすときは一覧ごと（木の外側）を囲む */
+.note-list.drop-target,
+.note-chip-list.drop-target {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+/* 運んでいる行は薄くする（どれを動かしているか分かるように） */
+:is(.tree-row, .note-chip-row).dragging {
+  opacity: var(--drag-source-opacity);
+}
+
+/* 一覧の行で名前を変えている間（行は押せる見た目にせず、入力欄を行の高さに収める） */
+.tree-row.renaming {
+  padding-block: 1px;
+  cursor: default;
+}
+
+.tree-row.renaming:hover {
+  background: transparent;
+}
+
+/* 一覧は狭いので、決定・取り消しのボタンは出さず（Enter・ピントを外すで決め、Esc でやめる。Finder と同じ）、名前の欄を広く取る */
+.tree-row.renaming .inline-name-wrap .icon-button {
+  display: none;
+}
+
+.tree-row.renaming input[type="text"].inline-name {
+  padding-inline: 4px;
+}
+
+.note-main {
+  overflow: hidden;
+}
+
+.note-main > .empty-state {
+  align-self: center;
+}
+
+.note-dir {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.note-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 見出し: 題名とフォルダ・保存の様子・書く / 読む・Finder */
+.note-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px var(--gutter) 6px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.note-head-title {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+/*
+ * 題名（いつでも書き換えられる欄。ふだんは見出しの文字に見せ、乗せる・ピントが入ると地を付ける。⌘S で名前を変える）。
+ * type を付けないので、入力欄の共通の形（input[type="text"] の枠・余白）は当たらない。
+ * 幅は書いた文字の幅（field-sizing）にして、すぐ後ろに拡張子 .note-title-ext を続け、題名とファイル名を同じに見せる（長ければ縮めて … で切る）
+ */
+.note-title {
+  flex: 0 1 auto;
+  min-width: 1em;
+  field-sizing: content;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  color: inherit;
+  background: none;
+}
+
+.note-title:hover,
+.note-title:focus {
+  outline: none;
+  background: var(--bg-hover);
+}
+
+/* 題名の後ろの拡張子（書き換えられない。名前を変えても同じ拡張子を付け直す）。並びの間（8px）と題名の右の余白（4px）を打ち消して、題名の文字に続ける */
+.note-title-ext {
+  flex: none;
+  margin-left: -12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.note-head-folder {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+.note-save-state {
+  flex: none;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.note-save-state.warn {
+  color: var(--warn);
+}
+
+.note-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.note-message {
+  margin: 16px;
+}
+
+/* 設定のノートのフォルダの欄の、保存・既定に戻すの行 */
+.note-folder-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* チャットの文をノートに追加している間の様子（画面の下の真ん中） */
+.note-progress {
+  position: fixed;
+  bottom: 56px;
+  left: 50%;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-elev);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  transform: translateX(-50%);
+}
+
+/* 発言の右クリックの「既存のノートに追記」の一覧（題名と、入っているフォルダ） */
+.note-menu-note {
+  margin: 6px 10px;
+}
+
+.note-menu-title {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-menu-folder {
+  max-width: 120px;
+  margin-left: auto;
+  padding-left: 12px;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+.note-progress-text {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-progress-done {
+  flex: none;
+  color: var(--ok);
+}
+
+/* 右の欄・別ウィンドウに開いたノート（ノートのタブの右と同じ中身） */
+.side-note {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 入力欄の上の「ノート」の一覧（ノートのタブと同じフォルダの木。NoteChipTree） */
+.note-chip-popover {
+  display: grid;
+  min-width: 260px;
+  max-width: 380px;
+  padding: 4px;
+}
+
+.note-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  cursor: pointer;
+}
+
+.note-chip-row:hover {
+  background: var(--bg-hover);
+}
+
+.note-chip-row svg {
+  flex: none;
+  color: var(--muted);
+}
+
+/* 木の段ごとに字下げする（--depth は NoteChipTree の段） */
+.note-chip-tree {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.note-chip-tree .note-chip-row {
+  gap: 4px;
+  width: 100%;
+  min-height: 28px;
+  padding: 2px 8px 2px calc(6px + var(--depth, 0) * 14px);
+}
+
+/* ノートの行の、フォルダの開閉の矢印の分の空き（名前の頭をフォルダの行とそろえる） */
+.note-chip-indent {
+  flex: none;
+  width: 12px;
+}
+
+.note-chip-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 入力欄の上の「ノート」の木の入れ物（空いている所へ落とすと直下へ。落とす先のときは一覧ごと囲む） */
+/* 一覧の上の行: 左に「行を押したとき」の切り替え、右端にフォルダをすべて開く・すべて閉じる */
+.note-chip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.note-chip-head > .open-place-default {
+  padding: 0;
+  border-bottom: none;
+}
+
+.note-chip-folds {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.note-chip-list {
+  border-radius: var(--radius-sm);
+}
+
+.note-chip-row.more {
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  color: var(--muted);
+}

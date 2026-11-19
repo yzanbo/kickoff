@@ -8,7 +8,7 @@ import type { PopoutRoute } from "./popout";
 import type { FileTarget } from "./router";
 
 export type WindowMessage =
-  /** メインのウィンドウのそのチャットのチャット欄の後ろに足す（別ウィンドウの差分の行・返答へのコメント・メモの添付） */
+  /** メインのウィンドウのそのチャットのチャット欄の後ろに足す（別ウィンドウの差分の行・返答へのコメント・ノートの添付） */
   | { type: "fillComposer"; chatId: number; text: string; attachments?: Attachment[] }
   /** メインのウィンドウのそのチャットの会話のその場所へ移る（agent があれば、そのサブエージェントを設定の開き方で開いてその中へ） */
   | { type: "reveal"; chatId: number; eventId?: number; agent: string | null }
@@ -16,8 +16,8 @@ export type WindowMessage =
   | { type: "showActivity"; chatId: number; agent: string }
   /** メインのウィンドウでファイルタブのファイルを開く */
   | { type: "openProjectFile"; projectId: number; file: FileTarget }
-  /** メインのウィンドウでそのメモを開く（chatId があればそのチャットの右の欄、なければメモのタブ。別ウィンドウの返答から「メモに追加」したとき） */
-  | { type: "openMemo"; projectId: number; path: string; chatId: number | null }
+  /** メインのウィンドウでそのノートを開く（chatId があればそのチャットの右の欄、なければノートのタブ。別ウィンドウの返答から「ノートに追加」したとき） */
+  | { type: "openNote"; projectId: number; path: string; chatId: number | null }
   /** メインのウィンドウでチャットを開く（別ウィンドウの DB クライアントの「AI に聞く」で作ったチャット・聞いたチャット） */
   | { type: "openChat"; projectId: number; chatId: number }
   /** メインのウィンドウのプロジェクトのチャットのパネルに、文と添付を入れた新しいチャットのタブを開く（別ウィンドウの「AI に渡す」の「新しいチャットで始める」。openSeededChat） */

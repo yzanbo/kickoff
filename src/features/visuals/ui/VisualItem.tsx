@@ -14,7 +14,7 @@ import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
 import type { ToolCall } from "@/features/conversation/ui/timeline/timelineItems";
 import { useNearViewport } from "@/foundation/ui/hooks/useNearViewport";
 import { frameHeightKey, rememberedFrameHeight, rememberFrameHeight, useFrameSlot } from "./frameSlots";
-import { saveVisualToMemo } from "./saveVisual";
+import { saveVisualToNote } from "./saveVisual";
 import { VisualFrame } from "./VisualFrame";
 import { useVisuals } from "./visualsContext";
 
@@ -137,7 +137,7 @@ function UpdatedRow({ visual }: { visual: ChatVisual }) {
   );
 }
 
-/** 図のカード（上の帯: 題名・種類・ソース・コピー・全画面・メモに保存） */
+/** 図のカード（上の帯: 題名・種類・ソース・コピー・全画面・ノートに保存） */
 function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }) {
   const pane = useOptionalChatPane();
   const [showSource, setShowSource] = useState(false);
@@ -162,7 +162,7 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
   const onPrompt = pane ? (text: string) => void api.queueMessage(pane.chatId, text, {}).catch(reportFailure("図から送れませんでした")) : undefined;
   const save = () => {
     if (!pane) return;
-    saveVisualToMemo(visual, pane.chatId, pane.projectId()).catch((e: unknown) => setError({ code: visual.code, message: `メモに保存できませんでした: ${errorMessage(e)}` }));
+    saveVisualToNote(visual, pane.chatId, pane.projectId()).catch((e: unknown) => setError({ code: visual.code, message: `ノートに保存できませんでした: ${errorMessage(e)}` }));
   };
   return (
     <div className="visual-card" id={`ev-${eventId}`} data-keep-row={touched ? "" : undefined}>
@@ -174,7 +174,7 @@ function VisualCard({ visual, eventId }: { visual: ChatVisual; eventId: number }
           {framed && <IconButton icon={showSource ? Eye : CodeXml} label={showSource ? "図を表示" : "ソースを表示"} size={14} onClick={() => setShowSource(!showSource)} />}
           <CopyButton text={visual.code} label="ソースをコピー" size={14} />
           {framed && !showSource && <IconButton icon={Maximize2} label="全画面で表示" size={14} onClick={() => setFullscreen(true)} />}
-          {pane && <IconButton icon={StickyNote} label={visual.kind === "mermaid" ? "メモに保存（Markdown）" : "メモに保存（HTML。スクリプトは動きません）"} size={14} onClick={save} />}
+          {pane && <IconButton icon={StickyNote} label={visual.kind === "mermaid" ? "ノートに保存（Markdown）" : "ノートに保存（HTML。スクリプトは動きません）"} size={14} onClick={save} />}
         </span>
       </div>
       {frameKind === null ? (

@@ -46,11 +46,11 @@ const activeChats = createStore<Chat[]>({ load: () => api.allChats(), reduce: (l
 const archivedChats = createStore<Chat[]>({ load: () => api.allChats({ archived: true }), reduce: (list, e) => reduceChats(list, e, true) });
 
 /**
- * 2 つの一覧から、そのプロジェクト（省けば全プロジェクト）のチャットを最後に動いた順に。子チャット（親のあるもの）とメモのチャットは入れない
- * （サイドバー・ボード・パネルのタブなどの一覧には並べず、子チャットは親の中（childChatsOf / useChildChats）、メモのチャットはそのメモの右の欄（useMemoChatOf）から開く）
+ * 2 つの一覧から、そのプロジェクト（省けば全プロジェクト）のチャットを最後に動いた順に。子チャット（親のあるもの）とノートのチャットは入れない
+ * （サイドバー・ボード・パネルのタブなどの一覧には並べず、子チャットは親の中（childChatsOf / useChildChats）、ノートのチャットはそのノートの右の欄（useNoteChatOf）から開く）
  */
 export function selectChats(active: readonly Chat[] | undefined, archived: readonly Chat[] | undefined, projectId?: number): Chat[] {
-  const inProject = (r: Chat) => r.parent_chat_id === null && r.memo_path === null && (projectId === undefined || r.project_id === projectId);
+  const inProject = (r: Chat) => r.parent_chat_id === null && r.note_path === null && (projectId === undefined || r.project_id === projectId);
   const list = [...(active ?? []).filter(inProject), ...(archived ?? []).filter(inProject)];
   if (archived?.length) list.sort(byActive);
   return list.length > 0 ? list : NO_CHATS;
@@ -235,13 +235,13 @@ export function useChatsByProject({ archived = false }: { archived?: boolean } =
   return useSyncExternalStore(subscribeChats, () => byProjectView(archived));
 }
 
-// アーカイブしていないチャットを子チャットも入れて（メモのチャットは入れない）。要対応・⌘⇧A・状態ごとの数で、子チャットも数えるため
+// アーカイブしていないチャットを子チャットも入れて（ノートのチャットは入れない）。要対応・⌘⇧A・状態ごとの数で、子チャットも数えるため
 const withChildrenCache: { active: Chat[] | undefined; chats: Chat[]; byProject: ChatsByProject } = { active: undefined, chats: NO_CHATS, byProject: {} };
 
 function withChildrenView(): { chats: Chat[]; byProject: ChatsByProject } {
   const active = activeChats.get().data;
   if (withChildrenCache.active === active) return withChildrenCache;
-  const next = (active ?? []).filter((r) => r.memo_path === null);
+  const next = (active ?? []).filter((r) => r.note_path === null);
   const chats = sameItems(withChildrenCache.chats, next) ? withChildrenCache.chats : next.length > 0 ? next : NO_CHATS;
   const byProject = chats === withChildrenCache.chats ? withChildrenCache.byProject : chatsByProject(chats, withChildrenCache.byProject);
   Object.assign(withChildrenCache, { active, chats, byProject });
@@ -249,7 +249,7 @@ function withChildrenView(): { chats: Chat[]; byProject: ChatsByProject } {
 }
 
 /**
- * アーカイブしていないチャットを、子チャット（孫・ひ孫も）も入れて最後に動いた順に（メモのチャットは入れない）。
+ * アーカイブしていないチャットを、子チャット（孫・ひ孫も）も入れて最後に動いた順に（ノートのチャットは入れない）。
  * 要対応の一覧と数・⌘⇧A・プロジェクト画面の状態ごとの数で使う（ふつうの一覧の useChats は子チャットを入れず、親の中に出す）
  */
 export function useChatsWithChildren(): Chat[] {
@@ -263,16 +263,16 @@ export function useChatsWithChildrenByProject(): ChatsByProject {
   return useSyncExternalStore(subscribeChats, () => withChildrenView().byProject);
 }
 
-/** そのメモのチャット（アーカイブしていない、いちばん新しいもの。まだなければ undefined。一覧が届くまでも undefined） */
-export function useMemoChatOf(projectId: number, memoPath: string): Chat | undefined {
+/** そのノートのチャット（アーカイブしていない、いちばん新しいもの。まだなければ undefined。一覧が届くまでも undefined） */
+export function useNoteChatOf(projectId: number, notePath: string): Chat | undefined {
   useStoreStatus(activeChats);
-  return useSyncExternalStore(subscribeChats, () => memoChatIn(activeChats.get().data, projectId, memoPath));
+  return useSyncExternalStore(subscribeChats, () => noteChatIn(activeChats.get().data, projectId, notePath));
 }
 
-const memoChatIn = (list: readonly Chat[] | undefined, projectId: number, memoPath: string): Chat | undefined => {
+const noteChatIn = (list: readonly Chat[] | undefined, projectId: number, notePath: string): Chat | undefined => {
   let found: Chat | undefined;
   for (const chat of list ?? []) {
-    if (chat.project_id === projectId && chat.memo_path === memoPath && !chat.archived_at && (!found || chat.id > found.id)) found = chat;
+    if (chat.project_id === projectId && chat.note_path === notePath && !chat.archived_at && (!found || chat.id > found.id)) found = chat;
   }
   return found;
 };

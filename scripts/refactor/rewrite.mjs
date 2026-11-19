@@ -2,10 +2,15 @@
 // 書き換えるのは指定の文字だけで、並び・空白・コメントは触らない
 import path from "node:path";
 
-/** 移す前の別名（いまの tsconfig の paths） */
+/** 移す前の別名（P2-2b の前の tsconfig の paths） */
 const OLD_ALIASES = [
   ["@shared/", "src/shared/"],
   ["@/", "src/renderer/src/"],
+];
+/** P2-2b のあとの別名（名前の変更の表で流すときは ctx.aliases にこれを渡す） */
+export const CURRENT_ALIASES = [
+  ["@shared/", "src/shared/"],
+  ["@/", "src/"],
 ];
 const TRY_EXT = [".ts", ".tsx", ".mts", ".mjs", ".js", ".css", ".json", ".svg"];
 const CODE_EXT = /\.(ts|tsx|mts|mjs|js|cjs)$/;
@@ -18,10 +23,10 @@ function splitQuery(spec) {
 
 /**
  * 旧の木で指定を解く。返すのは { path, folder, modules } か null（パッケージ・リポジトリの外・見つからない）。
- * 拡張子は TRY_EXT を試し、"./x.js" は x.ts / x.tsx に、フォルダは index.ts / index.tsx に当てる。node_modules の中は在るかを見ない
+ * 拡張子は TRY_EXT を試し、"./x.js" は x.ts / x.tsx に、フォルダは index.ts / index.tsx に当てる。node_modules の中は在るかを見ない。aliases は別名の表（既定は移す前の別名）
  */
-export function resolveOld(importer, spec, exists) {
-  const alias = OLD_ALIASES.find(([prefix]) => spec.startsWith(prefix));
+export function resolveOld(importer, spec, exists, aliases = OLD_ALIASES) {
+  const alias = aliases.find(([prefix]) => spec.startsWith(prefix));
   let base;
   if (alias) base = alias[1] + spec.slice(alias[0].length);
   else if (spec.startsWith("./") || spec.startsWith("../")) base = path.posix.normalize(path.posix.join(path.posix.dirname(importer), spec));
@@ -62,7 +67,7 @@ function shapeOf(target, folder, originalBare, keepCodeExt) {
  */
 export function rewriteSpecifier(oldImporter, newImporter, spec, ctx, kind = "import") {
   const [bare, query] = splitQuery(spec);
-  const hit = resolveOld(oldImporter, bare, ctx.exists);
+  const hit = resolveOld(oldImporter, bare, ctx.exists, ctx.aliases);
   if (!hit) return null;
   const target = hit.modules ? hit.path : (ctx.byFrom.get(hit.path) ?? hit.path);
   if (newImporter === oldImporter && target === hit.path && !bare.startsWith("@/")) return null;
@@ -113,7 +118,7 @@ export function rewriteSource(oldPath, newPath, text, ctx, onRewrite = () => {},
   const one = (spec, kind) => {
     const next = rewriteSpecifier(oldPath, newPath, spec, ctx, kind);
     if (next !== null) onRewrite(spec, next);
-    else if (/^(\.\.?\/|@\/|@shared\/)/.test(spec) && !resolveOld(oldPath, splitQuery(spec)[0], ctx.exists)) onUnresolved(spec);
+    else if (/^(\.\.?\/|@\/|@shared\/)/.test(spec) && !resolveOld(oldPath, splitQuery(spec)[0], ctx.exists, ctx.aliases)) onUnresolved(spec);
     return next ?? spec;
   };
   let out = text;

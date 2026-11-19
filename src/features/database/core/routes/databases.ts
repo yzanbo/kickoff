@@ -95,9 +95,9 @@ const connectionShape = {
   password: z.string().max(10_000).nullable().optional(),
   ai_username: text(500).optional(),
   ai_password: z.string().max(10_000).nullable().optional(),
-  // 手順メモ: メモのフォルダからの相対パス（/ で始まる・.. を含むものは断る）
-  memo_path: text(1000)
-    .refine((v) => v === null || (!v.startsWith("/") && !v.split("/").includes("..")), "手順メモはメモのフォルダの中のメモを選んでください")
+  // 手順ノート: ノートのフォルダからの相対パス（/ で始まる・.. を含むものは断る）
+  note_path: text(1000)
+    .refine((v) => v === null || (!v.startsWith("/") && !v.split("/").includes("..")), "手順ノートはノートのフォルダの中のノートを選んでください")
     .optional(),
   ssh: ssh.optional(),
   ssh_password: z.string().max(10_000).nullable().optional(),
@@ -245,14 +245,14 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
     } = from;
     // パスワードは暗号化したまま写す
     const password = copy_password ? store.dbConnections.password(from.id) : null;
-    // 手順メモはプロジェクトごとのメモのフォルダにあるので、ほかのプロジェクトへは写さない（同じプロジェクトの中なら同じメモを指す）。
+    // 手順ノートはプロジェクトごとのノートのフォルダにあるので、ほかのプロジェクトへは写さない（同じプロジェクトの中なら同じノートを指す）。
     // 準備のコマンドは写すが、写した先で確かめ直す。同じプロジェクトの中で写したら、名前に「のコピー」を付けて見分ける
     const same = from.project_id === c.var.project.id;
     const ai_password = copy_password ? store.dbConnections.aiPassword(from.id) : null;
     const ssh_password = copy_password ? store.dbConnections.sshPassword(from.id) : null;
     const name = same ? `${from.name} のコピー` : from.name;
-    const memo_path = same ? from.memo_path : null;
-    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, name, memo_path, password, ai_password, ssh_password }), 201);
+    const note_path = same ? from.note_path : null;
+    return c.json(store.dbConnections.create(c.var.project.id, { ...fields, name, note_path, password, ai_password, ssh_password }), 201);
   });
 
   // プロジェクトから取り込む: 見つけた接続の案（パスワードは返さない）と、選んだ案を作る（パスワードは見つけた所から読み直す）

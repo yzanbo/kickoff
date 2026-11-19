@@ -67,7 +67,7 @@ export function useMultiSelect<K>(existing: readonly K[], order: () => readonly 
     /**
      * 行のクリック: ⌘ / Ctrl なら足す・外す、Shift なら範囲を足して true（選ぶ操作をした）。
      * 修飾キーがなければ選ぶのをやめて false（呼ぶ側は開くなどのふだんの動きをする）。
-     * current は、まだ何も選んでいないときに、ふだんの選び方で選んでいる行（メモの一覧の開いているメモなど）。
+     * current は、まだ何も選んでいないときに、ふだんの選び方で選んでいる行（ノートの一覧の開いているノートなど）。
      * あれば Finder と同じく、それも選んだものに入れて起点にする（⌘ で 2 つ目を押せば 2 つ、Shift ならそこからの範囲）
      */
     click: (e: Modifiers, key: K, current?: K | null): boolean => {

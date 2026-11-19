@@ -1,7 +1,7 @@
 import { openSearchPanel } from "@codemirror/search";
 import { EditorView } from "@codemirror/view";
 
-// ⌘F で、ページの中のエディタ（ファイルの Monaco・メモの CodeMirror）の検索を開く口。
+// ⌘F で、ページの中のエディタ（ファイルの Monaco・ノートの CodeMirror）の検索を開く口。
 // Monaco は部品の外から検索を開く手立てがないので、MonacoFindBar がエディタの入れ物（.code-editor）に開き方を置く
 
 const finders = new WeakMap<Element, () => void>();
@@ -15,7 +15,7 @@ export function registerEditorFind(el: Element, open: () => void): () => void {
 }
 
 /**
- * root の中の見えているエディタの検索を開く（Monaco は MonacoFindBar の欄・CodeMirror は memoFindPanel の欄を出し、その入力欄にピントを移す。
+ * root の中の見えているエディタの検索を開く（Monaco は MonacoFindBar の欄・CodeMirror は noteFindPanel の欄を出し、その入力欄にピントを移す。
  * 見えている行の外も探せる）。エディタがなければ false（呼ぶ側が、画面の文字を探す欄を出す）
  */
 export function openEditorFind(root: HTMLElement): boolean {

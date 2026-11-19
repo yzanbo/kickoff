@@ -36,7 +36,7 @@ function withDevice() {
 
 test("端末: 開いた口だけ使え、ほかは 403 と印で断る（DB・Docker・GitHub・CI・ポート・設定・ファイル・Git も）", async () => {
   const { app, project } = withDevice();
-  for (const url of ["/api/status", "/api/projects", `/api/projects/${project.id}/chats`, `/api/projects/${project.id}/memos`, "/api/approvals"]) {
+  for (const url of ["/api/status", "/api/projects", `/api/projects/${project.id}/chats`, `/api/projects/${project.id}/notes`, "/api/approvals"]) {
     assert.equal((await app.request(url, { headers: DEVICE })).status, 200, url);
   }
   const closed = [
@@ -99,7 +99,7 @@ test("端末: 見るだけの端末は、見る口・見ているものの知ら
     ["POST", `/api/chats/${chat.id}/cancel`],
     ["POST", "/api/approvals/x"],
     ["POST", `/api/projects/${project.id}/chats`],
-    ["PUT", `/api/projects/${project.id}/memo`],
+    ["PUT", `/api/projects/${project.id}/note`],
   ] as const) {
     const res = await req(method, url, {});
     assert.equal(res.status, 403, url);
@@ -132,13 +132,13 @@ test("SSE: 端末には開いた口の知らせだけを届け、この Mac の�
     await reader.read(); // 最初の ping
     bus.publish({ type: "ports_changed", count: 1, fresh: 0 });
     bus.publish({ type: "docker_changed", project_id: project.id });
-    bus.publish({ type: "memos", project_id: project.id, path: null });
+    bus.publish({ type: "notes", project_id: project.id, path: null });
     const chunk = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
     await reader.cancel();
     return chunk === "timeout" ? "" : new TextDecoder().decode(chunk.value);
   };
   const deviceText = await read(DEVICE);
-  assert.match(deviceText, /"type":"memos"/);
+  assert.match(deviceText, /"type":"notes"/);
   assert.doesNotMatch(deviceText, /ports_changed|docker_changed/);
   // この Mac の画面にはすべて届く
   assert.match(await read(AUTH), /ports_changed/);
@@ -258,9 +258,9 @@ test("SSE: 端末にも、続けて流した途中の返答は 1 通（つない
   await reader.read(); // hello
   bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text: "途中" });
   bus.publish({ type: "chat_delta", project_id: project.id, chat_id: 7, text: "の文" });
-  bus.publish({ type: "memos", project_id: project.id, path: null });
+  bus.publish({ type: "notes", project_id: project.id, path: null });
   let text = "";
-  while (!text.includes('"memos"')) {
+  while (!text.includes('"notes"')) {
     const chunk = await Promise.race([reader.read(), new Promise<"timeout">((r) => setTimeout(() => r("timeout"), 1000))]);
     if (chunk === "timeout" || chunk.done) break;
     text += new TextDecoder().decode(chunk.value);
@@ -269,7 +269,7 @@ test("SSE: 端末にも、続けて流した途中の返答は 1 通（つない
   const events = [...text.matchAll(/^data: (.*)$/gm)].map((m) => JSON.parse(m[1]) as { type: string; text?: string });
   assert.deepEqual(
     events.map((e) => (e.type === "chat_delta" ? `delta:${e.text}` : e.type)),
-    ["delta:途中の文", "memos"],
+    ["delta:途中の文", "notes"],
   );
 });
 

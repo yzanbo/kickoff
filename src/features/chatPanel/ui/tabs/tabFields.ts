@@ -3,7 +3,7 @@ import type { SettingValue } from "@/foundation/ui/storage/settings";
 import type { SIDEBAR_CHAT_SECTIONS } from "@/foundation/ui/storage/storageKeys";
 
 // タブに出す項目（タブの列の「表示」のメニューの「タブに出す項目」で、項目ごとに出す・隠すを選ぶ）。
-// 覚えるのは隠した項目だけ（PANEL_TAB_HIDDEN。すべてのパネルで共通）。名前・種類の札（メモ・サブ・子）はいつも出す
+// 覚えるのは隠した項目だけ（PANEL_TAB_HIDDEN。すべてのパネルで共通）。名前・種類の札（ノート・サブ・子）はいつも出す
 
 export const TAB_FIELDS = ["state", "children", "pin", "group", "worktree"] as const;
 export type TabField = (typeof TAB_FIELDS)[number];

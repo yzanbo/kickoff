@@ -41,7 +41,7 @@ export function selectionWithin(container: Element | null, { quotable = false }:
   if (quotable && !common.closest(QUOTABLE_SELECTOR)) return null;
   const text = selection.toString();
   if (!text.trim()) return null;
-  // 返答の Markdown の表示の中だけを選んでいれば Markdown に戻す（メモ・子チャットには書式のまま渡す）
+  // 返答の Markdown の表示の中だけを選んでいれば Markdown に戻す（ノート・子チャットには書式のまま渡す）
   const markdownRoot = common.closest(".markdown");
   if (markdownRoot) return { text, markdown: selectionToMarkdown(range, markdownRoot), range, rich: true };
   return { text, markdown: text.trim(), range, rich: false };

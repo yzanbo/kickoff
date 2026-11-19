@@ -41,7 +41,7 @@ export async function sandboxDeniedNote(output: string, sandbox: BashSandbox, ju
     }),
   );
   return [
-    `Kickoff の砂場が、このコマンドの書き込みを OS で断りました（AI の Bash が書けるのは、作業フォルダ・メモフォルダ・一時フォルダ・キャッシュなどの決まった場所だけです）。書き方を変えて試し直しても通りません。`,
+    `Kickoff の砂場が、このコマンドの書き込みを OS で断りました（AI の Bash が書けるのは、作業フォルダ・ノートフォルダ・一時フォルダ・キャッシュなどの決まった場所だけです）。書き方を変えて試し直しても通りません。`,
     ...lines,
   ].join("\n");
 }

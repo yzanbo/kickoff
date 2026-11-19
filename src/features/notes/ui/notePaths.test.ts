@@ -1,0 +1,74 @@
+import assert from "node:assert/strict";
+import { test } from "vitest";
+import type { NoteEntry } from "@shared/types";
+import { ancestorsOf, buildNoteFileTree, buildNoteTree, filterNotes, isUnder, noteTitle, pathTaken, recentNotes, remapPath, renamedPath, untitledPath } from "./notePaths";
+
+const entry = (path: string, dir = false, modified_at = "2026-11-05T00:00:00.000Z"): NoteEntry => ({ path, dir, modified_at });
+
+test("buildNoteTree: フォルダを先に名前の順。中身のないフォルダも出す", () => {
+  const tree = buildNoteTree([entry("b.md"), entry("設計", true), entry("設計/DB.md"), entry("空", true), entry("A.md"), entry("ノート10.md"), entry("ノート2.md")]);
+  assert.deepEqual(
+    tree.map((n) => [n.name, n.dir]),
+    [["空", true], ["設計", true], ["A.md", false], ["b.md", false], ["ノート2.md", false], ["ノート10.md", false]],
+  );
+  assert.deepEqual(tree[1].children.map((n) => n.path), ["設計/DB.md"]);
+});
+
+test("buildNoteFileTree: ノートのファイルだけで木を作り、ノートの入っていないフォルダは出さない", () => {
+  const tree = buildNoteFileTree([entry("空", true), entry("画像", true), entry("画像/図.png"), entry("設計", true), entry("設計/古い", true), entry("設計/古い/DB.md"), entry("計画.html"), entry("ノート.txt")]);
+  assert.deepEqual(tree.map((n) => n.path), ["設計", "計画.html"]);
+  assert.deepEqual(tree[0].children.map((n) => [n.path, n.dir]), [["設計/古い", true]]);
+  assert.deepEqual(tree[0].children[0].children.map((n) => n.path), ["設計/古い/DB.md"]);
+});
+
+test("名前の変更・移動のパス", () => {
+  assert.equal(noteTitle("設計/DB の方針.md"), "DB の方針");
+  assert.equal(noteTitle("画像.png"), "画像.png");
+  assert.equal(renamedPath("設計/DB.md", false, "データベース"), "設計/データベース.md");
+  assert.equal(renamedPath("設計", true, "設計ノート"), "設計ノート");
+  assert.equal(renamedPath("図.png", false, "図2.png"), "図2.png");
+  assert.equal(noteTitle("資料/計画.html"), "計画");
+  assert.equal(renamedPath("資料/計画.HTML", false, "企画"), "資料/企画.html");
+  assert.equal(remapPath("設計/DB.md", "設計", "設計ノート"), "設計ノート/DB.md");
+  assert.equal(remapPath("設計2/DB.md", "設計", "設計ノート"), "設計2/DB.md");
+  assert.equal(remapPath("a.md", "a.md", "b/a.md"), "b/a.md");
+  assert.ok(isUnder("a/b.md", "a") && isUnder("a", "a") && isUnder("x.md", "") && !isUnder("ab/c.md", "a"));
+  assert.deepEqual(ancestorsOf("a/b/c.md"), ["a", "a/b"]);
+});
+
+test("recentNotes: ノートのファイルだけを、新しく変えた順に limit 件（種類を渡せばその種類だけ）", () => {
+  const entries = [entry("設計", true), entry("a.md", false, "2026-11-01T00:00:00Z"), entry("b.md", false, "2026-11-03T00:00:00Z"), entry("c.txt", false, "2026-11-04T00:00:00Z"), entry("d.md", false, "2026-10-01T00:00:00Z"), entry("e.html", false, "2026-11-02T00:00:00Z")];
+  assert.deepEqual(recentNotes(entries, 2).map((e) => e.path), ["b.md", "e.html"]);
+  assert.deepEqual(recentNotes(entries, 2, "markdown").map((e) => e.path), ["b.md", "a.md"]);
+});
+
+test("filterNotes: ファイルだけを名前で絞り、新しく変えた順", () => {
+  const list = filterNotes([entry("設計", true), entry("設計/DB.md", false, "2026-11-01T00:00:00Z"), entry("db2.md", false, "2026-11-03T00:00:00Z"), entry("ほか.md")], "DB");
+  assert.deepEqual(list.map((e) => e.path), ["db2.md", "設計/DB.md"]);
+});
+
+test("pathTaken: 同じフォルダの同じ名前（拡張子まで。大文字・小文字は区別しない）だけを重なりとみなす", () => {
+  const entries = [entry("設計", true), entry("設計/DB.md"), entry("計画.md")];
+  assert.ok(pathTaken(entries, "設計/db.md"));
+  assert.ok(pathTaken(entries, "設計"));
+  assert.ok(!pathTaken(entries, "設計/DB.html"));
+  assert.ok(!pathTaken(entries, "DB.md"));
+  assert.ok(!pathTaken(entries, "計画"));
+  // 名前を変える元は数えない（大文字・小文字だけの変更）
+  assert.ok(!pathTaken(entries, "設計/db.md", "設計/DB.md"));
+});
+
+test("untitledPath: 同じフォルダの同じ名前（拡張子まで）と重ならない仮の名前", () => {
+  const entries: NoteEntry[] = [
+    { path: "無題のノート.md", dir: false, modified_at: "2026-11-06T00:00:00Z" },
+    { path: "無題のノート-2.MD", dir: false, modified_at: "2026-11-06T00:00:00Z" },
+    { path: "無題のノート.html", dir: false, modified_at: "2026-11-06T00:00:00Z" },
+    { path: "a", dir: true, modified_at: "2026-11-06T00:00:00Z" },
+    { path: "a/名称未設定フォルダ", dir: true, modified_at: "2026-11-06T00:00:00Z" },
+  ];
+  assert.equal(untitledPath(entries, "", "無題のノート", ".md"), "無題のノート-3.md");
+  assert.equal(untitledPath(entries, "", "無題のノート", ".html"), "無題のノート-2.html");
+  assert.equal(untitledPath(entries, "a", "無題のノート", ".md"), "a/無題のノート.md");
+  assert.equal(untitledPath(entries, "a", "名称未設定フォルダ"), "a/名称未設定フォルダ-2");
+  assert.equal(untitledPath(entries, "", "名称未設定フォルダ"), "名称未設定フォルダ");
+});

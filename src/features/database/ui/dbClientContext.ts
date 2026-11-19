@@ -22,8 +22,8 @@ export interface DbClientActions {
   openEr(connection: DbConnection, path: DbObjectPath, focus: string | null): void;
   /** 接続の登録・編集のダイアログ（null なら新しく作る） */
   editConnection(connection: DbConnection | null): void;
-  /** 接続の手順メモをタブで開く（なければ作ってから） */
-  openMemo(connection: DbConnection): void;
+  /** 接続の手順ノートをタブで開く（なければ作ってから） */
+  openNote(connection: DbConnection): void;
   /** つながらないときの案内を出す */
   showFailure(failure: DbFailure): void;
   /** つなぐ前の準備のダイアログを出す（retry: 済んだら開いていた段を読み直す） */

@@ -11,12 +11,12 @@ export const FAKE_CHATS = 1000;
 export const until = (cond, label) =>
   `await (async () => { const t0 = performance.now(); while (!(${cond})) { if (performance.now() - t0 > 5000) throw new Error(${JSON.stringify(`5 秒待っても「${label}」になりません`)}); await new Promise((r) => { requestAnimationFrame(r); setTimeout(r, 50); }); } })();`;
 
-/** 偽のチャットを足す差し替えを入れ、プロジェクト alpha のメモの画面を開く（プロジェクトの ID を返す） */
+/** 偽のチャットを足す差し替えを入れ、プロジェクト alpha のノートの画面を開く（プロジェクトの ID を返す） */
 export async function openLongList(ctx) {
   const projectId = ctx.fixture.projects.alpha;
   const template = (await ctx.api("GET", `/api/projects/${projectId}/chats`))[0];
   await ctx.addScript(shimSource({ template, projectId, count: FAKE_CHATS, groups: 8 }));
-  await ctx.open(`#/projects/${projectId}/memos`);
+  await ctx.open(`#/projects/${projectId}/notes`);
   // 偽のチャットが一覧に届いて描き終わるまで待つ（届く前に閉じて開くと、届いたときに描き始めになり、開いた直後をつかまえられない）
   await ctx.waitFor(`${sidebarRows(projectId)}.length >= ${FAKE_CHATS}`, "偽のチャットがサイドバーに並ぶ", { timeoutMs: 15000 });
   return projectId;

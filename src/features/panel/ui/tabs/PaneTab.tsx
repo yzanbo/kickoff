@@ -74,7 +74,7 @@ export function PaneTab({
     if (backHome) return panel.returnToHome(t.key);
     // 子チャットのタブは、チャットの ✕ と同じく閉じ方を聞く（表示だけ消す = タブを閉じる。子チャットは残る）
     if (t.kind === "child") return void closeChatWithChoice({ id: t.childId, title: t.title, archived_at: knownChat(t.childId)?.archived_at }, () => panel.closeTab(t.key));
-    // メモ・ファイルのタブは、保存していない書きかけがあれば保存するかを聞く（confirmUnsaved.ts）
+    // ノート・ファイルのタブは、保存していない書きかけがあれば保存するかを聞く（confirmUnsaved.ts）
     if (t.kind !== "chat") return void confirmCloseUnsaved(panel.key, t).then((ok) => ok && panel.closeTab(t.key));
     void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: chat?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }));
   };

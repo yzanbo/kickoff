@@ -5,10 +5,10 @@ import { NOW } from "@/foundation/core/db/schema";
 import { bit, updateRow, type Notify } from "@/foundation/core/db/common";
 import type { DbSecretKey } from "@/foundation/core/settings/settings";
 
-/** 変えられる列（パスワードは秘密の値なので別） */
+/** 変えられる列（パスワードは秘密の値なので別）。DB の列の名前（memo_path は型の note_path。作り直しのスキーマ v1 で note_path にそろえる） */
 const COLUMNS = ["name", "engine", "environment", "host", "port", "database", "username", "file_path", "ssl", "read_only", "write_check", "ai_access", "ai_username", "memo_path", "ssh", "prep", "check_on", "check_note"] as const;
 
-type Row = Omit<DbConnection, "ssl" | "ssh" | "prep" | "prep_confirmed" | "read_only" | "has_password" | "has_ai_password" | "has_ssh_password"> & {
+type Row = Omit<DbConnection, "note_path" | "ssl" | "ssh" | "prep" | "prep_confirmed" | "read_only" | "has_password" | "has_ai_password" | "has_ssh_password"> & {
   ssl: string | null;
   ssh: string | null;
   prep: string | null;
@@ -17,6 +17,7 @@ type Row = Omit<DbConnection, "ssl" | "ssh" | "prep" | "prep_confirmed" | "read_
   has_password: number;
   has_ai_password: number;
   has_ssh_password: number;
+  memo_path: string | null;
 };
 
 const SELECT = `SELECT c.*,
@@ -25,10 +26,11 @@ const SELECT = `SELECT c.*,
   EXISTS (SELECT 1 FROM secrets WHERE key = 'db_connection:' || c.id || ':ssh_password') AS has_ssh_password
   FROM db_connections AS c`;
 
-const toConnection = (row: Row): DbConnection => {
+const toConnection = ({ memo_path, ...row }: Row): DbConnection => {
   const prep = row.prep ? (JSON.parse(row.prep) as DbPrep) : null;
   return {
     ...row,
+    note_path: memo_path,
     ssl: row.ssl ? (JSON.parse(row.ssl) as DbSsl) : null,
     ssh: row.ssh ? (JSON.parse(row.ssh) as DbSsh) : null,
     prep,
@@ -79,7 +81,7 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     write_check: body.write_check,
     ai_access: body.ai_access,
     ai_username: body.ai_username,
-    memo_path: body.memo_path,
+    memo_path: body.note_path,
     ssh: body.ssh === undefined ? undefined : body.ssh === null ? null : JSON.stringify(body.ssh),
     prep: body.prep === undefined ? undefined : prepText(body.prep),
     check_on: body.check_on,
@@ -145,8 +147,8 @@ export function createDbConnectionStore(db: DatabaseSync, onChange: Notify, secr
     touchConnected(id: number) {
       db.prepare(`UPDATE db_connections SET last_connected_at = ${NOW} WHERE id = ?`).run(id);
     },
-    /** メモの名前を変えた・動かしたとき、それを手順メモにしている接続の memo_path を付け替える（フォルダなら中のメモのものも） */
-    remapMemoPath(projectId: number, from: string, to: string) {
+    /** ノートの名前を変えた・動かしたとき、それを手順ノートにしている接続の note_path を付け替える（フォルダなら中のノートのものも） */
+    remapNotePath(projectId: number, from: string, to: string) {
       const rows = db
         .prepare("SELECT id, memo_path FROM db_connections WHERE project_id = ? AND (memo_path = ? OR substr(memo_path, 1, length(?) + 1) = ? || '/')")
         .all(projectId, from, from, from) as { id: number; memo_path: string }[];

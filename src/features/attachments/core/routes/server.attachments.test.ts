@@ -1,9 +1,9 @@
-// API のテスト: 「AI に渡す」で取った中身（POST /api/captures）・メモの写し（POST /api/projects/:id/memo/snapshot）と、送るときの見出し（共通の準備は testing/testServer.ts）
+// API のテスト: 「AI に渡す」で取った中身（POST /api/captures）・ノートの写し（POST /api/projects/:id/note/snapshot）と、送るときの見出し（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { CaptureAttachment, MemoAttachment, MemoList } from "@shared/types";
+import type { CaptureAttachment, NoteAttachment, NoteList } from "@shared/types";
 import { MAX_UPLOAD_BYTES } from "@/features/attachments/core/uploads";
 import { AUTH, setup, until } from "@/app/core/testing/testServer";
 
@@ -90,29 +90,29 @@ test("captures: 画像（ブラウザの画面）はそのまま保存し、見�
   assert.equal((await call("POST", "/api/captures", { name: "x.png", mime: "image/png", image_base64: big, source: screen })).status, 400);
 });
 
-test("memo/snapshot: 付けたときの中身を写し、送るときは写しと元のメモのパスを伝える（あとで書き換えても写しはそのまま）", async () => {
+test("note/snapshot: 付けたときの中身を写し、送るときは写しと元のノートのパスを伝える（あとで書き換えても写しはそのまま）", async () => {
   const { call, project, provider, store, uploads } = setup();
   const base = `/api/projects/${project.id}`;
-  await call("POST", `${base}/memos`, { path: "設計/DB.md", content: "# 初め\n" });
-  const memoDir = ((await call("GET", `${base}/memos`)).body as MemoList).dir;
-  const res = await call("POST", `${base}/memo/snapshot`, { path: "設計/DB.md" });
+  await call("POST", `${base}/notes`, { path: "設計/DB.md", content: "# 初め\n" });
+  const noteDir = ((await call("GET", `${base}/notes`)).body as NoteList).dir;
+  const res = await call("POST", `${base}/note/snapshot`, { path: "設計/DB.md" });
   assert.equal(res.status, 201);
-  const snapshot = res.body as MemoAttachment;
-  assert.equal(snapshot.kind, "memo");
-  assert.equal(snapshot.memo, "設計/DB.md");
+  const snapshot = res.body as NoteAttachment;
+  assert.equal(snapshot.kind, "note");
+  assert.equal(snapshot.note, "設計/DB.md");
   assert.ok(snapshot.taken_at);
-  await call("PUT", `${base}/memo`, { path: "設計/DB.md", content: "# 書き換えた\n", base_hash: null });
+  await call("PUT", `${base}/note`, { path: "設計/DB.md", content: "# 書き換えた\n", base_hash: null });
   const copy = (await uploads.resolve(snapshot.id))!.path;
   assert.equal(fs.readFileSync(copy, "utf8"), "# 初め\n");
 
   const created = await call("POST", `${base}/chats`, { text: "", attachments: [snapshot] });
   await until(() => store.chats.get(created.body.id)?.status === "completed");
   const prompt = provider.prompts.at(-1)!;
-  assert.match(prompt, /^添付したメモ（付けたときの中身の写しです。[^\n]*）:\n- .+DB\.md（メモ「設計\/DB\.md」を .+ に写したもの。元のメモ: .+）$/);
+  assert.match(prompt, /^添付したノート（付けたときの中身の写しです。[^\n]*）:\n- .+DB\.md（ノート「設計\/DB\.md」を .+ に写したもの。元のノート: .+）$/);
   assert.ok(prompt.includes(copy));
-  assert.ok(prompt.includes(path.join(memoDir, "設計/DB.md")));
+  assert.ok(prompt.includes(path.join(noteDir, "設計/DB.md")));
 
-  // ないメモ・外のパスは写せない
-  assert.equal((await call("POST", `${base}/memo/snapshot`, { path: "ない.md" })).status, 404);
-  assert.equal((await call("POST", `${base}/memo/snapshot`, { path: "../外.md" })).status, 400);
+  // ないノート・外のパスは写せない
+  assert.equal((await call("POST", `${base}/note/snapshot`, { path: "ない.md" })).status, 404);
+  assert.equal((await call("POST", `${base}/note/snapshot`, { path: "../外.md" })).status, 400);
 });

@@ -96,8 +96,8 @@ function ConnectionNode({ connection: c, connected, isOpen, toggle, menu, onMenu
                 <StatusDot tone="ok" />
               </span>
             )}
-            {c.memo_path && (
-              <span className="db-tree-memo" data-tip={`手順メモ: ${c.memo_path}`} aria-label="手順メモあり">
+            {c.note_path && (
+              <span className="db-tree-note" data-tip={`手順ノート: ${c.note_path}`} aria-label="手順ノートあり">
                 <StickyNote size={11} aria-hidden />
               </span>
             )}

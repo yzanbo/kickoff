@@ -9,7 +9,7 @@ import { SideChanges } from "@/features/git/ui/SideChanges";
 import { SideChildChat } from "@/features/conversation/ui/screens/SideChildChat";
 import { NewChildPane } from "@/features/conversation/ui/screens/NewChildPane";
 import { createdChildPlace, openChildChat } from "@/features/chat/ui/open/openChat";
-import { SideMemo } from "@/features/notes/ui/SideMemo";
+import { SideNote } from "@/features/notes/ui/SideNote";
 import { LazyDatabaseClient } from "@/features/database/ui/LazyDatabaseClient";
 import { GitHubTab } from "@/features/github/ui/GitHubTab";
 import { CiTab } from "@/features/github/ui/ci/CiTab";
@@ -18,7 +18,7 @@ import { TrashTab } from "@/features/trash/ui/TrashTab";
 import { ProjectFileTab } from "@/features/files/ui/ProjectFileTab";
 import { SideFileView } from "@/features/files/ui/SideFileView";
 import { SideProjectView } from "@/features/projects/ui/views/SideProjectView";
-import { childTab, memoTab, terminalTitle } from "./tabKinds";
+import { childTab, noteTab, terminalTitle } from "./tabKinds";
 import { canPopOut, popOutTab } from "./popOutTab";
 import { TabPageContext, TabVisibleContext } from "./tabPageContext";
 import { useKeepAlive } from "@/features/chat/ui/screen/keepAlive";
@@ -48,7 +48,7 @@ interface PageProps<T extends PanelTab> {
 
 /**
  * タブの種類ごとの中身（どの部品を描き、中身からの知らせでタブをどう変えるか）。中身からタブへの知らせは、どれも patchTab（その種類のタブの中身だけを変える）か、
- * 送った新しいチャットを置き換える replaceWithChat・replaceTab（新しい子チャット・名前を変えたメモ）。種類の決まりのほか（アイコン・名前・後始末・まとまり）は tabKinds.ts の表
+ * 送った新しいチャットを置き換える replaceWithChat・replaceTab（新しい子チャット・名前を変えたノート）。種類の決まりのほか（アイコン・名前・後始末・まとまり）は tabKinds.ts の表
  */
 const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>) => ReactNode } = {
   chat: ({ tab: t, panel, visible }) => (
@@ -90,7 +90,7 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
         // 固定していた下書きは、できたチャットも固定する（送るまでの間に固定を付け外ししていても、いまの値で）
         const now = panelStateOf(panel.key).tabs.find((x) => x.key === t.key);
         if (now?.kind === "new" && now.pinned) void api.pinChat(chat.id, true).catch(reportFailure("ピン留めできませんでした"));
-        // 下書きの右の欄（開いたメモなど）は、できたチャットの右の欄へ移す
+        // 下書きの右の欄（開いたノートなど）は、できたチャットの右の欄へ移す
         moveDraftSidePanel(t.key, chat.id);
         panel.replaceWithChat(t.key, chat);
       }}
@@ -108,9 +108,9 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   // プロジェクトの「ファイル」「検索」「変更」タブの右だけに開く（中身が使う Git の状態などは EditorTab が FileTabsContext で渡す）
   projectFile: ({ tab: t, panel }) => <ProjectFileTab tab={t} panelKey={panel.key} />,
   file: ({ tab: t, panel }) => <SideFileView projectId={t.projectId} worktree={t.worktree} path={t.path} line={t.line} tabOf={{ panelKey: panel.key, tabKey: t.key }} />,
-  // チャットの画面の右の欄だけに開く。プロジェクトのメモ（自動で保存）と、子チャット（孫・ひ孫も、いちばん上の親の右の欄）
-  // 名前を変えたら、新しい名前のメモのタブに置き換える（同じ位置のまま）
-  memo: ({ tab: t, panel }) => <SideMemo projectId={t.projectId} path={t.path} chatId={t.chatId} onRenamed={(to) => panel.replaceTab(t.key, memoTab({ chatId: t.chatId, projectId: t.projectId, path: to }))} />,
+  // チャットの画面の右の欄だけに開く。プロジェクトのノート（自動で保存）と、子チャット（孫・ひ孫も、いちばん上の親の右の欄）
+  // 名前を変えたら、新しい名前のノートのタブに置き換える（同じ位置のまま）
+  note: ({ tab: t, panel }) => <SideNote projectId={t.projectId} path={t.path} chatId={t.chatId} onRenamed={(to) => panel.replaceTab(t.key, noteTab({ chatId: t.chatId, projectId: t.projectId, path: to }))} />,
   // チャットの画面の右の欄だけに開く。DB クライアント（開いているタブ・木の開き具合はチャットごとに覚える。別ウィンドウと同じ place）
   database: ({ tab: t }) => <LazyDatabaseClient projectId={t.projectId} place={`chat-${t.chatId}`} worktree={t.worktree ?? null} />,
   // チャットの画面の右の欄だけに開く。プロジェクトの「GitHub」タブと同じ画面（狭いので一覧と中身を切り替えて出す。絞り込みと開いているものはプロジェクトのタブと共通）

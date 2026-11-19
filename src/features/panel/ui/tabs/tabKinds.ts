@@ -103,13 +103,13 @@ export const fileTab = ({ chatId, projectId, worktree, path, line }: Omit<TabOf<
   ...(line ? { line } : {}),
 });
 
-/** メモのタブのキー（同じメモは、その欄に 1 つのタブ） */
-export const memoTabKey = (projectId: number, path: string) => `memo:${projectId}:${path}`;
+/** ノートのタブのキー（同じノートは、その欄に 1 つのタブ） */
+export const noteTabKey = (projectId: number, path: string) => `note:${projectId}:${path}`;
 
-/** 右の欄に開くメモのタブ */
-export const memoTab = ({ chatId, projectId, path }: Omit<TabOf<"memo">, "key" | "kind">): TabOf<"memo"> => ({
-  key: memoTabKey(projectId, path),
-  kind: "memo",
+/** 右の欄に開くノートのタブ */
+export const noteTab = ({ chatId, projectId, path }: Omit<TabOf<"note">, "key" | "kind">): TabOf<"note"> => ({
+  key: noteTabKey(projectId, path),
+  kind: "note",
   chatId,
   projectId,
   path,
@@ -204,7 +204,7 @@ interface TabKindSpec<T extends PanelTab> {
   icon: LucideIcon;
   iconClass?: string;
   /**
-   * 名前の前に置く種類の札（チャットの画面の右の欄に並ぶメモ・サブエージェント・子チャットを、タブを見ただけで見分ける）。札があるタブは、
+   * 名前の前に置く種類の札（チャットの画面の右の欄に並ぶノート・サブエージェント・子チャットを、タブを見ただけで見分ける）。札があるタブは、
    * 上の 1px の線と表示中の枠も同じ形で、色だけ種類ごとに変える（CSS の panel/side-panel-tab-kinds.css）
    */
   badge?: string;
@@ -229,7 +229,7 @@ interface TabKindSpec<T extends PanelTab> {
   /** どのまとまりに入るか（グループ別・作業場所別にまとめるとき） */
   cluster: (tab: T, resolve: ClusterResolver) => BucketHead;
   /**
-   * 別ウィンドウで開けるタブ（チャットの画面の右の欄のサブエージェント・変更・ファイル・メモ・子チャット、パネルのブラウザ・ターミナル）の行き先とウィンドウの名前。
+   * 別ウィンドウで開けるタブ（チャットの画面の右の欄のサブエージェント・変更・ファイル・ノート・子チャット、パネルのブラウザ・ターミナル）の行き先とウィンドウの名前。
    * panel はタブのある欄（戻す先）
    */
   popout?: (tab: T, panel: string) => { route: PopoutRoute; title: string };
@@ -332,16 +332,16 @@ const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     lazy: true,
     cluster: () => OTHER_CLUSTER,
   },
-  memo: {
+  note: {
     icon: StickyNote,
-    badge: "メモ",
+    badge: "ノート",
     label: (t) => baseName(t.path),
-    hint: (t) => `メモ: ${t.path}`,
+    hint: (t) => `ノート: ${t.path}`,
     projectOf: (t) => t.projectId,
-    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）。メモのタブの右（memos）で開いたものはチャットなし
+    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）。ノートのタブの右（notes）で開いたものはチャットなし
     chatIdOf: (t) => t.chatId,
     cluster: () => OTHER_CLUSTER,
-    popout: (t) => ({ route: { kind: "memo", projectId: t.projectId, path: t.path, ...(t.chatId !== null ? { chatId: t.chatId } : {}) }, title: `${baseName(t.path)} — メモ` }),
+    popout: (t) => ({ route: { kind: "note", projectId: t.projectId, path: t.path, ...(t.chatId !== null ? { chatId: t.chatId } : {}) }, title: `${baseName(t.path)} — ノート` }),
   },
   database: {
     icon: Database,

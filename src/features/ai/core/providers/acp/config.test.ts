@@ -45,7 +45,7 @@ test("権限の答えの選択肢: 種類で選ぶ（このセッションの間
 test("ツールの名前: コアの MCP サーバーのツールは mcp__<サーバー>__<ツール>、新しいファイルは Write、消すのは MultiEdit（deleted）", () => {
   const servers = ["kickoff_chat"];
   assert.deepEqual(mcpToolOf({ toolCallId: "t", title: "kickoff_chat/list_family_chats" }, servers), { server: "kickoff_chat", tool: "list_family_chats" });
-  assert.deepEqual(mcpToolOf({ toolCallId: "t", name: "mcp__kickoff_chat__open_memo" }, servers), { server: "kickoff_chat", tool: "open_memo" });
+  assert.deepEqual(mcpToolOf({ toolCallId: "t", name: "mcp__kickoff_chat__open_note" }, servers), { server: "kickoff_chat", tool: "open_note" });
   assert.equal(mcpToolOf({ toolCallId: "t", title: "mcp__other__x" }, servers), null);
   assert.deepEqual(callAsTools({ toolCallId: "t", kind: "edit", content: [{ type: "diff", path: "/w/n.ts", oldText: null, newText: "x" }] }, servers), [{ name: "Write", input: { file_path: "/w/n.ts", content: "x" } }]);
   assert.deepEqual(callAsTools({ toolCallId: "t", kind: "delete", locations: [{ path: "/w/old.ts" }] }, servers), [{ name: "MultiEdit", input: { file_path: "/w/old.ts", edits: [{ old_string: "", new_string: "" }], deleted: true } }]);

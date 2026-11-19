@@ -104,7 +104,7 @@ export function PaneTabBar({
   useEffect(() => {
     stripRef.current?.querySelector(".panel-tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [active, pane.tabs.length]);
-  /** ペインを閉じる（閉じるファイル・メモのタブに保存していない書きかけがあれば、先に保存するかを聞く） */
+  /** ペインを閉じる（閉じるファイル・ノートのタブに保存していない書きかけがあれば、先に保存するかを聞く） */
   const closePane = () => {
     const tabs = panel.tabs.filter((t) => pane.tabs.includes(t.key));
     void confirmCloseAllUnsaved(panel.key, tabs).then((ok) => ok && panel.closePane(pane.id));
@@ -246,7 +246,7 @@ export function PaneTabBar({
         openWithShown={openWithShown}
       />
       )}
-      {/* 新しい子チャット: 出す種類が決まっている欄（右の欄）の新しいタブのボタン。横の ▾ で、ほかに右の欄に開けるもの（子チャット・サブエージェント・ファイル・検索・変更・履歴・メモ）を選ぶ */}
+      {/* 新しい子チャット: 出す種類が決まっている欄（右の欄）の新しいタブのボタン。横の ▾ で、ほかに右の欄に開けるもの（子チャット・サブエージェント・ファイル・検索・変更・履歴・ノート）を選ぶ */}
       {onNewChild && <AgentPanelAdds panel={panel} onNewChild={onNewChild} />}
       {/* ペインを分ける・閉じる（右端。右の欄は分けるボタンを置かない noSplitButtons） */}
       <span className="panel-bar-buttons panel-pane-tools">

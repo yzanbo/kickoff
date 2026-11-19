@@ -20,7 +20,7 @@
   "docker_changed",
   "group",
   "group_deleted",
-  "memos",
+  "notes",
   "open_view",
   "pairing",
   "ports_changed",

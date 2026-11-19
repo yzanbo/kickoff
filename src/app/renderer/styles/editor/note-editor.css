@@ -1,0 +1,208 @@
+/* ==== ノートの編集（CodeMirror。features/note/NoteEditor）: Markdown 表示（ライブプレビュー）とそのまま表示 ==== */
+
+/* 本文の上に AI の案（note-ai.css）を出すときは、残りの高さを使う */
+.md-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.md-editor .cm-editor {
+  height: 100%;
+  color: var(--text);
+  background: transparent;
+}
+
+.md-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.md-editor .cm-scroller {
+  overflow: auto;
+  font-family: inherit;
+  line-height: 1.7;
+}
+
+/* 読みやすい幅で、上下に余白（Obsidian と同じく、広い欄でも文は真ん中に寄せない） */
+.md-editor .cm-content {
+  max-width: 820px;
+  padding: 16px 24px 40vh;
+  caret-color: var(--text);
+}
+
+.md-editor .cm-cursor {
+  border-left-color: var(--text);
+}
+
+/* そのまま表示: 記号も同じ幅の文字で */
+.md-editor.source .cm-scroller {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+/* Markdown 表示: 見出し */
+.md-editor .cm-md-h1,
+.md-editor .cm-md-h2,
+.md-editor .cm-md-h3,
+.md-editor .cm-md-h4,
+.md-editor .cm-md-h5,
+.md-editor .cm-md-h6 {
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.md-editor .cm-md-h1 {
+  font-size: 1.7em;
+}
+
+.md-editor .cm-md-h2 {
+  font-size: 1.4em;
+}
+
+.md-editor .cm-md-h3 {
+  font-size: 1.2em;
+}
+
+.md-editor .cm-md-h4 {
+  font-size: 1.05em;
+}
+
+.md-editor .cm-md-h5,
+.md-editor .cm-md-h6 {
+  color: var(--muted);
+}
+
+/* 文字の見た目 */
+.md-editor .cm-md-strong {
+  font-weight: 700;
+}
+
+.md-editor .cm-md-em {
+  font-style: italic;
+}
+
+.md-editor .cm-md-strike {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+/* リンクは色だけで示す（このアプリは下線を使わない） */
+.md-editor .cm-md-link {
+  color: var(--accent-fg);
+}
+
+.md-editor .cm-md-code {
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--bg-elev);
+}
+
+/* 引用: 左の線と薄い文字 */
+.md-editor .cm-md-quote {
+  padding-left: 12px;
+  border-left: 3px solid var(--border-strong);
+  color: var(--muted);
+}
+
+/* コードの塊: 同じ幅の文字と地 */
+.md-editor .cm-md-codeblock {
+  padding-left: 10px;
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--bg-elev);
+}
+
+/* 箇条書きの「•」・タスクのチェックボックス・区切り線 */
+.md-editor .cm-md-bullet {
+  color: var(--muted);
+}
+
+.md-editor .cm-md-task {
+  margin: 0 4px 0 0;
+  vertical-align: middle;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.md-editor .cm-md-rule {
+  display: inline-block;
+  width: 100%;
+  vertical-align: middle;
+  border-top: 1px solid var(--border-strong);
+}
+
+/* Mermaid の図（liveRich。```mermaid の塊。描くまでは低い枠）。カーソルを中に入れると元の文に戻る */
+.md-editor .cm-md-mermaid {
+  min-height: 48px;
+  margin: 0.4em 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sidebar);
+}
+
+.md-editor .cm-md-mermaid.failed {
+  font-size: 12px;
+  color: var(--ng);
+}
+
+/* 数式（liveRich。KaTeX）。段落の数式は真ん中に置き、欄の幅に収まらなければ横にスクロール */
+.md-editor .cm-md-math .katex {
+  font-size: 1.1em;
+}
+
+.md-editor .cm-md-math-display {
+  padding: 0.4em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.md-editor .cm-md-math-display .katex-display {
+  margin: 0;
+}
+
+/*
+ * ⌘F の検索の欄（noteFindPanel。中は ui/FindField で、ほかの検索の欄と同じ見た目）: CodeMirror の上の帯にせず、
+ * ページの検索の欄と同じく本文の右上に浮かせる（帯の地・線は消す。本文はずれない）。見つかった文字の印はチャットの検索と同じ色
+ */
+.md-editor .cm-panels.cm-panels-top {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  left: auto;
+  z-index: 5;
+  width: min(400px, calc(100% - 24px));
+  border: 0;
+  color: var(--text);
+  background: transparent;
+}
+
+.note-find {
+  box-shadow: 0 4px 12px rgb(0 0 0 / 25%);
+}
+
+.md-editor .cm-searchMatch {
+  background-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+.md-editor .cm-searchMatch-selected {
+  color: #000;
+  background-color: var(--warn);
+}
+
+
+/*
+ * HTML のノートのページの表示（HtmlNotePage）。中身のページの見た目のまま描くので、ページの既定と同じ白地に置く。
+ * 配色は明るい側に決める: iframe の中のページは、この要素の color-scheme を「周りの配色」として受け継ぐので、アプリのダーク
+ * （tokens.css の color-scheme: dark）のままだと、color-scheme: light dark と書いたページが暗い配色を選び、白い地に白い文字になった
+ */
+.note-html-page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  color-scheme: light;
+  background: #fff;
+}

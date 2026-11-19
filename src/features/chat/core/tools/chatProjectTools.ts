@@ -1,4 +1,4 @@
-// kickoff_chat のプロジェクトに足す・変えるツール（add_snippet・move_memo）。中身は core/chat/aiProject.ts、ここは引数の形と使い方だけ
+// kickoff_chat のプロジェクトに足す・変えるツール（add_snippet・move_note）。中身は core/chat/aiProject.ts、ここは引数の形と使い方だけ
 import { defineTool as tool } from "@/foundation/core/aiTools/tool";
 import { z } from "zod";
 import { SNIPPET_LABEL_MAX, SNIPPET_TEXT_MAX } from "@shared/types";
@@ -8,12 +8,12 @@ import { run } from "@/foundation/core/aiTools/chatToolResult";
 /** プロジェクトに足す・変えるツールの使い方（MCP の instructions として AI に渡す） */
 export const PROJECT_INSTRUCTIONS = [
   "add_snippet は、このプロジェクトの定型文（チャット欄の上の帯から入力欄に入れる、よく使う文）に足す。足すだけで、直す・消すはできない。すべてのプロジェクトで使うかは利用者が画面で決める。利用者が「定型文にして」「定型文に登録して」と頼んだときに使う。",
-  "move_memo は、このプロジェクトのメモ（メモのフォルダの .md・.html とフォルダ）の名前を変える・別のフォルダへ移す。行き先に同じ名前があれば断る（上書きしない）。拡張子は変えられない。メモの名前の変更・移動は Bash の mv ではなく必ずこれを使う（mv だとメモのチャットとのつながりが切れる）。",
+  "move_note は、このプロジェクトのノート（ノートのフォルダの .md・.html とフォルダ）の名前を変える・別のフォルダへ移す。行き先に同じ名前があれば断る（上書きしない）。拡張子は変えられない。ノートの名前の変更・移動は Bash の mv ではなく必ずこれを使う（mv だとノートのチャットとのつながりが切れる）。",
 ];
 
 /** プロジェクトに足す・変えるツール（聞かずに行う） */
 export function projectTools(project: AiProjectTools) {
-  const memoPath = z.string().min(1);
+  const notePath = z.string().min(1);
   return [
     tool(
       "add_snippet",
@@ -25,13 +25,13 @@ export function projectTools(project: AiProjectTools) {
       run((args) => project.addSnippet(args)),
     ),
     tool(
-      "move_memo",
-      "このプロジェクトのメモ（ファイル・フォルダ）の名前を変える・移す（上書きしない）",
+      "move_note",
+      "このプロジェクトのノート（ファイル・フォルダ）の名前を変える・移す（上書きしない）",
       {
-        from: memoPath.describe("いまのメモのパス（メモのフォルダからの相対パスか、メモのフォルダの中の絶対パス）"),
-        to: memoPath.describe("新しいパス（同じ形。途中のフォルダはなければ作る）"),
+        from: notePath.describe("いまのノートのパス（ノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パス）"),
+        to: notePath.describe("新しいパス（同じ形。途中のフォルダはなければ作る）"),
       },
-      run((args) => project.moveMemo(args)),
+      run((args) => project.moveNote(args)),
     ),
   ];
 }

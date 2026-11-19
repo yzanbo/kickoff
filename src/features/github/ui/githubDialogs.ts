@@ -1,10 +1,10 @@
 // GitHub の書き込みのダイアログ（新しい issue・マージ）を開く頼み。App と別ウィンドウに 1 つずつ置く GitHubDialogHost が描く
-// （メモ・チャットの発言の右クリックの「issue にする」のように、GitHub タブの外からも開けるように）
+// （ノート・チャットの発言の右クリックの「issue にする」のように、GitHub タブの外からも開けるように）
 import { useSyncExternalStore } from "react";
 import type { GitHubPullDetail } from "@shared/types";
 
 export type GitHubDialogRequest =
-  /** 新しい issue（body は初めに入れておく本文。メモ・チャットの「issue にする」は選んだ文か全体） */
+  /** 新しい issue（body は初めに入れておく本文。ノート・チャットの「issue にする」は選んだ文か全体） */
   | { kind: "new_issue"; projectId: number; body: string; onCreated?: (number: number) => void }
   /** PR のマージの確認（onMerged はマージできたとき） */
   | { kind: "merge"; projectId: number; detail: GitHubPullDetail; onMerged: () => void };

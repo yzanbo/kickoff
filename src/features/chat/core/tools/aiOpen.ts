@@ -1,20 +1,20 @@
-// チャットの AI が、このプロジェクトのメモ・同じ家系のチャット・作業場所のファイルと差分・SQL のタブを画面に開き、家系のチャットの入力欄に下書きを入れる
-// （kickoff_chat の open_memo・open_chat・open_file・open_diff・open_sql・add_draft の中身。プロバイダーに依らない）。
+// チャットの AI が、このプロジェクトのノート・同じ家系のチャット・作業場所のファイルと差分・SQL のタブを画面に開き、家系のチャットの入力欄に下書きを入れる
+// （kickoff_chat の open_note・open_chat・open_file・open_diff・open_sql・add_draft の中身。プロバイダーに依らない）。
 // 開く・入れるだけで送る・流す・消すはしないので、聞かずに頼む（権限モード・Auto mode によらず承認カードを出さない）。コアは確かめてから SSE の
 // open_view・chat_draft で頼み、Mac のアプリのメインのウィンドウが、画面のいまの開き方（右の欄 / 別ウィンドウ）で開く（画面が開いたかは待たない）
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { AddDraftInput, OpenChatInput, OpenDiffInput, OpenFileInput, OpenMemoInput, OpenSqlInput } from "@shared/chat/aiOpen";
-import { memoExtensionOf } from "@shared/notes/kinds";
+import type { AddDraftInput, OpenChatInput, OpenDiffInput, OpenFileInput, OpenNoteInput, OpenSqlInput } from "@shared/chat/aiOpen";
+import { noteExtensionOf } from "@shared/notes/kinds";
 import { OPEN_PLACE_LABELS, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type OpenPlace, type Project } from "@shared/types";
 import type { Store } from "@/foundation/core/db/store";
 import { isInside, realPathOrSelf, relativeApiPath } from "@/foundation/core/system/paths";
 import { familyOf, lineageOf } from "./aiChatEdit";
 import { workdirOf } from "@/features/chat/core/workdir";
 
-/** メモ・家系のチャットを開くツールの中身（AI に返す文。開けなければ理由の文で throw） */
+/** ノート・家系のチャットを開くツールの中身（AI に返す文。開けなければ理由の文で throw） */
 export interface AiOpenTools {
-  openMemo(input: OpenMemoInput): Promise<string>;
+  openNote(input: OpenNoteInput): Promise<string>;
   openChat(input: OpenChatInput): string;
   openFile(input: OpenFileInput): Promise<string>;
   openDiff(input: OpenDiffInput): string;
@@ -31,8 +31,8 @@ export interface AiOpenDeps {
   store: Store;
   /** 画面に頼む（SSE） */
   publish: (event: BusEvent) => void;
-  /** プロジェクトのメモのフォルダ（なければメモは開けない） */
-  memoDirOf?: (project: Project) => string;
+  /** プロジェクトのノートのフォルダ（なければノートは開けない） */
+  noteDirOf?: (project: Project) => string;
 }
 
 /** 文の中の名前（空なら「名前なし」） */
@@ -42,18 +42,18 @@ const nameOf = (title: string) => title.trim() || "（名前なし）";
 const placeText = (place: OpenPlace | undefined, setting: string) => (place ? OPEN_PLACE_LABELS[place] : `設定の「${setting}」の場所`);
 
 /**
- * AI が渡したパスを、メモのフォルダからの相対パス（「/」区切り）にする。絶対パスはメモのフォルダの中だけ（リンクを解いた形でも比べる）。
+ * AI が渡したパスを、ノートのフォルダからの相対パス（「/」区切り）にする。絶対パスはノートのフォルダの中だけ（リンクを解いた形でも比べる）。
  * 外を指す・フォルダそのもの・「.」で始まる名前は throw
  */
-export function memoPathIn(dir: string, given: string): string {
+export function notePathIn(dir: string, given: string): string {
   const raw = given.trim();
-  if (!raw) throw new Error("path が空です。メモのフォルダからの相対パスか、メモのフォルダの中の絶対パスを渡してください");
+  if (!raw) throw new Error("path が空です。ノートのフォルダからの相対パスか、ノートのフォルダの中の絶対パスを渡してください");
   const abs = path.isAbsolute(raw) ? raw : path.join(dir, raw);
   const base = [dir, realPathOrSelf(dir)].find((d) => isInside(d, abs) || isInside(d, realPathOrSelf(abs)));
-  if (!base) throw new Error(`${raw} はこのプロジェクトのメモのフォルダ（${dir}）の外です。開けるのはメモのフォルダの中のメモだけです`);
+  if (!base) throw new Error(`${raw} はこのプロジェクトのノートのフォルダ（${dir}）の外です。開けるのはノートのフォルダの中のノートだけです`);
   const rel = relativeApiPath(base, isInside(base, abs) ? abs : realPathOrSelf(abs));
-  if (!rel) throw new Error("メモのフォルダそのものは開けません。メモのファイルを指してください");
-  if (rel.split("/").some((part) => part.startsWith("."))) throw new Error("「.」で始まる名前のファイル・フォルダは、メモとして扱いません");
+  if (!rel) throw new Error("ノートのフォルダそのものは開けません。ノートのファイルを指してください");
+  if (rel.split("/").some((part) => part.startsWith("."))) throw new Error("「.」で始まる名前のファイル・フォルダは、ノートとして扱いません");
   return rel;
 }
 
@@ -72,9 +72,9 @@ function workPathIn(dir: string, given: string): string {
 }
 
 /**
- * chatId のチャットの AI に渡す、メモ・家系のチャットなどを開く・下書きを入れるツールの中身。家系・メモ・接続は呼ぶたびに引き直す
+ * chatId のチャットの AI に渡す、ノート・家系のチャットなどを開く・下書きを入れるツールの中身。家系・ノート・接続は呼ぶたびに引き直す
  */
-export function createAiOpenTools({ store, publish, memoDirOf }: AiOpenDeps, chatId: number): AiOpenTools {
+export function createAiOpenTools({ store, publish, noteDirOf }: AiOpenDeps, chatId: number): AiOpenTools {
   const requireSelf = (): Chat => {
     const chat = store.chats.get(chatId);
     if (!chat) throw new Error("このチャットが見つかりません（消された可能性があります）");
@@ -99,17 +99,17 @@ export function createAiOpenTools({ store, publish, memoDirOf }: AiOpenDeps, cha
     return { target, label: `チャット「${nameOf(target.title)}」（ID ${target.id}・${relationOf(target)}）` };
   };
   return {
-    async openMemo(input) {
+    async openNote(input) {
       const self = requireSelf();
       const project = store.projects.get(self.project_id);
-      if (!project || !memoDirOf) throw new Error("このプロジェクトのメモのフォルダが分からないため、メモを開けません");
-      const dir = memoDirOf(project);
-      const rel = memoPathIn(dir, input.path);
-      if (!memoExtensionOf(rel)) throw new Error(`${rel} はメモ（.md・.markdown・.html・.htm）ではありません`);
+      if (!project || !noteDirOf) throw new Error("このプロジェクトのノートのフォルダが分からないため、ノートを開けません");
+      const dir = noteDirOf(project);
+      const rel = notePathIn(dir, input.path);
+      if (!noteExtensionOf(rel)) throw new Error(`${rel} はノート（.md・.markdown・.html・.htm）ではありません`);
       const stat = await fs.stat(path.join(dir, rel)).catch(() => null);
-      if (!stat?.isFile()) throw new Error(`メモ ${rel} が見つかりません（メモのフォルダ: ${dir}）`);
-      publish({ type: "open_view", request: { kind: "memo", project_id: project.id, path: rel, place: input.place ?? null, lineage: lineageOf(store, self) } });
-      return `メモ「${rel}」を${placeText(input.place, "チャットからメモを開く場所")}で開くよう、画面に頼みました（開けたかは返りません）。`;
+      if (!stat?.isFile()) throw new Error(`ノート ${rel} が見つかりません（ノートのフォルダ: ${dir}）`);
+      publish({ type: "open_view", request: { kind: "note", project_id: project.id, path: rel, place: input.place ?? null, lineage: lineageOf(store, self) } });
+      return `ノート「${rel}」を${placeText(input.place, "チャットからノートを開く場所")}で開くよう、画面に頼みました（開けたかは返りません）。`;
     },
     openChat(input) {
       const self = requireSelf();

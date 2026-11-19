@@ -112,8 +112,8 @@ export interface AppSettings {
   voice_tts_openai_voice: string;
   /** 読み上げの速さ（1 が標準。VOICE_TTS_RATE_MIN〜MAX） */
   voice_tts_rate: number;
-  /** メモの親フォルダ（この下にプロジェクトごとのフォルダを作る。null なら既定の ~/Documents/kickoff。開発版は kickoff-dev） */
-  memos_dir: string | null;
+  /** ノートの親フォルダ（この下にプロジェクトごとのフォルダを作る。null なら既定の ~/Documents/kickoff。開発版は kickoff-dev） */
+  notes_dir: string | null;
   /** 自動圧縮を始めるコンテキストの使用率（%。null なら Claude Code の既定。Claude Code の CLAUDE_AUTOCOMPACT_PCT_OVERRIDE で渡す） */
   auto_compact_pct: number | null;
   /** 共通の圧縮前指示（会話を圧縮する前に AI に送る指示。プロジェクトの指示があれば、そのあとにつなぐ。null ならなし。@shared/chat/prompts） */
@@ -156,7 +156,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   voice_tts_voice: "",
   voice_tts_openai_voice: "coral",
   voice_tts_rate: 1,
-  memos_dir: null,
+  notes_dir: null,
   auto_compact_pct: null,
   pre_compact_prompt: null,
   post_compact_prompt: null,

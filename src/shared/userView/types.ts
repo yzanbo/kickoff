@@ -17,7 +17,7 @@ export type UserViewTab = (
   | { kind: "subagent"; title: string }
   | { kind: "editor"; path: string; worktree: string | null; line: number | null; selection: UserViewSelection | null }
   | { kind: "changes"; worktree: string | null; focus: string | null }
-  | { kind: "memo"; path: string; selected_text: string | null }
+  | { kind: "note"; path: string; selected_text: string | null }
   | { kind: "browser"; url: string; title: string }
   | { kind: "github"; item: { kind: "issue" | "pr"; number: number } | null }
   | { kind: "database"; connection: string | null; table: string | null }

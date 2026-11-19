@@ -41,7 +41,7 @@ export function PanelTab({
   active: boolean;
   icon: LucideIcon;
   iconClass?: string;
-  /** 名前の前に置く種類の札（メモ・サブ・子）。タブの枠もその種類の色にする（kind で色を分ける。CSS の .tab-kind-<kind>） */
+  /** 名前の前に置く種類の札（ノート・サブ・子）。タブの枠もその種類の色にする（kind で色を分ける。CSS の .tab-kind-<kind>） */
   badge?: { text: ReactNode; kind: string };
   label: string;
   /** 名前のすぐ後ろに添えるもの（子チャットの動きの印 ChildActivityMark。2 行のタブでも名前の行に置く） */

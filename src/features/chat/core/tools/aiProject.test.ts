@@ -1,9 +1,9 @@
-// チャットの AI がプロジェクトに足す・変えるツールの中身（定型文はこのプロジェクトだけに足す・メモはメモのフォルダの中で動かし、つながりを付け替える）
+// チャットの AI がプロジェクトに足す・変えるツールの中身（定型文はこのプロジェクトだけに足す・ノートはノートのフォルダの中で動かし、つながりを付け替える）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import { MemoService } from "@/features/notes/core/memos";
+import { NoteService } from "@/features/notes/core/notes";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { setupCore } from "@/app/core/testing/testCore";
 import { tempDir } from "@/foundation/core/testing/tempDir";
@@ -12,14 +12,14 @@ import { createAiProjectTools } from "./aiProject";
 function setup() {
   const ctx = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s", turns: 1, result: "" })));
   const base = { project_id: ctx.project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, parent_chat_id: null };
-  const chat = ctx.store.chats.create({ ...base, title: "作業", memo_path: null });
-  const memos = new MemoService({ store: ctx.store, defaultDir: tempDir(), providers: ctx.providers, publish: () => {}, trashBin: { putPath: async () => { throw new Error("使わない"); } } });
-  const dir = memos.dirOf(ctx.store.projects.get(ctx.project.id)!);
+  const chat = ctx.store.chats.create({ ...base, title: "作業", note_path: null });
+  const notes = new NoteService({ store: ctx.store, defaultDir: tempDir(), providers: ctx.providers, publish: () => {}, trashBin: { putPath: async () => { throw new Error("使わない"); } } });
+  const dir = notes.dirOf(ctx.store.projects.get(ctx.project.id)!);
   fs.mkdirSync(path.join(dir, "済"), { recursive: true });
   fs.writeFileSync(path.join(dir, "案.md"), "# 案");
   fs.writeFileSync(path.join(dir, "済", "前の案.md"), "# 前");
-  const memoChat = ctx.store.chats.create({ ...base, title: "案のメモのチャット", memo_path: "案.md" });
-  return { ...ctx, chat, memoChat, memos, dir, tools: createAiProjectTools({ store: ctx.store, memos }, chat.id) };
+  const noteChat = ctx.store.chats.create({ ...base, title: "案のノートのチャット", note_path: "案.md" });
+  return { ...ctx, chat, noteChat, notes, dir, tools: createAiProjectTools({ store: ctx.store, notes }, chat.id) };
 }
 
 test("add_snippet: このプロジェクトだけの定型文として足す（名前を省けば null）。空・長すぎるは断る", () => {
@@ -37,16 +37,16 @@ test("add_snippet: このプロジェクトだけの定型文として足す（�
   assert.throws(() => ctx.tools.addSnippet({ text: "a", label: "あ".repeat(41) }), /40 文字まで/);
 });
 
-test("move_memo: メモのフォルダの中で動かし、メモのチャットのつながりも付け替える。上書き・外・拡張子の変更は断る", async () => {
+test("move_note: ノートのフォルダの中で動かし、ノートのチャットのつながりも付け替える。上書き・外・拡張子の変更は断る", async () => {
   const ctx = setup();
-  assert.match(await ctx.tools.moveMemo({ from: "案.md", to: "済/案.md" }), /「案.md」を「済\/案.md」に動かしました/);
+  assert.match(await ctx.tools.moveNote({ from: "案.md", to: "済/案.md" }), /「案.md」を「済\/案.md」に動かしました/);
   assert.ok(fs.existsSync(path.join(ctx.dir, "済", "案.md")));
-  assert.equal(ctx.store.chats.get(ctx.memoChat.id)?.memo_path, "済/案.md");
-  await assert.rejects(ctx.tools.moveMemo({ from: "済/案.md", to: "済/前の案.md" }), /同じ名前/);
-  await assert.rejects(ctx.tools.moveMemo({ from: "済/案.md", to: "../外.md" }), /外です/);
-  await assert.rejects(ctx.tools.moveMemo({ from: "済/案.md", to: "済/案.html" }), /拡張子は変えられません/);
-  await assert.rejects(ctx.tools.moveMemo({ from: "ない.md", to: "ある.md" }), /見つかりません/);
+  assert.equal(ctx.store.chats.get(ctx.noteChat.id)?.note_path, "済/案.md");
+  await assert.rejects(ctx.tools.moveNote({ from: "済/案.md", to: "済/前の案.md" }), /同じ名前/);
+  await assert.rejects(ctx.tools.moveNote({ from: "済/案.md", to: "../外.md" }), /外です/);
+  await assert.rejects(ctx.tools.moveNote({ from: "済/案.md", to: "済/案.html" }), /拡張子は変えられません/);
+  await assert.rejects(ctx.tools.moveNote({ from: "ない.md", to: "ある.md" }), /見つかりません/);
   // フォルダごと
-  await ctx.tools.moveMemo({ from: "済", to: "archive/2026" });
-  assert.equal(ctx.store.chats.get(ctx.memoChat.id)?.memo_path, "archive/2026/案.md");
+  await ctx.tools.moveNote({ from: "済", to: "archive/2026" });
+  assert.equal(ctx.store.chats.get(ctx.noteChat.id)?.note_path, "archive/2026/案.md");
 });

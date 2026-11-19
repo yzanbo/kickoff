@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { VISUAL_FRAME_CSP, VISUAL_LIGHT_THEME, visualDocument, visualMemoHtml, visualThemeCss } from "./visualDocument";
+import { VISUAL_FRAME_CSP, VISUAL_LIGHT_THEME, visualDocument, visualNoteHtml, visualThemeCss } from "./visualDocument";
 
 test("visualThemeCss: 決めた変数だけを :root に置き、値の中の ; { } < は捨てる", () => {
   const css = visualThemeCss({ "--vis-bg": "#fff", "--vis-text": "red; } body { display: none", ...({ "--evil": "#000" } as object) });
@@ -29,9 +29,9 @@ test("VISUAL_FRAME_CSP: 決めた CDN のほかへは通信せず、フォーム
   assert.match(VISUAL_FRAME_CSP, /form-action 'none'/);
 });
 
-test("visualMemoHtml: 明るいテーマの値を置いた HTML のメモにする（題名は逃がす）", () => {
-  const memo = visualMemoHtml("<構成>", "<svg/>");
-  assert.match(memo, /<title>&lt;構成&gt;<\/title>/);
-  assert.match(memo, /--vis-bg: #ffffff;/);
-  assert.match(memo, /<body>\n<svg\/>\n<\/body>/);
+test("visualNoteHtml: 明るいテーマの値を置いた HTML のノートにする（題名は逃がす）", () => {
+  const note = visualNoteHtml("<構成>", "<svg/>");
+  assert.match(note, /<title>&lt;構成&gt;<\/title>/);
+  assert.match(note, /--vis-bg: #ffffff;/);
+  assert.match(note, /<body>\n<svg\/>\n<\/body>/);
 });

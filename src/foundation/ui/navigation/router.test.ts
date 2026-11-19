@@ -23,12 +23,12 @@ test("parse: ファイルタブで開くファイル（ファイルタブでだ�
   assert.deepEqual(parse("#/projects/3/files?line=4"), { name: "project", id: 3, tab: "files" });
   assert.deepEqual(parse("#/projects/3/search"), { name: "project", id: 3, tab: "search" });
   assert.deepEqual(parse("#/projects/3/history?file=a.ts"), { name: "project", id: 3, tab: "history" });
-  // 開くメモはメモのタブでだけ読む
-  assert.deepEqual(parse("#/projects/3/changes?memo=a.md"), { name: "project", id: 3, tab: "changes" });
-  // メモで移る行は、開くメモがあるときだけ（0・数でないものは付けない）
-  assert.deepEqual(parse("#/projects/3/memos?memo=a.md&line=7"), { name: "project", id: 3, tab: "memos", memo: "a.md", memoLine: 7 });
-  assert.deepEqual(parse("#/projects/3/memos?memo=a.md&line=0"), { name: "project", id: 3, tab: "memos", memo: "a.md" });
-  assert.deepEqual(parse("#/projects/3/memos?line=7"), { name: "project", id: 3, tab: "memos" });
+  // 開くノートはノートのタブでだけ読む
+  assert.deepEqual(parse("#/projects/3/changes?note=a.md"), { name: "project", id: 3, tab: "changes" });
+  // ノートで移る行は、開くノートがあるときだけ（0・数でないものは付けない）
+  assert.deepEqual(parse("#/projects/3/notes?note=a.md&line=7"), { name: "project", id: 3, tab: "notes", note: "a.md", noteLine: 7 });
+  assert.deepEqual(parse("#/projects/3/notes?note=a.md&line=0"), { name: "project", id: 3, tab: "notes", note: "a.md" });
+  assert.deepEqual(parse("#/projects/3/notes?line=7"), { name: "project", id: 3, tab: "notes" });
 });
 
 test("parse: 新しいチャットとチャット（focus は 0 なら付けない）", () => {
@@ -49,10 +49,10 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "files", file: { path: "README.md" } },
     { name: "project", id: 1, tab: "files" },
     { name: "project", id: 1, tab: "search" },
-    { name: "project", id: 1, tab: "memos" },
+    { name: "project", id: 1, tab: "notes" },
     { name: "project", id: 1, tab: "chats" },
-    { name: "project", id: 1, tab: "memos", memo: "設計/DB の方針.md" },
-    { name: "project", id: 1, tab: "memos", memo: "設計/DB の方針.md", memoLine: 12 },
+    { name: "project", id: 1, tab: "notes", note: "設計/DB の方針.md" },
+    { name: "project", id: 1, tab: "notes", note: "設計/DB の方針.md", noteLine: 12 },
     { name: "newChat", projectId: 2, group: 4 },
     { name: "newChat", projectId: 2, worktree: "/x/app-worktrees/feature-a b" },
     { name: "newChat", projectId: 2, group: 4, worktree: "/x/app-worktrees/w" },
@@ -78,10 +78,10 @@ test("boardTabOf: チャット・新しいチャットの URL では、チャッ
   assert.equal(boardTabOf("separate"), "chats");
 });
 
-test("lastingRoute: 起動したときに開く画面として覚えるのは、一度きりの指定（開くファイル・メモ・強調する発言）を外した形", () => {
+test("lastingRoute: 起動したときに開く画面として覚えるのは、一度きりの指定（開くファイル・ノート・強調する発言）を外した形", () => {
   assert.equal(href(lastingRoute(parse("#/projects/3/files?file=src%2Fa.ts&line=4"))), "#/projects/3/files");
-  assert.equal(href(lastingRoute(parse("#/projects/3/memos?memo=a.md"))), "#/projects/3/memos");
-  assert.equal(href(lastingRoute(parse("#/projects/3/memos?memo=a.md&line=4"))), "#/projects/3/memos");
+  assert.equal(href(lastingRoute(parse("#/projects/3/notes?note=a.md"))), "#/projects/3/notes");
+  assert.equal(href(lastingRoute(parse("#/projects/3/notes?note=a.md&line=4"))), "#/projects/3/notes");
   assert.equal(href(lastingRoute(parse("#/projects/3/chats/9?event=12"))), "#/projects/3/chats/9");
   assert.equal(href(lastingRoute(parse("#/projects/3/changes"))), "#/projects/3/changes");
   assert.equal(href(lastingRoute(parse("#/projects/3/new?group=2"))), "#/projects/3/new?group=2");
@@ -107,7 +107,7 @@ test("navigate: replace は画面の履歴も置き換える通知を添え、�
   navigate({ name: "chat", projectId: 3, chatId: 9 }, { replace: true });
   assert.deepEqual(replacements, ["#/projects/3/chats/9"]);
   assert.deepEqual(received, [{ hash: "#/projects/3/chats/9", replace: true }]);
-  navigate({ name: "project", id: 3, tab: "memos" });
-  assert.equal(location.hash, "#/projects/3/memos");
+  navigate({ name: "project", id: 3, tab: "notes" });
+  assert.equal(location.hash, "#/projects/3/notes");
   assert.equal(replacements.length, 1);
 });

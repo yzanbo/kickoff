@@ -36,8 +36,8 @@ const settingsSchema = z
     voice_tts_voice: z.string().trim().max(200),
     voice_tts_openai_voice: z.enum(OPENAI_TTS_VOICES),
     voice_tts_rate: z.number().min(VOICE_TTS_RATE_MIN).max(VOICE_TTS_RATE_MAX),
-    // メモの親フォルダ（null なら既定の場所）
-    memos_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
+    // ノートの親フォルダ（null なら既定の場所）
+    notes_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
     // 自動圧縮を始める使用率（null なら Claude Code の既定）
     auto_compact_pct: z.number().int().min(AUTO_COMPACT_PCT_MIN).max(AUTO_COMPACT_PCT_MAX).nullable(),
     // 共通の圧縮前指示（null ならなし）

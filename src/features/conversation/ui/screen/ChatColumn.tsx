@@ -53,12 +53,12 @@ export const ChatColumn = memo(function ChatColumn({ chat, project, focus, visib
     <SubagentsContext.Provider value={view.subagentsView}>
       <VisualsContext.Provider value={visuals}>
         <BackgroundCallsContext.Provider value={backgroundCalls}>
-          {/* data-chat-id・data-chat-role: 右の欄・別ウィンドウで、選んだ所・右クリックした所のチャット（子チャット・メモのチャット）を見分ける */}
+          {/* data-chat-id・data-chat-role: 右の欄・別ウィンドウで、選んだ所・右クリックした所のチャット（子チャット・ノートのチャット）を見分ける */}
           <div
             ref={paneRoot}
             className={cx("chat-page chat-panel", wide && "wide")}
             data-chat-id={chat.id}
-            data-chat-role={chat.memo_path ? "memo" : chat.parent_chat_id !== null ? "child" : "chat"}
+            data-chat-role={chat.note_path ? "note" : chat.parent_chat_id !== null ? "child" : "chat"}
             onPointerDownCapture={() => noteForegroundProvider(chat.provider, `chat:${chat.id}`)}
           >
             <ChatHeader chat={chat} project={project} tail={log.tail} />

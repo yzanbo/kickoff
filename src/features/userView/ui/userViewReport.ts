@@ -41,7 +41,7 @@ export function useUserViewReport(collect: () => UserView, chatIds: (view: UserV
     schedule();
     const offPanels = subscribePanels(schedule);
     const offOpen = subscribeServerOpen(send);
-    // 選んでいる範囲（エディタ・メモ）・押したもの（GitHub の issue・DB のタブなど、設定に覚えるもの）・窓の前後が変わったら
+    // 選んでいる範囲（エディタ・ノート）・押したもの（GitHub の issue・DB のタブなど、設定に覚えるもの）・窓の前後が変わったら
     const events = ["selectionchange", "pointerup", "keyup"] as const;
     for (const name of events) document.addEventListener(name, schedule, true);
     window.addEventListener("focus", schedule);

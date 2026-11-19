@@ -110,20 +110,20 @@ const imports = STORAGE_IMPORTS;
 function scenarios(projectId, count) {
   const sidebarOpen = (grouping) => ({
     name: `サイドバー: プロジェクトの一覧を開く（${grouping}）`,
-    setup: `${imports} s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${grouping}"); f.foldAll("sidebar", true); location.hash = "#/projects/${projectId}/memos";`,
+    setup: `${imports} s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${grouping}"); f.foldAll("sidebar", true); location.hash = "#/projects/${projectId}/notes";`,
     action: `${imports} f.foldAll("sidebar", false);`,
     count: ROWS(projectId),
   });
   const sidebarSwitch = (from, to) => ({
     name: `サイドバー: まとめ方を切り替える（${from} → ${to}）`,
-    setup: `${imports} f.foldAll("sidebar", false); s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${from}"); location.hash = "#/projects/${projectId}/memos";`,
+    setup: `${imports} f.foldAll("sidebar", false); s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${from}"); location.hash = "#/projects/${projectId}/notes";`,
     action: `${imports} s.writeSetting(k.SIDEBAR_CHAT_SECTIONS, "${to}");`,
     count: ROWS(projectId),
   });
   const board = (name, view, columns, hash) => ({
     name,
     // 先にボードを閉じる（開いたボードは見え方を覚え直すので、開いたまま書くと戻される）
-    setup: `${imports} location.hash = "#/projects/${projectId}/memos"; await new Promise((r) => setTimeout(r, 500)); f.foldAll("sidebar", true); const v = s.readSetting(k.${hash === "#/" ? "ALL_PROJECTS_LAST_VIEW" : "PROJECT_LAST_VIEW"}); s.writeSetting(k.${hash === "#/" ? "ALL_PROJECTS_LAST_VIEW" : "PROJECT_LAST_VIEW"}, { ...(v ?? {}), view: "${view}", columns: "${columns}", lanes: "${hash === "#/" ? "project" : "none"}", archive: "active" }); location.hash = "#/projects/${projectId}/memos";`,
+    setup: `${imports} location.hash = "#/projects/${projectId}/notes"; await new Promise((r) => setTimeout(r, 500)); f.foldAll("sidebar", true); const v = s.readSetting(k.${hash === "#/" ? "ALL_PROJECTS_LAST_VIEW" : "PROJECT_LAST_VIEW"}); s.writeSetting(k.${hash === "#/" ? "ALL_PROJECTS_LAST_VIEW" : "PROJECT_LAST_VIEW"}, { ...(v ?? {}), view: "${view}", columns: "${columns}", lanes: "${hash === "#/" ? "project" : "none"}", archive: "active" }); location.hash = "#/projects/${projectId}/notes";`,
     action: `location.hash = "${hash}";`,
     count: CARDS,
   });

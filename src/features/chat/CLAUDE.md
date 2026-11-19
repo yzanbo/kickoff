@@ -79,7 +79,7 @@
 | ファイル | ツール（`kickoff_chat`） |
 |---|---|
 | `core/tools/aiChatEdit.ts`・`aiChatRead.ts`・`aiChatRemove.ts`・`aiOpen.ts` | 家系・読む・アーカイブと削除・開くと下書き |
-| `core/tools/aiProject.ts` | `add_snippet`・`move_memo` |
+| `core/tools/aiProject.ts` | `add_snippet`・`move_note` |
 | `@/features/userView/core/aiUserView.ts` | `get_user_view` |
 
 ほかの機能の ai*.ts（`create_chat`・`notify_user`・`finish_worktree`・`move_workplace`・ターミナル・図）は各機能の `core/` にあり、下の決まりはどれにも当てる。

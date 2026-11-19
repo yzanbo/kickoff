@@ -28,7 +28,7 @@ import { CheckField, Field } from "@/foundation/ui/kit/Field";
 import { Segmented } from "@/foundation/ui/kit/Segmented";
 import { ConnectionSslFields, EngineTiles } from "./ConnectionBasicFields";
 import { bodyOf, formOf, testResultText, type ConnectionForm } from "./connectionForm";
-import { ConnectionMemoField } from "./ConnectionMemoField";
+import { ConnectionNoteField } from "./ConnectionNoteField";
 import { ConnectionPrepFields } from "./ConnectionPrepFields";
 import { ConnectionSshFields } from "./ConnectionSshFields";
 import { DbFailureHelp } from "./DbFailureDialog";
@@ -90,8 +90,8 @@ export function ConnectionDialog({
 
   const runTest = async () => {
     setTest("testing");
-    // 手順メモ・次に確かめる日はつながるかに関係しないので送らない
-    const { memo_path: _memo, check_on: _on, check_note: _note, ...body } = bodyOf(form, editing);
+    // 手順ノート・次に確かめる日はつながるかに関係しないので送らない
+    const { note_path: _memo, check_on: _on, check_note: _note, ...body } = bodyOf(form, editing);
     // 送る中身は try の外で組む（React Compiler は try の中の条件式を扱えない）
     const request = { ...body, ...(editing ? { connection_id: connection.id } : {}), password: form.clearPassword ? null : form.password || undefined };
     try {
@@ -234,7 +234,7 @@ export function ConnectionDialog({
           <CheckField label="保存した AI 用のパスワードを消す" checked={form.clearAiPassword} onChange={(v) => set("clearAiPassword", v)} />
         )}
         <ConnectionPrepFields form={form} set={set} />
-        <ConnectionMemoField projectId={projectId} value={form.memo_path} from={{ engine: form.engine, environment: form.environment, host: form.host.trim() || null }} onChange={(v) => set("memo_path", v)} />
+        <ConnectionNoteField projectId={projectId} value={form.note_path} from={{ engine: form.engine, environment: form.environment, host: form.host.trim() || null }} onChange={(v) => set("note_path", v)} />
         {test && test !== "testing" && (
           <p className={test.ok ? "db-test-result ok" : "db-test-result ng"}>{testResultText(test, form.engine === "sqlite" ? null : form.ssl)}</p>
         )}

@@ -10,7 +10,7 @@ import { rootChatOf } from "@/features/childChats/ui/childChats";
 import { appendBlock } from "@/features/chat/ui/quote";
 import { chatPaneOf } from "@/features/chat/ui/screen/chatScreens";
 import { openSqlFromChat } from "@/features/database/ui/openSqlFromChat";
-import { openMemoFromChat } from "@/features/notes/ui/openMemoFrom";
+import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { canPopout, openPopout } from "@/foundation/ui/navigation/popout";
 import { openChat, openProjectFile } from "@/foundation/ui/navigation/router";
 
@@ -43,10 +43,10 @@ function openWorkFile(request: Extract<OpenViewRequest, { kind: "file" | "diff" 
 /** AI の頼み（open_view）を、画面のいまの開き方で開く */
 function openRequested(request: OpenViewRequest) {
   learnLineage(request.lineage);
-  if (request.kind === "memo") {
-    // 頼んだチャット（子チャットなら、いちばん上の親の右の欄。メモのチャットならメモのタブ）から開くのと同じ
+  if (request.kind === "note") {
+    // 頼んだチャット（子チャットなら、いちばん上の親の右の欄。ノートのチャットならノートのタブ）から開くのと同じ
     const from = request.lineage.at(-1);
-    openMemoFromChat({ projectId: request.project_id, path: request.path, chatId: from?.id ?? null, place: request.place ?? undefined });
+    openNoteFromChat({ projectId: request.project_id, path: request.path, chatId: from?.id ?? null, place: request.place ?? undefined });
     return;
   }
   if (request.kind === "file" || request.kind === "diff") return openWorkFile(request);
@@ -75,7 +75,7 @@ function putDraft(request: ChatDraftRequest) {
 }
 
 /**
- * チャットの AI がメモ・家系のチャット・ファイル・差分・SQL を開く（コアの SSE `open_view`）・下書きを入れる（`chat_draft`）よう頼んだら、
+ * チャットの AI がノート・家系のチャット・ファイル・差分・SQL を開く（コアの SSE `open_view`）・下書きを入れる（`chat_draft`）よう頼んだら、
  * 頼まれた場所（省けば設定の開き方）で開く・入れる。Mac のアプリのメインのウィンドウだけが受ける（別ウィンドウ・ほかのブラウザでは開かない。
  * 開いているウィンドウの数だけ開かないように）
  */

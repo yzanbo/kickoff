@@ -2,8 +2,8 @@
 // ペインの数とタブの並びが期待どおり（閉じたペインのチャットは一覧のペインへ戻り、サイドバーと同じ並びに戻る）
 import assert from "node:assert/strict";
 
-/** チャットのパネル（右サイドバー・下のパネル・メモとファイルのタブの右の欄も .board-panel なので除く） */
-const PANEL = ".board-panel:not(.as-sidebar):not(.memo-panel):not(.file-panel)";
+/** チャットのパネル（右サイドバー・下のパネル・ノートとファイルのタブの右の欄も .board-panel なので除く） */
+const PANEL = ".board-panel:not(.as-sidebar):not(.note-panel):not(.file-panel)";
 /** チャットのパネルのペインごとのタブの列（右の欄の入れ子のパネルは除く）。タブの名前は × の名前から（分けたペインのチャットの × は「一覧のペインに戻す」） */
 const BARS = `[...document.querySelectorAll("${PANEL} [role=tablist].panel-tabs")].filter((b) => !b.closest(".agent-panel"))`;
 const PANES = `${BARS}.map((bar) => [...bar.querySelectorAll("[role=tab]")].map((t) => t.querySelector(".panel-tab-close")?.getAttribute("aria-label")?.replace(/ (のタブを閉じる|を一覧のペインに戻す)$/, "") ?? "?"))`;

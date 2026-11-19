@@ -15,18 +15,18 @@ import { lookups } from "@/foundation/core/http/lookups";
 import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, otherProviderRecord, projectDescription, projectName, providerChatDefaultsSchema } from "@/foundation/core/http/schemas";
 import { PROJECT_HUES } from "@shared/projects/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/projects/tags";
-import { projectMemoFolder } from "@shared/notes/names";
+import { projectNoteFolder } from "@shared/notes/names";
 import { trashedProjectAt, trashProject } from "@/features/projects/core/trash";
 
-// 新しいプロジェクト・取り込むプロジェクトのメモのフォルダ（省けば初めてメモを使ったときにプロジェクト名から決める）
-const memoDirFields = {
-  memo_folder: z.string().trim().min(1).max(200).optional(),
-  memo_path: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).optional(),
+// 新しいプロジェクト・取り込むプロジェクトのノートのフォルダ（省けば初めてノートを使ったときにプロジェクト名から決める）
+const noteDirFields = {
+  note_folder: z.string().trim().min(1).max(200).optional(),
+  note_path: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).optional(),
 };
 
 // 新しいプロジェクト（description は README の「アイデア」にも書く）
 const newProjectSchema = z.object({
-  ...memoDirFields,
+  ...noteDirFields,
   name: projectName,
   description: projectDescription.default(""),
   parent_dir: z.string().trim().min(1),
@@ -36,7 +36,7 @@ const newProjectSchema = z.object({
 }) satisfies z.ZodType<NewProjectBody>;
 
 const importProjectSchema = z.object({
-  ...memoDirFields,
+  ...noteDirFields,
   path: z.string().trim().min(1),
   name: projectName,
   description: projectDescription.default(""),
@@ -71,8 +71,8 @@ const projectPatchSchema = z
     chat_defaults: chatDefaultsSchema.partial().strict(),
     // Claude Code のほかの AI ごとの既定（送った内容で置き換える。書いていない項目はアプリ全体のその AI の既定に従う）
     provider_chat_defaults: otherProviderRecord(providerChatDefaultsSchema.partial().strict()),
-    // メモのフォルダを、このプロジェクトだけ別の場所にする（null なら親フォルダの下）
-    memo_path: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
+    // ノートのフォルダを、このプロジェクトだけ別の場所にする（null なら親フォルダの下）
+    note_path: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
     // このプロジェクトの圧縮前指示（null ならなし）
     pre_compact_prompt: compactPrompt,
     post_compact_prompt: compactPrompt,
@@ -110,14 +110,14 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
     return store.projects.list().find(same);
   };
   /**
-   * 作ったプロジェクトにメモのフォルダを決める（画面の新しいプロジェクトのダイアログの「メモの保存先」）。memo_path（別の場所）が先、
-   * なければ memo_folder（設定の親フォルダの下の名前。使える名前にし、ほかのプロジェクトのフォルダ名と重なれば「名前-2」）。どちらもなければ、初めてメモを使ったときに決める
+   * 作ったプロジェクトにノートのフォルダを決める（画面の新しいプロジェクトのダイアログの「ノートの保存先」）。note_path（別の場所）が先、
+   * なければ note_folder（設定の親フォルダの下の名前。使える名前にし、ほかのプロジェクトのフォルダ名と重なれば「名前-2」）。どちらもなければ、初めてノートを使ったときに決める
    */
-  const withMemoDir = (project: Project, input: { memo_folder?: string; memo_path?: string }): Project => {
-    if (input.memo_path) return store.projects.update(project.id, { memo_path: input.memo_path });
-    if (!input.memo_folder) return project;
-    // ゴミ箱のプロジェクトのフォルダ名とも重ねない（戻したときに同じメモのフォルダを指さないように）
-    return store.projects.update(project.id, { memo_folder: projectMemoFolder(input.memo_folder, [...store.projects.list(), ...store.projects.trashed()], project.id) });
+  const withNoteDir = (project: Project, input: { note_folder?: string; note_path?: string }): Project => {
+    if (input.note_path) return store.projects.update(project.id, { note_path: input.note_path });
+    if (!input.note_folder) return project;
+    // ゴミ箱のプロジェクトのフォルダ名とも重ねない（戻したときに同じノートのフォルダを指さないように）
+    return store.projects.update(project.id, { note_folder: projectNoteFolder(input.note_folder, [...store.projects.list(), ...store.projects.trashed()], project.id) });
   };
 
   app.get("/api/projects", (c) => c.json(store.projects.list()));
@@ -129,7 +129,7 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
     const registered = folder ? projectAt(realPathLoose(path.join(path.resolve(expandHome(input.parent_dir)), folder))) : undefined;
     if (registered) throw new Conflict(`このフォルダは「${registered.name}」として登録済みです`);
     const repoPath = await createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, description: input.description, initGit: input.init_git });
-    const project = withMemoDir(store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) }), input);
+    const project = withNoteDir(store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) }), input);
     store.settings.update({ projects_dir: input.parent_dir });
     return c.json(project, 201);
   });
@@ -147,7 +147,7 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
     const repoPath = await prepareImportedWorkspace(input.path, input.init_git);
     const existing = projectAt(repoPath);
     if (existing) throw new Conflict(`このフォルダは「${existing.name}」として登録済みです`);
-    const project = withMemoDir(store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) }), input);
+    const project = withNoteDir(store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) }), input);
     return c.json(project, 201);
   });
 

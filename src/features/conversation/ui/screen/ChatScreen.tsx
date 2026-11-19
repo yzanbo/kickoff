@@ -51,7 +51,7 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
 
 /**
  * 会話の欄の見え方: 止めてよい画面（pausable。パネルのタブ・右の欄の子チャット）で、表示していなくて、止めない理由（keepAlive: 音声モード・録音・
- * アップロード・送信待ちと預かった指示の書き直し）がなければ hidden（React の Activity で止める）。メモのチャット・別ウィンドウはいつも visible。
+ * アップロード・送信待ちと預かった指示の書き直し）がなければ hidden（React の Activity で止める）。ノートのチャット・別ウィンドウはいつも visible。
  * hidden にすると中の effect の片付けが、visible に戻すと effect が流れ直すので、流れ直して困るものは描いている間に決めるか店に置く
  */
 function useColumnMode(chatId: number, visible: boolean, pausable: boolean): "visible" | "hidden" {
@@ -66,16 +66,16 @@ interface ChatViewProps {
   visible: boolean;
   slot?: string;
   onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
-  /** 送る前にすること（メモのチャットで、書きかけのメモを保存してから送る） */
+  /** 送る前にすること（ノートのチャットで、書きかけのノートを保存してから送る） */
   beforeSend?: () => Promise<void>;
-  /** 裏に回したら会話の欄を止めてよいか（パネルのタブ・右の欄の子チャット。メモのチャット・別ウィンドウは止めない） */
+  /** 裏に回したら会話の欄を止めてよいか（パネルのタブ・右の欄の子チャット。ノートのチャット・別ウィンドウは止めない） */
   pausable?: boolean;
 }
 
 /**
  * 1 つのチャットの画面の殻: 子の部品への操作（ChatPaneContext。
  * チャットごとに 1 回だけ作る）・チャットの AI・ファイルのリンク・右の欄（AgentSplit）を持ち、会話の欄（ChatColumn）を React の Activity で包む。
- * 裏のタブでは会話の欄だけを止め、右の欄の中のファイル・メモ・DB などのタブ（エディタの元に戻すの履歴・選択）は止めない。
+ * 裏のタブでは会話の欄だけを止め、右の欄の中のファイル・ノート・DB などのタブ（エディタの元に戻すの履歴・選択）は止めない。
  * 殻は会話の欄を隠しても動き続けるので、タブの置き場所の登録（タブの右クリックの会話 / 動き）・別ウィンドウからの知らせ・店に見ることを頼むのはここ。
  * 読むのはチャット（名前・状態）だけで、記録・途中の文は読まない（読むと、隠れている間も記録が届くたびに殻ごと描き直す）
  */

@@ -416,13 +416,13 @@ test("ツールの結果の画像: 作業場所などの中の画像だけを、
   assert.equal((await app.request(`/api/chats/${chat.id}/tool-image?path=${encodeURIComponent(file)}`)).status, 401);
 });
 
-test("フィード: チャットごとにメインエージェントの最新の返答 1 件（子チャット・メモのチャット・サブエージェントの返答は除く）を、返答の新しい順に返す", async () => {
+test("フィード: チャットごとにメインエージェントの最新の返答 1 件（子チャット・ノートのチャット・サブエージェントの返答は除く）を、返答の新しい順に返す", async () => {
   const { call, project, store } = setup();
   const a = store.chats.create({ project_id: project.id, provider: "claude", title: "a", status: "completed" });
   const b = store.chats.create({ project_id: project.id, provider: "claude", title: "b", status: "completed" });
   const quiet = store.chats.create({ project_id: project.id, provider: "claude", title: "まだ返答なし", status: "completed" });
   const child = store.chats.create({ project_id: project.id, provider: "claude", title: "子", status: "completed", parent_chat_id: a.id });
-  const memo = store.chats.create({ project_id: project.id, provider: "claude", title: "メモ", status: "completed", memo_path: "m.md" });
+  const note = store.chats.create({ project_id: project.id, provider: "claude", title: "ノート", status: "completed", note_path: "m.md" });
   store.events.add(a.id, { type: "user", text: "質問", message_uuid: randomUUID() });
   store.events.add(a.id, { type: "text", text: "古い返答" });
   store.events.add(b.id, { type: "text", text: "b の返答" });
@@ -430,7 +430,7 @@ test("フィード: チャットごとにメインエージェントの最新の
   // サブエージェントの返答・結果は載せない
   store.events.add(a.id, { type: "text", text: "サブエージェントの返答", parent: "tool-1" });
   store.events.add(child.id, { type: "text", text: "子の返答" });
-  store.events.add(memo.id, { type: "text", text: "メモの返答" });
+  store.events.add(note.id, { type: "text", text: "ノートの返答" });
   store.events.add(quiet.id, { type: "user", text: "送っただけ", message_uuid: randomUUID() });
 
   const items = (await call("GET", "/api/feed")).body as { chat_id: number; event_id: number; text: string }[];

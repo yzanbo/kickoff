@@ -55,7 +55,7 @@ export function makeChat(id: number, patch: Partial<Chat> = {}): Chat {
     context_window: null,
     parent_chat_id: null,
     parent_event_id: null,
-    memo_path: null,
+    note_path: null,
     untracked_only: false,
     github_repo: null,
     github_number: null,
@@ -82,8 +82,8 @@ export function makeProject(id: number, patch: Partial<Project> = {}): Project {
     archived_at: null,
     hue: 0,
     tags: [],
-    memo_folder: null,
-    memo_path: null,
+    note_folder: null,
+    note_path: null,
     pre_compact_prompt: null,
     post_compact_prompt: null,
     pre_compact_enabled: true,
@@ -206,7 +206,7 @@ export function makeProviderStatus(id: ProviderId, patch: Partial<ProviderStatus
   return { id, label: PROVIDER_LABELS[id], implemented: true, installed: true, logged_in: true, detail: "", features: [...PROVIDER_FEATURES], ...patch };
 }
 
-/** 添付（既定はファイル「<id>.png」・1 バイト。メモ・「AI に渡す」で取ったものは patch の kind とその項目で） */
+/** 添付（既定はファイル「<id>.png」・1 バイト。ノート・「AI に渡す」で取ったものは patch の kind とその項目で） */
 export function makeAttachment(id: string, patch: Partial<Attachment> = {}): Attachment {
   return { kind: "file", id, name: `${id}.png`, mime: "image/png", size: 1, ...patch } as Attachment;
 }

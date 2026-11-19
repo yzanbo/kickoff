@@ -11,7 +11,7 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippets/ui/SnippetBar";
 import { ContextMeter } from "@/features/compact/ui/ContextMeter";
-import { MemoChip } from "@/features/notes/ui/MemoChip";
+import { NoteChip } from "@/features/notes/ui/NoteChip";
 import { DraftChatPage } from "@/features/conversation/ui/screen/DraftChatPage";
 import { useChatHeaderItems } from "@/features/conversation/ui/screen/ChatDisplayMenu";
 import type { ComposerHandle } from "@/features/composer/ui/composerHandle";
@@ -126,9 +126,9 @@ function NewChildForm({ parent, quote, text: seedText, attachments: seedAttachme
           ) : (
             <InheritChoice inherit={inheritChoice} onChange={setInherit} parentLabel="親のチャット" onOpen={() => void openOnly()} opening={opening} />
           )}
-          {/* 会話が始まったあとのチャット欄と同じピルの列（いまはメモだけ。中身のないピルは出さない） */}
+          {/* 会話が始まったあとのチャット欄と同じピルの列（いまはノートだけ。中身のないピルは出さない） */}
           <div className="composer-chips">
-            <MemoChip projectId={parent.project_id} chatId={null} onAttach={(path) => void api.memoSnapshot(parent.project_id, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("メモを添付できませんでした"))} />
+            <NoteChip projectId={parent.project_id} chatId={null} onAttach={(path) => void api.noteSnapshot(parent.project_id, path).then((a) => composer.current?.fill("", { append: true, attachments: [a] }), reportFailure("ノートを添付できませんでした"))} />
           </div>
           <ChatProviderContext.Provider value={provider}>
           <Composer

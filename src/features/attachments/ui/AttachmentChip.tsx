@@ -1,15 +1,15 @@
 import { StickyNote } from "lucide-react";
-import type { Attachment, MemoAttachment } from "@shared/types";
+import type { Attachment, NoteAttachment } from "@shared/types";
 import { attachmentUrl } from "@/foundation/ui/api";
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { useOptionalChatPane } from "@/features/chat/ui/screen/ports";
-import { openMemoFromChat } from "@/features/notes/ui/openMemoFrom";
+import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import type { ViewerImage } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { baseName, formatBytes } from "@/foundation/ui/lib/format";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { formatDayTime } from "@/foundation/ui/lib/time";
 import { CaptureAttachmentChip } from "./CaptureAttachmentChip";
-import { fileKindLabel, memoSubline } from "./chipLabels";
+import { fileKindLabel, noteSubline } from "./chipLabels";
 import { useAttachmentViewer } from "./useAttachmentViewer";
 
 const PREVIEWABLE = /^image\/(png|jpeg|gif|webp)$/;
@@ -26,7 +26,7 @@ export function viewerImagesOf(attachments: Attachment[]): ViewerImage[] {
 export type ChipAttachment = Attachment | { kind?: undefined; id?: string; name: string; mime: string; size: number };
 
 /**
- * 添付の表示（種類ごと: ファイル = 画像はサムネイル、それ以外はファイルの種類のアイコンと名前・種類・大きさ / メモ / 「AI に渡す」で取ったもの）。
+ * 添付の表示（種類ごと: ファイル = 画像はサムネイル、それ以外はファイルの種類のアイコンと名前・種類・大きさ / ノート / 「AI に渡す」で取ったもの）。
  * どれも同じ形の札（左に角丸のアイコンの地、右に名前と 2 行目。styles/chat/attachments.css）。
  * 画像は押すとアプリの中で大きく表示し（右クリックでコピー・保存も）、送ったファイルはアプリの中でダウンロードする（外のブラウザは使わない）
  */
@@ -44,7 +44,7 @@ export function AttachmentChip({
   uploading?: boolean;
   onRemove?: () => void;
 }) {
-  if (attachment.kind === "memo") return <MemoAttachmentChip attachment={attachment} onRemove={onRemove} />;
+  if (attachment.kind === "note") return <NoteAttachmentChip attachment={attachment} onRemove={onRemove} />;
   if (attachment.kind === "capture") return <CaptureAttachmentChip attachment={attachment} onRemove={onRemove} />;
   return <FileAttachmentChip attachment={attachment} previewUrl={previewUrl} uploading={uploading} onRemove={onRemove} siblings={siblings} />;
 }
@@ -129,11 +129,11 @@ export function AttachmentChips({ attachments, onRemove }: { attachments: Attach
 }
 
 /**
- * メモの添付（メモのフォルダからの相対パス。付けたときの写しの時刻を添える）。
- * 送った発言の中では押すとそのメモを開く（設定の開き方。チャットの画面の中だけ）
+ * ノートの添付（ノートのフォルダからの相対パス。付けたときの写しの時刻を添える）。
+ * 送った発言の中では押すとそのノートを開く（設定の開き方。チャットの画面の中だけ）
  */
-function MemoAttachmentChip({ attachment, onRemove }: { attachment: MemoAttachment; onRemove?: () => void }) {
-  const { memo, taken_at } = attachment;
+function NoteAttachmentChip({ attachment, onRemove }: { attachment: NoteAttachment; onRemove?: () => void }) {
+  const { note, taken_at } = attachment;
   const pane = useOptionalChatPane();
   const chat = pane && !onRemove ? knownChat(pane.chatId) : undefined;
   const body = (
@@ -142,22 +142,22 @@ function MemoAttachmentChip({ attachment, onRemove }: { attachment: MemoAttachme
         <StickyNote size={18} aria-hidden />
       </span>
       <span className="attachment-meta">
-        <span className="attachment-name">{baseName(memo)}</span>
-        <span className="attachment-sub">{memoSubline(memo, taken_at, formatDayTime)}</span>
+        <span className="attachment-name">{baseName(note)}</span>
+        <span className="attachment-sub">{noteSubline(note, taken_at, formatDayTime)}</span>
       </span>
     </>
   );
   return (
-    <span className="attachment memo-attachment" title={`メモ: ${memo}\n${formatDayTime(taken_at)} に付けたときの中身を渡します（頼めば元のメモを書き換えます）`}>
+    <span className="attachment note-attachment" title={`ノート: ${note}\n${formatDayTime(taken_at)} に付けたときの中身を渡します（頼めば元のノートを書き換えます）`}>
       {chat ? (
-        <button type="button" className="attachment-link" aria-label={`メモ「${memo}」を開く`} onClick={() => openMemoFromChat({ projectId: chat.project_id, path: memo, chatId: chat.id })}>
+        <button type="button" className="attachment-link" aria-label={`ノート「${note}」を開く`} onClick={() => openNoteFromChat({ projectId: chat.project_id, path: note, chatId: chat.id })}>
           {body}
         </button>
       ) : (
         <span className="attachment-link">{body}</span>
       )}
       {onRemove && (
-        <button type="button" className="chip-remove" aria-label={`メモ「${memo}」を外す`} onClick={onRemove}>
+        <button type="button" className="chip-remove" aria-label={`ノート「${note}」を外す`} onClick={onRemove}>
           ×
         </button>
       )}

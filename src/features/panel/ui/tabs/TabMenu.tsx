@@ -115,7 +115,7 @@ export function TabMenu({
     <>
       <div className="menu-separator" role="separator" />
       <TabDisplaySubmenu panel={panel} />
-      {/* メニューの「閉じる」は、チャットの閉じ方を聞かずに閉じる（× と違い、アーカイブ・削除はこのメニューの項目で選べる）。保存していない書きかけのあるファイル・メモは × と同じく保存するかを聞く */}
+      {/* メニューの「閉じる」は、チャットの閉じ方を聞かずに閉じる（× と違い、アーカイブ・削除はこのメニューの項目で選べる）。保存していない書きかけのあるファイル・ノートは × と同じく保存するかを聞く */}
       <MenuItem onSelect={() => void (tab ? confirmCloseUnsaved(panel.key, tab) : Promise.resolve(true)).then((ok) => ok && panel.closeTab(tabKey))}>
         <X size={14} /> タブを閉じる
       </MenuItem>

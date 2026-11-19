@@ -1,6 +1,6 @@
 import { Activity, Bell, Bot, Gauge, Link2, MessageSquare, MessageSquareQuote, Mic, PanelLeft, Palette, PlugZap, Puzzle, Shrink, Smartphone, SquareTerminal, StickyNote, Trash2 } from "lucide-react";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
-import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, PANEL_VIEW_BUTTON_HIDDEN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
+import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, NOTE_OPEN_IN, PANEL_VIEW_BUTTON_HIDDEN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/foundation/ui/storage/storageKeys";
 import { useTheme, type Theme } from "@/foundation/ui/theme/theme";
 import { Field } from "@/foundation/ui/kit/Field";
 import { BrowserExtensions } from "@/features/browser/ui/BrowserExtensions";
@@ -24,13 +24,13 @@ import { HandoffAfterField, HandoffViaField } from "@/features/childChats/ui/set
 import { ConnectionSettings } from "@/features/ai/ui/settings/ConnectionSettings";
 import { DiagnosticsSettings } from "@/features/diagnostics/ui/settings/DiagnosticsSettings";
 import { LinkSettings } from "@/features/remoteImages/ui/settings/LinkSettings";
-import { MemoSettings } from "@/features/notes/ui/settings/MemoSettings";
+import { NoteSettings } from "@/features/notes/ui/settings/NoteSettings";
 import { MobileSettings } from "@/features/devices/ui/settings/MobileSettings";
 import { NotificationSettings } from "@/features/notifications/ui/settings/NotificationSettings";
 import { TerminalSettings } from "@/features/terminal/ui/settings/TerminalSettings";
 import { VoiceSettings } from "@/features/voice/ui/settings/VoiceSettings";
 
-export type SettingsSection = "usage" | "display" | "sidebar" | "connection" | "ai" | "chats" | "snippets" | "compact" | "memos" | "links" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "trash" | "diagnostics";
+export type SettingsSection = "usage" | "display" | "sidebar" | "connection" | "ai" | "chats" | "snippets" | "compact" | "notes" | "links" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "trash" | "diagnostics";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
@@ -41,7 +41,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "chats", label: "チャット", icon: MessageSquare },
   { key: "snippets", label: "定型文", icon: MessageSquareQuote },
   { key: "compact", label: "圧縮前・圧縮後指示", icon: Shrink },
-  { key: "memos", label: "メモ", icon: StickyNote },
+  { key: "notes", label: "ノート", icon: StickyNote },
   { key: "links", label: "リンクと画像", icon: Link2 },
   { key: "voice", label: "音声入力", icon: Mic },
   { key: "notifications", label: "通知", icon: Bell },
@@ -66,7 +66,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
           {section === "chats" && <ChatSettings />}
           {section === "snippets" && <SnippetSettings />}
           {section === "compact" && <CompactPromptSettings />}
-          {section === "memos" && <MemoSettings />}
+          {section === "notes" && <NoteSettings />}
           {section === "links" && <LinkSettings />}
           {section === "voice" && <VoiceSettings />}
           {section === "notifications" && <NotificationSettings />}
@@ -103,7 +103,7 @@ function DisplaySettings() {
   const [viewButtonHidden, setViewButtonHidden] = useSetting(PANEL_VIEW_BUTTON_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [childChatOpenIn, setChildChatOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
-  const [memoOpenIn, setMemoOpenIn] = useSetting(MEMO_OPEN_IN);
+  const [noteOpenIn, setNoteOpenIn] = useSetting(NOTE_OPEN_IN);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
   const [projectHeaderMode, setProjectHeaderMode] = useProjectHeaderMode();
   const [chatPlacement, setChatPlacement] = useChatPlacement();
@@ -254,10 +254,10 @@ function DisplaySettings() {
         <HandoffViaField />
         <HandoffAfterField />
         <OpenPlaceField
-          label="チャットからメモを開く場所"
-          help="「メモに追加」のあとの「開く」と、入力欄の上の「メモ」の一覧から開くときの開き方です。右の欄は、チャットの画面の右にタブで開き、会話を見ながら書けます。別ウィンドウは、メモごとに新しいウィンドウで開きます。入力欄の上の「メモ」の一覧の上でも変えられ、一覧の行のボタンで、ここによらずどちらでも開けます。"
-          value={memoOpenIn}
-          onChange={setMemoOpenIn}
+          label="チャットからノートを開く場所"
+          help="「ノートに追加」のあとの「開く」と、入力欄の上の「ノート」の一覧から開くときの開き方です。右の欄は、チャットの画面の右にタブで開き、会話を見ながら書けます。別ウィンドウは、ノートごとに新しいウィンドウで開きます。入力欄の上の「ノート」の一覧の上でも変えられ、一覧の行のボタンで、ここによらずどちらでも開けます。"
+          value={noteOpenIn}
+          onChange={setNoteOpenIn}
         />
         <Field
           label="プロジェクトの見出し"
@@ -315,7 +315,7 @@ function DisplaySettings() {
   );
 }
 
-/** 右の欄か別ウィンドウかを選ぶ欄（子チャット・メモを開く場所） */
+/** 右の欄か別ウィンドウかを選ぶ欄（子チャット・ノートを開く場所） */
 function OpenPlaceField({ label, help, value, onChange }: { label: string; help: string; value: "side" | "window"; onChange: (v: "side" | "window") => void }) {
   return (
     <Field label={label} help={help}>

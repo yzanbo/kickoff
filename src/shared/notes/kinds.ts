@@ -1,24 +1,24 @@
-// メモの種類（Markdown / HTML）。拡張子で決める（中身は見ない）。コアと画面で同じ結果にする
+// ノートの種類（Markdown / HTML）。拡張子で決める（中身は見ない）。コアと画面で同じ結果にする
 
-/** メモの種類（markdown = Markdown のメモ。HTML 以外の文字のファイルもこれで開く / html = HTML と CSS で書いたページのメモ） */
-const MEMO_KINDS = ["markdown", "html"] as const;
-export type MemoKind = (typeof MEMO_KINDS)[number];
+/** ノートの種類（markdown = Markdown のノート。HTML 以外の文字のファイルもこれで開く / html = HTML と CSS で書いたページのノート） */
+const NOTE_KINDS = ["markdown", "html"] as const;
+export type NoteKind = (typeof NOTE_KINDS)[number];
 
 /** 種類ごとの、新しく作るときの拡張子 */
-export const MEMO_KIND_EXTENSIONS: Record<MemoKind, string> = { markdown: ".md", html: ".html" };
+export const NOTE_KIND_EXTENSIONS: Record<NoteKind, string> = { markdown: ".md", html: ".html" };
 
-/** メモとして扱う拡張子（題名では除き、名前を変えても付け直す） */
-const MEMO_EXTENSIONS = [".md", ".markdown", ".html", ".htm"] as const;
+/** ノートとして扱う拡張子（題名では除き、名前を変えても付け直す） */
+const NOTE_EXTENSIONS = [".md", ".markdown", ".html", ".htm"] as const;
 
-/** パスのメモの拡張子（小文字。メモの拡張子でなければ null） */
-export function memoExtensionOf(path: string): string | null {
+/** パスのノートの拡張子（小文字。ノートの拡張子でなければ null） */
+export function noteExtensionOf(path: string): string | null {
   const lower = path.toLowerCase();
-  return MEMO_EXTENSIONS.find((ext) => lower.endsWith(ext) && lower.length > ext.length && !lower.endsWith(`/${ext}`)) ?? null;
+  return NOTE_EXTENSIONS.find((ext) => lower.endsWith(ext) && lower.length > ext.length && !lower.endsWith(`/${ext}`)) ?? null;
 }
 
-/** パスのメモの種類（.html・.htm なら html、ほかは markdown） */
-export function memoKindOf(path: string): MemoKind {
-  const ext = memoExtensionOf(path);
+/** パスのノートの種類（.html・.htm なら html、ほかは markdown） */
+export function noteKindOf(path: string): NoteKind {
+  const ext = noteExtensionOf(path);
   return ext === ".html" || ext === ".htm" ? "html" : "markdown";
 }
 
@@ -27,8 +27,8 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
 
-/** 新しい HTML のメモの中身（題名の見出しと、CSS を書く <style> の入ったひな形） */
-export function newHtmlMemo(title: string): string {
+/** 新しい HTML のノートの中身（題名の見出しと、CSS を書く <style> の入ったひな形） */
+export function newHtmlNote(title: string): string {
   const t = escapeHtml(title);
   return `<!doctype html>
 <html lang="ja">

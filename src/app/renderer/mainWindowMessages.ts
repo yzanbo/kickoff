@@ -1,10 +1,10 @@
 // 別ウィンドウからメインのウィンドウへの知らせのうち、チャットの画面ではなく App が受け取るもの
-// （ファイルタブ・チャット・メモ・子チャットを開く・新しい子チャットのタブ・文を入れた新しいチャットのタブを開く・子チャットから親へ・別ウィンドウを右の欄に戻す・
+// （ファイルタブ・チャット・ノート・子チャットを開く・新しい子チャットのタブ・文を入れた新しいチャットのタブを開く・子チャットから親へ・別ウィンドウを右の欄に戻す・
 // 別ウィンドウの中で移った画面と App のダイアログ・サイドバーの別ウィンドウからのパネルの操作。チャットの画面への知らせは features/chat/pane/windowMessages）
 import { knownChat } from "@/features/chat/ui/store/knownChats";
 import { handBackToParent, openAskChild, openChildSide, revealInParent } from "@/features/chat/ui/open/openChat";
 import { openSeededChat } from "@/features/chatPanel/ui/openSeededChat";
-import { openMemoFromChat } from "@/features/notes/ui/openMemoFrom";
+import { openNoteFromChat } from "@/features/notes/ui/openNoteFrom";
 import { dockPopout } from "@/app/renderer/popout/dockPopout";
 import { openChatSplit } from "@/features/chatPanel/ui/board/openChatSplit";
 import { openBrowserTab } from "@/features/browser/ui/panel/openBrowserTab";
@@ -32,7 +32,7 @@ export function handleMainWindowMessage(m: WindowMessage) {
   if (m.type === "panelOp") runPanelOp(m.op);
   else if (m.type === "openProjectFile") openProjectFile(m.projectId, m.file);
   else if (m.type === "openChat") openChat(m.projectId, m.chatId);
-  else if (m.type === "openMemo") openMemoFromChat(m);
+  else if (m.type === "openNote") openNoteFromChat(m);
   else if (m.type === "dockPopout") {
     const { route } = m;
     // 開き直し終えたら別ウィンドウに知らせる（失敗しても閉じさせる）

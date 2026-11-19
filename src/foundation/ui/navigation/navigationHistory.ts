@@ -9,7 +9,7 @@ interface NavigationHistoryState {
 }
 
 /**
- * Kickoff の画面の履歴。開くファイル・メモ・発言の強調は一度きりの指定なので、画面単位で覚える。
+ * Kickoff の画面の履歴。開くファイル・ノート・発言の強調は一度きりの指定なので、画面単位で覚える。
  * パネルの開閉・編集操作・内蔵ブラウザのページ移動はここには入れない
  */
 export function createNavigationHistory(initialRoute: Route) {

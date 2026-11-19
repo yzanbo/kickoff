@@ -19,9 +19,9 @@ export interface Notice {
   push: { title: string; body: string };
 }
 
-/** 知らせに出すチャットの名前（子チャットは「子チャット: 」、メモのチャットは「メモ: 」を頭に） */
-export function noticeChatName(chat: Pick<Chat, "title" | "parent_chat_id" | "memo_path">): string {
-  const kind = chat.parent_chat_id !== null ? "子チャット: " : chat.memo_path !== null ? "メモ: " : "";
+/** 知らせに出すチャットの名前（子チャットは「子チャット: 」、ノートのチャットは「ノート: 」を頭に） */
+export function noticeChatName(chat: Pick<Chat, "title" | "parent_chat_id" | "note_path">): string {
+  const kind = chat.parent_chat_id !== null ? "子チャット: " : chat.note_path !== null ? "ノート: " : "";
   return `${kind}${chat.title.trim() || UNTITLED_CHAT_TITLE}`;
 }
 

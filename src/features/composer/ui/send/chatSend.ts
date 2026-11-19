@@ -44,7 +44,7 @@ export function useChatSend({
   /** 動いているサブエージェントの数（サブエージェントの一覧の行から数えたもの。裏の作業の一覧の知らせがまだないときに使う） */
   runningAgents: number;
   onStopping: (stopping: boolean) => void;
-  /** 送る前にすること（メモのチャットで、書きかけのメモを保存してから送る。SendCancelled を投げれば送らない） */
+  /** 送る前にすること（ノートのチャットで、書きかけのノートを保存してから送る。SendCancelled を投げれば送らない） */
   beforeSend?: () => Promise<void>;
 }) {
   const [queueMode, setQueueMode] = useQueueMode();

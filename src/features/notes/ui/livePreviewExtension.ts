@@ -1,4 +1,4 @@
-// メモの Markdown 表示（Obsidian のライブプレビューと同じ）の CodeMirror の飾り。どこをどう見せるかは純粋関数の previewMarks（livePreview.ts）が決め、
+// ノートの Markdown 表示（Obsidian のライブプレビューと同じ）の CodeMirror の飾り。どこをどう見せるかは純粋関数の previewMarks（livePreview.ts）が決め、
 // ここではエディタの飾り（隠す・行と文字の見た目・「•」・チェックボックス・区切り線）に直す。カーソルのある行は記号をそのまま見せる（ピントがないときは、どの行も整えて見せる）
 import { syntaxTree } from "@codemirror/language";
 import type { Range } from "@codemirror/state";
@@ -102,7 +102,7 @@ function build(view: EditorView): DecorationSet {
   return Decoration.set(ranges, true);
 }
 
-/** Markdown 表示の飾り（MemoEditor が、表示の切り替えで付け外しする） */
+/** Markdown 表示の飾り（NoteEditor が、表示の切り替えで付け外しする） */
 export const livePreview = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;

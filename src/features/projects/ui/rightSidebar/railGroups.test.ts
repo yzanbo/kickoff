@@ -5,7 +5,7 @@ import { railGroupsOf } from "./railGroups";
 test("プロジェクトのタブのまとまりから、ボード・チャットを除いた列のまとまりを作る（中身がなくなったまとまりは出さない）", () => {
   const groups = railGroupsOf([
     { key: "work", label: "チャット", tabs: [{ tab: "board", label: "ボード", icon: "b" }, { tab: "chats", label: "チャット", icon: "c" }] },
-    { key: "memos", label: "メモ", tabs: [{ tab: "memos", label: "メモ", icon: "m" }] },
+    { key: "notes", label: "ノート", tabs: [{ tab: "notes", label: "ノート", icon: "m" }] },
     {
       key: "code",
       label: "コード",
@@ -19,7 +19,7 @@ test("プロジェクトのタブのまとまりから、ボード・チャッ�
   assert.deepEqual(
     groups.map((g) => [g.key, g.tabs.map((t) => t.tab)]),
     [
-      ["memos", ["memos"]],
+      ["notes", ["notes"]],
       ["code", ["files", "history"]],
       ["ci", ["ci"]],
     ],

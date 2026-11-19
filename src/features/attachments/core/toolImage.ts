@@ -14,7 +14,7 @@ export interface ToolImage {
 
 /**
  * ツールの結果の画像（読むで読んだ画像）を、呼び出しの入力のパスから読む。記録には画像を残さないので、いまのファイルを返す。
- * 読めるのは roots（チャットの作業場所・本体・添付の保存先・メモのフォルダ）の中の画像だけ（リンクを解決してから確かめる。
+ * 読めるのは roots（チャットの作業場所・本体・添付の保存先・ノートのフォルダ）の中の画像だけ（リンクを解決してから確かめる。
  * どこでも読めると、API から任意のファイルを取れてしまうため）。外・画像でない・大きすぎるは 400、ないは 404
  */
 export async function readToolImage(file: string, roots: string[]): Promise<ToolImage> {
@@ -23,7 +23,7 @@ export async function readToolImage(file: string, roots: string[]): Promise<Tool
   if (!type) throw new Invalid("画像のファイルではありません");
   const real = realPathLoose(file);
   if (!roots.some((root) => isInside(realPathLoose(root), real))) {
-    throw new Invalid("作業場所・添付・メモのフォルダの外のファイルは表示しません");
+    throw new Invalid("作業場所・添付・ノートのフォルダの外のファイルは表示しません");
   }
   const stat = await fs.stat(real).catch(() => null);
   if (!stat) throw new NotFound("ファイルがありません");

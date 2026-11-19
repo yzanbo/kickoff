@@ -13,7 +13,7 @@ import { dockerApi } from "@/features/docker/ui/api/docker";
 import { ciApi } from "@/features/github/ui/api/ci";
 import { portsApi } from "@/features/ports/ui/api/ports";
 import { groupsApi } from "@/features/groups/ui/api/groups";
-import { memosApi } from "@/features/notes/ui/api/memos";
+import { notesApi } from "@/features/notes/ui/api/notes";
 import { projectsApi } from "@/features/projects/ui/api/projects";
 import { providersApi } from "@/features/ai/ui/api/providers";
 import { queueApi } from "@/features/queue/ui/api/queue";
@@ -45,7 +45,7 @@ export const api = {
   ...filesApi,
   ...worktreesApi,
   ...voiceApi,
-  ...memosApi,
+  ...notesApi,
   ...snippetsApi,
   ...databasesApi,
   ...githubApi,

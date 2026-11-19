@@ -87,7 +87,7 @@ export function useComposerFiles(saved?: AttachmentDraft) {
     savedRef.current?.write(JSON.parse(uploadedJson) as Attachment[]);
   }, [uploadedJson]);
 
-  // ほかの入力欄（同じチャットのメモの下の入力欄など）が書き換えたら、アップロードの途中のものは残したまま合わせる
+  // ほかの入力欄（同じチャットのノートの下の入力欄など）が書き換えたら、アップロードの途中のものは残したまま合わせる
   // 見張り直すのは残す先（id）が変わったときだけ（saved は描くたびに作られることがある）
   const subscribeSaved = useEffectEvent((listener: () => void) => saved?.subscribe?.(listener));
   useEffect(
@@ -142,8 +142,8 @@ export function useComposerFiles(saved?: AttachmentDraft) {
   }
 
   /**
-   * 保存済みの添付を足す（送信待ちの指示を新しいチャットで聞くとき・メモを添付したとき・「AI に渡す」。アップロードし直さない）。
-   * 同じメモ・同じ出どころの取ったものは重ねず、新しく足したもの（付けなおした時点の中身）に入れ替える
+   * 保存済みの添付を足す（送信待ちの指示を新しいチャットで聞くとき・ノートを添付したとき・「AI に渡す」。アップロードし直さない）。
+   * 同じノート・同じ出どころの取ったものは重ねず、新しく足したもの（付けなおした時点の中身）に入れ替える
    */
   function addAttachments(list: Attachment[]) {
     const added = list.map((attachment) => ({ key: newKey(), file: new File([], attachment.name, { type: attachment.mime }), attachment }));

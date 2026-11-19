@@ -5,10 +5,10 @@ import { makeChat } from "@shared/foundation/testing/factories";
 import { aiNotice, chatNotice, noticeChatName } from "./notices";
 import { ViewingRegistry } from "./viewing";
 
-test("noticeChatName: 子チャット・メモのチャットは頭に添え、名前がなければ Untitled Chat", () => {
+test("noticeChatName: 子チャット・ノートのチャットは頭に添え、名前がなければ Untitled Chat", () => {
   assert.equal(noticeChatName(makeChat(1, { title: "調査" })), "調査");
   assert.equal(noticeChatName(makeChat(2, { title: "子", parent_chat_id: 1 })), "子チャット: 子");
-  assert.equal(noticeChatName(makeChat(3, { title: "", memo_path: "a.md" })), "メモ: Untitled Chat");
+  assert.equal(noticeChatName(makeChat(3, { title: "", note_path: "a.md" })), "ノート: Untitled Chat");
 });
 
 test("chatNotice: 終わった・失敗だけ。プッシュの文はチャットの名前と状態だけ（失敗の理由・プロジェクト名は載せない）", () => {

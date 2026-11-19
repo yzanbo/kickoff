@@ -10,7 +10,7 @@ import { tempDir } from "@/foundation/core/testing/tempDir";
 
 function setup() {
   const ctx = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s", turns: 1, result: "" })));
-  const base = { project_id: ctx.project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, memo_path: null };
+  const base = { project_id: ctx.project.id, provider: "claude" as const, status: "completed" as const, model: null, effort: null, permission_mode: "default" as const, fast_mode: false, group_id: null, worktree_path: null, parent_event_id: null, note_path: null };
   const root = ctx.store.chats.create({ ...base, title: "根", parent_chat_id: null });
   const child = ctx.store.chats.create({ ...base, title: "子", parent_chat_id: root.id });
   const other = ctx.store.chats.create({ ...base, title: "よそ", parent_chat_id: null, status: "failed" });

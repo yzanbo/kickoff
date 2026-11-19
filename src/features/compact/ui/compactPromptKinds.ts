@@ -23,7 +23,7 @@ export const COMPACT_PROMPT_KINDS: Record<
     icon: Shrink,
     className: "pre-compact",
     sentTitle: "会話を圧縮する前に、設定の「圧縮前指示」を送りました",
-    placeholder: "例: いまの作業の進捗・決めたこと・次にやることを memo.md に書き残してください",
+    placeholder: "例: いまの作業の進捗・決めたこと・次にやることを note.md に書き残してください",
     when: "圧縮の前（手で・自動）に送ります。空・オフなら送りません。",
   },
   post: {
@@ -31,7 +31,7 @@ export const COMPACT_PROMPT_KINDS: Record<
     icon: ListRestart,
     className: "post-compact",
     sentTitle: "会話を圧縮したあとに、設定の「圧縮後指示」を送りました（圧縮の間に送った指示は、このあとに伝えます）",
-    placeholder: "例: memo.md を読み直して、作業の続きを確かめてから進めてください",
+    placeholder: "例: note.md を読み直して、作業の続きを確かめてから進めてください",
     when: "圧縮のあと（手で・自動）、圧縮の間に送った指示より先に送ります。空・オフなら送りません。",
   },
 };

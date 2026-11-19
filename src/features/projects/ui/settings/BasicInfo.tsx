@@ -11,9 +11,9 @@ import { SaveActions } from "@/foundation/ui/kit/SaveActions";
 import { changeProjectFolder } from "@/features/projects/ui/changeProjectFolder";
 import { GIT_FEATURES, startProjectGit } from "@/features/projects/ui/GitInitNotice";
 import { useGitStatus } from "@/features/git/ui/useGitStatus";
-import { useMemoList } from "@/features/notes/ui/stores/memos";
+import { useNoteList } from "@/features/notes/ui/stores/notes";
 import { FolderOverlapNotice } from "@/features/projects/ui/OverlapNotice";
-import { MemoFolderField } from "@/features/notes/ui/MemoFolderField";
+import { NoteFolderField } from "@/features/notes/ui/NoteFolderField";
 import { TagEditor } from "./TagEditor";
 
 export function BasicInfo({ project }: { project: Project }) {
@@ -38,7 +38,7 @@ export function BasicInfo({ project }: { project: Project }) {
         </Field>
         <SaveActions save={save} disabled={!dirty || !draft.name.trim()} onSave={() => api.updateProject(project.id, { ...draft, name: draft.name.trim() })} />
         <FolderRow project={project} />
-        <MemoDirRow project={project} />
+        <NoteDirRow project={project} />
         <ColorField project={project} />
         <TagEditor project={project} />
       </div>
@@ -47,19 +47,19 @@ export function BasicInfo({ project }: { project: Project }) {
 }
 
 /**
- * メモフォルダ。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。
- * ふだんは空欄（薄い文字でいまの場所 = アプリの設定の「メモ」の親フォルダの下の、このプロジェクトの名前のフォルダ）で、書く・選ぶとこのプロジェクトだけ別の場所にする。
- * ほかのプロジェクトとメモフォルダが同じなら、いつも知らせる（MemoFolderField）
+ * ノートフォルダ。プロジェクトのフォルダとは別の場所で、フォルダを変えても変わらない。
+ * ふだんは空欄（薄い文字でいまの場所 = アプリの設定の「ノート」の親フォルダの下の、このプロジェクトの名前のフォルダ）で、書く・選ぶとこのプロジェクトだけ別の場所にする。
+ * ほかのプロジェクトとノートフォルダが同じなら、いつも知らせる（NoteFolderField）
  */
-function MemoDirRow({ project }: { project: Project }) {
-  const dir = useMemoList(project.id).data?.dir;
+function NoteDirRow({ project }: { project: Project }) {
+  const dir = useNoteList(project.id).data?.dir;
   return (
-    <MemoFolderField
-      label="メモフォルダ"
-      help="「メモ」タブのメモを置くフォルダです。ふだんはアプリの設定の「メモ」で決めた親フォルダの下の、このプロジェクトの名前のフォルダで、書く・選ぶとこのプロジェクトだけ別の場所（チームで共有しているフォルダなど）にできます。変えても、いまあるメモは動かしません。プロジェクトフォルダを変えても変わりません。チャットで「メモ」「メモフォルダ」と言えば、AI はここのことだと分かります。"
-      value={project.memo_path}
-      fallback={project.memo_path ? "" : (dir ?? "")}
-      onSave={(next) => api.updateProject(project.id, { memo_path: next })}
+    <NoteFolderField
+      label="ノートフォルダ"
+      help="「ノート」タブのノートを置くフォルダです。ふだんはアプリの設定の「ノート」で決めた親フォルダの下の、このプロジェクトの名前のフォルダで、書く・選ぶとこのプロジェクトだけ別の場所（チームで共有しているフォルダなど）にできます。変えても、いまあるノートは動かしません。プロジェクトフォルダを変えても変わりません。チャットで「ノート」「ノートフォルダ」と言えば、AI はここのことだと分かります。"
+      value={project.note_path}
+      fallback={project.note_path ? "" : (dir ?? "")}
+      onSave={(next) => api.updateProject(project.id, { note_path: next })}
       overlapExcept={project.id}
     />
   );

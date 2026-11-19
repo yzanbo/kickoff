@@ -10,7 +10,7 @@ import { GitHubLabelPicker } from "./GitHubLabelPicker";
 import { GitHubMarkdownField } from "./GitHubMarkdownField";
 
 /**
- * 新しい issue（GitHub タブの「新しい issue」と、メモ・チャットの発言の右クリックの「issue にする」から）:
+ * 新しい issue（GitHub タブの「新しい issue」と、ノート・チャットの発言の右クリックの「issue にする」から）:
  * 題名・本文（Markdown。書く｜プレビュー）・ラベル・担当を決めて、プロジェクトの連携先に作る。「issue にする」は選んだ文か全体を本文に入れておき、作る前に直せる。
  * 作ったら onCreated（GitHub タブはその issue を開く）。連携先が使えなければ、その理由を出して作らせない
  */

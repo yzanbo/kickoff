@@ -31,7 +31,7 @@ const captureSchema = z
   .refine((b) => b.image_base64 === undefined || CAPTURE_IMAGE_TYPES.includes(b.mime), "画像の形式が対応していません") satisfies z.ZodType<CaptureBody>;
 
 /** 添付ファイル（受け取り・画面での表示）と、ツールの結果の画像の表示 */
-export function uploadRoutes(app: Hono, { uploads, store, memos }: ServerDeps) {
+export function uploadRoutes(app: Hono, { uploads, store, notes }: ServerDeps) {
   const { withChat } = lookups(store);
 
   // 別のチャットのやり取りを Markdown の記録にして、添付ファイルとして保存する（いまのチャットに添えて、AI に読ませる）
@@ -80,7 +80,7 @@ export function uploadRoutes(app: Hono, { uploads, store, memos }: ServerDeps) {
   });
 
   // ツールの結果の画像（読むで読んだ画像。記録には画像を残さないので、呼び出しの入力のパスから、いまのファイルを返す）。
-  // 読めるのはチャットの作業場所・本体・添付の保存先・メモのフォルダの中の画像だけ。ページとして開かれても何も動かないよう sandbox の CSP を付ける
+  // 読めるのはチャットの作業場所・本体・添付の保存先・ノートのフォルダの中の画像だけ。ページとして開かれても何も動かないよう sandbox の CSP を付ける
   app.get("/api/chats/:id/tool-image", withChat, async (c) => {
     const { chat } = c.var;
     const { path, at } = z
@@ -93,7 +93,7 @@ export function uploadRoutes(app: Hono, { uploads, store, memos }: ServerDeps) {
     // 返答の Markdown の画像（`![](docs/a.png)`）は相対パスで来るので、チャットの作業場所から読む
     const file = nodePath.isAbsolute(path) ? path : nodePath.resolve(workdir, path);
     const pastDirs = moves.map((m) => m.data.from.dir);
-    const image = await readToolImage(file, [workdir, workdirOf(chat, project), project.repo_path, uploads.dir, memos.dirOf(project), ...pastDirs]);
+    const image = await readToolImage(file, [workdir, workdirOf(chat, project), project.repo_path, uploads.dir, notes.dirOf(project), ...pastDirs]);
     return c.body(new Uint8Array(image.data), 200, {
       "content-type": image.type,
       "content-security-policy": "sandbox",

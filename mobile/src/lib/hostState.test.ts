@@ -12,13 +12,13 @@ test("applyHostEvent: チャット・プロジェクト・回答待ちを足す�
   s = applyHostEvent(s, { type: "chat", chat: makeChat(1, { title: "b" }) });
   s = applyHostEvent(s, { type: "approval", approval: approval("q", 1) });
   assert.deepEqual([s.chats.map((c) => c.title), s.approvals.length], [["b"], 1]);
-  assert.equal(applyHostEvent(s, { type: "memos", project_id: 1, path: null }), s);
+  assert.equal(applyHostEvent(s, { type: "notes", project_id: 1, path: null }), s);
   s = applyHostEvent(s, { type: "approval_resolved", id: "q", chat_id: 1 });
   s = applyHostEvent(s, { type: "chat_deleted", id: 1, project_id: 1 });
   assert.deepEqual([s.chats.length, s.approvals.length], [0, 0]);
 });
 
-test("chatSections: プロジェクトごとに、回答待ち → 作業中 → 未読 → 最後に動いた順。アーカイブ・子チャット・メモのチャット・しまったプロジェクトは出さない", () => {
+test("chatSections: プロジェクトごとに、回答待ち → 作業中 → 未読 → 最後に動いた順。アーカイブ・子チャット・ノートのチャット・しまったプロジェクトは出さない", () => {
   const state = {
     projects: [makeProject(1), makeProject(2, { archived_at: "2026-01-01T00:00:00Z" })],
     chats: [
@@ -28,7 +28,7 @@ test("chatSections: プロジェクトごとに、回答待ち → 作業中 →
       makeChat(4, { active_at: "2026-11-14T02:00:00Z" }),
       makeChat(5, { archived_at: "2026-11-14T00:00:00Z" }),
       makeChat(6, { parent_chat_id: 1 }),
-      makeChat(7, { memo_path: "a.md" }),
+      makeChat(7, { note_path: "a.md" }),
       makeChat(8, { project_id: 2 }),
     ],
     approvals: [approval("q", 4)],

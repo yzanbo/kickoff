@@ -5,7 +5,7 @@ import { focusPane, moveTab, returnToHome, splitPane } from "@/features/panel/ui
 import { equalizeSplit, setSplitSizes } from "@/features/panel/ui/layout/paneSizes";
 import { parsePanelKey, SURFACES } from "@/features/panel/ui/surfaces";
 import type { NewChatTarget, PanelTab, ProjectTool, ProjectView, TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
-import { browserTab, changesTab, chatTab, childTab, databaseTab, fileTab, githubTab, memoTab, newChatTab, newChildTab, newTabKey, projectToolTab, projectViewTab, subagentTab, terminalTab } from "@/features/panel/ui/tabs/tabKinds";
+import { browserTab, changesTab, chatTab, childTab, databaseTab, fileTab, githubTab, noteTab, newChatTab, newChildTab, newTabKey, projectToolTab, projectViewTab, subagentTab, terminalTab } from "@/features/panel/ui/tabs/tabKinds";
 import type { PanelAction, TabPatch } from "./panelState";
 import { dispatchPanel, panelStateOf } from "./panelStore";
 
@@ -67,8 +67,8 @@ export function panelActions(key: string) {
       openTab(fileTab(target), { kind: "file", fields: { line: target.line } }),
     /** プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面をタブで開く（チャットの画面の右の欄。種類ごとに 1 つのタブで、あればそのペインで表示する） */
     openProjectView: (target: { chatId: number; projectId: number; worktree?: string; view: ProjectView }) => openTab(projectViewTab(target)),
-    /** プロジェクトのメモをタブで開く（チャットの画面の右の欄。同じメモのタブがあればそのペインで表示する） */
-    openMemo: (target: { chatId: number | null; projectId: number; path: string }) => openTab(memoTab(target)),
+    /** プロジェクトのノートをタブで開く（チャットの画面の右の欄。同じノートのタブがあればそのペインで表示する） */
+    openNote: (target: { chatId: number | null; projectId: number; path: string }) => openTab(noteTab(target)),
     /** DB クライアントをタブで開く（チャットの画面の右の欄。欄に 1 つのタブで、あればそのペインで表示する） */
     openDatabase: (target: { chatId: number; projectId: number; worktree?: string }) => openTab(databaseTab(target)),
     /** プロジェクトの「GitHub」タブと同じ画面をタブで開く（チャットの画面の右の欄。欄に 1 つのタブで、あればそのペインで表示する） */
@@ -98,7 +98,7 @@ export function panelActions(key: string) {
     showTab: (tabKey: string) => dispatch({ type: "show", key: tabKey }),
     /** タブの中身を変える（新しいチャットのプロジェクト・グループ、ブラウザのタイトルなど。その種類のタブだけ） */
     patchTab: (tabKey: string, patch: TabPatch) => dispatch({ type: "patch", key: tabKey, ...patch }),
-    /** タブを別のタブに置き換える（同じペインの同じ位置のまま。名前を変えたメモのタブなど、キーが変わるとき） */
+    /** タブを別のタブに置き換える（同じペインの同じ位置のまま。名前を変えたノートのタブなど、キーが変わるとき） */
     replaceTab: (tabKey: string, tab: PanelTab) => dispatch({ type: "replace", key: tabKey, tab }),
     /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
     replaceWithChat: (tabKey: string, chat: Chat) => dispatch({ type: "replace", key: tabKey, tab: chatTab(chat) }),

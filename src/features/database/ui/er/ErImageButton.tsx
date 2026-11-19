@@ -1,7 +1,7 @@
 import { useReactFlow } from "@xyflow/react";
 import { ImageDown } from "lucide-react";
 import { useRef } from "react";
-import { safeMemoName } from "@shared/notes/names";
+import { safeNoteName } from "@shared/notes/names";
 import { downloadBlob, downloadText } from "@/foundation/ui/lib/download";
 import { reportFailure } from "@/foundation/ui/kit/dialogs";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
@@ -92,7 +92,7 @@ export function ErImageButton({ er, name }: { er: ErDiagramState; name: string }
     const colors = colorsOf(button.current?.closest(".db-er") ?? document.documentElement);
     return { ...erSvg(boxes, lines, colors), background: colors.background };
   };
-  const file = safeMemoName(name);
+  const file = safeNoteName(name);
   const saveSvg = () => downloadText(`${file}.svg`, build().svg, "image/svg+xml");
   const savePng = async () => {
     try {

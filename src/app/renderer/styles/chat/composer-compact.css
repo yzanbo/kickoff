@@ -1,7 +1,7 @@
 /*
  * チャット欄のコンパクト表示（COMPOSER_COMPACT。設定の「表示」→「チャット欄」）を、入力欄の上の送信待ちとピルの列にも効かせる。
  * 入力欄そのものは composer.css の末尾（.composer.compact）。送信待ち（QueuedMessages・QueuedPauseNotice）とピルの列（ChatComposerArea）は、
- * メモの下の入力欄の上へ描くこともあるので、入力欄の兄弟で見分けず、それぞれの要素に付けた .compact で決める
+ * ノートの下の入力欄の上へ描くこともあるので、入力欄の兄弟で見分けず、それぞれの要素に付けた .compact で決める
  */
 
 /* ---- 送信待ち（queued.css・queued-head.css の基底より後ろ。.queued-messages.compact で詳細度を上げる） ---- */
@@ -51,7 +51,7 @@
   --queued-editor-line-height: 26px;
 }
 
-/* ---- ピルの列（subagents.css の基底より後ろ）。メモの下の入力欄の上の 1 行（memo-quick-chat.css）の詰め方は、そちらを勝たせる ---- */
+/* ---- ピルの列（subagents.css の基底より後ろ）。ノートの下の入力欄の上の 1 行（note-quick-chat.css）の詰め方は、そちらを勝たせる ---- */
 .composer-chips.compact {
   gap: 4px;
   padding-bottom: 4px;

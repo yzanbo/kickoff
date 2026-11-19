@@ -7,7 +7,7 @@ import { GitHubTab } from "@/features/github/ui/GitHubTab";
 import { DockerTab } from "@/features/docker/ui/DockerTab";
 import { CiTab } from "@/features/github/ui/ci/CiTab";
 import { TrashTab } from "@/features/trash/ui/TrashTab";
-import { MemoTab } from "@/features/notes/ui/MemoTab";
+import { NoteTab } from "@/features/notes/ui/NoteTab";
 import { ChatsTab } from "@/features/chatPanel/ui/board/ChatsTab";
 import { useChatPlacement } from "./chatPlacement";
 import { useGitStatus } from "@/features/git/ui/useGitStatus";
@@ -31,15 +31,15 @@ interface ProjectPageProps {
   focus?: ReopenRoute;
   /** ファイルタブで開くファイル（チャットの返答のファイルのチップから） */
   openFile?: FileTarget;
-  /** メモのタブで開くメモ（チャットの「メモに追加」から） */
-  openMemo?: string;
-  /** そのメモで移る行（⌘K の「メモ内の文言」から） */
-  openMemoLine?: number;
+  /** ノートのタブで開くノート（チャットの「ノートに追加」から） */
+  openNote?: string;
+  /** そのノートで移る行（⌘K の「ノート内の文言」から） */
+  openNoteLine?: number;
 }
 
 /**
  * プロジェクト画面: ボード（カンバン）・チャット（ボードと分ける置き方のとき）・ファイル・検索・変更（Git の変更とファイル。文書もここでファイルとして見る）・
- * 履歴（コミット）・メモをタブで
+ * 履歴（コミット）・ノートをタブで
  */
 export function ProjectPage(props: ProjectPageProps) {
   // 一覧が届いたのに見つからないプロジェクト（消した・URL の番号が違う）は、前の画面を出さずに案内だけを出す
@@ -50,7 +50,7 @@ export function ProjectPage(props: ProjectPageProps) {
   return <ProjectPageBody {...props} />;
 }
 
-function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMemoLine }: ProjectPageProps) {
+function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNoteLine }: ProjectPageProps) {
   // チャットをボードの右で開く置き方では「チャット」タブはないので、そのタブの URL はボードで出す
   const [placement] = useChatPlacement();
   // DB・GitHub・Docker のタブはこの Mac のアプリの中だけ（ブラウザ・スマホから開いたらボード）
@@ -116,8 +116,8 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openMemo, openMem
           <HistoryTab key={worktree ?? ""} projectId={project.id} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
         </WorktreeContext.Provider>
       )}
-      {/* メモ（プロジェクトの外のフォルダ。作業場所には関係しない）。別のプロジェクトを読み込んでいる途中は、URL で来たメモを渡さない */}
-      {tab === "memos" && <MemoTab key={project.id} projectId={project.id} openMemo={stale ? undefined : openMemo} openMemoLine={openMemoLine} />}
+      {/* ノート（プロジェクトの外のフォルダ。作業場所には関係しない）。別のプロジェクトを読み込んでいる途中は、URL で来たノートを渡さない */}
+      {tab === "notes" && <NoteTab key={project.id} projectId={project.id} openNote={stale ? undefined : openNote} openNoteLine={openNoteLine} />}
       {/* DB クライアント（SQLite のファイルは、ファイル・検索・変更・履歴のタブで選んだ作業場所の中を開く） */}
       {tab === "db" && <LazyDatabaseClient key={project.id} projectId={project.id} place={`project-${project.id}`} worktree={worktree ?? null} />}
       {/* GitHub（連携先のリポジトリの issue・PR を読む） */}

@@ -71,9 +71,9 @@ export function ChatMenuItems({
     onClose();
     void fn().catch((e: unknown) => onError(errorMessage(e)));
   };
-  // 新しいチャットは、このチャットと同じグループ・作業場所で始める（メモのチャットは一覧に出ないので出さない）
+  // 新しいチャットは、このチャットと同じグループ・作業場所で始める（ノートのチャットは一覧に出ないので出さない）
   const place: NewChatPlace = { projectId: chat.project_id, group: chat.group_id ?? undefined, worktree: chat.worktree_path ?? undefined };
-  const canNew = chat.memo_path === null;
+  const canNew = chat.note_path === null;
   const canChild = !chat.archived_at;
   return (
     <div className="menu-items">

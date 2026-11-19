@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, openMemoTab, openPreviewTab, setSqlConnection, openTableTab, parseDbClientTabs, pinDbTab, renameMemoTab, setTableFilter, tableTabKey, type DbClientTab, updateErTab } from "./dbClientTabs";
+import { closeConnectionTabs, closeDbTab, erTabKey, nextSqlTitle, NO_DB_TABS, openDbTab, openErTab, openNoteTab, openPreviewTab, setSqlConnection, openTableTab, parseDbClientTabs, pinDbTab, renameNoteTab, setTableFilter, tableTabKey, type DbClientTab, updateErTab } from "./dbClientTabs";
 
 const path = { database: "main", schema: null };
 const table = (name: string, connection_id = 1): DbClientTab => ({ key: tableTabKey(connection_id, path, name), kind: "table", connection_id, path, name, object: "table" });
@@ -90,17 +90,17 @@ test("openTableTab / setTableFilter: 絞り込みを付けて開く（もうあ�
   assert.equal(parseDbClientTabs({ tabs: [{ ...table("x"), filter: { filters: [{ column: "a", op: "like", value: "" }], where: null } }], active: null })!.tabs.length, 0);
 });
 
-test("openMemoTab / renameMemoTab: 手順メモはメモごとに 1 つ。名前が変わったら付け替え、同じメモのタブがあれば 1 つにする。保存した値も読める", () => {
-  let s = openMemoTab(NO_DB_TABS, 1, "DB/本番.md");
-  s = openMemoTab(s, 2, "DB/本番.md");
-  assert.deepEqual(s.tabs, [{ key: "memo:DB/本番.md", kind: "memo", connection_id: 1, path: "DB/本番.md" }]);
-  s = renameMemoTab(s, "memo:DB/本番.md", "DB/AWS 本番.md");
-  assert.deepEqual([s.active, s.tabs[0].key, s.tabs[0].kind === "memo" && s.tabs[0].path], ["memo:DB/AWS 本番.md", "memo:DB/AWS 本番.md", "DB/AWS 本番.md"]);
-  s = openMemoTab(s, 1, "DB/ローカル.md");
-  s = renameMemoTab(s, "memo:DB/ローカル.md", "DB/AWS 本番.md");
-  assert.deepEqual([s.tabs.length, s.active], [1, "memo:DB/AWS 本番.md"]);
+test("openNoteTab / renameNoteTab: 手順ノートはノートごとに 1 つ。名前が変わったら付け替え、同じノートのタブがあれば 1 つにする。保存した値も読める", () => {
+  let s = openNoteTab(NO_DB_TABS, 1, "DB/本番.md");
+  s = openNoteTab(s, 2, "DB/本番.md");
+  assert.deepEqual(s.tabs, [{ key: "note:DB/本番.md", kind: "note", connection_id: 1, path: "DB/本番.md" }]);
+  s = renameNoteTab(s, "note:DB/本番.md", "DB/AWS 本番.md");
+  assert.deepEqual([s.active, s.tabs[0].key, s.tabs[0].kind === "note" && s.tabs[0].path], ["note:DB/AWS 本番.md", "note:DB/AWS 本番.md", "DB/AWS 本番.md"]);
+  s = openNoteTab(s, 1, "DB/ローカル.md");
+  s = renameNoteTab(s, "note:DB/ローカル.md", "DB/AWS 本番.md");
+  assert.deepEqual([s.tabs.length, s.active], [1, "note:DB/AWS 本番.md"]);
   assert.equal(parseDbClientTabs(JSON.parse(JSON.stringify(s)))?.tabs.length, 1);
-  assert.equal(parseDbClientTabs({ tabs: [{ key: "memo:", kind: "memo", connection_id: 1, path: "" }], active: null })?.tabs.length, 0);
+  assert.equal(parseDbClientTabs({ tabs: [{ key: "note:", kind: "note", connection_id: 1, path: "" }], active: null })?.tabs.length, 0);
 });
 
 test("openPreviewTab / pinDbTab: 仮のタブは次の仮のタブで同じ場所に置き換わり、固定したもの・変更のあるものは残る。固定して開く・絞り込みでも固定", () => {

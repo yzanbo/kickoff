@@ -195,7 +195,7 @@ test("圧縮前指示: 手で圧縮すると、先に共通 → プロジェク�
 
 test("圧縮前指示: 自動の圧縮の前に足す指示は、コンテキストウィンドウが分かってから渡し、足したら記録して、圧縮するまで渡さない", async () => {
   const { call, project, store, runner, provider } = setup();
-  await call("PUT", "/api/settings", { pre_compact_prompt: "メモを書いて" });
+  await call("PUT", "/api/settings", { pre_compact_prompt: "ノートを書いて" });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
   await until(() => !runner.isBusy(chatId));
   // 最初の作業はウィンドウが分からない
@@ -204,10 +204,10 @@ test("圧縮前指示: 自動の圧縮の前に足す指示は、コンテキス
   provider.preCompactSentId = "pc-1";
   await call("POST", `/api/chats/${chatId}/messages`, { text: "続けて" });
   await until(() => !runner.isBusy(chatId));
-  assert.deepEqual(provider.preCompacts[1], { message: autoPreCompactMessage("メモを書いて"), contextWindow: 200_000, contextTokens: 120_000 });
+  assert.deepEqual(provider.preCompacts[1], { message: autoPreCompactMessage("ノートを書いて"), contextWindow: 200_000, contextTokens: 120_000 });
   const user = store.events.list(chatId).find((e) => e.type === "user" && e.data.pre_compact)!;
   assert.ok(user.type === "user");
-  assert.deepEqual([user.data.text, user.data.message_uuid], ["メモを書いて", "pc-1"]);
+  assert.deepEqual([user.data.text, user.data.message_uuid], ["ノートを書いて", "pc-1"]);
   // 作業の区切りまで圧縮が来なかったので、続けて圧縮した（その実行には足さない）
   assert.equal(provider.prompts[2], "/compact");
   assert.equal(provider.preCompacts[2], null);
@@ -224,7 +224,7 @@ test("圧縮前指示から圧縮が終わるまで: 「いま」は預かって
   bus.subscribe((e) => {
     if (e.type === "chat_live" && e.live.compacting && triggers.at(-1) !== e.live.compacting.trigger) triggers.push(e.live.compacting.trigger);
   });
-  await call("PUT", "/api/settings", { pre_compact_prompt: "メモを書いて" });
+  await call("PUT", "/api/settings", { pre_compact_prompt: "ノートを書いて" });
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
   await until(() => !runner.isBusy(chatId));
   const users = () => store.events.list(chatId).flatMap((e) => (e.type === "user" ? [e.data.text] : []));
@@ -245,7 +245,7 @@ test("圧縮前指示から圧縮が終わるまで: 「いま」は預かって
   await until(() => provider.prompts.at(-1) === "あ" && !runner.isBusy(chatId));
   assert.deepEqual(provider.prompts.slice(1), ["続けて", "/compact", "あ"]);
   assert.equal(triggers[0], "auto");
-  assert.deepEqual(users(), ["はじめ", "続けて", "メモを書いて", "あ"]);
+  assert.deepEqual(users(), ["はじめ", "続けて", "ノートを書いて", "あ"]);
   assert.equal(runner.live(chatId).awaiting_compact, false);
   assert.deepEqual(runner.live(chatId).after_compact, []);
   provider.compacting = false;
@@ -526,8 +526,8 @@ test("預かった指示を書き直している間は、送る順が来ても�
 test("圧縮後指示: 圧縮が終わったら札付きで伝え、預かった「いま」は圧縮後指示のやり取りが終わってから送る（手で圧縮したときは圧縮の実行のあとに圧縮後指示を新しい作業として送る）", async () => {
   const { call, project, runner, provider, store } = setup();
   await call("PUT", "/api/settings", { post_compact_prompt: " 共通のあと " });
-  await call("PATCH", `/api/projects/${project.id}`, { post_compact_prompt: "メモを読み直す" });
-  const text = "共通のあと\n\nメモを読み直す";
+  await call("PATCH", `/api/projects/${project.id}`, { post_compact_prompt: "ノートを読み直す" });
+  const text = "共通のあと\n\nノートを読み直す";
   const users = () =>
     store.events
       .list(chatId)
@@ -597,7 +597,7 @@ test("圧縮前指示・圧縮後指示は送信待ちに入れない: 作業中
   const { call, project, store, runner, provider } = setup();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
   await until(() => !runner.isBusy(chatId));
-  await call("PUT", "/api/settings", { pre_compact_prompt: "メモを書いて", post_compact_prompt: "メモを読んで" });
+  await call("PUT", "/api/settings", { pre_compact_prompt: "ノートを書いて", post_compact_prompt: "ノートを読んで" });
   provider.emitCompactOnCompact = true;
   const release = provider.hold();
   await call("POST", `/api/chats/${chatId}/messages`, { text: "作業" });
@@ -605,20 +605,20 @@ test("圧縮前指示・圧縮後指示は送信待ちに入れない: 作業中
   await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
   assert.equal((await call("POST", `/api/chats/${chatId}/compact`)).status, 200);
   // 圧縮の行で予約せず、いまの作業にそのまま伝える（札付きの自分の発言）。圧縮が終わるまで「いま」は預かる
-  assert.deepEqual(provider.told, [busyPreCompactMessage("メモを書いて")]);
+  assert.deepEqual(provider.told, [busyPreCompactMessage("ノートを書いて")]);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => (m.compact ? "圧縮" : m.text)), ["次"]);
   assert.equal(runner.live(chatId).awaiting_compact, true);
   // 画面が「いまの作業が終わったら圧縮します」を出せるよう、作業のあとで圧縮することを配る
   assert.equal(runner.live(chatId).compact_after_turn, true);
   const user = store.events.list(chatId).findLast((e) => e.type === "user")!;
-  assert.ok(user.type === "user" && user.data.pre_compact && user.data.text === "メモを書いて");
+  assert.ok(user.type === "user" && user.data.pre_compact && user.data.text === "ノートを書いて");
   // もう伝えたので、もう一度押しても足さない（予約になる）
   await call("POST", `/api/chats/${chatId}/compact`);
   assert.equal(provider.told.length, 1);
   await call("DELETE", `/api/chats/${chatId}/queue/${runner.live(chatId).queue.messages.find((m) => m.compact)!.id}`);
   release();
   await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(chatId));
-  assert.deepEqual(provider.prompts.slice(2), ["/compact", postCompactMessage("メモを読んで"), "次"]);
+  assert.deepEqual(provider.prompts.slice(2), ["/compact", postCompactMessage("ノートを読んで"), "次"]);
   assert.equal(runner.live(chatId).compact_after_turn, false);
   const compacted = store.events.list(chatId).find((e) => e.type === "compact");
   assert.ok(compacted?.type === "compact" && compacted.data.trigger === "manual");
