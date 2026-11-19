@@ -102,7 +102,7 @@ export function itemCompleted(item: ThreadItem, cb: ProviderCallbacks, state: It
       const it = item as Extract<ThreadItem, { type: "reasoning" }>;
       const text = [...it.summary, ...it.content].join("\n\n").trim();
       const duration = it.startedAtMs && it.completedAtMs ? it.completedAtMs - it.startedAtMs : undefined;
-      // 中身がなく 1 秒に満たない思考は残さない（Codex は空の要約の項目をたびたび出し、画面に空の行が並ぶため。メモの仕様書「0028」の F4）
+      // 中身がなく 1 秒に満たない思考は残さない（Codex は空の要約の項目をたびたび出し、画面に空の行が並ぶため）
       if (text || (duration ?? 0) >= 1000) cb.emit({ type: "thinking", text, ...(duration !== undefined ? { duration_ms: duration } : {}) });
       return;
     }

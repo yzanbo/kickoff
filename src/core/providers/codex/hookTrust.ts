@@ -3,7 +3,7 @@ import { findKickoffHook, hookTrustConfig, type ListedHook } from "./hooks.js";
 import type { JsonValue, ThreadOverrides, ThreadResponse } from "./protocol.js";
 
 /**
- * Kickoff の PreToolUse フック（hooks.ts）を、利用者の config.toml を書き換えずに「信頼済み」にする（メモの仕様書「0028」の F1）。
+ * Kickoff の PreToolUse フック（hooks.ts）を、利用者の config.toml を書き換えずに「信頼済み」にする。
  * Codex は信頼していないフックを動かさない。信頼の覚え（hooks.state."<鍵>".trusted_hash）もスレッドの上書きで渡せるので、
  * フックの鍵と中身の指紋を、一時のスレッド（ephemeral。保存しない）で hooks/list に聞いてから、本物のスレッドに覚えごと渡す。
  * 本物のスレッドでフックが信頼済み・有効になったかは assertHookActive で確かめ、なっていなければ守りのないまま動かさない

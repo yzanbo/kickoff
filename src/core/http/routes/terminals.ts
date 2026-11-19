@@ -32,8 +32,8 @@ export const ownerOf = (caller: Caller) => (caller.kind === "device" ? `device:$
 const mayClose = (caller: Caller, owner: string | null) => caller.kind === "host" || owner === ownerOf(caller);
 
 /**
- * 内蔵ターミナルを API から使う口（この Mac の画面のパネルのタブと、スマホのターミナル。スマホは 2026-11-14 に利用者と決めた。
- * この Mac の画面も、コアを別のプロセスにしたとき（メモの仕様書「0023_表示を軽くする」の案 16）にメインプロセスの IPC からここへ移した）。
+ * 内蔵ターミナルを API から使う口（この Mac の画面のパネルのタブと、スマホのターミナル。
+ * シェルはコアのプロセスにあるので、この Mac の画面もメインプロセスの IPC でなくここを通す）。
  * シェルはコアの TerminalSessions で動く。キーの入力・出力は WebSocket（細かく行き来するため。この口だけ）。
  * 見るだけの端末は、一覧と WebSocket で見るだけで、シェルを作る・止める（403）・キーを送る（捨てる）はできない
  */

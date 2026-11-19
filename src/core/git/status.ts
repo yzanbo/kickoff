@@ -109,10 +109,10 @@ export async function gitOperation(repo: string): Promise<GitOperation | null> {
   return null;
 }
 
-/** プロジェクトのフォルダの Git の状態（Git で管理されていなければ repo: false）。リポジトリの中のフォルダなら、その中の変更だけ */
 /** git status の出力を読む（変更の多い作業場所では数万行。同期の処理なので詰まりの見張りに名前を付ける。system/stallWatch.ts） */
 const readStatus = timed("git:status", (raw: string) => parseGitStatus(raw));
 
+/** プロジェクトのフォルダの Git の状態（Git で管理されていなければ repo: false）。リポジトリの中のフォルダなら、その中の変更だけ */
 export async function gitStatus(repo: string): Promise<GitStatus> {
   const prefix = await gitPrefix(repo);
   if (prefix === null) return { repo: false };

@@ -1,12 +1,11 @@
 // Docker タブの一覧の組み立て（純粋な関数）: コンテナを作業場所と組に振り分け、見つけた compose のファイルと合わせて見出しを作る。
-// どれをこのプロジェクトのものとするかは、コンテナの working_dir がいちばん深く入る作業場所（仕様書の 5 章）
+// どれをこのプロジェクトのものとするかは、コンテナの working_dir がいちばん深く入る作業場所
 import path from "node:path";
 import { workplaceText } from "@shared/docker/workplace";
 import { relativeApiPath } from "../system/paths.js";
 import type { Workplace } from "../git/worktrees.js";
 import type { DockerCompose, DockerContainer, DockerLogSource, DockerOtherContainer, DockerService, DockerShare } from "@shared/types";
 import { dbKindOf, deepestWorkplace, parsePorts, parseStatus, serviceMark, type ComposeConfig, type RawContainer } from "./parse.js";
-
 
 /** compose のファイル 1 つ分の読み取り（見つけたファイルと、作ったコンテナのラベルにあるファイル） */
 export interface ComposeEntry {

@@ -17,7 +17,7 @@ export interface ChatProviderHandoff {
 /**
  * 保留中の引き継ぎが、次の AI の切り替えを止めるか。止めるならその理由の文。
  * まだ何も送っていない準備済み（ready）のものは、次の切り替えで置き換えてよい（切り替えたあと送る前に戻す・替え直すため）。
- * 準備の失敗・送信中・受信不明は、指示を失わない・二重に送らないよう、片付くまで切り替えない（メモの仕様書「0029」の Q36〜Q38・Q45）。
+ * 準備の失敗・送信中・受信不明は、指示を失わない・二重に送らないよう、片付くまで切り替えない。
  */
 export function handoffBlocksSwitch(pending: ChatProviderHandoff | undefined, currentProvider: ProviderId): string | null {
   if (!pending) return null;
@@ -69,7 +69,7 @@ export function createChatProviderHandoffStore(db: DatabaseSync) {
     blockBeforeSend(chatId: number, eventId: number, error: string): boolean {
       return db.prepare("UPDATE chat_provider_handoffs SET state = 'blocked', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'sending'").run(error, chatId, eventId).changes === 1;
     },
-    /** 送信後の状態が分からない場合は自動再送しない（Q45）。 */
+    /** 送信後の状態が分からない場合は自動再送しない。 */
     markUncertain(chatId: number, eventId: number, error: string): boolean {
       return db.prepare("UPDATE chat_provider_handoffs SET state = 'uncertain', error = ? WHERE chat_id = ? AND event_id = ? AND state = 'sending'").run(error, chatId, eventId).changes === 1;
     },

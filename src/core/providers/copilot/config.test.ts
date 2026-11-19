@@ -1,4 +1,4 @@
-// Copilot SDK の形に直す純粋関数（メモの仕様書「0021」の段階 4）
+// Copilot SDK の形に直す純粋関数
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { BashSandbox } from "../../chat/sandbox/bashSandbox.js";

@@ -1,6 +1,5 @@
 // メインプロセスとコアのプロセス（utilityProcess）のやり取りの形（型だけ。Electron に依らない。メインも読む）。
 // 口は utilityProcess の parentPort 1 本で、呼ぶ・答える・知らせる（RpcMessage）と、起動の init / ready / failed、DB ワーカーの port を運ぶ
-// （メモの仕様書「0023_表示を軽くする」の案 16。分冊 4 の 1-3）
 import type { BrowserTabInfo, HistoryAction, PageImage, PageSnapshot, RevealRequest } from "../browser/control.js";
 import type { Notice } from "../notifications/notices.js";
 import type { StallRecord } from "../system/stallWatch.js";
@@ -71,7 +70,7 @@ export interface CoreMethods {
   "diagnostics.stop"(): Promise<CoreDiagnostics>;
   /** その持ち主（この Mac の画面 wc:<ID>）のシェルを止める（画面が消えた・読み込み直した） */
   "terminal.closeOwnedBy"(owner: string): Promise<void>;
-  /** 作業中のチャット（終了してよいかを聞くダイアログに名前を並べる。メモの仕様書「0026」の D11） */
+  /** 作業中のチャット（終了してよいかを聞くダイアログに名前を並べる） */
   runningChats(): Promise<{ id: number; title: string | null }[]>;
   /** コアのプロセスのメモリ（60 秒ごとの metrics.jsonl） */
   metrics(): Promise<{ heapUsedMB: number; rssMB: number }>;

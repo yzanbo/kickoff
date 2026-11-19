@@ -14,7 +14,7 @@ import type { SessionFileInfo } from "../types.js";
 export const claudeProjectsDir = (env: NodeJS.ProcessEnv = process.env): string => join(env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "projects");
 
 /**
- * 会話を写すとき残す区切り（圧縮の印から次の印まで）の数（メモの仕様書「ファイル削除」の Q18。2026-11-14 に利用者と決めた。11-13 の「どれも 2」を改めた）:
+ * 会話を写すとき残す区切り（圧縮の印から次の印まで）の数:
  * 同じ会話を続けるもの（分岐・巻き戻し・長いチャットの乗り換え）は 3（いまの区切りとその前の 2 つ。1 つ前の圧縮より前まで巻き戻せる）、
  * 子チャットは 1（最新の要約とそのあとのやり取りだけ。寄り道に使い、AI が読むのも最新の区切りだけのため。呼ぶ側が providers/types.ts の CHILD_FORK_KEEP を渡す）
  */
@@ -151,7 +151,7 @@ export async function sessionFilesSize(sessionIds: string[], cwds: string[], roo
 
 /**
  * 長く続けたセッションの記録を、終わりの直近 keep 個の区切り（圧縮の印から次の印まで）だけにした新しいセッションとして同じフォルダに書く
- * （メモの仕様書「ファイル削除」の Q18。圧縮した作業が終わったら乗り換える）。分岐（forkSession）と違い、発言の ID とファイルの控え（file-history-snapshot）を
+ * （圧縮した作業が終わったら乗り換える）。分岐（forkSession）と違い、発言の ID とファイルの控え（file-history-snapshot）を
  * そのまま残すので、残した区切りの中の発言へは巻き戻し・「ファイルを戻す」ができる。Claude Code は続きのセッションでは最後の印から後ろだけを読むので、
  * 会話の中身は変わらない。区切りが keep 個に足りない（切るものがない）ときは null
  */
@@ -187,12 +187,12 @@ export async function trimToRecentSegments(path: string, sessionId: string, keep
 const isFileHistoryLine = (line: string) => line.includes('"type":"file-history-snapshot"') || line.includes('"type":"file-history-delta"');
 
 /**
- * 作業場所を移すとき（メモの仕様書「0025_チャットの作業場所を変える」の H1・J1）、会話を新しい ID のセッションに写して同じフォルダに書く。
+ * 作業場所を移すとき、会話を新しい ID のセッションに写して同じフォルダに書く。
  * 終わりの直近 keep 個の区切り（圧縮の印から次の印まで）があればそこから、足りなければ丸ごと写す（短い会話なので小さい）。発言の ID は保つ
  * （移したあとの起点 = 区切りの直前の作業の終わりのメッセージを、新しいセッションでも同じ ID で指せるように）。
  * ファイルの控えの行（file-history-snapshot・file-history-delta）は写さない: 控えは元の作業場所のファイルを指していて、残すと移したあとに
- * 同じ名前のファイルを書き換えた発言の「ファイルを戻す」が、戻したと答えるのに戻らなかった（2026-11-15 に本物で確かめた。分岐の forkSession も控えを写さない）。
- * 区切りより前の発言へは巻き戻せない決まり（Q3）なので、控えは要らない。同じ名前のフォルダ（サブエージェントの記録など）は新しいセッションの名前に移す
+ * 同じ名前のファイルを書き換えた発言の「ファイルを戻す」が、戻したと答えるのに戻らない（分岐の forkSession も控えを写さない）。
+ * 区切りより前の発言へは巻き戻せない決まりなので、控えは要らない。同じ名前のフォルダ（サブエージェントの記録など）は新しいセッションの名前に移す
  */
 export async function copyForWorkplaceMove(path: string, sessionId: string, keep = FORK_KEEP_SEGMENTS): Promise<{ sessionId: string; path: string }> {
   let start = 0;

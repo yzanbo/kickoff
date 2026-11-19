@@ -1,5 +1,5 @@
 // DB のパスワード（DB・AI 用のユーザー・SSH）の置き方: いつもキーチェーンの鍵（Electron の safeStorage）で暗号化して secrets に置く。
-// AI がパスワードを知ると psql などで直接 DB に入れ、AI のツールの守りが素通りになるため（要件 5.12）。
+// AI がパスワードを知ると psql などで直接 DB に入れ、AI のツールの守りが素通りになるため。
 // 暗号化の口はメインプロセスが startCore に渡す（コアは Electron に依らない）。口のない単体のコア・テストは暗号化せずに置く（予備）
 import { DB_PASSWORD_LOCKED } from "@shared/types";
 import type { Store } from "../db/store.js";

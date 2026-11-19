@@ -1,4 +1,4 @@
-// GitHub タブ（要件 5.11 の段階 1「読む」・段階 3「書く」）: プロジェクトの連携先のリポジトリの issue・PR の一覧と中身を、プロジェクトのアカウントで GitHub に聞く。
+// GitHub タブ（読む・書く）: プロジェクトの連携先のリポジトリの issue・PR の一覧と中身を、プロジェクトのアカウントで GitHub に聞く。
 // 中身は DB に持たない（正しいのはいつも GitHub）。一覧は少しの間メモリに覚え、変わっていなければ（ETag で 304 = 使用量に数えない）覚えたものを返す。
 // issue・PR の中身も最後に取ったものを少しの間覚え、開き直したときのつなぎに出す（開いたときは必ず GitHub に聞き直す）
 import type {
@@ -261,7 +261,7 @@ export class GitHubService {
   }
 
   /**
-   * PR のチェックアウト（段階 3）: worktree はワークツリー（pullWorktree と同じ）、main は本体のブランチを PR のブランチに切り替える
+   * PR のチェックアウト: worktree はワークツリー（pullWorktree と同じ）、main は本体のブランチを PR のブランチに切り替える
    * （ほかのワークツリーで取り出しているブランチは 400。fork の PR も取れる）
    */
   pullCheckout(project: Project, number: number, place: GitHubCheckoutPlace): Promise<GitHubPullWorktree> {
@@ -280,7 +280,7 @@ export class GitHubService {
     });
   }
 
-  // ---- 書き込み（段階 3。writes.ts）。書いたら、このプロジェクトの覚えた一覧を捨てる ----
+  // ---- 書き込み（writes.ts）。書いたら、このプロジェクトの覚えた一覧を捨てる ----
 
   comment(project: Project, number: number, body: string): Promise<void> {
     return this.write(project, (ctx) => postComment(ctx, number, body));

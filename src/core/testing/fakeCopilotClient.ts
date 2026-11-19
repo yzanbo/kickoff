@@ -1,4 +1,4 @@
-// 台本どおりに振る舞う偽の Copilot SDK のクライアント（本物のランタイム・アカウントは使わない。メモの仕様書「0021」の段階 4）
+// 台本どおりに振る舞う偽の Copilot SDK のクライアント（本物のランタイム・アカウントは使わない）
 import type { CopilotClientFactory, CopilotClientLike, CopilotQuotaSnapshot, CopilotSessionLike, ModelInfo, ResumeSessionConfig, SessionConfig, SessionEvent } from "../providers/copilot/sdk.js";
 
 /** 偽のセッション（届けたイベントは記録に残し、getEvents で返す） */

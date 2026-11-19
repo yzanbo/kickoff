@@ -16,7 +16,7 @@ export function limitReachedOf(percents: readonly (number | null)[]): boolean | 
 
 /**
  * Codex のクレジットの見張り。使用状況の取得（1 分ごと）と、Codex の実行中の知らせ（account/rateLimits/updated）の両方から残りを受け、
- * 前に見た残りより減ったら「クレジットから引かれている」にする（意図せずクレジットを使っていないかを下の帯で見せる。利用者の依頼）。
+ * 前に見た残りより減ったら「クレジットから引かれている」にする（意図せずクレジットを使っていないかを下の帯で見せる）。
  * 上限に達した枠がなくなったら外す（減ったのを同じ知らせで見たときは外さない）。様子が変わったら SSE の codex_credits で配る
  */
 export class CodexCreditsWatch {

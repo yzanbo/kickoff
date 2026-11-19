@@ -4,7 +4,6 @@ import { collectSubagents } from "@shared/chat/subagents";
 import { makeEvent } from "@shared/testing/factories";
 import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
 
-
 // 裏で動かしたサブエージェントが報告を送ったが、親が動かないまま作業が終わった
 const lost = [
   makeEvent(1, "tool_use", { id: "bg", name: "Agent", input: { description: "調査" } }),

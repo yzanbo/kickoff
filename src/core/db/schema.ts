@@ -225,7 +225,7 @@ ALTER TABLE projects ADD COLUMN pr_watch INTEGER NOT NULL DEFAULT 1 CHECK (pr_wa
 `;
 
 /**
- * v13: DB クライアントの接続（プロジェクトごと。段階 1 の項目だけ。SSH・準備のコマンド・手順メモなどは段階 2 で足す）。
+ * v13: DB クライアントの接続（プロジェクトごと。SSH・準備のコマンド・手順メモなどはあとの版で足す）。
  * パスワードは secrets の db_connection:<id>:password に置き、接続を消したら（プロジェクトごとの削除も）トリガーで消す
  */
 const SCHEMA_V13 = `
@@ -255,7 +255,7 @@ END;
 `;
 
 /**
- * v14: DB クライアントの段階 2（AI の読み取り）。AI が流す SQL に使う別のユーザー（ai_username。パスワードは secrets の
+ * v14: DB クライアントの AI の読み取り。AI が流す SQL に使う別のユーザー（ai_username。パスワードは secrets の
  * db_connection:<id>:ai_password）と、SQL の履歴（接続ごとに新しい 500 件だけ残す。ran_by は user / ai、AI のものは chat_id）
  */
 const SCHEMA_V14 = `
@@ -285,7 +285,7 @@ CREATE TABLE db_er_layouts (
   PRIMARY KEY (connection_id, place)
 ) STRICT;`;
 
-/** v16: DB クライアントの段階 2（接続の手順メモ）。メモのフォルダからの相対パス（いくつもの接続で同じメモを使える） */
+/** v16: DB クライアントの接続の手順メモ。メモのフォルダからの相対パス（いくつもの接続で同じメモを使える） */
 const SCHEMA_V16 = `ALTER TABLE db_connections ADD COLUMN memo_path TEXT CHECK (memo_path <> '');`;
 
 /** v17: 接続の SSH トンネル（null = 使わない。パスワードは secrets の db_connection:<id>:ssh_password） */
@@ -323,7 +323,7 @@ ALTER TABLE chats ADD COLUMN github_kind TEXT CHECK (github_kind <> '');
 `;
 
 /**
- * v20: DB の接続の書き込む前の確かめ（write_check: dangerous / all / env_name。要件 5.12 の本番の守り）。
+ * v20: DB の接続の書き込む前の確かめ（write_check: dangerous / all / env_name。本番の守り）。
  * いまある接続は環境の既定にそろえる（ステージング = all・本番 = env_name・ほか = dangerous）
  */
 const SCHEMA_V20 = `
@@ -366,7 +366,7 @@ CREATE INDEX idx_worktree_envs_project ON worktree_envs(project_id);
 `;
 
 /**
- * v23: ワークツリーの実行環境の段階 2。
+ * v23: ワークツリーの実行環境の［AI で整える］と「DB で開く」。
  * chats.untracked_only = Git で管理していないファイルだけを書けるチャット（［AI で整える］のチャット。続きの指示でも守る）。
  * db_connections.worktree_path = Docker タブの「DB で開く」で、どのワークツリーの DB から作った接続か（null なら本体・ほか。ワークツリーを消すとき一緒に消せる）
  */
@@ -396,7 +396,7 @@ ALTER TABLE devices ADD COLUMN access TEXT NOT NULL DEFAULT 'full' CHECK (access
 `;
 
 /**
- * v26: Kickoff のゴミ箱（消したものを 3 日だけ取っておき、元に戻せる。メモの仕様書「ファイル削除」）。
+ * v26: Kickoff のゴミ箱（消したものを 3 日だけ取っておき、元に戻せる）。
  * ファイルの中身はデータのフォルダの trash/<id>/ に置き、ここには元の場所・誰が消したかなどを持つ。id は置き場のフォルダ名（AI の kickoff-trash が付けた uuid も使う）。
  * kind（file / chat / project / session）は値の一覧なので CHECK にしない。chat_id はゴミ箱に入れたチャット（ゴミ箱にある間は行が残る。本当に消すときに一緒に消す）
  */
@@ -419,7 +419,7 @@ CREATE INDEX idx_trash_items_trashed ON trash_items(trashed_at);
 `;
 
 /**
- * v27: チャット・プロジェクトを Kickoff のゴミ箱に入れる（3 日は元に戻せる。メモの仕様書「ファイル削除」の Q11・Q13・Q20）。
+ * v27: チャット・プロジェクトを Kickoff のゴミ箱に入れる（3 日は元に戻せる）。
  * ゴミ箱にある間は行を残し、trashed_at（入れた時刻）で一覧・検索などから外す。chats.trashed_with は一緒に入れたゴミ箱の行（trash_items.id。
  * チャットを消したらそのチャットの行、メモを消したらメモの行、プロジェクトを消したらプロジェクトの行）で、戻す・本当に消すときに同じ行のものをまとめて扱う
  */
@@ -431,7 +431,7 @@ ALTER TABLE projects ADD COLUMN trashed_at TEXT;
 `;
 
 /**
- * v28: Kickoff が作ったセッション（Claude Code の会話記録）の覚え（メモの仕様書「ファイル削除」の Q17）。チャットの session_id に入れたときに足し、
+ * v28: Kickoff が作ったセッション（Claude Code の会話記録）の覚え。チャットの session_id に入れたときに足し、
  * どのチャットからも使われなくなったら会話記録を Kickoff のゴミ箱へ入れて消す。前からある会話記録は覚えない（ターミナルで直接使った Claude Code の記録と
  * 見分けられないため。片付けるのは利用者が選ぶ一覧から）。project_id はゴミ箱に出すプロジェクト、cwd は動かした作業フォルダ（記録の場所の手がかり）
  */
@@ -446,7 +446,7 @@ CREATE TABLE agent_sessions (
 `;
 
 /**
- * v29: AI が作ったチャットの世代（メモの仕様書「0019_AI の操作ツールの追加」の Q7）。利用者が作ったチャットを 0 とし、AI が create_chat で作るたびに
+ * v29: AI が作ったチャットの世代。利用者が作ったチャットを 0 とし、AI が create_chat で作るたびに
  * 作った側の世代 ＋ 1 を覚える（子・兄弟・親のないチャットのどれでも同じ。2 世代目からは作れない）。あわせて、設定「AI が子チャットを作るとき」を
  * 「AI がチャットを作るとき」に広げたので、キーを ai_child_chat から ai_create_chat に付け替える（選んだ値は引き継ぐ）
  */
@@ -457,7 +457,7 @@ UPDATE settings SET key = 'ai_create_chat' WHERE key = 'ai_child_chat';
 
 /**
  * v30: 記録ごとの軽い形（`@shared/chat/chatIndex` の ChatEventMeta）と大きさを、data の JSON を解かずに索引だけで読む覆う索引
- * （メモの仕様書「0023_表示を軽くする」の案 4。チャットを開くときに末尾の前の記録から索引を選ぶ・末尾の大きさを数える。選ぶ決まりは JS の selectIndexIds だけ）
+ * （チャットを開くときに末尾の前の記録から索引を選ぶ・末尾の大きさを数える。選ぶ決まりは JS の selectIndexIds だけ）
  */
 const SCHEMA_V30 = `
 CREATE INDEX idx_chat_events_meta ON chat_events(
@@ -468,7 +468,7 @@ CREATE INDEX idx_chat_events_meta ON chat_events(
 `;
 
 /**
- * v31: 起動したときの再開の確かめの印（メモの仕様書「0026_起動したときの再開の確かめ」の D3・D8）。前回の終了で作業の途中で止まったチャット
+ * v31: 起動したときの再開の確かめの印。前回の終了で作業の途中で止まったチャット
  * （アプリを終えるときに作業中・つながるのを待っていた、落ちて作業中のまま残った）に 1 を書き、答える・自分で送る・アーカイブする・ゴミ箱に入れるまで残す
  * （「あとで」を選んだら、次の起動でも聞く）。店の中だけで使い、Chat には出さない
  */
@@ -478,7 +478,7 @@ CREATE INDEX idx_chats_resume_pending ON chats(resume_pending) WHERE resume_pend
 `;
 
 /**
- * v32: チャット欄の外の画像（メモの仕様書「0027_チャット欄の外の画像とリンク」）。chat_image_hosts は、チャットで表示を許可したホスト
+ * v32: チャット欄の外の画像。chat_image_hosts は、チャットで表示を許可したホスト
  * （返答の外の画像は押すまで読み込まない。押したホストはそのチャットの中だけ覚える）。chat_image_cache は、コアが取ってきた画像の覚え書き
  * （中身はデータのフォルダの image-cache/<チャット>/<key> のファイル。key は URL の SHA-256。合計の大きさで古いものから消す）。
  * どちらもチャットを本当に消したら一緒に消える（ファイルはゴミ箱の片付けが消す）
@@ -503,7 +503,7 @@ CREATE INDEX idx_chat_image_cache_fetched ON chat_image_cache(fetched_at);
 `;
 
 /**
- * v33: プロジェクトの Claude Code のほかの AI の既定（メモの仕様書「0028」の 9 節）。AI ごとの選択の一部（{ "codex": { "model": … } }）。
+ * v33: プロジェクトの Claude Code のほかの AI の既定。AI ごとの選択の一部（{ "codex": { "model": … } }）。
  * Claude Code の分は今までどおり chat_defaults に持つ（いまのデータを書き換えない）
  */
 const SCHEMA_V33 = `

@@ -13,8 +13,8 @@ export type { AgentProvider } from "./types.js";
 
 /**
  * 本物の CLI・アカウントで確かめる前の新しい AI を、開発のときだけ使う環境変数（, 区切りの ID。例: KICKOFF_EXPERIMENTAL_PROVIDERS=copilot,cursor）。
- * 確かめるまでは対応予定（PlannedProvider）のままにし、画面で選べない（メモの仕様書「0021」の範囲）。
- * Codex はサブスクで使う（メモの仕様書「0028」）ので、いつも本物の実装を使う
+ * 確かめるまでは対応予定（PlannedProvider）のままにし、画面で選べない。
+ * Codex はサブスクで使うので、いつも本物の実装を使う
  */
 export function experimentalProviders(env: Record<string, string | undefined> = process.env): Set<string> {
   return new Set((env.KICKOFF_EXPERIMENTAL_PROVIDERS ?? "").split(",").map((s) => s.trim()).filter(Boolean));
@@ -31,7 +31,7 @@ export function createProviders(self?: SelfInfo, authFor?: (id: ProviderId) => P
     codex: new CodexProvider({ self }),
     copilot: experimental.has("copilot") ? new CopilotProvider({ self }) : new PlannedProvider("copilot", PROVIDER_LABELS.copilot, "copilot"),
     cursor: experimental.has("cursor") ? cursorProvider({ self, authFor: authFor && (() => authFor("cursor")) }) : new PlannedProvider("cursor", PROVIDER_LABELS.cursor, "agent"),
-    // Gemini は Antigravity CLI を API キーで動かす（メモの仕様書「0021」の Q11・Q13。定額の枠では使えない）
+    // Gemini は Antigravity CLI を API キーで動かす（定額の枠では使えない）
     gemini: experimental.has("gemini") ? geminiProvider({ self, authFor: authFor && (() => authFor("gemini")) }) : new PlannedProvider("gemini", PROVIDER_LABELS.gemini, "agy"),
   };
 }

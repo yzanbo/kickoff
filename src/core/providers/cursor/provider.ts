@@ -3,8 +3,8 @@ import { AcpProvider, type AcpProviderOpts, type AcpProviderSpec } from "../acp/
 import { cursorExtension } from "./extensions.js";
 
 /**
- * Cursor の CLI（`agent`）を ACP（`agent acp`）で動かす決まり（メモの仕様書「0021」の段階 5。Cursor の説明「CLI ACP」に合わせた）。
- * ログインは Cursor の CLI のもの（`agent login`。ACP の authenticate は `cursor_login`）。API キー（Q13）は Cursor の口が起動の引数（`--api-key`）か
+ * Cursor の CLI（`agent`）を ACP（`agent acp`）で動かす決まり（Cursor の説明「CLI ACP」に合わせた）。
+ * ログインは Cursor の CLI のもの（`agent login`。ACP の authenticate は `cursor_login`）。API キーは Cursor の口が起動の引数（`--api-key`）か
  * 環境変数 CURSOR_API_KEY だけなので、`ps` で見える引数を避けて環境変数で渡す（Cursor がそれを AI のコマンドの環境から外すかは、使い始める前に確かめる）。
  * MCP は Cursor の説明では `.cursor/mcp.json` のものだけとあり、初期化の答えで http を受けると言わなければ AI の操作ツールは渡さない（acp/config.ts の mcpServersFor）
  */

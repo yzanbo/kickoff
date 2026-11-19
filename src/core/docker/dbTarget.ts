@@ -1,4 +1,4 @@
-// Docker タブの「DB で開く」（段階 2）: compose の DB のサービスから、DB クライアントの登録済みの接続か、取り込みの案を決める（純粋な関数）。
+// Docker タブの「DB で開く」: compose の DB のサービスから、DB クライアントの登録済みの接続か、取り込みの案を決める（純粋な関数）。
 // 案の作り方は DB クライアントの「プロジェクトからの取り込み」と同じ（candidatesFromCompose）で、compose に聞いた設定（変数を埋めたもの）から読む
 import path from "node:path";
 import { sameLocalServer } from "@shared/database/dbServer";

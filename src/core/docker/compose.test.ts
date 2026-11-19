@@ -48,7 +48,7 @@ test("upFilesFor: .env の COMPOSE_FILE に見つけたファイルがあれば�
   assert.deepEqual(upFilesFor(at("docker-compose.yml")), [at("docker-compose.yml"), at("docker-compose.override.yaml")]);
   // 別名の compose には override を重ねない
   assert.deepEqual(upFilesFor(at("compose.e2e.yaml")), [at("compose.e2e.yaml")]);
-  // COMPOSE_FILE に入っていればその並び（override は足さない）、入っていなければ今までどおり
+  // COMPOSE_FILE に入っていればその並び（override は足さない）、入っていなければ override も足す
   fs.writeFileSync(at(".env"), "COMPOSE_FILE=compose.yaml:compose.e2e.yaml\n");
   assert.deepEqual(upFilesFor(at("compose.yaml")), [at("compose.yaml"), at("compose.e2e.yaml")]);
   assert.deepEqual(upFilesFor(at("docker-compose.yml")), [at("docker-compose.yml"), at("docker-compose.override.yaml")]);

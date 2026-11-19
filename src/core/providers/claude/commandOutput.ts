@@ -12,7 +12,7 @@ import { COMMAND_OUTPUT_LINES, type CommandOutput } from "@shared/types";
  * `<一時フォルダ>/claude-<uid>/<作業場所>/<セッション ID>/tasks/<作業 ID>.output` に書いている。
  * コマンドを始めると task_started（task_type: local_bash・作業 ID・呼び出し ID）が届くので、そのファイルの増えた分を読み続け、
  * 最後の行を知らせる。場所は Claude Code の内部の決まりなので、作業場所の部分は計算せずに探し、見つからなければ何もしない
- * （結果は今までどおり終わってから届く）
+ * （結果は終わってから届く）
  */
 
 /** ファイルを読み直す間隔 */
@@ -150,7 +150,7 @@ export function createCommandOutputWatcher(emit: (output: CommandOutput) => void
       try {
         await read(taskId, w);
       } catch {
-        // 読めなかった回は飛ばす（消された・権限など。結果は今までどおり届く）
+        // 読めなかった回は飛ばす（消された・権限など。結果は終わってから届く）
       } finally {
         w.reading = false;
       }

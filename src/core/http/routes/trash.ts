@@ -23,7 +23,7 @@ const orphanTrashSchema = z.object({ session_ids: z.array(z.string().uuid()).min
 const toApi = ({ details: _details, ...item }: StoredTrashItem): TrashItem => item;
 
 /**
- * Kickoff のゴミ箱（メモの仕様書「ファイル削除」）。一覧はプロジェクトごと（AI が kickoff-trash で入れたばかりのものも取り込んでから返す）、
+ * Kickoff のゴミ箱。一覧はプロジェクトごと（AI が kickoff-trash で入れたばかりのものも取り込んでから返す）、
  * 元に戻すは戻した場所（同じ名前があれば 409 と TRASH_RESTORE_EXISTS。rename なら別の名前で戻す）。3 日で消えるのを待たずに、1 件・まとめて完全に消せる
  */
 export function trashRoutes(app: Hono, { store, trashBin, runner, providers, sessionsElsewhere }: ServerDeps) {
@@ -37,7 +37,7 @@ export function trashRoutes(app: Hono, { store, trashBin, runner, providers, ses
   // どのプロジェクトにも出ないもの（プロジェクトの外の会話記録など。設定の「ゴミ箱と整理」）
   app.get("/api/trash/unassigned", (c) => c.json(store.trash.unassigned().map(toApi)));
 
-  // どのチャットも使っていない会話記録（メモの仕様書「ファイル削除」の Q17 の「いまある分」）: 一覧と、選んだものをゴミ箱へ
+  // どのチャットも使っていない会話記録: 一覧と、選んだものをゴミ箱へ
   const orphanDeps: OrphanSessionDeps = {
     store,
     providers,
@@ -61,7 +61,7 @@ export function trashRoutes(app: Hono, { store, trashBin, runner, providers, ses
     return c.json(toApi(item));
   });
 
-  // アーカイブ済みのチャットの整理（メモの仕様書「ファイル削除」の Q19）: days 日より前から動いていないものの見込みと、まとめてゴミ箱へ入れる
+  // アーカイブ済みのチャットの整理: days 日より前から動いていないものの見込みと、まとめてゴミ箱へ入れる
   app.get("/api/archive-cleanup", async (c) => c.json(await archiveCleanupPreview({ store, providers }, days.parse(queryOf(c, "days")))));
   app.post("/api/archive-cleanup", async (c) => {
     const body = cleanupSchema.parse(await jsonBody(c));

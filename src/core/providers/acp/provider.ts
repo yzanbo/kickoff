@@ -34,7 +34,7 @@ export interface AcpProviderSpec extends AcpAgentSpec {
 }
 
 /**
- * ACP（Agent Client Protocol）のエージェントを動かす共通のプロバイダー（メモの仕様書「0021_Codex・Copilot・Cursor 対応」の段階 5）。
+ * ACP（Agent Client Protocol）のエージェントを動かす共通のプロバイダー。
  * Cursor（`agent acp`）と Gemini（Antigravity CLI の `agy acp`）が、CLI ごとの違い（AcpProviderSpec）だけを決めて使う。
  * 会話 = ACP のセッション（Kickoff のセッション ID = ACP の sessionId）。分岐・モデルの一覧・使用枠は ACP に口がないので持たない。
  * 本物のアカウントで確かめるまで、画面では「対応予定」のまま（createProviders が開発用の環境変数のときだけこれを使う）

@@ -61,7 +61,7 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/chats/:id/queue/send-in-order"],
   ["POST", "/api/chats/:id/queue/remove-many"],
   ["POST", "/api/chats/:id/queue/move-many"],
-  // ターミナル（一覧・始める・止める・WebSocket でつなぐ。2026-11-14 に利用者と決めた。見るだけの端末は見るだけ）
+  // ターミナル（一覧・始める・止める・WebSocket でつなぐ。見るだけの端末は見るだけ）
   ["GET", "/api/terminals"],
   ["POST", "/api/projects/:id/terminals"],
   ["DELETE", "/api/terminals/:key"],
@@ -73,7 +73,7 @@ export const DEVICE_ROUTES: readonly (readonly [Method, string])[] = [
   ["POST", "/api/uploads"],
   ["GET", "/api/uploads/:id"],
   ["GET", "/api/chats/:id/tool-image"],
-  // メモ（2026-11-14 に利用者と決めた。一覧・読む・書く・作る・動かす・ゴミ箱・メモのチャット・探す）
+  // メモ（一覧・読む・書く・作る・動かす・ゴミ箱・メモのチャット・探す）
   ["GET", "/api/memos/defaults"],
   ["GET", "/api/memos/users"],
   ["GET", "/api/memos/search"],

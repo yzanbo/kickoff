@@ -60,7 +60,7 @@ function shellEnvSet(env: Record<string, string> | undefined): Record<string, st
 }
 
 /**
- * 承認の決まり（メモの仕様書「0028」の F1）。on-request = ふだんのコマンド・ファイルの変更は砂場の中で聞かずに流し、砂場から出るときだけ聞く。
+ * 承認の決まり。on-request = ふだんのコマンド・ファイルの変更は砂場の中で聞かずに流し、砂場から出るときだけ聞く。
  * 守りと権限モードは PreToolUse のフック（hooks.ts・preToolUse.ts）で当てる。前の untrusted は、承認したコマンドを砂場の外で動かし、
  * Codex ももう対応しない（非推奨）ため使わない
  */
@@ -85,9 +85,9 @@ export function threadOverrides(params: ProviderTurnParams): ThreadOverrides {
       ...mcpServerOverrides(params.tools ?? [], params.permissionMode),
       ...hookConfig(),
       "shell_environment_policy.exclude": HIDDEN_FROM_COMMANDS,
-      // 作業フォルダの信頼を毎回こちらから伝える（伝えないと Codex が利用者の config.toml に「信頼済みのプロジェクト」の欄を書き足し続ける。
-      // メモの仕様書「0028」の F9）。値はいまの振る舞い（Kickoff に登録したプロジェクトは信頼する = リポジトリの .codex/ も読む）のまま。
-      // 信頼するかどうかの決まりは Claude と共通の課題として未定（0028 の 5 節）。パスに「.」が入っても区切らないよう入れ子で渡す
+      // 作業フォルダの信頼を毎回こちらから伝える（伝えないと Codex が利用者の config.toml に「信頼済みのプロジェクト」の欄を書き足し続ける）。
+      // 値は Kickoff に登録したプロジェクトを信頼する（リポジトリの .codex/ も読む）。信頼するかどうかの決まりは Claude と共通で、まだ決めていない。
+      // パスに「.」が入っても区切らないよう入れ子で渡す
       projects: { [params.cwd]: { trust_level: "trusted" } },
       "sandbox_workspace_write.writable_roots": writableRootsOf(params),
       "sandbox_workspace_write.network_access": true,
@@ -107,7 +107,7 @@ export function turnInput(params: Pick<ProviderTurnParams, "prompt" | "turnConte
 const CODEX_KEY_VARS = ["CODEX_API_KEY", "OPENAI_API_KEY", "CODEX_ACCESS_TOKEN"];
 
 /**
- * app-server の起動の引数と環境変数（メモの仕様書「0021」の Q13）。
+ * app-server の起動の引数と環境変数。
  * サブスク: Codex のログイン（~/.codex の資格情報）のまま。鍵の環境変数は外す。
  * API キー: CODEX_API_KEY で渡し、forced_login_method="api" で API キーのログインにする。account/login/start の apiKey は使わない
  * （Codex の資格情報の置き場（~/.codex/auth.json）を書き換え、利用者のサブスクのログインを消すため）。鍵の入る変数は、Codex の既定（shell_environment_policy）が

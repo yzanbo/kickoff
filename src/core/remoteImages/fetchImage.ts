@@ -1,4 +1,4 @@
-// 外の画像を 1 つ取ってくる（メモの仕様書「0027_チャット欄の外の画像とリンク」）。手元のネットワークへは行かない・画像だけ・大きさと時間の上限つき
+// 外の画像を 1 つ取ってくる。手元のネットワークへは行かない・画像だけ・大きさと時間の上限つき
 import dns from "node:dns";
 import http from "node:http";
 import https from "node:https";

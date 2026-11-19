@@ -4,7 +4,7 @@ import type { Notify } from "./common.js";
 
 /** 秘密の値の名前（secrets の表） */
 export type SecretKey = "openai_transcribe_key" | DbSecretKey | ProviderSecretKey;
-/** AI の API キー（Q13）。暗号化して置く */
+/** AI の API キー。暗号化して置く */
 type ProviderSecretKey = `provider_api_key:${ProviderId}`;
 /** DB の接続のパスワード（接続を消したら、表のトリガーで消える） */
 export type DbSecretKey = `db_connection:${number}:password` | `db_connection:${number}:ai_password` | `db_connection:${number}:ssh_password`;
@@ -13,7 +13,7 @@ export type DbSecretKey = `db_connection:${number}:password` | `db_connection:${
 export function createSettingsStore(db: DatabaseSync, onChange: Notify) {
   const get = (): AppSettings => {
     const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
-    // 知らないキー（なくした設定）は返さない
+    // 知らないキーは返さない
     const stored = Object.fromEntries(rows.filter((r) => r.key in DEFAULT_SETTINGS).map((r) => [r.key, JSON.parse(r.value)])) as Partial<AppSettings>;
     return { ...DEFAULT_SETTINGS, ...stored, chat_defaults: { ...DEFAULT_SETTINGS.chat_defaults, ...stored.chat_defaults } };
   };

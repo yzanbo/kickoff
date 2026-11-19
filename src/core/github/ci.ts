@@ -1,4 +1,4 @@
-// CI の結果（GitHub Actions の実行・ジョブ・ステップ・ログ・やり直し・直すチャットの作業場所・失敗の見張り）。メモの仕様書「CI の結果」の ①〜⑥。
+// CI の結果（GitHub Actions の実行・ジョブ・ステップ・ログ・やり直し・直すチャットの作業場所・失敗の見張り）。
 // GitHub タブと同じく、プロジェクトの連携先にプロジェクトのアカウントで gh で聞く（GitHubService.within）。ログ・やり直し・作業場所は Actions だけで、
 // 外の CI（CircleCI・Vercel など）は GitHub に来る成否とリンクだけを並べる。中身は DB に持たない（知らせた実行だけ覚える）
 import type { CiFailedLog, CiFailure, CiJobLog, CiRun, CiRunDetail, CiRunList, CiRunWorktree, GitHubRemote, GitWorktree, Project } from "@shared/types";

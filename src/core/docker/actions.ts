@@ -1,4 +1,4 @@
-// Docker タブの操作を docker のコマンドの並びにする（純粋な関数。仕様書の 6 章の表）。
+// Docker タブの操作を docker のコマンドの並びにする（純粋な関数）。
 // compose のファイルを要るのは up だけ: サービスの行はコンテナの ID、compose の停止・片付けは -p で、ファイルのないフォルダ（/）で流す
 import path from "node:path";
 import type { DockerAction, DockerCompose, DockerFailure } from "@shared/types";
@@ -135,7 +135,7 @@ export function planDockerAction({ compose, upFiles, action, service, container,
     case "stop_others_and_start": {
       if (!retry?.conflicts.length) throw new Invalid("止める相手がありません。もう一度起動してください");
       // 相手を止め（データは残る）、ぶつかって起動できなかったサービスは作り直す（ポートで起動に失敗したコンテナは、あとで起動しても Mac にポートを出さない。
-      // 止め直しても戻らず、作り直すまで直らないことを 2026-11-13 に OrbStack で確かめた）。すべて起動なら、残りも同じ起動で。
+      // 止め直しても戻らず、作り直すまで直らない）。すべて起動なら、残りも同じ起動で。
       // 作り直すのは元の操作で起動しようとしたサービスのうち、ぶつかったものだけ（すべて起動から札付きまで起動すると、同じポートの札付き（E2E 用の db など）と今度はそれが取り合う）
       const ports = new Set(retry.conflicts.map((c) => c.port));
       const blocked = startedServices(compose, retry.service).filter((s) => s.published.some((p) => ports.has(p)));

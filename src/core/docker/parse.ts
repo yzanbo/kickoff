@@ -206,7 +206,6 @@ export function dbKindOf(image: string | null): "postgres" | "mysql" | null {
   return null;
 }
 
-
 /** docker logs --timestamps の 1 行を時刻と文に分ける（時刻の小数は 9 桁にそろえ、文字の順で比べられるようにする。時刻がなければ空） */
 export function parseLogLine(raw: string): { ts: string; text: string } {
   const m = /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.(\d+))?Z (.*)$/s.exec(raw.replace(/\r$/, ""));

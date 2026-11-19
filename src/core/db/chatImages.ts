@@ -12,7 +12,7 @@ export interface CachedImage {
 }
 
 /**
- * チャット欄の外の画像（chat_image_hosts・chat_image_cache の表。メモの仕様書「0027_チャット欄の外の画像とリンク」）。
+ * チャット欄の外の画像（chat_image_hosts・chat_image_cache の表）。
  * 許可したホストはチャットごと。知らせ（SSE）は呼ぶ側（RemoteImageService）が出す
  */
 export function createChatImageStore(db: DatabaseSync) {

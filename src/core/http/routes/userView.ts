@@ -21,7 +21,7 @@ export function rememberSentView(c: Context, userViews: UserViewRegistry, chatId
 }
 
 /**
- * 利用者が見ているもの（AI の get_user_view。メモの仕様書「0019_AI の操作ツールの追加」の D）: この Mac の画面のウィンドウが、見ているものが変わったとき
+ * 利用者が見ているもの（AI の get_user_view）: この Mac の画面のウィンドウが、見ているものが変わったとき
  * （少しまとめて）と、見ている間 USER_VIEW_REPORT_MS ごとに知らせる。コアは覚えておくだけ（保存しない）。端末には開かない（スマホは入れない）
  */
 export function userViewRoutes(app: Hono, { userViews }: ServerDeps) {

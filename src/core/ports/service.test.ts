@@ -7,7 +7,7 @@ import { tempDir } from "../testing/tempDir.js";
 import { PortProcessService } from "./service.js";
 
 /*
- * コアが別のプロセス（Helper）になったあとの PortProcessService（メモの仕様書「0023_表示を軽くする」の案 16・分冊 4 の 1-10）:
+ * コアが別のプロセス（Helper）のときの PortProcessService:
  * selfPid にメインプロセスの pid を渡すと、メイン・その祖先・束の中の Helper（コアのプロセス）は一覧に出さず止めさせない。
  * Kickoff の中のターミナルから起こしたもの（束の外）は「Kickoff の中」として出す
  */

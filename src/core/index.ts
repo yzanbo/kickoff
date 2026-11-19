@@ -141,14 +141,14 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
 
   const token = loadOrCreateToken(opts.dataDir);
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
-  // AI の API キー（DB のパスワードと同じくキーチェーンの鍵で暗号化して置く。メモの仕様書「0021」の Q13）
+  // AI の API キー（DB のパスワードと同じくキーチェーンの鍵で暗号化して置く）
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
   const providers = createProviders(currentSelf(opts.dataDir, opts.port, opts.platform, opts.hostPid), (id) => providerKeys.authFor(id));
-  // 使用枠は Claude のプランから取得する（Codex 対応時にプロバイダーごとに拡張する）
+  // 使用枠（下の帯・超過分の知らせ）は Claude のプランから取得する（ほかの AI は下の serviceUsage）
   const usage = new UsageMonitor(providers.claude, bus);
-  // 設定の「使用状況」に並べる、ほかのサービス（Codex・Copilot・Cursor・Gemini）の使用状況
   // Codex のクレジットの見張り（使用状況の取得と、Codex の実行中の知らせの両方から残りを受ける）
   const codexCredits = new CodexCreditsWatch(bus);
+  // 設定の「使用状況」に並べる、ほかのサービス（Codex・Copilot・Cursor・Gemini）の使用状況
   const serviceUsage = new ServiceUsageMonitor(usage, undefined, codexCredits);
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
@@ -194,25 +194,25 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     (file) => ({ path: file, dir: trashBin.dir }),
     (e: unknown) => (console.warn(`[core] kickoff-trash を置けませんでした: ${errorMessage(e)}`), undefined),
   );
-  // AI の Bash の砂場（書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする。メモの仕様書「0020_AI の書き込み先」の段階 2）。
+  // AI の Bash の砂場（書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする）。
   // 通信はどこへでも通す中継を通す（ネットワークは絞らない。起こせなければプロバイダーの中継のまま）
   const relay = await startNetworkRelay().catch((e: unknown) => (console.warn(`[core] Bash の通信の中継を起こせませんでした: ${errorMessage(e)}`), null));
   const bashSandbox: BashSandboxDeps = { rules: opts.platform.agentSandbox, proxyPort: relay?.port ?? null, trashDir: trashCommand ? trashCommand.dir : null };
   // 製品版と開発版は同じ ~/.claude/projects に会話記録を置く（開発版のデータは製品版から写す）ので、会話記録を片付ける前に、ほかの Kickoff が使っていないか確かめる
   const sessionsElsewhere = siblingSessionCheck(opts.dataDir, opts.platform.appDataRoot);
-  // 長いチャットを直近の区切りだけの新しいセッションに乗り換えたら、古い会話記録を Kickoff のゴミ箱（3 日）へ（メモの仕様書「ファイル削除」の Q18）
+  // 長いチャットを直近の区切りだけの新しいセッションに乗り換えたら、古い会話記録を Kickoff のゴミ箱（3 日）へ
   const sessionTrash: SessionTrash = async (sessionId, file, { projectId, label }) => {
     if (sessionsElsewhere([sessionId]).size > 0) return;
     await trashBin.putPath(file, { projectId, label, kind: "session" });
   };
   // 利用者が見ているもの（この Mac の画面のウィンドウごとの知らせと、チャットごとの送ったときの様子。AI の get_user_view が読む。保存しない）
   const userViews = new UserViewRegistry();
-  // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ。メモの仕様書「0021」の Q7）
+  // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ）
   const mcpTools = new McpToolHost(() => `http://127.0.0.1:${opts.port}`);
   const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, memoDirOf: (project) => memos.dirOf(project), memos, browser: opts.browser, terminals, databases, docker, worktreeEnvs, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: opts.platform.sandboxDiagnostics, toolHost: mcpTools, providerKeys, interrupted: recovered });
-  // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（メモの仕様書「ファイル削除」の Q17）
+  // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ
   trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
-  // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない。メモの仕様書「ファイル削除」の Q16）
+  // 入力欄に付けたまま送らなかった添付は、どこからも使われないまま 30 日たったら消す（ゴミ箱には入れない）
   trashBin.addSweepStep(() => sweepUnusedUploads({ store, uploads }));
   // ゴミ箱に入れたチャット（チャットの削除・メモのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
   const remoteImages = new RemoteImageService({ store, dir: path.join(opts.dataDir, "image-cache"), publish: (e) => bus.publish(e) });

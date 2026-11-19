@@ -32,8 +32,8 @@ function bundledRuntimeInstalled(): boolean {
 }
 
 /**
- * GitHub Copilot を公式の Copilot SDK（@github/copilot-sdk。SDK に同梱の Copilot のランタイムを JSON-RPC で動かす）で動かすプロバイダー
- * （メモの仕様書「0021_Codex・Copilot・Cursor 対応」の段階 4）。会話 = セッション（Kickoff のセッション ID = Copilot のセッション ID）。
+ * GitHub Copilot を公式の Copilot SDK（@github/copilot-sdk。SDK に同梱の Copilot のランタイムを JSON-RPC で動かす）で動かすプロバイダー。
+ * 会話 = セッション（Kickoff のセッション ID = Copilot のセッション ID）。
  * 分岐は sessions.fork、モデルは listModels、使用枠は account.getQuota（月のプレミアムリクエスト）。本物のアカウントで確かめるまで、画面では「対応予定」のまま
  * （createProviders が開発用の環境変数のときだけこれを使う）
  */

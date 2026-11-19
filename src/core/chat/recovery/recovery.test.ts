@@ -48,7 +48,6 @@ function setup({ usage }: { usage?: () => Promise<PlanUsage> } = {}) {
   return { store, approvals, recovery, runtime, chat, sent, network, clock, finish, notices };
 }
 
-
 const usageLimit = (resetsAt: string | null): TurnOutcome => ({ status: "failed", network: false, usageLimit: { resetsAt } });
 const networkFailure: TurnOutcome = { status: "failed", network: true };
 

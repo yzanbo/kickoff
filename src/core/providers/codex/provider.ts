@@ -31,10 +31,9 @@ export interface CodexProviderOpts {
 }
 
 /**
- * Codex（OpenAI の Codex CLI）を `codex app-server` の JSON-RPC で動かすプロバイダー（メモの仕様書「0021_Codex・Copilot・Cursor 対応」の段階 3）。
+ * Codex（OpenAI の Codex CLI）を `codex app-server` の JSON-RPC で動かすプロバイダー。
  * 会話 = スレッド（Kickoff のセッション ID = スレッドの ID）、1 回の実行 = ターン。分岐は thread/fork（ターンの ID まで）、モデルは model/list、
- * 使用枠は account/rateLimits/read、1 回だけ聞くのは一時のスレッド（ephemeral）。本物のアカウントで確かめるまで、画面では「対応予定」のまま
- * （createProviders が開発用の環境変数のときだけこれを使う）
+ * 使用枠は account/rateLimits/read、1 回だけ聞くのは一時のスレッド（ephemeral）
  */
 export class CodexProvider implements AgentProvider {
   readonly id = "codex" as const;

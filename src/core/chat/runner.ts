@@ -48,7 +48,6 @@ export class Runner extends RunnerQueue {
   /** AI が作業場所を移す予約（作業が最後まで終わったら移す） */
   private readonly workplaceMoves: WorkplaceReservations;
 
-
   constructor(
     private readonly deps: ExecutionDeps & {
       usage: UsageMonitor;

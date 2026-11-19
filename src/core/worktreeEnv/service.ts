@@ -1,4 +1,4 @@
-// ワークツリーの実行環境（メモの仕様書「ワークツリーの実行環境」の段階 1）: ワークツリーを作ったときに、ポートの帯と Docker の組の名前を割り当て、
+// ワークツリーの実行環境: ワークツリーを作ったときに、ポートの帯と Docker の組の名前を割り当て、
 // DB に覚え、Git で管理していないファイル（写した .env と .kickoff/compose.worktree.yaml）に書く。起動のたびには調べない
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -56,7 +56,7 @@ export class WorktreeEnvService {
   }
 
   /**
-   * ［AI で整える］の下ごしらえ: この機能より前に作ったワークツリー（覚えがない）なら、先に手順を流す（.env を写す・帯・①〜③）。
+   * ［AI で整える］の下ごしらえ: 覚えのないワークツリー（Kickoff の外で作ったものなど）なら、先に手順を流す（.env を写す・帯・①〜③）。
    * AI に渡す材料（割り当て・ほかのワークツリーの帯）を返す
    */
   async setupInput(project: Project, worktree: GitWorktree): Promise<EnvSetupPromptInput> {

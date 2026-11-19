@@ -1,4 +1,4 @@
-// API のテスト: 利用者が見ているもの（PUT /api/user-view と、送る指示に添えた送ったときの様子。AI の get_user_view。メモの仕様書「0019_AI の操作ツールの追加」の D）
+// API のテスト: 利用者が見ているもの（PUT /api/user-view と、送る指示に添えた送ったときの様子。AI の get_user_view）
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { userViewSummaryOf } from "@shared/chat/aiUserView";

@@ -1,5 +1,5 @@
 // RPC の上に作る、メインプロセスにしかない口（コアのプロセスの中で startCore に渡す）: 埋め込みブラウザの操作・キーチェーンの鍵・
-// Mac の通知・DB ワーカー（作るのはメイン、話すのはコア。メインが作った MessagePort で直結する）。メモの仕様書「0023_表示を軽くする」の案 16
+// Mac の通知・DB ワーカー（作るのはメイン、話すのはコア。メインが作った MessagePort で直結する）
 import type { BrowserControl } from "../browser/control.js";
 import type { WorkerChannel } from "../databases/client.js";
 import type { WorkerCancel, WorkerEvent, WorkerRequest, WorkerResponse } from "../databases/protocol.js";

@@ -7,7 +7,7 @@ import { noteSyncSince, syncStart } from "./system/stallWatch.js";
 /**
  * コア内の変更をクライアント（SSE）へ配信するためのイベントバス。
  * 書いている途中の返答（chat_delta）はチャットごとに 16ms ためて 1 通にまとめ、ほかの知らせを流す前に必ず先に流す（`chat/deltaBatch.ts`。
- * 知らせはすべてここを通るので、どの購読者から見ても順は変わらない。メモの仕様書「0023_表示を軽くする」の案 13）。
+ * 知らせはすべてここを通るので、どの購読者から見ても順は変わらない）。
  * 流した途中の返答はチャットごとにつないで持ち（`chat/streamingTexts.ts`。チャットの詳細の streaming_text）、chat_delta に書きかけの文の中の位置 offset を付けて流す
  */
 export class Bus {

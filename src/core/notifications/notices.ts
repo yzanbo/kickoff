@@ -65,7 +65,7 @@ export function approvalNotice(approval: Approval, chat: Chat | null, projectNam
 }
 
 /**
- * AI からの知らせ（AI の notify_user。メモの仕様書「0019_AI の操作ツールの追加」の C）: この Mac の通知には本文を出し、
+ * AI からの知らせ（AI の notify_user）: この Mac の通知には本文を出し、
  * スマホのプッシュには本文を載せない（外のサーバーを通るため。チャットの名前と「AI からの知らせ」だけ。押すと Kickoff の中で読む）
  */
 export function aiNotice(chat: Chat, message: string, projectName: string): Notice {

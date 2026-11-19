@@ -70,7 +70,7 @@ export const chatDefaultsSchema = z.object({
   fast_mode: z.boolean(),
 });
 
-/** Claude Code のほかの AI のチャットの既定（モデルの null はその AI の既定。メモの仕様書「0028」の 9 節） */
+/** Claude Code のほかの AI のチャットの既定（モデルの null はその AI の既定） */
 export const providerChatDefaultsSchema = chatDefaultsSchema.extend({ model: z.string().min(1).max(100).nullable() });
 
 /** Claude Code のほかの AI ごとの既定（AI の ID → 選択） */

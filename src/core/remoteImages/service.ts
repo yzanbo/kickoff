@@ -1,4 +1,4 @@
-// チャット欄の外の画像（メモの仕様書「0027_チャット欄の外の画像とリンク」）: 表示を許可したホスト（チャットごと）と、コアが取ってきた画像の覚え（ディスク）
+// チャット欄の外の画像: 表示を許可したホスト（チャットごと）と、コアが取ってきた画像の覚え（ディスク）
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";

@@ -1,4 +1,4 @@
-// macOS の AI の Bash の砂場の決まり（メモの仕様書「0020_AI の書き込み先」の段階 2。2026-11-15 に開発版で試して決めた）
+// macOS の AI の Bash の砂場の決まり
 import os from "node:os";
 import path from "node:path";
 import { findExecutable, runCommand } from "../../system/exec.js";

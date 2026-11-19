@@ -226,12 +226,12 @@ test("作業フォルダが変わると（別のプロジェクトへ移す）: 
   assert.equal(remapped?.type === "result" ? remapped.data.session_id : null, "moved-1");
   assert.equal(store.events.sessionInUse("s1"), false);
 
-  // 区切りより前へは巻き戻せない・分岐できない・ファイルを戻せない（Q3・H2）
+  // 区切りより前へは巻き戻せない・分岐できない・ファイルを戻せない
   assert.deepEqual(await call("POST", `/api/chats/${chatId}/rewind`, { event_id: firstUser.id, text: "やり直し" }), { status: 400, body: { error: "作業場所を移す前の発言なので巻き戻せません（会話もファイルも）" } });
   assert.equal((await call("POST", `/api/chats/${chatId}/fork`, { event_id: firstResult.id })).status, 400);
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: firstUser.id, dry_run: true })).status, 400);
 
-  // 移したあと最初の実行にだけ、移動の知らせを添える（Q7）。続きは写した会話から
+  // 移したあと最初の実行にだけ、移動の知らせを添える。続きは写した会話から
   await call("POST", `/api/chats/${chatId}/messages`, { text: "続き" });
   await until(() => !runner.isBusy(chatId));
   assert.match(provider.lastTurnContext ?? "", /作業場所が変わりました（チャットを別のプロジェクトへ移しました）/);
@@ -671,7 +671,7 @@ test("Claude Code 以外の AI のチャット: Claude Code の既定（モデ�
   assert.equal(right.body.model, "gpt-6-luna");
   await until(() => !runner.isBusy(right.body.id));
 
-  // 前の版で一覧にない名前のまま作られたチャットも、送るときに外して動かし、チャットにも直して残す
+  // 一覧にない名前のまま残っているチャットも、送るときに外して動かし、チャットにも直して残す
   const old = store.chats.create({ project_id: project.id, provider: "codex", title: "old", status: "completed", model: "opus" });
   assert.equal((await call("POST", `/api/chats/${old.id}/messages`, { text: "続き" })).status, 200);
   await until(() => !runner.isBusy(old.id));

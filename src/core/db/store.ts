@@ -128,7 +128,7 @@ export class Store {
       const superseded = this.chatProviderHandoffs.get(current.id);
       const blocked = handoffBlocksSwitch(superseded, current.provider);
       if (blocked) throw new Error(blocked);
-      // 送る前に替え直したので、前の区切りの資料は渡していない印を付ける（引き継ぎ内容の表示で区別する。Q44）
+      // 送る前に替え直したので、前の区切りの資料は渡していない印を付ける（引き継ぎ内容の表示で区別する）
       supersededEventId = superseded?.eventId ?? null;
       if (superseded) this.db.prepare("UPDATE chat_events SET data = json_set(data, '$.handoff_status', 'superseded') WHERE id = ? AND chat_id = ? AND type = 'provider_switched'").run(superseded.eventId, current.id);
       if (current.session_id) this.chatProviderSessions.save(current.id, current.provider, current.session_id, input.currentLastEventId);

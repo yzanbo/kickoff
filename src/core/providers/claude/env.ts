@@ -35,7 +35,7 @@ export function bundledClaudeVersion(): string | null {
 }
 
 /**
- * API キーで動かすときの環境変数（メモの仕様書「0021」の Q13）。CLAUDE_CODE_SUBPROCESS_ENV_SCRUB で、Claude Code が Bash などの
+ * API キーで動かすときの環境変数。CLAUDE_CODE_SUBPROCESS_ENV_SCRUB で、Claude Code が Bash などの
  * 子プロセスから Anthropic の鍵の環境変数を外す（AI が Bash で読めないように。本物で効くかは使い始める前に確かめる）。サブスクなら何も足さない
  */
 export function claudeAuthEnv(auth: ProviderAuth | undefined): Record<string, string> {

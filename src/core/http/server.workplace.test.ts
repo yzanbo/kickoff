@@ -1,4 +1,4 @@
-// 画面からチャットの作業場所を移す API（メモの仕様書「0025_チャットの作業場所を変える」の段階 ②）
+// 画面からチャットの作業場所を移す API
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -77,7 +77,7 @@ test("いまあるワークツリー・本体へ移す: 変更は持っていか
   if (runner.isBusy(chatId)) assert.equal((await call("POST", `/api/chats/${chatId}/workplace`, { worktree_path: wt })).status, 409);
   await until(() => !runner.isBusy(chatId));
 
-  // 実行環境を整えるチャット（G2）
+  // 実行環境を整えるチャット
   const setupChat = store.chats.create({ project_id: project.id, provider: "claude", title: "整える", status: "completed", worktree_path: wt, untracked_only: true });
   const blocked = await call("POST", `/api/chats/${setupChat.id}/workplace`, { worktree_path: null });
   assert.equal(blocked.status, 400);

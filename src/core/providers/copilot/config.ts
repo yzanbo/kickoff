@@ -59,7 +59,7 @@ const BYOK_KINDS = {
 } satisfies Record<string, { provider: ProviderConfig; model: string }>;
 
 /**
- * API キーで動かすとき（BYOK。メモの仕様書「0021」の Q13）のつなぎ先。Kickoff が置けるキーは AI ごとに 1 つなので、キーの頭で種類を決める
+ * API キーで動かすとき（BYOK）のつなぎ先。Kickoff が置けるキーは AI ごとに 1 つなので、キーの頭で種類を決める
  * （sk-ant- = Anthropic・AIza = Google・ほか = OpenAI）。キーはセッションの設定で JSON-RPC の中で渡し、環境変数・起動の引数には載せない
  */
 export function byokProvider(auth: ProviderAuth | undefined, model: string | null): { provider: ProviderConfig; model: string } | null {

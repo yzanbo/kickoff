@@ -1,4 +1,4 @@
-// ワークツリーの後始末（画面の「消す」と AI の finish_worktree。メモの仕様書「0019_AI の操作ツールの追加」の F）: 確かめ・控え（ゴミ箱に 3 日）・予約・戻す
+// ワークツリーの後始末（画面の「消す」と AI の finish_worktree）: 確かめ・控え（ゴミ箱に 3 日）・予約・戻す
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -27,7 +27,7 @@ async function mainChat(ctx: Ctx) {
 }
 
 const notices = (ctx: Ctx, chatId: number) => ctx.store.events.list(chatId).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
-/** 作業場所を移した区切り（片付けて本体に戻した。メモの仕様書「0025」の G1・J6） */
+/** 作業場所を移した区切り（片付けて本体に戻した） */
 const moves = (ctx: Ctx, chatId: number) => ctx.store.events.list(chatId).flatMap((e) => (e.type === "workplace_moved" ? [e.data] : []));
 const refs = (repo: string) => execFileSync("git", ["for-each-ref", "--format=%(refname)", "refs/kickoff/"], { cwd: repo }).toString().trim();
 

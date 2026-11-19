@@ -1,4 +1,4 @@
-// ［AI で整える］のチャットの名前と最初の指示（ワークツリーの実行環境の段階 2）。手順で直せなかった所を、Git で管理していないファイルだけで AI に直してもらう
+// ［AI で整える］のチャットの名前と最初の指示。手順で直せなかった所を、Git で管理していないファイルだけで AI に直してもらう
 import { WORKTREE_BAND_SIZE, worktreeSlotLabel, type WorktreeEnv } from "@shared/types";
 import { KICKOFF_BLOCK_END, KICKOFF_BLOCK_START } from "./envRewrite.js";
 import { OVERRIDE_FILE } from "./files.js";

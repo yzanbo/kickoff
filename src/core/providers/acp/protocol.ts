@@ -1,5 +1,5 @@
 /**
- * ACP（Agent Client Protocol。JSON-RPC 2.0 を標準入出力に 1 行 1 つ）のうち Kickoff が使う分だけの型（メモの仕様書「0021」の段階 5）。
+ * ACP（Agent Client Protocol。JSON-RPC 2.0 を標準入出力に 1 行 1 つ）のうち Kickoff が使う分だけの型。
  * 公式の schema（@agentclientprotocol/sdk 2.7.0 の schema/v1/schema.json。プロトコルの版 1）から手で写した（依存には足さない）。
  * 版が上がったら schema を見比べる
  */

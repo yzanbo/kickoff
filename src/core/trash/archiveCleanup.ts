@@ -1,4 +1,4 @@
-// アーカイブ済みのチャットの整理（メモの仕様書「ファイル削除」の Q19。2026-11-14 に利用者と決めた）。
+// アーカイブ済みのチャットの整理。
 // アーカイブしたチャットは自動では消さず、日数を選んだら、それより動いていないものをまとめて Kickoff のゴミ箱へ入れる（3 日は戻せる）
 import type { ArchiveCleanupPreview, ArchiveCleanupResult, Chat, ProviderId } from "@shared/types";
 import type { Store } from "../db/store.js";

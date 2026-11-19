@@ -1,4 +1,4 @@
-// Docker タブの「DB で開く」（段階 2）: 行き先の API と、Docker タブの案（docker:…）の取り込み（偽の docker を PATH の代わりに渡す）
+// Docker タブの「DB で開く」: 行き先の API と、Docker タブの案（docker:…）の取り込み（偽の docker を PATH の代わりに渡す）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";

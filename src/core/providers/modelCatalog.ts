@@ -16,8 +16,8 @@ export async function providerModels(provider: AgentProvider, now: () => number 
 }
 
 /**
- * その AI のモデルの一覧にない名前を外す（null = その AI の既定で動かす。メモの仕様書「0028」の 9 節）。
- * Claude Code の名前は Claude Code の一覧で選ぶので、ほかの AI に渡ると知らない名前として断られる（G1・G2）。
+ * その AI のモデルの一覧にない名前を外す（null = その AI の既定で動かす）。
+ * Claude Code の名前は Claude Code の一覧で選ぶので、ほかの AI に渡ると知らない名前として断られる。
  * Claude Code は一覧の外の名前（版付きの ID など）も受け付け、知らない名前は自分で断るので触らない。一覧が取れなければ触らない
  */
 export async function knownModel(id: ProviderId, provider: AgentProvider, model: string | null): Promise<string | null> {

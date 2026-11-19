@@ -17,7 +17,7 @@ import { errorMessage } from "@shared/errors";
 export function providerRoutes(app: Hono, { store, providers, providerKeys, bus }: ServerDeps) {
   const { withWorkdir } = lookups(store);
 
-  // AI のブラウザでのログイン（メモの仕様書「0028」の段階 ③）。AI ごとに 1 つだけ持ち（メモリだけ）、始め直したら前のものはやめる。
+  // AI のブラウザでのログイン。AI ごとに 1 つだけ持ち（メモリだけ）、始め直したら前のものはやめる。
   // 終わったら provider_login を知らせる（画面は AI の状態を読み直す）。CLI が自分で資格情報を書くので、Kickoff は資格情報を持たない
   const logins = new Map<ProviderId, ProviderLogin>();
   // 利用者がやめたログイン（終わりを「やめた」として知らせる）

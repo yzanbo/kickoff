@@ -24,11 +24,11 @@ import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, RememberScope, Backg
 
 /**
  * エージェント実行基盤の抽象化。
- * Claude Code（Agent SDK）を最初の実装とし、Codex / Copilot / Cursor などは同じインターフェースで追加する（メモの仕様書「0021_Codex・Copilot・Cursor 対応」）。
+ * Claude Code（Agent SDK）を最初の実装とし、Codex / Copilot / Cursor などは同じインターフェースで追加する。
  * AI の操作ツールはコアの MCP サーバー（ProviderTurnParams.tools）で渡し、プロバイダーごとに作らない。
  */
 /**
- * 1 回だけ聞くときのモデルの段（ask。プロバイダーに依らない。メモの仕様書「0021」の Q5）: light = 軽い問い合わせ（名前・ブランチ名の案）/ standard = 文を書き直すなど質が要るもの。
+ * 1 回だけ聞くときのモデルの段（ask。プロバイダーに依らない）: light = 軽い問い合わせ（名前・ブランチ名の案）/ standard = 文を書き直すなど質が要るもの。
  * どのモデルに当てるかはプロバイダーが決める（Claude は light = haiku・standard = sonnet）
  */
 export type AskModel = "light" | "standard";
@@ -57,20 +57,20 @@ export interface AgentProvider {
   ask?(prompt: string, options?: { model?: AskModel }): Promise<string>;
   /**
    * 会話を messageId の位置までで分けた、新しいセッションを作る（ここから分岐。対応していなければ未実装）。
-   * keep は写す区切り（圧縮の印から次の印まで）の数: 同じ会話を続けるもの（分岐・巻き戻し）は既定の 3、子チャットは 1（メモの仕様書「ファイル削除」の Q18）
+   * keep は写す区切り（圧縮の印から次の印まで）の数: 同じ会話を続けるもの（分岐・巻き戻し）は既定の 3、子チャットは 1
    */
   fork?(sessionId: string, messageId: string, cwd: string, opts?: { keep?: number }): Promise<string>;
   /** チャットを消したとき、そのセッションの記録を trash で移す（cwds は動かした作業フォルダの候補。移した数を返す。記録を持たなければ未実装） */
   discardSessions?(sessionIds: string[], cwds: string[], trash: (path: string) => Promise<void>): Promise<number>;
   /**
-   * 長く続けたセッションを、終わりの直近の区切り（既定 3）だけにした新しいセッションにする（メモの仕様書「ファイル削除」の Q18。元のセッションは変えない）。
+   * 長く続けたセッションを、終わりの直近の区切り（既定 3）だけにした新しいセッションにする（元のセッションは変えない）。
    * 発言の ID はそのまま。新しいセッションの ID と、元の記録のファイル（呼ぶ側がゴミ箱へ入れる）を返す。切るものがない・見つからなければ null。対応していなければ未実装
    */
   trimSession?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
   /**
-   * 作業場所を移すとき（メモの仕様書「0025_チャットの作業場所を変える」の H1・J1）、会話を新しいセッションに写す（直近の区切り、足りなければ丸ごと。
+   * 作業場所を移すとき、会話を新しいセッションに写す（直近の区切り、足りなければ丸ごと。
    * 発言の ID は保つ。ファイルの控えは写さない。元のセッションは変えない）。新しいセッションの ID と、元の記録のファイル（呼ぶ側がゴミ箱へ入れる）を返す。
-   * 元の記録が見つからなければ null。写せないプロバイダーは未実装（そのセッションのまま移す。G7）
+   * 元の記録が見つからなければ null。写せないプロバイダーは未実装（そのセッションのまま移す）
    */
   copySessionForMove?(sessionId: string, cwd: string): Promise<{ sessionId: string; previousFile: string } | null>;
   /** セッションの記録のファイルの様子（cwds は動かした作業フォルダの候補。なければ null。Kickoff が作ったセッションの片付け） */
@@ -87,7 +87,7 @@ export interface AgentProvider {
   /** ファイルを、その会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけを返す）。作業中でないときに呼ぶ */
   rewindFiles?(sessionId: string, messageId: string, cwd: string, dryRun: boolean): Promise<FileRewindResult>;
   /**
-   * ブラウザでログインを始める（CLI が自分でログインの戻り先を受け、資格情報を CLI の置き場に書く。Kickoff は資格情報を持たない。メモの仕様書「0028」の段階 ③）。
+   * ブラウザでログインを始める（CLI が自分でログインの戻り先を受け、資格情報を CLI の置き場に書く。Kickoff は資格情報を持たない）。
    * 開く URL と、終わりを待つ口・やめる口を返す。ブラウザでのログインを持たないプロバイダーは未実装
    */
   login?(): Promise<ProviderLogin>;
@@ -154,7 +154,7 @@ export interface ProviderTurnParams {
    * プロバイダーはそれぞれの CLI の書き方で MCP サーバーとして渡すだけ（中身を自分で作らない）。省略・空なら渡さない
    */
   tools?: ToolEndpoint[];
-  /** ログインの仕方（メモの仕様書「0021」の Q13。api_key ならそのキー。省略ならサブスク = 各 CLI のログイン。キーを AI の Bash から読めない渡し方にするのはプロバイダー） */
+  /** ログインの仕方（api_key ならそのキー。省略ならサブスク = 各 CLI のログイン。キーを AI の Bash から読めない渡し方にするのはプロバイダー） */
   auth?: ProviderAuth;
   /** Kickoff の埋め込みブラウザを AI に操作させる口と、このチャット（デスクトップアプリのときだけ。なければブラウザのツールを出さない） */
   browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
@@ -186,7 +186,7 @@ export interface ProviderTurnParams {
   chatUserView?: AiUserViewTools | null;
   /** チャットをアーカイブする・消す口を AI に渡す（archive_chat・delete_chat。どのチャットにも渡す。なければそのツールを出さない） */
   chatRemove?: AiChatRemoveTools | null;
-  /** 自分のチャットの作業場所を移す予約・取り消しの口を AI に渡す（move_workplace・cancel_workplace_move。メモの仕様書「0025」の段階 ③。なければそのツールを出さない） */
+  /** 自分のチャットの作業場所を移す予約・取り消しの口を AI に渡す（move_workplace・cancel_workplace_move。なければそのツールを出さない） */
   chatWorkplace?: AiWorkplaceTools | null;
   /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
   hiddenDb?: HiddenDbTarget[];
@@ -200,11 +200,11 @@ export interface ProviderTurnParams {
   /** ファイルを消す Bash（rm・find -delete・git clean など）を断り、kickoff-trash を使わせる守り（chat/guard/deleteGuard.ts）を付けるか */
   deleteGuard?: boolean;
   /**
-   * AI の Bash の砂場（chat/sandbox/bashSandbox.ts。メモの仕様書「0020_AI の書き込み先」の段階 2。Bash が書ける場所を作業場所・メモのフォルダ・決まりの例外だけにし、
+   * AI の Bash の砂場（chat/sandbox/bashSandbox.ts。Bash が書ける場所を作業場所・メモのフォルダ・決まりの例外だけにし、
    * 止めるのは OS）。プロバイダーが自分の砂場の設定に直す。なければかけない
    */
   bashSandbox?: BashSandbox | null;
-  /** 利用者がこのチャットで明示的に砂場なしを選んだ（省略は今までどおり） */
+  /** 利用者がこのチャットで明示的に砂場なしを選んだ（省略は砂場にかける） */
   disableSandbox?: boolean;
 }
 
@@ -302,7 +302,7 @@ export interface ProviderTurnResult {
   usageLimit?: { resetsAt: string | null };
 }
 
-/** 子チャットが親の会話を写すときに残す区切りの数（最新の要約とそのあとのやり取りだけ。メモの仕様書「ファイル削除」の Q18） */
+/** 子チャットが親の会話を写すときに残す区切りの数（最新の要約とそのあとのやり取りだけ） */
 export const CHILD_FORK_KEEP = 1;
 
 /** 会話記録のファイルの様子（Kickoff が作ったセッションの片付け・どのチャットも使っていない記録の一覧） */

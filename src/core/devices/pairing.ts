@@ -122,7 +122,7 @@ export class PairingCenter {
     return this.changed();
   }
 
-  /** 端末が結果を聞く（鍵が合わなければ 404。つないだらトークンを 1 回だけ渡し、頼みを捨てる） */
+  /** 端末が結果を聞く（頼みがない・鍵が合わなければ expired。つないだらトークンを 1 回だけ渡し、頼みを捨てる） */
   poll(id: string, secret: string): PairingPollResult {
     this.sweep();
     const request = this.requests.get(id);

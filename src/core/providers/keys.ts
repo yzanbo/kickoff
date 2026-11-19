@@ -1,4 +1,4 @@
-// AI の API キー（メモの仕様書「0021」の Q13）: キーチェーンの鍵で暗号化して secrets に置く。画面・API・SSE には出さず、置いたかだけを返す
+// AI の API キー: キーチェーンの鍵で暗号化して secrets に置く。画面・API・SSE には出さず、置いたかだけを返す
 import type { ProviderAuthMode, ProviderId } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { openSecret, sealSecret, type SecretCipher } from "../system/sealedSecret.js";

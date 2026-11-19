@@ -6,11 +6,11 @@ import type { ProviderCallbacks, ProviderTurnParams } from "../types.js";
 import { hookDeny, patchPaths, type PreToolUseInput } from "./hooks.js";
 
 /**
- * Codex の PreToolUse フックの判定（メモの仕様書「0028」の F1・F2）。Claude Code の PreToolUse と同じく、流す前に守りを当てる:
+ * Codex の PreToolUse フックの判定。Claude Code の PreToolUse と同じく、流す前に守りを当てる:
  * 断る守り → 断って理由を AI に / 聞く守り（Docker・作業場所の外）→ 権限モードによらず承認カード / 何もなし → 権限モード
  * （Auto mode = 通す・編集を自動承認 = ファイルの変更だけ通す・毎回確認 = 聞く・計画 = コマンドは Codex の読むだけの砂場に任せて通し、ファイルの変更は断る）。
  * 通すときは何も言わない（Codex の砂場と承認の決まりはそのまま効く）。
- * フックで止めた呼び出しは Codex が会話の項目を出さないので、ここで道具の呼び出しと断った理由を記録に残す（メモの仕様書「0028」の F8。
+ * フックで止めた呼び出しは Codex が会話の項目を出さないので、ここで道具の呼び出しと断った理由を記録に残す（
  * コードモード（exec）の中の呼び出しにもフックは当たる）
  */
 

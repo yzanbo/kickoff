@@ -27,7 +27,7 @@ test("DB ワーカー: まだない接続に同時に頼んでも 1 本だけ開
   const target = sqliteTarget();
   let id = 0;
   const query = (sql: string) => handler.handle({ id: ++id, method: "query", params: { session: "s", target, sql, max_rows: 10 } } as WorkerRequest);
-  // 前は 2 つとも接続がないと見てそれぞれ開き、BEGIN した 1 本目は覚えから外れて閉じられずに残った
+  // 2 つとも接続がないと見てそれぞれ開くと、BEGIN した 1 本目が覚えから外れて閉じられずに残る
   const [begin, select] = await Promise.all([query("begin"), query("select a from t")]);
   assert.ok(begin.ok && select.ok);
   const after = await query("select 1");

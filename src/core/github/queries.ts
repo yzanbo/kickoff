@@ -131,7 +131,7 @@ export const TIMELINE_MORE_QUERY = `query($owner: String!, $name: String!, $numb
   }
 }`;
 
-/** 行のスレッドに返信する（段階 3。返信・解決は人がする） */
+/** 行のスレッドに返信する（返信・解決は人がする） */
 export const THREAD_REPLY_MUTATION = `mutation($thread: ID!, $body: String!) {
   addPullRequestReviewThreadReply(input: { pullRequestReviewThreadId: $thread, body: $body }) { comment { id } }
 }`;

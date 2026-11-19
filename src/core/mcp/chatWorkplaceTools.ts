@@ -1,4 +1,4 @@
-// kickoff_chat の作業場所を移すツール（move_workplace・cancel_workplace_move。メモの仕様書「0025」の段階 ③）。中身は core/chat/aiWorkplace.ts、ここは引数の形と使い方・承認の聞き方だけ
+// kickoff_chat の作業場所を移すツール（move_workplace・cancel_workplace_move）。中身は core/chat/aiWorkplace.ts、ここは引数の形と使い方・承認の聞き方だけ
 import { z } from "zod";
 import { AI_MOVE_WORKPLACE_TOOL, AI_WORKPLACE_TARGETS } from "@shared/chat/aiWorkplace";
 import { carryApprovalText, type AiWorkplaceTools } from "../chat/aiWorkplace.js";

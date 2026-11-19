@@ -1,6 +1,6 @@
 import module from "node:module";
 
-// V8 のコンパイルキャッシュ（Node の module.enableCompileCache）を、Kickoff が決めた場所で使う（メモの仕様書「0023_表示を軽くする」の案 24）。
+// V8 のコンパイルキャッシュ（Node の module.enableCompileCache）を、Kickoff が決めた場所で使う。
 // コアのプロセスの入口（src/core/host/main.ts）が、本体を読み込む前に呼ぶ（呼んだあとに読むモジュールだけが載る）。場所はメインプロセスが決める
 // （src/main/app/compileCache.ts）。このファイルは入口が先に読むので、ほかのモジュールに依らない（ここで読んだものはキャッシュに載らない）
 

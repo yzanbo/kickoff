@@ -107,7 +107,7 @@ export interface HostPlatform {
   terminalShell: () => TerminalShell;
   /** tailscale のコマンドの場所（入っていなければ null。設定の「スマホ連携」の Tailscale Serve の案内） */
   tailscaleCli: () => string | null;
-  /** AI の Bash の砂場に OS ごとに足す決まり（メモの仕様書「0020_AI の書き込み先」の段階 2。chat/sandbox/） */
+  /** AI の Bash の砂場に OS ごとに足す決まり（chat/sandbox/） */
   agentSandbox: AgentSandboxRules;
 }
 

@@ -1,4 +1,4 @@
-// PR のブランチを手元のワークツリーに取り出す（GitHub タブの「レビューコメントで直す」。要件 5.11 の段階 2）
+// PR のブランチを手元のワークツリーに取り出す（GitHub タブの「レビューコメントで直す」）
 import type { GitHubRemote, GitWorktree } from "@shared/types";
 import { Invalid } from "../http/errors.js";
 import { gitOutput } from "./exec.js";
@@ -61,7 +61,7 @@ async function ensurePullBranch(repo: string, pr: PullHead, remotes: GitHubRemot
 }
 
 /**
- * PR のブランチを本体に取り出す（GitHub タブの「チェックアウト」で本体を選んだとき。要件 5.11 の段階 3）。
+ * PR のブランチを本体に取り出す（GitHub タブの「チェックアウト」で本体を選んだとき）。
  * ほかのワークツリーで取り出しているブランチは本体に取り出せないので 400。まだコミットしていない変更は git switch がそのまま持っていく
  * （ぶつかるなら git が断る。画面が前に確かめる）。取り出したブランチの名前を返す
  */

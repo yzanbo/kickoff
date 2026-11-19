@@ -1,4 +1,4 @@
-// 利用者が見ているもの（メモの仕様書「0019_AI の操作ツールの追加」の D）: この Mac の画面のウィンドウごとの最後の知らせと、チャットごとの「最後の発言を送ったときの様子」を
+// 利用者が見ているもの: この Mac の画面のウィンドウごとの最後の知らせと、チャットごとの「最後の発言を送ったときの様子」を
 // メモリに覚える（保存しない）。AI の get_user_view が、どのウィンドウを読むかを決めて取り出す
 import { USER_VIEW_REPORT_MS, USER_VIEW_TEXT_MAX, type UserView, type UserViewBody } from "@shared/types";
 

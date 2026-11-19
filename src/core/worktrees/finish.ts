@@ -1,4 +1,4 @@
-// ワークツリーの後始末（メモの仕様書「0019_AI の操作ツールの追加」の F）: 画面の「ワークツリーを消す」と AI の finish_worktree の両方がここを通る。
+// ワークツリーの後始末: 画面の「ワークツリーを消す」と AI の finish_worktree の両方がここを通る。
 // 消す前に確かめ（コミットしていない変更・取り込み済みか）、失うものがあれば Git の控え（refs/kickoff/trash/…）に入れて Kickoff のゴミ箱に 3 日残し、
 // ワークツリー・ブランチ・ポートの帯・Docker の組（そのワークツリーだけのもの）・PR の知らせを片付け、そこで作業していたチャットを本体に戻す。
 // ワークツリー自身のチャットから頼まれたら、そのチャットの作業が終わってから消す（予約）
@@ -35,7 +35,7 @@ export interface FinishOptions {
   downVolumes: boolean;
   /** このワークツリーの DB から作った DB クライアントの接続も消す（消さなければ結び付きだけ外す） */
   dropDbConnections: boolean;
-  /** GitHub で PR がマージ済みなら、リモートのブランチも消す（AI の後始末。Q12） */
+  /** GitHub で PR がマージ済みなら、リモートのブランチも消す（AI の後始末） */
   deleteMergedRemote: boolean;
   /** 頼んだチャット（AI。ゴミ箱の「誰が消したか」。画面からなら null） */
   byChatId: number | null;
@@ -96,7 +96,7 @@ async function askMergedPr(project: Project, branch: string): Promise<MergedPull
 export class WorktreeFinisher {
   /** 予約した後始末（頼んだチャット → プロジェクトとワークツリーのフォルダ） */
   private readonly reserved = new Map<number, { projectId: number; folder: string }>();
-  /** 予約が済む（片付けた・片付けられなかった）のを待っているもの（AI の作業場所を移す予約が、片付けを先に待つ。メモの仕様書「0025」の G4） */
+  /** 予約が済む（片付けた・片付けられなかった）のを待っているもの（AI の作業場所を移す予約が、片付けを先に待つ） */
   private readonly waiters = new Map<number, (() => void)[]>();
   private readonly unsubscribe: () => void;
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -232,7 +232,7 @@ export class WorktreeFinisher {
     const hasCompose = !target.prunable && findComposeFiles(target.path).length > 0;
     const moved = users.flatMap((u) => store.chats.inWorktree(u.projectId, u.path));
     // そこで作業していたチャットを本体に戻す。作業フォルダが変わるので、作業場所を移すのと同じく会話を新しいセッションに写して区切りを置く
-    // （メモの仕様書「0025」の G1・J6。区切りの 1 行と AI への知らせに、片付けたことと控えに入れたかを書く）。ゴミ箱のチャットは付け替えるだけ
+    // （区切りの 1 行と AI への知らせに、片付けたことと控えに入れたかを書く）。ゴミ箱のチャットは付け替えるだけ
     const clearChats = async () => {
       for (const chat of moved) await this.deps.runner.moveWorkplace(chat.id, { worktreePath: null, reason: "worktree_finished", backedUp: loseChanges, finishedBranch: facts.branch }).catch(() => {});
       for (const u of users) store.chats.clearWorktree(u.projectId, u.path, facts.branch);
@@ -323,7 +323,7 @@ export class WorktreeFinisher {
     for (const resolve of list) resolve();
   }
 
-  /** 片付けを予約したワークツリーのフォルダ（利用者が作業場所を移す先にできない。メモの仕様書「0025」の H7） */
+  /** 片付けを予約したワークツリーのフォルダ（利用者が作業場所を移す先にできない） */
   reservedFolders(): Set<string> {
     return new Set([...this.reserved.values()].map((r) => r.folder));
   }
@@ -360,7 +360,7 @@ export class WorktreeFinisher {
       this.reserved.delete(chatId);
       try {
         const result = await this.remove(project, r.folder, { ...AI_FINISH, byChatId: chatId });
-        // 予約したチャットが、待つ間によそへ作業場所を移していても予約は残す（H7）。そのことを結果に添える
+        // 予約したチャットが、待つ間によそへ作業場所を移していても予約は残す。そのことを結果に添える
         const movedAway = chat.worktree_path !== r.folder;
         store.events.add(chatId, { type: "notice", message: movedAway ? `${result.text}\n（このチャットは予約のあとで作業場所を移していたので、移した先のまま続きます）` : result.text });
       } catch (e) {

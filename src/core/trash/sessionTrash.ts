@@ -1,5 +1,5 @@
-// Kickoff が作ったセッション（Claude Code の会話記録）のうち、どのチャットからも使われなくなったものを Kickoff のゴミ箱（3 日）へ入れる
-// （メモの仕様書「ファイル削除」の Q17。2026-11-14 に利用者と決めた）。チャットの削除・巻き戻しなどで使われなくなった記録の漏れを拾う。
+// Kickoff が作ったセッション（Claude Code の会話記録）のうち、どのチャットからも使われなくなったものを Kickoff のゴミ箱（3 日）へ入れる。
+// チャットの削除・巻き戻しなどで使われなくなった記録の漏れを拾う。
 // 前からある会話記録（覚えていないもの）は、ターミナルで直接使った Claude Code の記録と見分けられないので触らない（利用者が選ぶ一覧 orphanSessions.ts から片付ける）
 import type { ProviderId } from "@shared/types";
 import type { Store } from "../db/store.js";

@@ -230,7 +230,7 @@ export class ClaudeProvider implements AgentProvider {
           // 編集の前のファイルを取っておく（巻き戻しで、自分の発言の時点のファイルに戻せるように）
           enableFileCheckpointing: true,
           ...(params.fastMode ? { settings: { fastMode: true } } : {}),
-          // Bash を砂場に入れ、書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする（止めるのは OS。メモの仕様書「0020_AI の書き込み先」の段階 2）
+          // Bash を砂場に入れ、書ける場所を作業場所・メモのフォルダ・決まりの例外だけにする（止めるのは OS）
           ...(sandbox ? { sandbox } : {}),
         },
       });
@@ -341,7 +341,7 @@ export class ClaudeProvider implements AgentProvider {
    * 会話を messageId の位置までで分け、新しいセッションにする（元のセッションは変えない）。
    * cwd はそのセッションを動かした作業フォルダ（消えていれば、すべてのプロジェクトから探す）。
    * 写すのは位置の手前の直近 keep 区切り（圧縮の印から後ろ。既定 FORK_KEEP_SEGMENTS = 3、子チャットは 1）だけ: Claude Code は圧縮しても古いやり取りを消さないので、
-   * 長く続けた会話を丸ごと写すと 1GB を超え、本体が数秒ずつ止まっていた（1.6GB の親で約 18 秒 → 直近 2 区切りで約 0.2 秒・約 6MB。利用者と決めた）。
+   * 長く続けた会話を丸ごと写すと 1GB を超え、本体が数秒ずつ止まる（1.6GB の親で約 18 秒 → 直近 2 区切りで約 0.2 秒・約 6MB）。
    * 続きで Claude Code が読むのは最後の圧縮の要約から後ろなので、会話の中身は変わらない。切り出せなければ丸ごと写す
    */
   async fork(sessionId: string, messageId: string, cwd: string, opts: { keep?: number } = {}): Promise<string> {

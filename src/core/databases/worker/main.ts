@@ -1,7 +1,7 @@
 // DB ワーカーの入口（コアが起動する別のプロセス。Electron のアプリではメインプロセスが utilityProcess で、単体のコア・テストでは
 // child_process.fork ＋ tsx で起動する）。親とはメッセージだけでやり取りし（utilityProcess は process.parentPort、fork は IPC の process.send）、
 // 親がいなくなったら閉じて終わる（utilityProcess は親が終わると Electron が止める）。
-// Electron のアプリでは、作るのはメインプロセスで、話すのはコアのプロセス（メモの仕様書「0023_表示を軽くする」の案 16）: 最初に parentPort に
+// Electron のアプリでは、作るのはメインプロセスで、話すのはコアのプロセス: 最初に parentPort に
 // { t: "port" } と MessagePort が届いたら、以後はその口で受け・送る（SQL の結果をメインプロセスに通さない）
 import type { WorkerCancel, WorkerEvent, WorkerRequest, WorkerResponse } from "../protocol.js";
 import { macosShell } from "../../platform/macos/shell.js";

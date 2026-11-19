@@ -92,16 +92,16 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;
-  /**
-   * そのフォルダ（実体のパス。inspectWorkspace の path・git_root）を本体にしているプロジェクト（except は除く）。
-   * 登録したパスがシンボリックリンクを含む（/tmp → /private/tmp など）こともあるので、登録したパスの実体とも比べる
-   */
   /** プロジェクトに作業中のチャットがあれば 409（フォルダを変える・git の管理を始めるなど、フォルダごと変わる操作の前に） */
   const requireNoBusyChat = (projectId: number, refusal: string) => {
     if (store.chats.list({ projectId, includeArchived: true }).some((chat) => runner.isBusy(chat.id))) {
       throw new Conflict(`作業中のチャットがあるので、${refusal}。終わってから（または中断してから）行ってください`);
     }
   };
+  /**
+   * そのフォルダ（実体のパス。inspectWorkspace の path・git_root）を本体にしているプロジェクト（except は除く）。
+   * 登録したパスがシンボリックリンクを含む（/tmp → /private/tmp など）こともあるので、登録したパスの実体とも比べる
+   */
   const projectAt = (realPath: string, except?: number) => {
     const same = (p: Project) => p.id !== except && (p.repo_path === realPath || realPathOrSelf(p.repo_path) === realPath);
     // 同じフォルダのプロジェクトがゴミ箱にあれば、新しく登録せず戻してもらう（フォルダは 1 つのプロジェクトにだけ登録できる）
@@ -111,7 +111,7 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
   };
   /**
    * 作ったプロジェクトにメモのフォルダを決める（画面の新しいプロジェクトのダイアログの「メモの保存先」）。memo_path（別の場所）が先、
-   * なければ memo_folder（設定の親フォルダの下の名前。使える名前にし、ほかのプロジェクトのフォルダ名と重なれば「名前-2」）。どちらもなければ今までどおり、初めてメモを使ったときに決める
+   * なければ memo_folder（設定の親フォルダの下の名前。使える名前にし、ほかのプロジェクトのフォルダ名と重なれば「名前-2」）。どちらもなければ、初めてメモを使ったときに決める
    */
   const withMemoDir = (project: Project, input: { memo_folder?: string; memo_path?: string }): Project => {
     if (input.memo_path) return store.projects.update(project.id, { memo_path: input.memo_path });
@@ -202,7 +202,7 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
     const moves = await worktreeMoves(project.repo_path, repoPath);
     const chats = store.chats.list({ projectId: project.id, includeArchived: true });
     const updated = store.projects.update(project.id, { repo_path: repoPath });
-    // 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（メモの仕様書「0025」の G1。本体のチャットも）
+    // 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（本体のチャットも）
     for (const chat of chats) {
       const to = chat.worktree_path ? (moves.get(chat.worktree_path) ?? null) : null;
       await runner.moveWorkplace(chat.id, { worktreePath: to, reason: "folder_moved", fromDir: chat.worktree_path ?? project.repo_path });
@@ -239,7 +239,6 @@ export function projectRoutes(app: Hono, { store, runner, prWatch, trashBin, git
     return c.json({ trash_id: item.id });
   });
 }
-
 
 /** 参照資料のパスを絶対パスにそろえ（~ はホームフォルダ）、フォルダかファイルかを調べる。見つからなければ 400 */
 function resolveReferences(input: { path: string }[]): Project["reference_paths"] {

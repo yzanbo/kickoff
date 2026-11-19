@@ -87,10 +87,10 @@ export function uploadRoutes(app: Hono, { uploads, store, memos }: ServerDeps) {
       .object({ path: z.string().min(1).max(4096), at: z.coerce.number().int().positive().optional() })
       .parse({ path: c.req.query("path"), at: c.req.query("at") });
     const project = requireProject(store, chat.project_id);
-    // 作業場所を移したチャットでは、区切りより前の記録（at）の画像はそのときの作業場所から読み、移す前の作業場所も読める場所に入れる（メモの仕様書「0025」の H5）
+    // 作業場所を移したチャットでは、区切りより前の記録（at）の画像はそのときの作業場所から読み、移す前の作業場所も読める場所に入れる
     const moves = store.events.workplaceMoves(chat.id);
     const workdir = (at !== undefined ? moves.find((m) => m.id > at)?.data.from.dir : undefined) ?? workdirOf(chat, project);
-    // 返答の Markdown の画像（`![](docs/a.png)`）は相対パスで来るので、チャットの作業場所から読む（メモの仕様書「0027_チャット欄の外の画像とリンク」）
+    // 返答の Markdown の画像（`![](docs/a.png)`）は相対パスで来るので、チャットの作業場所から読む
     const file = nodePath.isAbsolute(path) ? path : nodePath.resolve(workdir, path);
     const pastDirs = moves.map((m) => m.data.from.dir);
     const image = await readToolImage(file, [workdir, workdirOf(chat, project), project.repo_path, uploads.dir, memos.dirOf(project), ...pastDirs]);

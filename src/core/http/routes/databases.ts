@@ -447,7 +447,6 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
     return c.json(await databases.applyEdits(c.var.connection, c.var.project, await workdirOf(c, c.var.project), body));
   });
 
-  // SQL の履歴（新しい順。AI が流したものは ran_by = ai とチャット）
   // つなぐ前の準備: 中身を確かめた・流す（待たずに 202。様子は GET で）・止める・記録（いつ・どのコマンド・成功 / 失敗）
   app.post(`${base}/:cid/prep/confirm`, withProject, withConnection, (c) => c.json(store.dbConnections.confirmPrep(c.var.connection.id)));
   app.post(`${base}/:cid/prepare`, withProject, withConnection, async (c) => c.json(await databases.prepare(c.var.connection), 202));
@@ -457,7 +456,7 @@ export function databaseRoutes(app: Hono, { store, databases, providers, docker 
     return c.body(null, 204);
   });
   app.get(`${base}/:cid/prep-runs`, withProject, withConnection, (c) => c.json(store.dbPrepRuns.list(c.var.connection.id)));
-
+  // SQL の履歴（新しい順。AI が流したものは ran_by = ai とチャット）
   app.get(`${base}/:cid/history`, withProject, withConnection, (c) =>
     c.json(databases.history(c.var.connection, historyLimit.parse(queryOf(c, "limit") ?? undefined))),
   );

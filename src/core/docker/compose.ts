@@ -1,5 +1,5 @@
 // compose のファイルを名前で見つけ（中身は読まない）、設定は compose 自身に聞く（config --format json と config --hash）。
-// 聞いた結果は、-f に渡すファイルと同じフォルダの .env の更新日時を鍵に覚え、変わったときだけ聞き直す（仕様書の 10 章「compose の中身を取り直すとき」）
+// 聞いた結果は、-f に渡すファイルと同じフォルダの .env の更新日時を鍵に覚え、変わったときだけ聞き直す
 import fs from "node:fs";
 import path from "node:path";
 import { errorMessage } from "@shared/errors";

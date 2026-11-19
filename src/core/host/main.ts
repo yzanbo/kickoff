@@ -1,6 +1,6 @@
 // コアのプロセスの入口（Electron のメインプロセスが utilityProcess で起動する。ビルドで out/main/core.js。単体のコアは daemon.ts のまま）。
 // 本体は run.ts の runCoreHost。モジュールは動的に読み、読み始める前と読み終えた時刻を起動の時刻の記録に入れる
-// （メモの仕様書「0023_表示を軽くする」の案 16・18c）。読む前に、メインが起動の引数で渡した場所でコンパイルキャッシュを有効にする（案 24）
+// 読む前に、メインが起動の引数で渡した場所でコンパイルキャッシュを有効にする
 import type { ParentPortLike } from "./ports.js";
 import { compileCacheDirOf, enableCompileCacheAt, flushCompileCache } from "../system/compileCache.js";
 

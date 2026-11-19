@@ -7,7 +7,6 @@ import { expandHome, realPathLoose } from "../../system/paths.js";
 /** 見つけた接続の案（コアの中だけ。パスワードも持つ。画面へは DbImportCandidate にして has_password だけ） */
 export type FoundDb = Omit<DbImportCandidate, "has_password" | "existing_id"> & { password: string | null };
 
-
 const word = (name: string, words: string) => new RegExp(`(^|[._-])(${words})([._-]|$)`).test(name.toLowerCase());
 
 /**

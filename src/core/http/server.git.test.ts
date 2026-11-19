@@ -306,7 +306,6 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(st.ahead, 0);
   assert.match(execFileSync("git", ["log", "--oneline", "-1"], { cwd: remote }).toString(), /b を直す/);
 
-
   // 履歴: 新しい順。ブランチの印。コミットの詳細と、そのコミットでのファイルの差分
   const log = (await call("GET", `/api/projects/${project.id}/git/log`)).body;
   assert.deepEqual(log.commits.map((c: { subject: string }) => c.subject), ["b を直す", "init"]);

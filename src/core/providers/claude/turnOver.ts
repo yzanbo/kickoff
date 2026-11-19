@@ -17,17 +17,17 @@ const realTimers: Timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => 
  * 目印は Claude Code の session_state_changed（CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS。idle = 抱えた指示・裏のサブエージェントを
  * 済ませた区切り）で、idle になった時点で裏の作業（コマンドなど）がなければ閉じる。
  * 返答の終わり（result）だけでは閉じない: 返答の終わりの直前に届いた発言・裏の作業の終わりの知らせがあれば、Claude Code は
- * 次の返答を続ける（前は result と裏の作業 0 件で閉じていたので、その返答の間ずっと「いま」が届かなかった）。
+ * 次の返答を続ける（result と裏の作業 0 件で閉じると、その返答の間ずっと「いま」が届かない）。
  * すぐには閉じず grace だけ待つのは 2 つ: 前の running のあとに発言を足していた idle（Claude Code が発言を読む前に idle を出し、
  * 読んでから次の返答を始めることがある）と、idle の間に裏の作業が 0 件になったとき（Claude Code は 0 件を知らせてから、
  * 終わりの知らせへの返答を始める）。待つ間に返答を始めたら（running）やめて、その返答の idle を待つ。
- * session_state_changed を出さない古い Claude Code では、今までどおり返答の終わりと裏の作業 0 件で閉じる
+ * session_state_changed が届かないときの保険として、届くまでは返答の終わりと裏の作業 0 件で閉じる
  */
 export function createTurnOver(close: () => void, { graceMs = TURN_OVER_GRACE_MS, timers = realTimers }: { graceMs?: number; timers?: Timers } = {}) {
   let sawState = false;
   let state: "idle" | "running" | "requires_action" = "running";
   let tasks = 0;
-  // メインの返答を書き終えたか（session_state_changed を出さない古い Claude Code で、手が空いたかの代わりに見る）
+  // メインの返答を書き終えたか（session_state_changed が届かないときの保険。手が空いたかの代わりに見る）
   let replied = false;
   // 前に running になってから発言を足したか（足した発言で次の返答が始まりうる）
   let pushedSinceRunning = false;

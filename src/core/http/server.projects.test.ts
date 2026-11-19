@@ -183,7 +183,7 @@ test("プロジェクトのフォルダを変える: 取り込みと同じ決ま
   assert.equal(changed.status, 200);
   assert.equal(changed.body.repo_path, real);
   assert.equal(store.chats.get(chatId)?.project_id, project.id);
-  // 作業フォルダが変わったので、区切り（フォルダの付け替え）を置き、会話を新しいセッションに写す（メモの仕様書「0025」の G1）
+  // 作業フォルダが変わったので、区切り（フォルダの付け替え）を置き、会話を新しいセッションに写す
   const boundary = store.events.list(chatId).find((e) => e.type === "workplace_moved");
   assert.ok(boundary?.type === "workplace_moved");
   assert.deepEqual([boundary.data.reason, boundary.data.from.dir, boundary.data.to.dir], ["folder_moved", project.repo_path, real]);
@@ -225,7 +225,7 @@ test("git で管理しない新しいプロジェクト・取り込み、あと�
   const status = (await call("GET", `/api/projects/${imported.body.id}/git/status`)).body;
   assert.deepEqual([status.repo, status.branch, status.unstaged.length], [true, "main", 0]);
   assert.equal((await call("POST", `/api/projects/${imported.body.id}/git/init`)).status, 409);
-  // 省くと初期化する（今までどおり）
+  // 省くと初期化する
   const withGit = await call("POST", "/api/projects", { name: "Git", parent_dir: parent, folder_name: "with-git" });
   assert.equal(fs.existsSync(path.join(withGit.body.repo_path, ".git")), true);
 });

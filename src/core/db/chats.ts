@@ -192,7 +192,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
      */
     update(id: number, patch: ChatPatch): Chat {
       updateRow(db, "chats", id, toChatRow(patch), CHAT_COLUMNS, patch.status !== undefined);
-      // チャットに入れたセッションは Kickoff が使ったものとして覚える（使われなくなったら会話記録をゴミ箱へ。メモの仕様書「ファイル削除」の Q17）
+      // チャットに入れたセッションは Kickoff が使ったものとして覚える（使われなくなったら会話記録をゴミ箱へ）
       if (typeof patch.session_id === "string") rememberChatSession(db, id, patch.session_id);
       if (patch.session_id !== undefined) syncCurrentChatProviderSession(db, id, patch.session_id);
       const chat = get(id)!;
@@ -309,8 +309,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify, revisions?: 
       return chat;
     },
     /**
-     * チャットの作業場所を変える（メモの仕様書「0025_チャットの作業場所を変える」。null なら本体）。branch を渡せば最後に作業したブランチも書き替える
-     * （利用者・AI が移したときは移した先のいまのブランチ。H3）。片付けた印は finishedBranch に置き換える（ワークツリーを片付けて戻したときだけ渡す）。並び順は変えない
+     * チャットの作業場所を変える（null なら本体）。branch を渡せば最後に作業したブランチも書き替える
+     * （利用者・AI が移したときは移した先のいまのブランチ）。片付けた印は finishedBranch に置き換える（ワークツリーを片付けて戻したときだけ渡す）。並び順は変えない
      */
     setWorkplace(id: number, worktreePath: string | null, branch?: string | null, finishedBranch: string | null = null): Chat {
       if (branch === undefined) db.prepare("UPDATE chats SET worktree_path = ?, finished_worktree_branch = ? WHERE id = ?").run(worktreePath, finishedBranch, id);

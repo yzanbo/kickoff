@@ -1,7 +1,7 @@
 import { ASSIGNMENT, shellScriptOf, splitCommands } from "../../chat/guard/shellWords.js";
 
 /**
- * Codex が砂場の外でコマンドを流したいと頼んできたとき（approvalPolicy が on-request の承認の頼み）の決まり（メモの仕様書「0028」の F1）。
+ * Codex が砂場の外でコマンドを流したいと頼んできたとき（approvalPolicy が on-request の承認の頼み）の決まり。
  * Claude Code の砂場と同じく、外で流すのは決まったコマンド（Kickoff の Bash の砂場の unsandboxedCommands: brew install・Electron を起動するスクリプトなど）だけ。
  * コマンド全体がそのどれかのときだけ通し、前の VAR=値・パイプ・リダイレクト・&& などが付けば通さない（Claude Code の excludedCommands と同じ見方）
  */

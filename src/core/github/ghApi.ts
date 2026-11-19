@@ -1,6 +1,6 @@
 // GitHub タブが GitHub に聞く口（gh api。プロジェクトで選んだアカウントのトークンは githubAccount の runAsGitHubAccount の中で渡る）。
 // 失敗は、よくある理由（gh がない・ログインしていない・リポジトリが見えない・使用量の上限）を分かる文にする。
-// 書き込み（段階 3）は JSON の本文を一時ファイルから --input で渡し、GitHub が断った理由（保護ルールなど）をそのまま文にする
+// 書き込みは JSON の本文を一時ファイルから --input で渡し、GitHub が断った理由（保護ルールなど）をそのまま文にする
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";

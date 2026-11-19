@@ -22,7 +22,7 @@ export function rememberChatSession(db: DatabaseSync, chatId: number, sessionId:
 }
 
 /**
- * Kickoff が作ったセッション（メモの仕様書「ファイル削除」の Q17）。どのチャットからも使われなくなったものを、片付け（trash/sessionTrash.ts）が
+ * Kickoff が作ったセッション。どのチャットからも使われなくなったものを、片付け（trash/sessionTrash.ts）が
  * 会話記録ごと Kickoff のゴミ箱へ入れて忘れる。知らせは出さない（画面には出さないため）
  */
 export function createAgentSessionStore(db: DatabaseSync) {

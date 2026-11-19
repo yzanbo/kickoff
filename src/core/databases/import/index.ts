@@ -9,7 +9,7 @@ import { candidateFromPrisma, parsePrismaConfig, parsePrismaSchema, type PrismaU
 import { findSqliteFiles } from "./sqliteFiles.js";
 import { candidateName, guessEnvironment, identityOf, type FoundDb } from "./found.js";
 
-// プロジェクトから DB の接続を取り込む（要件 5.12 の段階 2）: .env の DATABASE_URL など・docker compose の DB のサービス・
+// プロジェクトから DB の接続を取り込む: .env の DATABASE_URL など・docker compose の DB のサービス・
 // Prisma の設定・SQLite のファイルを探して案にする。読むだけで、プロジェクトの中は変えない
 
 const TEXT_MAX = 1024 * 1024;

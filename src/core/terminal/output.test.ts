@@ -23,7 +23,7 @@ test("ターミナルの出力: 細かく届いた出力はまとめて送る", 
 test("つなぎ直したときの画面の内容: 直前に書いた出力も入れて返し（裏の端末の書き込みは非同期）、同じものは送らない", async () => {
   const { out, sent } = output();
   out.write("hello");
-  // 以前は裏の端末が読み終える前に取っていたので、直前の出力が入らず、画面にも送られずに消えた
+  // 裏の端末が読み終える前に取ると、直前の出力が入らず、画面にも送られずに消える
   assert.equal(await out.snapshot(), "hello");
   await wait(30);
   assert.deepEqual(sent, []);

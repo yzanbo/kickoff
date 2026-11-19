@@ -1,4 +1,4 @@
-// チャットの AI の DB のツール（kickoff_db）の中身。プロバイダーに依らない口で、MCP のツールは providers/claude/dbTools.ts が組み立てる。
+// チャットの AI の DB のツール（kickoff_db）の中身。プロバイダーに依らない口で、MCP のツールは mcp/dbTools.ts が組み立てる。
 // 接続は呼ぶたびに店から引き直す（作業の途中で利用者が許可を変えたら、次の呼び出しから効く）
 import { hasConnectCommands } from "@shared/database/dbPrep";
 import type { DbConnection, Project } from "@shared/types";

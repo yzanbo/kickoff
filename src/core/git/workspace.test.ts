@@ -50,7 +50,7 @@ test("git 未管理のフォルダは、同意がなければそのまま（git 
 });
 
 test("コミット済みのリポジトリはそのまま取り込む。リポジトリの中のフォルダも、初期化せずにそのまま取り込む", async () => {
-  // 以前はここで Git の名前を渡さずにコミットしていて、名前を設定していない環境では落ちた（gitRepo が渡す）
+  // Git の名前を渡さずにコミットすると、名前を設定していない環境では落ちる（gitRepo が渡す）
   const { dir } = gitRepo({ dir: tempDir({ real: true }), files: { "src/a.ts": "export {}" } });
   fs.writeFileSync(path.join(dir, "wip.txt"), "作業中");
 

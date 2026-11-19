@@ -1,6 +1,6 @@
-// ログインシェルの PATH を非同期で読む（メモの仕様書「0023_表示を軽くする」の案 16。分冊 4 の「PATH の読み方」）。
+// ログインシェルの PATH を非同期で読む。
 // Finder から起動した macOS のアプリはログインシェルの PATH を引き継がないので、エージェント・git・gh・docker・ターミナルのために取り込む。
-// 前は起動の途中で $SHELL -ilc を同期で流していた（.zshrc が重いと数百 ms 止まる）。いまは保存先の shell-path.json の前回の値を先に入れ、
+// 起動の途中で $SHELL -ilc を同期で流すと .zshrc が重いとき数百 ms 止まるので、保存先の shell-path.json の前回の値を先に入れ、
 // 読み直しは裏で流し、読めたら入れ替えて書き直す。外部コマンドを起こす所だけが ready（読み終わるか timeoutMs で打ち切り）を待つ
 import { execFile } from "node:child_process";
 import fs from "node:fs";

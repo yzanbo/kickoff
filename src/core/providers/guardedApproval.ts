@@ -3,8 +3,8 @@ import { deniedWithWords, type GuardVerdict } from "../chat/guard/judgeTool.js";
 import type { ApprovalRequest, ProviderCallbacks, ProviderTurnParams } from "./types.js";
 
 /**
- * フックを持たず、承認の頼みで聞いてくる CLI（Codex の app-server・Copilot SDK・ACP）に共通の承認の決まり（メモの仕様書「0021」の Q3 と
- * 「作りながら決める」の承認の決まり）。守り（chat/guard/judgeTool.ts）の判定と権限モードから「通す / 断る（AI に伝える理由）」を決める。
+ * 承認の頼みで聞いてくる CLI（Codex の app-server・Copilot SDK・ACP）に共通の承認の決まり（Codex は PreToolUse のフックも持つ。
+ * providers/codex/preToolUse.ts）。守り（chat/guard/judgeTool.ts）の判定と権限モードから「通す / 断る（AI に伝える理由）」を決める。
  * 断った理由の AI への渡し方は CLI ごと（Codex は turn/steer、Copilot は reject の feedback）
  */
 

@@ -5,7 +5,7 @@ import type { PermissionOptionKind, RequestPermissionRequest, RequestPermissionR
 import { callAsTools, commandOf, mcpToolOf, pathsOf } from "./updates.js";
 
 /**
- * ACP の権限の頼み（session/request_permission）に答える（メモの仕様書「0021」の Q3 と「作りながら決める」の承認の決まり）。
+ * ACP の権限の頼み（session/request_permission）に答える。
  * エージェントは「毎回聞く」モードで動かし（config.ts の modeFor）、聞かれたツールに Kickoff の守り（chat/guard/judgeTool.ts）を当てる:
  * 断る守り → reject / 聞く守り（Docker・作業場所の外）→ 権限モードによらず承認カード / 何もなし → 権限モード（決まりは Codex・Copilot と共通の guardedApproval.ts）。
  * 読む・探す・取ってくるは、守り（自分の保存先・見せない DB）が断るときのほかは聞かずに通す（Claude Code と同じ）。

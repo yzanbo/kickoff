@@ -16,7 +16,7 @@ import { buildIndex, pageAfter, pageAround, pageBefore, pageSince, scopeEvents, 
 
 /**
  * チャットの一覧の絞り込み（並びは最後に動いた順）: ?archived=1 でアーカイブ済みだけ（なければアーカイブしていないものだけ）。
- * 件数は ?limit= で絞れるが、省けばすべて返す（以前は 300 件で黙って切っていて、古い作業中のチャットが画面の一覧から落ちることがあった）
+ * 件数は ?limit= で絞れるが、省けばすべて返す（黙って切ると、古い作業中のチャットが画面の一覧から落ちる）
  */
 function chatListFilter(c: Context) {
   const { archived, limit } = z.object({ archived: flag.optional(), limit: optionalId }).parse({ archived: queryOf(c, "archived"), limit: queryOf(c, "limit") });
@@ -45,13 +45,12 @@ const eventsQuerySchema = z.union([
   z.object({ parents: csvIds, ids: csvIds.optional(), before: optionalId.unwrap() }).strict(),
 ]) satisfies z.ZodType<ChatEventsQuery>;
 
-/** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
 /** 子チャットを親から外す（parent_chat_id: null = 親なし / 先祖の ID = その子に。group_id は親なしにするときだけ） */
 const chatDetachSchema = z.object({
   parent_chat_id: z.number().int().positive().nullable(),
   group_id: z.number().int().positive().nullable().optional(),
 }) satisfies z.ZodType<ChatDetachBody>;
-
+/** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
 const chatPatchSchema = z
   .object({
     title: chatTitle,
@@ -97,13 +96,12 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, worktreeE
   app.put("/api/chats/:id/github", withChat, async (c) => c.json(store.chats.setGitHub(c.var.chat.id, githubLinkSchema.parse(await jsonBody(c)))));
   app.delete("/api/chats/:id/github", withChat, (c) => c.json(store.chats.setGitHub(c.var.chat.id, null)));
 
-  // チャットのやり取りのキーワード検索（⌘F）
   // 手動の並び（サイドバーの並び順「手動順」）を ids の順にする。並べたチャットを並びの順に返す
   app.put("/api/projects/:id/chats/order", withProject, async (c) => {
     const { ids } = z.object({ ids: z.array(z.number().int()) }).parse(await jsonBody(c));
     return c.json(store.chats.reorder(c.var.project.id, ids));
   });
-
+  // チャットのやり取りのキーワード検索（⌘F）
   app.get("/api/search", (c) => {
     const { q, project_id, chat_id, limit } = z
       .object({ q: z.string().max(1000).default(""), project_id: optionalId, chat_id: optionalId, limit: optionalId })
@@ -120,8 +118,8 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, worktreeE
   // 全プロジェクトのチャット（画面はこれを 1 回読み、あとは知らせで直す）
   app.get("/api/chats", (c) => c.json(store.chats.list(chatListFilter(c))));
 
-  // チャットの詳細（作業中の様子 live は SSE の chat_live と同じ形。画面はそれで追いかける）
-  // チャットの詳細。記録はクエリで絞れる（ChatDetail の説明。つなぎ直したときは after、スマホは limit と before で少しずつ）
+  // チャットの詳細（作業中の様子 live は SSE の chat_live と同じ形。画面はそれで追いかける）。
+  // 記録はクエリで絞れる（ChatDetail の説明。つなぎ直したときは after、スマホは limit と before で少しずつ）
   app.get("/api/chats/:id", withChat, (c) => {
     const { chat } = c.var;
     const { after, before, limit, tail_turns } = detailQuerySchema.parse({ after: queryOf(c, "after"), before: queryOf(c, "before"), limit: queryOf(c, "limit"), tail_turns: queryOf(c, "tail_turns") });
@@ -240,7 +238,7 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, worktreeE
   /**
    * 別のプロジェクトへ移す（右クリックの「プロジェクトを移動」）。グループ・作業場所（ワークツリー）は元のプロジェクトのものなので外し、
    * 作業場所は移った先の本体にする。会話（Claude Code のセッション）は作業フォルダが変わっても続けられる。作業中は断る。
-   * 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（メモの仕様書「0025」の G1・J4。子チャットもそれぞれ）
+   * 作業フォルダが変わるので、作業場所を移すのと同じく、会話を新しいセッションに写して区切りを置く（子チャットもそれぞれ）
    */
   app.post("/api/chats/:id/move", withChat, async (c) => {
     const { chat } = c.var;
@@ -254,9 +252,9 @@ export function chatRoutes(app: Hono, { store, bus, runner, approvals, worktreeE
     return c.json(await runner.moveWorkplace(chat.id, { worktreePath: null, projectId: target.id, reason: "project_moved" }));
   });
 
-  // 作業場所を移す（メモの仕様書「0025」の段階 ②。画面の見出しの札・右クリックの「作業場所を変更」）。子チャットは移さない（Q6）
+  // 作業場所を移す（画面の見出しの札・右クリックの「作業場所を変更」）。子チャットは移さない
   const moveDeps = { reservedFolders: () => worktreeFinisher.reservedFolders(), terminals, worktreeEnvs };
-  // 移す前の確かめの中身（元の場所に残る変更・そこで動いているターミナル・移す先にできないワークツリー。Q2・Q5・H7）
+  // 移す前の確かめの中身（元の場所に残る変更・そこで動いているターミナル・移す先にできないワークツリー）
   app.get("/api/chats/:id/workplace", withChat, async (c) => {
     const { chat } = c.var;
     return c.json(await workplaceMoveCheck(moveDeps, chat, requireProject(store, chat.project_id)));

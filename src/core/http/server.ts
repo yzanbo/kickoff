@@ -141,7 +141,7 @@ const STARTED_AT = new Date().toISOString();
 const VERSION = "0.1.0";
 
 /**
- * Kickoff の HTTP API。デスクトップの画面・スマホのブラウザ・将来のネイティブアプリが共通で使う。
+ * Kickoff の HTTP API。デスクトップの画面とスマホのアプリが共通で使う。
  * 認証はトークン（Cookie または Authorization: Bearer）。
  */
 export function createApp(deps: ServerDeps): Hono {

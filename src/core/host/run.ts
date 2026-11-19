@@ -1,7 +1,6 @@
 // コアのプロセス（Electron の utilityProcess）の本体: init を待つ → OS の口 → ログインシェルの PATH を裏で読み始める → startCore → ready。
 // メインとのやり取りは RPC（rpc.ts。形は protocol.ts）、親とのつなぎが切れたら片付けて終わる（残ったコアがポートを持ち続けると、
-// 次の起動が「ポートが使われている」で失敗するため）。startCore・OS の口・時計・終わり方は引数で受ける（テストは偽のコアで手順だけを試す）。
-// メモの仕様書「0023_表示を軽くする」の案 16（分冊 4 の 1-3）
+// 次の起動が「ポートが使われている」で失敗するため）。startCore・OS の口・時計・終わり方は引数で受ける（テストは偽のコアで手順だけを試す）
 import { appendFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { errorMessage } from "@shared/errors";

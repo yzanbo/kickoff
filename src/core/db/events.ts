@@ -247,7 +247,6 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         WHERE chat_id = ? AND type IN ('init', 'result', 'workplace_moved', 'provider_switched') ORDER BY id`).all(chatId) as unknown as EventRow[];
       return rows.map(toEvent);
     },
-    /** このセッション ID を、いまあるチャットのどれかが使っているか（チャットの session_id か、記録の init・result） */
     /**
      * チャットの記録が指している添付の ID の候補（自分の発言・質問への回答の中の uuid。添付の保存先のフォルダ名と同じ形。
      * 添付でない uuid も混ざるので、使う側が保存先にあるかで見分ける）
@@ -272,7 +271,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
           .get({ id: uploadId }) !== undefined
       );
     },
-    /** いまあるチャット（ゴミ箱のものも）が使っているセッションの ID すべて（チャットの session_id と、記録の init・result） */
+    /** いまあるチャット（ゴミ箱のものも）が使っているセッションの ID すべて（チャットの session_id・AI ごとのセッション・記録の init・result・workplace_moved） */
     usedSessionIds(): Set<string> {
       const rows = db
         .prepare(
@@ -283,6 +282,7 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         .all() as { sid: string }[];
       return new Set(rows.map((r) => r.sid));
     },
+    /** このセッション ID を、いまあるチャットのどれかが使っているか（usedSessionIds と同じ所を見る） */
     sessionInUse(sessionId: string): boolean {
       return Boolean(
         db
@@ -295,12 +295,8 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       );
     },
     /**
-     * このチャットの記録の init・result が指すセッション from を to に付け替える（長いチャットを直近の区切りだけの新しいセッションに乗り換えたとき。
-     * 発言の ID は新しいセッションでも同じなので、残した区切りの中の起点からは分岐・巻き戻しができる）
-     */
-    /**
      * 移したあとまだ AI に知らせていない、作業場所を移した区切りの中身（いちばん新しい区切りのあとに作業の終わり result がない。なければ null）。
-     * 移したあと最初に送るものに 1 回だけ移動の知らせを添えるため（メモの仕様書「0025」の Q7）
+     * 移したあと最初に送るものに 1 回だけ移動の知らせを添えるため
      */
     pendingWorkplaceMove(chatId: number): ChatEventDataOf<"workplace_moved"> | null {
       const row = db
@@ -312,11 +308,15 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         .get({ chat: chatId }) as { data: string } | undefined;
       return row ? (JSON.parse(row.data) as ChatEventDataOf<"workplace_moved">) : null;
     },
-    /** 作業場所を移した区切り（古い順。ID と中身。区切りより前の発言の画像・ファイルを、そのときの作業場所から読むため。メモの仕様書「0025」の H5） */
+    /** 作業場所を移した区切り（古い順。ID と中身。区切りより前の発言の画像・ファイルを、そのときの作業場所から読むため） */
     workplaceMoves(chatId: number): { id: number; data: ChatEventDataOf<"workplace_moved"> }[] {
       const rows = db.prepare("SELECT id, data FROM chat_events WHERE chat_id = ? AND type = 'workplace_moved' ORDER BY id").all(chatId) as { id: number; data: string }[];
       return rows.map((r) => ({ id: r.id, data: JSON.parse(r.data) as ChatEventDataOf<"workplace_moved"> }));
     },
+    /**
+     * このチャットの記録の init・result が指すセッション from を to に付け替える（長いチャットを直近の区切りだけの新しいセッションに乗り換えたとき。
+     * 発言の ID は新しいセッションでも同じなので、残した区切りの中の起点からは分岐・巻き戻しができる）
+     */
     remapSession(chatId: number, from: string, to: string): void {
       db.prepare(
         `UPDATE chat_events SET data = json_set(data, '$.session_id', ?)

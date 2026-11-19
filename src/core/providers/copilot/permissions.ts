@@ -4,7 +4,7 @@ import { askApproval, guardOutcome, modeOutcome, type ApprovalContext, type Appr
 import type { ProviderTurnParams } from "../types.js";
 
 /**
- * Copilot SDK の承認と質問に答える（メモの仕様書「0021」の Q3 と「作りながら決める」の承認の決まり。Codex と同じ決まり = guardedApproval.ts）。
+ * Copilot SDK の承認と質問に答える（Codex と同じ決まり = guardedApproval.ts）。
  * セッションは manual（すべて聞く）にし、聞かれた権限（shell = コマンド・write = ファイルの変更・read・mcp・url）に Kickoff の守りを当てる:
  * 断る守り → reject（理由は feedback で AI に伝わる）/ 聞く守り（Docker・作業場所の外）→ 権限モードによらず承認カード / 何もなし → 権限モード。
  * 承認を通らないコマンドがあっても断る守りは効くよう、ツールの前のフック（onPreToolUse）でもコマンドに断る守りだけを当てる（聞く守りは承認の側で）

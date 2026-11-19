@@ -183,11 +183,6 @@ export async function readProjectFile(repo: string, file: string): Promise<FileC
   }
 }
 
-
-/**
- * 画像のファイルの中身（ファイルタブのプレビュー。リポジトリの外を指すリンクは読まない）。画像でない・大きすぎるは 400。
- * icns はブラウザで出せないので、中のいちばん大きい PNG を返す（PNG がなければ 400）
- */
 /** ページのプレビュー（HTML のファイル）が読むファイルの上限 */
 const MAX_ASSET_BYTES = 30 * 1024 * 1024;
 
@@ -200,6 +195,10 @@ export async function readProjectAsset(repo: string, file: string): Promise<Buff
   return fs.readFile(real);
 }
 
+/**
+ * 画像のファイルの中身（ファイルタブのプレビュー。リポジトリの外を指すリンクは読まない）。画像でない・大きすぎるは 400。
+ * icns はブラウザで出せないので、中のいちばん大きい PNG を返す（PNG がなければ 400）
+ */
 export async function readProjectImage(repo: string, file: string): Promise<{ data: Buffer; type: string }> {
   const type = imageFileType(file);
   if (!type) throw new Invalid("画像のファイルではありません");

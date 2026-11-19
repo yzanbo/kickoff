@@ -1,7 +1,7 @@
 import type { JsonValue } from "./protocol.js";
 
 /**
- * Codex の PreToolUse フック（メモの仕様書「0028」の F1）。シェルのコマンド（Bash）とファイルの変更（apply_patch）の前に、
+ * Codex の PreToolUse フック。シェルのコマンド（Bash）とファイルの変更（apply_patch）の前に、
  * Codex が下の sh のコマンドを起こし、実行ごとに開く 127.0.0.1 の口（hookServer.ts）へ入力をそのまま渡して、Kickoff の守りと権限モードで判定する。
  * ふだんのコマンドは Codex の砂場（workspace-write）の中で動かし（approvalPolicy は on-request）、守りはこのフックで当てる（Claude Code と同じ組み方）。
  * フックの中身はいつも同じ文にする（Codex はフックの中身の指紋で信頼を覚えるので、実行ごとに変えると毎回信頼し直すことになる）。

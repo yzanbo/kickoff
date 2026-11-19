@@ -107,11 +107,11 @@ class FakeProvider extends FakeProviderBase {
   preCompactSentId: string | null = null;
   /** 最後の実行に渡した、チャットを作るツールの中身（渡さなければ null） */
   lastCreateChat: ProviderTurnParams["createChat"] = null;
-  /** 最後の実行に渡した、作業場所を移す予約のツールの中身（メモの仕様書「0025」の段階 ③） */
+  /** 最後の実行に渡した、作業場所を移す予約のツールの中身 */
   lastWorkplace: ProviderTurnParams["chatWorkplace"] = null;
   /** 最後の実行が、Git で管理していないファイルだけを書けるチャットだったか（［AI で整える］の確かめに使う） */
   lastUntrackedOnly = false;
-  /** 最後の実行に渡したモデル（一覧にないモデルを外す確かめに使う。メモの仕様書「0028」） */
+  /** 最後の実行に渡したモデル（一覧にないモデルを外す確かめに使う） */
   lastModel: string | null = null;
   /** モデルの一覧（テストで入れる。なければ一覧を持たない AI） */
   models?: () => Promise<ModelOption[]>;
@@ -186,7 +186,7 @@ class FakeProvider extends FakeProviderBase {
     if (this.forkError) throw new Error(this.forkError);
     return `fork-${n}`;
   }
-  /** 作業場所を移すときに写したセッション（元の会話・作業フォルダ）と、写せないときの失敗（メモの仕様書「0025」） */
+  /** 作業場所を移すときに写したセッション（元の会話・作業フォルダ）と、写せないときの失敗 */
   copies: [string, string][] = [];
   copyError: string | null = null;
   async copySessionForMove(sessionId: string, cwd: string) {

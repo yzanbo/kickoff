@@ -1,4 +1,4 @@
-// ACP の共通のプロバイダー（Cursor・Gemini）を偽の ACP のエージェントで確かめる（本物の agent・agy・アカウントは使わない。メモの仕様書「0021」の段階 5）
+// ACP の共通のプロバイダー（Cursor・Gemini）を偽の ACP のエージェントで確かめる（本物の agent・agy・アカウントは使わない）
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ApprovalDecision } from "@shared/types";

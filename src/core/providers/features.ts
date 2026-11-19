@@ -1,4 +1,4 @@
-// プロバイダーができること（任意の機能を持つかから決める。画面は持たないものを押せない形にする。メモの仕様書「0021」の Q4）
+// プロバイダーができること（任意の機能を持つかから決める。画面は持たないものを押せない形にする）
 import type { ProviderFeature } from "@shared/types";
 import type { AgentProvider } from "./types.js";
 

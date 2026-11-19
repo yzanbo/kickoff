@@ -7,7 +7,7 @@ import { jsonBody } from "../input.js";
 const hostSchema = z.string().trim().min(1).max(300);
 
 /**
- * チャット欄の外の画像（メモの仕様書「0027_チャット欄の外の画像とリンク」）: 表示を許可したホストの一覧・許可・取り消しと、許可したホストの画像。
+ * チャット欄の外の画像: 表示を許可したホストの一覧・許可・取り消しと、許可したホストの画像。
  * どれも端末には開かない（http/deviceAccess.ts の一覧に入れない）
  */
 export function chatImageRoutes(app: Hono, { store, remoteImages }: ServerDeps) {

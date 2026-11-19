@@ -261,7 +261,6 @@ test("索引: チャットの一覧（プロジェクトごと）・作業場所
   assert.match(recover[1], /SEARCH chats USING INDEX idx_chats_resume_pending \(resume_pending=\?\)/);
 });
 
-
 test("スキーマの守り: 同じフォルダの重複登録・ほかのプロジェクトのグループ・JSON の形は DB が断る", () => {
   const { store, project } = setup();
   assert.throws(() => store.projects.create({ name: "dup", repo_path: project.repo_path, provider: "claude" }), /UNIQUE constraint failed/);

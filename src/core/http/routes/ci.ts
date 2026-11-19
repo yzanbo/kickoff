@@ -8,7 +8,7 @@ import { lookups } from "../lookups.js";
 const rerunBody = z.object({ failed: z.boolean() }) satisfies z.ZodType<CiRerunBody>;
 
 /**
- * CI の結果（メモの仕様書「CI の結果」。core/github/ci.ts）: 実行の一覧（外の CI の成否も）・実行の中身・ジョブのログ・失敗したステップのログ・
+ * CI の結果（core/github/ci.ts）: 実行の一覧（外の CI の成否も）・実行の中身・ジョブのログ・失敗したステップのログ・
  * やり直し・「（ブランチ名）で直す」の作業場所。GitHub タブと同じく、この Mac からの頼みだけ受ける（gh はプロジェクトで選んだアカウントで動かす）
  */
 export function ciRoutes(app: Hono, { store, ci }: ServerDeps) {

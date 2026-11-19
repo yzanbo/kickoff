@@ -119,7 +119,7 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
     return c.body(null, 204);
   });
 
-  // AI が予約した作業場所の移動を取り消す（作業中の様子の予約の取り消し。スマホからも。予約がなければ 409。メモの仕様書「0025」の I2・J7）
+  // AI が予約した作業場所の移動を取り消す（作業中の様子の予約の取り消し。スマホからも。予約がなければ 409）
   app.delete("/api/chats/:id/workplace-move", withChat, (c) => {
     runner.cancelWorkplaceMove(c.var.chat.id);
     return c.body(null, 204);
@@ -138,7 +138,7 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads, userV
     runner.requireIdle(chat.id, "分岐");
     const cwd = workdirOf(chat, requireProject(store, chat.project_id));
     const forked = await forkChat(deps, chat, event_id, cwd);
-    // 分岐したチャットには元の返答がそのまま並ぶので、外の画像の表示の許可と覚えた画像も写す（メモの仕様書「0027_チャット欄の外の画像とリンク」）
+    // 分岐したチャットには元の返答がそのまま並ぶので、外の画像の表示の許可と覚えた画像も写す
     await remoteImages.copyChat(chat.id, forked.id);
     return c.json(forked, 201);
   });

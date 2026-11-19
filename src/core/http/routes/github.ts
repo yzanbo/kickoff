@@ -99,7 +99,7 @@ const threadParam = (c: Context) => z.string().regex(/^[A-Za-z0-9_=-]{1,200}$/, 
 const queriesOf = (c: Context) => Object.fromEntries(["kind", "state", "mine", "labels", "assignees", "milestones", "q", "sort", "cursor", "refresh"].map((k) => [k, queryOf(c, k)]));
 
 /**
- * GitHub タブ（要件 5.11 の段階 1「読む」・段階 2「AI に渡す」・段階 3「書く」。core/github/service.ts）: 連携の状態・絞り込みの候補・一覧・issue と PR の中身・PR の変更・PR のブランチのワークツリー、
+ * GitHub タブ（読む・AI に渡す・書く。core/github/service.ts）: 連携の状態・絞り込みの候補・一覧・issue と PR の中身・PR の変更・PR のブランチのワークツリー、
  * コメント・閉じる / 開き直す・ラベル・issue の作成・レビューの送信・スレッドへの返信と解決・マージ・チェックアウト。
  * 端末には開かない（http/deviceAccess.ts。中身は DB に持たず、開くたびに GitHub に聞く。gh はプロジェクトで選んだアカウントで動かす）
  */
@@ -137,7 +137,7 @@ export function githubRoutes(app: Hono, { store, github, prWatch }: ServerDeps) 
   });
   app.get("/api/projects/:id/github/pulls/:number/files", withProject, async (c) => c.json(await github.pullFiles(c.var.project, idParam(c, "number"))));
 
-  // ---- 書き込み（段階 3）。様子が変わるだけのものは 204（画面が中身を取り直す） ----
+  // ---- 書き込み。様子が変わるだけのものは 204（画面が中身を取り直す） ----
   app.post("/api/projects/:id/github/items/:number/comments", withProject, async (c) => {
     await github.comment(c.var.project, idParam(c, "number"), commentBody.parse(await jsonBody(c)).body);
     return c.body(null, 204);

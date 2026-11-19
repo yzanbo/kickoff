@@ -16,7 +16,7 @@ import type {
 } from "./protocol.js";
 
 /**
- * Codex の app-server からの頼み（承認・質問）に答える（メモの仕様書「0021」の Q3 と、0028 の F1 の組み替え）。
+ * Codex の app-server からの頼み（承認・質問）に答える。
  * 承認の決まりは on-request（ふだんのコマンド・ファイルの変更は Codex の砂場の中で聞かずに流れ、守りと権限モードは PreToolUse のフック = preToolUse.ts で当てる）。
  * ここに来るのは砂場から出る頼みだけ: コマンドを砂場の外で流す → 決まったコマンド（Bash の砂場の unsandboxedCommands）だけ通し、ほかは断る /
  * 書ける場所の外へのファイルの変更 → 守り（chat/guard/judgeTool.ts）と権限モード（フックで許した書く先は聞き直さない）。

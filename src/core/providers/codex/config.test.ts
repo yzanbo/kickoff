@@ -1,4 +1,4 @@
-// Codex の形に直す純粋関数（メモの仕様書「0021」の段階 3）
+// Codex の形に直す純粋関数
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { ProviderTurnParams } from "../types.js";
@@ -118,7 +118,7 @@ test("モデル: 隠すものを除き、深さは Kickoff の段だけ。1 回�
   assert.deepEqual(askModelOf(models, "standard"), { model: "gpt-big", effort: "medium" });
   assert.deepEqual(askModelOf(models, "light"), { model: "gpt-big-mini", effort: "low" });
   assert.deepEqual(askModelOf([], "light"), { model: null, effort: "low" });
-  // mini がなければ、説明が速い・安いと言うモデル（2026-11-17 の一覧の gpt-6-luna の形）
+  // mini がなければ、説明が速い・安いと言うモデル（gpt-6-luna の形）
   const noMini = [model({ model: "gpt-6.1-sol", isDefault: true, description: "Latest workhorse model." }), model({ model: "gpt-6-luna", description: "Fast and affordable model for easier tasks." })];
   assert.deepEqual(askModelOf(noMini, "light"), { model: "gpt-6-luna", effort: "low" });
 });
