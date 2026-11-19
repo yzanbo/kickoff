@@ -13,23 +13,18 @@ import { useBoardView } from "./BoardHeader";
 import { hiddenCardFields } from "./cardFields";
 import { DEFAULT_CHAT_SORT, parseChatSort, sameChatSort } from "./chatSort";
 import { addView, moveView, removeView, renameView, replaceViewState } from "@/lib/namedViews";
-import { activeView, parseSavedViews, projectViewState, type BoardViewState } from "./savedViews";
+import { activeView, parseSavedViews, type BoardViewState } from "./savedViews";
 import { useKanbanLanes } from "./useKanbanFilters";
 
 /**
  * 保存したビュー（全プロジェクトのボードとプロジェクトのボードで別の一覧。プロジェクトのボードの一覧はすべてのプロジェクトで共通）と、いまの見え方・当てる操作。
  * 見え方の設定（表示・段・列の分け方・並び順・アーカイブ・表示項目）はそれぞれの設定のまま読み書きし、ビューはその組を覚えるだけ。
  * projectId がなければ全プロジェクトのボード。列の分け方はどちらのボードも 状態 / グループ / グループ×状態 / 分けない を覚える
- * （列の分け方のないプロジェクトのボードの前の版のビューは、projectViewState で状態として読む）
  */
 export function useSavedViews(projectId?: number) {
   const allProjects = projectId === undefined;
   const [stored, setStored] = useSetting(allProjects ? ALL_PROJECTS_SAVED_VIEWS : PROJECT_SAVED_VIEWS);
-  // プロジェクトのボードの前の版のビュー（列の分け方なし）は、状態の列として読む
-  const views = useMemo(() => {
-    const parsed = parseSavedViews(stored);
-    return allProjects ? parsed : parsed.map((v) => ({ ...v, state: projectViewState(v.state) }));
-  }, [stored, allProjects]);
+  const views = useMemo(() => parseSavedViews(stored), [stored]);
 
   const { view, split, setView, setSplit } = useBoardView();
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);

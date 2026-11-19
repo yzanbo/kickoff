@@ -75,8 +75,8 @@
       "brokenRefs": 2
     },
     "src/renderer/src/features/board/CLAUDE.md": {
-      "bytes": 43162,
-      "ancestors": 130970,
+      "bytes": 42861,
+      "ancestors": 130669,
       "longLines": 26,
       "forbidden": 70,
       "brokenRefs": 0

@@ -110,7 +110,7 @@ export const CURRENT_PROJECT = defineSetting("kickoff:current-project", number(0
 
 // サイドバー本体
 /** サイドバーを開いているか（"open" / "closed"） */
-export const SIDEBAR_OPEN = defineSetting("kickoff:sidebar", flag(true, ["open", "closed"]));
+export const SIDEBAR_OPEN = defineSetting("kickoff:sidebar", flag(true));
 export const SIDEBAR_WIDTH = defineSetting("kickoff:sidebar-width", number(294));
 /** プロジェクトの並べ方（stack = 縦並び / slide = 横スライド / rail = 縦スライド。初めは縦スライド） */
 export const SIDEBAR_LAYOUT = defineSetting("kickoff:sidebar-layout", choice(["slide", "stack", "rail"], "rail"));

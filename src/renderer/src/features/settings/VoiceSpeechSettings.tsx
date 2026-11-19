@@ -84,8 +84,6 @@ export function VoiceSpeechSettings({ status, draft, apply }: { status: VoiceSta
         <label className="voice-speech-field">
           <span>速さ</span>
           <select value={draft.voice_tts_rate} onChange={(e) => apply({ voice_tts_rate: Number(e.target.value) })}>
-            {/* 一覧にない値（前の版などで保存した値）もそのまま選べるように残す */}
-            {!VOICE_TTS_RATES.some((r) => r.value === draft.voice_tts_rate) && <option value={draft.voice_tts_rate}>{draft.voice_tts_rate} 倍</option>}
             {VOICE_TTS_RATES.map((r) => (
               <option key={r.value} value={r.value}>
                 {r.label}

@@ -16,13 +16,11 @@ export type BoardViewState = {
   view: (typeof VIEW_KINDS)[number];
   /** 段の分け方（分けないなら none） */
   lanes: (typeof VIEW_LANES)[number];
-  /**
-   * 列の分け方（state / groups / groupsState / none。どちらのボードも同じ。前の版のプロジェクトのボードのビューにはないことがあり、projectViewState で state として読む）
-   */
-  columns?: (typeof VIEW_COLUMNS)[number];
+  /** 列の分け方（state / groups / groupsState / none。どちらのボードも同じ） */
+  columns: (typeof VIEW_COLUMNS)[number];
   sort: ChatSort;
   archive: (typeof VIEW_ARCHIVES)[number];
-  /** 表示項目で隠している項目（カード・行に出さないもの。前の版のビューにはなく、そのときは当てても表示項目を変えない） */
+  /** 表示項目で隠している項目（カード・行に出さないもの。初めからあるビューは持たず、そのときは当てても表示項目を変えない） */
   cardHidden?: CardField[];
 };
 
@@ -36,28 +34,17 @@ export function parseViewState(value: unknown): BoardViewState | undefined {
   if (typeof value !== "object" || value === null) return undefined;
   const v = value as Record<string, unknown>;
   const sort = parseChatSort(v.sort);
-  // 前の版の表（table）のビューはリストとして読む（表はなくした）
-  const kind = v.view === "table" ? "list" : v.view;
-  if (!oneOf(VIEW_KINDS, kind) || !oneOf(VIEW_LANES, v.lanes) || !oneOf(VIEW_ARCHIVES, v.archive) || !sort) return undefined;
-  if (v.columns !== undefined && !oneOf(VIEW_COLUMNS, v.columns)) return undefined;
+  if (!oneOf(VIEW_KINDS, v.view) || !oneOf(VIEW_LANES, v.lanes) || !oneOf(VIEW_COLUMNS, v.columns) || !oneOf(VIEW_ARCHIVES, v.archive) || !sort) return undefined;
   if (v.cardHidden !== undefined && !Array.isArray(v.cardHidden)) return undefined;
-  // 前の版のビューのリストの行（compact）・表で隠す列（hidden）は読まない（リストの行はいつも 1 行に、表はなくした）
   return {
-    view: kind,
+    view: v.view,
     lanes: v.lanes,
-    ...(v.columns === undefined ? {} : { columns: v.columns }),
+    columns: v.columns,
     sort,
     archive: v.archive,
     // 知らない項目の名前（消した項目）は読まない
     ...(Array.isArray(v.cardHidden) ? { cardHidden: [...hiddenCardFields(v.cardHidden.filter((x): x is string => typeof x === "string"))] } : {}),
   };
-}
-
-/**
- * プロジェクトのボードの見え方に読み替える: 列の分け方のない前の版のビュー（プロジェクトのボードの列がいつも状態だったころのもの）は state として読む
- */
-export function projectViewState(state: BoardViewState): BoardViewState {
-  return state.columns === undefined ? { ...state, columns: "state" } : state;
 }
 
 /** 保存したビューの一覧を読む（見え方の合わないものは捨てる） */
@@ -69,13 +56,13 @@ export function parseSavedViews(list: readonly { id: string; name: string; state
 }
 
 /**
- * いまの見え方が保存したビューと同じか（選んでいるビューの印）。列の分け方・表示項目を持たないビュー（前の版のもの）は、それを比べない
+ * いまの見え方が保存したビューと同じか（選んでいるビューの印）。表示項目を持たないビュー（初めからあるビュー）は、それを比べない
  */
 export function sameViewState(a: BoardViewState, b: BoardViewState): boolean {
   return (
     a.view === b.view &&
     a.lanes === b.lanes &&
-    (a.columns === undefined || b.columns === undefined || a.columns === b.columns) &&
+    a.columns === b.columns &&
     a.archive === b.archive &&
     sameChatSort(a.sort, b.sort) &&
     (a.cardHidden === undefined || b.cardHidden === undefined || sameHiddenCardFields(a.cardHidden, b.cardHidden))

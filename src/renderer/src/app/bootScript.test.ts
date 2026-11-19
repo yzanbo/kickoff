@@ -51,8 +51,8 @@ test("テーマ: light・dark・system（OS に合わせる）・未保存と知
 
 test("骨組みの形: サイドバーを開いていれば sidebar、閉じていれば main、別ウィンドウは plain", () => {
   assert.equal(runBoot({}).shell, "sidebar");
-  assert.equal(runBoot({ stored: { "kickoff:sidebar": "open" } }).shell, "sidebar");
-  assert.equal(runBoot({ stored: { "kickoff:sidebar": "closed" } }).shell, "main");
+  assert.equal(runBoot({ stored: { "kickoff:sidebar": "1" } }).shell, "sidebar");
+  assert.equal(runBoot({ stored: { "kickoff:sidebar": "0" } }).shell, "main");
   assert.equal(runBoot({ hash: "#/popout/chat?id=3" }).shell, "plain");
   assert.equal(runBoot({ hash: "#/projects/1" }).shell, "sidebar");
 });

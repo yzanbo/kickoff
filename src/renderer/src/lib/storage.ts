@@ -53,9 +53,9 @@ const KEY_PREFIX = "kickoff:";
 
 // ---- 値の形 ----
 
-/** オン・オフ（既定は "1" / "0"。サイドバーの開閉のように別の文字で保存しているものは values で渡す） */
-export function flag(initial = false, [on, off]: readonly [on: string, off: string] = ["1", "0"]): Shape<boolean> {
-  return { initial, decode: (raw) => (raw === on ? true : raw === off ? false : undefined), encode: (value) => (value ? on : off) };
+/** オン・オフ（"1" / "0"） */
+export function flag(initial = false): Shape<boolean> {
+  return { initial, decode: (raw) => (raw === "1" ? true : raw === "0" ? false : undefined), encode: (value) => (value ? "1" : "0") };
 }
 
 /** オン・オフか、まだ決めていないか（"1" / "0"。未保存は undefined = 使う側の初めの値。undefined を書くとキーごと消す） */

@@ -20,9 +20,9 @@ export interface GitHubFilters {
 export const DEFAULT_GITHUB_FILTERS: GitHubFilters = { kind: "issue", issue: defaultGitHubFilter("issue"), pr: defaultGitHubFilter("pr") };
 
 const oneOf = <T extends string>(list: readonly T[], v: unknown, fallback: T): T => (list.includes(v as T) ? (v as T) : fallback);
-/** 文字の並び（前の形の 1 つだけの値 assignee・milestone も読む） */
-const textList = (list: unknown, single: unknown) =>
-  (Array.isArray(list) ? list : typeof single === "string" ? [single] : [])
+/** 文字の並び（配列でなければ空） */
+const textList = (list: unknown) =>
+  (Array.isArray(list) ? list : [])
     .filter((v): v is string => typeof v === "string" && v.trim() !== "")
     .map((v) => v.trim().slice(0, 300))
     .slice(0, 20);
@@ -37,8 +37,8 @@ function parseFilter(kind: GitHubKind, raw: unknown): GitHubListFilter {
     state: oneOf(GITHUB_STATE_FILTERS, r.state, base.state),
     mine: r.mine === null ? null : GITHUB_MINE_FILTERS.includes(r.mine as never) ? (r.mine as GitHubListFilter["mine"]) : null,
     labels: Array.isArray(r.labels) ? r.labels.filter((l): l is string => typeof l === "string" && l !== "").slice(0, 20) : [],
-    assignees: textList(r.assignees, r.assignee),
-    milestones: textList(r.milestones, r.milestone),
+    assignees: textList(r.assignees),
+    milestones: textList(r.milestones),
     text: typeof r.text === "string" ? r.text.slice(0, 500) : "",
     sort: oneOf(GITHUB_SORTS, r.sort, base.sort),
   };

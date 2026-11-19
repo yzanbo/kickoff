@@ -24,7 +24,7 @@ import {
 const { local, session } = installMemoryStorage();
 
 // このファイルだけの宣言（宣言は起動のたびに 1 回。テストごとに作り直さない）
-const OPEN = defineSetting("kickoff:t-open", flag(true, ["open", "closed"]));
+const OPEN = defineSetting("kickoff:t-open", flag(true));
 const COMPACT = defineSetting("kickoff:t-compact", flag());
 const MODE = defineSetting("kickoff:t-mode", choice(["queue", "tell"], "tell"));
 const WIDTH = defineSetting("kickoff:t-width", number(300));
@@ -49,11 +49,13 @@ test("値の形: optionalFlag は \"1\" / \"0\" と、まだ決めていない�
   assert.equal(local.getItem("kickoff:t-fold:a"), null);
 });
 
-test("値の形: 未保存・読めない値は初めの値。保存する文字はキー名と同じく、今までの形のまま（\"1\" / \"0\"、\"open\" / \"closed\" など）", () => {
+test("値の形: 未保存・読めない値は初めの値。オン・オフは \"1\" / \"0\" で保存する", () => {
   assert.equal(readSetting(OPEN), true);
   writeSetting(OPEN, false);
-  assert.equal(local.getItem("kickoff:t-open"), "closed");
+  assert.equal(local.getItem("kickoff:t-open"), "0");
   assert.equal(readSetting(OPEN), false);
+  local.setItem("kickoff:t-open", "closed");
+  assert.equal(readSetting(OPEN), true);
   writeSetting(COMPACT, true);
   assert.equal(local.getItem("kickoff:t-compact"), "1");
   // 知らない値は初めの値

@@ -15,13 +15,12 @@ test("parseGitHubFilters: 壊れた項目は既定に戻し、種類は issue / 
   assert.equal(parseGitHubFilters({ kind: "discussion" })?.kind, "issue");
 });
 
-test("parseGitHubFilters: 前の形の 1 つだけの担当・マイルストーンも読む", () => {
-  const f = parseGitHubFilters({ kind: "issue", issue: { assignee: "alice", milestone: " v1 " } });
-  assert.deepEqual(f?.issue.assignees, ["alice"]);
-  assert.deepEqual(f?.issue.milestones, ["v1"]);
-  const g = parseGitHubFilters({ kind: "issue", issue: { assignees: ["a", "", 1, "b"], milestones: [] } });
+test("parseGitHubFilters: 担当・マイルストーンは文字の並びだけ読む（空・文字でないものは捨て、前後の空白を外す）", () => {
+  const g = parseGitHubFilters({ kind: "issue", issue: { assignees: ["a", "", 1, "b"], milestones: [" v1 "] } });
   assert.deepEqual(g?.issue.assignees, ["a", "b"]);
-  assert.deepEqual(g?.issue.milestones, []);
+  assert.deepEqual(g?.issue.milestones, ["v1"]);
+  // 1 つだけの値（文字）は並びでないので読まない
+  assert.deepEqual(parseGitHubFilters({ kind: "issue", issue: { assignees: "alice" } })?.issue.assignees, []);
 });
 
 test("activeFilterCount: 既定から変えた絞り込みの数（並べ方は数えない）", () => {

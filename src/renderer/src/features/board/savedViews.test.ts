@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { ALL_PROJECTS_SAVED_VIEWS, PROJECT_SAVED_VIEWS } from "@/lib/storageKeys";
-import { activeView, parseSavedViews, parseViewState, projectViewState, sameViewState, type BoardViewState, type SavedView } from "./savedViews";
+import { activeView, parseSavedViews, parseViewState, sameViewState, type BoardViewState, type SavedView } from "./savedViews";
 
 const base: BoardViewState = { view: "board", lanes: "project", columns: "state", sort: { key: "active", dir: "desc" }, archive: "all" };
 const view = (id: string, state: Partial<BoardViewState> = {}): SavedView => ({ id, name: `v${id}`, state: { ...base, ...state } });
@@ -9,7 +9,7 @@ const view = (id: string, state: Partial<BoardViewState> = {}): SavedView => ({ 
 test("parseViewState: 合う形だけ読み、合わない項目があれば捨てる", () => {
   assert.deepEqual(parseViewState(base), base);
   const { columns: _, ...noColumns } = base;
-  assert.deepEqual(parseViewState(noColumns), noColumns);
+  assert.equal(parseViewState(noColumns), undefined);
   assert.equal(parseViewState({ ...base, view: "gallery" }), undefined);
   assert.equal(parseViewState({ ...base, sort: { key: "x", dir: "asc" } }), undefined);
   assert.deepEqual(
@@ -26,21 +26,7 @@ test("sameViewState: 表示・段・列の分け方・アーカイブ・並び�
   assert.equal(sameViewState(base, { ...base, view: "list" }), false);
   assert.equal(sameViewState(base, { ...base, sort: { key: "title", dir: "asc" } }), false);
   assert.equal(sameViewState(base, { ...base, lanes: "none" }), false);
-});
-
-test("parseViewState: 前の版の表（table）のビューはリストとして読み、表で隠す列（hidden）は捨てる", () => {
-  assert.deepEqual(parseViewState({ ...base, view: "table", hidden: ["created"] }), { ...base, view: "list" });
-});
-
-test("sameViewState: 列の分け方を持たないビュー（前の版のプロジェクトのボードのもの）は列の分け方を比べない", () => {
-  const { columns: _, ...old } = base;
-  assert.equal(sameViewState(old, { ...base, columns: "groups" }), true);
   assert.equal(sameViewState({ ...base, columns: "state" }, { ...base, columns: "groupsState" }), false);
-});
-
-test("parseViewState: 前の版のリストの行（compact）が入ったビューも読み、その値は捨てる", () => {
-  assert.deepEqual(parseViewState({ ...base, compact: true }), base);
-  assert.deepEqual(parseViewState({ ...base, compact: undefined }), base);
 });
 
 test("activeView: いまの見え方に合う、いちばん前のビュー", () => {
@@ -49,20 +35,13 @@ test("activeView: いまの見え方に合う、いちばん前のビュー", ()
   assert.equal(activeView(views, { ...base, view: "feed" }), undefined);
 });
 
-test("projectViewState: 列の分け方のない前の版のビューは状態として読み、ほかはそのまま", () => {
-  const { columns: _, ...noColumns } = base;
-  assert.deepEqual(projectViewState(noColumns), { ...base, columns: "state" });
-  assert.deepEqual(projectViewState({ ...base, columns: "groups" }), { ...base, columns: "groups" });
-  assert.deepEqual(projectViewState({ ...base, view: "list", columns: "none" }), { ...base, view: "list", columns: "none" });
-});
-
 test("parseViewState: 表示項目（cardHidden）は知っている項目だけ読み、配列でなければそのビューを捨てる", () => {
   assert.deepEqual(parseViewState({ ...base, cardHidden: ["model", "gone", 3, "cost"] })?.cardHidden, ["model", "cost"]);
   assert.equal(parseViewState({ ...base, cardHidden: "model" }), undefined);
   assert.equal("cardHidden" in (parseViewState(base) ?? {}), false);
 });
 
-test("sameViewState: 表示項目は順によらず比べ、持たないビュー（前の版のもの）は比べない", () => {
+test("sameViewState: 表示項目は順によらず比べ、持たないビュー（初めからあるビュー）は比べない", () => {
   assert.equal(sameViewState({ ...base, cardHidden: ["cost", "model"] }, { ...base, cardHidden: ["model", "cost"] }), true);
   assert.equal(sameViewState({ ...base, cardHidden: ["model"] }, { ...base, cardHidden: [] }), false);
   assert.equal(sameViewState(base, { ...base, cardHidden: ["model"] }), true);
