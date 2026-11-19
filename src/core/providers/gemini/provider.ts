@@ -1,7 +1,7 @@
 import { PROVIDER_AUTH_MODE_LABELS, PROVIDER_LABELS } from "@shared/types";
 import { AcpProvider, type AcpProviderOpts, type AcpProviderSpec } from "../acp/provider.js";
 
-/** API キーでないときに動かさない理由（Q11: Antigravity のログインをほかのアプリから使うのは利用規約で禁じられている） */
+/** API キーでないときに動かさない理由（Antigravity のログインをほかのアプリから使うのは利用規約で禁じられている） */
 export const GEMINI_NEEDS_API_KEY = `${PROVIDER_LABELS.gemini} は API キーで動かします（Google のアカウントのログインで Antigravity をほかのアプリから使うのは、利用規約で禁じられているため）。設定の AI の欄でログインの仕方を「${PROVIDER_AUTH_MODE_LABELS.api_key}」にして、Gemini の API キーを置いてください`;
 
 /**

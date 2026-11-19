@@ -28,7 +28,7 @@ export function macosAgentSandbox(): AgentSandboxRules {
   return {
     tempDirs,
     writableDirs: async () => {
-      // パッケージの置き場（O1: brew・npm i -g を AI に頼めるように）。Homebrew の置き場と、npm の全体の置き場（nvm などでは別の場所）
+      // パッケージの置き場（brew・npm i -g を AI に頼めるように）。Homebrew の置き場と、npm の全体の置き場（nvm などでは別の場所）
       packagePlaces ??= Promise.all([firstLine(["brew"], ["--prefix"]), firstLine(["npm"], ["prefix", "-g"])]).then((dirs) => dirs.filter((d): d is string => d !== null));
       return [
         ...tempDirs,

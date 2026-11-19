@@ -80,7 +80,7 @@ async function electronCommandsOf(workdir: string): Promise<string[]> {
   return [...scriptRunCommands(electronLaunchScripts(pkg.scripts ?? {})), ...ELECTRON_DIRECT_COMMANDS];
 }
 
-/** 共有の .git（ワークツリーでコミットすると本体の .git に書く。O4 で丸ごと例外。Git でなければ null） */
+/** 共有の .git（ワークツリーでコミットすると本体の .git に書く。丸ごと例外にする。Git でなければ null） */
 async function gitCommonDir(workdir: string): Promise<string | null> {
   const out = await gitOutput(workdir, ["rev-parse", "--path-format=absolute", "--git-common-dir"], [], 5000).catch(() => "");
   return out.trim() || null;

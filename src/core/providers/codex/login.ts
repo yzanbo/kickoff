@@ -9,7 +9,7 @@ import { openSession } from "./session.js";
  * `codex login` と同じものになる（Codex の CLI・ほかのアプリと共有）。
  * もう 1 つの道（chatgptAuthTokens = Kickoff が OAuth を自分で行い、トークンを secrets の codex_chatgpt_tokens に置いて渡す「外の資格情報」の形）は、
  * Kickoff の OAuth のクライアントの登録（OpenAI の承認）が要り、トークンの更新の頼み（account/chatgptAuthTokens/refresh）にも答え続けることになるので、
- * いまは取らない（Q12 の「承認が要るなら codex login 相当に戻す」）
+ * いまは取らない（承認が要る道なので、codex login と同じ道を使う）
  */
 
 export interface ChatgptLogin {
