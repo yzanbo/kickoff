@@ -32,7 +32,7 @@ export interface ChildChatInput {
   placement?: { relation: AiChatRelation; parentChatId: number | null; groupId: number | null; worktreePath: string | null };
   /** AI が作った世代（AI の create_chat が作るときだけ。省けば 0） */
   aiGeneration?: number;
-  /** 動かす AI（省けば会話を写す元のチャットの AI。メモの仕様書「0021」の Q8。違う AI なら会話は引き継げない） */
+  /** 動かす AI（省けば会話を写す元のチャットの AI。違う AI なら会話は引き継げない） */
   provider?: ProviderId;
 }
 
@@ -92,7 +92,7 @@ export async function startChildChat(
     if (from && at && provider.fork) {
       const forkSession = provider.fork.bind(provider);
       const workdir = workdirOf(parent, project);
-      // 子チャットは最新の区切り（最後の圧縮の要約とそのあと）だけを写す（メモの仕様書「ファイル削除」の Q18）
+      // 子チャットは最新の区切り（最後の圧縮の要約とそのあと）だけを写す
       fork = () => forkSession(from, at, workdir, { keep: CHILD_FORK_KEEP });
     } else {
       notice = asChild
@@ -131,7 +131,7 @@ function openChildChat(store: Store, parent: Chat, init: { sessionId: string; no
   const project = store.projects.get(parent.project_id)!;
   const created = store.chats.create({
     project_id: parent.project_id,
-    // 親の会話を写したセッションなので、親と同じ AI（プロジェクトの AI と違うことがある。メモの仕様書「0028」の G5）
+    // 親の会話を写したセッションなので、親と同じ AI（プロジェクトの AI と違うことがある）
     provider: parent.provider,
     title: "",
     status: "completed",

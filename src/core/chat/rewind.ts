@@ -26,7 +26,7 @@ export async function rewindChat(
   const index = events.findIndex((e) => e.id === input.eventId);
   const target = events[index];
   if (target?.type !== "user") throw new Invalid("自分の発言のところからだけ巻き戻せます");
-  // 作業場所を移した区切りより前の発言へは巻き戻せない（会話もファイルも。メモの仕様書「0025」の Q3）
+  // 作業場所を移した区切りより前の発言へは巻き戻せない（会話もファイルも）
   if (isBeforeWorkplaceMove(events, target.id)) throw new Invalid(WORKPLACE_REWIND_LOCKED);
   if (isBeforeProviderSwitch(events, target.id)) throw new Invalid(PROVIDER_REWIND_LOCKED);
   const attachments = target.data.attachments ?? [];
@@ -82,7 +82,7 @@ export async function rewindFiles(
   const index = events.findIndex((e) => e.id === input.eventId);
   const target = events[index];
   if (target?.type !== "user") throw new Invalid("自分の発言のところからだけ戻せます");
-  // 作業場所を移す前の発言は、ファイルの控えが元の作業場所のファイルを指すので戻さない（メモの仕様書「0025」の Q3）
+  // 作業場所を移す前の発言は、ファイルの控えが元の作業場所のファイルを指すので戻さない
   if (isBeforeWorkplaceMove(events, target.id)) throw new Invalid(WORKPLACE_FILES_LOCKED);
   if (isBeforeProviderSwitch(events, target.id)) throw new Invalid(PROVIDER_FILES_LOCKED);
   const provider = providers[chat.provider];
@@ -104,7 +104,7 @@ export async function rewindFiles(
 
 /**
  * ファイルを戻せなかったときの文。その発言のファイルの控えが会話記録にない（Claude Code の「No file checkpoint」）ときは、
- * 長いチャットを直近の区切りだけに乗り換えたあと（メモの仕様書「ファイル削除」の Q18）の古い発言かもしれないことを添える
+ * 長いチャットを直近の区切りだけに乗り換えたあと（sessionSwitch.ts）の古い発言かもしれないことを添える
  */
 export function rewindFailure(error: string | undefined): string {
   const base = `ファイルを戻せませんでした${error ? `: ${error}` : ""}`;

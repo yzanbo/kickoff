@@ -1,4 +1,4 @@
-// チャットの AI が利用者に知らせる（kickoff_chat の notify_user の中身。プロバイダーに依らない。メモの仕様書「0019_AI の操作ツールの追加」の C）。
+// チャットの AI が利用者に知らせる（kickoff_chat の notify_user の中身。プロバイダーに依らない）。
 // 長い作業の途中で「ここまで済んだ」「この判断はあとで見てほしい」を届ける。送るかは通知の中心（notifications/center.ts）が決める
 // （そのチャットを見ている人には送らない・この Mac の通知は設定のとおり・スマホのプッシュには本文を載せない）。ここは確かめて、記録に残して、バスに知らせるだけ
 import { AI_NOTIFY_MESSAGE_MAX, AI_NOTIFY_PER_TURN, aiNoticeLine } from "@shared/chat/aiNotify";

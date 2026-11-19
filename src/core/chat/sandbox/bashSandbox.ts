@@ -1,5 +1,5 @@
-// AI の Bash の砂場（メモの仕様書「0020_AI の書き込み先」の段階 2。プロバイダー非依存）: Bash のコマンドが書ける場所を、作業場所・メモのフォルダ・決まりの例外だけにする。
-// 止めるのは OS（Claude Code は macOS の Seatbelt）で、ここは「どこに書けるか・どのコマンドを砂場の外で流すか」の一覧を作るだけ（各 CLI の設定に直すのはプロバイダー。O3）
+// AI の Bash の砂場（プロバイダー非依存）: Bash のコマンドが書ける場所を、作業場所・メモのフォルダ・決まりの例外だけにする。
+// 止めるのは OS（Claude Code は macOS の Seatbelt）で、ここは「どこに書けるか・どのコマンドを砂場の外で流すか」の一覧を作るだけ（各 CLI の設定に直すのはプロバイダー）
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -33,7 +33,7 @@ export interface BashSandboxDeps {
 export const HOME_CACHE_DIRS = [".npm", ".cache", ".pnpm-store", ".yarn", ".bun"];
 
 /**
- * 道具が自分の状態を書くフォルダ（ホームフォルダからの場所）。docker build（buildx）はビルダーの一覧・ビルドの記録を書く（2026-11-15 に砂場で止まるのを確かめた）。
+ * 道具が自分の状態を書くフォルダ（ホームフォルダからの場所）。docker build（buildx）はビルダーの一覧・ビルドの記録を書く（入れないと砂場で止まる）。
  * 認証の情報の入る ~/.docker/config.json（docker login）は利用者の設定なので、~/.docker 全体は入れない
  */
 export const HOME_STATE_DIRS = [path.join(".docker", "buildx")];
@@ -45,8 +45,7 @@ const ELECTRON_LAUNCH = /(^|[\s;&|(])(electron(\s|$)|electron-vite\s+(dev|previe
 export const ELECTRON_DIRECT_COMMANDS = ["npx electron:*", "npx electron-vite:*"];
 
 /**
- * Electron を起動するスクリプトの名前（Electron は起動するときにサービスの登録（bootstrap_check_in）をし、砂場の規則がそれを断る。設定で許す口がなく、--no-sandbox でも同じ。
- * 2026-11-15 に開発版で確かめた）
+ * Electron を起動するスクリプトの名前（Electron は起動するときにサービスの登録（bootstrap_check_in）をし、砂場の規則がそれを断る。設定で許す口がなく、--no-sandbox でも同じ）
  */
 export function electronLaunchScripts(scripts: Record<string, unknown>): string[] {
   return Object.entries(scripts)

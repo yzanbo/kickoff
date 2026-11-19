@@ -45,7 +45,7 @@ export class Runner extends RunnerQueue {
   /** 1 回の実行に渡すもの（AI が自分の子チャットを作るツールのために、子チャットの作り方を足す） */
   private readonly turnDeps: ExecutionDeps;
 
-  /** AI が作業場所を移す予約（作業が最後まで終わったら移す。メモの仕様書「0025」の段階 ③） */
+  /** AI が作業場所を移す予約（作業が最後まで終わったら移す） */
   private readonly workplaceMoves: WorkplaceReservations;
 
 
@@ -347,7 +347,7 @@ export class Runner extends RunnerQueue {
 
   /**
    * 親の会話を写してから動かす（子チャット）。写す間（親の記録が大きいと数十秒）も作業中として数え（preparing）、画面には
-   * ChatLive.inheriting で「親の会話を引き継いでいます」を出す。前は写し終えるまで子チャットを作らず、送った発言も作業中の行も出なかった（利用者の指摘）。
+   * ChatLive.inheriting で「親の会話を引き継いでいます」を出す（写し終えるのを待たずに子チャットを作り、送った発言と作業中の行を出す）。
    * この間の「いま」は預かり（holdsTells）、動かし始めたらその作業に伝える。止めたら、写し終えたところで動かさずに中断で終える。
    * 写せなければ、引き継がずに始めることをお知らせに残して動かす
    */
@@ -715,9 +715,9 @@ export class Runner extends RunnerQueue {
   }
 
   /**
-   * チャットの作業場所を移す（メモの仕様書「0025_チャットの作業場所を変える」。中身は workplaceMove.ts の moveChatWorkplace）。
+   * チャットの作業場所を移す（中身は workplaceMove.ts の moveChatWorkplace）。
    * 利用者・AI が移すときは作業中なら 409。移している間（会話を写す間）も作業中として数え（preparing）、その間に送られないようにする。
-   * 止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま。G3）
+   * 止まったあとの再開を待っていたら、待つのをやめる（再開の指示を移した先で送らない。止めた送信待ちは止めたまま）
    */
   async moveWorkplace(chatId: number, input: WorkplaceMoveInput, steps?: WorkplaceMoveSteps): Promise<Chat> {
     // AI の予約は作業の終わりに Runner が移す（作業中として数えたまま呼ぶ）ので、確かめるのは利用者が移すときだけ
@@ -726,7 +726,7 @@ export class Runner extends RunnerQueue {
     runtime.preparing = true;
     try {
       this.forgetRecovery(chatId);
-      // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す（G6）
+      // 移す前の用意（新しいワークツリーを作る・変更を持っていく）も作業中として数える間に行い、移せなければ元に戻す
       const prepared = { ...input, ...(await steps?.before?.()) };
       try {
         const chat = await moveChatWorkplace({ store: this.deps.store, providers: this.deps.providers, sessionTrash: this.deps.sessionTrash }, chatId, prepared);
@@ -742,7 +742,7 @@ export class Runner extends RunnerQueue {
   }
 
   /**
-   * AI が予約した作業場所の移動を利用者が取り消す（画面・スマホの取り消し。会話にお知らせを残す。予約がなければ 409。I2・J7）。
+   * AI が予約した作業場所の移動を利用者が取り消す（画面・スマホの取り消し。会話にお知らせを残す。予約がなければ 409）。
    * 取り消したことは AI にも伝える: 作業中で足せるなら、いまの作業にその場で足す（次の切れ目で読む）。足せない（作業していない・圧縮の間・入力を閉じた）なら、
    * 知らせのためだけに動かさず、次に送るもの（新しい実行の文脈か、次に伝える発言の頭）に一度だけ添える
    */
@@ -756,7 +756,7 @@ export class Runner extends RunnerQueue {
     if (!told) runtime.pendingNote = note;
   }
 
-  /** 作業の終わりに、AI が予約した作業場所の移動を行ってから、いつもの作業の終わりの処理を続ける（H8） */
+  /** 作業の終わりに、AI が予約した作業場所の移動を行ってから、いつもの作業の終わりの処理を続ける */
   private async moveThenContinue(chatId: number, plan: WorkplaceMovePlan, next: () => void) {
     await runReservedMove(
       {
@@ -834,10 +834,6 @@ export class Runner extends RunnerQueue {
   }
 
   /**
-   * コンテキストを消去する（送信待ちのコンテキスト消去の行）: チャットのセッションを外し、次の指示から新しい会話で始める。
-   * 会話の記録は残し、消去したこと（context_cleared イベント）を残す。作業中なら 409、まだ会話がなければ 409
-   */
-  /**
    * 手でコンテキストを消去する（チャット欄のメーターの詳細の「コンテキストを消去」）: 作業していなければその場で消去し、送信待ちがあれば次を送る。
    * 作業中なら、いまのやり取りが終わったらすぐ消去する予約（送信待ちのいちばん上に消去の行。作業中の「会話を圧縮」と同じ）。まだ会話がなければ 409
    */
@@ -856,6 +852,10 @@ export class Runner extends RunnerQueue {
     return cleared;
   }
 
+  /**
+   * コンテキストを消去する（送信待ちのコンテキスト消去の行）: チャットのセッションを外し、次の指示から新しい会話で始める。
+   * 会話の記録は残し、消去したこと（context_cleared イベント）を残す。作業中なら 409、まだ会話がなければ 409
+   */
   clearContext(chatId: number): Chat {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);
@@ -975,7 +975,7 @@ export class Runner extends RunnerQueue {
           void this.sendNextQueued(item.chatId);
         }
       };
-      // AI が作業場所を移す予約: 最後まで終わったら、いつもの処理より先に移す（H8）。止めた・失敗したら移さずに予約を消す
+      // AI が作業場所を移す予約: 最後まで終わったら、いつもの処理より先に移す。止めた・失敗したら移さずに予約を消す
       const move = this.workplaceMoves.take(item.chatId);
       if (move && finished && outcome.status === "completed") void this.moveThenContinue(item.chatId, move, next);
       else {

@@ -15,7 +15,7 @@ export async function forkChat(deps: { store: Store; providers: Record<ProviderI
   const events = store.events.list(chat.id);
   const event = events.find((e) => e.id === eventId);
   const point = event?.type === "result" ? event.data : undefined;
-  // 作業場所を移した区切りより前の地点からは分岐できない（新しいチャットがどの作業場所で動くかが決まらない。メモの仕様書「0025」の Q3）
+  // 作業場所を移した区切りより前の地点からは分岐できない（新しいチャットがどの作業場所で動くかが決まらない）
   if (event && isBeforeWorkplaceMove(events, event.id)) throw new Invalid(WORKPLACE_FORK_LOCKED);
   if (event && isBeforeProviderSwitch(events, event.id)) throw new Invalid(PROVIDER_FORK_LOCKED);
   // 最後まで終わった作業の終わりからだけ分岐できる（止めた・失敗した作業の最後のメッセージはセッションに残らないことがある）

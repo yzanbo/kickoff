@@ -150,11 +150,11 @@ test("送信待ち: 指示を動かすと、動かした指示だけが印の線
     queue.setStops([2]);
     return queue.list();
   };
-  // いちばん上へ（右クリック）: 線の下の d が線の上へ。b は線の上のまま（以前は b が線の下へ押し出されていた）
+  // いちばん上へ（右クリック）: 線の下の d が線の上へ。b は線の上のまま（線の下へ押し出さない）
   let [qa, , qc, qd] = reset();
   queue.move(qd.id, 0);
   assert.equal(view(), "d a b | c");
-  // いちばん下へ: 線の上の a が線の下へ。c は線の下のまま（以前は c が線の上へ引き上げられていた）
+  // いちばん下へ: 線の上の a が線の下へ。c は線の下のまま（線の上へ引き上げない）
   [qa, , qc, qd] = reset();
   queue.move(qa.id, 3);
   assert.equal(view(), "b | c d a");

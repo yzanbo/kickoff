@@ -1,6 +1,6 @@
-// チャットの AI が利用者の見ている画面を読む（kickoff_chat の get_user_view の中身。プロバイダーに依らない。メモの仕様書「0019_AI の操作ツールの追加」の D）。
+// チャットの AI が利用者の見ている画面を読む（kickoff_chat の get_user_view の中身。プロバイダーに依らない）。
 // 読むのは、このチャットを開いているウィンドウ（なければ最後に前に出したウィンドウ）のいまの様子と、このチャットの最後の発言を送ったときの様子。
-// ほかのプロジェクトを見ていれば中身は返さない（Q3）。読むだけなので聞かずに返す
+// ほかのプロジェクトを見ていれば中身は返さない。読むだけなので聞かずに返す
 import type { Store } from "../db/store.js";
 import { userViewText } from "../userView/format.js";
 import type { UserViewRegistry } from "../userView/registry.js";

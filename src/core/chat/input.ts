@@ -44,7 +44,7 @@ export interface StartChatInput {
   github?: GitHubLink;
   /** AI が作った世代（AI の create_chat が作るときだけ。省けば 0 = 利用者が作った） */
   aiGeneration?: number;
-  /** 動かす AI（省けばプロジェクトの AI。メモの仕様書「0021」の Q1。チャットを作ったあとは変えない） */
+  /** 動かす AI（省けばプロジェクトの AI。チャットを作ったあとは変えない） */
   provider?: ProviderId;
 }
 
@@ -61,7 +61,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
   if (!providers[providerId].implemented) throw new Invalid(`${providers[providerId].label} はまだ使えません`);
 
   // チャット欄で指定がなければ、その AI のプロジェクトの既定 → アプリ全体の設定の順に使う。
-  // その AI のモデルの一覧にない名前は外す（その AI の既定で動かす。メモの仕様書「0028」の 9 節）
+  // その AI のモデルの一覧にない名前は外す（その AI の既定で動かす）
   const resolved = resolveChatOptions(store.settings.get(), providerId, project, input.options);
   const options = { ...resolved, model: await knownModel(providerId, providers[providerId], resolved.model) };
   const titleText = input.titleText ?? input.prompt;

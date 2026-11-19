@@ -1,4 +1,4 @@
-// AI が環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンドの守り（純粋な関数。メモの仕様書「0023_表示を軽くする」の分冊 4 の 5-7）:
+// AI が環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンドの守り（純粋な関数）:
 // この環境変数を付けて Kickoff（Electron）を起動すると、Kickoff のコードより先にその場所の Node のコンパイルキャッシュが読まれ、
 // 細工したキャッシュなら Kickoff の中で別のコードが動く（キーチェーンの鍵で暗号化した DB のパスワード・API キーを開けられる）。
 // Kickoff のコードでも Electron の fuse でも塞げないので、設定する書き方（行頭の VAR=値・env VAR=値・export・open --env・

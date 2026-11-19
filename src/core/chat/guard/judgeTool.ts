@@ -10,7 +10,7 @@ import { evaluateSelfProtection, type SelfInfo } from "./selfProtection.js";
 import { judgeFileWrite, WRITE_SCOPE_DENIED } from "./writeScope.js";
 
 /**
- * Kickoff の守りを、ツールの呼び出しの形によらずまとめて当てる（プロバイダー非依存。メモの仕様書「0021」の Q3）。
+ * Kickoff の守りを、ツールの呼び出しの形によらずまとめて当てる（プロバイダー非依存）。
  * Claude Code は PreToolUse のフックで 1 つずつ当てる（providers/claude/policy.ts）。フックを持たず、承認の頼みで聞いてくる CLI
  * （Copilot・ACP など）と、Codex の PreToolUse のフック（providers/codex/preToolUse.ts）は、聞かれたコマンド・書く先をここで判定する。
  * deny = 断る（理由を AI に伝える）/ ask = 承認カードで聞く（断られたら deniedReason を AI に伝える）/ pass = 守りは何も言わない（権限モードに任せる）

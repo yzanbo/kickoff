@@ -11,7 +11,7 @@ import { TRASH_COMMAND } from "./deleteGuard.js";
 export interface SelfInfo {
   /**
    * Kickoff のプロセス（コアのプロセスと Electron のメインプロセス。単体のコアは自分だけ）。どれを止めてもチャットが止まる
-   * （コアを止めるとチャットが止まり、メインを止めると全部が止まる。メモの仕様書「0023_表示を軽くする」の案 16）
+   * （コアを止めるとチャットが止まり、メインを止めると全部が止まる）
    */
   pids: number[];
   /** 保存先（~/Library/Application Support/Kickoff など） */

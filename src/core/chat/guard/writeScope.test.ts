@@ -55,7 +55,7 @@ test("書き込み先の守り: 同じリポジトリのほかの作業場所は
   const fromWt = await judgeFileWrite(path.join(main, "package.json"), facts(wt));
   assert.equal(fromWt.kind, "deny");
   assert.match(fromWt.kind === "deny" ? fromWt.reason : "", /本体のチャットで行うか、本体で子チャットを作るか/);
-  // 本体の .git もファイルのツールでは書けない（ワークツリーのコミットが書くのは Bash。段階 2 の例外）
+  // 本体の .git もファイルのツールでは書けない（ワークツリーのコミットが書くのは Bash。Bash の砂場の例外）
   assert.equal((await judgeFileWrite(path.join(main, ".git", "config"), facts(wt))).kind, "deny");
 });
 

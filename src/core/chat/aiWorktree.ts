@@ -1,4 +1,4 @@
-// チャットの AI がワークツリーを片付ける（kickoff_chat の finish_worktree の中身。プロバイダーに依らない。メモの仕様書「0019_AI の操作ツールの追加」の F）。
+// チャットの AI がワークツリーを片付ける（kickoff_chat の finish_worktree の中身。プロバイダーに依らない）。
 // 確かめ・控え・予約は worktrees/finish.ts の WorktreeFinisher。ここはツールを呼んだチャットを渡すだけ
 import type { WorktreeFinisher } from "../worktrees/finish.js";
 

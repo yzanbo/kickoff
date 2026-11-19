@@ -1,6 +1,6 @@
-// AI が作業場所を移す予約（メモの仕様書「0025_チャットの作業場所を変える」の段階 ③）: AI の move_workplace は予約するだけで、
-// その作業が最後まで終わったら Kickoff が移し、続きの指示を送る。順番は「移す → 予約した圧縮・消去 → 続き（＋移動の知らせ）→ 預かった『いま』→ 送信待ち」（H8）。
-// 予約は作業中の様子（ChatLive の workplace_move）に出し、画面・スマホ・AI から取り消せる（I2・J7）。同じ作業で何度も頼んだら最後のものだけを残す
+// AI が作業場所を移す予約: AI の move_workplace は予約するだけで、
+// その作業が最後まで終わったら Kickoff が移し、続きの指示を送る。順番は「移す → 予約した圧縮・消去 → 続き（＋移動の知らせ）→ 預かった『いま』→ 送信待ち」。
+// 予約は作業中の様子（ChatLive の workplace_move）に出し、画面・スマホ・AI から取り消せる。同じ作業で何度も頼んだら最後のものだけを残す
 import { randomUUID } from "node:crypto";
 import { errorMessage } from "@shared/errors";
 import type { Chat, QueuedMessage, WorkplaceMoveBody } from "@shared/types";
@@ -28,7 +28,7 @@ export class WorkplaceReservations {
 
   constructor(private readonly runtimes: ChatRuntimes) {}
 
-  /** 予約する（前の予約は置き換える。I2） */
+  /** 予約する（前の予約は置き換える） */
   reserve(chatId: number, plan: WorkplaceMovePlan) {
     this.reserved.set(chatId, plan);
     this.runtimes.get(chatId).update({ workplaceMove: { label: plan.label, carry: Boolean(plan.body.carry), continuation: plan.continuation !== null } });
@@ -73,8 +73,8 @@ export function notMovedNotice(plan: WorkplaceMovePlan): string {
 }
 
 /**
- * 最後まで終わった作業の終わりに、予約どおり移す。片付けの予約が同じチャットにあれば、それが済むのを待ってから（G4・J3）。
- * 移せたら続きの指示を置く（placeContinuation）。移せなければお知らせを残し、続きは送らない（G6）。
+ * 最後まで終わった作業の終わりに、予約どおり移す。片付けの予約が同じチャットにあれば、それが済むのを待ってから。
+ * 移せたら続きの指示を置く（placeContinuation）。移せなければお知らせを残し、続きは送らない。
  * このあと Runner がいつもの作業の終わりの処理（圧縮・預かった「いま」・送信待ち）を続ける
  */
 export async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number, plan: WorkplaceMovePlan) {
@@ -88,7 +88,7 @@ export async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number
     const chat = store.chats.get(chatId);
     const project = chat ? store.projects.get(chat.project_id) : undefined;
     if (!chat || !project) return;
-    // 移す先が本体で、片付けで本体に戻ったなら、移す予約は済んだものとする（G4）
+    // 移す先が本体で、片付けで本体に戻ったなら、移す予約は済んだものとする
     const body: WorkplaceMoveBody = afterFinish ? { ...plan.body, carry: false } : plan.body;
     const done = !body.new_worktree_branch && body.worktree_path === chat.worktree_path;
     if (!done) {
@@ -117,9 +117,9 @@ export async function runReservedMove(deps: WorkplaceMoveRunDeps, chatId: number
 }
 
 /**
- * 移したあとの続きの指示を置く: 送信待ちの先頭に予約した圧縮・消去があればそのあと（H8）、なければ預かった「いま」の前（作業の終わりに 1 件目として送り、
- * 残りの「いま」はその作業に伝える）。利用者が送信待ちを止めていれば、送らずに送信待ちの先頭に入れる（G5）。
- * 片付けを先にしたときは、片付けが止めた送信待ちは止めたまま、続きだけを送る（J3）
+ * 移したあとの続きの指示を置く: 送信待ちの先頭に予約した圧縮・消去があればそのあと、なければ預かった「いま」の前（作業の終わりに 1 件目として送り、
+ * 残りの「いま」はその作業に伝える）。利用者が送信待ちを止めていれば、送らずに送信待ちの先頭に入れる。
+ * 片付けを先にしたときは、片付けが止めた送信待ちは止めたまま、続きだけを送る
  */
 function placeContinuation(store: Store, runtime: ChatRuntime, chatId: number, text: string, afterFinish: boolean) {
   const { queue } = runtime;

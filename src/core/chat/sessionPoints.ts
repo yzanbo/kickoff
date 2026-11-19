@@ -5,7 +5,7 @@ import type { ChatEvent, ChatEventOf } from "@shared/types";
  * 最後まで終わった作業の終わり（session_id と message_id があるもの）だけを数え、止めた・失敗した作業の終わりは飛ばす
  * （最後のメッセージがセッションに残っていないことがある）。間にコンテキストの消去（context_cleared）があれば、
  * それより前の会話は引き継がないので undefined（最初から始める）。間に作業場所を移した区切り（workplace_moved）があれば、
- * それより前の起点は使わず、区切りが持つ移したあとの起点（新しいセッションに写した会話の、同じ発言）にする（なければ最初から。メモの仕様書「0025」の H2）
+ * それより前の起点は使わず、区切りが持つ移したあとの起点（新しいセッションに写した会話の、同じ発言）にする（なければ最初から）
  */
 export function resumePointBefore(events: ChatEvent[], end = events.length): ChatEventOf<"result">["data"] | undefined {
   for (let i = Math.min(end, events.length) - 1; i >= 0; i--) {

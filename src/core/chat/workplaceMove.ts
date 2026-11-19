@@ -1,6 +1,6 @@
-// チャットの作業場所を移す（メモの仕様書「0025_チャットの作業場所を変える」）。利用者・AI が移すときも、Kickoff が自動で変えるとき
-// （ワークツリーを片付けた・別のプロジェクトへ移した・プロジェクトのフォルダを変えた。G1）も同じここを通す:
-// 会話を新しいセッションに写し（H1・J1）、古い会話記録をゴミ箱へ入れ（J2）、作業場所とブランチを書き替え（H3）、区切り workplace_moved を置く
+// チャットの作業場所を移す。利用者・AI が移すときも、Kickoff が自動で変えるとき
+// （ワークツリーを片付けた・別のプロジェクトへ移した・プロジェクトのフォルダを変えた）も同じここを通す:
+// 会話を新しいセッションに写し、古い会話記録をゴミ箱へ入れ、作業場所とブランチを書き替え、区切り workplace_moved を置く
 import { errorMessage } from "@shared/errors";
 import { UNTITLED_CHAT_TITLE, type Chat, type ChatEventDataOf, type ProviderId, type WorkplaceMoveReason, type WorkplaceRef } from "@shared/types";
 import { workplaceMoveNote } from "@shared/chat/workplaceMoves";
@@ -27,23 +27,23 @@ export interface WorkplaceMoveInput {
   reason: WorkplaceMoveReason;
   /** 移す前の作業フォルダ（プロジェクトのフォルダを変えたあとなど、いまの店の値から決まる場所が違うとき） */
   fromDir?: string;
-  /** コミットしていない変更を持っていった（Q2） */
+  /** コミットしていない変更を持っていった */
   carried?: boolean;
-  /** ワークツリーを片付けたとき、コミットしていない変更を控えに入れた（J6） */
+  /** ワークツリーを片付けたとき、コミットしていない変更を控えに入れた */
   backedUp?: boolean;
   /** ワークツリーを片付けたとき、消す直前に確かめたそのワークツリーのブランチ（ブランチから外れていれば null で、チャットが最後に作業したブランチを使う） */
   finishedBranch?: string | null;
-  /** 元の作業場所で動いている内蔵ターミナル（AI が移したとき、区切りと知らせに書く。Q5） */
+  /** 元の作業場所で動いている内蔵ターミナル（AI が移したとき、区切りと知らせに書く） */
   running?: string[];
-  /** 移した先で作業中のほかのチャットの数（AI が移したとき。H6） */
+  /** 移した先で作業中のほかのチャットの数（AI が移したとき） */
   busy?: number;
-  /** 先にこのチャットのワークツリーを片付けてから移した（G4・J3） */
+  /** 先にこのチャットのワークツリーを片付けてから移した */
   afterFinish?: boolean;
 }
 
 /**
  * 移す前後の段（利用者・AI が新しいワークツリーへ移すとき）: before = ワークツリーを作る・変更を持っていく（決まった作業場所などを返す）、
- * after = 移せたあとの片付け（持っていった変更の stash を消す）、undo = 移せなかったときに元へ戻す（G6）
+ * after = 移せたあとの片付け（持っていった変更の stash を消す）、undo = 移せなかったときに元へ戻す
  */
 export interface WorkplaceMoveSteps {
   before?: () => Promise<Partial<WorkplaceMoveInput>>;
@@ -51,7 +51,7 @@ export interface WorkplaceMoveSteps {
   undo?: () => Promise<void>;
 }
 
-/** 利用者・AI が移すとき（写せなければ移さない。G6）か、Kickoff が自動で変えるとき（作業場所はもうないので、写せなくても移す） */
+/** 利用者・AI が移すとき（写せなければ移さない）か、Kickoff が自動で変えるとき（作業場所はもうないので、写せなくても移す） */
 const isManual = (reason: WorkplaceMoveReason) => reason === "user" || reason === "ai";
 
 /** 作業フォルダのいまのブランチ（読めなければ控えのブランチ・null） */
@@ -61,7 +61,7 @@ async function branchAt(dir: string, fallback: string | null): Promise<string | 
 
 /**
  * 作業場所を移す。移す先がいまと同じなら何もしない（区切りも置かない）。作業中かは呼ぶ側（Runner.moveWorkplace）が確かめる。
- * 利用者・AI が移すときは、会話を新しいセッションに写せなければ移さずに 400（G6）。写せないプロバイダー（G7）・まだ会話がないチャットは写さずに移す
+ * 利用者・AI が移すときは、会話を新しいセッションに写せなければ移さずに 400。写せないプロバイダー・まだ会話がないチャットは写さずに移す
  */
 export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number, input: WorkplaceMoveInput): Promise<Chat> {
   const { store } = deps;
@@ -79,7 +79,7 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
   const toBranch = await branchAt(toDir, null);
   const to: WorkplaceRef = { project_id: target.id, worktree_path: input.worktreePath, branch: toBranch, dir: toDir };
 
-  // 会話を新しいセッションに写す（ファイルの控えが新しいセッションで始まり、移したあとの発言を正しく戻せるように。H1・J1）
+  // 会話を新しいセッションに写す（ファイルの控えが新しいセッションで始まり、移したあとの発言を正しく戻せるように）
   const old = chat.session_id;
   const provider = deps.providers[chat.provider];
   if (old && provider.copySessionForMove) {
@@ -94,7 +94,7 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
     if (copied) {
       store.events.remapSession(chatId, old, copied.sessionId);
       store.chats.update(chatId, { session_id: copied.sessionId });
-      // 分岐したチャットなど、ほかのチャットがまだ元の記録を指していれば残す（J2）
+      // 分岐したチャットなど、ほかのチャットがまだ元の記録を指していれば残す
       if (!store.events.sessionInUse(old)) {
         await deps.sessionTrash?.(old, copied.previousFile, { projectId: chat.project_id, label: `会話記録（「${chat.title || UNTITLED_CHAT_TITLE}」の作業場所を移す前）` }).catch(() => {});
       }
@@ -110,7 +110,7 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
     store.chats.move(chatId, target.id);
     if (input.worktreePath !== null) store.chats.setWorkplace(chatId, input.worktreePath, toBranch);
   } else {
-    // 利用者・AI が移したら、移した先のいまのブランチを書く（H3）。片付け・フォルダの付け替えは、最後に作業したブランチを残す。
+    // 利用者・AI が移したら、移した先のいまのブランチを書く。片付け・フォルダの付け替えは、最後に作業したブランチを残す。
     // 片付けたときは片付けたワークツリーのブランチを印に残す（札は本体のまま、説明に添える。次に送るまで）。ほかの移し方では印を外す
     const finished = input.reason === "worktree_finished" ? (input.finishedBranch ?? from.branch) : null;
     store.chats.setWorkplace(chatId, input.worktreePath, isManual(input.reason) ? toBranch : undefined, finished);
@@ -130,7 +130,7 @@ export async function moveChatWorkplace(deps: WorkplaceMoveDeps, chatId: number,
   return store.chats.get(chatId)!;
 }
 
-/** 移したあと最初の実行の指示に添える、移動の知らせ（Q7。まだ知らせていない区切りがなければ null） */
+/** 移したあと最初の実行の指示に添える、移動の知らせ（まだ知らせていない区切りがなければ null） */
 export function workplaceMoveContext(pending: ChatEventDataOf<"workplace_moved"> | null): string | null {
   return pending ? `Kickoff からの知らせ（利用者の発言ではありません）:\n${workplaceMoveNote(pending)}` : null;
 }

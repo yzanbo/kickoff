@@ -12,7 +12,7 @@ export interface DeltaTimers {
 const realTimers: DeltaTimers = { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as NodeJS.Timeout) };
 
 /**
- * 書いている途中の返答を、チャットごとに DELTA_BATCH_MS の間ためて 1 通にまとめる（メモの仕様書「0023_表示を軽くする」の案 13）。
+ * 書いている途中の返答を、チャットごとに DELTA_BATCH_MS の間ためて 1 通にまとめる。
  * ほかの知らせが来たら、ためた分を必ずその前に流す（知らせの順を変えない。確定の記録より前に途中の文が届く）。
  * 変わるのは、続けて届いた同じチャットの途中の文が 1 通につながることだけ
  */

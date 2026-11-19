@@ -1,6 +1,6 @@
-// AI の書き込み先の守り（仕様書 0020 の段階 1。プロバイダー非依存）: ファイルを書き換えるツール（Write・Edit・MultiEdit・NotebookEdit）の書く先を、
+// AI の書き込み先の守り（プロバイダー非依存）: ファイルを書き換えるツール（Write・Edit・MultiEdit・NotebookEdit）の書く先を、
 // 作業場所・メモのフォルダ・決まりの例外だけにする。同じリポジトリのほかの作業場所（本体・ほかのワークツリー）は断り、それ以外の外は承認カードで聞く
-// （聞くのはプロバイダーのフック。権限モードに関係なく、Auto mode でも聞く）。読むことは絞らない。Bash は見ない（段階 2 の砂場で止める）
+// （聞くのはプロバイダーのフック。権限モードに関係なく、Auto mode でも聞く）。読むことは絞らない。Bash は見ない（Bash の砂場 sandbox/bashSandbox.ts で止める）
 import os from "node:os";
 import path from "node:path";
 import { workplaceText } from "@shared/docker/workplace";

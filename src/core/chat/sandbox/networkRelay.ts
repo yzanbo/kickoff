@@ -1,6 +1,6 @@
-// AI の Bash の通信を通す中継（メモの仕様書「0020_AI の書き込み先」の段階 2。ネットワークは絞らない）。
+// AI の Bash の通信を通す中継（ネットワークは絞らない）。
 // Claude Code の砂場は外への通信を中継（HTTP_PROXY）だけに絞り、自分の中継では許していない宛先を聞く（Auto mode では Kickoff に聞かずに断る）。
-// 砂場の設定で自分の中継の代わりにこれを使わせ、どこへでも通す（2026-11-15 に開発版で、Auto mode でも curl・git・gh が通ることを確かめた）。
+// 砂場の設定で自分の中継の代わりにこれを使わせ、どこへでも通す（Auto mode でも curl・git・gh が通る）。
 // 中継を使わない直接の通信（ssh・nc など）は、砂場がこの Mac の中だけに絞るので通らない
 import http from "node:http";
 import net from "node:net";

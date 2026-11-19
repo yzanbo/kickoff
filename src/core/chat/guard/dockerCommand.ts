@@ -11,8 +11,8 @@ const COMPOSE_SUBS = ["stop", "down", "restart", "kill", "rm", "up", "create"] a
 export type ComposeSub = (typeof COMPOSE_SUBS)[number];
 
 /**
- * 守りが見るコマンド 1 つ。bulk = まとめて止める・消す（相手を見ずにいつも聞く）・containers = 名前で書いた相手（A）・
- * volumes = ボリュームの削除・compose = compose のサブコマンド（組の名前は -p か、同じ場所・同じ引数で compose に聞く B）
+ * 守りが見るコマンド 1 つ。bulk = まとめて止める・消す（相手を見ずにいつも聞く）・containers = 名前で書いた相手・
+ * volumes = ボリュームの削除・compose = compose のサブコマンド（組の名前は -p か、同じ場所・同じ引数で compose に聞く）
  */
 export type DockerIntent =
   | { kind: "bulk"; command: string }

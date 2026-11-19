@@ -1,6 +1,6 @@
-// チャットの AI が自分のチャットの作業場所を移す（kickoff_chat の move_workplace・cancel_workplace_move の中身。メモの仕様書「0025」の段階 ③。プロバイダーに依らない）。
+// チャットの AI が自分のチャットの作業場所を移す（kickoff_chat の move_workplace・cancel_workplace_move の中身。プロバイダーに依らない）。
 // 確かめてから予約するだけで、移すのは作業が最後まで終わってから Runner（workplaceReservation.ts）。移せるのは自分のチャットだけ。
-// 承認は、コミットしていない変更を持っていくときだけファイルの一覧を見せて聞く（覚えない・Auto mode でも聞く。I5）
+// 承認は、コミットしていない変更を持っていくときだけファイルの一覧を見せて聞く（覚えない・Auto mode でも聞く）
 import fs from "node:fs";
 import path from "node:path";
 import type { GitWorktree } from "@shared/types";
@@ -103,7 +103,7 @@ export function createAiWorkplaceTools(deps: AiWorkplaceDeps, chatId: number): A
             label = `ワークツリー（${found.branch ?? path.basename(found.root)}）`;
           }
         }
-        // 片付けの予約があれば、片付けで本体に戻ってから移す（本体へなら片付けで済む。G4）
+        // 片付けの予約があれば、片付けで本体に戻ってから移す（本体へなら片付けで済む）
         if (!finishing && worktreePath === chat.worktree_path) throw new Error("いまと同じ作業場所です");
         plan = { body: { worktree_path: worktreePath }, label, continuation };
       }

@@ -1,4 +1,4 @@
-// 砂場で止まったときの文（メモの仕様書「0020_AI の書き込み先」の段階の「あとで」。プロバイダー非依存）: Bash の出力の「Operation not permitted」から断られた場所を読み、
+// 砂場で止まったときの文（プロバイダー非依存）: Bash の出力の「Operation not permitted」から断られた場所を読み、
 // どこに書こうとして・なぜ断られたか・代わりの道を AI に書き添える（OS の文だけだと、AI が書き方を変えて試し直すため）
 import { isInside, realPathLoose } from "../../system/paths.js";
 import type { WriteJudgement } from "../guard/writeScope.js";

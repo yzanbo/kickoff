@@ -134,7 +134,7 @@ test("返答の途中経過は配信だけされ、チャット名は AI が付�
 
   const chat = await runner.start({ projectId: project.id, prompt: "とても長い依頼文" });
   await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.title === "挨拶");
-  // 続けて届いた途中の文は 1 通にまとまり、確定した記録より前に届く（バスでまとめる。案 13）
+  // 続けて届いた途中の文は 1 通にまとまり、確定した記録より前に届く（バスでまとめる）
   assert.deepEqual(order, ["delta:こんにちは", "text"]);
   // 途中経過は保存しない
   assert.deepEqual(store.events.list(chat.id).map((e) => e.type), ["user", "text", "result"]);

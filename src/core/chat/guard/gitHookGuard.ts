@@ -1,4 +1,4 @@
-// AI が git のフック（コミット時・push 時の確かめ）を飛ばすコマンドの守り（純粋な関数。メモの方針「0022_テストを軽くする」）:
+// AI が git のフック（コミット時・push 時の確かめ）を飛ばすコマンドの守り（純粋な関数）:
 // git commit / push / merge / am の --no-verify、git commit -n、フックの置き場を変える git -c core.hooksPath=… / --config-env、
 // git config で core.hooksPath を書き換える・消すコマンドを、どのプロジェクトでも断る（フックが落ちたら直してからやり直す）。
 // 利用者が飛ばすと決めたときは、利用者が自分のターミナルで流す。読むだけ（git config --get core.hooksPath）は断らない。

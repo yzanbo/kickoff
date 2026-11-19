@@ -1,5 +1,5 @@
-// 利用者が画面からチャットの作業場所を移す（メモの仕様書「0025_チャットの作業場所を変える」の段階 ②）: 移す前の確かめの中身と、
-// 移す先の決め方（本体・いまあるワークツリー・新しいワークツリー。Q1）・変更を持っていく（Q2）・移せないとき（G2・G6・H7・I3・I4）
+// 利用者が画面からチャットの作業場所を移す: 移す前の確かめの中身と、
+// 移す先の決め方（本体・いまあるワークツリー・新しいワークツリー）・変更を持っていく・移せないとき
 import fs from "node:fs";
 import type { Chat, Project, WorkplaceMoveBody, WorkplaceMoveCheck } from "@shared/types";
 import { carryFiles, applyCarry, dropCarry, stashForCarry, type CarriedChanges } from "../git/carry.js";
@@ -26,7 +26,7 @@ export async function workplaceMoveBlocked(chat: Chat, project: Project): Promis
   return null;
 }
 
-/** 元の作業場所で動いている内蔵ターミナル（Q5。名前とコマンド） */
+/** 元の作業場所で動いている内蔵ターミナル（名前とコマンド） */
 export function runningTerminals(deps: Pick<WorkplaceUserMoveDeps, "terminals">, dir: string, projectId: number): { title: string; command: string | null }[] {
   return (deps.terminals?.list() ?? [])
     .filter((t) => (t.project_id === null || t.project_id === projectId) && (t.cwd === dir || isInside(dir, t.cwd)))
@@ -45,7 +45,7 @@ export async function workplaceMoveCheck(deps: WorkplaceUserMoveDeps, chat: Chat
 
 /**
  * 画面から移すときの、移す先と移す前後の段を決める（確かめは Runner.moveWorkplace の前に済ませる）。
- * 新しいワークツリーは、このチャットのいまの作業場所のいまのコミットから作る（Q1）。持っていくのは新しいワークツリーのときだけ（Q2）
+ * 新しいワークツリーは、このチャットのいまの作業場所のいまのコミットから作る。持っていくのは新しいワークツリーのときだけ
  */
 export async function planUserWorkplaceMove(
   deps: WorkplaceUserMoveDeps,
@@ -77,7 +77,7 @@ export async function planUserWorkplaceMove(
   const worktreePath = await worktreePathFor(project.repo_path, branch);
   let carried: CarriedChanges | null = null;
   let created = false;
-  // 新しいワークツリーと持っていった変更を片付けて、元のまま（変更は元の場所）に戻す（G6）
+  // 新しいワークツリーと持っていった変更を片付けて、元のまま（変更は元の場所）に戻す
   const rollback = async () => {
     if (carried) await applyCarry(fromDir, carried).catch(() => {});
     if (created) await removeWorktree(project.repo_path, worktreePath, { force: true, deleteBranch: true }).catch(() => {});

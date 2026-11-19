@@ -95,7 +95,7 @@ export interface ExecutionDeps {
    * なければ（置けなかった・テスト）付けない
    */
   trashCommand?: TrashCommand;
-  /** 乗り換えた古い会話記録をゴミ箱へ入れる（メモの仕様書「ファイル削除」の Q18。なければ乗り換えても古い記録は残す） */
+  /** 乗り換えた古い会話記録をゴミ箱へ入れる（なければ乗り換えても古い記録は残す） */
   sessionTrash?: SessionTrash;
   /** ワークツリーの後始末（AI の finish_worktree。Runner を作ったあとで useWorktreeFinisher が渡す。なければそのツールを出さない） */
   worktreeFinisher?: WorktreeFinisher;
@@ -103,13 +103,13 @@ export interface ExecutionDeps {
   userViews?: UserViewRegistry;
   /** チャットのアーカイブ・削除（AI の archive_chat・delete_chat。Runner を作ったあとで useChatRemover が渡す。なければそのツールを出さない） */
   chatRemover?: ChatRemover;
-  /** AI が作業場所を移す予約（Runner が渡す。なければ AI に move_workplace を出さない。メモの仕様書「0025」の段階 ③） */
+  /** AI が作業場所を移す予約（Runner が渡す。なければ AI に move_workplace を出さない） */
   workplaceMoves?: AiWorkplaceDeps["reservations"];
-  /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。メモの仕様書「0020_AI の書き込み先」の段階 2。なければ砂場にかけない（テスト）） */
+  /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。なければ砂場にかけない（テスト）） */
   bashSandbox?: BashSandboxDeps;
-  /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。メモの仕様書「0021」の Q7。なければツールを出さない（テスト）） */
+  /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。なければツールを出さない（テスト）） */
   toolHost?: McpToolHost;
-  /** AI の API キー（設定でログインの仕方を API キーにした AI に渡す。メモの仕様書「0021」の Q13。なければいつもサブスク） */
+  /** AI の API キー（設定でログインの仕方を API キーにした AI に渡す。なければいつもサブスク） */
   providerKeys?: ProviderKeyVault;
 }
 
@@ -211,7 +211,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       // ログインの仕方（API キーにしたのに置いていない・開けなければ、動かさずに分かる文で止める）
       const auth = (await deps.providerKeys?.authFor(chat.provider)) ?? { mode: "subscription" as const, apiKey: null };
       if (auth.mode === "api_key" && !auth.apiKey) throw new Error(`${providers[chat.provider].label} のログインの仕方が「${PROVIDER_AUTH_MODE_LABELS.api_key}」ですが、API キーを読めませんでした。設定の AI の欄で API キーを置き直してください`);
-      // その AI のモデルの一覧にない名前（ほかの AI のモデルなど）は外し、その AI の既定で動かす。チャットにも直して残す（メモの仕様書「0028」の 9 節）
+      // その AI のモデルの一覧にない名前（ほかの AI のモデルなど）は外し、その AI の既定で動かす。チャットにも直して残す
       const model = await knownModel(chat.provider, providers[chat.provider], chat.model);
       if (model !== chat.model) store.chats.update(chatId, { model });
       const params: ProviderTurnParams = {
@@ -461,7 +461,6 @@ function callbacksFor(
   const chatId = chat.id;
   const projectId = chat.project_id;
   return {
-    // メモのチャットでツールの結果が届いたら（AI がメモを書き換えたかもしれない）、メモが変わったと知らせる（開いているメモは、書きかけでなければ読み直す）
     subagentProgress: (subagent) => {
       bus?.publish({ type: "chat_subagent", project_id: projectId, chat_id: chatId, subagent });
     },
@@ -470,7 +469,7 @@ function callbacksFor(
     },
     retry: (retry) => runtime.update({ retry }),
     // 手で圧縮する実行（圧縮のボタン）には発言を足さない（足すと、その返答が圧縮の実行の中に入り、未読・作業の終わりが残らない）。
-    // 圧縮中の「いま」は、送信待ちの先頭から圧縮の実行のあとに送る
+    // 圧縮中の「いま」は預かり、圧縮の実行の終わりで Runner が送る
     control: (control) => {
       runtime.control = compact ? null : control;
     },
@@ -491,12 +490,12 @@ function callbacksFor(
         compacting: active ? (runtime.compacting ?? { since: new Date().toISOString(), trigger: compactTrigger }) : null,
         ...(active ? { compactedTurn: true } : {}),
       }),
-    // 失敗は、手で圧縮したときだけお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない too_few_groups なども含み、
-    // Claude Code も知らせない。本当にあふれたら、作業そのものが失敗として残る）
     // 圧縮の直後のコンテキストの大きさは、作業の終わりを待たずにチャットへ書く（入力欄のメーターがすぐ縮む。作業の終わりには最後の応答の大きさで書き直す）
     context: (tokens) => {
       if (store.chats.get(chatId)?.context_tokens !== tokens) store.chats.update(chatId, { context_tokens: tokens });
     },
+    // 失敗は、手で圧縮したときだけお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない too_few_groups なども含み、
+    // Claude Code も知らせない。本当にあふれたら、作業そのものが失敗として残る）
     compactFailed: (reason) => {
       if (compactTrigger === "manual") store.events.add(chatId, { type: "notice", message: `会話の圧縮に失敗しました${reason ? `（${reason}）` : ""}` });
     },
@@ -531,6 +530,7 @@ function callbacksFor(
         // 圧縮中をもう外していた（知らせの順が前後した）ときは、ここで伝える
         runtime.flushAfterCompact();
       }
+      // メモのチャットでツールの結果が届いたら（AI がメモを書き換えたかもしれない）、メモが変わったと知らせる（開いているメモは、書きかけでなければ読み直す）
       if (chat.memo_path && event.type === "tool_result") bus?.publish({ type: "memos", project_id: projectId, path: null });
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）
       if (!compact && isUnreadEvent(saved) && !store.chats.get(chatId)?.unread) store.chats.setUnread(chatId, true);
