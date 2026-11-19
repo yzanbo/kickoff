@@ -4,6 +4,7 @@ import type { KernelWithStore } from "@/foundation/core/kernel";
 import type { AiApi } from "@/features/ai/core/index";
 import type { DockerService } from "@/features/docker/core/index";
 import type { TrashApi } from "@/features/trash/core/index";
+import type { Runner } from "@/features/chat/core/index";
 import { WorktreeEnvService } from "./env/service";
 import { WorktreeFinisher, type WorktreeFinisherDeps } from "./finish";
 import { HeadWatch } from "./headWatch";
@@ -18,9 +19,7 @@ export interface WorktreesDeps {
   ai: AiApi;
   docker: DockerService;
   /** 作業中か・送信待ち・作業場所を移す（chat を createX に分けるまでは仮の機能 legacy の Runner） */
-  chat: { runner: WorktreeFinisherDeps["runner"] };
-  /** 消すときに選ばれたら、そのワークツリーの DB から作った接続を消す（database を分けるまでは仮の機能 legacy から） */
-  databases: WorktreeFinisherDeps["databases"];
+  chat: { runner: Runner };
 }
 
 export type WorktreesEnv = Pick<WorktreeFinisherDeps, "mergedPr" | "retryMs">;
@@ -37,7 +36,7 @@ export function createWorktrees(k: KernelWithStore, deps: WorktreesDeps, env: Wo
   // ワークツリーの実行環境（ワークツリーを作ったときにポートの帯と組の名前を割り当てる）
   const envs = new WorktreeEnvService(k.store, deps.docker);
   // ワークツリーの後始末（消す前の確かめ・控え（ゴミ箱に 3 日）・ワークツリー自身のチャットからの予約）
-  const finisher = new WorktreeFinisher({ store: k.store, bus: k.bus, runner: deps.chat.runner, worktreeEnvs: envs, databases: deps.databases, trashBin: deps.trash, ...env });
+  const finisher = new WorktreeFinisher({ store: k.store, bus: k.bus, runner: deps.chat.runner, worktreeEnvs: envs, trashBin: deps.trash, ...env });
   const headWatch = new HeadWatch((project_id) => k.bus.publish({ type: "worktrees_changed", project_id }));
   return {
     name: "worktrees",

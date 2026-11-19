@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { RemoteImageService } from "@/features/remoteImages/core/service";
 import { lookups } from "@/foundation/core/http/lookups";
 import { jsonBody } from "@/foundation/core/http/input";
 
@@ -10,7 +11,7 @@ const hostSchema = z.string().trim().min(1).max(300);
  * チャット欄の外の画像: 表示を許可したホストの一覧・許可・取り消しと、許可したホストの画像。
  * どれも端末には開かない（http/deviceAccess.ts の一覧に入れない）
  */
-export function chatImageRoutes(app: Hono, { store, remoteImages }: ServerDeps) {
+export function chatImageRoutes(app: Hono, { store, remoteImages }: { store: Store; remoteImages: RemoteImageService }) {
   const { withChat } = lookups(store);
 
   app.get("/api/chats/:id/image-hosts", withChat, (c) => c.json({ hosts: remoteImages.hosts(c.var.chat.id) }));

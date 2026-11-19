@@ -6,7 +6,6 @@ import type { GitWorktree, Project } from "@shared/types";
 import { errorMessage } from "@shared/foundation/errors";
 import type { Bus } from "@/foundation/core/bus";
 import type { Runner } from "@/features/chat/core/runner";
-import type { DatabaseService } from "@/features/database/core/service";
 import type { Store } from "@/foundation/core/db/store";
 import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import { findComposeFiles } from "@/features/docker/core/compose";
@@ -68,7 +67,6 @@ export interface WorktreeFinisherDeps {
   bus: Bus;
   runner: Runner;
   worktreeEnvs: WorktreeEnvService;
-  databases: DatabaseService;
   trashBin: TrashService;
   /** ブランチのマージ済みの PR（GitHub で取り込んだかの見分け。テストでは差し替える。省けば gh に聞く） */
   mergedPr?: (project: Project, branch: string) => Promise<MergedPullRequest | null>;
@@ -83,8 +81,7 @@ const isAncestor = (repo: string, a: string, b: string) =>
 /** ブランチのマージ済みの PR を gh に聞く（GitHub の remote がない・聞けなければ null） */
 async function askMergedPr(project: Project, branch: string): Promise<MergedPullRequest | null> {
   const target = await resolveGitHubTarget(project.repo_path, project.github_remote).catch(() => null);
-  if (!target) return null;
-  return mergedPullRequestOf(project.repo_path, target, branch).catch(() => null);
+  return target ? mergedPullRequestOf(project.repo_path, target, branch).catch(() => null) : null;
 }
 
 export class WorktreeFinisher {
@@ -95,6 +92,7 @@ export class WorktreeFinisher {
   private readonly unsubscribe: () => void;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private readonly changed: (() => Promise<void>)[] = [];
+  private readonly removed: ((folder: string, dropDbConnections: boolean) => void)[] = [];
 
   constructor(private readonly deps: WorktreeFinisherDeps) {
     // 作業が終わったら（作業中でなくなった知らせ）予約を確かめる。予約したチャットなら、送信待ちを先に止める（ワークツリーで動くつもりで書いた指示が、本体で勝手に動かないように）
@@ -112,6 +110,11 @@ export class WorktreeFinisher {
     this.changed.push(fn);
   }
 
+  /** ワークツリーを消したあとに呼ぶものを足す（上の機能が登録する。database がそのワークツリーの DB から作った接続を片付ける） */
+  afterRemove(fn: (folder: string, dropDbConnections: boolean) => void) {
+    this.removed.push(fn);
+  }
+
   close() {
     this.unsubscribe();
     if (this.timer) clearTimeout(this.timer);
@@ -127,8 +130,7 @@ export class WorktreeFinisher {
     const top = list.find((w) => w.main)?.root;
     if (!top) return [];
     // 登録したパスがシンボリックリンクを含むこともある（/var → /private/var）ので、実体で比べる
-    return this.deps.store.projects
-      .list()
+    return this.deps.store.projects.list()
       .map((p) => ({ id: p.id, real: realPathOrSelf(p.repo_path) }))
       .filter((p) => p.real === top || p.real.startsWith(`${top}/`))
       .map((p) => ({ projectId: p.id, path: path.join(worktree.root, path.relative(top, p.real)) }));
@@ -154,10 +156,8 @@ export class WorktreeFinisher {
     // ローカルで取り込んだ: ブランチの先が本体のブランチに含まれている
     if (await isAncestor(repo, tip, mainRef)) return { branch, changes, merged: { via: "local", into: into ?? "本体" }, unmerged: 0, tip };
     // GitHub などで取り込んだ: PR がマージ済みで、PR に入った最後のコミットのあとに手元で足したコミットがない（squash・rebase でマージしても見分けられる）
-    if (branch) {
-      const pr = await (this.deps.mergedPr ?? askMergedPr)(project, branch).catch(() => null);
-      if (pr && (pr.head_sha === tip || (await isAncestor(repo, tip, pr.head_sha)))) return { branch, changes, merged: { via: "github", pr: pr.number }, unmerged, tip };
-    }
+    const pr = branch ? await (this.deps.mergedPr ?? askMergedPr)(project, branch).catch(() => null) : null;
+    if (pr && (pr.head_sha === tip || (await isAncestor(repo, tip, pr.head_sha)))) return { branch, changes, merged: { via: "github", pr: pr.number }, unmerged, tip };
     return { branch, changes, merged: null, unmerged, tip };
   }
 
@@ -193,7 +193,7 @@ export class WorktreeFinisher {
   }
 
   private async removeAs(project: Project, folder: string, opts: FinishOptions): Promise<FinishResult> {
-    const { store, trashBin, worktreeEnvs, databases } = this.deps;
+    const { store, trashBin, worktreeEnvs } = this.deps;
     const repo = project.repo_path;
     const list = await listWorktrees(repo);
     const target = list.find((w) => w.path === folder);
@@ -255,9 +255,8 @@ export class WorktreeFinisher {
     const failed = await worktreeEnvs.release(folder, { downVolumes: opts.downVolumes });
     if (failed.length) console.warn("[worktree-env] コンテナとデータを消せませんでした", failed);
     const docker: FinishOutcome["docker"] = !opts.downVolumes ? "none" : ownCompose && failed.length === 0 ? "removed" : !ownCompose && hasCompose ? "kept_shared" : "none";
-    // このワークツリーの DB から作った接続（選ばれたら消す。残すなら結び付きだけ外す）
-    if (opts.dropDbConnections) for (const conn of store.dbConnections.ofWorktree(folder)) databases.removeConnection(conn.id);
-    else store.dbConnections.clearWorktree(folder);
+    // このワークツリーの DB から作った接続（選ばれたら消す。残すなら結び付きだけ外す。database が登録する）
+    for (const fn of this.removed) fn(folder, opts.dropDbConnections);
     const remote = upstream ? await this.deleteRemote(repo, upstream) : null;
     // そのワークツリーの PR の知らせ・印を消す（GitHub には聞き直さない）
     for (const fn of this.changed) await fn();

@@ -7,7 +7,8 @@ import { envSetupPrompt, envSetupTitle } from "@/features/worktrees/core/env/set
 import type { Store } from "@/foundation/core/db/store";
 import type { AiApi } from "@/features/ai/core/index";
 import type { WorktreeEnvService } from "@/features/worktrees/core/env/service";
-import type { WorktreeFinisher, WorktreeFinisherDeps } from "@/features/worktrees/core/finish";
+import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
+import type { Runner } from "@/features/chat/core/index";
 import type { HeadWatch } from "@/features/worktrees/core/headWatch";
 import { asInvalid, Conflict, Invalid } from "@/foundation/core/errors";
 import { jsonBody } from "@/foundation/core/http/input";
@@ -20,7 +21,7 @@ const branchSuggestSchema = z.object({ summary: z.string().trim().min(1).max(400
 /** 受け口が使うもの */
 interface WorktreeRouteDeps {
   store: Store;
-  runner: WorktreeFinisherDeps["runner"];
+  runner: Runner;
   providers: AiApi["providers"];
   worktreeEnvs: WorktreeEnvService;
   worktreeFinisher: WorktreeFinisher;

@@ -5,7 +5,6 @@ import type { RecoveredReason } from "@/foundation/core/host/protocol";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import type { BrowserControl } from "@shared/browser/control";
-import type { WorkerChannel } from "@/features/database/core/client";
 import type { SecretCipher } from "@/features/database/core/secrets";
 import type { DesktopNotify, PushSender } from "@/features/notifications/core/center";
 import type { TerminalEnv, TerminalSessions } from "@/features/terminal/core/index";
@@ -22,7 +21,9 @@ import type { DockerEnv } from "@/features/docker/core/index";
 import type { PortsEnv } from "@/features/ports/core/index";
 import type { GitHubEnv } from "@/features/github/core/index";
 import type { WorktreesEnv } from "@/features/worktrees/core/index";
-import type { RemoteImageService } from "@/features/remoteImages/core/service";
+import type { RemoteImageServiceOptions } from "@/features/remoteImages/core/service";
+import type { DatabaseEnv } from "@/features/database/core/index";
+import type { WorkerChannel } from "@/features/database/core/client";
 
 export interface CoreOptions {
   dataDir: string;
@@ -115,20 +116,15 @@ export interface CoreEnv {
   ports: Omit<PortsEnv, "selfPid">;
   /** ログインのシェルは platformParts.terminalShell */
   terminal: Omit<TerminalEnv, "shell">;
-  remoteImages: Pick<OptionsOf<typeof RemoteImageService>, "fetcher">;
+  remoteImages: Pick<RemoteImageServiceOptions, "fetcher">;
   github: GitHubEnv;
   /** 確かめ直しの間隔は retryMs */
   worktrees: Omit<WorktreesEnv, "retryMs">;
   /** 作業の終わりの予約の確かめ直しの間隔（ワークツリーの後始末・チャットの削除。省けば本物の間隔） */
   retryMs?: number;
-  database: {
-    /** DB ワーカーを起動してつなぐ */
-    worker: () => WorkerChannel;
-    /** AI の SQL の結果の CSV の置き場所（省けば保存先の中） */
-    exportRoot?: string;
-    /** 起動したときに古い CSV を消すか */
-    cleanExports: boolean;
-  };
+  /** 暗号化の口は secretCipher から渡す */
+  database: Omit<DatabaseEnv, "secretCipher">;
+
   guard: {
     /** AI の Bash の砂場を付けるか */
     sandbox: boolean;

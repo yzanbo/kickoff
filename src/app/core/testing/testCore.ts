@@ -63,9 +63,9 @@ export function createTestCore(opts: { staticDir?: string; secretCipher?: Secret
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  const { trash, devices, docker, worktrees, github, terminals, ports } = assembled.apis;
+  const { trash, devices, docker, worktrees, github, terminals, ports, notes, databases, remoteImages } = assembled.apis;
   // 分けた機能の口も、前と同じ名前で返す（API のテストを書き換えない）
-  const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, terminals, ports };
+  const split = { docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, terminals, ports, notes, databases, remoteImages };
   return { ...assembled.apis.legacy, ...split, ...fakes, k, app, project, call, browserLogin, close, trashBin: trash, pairing: devices.pairing, codexCalls: () => fakes.counts.codex };
 }
 

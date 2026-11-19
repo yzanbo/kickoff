@@ -5,7 +5,7 @@
 ## 地図
 
 - `core/routes/worktrees.ts`: 一覧を返す API（`present` で実行環境と色 `core/colors.ts` を付ける）。
-- `core/finish.ts`・`core/backup.ts`: 消す `WorktreeFinisher`（消した・戻したあとに `afterChange` に登録したものを呼ぶ。github が PR の知らせを作り直す）・失うものの Git の控え。`core/headWatch.ts`: Git のフォルダを見張って `worktrees_changed` を出す。
+- `core/finish.ts`・`core/backup.ts`: 消す `WorktreeFinisher`（消した・戻したあとは `afterChange`、消したあとは `afterRemove` に上の機能が登録したものを呼ぶ。github が PR の知らせを作り直し、database が DB の接続を片付ける）・失うものの Git の控え。`core/headWatch.ts`: Git のフォルダを見張って `worktrees_changed` を出す。
 - `core/env/`: 実行環境 `WorktreeEnvService`（ポートの帯 `bands.ts`・`.env` の区切り `envRewrite.ts`）。
 - `core/aiWorktree.ts`: AI のツール `finish_worktree`（AI のツールの決まりは `src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
 - `ui/`: PR・片付ける・消す（`WorktreeBar`・`removeWorktree.ts`）。

@@ -2,7 +2,10 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { NoteAiPlanBody, NoteCreateBody, NoteDefaults, NoteDirUsers, NoteFromChatBody, NoteMoveBody, NoteWriteBody } from "@shared/types";
 import { MAX_NOTE_SOURCE_CHARS } from "@/features/notes/core/notes";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { NoteService } from "@/features/notes/core/notes";
+import type { Runner } from "@/features/chat/core/index";
+import type { UploadStore } from "@/features/attachments/core/index";
 import { Conflict, Invalid, NotFound } from "@/foundation/core/errors";
 import { jsonBody, queryOf } from "@/foundation/core/http/input";
 import { lookups } from "@/foundation/core/http/lookups";
@@ -34,7 +37,7 @@ const aiPlanSchema = z.object({ instruction: instructionText.nullable() }) satis
  * プロジェクトのノート（一覧・中身・保存・作成・名前の変更と移動・ゴミ箱・チャットの文から作る・ノートのチャットを始める・AI のフォルダの整理案（動かさない））。
  * 保存先はプロジェクトの外（設定の notes_dir の下の、プロジェクトごとのフォルダ）。パスはノートのフォルダからの相対
  */
-export function noteRoutes(app: Hono, { store, notes, runner, uploads }: ServerDeps) {
+export function noteRoutes(app: Hono, { store, notes, runner, uploads }: { store: Store; notes: NoteService; runner: Runner; uploads: UploadStore }) {
   const { withProject } = lookups(store);
 
   // 設定の画面で、親フォルダをまだ選んでいないときに出す既定の場所

@@ -32,7 +32,9 @@ import {
   type NewDbConnectionBody,
   type Project,
 } from "@shared/types";
-import type { ServerDeps } from "@/foundation/core/http/server";
+import type { Store } from "@/foundation/core/db/store";
+import type { AiApi } from "@/features/ai/core/index";
+import type { DatabaseService } from "@/features/database/core/service";
 import type { DockerService } from "@/features/docker/core/index";
 import { asInvalid, Invalid, NotFound } from "@/foundation/core/errors";
 import { idParam, jsonBody, queryOf } from "@/foundation/core/http/input";
@@ -49,11 +51,7 @@ const text = (max: number) =>
   z.string().trim().max(max).nullable().transform((v) => v || null);
 const ssl = z.object({ mode: z.enum(["require", "verify"]), ca_path: text(2000) }).nullable();
 /** SSH トンネル（ホストは ~/.ssh/config の Host かホスト名。「-」で始まるものは ssh のオプションと取り違えるので断る） */
-const sshHost = z
-  .string()
-  .trim()
-  .min(1)
-  .max(500)
+const sshHost = z.string().trim().min(1).max(500)
   .refine((v) => !v.startsWith("-") && !/\s/.test(v), "SSH のホストの形が正しくありません");
 const ssh = z
   .object({
@@ -187,7 +185,7 @@ const editsSchema = z.object({
  * DB クライアント（接続の登録・試す・木・テーブル・SQL）。この Mac からの頼みだけ受ける（LAN は暗号化なしの HTTP で、
  * 読むだけでも DB の中身が流れるため）。変えたら db_connections の知らせ（中身なし）を出し、画面はここから読み直す
  */
-export function databaseRoutes(app: Hono, { store, databases, providers, docker }: ServerDeps & { docker: DockerService }) {
+export function databaseRoutes(app: Hono, { store, databases, providers, docker }: { store: Store; databases: DatabaseService; providers: AiApi["providers"]; docker: DockerService }) {
   const { withProject } = lookups(store);
 
   /** :cid の接続（このプロジェクトのものでなければ 404） */

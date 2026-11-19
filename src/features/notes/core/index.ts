@@ -1,0 +1,46 @@
+// ノートの機能のコアの入口（ほかの機能はここだけを読む）
+import type { CoreFeature } from "@/foundation/core/feature";
+import type { KernelWithStore } from "@/foundation/core/kernel";
+import { isInside, realPathLoose } from "@/foundation/core/system/paths";
+import type { AiApi } from "@/features/ai/core/index";
+import type { UploadStore } from "@/features/attachments/core/index";
+import { trashNoteChats, trashNoteChatsOnImport, type Runner } from "@/features/chat/core/index";
+import type { TrashApi } from "@/features/trash/core/index";
+import { NoteService } from "./notes";
+import { noteRoutes } from "./routes/notes";
+
+export type { NoteService } from "./notes";
+
+export interface NotesDeps {
+  trash: TrashApi;
+  /** ノートの案を AI に聞く */
+  ai: AiApi;
+  /** ノートのチャット（chat を createX に分けるまでは仮の機能 legacy の Runner） */
+  chat: { runner: Runner };
+  /** ノートの写しを添付にする */
+  uploads: UploadStore;
+}
+
+/** プロジェクトのノート（保存先はプロジェクトの外。外での変更の見張りは止めるときに閉じる） */
+export function createNotes(k: KernelWithStore, deps: NotesDeps, env: { defaultDir: string }): CoreFeature<NoteService> {
+  const { store, bus } = k;
+  const { trash, chat } = deps;
+  const notes = new NoteService({
+    store,
+    defaultDir: env.defaultDir,
+    providers: deps.ai.providers,
+    publish: (e) => bus.publish(e),
+    trashBin: trash,
+    trashNoteChats: (projectId, notePath, itemId) => trashNoteChats({ store, runner: chat.runner }, projectId, notePath, itemId),
+  });
+  // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体のフォルダは projects、ここはノートのフォルダ）のゴミ箱に出す
+  trash.addOriginResolver((origin) => store.projects.list().find((p) => (p.note_path || p.note_folder) && isInside(realPathLoose(notes.dirOf(p)), origin))?.id ?? null);
+  // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）
+  trash.addImportHook((item) => trashNoteChatsOnImport({ store, runner: chat.runner, noteDirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }, item));
+  return {
+    name: "notes",
+    api: notes,
+    routes: [{ legacy: (app) => noteRoutes(app, { store, notes, runner: chat.runner, uploads: deps.uploads }) }],
+    stop: () => notes.close(),
+  };
+}

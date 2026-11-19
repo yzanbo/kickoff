@@ -1,5 +1,4 @@
 // 仮の機能 legacy: まだ createX に分けていない機能を、いまの起動と同じ順に作る（作る・受け口・始める・止める）。機能を分けるたびにここから外す
-import path from "node:path";
 import { chatDeltaStage } from "@/features/chat/core/deltaStage";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import type { AiApi } from "@/features/ai/core/index";
@@ -9,22 +8,20 @@ import { ApprovalCenter } from "@/features/chat/core/approvals";
 import { Runner } from "@/features/chat/core/runner";
 import { endInterruptedTurns } from "@/features/chat/core/interruptedTurnEnd";
 import { startAutoArchive } from "@/features/chat/core/autoArchive";
-import { NoteService } from "@/features/notes/core/notes";
 import type { TrashApi } from "@/features/trash/core/index";
 import type { DockerService } from "@/features/docker/core/index";
 import type { WorktreesApi } from "@/features/worktrees/core/index";
 import type { GitHubApi } from "@/features/github/core/index";
 import type { TerminalSessions } from "@/features/terminal/core/index";
+import type { NoteService } from "@/features/notes/core/index";
+import type { DatabaseService } from "@/features/database/core/index";
+import type { RemoteImageService } from "@/features/remoteImages/core/index";
+import type { BrowserControl } from "@shared/browser/control";
 import { sweepUnusedSessions } from "@/features/chat/core/sessions/sessionTrash";
 import type { SessionTrash } from "@/features/chat/core/sessionSwitch";
 import { registerProjectTrash } from "@/features/projects/core/trash";
-import { RemoteImageService } from "@/features/remoteImages/core/service";
 import { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
-import { registerChatTrash, trashNoteChats, trashNoteChatsOnImport } from "@/features/chat/core/sessions/chatTrash";
-import { isInside, realPathLoose } from "@/foundation/core/system/paths";
-import { DbWorkerClient } from "@/features/database/core/client";
-import { DatabaseService } from "@/features/database/core/service";
-import { DbSecretVault } from "@/features/database/core/secrets";
+import { registerChatTrash, type ChatPurgeDeps } from "@/features/chat/core/sessions/chatTrash";
 import type { BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
 import type { RecoveredReason } from "@/foundation/core/host/protocol";
 import type { KernelWithStore } from "@/foundation/core/kernel";
@@ -54,6 +51,10 @@ export interface LegacyUpper {
   worktrees: WorktreesApi;
   github: GitHubApi;
   terminals: TerminalSessions;
+  notes: NoteService;
+  databases: DatabaseService;
+  remoteImages: RemoteImageService;
+  browser: BrowserControl | undefined;
 }
 
 /** 分けた下の機能の口 */
@@ -77,23 +78,6 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
 
   const { providers, keys: providerKeys, usage, codexCredits } = ai;
   const approvals = new ApprovalCenter(bus);
-  // AI の kickoff-trash で入れたものは、消したチャットのプロジェクト、なければ元の場所を含むプロジェクト（本体のフォルダは projects、ここはノートのフォルダ）のゴミ箱に出す
-  trashBin.addOriginResolver((origin) => store.projects.list().find((p) => (p.note_path || p.note_folder) && isInside(realPathLoose(notes.dirOf(p)), origin))?.id ?? null);
-  // AI がノートを kickoff-trash で消したら、ノートのチャットも同じ行に入れる（画面から消したときと同じ）
-  trashBin.addImportHook((item) => trashNoteChatsOnImport({ store, runner, noteDirOf: (p) => notes.dirOf(p), publish: (e) => bus.publish(e) }, item));
-  const notes = new NoteService({
-    store,
-    defaultDir: env.notes.defaultDir,
-    providers,
-    publish: (e) => bus.publish(e),
-    trashBin,
-    trashNoteChats: (projectId, notePath, itemId) => trashNoteChats({ store, runner }, projectId, notePath, itemId),
-  });
-  // DB クライアント（DB の処理は別のプロセス。初めて使ったときに起動し、何もしない状態が 5 分続いたら止める。チャットの AI にも DB のツールで読ませる。パスワードはキーチェーンの鍵で暗号化）
-  const vault = new DbSecretVault(store, env.secretCipher);
-  const databases = new DatabaseService({ store, client: new DbWorkerClient(env.database.worker), vault, dataDir: k.paths.dataDir, appDataRoot: k.paths.appDataRoot, exportRoot: env.database.exportRoot, publish: (e) => bus.publish(e) });
-  // AI の SQL の結果を書き出した CSV のうち、7 日を過ぎたもの・消したチャットのものを消す
-  if (env.database.cleanExports) databases.cleanExports();
   // AI の rm の代わりの kickoff-trash（置けていなければ守りも付けない。AI が消せなくなって止まらないように）
   const trashCommand = trashCommandFile ? { path: trashCommandFile, dir: trashBin.dir } : undefined;
   // AI の Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする）。通信はどこへでも通す中継を通す（ネットワークは絞らない。起こせなければプロバイダーの中継のまま）
@@ -108,14 +92,19 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
   };
   // AI の操作ツールを実行ごとの鍵で出すコアの MCP サーバー（どの CLI もこの Mac の中から HTTP でつなぐ）
   const mcpTools = new McpToolHost(() => env.mcpBaseUrl);
-  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, noteDirOf: (project) => notes.dirOf(project), notes, browser: env.browser, databases, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: env.guard.sandbox ? env.platformParts.sandboxDiagnostics : undefined, toolHost: mcpTools, providerKeys, interrupted: recovered, ...timing });
+  const runner = new Runner({ store, approvals, providers, usage, codexCredits, uploads, bus, trashCommand, sessionTrash, userViews, bashSandbox, sandboxDiagnostics: env.guard.sandbox ? env.platformParts.sandboxDiagnostics : undefined, toolHost: mcpTools, providerKeys, interrupted: recovered, ...timing });
   // Kickoff が作ったセッションのうち、どのチャットからも使われなくなったものの会話記録を、ゴミ箱の片付けのたびにゴミ箱へ（ほかの Kickoff を調べられないときは片付けない）
   if (sessionsElsewhere) trashBin.addSweepStep(() => sweepUnusedSessions({ store, providers, trashBin, sessionsElsewhere }));
-  // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV ごと本当に消す
-  const remoteImages = new RemoteImageService({ store, dir: path.join(k.paths.dataDir, "image-cache"), publish: (e) => bus.publish(e), fetcher: env.remoteImages.fetcher });
-  const forgetChatImages = (ids: number[]) => remoteImages.forgetChats(ids);
-  registerChatTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages, sessionsElsewhere });
-  registerProjectTrash(trashBin, { store, providers, uploads, forgetChatExports: (ids) => databases.forgetChatExports(ids), forgetChatImages, sessionsElsewhere });
+  // 上の機能の口（ルートは待ち受けの前に登録し、ゴミ箱は本当に消すときに使うので、それまでに attach で受ける）
+  let upper: LegacyUpper | null = null;
+  const up = () => {
+    if (!upper) throw new Error("組み立ての最後に legacy の attach を呼んでいません");
+    return upper;
+  };
+  // ゴミ箱に入れたチャット（チャットの削除・ノートのチャット）を戻す・3 日たったら会話記録のファイル・添付・AI の SQL の CSV・外の画像の覚えごと本当に消す
+  const purgeDeps: ChatPurgeDeps = { store, providers, uploads, forgetChatExports: (ids) => up().databases.forgetChatExports(ids), forgetChatImages: (ids) => up().remoteImages.forgetChats(ids), sessionsElsewhere };
+  registerChatTrash(trashBin, purgeDeps);
+  registerProjectTrash(trashBin, purgeDeps);
   // チャットのアーカイブ・削除（AI の archive_chat・delete_chat。自分・自分の祖先を頼まれたら作業の終わりに行う予約）
   const chatRemover = new ChatRemover({ store, bus, runner, trashBin, retryMs: env.retryMs });
   runner.useChatRemover(chatRemover);
@@ -127,20 +116,14 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
     runner,
     approvals,
     uploads,
-    notes,
-    databases,
-    remoteImages,
     userViews,
     sessionsElsewhere,
   };
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ。始めるのは待ち受けのあと）
   let stopAutoArchive: (() => void) | null = null;
-  // 上の機能の口（ルートは待ち受けの前に登録するので、それまでに attach で受ける）
-  let upper: LegacyUpper | null = null;
   const routeDeps = () => {
-    if (!upper) throw new Error("組み立ての最後に legacy の attach を呼んでいません");
-    const { docker, worktrees, github, terminals } = upper;
-    return { ...deps, trashBin, docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, githubAccounts: github.accounts, terminals };
+    const { docker, worktrees, github, terminals, notes, remoteImages } = up();
+    return { ...deps, trashBin, docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, prWatch: github.prWatch, githubAccounts: github.accounts, terminals, notes, remoteImages };
   };
 
   return {
@@ -153,7 +136,8 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
       chatRemover,
       attach: (given) => {
         upper = given;
-        runner.attach({ docker: given.docker, worktreeEnvs: given.worktrees.envs, worktreeFinisher: given.worktrees.finisher, terminals: given.terminals });
+        const { docker, worktrees, terminals, notes, databases, browser } = given;
+        runner.attach({ docker, worktreeEnvs: worktrees.envs, worktreeFinisher: worktrees.finisher, terminals, notes, noteDirOf: (project) => notes.dirOf(project), databases, browser });
       },
     },
     ...legacyRoutes(routeDeps),
@@ -161,15 +145,13 @@ export function createLegacy(k: KernelWithStore, env: CoreEnv, { trashCommandFil
       stopAutoArchive = startAutoArchive(store, bus);
     },
     stop: async () => {
-      // 止める順（エージェント → 流れ続けている外部コマンド → 見張り・サービス → DB ワーカー → Bash の通信の中継）。通知は先に notifications が止め、
-      // 分けた上の機能（Docker・PR の見張り・ワークツリーの後始末・ポート・ターミナルなど）はこのあとに作った順の逆で止まる
+      // 止める順（エージェント → 流れ続けている外部コマンド → 削除の予約・自動のアーカイブ → Bash の通信の中継）。通知は先に notifications が止め、
+      // 分けた上の機能（ノート・DB ワーカー・Docker・PR の見張り・ワークツリーの後始末・ポート・ターミナルなど）はこのあとに作った順の逆で止まる
       runner.shutdown();
       // 流れ続けている外部コマンド（docker events・起動の途中の up -d など）は聞かずに止める
       k.exec.stopAllStreams();
       chatRemover.close();
       stopAutoArchive?.();
-      notes.close();
-      await databases.close();
       await relay?.close();
     },
   };
