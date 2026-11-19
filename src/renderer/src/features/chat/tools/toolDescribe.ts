@@ -38,7 +38,6 @@ const TOOL_LABELS: Record<string, string> = {
   Bash: "コマンド",
   Grep: "検索",
   Glob: "ファイル検索",
-  LS: "一覧",
   WebSearch: "Web 検索",
   WebFetch: "ページを取得",
   TodoWrite: "ToDo",
@@ -47,14 +46,10 @@ const TOOL_LABELS: Record<string, string> = {
   TaskList: "ToDo の一覧",
   TaskGet: "ToDo を確認",
   TaskStop: "作業を停止",
-  KillShell: "作業を停止",
-  KillBash: "作業を停止",
   TaskOutput: "作業の出力",
-  BashOutput: "作業の出力",
   Monitor: "監視",
   AskUserQuestion: "質問",
   Agent: "サブエージェント",
-  Task: "サブエージェント",
   SendMessage: "メッセージ",
   SubagentHandback: "報告",
   ToolSearch: "ツール検索",
@@ -210,11 +205,8 @@ function describeKnown(name: string, input: Input): string | null {
     case "TaskGet":
       return str(input.taskId) ? `#${str(input.taskId)}` : "";
     case "TaskStop":
-    case "KillShell":
-    case "KillBash":
     case "TaskOutput":
-    case "BashOutput":
-      return str(input.task_id ?? input.shell_id ?? input.bash_id);
+      return str(input.task_id ?? input.shell_id);
     case "Monitor":
       return clip(str(input.description) || str(input.command));
     case "SendMessage": {

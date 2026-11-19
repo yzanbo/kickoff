@@ -30,7 +30,7 @@ export function describeActivity(event: Pick<ChatEvent, "type" | "data">): strin
   else if (name === "Read") text = `ファイルを読み取り: ${fileName(input.file_path)}`;
   else if (name === "Bash") text = `コマンドを実行: ${clip(String(input.command ?? ""))}`;
   else if (SEARCH_TOOLS.has(name)) text = `検索: ${clip(String(input.pattern ?? ""))}`;
-  else if (name === "Agent" || name === "Task") text = `サブエージェントを起動: ${clip(String(input.description ?? ""))}`;
+  else if (name === "Agent") text = `サブエージェントを起動: ${clip(String(input.description ?? ""))}`;
   else if (WEB_TOOLS.has(name)) text = "Web を調べています";
   else text = clip(describeTool(name, input));
   return prefix + text;

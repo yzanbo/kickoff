@@ -32,7 +32,8 @@ export function countBackground(state: BackgroundState | null): { agents: number
 
 /**
  * 作業を止める前に、裏で動いているサブエージェント・コマンドも止まることを確かめる（なければそのまま true）。
- * runningAgents: 一覧の知らせがない古い Claude Code のときに、サブエージェントの一覧の行から数えた動いている数
+ * runningAgents: サブエージェントの一覧の行から数えた動いている数（裏の作業の一覧の知らせがまだないときに使う。
+ * Claude Code は手前で動かすサブエージェントを裏の作業の一覧に出さないため）
  */
 export function confirmStopAgents(background: BackgroundState | null, runningAgents: number, action: string): Promise<boolean> {
   const counted = countBackground(background);

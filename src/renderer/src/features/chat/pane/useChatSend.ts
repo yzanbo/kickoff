@@ -41,7 +41,7 @@ export function useChatSend({
   options: ChatOptionsState;
   scroll: TimelineScroll;
   background: BackgroundState | null;
-  /** 裏で動いているサブエージェントの数（一覧の知らせがない古い Claude Code のとき、一覧の行から数えたもの） */
+  /** 動いているサブエージェントの数（サブエージェントの一覧の行から数えたもの。裏の作業の一覧の知らせがまだないときに使う） */
   runningAgents: number;
   onStopping: (stopping: boolean) => void;
   /** 送る前にすること（メモのチャットで、書きかけのメモを保存してから送る。SendCancelled を投げれば送らない） */

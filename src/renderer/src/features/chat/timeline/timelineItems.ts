@@ -255,10 +255,10 @@ const COUNTED_KINDS = [
   { tools: ["TaskList", "TaskGet"], text: (n: number) => `ToDo を${n}回確認` },
   { tools: ["ToolSearch"], text: (n: number) => `ツールを${n}回検索` },
   { tools: ["Skill"], text: (n: number) => `スキルを${n}回使用` },
-  { tools: ["Agent", "Task"], text: (n: number) => `サブエージェントを${n}件起動` },
+  { tools: ["Agent"], text: (n: number) => `サブエージェントを${n}件起動` },
   { tools: ["SendMessage"], text: (n: number) => `メッセージを${n}件送信` },
-  { tools: ["TaskOutput", "BashOutput", "Monitor"], text: (n: number) => `作業の様子を${n}回確認` },
-  { tools: ["TaskStop", "KillShell", "KillBash"], text: (n: number) => `作業を${n}件停止` },
+  { tools: ["TaskOutput", "Monitor"], text: (n: number) => `作業の様子を${n}回確認` },
+  { tools: ["TaskStop"], text: (n: number) => `作業を${n}件停止` },
   { tools: ["AskUserQuestion"], text: (n: number) => `${n}件の質問` },
   { tools: ["ExitPlanMode"], text: (n: number) => `計画を${n}回提示` },
 ];

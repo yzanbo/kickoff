@@ -5,12 +5,12 @@ import type { ChatEvent, SubagentInfo } from "@shared/types";
 
 // サブエージェントの一覧の組み立て（画面の一覧・タブと、コアの作業の終わりのお知らせ・通信が戻ったときの再開で共有する。Node 依存なし）
 
-/** 一覧の 1 行（Task / Agent ツールの呼び出しと、SDK のサブエージェントの通知をまとめたもの） */
+/** 一覧の 1 行（Agent ツールの呼び出しと、SDK のサブエージェントの通知をまとめたもの） */
 export interface SubagentEntry {
   key: string;
   description: string;
   subagentType?: string;
-  /** Task ツールで指定されたモデル（なければ親と同じ） */
+  /** Agent ツールで指定されたモデル（なければ親と同じ） */
   model?: string;
   status: SubagentInfo["status"];
   tokens?: number;
@@ -61,19 +61,15 @@ export function isOutputLimitError(message: string | null | undefined): boolean 
   return Boolean(message) && /max_output_tokens|output token maximum/i.test(message!);
 }
 
-/** Agent / Task ツールの結果の文から、サブエージェントの ID を取り出す（以前の記録で、作業 ID の知らせが残っていないとき） */
-const agentIdIn = (content: unknown): string | undefined =>
-  typeof content === "string" ? /agentId:\s*([a-z0-9]+)/.exec(content)?.[1] : undefined;
+const SUBAGENT_TOOLS = new Set(["Agent"]);
 
-const SUBAGENT_TOOLS = new Set(["Task", "Agent"]);
-
-/** サブエージェントを起動するツール（Task / Agent）か */
+/** サブエージェントを起動するツール（Agent）か */
 export function isSubagentTool(name: string): boolean {
   return SUBAGENT_TOOLS.has(name);
 }
 
 /**
- * チャットのサブエージェントの一覧を組み立てる。保存されたイベント（Task / Agent の呼び出しと結果、開始・終了の通知）と、
+ * チャットのサブエージェントの一覧を組み立てる。保存されたイベント（Agent の呼び出しと結果、開始・終了の通知）と、
  * 画面にだけ届く途中経過（progress: トークン数・直近のツール）を合わせる。作業の終わりの記録（result）の時点で動いていたものと、
  * busy でないときの終わっていないものは、止まったとみなす（報告を渡していれば完了、なければ中断）
  */
@@ -82,9 +78,7 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
   // 裏で動かした（起動の知らせ・再開）サブエージェントと、いちばん新しく始まったあとに報告（SubagentHandback）を渡したか
   const backgrounded = new Set<string>();
   const handedBack = new Set<string>();
-  // サブエージェントでないツール（Bash など）の呼び出し。以前の記録には、裏で動かしたコマンドのタスクも subagent として残っているので除く
-  const otherTools = new Set<string>();
-  // 作業 ID → 行のキー（起動した Agent / Task の呼び出し ID）。SendMessage で再開すると、作業 ID はそのままで、
+  // 作業 ID → 行のキー（起動した Agent の呼び出し ID）。SendMessage で再開すると、作業 ID はそのままで、
   // 知らせの呼び出し ID は再開を頼んだ SendMessage のものになるので、作業 ID で元の行にまとめる
   const taskToKey = new Map<string, string>();
   // 再開した回の呼び出し ID → 行のキー（その回の中の記録の parent は、再開を頼んだ SendMessage の ID になりうる）
@@ -145,7 +139,6 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
           handedBack.add(parent);
           if (map.has(parent)) reported(parent);
         }
-        otherTools.add(d.id);
         continue;
       }
       // 入れ子: サブエージェントが起動したサブエージェント（起動したほうは、子の結果を待っている）
@@ -170,7 +163,6 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       // 結果は起動した流れ（呼び出しと同じ parent）に返ったものだけを数える。fork のサブエージェントは親の会話を引き継ぐので、
       // 自分の中の頭に起動の呼び出しへの仮の結果（「Fork started — that fork is you.」）が parent = 自分で届き、それで完了にすると作業中に見えなかった
       if ((d.parent === undefined ? undefined : keyOf(d.parent)) !== entry.parentKey) continue;
-      entry.agentId ??= agentIdIn(d.content);
       // 裏で動かしたサブエージェントは、結果が「起動した」という知らせなので、まだ終わっていない（終わりは通知で届く）
       if (isBackgroundLaunch(d.content)) backgrounded.add(entry.key);
       else {
@@ -189,8 +181,7 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       const d = e.data;
       const own = d.tool_use_id ?? d.task_id;
       const key = taskToKey.get(d.task_id) ?? own;
-      if (!map.has(key) && otherTools.has(key)) continue;
-      if (map.has(key) || !otherTools.has(own)) taskToKey.set(d.task_id, key);
+      taskToKey.set(d.task_id, key);
       // 再開した回の呼び出し ID（SendMessage）を、元の行のものとして覚える
       if (d.tool_use_id !== undefined && d.tool_use_id !== key && map.has(key) && !aliasToKey.has(d.tool_use_id)) {
         aliasToKey.set(d.tool_use_id, key);
@@ -213,7 +204,7 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
         // API のエラー（通信の切断）で終わった: Claude Code の知らせの要約に、そのエラーの文が入る
         markNetwork(key, d.status === "failed" && isNetworkError(d.summary));
         // 完了の知らせ: 報告を送った（親が受け取ったかは、このあと親が動いたかで決める）
-        if (d.status === "completed" && (map.has(key) || !otherTools.has(own))) reported(key);
+        if (d.status === "completed") reported(key);
       }
       const entry = map.get(key) ?? { key, description: d.description || "サブエージェント", status: d.status };
       // 再開した回は、ここから始まり直す
@@ -300,29 +291,13 @@ export function networkStoppedSubagents(events: ChatEvent[], sinceEventId: numbe
   );
 }
 
-/**
- * Task / Agent ツールの結果から、サブエージェントの報告の本文だけを取り出す。
- * 結果には Claude Code が付ける前置き（使ったツールの一覧や「The report follows:」までの注意書き）と、行頭の字下げが入っている
- */
-export function cleanSubagentReport(text: string): string {
-  const marker = "The report follows:";
-  const at = text.indexOf(marker);
-  const body = at >= 0 ? text.slice(at + marker.length) : text.replace(/<tools-used-before-summary>[\s\S]*?<\/tools-used-before-summary>/g, "");
-  return body
-    .split("\n")
-    .map((line) => line.replace(/^ {2}/, ""))
-    .join("\n")
-    .trim();
-}
-
 /** 終わりの知らせの要約が、報告そのものでなく「報告は別の知らせ（SubagentHandback）で届けた」という案内か */
 const isHandbackPointer = (text: string) => /report was delivered to you as a message/i.test(text);
 
 /**
- * サブエージェントの親への報告（いちばん新しいもの）。報告の渡し方は Claude Code の版・モデルで違うので、次の順に探す:
+ * サブエージェントの親への報告（いちばん新しいもの）。次の順に探す:
  * 1. サブエージェントが呼んだ SubagentHandback の本文（再開したら、その回のもの）
  * 2. 終わりの知らせの要約（「別の知らせで届けた」という案内は除く）
- * 3. Agent / Task ツールの結果の文（以前の記録。裏で動かしたときの「起動した」という知らせは除く）
  */
 export function subagentReport(entry: SubagentEntry, events: ChatEvent[]): string | undefined {
   for (let i = events.length - 1; i >= 0; i--) {
@@ -331,9 +306,6 @@ export function subagentReport(entry: SubagentEntry, events: ChatEvent[]): strin
     const message = (e.data.input as { message?: string } | undefined)?.message;
     if (message) return message;
   }
-  if (entry.summary && !isHandbackPointer(entry.summary)) return entry.summary;
-  const result = events.find((e): e is Extract<ChatEvent, { type: "tool_result" }> => e.type === "tool_result" && e.data.tool_use_id === entry.key && !e.data.parent);
-  const raw = result?.data.content;
-  return raw && !isBackgroundLaunch(raw) && !isHandbackPointer(raw) ? cleanSubagentReport(raw) : undefined;
+  return entry.summary && !isHandbackPointer(entry.summary) ? entry.summary : undefined;
 }
 

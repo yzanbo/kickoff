@@ -88,7 +88,9 @@ export function scenarioChat({ turns, seed, chatId = 1, running = false }: Scena
     const task = `t${key}`;
     const background = chance(0.4);
     const p = parent ? { parent } : {};
-    add("tool_use", { id: key, name: pickOf(["Agent", "Task"]), input: { description: `調査 ${key}`, subagent_type: "general", prompt: `依頼 ${key} の中身` }, ...p });
+    // 乱数を 1 回引く（引く回数を変えると、同じ種でも決まったデータの長いチャットが変わる）
+    rnd();
+    add("tool_use", { id: key, name: "Agent", input: { description: `調査 ${key}`, subagent_type: "general", prompt: `依頼 ${key} の中身` }, ...p });
     add("subagent", { task_id: task, tool_use_id: key, description: `調査 ${key}`, status: "running" });
     if (chance(0.1)) add("tool_result", { tool_use_id: key, content: "Fork started — that fork is you.", parent: key });
     const agent = { key, task, background, done: false };

@@ -37,7 +37,7 @@ export function workingLabel(chat: Chat, last: TimelineItem | undefined, streami
     // 返答を書き終えたあと、裏で動いている作業（サブエージェント・コマンド）の終わりを待っている（Claude Code が知らせる一覧で、種類と名前を出す）
     const waitingBackground = backgroundWaitLabel(live.background);
     if (waitingBackground) return waitingBackground;
-    // 一覧の知らせがない古い Claude Code: 返答を書き終えたあと、裏のサブエージェントの終わりを待っている（指示待ちではない。ここで止めると一緒に止まる）
+    // 裏の作業の一覧からは待っていると言えないとき（一覧の知らせがない・返答の終わりの前）: 返答を書いたあと、動いているサブエージェントの終わりを待っている（指示待ちではない。ここで止めると一緒に止まる）
     if (runningAgents > 0 && last?.kind === "event" && last.event.type === "text") return `裏で動いているサブエージェント ${runningAgents} 件の終わりを待っています`;
     return null;
   })();

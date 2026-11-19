@@ -70,7 +70,7 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
   const subagentsView = useChatSubagentsView(chat.id);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
   const rel = relativeOf(project?.repo_path);
-  // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
+  // 動いているサブエージェント（作業を止めると一緒に止まる。Claude Code は手前で動かすサブエージェントを裏の作業の一覧に出さないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
   // 流れに出すのは末尾（遠い発言へ移ったときは途中の一部分）。前に起動したサブエージェントは preface で数える
   const items = useMemo(() => groupEvents(log.events, undefined, { preface: log.preface, partialHead: log.headPartial }), [log.events, log.preface, log.headPartial]);

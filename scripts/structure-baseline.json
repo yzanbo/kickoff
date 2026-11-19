@@ -45,7 +45,7 @@
       "src/renderer/src/features/chat/store/chatStore.ts": 390,
       "src/renderer/src/features/chat/subagents/subagentParts.tsx": 318,
       "src/renderer/src/features/chat/timeline/timelineItems.ts": 319,
-      "src/renderer/src/features/chat/tools/toolDescribe.ts": 350,
+      "src/renderer/src/features/chat/tools/toolDescribe.ts": 342,
       "src/renderer/src/features/database/DatabaseClient.tsx": 324,
       "src/renderer/src/features/editor/FileView.tsx": 304,
       "src/renderer/src/features/editor/useFileActions.tsx": 341,
@@ -79,7 +79,7 @@
       "src/renderer/src/styles/github/github-list.css": 342,
       "src/renderer/src/styles/sidebar/sidebar-rows.css": 362,
       "src/renderer/src/ui/dialogs.tsx": 319,
-      "src/shared/chat/subagents.ts": 339,
+      "src/shared/chat/subagents.ts": 311,
       "src/shared/database/sqlStatements.ts": 318,
       "src/shared/types/api.ts": 634
     },

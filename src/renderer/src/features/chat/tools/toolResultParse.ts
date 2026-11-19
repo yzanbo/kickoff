@@ -7,8 +7,8 @@ export interface NumberedLine {
   text: string;
 }
 
-/** Read の結果の 1 行（Claude Code は「番号\t中身」。以前の版は「    番号→中身」） */
-const NUMBERED_LINE = /^\s*(\d+)(?:\t|→)(.*)$/;
+/** Read の結果の 1 行（Claude Code は「番号\t中身」） */
+const NUMBERED_LINE = /^\s*(\d+)\t(.*)$/;
 
 /**
  * 読む（Read）の結果を、行番号と中身に分ける。どの行も番号付きの形でなければ null（画像・知らせなど。そのまま出す）。

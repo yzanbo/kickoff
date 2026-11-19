@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { outputLanguage, parseNumberedLines, parseSearchLines, searchRuns } from "./toolResultParse";
 
-test("parseNumberedLines: 「番号\\t中身」と以前の「番号→中身」を読み、番号のない行があれば null", () => {
+test("parseNumberedLines: 「番号\\t中身」を読み（番号の前の空白・中身の頭のタブも）、番号のない行があれば null", () => {
   assert.deepEqual(parseNumberedLines("1\t# 見出し\n2\t\n3\tconst a = 1;\n"), [
     { no: 1, text: "# 見出し" },
     { no: 2, text: "" },
     { no: 3, text: "const a = 1;" },
   ]);
-  assert.deepEqual(parseNumberedLines("    10→a\n    11→\tb"), [
+  assert.deepEqual(parseNumberedLines("    10\ta\n    11\t\tb"), [
     { no: 10, text: "a" },
     { no: 11, text: "\tb" },
   ]);

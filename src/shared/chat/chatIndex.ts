@@ -60,7 +60,6 @@ export const INDEX_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>([
 
 /** R2: 呼び出しと結果を丸ごと入れるツール（サブエージェントの起動・報告・ToDo・図） */
 export const INDEX_TOOLS: ReadonlySet<string> = new Set([
-  "Task",
   "Agent",
   "SendMessage",
   "SubagentHandback",

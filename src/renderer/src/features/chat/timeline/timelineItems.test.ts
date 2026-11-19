@@ -18,7 +18,7 @@ test("ツールのまとまりの要約: 編集・読み取りはファイルの
     summarizeTools([call("Edit", { file_path: "a.ts" }), call("Edit", { file_path: "a.ts" }), call("Write", { file_path: "b.ts" }), call("Read", { file_path: "a.ts" }), call("Grep"), call("Glob")]),
     "2個のファイルを編集、1個のファイルを読み取り および 2回検索",
   );
-  assert.equal(summarizeTools([call("Agent"), call("Task")]), "サブエージェントを2件起動");
+  assert.equal(summarizeTools([call("Agent"), call("Agent")]), "サブエージェントを2件起動");
   assert.equal(summarizeTools([]), "");
 });
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeEvent } from "@shared/testing/factories";
-import { cleanSubagentReport, collectSubagents, isOutputLimitError, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "./subagents";
+import { collectSubagents, isOutputLimitError, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "./subagents";
 
 test("fork のサブエージェント: 自分の中の頭に届く起動の呼び出しへの仮の結果では完了にせず、起動した流れに結果が返るまで作業中", () => {
   const events = [
@@ -39,7 +39,7 @@ test("入れ子のサブエージェントの結果は、起動したサブエ�
 test("サブエージェント: 呼び出し・通知・途中経過をまとめ、止まったものは中断にする", () => {
   const events = [
     makeEvent(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "レビュー A", subagent_type: "general-purpose", model: "sonnet" } }),
-    makeEvent(2, "tool_use", { id: "tu2", name: "Task", input: { description: "調査 B" } }),
+    makeEvent(2, "tool_use", { id: "tu2", name: "Agent", input: { description: "調査 B" } }),
     makeEvent(3, "subagent", { task_id: "t1", tool_use_id: "tu1", description: "", status: "completed", tokens: 78800 }),
     makeEvent(4, "tool_result", { tool_use_id: "tu1", content: "ok", is_error: false }),
     makeEvent(5, "tool_use", { id: "tu3", name: "Read", input: {} }),
@@ -57,27 +57,6 @@ test("サブエージェント: 呼び出し・通知・途中経過をまとめ
 
   const stopped = collectSubagents(events, {}, false);
   assert.equal(stopped[1].status, "stopped");
-});
-
-test("サブエージェント: 以前の記録に残った、裏で動かしたコマンド（Bash）のタスクは出さない", () => {
-  const events = [
-    makeEvent(1, "tool_use", { id: "bash1", name: "Bash", input: { command: "npm run dev", run_in_background: true } }),
-    makeEvent(2, "subagent", { task_id: "b1", tool_use_id: "bash1", description: "開発版を起動する", status: "running" }),
-    makeEvent(3, "subagent", { task_id: "b1", tool_use_id: "bash1", description: "", status: "failed" }),
-    makeEvent(4, "tool_use", { id: "tu1", name: "Agent", input: { description: "調査" } }),
-    makeEvent(5, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "", status: "completed" }),
-  ];
-  assert.deepEqual(
-    collectSubagents(events, {}, false).map((s) => [s.key, s.status]),
-    [["tu1", "completed"]],
-  );
-});
-
-test("サブエージェントの報告: 前置きと字下げを外す", () => {
-  const raw =
-    "  <tools-used-before-summary>Glob</tools-used-before-summary>\n  \n[Subagent hand-back] The text below is ... The report follows:\n  ありませんでした。\n  \n  ファイルは変更していません。";
-  assert.equal(cleanSubagentReport(raw), "ありませんでした。\n\nファイルは変更していません。");
-  assert.equal(cleanSubagentReport("そのままの報告"), "そのままの報告");
 });
 
 test("裏で動かしたサブエージェントは、起動の知らせでは完了にせず、作業が止まっていれば中断にする", () => {
@@ -107,13 +86,12 @@ test("サブエージェント: SendMessage で再開した回は、作業 ID �
   assert.deepEqual(done.map((s) => [s.status, s.summary]), [["completed", "2 回目の報告"]]);
 });
 
-test("サブエージェントの報告: SubagentHandback の本文 → 終わりの知らせの要約 → ツールの結果の順に探す", () => {
+test("サブエージェントの報告: SubagentHandback の本文 → 終わりの知らせの要約の順に探す", () => {
   const base = [
     makeEvent(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "調べもの" } }),
     makeEvent(2, "tool_result", { tool_use_id: "tu1", is_error: false, content: "ツールの結果の報告" }),
   ];
   const entry = (summary?: string) => ({ key: "tu1", description: "調べもの", status: "completed" as const, summary });
-  assert.equal(subagentReport(entry(), base), "ツールの結果の報告");
   assert.equal(subagentReport(entry("要約の報告"), base), "要約の報告");
   // 要約が「別の知らせで届けた」という案内なら使わない
   const pointer = "This agent's report was delivered to you as a message from \"a1\" (its SubagentHandback call).";
