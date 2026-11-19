@@ -90,7 +90,8 @@ export async function recentSegmentsRange(path: string, messageId: string, keep 
 
 /**
  * 分岐する位置の手前の直近の区切りだけを、別の ID の一時のセッションとして同じフォルダに書く（ID は記録の sessionId の欄だけ置き換える）。
- * 切り出せなければ null（呼ぶ側は丸ごと写す）。一時のセッションは、写したあとで呼ぶ側が消す
+ * 切り出せなければ null（呼ぶ側は丸ごと写す）。一時のセッションは、写したあとで呼ぶ側が消す。
+ * 切るのは SDK の forkSession で写す前の元（写したあとのファイルを切り詰めると、続きで Claude Code が会話を覚えていなかった）
  */
 export async function writeRecentSegments(path: string, sessionId: string, messageId: string, keep = FORK_KEEP_SEGMENTS): Promise<{ sessionId: string; path: string } | null> {
   const range = await recentSegmentsRange(path, messageId, keep);

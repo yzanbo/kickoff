@@ -17,7 +17,8 @@ export function mcpServersFor(tools: ToolEndpoint[], caps: AgentCapabilities | u
 
 /**
  * セッションのモード。Kickoff の守りを当てるため、計画モードのほかは「毎回聞く」モード（ACP の既定。agy は default、Cursor は agent）にして
- * エージェントに聞かせ、権限モードの扱いは Kickoff が承認の頼みで決める（Codex を untrusted にするのと同じ考え）。計画モードは plan
+ * エージェントに聞かせ、権限モードの扱いは Kickoff が承認の頼みで決める（Codex を untrusted にするのと同じ考え）。計画モードは plan。
+ * Auto mode でもエージェントの auto にはしない（エージェントが聞かずに流すものには、Kickoff の守りが効かないため）
  */
 const ASKING_MODES = ["default", "agent"];
 export function modeFor(modes: SessionMode[], permissionMode: ProviderTurnParams["permissionMode"]): string | null {

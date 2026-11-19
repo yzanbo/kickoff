@@ -3,6 +3,7 @@ import type { CopilotSession, GetAuthStatusResponse, ModelInfo, ResumeSessionCon
 
 /**
  * Copilot SDK（@github/copilot-sdk）のうち Kickoff が使う所だけの口。テストは偽物に差し替える（testing/fakeCopilotClient.ts）。
+ * Copilot は ACP（プレビュー）でなく、この公式の SDK で動かす（SDK が同梱のランタイムを起こすので、copilot CLI を別に入れなくてよい）。
  * SDK の本体は使うときにだけ読み込む（読み込むと Copilot のランタイムの準備まで走るので、コアの起動を遅くしない）
  */
 

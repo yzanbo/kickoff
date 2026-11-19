@@ -209,6 +209,7 @@ function sandboxDeniedHook(params: ProviderTurnParams, sandbox: BashSandbox): Ho
  * - EnterWorktree / ExitWorktree: 会話ごと別のフォルダへ移る。チャットの作業場所は Kickoff が決めて覚えるもので、
  *   途中で移ると画面の表示・Git と差分・書き込み先の守りと Bash の砂場・ポートの帯・ワークツリーの片付けがすべてずれるため
  *   （書き換えを分けるときは Kickoff のワークツリーで。サブエージェントの isolation: "worktree" はメインエージェントの作業場所を変えないので使える）
+ * ほかの AI（Codex・Copilot・Cursor・Gemini）に同じ働き（会話ごと作業場所を移す）のツールが足されたら、その AI でも同じ決まりで外す
  */
 export const KICKOFF_DISALLOWED_TOOLS = ["PushNotification", "EnterWorktree", "ExitWorktree"];
 

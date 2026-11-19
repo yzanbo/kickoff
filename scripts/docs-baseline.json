@@ -54,11 +54,11 @@
       "brokenRefs": 0
     },
     "src/core/providers/CLAUDE.md": {
-      "bytes": 68488,
-      "ancestors": 112644,
-      "longLines": 42,
-      "forbidden": 29,
-      "brokenRefs": 3
+      "bytes": 8622,
+      "ancestors": 52778,
+      "longLines": 0,
+      "forbidden": 0,
+      "brokenRefs": 0
     },
     "src/main/CLAUDE.md": {
       "bytes": 49819,
