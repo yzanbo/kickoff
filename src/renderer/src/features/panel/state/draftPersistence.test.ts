@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
-import { beforeEach, test } from "vitest";
+import { test } from "vitest";
 import { installMemoryStorage } from "@/lib/memoryStorage";
 import { NEW_CHAT_DRAFTS } from "@/lib/storageKeys";
 import { moveDraftsToChatPanels, readSavedDrafts, writeDrafts, type DraftTab } from "./draftPersistence";
 import type { PanelTab } from "@/features/panel/usePanel";
 
 const { local } = installMemoryStorage();
-beforeEach(() => local.clear());
 
 const draft = (key: string, text?: string): PanelTab => ({ key, kind: "new", projectId: 1, group: 2, groupName: "実装", draftText: text });
 

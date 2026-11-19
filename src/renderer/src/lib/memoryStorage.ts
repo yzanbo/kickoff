@@ -1,4 +1,6 @@
-// Map で代わりにする Web Storage（テストからだけ使う。Node には使える localStorage・sessionStorage がない）
+// Map で代わりにする Web Storage（テストからだけ使う。Node には使える localStorage・sessionStorage がない）。テストの保存の後片付けは 2 つ:
+// - installMemoryStorage の beforeEach が、自分の置いた Storage をテストごとに空にする（テストのファイルで clear() を重ねない）
+// - vitest.setup.ts の beforeEach が、installMemoryStorage を通さずに vi.stubGlobal で置いた Storage を空にする（守り）
 import { beforeEach, vi } from "vitest";
 
 class MemoryStorage implements Storage {

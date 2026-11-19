@@ -12,7 +12,6 @@ import { currentDrafts, discardDraft, setDraftGroup } from "./panelDrafts";
 import { panelStateOf, takePanels } from "./panelStore";
 
 const { local } = installMemoryStorage();
-beforeEach(() => local.clear());
 
 // 閉じたターミナルのシェルを止めたか（コアの DELETE /api/terminals/:key の代わり）
 const closedShells: string[] = [];

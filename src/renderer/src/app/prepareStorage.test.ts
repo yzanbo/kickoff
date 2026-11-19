@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, test, vi } from "vitest";
+import { test, vi } from "vitest";
 import { installMemoryStorage } from "@/lib/memoryStorage";
 import { readSetting } from "@/lib/storage";
 import { DATABASE_ID } from "@/lib/storageKeys";
@@ -28,11 +28,6 @@ function serveStatus(databaseId: string | null, gate: Promise<void> = Promise.re
     return new Response(JSON.stringify({ database_id: databaseId }), { status: 200, headers: { "content-type": "application/json" } });
   }) as typeof fetch);
 }
-
-beforeEach(() => {
-  local.clear();
-  session.clear();
-});
 
 test("adoptDatabase: 覚えている DB の ID と違えば（初めての起動も）ID を含む表示の設定を捨て、新しい ID を覚える。同じなら何もしない", () => {
   rememberSome();

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, test } from "vitest";
+import { test } from "vitest";
 import { activeTabOf, leavesOf, singlePane, type PaneLayout } from "@/features/panel/layout/paneTree";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { installMemoryStorage } from "@/lib/memoryStorage";
@@ -7,7 +7,6 @@ import { projectBrowserSession } from "@/lib/storageKeys";
 import { readBrowserSession, writeBrowserSession } from "./browserSession";
 
 const { local } = installMemoryStorage();
-beforeEach(() => local.clear());
 
 const first = { kind: "browser", key: "browser:first", url: "https://example.test/first", title: "最初" } as const;
 const second = { kind: "browser", key: "browser:second", url: "https://example.test/second", title: "2 つ目" } as const;

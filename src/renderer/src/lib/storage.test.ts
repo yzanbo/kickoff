@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { beforeEach, test } from "vitest";
+import { test } from "vitest";
 import { installMemoryStorage } from "./memoryStorage";
 import {
   choice,
@@ -22,10 +22,6 @@ import {
 } from "./storage";
 
 const { local, session } = installMemoryStorage();
-beforeEach(() => {
-  local.clear();
-  session.clear();
-});
 
 // このファイルだけの宣言（宣言は起動のたびに 1 回。テストごとに作り直さない）
 const OPEN = defineSetting("kickoff:t-open", flag(true, ["open", "closed"]));
