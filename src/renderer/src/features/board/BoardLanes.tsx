@@ -26,7 +26,7 @@ import { RowBudgetScope, useRowBudgets } from "@/hooks/useProgressiveRows";
  */
 export type BoardLane = SettingValue<typeof PROJECT_BOARD_LANES>;
 
-export const BOARD_LANE_LABELS: Record<BoardLane, string> = {
+const BOARD_LANE_LABELS: Record<BoardLane, string> = {
   group: "グループ",
   worktree: "作業場所（ブランチ）",
   project: "プロジェクト",

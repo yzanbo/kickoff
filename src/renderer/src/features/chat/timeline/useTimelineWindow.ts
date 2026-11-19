@@ -2,7 +2,6 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useLatest } from "@/hooks/useLatest";
 import { useRowWindow, type RowLayoutContext, type RowWindow } from "@/hooks/useRowWindow";
 import { estimateItem, estimateKind, estimateRaw, nextCorrection, type EstimateContext } from "./rowEstimate";
-import { noteEstimateItems } from "./estimateReport";
 import { itemIndexOfEvent } from "./timelineWindow";
 import type { TimelineItem } from "./timelineItems";
 import type { TimelineScroll } from "./timelineScroll";
@@ -52,13 +51,7 @@ export function useTimelineWindow({
 }) {
   const view = timelineView(chatId);
   // 見積もり（種類ごとの補正は見え方の店に置き、測るたびに進める）
-  const estimate = useCallback(
-    (item: TimelineItem, layout: RowLayoutContext) => {
-      if (import.meta.env.DEV) noteEstimateItems(chatId, items, layout.width, layout.scale);
-      return estimateItem(item, contextOf(view, layout));
-    },
-    [view, chatId, items],
-  );
+  const estimate = useCallback((item: TimelineItem, layout: RowLayoutContext) => estimateItem(item, contextOf(view, layout)), [view]);
   const onMeasured = useCallback(
     (item: TimelineItem, height: number, layout: RowLayoutContext) => {
       const kind = estimateKind(item);

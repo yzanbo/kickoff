@@ -122,7 +122,7 @@ export interface WorkplaceRef {
  * 作業場所が移った理由: 利用者が移した / AI が移した（操作ツール）/ ワークツリーを片付けて本体に戻った / 別のプロジェクトへ移した /
  * プロジェクトのフォルダを変えた（G1）
  */
-export const WORKPLACE_MOVE_REASONS = ["user", "ai", "worktree_finished", "project_moved", "folder_moved"] as const;
+const WORKPLACE_MOVE_REASONS = ["user", "ai", "worktree_finished", "project_moved", "folder_moved"] as const;
 export type WorkplaceMoveReason = (typeof WORKPLACE_MOVE_REASONS)[number];
 
 /** 子チャットから親チャットへの渡し方: 親の入力欄に入れる（送るのは自分で）/ 今すぐ送る（作業中ならいまの作業に伝える）/ 親の送信待ちの最後に足す */

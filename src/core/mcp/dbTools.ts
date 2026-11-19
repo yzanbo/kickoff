@@ -5,7 +5,7 @@ import type { DbAiTools } from "../databases/aiTools.js";
 import type { ProviderCallbacks } from "../providers/types.js";
 
 /** プロジェクトの DB を AI が読むツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_db__db_…） */
-export const DB_SERVER = "kickoff_db";
+const DB_SERVER = "kickoff_db";
 
 const TOOLS = ["db_connections", "db_objects", "db_describe", "db_query"] as const;
 

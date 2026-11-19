@@ -3,12 +3,12 @@ import { sidebarOrder } from "@/features/project/projectOrder";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 
 /** 右の欄に開ける、プロジェクトのタブと同じ画面（ファイル・検索・履歴。変更は右の欄向けの「変更」のタブ） */
-export const PROJECT_VIEWS = ["files", "search", "history"] as const;
+const PROJECT_VIEWS = ["files", "search", "history"] as const;
 export type ProjectView = (typeof PROJECT_VIEWS)[number];
 export const PROJECT_VIEW_LABELS: Record<ProjectView, string> = { files: "ファイル", search: "検索", history: "履歴" };
 
 /** チャットの画面の右の欄に開ける、プロジェクトのタブと同じ画面のうち、欄に 1 つだけ開くもの（GitHub と同じ形。CI・Docker・ゴミ箱） */
-export const PROJECT_TOOLS = ["ci", "docker", "trash"] as const;
+const PROJECT_TOOLS = ["ci", "docker", "trash"] as const;
 export type ProjectTool = (typeof PROJECT_TOOLS)[number];
 
 /** 新しいチャットを始めるときの指定（どのプロジェクト・グループで始めるか） */

@@ -10,9 +10,9 @@ import { Invalid } from "../http/errors.js";
 import { fetchRemoteImage, type FetchedImage, type ImageFetcher } from "./fetchImage.js";
 
 /** 1 枚の上限 */
-export const REMOTE_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
+const REMOTE_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
 /** 覚えておく画像の合計の上限（超えたら古いものから消す。消えたものは次に出すときに取り直す） */
-export const REMOTE_IMAGE_CACHE_MAX_BYTES = 1024 * 1024 * 1024;
+const REMOTE_IMAGE_CACHE_MAX_BYTES = 1024 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 20_000;
 const MAX_REDIRECTS = 3;
 

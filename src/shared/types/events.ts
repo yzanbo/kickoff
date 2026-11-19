@@ -90,8 +90,8 @@ export type BusEvent =
   | { type: "provider_login"; provider: ProviderId; status: ProviderLoginStatus; error: string | null };
 
 /** ブラウザでのログインの終わり方 */
-export const PROVIDER_LOGIN_STATUSES = ["completed", "failed", "cancelled"] as const;
-export type ProviderLoginStatus = (typeof PROVIDER_LOGIN_STATUSES)[number];
+const PROVIDER_LOGIN_STATUSES = ["completed", "failed", "cancelled"] as const;
+type ProviderLoginStatus = (typeof PROVIDER_LOGIN_STATUSES)[number];
 
 /** AI が開くときの場所（side = いちばん上の親チャットの画面の右の欄 / window = 別ウィンドウ） */
 export const OPEN_PLACES = ["side", "window"] as const;

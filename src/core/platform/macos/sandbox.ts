@@ -9,7 +9,7 @@ import type { AgentSandboxRules } from "../types.js";
  * 砂場の外で流すコマンド: Homebrew は入れる・上げるときに自分で sandbox-exec をかけるが、macOS は砂場の入れ子を許さず（sandbox_apply: Operation not permitted）、
  * Homebrew は既定の置き場では自分の砂場を切らない（HOMEBREW_AVOID_NESTED_SANDBOXING は既定の置き場では断る）。消す・更新するは砂場の中で動く
  */
-export const MACOS_UNSANDBOXED_COMMANDS = ["brew install:*", "brew upgrade:*", "brew reinstall:*"];
+const MACOS_UNSANDBOXED_COMMANDS = ["brew install:*", "brew upgrade:*", "brew reinstall:*"];
 
 /** コマンドの 1 行目（失敗・なければ null） */
 async function firstLine(names: string[], args: string[]): Promise<string | null> {

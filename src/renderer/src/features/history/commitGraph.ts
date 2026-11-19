@@ -1,5 +1,5 @@
 /** グラフの線の 1 本（行の上半分・下半分。from の列から to の列へ） */
-export interface GraphEdge {
+interface GraphEdge {
   from: number;
   to: number;
   /** 線の色の番号（ブランチごと） */

@@ -10,7 +10,7 @@ import { openSideBrowser } from "@/features/panel/state/openBrowserTab";
 const TITLE = "外部リンクを開く";
 
 /** 確認の画面の本文（行き先の URL と、当たった警告。国際化ドメイン名は実際の表記を添える） */
-export function linkConfirmMessage(href: string, text: string): string {
+function linkConfirmMessage(href: string, text: string): string {
   const url = webUrlOf(href);
   const warnings = linkWarnings(href, text);
   const lines = ["Kickoff の外のサイトを開きます:", href];

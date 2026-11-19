@@ -2,7 +2,7 @@
 import type { ErCardinality } from "@shared/database/erDiagram";
 import { ER_HEAD_HEIGHT, ER_PAD, ER_ROW_HEIGHT } from "./erBox";
 
-export interface ErSvgColumn {
+interface ErSvgColumn {
   name: string;
   type: string;
   primaryKey: boolean;

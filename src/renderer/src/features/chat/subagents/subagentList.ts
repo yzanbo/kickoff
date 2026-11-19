@@ -16,7 +16,7 @@ const SUBAGENT_DETAIL_LABELS: Record<SubagentDetail, string> = {
 };
 
 /** 状態の文（細かい様子があればその文、なければ 5 つの状態の文） */
-export function subagentStateText({ state, detail }: SubagentState): string {
+function subagentStateText({ state, detail }: SubagentState): string {
   return detail ? SUBAGENT_DETAIL_LABELS[detail] : SUBAGENT_STATE_LABELS[state];
 }
 

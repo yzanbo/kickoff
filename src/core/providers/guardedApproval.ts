@@ -21,7 +21,7 @@ export type ApprovalOutcome = { allow: true; forSession?: boolean } | { allow: f
 export const PLAN_MODE_DECLINED = "計画モードなので、ファイルの変更・コマンドの実行はしません。計画だけを書いてください";
 
 /** 利用者が承認カードで断ったときの文 */
-export const userDenied = (words: string | undefined) => (words ? `利用者が拒否しました（利用者の言葉: ${words}）` : "利用者が拒否しました");
+const userDenied = (words: string | undefined) => (words ? `利用者が拒否しました（利用者の言葉: ${words}）` : "利用者が拒否しました");
 
 /** 承認カードを出して答えを待つ（止めたら断ったことにする） */
 export function askApproval(ctx: ApprovalContext, request: ApprovalRequest): Promise<ApprovalDecision> {
@@ -29,10 +29,10 @@ export function askApproval(ctx: ApprovalContext, request: ApprovalRequest): Pro
 }
 
 export const isAllowed = (d: ApprovalDecision) => d.action === "allow" || d.action === "allow_always";
-export const wordsOf = (d: ApprovalDecision) => (d.action === "deny" ? d.message || undefined : undefined);
+const wordsOf = (d: ApprovalDecision) => (d.action === "deny" ? d.message || undefined : undefined);
 
 /** 守りが聞くと言ったときのカード（権限モードによらず聞く）。「このチャットでは許可」なら書く先を覚える */
-export async function guardAskOutcome(
+async function guardAskOutcome(
   ctx: ApprovalContext,
   verdict: Extract<GuardVerdict, { kind: "ask" }>,
   toolName: string,

@@ -71,7 +71,7 @@ const archivedHead = (scope: number | undefined): BucketHead => ({
 });
 
 /** その段で、チャットが入るまとまり（状態で分けるとき、columns にない列なら undefined） */
-export function levelHead(chat: Chat, by: BucketBy | undefined, ctx: BucketContext, columns: readonly BoardColumn[], scope: number | undefined, parent?: string): BucketHead | undefined {
+function levelHead(chat: Chat, by: BucketBy | undefined, ctx: BucketContext, columns: readonly BoardColumn[], scope: number | undefined, parent?: string): BucketHead | undefined {
   switch (by) {
     case undefined:
       return { key: keyAt("all", scope, parent), kind: "all", label: "", projectId: scope };

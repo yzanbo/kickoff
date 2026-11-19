@@ -5,7 +5,7 @@ import type { DbImportCandidate } from "./database";
 export type DockerContainerState = "created" | "running" | "paused" | "restarting" | "removing" | "exited" | "dead";
 
 /** サービスの行の印（画面の言葉は DOCKER_MARK_LABELS） */
-export const DOCKER_MARKS = ["running", "starting", "paused", "failed", "created", "stopped", "none"] as const;
+const DOCKER_MARKS = ["running", "starting", "paused", "failed", "created", "stopped", "none"] as const;
 export type DockerMark = (typeof DOCKER_MARKS)[number];
 export const DOCKER_MARK_LABELS: Record<DockerMark, string> = {
   running: "動いている",
@@ -179,7 +179,7 @@ export interface DockerCompose {
 }
 
 /** Docker のエンジンの様子 */
-export type DockerEngineState = "ok" | "missing" | "stopped";
+type DockerEngineState = "ok" | "missing" | "stopped";
 
 /** エンジンが止まっているときに出すボタン（context の名前から決める） */
 export type DockerEngineStarter = { kind: "open"; app: string; label: string } | { kind: "copy"; command: string } | null;

@@ -88,7 +88,7 @@ export function resolveFilePath(path: string, index: FileIndex): string | undefi
 }
 
 /** チップに出す文字（相対パスと行） */
-export function formatFileRef(ref: FileRef): string {
+function formatFileRef(ref: FileRef): string {
   return ref.line ? `${ref.path}:${ref.line}` : ref.path;
 }
 

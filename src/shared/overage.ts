@@ -8,7 +8,7 @@ import type { CodexCredits, ExtraUsage, PlanUsage } from "./types";
  * - off: 追加の使用枠がオフ（上限で止まり、課金されない）
  * - unknown: Claude から追加の使用枠の情報が返っていない
  */
-export const OVERAGE_STATES = ["in_use", "on", "off", "unknown"] as const;
+const OVERAGE_STATES = ["in_use", "on", "off", "unknown"] as const;
 export type OverageState = (typeof OVERAGE_STATES)[number];
 
 export const OVERAGE_STATE_LABELS: Record<OverageState, string> = {

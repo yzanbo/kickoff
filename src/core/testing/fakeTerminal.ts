@@ -1,7 +1,7 @@
 // テスト用の偽のシェル（node-pty の代わり）。書いたものを覚え、出力・終わりを手で起こせる
 import type { SpawnTerminal, TerminalProcess } from "../terminal/sessions.js";
 
-export interface FakeTerminal extends TerminalProcess {
+interface FakeTerminal extends TerminalProcess {
   file: string;
   args: string[];
   cwd: string;

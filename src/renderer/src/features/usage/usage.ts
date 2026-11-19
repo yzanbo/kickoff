@@ -59,9 +59,4 @@ export function accountLine(status: { account?: string; plan?: string }): string
   return [status.account, status.plan && `${planLabel(status.plan)} プラン`].filter(Boolean).join(" ・ ");
 }
 
-/** ログインしているアカウントの契約プラン（"Claude Max" など。分からなければ null） */
-export function planName(usage: PlanUsage | undefined): string | null {
-  return usage?.plan ? `${usage.provider_label} ${planLabel(usage.plan)}` : null;
-}
-
 export const FIVE_HOUR_IDLE = "Claude から 5 時間枠の情報が返っていません（枠が始まっていないか、今のプランに適用されていません）";

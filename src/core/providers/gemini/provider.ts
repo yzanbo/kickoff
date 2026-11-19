@@ -10,7 +10,7 @@ export const GEMINI_NEEDS_API_KEY = `${PROVIDER_LABELS.gemini} は API キーで
  * ACP の authenticate は `gemini-api-key`（agy 1.5.9 の初期化の答えで確かめた）。agy がキーを AI のコマンドの環境から外すかは、使い始める前に確かめる。
  * agy 1.5.9 は初期化の答えで http の MCP を受けると言わないので、AI の操作ツールは渡さない（acp/config.ts の mcpServersFor）
  */
-export const GEMINI_SPEC: AcpProviderSpec = {
+const GEMINI_SPEC: AcpProviderSpec = {
   id: "gemini",
   label: PROVIDER_LABELS.gemini,
   command: "agy",

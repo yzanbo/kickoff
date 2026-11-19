@@ -12,7 +12,7 @@ import { childrenOf, scopeOf, type SubagentTree } from "@/features/chat/subagent
 import { subagentStatusLabel } from "@/features/chat/subagents/subagentList";
 
 /** 行の種類（指示・返答・ツールのまとまり・サブエージェントの起動・その終わり・お知らせ・作業の終わり・中の手順が届かないもののいまの動き） */
-export type ActivityKind = "prompt" | "reply" | "tools" | "launch" | "end" | "note" | "turn" | "now";
+type ActivityKind = "prompt" | "reply" | "tools" | "launch" | "end" | "note" | "turn" | "now";
 
 /** 動きの 1 行（時刻・誰が・何を） */
 export interface ActivityRow {

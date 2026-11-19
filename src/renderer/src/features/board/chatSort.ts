@@ -22,7 +22,7 @@ export const CHAT_SORT_LABELS: Record<ChatSortKey, string> = {
   created: "作成日",
 };
 
-export type SortDir = "asc" | "desc";
+type SortDir = "asc" | "desc";
 
 export interface ChatSort {
   key: ChatSortKey;

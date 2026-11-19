@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent } from "react";
 import type { DbValue } from "@shared/types";
 
 /** 裏のタブの結果を合わせてこれだけ持つ（50MB ほど） */
-export const DB_BACKGROUND_RESULT_BYTES = 50 * 1024 * 1024;
+const DB_BACKGROUND_RESULT_BYTES = 50 * 1024 * 1024;
 
 /** 結果の行のおおよその大きさ（JS の文字は 2 バイト。数・真偽値・NULL は 8 バイト・セルごとに 16 バイトの入れ物。純粋な関数） */
 export function estimateRowsBytes(rows: DbValue[][]): number {

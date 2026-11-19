@@ -7,9 +7,9 @@ import { createLruMap } from "@/lib/lruMap";
  */
 
 /** 同時に読み込む枠の数（中から ready が届くまでを読み込み中と数える） */
-export const FRAME_LOAD_LIMIT = 4;
+const FRAME_LOAD_LIMIT = 4;
 /** ready が届かないとき（読み込みの失敗など）に、読み込み中と数えるのをやめるまでの時間 */
-export const FRAME_LOAD_TIMEOUT_MS = 10_000;
+const FRAME_LOAD_TIMEOUT_MS = 10_000;
 
 export interface Slots {
   /** 空きができたら onGrant を呼ぶ（空いていればすぐ）。返す関数で、もらった空きを返す・待つのをやめる（何度呼んでもよい） */

@@ -18,7 +18,7 @@ import { ChatRowList } from "./ChatRowList";
  * （グループの中の「アーカイブ済み」へ、ほかのグループのチャットを落としたとき。null = グループから外す / undefined = 変えない）。
  * もうアーカイブ済みなら、移すだけ
  */
-export async function archiveDroppedChat(chat: Chat, groupId?: number | null) {
+async function archiveDroppedChat(chat: Chat, groupId?: number | null) {
   try {
     if (!chat.archived_at && !(await toggleArchiveChat(chat))) return;
     if (groupId !== undefined && chat.group_id !== groupId) await api.setChatGroup(chat.id, groupId);

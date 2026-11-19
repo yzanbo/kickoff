@@ -17,7 +17,7 @@ export interface PaneLeaf {
 }
 
 /** 分割: 子の並びと、子ごとの大きさの割合（足すと 1） */
-export interface PaneSplit {
+interface PaneSplit {
   type: "split";
   dir: SplitDir;
   children: PaneNode[];

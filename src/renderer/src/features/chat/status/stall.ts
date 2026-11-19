@@ -10,7 +10,7 @@ export const STALL_MS = 10 * 60_000;
 const QUIET_MS = 60_000;
 
 /** 最後に動いてからの時間（ミリ秒。時刻がなければ 0） */
-export function silentMs(lastAt: string | undefined, now = Date.now()): number {
+function silentMs(lastAt: string | undefined, now = Date.now()): number {
   return lastAt ? Math.max(0, now - new Date(lastAt).getTime()) : 0;
 }
 

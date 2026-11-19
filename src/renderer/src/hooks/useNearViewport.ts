@@ -69,7 +69,7 @@ export function watchViewport(el: Element, margin: number, onChange: (near: bool
 }
 
 /** 重いもの（Mermaid の図・AI が描いた図・コードの色付け）を描き始める距離（画面の手前） */
-export const NEAR_MARGIN_PX = 1200;
+const NEAR_MARGIN_PX = 1200;
 
 /**
  * 返した ref を付けた要素が、スクロールする枠の見えている所の手前 margin（既定 1200px）まで来たか。一度来たら true のまま

@@ -27,7 +27,7 @@ export interface CoreInit {
 }
 
 /** コアの起動の各段階（epoch ms） */
-export interface CoreTimings {
+interface CoreTimings {
   processStart: number;
   modulesLoaded: number;
   dbOpened: number;

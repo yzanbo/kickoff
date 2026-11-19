@@ -8,7 +8,7 @@ export type ComposeHosts = Map<string, number | null>;
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
 /** イメージの名前から DB の種類（postgres・postgis・timescaledb・mysql・mariadb。bitnami なども） */
-export function composeEngine(image: string): DbEngine | null {
+function composeEngine(image: string): DbEngine | null {
   const name = image.toLowerCase().split("@")[0].split(":")[0];
   if (/postgres|postgis|timescale/.test(name)) return "postgres";
   if (/mysql|mariadb/.test(name)) return "mysql";

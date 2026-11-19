@@ -42,7 +42,7 @@ import type { AiSandboxDiagnostics } from "../chat/sandboxDiagnostics.js";
 import { AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL } from "@shared/chat/aiSandboxDiagnostics";
 
 /** Kickoff のチャットを AI が操作するツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_chat__…） */
-export const CHAT_SERVER = "kickoff_chat";
+const CHAT_SERVER = "kickoff_chat";
 
 /** 1 回の実行に渡すチャットのツールの中身（チャットを作るのは設定と世代で、ターミナルはメインプロセスがないと渡さないことがある。ほかはどのチャットにも渡す） */
 export interface ChatTools {

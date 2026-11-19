@@ -1,7 +1,7 @@
 // ポートを使っているプロセス（Kickoff のプロジェクトのフォルダで動いていて、TCP のポートを待っているもの。メモの仕様書「ポートを使っているプロセス」）
 
 /** 起動元（親をたどって決める） */
-export const PORT_ORIGINS = ["kickoff", "detached", "other"] as const;
+const PORT_ORIGINS = ["kickoff", "detached", "other"] as const;
 export type PortOrigin = (typeof PORT_ORIGINS)[number];
 export const PORT_ORIGIN_LABELS: Record<PortOrigin, string> = {
   kickoff: "Kickoff の中",

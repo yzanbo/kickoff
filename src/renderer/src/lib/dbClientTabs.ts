@@ -39,7 +39,7 @@ export interface DbErTab {
 }
 
 /** 接続の手順メモのタブ（メモ 1 つに 1 つ。いくつもの接続で同じメモを使えるので、connection_id は開いた接続） */
-export interface DbMemoTab {
+interface DbMemoTab {
   key: string;
   kind: "memo";
   connection_id: number;
@@ -133,7 +133,6 @@ export function pinDbTab(state: DbClientTabs, key: string): DbClientTabs {
   const found = state.tabs.find((t) => t.key === key);
   if (!found || found.kind !== "table" || !found.preview) return state;
   const { preview: _drop, ...pinned } = found;
-  void _drop;
   return { ...state, tabs: state.tabs.map((t) => (t === found ? pinned : t)) };
 }
 
@@ -146,7 +145,6 @@ export function setTableFilter(state: DbClientTabs, key: string, filter: DbRowFi
       if (t.key !== key || t.kind !== "table") return t;
       if (filter) return { ...t, filter };
       const { filter: _drop, ...rest } = t;
-      void _drop;
       return rest;
     }),
   };

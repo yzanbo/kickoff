@@ -1,11 +1,11 @@
 // AI を替えたときに渡す会話の範囲。元の文を切り詰めず、本文と参照先を作る処理から分けておく。
 import type { ChatEvent, ChatEventOf } from "@shared/types";
 
-export const HANDOFF_MAX_TURNS = 10;
+const HANDOFF_MAX_TURNS = 10;
 export const HANDOFF_MAX_CHARS = 20_000;
 
 type Message = ChatEventOf<"user"> | ChatEventOf<"text">;
-export type HandoffEntry =
+type HandoffEntry =
   | { kind: "message"; event: Message }
   | { kind: "long_message"; event: Message };
 

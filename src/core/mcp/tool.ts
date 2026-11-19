@@ -2,7 +2,7 @@
 import type { z } from "zod";
 
 /** ツールの結果の中身（文か画像） */
-export type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
+type ToolContent = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
 
 /** ツールの結果（MCP の CallToolResult と同じ形） */
 export interface ToolResult {

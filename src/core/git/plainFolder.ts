@@ -9,7 +9,7 @@ import { gitOutput } from "./exec.js";
  * Git で管理していないフォルダでも、いつも除いて扱うもの（.gitignore がないことが多いので、
  * 中身の多い依存のフォルダと Finder の印を、無視しているものとして扱う）
  */
-export const PLAIN_EXCLUDES = ["node_modules/", ".DS_Store"];
+const PLAIN_EXCLUDES = ["node_modules/", ".DS_Store"];
 
 /** 空の git の保存場所（一覧を取るときだけ使う。フォルダの中には何も作らない）。プロセスで 1 つ作って使い回す */
 let emptyGitDir: Promise<string> | null = null;

@@ -118,7 +118,7 @@ function resultText(call: ToolCall): string {
 const waitsForDiff = (call: ToolCall) => (call.kind === "edit" || call.kind === "delete") && !(call.content ?? []).some((c) => c.type === "diff") && call.status !== "completed" && call.status !== "failed";
 
 /** ツールの呼び出しが届いた・変わった */
-export function toolUpdate(update: ToolCall, cb: ProviderCallbacks, state: UpdateState): void {
+function toolUpdate(update: ToolCall, cb: ProviderCallbacks, state: UpdateState): void {
   flushText(cb, state);
   const entry = state.tools.get(update.toolCallId) ?? { call: { toolCallId: update.toolCallId }, emitted: false, done: false };
   const defined = Object.fromEntries(Object.entries(update).filter(([, v]) => v !== undefined && v !== null)) as Partial<ToolCall>;

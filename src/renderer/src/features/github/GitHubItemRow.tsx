@@ -25,7 +25,7 @@ const CHECKS_TEXT: Record<GitHubChecksState, string> = { success: "チェック�
 const CHECKS_ICON = { success: Check, failure: X, pending: CircleDashed };
 
 /** CI の成否の印（PR の一覧・中身） */
-export function GitHubChecksMark({ state }: { state: GitHubChecksState | null }) {
+function GitHubChecksMark({ state }: { state: GitHubChecksState | null }) {
   if (!state) return null;
   const Icon = CHECKS_ICON[state];
   return <Icon size={13} className={`github-checks github-checks-${state}`} aria-label={CHECKS_TEXT[state]} data-tip={CHECKS_TEXT[state]} />;

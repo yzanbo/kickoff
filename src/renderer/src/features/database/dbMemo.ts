@@ -48,7 +48,7 @@ export async function createDbMemoFile(projectId: number, c: Pick<DbConnection, 
 }
 
 /** 接続の手順メモを選び直す（null で外す）。結んだパスを返す */
-export async function linkConnectionMemo(projectId: number, c: DbConnection, path: string | null): Promise<string | null> {
+async function linkConnectionMemo(projectId: number, c: DbConnection, path: string | null): Promise<string | null> {
   try {
     await api.updateDbConnection(projectId, c.id, { memo_path: path });
     dbConnectionsStore.invalidate(projectId);

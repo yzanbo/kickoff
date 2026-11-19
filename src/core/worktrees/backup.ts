@@ -8,7 +8,7 @@ import path from "node:path";
 import { gitOutput } from "../git/exec.js";
 
 /** 控えの参照の頭（ゴミ箱の ID ごとに、ブランチの先 branch と途中の変更 changes） */
-export const TRASH_REF_PREFIX = "refs/kickoff/trash";
+const TRASH_REF_PREFIX = "refs/kickoff/trash";
 
 /** ゴミ箱の ID の控えの参照 */
 export const trashRef = (id: string, part: "branch" | "changes") => `${TRASH_REF_PREFIX}/${id}/${part}`;

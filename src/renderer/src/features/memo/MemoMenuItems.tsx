@@ -8,7 +8,7 @@ import { addToMemo, MEMO_ADD_MODE_LABELS, type MemoAddMode } from "./addToMemo";
 import { baseName, parentOf, recentMemos } from "./memoPaths";
 
 /** 「既存のメモに追記 ▸」「既存のメモに AI で組み込んで書き直す ▸」・入力欄の上のメモの一覧に並べる数（最近変えた順） */
-export const RECENT_MEMOS = 12;
+const RECENT_MEMOS = 12;
 
 /** 入れ方ごとのアイコン */
 const MEMO_ADD_MODE_ICONS: Record<MemoAddMode, LucideIcon> = { new: FilePlus, summarize: Sparkles, append: NotebookPen, merge: WandSparkles };

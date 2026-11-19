@@ -123,6 +123,6 @@ export async function readLog(cli: DockerCli, args: string[]): Promise<DockerLog
 }
 
 /** 時刻の順に並べる（同じ時刻・時刻のない行は受け取った順のまま） */
-export function sortLines(lines: DockerLogLine[]): DockerLogLine[] {
+function sortLines(lines: DockerLogLine[]): DockerLogLine[] {
   return lines.map((l, i) => ({ l, i })).sort((a, b) => (a.l.ts && b.l.ts && a.l.ts !== b.l.ts ? (a.l.ts < b.l.ts ? -1 : 1) : a.i - b.i)).map((x) => x.l);
 }

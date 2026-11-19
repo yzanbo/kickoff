@@ -16,7 +16,7 @@ const subscribe = (listener: () => void) => {
 };
 
 /** そのプロジェクトの右サイドバーで開くよう頼む（前の頼みは置き換える） */
-export function requestSideOpen(projectId: number, request: SideOpenRequest): void {
+function requestSideOpen(projectId: number, request: SideOpenRequest): void {
   requests.set(projectId, request);
   emit();
 }

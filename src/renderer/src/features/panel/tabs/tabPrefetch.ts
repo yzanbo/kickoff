@@ -3,7 +3,7 @@
 // 隣のタブを手すきのときに読んでおけば、切り替えたときに読み込みを待たない（頼むのは useTabPrefetch.ts）
 
 /** 先読みするタブの数（パネル全体で） */
-export const TAB_PREFETCH_LIMIT = 5;
+const TAB_PREFETCH_LIMIT = 5;
 
 /** ペインのタブの並びと表のタブ */
 export interface PaneTabs {

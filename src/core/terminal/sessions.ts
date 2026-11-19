@@ -11,7 +11,7 @@ import { TerminalOutput } from "./output.js";
 import { shellPathSettled } from "../system/exec.js";
 
 /** シェルにつないでいる人（出力と終わりを受け取る） */
-export interface TerminalClient {
+interface TerminalClient {
   id: string;
   data(data: string): void;
   exit(exitCode: number): void;
@@ -81,7 +81,7 @@ interface SessionsOptions {
 }
 
 /** 桁数・行数を、シェルが扱える範囲に丸める */
-export const clampSize = (n: number) => Math.max(2, Math.min(1000, Math.floor(n)));
+const clampSize = (n: number) => Math.max(2, Math.min(1000, Math.floor(n)));
 
 function isDirectory(p: string): boolean {
   try {
@@ -194,11 +194,6 @@ export class TerminalSessions implements TerminalControl {
   /** その持ち主のシェルをすべて止める（この Mac の画面を読み直した・閉じた。タブの記録は画面と一緒に消えるので、残すと止められなくなる） */
   closeOwnedBy(owner: string): void {
     for (const [key, session] of this.sessions) if (session.owner === owner) this.close(key);
-  }
-
-  /** その人を、つないでいるシェルすべてから外す */
-  detachEverywhere(clientId: string): void {
-    for (const session of this.sessions.values()) session.clients.delete(clientId);
   }
 
   /** コアを閉じるとき */

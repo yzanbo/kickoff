@@ -9,9 +9,9 @@ export const STALL_TICK_MS = 200;
 /** これを超えてタイマーが遅れたら記録する（ms） */
 export const STALL_MS = 500;
 /** 名前を覚える下限（ms）。これ以下の処理は名前の文字列も作らない */
-export const LABEL_MIN_MS = 20;
+const LABEL_MIN_MS = 20;
 /** 同じ処理の詰まりを 1 行にまとめる長さ（ms） */
-export const STALL_REPEAT_MS = 10_000;
+const STALL_REPEAT_MS = 10_000;
 
 export type StallProcess = "main" | "core";
 

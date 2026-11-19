@@ -8,7 +8,7 @@ import type { BootRecord } from "./bootTimeline.js";
 // ログの場所の stalls.jsonl（案 12）と boot.jsonl（案 18c）を、回した 1 世代（.1）も含めて読んで集める。Electron に依らない
 
 /** 詰まりを数える長さ（最近 24 時間） */
-export const STALL_WINDOW_MS = 24 * 60 * 60 * 1000;
+const STALL_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /** 1 行 1 件の JSON を読む（書きかけ・壊れた行は飛ばす） */
 export function parseJsonl(text: string): unknown[] {

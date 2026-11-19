@@ -6,7 +6,7 @@ import { formatSnapshot, formatTab, formatTabs, normalizeBrowserUrl } from "../b
 import { turnReveal } from "./browserReveal.js";
 
 /** Kickoff の埋め込みブラウザのツールをまとめた MCP サーバーの名前（ツールの名前は mcp__kickoff_browser__browser_…） */
-export const BROWSER_SERVER = "kickoff_browser";
+const BROWSER_SERVER = "kickoff_browser";
 
 /** 見るだけのツール（権限モードにかかわらず聞かずに使わせる。開く・押す・打つ・JS は、ほかのツールと同じく権限モードと承認に従う） */
 const READ_TOOLS = ["browser_tabs", "browser_read", "browser_screenshot", "browser_scroll", "browser_console"] as const;

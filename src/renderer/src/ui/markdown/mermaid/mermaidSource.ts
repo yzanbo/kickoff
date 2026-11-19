@@ -13,9 +13,3 @@ export function codeBlockOf(pre: Element | undefined): { language: string; text:
   const languageClass = Array.isArray(classes) ? classes.map(String).find((c) => c.startsWith("language-")) : undefined;
   return { language: languageClass?.slice("language-".length).toLowerCase() ?? "", text: code.children.map(textOf).join("").replace(/\n$/, "") };
 }
-
-/** Markdown の ```mermaid のコードブロック（<pre><code class="language-mermaid">）なら、その中身を返す */
-export function mermaidSource(pre: Element | undefined): string | undefined {
-  const block = codeBlockOf(pre);
-  return block?.language === "mermaid" ? block.text : undefined;
-}

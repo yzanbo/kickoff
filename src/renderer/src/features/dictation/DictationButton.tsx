@@ -8,7 +8,7 @@ import { useDictationMenu } from "./DictationMenu";
 import type { Dictation } from "./useDictation";
 
 /** 音声入力のショートカット（チャット欄にピントがあるときだけ） */
-export const DICTATION_SHORTCUT = "⌘⇧Space";
+const DICTATION_SHORTCUT = "⌘⇧Space";
 
 /** 録音の経過時間（m:ss。録音している間だけ 0.5 秒ごとに描き直す） */
 function RecordingTime({ startedAt }: { startedAt: number }) {

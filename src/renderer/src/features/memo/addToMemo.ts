@@ -54,7 +54,7 @@ export const MEMO_ADD_MODE_LABELS: Record<MemoAddMode, string> = {
 };
 
 /** 既存のメモを選んでから足す入れ方か */
-export const needsTargetMemo = (mode: MemoAddMode) => mode === "append" || mode === "merge";
+const needsTargetMemo = (mode: MemoAddMode) => mode === "append" || mode === "merge";
 
 /** 入れ方ごとの、している間と終わったあとの文 */
 const MODE_TEXTS: Record<MemoAddMode, { busy: string; done: (name: string) => string; failed: string }> = {

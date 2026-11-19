@@ -80,7 +80,7 @@ export interface ChatProgressView {
 export type Channel = "detail" | "log" | "progress" | "streaming";
 export type Published = Exclude<Channel, "streaming">;
 
-export interface StreamState {
+interface StreamState {
   gen: number;
   /** いまの世代の文（当てた分） */
   text: string;

@@ -42,7 +42,7 @@ export interface AcpTurnDeps {
 
 const CLIENT_INFO = { name: "kickoff", title: "Kickoff", version: "0.1.0" };
 /** Kickoff はファイルの読み書き・端末をエージェントに貸さない（エージェントが自分のツールで行い、権限の頼みで守りを当てる） */
-export const CLIENT_CAPABILITIES = { fs: { readTextFile: false, writeTextFile: false }, terminal: false };
+const CLIENT_CAPABILITIES = { fs: { readTextFile: false, writeTextFile: false }, terminal: false };
 
 /** エージェントを起動して initialize（と、要れば authenticate）まで済ませる */
 export async function openAgent(
@@ -66,7 +66,7 @@ export async function openAgent(
 }
 
 /** 指示の終わりの理由を Kickoff の結果にする */
-export function stopResult(stop: StopReason, sessionId: string, state: { lastText: string; usage: { used: number; size: number } | null; costUsd: number | undefined }): ProviderTurnResult {
+function stopResult(stop: StopReason, sessionId: string, state: { lastText: string; usage: { used: number; size: number } | null; costUsd: number | undefined }): ProviderTurnResult {
   const context = state.usage ? { context: { tokens: state.usage.used, window: state.usage.size } } : {};
   const cost = state.costUsd !== undefined ? { costUsd: state.costUsd } : {};
   if (stop === "cancelled") return { status: "cancelled", sessionId, ...context, ...cost };

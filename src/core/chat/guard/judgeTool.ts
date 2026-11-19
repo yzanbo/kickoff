@@ -20,12 +20,10 @@ export type GuardVerdict =
   | { kind: "deny"; reason: string }
   | { kind: "ask"; title: string; description: string; deniedReason: string; /** 「このチャットでは許可」で覚える書く先（書き込み先の守りのときだけ） */ rememberTarget?: string };
 
-/** 判定に使うもの（実行に渡されたものと、CLI ごとの書ける場所の例外） */
+/** 判定に使うもの（実行に渡されたもの） */
 export interface GuardContext {
   params: Pick<ProviderTurnParams, "cwd" | "readOnlyPaths" | "untrackedOnly" | "hiddenDb" | "deleteGuard" | "dockerGuard" | "writeScope">;
   self?: SelfInfo;
-  /** CLI の決まりの例外で、いつも書けるフォルダ（Claude Code の計画のフォルダなど。なければ空） */
-  extraWritableDirs?: string[];
 }
 
 type Decision = { decision: "pass" } | { decision: "deny"; reason: string };
@@ -72,7 +70,7 @@ export async function judgeWritePath(ctx: GuardContext, filePath: string): Promi
   if (target === null || scope.allowed.has(target)) return { kind: "pass" };
   const judged = await judgeFileWrite(target, {
     workdir: realPathOrSelf(params.cwd),
-    writableDirs: [...scope.writableDirs, ...(ctx.extraWritableDirs ?? [])],
+    writableDirs: scope.writableDirs,
     memoryParents: [],
     workplaces: scope.workplaces,
   });

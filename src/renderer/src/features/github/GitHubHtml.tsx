@@ -31,7 +31,7 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
  * GitHub が作った本文の HTML を無害にする（スクリプト・フォーム・埋め込み・style は落とす。GitHub の側でも無害にしてあるが、重ねて守る。
  * 相対の URL は place のホストのページに直し、リポジトリの中のファイルの画像はコアの口から読む）
  */
-export function sanitizeGitHubHtml(html: string, place: GitHubBodyPlace = { host: GITHUB_DEFAULT_HOST, repo: null, projectId: null }): string {
+function sanitizeGitHubHtml(html: string, place: GitHubBodyPlace = { host: GITHUB_DEFAULT_HOST, repo: null, projectId: null }): string {
   relativeOrigin = githubWebOrigin(place.host);
   imageSource = (url) => githubImageSource(place, url);
   try {

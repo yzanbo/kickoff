@@ -67,7 +67,7 @@ const chatPatchSchema = z
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
  * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
-export function chatRoutes(app: Hono, { store, bus, runner, approvals, databases, providers, worktreeEnvs, trashBin, userViews, worktreeFinisher, terminals }: ServerDeps) {
+export function chatRoutes(app: Hono, { store, bus, runner, approvals, worktreeEnvs, trashBin, userViews, worktreeFinisher, terminals }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
 
   // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）

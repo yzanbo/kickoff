@@ -14,7 +14,7 @@ export const DB_AI_VALUE_CHARS = 500;
 /** 結果の文全体の文字数の上限（超えたら行を落とす） */
 export const DB_AI_RESULT_CHARS = 30_000;
 /** db_objects で返すものの数の上限 */
-export const DB_AI_OBJECTS_MAX = 300;
+const DB_AI_OBJECTS_MAX = 300;
 
 /** AI に見せる接続の一覧（見せない接続は呼ぶ側で除く） */
 export function formatAiConnections(connections: DbConnection[]): string {

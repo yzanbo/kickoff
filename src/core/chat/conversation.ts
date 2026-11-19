@@ -20,7 +20,7 @@ export interface ConversationTurn {
 }
 
 /** 文の上限（1 つの発言・1 回の答え・返す文の全体） */
-export const CONVERSATION_LIMITS = { user: 4_000, reply: 4_000, total: 20_000 } as const;
+const CONVERSATION_LIMITS = { user: 4_000, reply: 4_000, total: 20_000 } as const;
 
 /** 長い文を頭から切る（切ったら印を付ける） */
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}…（${text.length - max} 文字を省きました）` : text);

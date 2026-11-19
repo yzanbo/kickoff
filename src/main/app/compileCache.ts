@@ -10,7 +10,7 @@ import path from "node:path";
 // メインプロセスの束には使わない（測って差が出なかった。分冊 4 の 5 章）
 
 /** 保存先の下のキャッシュのフォルダ */
-export const COMPILE_CACHE_DIR = "compile-cache";
+const COMPILE_CACHE_DIR = "compile-cache";
 
 /** 起動して古い版のフォルダを消すまで */
 const CLEAN_AFTER_MS = 30_000;

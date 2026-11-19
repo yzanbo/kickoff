@@ -44,7 +44,7 @@ export interface IndexContext {
 }
 
 /** R1: 丸ごと入れる種類 */
-export const INDEX_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>([
+const INDEX_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>([
   "user",
   "init",
   "result",
@@ -59,7 +59,7 @@ export const INDEX_TYPES: ReadonlySet<ChatEventType> = new Set<ChatEventType>([
 ]);
 
 /** R2: 呼び出しと結果を丸ごと入れるツール（サブエージェントの起動・報告・ToDo・図） */
-export const INDEX_TOOLS: ReadonlySet<string> = new Set([
+const INDEX_TOOLS: ReadonlySet<string> = new Set([
   "Agent",
   "SendMessage",
   "SubagentHandback",

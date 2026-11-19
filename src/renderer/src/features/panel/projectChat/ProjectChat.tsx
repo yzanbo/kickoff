@@ -62,7 +62,7 @@ export function SideBody({ projectId, frame }: { projectId: number; frame?: Pane
  * 欄ごと別ウィンドウへ移すボタンは置かない（利用者の依頼で隠した。タブは右クリック・ウィンドウの外へのドラッグで 1 つずつ別ウィンドウで開ける）。
  * frame: 横幅いっぱいの切り替え（メインのウィンドウだけ。別ウィンドウはウィンドウの大きさで決まるので渡さない）
  */
-export function ProjectChatPanel({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
+function ProjectChatPanel({ projectId, frame }: { projectId: number; frame?: PanelFrame }) {
   // ブラウザだけの欄（利用者の依頼）なので、新しいチャット・ターミナルの開く場所は渡さない
   const panel = usePanel({ surface: "side", scope: projectId, newChat: undefined, terminals: NO_TERMINALS });
   return <Panel panel={panel} frame={frame} />;

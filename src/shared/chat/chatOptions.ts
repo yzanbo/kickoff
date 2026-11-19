@@ -19,7 +19,7 @@ export function appChatDefaults(settings: AppSettings, provider: ProviderId): Ch
 }
 
 /** その AI のプロジェクトの既定（Claude Code はプロジェクトの chat_defaults、ほかの AI は provider_chat_defaults。書いていない項目はアプリの既定に従う） */
-export function projectChatDefaults(project: ProjectChatDefaults | undefined, provider: ProviderId): ChatOptionsPatch | undefined {
+function projectChatDefaults(project: ProjectChatDefaults | undefined, provider: ProviderId): ChatOptionsPatch | undefined {
   return provider === "claude" ? project?.chat_defaults : project?.provider_chat_defaults?.[provider];
 }
 

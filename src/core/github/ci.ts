@@ -14,11 +14,11 @@ import type { GitHubService } from "./service.js";
 import { failuresToNotify, parseRunLog, stepLogsOf, stripAnsi, toCiJob, toCiRun, toExternalChecks } from "./ciNormalize.js";
 
 /** 一覧の実行の数（新しいほうから） */
-export const CI_RUNS_PAGE = 50;
+const CI_RUNS_PAGE = 50;
 /** 外の CI を聞くブランチの数の上限（作業場所が多くても、聞きすぎない） */
 const EXTERNAL_BRANCHES_MAX = 8;
 /** 失敗を知らせるのは、終わってからこの間のものだけ（入れたときに、ずっと前の失敗をまとめて知らせない） */
-export const CI_NOTIFY_RECENT_MS = 24 * 3600_000;
+const CI_NOTIFY_RECENT_MS = 24 * 3600_000;
 
 interface CiServiceOptions {
   /** 作業場所の一覧（テストでは差し替える） */
@@ -181,7 +181,7 @@ export class CiService {
 }
 
 /** ログを出せない理由（gh の失敗の文から。純粋な関数） */
-export function logUnavailableReason(message: string): string {
+function logUnavailableReason(message: string): string {
   if (/in progress|still running|not completed/i.test(message)) return "実行中のため、ログは終わってから見られます";
   if (/expired|gone|HTTP 410|not found|HTTP 404/i.test(message)) return "GitHub にログが残っていません（保存の期間を過ぎたか、消されました）";
   return message;

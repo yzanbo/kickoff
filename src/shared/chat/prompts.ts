@@ -158,7 +158,7 @@ export const COMPACT_PROMPT_FIELDS = {
 type CompactPromptSource = Pick<AppSettings, "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled">;
 
 /** 設定またはプロジェクトの、送る指示（オフ・空なら null） */
-export function activeCompactPrompt(kind: CompactPromptKind, source: CompactPromptSource | undefined): string | null {
+function activeCompactPrompt(kind: CompactPromptKind, source: CompactPromptSource | undefined): string | null {
   const { text, enabled } = COMPACT_PROMPT_FIELDS[kind];
   return source?.[enabled] ? (source[text]?.trim() ?? null) || null : null;
 }

@@ -80,7 +80,7 @@ export const AGENT_STATE_LABELS: Record<AgentState, string> = {
 };
 
 /** チャットの状態（いまの作業、なければ最後の作業の終わり方）。承認・質問の回答待ちは状態に持たず、回答待ちの一覧から決める（shared/chat/state.ts の agentStateOf） */
-export const CHAT_STATUSES = ["running", "completed", "failed", "cancelled"] as const;
+const CHAT_STATUSES = ["running", "completed", "failed", "cancelled"] as const;
 export type ChatStatus = (typeof CHAT_STATUSES)[number];
 export interface Chat {
   id: number;

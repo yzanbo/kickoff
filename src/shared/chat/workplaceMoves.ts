@@ -42,7 +42,7 @@ export function isBeforeWorkplaceMove(events: readonly ChatEvent[], eventId: num
 }
 
 /** 区切りの一覧から、その記録のときの作業場所（後ろにある最初の区切りの「移す前」。区切りが後ろになければいまの作業場所） */
-export function workplaceAtBoundaries(boundaries: readonly WorkplaceBoundary[], eventId: number, current: WorkplacePlace): WorkplacePlace & { moved: boolean } {
+function workplaceAtBoundaries(boundaries: readonly WorkplaceBoundary[], eventId: number, current: WorkplacePlace): WorkplacePlace & { moved: boolean } {
   for (const b of boundaries) if (b.id > eventId) return { ...b.from, moved: true };
   return { ...current, moved: false };
 }

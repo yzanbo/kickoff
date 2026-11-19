@@ -7,7 +7,7 @@ import { BOOT_MARKS, type BootReport, type BootWindow, type RendererMemory } fro
  * メインプロセスの段階（起きる順）。core.* はコアのプロセスの段階（CoreReady.timings。プロセスの始まり・モジュールを読み終えた・DB を開いた・
  * 待ち受けを始めた）で、coreForked はメインがコアのプロセスを起動した時刻（メモの仕様書「0023_表示を軽くする」の案 16）
  */
-export const MAIN_STAGES = [
+const MAIN_STAGES = [
   "mainStart",
   "mainLoaded",
   "whenReady",

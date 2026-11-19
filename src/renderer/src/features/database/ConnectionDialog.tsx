@@ -92,7 +92,6 @@ export function ConnectionDialog({
     setTest("testing");
     // 手順メモ・次に確かめる日はつながるかに関係しないので送らない
     const { memo_path: _memo, check_on: _on, check_note: _note, ...body } = bodyOf(form, editing);
-    void [_memo, _on, _note];
     // 送る中身は try の外で組む（React Compiler は try の中の条件式を扱えない）
     const request = { ...body, ...(editing ? { connection_id: connection.id } : {}), password: form.clearPassword ? null : form.password || undefined };
     try {

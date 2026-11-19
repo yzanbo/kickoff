@@ -3,7 +3,7 @@
 import type { DbColumnInfo, DbEditValue, DbKeyValue, DbRowEdit, DbValue } from "@shared/types";
 
 /** 足す行（id は画面の中だけの番号） */
-export interface TableInsert {
+interface TableInsert {
   id: number;
   /** 入れた列だけ（ない列は DB の既定値） */
   values: Record<string, DbEditValue>;

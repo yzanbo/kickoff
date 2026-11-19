@@ -64,7 +64,7 @@ export const subagentTab = ({ chatId, agentKey, title, path }: { chatId: number;
 });
 
 /** 変更のタブのキー（作業場所ごとに、その欄に 1 つのタブ） */
-export const changesTabKey = (worktree: string | undefined) => `changes:${worktree ?? ""}`;
+const changesTabKey = (worktree: string | undefined) => `changes:${worktree ?? ""}`;
 
 /** 右の欄に開く変更のタブ（作業場所のコミットしていない変更。focus は移るファイル） */
 export const changesTab = ({ chatId, projectId, worktree, focus }: { chatId: number; projectId: number; worktree?: string; focus?: string }): TabOf<"changes"> => ({
@@ -77,7 +77,7 @@ export const changesTab = ({ chatId, projectId, worktree, focus }: { chatId: num
 });
 
 /** プロジェクトの画面（ファイル・検索・履歴）のタブのキー（種類ごとに、その欄に 1 つのタブ） */
-export const projectViewTabKey = (view: ProjectView) => `project-view:${view}`;
+const projectViewTabKey = (view: ProjectView) => `project-view:${view}`;
 
 /** 右の欄に開く、プロジェクトの「ファイル」「検索」「履歴」タブと同じ画面のタブ */
 export const projectViewTab = ({ chatId, projectId, worktree, view }: Omit<TabOf<"projectView">, "key" | "kind">): TabOf<"projectView"> => ({
@@ -90,7 +90,7 @@ export const projectViewTab = ({ chatId, projectId, worktree, view }: Omit<TabOf
 });
 
 /** ファイルのタブのキー（同じ作業場所の同じファイルは、その欄に 1 つのタブ） */
-export const fileTabKey = (worktree: string | undefined, path: string) => `file:${worktree ?? ""}:${path}`;
+const fileTabKey = (worktree: string | undefined, path: string) => `file:${worktree ?? ""}:${path}`;
 
 /** 右の欄に開くファイルのタブ（作業場所のファイルの中身。line は目立たせる行） */
 export const fileTab = ({ chatId, projectId, worktree, path, line }: Omit<TabOf<"file">, "key" | "kind">): TabOf<"file"> => ({
@@ -145,7 +145,7 @@ function projectToolKind<T extends { chatId: number; projectId: number } & Panel
 }
 
 /** 子チャットのタブのキー（同じ子チャットは、その欄に 1 つのタブ） */
-export const childTabKey = (childId: number) => `child:${childId}`;
+const childTabKey = (childId: number) => `child:${childId}`;
 
 /** 右の欄に開く子チャットのタブ */
 export const childTab = ({ chatId, childId, projectId, title }: Omit<TabOf<"child">, "key" | "kind">): TabOf<"child"> => ({
@@ -235,7 +235,7 @@ interface TabKindSpec<T extends PanelTab> {
   popout?: (tab: T, panel: string) => { route: PopoutRoute; title: string };
 }
 
-export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
+const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   chat: {
     icon: MessageSquare,
     iconClass: "muted",

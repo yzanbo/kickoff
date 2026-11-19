@@ -45,7 +45,7 @@ const splitList = (v: string | undefined, sep: string) =>
     .filter(Boolean);
 
 /** クエリ → 絞り込み（純粋な関数） */
-export function filterOfQuery(query: z.infer<typeof listQuery>): GitHubListFilter {
+function filterOfQuery(query: z.infer<typeof listQuery>): GitHubListFilter {
   return {
     kind: query.kind,
     state: query.state,

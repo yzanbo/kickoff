@@ -28,7 +28,7 @@ const isStandard = (file: string) => (STANDARD_COMPOSE_NAMES as readonly string[
 const rel = (dir: string, name: string) => (dir ? `${dir}/${name}` : name);
 
 /** 画面に返す形（アプリの URL を足す） */
-export function toApiEnv(env: StoredWorktreeEnv): WorktreeEnv {
+function toApiEnv(env: StoredWorktreeEnv): WorktreeEnv {
   const { path: _path, project_id: _project, ...rest } = env;
   return { ...rest, app_url: env.band !== null && env.host ? `http://${env.host}:${env.band}` : null };
 }

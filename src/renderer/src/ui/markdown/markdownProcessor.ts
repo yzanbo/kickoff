@@ -112,7 +112,7 @@ function post(tree: HastRoot, components: Components): ReactElement {
 }
 
 /** ブロックの覚えの上限（要素は hast の節を props に持つので、数と文の長さの両方で抑える） */
-export const BLOCK_CACHE_LIMITS = { count: 1000, chars: 500_000 };
+const BLOCK_CACHE_LIMITS = { count: 1000, chars: 500_000 };
 
 /** 描いたブロックの覚え（鍵は処理の組の番号と文） */
 export interface BlockCache {

@@ -1,7 +1,7 @@
 import type { BusInput } from "./streamingTexts.js";
 
 /** 書いている途中の返答（chat_delta）をまとめる間隔。画面の 1 フレームに合わせる（1 秒に最大 60 通） */
-export const DELTA_BATCH_MS = 16;
+const DELTA_BATCH_MS = 16;
 
 /** タイマーの口（テストでは `testing/fakeTimers.ts` に差し替える） */
 export interface DeltaTimers {

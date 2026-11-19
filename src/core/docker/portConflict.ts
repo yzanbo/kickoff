@@ -6,7 +6,7 @@ import { parsePorts } from "./parse.js";
 import type { ListeningSocket } from "../platform/types.js";
 
 /** Docker のエンジンのプロセスの名前（これらだけがポートを待っているなら、ぶつかりではない） */
-export const DOCKER_ENGINE_PROCESSES = ["OrbStack", "OrbStack Helper", "com.docker.backend", "com.docker.vpnkit", "vpnkit-bridge", "limactl", "gvproxy"] as const;
+const DOCKER_ENGINE_PROCESSES = ["OrbStack", "OrbStack Helper", "com.docker.backend", "com.docker.vpnkit", "vpnkit-bridge", "limactl", "gvproxy"] as const;
 
 /**
  * up の失敗の標準エラーから、ぶつかったポート（なければ null）。「Bind for 0.0.0.0:5432 failed: port is already allocated」（アドレスは決め打ちしない）と、

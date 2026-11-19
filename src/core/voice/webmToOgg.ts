@@ -163,7 +163,7 @@ function opusTags(): Uint8Array {
 }
 
 /** Opus の先頭の情報とパケットを、Ogg のファイルの中身にする */
-export function writeOggOpus({ head, packets }: OpusStream): Uint8Array {
+function writeOggOpus({ head, packets }: OpusStream): Uint8Array {
   const serial = 0x4b49434b; // "KICK"
   const pages = [oggPage([head], { flags: FIRST_PAGE, granule: 0, serial, sequence: 0 }), oggPage([opusTags()], { flags: 0, granule: 0, serial, sequence: 1 })];
   let granule = 0;

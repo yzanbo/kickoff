@@ -2,7 +2,7 @@
 import { worktreeSlotLabel, type WorktreeEnv } from "@shared/types";
 
 /** 消すときに一緒に消せる組の名前（Kickoff が割り当てたものだけ。本体と同じ組の名前のままなら空 = 選ばせない） */
-export const removableComposeNames = (env: WorktreeEnv | null): string[] => env?.compose_names.map((n) => n.name) ?? [];
+const removableComposeNames = (env: WorktreeEnv | null): string[] => env?.compose_names.map((n) => n.name) ?? [];
 
 /** 消す確認に添えるチェック（初めは選んだ状態） */
 interface RemovalCheck {

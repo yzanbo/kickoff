@@ -4,7 +4,7 @@
  */
 
 /** 案の数（多すぎると選びにくい） */
-export const BRANCH_SUGGESTION_COUNT = 3;
+const BRANCH_SUGGESTION_COUNT = 3;
 /** ブランチ名の長さの上限（フォルダ名にもなるので短めに） */
 const MAX_BRANCH_LENGTH = 60;
 /** 頼みに見せる、いまあるブランチの数の上限 */

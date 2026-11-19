@@ -6,7 +6,7 @@ import { ciSelectedText } from "./ciView";
 import { isSideViewShown, showSideView } from "@/features/panel/projectChat/sideView";
 
 /** CI のタブで開いている実行をそれにする（jobId を渡すと、そのジョブを開く） */
-export function selectCiRun(projectId: number, runId: number, jobId: number | null = null) {
+function selectCiRun(projectId: number, runId: number, jobId: number | null = null) {
   writeSetting(ciSelected(projectId), ciSelectedText(runId, jobId));
 }
 

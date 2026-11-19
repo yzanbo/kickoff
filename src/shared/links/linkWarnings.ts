@@ -1,7 +1,7 @@
 // 外部リンクを開く前の確認で添える警告（メモの仕様書「0027_チャット欄の外の画像とリンク」）。AI を使わず、URL とリンクの文字だけで機械的に決める
 
 /** 警告の種類: リンクの文字のホストと行き先が違う / URL にユーザー名・パスワード / 紛らわしい国際化ドメイン名 / ホストが IP アドレス */
-export const LINK_WARNINGS = ["text_mismatch", "userinfo", "idn", "ip"] as const;
+const LINK_WARNINGS = ["text_mismatch", "userinfo", "idn", "ip"] as const;
 export type LinkWarning = (typeof LINK_WARNINGS)[number];
 
 export const LINK_WARNING_LABELS: Record<LinkWarning, string> = {

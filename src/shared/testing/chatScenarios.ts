@@ -8,7 +8,7 @@ import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, visualIdLine } from "@share
 import { relayMessage } from "@shared/chat/prompts";
 
 /** 種から決まる乱数（0 以上 1 未満。mulberry32） */
-export function seededRandom(seed: number): () => number {
+function seededRandom(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;

@@ -30,7 +30,7 @@ function parseHex(color: string): [number, number, number] | null {
 }
 
 /** 2 つの色（#rgb・#rrggbb）を混ぜる。weight は a の割合（読めない色なら a のまま） */
-export function mixColor(a: string, b: string, weight: number): string {
+function mixColor(a: string, b: string, weight: number): string {
   const pa = parseHex(a);
   const pb = parseHex(b);
   if (!pa || !pb) return a;

@@ -3,7 +3,7 @@ import { DB_ENGINE_LABELS, DB_ENVIRONMENT_LABELS, type DbConnection } from "../t
 // DB につながらなかったときの案内（要件 5.12 の段階 2）: 失敗の文から種類を見分け、よくある原因と直し方を出す。
 // 本番などの DB は、セキュリティのためにわざと「手順を踏まないとつながらない」ようにしてあることが多いので、原因にそれを入れる
 
-export const DB_FAILURE_KINDS = ["timeout", "refused", "dns", "auth", "not_allowed", "ssl", "no_database", "file", "other"] as const;
+const DB_FAILURE_KINDS = ["timeout", "refused", "dns", "auth", "not_allowed", "ssl", "no_database", "file", "other"] as const;
 export type DbFailureKind = (typeof DB_FAILURE_KINDS)[number];
 
 export const DB_FAILURE_LABELS: Record<DbFailureKind, string> = {

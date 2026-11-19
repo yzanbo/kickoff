@@ -40,7 +40,7 @@ export const DB_ENVIRONMENT_DEFAULTS: Record<DbEnvironment, { read_only: boolean
 };
 
 /** SSL（言葉で選ぶ。off = 使わない / require = 暗号化するが証明書は確かめない / verify = 証明書とホスト名も確かめる） */
-export const DB_SSL_MODES = ["off", "require", "verify"] as const;
+const DB_SSL_MODES = ["off", "require", "verify"] as const;
 export type DbSslMode = (typeof DB_SSL_MODES)[number];
 export const DB_SSL_MODE_LABELS: Record<DbSslMode, string> = {
   off: "使わない",
@@ -106,7 +106,7 @@ export const DB_PREP_UNCONFIRMED = "db_prep_unconfirmed";
 export const DB_PASSWORD_LOCKED = "db_password_locked";
 
 /** 準備の記録の種類（準備・後片付け・ポートの転送・パスワードを取る） */
-export const DB_PREP_KINDS = ["prepare", "cleanup", "tunnel", "password"] as const;
+const DB_PREP_KINDS = ["prepare", "cleanup", "tunnel", "password"] as const;
 export type DbPrepKind = (typeof DB_PREP_KINDS)[number];
 export const DB_PREP_KIND_LABELS: Record<DbPrepKind, string> = { prepare: "準備", cleanup: "後片付け", tunnel: "ポートの転送", password: "パスワードを取る" };
 
@@ -196,7 +196,7 @@ export const DB_EDITS_MAX = 10_000;
 export const DB_CONNECTION_NAME_MAX = 100;
 
 /** プロジェクトから接続を取り込むときに見る所（.env の DATABASE_URL など・docker compose の DB のサービス・Prisma の設定・SQLite のファイル） */
-export const DB_IMPORT_SOURCES = ["env", "compose", "prisma", "file"] as const;
+const DB_IMPORT_SOURCES = ["env", "compose", "prisma", "file"] as const;
 export type DbImportSource = (typeof DB_IMPORT_SOURCES)[number];
 export const DB_IMPORT_SOURCE_LABELS: Record<DbImportSource, string> = { env: ".env", compose: "docker compose", prisma: "Prisma", file: "SQLite のファイル" };
 
@@ -357,7 +357,7 @@ export interface DbForeignKey {
   on_delete: string | null;
 }
 
-export interface DbTrigger {
+interface DbTrigger {
   name: string;
   timing: string | null;
   event: string | null;
@@ -411,7 +411,7 @@ export const DB_SESSION_IDLE_MS = 10 * 60_000;
 // ---- SQL の履歴（接続ごとに新しい DB_HISTORY_MAX 件） ----
 
 /** だれが流したか（利用者の SQL のタブ / チャットの AI） */
-export const DB_QUERY_RAN_BY = ["user", "ai"] as const;
+const DB_QUERY_RAN_BY = ["user", "ai"] as const;
 export type DbQueryRanBy = (typeof DB_QUERY_RAN_BY)[number];
 
 /** 接続ごとに残す履歴の件数 */

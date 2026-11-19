@@ -1,11 +1,11 @@
 // コアのプロセスが落ちたときに作り直すかと、待つ時間を決める（Electron に依らない純粋関数。メモの仕様書「0023_表示を軽くする」の案 16・U8）
 
 /** 続けて落ちたときの、作り直すまでの待ち（1 回目・2 回目・3 回目以降） */
-export const RESTART_DELAYS_MS = [500, 2_000, 5_000] as const;
+const RESTART_DELAYS_MS = [500, 2_000, 5_000] as const;
 /** この間に落ちた回数を数える */
-export const CRASH_WINDOW_MS = 5 * 60_000;
+const CRASH_WINDOW_MS = 5 * 60_000;
 /** この間に何回落ちたら作り直さずに止めるか（落ち続けるのに作り直すと、毎回 Claude Code・シェルが起動して止まるだけになる） */
-export const CRASH_LIMIT = 3;
+const CRASH_LIMIT = 3;
 
 /**
  * 落ちた時刻の並び（古い順。いま落ちたものを含む）から、作り直すまでの待ち（ms）を返す。作り直さないなら null。

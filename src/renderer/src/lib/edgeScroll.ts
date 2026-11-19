@@ -19,6 +19,6 @@ export function edgeScrollStep(pos: number, start: number, end: number, { zone =
 }
 
 /** 端の帯の幅（px） */
-export const EDGE_ZONE_PX = 48;
+const EDGE_ZONE_PX = 48;
 /** いちばん端での 1 フレームのスクロール量（px） */
 export const EDGE_MAX_STEP_PX = 20;

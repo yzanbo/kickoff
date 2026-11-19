@@ -27,7 +27,7 @@ export interface AgentCapabilities {
   };
 }
 
-export interface AuthMethod {
+interface AuthMethod {
   id: string;
   name: string;
   description?: string | null;
@@ -74,8 +74,8 @@ export interface SessionRequestBase {
 
 export type StopReason = "end_turn" | "max_tokens" | "max_turn_requests" | "refusal" | "cancelled" | string;
 
-export type ToolKind = "read" | "edit" | "delete" | "move" | "search" | "execute" | "think" | "fetch" | "switch_mode" | "other";
-export type ToolCallStatus = "pending" | "in_progress" | "completed" | "failed";
+type ToolKind = "read" | "edit" | "delete" | "move" | "search" | "execute" | "think" | "fetch" | "switch_mode" | "other";
+type ToolCallStatus = "pending" | "in_progress" | "completed" | "failed";
 
 export type ToolCallContent =
   | { type: "content"; content: ContentBlock }
@@ -95,7 +95,7 @@ export interface ToolCall {
   rawOutput?: unknown;
 }
 
-export type SessionUpdate =
+type SessionUpdate =
   | { sessionUpdate: "user_message_chunk"; content: ContentBlock }
   | { sessionUpdate: "agent_message_chunk"; content: ContentBlock; messageId?: string | null }
   | { sessionUpdate: "agent_thought_chunk"; content: ContentBlock; messageId?: string | null }

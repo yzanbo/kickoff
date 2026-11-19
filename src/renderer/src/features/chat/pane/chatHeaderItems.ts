@@ -30,7 +30,7 @@ export const CHAT_HEADER_ITEM_NOTES: Partial<Record<ChatHeaderItem, string>> = {
 };
 
 /** メニューのまとまり（見出しの行の左から。まとまりの中の順は初めの並びで、ドラッグで並べ替えたら CHAT_HEADER_ORDER に覚える） */
-export const CHAT_HEADER_SECTIONS: readonly { title: string; items: readonly ChatHeaderItem[] }[] = [
+const CHAT_HEADER_SECTIONS: readonly { title: string; items: readonly ChatHeaderItem[] }[] = [
   { title: "バッジ", items: ["project", "group", "worktree"] },
   { title: "名前", items: ["title"] },
   { title: "道具", items: ["showing", "textWidth", "fontSize", "sticky", "find"] },

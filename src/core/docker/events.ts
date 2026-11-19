@@ -4,7 +4,7 @@ import type { DockerCli } from "./cli.js";
 import type { StreamedCommand } from "../system/stream.js";
 
 /** 「見ています」が届かなくなってから止めるまで */
-export const WATCH_LEASE_MS = 45_000;
+const WATCH_LEASE_MS = 45_000;
 /** 変化の知らせをまとめる時間 */
 const DEBOUNCE_MS = 300;
 /** エンジンが止まっている間に調べ直す間隔 */

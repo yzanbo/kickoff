@@ -19,7 +19,7 @@ export interface RecoveryPlan {
 }
 
 /** 段取りを決めるときに渡すもの */
-export interface RecoveryContext {
+interface RecoveryContext {
   chatId: number;
   state: RecoveryState;
 }

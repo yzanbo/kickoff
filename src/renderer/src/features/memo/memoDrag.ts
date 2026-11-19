@@ -4,10 +4,10 @@ import { parentOf } from "./memoPaths";
 import { startDragGhost } from "@/ui/dragGhost";
 
 /** ドラッグで運ぶメモのパスの種類（ほかのドラッグと見分ける。中身はパスの JSON の配列） */
-export const MEMO_DRAG_TYPE = "application/x-kickoff-memo";
+const MEMO_DRAG_TYPE = "application/x-kickoff-memo";
 
 /** ドラッグで運んでいるメモか */
-export const isMemoDrag = (e: DragEvent) => e.dataTransfer.types.includes(MEMO_DRAG_TYPE);
+const isMemoDrag = (e: DragEvent) => e.dataTransfer.types.includes(MEMO_DRAG_TYPE);
 
 /** いま運んでいるメモ・フォルダのパス（一覧で選んだものをまとめて運ぶこともある。dragover の間は運ぶ中身を読めないので、つかんだときに覚える。空 = 運んでいない） */
 let draggingPaths: readonly string[] = [];
@@ -31,7 +31,7 @@ function droppedPaths(e: DragEvent): string[] {
  * 運んでいるものを folder（"" は直下）へ落とせるか。自分自身・自分の中のフォルダには入れられず（まとめて運んでいれば、どれか 1 つでも）、
  * どれもいまあるフォルダなら落としても何も変わらないので、どちらも落とす先として示さない（ほかのウィンドウから運んできたなど、何を運んでいるか分からないときは落とせることにする）
  */
-export function canDropInto(folder: string): boolean {
+function canDropInto(folder: string): boolean {
   if (draggingPaths.length === 0) return true;
   if (draggingPaths.some((p) => folder === p || folder.startsWith(`${p}/`))) return false;
   return draggingPaths.some((p) => parentOf(p) !== folder);

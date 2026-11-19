@@ -26,7 +26,7 @@ let started: string | null = null;
 const closeSelf = () => void (window.kickoff ? window.kickoff.windows.closeSelf() : window.close());
 
 /** 移したタブ（行き先）から、このウィンドウの欄の名前 */
-export const tabWindowPanel = (route: TabWindowRoute): string => panelKey(route.kind === "browser" ? "window" : "chatWindow", windowScope(route.projectId, route.key));
+const tabWindowPanel = (route: TabWindowRoute): string => panelKey(route.kind === "browser" ? "window" : "chatWindow", windowScope(route.projectId, route.key));
 
 /** 移したタブ（行き先）のタブ（送る前の新しいチャットは、移す元が置いた中身を取り出す。なければ作成先だけの空の新しいチャット） */
 function firstTab(route: TabWindowRoute): PanelTab {

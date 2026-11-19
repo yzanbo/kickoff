@@ -1,7 +1,7 @@
 // 浮かぶもの（右クリック・「…」・▾ のメニュー、押すと開く一覧）を、画面の中に収まる位置に置く計算
 
 /** 画面の端から空ける幅（px） */
-export const VIEWPORT_MARGIN = 8;
+const VIEWPORT_MARGIN = 8;
 
 export interface Size {
   width: number;
@@ -9,7 +9,7 @@ export interface Size {
 }
 
 /** 基準の要素の画面の中の位置（getBoundingClientRect の値） */
-export interface Box {
+interface Box {
   left: number;
   top: number;
   right: number;

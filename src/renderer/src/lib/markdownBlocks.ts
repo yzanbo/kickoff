@@ -140,7 +140,7 @@ export function createBlockScanner(): BlockScanner {
  */
 
 /** ブロックに分けた結果 */
-export interface MarkdownBlocks {
+interface MarkdownBlocks {
   /** ブロックの文（末尾の空行は落とす。前と同じ範囲のブロックは前と同じ文字列を返す） */
   blocks: string[];
   /** 最後のブロックで、閉じていないコードブロックの開きの行の頭（最後のブロックの中の位置。なければ null） */

@@ -13,7 +13,7 @@ export const MIN_CLIENT_API_VERSION = 1;
 export const API_VERSION_HEADER = "x-kickoff-api";
 
 /** 話が通じないときの印（断るときの応答の code・アプリが hello から決めるとき） */
-export const API_MISMATCHES = ["client_too_old", "host_too_old"] as const;
+const API_MISMATCHES = ["client_too_old", "host_too_old"] as const;
 export type ApiMismatch = (typeof API_MISMATCHES)[number];
 
 /** 利用者に出す文 */

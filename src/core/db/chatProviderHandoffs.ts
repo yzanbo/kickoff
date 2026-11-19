@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import type { ProviderId } from "@shared/types";
 
 /** ready = 次の指示に添える、blocked = 準備失敗、sending = 送信開始、uncertain = 受信されたか不明。 */
-export type HandoffState = "ready" | "blocked" | "sending" | "uncertain";
+type HandoffState = "ready" | "blocked" | "sending" | "uncertain";
 export interface ChatProviderHandoff {
   chatId: number;
   eventId: number;

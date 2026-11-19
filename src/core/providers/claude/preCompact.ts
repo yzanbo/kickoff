@@ -12,7 +12,7 @@ const MAX_HOLDS = 8;
  * 合図のあと、裏の作業の終わりだけを待って止まってから、背中を押す発言を足すまでの時間。turnOver.ts の TURN_OVER_GRACE_MS（2 秒）より長くし、
  * 手が空いた直後に Claude Code が自分で次を始める（届いていた知らせ・足した発言を読む）ときは足さない
  */
-export const PRE_COMPACT_NUDGE_MS = 5000;
+const PRE_COMPACT_NUDGE_MS = 5000;
 
 interface Timers {
   set: (fn: () => void, ms: number) => unknown;

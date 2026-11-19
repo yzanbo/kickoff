@@ -87,7 +87,7 @@ export interface CaptureBody {
 }
 
 /** 送る指示（続き・止めずに伝える。POST /api/chats/:id/messages・/tell）。文が空でも、添付があれば送れる */
-export interface MessageBody {
+interface MessageBody {
   text?: string;
   options?: ChatOptionsPatch;
   attachments?: Attachment[];

@@ -223,6 +223,6 @@ export function followMovedMemo(projectId: number, from: string, to: string) {
 }
 
 /** 動かしたあとに、覚えているパスの組を付け替える（開いているフォルダ） */
-export function remapPaths(paths: readonly string[], from: string, to: string): string[] {
+function remapPaths(paths: readonly string[], from: string, to: string): string[] {
   return paths.map((p) => remapPath(p, from, to));
 }

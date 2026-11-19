@@ -200,8 +200,7 @@
 }
 
 .db-tree-error,
-.db-tree-hint,
-.db-tree-badge {
+.db-tree-hint {
   display: flex;
   flex-wrap: wrap;
   align-items: center;

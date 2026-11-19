@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useState, useSyncExternalStore 
  * 会話の欄を止めない理由: 音声モード・音声入力の録音と文字起こし・添付のアップロード・送信待ちの書き直し・預かった指示の書き直し。
  * どれも「裏に回しても続く」がいままでの振る舞いで、止めると利用者の操作が途中で切れる
  */
-export const KEEP_ALIVE_REASONS = ["voice", "dictation", "upload", "queueEdit", "heldEdit"] as const;
+const KEEP_ALIVE_REASONS = ["voice", "dictation", "upload", "queueEdit", "heldEdit"] as const;
 export type KeepAliveReason = (typeof KEEP_ALIVE_REASONS)[number];
 
 /**

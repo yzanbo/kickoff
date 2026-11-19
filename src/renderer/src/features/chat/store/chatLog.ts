@@ -7,7 +7,7 @@ import { indexOfEvents, mergeById, type IndexContext } from "@shared/chat/chatIn
 import { CHAT_TAIL_TURNS } from "@shared/types";
 
 /** 途中の一部分（いつも末尾より前。下の端が末尾に届いたら末尾につなぐ） */
-export interface LogFocus {
+interface LogFocus {
   events: ChatEvent[];
   hasEarlier: boolean;
 }

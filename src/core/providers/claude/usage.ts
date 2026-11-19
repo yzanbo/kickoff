@@ -5,7 +5,7 @@ import { join } from "node:path";
 import type { ExtraUsage, PlanUsage, UsageWindow } from "@shared/types";
 
 /** Claude Code の設定ファイル（ログインしているアカウントの情報が入る。CLAUDE_CONFIG_DIR があればその中） */
-export const claudeConfigPath = (): string => join(process.env.CLAUDE_CONFIG_DIR || homedir(), ".claude.json");
+const claudeConfigPath = (): string => join(process.env.CLAUDE_CONFIG_DIR || homedir(), ".claude.json");
 
 /** プランの表示名として受け付ける形（Claude Code と同じ。英数字・空白・. + - で 40 文字まで） */
 const PLAN_DISPLAY_NAME = /^[\p{L}\p{N}](?:[\p{L}\p{N} .+-]{0,38}[\p{L}\p{N}+])?$/u;

@@ -1,7 +1,7 @@
 // メモの種類（Markdown / HTML）。拡張子で決める（中身は見ない）。コアと画面で同じ結果にする
 
 /** メモの種類（markdown = Markdown のメモ。HTML 以外の文字のファイルもこれで開く / html = HTML と CSS で書いたページのメモ） */
-export const MEMO_KINDS = ["markdown", "html"] as const;
+const MEMO_KINDS = ["markdown", "html"] as const;
 export type MemoKind = (typeof MEMO_KINDS)[number];
 
 /** 種類ごとの、新しく作るときの拡張子 */

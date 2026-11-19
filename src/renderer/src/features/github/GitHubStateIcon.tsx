@@ -2,7 +2,7 @@ import { CircleCheck, CircleDot, CircleSlash, GitMerge, GitPullRequest, GitPullR
 import type { GitHubItem } from "@shared/types";
 
 /** issue・PR の状態の印の種類（色は CSS の .github-state-<tone>） */
-export function githubStateOf(item: Pick<GitHubItem, "kind" | "state" | "state_reason" | "is_draft">): { icon: LucideIcon; tone: "open" | "done" | "skipped" | "merged" | "closed" | "draft"; label: string } {
+function githubStateOf(item: Pick<GitHubItem, "kind" | "state" | "state_reason" | "is_draft">): { icon: LucideIcon; tone: "open" | "done" | "skipped" | "merged" | "closed" | "draft"; label: string } {
   if (item.kind === "issue") {
     if (item.state === "open") return { icon: CircleDot, tone: "open", label: "開いている" };
     if (item.state_reason === "not_planned" || item.state_reason === "duplicate")

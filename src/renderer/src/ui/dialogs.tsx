@@ -80,7 +80,7 @@ let show: ((req: Request) => void) | undefined;
 /** 確認のダイアログ。実行を選べば true */
 export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => {
-    if (!show) return resolve(window.confirm([options.title, options.message].filter(Boolean).join("\n\n")));
+    if (!show) return resolve(false);
     show({ kind: "confirm", resolve, ...options });
   });
 }

@@ -2,7 +2,7 @@ import { readFindOptions, subscribeFindOptions, writeFindOption } from "@/hooks/
 import type * as monaco from "./monacoEditor";
 
 /** Monaco の検索の様子（公開の型にないので、使う所だけ） */
-export interface MonacoFindState {
+interface MonacoFindState {
   readonly searchString: string;
   readonly replaceString: string;
   readonly isRevealed: boolean;

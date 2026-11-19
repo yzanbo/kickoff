@@ -6,7 +6,7 @@ import { workplaceText } from "@shared/docker/workplace";
 /** 画面に持つ行の数（超えたら古い行から捨てる。さかのぼればまた読める） */
 export const LOG_ROW_LIMIT = 10_000;
 /** 「AI に聞く」で足す前後の行の数 */
-export const ASK_CONTEXT_LINES = 20;
+const ASK_CONTEXT_LINES = 20;
 
 /** 画面の 1 行（ログの行か、止まった・起動したの区切り） */
 export type LogRow =

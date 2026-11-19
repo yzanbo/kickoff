@@ -6,7 +6,7 @@ import { createKeyedStore } from "@/stores/keyedStore";
 import { useKeyedStore } from "@/stores/useStore";
 import { forgetRemoteImages } from "./remoteImageCache";
 
-export const imageHostsStore = createKeyedStore<number, ChatImageHost[]>({
+const imageHostsStore = createKeyedStore<number, ChatImageHost[]>({
   load: (chatId) => api.imageHosts(chatId),
   reduce: (data, event, chatId) => (event.type === "chat_image_hosts" && event.chat_id === chatId ? event.hosts : data),
   dropOn: (event) => (event.type === "chat_deleted" ? event.id : undefined),
@@ -15,7 +15,7 @@ export const imageHostsStore = createKeyedStore<number, ChatImageHost[]>({
 const NONE: ChatImageHost[] = [];
 
 /** そのチャットで表示を許可したホスト（許可した順。届くまでは空） */
-export function useImageHosts(chatId: number): ChatImageHost[] {
+function useImageHosts(chatId: number): ChatImageHost[] {
   return useKeyedStore(imageHostsStore, chatId).data ?? NONE;
 }
 

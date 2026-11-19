@@ -11,8 +11,8 @@ import { chatPaneOf } from "@/features/chat/pane/windowMessages";
 import { chooseWorkplace, openSeededChat } from "./workplace";
 
 /** 渡し先: 新しいチャットで始める / このチャット（右の欄の足す先のチャット）に追加 / 新しい子チャットで聞く / ほかのチャットに追加 */
-export const HAND_OFF_TARGETS = ["new", "this", "child", "other"] as const;
-export type HandOffTarget = (typeof HAND_OFF_TARGETS)[number];
+const HAND_OFF_TARGETS = ["new", "this", "child", "other"] as const;
+type HandOffTarget = (typeof HAND_OFF_TARGETS)[number];
 
 /** 渡すもの 1 つ（各タブが作る） */
 export interface HandOffItem {

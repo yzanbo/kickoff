@@ -25,7 +25,7 @@ export function qualifiedTable(engine: DbEngine, path: DbObjectPath, table: stri
 }
 
 /** キーの値を DB に渡す形にする（真偽は PostgreSQL なら true / false の文字、ほかは 1 / 0） */
-export function editParam(engine: DbEngine, value: DbKeyValue): DbEditParam {
+function editParam(engine: DbEngine, value: DbKeyValue): DbEditParam {
   if (typeof value === "boolean") return engine === "postgres" ? String(value) : value ? 1 : 0;
   return value;
 }

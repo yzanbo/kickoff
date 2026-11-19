@@ -60,7 +60,7 @@ export function memoPathIn(dir: string, given: string): string {
 /**
  * AI が渡したパスを、作業場所からの相対パス（「/」区切り）にする。絶対パスは作業場所の中だけ（リンクを解いた形でも比べる）。外・作業場所そのものは throw
  */
-export function workPathIn(dir: string, given: string): string {
+function workPathIn(dir: string, given: string): string {
   const raw = given.trim();
   if (!raw) throw new Error("path が空です。作業場所からの相対パスか、作業場所の中の絶対パスを渡してください");
   const abs = path.isAbsolute(raw) ? raw : path.join(dir, raw);

@@ -32,7 +32,7 @@ export type BucketBy = "project" | "group" | "worktree" | "status";
  * project = プロジェクト / pinned = 固定（抜き出したもの）/ archived = アーカイブ済み（抜き出したもの）/ all = まとめないときの見出しのないまとまり /
  * other = どのまとまりにも入らないもの（パネルのブラウザのタブなど。bucketChats は作らない）
  */
-export type BucketKind = "project" | "group" | "ungrouped" | "worktree" | "status" | "pinned" | "archived" | "all" | "other";
+type BucketKind = "project" | "group" | "ungrouped" | "worktree" | "status" | "pinned" | "archived" | "all" | "other";
 
 /** 下書き（送る前の新しいチャット）の作成先 */
 export interface DraftTarget {

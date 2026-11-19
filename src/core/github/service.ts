@@ -43,14 +43,14 @@ import { createIssue, mergePull, postComment, replaceLabels, replyToThread, reso
 import { approvalCount, connectionNodes, nextCursor, toCheck, toItem, toLinkedPulls, toMergeAbility, toMergeState, toPullFile, toThreads, toTimeline, toUser, toViewer } from "./normalize.js";
 
 /** 一覧の 1 回の件数 */
-export const GITHUB_PAGE_SIZE = 50;
+const GITHUB_PAGE_SIZE = 50;
 /** 覚えた一覧を、変わっていなくても聞き直すまでの間（CI の結果は「変わった」に入らないので、5 分で取り直す） */
 const LIST_KEEP_MS = 5 * 60_000;
 /** 中身を覚えておく間と数（開き直したときのつなぎの表示だけに使う） */
 const DETAIL_KEEP_MS = 10 * 60_000;
 const DETAIL_KEEP_MAX = 50;
 /** 本文の画像（リポジトリの中のファイル）の大きさの上限 */
-export const GITHUB_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const GITHUB_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 /** PR の変更したファイルを読む上限（100 件ずつ 30 回 = GitHub の 3,000 件） */
 const FILE_PAGES = 30;
 

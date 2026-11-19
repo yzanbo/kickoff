@@ -13,10 +13,10 @@ export const HOOK_URL_ENV = "KICKOFF_CODEX_HOOK_URL";
 export const HOOK_TOKEN_ENV = "KICKOFF_CODEX_HOOK_TOKEN";
 
 /** フックを当てるツール（Codex の名前。apply_patch は Edit・Write の別名にも当たる） */
-export const HOOK_MATCHER = "^(Bash|apply_patch)$";
+const HOOK_MATCHER = "^(Bash|apply_patch)$";
 
 /** フックの待ち時間（秒。承認カードの答えを待つため長く。Claude Code のフック・MCP の待ち時間と同じ 7 日） */
-export const HOOK_TIMEOUT_S = 7 * 24 * 60 * 60;
+const HOOK_TIMEOUT_S = 7 * 24 * 60 * 60;
 
 /** 口に問い合わせられなかったときに返す文（守りを当てられないので止める） */
 export const HOOK_UNREACHABLE = "Kickoff の守りに問い合わせられなかったので止めました。もう一度試すか、利用者に知らせてください";

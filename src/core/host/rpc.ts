@@ -36,14 +36,14 @@ export interface Rpc<Remote, LocalEvents, RemoteEvents> {
 }
 
 /** RpcMessage か（ほかの形 = init・ready・port などは持ち主が受ける） */
-export function isRpcMessage(m: unknown): m is RpcMessage {
+function isRpcMessage(m: unknown): m is RpcMessage {
   if (typeof m !== "object" || m === null) return false;
   const t = (m as { t?: unknown }).t;
   return t === "call" || t === "result" || t === "event";
 }
 
 /** 口が閉じたときの文の既定 */
-export const CLOSED_MESSAGE = "Kickoff のコアのプロセスが止まりました";
+const CLOSED_MESSAGE = "Kickoff のコアのプロセスが止まりました";
 
 /**
  * 口の上に RPC を作る。handlers は相手から呼ばれる口（Local の表のとおり）。timeoutOf はこちらから呼ぶときの時間の上限（null は上限なし）

@@ -1,7 +1,7 @@
 // ワークツリーの後始末の結果の文（純粋な関数。AI に返す文とチャットのお知らせで同じものを使う。メモの仕様書「0019_AI の操作ツールの追加」の F）
 
 /** 取り込み済みか（ローカルで本体のブランチに入っている / GitHub で PR がマージ済み / どちらでもない = null） */
-export type MergeState = { via: "local"; into: string } | { via: "github"; pr: number } | null;
+type MergeState = { via: "local"; into: string } | { via: "github"; pr: number } | null;
 
 /** 消す前に確かめたこと */
 export interface FinishFacts {
@@ -26,7 +26,7 @@ export interface FinishOutcome extends FinishFacts {
 }
 
 /** 取り込み済みの書き方（「ローカル」「GitHub の PR #12」） */
-export const mergedText = (merged: Exclude<MergeState, null>) => (merged.via === "local" ? `ローカル（${merged.into}）` : `GitHub の PR #${merged.pr}`);
+const mergedText = (merged: Exclude<MergeState, null>) => (merged.via === "local" ? `ローカル（${merged.into}）` : `GitHub の PR #${merged.pr}`);
 
 /** 消すと失うもの（取り込んでいないコミット・コミットしていない変更）の文。なければ null */
 export function lossText(facts: FinishFacts): string | null {

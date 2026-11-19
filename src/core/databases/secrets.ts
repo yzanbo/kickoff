@@ -10,7 +10,7 @@ import { openSecret, SEALED, sealSecret, type SecretCipher } from "../system/sea
 
 export type { SecretCipher } from "../system/sealedSecret.js";
 
-export const DB_SECRET_KINDS = ["password", "ai_password", "ssh_password"] as const;
+const DB_SECRET_KINDS = ["password", "ai_password", "ssh_password"] as const;
 export type DbSecretKind = (typeof DB_SECRET_KINDS)[number];
 
 const KEY_OF: Record<DbSecretKind, (id: number) => DbSecretKey> = {

@@ -5,7 +5,7 @@ import type { SubagentEntry } from "./subagents";
  * サブエージェントの状態に添える細かい様子（5 つの状態だけでは分からないもの）: やり直し済み（親が新しいサブエージェントでやり直した）/
  * 通信の切断で中断 / 出力の上限で失敗 / 中断 / 報告の受け取り待ち（親がまだ動いていない）/ 報告が届いていない（親が動かずに作業が終わった）
  */
-export const SUBAGENT_DETAILS = ["superseded", "network", "output_limit", "stopped", "awaiting", "undelivered"] as const;
+const SUBAGENT_DETAILS = ["superseded", "network", "output_limit", "stopped", "awaiting", "undelivered"] as const;
 export type SubagentDetail = (typeof SUBAGENT_DETAILS)[number];
 
 /** サブエージェントの状態: チャット・子チャットと同じ 5 つの状態（印・まとめ）と、添える細かい様子（なければ null） */

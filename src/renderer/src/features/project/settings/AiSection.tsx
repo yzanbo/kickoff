@@ -46,7 +46,7 @@ export function AiSection({ project, app }: { project: Project; app: AppSettings
   );
 }
 
-export function ProviderCard({
+function ProviderCard({
   id,
   status,
   selected,

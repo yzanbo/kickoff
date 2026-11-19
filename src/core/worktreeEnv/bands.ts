@@ -20,11 +20,11 @@ export function pickBand(taken: ReadonlySet<number>, listening: readonly number[
 export type DockerSlotWant = Pick<WorktreePortSlot, "compose_dir" | "service" | "target" | "protocol" | "original">;
 
 /** 同じ公開ポートかを比べる印 */
-export const slotKey = (s: Pick<WorktreePortSlot, "kind" | "compose_dir" | "service" | "target" | "protocol">) =>
+const slotKey = (s: Pick<WorktreePortSlot, "kind" | "compose_dir" | "service" | "target" | "protocol">) =>
   s.kind === "dev" ? "dev" : `docker:${s.compose_dir}:${s.service}:${s.target}/${s.protocol ?? "tcp"}`;
 
 /** Docker の公開ポートの並び（compose のフォルダ → サービス名 → コンテナ側の番号 → プロトコル） */
-export function compareDockerWants(a: DockerSlotWant, b: DockerSlotWant): number {
+function compareDockerWants(a: DockerSlotWant, b: DockerSlotWant): number {
   return (
     (a.compose_dir ?? "").localeCompare(b.compose_dir ?? "") ||
     (a.service ?? "").localeCompare(b.service ?? "") ||

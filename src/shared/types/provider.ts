@@ -41,7 +41,7 @@ export const PROVIDER_FEATURES = ["fork", "rewind_files", "subagent_log", "usage
 export type ProviderFeature = (typeof PROVIDER_FEATURES)[number];
 
 /** できることの名前（押せない理由の文に使う） */
-export const PROVIDER_FEATURE_LABELS: Record<ProviderFeature, string> = {
+const PROVIDER_FEATURE_LABELS: Record<ProviderFeature, string> = {
   fork: "分岐・巻き戻し",
   rewind_files: "ファイルを戻す",
   subagent_log: "サブエージェントの会話の記録",
@@ -74,9 +74,8 @@ export interface UsageWindow {
   detail?: string;
 }
 
-/** 設定の「使用状況」に並べるサービス */
-const USAGE_SERVICE_IDS = ["claude", "codex", "copilot", "cursor", "gemini"] as const;
-export type UsageServiceId = (typeof USAGE_SERVICE_IDS)[number];
+/** 設定の「使用状況」に並べるサービス（AI と同じ） */
+export type UsageServiceId = ProviderId;
 
 /**
  * サービスごとの使用状況（設定の「使用状況」）。各サービスのログイン情報を読むだけで、書き換えない。

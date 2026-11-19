@@ -9,7 +9,7 @@ import { useVoiceStatus, voiceStatusStore } from "@/stores/voice";
 import { useKeepAliveHold } from "@/features/panel/tabs/tabKeepAlive";
 
 /** これより長く押していたら長押し（離したところで止めて起こす）。短ければ 1 回押し（もう一度押すまで録る） */
-export const HOLD_MS = 400;
+const HOLD_MS = 400;
 
 /** 音声入力の状態（録音の準備中 → 録音中 → 文字起こし中 → 入れたら idle。失敗したら error で、録った音声があれば起こし直せる） */
 export type DictationState =

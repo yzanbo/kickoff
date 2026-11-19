@@ -12,7 +12,7 @@ export const APPLICATION_ID = 0x4b49434b;
  * 会話の記録のうち、自分の発言とメインの AI の返答（type が user / サブエージェントでない text）の文は生成列 text に出し、
  * 全文検索の索引 chat_event_search（trigram で部分一致）はビュー chat_event_texts を中身にして、トリガーで追従させる
  */
-export const SCHEMA_V1 = `
+const SCHEMA_V1 = `
 CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL CHECK (json_valid(value))

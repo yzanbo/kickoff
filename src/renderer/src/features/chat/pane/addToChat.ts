@@ -27,7 +27,7 @@ export function addToChat(chatId: number, text: string, attachments?: Attachment
  * 開いていないチャットの書きかけの文（chatDraft）と送る前の添付（chatAttachmentsDraft）に足し、「〇〇に追加しました［開く］」と知らせる。
  * 開いたときに入力欄に入る。同じメモ・同じ出どころの取ったものは新しく足した方に入れ替える
  */
-export function addToChatDraft(chatId: number, text: string, attachments: Attachment[] = []) {
+function addToChatDraft(chatId: number, text: string, attachments: Attachment[] = []) {
   if (text) writeSetting(chatDraft(chatId), appendBlock(readSetting(chatDraft(chatId)), text));
   if (attachments.length > 0) writeSetting(chatAttachmentsDraft(chatId), mergeAttachments(readSetting(chatAttachmentsDraft(chatId)), attachments));
   const chat = knownChat(chatId);

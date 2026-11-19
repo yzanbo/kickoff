@@ -25,7 +25,7 @@ const KEEP_CHARS = 64 * 1024;
 const MAX_READ_BYTES = 256 * 1024;
 
 /** 出力ファイルを探す場所（Claude Code の一時フォルダの候補。CLAUDE_CODE_TMPDIR → /tmp → OS の一時フォルダ） */
-export function defaultOutputRoots(): string[] {
+function defaultOutputRoots(): string[] {
   const name = `claude-${process.getuid?.() ?? 0}`;
   const bases = [process.env.CLAUDE_CODE_TMPDIR, "/tmp", os.tmpdir()].filter((d): d is string => Boolean(d));
   return [...new Set(bases.map((d) => path.join(d, name)))];

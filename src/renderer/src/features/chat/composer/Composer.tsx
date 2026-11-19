@@ -36,7 +36,7 @@ interface Props {
   options?: ChatOptionsState;
   /** 使う AI の札（下の行のモデルの左に置く。送る前は選ぶ札、送ったあとは切り替える札） */
   providerChip?: ReactNode;
-  placeholder?: string;
+  placeholder: string;
   autoFocus?: boolean;
   busy?: boolean;
   /** 送信ボタンの左に置くもの（コンテキストウィンドウのメーターなど） */
@@ -282,7 +282,7 @@ export function Composer({ options, providerChip, placeholder, autoFocus, busy, 
         value={text}
         onSelect={(e) => suggest.onCaret(e.currentTarget.selectionStart)}
         autoFocus={autoFocus}
-        placeholder={placeholder ?? (busy ? "エージェントが作業中です…" : "メッセージを入力（Enter で送信、Shift+Enter で改行）")}
+        placeholder={placeholder}
         onChange={(e) => {
           setText(e.target.value);
           suggest.onCaret(e.target.selectionStart);

@@ -5,7 +5,7 @@ import type { DbErTable } from "@shared/types";
 import { cx } from "@/lib/cx";
 
 /** 箱に渡すもの（columns は出す列。keyColumns は線をつなぐ列（左右に見えない取っ手を置く）） */
-export type ErNodeData = {
+type ErNodeData = {
   table: DbErTable;
   columns: DbErTable["columns"];
   fkColumns: ReadonlySet<string>;

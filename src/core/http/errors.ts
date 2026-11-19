@@ -6,7 +6,7 @@ import { errorMessage } from "@shared/errors";
 import { CommandError } from "../system/exec.js";
 
 /** 画面に返す失敗（状態コードと文言） */
-export class HttpError extends Error {
+class HttpError extends Error {
   constructor(
     readonly status: 400 | 404 | 409,
     message: string,

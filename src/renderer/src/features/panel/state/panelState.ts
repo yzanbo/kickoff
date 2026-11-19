@@ -23,7 +23,7 @@ export interface PanelRules {
 
 type TabKind = PanelTab["kind"];
 /** 開いたあとに変えられるタブの中身（種類ごと。key・kind は変えない） */
-export type TabFields<K extends TabKind> = Partial<Omit<Extract<PanelTab, { kind: K }>, "key" | "kind">>;
+type TabFields<K extends TabKind> = Partial<Omit<Extract<PanelTab, { kind: K }>, "key" | "kind">>;
 /** タブの中身の変え方（その種類のタブだけを変える） */
 export type TabPatch = { [K in TabKind]: { kind: K; fields: TabFields<K> } }[TabKind];
 

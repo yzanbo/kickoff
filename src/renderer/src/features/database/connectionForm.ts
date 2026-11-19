@@ -85,7 +85,7 @@ export const formOf = (c: DbConnection | null): ConnectionForm => ({
 });
 
 /** 準備の欄の値（空なら null。コアも空の行を落とす） */
-export function prepOf(form: ConnectionForm): DbPrep | null {
+function prepOf(form: ConnectionForm): DbPrep | null {
   if (!form.prep_on) return null;
   return normalizePrep({
     prepare: form.prep_prepare.split("\n"),

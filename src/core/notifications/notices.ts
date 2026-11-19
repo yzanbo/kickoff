@@ -6,7 +6,7 @@ import { UNTITLED_CHAT_TITLE, type Approval, type Chat, type CiFailure } from "@
 export type NoticeTarget = { kind: "chat"; project_id: number; chat_id: number } | { kind: "ci"; project_id: number; run_id: number };
 
 /** 何が起きたか */
-export type NoticeKind = "completed" | "failed" | "approval" | "ci_failed" | "ai_notice";
+type NoticeKind = "completed" | "failed" | "approval" | "ci_failed" | "ai_notice";
 
 /** この Mac の通知（Mac のアプリのメインプロセスが出す）とスマホのプッシュの両方の元 */
 export interface Notice {

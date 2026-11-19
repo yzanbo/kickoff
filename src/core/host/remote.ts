@@ -50,7 +50,7 @@ export function remoteNotify(rpc: HostRpc): DesktopNotify {
 }
 
 /** MessagePort（Electron の MessagePortMain・Node の MessagePort）のうち使う所 */
-export interface WorkerPortLike {
+interface WorkerPortLike {
   on(event: "message", fn: (e: unknown) => void): void;
   postMessage(message: unknown): void;
   start?(): void;

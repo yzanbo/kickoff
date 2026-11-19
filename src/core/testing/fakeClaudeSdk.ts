@@ -6,10 +6,10 @@ import type { ClaudeSdk } from "../providers/claude/sdk.js";
  * 偽の SDK のメッセージ。種類のほかは確かめに要る欄だけ書けばよい（SDK の型の必須の欄をすべては埋めない）。
  * 省けば補うもの: session_id（init で渡した ID → 続きのセッション → 振った ID）・uuid・parent_tool_use_id（null = メインエージェント）・assistant の message.usage（0）
  */
-export type FakeSdkMessage = { type: SDKMessage["type"] } & Record<string, unknown>;
+type FakeSdkMessage = { type: SDKMessage["type"] } & Record<string, unknown>;
 
 /** finish に渡す結果（既定は success・result "ok"） */
-export interface FakeClaudeResult {
+interface FakeClaudeResult {
   subtype?: "success" | "error_during_execution" | "error_max_turns";
   result?: string;
   is_error?: boolean;
@@ -17,7 +17,7 @@ export interface FakeClaudeResult {
 }
 
 /** 1 回の query の記録と、テストから流す口 */
-export interface FakeClaudeQuery {
+interface FakeClaudeQuery {
   /** query に渡された options（hooks・canUseTool・mcpServers・systemPrompt・env・allowedTools・resume・sandbox を確かめる） */
   options: Options;
   /** 入力から届いた発言（最初の発言・tell で足した発言。文字の指示は 1 つの発言にする） */

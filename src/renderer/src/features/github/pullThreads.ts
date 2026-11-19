@@ -12,7 +12,7 @@ export interface PlacedThreads {
 const lineKey = (side: "new" | "old", no: number) => `${side}:${no}`;
 
 /** 差分の行の置き場所の名前（足した行・残した行は新しい側、消した行は古い側） */
-export function keyOfLine(line: DiffLine): string | null {
+function keyOfLine(line: DiffLine): string | null {
   if (line.newNo !== undefined && line.type !== "del") return lineKey("new", line.newNo);
   if (line.oldNo !== undefined) return lineKey("old", line.oldNo);
   return null;

@@ -2,8 +2,8 @@
 import type { AgentState, Approval, Chat } from "@shared/types";
 
 /** 見出しの順（状態順。急ぐものが先）: 回答待ち（承認・質問で AI が止まっている）→ エラー → 未読 */
-export const INBOX_STATES = ["needs_input", "failed", "unread"] as const satisfies readonly AgentState[];
-export type InboxState = (typeof INBOX_STATES)[number];
+const INBOX_STATES = ["needs_input", "failed", "unread"] as const satisfies readonly AgentState[];
+type InboxState = (typeof INBOX_STATES)[number];
 
 export interface InboxSection {
   state: InboxState;

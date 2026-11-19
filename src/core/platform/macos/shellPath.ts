@@ -10,7 +10,7 @@ import { searchDirs } from "../../system/exec.js";
 /** 前回の値を置くファイル（保存先 = AI から書けない場所。~/Library/Caches は砂場で書ける） */
 export const SHELL_PATH_FILE = "shell-path.json";
 /** 外部コマンドを起こす所が、読み直しを待つ上限 */
-export const SHELL_PATH_WAIT_MS = 5_000;
+const SHELL_PATH_WAIT_MS = 5_000;
 /** ログインシェルを待つ上限（これを過ぎたら前回の値のまま） */
 const SHELL_TIMEOUT_MS = 10_000;
 
@@ -28,7 +28,7 @@ export function cleanPath(value: string): string[] {
 const merged = (first: string[], rest: string) => [...new Set([...first, ...cleanPath(rest)])].join(":");
 
 /** 保存した前回の値（なければ・壊れていれば null） */
-export function readSavedPath(file: string): string[] | null {
+function readSavedPath(file: string): string[] | null {
   try {
     const data = JSON.parse(fs.readFileSync(file, "utf8")) as { path?: unknown };
     if (typeof data.path !== "string") return null;
@@ -40,7 +40,7 @@ export function readSavedPath(file: string): string[] | null {
 }
 
 /** ログインシェルの PATH を読む（$SHELL -ilc。読めなければ null） */
-export function readLoginShellPath(): Promise<string | null> {
+function readLoginShellPath(): Promise<string | null> {
   const shell = process.env.SHELL || "/bin/zsh";
   const marker = "__KICKOFF_PATH__";
   return new Promise((resolve) => {

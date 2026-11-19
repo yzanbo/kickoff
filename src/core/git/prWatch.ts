@@ -8,7 +8,7 @@ import { resolveGitHubTarget, type GitHubTarget } from "./githubTarget.js";
 import { isGitWorkTree } from "./status.js";
 
 /** 見張る間隔（5 分。ほかに、画面の窓に戻ったときも取り直す） */
-export const PR_WATCH_INTERVAL_MS = 5 * 60_000;
+const PR_WATCH_INTERVAL_MS = 5 * 60_000;
 /** 窓に戻ったときの取り直しを、この間はまとめる（窓を行き来するたびに GitHub に聞かない） */
 const REFRESH_MIN_MS = 30_000;
 

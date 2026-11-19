@@ -34,7 +34,7 @@ export interface PromptEntry {
 }
 
 /** AI からの質問への回答の 1 問（問いの文と選んだ答え。いくつも選んだ答えは「、」でつなぐ） */
-export interface QuestionAnswer {
+interface QuestionAnswer {
   question: string;
   answer: string;
 }

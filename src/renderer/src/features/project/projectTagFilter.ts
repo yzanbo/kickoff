@@ -15,11 +15,11 @@ export const tagLabel = (tag: string) => (tag === UNTAGGED ? "タグなし" : ta
  * 使っているタグ（しまったプロジェクトの分も含む）を、サイドバーのタグの行でドラッグして並べた順に（並べていないタグは後ろに名前順）。
  * タグの行・プロジェクトの右クリックのタグで同じ順にする
  */
-export function useOrderedTags(): { tags: string[]; order: readonly string[]; setOrder: (order: string[]) => void } {
+export function useOrderedTags(): { tags: string[]; setOrder: (order: string[]) => void } {
   const { projects } = useProjects();
   const [order, setOrder] = useSetting(PROJECT_TAG_ORDER);
   const tags = useMemo(() => orderTags(collectTags(projects), order), [projects, order]);
-  return { tags, order, setOrder };
+  return { tags, setOrder };
 }
 
 /**

@@ -85,7 +85,7 @@ function findIn(command: string, depth: number): string | null {
 }
 
 /** 断るときに AI に返す文 */
-export function gitHookDeniedReason(what: string): string {
+function gitHookDeniedReason(what: string): string {
   return `Kickoff では ${what} で git のフック（コミット時・push 時の確かめ）を飛ばせません。フックが落ちたなら、出力を読んで原因を直してから、同じコマンドをフックを付けたまま流し直してください。利用者が飛ばすと決めたときは、利用者に自分のターミナルで流してもらってください`;
 }
 

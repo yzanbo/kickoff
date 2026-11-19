@@ -4,8 +4,8 @@ import type { Notify } from "./common.js";
 
 /** 秘密の値の名前（secrets の表） */
 export type SecretKey = "openai_transcribe_key" | DbSecretKey | ProviderSecretKey;
-/** AI の API キー（Q13）と、Codex の Sign in with ChatGPT で受け取った鍵（Q12）。どちらも暗号化して置く */
-export type ProviderSecretKey = `provider_api_key:${ProviderId}` | "codex_chatgpt_tokens";
+/** AI の API キー（Q13）。暗号化して置く */
+type ProviderSecretKey = `provider_api_key:${ProviderId}`;
 /** DB の接続のパスワード（接続を消したら、表のトリガーで消える） */
 export type DbSecretKey = `db_connection:${number}:password` | `db_connection:${number}:ai_password` | `db_connection:${number}:ssh_password`;
 

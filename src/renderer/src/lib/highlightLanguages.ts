@@ -1,7 +1,7 @@
 // コードの色付け（Shiki）で色を付ける言語の名前の一覧。色付けのライブラリを読み込まずに使える（Worker に頼む前に、色を付けない言語を見分ける）
 
 /** 色を付ける言語（よく使うものだけ。言語の定義は Worker の中で使うときに読み込む。lib/highlightCore.ts） */
-export const HIGHLIGHT_LANGUAGES = [
+const HIGHLIGHT_LANGUAGES = [
   "typescript",
   "tsx",
   "javascript",

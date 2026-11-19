@@ -98,7 +98,7 @@ const attachmentBase = {
 };
 
 /** 添付（保存済みのファイル・メモの写し・「AI に渡す」で取ったもの） */
-export const attachmentSchema = z.discriminatedUnion("kind", [
+const attachmentSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("file"), ...attachmentBase }),
   z.object({ kind: z.literal("memo"), ...attachmentBase, memo: memoPathSchema, taken_at: z.string().max(40) }),
   z.object({

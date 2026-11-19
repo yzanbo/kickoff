@@ -6,7 +6,7 @@ import type { Store } from "../db/store.js";
 import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";
 
 /** 系譜の 1 つ（親・祖先のチャット） */
-export interface ChatLineageEntry {
+interface ChatLineageEntry {
   id: number;
   title: string;
   /** Claude Code のセッション ID（まだ動いていなければ null） */
@@ -14,7 +14,7 @@ export interface ChatLineageEntry {
 }
 
 /** このチャットの子孫（子・孫…）の 1 つ */
-export interface ChatChildEntry extends ChatLineageEntry {
+interface ChatChildEntry extends ChatLineageEntry {
   /** このチャットから何段下か（1 = 子・2 = 孫） */
   depth: number;
   /** 親（子ならこのチャット、孫ならその親の子チャット）の ID */

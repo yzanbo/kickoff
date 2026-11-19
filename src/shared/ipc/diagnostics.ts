@@ -8,7 +8,7 @@ export type DiagnosticsState =
   | { state: "error"; message: string };
 
 /** 記録の要点（画面の印に出す。全体は保存したフォルダの summary.json） */
-export interface DiagnosticsDigest {
+interface DiagnosticsDigest {
   /** 画面の要素の数 */
   domNodes: number;
   /** JavaScript のメモリ（MB） */

@@ -47,15 +47,15 @@
       "brokenRefs": 5
     },
     "src/core/chat/CLAUDE.md": {
-      "bytes": 126753,
-      "ancestors": 348454,
+      "bytes": 126725,
+      "ancestors": 348426,
       "longLines": 67,
       "forbidden": 41,
       "brokenRefs": 0
     },
     "src/core/providers/CLAUDE.md": {
-      "bytes": 68537,
-      "ancestors": 290238,
+      "bytes": 68488,
+      "ancestors": 290189,
       "longLines": 42,
       "forbidden": 29,
       "brokenRefs": 3
@@ -166,8 +166,8 @@
       "brokenRefs": 0
     },
     "src/renderer/src/features/settings/CLAUDE.md": {
-      "bytes": 31346,
-      "ancestors": 119154,
+      "bytes": 31333,
+      "ancestors": 119141,
       "longLines": 17,
       "forbidden": 31,
       "brokenRefs": 1
@@ -458,7 +458,6 @@
     "src/renderer/src/features/chat/timeline/StreamingReply.tsx": 2,
     "src/renderer/src/features/chat/timeline/Timeline.tsx": 3,
     "src/renderer/src/features/chat/timeline/TurnEnd.tsx": 2,
-    "src/renderer/src/features/chat/timeline/estimateReport.ts": 2,
     "src/renderer/src/features/chat/timeline/rowEstimate.ts": 2,
     "src/renderer/src/features/chat/timeline/timelineScroll.ts": 1,
     "src/renderer/src/features/chat/timeline/timelineView.ts": 2,

@@ -68,7 +68,7 @@ function findIn(command: string, depth: number): string | null {
 }
 
 /** 断るときに AI に返す文 */
-export function compileCacheDeniedReason(what: string): string {
+function compileCacheDeniedReason(what: string): string {
   return `Kickoff では、環境変数 NODE_COMPILE_CACHE / NODE_COMPILE_CACHE_PORTABLE を設定するコマンド（${what}）は流せません。この環境変数を付けて Kickoff を起動すると、Kickoff のコードより先にその場所のコンパイルキャッシュが読まれ、Kickoff の起動に別のコードを差し込める穴があるためです。どうしても要るなら、利用者に自分のターミナルで流してもらってください`;
 }
 

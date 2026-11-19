@@ -23,7 +23,7 @@ export function guessEnvironment(fileName: string, engine: DbEngine, host: strin
 }
 
 /** 分からない外のホストを本番にしたときの注意 */
-export const REMOTE_AS_PRODUCTION = "外のホストなので、本番として取り込みます（取り込む前に変えられます）";
+const REMOTE_AS_PRODUCTION = "外のホストなので、本番として取り込みます（取り込む前に変えられます）";
 
 /** 名前の案（接続の名前の上限で切る） */
 export const candidateName = (main: string, where: string) => `${main}（${where}）`.slice(0, DB_CONNECTION_NAME_MAX);

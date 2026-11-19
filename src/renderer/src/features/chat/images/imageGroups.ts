@@ -28,7 +28,7 @@ export function hostGroupOf(sources: readonly string[], self: { url: string; hos
 }
 
 /** カーソルを当てたときに並べる URL の数 */
-export const TIP_URLS = 5;
+const TIP_URLS = 5;
 
 /** カーソルを当てたときの説明（初めの数件と、多ければ「ほか n 件」） */
 export function urlsTip(urls: readonly string[]): string {

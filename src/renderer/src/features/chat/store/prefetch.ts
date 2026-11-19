@@ -5,7 +5,7 @@
 /** 待たせておく数（パネルの表のタブに近い 5 件と同じ） */
 export const PREFETCH_QUEUE = 5;
 /** 手すきを待つ長さの上限（来なければこの時間で始める） */
-export const PREFETCH_IDLE_MS = 2000;
+const PREFETCH_IDLE_MS = 2000;
 /** 見ているチャットの読み込み中に、次に確かめるまで待つ長さ */
 export const PREFETCH_RETRY_MS = 300;
 

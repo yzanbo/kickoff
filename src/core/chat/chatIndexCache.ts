@@ -3,7 +3,7 @@ import { selectIndexIds, slimIndexEvent, type ChatEventMeta, type IndexContext, 
 import type { Store } from "../db/store.js";
 
 /** 索引を覚えておくチャットの数（最後に読んだ順。記録の多いチャットは軽い形だけで数 MB になるので、少しだけ） */
-export const INDEX_CACHE_CHATS = 6;
+const INDEX_CACHE_CHATS = 6;
 
 /** 1 つのチャットの覚え */
 interface Entry {

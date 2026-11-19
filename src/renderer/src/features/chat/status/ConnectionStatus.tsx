@@ -19,7 +19,7 @@ export function RetryLabel({ retry, agents = 0 }: { retry: ApiRetryInfo; agents?
 }
 
 /** つながるのを待っている間の文（通信で止まったサブエージェントがあれば、それも続きから再開することを添える） */
-export function reconnectLabel(reconnect: ReconnectState): string {
+function reconnectLabel(reconnect: ReconnectState): string {
   const base =
     reconnect.attempts === 0
       ? "通信が切れて止まりました。つながったら自動で再開します"

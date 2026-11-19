@@ -39,7 +39,7 @@ export type GitStatus =
     };
 
 /** 途中で止まることのある Git の操作（衝突したときに、取りやめる・続けるを選んでもらう） */
-export const GIT_OPERATIONS = ["merge", "rebase", "cherry-pick", "revert"] as const;
+const GIT_OPERATIONS = ["merge", "rebase", "cherry-pick", "revert"] as const;
 export type GitOperation = (typeof GIT_OPERATIONS)[number];
 export const GIT_OPERATION_LABELS: Record<GitOperation, string> = {
   merge: "マージ",
@@ -124,7 +124,7 @@ export interface ProjectSearchResult {
 }
 
 /** 置換する行（検索の結果の行。text は結果の行の文で、いまの行と違えば置換しない） */
-export interface ReplaceLine {
+interface ReplaceLine {
   line: number;
   text: string;
 }

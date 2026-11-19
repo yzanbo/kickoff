@@ -2,7 +2,7 @@ import type { ModelOption, ProviderId } from "@shared/types";
 import type { AgentProvider } from "./types.js";
 
 /** モデルの一覧を覚えておく時間（取るのに 1 秒ほどかかるので 1 時間はとっておく。空の結果は覚えない） */
-export const MODEL_CATALOG_TTL_MS = 60 * 60_000;
+const MODEL_CATALOG_TTL_MS = 60 * 60_000;
 
 const cached = new WeakMap<AgentProvider, { at: number; models: ModelOption[] }>();
 

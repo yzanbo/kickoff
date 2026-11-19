@@ -14,7 +14,7 @@ const MIN_CHARS_PER_SECOND = 90;
 /** 出たばかりの文字を薄く出す時間（この間に、段ごとに濃くなる） */
 export const REVEAL_FADE_MS = 300;
 /** 薄く出す段の数（新しいほど薄い。CSS の `.stream-fade-1` 〜 `.stream-fade-3`） */
-export const REVEAL_BANDS = 3;
+const REVEAL_BANDS = 3;
 
 /** shown 文字まで出しているとき、dt ミリ秒後に何文字まで出すか（target を超えない。サロゲートペアの途中では切らない） */
 export function nextRevealLength(text: string, shown: number, dtMs: number): number {

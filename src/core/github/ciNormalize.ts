@@ -27,7 +27,7 @@ export function ciStateOf(status: unknown, conclusion: unknown): CiState {
 }
 
 /** commit status の state（error / failure / pending / success）を状態にする */
-export function commitStatusState(state: unknown): CiState {
+function commitStatusState(state: unknown): CiState {
   if (state === "success") return "success";
   if (state === "failure" || state === "error") return "failure";
   return "pending";

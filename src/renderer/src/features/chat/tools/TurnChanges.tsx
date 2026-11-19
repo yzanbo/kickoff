@@ -9,7 +9,7 @@ import { useTimelineOpen } from "@/features/chat/timeline/timelineView";
 import type { FileChange } from "./turnFileChanges";
 
 /** 足した行・消した行（＋12 −3）。書き直しは消した行が分からないので足した行だけ（メモの AI の案の差分でも使う） */
-export function ChangeCounts({ added, removed }: { added: number; removed: number }) {
+function ChangeCounts({ added, removed }: { added: number; removed: number }) {
   return (
     <span className="turn-change-counts">
       {added > 0 && <span className="turn-change-add">+{added}</span>}

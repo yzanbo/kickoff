@@ -16,7 +16,7 @@ const STALE_INBOX_MS = 60 * 60 * 1000;
 const MEASURE_MAX_ENTRIES = 500_000;
 
 /** 置き場のフォルダの中で、中身を置くフォルダの名前 */
-export const TRASH_ITEM_DIR = "item";
+const TRASH_ITEM_DIR = "item";
 
 /** 一緒に入れたもの（会話記録と同じ名前のフォルダ = サブエージェントの記録など）を置くフォルダの名前。戻すときは元の場所へ戻す（覚え書きの details.companions） */
 const TRASH_COMPANION_DIR = "with";

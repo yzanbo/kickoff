@@ -59,7 +59,7 @@ export function StateColumn({
  * いちばん左の「下書き」の列（まだ送っていない新しいチャット。AI はまだ何もしていない）。
  * 新しいチャットは見出しの「新規」から始めるので、列に＋は置かない。showProject: 下書きにプロジェクトのバッジを付ける（全プロジェクトのボード）
  */
-export function DraftColumn({ drafts, list = false, showProject = false }: { drafts: readonly PanelDraft[]; list?: boolean; showProject?: boolean }) {
+function DraftColumn({ drafts, list = false, showProject = false }: { drafts: readonly PanelDraft[]; list?: boolean; showProject?: boolean }) {
   const body = (
     <>
       <DraftCards drafts={drafts} showProject={showProject} />

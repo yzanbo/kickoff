@@ -8,7 +8,7 @@ import { cursorExtension } from "./extensions.js";
  * 環境変数 CURSOR_API_KEY だけなので、`ps` で見える引数を避けて環境変数で渡す（Cursor がそれを AI のコマンドの環境から外すかは、使い始める前に確かめる）。
  * MCP は Cursor の説明では `.cursor/mcp.json` のものだけとあり、初期化の答えで http を受けると言わなければ AI の操作ツールは渡さない（acp/config.ts の mcpServersFor）
  */
-export const CURSOR_SPEC: AcpProviderSpec = {
+const CURSOR_SPEC: AcpProviderSpec = {
   id: "cursor",
   label: PROVIDER_LABELS.cursor,
   command: "agent",

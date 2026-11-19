@@ -10,7 +10,7 @@ const ITEM_COMMON = `number title state url createdAt updatedAt closedAt
   comments { totalCount }`;
 
 /** 一覧の 1 件（issue と PR） */
-export const ITEM_FIELDS = `
+const ITEM_FIELDS = `
   __typename
   ... on Issue { ${ITEM_COMMON} stateReason }
   ... on PullRequest { ${ITEM_COMMON} isDraft reviewDecision headRefName baseRefName
@@ -91,7 +91,7 @@ const PR_EVENT_FIELDS = `
 const VIEWER_CAN = "viewerCanClose viewerCanReopen viewerCanLabel";
 
 /** 出来事を読む 1 回の数（3 回まで続きを読む） */
-export const TIMELINE_PAGE = 100;
+const TIMELINE_PAGE = 100;
 export const TIMELINE_MAX_PAGES = 3;
 
 const timeline = (types: string[], fields: string) =>

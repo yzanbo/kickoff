@@ -14,8 +14,8 @@ export interface TextInput {
 }
 
 /** 承認を聞く決まり（Kickoff は on-request にして、守りは PreToolUse のフックで当てる。メモの仕様書「0028」の F1） */
-export type AskForApproval = "untrusted" | "on-request" | "never";
-export type SandboxMode = "read-only" | "workspace-write" | "danger-full-access";
+type AskForApproval = "untrusted" | "on-request" | "never";
+type SandboxMode = "read-only" | "workspace-write" | "danger-full-access";
 export type SandboxPolicy =
   | { type: "dangerFullAccess" }
   | { type: "readOnly"; networkAccess: boolean }
@@ -67,7 +67,7 @@ export interface TurnSteerParams {
   expectedTurnId: string;
 }
 
-export type TurnStatus = "completed" | "interrupted" | "failed" | "inProgress";
+type TurnStatus = "completed" | "interrupted" | "failed" | "inProgress";
 
 /** 失敗の種類（文字か、HTTP の状態を持つ形）。通信の切断・使用枠の上限の見分けに使う */
 export type CodexErrorInfo = string | Record<string, { httpStatusCode?: number | null } | null>;
@@ -110,7 +110,7 @@ export type ThreadItem = { startedAtMs?: number | null; completedAtMs?: number |
   | { type: string; id: string }
 );
 
-export interface TokenUsageBreakdown {
+interface TokenUsageBreakdown {
   totalTokens: number;
   inputTokens: number;
   outputTokens: number;
@@ -147,7 +147,7 @@ export interface PermissionsApprovalParams {
   reason: string | null;
   permissions: { network: { enabled: boolean | null } | null; fileSystem: { read: string[] | null; write: string[] | null } | null };
 }
-export interface UserInputQuestion {
+interface UserInputQuestion {
   id: string;
   header: string;
   question: string;
@@ -176,7 +176,7 @@ export interface RateLimitWindow {
   resetsAt: number | null;
 }
 /** クレジット（上限を超えたあとに引く。残りは数の文字） */
-export interface CreditsSnapshot {
+interface CreditsSnapshot {
   hasCredits: boolean;
   unlimited: boolean;
   balance: string | null;

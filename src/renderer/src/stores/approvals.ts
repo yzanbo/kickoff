@@ -8,7 +8,7 @@ import { useStore } from "./useStore";
 const NO_APPROVALS: Approval[] = Object.freeze([]) as unknown as Approval[];
 
 /** 知らせで一覧を直す（同じ依頼は 1 つだけ。関係なければ同じ一覧） */
-export function reduceApprovals(list: Approval[], event: BusEvent): Approval[] {
+function reduceApprovals(list: Approval[], event: BusEvent): Approval[] {
   if (event.type === "approval") return [...list.filter((a) => a.id !== event.approval.id), event.approval];
   if (event.type === "approval_resolved" && list.some((a) => a.id === event.id)) return list.filter((a) => a.id !== event.id);
   return list;

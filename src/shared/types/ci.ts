@@ -4,7 +4,7 @@
  * 実行・ジョブ・ステップ・外の CI の状態（GitHub の status / conclusion を 1 つにしたもの）。
  * pending = 待っている・動いている / success / failure（時間切れ・起動の失敗も） / cancelled / skipped / neutral
  */
-export const CI_STATES = ["pending", "success", "failure", "cancelled", "skipped", "neutral"] as const;
+const CI_STATES = ["pending", "success", "failure", "cancelled", "skipped", "neutral"] as const;
 export type CiState = (typeof CI_STATES)[number];
 export const CI_STATE_LABELS: Record<CiState, string> = {
   pending: "実行中",

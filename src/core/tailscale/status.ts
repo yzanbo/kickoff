@@ -12,7 +12,7 @@ const TAILSCALE_TIMEOUT_MS = 5_000;
  * Serve で出す HTTPS のポート: 製品版は 443（URL にポートが付かない）、開発版などほかのポートは 8443
  * （同じ Mac で製品版を 443 で出していても上書きしない。Serve は HTTPS のポートごとに 1 つの行き先）
  */
-export const serveHttpsPort = (port: number) => (port === APP_ENVS.production.port ? 443 : 8443);
+const serveHttpsPort = (port: number) => (port === APP_ENVS.production.port ? 443 : 8443);
 
 /** Serve を始めるコマンド（この本体のポートへ。--bg で裏に残し、Mac を起動し直しても続く） */
 export const serveCommand = (cli: string, port: number) => `${cli.includes(" ") ? `"${cli}"` : cli} serve --bg --https=${serveHttpsPort(port)} http://127.0.0.1:${port}`;

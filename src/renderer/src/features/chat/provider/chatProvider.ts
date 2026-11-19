@@ -11,7 +11,7 @@ import { nextForegroundChat, type ForegroundChat } from "./foregroundChat";
 export const ChatProviderContext = createContext<ProviderId>("claude");
 
 /** いまの部品のチャットの AI */
-export const useChatProviderId = (): ProviderId => useContext(ChatProviderContext);
+const useChatProviderId = (): ProviderId => useContext(ChatProviderContext);
 
 /** AI の状態（入れる側が 1 回だけ読み込みを頼む。中の部品は active: false で読むだけ） */
 export function useProviderStatus(id: ProviderId, { load = false }: { load?: boolean } = {}): ProviderStatus | undefined {

@@ -31,7 +31,7 @@ function watchPresses() {
  * キーをこのチャット（root）で受け取るか: ピントがこのチャットの中にある、または pressed のときは、どこにもピントがなく最後に押したのがこのチャット。
  * 隠れているタブ・閉じたパネルのチャットでは受け取らない
  */
-export function isChatTarget(root: HTMLElement | null, pressed = false): boolean {
+function isChatTarget(root: HTMLElement | null, pressed = false): boolean {
   if (!root || !root.offsetParent || root.closest("[inert]")) return false;
   const active = document.activeElement;
   if (root.contains(active)) return !inNestedPanel(root, active);

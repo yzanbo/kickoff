@@ -23,7 +23,7 @@ import { defaultResumeChoice, resumeActionsFor, resumeChoiceLabel, resumeChoiceT
 const OPEN_RESTART_RESUMES_EVENT = "kickoff:open-restart-resumes";
 
 /** 起動したときの再開の確かめのダイアログを開き直す */
-export function openRestartResumes() {
+function openRestartResumes() {
   window.dispatchEvent(new Event(OPEN_RESTART_RESUMES_EVENT));
 }
 

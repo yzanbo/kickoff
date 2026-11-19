@@ -14,7 +14,7 @@ import { workdirOf } from "./workdir.js";
 import type { WorkplaceMovePlan } from "./workplaceReservation.js";
 import { runningTerminals, workplaceMoveBlocked } from "./workplaceUserMove.js";
 
-export interface AiWorkplaceMoveInput {
+interface AiWorkplaceMoveInput {
   to: AiWorkplaceTarget;
   /** いまあるワークツリー（ブランチの名前かフォルダ。to が worktree のとき） */
   worktree?: string;
@@ -27,7 +27,7 @@ export interface AiWorkplaceMoveInput {
 }
 
 /** 持っていく変更の承認を聞く（許したら true） */
-export type AskCarry = (request: { label: string; files: string[] }) => Promise<boolean>;
+type AskCarry = (request: { label: string; files: string[] }) => Promise<boolean>;
 
 /** 作業場所を移す予約のツールの中身（できたら AI に返す文。できなければ理由の文で throw） */
 export interface AiWorkplaceTools {

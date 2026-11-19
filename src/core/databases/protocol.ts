@@ -75,7 +75,7 @@ export interface ChildProcessEvent {
 }
 
 /** ワーカーから知らせる、流したコマンドの結果（コアが準備の記録に残す。出力は送らない） */
-export interface PrepRunEvent {
+interface PrepRunEvent {
   event: "prep_run";
   connection_id: number;
   kind: DbPrepKind;

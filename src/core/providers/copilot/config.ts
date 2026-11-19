@@ -9,7 +9,7 @@ import type { ProviderTurnParams } from "../types.js";
  */
 
 /** MCP のツールの待ち時間（ミリ秒。承認を待つツールのため長く。Claude Code の MCP_TOOL_TIMEOUT と同じ 7 日） */
-export const COPILOT_MCP_TOOL_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000;
+const COPILOT_MCP_TOOL_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Copilot のランタイムが自分のログインに使う環境変数。ランタイムの環境に入っていると、Copilot のログインの代わりにそれで動く

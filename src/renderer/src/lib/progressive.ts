@@ -4,9 +4,9 @@
 // キーでの移動・範囲の選択・ドラッグの前は ensureAll ですぐにそろえる。
 
 /** いちばん低い行（1 行で出すサイドバーの行は約 28px）より少し低い高さ。最初に描く行の数をこれで決める（低い行でも画面を埋めるように） */
-export const ROW_MIN_PX = 24;
+const ROW_MIN_PX = 24;
 /** 最初に描く行に足す余り（スクロールし始めてすぐに見える分） */
-export const ROW_BUFFER = 8;
+const ROW_BUFFER = 8;
 
 /** 最初に描く行の数（ページ全体で 1 つの上限。窓の高さ 880px で 45 行） */
 export function firstRowLimit(viewportHeight: number): number {

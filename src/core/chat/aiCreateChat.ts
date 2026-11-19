@@ -46,7 +46,7 @@ export interface AiCreateChatRequest {
 export type AiCreateChatDecision = { action: "allow" } | { action: "allow_always" } | { action: "deny"; message: string | null };
 
 /** AI がツールに渡す引数 */
-export interface AiCreateChatInput {
+interface AiCreateChatInput {
   relation: AiChatRelation;
   text: string;
   title?: string;

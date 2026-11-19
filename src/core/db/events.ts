@@ -241,17 +241,6 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
         "INSERT INTO chat_events (chat_id, type, data, created_at) SELECT ?, type, data, created_at FROM chat_events WHERE chat_id = ? AND id <= ? ORDER BY id",
       ).run(toChatId, fromChatId, upToEventId);
     },
-    /** チャットの記録に出てくる Claude Code などのセッション ID（動かし始めの init と作業の終わり result。分岐で写した記録の分も含む） */
-    sessionIds(chatIds: number[]): string[] {
-      if (chatIds.length === 0) return [];
-      const rows = db
-        .prepare(
-          `SELECT DISTINCT json_extract(data, '$.session_id') AS sid FROM chat_events
-           WHERE chat_id IN (${chatIds.map(() => "?").join(", ")}) AND type IN ('init', 'result', 'workplace_moved') AND json_extract(data, '$.session_id') IS NOT NULL`,
-        )
-        .all(...chatIds) as { sid: string }[];
-      return rows.map((r) => r.sid);
-    },
     /** AI 別にセッションを片付けるための最小の記録。切り替えの順序とセッション ID だけを読む。 */
     sessionRecords(chatId: number): ChatEvent[] {
       const rows = db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events

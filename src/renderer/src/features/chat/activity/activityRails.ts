@@ -2,7 +2,7 @@
 import type { ActivityRow } from "./activityRows";
 
 /** 1 行の中の縦の線（top = 行の上の端から、node = 節（行の 1 行目の高さ）から / bottom = 行の下の端まで、node = 節まで） */
-export interface RailSegment {
+interface RailSegment {
   col: number;
   /** 線の持ち主（メイン = null、サブエージェント = 一覧の行のキー。色を決める） */
   agent: string | null;

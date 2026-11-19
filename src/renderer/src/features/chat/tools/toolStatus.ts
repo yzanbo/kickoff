@@ -3,7 +3,7 @@ import type { BackgroundState } from "@shared/types";
 import type { ToolCall } from "@/features/chat/timeline/timelineItems";
 
 /** running = 実行中 / done = 完了 / failed = 失敗 / stopped = 結果が届かないまま終わった（中断） */
-export const TOOL_STATUSES = ["running", "done", "failed", "stopped"] as const;
+const TOOL_STATUSES = ["running", "done", "failed", "stopped"] as const;
 export type ToolStatus = (typeof TOOL_STATUSES)[number];
 
 export const TOOL_STATUS_LABELS: Record<ToolStatus, string> = {

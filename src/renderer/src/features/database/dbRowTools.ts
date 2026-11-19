@@ -4,7 +4,7 @@ import { dbImageType, isDbBinary, isDbLongText } from "@shared/database/dbValue"
 import { EMPTY_TEXT_LABEL } from "./dbFormat";
 
 /** 絞り込みの値にする文（NULL は null、バイナリ・頭だけの長い文字は絞れないので undefined） */
-export function filterValueOf(value: DbValue): string | null | undefined {
+function filterValueOf(value: DbValue): string | null | undefined {
   if (value === null) return null;
   if (typeof value === "object") return undefined;
   return String(value);

@@ -5,7 +5,7 @@ import path from "node:path";
 import { TRASH_COMMAND } from "../chat/guard/deleteGuard.js";
 
 /** コマンドの中身（sh）。置き場は KICKOFF_TRASH_DIR、消したチャットは KICKOFF_CHAT_ID（どちらも Kickoff がチャットに渡す） */
-export const TRASH_COMMAND_SCRIPT = `#!/bin/sh
+const TRASH_COMMAND_SCRIPT = `#!/bin/sh
 # Kickoff のゴミ箱に入れる（rm の代わり。Kickoff が置いたもの。3 日は利用者が元に戻せる）
 # 使い方: ${TRASH_COMMAND} <パス>…（rm の -r・-f などの印は読み飛ばす。- で始まる名前は -- のあとに書く）
 dir="\${KICKOFF_TRASH_DIR:-}"

@@ -105,7 +105,7 @@ function describeTab(tab: PanelTab): UserViewTab {
 }
 
 /** 見ているプロジェクト（全プロジェクトの画面なら null） */
-export function projectOfRoute(route: Route): number | null {
+function projectOfRoute(route: Route): number | null {
   if (route.name === "project") return route.id;
   if (route.name === "chat" || route.name === "newChat") return route.projectId;
   return null;

@@ -5,7 +5,7 @@ import { CommandError, findExecutable, runCommand, searchDirs } from "../system/
 import { streamCommand, type StreamOptions, type StreamedCommand } from "../system/stream.js";
 
 /** docker の実行ファイル（PATH・Homebrew に加えて OrbStack の場所も探す。見つからなければ null） */
-export function findDocker(): string | null {
+function findDocker(): string | null {
   return findExecutable(["docker"], [...searchDirs(), path.join(os.homedir(), ".orbstack", "bin"), "/Applications/Docker.app/Contents/Resources/bin"]);
 }
 
@@ -15,7 +15,7 @@ export function findOrb(): string | null {
 }
 
 /** docker に渡す環境（ヒントの文を出させない） */
-export const dockerEnv = (extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv => ({ ...process.env, DOCKER_CLI_HINTS: "false", ...extra });
+const dockerEnv = (extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv => ({ ...process.env, DOCKER_CLI_HINTS: "false", ...extra });
 
 /** docker を呼ぶ口（テストでは偽の docker のパスを渡す） */
 export class DockerCli {

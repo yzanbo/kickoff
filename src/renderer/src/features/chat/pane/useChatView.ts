@@ -160,5 +160,5 @@ export function useChatView({ chat, project, focus, onOpenNew, beforeSend }: Cha
     if (pane.state.get().retry !== retry) pane.state.set({ ...pane.state.get(), retry });
   }, [pane, retry]);
 
-  return { log, approvals, options, busy, live, subagents, subagentsView, items, prompts, rel, timeline, send };
+  return { log, approvals, options, busy, live, subagents, subagentsView, prompts, rel, timeline, send };
 }

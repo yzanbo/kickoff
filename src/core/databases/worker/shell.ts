@@ -45,7 +45,7 @@ export function killTree(pid: number | undefined) {
   }
 }
 
-export interface ShellResult {
+interface ShellResult {
   ok: boolean;
   /** 標準出力（パスワードを取るコマンドはこれを使う） */
   stdout: string;

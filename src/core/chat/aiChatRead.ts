@@ -30,7 +30,7 @@ export interface AiChatReadDeps {
 const nameOf = (title: string) => title.trim() || "（名前なし）";
 
 /** チャットの状態の言葉（回答待ち → 作業中 → 失敗 → 止めた → 終わった。画面の状態と同じ順） */
-export function chatStateText(chat: Chat, waiting: boolean): string {
+function chatStateText(chat: Chat, waiting: boolean): string {
   if (waiting) return "回答待ち";
   if (chat.status === "running") return "作業中";
   if (chat.status === "failed") return "失敗";

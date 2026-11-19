@@ -8,7 +8,7 @@ import type { StdioProcess, StdioSpawn } from "../providers/stdioRpc.js";
 
 type Handler = (params: any, server: FakeStdioServer) => unknown | Promise<unknown>;
 
-export interface FakeStdioServer {
+interface FakeStdioServer {
   spawn: StdioSpawn;
   /** 起動した回（引数・環境変数・作業フォルダ） */
   spawned: { args: string[]; env: Record<string, string | undefined>; cwd: string }[];
