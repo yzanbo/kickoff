@@ -27,3 +27,4 @@
 - ネットワークは絞らず `networkRelay.ts` の中継を使わせる（`startCore` が起こし `close` で止める）。
 - `writeScope` は参照資料・Kickoff の保存先・見せない DB に口を出さず、そちらの守りに任せる（カードを出さない）。
 - `deleteGuard` は `ExecutionDeps.trashCommand` があるときだけ付け、`trashCommandEnv` で PATH に kickoff-trash を入れる。
+- 砂場の拒否の診断（`core/chatDiagnosticTools.ts`）は生の本文・パス・コマンドラインとほかのチャットのログを返さない。砂場の設定は変えない。

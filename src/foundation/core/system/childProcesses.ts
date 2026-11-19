@@ -2,7 +2,14 @@
 // コアが落ちると子は launchd に引き取られて親子の表からたどれず、DB ワーカーの子の pid はコアのメモリにしかないので、
 // メインプロセスが覚えておき、作り直す前に止める。
 // 知らせる先はコアのプロセスの入口（host/run.ts）が startCore({ onChildProcess }) で渡す。単体のコア・テストでは誰も受けない
-import type { ChildProcessNote } from "@/foundation/core/host/protocol";
+
+/** コアが起こした子プロセス（コアが落ちたときにメインが止める。group はプロセスグループの頭か） */
+export interface ChildProcessNote {
+  pid: number;
+  group: boolean;
+  kind: "agent" | "dbWorkerChild";
+  state: "started" | "exited";
+}
 
 let reporter: ((note: ChildProcessNote) => void) | null = null;
 

@@ -1,10 +1,10 @@
 // コアのプロセス（utilityProcess）の見張り役: 起動して ready を待ち、RPC をつなぎ、落ちたら子を止めてから作り直し、応答しなければ知らせ、終わらせる。
-// コアは HTTP・SSE・WebSocket・SQLite・エージェント・ターミナル・MCP サーバーを持ち、メインは窓・OS の口・仲立ちだけを持つ
-// （メインの JavaScript の糸は画面の入力の道でもあるので、コアの重さを乗せない）
+// コアは HTTP・SSE・WebSocket・SQLite・エージェント・ターミナル・MCP サーバーを持ち、メインは窓・OS の口・仲立ちだけを持つ（メインの JavaScript の糸は画面の入力の道でもあるので、コアの重さを乗せない）
 import { MessageChannelMain, utilityProcess, type MessagePortMain, type UtilityProcess } from "electron";
 import { errorMessage } from "@shared/foundation/errors";
 import type { CoreState } from "@shared/foundation/ipc";
-import type { AwakeNeeds, ChildProcessNote, CoreEvents, CoreInit, CoreMethods, CoreReady, HostEvents, HostMethods, HostToCore, RecoveredReason } from "@/foundation/core/host/protocol";
+import type { AwakeNeeds, CoreEvents, CoreInit, CoreMethods, CoreReady, HostEvents, HostMethods, HostToCore, RecoveredReason } from "@/foundation/core/host/protocol";
+import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import { rpcTimeoutOf } from "@/foundation/core/host/protocol";
 import type { RpcPort } from "@/foundation/core/host/ports";
 import type { CoreRpc } from "@/app/core/hostRemote";

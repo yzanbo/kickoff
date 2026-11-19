@@ -1,25 +1,19 @@
-import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { loadOrCreateToken } from "@/foundation/core/http/auth";
-import { Bus } from "@/foundation/core/bus";
-import { systemClock } from "@/foundation/core/clock";
+import { closeKernel, createKernel } from "@/foundation/core/kernel";
 import { chatDeltaStage } from "@/features/chat/core/deltaStage";
 import { startHttpServer, stopHttpServer } from "@/foundation/core/http/httpServer";
 import { createProviders } from "@/features/ai/core/providers/index";
 import { currentSelf } from "@/features/guard/core/guard/selfProtection";
-import type { HostPlatform } from "@/foundation/core/platform/types";
-import type { CorePlatformParts } from "./platform";
+import type { Core, CoreOptions } from "./types";
 import { PairingCenter } from "@/features/devices/core/pairing";
-import { NotificationCenter, type DesktopNotify, type PushSender } from "@/features/notifications/core/center";
+import { NotificationCenter } from "@/features/notifications/core/center";
 import { expoPushSender } from "@/features/devices/core/push";
 import { ViewingRegistry } from "@/features/notifications/core/viewing";
 import { BrowserLogin } from "@/foundation/core/http/browserLogin";
 import { createApp } from "@/foundation/core/http/server";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
 import { ProviderKeyVault } from "@/features/ai/core/providers/keys";
-import { Store } from "@/foundation/core/db/store";
-import { DB_FILE } from "@/foundation/core/db/open";
 import { CodexCreditsWatch } from "@/features/ai/core/usage/codexCredits";
 import { ServiceUsageMonitor } from "@/features/ai/core/usage/services/index";
 import { UsageMonitor } from "@/features/ai/core/usage/planUsage";
@@ -49,15 +43,13 @@ import { UserViewRegistry } from "@/features/userView/core/registry";
 import { registerChatTrash, trashNoteChats, trashNoteChatsOnImport } from "@/features/chat/core/sessions/chatTrash";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import { defaultNotesDir } from "@/features/notes/core/defaultDir";
-import type { DatabaseStats } from "@/foundation/core/db/stats";
-import type { BrowserControl } from "@shared/browser/control";
 import { TerminalSessions } from "@/features/terminal/core/sessions";
-import { DbWorkerClient, forkWorker, type WorkerChannel } from "@/features/database/core/client";
+import { DbWorkerClient, forkWorker } from "@/features/database/core/client";
 import { DatabaseService } from "@/features/database/core/service";
 import { GitHubService } from "@/features/github/core/service";
 import { CiService } from "@/features/github/core/ci";
 import { devWorkerEntry } from "@/features/database/core/entry";
-import { DbSecretVault, type SecretCipher } from "@/features/database/core/secrets";
+import { DbSecretVault } from "@/features/database/core/secrets";
 import { stopAllStreams } from "@/foundation/core/system/stream";
 import { DockerService } from "@/features/docker/core/service";
 import { WorktreeEnvService } from "@/features/worktrees/core/env/service";
@@ -65,39 +57,8 @@ import { PortProcessService } from "@/features/ports/core/service";
 import { PortWatch } from "@/features/ports/core/watch";
 import { startNetworkRelay } from "@/features/guard/core/sandbox/networkRelay";
 import type { BashSandboxDeps } from "@/features/guard/core/sandbox/bashSandbox";
-import { setChildProcessReporter } from "@/foundation/core/system/childProcesses";
-import type { ChildProcessNote, RecoveredReason } from "@/foundation/core/host/protocol";
+import type { RecoveredReason } from "@/foundation/core/host/protocol";
 
-export interface CoreOptions {
-  dataDir: string;
-  port: number;
-  /** 127.0.0.1 なら Mac 内からのみ、0.0.0.0 なら LAN にも公開 */
-  host?: string;
-  staticDir?: string;
-  /** 埋め込みブラウザの操作（デスクトップアプリのメインプロセスが渡す。AI がブラウザのタブを見る・操作するツールに使う） */
-  browser?: BrowserControl;
-  /** 内蔵ターミナルのシェルに足す環境変数（どちらの Kickoff のターミナルか = KICKOFF_TERMINAL_OF。メインプロセス・daemon が渡す） */
-  terminalEnv?: Record<string, string>;
-  /** OS ごとに違う処理（機能に依らない口 = macosPlatform と、機能だけが使う値 = ./platform.ts の macosParts。コアのプロセス・daemon が作って渡す） */
-  platform: HostPlatform;
-  platformParts: CorePlatformParts;
-  /** DB ワーカーを起動してつなぐ（Electron のアプリはメインが utilityProcess で out/main/dbWorker.js を起動する。渡さなければソースの worker/main.ts を node ＋ tsx で fork） */
-  dbWorker?: () => WorkerChannel;
-  /** DB のパスワードの暗号化（Electron の safeStorage。渡さなければ、暗号化せずに置く） */
-  secretCipher?: SecretCipher;
-  /** この Mac の通知を出す口（Mac のアプリのメインプロセスが渡す。出すかはコアが決める = notifications/center.ts。単体のコアにはない） */
-  notify?: DesktopNotify;
-  /** スマホのプッシュを送る口（省けば Expo Push = notifications/expoPush.ts。Web Push はまだ送らない） */
-  push?: PushSender;
-  /** Electron のメインプロセスの pid（コアのプロセスで動くとき。自分を守る仕組みとポートの一覧がメインも自分として扱う。省けば process.pid = 単体のコア・テスト） */
-  hostPid?: number;
-  /** 前のコアの終わり方（作業中のまま残ったチャットを中断にする文を選ぶ。省けばアプリの終了） */
-  recoveredReason?: RecoveredReason;
-  /** 起こした子プロセス（エージェントの CLI・DB ワーカーの子）の知らせ（コアのプロセスがメインへ送る。system/childProcesses.ts） */
-  onChildProcess?: (note: ChildProcessNote) => void;
-  /** 起動の段階（DB を開いた・待ち受けを始めた）の時刻を受ける（起動の時刻の記録） */
-  onStage?: (stage: "dbOpened" | "listening") => void;
-}
 
 /** 前のコアの終わり方ごとの、中断したチャットに残す文 */
 const RECOVERED_MESSAGES: Record<RecoveredReason, string> = {
@@ -105,41 +66,21 @@ const RECOVERED_MESSAGES: Record<RecoveredReason, string> = {
   crash: "Kickoff のコアが止まったため中断しました。メッセージを送ると続きから再開できます。",
 };
 
-export interface Core {
-  port: number;
-  token: string;
-  localUrl: string;
-  /** 変更の知らせ（性能の記録で、画面へ送った知らせ・つないでいる SSE を数える） */
-  bus: Bus;
-  /** 性能の記録（メインプロセスの診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
-  databaseStats(): DatabaseStats;
-  /** ブラウザからこの Mac の画面として入る、一度だけ使える URL（npm run daemon が端末に出す） */
-  browserLoginUrl(): string;
-  /** 作業中のチャット（送る準備・親の会話を写している途中も。メインプロセスが、終了してよいかを聞くダイアログに名前を並べる） */
-  runningChats(): { id: number; title: string | null }[];
-  /** 作業中のチャットの数と、スマホ連携がオンか（メインプロセスが本体を眠らせないかを決める。変わったら bus の chat / settings が届く） */
-  awakeNeeds(): { running: number; mobileEnabled: boolean };
-  /** 内蔵ターミナルのシェル（この Mac の画面が消えたら、その持ち主のシェルを止める。コアのプロセスの入口が RPC から呼ぶ） */
-  terminals: TerminalSessions;
-  close(): Promise<void>;
-}
 
 /** Kickoff のコア（DB・エージェント実行・HTTP API）を起動する。Electron にもヘッドレスにも依存しない */
 export async function startCore(opts: CoreOptions): Promise<Core> {
-  fs.mkdirSync(opts.dataDir, { recursive: true });
-  const bus = new Bus();
-  const deltas = chatDeltaStage(systemClock);
+  // 土台（保存先・Bus・DB・本体のトークン）。店の束とトークンは機能へ分けるまで Kernel から受ける
+  const k = createKernel({ dataDir: opts.dataDir, port: opts.port, host: opts.host, staticDir: opts.staticDir, platform: opts.platform, onChildProcess: opts.onChildProcess });
+  const { bus, store, token } = k;
+  const deltas = chatDeltaStage(k.clock);
   bus.use(deltas);
-  if (opts.onChildProcess) setChildProcessReporter(opts.onChildProcess);
-  const store = new Store(path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
   opts.onStage?.("dbOpened");
   // 前回の終了で作業の途中で止まったチャット（落ちて作業中のまま残ったものを失敗にし、終えるときに印を付けたものと一緒に返す）は、起動したときの再開の確かめで聞く
   const recovered = store.chats.recoverInterrupted(RECOVERED_MESSAGES[opts.recoveredReason ?? "quit"]);
-  if (recovered.length > 0) console.log(`[core] 前回の終了で作業の途中で止まったチャットが ${recovered.length} 件あります（起動したときの再開の確かめで聞きます）`);
+  if (recovered.length > 0) k.log.info(`前回の終了で作業の途中で止まったチャットが ${recovered.length} 件あります（起動したときの再開の確かめで聞きます）`);
   // そのうち最後の作業に終わりの記録がないもの（終える・落ちるときに書けなかった）に、終わりの記録と止まったサブエージェントのお知らせを足す
   endInterruptedTurns(store, recovered);
 
-  const token = loadOrCreateToken(opts.dataDir);
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
   // AI の API キー（DB のパスワードと同じくキーチェーンの鍵で暗号化して置く）
   const providerKeys = new ProviderKeyVault(store, opts.secretCipher ?? null);
@@ -191,10 +132,10 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // AI の rm の代わりの kickoff-trash を bin/ に置く（置けなければ守りも付けない。AI が消せなくなって止まらないように）
   const trashCommand = await installTrashCommand(path.join(opts.dataDir, "bin")).then(
     (file) => ({ path: file, dir: trashBin.dir }),
-    (e: unknown) => (console.warn(`[core] kickoff-trash を置けませんでした: ${errorMessage(e)}`), undefined),
+    (e: unknown) => (k.log.warn(`kickoff-trash を置けませんでした: ${errorMessage(e)}`), undefined),
   );
   // AI の Bash の砂場（書ける場所を作業場所・ノートのフォルダ・決まりの例外だけにする）。通信はどこへでも通す中継を通す（ネットワークは絞らない。起こせなければプロバイダーの中継のまま）
-  const relay = await startNetworkRelay().catch((e: unknown) => (console.warn(`[core] Bash の通信の中継を起こせませんでした: ${errorMessage(e)}`), null));
+  const relay = await startNetworkRelay().catch((e: unknown) => (k.log.warn(`Bash の通信の中継を起こせませんでした: ${errorMessage(e)}`), null));
   const bashSandbox: BashSandboxDeps = { rules: opts.platformParts.agentSandbox, proxyPort: relay?.port ?? null, trashDir: trashCommand ? trashCommand.dir : null };
   // 製品版と開発版は同じ ~/.claude/projects に会話記録を置く（開発版のデータは製品版から写す）ので、会話記録を片付ける前に、ほかの Kickoff が使っていないか確かめる
   const sessionsElsewhere = siblingSessionCheck(opts.dataDir, opts.platform.appDataRoot);
@@ -245,7 +186,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const viewing = new ViewingRegistry();
   const browserLogin = new BrowserLogin();
   const notifications = new NotificationCenter({ bus, store, viewing, desktop: opts.notify, push: opts.push ?? expoPushSender() });
-  const host = opts.host ?? "127.0.0.1";
+  const host = k.paths.host;
   const headWatch = new HeadWatch((project_id) => bus.publish({ type: "worktrees_changed", project_id }));
   const app = createApp({
     headWatch,
@@ -287,8 +228,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // ポートが使われているなどで待ち受けられなければ、開いた DB と中継を閉じてから伝える
   const server = await startHttpServer(app, { port: opts.port, host }).catch(async (e: unknown) => {
     await relay?.close();
-    store.close();
-    if (opts.onChildProcess) setChildProcessReporter(null);
+    closeKernel(k);
     throw e;
   });
   opts.onStage?.("listening");
@@ -332,8 +272,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       // ためている途中の返答を、SSE を切る前に流す
       bus.flush();
       await stopHttpServer(server);
-      store.close();
-      if (opts.onChildProcess) setChildProcessReporter(null);
+      closeKernel(k);
     },
   };
 }

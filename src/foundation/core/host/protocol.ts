@@ -3,6 +3,7 @@
 import type { BrowserTabInfo, HistoryAction, PageImage, PageSnapshot, RevealRequest } from "@shared/browser/control";
 import type { Notice } from "@/features/notifications/core/notices";
 import type { StallRecord } from "@/foundation/core/system/stallWatch";
+import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
 
 /** 中断にした作業中のチャットの文を選ぶ（前のコアの終わり方: アプリの終了 / コアが落ちた） */
 export type RecoveredReason = "quit" | "crash";
@@ -96,14 +97,6 @@ export interface HostMethods {
   /** DB ワーカーを作る（env はコアの process.env = 読み込んだログインシェルの PATH を含む）。番号を返し、MessagePort を { t: "port" } で送る */
   "dbWorker.spawn"(env: Record<string, string>): Promise<number>;
   "dbWorker.kill"(workerId: number): Promise<void>;
-}
-
-/** コアが起こした子プロセス（コアが落ちたときにメインが止める。group はプロセスグループの頭か） */
-export interface ChildProcessNote {
-  pid: number;
-  group: boolean;
-  kind: "agent" | "dbWorkerChild";
-  state: "started" | "exited";
 }
 
 /** 眠らせない理由（作業中の数とスマホ連携のオン・オフ。変わったときだけ） */

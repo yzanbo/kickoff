@@ -1,5 +1,5 @@
 // コアが起こした子プロセス（メインが覚えて、コアが落ちたときに止める）の決め方（Electron に依らない純粋関数）
-import type { ChildProcessNote } from "@/foundation/core/host/protocol";
+import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import type { ProcessRow } from "@/foundation/core/platform/types";
 
 /** いま動いている子（pid → グループの頭か） */

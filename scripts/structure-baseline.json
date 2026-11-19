@@ -2640,7 +2640,7 @@
       "siblings:src/features/panel/ui:layout,openWith,state,tabs",
       "siblings:src/features:ai,attachments,board,browser,chat,chatList,chatPanel,childChats,compact,composer,conversation,database,devices,docker,files,git,github,groups,guard,notes,notifications,palette,panel,ports,projects,providerSwitch,queue,remoteImages,settings,sidebar,snippets,subagents,terminal,trash,userView,visuals,voice,workplaceMove,worktrees",
       "siblings:src/foundation/core:aiTools,testing",
-      "siblings:src/foundation/core:db,host,settings,system",
+      "siblings:src/foundation/core:db,settings,system",
       "siblings:src/foundation/desktop:app,diagnostics,ipc,notifications,platform,terminal",
       "siblings:src/foundation/ui:code,hooks,lib,theme",
       "siblings:src/foundation/ui:kit,markdown",
@@ -2648,7 +2648,6 @@
       "siblings:src:app,features,foundation,shared"
     ],
     "size": {
-      "src/app/core/startCore.ts": 339,
       "src/app/core/testing/testServer.ts": 523,
       "src/app/renderer/styles/board/board-columns.css": 303,
       "src/app/renderer/styles/board/board-header.css": 301,

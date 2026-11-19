@@ -4,7 +4,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { errorMessage } from "@shared/foundation/errors";
-import type { Core, CoreOptions } from "./startCore";
+import type { Core, CoreOptions } from "./types";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { CorePlatformParts } from "./platform";
 import { waitForShellPath } from "@/foundation/core/system/exec";

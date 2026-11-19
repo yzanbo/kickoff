@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { test } from "vitest";
-import type { ChildProcessNote } from "@/foundation/core/host/protocol";
+import type { ChildProcessNote } from "@/foundation/core/system/childProcesses";
 import { setChildProcessReporter } from "@/foundation/core/system/childProcesses";
 import { afterTest } from "@/foundation/core/testing/afterTest";
 import { noteRuntimeProcess } from "./runtimeProcess";

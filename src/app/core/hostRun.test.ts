@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { MessageChannel } from "node:worker_threads";
 import { test } from "vitest";
 import { Bus } from "@/foundation/core/bus";
-import type { Core, CoreOptions } from "./startCore";
+import type { Core, CoreOptions } from "./types";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import type { CorePlatformParts } from "./platform";
 import { afterTest } from "@/foundation/core/testing/afterTest";

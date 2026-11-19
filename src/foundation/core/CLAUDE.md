@@ -1,12 +1,12 @@
 # コアの土台（`src/foundation/core`）
 
-Electron に依存しないサーバー（HTTP API・SQLite・エージェントの実行）の、機能に依らない土台。組み立てと起動は `src/app/core/`（`startCore.ts`・Mac のアプリのコアのプロセス `hostMain.ts` → `hostRun.ts`・単体の `daemon.ts`）、機能のコア（ルート・表の店・サービス）は `src/features/<機能>/core/`。画面のコードは import しない（共有は `@shared/…`）。
+Electron に依存しないサーバー（HTTP API・SQLite・エージェントの実行）の、機能に依らない土台。組み立てと起動は `src/app/core/`（`startCore.ts`・コアのプロセス `hostMain.ts` → `hostRun.ts`・単体の `daemon.ts`）、機能のコア（ルート・表の店・サービス）は `src/features/<機能>/core/`。画面のコードは import しない（共有は `@shared/…`）。
 
 ## フォルダの役割
 
 | フォルダ | 中身 |
 |---|---|
-| `bus.ts`・`errors.ts`・`clock.ts` | 変更の知らせ `Bus`（`BusEvent`。SSE で配る）・失敗の型・時計 `Clock`（時間に頼る処理はこれを受け、`setTimeout`・`Date.now()` を直に書かない） |
+| `kernel.ts`・`bus.ts`・`errors.ts`・`clock.ts` | 土台の束 `Kernel`（`createKernel`）・変更の知らせ `Bus`（`BusEvent`。SSE で配る）・失敗の型・時計 `Clock`（時間に頼る処理はこれを受け、`setTimeout`・`Date.now()` を直に書かない） |
 | `host/` | メインとの `parentPort` 1 本の RPC（`rpc.ts`。形は `protocol.ts` の 1 か所）。メインにしかない口は `@/app/core/hostRemote.ts` |
 | `db/`・`http/` | SQLite（`node:sqlite`）/ Hono の API・認証・SSE・画面の配信 |
 | `aiTools/` | AI の操作ツールを出す MCP サーバー |
@@ -64,7 +64,6 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - `autoAllow` には、承認と断りをツールの中で行うものと読むだけのものだけを入れる（名前は `mcp__kickoff_chat__` の頭を外す）。
 - 権限モード・Auto mode によらず聞くもの（承認の要る `db_query`・「毎回聞く」の `create_chat`）は、ツールの中で `requestApproval`。
 - 使い方とデータを信頼しないことは `instructions` で渡す。ツールを足したら `ChatTools`・`instructions`・`autoAllow`・`@/features/chat/core/tools/turnTools.test.ts` も直す。
-- 砂場の拒否の診断（`@/features/guard/core/chatDiagnosticTools.ts`）は生の本文・パス・コマンドラインとほかのチャットのログを返さない。砂場の設定は変えない。
 
 ## テスト
 
