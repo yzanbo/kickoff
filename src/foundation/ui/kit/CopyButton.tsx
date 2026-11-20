@@ -1,10 +1,6 @@
 import { Check, Copy } from "lucide-react";
-import { useEffect, useState } from "react";
-import { reportFailure } from "./ask";
+import { useCopied } from "./useCopied";
 import { IconButton } from "./IconButton";
-
-/** コピーしたことを見せておく時間 */
-const COPIED_MS = 1500;
 
 /**
  * クリップボードにコピーするボタン（コピーしたら、しばらくチェックの印にする。失敗はお知らせ）。
@@ -16,12 +12,7 @@ export function CopyButton({
   size = 13,
   ...source
 }: { label: string; className?: string; size?: number } & ({ text: string } | { copy: () => Promise<void> })) {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), COPIED_MS);
-    return () => clearTimeout(timer);
-  }, [copied]);
+  const { copied, copy } = useCopied();
   return (
     <IconButton
       icon={copied ? Check : Copy}
@@ -29,10 +20,7 @@ export function CopyButton({
       size={size}
       type="button"
       className={className}
-      onClick={() => {
-        const write = "copy" in source ? source.copy() : navigator.clipboard.writeText(source.text);
-        write.then(() => setCopied(true), reportFailure("コピーできませんでした"));
-      }}
+      onClick={() => copy("copy" in source ? source.copy : () => navigator.clipboard.writeText(source.text))}
     />
   );
 }

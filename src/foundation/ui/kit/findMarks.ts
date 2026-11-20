@@ -12,8 +12,9 @@ const SKIP = "input, textarea, script, style, [hidden], .pane-find";
 /** iframe の中に置く、印の色の CSS（画面の CSS の変数は iframe の中にないので、色はいまの値を書き込む） */
 const FRAME_STYLE_ID = "kickoff-pane-find-style";
 
-/** 要素の中の、見えている文字のノード（中の同じオリジンの iframe の文書の中も、並んでいる順に） */
-export function findTextNodes(root: HTMLElement): Text[] {
+/** 要素の中の、見えている文字のノード（中の同じオリジンの iframe の文書の中も、並んでいる順に）。skip は入らない要素を足すセレクタ */
+export function findTextNodes(root: HTMLElement, { skip }: { skip?: string } = {}): Text[] {
+  const skipped = skip ? `${SKIP}, ${skip}` : SKIP;
   const nodes: Text[] = [];
   const walk = (el: Element) => {
     const doc = el.ownerDocument;
@@ -25,7 +26,7 @@ export function findTextNodes(root: HTMLElement): Text[] {
           return NodeFilter.FILTER_SKIP;
         }
         const parent = node.parentElement;
-        if (!parent || !node.nodeValue?.trim() || parent.closest(SKIP) || !parent.checkVisibility()) return NodeFilter.FILTER_REJECT;
+        if (!parent || !node.nodeValue?.trim() || parent.closest(skipped) || !parent.checkVisibility()) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
     });
@@ -45,19 +46,26 @@ export function findTextNodes(root: HTMLElement): Text[] {
 type MarkWindow = Window & { CSS?: typeof CSS; Highlight?: typeof Highlight };
 const windowOf = (node: Node) => (node.ownerDocument?.defaultView ?? null) as MarkWindow | null;
 
+/** 印の名前（合ったものすべて・いまの位置） */
+interface MarkNames {
+  all: string;
+  current: string;
+}
+
 /** iframe の文書に、印の色の CSS を置く（まだなければ） */
-function ensureFrameStyle(doc: Document) {
-  if (doc === document || doc.getElementById(FRAME_STYLE_ID)) return;
+function ensureFrameStyle(doc: Document, { all, current }: MarkNames) {
+  const id = all === ALL ? FRAME_STYLE_ID : `${FRAME_STYLE_ID}-${all}`;
+  if (doc === document || doc.getElementById(id)) return;
   const warn = getComputedStyle(document.documentElement).getPropertyValue("--warn").trim() || "#e5a50a";
   const style = doc.createElement("style");
-  style.id = FRAME_STYLE_ID;
-  style.textContent = `::highlight(${ALL}) { background-color: color-mix(in srgb, ${warn} 35%, transparent); }
-::highlight(${CURRENT}) { color: #000; background-color: ${warn}; }`;
+  style.id = id;
+  style.textContent = `::highlight(${all}) { background-color: color-mix(in srgb, ${warn} 35%, transparent); }
+::highlight(${current}) { color: #000; background-color: ${warn}; }`;
   (doc.head ?? doc.documentElement).append(style);
 }
 
-/** 文書ごとの印を付け外しする。付けた窓を覚えておき、clear でまとめて外す */
-export function createFindMarks() {
+/** 文書ごとの印を付け外しする。付けた窓を覚えておき、clear でまとめて外す。names は印の名前（既定は pane-find・pane-find-current） */
+export function createFindMarks({ names = { all: ALL, current: CURRENT } }: { names?: MarkNames } = {}) {
   const touched = new Set<MarkWindow>();
 
   /** ranges を窓ごとに分けて name の印にする（ほかの窓の同じ印は外す） */
@@ -75,7 +83,7 @@ export function createFindMarks() {
       // Highlight はその窓のもので作る（iframe の CSS.highlights はほかの窓の Highlight を受け取らない）
       const HighlightOf = win.Highlight;
       if (!HighlightOf || !win.CSS?.highlights) continue;
-      ensureFrameStyle(win.document);
+      ensureFrameStyle(win.document, names);
       win.CSS.highlights.set(name, new HighlightOf(...list));
       touched.add(win);
     }
@@ -83,14 +91,14 @@ export function createFindMarks() {
 
   return {
     /** 合ったものすべての印 */
-    all: (ranges: Range[]) => set(ALL, ranges),
+    all: (ranges: Range[]) => set(names.all, ranges),
     /** いまの位置の印（なければ外す） */
-    current: (range: Range | undefined) => set(CURRENT, range ? [range] : []),
+    current: (range: Range | undefined) => set(names.current, range ? [range] : []),
     /** すべての窓の印を外す */
     clear: () => {
       for (const win of touched) {
-        win.CSS?.highlights?.delete(ALL);
-        win.CSS?.highlights?.delete(CURRENT);
+        win.CSS?.highlights?.delete(names.all);
+        win.CSS?.highlights?.delete(names.current);
       }
       touched.clear();
     },

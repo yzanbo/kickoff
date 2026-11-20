@@ -1,6 +1,7 @@
 import type { ReactNode, RefObject } from "react";
 import { useModalDialog } from "@/foundation/ui/hooks/useModalDialog";
 import { cx } from "@/foundation/ui/lib/cx";
+import { useOverlayOpen } from "./overlayCount";
 
 /**
  * ダイアログの骨組み（開いたらすぐモーダルで出す <dialog>）。題名・中身・ボタンの行（actions）を .app-dialog-body に並べ、
@@ -34,6 +35,7 @@ export function Dialog({
   children?: ReactNode;
 }) {
   const { ref, backdropProps } = useModalDialog({ closeOnBackdrop, focusSelf, ref: dialogRef });
+  useOverlayOpen(true);
   const body = (
     <>
       {title !== undefined && <h2 className="app-dialog-title">{title}</h2>}

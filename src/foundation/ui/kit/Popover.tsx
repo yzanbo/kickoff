@@ -4,6 +4,7 @@ import { cx } from "@/foundation/ui/lib/cx";
 import { anchorPlacement, type FloatingAlign, type FloatingSide } from "@/foundation/ui/lib/floating";
 import { useDismiss } from "@/foundation/ui/hooks/useDismiss";
 import { useFloating } from "@/foundation/ui/hooks/useFloating";
+import { useOverlayOpen } from "./overlayCount";
 import { PopoverHeader } from "./PopoverHeader";
 
 interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
@@ -59,6 +60,7 @@ export function Popover({
   const ref = useRef<HTMLDivElement>(null);
   const close = useEffectEvent(onClose);
   useDismiss([ref, anchor], onClose, { enabled: dismissable, escape, ignore });
+  useOverlayOpen(true);
   useFloating(
     ref,
     () => {

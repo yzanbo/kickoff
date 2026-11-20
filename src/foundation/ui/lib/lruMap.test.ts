@@ -75,3 +75,16 @@ test("createLruMap: 重さを渡すと、合計が上限を超えないよう古
   lru.set("f", "ffff");
   assert.deepEqual([lru.peek("b"), lru.peek("c"), lru.peek("f")], ["b", undefined, "ffff"]);
 });
+
+test("createLruMap の onEvict: 上限・重さで捨てた・同じキーで入れ直した・重すぎて入れなかった値に呼ぶ。delete では呼ばない", () => {
+  const evicted: string[] = [];
+  const lru = createLruMap<string, string>(2, { maxWeight: 5, weigh: (v) => v.length }, { onEvict: (v, k) => evicted.push(`${k}=${v}`) });
+  lru.set("a", "1");
+  lru.set("b", "2");
+  lru.set("c", "3");
+  lru.set("b", "22");
+  lru.set("b", "22");
+  lru.set("x", "toolong");
+  lru.delete("c");
+  assert.deepEqual(evicted, ["a=1", "b=2", "x=toolong"]);
+});

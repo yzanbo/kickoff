@@ -6,6 +6,7 @@ import type { Placement } from "@/foundation/ui/lib/floating";
 import { useDismiss } from "@/foundation/ui/hooks/useDismiss";
 import { useFloating } from "@/foundation/ui/hooks/useFloating";
 import { useRovingList } from "./list/useRovingList";
+import { useOverlayOpen } from "./overlayCount";
 
 interface Props {
   /** 置く場所（右クリックの位置、または開いたボタンの下。useContextMenu が決める）。描いてから大きさを測って画面の中に収める */
@@ -28,6 +29,7 @@ interface Props {
  * 位置がずれず、文字の大きさなども開いた場所に影響されないよう、body の直下に出す
  */
 export function PopupMenu({ at, className, label, escape = "stop", ignore, onClose, children }: Props) {
+  useOverlayOpen(true);
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(ref, onClose, { escape, ignore });
   useRovingList({ mode: "focus", ref, global: true, focusSelf: true, items: menuItems });
