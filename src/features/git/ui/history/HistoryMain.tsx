@@ -41,7 +41,7 @@ export function HistoryMain({
       <div ref={splitPaneRef} className="history-table" style={{ flexBasis: `${split.size}%` }}>
         <CommitTable log={log} selected={commit?.hash} onSelect={onSelect} onRefMenu={onRefMenu} />
       </div>
-      <div className="history-resizer" aria-label="コミットの表の高さを変える" {...split.handle} />
+      <div className="pane-resizer-y" aria-label="コミットの表の高さを変える" {...split.handle} />
       <div ref={detailRef} className="history-detail">
         {find}
         {commit ? (

@@ -6,6 +6,18 @@
   gap: 10px;
 }
 
+/* 全体表示中の共通ヘッダー（base/maximized-header.css）に移した名前の行: サイドバーの開閉中も、戻る・進むの上へ通過させない */
+.maximized-header > .project-title-row:not(.auto-hide) {
+  transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.maximized-header .project-title-row.auto-hide {
+  transition:
+    transform var(--panel-motion-duration) var(--panel-motion-ease),
+    opacity var(--panel-motion-duration) var(--panel-motion-ease),
+    padding-left var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
 /* 名前の行の右に並べる（ほかの部品と上下の中央をそろえるため、上の余白は付けない） */
 .project-stats {
   display: flex;
@@ -151,10 +163,7 @@
   -webkit-app-region: drag;
 }
 
-/*
- * タブの列と、右端のチャット欄の開閉。名前の行との間は少し空ける（開いているタブの地の色が、名前のカードにくっつかないように。
- * 高さは取りすぎない）。下の線はこの行に引く
- */
+/* タブの列と、右端のチャット欄の開閉。名前の行との間は少し空ける（タブの地が名前のカードにくっつかないように。高さは取りすぎない）。下の線はこの行に引く */
 .project-tabs-row {
   display: flex;
   align-items: center;

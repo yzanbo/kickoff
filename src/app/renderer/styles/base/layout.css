@@ -90,6 +90,21 @@
   cursor: col-resize;
 }
 
+/* 上下の欄の境目のつまみ（履歴の表と詳細・ブラウザの下の開発者ツール・ノートの下の会話の欄。つかめる高さは広いまま、乗せると 2px の線） */
+.pane-resizer-y {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  height: 5px;
+  margin: -3px 0 -2px;
+  cursor: row-resize;
+}
+
+.pane-resizer-y:hover,
+.resizing > .pane-resizer-y {
+  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+}
+
 /* ドラッグ中は、文字を選んだり差分の側が反応したりしないようにする */
 .changes.resizing,
 .commit-changes.resizing {

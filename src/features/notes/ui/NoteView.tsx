@@ -309,7 +309,7 @@ export function NoteView({
             <NoteSelectionAttach targets={targets} file={file} editor={editor} page={page ? pageHandle : null} />
             {chatOpen && (
               <div
-                className={chatPlace === "bottom" ? "note-chat-resizer-y" : "pane-resizer note-chat-resizer"}
+                className={chatPlace === "bottom" ? "pane-resizer-y" : "pane-resizer note-chat-resizer"}
                 aria-label={chatPlace === "bottom" ? "ノートのチャットの欄の高さを変える" : "ノートのチャットの欄の幅を変える"}
                 {...chatSize.handle}
               />

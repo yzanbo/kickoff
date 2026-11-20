@@ -2424,7 +2424,7 @@
       "src/app/renderer/styles/chat/subagent-card.css": 301,
       "src/app/renderer/styles/database/db-client.css": 378,
       "src/app/renderer/styles/database/db-sql.css": 507,
-      "src/app/renderer/styles/editor/editor-history.css": 416,
+      "src/app/renderer/styles/editor/editor-history.css": 399,
       "src/app/renderer/styles/editor/note.css": 347,
       "src/app/renderer/styles/footer/footer.css": 328,
       "src/app/renderer/styles/github/github-list.css": 307,

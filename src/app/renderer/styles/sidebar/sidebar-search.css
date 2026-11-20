@@ -47,12 +47,6 @@
   color: var(--text);
 }
 
-/* カンバンの見出しの検索欄 */
-.search-field.board-search {
-  width: 200px;
-  margin: 0;
-}
-
 .chat-search-empty {
   margin: 4px 8px;
 }

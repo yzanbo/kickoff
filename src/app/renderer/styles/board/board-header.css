@@ -82,6 +82,12 @@
   padding: 3px 7px;
 }
 
+/* カンバンの見出しの検索欄 */
+.search-field.board-search {
+  width: 200px;
+  margin: 0;
+}
+
 .board-tools.icon-only .search-field.board-search {
   width: 160px;
 }

@@ -18,11 +18,6 @@
   margin-left: 0;
 }
 
-/* ノートの行: 「このチャットに追加」は開く場所のボタンの組のすぐ左（組は右へ寄せず、添付のボタンから右に並べる） */
-.note-chip-attach + .open-place-buttons {
-  margin-left: 0;
-}
-
 .open-place-default {
   display: flex;
   align-items: center;

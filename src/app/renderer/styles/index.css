@@ -150,6 +150,7 @@
 @import "./editor/editor-image.css" layer(feature);
 @import "./editor/editor-preview.css" layer(feature);
 @import "./editor/note.css" layer(feature);
+@import "./editor/note-chip.css" layer(feature);
 @import "./editor/note-panel.css" layer(feature);
 @import "./editor/note-editor.css" layer(feature);
 @import "./editor/note-editor.unlayered.css";

@@ -195,3 +195,10 @@
 .workspaces.compact .chat-row-actions {
   top: 3px;
 }
+
+/* アーカイブ済みのチャットの行（ChatRow。ボードのカード・リストの行と同じ薄さ。動かしても濃さを変えない） */
+.chat-row.archived {
+  --drag-source-opacity: 0.55;
+
+  opacity: 0.55;
+}

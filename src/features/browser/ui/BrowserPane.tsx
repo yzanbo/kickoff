@@ -222,7 +222,7 @@ export function BrowserPane({ url, onChange, agentTarget, visible, onOpenTab }: 
             {devtools.embed.dock === "right" ? (
               <div className="pane-resizer" aria-label="開発者ツールの幅を変える" {...devtools.widthHandle} />
             ) : (
-              <div className="browser-devtools-resizer" aria-label="開発者ツールの高さを変える" {...devtools.heightHandle} />
+              <div className="pane-resizer-y" aria-label="開発者ツールの高さを変える" {...devtools.heightHandle} />
             )}
             <div
               ref={devtoolsPaneRef}

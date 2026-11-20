@@ -1,0 +1,6 @@
+/* ==== 入力欄の上のノートの木（NoteChipTree。落とす先の見た目はノートのタブの木と同じで note.css） ==== */
+
+/* 行の「このチャットに追加」は開く場所のボタンの組のすぐ左（組は右へ寄せず、添付のボタンから右に並べる） */
+.note-chip-attach + .open-place-buttons {
+  margin-left: 0;
+}

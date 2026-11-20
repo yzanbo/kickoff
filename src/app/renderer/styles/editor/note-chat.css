@@ -144,21 +144,6 @@
   }
 }
 
-/* 上下の境目のつまみ（つかめる高さは広いまま、乗せると 2px の線） */
-.note-chat-resizer-y {
-  position: relative;
-  z-index: 2;
-  flex: none;
-  height: 5px;
-  margin: -3px 0 -2px;
-  cursor: row-resize;
-}
-
-.note-chat-resizer-y:hover,
-.note-body.resizing > .note-chat-resizer-y {
-  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
-}
-
 .note-body.chat-bottom.resizing {
   cursor: row-resize;
 }

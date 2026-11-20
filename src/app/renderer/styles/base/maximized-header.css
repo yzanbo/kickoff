@@ -17,18 +17,6 @@
   transition: left var(--panel-motion-duration) var(--panel-motion-ease);
 }
 
-/* サイドバーの開閉中も、見出しを戻る・進むの上へ通過させない */
-.maximized-header > .project-title-row:not(.auto-hide) {
-  transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);
-}
-
-.maximized-header .project-title-row.auto-hide {
-  transition:
-    transform var(--panel-motion-duration) var(--panel-motion-ease),
-    opacity var(--panel-motion-duration) var(--panel-motion-ease),
-    padding-left var(--panel-motion-duration) var(--panel-motion-ease);
-}
-
 .resizing-sidebar .maximized-header {
   transition: none;
 }

@@ -391,23 +391,6 @@
   border-bottom: 1px solid var(--border);
 }
 
-.history-resizer,
-.browser-devtools-resizer {
-  position: relative;
-  z-index: 2;
-  flex: none;
-  height: 5px;
-  margin: -3px 0 -2px;
-  cursor: row-resize;
-}
-
-.history-resizer:hover,
-.history-main.resizing .history-resizer,
-.browser-devtools-resizer:hover,
-.browser-body.resizing .browser-devtools-resizer {
-  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
-}
-
 .history-detail {
   display: flex;
   flex: 1;

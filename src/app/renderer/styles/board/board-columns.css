@@ -193,6 +193,11 @@
   color: var(--info);
 }
 
+/* フォルダの見つからないワークツリー（薄い灰） */
+.board-lane-gone {
+  color: var(--extra-muted);
+}
+
 /* 段の中の列は、中身の高さに合わせる（列ごとにスクロールしない） */
 .lane-columns {
   flex: none;

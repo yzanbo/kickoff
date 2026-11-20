@@ -109,8 +109,7 @@
 }
 
 /* フォルダの見つからないワークツリー（薄い灰） */
-.status-group-gone,
-.board-lane-gone {
+.status-group-gone {
   color: var(--extra-muted);
 }
 
