@@ -1,94 +1,61 @@
 // 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・ノート・DB クライアント、左のサイドバー、
-// 右端のチャット欄とそのブラウザ・ターミナルのタブを、メインのウィンドウの外に出して見る）の行き先
-import type { TerminalTarget } from "@/features/panel/ui/tabs/panelTypes";
+// 右端のチャット欄とそのブラウザ・ターミナルのタブを、メインのウィンドウの外に出して見る）の行き先。
+// 種類は持ち主の機能が ui/popoutKinds.ts で PopoutParamsMap に足し、URL の項目の表を popoutKinds に入れる
+import { definePoint } from "@/foundation/ui/points";
 import { postWindowMessage } from "./windowBus";
 
-/** 別ウィンドウで開くもの（ノートのほかは、開いたチャットに結びつく。chatId はメインのウィンドウのそのチャットへ知らせるのに使う） */
-export type PopoutRoute =
-  /** 作業場所のコミットしていない変更（focus のファイルの位置へ移る） */
-  | { kind: "changes"; chatId: number; projectId: number; worktree?: string; focus?: string }
-  /** 作業場所のファイルの中身（line を目立たせる） */
-  | { kind: "file"; chatId: number; projectId: number; worktree?: string; path: string; line?: number }
-  /** サブエージェントの画面（agentKey はサブエージェントの一覧の行のキー） */
-  | { kind: "subagent"; chatId: number; agentKey: string }
-  /** 子チャット（チャットの画面そのもの。chatId は子チャット） */
-  | { kind: "chat"; chatId: number }
-  /**
-   * プロジェクトのノート（path はノートのフォルダからの相対）。chatId は開いたチャット（ノートをそのチャットの入力欄に添付する先。
-   * チャットごとに別のウィンドウ）。ノートのタブなど、チャットの外から開いたものはなし
-   */
-  | { kind: "note"; projectId: number; path: string; chatId?: number }
-  /** DB クライアント（右の欄の DB のタブ。worktree は SQLite のファイルを開く作業場所） */
-  | { kind: "database"; chatId: number; projectId: number; worktree?: string }
-  /** 左のサイドバー（アプリに 1 つ。行を押すと、メインのウィンドウで開く） */
-  | { kind: "sidebar" }
-  /** 右端のチャット欄（アプリに 1 つ。メインのウィンドウで開いているプロジェクトの欄を出す） */
-  | { kind: "side" }
-  /**
-   * パネルのブラウザのタブ（panel は移す元の欄 = 戻す先。key はタブのキー。ページは url で開き直す）。
-   * projectId はどのプロジェクトの欄か（AI の操作に使う。プロジェクトの欄でなければ null）
-   */
-  | { kind: "browser"; panel: string; key: string; url: string; title: string; projectId: number | null }
-  /**
-   * チャットのパネルのチャット（いちばん上の親）・送る前の新しいチャットのタブ（panel は移す元の欄、key はタブのキー。chatId がなければ新しいチャットで、
-   * 中身（書きかけの文・添付など）は localStorage の panel:popout-tab-handoff で渡す）。開いた別ウィンドウはタブの列を持ち、ほかのチャットのタブもドラッグで足せる
-   * （features/popout/tabWindow.ts）
-   */
-  | { kind: "chats"; panel: string; key: string; chatId?: number; projectId: number }
-  /** パネルのターミナルのタブ（key は裏のシェルのキー。移した先で同じシェルにつなぎ直す） */
-  | ({ kind: "terminal"; panel: string; key: string } & TerminalTarget);
+/** 機能が足していく別ウィンドウの種類の表（declare module "@/foundation/ui/navigation/popout" で足す。値は URL に載せる項目） */
+export interface PopoutParamsMap {}
+type PopoutKindId = keyof PopoutParamsMap & string;
+/** 別ウィンドウで開くもの（どの種類も、持ち主の機能の ui/popoutKinds.ts に中身の説明がある） */
+export type PopoutRoute = { [K in PopoutKindId]: { kind: K } & PopoutParamsMap[K] }[PopoutKindId];
+
+/**
+ * URL の項目の読み書き。string: 要る（空は読めない）・string?: なくてよい（空なら書かない）・text: 要る（空でもよい）・
+ * number: 要る（1 以上の整数）・number?: なくてよい・number|null: なければ null・strings?: 文字の表（JSON。読めなければ付けない）
+ */
+type FieldKind = "string" | "string?" | "text" | "number" | "number?" | "number|null" | "strings?";
+/** param は URL の名前（省けば項目の名前）、fallback は text がないときの値 */
+interface FieldSpec {
+  kind: FieldKind;
+  param?: string;
+  fallback?: string;
+}
+export interface PopoutKind<K extends PopoutKindId = PopoutKindId> {
+  kind: K;
+  /** URL の項目（書く順に並べる。path と parse をこの表から作る。同じものは同じ文字になり、メインプロセスが同じウィンドウを前に出す） */
+  fields: { readonly [F in keyof PopoutParamsMap[K]]-?: FieldKind | FieldSpec };
+  /** 同じウィンドウかを見るときに外す項目（変更の移るファイルなど） */
+  keyIgnores?: readonly (keyof PopoutParamsMap[K] & string)[];
+}
+/** 別ウィンドウの種類（key は kind。表は app/renderer/popout/contributes.ts が出す） */
+export const popoutKinds = definePoint<{ [K in PopoutKindId]: PopoutKind<K> }[PopoutKindId]>("popoutKinds", { key: (k) => k.kind });
 
 const PREFIX = "/popout/";
+const INVALID = Symbol("invalid");
 
-/** 別ウィンドウの URL のハッシュ（"/popout/<種類>?…"。同じものは同じ文字になり、メインプロセスが同じウィンドウを前に出す） */
-export function popoutPath(route: PopoutRoute): string {
-  if (route.kind === "sidebar" || route.kind === "side") return `${PREFIX}${route.kind}`;
-  const params = new URLSearchParams();
-  if (route.kind === "browser") {
-    params.set("panel", route.panel);
-    params.set("key", route.key);
-    if (route.projectId !== null) params.set("project", String(route.projectId));
-    params.set("title", route.title);
-    params.set("url", route.url);
-    return `${PREFIX}${route.kind}?${params.toString()}`;
+/** 種類の URL の項目（項目の名前・読み書きの仕方・URL の名前） */
+function fieldsOf(name: string): { name: string; kind: FieldKind; param: string; fallback?: string }[] | undefined {
+  const kind = popoutKinds.items().find((k) => k.kind === name);
+  if (!kind) return undefined;
+  return Object.entries(kind.fields as Record<string, FieldKind | FieldSpec>).map(([field, spec]) =>
+    typeof spec === "string" ? { name: field, kind: spec, param: field } : { name: field, ...spec, param: spec.param ?? field },
+  );
+}
+
+function writeField(kind: FieldKind, value: unknown): string | null {
+  switch (kind) {
+    case "string":
+    case "text":
+    case "number":
+      return String(value ?? "");
+    case "number|null":
+      return value === null || value === undefined ? null : String(value);
+    case "strings?":
+      return value ? JSON.stringify(value) : null;
+    default:
+      return value ? String(value) : null;
   }
-  if (route.kind === "chats") {
-    params.set("panel", route.panel);
-    params.set("key", route.key);
-    params.set("project", String(route.projectId));
-    if (route.chatId !== undefined) params.set("chat", String(route.chatId));
-    return `${PREFIX}${route.kind}?${params.toString()}`;
-  }
-  if (route.kind === "terminal") {
-    params.set("panel", route.panel);
-    params.set("key", route.key);
-    params.set("project", String(route.projectId));
-    params.set("cwd", route.cwd);
-    params.set("label", route.label);
-    if (route.command) params.set("command", route.command);
-    if (route.title) params.set("title", route.title);
-    if (route.env) params.set("env", JSON.stringify(route.env));
-    return `${PREFIX}${route.kind}?${params.toString()}`;
-  }
-  if (route.kind === "note") {
-    params.set("project", String(route.projectId));
-    params.set("path", route.path);
-    if (route.chatId !== undefined) params.set("chat", String(route.chatId));
-    return `${PREFIX}${route.kind}?${params.toString()}`;
-  }
-  params.set("chat", String(route.chatId));
-  if (route.kind === "subagent") params.set("agent", route.agentKey);
-  else if (route.kind !== "chat") {
-    params.set("project", String(route.projectId));
-    if (route.worktree) params.set("worktree", route.worktree);
-    if (route.kind === "file") {
-      params.set("path", route.path);
-      if (route.line) params.set("line", String(route.line));
-    }
-    // 移るファイルはいちばん後ろ（メインプロセスは、同じウィンドウかを focus を除いて見る）
-    if (route.kind === "changes" && route.focus) params.set("focus", route.focus);
-  }
-  return `${PREFIX}${route.kind}?${params.toString()}`;
 }
 
 const positive = (value: string | null) => {
@@ -96,72 +63,57 @@ const positive = (value: string | null) => {
   return Number.isInteger(n) && n > 0 ? n : undefined;
 };
 
+function readField(kind: FieldKind, raw: string | null, fallback: string | undefined): unknown {
+  switch (kind) {
+    case "string":
+      return raw || INVALID;
+    case "string?":
+      return raw || undefined;
+    case "text":
+      return raw ?? fallback ?? INVALID;
+    case "number":
+      return positive(raw) ?? INVALID;
+    case "number?":
+      return positive(raw);
+    case "number|null":
+      return positive(raw) ?? null;
+    case "strings?":
+      return parseStrings(raw);
+  }
+}
+
+/** 別ウィンドウの URL のハッシュ（"/popout/<種類>?…"。種類の表の順に書く） */
+export function popoutPath(route: PopoutRoute): string {
+  const fields = fieldsOf(route.kind);
+  if (!fields) throw new Error(`別ウィンドウの種類 ${route.kind} がない（app/renderer/popout/contributes.ts）`);
+  const params = new URLSearchParams();
+  for (const field of fields) {
+    const text = writeField(field.kind, (route as Record<string, unknown>)[field.name]);
+    if (text !== null) params.set(field.param, text);
+  }
+  const query = params.toString();
+  return `${PREFIX}${route.kind}${query ? `?${query}` : ""}`;
+}
+
 /** 別ウィンドウの URL のハッシュを読む（別ウィンドウでなければ・読めなければ undefined） */
 export function parsePopout(hash: string): PopoutRoute | undefined {
   const path = hash.replace(/^#/, "");
   if (!path.startsWith(PREFIX)) return undefined;
   const [kind, query = ""] = path.slice(PREFIX.length).split("?");
+  const fields = fieldsOf(kind);
+  if (!fields) return undefined;
   const params = new URLSearchParams(query);
-  if (kind === "sidebar" || kind === "side") return { kind };
-  if (kind === "browser" || kind === "terminal") return parseTabPopout(kind, params);
-  if (kind === "chats") {
-    const panel = params.get("panel");
-    const key = params.get("key");
-    const projectId = positive(params.get("project"));
-    const chatId = positive(params.get("chat"));
-    return panel && key && projectId !== undefined ? { kind, panel, key, ...(chatId !== undefined ? { chatId } : {}), projectId } : undefined;
+  const route: Record<string, unknown> = { kind };
+  for (const field of fields) {
+    const value = readField(field.kind, params.get(field.param), field.fallback);
+    if (value === INVALID) return undefined;
+    if (value !== undefined) route[field.name] = value;
   }
-  if (kind === "note") {
-    const projectId = positive(params.get("project"));
-    const notePath = params.get("path");
-    const chatId = positive(params.get("chat"));
-    return projectId !== undefined && notePath ? { kind, projectId, path: notePath, ...(chatId !== undefined ? { chatId } : {}) } : undefined;
-  }
-  const chatId = positive(params.get("chat"));
-  if (chatId === undefined) return undefined;
-  if (kind === "subagent") {
-    const agentKey = params.get("agent");
-    return agentKey ? { kind, chatId, agentKey } : undefined;
-  }
-  if (kind === "chat") return { kind, chatId };
-  const projectId = positive(params.get("project"));
-  if (projectId === undefined) return undefined;
-  const worktree = params.get("worktree") || undefined;
-  const place = { chatId, projectId, ...(worktree ? { worktree } : {}) };
-  if (kind === "changes") {
-    const focus = params.get("focus") || undefined;
-    return { kind, ...place, ...(focus ? { focus } : {}) };
-  }
-  if (kind === "database") return { kind, ...place };
-  if (kind === "file") {
-    const path = params.get("path");
-    const line = positive(params.get("line"));
-    return path ? { kind, ...place, path, ...(line ? { line } : {}) } : undefined;
-  }
-  return undefined;
+  return route as PopoutRoute;
 }
 
-/** パネルのブラウザ・ターミナルのタブの別ウィンドウの行き先を読む（欠けていれば undefined） */
-function parseTabPopout(kind: "browser" | "terminal", params: URLSearchParams): PopoutRoute | undefined {
-  const panel = params.get("panel");
-  const key = params.get("key");
-  if (!panel || !key) return undefined;
-  const projectId = positive(params.get("project"));
-  if (kind === "browser") {
-    const url = params.get("url");
-    return url === null ? undefined : { kind, panel, key, url, title: params.get("title") ?? "", projectId: projectId ?? null };
-  }
-  const cwd = params.get("cwd");
-  const label = params.get("label");
-  if (cwd === null || label === null || projectId === undefined) return undefined;
-  const command = params.get("command");
-  const title = params.get("title");
-  const env = parseEnv(params.get("env"));
-  return { kind, panel, key, cwd, label, projectId, ...(command ? { command } : {}), ...(title ? { title } : {}), ...(env ? { env } : {}) };
-}
-
-/** シェルに足す環境変数（JSON の文字の表。読めなければ undefined） */
-function parseEnv(text: string | null): Record<string, string> | undefined {
+/** 文字の表（JSON。読めなければ undefined） */
+function parseStrings(text: string | null): Record<string, string> | undefined {
   if (!text) return undefined;
   try {
     const value: unknown = JSON.parse(text);
@@ -181,8 +133,11 @@ export const isPopoutWindow = (): boolean => globalThis.location !== undefined &
 /** サイドバーの別ウィンドウの中か（下書き・パネルの状態はメインのウィンドウのものを写して読み、変えるのはメインに頼む） */
 export const isSidebarWindow = (): boolean => globalThis.location !== undefined && parsePopout(location.hash)?.kind === "sidebar";
 
-/** 同じ別ウィンドウかの見分け（変更の移るファイルを除いた URL のハッシュ） */
-export const popoutKey = (route: PopoutRoute): string => popoutPath(route.kind === "changes" ? { ...route, focus: undefined } : route);
+/** 同じ別ウィンドウかの見分け（種類の keyIgnores の項目を除いた URL のハッシュ。変更の移るファイルなど） */
+export function popoutKey(route: PopoutRoute): string {
+  const ignores = popoutKinds.items().find((k) => k.kind === route.kind)?.keyIgnores ?? [];
+  return popoutPath(ignores.length > 0 ? ({ ...route, ...Object.fromEntries(ignores.map((name) => [name, undefined])) } as PopoutRoute) : route);
+}
 
 /**
  * 別ウィンドウで開く（同じものがもう開いていれば前に出す）。title はウィンドウの名前、at は新しく開くときに置く画面の位置（タブをウィンドウの外へドラッグして離した所）。

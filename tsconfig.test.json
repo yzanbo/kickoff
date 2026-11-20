@@ -13,6 +13,7 @@
     "vitest.setup.ts",
     "src/shared/*/events.ts",
     "src/features/*/ui/openTargets.ts",
+    "src/features/*/ui/popoutKinds.ts",
     "src/app/shared/settings.ts",
     "src/app/core/hostRemote.ts"
   ]

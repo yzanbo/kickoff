@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { onTestFinished, test, vi } from "vitest";
 import { installMemoryStorage } from "@/foundation/ui/storage/memoryStorage";
 import type { WindowMessage } from "@/foundation/ui/navigation/windowBus";
+import { popoutKinds } from "@/foundation/ui/navigation/popout";
+import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { panelActions } from "./panelActions";
 import { discardDraft, openDraft, setDraftTitle } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { forwardPanelOp, sendPanelsWhileChanging } from "./panelMirror";
@@ -58,6 +60,8 @@ test("写しの店: 届いた状態に置き換え、自分では変えない（
 });
 
 test("forwardPanelOp: サイドバーの別ウィンドウの中だけメインのウィンドウに頼み、メインのウィンドウではそのまま行う", () => {
+  // サイドバーの別ウィンドウの種類（本物の表は sidebar の ui/popoutKinds.ts）
+  useTestContributions([popoutKinds.item({ kind: "sidebar", fields: {} })]);
   vi.stubGlobal("location", { hash: "#/projects/1" });
   assert.equal(forwardPanelOp({ op: "discardDraft", draft: { panel: "kanban:1", key: "new:1" } }), false);
   vi.stubGlobal("location", { hash: "#/popout/sidebar" });

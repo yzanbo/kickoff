@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test, vi } from "vitest";
 import { useTestContributions } from "@/foundation/ui/testing/contributions";
 import { open, openTargets, type OpenOptions, type OpenTargetHandler } from "./open";
+import { popoutKinds } from "./popout";
 
 declare module "./open" {
   interface OpenTargetMap {
@@ -10,11 +11,11 @@ declare module "./open" {
   }
 }
 
-/** 受け取った行き先を並べる受け手を入れる */
+/** 受け取った行き先を並べる受け手と、別ウィンドウの種類（サイドバー）を入れる */
 function installSample() {
   const got: { n: number; options: OpenOptions }[] = [];
   const sample: OpenTargetHandler<"sample"> = { kind: "sample", open: ({ n }, options) => (got.push({ n, options }), true) };
-  useTestContributions([openTargets.item(sample)]);
+  useTestContributions([openTargets.item(sample), popoutKinds.item({ kind: "sidebar", fields: {} })]);
   return got;
 }
 

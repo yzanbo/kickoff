@@ -34,7 +34,7 @@
 
 - 種類（`panelTypes.ts` の `PanelTab`）ごとの違い（キー・名前・後始末・`popout` など）は、種類で分岐させず `TAB_KINDS` から引く。中身は `PanelTabPage` の `PAGES`。
 - キーはチャットが `chatKey(id)`（1 チャット 1 タブ）、サブエージェントが `agentTabKey`、ほかは `newTabKey`（ターミナルのキーは裏のシェルのキーにも使う）。
-- 種類を足すときは、作る関数・`panelActions` の `open…`・`@/foundation/ui/navigation/popout.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・`@/features/userView/ui/userViewCollect.ts` も直す。
+- 種類を足すときは、作る関数・`panelActions` の `open…`・`@/app/renderer/popout/contributes.ts`・`@/app/renderer/PopoutApp.tsx`・`@/app/renderer/popout/dockPopout.ts`・`tabWindow.ts`・`@/features/userView/ui/userViewCollect.ts` も直す。
 - ほかにも `@/features/chatPanel/ui/agents/AgentPanelAdds.tsx`・`@/features/workplaceMove/ui/repointTabs.ts`・`layout/tabTransfer.ts`・`ui/popoutWindowTab.ts` の保存の型・`PaneTab.tsx` の名指しを見る。
 - 別ウィンドウへ移すタブは後始末なしで閉じる（`closeTab` の `keep`。ターミナルのシェルを止めない）。
 - 右クリックの `TabMenu` はサイドバーの行と同じ `ChatMenuItems` / `DraftMenuItems`。状態の印はどの種類も `useTabAgentState`（店から読む）。
@@ -72,7 +72,7 @@
 
 ## 別ウィンドウ（`popout/`・`@/foundation/ui/navigation/popout.ts`・`@/app/renderer/PopoutApp.tsx`）
 
-- 行き先は `#/popout/<種類>`（`@/foundation/ui/navigation/popout.ts`）。`PopoutApp` は App の一部だけを描き、URL を画面として購読しない。
+- 行き先は `#/popout/<種類>`（種類の表は `@/app/renderer/popout/contributes.ts`）。`PopoutApp` は App の一部だけを描き、URL を画面として購読しない。
 - メインの画面・ダイアログを動かす操作は `@/foundation/ui/navigation/windowBus.ts` でメインに頼む（中身はウィンドウをまたげる値だけ）。
 - サイドバーのウィンドウの店はメインの写し（`panelMirror.ts`）、チャット欄のウィンドウは持ち主ごと移す（`panelHandOff.ts`）。
 - 子チャットのウィンドウの ✕ はメインプロセスが止めて聞く（`beforeunload` では止められない。`@/foundation/desktop/app/popouts.ts`）。

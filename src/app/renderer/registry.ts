@@ -6,6 +6,7 @@ import { contributes as files } from "@/features/files/ui/contributes";
 import { contributes as notes } from "@/features/notes/ui/contributes";
 import { contributes as projects } from "@/features/projects/ui/contributes";
 import { configureRouter } from "@/foundation/ui/navigation/router";
+import { contributes as popouts } from "./popout/contributes";
 import { installContributions } from "@/foundation/ui/points";
 
 /** プロジェクトの画面（タブ）の ID（URL の #/projects/<id>/<画面>。プロジェクトの画面の拡張点 projectViews ができたら、そこから作る） */
@@ -13,6 +14,6 @@ const PROJECT_VIEWS = ["board", "chats", "files", "search", "changes", "history"
 
 export function installRegistry(): void {
   configureRouter({ projectViews: PROJECT_VIEWS, defaultView: "board" });
-  // 機能の並び順（足すときも同じ順に）
-  installContributions([...projects, ...chat, ...chatPanel, ...files, ...notes]);
+  // 機能の並び順（足すときも同じ順に）。殻がまとめて出すもの（別ウィンドウの種類）は最後
+  installContributions([...projects, ...chat, ...chatPanel, ...files, ...notes, ...popouts]);
 }
