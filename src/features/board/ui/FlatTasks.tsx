@@ -35,7 +35,7 @@ export function FlatTasks({
   return (
     <section className={list ? "flat-tasks list-group" : "flat-tasks"}>
       {drafts.length === 0 && active.length === 0 ? (
-        <p className="column-empty">なし</p>
+        <p className="empty-note column-empty">なし</p>
       ) : (
         <div className={items}>
           <DraftCards drafts={drafts} showProject={showDraftProject} />

@@ -66,7 +66,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kin
       {creating && creating.parent === parent && (
         // 新しいファイル・フォルダの名前の欄（Enter・ピントを外すと作り、Esc でやめる。空なら作らない）
         <li role="treeitem" className="tree-item">
-          <div className="tree-row renaming" style={{ "--depth": depth } as CSSProperties}>
+          <div className="list-item tree-row tree-indent renaming" style={{ "--depth": depth } as CSSProperties}>
             <span className="tree-chevron" />
             <FileIcon name="" dir={creating.dir} open={false} />
             <InlineName
@@ -99,7 +99,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kin
           >
             {rename?.renaming === node.path ? (
               // 名前を変えている行（Enter・ピントを外すと決め、Esc でやめる）
-              <div className="tree-row renaming" style={{ "--depth": depth } as CSSProperties}>
+              <div className="list-item tree-row tree-indent renaming" style={{ "--depth": depth } as CSSProperties}>
                 <span className="tree-chevron">{expandable && <Chevron open={isOpen} />}</span>
                 <FileIcon name={node.name} dir={node.dir} open={isOpen} />
                 <InlineName
@@ -113,7 +113,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, multi, kin
               </div>
             ) : (
               <button
-                className={cx("tree-row", node.ignored && "ignored", isSelected && "selected")}
+                className={cx("list-item tree-row tree-indent", node.ignored && "ignored", isSelected && "selected")}
                 style={{ "--depth": depth } as CSSProperties}
                 data-kind={kind}
                 title={kind ? `${node.path}（${CHANGE_LABELS[kind]}）` : node.path}

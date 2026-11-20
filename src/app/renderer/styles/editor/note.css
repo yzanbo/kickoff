@@ -24,8 +24,7 @@
 
 /*
  * ノート・フォルダをドラッグして落とす先。フォルダは行と中身をまとめてアクセントの枠で囲み、薄く染める（中のノートに重ねていても、
- * どのフォルダに入るかが分かるように）。フォルダの名前もアクセントの色にする。
- * ノートのタブの木（.tree-item）と入力欄の上の「ノート」の木（.note-chip-item）で同じ見た目
+ * どのフォルダに入るかが分かるように）。名前もアクセントの色。ノートのタブの木（.tree-item）と入力欄の上の木（.note-chip-item）で同じ見た目
  */
 :is(.tree-item, .note-chip-item).drop-target {
   position: relative;
@@ -301,7 +300,8 @@
   gap: 4px;
   width: 100%;
   min-height: 28px;
-  padding: 2px 8px 2px calc(6px + var(--depth, 0) * 14px);
+  padding: 2px 8px 2px var(--tree-left);
+  --tree-indent: 14px;
 }
 
 /* ノートの行の、フォルダの開閉の矢印の分の空き（名前の頭をフォルダの行とそろえる） */

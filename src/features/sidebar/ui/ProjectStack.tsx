@@ -69,7 +69,7 @@ export function ProjectStack({
         ))}
         {!showArchived && archivedHead}
         {waitingEmpty}
-        {allSearch.keyword && ordered.length === 0 && <p className="chat-search-empty search-all-empty">「{allSearch.keyword}」に一致するチャットはありません</p>}
+        {allSearch.keyword && ordered.length === 0 && <p className="empty-note chat-search-empty search-all-empty">「{allSearch.keyword}」に一致するチャットはありません</p>}
       </div>
       {selectionBar}
       <div className="workspace-switcher stack">

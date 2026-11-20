@@ -39,6 +39,13 @@
   cursor: pointer;
 }
 
+/* タブの子チャットの一覧（TabChildChatsPopover）は段で字下げする */
+.tab-child-chats-row {
+  padding-left: var(--tree-left);
+  --tree-pad: 2px;
+  --tree-indent: 14px;
+}
+
 .state-chats-row:hover {
   background: var(--bg-hover);
 }

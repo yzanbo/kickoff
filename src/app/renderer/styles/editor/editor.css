@@ -121,28 +121,12 @@
 }
 
 .change-file {
-  display: flex;
   align-items: baseline;
   gap: 6px;
-  width: 100%;
   /* VS Code の一覧と同じ 22px の行 */
   padding: 0 10px 0 26px;
-  border: none;
-  font: inherit;
   font-size: var(--fs-13);
   line-height: 22px;
-  text-align: left;
-  color: var(--text);
-  background: transparent;
-  cursor: pointer;
-}
-
-.change-file:hover {
-  background: var(--bg-hover);
-}
-
-.change-file.selected {
-  background: var(--bg-active);
 }
 
 .change-name {

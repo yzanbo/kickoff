@@ -54,7 +54,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
       // 動きの行などから、その呼び出しを含むまとまりへ移れるようにする（jumpToEvent）
       data-tool-ids={tools.map((t) => t.use.id).join(" ")}
       summary={
-        <summary>
+        <summary className="fold-summary">
           <ChevronRight size={14} className="tool-chevron" />
           <ToolStatusIcon status={status} />
           <span className="tool-summary">{summary}</span>
@@ -132,7 +132,7 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
       open={open}
       onOpenChange={setOpen}
       summary={
-        <summary>
+        <summary className="fold-summary">
           <ToolStatusIcon status={callStatus(call, running)} />
           <span className="tool-name">{toolLabel(name)}</span>
           <span className="tool-arg">

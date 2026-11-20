@@ -176,7 +176,7 @@ function Thinking({ event }: { event: ChatEventOf<"thinking"> }) {
       open={open}
       onOpenChange={setOpen}
       summary={
-        <summary>
+        <summary className="fold-summary">
           <ChevronRight size={13} className="tool-chevron" />
           {label}
           {time}

@@ -72,7 +72,7 @@ export function CommitTable({
           <li key={commit.hash}>
             <button
               ref={isSelected ? selectedRef : undefined}
-              className={cx("history-row", isSelected && "selected")}
+              className={cx("list-item history-row", isSelected && "selected")}
               aria-current={isSelected || undefined}
               title={commit.subject}
               onClick={() => onSelect(commit)}

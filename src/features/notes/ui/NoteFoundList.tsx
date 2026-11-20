@@ -22,7 +22,7 @@ export function NoteFoundList({ found, isSelected, onRowClick, onMenu }: Props) 
           <button
             role="option"
             aria-selected={isSelected(e.path)}
-            className={cx("tree-row", isSelected(e.path) && "selected")}
+            className={cx("list-item tree-row tree-indent", isSelected(e.path) && "selected")}
             onClick={(ev) => onRowClick(e.path, ev)}
             onContextMenu={(ev) => onMenu(ev, { name: baseName(e.path), path: e.path, dir: false, ignored: false, children: [] })}
           >

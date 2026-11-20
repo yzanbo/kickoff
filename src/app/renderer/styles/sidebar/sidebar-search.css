@@ -55,8 +55,6 @@
 
 .chat-search-empty {
   margin: 4px 8px;
-  font-size: var(--fs-12);
-  color: var(--muted);
 }
 
 .status-slot {

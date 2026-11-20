@@ -1,0 +1,13 @@
+/* 開閉の見出し（.fold-summary を付けた <summary>）: 既定の印を消し、開いている <details> では中の .tool-chevron（▸）を下へ回す */
+.fold-summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.fold-summary::-webkit-details-marker {
+  display: none;
+}
+
+[open] > .fold-summary .tool-chevron {
+  transform: rotate(90deg);
+}

@@ -1,4 +1,4 @@
-import { useState, type MouseEvent, type ReactNode } from "react";
+import { useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { cx } from "@/foundation/ui/lib/cx";
 import { Chevron } from "@/foundation/ui/kit/Chevron";
 
@@ -46,7 +46,7 @@ export function RefItem({
 }) {
   return (
     <li className={cx(Boolean(actions) && "change-item", selected && "selected")}>
-      <button className={cx("ref-item", active && "current", selected && "selected")} aria-current={selected || undefined} style={{ paddingLeft: 22 + depth * 14 }} title={title ?? name} onClick={onClick} onContextMenu={onContextMenu}>
+      <button className={cx("list-item ref-item tree-indent", active && "current", selected && "selected")} aria-current={selected || undefined} style={{ "--depth": depth } as CSSProperties} title={title ?? name} onClick={onClick} onContextMenu={onContextMenu}>
         {icon}
         <span className="ref-name">{name}</span>
         {note && <span className="ref-note">{note}</span>}

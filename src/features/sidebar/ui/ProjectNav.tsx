@@ -35,7 +35,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   if (projects.length === 0) {
     return (
       <div className="workspace-empty">
-        <p className="workspace-empty-text">プロジェクトがまだありません。作ると、ここにプロジェクトとチャットが並び、答えを待っているものは「要対応」に集まります。</p>
+        <p className="empty-note workspace-empty-text">プロジェクトがまだありません。作ると、ここにプロジェクトとチャットが並び、答えを待っているものは「要対応」に集まります。</p>
         <button className="sidebar-new" onClick={onNewProject}>
           <Plus size={14} /> 新しいプロジェクト
         </button>
@@ -53,7 +53,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   const tagEmpty = tagFilter.active && visible.length === 0 && ordered.length === 0;
   const tagEmptyNotice = tagEmpty && (
     <div className="waiting-empty">
-      <p className="chat-search-empty">タグ「{tagFilter.selected.map(tagLabel).join("、")}」に合うプロジェクトはありません</p>
+      <p className="empty-note chat-search-empty">タグ「{tagFilter.selected.map(tagLabel).join("、")}」に合うプロジェクトはありません</p>
       <button className="chat-row ghost" onClick={tagFilter.clear}>
         絞り込みを外す
       </button>
@@ -63,7 +63,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   /** 要対応でプロジェクトを絞っていて、ひとつもないとき */
   const waitingEmpty = tagEmptyNotice || (filterByWaiting && ordered.length === 0 && (
     <div className="waiting-empty">
-      <p className="chat-search-empty">要対応のチャットはありません</p>
+      <p className="empty-note chat-search-empty">要対応のチャットはありません</p>
       <button className="chat-row ghost" onClick={() => setWaitingOnly(false)}>
         すべてのチャットを表示
       </button>

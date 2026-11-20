@@ -9,27 +9,10 @@
 }
 
 .history-row {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  width: 100%;
   height: 26px;
   padding: 0 10px 0 6px;
-  border: none;
-  font: inherit;
   font-size: var(--fs-13);
-  text-align: left;
-  color: var(--text);
-  background: transparent;
-  cursor: pointer;
-}
-
-.history-row:hover {
-  background: var(--bg-hover);
-}
-
-.history-row.selected {
-  background: var(--bg-active);
 }
 
 .graph-cell {
@@ -267,19 +250,8 @@
   grid-template-columns: 64px minmax(0, 1fr);
   gap: 14px;
   align-items: center;
-  width: 100%;
   padding: 3px 0;
-  border: none;
   border-radius: var(--radius-sm);
-  font: inherit;
-  text-align: left;
-  color: var(--text);
-  background: transparent;
-  cursor: pointer;
-}
-
-.commit-summary-file:hover {
-  background: var(--bg-hover);
 }
 
 .commit-summary-file-marks {

@@ -301,7 +301,7 @@ export function SubagentPrompt({ text, chatId, agentKey }: { text: string; chatI
       open={open}
       onOpenChange={setOpen}
       summary={
-        <summary>
+        <summary className="fold-summary">
           <ChevronRight size={13} className="tool-chevron" />
           <span className="subagent-label">起動したエージェントからの依頼</span>
           <span className="subagent-prompt-first">{first}</span>

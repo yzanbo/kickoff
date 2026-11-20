@@ -69,7 +69,7 @@ export function WaitingInbox({ variant, order }: { variant: "top" | "list"; orde
   );
   const body =
     total === 0 ? (
-      <p className="chat-search-empty waiting-inbox-empty">要対応のチャットはありません</p>
+      <p className="empty-note chat-search-empty waiting-inbox-empty">要対応のチャットはありません</p>
     ) : (
       <>
         {sections.map((section) => (

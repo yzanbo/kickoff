@@ -110,7 +110,7 @@ export function GitCommandPalette({ anchor, ops, onClose }: { anchor: RefObject<
             </button>
           </li>
         ))}
-        {commands.length === 0 && <li className="git-palette-empty">合う操作はありません</li>}
+        {commands.length === 0 && <li className="empty-note git-palette-empty">合う操作はありません</li>}
       </ul>
     </Popover>
   );

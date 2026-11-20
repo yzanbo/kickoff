@@ -125,7 +125,7 @@ export function CommitView({
                     return (
                       <li key={f.path}>
                         <button
-                          className={cx("change-file", selected && "selected")}
+                          className={cx("list-item change-file", selected && "selected")}
                           aria-current={selected || undefined}
                           title={`${f.path}（${CHANGE_LABELS[f.kind]}）`}
                           onClick={() => setFile(f)}

@@ -1,18 +1,6 @@
 /* ==== チャットのツールの実行（まとめて 1 行・開くと個別に・実行中の光・出力と差分の色） ==== */
 
-/* ツールの実行（まとめて 1 行、開くと個別に） */
-
-.tool-group summary,
-.tool-call summary {
-  list-style: none;
-  cursor: pointer;
-}
-
-.tool-group summary::-webkit-details-marker,
-.tool-call summary::-webkit-details-marker {
-  display: none;
-}
-
+/* ツールの実行（まとめて 1 行、開くと個別に。見出しは .fold-summary） */
 .tool-group {
   min-width: 0;
   max-width: 100%;
@@ -56,10 +44,6 @@
 .tool-chevron {
   flex: none;
   transition: transform 0.15s;
-}
-
-.tool-group[open] > summary .tool-chevron {
-  transform: rotate(90deg);
 }
 
 .tool-summary {
@@ -202,21 +186,11 @@
   align-items: center;
   gap: 8px;
   padding: 6px 10px 6px 6px;
-  list-style: none;
   color: var(--muted);
-  cursor: pointer;
-}
-
-.turn-changes > summary::-webkit-details-marker {
-  display: none;
 }
 
 .turn-changes > summary:hover {
   color: var(--text);
-}
-
-.turn-changes[open] > summary .tool-chevron {
-  transform: rotate(90deg);
 }
 
 .turn-changes ul {

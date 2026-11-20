@@ -109,7 +109,7 @@ export function TreeView<K, N extends TreeNode<K>>({
               key={String(row.key)}
               {...tree.rowProps(row.key)}
               {...dragProps(row)}
-              className={cx("tree-row", focused && "focused", selected && "selected", target === row.key && "drop-target")}
+              className={cx("list-item tree-row tree-indent", focused && "focused", selected && "selected", target === row.key && "drop-target")}
               style={{ "--depth": row.depth, ...place } as CSSProperties}
             >
               {renaming?.key === row.key ? (

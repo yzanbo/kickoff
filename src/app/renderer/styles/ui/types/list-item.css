@@ -1,0 +1,23 @@
+/*
+ * 押せる一覧の行（.list-item。ファイルの木・変更・履歴・参照の行ほか）: 左寄せの文字・地なし・乗せると --bg-hover・選んでいる（.selected）と --bg-active。
+ * 高さ・余白・文字の大きさ・並べ方は使う所のクラスで決める
+ */
+.list-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: none;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.list-item:hover {
+  background: var(--bg-hover);
+}
+
+.list-item.selected {
+  background: var(--bg-active);
+}

@@ -317,20 +317,10 @@
   align-items: center;
   gap: 6px;
   width: fit-content;
-  list-style: none;
-  cursor: pointer;
-}
-
-.thinking > summary::-webkit-details-marker {
-  display: none;
 }
 
 .thinking > summary:hover {
   color: var(--text);
-}
-
-.thinking[open] > summary .tool-chevron {
-  transform: rotate(90deg);
 }
 
 /* 思考の行の後ろの、考え始めた時刻 */

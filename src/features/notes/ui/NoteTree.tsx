@@ -86,7 +86,7 @@ export function NoteTree(props: Props) {
           >
             {editing ? (
               // 名前の所を入力欄に（Enter・ピントを外すと決め、Esc でやめる。ノートの拡張子は欄の右に添えて、書き換えさせない）
-              <div className={cx("tree-row", "renaming", selected && "selected")} style={style}>
+              <div className={cx("list-item tree-row tree-indent", "renaming", selected && "selected")} style={style}>
                 {head}
                 <InlineName
                   key={renaming.round}
@@ -102,7 +102,7 @@ export function NoteTree(props: Props) {
               </div>
             ) : (
               <button
-                className={cx("tree-row", selected && "selected", isDraggingNote(node.path) && "dragging")}
+                className={cx("list-item tree-row tree-indent", selected && "selected", isDraggingNote(node.path) && "dragging")}
                 style={style}
                 title={node.path}
                 {...rowProps(node)}

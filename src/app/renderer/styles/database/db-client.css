@@ -99,23 +99,11 @@
 }
 
 .db-tree-row {
-  display: flex;
-  align-items: center;
   gap: 5px;
-  width: 100%;
   height: var(--row-tight);
-  padding: 0 8px 0 6px;
-  border: none;
-  background: transparent;
-  font: inherit;
+  padding: 0 8px 0 var(--tree-left);
+  --tree-indent: 14px;
   font-size: var(--fs-13);
-  color: var(--text);
-  text-align: left;
-  cursor: pointer;
-}
-
-.db-tree-row:hover {
-  background: var(--bg-hover);
 }
 
 .db-tree-row > svg {
@@ -202,7 +190,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 2px 8px;
-  padding: 3px 8px 4px;
+  padding: 3px 8px 4px var(--tree-left);
+  --tree-pad: 26px;
+  --tree-indent: 14px;
   font-size: var(--fs-12);
   color: var(--muted);
 }

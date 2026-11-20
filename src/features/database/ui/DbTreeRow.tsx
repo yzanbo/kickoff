@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useState, type CSSProperties, type ReactNode } from "react";
 import { DB_NOT_IN_WORKTREE, DB_PREP_UNCONFIRMED, DB_SSH_UNKNOWN_HOST, type DbConnection, type DbObjectKind, type DbObjectPath } from "@shared/database/types";
 import { errorMessage } from "@shared/foundation/errors";
 import { ApiError } from "@/foundation/ui/api";
@@ -46,8 +46,8 @@ export function TreeRow({
   return (
     <button
       type="button"
-      className={cx("db-tree-row", className)}
-      style={{ paddingLeft: 6 + depth * 14 }}
+      className={cx("list-item db-tree-row tree-indent", className)}
+      style={{ "--depth": depth } as CSSProperties}
       aria-expanded={open}
       title={title}
       onClick={(e) => {
@@ -83,7 +83,7 @@ export function TreeError({ depth, error, connection, onRetry }: { depth: number
   const [checkingKey, setCheckingKey] = useState(false);
   const code = error instanceof ApiError ? error.code : undefined;
   return (
-    <div className="db-tree-error" style={{ paddingLeft: 26 + depth * 14 }}>
+    <div className="db-tree-error tree-indent" style={{ "--depth": depth } as CSSProperties}>
       <span>{errorMessage(error)}</span>
       {code === DB_NOT_IN_WORKTREE ? (
         <button type="button" className="link-button small" onClick={() => client.openMain(connection.id)}>
@@ -137,7 +137,7 @@ export function useNodeLoad<T>(open: boolean, load: () => Promise<T>, deps: unkn
 /** 読み込み中・空などの案内の行 */
 export function TreeHint({ depth, children }: { depth: number; children: ReactNode }) {
   return (
-    <div className="db-tree-hint" style={{ paddingLeft: 26 + depth * 14 }}>
+    <div className="db-tree-hint tree-indent" style={{ "--depth": depth } as CSSProperties}>
       {children}
     </div>
   );

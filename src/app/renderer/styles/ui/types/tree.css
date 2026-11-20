@@ -1,0 +1,12 @@
+/*
+ * 木の段の字下げ（.tree-indent。ファイルの木の行のクラス .tree-row とは別）: 左の余白は --tree-pad（既定 6px）＋ 段 --depth × --tree-indent（既定 12px）。
+ * 段は部品が style で --depth を入れ、ほかの 2 つは使う所のクラスで入れる。使う所が padding をまとめて書くときは、左に var(--tree-left) を書く
+ */
+@property --tree-pad { syntax: "*"; inherits: false; }
+@property --tree-indent { syntax: "*"; inherits: false; }
+@property --tree-left { syntax: "*"; inherits: false; }
+
+.tree-indent {
+  --tree-left: calc(var(--tree-pad, 6px) + var(--depth, 0) * var(--tree-indent, 12px));
+  padding-left: var(--tree-left);
+}

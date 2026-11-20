@@ -2,22 +2,9 @@
 
 /* 履歴の左の一覧（すべてのコミット・ブランチ・リモート・タグ・stash） */
 .ref-all {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  width: 100%;
   padding: 8px 12px;
-  border: none;
-  font: inherit;
   font-size: var(--fs-13);
-  text-align: left;
-  color: var(--text);
-  background: transparent;
-  cursor: pointer;
-}
-
-.ref-all:hover {
-  background: var(--bg-hover);
 }
 
 .ref-items {
@@ -32,22 +19,11 @@
 }
 
 .ref-item {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  width: 100%;
-  padding: 3px 10px 3px 22px;
-  border: none;
-  font: inherit;
+  padding: 3px 10px 3px var(--tree-left);
+  --tree-pad: 22px;
+  --tree-indent: 14px;
   font-size: var(--fs-13);
-  text-align: left;
-  color: var(--text);
-  background: transparent;
-  cursor: pointer;
-}
-
-.ref-item:hover {
-  background: var(--bg-hover);
 }
 
 /*

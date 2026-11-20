@@ -109,7 +109,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
         key={c.id}
         role="button"
         tabIndex={0}
-        className={cx("subagent-row child-chat-row", c.archived_at && "archived")}
+        className={cx("subagent-row child-chat-row tree-indent", c.archived_at && "archived")}
         title={`子チャット「${chatTitle(c.title)}」を開く`}
         onClick={() => open(c)}
         onKeyDown={(e) => e.key === "Enter" && open(c)}

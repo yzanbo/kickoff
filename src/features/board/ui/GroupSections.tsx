@@ -62,7 +62,7 @@ export function GroupSections({
       <>
         {/* その列（グループ）で入力中の新しいチャット */}
         <DraftCards drafts={bucket.drafts} />
-        {members.length === 0 && <p className="column-empty">{g ? "チャットをここへドラッグ" : "なし"}</p>}
+        {members.length === 0 && <p className="empty-note column-empty">{g ? "チャットをここへドラッグ" : "なし"}</p>}
         {byState && bucket.children ? <StateParts parts={bucket.children} render={render} /> : <ProgressiveItems items={members} render={render} />}
         <ArchivedFold place={foldPlace} foldKey={`${bucket.key}/archived`} count={archived.length} bodyClassName="archived-fold">
           <ProgressiveItems items={archived} render={render} />

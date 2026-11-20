@@ -154,7 +154,7 @@ export function HistorySidebar({
         <span className="spacer" />
         <RefreshButton label="履歴を取り直す" busy={false} onClick={log.refresh} />
       </header>
-      <button className={cx("ref-all", current && rows.isPicked("all", current.hash) && "selected")} onClick={() => current && rows.pick("all", current.hash)}>
+      <button className={cx("list-item ref-all", current && rows.isPicked("all", current.hash) && "selected")} onClick={() => current && rows.pick("all", current.hash)}>
         <History size={15} aria-hidden /> すべてのコミット
       </button>
       <SearchField value={filter} onChange={setFilter} placeholder="絞り込む" label="ブランチ・タグを絞り込む" />

@@ -40,7 +40,7 @@ export function TurnChanges({ files, chatId, resultId }: { files: FileChange[]; 
       open={open}
       onOpenChange={setOpen}
       summary={
-        <summary>
+        <summary className="fold-summary">
           <ChevronRight size={13} className="tool-chevron" />
           <span>{files.length} 個のファイルを変更</span>
           <ChangeCounts added={added} removed={removed} />

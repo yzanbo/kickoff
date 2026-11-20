@@ -127,7 +127,7 @@ export function CommitSummary({
       <ul className="commit-summary-files">
         {files.map((f) => (
           <li key={f.path}>
-            <button type="button" className="commit-summary-file" title={`${f.path}（${CHANGE_LABELS[f.kind]}。押すと「変更」で差分を開きます）`} onClick={() => onOpenFile(f)}>
+            <button type="button" className="list-item commit-summary-file" title={`${f.path}（${CHANGE_LABELS[f.kind]}。押すと「変更」で差分を開きます）`} onClick={() => onOpenFile(f)}>
               <span className="commit-summary-file-marks">
                 <span className="change-badge" data-kind={f.kind}>
                   {f.kind}

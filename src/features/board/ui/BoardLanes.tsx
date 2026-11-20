@@ -166,7 +166,7 @@ export function BoardLanes({
   const budgets = useRowBudgets(lanes.map((lane) => (folds.isOpen(lane.key) ? laneRows(lane, list) : 0)));
   return (
     <div className="board-lanes">
-      {lanes.length === 0 && <p className="column-empty">チャットはありません</p>}
+      {lanes.length === 0 && <p className="empty-note column-empty">チャットはありません</p>}
       {lanes.map((lane, i) => {
         const open = folds.isOpen(lane.key);
         const extra = laneProps?.(lane) ?? {};

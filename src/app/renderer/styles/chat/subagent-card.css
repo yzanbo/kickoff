@@ -221,22 +221,12 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  list-style: none;
   font-size: var(--chat-fs-12);
   color: var(--muted);
-  cursor: pointer;
-}
-
-.subagent-prompt > summary::-webkit-details-marker {
-  display: none;
 }
 
 .subagent-prompt > summary:hover {
   color: var(--text);
-}
-
-.subagent-prompt[open] > summary .tool-chevron {
-  transform: rotate(90deg);
 }
 
 .subagent-prompt > summary .subagent-label {

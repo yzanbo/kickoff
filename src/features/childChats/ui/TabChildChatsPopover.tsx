@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { CSSProperties, RefObject } from "react";
 import { busyWithUnread } from "@shared/chat/state";
 import type { Chat } from "@shared/chat/types";
 import { useChatStates } from "@/features/chat/ui/state/chatStates";
@@ -32,8 +32,8 @@ export function TabChildChatsPopover({ chatId, anchor, onClose }: { chatId: numb
         <button
           key={chat.id}
           type="button"
-          className="state-chats-row tab-child-chats-row"
-          style={{ paddingLeft: `${2 + (depth - 1) * 14}px` }}
+          className="state-chats-row tab-child-chats-row tree-indent"
+          style={{ "--depth": depth - 1 } as CSSProperties}
           title={`${chatTitle(chat.title)} を右の欄で開く`}
           onClick={() => open(chat)}
         >

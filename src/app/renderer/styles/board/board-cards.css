@@ -31,8 +31,6 @@
 .column-empty {
   margin: 0;
   padding: 6px 0;
-  font-size: var(--fs-12);
-  color: var(--muted);
 }
 
 .board-card {

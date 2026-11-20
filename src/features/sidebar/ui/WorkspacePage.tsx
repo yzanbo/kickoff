@@ -304,8 +304,8 @@ export const WorkspacePage = memo(function WorkspacePage({
       {/* チャット一覧（開閉で高さがなめらかに変わる） */}
       <Collapse open={!collapsed}>
         {chatCount > 0 && <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />}
-        {keyword && visibleCount === 0 && <p className="chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
-        {!keyword && stateFilter && visibleCount === 0 && <p className="chat-search-empty">{BOARD_COLUMN_LABELS[stateFilter]}のチャットはありません</p>}
+        {keyword && visibleCount === 0 && <p className="empty-note chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
+        {!keyword && stateFilter && visibleCount === 0 && <p className="empty-note chat-search-empty">{BOARD_COLUMN_LABELS[stateFilter]}のチャットはありません</p>}
         {creating && (
           <div className="custom-group-head editing">
             <Folder size={13} aria-hidden />

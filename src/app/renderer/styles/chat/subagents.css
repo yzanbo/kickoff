@@ -98,7 +98,9 @@
   gap: 12px;
   width: 100%;
   /* 入れ子は親のすぐ下に字下げして並べる（--depth は SubagentChip が深さで入れる） */
-  padding: 8px 10px 8px calc(10px + var(--depth, 0) * 18px);
+  padding: 8px 10px 8px var(--tree-left);
+  --tree-pad: 10px;
+  --tree-indent: 18px;
   border: none;
   border-radius: var(--radius-sm);
   font: inherit;

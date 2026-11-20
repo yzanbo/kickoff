@@ -11,9 +11,9 @@ export function SuggestList({ suggest }: { suggest: SuggestController }) {
     <div className="suggest-list floating" role="listbox" aria-label={kind === "slash" ? "コマンドの候補" : "ファイルの候補"}>
       <div className="suggest-head">{kind === "slash" ? "コマンド" : "ファイル"}</div>
       {suggest.loading ? (
-        <p className="suggest-empty">読み込み中…</p>
+        <p className="empty-note suggest-empty">読み込み中…</p>
       ) : items.length === 0 ? (
-        <p className="suggest-empty">{kind === "slash" ? "使えるコマンドが見つかりません" : "ファイルが見つかりません"}</p>
+        <p className="empty-note suggest-empty">{kind === "slash" ? "使えるコマンドが見つかりません" : "ファイルが見つかりません"}</p>
       ) : (
         items.map((item, i) => (
           <button

@@ -38,7 +38,7 @@ export function StateColumn({
   const [active, archived] = splitArchived(column.chats);
   const body = (
     <>
-      {active.length === 0 && <p className="column-empty">なし</p>}
+      {active.length === 0 && <p className="empty-note column-empty">なし</p>}
       <ProgressiveItems items={active} render={render} />
       {foldArchived && foldPlace && (
         <ArchivedFold place={foldPlace} foldKey={`${column.key}/archived`} count={archived.length} bodyClassName="archived-fold">
@@ -63,7 +63,7 @@ function DraftColumn({ drafts, list = false, showProject = false }: { drafts: re
   const body = (
     <>
       <DraftCards drafts={drafts} showProject={showProject} />
-      {drafts.length === 0 && <p className="column-empty">なし</p>}
+      {drafts.length === 0 && <p className="empty-note column-empty">なし</p>}
     </>
   );
   return (
@@ -152,7 +152,7 @@ function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns:
           return (
             <div key={c.key} className="archived-list-state">
               <ColumnHead label={c.label} tone={bucketTone(c)} mark={bucketMark(c)} count={list.length} />
-              {list.length === 0 ? <p className="column-empty">なし</p> : <ProgressiveItems items={list} render={render} />}
+              {list.length === 0 ? <p className="empty-note column-empty">なし</p> : <ProgressiveItems items={list} render={render} />}
             </div>
           );
         })}

@@ -133,7 +133,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, mu
                 // 名前を変えている行（同じ名前のほかのファイルの確かめは、変更の一覧にないものもあるのでコアに任せる）
                 return (
                   <li key={file.path} className="change-item">
-                    <div className="change-file renaming">
+                    <div className="list-item change-file renaming">
                       <FileIcon name={name} />
                       <InlineName className="tree-rename" maxLength={255} initial={name} validate={siblingNameError([], file.path)} onSubmit={(next) => rename.submit(file.path, next)} onCancel={rename.cancel} />
                     </div>
@@ -143,7 +143,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, mu
               return (
                 <li key={file.path} className="change-item">
                   <button
-                    className={cx("change-file", isSelected && "selected")}
+                    className={cx("list-item change-file", isSelected && "selected")}
                     aria-current={isSelected || undefined}
                     title={`${file.path}（${CHANGE_LABELS[file.kind]}）`}
                     onClick={(e) => {
