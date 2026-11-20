@@ -56,8 +56,8 @@ function repointSideTabs(chatId: number, from: Place, to: Place) {
 
 /** 作業場所を移した区切りの記録を受けて、そのチャットの右の欄のタブを付け替える（App が 1 回置く） */
 export function useWorkplaceMoveTabs() {
-  useServerEvent((e) => {
-    if (e.type !== "chat_event" || e.event.type !== "workplace_moved") return;
+  useServerEvent("chat_event", (e) => {
+    if (e.event.type !== "workplace_moved") return;
     repointSideTabs(e.event.chat_id, e.event.data.from, e.event.data.to);
   });
 }

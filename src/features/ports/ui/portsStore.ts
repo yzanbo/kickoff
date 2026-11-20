@@ -5,7 +5,7 @@
 import { useSyncExternalStore } from "react";
 import type { PortProcess } from "@shared/ports/types";
 import { api } from "@/foundation/ui/api";
-import { subscribeServerEvent } from "@/foundation/ui/api/events";
+import { onServerEvent } from "@/foundation/ui/api/events";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
 
@@ -28,8 +28,8 @@ const setDot = (value: boolean) => {
   dot = value;
   for (const l of dotListeners) l();
 };
-subscribeServerEvent((e) => {
-  if (e.type === "ports_changed" && e.fresh > 0) setDot(true);
+onServerEvent("ports_changed", (e) => {
+  if (e.fresh > 0) setDot(true);
 });
 
 export const usePortsDot = () =>

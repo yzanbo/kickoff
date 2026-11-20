@@ -34,7 +34,7 @@ export function useMobilePairing() {
   const action = useAction<"start" | "cancel" | "approve" | "deny" | "revoke" | "access">();
   const state = pairing.data;
 
-  useServerEvent((e) => {
+  useServerEvent(["pairing", "devices"], (e) => {
     if (e.type === "pairing") pairing.setData(e.state);
     if (e.type === "devices") devices.reload();
   });

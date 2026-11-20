@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { FileContent } from "@shared/foundation/fileTypes";
 import { api, ApiError } from "@/foundation/ui/api";
-import { subscribeServerOpen, useServerEvent } from "@/foundation/ui/api/events";
+import { onServerOpen, useServerEvent } from "@/foundation/ui/api/events";
 import { errorMessage } from "@shared/foundation/errors";
 import { useKeyedAsync } from "@/foundation/ui/hooks/useKeyedAsync";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
@@ -215,13 +215,13 @@ export function useNoteDocument(projectId: number, path: string) {
     );
   };
   // このノートが変わった（チャットからの追記・Finder・ほかのアプリ・ほかの場所で開いた同じノートの保存など）
-  useServerEvent((e) => {
-    if (e.type === "notes" && e.project_id === projectId && (e.path === null || e.path === path)) checkFresh();
+  useServerEvent("notes", (e) => {
+    if (e.project_id === projectId && (e.path === null || e.path === path)) checkFresh();
   });
   // 知らせを取りこぼしたときのために: ウィンドウに戻ったとき・サーバーにつなぎ直したとき（切れている間の知らせは届かない）
   useWindowEvent("focus", checkFresh);
   const checkOnOpen = useEffectEvent(() => checkFresh());
-  useEffect(() => subscribeServerOpen(() => checkOnOpen()), []);
+  useEffect(() => onServerOpen(() => checkOnOpen()), []);
 
   return {
     file,

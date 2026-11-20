@@ -41,7 +41,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`、機能
 
 - 通信の土台は `api/http.ts` だけ。資源ごとの関数は各機能の `ui/api/<資源>.ts`（コアの `core/routes/<資源>.ts` と対応）に書き、`api/index.ts` で 1 つにまとめる。
 - 名前が重なると後のもので上書きされるので、重ならないことを `index.test.ts` で確かめる。型は機能の取り決めから。
-- SSE は App が 1 回つなぎ、`api/events.ts` で配る（部品は `useServerEvent`、外は `subscribeServerEvent`）。
+- SSE は App が 1 回つなぎ、`api/events.ts` が種類ごとに配る（`useServerEvent`・`onServerEvent`）。
 
 ## hooks と補助
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/foundation/errors";
 import type { FeedItem } from "@shared/chat/types";
 import { api } from "@/foundation/ui/api";
-import { subscribeServerOpen, useServerEvent } from "@/foundation/ui/api/events";
+import { onServerOpen, useServerEvent } from "@/foundation/ui/api/events";
 import { feedItemOf, upsertFeedItems } from "./feed";
 
 const NO_ITEMS: readonly FeedItem[] = Object.freeze([]);
@@ -31,7 +31,7 @@ export function useFeed(active: boolean) {
         .catch((e: unknown) => alive && setError(errorMessage(e)))
         .finally(() => alive && setLoaded(true));
     void load();
-    const off = subscribeServerOpen(() => void load());
+    const off = onServerOpen(() => void load());
     return () => {
       alive = false;
       off();
@@ -41,8 +41,8 @@ export function useFeed(active: boolean) {
       pending.current = [];
     };
   }, [active]);
-  useServerEvent((e) => {
-    if (!active || e.type !== "chat_event") return;
+  useServerEvent("chat_event", (e) => {
+    if (!active) return;
     const item = feedItemOf(e.event);
     if (!item) return;
     pending.current.push(item);

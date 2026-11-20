@@ -45,8 +45,8 @@ export function HtmlNotePage({
 
   // ノートのフォルダのほかのファイル（ページが読む CSS・画像など）が変わったら、描き直して読み直す（ファイルの口は no-cache なので、変わったものを取り直す）。
   // このノート自体の変更は、読み直した中身が html で届いて描き直す
-  useServerEvent((e) => {
-    if (e.type === "notes" && e.project_id === projectId && e.path !== path) frame.current?.contentWindow?.location.reload();
+  useServerEvent("notes", (e) => {
+    if (e.project_id === projectId && e.path !== path) frame.current?.contentWindow?.location.reload();
   });
 
   // 読み込むたびに（中身が変わると文書が作り直される）、中の文書に手を付け直す

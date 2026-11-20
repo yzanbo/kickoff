@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { CommandOutput } from "@shared/chat/chatEvent";
-import { subscribeServerEvent } from "@/foundation/ui/api/events";
+import { onServerEvent } from "@/foundation/ui/api/events";
 
 /*
  * 実行中のコマンドの出力（SSE の chat_command_output。保存しない）を、呼び出し ID・作業 ID ごとに覚える店。
@@ -29,7 +29,7 @@ function put(output: CommandOutput) {
 function subscribe(key: string, listener: () => void): () => void {
   if (!subscribed) {
     subscribed = true;
-    subscribeServerEvent((e) => e.type === "chat_command_output" && put(e.output));
+    onServerEvent("chat_command_output", (e) => put(e.output));
   }
   const set = listeners.get(key) ?? new Set();
   set.add(listener);

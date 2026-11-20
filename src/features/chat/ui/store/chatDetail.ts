@@ -65,6 +65,9 @@ function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
   };
 }
 
+/** チャットの店（chatStore.ts の apply）が当てる SSE の種類（下の detailChatIdOf の種類・途中の文 streamingEffectOf・サブエージェントの進み具合） */
+export const CHAT_STORE_EVENTS = ["chat", "chat_event", "approval", "approval_resolved", "chat_events_deleted", "chat_live", "chat_delta", "chat_subagent"] as const;
+
 /** 中身を変える知らせなら、そのチャットの ID（ほかの知らせは null。書いている途中の返答 chat_delta は別に扱うので含めない） */
 export function detailChatIdOf(event: BusEvent): number | null {
   switch (event.type) {

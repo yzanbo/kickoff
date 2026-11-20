@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { VIEWING_TTL_MS, type ViewingBody } from "@shared/devices/types";
 import { api } from "@/foundation/ui/api";
-import { subscribeServerOpen } from "@/foundation/ui/api/events";
+import { onServerOpen } from "@/foundation/ui/api/events";
 import { openChatOrChild } from "@/features/chat/ui/open/openChat";
 import { openCiRun } from "@/features/github/ui/ci/ciLinks";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
@@ -37,7 +37,7 @@ export function useViewingReport(route: Route) {
     const body: ViewingBody = { chat_id: chatId, ci_project_id: ciProjectId };
     const send = () => void api.reportViewing(body).catch(() => {});
     send();
-    const off = subscribeServerOpen(send);
+    const off = onServerOpen(send);
     // 何も見ていないなら送り直さない（コアは古い知らせを忘れる）
     const timer = chatId === null && ciProjectId === null ? undefined : setInterval(send, VIEWING_REFRESH_MS);
     return () => {

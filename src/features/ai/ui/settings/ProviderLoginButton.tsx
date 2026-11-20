@@ -20,8 +20,8 @@ export const canBrowserLogin = (p: ProviderStatus) => p.implemented && p.install
 export function ProviderLoginButton({ provider }: { provider: ProviderStatus }) {
   const [state, setState] = useState<LoginState>({ kind: "idle" });
 
-  useServerEvent((e) => {
-    if (e.type !== "provider_login" || e.provider !== provider.id) return;
+  useServerEvent("provider_login", (e) => {
+    if (e.provider !== provider.id) return;
     if (e.status === "completed") void providersStore.reload();
     setState(e.status === "failed" ? { kind: "failed", message: e.error ?? "ログインできませんでした" } : { kind: "idle" });
   });

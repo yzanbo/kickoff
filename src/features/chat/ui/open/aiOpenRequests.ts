@@ -80,9 +80,10 @@ function putDraft(request: ChatDraftRequest) {
  * 開いているウィンドウの数だけ開かないように）
  */
 export function useAiOpenRequests() {
-  useServerEvent((e) => {
-    if (!window.kickoff) return;
-    if (e.type === "open_view") openRequested(e.request);
-    else if (e.type === "chat_draft") putDraft(e.request);
+  useServerEvent("open_view", (e) => {
+    if (window.kickoff) openRequested(e.request);
+  });
+  useServerEvent("chat_draft", (e) => {
+    if (window.kickoff) putDraft(e.request);
   });
 }

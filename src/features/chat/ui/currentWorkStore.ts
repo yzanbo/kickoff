@@ -1,4 +1,4 @@
-import { subscribeServerEvent } from "@/foundation/ui/api/events";
+import { onServerEvent } from "@/foundation/ui/api/events";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore } from "@/foundation/ui/store/useStore";
 import { describeActivity } from "./currentWork";
@@ -6,13 +6,12 @@ import { describeActivity } from "./currentWork";
 // チャットごとの、いまの作業（直近の記録から作った短い文）。読み込まずに知らせだけで作り、作業が終わったら消す
 const activities = createKeyedStore<number, string>();
 
-subscribeServerEvent((e) => {
-  if (e.type === "chat_event") {
-    const text = describeActivity(e.event);
-    if (text && activities.get(e.event.chat_id).data !== text) activities.set(e.event.chat_id, text);
-  } else if (e.type === "chat" && e.chat.status !== "running") {
-    activities.drop(e.chat.id);
-  }
+onServerEvent("chat_event", (e) => {
+  const text = describeActivity(e.event);
+  if (text && activities.get(e.event.chat_id).data !== text) activities.set(e.event.chat_id, text);
+});
+onServerEvent("chat", (e) => {
+  if (e.chat.status !== "running") activities.drop(e.chat.id);
 });
 
 /** 作業中のチャットの、いまの作業（ファイルの編集・コマンドの実行など。まだ分からなければ null） */

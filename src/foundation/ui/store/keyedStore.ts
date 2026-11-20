@@ -1,7 +1,7 @@
 // key（プロジェクトの ID など）ごとに値を持つ店の仕組み（値を 1 つだけ持つ店 createStore も、これを 1 つの key で使う）。
 // 店の考え方（読み込み・失敗・知らせ・つながったとき）は createStore.ts の先頭に、形（様子・指定・できること）は storeTypes.ts に書く
 import { errorMessage } from "@shared/foundation/errors";
-import { subscribeServerEvent, subscribeServerOpen } from "@/foundation/ui/api/events";
+import { onAnyServerEvent, onServerOpen } from "@/foundation/ui/api/events";
 import { EMPTY_STATE, type KeyedStore, type KeyedStoreOptions, type StoreState } from "./storeTypes";
 
 /** 失敗したあと、使っている値を自動で取り直すまでの間隔（続けて失敗するたびに倍にし、上限で止める） */
@@ -183,7 +183,7 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
   }
 
   if (reduce || reloadOn || dropOn) {
-    subscribeServerEvent((event) => {
+    onAnyServerEvent((event) => {
       const gone = dropOn?.(event);
       if (gone !== undefined) drop(gone);
       for (const [key, entry] of entries) {
@@ -198,7 +198,7 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
   // つながったら、失敗した値と、知らせで直している値を取り直す（つながる前・切れている間に頼んだ値は、その間の知らせを取りこぼしている。
   // つながったあとに頼んだ値は、サーバーが知らせを送り始めてから作るので取りこぼさない）
   const followsEvents = Boolean(reduce || reloadOn);
-  subscribeServerOpen(() => {
+  onServerOpen(() => {
     for (const [key, entry] of entries) {
       if (followsEvents) entry.stale = true;
       if (entry.stale && inUse(key)) restart(key, entry);

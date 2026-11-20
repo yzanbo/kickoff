@@ -2,11 +2,12 @@ import { useCallback, useEffectEvent, useLayoutEffect, useMemo, useRef, useSyncE
 import type { Chat } from "@shared/chat/types";
 import type { WorkplaceBoundary } from "@shared/workplaceMove/workplaceMoves";
 import { api } from "@/foundation/ui/api";
-import { subscribeServerEvent, subscribeServerOpen } from "@/foundation/ui/api/events";
+import { onServerEvent, onServerOpen } from "@/foundation/ui/api/events";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import type { SubagentsView } from "@/features/subagents/ui/subagentsContext";
 import type { ChatVisuals } from "@/features/visuals/ui/visualsContext";
 import { relativeOf } from "@/features/conversation/ui/timeline/timelineItems";
+import { CHAT_STORE_EVENTS } from "./chatDetail";
 import { createChatStore, type ChatDetailView, type ChatLogView } from "./chatStore";
 import { createChatSelectors, type ChatSubagents } from "./chatSelectors";
 import { createPrefetchQueue } from "./prefetch";
@@ -40,8 +41,8 @@ const chatStore = createChatStore({
 });
 const selectors = createChatSelectors(chatStore);
 const prefetchQueue = createPrefetchQueue({ prefetch: (chatId) => chatStore.prefetch(chatId), busy: () => chatStore.busy(), idle, timer });
-subscribeServerEvent((event) => chatStore.apply(event));
-subscribeServerOpen(() => chatStore.reconnected());
+onServerEvent(CHAT_STORE_EVENTS, (event) => chatStore.apply(event));
+onServerOpen(() => chatStore.reconnected());
 // チャットを開く所（サイドバーの行・ボードのカード・パネルのタブ）に乗せて少し待ったら先読みする（hoverPrefetch.ts）
 const hover = createHoverPrefetch({ timer, prefetch: (chatId) => prefetchQueue.request([chatId]) });
 document.addEventListener("pointerover", (e) => hover.over(e.target instanceof Element ? e.target : null), { passive: true });

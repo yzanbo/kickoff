@@ -68,8 +68,8 @@ export function useDocker(projectId: number) {
     };
   }, [reload]);
 
-  useServerEvent((e) => {
-    if (e.type === "docker_changed" && e.project_id === projectId) void reload();
+  useServerEvent("docker_changed", (e) => {
+    if (e.project_id === projectId) void reload();
   });
 
   /** 操作を送る（別の作業場所と同じ組になる起動は、確かめてから confirm_shared で送り直す） */

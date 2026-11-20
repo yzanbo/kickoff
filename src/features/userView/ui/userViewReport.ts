@@ -4,7 +4,7 @@
 import { useEffect } from "react";
 import { USER_VIEW_REPORT_MS, type UserView } from "@shared/userView/types";
 import { api } from "@/foundation/ui/api";
-import { subscribeServerOpen } from "@/foundation/ui/api/events";
+import { onServerOpen } from "@/foundation/ui/api/events";
 import { useLatest } from "@/foundation/ui/hooks/useLatest";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
 import { setUserViewProvider } from "@/features/chat/ui/send/userViewSnapshot";
@@ -40,7 +40,7 @@ export function useUserViewReport(collect: () => UserView, chatIds: (view: UserV
     };
     schedule();
     const offPanels = subscribePanels(schedule);
-    const offOpen = subscribeServerOpen(send);
+    const offOpen = onServerOpen(send);
     // 選んでいる範囲（エディタ・ノート）・押したもの（GitHub の issue・DB のタブなど、設定に覚えるもの）・窓の前後が変わったら
     const events = ["selectionchange", "pointerup", "keyup"] as const;
     for (const name of events) document.addEventListener(name, schedule, true);

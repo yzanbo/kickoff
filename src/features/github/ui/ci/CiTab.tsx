@@ -61,8 +61,8 @@ function CiBrowser({ projectId, host, repo }: { projectId: number; host: string;
   const pending = hasPending(data);
   useGitHubRefresh(list.reload, true, pending ? CI_PENDING_REFRESH_MS : GITHUB_REFRESH_MS);
   // 見張りが落ちた実行を見つけたら、一覧も取り直す
-  useServerEvent((e) => {
-    if (e.type === "ci_failed" && e.failure.project_id === projectId) list.reload();
+  useServerEvent("ci_failed", (e) => {
+    if (e.failure.project_id === projectId) list.reload();
   });
   const { paneRef: widthPaneRef, ...width } = useDragSize({ setting: CI_LIST_WIDTH, min: 260, keep: 360 });
   const { ref: root, narrow } = useNarrowSplit<HTMLDivElement>(width.size, DETAIL_MIN_WIDTH);

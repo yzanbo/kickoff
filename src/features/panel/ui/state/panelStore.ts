@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { subscribeServerEvent } from "@/foundation/ui/api/events";
+import { onServerEvent } from "@/foundation/ui/api/events";
 import { readSetting, writeSetting } from "@/foundation/ui/storage/settings";
 import { draftScope, panelKey, parsePanelKey, SURFACES } from "@/features/panel/ui/surfaces";
 import { specOf } from "@/features/panel/ui/tabs/tabKinds";
@@ -206,8 +206,9 @@ export function useMountedPanel(key: string) {
 export const isPanelMounted = (key: string) => mounted.has(key);
 
 // 削除したチャットのタブ（そのチャットのサブエージェントのタブも）は、どの欄でも閉じる（画面に出ていない欄も）
-subscribeServerEvent((e) => {
-  if (e.type === "project_deleted" && !replica) {
+onServerEvent(["project_deleted", "chat_deleted"], (e) => {
+  if (e.type === "project_deleted") {
+    if (replica) return;
     const side = panelKey("side", e.id);
     if (owns(side)) {
       writeBrowserSession(e.id, null);
@@ -215,7 +216,6 @@ subscribeServerEvent((e) => {
     }
     return;
   }
-  if (e.type !== "chat_deleted") return;
   for (const [key, state] of [...states]) {
     const gone = state.tabs.filter((t) => specOf(t).chatIdOf?.(t) === e.id);
     if (gone.length > 0) dispatchPanel(key, { type: "close", keys: gone.map((t) => t.key), dismiss: false });
