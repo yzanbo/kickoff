@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
-import { setupCore, until } from "@/app/core/testing/testCore";
+import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
+import { McpToolHost } from "@/foundation/core/aiTools/host";
 import { createAiChatEditTools } from "./aiChatEdit";
 
 /** どのチャットも作業中でない */
@@ -154,7 +155,9 @@ test("update_chat: 親から外せないとき（親のないチャット・先�
 });
 
 test("渡し方: 名前・固定・グループのツールは、チャットを作らせない設定のときも孫チャットにも渡す", async () => {
-  const ctx = setup();
+  const host = new McpToolHost(() => "http://127.0.0.1:1");
+  const ctx = setupCore(new ScriptedProvider(async () => ({ status: "completed", sessionId: "s", turns: 1 })), { toolHost: host });
+  const tools = watchTools(ctx, host);
   ctx.store.settings.update({ ai_create_chat: "off" });
   const parent = await ctx.runner.start({ projectId: ctx.project.id, prompt: "親" });
   await until(() => ctx.store.chats.get(parent.id)?.status === "completed");
@@ -162,11 +165,10 @@ test("渡し方: 名前・固定・グループのツールは、チャットを
   await until(() => ctx.store.chats.get(child.id)?.status === "completed");
   const grandchild = await ctx.runner.start({ projectId: ctx.project.id, prompt: "孫", parentChatId: child.id });
   await until(() => ctx.store.chats.get(grandchild.id)?.status === "completed");
-  const params = ctx.provider.calls.at(-1)!;
-  assert.equal(params.createChat, null, "チャットを作るツールは渡さない");
-  assert.ok(params.chatEdit, "名前・固定・グループのツールは渡す");
+  assert.ok(!tools.names().includes("create_chat"), "チャットを作るツールは渡さない");
+  assert.ok(tools.names().includes("update_chat"), "名前・固定・グループのツールは渡す");
   // 渡したツールは、そのチャット（孫）から見た家系を返す
-  const listed = JSON.parse(params.chatEdit.listFamily());
+  const listed = JSON.parse(await tools.call("list_family_chats"));
   assert.equal(listed.self_id, grandchild.id);
   assert.equal(listed.chats.length, 3);
 });

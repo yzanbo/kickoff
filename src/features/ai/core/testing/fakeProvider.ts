@@ -87,10 +87,6 @@ export class FakeProvider extends FakeProviderBase {
   preCompacts: ProviderTurnParams["preCompact"][] = [];
   /** これがあれば実行の初めに、自動の圧縮の前に圧縮前指示を足したと知らせる（値は足した発言の ID） */
   preCompactSentId: string | null = null;
-  /** 最後の実行に渡した、チャットを作るツールの中身（渡さなければ null） */
-  lastCreateChat: ProviderTurnParams["createChat"] = null;
-  /** 最後の実行に渡した、作業場所を移す予約のツールの中身 */
-  lastWorkplace: ProviderTurnParams["chatWorkplace"] = null;
   /** 最後の実行が、Git で管理していないファイルだけを書けるチャットだったか（［AI で整える］の確かめに使う） */
   lastUntrackedOnly = false;
   /** 最後の実行に渡したモデル（一覧にないモデルを外す確かめに使う） */
@@ -98,7 +94,7 @@ export class FakeProvider extends FakeProviderBase {
   /** モデルの一覧（テストで入れる。なければ一覧を持たない AI） */
   models?: () => Promise<ModelOption[]>;
   async run(
-    params: { cwd: string; model?: string | null; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; createChat?: ProviderTurnParams["createChat"]; chatWorkplace?: ProviderTurnParams["chatWorkplace"]; untrackedOnly?: boolean },
+    params: { cwd: string; model?: string | null; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null; untrackedOnly?: boolean },
     cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "context" | "control" | "retry" | "preCompactSent">,
     signal: AbortSignal,
   ): Promise<ProviderTurnResult> {
@@ -109,8 +105,6 @@ export class FakeProvider extends FakeProviderBase {
     this.lastDirs = params.additionalDirectories;
     this.lastSystemPrompt = params.systemPrompt;
     this.lastTurnContext = params.turnContext ?? null;
-    this.lastCreateChat = params.createChat ?? null;
-    this.lastWorkplace = params.chatWorkplace ?? null;
     this.lastUntrackedOnly = params.untrackedOnly ?? false;
     this.prompts.push(params.prompt);
     this.promptIds.push(params.promptId);

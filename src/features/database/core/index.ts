@@ -11,6 +11,7 @@ import { DbSecretVault } from "./secrets";
 import { DatabaseService } from "./service";
 import { createDatabaseStores } from "./db/stores";
 import { databaseRoutes } from "./routes/databases";
+import { dbToolGroup } from "./dbTools";
 
 export type { DatabaseService } from "./service";
 export { createDatabaseStores } from "./db/stores";
@@ -57,6 +58,7 @@ export function createDatabase(k: Kernel, deps: DatabaseDeps, env: DatabaseEnv):
     name: "database",
     api: databases,
     routes: [{ legacy: (app) => databaseRoutes(app, { store, databases, providers: deps.ai.providers, docker: deps.docker }) }],
+    aiTools: [dbToolGroup(databases, store)],
     stop: () => databases.close(),
   };
 }

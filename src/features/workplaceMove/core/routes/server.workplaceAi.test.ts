@@ -5,8 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "vitest";
-import type { AiWorkplaceTools } from "@/features/workplaceMove/core/aiWorkplace";
-import { setup, until } from "@/app/core/testing/testServer";
+import { setup, until, watchTools } from "@/app/core/testing/testServer";
 import { gitIn, gitRepo } from "@/foundation/core/testing/gitRepo";
 
 type Ctx = ReturnType<typeof setup>;
@@ -19,12 +18,22 @@ async function mainChat(ctx: Ctx) {
   return id;
 }
 
-/** 作業中にして、その作業に渡した作業場所のツールを返す（release で作業を終える） */
+/** 作業中にして、その作業に渡した作業場所のツールを返す（release で作業を終える。持っていく承認は askCarry の答え） */
 async function busyTurn(ctx: Ctx, chatId: number, text = "移って作って") {
+  const watch = watchTools(ctx, ctx.mcpTools);
+  const before = watch.lastTools();
   const release = ctx.provider.hold();
   await ctx.call("POST", `/api/chats/${chatId}/messages`, { text });
-  await until(() => ctx.runner.isBusy(chatId) && ctx.provider.lastWorkplace !== null);
-  return { tools: ctx.provider.lastWorkplace as AiWorkplaceTools, release };
+  await until(() => ctx.runner.isBusy(chatId) && watch.lastTools() !== before && watch.lastTools().length > 0);
+  const servers = watch.lastTools();
+  const tools = {
+    move(args: Record<string, unknown>, askCarry: (request: { files: string[] }) => Promise<boolean>) {
+      watch.answer(async (input) => ((await askCarry(input as { files: string[] })) ? { action: "allow" } : { action: "deny" }));
+      return watch.call("move_workplace", args, servers);
+    },
+    cancel: () => watch.call("cancel_workplace_move", {}, servers),
+  };
+  return { tools, release };
 }
 
 const allow = async () => true;
@@ -62,8 +71,8 @@ test("同じ作業で頼み直すと最後のものだけ残す。画面から�
   await tools.move({ to: "new_worktree", branch: "feat/first" }, allow);
   assert.match(await tools.move({ to: "worktree", worktree: "feat/x" }, allow), /前の予約を置き換えて、予約しました/);
   assert.equal((await live(ctx, chatId)).workplace_move.label, "ワークツリー（feat/x）");
-  assert.equal(tools.cancel(), "作業場所を移す予約を取り消しました。");
-  assert.match(tools.cancel(), /取り消す予約はありません/);
+  assert.equal(await tools.cancel(), "作業場所を移す予約を取り消しました。");
+  assert.match(await tools.cancel(), /取り消す予約はありません/);
   await tools.move({ to: "worktree", worktree: wt }, allow);
   assert.equal((await call("DELETE", `/api/chats/${chatId}/workplace-move`)).status, 204);
   assert.equal((await call("DELETE", `/api/chats/${chatId}/workplace-move`)).status, 409);

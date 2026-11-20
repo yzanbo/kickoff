@@ -5,4 +5,15 @@ export const AI_TOOL_SERVERS = ["kickoff_browser", "kickoff_db", "kickoff_chat"]
 export type AiToolServer = (typeof AI_TOOL_SERVERS)[number];
 
 /** CLI と記録から見える長い名前（mcp__<サーバー>__<ツール>） */
-export const aiToolId = (t: { server: AiToolServer; name: string }): string => `mcp__${t.server}__${t.name}`;
+export const aiToolId = (t: Pick<AiToolView, "server" | "name">): string => `mcp__${t.server}__${t.name}`;
+
+/** 画面とスマホに要る、1 つのツールの名前・表示名・記録の行の 1 文（コアの defineAiTool の title は label と同じ値） */
+export interface AiToolView {
+  server: AiToolServer;
+  /** AI から見える短い名前（"notify_user"） */
+  name: string;
+  /** ツールの行の表示名 */
+  label: string;
+  /** 行の 1 文（省けば空） */
+  describe?: (input: Record<string, unknown>) => string;
+}

@@ -57,7 +57,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 ## AI の操作ツール（`aiTools/`）
 
 - AI に Kickoff を操作させるツール（`kickoff_browser`・`kickoff_db`・`kickoff_chat`）は、どの CLI からもつなげるコアの 1 つの MCP サーバーで出す。
-- 定義は `aiTools/tool.ts` の `defineAiTool`（投げた失敗は理由の文の結果）で、機能が組 `AiToolGroup`（`order` の順）にまとめる。中身は各機能の `core/` の `ai…`（`src/features/chat/CLAUDE.md` の「AI の操作ツールの中身」）。
+- 定義は `aiTools/tool.ts` の `defineAiTool`（投げた失敗は理由の文の結果）。機能は組 `AiToolGroup`（`order` の順）を `CoreFeature.aiTools` で出す（chat の組は `chatTools.ts`）。中身の決まりは `src/features/chat/CLAUDE.md`。
 - 実行ごとに `aiTools/registry.ts` の `AiToolRegistry` が組を開いてサーバーにし、`McpToolHost`（`aiTools/host.ts`）に登録して、終わったら（失敗でも）鍵を捨てる。
 - 口は `/mcp/<名前>`（`/api/*` の認証の外）で、実行ごとの鍵だけを受ける（違えば見分けさせずに 401）。鍵は環境変数で渡さない（AI が Bash で読めないように）。
 - `autoAllow` は `auto` のツール（承認と断りをツールの中で行うもの・読むだけのもの）。

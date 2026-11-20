@@ -4,7 +4,7 @@ import { z } from "zod";
 import { AiToolRegistry } from "./registry";
 import { defineAiTool, type AiToolGroup, type AiTurn } from "./tool";
 
-/** 決めた答えを返す 1 回の作業 */
+/** 1 回の作業（聞いたら許可で答える。土台の testing はこのフォルダを読むので、ここに書く） */
 function turnOf(chatId = 1): AiTurn {
   const values = new Map<string, unknown>();
   return {

@@ -11,7 +11,8 @@ import { AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL } from 
 import { AI_FINISH_WORKTREE_TOOL } from "@shared/worktrees/aiWorktree";
 import { AI_CANCEL_WORKPLACE_MOVE_TOOL, AI_MOVE_WORKPLACE_TOOL } from "@shared/workplaceMove/aiWorkplace";
 import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL } from "./aiChatRemove";
-import { AI_NOTIFY_USER_TOOL } from "@shared/notifications/tools";
+import { NOTIFY_USER_VIEW } from "@shared/notifications/tools";
+import { aiToolId } from "@shared/foundation/aiToolView";
 
 test("OS の拒否ログ診断は、Claude Code・Codex 共通の名前を日本語にする", () => {
   assert.equal(describeTool(AI_START_SANDBOX_DIAGNOSTICS_TOOL, {}), "OS の拒否ログの診断を始める");
@@ -146,5 +147,5 @@ test("AI がチャットをアーカイブする・消すツール: 行はどの
 });
 
 test("AI が利用者に知らせるツール: 行は知らせた文", () => {
-  assert.equal(describeTool(AI_NOTIFY_USER_TOOL, { message: "1 段目が済みました" }), "利用者に知らせる: 1 段目が済みました");
+  assert.equal(describeTool(aiToolId(NOTIFY_USER_VIEW), { message: "1 段目が済みました" }), "利用者に知らせる: 1 段目が済みました");
 });

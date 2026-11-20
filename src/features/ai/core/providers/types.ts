@@ -1,22 +1,7 @@
-import type { BrowserControl } from "@shared/browser/control";
-import type { AiChatEditTools } from "@/features/chat/core/tools/aiChatEdit";
-import type { AiCreateChatTools } from "@/features/childChats/core/aiCreateChat";
-import type { AiWorktreeTools } from "@/features/worktrees/core/aiWorktree";
-import type { AiNotifyTools } from "@/features/notifications/core/aiNotify";
-import type { AiChatRemoveTools } from "@/features/chat/core/tools/aiChatRemove";
-import type { AiWorkplaceTools } from "@/features/workplaceMove/core/aiWorkplace";
-import type { AiUserViewTools } from "@/features/userView/core/aiUserView";
-import type { AiChatReadTools } from "@/features/chat/core/tools/aiChatRead";
-import type { AiProjectTools } from "@/features/chat/core/tools/aiProject";
-import type { AiTerminalTools } from "@/features/terminal/core/aiTerminal";
-import type { AiSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
-import type { AiVisualTools } from "@/features/visuals/core/aiVisual";
-import type { AiOpenTools } from "@/features/chat/core/tools/aiOpen";
 import type { HiddenDbTarget } from "@/features/database/core/guard/hiddenDb";
 import type { DockerGuard } from "@/features/docker/core/guard/dockerGuard";
 import type { WriteScopeParams } from "@/features/guard/core/guard/writeScope";
 import type { BashSandbox } from "@/features/guard/core/sandbox/bashSandbox";
-import type { DbAiTools } from "@/features/database/core/aiTools";
 import type { ToolEndpoint } from "@/foundation/core/aiTools/host";
 import type { ProviderAuth } from "./keys";
 import type { ChatPolicy } from "@/features/chat/core/prompt/system";
@@ -155,44 +140,14 @@ export interface ProviderTurnParams {
   /** 子プロセスに足す環境変数（プロジェクトで選んだ GitHub のアカウントのトークン GH_TOKEN。省略なら足さない） */
   env?: Record<string, string>;
   /**
-   * この実行の AI の操作ツールの口（コアの MCP サーバー。mcp/host.ts）。turn.ts が下のツールの中身（browser・database・createChat など）から作って登録し、
-   * プロバイダーはそれぞれの CLI の書き方で MCP サーバーとして渡すだけ（中身を自分で作らない）。省略・空なら渡さない
+   * この実行の AI の操作ツールの口（コアの MCP サーバー。aiTools/host.ts）。turn.ts が機能の組からレジストリで作って登録し、
+   * プロバイダーはそれぞれの CLI の書き方で MCP サーバーとして渡すだけ（中身を自分で作らない・知らない）。省略・空なら渡さない
    */
   tools?: ToolEndpoint[];
   /** ログインの仕方（api_key ならそのキー。省略ならサブスク = 各 CLI のログイン。キーを AI の Bash から読めない渡し方にするのはプロバイダー） */
   auth?: ProviderAuth;
-  /** Kickoff の埋め込みブラウザを AI に操作させる口と、このチャット（デスクトップアプリのときだけ。なければブラウザのツールを出さない） */
-  browser?: { control: BrowserControl; projectId: number; chatId: number } | null;
-  /** プロジェクトの DB を AI に読ませる口（AI に見せる接続があるときだけ。なければ DB のツールを出さない） */
-  database?: DbAiTools | null;
-  /** チャット（子・兄弟・親のないチャット）を AI に作らせる口（設定で止めていない・AI が作った世代の上限に達していないときだけ。なければ create_chat を出さない） */
-  createChat?: AiCreateChatTools | null;
-  /** 同じ家系のチャットの名前・固定・グループを AI に変えさせる口（どのチャットにも渡す。なければそのツールを出さない） */
-  chatEdit?: AiChatEditTools | null;
-  /** このプロジェクトのノート・同じ家系のチャットを AI に画面へ開かせる口（どのチャットにも渡す。なければそのツールを出さない） */
-  open?: AiOpenTools | null;
-  /** 同じプロジェクトのチャットの一覧・会話と使用枠を AI に読ませる口（どのチャットにも渡す。なければそのツールを出さない） */
-  chatRead?: AiChatReadTools | null;
-  /** このプロジェクトの定型文に足す・ノートの名前を変える／移す口を AI に渡す（どのチャットにも渡す。なければそのツールを出さない） */
-  chatProject?: AiProjectTools | null;
-  /** このプロジェクトの内蔵ターミナルの出力を AI に読ませる口（デスクトップアプリのときだけ。なければそのツールを出さない） */
-  chatTerminal?: AiTerminalTools | null;
-  /** この実行の OS 拒否ログの限定診断（プロバイダー共通の MCP） */
-  sandboxDiagnostics?: AiSandboxDiagnostics | null;
   /** 自分で起動した CLI の PID。診断のチャットの境界に使う */
   onAgentSpawned?: (pid: number) => void;
-  /** 返答の中に図を描かせる口（どのチャットにも渡す。なければ図のツールを出さない） */
-  chatVisual?: AiVisualTools | null;
-  /** ワークツリーを AI に片付けさせる口（finish_worktree。どのチャットにも渡し、消せないチャットからは理由の文で断る。なければそのツールを出さない） */
-  chatWorktree?: AiWorktreeTools | null;
-  /** 利用者に知らせる口を AI に渡す（notify_user。どのチャットにも渡す。なければそのツールを出さない） */
-  chatNotify?: AiNotifyTools | null;
-  /** 利用者が見ているものを AI に読ませる口（get_user_view。どのチャットにも渡す。なければそのツールを出さない） */
-  chatUserView?: AiUserViewTools | null;
-  /** チャットをアーカイブする・消す口を AI に渡す（archive_chat・delete_chat。どのチャットにも渡す。なければそのツールを出さない） */
-  chatRemove?: AiChatRemoveTools | null;
-  /** 自分のチャットの作業場所を移す予約・取り消しの口を AI に渡す（move_workplace・cancel_workplace_move。なければそのツールを出さない） */
-  chatWorkplace?: AiWorkplaceTools | null;
   /** 「見せない」DB の接続のつなぎ先（AI が Bash・ファイルのツールで直接入るのを断る。空・省略なら断らない） */
   hiddenDb?: HiddenDbTarget[];
   /** AI の Docker の守り（別の作業場所・ほかのプロジェクトのコンテナとボリュームを止める・消す・作り直す Bash を、流す前に承認カードで聞く。なければ聞かない） */

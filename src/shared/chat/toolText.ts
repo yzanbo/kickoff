@@ -21,7 +21,8 @@ import { AI_LIST_TERMINALS_TOOL, AI_READ_TERMINAL_TOOL, describeReadTerminal } f
 import { AI_START_SANDBOX_DIAGNOSTICS_TOOL, AI_READ_SANDBOX_DENIALS_TOOL } from "@shared/guard/aiSandboxDiagnostics";
 import { AI_FINISH_WORKTREE_TOOL, describeFinishWorktree } from "@shared/worktrees/aiWorktree";
 import { AI_CANCEL_WORKPLACE_MOVE_TOOL, AI_MOVE_WORKPLACE_TOOL, describeMoveWorkplace } from "@shared/workplaceMove/aiWorkplace";
-import { AI_NOTIFY_USER_TOOL, describeNotifyUser } from "@shared/notifications/tools";
+import { NOTIFICATION_TOOL_VIEWS } from "@shared/notifications/tools";
+import { aiToolId } from "@shared/foundation/aiToolView";
 import { AI_GET_USER_VIEW_TOOL } from "@shared/userView/tools";
 import { AI_ARCHIVE_CHAT_TOOL, AI_DELETE_CHAT_TOOL, describeRemoveChat } from "./aiChatRemove";
 import { AI_SHOW_VISUAL_TOOL, AI_UPDATE_VISUAL_TOOL, AI_VISUAL_GUIDE_TOOL, describeVisual } from "@shared/visuals/aiVisual";
@@ -79,7 +80,7 @@ const TOOL_LABELS: Record<string, string> = {
   [AI_FINISH_WORKTREE_TOOL]: "ワークツリーを片付ける",
   [AI_MOVE_WORKPLACE_TOOL]: "作業場所を移す予約",
   [AI_CANCEL_WORKPLACE_MOVE_TOOL]: "作業場所を移す予約を取り消す",
-  [AI_NOTIFY_USER_TOOL]: "利用者に知らせる",
+  ...Object.fromEntries(NOTIFICATION_TOOL_VIEWS.map((v) => [aiToolId(v), v.label])),
   [AI_GET_USER_VIEW_TOOL]: "画面を見る",
   [AI_ARCHIVE_CHAT_TOOL]: "チャットをアーカイブ",
   [AI_DELETE_CHAT_TOOL]: "チャットをゴミ箱へ",
@@ -175,8 +176,10 @@ function describeQuestions(questions: unknown): string {
   return questions.length > 1 ? `${first}（ほか ${questions.length - 1} 件）` : first;
 }
 
-/** ツールごとの入力の文（ツール名を除いた部分）。null ならツール固有の形がない */
+/** ツールごとの入力の文（ツール名を除いた部分）。null ならツール固有の形がない。表で持つ Kickoff のツールは表の 1 文 */
 function describeKnown(name: string, input: Input): string | null {
+  const view = NOTIFICATION_TOOL_VIEWS.find((v) => aiToolId(v) === name);
+  if (view) return clip(view.describe?.(input) ?? "");
   switch (name) {
     case "Bash":
       return typeof input.command === "string" ? input.command : null;
@@ -271,9 +274,6 @@ function describeKnown(name: string, input: Input): string | null {
     case AI_GET_USER_VIEW_TOOL:
       // 引数はない（何を読んだか・読めなかった事情は、ツールの行が結果の 1 行目から出す）
       return "";
-    case AI_NOTIFY_USER_TOOL:
-      // 知らせた文（流れにも「AI からの知らせ: …」のお知らせが残る）
-      return clip(describeNotifyUser(input));
     case AI_FINISH_WORKTREE_TOOL:
       // どのワークツリーか（省いたらこのチャットのワークツリー。結果（取り込み済みか・控え）は結果の欄とお知らせ）
       return clip(describeFinishWorktree(input));

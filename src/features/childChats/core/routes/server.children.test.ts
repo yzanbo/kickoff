@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { test } from "vitest";
 import { tempDir } from "@/foundation/core/testing/tempDir";
-import { setup, until } from "@/app/core/testing/testServer";
+import { setup, until, watchTools } from "@/app/core/testing/testServer";
 
 /** 1 回送って終わったチャットを作る */
 async function finishedChat(ctx: ReturnType<typeof setup>, text = "親の質問") {
@@ -443,10 +443,10 @@ test("設定: AI がチャットを作るとき（既定は毎回聞く。毎回
 
 test("AI が作る子チャット: 親の会話を引き継げたら、親の最後まで終わった作業から写して始め、引き継いだことを AI に返す", async () => {
   const ctx = setup();
+  const tools = watchTools(ctx, ctx.mcpTools);
   const parentId = await finishedChat(ctx);
-  const tools = ctx.provider.lastCreateChat;
-  assert.ok(tools, "親のないチャットにはチャットを作るツールを渡す");
-  const result = await tools.create({ relation: "child", text: "ここを調べて" }, async () => ({ action: "allow" }));
+  assert.ok(tools.names().includes("create_chat"), "親のないチャットにはチャットを作るツールを渡す");
+  const result = await tools.call("create_chat", { relation: "child", text: "ここを調べて" });
   assert.match(result, /いまの作業より前に終わったところまでを引き継いでいます/);
   const child = ctx.store.chats.descendants(parentId)[0];
   assert.equal(child.parent_chat_id, parentId);

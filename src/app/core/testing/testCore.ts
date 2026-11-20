@@ -2,6 +2,8 @@
 // 実行の受付（Runner）だけを組む setupCore（実行のテスト）。どちらもメモリの DB とプロジェクト 1 つ。テストからだけ使う
 import fs from "node:fs";
 import path from "node:path";
+import { vi } from "vitest";
+import type { ApprovalDecision } from "@shared/chat/approvalTypes";
 import type { Project } from "@shared/projects/types";
 import { systemClock } from "@/foundation/core/clock";
 import { BrowserLogin } from "@/foundation/core/http/auth";
@@ -9,6 +11,10 @@ import { createKernel, type Kernel } from "@/foundation/core/kernel";
 import type { HostPlatform } from "@/foundation/core/platform/types";
 import { appOf, stopFeatures } from "@/foundation/core/serve";
 import { afterTest } from "@/foundation/core/testing/afterTest";
+import { callTool, toolNames } from "@/foundation/core/testing/toolCalls";
+import type { McpToolHost } from "@/foundation/core/aiTools/host";
+import type { ToolServer } from "@/foundation/core/aiTools/tool";
+import type { Bus } from "@/foundation/core/bus";
 import type { FakeClaudeSdk } from "@/foundation/core/testing/fakeClaudeSdk";
 import { tempDir } from "@/foundation/core/testing/tempDir";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
@@ -91,4 +97,42 @@ export function setupCore<P extends AgentProvider>(provider: P, runnerOptions: R
   const usage = offlineUsage();
   const runner = new Runner({ store, approvals, providers, usage, bus, tellableWaitMs: 50, ...(interrupted ? { interrupted } : {}), ...runnerOptions });
   return { bus, deltas, store, approvals, providers, usage, runner, provider, project };
+}
+
+/** 実行の承認に返す答え（聞いたカードの入力から決める） */
+type Decide = (input: Record<string, unknown>) => ApprovalDecision | Promise<ApprovalDecision>;
+
+/** 見張っている口ごとの見張り（同じテストで 2 回呼んでも 1 つ） */
+const watches = new WeakMap<object, ReturnType<typeof startWatch>>();
+
+function startWatch(core: { bus: Bus; approvals: ApprovalCenter }, host: Pick<McpToolHost, "open">) {
+  const open = vi.spyOn(host, "open");
+  const asked: Record<string, unknown>[] = [];
+  let decide: Decide = () => ({ action: "allow" });
+  afterTest(
+    core.bus.subscribe((event) => {
+      if (event.type !== "approval") return;
+      asked.push(event.approval.input);
+      void Promise.resolve(decide(event.approval.input)).then((decision) => core.approvals.resolve(event.approval.id, decision));
+    }),
+  );
+  const lastTools = (): ToolServer[] => open.mock.calls.at(-1)?.[0] ?? [];
+  return {
+    /** ツールが聞いたカードの入力（順に） */
+    asked,
+    /** これからの承認の答え（既定は許可） */
+    answer: (fn: Decide) => void (decide = fn),
+    /** 最後の実行に渡したツール */
+    lastTools,
+    names: (servers = lastTools()) => toolNames(servers),
+    /** ツールを名前で呼ぶ（servers を省けば最後の実行のツール。失敗の結果は理由の文で投げる） */
+    call: (name: string, args: Record<string, unknown> = {}, servers = lastTools()) => callTool(servers, name, args),
+  };
+}
+
+/** 実行に渡した AI の操作ツールを覚えて名前で呼ぶ（host.open を見張る）。ツールが利用者に聞くカードには answer の答えを返す */
+export function watchTools(core: { bus: Bus; approvals: ApprovalCenter }, host: Pick<McpToolHost, "open">) {
+  const watch = watches.get(host) ?? startWatch(core, host);
+  watches.set(host, watch);
+  return watch;
 }

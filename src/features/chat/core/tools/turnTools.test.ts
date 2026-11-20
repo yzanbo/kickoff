@@ -1,7 +1,7 @@
-// 実行ごとに AI の操作ツールの口を渡し、終わったら鍵を捨てる（turn.ts と mcp/host.ts）
+// 実行ごとに AI の操作ツールの口を渡し、終わったら鍵を捨てる（turn.ts がレジストリで組み、aiTools/host.ts に登録する）
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { setupCore, until } from "@/app/core/testing/testCore";
+import { setupCore, until, watchTools } from "@/app/core/testing/testCore";
 import { ScriptedProvider } from "@/features/ai/core/testing/fakeProvider";
 import { connectToolHost } from "@/foundation/core/testing/mcpClient";
 import { McpToolHost } from "@/foundation/core/aiTools/host";
@@ -62,9 +62,7 @@ test("実行が失敗しても鍵を捨てる", async () => {
 for (const providerId of ["claude", "codex"] as const) {
   test(`${providerId}: 同じ限定診断ツールを MCP から呼べる。実行終了後は診断も閉じる`, async () => {
     const host = new McpToolHost(() => "http://127.0.0.1:1");
-    let diagnostic: ProviderTurnParams["sandboxDiagnostics"];
     const provider = new ScriptedProvider(async (params) => {
-      diagnostic = params.sandboxDiagnostics;
       params.onAgentSpawned?.(123);
       const endpoint = params.tools!.find((t) => t.name === "kickoff_chat")!;
       assert.ok(endpoint.autoAllow.includes("start_sandbox_diagnostics"));
@@ -80,10 +78,12 @@ for (const providerId of ["claude", "codex"] as const) {
       return { status: "completed", sessionId: "s" };
     });
     const rootTime = Math.floor(Date.now() / 1000) * 1000;
-    const { runner, store, project } = setupCore(provider, { toolHost: host, sandboxDiagnostics: { processes: async () => [{ pid: 123, ppid: 1, startedAt: rootTime }], denials: async () => [] } });
-    const chat = await runner.start({ projectId: project.id, provider: providerId, prompt: "診断" });
-    await until(() => store.chats.get(chat.id)?.status === "completed");
-    assert.equal(JSON.parse(await diagnostic!.start()).status, "unavailable");
+    const core = setupCore(provider, { toolHost: host, sandboxDiagnostics: { processes: async () => [{ pid: 123, ppid: 1, startedAt: rootTime }], denials: async () => [] } });
+    const tools = watchTools(core, host);
+    const chat = await core.runner.start({ projectId: core.project.id, provider: providerId, prompt: "診断" });
+    await until(() => core.store.chats.get(chat.id)?.status === "completed");
+    // 実行に渡したツールの中身は、実行が終わったら閉じている
+    assert.equal(JSON.parse(await tools.call("start_sandbox_diagnostics")).status, "unavailable");
     assert.equal(host.openSessions, 0);
   });
 }

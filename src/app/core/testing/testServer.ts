@@ -3,7 +3,7 @@
 import "@/foundation/core/testing/gitRepo";
 import { createTestCore } from "./testCore";
 
-export { AUTH, TOKEN, until } from "./testCore";
+export { AUTH, TOKEN, until, watchTools } from "./testCore";
 
 /** 偽のプロバイダーで API のアプリを組み立てる */
 export function setup(opts?: Parameters<typeof createTestCore>[0]) {

@@ -2,9 +2,11 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Approval } from "@shared/chat/approvalTypes";
-import { createAiNotifyTools } from "@/features/notifications/core/aiNotify";
+import { notifyToolGroup } from "@/features/notifications/core/tools";
+import { AiToolRegistry } from "@/foundation/core/aiTools/registry";
+import { callTool, testTurn } from "@/foundation/core/testing/toolCalls";
 import { until } from "@/app/core/testing/testCore";
-import { setup } from "@/app/core/testing/testServer";
+import { setup, watchTools } from "@/app/core/testing/testServer";
 
 const approval = (chatId: number, projectId: number, patch: Partial<Approval> = {}): Approval => ({
   id: `a${chatId}`,
@@ -107,13 +109,20 @@ test("見ているものの知らせ: 形が違えば 400", async () => {
   assert.equal((await call("PUT", "/api/viewing", {})).status, 400);
 });
 
+/** 1 回の作業の notify_user を呼ぶ形（作業ごとに組を開く。失敗は理由の文で投げる） */
+function notifyIn(group: ReturnType<typeof notifyToolGroup>, chatId: number) {
+  const servers = new AiToolRegistry([group]).serversFor(testTurn({ chatId }));
+  return (message: string) => callTool(servers, "notify_user", { message });
+}
+
 test("AI からの知らせ（notify_user）: 見ていなければ Mac の通知に本文を出し、スマホのプッシュには本文を載せない。流れに記録を残し、1 回の作業で 3 回まで", async () => {
   const { chat, bus, store, notifyFake, call } = withChat();
   const token = "e".repeat(40);
   const pixel = store.devices.create("Pixel", token);
   store.devices.setPush(pixel.id, { kind: "expo", token: "ExponentPushToken[q]" });
-  const tools = createAiNotifyTools({ store, publish: (e) => bus.publish(e) }, chat.id);
-  assert.match(tools.notify({ message: "  移行の 1 段目が済みました  " }), /あと 2 回/);
+  const group = notifyToolGroup({ store: () => store, publish: (e) => bus.publish(e) });
+  const notify = notifyIn(group, chat.id);
+  assert.match(await notify("  移行の 1 段目が済みました  "), /あと 2 回/);
   assert.deepEqual(
     notifyFake.notified.map((n) => [n.kind, n.title, n.body]),
     [["ai_notice", "AI からの知らせ: 調査", "p ・ 移行の 1 段目が済みました"]],
@@ -124,12 +133,23 @@ test("AI からの知らせ（notify_user）: 見ていなければ Mac の通�
   assert.deepEqual(notices, ["AI からの知らせ: 移行の 1 段目が済みました"]);
   // この Mac でそのチャットを見ていれば、Mac の通知は出さない
   assert.equal((await call("PUT", "/api/viewing", { chat_id: chat.id, ci_project_id: null })).status, 204);
-  tools.notify({ message: "2 回目" });
+  await notify("2 回目");
   assert.equal(notifyFake.notified.length, 1);
-  tools.notify({ message: "3 回目" });
-  assert.throws(() => tools.notify({ message: "4 回目" }), /3 回まで/);
-  assert.throws(() => tools.notify({ message: "あ".repeat(121) }), /120 文字まで/);
-  assert.throws(() => tools.notify({ message: "  " }), /空です/);
-  // 次の作業（作り直したツール）ではまた送れる
-  assert.match(createAiNotifyTools({ store, publish: (e) => bus.publish(e) }, chat.id).notify({ message: "次の作業" }), /あと 2 回/);
+  await notify("3 回目");
+  await assert.rejects(notify("4 回目"), /3 回まで/);
+  await assert.rejects(notify("あ".repeat(121)), /120 文字まで/);
+  await assert.rejects(notify("  "), /空です/);
+  // 次の作業（組を開き直したツール）ではまた送れる
+  assert.match(await notifyIn(group, chat.id)("次の作業"), /あと 2 回/);
+});
+
+test("AI からの知らせ（notify_user）: 組み立てが通知の組を集め、チャットの実行に kickoff_chat のツールとして渡す", async () => {
+  const ctx = setup();
+  const tools = watchTools(ctx, ctx.mcpTools);
+  const id: number = (await ctx.call("POST", `/api/projects/${ctx.project.id}/chats`, { text: "調べて" })).body.id;
+  await until(() => ctx.store.chats.get(id)?.status === "completed");
+  const names = tools.names();
+  assert.ok(names.includes("notify_user"));
+  // 並びは使い方の順（ワークツリーの片付けの次・画面を見るの前）
+  assert.deepEqual(names.slice(names.indexOf("finish_worktree"), names.indexOf("finish_worktree") + 3), ["finish_worktree", "notify_user", "get_user_view"]);
 });

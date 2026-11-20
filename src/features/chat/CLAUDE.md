@@ -82,9 +82,9 @@
 | `core/tools/aiProject.ts` | `add_snippet`・`move_note` |
 | `@/features/userView/core/aiUserView.ts` | `get_user_view` |
 
-ほかの機能の ai*.ts（`create_chat`・`notify_user`・`finish_worktree`・`move_workplace`・ターミナル・図）は各機能の `core/` にあり、下の決まりはどれにも当てる。
+ほかの機能のもの（`create_chat`・`notify_user`・`finish_worktree`・`move_workplace`・ターミナル・図）は各機能の `core/` にあり、下の決まりはどれにも当てる。
 
-- 中身は `create…Tools(deps, chatId)` で作り、`buildTurnParams` が実行ごとに渡す。1 回の作業の上限（`AI_CHATS_PER_TURN` など）はその中で数える。
+- 中身は `create…Tools(deps, chatId)` で作り、`chatTools.ts` が作業ごとに開く。1 回の作業の上限（`AI_CHATS_PER_TURN` など）はその中で数える。
 - 相手（家系・プロジェクト・タブ）と設定・世代・深さは呼ぶたびに引き直す。ほかのプロジェクトは断る。
 - 承認を聞くのは `create_chat`（設定が `ask`）と、持っていく変更のある `move_workplace` だけ（ほかは戻せる・読むだけ。理由は各ファイルの頭）。
 - 自分を含む操作（自分のワークツリー・アーカイブ・作業場所）は予約して作業の終わりに行い、先に送信待ちを止める。予約はメモリだけ。

@@ -1,28 +1,28 @@
-// kickoff_chat の組（チャットを AI が操作するツール）。ツールの定義は各機能の chat…Tools.ts、ここは組の並び（order）と、作る・名前を変えるツール
+// kickoff_chat の組（チャットを AI が操作するツール）。ツールの定義は各機能の chat…Tools.ts、ここは組の並び（order）と中身の作り方、作る・名前を変えるツール。
+// 通知の notify_user（order 100）のように、機能が CoreFeature.aiTools で出す組もレジストリが同じ並びに入れる
 import { z } from "zod";
-import { defineAiTool, type AiToolDef, type AiToolGroup } from "@/foundation/core/aiTools/tool";
+import { defineAiTool, type AiToolDef, type AiToolGroup, type AiTurn } from "@/foundation/core/aiTools/tool";
 import { AI_CHAT_RELATION_LABELS, AI_CHAT_RELATIONS, AI_CREATE_CHAT_TOOL } from "@shared/chat/aiCreateChat";
 import { CHAT_TITLE_MAX } from "@shared/chat/types";
 import { PROVIDER_IDS, PROVIDER_LABELS } from "@shared/settings/types";
-import type { AiChatEditTools } from "./aiChatEdit";
-import type { AiChatReadTools } from "./aiChatRead";
-import type { AiCreateChatRequest, AiCreateChatTools } from "@/features/childChats/core/aiCreateChat";
-import type { AiOpenTools } from "./aiOpen";
-import type { AiProjectTools } from "./aiProject";
-import type { AiTerminalTools } from "@/features/terminal/core/aiTerminal";
-import type { AiVisualTools } from "@/features/visuals/core/aiVisual";
-import type { AiWorktreeTools } from "@/features/worktrees/core/aiWorktree";
-import type { AiNotifyTools } from "@/features/notifications/core/aiNotify";
-import type { AiUserViewTools } from "@/features/userView/core/aiUserView";
-import type { AiChatRemoveTools } from "./aiChatRemove";
-import type { AiWorkplaceTools } from "@/features/workplaceMove/core/aiWorkplace";
+import type { ExecutionDeps } from "@/features/chat/core/turn";
+import { createAiChatEditTools, type AiChatEditTools } from "./aiChatEdit";
+import { createAiChatReadTools } from "./aiChatRead";
+import { canCreateChat, createAiCreateChatTools, type AiCreateChatRequest, type AiCreateChatTools } from "@/features/childChats/core/aiCreateChat";
+import { createAiOpenTools } from "./aiOpen";
+import { createAiProjectTools } from "./aiProject";
+import { createAiTerminalTools } from "@/features/terminal/core/aiTerminal";
+import { createAiVisualTools } from "@/features/visuals/core/aiVisual";
+import { createAiWorktreeTools } from "@/features/worktrees/core/aiWorktree";
+import { createAiUserViewTools } from "@/features/userView/core/aiUserView";
+import { createAiChatRemoveTools } from "./aiChatRemove";
+import { createAiWorkplaceTools } from "@/features/workplaceMove/core/aiWorkplace";
 import { OPEN_INSTRUCTIONS, openTools } from "./chatOpenTools";
 import { PROJECT_INSTRUCTIONS, projectTools } from "./chatProjectTools";
 import { READ_INSTRUCTIONS, readTools } from "./chatReadTools";
 import { TERMINAL_INSTRUCTIONS, terminalTools } from "@/features/terminal/core/chatTerminalTools";
 import { VISUAL_INSTRUCTIONS, visualTools } from "@/features/visuals/core/chatVisualTools";
 import { WORKTREE_INSTRUCTIONS, worktreeTools } from "@/features/worktrees/core/chatWorktreeTools";
-import { NOTIFY_INSTRUCTIONS, notifyTools } from "@/features/notifications/core/chatNotifyTools";
 import { USER_VIEW_INSTRUCTIONS, userViewTools } from "@/features/userView/core/chatUserViewTools";
 import { REMOVE_INSTRUCTIONS, removeTools } from "./chatRemoveTools";
 import { WORKPLACE_INSTRUCTIONS, workplaceTools } from "@/features/workplaceMove/core/chatWorkplaceTools";
@@ -31,23 +31,6 @@ import type { AiSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnost
 
 /** kickoff_chat の使い方の頭の 1 文 */
 export const CHAT_TOOLS_HEAD = "Kickoff（このチャットを動かしているアプリ）のチャットなどを操作するツール。";
-
-/** 1 回の実行に渡すチャットのツールの中身（チャットを作るのは設定と世代で、ターミナルはメインプロセスがないと渡さないことがある。ほかはどのチャットにも渡す） */
-interface ChatTools {
-  diagnostics?: AiSandboxDiagnostics | null;
-  createChat: AiCreateChatTools | null;
-  chatEdit: AiChatEditTools | null;
-  open: AiOpenTools | null;
-  read: AiChatReadTools | null;
-  project: AiProjectTools | null;
-  terminal: AiTerminalTools | null;
-  visual: AiVisualTools | null;
-  worktree: AiWorktreeTools | null;
-  notify: AiNotifyTools | null;
-  userView: AiUserViewTools | null;
-  remove: AiChatRemoveTools | null;
-  workplace: AiWorkplaceTools | null;
-}
 
 /** チャットを作るツールの使い方（MCP の instructions として AI に渡す） */
 const CREATE_INSTRUCTIONS = [
@@ -135,24 +118,50 @@ function chatEditTools(chatEdit: AiChatEditTools): AiToolDef[] {
   ];
 }
 
-/** kickoff_chat の 1 つの組（渡す中身がなければ出さない） */
-const chatGroup = (order: number, instructions: readonly string[], defs: AiToolDef[] | null): AiToolGroup => ({ server: "kickoff_chat", order, instructions, open: () => defs });
+/** kickoff_chat の 1 つの組（open は作業ごとに中身を作り、出さないなら null） */
+const chatGroup = (order: number, instructions: readonly string[], open: (turn: AiTurn) => AiToolDef[] | null): AiToolGroup => ({ server: "kickoff_chat", order, instructions, open });
 
-/** 1 回の実行に渡す、チャットを操作するツールの組（order は使い方の文とツールの並び。どれも聞かずに使わせる） */
-export function chatToolGroups(tools: ChatTools): AiToolGroup[] {
+/**
+ * 1 回の実行に渡す、チャットを操作するツールの組（order は使い方の文とツールの並び。どれも聞かずに使わせる）。
+ * 中身は作業ごとに作り（1 回の作業の上限はその中で数える）、口がないもの（バス・ターミナル・後始末など）は出さない。diagnostics はこの作業の砂場の診断
+ */
+export function chatToolGroups(deps: ExecutionDeps, diagnostics: AiSandboxDiagnostics | null): AiToolGroup[] {
+  const { store } = deps;
+  const isBusy = deps.isBusy ?? (() => false);
   return [
-    chatGroup(10, DIAGNOSTIC_INSTRUCTIONS, tools.diagnostics ? diagnosticTools(tools.diagnostics) : null),
-    chatGroup(20, CREATE_INSTRUCTIONS, tools.createChat ? [createChatTool(tools.createChat)] : null),
-    chatGroup(30, EDIT_INSTRUCTIONS, tools.chatEdit ? chatEditTools(tools.chatEdit) : null),
-    chatGroup(40, OPEN_INSTRUCTIONS, tools.open ? openTools(tools.open) : null),
-    chatGroup(50, READ_INSTRUCTIONS, tools.read ? readTools(tools.read) : null),
-    chatGroup(60, PROJECT_INSTRUCTIONS, tools.project ? projectTools(tools.project) : null),
-    chatGroup(70, TERMINAL_INSTRUCTIONS, tools.terminal ? terminalTools(tools.terminal) : null),
-    chatGroup(80, VISUAL_INSTRUCTIONS, tools.visual ? visualTools(tools.visual) : null),
-    chatGroup(90, WORKTREE_INSTRUCTIONS, tools.worktree ? worktreeTools(tools.worktree) : null),
-    chatGroup(100, NOTIFY_INSTRUCTIONS, tools.notify ? notifyTools(tools.notify) : null),
-    chatGroup(110, USER_VIEW_INSTRUCTIONS, tools.userView ? userViewTools(tools.userView) : null),
-    chatGroup(120, REMOVE_INSTRUCTIONS, tools.remove ? removeTools(tools.remove) : null),
-    chatGroup(130, WORKPLACE_INSTRUCTIONS, tools.workplace ? workplaceTools(tools.workplace) : null),
+    chatGroup(10, DIAGNOSTIC_INSTRUCTIONS, () => (diagnostics ? diagnosticTools(diagnostics) : null)),
+    // チャット（子・兄弟・親のないチャット）を作る（設定で止めていない・AI が作った世代の上限に達していないときだけ）
+    chatGroup(20, CREATE_INSTRUCTIONS, ({ chatId }) => {
+      const chat = store.chats.get(chatId);
+      if (!deps.startChat || !chat || !canCreateChat(store, chat)) return null;
+      return [createChatTool(createAiCreateChatTools({ store, startChat: deps.startChat, worktreeEnvs: deps.worktreeEnvs }, chatId))];
+    }),
+    // 同じ家系のチャットの名前・固定・グループを変える（孫チャット・子チャットを作らせない設定のときも出す）
+    chatGroup(30, EDIT_INSTRUCTIONS, ({ chatId }) => chatEditTools(createAiChatEditTools(store, chatId, isBusy))),
+    // このプロジェクトのノート・同じ家系のチャットを画面に開く（画面に頼む口（バス）があるときだけ）
+    chatGroup(40, OPEN_INSTRUCTIONS, ({ chatId }) => {
+      const { bus, noteDirOf, databases } = deps;
+      if (!bus) return null;
+      return openTools(createAiOpenTools({ store, publish: (e) => bus.publish(e), noteDirOf, dbConnectionsOf: (id) => databases?.stores.dbConnections.list(id) ?? [] }, chatId));
+    }),
+    // 同じプロジェクトのチャットの一覧・会話と使用枠を読む
+    chatGroup(50, READ_INSTRUCTIONS, ({ chatId }) => readTools(createAiChatReadTools({ store, approvals: deps.approvals, usage: deps.usage, uploads: deps.uploads }, chatId))),
+    // このプロジェクトの定型文に足す・ノートの名前を変える／移す
+    chatGroup(60, PROJECT_INSTRUCTIONS, ({ chatId }) => projectTools(createAiProjectTools({ store, notes: deps.notes }, chatId))),
+    // このプロジェクトの内蔵ターミナルの出力を読む（メインプロセスが口を渡したときだけ）
+    chatGroup(70, TERMINAL_INSTRUCTIONS, ({ chatId }) => (deps.terminals ? terminalTools(createAiTerminalTools({ store, terminals: deps.terminals }, chatId)) : null)),
+    // 返答の中に図（SVG・HTML・Mermaid）を描く（画面とスマホが記録から描く）
+    chatGroup(80, VISUAL_INSTRUCTIONS, ({ chatId }) => visualTools(createAiVisualTools(store, chatId))),
+    // ワークツリーを片付ける（本体のチャットはどのワークツリーでも、ワークツリーのチャットは自分のものだけ。後始末を渡してあるときだけ）
+    chatGroup(90, WORKTREE_INSTRUCTIONS, ({ chatId }) => (deps.worktreeFinisher ? worktreeTools(createAiWorktreeTools(deps.worktreeFinisher, chatId)) : null)),
+    // 利用者が見ているものを読む（画面の知らせを覚える所があるときだけ）
+    chatGroup(110, USER_VIEW_INSTRUCTIONS, ({ chatId }) => (deps.userViews ? userViewTools(createAiUserViewTools({ store, userViews: deps.userViews }, chatId)) : null)),
+    // チャットをアーカイブする・消す（同じプロジェクトのチャットを子孫ごと。自分・自分の祖先は作業の終わりに行う予約）
+    chatGroup(120, REMOVE_INSTRUCTIONS, ({ chatId }) => (deps.chatRemover ? removeTools(createAiChatRemoveTools(deps.chatRemover, chatId)) : null)),
+    // 自分のチャットの作業場所を移す予約・取り消し（移せないチャットからは理由の文で断る。Runner が予約の口を渡したときだけ）
+    chatGroup(130, WORKPLACE_INSTRUCTIONS, ({ chatId }) => {
+      if (!deps.workplaceMoves) return null;
+      return workplaceTools(createAiWorkplaceTools({ store, reservations: deps.workplaceMoves, isBusy, worktreeFinisher: deps.worktreeFinisher, terminals: deps.terminals }, chatId));
+    }),
   ];
 }

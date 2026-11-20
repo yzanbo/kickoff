@@ -69,7 +69,7 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const attachments = createAttachments(k, { trash: trash.api, chatStore: () => chat.api.store }, env.attachments);
   const snippets = createSnippets(k, { projects: projects.api });
   const userView = createUserView();
-  const notifications = createNotifications(k, { chats: () => chat.api.store.chats, devices: () => devices.api.store, projects: projects.api.store }, env.notifications);
+  const notifications = createNotifications(k, { chatStore: () => chat.api.store, devices: () => devices.api.store, projects: projects.api.store }, env.notifications);
   const voice = createVoice(k, { speech: env.platformParts.speech, ...env.voice });
   const devices = createDevices(k, { tailscaleCli: env.platformParts.tailscaleCli, ...env.devices });
   const { trashCommandFile } = prepared;
@@ -90,7 +90,8 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
   const terminal = createTerminal(k, { worktrees: worktrees.api, chat: chat.api, devices: devices.api.store }, { shell: env.platformParts.terminalShell(), ...env.terminal });
   const browser = createBrowser({ control: env.browser });
   const ports = createPorts(k, { worktrees: worktrees.api, projects: projects.api }, { selfPid: env.hostPid, ...env.ports });
-  // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）
+  const features = [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports];
+  // 上の機能の口を、チャットの実行とルートに渡す（仮の口。上の機能が実行に足すものを登録する形に替えたら消す）。AI のツールの組は全部の機能から集める
   const terminals = terminal.api;
   chat.api.attach({
     notes: notes.api,
@@ -102,9 +103,10 @@ export function assembleCore(k: Kernel, env: CoreEnv, prepared: CorePrepared = {
     browser: browser.api,
     ...guard.api,
     remoteImages: remoteImages.api,
+    aiTools: features.flatMap((f) => f.aiTools ?? []),
   });
   return {
-    features: [settings, trash, projects, groups, ai, attachments, snippets, userView, notifications, voice, devices, chat, guard, visuals, remoteImages, files, git, docker, worktrees, github, notes, database, terminal, browser, ports],
+    features,
     hooks: {
       deviceAuth: devices.api.auth,
       deviceMaySee: (event) => deviceTypes.has(event.type),

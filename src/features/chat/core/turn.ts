@@ -3,7 +3,6 @@ import { knownModel } from "@/features/ai/core/providers/modelCatalog";
 import { TurnSandboxDiagnostics } from "@/features/guard/core/sandboxDiagnostics";
 import { shellPathSettled } from "@/foundation/core/system/exec";
 import type { TerminalControl } from "@/features/terminal/core/control";
-import { createDbAiTools, hasAiConnections } from "@/features/database/core/aiTools";
 import { hiddenDbTargets } from "@/features/database/core/hiddenTargets";
 import { createDockerGuard } from "@/features/docker/core/guardFacts";
 import type { DockerService } from "@/features/docker/core/service";
@@ -26,21 +25,12 @@ import { workplacesOf } from "@/foundation/core/workplace/worktrees";
 import { buildSystemPrompt, CHAT_POLICY } from "@/features/chat/core/prompt/system";
 import { chatContextNote, chatContextOf } from "@/features/childChats/core/context";
 import { joinContexts, workplaceMoveContext } from "@/features/workplaceMove/core/workplaceMove";
-import { createAiChatEditTools } from "@/features/chat/core/tools/aiChatEdit";
-import { createAiOpenTools } from "@/features/chat/core/tools/aiOpen";
-import { createAiChatReadTools } from "@/features/chat/core/tools/aiChatRead";
-import { createAiProjectTools } from "@/features/chat/core/tools/aiProject";
-import { createAiTerminalTools } from "@/features/terminal/core/aiTerminal";
-import { createAiVisualTools } from "@/features/visuals/core/aiVisual";
-import { createAiWorktreeTools } from "@/features/worktrees/core/aiWorktree";
-import { createAiNotifyTools } from "@/features/notifications/core/aiNotify";
-import { createAiChatRemoveTools, type ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
-import { createAiWorkplaceTools, type AiWorkplaceDeps } from "@/features/workplaceMove/core/aiWorkplace";
-import { createAiUserViewTools } from "@/features/userView/core/aiUserView";
+import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
+import type { AiWorkplaceDeps } from "@/features/workplaceMove/core/aiWorkplace";
 import type { NoteService } from "@/features/notes/core/notes";
 import type { CodexCreditsWatch } from "@/features/ai/core/usage/codexCredits";
 import type { UsageMonitor } from "@/features/ai/core/usage/planUsage";
-import { canCreateChat, createAiCreateChatTools, type StartedChild } from "@/features/childChats/core/aiCreateChat";
+import type { StartedChild } from "@/features/childChats/core/aiCreateChat";
 import type { ChildChatInput } from "@/features/childChats/core/children";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "@/features/ai/core/providers/types";
 import { trashCommandEnv, type TrashCommand } from "@/features/trash/core/command";
@@ -59,8 +49,11 @@ import type { ChatRuntime } from "./runtime";
 import { workdirOf } from "./workdir";
 import { autoPreCompactParams, postCompactItem, postCompactPromptOf, preCompactPromptOf } from "@/features/compact/core/preCompact";
 import type { McpToolHost } from "@/foundation/core/aiTools/host";
+import { AiToolRegistry } from "@/foundation/core/aiTools/registry";
+import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
+import { CHAT_TOOLS_HEAD, chatToolGroups } from "@/features/chat/core/tools/chatTools";
+import { aiTurnOf } from "@/features/chat/core/tools/aiTurn";
 import type { ProviderKeyVault } from "@/features/ai/core/providers/keys";
-import { turnToolServers } from "@/features/chat/core/tools/turnTools";
 import { retryProviderHandoffPreparation } from "@/features/providerSwitch/core/providerSwitch";
 
 /** 実行に使うもの（Runner から受け取る） */
@@ -112,7 +105,9 @@ export interface ExecutionDeps {
   /** AI の Bash の砂場（OS ごとの決まり・通信の中継・ゴミ箱。なければ砂場にかけない（テスト）） */
   bashSandbox?: BashSandboxDeps;
   /** コアの MCP サーバー（AI の操作ツールを実行ごとの鍵で出す。なければツールを出さない（テスト）） */
-  toolHost?: McpToolHost;
+  toolHost?: Pick<McpToolHost, "open">;
+  /** 上の機能が出した AI のツールの組（組み立てが全部の機能の CoreFeature.aiTools を集めて渡す。chat の組と同じ並びで出す） */
+  aiTools?: readonly AiToolGroup[];
   /** AI の API キー（設定でログインの仕方を API キーにした AI に渡す。なければいつもサブスク） */
   providerKeys?: ProviderKeyVault;
 }
@@ -232,7 +227,6 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       }
       const callbacks = callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), { pre: preCompactText, post: postCompactText });
       const diagnostics = deps.sandboxDiagnostics && (chat.provider === "claude" || chat.provider === "codex") ? new TurnSandboxDiagnostics(deps.sandboxDiagnostics) : null;
-      params.sandboxDiagnostics = diagnostics;
       params.onAgentSpawned = diagnostics?.onSpawn;
       const closeDiagnostics = () => diagnostics?.close();
       signal.addEventListener("abort", closeDiagnostics, { once: true });
@@ -240,7 +234,9 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       // AI の操作ツールは、この実行の鍵でコアの MCP サーバーに出し、プロバイダーにはその口だけを渡す（どの CLI でも同じツール。終わったら鍵を捨てる）
       let tools: ReturnType<McpToolHost["open"]> | null = null;
       try {
-        tools = deps.toolHost?.open(turnToolServers(params, { chat, workdir: cwd, callbacks, signal })) ?? null;
+        // chat の組と、上の機能が出した組（通知・DB・ブラウザ）を、レジストリが order の順に並べて作業ごとに開く
+        const registry = new AiToolRegistry([...chatToolGroups(deps, diagnostics), ...(deps.aiTools ?? [])]);
+        tools = deps.toolHost?.open(registry.serversFor(aiTurnOf(chat, cwd, callbacks.requestApproval, signal), { kickoff_chat: CHAT_TOOLS_HEAD })) ?? null;
         if (handoff) {
           if (claimedHandoffEventId === handoff.eventId) {
             const current = store.chatProviderHandoffs.get(chatId);
@@ -394,40 +390,6 @@ function buildTurnParams(
           workplaces: () => workplacesOf(project.repo_path),
           allowed: writeAllowed,
         },
-    browser: deps.browser ? { control: deps.browser, projectId: chat.project_id, chatId: chat.id } : null,
-    database:
-      deps.databases && hasAiConnections(deps.databases, project.id)
-        ? createDbAiTools(deps.databases, { project, workdir: chat.worktree_path, chatId: chat.id })
-        : null,
-    // チャット（子・兄弟・親のないチャット）を作るツール（設定で止めていない・AI が作った世代の上限に達していないときだけ。1 回の作業で数を数えるので作業ごとに作る）
-    createChat:
-      deps.startChat && canCreateChat(deps.store, chat)
-        ? createAiCreateChatTools({ store: deps.store, startChat: deps.startChat, worktreeEnvs: deps.worktreeEnvs }, chat.id)
-        : null,
-    // 同じ家系のチャットの名前・固定・グループを変えるツール（どのチャットにも。孫チャット・子チャットを作らせない設定のときも渡す）
-    chatEdit: createAiChatEditTools(deps.store, chat.id, deps.isBusy ?? (() => false)),
-    // このプロジェクトのノート・同じ家系のチャットを画面に開くツール（どのチャットにも。画面に頼む口（バス）があるときだけ）
-    open: deps.bus ? createAiOpenTools({ store: deps.store, publish: (e) => deps.bus?.publish(e), noteDirOf: deps.noteDirOf, dbConnectionsOf: (id) => deps.databases?.stores.dbConnections.list(id) ?? [] }, chat.id) : null,
-    // 同じプロジェクトのチャットの一覧・会話と使用枠を読むツール（どのチャットにも）
-    chatRead: createAiChatReadTools({ store: deps.store, approvals: deps.approvals, usage: deps.usage, uploads: deps.uploads }, chat.id),
-    // このプロジェクトの定型文に足す・ノートの名前を変える／移すツール（どのチャットにも）
-    chatProject: createAiProjectTools({ store: deps.store, notes: deps.notes }, chat.id),
-    // このプロジェクトの内蔵ターミナルの出力を読むツール（どのチャットにも。メインプロセスが口を渡したときだけ）
-    chatTerminal: deps.terminals ? createAiTerminalTools({ store: deps.store, terminals: deps.terminals }, chat.id) : null,
-    // 返答の中に図（SVG・HTML・Mermaid）を描くツール（どのチャットにも。画面とスマホが記録から描く）
-    chatVisual: createAiVisualTools(deps.store, chat.id),
-    // ワークツリーを片付けるツール（どのチャットにも。本体のチャットはどのワークツリーでも、ワークツリーのチャットは自分のものだけ。後始末を渡してあるときだけ）
-    chatWorktree: deps.worktreeFinisher ? createAiWorktreeTools(deps.worktreeFinisher, chat.id) : null,
-    // 利用者に知らせるツール（どのチャットにも。送るかは通知の中心が決める。1 回の作業で回数を数えるので作業ごとに作る。バスがあるときだけ）
-    chatNotify: deps.bus ? createAiNotifyTools({ store: deps.store, publish: (e) => deps.bus?.publish(e) }, chat.id) : null,
-    // 利用者が見ているものを読むツール（どのチャットにも。画面の知らせを覚える所があるときだけ）
-    chatUserView: deps.userViews ? createAiUserViewTools({ store: deps.store, userViews: deps.userViews }, chat.id) : null,
-    // チャットをアーカイブする・消すツール（どのチャットにも。同じプロジェクトのチャットを子孫ごと。自分・自分の祖先は作業の終わりに行う予約）
-    chatRemove: deps.chatRemover ? createAiChatRemoveTools(deps.chatRemover, chat.id) : null,
-    // 自分のチャットの作業場所を移す予約・取り消しのツール（どのチャットにも。移せないチャットからは理由の文で断る。Runner が予約の口を渡したときだけ）
-    chatWorkplace: deps.workplaceMoves
-      ? createAiWorkplaceTools({ store: deps.store, reservations: deps.workplaceMoves, isBusy: deps.isBusy ?? (() => false), worktreeFinisher: deps.worktreeFinisher, terminals: deps.terminals }, chat.id)
-      : null,
     // 「見せない」接続に、AI が Bash・ファイルのツールで直接入るのを断る（SQLite のファイルは作業場所と本体の両方で解く）
     hiddenDb: hiddenDbTargets(deps.databases?.stores.dbConnections.list(project.id) ?? [], [cwd, project.repo_path]),
     // 別の作業場所・ほかのプロジェクトの Docker のコンテナとボリュームに手を出す Bash は、流す前に承認カードで聞く

@@ -78,6 +78,8 @@ export interface ChatUpper {
   sandboxDiagnostics: ExecutionDeps["sandboxDiagnostics"];
   /** 分岐したチャットに外の画像の覚えを写す */
   remoteImages: { copyChat(fromChatId: number, toChatId: number): Promise<void> };
+  /** 全部の機能が出した AI のツールの組（CoreFeature.aiTools） */
+  aiTools: NonNullable<ExecutionDeps["aiTools"]>;
 }
 
 export interface ChatApi {

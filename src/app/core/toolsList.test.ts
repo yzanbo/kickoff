@@ -5,6 +5,10 @@ import type { BrowserControl } from "@shared/browser/control";
 import type { ChatRemover } from "@/features/chat/core/tools/aiChatRemove";
 import type { DatabaseService } from "@/features/database/core/service";
 import type { ProviderTurnParams } from "@/features/ai/core/providers/types";
+import { browserToolGroup } from "@/features/browser/core/browserTools";
+import { dbToolGroup } from "@/features/database/core/dbTools";
+import { notifyToolGroup } from "@/features/notifications/core/tools";
+import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 import type { TerminalControl } from "@/features/terminal/core/control";
 import { UserViewRegistry } from "@/features/userView/core/registry";
 import type { WorktreeFinisher } from "@/features/worktrees/core/finish";
@@ -59,9 +63,9 @@ async function describeTools(host: McpToolHost, endpoints: NonNullable<ProviderT
 
 /**
  * 本物の起動（startCore）と同じく、どのチャットにも出すツールの中身（ターミナル・利用者が見ているもの・砂場の診断・ワークツリーの後始末・
- * チャットの削除）を渡して組み立て、send で送った実行で AI に見せたものを返す（ブラウザ・DB は場合ごとに options で足す）
+ * チャットの削除・通知の組）を渡して組み立て、send で送った実行で AI に見せたものを返す（ブラウザ・DB は場合ごとに options と groups で足す）
  */
-async function toolsSeenBy(send: (core: Core) => Promise<number>, options: RunnerOptions = {}): Promise<ListedServer[]> {
+async function toolsSeenBy(send: (core: Core) => Promise<number>, options: RunnerOptions = {}, groups: (core: Core) => AiToolGroup[] = () => []): Promise<ListedServer[]> {
   const host = new McpToolHost(() => "http://127.0.0.1:1");
   const seen: ListedServer[][] = [];
   const provider = new ScriptedProvider(async (params) => {
@@ -75,7 +79,10 @@ async function toolsSeenBy(send: (core: Core) => Promise<number>, options: Runne
     sandboxDiagnostics: { processes: async () => [], denials: async () => [] },
     ...options,
   });
-  core.runner.attach({ worktreeFinisher: unused<WorktreeFinisher>("worktreeFinisher") });
+  core.runner.attach({
+    worktreeFinisher: unused<WorktreeFinisher>("worktreeFinisher"),
+    aiTools: [notifyToolGroup({ store: () => core.store, publish: (e) => core.bus.publish(e) }), ...groups(core)],
+  });
   core.runner.useChatRemover(unused<ChatRemover>("chatRemover"));
   const chatId = await send(core);
   await until(() => seen.length === 1 && core.store.chats.get(chatId)?.status === "completed");
@@ -122,7 +129,10 @@ const CASES: Record<string, () => Promise<ListedServer[]>> = {
       core.store.settings.update({ ai_create_chat: "off" });
       return startPlain(core);
     }),
-  browser: () => toolsSeenBy(startPlain, { browser: unused<BrowserControl>("browser") }),
+  browser: () => {
+    const browser = unused<BrowserControl>("browser");
+    return toolsSeenBy(startPlain, { browser }, () => [browserToolGroup(browser)]);
+  },
   // AI に見せる SQLite の接続が 1 つあるプロジェクト
   database: () =>
     toolsSeenBy(
@@ -140,9 +150,14 @@ const CASES: Record<string, () => Promise<ListedServer[]>> = {
           read_only: false,
           ai_access: "allow",
         });
-        // DB のツールを出すかは database の店の接続で決める（ツールの中身は呼ばない）
-        core.runner.attach({ databases: { stores: core.store } as unknown as DatabaseService });
         return startPlain(core);
+      },
+      {},
+      // DB のツールを出すかは database の店の接続で決める（ツールの中身は呼ばない）
+      (core) => {
+        const databases = { stores: core.store } as unknown as DatabaseService;
+        core.runner.attach({ databases });
+        return [dbToolGroup(databases, core.store)];
       },
     ),
 };

@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { defineAiTool, type AiToolGroup } from "@/foundation/core/aiTools/tool";
 import { aiToolId } from "@shared/foundation/aiToolView";
-import type { DbAiTools } from "./aiTools";
+import { createDbAiTools, hasAiConnections, type DbAiTools } from "./aiTools";
+import type { DatabaseService } from "./service";
+import type { Store } from "@/features/chat/core/index";
 
 /** このツールの使い方（MCP の instructions として AI に渡す） */
 const INSTRUCTIONS = [
@@ -15,11 +17,21 @@ const INSTRUCTIONS = [
 ];
 
 /**
- * 1 回の実行に渡す、プロジェクトの DB のツール（kickoff_db）。どれも読むだけで聞かずに使わせる
+ * 1 回の実行に渡す、プロジェクトの DB のツール（kickoff_db。AI に見せる接続があるプロジェクトだけ）。どれも読むだけで聞かずに使わせる
  * （「承認して見せる」の承認と「見せない」の断りはツールの中で行うので、権限モードにかかわらず同じに効く）
  */
-export function dbToolGroup(tools: DbAiTools): AiToolGroup {
-  return { server: "kickoff_db", order: 0, instructions: INSTRUCTIONS, open: () => dbTools(tools) };
+export function dbToolGroup(databases: DatabaseService, { projects, chats }: Pick<Store, "projects" | "chats">): AiToolGroup {
+  return {
+    server: "kickoff_db",
+    order: 0,
+    instructions: INSTRUCTIONS,
+    open({ projectId, chatId }) {
+      const project = projects.get(projectId);
+      const chat = chats.get(chatId);
+      if (!project || !chat || !hasAiConnections(databases, projectId)) return null;
+      return dbTools(createDbAiTools(databases, { project, workdir: chat.worktree_path, chatId }));
+    },
+  };
 }
 
 function dbTools(tools: DbAiTools) {

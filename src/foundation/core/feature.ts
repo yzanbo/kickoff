@@ -5,6 +5,7 @@ import type { BusEvent } from "@shared/foundation/contract";
 import type { ServerStatus } from "@shared/foundation/server";
 import type { DeviceAuth } from "@/foundation/core/http/auth";
 import type { Mountable } from "@/foundation/core/http/mount";
+import type { AiToolGroup } from "@/foundation/core/aiTools/tool";
 
 /** 機能の名前 */
 export type FeatureName =
@@ -19,6 +20,8 @@ export interface CoreFeature<Api = unknown> {
   readonly api: Api;
   /** HTTP の受け口（取り決めの implement か、まだ乗せていない legacy） */
   readonly routes?: readonly Mountable[];
+  /** AI のツールの組（組み立てが全部の機能の分を集め、実行ごとにレジストリで出す） */
+  readonly aiTools?: readonly AiToolGroup[];
   /** 認証の外のページ（GET） */
   readonly pages?: Readonly<Record<`/${string}`, (c: Context) => Response | Promise<Response>>>;
   /** 待ち受けを始めたあとに呼ぶ（作った順） */
