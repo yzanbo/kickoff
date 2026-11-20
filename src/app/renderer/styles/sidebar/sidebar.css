@@ -168,6 +168,15 @@
   display: none;
 }
 
+/* サイドバーのチャットの行では、作業場所の印とグループの札を小さく（狭ければ、それぞれ名前を省いて 1 行に収める） */
+.chat-row-meta :is(.worktree-chip, .chat-group-chip) {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 110px;
+  font-size: var(--fs-10);
+  line-height: 14px;
+}
+
 /* 1 行の行の高さ 28px（画面の外の行の見積もりは上下の余白 6px を引いた中身の高さ・まだ作っていない行の空の箱は間の 1px を足す。sidebar-rows.css） */
 .workspaces.compact {
   --progressive-row: 29px;
