@@ -68,7 +68,7 @@
 .voice-mode-starting .voice-mode-orb {
   box-shadow: none;
   opacity: 0.7;
-  animation: voice-mode-think 1.6s ease-in-out infinite;
+  animation: pulse-dim 1.6s ease-in-out infinite;
 }
 
 .voice-mode-speaking .voice-mode-orb {
@@ -76,12 +76,6 @@
   background: var(--accent);
   box-shadow: none;
   animation: voice-mode-speak 1.1s ease-in-out infinite;
-}
-
-@keyframes voice-mode-think {
-  50% {
-    opacity: 0.35;
-  }
 }
 
 @keyframes voice-mode-speak {

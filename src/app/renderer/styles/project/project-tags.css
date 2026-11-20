@@ -29,7 +29,7 @@
   white-space: nowrap;
 }
 
-/* チップの外すボタン（.icon-button より後ろに置いて、小さくする） */
+/* チップの外すボタン（.icon-button を上書きして小さくする） */
 .project-tag-remove {
   width: 14px;
   height: 14px;

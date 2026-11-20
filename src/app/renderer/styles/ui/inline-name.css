@@ -1,6 +1,6 @@
-/* ==== 名前をその場で変える欄（InlineName）。.icon-button の規則（buttons-forms.css）より前に読む ==== */
+/* ==== 名前をその場で変える欄（InlineName） ==== */
 
-/* 名前をその場で変える（InlineName）。OK のボタンの色は .icon-button.inline-name-ok で .icon-button に勝たせ、乗せたときの色はあとの .icon-button:hover に任せる（このファイルを buttons-forms.css より前に読む。この順を変えない） */
+/* 名前をその場で変える（InlineName）。OK のボタンは緑で、乗せたときの色は .icon-button:hover に任せる */
 .inline-name-wrap {
   position: relative;
   display: flex;
@@ -16,7 +16,7 @@
   height: 22px;
 }
 
-.icon-button.inline-name-ok {
+.inline-name-ok:not(:hover) {
   color: var(--accent-bright);
 }
 
@@ -41,7 +41,7 @@ input[type="text"].inline-name[aria-invalid="true"] {
   border-color: var(--ng);
 }
 
-/* ピントの枠（buttons-forms.css の input:focus のアクセントの色）も赤に。詳細度が高いので、あとの input:focus に負けない */
+/* ピントの枠（buttons-forms.css の input:focus のアクセントの色）も赤に。詳細度が高いので input:focus より強い */
 input[type="text"].inline-name[aria-invalid="true"]:focus {
   outline-color: color-mix(in srgb, var(--ng) 55%, transparent);
 }

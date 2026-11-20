@@ -148,7 +148,7 @@
 
 /*
  * チャットの見出しのバッジを色なしで表示するとき（「バッジを色付きで表示」を外した .plain-badges）: グループの札・ブランチの印・選べる札を、
- * 色相の代わりに控えめな灰色の枠と文字にする（形はそのまま）。ライトのテーマの色（:root[data-theme="light"] …）と同じ詳細度なので、それより後ろに置く
+ * 色相の代わりに控えめな灰色の枠と文字にする（形はそのまま）。ライトのテーマの色（:root[data-theme="light"] …）と同じ詳細度なので、同じファイルのその後ろで書く
  */
 .chat-sub.plain-badges :is(.worktree-chip, .chat-group-chip) {
   --chip-color: var(--muted);

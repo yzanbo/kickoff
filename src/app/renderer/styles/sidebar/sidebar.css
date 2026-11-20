@@ -15,6 +15,21 @@
   -webkit-app-region: drag;
 }
 
+/* 縦 1 列の画面（幅 720px 以下）では上に置く（高さの上限は起動直後の骨組み index.html と同じ） */
+@media (max-width: 720px) {
+  .sidebar {
+    max-height: 40dvh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-header {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    padding: max(10px, env(safe-area-inset-top)) 12px 6px;
+  }
+}
+
 /* 開いているときの開閉ボタンは、信号機ボタンの横ではなく行の右端に置く（閉じているときの「開く」は左上のまま） */
 .sidebar-header .titlebar-toggle {
   right: var(--gutter);
@@ -31,7 +46,7 @@
  * 中身の幅はメインのウィンドウの幅（--sidebar-w）に縛らず、ウィンドウの幅に合わせる
  */
 .sidebar.sidebar-window {
-  /* 細いウィンドウでも、スマホの縦 1 列の規則（base/mobile.css の max-height・下の線）は効かせない */
+  /* 細いウィンドウでも、縦 1 列の規則（上の @media の max-height・下の線）は効かせない */
   max-height: none;
   border-right: none;
   border-bottom: none;

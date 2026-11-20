@@ -11,7 +11,7 @@
        * 起動直後の地の色と骨組み: 地の色に、サイドバーの欄（保存した幅・閉じていれば出さない）と下の帯だけを描く（文字・行の形・動く光は描かない。幅 720px 以下は下の @media）。
        * 上の帯（信号機ボタンの行の 44px）は、本物の画面ではどの画面でも地と同じ色で、区切りの線もないので描かない（地と少し違う色の面にすると、
        * React が描いた瞬間に帯の色だけが消えてちらつく）。React が描いたら #root の中身ごと置き換わる。色は styles/base/tokens.css の
-       * --bg・--bg-sidebar・--border と同じ値、幅の境目は styles/base/mobile.css と同じ 720px（src/app/renderer/bootScript.test.ts で確かめる）
+       * --bg・--bg-sidebar・--border と同じ値、幅の境目は styles/sidebar/sidebar.css と同じ 720px（src/app/renderer/bootScript.test.ts で確かめる）
        */
       :root { --boot-bg: #141818; --boot-sidebar: #0f1313; --boot-line: #1e2626; }
       :root[data-theme="light"] { --boot-bg: #ffffff; --boot-sidebar: #f2f4f6; --boot-line: #e0e3e6; }
@@ -30,7 +30,7 @@
       :root[data-boot-shell="main"] .boot-sidebar { display: none; }
       :root[data-boot-shell="plain"] .boot-shell { display: none; }
       /*
-       * 幅 720px 以下は画面と同じく縦 1 列（styles/base/mobile.css）: サイドバーは上に横幅いっぱい・高さ 40dvh で、下に区切りの線
+       * 幅 720px 以下は画面と同じく縦 1 列（styles/base/layout.css・sidebar/sidebar.css）: サイドバーは上に横幅いっぱい・高さ 40dvh で、下に区切りの線
        * （下の帯があってもなくても同じ。中身が少なくて本物が 40dvh より低いときだけずれる）。サイドバーを閉じているときは、
        * 本物では下の帯が画面の外に出る（サイドバーの行が抜けて格子の行がずれる）ので、地の色だけ
        */

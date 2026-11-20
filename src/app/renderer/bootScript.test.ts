@@ -13,7 +13,7 @@ const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8"
 const bootScript = read("./public/boot.js");
 const indexHtml = read("./index.html");
 const tokensCss = read("./styles/base/tokens.css");
-const mobileCss = read("./styles/base/mobile.css");
+const sidebarCss = read("./styles/sidebar/sidebar.css");
 const footerCss = read("./styles/footer/footer.css");
 
 /** boot.js が文字で読む 4 つのキー（宣言と同じ） */
@@ -117,19 +117,19 @@ test("下の帯の出し方: show・hover・hide をそのまま、未保存と�
   assert.equal(runBoot({ stored: { [FOOTER]: "big" } }).footer, "show");
 });
 
-test("骨組みの大きさは本物と同じ: 下の帯は footer.css の 24px で横幅いっぱい、その分サイドバーが短い。幅 720px 以下のサイドバーは mobile.css の上限 40dvh", () => {
+test("骨組みの大きさは本物と同じ: 下の帯は footer.css の 24px で横幅いっぱい、その分サイドバーが短い。幅 720px 以下のサイドバーは sidebar.css の上限 40dvh", () => {
   assert.match(footerCss, /\.app-footer \{[^}]*grid-column: 1 \/ -1;[^}]*height: 24px/);
   assert.match(indexHtml, /\.boot-footer \{[^}]*left: 0;[^}]*height: 24px/);
   assert.match(indexHtml, /\.boot-sidebar \{ height: calc\(100% - 24px\); \}/);
   const media = indexHtml.slice(indexHtml.indexOf("@media (max-width: 720px)"));
   assert.match(media, /\.boot-sidebar \{[^}]*height: 40dvh/);
-  assert.match(mobileCss, /\.sidebar \{[^}]*max-height: 40dvh/);
+  assert.match(sidebarCss, /\.sidebar \{[^}]*max-height: 40dvh/);
 });
 
-test("骨組みの縦 1 列の境目は mobile.css と同じ 720px", () => {
+test("骨組みの縦 1 列の境目は sidebar.css と同じ 720px", () => {
   const width = (css: string) => css.match(/@media \(max-width: (\d+)px\)/)?.[1];
   assert.equal(width(indexHtml), "720");
-  assert.equal(width(mobileCss), "720");
+  assert.equal(width(sidebarCss), "720");
 });
 
 test("boot.js は CSP の内側（meta の CSP のあと）で、入口のスクリプトより前に読む", () => {

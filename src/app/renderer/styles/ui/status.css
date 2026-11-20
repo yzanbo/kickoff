@@ -10,6 +10,13 @@
   }
 }
 
+/* 薄くなって戻る（作業中の点・音声の考え中） */
+@keyframes pulse-dim {
+  50% {
+    opacity: 0.35;
+  }
+}
+
 /* 回る印はどこでも作業中の色（状態の点 --dot-running。チャットの状態の丸 .status-ring・サブエージェントの印・圧縮中のメーターと同じ） */
 .spinner {
   display: inline-block;

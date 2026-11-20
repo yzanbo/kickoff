@@ -101,18 +101,12 @@
   color: var(--muted);
 }
 
-/* サイドバーの開閉の矢印（FoldToggle。どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない。後ろの .icon-button に勝つよう重ねて書く） */
+/* サイドバーの開閉の矢印（FoldToggle。どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない） */
 .icon-button.fold-toggle {
   display: grid;
   flex: none;
-  place-items: center;
   width: 18px;
   height: 18px;
-  padding: 0;
-  border: none;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
 }
 
 /* 開閉のボタンの横に添えるアイコン（フォルダ・固定・アーカイブ） */

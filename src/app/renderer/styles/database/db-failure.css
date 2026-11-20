@@ -30,7 +30,7 @@
   margin-top: 2px;
 }
 
-/* 案内のダイアログ: 共通の .dialog.app-dialog の幅に負けないよう同じ詳細度で */
+/* 案内のダイアログ: 共通の .dialog.app-dialog の幅を、同じ詳細度で上書きする（機能の CSS は ui より後ろ） */
 .dialog.app-dialog.db-failure-dialog {
   width: min(620px, calc(100vw - 32px));
 }

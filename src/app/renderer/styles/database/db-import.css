@@ -1,6 +1,6 @@
 /* ==== プロジェクトから接続を取り込むダイアログ（ImportConnectionDialog） ==== */
 
-/* 共通の .dialog.app-dialog の幅に負けないよう同じ詳細度で */
+/* 共通の .dialog.app-dialog の幅を、同じ詳細度で上書きする（機能の CSS は ui より後ろ） */
 .dialog.app-dialog.db-import-dialog {
   width: min(640px, calc(100vw - 32px));
 }

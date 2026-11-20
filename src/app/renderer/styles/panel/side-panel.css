@@ -176,3 +176,23 @@
   overflow: hidden;
   border-bottom: 1px solid var(--border);
 }
+
+/* 幅 720px 以下の画面では、パネルを全面に重ねる */
+@media (max-width: 720px) {
+  .board-body.with-panel {
+    grid-template-columns: minmax(0, 1fr) 0px;
+  }
+
+  .board-body.with-panel .board-panel {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-raised-bar);
+    margin: 0;
+  }
+
+  /* 全面に重ねるので、中身は開き終えたときの幅ではなく画面いっぱいに */
+  .board-body.with-panel .board-panel > .panel-tabs,
+  .board-body.with-panel .board-panel > .panel-content {
+    width: auto;
+  }
+}

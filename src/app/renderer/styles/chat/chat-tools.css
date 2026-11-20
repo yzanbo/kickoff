@@ -151,8 +151,7 @@
 
 .tool-output,
 .diff,
-.bash-text,
-.approval-command {
+.bash-text {
   max-height: 320px;
   margin: 0;
   padding: 8px 12px;

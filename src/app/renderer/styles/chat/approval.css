@@ -22,10 +22,6 @@
   color: var(--muted);
 }
 
-.approval-from .agent-dot {
-  margin-right: 0;
-}
-
 .approval-head {
   display: flex;
   align-items: center;
@@ -59,9 +55,19 @@
   overflow-wrap: anywhere;
 }
 
+/* 承認を求めるコマンド（結果の欄と同じ等幅の箱を枠で囲む） */
 .approval-command {
+  max-height: 320px;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: var(--chat-fs-12);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 .approval-actions,

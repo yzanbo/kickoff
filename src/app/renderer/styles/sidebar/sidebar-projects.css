@@ -85,18 +85,12 @@
   text-overflow: ellipsis;
 }
 
-/* プロジェクトの開閉の矢印（ほかの開閉の矢印と同じ灰色。カードを押しても開閉するので、ボタンらしい背景は付けない。後ろの .icon-button に勝つよう重ねて書く） */
+/* プロジェクトの開閉の矢印（ほかの開閉の矢印と同じ灰色。カードを押しても開閉するので、ボタンらしい背景は付けない） */
 .icon-button.workspace-toggle {
   display: grid;
   flex: none;
-  place-items: center;
   width: 20px;
   height: 24px;
-  padding: 0;
-  border: none;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
 }
 
 .icon-button.workspace-toggle:hover,

@@ -131,13 +131,7 @@
 }
 
 .activity-row.running .activity-rail-node {
-  animation: activity-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes activity-pulse {
-  50% {
-    opacity: 0.35;
-  }
+  animation: pulse-dim 1.4s ease-in-out infinite;
 }
 
 /* ライトでは、色を地に負けない濃さに */

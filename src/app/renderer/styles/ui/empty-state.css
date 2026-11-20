@@ -49,13 +49,6 @@
   margin-top: 6px;
 }
 
-.empty-state-actions .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
-}
-
 /* 始め方の手順（番号・見出し・説明） */
 .empty-state-steps {
   display: grid;

@@ -71,7 +71,7 @@
 
 /*
  * 中身は右のパネル・右端のチャット欄と同じタブ（.board-panel.as-sidebar.in-footer）。右端のチャット欄と違い、
- * タブの列はウィンドウのドラッグ領域にせず、右上のレイアウトの開閉のための空きも要らない（後ろの project-chat.css に勝つよう詳細度を上げる）。
+ * タブの列はウィンドウのドラッグ領域にせず、右上のレイアウトの開閉のための空きも要らない（project-chat.css より詳細度を上げる）。
  * チャットのタブの中の右の欄（.agent-panel）のタブの列には効かせない（project-chat.css と同じく :not(:where(.agent-panel *))）
  */
 .bottom-panel .board-panel.in-footer {

@@ -97,51 +97,11 @@
   user-select: none;
 }
 
-/*
- * 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置）。IconButton なので、
- * 後ろの .icon-button（buttons-forms.css）に勝つよう .icon-button と重ねて書く
- */
-.icon-button.titlebar-toggle {
-  /*
-   * 信号機ボタン（1 つの枠 14×16px・丸は直径 12px・20px 間隔。左上 14px,14px から並ぶので
-   * 中心の高さは約 22px、右端は約 68px）と同じ行・同じ高さ・同じくらいの大きさにする
-   */
-  position: absolute;
-  top: 12px;
-  left: 76px;
-  z-index: var(--z-chrome);
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-}
-
-.titlebar-toggle.floating {
-  position: fixed;
-}
-
 /* 画面の上端まで広げた欄は、タブをこの共通の操作行の下に置く */
 .panel-window-titlebar {
   flex: none;
   height: 40px;
   -webkit-app-region: drag;
-}
-
-.icon-button.titlebar-toggle:hover {
-  color: var(--text);
-  background: var(--bg-elev);
-}
-
-/* 信号機ボタンに合わせて線を少し細くする */
-.icon-button.titlebar-toggle svg {
-  stroke-width: 1.75;
 }
 
 /*
@@ -296,4 +256,29 @@
 .popout-body > * {
   flex: 1;
   min-height: 0;
+}
+
+/* 縦 1 列の画面（幅 720px 以下。起動直後の骨組み index.html と同じ境目） */
+@media (max-width: 720px) {
+  .layout {
+    --app-navigation-left: 36px;
+    --app-titlebar-left-end: 98px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100dvh;
+  }
+
+  /* 閉じたサイドバーは消す（縦 1 列のため幅のアニメーションは使わない） */
+  .layout.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .layout.sidebar-collapsed .sidebar {
+    display: none;
+  }
+
+  .page {
+    --page-x: 16px;
+    padding: 20px var(--page-x) 48px;
+  }
 }

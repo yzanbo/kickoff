@@ -70,10 +70,13 @@
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin-right: 6px;
   border-radius: 50%;
   vertical-align: 1px;
   background: hsl(var(--agent-hue, 25) 60% 65%);
+}
+
+.subagent-row .agent-dot {
+  margin-right: 6px;
 }
 
 :root[data-theme="light"] :is(.subagent-row, .approval-from) .agent-dot {

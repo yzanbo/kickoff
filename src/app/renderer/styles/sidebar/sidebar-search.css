@@ -31,31 +31,18 @@
   outline: none;
 }
 
-/* 検索欄の右端の小さなボタン（IconButton。後ろの .icon-button に勝つよう重ねて書く） */
+/* 検索欄の右端の小さなボタン（IconButton の大きさを変えるので .icon-button と重ねて書く） */
 .icon-button.search-field-clear {
   display: grid;
-  place-items: center;
   width: 18px;
   height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
 }
 
 .icon-button.chat-search-content {
   display: grid;
-  place-items: center;
   width: 20px;
   height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
   color: var(--extra-muted);
-  background: transparent;
-  cursor: pointer;
 }
 
 .icon-button.chat-search-content:hover {

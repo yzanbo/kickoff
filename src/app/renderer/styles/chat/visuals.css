@@ -1,6 +1,6 @@
 /*
  * AI が返答の中に描いた図（features/chat/visuals。show_visual / update_visual）。コードブロックと同じ枠に、上の帯（題名・種類・ソース・コピー・全画面・ノートに保存）。
- * ui/markdown の Mermaid の枠より後ろに置き、カードの中の Mermaid の図は枠を外す
+ * カードの中の Mermaid の図は、ui/markdown の枠を外す（.visual-card .mermaid-diagram の詳細度で）
  */
 .visual-card {
   margin: 1em 0;

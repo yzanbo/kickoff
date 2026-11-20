@@ -281,9 +281,8 @@
 }
 
 /*
- * 保存・保存していま送るは、名前の変更（.inline-name-ok）・チャット欄の送るボタンと同じ緑。
- * このファイルは buttons-forms.css よりあとに読むので、乗せたとき（.icon-button:hover）は外して灰の地に任せる。
- * :where で詳細度を上げず、⌘ を押している間の青（queue-mode.css の .queued-editor-send.held）を勝たせる
+ * 保存・保存していま送るは、名前の変更（.inline-name-ok）・チャット欄の送るボタンと同じ緑。乗せたときは外して灰の地（.icon-button:hover）に任せる。
+ * ⌘ を押している間の青（queue-mode.css の .queued-editor-send.held）は 3 つのクラスで上書きする
  */
 .icon-button.queued-editor-ok:where(:not(:hover)),
 .icon-button.queued-editor-send:where(:not(:hover)) {

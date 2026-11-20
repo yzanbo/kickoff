@@ -1,9 +1,23 @@
+/* 上にスクロールしている間だけ出す、一番下へ戻るボタン（流れの枠の下の真ん中に重ねる。作業の様子の札 .guide はこの形を広げる） */
+.timeline-wrap .scroll-bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elev);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  transform: translateX(-50%);
+}
+
 /*
- * 一番下へ戻るボタン（chat.css の .scroll-bottom）に、いまの状態を添えた形。色はカンバンの列と同じ
+ * 一番下へ戻るボタン（上の .scroll-bottom）に、いまの状態を添えた形。色はカンバンの列と同じ
  * （作業中 = 青・回答待ち = 橙・返答が届いた = 緑・失敗 = 赤・終わっている = 控えめ）。
  * 答えを待っている・返答が届いたとき（.attention）だけ、小さく上下して下へ誘う。
  * 入る幅があればチャット欄の上のピルの列の右端に置き（.composer-chips-dock）、入らなければ読んでいる文に重ならないよう流れの右下の隅に浮かせる。
- * 目立たせる必要がないときは少し薄くする（乗せると濃く）。流れに浮かせる位置は chat.css の .timeline-wrap .scroll-bottom（同じ詳細度でここが後ろなので、幅などはここが勝つ）
+ * 目立たせる必要がないときは少し薄くする（乗せると濃く）。流れに浮かせる位置は上の .timeline-wrap .scroll-bottom（同じ詳細度なので、幅などは同じファイルの後ろのここで上書きする）
  */
 .scroll-bottom.guide {
   --pill-tone: var(--extra-muted);

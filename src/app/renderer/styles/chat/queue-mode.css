@@ -10,9 +10,9 @@
 
 /*
  * 送り方の切り替え（伝える / ためておく・すぐ送る / ためておく）: 隣の丸いボタン（文脈のメーター・送信）と同じ 28px の丸いピルにし、
- * 選んでいる方は一段明るい丸い地で浮かせ、選んでいない方は薄くする（.view-toggle の規則（後ろの board-header.css）に勝つよう 2 つのクラスで指す）
+ * 選んでいる方は一段明るい丸い地で浮かせ、選んでいない方は薄くする（形は .view-toggle。ui/view-toggle.css）
  */
-.view-toggle.queue-mode {
+.queue-mode {
   align-self: center;
   gap: 2px;
   height: 28px;
@@ -20,7 +20,7 @@
   border-radius: 999px;
 }
 
-.view-toggle.queue-mode button {
+.queue-mode button {
   justify-content: center;
   /* 押すと送るボタンに見えないよう、アイコンに文字を添えた切り替えにする（Enter の送り方を選ぶもの） */
   gap: 4px;
@@ -32,12 +32,11 @@
   color: var(--extra-muted);
 }
 
-
-.view-toggle.queue-mode button:hover {
+.queue-mode button:hover {
   color: var(--text);
 }
 
-.view-toggle.queue-mode button.active {
+.queue-mode button.active {
   color: var(--text);
   background: var(--bg-active);
 }

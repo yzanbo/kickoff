@@ -38,9 +38,7 @@
   padding-bottom: 8px;
 }
 
-/*
- * 列・まとまりの見出しの札は共通の ToneChip（styles/ui/tone-chip.css）。ボードの見出しだけ、名前を少し大きく太く、札を少し高くする
- */
+/* 列・まとまりの見出しの札は共通の ToneChip（ui/tone-chip.css）。ボードの見出しだけ、名前を少し大きく太く、札を少し高くする */
 .column-head .tone-chip {
   padding: 2px 9px;
 }
@@ -106,11 +104,9 @@
   bottom: -4px;
 }
 
-/*
- * 段の見出し: サイドバーのプロジェクトのカードと同じく、薄い色の地を横幅いっぱいに敷いた角丸の帯。
- * プロジェクトの段（.lane-project）の地は project-mark.css の札と共通（--ws-hue）。グループ・作業場所の段（.lane-hued）は、まとまりの色（--group-hue）の
- * 同じ濃さの地と、名前の前のアイコンをその色に。色のない段（.lane-plain）は灰色の地。上に残るとき、角の外に下の中身が透けないよう、外側を画面の地で塗る
- */
+/* 段の見出し: 薄い色の地を横幅いっぱいに敷いた角丸の帯。プロジェクトの段（.lane-project）の地は project-mark.css の札と共通（--ws-hue）、
+   グループ・作業場所の段（.lane-hued）はまとまりの色（--group-hue）の同じ濃さの地とアイコン、色のない段（.lane-plain）は灰色の地。
+   上に残るとき、角の外に下の中身が透けないよう、外側を画面の地で塗る */
 .board-lane-head {
   position: sticky;
   top: 0;
@@ -251,10 +247,21 @@
   }
 }
 
-/*
- * 状態で分けない並び（全プロジェクトのボードの「列: 分けない」。FlatTasks）: 下書き → チャット（最近動いた順）のカードを、
- * 列に分けずに幅に合わせて何列にも折り返す（カードの幅は状態の列と同じくらい）。段に分けたときは段の中で同じ並び
- */
+/* 幅 720px 以下の画面でも 1 列ずつ横にめくる（列は画面の 82%） */
+@media (max-width: 720px) {
+  .board-columns {
+    scroll-snap-type: x mandatory;
+  }
+
+  .board-column {
+    flex: 0 0 82%;
+    max-width: none;
+    scroll-snap-align: start;
+  }
+}
+
+/* 状態で分けない並び（全プロジェクトのボードの「列: 分けない」。FlatTasks）: 下書き → チャット（最近動いた順）のカードを、
+   列に分けずに幅に合わせて何列にも折り返す（カードの幅は状態の列と同じくらい）。段に分けたときは段の中で同じ並び */
 .board-flat {
   flex: 1;
   min-height: 0;
@@ -281,23 +288,4 @@
 /* アーカイブ済みのまとまりは、カードの並びの下に横幅いっぱいで */
 .flat-tasks > .flat-tasks-items + * {
   margin-top: 8px;
-}
-
-/* 列の分け方の「グループ×状態」: グループの列・まとまりの中の、状態ごとの小分け（小見出しの札 ＋ カード） */
-.group-state-part {
-  display: grid;
-  gap: 8px;
-}
-
-.group-state-part + .group-state-part {
-  margin-top: 6px;
-}
-
-.group-state-head {
-  display: flex;
-  align-items: center;
-}
-
-.list-group .group-state-head {
-  padding: 6px 0 2px 8px;
 }

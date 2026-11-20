@@ -77,7 +77,7 @@
   text-decoration: line-through;
 }
 
-/* CSV の取り込みのダイアログ（共通の .dialog.app-dialog の幅に負けないよう同じ詳細度で） */
+/* CSV の取り込みのダイアログ（共通の .dialog.app-dialog の幅を、同じ詳細度で上書きする（機能の CSS は ui より後ろ）） */
 .dialog.app-dialog.db-csv-dialog {
   width: min(720px, calc(100vw - 32px));
 }

@@ -7,10 +7,6 @@
   background: var(--bg-elev);
 }
 
-.composer:focus-within {
-  border-color: var(--border-strong);
-}
-
 /* チャット欄の / と @ の候補（入力欄のすぐ上に出す） */
 .suggest-list {
   position: absolute;
@@ -204,15 +200,10 @@
  * 送信・中断のボタン（context-meter.css）・推論の深さなどの選択（composer-select.css）は後ろのファイルにあるので、
  * .composer.compact を付けて詳細度で勝たせる
  */
-.composer.compact {
-  border-radius: var(--radius);
-}
-
 .composer.compact textarea {
   min-height: 32px;
   padding: 7px 12px 0;
   font-size: var(--fs-12);
-  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .composer.compact .composer-bar {

@@ -84,13 +84,7 @@ button.subagent-children:hover {
 }
 
 .subagent-child-dot.running {
-  animation: subagent-child-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes subagent-child-pulse {
-  50% {
-    opacity: 0.35;
-  }
+  animation: pulse-dim 1.4s ease-in-out infinite;
 }
 
 .subagent-children-more {

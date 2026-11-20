@@ -1,5 +1,24 @@
 /* ==== ボードのカード（列の中のカード・アーカイブ済みのまとまり・プロジェクトのバッジ・足元） ==== */
 
+/* 列の分け方の「グループ×状態」: グループの列・まとまりの中の、状態ごとの小分け（小見出しの札 ＋ カード） */
+.group-state-part {
+  display: grid;
+  gap: 8px;
+}
+
+.group-state-part + .group-state-part {
+  margin-top: 6px;
+}
+
+.group-state-head {
+  display: flex;
+  align-items: center;
+}
+
+.list-group .group-state-head {
+  padding: 6px 0 2px 8px;
+}
+
 .column-cards {
   display: grid;
   align-content: start;
