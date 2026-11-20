@@ -13,6 +13,7 @@ import type { StoredTrashItem } from "@/features/trash/core/db/trash";
 import type { AgentProvider } from "@/features/ai/core/providers/types";
 import { collectChatSessions, discardUnusedSessions } from "./sessionCleanup";
 import type { UploadStore } from "@/features/attachments/core/uploads";
+import { tx } from "@/foundation/core/db/tx";
 import { isInside, realPathLoose } from "@/foundation/core/system/paths";
 import type { TrashService } from "@/features/trash/core/service";
 
@@ -38,18 +39,22 @@ export interface ChatPurgeDeps {
 export function trashChat(deps: ChatTrashDeps, chat: Chat, opts: { byChatId?: number | null } = {}): StoredTrashItem {
   const family = [chat, ...deps.store.chats.descendants(chat.id)];
   for (const c of family) deps.runner.requireIdle(c.id, "削除");
-  const item = deps.trashBin.addRecord({
-    project_id: chat.project_id,
-    kind: "chat",
-    label: chat.title || UNTITLED_CHAT_TITLE,
-    chat_id: chat.id,
-    by_chat_id: opts.byChatId ?? null,
-    details: { chat_ids: family.map((c) => c.id) },
+  // 行を足して隠すまでを 1 つに（間で失敗すると、中身のないゴミ箱の行が残るため）
+  const item = tx(deps.store.db, () => {
+    const added = deps.trashBin.addRecord({
+      project_id: chat.project_id,
+      kind: "chat",
+      label: chat.title || UNTITLED_CHAT_TITLE,
+      chat_id: chat.id,
+      by_chat_id: opts.byChatId ?? null,
+      details: { chat_ids: family.map((c) => c.id) },
+    });
+    deps.store.chats.trash(
+      family.map((c) => c.id),
+      added.id,
+    );
+    return added;
   });
-  deps.store.chats.trash(
-    family.map((c) => c.id),
-    item.id,
-  );
   for (const c of family) deps.runner.forget(c.id);
   return item;
 }

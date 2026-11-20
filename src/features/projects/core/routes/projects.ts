@@ -229,7 +229,7 @@ export function projectRoutes(app: Hono, { store, trashBin, hooks }: { store: St
   app.delete("/api/projects/:id", withProject, (c) => {
     const { project } = c.var;
     requireNoBusyChat(project.id, "プロジェクトを削除できません");
-    const item = trashProject({ projects: store.projects, trashBin, trashed: hooks.trashed }, project);
+    const item = trashProject({ db: store.db, projects: store.projects, trashBin, trashed: hooks.trashed }, project);
     return c.json({ trash_id: item.id });
   });
 }
