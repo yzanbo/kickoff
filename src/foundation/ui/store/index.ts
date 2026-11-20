@@ -6,3 +6,4 @@ export { createRegistry } from "./registry";
 export { createKeyedSelector, createSelector } from "./selector";
 export { reduceBy } from "./storeTypes";
 export type { ReduceTable } from "./storeTypes";
+export { useController } from "./useController";
