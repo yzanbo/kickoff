@@ -8,7 +8,7 @@ const plugins = createCell<MathPlugins | null>(null);
 let loading: Promise<void> | undefined;
 
 function loadMath(): Promise<void> {
-  loading ??= Promise.all([import("remark-math"), import("rehype-katex"), import("katex/dist/katex.min.css")]).then(([remarkMath, rehypeKatex]) => {
+  loading ??= Promise.all([import("remark-math"), import("rehype-katex"), import("./katex.vendor.css")]).then(([remarkMath, rehypeKatex]) => {
     plugins.set({
       // 1 つの $ も数式として読み、remarkMathGuard が数式らしくないもの（値段・シェルの変数）を元の文に戻す
       remark: [[remarkMath.default, { singleDollarTextMath: true }], remarkMathGuard],

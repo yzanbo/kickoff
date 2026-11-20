@@ -1,0 +1,50 @@
+/* ==== SQL の編集欄（CodeMirror）の上書き。CodeMirror は実行時に層の外の style を差すので、同じ層の外に置く ==== */
+
+/* ⌘↵ で流れる文（カーソルのある文・選んだ範囲）の行の左の緑の線 */
+.db-sql-editor .cm-run-target {
+  box-shadow: inset 2px 0 0 var(--ok);
+}
+
+.db-sql-editor .cm-editor {
+  height: 100%;
+  font-size: var(--fs-13);
+}
+
+.db-sql-editor .cm-scroller {
+  font-family: var(--mono);
+  line-height: 1.55;
+}
+
+.db-sql-editor .cm-content {
+  padding: 8px 0;
+  caret-color: var(--text);
+}
+
+.db-sql-editor .cm-line {
+  padding: 0 var(--gutter);
+}
+
+.db-sql-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.db-sql-editor .cm-placeholder {
+  color: var(--extra-muted);
+}
+
+.db-sql-editor .cm-selectionBackground,
+.db-sql-editor .cm-focused .cm-selectionBackground {
+  background: color-mix(in srgb, var(--accent) 35%, transparent) !important;
+}
+
+.db-sql-editor .cm-tooltip {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--text);
+}
+
+.db-sql-editor .cm-tooltip-autocomplete > ul > li[aria-selected] {
+  background: var(--accent);
+  color: var(--accent-text);
+}

@@ -37,7 +37,6 @@
   padding: 3px 7px;
   border: 1.5px solid var(--accent);
   border-radius: 0;
-  outline: none;
   background: var(--bg-elev);
   color: var(--text);
   font-family: var(--mono);

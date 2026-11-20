@@ -113,6 +113,21 @@
   background: var(--dot-unread);
 }
 
+/*
+ * 状態の札の左の印（StatusSlot。ui/tone-chip.css の札・features/chatList/StateChip.tsx）。札の高さに収まる大きさにする。
+ * 作業中のまま未読の緑の点の縁は、札を置く欄の地の色（一覧・ボードの列・⌘⇧A はどれも一段明るい地。サイドバーの地の色だと縁が浮く）
+ */
+.tone-chip .status-slot {
+  width: 13px;
+  height: 16px;
+}
+
+.tone-chip .status-unread-badge {
+  top: 0;
+  right: -2px;
+  border-color: var(--bg-elev);
+}
+
 .status-ring {
   width: 11px;
   height: 11px;

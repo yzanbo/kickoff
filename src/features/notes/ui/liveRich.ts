@@ -13,7 +13,7 @@ import { mermaidBlocks } from "./mermaidBlocks";
 let katex: typeof KaTeX | null = null;
 let loading: Promise<void> | undefined;
 const loadKatex = () =>
-  (loading ??= Promise.all([import("katex"), import("katex/dist/katex.min.css")]).then(([m]) => {
+  (loading ??= Promise.all([import("katex"), import("@/foundation/ui/kit/markdown/math/katex.vendor.css")]).then(([m]) => {
     katex = m.default;
   }));
 

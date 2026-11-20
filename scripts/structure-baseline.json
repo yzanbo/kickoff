@@ -2425,7 +2425,7 @@
       "src/app/renderer/styles/chat/queued.css": 616,
       "src/app/renderer/styles/chat/subagent-card.css": 319,
       "src/app/renderer/styles/database/db-client.css": 393,
-      "src/app/renderer/styles/database/db-sql.css": 570,
+      "src/app/renderer/styles/database/db-sql.css": 521,
       "src/app/renderer/styles/editor/editor-history.css": 459,
       "src/app/renderer/styles/editor/editor.css": 315,
       "src/app/renderer/styles/editor/note.css": 358,

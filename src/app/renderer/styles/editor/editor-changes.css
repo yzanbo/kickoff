@@ -11,14 +11,7 @@
   height: 100%;
 }
 
-/*
- * ⌘F の検索の欄（MonacoFindBar。ほかの検索の欄と同じ ui/FindField）: エディタの右上に浮かせる。
- * Monaco が描く検索の欄は隠す（探す・印・移る・置き換えは Monaco の仕組みのまま）
- */
-.code-editor .monaco-editor .find-widget {
-  display: none;
-}
-
+/* ⌘F の検索の欄（MonacoFindBar。ほかの検索の欄と同じ ui/FindField）: エディタの右上に浮かせる（Monaco が描く欄は editor-changes.unlayered.css で隠す） */
 .monaco-find {
   position: absolute;
   top: 6px;
@@ -35,38 +28,6 @@
 /* 保存していない変更がある（● 未保存） */
 .diff-state.unsaved {
   color: var(--warn);
-}
-
-/* 行番号の横の Git との違いの帯（足した行 = 緑・変えた行 = 青・消した所 = 赤の三角。VS Code と同じ形）。
-   Monaco が行ごとに置く要素の幅を、細い帯にする */
-.code-editor .quick-diff {
-  width: 3px !important;
-  margin-left: 3px;
-}
-
-.code-editor .quick-diff-added {
-  background: var(--ok);
-}
-
-.code-editor .quick-diff-modified {
-  background: var(--info);
-}
-
-/* 消した所は、直前の行の下の端（先頭を消したときは 1 行目の上の端）に右向きの三角 */
-.code-editor .quick-diff-deleted::after {
-  content: "";
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 5px solid var(--ng);
-  z-index: 9;
-}
-
-.code-editor .quick-diff-deleted.top::after {
-  top: -4px;
-  bottom: auto;
 }
 
 /* 編集している間に、ほかでファイルが変わったときの知らせ */
