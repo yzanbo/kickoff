@@ -4,7 +4,7 @@ import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { useServerEvent } from "@/foundation/ui/api/events";
 import { useWindowEvent } from "@/foundation/ui/hooks/useWindowEvent";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { gitAutoFetch, runGitOperation } from "./gitAutoFetch";
 
 /** 変更のタブを開いている間に取り直す間隔（エディタなど、Kickoff の外での変更にも追いつくため） */

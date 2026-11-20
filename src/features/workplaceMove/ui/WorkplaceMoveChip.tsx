@@ -7,7 +7,8 @@ import { WorktreePrMark } from "@/features/github/ui/prNotice/PrNoticeMark";
 import { useChatWorkplace } from "@/foundation/ui/workplace/useWorkplace";
 import { WORKPLACE_SHORT_LABELS } from "@/foundation/ui/workplace/workplace";
 import { worktreeEnvLines } from "@/features/worktrees/ui/worktreeEnvText";
-import { askNewWorktreeBranch, type Workplace } from "@/foundation/ui/workplace/WorkplacePicker";
+import { askNewWorktreeBranch } from "@/foundation/ui/workplace/WorkplacePicker";
+import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 import { worktreeLabel } from "@/foundation/ui/workplace/WorktreePicker";
 import { moveChatWorkplace, workplaceMoveBlock } from "./moveWorkplace";
 import { WorktreeChip } from "@/foundation/ui/workplace/WorktreeChip";
@@ -27,7 +28,7 @@ export function useWorkplaceChoices(chat: Pick<Chat, "project_id" | "worktree_pa
   const disabled: Record<string, string> = { [current]: "いまの作業場所です" };
   for (const path of reserved) disabled[path] = "片付けを予約しているワークツリーなので、移す先にできません";
   /** 選んだ値を作業場所にする（新しいワークツリーはブランチ名を聞く。やめたら null）と、確かめの見出しの呼び名 */
-  const resolve = async (value: string): Promise<{ place: Workplace; label?: string } | null> => {
+  const resolve = async (value: string): Promise<{ place: WorkplaceChoice; label?: string } | null> => {
     if (value === NEW) {
       const branch = await askNewWorktreeBranch(chat.project_id);
       return branch ? { place: { kind: "new", branch } } : null;

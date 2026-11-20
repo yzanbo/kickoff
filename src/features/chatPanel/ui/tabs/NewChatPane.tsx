@@ -8,7 +8,8 @@ import { Composer } from "@/features/composer/ui/Composer";
 import { SendCancelled } from "@/features/composer/ui/useComposerSend";
 import { ProjectChip } from "@/features/projects/ui/ProjectChip";
 import { useChatOptions } from "@/features/ai/ui/options/ChatOptionsBar";
-import { askNewWorktreeBranch, WorkplacePicker, workplacePath, type Workplace } from "@/foundation/ui/workplace/WorkplacePicker";
+import { askNewWorktreeBranch, WorkplacePicker } from "@/foundation/ui/workplace/WorkplacePicker";
+import { workplacePath, type WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 import { BusyNeighborsNotice } from "@/features/chat/ui/workplace/BusyNeighborsNotice";
 import { useBusyNeighbors } from "@/features/chat/ui/workplace/useBusyNeighbors";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
@@ -98,8 +99,8 @@ export function NewChatPane({
   const chats = useChats({ projectId });
   // 作業場所（初めは本体か、作業場所別のまとまりから始めたときはそのワークツリー。並行して進めたいときにワークツリーを選ぶ）
   // GitHub の issue から「新しいワークツリー」で始めたときは、そのブランチ名の新しいワークツリー（送ったときに作る）
-  const initialPlace = (): Workplace => (worktree ? { kind: "existing", path: worktree } : seed?.newWorktreeBranch ? { kind: "new", branch: seed.newWorktreeBranch } : { kind: "main" });
-  const [place, setPlace] = useState<Workplace>(initialPlace);
+  const initialPlace = (): WorkplaceChoice => (worktree ? { kind: "existing", path: worktree } : seed?.newWorktreeBranch ? { kind: "new", branch: seed.newWorktreeBranch } : { kind: "main" });
+  const [place, setPlace] = useState<WorkplaceChoice>(initialPlace);
   const firstProject = useRef(projectId);
   useEffect(() => {
     // プロジェクトを選び直したら本体から（初めの描画では、渡された作業場所のまま）
@@ -107,7 +108,7 @@ export function NewChatPane({
     firstProject.current = projectId;
     setPlace({ kind: "main" });
   }, [projectId]);
-  const changePlace = (next: Workplace) => {
+  const changePlace = (next: WorkplaceChoice) => {
     setPlace(next);
     onWorktreeChange?.(next.kind === "existing" ? next.path : undefined);
   };

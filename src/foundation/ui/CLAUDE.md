@@ -9,13 +9,12 @@
 | `kit/`・`hooks/`・`lib/` | ドメインを知らない部品・hooks・React に依存しない補助 |
 | `store/`・`api/`・`storage/` | 店の仕組み・サーバーとのやり取り・表示の設定の保存（下の節） |
 | `navigation/`・`shell/` | ルーター `router.ts`・開く口 `open.ts`・別ウィンドウ `popout.ts`・ウィンドウ間の知らせ `windowBus.ts`・移動の履歴 / 殻の口 `points.ts` |
-| `workplace/`・`code/`・`markdown/`・`diff/`・`external/`・`theme/`・`ansi/` | 作業場所・コード・Markdown・差分・外で開く・テーマ・ANSI の色 |
+| `workplace/`・`code/`・`markdown/`・`diff/`・`external/`・`theme/`・`ansi/` | 作業場所（飾り `workplaceDecor`）・コード・Markdown・差分・外で開く・テーマ・ANSI の色 |
 
 App・起動・ショートカット・下の帯は `src/app/renderer/`。
 
-- 依存の向きはルートの `CLAUDE.md` の「層と依存の向き」。土台は機能を読まない。
+- 依存の向きはルートの `CLAUDE.md` の「層と依存の向き」。どの機能にも属さないものだけを土台に置く。
 - 拡張点は `points.ts`。機能の contributes.ts を `@/app/renderer/registry.ts` だけが入れる（部品は `lazyPart`）。
-- どの機能にも属さないものだけを土台に置く。
 - 大きな部品の「状態と操作の hook」は props の束も返してよい（`usePanel` ＋ `Panel`）。
 - 画面（`Route`）を増やす前に、ダイアログか右のパネルで足りないか考える。
 

@@ -4,7 +4,7 @@ import { api } from "@/foundation/ui/api";
 import { errorMessage } from "@shared/foundation/errors";
 import { useSetting } from "@/foundation/ui/hooks/useSetting";
 import { storage } from "./storage";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { lineKey, pushHistory, visibleResults, type DismissedResults } from "./searchHits";
 
 /** 打つのが止まってから探すまでの時間 */

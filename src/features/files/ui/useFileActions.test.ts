@@ -12,7 +12,7 @@ const menu = vi.hoisted(() => ({
 vi.mock("@/foundation/ui/kit/useContextMenu", () => ({
   useContextMenu: () => ({ menu: menu.value ? { value: menu.value, at: { x: 0, y: 0 } } : null, open: () => {}, close: () => {} }),
 }));
-vi.mock("@/foundation/ui/workplace/worktreeContext", () => ({ useGitTarget: () => ({ target: { projectId: 1 } }) }));
+vi.mock("@/foundation/ui/workplace/workplaceContext", () => ({ useGitTarget: () => ({ target: { projectId: 1 } }) }));
 vi.mock("@/foundation/ui/kit/PopupMenu", async () => {
   const { createElement: h } = await import("react");
   return {

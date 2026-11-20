@@ -8,7 +8,7 @@ import { useChats } from "@/features/chat/ui/store/knownChats";
 import { worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
 import { alert, choose, confirm, prompt } from "@/foundation/ui/kit/ask";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";
 import { runGitOperation } from "@/features/git/ui/gitAutoFetch";
 import type { GitLogController } from "./useGitLog";

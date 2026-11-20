@@ -4,13 +4,7 @@ import { prompt } from "@/foundation/ui/kit/ask";
 import { useWorktrees } from "./worktreesStore";
 import { workplaceHue } from "./workplaceHue";
 import { worktreeLabel } from "./WorktreePicker";
-import { WORKPLACE_SHORT_LABELS } from "./workplace";
-
-/** 新しいチャットの作業場所（本体・いまあるワークツリー・新しく作るワークツリー） */
-export type Workplace = { kind: "main" } | { kind: "existing"; path: string } | { kind: "new"; branch: string };
-
-/** 作業場所のフォルダ（チャットの worktree_path と同じ形。null = 本体、undefined = 新しく作るワークツリーで、まだない） */
-export const workplacePath = (place: Workplace): string | null | undefined => (place.kind === "existing" ? place.path : place.kind === "main" ? null : undefined);
+import { WORKPLACE_SHORT_LABELS, type WorkplaceChoice } from "./workplace";
 
 const NEW = "__new__";
 
@@ -40,7 +34,7 @@ export function askNewWorktreeBranch(projectId: number, initial?: string): Promi
  * 見た目はチャットの見出しのブランチの印（WorktreeChip）と同じ札（作業場所の色・「本体｜main」「WT｜ブランチ名」）に ▾ を付けたもの。
  * 「新しいワークツリー…」を選ぶとブランチ名を聞き、チャットを始めるときに作る
  */
-export function WorkplacePicker({ projectId, value, onChange }: { projectId: number; value: Workplace; onChange: (place: Workplace) => void }) {
+export function WorkplacePicker({ projectId, value, onChange }: { projectId: number; value: WorkplaceChoice; onChange: (place: WorkplaceChoice) => void }) {
   const worktrees = useWorktrees(projectId);
   if (!worktrees || worktrees.length === 0) return null;
   const current = value.kind === "existing" ? value.path : value.kind === "new" ? NEW : "";

@@ -16,7 +16,7 @@ import { storage } from "./storage";
 import { IconButton } from "@/foundation/ui/kit/IconButton";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { useMainChat } from "@/features/chat/ui/screen/mainChat";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { DiffLayoutToggle, useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { ImagePreview } from "./ImagePreview";
 import { pagePreviewKind } from "./filePreview";

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { EditorTab } from "@/features/files/ui/EditorTab";
 import { useGitStatus } from "@/features/git/ui/useGitStatus";
 import { HistoryTab } from "@/features/git/ui/history/HistoryTab";
-import { WorktreeContext } from "@/foundation/ui/workplace/worktreeContext";
+import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import type { ProjectView } from "@/features/panel/ui/tabs/panelTypes";
 
@@ -17,7 +17,7 @@ export function SideProjectView({ chatId, projectId, worktree: initial, view }: 
   if (!project) return <p className="muted small">読み込み中…</p>;
   return (
     <div className="project-content side-project-view">
-      <WorktreeContext.Provider value={worktree}>
+      <WorkplaceProvider value={{ projectId, worktree: worktree ?? null }}>
         {view === "history" ? (
           <HistoryTab key={worktree ?? ""} projectId={projectId} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
         ) : (
@@ -33,7 +33,7 @@ export function SideProjectView({ chatId, projectId, worktree: initial, view }: 
             panelScope={`view-${chatId}-${view}`}
           />
         )}
-      </WorktreeContext.Provider>
+      </WorkplaceProvider>
     </div>
   );
 }

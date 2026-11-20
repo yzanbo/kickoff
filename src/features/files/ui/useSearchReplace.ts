@@ -3,7 +3,7 @@ import type { ProjectReplaceResult, ProjectSearchQuery } from "@shared/git/types
 import { api, ApiError } from "@/foundation/ui/api";
 import { baseName } from "@/foundation/ui/lib/format";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { replaceTargets, resultCounts, type SearchFileResult } from "./searchHits";
 import type { ChangesSelection } from "./useFileTabs";
 import type { GitStatusController } from "@/features/git/ui/useGitStatus";

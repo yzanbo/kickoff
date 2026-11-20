@@ -10,7 +10,7 @@ import { HistoryTab } from "@/features/git/ui/history/HistoryTab";
 import { NoteTab } from "@/features/notes/ui/NoteTab";
 import { sideNoteScope } from "@/features/notes/ui/notePanel";
 import { TrashTab } from "@/features/trash/ui/TrashTab";
-import { WorktreeContext } from "@/foundation/ui/workplace/worktreeContext";
+import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import type { PanelFrame } from "@/features/panel/ui/PanelTools";
 import { useOrderedProjectTabs } from "@/features/projects/ui/page/ProjectTabs";
 import { useProjects } from "@/features/projects/ui/stores/projects";
@@ -98,7 +98,7 @@ function SideCodeView({ projectId, view }: { projectId: number; view: "files" | 
   if (!project) return <p className="muted small">読み込み中…</p>;
   if (view === "db") return <LazyDatabaseClient key={worktree ?? ""} projectId={projectId} place={`side-${projectId}`} worktree={worktree ?? null} />;
   return (
-    <WorktreeContext.Provider value={worktree}>
+    <WorkplaceProvider value={{ projectId, worktree: worktree ?? null }}>
       {view === "history" ? (
         <HistoryTab key={worktree ?? ""} projectId={projectId} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
       ) : (
@@ -115,6 +115,6 @@ function SideCodeView({ projectId, view }: { projectId: number; view: "files" | 
           panelScope={`view-side-${projectId}-${worktree ?? "main"}`}
         />
       )}
-    </WorktreeContext.Provider>
+    </WorkplaceProvider>
   );
 }

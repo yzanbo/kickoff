@@ -3,7 +3,7 @@ import { useContext, useEffect } from "react";
 import { open } from "@/foundation/ui/navigation/open";
 import { useProjects } from "@/features/projects/ui/stores/projects";
 import { FileLinkContext } from "@/features/files/ui/links/fileLinkContext";
-import { WorktreeContext } from "@/foundation/ui/workplace/worktreeContext";
+import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { FileView } from "./FileView";
 import { setFileTabDirty } from "./fileTabs";
 import { changeOf } from "@/features/git/ui/diff/sideFile";
@@ -30,9 +30,9 @@ interface Props {
  */
 export function SideFileView(props: Props) {
   return (
-    <WorktreeContext.Provider value={props.worktree}>
+    <WorkplaceProvider value={{ projectId: props.projectId, worktree: props.worktree ?? null }}>
       <SideFileBody {...props} />
-    </WorktreeContext.Provider>
+    </WorkplaceProvider>
   );
 }
 

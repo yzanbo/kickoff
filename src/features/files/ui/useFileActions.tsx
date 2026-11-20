@@ -9,7 +9,7 @@ import type { Placement } from "@/foundation/ui/lib/floating";
 import { alert, confirm, reportFailure } from "@/foundation/ui/kit/ask";
 import { MenuItem, PopupMenu } from "@/foundation/ui/kit/PopupMenu";
 import { useContextMenu } from "@/foundation/ui/kit/useContextMenu";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { confirmDiscard, type GitAction } from "@/features/git/ui/ChangeGroup";
 import type { PickedEntry } from "./FileTree";
 import { joinTreePath, parentPath, topLevelPaths } from "@/foundation/ui/kit/list/treeModel";

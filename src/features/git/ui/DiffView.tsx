@@ -12,7 +12,7 @@ import { CodeLine } from "@/foundation/ui/kit/CodeLine";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { DiffLayoutToggle, useDiffLayout } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { parseDiff, toSplitRows, type DiffLine } from "@/foundation/ui/diff/diffModel";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 
 
 /** ファイルの状態の名前（差分の見出しに出す） */
@@ -31,7 +31,7 @@ export const CHANGE_LABELS: Record<GitFileChange["kind"], string> = {
 export type LoadedDiff = { diff: GitDiff | undefined; error: string | undefined } | undefined;
 
 /**
- * 1 つのファイルの差分を読む（作業場所は WorktreeContext。version が変わったら取り直し、取り直している間は前の差分を出しておく。
+ * 1 つのファイルの差分を読む（作業場所は WorkplaceProvider。version が変わったら取り直し、取り直している間は前の差分を出しておく。
  * 同じファイルのとき・ちらつかないように）。active: false なら読まない
  */
 export function useFileDiff({ projectId, file, staged, version, commit, active = true }: { projectId: number; file: GitFileChange; staged: boolean; version: number; commit?: string; active?: boolean }): LoadedDiff {

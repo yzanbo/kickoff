@@ -4,7 +4,7 @@ import { api } from "@/foundation/ui/api";
 import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { ImageViewer } from "@/foundation/ui/kit/imageViewer/ImageViewer";
 import { formatBytes } from "@/foundation/ui/lib/format";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 
 /**
  * 画像のファイルのプレビュー（ファイルタブ・右の欄・別ウィンドウの FileView。VS Code の画像のプレビューと同じく、

@@ -18,7 +18,7 @@ import { CHANGE_LABELS, DiffView } from "@/features/git/ui/DiffView";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
 import { FileTree } from "@/features/files/ui/FileTree";
 import { buildTree, folderPaths, kindMaps } from "@/foundation/ui/kit/list/treeModel";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { CommitSummary } from "./CommitSummary";
 import type { RefTarget } from "./refTarget";
 

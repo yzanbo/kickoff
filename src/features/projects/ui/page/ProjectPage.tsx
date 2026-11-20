@@ -21,7 +21,7 @@ import { useProjects } from "@/features/projects/ui/stores/projects";
 import { MissingProject, NoProjectsWelcome } from "@/features/projects/ui/ProjectsEmpty";
 import type { FileTarget, ProjectViewId, ReopenRoute } from "@/foundation/ui/navigation/router";
 import { storage } from "@/features/projects/ui/storage";
-import { WorktreeContext } from "@/foundation/ui/workplace/worktreeContext";
+import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { WindowHeaderContent } from "@/foundation/ui/shell/WindowHeaderContent";
 
 interface ProjectPageProps {
@@ -96,7 +96,7 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNot
       {/* ボードと分けたチャット（ボードの右のパネルと同じパネルを横幅いっぱいに） */}
       {tab === "chats" && <ChatsTab key={project.id} projectId={project.id} focus={stale ? undefined : focus} />}
       {editorView && (
-        <WorktreeContext.Provider value={worktree}>
+        <WorkplaceProvider value={{ projectId: project.id, worktree: worktree ?? null }}>
           {/* 作業場所を変えたら、選んでいたファイル・検索などは初めからにする（ファイル・検索・変更のタブの間では同じ部品のまま） */}
           <EditorTab
             key={worktree ?? ""}
@@ -109,12 +109,12 @@ function ProjectPageBody({ id, tab: routeTab, focus, openFile, openNote, openNot
             // 別のプロジェクトを読み込んでいる途中・作業場所を切り替える前は渡さない
             openFile={!stale && openFile?.worktree === worktree ? openFile : undefined}
           />
-        </WorktreeContext.Provider>
+        </WorkplaceProvider>
       )}
       {tab === "history" && (
-        <WorktreeContext.Provider value={worktree}>
+        <WorkplaceProvider value={{ projectId: project.id, worktree: worktree ?? null }}>
           <HistoryTab key={worktree ?? ""} projectId={project.id} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
-        </WorktreeContext.Provider>
+        </WorkplaceProvider>
       )}
       {/* ノート（プロジェクトの外のフォルダ。作業場所には関係しない）。別のプロジェクトを読み込んでいる途中は、URL で来たノートを渡さない */}
       {tab === "notes" && <NoteTab key={project.id} projectId={project.id} openNote={stale ? undefined : openNote} openNoteLine={openNoteLine} />}

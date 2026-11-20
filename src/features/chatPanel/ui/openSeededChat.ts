@@ -8,10 +8,11 @@ import { choose } from "@/foundation/ui/kit/ask";
 import { panelActions } from "@/features/panel/ui/state/panelActions";
 import { openDraft } from "@/features/chatPanel/ui/drafts/panelDrafts";
 import { panelKey } from "@/features/panel/ui/surfaces";
-import { askNewWorktreeBranch, type Workplace } from "@/foundation/ui/workplace/WorkplacePicker";
+import { askNewWorktreeBranch } from "@/foundation/ui/workplace/WorkplacePicker";
+import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 
 /** 作業場所を選ぶ（新しいワークツリー / 本体 / いまあるワークツリー）。やめたら null。branch は新しいワークツリーの名前の案 */
-export async function chooseWorkplace(projectId: number, branch: string): Promise<Workplace | null> {
+export async function chooseWorkplace(projectId: number, branch: string): Promise<WorkplaceChoice | null> {
   const worktrees = (await api.gitWorktrees(projectId).catch(() => [])).filter((w) => !w.main && !w.prunable && w.branch);
   const picked = await choose({
     title: "どこで作業しますか",
@@ -40,7 +41,7 @@ export async function chooseWorkplace(projectId: number, branch: string): Promis
  * link は作るチャットに結び付ける issue・PR（text が空なら入力欄は空のまま。チェックアウトのあとの「ここで新しいチャット」）。
  * 別ウィンドウ（DB クライアントなど）の中からは、メインのウィンドウに頼む
  */
-export function openSeededChat(projectId: number, place: Workplace, seed: { text: string; attachments?: Attachment[]; link?: GitHubLink | null }) {
+export function openSeededChat(projectId: number, place: WorkplaceChoice, seed: { text: string; attachments?: Attachment[]; link?: GitHubLink | null }) {
   if (parsePopout(location.hash)) {
     postToMainWindow("openSeededChat", { projectId, place, text: seed.text, attachments: seed.attachments ?? [], link: seed.link ?? null });
     return;

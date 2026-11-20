@@ -3,7 +3,7 @@ import type { ProjectFiles } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { buildTree } from "@/foundation/ui/kit/list/treeModel";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 
 /**
  * エクスプローラーに出すファイルの木。active（すべてのファイルを表示している）の間だけ読み、

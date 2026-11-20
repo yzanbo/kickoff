@@ -3,7 +3,7 @@ import type { GitCommit, GitLog, GitRefs } from "@shared/git/types";
 import { api } from "@/foundation/ui/api";
 import { errorText, useQuery } from "@/foundation/ui/query";
 import { useWorktrees, worktreesStore } from "@/foundation/ui/workplace/worktreesStore";
-import { useGitTarget } from "@/foundation/ui/workplace/worktreeContext";
+import { useGitTarget } from "@/foundation/ui/workplace/workplaceContext";
 import { layoutGraph } from "./commitGraph";
 
 const NO_COMMITS: GitCommit[] = [];

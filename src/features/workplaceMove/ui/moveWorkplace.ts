@@ -10,7 +10,8 @@ import { alert, confirm } from "@/foundation/ui/kit/ask";
 import { showToast } from "@/foundation/ui/kit/toast";
 import { chooseBusyWorkplaceAction } from "@/features/chat/ui/workplace/busyWorkplace";
 import { countBusyAt } from "@/foundation/ui/workplace/workplace";
-import { askNewWorktreeBranch, type Workplace } from "@/foundation/ui/workplace/WorkplacePicker";
+import { askNewWorktreeBranch } from "@/foundation/ui/workplace/WorkplacePicker";
+import type { WorkplaceChoice } from "@/foundation/ui/workplace/workplace";
 
 /** 確かめに並べるファイルの数（多ければ「ほか n 件」） */
 const LISTED_FILES = 12;
@@ -30,7 +31,7 @@ function fileList(files: string[]): string {
 }
 
 /** 移す先の呼び名（確かめの見出し） */
-const placeName = (place: Workplace, label: string | undefined) =>
+const placeName = (place: WorkplaceChoice, label: string | undefined) =>
   place.kind === "main" ? "本体" : place.kind === "new" ? `新しいワークツリー（${place.branch}）` : `ワークツリー（${label ?? place.path}）`;
 
 /** 確かめの本文（元の場所で動いているもの・フォルダがないとき。変更の文は持っていけるかで別に作る） */
@@ -48,7 +49,7 @@ function checkLines(check: WorkplaceMoveCheck): string[] {
 /**
  * 作業場所を移す（やめた・移せなかったら何もしない。移せなかった理由はダイアログで出す）。label はいまあるワークツリーの呼び名（確かめの見出し）
  */
-export async function moveChatWorkplace(chat: Chat, target: Workplace, label?: string): Promise<void> {
+export async function moveChatWorkplace(chat: Chat, target: WorkplaceChoice, label?: string): Promise<void> {
   let place = target;
   // 移す先で、ほかのチャットが作業中。新しいチャットと同じ設定に従う
   if (place.kind !== "new") {

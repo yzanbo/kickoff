@@ -11,7 +11,7 @@ import { ErrorText } from "@/foundation/ui/kit/ErrorText";
 import { IconButton, RefreshButton } from "@/foundation/ui/kit/IconButton";
 import { PathParts } from "@/foundation/ui/kit/PathParts";
 import { FileLinkContext } from "@/features/files/ui/links/fileLinkContext";
-import { WorktreeContext } from "@/foundation/ui/workplace/worktreeContext";
+import { WorkplaceProvider } from "@/foundation/ui/workplace/workplaceContext";
 import { DiffLayoutToggle } from "@/foundation/ui/diff/DiffLayoutToggle";
 import { CHANGE_LABELS, DiffView, useFileDiff } from "./DiffView";
 import { FileIcon } from "@/foundation/ui/code/FileIcon";
@@ -41,9 +41,9 @@ interface Props {
  */
 export function SideChanges(props: Props) {
   return (
-    <WorktreeContext.Provider value={props.worktree}>
+    <WorkplaceProvider value={{ projectId: props.projectId, worktree: props.worktree ?? null }}>
       <ChangesStack {...props} />
-    </WorktreeContext.Provider>
+    </WorkplaceProvider>
   );
 }
 

@@ -2,6 +2,23 @@ import type { Chat } from "@shared/chat/types";
 import type { GitWorktree } from "@shared/git/types";
 import { baseName } from "@/foundation/ui/lib/format";
 
+/** どこで作業するか（プロジェクトと、ワークツリーのフォルダ。null = 本体）。画面の中の形で、API には query の worktree で渡す */
+export interface WorkplaceRef {
+  projectId: number;
+  worktree: string | null;
+}
+
+/** 作業場所の見分けの文字（"<projectId>:<worktree>"。本体は空。読み直す effect の依存・覚えた結果の見分けに使う） */
+export const workplaceKey = (ref: WorkplaceRef): string => `${ref.projectId}:${ref.worktree ?? ""}`;
+
+export const sameWorkplace = (a: WorkplaceRef, b: WorkplaceRef): boolean => a.projectId === b.projectId && a.worktree === b.worktree;
+
+/** 作業場所を選ぶ部品の答え（本体・いまあるワークツリー・新しく作るワークツリー） */
+export type WorkplaceChoice = { kind: "main" } | { kind: "existing"; path: string } | { kind: "new"; branch: string };
+
+/** 選んだ作業場所のフォルダ（チャットの worktree_path と同じ形。null = 本体、undefined = 新しく作るワークツリーで、まだない） */
+export const workplacePath = (place: WorkplaceChoice): string | null | undefined => (place.kind === "existing" ? place.path : place.kind === "main" ? null : undefined);
+
 /** ワークツリーのブランチ名（ブランチから外れていれば "HEAD a1b2c3d"） */
 export const branchName = (w: GitWorktree) => w.branch ?? `HEAD ${w.head.slice(0, 7)}`;
 

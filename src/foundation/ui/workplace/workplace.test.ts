@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Chat } from "@shared/chat/types";
 import { makeWorktree } from "@shared/foundation/testing/factories";
-import { compareWorkplaces, countBusyAt, workplaceOf } from "./workplace";
+import { compareWorkplaces, countBusyAt, sameWorkplace, workplaceKey, workplaceOf, workplacePath } from "./workplace";
 
 const list = [makeWorktree("/repo", { branch: "main", main: true }), makeWorktree("/repo-worktrees/feat-a", { branch: "feat/a" }), makeWorktree("/repo-worktrees/gone", { branch: "feat/gone", prunable: true })];
 
@@ -72,4 +72,18 @@ test("countBusyAt: 同じ作業場所（null = 本体）で作業中のチャッ
   assert.equal(countBusyAt(chats, null, 1), 1);
   assert.equal(countBusyAt(chats, "/repo-worktrees/feat-a"), 1);
   assert.equal(countBusyAt(chats, "/repo-worktrees/other"), 0);
+});
+
+test("作業場所の見分け: 本体は空の worktree、同じプロジェクトと同じフォルダなら同じ", () => {
+  assert.equal(workplaceKey({ projectId: 3, worktree: null }), "3:");
+  assert.equal(workplaceKey({ projectId: 3, worktree: "/repo-worktrees/feat-a" }), "3:/repo-worktrees/feat-a");
+  assert.equal(sameWorkplace({ projectId: 3, worktree: null }, { projectId: 3, worktree: null }), true);
+  assert.equal(sameWorkplace({ projectId: 3, worktree: null }, { projectId: 4, worktree: null }), false);
+  assert.equal(sameWorkplace({ projectId: 3, worktree: "/a" }, { projectId: 3, worktree: null }), false);
+});
+
+test("選んだ作業場所のフォルダ: 本体は null、新しいワークツリーはまだないので undefined", () => {
+  assert.equal(workplacePath({ kind: "main" }), null);
+  assert.equal(workplacePath({ kind: "existing", path: "/a" }), "/a");
+  assert.equal(workplacePath({ kind: "new", branch: "feat/b" }), undefined);
 });
