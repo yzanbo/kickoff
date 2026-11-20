@@ -56,6 +56,7 @@ import { MaximizedHeader, MaximizedHeaderBar } from "@/foundation/ui/shell/Windo
 import { onAppDialogRequested, type AppDialogMap, type AppDialogRequest } from "@/foundation/ui/shell/points";
 import { createNavigationHistory } from "@/foundation/ui/navigation/navigationHistory";
 import { useAppShortcuts } from "./shortcuts";
+import { useCommandShortcuts } from "@/foundation/ui/commands";
 import { usePlanUsage } from "@/features/ai/ui/usage/usage";
 import { setProjectHues } from "@/features/projects/ui/projectColor";
 import { forgetDraftsOfMissingProjects } from "@/features/chatPanel/ui/drafts/panelDrafts";
@@ -161,6 +162,8 @@ export function App() {
     openSettings: () => showDialog({ id: "settings", detail: "usage" }),
     openActiveChats: () => showDialog({ id: "activeChats", detail: {} }),
   });
+  // 機能が commands に入れたショートカット（いまの 11 キーは useAppShortcuts のまま。表に移したら useAppShortcuts を消す）
+  useCommandShortcuts("main");
   // 部品・別ウィンドウから開くダイアログ（openAppDialog。設定は開いていればその項目に切り替える）と、サイドバーの別ウィンドウの「新しいチャット」
   const onDialogRequested = useEffectEvent((request: AppDialogRequest) => (request.id === "newChat" ? startNewChat() : showDialog(request)));
   useEffect(() => onAppDialogRequested(onDialogRequested), []);

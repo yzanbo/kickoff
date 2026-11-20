@@ -51,7 +51,7 @@ App・起動・ショートカット・下の帯は `src/app/renderer/`。
 - 1 つの部品だけが読む値は `useQuery`（SSE で直す値は店）。実行中と失敗は `useAction`・`useSave`・`useSubmit`。
 - 知らせは `reportFailure`（失敗のお知らせ）・`showToast`（済んだ操作）・`showDropHint`（落とせない理由）。
 - キーの判定は `lib/keys.ts`。変換を確定する Enter・やめる Esc を操作に使わない（`isComposing`）。書き直しの欄は `useEditKeys`。
-- アプリのショートカットは Mac では ⌘ だけで受け、Control 付き（入力欄の編集のキー）を同じ操作にしない。
+- アプリのショートカットは `commands/`（`commands.item`）。判定 `matchKey` は Mac で ⌘ だけ（⌃ は入力欄で使う）。
 - 選ぶ: ↑↓ は `stepIndex` / `useListNavigation`、複数選択は `useMultiSelect`。
 - 大きさ: つまみは `useDragSize`、狭いときに 1 つずつ出すのは `useNarrowSplit`、覆う右の欄は `useCoverableWidth`。
 - あふれたら詰めるのは `useOverflowCompact` / `useWrapCompact`（決め打ちの幅で切り替えない）。付いていくスクロールは `useFollowScroll`。

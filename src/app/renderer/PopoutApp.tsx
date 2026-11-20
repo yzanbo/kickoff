@@ -34,6 +34,7 @@ import { GitHubDialogHost } from "@/features/github/ui/GitHubDialogHost";
 import { ChatStatesContext, indexApprovals } from "@/features/chat/ui/state/chatStates";
 import { popoutPath, type PopoutRoute } from "@/foundation/ui/navigation/popout";
 import { usePopoutForwarding } from "@/foundation/ui/navigation/popoutNavigation";
+import { useCommandShortcuts } from "@/foundation/ui/commands";
 import { useAgentBrowserBridge } from "@/features/browser/ui/agentBrowser";
 
 /** 上の帯の、何のウィンドウかの札 */
@@ -54,12 +55,14 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
   const approvals = useApprovals();
   const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
   useApplyChatFontSize();
-  // 中で画面を移る操作（リンク・サイドバーの行）と、設定・⌘⇧A などのダイアログは、メインのウィンドウで開く
+  // 中で画面を移る操作（リンク・サイドバーの行）は、メインのウィンドウで開く（設定・⌘⇧A などのダイアログは openAppDialog がメインへ送る）
   usePopoutForwarding(route);
   // AI（kickoff_browser）が埋め込みブラウザのタブを開く・表に出す・操作している印（チャット欄・ブラウザのタブの別ウィンドウ。ほかのウィンドウでは受け持たずに断る）
   useAgentBrowserBridge();
   // 利用者が見ているもの（このウィンドウの中身。AI の get_user_view が読む）
   useUserViewReport(() => collectPopoutView(route), (view) => popoutChatIds(view, route), [route]);
+  // 機能が commands に入れたショートカットのうち、別ウィンドウでも効くもの
+  useCommandShortcuts("popout");
   const rootRef = useRef<HTMLDivElement>(null);
   const find = usePageFind(rootRef, { native: openEditorFind, placeholder: "このウィンドウを検索", className: "page-find", enabled: route.kind !== "browser" });
   useWindowEvent("keydown", (e) => {

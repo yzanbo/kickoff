@@ -83,7 +83,7 @@ export function heldMetaOf(e: KeyInput): HeldMeta {
 }
 
 /** Mac（iPhone・iPad も）か。ブラウザから開いたときは、開いた端末で決まる */
-const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+export const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
 /**
  * アプリのショートカットの修飾キー（⌘K など）を押しているか: Mac は ⌘ だけ（Control は付けない）、ほかは Ctrl だけ。
