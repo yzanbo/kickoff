@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { makeProject } from "@shared/foundation/testing/factories";
 import { indexProjects, reduceProjects } from "./projects";
+import { reduceBy } from "@/foundation/ui/store";
 
 const project = (id: number, name: string, position = 0) => makeProject(id, { name, position });
 
@@ -23,9 +24,9 @@ test("indexProjects: 一覧が届いてから、ないプロジェクトだけ�
 
 test("reduceProjects: 作った・変えたプロジェクトは並び順（position → id）の位置へ、消したものは外す", () => {
   const list = [project(1, "A", 0), project(2, "B", 1)];
-  assert.deepEqual(reduceProjects(list, { type: "project", project: project(3, "C", 0) }).map((p) => p.id), [1, 3, 2]);
-  assert.deepEqual(reduceProjects(list, { type: "project", project: project(1, "A2", 5) }).map((p) => p.name), ["B", "A2"]);
-  assert.deepEqual(reduceProjects(list, { type: "project_deleted", id: 1 }).map((p) => p.id), [2]);
-  assert.equal(reduceProjects(list, { type: "project_deleted", id: 9 }), list);
-  assert.equal(reduceProjects(list, { type: "group_deleted", id: 1, project_id: 1 }), list);
+  assert.deepEqual(reduceBy(reduceProjects, list, { type: "project", project: project(3, "C", 0) }).map((p) => p.id), [1, 3, 2]);
+  assert.deepEqual(reduceBy(reduceProjects, list, { type: "project", project: project(1, "A2", 5) }).map((p) => p.name), ["B", "A2"]);
+  assert.deepEqual(reduceBy(reduceProjects, list, { type: "project_deleted", id: 1 }).map((p) => p.id), [2]);
+  assert.equal(reduceBy(reduceProjects, list, { type: "project_deleted", id: 9 }), list);
+  assert.equal(reduceBy(reduceProjects, list, { type: "group_deleted", id: 1, project_id: 1 }), list);
 });

@@ -13,7 +13,7 @@ import { startUsagePolling } from "./usagePolling";
 export const serviceUsageStore = createStore<ServiceUsage[]>({
   load: () => api.usageServices(),
   maxAge: USAGE_REFRESH_MS,
-  reduce: (current, e) => (e.type === "codex_credits" && current ? current.map((s) => (s.id === "codex" ? { ...s, credits: e.credits } : s)) : current),
+  reduce: { codex_credits: (current, e) => (current ? current.map((s) => (s.id === "codex" ? { ...s, credits: e.credits } : s)) : current) },
 });
 
 /** サービスごとの使用状況を読み、出している間は詳細を閉じていても 1 分ごとに取り直す（詳細も同じ店を読む） */

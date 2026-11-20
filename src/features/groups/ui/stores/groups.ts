@@ -2,7 +2,7 @@
 // 使い始めたときにプロジェクトごとに 1 回読み、作る・名前を変える・並べ替える・消すはサーバーの知らせで直す。並びはサイドバーと同じ（position → id）
 import { useMemo } from "react";
 import type { ChatGroup } from "@shared/groups/types";
-import type { BusEvent } from "@shared/foundation/contract";
+import type { ReduceTable } from "@/foundation/ui/store";
 import { api } from "@/foundation/ui/api";
 import { createKeyedStore } from "@/foundation/ui/store/keyedStore";
 import { useKeyedStore, useKeyedStores } from "@/foundation/ui/store/useStore";
@@ -13,16 +13,15 @@ export const NO_GROUPS: ChatGroup[] = Object.freeze([]) as unknown as ChatGroup[
 const byPosition = (a: ChatGroup, b: ChatGroup) => a.position - b.position || a.id - b.id;
 
 /** 知らせでそのプロジェクトのグループの一覧を直す（作った・変えたものは並び順の位置へ。関係なければ同じ一覧） */
-export function reduceGroups(list: ChatGroup[], event: BusEvent, projectId: number): ChatGroup[] {
-  if (event.type === "group" && event.group.project_id === projectId) return [...list.filter((g) => g.id !== event.group.id), event.group].sort(byPosition);
-  if (event.type === "group_deleted" && event.project_id === projectId && list.some((g) => g.id === event.id)) return list.filter((g) => g.id !== event.id);
-  return list;
-}
+export const reduceGroups: ReduceTable<ChatGroup[], number> = {
+  group: (list, event, projectId) => (event.group.project_id === projectId ? [...list.filter((g) => g.id !== event.group.id), event.group].sort(byPosition) : list),
+  group_deleted: (list, event, projectId) => (event.project_id === projectId && list.some((g) => g.id === event.id) ? list.filter((g) => g.id !== event.id) : list),
+};
 
 export const groupsStore = createKeyedStore<number, ChatGroup[]>({
   load: (projectId) => api.groups(projectId),
   reduce: reduceGroups,
-  dropOn: (e) => (e.type === "project_deleted" ? e.id : undefined),
+  dropOn: { project_deleted: (e) => e.id },
 });
 
 /** そのプロジェクトのグループ（読み込み中・グループのないプロジェクトは空） */

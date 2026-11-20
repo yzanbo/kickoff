@@ -10,21 +10,11 @@ type Listener = (event: AnyServerEvent) => void;
 /** 種類ごとの受け手（同じ種類の受け手は登録の順に呼ぶ） */
 const listeners = new Map<string, Set<Listener>>();
 
-/** すべての種類を受ける受け手（店の仕組み keyedStore.ts だけ。店の知らせを種類の表にする P4-1c で消す） */
-const anyListeners = new Set<Listener>();
-
 /** App が受け取ったサーバーイベント（useServerConnection）を、その種類を購読している受け手に配る */
 export function publishServerEvent(event: AnyServerEvent) {
-  for (const listener of anyListeners) listener(event);
   const set = listeners.get(event.type);
   if (!set) return;
   for (const listener of set) listener(event);
-}
-
-/** すべての種類を受ける（keyedStore.ts だけが使う仮の口）。やめるときは返り値を呼ぶ */
-export function onAnyServerEvent(listener: Listener): () => void {
-  anyListeners.add(listener);
-  return () => void anyListeners.delete(listener);
 }
 
 /** その種類（1 つか配列）が届いたら handler を呼ぶ（部品の外・モジュールで使う）。やめるときは返り値を呼ぶ */

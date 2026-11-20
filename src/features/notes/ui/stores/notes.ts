@@ -13,8 +13,8 @@ export const notesStore = createKeyedStore<number, NoteList>({
   maxAge: MAX_AGE_MS,
   refreshOnFocus: true,
   // ノートを変えた・プロジェクトのノートの場所を変えた・親フォルダ（設定）を変えた
-  reloadOn: (e, projectId) => (e.type === "notes" && e.project_id === projectId) || (e.type === "project" && e.project.id === projectId) || e.type === "settings",
-  dropOn: (e) => (e.type === "project_deleted" ? e.id : undefined),
+  reloadOn: { notes: (e, projectId) => e.project_id === projectId, project: (e, projectId) => e.project.id === projectId, settings: true },
+  dropOn: { project_deleted: (e) => e.id },
 });
 
 /** そのプロジェクトのノートの一覧（active が false なら読みに行かない） */

@@ -7,7 +7,7 @@ import { useStore } from "@/foundation/ui/store/useStore";
 /** 保存したら、応答（保存したあとの設定）を set で入れる（知らせを待たずに画面をそろえる） */
 export const settingsStore = createStore<AppSettings>({
   load: () => api.settings(),
-  reduce: (current, e) => (e.type === "settings" ? e.settings : current),
+  reduce: { settings: (_current, e) => e.settings },
 });
 
 /** アプリの設定（data は届くまで undefined） */

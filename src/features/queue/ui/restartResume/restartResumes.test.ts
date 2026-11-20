@@ -3,6 +3,7 @@ import { test } from "vitest";
 import type { ChatLive, RestartResume } from "@shared/chat/chatLive";
 import { makeChatLive } from "@shared/foundation/testing/factories";
 import { autoOpenRestartResumes, reduceRestartResumes } from "./restartResumes";
+import { reduceBy } from "@/foundation/ui/store";
 
 const row = (id: string) => ({ id, text: id, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
 const resume = (chatId: number): RestartResume => ({
@@ -26,15 +27,15 @@ const live = (over: Partial<ChatLive>) =>
 test("起動したときの再開の確かめの一覧: 答えた・空になった・消したら外し、送信待ちが変わったら中身を直す", () => {
   const list = [resume(1), resume(2)];
   // 関係のない知らせ・ほかのチャットでは同じ一覧
-  assert.equal(reduceRestartResumes(list, { type: "notes", project_id: 1, path: null }), list);
-  assert.equal(reduceRestartResumes(list, { type: "chat_live", project_id: 1, chat_id: 9, live: live({}) }), list);
+  assert.equal(reduceBy(reduceRestartResumes, list, { type: "notes", project_id: 1, path: null }), list);
+  assert.equal(reduceBy(reduceRestartResumes, list, { type: "chat_live", project_id: 1, chat_id: 9, live: live({}) }), list);
   // 答えた（restart_resume が null）
   assert.deepEqual(
-    reduceRestartResumes(list, { type: "chat_live", project_id: 1, chat_id: 1, live: live({ restart_resume: null }) }).map((r) => r.chat_id),
+    reduceBy(reduceRestartResumes, list, { type: "chat_live", project_id: 1, chat_id: 1, live: live({ restart_resume: null }) }).map((r) => r.chat_id),
     [2],
   );
   // 送信待ちを直した
-  const edited = reduceRestartResumes(list, {
+  const edited = reduceBy(reduceRestartResumes, list, {
     type: "chat_live",
     project_id: 1,
     chat_id: 2,
@@ -42,12 +43,12 @@ test("起動したときの再開の確かめの一覧: 答えた・空になっ
   });
   assert.deepEqual([edited[1].messages.map((m) => m.id), edited[1].stops], [["b", "c"], [1]]);
   // チャットを消した
-  assert.deepEqual(reduceRestartResumes(list, { type: "chat_deleted", id: 2, project_id: 1 }).map((r) => r.chat_id), [1]);
+  assert.deepEqual(reduceBy(reduceRestartResumes, list, { type: "chat_deleted", id: 2, project_id: 1 }).map((r) => r.chat_id), [1]);
 });
 
 test("起動したときの再開の確かめの一覧: 途中で止まったチャットは、送信待ちを聞かなくなっても・空になっても続けるかを聞き続ける", () => {
   const list = [{ ...resume(1), interrupted: true }];
-  const answeredQueue = reduceRestartResumes(list, {
+  const answeredQueue = reduceBy(reduceRestartResumes, list, {
     type: "chat_live",
     project_id: 1,
     chat_id: 1,
@@ -55,11 +56,11 @@ test("起動したときの再開の確かめの一覧: 途中で止まったチ
   });
   assert.deepEqual(answeredQueue.map((r) => [r.chat_id, r.queued, r.messages.length]), [[1, false, 0]]);
   // 同じ様子がもう一度届いても同じ一覧
-  assert.equal(reduceRestartResumes(answeredQueue, { type: "chat_live", project_id: 1, chat_id: 1, live: live({ restart_resume: { interrupted: true, queued: false } }) }), answeredQueue);
+  assert.equal(reduceBy(reduceRestartResumes, answeredQueue, { type: "chat_live", project_id: 1, chat_id: 1, live: live({ restart_resume: { interrupted: true, queued: false } }) }), answeredQueue);
   // 送信待ちのないチャット: 空の送信待ちでも残す
   const noQueue = [{ ...resume(2), interrupted: true, queued: false, messages: [] }];
   const empty = live({ queue: { messages: [], paused: false, stops: [], waiting_edit: false }, restart_resume: { interrupted: true, queued: false } });
-  assert.equal(reduceRestartResumes(noQueue, { type: "chat_live", project_id: 1, chat_id: 2, live: empty }), noQueue);
+  assert.equal(reduceBy(reduceRestartResumes, noQueue, { type: "chat_live", project_id: 1, chat_id: 2, live: empty }), noQueue);
 });
 
 test("確かめのダイアログを自動で開くか: まだ見せていないチャットが届いたときだけ開く（コアを作り直したあとに新しく止まったチャットでも。答えて外れたチャットがまた止まったときも）", () => {

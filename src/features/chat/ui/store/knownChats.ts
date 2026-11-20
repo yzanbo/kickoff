@@ -3,10 +3,9 @@
 // 部品は useChats({ projectId?, archived? }) で読む（そのプロジェクト・アーカイブ済みを含めるかの見え方ごとに、中身が同じなら同じ配列を返す）
 import { useSyncExternalStore } from "react";
 import type { Chat } from "@shared/chat/types";
-import type { BusEvent } from "@shared/foundation/contract";
 import { api } from "@/foundation/ui/api";
 import { onServerEvent } from "@/foundation/ui/api/events";
-import { createKeyedSelector, createSelector } from "@/foundation/ui/store";
+import { createKeyedSelector, createSelector, type ReduceTable } from "@/foundation/ui/store";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStoreStatus } from "@/foundation/ui/store/useStore";
 
@@ -32,21 +31,14 @@ function removeChat(list: Chat[], id: number): Chat[] {
  * 知らせで一覧を直す（archived: アーカイブ済みの一覧か）。アーカイブした・戻したチャットは、もう一方の一覧へ移る。
  * 別のプロジェクトへ移したチャットは、プロジェクトの ID が変わって届く（プロジェクトごとの見え方からも外れる）
  */
-export function reduceChats(list: Chat[], event: BusEvent, archived: boolean): Chat[] {
-  switch (event.type) {
-    case "chat":
-      return Boolean(event.chat.archived_at) === archived ? upsertChat(list, event.chat) : removeChat(list, event.chat.id);
-    case "chat_deleted":
-      return removeChat(list, event.id);
-    case "project_deleted":
-      return list.some((r) => r.project_id === event.id) ? list.filter((r) => r.project_id !== event.id) : list;
-    default:
-      return list;
-  }
-}
+export const reduceChats = (archived: boolean): ReduceTable<Chat[]> => ({
+  chat: (list, event) => (Boolean(event.chat.archived_at) === archived ? upsertChat(list, event.chat) : removeChat(list, event.chat.id)),
+  chat_deleted: (list, event) => removeChat(list, event.id),
+  project_deleted: (list, event) => (list.some((r) => r.project_id === event.id) ? list.filter((r) => r.project_id !== event.id) : list),
+});
 
-const activeChats = createStore<Chat[]>({ load: () => api.allChats(), reduce: (list, e) => reduceChats(list, e, false) });
-const archivedChats = createStore<Chat[]>({ load: () => api.allChats({ archived: true }), reduce: (list, e) => reduceChats(list, e, true) });
+const activeChats = createStore<Chat[]>({ load: () => api.allChats(), reduce: reduceChats(false) });
+const archivedChats = createStore<Chat[]>({ load: () => api.allChats({ archived: true }), reduce: reduceChats(true) });
 
 /**
  * 2 つの一覧から、そのプロジェクト（省けば全プロジェクト）のチャットを最後に動いた順に。子チャット（親のあるもの）とノートのチャットは入れない

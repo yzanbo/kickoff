@@ -6,7 +6,7 @@
 // - SSE がつながったら（初めて・つなぎ直し）、知らせで直している値を取り直す（つながる前・切れている間の知らせは届かないため）
 // key ごとに値を持つ店は keyedStore.ts の createKeyedStore。React からは useStore.ts の hooks で読む
 import { createKeyedStore } from "./keyedStore";
-import type { Store, StoreOptions } from "./storeTypes";
+import type { ReduceTable, ReloadTable, Store, StoreOptions } from "./storeTypes";
 
 const ONLY = 0;
 
@@ -14,8 +14,8 @@ const ONLY = 0;
 export function createStore<T>({ load, reduce, reloadOn, maxAge, refreshOnFocus }: StoreOptions<T> = {}): Store<T> {
   const keyed = createKeyedStore<typeof ONLY, T>({
     load: load && (() => load()),
-    reduce: reduce && ((data, event) => reduce(data, event)),
-    reloadOn: reloadOn && ((event) => reloadOn(event)),
+    reduce: reduce as ReduceTable<T, typeof ONLY> | undefined,
+    reloadOn: reloadOn as ReloadTable<typeof ONLY> | undefined,
     maxAge,
     refreshOnFocus,
   });

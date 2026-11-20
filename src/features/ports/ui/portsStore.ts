@@ -14,7 +14,7 @@ export const portsAvailable = () => typeof window !== "undefined" && window.kick
 
 export const portsStore = createStore<PortProcess[]>({
   load: () => api.portProcesses(true),
-  reloadOn: (e) => e.type === "ports_changed",
+  reloadOn: { ports_changed: true },
 });
 
 export const usePorts = () => useStore(portsStore);

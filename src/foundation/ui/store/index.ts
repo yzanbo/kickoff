@@ -4,3 +4,5 @@ export type { Cell } from "./cell";
 export { createSignal } from "./signal";
 export { createRegistry } from "./registry";
 export { createKeyedSelector, createSelector } from "./selector";
+export { reduceBy } from "./storeTypes";
+export type { ReduceTable } from "./storeTypes";

@@ -4,6 +4,7 @@ import { snippetLabel } from "@shared/snippets/snippets";
 import { api } from "@/foundation/ui/api";
 import { reduceSnippets, snippetsStore } from "@/features/snippets/ui/stores/snippets";
 import { confirmDialog } from "@/foundation/ui/kit/dialogs";
+import { reduceBy } from "@/foundation/ui/store";
 
 /** 範囲の札（共通 / プロジェクトの名前。プロジェクトの画面の中ではそのプロジェクトを「このプロジェクト」と呼ぶ） */
 export function scopeLabel(snippet: Pick<Snippet, "project_id">, projectName: (id: number) => string | undefined, here?: number | null): string {
@@ -14,13 +15,13 @@ export function scopeLabel(snippet: Pick<Snippet, "project_id">, projectName: (i
 
 export async function createSnippet(body: NewSnippetBody): Promise<Snippet> {
   const snippet = await api.createSnippet(body);
-  snippetsStore.update((list) => reduceSnippets(list, { type: "snippet", snippet }));
+  snippetsStore.update((list) => reduceBy(reduceSnippets, list, { type: "snippet", snippet }));
   return snippet;
 }
 
 export async function updateSnippet(id: number, patch: SnippetPatch): Promise<Snippet> {
   const snippet = await api.updateSnippet(id, patch);
-  snippetsStore.update((list) => reduceSnippets(list, { type: "snippet", snippet }));
+  snippetsStore.update((list) => reduceBy(reduceSnippets, list, { type: "snippet", snippet }));
   return snippet;
 }
 
@@ -38,6 +39,6 @@ export async function confirmDeleteSnippet(snippet: Snippet): Promise<boolean> {
   });
   if (!ok) return false;
   await api.deleteSnippet(snippet.id);
-  snippetsStore.update((list) => reduceSnippets(list, { type: "snippet_deleted", id: snippet.id }));
+  snippetsStore.update((list) => reduceBy(reduceSnippets, list, { type: "snippet_deleted", id: snippet.id }));
   return true;
 }

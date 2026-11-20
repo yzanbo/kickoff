@@ -105,7 +105,7 @@ test("店: 知らせで値を直し、読み込みの最中に届いた知らせ
   const { calls, load } = fakeLoader<number, ChatGroup[]>();
   const store = createKeyedStore<number, ChatGroup[]>({
     load,
-    reduce: (list, e, projectId) => (e.type === "group" && e.group.project_id === projectId ? [...list.filter((g) => g.id !== e.group.id), e.group] : list),
+    reduce: { group: (list, e, projectId) => (e.group.project_id === projectId ? [...list.filter((g) => g.id !== e.group.id), e.group] : list) },
   });
   store.ensure(1);
   // 読み込みの最中に作られたグループ（届く一覧には入っていない）
@@ -125,7 +125,7 @@ test("店: 知らせで値を直し、読み込みの最中に届いた知らせ
 
 test("店: 取り直しの知らせは、使っていればすぐ、読み込み中なら終わってからもう一度、使っていなければ次に使うときに", async () => {
   const { calls, load } = fakeLoader<void, number>();
-  const store = createStore({ load, reloadOn: (e) => e.type === "settings" });
+  const store = createStore({ load, reloadOn: { settings: true } });
   const settings = { type: "settings" } as BusEvent;
   const release = store.retain();
   publishServerEvent(settings);
@@ -182,7 +182,7 @@ test("店: maxAge を過ぎてから使うと、前の値を出したまま取�
 
 test("店: dropOn の知らせで、その key の値を捨てる", async () => {
   const { calls, load } = fakeLoader<number, number>();
-  const store = createKeyedStore<number, number>({ load, dropOn: (e) => (e.type === "project_deleted" ? e.id : undefined) });
+  const store = createKeyedStore<number, number>({ load, dropOn: { project_deleted: (e) => e.id } });
   store.ensure(1);
   store.ensure(2);
   calls[0].resolve(10);
@@ -198,7 +198,7 @@ test("店: dropOn の知らせで、その key の値を捨てる", async () => 
 
 test("店: つながったら、知らせで直している値は使っているものをすべて取り直す（つながる前に読んだ値は、その間の知らせを取りこぼしている）", async () => {
   const { calls, load } = fakeLoader<number, number>();
-  const store = createKeyedStore<number, number>({ load, reduce: (n) => n });
+  const store = createKeyedStore<number, number>({ load, reduce: { group: (n) => n } });
   const releases = [store.retain(1), store.retain(2)];
   store.ensure(3);
   calls[0].reject(new Error("起動中"));
@@ -223,4 +223,18 @@ test("店: 知らせで直さない店は、つながったときに失敗した
   publishServerOpen();
   assert.equal(calls.length, 3);
   releases.forEach((release) => release());
+});
+
+test("店: 表にない種類の知らせでは reduce を呼ばない（ほかの店の知らせを当てない）", async () => {
+  const { calls, load } = fakeLoader<number, number>();
+  let reduced = 0;
+  const store = createKeyedStore<number, number>({ load, reduce: { group: (n) => (reduced++, n + 1) } });
+  store.ensure(1);
+  calls[0].resolve(1);
+  await flush();
+  publishServerEvent({ type: "project_deleted", id: 1 });
+  publishServerEvent({ type: "snippet_deleted", id: 1 });
+  assert.equal(reduced, 0);
+  publishServerEvent(groupEvent(group(2)));
+  assert.deepEqual([reduced, store.get(1).data], [1, 2]);
 });

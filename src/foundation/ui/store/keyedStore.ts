@@ -1,8 +1,8 @@
 // key（プロジェクトの ID など）ごとに値を持つ店の仕組み（値を 1 つだけ持つ店 createStore も、これを 1 つの key で使う）。
 // 店の考え方（読み込み・失敗・知らせ・つながったとき）は createStore.ts の先頭に、形（様子・指定・できること）は storeTypes.ts に書く
 import { errorMessage } from "@shared/foundation/errors";
-import { onAnyServerEvent, onServerOpen } from "@/foundation/ui/api/events";
-import { EMPTY_STATE, type KeyedStore, type KeyedStoreOptions, type StoreState } from "./storeTypes";
+import { onServerEvent, onServerOpen, type AnyServerEvent, type ServerEventType } from "@/foundation/ui/api/events";
+import { EMPTY_STATE, reduceBy, reloadsBy, type KeyedStore, type KeyedStoreOptions, type StoreState } from "./storeTypes";
 
 /** 失敗したあと、使っている値を自動で取り直すまでの間隔（続けて失敗するたびに倍にし、上限で止める） */
 const RETRY_FIRST_MS = 2_000;
@@ -182,13 +182,16 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
     notify(key);
   }
 
-  if (reduce || reloadOn || dropOn) {
-    onAnyServerEvent((event) => {
-      const gone = dropOn?.(event);
+  // 表にある種類だけを購読する（ほかの店の知らせでは呼ばない）
+  const types = [...new Set([...Object.keys(reduce ?? {}), ...Object.keys(reloadOn ?? {}), ...Object.keys(dropOn ?? {})])] as ServerEventType[];
+  if (types.length > 0) {
+    onServerEvent(types, (event: AnyServerEvent) => {
+      const gone = (dropOn?.[event.type] as ((e: AnyServerEvent) => K | undefined) | undefined)?.(event);
       if (gone !== undefined) drop(gone);
+      const table = reduce?.[event.type] ? reduce : undefined;
       for (const [key, entry] of entries) {
-        if (reduce) update(key, (data) => reduce(data, event, key));
-        if (!reloadOn?.(event, key)) continue;
+        if (table) update(key, (data) => reduceBy(table, data, event, key));
+        if (!reloadsBy(reloadOn, event, key)) continue;
         if (inUse(key) || entry.state.loading) restart(key, entry);
         else entry.stale = true;
       }
@@ -197,7 +200,7 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
 
   // つながったら、失敗した値と、知らせで直している値を取り直す（つながる前・切れている間に頼んだ値は、その間の知らせを取りこぼしている。
   // つながったあとに頼んだ値は、サーバーが知らせを送り始めてから作るので取りこぼさない）
-  const followsEvents = Boolean(reduce || reloadOn);
+  const followsEvents = Object.keys(reduce ?? {}).length > 0 || Object.keys(reloadOn ?? {}).length > 0;
   onServerOpen(() => {
     for (const [key, entry] of entries) {
       if (followsEvents) entry.stale = true;

@@ -6,5 +6,5 @@ import { createStore } from "@/foundation/ui/store/createStore";
 /** 手で取り直したら、応答を set で入れる */
 export const usageStore = createStore<PlanUsage>({
   load: () => api.usage(),
-  reduce: (current, e) => (e.type === "usage" ? e.usage : current),
+  reduce: { usage: (_current, e) => e.usage },
 });

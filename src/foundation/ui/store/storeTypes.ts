@@ -1,5 +1,27 @@
 // 店（stores/）の形: 部品が読む様子（StoreState）・作るときの指定・できること（KeyedStore / Store）
-import type { BusEvent } from "@shared/foundation/contract";
+import type { AnyServerEvent, ServerEvent, ServerEventType } from "@/foundation/ui/api/events";
+
+/** 知らせの種類ごとの直し方（関係なければ data をそのまま返す。表にある種類だけを購読する） */
+export type ReduceTable<T, K = undefined> = { readonly [E in ServerEventType]?: (data: T, event: ServerEvent<E>, key: K) => T };
+/** 知らせの種類ごとの、取り直すか（true ならいつも） */
+export type ReloadTable<K = undefined> = { readonly [E in ServerEventType]?: true | ((event: ServerEvent<E>, key: K) => boolean) };
+/** 知らせの種類ごとの、捨てる key（消えたプロジェクトのものなど。捨てなければ undefined） */
+export type DropTable<K> = { readonly [E in ServerEventType]?: (event: ServerEvent<E>) => K | undefined };
+
+type AnyReduce<T, K> = (data: T, event: AnyServerEvent, key: K) => T;
+type AnyReload<K> = true | ((event: AnyServerEvent, key: K) => boolean);
+
+/** 表で知らせを当てる（表にない種類なら data をそのまま返す。テストと店の仕組みが使う） */
+export function reduceBy<T, K = undefined>(table: ReduceTable<T, K>, data: T, event: AnyServerEvent, key?: K): T {
+  const reduce = table[event.type] as AnyReduce<T, K | undefined> | undefined;
+  return reduce ? reduce(data, event, key) : data;
+}
+
+/** 表でこの知らせで取り直すかを決める */
+export function reloadsBy<K>(table: ReloadTable<K> | undefined, event: AnyServerEvent, key: K): boolean {
+  const reload = table?.[event.type] as AnyReload<K> | undefined;
+  return reload === true || (reload !== undefined && reload(event, key));
+}
 
 /** 店の値の様子（部品はこれを読む。中身が変わるたびに別のものになり、変わらなければ同じもの） */
 export interface StoreState<T> {
@@ -19,12 +41,12 @@ export const EMPTY_STATE: StoreState<never> = Object.freeze({ data: undefined, e
 export interface KeyedStoreOptions<K, T> {
   /** 読み込む（省けば読み込まず、set で入れた値だけを持つ） */
   load?: (key: K) => Promise<T>;
-  /** サーバーの知らせで値を直す（関係なければ data をそのまま返す）。届いている key ごとに呼ぶ */
-  reduce?: (data: T, event: BusEvent, key: K) => T;
-  /** この知らせが来たら取り直す（読み込み中なら終わってからもう一度。使っていなければ、次に使うときに） */
-  reloadOn?: (event: BusEvent, key: K) => boolean;
-  /** この知らせが来たら、その key の値を捨てる（消えたプロジェクトのものなど） */
-  dropOn?: (event: BusEvent) => K | undefined;
+  /** サーバーの知らせで値を直す（種類ごと）。届いている key ごとに呼ぶ */
+  reduce?: ReduceTable<T, K>;
+  /** この知らせが来たら取り直す（種類ごと。読み込み中なら終わってからもう一度。使っていなければ、次に使うときに） */
+  reloadOn?: ReloadTable<K>;
+  /** この知らせが来たら、その key の値を捨てる（種類ごと） */
+  dropOn?: DropTable<K>;
   /** 値が古くなるまでの時間（ms）。過ぎてから使うと、前の値を出したまま裏で取り直す（0 なら使い始めるたびに）。省けば古くならない */
   maxAge?: number;
   /** 使っている値は maxAge を過ぎた時点でも自動で取り直す */
@@ -60,8 +82,8 @@ export interface KeyedStore<K, T> {
 /** 読み込み方・知らせでの直し方・古くなるまでの時間（意味は上の KeyedStoreOptions と同じ。key がないだけ） */
 export interface StoreOptions<T> {
   load?: () => Promise<T>;
-  reduce?: (data: T, event: BusEvent) => T;
-  reloadOn?: (event: BusEvent) => boolean;
+  reduce?: ReduceTable<T>;
+  reloadOn?: ReloadTable;
   maxAge?: number;
   refreshOnFocus?: KeyedStoreOptions<number, T>["refreshOnFocus"];
 }

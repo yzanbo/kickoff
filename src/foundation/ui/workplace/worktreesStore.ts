@@ -17,8 +17,8 @@ export const worktreesStore = createKeyedStore<number, GitWorktree[]>({
   maxAge: MAX_AGE_MS,
   refreshAfterMaxAge: true,
   refreshOnFocus: "always",
-  reloadOn: (event, projectId) => event.type === "worktrees_changed" && event.project_id === projectId,
-  dropOn: (e) => (e.type === "project_deleted" ? e.id : undefined),
+  reloadOn: { worktrees_changed: (event, projectId) => event.project_id === projectId },
+  dropOn: { project_deleted: (e) => e.id },
 });
 
 /** そのプロジェクトのワークツリーの一覧（読み込み中・読めなかったときは undefined） */

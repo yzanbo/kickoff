@@ -8,8 +8,8 @@ import { forgetRemoteImages } from "./remoteImageCache";
 
 const imageHostsStore = createKeyedStore<number, ChatImageHost[]>({
   load: (chatId) => api.imageHosts(chatId),
-  reduce: (data, event, chatId) => (event.type === "chat_image_hosts" && event.chat_id === chatId ? event.hosts : data),
-  dropOn: (event) => (event.type === "chat_deleted" ? event.id : undefined),
+  reduce: { chat_image_hosts: (data, event, chatId) => (event.chat_id === chatId ? event.hosts : data) },
+  dropOn: { chat_deleted: (event) => event.id },
 });
 
 const NONE: ChatImageHost[] = [];

@@ -1,7 +1,7 @@
 // プロジェクトの一覧（すべて。しまったものも含む。並びはサーバーと同じ position → id）。
 // アプリを開いたときに 1 回読み、作る・変える・並べ替える・消すはサーバーの知らせで直す。部品は useProjects で読む（props で中継しない）
 import type { Project } from "@shared/projects/types";
-import type { BusEvent } from "@shared/foundation/contract";
+import type { ReduceTable } from "@/foundation/ui/store";
 import { api } from "@/foundation/ui/api";
 import { createSelector } from "@/foundation/ui/store";
 import { createStore } from "@/foundation/ui/store/createStore";
@@ -13,11 +13,10 @@ const byPosition = (a: Project, b: Project) => a.position - b.position || a.id -
 const upsertProject = (list: Project[], project: Project) => [...list.filter((p) => p.id !== project.id), project].sort(byPosition);
 
 /** 知らせで一覧を直す（関係なければ同じ一覧） */
-export function reduceProjects(list: Project[], event: BusEvent): Project[] {
-  if (event.type === "project") return upsertProject(list, event.project);
-  if (event.type === "project_deleted" && list.some((p) => p.id === event.id)) return list.filter((p) => p.id !== event.id);
-  return list;
-}
+export const reduceProjects: ReduceTable<Project[]> = {
+  project: (list, event) => upsertProject(list, event.project),
+  project_deleted: (list, event) => (list.some((p) => p.id === event.id) ? list.filter((p) => p.id !== event.id) : list),
+};
 
 const projectsStore = createStore<Project[]>({ load: () => api.projects(), reduce: reduceProjects });
 

@@ -3,6 +3,7 @@ import { test } from "vitest";
 import type { Chat } from "@shared/chat/types";
 import { makeChat } from "@shared/foundation/testing/factories";
 import { chatsByProject, childChatsOf, NO_CHATS, reduceChats, selectChats, upsertChat } from "./knownChats";
+import { reduceBy } from "@/foundation/ui/store";
 
 const chat = (id: number, project_id: number, active_at: string, archived_at: string | null = null) => makeChat(id, { project_id, active_at, archived_at });
 const ids = (list: readonly Chat[]) => list.map((r) => r.id);
@@ -19,22 +20,22 @@ test("reduceChats: アーカイブした・戻したチャットは一方の一�
   const active = [chat(2, 1, "2026-01-02"), chat(1, 1, "2026-01-01")];
   const archived = [chat(9, 1, "2025-01-01", "2026-01-05")];
   const archiving = chat(1, 1, "2026-01-01", "2026-01-06");
-  assert.deepEqual(ids(reduceChats(active, { type: "chat", chat: archiving }, false)), [2]);
-  assert.deepEqual(ids(reduceChats(archived, { type: "chat", chat: archiving }, true)), [1, 9]);
+  assert.deepEqual(ids(reduceBy(reduceChats(false), active, { type: "chat", chat: archiving })), [2]);
+  assert.deepEqual(ids(reduceBy(reduceChats(true), archived, { type: "chat", chat: archiving })), [1, 9]);
   const restoring = chat(9, 1, "2025-01-01");
-  assert.deepEqual(ids(reduceChats(active, { type: "chat", chat: restoring }, false)), [2, 1, 9]);
-  assert.deepEqual(ids(reduceChats(archived, { type: "chat", chat: restoring }, true)), []);
+  assert.deepEqual(ids(reduceBy(reduceChats(false), active, { type: "chat", chat: restoring })), [2, 1, 9]);
+  assert.deepEqual(ids(reduceBy(reduceChats(true), archived, { type: "chat", chat: restoring })), []);
 });
 
 test("reduceChats: 削除・プロジェクトの削除で外し、関係のない知らせでは同じ一覧のまま", () => {
   const list = [chat(3, 2, "c"), chat(2, 1, "b"), chat(1, 1, "a")];
-  assert.deepEqual(ids(reduceChats(list, { type: "chat_deleted", id: 2, project_id: 1 }, false)), [3, 1]);
-  assert.equal(reduceChats(list, { type: "chat_deleted", id: 99, project_id: 1 }, false), list);
-  assert.deepEqual(ids(reduceChats(list, { type: "project_deleted", id: 1 }, false)), [3]);
-  assert.equal(reduceChats(list, { type: "project_deleted", id: 9 }, false), list);
-  assert.equal(reduceChats(list, { type: "group_deleted", id: 1, project_id: 1 }, false), list);
+  assert.deepEqual(ids(reduceBy(reduceChats(false), list, { type: "chat_deleted", id: 2, project_id: 1 })), [3, 1]);
+  assert.equal(reduceBy(reduceChats(false), list, { type: "chat_deleted", id: 99, project_id: 1 }), list);
+  assert.deepEqual(ids(reduceBy(reduceChats(false), list, { type: "project_deleted", id: 1 })), [3]);
+  assert.equal(reduceBy(reduceChats(false), list, { type: "project_deleted", id: 9 }), list);
+  assert.equal(reduceBy(reduceChats(false), list, { type: "group_deleted", id: 1, project_id: 1 }), list);
   // 別のプロジェクトへ移したチャットは、プロジェクトの ID が変わって届く
-  assert.deepEqual(reduceChats(list, { type: "chat", chat: chat(1, 2, "a") }, false).find((r) => r.id === 1)?.project_id, 2);
+  assert.deepEqual(reduceBy(reduceChats(false), list, { type: "chat", chat: chat(1, 2, "a") }).find((r) => r.id === 1)?.project_id, 2);
 });
 
 test("selectChats: そのプロジェクトのチャットを、アーカイブ済みも合わせて最後に動いた順に（なければ空の同じ配列）", () => {

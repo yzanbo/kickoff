@@ -2,7 +2,7 @@
 // プロジェクトを消すと、そのプロジェクトだけの定型文もコアで一緒に消えるので、project_deleted でも外す
 import { useMemo } from "react";
 import type { Snippet } from "@shared/snippets/types";
-import type { BusEvent } from "@shared/foundation/contract";
+import type { ReduceTable } from "@/foundation/ui/store";
 import { bySnippetPosition, snippetsFor } from "@shared/snippets/snippets";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
@@ -12,12 +12,11 @@ import { useStore } from "@/foundation/ui/store/useStore";
 const NO_SNIPPETS: Snippet[] = Object.freeze([]) as unknown as Snippet[];
 
 /** 知らせで一覧を直す（作った・変えたものは並び順の位置へ。関係なければ同じ一覧） */
-export function reduceSnippets(list: Snippet[], event: BusEvent): Snippet[] {
-  if (event.type === "snippet") return [...list.filter((s) => s.id !== event.snippet.id), event.snippet].sort(bySnippetPosition);
-  if (event.type === "snippet_deleted" && list.some((s) => s.id === event.id)) return list.filter((s) => s.id !== event.id);
-  if (event.type === "project_deleted" && list.some((s) => s.project_id === event.id)) return list.filter((s) => s.project_id !== event.id);
-  return list;
-}
+export const reduceSnippets: ReduceTable<Snippet[]> = {
+  snippet: (list, event) => [...list.filter((s) => s.id !== event.snippet.id), event.snippet].sort(bySnippetPosition),
+  snippet_deleted: (list, event) => (list.some((s) => s.id === event.id) ? list.filter((s) => s.id !== event.id) : list),
+  project_deleted: (list, event) => (list.some((s) => s.project_id === event.id) ? list.filter((s) => s.project_id !== event.id) : list),
+};
 
 /** 操作の応答（作った・変えた定型文、並べ替えたあとの一覧）は set / update で入れ、知らせを待たずに画面をそろえる */
 export const snippetsStore = createStore<Snippet[]>({

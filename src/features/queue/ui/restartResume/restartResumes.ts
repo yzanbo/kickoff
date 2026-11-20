@@ -1,7 +1,8 @@
 // 起動したときの再開の確かめ（前回の終了で、作業の途中で止まった・自動で送るまま送信待ちが残ったチャット。答えるまでコアは続けず・送らない）。
 // アプリを開いたときに 1 回読み、答えた・送信待ちが変わった・チャットを消したはサーバーの知らせで直す（確かめを待つチャットは起動したときにしかできない）
 import type { RestartResume } from "@shared/chat/chatLive";
-import type { BusEvent } from "@shared/foundation/contract";
+import type { ServerEvent } from "@/foundation/ui/api/events";
+import type { ReduceTable } from "@/foundation/ui/store";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
@@ -12,9 +13,12 @@ const NONE: RestartResume[] = Object.freeze([]) as unknown as RestartResume[];
  * 知らせで一覧を直す（答えた・聞くことがなくなった・チャットを消したら外し、送信待ちを聞かなくなったら送信待ちを外し、
  * 送信待ちが変わったら中身を直す。関係なければ同じ一覧）
  */
-export function reduceRestartResumes(list: RestartResume[], event: BusEvent): RestartResume[] {
-  if (event.type === "chat_deleted") return list.some((r) => r.chat_id === event.id) ? list.filter((r) => r.chat_id !== event.id) : list;
-  if (event.type !== "chat_live") return list;
+export const reduceRestartResumes: ReduceTable<RestartResume[]> = {
+  chat_deleted: (list, event) => (list.some((r) => r.chat_id === event.id) ? list.filter((r) => r.chat_id !== event.id) : list),
+  chat_live: applyChatLive,
+};
+
+function applyChatLive(list: RestartResume[], event: ServerEvent<"chat_live">): RestartResume[] {
   const index = list.findIndex((r) => r.chat_id === event.chat_id);
   if (index < 0) return list;
   const { restart_resume: resume, queue } = event.live;

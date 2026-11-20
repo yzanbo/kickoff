@@ -2,7 +2,7 @@
 // 見張りはコア（5 分ごと）で、アプリを開いたときに 1 回読み、変わったらサーバーの知らせ（プロジェクトの分を丸ごと）で入れ替える
 import { useMemo } from "react";
 import type { WorktreePrNotice } from "@shared/git/types";
-import type { BusEvent } from "@shared/foundation/contract";
+import type { ReduceTable } from "@/foundation/ui/store";
 import { api } from "@/foundation/ui/api";
 import { createStore } from "@/foundation/ui/store/createStore";
 import { useStore } from "@/foundation/ui/store/useStore";
@@ -10,11 +10,10 @@ import { useStore } from "@/foundation/ui/store/useStore";
 const NONE: WorktreePrNotice[] = Object.freeze([]) as unknown as WorktreePrNotice[];
 
 /** 知らせで一覧を直す（そのプロジェクトの分を入れ替える・消したプロジェクトの分を外す。関係なければ同じ一覧） */
-export function reduceWorktreePrs(list: WorktreePrNotice[], event: BusEvent): WorktreePrNotice[] {
-  if (event.type === "project_deleted") return list.some((n) => n.project_id === event.id) ? list.filter((n) => n.project_id !== event.id) : list;
-  if (event.type !== "worktree_prs") return list;
-  return [...list.filter((n) => n.project_id !== event.project_id), ...event.notices];
-}
+export const reduceWorktreePrs: ReduceTable<WorktreePrNotice[]> = {
+  project_deleted: (list, event) => (list.some((n) => n.project_id === event.id) ? list.filter((n) => n.project_id !== event.id) : list),
+  worktree_prs: (list, event) => [...list.filter((n) => n.project_id !== event.project_id), ...event.notices],
+};
 
 export const worktreePrsStore = createStore<WorktreePrNotice[]>({ load: () => api.worktreePrs(), reduce: reduceWorktreePrs });
 
