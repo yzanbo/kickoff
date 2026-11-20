@@ -1,11 +1,6 @@
 /* ==== スマホ（縦 1 列） ==== */
 
 @media (max-width: 720px) {
-  /* 右端のアイコンの列は、縦 1 列の画面では置かない（右サイドバーも開かない） */
-  .side-rail {
-    display: none;
-  }
-
   /* スマホでは閉じたサイドバーを消す（縦 1 列のため幅のアニメーションは使わない） */
   .layout.sidebar-collapsed {
     grid-template-columns: 1fr;

@@ -19,6 +19,13 @@
   -webkit-app-region: drag;
 }
 
+/* 縦 1 列の画面（幅 720px 以下）では置かない（右サイドバーも開かない）。別ウィンドウの中の列は、狭くても残す */
+@media (max-width: 720px) {
+  .side-rail:not(.in-window) {
+    display: none;
+  }
+}
+
 /* 右サイドバーの別ウィンドウの中では、ウィンドウの右端に縦に置く（上の帯の下から） */
 .side-rail.in-window {
   grid-column: auto;
