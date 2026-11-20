@@ -26,6 +26,7 @@
  * @property {string[]} [deny]           読んではいけない先（層か glob）
  * @property {string[]} [allowModules]   読んでよいパッケージ（glob。"node:*" など）。書けば、これ以外のパッケージは違反
  * @property {string[]} [denyModules]    読んではいけないパッケージ
+ * @property {boolean} [pureLocal]      読んでよいリポジトリの中のファイルも、パッケージは allowModules のものだけを読むか（既定 false）
  * @property {string} message            違反のときに出す、代わりにどう書くか
  *
  * @typedef {Object} PublicApiRule
@@ -65,7 +66,7 @@
  * @property {string[]} files            見るファイル（層か glob）
  * @property {string[]} [allow]          決まりを当てないファイル（その口の実装など）
  * @property {"include"|"exclude"} [tests] 既定 exclude
- * @property {{ call?: string, member?: string, new?: string, args?: number }[]} forbid  禁じる呼び出し（"setTimeout"・member "Date.now"・new "Date" と args 0 で引数なしだけ・member "app.get" など）
+ * @property {{ call?: string, member?: string, new?: string, args?: number, typeArgs?: string, exportExcept?: string[] }[]} forbid  禁じる呼び出し（"setTimeout"・member "Date.now"・new "Date" と args 0 で引数なしだけ・member "app.get"・exportExcept で並べた名前のほかの export など）
  * @property {string} message
  *
  * @typedef {Object} PlacementRule
@@ -103,6 +104,7 @@ const featureImports = FEATURES.flatMap((f) => [
   { name: `feature-ui:${f}`, from: [`src/features/${f}/ui/**`], allow: [...sharedUpTo(f), "src/foundation/ui/**", `src/features/${upTo(f)}/ui/**`], message: `機能（${f}）の画面は、取り決めと土台の画面と、自分と下の機能の画面だけを読む（上の機能の部品は、下が拡張点を宣言して上が登録する）` },
   { name: `feature-desktop:${f}`, from: [`src/features/${f}/desktop/**`], allow: ["src/shared/**", "src/foundation/core/**", "src/foundation/desktop/**", `src/features/${f}/{desktop,core}/**`], message: `機能（${f}）のメインは、取り決め・土台のコアとメイン・自分のメインだけを読む` },
   { name: `feature-desktop-core-types:${f}`, from: [`src/features/${f}/desktop/**`], typeOnlyAllowed: true, deny: [`src/features/${f}/core/**`], message: `機能（${f}）のメインが自分のコアから読むのは型だけ` },
+  { name: `ui-storage:${f}`, from: [`src/features/${f}/ui/storage.ts`], allow: ["src/shared/**", "src/foundation/ui/storage/index.ts", `src/features/${f}/ui/*.ts`], allowModules: [], pureLocal: true, message: `保存の宣言（${f} の ui/storage.ts）は、@/foundation/ui/storage・@shared・同じフォルダの純粋な .ts（パッケージ・React を読まない）だけを読む（起動の片付けより前に読むため）` },
   { name: `feature-worker:${f}`, from: [`src/features/${f}/worker/**`], allow: ["src/shared/**", `src/features/${f}/worker/**`], message: `機能（${f}）の別プロセスは、取り決めと自分の別プロセスだけを読む（コアとは取り決めの型だけでつなぐ）` },
 ]);
 
@@ -137,6 +139,8 @@ export default {
     { name: "foundation-desktop", from: ["src/foundation/desktop/**"], allow: [...SHARED_BASE, "src/foundation/core/**", "src/foundation/desktop/**"], message: "土台のメインは機能と app を読まない（コアから読むのは土台だけ）" },
     // 機能
     ...featureImports,
+    // 土台の保存の宣言（shell・ui・external の群）
+    ...["storage", "hooks", "external"].map((d) => ({ name: `ui-storage:foundation/${d}`, from: [`src/foundation/ui/${d}/storage.ts`], allow: ["src/shared/**", `src/foundation/ui/${d}/*.ts`, "src/foundation/ui/storage/index.ts"], allowModules: [], pureLocal: true, message: "土台の保存の宣言（storage.ts）は、@/foundation/ui/storage・@shared・同じフォルダの純粋な .ts だけを読む" })),
     // 組み立て（ここだけが全部の機能を知る）とスマホ
     { name: "app-shared", from: ["src/app/shared/**"], allow: ["src/shared/**", "src/app/shared/**"], message: "app/shared は純粋な束ねだけ" },
     { name: "app-core", from: ["src/app/core/**"], allow: ["src/shared/**", "src/foundation/core/**", "src/features/*/{core,testing}/**", "src/app/shared/**", "src/app/core/**"], message: "app/core はコアのプロセスのものだけを読む" },
@@ -183,6 +187,13 @@ export default {
       ],
       forbid: [{ new: "Set", typeArgs: "() => void" }],
       message: "知らせの受け手の Set を手で持たない（@/foundation/ui/store の createCell・createSignal・createRegistry か、店 createStore を使う）",
+    },
+    // 保存の宣言のファイルは群 storage だけを出す（起動の片付けが import.meta.glob で storage を集める）
+    {
+      name: "ui-storage-exports",
+      files: ["src/features/*/ui/storage.ts", "src/foundation/ui/*/storage.ts"],
+      forbid: [{ exportExcept: ["storage"] }],
+      message: "storage.ts は defineSettings の群 storage の 1 つだけを出す（ほかの機能が読むものは ui/index.ts の <機能>Settings、型・解析は同じフォルダの別のファイルへ）",
     },
   ],
   placement: [

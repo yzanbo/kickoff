@@ -99,7 +99,16 @@ const argsMatch = (item, node) => item.args === undefined || node.arguments.leng
 const typeArgsOf = (node, source) => (node.typeArguments ? source.slice(node.typeArguments.start + 1, node.typeArguments.end - 1).replace(/\s+/g, " ").trim() : null);
 const typeArgsMatch = (item, node, source) => item.typeArgs === undefined || typeArgsOf(node, source) === item.typeArgs;
 
-/** 禁じる書き方が出る回数（forbid の call は関数の呼び出し、member は `a.b` の参照、new は new。args を書けば引数の数、typeArgs を書けば型の引数も合うものだけ） */
+/** export する名前（export const・function・type・interface・{ a as b }。default と export * は "*"） */
+function exportedNames(node) {
+  if (node.type !== "ExportNamedDeclaration") return ["*"];
+  const d = node.declaration;
+  if (!d) return node.specifiers.map((s) => s.exported.name ?? s.exported.value);
+  if (d.type === "VariableDeclaration") return d.declarations.map((v) => (v.id.type === "Identifier" ? v.id.name : "*"));
+  return [d.id?.name ?? "*"];
+}
+
+/** 禁じる書き方が出る回数（forbid の call は関数の呼び出し、member は `a.b` の参照、new は new、exportExcept は並べた名前のほかの export。args を書けば引数の数、typeArgs を書けば型の引数も合うものだけ） */
 export function countForbidden(file, source, forbid) {
   let count = 0;
   new Visitor({
@@ -114,6 +123,14 @@ export function countForbidden(file, source, forbid) {
       const name = memberName(node);
       if (name !== null) count += forbid.filter((f) => f.member === name).length;
     },
+    ...Object.fromEntries(
+      ["ExportNamedDeclaration", "ExportDefaultDeclaration", "ExportAllDeclaration"].map((type) => [
+        type,
+        (node) => {
+          for (const name of exportedNames(node)) count += forbid.filter((f) => f.exportExcept && !f.exportExcept.includes(name)).length;
+        },
+      ]),
+    ),
   }).visit(parseCode(file, source).program);
   return count;
 }

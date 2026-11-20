@@ -22,7 +22,9 @@ export function checkImports(graph, config) {
         const bad = edge.path
           ? (allow && !matchesAny(edge.path, allow)) || (deny && matchesAny(edge.path, deny))
           : (rule.allowModules && !matchesAny(edge.module, rule.allowModules)) || (rule.denyModules && matchesAny(edge.module, rule.denyModules));
-        if (bad) out.push({ kind: "import", key: `import:${rule.name}:${file} -> ${edge.path ?? edge.module}`, message: `${file}: ${rule.message}` });
+        // pureLocal: 読んでよいリポジトリの中のファイルも、パッケージは allowModules のものだけを読む（React を読む補助を通して読まない）
+        const impure = !bad && rule.pureLocal && edge.path && (graph.get(edge.path) ?? []).some((e) => e.module && !matchesAny(e.module, rule.allowModules ?? []));
+        if (bad || impure) out.push({ kind: "import", key: `import:${rule.name}:${file} -> ${edge.path ?? edge.module}`, message: `${file}: ${rule.message}` });
       }
     }
   }

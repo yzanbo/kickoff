@@ -150,6 +150,20 @@ test("import の向き: tests を書かなければテストも見る", () => {
   );
 });
 
+test("import の向き: pureLocal なら、読んでよいファイルがパッケージ（allowModules の外）を読むのも違反", () => {
+  const graph = graphOf([
+    ["src/f/ui/storage.ts", ["src/f/ui/views.ts", "src/f/ui/parse.ts"]],
+    ["src/f/ui/views.ts", ["react", "src/shared/s.ts"]],
+    ["src/f/ui/parse.ts", ["src/shared/s.ts"]],
+  ]);
+  const rule = { name: "ui-storage", from: ["src/f/ui/storage.ts"], allow: ["src/f/ui/*.ts"], allowModules: [], message: "純粋なものだけ" };
+  assert.deepEqual(checkImports(graph, { ...layerConfig, imports: [rule] }), []);
+  assert.deepEqual(
+    checkImports(graph, { ...layerConfig, imports: [{ ...rule, pureLocal: true }] }).map((v) => v.key),
+    ["import:ui-storage:src/f/ui/storage.ts -> src/f/ui/views.ts"],
+  );
+});
+
 test("ファイルの大きさ: 上から最初に合った決まりの上限、なければ既定", () => {
   const config = {
     fileSize: {
@@ -341,6 +355,15 @@ test("禁じる書き方: 呼び出し・参照・引数なしの new・型の�
   assert.deepEqual(
     found.map((v) => [v.key, v.value]),
     [["pattern:no-raw-clock:src/core/a.ts", 5]],
+  );
+});
+
+test("禁じる書き方: exportExcept は並べた名前のほかの export を数える（default・export * も）", () => {
+  const code = ['export const storage = 1;', 'const a = 2;', 'export { a as b };', 'export type T = string;', 'export function f() {}', 'export * from "./x";'].join("\n");
+  const config = { tests: [], patterns: [{ name: "one-export", files: ["src/**"], forbid: [{ exportExcept: ["storage"] }], message: "storage だけ" }] };
+  assert.deepEqual(
+    checkPatterns(new Map([["src/a.ts", code], ["src/ok.ts", "export const storage = 1;\nconst x = 2;"]]), config).map((v) => [v.key, v.value]),
+    [["pattern:one-export:src/a.ts", 4]],
   );
 });
 
